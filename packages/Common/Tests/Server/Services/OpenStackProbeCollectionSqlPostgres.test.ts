@@ -28,6 +28,8 @@ import {
   expectClaimLocksHoldOnlyTheRow,
   expectConcurrentClaimsHandOutEachRowOnce,
   expectHeldRowSkipped,
+  expectOneSelfCommittingClaim,
+  statementsSentBy,
 } from "../TestingUtils/Postgres/ClaimRowLocks";
 import { Gray500 } from "../../../Types/BrandColors";
 import SubscriptionStatus from "../../../Types/Billing/SubscriptionStatus";
@@ -1131,6 +1133,105 @@ describePostgres("OpenStack probe collection SQL against Postgres", () => {
       expect((await readTest(runningNow)).status).toBe(
         OpenStackConnectionTestStatus.Running,
       );
+    });
+
+    async function claimTests(limit: number = 10): Promise<Array<string>> {
+      return (
+        await OpenStackCloudConnectionTestService.claimPendingTests({
+          probeId: probeId,
+          limit: limit,
+        })
+      ).map((job: OpenStackConnectionTestJob): string => {
+        return job.openStackCloudConnectionTestId;
+      });
+    }
+
+    test("hands out the oldest first, and no more than the limit", async () => {
+      const third: ObjectID = await insertTest({
+        createdAt: secondsFromNow(-10),
+      });
+      const first: ObjectID = await insertTest({
+        createdAt: secondsFromNow(-30),
+      });
+      const second: ObjectID = await insertTest({
+        createdAt: secondsFromNow(-20),
+      });
+
+      expect(await claimTests(2)).toEqual([
+        first.toString(),
+        second.toString(),
+      ]);
+      expect(await claimTests(2)).toEqual([third.toString()]);
+      expect(await claimTests(2)).toEqual([]);
+    });
+
+    /*
+     * OneUptime issue #7392: the claim was START TRANSACTION, SELECT ... FOR
+     * UPDATE, an UPDATE of the ids and COMMIT on every probe tick. What
+     * follows it - one read of the claimed tests and the wipe of each one's
+     * secret - is as it was.
+     */
+    test("the claim is one statement, with no transaction around it; then one read, and one wipe a test", async () => {
+      await insertTest({});
+      await insertTest({});
+
+      const withWork: { result: Array<string>; statements: Array<string> } =
+        await statementsSentBy(() => {
+          return claimTests();
+        });
+
+      expect(withWork.result).toHaveLength(2);
+      expect(withWork.statements[0]).toBe(
+        expectOneSelfCommittingClaim(withWork.statements),
+      );
+      expect(withWork.statements).toHaveLength(1 + 1 + 2);
+
+      const empty: { result: Array<string>; statements: Array<string> } =
+        await statementsSentBy(() => {
+          return claimTests();
+        });
+
+      expect(empty.result).toEqual([]);
+      expect(empty.statements).toHaveLength(1);
+    });
+
+    test("a test another writer holds is skipped at once, and handed out once it is free", async () => {
+      const held: ObjectID = await insertTest({
+        createdAt: secondsFromNow(-20),
+      });
+      const free: ObjectID = await insertTest({
+        createdAt: secondsFromNow(-10),
+      });
+
+      await expectHeldRowSkipped({
+        database: database,
+        schema: schema,
+        table: "OpenStackCloudConnectionTest",
+        held: held,
+        free: [free],
+        claim: (): Promise<Array<string>> => {
+          return claimTests();
+        },
+      });
+    });
+
+    test("claims at once hand out each test exactly once", async () => {
+      const due: Array<string> = [];
+
+      for (let index: number = 0; index < 12; index++) {
+        due.push(
+          (
+            await insertTest({ createdAt: secondsFromNow(-(12 - index)) })
+          ).toString(),
+        );
+      }
+
+      await expectConcurrentClaimsHandOutEachRowOnce({
+        due: due,
+        claim: (limit: number): Promise<Array<string>> => {
+          return claimTests(limit);
+        },
+      });
     });
   });
 });

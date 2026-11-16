@@ -161,6 +161,7 @@ Open een SLO om zijn pagina's in het zijmenu te zien:
 | --- | --- |
 | **Overzicht** | De status, de kerncijfers, de verbranding van het foutbudget, recente activiteit, open waarschuwingen en incidenten en de regels voor verbruikssnelheid. |
 | **Metrieken** | De `oneuptime.slo.*`-metrics van de SLO, zijn foutbudgetgeschiedenis op lange termijn en de metrics van de incidenten en waarschuwingen die hem raken. Zie [SLO-metrics en -dashboards](/docs/slo/metrics). |
+| **Maandrapport** | Hoe de SLO het elke kalendermaand en over de hele periode deed. Zie [Het maandrapport](#het-maandrapport). |
 | **Incidenten** | De incidenten die zijn regels voor verbruikssnelheid en zijn foutbudgetbeleid hebben gemeld. De badge telt de open incidenten. |
 | **Waarschuwingen** | De waarschuwingen die zijn regels voor verbruikssnelheid en zijn foutbudgetbeleid hebben gegeven. De badge telt de open waarschuwingen. |
 | **Feed** | Wat er met de SLO is gebeurd, als tijdlijn. Zie [SLO-feed en auditlogboeken](/docs/slo/feed-and-audit-logs). |
@@ -209,6 +210,31 @@ De pagina **Instellingen** brengt samen hoe een SLO meet, één kaart per onderd
 | **SLO archiveren** | **Archiveren** of **Uit het archief halen**. | Zie [Een SLO archiveren](#een-slo-archiveren). |
 
 Na een wijziging van wat hij meet, het doel, de periode of de downtimeberekening evalueert OneUptime de SLO opnieuw bij de volgende uitvoering.
+
+### Het maandrapport
+
+Het **Maandrapport** toont hoe de SLO het deed in elke kalendermaand van de afgelopen **3 maanden**, **6 maanden**, **9 maanden** of **12 maanden**, of van een kalenderjaar. Elke maand toont zijn SLI, zijn uitvaltijd (bij een aanvraag-SLO de mislukte of trage aanvragen, bij een metriek-SLO de slechte gebeurtenissen), het deel van zijn foutbudget dat hij gebruikte, en zijn resultaat:
+
+| Resultaat | Wat het betekent |
+| --- | --- |
+| Voldaan | De maand is voorbij en zijn SLI haalde het doel. |
+| Niet gehaald | De maand is voorbij en haalde het doel niet, of de maand loopt nog en heeft al meer uitvaltijd dan de hele maand toestaat. |
+| Op koers | De maand loopt nog en zijn SLI tot nu toe haalt het doel. |
+| Onder het doel | De maand loopt nog en zijn SLI tot nu toe ligt onder het doel. |
+| Geen gegevens | Die maand is niets gemeten. |
+
+De rij **Totaal** meet de hele periode als één geheel. Een SLO met meerdere monitoren krijgt ook een tabel **Per monitor**: de eigen SLI van elke monitor in elke maand, met eerst de monitor die de SLO het meest kostte. **CSV downloaden** slaat het rapport op als bestand voor een spreadsheet.
+
+Voor het rapport wordt niets extra opgeslagen. Elke maand wordt bij het openen berekend uit de statusgeschiedenis van de monitoren, met de monitoren, uitvaltijdstatussen en het doel van de SLO zoals ze nu zijn, zodat het rapport teruggaat tot vóór het aanmaken van de SLO. De maanden van een aanvraag-SLO komen uit de aanvragen die OneUptime ervoor telde, die van een metriek-SLO uit de gebeurtenissen van zijn metriek; OneUptime bewaart ze 400 dagen. De maanden volgen de tijdzone van de SLO, of UTC als die er geen heeft.
+
+De API antwoordt met hetzelfde rapport:
+
+```bash
+curl -sS "https://oneuptime.com/api/service-level-objective/<slo-id>/monthly-report?months=12" \
+  -H "ApiKey: $ONEUPTIME_API_KEY"
+```
+
+Vraag met `months` 1 tot 24 maanden op die eindigen met de huidige maand, of een kalenderjaar met `year`, zoals `year=2025`.
 
 ## Een SLO archiveren
 

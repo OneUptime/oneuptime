@@ -392,6 +392,83 @@ test(
 );
 
 /*
+ * An IPv6 HOST without brackets never works (#8022): a browser names the
+ * address in brackets, which the primary server's name then never matches.
+ * npm start and the Helm chart refuse it before anything starts; one that
+ * came another way is said in the ingress's log, and the ingress starts as
+ * it did, so the status pages it serves on custom domains keep working.
+ */
+function scriptLog(host) {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "oneuptime-log-"));
+
+  try {
+    const templateDirectory = path.join(directory, "templates");
+    const outputDirectory = path.join(directory, "out");
+
+    fs.mkdirSync(templateDirectory);
+    fs.mkdirSync(outputDirectory);
+    fs.writeFileSync(
+      path.join(templateDirectory, "default.conf.template"),
+      "server_name localhost ingress ${HOST_SERVER_NAME};\n",
+    );
+
+    const result = spawnSync("sh", [SCRIPT_PATH], {
+      encoding: "utf8",
+      env: {
+        PATH: process.env.PATH,
+        NGINX_ENVSUBST_TEMPLATE_DIR: templateDirectory,
+        NGINX_ENVSUBST_OUTPUT_DIR: outputDirectory,
+        ...containerEnvironment({ HOST: host }),
+      },
+    });
+
+    assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+
+    return `${result.stdout}${result.stderr}`.split("\n").filter((line) => {
+      return line.includes("WARNING");
+    });
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+}
+
+test(
+  "the script says in its log that an IPv6 HOST without brackets cannot be opened, and starts",
+  { skip: scriptSkipReason },
+  () => {
+    for (const host of ["2001:db8::1", "2001:db8::1:8080", "::1"]) {
+      assert.deepEqual(
+        scriptLog(host),
+        [
+          `envsubst-on-templates.sh: WARNING: HOST is ${host}, an IPv6 address without brackets, so no browser can open OneUptime at it. Set HOST=[${host}], with any port after the brackets, such as [2001:db8::1]:8080.`,
+        ],
+        `HOST="${host}"`,
+      );
+    }
+  },
+);
+
+test(
+  "the script says nothing of a HOST that is a name, an IPv4 address or an IPv6 address in brackets",
+  { skip: scriptSkipReason },
+  () => {
+    // Every HOST of the table but the IPv6 address without brackets.
+    const hosts = HOSTS.map(([host]) => {
+      return host;
+    }).filter((host) => {
+      return host.startsWith("[") || host.split(":").length <= 2;
+    });
+
+    assert.ok(hosts.includes("[2001:db8::1]"));
+    assert.ok(!hosts.includes("2001:db8::1"));
+
+    for (const host of hosts) {
+      assert.deepEqual(scriptLog(host), [], `HOST="${host}"`);
+    }
+  },
+);
+
+/*
  * The script leaves HOST out for the names the template lists before it,
  * read from the template here: a name added to the line, and not to the
  * script, would be listed twice again.

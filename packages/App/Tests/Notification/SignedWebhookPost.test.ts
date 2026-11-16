@@ -1,5 +1,6 @@
 import SignedWebhookPost, {
   MAX_SIGNED_WEBHOOK_BODY_LENGTH,
+  SIGNED_WEBHOOK_TARGET_VALIDATION,
   SIGNED_WEBHOOK_MAX_ATTEMPTS,
   SIGNED_WEBHOOK_REQUEST_TIMEOUT_MS,
   SIGNED_WEBHOOK_RETRY_DELAYS_MS,
@@ -18,7 +19,10 @@ import {
 } from "Common/Types/CustomNotificationChannel/CustomNotificationChannelPayload";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import API from "Common/Utils/API";
+import API, { RequestOptions } from "Common/Utils/API";
+import SafeWebhookRequest, {
+  WebhookTarget,
+} from "Common/Server/Utils/SafeWebhookRequest";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import crypto from "crypto";
 
@@ -78,9 +82,15 @@ function refused(status: number): HTTPErrorResponse {
   return new HTTPErrorResponse(status, { message: "nope" }, {});
 }
 
+// The service's URL as its check approved it (SafeWebhookRequest.resolveTarget).
+const TARGET: WebhookTarget = {
+  url: new globalThis.URL(URL_TEXT),
+  addresses: [{ address: "10.20.30.40", family: 4 }],
+};
+
 async function postSigned(
   overrides: Partial<{
-    url: string;
+    target: WebhookTarget;
     secret: string;
     eventType: string;
     payload: JSONObject;
@@ -88,7 +98,7 @@ async function postSigned(
   }> = {},
 ): Promise<SignedPostOutcome> {
   return await SignedWebhookPost.post({
-    url: URL_TEXT,
+    target: TARGET,
     secret: SECRET,
     eventType: "sms",
     payload: PAYLOAD,
@@ -188,9 +198,40 @@ describe("what is sent", () => {
     expect(request["url"]).toBeInstanceOf(URL);
     expect(request["url"]!.toString()).toBe(URL_TEXT);
     expect(request["data"]).toEqual(PAYLOAD);
-    expect(request["options"]).toEqual({
+    expect(request["options"]).toMatchObject({
       timeout: SIGNED_WEBHOOK_REQUEST_TIMEOUT_MS,
       doNotFollowRedirects: true,
+      // Exactly the URL that was checked, on Node's http adapter.
+      dispatchUrl: URL_TEXT,
+      useNodeHttpAdapter: true,
+    });
+  });
+
+  test("every attempt dials only the address the check approved, on agents of its own (issue 6611)", async () => {
+    post.mockResolvedValueOnce(refused(503)).mockResolvedValueOnce(ok());
+    const send: jest.SpyInstance = jest.spyOn(SafeWebhookRequest, "send");
+
+    await postSigned();
+
+    expect(send).toHaveBeenCalledTimes(2);
+
+    for (const call of send.mock.calls) {
+      expect(call[0]).toBe(TARGET);
+    }
+
+    for (const index of [0, 1]) {
+      const options: RequestOptions = requestOf(index)[
+        "options"
+      ] as RequestOptions;
+
+      expect(options.httpAgent).toBeDefined();
+      expect(options.httpsAgent).toBeDefined();
+    }
+  });
+
+  test("its callers check the URL with the installation's own rule: private addresses where the instance allows them", () => {
+    expect(SIGNED_WEBHOOK_TARGET_VALIDATION).toEqual({
+      allowPrivateNetworkTargets: true,
     });
   });
 

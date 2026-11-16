@@ -65,10 +65,10 @@ A change to these settings applies within a minute.
 | Column | What it shows |
 | --- | --- |
 | **When** | How long ago, with the date and time. |
-| **Action** | `Create`, `Update` or `Delete`, `Download` for a packet capture file someone downloaded, or `Sign In`, `Sign Out`, `Session Timeout` or `Session Revoked` for a session. |
+| **Action** | `Create`, `Update` or `Delete`, `Download` for a packet capture file someone downloaded, or `Sign In`, `Sign-In Failed`, `Sign Out`, `Session Timeout` or `Session Revoked` for a sign-in or a session. |
 | **Resource** | The resource's name, which opens it while it still exists, and its type. |
 | **Actor** | Who made the change: a person, an API key, a workflow, or `System` for a change OneUptime made by itself. A person's change made through an MCP client says which one. |
-| **Changes** | How many fields changed, or were captured for a create or a delete. For a session, how it signed in or why it ended. Click it to see each field. |
+| **Changes** | How many fields changed, or were captured for a create or a delete. For a sign-in or a session, how it signed in, why it failed or why it ended. Click it to see each field. |
 
 Filter by **Resource Type**, **Resource Name**, **Action**, **User Email** or **Time**. An update lists only the fields that changed, before and after, and a save that changes nothing adds no entry.
 
@@ -86,7 +86,7 @@ Everything people create, change or delete in a project is recorded: monitors, i
 | Records of runs | Each is already the record of a workflow run, an on-call escalation, a scan, an import or an AI run. |
 | What agents and telemetry report | Discovered resources, readings and usage change with every report, not because anybody changed them. |
 | Activity feeds | A feed lists changes the audit log already records. |
-| OneUptime's working state | Status page readers' sessions, queued jobs and other state OneUptime keeps while it works. |
+| OneUptime's working state | Queued jobs and other state OneUptime keeps while it works. |
 | A person's own notification setup | Each person's addresses, numbers and How to Reach Me are theirs alone. |
 | A person's own preferences | The products each person pins to their own top bar are theirs alone, and only they see them. |
 
@@ -114,11 +114,16 @@ Each time a member of the project signs in to OneUptime, the audit log records i
 | Action | When it is recorded |
 | --- | --- |
 | `Sign In` | Someone signs in: with a password or a sign-in link, a passkey, Google, Microsoft, Vercel or single sign-on. |
+| `Sign-In Failed` | Someone tries to sign in to an existing account and fails: a wrong password, authenticator code, backup code or security key, a blocked or unverified account, or a single sign-on OneUptime refused. |
 | `Sign Out` | They sign out. |
 | `Session Timeout` | OneUptime ends the session on time: the idle timeout or session length a server admin set, or 30 days without use. |
 | `Session Revoked` | OneUptime ends the session because the password changed, the account was blocked, or a server admin reset or required two-factor authentication. |
 
 An entry's **Resource** is the session, named by the device it signed in from, such as `Chrome 130 on macOS`. Its **Actor** is the person whose session it is, so filtering by **User Email** finds every sign-in and session of theirs. Its details say how they signed in and with which second factor, the IP address and the place, and for a session that ended, when it signed in, when it was last used and when it timed out. A project's own SSO provider is named only in that project's audit log.
+
+A `Sign-In Failed` entry is about the attempt, named by the device it came from. Its **Actor** is the account the attempt was made on: whoever made it did not prove they are that person. Its details say why it failed, how they tried to sign in, the IP address and the place, never what was typed. An attempt on an email address that no account has is not recorded, and recording an attempt changes neither what the sign-in page answers nor how fast. So that a flood of attempts cannot fill the audit log, the first 10 failed attempts on an account in an hour are recorded one by one. The rest are counted, and the account's next entry says how many attempts it stands for and when the first of them was made.
+
+The readers of a private status page are recorded too, in the status page's project only: each sign-in with a password, a sign-in link or the status page's single sign-on, each sign-out, and each session OneUptime ends because the reader's password changed or the status page no longer accepts how it signed in. Their entries are also on the status page's own **Audit Logs** page. Their **Actor** is the reader, by their email address, and their **Resource** is the reader's session.
 
 Sign-ins and sessions are recorded whether or not the project stores system events. A session length or 30 days without use is recorded within minutes of running out. An idle timeout in the browser, or in a version of the mobile app newer than 1.6.0, is recorded within 35 minutes of running out, whether or not the person comes back. In version 1.6.0 and earlier of the mobile app, it is recorded the next time the app reaches OneUptime.
 

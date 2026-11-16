@@ -19,6 +19,7 @@ import Select from "Common/Server/Types/Database/Select";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import { MarkdownText } from "Common/Utils/Markdown/FeedMarkdown";
 import EmailColorUtil, {
   EmailColorPair,
 } from "Common/Utils/Email/EmailColorUtil";
@@ -36,7 +37,9 @@ import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
 import OwnerNotificationDeliveries, {
   OwnerNotificationDelivery,
+  OwnerNotificationOf,
 } from "Common/Server/Utils/Notification/OwnerNotificationDeliveries";
+import OwnersReachedByAPage from "Common/Server/Utils/Notification/OwnersReachedByAPage";
 import { OwnerNotificationKind } from "Common/Types/Notification/OwnerNotificationDelivery";
 
 // What the "Alert Created" notification is made of, read for each alert.
@@ -178,13 +181,21 @@ RunCron(
 
 /*
  * Whom the alert's "Alert Created" notification tells - its owners, or the
- * project's when it has none - written down before the alert is taken
+ * project's when it has none, but for those its on-call page reached
+ * already - written down before the alert is taken
  * (OwnerNotificationDeliveries.plan). A failure to read them tells nobody,
  * as it did when it came after the take.
  */
 async function planOwnersOfAlert(
   alert: Alert,
 ): Promise<OwnerNotificationDelivery> {
+  const notification: OwnerNotificationOf = {
+    kind: OwnerNotificationKind.AlertCreated,
+    projectId: alert.projectId!,
+    resourceId: alert.id!,
+    eventId: alert.id!,
+  };
+
   let owners: Array<User> = [];
   let isProjectOwners: boolean = false;
 
@@ -205,22 +216,26 @@ async function planOwnersOfAlert(
   }
 
   return await OwnerNotificationDeliveries.plan({
-    notification: {
-      kind: OwnerNotificationKind.AlertCreated,
-      projectId: alert.projectId!,
-      resourceId: alert.id!,
-      eventId: alert.id!,
-    },
+    notification: notification,
     owners: owners,
     isProjectOwners: isProjectOwners,
     writesFeedItem: true,
+    /*
+     * Not those the alert's on-call page reached already: someone who is
+     * on call and an owner is told of the alert once, not twice (#7987).
+     */
+    leaveOut: await OwnersReachedByAPage.findAmong({
+      notification: notification,
+      owners: owners,
+    }),
   });
 }
 
 /*
  * Tells the delivery's owners that the alert was created, each once
  * (OwnerNotificationDelivery.tell), and says in the alert's feed whom it
- * reached - those a stopped run told first among them.
+ * reached - those a stopped run told first among them - and whom it left
+ * out, as the alert's on-call page reached them already.
  */
 async function notifyOwnersOfAlert(
   alert: Alert,
@@ -586,6 +601,17 @@ async function notifyOwnersOfAlert(
   if (!delivery.isFeedItemToWrite) {
     return;
   }
+
+  // Whom it left out, named apart from those notified (OwnersReachedByAPage).
+  moreAlertFeedInformationInMarkdown +=
+    OwnerNotificationFeedText.reachedByPageMarkdown(
+      delivery.leftOut.map((user: User): MarkdownText => {
+        return OwnerNotificationFeedText.nameAndEmail({
+          name: user.name?.toString(),
+          email: user.email?.toString(),
+        });
+      }),
+    );
 
   await AlertFeedService.createAlertFeedItem({
     alertId: alert.id!,

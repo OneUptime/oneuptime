@@ -21,6 +21,11 @@ import {
   readOnCallPageAcknowledgedByMessage,
 } from "./OnCallPageEnding";
 import { NO_LONGER_A_PROJECT_MEMBER_STATUS_MESSAGE } from "./OnCallPageLine";
+import {
+  ON_CALL_PAGE_MERGE_UNNAMED_POLICY,
+  readOnCallPageMergeTakenOverMessage,
+  readOnCallPageMergedMessage,
+} from "./OnCallPageMerge";
 import { ON_CALL_PAGE_NAMES_NO_RECORD_MESSAGE } from "./OnCallPageRecordGone";
 import {
   isOnCallPagePassedOnSkipTimelineMessage,
@@ -156,6 +161,13 @@ export enum OnCallLogLineCode {
   EmailSentWithoutImages = "EmailSentWithoutImages",
   // A call that ended (#8576): how, how long, and its id.
   CallEnded = "CallEnded",
+  /*
+   * A person's page merged into their open page from another policy's run
+   * (OnCallPageMerge): which policy is paging them - none, when the line
+   * names none - and the page that took the page over when that one ended.
+   */
+  PageMerged = "PageMerged",
+  PageMergeTakenOver = "PageMergeTakenOver",
 }
 
 export interface OnCallLogLine {
@@ -293,6 +305,35 @@ function readSeenByObserver(message: string): OnCallLogLine | null {
     recordKind: recordKind,
     name: who,
   };
+}
+
+/*
+ * A merged page's line (OnCallPageMerge): the policy paging them, as
+ * written - none when the line names no policy, which the Dashboard says in
+ * the reader's words - and the line of one that took the page over.
+ */
+function readMergedPageLine(message: string): OnCallLogLine | null {
+  const merged: string | null = readOnCallPageMergedMessage(message);
+
+  if (merged !== null) {
+    return {
+      code: OnCallLogLineCode.PageMerged,
+      ...(merged !== ON_CALL_PAGE_MERGE_UNNAMED_POLICY ? { name: merged } : {}),
+    };
+  }
+
+  const takenOver: string | null = readOnCallPageMergeTakenOverMessage(message);
+
+  if (takenOver !== null) {
+    return {
+      code: OnCallLogLineCode.PageMergeTakenOver,
+      ...(takenOver !== ON_CALL_PAGE_MERGE_UNNAMED_POLICY
+        ? { name: takenOver }
+        : {}),
+    };
+  }
+
+  return null;
 }
 
 /*
@@ -615,6 +656,12 @@ export function readOnCallLogLine(
 
   if (seenByObserver) {
     return seenByObserver;
+  }
+
+  const merged: OnCallLogLine | null = readMergedPageLine(message);
+
+  if (merged) {
+    return merged;
   }
 
   const stuckMinutes: number | null = readStuckNotificationMinutes(message);

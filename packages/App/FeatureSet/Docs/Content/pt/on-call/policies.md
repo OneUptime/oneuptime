@@ -85,8 +85,10 @@ Quem é acionado de novo confirma pela mensagem, ou com **Confirmar de novo** na
 
 Um incidente, alerta ou episódio executa cada uma das suas políticas por conta própria, ao mesmo tempo.
 
-- Quem está de plantão em duas delas é acionado pelas duas, uma vez por cada uma: o OneUptime não junta os acionamentos de políticas diferentes. Dentro de uma política, alguém que um nível cita duas vezes, pessoalmente e por meio de uma equipe ou de um agendamento, é acionado uma só vez.
+- Quem está de plantão em duas delas é acionado uma só vez. Quando o nível de uma política chega a alguém que outra política já está acionando sobre isso, ele não aciona essa pessoa de novo: o registro de execução da política mostra a pessoa como **Já chamado**, e o feed do incidente e a mensagem da política no Slack e no Microsoft Teams citam a política que está acionando a pessoa. Mesmo assim, o nível espera os seus minutos antes do próximo nível, como faz com qualquer pessoa que acionou. Responder a esse único acionamento vale para as duas políticas. Dentro de uma política, alguém que um nível cita duas vezes, pessoalmente e por meio de uma equipe ou de um agendamento, é acionado uma só vez.
 - Confirmar o incidente ou alerta encerra em até um minuto todas as políticas em execução para ele, onde quer que seja confirmado: em qualquer acionamento sobre ele, na sua própria página, no aplicativo móvel ou no Slack ou no Microsoft Teams. Nenhum próximo nível é acionado, e nenhuma ligação ou SMS que ainda esperava para sair é enviado. As notificações já enviadas continuam enviadas.
+
+Ninguém perde um acionamento por ser acionado uma só vez. Esse único acionamento pode terminar sem resposta: a pessoa o escalona por uma das mensagens dele, o que só escalona essa política, o acionamento não pode ser enviado, ou a política dele termina. Então a outra política aciona a pessoa por conta própria em até um minuto, sem enviar de novo o que já chegou a ela. **Escalonar** na página do incidente ou no aplicativo móvel escalona as duas. Um novo acionamento, uma política iniciada à mão e um acionamento que alguém enviou pelo Slack ou pelo Microsoft Teams sempre acionam as suas pessoas por conta própria, mesmo alguém que outra política está acionando. O acionamento de um observador e o de um destinatário nunca são juntados.
 
 Alguns acionamentos continuam depois da confirmação, até que alguém que eles acionaram responda ou que seja resolvido: um novo acionamento, um acionamento a observadores, um acionamento que alguém enviou a pessoas pelo Slack ou pelo Microsoft Teams, e uma política iniciada à mão.
 
@@ -123,7 +125,7 @@ Você encontra registros de execução em três lugares:
 - em **Plantão → Avançado → Registros de execução**, para todas as políticas, onde os acionamentos diretos de workflows e do chat aparecem como **Acionamento direto**;
 - na página **Execuções de plantão** de um incidente ou de um alerta.
 
-Cada linha mostra o que disparou a execução, quando, seu **Status** e quem a confirmou. **Ver linha do tempo** abre a **Linha do tempo de execução** dela: cada regra de escalonamento, quem ela acionou, por qual agendamento e como cada acionamento terminou. **Notificado por** mostra como cada acionamento chegou à pessoa: chamada telefônica, SMS, e-mail, notificação push e assim por diante. Um agendamento sem ninguém de plantão mostra **Ninguém estava de plantão** no lugar de uma pessoa. Um nível que não acionou ninguém diz por quê, com **Seguiu sem esperar** embaixo: a política não esperou por ele. No OneUptime Cloud, os registros de execução precisam do plano **Growth**.
+Cada linha mostra o que disparou a execução, quando, seu **Status** e quem a confirmou. **Ver linha do tempo** abre a **Linha do tempo de execução** dela: cada regra de escalonamento, quem ela acionou, por qual agendamento e como cada acionamento terminou. **Notificado por** mostra como cada acionamento chegou à pessoa: chamada telefônica, SMS, e-mail, notificação push e assim por diante. Um agendamento sem ninguém de plantão mostra **Ninguém estava de plantão** no lugar de uma pessoa. Um nível que não acionou ninguém diz por quê, com **Seguiu sem esperar** embaixo: a política não esperou por ele. Alguém que outra política já estava acionando mostra **Já chamado**: veja [Quando várias políticas acionam](#quando-várias-políticas-acionam). No OneUptime Cloud, os registros de execução precisam do plano **Growth**.
 
 ## Arquivar ou excluir uma política
 
@@ -176,7 +178,7 @@ A política está arquivada: uma política arquivada continua nos incidentes e a
 :::
 
 :::details Alguém foi acionado duas vezes pelo mesmo incidente
-A pessoa está de plantão em duas das políticas que o incidente executa, e cada política aciona as suas próprias pessoas. Confirmar o incidente por qualquer um dos dois acionamentos encerra os dois. Para que a pessoa seja acionada uma só vez, coloque as duas equipes ou agendamentos no mesmo nível de uma política.
+Quem está de plantão em duas das políticas que o incidente executa é acionado uma só vez, pela primeira política que chega até essa pessoa. A segunda também aciona a pessoa quando se trata de um novo acionamento, de uma política iniciada à mão, de um acionamento enviado pelo Slack ou pelo Microsoft Teams ou de um acionamento a observadores, que acionam as suas pessoas por conta própria, ou quando o primeiro acionamento dela já tinha terminado antes de a segunda chegar até ela: a pessoa o tinha escalonado, ou a política dele tinha sido encerrada. **Ver linha do tempo** da segunda política mostra **Já chamado** para quem ela não acionou de novo.
 :::
 
 :::details Uma política continuou acionando depois que o incidente foi confirmado

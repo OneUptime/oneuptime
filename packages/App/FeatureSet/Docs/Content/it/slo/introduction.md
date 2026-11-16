@@ -161,6 +161,7 @@ Apri uno SLO per vedere le sue pagine nel menu laterale:
 | --- | --- |
 | **Panoramica** | Lo stato, i numeri principali, il consumo del budget di errore, l'attività recente, gli avvisi e gli incidenti aperti e le regole del tasso di consumo. |
 | **Metriche** | Le metriche `oneuptime.slo.*` dello SLO, la cronologia a lungo termine del suo budget di errore e le metriche degli incidenti e degli avvisi che lo riguardano. Vedi [Metriche e dashboard degli SLO](/docs/slo/metrics). |
+| **Report mensile** | Come è andato lo SLO in ogni mese di calendario e sull'intero periodo. Vedi [Il report mensile](#il-report-mensile). |
 | **Incidenti** | Gli incidenti dichiarati dalle sue regole del tasso di consumo e dalla sua policy del budget di errore. Il badge conta quelli aperti. |
 | **Avvisi** | Gli avvisi generati dalle sue regole del tasso di consumo e dalla sua policy del budget di errore. Il badge conta quelli aperti. |
 | **Feed** | Cosa è successo allo SLO, come cronologia. Vedi [Feed e log di audit degli SLO](/docs/slo/feed-and-audit-logs). |
@@ -209,6 +210,31 @@ La pagina **Impostazioni** raccoglie come misura uno SLO, una scheda per ciascun
 | **Archivia: SLO** | **Archivia** o **Annulla archiviazione**. | Vedi [Archiviare uno SLO](#archiviare-uno-slo). |
 
 Dopo una modifica a cosa misura, all'obiettivo, al periodo o al calcolo dell'inattività, OneUptime rivaluta lo SLO all'esecuzione successiva.
+
+### Il report mensile
+
+Il **Report mensile** mostra come è andato lo SLO in ogni mese di calendario degli ultimi **3 mesi**, **6 mesi**, **9 mesi** o **12 mesi**, o di un anno solare. Ogni mese mostra il suo SLI, la sua inattività (per uno SLO delle richieste, le richieste non riuscite o lente; per uno SLO di metrica, gli eventi problematici), la quota del suo budget di errore che ha usato e il suo risultato:
+
+| Risultato | Cosa significa |
+| --- | --- |
+| Soddisfatto | Il mese è concluso e il suo SLI ha raggiunto l'obiettivo. |
+| Non raggiunto | Il mese è concluso e non ha raggiunto l'obiettivo, oppure il mese è in corso e ha già più inattività di quanta ne consenta l'intero mese. |
+| In linea | Il mese è in corso e il suo SLI finora raggiunge l'obiettivo. |
+| Sotto l'obiettivo | Il mese è in corso e il suo SLI finora è sotto l'obiettivo. |
+| Nessun dato | Quel mese non è stato misurato nulla. |
+
+La riga **Totale** misura l'intero periodo come uno solo. Uno SLO con più monitor ha anche una tabella **Per monitor**: lo SLI di ciascun monitor in ogni mese, con per primo il monitor che è costato di più allo SLO. **Scarica CSV** salva il report in un file per un foglio di calcolo.
+
+Per il report non viene salvato nient'altro. Ogni mese viene calcolato dalla cronologia degli stati dei monitor quando lo apri, con i monitor, gli stati di inattività e l'obiettivo dello SLO come sono adesso, quindi risale anche a prima della creazione dello SLO. I mesi di uno SLO delle richieste derivano dalle richieste che OneUptime ha contato per esso, e quelli di uno SLO di metrica dagli eventi della sua metrica, conservati per 400 giorni. I mesi seguono il fuso orario dello SLO, o UTC se non ne ha uno.
+
+L'API risponde con lo stesso report:
+
+```bash
+curl -sS "https://oneuptime.com/api/service-level-objective/<slo-id>/monthly-report?months=12" \
+  -H "ApiKey: $ONEUPTIME_API_KEY"
+```
+
+Chiedi con `months` da 1 a 24 mesi che terminano con il mese corrente, o un anno solare con `year`, ad esempio `year=2025`.
 
 ## Archiviare uno SLO
 

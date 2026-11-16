@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 이것들을 `config.env`에 설정한 다음 `npm start`를 실행하세요. `DISABLE_TELEMETRY_FOR_APP`는 기본값이 `true`이며, 그러면 아무것도 보내지 않습니다.
 :::
 
-OneUptime에는 엔드포인트와 헤더가 모두 필요합니다. 헤더가 없으면 아무것도 보내지 않습니다. 각 헤더는 `name=value` 형식으로 쓰고, 여러 헤더는 `;`로 구분하세요. 값에 `=`가 들어가도 됩니다. OneUptime은 엔드포인트에 `/v1/metrics`를 직접 덧붙이며, 같은 설정으로 자체 트레이스와 로그도 보냅니다. 각 메트릭은 OneUptime이 처음 기록하는 순간 나타납니다. `notification.send.count`는 첫 메시지를 보낼 때입니다.
+OneUptime에는 엔드포인트와 헤더가 모두 필요합니다. 헤더가 없으면 아무것도 보내지 않습니다. 각 헤더는 `name=value` 형식으로 쓰고, 여러 헤더는 `;`로 구분하거나 `OTEL_EXPORTER_OTLP_HEADERS`처럼 `,`로 구분하세요. 값에 `=`가 들어가도 됩니다. `;`가 없으면 값은 그 표준이 쓰는 방식대로 읽히며, 공백은 `%20`으로 씁니다. 값을 쓴 그대로 보내려면 설정 끝에 `;`를 붙이세요. OneUptime은 엔드포인트에 `/v1/metrics`를 직접 덧붙이며, 같은 설정으로 자체 트레이스와 로그도 보냅니다. 각 메트릭은 OneUptime이 처음 기록하는 순간 나타납니다. `notification.send.count`는 첫 메시지를 보낼 때입니다.
 
 ### OneUptime 프로젝트로 델타 보내기
 

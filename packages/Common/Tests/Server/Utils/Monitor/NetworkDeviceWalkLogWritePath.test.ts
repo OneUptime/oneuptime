@@ -5,7 +5,9 @@ import NetworkInventoryUtil from "../../../../Server/Utils/Monitor/NetworkInvent
 import SnmpInterfaceRateUtil from "../../../../Server/Utils/Monitor/SnmpInterfaceRateUtil";
 import MonitorService from "../../../../Server/Services/MonitorService";
 import MonitorNetworkDeviceService from "../../../../Server/Services/MonitorNetworkDeviceService";
-import NetworkDeviceService from "../../../../Server/Services/NetworkDeviceService";
+import NetworkDeviceService, {
+  NETWORK_DEVICE_POLL_DETAIL_COLUMNS,
+} from "../../../../Server/Services/NetworkDeviceService";
 import NetworkEndpointService from "../../../../Server/Services/NetworkEndpointService";
 import NetworkInterfaceService from "../../../../Server/Services/NetworkInterfaceService";
 import NetworkDevice from "../../../../Models/DatabaseModels/NetworkDevice";
@@ -14,6 +16,9 @@ import SnmpMonitorResponse, {
   SnmpOidResponse,
 } from "../../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
 import SnmpDataType from "../../../../Types/Monitor/SnmpMonitor/SnmpDataType";
+import { SnmpTableSnapshot } from "../../../../Types/Monitor/SnmpMonitor/SnmpTable";
+import { NetworkDeviceTransceiver } from "../../../../Types/Monitor/SnmpMonitor/SnmpTransceiver";
+import NetworkDeviceMonitoringMethod from "../../../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import OneUptimeDate from "../../../../Types/Date";
@@ -25,18 +30,21 @@ import logger from "../../../../Server/Utils/Logger";
  * `lastWalkLog` is a ~28 KB jsonb delta baseline rewritten on every poll and
  * stored out of line. The ordinary update pipeline SELECTs the row before
  * writing it, which detoasts the PREVIOUS log a second time — the walk util
- * already read it — on the hottest table in the product. It now goes through
- * `updateColumnsByIdIfUnlockedWithoutHooks`: one statement, no pre-read, no
- * hooks - and no wait for a device another writer holds (issue #7194, pinned
- * at the end of this file).
+ * already read it — on the hottest table in the product. So it is never
+ * written through the hooked path. It was a hook-free write of its own; now
+ * (issue #7393) it rides, with the SNMP table and transceiver snapshots, in
+ * the poll's one hook-free compare-and-set statement
+ * (NetworkDeviceService.writePollVerdict): a poll wrote the device row three
+ * or four times, and now writes it twice - its claim, and that statement.
  *
- * That is only safe because of what the payload does NOT contain. The
+ * That is only safe because of what the statement does NOT contain. The
  * NetworkDevice update hooks re-run site-assignment rules on the identity
  * columns and re-stamp monitor status on the monitor binding; a column that
  * moves onto the hook-free path stops firing them SILENTLY. So these tests
- * pin both halves: the baseline write is hook-free and carries exactly one
- * column, and the walk's device enrichment — the write that actually carries
- * sysName — still goes through the hooked path.
+ * pin both halves: the baseline and the snapshots are handed to the verdict
+ * statement, which carries no column a hook watches, and the walk's device
+ * enrichment — the write that actually carries sysName — still goes through
+ * the hooked path.
  */
 
 const DEVICE_ID: string = "8f2c1f0e-0000-4000-8000-0000000000aa";
@@ -165,9 +173,23 @@ async function runWalk(
   });
 }
 
-function hookFreeCallArgs(): JSONObject {
-  expect(hookFreeUpdateSpy).toHaveBeenCalledTimes(1);
-  return hookFreeUpdateSpy.mock.calls[0][0] as JSONObject;
+/*
+ * The rate baseline the walk handed the inventory sync, which writes it with
+ * the poll's verdict (NetworkInventoryUtil.updateFromWalk ->
+ * NetworkDeviceService.writePollVerdict). Undefined: the stored baseline is
+ * left as it is.
+ */
+function handedBaseline(callIndex: number = 0): JSONObject | undefined {
+  expect(inventorySpy.mock.calls.length).toBeGreaterThan(callIndex);
+  return inventorySpy.mock.calls[callIndex][0]["lastWalkLog"] as
+    | JSONObject
+    | undefined;
+}
+
+// The walk makes no device write of its own: the inventory sync makes them.
+function expectNoDeviceWriteOfItsOwn(): void {
+  expect(hookFreeUpdateSpy).not.toHaveBeenCalled();
+  expect(hookedUpdateSpy).not.toHaveBeenCalled();
 }
 
 beforeEach(() => {
@@ -180,11 +202,13 @@ afterEach(() => {
 
 describe("NetworkDeviceWalkUtil — the lastWalkLog baseline write", () => {
   /*
-   * The point of the change: no pre-update SELECT. If this write goes back
-   * through updateOneById / updateBy, every poll re-reads and re-TOASTs the
-   * previous 25 KB log that the walk already has in memory.
+   * No pre-update SELECT, and no write of its own (issue #7393): the
+   * baseline rides in the poll's verdict statement. If it goes back through
+   * updateOneById / updateBy, every poll re-reads and re-TOASTs the previous
+   * 25 KB log that the walk already has in memory; as a write of its own, it
+   * is one more new version of the device row on every poll.
    */
-  test("goes through the hook-free single-statement path, never the hooked one", async () => {
+  test("is handed to the inventory sync to write with the poll's verdict: the walk makes no device write of its own", async () => {
     mockWalkPipeline();
     const waitingWriteSpy: jest.SpyInstance = jest.spyOn(
       NetworkDeviceService,
@@ -193,18 +217,23 @@ describe("NetworkDeviceWalkUtil — the lastWalkLog baseline write", () => {
 
     await runWalk(buildSnmpResponse());
 
-    expect(hookFreeUpdateSpy).toHaveBeenCalledTimes(1);
-    expect(hookedUpdateSpy).not.toHaveBeenCalled();
-    // Nor the hook-free write that waits for the row (issue #7194).
+    expect(handedBaseline()).toBeDefined();
+    expectNoDeviceWriteOfItsOwn();
     expect(waitingWriteSpy).not.toHaveBeenCalled();
   });
 
-  test("targets the walked device by id", async () => {
+  test("goes to the walked device's inventory sync", async () => {
     mockWalkPipeline();
 
     await runWalk(buildSnmpResponse());
 
-    expect((hookFreeCallArgs()["id"] as ObjectID).toString()).toBe(DEVICE_ID);
+    expect(inventorySpy).toHaveBeenCalledTimes(1);
+    expect(
+      (inventorySpy.mock.calls[0][0]["deviceId"] as ObjectID).toString(),
+    ).toBe(DEVICE_ID);
+    expect(
+      (inventorySpy.mock.calls[0][0]["projectId"] as ObjectID).toString(),
+    ).toBe(PROJECT_ID.toString());
   });
 
   /*
@@ -219,9 +248,7 @@ describe("NetworkDeviceWalkUtil — the lastWalkLog baseline write", () => {
 
     await runWalk(snmpResponse);
 
-    const walkLog: JSONObject = (hookFreeCallArgs()["data"] as JSONObject)[
-      "lastWalkLog"
-    ] as JSONObject;
+    const walkLog: JSONObject = handedBaseline()!;
     const storedResponse: JSONObject = walkLog["snmpResponse"] as JSONObject;
 
     expect(storedResponse["interfaces"]).toEqual(
@@ -252,9 +279,7 @@ describe("NetworkDeviceWalkUtil — the lastWalkLog baseline write", () => {
 
     await runWalk(buildSnmpResponse());
 
-    const walkLog: JSONObject = (hookFreeCallArgs()["data"] as JSONObject)[
-      "lastWalkLog"
-    ] as JSONObject;
+    const walkLog: JSONObject = handedBaseline()!;
 
     expect(Object.keys(walkLog["snmpResponse"] as JSONObject)).toEqual([
       "interfaces",
@@ -262,54 +287,13 @@ describe("NetworkDeviceWalkUtil — the lastWalkLog baseline write", () => {
   });
 
   /*
-   * The guard rail for everything above. Moving a column into this payload
-   * silently stops the hooks that own it: site-assignment rules
-   * (hostname/name/sysName), the old+new site rollups (siteId/site) and the
-   * stamped monitor status (monitorId/monitoringMethod) all hang off the
-   * hooked update. Anything new belongs in NetworkInventoryUtil's enrichment
-   * write, not here.
+   * The guard rail for everything above sits on the statement that writes
+   * it: the verdict statement's details are the baseline and the two
+   * snapshots, and none of them is a column a hook watches (the
+   * "NetworkInventoryUtil — the device enrichment write" tests below). Its
+   * WHERE never writes a device deleted while its walk was in flight
+   * (NetworkDevicePollVerdict.test.ts).
    */
-  test("carries lastWalkLog and nothing else", async () => {
-    mockWalkPipeline();
-
-    await runWalk(buildSnmpResponse());
-
-    const payload: JSONObject = hookFreeCallArgs()["data"] as JSONObject;
-    expect(Object.keys(payload)).toEqual(["lastWalkLog"]);
-  });
-
-  test("carries no column any device update hook watches", async () => {
-    mockWalkPipeline();
-
-    await runWalk(buildSnmpResponse());
-
-    const payloadKeys: Array<string> = Object.keys(
-      hookFreeCallArgs()["data"] as JSONObject,
-    );
-
-    for (const watched of HOOK_WATCHED_COLUMNS) {
-      expect(payloadKeys).not.toContain(watched);
-    }
-  });
-
-  /*
-   * The hooked path finds rows with `withDeleted: false`, so it could never
-   * write to a device deleted while its walk was in flight. The raw path
-   * matches on _id alone, so the guard has to be explicit or a delete would
-   * be followed by 25 KB landing back on the deleted row.
-   */
-  test("refuses to write to a device that was deleted mid-walk", async () => {
-    mockWalkPipeline();
-
-    await runWalk(buildSnmpResponse());
-
-    const expectedData: JSONObject = hookFreeCallArgs()[
-      "expectedData"
-    ] as JSONObject;
-    expect(expectedData).toBeDefined();
-    expect(Object.keys(expectedData)).toEqual(["deletedAt"]);
-    expect(expectedData["deletedAt"]).toBeNull();
-  });
 
   /*
    * Preserved behaviour: keeping the last GOOD counters across failed polls
@@ -328,8 +312,8 @@ describe("NetworkDeviceWalkUtil — the lastWalkLog baseline write", () => {
       }),
     );
 
-    expect(hookFreeUpdateSpy).not.toHaveBeenCalled();
-    expect(hookedUpdateSpy).not.toHaveBeenCalled();
+    expect(handedBaseline()).toBeUndefined();
+    expectNoDeviceWriteOfItsOwn();
   });
 
   test("an empty interface array is treated the same as no interfaces", async () => {
@@ -337,7 +321,7 @@ describe("NetworkDeviceWalkUtil — the lastWalkLog baseline write", () => {
 
     await runWalk(buildSnmpResponse({ interfaces: [] }));
 
-    expect(hookFreeUpdateSpy).not.toHaveBeenCalled();
+    expect(handedBaseline()).toBeUndefined();
   });
 
   /*
@@ -351,7 +335,7 @@ describe("NetworkDeviceWalkUtil — the lastWalkLog baseline write", () => {
 
     expect(rateSpy.mock.calls[0][0].previousWalkLog).toBe(PREVIOUS_WALK_LOG);
     expect(rateSpy.mock.invocationCallOrder[0]).toBeLessThan(
-      hookFreeUpdateSpy.mock.invocationCallOrder[0] as number,
+      inventorySpy.mock.invocationCallOrder[0] as number,
     );
   });
 
@@ -563,6 +547,202 @@ describe("NetworkInventoryUtil — the device enrichment write", () => {
     expect(spies.pollVerdict).toHaveBeenCalledTimes(1);
     expect(spies.hookedUpdate).not.toHaveBeenCalled();
   });
+
+  /*
+   * Issue #7393: the poll's details - its rate baseline and its SNMP table
+   * and transceiver snapshots - ride in the verdict's one statement. Each
+   * was a write of the device row of its own; the snapshots, which change on
+   * every poll, made the hooked write (a read of the row, the UPDATE, the
+   * hooks) one of every poll of a device with tables or optics.
+   */
+  const TABLE_SNAPSHOT: Array<SnmpTableSnapshot> = [
+    {
+      tableId: "wifi-radios",
+      name: "Wi-Fi radios",
+      rows: [],
+    } as unknown as SnmpTableSnapshot,
+  ];
+  const OPTICS: Array<NetworkDeviceTransceiver> = [
+    { interfaceIndex: 1 } as unknown as NetworkDeviceTransceiver,
+  ];
+
+  test("the poll's baseline and snapshots ride in the verdict statement, with the verdict", async () => {
+    const spies: {
+      hookedUpdate: jest.SpyInstance;
+      hookFreeUpdate: jest.SpyInstance;
+      pollVerdict: jest.SpyInstance;
+    } = mockInventoryServices();
+
+    await NetworkInventoryUtil.updateFromWalk({
+      projectId: PROJECT_ID,
+      deviceId: new ObjectID(DEVICE_ID),
+      snmpResponse: buildSnmpResponse(),
+      isOnline: true,
+      lastWalkLog: PREVIOUS_WALK_LOG,
+      snmpTableSnapshot: TABLE_SNAPSHOT,
+      transceiverSnapshot: OPTICS,
+    });
+
+    expect(spies.pollVerdict).toHaveBeenCalledTimes(1);
+    const write: JSONObject = spies.pollVerdict.mock.calls[0][0] as JSONObject;
+    expect(write["details"]).toEqual({
+      lastWalkLog: PREVIOUS_WALK_LOG,
+      snmpTableSnapshot: TABLE_SNAPSHOT,
+      transceiverSnapshot: OPTICS,
+    });
+    expect(write["verdict"]).toEqual({
+      isReachable: true,
+      isSnmpReachable: true,
+      interfaceCounts: { total: 1, up: 1, down: 0 },
+    });
+    expect(spies.hookFreeUpdate).not.toHaveBeenCalled();
+  });
+
+  test("a poll that changed nothing but its snapshots makes no hooked write at all", async () => {
+    const spies: {
+      hookedUpdate: jest.SpyInstance;
+      hookFreeUpdate: jest.SpyInstance;
+      pollVerdict: jest.SpyInstance;
+    } = mockInventoryServices();
+
+    await NetworkInventoryUtil.updateFromWalk({
+      projectId: PROJECT_ID,
+      deviceId: new ObjectID(DEVICE_ID),
+      snmpResponse: buildSnmpResponse(),
+      isOnline: true,
+      snmpTableSnapshot: TABLE_SNAPSHOT,
+      transceiverSnapshot: OPTICS,
+    });
+
+    expect(spies.pollVerdict).toHaveBeenCalledTimes(1);
+    expect(spies.hookedUpdate).not.toHaveBeenCalled();
+  });
+
+  test("the hooked write carries no snapshot, even when the device's system group changed too", async () => {
+    const spies: {
+      hookedUpdate: jest.SpyInstance;
+      hookFreeUpdate: jest.SpyInstance;
+      pollVerdict: jest.SpyInstance;
+    } = mockInventoryServices();
+
+    await NetworkInventoryUtil.updateFromWalk({
+      projectId: PROJECT_ID,
+      deviceId: new ObjectID(DEVICE_ID),
+      snmpResponse: buildSnmpResponse({
+        systemInfo: { sysName: "UN0664LANSWI03" },
+      }),
+      isOnline: true,
+      snmpTableSnapshot: TABLE_SNAPSHOT,
+      transceiverSnapshot: OPTICS,
+    });
+
+    expect(spies.hookedUpdate).toHaveBeenCalledTimes(1);
+    const payload: JSONObject = spies.hookedUpdate.mock.calls[0][0][
+      "data"
+    ] as JSONObject;
+    expect(payload["sysName"]).toBe("UN0664LANSWI03");
+    for (const column of NETWORK_DEVICE_POLL_DETAIL_COLUMNS) {
+      expect(payload).not.toHaveProperty(column);
+    }
+  });
+
+  test("the details carry nothing but the baseline and the snapshots: no column a device update hook watches", async () => {
+    const spies: {
+      hookedUpdate: jest.SpyInstance;
+      hookFreeUpdate: jest.SpyInstance;
+      pollVerdict: jest.SpyInstance;
+    } = mockInventoryServices();
+
+    await NetworkInventoryUtil.updateFromWalk({
+      projectId: PROJECT_ID,
+      deviceId: new ObjectID(DEVICE_ID),
+      snmpResponse: buildSnmpResponse(),
+      isOnline: true,
+      lastWalkLog: PREVIOUS_WALK_LOG,
+      snmpTableSnapshot: TABLE_SNAPSHOT,
+      transceiverSnapshot: OPTICS,
+    });
+
+    const detailKeys: Array<string> = Object.keys(
+      spies.pollVerdict.mock.calls[0][0]["details"] as JSONObject,
+    );
+
+    expect(detailKeys.sort()).toEqual(
+      [...NETWORK_DEVICE_POLL_DETAIL_COLUMNS].sort(),
+    );
+    for (const watched of HOOK_WATCHED_COLUMNS) {
+      expect(detailKeys).not.toContain(watched);
+    }
+  });
+
+  /*
+   * A monitor-backed device's bound monitor owns its health, so a poll that
+   * arrives for one writes no verdict. Its baseline and snapshots are
+   * inventory, and are written all the same - in the same guarded
+   * statement, with no health column in it.
+   */
+  test("a monitor-backed device gets its details with no verdict", async () => {
+    const spies: {
+      hookedUpdate: jest.SpyInstance;
+      hookFreeUpdate: jest.SpyInstance;
+      pollVerdict: jest.SpyInstance;
+    } = mockInventoryServices();
+    const monitorBacked: NetworkDevice = new NetworkDevice();
+    monitorBacked.id = new ObjectID(DEVICE_ID);
+    monitorBacked.monitoringMethod = NetworkDeviceMonitoringMethod.Monitor;
+    jest
+      .spyOn(NetworkDeviceService, "findOneBy")
+      .mockResolvedValue(monitorBacked);
+    jest.spyOn(logger, "warn").mockImplementation((() => {
+      return undefined;
+    }) as never);
+
+    await NetworkInventoryUtil.updateFromWalk({
+      projectId: PROJECT_ID,
+      deviceId: new ObjectID(DEVICE_ID),
+      snmpResponse: buildSnmpResponse(),
+      isOnline: true,
+      snmpTableSnapshot: TABLE_SNAPSHOT,
+    });
+
+    expect(spies.pollVerdict).toHaveBeenCalledTimes(1);
+    expect(spies.pollVerdict.mock.calls[0][0]["verdict"]).toBeNull();
+    expect(spies.pollVerdict.mock.calls[0][0]["details"]).toEqual({
+      lastWalkLog: undefined,
+      snmpTableSnapshot: TABLE_SNAPSHOT,
+      transceiverSnapshot: undefined,
+    });
+  });
+
+  test("a monitor-backed device with no details to write gets no verdict statement at all", async () => {
+    const spies: {
+      hookedUpdate: jest.SpyInstance;
+      hookFreeUpdate: jest.SpyInstance;
+      pollVerdict: jest.SpyInstance;
+    } = mockInventoryServices();
+    const monitorBacked: NetworkDevice = new NetworkDevice();
+    monitorBacked.id = new ObjectID(DEVICE_ID);
+    monitorBacked.monitoringMethod = NetworkDeviceMonitoringMethod.Monitor;
+    jest
+      .spyOn(NetworkDeviceService, "findOneBy")
+      .mockResolvedValue(monitorBacked);
+    jest.spyOn(logger, "warn").mockImplementation((() => {
+      return undefined;
+    }) as never);
+
+    await NetworkInventoryUtil.updateFromWalk({
+      projectId: PROJECT_ID,
+      deviceId: new ObjectID(DEVICE_ID),
+      snmpResponse: buildSnmpResponse({
+        systemInfo: { sysName: "UN0664LANSWI03" },
+      }),
+      isOnline: true,
+    });
+
+    expect(spies.pollVerdict).not.toHaveBeenCalled();
+    // Its inventory is still recorded, through the hooked write.
+    expect(spies.hookedUpdate).toHaveBeenCalledTimes(1);
+  });
 });
 
 /*
@@ -599,9 +779,7 @@ describe("NetworkDeviceWalkUtil — the counters an OID rate is computed against
   }
 
   function storedWalkLog(): JSONObject {
-    return (hookFreeCallArgs()["data"] as JSONObject)[
-      "lastWalkLog"
-    ] as JSONObject;
+    return handedBaseline()!;
   }
 
   test("keeps the counters the poll read - the counters only - with the poll's receipt time", async () => {
@@ -705,9 +883,7 @@ describe("NetworkDeviceWalkUtil — the counters an OID rate is computed against
       values: { [IF_IN_ERRORS]: "1500" },
       readAt: NOW.toISOString(),
     });
-    expect(Object.keys(hookFreeCallArgs()["data"] as JSONObject)).toEqual([
-      "lastWalkLog",
-    ]);
+    expectNoDeviceWriteOfItsOwn();
   });
 
   test("a poll that walked interfaces but read no counter keeps the counters it had, and their time", async () => {
@@ -749,7 +925,7 @@ describe("NetworkDeviceWalkUtil — the counters an OID rate is computed against
       }),
     );
 
-    expect(hookFreeUpdateSpy).not.toHaveBeenCalled();
+    expect(handedBaseline()).toBeUndefined();
   });
 
   test("a ping-only poll writes nothing and keeps every baseline", async () => {
@@ -764,7 +940,8 @@ describe("NetworkDeviceWalkUtil — the counters an OID rate is computed against
       monitoredAt: MONITORED_AT,
     });
 
-    expect(hookFreeUpdateSpy).not.toHaveBeenCalled();
+    expect(handedBaseline()).toBeUndefined();
+    expectNoDeviceWriteOfItsOwn();
   });
 });
 
@@ -820,9 +997,7 @@ describe("NetworkDeviceWalkUtil — a busy database and a queue backlog (issue #
   }
 
   function storedWalkLog(callIndex: number = 0): JSONObject {
-    return (hookFreeUpdateSpy.mock.calls[callIndex][0]["data"] as JSONObject)[
-      "lastWalkLog"
-    ] as JSONObject;
+    return handedBaseline(callIndex)!;
   }
 
   // What a device read back from Postgres holds: the log as jsonb gives it.
@@ -841,100 +1016,114 @@ describe("NetworkDeviceWalkUtil — a busy database and a queue backlog (issue #
     }) as never);
   }
 
+  /*
+   * The baseline had a write of its own that never waited for the row
+   * (FOR UPDATE SKIP LOCKED) and never threw. It now rides in the poll's
+   * verdict statement (issue #7393), which waits for the row as it always
+   * did - so the newer of two polls written at once is the one whose result
+   * stands - and whose lock timeout, deadlock or other failure is logged by
+   * the inventory sync and never fails the poll: the rest of it - the
+   * interfaces, the endpoints, the metrics, the monitors - still runs, and
+   * the next poll's rates are worked out over the longer window.
+   */
   describe("a device another writer holds", () => {
-    test("is not waited for: its baseline is left as it is, and the rest of the poll still runs", async () => {
-      mockWalkPipeline();
-      // The skip-locked write answers false: another writer held the row.
-      hookFreeUpdateSpy.mockResolvedValue(false);
+    function mockSyncAround(failure: Error): {
+      interfaces: jest.SpyInstance;
+      hooked: jest.SpyInstance;
+    } {
+      const ownedDevice: NetworkDevice = new NetworkDevice();
+      ownedDevice.id = new ObjectID(DEVICE_ID);
 
-      await expect(runWalk(buildSnmpResponse())).resolves.toBeUndefined();
+      jest
+        .spyOn(NetworkDeviceService, "findOneBy")
+        .mockResolvedValue(ownedDevice);
+      jest
+        .spyOn(NetworkDeviceService, "writePollVerdict")
+        .mockRejectedValue(failure);
 
-      expect(hookFreeUpdateSpy).toHaveBeenCalledTimes(1);
-      expect(inventorySpy).toHaveBeenCalledTimes(1);
-      expect(metricsSpy).toHaveBeenCalledTimes(1);
-      // The monitors watching the device are still looked up and evaluated.
-      expect(monitorFindSpy).toHaveBeenCalled();
-    });
+      return {
+        interfaces: jest
+          .spyOn(NetworkInterfaceService, "upsertWalkedInterfaces")
+          .mockResolvedValue({ unmonitoredInterfaceIndexes: [] } as never),
+        hooked: jest
+          .spyOn(NetworkDeviceService, "updateOneById")
+          .mockResolvedValue(1),
+      };
+    }
 
-    /*
-     * The failure the issue reported. Whatever else goes wrong with the
-     * write - the pool, a deadlock, a dropped connection - the baseline is
-     * a cache of the last good counters, and losing one write of it costs
-     * the next poll nothing but a longer (and still correct) window.
-     */
+    function walkWithNewSysName(): Promise<void> {
+      return NetworkInventoryUtil.updateFromWalk({
+        projectId: PROJECT_ID,
+        deviceId: new ObjectID(DEVICE_ID),
+        snmpResponse: buildSnmpResponse({
+          systemInfo: { sysName: "UN0664LANSWI03" },
+        }),
+        isOnline: true,
+        lastWalkLog: PREVIOUS_WALK_LOG,
+      });
+    }
+
     test.each([
       ["a lock timeout", "canceling statement due to lock timeout", "55P03"],
       ["a deadlock", "deadlock detected", "40P01"],
-      ["a dropped connection", "Connection terminated unexpectedly", undefined],
     ])(
-      "%s on the baseline write is logged, and does not fail the poll",
-      async (_label: string, message: string, code: string | undefined) => {
-        mockWalkPipeline();
+      "%s on the poll's result statement is logged, and the rest of the poll still runs",
+      async (_label: string, message: string, code: string) => {
         const warn: jest.SpyInstance = quietWarnings();
         const failure: Error & { code?: string | undefined } = new Error(
           message,
         );
         failure.code = code;
-        hookFreeUpdateSpy.mockRejectedValue(failure);
+        const spies: {
+          interfaces: jest.SpyInstance;
+          hooked: jest.SpyInstance;
+        } = mockSyncAround(failure);
 
-        await expect(runWalk(buildSnmpResponse())).resolves.toBeUndefined();
+        await expect(walkWithNewSysName()).resolves.toBeUndefined();
 
-        expect(inventorySpy).toHaveBeenCalledTimes(1);
-        expect(metricsSpy).toHaveBeenCalledTimes(1);
-        expect(monitorFindSpy).toHaveBeenCalled();
-
-        const logged: Array<string> = warn.mock.calls.map(
-          (call: Array<unknown>) => {
-            return String(call[0]);
-          },
-        );
+        // Its interfaces are another table: written as usual.
+        expect(spies.interfaces).toHaveBeenCalledTimes(1);
+        // Whether it is the newest poll is unknown: its system group waits.
+        expect(spies.hooked).not.toHaveBeenCalled();
 
         expect(
-          logged.some((line: string) => {
-            return line.includes(DEVICE_ID) && line.includes(message);
+          warn.mock.calls.some((call: Array<unknown>) => {
+            return (
+              String(call[0]).includes(DEVICE_ID) &&
+              String(call[0]).includes(message)
+            );
           }),
         ).toBe(true);
       },
     );
 
-    test("writeWalkBaseline answers whether it wrote, and never throws", async () => {
-      const write: jest.SpyInstance = jest.spyOn(
-        NetworkDeviceService,
-        "updateColumnsByIdIfUnlockedWithoutHooks",
-      );
+    test("any other failure of it is logged, and does not fail the poll", async () => {
       quietWarnings();
+      const error: jest.SpyInstance = jest
+        .spyOn(logger, "error")
+        .mockImplementation((() => {
+          return undefined;
+        }) as never);
+      mockSyncAround(new Error("Connection terminated unexpectedly"));
 
-      write.mockResolvedValueOnce(true);
-      await expect(
-        NetworkDeviceWalkUtil.writeWalkBaseline({
-          deviceId: new ObjectID(DEVICE_ID),
-          lastWalkLog: { monitoredAt: NOW.toISOString() },
+      await expect(walkWithNewSysName()).resolves.toBeUndefined();
+
+      expect(
+        error.mock.calls.some((call: Array<unknown>) => {
+          return String(call[0]).includes(DEVICE_ID);
         }),
-      ).resolves.toBe(true);
+      ).toBe(true);
+    });
 
-      write.mockResolvedValueOnce(false);
-      await expect(
-        NetworkDeviceWalkUtil.writeWalkBaseline({
-          deviceId: new ObjectID(DEVICE_ID),
-          lastWalkLog: { monitoredAt: NOW.toISOString() },
-        }),
-      ).resolves.toBe(false);
+    test("the walk around it - metrics, monitors - runs whatever the sync did", async () => {
+      mockWalkPipeline();
 
-      write.mockRejectedValueOnce(new Error("connection reset"));
-      await expect(
-        NetworkDeviceWalkUtil.writeWalkBaseline({
-          deviceId: new ObjectID(DEVICE_ID),
-          lastWalkLog: { monitoredAt: NOW.toISOString() },
-        }),
-      ).resolves.toBe(false);
+      await expect(runWalk(buildSnmpResponse())).resolves.toBeUndefined();
 
-      // The deleted-device guard rides on every write.
-      for (const call of write.mock.calls) {
-        expect(call[0]["expectedData"]).toEqual({ deletedAt: null });
-        expect(Object.keys(call[0]["data"] as JSONObject)).toEqual([
-          "lastWalkLog",
-        ]);
-      }
+      expect(inventorySpy).toHaveBeenCalledTimes(1);
+      expect(metricsSpy).toHaveBeenCalledTimes(1);
+      expect(monitorFindSpy).toHaveBeenCalled();
+      expectNoDeviceWriteOfItsOwn();
     });
   });
 
@@ -1035,7 +1224,7 @@ describe("NetworkDeviceWalkUtil — a busy database and a queue backlog (issue #
         { dataReceivedAt: new Date("2026-07-16T11:50:00.000Z") },
       );
 
-      expect(hookFreeUpdateSpy).toHaveBeenCalledTimes(1);
+      expect(handedBaseline(0)).toBeDefined();
       deviceFindSpy.mockResolvedValue(deviceHolding(storedWalkLog(0)));
 
       // Received 11:55:00, processed two seconds after the first.
@@ -1086,7 +1275,7 @@ describe("NetworkDeviceWalkUtil — a busy database and a queue backlog (issue #
 
       await runWalk(snmpResponse, { dataReceivedAt: OLDER });
 
-      expect(hookFreeUpdateSpy).not.toHaveBeenCalled();
+      expect(handedBaseline()).toBeUndefined();
       // A negative window: no rate rather than a made-up one.
       expect(snmpResponse.interfaces![0]!.inBitsPerSecond).toBeUndefined();
       expect(snmpResponse.oidResponses[0]!.ratePerSecond).toBeUndefined();
@@ -1152,7 +1341,7 @@ describe("NetworkDeviceWalkUtil — a busy database and a queue backlog (issue #
         { dataReceivedAt: RECEIVED_AT },
       );
 
-      expect(hookFreeUpdateSpy).not.toHaveBeenCalled();
+      expect(handedBaseline()).toBeUndefined();
     });
   });
 

@@ -869,6 +869,120 @@ describe("the on-call page an SMS was not delivered for", () => {
   });
 });
 
+describe("a callback Twilio sends again, after one the database failed for (issue #6874)", () => {
+  /*
+   * A failure is handed to Express, which answers 500, and the callback's
+   * address asks Twilio to send it again on a 5xx (StatusCallbackRetry).
+   * Sent again, it lands: the log is written by compare-and-set, the SMS is
+   * counted once, and the page is corrected while it still says Sent.
+   */
+  const CONNECTION_RESET: Error = new Error("connection reset");
+
+  test.each([
+    [
+      "reading the log",
+      (): void => {
+        findSmsLog.mockRejectedValueOnce(CONNECTION_RESET as never);
+      },
+    ],
+    [
+      "writing its status",
+      (): void => {
+        writeSmsLog.mockRejectedValueOnce(CONNECTION_RESET as never);
+      },
+    ],
+  ])(
+    "%s fails: the error goes to Express - nothing written or counted - and sent again, it lands once",
+    async (_name: string, fail: () => void) => {
+      fail();
+
+      const first: Answer = await callback(twilio("delivered"));
+
+      expect(first.next).toHaveBeenCalledTimes(1);
+      expect(stored!.status).toBe(SmsStatus.Sending);
+      expectNothingCounted();
+
+      const second: Answer = await callback(twilio("delivered"));
+
+      expect(second.next).not.toHaveBeenCalled();
+      expect(stored!.status).toBe(SmsStatus.Delivered);
+      expect(onlyDelivery()["outcome"]).toBe("delivered");
+      expect(onlyDeliveryTime()).toBe(WRITTEN_AGO_MS);
+      expect(sendEmptySuccess).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  test.each([
+    [
+      "writing it",
+      (): void => {
+        updateTimeline.mockRejectedValueOnce(CONNECTION_RESET as never);
+      },
+    ],
+    [
+      "reading it",
+      (): void => {
+        findTimeline.mockRejectedValueOnce(CONNECTION_RESET as never);
+      },
+    ],
+  ])(
+    "a failed page whose correction threw - %s - is corrected when Twilio sends the callback again, once, and the SMS counted once",
+    async (_name: string, fail: () => void) => {
+      fail();
+
+      const first: Answer = await callback(
+        twilio("undelivered", { ErrorCode: "30003" }),
+      );
+
+      expect(first.next).toHaveBeenCalledTimes(1);
+      expect(stored!.status).toBe(SmsStatus.Undelivered);
+      expect(timeline.get(TIMELINE_ID)!.status).toBe(
+        UserNotificationStatus.Sent,
+      );
+      expect(onlyDelivery()["outcome"]).toBe("undelivered");
+
+      const second: Answer = await callback(
+        twilio("undelivered", { ErrorCode: "30003" }),
+      );
+
+      expect(second.next).not.toHaveBeenCalled();
+      expect(timeline.writes).toEqual([
+        {
+          id: TIMELINE_ID.toString(),
+          data: {
+            status: UserNotificationStatus.Error,
+            statusMessage: `Delivery status: ${SmsStatus.Undelivered}. Message ID: ${MESSAGE_SID}. Provider error code: 30003.`,
+          },
+        },
+      ]);
+      expect(onlyDelivery()["outcome"]).toBe("undelivered");
+
+      // And Twilio's own duplicate after it: the page is corrected already.
+      await callback(twilio("undelivered", { ErrorCode: "30003" }));
+
+      expect(timeline.writes).toHaveLength(1);
+      expect(onlyDelivery()["outcome"]).toBe("undelivered");
+      expect(sendEmptySuccess).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  test("a page the person acknowledged before Twilio sent the callback again stays acknowledged", async () => {
+    updateTimeline.mockRejectedValueOnce(CONNECTION_RESET as never);
+
+    await callback(twilio("failed"));
+
+    timeline.get(TIMELINE_ID)!.status = UserNotificationStatus.Acknowledged;
+
+    const second: Answer = await callback(twilio("failed"));
+
+    expect(second.next).not.toHaveBeenCalled();
+    expect(timeline.writes).toEqual([]);
+    expect(timeline.get(TIMELINE_ID)!.status).toBe(
+      UserNotificationStatus.Acknowledged,
+    );
+  });
+});
+
 describe("isStaleSmsStatus", () => {
   const FINAL: Array<SmsStatus> = [
     SmsStatus.Delivered,

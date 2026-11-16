@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 Ange dem i `config.env` och kör sedan `npm start`. `DISABLE_TELEMETRY_FOR_APP` är `true` som standard, och då skickas ingenting.
 :::
 
-OneUptime behöver både slutpunkten och huvudena: utan ett huvud skickar det ingenting. Skriv varje huvud som `name=value` och skilj flera åt med `;`. Ett värde får innehålla `=`. OneUptime lägger själv till `/v1/metrics` på slutpunkten, och samma inställningar skickar också dess egna spår och loggar. Varje mätvärde dyker upp så snart OneUptime registrerar det första gången: `notification.send.count` med det första skickade meddelandet.
+OneUptime behöver både slutpunkten och huvudena: utan ett huvud skickar det ingenting. Skriv varje huvud som `name=value` och skilj flera åt med `;`, eller med `,` som i `OTEL_EXPORTER_OTLP_HEADERS`. Ett värde får innehålla `=`. Utan `;` läses ett värde så som den standarden skriver det, ett mellanslag som `%20`: avsluta inställningen med `;` för att skicka det exakt som det är skrivet. OneUptime lägger själv till `/v1/metrics` på slutpunkten, och samma inställningar skickar också dess egna spår och loggar. Varje mätvärde dyker upp så snart OneUptime registrerar det första gången: `notification.send.count` med det första skickade meddelandet.
 
 ### Skicka deltor till ett OneUptime-projekt
 

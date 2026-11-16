@@ -136,6 +136,10 @@ export function isStaleSmsStatus(data: {
  * outbound message in SmsService. This is a public webhook (Twilio is unauthenticated),
  * so it is secured by an unguessable per-message token embedded in the URL — never by
  * user/cluster auth. It only advances the delivery status of the single referenced SMS log.
+ *
+ * A failure to read or write - the database's - is answered with a 5xx (next(err)),
+ * which the URL asks Twilio to send again on (StatusCallbackRetry): every write here
+ * is a compare-and-set and an SMS is counted once, so a callback sent again is safe.
  */
 router.post(
   "/status-callback/:smsLogId/:token",
@@ -304,6 +308,11 @@ router.post(
        * user action (Acknowledged) or an intentional Skipped (OnCallNotificationStatus).
        * The send writes the timeline only while it still says Sending, so a callback
        * that lands first is not undone by it.
+       *
+       * A failure Twilio sends again lands here again too - Twilio does when the
+       * first was answered with an error (StatusCallbackRetry) - so a correction
+       * that could not be written the first time, the database failing, is
+       * written now, and one written already is not written again (issue #6874).
        *
        * A failed/undelivered on-call SMS could trigger escalation to the next rule
        * here in the future. Intentionally not implemented yet.

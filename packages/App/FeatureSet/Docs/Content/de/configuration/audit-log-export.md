@@ -140,7 +140,7 @@ Jeder Eintrag ist ein JSON-Objekt, seine Schlüssel immer in dieser Reihenfolge:
 | `id` | Die ID des Eintrags. Derselbe Eintrag hat auch zweimal gesendet dieselbe ID. |
 | `createdAt` | Wann die Änderung erfasst wurde, in UTC. |
 | `projectId` | Das Projekt, in dem die Änderung vorgenommen wurde. |
-| `action` | `Create`, `Update`, `Delete` oder `Download`, oder bei einer Sitzung `SignIn`, `SignOut`, `SessionTimeout` oder `SessionRevoked`. |
+| `action` | `Create`, `Update`, `Delete` oder `Download`, oder bei einer Anmeldung oder einer Sitzung `SignIn`, `SignInFailed`, `SignOut`, `SessionTimeout` oder `SessionRevoked`. |
 | `resourceType`, `resourceId`, `resourceName` | Was geändert wurde. |
 | `rootResourceType`, `rootResourceId` | Die Ressource, zu der es gehört, etwa ein SLO für seine Regel. |
 | `userId`, `userName`, `userEmail`, `userType` | Wer die Änderung vorgenommen hat. |
@@ -173,7 +173,7 @@ Ein neuer Export sendet Version 2. Ein Export, der vor Version 2 gespeichert wur
 
 ## Wenn ein Ziel ausfällt
 
-Ein Batch wird dreimal im Abstand weniger Sekunden versucht, dann wartet der Export, bevor er es erneut versucht: eine Minute, dann zwei, vier und so weiter, bis zu einer Stunde. Seine Zeile sagt **Fehlerhaft**, und **Fehler anzeigen** zeigt, was das Ziel geantwortet hat und wann der nächste Versuch kommt.
+Ein Batch wird dreimal im Abstand weniger Sekunden versucht, dann wartet der Export, bevor er es erneut versucht: eine Minute, dann zwei, vier und so weiter, bis zu einer Stunde. Seine Zeile sagt **Fehlerhaft**, und **Fehler anzeigen** zeigt, was das Ziel geantwortet hat, wann der nächste Versuch kommt und ab wann die Einträge, die auf das Senden warten, gelöscht werden, oder, sobald dieser Zeitpunkt vorbei ist, seit wann sie gelöscht werden.
 
 Nichts wird übersprungen: Die Einträge warten im Audit-Protokoll, und die nächste Zustellung, die gelingt, holt ab dem ältesten auf. Jeder Eintrag wird dennoch gelöscht, sobald er älter ist als die Aufbewahrung, mit der er erfasst wurde, ob gesendet oder nicht, beheben Sie einen fehlerhaften Export also innerhalb dieser Zeit. Eine längere Aufbewahrung gilt nur für die Einträge, die nach der Änderung erfasst werden.
 

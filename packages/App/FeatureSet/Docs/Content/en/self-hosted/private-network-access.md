@@ -201,6 +201,8 @@ Opening this up is a real change to what your OneUptime instance can be made to 
 - **Anyone who can author a workflow or an API, Website, External Status Page or Custom JavaScript Code monitor, or add a status page subscriber, can reach anything you allowed.** Treat membership in those projects accordingly.
 - **The response body comes back.** A workflow API component returns the status, headers and body into the workflow log, so an allowed host is readable, not just writable.
 - **Redirects are never followed** on webhook requests, so an allowed public host cannot bounce the server to an internal one on a second hop.
+- **OneUptime connects to the address it checked.** A webhook's host name is looked up once, when its URL is checked, and the request goes to an address that lookup approved, so a name that answers differently a moment later (DNS rebinding) is never connected to. TLS still checks the certificate against the name in the URL.
+- **Through an outbound proxy, the proxy connects.** If the API server sends through a proxy set in `HTTPS_PROXY`, `HTTP_PROXY` or `ALL_PROXY` (apart from the hosts in `NO_PROXY`), webhooks keep going through it: OneUptime still checks the address first and never follows a redirect, but the proxy looks the name up and makes the connection. Refuse private and link-local destinations on the proxy itself, `169.254.169.254` above all.
 - **Scope by probe rather than instance-wide where you can.** A probe deployed inside one network is a narrower grant than opening the API server's egress.
 
 ## Next steps

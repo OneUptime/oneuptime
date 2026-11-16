@@ -648,6 +648,81 @@ describe("API.fetch with options", () => {
     );
   });
 
+  test("should send query parameters on a dispatch URL, not only on the URL it reports", async () => {
+    mockedAxios.mockClear();
+    mockedAxios.mockResolvedValueOnce(
+      createAxiosResponse({ data: responseData }),
+    );
+    const reported: URL = new URL(
+      Protocol.HTTPS,
+      "api.example.com",
+      new Route("channels"),
+    );
+
+    await API.fetch({
+      method: HTTPMethod.GET,
+      url: reported,
+      params: { page: "2", per_page: "200" },
+      options: {
+        dispatchUrl: "https://api.example.com/channels?page=0&tag=one&tag=two",
+      },
+    });
+
+    /*
+     * A parameter replaces one of the same name, as URL.addQueryParams
+     * does on the reported URL; the rest of the dispatch URL is untouched.
+     */
+    expect((mockedAxios.mock.calls[0]![0] as AxiosRequestConfig).url).toBe(
+      "https://api.example.com/channels?page=2&tag=one&tag=two&per_page=200",
+    );
+    expect(reported.toString()).toContain("per_page=200");
+  });
+
+  test("should leave a dispatch URL exactly as it is when there are no query parameters", async () => {
+    mockedAxios.mockClear();
+    mockedAxios.mockResolvedValueOnce(
+      createAxiosResponse({ data: responseData }),
+    );
+    const dispatchUrl: string = "https://api.example.com/a//b?x=%20y";
+
+    await API.fetch({
+      method: HTTPMethod.GET,
+      url: new URL(Protocol.HTTPS, "api.example.com", new Route("reported")),
+      params: {},
+      options: { dispatchUrl: dispatchUrl },
+    });
+
+    expect((mockedAxios.mock.calls[0]![0] as AxiosRequestConfig).url).toBe(
+      dispatchUrl,
+    );
+  });
+
+  test("should send with Node's http adapter when asked, and leave the choice to axios otherwise", async () => {
+    mockedAxios.mockClear();
+    mockedAxios.mockResolvedValueOnce(
+      createAxiosResponse({ data: responseData }),
+    );
+    mockedAxios.mockResolvedValueOnce(
+      createAxiosResponse({ data: responseData }),
+    );
+
+    await API.fetch({
+      method: HTTPMethod.GET,
+      url: new URL(Protocol.HTTPS, "api.example.com", new Route("items")),
+      options: { useNodeHttpAdapter: true },
+    });
+
+    await API.fetch({
+      method: HTTPMethod.GET,
+      url: new URL(Protocol.HTTPS, "api.example.com", new Route("items")),
+    });
+
+    expect((mockedAxios.mock.calls[0]![0] as AxiosRequestConfig).adapter).toBe(
+      "http",
+    );
+    expect(mockedAxios.mock.calls[1]![0]).not.toHaveProperty("adapter");
+  });
+
   test("should forward AbortSignal and normalize a budgeted JSON stream", async () => {
     mockedAxios.mockClear();
     const controller: AbortController = new AbortController();

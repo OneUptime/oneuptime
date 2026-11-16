@@ -8,6 +8,7 @@ import {
   SIGNED_WEBHOOK_MAX_ATTEMPTS,
   SIGNED_WEBHOOK_REQUEST_TIMEOUT_MS,
   SIGNED_WEBHOOK_RETRY_DELAYS_MS,
+  SIGNED_WEBHOOK_TARGET_VALIDATION,
   isRetryableStatus,
   signWebhookBody,
 } from "../../../FeatureSet/Notification/Utils/SignedWebhookPost";
@@ -439,9 +440,12 @@ describe("Set It Up, as the Admin Dashboard's card draws it", () => {
       "App/FeatureSet/Notification/Services/CallAndSmsGatewayService.ts",
     );
 
-    for (const source of [service, sender]) {
-      expect(source).toContain("allowPrivateNetworkTargets: true,");
-    }
+    // Checked as it is saved, and again before every send, with the same rule.
+    expect(service).toContain("allowPrivateNetworkTargets: true,");
+    expect(sender).toContain("SIGNED_WEBHOOK_TARGET_VALIDATION,");
+    expect(SIGNED_WEBHOOK_TARGET_VALIDATION).toEqual({
+      allowPrivateNetworkTargets: true,
+    });
 
     expect(card).toContain("It can be on your private network.");
   });

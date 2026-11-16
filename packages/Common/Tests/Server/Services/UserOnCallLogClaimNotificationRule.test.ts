@@ -1,4 +1,6 @@
-import UserOnCallLogService from "../../../Server/Services/UserOnCallLogService";
+import UserOnCallLogService, {
+  updateReturnedARow,
+} from "../../../Server/Services/UserOnCallLogService";
 import Model from "../../../Models/DatabaseModels/UserOnCallLog";
 import ObjectID from "../../../Types/ObjectID";
 import logger from "../../../Server/Utils/Logger";
@@ -137,6 +139,52 @@ describe("UserOnCallLogService.claimNotificationRuleExecution", () => {
     expect(claimed).toBe(false);
     expect(query).toHaveBeenCalledTimes(1);
     // A suppressed write is a decisive "someone else won" — never fall back.
+    expect(findOneById).not.toHaveBeenCalled();
+    expect(updateOneById).not.toHaveBeenCalled();
+  });
+
+  /*
+   * ----------------------------------------------------------------------- *
+   * (b2) As TypeORM answers. Its postgres query() answers an UPDATE with
+   * [rows, rowCount] - an array of two whether or not anything matched -
+   * not with the rows. Read as the rows, every claim won, and two
+   * overlapping runs both sent the notification.
+   * -----------------------------------------------------------------------
+   */
+
+  test("returns TRUE when TypeORM answers that the UPDATE returned a row", async () => {
+    const query: jest.Mock = jest.fn().mockResolvedValue([[{ _id: "x" }], 1]);
+    mockManagerQuery(query);
+
+    const claimed: boolean =
+      await UserOnCallLogService.claimNotificationRuleExecution({
+        userOnCallLogId: ObjectID.generate(),
+        userNotificationRuleId: ObjectID.generate(),
+      });
+
+    expect(claimed).toBe(true);
+  });
+
+  test("returns FALSE when TypeORM answers that the UPDATE matched nothing (another run claimed it)", async () => {
+    const query: jest.Mock = jest.fn().mockResolvedValue([[], 0]);
+    mockManagerQuery(query);
+
+    const findOneById: jest.SpyInstance = jest.spyOn(
+      UserOnCallLogService,
+      "findOneById",
+    );
+    const updateOneById: jest.SpyInstance = jest.spyOn(
+      UserOnCallLogService,
+      "updateOneById",
+    );
+
+    const claimed: boolean =
+      await UserOnCallLogService.claimNotificationRuleExecution({
+        userOnCallLogId: ObjectID.generate(),
+        userNotificationRuleId: ObjectID.generate(),
+      });
+
+    expect(claimed).toBe(false);
     expect(findOneById).not.toHaveBeenCalled();
     expect(updateOneById).not.toHaveBeenCalled();
   });
@@ -491,5 +539,24 @@ describe("UserOnCallLogService.claimNotificationRuleExecution", () => {
     // Same log id in both.
     expect((query.mock.calls[0] as QueryCall)[1][0]).toBe(logId.toString());
     expect((query.mock.calls[1] as QueryCall)[1][0]).toBe(logId.toString());
+  });
+});
+
+describe("updateReturnedARow", () => {
+  test.each<[string, unknown, boolean]>([
+    [
+      "TypeORM's answer to an UPDATE that returned a row",
+      [[{ _id: "x" }], 1],
+      true,
+    ],
+    ["TypeORM's answer to an UPDATE that matched nothing", [[], 0], false],
+    ["a bare array of one row", [{ _id: "x" }], true],
+    ["a bare array of two rows", [{ _id: "a" }, { _id: "b" }], true],
+    ["an empty array", [], false],
+    ["undefined", undefined, false],
+    ["null", null, false],
+    ["an object", {}, false],
+  ])("%s", (_label: string, result: unknown, wrote: boolean): void => {
+    expect(updateReturnedARow(result)).toBe(wrote);
   });
 });

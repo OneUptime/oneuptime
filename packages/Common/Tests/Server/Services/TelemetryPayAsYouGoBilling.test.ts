@@ -36,6 +36,7 @@ import {
   readsOfRowsCallerMayWrite,
   stubRowsCallerMayWriteLikeFindBy,
 } from "../TestingUtils/RowsCallerMayWrite";
+import { EventEmitter } from "events";
 
 jest.mock("../../../Server/EnvironmentConfig", () => {
   return {
@@ -46,6 +47,20 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
     IsBillingEnabled: true,
   };
 });
+
+/*
+ * A response as the ingest guard reads it. The guard marks a key used once
+ * the route has answered with a success (issue #8021); answer() is the route
+ * answering, as its res.end() comes to.
+ */
+class RouteResponse extends EventEmitter {
+  public statusCode: number = 200;
+
+  public answer(statusCode: number): void {
+    this.statusCode = statusCode;
+    this.emit("finish");
+  }
+}
 
 type KeyHooks = {
   onBeforeCreate: (input: CreateBy<TelemetryIngestionKey>) => Promise<unknown>;
@@ -378,16 +393,20 @@ describe("HTTP telemetry admission integrates key resolution and billing", () =>
     const request: ExpressRequest = {
       headers: { "x-oneuptime-token": existingKey.secretKey!.toString() },
     } as unknown as ExpressRequest;
+    const response: RouteResponse = new RouteResponse();
     const next: NextFunction = jest.fn() as unknown as NextFunction;
     await TelemetryIngest.isAuthorizedServiceMiddleware(
       request,
-      {} as ExpressResponse,
+      response as unknown as ExpressResponse,
       next as NextFunction,
     );
     expect(next).toHaveBeenCalledWith();
     expect((request as TelemetryRequest).projectId.toString()).toBe(
       otherProjectId.toString(),
     );
+    // Marked used once the handler has taken the data (issue #8021).
+    expect(TelemetryIngestionKeyService.markUsed).not.toHaveBeenCalled();
+    response.answer(200);
     expect(TelemetryIngestionKeyService.markUsed).toHaveBeenCalledTimes(1);
   });
 });
@@ -465,13 +484,16 @@ describe("telemetry operations use the stored subscription plan for payment elig
         const request: ExpressRequest = {
           headers: { "x-oneuptime-token": existingKey.secretKey!.toString() },
         } as unknown as ExpressRequest;
+        const response: RouteResponse = new RouteResponse();
         const next: NextFunction = jest.fn() as unknown as NextFunction;
 
         await TelemetryIngest.forSurface(surface)(
           request,
-          {} as ExpressResponse,
+          response as unknown as ExpressResponse,
           next,
         );
+        // The handler takes the data, if it was handed any (issue #8021).
+        response.answer(200);
 
         expect(next).toHaveBeenCalledTimes(1);
         if (plan === PlanType.Free) {

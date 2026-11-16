@@ -139,6 +139,35 @@ export const notOptOutRuleQuery: NotOptOutRuleQueryFunction =
     return QueryHelper.notInOrNull(["true"]);
   };
 
+/*
+ * Whether an `UPDATE ... RETURNING` sent through TypeORM's query() wrote a
+ * row. TypeORM's postgres query() answers a top-level UPDATE with
+ * [rows, rowCount] - an array of two whether or not anything matched - so
+ * reading that array's length as the rows made every claim of a
+ * notification (claimNotificationExecution) a win and every give-back of
+ * one (releaseNotificationRuleClaim) a success: two overlapping runs of the
+ * person's-log worker both sent the same notification, and a rule whose
+ * claim was not given back was sent again. A plain array is read as the
+ * rows (a driver that answers with them, or a statement that is a SELECT);
+ * anything else wrote nothing. A row is an object, never an array, so the
+ * two shapes cannot be mistaken for each other.
+ */
+export function updateReturnedARow(result: unknown): boolean {
+  if (!Array.isArray(result)) {
+    return false;
+  }
+
+  if (
+    result.length === 2 &&
+    Array.isArray(result[0]) &&
+    typeof result[1] === "number"
+  ) {
+    return result[0].length > 0;
+  }
+
+  return result.length > 0;
+}
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -191,7 +220,7 @@ export class Service extends DatabaseService<Model> {
    * so sending it again pages nobody twice. Only the claim taken at
    * `claimedAt` - the one the caller took - is given back: one UPDATE that
    * removes the key while it still holds that moment. Returns whether it
-   * did; throws as the database does.
+   * did (updateReturnedARow); throws as the database does.
    */
   @CaptureSpan()
   public async releaseNotificationRuleClaim(data: {
@@ -199,23 +228,22 @@ export class Service extends DatabaseService<Model> {
     claimKey: string;
     claimedAt: Date;
   }): Promise<boolean> {
-    const rows: Array<{ _id: string }> =
-      await this.getRepository().manager.query(
-        `UPDATE "UserOnCallLog"
+    const result: unknown = await this.getRepository().manager.query(
+      `UPDATE "UserOnCallLog"
            SET "executedNotificationRules" = (
                  COALESCE("executedNotificationRules", '{}')::jsonb - $2::text
                )::json
          WHERE "_id" = $1::uuid
            AND (COALESCE("executedNotificationRules", '{}')::jsonb ->> $2::text) = $3::text
          RETURNING "_id"`,
-        [
-          data.userOnCallLogId.toString(),
-          data.claimKey,
-          data.claimedAt.toISOString(),
-        ],
-      );
+      [
+        data.userOnCallLogId.toString(),
+        data.claimKey,
+        data.claimedAt.toISOString(),
+      ],
+    );
 
-    return Array.isArray(rows) && rows.length > 0;
+    return updateReturnedARow(result);
   }
 
   /*
@@ -325,7 +353,9 @@ export class Service extends DatabaseService<Model> {
    * mirrors OnCallDutyPolicyExecutionLogService.claimEscalationAdvance: a single
    * conditional UPDATE that sets executedNotificationRules[key] only when the
    * key is absent and RETURNs the affected row, so exactly one concurrent run
-   * wins and the loser skips.
+   * wins and the loser skips. Its answer is read with updateReturnedARow:
+   * TypeORM answers an UPDATE with [rows, rowCount], which read as the rows
+   * made every claim a win.
    *
    * The key is a string rather than a rule id because not every delivery attempt
    * has a rule behind it. The verified-method fallback runs precisely BECAUSE no
@@ -354,9 +384,8 @@ export class Service extends DatabaseService<Model> {
     ).toISOString();
 
     try {
-      const rows: Array<{ _id: string }> =
-        await this.getRepository().manager.query(
-          `UPDATE "UserOnCallLog"
+      const result: unknown = await this.getRepository().manager.query(
+        `UPDATE "UserOnCallLog"
              SET "executedNotificationRules" = jsonb_set(
                    COALESCE("executedNotificationRules", '{}')::jsonb,
                    ARRAY[$2::text],
@@ -366,10 +395,10 @@ export class Service extends DatabaseService<Model> {
            WHERE "_id" = $1::uuid
              AND NOT (COALESCE("executedNotificationRules", '{}')::jsonb ? $2::text)
            RETURNING "_id"`,
-          [data.userOnCallLogId.toString(), ruleKey, nowIso],
-        );
+        [data.userOnCallLogId.toString(), ruleKey, nowIso],
+      );
 
-      return Array.isArray(rows) && rows.length > 0;
+      return updateReturnedARow(result);
     } catch (err) {
       logger.error(
         "claimNotificationRuleExecution atomic claim failed; falling back to non-atomic marking.",
@@ -410,6 +439,36 @@ export class Service extends DatabaseService<Model> {
 
       return true;
     }
+  }
+
+  /*
+   * A PAGE MERGED INTO THE PERSON'S OPEN PAGE FROM ANOTHER POLICY'S RUN
+   * TAKES THE PAGE OVER (Types/OnCallDutyPolicy/OnCallPageMerge): that page
+   * ended without their answer, so from now on this one pages them itself.
+   * It is paging again (Executing), its line says why, and what the other
+   * page sent is written as its own sent deliveries, before any of its
+   * rules is claimed, so none of them is sent twice. Throws as the database
+   * does: the worker tries again.
+   */
+  @CaptureSpan()
+  public async takeOverMergedPage(data: {
+    userOnCallLogId: ObjectID;
+    statusMessage: string;
+    // Its own sent deliveries, with the other page's: claim keys and when.
+    executedNotificationRules: JSONObject;
+  }): Promise<void> {
+    await this.updateOneById({
+      id: data.userOnCallLogId,
+      data: {
+        status: UserNotificationExecutionStatus.Executing,
+        statusMessage: data.statusMessage,
+        executedNotificationRules: { ...data.executedNotificationRules },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any,
+      props: {
+        isRoot: true,
+      },
+    });
   }
 
   /*
@@ -525,7 +584,18 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    createBy.data.status = UserNotificationExecutionStatus.Scheduled;
+    /*
+     * Every page starts Scheduled, and its start runs its rules - except a
+     * page merged into the person's open page from another policy's run
+     * (UserNotificationRuleService.recordMergedPage), which starts Already
+     * Paged and runs none (Types/OnCallDutyPolicy/OnCallPageMerge).
+     */
+    if (
+      createBy.data.status !== UserNotificationExecutionStatus.AlreadyPaged ||
+      !createBy.data.mergedIntoUserOnCallLogId
+    ) {
+      createBy.data.status = UserNotificationExecutionStatus.Scheduled;
+    }
 
     return {
       createBy,
@@ -577,6 +647,10 @@ export class Service extends DatabaseService<Model> {
         case UserNotificationExecutionStatus.PassedOn:
           status = OnCallDutyExecutionLogTimelineStatus.PassedOn;
           break;
+        // Merged into their open page from another policy's run (OnCallPageMerge).
+        case UserNotificationExecutionStatus.AlreadyPaged:
+          status = OnCallDutyExecutionLogTimelineStatus.AlreadyPaged;
+          break;
         default:
           throw new BadDataException("Invalid status");
       }
@@ -603,7 +677,9 @@ export class Service extends DatabaseService<Model> {
          * - unless the step already says what became of the page: skipped
          * (an opt-out, somebody who left), failed, or acknowledged. Moving
          * those back to "Notification Sent" claimed a page went out that
-         * never did.
+         * never did. So does a page merged into the person's open page from
+         * another policy's run that ends without taking the page over
+         * (OnCallPageMerge): it sent nothing, the other page did.
          */
         if (
           status === OnCallDutyExecutionLogTimelineStatus.NotificationSent &&
@@ -612,6 +688,7 @@ export class Service extends DatabaseService<Model> {
             OnCallDutyExecutionLogTimelineStatus.Skipped,
             OnCallDutyExecutionLogTimelineStatus.Error,
             OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged,
+            OnCallDutyExecutionLogTimelineStatus.AlreadyPaged,
           ].includes(stepStatus)
         ) {
           continue;
@@ -654,6 +731,16 @@ export class Service extends DatabaseService<Model> {
     _onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
+    /*
+     * A page merged into the person's open page from another policy's run
+     * sends nothing as it starts: that page's notifications stand for it,
+     * and its line says so already (OnCallPageMerge). The person's-log
+     * worker reads it each minute, for whether that page is still open.
+     */
+    if (createdItem.status === UserNotificationExecutionStatus.AlreadyPaged) {
+      return createdItem;
+    }
+
     // update this item to be processed.
     await this.updateOneById({
       id: createdItem.id!,
@@ -1411,6 +1498,22 @@ export class Service extends DatabaseService<Model> {
         `On-call notification fallback failed for UserOnCallLog ${createdItem.id?.toString()}`,
       );
       logger.error(err);
+    }
+
+    /*
+     * Another run holds the fallback's claim on this log: it fell back for
+     * it at the same moment, and is sending. It owns what happens next - the
+     * log's status, its line, any alert to the owners - so nothing is
+     * written over its page here: an Error would say a page that is going
+     * out reached nobody, and stop the try again that run may ask for.
+     * (While a claim always read as won, two runs both sent the fallback.)
+     */
+    if (fallbackResult?.isHeldByAnotherRun) {
+      logger.info(
+        `On-call fallback for UserOnCallLog ${createdItem.id?.toString()} is being sent by another run; this one leaves the log to it.`,
+      );
+
+      return;
     }
 
     /*

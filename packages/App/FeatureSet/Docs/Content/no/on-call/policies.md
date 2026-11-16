@@ -85,8 +85,10 @@ Den som varsles igjen, bekrefter fra meldingen eller med **Bekreft igjen** på s
 
 En hendelse, et varsel eller en episode kjører hver av policyene sine for seg, samtidig.
 
-- Den som har vakt i to av dem, tilkalles av begge, én gang av hver: OneUptime slår ikke sammen tilkallinger fra ulike policyer. Innenfor én policy tilkalles en person som et nivå nevner to ganger, personlig og gjennom et team eller en vaktplan, bare én gang.
+- Den som har vakt i to av dem, tilkalles bare én gang. Når et nivå i en policy når en person som en annen policy allerede tilkaller om det samme, tilkaller den ikke vedkommende igjen: utførelsesloggen dens viser vedkommende som **Allerede kalt opp**, og feeden til hendelsen og policyens melding i Slack og Microsoft Teams nevner policyen som tilkaller vedkommende. Nivået venter likevel ut minuttene sine før neste nivå, slik det gjør for alle det har tilkalt. Et svar på den ene tilkallingen gjelder for begge policyene. Innenfor én policy tilkalles en person som et nivå nevner to ganger, personlig og gjennom et team eller en vaktplan, bare én gang.
 - En bekreftelse av hendelsen eller varselet stopper innen ett minutt alle policyer som kjører for den, uansett hvor den bekreftes: fra en hvilken som helst tilkalling om den, på dens egen side, i mobilappen eller i Slack eller Microsoft Teams. Ingen neste nivå tilkalles, og ingen samtale eller SMS som fortsatt venter, sendes. Meldinger som allerede er sendt, forblir sendt.
+
+Ingen går glipp av en tilkalling ved bare å bli tilkalt én gang. Den ene tilkallingen kan ende uten svar: vedkommende eskalerer den fra en av meldingene dens, noe som bare eskalerer den policyen, tilkallingen kan ikke sendes, eller policyen dens stopper. Da tilkaller den andre policyen vedkommende selv innen ett minutt, uten å sende på nytt det som allerede har nådd vedkommende. **Eskaler** på siden til hendelsen eller i mobilappen eskalerer begge. En ny varsling, en policy som er startet manuelt, og en tilkalling som noen har sendt fra Slack eller Microsoft Teams, tilkaller alltid sine egne personer selv, også en person som en annen policy allerede tilkaller. En tilkalling til en observatør og en tilkalling til en mottaker slås aldri sammen.
 
 Noen tilkallinger fortsetter etter at den er bekreftet, til noen de har tilkalt, svarer, eller den er løst: en ny varsling, en tilkalling til observatører, en tilkalling som noen har sendt til personer fra Slack eller Microsoft Teams, og en policy som er startet manuelt.
 
@@ -123,7 +125,7 @@ Du finner utførelseslogger tre steder:
 - under **Vakt → Avansert → Utførelseslogger**, for alle policyer, der direkte tilkallinger fra arbeidsflyter og chat står som **Direkte tilkalling**;
 - på siden **Vaktutførelser** for en hendelse eller et varsel.
 
-Hver rad viser hva som startet kjøringen, når, **Status** og hvem som bekreftet. **Vis tidslinje** åpner **Tidslinje for utførelsen**: hver eskaleringsregel, hvem den tilkalte, gjennom hvilken vaktplan, og hvordan hver tilkalling endte. **Varslet via** viser hvordan hver tilkalling nådde personen: telefonanrop, SMS, e-post, push-varsling og så videre. En vaktplan der ingen har vakt, viser **Ingen hadde vakt** i stedet for en person. Et nivå som ikke tilkalte noen, sier hvorfor, med **Gikk videre med en gang** under: policyen ventet ikke på det. I OneUptime Cloud krever utførelseslogger abonnementet **Growth**.
+Hver rad viser hva som startet kjøringen, når, **Status** og hvem som bekreftet. **Vis tidslinje** åpner **Tidslinje for utførelsen**: hver eskaleringsregel, hvem den tilkalte, gjennom hvilken vaktplan, og hvordan hver tilkalling endte. **Varslet via** viser hvordan hver tilkalling nådde personen: telefonanrop, SMS, e-post, push-varsling og så videre. En vaktplan der ingen har vakt, viser **Ingen hadde vakt** i stedet for en person. Et nivå som ikke tilkalte noen, sier hvorfor, med **Gikk videre med en gang** under: policyen ventet ikke på det. En person som en annen policy allerede tilkalte, viser **Allerede kalt opp**: se [Når flere policyer tilkaller](#når-flere-policyer-tilkaller). I OneUptime Cloud krever utførelseslogger abonnementet **Growth**.
 
 ## Arkiver eller slett en policy
 
@@ -176,7 +178,7 @@ Policyen er arkivert: en arkivert policy blir stående på hendelsene og varslen
 :::
 
 :::details Noen ble tilkalt to ganger om én hendelse
-Vedkommende har vakt i to av policyene hendelsen kjører, og hver policy tilkaller sine egne personer. En bekreftelse av hendelsen fra en av de to tilkallingene stopper begge. Legg begge teamene eller vaktplanene i samme nivå i én policy, så tilkalles vedkommende bare én gang.
+Den som har vakt i to av policyene hendelsen kjører, tilkalles bare én gang, av den første policyen som når vedkommende. Den andre tilkaller vedkommende også når det er en ny varsling, en policy som er startet manuelt, en tilkalling sendt fra Slack eller Microsoft Teams eller en tilkalling til observatører, som alle tilkaller sine egne personer selv, eller når den første tilkallingen til vedkommende var over før den andre nådde frem til vedkommende: vedkommende hadde eskalert den, eller policyen dens hadde stoppet. **Vis tidslinje** for den andre policyen viser **Allerede kalt opp** for en person den ikke tilkalte igjen.
 :::
 
 :::details En policy fortsatte å tilkalle etter at hendelsen var bekreftet

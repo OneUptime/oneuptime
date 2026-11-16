@@ -51,6 +51,11 @@ import PacketCaptureStatus from "../../../Types/PacketCapture/PacketCaptureStatu
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import {
+  CapturedStatement,
+  captureClaimQueries,
+  normalizeSql,
+} from "../TestingUtils/PastDueMonitoringClaimSql";
+import {
   readsOfRowsCallerMayWrite,
   stubRowsCallerMayDelete,
 } from "../TestingUtils/RowsCallerMayWrite";
@@ -881,10 +886,15 @@ describe("toJob: a claimed row as the probe runs it", () => {
   });
 });
 
+/*
+ * The claim is one self-committing statement (OneUptime issue #7392):
+ * captured at getRepository().manager.query, with executeTransaction made
+ * to throw, so a claim that opens a transaction again fails here.
+ */
 describe("claimPendingForProbe", () => {
   test("hands out nothing, and asks nothing, when the probe has no slot free", async () => {
     const { service } = buildService();
-    const statements: Array<RecordedStatement> = stubTransaction(service, []);
+    const statements: Array<CapturedStatement> = captureClaimQueries(service);
 
     expect(
       await service.claimPendingForProbe({ probeId: PROBE_ID, limit: 0 }),
@@ -892,9 +902,9 @@ describe("claimPendingForProbe", () => {
     expect(statements).toHaveLength(0);
   });
 
-  test("selects only this probe's Pending, undeleted captures inside the pickup window, oldest first, skipping locked ones", async () => {
+  test("locks only this probe's Pending, undeleted captures inside the pickup window, oldest first, skipping locked ones", async () => {
     const { service } = buildService();
-    const statements: Array<RecordedStatement> = stubTransaction(service, [[]]);
+    const statements: Array<CapturedStatement> = captureClaimQueries(service);
 
     const before: number = Date.now();
     await service.claimPendingForProbe({ probeId: PROBE_ID, limit: 2 });
@@ -902,30 +912,37 @@ describe("claimPendingForProbe", () => {
 
     expect(statements).toHaveLength(1);
 
-    const select: RecordedStatement = statements[0]!;
-    const sql: string = flatten(select.sql);
+    const claim: CapturedStatement = statements[0]!;
+    const sql: string = normalizeSql(claim.sql);
+    const pending: string = sql.slice(
+      sql.indexOf('WITH "pending" AS ('),
+      sql.indexOf('"claimed" AS ('),
+    );
 
-    expect(sql).toContain('FROM "PacketCapture" c');
-    expect(sql).toContain('c."probeId" = $1');
-    expect(select.params[0]).toBe(PROBE_ID.toString());
-    expect(sql).toContain('c."status" = $2');
-    expect(select.params[1]).toBe(PacketCaptureStatus.Pending);
-    expect(sql).toContain('c."createdAt" >= $3');
-    const windowStart: number = (select.params[2] as Date).getTime();
+    expect(pending).toContain('FROM "PacketCapture" c');
+    expect(pending).toContain('c."probeId" = $1');
+    expect(claim.parameters[0]).toBe(PROBE_ID.toString());
+    expect(pending).toContain('c."status" = $2');
+    expect(claim.parameters[1]).toBe(PacketCaptureStatus.Pending);
+    expect(pending).toContain('c."createdAt" >= $3');
+    const windowStart: number = (claim.parameters[2] as Date).getTime();
     expect(windowStart).toBeGreaterThanOrEqual(
       before - PACKET_CAPTURE_PICKUP_TIMEOUT_IN_MINUTES * 60 * 1000,
     );
     expect(windowStart).toBeLessThanOrEqual(
       after - PACKET_CAPTURE_PICKUP_TIMEOUT_IN_MINUTES * 60 * 1000,
     );
-    expect(sql).toContain('c."deletedAt" IS NULL');
-    expect(sql).toContain('ORDER BY c."createdAt" ASC');
-    expect(sql).toContain("LIMIT $4");
-    expect(select.params[3]).toBe(2);
-    expect(sql).toContain("FOR UPDATE OF c SKIP LOCKED");
+    expect(pending).toContain('c."deletedAt" IS NULL');
+    expect(pending).toContain('ORDER BY c."createdAt" ASC');
+    expect(pending).toContain("LIMIT $4");
+    expect(claim.parameters[3]).toBe(2);
+    expect(pending).toContain("FOR NO KEY UPDATE OF c SKIP LOCKED");
+    // FOR UPDATE holds up the foreign-key checks of rows that name a capture.
+    expect(sql).not.toContain("FOR UPDATE");
+    expect(claim.parameters).toHaveLength(5);
   });
 
-  test("marks what it claimed Running with a start time, in the same transaction, and hands it out", async () => {
+  test("marks what it claimed Running with a start time, by the same statement, and hands it out in claim order", async () => {
     const { service } = buildService();
     const rows: Array<JSONObject> = [
       {
@@ -945,31 +962,32 @@ describe("claimPendingForProbe", () => {
         maxFileSizeInMB: 2,
       },
     ];
-    const statements: Array<RecordedStatement> = stubTransaction(service, [
+    const statements: Array<CapturedStatement> = captureClaimQueries(
+      service,
       rows,
-      [[], 2],
-    ]);
+    );
 
     const jobs: Array<PacketCaptureJob> = await service.claimPendingForProbe({
       probeId: PROBE_ID,
       limit: 2,
     });
 
-    expect(statements).toHaveLength(2);
+    expect(statements).toHaveLength(1);
+    expect(service.executeTransaction).not.toHaveBeenCalled();
 
-    const update: RecordedStatement = statements[1]!;
-    const sql: string = flatten(update.sql);
+    const sql: string = normalizeSql(statements[0]!.sql);
+    const claimed: string = sql.slice(sql.indexOf('"claimed" AS ('));
 
-    expect(sql).toContain('UPDATE "PacketCapture"');
-    expect(sql).toContain('"status" = $2');
-    expect(update.params[1]).toBe(PacketCaptureStatus.Running);
-    expect(sql).toContain('"startedAt" = now()');
-    expect(sql).toContain('"updatedAt" = now()');
-    expect(sql).toContain('WHERE "_id" = ANY($1::uuid[])');
-    expect(update.params[0]).toEqual([
-      CAPTURE_ID.toString(),
-      SECOND_CAPTURE_ID.toString(),
-    ]);
+    expect(claimed).toContain('UPDATE "PacketCapture" AS c');
+    expect(claimed).toContain('"status" = $5');
+    expect(statements[0]!.parameters[4]).toBe(PacketCaptureStatus.Running);
+    expect(claimed).toContain('"startedAt" = now()');
+    expect(claimed).toContain('"updatedAt" = now()');
+    expect(claimed).toContain('FROM "pending" WHERE c."_id" = "pending"."_id"');
+    // The rows it wrote, in the order it locked them: oldest first.
+    expect(sql).toMatch(
+      /SELECT "pending"\."_id", "pending"\."interfaceName", "pending"\."bpfFilter", "pending"\."maxDurationInSeconds", "pending"\."maxPackets", "pending"\."maxFileSizeInMB" FROM "pending" INNER JOIN "claimed" ON "claimed"\."_id" = "pending"\."_id" ORDER BY "pending"\."createdAt" ASC$/,
+    );
 
     expect(jobs).toEqual([
       {
@@ -989,6 +1007,43 @@ describe("claimPendingForProbe", () => {
         maxFileSizeInBytes: 2097152,
       },
     ]);
+  });
+
+  test("with nothing pending it is still one statement, and hands out nothing", async () => {
+    const { service } = buildService();
+    const statements: Array<CapturedStatement> = captureClaimQueries(
+      service,
+      [],
+    );
+
+    expect(
+      await service.claimPendingForProbe({ probeId: PROBE_ID, limit: 3 }),
+    ).toEqual([]);
+    expect(statements).toHaveLength(1);
+  });
+
+  test("an answer that is not a list of rows hands out nothing", async () => {
+    const { service } = buildService();
+    captureClaimQueries(service, "unexpected" as never);
+
+    expect(
+      await service.claimPendingForProbe({ probeId: PROBE_ID, limit: 3 }),
+    ).toEqual([]);
+  });
+
+  // Status strings are bound, never spelled into the SQL.
+  test("binds the status words rather than spelling them into the SQL", async () => {
+    const { service } = buildService();
+    const statements: Array<CapturedStatement> = captureClaimQueries(service);
+
+    await service.claimPendingForProbe({ probeId: PROBE_ID, limit: 1 });
+
+    expect(statements[0]!.sql).not.toContain(
+      `'${PacketCaptureStatus.Pending}'`,
+    );
+    expect(statements[0]!.sql).not.toContain(
+      `'${PacketCaptureStatus.Running}'`,
+    );
   });
 });
 
