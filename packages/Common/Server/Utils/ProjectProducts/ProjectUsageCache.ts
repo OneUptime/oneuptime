@@ -134,14 +134,12 @@ export default class ProjectUsageCache {
 
   /*
    * The project's usage: as kept in its current generation, else read with
-   * `read` (once for every caller that asks meanwhile) and kept. A fresh
-   * read asks `read` whatever is kept, and keeps what it got. A read that
+   * `read` (once for every caller that asks meanwhile) and kept. A read that
    * fails is never kept, and throws to its caller.
    */
   public static async getUsage(data: {
     projectId: ObjectID | string;
     read: () => Promise<ProjectUsage>;
-    isFreshRead?: boolean | undefined;
   }): Promise<ProjectUsage> {
     const projectKey: string = ProjectUsageCache.toKey(data.projectId);
 
@@ -150,19 +148,17 @@ export default class ProjectUsageCache {
       await ProjectUsageCache.generations.get(projectKey),
     ].join("|");
 
-    if (!data.isFreshRead) {
-      const kept: ProjectUsage | undefined = ProjectUsageCache.entries.get(key);
+    const kept: ProjectUsage | undefined = ProjectUsageCache.entries.get(key);
 
-      if (kept) {
-        return { ...kept };
-      }
+    if (kept) {
+      return { ...kept };
+    }
 
-      const reading: Promise<ProjectUsage> | undefined =
-        ProjectUsageCache.inFlight.get(key);
+    const reading: Promise<ProjectUsage> | undefined =
+      ProjectUsageCache.inFlight.get(key);
 
-      if (reading) {
-        return { ...(await reading) };
-      }
+    if (reading) {
+      return { ...(await reading) };
     }
 
     const read: Promise<ProjectUsage> = data.read();

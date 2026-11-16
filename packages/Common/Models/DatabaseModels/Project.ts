@@ -5615,15 +5615,15 @@ export default class Project extends TenantModel {
    * The products the project hides (issue #6814,
    * Types/Product/ProjectProducts): left out of the products menu's
    * categories, Home and Search's list, and kept under More products. Null:
-   * nothing chosen, every product shown - every project from before this,
-   * and a new one until its goals are chosen. Read it with
-   * parseProjectProductSettings.
+   * nothing chosen, every product shown, as for every new project. Only a
+   * member hides a product; a list an older version set from the project's
+   * goals reads as nothing chosen. Read it with parseProjectProductSettings.
    *
    * Every member reads it, with the project (ProjectAPI's
    * list-user-projects), so the menu draws the project's products on its
    * first paint. Nobody writes it through the API: Project Settings >
    * Products changes it through ProjectProductsAPI, which checks who may and
-   * what is in use, and choosing the goals sets it (ProjectProductsService).
+   * what is in use (ProjectProductsService).
    */
   @ColumnAccessControl({
     create: [],
@@ -5643,7 +5643,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.JSON,
     title: "Product Settings",
     description:
-      "The products this project hides from its menu, Home and Search's list, and where that list came from (its goals, or a member). A hidden product still works and is found by Search. Not set: every product is shown.",
+      "The products a member hid from this project's menu, Home and Search's list on Project Settings > Products. A hidden product still works and is found by Search. Not set: every product is shown.",
     example:
       '{"hidden": ["kubernetes", "docker"], "keptHiddenWithData": [], "chosenBy": "member"}',
   })

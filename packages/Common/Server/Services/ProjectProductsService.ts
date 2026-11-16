@@ -76,7 +76,6 @@ import {
   ProjectProductSettings,
   getHiddenProducts,
   getHiddenProductsWithData,
-  getProjectProductSettingsFromGoals,
   isHideableProduct,
   parseProjectProductSettings,
   toProjectProductSettingsJSON,
@@ -89,7 +88,6 @@ import {
   ServerProductsOff,
   getProductOffMessage,
 } from "../../Types/Product/ServerProducts";
-import ProjectGoal from "../../Types/WelcomeChecklist/ProjectGoal";
 
 /*
  * THE PRODUCTS A PROJECT SHOWS, AND THE ONES A PERSON PINS, ON THE SERVER
@@ -103,7 +101,10 @@ import ProjectGoal from "../../Types/WelcomeChecklist/ProjectGoal";
  *
  *   - the project's choice: Project.productSettings, written straight to the
  *     row (writeSettings) - the server's own bookkeeping, like the Welcome
- *     checklist's, which would otherwise run Project's update hooks;
+ *     checklist's, which would otherwise run Project's update hooks. Only a
+ *     member's change on Project Settings > Products writes it
+ *     (setProductShown, showEveryProduct): nothing hides a product by
+ *     itself, not the project's goals and not a product not set up yet;
  *   - the person's pins: their own ProjectUserPreference row
  *     (ProjectUserPreferenceService), and nobody else's;
  *   - what is in use (getProjectUsage): one statement that asks, for each
@@ -406,59 +407,15 @@ export class ProjectProductsServiceClass {
   }
 
   /*
-   * Gives a project the products its goals need (called when the goals are
-   * chosen, WelcomeChecklistService.chooseGoals): Essentials, Settings, what
-   * the goals name and anything already in use are shown, the rest hidden.
-   * A project whose products a member already chose is left as it is.
-   * Never throws: the goals are kept either way.
-   */
-  public async applyGoals(data: {
-    projectId: ObjectID;
-    goals: ReadonlyArray<ProjectGoal>;
-  }): Promise<void> {
-    try {
-      const row: ProjectProductsRow = await this.readProject(data.projectId);
-
-      const usage: ProjectUsage = await this.getProjectUsage(data.projectId, {
-        isFreshRead: true,
-      });
-
-      const next: ProjectProductSettings | null =
-        getProjectProductSettingsFromGoals({
-          current: row.settings,
-          goals: data.goals,
-          inUse: PRODUCT_KEYS.filter((product: ProductKey): boolean => {
-            return usage[product] === true;
-          }),
-          now: OneUptimeDate.getCurrentDate(),
-        });
-
-      if (!next) {
-        return;
-      }
-
-      await this.writeSettings(data.projectId, next);
-    } catch (err) {
-      logger.error("Could not set the project's products from its goals:");
-      logger.error(err as Error);
-    }
-  }
-
-  /*
    * What the project has something in, kept for USAGE_TTL_IN_MS or until
-   * something changes it (ProjectUsageCache). A fresh read asks the database
-   * whatever is kept.
+   * something changes it (ProjectUsageCache).
    */
-  public async getProjectUsage(
-    projectId: ObjectID,
-    options?: { isFreshRead?: boolean | undefined } | undefined,
-  ): Promise<ProjectUsage> {
+  public async getProjectUsage(projectId: ObjectID): Promise<ProjectUsage> {
     return await ProjectUsageCache.getUsage({
       projectId: projectId,
       read: async (): Promise<ProjectUsage> => {
         return await this.readUsage(projectId);
       },
-      isFreshRead: options?.isFreshRead,
     });
   }
 
