@@ -41,7 +41,7 @@ import {
   makePcapRecord,
   pcapLength,
 } from "../Utils/PacketCapture/PcapFixture";
-import { DataSource, QueryRunner } from "typeorm";
+import { DataSource, EntityManager, QueryRunner } from "typeorm";
 
 /*
  * Packet capture's hand-written SQL against a real Postgres: the probe's
@@ -983,6 +983,268 @@ describePostgres("packet capture SQL against Postgres", () => {
 
       expect(byId.get(probeId.toString())).toEqual(report);
       expect(byId.get(globalProbeId.toString())).toBeNull();
+    });
+  });
+
+  /*
+   * The round trips each write takes (OneUptime issue #8870). Each but the
+   * retention sweep's batches is self-committing: the statement's own WHERE
+   * is its guard, so the transaction each ran in - START TRANSACTION, the
+   * statement, COMMIT - was two round trips more, holding the connection
+   * between them, for nothing to commit together. Counted at the query
+   * runner, which every statement TypeORM sends goes through.
+   */
+  describe("the round trips of each write", () => {
+    const TRANSACTION_CONTROL: RegExp =
+      /^\s*(START TRANSACTION|BEGIN|COMMIT|ROLLBACK)\b/i;
+
+    function transactionControl(statements: Array<string>): Array<string> {
+      return statements.filter((statement: string): boolean => {
+        return TRANSACTION_CONTROL.test(statement);
+      });
+    }
+
+    function firstWords(statement: string): string {
+      return statement
+        .trim()
+        .replace(/\s+/g, " ")
+        .split(" ")
+        .slice(0, 3)
+        .join(" ");
+    }
+
+    test("the heartbeat, and a failure report, are one statement each - written or not", async () => {
+      const running: ObjectID = await insertCapture({
+        status: PacketCaptureStatus.Running,
+        updatedMinutesAgo: 1,
+      });
+
+      const heartbeat: { result: Array<string>; statements: Array<string> } =
+        await statementsSentBy(() => {
+          return PacketCaptureService.findCapturesToStop({
+            probeId: probeId,
+            runningPacketCaptureIds: [running.toString()],
+          });
+        });
+
+      expect(heartbeat.result).toEqual([]);
+      expect(heartbeat.statements.map(firstWords)).toEqual([
+        'UPDATE "PacketCapture" SET',
+      ]);
+
+      const failed: { result: boolean; statements: Array<string> } =
+        await statementsSentBy(() => {
+          return PacketCaptureService.recordFailure({
+            probeId: probeId,
+            packetCaptureId: running,
+            statusMessage: "tcpdump could not open eth0.",
+          });
+        });
+
+      expect(failed.result).toBe(true);
+      expect(failed.statements.map(firstWords)).toEqual([
+        'UPDATE "PacketCapture" SET',
+      ]);
+
+      // Settled: the next report is refused, in the same one statement.
+      const refused: { result: boolean; statements: Array<string> } =
+        await statementsSentBy(() => {
+          return PacketCaptureService.recordFailure({
+            probeId: probeId,
+            packetCaptureId: running,
+            statusMessage: "again",
+          });
+        });
+
+      expect(refused.result).toBe(false);
+      expect(refused.statements).toHaveLength(1);
+    });
+
+    test("a completion with no packets, Stop and the capability report are their read and one statement", async () => {
+      const running: ObjectID = await insertCapture({
+        status: PacketCaptureStatus.Running,
+        startedMinutesAgo: 1,
+      });
+
+      const completed: { result: boolean; statements: Array<string> } =
+        await statementsSentBy(() => {
+          return PacketCaptureService.recordCompletion({
+            probeId: probeId,
+            packetCaptureId: running,
+            pcap: null,
+            endReason: PacketCaptureEndReason.DurationReached,
+          });
+        });
+
+      expect(completed.result).toBe(true);
+      expect(completed.statements.map(firstWords)).toEqual([
+        'SELECT "PacketCapture"."_id" AS',
+        'UPDATE "PacketCapture" SET',
+      ]);
+
+      const toStop: ObjectID = await insertCapture({
+        status: PacketCaptureStatus.Running,
+      });
+
+      const stop: { statements: Array<string> } = await statementsSentBy(() => {
+        return PacketCaptureService.requestStop({
+          packetCaptureId: toStop,
+          projectId: projectId,
+        });
+      });
+
+      expect(stop.statements.map(firstWords)).toEqual([
+        'SELECT "PacketCapture"."_id" AS',
+        'UPDATE "PacketCapture" SET',
+      ]);
+      expect((await readCapture(toStop))!.stopRequestedAt).toBeInstanceOf(Date);
+
+      const capability: { result: boolean; statements: Array<string> } =
+        await statementsSentBy(() => {
+          return PacketCaptureService.recordProbeCapability({
+            probeId: probeId,
+            capability: {
+              isEnabled: true,
+              isToolAvailable: true,
+              interfaces: [{ name: "eth0", addresses: [] }],
+              limits: {
+                maxDurationInSeconds: 600,
+                maxPackets: 1000000,
+                maxFileSizeInMB: 10,
+              },
+            },
+          });
+        });
+
+      expect(capability.result).toBe(true);
+      expect(capability.statements.map(firstWords)).toEqual([
+        'SELECT "Probe"."_id" AS',
+        'UPDATE "Probe" SET',
+      ]);
+    });
+
+    test("a completion with a file opens no transaction round the capture's write", async () => {
+      const running: ObjectID = await insertCapture({
+        status: PacketCaptureStatus.Running,
+        startedMinutesAgo: 1,
+      });
+
+      const completed: { result: boolean; statements: Array<string> } =
+        await statementsSentBy(() => {
+          return PacketCaptureService.recordCompletion({
+            probeId: probeId,
+            packetCaptureId: running,
+            pcap: makePcap({ packetLengths: [60, 98] }),
+            endReason: PacketCaptureEndReason.DurationReached,
+          });
+        });
+
+      expect(completed.result).toBe(true);
+
+      /*
+       * The capture's write comes after the file's create, and nothing comes
+       * after it: no COMMIT of a transaction round it.
+       */
+      expect(
+        firstWords(completed.statements[completed.statements.length - 1]!),
+      ).toBe('UPDATE "PacketCapture" SET');
+      expect((await readCapture(running))!.packetCount).toBe(2);
+    });
+
+    test("the stale sweep is three statements, each committing on its own", async () => {
+      await insertCapture({ createdMinutesAgo: 6 });
+
+      const sweep: { result: number; statements: Array<string> } =
+        await statementsSentBy(() => {
+          return PacketCaptureService.failStaleCaptures();
+        });
+
+      expect(sweep.result).toBe(1);
+      expect(transactionControl(sweep.statements)).toEqual([]);
+      expect(sweep.statements.map(firstWords)).toEqual([
+        'UPDATE "PacketCapture" SET',
+        'UPDATE "PacketCapture" SET',
+        'UPDATE "PacketCapture" SET',
+      ]);
+    });
+
+    test("a sweep statement that fails keeps what the ones before it failed, and the next sweep does the rest", async () => {
+      const notPickedUp: ObjectID = await insertCapture({
+        createdMinutesAgo: 6,
+      });
+      const silent: ObjectID = await insertCapture({
+        status: PacketCaptureStatus.Running,
+        startedMinutesAgo: 4,
+        updatedMinutesAgo: 3,
+        maxDurationInSeconds: 1800,
+      });
+
+      const manager: EntityManager = database.manager;
+      let sent: number = 0;
+
+      jest.spyOn(PacketCaptureService, "getRepository").mockReturnValue({
+        manager: {
+          query: async (
+            sql: string,
+            parameters: Array<unknown>,
+          ): Promise<unknown> => {
+            sent++;
+
+            if (sent === 2) {
+              throw new Error("canceling statement due to lock timeout");
+            }
+
+            return await manager.query(sql, parameters);
+          },
+        },
+      } as never);
+
+      await expect(PacketCaptureService.failStaleCaptures()).rejects.toThrow(
+        "lock timeout",
+      );
+
+      // The first statement committed on its own; the third never ran.
+      expect(sent).toBe(2);
+      expect((await readCapture(notPickedUp))!.status).toBe(
+        PacketCaptureStatus.Failed,
+      );
+      expect((await readCapture(silent))!.status).toBe(
+        PacketCaptureStatus.Running,
+      );
+
+      jest.restoreAllMocks();
+      jest.spyOn(PostgresAppInstance, "isConnected").mockReturnValue(true);
+      jest
+        .spyOn(PostgresAppInstance, "getDataSource")
+        .mockReturnValue(database);
+
+      expect(await PacketCaptureService.failStaleCaptures()).toBe(1);
+      expect(await readCapture(silent)).toMatchObject({
+        status: PacketCaptureStatus.Failed,
+        statusMessage: HEARTBEAT_TIMEOUT_MESSAGE,
+      });
+    });
+
+    test("a retention batch stays one transaction: its captures and their files commit together", async () => {
+      const file: ObjectID = await insertFile();
+      await insertCapture({
+        status: PacketCaptureStatus.Completed,
+        createdMinutesAgo: 8 * 24 * 60,
+        fileId: file,
+      });
+
+      const retention: { result: number; statements: Array<string> } =
+        await statementsSentBy(() => {
+          return PacketCaptureService.deleteExpiredCaptures();
+        });
+
+      expect(retention.result).toBe(1);
+      expect(retention.statements.map(firstWords)).toEqual([
+        "START TRANSACTION",
+        'DELETE FROM "PacketCapture"',
+        'DELETE FROM "File"',
+        "COMMIT",
+      ]);
     });
   });
 

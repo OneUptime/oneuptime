@@ -1,4 +1,3 @@
-import { EntityManager } from "./DatabaseService";
 import ProjectReferencesService from "./ProjectReferencesService";
 import MonitorTest from "../../Models/DatabaseModels/MonitorTest";
 import ObjectID from "../../Types/ObjectID";
@@ -115,6 +114,11 @@ export class Service extends ProjectReferencesService<MonitorTest> {
    * ingest), so a probe that learned another test's id - another project's
    * included - writes nothing. Returns whether a row was written: false for
    * a test of another probe, and for one that is gone.
+   *
+   * One self-committing statement, whose own WHERE is the guard (OneUptime
+   * issue #8870). It ran inside a transaction, which added a BEGIN and a
+   * COMMIT round trip to every step result of every "Test monitor" run, and
+   * held the connection between them, for nothing to commit together.
    */
   public async mergeStepProbeResponse(data: {
     testId: ObjectID;
@@ -123,32 +127,28 @@ export class Service extends ProjectReferencesService<MonitorTest> {
   }): Promise<boolean> {
     const testedAt: Date = OneUptimeDate.getCurrentDate();
 
-    return await this.executeTransaction(
-      async (transactionalEntityManager: EntityManager): Promise<boolean> => {
-        const updateQuery: string = `
-          UPDATE "MonitorTest"
-          SET "monitorStepProbeResponse" = COALESCE("monitorStepProbeResponse", '{}'::jsonb) || $2::jsonb,
-              "testedAt" = $3,
-              "updatedAt" = now()
-          WHERE "_id" = $1
-            AND "probeId" = $4
-            AND "deletedAt" IS NULL
-          RETURNING "_id"
-        `;
+    const updateQuery: string = `
+      UPDATE "MonitorTest"
+      SET "monitorStepProbeResponse" = COALESCE("monitorStepProbeResponse", '{}'::jsonb) || $2::jsonb,
+          "testedAt" = $3,
+          "updatedAt" = now()
+      WHERE "_id" = $1
+        AND "probeId" = $4
+        AND "deletedAt" IS NULL
+      RETURNING "_id"
+    `;
 
-        const result: unknown = await transactionalEntityManager.query(
-          updateQuery,
-          [
-            data.testId.toString(),
-            JSON.stringify(data.monitorStepProbeResponse),
-            testedAt,
-            data.probeId.toString(),
-          ],
-        );
-
-        return readUpdatedRowCount(result) > 0;
-      },
+    const result: unknown = await this.getRepository().manager.query(
+      updateQuery,
+      [
+        data.testId.toString(),
+        JSON.stringify(data.monitorStepProbeResponse),
+        testedAt,
+        data.probeId.toString(),
+      ],
     );
+
+    return readUpdatedRowCount(result) > 0;
   }
 }
 
