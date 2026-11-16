@@ -119,12 +119,8 @@ describe("AddRuleEmptiedLimits1809182490000", () => {
     );
     expect(rule.getTableColumnMetadata("emptiedLimits").required).toBeFalsy();
     expect(rule.getTableColumnMetadata("emptiedLimits").computed).toBe(true);
-    expect(rule.getColumnAccessControlFor("emptiedLimits")?.create).toEqual(
-      [],
-    );
-    expect(rule.getColumnAccessControlFor("emptiedLimits")?.update).toEqual(
-      [],
-    );
+    expect(rule.getColumnAccessControlFor("emptiedLimits")?.create).toEqual([]);
+    expect(rule.getColumnAccessControlFor("emptiedLimits")?.update).toEqual([]);
     expect(rule.getColumnAccessControlFor("emptiedLimits")?.read).toEqual(
       rule.readRecordPermissions,
     );
