@@ -31,11 +31,12 @@ const { HEADING, ok, warn, stop, listed } = require("./StartOutput");
  *     and --services included), is free or held by this install's own
  *     containers.
  *   - HOST, HTTP_PROTOCOL and PROVISION_SSL: the shapes that break sign-in or
- *     certificates, and HOST's DNS.
+ *     certificates, an IPv6 HOST without brackets, and HOST's DNS.
  *
  * Only what would certainly stop OneUptime stops `npm start` (marked ✗): no
  * Docker, a Docker this user cannot use, no Compose v2, a port another
- * program holds, a HOST no browser can open. The rest is said and OneUptime
+ * program holds, a HOST no browser can open (such as 2001:db8::1, which a web
+ * address writes as [2001:db8::1]). The rest is said and OneUptime
  * starts. A check that cannot tell says nothing. ONEUPTIME_SKIP_PREFLIGHT=true
  * skips every check, and a fault of this script's own never stops a start.
  *
@@ -223,8 +224,171 @@ const isLoopbackHost = (hostname) => {
   return LOOPBACK_HOSTS.indexOf(String(hostname).toLowerCase()) !== -1;
 };
 
+// An IPv4 address, or an IPv6 address with or without brackets.
 const isIpAddress = (hostname) => {
   return IPV4_ADDRESS.test(hostname) || String(hostname).indexOf(":") !== -1;
+};
+
+/*
+ * HOST'S SHAPE: AN IPv6 ADDRESS GOES IN BRACKETS
+ *
+ * HOST is a domain name or an IPv4 address, with or without ":port", or an
+ * IPv6 address in brackets, with or without ":port" after them:
+ * HOST=[2001:db8::1], HOST=[2001:db8::1]:8080. A web address writes an IPv6
+ * host so (RFC 3986), a browser shows it so and names it so in the Host of
+ * every request, and so the ingress names its primary server by it and the
+ * app builds every link from it.
+ *
+ * Without brackets it never worked (#8022): nginx answers 400 to a Host of
+ * 2001:db8::1 and never takes a request for a server of that name, so every
+ * request fell to the status pages; and the app's links read
+ * http://2001:db8::1/..., which no browser opens. Nor can the brackets be put
+ * in for the person: 2001:db8::1:8080 is an IPv6 address of its own, and also
+ * 2001:db8::1 with port 8080, and only they know which they meant. So the
+ * start stops and shows the line to write, both lines when it can be read
+ * either way.
+ *
+ * The rest of the shape, from the same rule: brackets hold an IPv6 address
+ * and nothing else, closed, with nothing after them but ":port"; only an IPv6
+ * address has two colons; a port is a number from 1 to 65535. The app reads
+ * any other HOST as no address at all and does not start ("Hostname ... is
+ * not in valid format").
+ */
+
+// An IPv6 address, written as a web address can hold one: hex digits, colons and dots, no zone.
+const isIpv6Address = (text) => {
+  return /^[0-9A-Fa-f:.]+$/.test(text) && net.isIPv6(text);
+};
+
+const isPort = (text) => {
+  return PORT_NUMBER.test(text) && Number(text) >= 1 && Number(text) <= 65535;
+};
+
+const colonsIn = (text) => {
+  return (String(text).match(/:/g) || []).length;
+};
+
+/*
+ * The ways to read an IPv6 HOST written without brackets, each { host, port }
+ * as HOST is written then: the whole as the address ({ host: "[2001:db8::1]" });
+ * and, when its last group is a number and the rest is an address, the rest
+ * with that port ({ host: "[2001:db8::1]:8080", port: "8080" }).
+ * Empty when it is no IPv6 address either way.
+ */
+const bracketedReadingsOf = (text) => {
+  const readings = [];
+
+  if (isIpv6Address(text)) {
+    readings.push({ host: `[${text}]`, port: null });
+  }
+
+  const colon = text.lastIndexOf(":");
+  const address = text.slice(0, colon);
+  const port = text.slice(colon + 1);
+
+  if (colon > 0 && isPort(port) && isIpv6Address(address)) {
+    readings.push({ host: `[${address}]:${port}`, port: port });
+  }
+
+  return readings;
+};
+
+/*
+ * The HOST lines to write for a HOST written as `text` (without a scheme, a
+ * path or spaces): "HOST=[2001:db8::1]", or both readings of one that has
+ * two. `text` itself when it is not an IPv6 address without brackets.
+ */
+const hostLinesFor = (text) => {
+  const readings =
+    !text.startsWith("[") && colonsIn(text) >= 2
+      ? bracketedReadingsOf(text)
+      : [];
+
+  if (readings.length === 0) {
+    return `HOST=${text}`;
+  }
+
+  return readings
+    .map((reading) => {
+      return reading.port && readings.length > 1
+        ? `HOST=${reading.host} if ${reading.port} is the port people open it on`
+        : `HOST=${reading.host}`;
+    })
+    .join(", or ");
+};
+
+/*
+ * Pure: what is wrong with the shape of HOST (a value with no scheme, path or
+ * spaces left), as a stop finding, or null when it is a name or an IPv4
+ * address, or an IPv6 address in brackets, each with or without a port.
+ */
+const hostShapeFinding = (host) => {
+  const fromLine = `HOST in config.env is ${host}`;
+
+  if (host.startsWith("[")) {
+    const match = /^\[([^\]]*)\](?::([^:]*))?$/.exec(host);
+
+    if (match && isIpv6Address(match[1])) {
+      if (match[2] === undefined || isPort(match[2])) {
+        return null;
+      }
+
+      return {
+        level: "stop",
+        message: `${fromLine}, but ${match[2] ? `${match[2]} is not a port` : "no port follows its last colon"}. A port is a number from 1 to 65535, such as HOST=[${match[1]}]:8080; without one, write HOST=[${match[1]}].`,
+      };
+    }
+
+    return {
+      level: "stop",
+      message: `${fromLine}. Brackets hold an IPv6 address and nothing else, with any port after the closing one, such as HOST=[2001:db8::1] or HOST=[2001:db8::1]:8080. A domain name or an IPv4 address goes without them.`,
+    };
+  }
+
+  const colons = colonsIn(host);
+
+  if (colons >= 2) {
+    const readings = bracketedReadingsOf(host);
+
+    if (readings.length === 0) {
+      return {
+        level: "stop",
+        message: `${fromLine}, which is not an address: a domain name or an IPv4 address has one colon at most, before its port, and an IPv6 address goes in brackets, such as HOST=[2001:db8::1].`,
+      };
+    }
+
+    const what =
+      readings.length === 1 && readings[0].port
+        ? "an IPv6 address and a port, without the brackets a web address needs around the address"
+        : "an IPv6 address without the brackets a web address needs around one";
+
+    return {
+      level: "stop",
+      message: `${fromLine}, ${what}, so no browser can open OneUptime at it. Write ${hostLinesFor(host)}.`,
+    };
+  }
+
+  if (colons === 1) {
+    const colon = host.indexOf(":");
+    const name = host.slice(0, colon);
+    const port = host.slice(colon + 1);
+
+    if (!name) {
+      return {
+        level: "stop",
+        message: `${fromLine}, a port with no address before it. Write the domain name or IP address people open OneUptime at before the colon, such as HOST=oneuptime.example.com:${isPort(port) ? port : "8080"}.`,
+      };
+    }
+
+    if (!isPort(port)) {
+      return {
+        level: "stop",
+        message: `${fromLine}, but ${port ? `${port} is not a port` : "no port follows its colon"}. A port is a number from 1 to 65535, such as HOST=${name}:8080; without one, write HOST=${name}.`,
+      };
+    }
+  }
+
+  return null;
 };
 
 /*
@@ -308,7 +472,7 @@ const hostFindings = (settings, interfaces) => {
   if (cleaned !== host) {
     findings.push({
       level: "stop",
-      message: `HOST in config.env is ${host}. Write the address alone, without http:// or a path: HOST=${cleaned || exampleHost}. HTTP_PROTOCOL says whether people use http or https.`,
+      message: `HOST in config.env is ${host}. Write the address alone, without http:// or a path: ${hostLinesFor(cleaned || exampleHost)}. HTTP_PROTOCOL says whether people use http or https.`,
     });
     return findings;
   }
@@ -320,6 +484,13 @@ const hostFindings = (settings, interfaces) => {
       level: "stop",
       message: `HOST in config.env is ${host}, an address servers listen on rather than one people open. Set it to this server's domain name or IP address, such as HOST=${exampleHost}${port ? `:${port}` : ""}.`,
     });
+    return findings;
+  }
+
+  const shape = hostShapeFinding(host);
+
+  if (shape) {
+    findings.push(shape);
     return findings;
   }
 
@@ -1152,6 +1323,9 @@ module.exports = {
   parsePortSetting,
   splitHost,
   cleanedHost,
+  isIpAddress,
+  bracketedReadingsOf,
+  hostShapeFinding,
   exampleAddress,
   hostFindings,
   dockerFailureOf,
