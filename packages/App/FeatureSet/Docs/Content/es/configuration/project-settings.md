@@ -64,7 +64,7 @@ Un producto oculto no está desactivado. Pasa a **Más productos**, la última f
 
 En un servidor autoalojado, un administrador maestro también puede desactivar un producto para todos los proyectos, en **Ajustes → Productos** del Admin Dashboard (consulta [Ejecuta solo lo que necesitas](/docs/installation/docker-compose#ejecuta-solo-lo-que-necesitas)). Un producto así no tiene interruptor aquí: dice **Desactivado en este servidor**, junto con quién puede activarlo.
 
-Un proyecto nuevo empieza con lo que su propietario dijo en Inicio que venía a hacer: se muestran los esenciales, Ajustes y lo que esos objetivos necesitan, y el resto se oculta. Un proyecto que se saltó la pregunta, o que se creó antes de ella, muestra todos los productos. En cuanto alguien cambia la lista aquí, los objetivos ya no la cambian.
+Todos los productos se muestran hasta que alguien los oculta aquí. Ningún producto se oculta solo: lo que el propietario dijo en Inicio que el proyecto venía a hacer solo prepara allí los primeros pasos, y un producto sin configurar sigue en su sitio en el menú.
 
 Cada producto dice lo que es para este proyecto: **En uso**, **Sin configurar** o, en OneUptime Cloud, el plan que necesita. Cuando un producto oculto empieza a recibir datos, Inicio se lo dice a los Propietarios del proyecto y a los Administradores del proyecto y ofrece **Mostrarlo** o **Mantener oculto**.
 

@@ -64,7 +64,7 @@ Un prodotto nascosto non è disattivato. Passa in **Altri prodotti**, l'ultima r
 
 Su un server self-hosted, un amministratore principale può anche disattivare un prodotto per tutti i progetti, in **Impostazioni → Prodotti** nell'Admin Dashboard (vedi [Esegui solo ciò che ti serve](/docs/installation/docker-compose#esegui-solo-ciò-che-ti-serve)). Un prodotto così non ha un interruttore qui: mostra **Disattivato su questo server**, con chi può attivarlo.
 
-Un nuovo progetto parte da ciò che il suo proprietario ha detto di voler fare nella Home: sono mostrati gli essenziali, le impostazioni e ciò che servono a quegli obiettivi, e il resto è nascosto. Un progetto che ha saltato la domanda, o creato prima di essa, mostra tutti i prodotti. Appena qualcuno cambia l'elenco qui, gli obiettivi non lo cambiano più.
+Ogni prodotto è mostrato finché qualcuno non lo nasconde qui. Nessun prodotto si nasconde da solo: ciò che il proprietario ha detto nella Home di voler fare con il progetto prepara lì solo i primi passi, e un prodotto non ancora configurato resta al suo posto nel menu.
 
 Ogni prodotto dice cosa è per questo progetto: **In uso**, **Non configurato** oppure, su OneUptime Cloud, il piano di cui ha bisogno. Quando un prodotto nascosto inizia a ricevere dati, la Home lo dice ai Proprietari del progetto e agli Amministratori del progetto e offre **Mostralo** o **Lascia nascosto**.
 
