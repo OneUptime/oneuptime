@@ -128,6 +128,9 @@ export type {
 export const WEBSITE_DOWN_COPY: {
   pageTitle: string;
   pageDescription: string;
+  checkOutcome: string;
+  whoOutcome: string;
+  testOutcome: string;
   checkTitle: string;
   checkHelp: string;
   addressLabel: string;
@@ -184,6 +187,15 @@ export const WEBSITE_DOWN_COPY: {
   pageDescription: translationKey(
     "Guided setup: check an address, choose who is told, and send a test, on this page.",
   ),
+  /*
+   * What each step sets up, beside the steps (GuidedSetupFrame, #8897): the
+   * outcome the person is working towards, ticked as each step is done.
+   */
+  checkOutcome: translationKey(
+    "OneUptime checks your website or API around the clock.",
+  ),
+  whoOutcome: translationKey("The right people are told when it goes down."),
+  testOutcome: translationKey("A test page proves that a page reaches them."),
   checkTitle: translationKey("What should we check?"),
   /*
    * A new monitor's probes must all agree before its status changes (its

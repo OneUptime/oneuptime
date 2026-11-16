@@ -94,6 +94,10 @@ import {
   useServerEmail,
 } from "../../../Utils/ServerEmail";
 import Route from "Common/Types/API/Route";
+import {
+  WELCOME_STEP_MINUTES,
+  WelcomeStep,
+} from "Common/Types/WelcomeChecklist/WelcomeChecklist";
 import ProjectBalanceType from "Common/Types/Billing/ProjectBalanceType";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -2077,6 +2081,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
     {
       ...progress[0]!,
       title: ON_CALL_SETUP_COPY.reachTitle,
+      outcome: ON_CALL_SETUP_COPY.reachOutcome,
       doneLine: [emails, phones, pushes]
         .filter((list: Array<ReachMethod>): boolean => {
           return list.length > 0;
@@ -2088,18 +2093,21 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
     {
       ...progress[1]!,
       title: ON_CALL_SETUP_COPY.whoTitle,
+      outcome: ON_CALL_SETUP_COPY.whoOutcome,
       doneLine: whoDoneLine,
       content: whoContent,
     },
     {
       ...progress[2]!,
       title: ON_CALL_SETUP_COPY.noAnswerTitle,
+      outcome: ON_CALL_SETUP_COPY.noAnswerOutcome,
       doneLine: noAnswerDoneLine,
       content: noAnswerContent,
     },
     {
       ...progress[3]!,
       title: ON_CALL_SETUP_COPY.testTitle,
+      outcome: ON_CALL_SETUP_COPY.testOutcome,
       doneLine:
         isAcknowledged && testResult
           ? getResultSentence(translator, testResult)
@@ -2272,6 +2280,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
       summary={summary}
       isFinished={isOnCallSetupFinished(facts)}
       guideDocsPath={ON_CALL_SETUP_GUIDE_DOCS_PATH}
+      minutes={WELCOME_STEP_MINUTES[WelcomeStep.OnCall]}
     />
   );
 };
