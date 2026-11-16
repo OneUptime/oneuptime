@@ -39,11 +39,13 @@
     "kind": "action"
   },
   {
-    "title": "Create Scheduled Maintenance",
+    "title": "Create Maintenance Event",
     "where": [
       "Scheduled Maintenance"
     ],
     "keywords": [
+      "create scheduled maintenance",
+      "schedule maintenance",
       "new maintenance",
       "downtime window",
       "planned maintenance"
@@ -817,6 +819,10 @@
   },
   {
     "title": "Import from Opsgenie",
+    "titleKey": "Import from {{tool}}",
+    "titleValues": {
+      "tool": "Opsgenie"
+    },
     "where": [
       "Project Settings",
       "Advanced",
@@ -827,6 +833,10 @@
   },
   {
     "title": "Import from PagerDuty",
+    "titleKey": "Import from {{tool}}",
+    "titleValues": {
+      "tool": "PagerDuty"
+    },
     "where": [
       "Project Settings",
       "Advanced",
@@ -837,6 +847,10 @@
   },
   {
     "title": "Import from Splunk On-Call",
+    "titleKey": "Import from {{tool}}",
+    "titleValues": {
+      "tool": "Splunk On-Call"
+    },
     "where": [
       "Project Settings",
       "Advanced",
@@ -850,6 +864,10 @@
   },
   {
     "title": "Import from Grafana OnCall",
+    "titleKey": "Import from {{tool}}",
+    "titleValues": {
+      "tool": "Grafana OnCall"
+    },
     "where": [
       "Project Settings",
       "Advanced",
@@ -863,6 +881,10 @@
   },
   {
     "title": "Import from UptimeRobot",
+    "titleKey": "Import from {{tool}}",
+    "titleValues": {
+      "tool": "UptimeRobot"
+    },
     "where": [
       "Project Settings",
       "Advanced",
@@ -876,6 +898,10 @@
   },
   {
     "title": "Import from Atlassian Statuspage",
+    "titleKey": "Import from {{tool}}",
+    "titleValues": {
+      "tool": "Atlassian Statuspage"
+    },
     "where": [
       "Project Settings",
       "Advanced",
@@ -889,6 +915,10 @@
   },
   {
     "title": "Import from Better Stack",
+    "titleKey": "Import from {{tool}}",
+    "titleValues": {
+      "tool": "Better Stack"
+    },
     "where": [
       "Project Settings",
       "Advanced",
@@ -903,6 +933,10 @@
   },
   {
     "title": "Import from Pingdom",
+    "titleKey": "Import from {{tool}}",
+    "titleValues": {
+      "tool": "Pingdom"
+    },
     "where": [
       "Project Settings",
       "Advanced",
@@ -913,6 +947,10 @@
   },
   {
     "title": "Import from StatusCake",
+    "titleKey": "Import from {{tool}}",
+    "titleValues": {
+      "tool": "StatusCake"
+    },
     "where": [
       "Project Settings",
       "Advanced",
@@ -923,6 +961,10 @@
   },
   {
     "title": "Import from Uptime Kuma",
+    "titleKey": "Import from {{tool}}",
+    "titleValues": {
+      "tool": "Uptime Kuma"
+    },
     "where": [
       "Project Settings",
       "Advanced",

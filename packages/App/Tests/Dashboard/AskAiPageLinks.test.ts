@@ -3,6 +3,7 @@ import {
   getDashboardPageTemplate,
   getDocsPageAddress,
   isDashboardRouteTemplate,
+  readTitleValues,
   AskAiAnswerPageLink,
 } from "../../FeatureSet/Dashboard/src/Components/AIChat/AskAiPageLinks";
 import {
@@ -296,6 +297,84 @@ describe("getAnswerPageLinks", () => {
     expect(getAnswerPageLinks("Go [C8].", [blank])[0]?.titleKey).toBe(
       "Insights",
     );
+  });
+
+  /*
+   * An importer's action (#8834): its key is a template, filled with the
+   * tool's name once it is translated, so the button reads "Import aus
+   * PagerDuty" in German.
+   */
+  test("draws a templated title by its key and the values its citation carries", () => {
+    const pagerDuty: AIChatCitation = citation(
+      "C9",
+      AIChatCitationTargetType.DashboardPage,
+      {
+        path: "/dashboard/:projectId/settings/import?from=search&tool=PagerDuty",
+        title: "Import from PagerDuty",
+        titleKey: "Import from {{tool}}",
+        titleValues: JSON.stringify({ tool: "PagerDuty" }),
+      },
+    );
+
+    expect(getAnswerPageLinks("Go [C9].", [pagerDuty])).toEqual([
+      {
+        citationId: "C9",
+        title: "Import from PagerDuty",
+        titleKey: "Import from {{tool}}",
+        titleValues: { tool: "PagerDuty" },
+        target: pagerDuty.target,
+      },
+    ]);
+  });
+
+  test("values without a key are none: the title is drawn as it is", () => {
+    const keyless: AIChatCitation = citation(
+      "C9",
+      AIChatCitationTargetType.DashboardPage,
+      {
+        path: "/dashboard/:projectId/settings/import?from=search&tool=PagerDuty",
+        title: "Import from PagerDuty",
+        titleValues: JSON.stringify({ tool: "PagerDuty" }),
+      },
+    );
+    const link: AskAiAnswerPageLink = getAnswerPageLinks("Go [C9].", [
+      keyless,
+    ])[0]!;
+
+    expect(link.titleKey).toBe("Import from PagerDuty");
+    expect(link.titleValues).toBeUndefined();
+  });
+});
+
+describe("readTitleValues", () => {
+  test("reads an object of a few short texts", () => {
+    expect(readTitleValues(JSON.stringify({ tool: "PagerDuty" }))).toEqual({
+      tool: "PagerDuty",
+    });
+    expect(
+      readTitleValues(JSON.stringify({ tool: "Splunk On-Call", count: "2" })),
+    ).toEqual({ tool: "Splunk On-Call", count: "2" });
+  });
+
+  test.each<[string, string | undefined]>([
+    ["nothing", undefined],
+    ["an empty text", ""],
+    ["text that is no JSON", "{tool: PagerDuty"],
+    ["a list", JSON.stringify(["PagerDuty"])],
+    ["a text", JSON.stringify("PagerDuty")],
+    ["null", "null"],
+    ["an empty object", "{}"],
+    ["a value that is no text", JSON.stringify({ tool: 4 })],
+    ["an empty value", JSON.stringify({ tool: "  " })],
+    ["a value too long", JSON.stringify({ tool: "x".repeat(101) })],
+    [
+      "too many values",
+      JSON.stringify({ a: "1", b: "2", c: "3", d: "4", e: "5", f: "6" }),
+    ],
+    ["a name that is no word", JSON.stringify({ "to ol": "PagerDuty" })],
+    ["a text too long to read", JSON.stringify({ tool: "x".repeat(2000) })],
+  ])("reads none from %s", (_case: string, json: string | undefined) => {
+    expect(readTitleValues(json)).toBeUndefined();
   });
 });
 
