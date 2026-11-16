@@ -260,6 +260,7 @@ const loadStatusPage = async () => {
 
   return {
     i18n: i18nModule.default,
+    i18nReady: i18nModule.i18nReady,
     element: (
       <LoginPage
         statusPageName="Acme Status"
@@ -301,6 +302,7 @@ const loadAccountsPage = async () => {
   // The master admins' address renders the sign-in page as App.tsx does there.
   return {
     i18n: i18nModule.default,
+    i18nReady: i18nModule.i18nReady,
     element:
       page === "adminlogin" ? <Page isMasterAdminSignIn={true} /> : <Page />,
   };
@@ -310,6 +312,17 @@ const start = async () => {
   const loaded =
     page === "statuspage" ? await loadStatusPage() : await loadAccountsPage();
 
+  /*
+   * As the page's own src/Index.tsx starts: every language but English is a
+   * chunk of its own (Utils/i18n.ts), so i18n first settles on the language
+   * it detects - in the product, the one the last page left in localStorage
+   * - and only then is this page's language set. Set before that, the
+   * detected language's chunk could arrive last and switch the page back to
+   * it. Here the detector is Common's stand-in (server.js), which answers
+   * English and stores nothing, so start-up settles at once; waiting keeps
+   * the page's own order all the same.
+   */
+  await loaded.i18nReady.catch(() => {});
   await loaded.i18n.changeLanguage(params.get("lang") || "en");
 
   window.__setLanguage = async (code) => {

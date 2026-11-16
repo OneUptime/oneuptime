@@ -96,9 +96,6 @@ const ENTERPRISE_NOT_A_PERSONS_WORDS: Readonly<
     "Change Enterprise License Expiry Date":
       "a form's analytics name (formProps.name)",
   },
-  "ee/AdminDashboard/WhiteLabel/WhiteLabelProductNameCard.tsx": {
-    "White Label Product Name": "a form's analytics name (formProps.name)",
-  },
   "ee/AdminDashboard/License/LicenseDetails.tsx": {
     "Expand OneUptime license - over seat limit":
       "the subject of an email to OneUptime's sales team, written in English",
@@ -138,6 +135,36 @@ const ENTERPRISE_NOT_A_PERSONS_WORDS: Readonly<
   "ee/AdminDashboard/Health/PostgresCluster.tsx": {
     "CREATE EXTENSION pg_stat_statements;": "a SQL command, run as written",
   },
+};
+
+/*
+ * What ee/ says of its own texts (ee/AdminDashboard/KeptOutOfTheLocales.json):
+ * the texts it keeps out of every locale, which its pages draw in English,
+ * and its values that are no person's words. Read from ee/, so core names
+ * none of them.
+ */
+interface KeptOutOfTheLocales {
+  texts: Array<string>;
+  notAPersonsWords: Record<string, Record<string, string>>;
+}
+
+const KEPT_OUT: KeptOutOfTheLocales = ENTERPRISE_PRESENT
+  ? (JSON.parse(
+      fs.readFileSync(
+        path.join(ENTERPRISE_SOURCE, "KeptOutOfTheLocales.json"),
+        "utf8",
+      ),
+    ) as KeptOutOfTheLocales)
+  : { texts: [], notAPersonsWords: {} };
+
+// The Enterprise pages' unseen texts that are not theirs to translate.
+const isEnterpriseTextExplained: (text: UnseenText) => boolean = (
+  text: UnseenText,
+): boolean => {
+  return (
+    KEPT_OUT.texts.includes(text.text) ||
+    KEPT_OUT.notAPersonsWords[text.file]?.[text.text] !== undefined
+  );
 };
 
 const describeText: (text: UnseenText) => string = (
@@ -199,10 +226,43 @@ describe("the Admin Dashboard's own pages", () => {
     test("hold no sentence the locales cannot see: each is a key, or a value with its reason", () => {
       expect(
         unexplained(
-          findUnseenTexts(REPOSITORY_ROOT, ENTERPRISE_SOURCE, ENGLISH),
+          findUnseenTexts(REPOSITORY_ROOT, ENTERPRISE_SOURCE, ENGLISH).filter(
+            (text: UnseenText): boolean => {
+              return !isEnterpriseTextExplained(text);
+            },
+          ),
           ENTERPRISE_NOT_A_PERSONS_WORDS,
         ),
       ).toEqual([]);
+    });
+
+    /*
+     * ee/'s values that are no person's words are still in their files. Its
+     * texts kept out of the locales are held to its pages by
+     * AdminOwnPagesStringsLocales: some are drawn through a lookup, which
+     * this guard never names.
+     */
+    test("every value ee/ says is no person's words is still in its file, with ee/'s reason", () => {
+      const found: Array<UnseenText> = findUnseenTexts(
+        REPOSITORY_ROOT,
+        ENTERPRISE_SOURCE,
+        ENGLISH,
+      );
+
+      expect(Object.keys(KEPT_OUT.notAPersonsWords).length).toBeGreaterThan(0);
+
+      for (const [file, texts] of Object.entries(KEPT_OUT.notAPersonsWords)) {
+        for (const [text, why] of Object.entries(texts)) {
+          expect({
+            file,
+            text,
+            found: found.some((unseen: UnseenText): boolean => {
+              return unseen.file === file && unseen.text === text;
+            }),
+            explained: why.length > 15,
+          }).toEqual({ file, text, found: true, explained: true });
+        }
+      }
     });
   },
 );

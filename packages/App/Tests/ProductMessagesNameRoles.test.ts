@@ -31,6 +31,22 @@ const SOURCE_ROOTS: ReadonlyArray<string> = [
   "MobileApp/src",
 ];
 
+/*
+ * The Enterprise Edition's pages and server, where ee/ is checked out: App
+ * Test deletes it, and the Enterprise Edition workflow runs this suite with
+ * it. Its Settings > SCIM notice and Team Compliance card named "a project
+ * owner" and "a project admin" after #8574 re-keyed the locales, and read
+ * in English in every language (#8814).
+ */
+const ENTERPRISE_ROOTS: ReadonlyArray<string> = [
+  "../ee/Dashboard",
+  "../ee/AdminDashboard",
+  "../ee/Server",
+];
+const ENTERPRISE_PRESENT: boolean = fs.existsSync(
+  path.join(path.resolve(__dirname, "../.."), "../ee/Dashboard"),
+);
+
 const SKIPPED_DIRECTORIES: ReadonlyArray<string> = [
   "node_modules",
   "build",
@@ -142,17 +158,19 @@ interface ProductMessage {
 }
 
 const PRODUCT_MESSAGES: ReadonlyArray<ProductMessage> = [
-  ...SOURCE_ROOTS.flatMap((root: string): Array<ProductMessage> => {
-    return sourceFiles(path.join(PACKAGES, root)).flatMap(
-      (file: string): Array<ProductMessage> => {
-        return messagesIn(fs.readFileSync(file, "utf8")).map(
-          (text: string): ProductMessage => {
-            return { where: path.relative(PACKAGES, file), text };
-          },
-        );
-      },
-    );
-  }),
+  ...[...SOURCE_ROOTS, ...(ENTERPRISE_PRESENT ? ENTERPRISE_ROOTS : [])].flatMap(
+    (root: string): Array<ProductMessage> => {
+      return sourceFiles(path.join(PACKAGES, root)).flatMap(
+        (file: string): Array<ProductMessage> => {
+          return messagesIn(fs.readFileSync(file, "utf8")).map(
+            (text: string): ProductMessage => {
+              return { where: path.relative(PACKAGES, file), text };
+            },
+          );
+        },
+      );
+    },
+  ),
   ...ENGLISH_LOCALES.flatMap((locale: string): Array<ProductMessage> => {
     return Object.keys(
       JSON.parse(fs.readFileSync(path.join(PACKAGES, locale), "utf8")),
@@ -233,6 +251,20 @@ describe("the product's English names the built-in roles it means", () => {
       ]).toEqual([place, true]);
     }
   });
+
+  (ENTERPRISE_PRESENT ? it : it.skip)(
+    "reads the Enterprise Edition's pages and server too, where ee/ is checked out",
+    () => {
+      for (const place of ENTERPRISE_ROOTS) {
+        expect([
+          place,
+          PRODUCT_MESSAGES.some((message: ProductMessage): boolean => {
+            return message.where.startsWith(`${place}/`);
+          }),
+        ]).toEqual([place, true]);
+      }
+    },
+  );
 
   it("lists only words the product uses, each with its reason", () => {
     for (const kept of NOT_THE_ROLES) {

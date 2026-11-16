@@ -1,5 +1,5 @@
 import { JSONObject } from "../JSON";
-import { DatabaseMetricGroup } from "./DatabaseMetricCatalog";
+import { DatabaseMetricGroup } from "./DatabaseMetricGroup";
 import {
   clampSqlConnectionTimeoutInMs,
   clampSqlStatementTimeoutInMs,

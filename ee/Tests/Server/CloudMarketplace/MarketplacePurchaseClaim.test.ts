@@ -354,7 +354,9 @@ describe("MarketplacePurchaseClaim", () => {
           userId: USER_ID,
           projectId: memberOnly.id!,
         }),
-      ).rejects.toThrow(/owners, or people who manage its billing/);
+      ).rejects.toThrow(
+        /Only the Project Owners, or people who manage its billing/,
+      );
 
       expect(adapter.activate).not.toHaveBeenCalled();
       expect(MarketplacePurchases.linkToProject).not.toHaveBeenCalled();

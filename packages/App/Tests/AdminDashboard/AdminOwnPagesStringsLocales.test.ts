@@ -329,7 +329,6 @@ const ENTERPRISE_SAME_AS_ENGLISH_IN: Readonly<
     "Deadlocks",
     "Website",
     "Logo",
-    "White Label",
     "Worker",
     "Cluster {{cluster}}",
     "Heap",
@@ -396,7 +395,6 @@ const ENTERPRISE_SAME_AS_ENGLISH_IN: Readonly<
     "Deadlocks",
     "Website",
     "Logo",
-    "White-label",
     "Worker",
     "Shard {{shard}} · Replica {{replica}}",
     "Cluster {{cluster}}",
@@ -501,6 +499,36 @@ const LOOKED_UP: Array<OwnText> = [
 ].filter((text: OwnText): boolean => {
   return !(text.key in NOT_LOOKED_UP);
 });
+
+/*
+ * The Enterprise pages' texts that ee/ keeps out of every locale, and says
+ * why (ee/AdminDashboard/KeptOutOfTheLocales.json): they are drawn in
+ * English, and no locale holds them. Read from ee/, so core names none of
+ * them.
+ */
+const KEPT_OUT_OF_THE_LOCALES: ReadonlyArray<string> = ENTERPRISE_PRESENT
+  ? (
+      JSON.parse(
+        fs.readFileSync(
+          path.join(ENTERPRISE_SOURCE, "KeptOutOfTheLocales.json"),
+          "utf8",
+        ),
+      ) as { texts: Array<string> }
+    ).texts
+  : [];
+
+const isKeptOutOfTheLocales: (key: string) => boolean = (
+  key: string,
+): boolean => {
+  return KEPT_OUT_OF_THE_LOCALES.includes(key);
+};
+
+// The texts the locales must hold: every one looked up, but those.
+const IN_LOCALES: Array<OwnText> = LOOKED_UP.filter(
+  (text: OwnText): boolean => {
+    return !isKeptOutOfTheLocales(text.key);
+  },
+);
 
 const NESTED_KEYS: Array<OwnNestedKey> = [
   ...OWN.nestedKeys,
@@ -688,7 +716,7 @@ describe("the Admin Dashboard's own pages", () => {
   });
 
   test("English holds every text as itself, and each plural's one form as English's", () => {
-    const missing: Array<string> = findMissingEntries(LOOKED_UP, ENGLISH).map(
+    const missing: Array<string> = findMissingEntries(IN_LOCALES, ENGLISH).map(
       describeText,
     );
 
@@ -696,7 +724,7 @@ describe("the Admin Dashboard's own pages", () => {
 
     const wrong: Array<string> = Array.from(TEXTS.entries())
       .filter(([key, english]: [string, string]): boolean => {
-        return ENGLISH[key] !== english;
+        return !isKeptOutOfTheLocales(key) && ENGLISH[key] !== english;
       })
       .map(([key]: [string, string]): string => {
         return key;
@@ -709,7 +737,7 @@ describe("the Admin Dashboard's own pages", () => {
     "%s has an entry for every text the pages hand over",
     (language: string) => {
       const missing: Array<string> = findMissingEntries(
-        LOOKED_UP,
+        IN_LOCALES,
         readAdminLocale(language),
       ).map(describeText);
 
@@ -794,6 +822,25 @@ describe("the Admin Dashboard's own pages", () => {
       }
     });
 
+    test("the texts ee/ keeps out of the locales are texts they hand over, and no locale holds them", () => {
+      expect(KEPT_OUT_OF_THE_LOCALES.length).toBeGreaterThan(0);
+
+      for (const text of KEPT_OUT_OF_THE_LOCALES) {
+        expect({ text, handedOver: TEXTS.has(text) }).toEqual({
+          text,
+          handedOver: true,
+        });
+
+        for (const language of ["en", ...LANGUAGES]) {
+          expect({
+            text,
+            language,
+            held: readAdminLocale(language)[text] !== undefined,
+          }).toEqual({ text, language, held: false });
+        }
+      }
+    });
+
     test("their names and examples read as written are texts they hand over", () => {
       for (const text of Object.keys(ENTERPRISE_READ_AS_WRITTEN)) {
         expect({ text, handedOver: TEXTS.has(text) }).toEqual({
@@ -854,7 +901,7 @@ describe("what the guard names", () => {
       delete locale["What People Said"];
 
       expect(
-        findMissingEntries(LOOKED_UP, locale).map((text: OwnText): string => {
+        findMissingEntries(IN_LOCALES, locale).map((text: OwnText): string => {
           return text.key;
         }),
       ).toEqual(["What People Said"]);

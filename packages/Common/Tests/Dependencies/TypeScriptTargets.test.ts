@@ -32,6 +32,20 @@ import ts from "typescript";
 // packages/Common/Tests/Dependencies -> the repository root.
 const ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
 
+/*
+ * The Enterprise Edition's tsconfigs are read only where ee/ is checked out:
+ * the Common Test job deletes it before it runs, and the Enterprise Edition
+ * Test workflow (test.ee.yaml) runs this with it.
+ */
+const ENTERPRISE_PRESENT: boolean = fs.existsSync(path.join(ROOT, "ee"));
+
+// The tsconfigs of a list that this checkout has: ee/'s only where it is.
+function inThisCheckout(list: ReadonlyArray<string>): Array<string> {
+  return list.filter((relativePath: string): boolean => {
+    return ENTERPRISE_PRESENT || !relativePath.startsWith("ee/");
+  });
+}
+
 // Compiled for Node: ts-node and ts-jest emit with these.
 const SERVER_TSCONFIGS: ReadonlyArray<string> = [
   "tsconfig.json",
@@ -114,8 +128,7 @@ function packageTsconfigs(): Array<string> {
   const lookIn: Array<string> = [
     "packages",
     "packages/App/FeatureSet",
-    "ee",
-    "ee/Tests",
+    ...(ENTERPRISE_PRESENT ? ["ee", "ee/Tests"] : []),
   ];
 
   for (const directory of lookIn) {
@@ -138,7 +151,7 @@ function packageTsconfigs(): Array<string> {
 }
 
 describe("the TypeScript target of every package", () => {
-  test.each(SERVER_TSCONFIGS)(
+  test.each(inThisCheckout(SERVER_TSCONFIGS))(
     "%s compiles for Node at ES2018 or later, below ES2022",
     (relativePath: string) => {
       const options: CompilerOptions = compilerOptionsOf(relativePath);
@@ -162,7 +175,7 @@ describe("the TypeScript target of every package", () => {
     },
   );
 
-  test.each(BROWSER_TSCONFIGS)(
+  test.each(inThisCheckout(BROWSER_TSCONFIGS))(
     "%s type-checks at the browser bundles' target",
     (relativePath: string) => {
       expect({
@@ -196,7 +209,7 @@ describe("the TypeScript target of every package", () => {
       }),
     ).toEqual([]);
 
-    for (const relativePath of known) {
+    for (const relativePath of inThisCheckout(Array.from(known))) {
       expect({
         relativePath,
         exists: fs.existsSync(path.join(ROOT, relativePath)),
