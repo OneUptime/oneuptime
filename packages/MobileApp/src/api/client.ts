@@ -219,6 +219,62 @@ function isRenewalOutlived(failure: unknown): boolean {
 }
 
 /*
+ * A RENEWAL ANSWERED WITHOUT USABLE TOKENS (issue #8838).
+ *
+ * The server answers every renewal it makes with the session's tokens
+ * (Identity/API/Authentication.ts): an access token, a refresh token and
+ * when that runs out. A 200 without them is not the server's word: a
+ * proxy, a captive portal on a hotel's Wi-Fi or an error page answering
+ * 200. Stored, its missing tokens signed nothing, and the app stopped at
+ * "Loading project…" without a word.
+ *
+ * So an answer without all three, each usable, is a renewal that got no
+ * answer: nothing is stored, nothing is noted as reported, and the
+ * session goes on with the tokens it had - retried a minute later at the
+ * next use (renewSessionAheadOfExpiry), and ended as any renewal that got
+ * no answer is when a request is already waiting on it with a 401. Not
+ * ended at once, as a refusal is: nothing here says the session is over,
+ * and an on-call person on a network that answers 200 to everything would
+ * be signed out with no way to sign in again until they left it. If the
+ * server did renew behind the proxy, its answer was lost: the old refresh
+ * token is refused at the next renewal, as after any lost answer, and a
+ * sign-out still ends that session by its access token (#8592).
+ */
+export class RenewalAnswerUnreadableError extends Error {
+  public constructor() {
+    super("The renewal's answer held no usable tokens.");
+    this.name = "RenewalAnswerUnreadableError";
+  }
+}
+
+function isUsableString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+// The tokens a renewal's answer holds, when it holds all three, each usable; null otherwise.
+export function readRenewedTokens(data: unknown): StoredTokens | null {
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    return null;
+  }
+
+  const answer: Record<string, unknown> = data as Record<string, unknown>;
+  const accessToken: unknown = answer["accessToken"];
+  const refreshToken: unknown = answer["refreshToken"];
+  const refreshTokenExpiresAt: unknown = answer["refreshTokenExpiresAt"];
+
+  if (
+    !isUsableString(accessToken) ||
+    !isUsableString(refreshToken) ||
+    !isUsableString(refreshTokenExpiresAt) ||
+    !Number.isFinite(Date.parse(refreshTokenExpiresAt))
+  ) {
+    return null;
+  }
+
+  return { accessToken, refreshToken, refreshTokenExpiresAt };
+}
+
+/*
  * Ends at the server a session a renewal renewed after the app let go of
  * it: nobody holds its refresh token but this answer, so nobody could
  * ever sign it out. Best effort, as a sign-out's own revoke is; posted on
@@ -314,26 +370,26 @@ async function renewSession(): Promise<string> {
     },
   );
 
-  const { accessToken, refreshToken, refreshTokenExpiresAt } = response.data;
+  const renewed: StoredTokens | null = readRenewedTokens(response.data);
+
+  if (!renewed) {
+    throw new RenewalAnswerUnreadableError();
+  }
 
   const isStored: boolean = await storeRenewedTokens(
-    {
-      accessToken,
-      refreshToken,
-      refreshTokenExpiresAt,
-    },
+    renewed,
     startedAtRevision,
   );
 
   if (!isStored) {
-    await revokeRenewedSession(serverUrl, refreshToken);
+    await revokeRenewedSession(serverUrl, renewed.refreshToken);
     throw new RenewalOutlivedError();
   }
 
   forgetInactivityReportedBy(reportedAtMs);
   noteActivityReported(reportedAtMs - report.inactiveForInSeconds * 1000);
 
-  return accessToken;
+  return renewed.accessToken;
 }
 
 /*
