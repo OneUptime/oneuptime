@@ -36,7 +36,7 @@ Raden högst upp nämner det mest brådskande som är öppet, i en färg som pas
 | Monitorer körs och inget är öppet | **Alla system fungerar** |
 | Projektet har inga monitorer ännu | **Inget övervakas ännu** |
 
-Bredvid den visar Hem när projektet senast lästes in, och **Uppdatera** läser in det igen. När du kommer tillbaka till en flik med Hem efter en minut eller mer uppdateras den av sig själv.
+Bredvid den visar Hem när projektet senast lästes in, och **Uppdatera** läser in det igen. Hem följer också det den räknar när det ändras: när en incident, ett larm, en monitor, en underhållshändelse eller ett SLO skapas, ändras eller tas bort kommer raden, siffrorna, **Kräver uppmärksamhet** och **Kommande underhåll** i kapp inom några sekunder, utan omladdning. När du kommer tillbaka till en flik med Hem efter en minut eller mer uppdateras den av sig själv.
 
 Så länge inget övervakas ännu slutar raden med knappen **Skapa din första monitor**, som öppnar den guidade installationen **Veta när min webbplats eller mitt API ligger nere**. Bara den som får skapa monitorer ser den.
 
@@ -137,7 +137,7 @@ Ett ord med en prickad linje under, som **Sonder** i formuläret för en ny moni
 
 Ovanför varje sidas rubrik visar ett spår som *Projekt › Docker › Inställningar › Ägarregler* var sidan ligger. Varje steg före det sista öppnar sin sida.
 
-- **Listor håller sig själva aktuella.** När en incident eller ett larm skapas, kvitteras eller löses någonstans visar listorna över incidenter, larm och episoder det inom några sekunder, utan omladdning. Medan du är mitt i något på en lista, till exempel med rader markerade eller en dialogruta öppen, väntar den och kommer i kapp när du är klar.
+- **Listor håller sig själva aktuella.** När en incident, ett larm, en monitor eller en underhållshändelse skapas, ändras eller tas bort någonstans visar listorna över incidenter, larm, episoder, monitorer och underhållshändelser det inom några sekunder, utan omladdning, och det gör även antalen bredvid dem i sidomenyerna. Klockans antal, och listorna **Aktiva incidenter**, **Aktiva larm**, **Aktiva incidentepisoder** och **Aktiva larmepisoder**, följer alla projekt du är med i, inte bara det som är öppet. Medan du är mitt i något på en lista, till exempel med rader markerade eller en dialogruta öppen, väntar den och kommer i kapp när du är klar.
 - **På en telefon fälls filterchippen ihop** bakom **Filter**, så att listan börjar högre upp. Chippen du har satt syns fortfarande, med **Rensa alla**. Tryck på **Filter** för att se alla chipp, och igen för att fälla ihop dem.
 - **Kolumner**, i menyn **⋯** på en lista, väljer vilka kolumner listan visar och i vilken ordning, och sparar dem åt dig i den här webbläsaren. En Projektägare eller en Projektadministratör kan också kryssa i **Visa de här kolumnerna för alla i det här projektet** där: alla som inte har valt egna kolumner för listan ser de här, och **Återställ till projektets standard** sätter tillbaka dina egna till dem.
 - **Kompakta rader**, i samma meny, gör raderna i alla listor lägre, så att en lång lista visar ungefär en femtedel fler av dem. Valet sparas i den här webbläsaren.

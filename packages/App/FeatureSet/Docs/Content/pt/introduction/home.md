@@ -36,7 +36,7 @@ A linha do topo nomeia o que há de mais urgente em aberto, numa cor corresponde
 | Há monitores em execução e nada está aberto | **Todos os sistemas estão operacionais** |
 | O projeto ainda não tem monitores | **Nada está sendo monitorado ainda** |
 
-Ao lado, o Início diz quando leu o projeto pela última vez, e **Atualizar** o lê de novo. Quando você volta a uma aba do Início depois de um minuto ou mais, ele se atualiza sozinho.
+Ao lado, o Início diz quando leu o projeto pela última vez, e **Atualizar** o lê de novo. O Início também acompanha o que conta à medida que muda: quando um incidente, alerta, monitor, evento de manutenção ou SLO é criado, alterado ou excluído, a linha, os números, **Requer atenção** e **Próximas manutenções** se atualizam em segundos, sem recarregar. Quando você volta a uma aba do Início depois de um minuto ou mais, ele se atualiza sozinho.
 
 Enquanto nada está sendo monitorado, a linha termina com o botão **Crie seu primeiro monitor**, que abre a configuração guiada **Saber quando meu site ou API cair**. Só quem tem permissão para criar monitores o vê.
 
@@ -137,7 +137,7 @@ Uma palavra com uma linha pontilhada embaixo, como **Sondas** no formulário de 
 
 Acima do título de cada página, uma trilha como *Projeto › Docker › Configurações › Regras de proprietário* diz onde a página está. Cada passo antes do último abre a sua página.
 
-- **As listas se mantêm atualizadas sozinhas.** Quando um incidente ou alerta é criado, reconhecido ou resolvido em qualquer lugar, as listas de incidentes, alertas e episódios o mostram em segundos, sem recarregar. Enquanto você está no meio de algo em uma lista, como linhas marcadas ou uma caixa de diálogo aberta, ela espera e se atualiza quando você termina.
+- **As listas se mantêm atualizadas sozinhas.** Quando um incidente, alerta, monitor ou evento de manutenção é criado, alterado ou excluído em qualquer lugar, as listas de incidentes, alertas, episódios, monitores e eventos de manutenção o mostram em segundos, sem recarregar, e o mesmo fazem as contagens ao lado delas nos menus laterais. As contagens do sino, e as listas **Incidentes ativos**, **Alertas ativos**, **Episódios de incidente ativos** e **Episódios de alerta ativos**, acompanham todos os projetos de que você faz parte, não só o que está aberto. Enquanto você está no meio de algo em uma lista, como linhas marcadas ou uma caixa de diálogo aberta, ela espera e se atualiza quando você termina.
 - **No celular, os chips de filtro se recolhem** atrás de **Filtro**, para que a lista comece mais acima. Os chips que você definiu continuam à vista, com **Limpar tudo**. Toque em **Filtro** para ver todos os chips, e de novo para recolhê-los.
 - A opção **Colunas** no menu **⋯** de uma lista escolhe quais colunas a lista mostra e em que ordem, e as guarda para você neste navegador. Um Proprietário do projeto ou um Administrador do projeto também pode marcar ali **Mostrar estas colunas a todos neste projeto**: quem não escolheu as próprias colunas para essa lista vê essas, e **Redefinir para o padrão do projeto** volta as suas para elas.
 - A opção **Linhas compactas**, no mesmo menu, deixa mais baixas as linhas de todas as listas, então uma lista longa mostra cerca de um quinto a mais delas. A escolha fica guardada neste navegador.

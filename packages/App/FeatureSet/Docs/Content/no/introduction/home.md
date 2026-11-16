@@ -36,7 +36,7 @@ Linjen øverst nevner det mest presserende som er åpent, i en farge som passer:
 | Monitorer kjører, og ingenting er åpent | **Alle systemer er i drift** |
 | Prosjektet har ingen monitorer ennå | **Ingenting overvåkes ennå** |
 
-Ved siden av sier Hjem når den sist leste prosjektet, og **Oppdater** leser det på nytt. Når du kommer tilbake til en fane med Hjem etter ett minutt eller mer, oppdaterer den seg selv.
+Ved siden av sier Hjem når den sist leste prosjektet, og **Oppdater** leser det på nytt. Hjem følger også med på det den teller, etter hvert som det endrer seg: når en hendelse, et varsel, en monitor, en vedlikeholdshendelse eller et SLO opprettes, endres eller slettes, tar linjen, tallene, **Krever oppmerksomhet** og **Kommende vedlikehold** det igjen i løpet av sekunder, uten å laste inn på nytt. Når du kommer tilbake til en fane med Hjem etter ett minutt eller mer, oppdaterer den seg selv.
 
 Så lenge ingenting overvåkes ennå, slutter linjen med knappen **Opprett din første monitor**, som åpner det veiledede oppsettet **Vite når nettstedet eller API-et mitt er nede**. Bare de som har lov til å opprette monitorer, ser den.
 
@@ -137,7 +137,7 @@ Et ord med en prikket linje under, som **Sonder** i skjemaet for en ny monitor, 
 
 Over tittelen på hver side viser et spor som *Prosjekt › Docker › Innstillinger › Eierregler* hvor siden ligger. Hvert trinn før det siste åpner siden sin.
 
-- **Listene holder seg oppdatert selv.** Når en hendelse eller et varsel opprettes, bekreftes eller løses hvor som helst, viser listene over hendelser, varsler og episoder det i løpet av sekunder, uten å laste inn på nytt. Mens du er midt i noe på en liste, for eksempel med rader avkrysset eller en dialog åpen, venter den og tar igjen alt når du er ferdig.
+- **Listene holder seg oppdatert selv.** Når en hendelse, et varsel, en monitor eller en vedlikeholdshendelse opprettes, endres eller slettes hvor som helst, viser listene over hendelser, varsler, episoder, monitorer og vedlikeholdshendelser det i løpet av sekunder, uten å laste inn på nytt, og det samme gjør tallene ved siden av dem i sidemenyene. Klokkens tall, og listene **Aktive hendelser**, **Aktive varsler**, **Aktive hendelsesepisoder** og **Aktive varselepisoder**, følger alle prosjektene du er med i, ikke bare det som er åpent. Mens du er midt i noe på en liste, for eksempel med rader avkrysset eller en dialog åpen, venter den og tar igjen alt når du er ferdig.
 - **På en telefon foldes filterbrikkene sammen** bak **Filter**, så listen starter høyere opp. Brikkene du har satt, blir stående synlige, med **Tøm alt**. Trykk på **Filter** for å se alle brikkene, og en gang til for å folde dem sammen igjen.
 - **Kolonner**, i menyen **⋯** på en liste, velger hvilke kolonner listen viser og i hvilken rekkefølge, og husker dem for deg i denne nettleseren. En Prosjekteier eller en Prosjektadministrator kan også krysse av for **Vis disse kolonnene for alle i dette prosjektet** der: alle som ikke har valgt egne kolonner for listen, ser disse, og **Tilbakestill til prosjektets standard** setter dine egne tilbake til dem.
 - **Kompakte rader**, i samme meny, gjør radene i alle lister lavere, så en lang liste viser omtrent en femtedel flere av dem. Valget huskes i denne nettleseren.
