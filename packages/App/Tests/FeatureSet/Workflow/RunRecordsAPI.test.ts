@@ -54,6 +54,39 @@ import {
   isQueryCondition,
   meetsCondition,
 } from "Common/Tests/Server/TestingUtils/QueryConditions";
+
+// The conditions an "and" holds together, or the condition alone.
+function partsOf(condition: unknown): Array<unknown> {
+  const operator: { type?: string; value?: unknown } = condition as {
+    type?: string;
+    value?: unknown;
+  };
+
+  return operator.type === "and"
+    ? [...(operator.value as Array<unknown>)]
+    : [condition];
+}
+
+/*
+ * The rule that leaves private incidents out (PrivateRecordReadFilter
+ * .keepToNotPrivate): Run Workflow offers no record a workflow will not act
+ * on (#8914). Read off a stored incident's isPrivate.
+ */
+function isNotPrivateRule(condition: unknown): boolean {
+  const operator: { type?: string; getSql?: unknown } = condition as {
+    type?: string;
+    getSql?: unknown;
+  };
+
+  return (
+    isQueryCondition(condition) &&
+    operator.type === "raw" &&
+    typeof operator.getSql === "function" &&
+    String((operator.getSql as (alias: string) => string)("c")).includes(
+      `"isPrivate" = TRUE`,
+    )
+  );
+}
 import {
   afterEach,
   beforeAll,
@@ -308,6 +341,21 @@ describe("POST /workflow/run-records/:workflowId", () => {
                     incident as unknown as Dictionary<unknown>
                   )[column];
 
+                  // A private incident is no record a run acts on.
+                  if (partsOf(expected).some(isNotPrivateRule)) {
+                    if (incident.isPrivate === true) {
+                      return false;
+                    }
+
+                    return partsOf(expected)
+                      .filter((part: unknown): boolean => {
+                        return !isNotPrivateRule(part);
+                      })
+                      .every((part: unknown): boolean => {
+                        return meetsCondition(part, String(actual));
+                      });
+                  }
+
                   // A condition on the title: every word typed, anywhere.
                   if (isQueryCondition(expected)) {
                     return meetsCondition(expected, String(actual));
@@ -330,10 +378,12 @@ describe("POST /workflow/run-records/:workflowId", () => {
     number: number;
     title: string;
     project?: ObjectID;
+    isPrivate?: boolean;
   }): Incident {
     const record: Incident = new Incident();
     record._id = ObjectID.generate().toString();
     record.projectId = data.project || projectId;
+    record.isPrivate = Boolean(data.isPrivate);
     record.incidentNumber = data.number;
     record.incidentNumberWithPrefix = `INC-${data.number}`;
     record.title = data.title;
@@ -473,6 +523,51 @@ describe("POST /workflow/run-records/:workflowId", () => {
         expect(args.props.isRoot).toBeUndefined();
         expect(String(args.props.userId)).toBe(userId.toString());
       }
+    });
+
+    test("a private incident is found by no one: not by its number, its title or its ID", async () => {
+      const secret: Incident = incident({
+        number: 9,
+        title: "Card data exposed",
+        isPrivate: true,
+      });
+      incident({ number: 10, title: "Card reader offline" });
+
+      for (const search of ["INC-9", "card data", secret._id!.toString()]) {
+        // Each answer read on its own: callRoute reads the first one sent.
+        (Response.sendJsonObjectResponse as unknown as jest.Mock).mockClear();
+
+        const result: RouteCallResult = await callRoute({
+          workflowId: workflowId.toString(),
+          body: { search: search },
+        });
+
+        expect(result.thrownToNext).toBeUndefined();
+        expect({
+          search,
+          ids: (result.body?.records || []).map(
+            (record: RunRecordOption): string => {
+              return record.id;
+            },
+          ),
+        }).toEqual({ search, ids: [] });
+      }
+
+      // Listed with nothing typed, only the incident that is not private.
+      (Response.sendJsonObjectResponse as unknown as jest.Mock).mockClear();
+
+      const listed: RouteCallResult = await callRoute({
+        workflowId: workflowId.toString(),
+        body: {},
+      });
+
+      expect(
+        listed.body?.records.map(
+          (record: RunRecordOption): string | undefined => {
+            return record.number;
+          },
+        ),
+      ).toEqual(["INC-10"]);
     });
 
     test("another project's INC-8 is never found", async () => {

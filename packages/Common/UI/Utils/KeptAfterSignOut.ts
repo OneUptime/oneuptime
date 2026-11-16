@@ -1,3 +1,4 @@
+import { MORE_WAYS_TO_SIGN_IN_OPEN_KEY } from "../../Types/Accounts/MoreWaysToSignIn";
 import { COOKIE_CONSENT_STORAGE_KEY } from "../../Types/Analytics/CookieConsent";
 import { DASHBOARD_LANGUAGE_STORAGE_KEY } from "../../Types/Dashboard/DashboardLanguage";
 import { DASHBOARD_VISITOR_THEME_STORAGE_KEY } from "../../Types/Dashboard/DashboardTheme";
@@ -76,4 +77,12 @@ export const KEYS_KEPT_AFTER_SIGN_OUT: ReadonlyArray<string> = [
 
   // The answer on the cookie banner, shared by every OneUptime page.
   COOKIE_CONSENT_STORAGE_KEY,
+
+  /*
+   * Whether the sign-in page's "More ways to sign in" was left open (#9023):
+   * true, or nothing. Read only by the sign-in page, with nobody signed in;
+   * cleared, it would fold single sign-on and passkeys away again from the
+   * person who signs in with them, at every sign-in.
+   */
+  MORE_WAYS_TO_SIGN_IN_OPEN_KEY,
 ];

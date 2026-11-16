@@ -84,14 +84,14 @@ Uma nova senha desconecta todos os dispositivos da sua conta, e qualquer link de
 3. Siga o aviso do navegador para salvar a chave de acesso.
 :::
 
-Na próxima vez, escolha **Entrar com uma chave de acesso** na página de login.
+Na próxima vez, escolha **Mais formas de entrar** → **Entrar com uma chave de acesso** na página de login.
 
 ### Entrar com um link enviado por e-mail
 
 Você pode entrar com um link em vez da sua senha. Não há nada para configurar.
 
 :::steps
-1. Na página de login, escolha **Enviar link de acesso por e-mail**.
+1. Na página de login, escolha **Mais formas de entrar** → **Enviar link de acesso por e-mail**.
 2. Digite seu endereço de e-mail e clique em **Enviar link de acesso**. A página mostra então **Verifique seu e-mail**.
 3. Abra o link do e-mail e clique em **Entrar**.
 :::

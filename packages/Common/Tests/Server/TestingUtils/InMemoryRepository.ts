@@ -17,9 +17,11 @@ import SubscriberContactKey from "../../../Types/StatusPage/SubscriberContactKey
  * TypeORM's In / Equal / Not / IsNull / And operators, and the Raw SQL that
  * QueryHelper and the permission layer write (equality, IN, NOT IN, NOT IN
  * ... OR IS NULL, IS NULL, IS NOT NULL, comparisons, TRUE = TRUE / FALSE),
- * and a phone number's line (SubscriberContactSql.onPhoneLine).
- * A condition it does not understand fails the test loudly instead of
- * matching quietly.
+ * a phone number's line (SubscriberContactSql.onPhoneLine), and a column
+ * naming a private incident, alert or episode (PrivateRecordReadFilter),
+ * answered from the private records a test says there are
+ * (setPrivateRecords). A condition it does not understand fails the test
+ * loudly instead of matching quietly.
  *
  * Rows are plain objects; every value is compared as text, ids case
  * insensitively.
@@ -44,6 +46,45 @@ export interface InMemoryTable {
     update: MockFunction;
     delete: MockFunction;
   };
+}
+
+/*
+ * The private incidents, alerts and episodes there are, by their table, and
+ * who sees each: the people it is owned by, or by a team of theirs they have
+ * accepted (setPrivateRecords). A table a test says nothing of has none.
+ */
+const privateRecords: Map<string, Map<string, Set<string>>> = new Map();
+
+/*
+ * Says which records of `table` ("Incident") are private, and who sees each,
+ * for the reads of a part that names them (PrivateRecordReadFilter). Kept
+ * until clearPrivateRecords.
+ */
+export function setPrivateRecords(data: {
+  table: string;
+  records: Array<{
+    id: string | ObjectID;
+    seenBy?: Array<string | ObjectID> | undefined;
+  }>;
+}): void {
+  const records: Map<string, Set<string>> = new Map();
+
+  for (const record of data.records) {
+    records.set(
+      record.id.toString().toLowerCase(),
+      new Set(
+        (record.seenBy || []).map((who: string | ObjectID): string => {
+          return who.toString().toLowerCase();
+        }),
+      ),
+    );
+  }
+
+  privateRecords.set(data.table, records);
+}
+
+export function clearPrivateRecords(): void {
+  privateRecords.clear();
 }
 
 function normalize(value: unknown): string | null {
@@ -185,6 +226,35 @@ function matchesRaw(stored: unknown, operator: FindOperator<unknown>): boolean {
       storedText === null ||
       compareNumbers(stored, match[1]!, parameters[match[2]!])
     );
+  }
+
+  /*
+   * A column naming a private incident, alert or episode
+   * (PrivateRecordReadFilter): no record, one that is not private, or one
+   * the reader - the person the condition names, when it names one - sees.
+   */
+  match = sql.match(
+    /^\(c IS NULL OR NOT EXISTS \(SELECT 1 FROM "(\w+)" pr WHERE pr\."_id" = c AND pr\."isPrivate" = TRUE([\s\S]*)\)\)$/,
+  );
+  if (match) {
+    if (storedText === null) {
+      return true;
+    }
+
+    const seenBy: Set<string> | undefined = privateRecords
+      .get(match[1]!)
+      ?.get(storedText);
+
+    if (!seenBy) {
+      return true;
+    }
+
+    const reader: RegExpMatchArray | null = match[2]!.match(/:(\w+)/);
+    const readerId: string | null = reader
+      ? normalize(parameters[reader[1]!])
+      : null;
+
+    return readerId !== null && seenBy.has(readerId);
   }
 
   throw new Error(`InMemoryRepository: unknown SQL condition "${sql}"`);

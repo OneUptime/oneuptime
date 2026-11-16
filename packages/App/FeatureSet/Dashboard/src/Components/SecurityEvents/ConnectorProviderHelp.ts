@@ -41,7 +41,7 @@ A poll's budgets are 20 search pages for rule detections, 200 curated requests (
 
 ---
 
-### Reading Connector Health
+### Reading a Google SecOps Connector's Health
 
 **Status** shows whether scheduled polling is enabled. **Health**, **Last Successful Poll**, and **Last Event Imported** describe the most recent polling outcome. **Last Polled** is the last attempt, which may have failed or returned zero detections.
 

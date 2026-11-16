@@ -8,6 +8,7 @@ import RunbookRuleEngineService from "Common/Server/Services/RunbookRuleEngineSe
 import RunbookService from "Common/Server/Services/RunbookService";
 import RunnerService from "Common/Server/Services/RunnerService";
 import CommandPlanExecutor from "Common/Server/Utils/AutoRemediation/CommandPlanExecutor";
+import PrivateRecordWriteCheck from "Common/Server/Utils/Permission/PrivateRecordWriteCheck";
 import AutoRemediationSuggestion from "Common/Models/DatabaseModels/AutoRemediationSuggestion";
 import Project from "Common/Models/DatabaseModels/Project";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
@@ -397,10 +398,22 @@ describe("Auto-remediation CommandPlan approve/dismiss routes", () => {
     await import("Common/Server/API/AutoRemediationAPI");
   });
 
+  // Whether the person reaches the fix's incident, were it private (#8913).
+  let reachesSpy: jest.SpyInstance;
+
   beforeEach(() => {
     jest.clearAllMocks();
 
     executeApprovedPlanMock.mockResolvedValue(undefined);
+
+    /*
+     * The fixes here are for an incident that is not private, or that the
+     * person reaches: what a fix about a private one asks of its owning
+     * teams is RemediationPrivateRecord's (Common), and the refusal below.
+     */
+    reachesSpy = jest
+      .spyOn(PrivateRecordWriteCheck, "reaches")
+      .mockResolvedValue(true);
 
     getPropsSpy = jest
       .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
@@ -541,6 +554,47 @@ describe("Auto-remediation CommandPlan approve/dismiss routes", () => {
       expect(incidentFeedSpy).not.toHaveBeenCalled();
       expectNoClaimAndNoExecution();
     });
+  });
+
+  /*
+   * A fix proposed for a private incident is approved or dismissed only
+   * through the teams that own it and the people named as its owners
+   * (#8913): someone whose permission to start runbook executions comes from
+   * another team of theirs is refused, saying why, and nothing is claimed,
+   * run or dismissed.
+   */
+  describe("a fix about a private incident the person does not reach", () => {
+    test.each([
+      [APPROVE_ROUTE, "approve this fix"],
+      [DISMISS_ROUTE, "dismiss this fix"],
+    ])(
+      "%s is refused with the reason, and nothing is run or changed",
+      async (uri: string, action: string) => {
+        reachesSpy.mockResolvedValue(false);
+
+        const result: RouteCallResult = await callRoute({ uri: uri });
+
+        expect(result.nextCallCount).toBe(1);
+        expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+        expect((result.thrownToNext as Error).message).toBe(
+          `You do not have permission to ${action}. This incident is private, so it is changed only with the permissions of the teams that own it and of the people named as its owners, and none of them lets you do this. Ask a Project Admin to give one of the teams that own it this permission, or to add you as an owner.`,
+        );
+        expect(casSpy).not.toHaveBeenCalled();
+        expect(executeApprovedPlanMock).not.toHaveBeenCalled();
+
+        // Asked about the fix's incident, as a run linked to it.
+        const asked: {
+          modelType: unknown;
+          recordId: ObjectID;
+        } = reachesSpy.mock.calls[0]![0] as {
+          modelType: unknown;
+          recordId: ObjectID;
+        };
+
+        expect(asked.modelType).toBe(RunbookExecution);
+        expect(asked.recordId.toString()).toBe(INCIDENT_ID.toString());
+      },
+    );
   });
 
   describe("POST /auto-remediation/approve — project switch re-check", () => {

@@ -1,4 +1,5 @@
 import NotificationRuleType from "./NotificationRuleType";
+import BadDataException from "../Exception/BadDataException";
 import OnCallRuleKind, {
   ON_CALL_RULE_KINDS,
   getRuleTypeForOnCallRuleKind,
@@ -883,19 +884,28 @@ const toRuleToCreate: (data: {
  *   3. what is left over is deleted: other methods, an opt-out row, a row
  *      that names no method, a second copy of a step;
  *   4. what is still missing is created.
+ *
+ * `keepCellKeys` names cards (getPagingLadderCellKey) that keep their own
+ * rules: the cards that differ from the ladder, when a person changes the
+ * ladder and keeps what makes some severities different (#8890). They are
+ * left as they are, as archived cards are.
  */
 export const planPagingLadderSave: (data: {
   cells: ReadonlyArray<PagingLadderCell>;
   rules: ReadonlyArray<PagingLadderRule>;
   steps: ReadonlyArray<PagingLadderStep>;
+  keepCellKeys?: ReadonlyArray<string> | undefined;
 }) => PagingLadderPlan = (data: {
   cells: ReadonlyArray<PagingLadderCell>;
   rules: ReadonlyArray<PagingLadderRule>;
   steps: ReadonlyArray<PagingLadderStep>;
+  keepCellKeys?: ReadonlyArray<string> | undefined;
 }): PagingLadderPlan => {
   const ladder: Array<PagingLadderStep> = normalizePagingLadderSteps(
     data.steps,
   );
+
+  const keptCellKeys: Set<string> = new Set<string>(data.keepCellKeys || []);
 
   const plan: PagingLadderPlan = {
     create: [],
@@ -922,6 +932,10 @@ export const planPagingLadderSave: (data: {
   }
 
   for (const cell of getLivePagingLadderCells(data.cells)) {
+    if (keptCellKeys.has(getPagingLadderCellKey(cell))) {
+      continue;
+    }
+
     const remainingRules: Array<PagingLadderRule> = [
       ...(rulesByCell.get(getPagingLadderCellKey(cell)) || []),
     ];
@@ -1328,4 +1342,48 @@ export const readPagingLadderSteps: (
       };
     }),
   );
+};
+
+/*
+ * The cards a save sent as kept (#8890), as cell keys: `[{ ruleType,
+ * severityId }]`, or nothing. Throws a sentence that says what to do for
+ * anything else - a kept card read wrongly would be overwritten, so a
+ * request that names one badly saves nothing.
+ */
+export const readPagingLadderKeptCells: (value: unknown) => Array<string> = (
+  value: unknown,
+): Array<string> => {
+  if (value === undefined || value === null) {
+    return [];
+  }
+
+  const problem: string =
+    "The severities that keep their own rules were not sent in a way OneUptime can read. Reload the page, then save again.";
+
+  if (!Array.isArray(value)) {
+    throw new BadDataException(problem);
+  }
+
+  return value.map((entry: unknown): string => {
+    if (!entry || typeof entry !== "object") {
+      throw new BadDataException(problem);
+    }
+
+    const card: Record<string, unknown> = entry as Record<string, unknown>;
+    const ruleType: unknown = card["ruleType"];
+    const severityId: string = readPagingId(card["severityId"]);
+
+    if (
+      typeof ruleType !== "string" ||
+      !getSeverityColumnForRuleType(ruleType) ||
+      !severityId
+    ) {
+      throw new BadDataException(problem);
+    }
+
+    return getPagingLadderCellKey({
+      ruleType: ruleType,
+      severityId: severityId,
+    });
+  });
 };

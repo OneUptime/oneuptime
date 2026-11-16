@@ -66,109 +66,74 @@ import {
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const documentationMarkdown: string = `
-### How Burn Rate Rules Work
+A burn rate rule watches how fast this SLO spends its error budget. When the budget is going too fast, the rule opens an alert, declares an incident, or both. Every SLO starts with three of them.
 
-A **burn rate** of 1 means the error budget is being spent exactly fast enough to run out at the end of the compliance window. A burn rate of 14.4 exhausts a 30-day budget in about 2 days.
+## The Rules Every SLO Starts With
 
-A rule fires when the burn rate exceeds its threshold over **both** windows:
+| Rule | Fires when | Long window | Short window | Threshold at 30 days |
+|------|------------|-------------|--------------|----------------------|
+| **Fast burn** (page) | 2% of the budget goes in an hour | 60 min | 5 min | 14.4× |
+| **Slow burn** (page) | 5% of the budget goes in six hours | 360 min | 30 min | 6× |
+| **Slow leak** (ticket) | 10% of the budget goes in three days | 4320 min | 360 min | 1× |
 
-- The **long window** confirms the problem is sustained.
-- The **short window** confirms it is still happening right now, so you are not paged for an outage that already ended.
+- Fast burn and Slow burn open their alerts at the project's most severe alert severity. Slow leak opens its alert at the least severe one, at most once a day: a slow leak is for working hours, not for waking anyone up. None of them declares an incident until you turn that on.
+- Send Fast burn to an on-call policy that pages, and keep Slow leak as a ticket for the team that owns the SLO.
+- On an SLO shorter than 30 days, Slow leak looks back a tenth of the window instead of three days (16.8 hours on a 7-day SLO), so it still fires at 1×.
 
----
+An SLO missing one of these rules shows a note above the table. **Add recommended rules** in the note shows what it will add, and adds only the missing rules. A rule counts as there when the SLO has one with the same name or the same long window, so a renamed or tuned rule is never added twice. To stop being offered a rule you do not want, disable it instead of deleting it.
 
-### What a Rule Declares
+## When a Rule Fires
 
-Each rule can raise an **Alert**, declare an **Incident**, or both — and it must do at least one of the two.
+A burn rate of 1 spends the budget exactly over the SLO's period; 14.4 spends a 30-day budget in about 2 days. A rule fires when the burn rate is above its threshold over both of its windows:
 
-- An **Alert** is the lightweight signal: it lands in the alert inbox and runs whatever on-call policies you attach to it.
-- An **Incident** is the heavyweight one: it takes an incident number, runs its own on-call policies, and carries the whole response workflow (notes, timeline, postmortem).
+- the **long window**, which shows the burn is sustained;
+- the **short window**, which shows it is still happening, so nobody is paged for an outage that has already ended.
 
-The two are independent. Each has its own title, description, severity, on-call policies, owners, labels, privacy and auto-resolve setting, so you can send a terse Alert to a team rotation and a detailed Incident to the major-incident rotation. Each also has its own quiet period after it resolves — resolving the Incident does not reset the Alert's, or the other way around.
+A rule waits for one full long window of history: on a new SLO, Fast burn can fire after an hour, Slow burn after six hours and Slow leak after three days. While any monitor of the SLO is in a scheduled maintenance event, its rules do not fire. On a request SLO, **Minimum Requests** keeps a rule quiet while its long window holds fewer requests, so a quiet hour with one failure pages nobody.
 
-Every alert and incident a rule creates lists the SLO as an **affected resource**, so it shows up on the SLO's Alerts and Incidents tabs.
+## Alerts and Incidents
 
-Burn rate incidents are **not** published to status pages and do not notify subscribers: an error budget burning fast is an internal engineering signal, not a declared customer-facing outage.
+Each rule opens an **alert**, declares an **incident**, or both. An alert lands in the alert inbox and runs the on-call policies you give it. An incident gets a number, its own on-call policies and the whole response workflow: notes, timeline and postmortem.
 
----
+The two are set up separately: each has its own title, description, severity, on-call policies, owners, labels, privacy and auto-resolve. A short alert can go to a team's rotation and a detailed incident to the major-incident rotation. A blank severity is the project's most severe one.
 
-### What Each Record Says
+Both list this SLO as an affected resource, so they show on its Alerts and Incidents pages. A burn rate incident is never published to status pages or sent to subscribers: a fast burn is an engineering signal, not an outage you have declared.
 
-Leave the title and description empty and the rule uses its built-in text, which names the SLO and the rule and states both burn rates, the threshold and the error budget remaining.
+## The Title and Description
 
-To write your own, use these variables in the title, the description and the remediation notes. They are filled in at the moment the rule fires:
+Leave them empty to use the built-in text, which names the SLO and the rule, and gives the burn rates, the threshold and the error budget left.
+
+To write your own, use these variables in the title, the description and the remediation notes. They are filled in when the rule fires:
 
 ${BURN_RATE_TEMPLATE_VARIABLES_MARKDOWN_TABLE}
 
-A variable that is misspelled is left exactly as written, so a typo shows up in the alert instead of silently disappearing.
+A misspelled variable is left as written, so you see the typo in the alert instead of losing the value without a word.
 
----
+## Owners, Labels and Privacy
 
-### Owners, Labels and Privacy
+- **Owner teams and users** are added to the alert or incident when it is created, and are notified.
+- **Add SLO Owners as Owners** adds this SLO's owners as well. They already hear about its status changes, so they may be told twice.
+- **Labels** are added to the alert or incident, so filters, owner rules and workspace notification rules can match it.
+- A **private** alert or incident is seen only by its owners, Project Admins and Project Owners.
 
-- **Owner teams and owner users** are added to the record when it is created, and are notified.
-- **Add SLO Owners as Owners** also adds this SLO's owners — its owner users and the members of its owner teams. They already hear about the SLO's status changes, so this can notify them twice.
-- **Labels** are added to the record, so filters, owner rules and workspace notification rules can match it.
-- A **private** record is visible only to its owners, Project Admins and Project Owners.
+## Resolving and Firing Again
 
----
+- With **Auto Resolve** on (the default), the rule resolves its alert or incident once the burn rate over the long window is back under the threshold. With it off, it stays open until someone resolves it, and the rule opens no second one meanwhile.
+- After an alert or incident resolves, the rule waits its **Re-fire Suppression** before opening that one again: one long window, or 24 hours for Slow leak. The alert and the incident each wait from their own resolve.
+- Resolved by hand while the budget is still burning, it is not opened again until the burn recovers and the rule fires again.
+- Disabling the rule, turning an output off, deleting the rule, or disabling, archiving or deleting the SLO resolves whatever the rule has open.
 
-### Auto-Resolve
-
-With **Auto Resolve** on (the default), the rule resolves its record once the burn rate over the long window drops back below the threshold.
-
-Turn it off and the record stays open until someone resolves it. The rule will not open another one on top of it; once it has been resolved by hand and the burn has recovered, the rule can fire again.
-
-If you resolve the Incident by hand while the budget is still burning, the rule will not re-declare it either way. It stays closed until the burn recovers and the rule genuinely fires again.
-
-Disabling the rule, switching an output off, deleting the rule, or disabling, archiving or deleting the SLO always resolves what the rule has open — whatever the auto-resolve setting says.
-
----
-
-### The Rules You Already Have
-
-Every SLO is created with three rules, scaled to its compliance window:
-
-| Rule | Meaning | Long Window | Short Window | 30-day threshold |
-|------|---------|-------------|--------------|------------------|
-| **Fast burn** (page) | 2% of the budget in an hour | 60 min | 5 min | 14.4× |
-| **Slow burn** (page) | 5% of the budget in six hours | 360 min | 30 min | 6× |
-| **Slow leak** (ticket) | 10% of the budget in three days | 4320 min | 360 min | 1× |
-
-Fast burn and Slow burn raise their alerts at the project's most severe alert severity; Slow leak raises its alert at the least severe one, and waits 24 hours before raising another, because a slow leak is something to fix during working hours, not something to wake anyone up for. None of them declares an incident.
-
-On SLO windows shorter than 30 days, Slow leak looks back a tenth of the window instead of three days (16.8 hours on a 7-day SLO), so it always fires at 1×.
-
-An SLO created before one of these rules existed, or whose rule was deleted, does not get it by itself. While one is missing, a note above the table names it. **Add recommended rules** in the note shows exactly what it will add, and adds only the missing rules once you confirm. A rule counts as there when the SLO has a rule with the same name or the same long window, enabled or disabled, so a renamed or tuned default rule is never added twice. To stop being offered a default rule you do not want, disable it instead of deleting it.
-
-Route the fast-burn rule to a paging on-call policy at a high severity, and keep the slow-leak rule as a ticket for the owning team.
-
----
-
-### Creating One
-
-The form walks the questions a rule answers:
+## Creating a Rule
 
 | Step | What you set |
 |------|--------------|
-| **Rule** | Its name, and whether it is enabled. |
-| **Burn Window** | The threshold, the long and short windows, and the re-fire suppression. |
-| **What It Declares** | Alert, Incident, or both, and whether the SLO's owners are added as owners. |
-| **Alert** | Title and severity, with expandable sections for description, ownership and labels, on-call policies, and advanced options. |
-| **Incident** | The incident’s own title, severity and optional settings, grouped in the same way. |
+| **Rule** | Its name, and whether it is enabled |
+| **Burn Window** | The threshold, the long and short windows, and the re-fire suppression |
+| **What It Declares** | An alert, an incident or both, and whether the SLO's owners are added as owners |
+| **Alert** | Its title and severity, with its description, owners, labels, on-call policies and advanced options folded |
+| **Incident** | The same for the incident |
 
-New rules prefill the alert and incident titles and descriptions with editable defaults. Sections open automatically when they contain a prefilled description or saved settings.
-
-The alert and incident steps appear and disappear with the toggles on **What It Declares**, so a rule that only raises alerts is never asked about incidents.
-
----
-
-### Other Settings
-
-- A rule cannot fire until the SLO has at least a full long window of monitoring history, so a brand-new monitor cannot page you on its first blip. That means a fresh SLO will not fire Fast burn for its first hour, Slow burn for its first six, or Slow leak for its first three days.
-- **Re-fire Suppression** is the quiet period after an alert or incident resolves before the same rule may declare that record again. Each output is suppressed independently, measured from its own resolve. It defaults to the long window; Slow leak is created with 24 hours.
-- Leave a severity blank and the project's most severe one is used.
-- While any monitor on the SLO is under an active scheduled maintenance window, the rule is suppressed entirely — planned work should not page anyone.
+The Alert and Incident steps appear only for what the rule declares. A new rule starts with a title and a description you can change.
 `;
 
 /*
@@ -412,7 +377,7 @@ const SloBurnRateRules: FunctionComponent<
         helpContent={{
           title: "How Burn Rate Rules Work",
           description:
-            "Burn rates, fast and slow burn windows, what each alert and incident says, and where it goes",
+            "Get alerted, or open an incident, when this SLO's error budget burns too fast.",
           markdown: documentationMarkdown,
         }}
         documentationLink={new Route("/docs/slo/burn-rate-alerts")}

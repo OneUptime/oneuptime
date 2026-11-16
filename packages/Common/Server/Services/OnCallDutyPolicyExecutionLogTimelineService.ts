@@ -1,4 +1,7 @@
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnFind, OnUpdate } from "../Types/Database/Hooks";
+import CountBy from "../Types/Database/CountBy";
+import FindBy from "../Types/Database/FindBy";
+import PrivateRecordReadFilter from "../Utils/Permission/PrivateRecordReadFilter";
 import { isOnCallObserverPage } from "../../Types/OnCallDutyPolicy/OnCallObserverPage";
 import {
   ON_CALL_PAGE_CHANNELS,
@@ -67,6 +70,43 @@ export const STEP_NOTIFICATION_CHANNEL_COLUMNS: ReadonlyArray<string> = [
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * A step of a page about a private incident, alert or episode is read
+   * only by those who see that record, as the page itself is
+   * (OnCallDutyPolicyExecutionLogService, PrivateRecordReadFilter): it says
+   * who was paged about it, and its relation reads the record itself.
+   */
+  @CaptureSpan()
+  protected override async onBeforeFind(
+    findBy: FindBy<Model>,
+  ): Promise<OnFind<Model>> {
+    findBy.query = PrivateRecordReadFilter.apply(
+      findBy.query,
+      findBy.props,
+      Model,
+    );
+
+    return { findBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  public override async countBy(
+    countBy: CountBy<Model>,
+  ): Promise<PositiveNumber> {
+    countBy.query = PrivateRecordReadFilter.apply(
+      countBy.query,
+      countBy.props,
+      Model,
+    );
+
+    return await super.countBy(countBy);
+  }
+
+  // The read hook narrows by the records a page is about. See onBeforeFind.
+  public override getColumnsReadHooksNarrowBy(): Array<string> {
+    return PrivateRecordReadFilter.getNamedRecordColumnNames(Model);
   }
 
   /*

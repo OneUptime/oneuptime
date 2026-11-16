@@ -342,7 +342,7 @@ Upplösta behörigheter cachas per användare och projekt och uppdateras när te
 
 En incident, ett larm eller en episod som är markerad som privat kan bara ses av sina ägare — de personer som anges som ägare och medlemmarna i ägarteamen som har accepterat sin inbjudan — och av Projektägare och Projektadministratörer.
 
-En sådan post ändras bara med behörigheterna för de team som äger den och för de personer som anges som dess ägare. Den som anges som ägare agerar på den med alla behörigheter hen har. Alla andra agerar bara på den med behörigheterna för sina team som äger den, var och en med sin egen omfattning och sina egna etiketter: ett annat teams behörighet når ingen privat post som det teamet inte äger. Det gäller allt som görs med posten och det som hör till den — att redigera den, ändra dess tillstånd, dess anteckningar, ägare, roller, etiketter, länkade larm, episodmedlemmar och samtal, och att ta bort den — från instrumentpanelen, API:et, massåtgärder, Slack, Microsoft Teams eller OneUptime AI. Projektägare och Projektadministratörer ändrar varje privat post, och det gör även arbetsflödessteg, som agerar som Projektadministratör; en API-nyckel gör det bara med `ProjectOwner` eller `ProjectAdmin`.
+En sådan post ändras bara med behörigheterna för de team som äger den och för de personer som anges som dess ägare. Den som anges som ägare agerar på den med alla behörigheter hen har. Alla andra agerar bara på den med behörigheterna för sina team som äger den, var och en med sin egen omfattning och sina egna etiketter: ett annat teams behörighet når ingen privat post som det teamet inte äger. Det gäller allt som görs med posten och det som hör till den — att redigera den, ändra dess tillstånd, dess anteckningar, ägare, roller, etiketter, länkade larm, episodmedlemmar och samtal, och att ta bort den — från instrumentpanelen, API:et, massåtgärder, Slack, Microsoft Teams eller OneUptime AI. Projektägare och Projektadministratörer ändrar varje privat post, och en API-nyckel gör det bara med `ProjectOwner` eller `ProjectAdmin`.
 
 | Någon i team 1 och team 2 | En privat incident som team 2 äger | En offentlig incident som team 2 äger |
 | --- | --- | --- |
@@ -351,6 +351,12 @@ En sådan post ändras bara med behörigheterna för de team som äger den och f
 | Team 2 har också `IncidentMember` | Ändrar den via team 2 | Ändrar den via vilket som helst av teamen |
 
 Ett team som äger privata poster men inte har några behörigheter, ett team som bara används för att samla personer, låter sina medlemmar se dem och ändra ingen av dem. På en privat posts sida är en ändring som personens team som äger den inte får göra låst och säger varför. För att tillåta den ger du ett team som äger den behörigheten, gör ett team med behörigheten till ägare eller gör personen till ägare.
+
+Det som görs med anledning av en privat post följer samma regel: att kalla in någon om den (**Kör jourpolicy**, **Larma nu** och inkallning från Slack, Microsoft Teams, Mattermost eller OneUptime AI), att starta en runbook för den eller föra den körningen vidare, och att godkänna, provköra eller avvisa en rättning som OneUptime AI föreslagit för den. Var och en kräver sin egen behörighet, till exempel att kalla in via jourpolicyer eller att starta runbook-körningar, och på en privat post lånar bara de team som äger den ut den, utöver de personer som anges som dess ägare. Alla andra nekas med orsaken, och ingenting kallas in, körs eller ändras.
+
+Det som görs och skickas med anledning av en privat post läses bara av dem som får läsa posten: dess körningar av jourpolicyer, dess runbook-körningar, de rättningar som föreslagits för den, och loggarna över de e-postmeddelanden, sms, samtal, push-aviseringar, chattmeddelanden, webhooks och AI-förfrågningar som OneUptime skickat om den. De som kallas in om den ser fortfarande sin inkallning.
+
+Arbetsflöden agerar inte på privata poster. Stegen i ett arbetsflöde agerar som Projektadministratör, men får aldrig låna dess insyn i privata incidenter, larm och episoder: de hittar inga, ändrar inga och lägger inte till något till en, och ett arbetsflöde startar inte på en sådan post eller på något som hör till den. Se [Vad arbetsflödessteg får göra](/docs/workflows/configuration#vad-arbetsflödessteg-får-göra).
 
 ### Regler som tillhör team
 

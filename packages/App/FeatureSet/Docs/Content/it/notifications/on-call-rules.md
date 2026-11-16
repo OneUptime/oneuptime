@@ -47,7 +47,7 @@ Fai clic su **Salva modifiche**, che compare appena qualcosa cambia. Scrive le s
 
 **Testa le tue chiamate**, in fondo alla pagina, ti invia una chiamata di prova attraverso di esse.
 
-Quando una gravità merita altro, **Diverso per alcune gravità**, sotto i passaggi, apre i tab e le schede descritti più sotto. Una scheda diversa dalla tua sequenza è segnata con **Diverso dalla sequenza**, e la sequenza indica cosa fa ciascuna al suo posto. Se le tue regole sono già diverse, la pagina si apre sulle schede, con **Usa una sola sequenza per tutto**: salvando, prima nomina le schede che perdono la loro differenza. Una gravità che il tuo progetto ha archiviato mantiene le sue regole.
+Quando una gravità merita altro, **Diverso per alcune gravità**, il pulsante accanto al titolo, apre i tab e le schede descritti più sotto. Una scheda diversa dalla tua sequenza è segnata con **Diverso dalla sequenza**. La pagina si apre comunque sui tuoi passaggi ed elenca sotto di essi ogni scheda diversa e cosa fa al suo posto. **Salva modifiche** lascia quelle schede come sono; **Usa questa sequenza per ogni gravità**, alla fine di quell'elenco, dà anche a loro la tua sequenza, dopo aver nominato le schede che perdono la loro differenza. Una gravità che il tuo progetto ha archiviato mantiene le sue regole.
 
 Una policy di reperibilità decide chi viene chiamato e quando arriva il suo livello successivo. Come vieni raggiunto è questa sequenza, per ogni policy che ti chiama.
 

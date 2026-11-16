@@ -1114,9 +1114,16 @@ describe("help on the Traces settings pages", () => {
   const DROP_FILTERS_HELP: string = readSettingsHelp("DropFilters.tsx");
   const PIPELINES_HELP: string = readSettingsHelp("Pipelines.tsx");
 
+  // Each starts by saying what it is, then its topics (#8889).
   test("both help texts are found", () => {
-    expect(DROP_FILTERS_HELP).toContain("### How Trace Drop Filters Work");
-    expect(PIPELINES_HELP).toContain("### How Trace Pipelines Work");
+    expect(DROP_FILTERS_HELP).toContain(
+      "A drop filter throws away spans you do not need",
+    );
+    expect(DROP_FILTERS_HELP).toContain("\n## How It Works\n");
+    expect(PIPELINES_HELP).toContain(
+      "A trace pipeline changes spans as they arrive",
+    );
+    expect(PIPELINES_HELP).toContain("\n## How It Works\n");
   });
 
   test("REGRESSION: Drop Filters matches successful spans with statusCode != 2, not statusCode = 1", () => {
@@ -1127,7 +1134,7 @@ describe("help on the Traces settings pages", () => {
     );
 
     expect(examples).toContain(
-      "- **Sample successful CRUD:** `kind = 'SPAN_KIND_CLIENT' AND statusCode != 2` (action: Sample, 10%)",
+      "- **Keep a tenth of successful client calls**: `kind = 'SPAN_KIND_CLIENT' AND statusCode != 2`, with **Sample** at 10%.",
     );
     for (const example of examples) {
       expect(example).not.toContain("statusCode = 1");
@@ -1135,23 +1142,23 @@ describe("help on the Traces settings pages", () => {
     // The one mention left is the advice against it.
     expect(count(DROP_FILTERS_HELP, "statusCode = 1")).toBe(1);
     expect(DROP_FILTERS_HELP).toContain(
-      'so match "not an error" with `statusCode != 2` rather than `statusCode = 1`.',
+      'so match "not an error" with `statusCode != 2`, not `statusCode = 1`.',
     );
     expect(DROP_FILTERS_HELP).toContain(
-      "Status codes: `0` Unset, `1` Ok, `2` Error.",
+      "A span's status code is `0` for Unset, `1` for Ok and `2` for Error.",
     );
   });
 
   test("Pipelines shows how to mark successful HTTP spans as Ok", () => {
     const exampleStart: number = PIPELINES_HELP.indexOf(
-      "### Example: mark successful HTTP spans as Ok",
+      "## Example: Mark Successful HTTP Spans as Ok",
     );
     const example: string = PIPELINES_HELP.substring(exampleStart);
     const filterStep: number = example.indexOf(
-      "1. Create a pipeline with the filter condition **Status = Unset** (`statusCode = '0'`)",
+      "1. Create a pipeline whose filter is **Status = Unset** (`statusCode = '0'`)",
     );
     const remapStep: number = example.indexOf(
-      "2. Add a **Status Remapper** processor with the source key `http.response.status_code`",
+      "2. Add a **Status Remapper** that reads `http.response.status_code`",
     );
 
     expect(exampleStart).toBeGreaterThan(-1);

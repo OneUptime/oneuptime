@@ -1,3 +1,4 @@
+import { getOwnerRuleHelpMarkdown } from "../../../Utils/Help/ResourceRuleHelp";
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
@@ -17,22 +18,9 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
 
-const iotFleetOwnerDocumentation: string = `
-### How IoT Fleet Owner Rules Work
-
-IoT Fleet Owner Rules add owner users and teams to an IoT fleet automatically when it matches your criteria — without anyone having to remember to assign owners.
-
-### Match Criteria
-
-A rule matches an IoT fleet only when **all** specified criteria pass. Empty criteria are skipped.
-
-- **IoT Fleet Labels** — any-of (M2M)
-- **Name / Description Pattern** — case-insensitive regex
-
-### Action
-
-When a rule matches, every user and team listed on the rule is added as an owner. Already-assigned owners are not duplicated. If \`Notify Owners\` is enabled (default), added owners are notified. Multiple matching rules all fire — the union of their owners ends up assigned.
-`;
+const iotFleetOwnerDocumentation: string = getOwnerRuleHelpMarkdown({
+  nouns: { singular: "IoT fleet", plural: "IoT fleets" },
+});
 
 const IoTFleetOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
   props: RuleSettingsPageProps,

@@ -20,6 +20,14 @@
  * request a route answered (`api`), and every one none did (`unhandled`).
  */
 import "Common/UI/Styles/Theme.css";
+/*
+ * A monitor's steps and criteria read back from JSON as the Dashboard's own
+ * entry (src/Index.tsx) has them read: their types join JSON reading as
+ * this module loads. Without it a monitor's steps stay the plain object
+ * they were sent as, and the website setup finds no monitor checking an
+ * address, so a run the browser lost makes a second one.
+ */
+import "Common/Types/Monitor/MonitorJsonTypes";
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";

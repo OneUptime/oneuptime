@@ -44,6 +44,7 @@ import {
   getSignInOptionClassName,
   SIGN_IN_OPTION_PRIMARY_CLASS,
 } from "../../../UI/Components/SignInOption/SignInOptionStyle";
+import { MORE_WAYS_TO_SIGN_IN_OPEN_KEY } from "../../../../App/FeatureSet/Accounts/src/Components/MoreWaysToSignIn/MoreWaysToSignIn";
 
 /*
  * Single sign-on on the Accounts pages, in every edition.
@@ -460,6 +461,12 @@ const expectEmailFormSubtitle: () => void = (): void => {
 
 describe("Accounts single sign-on, in every edition", () => {
   beforeEach(() => {
+    /*
+     * "More ways to sign in" left open in this browser: single sign-on, a
+     * sign-in link and the passkey are folded under it on a first visit
+     * (#9023). LoginSignInOptions tests the fold itself.
+     */
+    window.localStorage.setItem(MORE_WAYS_TO_SIGN_IN_OPEN_KEY, "true");
     billingEnabledForTest = false;
     enterpriseEditionForTest = false;
     requestedUrls = [];
@@ -1111,11 +1118,11 @@ describe("Accounts single sign-on, in every edition", () => {
         .join(" ");
 
       /*
-       * The option opens the list of other ways in, with nothing deciding
-       * whether it is drawn.
+       * The option opens the list "More ways to sign in" holds (#9023), with
+       * nothing but the fold deciding whether it is drawn.
        */
       expect(source).toContain(
-        '<div className="space-y-3"> <SignInOptionLink to={new Route("/accounts/sso")}',
+        '{isMoreWaysOpen && ( <div id={MORE_WAYS_TO_SIGN_IN_OPTIONS_ID} className="mt-3 space-y-3" > <SignInOptionLink to={new Route("/accounts/sso")}',
       );
       expect(source).toContain('title={t("login.signInWithSso")}');
     });

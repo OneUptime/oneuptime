@@ -1,3 +1,4 @@
+import { getLabelRuleHelpMarkdown } from "../../../Utils/Help/ResourceRuleHelp";
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
@@ -17,22 +18,9 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
 
-const serviceLabelDocumentation: string = `
-### How Service Label Rules Work
-
-Service Label Rules attach labels to a service automatically when it matches your criteria — so you don't have to remember to tag new services.
-
-### Match Criteria
-
-A rule matches a service only when **all** specified criteria pass. Empty criteria are skipped.
-
-- **Service Labels** (prerequisite) — any-of
-- **Name / Description Pattern** — case-insensitive regex
-
-### Action
-
-When a rule matches, every label listed in \`Labels to Add\` is attached to the service. Already-attached labels are not duplicated. Multiple matching rules all fire — the union of their labels ends up attached.
-`;
+const serviceLabelDocumentation: string = getLabelRuleHelpMarkdown({
+  nouns: { singular: "service", plural: "services" },
+});
 
 const ServiceLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
   props: RuleSettingsPageProps,

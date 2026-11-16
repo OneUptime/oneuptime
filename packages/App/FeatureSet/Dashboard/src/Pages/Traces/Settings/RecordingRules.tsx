@@ -24,31 +24,23 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const documentationMarkdown: string = `
-### How Trace Recording Rules Work
+A trace recording rule turns spans into a metric, one point a minute, such as an error rate or a p95 duration. Chart it, put it on a dashboard, or alert on it, like any other metric.
 
-A Trace Recording Rule computes a new metric from span aggregations on a schedule. Every minute, the worker evaluates each enabled rule for the **previous 1-minute bucket** and writes the result into the metric store under the rule's **Output Metric Name**. The output metric name is made from the rule's name - "HTTP error rate" writes \`http_error_rate\` - unless you choose **Edit** next to it and type your own.
+## Set Up a Rule
 
-### Definition
+- **Span Sources**: up to 4 span aggregations, each with a letter (A, B, C, D) and what it counts: \`Count\` of matching spans, \`ErrorCount\` of spans whose status is Error, or the \`Avg\`, \`p50\`, \`p95\`, \`p99\`, \`Max\` or \`Min\` duration in seconds. Each can be narrowed to a span name pattern, a span kind, errors only, or an attribute's value.
+- **Expression**: arithmetic over the letters, with \`+ - * /\`, parentheses and numbers, such as \`A / B * 100\`.
+- **Group By**: an attribute key, such as \`service.name\`, for one point per value of it.
 
-A rule is made of three parts:
+The metric's name is made from the rule's name ("HTTP error rate" writes \`http_error_rate\`), unless you select **Edit** beside it and type your own.
 
-- **Span Sources** — up to 4 span aggregations. Each gets an alias (A, B, C, D) and an aggregation type:
-  - \`Count\` — count of matching spans
-  - \`ErrorCount\` — count of spans with status = error
-  - \`Avg / p50 / p95 / p99 / Max / Min Duration (s)\` — duration percentiles and extremes
+## When Points Are Written
 
-  Optional per-source filters: span name regex, span kind, only-errors toggle, or attribute key/value.
+Every minute, each enabled rule is worked out for the minute before. A result that is not a number, such as a division by zero or a missing source, writes nothing, so a chart shows a gap rather than a wrong value.
 
-- **Expression** — arithmetic over aliases. Operators: \`+ - * /\`, parentheses, numeric literals. Example: \`A / B * 100\`.
-- **Group By** — optional attribute key (e.g. \`service.name\`). One derived data point per distinct value per bucket.
+## How Points Are Labelled
 
-### Null semantics
-
-Non-finite results (division by zero, missing source) produce no row — dashboards see a gap rather than bad data.
-
-### Output labeling
-
-Every materialized row carries \`oneuptime.derived.trace_rule_id\` plus the group-by value when set.
+Every point carries \`oneuptime.derived.trace_rule_id\` with the rule's ID, and its group-by value when it has one.
 `;
 
 /*

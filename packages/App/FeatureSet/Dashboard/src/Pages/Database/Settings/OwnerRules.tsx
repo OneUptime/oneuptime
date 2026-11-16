@@ -1,3 +1,4 @@
+import { getOwnerRuleHelpMarkdown } from "../../../Utils/Help/ResourceRuleHelp";
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
@@ -17,26 +18,15 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
 
-const databaseServerOwnerDocumentation: string = `
-### How Database Owner Rules Work
-
-Database Owner Rules add owner users and teams to a database automatically when it matches your criteria — without anyone having to remember to assign owners.
-
-### Match Criteria
-
-A rule matches a database only when **all** specified criteria pass. Empty criteria are skipped.
-
-- **Database Labels** — any-of (M2M)
-- **Database Name**, **Database Description** — text, or a regular expression or \`*\` wildcard pattern
-
-### Matching Discovered Databases
-
-Discovered databases are named after their engine and endpoint (\`PostgreSQL db.prod:5432\`), so the condition **Database Name** starts with \`PostgreSQL\` matches every PostgreSQL database.
-
-### Action
-
-When a rule matches, every user and team listed on the rule is added as an owner. Already-assigned owners are not duplicated. If \`Notify Owners\` is enabled (default), added owners are notified. Multiple matching rules all fire — the union of their owners ends up assigned.
-`;
+const databaseServerOwnerDocumentation: string = getOwnerRuleHelpMarkdown({
+  nouns: { singular: "database", plural: "databases" },
+  topics: [
+    {
+      topic: "Matching Discovered Databases",
+      markdown: `A database OneUptime discovers is named after its engine and endpoint, such as \`PostgreSQL db.prod:5432\`. So **Database Name** starts with \`PostgreSQL\` matches every PostgreSQL database.`,
+    },
+  ],
+});
 
 const DatabaseServerOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
   props: RuleSettingsPageProps,

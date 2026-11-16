@@ -68,6 +68,7 @@
     "signInWithSso": "使用 SSO 登入",
     "signInWithMicrosoft": "使用 Microsoft 登入",
     "emailSignInLink": "透過電子郵件傳送登入連結",
+    "moreWaysToSignIn": "更多登入方式",
     "noAccountPrompt": "沒有帳號？",
     "registerLink": "註冊。",
     "twoFactor": {

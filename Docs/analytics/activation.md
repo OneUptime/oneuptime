@@ -164,7 +164,6 @@ These names predate the rule and stay as they are. The project name was removed 
 | `dashboard/home` | Home |
 | `dashboard/home/getting-started-task` | Home's checklist, on a click on a step |
 | `dashboard/home/getting-started-dismissed` | Home's checklist |
-| `dashboard/home/how-it-works-step` | Home's "How OneUptime works" |
 | `dashboard/home/explore-category` | Home |
 | `dashboard/home/explore-product` | Home |
 | `dashboard/home/search-opened` | Home's command bar |

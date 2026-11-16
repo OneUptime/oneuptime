@@ -42,6 +42,10 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Service from "Common/Models/DatabaseModels/Service";
 import Route from "Common/Types/API/Route";
+import {
+  WELCOME_STEP_MINUTES,
+  WelcomeStep,
+} from "Common/Types/WelcomeChecklist/WelcomeChecklist";
 import IconProp from "Common/Types/Icon/IconProp";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import { MonitorRecommendation } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
@@ -683,6 +687,7 @@ const TelemetryGuidedSetup: FunctionComponent = (): ReactElement => {
     {
       ...progress[0]!,
       title: TELEMETRY_SETUP_COPY.sendTitle,
+      outcome: TELEMETRY_SETUP_COPY.sendOutcome,
       doneLine: service
         ? translator.translateTemplate("{{service}} is sending data.", {
             service: service.name,
@@ -693,6 +698,7 @@ const TelemetryGuidedSetup: FunctionComponent = (): ReactElement => {
     {
       ...progress[1]!,
       title: TELEMETRY_SETUP_COPY.alertTitle,
+      outcome: TELEMETRY_SETUP_COPY.alertOutcome,
       doneLine: getAlertDoneLine({
         translator: translator,
         serviceName: serviceName,
@@ -844,6 +850,7 @@ const TelemetryGuidedSetup: FunctionComponent = (): ReactElement => {
       }}
       summary={summary}
       isFinished={isTelemetrySetupFinished(facts)}
+      minutes={WELCOME_STEP_MINUTES[WelcomeStep.Telemetry]}
     />
   );
 };

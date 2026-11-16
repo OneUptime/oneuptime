@@ -69,8 +69,8 @@ const STRINGS: Array<string> = Array.from(
     MORE_FIELDS_SECTION_TITLE,
     "Configured",
     // The mapping help, opened from the card's More menu.
-    "Copying custom field values from a related resource",
-    "When and how a field's value is copied, and what copying will never do.",
+    "Copying Custom Field Values from a Related Resource",
+    "Copy a field's value from a related resource, instead of typing it on every record.",
   ]),
 );
 

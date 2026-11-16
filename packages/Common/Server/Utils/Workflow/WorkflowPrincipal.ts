@@ -46,6 +46,15 @@ import UserType from "../../../Types/UserType";
  * settings: a person who may read them has to
  * (RelationListPermission.mayReadTable).
  *
+ * Nor is a step lent a Project Admin's sight of private incidents, alerts
+ * and episodes (#8914, Types/Workflow/WorkflowPrivateRecords): whoever may
+ * create a workflow - a Project Member - decides where what its steps read
+ * goes, and may not see a private record, or may only view it through a
+ * team that owns it. A step sees and changes no private record, nor
+ * anything of one, as a caller who is no person and owns nothing
+ * (PrivacyFilterUtil.shouldBypassRecordPrivacy), and a workflow does not
+ * start on one (DatabaseService.isAboutPrivateRecord).
+ *
  * Nor is a step lent what a Project Admin may do to who may do what in the
  * project: it creates, changes and deletes no team, team member, team
  * permission, custom role, role permission, team role, API key, API key

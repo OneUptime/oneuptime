@@ -54,8 +54,8 @@ import { RelationMetadata } from "typeorm/metadata/RelationMetadata";
  *   - a read is the caller's own. Someone who may read only these records
  *     finds them; someone who may not is refused; someone held to a label
  *     finds the records that carry it; a private incident, alert or episode
- *     is found by the project's owners and by its own owners, and by no one
- *     else - whatever they type;
+ *     is found by no one - not the project's owners, not its own owners -
+ *     whatever they type: a workflow never acts on one (#8914);
  *   - nothing outside the workflow's project is ever found, even by someone
  *     who owns both projects.
  *
@@ -235,7 +235,6 @@ describePostgres(
     const projectId: ObjectID = ObjectID.generate();
     const otherProjectId: ObjectID = ObjectID.generate();
     const userId: ObjectID = ObjectID.generate();
-    const someoneElseId: ObjectID = ObjectID.generate();
 
     const failedQueries: FailedQueryRecorder = new FailedQueryRecorder();
     let database: DataSource;
@@ -885,7 +884,13 @@ describePostgres(
     });
 
     describe.each(WITH_PRIVATE_RECORDS)("a private $name", (kind: Kind) => {
-      test("is found by the project's owners and by its own owners, and by no one else", async () => {
+      /*
+       * A run of a workflow never acts on a private record (#8914): Run
+       * Workflow offers none, to anyone - the reader who may not see it, its
+       * own owner, and the project's owner alike - and the records that are
+       * not private are offered as before.
+       */
+      test("is found by no one, its own owners and the project's owners included, whatever they type", async () => {
         const open: string = await seedRecord(kind, {
           number: 7,
           name: "Payroll export is late",
@@ -905,15 +910,15 @@ describePostgres(
           secret,
         ];
 
-        // A project owner sees every private record.
+        // A project owner, who sees every private record.
         for (const typed of everything) {
           expect({ typed, found: ids(await search(kind, typed)) }).toEqual({
             typed,
-            found: [secret],
+            found: [],
           });
         }
 
-        // Someone who may read these, and owns neither, never finds it.
+        // Someone who may read these, and owns neither.
         for (const typed of everything) {
           expect({
             typed,
@@ -925,8 +930,9 @@ describePostgres(
           open,
         ]);
         expect(ids(await search(kind, "", propsOf(reader)))).toEqual([open]);
+        expect(ids(await search(kind, "payroll"))).toEqual([open]);
 
-        // Made one of its owners, the same person finds it.
+        // Made one of its owners, the same person still does not.
         await insert(kind.owners!.table, {
           projectId: projectId.toString(),
           userId: userId.toString(),
@@ -937,13 +943,8 @@ describePostgres(
           expect({
             typed,
             found: ids(await search(kind, typed, propsOf(reader))),
-          }).toEqual({ typed, found: [secret] });
+          }).toEqual({ typed, found: [] });
         }
-
-        // And still nobody else does.
-        expect(await search(kind, "8", propsOf(reader, someoneElseId))).toEqual(
-          [],
-        );
       });
     });
   },

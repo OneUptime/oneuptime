@@ -68,6 +68,25 @@ export const EVENT_ITEM_LABELS_CLASS_NAME: string =
 
 export const EVENT_ITEM_LABEL_CLASS_NAME: string = "min-w-0 max-w-full";
 
+/*
+ * The way into an event's own page, at the foot of its card on the
+ * overview and the lists: "View Incident", "View Announcement". It was
+ * gray-400, 2.5:1 on the white card, and read as switched off while it is
+ * the only way there (#9016). A quiet link that reads as one: gray-600
+ * (7.6:1), darker and underlined under the pointer, ringed when focused.
+ * Link adds the pointer cursor itself.
+ */
+export const EVENT_ITEM_VIEW_LINK_CLASS_NAME: string =
+  "rounded text-sm font-medium text-gray-600 underline-offset-2 hover:text-gray-900 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
+
+/*
+ * Words that frame what the card says - "Affected resources" before the
+ * resources' pills, the event's mini description - quieter than the text
+ * around them, and still read: gray-500 (4.8:1), where gray-400 was 2.5:1
+ * (#9016).
+ */
+export const EVENT_ITEM_QUIET_TEXT_CLASS_NAME: string = "text-sm text-gray-500";
+
 export interface ComponentProps {
   eventTitle: string;
   eventResourcesAffected?: Array<string> | undefined;
@@ -161,7 +180,9 @@ const EventItem: FunctionComponent<ComponentProps> = (
         )}
 
         {props.eventMiniDescription && (
-          <div className="mt-3 text-gray-400 text-sm active-event-box-body-mini-description">
+          <div
+            className={`mt-3 ${EVENT_ITEM_QUIET_TEXT_CLASS_NAME} active-event-box-body-mini-description`}
+          >
             {props.eventMiniDescription}
           </div>
         )}
@@ -208,7 +229,7 @@ const EventItem: FunctionComponent<ComponentProps> = (
         props.eventResourcesAffected?.length > 0 ? (
           <div key={0}>
             <div className="flex flex-wrap gap-y-4 space-x-1 active-event-box-body-reesources">
-              <div className="text-sm text-gray-400 mr-3 mt-1">
+              <div className={`${EVENT_ITEM_QUIET_TEXT_CLASS_NAME} mr-3 mt-1`}>
                 {t("eventItem.affectedResources", "Affected resources")}
               </div>
               {props.eventResourcesAffected?.map((item: string, i: number) => {
@@ -433,7 +454,7 @@ const EventItem: FunctionComponent<ComponentProps> = (
           {props.eventViewRoute ? (
             <span>
               <Link
-                className="cursor-pointer text-gray-400 hover:text-gray-500 text-sm"
+                className={EVENT_ITEM_VIEW_LINK_CLASS_NAME}
                 to={props.eventViewRoute}
               >
                 <>

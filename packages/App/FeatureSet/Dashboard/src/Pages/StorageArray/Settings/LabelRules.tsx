@@ -1,3 +1,4 @@
+import { getLabelRuleHelpMarkdown } from "../../../Utils/Help/ResourceRuleHelp";
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
@@ -17,22 +18,9 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
 
-const storageArrayLabelDocumentation: string = `
-### How Storage Array Label Rules Work
-
-Storage Array Label Rules attach labels to a storage array automatically when it matches your criteria — so you don't have to remember to tag new storage arrays.
-
-### Match Criteria
-
-A rule matches a storage array only when **all** specified criteria pass. Empty criteria are skipped.
-
-- **Storage Array Labels** (prerequisite) — any-of
-- **Name / Description Pattern** — case-insensitive regex
-
-### Action
-
-When a rule matches, every label listed in \`Labels to Add\` is attached to the storage array. Already-attached labels are not duplicated. Multiple matching rules all fire — the union of their labels ends up attached.
-`;
+const storageArrayLabelDocumentation: string = getLabelRuleHelpMarkdown({
+  nouns: { singular: "storage array", plural: "storage arrays" },
+});
 
 const StorageArrayLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
   props: RuleSettingsPageProps,

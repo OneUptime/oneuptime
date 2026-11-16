@@ -97,6 +97,10 @@ import "../../../../App/FeatureSet/Accounts/src/Utils/i18n";
 import LoginPage from "../../../../App/FeatureSet/Accounts/src/Pages/Login";
 import MagicLinkPage from "../../../../App/FeatureSet/Accounts/src/Pages/MagicLink";
 import { standInForGlobalConfig } from "../../Helpers/GlobalConfigStandIn";
+import {
+  MORE_WAYS_TO_SIGN_IN_OPEN_KEY,
+  MORE_WAYS_TO_SIGN_IN_TOGGLE_TEST_ID,
+} from "../../../../App/FeatureSet/Accounts/src/Components/MoreWaysToSignIn/MoreWaysToSignIn";
 
 // The server's global config, answered here rather than over the network.
 beforeEach((): void => {
@@ -233,6 +237,12 @@ beforeEach(() => {
   } catch {
     /* Nothing to clear is not a failure. */
   }
+  /*
+   * "More ways to sign in" left open in this browser: single sign-on, a
+   * sign-in link and the passkey are folded under it on a first visit
+   * (#9023). LoginSignInOptions tests the fold itself.
+   */
+  window.localStorage.setItem(MORE_WAYS_TO_SIGN_IN_OPEN_KEY, "true");
 
   jest.spyOn(UserUtil, "isLoggedIn").mockReturnValue(false);
   jest
@@ -277,7 +287,7 @@ afterEach(() => {
 });
 
 describe("the sign-in page", () => {
-  test("offers a sign-in link, under 'or', after single sign-on and before the passkey", async () => {
+  test("offers a sign-in link, under More ways to sign in, after single sign-on and before the passkey", async () => {
     await renderSignInPage();
 
     const option: HTMLElement = screen.getByTestId("magic-link-login");
@@ -296,6 +306,21 @@ describe("the sign-in page", () => {
       option.compareDocumentPosition(passkey) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  test("is folded on a first visit with single sign-on, and opens with it", async () => {
+    window.localStorage.removeItem(MORE_WAYS_TO_SIGN_IN_OPEN_KEY);
+    await renderSignInPage();
+
+    expect(screen.queryByTestId("magic-link-login")).toBeNull();
+    expect(screen.queryByTestId("sso-login")).toBeNull();
+
+    await setupUser().click(
+      screen.getByTestId(MORE_WAYS_TO_SIGN_IN_TOGGLE_TEST_ID),
+    );
+
+    expect(screen.getByTestId("magic-link-login")).toBeInTheDocument();
+    expect(screen.getByTestId("sso-login")).toBeInTheDocument();
   });
 
   test("is drawn as the other ways in are, not as the page's one filled button", async () => {

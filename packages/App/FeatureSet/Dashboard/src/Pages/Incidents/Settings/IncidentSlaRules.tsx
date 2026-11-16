@@ -34,72 +34,51 @@ const SLA_RULE_MORE_FIELDS: FormFieldCollapsibleSection<IncidentSlaRule> =
   getAdvancedFormSection<IncidentSlaRule>();
 
 const documentationMarkdown: string = `
-### How Incident SLA Rules Work
+An SLA rule sets how long your team has to acknowledge and to resolve an incident, and shows whether each incident is on track, at risk or breached.
 
-An SLA (Service Level Agreement) rule sets how long the team has to acknowledge and to resolve an incident. When an incident is created, the first rule that matches it applies, and its deadlines start from the moment the incident was declared.
+## How It Works
 
-\`\`\`mermaid
-flowchart TD
-    A[New Incident Created] --> B{Match Against SLA Rules}
-    B -->|Rule Matches| C[Create SLA Record]
-    B -->|No Match| D[No SLA Tracking]
-    C --> E[Calculate Deadlines]
-    E --> F[Track Response Time]
-    E --> G[Track Resolution Time]
-    F --> H{Response Deadline Met?}
-    G --> I{Resolution Deadline Met?}
-    H -->|Yes| J[SLA Met]
-    H -->|No| K[Response Breached]
-    I -->|Yes| J
-    I -->|No| L[Resolution Breached]
-\`\`\`
+- When an incident is declared, the first rule that matches it applies. Its deadlines count from the moment the incident was declared.
+- An incident no rule matches has no SLA.
 
----
+## Match Criteria
 
-### Match Criteria
+The conditions a new incident must meet, such as its monitors, severity, labels or title.
 
-The conditions a new incident must meet.
+## Targets
 
----
+| Target | What it sets |
+|--------|--------------|
+| **Response Time** | How long the team has to acknowledge the incident |
+| **Resolution Time** | How long the team has to resolve it |
+| **At-Risk Threshold** | Under **More fields**: how much of a deadline may pass before the SLA is At Risk (80% unless you change it) |
 
-### SLA Targets
+## Statuses
 
-| Target | Description |
-|--------|-------------|
-| **Response Time** | Time allowed to acknowledge the incident |
-| **Resolution Time** | Time allowed to resolve the incident |
-| **At-Risk Threshold** | Under **More fields**: how much of a deadline may pass before the SLA is "At Risk" (default: 80%) |
+| Status | What it means |
+|--------|---------------|
+| **On Track** | No deadline missed, and none near its at-risk threshold |
+| **At Risk** | More of a deadline has passed than the at-risk threshold |
+| **Response Breached** | The incident was not acknowledged in time |
+| **Resolution Breached** | The incident was not resolved in time |
+| **Met** | The incident was resolved within every deadline |
 
----
+## Note Reminders
 
-### SLA Status Values
+Under **More fields**, a rule can post notes at regular intervals while the incident is open, to keep everyone informed: **Internal Note Reminders** to the incident's internal notes, and **Public Note Reminders** to its public notes, which status pages show.
 
-| Status | Description |
-|--------|-------------|
-| **On Track** | Deadlines have not been breached and at-risk threshold not reached |
-| **At Risk** | Elapsed time has exceeded the at-risk threshold percentage |
-| **Response Breached** | Response deadline was not met |
-| **Resolution Breached** | Resolution deadline was not met |
-| **Met** | Incident was resolved within all deadlines |
+A note can use these variables:
 
----
-
-### Note Reminders
-
-Under **More fields**, an SLA rule can post internal or public notes at regular intervals while the incident is open, to keep everyone informed.
-
-- **Internal Note Reminders**: Posted to the incident's internal notes
-- **Public Note Reminders**: Posted to the incident's public notes (visible on status pages)
-
-Template variables available:
-- \`{{incidentTitle}}\` - Incident title
-- \`{{incidentNumber}}\` - Incident number
-- \`{{elapsedTime}}\` - Time since incident was declared
-- \`{{responseDeadline}}\` - Response deadline timestamp
-- \`{{resolutionDeadline}}\` - Resolution deadline timestamp
-- \`{{slaStatus}}\` - Current SLA status
-- \`{{timeToResponseDeadline}}\` - Time remaining to response deadline
-- \`{{timeToResolutionDeadline}}\` - Time remaining to resolution deadline
+| Variable | What it holds |
+|----------|---------------|
+| \`{{incidentTitle}}\` | The incident's title |
+| \`{{incidentNumber}}\` | The incident's number |
+| \`{{elapsedTime}}\` | The time since the incident was declared |
+| \`{{responseDeadline}}\` | When it has to be acknowledged by |
+| \`{{resolutionDeadline}}\` | When it has to be resolved by |
+| \`{{slaStatus}}\` | Its SLA status |
+| \`{{timeToResponseDeadline}}\` | The time left to acknowledge it |
+| \`{{timeToResolutionDeadline}}\` | The time left to resolve it |
 `;
 
 const IncidentSlaRulesPage: FunctionComponent<
@@ -128,7 +107,7 @@ const IncidentSlaRulesPage: FunctionComponent<
         helpContent={{
           title: "How Incident SLA Rules Work",
           description:
-            "What an SLA rule tracks, which incidents it applies to, and the notes it can post.",
+            "Set how long your team has to acknowledge and resolve an incident.",
           markdown: documentationMarkdown,
         }}
         sortBy="order"

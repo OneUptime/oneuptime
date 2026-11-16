@@ -491,6 +491,61 @@ describe("a way to read more", () => {
     });
   });
 
+  /*
+   * The table's help opens the help dialog (#8889): what it says in short,
+   * its topics, and the table's documentation one click away in it - not
+   * a page of markdown as wide as the screen.
+   */
+  test("the table's help opens the help dialog, with its topics and the table's docs", async () => {
+    renderTable({
+      helpContent: {
+        title: "How Monitors Work",
+        description: "What a monitor checks and when.",
+        markdown: `A monitor checks a website or an API on a schedule.
+
+## Create a Monitor
+
+Pick what to check.
+
+## Statuses
+
+Operational or not.
+
+## Probes
+
+Where checks run from.`,
+      },
+      documentationLink: new Route("/docs/monitor"),
+    });
+
+    await waitForEmptyTable();
+
+    fireEvent.click(screen.getByTestId("empty-table-help-link"));
+
+    const dialog: HTMLElement = await screen.findByTestId("help-modal");
+
+    expect(within(dialog).getByTestId("help-modal-summary")).toHaveTextContent(
+      "In short",
+    );
+    expect(
+      within(dialog).getByTestId("help-modal-section-button-create-a-monitor"),
+    ).toHaveAttribute("aria-expanded", "true");
+    expect(
+      within(dialog).getByTestId("help-modal-section-button-statuses"),
+    ).toHaveAttribute("aria-expanded", "false");
+
+    const docs: HTMLElement = screen.getByTestId("help-modal-docs-link");
+
+    expect(docs).toHaveAttribute("href", "/docs/monitor");
+    expect(docs).toHaveAttribute("target", "_blank");
+
+    fireEvent.click(screen.getByTestId("modal-footer-close-button"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("help-modal")).toBeNull();
+    });
+  });
+
   test("without help, the documentation link opens the docs in a new tab", async () => {
     const navigate: jest.SpyInstance<any, any> = getJestSpyOn(
       Navigation,

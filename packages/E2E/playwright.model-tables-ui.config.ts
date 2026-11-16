@@ -17,10 +17,13 @@ import path from "path";
  * lists keep themselves current as the server announces changes, in
  * ColumnResize.spec.ts, a column's edge dragged, double-clicked, keyed,
  * reset, on a tablet and right to left, in CardsBulkLine.spec.ts, a
- * phone's Bulk Actions in the band over a table's cards, and in
+ * phone's Bulk Actions in the band over a table's cards, in
  * DataObservabilityLists.spec.ts, Data Observability's Checks and
  * Reconciliations lists at 1280px and 1100px beside the side menu, in
- * English and German, nothing under their sticky Run Now column.
+ * English and German, nothing under their sticky Run Now column, and in
+ * HelpDialog.spec.ts, the help a list opens from More options: In short
+ * over its topics, the keyboard, a phone, both themes' contrast and a
+ * right-to-left page.
  */
 const port: string = process.env["MODEL_TABLES_FIXTURE_PORT"] || "4319";
 
@@ -53,6 +56,7 @@ export default defineConfig({
     "ColumnResize.spec.ts",
     "CardsBulkLine.spec.ts",
     "DataObservabilityLists.spec.ts",
+    "HelpDialog.spec.ts",
   ],
   // By test when halved, as Event Overview is: its tests are independent.
   fullyParallel: shard !== null,

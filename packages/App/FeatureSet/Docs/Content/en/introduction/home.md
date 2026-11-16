@@ -20,6 +20,8 @@ Open **Home** in the bar at the top, or press `g` then `h` from anywhere. Home i
 5. **Your project**, what the project is made of, and **Upcoming maintenance** when any is scheduled.
 6. **Explore OneUptime**, every product, one category at a time.
 
+While a new project's **Welcome to OneUptime 👋** checklist shows, it is all of Home, so the first thing you meet is what to do first. An open incident, or anything else that needs someone, still shows above it. Hide the checklist, or finish it, and the rest of Home comes back.
+
 ### Search and create
 
 The search box opens Search, the same as `Mod` + `K`: type the name of any page, monitor, incident, alert, status page or on-call policy. See [Searching](#searching-for-a-page-a-setting-or-an-action). **Declare Incident** opens the form that declares an incident. **Create** offers **Create Monitor**, **Schedule Maintenance** and **Create Announcement**. Each one is shown only to people who are allowed to use it.
@@ -56,7 +58,7 @@ A count above zero reads **Needs attention**, or **In progress** and **Budget bu
 
 ### The welcome checklist
 
-The first time a Project Owner or Project Admin opens Home in a new project, the card asks **What do you want to do first?** Tick one or more goals, such as **Know when my website or API is down** or **Just looking around**, and click **Continue**: the checklist then holds the steps those goals need. **Skip** gives the four steps every project gets. To answer again later, click **Change** on the checklist. A project that already has monitors, telemetry or on-call in use is not asked.
+The first time a Project Owner or Project Admin opens Home in a new project, the card greets them by their first name and asks **What do you want to do first?** Pick one or more goals, such as **Know when my website or API is down**, and click **Continue**: the checklist then holds the steps those goals need. While you pick, it says how many steps that is and about how long they take. **Just looking around** takes you straight to the rest of Home instead, and leaves a line to show the checklist again. To answer again later, click **Change** on the checklist. A project that already has monitors, telemetry or on-call in use is not asked.
 
 Each step ticks itself off when the thing works, not when a record exists, and everyone setting up the project sees the same list, on every device:
 
@@ -72,9 +74,13 @@ Each step ticks itself off when the thing works, not when a record exists, and e
 
 The step to do first is marked **Next step**. On OneUptime Cloud's Free plan, which has one person, **Invite your team** says it needs the Growth plan, and opens **Billing**. On a self-hosted server that cannot send email yet, the server's admins see **This server cannot send email yet** first; it opens the Admin Dashboard.
 
+Each step says about how long it takes, the checklist says about how long is left, and the next step has a **Start** button of its own.
+
 A guided setup does the whole job on one page, a step at a time, and ends with what it set up and what to do next. To open one again later, search for its name.
 
-Under the steps, **How OneUptime works** shows the four core products in the order a problem flows through them: **Monitors**, **Incidents & Alerts**, **On-Call** and **Status Pages**. Click one to open it. Under them it says what feeds that loop, telemetry and infrastructure, and links to [Core Concepts](/docs/introduction/core-concepts) and the [Glossary](/docs/introduction/glossary).
+Beside its steps, a guided setup lists what it sets up, ticked off as you go, and says about how long it takes.
+
+Under the steps, a line opens **How OneUptime works**: everything OneUptime does, and how it fits together.
 
 ```mermaid title="When the welcome checklist shows"
 flowchart TB

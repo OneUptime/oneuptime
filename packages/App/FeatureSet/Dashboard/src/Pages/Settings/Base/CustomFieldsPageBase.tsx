@@ -75,7 +75,7 @@ type BuildMappingHelpFunction = (
   sources: Array<CustomFieldMappingSourceInfo>,
 ) => string;
 
-const buildMappingHelp: BuildMappingHelpFunction = (
+export const buildMappingHelp: BuildMappingHelpFunction = (
   sources: Array<CustomFieldMappingSourceInfo>,
 ): string => {
   const sourceNames: string = sources
@@ -90,51 +90,43 @@ const buildMappingHelp: BuildMappingHelpFunction = (
     },
   );
 
-  return `## Copying a value from a related resource
+  /*
+   * In the help dialog's shape (Common HelpContent): what copying is for in
+   * short, then a topic each for setting it up, when it copies, what it
+   * never does and which fields qualify.
+   */
+  return `Instead of typing the same value on every record, a custom field can copy it from the matching field on a related resource: ${sourceNames}.
 
-Instead of typing the same value on every record, a custom field can copy it
-from the matching field on a related resource — today that is: ${sourceNames}.
+## Create a Copied Field
 
-**Creating one**
+Choose **${CustomFieldFormCopy.createMappedFieldTitle}** in the card's More (…) menu, and pick the field to copy. The new field takes that field's type and, for a dropdown, its options.
 
-Choose **${CustomFieldFormCopy.createMappedFieldTitle}** in the card's More (…)
-menu, and pick the field to copy. The new field takes that field's type and,
-for a dropdown, its options. A field you create with **Create** is typed in by
-hand; its **Edit** form can map it later, under **More fields**.
+A field you create with **Create** is typed in by hand. Its **Edit** form can make it copy later, under **More fields**.
 
-**When it is copied**
+## When It Is Copied
 
 - When a record is created.
 - Whenever the value on the source changes.
 - When a record is pointed at a different source.
-- When you first configure the mapping, existing records are filled in too.
+- When you first set the copy up, for the records that already exist.
 
-**What it never does**
+## What It Never Does
 
-Copying only ever *writes a value that exists on the source*. It has no way to
-clear a field. So:
+Copying only ever writes a value that exists on the source: it never clears a field. So:
 
-- A record with no ${sourceNames.toLowerCase()} keeps whatever was typed on it,
-  and stays editable.
-- If the source has no value for the field, the record keeps what it already
-  has. **Clearing the source does not clear the copies.**
-- Turning a mapping off leaves the values that were already copied in place,
-  and makes the field editable again.
+- A record with no ${sourceNames.toLowerCase()} keeps whatever was typed on it, and stays editable.
+- If the source has no value for the field, the record keeps what it has. **Clearing the source does not clear the copies.**
+- Turning a copy off leaves the values already copied in place, and makes the field editable again.
 
-**Which field you can copy from**
+## Which Fields Can Be Copied
 
-Only a field of the same type, and — for dropdowns — only one whose options are
-all offered here too. Otherwise a copied value could not be selected or
-filtered for on this resource.
+Only a field of the same type and, for a dropdown, only one whose options are all offered here too. Otherwise a copied value could not be picked or filtered on here.
 ${
   hasManySources
     ? `
-**When several sources are attached**
+## When Several Sources Are Attached
 
-A record can be attached to more than one source. If they all hold the same
-value, that value is copied. If they disagree, a single-value field is left
-alone rather than picking one arbitrarily; a multi-select field gets all of
-their values.
+A record can be attached to more than one source. If they all hold the same value, that value is copied. If they disagree, a single-value field is left alone rather than picking one at random, and a multi-select field gets all of their values.
 `
     : ""
 }`;
@@ -566,9 +558,9 @@ const CustomFieldsPageBase: (
         {...(canMapValues
           ? {
               helpContent: {
-                title: "Copying custom field values from a related resource",
+                title: "Copying Custom Field Values from a Related Resource",
                 description:
-                  "When and how a field's value is copied, and what copying will never do.",
+                  "Copy a field's value from a related resource, instead of typing it on every record.",
                 markdown: buildMappingHelp(mappingSources),
               },
             }

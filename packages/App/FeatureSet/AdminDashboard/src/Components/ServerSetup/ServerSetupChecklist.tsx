@@ -593,6 +593,64 @@ export const formatServerSetupTime: FormatTime = (
   );
 };
 
+/*
+ * Where a check stands, at a glance: a green tick, a red cross, an amber
+ * "!" - or a grey dash for an optional one still open - with its word for
+ * a screen reader. The checklist's rows and the settings pages' test cards
+ * (ServerTestCard) draw the same one, so a check looks the same wherever it
+ * is said.
+ */
+export const ServerSetupStatusIcon: FunctionComponent<{
+  row: Pick<ServerSetupRow, "tier" | "isFinished" | "isFailing">;
+  dataTestId?: string | undefined;
+}> = (props: {
+  row: Pick<ServerSetupRow, "tier" | "isFinished" | "isFailing">;
+  dataTestId?: string | undefined;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+  const row: Pick<ServerSetupRow, "tier" | "isFinished" | "isFailing"> =
+    props.row;
+  const isOptionalOpen: boolean =
+    row.tier === ServerSetupCheckTier.Optional && !row.isFinished;
+
+  return (
+    <span
+      data-testid={props.dataTestId}
+      className={`mt-0.5 flex h-6 w-6 flex-none items-center justify-center rounded-full ${
+        row.isFinished
+          ? "bg-green-50 text-green-600"
+          : row.isFailing
+            ? "bg-red-50 text-red-600"
+            : isOptionalOpen
+              ? "bg-gray-50 text-gray-400"
+              : "bg-amber-50 text-amber-600"
+      }`}
+    >
+      <Icon
+        icon={
+          row.isFinished
+            ? IconProp.CheckCircle
+            : row.isFailing
+              ? IconProp.XCircle
+              : isOptionalOpen
+                ? IconProp.MinusCircle
+                : IconProp.ExclaimationCircle
+        }
+        className="h-4 w-4"
+      />
+      <span className="sr-only">
+        {translator.translateText(
+          row.isFinished
+            ? SERVER_SETUP_COPY.doneLabel
+            : row.isFailing
+              ? SERVER_SETUP_COPY.failingLabel
+              : SERVER_SETUP_COPY.openLabel,
+        )}
+      </span>
+    </span>
+  );
+};
+
 export interface ComponentProps {
   answer: ServerSetupChecklistAnswer;
   // A new answer from the server: after a choice, an undo or a test send.
@@ -749,9 +807,6 @@ const ServerSetupChecklist: FunctionComponent<ComponentProps> = (
   const drawRow: (row: ServerSetupRow) => ReactElement = (
     row: ServerSetupRow,
   ): ReactElement => {
-    const isOptionalOpen: boolean =
-      row.tier === ServerSetupCheckTier.Optional && !row.isFinished;
-
     return (
       <li
         key={row.id}
@@ -760,39 +815,7 @@ const ServerSetupChecklist: FunctionComponent<ComponentProps> = (
         className="flex flex-col gap-3 py-4 sm:flex-row sm:items-start"
       >
         <div className="flex min-w-0 flex-1 items-start gap-3">
-          <span
-            className={`mt-0.5 flex h-6 w-6 flex-none items-center justify-center rounded-full ${
-              row.isFinished
-                ? "bg-green-50 text-green-600"
-                : row.isFailing
-                  ? "bg-red-50 text-red-600"
-                  : isOptionalOpen
-                    ? "bg-gray-50 text-gray-400"
-                    : "bg-amber-50 text-amber-600"
-            }`}
-          >
-            <Icon
-              icon={
-                row.isFinished
-                  ? IconProp.CheckCircle
-                  : row.isFailing
-                    ? IconProp.XCircle
-                    : isOptionalOpen
-                      ? IconProp.MinusCircle
-                      : IconProp.ExclaimationCircle
-              }
-              className="h-4 w-4"
-            />
-            <span className="sr-only">
-              {translator.translateText(
-                row.isFinished
-                  ? SERVER_SETUP_COPY.doneLabel
-                  : row.isFailing
-                    ? SERVER_SETUP_COPY.failingLabel
-                    : SERVER_SETUP_COPY.openLabel,
-              )}
-            </span>
-          </span>
+          <ServerSetupStatusIcon row={row} />
           <div className="min-w-0">
             <p className="text-sm font-medium text-gray-900">
               {translator.translateText(row.title)}

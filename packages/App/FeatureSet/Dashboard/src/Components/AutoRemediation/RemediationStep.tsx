@@ -46,6 +46,7 @@ import PermissionGate, {
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 import { usePrivateRecordGateOptions } from "Common/UI/Utils/PrivateRecordScope";
+import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
 import {
   InvestigationCodeFixSuggestion,
   parseInvestigationCodeFixSuggestion,
@@ -677,6 +678,12 @@ const CODE_FIX_POLL_INTERVAL_MS: number = 15 * 1000;
 // What Try again's gate asks about: the record itself.
 const PRIVATE_RECORD_INCIDENT: Incident = new Incident();
 const PRIVATE_RECORD_ALERT: Alert = new Alert();
+/*
+ * What a fix's Approve, Dry run again and Dismiss start - a runbook
+ * execution, as the server asks it (RemediationApproval) - which on a
+ * private incident or alert only the teams that own it may (#8913).
+ */
+const PRIVATE_RECORD_FIX_RUN: RunbookExecution = new RunbookExecution();
 
 const RemediationStep: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -733,13 +740,21 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
   // What each folded fix's Review and approve opens is named after this.
   const fixDetailsIdPrefix: string = useId();
   /*
+   * On a private incident's or alert's page, what the reader holds on it
+   * for a fix's buttons (PrivateRecordScope): approving, dry-running or
+   * dismissing a fix for it is allowed only through a team of theirs that
+   * owns it (#8913), and is locked here saying why otherwise.
+   */
+  const fixPrivateRecordOptions: PermissionGateOptions | undefined =
+    usePrivateRecordGateOptions(PRIVATE_RECORD_FIX_RUN);
+  /*
    * Whether the reader may approve a fix that waits, as the server asks
    * (RemediationFixActGate): someone it certainly refuses reads that a
    * fix needs approval - never their approval - on the pill and on the
    * fix. Until the permission snapshot lands, theirs: the buttons stay.
    */
   const mayApproveFixes: boolean = !getRemediationFixWhoMayAct(
-    getRemediationFixActGate("approveOrDismiss"),
+    getRemediationFixActGate("approveOrDismiss", fixPrivateRecordOptions),
   );
   /*
    * A riskier fix two people must approve (Project
@@ -1837,6 +1852,7 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
         ? getRemediationFixWhoMayAct(
             getRemediationFixActGate(
               canApprove ? "approveOrDismiss" : "dismiss",
+              fixPrivateRecordOptions,
             ),
           )
         : undefined;
