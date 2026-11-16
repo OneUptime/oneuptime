@@ -8,6 +8,9 @@ import IncidentSeverityService from "../../../../Server/Services/IncidentSeverit
 import RunbookRuleEngineService from "../../../../Server/Services/RunbookRuleEngineService";
 import RunbookService from "../../../../Server/Services/RunbookService";
 import RunbookRunAccess from "../../../../Server/Utils/Runbook/RunbookRunAccess";
+import OnCallDutyPolicyService from "../../../../Server/Services/OnCallDutyPolicyService";
+import OnCallDutyPolicy from "../../../../Models/DatabaseModels/OnCallDutyPolicy";
+import WorkspaceMemberActions from "../../../../Server/Utils/Workspace/WorkspaceMemberActions";
 import {
   ChangeIncidentSeverityTool,
   PageOnCallPolicyTool,
@@ -456,5 +459,174 @@ describe("change_incident_severity changes the incident as the person", () => {
     expect(asked.id.toString()).toBe(incidentId.toString());
     expect(asked.props).toBe(ctx.props);
     expect(asked.type).toBe(DatabaseRequestType.Update);
+  });
+});
+
+/*
+ * WHAT IS DONE ABOUT A PRIVATE INCIDENT, ONLY THROUGH ITS OWNERS (#8913).
+ * OneUptime AI's run_runbook linked to an incident, and its
+ * page_on_call_policy, ask what the dashboard asks: on a private incident,
+ * the person's permission counts only through the teams that own it. A
+ * person who sees it - their team owns it - but whose teams that own it may
+ * not start runs or page is refused, saying why, and nothing runs or is
+ * paged. The read of which private records their permission does not reach
+ * is stubbed: it finds the incident.
+ */
+describe("OneUptime AI's actions about a private incident follow its owners", () => {
+  function privateIncident(): Incident {
+    const incident: Incident = buildIncident();
+    incident.isPrivate = true;
+    return incident;
+  }
+
+  test("run_runbook for a private incident its owning teams may not run for starts nothing, and says why", async () => {
+    jest
+      .spyOn(RunbookService, "findOneById")
+      .mockResolvedValue(buildRunbook() as never);
+    jest
+      .spyOn(RunbookRunAccess, "assertMayStart")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(IncidentService, "findOneById")
+      .mockResolvedValue(privateIncident() as never);
+    // What the person's permission does not reach: this incident.
+    jest
+      .spyOn(IncidentService, "findOneBy")
+      .mockResolvedValue(privateIncident() as never);
+    const start: jest.SpiedFunction<
+      typeof RunbookRuleEngineService.startRunbookFor
+    > = jest.spyOn(RunbookRuleEngineService, "startRunbookFor");
+
+    await expect(
+      RunRunbookTool.execute(
+        {
+          runbookId: runbookId.toString(),
+          incidentId: incidentId.toString(),
+        },
+        contextFor([Permission.RunbookMember]),
+      ),
+    ).rejects.toThrow(
+      "You do not have permission to run a runbook for this incident. This incident is private, so it is changed only with the permissions of the teams that own it and of the people named as its owners, and none of them lets you do this.",
+    );
+    expect(start).not.toHaveBeenCalled();
+  });
+
+  test("run_runbook for a private incident its owning teams may run for starts it", async () => {
+    jest
+      .spyOn(RunbookService, "findOneById")
+      .mockResolvedValue(buildRunbook() as never);
+    jest
+      .spyOn(RunbookRunAccess, "assertMayStart")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(IncidentService, "findOneById")
+      .mockResolvedValue(privateIncident() as never);
+    // Nothing the person's permission does not reach.
+    jest.spyOn(IncidentService, "findOneBy").mockResolvedValue(null as never);
+    const execution: RunbookExecution = new RunbookExecution();
+    execution._id = ObjectID.generate().toString();
+    const start: jest.SpiedFunction<
+      typeof RunbookRuleEngineService.startRunbookFor
+    > = jest
+      .spyOn(RunbookRuleEngineService, "startRunbookFor")
+      .mockResolvedValue(execution as never);
+
+    await RunRunbookTool.execute(
+      { runbookId: runbookId.toString(), incidentId: incidentId.toString() },
+      contextFor([Permission.RunbookMember]),
+    );
+
+    expect(start).toHaveBeenCalledTimes(1);
+  });
+
+  test("run_runbook for a public incident asks nothing more of it", async () => {
+    jest
+      .spyOn(RunbookService, "findOneById")
+      .mockResolvedValue(buildRunbook() as never);
+    jest
+      .spyOn(RunbookRunAccess, "assertMayStart")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(IncidentService, "findOneById")
+      .mockResolvedValue(buildIncident() as never);
+    const unreachable: jest.SpiedFunction<typeof IncidentService.findOneBy> =
+      jest.spyOn(IncidentService, "findOneBy");
+    const execution: RunbookExecution = new RunbookExecution();
+    execution._id = ObjectID.generate().toString();
+    jest
+      .spyOn(RunbookRuleEngineService, "startRunbookFor")
+      .mockResolvedValue(execution as never);
+
+    await RunRunbookTool.execute(
+      { runbookId: runbookId.toString(), incidentId: incidentId.toString() },
+      contextFor([Permission.RunbookMember]),
+    );
+
+    expect(unreachable).not.toHaveBeenCalled();
+  });
+
+  test("page_on_call_policy about a private incident its owning teams may not page about pages nobody, and says why", async () => {
+    const policy: OnCallDutyPolicy = new OnCallDutyPolicy(ObjectID.generate());
+    policy.name = "Payments on-call";
+    policy.isArchived = false;
+
+    jest
+      .spyOn(OnCallDutyPolicyService, "findOneById")
+      .mockResolvedValue(policy as never);
+    jest
+      .spyOn(IncidentService, "findOneById")
+      .mockResolvedValue(privateIncident() as never);
+    jest
+      .spyOn(IncidentService, "findOneBy")
+      .mockResolvedValue(privateIncident() as never);
+    const execute: jest.SpiedFunction<
+      typeof WorkspaceMemberActions.executeOnCallPolicy
+    > = jest
+      .spyOn(WorkspaceMemberActions, "executeOnCallPolicy")
+      .mockResolvedValue(undefined as never);
+
+    await expect(
+      PageOnCallPolicyTool.execute(
+        {
+          onCallDutyPolicyId: policy.id!.toString(),
+          incidentId: incidentId.toString(),
+        },
+        contextFor([Permission.OnCallMember]),
+      ),
+    ).rejects.toThrow(
+      "You do not have permission to execute an on-call policy for this incident: this incident is private, so it is changed only with the permissions of the teams that own it and of the people named as its owners, and none of them lets you do this.",
+    );
+    expect(execute).not.toHaveBeenCalled();
+  });
+
+  test("page_on_call_policy about a public incident pages, asking nothing more of it", async () => {
+    const policy: OnCallDutyPolicy = new OnCallDutyPolicy(ObjectID.generate());
+    policy.name = "Payments on-call";
+    policy.isArchived = false;
+
+    jest
+      .spyOn(OnCallDutyPolicyService, "findOneById")
+      .mockResolvedValue(policy as never);
+    jest
+      .spyOn(IncidentService, "findOneById")
+      .mockResolvedValue(buildIncident() as never);
+    const unreachable: jest.SpiedFunction<typeof IncidentService.findOneBy> =
+      jest.spyOn(IncidentService, "findOneBy");
+    const execute: jest.SpiedFunction<
+      typeof WorkspaceMemberActions.executeOnCallPolicy
+    > = jest
+      .spyOn(WorkspaceMemberActions, "executeOnCallPolicy")
+      .mockResolvedValue(undefined as never);
+
+    await PageOnCallPolicyTool.execute(
+      {
+        onCallDutyPolicyId: policy.id!.toString(),
+        incidentId: incidentId.toString(),
+      },
+      contextFor([Permission.OnCallMember]),
+    );
+
+    expect(execute).toHaveBeenCalledTimes(1);
+    expect(unreachable).not.toHaveBeenCalled();
   });
 });

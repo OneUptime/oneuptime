@@ -940,6 +940,8 @@ export class Service {
               title: true,
               incidentNumber: true,
               incidentNumberWithPrefix: true,
+              // Whose permission pages about it. See assertMayPageAbout.
+              isPrivate: true,
             },
             props: props,
           })
@@ -955,7 +957,7 @@ export class Service {
         props: props,
         recordService:
           IncidentService as unknown as DatabaseService<DatabaseBaseModel>,
-        recordId: incident.id,
+        record: incident,
         noun: "incident",
       });
 
@@ -984,6 +986,8 @@ export class Service {
               title: true,
               alertNumber: true,
               alertNumberWithPrefix: true,
+              // Whose permission pages about it. See assertMayPageAbout.
+              isPrivate: true,
             },
             props: props,
           })
@@ -999,7 +1003,7 @@ export class Service {
         props: props,
         recordService:
           AlertService as unknown as DatabaseService<DatabaseBaseModel>,
-        recordId: alert.id,
+        record: alert,
         noun: "alert",
       });
 
@@ -1027,16 +1031,18 @@ export class Service {
    * policies a page starts are held to it as they are created, and its
    * direct pages are started by OneUptime, so a member whose team that owns
    * the incident may only view it is refused here, saying why, and nobody is
-   * paged. The record was read as the caller first, so one they do not see
-   * was answered as missing. OneUptime's own pages are not asked.
+   * paged. The record was read as the caller first, with whether it is
+   * private, so one they do not see was answered as missing, and one that
+   * is not private is asked nothing more. OneUptime's own pages are not
+   * asked.
    */
   private async assertMayPageAbout(data: {
     props: DatabaseCommonInteractionProps;
     recordService: DatabaseService<DatabaseBaseModel>;
-    recordId: ObjectID;
+    record: DatabaseBaseModel;
     noun: string;
   }): Promise<void> {
-    if (data.props.isRoot || data.props.isMasterAdmin) {
+    if (data.props.isRoot || data.props.isMasterAdmin || !data.record.id) {
       return;
     }
 
@@ -1044,9 +1050,10 @@ export class Service {
       modelType: OnCallDutyPolicyExecutionLog,
       type: DatabaseRequestType.Create,
       recordService: data.recordService,
-      recordId: data.recordId,
+      recordId: data.record.id,
       props: data.props,
       action: getPageAboutAction(data.noun),
+      readRecord: data.record,
     });
   }
 

@@ -27,6 +27,8 @@ import IncidentService from "Common/Server/Services/IncidentService";
 import AlertService from "Common/Server/Services/AlertService";
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
+import Incident from "Common/Models/DatabaseModels/Incident";
+import Alert from "Common/Models/DatabaseModels/Alert";
 import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
 import RunbookExecutionStatus from "Common/Types/Runbook/RunbookExecutionStatus";
 import RunbookTriggerType from "Common/Types/Runbook/RunbookTriggerType";
@@ -174,21 +176,31 @@ export default class RunbookAPI {
        * The linked event must live in the caller's project. Without this an
        * execution in project A could carry project B's incidentId, and any
        * server-side consumer that dereferences it with isRoot (the AI step's
-       * trigger context does) would surface another tenant's data.
+       * trigger context does) would surface another tenant's data. Read
+       * with whether it is private, for the check of its owners below.
        */
+      const linked: {
+        incident?: Incident | null;
+        alert?: Alert | null;
+      } = {};
+
       if (typeof incidentIdRaw === "string" && incidentIdRaw.length > 0) {
         const incidentId: ObjectID = new ObjectID(incidentIdRaw);
         await assertBelongsToProject({
           entityName: "Incident",
           projectId,
           findProjectId: async (): Promise<ObjectID | undefined> => {
-            return (
-              await IncidentService.findOneById({
+            const incident: Incident | null = await IncidentService.findOneById(
+              {
                 id: incidentId,
-                select: { projectId: true },
+                select: { projectId: true, isPrivate: true },
                 props: { isRoot: true },
-              })
-            )?.projectId;
+              },
+            );
+
+            linked.incident = incident;
+
+            return incident?.projectId;
           },
         });
         execution.incidentId = incidentId;
@@ -199,13 +211,15 @@ export default class RunbookAPI {
           entityName: "Alert",
           projectId,
           findProjectId: async (): Promise<ObjectID | undefined> => {
-            return (
-              await AlertService.findOneById({
-                id: alertId,
-                select: { projectId: true },
-                props: { isRoot: true },
-              })
-            )?.projectId;
+            const alert: Alert | null = await AlertService.findOneById({
+              id: alertId,
+              select: { projectId: true, isPrivate: true },
+              props: { isRoot: true },
+            });
+
+            linked.alert = alert;
+
+            return alert?.projectId;
           },
         });
         execution.alertId = alertId;
@@ -269,6 +283,8 @@ export default class RunbookAPI {
         props: props,
         incidentId: execution.incidentId,
         alertId: execution.alertId,
+        readIncident: linked.incident,
+        readAlert: linked.alert,
       });
 
       /*

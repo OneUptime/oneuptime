@@ -883,9 +883,10 @@ export default class WorkspaceMemberActions {
    * A page about a private incident, alert or episode is made only with the
    * permissions of the teams that own it, of the people named as its
    * owners, and of Project Owners and Admins (#8913): the create holds it
-   * to that (DatabaseService.checkNamedPrivateRecords), and it is asked
-   * here first, so the member - from Slack, Microsoft Teams, Mattermost or
-   * OneUptime AI - is told why in the chat's own words, and nobody is paged.
+   * to that (DatabaseService.checkNamedPrivateRecords). A press in Slack,
+   * Microsoft Teams or Mattermost is asked it before, in the chat's own
+   * words (authorize, with the execution log as what it writes), and so is
+   * OneUptime AI's page_on_call_policy.
    */
   @CaptureSpan()
   public static async executeOnCallPolicy(data: {
@@ -897,17 +898,6 @@ export default class WorkspaceMemberActions {
       event: data.event,
       props: data.props,
     });
-
-    if (event.type !== WorkspaceEventType.ScheduledMaintenance) {
-      await WorkspaceActionAuthorization.assertReachesPrivateRecord({
-        props: data.props,
-        modelType: OnCallDutyPolicyExecutionLog,
-        type: DatabaseRequestType.Create,
-        service: this.getEventResource(event).service,
-        id: event.id,
-        action: `execute an on-call policy for this ${this.getNoun(event.type)}`,
-      });
-    }
 
     const executionLog: OnCallDutyPolicyExecutionLog =
       new OnCallDutyPolicyExecutionLog();
@@ -944,6 +934,39 @@ export default class WorkspaceMemberActions {
     await OnCallDutyPolicyExecutionLogService.create({
       data: executionLog,
       props: data.props,
+    });
+  }
+
+  /*
+   * Throws NotAuthorizedException, worded for the person, when they may not
+   * page about `event` (#8913): a private incident, alert or episode is
+   * paged about only with the permissions of the teams that own it, of the
+   * people named as its owners, and of Project Owners and Admins - the
+   * permission to start an on-call run (the execution log's create), team by
+   * team. For a path that reads the record itself before it pages -
+   * OneUptime AI's page_on_call_policy - so the person is told why before
+   * anyone is paged; a chat's button asks the same in authorize. `readRecord`
+   * is the record as they read it, isPrivate with it: one read as not
+   * private is asked nothing more.
+   */
+  @CaptureSpan()
+  public static async assertMayPageAbout(data: {
+    event: WorkspaceEvent;
+    props: DatabaseCommonInteractionProps;
+    readRecord?: DatabaseBaseModel | undefined;
+  }): Promise<void> {
+    if (data.event.type === WorkspaceEventType.ScheduledMaintenance) {
+      return;
+    }
+
+    await WorkspaceActionAuthorization.assertReachesPrivateRecord({
+      props: data.props,
+      modelType: OnCallDutyPolicyExecutionLog,
+      type: DatabaseRequestType.Create,
+      service: this.getEventResource(data.event).service,
+      id: data.event.id,
+      action: `execute an on-call policy for this ${this.getNoun(data.event.type)}`,
+      readRecord: data.readRecord,
     });
   }
 

@@ -59,13 +59,18 @@ export default class RunbookPrivateRecordAccess {
    * a run linked to `incidentId` and `alertId` (either may be missing): a
    * record that is not private, or one their permission to start runs
    * reaches through its owners. The caller has read each record already -
-   * one they do not see is answered as missing before this.
+   * one they do not see is answered as missing before this. `readIncident`
+   * and `readAlert` are those records as read, isPrivate with them, when the
+   * caller has them: one read as not private is reached without asking
+   * again.
    */
   @CaptureSpan()
   public static async assertMayStartFor(data: {
     props: DatabaseCommonInteractionProps;
     incidentId?: ObjectID | undefined;
     alertId?: ObjectID | undefined;
+    readIncident?: DatabaseBaseModel | null | undefined;
+    readAlert?: DatabaseBaseModel | null | undefined;
   }): Promise<void> {
     if (data.props.isRoot || data.props.isMasterAdmin) {
       return;
@@ -79,6 +84,9 @@ export default class RunbookPrivateRecordAccess {
         recordId: record.id,
         props: data.props,
         action: RunbookPrivateRecordAccess.getStartAction(record.noun),
+        readRecord:
+          (record.noun === "incident" ? data.readIncident : data.readAlert) ||
+          undefined,
       });
     }
   }
@@ -145,14 +153,20 @@ export default class RunbookPrivateRecordAccess {
     props: DatabaseCommonInteractionProps;
     execution: RunbookExecution;
   }): Promise<boolean> {
-    if (!data.execution.id) {
+    const runId: string = (
+      data.execution._id ||
+      data.execution.id ||
+      ""
+    ).toString();
+
+    if (!ObjectID.isValidUUID(runId)) {
       return false;
     }
 
     try {
       const readable: RunbookExecution | null =
         await RunbookExecutionService.findOneById({
-          id: data.execution.id,
+          id: new ObjectID(runId),
           select: { _id: true },
           props: { ...data.props, isMultiTenantRequest: false },
         });

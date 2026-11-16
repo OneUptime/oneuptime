@@ -291,6 +291,8 @@ export const PageOnCallPolicyTool: ObservabilityTool = {
         incidentNumber: true,
         incidentNumberWithPrefix: true,
         title: true,
+        // Whether its owners are asked who may page about it. See below.
+        isPrivate: true,
       },
       props: ctx.props,
     });
@@ -299,6 +301,19 @@ export const PageOnCallPolicyTool: ObservabilityTool = {
         "Incident not found (or you do not have access to it).",
       );
     }
+
+    /*
+     * A page about a private incident is made only with the permissions of
+     * the teams that own it, of its named owners and of Project Owners and
+     * Admins, as the dashboard's Execute On-Call Policy asks (#8913): the
+     * person is told why here, before anyone is paged. The execution log's
+     * create holds it to the same rule.
+     */
+    await WorkspaceMemberActions.assertMayPageAbout({
+      event: { type: WorkspaceEventType.Incident, id: incidentId },
+      props: ctx.props,
+      readRecord: incident,
+    });
 
     /*
      * Paging is the policy's execution log, triggered by the incident, as
@@ -504,6 +519,8 @@ export const RunRunbookTool: ObservabilityTool = {
           _id: true,
           incidentNumber: true,
           incidentNumberWithPrefix: true,
+          // Whether its owners are asked who may run for it. See below.
+          isPrivate: true,
         },
         props: ctx.props,
       });
@@ -522,6 +539,7 @@ export const RunRunbookTool: ObservabilityTool = {
       await RunbookPrivateRecordAccess.assertMayStartFor({
         props: ctx.props,
         incidentId: incidentId,
+        readIncident: linkedIncident,
       });
     }
 
