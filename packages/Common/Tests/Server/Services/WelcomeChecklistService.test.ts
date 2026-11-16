@@ -78,7 +78,9 @@ import Permission, {
 import PositiveNumber from "../../../Types/PositiveNumber";
 import ToolImportRunStatus from "../../../Types/ToolImport/ToolImportRunStatus";
 import UserType from "../../../Types/UserType";
-import ProjectGoal from "../../../Types/WelcomeChecklist/ProjectGoal";
+import ProjectGoal, {
+  PROJECT_GOALS,
+} from "../../../Types/WelcomeChecklist/ProjectGoal";
 import {
   WelcomeAudience,
   WelcomeChecklistStepState,
@@ -219,12 +221,6 @@ let milestonesSpy: SpyInstance<
 type LegacyCountSpy = SpyInstance<() => Promise<PositiveNumber>>;
 let legacyCountSpies: Array<LegacyCountSpy>;
 let canSendSpy: SpyInstance;
-/*
- * The products the goals need (#6814): ProjectProductsService works them
- * out and is tested on its own (ProjectProductsService.test.ts); here, only
- * that choosing the goals hands them over.
- */
-let applyGoalsSpy: SpyInstance<typeof ProjectProductsService.applyGoals>;
 
 function permission(value: Permission): UserPermission {
   return {
@@ -410,10 +406,6 @@ beforeEach(() => {
     .mockImplementation((async (): Promise<boolean> => {
       return serverCanSendEmail;
     }) as never);
-
-  applyGoalsSpy = jest
-    .spyOn(ProjectProductsService, "applyGoals")
-    .mockImplementation((async (): Promise<void> => {}) as never);
 
   jest.spyOn(logger, "error").mockImplementation((() => {}) as never);
   jest.spyOn(logger, "debug").mockImplementation((() => {}) as never);
@@ -1043,28 +1035,70 @@ describe("what a browser remembered of the old checklist", () => {
   });
 });
 
-describe("the products the goals need (#6814)", () => {
-  test("choosing the goals gives the project the products they need", async () => {
-    await WelcomeChecklistService.chooseGoals(OWNER(), ["telemetry", "uptime"]);
+/*
+ * The goals set up Home's first steps and nothing else (#6814). They used
+ * to hide every product they did not name - a project that answered "Know
+ * when my website or API is down" had 37 products moved under More
+ * products - although nobody chose that. Only a member hides a product, on
+ * Project Settings > Products.
+ */
+describe("the goals never hide a product", () => {
+  const GOALS_WRITE: string = `UPDATE "Project" SET "goals" = $1, "welcomeChecklistState" = $2 WHERE "_id" = $3`;
 
-    expect(applyGoalsSpy).toHaveBeenCalledTimes(1);
-    expect(applyGoalsSpy).toHaveBeenCalledWith({
-      projectId: PROJECT_ID,
-      // In the order of PROJECT_GOALS, as they are kept.
-      goals: [ProjectGoal.Uptime, ProjectGoal.Telemetry],
+  const writtenSql: () => Array<string> = (): Array<string> => {
+    return writes.map((write: RecordedWrite): string => {
+      return write.sql;
     });
+  };
+
+  test("choosing them writes the goals and the checklist, and nothing of the project's products", async () => {
+    const setProductShown: SpyInstance<
+      typeof ProjectProductsService.setProductShown
+    > = jest.spyOn(ProjectProductsService, "setProductShown");
+    const showEveryProduct: SpyInstance<
+      typeof ProjectProductsService.showEveryProduct
+    > = jest.spyOn(ProjectProductsService, "showEveryProduct");
+
+    expect(
+      await WelcomeChecklistService.chooseGoals(OWNER(), [
+        "telemetry",
+        "uptime",
+      ]),
+    ).toEqual([ProjectGoal.Uptime, ProjectGoal.Telemetry]);
+
+    expect(writtenSql()).toEqual([GOALS_WRITE]);
+    expect(
+      writtenSql().some((sql: string): boolean => {
+        return sql.includes("productSettings");
+      }),
+    ).toBe(false);
+    expect(setProductShown).not.toHaveBeenCalled();
+    expect(showEveryProduct).not.toHaveBeenCalled();
   });
 
-  test("skipping the question hands over no goals", async () => {
-    await WelcomeChecklistService.chooseGoals(OWNER(), []);
+  test("whichever goals are chosen, skipped or changed, only the goals are written", async () => {
+    for (const goals of [
+      ["uptime"],
+      ["on_call"],
+      ["status_page"],
+      ["telemetry"],
+      ["infrastructure"],
+      ["import"],
+      ["explore"],
+      ["uptime", "telemetry", "infrastructure"],
+      [...PROJECT_GOALS],
+      // Skipped.
+      [],
+    ]) {
+      writes = [];
 
-    expect(applyGoalsSpy).toHaveBeenCalledWith({
-      projectId: PROJECT_ID,
-      goals: [],
-    });
+      await WelcomeChecklistService.chooseGoals(OWNER(), goals);
+
+      expect([goals, writtenSql()]).toEqual([goals, [GOALS_WRITE]]);
+    }
   });
 
-  test("goals that are refused set no products", async () => {
+  test("goals that are refused write nothing", async () => {
     await expect(
       WelcomeChecklistService.chooseGoals(MEMBER(), ["uptime"]),
     ).rejects.toBeInstanceOf(BadDataException);
@@ -1072,7 +1106,7 @@ describe("the products the goals need (#6814)", () => {
       WelcomeChecklistService.chooseGoals(OWNER(), ["uptime", "world_peace"]),
     ).rejects.toBeInstanceOf(BadDataException);
 
-    expect(applyGoalsSpy).not.toHaveBeenCalled();
+    expect(writes).toHaveLength(0);
   });
 });
 

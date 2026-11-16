@@ -98,6 +98,48 @@ describe("the answer", () => {
     });
   });
 
+  /*
+   * A browser remembers the last answer per project and draws it until the
+   * server answers. One remembered while the goals still hid products must
+   * not move them under More products for that first paint.
+   */
+  test("an answer from when the goals hid products hides nothing", () => {
+    const remembered: ProjectProductsAnswer | null = parseProjectProductsAnswer(
+      {
+        ...toProjectProductsAnswerJSON(ANSWER),
+        hidden: ["logs", "kubernetes", "docker"],
+        chosenBy: "goals",
+        hiddenWithData: ["logs"],
+      },
+    );
+
+    expect(remembered).toEqual({
+      ...ANSWER,
+      hidden: [],
+      chosenBy: null,
+      hiddenWithData: [],
+    });
+  });
+
+  test("a member's list is the only one that hides anything", () => {
+    for (const chosenBy of ["member", "goals", "robot", null, undefined]) {
+      const parsed: ProjectProductsAnswer | null = parseProjectProductsAnswer({
+        hidden: ["logs"],
+        chosenBy: chosenBy,
+      });
+
+      expect([chosenBy, parsed?.chosenBy]).toEqual([
+        chosenBy,
+        chosenBy === "member" ? ProjectProductsChosenBy.Member : null,
+      ]);
+      // An unknown source still hides what it names: only "goals" is dropped.
+      expect([chosenBy, parsed?.hidden]).toEqual([
+        chosenBy,
+        chosenBy === "goals" ? [] : [ProductKey.Logs],
+      ]);
+    }
+  });
+
   test("a person's pins are five at most", () => {
     expect(
       parseProjectProductsAnswer({

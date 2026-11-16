@@ -51,9 +51,11 @@ import {
 } from "../../../Types/Product/ProjectProductsAnswer";
 import { NAVBAR_PINNED_ITEM_TEST_ID } from "../../../UI/Components/Navbar/NavBar";
 import { PRODUCT_PIN_BUTTON_TEST_ID } from "../../../UI/Components/Navbar/NavBarMenuModal";
+import Project from "../../../Models/DatabaseModels/Project";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProductEvents from "../../../UI/Utils/ProductEvents";
+import ProjectUtil from "../../../UI/Utils/Project";
 import {
   DESKTOP_WIDTH,
   PROJECT_ID,
@@ -272,6 +274,57 @@ describe("the nav bar", () => {
       within(menu).getByTestId("navbar-menu-not-set-up"),
     ).toBeInTheDocument();
   });
+
+  /*
+   * Products that are not set up used to land under More products, hidden
+   * by the project's goals. Only a member's choice moves one there now.
+   */
+  test("with nothing hidden, products not set up stay in their category and there is no More products", () => {
+    given({
+      usage: {
+        [ProductKey.Kubernetes]: ProductUsage.NotSetUp,
+        [ProductKey.Docker]: ProductUsage.NotSetUp,
+        [ProductKey.Logs]: ProductUsage.NotSetUp,
+      },
+      canChooseProducts: true,
+    });
+
+    render(wrap(<DashboardNavbar show={true} />));
+    const menu: HTMLElement = openProducts();
+
+    expect(
+      within(menu).queryByRole("button", { name: "More products" }),
+    ).toBeNull();
+
+    fireEvent.click(
+      within(menu).getByRole("button", { name: "Infrastructure" }),
+    );
+    expect(within(menu).getByText("Kubernetes")).toBeInTheDocument();
+    expect(within(menu).getByText("Docker")).toBeInTheDocument();
+  });
+
+  test("a list the goals set before, as the project row has it, moves nothing under More products", () => {
+    const project: Project = new Project();
+    project._id = PROJECT_ID;
+    project.productSettings = {
+      hidden: [ProductKey.Kubernetes, ProductKey.Docker, ProductKey.Logs],
+      keptHiddenWithData: [],
+      chosenBy: "goals",
+    };
+    jest.spyOn(ProjectUtil, "getCurrentProject").mockReturnValue(project);
+
+    render(wrap(<DashboardNavbar show={true} />));
+    const menu: HTMLElement = openProducts();
+
+    expect(
+      within(menu).queryByRole("button", { name: "More products" }),
+    ).toBeNull();
+
+    fireEvent.click(
+      within(menu).getByRole("button", { name: "Infrastructure" }),
+    );
+    expect(within(menu).getByText("Kubernetes")).toBeInTheDocument();
+  });
 });
 
 describe("Project Settings > Products", () => {
@@ -388,7 +441,7 @@ describe("Project Settings > Products", () => {
   test("Show Every Product is there while something is hidden, and shows them all", async () => {
     given({
       hidden: [ProductKey.Kubernetes, ProductKey.Docker],
-      chosenBy: ProjectProductsChosenBy.Goals,
+      chosenBy: ProjectProductsChosenBy.Member,
       canChooseProducts: true,
     });
     jest
@@ -396,11 +449,6 @@ describe("Project Settings > Products", () => {
       .mockResolvedValue(answer({ canChooseProducts: true }));
 
     render(wrap(<ProductsSettings />));
-
-    // A list the goals set says so.
-    expect(
-      screen.getByTestId("products-settings-from-goals"),
-    ).toBeInTheDocument();
 
     await act(async () => {
       fireEvent.click(screen.getByTestId(SHOW_EVERY_PRODUCT_TEST_ID));

@@ -10,10 +10,10 @@
  *   []    skipped: the person chose nothing;
  *   [...] the goals, in the order of PROJECT_GOALS.
  *
- * Read it with parseProjectGoals, never as it is stored. Later work reads
- * the same column: #6814 (products that fit the project) starts a project
- * from its goals, and the Welcome checklist builds its steps from them
- * (WelcomeChecklist.ts).
+ * Read it with parseProjectGoals, never as it is stored. The Welcome
+ * checklist builds its steps from them (WelcomeChecklist.ts). They never
+ * hide a product: only a member does, on Project Settings > Products
+ * (Types/Product/ProjectProducts.ts).
  *
  * A value is stored and sent to product analytics (home/goals_chosen):
  * never rename one, and never reuse one for another goal. A new goal is a
