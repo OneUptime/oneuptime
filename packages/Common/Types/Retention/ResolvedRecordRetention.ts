@@ -259,15 +259,24 @@ function getServerRetentionNoun(kind: ResolvedRecordKind): string {
   return kind === ResolvedRecordKind.Incident ? "incident" : "alert";
 }
 
+// A server setting left empty: no maximum, or Never.
+function isEmptyServerValue(value: unknown): boolean {
+  return (
+    value === null ||
+    value === undefined ||
+    (typeof value === "string" && value.trim() === "")
+  );
+}
+
 /*
  * What is wrong with a server maximum written to GlobalConfig, or null when
- * it is one of the choices, or empty (null, or 0) for no maximum.
+ * it is one of the choices, or empty (null, "", or 0) for no maximum.
  */
 export function getResolvedRecordRetentionMaximumProblem(
   value: unknown,
   kind: ResolvedRecordKind,
 ): string | null {
-  if (value === null || value === undefined) {
+  if (isEmptyServerValue(value)) {
     return null;
   }
 
@@ -296,7 +305,7 @@ export function getResolvedRecordRetentionDefaultProblem(data: {
   kind: ResolvedRecordKind;
   maximumInDays?: number | undefined;
 }): string | null {
-  if (data.value === null || data.value === undefined) {
+  if (isEmptyServerValue(data.value)) {
     return null;
   }
 

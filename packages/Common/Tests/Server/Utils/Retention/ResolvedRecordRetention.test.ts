@@ -1,7 +1,10 @@
 import ResolvedRecordRetention, {
+  DueRecordsCount,
   DueRetentionProjectsPage,
   MAX_RETENTION_BATCHES_PER_PROJECT,
   RETENTION_BATCH_SIZE,
+  RETENTION_COUNT_TIMEOUT_MS,
+  RETENTION_COUNT_UP_TO,
   RETENTION_PROJECTS_PER_PAGE,
   RETENTION_TIME_BUDGET_MS,
   ResolvedRecordRetentionResult,
@@ -9,10 +12,14 @@ import ResolvedRecordRetention, {
   ResolvedRecordRetentionSummary,
   buildDueEpisodesStatement,
   buildDueProjectsStatement,
+  buildDueRecordsCountStatement,
   buildDueRecordsStatement,
   buildEpisodesOfRecordsStatement,
+  buildProjectsReachedByMaximumStatement,
   getRetentionCutoff,
 } from "../../../../Server/Utils/Retention/ResolvedRecordRetention";
+import GlobalConfigService from "../../../../Server/Services/GlobalConfigService";
+import GlobalConfig from "../../../../Models/DatabaseModels/GlobalConfig";
 import AlertEpisodeService from "../../../../Server/Services/AlertEpisodeService";
 import AlertService from "../../../../Server/Services/AlertService";
 import AlertStateService from "../../../../Server/Services/AlertStateService";
@@ -28,6 +35,7 @@ import {
   MIN_RESOLVED_RECORD_RETENTION_IN_DAYS,
   RESOLVED_RECORD_RETENTION_CHOICES_IN_DAYS,
   ResolvedRecordKind,
+  ResolvedRecordRetentionServerLimits,
 } from "../../../../Types/Retention/ResolvedRecordRetention";
 import {
   afterEach,
@@ -115,7 +123,7 @@ describe("buildDueProjectsStatement: the projects that keep resolved records for
       });
 
     expect(words(statement.sql)).toBe(
-      words(`SELECT p."_id"::text AS "projectId", p."incidentRetentionInDays" AS "retentionInDays", p."keepIncidentsWithCompletedPostmortem" AS "keepCompletedPostmortems"
+      words(`SELECT p."_id"::text AS "projectId", p."incidentRetentionInDays" AS "retentionInDays", p."keepIncidentsWithCompletedPostmortem" AS "keepCompletedPostmortems", p."keepIncidentsInPostmortemStatusIds" AS "keptPostmortemStatusIds"
 FROM "Project" p
 WHERE p."deletedAt" IS NULL
   AND p."incidentRetentionInDays" >= $1
@@ -137,8 +145,10 @@ LIMIT $2`),
 
     expect(statement.sql).toContain(`p."alertRetentionInDays" >= $1`);
     expect(statement.sql).toContain(`false AS "keepCompletedPostmortems"`);
+    expect(statement.sql).toContain(`NULL::jsonb AS "keptPostmortemStatusIds"`);
     expect(statement.sql).not.toContain("incidentRetentionInDays");
     expect(statement.sql).not.toContain("keepIncidentsWithCompletedPostmortem");
+    expect(statement.sql).not.toContain("keepIncidentsInPostmortemStatusIds");
   });
 
   test("a page after the first starts after the last project read, the id a parameter", () => {
@@ -458,6 +468,7 @@ interface FakeProjectRow {
   projectId: unknown;
   retentionInDays: unknown;
   keepCompletedPostmortems: unknown;
+  keptPostmortemStatusIds?: unknown;
 }
 
 class FakeRetentionDatabase {
@@ -486,8 +497,13 @@ class FakeRetentionDatabase {
     const limit: number = params[params.length - 1] as number;
 
     if (sql.includes(`FROM "Project" p`)) {
-      const after: string | undefined =
-        params.length === 3 ? (params[1] as string) : undefined;
+      // The page starts after the id the statement names, wherever it is.
+      const afterParam: RegExpExecArray | null = /p\."_id" > \$(\d+)::uuid/.exec(
+        sql,
+      );
+      const after: string | undefined = afterParam
+        ? (params[Number(afterParam[1]) - 1] as string)
+        : undefined;
 
       return this.projectRows
         .filter((row: FakeProjectRow): boolean => {
@@ -590,7 +606,9 @@ function ids(count: number, prefix: string, from: number = 1): Array<string> {
 type Seams = Pick<
   typeof ResolvedRecordRetention,
   | "runQuery"
+  | "runCountQuery"
   | "now"
+  | "getServerLimits"
   | "getResolvedStateIds"
   | "getCompletedPostmortemStatusIds"
   | "deleteRecords"
@@ -600,7 +618,9 @@ type Seams = Pick<
 
 const ORIGINAL_SEAMS: Seams = {
   runQuery: ResolvedRecordRetention.runQuery,
+  runCountQuery: ResolvedRecordRetention.runCountQuery,
   now: ResolvedRecordRetention.now,
+  getServerLimits: ResolvedRecordRetention.getServerLimits,
   getResolvedStateIds: ResolvedRecordRetention.getResolvedStateIds,
   getCompletedPostmortemStatusIds:
     ResolvedRecordRetention.getCompletedPostmortemStatusIds,
@@ -611,6 +631,12 @@ const ORIGINAL_SEAMS: Seams = {
 
 let database: FakeRetentionDatabase;
 let clock: number;
+// The server's limits the fakes answer with, and every kind they were read for.
+let serverLimits: ResolvedRecordRetentionServerLimits;
+let limitReads: Array<ResolvedRecordKind>;
+// What a count's statement answers, and every count statement run.
+let countAnswer: Array<Record<string, unknown>>;
+let countStatements: Array<ResolvedRecordRetentionStatement>;
 let statusReads: Array<string>;
 let stateReads: Array<{ kind: ResolvedRecordKind; projectId: string }>;
 let deleteCalls: Array<{
@@ -630,6 +656,19 @@ function installFakes(): void {
   };
   ResolvedRecordRetention.now = (): Date => {
     return new Date(clock);
+  };
+  ResolvedRecordRetention.getServerLimits = async (
+    kind: ResolvedRecordKind,
+  ): Promise<ResolvedRecordRetentionServerLimits> => {
+    limitReads.push(kind);
+    return { ...serverLimits };
+  };
+  ResolvedRecordRetention.runCountQuery = async (
+    sql: string,
+    params: Array<unknown>,
+  ): Promise<Array<Record<string, unknown>>> => {
+    countStatements.push({ sql, params });
+    return countAnswer;
   };
   ResolvedRecordRetention.getResolvedStateIds = async (data: {
     kind: ResolvedRecordKind;
@@ -685,6 +724,10 @@ function restoreSeams(): void {
 beforeEach(() => {
   database = new FakeRetentionDatabase();
   clock = NOW.getTime();
+  serverLimits = { maximumInDays: undefined, defaultInDays: 0 };
+  limitReads = [];
+  countAnswer = [{ count: 0 }];
+  countStatements = [];
   statusReads = [];
   stateReads = [];
   deleteCalls = [];
@@ -1570,5 +1613,678 @@ describe("the seams' own work: the services they call", () => {
 
     expect(now).toBeGreaterThanOrEqual(before);
     expect(now).toBeLessThanOrEqual(Date.now());
+  });
+});
+
+/*
+ * THE SERVER'S MAXIMUM (issue #6941): with one, every live project keeps
+ * resolved records at most that long - one set to Never, or to longer,
+ * included - and a project's own setting is never rewritten: the maximum is
+ * applied as the projects are read.
+ */
+describe("buildDueProjectsStatement under the server's maximum", () => {
+  test("reads every live project, Never included: the floor is dropped, the setting is read as it is", () => {
+    const statement: ResolvedRecordRetentionStatement =
+      buildDueProjectsStatement({
+        kind: ResolvedRecordKind.Incident,
+        limit: 100,
+        maximumInDays: 365,
+      });
+
+    expect(words(statement.sql)).toBe(
+      words(`SELECT p."_id"::text AS "projectId", p."incidentRetentionInDays" AS "retentionInDays", p."keepIncidentsWithCompletedPostmortem" AS "keepCompletedPostmortems", p."keepIncidentsInPostmortemStatusIds" AS "keptPostmortemStatusIds"
+FROM "Project" p
+WHERE p."deletedAt" IS NULL
+ORDER BY p."_id" ASC
+LIMIT $1`),
+    );
+    expect(statement.params).toEqual([100]);
+  });
+
+  test("a later page starts after the last project read, the id a parameter", () => {
+    const after: string = uuid(7, "b6903000");
+    const statement: ResolvedRecordRetentionStatement =
+      buildDueProjectsStatement({
+        kind: ResolvedRecordKind.Alert,
+        limit: 100,
+        afterProjectId: after,
+        maximumInDays: 90,
+      });
+
+    expect(statement.sql).toContain(`p."_id" > $1::uuid`);
+    expect(statement.sql).toContain("LIMIT $2");
+    expect(statement.params).toEqual([after, 100]);
+    expect(statement.sql).not.toContain(after);
+    expect(statement.sql).not.toContain(">= $");
+  });
+});
+
+describe("findDueProjects under the server's maximum", () => {
+  test("Never and longer lengths are held to the maximum, shorter ones keep their own", async () => {
+    database.projectRows = [
+      projectRow(1, 0),
+      projectRow(2, 1095),
+      projectRow(3, 365),
+      projectRow(4, 90),
+      projectRow(5, "730"),
+    ];
+
+    const page: DueRetentionProjectsPage =
+      await ResolvedRecordRetention.findDueProjects({
+        kind: ResolvedRecordKind.Alert,
+        maximumInDays: 365,
+      });
+
+    expect(
+      page.projects.map((project: { retentionInDays: number }) => {
+        return project.retentionInDays;
+      }),
+    ).toEqual([365, 365, 365, 90, 365]);
+  });
+
+  test("a setting that cannot be read deletes nothing, even under the maximum", async () => {
+    database.projectRows = [
+      projectRow(1, 45),
+      projectRow(2, null),
+      projectRow(3, "soon"),
+      projectRow(4, 30),
+    ];
+
+    const page: DueRetentionProjectsPage =
+      await ResolvedRecordRetention.findDueProjects({
+        kind: ResolvedRecordKind.Incident,
+        maximumInDays: 365,
+      });
+
+    expect(page.projects).toEqual([
+      {
+        projectId: uuid(4, "b6903000"),
+        retentionInDays: 30,
+        keepCompletedPostmortems: true,
+        keptPostmortemStatusIds: undefined,
+      },
+    ]);
+  });
+
+  test("with no maximum, a project at Never is still left alone", async () => {
+    database.projectRows = [projectRow(1, 0), projectRow(2, 60)];
+
+    const page: DueRetentionProjectsPage =
+      await ResolvedRecordRetention.findDueProjects({
+        kind: ResolvedRecordKind.Incident,
+      });
+
+    expect(
+      page.projects.map((project: { projectId: string }) => {
+        return project.projectId;
+      }),
+    ).toEqual([uuid(2, "b6903000")]);
+  });
+
+  test("a full page under the maximum says where the next one starts", async () => {
+    database.projectRows = Array.from(
+      { length: RETENTION_PROJECTS_PER_PAGE + 1 },
+      (_: unknown, index: number): FakeProjectRow => {
+        return projectRow(index + 1, 0);
+      },
+    );
+
+    const first: DueRetentionProjectsPage =
+      await ResolvedRecordRetention.findDueProjects({
+        kind: ResolvedRecordKind.Alert,
+        maximumInDays: 30,
+      });
+
+    expect(first.projects).toHaveLength(RETENTION_PROJECTS_PER_PAGE);
+    expect(first.nextAfterProjectId).toBe(
+      uuid(RETENTION_PROJECTS_PER_PAGE, "b6903000"),
+    );
+
+    const second: DueRetentionProjectsPage =
+      await ResolvedRecordRetention.findDueProjects({
+        kind: ResolvedRecordKind.Alert,
+        afterProjectId: first.nextAfterProjectId,
+        maximumInDays: 30,
+      });
+
+    expect(second.projects).toEqual([
+      {
+        projectId: uuid(RETENTION_PROJECTS_PER_PAGE + 1, "b6903000"),
+        retentionInDays: 30,
+        keepCompletedPostmortems: false,
+        keptPostmortemStatusIds: undefined,
+      },
+    ]);
+    expect(second.nextAfterProjectId).toBeUndefined();
+  });
+});
+
+describe("run under the server's maximum", () => {
+  test("reads the maximum once a run, and works on every project held to it", async () => {
+    serverLimits = { maximumInDays: 180, defaultInDays: 0 };
+    database.projectRows = [projectRow(1, 0), projectRow(2, 30)];
+    database.dueRecords.set(uuid(1, "b6903000"), ids(2, "e6903000"));
+
+    const summary: ResolvedRecordRetentionSummary =
+      await ResolvedRecordRetention.run({ kind: ResolvedRecordKind.Alert });
+
+    expect(limitReads).toEqual([ResolvedRecordKind.Alert]);
+    expect(summary.projects).toBe(2);
+    expect(summary.records).toBe(2);
+
+    // The project at Never was read for records resolved before the maximum's cut-off.
+    const cutoffs: Array<number> = database
+      .statementsReading(`SELECT r."_id"`)
+      .map((statement: ResolvedRecordRetentionStatement): number => {
+        return (statement.params[2] as Date).getTime();
+      });
+
+    expect(cutoffs).toContain(NOW.getTime() - 180 * DAY_MS);
+    expect(cutoffs).toContain(NOW.getTime() - 30 * DAY_MS);
+  });
+
+  test("with no maximum, nothing changes: a project at Never is not read", async () => {
+    database.projectRows = [projectRow(1, 0)];
+
+    const summary: ResolvedRecordRetentionSummary =
+      await ResolvedRecordRetention.run({ kind: ResolvedRecordKind.Incident });
+
+    expect(limitReads).toEqual([ResolvedRecordKind.Incident]);
+    expect(summary.projects).toBe(0);
+    expect(stateReads).toEqual([]);
+  });
+});
+
+/*
+ * WHICH POSTMORTEM STATUSES KEEP AN INCIDENT (issue #6945): the ones the
+ * project chose, or with none chosen its Completed status, while it keeps
+ * completed postmortems at all.
+ */
+describe("the postmortem statuses a project chose", () => {
+  const CHOSEN: Array<string> = [uuid(7, "d6945000"), uuid(8, "d6945000")];
+
+  test("findDueProjects reads them for incidents, as the purge reads the project's", async () => {
+    database.projectRows = [
+      { ...projectRow(1, 90), keptPostmortemStatusIds: CHOSEN },
+      { ...projectRow(2, 90), keptPostmortemStatusIds: [] },
+      { ...projectRow(3, 90), keptPostmortemStatusIds: null },
+    ];
+
+    const page: DueRetentionProjectsPage =
+      await ResolvedRecordRetention.findDueProjects({
+        kind: ResolvedRecordKind.Incident,
+      });
+
+    expect(
+      page.projects.map(
+        (project: { keptPostmortemStatusIds?: Array<string> | undefined }) => {
+          return project.keptPostmortemStatusIds;
+        },
+      ),
+    ).toEqual([CHOSEN, undefined, undefined]);
+  });
+
+  test("purgeProject keeps incidents in the chosen statuses, and does not read the Completed one", async () => {
+    await ResolvedRecordRetention.purgeProject({
+      kind: ResolvedRecordKind.Incident,
+      projectId: PROJECT_ID,
+      retentionInDays: 90,
+      keepCompletedPostmortems: true,
+      keptPostmortemStatusIds: CHOSEN,
+    });
+
+    const read: ResolvedRecordRetentionStatement =
+      database.statementsReading(`SELECT r."_id"`)[0]!;
+
+    expect(read.params[3]).toEqual(CHOSEN);
+    expect(read.sql).toContain(
+      `(r."postmortemStatusId" IS NULL OR NOT (r."postmortemStatusId" = ANY($4::uuid[])))`,
+    );
+    expect(statusReads).toEqual([]);
+  });
+
+  test("with none chosen, the Completed status keeps them, as before", async () => {
+    await ResolvedRecordRetention.purgeProject({
+      kind: ResolvedRecordKind.Incident,
+      projectId: PROJECT_ID,
+      retentionInDays: 90,
+      keepCompletedPostmortems: true,
+    });
+
+    const read: ResolvedRecordRetentionStatement =
+      database.statementsReading(`SELECT r."_id"`)[0]!;
+
+    expect(read.params[3]).toEqual([COMPLETED_STATUS_ID]);
+    expect(statusReads).toEqual([PROJECT_ID]);
+  });
+
+  test("once the project stops keeping completed postmortems, the chosen statuses keep nothing", async () => {
+    await ResolvedRecordRetention.purgeProject({
+      kind: ResolvedRecordKind.Incident,
+      projectId: PROJECT_ID,
+      retentionInDays: 90,
+      keepCompletedPostmortems: false,
+      keptPostmortemStatusIds: CHOSEN,
+    });
+
+    const read: ResolvedRecordRetentionStatement =
+      database.statementsReading(`SELECT r."_id"`)[0]!;
+
+    expect(read.sql).not.toContain("postmortemStatusId");
+    expect(read.params).toHaveLength(4);
+  });
+
+  test("run hands each project's chosen statuses to its purge", async () => {
+    database.projectRows = [
+      { ...projectRow(1, 90), keptPostmortemStatusIds: CHOSEN },
+    ];
+    database.dueRecords.set(uuid(1, "b6903000"), ids(1, "e6903000"));
+
+    await ResolvedRecordRetention.run({ kind: ResolvedRecordKind.Incident });
+
+    expect(database.statementsReading(`SELECT r."_id"`)[0]!.params[3]).toEqual(
+      CHOSEN,
+    );
+  });
+
+  test.each([
+    [ResolvedRecordKind.Alert, true, CHOSEN, []],
+    [ResolvedRecordKind.Incident, false, CHOSEN, []],
+    [ResolvedRecordKind.Incident, true, CHOSEN, CHOSEN],
+    [ResolvedRecordKind.Incident, true, [], [COMPLETED_STATUS_ID]],
+    [ResolvedRecordKind.Incident, true, undefined, [COMPLETED_STATUS_ID]],
+  ])(
+    "getKeptPostmortemStatusIds(%s, keep %p, chosen %p) is %p",
+    async (
+      kind: ResolvedRecordKind,
+      keep: boolean,
+      chosen: Array<string> | undefined,
+      expected: Array<string>,
+    ) => {
+      const kept: Array<ObjectID | string> =
+        await ResolvedRecordRetention.getKeptPostmortemStatusIds({
+          kind,
+          projectId: new ObjectID(PROJECT_ID),
+          keepCompletedPostmortems: keep,
+          chosenStatusIds: chosen,
+        });
+
+      expect(
+        kept.map((id: ObjectID | string): string => {
+          return id.toString();
+        }),
+      ).toEqual(expected);
+    },
+  );
+});
+
+/*
+ * HOW MANY A SETTING DELETES NOW (issue #6943): the purge's own filters,
+ * counted no further than RETENTION_COUNT_UP_TO.
+ */
+describe("buildDueRecordsCountStatement: one builder with the purge", () => {
+  test.each(KINDS)(
+    "%s: the same filters and parameters as a batch's read, counted up to a bound",
+    (kind: ResolvedRecordKind) => {
+      const query: Parameters<typeof buildDueRecordsStatement>[0] = {
+        kind,
+        projectId: PROJECT_ID,
+        resolvedStateIds: RESOLVED_STATE_IDS,
+        cutoff: new Date(NOW.getTime() - 90 * DAY_MS),
+        keptPostmortemStatusIds: [COMPLETED_STATUS_ID],
+        limit: RETENTION_BATCH_SIZE,
+      };
+
+      const batch: ResolvedRecordRetentionStatement =
+        buildDueRecordsStatement(query);
+      const count: ResolvedRecordRetentionStatement =
+        buildDueRecordsCountStatement({ ...query, upTo: 10000 });
+
+      const whereOf: (sql: string) => string = (sql: string): string => {
+        const folded: string = words(sql);
+        return folded.slice(
+          folded.indexOf("WHERE "),
+          folded.lastIndexOf(" LIMIT "),
+        );
+      };
+
+      expect(whereOf(count.sql)).toBe(whereOf(batch.sql));
+      expect(count.params.slice(0, -1)).toEqual(batch.params.slice(0, -1));
+      expect(count.params[count.params.length - 1]).toBe(10000);
+      expect(words(count.sql)).toMatch(
+        /^SELECT COUNT\(\*\)::int AS "count" FROM \( SELECT 1 FROM "(Incident|Alert)" r WHERE .* LIMIT \$\d+ \) due$/,
+      );
+    },
+  );
+
+  test("the bound is a parameter, never written into the text", () => {
+    const count: ResolvedRecordRetentionStatement =
+      buildDueRecordsCountStatement({
+        kind: ResolvedRecordKind.Alert,
+        projectId: PROJECT_ID,
+        resolvedStateIds: RESOLVED_STATE_IDS,
+        cutoff: NOW,
+        upTo: 12345,
+      });
+
+    expect(count.sql).not.toContain("12345");
+    expect(count.params).toContain(12345);
+  });
+});
+
+describe("countDueRecords: what a setting deletes now", () => {
+  async function count(
+    overrides: Partial<
+      Parameters<typeof ResolvedRecordRetention.countDueRecords>[0]
+    > = {},
+  ): Promise<DueRecordsCount> {
+    return await ResolvedRecordRetention.countDueRecords({
+      kind: ResolvedRecordKind.Incident,
+      projectId: new ObjectID(PROJECT_ID),
+      retentionInDays: 90,
+      keepCompletedPostmortems: true,
+      ...overrides,
+    });
+  }
+
+  test("counts with the purge's statement, for the length's cut-off and the project's resolved states", async () => {
+    countAnswer = [{ count: 4512 }];
+
+    expect(await count()).toEqual({ count: 4512, isAtLeast: false });
+    expect(countStatements).toHaveLength(1);
+
+    const statement: ResolvedRecordRetentionStatement = countStatements[0]!;
+
+    expect(statement.params[0]).toBe(PROJECT_ID);
+    expect(statement.params[1]).toEqual(RESOLVED_STATE_IDS);
+    expect((statement.params[2] as Date).getTime()).toBe(
+      NOW.getTime() - 90 * DAY_MS,
+    );
+    expect(statement.params[3]).toEqual([COMPLETED_STATUS_ID]);
+    expect(statement.params[4]).toBe(RETENTION_COUNT_UP_TO);
+    // Through the count's own runner, with its timeout - never the purge's.
+    expect(database.statements).toEqual([]);
+  });
+
+  test("a count that reaches the bound says at least that many", async () => {
+    countAnswer = [{ count: RETENTION_COUNT_UP_TO }];
+
+    expect(await count()).toEqual({
+      count: RETENTION_COUNT_UP_TO,
+      isAtLeast: true,
+    });
+  });
+
+  test("Never with no maximum deletes nothing, and reads nothing", async () => {
+    expect(await count({ retentionInDays: 0 })).toEqual({
+      count: 0,
+      isAtLeast: false,
+    });
+    expect(countStatements).toEqual([]);
+    expect(stateReads).toEqual([]);
+  });
+
+  test("under the server's maximum, Never and longer lengths are counted for the maximum", async () => {
+    await count({ retentionInDays: 0, maximumInDays: 365 });
+    await count({ retentionInDays: 1095, maximumInDays: 365 });
+    await count({ retentionInDays: 60, maximumInDays: 365 });
+
+    expect(
+      countStatements.map((statement: ResolvedRecordRetentionStatement) => {
+        return (
+          (NOW.getTime() - (statement.params[2] as Date).getTime()) / DAY_MS
+        );
+      }),
+    ).toEqual([365, 365, 60]);
+  });
+
+  test("counts with the statuses the setting would keep: chosen ones, Completed, or none", async () => {
+    const chosen: Array<string> = [uuid(9, "d6945000")];
+
+    await count({ keptPostmortemStatusIds: chosen });
+    await count({ keepCompletedPostmortems: false });
+    await count({
+      kind: ResolvedRecordKind.Alert,
+      keptPostmortemStatusIds: chosen,
+    });
+
+    expect(countStatements[0]!.params[3]).toEqual(chosen);
+    expect(countStatements[1]!.sql).not.toContain("postmortemStatusId");
+    expect(countStatements[2]!.sql).not.toContain("postmortemStatusId");
+    expect(countStatements[2]!.sql).toContain(`FROM "Alert" r`);
+  });
+
+  test("a project with no resolved state has nothing to count", async () => {
+    ResolvedRecordRetention.getResolvedStateIds = async (): Promise<
+      Array<ObjectID>
+    > => {
+      return [];
+    };
+
+    expect(await count()).toEqual({ count: 0, isAtLeast: false });
+    expect(countStatements).toEqual([]);
+  });
+
+  test("an answer that is not a count reads as 0, never as a negative or a fraction", async () => {
+    for (const answer of [[], [{ count: null }], [{ count: -3 }], [{}]]) {
+      countAnswer = answer as Array<Record<string, unknown>>;
+      expect((await count()).count).toBe(0);
+    }
+
+    countAnswer = [{ count: "17" }];
+    expect((await count()).count).toBe(17);
+  });
+
+  test("a failing count fails: the route answers it with no count", async () => {
+    ResolvedRecordRetention.runCountQuery = async (): Promise<
+      Array<Record<string, unknown>>
+    > => {
+      throw new Error("canceling statement due to statement timeout");
+    };
+
+    await expect(count()).rejects.toThrow("statement timeout");
+  });
+});
+
+describe("buildProjectsReachedByMaximumStatement: what a new maximum reaches", () => {
+  test("with no maximum yet: every project at Never, and every one longer than the new maximum", () => {
+    const statement: ResolvedRecordRetentionStatement =
+      buildProjectsReachedByMaximumStatement({
+        kind: ResolvedRecordKind.Incident,
+        maximumInDays: 365,
+      });
+
+    expect(words(statement.sql)).toBe(
+      words(`SELECT COUNT(*)::int AS "count"
+FROM "Project" p
+WHERE p."deletedAt" IS NULL
+  AND COALESCE(CASE WHEN p."incidentRetentionInDays" >= $1 THEN p."incidentRetentionInDays" END, $2 + 1) > $2`),
+    );
+    expect(statement.params).toEqual([30, 365]);
+  });
+
+  test("under a maximum already: each project as long as it keeps them now", () => {
+    const statement: ResolvedRecordRetentionStatement =
+      buildProjectsReachedByMaximumStatement({
+        kind: ResolvedRecordKind.Alert,
+        maximumInDays: 90,
+        currentMaximumInDays: 730,
+      });
+
+    expect(words(statement.sql)).toBe(
+      words(`SELECT COUNT(*)::int AS "count"
+FROM "Project" p
+WHERE p."deletedAt" IS NULL
+  AND COALESCE(CASE WHEN p."alertRetentionInDays" >= $1 AND p."alertRetentionInDays" <= $3 THEN p."alertRetentionInDays" ELSE $3 END, $2 + 1) > $2`),
+    );
+    expect(statement.params).toEqual([30, 90, 730]);
+  });
+});
+
+describe("countProjectsReachedByMaximum", () => {
+  test("weighs the new maximum against the one the server has now", async () => {
+    serverLimits = { maximumInDays: 730, defaultInDays: 0 };
+    database.answer = (
+      sql: string,
+      params: Array<unknown>,
+    ): Array<Record<string, unknown>> => {
+      database.statements.push({ sql, params });
+      return [{ count: 12 }];
+    };
+
+    expect(
+      await ResolvedRecordRetention.countProjectsReachedByMaximum({
+        kind: ResolvedRecordKind.Alert,
+        maximumInDays: 90,
+      }),
+    ).toBe(12);
+    expect(limitReads).toEqual([ResolvedRecordKind.Alert]);
+    expect(database.statements[0]!.params).toEqual([30, 90, 730]);
+  });
+});
+
+describe("the server's limits and the count's runner, as they run", () => {
+  test("getServerLimits reads the kind's two columns of the one config row, as OneUptime", async () => {
+    restoreSeams();
+
+    const findOneById: SpyInstance<typeof GlobalConfigService.findOneById> =
+      jest
+        .spyOn(GlobalConfigService, "findOneById")
+        .mockResolvedValue(
+          GlobalConfig.fromJSON(
+            { maxAlertRetentionInDays: 365, defaultAlertRetentionInDays: "90" },
+            GlobalConfig,
+          ) as GlobalConfig,
+        );
+
+    expect(
+      await ResolvedRecordRetention.getServerLimits(ResolvedRecordKind.Alert),
+    ).toEqual({ maximumInDays: 365, defaultInDays: 90 });
+
+    const call: Parameters<typeof GlobalConfigService.findOneById>[0] =
+      findOneById.mock.calls[0]![0];
+
+    expect(call.id.toString()).toBe(ObjectID.getZeroObjectID().toString());
+    expect(call.select).toEqual({
+      maxAlertRetentionInDays: true,
+      defaultAlertRetentionInDays: true,
+    });
+    expect(call.props).toEqual({ isRoot: true });
+  });
+
+  test("getServerLimits: no config row, or values that cannot be read, is no maximum and Never", async () => {
+    restoreSeams();
+
+    jest.spyOn(GlobalConfigService, "findOneById").mockResolvedValueOnce(null);
+
+    expect(
+      await ResolvedRecordRetention.getServerLimits(
+        ResolvedRecordKind.Incident,
+      ),
+    ).toEqual({ maximumInDays: undefined, defaultInDays: 0 });
+
+    jest
+      .spyOn(GlobalConfigService, "findOneById")
+      .mockResolvedValueOnce(
+        GlobalConfig.fromJSON(
+          {
+            maxIncidentRetentionInDays: 45,
+            defaultIncidentRetentionInDays: -1,
+          },
+          GlobalConfig,
+        ) as GlobalConfig,
+      );
+
+    expect(
+      await ResolvedRecordRetention.getServerLimits(
+        ResolvedRecordKind.Incident,
+      ),
+    ).toEqual({ maximumInDays: undefined, defaultInDays: 0 });
+  });
+
+  function fakeRunner(failOn?: string): {
+    runner: Record<string, unknown>;
+    calls: Array<string>;
+  } {
+    const calls: Array<string> = [];
+    const runner: Record<string, unknown> = {
+      isTransactionActive: false,
+      connect: async (): Promise<void> => {
+        calls.push("connect");
+      },
+      startTransaction: async (): Promise<void> => {
+        calls.push("begin");
+        runner["isTransactionActive"] = true;
+      },
+      query: async (sql: string): Promise<Array<Record<string, unknown>>> => {
+        calls.push(sql);
+
+        if (failOn && sql.includes(failOn)) {
+          throw new Error("canceling statement due to statement timeout");
+        }
+
+        return [{ count: 3 }];
+      },
+      commitTransaction: async (): Promise<void> => {
+        calls.push("commit");
+        runner["isTransactionActive"] = false;
+      },
+      rollbackTransaction: async (): Promise<void> => {
+        calls.push("rollback");
+        runner["isTransactionActive"] = false;
+      },
+      release: async (): Promise<void> => {
+        calls.push("release");
+      },
+    };
+
+    return { runner, calls };
+  }
+
+  function useRunner(runner: Record<string, unknown>): void {
+    jest.spyOn(ProjectService, "getRepository").mockReturnValue({
+      manager: {
+        connection: {
+          createQueryRunner: (): unknown => {
+            return runner;
+          },
+        },
+      },
+    } as never);
+  }
+
+  test("runCountQuery: a transaction of its own, its statement timeout set first, then released", async () => {
+    restoreSeams();
+    const { runner, calls } = fakeRunner();
+    useRunner(runner);
+
+    expect(
+      await ResolvedRecordRetention.runCountQuery(`SELECT COUNT(*)`, [1]),
+    ).toEqual([{ count: 3 }]);
+    expect(calls).toEqual([
+      "connect",
+      "begin",
+      `SET LOCAL statement_timeout = ${RETENTION_COUNT_TIMEOUT_MS}`,
+      "SELECT COUNT(*)",
+      "commit",
+      "release",
+    ]);
+  });
+
+  test("runCountQuery: a count that times out is rolled back, released and thrown", async () => {
+    restoreSeams();
+    const { runner, calls } = fakeRunner("COUNT");
+    useRunner(runner);
+
+    await expect(
+      ResolvedRecordRetention.runCountQuery(`SELECT COUNT(*)`, []),
+    ).rejects.toThrow("statement timeout");
+    expect(calls.slice(-2)).toEqual(["rollback", "release"]);
+    expect(calls).not.toContain("commit");
+  });
+
+  test("a count is given a few seconds, and stops at ten thousand", () => {
+    expect(RETENTION_COUNT_TIMEOUT_MS).toBe(5000);
+    expect(RETENTION_COUNT_UP_TO).toBe(10000);
   });
 });

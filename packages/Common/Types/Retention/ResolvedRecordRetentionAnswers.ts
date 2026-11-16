@@ -109,12 +109,16 @@ export default class ResolvedRecordRetentionAnswers {
     };
   }
 
-  // A count as a page reads it, or null when the answer is not one.
+  /*
+   * A count as a page reads it, or null when the answer is not one - the
+   * route answers a count that failed with none, and that must never read
+   * as nothing to delete.
+   */
   public static readCount(value: unknown): DueRecordsCountAnswer | null {
     const json: JSONObject = asObject(value);
-    const count: number = Number(json["count"]);
+    const count: unknown = json["count"];
 
-    if (!Number.isFinite(count) || count < 0) {
+    if (typeof count !== "number" || !Number.isFinite(count) || count < 0) {
       return null;
     }
 
