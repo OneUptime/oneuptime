@@ -14,9 +14,11 @@ import path from "path";
  *
  * The fixtures are built unminified, so esbuild heads each module it
  * bundles with its path: "// ../../App/FeatureSet/Dashboard/src/Locales/de.json".
- * This reads those lines in every script the page loads from /dist/, entry
- * and chunks, so it sees a locale wherever the build put it. A chunk's name
- * would not do: a page's translated docs are "de-<hash>.js" chunks too.
+ * This reads those lines in every script the page loads, entry and chunks,
+ * wherever its fixture serves them (/dist/, or /app/ for the Dashboard
+ * widget fixtures), so it sees a locale wherever the build put it. A
+ * chunk's name would not do: a page's translated docs are "de-<hash>.js"
+ * chunks too.
  */
 
 const LOCALE_MODULE_LINE: RegExp =
@@ -37,7 +39,7 @@ export interface LocaleWatch {
    * order loaded, once every script seen so far has been read.
    */
   languages: () => Promise<Array<string>>;
-  // The bytes of every script the page loaded from /dist/.
+  // The bytes of every script the page loaded.
   scriptBytes: () => Promise<number>;
   /*
    * The bytes of every script but the chunks that hold `language`'s locale
@@ -57,14 +59,12 @@ function sumOfBytes(reads: Array<ScriptRead>): number {
   }, 0);
 }
 
-// Starts reading every script the page loads from /dist/, from now on.
+// Starts reading every script the page loads, from now on.
 export function watchDashboardLocales(page: Page): LocaleWatch {
   const reads: Array<Promise<ScriptRead>> = [];
 
   page.on("response", (response: Response): void => {
-    const pathname: string = new URL(response.url()).pathname;
-
-    if (!pathname.startsWith("/dist/") || !pathname.endsWith(".js")) {
+    if (response.request().resourceType() !== "script") {
       return;
     }
 
