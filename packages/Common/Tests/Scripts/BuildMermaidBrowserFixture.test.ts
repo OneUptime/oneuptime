@@ -20,11 +20,12 @@ import path from "path";
  *
  * Every test runs a copy of the script in a throwaway checkout under the
  * temporary directory (checkoutAt) - beside a copy of esbuild-mermaid.js and
- * a stand-in esbuild that writes a two-file build and notes each build it
- * makes - and reads what is left, file by file. No test aims the script at
- * this checkout, or at a directory that holds it: checkoutAt and the helpers
- * below check every place they run or write first (assertOutsideThisCheckout).
- * `/` is put to the guard alone, which builds and deletes nothing.
+ * a stand-in esbuild that answers with a two-file build and notes each build
+ * it is asked for - and reads what is left, file by file. No test aims the
+ * script at this checkout, or at a directory that holds it: checkoutAt and
+ * the helpers below check every place they run or write first
+ * (assertOutsideThisCheckout). `/` is put to the guard alone, which builds
+ * and deletes nothing.
  */
 
 const COMMON_ROOT: string = path.resolve(__dirname, "..", "..");
