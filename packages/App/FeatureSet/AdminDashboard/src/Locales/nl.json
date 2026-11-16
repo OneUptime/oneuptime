@@ -4116,5 +4116,20 @@
   "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "Hun sessies eindigen nu, op elk apparaat, en ze loggen opnieuw in met SSO. Hoofdbeheerders blijven ingelogd.",
   "Made by {{name}} on {{date}}": "Gemaakt door {{name}} op {{date}}",
   "Made on {{date}}": "Gemaakt op {{date}}",
-  "Ends in {{hint}}": "Eindigt op {{hint}}"
+  "Ends in {{hint}}": "Eindigt op {{hint}}",
+  "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to support@oneuptime.com, and scores, never words, go to product analytics.": "Antwoorden blijven op deze server en worden hier gelezen door de hoofdbeheerders. \"Feedback geven\" wordt ook gemaild naar support@oneuptime.com, en scores, nooit tekst, gaan naar de productanalyse.",
+  "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to the Admin Notification Email, when one is set. Nothing is sent to OneUptime.": "Antwoorden blijven op deze server en worden hier gelezen door de hoofdbeheerders. \"Feedback geven\" wordt ook gemaild naar de admin-meldings-e-mail, als die is ingesteld. Er wordt niets naar OneUptime gestuurd.",
+  "Know when my website or API is down": "Weten wanneer mijn website of API plat ligt",
+  "Page the right person when something breaks": "De juiste persoon oproepen als er iets kapotgaat",
+  "Publish a status page": "Publiceer een statuspagina",
+  "Send logs, metrics and traces, then get alerted": "Logboeken, metrieken en traces versturen en daarna waarschuwingen ontvangen",
+  "Guided setup": "Begeleide installatie",
+  "Give feedback": "Feedback geven",
+  "First-week check-in": "Check-in na de eerste week",
+  "How OneUptime works": "Hoe OneUptime werkt",
+  "Is OneUptime set up the way you wanted?": "Is OneUptime ingericht zoals je wilde?",
+  "Something's broken": "Er werkt iets niet",
+  "Confusing": "Onduidelijk",
+  "Idea": "Idee",
+  "Other": "Overig"
 }

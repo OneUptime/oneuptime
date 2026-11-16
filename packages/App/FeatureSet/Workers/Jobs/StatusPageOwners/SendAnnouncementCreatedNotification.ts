@@ -1,5 +1,9 @@
 import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
+import OwnerNotificationBacklog, {
+  OwnerNotificationPage,
+} from "../../Utils/OwnerNotificationBacklog";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import Dictionary from "Common/Types/Dictionary";
 import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
@@ -55,7 +59,7 @@ interface AnnouncementRecipient {
 RunCron(
   "StatusPageOwner:SendAnnouncementCreatedEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
-  async () => {
+  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
     /*
      * The owners a run that stopped part way left untold - a worker killed
      * between the take and the last owner (#8509) - told first, exactly
@@ -86,83 +90,94 @@ RunCron(
       },
     });
 
-    const announcements: Array<StatusPageAnnouncement> =
-      await StatusPageAnnouncementService.findAllBy({
-        query: {
-          isOwnerNotified: false,
-        },
-        props: {
-          isRoot: true,
-        },
-        skip: 0,
-        select: ANNOUNCEMENT_SELECT,
-      });
+    /*
+     * Every announcement whose owners have not been told of it, a page at a
+     * time, oldest first, each taken by one run alone and told by the run
+     * that took it; the run stops at its deadline and the next carries on
+     * (OwnerNotificationBacklog, issue #8862).
+     */
+    await OwnerNotificationBacklog.forEachToNotify<StatusPageAnnouncement>({
+      jobName: "StatusPageOwner:SendAnnouncementCreatedEmail",
+      service: StatusPageAnnouncementService,
+      notYetNotified: {
+        isOwnerNotified: false,
+      },
+      notified: {
+        isOwnerNotified: true,
+      },
+      select: ANNOUNCEMENT_SELECT,
+      deadline: deadline,
+      notify: async (input: {
+        record: StatusPageAnnouncement;
+        page: OwnerNotificationPage;
+        take: () => Promise<boolean>;
+      }): Promise<void> => {
+        const announcement: StatusPageAnnouncement = input.record;
+        /*
+         * Whom it is to tell, written before the take: a worker stopped from
+         * here on leaves them to be told by a later run, and one stopped before
+         * the take leaves the announcement to be read again. A failure to read
+         * them tells nobody, as it did when it came after the take.
+         */
+        let recipients: Array<AnnouncementRecipient> = [];
 
-    for (const announcement of announcements) {
-      /*
-       * Whom it is to tell, written before the take: a worker stopped from
-       * here on leaves them to be told by a later run, and one stopped before
-       * the take leaves the announcement to be read again. A failure to read
-       * them tells nobody, as it did when it came after the take.
-       */
-      let recipients: Array<AnnouncementRecipient> = [];
+        try {
+          recipients = await readRecipients(announcement, input.page);
+        } catch (e) {
+          logger.error("Error in reading the owners of an announcement", {
+            projectId: announcement.projectId?.toString(),
+            statusPageAnnouncementId: announcement.id?.toString(),
+          });
+          logger.error(e);
+        }
 
-      try {
-        recipients = await readRecipients(announcement);
-      } catch (e) {
-        logger.error("Error in reading the owners of an announcement", {
-          projectId: announcement.projectId?.toString(),
-          statusPageAnnouncementId: announcement.id?.toString(),
-        });
-        logger.error(e);
-      }
-
-      const delivery: OwnerNotificationDelivery =
-        await OwnerNotificationDeliveries.plan({
-          notification: {
-            kind: OwnerNotificationKind.StatusPageAnnouncementCreated,
-            projectId: announcement.projectId!,
-            resourceId: announcement.id!,
-            eventId: announcement.id!,
-          },
-          owners: recipients.map((recipient: AnnouncementRecipient): User => {
-            return recipient.user;
-          }),
-          isProjectOwners:
-            recipients.length > 0 &&
-            recipients.every((recipient: AnnouncementRecipient): boolean => {
-              return !recipient.isOwner;
+        const delivery: OwnerNotificationDelivery =
+          await OwnerNotificationDeliveries.plan({
+            notification: {
+              kind: OwnerNotificationKind.StatusPageAnnouncementCreated,
+              projectId: announcement.projectId!,
+              resourceId: announcement.id!,
+              eventId: announcement.id!,
+            },
+            owners: recipients.map((recipient: AnnouncementRecipient): User => {
+              return recipient.user;
             }),
-          writesFeedItem: false,
-        });
+            isProjectOwners:
+              recipients.length > 0 &&
+              recipients.every((recipient: AnnouncementRecipient): boolean => {
+                return !recipient.isOwner;
+              }),
+            writesFeedItem: false,
+          });
 
-      await StatusPageAnnouncementService.updateOneById({
-        id: announcement.id!,
-        data: {
-          isOwnerNotified: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+        /*
+         * Taken - marked notified, by one hook-free compare-and-set - before
+         * its owners are told, so one whose notification keeps failing is
+         * never read again on every run. Taken by another run first: that run
+         * tells them.
+         */
+        if (!(await input.take())) {
+          return;
+        }
 
-      try {
-        await notifyOwnersOfAnnouncement({
-          announcement: announcement,
-          recipients: recipients,
-          delivery: delivery,
-        });
-      } catch (e) {
-        logger.error("Error in sending announcement created notification", {
-          projectId: announcement.projectId?.toString(),
-          statusPageAnnouncementId: announcement.id?.toString(),
-        });
-        logger.error(e, {
-          projectId: announcement.projectId?.toString(),
-          statusPageAnnouncementId: announcement.id?.toString(),
-        });
-      }
-    }
+        try {
+          await notifyOwnersOfAnnouncement({
+            announcement: announcement,
+            recipients: recipients,
+            delivery: delivery,
+          });
+        } catch (e) {
+          logger.error("Error in sending announcement created notification", {
+            projectId: announcement.projectId?.toString(),
+            statusPageAnnouncementId: announcement.id?.toString(),
+          });
+          logger.error(e, {
+            projectId: announcement.projectId?.toString(),
+            statusPageAnnouncementId: announcement.id?.toString(),
+          });
+        }
+      },
+    });
   },
 );
 
@@ -173,22 +188,42 @@ RunCron(
  */
 async function readRecipients(
   announcement: StatusPageAnnouncement,
+  // Each page's owners, and the project's, read once for a page of them.
+  page?: OwnerNotificationPage | undefined,
 ): Promise<Array<AnnouncementRecipient>> {
   const recipients: Array<AnnouncementRecipient> = [];
   const seen: Set<string> = new Set<string>();
 
+  const once: (
+    key: string,
+    read: () => Promise<Array<User>>,
+  ) => Promise<Array<User>> = (
+    key: string,
+    read: () => Promise<Array<User>>,
+  ): Promise<Array<User>> => {
+    return page ? page.once(key, read) : read();
+  };
+
   for (const statusPage of announcement.statusPages || []) {
     let isOwner: boolean = true;
 
-    let owners: Array<User> = await StatusPageService.findOwners(
-      statusPage.id!,
+    let owners: Array<User> = await once(
+      `owners:${statusPage.id!.toString()}`,
+      (): Promise<Array<User>> => {
+        return StatusPageService.findOwners(statusPage.id!);
+      },
     );
 
     if (owners.length === 0) {
       isOwner = false;
 
       // find project owners.
-      owners = await ProjectService.getOwners(announcement.projectId!);
+      owners = await once(
+        `projectOwners:${announcement.projectId!.toString()}`,
+        (): Promise<Array<User>> => {
+          return ProjectService.getOwners(announcement.projectId!);
+        },
+      );
     }
 
     for (const user of owners) {

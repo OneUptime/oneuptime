@@ -1,5 +1,7 @@
 import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
+import Select from "Common/Server/Types/Database/Select";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import Dictionary from "Common/Types/Dictionary";
 import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
@@ -12,32 +14,40 @@ import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import ScheduledMaintenanceOwnerTeamService from "Common/Server/Services/ScheduledMaintenanceOwnerTeamService";
 import ScheduledMaintenanceOwnerUserService from "Common/Server/Services/ScheduledMaintenanceOwnerUserService";
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
-import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
-import ScheduledMaintenanceOwnerTeam from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
-import ScheduledMaintenanceOwnerUser from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerUser";
-import User from "Common/Models/DatabaseModels/User";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
-import logger from "Common/Server/Utils/Logger";
 import OwnerNotificationDeliveries, {
   OwnerNotificationDelivery,
 } from "Common/Server/Utils/Notification/OwnerNotificationDeliveries";
 import { OwnerNotificationKind } from "Common/Types/Notification/OwnerNotificationDelivery";
-import {
-  OwnerRowAdded,
-  ownersToTell,
-  planOwnersAdded,
-} from "../../Utils/OwnersAdded";
+import { ownersToTell, tellOwnersAdded } from "../../Utils/OwnersAdded";
+
+// What the scheduledMaintenance the owners were added to is read with.
+const SCHEDULED_MAINTENANCE_SELECT: Select<ScheduledMaintenance> = {
+  _id: true,
+  title: true,
+  description: true,
+  projectId: true,
+  project: {
+    name: true,
+  },
+  currentScheduledMaintenanceState: {
+    name: true,
+    color: true,
+  },
+  scheduledMaintenanceNumber: true,
+  scheduledMaintenanceNumberWithPrefix: true,
+};
 
 RunCron(
   "ScheduledMaintenanceOwner:SendOwnerAddedEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
-  async () => {
+  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
     /*
      * The owners a run that stopped part way left untold - a worker killed
      * between the take and the last owner (#8509) - told first, exactly
@@ -61,174 +71,31 @@ RunCron(
       },
     });
 
-    const scheduledMaintenanceOwnerTeams: Array<ScheduledMaintenanceOwnerTeam> =
-      await ScheduledMaintenanceOwnerTeamService.findAllBy({
-        query: {
-          isOwnerNotified: false,
-        },
-        props: {
-          isRoot: true,
-        },
-        skip: 0,
-        select: {
-          _id: true,
-          scheduledMaintenanceId: true,
-          teamId: true,
-        },
-      });
-
-    const scheduledMaintenanceOwnersMap: Dictionary<Array<OwnerRowAdded>> = {};
-
-    for (const scheduledMaintenanceOwnerTeam of scheduledMaintenanceOwnerTeams) {
-      const scheduledMaintenanceId: ObjectID =
-        scheduledMaintenanceOwnerTeam.scheduledMaintenanceId!;
-      const teamId: ObjectID = scheduledMaintenanceOwnerTeam.teamId!;
-
-      const users: Array<User> = await TeamMemberService.getUsersInTeams([
-        teamId,
-      ]);
-
-      if (
-        scheduledMaintenanceOwnersMap[scheduledMaintenanceId.toString()] ===
-        undefined
-      ) {
-        scheduledMaintenanceOwnersMap[scheduledMaintenanceId.toString()] = [];
-      }
-
-      (
-        scheduledMaintenanceOwnersMap[
-          scheduledMaintenanceId.toString()
-        ] as Array<OwnerRowAdded>
-      ).push({
-        ownerRowId: scheduledMaintenanceOwnerTeam.id!,
-        isTeam: true,
-        users: users,
-      });
-    }
-
-    const scheduledMaintenanceOwnerUsers: Array<ScheduledMaintenanceOwnerUser> =
-      await ScheduledMaintenanceOwnerUserService.findAllBy({
-        query: {
-          isOwnerNotified: false,
-        },
-        props: {
-          isRoot: true,
-        },
-        skip: 0,
-        select: {
-          _id: true,
-          scheduledMaintenanceId: true,
-          userId: true,
-          user: {
-            email: true,
-            name: true,
-          },
-        },
-      });
-
-    for (const scheduledMaintenanceOwnerUser of scheduledMaintenanceOwnerUsers) {
-      const scheduledMaintenanceId: ObjectID =
-        scheduledMaintenanceOwnerUser.scheduledMaintenanceId!;
-      const user: User = scheduledMaintenanceOwnerUser.user!;
-
-      if (
-        scheduledMaintenanceOwnersMap[scheduledMaintenanceId.toString()] ===
-        undefined
-      ) {
-        scheduledMaintenanceOwnersMap[scheduledMaintenanceId.toString()] = [];
-      }
-
-      (
-        scheduledMaintenanceOwnersMap[
-          scheduledMaintenanceId.toString()
-        ] as Array<OwnerRowAdded>
-      ).push({
-        ownerRowId: scheduledMaintenanceOwnerUser.id!,
-        isTeam: false,
-        users: [user],
-      });
-    }
-
-    // send email to all of these users.
-
-    for (const scheduledMaintenanceId in scheduledMaintenanceOwnersMap) {
-      const ownerRows: Array<OwnerRowAdded> =
-        scheduledMaintenanceOwnersMap[scheduledMaintenanceId] || [];
-
-      if (ownerRows.length === 0) {
-        continue;
-      }
-
-      const scheduledMaintenance: ScheduledMaintenance | null =
-        await readScheduledMaintenance(new ObjectID(scheduledMaintenanceId));
-
-      /*
-       * Whom each owner row is to tell, written before the rows are taken:
-       * a worker stopped from here on leaves them to be told by a later
-       * run, and one stopped before the take leaves the rows to be read
-       * again.
-       */
-      const deliveries: Array<OwnerNotificationDelivery> = scheduledMaintenance
-        ? await planOwnersAdded({
-            kind: OwnerNotificationKind.ScheduledMaintenanceOwnerAdded,
-            projectId: scheduledMaintenance.projectId!,
-            resourceId: scheduledMaintenance.id!,
-            ownerRows: ownerRows,
-          })
-        : [];
-
-      /*
-       * Marked as notified before the owners are told, so an owner row
-       * whose notification keeps failing is never read again on every run -
-       * one whose scheduled maintenance event is gone too.
-       */
-      for (const ownerRow of ownerRows) {
-        if (ownerRow.isTeam) {
-          await ScheduledMaintenanceOwnerTeamService.updateOneById({
-            id: ownerRow.ownerRowId,
-            data: {
-              isOwnerNotified: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        } else {
-          await ScheduledMaintenanceOwnerUserService.updateOneById({
-            id: ownerRow.ownerRowId,
-            data: {
-              isOwnerNotified: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        }
-      }
-
-      if (!scheduledMaintenance) {
-        continue;
-      }
-
-      try {
+    /*
+     * Every record's new owner rows, a page at a time, oldest first: its
+     * team rows and user rows told of together, each person once, each row
+     * taken by one run alone; the run stops between records at its deadline
+     * and the next carries on (OwnersAdded, issue #8862).
+     */
+    await tellOwnersAdded<ScheduledMaintenance>({
+      jobName: "ScheduledMaintenanceOwner:SendOwnerAddedEmail",
+      kind: OwnerNotificationKind.ScheduledMaintenanceOwnerAdded,
+      recordIdColumn: "scheduledMaintenanceId",
+      teamService: ScheduledMaintenanceOwnerTeamService,
+      userService: ScheduledMaintenanceOwnerUserService,
+      recordService: ScheduledMaintenanceService,
+      recordSelect: SCHEDULED_MAINTENANCE_SELECT,
+      deadline: deadline,
+      tell: async (
+        record: ScheduledMaintenance,
+        deliveries: Array<OwnerNotificationDelivery>,
+      ): Promise<void> => {
         await notifyOwnersAdded({
-          scheduledMaintenance: scheduledMaintenance,
+          scheduledMaintenance: record,
           deliveries: deliveries,
         });
-      } catch (e) {
-        logger.error(
-          "Error in sending scheduled maintenance event owner added notification",
-          {
-            projectId: scheduledMaintenance.projectId?.toString(),
-            scheduledMaintenanceId: scheduledMaintenance.id?.toString(),
-          },
-        );
-        logger.error(e, {
-          projectId: scheduledMaintenance.projectId?.toString(),
-          scheduledMaintenanceId: scheduledMaintenance.id?.toString(),
-        });
-      }
-    }
+      },
+    });
   },
 );
 
@@ -240,21 +107,7 @@ async function readScheduledMaintenance(
     props: {
       isRoot: true,
     },
-    select: {
-      _id: true,
-      title: true,
-      description: true,
-      projectId: true,
-      project: {
-        name: true,
-      },
-      currentScheduledMaintenanceState: {
-        name: true,
-        color: true,
-      },
-      scheduledMaintenanceNumber: true,
-      scheduledMaintenanceNumberWithPrefix: true,
-    },
+    select: SCHEDULED_MAINTENANCE_SELECT,
   });
 }
 

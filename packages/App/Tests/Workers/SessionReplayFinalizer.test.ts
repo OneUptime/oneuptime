@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from "path";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
@@ -54,7 +56,7 @@ class MockRedis {
   public zremCalls: Array<{ key: string; members: Array<string> }> = [];
   /* Every conditional-removal script call, as KEYS[1] and flat ARGV. */
   public evalCalls: Array<{ key: string; argv: Array<string> }> = [];
-  /* Every SET, with its full argument list, so lock options can be pinned. */
+  /* Every SET, with its full argument list, so its options can be pinned. */
   public setCalls: Array<Array<string | number>> = [];
   public failSmembers: boolean = false;
 
@@ -213,26 +215,14 @@ class MockRedis {
         return Promise.resolve(flat);
       },
       /*
-       * Emulates exactly two scripts: the finalizer's conditional removal and
-       * the ended job's lock release. Anything else is a test failure rather
-       * than a silent no-op.
+       * Emulates exactly one script: the finalizer's conditional removal.
+       * Anything else is a test failure rather than a silent no-op.
        */
       eval: (
         script: string,
         numKeys: number,
         ...args: Array<string | number>
       ): Promise<number> => {
-        if (
-          script === SESSION_REPLAY_ENDED_RUN_LOCK_RELEASE_SCRIPT &&
-          numKeys === 1
-        ) {
-          const lockKey: string = String(args[0]);
-          if (this.strings.get(lockKey) === String(args[1])) {
-            this.strings.delete(lockKey);
-            return Promise.resolve(1);
-          }
-          return Promise.resolve(0);
-        }
         if (
           script !== SESSION_REPLAY_REMOVE_IF_NOT_NEWER_SCRIPT ||
           numKeys !== 1
@@ -305,7 +295,6 @@ import {
   ConditionalMemberRemoval,
   discoverActiveProjectIds,
   ENDED_RUN_BUDGET_MS,
-  ENDED_RUN_LOCK_TTL_MS,
   fetchSessionCorrelation,
   finalizeEndedSessions,
   FinalizeEndedSessionsSummary,
@@ -338,8 +327,6 @@ import {
   SESSION_REPLAY_ACTIVE_PROJECTS_KEY,
   SESSION_REPLAY_ENDED_KEY_PREFIX,
   SESSION_REPLAY_ENDED_PROJECT_CURSOR_KEY,
-  SESSION_REPLAY_ENDED_RUN_LOCK_KEY,
-  SESSION_REPLAY_ENDED_RUN_LOCK_RELEASE_SCRIPT,
   SESSION_REPLAY_IDLE_FINALIZE_MS,
   SESSION_REPLAY_REMOVE_IF_NOT_NEWER_SCRIPT,
   SessionChunkAggregate,
@@ -360,6 +347,8 @@ import {
   hasTabRecordingEnded,
 } from "Common/Utils/Rum/SessionReplayRecordingEnded";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
+import logger from "Common/Server/Utils/Logger";
 import RunCron from "../../FeatureSet/Workers/Utils/Cron";
 
 /*
@@ -3126,6 +3115,68 @@ describe("Rum:FinalizeSessions expired-session loop", () => {
     await raw.sadd(SESSION_REPLAY_ACTIVE_PROJECTS_KEY, projectId.toString());
   }
 
+  test("a run whose deadline has passed finalizes nothing and leaves every member queued (#8864)", async () => {
+    const { inserted, statements } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([makeChunkRow({ chunkIndex: 0 })]),
+      headerRows: [headerRowOf()],
+    });
+
+    await seedActive(sessionId, idleSince);
+
+    const deadline: JobDeadline = new JobDeadline();
+    deadline.end();
+
+    await finalizeExpiredSessions(deadline);
+
+    expect(inserted).toHaveLength(0);
+    expect(
+      statements.filter((statement: Statement): boolean => {
+        return statement.query.includes("GROUP BY rumApplicationId, tabId");
+      }),
+    ).toHaveLength(0);
+    expect(
+      mockRedis.zsets.get(getActiveSessionsKey(projectId.toString()))?.size,
+    ).toBe(1);
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining("the run's deadline passed"),
+    );
+  });
+
+  test("a deadline that passes mid-run: the session being written is finished, the next is left for the next run (#8864)", async () => {
+    const deadline: JobDeadline = new JobDeadline();
+    const otherSessionId: string = "3a1b3c4d5e6f708192a3b4c5d6e7f809";
+
+    const { inserted } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([makeChunkRow({ chunkIndex: 0 })]),
+      headerRows: [headerRowOf()],
+      onInsert: (): void => {
+        deadline.end();
+      },
+    });
+
+    await seedActive(sessionId, idleSince - 1_000);
+    await seedActive(otherSessionId, idleSince);
+
+    await finalizeExpiredSessions(deadline);
+
+    expect(inserted).toHaveLength(1);
+    expect(
+      Array.from(
+        mockRedis.zsets
+          .get(getActiveSessionsKey(projectId.toString()))
+          ?.keys() || [],
+      ),
+    ).toHaveLength(1);
+
+    await finalizeExpiredSessions(new JobDeadline());
+
+    expect(inserted).toHaveLength(2);
+    expect(
+      mockRedis.zsets.get(getActiveSessionsKey(projectId.toString()))?.size ||
+        0,
+    ).toBe(0);
+  });
+
   test("writes the header and ZREMs the member only after a successful write", async () => {
     const { inserted } = stubClickhouse({
       tabRows: runGroupByOverChunkRows([
@@ -3464,6 +3515,55 @@ describe("Rum:SweepNeverFinalizedSessions loop", () => {
     sessionId: sessionId,
     startTimeUnixMs: String(sessionStartUnixMs),
   };
+
+  test("a run whose deadline has passed recovers nothing: the sessions are the next hour's (#8864)", async () => {
+    const { inserted, statements } = stubClickhouse({
+      sweepRows: [sweepRow],
+      tabRows: runGroupByOverChunkRows([makeChunkRow({ chunkIndex: 0 })]),
+      headerRows: [headerRowOf()],
+    });
+
+    const deadline: JobDeadline = new JobDeadline();
+    deadline.end();
+
+    const summary: {
+      scanned: number;
+      finalized: number;
+      sealedLost: number;
+      failed: number;
+    } = await sweepNeverFinalizedSessions(deadline);
+
+    expect(summary.scanned).toBe(1);
+    expect(summary.finalized).toBe(0);
+    expect(summary.sealedLost).toBe(0);
+    expect(inserted).toHaveLength(0);
+    /* Not even the project's correlation read. */
+    expect(
+      statements.some((statement: Statement): boolean => {
+        return statement.query.includes("GROUP BY sessionId");
+      }),
+    ).toBe(false);
+  });
+
+  test("a deadline that passes mid-sweep: the session being recovered is finished, the rest are left", async () => {
+    const deadline: JobDeadline = new JobDeadline();
+    const other: JSONObject = { ...sweepRow, sessionId: "c".repeat(32) };
+
+    const { inserted } = stubClickhouse({
+      sweepRows: [sweepRow, other],
+      tabRows: runGroupByOverChunkRows([makeChunkRow({ chunkIndex: 0 })]),
+      headerRows: [headerRowOf()],
+      onInsert: (): void => {
+        deadline.end();
+      },
+    });
+
+    const summary: { finalized: number; sealedLost: number; failed: number } =
+      await sweepNeverFinalizedSessions(deadline);
+
+    expect(summary.finalized).toBe(1);
+    expect(inserted).toHaveLength(1);
+  });
 
   test("finalizes a provisional session whose chunks still exist", async () => {
     const { inserted } = stubClickhouse({
@@ -4988,30 +5088,40 @@ describe("Rum:FinalizeEndedSessions loop", () => {
     expect(mockRedis.membersOf(endedKey)).toEqual([`${sessionId}:tab-a`]);
   });
 
-  describe("single flight", () => {
-    test("the lock is taken with NX and a TTL well over the worst case of one run", async () => {
-      stubClickhouse({ tabRows: [] });
+  describe("one run at a time, and the run's deadline (#8864)", () => {
+    /*
+     * RunCron runs one copy of the job at a time across every replica
+     * (CronLock) and hands each run its deadline - its time limit, or its
+     * lease lost. The single-flight lock the job took of its own is gone, and
+     * a run stops at its deadline wherever it checks its own budget.
+     */
+    test("takes no lock of its own: the run's lease covers it", async () => {
+      const { inserted } = stubClickhouse({
+        tabRows: runGroupByOverChunkRows([
+          makeChunkRow({ chunkIndex: 0, isFinal: true }),
+        ]),
+        headerRows: [headerRowOf()],
+      });
 
-      await finalizeEndedSessions();
+      seedFinalFrame(sessionId, "tab-a", settledAgo());
 
-      const lockSet: Array<string | number> | undefined =
-        mockRedis.setCalls.find((call: Array<string | number>): boolean => {
-          return call[0] === SESSION_REPLAY_ENDED_RUN_LOCK_KEY;
-        });
-
-      expect(lockSet).toBeDefined();
-      expect(lockSet!.slice(2)).toEqual(["PX", ENDED_RUN_LOCK_TTL_MS, "NX"]);
-      /* The budget plus one correlation fetch of two 58s reads, and margin. */
-      expect(ENDED_RUN_LOCK_TTL_MS).toBeGreaterThan(
-        ENDED_RUN_BUDGET_MS + 2 * 58 * 1000,
+      const summary: FinalizeEndedSessionsSummary = await finalizeEndedSessions(
+        new JobDeadline(),
       );
-      /* And the lock is gone again once the run is over. */
-      expect(mockRedis.strings.has(SESSION_REPLAY_ENDED_RUN_LOCK_KEY)).toBe(
-        false,
-      );
+
+      expect(summary.finalized).toBe(1);
+      expect(summary.stoppedAtDeadline).toBe(false);
+      expect(inserted).toHaveLength(1);
+      /* No SET NX of a lock, and no key left behind for one. */
+      expect(
+        mockRedis.setCalls.filter((call: Array<string | number>): boolean => {
+          return call.includes("NX");
+        }),
+      ).toEqual([]);
+      expect(mockRedis.strings.has("replay:finalize-ended:lock")).toBe(false);
     });
 
-    test("a run that finds the lock held skips without reading a candidate", async () => {
+    test("a run whose deadline has passed checks nothing and leaves every candidate queued", async () => {
       const { inserted, statements } = stubClickhouse({
         tabRows: runGroupByOverChunkRows([
           makeChunkRow({ chunkIndex: 0, isFinal: true }),
@@ -5019,25 +5129,98 @@ describe("Rum:FinalizeEndedSessions loop", () => {
         headerRows: [headerRowOf()],
       });
 
-      mockRedis.strings.set(SESSION_REPLAY_ENDED_RUN_LOCK_KEY, "earlier-run");
       seedFinalFrame(sessionId, "tab-a", settledAgo());
 
-      const summary: FinalizeEndedSessionsSummary =
-        await finalizeEndedSessions();
+      const deadline: JobDeadline = new JobDeadline();
+      deadline.end();
 
-      expect(summary.skippedLockHeld).toBe(true);
+      const summary: FinalizeEndedSessionsSummary =
+        await finalizeEndedSessions(deadline);
+
+      expect(summary.stoppedAtDeadline).toBe(true);
+      expect(summary.budgetExhausted).toBe(true);
       expect(summary.checked).toBe(0);
       expect(statements).toHaveLength(0);
       expect(inserted).toHaveLength(0);
       expect(mockRedis.membersOf(endedKey)).toEqual([`${sessionId}:tab-a`]);
-      /* Another run's lock is never released by this one. */
-      expect(mockRedis.strings.get(SESSION_REPLAY_ENDED_RUN_LOCK_KEY)).toBe(
-        "earlier-run",
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining("the run's deadline passed"),
       );
     });
 
-    test("overlapping runs: exactly one does the work", async () => {
+    test("a deadline that passes mid-run: the session being written is finished, no other is checked, and the next run takes the rest", async () => {
+      const deadline: JobDeadline = new JobDeadline();
+
+      const { inserted } = stubClickhouse({
+        tabRows: runGroupByOverChunkRows([
+          makeChunkRow({ chunkIndex: 0, isFinal: true }),
+        ]),
+        headerRows: [headerRowOf()],
+        onInsert: (): void => {
+          /* The run loses its lease while it writes the first header. */
+          deadline.end();
+        },
+      });
+
+      seedFinalFrame(sessionId, "tab-a", settledAgo() - 1_000);
+      seedFinalFrame(otherSessionId, "tab-a", settledAgo());
+
+      const summary: FinalizeEndedSessionsSummary =
+        await finalizeEndedSessions(deadline);
+
+      expect(summary.stoppedAtDeadline).toBe(true);
+      expect(summary.checked).toBe(1);
+      expect(summary.finalized).toBe(1);
+      expect(inserted).toHaveLength(1);
+      /* The written session's candidate is gone; the other stays queued. */
+      expect(mockRedis.membersOf(endedKey)).toEqual([
+        `${otherSessionId}:tab-a`,
+      ]);
+
+      const next: FinalizeEndedSessionsSummary = await finalizeEndedSessions(
+        new JobDeadline(),
+      );
+
+      expect(next.stoppedAtDeadline).toBe(false);
+      expect(next.checked).toBe(1);
+      expect(next.finalized).toBe(1);
+      expect(inserted).toHaveLength(2);
+      expect(mockRedis.membersOf(endedKey)).toEqual([]);
+    });
+
+    test("an ended session that would start its correlation after the deadline stays queued, unwritten", async () => {
+      const deadline: JobDeadline = new JobDeadline();
+
       const { inserted, statements } = stubClickhouse({
+        tabRows: runGroupByOverChunkRows([
+          makeChunkRow({ chunkIndex: 0, isFinal: true }),
+        ]),
+        headerRows: [headerRowOf()],
+        onAggregate: (): void => {
+          /* The deadline passes while the session's chunks are read. */
+          deadline.end();
+        },
+      });
+
+      seedFinalFrame(sessionId, "tab-a", settledAgo());
+
+      const summary: FinalizeEndedSessionsSummary =
+        await finalizeEndedSessions(deadline);
+
+      expect(summary.deferred).toBe(1);
+      expect(summary.stoppedAtDeadline).toBe(true);
+      expect(inserted).toHaveLength(0);
+      /* No correlation read was started. */
+      expect(
+        statements.some((statement: Statement): boolean => {
+          return statement.query.includes("GROUP BY sessionId");
+        }),
+      ).toBe(false);
+      expect(mockRedis.membersOf(endedKey)).toEqual([`${sessionId}:tab-a`]);
+    });
+
+    test("two runs at once - one that outlived its lease beside the next - write the same header and leave nothing queued", async () => {
+      const { inserted } = stubClickhouse({
         tabRows: runGroupByOverChunkRows([
           makeChunkRow({ chunkIndex: 0, isFinal: true }),
         ]),
@@ -5047,55 +5230,45 @@ describe("Rum:FinalizeEndedSessions loop", () => {
       seedFinalFrame(sessionId, "tab-a", settledAgo());
 
       const runs: Array<FinalizeEndedSessionsSummary> = await Promise.all([
-        finalizeEndedSessions(),
-        finalizeEndedSessions(),
+        finalizeEndedSessions(new JobDeadline()),
+        finalizeEndedSessions(new JobDeadline()),
       ]);
 
+      /* Wasted work at worst: each header is the same session, finalized. */
       expect(
-        runs.filter((run: FinalizeEndedSessionsSummary): boolean => {
-          return run.skippedLockHeld;
-        }),
-      ).toHaveLength(1);
-      expect(inserted).toHaveLength(1);
-      expect(aggregateReads(statements)).toBe(1);
-      expect(mockRedis.strings.has(SESSION_REPLAY_ENDED_RUN_LOCK_KEY)).toBe(
-        false,
-      );
+        runs.reduce((sum: number, run: FinalizeEndedSessionsSummary) => {
+          return sum + run.finalized;
+        }, 0),
+      ).toBeGreaterThanOrEqual(1);
+      expect(inserted.length).toBeGreaterThanOrEqual(1);
 
-      /* Released, so the next run does its work again. */
-      expect((await finalizeEndedSessions()).skippedLockHeld).toBe(false);
+      for (const row of inserted) {
+        expect(row["sessionId"]).toBe(sessionId);
+        expect(row["isFinalized"]).toBe(true);
+      }
+
+      expect(mockRedis.membersOf(endedKey)).toEqual([]);
     });
 
-    test("a run that overran its TTL does not release the lock a later run took", async () => {
-      stubClickhouse({
-        tabRows: runGroupByOverChunkRows([
-          makeChunkRow({ chunkIndex: 0, isFinal: true }),
-        ]),
-        headerRows: [headerRowOf()],
-        onInsert: (): void => {
-          mockRedis.strings.set(SESSION_REPLAY_ENDED_RUN_LOCK_KEY, "later-run");
-        },
-      });
-
-      seedFinalFrame(sessionId, "tab-a", settledAgo());
-
-      await finalizeEndedSessions();
-
-      expect(mockRedis.strings.get(SESSION_REPLAY_ENDED_RUN_LOCK_KEY)).toBe(
-        "later-run",
+    test("the note that the queue's timeout does not cancel a run is gone, and so is the lock", () => {
+      const source: string = fs.readFileSync(
+        path.join(
+          __dirname,
+          "..",
+          "..",
+          "FeatureSet",
+          "Workers",
+          "Jobs",
+          "Rum",
+          "FinalizeSessions.ts",
+        ),
+        "utf8",
       );
-    });
 
-    test("the lock is released even when the run throws", async () => {
-      stubClickhouse({ tabRows: [] });
-      mockRedis.failSmembers = true;
-
-      await expect(finalizeEndedSessions()).rejects.toThrow(
-        "smembers exploded",
-      );
-      expect(mockRedis.strings.has(SESSION_REPLAY_ENDED_RUN_LOCK_KEY)).toBe(
-        false,
-      );
+      expect(source).not.toContain("does not cancel a job");
+      expect(source).not.toContain("replay:finalize-ended:lock");
+      expect(source).not.toContain("SESSION_REPLAY_ENDED_RUN_LOCK");
+      expect(source).not.toContain("ENDED_RUN_LOCK_TTL_MS");
     });
   });
 
@@ -5315,7 +5488,7 @@ describe("Rum:FinalizeEndedSessions loop", () => {
       deferred: 0,
       failed: 0,
       budgetExhausted: false,
-      skippedLockHeld: false,
+      stoppedAtDeadline: false,
     });
     expect(statements).toHaveLength(0);
   });
@@ -5347,5 +5520,68 @@ describe("Rum:FinalizeSessions cron registration", () => {
   test("the idle job and the sweep are still registered", () => {
     expect(registrationOf("Rum:FinalizeSessions")).toBeDefined();
     expect(registrationOf("Rum:SweepNeverFinalizedSessions")).toBeDefined();
+  });
+
+  test("each of the three jobs hands its run's deadline on: a run whose deadline passed writes nothing (#8864)", async () => {
+    mockRedis.reset();
+
+    const { inserted } = stubClickhouse({
+      sweepRows: [
+        {
+          projectId: projectId.toString(),
+          rumApplicationId: "6600000000000000000000b2",
+          sessionId: sessionId,
+          startTimeUnixMs: String(sessionStartUnixMs),
+        },
+      ],
+      tabRows: runGroupByOverChunkRows([
+        makeChunkRow({ chunkIndex: 0, isFinal: true }),
+      ]),
+      headerRows: [headerRowOf()],
+    });
+
+    const idleSince: number =
+      Date.now() - SESSION_REPLAY_IDLE_FINALIZE_MS - 60_000;
+
+    mockRedis.seedZset(
+      getActiveSessionsKey(projectId.toString()),
+      `${sessionId}:tab-a`,
+      idleSince,
+    );
+    mockRedis.seedZset(
+      getEndedSessionsKey(projectId.toString()),
+      `${sessionId}:tab-a`,
+      idleSince,
+    );
+    mockRedis.seedSet(SESSION_REPLAY_ACTIVE_PROJECTS_KEY, projectId.toString());
+
+    const deadline: JobDeadline = new JobDeadline();
+    deadline.end();
+
+    try {
+      for (const jobName of [
+        "Rum:FinalizeSessions",
+        "Rum:FinalizeEndedSessions",
+        "Rum:SweepNeverFinalizedSessions",
+      ]) {
+        const run: (deadline?: JobDeadline) => Promise<void> = registrationOf(
+          jobName,
+        )![2] as (deadline?: JobDeadline) => Promise<void>;
+
+        await run(deadline);
+      }
+
+      expect(inserted).toHaveLength(0);
+      expect(
+        mockRedis.membersOf(getEndedSessionsKey(projectId.toString())),
+      ).toEqual([`${sessionId}:tab-a`]);
+      expect(
+        mockRedis.membersOf(getActiveSessionsKey(projectId.toString())),
+      ).toEqual([`${sessionId}:tab-a`]);
+    } finally {
+      chunkServiceStub.executeQuery = realExecuteQuery;
+      sessionServiceStub.insertJsonRows = realInsertJsonRows;
+      chunkServiceStub.database = realDatabase;
+    }
   });
 });

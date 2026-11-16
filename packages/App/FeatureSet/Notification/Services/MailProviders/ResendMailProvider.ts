@@ -9,6 +9,10 @@ import InlineImageRefusal from "./InlineImageRefusal";
 import formatMailbox, { toOneLine } from "./MailboxAddress";
 import MailProvider, { MailProviderSendOptions } from "./MailProvider";
 import EmailMessage from "Common/Types/Email/EmailMessage";
+import {
+  getCcAddresses,
+  getReplyToAddress,
+} from "Common/Types/Email/EmailRecipients";
 import EmailServer from "Common/Types/Email/EmailServer";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { EmailInlineImage } from "Common/Server/Utils/Mail/EmailInlineImages";
@@ -44,6 +48,9 @@ const PROVIDER_NAME: string = "Resend";
 export interface ResendSendEmailRequest {
   from: string;
   to: Array<string>;
+  // Who is copied, and where a reply goes (EmailRecipients, #8893).
+  cc?: Array<string>;
+  reply_to?: Array<string>;
   subject: string;
   html: string;
   text: string;
@@ -69,6 +76,8 @@ export default class ResendMailProvider implements MailProvider {
     inlineImages: Array<EmailInlineImage>;
   }): ResendSendEmailRequest {
     const html: string = data.mail.body || "";
+    const ccAddresses: Array<string> = getCcAddresses(data.mail);
+    const replyToAddress: string | null = getReplyToAddress(data.mail);
 
     return {
       from: formatMailbox({
@@ -76,6 +85,8 @@ export default class ResendMailProvider implements MailProvider {
         address: data.emailServer.fromEmail.toString(),
       }),
       to: [data.mail.toEmail.toString()],
+      ...(ccAddresses.length > 0 ? { cc: ccAddresses } : {}),
+      ...(replyToAddress ? { reply_to: [replyToAddress] } : {}),
       subject: toOneLine(data.mail.subject || ""),
       html: html,
       text: EmailPlainText.fromHtml(html),

@@ -1,5 +1,11 @@
 import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
+import OwnerNotificationBacklog, {
+  OwnerNotificationPage,
+} from "../../Utils/OwnerNotificationBacklog";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
+import User from "Common/Models/DatabaseModels/User";
+import ProjectService from "Common/Server/Services/ProjectService";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import Dictionary from "Common/Types/Dictionary";
 import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
@@ -36,7 +42,7 @@ const STATUS_PAGE_SELECT: Select<StatusPage> = {
 RunCron(
   "StatusPageOwner:SendCreatedResourceEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
-  async () => {
+  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
     /*
      * The owners a run that stopped part way left untold - a worker killed
      * between the take and the last owner (#8509) - told first, exactly
@@ -63,62 +69,82 @@ RunCron(
       },
     });
 
-    // get all scheduled events of all the projects.
-    const statusPages: Array<StatusPage> = await StatusPageService.findAllBy({
-      query: {
+    /*
+     * Every statusPage whose owners have not been told it was created, a page at a
+     * time, oldest first, each taken by one run alone and told by the run
+     * that took it; the run stops at its deadline and the next carries on
+     * (OwnerNotificationBacklog, issue #8862).
+     */
+    await OwnerNotificationBacklog.forEachToNotify<StatusPage>({
+      jobName: "StatusPageOwner:SendCreatedResourceEmail",
+      service: StatusPageService,
+      notYetNotified: {
         isOwnerNotifiedOfResourceCreation: false,
       },
-      props: {
-        isRoot: true,
+      notified: {
+        isOwnerNotifiedOfResourceCreation: true,
       },
-      skip: 0,
       select: STATUS_PAGE_SELECT,
+      deadline: deadline,
+      notify: async (input: {
+        record: StatusPage;
+        page: OwnerNotificationPage;
+        take: () => Promise<boolean>;
+      }): Promise<void> => {
+        const statusPage: StatusPage = input.record;
+        /*
+         * Whom it is to tell - its owners, or the project's when it has none -
+         * written before the take: a worker stopped from here on leaves them to
+         * be told by a later run, and one stopped before the take leaves the
+         * status page to be read again.
+         */
+        const delivery: OwnerNotificationDelivery =
+          await OwnerNotificationDeliveries.planForOwnersOf({
+            notification: {
+              kind: OwnerNotificationKind.StatusPageCreated,
+              projectId: statusPage.projectId!,
+              resourceId: statusPage.id!,
+              eventId: statusPage.id!,
+            },
+            findOwners: () => {
+              return StatusPageService.findOwners(statusPage.id!);
+            },
+            // Read once for every record of the page.
+            findProjectOwners: (): Promise<Array<User>> => {
+              return input.page.once(
+                `projectOwners:${statusPage.projectId!.toString()}`,
+                () => {
+                  return ProjectService.getOwners(statusPage.projectId!);
+                },
+              );
+            },
+            writesFeedItem: false,
+          });
+
+        /*
+         * Taken - marked notified, by one hook-free compare-and-set - before
+         * its owners are told, so one whose notification keeps failing is
+         * never read again on every run. Taken by another run first: that run
+         * tells them.
+         */
+        if (!(await input.take())) {
+          return;
+        }
+
+        try {
+          await notifyOwnersOfStatusPageCreated(statusPage, delivery);
+        } catch (e) {
+          logger.error("Error in sending status page created notification", {
+            projectId: statusPage.projectId?.toString(),
+            statusPageId: statusPage.id?.toString(),
+          });
+          logger.error(e, {
+            projectId: statusPage.projectId?.toString(),
+            statusPageId: statusPage.id?.toString(),
+          });
+        }
+      },
     });
-
-    for (const statusPage of statusPages) {
-      /*
-       * Whom it is to tell - its owners, or the project's when it has none -
-       * written before the take: a worker stopped from here on leaves them to
-       * be told by a later run, and one stopped before the take leaves the
-       * status page to be read again.
-       */
-      const delivery: OwnerNotificationDelivery =
-        await OwnerNotificationDeliveries.planForOwnersOf({
-          notification: {
-            kind: OwnerNotificationKind.StatusPageCreated,
-            projectId: statusPage.projectId!,
-            resourceId: statusPage.id!,
-            eventId: statusPage.id!,
-          },
-          findOwners: () => {
-            return StatusPageService.findOwners(statusPage.id!);
-          },
-          writesFeedItem: false,
-        });
-
-      await StatusPageService.updateOneById({
-        id: statusPage.id!,
-        data: {
-          isOwnerNotifiedOfResourceCreation: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      try {
-        await notifyOwnersOfStatusPageCreated(statusPage, delivery);
-      } catch (e) {
-        logger.error("Error in sending status page created notification", {
-          projectId: statusPage.projectId?.toString(),
-          statusPageId: statusPage.id?.toString(),
-        });
-        logger.error(e, {
-          projectId: statusPage.projectId?.toString(),
-          statusPageId: statusPage.id?.toString(),
-        });
-      }
-    }
   },
 );
 
