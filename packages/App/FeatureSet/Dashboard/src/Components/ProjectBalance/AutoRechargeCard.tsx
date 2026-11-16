@@ -54,12 +54,12 @@ export interface ComponentProps {
   onSaveSuccess?: (() => void) | undefined;
 }
 
-// The dropdowns' answers: each amount once, as "20 USD".
+// The dropdowns' answers: each amount once, as "20 USD", held to its unit (#8826).
 export const getAutoRechargeAmountOptions: () => Array<DropdownOption> =
   (): Array<DropdownOption> => {
     return AUTO_RECHARGE_AMOUNTS_IN_USD.map(
       (amount: number): DropdownOption => {
-        return { value: amount, label: `${amount} USD` };
+        return { value: amount, label: `${amount}\u00A0USD` };
       },
     );
   };
