@@ -480,4 +480,17 @@ export const ONE_WORD_RULES: ReadonlyArray<SentenceRule> = [
     word: /engine-metrie[kc]/i,
     dropped: /\bengine ?metri|\bengine-metrics/i,
   },
+  /*
+   * Hindi spells an event इवेंट, as its Event and Events keys, its glossary,
+   * 1,059 Dashboard strings and its docs do. 18 strings (Event Labels,
+   * Event Title, the trace's event attributes ...) and a few docs lines
+   * spelled it ईवेंट (#8824).
+   */
+  {
+    language: "hi",
+    thing: "Events",
+    english: /\bevents?\b/i,
+    word: /इवेंट/,
+    dropped: /ईवेंट/,
+  },
 ];

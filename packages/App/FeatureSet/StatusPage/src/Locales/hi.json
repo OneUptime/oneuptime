@@ -234,7 +234,7 @@
       "title": "वेबहुक के माध्यम से सदस्यता लें",
       "description": "हमारे सभी अपडेट इस वेबहुक URL पर JSON POST अनुरोधों के रूप में भेजे जाएँगे।",
       "webhookUrl": "वेबहुक URL",
-      "webhookUrlDescription": "प्रत्येक स्थिति पृष्ठ ईवेंट पर इस URL को एक JSON POST अनुरोध भेजा जाएगा।",
+      "webhookUrlDescription": "प्रत्येक स्थिति पृष्ठ इवेंट पर इस URL को एक JSON POST अनुरोध भेजा जाएगा।",
       "webhookUrlPlaceholder": "https://example.com/webhook"
     },
     "resources": {
