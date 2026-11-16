@@ -9,8 +9,10 @@ import StatusPageSharedReads, { SharedRead } from "./StatusPageSharedReads";
 /*
  * What a status page reads for every visitor, kept for a few seconds: the
  * rules of who may read it, what its HTML is rendered with (/seo), its
- * settings (/master-page) and the lists its tabs show - each its own cache,
- * built the way the overview's is (StatusPageOverviewCache).
+ * settings (/master-page), the lists its tabs show and each item of them
+ * opened by its id - each its own cache, built the way the overview's is
+ * (StatusPageOverviewCache), bounded by count and, for what can be large, by
+ * bytes (InMemoryLruCache).
  *
  * A visitor's view used to read Postgres for each of them on every request,
  * and the lists on every open of a tab. Each is now kept per process under
@@ -91,14 +93,6 @@ export default class StatusPageReadCache<T> {
       };
     });
     StatusPageReadCache.caches.push(this as StatusPageReadCache<unknown>);
-  }
-
-  public get kind(): string {
-    return this.options.kind;
-  }
-
-  public get ttlMs(): number {
-    return this.options.ttlMs;
   }
 
   /*
