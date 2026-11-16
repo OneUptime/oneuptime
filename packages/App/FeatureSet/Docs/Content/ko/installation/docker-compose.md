@@ -117,7 +117,7 @@ cp config.example.env config.env
 
 ### 호스트 이름 설정
 
-`config.env`를 열고 `HOST`를 사람들이 OneUptime에 접근할 때 쓸 도메인 이름이나 IP 주소로 설정합니다. `http://`는 붙이지 않습니다. `localhost`는 자신의 컴퓨터에서 OneUptime을 시험해 볼 때만 그대로 두세요.
+`config.env`를 열고 `HOST`를 사람들이 OneUptime에 접근할 때 쓸 도메인 이름이나 IP 주소로 설정합니다. `http://`는 붙이지 않습니다. `localhost`는 자신의 컴퓨터에서 OneUptime을 시험해 볼 때만 그대로 두세요. IPv6 주소는 웹 주소처럼 대괄호로 묶고, 포트가 있으면 그 뒤에 붙입니다: `HOST=[2001:db8::1]:8080`.
 
 ```ini title="config.env"
 HOST=oneuptime.example.com

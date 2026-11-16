@@ -191,9 +191,18 @@ auto_envsubst() {
 # address without brackets has no port: all its colons are its own. The rule
 # of run.sh's PRIMARY_DOMAIN, and of the app's (HostAddressUtil.stripPort in
 # Common).
+#
+# Such a HOST never works (#8022): a browser names the address in brackets,
+# which this server name never matches, and nginx answers 400 to a Host
+# without them. npm start and the Helm chart refuse it before anything starts;
+# a HOST that came another way (Compose run by hand, a deployment of one's
+# own) is said here, in the ingress's log, and nginx starts as it did.
 case "${HOST}" in
   \[*\]*) export HOST_WITHOUT_PORT="${HOST%%]*}]" ;;
-  *:*:*) export HOST_WITHOUT_PORT="${HOST}" ;;
+  *:*:*)
+    export HOST_WITHOUT_PORT="${HOST}"
+    echo "$ME: WARNING: HOST is ${HOST}, an IPv6 address without brackets, so no browser can open OneUptime at it. Set HOST=[${HOST}], with any port after the brackets, such as [2001:db8::1]:8080."
+    ;;
   *) export HOST_WITHOUT_PORT="${HOST%:*}" ;;
 esac
 
