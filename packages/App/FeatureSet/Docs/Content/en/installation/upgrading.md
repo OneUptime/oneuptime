@@ -1790,6 +1790,22 @@ working mail server.
   asked, and those of an investigation about a private record only by those
   who may read the record. See
   [Private incidents, alerts and episodes](/docs/permissions/index#private-incidents-alerts-and-episodes).
+- **OneUptime AI's code work about a private incident or alert follows its
+  owners too.** The Code tasks started from a private incident's or alert's
+  investigation or from one of its fixes, their replies and their pull
+  requests were listed to everyone who could read the repository's tasks.
+  They are now read only by those who may read the record, in Code's lists,
+  filters, searches and counts too, and once the record is deleted only by
+  Project Owners and Project Admins. Opening a pull request from a private
+  record, with **Open fix pull request** or
+  **Open a pull request to the code** or for a postmortem's action item, now
+  takes what approving its fixes takes, through the teams that own it, and
+  on the record's page those buttons are locked saying why. A fix pull
+  request about a private record no longer quotes the record's title or the
+  investigation's analysis, since everyone with access to the repository
+  reads it, and a Runner from before this release is refused such a fix:
+  update your Runners. See
+  [Private incidents, alerts and episodes](/docs/permissions/index#private-incidents-alerts-and-episodes).
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that
