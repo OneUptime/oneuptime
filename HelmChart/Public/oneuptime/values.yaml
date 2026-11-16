@@ -2410,6 +2410,12 @@ app:
     http: 3002
     grpc: 4317
     mqtt: 1883
+  # Pod resources. Every Node.js service (this one, worker, probes, home,
+  # telemetryWriter, nginx's sidecar, globalRunner, migrate) sizes its heap to
+  # resources.limits.memory: three quarters of it, 256 MB to 8096 MB, and
+  # 8096 MB without a limit. A --max-old-space-size in the service's
+  # NODE_OPTIONS (extraEnv) wins: see docs/configuration.md, "Example: the
+  # Node.js heap".
   resources:
   nodeSelector: {}
   podSecurityContext: {}
