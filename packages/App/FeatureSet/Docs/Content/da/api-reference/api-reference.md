@@ -95,6 +95,8 @@ En ressource med ejere - en monitor, en hændelse, en vagtpolitik og enhver ande
 
 `select` nævner de felter, der skal returneres, og `_id` kommer altid med. `sort` ordner dem, `ASC` eller `DESC`; uden sortering kommer de nyeste først. En liste returnerer 10 poster, medmindre du sætter `limit`, op til 10.000, og `skip` springer først så mange over: bliv ved med at hæve `skip` med `limit`, indtil du har `count` af dem. Tilføj `?output-type=csv` til en listeforespørgsel for at få CSV i stedet for JSON.
 
+Et felts rækkefølge kan også sige, hvor posterne uden en værdi i det kommer hen: `{ "declaredAt": { "direction": "DESC", "nulls": "LAST" } }` sætter de seneste først og dem uden værdi sidst, og `FIRST` sætter dem først. En relation til én post sorterer efter et felt i den post, den nævner: `{ "incidentSeverity": { "order": "ASC" } }` viser hændelser i rækkefølgen af deres alvorligheder. En relation, der kun får en retning, som i `{ "incidentSeverity": "DESC" }`, afvises med en `400`, der i stedet nævner et felt at sortere efter, og det samme gør en relation til mange poster, såsom en hændelses `labels`: hver hændelse har en liste af dem, og en liste har ikke én værdi at sætte hændelser i rækkefølge efter. At sortere efter et felt kræver også tilladelse til at læse det, gennem en relation som på selve ressourcen: en sortering efter et felt, du ikke må læse, afvises med en `422`.
+
 For eksempel de monitorer, hvis navn indeholder »checkout«, oprettet siden starten af 2026, de nyeste først:
 
 ```bash
