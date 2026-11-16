@@ -1,9 +1,10 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
-import { MigrationInterface } from "typeorm";
+import { MigrationInterface, QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { AddIncomingRequestSecret1809178800000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809178800000-AddIncomingRequestSecret";
+import { AddIncomingRequestSecretMonitorAccess1809181830000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809181830000-AddIncomingRequestSecretMonitorAccess";
 import { AddServiceLevelObjectiveRequestSli1809178700000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809178700000-AddServiceLevelObjectiveRequestSli";
 import IncomingRequestSecret from "../../../../Models/DatabaseModels/IncomingRequestSecret";
 import Project from "../../../../Models/DatabaseModels/Project";
@@ -52,6 +53,26 @@ function bodyOf(method: "up" | "down"): string {
 const UP: string = bodyOf("up");
 const DOWN: string = bodyOf("down");
 
+/*
+ * What the model declares that a later migration adds, each with the
+ * statement that adds it: which monitors a secret covers (#8501) - its mode,
+ * a column of this table, and the monitors and labels a limited secret
+ * names, each a join table of its own. They stay that migration's
+ * (AddIncomingRequestSecretMonitorAccessMigration pins it): this one stays as
+ * it shipped.
+ */
+const ADDED_LATER: ReadonlyArray<[string, string]> = [
+  ["monitorAccess", `ALTER TABLE "IncomingRequestSecret" ADD "monitorAccess" `],
+  ["monitors", `CREATE TABLE "IncomingRequestSecretMonitor" (`],
+  ["labels", `CREATE TABLE "IncomingRequestSecretLabel" (`],
+];
+
+const ADDED_LATER_COLUMNS: Array<string> = ADDED_LATER.map(
+  ([column]: [string, string]): string => {
+    return column;
+  },
+);
+
 describe("AddIncomingRequestSecret migration", () => {
   test("an upgrade requires a secret of no project", () => {
     expect(UP).toContain(
@@ -80,8 +101,39 @@ describe("AddIncomingRequestSecret migration", () => {
     });
 
     for (const column of columns) {
-      expect(create).toContain(`"${column}"`);
+      expect({ column, created: create!.includes(`"${column}"`) }).toEqual({
+        column,
+        // A later migration's column is that migration's, not this one's.
+        created: !ADDED_LATER_COLUMNS.includes(column),
+      });
     }
+  });
+
+  test("what the model declares beyond it is a later migration's, registered after this one", async () => {
+    const steps: Array<string> = [];
+
+    await new AddIncomingRequestSecretMonitorAccess1809181830000().up({
+      query: async (sql: string): Promise<void> => {
+        steps.push(sql);
+      },
+    } as unknown as QueryRunner);
+
+    for (const [column, statement] of ADDED_LATER) {
+      expect({
+        column,
+        added: steps.some((step: string): boolean => {
+          return step.startsWith(statement);
+        }),
+      }).toEqual({ column, added: true });
+    }
+
+    expect(
+      SchemaMigrations.indexOf(
+        AddIncomingRequestSecretMonitorAccess1809181830000,
+      ),
+    ).toBeGreaterThan(
+      SchemaMigrations.indexOf(AddIncomingRequestSecret1809178800000),
+    );
   });
 
   test("the secret is NOT NULL text, with room for its ciphertext", () => {
