@@ -8,6 +8,7 @@ import Query from "Common/Server/Types/Database/Query";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Select from "Common/Server/Types/Database/Select";
 import logger from "Common/Server/Utils/Logger";
+import { logMonitorEvaluationError } from "Common/Server/Utils/Monitor/NonActionableIngestError";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
 
@@ -83,13 +84,19 @@ export default async function runMonitorSweep(data: {
             async (): Promise<void> => {
               while (nextIndex < monitors.length && mutex.isAcquired) {
                 const monitor: Monitor = monitors[nextIndex++]!;
+                /*
+                 * A monitor paused, archived or disabled since this page
+                 * was read is refused by MonitorResource, as expected:
+                 * logged at debug, and the sweep goes on
+                 * (logMonitorEvaluationError, issue #8069).
+                 */
                 try {
                   await data.processMonitor(monitor);
                 } catch (error) {
-                  logger.error(
-                    `${data.jobName}: error processing monitor ${monitor.id}`,
-                  );
-                  logger.error(error);
+                  logMonitorEvaluationError({
+                    error: error,
+                    message: `${data.jobName}: error processing monitor ${monitor.id}`,
+                  });
                 }
               }
             },

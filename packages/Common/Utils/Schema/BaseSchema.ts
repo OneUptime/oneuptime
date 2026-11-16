@@ -1,5 +1,6 @@
 import { z as ZodTypes } from "zod";
 import z, { ZodSchema } from "./Zod";
+import SortNulls from "../../Types/BaseDatabase/SortNulls";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 
 export type BaseSchemaType = ZodSchema;
@@ -50,6 +51,49 @@ const SORT_ORDER_SCHEMA: ZodTypes.ZodTypeAny = z
     example: SortOrder.Descending,
   });
 
+/*
+ * How a field of a database record orders a list (#8141, #8840): ASC or
+ * DESC, or { direction, nulls } to say where the records with no value go.
+ * Published once, as SortFieldOrder, which every such field refers to, so
+ * the spec does not spell it out thousands of times.
+ *
+ * What the API reads as written (SortValidator.isFieldOrder) takes more -
+ * "asc", 1, -1, a lower-case "last", a nulls with no direction - and this
+ * is the part of it a client is offered: what each SDK and the Terraform
+ * provider type a sort as. A telemetry list orders by ASC or DESC only
+ * (StatementGenerator.toSortStatement), so AnalyticsModelSchema keeps
+ * SortOrder.
+ */
+export const SORT_FIELD_ORDER_SCHEMA: ZodTypes.ZodTypeAny = z
+  .union([
+    SORT_ORDER_SCHEMA,
+    z
+      .object({
+        direction: SORT_ORDER_SCHEMA,
+        nulls: z.enum([SortNulls.First, SortNulls.Last]).optional().openapi({
+          description:
+            "Where the records with no value in this field go: FIRST or LAST. Left out, PostgreSQL puts them last in an ascending sort and first in a descending one.",
+        }),
+      })
+      .openapi({ additionalProperties: false }),
+  ])
+  .openapi("SortFieldOrder", {
+    description:
+      'How a field orders a list: ASC or DESC, or { "direction": "DESC", "nulls": "LAST" } to say where the records with no value in it go.',
+    example: { direction: SortOrder.Descending, nulls: SortNulls.Last },
+  });
+
+/*
+ * What a sort may name of a model: a column, ordered by `type`, or a
+ * relation, which sorts by the fields of the related record its `schema`
+ * names.
+ */
+export interface SortColumn {
+  key: string;
+  type: any;
+  schema?: ZodTypes.ZodTypeAny | undefined;
+}
+
 /**
  * Base class for schema generation with common functionality
  * Both ModelSchema and AnalyticsModelSchema extend this class
@@ -61,34 +105,48 @@ const SORT_ORDER_SCHEMA: ZodTypes.ZodTypeAny = z
  */
 export abstract class BaseSchema {
   /**
-   * Generate a sort schema for a model
+   * Generate a sort schema for a model: each column of a sortable type
+   * takes `fieldOrderSchema` (ASC or DESC, unless given more), and a
+   * relation the schema its column carries.
    */
   protected static generateSortSchema<T>(data: {
     model: T;
     tableName?: string;
     getSortableTypes: () => Array<any>;
-    getColumnsForSorting: (model: T) => Array<{ key: string; type: any }>;
+    getColumnsForSorting: (model: T) => Array<SortColumn>;
+    fieldOrderSchema?: ZodTypes.ZodTypeAny;
+    description?: string;
     disableOpenApiSchema?: boolean;
   }): BaseSchemaType {
     const shape: ShapeRecord = {};
-    const columns: Array<{ key: string; type: any }> =
-      data.getColumnsForSorting(data.model);
+    const columns: Array<SortColumn> = data.getColumnsForSorting(data.model);
+    const fieldOrderSchema: ZodTypes.ZodTypeAny =
+      data.fieldOrderSchema || SORT_ORDER_SCHEMA;
 
     for (const column of columns) {
       const key: string = column.key;
+
+      // A relation: what it says of its related record is all it takes.
+      if (column.schema) {
+        shape[key] = column.schema.optional();
+        continue;
+      }
+
       const isSortable: boolean = data.getSortableTypes().includes(column.type);
 
       if (!isSortable) {
         continue;
       }
 
-      shape[key] = SORT_ORDER_SCHEMA.optional();
+      shape[key] = fieldOrderSchema.optional();
     }
 
     return this.applyOpenApi(
       z.object(shape),
       {
-        description: `Sort schema for ${data.tableName || "model"}. Only sortable fields are included.`,
+        description:
+          data.description ||
+          `Sort schema for ${data.tableName || "model"}. Only sortable fields are included.`,
         example: shape["createdAt"] ? { createdAt: SortOrder.Descending } : {},
         additionalProperties: false,
       },

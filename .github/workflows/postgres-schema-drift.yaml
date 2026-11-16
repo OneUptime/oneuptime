@@ -3445,7 +3445,11 @@ jobs:
       # stopped before an owner's send, during it and before the take, then
       # started again, and two of them at once on connections of their own,
       # on the real delivery service and a copy of the migrated
-      # OwnerNotificationDelivery table: each owner is told once.
+      # OwnerNotificationDelivery table: each owner is told once. #7974: the
+      # state change jobs' backlog - a page at a time, oldest first, each
+      # status change taken by one statement, by one of two runs at once,
+      # and a run stopped at its deadline - on a copy of the migrated
+      # MonitorStatusTimeline table.
       - name: Test the owner notification jobs stopped and started again on migrated Postgres
         if: matrix.shard == 3
         working-directory: packages/App
@@ -3456,7 +3460,9 @@ jobs:
           OWNER_NOTIFICATION_JOB_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
-          Tests/Workers/Jobs/OwnerNotificationJobsPostgres.test.ts --forceExit
+          Tests/Workers/Jobs/OwnerNotificationJobsPostgres.test.ts
+          Tests/Workers/Utils/OwnerNotificationBacklogPostgres.test.ts
+          --forceExit
 
       # A bundled global probe upgraded from the key the repository ships, end
       # to end: HTTP requests to the probe registration, heartbeat and

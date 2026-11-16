@@ -1,5 +1,8 @@
 import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
+import OwnerNotificationBacklog, {
+  OwnerNotificationPage,
+} from "../../Utils/OwnerNotificationBacklog";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
@@ -30,7 +33,11 @@ import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppT
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
 import Select from "Common/Server/Types/Database/Select";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 import logger from "Common/Server/Utils/Logger";
+import ProjectService from "Common/Server/Services/ProjectService";
+import User from "Common/Models/DatabaseModels/User";
+import ObjectID from "Common/Types/ObjectID";
 import OwnerNotificationDeliveries, {
   OwnerNotificationDelivery,
 } from "Common/Server/Utils/Notification/OwnerNotificationDeliveries";
@@ -64,7 +71,7 @@ const STATE_TIMELINE_SELECT: Select<ScheduledMaintenanceStateTimeline> = {
 RunCron(
   "ScheduledMaintenanceOwner:SendStateChangeEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
-  async () => {
+  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
     /*
      * The owners a run that stopped part way left untold - a worker killed
      * between the take and the last owner (#8509) - told first, exactly
@@ -90,99 +97,148 @@ RunCron(
           return;
         }
 
-        await notifyOwnersOfStateChange(
-          scheduledMaintenanceStateTimeline,
-          delivery,
-        );
+        await notifyOwnersOfStateChange({
+          scheduledMaintenanceStateTimeline: scheduledMaintenanceStateTimeline,
+          delivery: delivery,
+          page: new OwnerNotificationPage(),
+        });
       },
     });
 
-    // get all scheduled events of all the projects.
-
-    const scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
-      await ScheduledMaintenanceStateTimelineService.findAllBy({
-        query: {
+    /*
+     * Every state change nobody has been told about yet, a page at a time,
+     * oldest first, each taken by one run alone and told by the run that
+     * took it; the run stops at its deadline and the next carries on
+     * (OwnerNotificationBacklog, issue #7974).
+     */
+    await OwnerNotificationBacklog.forEachToNotify<ScheduledMaintenanceStateTimeline>(
+      {
+        jobName: "ScheduledMaintenanceOwner:SendStateChangeEmail",
+        service: ScheduledMaintenanceStateTimelineService,
+        notYetNotified: {
           isOwnerNotified: false,
         },
-        props: {
-          isRoot: true,
+        notified: {
+          isOwnerNotified: true,
         },
-        skip: 0,
         select: STATE_TIMELINE_SELECT,
-      });
+        deadline: deadline,
+        notify: async (input: {
+          record: ScheduledMaintenanceStateTimeline;
+          page: OwnerNotificationPage;
+          take: () => Promise<boolean>;
+        }): Promise<void> => {
+          await notifyOfStateChange({
+            scheduledMaintenanceStateTimeline: input.record,
+            page: input.page,
+            take: input.take,
+          });
+        },
+      },
+    );
+  },
+);
 
-    for (const scheduledMaintenanceStateTimeline of scheduledMaintenanceStateTimelines) {
-      const scheduledMaintenance: ScheduledMaintenance | undefined =
-        scheduledMaintenanceStateTimeline.scheduledMaintenance;
+/*
+ * One state change read by the run: whom it tells planned, the state change
+ * taken, and - when this run took it - its owners told.
+ */
+async function notifyOfStateChange(data: {
+  scheduledMaintenanceStateTimeline: ScheduledMaintenanceStateTimeline;
+  page: OwnerNotificationPage;
+  take: () => Promise<boolean>;
+}): Promise<void> {
+  const scheduledMaintenanceStateTimeline: ScheduledMaintenanceStateTimeline =
+    data.scheduledMaintenanceStateTimeline;
+  const page: OwnerNotificationPage = data.page;
 
-      /*
-       * Whom it is to tell - the event's owners, or the project's when it
-       * has none - written before the take: a worker stopped from here on
-       * leaves them to be told by a later run, and one stopped before the
-       * take leaves the state change to be read again.
-       */
-      const delivery: OwnerNotificationDelivery | null = scheduledMaintenance
-        ? await OwnerNotificationDeliveries.planForOwnersOf({
-            notification: {
-              kind: OwnerNotificationKind.ScheduledMaintenanceStateChanged,
-              projectId: scheduledMaintenanceStateTimeline.projectId!,
-              resourceId: scheduledMaintenance.id!,
-              eventId: scheduledMaintenanceStateTimeline.id!,
-            },
-            findOwners: () => {
+  const scheduledMaintenance: ScheduledMaintenance | undefined =
+    scheduledMaintenanceStateTimeline.scheduledMaintenance;
+
+  /*
+   * Whom it is to tell - the event's owners, or the project's when it
+   * has none - written before the take: a worker stopped from here on
+   * leaves them to be told by a later run, and one stopped before the
+   * take leaves the state change to be read again.
+   */
+  const delivery: OwnerNotificationDelivery | null = scheduledMaintenance
+    ? await OwnerNotificationDeliveries.planForOwnersOf({
+        notification: {
+          kind: OwnerNotificationKind.ScheduledMaintenanceStateChanged,
+          projectId: scheduledMaintenanceStateTimeline.projectId!,
+          resourceId: scheduledMaintenance.id!,
+          eventId: scheduledMaintenanceStateTimeline.id!,
+        },
+        // Each read once for every state change of the page.
+        findOwners: (): Promise<Array<User>> => {
+          return page.once(
+            `owners:${scheduledMaintenance.id!.toString()}`,
+            () => {
               return ScheduledMaintenanceService.findOwners(
                 scheduledMaintenance.id!,
               );
             },
-            writesFeedItem: true,
-          })
-        : null;
-
-      await ScheduledMaintenanceStateTimelineService.updateOneById({
-        id: scheduledMaintenanceStateTimeline.id!,
-        data: {
-          isOwnerNotified: true,
+          );
         },
-        props: {
-          isRoot: true,
+        findProjectOwners: (): Promise<Array<User>> => {
+          return page.once(
+            `projectOwners:${scheduledMaintenanceStateTimeline.projectId!.toString()}`,
+            () => {
+              return ProjectService.getOwners(
+                scheduledMaintenanceStateTimeline.projectId!,
+              );
+            },
+          );
         },
-      });
+        writesFeedItem: true,
+      })
+    : null;
 
-      if (!delivery) {
-        continue;
-      }
+  // Taken by another run first, or gone: that run tells the owners.
+  if (!(await data.take())) {
+    return;
+  }
 
-      try {
-        await notifyOwnersOfStateChange(
-          scheduledMaintenanceStateTimeline,
-          delivery,
-        );
-      } catch (e) {
-        logger.error(
-          "Error in sending scheduled maintenance state change notification",
-          {
-            projectId: scheduledMaintenanceStateTimeline.projectId?.toString(),
-            scheduledMaintenanceId: scheduledMaintenance?.id?.toString(),
-          },
-        );
-        logger.error(e, {
-          projectId: scheduledMaintenanceStateTimeline.projectId?.toString(),
-          scheduledMaintenanceId: scheduledMaintenance?.id?.toString(),
-        });
-      }
-    }
-  },
-);
+  if (!delivery) {
+    return;
+  }
+
+  try {
+    await notifyOwnersOfStateChange({
+      scheduledMaintenanceStateTimeline: scheduledMaintenanceStateTimeline,
+      delivery: delivery,
+      page: page,
+    });
+  } catch (e) {
+    logger.error(
+      "Error in sending scheduled maintenance state change notification",
+      {
+        projectId: scheduledMaintenanceStateTimeline.projectId?.toString(),
+        scheduledMaintenanceId: scheduledMaintenance?.id?.toString(),
+      },
+    );
+    logger.error(e, {
+      projectId: scheduledMaintenanceStateTimeline.projectId?.toString(),
+      scheduledMaintenanceId: scheduledMaintenance?.id?.toString(),
+    });
+  }
+}
 
 /*
  * Tells the delivery's owners that the maintenance event's state changed,
  * each once (OwnerNotificationDelivery.tell), and says in the event's feed
  * whom it reached - those a stopped run told first among them.
  */
-async function notifyOwnersOfStateChange(
-  scheduledMaintenanceStateTimeline: ScheduledMaintenanceStateTimeline,
-  delivery: OwnerNotificationDelivery,
-): Promise<void> {
+async function notifyOwnersOfStateChange(data: {
+  scheduledMaintenanceStateTimeline: ScheduledMaintenanceStateTimeline;
+  delivery: OwnerNotificationDelivery;
+  // What the state changes of one page read once, for all of them.
+  page: OwnerNotificationPage;
+}): Promise<void> {
+  const scheduledMaintenanceStateTimeline: ScheduledMaintenanceStateTimeline =
+    data.scheduledMaintenanceStateTimeline;
+  const delivery: OwnerNotificationDelivery = data.delivery;
+
   if (!delivery.hasWorkToDo) {
     return;
   }
@@ -225,16 +281,25 @@ async function notifyOwnersOfStateChange(
       });
 
     if (previousTimeline?.scheduledMaintenanceStateId) {
-      previousState = await ScheduledMaintenanceStateService.findOneById({
-        id: previousTimeline.scheduledMaintenanceStateId,
-        props: {
-          isRoot: true,
+      const previousStateId: ObjectID =
+        previousTimeline.scheduledMaintenanceStateId;
+
+      // A project's few states, each read once for the page.
+      previousState = await data.page.once(
+        `scheduledMaintenanceState:${previousStateId.toString()}`,
+        (): Promise<ScheduledMaintenanceState | null> => {
+          return ScheduledMaintenanceStateService.findOneById({
+            id: previousStateId,
+            props: {
+              isRoot: true,
+            },
+            select: {
+              name: true,
+              color: true,
+            },
+          });
         },
-        select: {
-          name: true,
-          color: true,
-        },
-      });
+      );
 
       /*
        * Calculate how long the scheduled maintenance was in the previous state

@@ -6082,7 +6082,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
       throw new BadDataException(
         `Adjustment amount cannot be more than ${
           MAX_BALANCE_ADJUSTMENT_IN_USD_CENTS / 100
-        } USD in a single adjustment`,
+        }\u00A0USD in a single adjustment`,
       );
     }
 
@@ -6129,9 +6129,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
        */
       if (newBalanceInUSDCents < 0) {
         throw new BadDataException(
-          `Cannot deduct ${data.amountInUSDCents / 100} USD - the balance is only ${
+          `Cannot deduct ${data.amountInUSDCents / 100}\u00A0USD - the balance is only ${
             previousBalanceInUSDCents / 100
-          } USD`,
+          }\u00A0USD`,
         );
       }
     }

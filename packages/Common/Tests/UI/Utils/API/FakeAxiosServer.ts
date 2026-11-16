@@ -40,6 +40,35 @@ export interface FakeReply {
   gate?: Promise<void> | undefined;
 }
 
+/*
+ * The identity server's answer to a renewal it made (POST
+ * /identity/refresh-token, Identity/API/Authentication.ts): the session's
+ * new tokens beside the cookies it sets. A 200 without them is no renewal
+ * (BaseAPI.isSessionRenewalAnswer, issue #8838), so a fake renewal that
+ * succeeds answers this.
+ */
+export const RENEWED_SESSION: FakeReply = {
+  status: 200,
+  data: {
+    accessToken: "renewed-access-token",
+    refreshToken: "renewed-refresh-token",
+    refreshTokenExpiresAt: "2026-12-16T09:00:00.000Z",
+  },
+};
+
+/*
+ * A private status page's answer to a renewal it made (StatusPageAuthentication's
+ * /refresh-token/:statuspageid): the reader, with the new access token
+ * under _miscData.token (the status page's API.isSessionRenewalAnswer).
+ */
+export const RENEWED_STATUS_PAGE_SESSION: FakeReply = {
+  status: 200,
+  data: {
+    _id: "status-page-reader",
+    _miscData: { token: "renewed-status-page-token" },
+  },
+};
+
 export interface SentRequest {
   method: string;
   url: string;

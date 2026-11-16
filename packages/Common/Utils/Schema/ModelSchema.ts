@@ -15,6 +15,8 @@ import {
   BaseSchema,
   SchemaExample,
   ShapeRecord,
+  SORT_FIELD_ORDER_SCHEMA,
+  SortColumn,
 } from "./BaseSchema";
 import {
   getColorSchema,
@@ -33,6 +35,9 @@ import MonitorType from "../../Types/Monitor/MonitorType";
 import WorkflowStatus from "../../Types/Workflow/WorkflowStatus";
 import CustomFieldType from "../../Types/CustomField/CustomFieldType";
 import { getApiSingularName } from "../ModelApiName";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import { isOwnerOnlyColumn } from "../../Types/Database/AccessControl/OwnerOnlyColumn";
+import { ListOrderSettings } from "../../Types/Database/ListOrderColumn";
 
 export type ModelSchemaType = ZodSchema;
 
@@ -172,6 +177,16 @@ const QUERY_FILTER_SCHEMAS: Map<TableColumnType, ZodTypes.ZodTypeAny> =
 
 // Each model's relation select, built once (getRelationSelectSchema).
 const RELATION_SELECT_SCHEMAS: Map<string, ModelSchemaType> = new Map();
+
+/*
+ * Each model's relation sort and the fields it names, built once
+ * (getRelationSortSchema, getRelationSortFields).
+ */
+const RELATION_SORT_SCHEMAS: Map<string, ModelSchemaType> = new Map();
+const RELATION_SORT_FIELDS: Map<string, Array<string>> = new Map();
+
+// What a related record is called by, after the column its model declares.
+const NAME_FIELDS: ReadonlyArray<string> = ["name", "title"];
 
 const EXAMPLE_ID: string = "123e4567-e89b-12d3-a456-426614174000";
 
@@ -781,13 +796,30 @@ export class ModelSchema extends BaseSchema {
     return references;
   }
 
+  /*
+   * The column types a sort is offered on: those that hold one plain value,
+   * text, a number, a time or a flag, which the database orders as people
+   * read them. Every number is one: a severity's place in its list is a
+   * small number (IncidentSeverity.order), which
+   * { "incidentSeverity": { "order": "ASC" } } sorts incidents by. A domain
+   * is a name: a status page's domains sort by theirs, A to Z, which the
+   * API's refusal of { "domain": "ASC" } tells a caller to send. The API
+   * orders by any column (SortValidator); this is what the spec offers.
+   */
   public static getSortableTypes(): Array<TableColumnType> {
     return [
       TableColumnType.VeryLongText,
       TableColumnType.Slug,
       TableColumnType.ShortText,
       TableColumnType.LongText,
+      TableColumnType.Name,
+      TableColumnType.Domain,
       TableColumnType.Number,
+      TableColumnType.SmallNumber,
+      TableColumnType.SmallPositiveNumber,
+      TableColumnType.PositiveNumber,
+      TableColumnType.BigNumber,
+      TableColumnType.BigPositiveNumber,
       TableColumnType.Date,
       TableColumnType.Boolean,
       TableColumnType.Description,
@@ -1104,28 +1136,210 @@ export class ModelSchema extends BaseSchema {
     return readable;
   }
 
+  /*
+   * What a list of the model may be sorted by, as the API reads a sort
+   * (SortValidator, #8141). Published as <Table>SortSchema:
+   *
+   *   - a column somebody may read, of a type that orders
+   *     (getSortableTypes), takes SortFieldOrder: "ASC" or "DESC", or
+   *     { "direction": "DESC", "nulls": "LAST" };
+   *   - a relation of one record somebody may read takes its related
+   *     model's <Table>RelationSortSchema, the fields of the related record
+   *     a relation read may name: { "incidentSeverity": { "order": "ASC" } };
+   *   - a relation of many records is left out: each record holds a list of
+   *     them, which has no one value to put a list in order by, and the API
+   *     refuses it.
+   *
+   * Nothing else (additionalProperties: false). Every sort this allows,
+   * the API takes: Tests/Utils/Schema/ModelSchemaSort holds the two
+   * together for every model.
+   */
   public static getSortModelSchema(data: {
     modelType: new () => DatabaseBaseModel;
     disableOpenApiSchema?: boolean;
   }): ModelSchemaType {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
+    const tableName: string = model.tableName || "model";
 
     return this.generateSortSchema({
       model,
-      tableName: model.tableName || "model",
+      tableName: tableName,
       getSortableTypes: () => {
         return this.getSortableTypes();
       },
       getColumnsForSorting: (model: DatabaseBaseModel) => {
-        return this.getReadableColumns(model).map(
-          ({ key, column }: ReadableColumn) => {
-            return { key, type: column.type };
-          },
-        );
+        return this.getSortColumns(model);
       },
+      fieldOrderSchema: SORT_FIELD_ORDER_SCHEMA,
+      description: `Sort schema for ${tableName}: a field and its order, or a relation of one record and a field of the related record.`,
       disableOpenApiSchema: data.disableOpenApiSchema || false,
     });
+  }
+
+  /*
+   * The columns of `model` a sort may name, and its relations of one record
+   * with the schema of the related record's fields, in the order the model
+   * declares them.
+   */
+  private static getSortColumns(model: DatabaseBaseModel): Array<SortColumn> {
+    const readable: Set<string> = new Set(
+      this.getReadableColumns(model).map(({ key }: ReadableColumn): string => {
+        return key;
+      }),
+    );
+    const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
+    const accessControl: Dictionary<ColumnAccessControl> =
+      model.getColumnAccessControlForAllColumns();
+    const sortColumns: Array<SortColumn> = [];
+
+    for (const key in columns) {
+      const column: TableColumnMetadata | undefined = columns[key];
+
+      if (!column) {
+        continue;
+      }
+
+      if (readable.has(key)) {
+        sortColumns.push({ key, type: column.type });
+        continue;
+      }
+
+      // A relation of one record, read as the columns are: by somebody.
+      if (
+        column.type !== TableColumnType.Entity ||
+        !column.modelType ||
+        column.hideColumnInDocumentation ||
+        (accessControl[key]?.read || []).length === 0
+      ) {
+        continue;
+      }
+
+      const relatedModelType: new () => DatabaseBaseModel =
+        column.modelType as new () => DatabaseBaseModel;
+
+      // A related record with no field to sort by sorts nothing.
+      if (this.getRelationSortFields(relatedModelType).length === 0) {
+        continue;
+      }
+
+      sortColumns.push({
+        key,
+        type: column.type,
+        schema: this.getRelationSortSchema(relatedModelType),
+      });
+    }
+
+    return sortColumns;
+  }
+
+  /*
+   * The fields of a model's records a sort through a relation may name
+   * (#8840): those a relation read may name (isReadOnRelationQuery: the
+   * columns marked canReadOnRelationQuery, which any reader of the relation
+   * may read, and the ids and times), of a type that orders. Not a secret,
+   * whose stored value orders nothing a person reads, nor a column kept to
+   * its owner (OwnerOnlyColumn), which a relation read refuses most callers.
+   * The fields SortValidator's refusals offer through a relation are of
+   * these.
+   */
+  public static getRelationSortFields(
+    modelType: new () => DatabaseBaseModel,
+  ): Array<string> {
+    const model: DatabaseBaseModel = new modelType();
+    const tableName: string = model.tableName || "model";
+
+    let fields: Array<string> | undefined = RELATION_SORT_FIELDS.get(tableName);
+
+    if (fields) {
+      return fields;
+    }
+
+    const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
+    const sortableTypes: Array<TableColumnType> = this.getSortableTypes();
+
+    fields = Object.keys(columns).filter((key: string): boolean => {
+      const column: TableColumnMetadata = columns[key]!;
+
+      return (
+        this.isReadOnRelationQuery(model, key, column) &&
+        sortableTypes.includes(column.type) &&
+        !this.isSecretColumn(column) &&
+        !column.hashed &&
+        !column.encrypted &&
+        !isOwnerOnlyColumn(model, key)
+      );
+    });
+
+    RELATION_SORT_FIELDS.set(tableName, fields);
+
+    return fields;
+  }
+
+  /*
+   * What a sort may name of the record a relation of one record points at:
+   * its fields a relation sort may name (getRelationSortFields), each with
+   * its order. Built once for each model and published as
+   * <Table>RelationSortSchema, which every relation to its records refers
+   * to, as a relation select is (getRelationSelectSchema): spelled out on
+   * each relation of each model, the spec would grow by all of them.
+   */
+  public static getRelationSortSchema(
+    modelType: new () => DatabaseBaseModel,
+  ): ModelSchemaType {
+    const model: DatabaseBaseModel = new modelType();
+    const tableName: string = model.tableName || "model";
+
+    let schema: ModelSchemaType | undefined =
+      RELATION_SORT_SCHEMAS.get(tableName);
+
+    if (schema) {
+      return schema;
+    }
+
+    const fields: Array<string> = this.getRelationSortFields(modelType);
+    const shape: ShapeRecord = {};
+
+    for (const field of fields) {
+      shape[field] = SORT_FIELD_ORDER_SCHEMA.optional();
+    }
+
+    const example: SchemaExample = this.getRelationSortExample(model, fields);
+
+    schema = z.object(shape).openapi(`${tableName}RelationSortSchema`, {
+      description: `What a sort may name of the ${tableName} a relation of one record points at: a field of it and its order, as in ${JSON.stringify(example)}.`,
+      example: example,
+      additionalProperties: false,
+    }) as ModelSchemaType;
+
+    RELATION_SORT_SCHEMAS.set(tableName, schema);
+
+    return schema;
+  }
+
+  /*
+   * A related record's field to show sorting by: its place in its list, for
+   * a record people put in order (a severity, a state); else what it is
+   * called by; else when it was created.
+   */
+  private static getRelationSortExample(
+    model: DatabaseBaseModel,
+    fields: Array<string>,
+  ): SchemaExample {
+    const listOrder: ListOrderSettings | null = model.getListOrder();
+
+    if (listOrder && fields.includes(listOrder.column)) {
+      return { [listOrder.column]: listOrder.sortOrder };
+    }
+
+    const field: string | undefined =
+      [model.getDisplayNameColumn(), ...NAME_FIELDS, "createdAt"].find(
+        (name: string | null): name is string => {
+          return Boolean(name && fields.includes(name));
+        },
+      ) || fields[0];
+
+    return field ? { [field]: SortOrder.Ascending } : {};
   }
 
   public static getSelectModelSchema(data: {
@@ -1193,28 +1407,7 @@ export class ModelSchema extends BaseSchema {
     for (const key in columns) {
       const column: TableColumnMetadata | undefined = columns[key];
 
-      if (
-        !column ||
-        column.type === TableColumnType.Entity ||
-        column.type === TableColumnType.EntityArray ||
-        column.hideColumnInDocumentation
-      ) {
-        continue;
-      }
-
-      /*
-       * An id or a time is read with the model's own read permissions, which
-       * a model read through other records only (a File) does not have.
-       */
-      const readers: Array<Permission> =
-        model.getColumnAccessControlFor(key)?.read ||
-        model.getReadPermissions() ||
-        [];
-
-      if (
-        column.canReadOnRelationQuery ||
-        (ALWAYS_READABLE_COLUMNS.includes(key) && readers.length > 0)
-      ) {
+      if (column && this.isReadOnRelationQuery(model, key, column)) {
         shape[key] = z.boolean().optional();
       }
     }
@@ -1228,6 +1421,41 @@ export class ModelSchema extends BaseSchema {
     RELATION_SELECT_SCHEMAS.set(tableName, schema);
 
     return schema;
+  }
+
+  /*
+   * Whether a read through a relation may name `key` of `model`'s records,
+   * as the API checks it (QueryPermission.checkRelationQueryPermission): a
+   * column marked canReadOnRelationQuery, or an id or a time. Not a
+   * relation of its own - a read goes one relation deep - nor a column the
+   * documentation hides.
+   */
+  private static isReadOnRelationQuery(
+    model: DatabaseBaseModel,
+    key: string,
+    column: TableColumnMetadata,
+  ): boolean {
+    if (
+      column.type === TableColumnType.Entity ||
+      column.type === TableColumnType.EntityArray ||
+      column.hideColumnInDocumentation
+    ) {
+      return false;
+    }
+
+    /*
+     * An id or a time is read with the model's own read permissions, which
+     * a model read through other records only (a File) does not have.
+     */
+    const readers: Array<Permission> =
+      model.getColumnAccessControlFor(key)?.read ||
+      model.getReadPermissions() ||
+      [];
+
+    return (
+      Boolean(column.canReadOnRelationQuery) ||
+      (ALWAYS_READABLE_COLUMNS.includes(key) && readers.length > 0)
+    );
   }
 
   /*

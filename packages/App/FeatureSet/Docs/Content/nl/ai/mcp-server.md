@@ -361,6 +361,8 @@ De operatoren zijn `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, 
 
 De tools `list_` en `count_` nemen elk veld, waardoor de lijst met tools klein genoeg blijft om in één keer door een client te worden geladen. Om de velden van een resource te zien, wat elk veld betekent en welke operatoren het neemt, roept een agent `oneuptime_describe_resource` aan met de resource of een van de tools ervan, zoals `Incident` of `list_incidents`.
 
+De andere `list_`-tools, voor incidenten, monitors en elk ander soort record, sorteren zoals de API dat doet: een veld krijgt een richting, of `{ "direction": "DESC", "nulls": "LAST" }` om de records zonder waarde erin achteraan te zetten, en een relatie met één record sorteert op een veld van het record dat ze noemt, zoals in `{ "incidentSeverity": { "order": "ASC" } }`. `oneuptime_describe_resource` markeert elke zulke relatie met `sort` en noemt de velden waarop ze sorteert onder `sortBy`.
+
 ## Veldselectie en paginering
 
 De tools `get_` en `list_` nemen een optionele array `select` met veldnamen. Standaard komt elk leesbaar veld terug, behalve de zware (JSON-, zeer lange tekst- en HTML-kolommen), die in `select` moeten worden opgevraagd.

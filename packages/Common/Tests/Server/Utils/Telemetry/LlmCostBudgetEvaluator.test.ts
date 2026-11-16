@@ -21,6 +21,7 @@ import MetricService from "../../../../Server/Services/MetricService";
 import SpanService from "../../../../Server/Services/SpanService";
 import TelemetryUtil from "../../../../Server/Utils/Telemetry/Telemetry";
 import { Statement } from "../../../../Server/Utils/AnalyticsDatabase/Statement";
+import JobDeadline from "../../../../Server/Utils/JobDeadline";
 /*
  * `jest` deliberately comes from the global scope, not @jest/globals — the
  * imported value would shadow the global `jest` NAMESPACE and break the
@@ -636,6 +637,82 @@ describe("LlmCostBudgetEvaluator.evaluateAllBudgets — sweep resilience", () =>
       query: Record<string, unknown>;
     };
     expect(findArg.query["isEnabled"]).toBe(true);
+  });
+});
+
+/*
+ * A sweep stops at the run's deadline (issue #8103): its time limit, or its
+ * lease lost (RunCron, CronLock). The budget in flight finishes; no further
+ * one starts, and the next tick evaluates every budget again. The job takes
+ * no lock of its own any more: RunCron runs one sweep at a time.
+ */
+describe("LlmCostBudgetEvaluator.evaluateAllBudgets — the run's deadline", () => {
+  const spendRow: Array<JSONObject> = [
+    {
+      serviceKey: APP,
+      groupKey: "",
+      calls: 1,
+      erroredCalls: 0,
+      inputTokens: 0,
+      outputTokens: 0,
+      totalTokens: 0,
+      costUsd: 5,
+    },
+  ];
+
+  beforeEach(() => {
+    resetReads();
+  });
+
+  test("evaluates every budget while the deadline has not passed", async () => {
+    const first: LlmCostBudget = makeBudget({ name: "first" });
+    const second: LlmCostBudget = makeBudget({ name: "second" });
+
+    mockedBudgetService.findBy.mockResolvedValue([first, second] as never);
+    mockedSpanService.executeQuery.mockResolvedValue(answer(spendRow) as never);
+
+    await LlmCostBudgetEvaluator.evaluateAllBudgets({
+      deadline: new JobDeadline(),
+    });
+
+    expect(mockedBudgetService.updateOneById).toHaveBeenCalledTimes(2);
+  });
+
+  test("stops before the next budget once the deadline has passed", async () => {
+    const first: LlmCostBudget = makeBudget({ name: "first" });
+    const second: LlmCostBudget = makeBudget({ name: "second" });
+    const deadline: JobDeadline = new JobDeadline();
+
+    mockedBudgetService.findBy.mockResolvedValue([first, second] as never);
+    // The time limit runs out while the first budget's spend is read.
+    mockedSpanService.executeQuery.mockImplementation((async () => {
+      deadline.end();
+      return answer(spendRow);
+    }) as never);
+
+    await LlmCostBudgetEvaluator.evaluateAllBudgets({ deadline: deadline });
+
+    // The first budget finished: its spend stamped, its points published.
+    expect(mockedBudgetService.updateOneById).toHaveBeenCalledTimes(1);
+    const updateArg: { id: ObjectID } = mockedBudgetService.updateOneById.mock
+      .calls[0]![0] as { id: ObjectID };
+    expect(updateArg.id.toString()).toBe(first.id!.toString());
+    expect(mockedMetricService.insertJsonRows).toHaveBeenCalledTimes(1);
+  });
+
+  test("evaluates no budget when the deadline passed before the sweep", async () => {
+    const deadline: JobDeadline = new JobDeadline();
+    deadline.end();
+
+    mockedBudgetService.findBy.mockResolvedValue([
+      makeBudget({ name: "first" }),
+    ] as never);
+
+    await LlmCostBudgetEvaluator.evaluateAllBudgets({ deadline: deadline });
+
+    expect(mockedSpanService.executeQuery).not.toHaveBeenCalled();
+    expect(mockedBudgetService.updateOneById).not.toHaveBeenCalled();
+    expect(mockedMetricService.insertJsonRows).not.toHaveBeenCalled();
   });
 });
 

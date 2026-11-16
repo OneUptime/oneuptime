@@ -12,6 +12,7 @@ import Semaphore, {
 import TelemetryUsageMeter, {
   TelemetryUsageMeterSummary,
 } from "Common/Server/Utils/TelemetryUsage/TelemetryUsageMeter";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 import logger from "Common/Server/Utils/Logger";
 
 /*
@@ -34,10 +35,18 @@ export const METER_TELEMETRY_USAGE_JOB_NAME: string =
 
 /*
  * A run stops starting new work after two hours and leaves the rest to the
- * next one; the queue gives it a quarter of an hour more, and the lock lasts
- * as long, refreshed every 30 seconds so a run that lost it stops at its next
- * signal. runJobWithTimeout cannot stop a run (a Promise.race), so the
- * deadline is what ends a long one before the next.
+ * next one; the queue gives it a quarter of an hour more (issue #8103).
+ * RunCron runs one copy of this job at a time (CronLock) and hands it the
+ * run's deadline, which passes at that limit or once the run's lease is lost;
+ * the loop checks it between signals, beside its own two-hour deadline.
+ *
+ * The run's own lock is kept beside the lease, for what the lease cannot
+ * cover. Staging a day is check-then-write - the days with no usage row yet
+ * are read, then staged - so two runs over the same days could stage one
+ * twice and count a project's usage double. The lease lapses half a minute
+ * past the time limit even while a scan of the run has not returned; this
+ * lock is held for as long as the run lasts, refreshed every 30 seconds so a
+ * run that lost it stops at its next signal too.
  */
 export const METER_TELEMETRY_USAGE_DEADLINE_IN_MINUTES: number = 120;
 const JOB_TIMEOUT_MS: number = OneUptimeDate.convertMinutesToMilliseconds(
@@ -53,7 +62,7 @@ RunCron(
     runOnStartup: false,
     timeoutInMS: JOB_TIMEOUT_MS,
   },
-  async () => {
+  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
     if (IsBillingEnabled) {
       logger.debug(
         `${METER_TELEMETRY_USAGE_JOB_NAME}: billing is on, and billing stages telemetry usage. Skipping.`,
@@ -100,8 +109,9 @@ RunCron(
             OneUptimeDate.getCurrentDate(),
             METER_TELEMETRY_USAGE_DEADLINE_IN_MINUTES,
           ),
+          // False once the lock or the run's lease is lost, or its time ran out.
           shouldContinue: (): boolean => {
-            return mutex.isAcquired;
+            return mutex.isAcquired && !deadline.hasPassed();
           },
         });
 

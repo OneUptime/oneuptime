@@ -57,7 +57,9 @@ import MonitorSummarySnapshot from "../../../Types/Monitor/MonitorSummarySnapsho
 import MonitorSummarySnapshotUtil from "../../../Utils/Monitor/MonitorSummarySnapshotUtil";
 import { IncidentMemberRoleAssignment } from "../../../Types/Monitor/CriteriaIncident";
 import { PerSeriesCriteriaMatch } from "../../../Types/Probe/ProbeApiIngestResponse";
-import MonitorResourceContextUtil from "./MonitorResourceContext";
+import MonitorResourceContextUtil, {
+  MonitorRecordResources,
+} from "./MonitorResourceContext";
 import PerSeriesResolutionRootCause from "./PerSeriesResolutionRootCause";
 import OpenStackAlertContext, {
   OpenStackSeriesDescription,
@@ -66,9 +68,7 @@ import OpenStackProjectNotices from "../OpenStack/OpenStackProjectNotices";
 import OpenStackScopedRules, {
   OpenStackScopedRulesMatch,
 } from "../OpenStack/OpenStackScopedRules";
-import SeriesResourceLinker, {
-  SeriesResolvedResourceIds,
-} from "./SeriesResourceLinker";
+import SeriesResourceLinker from "./SeriesResourceLinker";
 import IncidentRoleFeedText from "../Incident/IncidentRoleFeedText";
 import CreatedNotificationHold, {
   OwnersAddedBy,
@@ -437,6 +437,14 @@ export default class MonitorIncident {
      * details describe: not on one series of a grouped metric criteria.
      */
     getEvaluationDetails?: GetEvaluationDetails | undefined;
+    /*
+     * What the records of this evaluation are about beyond their series -
+     * the resources the monitor's config names and those it was linked to
+     * by hand - read once for every incident and alert the evaluation opens
+     * (MonitorResource hands the same to both creators, issue #8118). Read
+     * here, once for this call, when not given.
+     */
+    recordResources?: MonitorRecordResources | undefined;
     props: {
       telemetryQuery?: TelemetryQuery | undefined;
     };
@@ -617,37 +625,21 @@ export default class MonitorIncident {
     }
 
     /*
-     * Resolve the resources this monitor's own config names — its host,
-     * cluster, fleet, telemetry services, or the resource its metric
-     * filters scope it to — once per evaluation, so every incident
-     * created below is attached to them. Series labels cannot supply
-     * this: they only exist for grouped criteria, and most monitors
-     * (every shipped Host/Docker/Podman template, all Logs/Traces/
-     * Exceptions monitors) are ungrouped. No-op, and no round-trip, for
-     * monitor types whose config names no resource.
+     * The resources this monitor's own config names — its host, cluster,
+     * fleet, telemetry services, or the resource its metric filters scope
+     * it to — and what someone linked the monitor to by hand (Monitor >
+     * Overview > Linked Resources), so every incident created below is
+     * attached to them. Series labels cannot supply this: they only exist
+     * for grouped criteria, and most monitors (every shipped Host/Docker/
+     * Podman template, all Logs/Traces/Exceptions monitors) are ungrouped.
+     * Each is read only once an incident is really being created - a
+     * monitor that stays down keeps evaluating with its incident already
+     * open - and once for every incident and alert of the evaluation
+     * (MonitorRecordResources).
      */
-    const resourceContext: SeriesResolvedResourceIds =
-      await MonitorResourceContextUtil.resolveResourceContextForMonitor({
-        monitor: input.monitor,
-      });
-
-    /*
-     * What someone linked the monitor to by hand (Monitor > Overview >
-     * Linked Resources). Read only once an incident is really being created,
-     * and at most once per evaluation: a monitor that stays down keeps
-     * evaluating with its incident already open.
-     */
-    let linkedResources: Promise<SeriesResolvedResourceIds> | null = null;
-    const getLinkedResources: () => Promise<SeriesResolvedResourceIds> =
-      (): Promise<SeriesResolvedResourceIds> => {
-        if (!linkedResources) {
-          linkedResources =
-            MonitorResourceContextUtil.resolveLinkedResourcesForMonitor({
-              monitor: input.monitor,
-            });
-        }
-        return linkedResources;
-      };
+    const recordResources: MonitorRecordResources =
+      input.recordResources ||
+      MonitorResourceContextUtil.forEvaluation({ monitor: input.monitor });
 
     /*
      * Series-less path: one incident per criteriaIncident template as
@@ -1057,13 +1049,13 @@ export default class MonitorIncident {
            */
           SeriesResourceLinker.attachResolvedResources({
             model: incident,
-            resolved: resourceContext,
+            resolved: await recordResources.getResourceContext(),
           });
 
           // And what the monitor was linked to by hand, merged the same way.
           SeriesResourceLinker.attachResolvedResources({
             model: incident,
-            resolved: await getLinkedResources(),
+            resolved: await recordResources.getLinkedResources(),
           });
 
           // What a part of an OpenStack cloud takes with it, and whose that is.

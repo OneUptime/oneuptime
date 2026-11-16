@@ -157,9 +157,11 @@ function mockRecordService(): unknown {
     __esModule: true,
     default: {
       findAllBy: jest.fn(),
+      findBy: jest.fn(),
       findOneById: jest.fn(),
       findOneBy: jest.fn(),
       updateOneById: jest.fn(),
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(),
     },
   };
 }
@@ -174,6 +176,7 @@ function mockAnyService(): unknown {
       findOneById: jest.fn(),
       findOneBy: jest.fn(),
       updateOneById: jest.fn(),
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(),
       findOwners: jest.fn(),
       getEpisodeLinkInDashboard: jest.fn(),
       getMonitorLinkInDashboard: jest.fn(),
@@ -786,6 +789,13 @@ function dueWhileNotTaken<T>(record: () => T): () => Promise<Array<T>> {
   };
 }
 
+// The record a state change is of, read with its page while it is there.
+function readWhileThere<T>(record: () => T): () => Promise<Array<T>> {
+  return async (): Promise<Array<T>> => {
+    return world.exists ? [record()] : [];
+  };
+}
+
 async function takeOrStop(): Promise<void> {
   if (world.takeStops) {
     world.takeStops = false;
@@ -935,8 +945,12 @@ const CASES: Array<JobCase> = [
           return record;
         };
 
-      asMock(IncidentStateTimelineService.findAllBy).mockImplementation(
+      // Read a page at a time, and taken by one compare-and-set (#7974).
+      asMock(IncidentStateTimelineService.findBy).mockImplementation(
         dueWhileNotTaken(timeline),
+      );
+      asMock(IncidentService.findBy).mockImplementation(
+        readWhileThere(incident),
       );
       asMock(IncidentStateTimelineService.findOneById).mockImplementation(
         async () => {
@@ -944,9 +958,9 @@ const CASES: Array<JobCase> = [
         },
       );
       asMock(IncidentStateTimelineService.findOneBy).mockResolvedValue(null);
-      asMock(IncidentStateTimelineService.updateOneById).mockImplementation(
-        takeOrStop,
-      );
+      asMock(
+        IncidentStateTimelineService.compareAndSetColumnsByIdWithoutHooks,
+      ).mockImplementation(compareAndSetTake);
     },
   },
   {
@@ -976,18 +990,20 @@ const CASES: Array<JobCase> = [
         return record;
       };
 
-      asMock(AlertStateTimelineService.findAllBy).mockImplementation(
+      // Read a page at a time, and taken by one compare-and-set (#7974).
+      asMock(AlertStateTimelineService.findBy).mockImplementation(
         dueWhileNotTaken(timeline),
       );
+      asMock(AlertService.findBy).mockImplementation(readWhileThere(alert));
       asMock(AlertStateTimelineService.findOneById).mockImplementation(
         async () => {
           return world.exists ? timeline() : null;
         },
       );
       asMock(AlertStateTimelineService.findOneBy).mockResolvedValue(null);
-      asMock(AlertStateTimelineService.updateOneById).mockImplementation(
-        takeOrStop,
-      );
+      asMock(
+        AlertStateTimelineService.compareAndSetColumnsByIdWithoutHooks,
+      ).mockImplementation(compareAndSetTake);
     },
   },
   {
@@ -1412,6 +1428,21 @@ function arrangeDue(service: unknown, record: () => PlainRecord): void {
   asMock(serviceOf(service)["updateOneById"]).mockImplementation(takeOrStop);
 }
 
+/*
+ * A state change due until the job takes it (OwnerNotificationBacklog,
+ * #7974): read a page at a time while it is there and not taken, read again
+ * by its id, and taken by one compare-and-set that only one run wins.
+ */
+function arrangeBacklog(service: unknown, record: () => PlainRecord): void {
+  asMock(serviceOf(service)["findBy"]).mockImplementation(
+    dueWhileNotTaken(record),
+  );
+  arrangeRecord(service, record);
+  asMock(
+    serviceOf(service)["compareAndSetColumnsByIdWithoutHooks"],
+  ).mockImplementation(compareAndSetTake);
+}
+
 function feedOfService(
   service: unknown,
   create: string,
@@ -1504,7 +1535,11 @@ function episodeCases(of: EpisodeOf): Array<JobCase> {
       feedService: feedService,
       arrange: (): void => {
         arrangeRecord(of.episodeService, of.episode);
-        arrangeDue(of.timelineService, (): PlainRecord => {
+        // The page's episodes, read with it.
+        asMock(serviceOf(of.episodeService)["findBy"]).mockImplementation(
+          readWhileThere(of.episode),
+        );
+        arrangeBacklog(of.timelineService, (): PlainRecord => {
           return plain({
             id: EVENT_ID,
             ...OF_THE_PROJECT,
@@ -1681,12 +1716,14 @@ const EVERY_RESOURCE_CASES: Array<JobCase> = [
       return [];
     },
     arrange: (): void => {
-      arrangeDue(MonitorStatusTimelineService, (): PlainRecord => {
+      // The page's monitors, read with it, or each on its own.
+      arrangeRecord(MonitorService, monitor);
+      asMock(MonitorService.findBy).mockImplementation(readWhileThere(monitor));
+      arrangeBacklog(MonitorStatusTimelineService, (): PlainRecord => {
         return plain({
           id: EVENT_ID,
           ...OF_THE_PROJECT,
           monitorId: RESOURCE_ID,
-          monitor: monitor(),
           monitorStatus: { name: "Offline" },
           createdAt: START,
           rootCause: "Connection refused",
@@ -1730,17 +1767,20 @@ const EVERY_RESOURCE_CASES: Array<JobCase> = [
     feedService:
       ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem,
     arrange: (): void => {
-      arrangeDue(ScheduledMaintenanceStateTimelineService, (): PlainRecord => {
-        return plain({
-          id: EVENT_ID,
-          ...OF_THE_PROJECT,
-          scheduledMaintenanceId: RESOURCE_ID,
-          scheduledMaintenance: scheduledMaintenance(),
-          scheduledMaintenanceState: { name: "Completed" },
-          createdAt: START,
-          startsAt: START,
-        });
-      });
+      arrangeBacklog(
+        ScheduledMaintenanceStateTimelineService,
+        (): PlainRecord => {
+          return plain({
+            id: EVENT_ID,
+            ...OF_THE_PROJECT,
+            scheduledMaintenanceId: RESOURCE_ID,
+            scheduledMaintenance: scheduledMaintenance(),
+            scheduledMaintenanceState: { name: "Completed" },
+            createdAt: START,
+            startsAt: START,
+          });
+        },
+      );
     },
   },
   {
@@ -2006,7 +2046,16 @@ describe.each([...CASES, ...EVERY_RESOURCE_CASES])(
         return new Date(now.getTime());
       });
 
-      // Nothing else is due, for any job.
+      // Nothing else is due, for any job - nor in a state change's page.
+      for (const service of [
+        IncidentStateTimelineService,
+        AlertStateTimelineService,
+        IncidentService,
+        AlertService,
+      ]) {
+        asMock(service.findBy).mockResolvedValue([]);
+      }
+
       for (const service of [
         IncidentStateTimelineService,
         AlertStateTimelineService,

@@ -32,7 +32,9 @@ import NetworkDeviceOwnerUserService, {
 import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataToProcess from "./DataToProcess";
-import MonitorResourceContextUtil from "./MonitorResourceContext";
+import MonitorResourceContextUtil, {
+  MonitorRecordResources,
+} from "./MonitorResourceContext";
 import MonitorTemplateUtil from "./MonitorTemplateUtil";
 import MonitorRecordEvidence from "./MonitorRecordEvidence";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
@@ -48,9 +50,7 @@ import OpenStackAlertContext, {
 import OpenStackScopedRules, {
   OpenStackScopedRulesMatch,
 } from "../OpenStack/OpenStackScopedRules";
-import SeriesResourceLinker, {
-  SeriesResolvedResourceIds,
-} from "./SeriesResourceLinker";
+import SeriesResourceLinker from "./SeriesResourceLinker";
 import MonitorDependencySuppression, {
   DependencySuppressionResult,
 } from "./MonitorDependencySuppression";
@@ -410,6 +410,14 @@ export default class MonitorAlert {
      * details describe: not on one series of a grouped metric criteria.
      */
     getEvaluationDetails?: GetEvaluationDetails | undefined;
+    /*
+     * What the records of this evaluation are about beyond their series -
+     * the resources the monitor's config names and those it was linked to
+     * by hand - read once for every incident and alert the evaluation opens
+     * (MonitorResource hands the same to both creators, issue #8118). Read
+     * here, once for this call, when not given.
+     */
+    recordResources?: MonitorRecordResources | undefined;
     props: {
       telemetryQuery?: TelemetryQuery | undefined;
     };
@@ -575,37 +583,21 @@ export default class MonitorAlert {
     }
 
     /*
-     * Resolve the resources this monitor's own config names — its host,
-     * cluster, fleet, telemetry services, or the resource its metric
-     * filters scope it to — once per evaluation, so every alert created
-     * below is attached to them. Series labels cannot supply this: they
-     * only exist for grouped criteria, and most monitors (every shipped
-     * Host/Docker/Podman template, all Logs/Traces/Exceptions monitors)
-     * are ungrouped. No-op, and no round-trip, for monitor types whose
-     * config names no resource.
+     * The resources this monitor's own config names — its host, cluster,
+     * fleet, telemetry services, or the resource its metric filters scope
+     * it to — and what someone linked the monitor to by hand (Monitor >
+     * Overview > Linked Resources), so every alert created below is
+     * attached to them. Series labels cannot supply this: they only exist
+     * for grouped criteria, and most monitors (every shipped Host/Docker/
+     * Podman template, all Logs/Traces/Exceptions monitors) are ungrouped.
+     * Each is read only once an alert is really being created - a monitor
+     * that stays down keeps evaluating with its alert already open - and
+     * once for every incident and alert of the evaluation
+     * (MonitorRecordResources).
      */
-    const resourceContext: SeriesResolvedResourceIds =
-      await MonitorResourceContextUtil.resolveResourceContextForMonitor({
-        monitor: input.monitor,
-      });
-
-    /*
-     * What someone linked the monitor to by hand (Monitor > Overview >
-     * Linked Resources). Read only once an alert is really being created,
-     * and at most once per evaluation: a monitor that stays down keeps
-     * evaluating with its alert already open.
-     */
-    let linkedResources: Promise<SeriesResolvedResourceIds> | null = null;
-    const getLinkedResources: () => Promise<SeriesResolvedResourceIds> =
-      (): Promise<SeriesResolvedResourceIds> => {
-        if (!linkedResources) {
-          linkedResources =
-            MonitorResourceContextUtil.resolveLinkedResourcesForMonitor({
-              monitor: input.monitor,
-            });
-        }
-        return linkedResources;
-      };
+    const recordResources: MonitorRecordResources =
+      input.recordResources ||
+      MonitorResourceContextUtil.forEvaluation({ monitor: input.monitor });
 
     /*
      * `undefined` matchesPerSeries → legacy single-alert path. A defined
@@ -981,13 +973,13 @@ export default class MonitorAlert {
            */
           SeriesResourceLinker.attachResolvedResources({
             model: alert,
-            resolved: resourceContext,
+            resolved: await recordResources.getResourceContext(),
           });
 
           // And what the monitor was linked to by hand, merged the same way.
           SeriesResourceLinker.attachResolvedResources({
             model: alert,
-            resolved: await getLinkedResources(),
+            resolved: await recordResources.getLinkedResources(),
           });
 
           // What a part of an OpenStack cloud takes with it, and whose that is.

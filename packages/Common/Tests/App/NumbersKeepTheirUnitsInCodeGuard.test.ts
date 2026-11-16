@@ -165,6 +165,14 @@ const AS_WRITTEN: Readonly<Record<string, string>> = {
     "a pack's criteria description, stored on the monitor for an operator to edit",
   "packages/Common/Types/Monitor/OpenStackAlertTemplates.ts":
     "an alert template's incident title, criteria name and criteria description, stored on the monitor for an operator to edit (the summary and description the picker draws are held)",
+  "packages/Common/UI/Utils/TableColumnsToCsv.ts":
+    "a table's CSV export, a cell a spreadsheet reads as written",
+  "packages/Common/Server/Services/AIBillingService.ts":
+    "a failed charge's line in the server's log (the owners' recharge email holds its amounts)",
+  "packages/Common/Server/Services/NotificationService.ts":
+    "a failed charge's line in the server's log (the owners' recharge email holds its amounts)",
+  "packages/Common/Server/Utils/Telemetry/LlmCostBudgetEvaluator.ts":
+    SERVER_LOG,
   "packages/App/FeatureSet/Dashboard/src/Utils/Form/Monitor/CriteriaName.ts":
     "a criteria's name, stored on the monitor in English and matched against what its filters give (isNameFromFilters) to tell a generated name from a typed one",
 };
@@ -179,8 +187,6 @@ const OWNED_ELSEWHERE: Readonly<Record<string, string>> = {
   // The request story's durations, in the Dashboard's duration words.
   "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventRequestStory.ts":
     "#6889",
-  // A span's humanized duration in English ("12 ms"), its units held (#8617 was closed).
-  "packages/Common/Types/Date.ts": "#8826",
 };
 
 /*
@@ -244,6 +250,8 @@ const UNITS: ReadonlyArray<string> = [
   "V",
   "mV",
   "mA",
+  // An amount of money (#8826).
+  "USD",
 ];
 
 const UNIT: string = [...UNITS]
@@ -798,6 +806,29 @@ describe("a number code joins to its unit keeps it on its line", () => {
     }
   });
 
+  test("the amounts and durations #8826 named are held now", () => {
+    const { findings } = readAllFindings();
+
+    for (const file of [
+      "packages/App/FeatureSet/Dashboard/src/Components/ProjectBalance/AutoRechargeCard.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Pages/Settings/LlmProviders.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Pages/Settings/UsageHistory.tsx",
+      "packages/Common/UI/Components/Table/TableRow.tsx",
+      "packages/Common/Utils/Project/ProjectBalance.ts",
+      "packages/Common/Server/Services/ProjectService.ts",
+      "packages/Common/Server/Utils/OperatorSlackNotice.ts",
+      "packages/Common/Types/Date.ts",
+    ]) {
+      expect({
+        file,
+        listed: isListed(file),
+        found: findings.some((finding: UnitFinding): boolean => {
+          return finding.file === file;
+        }),
+      }).toEqual({ file, listed: false, found: false });
+    }
+  });
+
   test("the files the issue named are held now", () => {
     const { findings } = readAllFindings();
 
@@ -837,6 +868,8 @@ describe("negative controls: the scan catches what it is for", () => {
           "const m: string = `${value.toFixed(2)} V`;",
           "const n: string = `${value.toFixed(2)} mA`;",
           "const o: string = `${count} IOPS`;",
+          "const p: string = `${amount} USD`;",
+          'const q: string = (cents / 100) + " USD";',
         ].join("\n"),
       ),
     ).toEqual([
@@ -855,6 +888,8 @@ describe("negative controls: the scan catches what it is for", () => {
       "13 `${value.toFixed(2)} V`",
       "14 `${value.toFixed(2)} mA`",
       "15 `${count} IOPS`",
+      "16 `${amount} USD`",
+      '17 (cents / 100) + " USD"',
     ]);
   });
 
@@ -879,6 +914,8 @@ describe("negative controls: the scan catches what it is for", () => {
           "const o: string = `${value.toFixed(2)}\\u00A0V`;",
           "const p: string = `${count} Volumes`;",
           "const q: string = `${count} operations`;",
+          "const r: string = `${amount}\\u00A0USD`;",
+          "const s: string = `${count} USDC tokens`;",
         ].join("\n"),
       ),
     ).toEqual([]);
