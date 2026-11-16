@@ -11,7 +11,6 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import SyslogAttribute, {
-  SYSLOG_STRUCTURED_ATTRIBUTE_PREFIX,
   SyslogDeviceMatchKind,
 } from "Common/Types/Syslog/SyslogAttribute";
 import SyslogMessage, {
@@ -29,8 +28,9 @@ import {
   SyslogHeaderFormat,
   getSyslogHeaderFormat,
   parseSyslogMessage,
-  sanitizeSyslogAttributeKey,
+  syslogStructuredDataAttributeKey,
 } from "Common/Utils/Syslog/SyslogMessageParser";
+import SyslogRawCopies from "Common/Utils/Syslog/SyslogRawCopies";
 import {
   DEFAULT_SYSLOG_FACILITY,
   DEFAULT_SYSLOG_SEVERITY,
@@ -659,11 +659,21 @@ export default class ProbeSyslogIngestService {
           return null;
         }
 
+        /*
+         * syslog.structured.raw is put together again from what the rules
+         * left of each parameter (Common/Utils/Syslog/SyslogRawCopies,
+         * #9039).
+         */
         if (processingContext.scrubRules.length > 0) {
-          logRow = LogScrubRuleService.scrubLog(
-            logRow,
-            processingContext.scrubRules,
-          );
+          logRow = SyslogRawCopies.scrubLog({
+            logRow: logRow,
+            scrub: (row: JSONObject): JSONObject => {
+              return LogScrubRuleService.scrubLog(
+                row,
+                processingContext.scrubRules,
+              );
+            },
+          });
         }
 
         if (processingContext.pipelines.length > 0) {
@@ -724,9 +734,7 @@ export default class ProbeSyslogIngestService {
 
     for (const [sdId, params] of Object.entries(read.structuredData || {})) {
       for (const [key, value] of Object.entries(params)) {
-        attributes[
-          `${SYSLOG_STRUCTURED_ATTRIBUTE_PREFIX}${sanitizeSyslogAttributeKey(sdId)}.${sanitizeSyslogAttributeKey(key)}`
-        ] = value;
+        attributes[syslogStructuredDataAttributeKey(sdId, key)] = value;
       }
     }
 
