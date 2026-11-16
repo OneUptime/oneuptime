@@ -37,6 +37,7 @@ import {
   getOnCallLogStepWords,
   ON_CALL_LOG_DIALOG_LINE_CLASS_NAME,
 } from "../../Components/OnCallPolicy/ExecutionLogs/OnCallLogLineWords";
+import { DELETED_ESCALATION_RULE_LABEL } from "../../Components/OnCallPolicy/ExecutionLogs/ExecutionLogsTimelineTable";
 
 const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
@@ -81,6 +82,11 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
           statusMessage: true,
           // Read with every row: a row with none is a direct page.
           onCallDutyPolicyId: true,
+          /*
+           * A policy's page with no rule had its rule deleted (issue
+           * #9036); one whose rule the reader may not read still names it.
+           */
+          onCallDutyPolicyEscalationRuleId: true,
           // A test page (OnCallTestPage) says so in place of a policy.
           userNotificationEventType: true,
         }}
@@ -224,6 +230,21 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
               // A direct page has no rules to name.
               if (isOnCallDirectPage(item)) {
                 return <TableEmptyValue />;
+              }
+
+              /*
+               * Paged by a level whose rule was deleted since (issue #9036):
+               * the page stays, its rule cleared.
+               */
+              if (!item["onCallDutyPolicyEscalationRuleId"]) {
+                return (
+                  <span
+                    data-testid="on-call-log-deleted-escalation-rule"
+                    className="text-sm text-gray-500"
+                  >
+                    {translator.translateText(DELETED_ESCALATION_RULE_LABEL)}
+                  </span>
+                );
               }
 
               return <p>{translator.translateText("No escalation rule.")}</p>;

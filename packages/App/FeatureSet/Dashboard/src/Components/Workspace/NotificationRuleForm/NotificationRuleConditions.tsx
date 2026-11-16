@@ -7,7 +7,10 @@ import NotificationRuleCondition, {
   NotificationRuleConditionUtil,
 } from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
-import Button, { ButtonSize } from "Common/UI/Components/Button/Button";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import RuleAppliesToChoice from "Common/UI/Components/RuleCriteria/RuleAppliesToChoice";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -231,13 +234,14 @@ const NotificationRuleConditions: FunctionComponent<ComponentProps> = (
             })}
           </ol>
           {/*
-           * From md up a Button sits 12px in (md:ml-3, for a dialog's
-           * footer), taken back here so it lines up with the conditions.
-           * Below md it has no such margin and is as wide as they are.
+           * Adding a condition is a step inside the form, not its action:
+           * an outline button, sized to its words and in line with the
+           * conditions at every width, as the rule builder's is (#9116).
            */}
-          <div className="md:-ml-3">
+          <div>
             <Button
               title="Add Condition"
+              buttonStyle={ButtonStyleType.OUTLINE}
               buttonSize={ButtonSize.Small}
               icon={IconProp.Add}
               disabled={checkOnByEventType.length === 0}

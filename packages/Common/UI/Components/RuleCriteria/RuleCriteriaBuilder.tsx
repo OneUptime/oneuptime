@@ -48,6 +48,8 @@ import {
 } from "./RuleCriteriaFields";
 import RuleAppliesToChoice from "./RuleAppliesToChoice";
 import {
+  RULE_CRITERIA_ADD_CELL_CLASS_NAME,
+  RULE_CRITERIA_ADD_ROW_CLASS_NAME,
   RULE_CRITERIA_CONNECTOR_CELL_CLASS_NAME,
   RULE_CRITERIA_FIELD_CELL_CLASS_NAME,
   RULE_CRITERIA_LIST_CLASS_NAME,
@@ -293,14 +295,20 @@ const RuleCriteriaBuilder: <TEntity>(
     },
   );
 
+  /*
+   * Adding a condition is a step inside the form, not the form's own action:
+   * an outline button, sized to its words. It was the tinted indigo
+   * SECONDARY button, which read as the dialog's main action beside a
+   * footer whose Next is (rightly) not primary (#9116).
+   */
   const addButton: ReactElement = (
     <Button
       title={RuleCriteriaCopy.addCondition}
       ariaLabel={RuleCriteriaCopy.addCondition}
       dataTestId="rule-criteria-add"
       icon={IconProp.Add}
-      buttonSize={ButtonSize.Normal}
-      buttonStyle={ButtonStyleType.SECONDARY}
+      buttonSize={ButtonSize.Small}
+      buttonStyle={ButtonStyleType.OUTLINE}
       disabled={props.disabled || availableFields.length === 0}
       onClick={addCondition}
     />
@@ -430,7 +438,7 @@ const RuleCriteriaBuilder: <TEntity>(
   ): ReactElement => {
     if (index === 0) {
       return (
-        <span className="text-sm font-semibold text-gray-700">
+        <span className="text-sm font-medium text-gray-500">
           {tx(RuleCriteriaCopy.ifConnector)}
         </span>
       );
@@ -637,7 +645,7 @@ const RuleCriteriaBuilder: <TEntity>(
   const renderConditions: () => ReactElement = (): ReactElement => {
     return (
       <div
-        className="space-y-4 rounded-lg border border-gray-200 bg-white p-4"
+        className="space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-4"
         data-testid="rule-criteria-conditions"
       >
         {isFilterConditionNeeded(criteria.filters) && (
@@ -648,7 +656,7 @@ const RuleCriteriaBuilder: <TEntity>(
             <legend className="sr-only">
               {tx(RuleCriteriaCopy.combineLegend)}
             </legend>
-            <div className="inline-flex flex-wrap gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1">
+            <div className="inline-flex flex-wrap gap-1 rounded-lg border border-gray-200 bg-gray-100 p-1">
               {[FilterCondition.All, FilterCondition.Any].map(
                 (filterCondition: FilterCondition): ReactElement => {
                   const isChecked: boolean =
@@ -711,7 +719,9 @@ const RuleCriteriaBuilder: <TEntity>(
           {criteria.filters.map(renderRow)}
         </ol>
 
-        <div>{addButton}</div>
+        <div className={RULE_CRITERIA_ADD_ROW_CLASS_NAME}>
+          <div className={RULE_CRITERIA_ADD_CELL_CLASS_NAME}>{addButton}</div>
+        </div>
       </div>
     );
   };

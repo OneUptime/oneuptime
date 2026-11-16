@@ -9,6 +9,7 @@ import fs from "fs/promises";
 import path from "path";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { sideMenuAtRest } from "../SuiteHelpers/SideMenuAtRest";
 
 /*
  * A runbook's side menu in a browser, around the real pages, against the
@@ -127,6 +128,14 @@ async function openRunbook(
     "Restart the web tier",
     { timeout: 60000 },
   );
+  /*
+   * Tailwind's runtime writes the menu's rules after the menu is first
+   * drawn, so each folded section folds with its own transition, and its
+   * rows take focus until that has run (SideMenuAtRest). The h1 can name the
+   * runbook before then: the keyboard walk once reached Executions in a
+   * folded Logs.
+   */
+  await sideMenuAtRest(page);
 }
 
 function desktopMenu(page: Page): Locator {

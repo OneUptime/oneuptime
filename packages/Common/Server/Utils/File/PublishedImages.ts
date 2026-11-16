@@ -335,17 +335,10 @@ export const CASCADES: ReadonlyArray<PublishedCascade> = [
     tableName: "ScheduledMaintenancePublicNote",
     foreignKey: "scheduledMaintenanceId",
   },
-  { parentTable: "File", tableName: "StatusPage", foreignKey: "logoFileId" },
-  {
-    parentTable: "File",
-    tableName: "StatusPage",
-    foreignKey: "faviconFileId",
-  },
-  {
-    parentTable: "File",
-    tableName: "StatusPage",
-    foreignKey: "coverImageFileId",
-  },
+  /*
+   * A deleted file no longer takes a status page with it: its logo, favicon
+   * or cover image is cleared instead (ON DELETE SET NULL, issue #9069).
+   */
   {
     parentTable: "StatusPage",
     tableName: "StatusPageGroup",

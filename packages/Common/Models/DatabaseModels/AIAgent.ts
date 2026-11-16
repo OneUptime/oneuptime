@@ -317,7 +317,11 @@ export default class AIAgent extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      /*
+       * Deleting the icon's file keeps the AI agent, without its
+       * icon (issue #9069).
+       */
+      onDelete: "SET NULL",
       orphanedRowAction: "delete",
     },
   )

@@ -922,7 +922,11 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
       cascade: false,
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      /*
+       * On-call history: deleting this person's account keeps this row
+       * and clears the reference (issue #9036).
+       */
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )
@@ -1028,7 +1032,11 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
       cascade: false,
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      /*
+       * On-call history: deleting the team keeps this row and clears the
+       * reference (issue #9036).
+       */
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )
@@ -1176,7 +1184,12 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      /*
+       * Deleting the rule keeps the run: the reference is cleared, and
+       * lastExecutedEscalationRuleOrder still says which level the run
+       * was on - it moves on from there (OnCallRunLevel, issue #9036).
+       */
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )
@@ -1207,8 +1220,11 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
   })
   /*
    * Indexed: deleting an escalation rule finds the runs that last executed
-   * it by this column (the foreign key's ON DELETE CASCADE) - for every
-   * rule of a policy deleted with it, too - without reading the whole table.
+   * it by this column (the foreign key's ON DELETE SET NULL, issue #9036) -
+   * for every rule of a policy deleted with it, too - without reading the
+   * whole table. Empty while the run has started no level, and once the
+   * level it is on was deleted: lastExecutedEscalationRuleOrder tells the
+   * two apart (OnCallRunLevel).
    */
   @Index()
   @TableColumn({

@@ -390,7 +390,7 @@ const CorrelateFilterBuilder: FunctionComponent<ComponentProps> = (
           dataTestId="correlate-add-condition"
           title="Add condition"
           icon={IconProp.Add}
-          buttonStyle={ButtonStyleType.NORMAL}
+          buttonStyle={ButtonStyleType.OUTLINE}
           buttonSize={ButtonSize.Small}
           onClick={() => {
             props.onChange(

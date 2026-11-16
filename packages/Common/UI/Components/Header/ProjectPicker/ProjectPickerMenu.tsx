@@ -1,6 +1,10 @@
 import ProjectPickerFilterBox from "./ProjectPickerFilterBox";
 import { ProjectPickerMenuPlacement } from "./ProjectPickerMenuPlacement";
-import { Translator } from "../../../Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  translationKey,
+  Translator,
+} from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 import React, { CSSProperties, FunctionComponent, ReactElement } from "react";
 
@@ -11,6 +15,25 @@ import React, { CSSProperties, FunctionComponent, ReactElement } from "react";
  */
 export const PROJECT_PICKER_LIST_CLASS_NAME: string =
   "max-h-64 overflow-auto pb-2";
+
+/*
+ * A search that found no project, said in the rows' place: lined up with
+ * the rows' own start (their mx-2 and px-3), in a gray that reads on white
+ * (gray-500, 4.8:1) and that the dark theme remaps (Theme.css), and a long
+ * search wraps rather than running out of the list.
+ */
+export const PROJECT_PICKER_NO_MATCHES_CLASS_NAME: string =
+  "px-5 pb-4 pt-1 text-sm text-gray-500 break-words";
+
+// What the list says its search found: nothing, or how many projects.
+export const PROJECT_PICKER_NO_MATCHES_TEMPLATE: string = translationKey(
+  "No matches for “{{search}}”",
+);
+
+export const PROJECT_PICKER_FOUND_COUNT: PluralTemplate = {
+  one: "{{count}} project",
+  other: "{{count}} projects",
+};
 
 export interface ComponentProps {
   children: ReactElement | Array<ReactElement>;
@@ -31,6 +54,13 @@ export interface ComponentProps {
   // The list was opened from the keyboard: the search box takes the focus.
   focusSearch?: boolean | undefined;
   onSearchFocusChange?: ((isFocused: boolean) => void) | undefined;
+  /*
+   * What is typed in the search box, and how many projects it lists: a
+   * search that lists none says so where the rows were, and a screen reader
+   * hears what each search found as it changes.
+   */
+  searchText?: string | undefined;
+  listedProjectCount?: number | undefined;
 }
 
 /*
@@ -55,6 +85,31 @@ const ProjectPickerMenu: FunctionComponent<ComponentProps> = (
         [props.placement.side]: `${props.placement.offsetInPx}px`,
       }
     : undefined;
+
+  const search: string = (props.searchText || "").trim();
+  const listedProjectCount: number = props.listedProjectCount || 0;
+  const foundNothing: boolean = search.length > 0 && listedProjectCount === 0;
+
+  const noMatches: string = translator.translateTemplate(
+    PROJECT_PICKER_NO_MATCHES_TEMPLATE,
+    { search: search },
+  );
+
+  /*
+   * What a screen reader hears as a search changes the list: how many
+   * projects it found, or that it found none. Nothing while the box is
+   * empty: the whole list is what was opened.
+   */
+  let searchStatus: string = "";
+
+  if (foundNothing) {
+    searchStatus = noMatches;
+  } else if (search) {
+    searchStatus = translator.translatePlural(
+      PROJECT_PICKER_FOUND_COUNT,
+      listedProjectCount,
+    );
+  }
 
   return (
     <div
@@ -87,6 +142,25 @@ const ProjectPickerMenu: FunctionComponent<ComponentProps> = (
       >
         {props.children}
       </ul>
+      {/*
+       * Outside the listbox, which holds rows and nothing else; the empty
+       * listbox stays, as the search box's aria-controls names it.
+       */}
+      {foundNothing && (
+        <p
+          className={PROJECT_PICKER_NO_MATCHES_CLASS_NAME}
+          data-testid="project-picker-no-matches"
+        >
+          {noMatches}
+        </p>
+      )}
+      <p
+        className="sr-only"
+        aria-live="polite"
+        data-testid="project-picker-search-status"
+      >
+        {searchStatus}
+      </p>
     </div>
   );
 };
