@@ -14,9 +14,13 @@
  *
  * So this suite walks agents/ and holds
  *
- *   - every agent whose package.json has a test script to a job that, on every
- *     pull request and every push to main, installs in the agent's directory
- *     and then runs that script, with the Node major the agent's image runs;
+ *   - every agent whose package.json has a test script to a job that, on the
+ *     pull requests that change the agent and on main nightly, installs in the
+ *     agent's directory and then runs that script, with the Node major the
+ *     agent's image runs. A workflow that filters its pull requests by path
+ *     names the agent's directory among them; one that does not runs on every
+ *     pull request. Main's run is the nightly one, not one per push
+ *     (PullRequestChecksNotOnPush.test.js);
  *   - every image that compiles its agent (its Dockerfile.tpl runs `npm run
  *     compile`) to one job of build.yml, which builds the Dockerfile release.yml
  *     builds, without the cache, and pushes nothing.
@@ -203,7 +207,7 @@ describe("every agent with npm tests has a workflow that runs them", () => {
   });
 
   test.each(agentsWithTests)(
-    "%s: on every pull request and push to main, with the Node major its image runs",
+    "%s: on the pull requests that change it and on main nightly, with the Node major its image runs",
     (directory) => {
       const running = allJobs.filter(({ job }) => {
         return jobRunsTests(job, directory);
@@ -216,18 +220,21 @@ describe("every agent with npm tests has a workflow that runs them", () => {
 
       for (const { where, workflow, job } of running) {
         const triggers = workflow.on || {};
+        const pullRequest = triggers.pull_request || {};
 
         expect({
           where,
           onPullRequests: Object.keys(triggers).includes("pull_request"),
-          onPushToMain: ((triggers.push || {}).branches || []).includes(
-            "main",
-          ),
+          // Every pull request, or every one that touches the agent.
+          onTheAgentsChanges:
+            !pullRequest.paths || pullRequest.paths.includes(`${directory}/**`),
+          onMainNightly: (triggers.schedule || []).length > 0,
           node: nodeMajorOf(job),
         }).toEqual({
           where,
           onPullRequests: true,
-          onPushToMain: true,
+          onTheAgentsChanges: true,
+          onMainNightly: true,
           node: imageNodeMajor(directory),
         });
       }

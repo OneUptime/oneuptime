@@ -1501,6 +1501,24 @@ A new or renamed pull request workflow fails it until the matrix lists it.
 Groups are evaluated by a small reader that understands context paths and `||`
 and throws on anything else.
 
+### `PullRequestChecksNotOnPush.test.js`
+
+A workflow that checks every pull request does not run again on every push to
+main. A pull request's checks run on its merge with main, so the push of the
+merge commit tested what had just been tested, and those runs never finished:
+main takes a merge every few minutes, the organization runs at most 20 jobs at
+once, and each push's run was cancelled by the next merge's or by
+`Scripts/Release/PrioritizeReleaseRuns.sh`. None of the last 100 push runs of
+Compile, App Test or Common Test since 2026-11-09 finished, and on 2026-11-16
+the cancelled push runs took about a fifth of every runner-minute spent
+(1,304 of 6,416), on runners pull requests and the release's gate were queued
+for. The suite holds every workflow whose `pull_request` trigger has no `paths`
+or `paths-ignore` to having no `push` trigger, and to running on main on a
+daily `schedule` and on `workflow_dispatch` (`build.yml` is left out, with its
+reason: `test-release.yaml` builds the same images on every push to main). A
+workflow that checks only the pull requests touching certain paths may run on
+pushes touching them, and must filter those pushes by path too.
+
 ### `ReleaseE2ePipeline.test.js`
 
 How the release workflows run the e2e suite. test-release.yaml runs on every
@@ -1831,7 +1849,7 @@ they import, with Common's own compiler options (the generator's
 `tsconfig.json` extends `packages/Common/tsconfig.json`). No workflow ran it,
 and it failed with about 10,700 errors before anyone looked. The suite pins
 that `.github/workflows/terraform-provider-generation.yml` runs it in one step,
-on every pull request and every push to main, after installing Common,
+on every pull request and on main nightly, after installing Common,
 `Scripts` and the generator in the same job (what its imports resolve from),
 before the provider is generated, with nothing that lets it fail quietly, and
 with the generator's unit tests still running when it fails.
