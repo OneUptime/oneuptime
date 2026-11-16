@@ -1141,8 +1141,9 @@ const CHIP_LANGUAGES: Array<{
   {
     language: "de",
     thisAlert: "Diese Warnung",
-    openAlert: "1 offener Alarm",
-    causeInView: ["1 offener Alarm", "Aktuell"],
+    // An alert is a Warnung in German, not an Alarm (#8769).
+    openAlert: "1 offene Warnung",
+    causeInView: ["1 offene Warnung", "Aktuell"],
     causeOutOfView: [],
   },
   {
