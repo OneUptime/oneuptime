@@ -29,6 +29,12 @@ import {
   usersNamedBy,
 } from "Common/Tests/Helpers/InMemoryOwnerNotificationDeliveries";
 import {
+  InMemoryOnCallPages,
+  PageNotification,
+  useInMemoryOnCallPages,
+} from "Common/Tests/Helpers/InMemoryOnCallPages";
+import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
+import {
   afterEach,
   beforeEach,
   describe,
@@ -527,6 +533,18 @@ jest.mock("Common/Server/Utils/WhatsAppTemplateUtil", () => {
     createWhatsAppMessageFromTemplate: jest.fn(() => {
       return { templateVariables: {} };
     }),
+  };
+});
+
+/*
+ * The notifications on-call pages sent, which the Created jobs read to leave
+ * out an owner the record's page reached already (#7987): held in memory
+ * (InMemoryOnCallPages).
+ */
+jest.mock("Common/Server/Services/UserOnCallLogTimelineService", () => {
+  return {
+    __esModule: true,
+    default: { findBy: jest.fn() },
   };
 });
 
@@ -1920,10 +1938,34 @@ const EVERY_RESOURCE_CASES: Array<JobCase> = [
   }),
 ];
 
+/*
+ * The on-call timeline column naming the record of each Created notification:
+ * the notifications that leave out an owner the record's page reached
+ * already (#7987). Every other notification - a state change, a note, a
+ * reminder, an owner added - tells every owner, paged or not.
+ */
+const PAGE_COLUMN_OF_CREATED: Partial<
+  Record<OwnerNotificationKind, keyof PageNotification>
+> = {
+  [OwnerNotificationKind.IncidentCreated]: "triggeredByIncidentId",
+  [OwnerNotificationKind.AlertCreated]: "triggeredByAlertId",
+  [OwnerNotificationKind.IncidentEpisodeCreated]:
+    "triggeredByIncidentEpisodeId",
+  [OwnerNotificationKind.AlertEpisodeCreated]: "triggeredByAlertEpisodeId",
+};
+
+const PAGE_COLUMNS: Array<keyof PageNotification> = [
+  "triggeredByIncidentId",
+  "triggeredByAlertId",
+  "triggeredByIncidentEpisodeId",
+  "triggeredByAlertEpisodeId",
+];
+
 describe.each([...CASES, ...EVERY_RESOURCE_CASES])(
   "$title",
   (jobCase: JobCase) => {
     let table: InMemoryOwnerNotificationDeliveries;
+    let pages: InMemoryOnCallPages;
     let now: Date;
 
     function runJob(): Promise<void> {
@@ -1985,6 +2027,8 @@ describe.each([...CASES, ...EVERY_RESOURCE_CASES])(
       jest.clearAllMocks();
 
       table = useInMemoryOwnerNotificationDeliveries();
+      // Nobody was paged, unless a test says so (#7987).
+      pages = useInMemoryOnCallPages();
       now = START;
 
       world = {
@@ -2622,6 +2666,198 @@ describe.each([...CASES, ...EVERY_RESOURCE_CASES])(
         [idOf(OWNER_3)]: OwnerNotificationDeliveryStatus.Failed,
       });
     });
+
+    /*
+     * ONE NOTIFICATION FOR A NEW RECORD, NOT TWO (#7987). The second owner is
+     * on call: the record's page reached them as it was created. A Created
+     * job never writes them down to be told, so no run tells them - not the
+     * one that stops, nor one that takes up what it left - and every other
+     * owner is told once.
+     */
+    const pageColumn: keyof PageNotification | undefined =
+      PAGE_COLUMN_OF_CREATED[jobCase.kind];
+
+    if (pageColumn) {
+      // A notification of the record's page to the second owner, in `status`.
+      const pageTheSecondOwner: (status?: UserNotificationStatus) => void = (
+        status: UserNotificationStatus = UserNotificationStatus.Sent,
+      ): void => {
+        pages.add({
+          projectId: PROJECT_ID,
+          userId: OWNER_2.id!,
+          [pageColumn]: jobCase.resourceId,
+          status: status,
+        });
+      };
+
+      const everyOwnerButTheSecondOnce: () => Record<
+        string,
+        number
+      > = (): Record<string, number> => {
+        return { [idOf(OWNER_1)]: 1, [idOf(OWNER_3)]: 1 };
+      };
+
+      test("with no stop, the owner the page reached is never told, the others once - and the feed says which was left out", async () => {
+        pageTheSecondOwner();
+
+        await runJob();
+
+        expect(sendsByOwner()).toEqual(everyOwnerButTheSecondOnce());
+        expect(statuses()).toEqual({
+          [idOf(OWNER_1)]: OwnerNotificationDeliveryStatus.Sent,
+          [idOf(OWNER_3)]: OwnerNotificationDeliveryStatus.Sent,
+        });
+        expect(jobCase.feedItems()).toEqual([
+          {
+            moreInformationInMarkdown:
+              "- Owner 1 (owner1@acme.test)\n- Owner 3 (owner3@acme.test)\n" +
+              "\nNot notified again, as the on-call page reached them: Owner 2 (owner2@acme.test).\n",
+          },
+        ]);
+
+        await restartedMinutesLater(
+          OwnerNotificationDeliveries.RESUME_AFTER_MINUTES,
+        );
+        await restartedMinutesLater(60);
+
+        expect(sendsByOwner()).toEqual(everyOwnerButTheSecondOnce());
+        expect(world.takes).toBe(1);
+      });
+
+      test("stopped before an owner's send: the next run tells the rest once, never the one the page reached, and its feed item never names them as told", async () => {
+        pageTheSecondOwner();
+        table.stopAt({ statement: "startTelling", userId: idOf(OWNER_3) });
+
+        void runJob();
+        await untilStopped();
+
+        expect(world.sent).toEqual([idOf(OWNER_1)]);
+        expect(statuses()).toEqual({
+          [idOf(OWNER_1)]: OwnerNotificationDeliveryStatus.Sent,
+          [idOf(OWNER_3)]: OwnerNotificationDeliveryStatus.Pending,
+        });
+
+        await restartedMinutesLater(
+          OwnerNotificationDeliveries.RESUME_AFTER_MINUTES,
+        );
+        await restartedMinutesLater(30);
+
+        expect(sendsByOwner()).toEqual(everyOwnerButTheSecondOnce());
+
+        const items: Array<{ moreInformationInMarkdown: string }> =
+          jobCase.feedItems();
+
+        expect(items).toHaveLength(1);
+        expect(namesOwner(items[0]!.moreInformationInMarkdown, OWNER_1)).toBe(
+          true,
+        );
+        expect(namesOwner(items[0]!.moreInformationInMarkdown, OWNER_3)).toBe(
+          true,
+        );
+        expect(namesOwner(items[0]!.moreInformationInMarkdown, OWNER_2)).toBe(
+          false,
+        );
+      });
+
+      test("stopped after the last owner was told, before the feed item: the later run's item never names the one the page reached as told", async () => {
+        pageTheSecondOwner();
+        asMock(jobCase.feedService).mockImplementationOnce(async () => {
+          world.stoppedAt.push("feed");
+          await NEVER;
+        });
+
+        void runJob();
+        await untilStopped();
+
+        await restartedMinutesLater(
+          OwnerNotificationDeliveries.RESUME_AFTER_MINUTES,
+        );
+        await restartedMinutesLater(30);
+
+        expect(sendsByOwner()).toEqual(everyOwnerButTheSecondOnce());
+
+        // The call the stopped run never finished, and the later run's.
+        const items: Array<{ moreInformationInMarkdown: string }> =
+          jobCase.feedItems();
+
+        expect(items).toHaveLength(2);
+        expect(items[1]!.moreInformationInMarkdown).toBe(
+          "- Owner 1 (owner1@acme.test)\n- Owner 3 (owner3@acme.test)\n",
+        );
+      });
+
+      test("stopped before the take: the next run reads the page again, and leaves them out again", async () => {
+        pageTheSecondOwner();
+        world.takeStops = true;
+
+        void runJob();
+        await untilStopped();
+
+        expect(statuses()).toEqual({
+          [idOf(OWNER_1)]: OwnerNotificationDeliveryStatus.Pending,
+          [idOf(OWNER_3)]: OwnerNotificationDeliveryStatus.Pending,
+        });
+
+        await restartedMinutesLater(
+          OwnerNotificationDeliveries.RESUME_AFTER_MINUTES,
+        );
+        await restartedMinutesLater(30);
+
+        expect(sendsByOwner()).toEqual(everyOwnerButTheSecondOnce());
+        expect(world.takes).toBe(1);
+      });
+
+      test("two workers at once tell the others once between them, and never the one the page reached", async () => {
+        pageTheSecondOwner();
+        table.interleave(true);
+
+        await Promise.all([runJob(), runJob()]);
+
+        table.interleave(false);
+        await restartedMinutesLater(30);
+
+        expect(sendsByOwner()).toEqual(everyOwnerButTheSecondOnce());
+      });
+
+      test("a page whose notification failed did not reach them: every owner is told once, as before", async () => {
+        pageTheSecondOwner(UserNotificationStatus.Error);
+
+        await runJob();
+
+        expect(sendsByOwner()).toEqual(everyOwnerOnce());
+      });
+
+      test("the read of the page failing tells every owner once, as before", async () => {
+        pageTheSecondOwner();
+        pages.failWith(new Error("The database is away"));
+
+        await runJob();
+        await restartedMinutesLater(
+          OwnerNotificationDeliveries.RESUME_AFTER_MINUTES,
+        );
+
+        expect(sendsByOwner()).toEqual(everyOwnerOnce());
+      });
+    } else {
+      test("a page about the record leaves nobody out: only a Created notification says what the page said", async () => {
+        for (const column of PAGE_COLUMNS) {
+          pages.add({
+            projectId: PROJECT_ID,
+            userId: OWNER_2.id!,
+            [column]: jobCase.resourceId,
+          });
+        }
+
+        await runJob();
+        await restartedMinutesLater(
+          OwnerNotificationDeliveries.RESUME_AFTER_MINUTES,
+        );
+
+        expect(sendsByOwner()).toEqual(everyOwnerOnce());
+        // Never asked.
+        expect(pages.reads).toEqual([]);
+      });
+    }
 
     if (
       jobCase.kind === OwnerNotificationKind.IncidentPublicNotePosted ||

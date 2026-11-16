@@ -276,6 +276,22 @@ jest.mock("Common/Server/Utils/WhatsAppTemplateUtil", () => {
   };
 });
 
+/*
+ * The notifications on-call pages sent, which the Created job reads to leave
+ * out an owner the incident's page reached already (#7987): nobody was paged
+ * here, so every owner is told, as the delivery table's stops are about.
+ */
+jest.mock("Common/Server/Services/UserOnCallLogTimelineService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+    },
+  };
+});
+
 import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import IncidentReminderRuleService from "Common/Server/Services/IncidentReminderRuleService";
 import IncidentService from "Common/Server/Services/IncidentService";
