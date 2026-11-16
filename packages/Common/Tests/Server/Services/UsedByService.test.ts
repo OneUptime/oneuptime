@@ -34,6 +34,7 @@ import LabelService from "../../../Server/Services/LabelService";
 import MonitorGroupResourceService from "../../../Server/Services/MonitorGroupResourceService";
 import MonitorGroupService from "../../../Server/Services/MonitorGroupService";
 import MonitorService from "../../../Server/Services/MonitorService";
+import OnCallDutyPolicyEscalationRuleService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleService";
 import OnCallDutyPolicyEscalationRuleScheduleService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleScheduleService";
 import OnCallDutyPolicyEscalationRuleTeamService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleTeamService";
 import OnCallDutyPolicyScheduleService from "../../../Server/Services/OnCallDutyPolicyScheduleService";
@@ -1349,6 +1350,25 @@ describe("rows and their details", () => {
       reader: 1,
       rows: [{ _id: "68130000-0000-4000-8000-000000000201", name: "Primary" }],
     });
+    // The rules of the policy that name the schedule: one of them twice.
+    const RULES: Array<{ id: string; name: string; order: number }> = [
+      {
+        id: "68130000-0000-4000-8000-000000000212",
+        name: "Second line",
+        order: 2,
+      },
+      {
+        id: "68130000-0000-4000-8000-000000000211",
+        name: "First line",
+        order: 1,
+      },
+      {
+        id: "68130000-0000-4000-8000-000000000211",
+        name: "First line",
+        order: 1,
+      },
+      { id: "68130000-0000-4000-8000-000000000213", name: "", order: 3 },
+    ];
     jest
       .spyOn(OnCallDutyPolicyEscalationRuleScheduleService, "findBy")
       .mockImplementation(async (args: any): Promise<Array<BaseModel>> => {
@@ -1357,21 +1377,41 @@ describe("rows and their details", () => {
           method: "findBy",
           isRoot: Boolean(args.props.isRoot),
           query: args.query,
+          select: args.select,
         });
 
-        return [
-          { name: "Second line", order: 2 },
-          { name: "First line", order: 1 },
-          { name: "First line", order: 1 },
-          { name: "", order: 3 },
-        ].map((rule: { name: string; order: number }): BaseModel => {
-          return Object.assign(new BaseModel(), {
-            onCallDutyPolicyId: new ObjectID(
-              "68130000-0000-4000-8000-000000000201",
-            ),
-            onCallDutyPolicyEscalationRule: rule,
-          });
+        return RULES.map(
+          (rule: { id: string; name: string; order: number }): BaseModel => {
+            return Object.assign(new BaseModel(), {
+              onCallDutyPolicyId: new ObjectID(
+                "68130000-0000-4000-8000-000000000201",
+              ),
+              onCallDutyPolicyEscalationRuleId: new ObjectID(rule.id),
+            });
+          },
+        );
+      });
+    jest
+      .spyOn(OnCallDutyPolicyEscalationRuleService, "findBy")
+      .mockImplementation(async (args: any): Promise<Array<any>> => {
+        reads.push({
+          table: "OnCallDutyPolicyEscalationRule",
+          method: "findBy",
+          isRoot: Boolean(args.props.isRoot),
+          query: args.query,
+          select: args.select,
+          limit: args.limit,
         });
+
+        return RULES.slice(0, 2)
+          .concat([RULES[3]!])
+          .map((rule: { id: string; name: string; order: number }) => {
+            return Object.assign(new BaseModel(), {
+              _id: rule.id,
+              name: rule.name,
+              order: rule.order,
+            });
+          });
       });
 
     const summary: UsedBySummary = await summaryOf(
@@ -1388,14 +1428,69 @@ describe("rows and their details", () => {
       },
     ]);
 
-    const detailRead: Read | undefined = readsOf(
+    // Which rules name the schedule: ids only, nothing through the relation.
+    const linkRead: Read | undefined = readsOf(
       "OnCallDutyPolicyEscalationRuleSchedule",
     )[0];
-    expect(detailRead?.isRoot).toBe(false);
+    expect(linkRead?.isRoot).toBe(false);
     expect(
-      sqlOf(detailRead?.query["onCallDutyPolicyScheduleId"]).parameters,
+      sqlOf(linkRead?.query["onCallDutyPolicyScheduleId"]).parameters,
     ).toContain(RECORD.toString());
-    expect(detailRead?.query["projectId"]).toBe(PROJECT);
+    expect(linkRead?.query["projectId"]).toBe(PROJECT);
+    expect(linkRead?.select).toEqual({
+      onCallDutyPolicyId: true,
+      onCallDutyPolicyEscalationRuleId: true,
+    });
+
+    // The rules themselves, each once, read by id as the reader.
+    const ruleRead: Read | undefined = readsOf(
+      "OnCallDutyPolicyEscalationRule",
+    )[0];
+    expect(readsOf("OnCallDutyPolicyEscalationRule")).toHaveLength(1);
+    expect(ruleRead?.isRoot).toBe(false);
+    expect(ruleRead?.query["projectId"]).toBe(PROJECT);
+    for (const ruleId of [
+      "68130000-0000-4000-8000-000000000211",
+      "68130000-0000-4000-8000-000000000212",
+      "68130000-0000-4000-8000-000000000213",
+    ]) {
+      expect(sqlOf(ruleRead?.query["_id"]).parameters).toContain(ruleId);
+    }
+    expect(ruleRead?.limit).toBe(3);
+    expect(ruleRead?.select).toEqual({ _id: true, name: true, order: true });
+  });
+
+  test("rules the reader may not read are left out of the detail, the rows kept", async () => {
+    fake("OnCallDutyPolicy", {
+      total: 1,
+      reader: 1,
+      rows: [{ _id: "68130000-0000-4000-8000-000000000201", name: "Primary" }],
+    });
+    jest
+      .spyOn(OnCallDutyPolicyEscalationRuleScheduleService, "findBy")
+      .mockResolvedValue([
+        Object.assign(new BaseModel(), {
+          onCallDutyPolicyId: new ObjectID(
+            "68130000-0000-4000-8000-000000000201",
+          ),
+          onCallDutyPolicyEscalationRuleId: new ObjectID(
+            "68130000-0000-4000-8000-000000000211",
+          ),
+        }),
+      ]);
+    jest
+      .spyOn(OnCallDutyPolicyEscalationRuleService, "findBy")
+      .mockRejectedValue(new NotAuthorizedException("No escalation rules."));
+
+    const summary: UsedBySummary = await summaryOf(
+      UsedByRecordKind.OnCallSchedule,
+    );
+
+    expect(
+      groupOf(summary, UsedByRelation.ScheduleOnCallPolicies).rows,
+    ).toEqual([
+      { id: "68130000-0000-4000-8000-000000000201", name: "Primary" },
+    ]);
   });
 
   test("details the reader may not read are left out, the rows kept", async () => {

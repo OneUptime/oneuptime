@@ -48,6 +48,7 @@ import MonitorGroupResource from "../../Models/DatabaseModels/MonitorGroupResour
 import MonitorOwnerTeam from "../../Models/DatabaseModels/MonitorOwnerTeam";
 import NetworkDeviceOwnerTeam from "../../Models/DatabaseModels/NetworkDeviceOwnerTeam";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
+import OnCallDutyPolicyEscalationRule from "../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicyEscalationRuleSchedule from "../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
 import OnCallDutyPolicyEscalationRuleTeam from "../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleTeam";
 import OnCallDutyPolicyOwnerTeam from "../../Models/DatabaseModels/OnCallDutyPolicyOwnerTeam";
@@ -171,6 +172,7 @@ import MonitorGroupResourceService from "./MonitorGroupResourceService";
 import MonitorGroupService from "./MonitorGroupService";
 import MonitorService from "./MonitorService";
 import NetworkDeviceService from "./NetworkDeviceService";
+import OnCallDutyPolicyEscalationRuleService from "./OnCallDutyPolicyEscalationRuleService";
 import OnCallDutyPolicyEscalationRuleScheduleService from "./OnCallDutyPolicyEscalationRuleScheduleService";
 import OnCallDutyPolicyEscalationRuleTeamService from "./OnCallDutyPolicyEscalationRuleTeamService";
 import OnCallDutyPolicyScheduleService from "./OnCallDutyPolicyScheduleService";
@@ -521,8 +523,11 @@ function plainPlan(data: {
 
 /*
  * The escalation rules of each policy that page the record, by policy id:
- * "Primary, Second line", in the order the rules escalate. Read with the
- * reader's props; a rule they may not read is left out.
+ * "Primary, Second line", in the order the rules escalate. Two reads, each
+ * with the reader's props: which rules of the policies name the record,
+ * then those rules by id - a rule's order is not a column a read through
+ * a relation may select, so reading it that way refused the whole card.
+ * A rule they may not read is left out.
  */
 async function getEscalationRuleNames(data: {
   service: DatabaseService<BaseModel>;
@@ -535,7 +540,7 @@ async function getEscalationRuleNames(data: {
     return {};
   }
 
-  const rows: Array<BaseModel> = await data.service.findBy({
+  const links: Array<BaseModel> = await data.service.findBy({
     query: asQuery({
       projectId: data.context.projectId,
       [data.recordColumn]: QueryHelper.any(data.context.recordIds),
@@ -543,28 +548,58 @@ async function getEscalationRuleNames(data: {
     }),
     select: {
       onCallDutyPolicyId: true,
-      onCallDutyPolicyEscalationRule: {
-        name: true,
-        order: true,
-      },
+      onCallDutyPolicyEscalationRuleId: true,
     } as Select<BaseModel>,
     skip: 0,
     limit: LIMIT_PER_PROJECT,
     props: data.props,
   });
 
+  const ruleIds: Array<ObjectID> = toIds(
+    links,
+    (link: BaseModel): ObjectID | null => {
+      const id: string = readIdText(link, "onCallDutyPolicyEscalationRuleId");
+      return id ? new ObjectID(id) : null;
+    },
+  );
+
+  if (ruleIds.length === 0) {
+    return {};
+  }
+
+  const escalationRules: Array<OnCallDutyPolicyEscalationRule> =
+    await OnCallDutyPolicyEscalationRuleService.findBy({
+      query: {
+        projectId: data.context.projectId,
+        _id: QueryHelper.any(ruleIds),
+      },
+      select: {
+        _id: true,
+        name: true,
+        order: true,
+      },
+      skip: 0,
+      limit: ruleIds.length,
+      props: data.props,
+    });
+
+  const ruleById: Dictionary<OnCallDutyPolicyEscalationRule> = {};
+
+  for (const escalationRule of escalationRules) {
+    if (escalationRule.id) {
+      ruleById[escalationRule.id.toString()] = escalationRule;
+    }
+  }
+
   const rulesByPolicy: Dictionary<Array<{ name: string; order: number }>> = {};
 
-  for (const row of rows) {
-    const policyId: string = String(
-      (row as unknown as Dictionary<unknown>)["onCallDutyPolicyId"] || "",
-    );
-    const rule: Dictionary<unknown> | undefined = (
-      row as unknown as Dictionary<unknown>
-    )["onCallDutyPolicyEscalationRule"] as Dictionary<unknown> | undefined;
-    const name: string = String(rule?.["name"] || "").trim();
+  for (const link of links) {
+    const policyId: string = readIdText(link, "onCallDutyPolicyId");
+    const rule: OnCallDutyPolicyEscalationRule | undefined =
+      ruleById[readIdText(link, "onCallDutyPolicyEscalationRuleId")];
+    const name: string = String(rule?.name || "").trim();
 
-    if (!policyId || !name) {
+    if (!policyId || !rule || !name) {
       continue;
     }
 
@@ -576,7 +611,7 @@ async function getEscalationRuleNames(data: {
         return each.name === name;
       })
     ) {
-      rules.push({ name: name, order: Number(rule?.["order"]) || 0 });
+      rules.push({ name: name, order: Number(rule.order) || 0 });
     }
 
     rulesByPolicy[policyId] = rules;
