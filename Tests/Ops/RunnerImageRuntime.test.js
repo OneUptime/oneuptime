@@ -365,7 +365,10 @@ const SANDBOX_IDENTITY_MIN = 61000;
 const SANDBOX_IDENTITY_MAX = 64999;
 
 const OWN_USER_LOG =
-  "JavaScript steps run each in a process of its own, as a user of its own, with none of this Runner's environment or files.";
+  "JavaScript steps run each in a process of its own, as a user of its own, with no network and none of this Runner's environment or files.";
+
+const NO_NETWORK_LOG =
+  "JavaScript steps run each with no network: their processes may open no socket, and this Runner makes their HTTP requests, to public addresses only.";
 
 const OWN_PROCESS_LOG =
   "JavaScript steps run each in a process of its own, with none of this Runner's environment, but as this Runner's own user: the container does not let the Runner switch users";
@@ -519,6 +522,10 @@ describeRuntime("the Runner image, as a global Runner", () => {
     expect(runner.usersWhileRunning).toContain(1000);
   });
 
+  test("and with no network of its own: the Runner says so", () => {
+    expect(runner.logs).toContain(NO_NETWORK_LOG);
+  });
+
   test("nothing of the step's user is left once it ended", () => {
     expect(processUsersIn(runner.containerName).some(isSandboxUser)).toBe(
       false,
@@ -563,10 +570,10 @@ describeRuntime(
  * the image as it ships: RunnerSide.js plays the Runner (a key in its
  * environment, a private file and directory, as during a code fix) and
  * starts EscapedStep.js - plain Node.js, no isolate, no permission model -
- * through the image's launcher, as a sandbox user would run it. It reports
- * what it could reach; the kernel must have refused it all. Then a process
- * the step left behind is reaped, and a step whose launcher is killed dies
- * with it.
+ * through the image's launcher and its no-network filter, as the Runner runs
+ * a step. It reports what it could reach; the kernel must have refused it
+ * all, the network included. Then a process the step left behind is reaped,
+ * and a step whose launcher is killed dies with it.
  */
 const SANDBOX_HELPERS = path.join(
   REPO_ROOT,
@@ -627,6 +634,15 @@ describeRuntime(
       }
       expect(report.signalRunner).toEqual({ ok: false, code: "EPERM" });
       expect(report.writeFile).toEqual({ ok: false, code: "EFBIG" });
+    });
+
+    test("it may open no socket of its own: the no-network filter refuses every one", () => {
+      const { report } = runRunnerSide("escape");
+
+      // A seccomp filter is set (mode 2), and it refuses a socket of any kind.
+      expect(report.seccomp).toEqual({ ok: true, value: "2" });
+      expect(report.openTcpSocket).toEqual({ ok: false, code: "EACCES" });
+      expect(report.openUdpSocket).toEqual({ ok: false, code: "EACCES" });
     });
 
     test("a process the step left behind is gone once the step's user is reaped", () => {

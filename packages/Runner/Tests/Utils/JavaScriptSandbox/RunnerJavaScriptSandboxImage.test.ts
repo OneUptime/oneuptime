@@ -239,7 +239,7 @@ describe("the no-network filter's source", () => {
     ]) {
       expect(code).not.toContain(forbidden);
     }
-    expect(code).toContain('argv[1][0] != \'/\'');
+    expect(code).toContain("argv[1][0] != '/'");
     expect(code).toContain("execve(argv[1]");
   });
 
