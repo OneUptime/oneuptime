@@ -39,8 +39,9 @@ describe("DatabaseService: rules limited to deleted records", () => {
         match.index,
       );
 
+      // With who deleted them: the author of the switch-off in its audit trail.
       expect(before).toMatch(
-        /this\.deleteSwitchingOffEmptiedRules\(\s*items,\s*async \(\): Promise<number> => \{/,
+        /this\.deleteSwitchingOffEmptiedRules\(\s*items,\s*deleteBy\.props,\s*async \(\): Promise<number> => \{/,
       );
     }
   });
@@ -66,8 +67,9 @@ describe("DatabaseService: rules limited to deleted records", () => {
     expect(afterDelete).toBeGreaterThan(afterFailed);
     // A failed DELETE is thrown on, after the rules are put back.
     expect(body.slice(afterFailed)).toMatch(/throw error;/);
-    // And it is the table of the rows deleted that is asked about.
+    // And it is the table of the rows deleted that is asked about, by whom.
     expect(body).toMatch(/recordTable: this\.model\.tableName/);
+    expect(body).toMatch(/props: props/);
   });
 
   test("holds back a switch-on of a rule before any row is written, and clears its note after", () => {

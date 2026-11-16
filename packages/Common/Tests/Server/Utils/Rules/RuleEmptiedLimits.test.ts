@@ -1,3 +1,4 @@
+import AuditLogService from "../../../../Server/Services/AuditLogService";
 import RuleEmptiedLimits, {
   EmptiedLimitsOfDelete,
 } from "../../../../Server/Utils/Rules/RuleEmptiedLimits";
@@ -124,6 +125,7 @@ beforeEach(() => {
   jest.spyOn(RuleEmptiedLimits, "getQuery").mockReturnValue(database.query);
   jest.spyOn(RuleSetCache, "forgetProjects").mockResolvedValue(undefined);
   jest.spyOn(RuleSetCache, "forgetEveryProject").mockResolvedValue(undefined);
+  jest.spyOn(AuditLogService, "recordUpdate").mockResolvedValue(undefined);
   jest.spyOn(logger, "info").mockImplementation(() => {
     return undefined;
   });
@@ -448,6 +450,108 @@ describe("RuleEmptiedLimits.afterDelete", () => {
 
     expect(database.sent).toEqual([]);
     expect(RuleSetCache.forgetProjects).not.toHaveBeenCalled();
+  });
+});
+
+describe("RuleEmptiedLimits.recordInAuditTrail", () => {
+  const written: Array<RuleEmptiedLimit> = [
+    {
+      list: "monitors",
+      names: ["Checkout"],
+      count: 1,
+      deletedAt: "2026-11-16T10:00:00.000Z",
+      switchedOff: true,
+    },
+  ];
+
+  test("records the switch and the note, changed by whoever deleted the records, in the rule's project", async () => {
+    const userId: ObjectID = ObjectID.generate();
+    const deletersProject: ObjectID = ObjectID.generate();
+
+    await RuleEmptiedLimits.recordInAuditTrail({
+      noted: [
+        {
+          ruleTable: "IncidentOnCallRule",
+          ruleId: RULE_ID,
+          projectId: PROJECT_ID,
+          wasEnabled: true,
+          emptiedLimitsBefore: null,
+          emptiedLimitsWritten: written,
+        },
+      ],
+      props: { userId: userId, tenantId: deletersProject },
+    });
+
+    expect(AuditLogService.recordUpdate).toHaveBeenCalledTimes(1);
+
+    const recorded: Parameters<typeof AuditLogService.recordUpdate>[0] = (
+      AuditLogService.recordUpdate as jest.Mock
+    ).mock.calls[0]![0] as Parameters<typeof AuditLogService.recordUpdate>[0];
+
+    expect(recorded.model.tableName).toBe("IncidentOnCallRule");
+    expect(recorded.itemId.toString()).toBe(RULE_ID);
+    expect(recorded.updatedFields).toEqual({
+      isEnabled: false,
+      emptiedLimits: written,
+    });
+    expect(recorded.includeColumns).toEqual(["isEnabled", "emptiedLimits"]);
+    expect(
+      (recorded.before as unknown as Record<string, unknown>)["isEnabled"],
+    ).toBe(true);
+    expect(
+      (recorded.before as unknown as Record<string, unknown>)["emptiedLimits"],
+    ).toBeNull();
+    // The person who deleted the monitor, in the rule's own project.
+    expect(recorded.props.userId).toEqual(userId);
+    expect(recorded.props.tenantId?.toString()).toBe(PROJECT_ID);
+  });
+
+  test("is OneUptime's change when no person made the delete, and records nothing for no rule", async () => {
+    await RuleEmptiedLimits.recordInAuditTrail({ noted: [] });
+    expect(AuditLogService.recordUpdate).not.toHaveBeenCalled();
+
+    await RuleEmptiedLimits.recordInAuditTrail({
+      noted: [
+        {
+          ruleTable: "HostLabelRule",
+          ruleId: RULE_ID,
+          projectId: PROJECT_ID,
+          wasEnabled: false,
+          emptiedLimitsBefore: written,
+          emptiedLimitsWritten: written,
+        },
+      ],
+    });
+
+    const recorded: Parameters<typeof AuditLogService.recordUpdate>[0] = (
+      AuditLogService.recordUpdate as jest.Mock
+    ).mock.calls[0]![0] as Parameters<typeof AuditLogService.recordUpdate>[0];
+    expect(recorded.props.isRoot).toBe(true);
+    expect(
+      (recorded.before as unknown as Record<string, unknown>)["emptiedLimits"],
+    ).toEqual(written);
+  });
+
+  test("never throws", async () => {
+    (AuditLogService.recordUpdate as jest.Mock).mockImplementation(() => {
+      throw new Error("ClickHouse is down");
+    });
+
+    await expect(
+      RuleEmptiedLimits.recordInAuditTrail({
+        noted: [
+          {
+            ruleTable: "IncidentOnCallRule",
+            ruleId: RULE_ID,
+            projectId: PROJECT_ID,
+            wasEnabled: true,
+            emptiedLimitsBefore: null,
+            emptiedLimitsWritten: written,
+          },
+        ],
+      }),
+    ).resolves.toBeUndefined();
+    expect(logger.error).toHaveBeenCalled();
   });
 });
 

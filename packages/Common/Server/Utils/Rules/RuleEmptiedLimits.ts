@@ -8,9 +8,12 @@ import {
   RuleLimitList,
   RuleLimitListKind,
 } from "./RuleLimitLists";
+import type AuditLogServiceType from "../../Services/AuditLogService";
 import { getModelTypeByName } from "../../../Models/DatabaseModels/Index";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import {
   addRuleEmptiedLimits,
@@ -48,7 +51,10 @@ import { DataSource } from "typeorm";
  *      wrote, where nothing has written over it since.
  *   3. afterDelete: a rule that kept another record at step 1 and lost it
  *      before the DELETE - a person took it out meanwhile - is switched off
- *      too. Every process reads the rules again (RuleSetCache).
+ *      too. Each rule switched off or noted goes into its audit trail, as a
+ *      change made by whoever deleted the records (AuditLogService
+ *      .recordUpdate, for the writes made round DatabaseService), and every
+ *      process reads the rules again (RuleSetCache).
  *
  * Switching off comes first so a rule never matches everything, not even
  * for the moment between the two statements, and a process stopped between
@@ -100,6 +106,8 @@ export interface EmptiedLimitsOfDelete {
   deletedAt: Date;
   candidates: Array<ListCandidates>;
   noted: Array<RuleNotedByDelete>;
+  // Who deleted the records: the audit trail's author of the switch-off.
+  props?: DatabaseCommonInteractionProps | undefined;
 }
 
 // A rule the reads found, as it is.
@@ -161,6 +169,7 @@ export default class RuleEmptiedLimits {
   public static async beforeDelete(data: {
     recordTable: string | null | undefined;
     recordIds: Array<ObjectID | string | null | undefined>;
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<EmptiedLimitsOfDelete | null> {
     const lists: Array<RuleLimitList> = getRuleLimitListsHolding(
       data.recordTable,
@@ -191,6 +200,7 @@ export default class RuleEmptiedLimits {
       deletedAt: new Date(),
       candidates: [],
       noted: [],
+      props: data.props,
     };
 
     for (const list of lists) {
@@ -323,7 +333,77 @@ export default class RuleEmptiedLimits {
       );
     }
 
+    await this.recordInAuditTrail({ noted: of.noted, props: of.props });
+
     await this.logAndForget(of);
+  }
+
+  /*
+   * Each rule switched off or noted, in its audit trail: its switch and its
+   * note, changed by whoever made the delete (by OneUptime, for a purge), in
+   * the rule's own project. Recorded as every write made round
+   * DatabaseService's hooks is (AuditLogService.recordUpdate), with the two
+   * columns named: the note is OneUptime's to write, but the delete was a
+   * person's. Never throws.
+   */
+  public static async recordInAuditTrail(data: {
+    noted: Array<RuleNotedByDelete>;
+    props?: DatabaseCommonInteractionProps | undefined;
+  }): Promise<void> {
+    if (data.noted.length === 0) {
+      return;
+    }
+
+    try {
+      const auditLogService: typeof AuditLogServiceType =
+        // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+        require("../../Services/AuditLogService").default;
+
+      for (const noted of data.noted) {
+        const modelType: { new (): BaseModel } | null = getModelTypeByName(
+          noted.ruleTable,
+        );
+
+        if (!modelType) {
+          continue;
+        }
+
+        const projectId: ObjectID | undefined = noted.projectId
+          ? new ObjectID(noted.projectId)
+          : data.props?.tenantId;
+
+        // The rule as it was: its project, its switch and its note.
+        const before: BaseModel = new modelType();
+        const beforeFields: Record<string, unknown> =
+          before as unknown as Record<string, unknown>;
+        before._id = noted.ruleId;
+        beforeFields["projectId"] = projectId;
+        beforeFields["isEnabled"] = noted.wasEnabled;
+        beforeFields["emptiedLimits"] =
+          readRuleEmptiedLimits(noted.emptiedLimitsBefore).length > 0
+            ? noted.emptiedLimitsBefore
+            : null;
+
+        await auditLogService.recordUpdate({
+          model: new modelType(),
+          before: before,
+          updatedFields: {
+            isEnabled: false,
+            emptiedLimits: noted.emptiedLimitsWritten,
+          } as unknown as JSONObject,
+          itemId: new ObjectID(noted.ruleId),
+          props: {
+            ...(data.props || { isRoot: true }),
+            tenantId: projectId,
+          },
+          includeColumns: ["isEnabled", "emptiedLimits"],
+        });
+      }
+    } catch (err) {
+      logger.error(
+        `Could not record the rules switched off by a delete in their audit trail: ${err}`,
+      );
+    }
   }
 
   /*
@@ -594,6 +674,7 @@ export default class RuleEmptiedLimits {
       logger.info(
         `Switched off ${noted.length} rules whose lists held only deleted records (#9066).`,
       );
+      await this.recordInAuditTrail({ noted: noted, props: { isRoot: true } });
       await RuleSetCache.forgetEveryProject();
     }
 

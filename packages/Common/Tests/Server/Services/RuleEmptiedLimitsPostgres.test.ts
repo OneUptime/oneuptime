@@ -781,6 +781,52 @@ describePostgres(
         expect((await readRule(monitors, ruleId)).isEnabled).toBe(false);
       });
 
+      test("the switch-off goes into the rule's audit trail, as changed by whoever deleted the record", async () => {
+        const projectId: string = await insertProject();
+        const userId: ObjectID = ObjectID.generate();
+        const monitorId: string = await insertRecord({
+          table: "Monitor",
+          projectId,
+          name: "Checkout",
+        });
+        const ruleId: string = await insertRule({
+          list: monitors,
+          projectId,
+          name: "Page Payments for Checkout",
+          isEnabled: true,
+          recordIds: [monitorId],
+        });
+
+        await serviceOf("Monitor").deleteBy({
+          query: { _id: new ObjectID(monitorId) } as never,
+          limit: 1,
+          skip: 0,
+          props: { isRoot: true, userId: userId },
+        });
+
+        const entries: Array<
+          Parameters<typeof AuditLogService.recordUpdate>[0]
+        > = (AuditLogService.recordUpdate as unknown as jest.Mock).mock.calls
+          .map((call: Array<unknown>) => {
+            return call[0] as Parameters<
+              typeof AuditLogService.recordUpdate
+            >[0];
+          })
+          .filter(
+            (entry: Parameters<typeof AuditLogService.recordUpdate>[0]) => {
+              return entry.itemId.toString() === ruleId;
+            },
+          );
+
+        expect(entries).toHaveLength(1);
+        expect(entries[0]!.model.tableName).toBe("IncidentOnCallRule");
+        expect(entries[0]!.updatedFields).toEqual(
+          expect.objectContaining({ isEnabled: false }),
+        );
+        expect(entries[0]!.props.userId).toEqual(userId);
+        expect(entries[0]!.props.tenantId?.toString()).toBe(projectId);
+      });
+
       test("a record nothing holds is deleted with no write to any rule", async () => {
         const projectId: string = await insertProject();
         const monitorId: string = await insertRecord({

@@ -1469,11 +1469,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * monitor an on-call rule was limited to would page for every monitor.
    * So a rule limited to these rows alone is switched off first, with a
    * note of why on it, and put back if the DELETE fails; a rule left empty
-   * meanwhile is switched off after it (RuleEmptiedLimits, #9066). A
+   * meanwhile is switched off after it (RuleEmptiedLimits, #9066). Each goes
+   * into its audit trail as changed by whoever deleted the rows (`props`). A
    * failure to switch such a rule off refuses the delete.
    */
   private async deleteSwitchingOffEmptiedRules(
     items: Array<TBaseModel>,
+    props: DatabaseCommonInteractionProps,
     deleteRows: () => Promise<number>,
   ): Promise<number> {
     const emptiedLimits: EmptiedLimitsOfDelete | null =
@@ -1482,6 +1484,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         recordIds: items.map((item: TBaseModel): ObjectID | null => {
           return item.id;
         }),
+        props: props,
       });
 
     let deleted: number = 0;
@@ -8254,6 +8257,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
          */
         numberOfDocsAffected = await this.deleteSwitchingOffEmptiedRules(
           items,
+          deleteBy.props,
           async (): Promise<number> => {
             return (
               (
@@ -8668,6 +8672,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
          */
         numberOfDocsAffected = await this.deleteSwitchingOffEmptiedRules(
           items,
+          deleteBy.props,
           async (): Promise<number> => {
             return (
               (
