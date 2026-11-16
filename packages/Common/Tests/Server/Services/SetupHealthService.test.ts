@@ -15,6 +15,7 @@ import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import StatusPageDomain from "../../../Models/DatabaseModels/StatusPageDomain";
 import StatusPageResource from "../../../Models/DatabaseModels/StatusPageResource";
 import TeamMember from "../../../Models/DatabaseModels/TeamMember";
+import TelemetryIngestionKey from "../../../Models/DatabaseModels/TelemetryIngestionKey";
 import User from "../../../Models/DatabaseModels/User";
 import WorkspaceNotificationRule from "../../../Models/DatabaseModels/WorkspaceNotificationRule";
 import WorkspaceProjectAuthToken from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
@@ -61,8 +62,12 @@ import StatusPageDomainService from "../../../Server/Services/StatusPageDomainSe
 import StatusPageResourceService from "../../../Server/Services/StatusPageResourceService";
 import StatusPageService from "../../../Server/Services/StatusPageService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
+import TelemetryIngestionKeyService from "../../../Server/Services/TelemetryIngestionKeyService";
 import WorkspaceNotificationRuleService from "../../../Server/Services/WorkspaceNotificationRuleService";
 import WorkspaceProjectAuthTokenService from "../../../Server/Services/WorkspaceProjectAuthTokenService";
+import CertificateOrder, {
+  CustomDomainCertificateState,
+} from "../../../Server/Utils/Greenlock/CertificateOrder";
 import ServerSendingStatus from "../../../Server/Utils/ServerSending/ServerSendingStatus";
 import ActivationMilestone from "../../../Types/Analytics/ActivationMilestone";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -86,9 +91,11 @@ import {
 } from "../../../Types/ServerSending/ServerSendingStatus";
 import {
   SetupHealthAnswer,
+  SetupHealthCertificateReason,
   SetupHealthCheck,
   SetupHealthFinding,
   SetupHealthLevel,
+  SetupHealthRecordAnswer,
   SetupHealthRecordKind,
   SetupHealthResponderReason,
   SetupHealthScheduleReason,
@@ -224,9 +231,17 @@ interface World {
   monitorCount: number;
   callerMonitors: Array<string> | "all";
   callerPolicies: "all" | "refused";
+  callerStatusPages: "all" | "none";
+  callerIngestionKeys: "all" | "none";
   dismissals: Array<RecommendationDismissal>;
   statusPagesFail: boolean;
   serverEmail: ServerSendingState;
+  // The custom domain's CNAME record is verified.
+  isDomainVerified: boolean;
+  // What the certificate table and Redis say of each domain; null: the read fails.
+  certificateStates: Map<string, CustomDomainCertificateState> | null;
+  ingestionKeys: Array<TelemetryIngestionKey>;
+  receivesTelemetry: boolean;
 }
 
 let world: World;
@@ -236,10 +251,31 @@ function defaultWorld(): World {
     monitorCount: 10,
     callerMonitors: "all",
     callerPolicies: "all",
+    callerStatusPages: "all",
+    callerIngestionKeys: "all",
     dismissals: [],
     statusPagesFail: false,
     serverEmail: ServerSendingState.NotSetUp,
+    isDomainVerified: false,
+    certificateStates: new Map<string, CustomDomainCertificateState>(),
+    ingestionKeys: [],
+    receivesTelemetry: true,
   };
+}
+
+const KEY: string = "68120000-1111-4000-8000-0000000000f4";
+
+function ingestionKey(data: {
+  createdAt: Date;
+  lastUsedAt?: Date | undefined;
+  isEnabled?: boolean | undefined;
+}): TelemetryIngestionKey {
+  const item: TelemetryIngestionKey = withId(new TelemetryIngestionKey(), KEY);
+  item.name = "Production collector";
+  item.createdAt = data.createdAt;
+  item.lastUsedAt = data.lastUsedAt;
+  item.isEnabled = data.isEnabled;
+  return item;
 }
 
 // Every monitor of the project: the paging ones, and one of each kind the checks tell apart.
@@ -749,6 +785,10 @@ function stubWorld(): void {
       }
 
       if (!args.props.isRoot) {
+        if (world.callerStatusPages === "none") {
+          return [];
+        }
+
         return idsIn(args.query).map((id: string): StatusPage => {
           return withId(new StatusPage(), id);
         });
@@ -781,9 +821,40 @@ function stubWorld(): void {
       domain.statusPageId = new ObjectID(EMPTY_PAGE);
       domain.statusPage = new StatusPage();
       domain.statusPage.name = "Acme Status";
-      domain.isCnameVerified = false;
+      domain.isCnameVerified = world.isDomainVerified;
+      domain.isCustomCertificate = false;
       domain.createdAt = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
       return [domain];
+    },
+  );
+  spy(
+    "CertificateOrder.getCertificateStates",
+    CertificateOrder,
+    "getCertificateStates",
+    async (): Promise<Map<string, CustomDomainCertificateState>> => {
+      if (!world.certificateStates) {
+        throw new Error("Redis could not be reached.");
+      }
+
+      return world.certificateStates;
+    },
+  );
+  spy(
+    "TelemetryIngestionKeyService.findBy",
+    TelemetryIngestionKeyService,
+    "findBy",
+    async (args: { query: unknown; props: DatabaseCommonInteractionProps }) => {
+      if (args.props.isRoot) {
+        return world.ingestionKeys;
+      }
+
+      if (world.callerIngestionKeys === "none") {
+        throw new NotAuthorizedException("You may not read ingestion keys.");
+      }
+
+      return idsIn(args.query).map((id: string): TelemetryIngestionKey => {
+        return withId(new TelemetryIngestionKey(), id);
+      });
     },
   );
 
@@ -829,13 +900,15 @@ function stubWorld(): void {
     ProjectMilestoneService,
     "getReachedMilestones",
     async () => {
-      return [
-        {
-          milestone: ActivationMilestone.FirstLogsReceived,
-          reachedAt: new Date(),
-          wasBackfilled: false,
-        },
-      ];
+      return world.receivesTelemetry
+        ? [
+            {
+              milestone: ActivationMilestone.FirstLogsReceived,
+              reachedAt: new Date(),
+              wasBackfilled: false,
+            },
+          ]
+        : [];
     },
   );
   spy(
@@ -1263,6 +1336,425 @@ describe("SetupHealthService", () => {
     ).toEqual([SCHEDULE]);
     // The archived monitor is gone; the others are all here.
     expect(facts.monitors).toHaveLength(world.monitorCount + 3);
+  });
+
+  /*
+   * #7294: a verified custom domain's free certificate, as the Custom
+   * Domains page's Status column reads it - only where the installation
+   * issues free certificates, in one batch for every domain.
+   */
+  describe("a custom domain's certificate", () => {
+    const LETS_ENCRYPT_ACCOUNT_KEY: string = "LETS_ENCRYPT_ACCOUNT_KEY";
+    let keyBefore: string | undefined;
+
+    beforeEach(() => {
+      keyBefore = process.env[LETS_ENCRYPT_ACCOUNT_KEY];
+      process.env[LETS_ENCRYPT_ACCOUNT_KEY] = "an account key";
+      world.isDomainVerified = true;
+    });
+
+    afterEach(() => {
+      if (keyBefore === undefined) {
+        delete process.env[LETS_ENCRYPT_ACCOUNT_KEY];
+      } else {
+        process.env[LETS_ENCRYPT_ACCOUNT_KEY] = keyBefore;
+      }
+    });
+
+    function certificateFinding(
+      answer: SetupHealthAnswer,
+    ): SetupHealthFinding | undefined {
+      return answer.findings.find((finding: SetupHealthFinding): boolean => {
+        return (
+          finding.check === SetupHealthCheck.StatusPageDomainCertificateFailed
+        );
+      });
+    }
+
+    test("a verified domain whose certificate order keeps failing is worth fixing, read in one batch", async () => {
+      world.certificateStates = new Map<string, CustomDomainCertificateState>([
+        [
+          "status.acme.com",
+          {
+            lastOrderError: "CAA record for acme.com prevents issuance.",
+            lastOrderFailedAt: new Date(),
+          },
+        ],
+      ]);
+
+      const answer: SetupHealthAnswer = await SetupHealthService.getForCaller({
+        projectId: PROJECT_ID,
+        props: CALLER,
+      });
+
+      expect(certificateFinding(answer)).toMatchObject({
+        level: SetupHealthLevel.WorthFixing,
+        reason: SetupHealthCertificateReason.NotIssued,
+        record: {
+          kind: SetupHealthRecordKind.StatusPageDomain,
+          id: DOMAIN,
+          name: "status.acme.com",
+        },
+      });
+      // Verified: it is no longer said to be waiting for its CNAME record.
+      expect(checksOf(answer.findings)).not.toContain(
+        SetupHealthCheck.StatusPageDomainNotVerified,
+      );
+      expect(
+        reads["CertificateOrder.getCertificateStates"]!.mock.calls,
+      ).toEqual([[["status.acme.com"]]]);
+    });
+
+    test("an expired certificate is worth fixing", async () => {
+      world.certificateStates = new Map<string, CustomDomainCertificateState>([
+        [
+          "status.acme.com",
+          {
+            certificateExpiresAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+          },
+        ],
+      ]);
+
+      const answer: SetupHealthAnswer = await SetupHealthService.getForCaller({
+        projectId: PROJECT_ID,
+        props: CALLER,
+      });
+
+      expect(certificateFinding(answer)?.reason).toBe(
+        SetupHealthCertificateReason.Expired,
+      );
+    });
+
+    test("a certificate in place, or still being issued, is no finding", async () => {
+      for (const state of [
+        { certificateExpiresAt: new Date(Date.now() + 60 * 24 * 3600 * 1000) },
+        {},
+      ]) {
+        SetupHealthService.clearCache();
+        world.certificateStates = new Map<string, CustomDomainCertificateState>(
+          [["status.acme.com", state]],
+        );
+
+        expect(
+          certificateFinding(
+            await SetupHealthService.getForCaller({
+              projectId: PROJECT_ID,
+              props: CALLER,
+            }),
+          ),
+        ).toBeUndefined();
+      }
+    });
+
+    test("an installation that issues no free certificates is never asked about them", async () => {
+      delete process.env[LETS_ENCRYPT_ACCOUNT_KEY];
+      world.certificateStates = null;
+
+      const answer: SetupHealthAnswer = await SetupHealthService.getForCaller({
+        projectId: PROJECT_ID,
+        props: CALLER,
+      });
+
+      expect(certificateFinding(answer)).toBeUndefined();
+      expect(
+        reads["CertificateOrder.getCertificateStates"]!.mock.calls,
+      ).toHaveLength(0);
+    });
+
+    test("a domain still waiting for its CNAME record is not asked about", async () => {
+      world.isDomainVerified = false;
+
+      await SetupHealthService.getForCaller({
+        projectId: PROJECT_ID,
+        props: CALLER,
+      });
+
+      expect(
+        reads["CertificateOrder.getCertificateStates"]!.mock.calls,
+      ).toHaveLength(0);
+    });
+
+    test("a certificate read that fails says nothing of certificates, and keeps every other finding", async () => {
+      world.certificateStates = null;
+
+      const answer: SetupHealthAnswer = await SetupHealthService.getForCaller({
+        projectId: PROJECT_ID,
+        props: CALLER,
+      });
+
+      expect(certificateFinding(answer)).toBeUndefined();
+      expect(checksOf(answer.findings)).toContain(
+        SetupHealthCheck.StatusPageShowsNoMonitor,
+      );
+      expect(checksOf(answer.findings)).toContain(
+        SetupHealthCheck.PolicyNotRun,
+      );
+    });
+  });
+
+  /*
+   * #7295: an ingestion key no data has arrived with, from one read of the
+   * project's keys.
+   */
+  describe("ingestion keys", () => {
+    // Made after HTTP stamped, before gRPC and MQTT did.
+    const OCTOBER: Date = new Date("2026-10-01T09:00:00.000Z");
+
+    function keyFinding(
+      answer: SetupHealthAnswer,
+    ): SetupHealthFinding | undefined {
+      return answer.findings.find((finding: SetupHealthFinding): boolean => {
+        return finding.check === SetupHealthCheck.IngestionKeyNeverUsed;
+      });
+    }
+
+    test("a key no data has arrived with, in a project nothing has ever been sent to, is a suggestion", async () => {
+      world.receivesTelemetry = false;
+      world.ingestionKeys = [ingestionKey({ createdAt: OCTOBER })];
+
+      const answer: SetupHealthAnswer = await SetupHealthService.getForCaller({
+        projectId: PROJECT_ID,
+        props: CALLER,
+      });
+
+      expect(keyFinding(answer)).toMatchObject({
+        level: SetupHealthLevel.Suggestion,
+        record: {
+          kind: SetupHealthRecordKind.TelemetryIngestionKey,
+          id: KEY,
+          name: "Production collector",
+        },
+        fixRecordId: KEY,
+      });
+    });
+
+    test("the same key where telemetry arrives, a key in use and a key switched off are no finding", async () => {
+      for (const data of [
+        { receivesTelemetry: true, key: ingestionKey({ createdAt: OCTOBER }) },
+        {
+          receivesTelemetry: false,
+          key: ingestionKey({
+            createdAt: OCTOBER,
+            lastUsedAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+          }),
+        },
+        {
+          receivesTelemetry: false,
+          key: ingestionKey({ createdAt: OCTOBER, isEnabled: false }),
+        },
+      ]) {
+        SetupHealthService.clearCache();
+        world.receivesTelemetry = data.receivesTelemetry;
+        world.ingestionKeys = [data.key];
+
+        expect(
+          keyFinding(
+            await SetupHealthService.getForCaller({
+              projectId: PROJECT_ID,
+              props: CALLER,
+            }),
+          ),
+        ).toBeUndefined();
+      }
+    });
+
+    test("is shown only to someone who may read ingestion keys", async () => {
+      world.receivesTelemetry = false;
+      world.ingestionKeys = [ingestionKey({ createdAt: OCTOBER })];
+      world.callerIngestionKeys = "none";
+
+      expect(
+        keyFinding(
+          await SetupHealthService.getForCaller({
+            projectId: PROJECT_ID,
+            props: CALLER,
+          }),
+        ),
+      ).toBeUndefined();
+    });
+
+    test("the keys are read once, by when they were made and last used, never with their secret", async () => {
+      await SetupHealthService.readFacts(PROJECT_ID);
+
+      const calls: Array<unknown> =
+        reads["TelemetryIngestionKeyService.findBy"]!.mock.calls;
+
+      expect(calls).toHaveLength(1);
+
+      const args: { select: Record<string, unknown> } = (
+        calls[0] as [{ select: Record<string, unknown> }]
+      )[0];
+
+      expect(Object.keys(args.select).sort()).toEqual(
+        [
+          "_id",
+          "name",
+          "createdAt",
+          "lastUsedAt",
+          "isEnabled",
+          "expiresAt",
+        ].sort(),
+      );
+      expect(args.select).not.toHaveProperty("secretKey");
+    });
+
+    test("a key read that fails takes only the keys' check away", async () => {
+      jest
+        .spyOn(TelemetryIngestionKeyService, "findBy")
+        .mockImplementation((async () => {
+          throw new Error("The ingestion keys could not be read.");
+        }) as never);
+
+      const answer: SetupHealthAnswer = await SetupHealthService.getForCaller({
+        projectId: PROJECT_ID,
+        props: CALLER,
+      });
+
+      expect(keyFinding(answer)).toBeUndefined();
+      expect(checksOf(answer.findings)).toContain(
+        SetupHealthCheck.PolicyNotRun,
+      );
+    });
+  });
+
+  /*
+   * #7297: the line at the top of a record's page - its open findings, as
+   * the Setup Health page has them, for someone who may read it.
+   */
+  describe("one record's findings", () => {
+    test("a policy's page is handed the findings about it, as the page says them", async () => {
+      const answer: SetupHealthAnswer = await SetupHealthService.getForCaller({
+        projectId: PROJECT_ID,
+        props: CALLER,
+      });
+      const forRecord: SetupHealthRecordAnswer =
+        await SetupHealthService.getForRecord({
+          projectId: PROJECT_ID,
+          props: CALLER,
+          record: {
+            kind: SetupHealthRecordKind.OnCallDutyPolicy,
+            id: SECONDARY,
+          },
+        });
+
+      expect(checksOf(forRecord.findings)).toEqual([
+        SetupHealthCheck.PolicyNotRun,
+      ]);
+      // The same finding, word for word, as the Setup Health page has it.
+      expect(forRecord.findings[0]).toEqual(
+        answer.findings.find((finding: SetupHealthFinding): boolean => {
+          return finding.check === SetupHealthCheck.PolicyNotRun;
+        }),
+      );
+      expect(forRecord.checkedAt).toBe(answer.checkedAt);
+      // From the same minute-old findings: nothing was worked out again.
+      expect(
+        reads["OnCallReadinessService.getReadinessForProject"]!.mock.calls,
+      ).toHaveLength(1);
+    });
+
+    test("a status page's page is handed its own findings and its custom domains'", async () => {
+      const forRecord: SetupHealthRecordAnswer =
+        await SetupHealthService.getForRecord({
+          projectId: PROJECT_ID,
+          props: CALLER,
+          record: { kind: SetupHealthRecordKind.StatusPage, id: EMPTY_PAGE },
+        });
+
+      expect(checksOf(forRecord.findings)).toEqual([
+        SetupHealthCheck.StatusPageShowsNoMonitor,
+        SetupHealthCheck.StatusPageDomainNotVerified,
+      ]);
+    });
+
+    test("a dismissed finding is not handed to the record's page", async () => {
+      const dismissal: RecommendationDismissal = withId(
+        new RecommendationDismissal(),
+        DISMISSAL,
+      );
+      dismissal.recommendationType = RecommendationType.SetupHealth;
+      dismissal.recommendationId = SetupHealthCheck.PolicyNotRun;
+      dismissal.resourceType = SetupHealthRecordKind.OnCallDutyPolicy;
+      dismissal.resourceId = new ObjectID(SECONDARY);
+      world.dismissals = [dismissal];
+
+      expect(
+        (
+          await SetupHealthService.getForRecord({
+            projectId: PROJECT_ID,
+            props: CALLER,
+            record: {
+              kind: SetupHealthRecordKind.OnCallDutyPolicy,
+              id: SECONDARY,
+            },
+          })
+        ).findings,
+      ).toEqual([]);
+    });
+
+    test("someone who may not read the record is handed nothing about it", async () => {
+      world.callerPolicies = "refused";
+      world.callerStatusPages = "none";
+
+      for (const record of [
+        { kind: SetupHealthRecordKind.OnCallDutyPolicy, id: SECONDARY },
+        { kind: SetupHealthRecordKind.StatusPage, id: EMPTY_PAGE },
+      ]) {
+        expect(
+          (
+            await SetupHealthService.getForRecord({
+              projectId: PROJECT_ID,
+              props: CALLER,
+              record: record,
+            })
+          ).findings,
+        ).toEqual([]);
+      }
+    });
+
+    test("only what the record's findings name is read for the person, and a record with none reads nothing more", async () => {
+      await SetupHealthService.getProjectFindings({ projectId: PROJECT_ID });
+
+      const callerReads: (name: string) => number = (name: string): number => {
+        return (
+          reads[name]!.mock.calls as Array<
+            [{ props: DatabaseCommonInteractionProps }]
+          >
+        ).filter((call: [{ props: DatabaseCommonInteractionProps }]) => {
+          return !call[0].props.isRoot;
+        }).length;
+      };
+
+      await SetupHealthService.getForRecord({
+        projectId: PROJECT_ID,
+        props: CALLER,
+        record: { kind: SetupHealthRecordKind.OnCallDutyPolicy, id: SECONDARY },
+      });
+
+      expect(callerReads("OnCallDutyPolicyService.findBy")).toBe(1);
+      expect(callerReads("MonitorService.findBy")).toBe(0);
+      expect(callerReads("StatusPageService.findBy")).toBe(0);
+      expect(callerReads("TelemetryIngestionKeyService.findBy")).toBe(0);
+
+      const dismissalReads: number =
+        reads["RecommendationDismissalService.findBy"]!.mock.calls.length;
+
+      expect(
+        (
+          await SetupHealthService.getForRecord({
+            projectId: PROJECT_ID,
+            props: CALLER,
+            record: {
+              kind: SetupHealthRecordKind.OnCallDutyPolicy,
+              id: PRIMARY,
+            },
+          })
+        ).findings,
+      ).toEqual([]);
+      expect(
+        reads["RecommendationDismissalService.findBy"]!.mock.calls.length,
+      ).toBe(dismissalReads);
+    });
   });
 
   test("reads only: nothing is created, updated or deleted", async () => {

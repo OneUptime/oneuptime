@@ -105,9 +105,12 @@ export const CHECK_ICONS: Readonly<Record<SetupHealthCheck, IconProp>> = {
   [SetupHealthCheck.MonitorOffForLong]: IconProp.AltGlobe,
   [SetupHealthCheck.StatusPageShowsNoMonitor]: IconProp.Window,
   [SetupHealthCheck.StatusPageDomainNotVerified]: IconProp.Link,
+  // A padlock: what a browser shows, or does not, for a certificate.
+  [SetupHealthCheck.StatusPageDomainCertificateFailed]: IconProp.Lock,
   [SetupHealthCheck.OneOwner]: IconProp.Team,
   [SetupHealthCheck.WorkspaceNotUsed]: IconProp.Chat,
   [SetupHealthCheck.TelemetryNotWatched]: IconProp.Logs,
+  [SetupHealthCheck.IngestionKeyNeverUsed]: IconProp.Key,
 };
 
 // What the server cannot send: an email, an SMS, a call.
@@ -153,5 +156,6 @@ export const RECORD_ICONS: Readonly<Record<SetupHealthRecordKind, IconProp>> = {
   [SetupHealthRecordKind.User]: IconProp.User,
   [SetupHealthRecordKind.StatusPage]: IconProp.Window,
   [SetupHealthRecordKind.StatusPageDomain]: IconProp.Link,
+  [SetupHealthRecordKind.TelemetryIngestionKey]: IconProp.Key,
   [SetupHealthRecordKind.Project]: IconProp.Folder,
 };
