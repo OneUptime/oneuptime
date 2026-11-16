@@ -93,6 +93,7 @@ import WhoIsToldService, {
 } from "../../../Server/Services/WhoIsToldService";
 import ProjectMembership from "../../../Server/Utils/TeamMember/ProjectMembership";
 import OneUptimeDate from "../../../Types/Date";
+import Timezone from "../../../Types/Timezone";
 import OnCallRuleWhenToPage from "../../../Types/OnCallDutyPolicy/OnCallRuleWhenToPage";
 import RestrictionTimes, {
   RestrictionType,
@@ -3750,7 +3751,7 @@ describe("WhoIsToldService", () => {
       const held: IncidentOnCallRule = rule(RULE, "Every incident", [PRIMARY]);
       held.whenToPage = whenToPage;
       held.workingHours = daily("09:00", "17:00");
-      held.workingHoursTimezone = LONDON;
+      held.workingHoursTimezone = Timezone.EuropeLondon;
       world.incidentRules = [held];
 
       jest
