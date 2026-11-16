@@ -34,7 +34,10 @@ const marking: Translator = createTranslator((text: string): string => {
   return `${OPEN}${text}${CLOSE}`;
 }, "de");
 
-const english: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+// A page's English, as the module's own fallback is (#8811).
+const english: Translator = createTranslator(undefined, DEFAULT_LANGUAGE, {
+  drawsOnPage: true,
+});
 
 /*
  * A text as the marking translator words it, set as the Translator sets a

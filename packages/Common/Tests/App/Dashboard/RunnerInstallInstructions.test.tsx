@@ -75,7 +75,7 @@ describe("RunnerInstallInstructions", () => {
     test("explains that the first heartbeat takes up to a minute", () => {
       const container: HTMLElement = renderWithKey("super-secret-key");
 
-      expect(container.textContent).toContain("every 60 seconds");
+      expect(container.textContent).toContain("every 60\u00A0seconds");
       expect(container.textContent).toContain("Connected");
     });
   });

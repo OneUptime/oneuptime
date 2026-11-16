@@ -41,11 +41,11 @@ describe("getSessionReplayRetentionOptions", () => {
     ).toEqual(SESSION_REPLAY_ALLOWED_RETENTION_DAYS);
     expect(DEFAULT_SESSION_REPLAY_RETENTION_IN_DAYS).toBe(7);
     expect(labels(options)).toEqual([
-      "1 day",
-      "7 days (default)",
-      "14 days",
-      "30 days",
-      "90 days",
+      "1\u00A0day",
+      "7\u00A0days (default)",
+      "14\u00A0days",
+      "30\u00A0days",
+      "90\u00A0days",
     ]);
   });
 
@@ -63,10 +63,10 @@ describe("getSessionReplayRetentionOptions", () => {
 
 describe("formatSessionReplayRetention", () => {
   test("reads in English, word for word, without a translator", () => {
-    expect(formatSessionReplayRetention(1)).toBe("1 day");
-    expect(formatSessionReplayRetention(30)).toBe("30 days");
+    expect(formatSessionReplayRetention(1)).toBe("1\u00A0day");
+    expect(formatSessionReplayRetention(30)).toBe("30\u00A0days");
     expect(formatSessionReplayRetention(undefined)).toBe(
-      "not set (defaults to 7 days)",
+      "not set (defaults to 7\u00A0days)",
     );
   });
 

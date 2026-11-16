@@ -317,7 +317,7 @@ describe("the full criteria editor", () => {
     };
 
     expect(CriteriaFilterUiUtil.translateFilterToText(filter)).toBe(
-      'Check if "Metric Value" is forecast to fall below 10\u00A0GB within 3 days',
+      'Check if "Metric Value" is forecast to fall below 10\u00A0GB within 3\u00A0days',
     );
     expect(
       CriteriaFilterUiUtil.translateFilterToText({
@@ -327,7 +327,7 @@ describe("the full criteria editor", () => {
         metricMonitorOptions: { thresholdUnit: "%" },
       }),
     ).toBe(
-      'Check if "Metric Value" is forecast to rise above 90\u00A0% within 7 days',
+      'Check if "Metric Value" is forecast to rise above 90\u00A0% within 7\u00A0days',
     );
   });
 

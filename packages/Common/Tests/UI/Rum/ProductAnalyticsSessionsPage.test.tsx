@@ -454,13 +454,13 @@ describe("ProductAnalyticsSessions session length", () => {
     });
 
     expect(barRows("product-analytics-session-lengths")).toEqual([
-      { key: "under-10s", text: "Under 10 seconds 390 10%" },
-      { key: "10s-30s", text: "10 to 30 seconds 780 20%" },
-      { key: "30s-1m", text: "30 seconds to 1 minute 390 10%" },
-      { key: "1m-3m", text: "1 to 3 minutes 780 20%" },
-      { key: "3m-10m", text: "3 to 10 minutes 780 20%" },
-      { key: "10m-30m", text: "10 to 30 minutes 390 10%" },
-      { key: "30m-plus", text: "30 minutes or more 390 10%" },
+      { key: "under-10s", text: "Under 10\u00A0seconds 390 10%" },
+      { key: "10s-30s", text: "10 to 30\u00A0seconds 780 20%" },
+      { key: "30s-1m", text: "30\u00A0seconds to 1\u00A0minute 390 10%" },
+      { key: "1m-3m", text: "1 to 3\u00A0minutes 780 20%" },
+      { key: "3m-10m", text: "3 to 10\u00A0minutes 780 20%" },
+      { key: "10m-30m", text: "10 to 30\u00A0minutes 390 10%" },
+      { key: "30m-plus", text: "30\u00A0minutes or more 390 10%" },
     ]);
 
     /*

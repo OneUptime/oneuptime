@@ -46,7 +46,7 @@ describe("getSessionReplayPlayability", () => {
     expect(result.severity).toBe("info");
     expect(result.isWatchable).toBe(true);
     expect(result.tooltip).toContain("not been finalized");
-    expect(result.tooltip).toContain("10 minutes");
+    expect(result.tooltip).toContain("10\u00A0minutes");
     expect(result.detail).toBe("live");
   });
 

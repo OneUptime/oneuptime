@@ -287,7 +287,7 @@ describe("ExceptionSegmentedControl rendering", () => {
   test("passes an option's title through", () => {
     renderControl();
 
-    expect(radio("7d")).toHaveAttribute("title", "Last 7 days");
+    expect(radio("7d")).toHaveAttribute("title", "Last 7\u00A0days");
     expect(radio("1h")).not.toHaveAttribute("title");
   });
 

@@ -535,7 +535,7 @@ describe("the setup check of a browser application", () => {
     await renderCard();
 
     expect(rowText("webVitals")).toBe(
-      "Not found. Metrics arrive, but none in the past 30 days under a name the Web Vitals card reads.",
+      "Not found. Metrics arrive, but none in the past 30\u00A0days under a name the Web Vitals card reads.",
     );
     expect(
       within(row("webVitals")).getByRole("link", { name: "Set up Web Vitals" }),

@@ -373,7 +373,7 @@ describe("the folded More settings", () => {
     await loadAllowlist("10.0.0.0/8");
 
     expect(setChips(advancedSection())).toEqual([
-      `${StatusPageSessionLengthCopy.cardTitle}: 1 hour`,
+      `${StatusPageSessionLengthCopy.cardTitle}: 1\u00A0hour`,
       "IP Allowlist: 1",
     ]);
   });

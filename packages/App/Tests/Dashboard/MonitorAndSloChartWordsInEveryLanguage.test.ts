@@ -22,6 +22,7 @@ import {
   readDashboardLocale,
   readDashboardLocaleAsDrawn,
 } from "Common/Tests/Helpers/DashboardLocales";
+import { withPlainSpaces } from "Common/Types/NoBreakSpaces";
 import { buildMonitorMetricQueryConfig } from "../../FeatureSet/Dashboard/src/Components/Monitor/MonitorMetricQueryConfig";
 import {
   SLO_BURN_RATE_CHART_DESCRIPTION,
@@ -209,9 +210,10 @@ describe("every word these charts draw", () => {
         SLO_CURRENT_BURN_RATE_WINDOW_MINUTES,
       ),
     ).toBe(SloMetricTypeUtil.getDescription(SloMetricType.BurnRate));
-    expect(getSloMetricChartDescription(SloMetricType.BurnRate)).toBe(
-      SloMetricTypeUtil.getDescription(SloMetricType.BurnRate),
-    );
+    // The chart draws its window held (#8811); the catalog stores it as written.
+    expect(
+      withPlainSpaces(getSloMetricChartDescription(SloMetricType.BurnRate)),
+    ).toBe(SloMetricTypeUtil.getDescription(SloMetricType.BurnRate));
   });
 });
 

@@ -392,7 +392,7 @@ describe("adding a push rule through the create form", () => {
     await pickMethod(user, IPHONE_OPTION);
     await pickOption(user, repeatField()!, "Every 5 minutes");
 
-    expect(repeatFieldPick()).toBe("Every 5 minutes");
+    expect(repeatFieldPick()).toBe("Every 5\u00A0minutes");
 
     await pickNotifyImmediately(user);
 

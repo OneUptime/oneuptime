@@ -100,7 +100,9 @@ export interface SloMetricsCardCopy {
  * what a plain-node test reads. The Metrics page hands the reader's, so the
  * Burn card's sentence, which carries its window, is worded whole.
  */
-const ENGLISH: Translator = createTranslator(undefined);
+const ENGLISH: Translator = createTranslator(undefined, undefined, {
+  drawsOnPage: true,
+});
 
 export type GetSloMetricCategoriesFunction = (
   translator?: Translator,

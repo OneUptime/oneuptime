@@ -669,10 +669,10 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
         "Waiting for DNS: add the CNAME record.",
       );
       expect(statusOf(VERIFIED)).toBe(
-        "Issuing a free certificate, usually within 15 minutes.",
+        "Issuing a free certificate, usually within 15\u00A0minutes.",
       );
       expect(statusOf(ORDERED)).toBe(
-        "Issuing a free certificate, usually within 15 minutes.",
+        "Issuing a free certificate, usually within 15\u00A0minutes.",
       );
       expect(statusOf(PROVISIONED)).toBe(
         "Certificate issued, renews automatically.",
@@ -800,7 +800,7 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
         "Certificate issued, renews automatically.",
       );
       expect(statusOf(VERIFIED)).toBe(
-        "Issuing a free certificate, usually within 15 minutes.",
+        "Issuing a free certificate, usually within 15\u00A0minutes.",
       );
       expect(errorOf(PROVISIONED)).toBeNull();
       expect(errorOf(VERIFIED)).toBeNull();
@@ -929,7 +929,7 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
       });
 
       expect(statusOf(FAILING)).toBe(
-        "Issuing a free certificate, usually within 15 minutes.",
+        "Issuing a free certificate, usually within 15\u00A0minutes.",
       );
       expect(statusOf(EXPIRED)).toBe(
         "Certificate issued, renews automatically.",

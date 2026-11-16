@@ -847,7 +847,9 @@ export function formatStepDuration(
   const seconds: number = durationInMs / 1000;
 
   return formatDurationInUnit(
-    createTranslator(undefined, language || DEFAULT_LANGUAGE),
+    createTranslator(undefined, language || DEFAULT_LANGUAGE, {
+      drawsOnPage: true,
+    }),
     seconds,
     "second",
     { decimals: 1, english: `${seconds.toFixed(1)}s` },

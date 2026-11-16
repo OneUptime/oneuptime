@@ -33,6 +33,7 @@ import {
   NO_NOTIFICATION_REPEAT,
   REPEAT_EVERY_MINUTES_OPTIONS,
 } from "../../../Types/NotificationRule/NotificationRepeat";
+import { withPlainSpaces } from "../../../Types/NoBreakSpaces";
 
 /*
  * The pill beside the push level under every push rule on the On-Call Rules
@@ -90,13 +91,13 @@ function repeatsEvery(minutes: number): string {
     : `Repeats every ${minutes}\u00A0minutes`;
 }
 
-// The menu's and the create form's words for an interval.
+// The menu's and the create form's words for an interval, its figure held (#8811).
 function optionLabel(minutes: number): string {
   if (minutes === 0) {
     return "Don't repeat";
   }
 
-  return minutes === 1 ? "Every minute" : `Every ${minutes} minutes`;
+  return minutes === 1 ? "Every minute" : `Every ${minutes}\u00A0minutes`;
 }
 
 const OFFERED_VALUES: Array<number> = [
@@ -264,11 +265,12 @@ describe("the intervals the On-Call Rules page offers", () => {
   });
 
   test("are worded for the person picking one", () => {
+    // Stored with plain spaces; the menu draws them held.
     expect(
       PUSH_REPEAT_DROPDOWN_OPTIONS.map((option: DropdownOption): string => {
         return option.label;
       }),
-    ).toEqual(OFFERED_VALUES.map(optionLabel));
+    ).toEqual(OFFERED_VALUES.map(optionLabel).map(withPlainSpaces));
   });
 
   test("are explained with the worker's own limit, never a number of their own", () => {

@@ -3,7 +3,11 @@ import OldestKeyMap from "../Utils/OldestKeyMap";
 import { ComposedWords, composedWordsOf } from "./ComposedWords";
 import { getEnglishOf, getNumberLocale } from "./DateLanguage";
 import { getWordOfMeaningKey, withMeaningKeyAsItsWord } from "./MeaningKeys";
-import { withNoBreakSpaces, withNumbersKeptWithUnits } from "./NoBreakSpaces";
+import {
+  withDurationWordsHeld,
+  withNoBreakSpaces,
+  withNumbersKeptWithUnits,
+} from "./NoBreakSpaces";
 import {
   FIRST_STRONG_ISOLATE,
   getReadingDirection,
@@ -1437,7 +1441,8 @@ export const createTranslator: (
    * (#8302), and beside a duration's word on a page ("Every 5\u00A0minutes",
    * drawsOnPage, #8770). Only a template, OneUptime's own English, is set:
    * an English text with no wording anywhere (translateText) may be a
-   * value, and goes out as written.
+   * value, and goes out as written - on a page with its durations held
+   * (#8811), nothing else.
    */
   const setEnglish: (english: string) => string = (english: string): string => {
     return withNumbersKeptWithUnits(punctuate(english), english, {
@@ -1489,15 +1494,23 @@ export const createTranslator: (
       return text;
     }
 
-    /*
-     * A text with no wording of its own may be a value: as it is. A key
-     * that names its meaning reads as its word (MeaningKeys).
-     */
     const stored: string | undefined = find(text);
 
-    return stored === undefined
-      ? withMeaningKeyAsItsWord(text)
-      : setWording(stored, text);
+    if (stored !== undefined) {
+      return setWording(stored, text);
+    }
+
+    /*
+     * A text with no wording of its own may be a value: as it is. A key
+     * that names its meaning reads as its word (MeaningKeys). On a page -
+     * an English key drawn as written, OneUptime's English where the
+     * reader's language has not worded it yet - each number is held to the
+     * duration's word after it, as a wording holds it ("usually within 15
+     * minutes", #8811); a value a page draws is drawn, not stored.
+     */
+    const asWritten: string = withMeaningKeyAsItsWord(text);
+
+    return holdsEnglishDurations ? withDurationWordsHeld(asWritten) : asWritten;
   };
 
   const hasTranslation: (text: string) => boolean = (text: string): boolean => {

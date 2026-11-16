@@ -8,6 +8,7 @@ import {
   DEFAULT_ROLLING_WINDOW_DAYS,
 } from "./SloHealth";
 import { formatSloPercent } from "./SloWidgetFormat";
+import { withDurationWordsHeld } from "../../Types/NoBreakSpaces";
 
 /**
  * Plain-language copy for the SLO overview.
@@ -61,6 +62,11 @@ const pluralize: PluralizeFunction = (
   return `${count} ${count === 1 ? singular : `${singular}s`}`;
 };
 
+// "30 days", its number held to its word: a chip or a row draws it (#8811).
+const pluralizeDays: (count: number) => string = (count: number): string => {
+  return withDurationWordsHeld(pluralize(count, "day"));
+};
+
 /** "Rolling 30 days" / "Calendar month (Europe/Berlin)" — a chip or a row value. */
 export type GetSloWindowTextFunction = (data: SloWindowTextData) => string;
 
@@ -71,7 +77,7 @@ export const getSloWindowText: GetSloWindowTextFunction = (
     return `Calendar month (${data.timezone || "UTC"})`;
   }
 
-  return `Rolling ${pluralize(getWindowDays(data.windowDays), "day")}`;
+  return `Rolling ${pluralizeDays(getWindowDays(data.windowDays))}`;
 };
 
 /**
@@ -87,7 +93,7 @@ export const getSloWindowPhrase: GetSloWindowPhraseFunction = (
     return `this calendar month (${data.timezone || "UTC"})`;
   }
 
-  return `the last ${pluralize(getWindowDays(data.windowDays), "day")}`;
+  return `the last ${pluralizeDays(getWindowDays(data.windowDays))}`;
 };
 
 /** "Target 99.9%", or null when the target is unknown. */

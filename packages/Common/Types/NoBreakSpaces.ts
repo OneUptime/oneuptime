@@ -447,6 +447,15 @@ const PLACEHOLDER_BEFORE_SPACES: RegExp = new RegExp(
 );
 
 /*
+ * A placeholder written as an ordinal, then the spaces after it: Danish's
+ * and Norwegian's "Hvert {{count}}. minut", every 5th minute (#8811).
+ */
+const ORDINAL_PLACEHOLDER_BEFORE_SPACES: RegExp = new RegExp(
+  `\\{\\{\\s*([\\w.]+)\\s*\\}\\}\\.(${BREAKING_SPACES})(?=\\p{L})`,
+  "gu",
+);
+
+/*
  * Written digits, then the spaces after them, before more words. Not the
  * end of a name in Latin, Cyrillic or Greek letters ("p95", "v2"); a word
  * of another script may run into its number, as Arabic's "and" does
@@ -647,6 +656,20 @@ export const withNumbersKeptWithUnits: (
         return numbers.placeholders.has(match[1] || "") ? NO_BREAK_SPACE : null;
       },
     );
+
+    // A duration's figure a language writes as its ordinal: "5. minut".
+    if (options?.durationWords) {
+      result = replaceSpaces(
+        result,
+        ORDINAL_PLACEHOLDER_BEFORE_SPACES,
+        AS_WRITTEN_IN_TEXT,
+        (match: RegExpMatchArray): string | null => {
+          return numbers.placeholders.has(match[1] || "")
+            ? NO_BREAK_SPACE
+            : null;
+        },
+      );
+    }
   }
 
   if (numbers.digits.size > 0) {

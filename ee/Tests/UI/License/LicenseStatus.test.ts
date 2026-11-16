@@ -139,7 +139,7 @@ describe("the trial", () => {
     const status: LicenseStatusSummary = describeOf(trialOf());
 
     expect(status.tone).toBe("warning");
-    expect(status.title).toBe("Enterprise Edition trial: 10 days left");
+    expect(status.title).toBe("Enterprise Edition trial: 10\u00A0days left");
     expect(status.description).toBe(
       `No Enterprise license is installed. Enterprise features stay fully available until ${dateOf(inDays(10))}, counted from the first time this installation ran the Enterprise Edition.`,
     );
@@ -149,19 +149,19 @@ describe("the trial", () => {
 
   it("says one day, not one days", () => {
     expect(describeOf(trialOf({ graceEndsAt: inDays(0.5) })).title).toBe(
-      "Enterprise Edition trial: 1 day left",
+      "Enterprise Edition trial: 1\u00A0day left",
     );
   });
 
   it("rounds a part of a day up: a day that has started is still left", () => {
     expect(describeOf(trialOf({ graceEndsAt: inDays(2.1) })).title).toBe(
-      "Enterprise Edition trial: 3 days left",
+      "Enterprise Edition trial: 3\u00A0days left",
     );
   });
 
   it("never counts below zero", () => {
     expect(describeOf(trialOf({ graceEndsAt: inDays(-3) })).title).toBe(
-      "Enterprise Edition trial: 0 days left",
+      "Enterprise Edition trial: 0\u00A0days left",
     );
   });
 
@@ -235,7 +235,7 @@ describe("an expired license in its grace period", () => {
     expect(status.description).toContain(
       `The Enterprise license expired on ${dateOf(inDays(-5))}.`,
     );
-    expect(status.description).toContain("(25 days left)");
+    expect(status.description).toContain("(25\u00A0days left)");
     expect(status.description).toContain(
       "Renew the license with OneUptime, then refresh it here.",
     );
@@ -742,7 +742,7 @@ describe("the status in the reader's language", () => {
       TODAY,
     );
 
-    expect(status.title).toBe("Enterprise Edition trial: 10 days left");
+    expect(status.title).toBe("Enterprise Edition trial: 10\u00A0days left");
     expect(status.description).toContain("02 Mar 2027");
   });
 

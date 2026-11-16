@@ -464,7 +464,9 @@ const HOUR_MS: number = 60 * MINUTE_MS;
 const DAY_MS: number = 24 * HOUR_MS;
 
 // English, as the node tests and a caller with no translator read it.
-const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE, {
+  drawsOnPage: true,
+});
 
 /*
  * What a row says when it has no start time, as English keys looked up in
