@@ -44,6 +44,10 @@ const COMMON_ROOT: string = path.resolve(__dirname, "..", "..");
  * brought the probe's failure causes NtpMonitorUtil writes its sentences
  * from (ProbeFailureCauses): they read it from NtpMonitorDefaults, which
  * imports nothing, and the causes are not built from these modules at all.
+ * So does a Database Health step, which named its collection groups from
+ * the Database Health metric catalog and brought every metric in it with
+ * its name and description: it names them from DatabaseMetricGroup, which
+ * imports nothing, and the catalog is not built from these modules either.
  *
  * Built here as the frontends build (the shared esbuild config, for
  * production), with these modules as the entry, and read from esbuild's
@@ -258,6 +262,11 @@ const LEFT_OUT: ReadonlyArray<LeftOut> = [
   {
     name: "the probe's failure causes, which a monitor's default criteria no longer load to read an NTP monitor's clock offset",
     path: "Utils/Monitor/ProbeFailureCauses.ts",
+    isLoadedWhenNeeded: false,
+  },
+  {
+    name: "the Database Health metric catalog, which a Database Health step no longer loads to name its collection groups",
+    path: "Types/Monitor/DatabaseMetricCatalog.ts",
     isLoadedWhenNeeded: false,
   },
   {

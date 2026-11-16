@@ -1,4 +1,5 @@
 import AggregationType from "../BaseDatabase/AggregationType";
+import { DatabaseMetricGroup } from "./DatabaseMetricGroup";
 import MonitorMetricType from "./MonitorMetricType";
 import SqlDatabaseType from "./SqlDatabaseType";
 import { translationKey } from "../Translator";
@@ -45,20 +46,12 @@ export enum DatabaseMetricCategory {
 }
 
 /*
- * Collection groups map one-to-one onto the queries the probe runs. They are
- * the unit of graceful degradation: if the login lacks the grant a group
- * needs, that group alone is skipped and reported, and every other group is
- * still collected.
+ * The collection groups the probe's queries map onto live in
+ * DatabaseMetricGroup, which imports nothing, so a monitor step that names
+ * its groups is read without this catalog. They are exported from here as
+ * before.
  */
-export enum DatabaseMetricGroup {
-  Connections = "Connections",
-  Activity = "Activity",
-  Throughput = "Throughput",
-  Locks = "Locks",
-  Storage = "Storage",
-  Replication = "Replication",
-  Maintenance = "Maintenance",
-}
+export { DatabaseMetricGroup } from "./DatabaseMetricGroup";
 
 export interface DatabaseMetricDefinition {
   // Stable identifier used in the UI and in tests. Never reuse or renumber.
