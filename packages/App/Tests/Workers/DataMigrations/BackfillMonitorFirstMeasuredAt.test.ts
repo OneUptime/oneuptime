@@ -175,7 +175,10 @@ describe("BackfillMonitorFirstMeasuredAt", () => {
     expect(registered[registered.length - 1]).toBe(
       "AddAuditLogMcpClientColumns",
     );
-    expect(registered.indexOf(MIGRATION_NAME)).toBe(registered.length - 2);
+    // Before the last slot; migrations added since sit between the two.
+    expect(registered.indexOf(MIGRATION_NAME)).toBeLessThan(
+      registered.length - 1,
+    );
     expect(registered.indexOf(MIGRATION_NAME)).toBeGreaterThan(
       registered.indexOf("ResolveWhatMonitorsTurnedOffWouldHaveResolved"),
     );
