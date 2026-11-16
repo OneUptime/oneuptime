@@ -1,5 +1,6 @@
 import OnCallDutyPolicyExecutionLog from "../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import OnCallAcknowledgementTimeoutUtil, {
+  CLOCK_RUN_SELECT,
   OnCallAcknowledgementTimeoutStop,
   OnCallPageAgainOutcome,
   OnCallPageAgainResult,
@@ -20,6 +21,7 @@ import AcknowledgementTimeoutWorld, {
   CREATED,
   DASHBOARD_URL,
   INVESTIGATING,
+  POLICY_SET_UP_AT,
   RESOLVED,
   SCHEDULE_ID,
 } from "./AcknowledgementTimeoutWorld";
@@ -482,32 +484,226 @@ describe("a page again is timed from when its clock ran out", () => {
     ]);
   });
 
-  test("a timeout shortened past its moment: timed from that moment by the new timeout", async () => {
-    /*
-     * Acknowledged at 03:05, the timeout cut to 10 minutes at 03:17: by the
-     * new timeout its clock ran out at 03:15, and the worker pages again at
-     * once - from 03:15, the moment it decides by.
-     */
-    await world.startRun();
-    world.advance(5);
-    await world.acknowledgeInDashboard(DANA);
-    world.advance(12);
-    world.policy.acknowledgementTimeoutInMinutes = 10;
-
-    const run: OnCallDutyPolicyExecutionLog = pageAgainRun(
-      await world.pageAgainTick(),
-    );
-
-    expect(
-      world
+  /*
+   * ISSUE #6847: A TIMEOUT CUT PAST ITS MOMENT. A changed number of minutes
+   * applies to a clock already running, so a timeout cut short can run out
+   * at a moment that passed before it was cut. The page again goes out at
+   * the worker's next tick, as before - but it was due from the change,
+   * not from that moment, so it is timed from the change: the minutes
+   * before the new timeout existed are no worker's.
+   */
+  describe("a timeout changed after its clock started (#6847)", () => {
+    // The moments the page again's people are timed from.
+    function startsOf(run: OnCallDutyPolicyExecutionLog): Array<Date | null> {
+      return world
         .pageStartsIn(run.id!)
         .map((page: { pageStart: { startedAt: Date } | null }) => {
-          return page.pageStart?.startedAt;
-        }),
-    ).toEqual([
-      new Date("2026-10-16T03:15:00.000Z"),
-      new Date("2026-10-16T03:15:00.000Z"),
-    ]);
+          return page.pageStart?.startedAt || null;
+        });
+    }
+
+    test("cut past its moment: timed from the cut, not from the moment that had passed", async () => {
+      /*
+       * Acknowledged at 03:05, the timeout cut to 10 minutes at 03:17: by
+       * the new timeout its clock ran out at 03:15, two minutes before the
+       * cut. The worker pages again at once, timed from 03:17.
+       */
+      await world.startRun();
+      world.advance(5);
+      await world.acknowledgeInDashboard(DANA);
+      world.advance(12);
+      world.changePolicy({ acknowledgementTimeoutInMinutes: 10 });
+
+      const run: OnCallDutyPolicyExecutionLog = pageAgainRun(
+        await world.pageAgainTick(),
+      );
+
+      expect(minutesAfterStart(world.clock)).toBe(17);
+      expect(startsOf(run)).toEqual([
+        new Date("2026-10-16T03:17:00.000Z"),
+        new Date("2026-10-16T03:17:00.000Z"),
+      ]);
+      // Paged as ever: the one who acknowledged, then the level's people.
+      expect(world.pagedIn(run.id!)).toEqual(["Dana Kim", "Ana Lopez"]);
+    });
+
+    test("the issue's own example: cut from 30 to 10 minutes twenty minutes in, the worker at 10:20 shows its own lag, not ten minutes", async () => {
+      await world.startRun();
+      world.advance(5);
+      await world.acknowledgeInDashboard(DANA);
+
+      // The cut lands at 03:25:00; the worker's tick comes 40 seconds later.
+      world.advance(20);
+      world.changePolicy({ acknowledgementTimeoutInMinutes: 10 });
+      world.advance(0, 40);
+
+      const run: OnCallDutyPolicyExecutionLog = pageAgainRun(
+        await world.pageAgainTick(),
+      );
+
+      const pageStarts: Array<{
+        at: Date;
+        pageStart: { startedAt: Date } | null;
+      }> = world.pageStartsIn(run.id!);
+
+      for (const page of pageStarts) {
+        // Paged at 03:25:40, timed from 03:25:00: the worker's 40 seconds.
+        expect(page.at.getTime() - page.pageStart!.startedAt.getTime()).toBe(
+          40 * 1000,
+        );
+      }
+      expect(pageStarts).toHaveLength(2);
+    });
+
+    test("a late worker after a cut still shows how late it was after the cut", async () => {
+      await world.startRun();
+      world.advance(5);
+      await world.acknowledgeInDashboard(DANA);
+      world.advance(12);
+      world.changePolicy({ acknowledgementTimeoutInMinutes: 10 });
+
+      // No tick for seven minutes after the cut.
+      world.advance(7);
+
+      const run: OnCallDutyPolicyExecutionLog = pageAgainRun(
+        await world.pageAgainTick(),
+      );
+
+      expect(startsOf(run)).toEqual([
+        new Date("2026-10-16T03:17:00.000Z"),
+        new Date("2026-10-16T03:17:00.000Z"),
+      ]);
+      expect(minutesAfterStart(world.clock)).toBe(24);
+    });
+
+    test("cut, but not past its moment: timed from the new moment, as a timeout never changed is", async () => {
+      // Acknowledged at 03:05, cut to 20 minutes at 03:10: due at 03:25.
+      await world.startRun();
+      world.advance(5);
+      await world.acknowledgeInDashboard(DANA);
+      world.advance(5);
+      world.changePolicy({ acknowledgementTimeoutInMinutes: 20 });
+
+      world.advance(14);
+      expect(pagedAgain(await world.pageAgainTick())).toEqual([]);
+
+      // The worker gets to it three minutes late.
+      world.advance(4);
+
+      const run: OnCallDutyPolicyExecutionLog = pageAgainRun(
+        await world.pageAgainTick(),
+      );
+
+      expect(startsOf(run)).toEqual([
+        new Date("2026-10-16T03:25:00.000Z"),
+        new Date("2026-10-16T03:25:00.000Z"),
+      ]);
+    });
+
+    test("made longer: timed from the new moment", async () => {
+      // Acknowledged at 03:05, made 60 minutes at 03:15: due at 04:05.
+      await world.startRun();
+      world.advance(5);
+      await world.acknowledgeInDashboard(DANA);
+      world.advance(10);
+      world.changePolicy({ acknowledgementTimeoutInMinutes: 60 });
+
+      // The worker gets to it two minutes late, at 04:07.
+      world.advance(52);
+
+      const run: OnCallDutyPolicyExecutionLog = pageAgainRun(
+        await world.pageAgainTick(),
+      );
+
+      expect(startsOf(run)).toEqual([
+        new Date("2026-10-16T04:05:00.000Z"),
+        new Date("2026-10-16T04:05:00.000Z"),
+      ]);
+    });
+
+    test("a policy last changed before its clock started: timed from when the clock ran out, however late the worker", async () => {
+      // Set up the day before, left alone since (POLICY_SET_UP_AT).
+      expect(world.policy.updatedAt).toEqual(POLICY_SET_UP_AT);
+
+      await world.startRun();
+      world.advance(5);
+      await world.acknowledgeInDashboard(DANA);
+      world.advance(LEVEL_WAIT_IN_MINUTES + 9);
+
+      const run: OnCallDutyPolicyExecutionLog = pageAgainRun(
+        await world.pageAgainTick(),
+      );
+
+      expect(startsOf(run)).toEqual([
+        new Date("2026-10-16T03:35:00.000Z"),
+        new Date("2026-10-16T03:35:00.000Z"),
+      ]);
+    });
+
+    test("a policy changed while its clock ran, before its moment, in a way that leaves the timeout alone: timed from the moment", async () => {
+      await world.startRun();
+      world.advance(5);
+      await world.acknowledgeInDashboard(DANA);
+      world.advance(10);
+      world.changePolicy({ name: "Payments on call" });
+      world.advance(LEVEL_WAIT_IN_MINUTES - 10 + 6);
+
+      const run: OnCallDutyPolicyExecutionLog = pageAgainRun(
+        await world.pageAgainTick(),
+      );
+
+      expect(startsOf(run)).toEqual([
+        new Date("2026-10-16T03:35:00.000Z"),
+        new Date("2026-10-16T03:35:00.000Z"),
+      ]);
+    });
+
+    test("turned off and on again between two ticks, cut short: timed from when it came back on", async () => {
+      await world.startRun();
+      world.advance(5);
+      await world.acknowledgeInDashboard(DANA);
+
+      world.advance(12);
+      world.changePolicy({ acknowledgementTimeoutInMinutes: null });
+      world.advance(0, 20);
+      world.changePolicy({ acknowledgementTimeoutInMinutes: 5 });
+      world.advance(0, 30);
+
+      const run: OnCallDutyPolicyExecutionLog = pageAgainRun(
+        await world.pageAgainTick(),
+      );
+
+      expect(startsOf(run)).toEqual([
+        new Date("2026-10-16T03:17:20.000Z"),
+        new Date("2026-10-16T03:17:20.000Z"),
+      ]);
+    });
+
+    test("a cut with the worker's clock behind the database's: timed from now, never from a moment to come", async () => {
+      await world.startRun();
+      world.advance(5);
+      await world.acknowledgeInDashboard(DANA);
+      world.advance(12);
+      world.changePolicy({ acknowledgementTimeoutInMinutes: 10 });
+      // The database stamped the change three seconds ahead of the worker.
+      world.policy.updatedAt = new Date(world.clock.getTime() + 3 * 1000);
+
+      const run: OnCallDutyPolicyExecutionLog = pageAgainRun(
+        await world.pageAgainTick(),
+      );
+
+      expect(startsOf(run)).toEqual([
+        new Date("2026-10-16T03:17:00.000Z"),
+        new Date("2026-10-16T03:17:00.000Z"),
+      ]);
+    });
+
+    test("the worker reads when the policy was last changed with the clock's run", () => {
+      expect(CLOCK_RUN_SELECT.onCallDutyPolicy).toMatchObject({
+        acknowledgementTimeoutInMinutes: true,
+        updatedAt: true,
+      });
+    });
   });
 });
 
@@ -1026,6 +1222,12 @@ describe("the clock stops", () => {
   });
 });
 
+/*
+ * Changed as the Dashboard or the API changes it (changePolicy): its
+ * updatedAt moves too. When the policy pages again is the timeout's to say
+ * alone - only where a page again's timing starts reads the change (see "a
+ * page again is timed from when it was due").
+ */
 describe("a timeout changed while its clock runs", () => {
   test("longer: pages again at the new moment, not the old one", async () => {
     await world.startRun();
@@ -1033,7 +1235,7 @@ describe("a timeout changed while its clock runs", () => {
     await world.acknowledgeInDashboard(DANA);
 
     world.advance(10);
-    world.policy.acknowledgementTimeoutInMinutes = 60;
+    world.changePolicy({ acknowledgementTimeoutInMinutes: 60 });
 
     world.advance(20);
     expect(pagedAgain(await world.pageAgainTick())).toEqual([]);
@@ -1054,7 +1256,7 @@ describe("a timeout changed while its clock runs", () => {
     await world.acknowledgeInDashboard(DANA);
 
     world.advance(12);
-    world.policy.acknowledgementTimeoutInMinutes = 10;
+    world.changePolicy({ acknowledgementTimeoutInMinutes: 10 });
 
     expect(only(pagedAgain(await world.pageAgainTick())).pageAgainNumber).toBe(
       1,

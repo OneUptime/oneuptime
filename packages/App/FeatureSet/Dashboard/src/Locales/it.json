@@ -56101,5 +56101,17 @@
   "What would you like to be able to do, and what would it help you with?": "Cosa vorresti poter fare e in cosa ti aiuterebbe?",
   "What would you like to tell us?": "Cosa vuoi dirci?",
   "What's your idea?": "Qual è la tua idea?",
-  "Write what you want to tell us, then send it.": "Scrivi cosa vuoi dirci, poi invialo."
+  "Write what you want to tell us, then send it.": "Scrivi cosa vuoi dirci, poi invialo.",
+  "Pages the people of the policy you pick about this alert episode, level by level, until one of them answers or the episode is resolved.": "Avvisa le persone della policy che scegli su questo episodio di avviso, livello per livello, finché una di loro non risponde o l'episodio non viene risolto.",
+  "Pages the people of the policy you pick about this alert, level by level, until one of them answers or the alert is resolved.": "Avvisa le persone della policy che scegli su questo avviso, livello per livello, finché una di loro non risponde o l'avviso non viene risolto.",
+  "Pages the people of the policy you pick about this incident episode, level by level, until one of them answers or the episode is resolved.": "Avvisa le persone della policy che scegli su questo episodio di incidente, livello per livello, finché una di loro non risponde o l'episodio non viene risolto.",
+  "Pages the people of the policy you pick about this incident, level by level, until one of them answers or the incident is resolved.": "Avvisa le persone della policy che scegli su questo incidente, livello per livello, finché una di loro non risponde o l'incidente non viene risolto.",
+  "This alert episode is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the episode is resolved.": "Questo episodio di avviso è già riconosciuto. La policy che scegli avvisa comunque le sue persone, livello per livello, finché una di loro non risponde o l'episodio non viene risolto.",
+  "This alert episode is resolved, so no on-call policy can be started for it.": "Questo episodio di avviso è risolto, quindi non si può avviare alcuna policy di reperibilità per esso.",
+  "This alert is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the alert is resolved.": "Questo avviso è già riconosciuto. La policy che scegli avvisa comunque le sue persone, livello per livello, finché una di loro non risponde o l'avviso non viene risolto.",
+  "This alert is resolved, so no on-call policy can be started for it.": "Questo avviso è risolto, quindi non si può avviare alcuna policy di reperibilità per esso.",
+  "This incident episode is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the episode is resolved.": "Questo episodio di incidente è già riconosciuto. La policy che scegli avvisa comunque le sue persone, livello per livello, finché una di loro non risponde o l'episodio non viene risolto.",
+  "This incident episode is resolved, so no on-call policy can be started for it.": "Questo episodio di incidente è risolto, quindi non si può avviare alcuna policy di reperibilità per esso.",
+  "This incident is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the incident is resolved.": "Questo incidente è già riconosciuto. La policy che scegli avvisa comunque le sue persone, livello per livello, finché una di loro non risponde o l'incidente non viene risolto.",
+  "This incident is resolved, so no on-call policy can be started for it.": "Questo incidente è risolto, quindi non si può avviare alcuna policy di reperibilità per esso."
 }

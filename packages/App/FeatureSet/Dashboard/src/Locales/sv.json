@@ -56101,5 +56101,17 @@
   "What would you like to be able to do, and what would it help you with?": "Vad skulle du vilja kunna göra, och vad skulle det hjälpa dig med?",
   "What would you like to tell us?": "Vad vill du berätta för oss?",
   "What's your idea?": "Vad är din idé?",
-  "Write what you want to tell us, then send it.": "Skriv vad du vill berätta för oss och skicka det sedan."
+  "Write what you want to tell us, then send it.": "Skriv vad du vill berätta för oss och skicka det sedan.",
+  "Pages the people of the policy you pick about this alert episode, level by level, until one of them answers or the episode is resolved.": "Larmar personerna i den policy du väljer om denna larmepisod, nivå för nivå, tills någon av dem svarar eller episoden är löst.",
+  "Pages the people of the policy you pick about this alert, level by level, until one of them answers or the alert is resolved.": "Larmar personerna i den policy du väljer om detta larm, nivå för nivå, tills någon av dem svarar eller larmet är löst.",
+  "Pages the people of the policy you pick about this incident episode, level by level, until one of them answers or the episode is resolved.": "Larmar personerna i den policy du väljer om denna incidentepisod, nivå för nivå, tills någon av dem svarar eller episoden är löst.",
+  "Pages the people of the policy you pick about this incident, level by level, until one of them answers or the incident is resolved.": "Larmar personerna i den policy du väljer om denna incident, nivå för nivå, tills någon av dem svarar eller incidenten är löst.",
+  "This alert episode is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the episode is resolved.": "Denna larmepisod är redan bekräftad. Den policy du väljer larmar ändå sina personer, nivå för nivå, tills någon av dem svarar eller episoden är löst.",
+  "This alert episode is resolved, so no on-call policy can be started for it.": "Denna larmepisod är löst, så ingen jourpolicy kan startas för den.",
+  "This alert is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the alert is resolved.": "Detta larm är redan bekräftat. Den policy du väljer larmar ändå sina personer, nivå för nivå, tills någon av dem svarar eller larmet är löst.",
+  "This alert is resolved, so no on-call policy can be started for it.": "Detta larm är löst, så ingen jourpolicy kan startas för det.",
+  "This incident episode is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the episode is resolved.": "Denna incidentepisod är redan bekräftad. Den policy du väljer larmar ändå sina personer, nivå för nivå, tills någon av dem svarar eller episoden är löst.",
+  "This incident episode is resolved, so no on-call policy can be started for it.": "Denna incidentepisod är löst, så ingen jourpolicy kan startas för den.",
+  "This incident is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the incident is resolved.": "Denna incident är redan bekräftad. Den policy du väljer larmar ändå sina personer, nivå för nivå, tills någon av dem svarar eller incidenten är löst.",
+  "This incident is resolved, so no on-call policy can be started for it.": "Denna incident är löst, så ingen jourpolicy kan startas för den."
 }

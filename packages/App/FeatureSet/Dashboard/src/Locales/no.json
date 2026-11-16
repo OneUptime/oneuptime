@@ -56101,5 +56101,17 @@
   "What would you like to be able to do, and what would it help you with?": "Hva vil du gjerne kunne gjøre, og hva ville det hjelpe deg med?",
   "What would you like to tell us?": "Hva vil du fortelle oss?",
   "What's your idea?": "Hva er ideen din?",
-  "Write what you want to tell us, then send it.": "Skriv hva du vil fortelle oss, og send det deretter."
+  "Write what you want to tell us, then send it.": "Skriv hva du vil fortelle oss, og send det deretter.",
+  "Pages the people of the policy you pick about this alert episode, level by level, until one of them answers or the episode is resolved.": "Tilkaller personene i policyen du velger om denne varselepisoden, nivå for nivå, til en av dem svarer eller episoden er løst.",
+  "Pages the people of the policy you pick about this alert, level by level, until one of them answers or the alert is resolved.": "Tilkaller personene i policyen du velger om dette varselet, nivå for nivå, til en av dem svarer eller varselet er løst.",
+  "Pages the people of the policy you pick about this incident episode, level by level, until one of them answers or the episode is resolved.": "Tilkaller personene i policyen du velger om denne hendelsesepisoden, nivå for nivå, til en av dem svarer eller episoden er løst.",
+  "Pages the people of the policy you pick about this incident, level by level, until one of them answers or the incident is resolved.": "Tilkaller personene i policyen du velger om denne hendelsen, nivå for nivå, til en av dem svarer eller hendelsen er løst.",
+  "This alert episode is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the episode is resolved.": "Denne varselepisoden er allerede bekreftet. Policyen du velger, tilkaller likevel personene sine, nivå for nivå, til en av dem svarer eller episoden er løst.",
+  "This alert episode is resolved, so no on-call policy can be started for it.": "Denne varselepisoden er løst, så ingen vaktpolicy kan startes for den.",
+  "This alert is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the alert is resolved.": "Dette varselet er allerede bekreftet. Policyen du velger, tilkaller likevel personene sine, nivå for nivå, til en av dem svarer eller varselet er løst.",
+  "This alert is resolved, so no on-call policy can be started for it.": "Dette varselet er løst, så ingen vaktpolicy kan startes for det.",
+  "This incident episode is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the episode is resolved.": "Denne hendelsesepisoden er allerede bekreftet. Policyen du velger, tilkaller likevel personene sine, nivå for nivå, til en av dem svarer eller episoden er løst.",
+  "This incident episode is resolved, so no on-call policy can be started for it.": "Denne hendelsesepisoden er løst, så ingen vaktpolicy kan startes for den.",
+  "This incident is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the incident is resolved.": "Denne hendelsen er allerede bekreftet. Policyen du velger, tilkaller likevel personene sine, nivå for nivå, til en av dem svarer eller hendelsen er løst.",
+  "This incident is resolved, so no on-call policy can be started for it.": "Denne hendelsen er løst, så ingen vaktpolicy kan startes for den."
 }

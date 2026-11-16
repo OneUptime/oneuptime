@@ -331,6 +331,46 @@ describe.each(LANGUAGES)("%s", (language: string) => {
     expect(numbersByLine(translated())).toEqual(numbersByLine(ENGLISH));
   });
 
+  /*
+   * Issue #6847: the objective of the pages started later, held pages and
+   * pages again among them, in this language as in English: its own
+   * heading, between the 30-second objective and the 90-second one; a query
+   * of time to send filtered on page_started alone; and the bucket edge it
+   * holds at, 120000.
+   */
+  it("keeps the objective of the pages started later: its filter on page_started and its bucket edge", () => {
+    const lines: Array<string> = translated().split("\n");
+    const english: Array<string> = ENGLISH.split("\n");
+    const heading: number = english.indexOf(
+      "### Pages started later go out within 2 minutes",
+    );
+    const ownLines: Array<string> = lines.slice(heading, heading + 10);
+    const row: string | undefined = ownLines.find((line: string): boolean => {
+      return line.includes("`notification.page.start = page_started`");
+    });
+    const holds: string = lines[heading + 8] as string;
+
+    expect(heading).toBeGreaterThan(-1);
+    expect(lines[heading]).toMatch(/^### \S/);
+    expect(lines[heading]).not.toBe(english[heading]);
+    expect(numbersIn(lines[heading] as string)).toEqual(["2"]);
+    expect(row).toBeDefined();
+    expect(Array.from((row as string).matchAll(INLINE_CODE_SPAN))).toEqual(
+      expect.arrayContaining([
+        expect.arrayContaining(["`notification.time_to_send`"]),
+      ]),
+    );
+    expect(numbersIn(holds)).toEqual(["120000"]);
+    expect(holds).toContain("`a`");
+
+    // The 30-second objective still leaves exactly these pages out.
+    expect(
+      lines.filter((line: string): boolean => {
+        return line.includes("`notification.page.start != page_started`");
+      }),
+    ).toHaveLength(1);
+  });
+
   it("has the English page's headings, tabs, steps, tables and list items", () => {
     const levels: (markdown: string) => Array<number> = (
       markdown: string,

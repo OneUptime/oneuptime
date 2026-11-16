@@ -56101,5 +56101,17 @@
   "What would you like to be able to do, and what would it help you with?": "دوست دارید بتوانید چه کاری انجام دهید و این به چه کارتان می‌آید؟",
   "What would you like to tell us?": "می‌خواهید چه چیزی به ما بگویید؟",
   "What's your idea?": "ایدهٔ شما چیست؟",
-  "Write what you want to tell us, then send it.": "بنویسید چه می‌خواهید به ما بگویید، سپس بفرستید."
+  "Write what you want to tell us, then send it.": "بنویسید چه می‌خواهید به ما بگویید، سپس بفرستید.",
+  "Pages the people of the policy you pick about this alert episode, level by level, until one of them answers or the episode is resolved.": "افراد سیاستی را که انتخاب می‌کنید دربارهٔ این اپیزود هشدار، سطح به سطح، فرامی‌خواند تا یکی از آن‌ها پاسخ دهد یا اپیزود برطرف شود.",
+  "Pages the people of the policy you pick about this alert, level by level, until one of them answers or the alert is resolved.": "افراد سیاستی را که انتخاب می‌کنید دربارهٔ این هشدار، سطح به سطح، فرامی‌خواند تا یکی از آن‌ها پاسخ دهد یا هشدار برطرف شود.",
+  "Pages the people of the policy you pick about this incident episode, level by level, until one of them answers or the episode is resolved.": "افراد سیاستی را که انتخاب می‌کنید دربارهٔ این اپیزود حادثه، سطح به سطح، فرامی‌خواند تا یکی از آن‌ها پاسخ دهد یا اپیزود برطرف شود.",
+  "Pages the people of the policy you pick about this incident, level by level, until one of them answers or the incident is resolved.": "افراد سیاستی را که انتخاب می‌کنید دربارهٔ این حادثه، سطح به سطح، فرامی‌خواند تا یکی از آن‌ها پاسخ دهد یا حادثه برطرف شود.",
+  "This alert episode is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the episode is resolved.": "این اپیزود هشدار از پیش تأیید شده است. سیاستی که انتخاب می‌کنید باز هم افرادش را سطح به سطح فرامی‌خواند تا یکی از آن‌ها پاسخ دهد یا اپیزود برطرف شود.",
+  "This alert episode is resolved, so no on-call policy can be started for it.": "این اپیزود هشدار برطرف شده است، پس نمی‌توان هیچ سیاست آنکالی برای آن آغاز کرد.",
+  "This alert is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the alert is resolved.": "این هشدار از پیش تأیید شده است. سیاستی که انتخاب می‌کنید باز هم افرادش را سطح به سطح فرامی‌خواند تا یکی از آن‌ها پاسخ دهد یا هشدار برطرف شود.",
+  "This alert is resolved, so no on-call policy can be started for it.": "این هشدار برطرف شده است، پس نمی‌توان هیچ سیاست آنکالی برای آن آغاز کرد.",
+  "This incident episode is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the episode is resolved.": "این اپیزود حادثه از پیش تأیید شده است. سیاستی که انتخاب می‌کنید باز هم افرادش را سطح به سطح فرامی‌خواند تا یکی از آن‌ها پاسخ دهد یا اپیزود برطرف شود.",
+  "This incident episode is resolved, so no on-call policy can be started for it.": "این اپیزود حادثه برطرف شده است، پس نمی‌توان هیچ سیاست آنکالی برای آن آغاز کرد.",
+  "This incident is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the incident is resolved.": "این حادثه از پیش تأیید شده است. سیاستی که انتخاب می‌کنید باز هم افرادش را سطح به سطح فرامی‌خواند تا یکی از آن‌ها پاسخ دهد یا حادثه برطرف شود.",
+  "This incident is resolved, so no on-call policy can be started for it.": "این حادثه برطرف شده است، پس نمی‌توان هیچ سیاست آنکالی برای آن آغاز کرد."
 }

@@ -56101,5 +56101,17 @@
   "What would you like to be able to do, and what would it help you with?": "무엇을 할 수 있으면 좋겠고, 그것이 어떤 도움이 될까요?",
   "What would you like to tell us?": "어떤 이야기를 전하고 싶으신가요?",
   "What's your idea?": "어떤 아이디어인가요?",
-  "Write what you want to tell us, then send it.": "전하고 싶은 내용을 적은 다음 보내 주세요."
+  "Write what you want to tell us, then send it.": "전하고 싶은 내용을 적은 다음 보내 주세요.",
+  "Pages the people of the policy you pick about this alert episode, level by level, until one of them answers or the episode is resolved.": "선택한 정책의 담당자를 이 경고 에피소드에 대해 단계별로 호출합니다. 그중 누군가 응답하거나 에피소드가 해결될 때까지 계속됩니다.",
+  "Pages the people of the policy you pick about this alert, level by level, until one of them answers or the alert is resolved.": "선택한 정책의 담당자를 이 경고에 대해 단계별로 호출합니다. 그중 누군가 응답하거나 경고가 해결될 때까지 계속됩니다.",
+  "Pages the people of the policy you pick about this incident episode, level by level, until one of them answers or the episode is resolved.": "선택한 정책의 담당자를 이 인시던트 에피소드에 대해 단계별로 호출합니다. 그중 누군가 응답하거나 에피소드가 해결될 때까지 계속됩니다.",
+  "Pages the people of the policy you pick about this incident, level by level, until one of them answers or the incident is resolved.": "선택한 정책의 담당자를 이 인시던트에 대해 단계별로 호출합니다. 그중 누군가 응답하거나 인시던트가 해결될 때까지 계속됩니다.",
+  "This alert episode is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the episode is resolved.": "이 경고 에피소드는 이미 인지되었습니다. 선택한 정책은 그중 누군가 응답하거나 에피소드가 해결될 때까지 담당자를 계속 단계별로 호출합니다.",
+  "This alert episode is resolved, so no on-call policy can be started for it.": "이 경고 에피소드는 해결되었으므로 온콜 정책을 시작할 수 없습니다.",
+  "This alert is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the alert is resolved.": "이 경고는 이미 인지되었습니다. 선택한 정책은 그중 누군가 응답하거나 경고가 해결될 때까지 담당자를 계속 단계별로 호출합니다.",
+  "This alert is resolved, so no on-call policy can be started for it.": "이 경고는 해결되었으므로 온콜 정책을 시작할 수 없습니다.",
+  "This incident episode is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the episode is resolved.": "이 인시던트 에피소드는 이미 인지되었습니다. 선택한 정책은 그중 누군가 응답하거나 에피소드가 해결될 때까지 담당자를 계속 단계별로 호출합니다.",
+  "This incident episode is resolved, so no on-call policy can be started for it.": "이 인시던트 에피소드는 해결되었으므로 온콜 정책을 시작할 수 없습니다.",
+  "This incident is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the incident is resolved.": "이 인시던트는 이미 인지되었습니다. 선택한 정책은 그중 누군가 응답하거나 인시던트가 해결될 때까지 담당자를 계속 단계별로 호출합니다.",
+  "This incident is resolved, so no on-call policy can be started for it.": "이 인시던트는 해결되었으므로 온콜 정책을 시작할 수 없습니다."
 }

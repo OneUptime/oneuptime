@@ -56101,5 +56101,17 @@
   "What would you like to be able to do, and what would it help you with?": "¿Qué te gustaría poder hacer y en qué te ayudaría?",
   "What would you like to tell us?": "¿Qué nos quieres contar?",
   "What's your idea?": "¿Cuál es tu idea?",
-  "Write what you want to tell us, then send it.": "Escribe lo que nos quieres contar y luego envíalo."
+  "Write what you want to tell us, then send it.": "Escribe lo que nos quieres contar y luego envíalo.",
+  "Pages the people of the policy you pick about this alert episode, level by level, until one of them answers or the episode is resolved.": "Avisa a las personas de la política que elijas sobre este episodio de alerta, nivel por nivel, hasta que una de ellas responda o el episodio se resuelva.",
+  "Pages the people of the policy you pick about this alert, level by level, until one of them answers or the alert is resolved.": "Avisa a las personas de la política que elijas sobre esta alerta, nivel por nivel, hasta que una de ellas responda o la alerta se resuelva.",
+  "Pages the people of the policy you pick about this incident episode, level by level, until one of them answers or the episode is resolved.": "Avisa a las personas de la política que elijas sobre este episodio de incidente, nivel por nivel, hasta que una de ellas responda o el episodio se resuelva.",
+  "Pages the people of the policy you pick about this incident, level by level, until one of them answers or the incident is resolved.": "Avisa a las personas de la política que elijas sobre este incidente, nivel por nivel, hasta que una de ellas responda o el incidente se resuelva.",
+  "This alert episode is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the episode is resolved.": "Este episodio de alerta ya está reconocido. La política que elijas sigue avisando a sus personas, nivel por nivel, hasta que una de ellas responda o el episodio se resuelva.",
+  "This alert episode is resolved, so no on-call policy can be started for it.": "Este episodio de alerta está resuelto, así que no se puede iniciar ninguna política de guardia para él.",
+  "This alert is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the alert is resolved.": "Esta alerta ya está reconocida. La política que elijas sigue avisando a sus personas, nivel por nivel, hasta que una de ellas responda o la alerta se resuelva.",
+  "This alert is resolved, so no on-call policy can be started for it.": "Esta alerta está resuelta, así que no se puede iniciar ninguna política de guardia para ella.",
+  "This incident episode is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the episode is resolved.": "Este episodio de incidente ya está reconocido. La política que elijas sigue avisando a sus personas, nivel por nivel, hasta que una de ellas responda o el episodio se resuelva.",
+  "This incident episode is resolved, so no on-call policy can be started for it.": "Este episodio de incidente está resuelto, así que no se puede iniciar ninguna política de guardia para él.",
+  "This incident is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the incident is resolved.": "Este incidente ya está reconocido. La política que elijas sigue avisando a sus personas, nivel por nivel, hasta que una de ellas responda o el incidente se resuelva.",
+  "This incident is resolved, so no on-call policy can be started for it.": "Este incidente está resuelto, así que no se puede iniciar ninguna política de guardia para él."
 }

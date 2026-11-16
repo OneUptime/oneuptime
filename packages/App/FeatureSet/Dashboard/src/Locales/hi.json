@@ -56101,5 +56101,17 @@
   "What would you like to be able to do, and what would it help you with?": "आप क्या कर पाना चाहेंगे, और इससे आपको किसमें मदद मिलेगी?",
   "What would you like to tell us?": "आप हमें क्या बताना चाहेंगे?",
   "What's your idea?": "आपका विचार क्या है?",
-  "Write what you want to tell us, then send it.": "लिखें कि आप हमें क्या बताना चाहते हैं, फिर भेजें।"
+  "Write what you want to tell us, then send it.": "लिखें कि आप हमें क्या बताना चाहते हैं, फिर भेजें।",
+  "Pages the people of the policy you pick about this alert episode, level by level, until one of them answers or the episode is resolved.": "चुनी गई नीति के लोगों को इस अलर्ट एपिसोड के बारे में स्तर-दर-स्तर बुलाता है, जब तक उनमें से कोई जवाब न दे या एपिसोड सुलझ न जाए।",
+  "Pages the people of the policy you pick about this alert, level by level, until one of them answers or the alert is resolved.": "चुनी गई नीति के लोगों को इस अलर्ट के बारे में स्तर-दर-स्तर बुलाता है, जब तक उनमें से कोई जवाब न दे या अलर्ट सुलझ न जाए।",
+  "Pages the people of the policy you pick about this incident episode, level by level, until one of them answers or the episode is resolved.": "चुनी गई नीति के लोगों को इस घटना एपिसोड के बारे में स्तर-दर-स्तर बुलाता है, जब तक उनमें से कोई जवाब न दे या एपिसोड सुलझ न जाए।",
+  "Pages the people of the policy you pick about this incident, level by level, until one of them answers or the incident is resolved.": "चुनी गई नीति के लोगों को इस घटना के बारे में स्तर-दर-स्तर बुलाता है, जब तक उनमें से कोई जवाब न दे या घटना सुलझ न जाए।",
+  "This alert episode is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the episode is resolved.": "यह अलर्ट एपिसोड पहले ही स्वीकार किया जा चुका है। चुनी गई नीति फिर भी अपने लोगों को स्तर-दर-स्तर बुलाती है, जब तक उनमें से कोई जवाब न दे या एपिसोड सुलझ न जाए।",
+  "This alert episode is resolved, so no on-call policy can be started for it.": "यह अलर्ट एपिसोड सुलझ चुका है, इसलिए इसके लिए कोई ऑन-कॉल नीति शुरू नहीं की जा सकती।",
+  "This alert is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the alert is resolved.": "यह अलर्ट पहले ही स्वीकार किया जा चुका है। चुनी गई नीति फिर भी अपने लोगों को स्तर-दर-स्तर बुलाती है, जब तक उनमें से कोई जवाब न दे या अलर्ट सुलझ न जाए।",
+  "This alert is resolved, so no on-call policy can be started for it.": "यह अलर्ट सुलझ चुका है, इसलिए इसके लिए कोई ऑन-कॉल नीति शुरू नहीं की जा सकती।",
+  "This incident episode is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the episode is resolved.": "यह घटना एपिसोड पहले ही स्वीकार किया जा चुका है। चुनी गई नीति फिर भी अपने लोगों को स्तर-दर-स्तर बुलाती है, जब तक उनमें से कोई जवाब न दे या एपिसोड सुलझ न जाए।",
+  "This incident episode is resolved, so no on-call policy can be started for it.": "यह घटना एपिसोड सुलझ चुका है, इसलिए इसके लिए कोई ऑन-कॉल नीति शुरू नहीं की जा सकती।",
+  "This incident is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the incident is resolved.": "यह घटना पहले ही स्वीकार की जा चुकी है। चुनी गई नीति फिर भी अपने लोगों को स्तर-दर-स्तर बुलाती है, जब तक उनमें से कोई जवाब न दे या घटना सुलझ न जाए।",
+  "This incident is resolved, so no on-call policy can be started for it.": "यह घटना सुलझ चुकी है, इसलिए इसके लिए कोई ऑन-कॉल नीति शुरू नहीं की जा सकती।"
 }

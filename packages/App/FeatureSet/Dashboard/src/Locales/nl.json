@@ -56101,5 +56101,17 @@
   "What would you like to be able to do, and what would it help you with?": "Wat zou je graag kunnen doen en waarmee zou het je helpen?",
   "What would you like to tell us?": "Wat wil je ons vertellen?",
   "What's your idea?": "Wat is je idee?",
-  "Write what you want to tell us, then send it.": "Schrijf wat je ons wilt vertellen en verstuur het dan."
+  "Write what you want to tell us, then send it.": "Schrijf wat je ons wilt vertellen en verstuur het dan.",
+  "Pages the people of the policy you pick about this alert episode, level by level, until one of them answers or the episode is resolved.": "Roept de mensen van het gekozen beleid op over deze waarschuwingsepisode, niveau voor niveau, totdat een van hen antwoordt of de episode is opgelost.",
+  "Pages the people of the policy you pick about this alert, level by level, until one of them answers or the alert is resolved.": "Roept de mensen van het gekozen beleid op over deze waarschuwing, niveau voor niveau, totdat een van hen antwoordt of de waarschuwing is opgelost.",
+  "Pages the people of the policy you pick about this incident episode, level by level, until one of them answers or the episode is resolved.": "Roept de mensen van het gekozen beleid op over deze incidentepisode, niveau voor niveau, totdat een van hen antwoordt of de episode is opgelost.",
+  "Pages the people of the policy you pick about this incident, level by level, until one of them answers or the incident is resolved.": "Roept de mensen van het gekozen beleid op over dit incident, niveau voor niveau, totdat een van hen antwoordt of het incident is opgelost.",
+  "This alert episode is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the episode is resolved.": "Deze waarschuwingsepisode is al bevestigd. Het gekozen beleid roept zijn mensen toch op, niveau voor niveau, totdat een van hen antwoordt of de episode is opgelost.",
+  "This alert episode is resolved, so no on-call policy can be started for it.": "Deze waarschuwingsepisode is opgelost, dus er kan geen bereikbaarheidsdienstbeleid voor worden gestart.",
+  "This alert is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the alert is resolved.": "Deze waarschuwing is al bevestigd. Het gekozen beleid roept zijn mensen toch op, niveau voor niveau, totdat een van hen antwoordt of de waarschuwing is opgelost.",
+  "This alert is resolved, so no on-call policy can be started for it.": "Deze waarschuwing is opgelost, dus er kan geen bereikbaarheidsdienstbeleid voor worden gestart.",
+  "This incident episode is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the episode is resolved.": "Deze incidentepisode is al bevestigd. Het gekozen beleid roept zijn mensen toch op, niveau voor niveau, totdat een van hen antwoordt of de episode is opgelost.",
+  "This incident episode is resolved, so no on-call policy can be started for it.": "Deze incidentepisode is opgelost, dus er kan geen bereikbaarheidsdienstbeleid voor worden gestart.",
+  "This incident is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the incident is resolved.": "Dit incident is al bevestigd. Het gekozen beleid roept zijn mensen toch op, niveau voor niveau, totdat een van hen antwoordt of het incident is opgelost.",
+  "This incident is resolved, so no on-call policy can be started for it.": "Dit incident is opgelost, dus er kan geen bereikbaarheidsdienstbeleid voor worden gestart."
 }

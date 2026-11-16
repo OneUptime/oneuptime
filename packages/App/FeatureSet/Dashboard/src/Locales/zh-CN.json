@@ -56101,5 +56101,17 @@
   "What would you like to be able to do, and what would it help you with?": "你希望能够做什么，这对你有什么帮助？",
   "What would you like to tell us?": "你想告诉我们什么？",
   "What's your idea?": "你的想法是什么？",
-  "Write what you want to tell us, then send it.": "写下你想告诉我们的内容，然后发送。"
+  "Write what you want to tell us, then send it.": "写下你想告诉我们的内容，然后发送。",
+  "Pages the people of the policy you pick about this alert episode, level by level, until one of them answers or the episode is resolved.": "就此警报片段逐级呼叫所选策略的人员，直到其中有人应答或片段已解决。",
+  "Pages the people of the policy you pick about this alert, level by level, until one of them answers or the alert is resolved.": "就此警报逐级呼叫所选策略的人员，直到其中有人应答或警报已解决。",
+  "Pages the people of the policy you pick about this incident episode, level by level, until one of them answers or the episode is resolved.": "就此事件片段逐级呼叫所选策略的人员，直到其中有人应答或片段已解决。",
+  "Pages the people of the policy you pick about this incident, level by level, until one of them answers or the incident is resolved.": "就此事件逐级呼叫所选策略的人员，直到其中有人应答或事件已解决。",
+  "This alert episode is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the episode is resolved.": "此警报片段已被确认。所选策略仍会逐级呼叫其人员，直到其中有人应答或片段已解决。",
+  "This alert episode is resolved, so no on-call policy can be started for it.": "此警报片段已解决，因此无法为它启动值班策略。",
+  "This alert is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the alert is resolved.": "此警报已被确认。所选策略仍会逐级呼叫其人员，直到其中有人应答或警报已解决。",
+  "This alert is resolved, so no on-call policy can be started for it.": "此警报已解决，因此无法为它启动值班策略。",
+  "This incident episode is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the episode is resolved.": "此事件片段已被确认。所选策略仍会逐级呼叫其人员，直到其中有人应答或片段已解决。",
+  "This incident episode is resolved, so no on-call policy can be started for it.": "此事件片段已解决，因此无法为它启动值班策略。",
+  "This incident is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the incident is resolved.": "此事件已被确认。所选策略仍会逐级呼叫其人员，直到其中有人应答或事件已解决。",
+  "This incident is resolved, so no on-call policy can be started for it.": "此事件已解决，因此无法为它启动值班策略。"
 }

@@ -56101,5 +56101,17 @@
   "What would you like to be able to do, and what would it help you with?": "何ができるようになるとよいですか？それは何の役に立ちますか？",
   "What would you like to tell us?": "伝えたいことは何ですか？",
   "What's your idea?": "どんなアイデアですか？",
-  "Write what you want to tell us, then send it.": "伝えたいことを書いてから、送信してください。"
+  "Write what you want to tell us, then send it.": "伝えたいことを書いてから、送信してください。",
+  "Pages the people of the policy you pick about this alert episode, level by level, until one of them answers or the episode is resolved.": "選択したポリシーの担当者を、このアラートエピソードについてレベルごとに呼び出します。担当者の誰かが応答するか、エピソードが解決されるまで続きます。",
+  "Pages the people of the policy you pick about this alert, level by level, until one of them answers or the alert is resolved.": "選択したポリシーの担当者を、このアラートについてレベルごとに呼び出します。担当者の誰かが応答するか、アラートが解決されるまで続きます。",
+  "Pages the people of the policy you pick about this incident episode, level by level, until one of them answers or the episode is resolved.": "選択したポリシーの担当者を、このインシデントエピソードについてレベルごとに呼び出します。担当者の誰かが応答するか、エピソードが解決されるまで続きます。",
+  "Pages the people of the policy you pick about this incident, level by level, until one of them answers or the incident is resolved.": "選択したポリシーの担当者を、このインシデントについてレベルごとに呼び出します。担当者の誰かが応答するか、インシデントが解決されるまで続きます。",
+  "This alert episode is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the episode is resolved.": "このアラートエピソードはすでに確認済みです。選択したポリシーは、担当者の誰かが応答するかエピソードが解決されるまで、引き続き担当者をレベルごとに呼び出します。",
+  "This alert episode is resolved, so no on-call policy can be started for it.": "このアラートエピソードは解決済みのため、オンコールポリシーを開始できません。",
+  "This alert is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the alert is resolved.": "このアラートはすでに確認済みです。選択したポリシーは、担当者の誰かが応答するかアラートが解決されるまで、引き続き担当者をレベルごとに呼び出します。",
+  "This alert is resolved, so no on-call policy can be started for it.": "このアラートは解決済みのため、オンコールポリシーを開始できません。",
+  "This incident episode is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the episode is resolved.": "このインシデントエピソードはすでに確認済みです。選択したポリシーは、担当者の誰かが応答するかエピソードが解決されるまで、引き続き担当者をレベルごとに呼び出します。",
+  "This incident episode is resolved, so no on-call policy can be started for it.": "このインシデントエピソードは解決済みのため、オンコールポリシーを開始できません。",
+  "This incident is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the incident is resolved.": "このインシデントはすでに確認済みです。選択したポリシーは、担当者の誰かが応答するかインシデントが解決されるまで、引き続き担当者をレベルごとに呼び出します。",
+  "This incident is resolved, so no on-call policy can be started for it.": "このインシデントは解決済みのため、オンコールポリシーを開始できません。"
 }

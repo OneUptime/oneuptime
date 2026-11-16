@@ -56101,5 +56101,17 @@
   "What would you like to be able to do, and what would it help you with?": "What would you like to be able to do, and what would it help you with?",
   "What would you like to tell us?": "What would you like to tell us?",
   "What's your idea?": "What's your idea?",
-  "Write what you want to tell us, then send it.": "Write what you want to tell us, then send it."
+  "Write what you want to tell us, then send it.": "Write what you want to tell us, then send it.",
+  "Pages the people of the policy you pick about this alert episode, level by level, until one of them answers or the episode is resolved.": "Pages the people of the policy you pick about this alert episode, level by level, until one of them answers or the episode is resolved.",
+  "Pages the people of the policy you pick about this alert, level by level, until one of them answers or the alert is resolved.": "Pages the people of the policy you pick about this alert, level by level, until one of them answers or the alert is resolved.",
+  "Pages the people of the policy you pick about this incident episode, level by level, until one of them answers or the episode is resolved.": "Pages the people of the policy you pick about this incident episode, level by level, until one of them answers or the episode is resolved.",
+  "Pages the people of the policy you pick about this incident, level by level, until one of them answers or the incident is resolved.": "Pages the people of the policy you pick about this incident, level by level, until one of them answers or the incident is resolved.",
+  "This alert episode is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the episode is resolved.": "This alert episode is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the episode is resolved.",
+  "This alert episode is resolved, so no on-call policy can be started for it.": "This alert episode is resolved, so no on-call policy can be started for it.",
+  "This alert is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the alert is resolved.": "This alert is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the alert is resolved.",
+  "This alert is resolved, so no on-call policy can be started for it.": "This alert is resolved, so no on-call policy can be started for it.",
+  "This incident episode is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the episode is resolved.": "This incident episode is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the episode is resolved.",
+  "This incident episode is resolved, so no on-call policy can be started for it.": "This incident episode is resolved, so no on-call policy can be started for it.",
+  "This incident is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the incident is resolved.": "This incident is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the incident is resolved.",
+  "This incident is resolved, so no on-call policy can be started for it.": "This incident is resolved, so no on-call policy can be started for it."
 }

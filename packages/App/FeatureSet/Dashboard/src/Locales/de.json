@@ -56101,5 +56101,17 @@
   "What would you like to be able to do, and what would it help you with?": "Was möchtest du tun können, und wobei würde es dir helfen?",
   "What would you like to tell us?": "Was möchtest du uns sagen?",
   "What's your idea?": "Was ist deine Idee?",
-  "Write what you want to tell us, then send it.": "Schreib, was du uns sagen möchtest, und sende es dann."
+  "Write what you want to tell us, then send it.": "Schreib, was du uns sagen möchtest, und sende es dann.",
+  "Pages the people of the policy you pick about this alert episode, level by level, until one of them answers or the episode is resolved.": "Alarmiert die Personen der gewählten Richtlinie zu dieser Warnungsepisode, Stufe für Stufe, bis eine von ihnen antwortet oder die Episode behoben ist.",
+  "Pages the people of the policy you pick about this alert, level by level, until one of them answers or the alert is resolved.": "Alarmiert die Personen der gewählten Richtlinie zu dieser Warnung, Stufe für Stufe, bis eine von ihnen antwortet oder die Warnung behoben ist.",
+  "Pages the people of the policy you pick about this incident episode, level by level, until one of them answers or the episode is resolved.": "Alarmiert die Personen der gewählten Richtlinie zu dieser Vorfallepisode, Stufe für Stufe, bis eine von ihnen antwortet oder die Episode behoben ist.",
+  "Pages the people of the policy you pick about this incident, level by level, until one of them answers or the incident is resolved.": "Alarmiert die Personen der gewählten Richtlinie zu diesem Vorfall, Stufe für Stufe, bis eine von ihnen antwortet oder der Vorfall behoben ist.",
+  "This alert episode is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the episode is resolved.": "Diese Warnungsepisode ist bereits bestätigt. Die gewählte Richtlinie alarmiert ihre Personen trotzdem, Stufe für Stufe, bis eine von ihnen antwortet oder die Episode behoben ist.",
+  "This alert episode is resolved, so no on-call policy can be started for it.": "Diese Warnungsepisode ist behoben, daher kann keine Bereitschaftsdienst-Richtlinie für sie gestartet werden.",
+  "This alert is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the alert is resolved.": "Diese Warnung ist bereits bestätigt. Die gewählte Richtlinie alarmiert ihre Personen trotzdem, Stufe für Stufe, bis eine von ihnen antwortet oder die Warnung behoben ist.",
+  "This alert is resolved, so no on-call policy can be started for it.": "Diese Warnung ist behoben, daher kann keine Bereitschaftsdienst-Richtlinie für sie gestartet werden.",
+  "This incident episode is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the episode is resolved.": "Diese Vorfallepisode ist bereits bestätigt. Die gewählte Richtlinie alarmiert ihre Personen trotzdem, Stufe für Stufe, bis eine von ihnen antwortet oder die Episode behoben ist.",
+  "This incident episode is resolved, so no on-call policy can be started for it.": "Diese Vorfallepisode ist behoben, daher kann keine Bereitschaftsdienst-Richtlinie für sie gestartet werden.",
+  "This incident is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the incident is resolved.": "Dieser Vorfall ist bereits bestätigt. Die gewählte Richtlinie alarmiert ihre Personen trotzdem, Stufe für Stufe, bis eine von ihnen antwortet oder der Vorfall behoben ist.",
+  "This incident is resolved, so no on-call policy can be started for it.": "Dieser Vorfall ist behoben, daher kann keine Bereitschaftsdienst-Richtlinie für ihn gestartet werden."
 }

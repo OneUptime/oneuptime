@@ -6,7 +6,7 @@ OneUptime erfasst, wie die Benachrichtigungen verlaufen, die es sendet: wie viel
 - [Metriken aktivieren](#metriken-aktivieren): Zwei Einstellungen, und ohne sie wird nichts erfasst.
 - [Die Metriken](#die-metriken): Sieben Metriken, vom Auslöser bis zum Telefon.
 - [Wie ein Alarm gemessen wird](#wie-ein-alarm-gemessen-wird): Wovon Zeit bis zum Versand und Versandverzug ausgehen.
-- [SLOs für den Anfang](#slos-für-den-anfang): Vier Ziele, Abfrage für Abfrage.
+- [SLOs für den Anfang](#slos-für-den-anfang): Fünf Ziele, Abfrage für Abfrage.
 :::
 
 ## So funktioniert es
@@ -151,7 +151,7 @@ Status kommen nur dort an, wo der Anbieter sie melden kann:
 | --- | --- |
 | `monitor_data_received` | Wann OneUptime die Daten erhielt, die den Monitor ausgelöst haben: eine eingehende Anfrage, den Bericht eines Server-Agents, eine eingehende E-Mail, die Prüfung einer Sonde, einen SNMP-Trap oder die Abfrage eines Netzwerkgeräts. Sie schließt die Zeit ein, die die Daten in der Warteschlange auf ihre Auswertung gewartet haben. |
 | `record_created` | Wann der Vorfall, die Warnung oder die Episode erstellt wurde: von einem Telemetrie-Monitor, einer Regel oder einer Person, und bei einer Prüfung auf Ausbleiben, etwa einem Heartbeat, der aufgehört hat. |
-| `page_started` | Wann ein Alarm später gestartet wurde: Eine Person, ein Workflow oder eine Regel, die jetzt zutrifft, hat ihn gestartet, oder es ist ein direkter Alarm. Bei einem Alarm, den seine Bereitschaftsregel oder OneUptime AI zurückgehalten hat, wann die Sperre ablief, oder wann er startete, falls das früher war. Bei einem erneuten Alarm, wann das Bestätigungs-Timeout ablief. So zeigt sich ein Worker, der einen davon zu spät erreichte, in der Zeit. |
+| `page_started` | Wann ein Alarm später gestartet wurde: Eine Person, ein Workflow oder eine Regel, die jetzt zutrifft, hat ihn gestartet, oder es ist ein direkter Alarm. Bei einem Alarm, den seine Bereitschaftsregel oder OneUptime AI zurückgehalten hat, wann die Sperre ablief, oder wann er startete, falls das früher war. Bei einem erneuten Alarm, wann das Bestätigungs-Timeout ablief, oder wann seine Richtlinie zuletzt geändert wurde, falls das später war: Ein Timeout, das so weit verkürzt wurde, dass es schon abgelaufen war, wird ab der Kürzung gemessen. So zeigt sich ein Worker, der einen davon zu spät erreichte, in der Zeit. |
 
 Bei einer eingehenden Anfrage läuft die Zeit ab der letzten Anfrage, die der Endpunkt erhalten hat, daher kann sie etwas zu kurz ausfallen.
 
@@ -183,7 +183,7 @@ Ein Perzentil wird aus den Buckets berechnet und als Mitte des Buckets gezeichne
 
 ## SLOs für den Anfang
 
-Vier Ziele, die die meisten Installationen zusagen können, jedes aus einer oder zwei Abfragen im Metrik-Explorer des Projekts aufgebaut, das die Metriken empfängt. Sie lesen einen Zeitraum genau, sobald die Metriken als Deltas ankommen: siehe [Deltas an ein OneUptime-Projekt senden](#deltas-an-ein-oneuptime-projekt-senden).
+Fünf Ziele, die die meisten Installationen zusagen können, jedes aus einer oder zwei Abfragen im Metrik-Explorer des Projekts aufgebaut, das die Metriken empfängt. Sie lesen einen Zeitraum genau, sobald die Metriken als Deltas ankommen: siehe [Deltas an ein OneUptime-Projekt senden](#deltas-an-ein-oneuptime-projekt-senden).
 
 ### Ein Ziel im Metrik-Explorer aufbauen
 
@@ -216,7 +216,17 @@ Die Formel `$b / $a * 100` ist der Anteil, der fehlschlug, und das Ziel gilt, so
 | --- | --- | --- | --- |
 | `a` | `notification.time_to_send` | **P95** | `notification.page.start != page_started` |
 
-Das Ziel gilt, solange `a` bei oder unter 30000 bleibt. Später gestartete Alarme werden ab ihrem Start oder ihrer Fälligkeit gemessen, nicht ab einem Auslöser, daher bleiben sie außen vor. Gruppieren Sie nach `notification.page.start`, um die Warteschlange der Monitore (`monitor_data_received`) getrennt vom Rest zu sehen, oder nach `notification.channel`, um einen langsamen Kanal zu finden.
+Das Ziel gilt, solange `a` bei oder unter 30000 bleibt. Später gestartete Alarme werden ab ihrem Start oder ihrer Fälligkeit gemessen, nicht ab einem Auslöser, daher bleiben sie außen vor: Das nächste Ziel deckt sie ab. Gruppieren Sie nach `notification.page.start`, um die Warteschlange der Monitore (`monitor_data_received`) getrennt vom Rest zu sehen, oder nach `notification.channel`, um einen langsamen Kanal zu finden.
+
+### Später gestartete Alarme gehen innerhalb von 2 Minuten hinaus
+
+95 % der später gestarteten Alarme erreichen ihren Anbieter innerhalb von 2 Minuten nach ihrer Fälligkeit: ein zurückgehaltener Alarm, ein erneuter Alarm und ein Alarm, den eine Person, ein Workflow oder eine Regel gestartet hat.
+
+| Abfrage | Metrik | Aggregation | Bedingungen |
+| --- | --- | --- | --- |
+| `a` | `notification.time_to_send` | **P95** | `notification.page.start = page_started` |
+
+Das Ziel gilt, solange `a` bei oder unter 120000 bleibt. Ein zurückgehaltener oder erneuter Alarm wartet auf den nächsten Lauf eines Workers, der einmal pro Minute läuft, daher entfällt bis zu einer Minute seiner Zeit auf dieses Warten, und ein Worker, der in Rückstand geraten ist, fügt mehr hinzu.
 
 ### Später gesendete Benachrichtigungen gehen innerhalb von 90 Sekunden hinaus
 
