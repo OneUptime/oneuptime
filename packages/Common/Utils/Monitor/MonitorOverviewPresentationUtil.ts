@@ -236,6 +236,16 @@ export interface MonitorOverviewPresentationInput {
   monitorSteps?: MonitorSteps | undefined;
   monitoringInterval?: string | undefined;
   createdAt?: Date | undefined;
+  /*
+   * Monitor.firstMeasuredAt as read with the monitor (issue #8899): when a
+   * probe result, heartbeat, email, agent report or evaluation first reached
+   * it. NULL says nothing ever has - what the Monitors list, the Monitor
+   * List widget and status pages go by (Utils/Monitor/MonitorFirstCheck) -
+   * so the hero says so too, even while the probes or the evaluation log
+   * cannot be read. Undefined when it was not read: the hero then goes by
+   * what it can read, as it always has.
+   */
+  firstMeasuredAt?: Date | null | undefined;
   currentStatus?: MonitorOverviewStatusRef | undefined;
   statusSince?: Date | undefined;
   pause: {
@@ -977,6 +987,20 @@ export default class MonitorOverviewPresentationUtil {
   }
 
   /*
+   * The families whose measurements leave a trace only in the evaluation
+   * log: telemetry and infrastructure, network devices, Probe Status.
+   */
+  private static isEvaluatedOnTheServer(
+    family: MonitorOverviewFamily,
+  ): boolean {
+    return (
+      MonitorOverviewPresentationUtil.isTelemetryFamily(family) ||
+      family === MonitorOverviewFamily.NetworkDevice ||
+      family === MonitorOverviewFamily.ProbeStatus
+    );
+  }
+
+  /*
    * An empty log means "never evaluated" only while it would still hold
    * every evaluation the monitor could have had. Past that, its rows may
    * simply have expired.
@@ -988,12 +1012,25 @@ export default class MonitorOverviewPresentationUtil {
   }): MonitorOverviewEvaluationLog {
     const input: MonitorOverviewPresentationInput = data.input;
 
-    if (data.evaluationStatus !== "loaded") {
-      return "unread";
+    if (data.evaluationStatus === "loaded" && input.latestEvaluationAt) {
+      return "evaluated";
     }
 
-    if (input.latestEvaluationAt) {
-      return "evaluated";
+    /*
+     * The monitor's row says nothing has ever measured it: no evaluation
+     * has completed, however old the monitor and whether or not the log
+     * could be read - as the lists, which read the row alone, say. A row
+     * in the log wins: the stamp is written once, by the first result.
+     */
+    if (
+      input.firstMeasuredAt === null &&
+      MonitorOverviewPresentationUtil.isEvaluatedOnTheServer(data.family)
+    ) {
+      return "never";
+    }
+
+    if (data.evaluationStatus !== "loaded") {
+      return "unread";
     }
 
     const isYoungerThanLog: boolean =
@@ -1841,6 +1878,15 @@ export default class MonitorOverviewPresentationUtil {
     input: MonitorOverviewPresentationInput,
     context: MonitorOverviewContext,
   ): boolean {
+    /*
+     * The row says something has measured the monitor (issue #8899): its
+     * status was recorded, whatever the probe rows or the log still hold -
+     * a probe taken off since, a log that has dropped the row.
+     */
+    if (input.firstMeasuredAt) {
+      return false;
+    }
+
     if (
       context.runState === MonitorOverviewRunState.AwaitingFirstData ||
       MonitorOverviewPresentationUtil.isNeverReported(context)
@@ -1852,10 +1898,15 @@ export default class MonitorOverviewPresentationUtil {
       case MonitorOverviewFamily.ProbeCheck:
         /*
          * lastResultAt counts the enabled probes only; a probe switched off
-         * since keeps the result it last returned on its row.
+         * since keeps the result it last returned on its row. Probes that
+         * could not be read say nothing, unless the row says nothing has
+         * ever come back.
          */
+        if (input.probes === null) {
+          return input.firstMeasuredAt === null;
+        }
+
         return (
-          input.probes !== null &&
           !input.probes.lastResultAt &&
           input.probes.rows.every((row: MonitorOverviewProbeRow): boolean => {
             return !row.latestResult?.monitoredAt;
