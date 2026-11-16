@@ -13,11 +13,7 @@ import StatusPages from "../Pages/StatusPages/StatusPages";
 import StatusPagesView from "../Pages/StatusPages/View/Index";
 import StatusPagesViewDelete from "../Pages/StatusPages/View/Delete";
 import StatusPagesViewBranding from "../Pages/StatusPages/View/Branding";
-import StatusPagesViewEmailSubscribers from "../Pages/StatusPages/View/EmailSubscribers";
-import StatusPagesViewSMSSubscribers from "../Pages/StatusPages/View/SMSSubscribers";
-import StatusPagesViewSlackSubscribers from "../Pages/StatusPages/View/SlackSubscribers";
-import StatusPagesViewMicrosoftTeamsSubscribers from "../Pages/StatusPages/View/MicrosoftTeamsSubscribers";
-import StatusPagesViewWebhookSubscribers from "../Pages/StatusPages/View/WebhookSubscribers";
+import StatusPagesViewSubscribers from "../Pages/StatusPages/View/Subscribers";
 import StatusPagesViewEmbedded from "../Pages/StatusPages/View/EmbeddedStatus";
 import StatusPagesViewDomains from "../Pages/StatusPages/View/Domains";
 import StatusPagesViewResources from "../Pages/StatusPages/View/Resources";
@@ -80,6 +76,10 @@ import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnou
 import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
 import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 import MovedPageRedirect from "../Components/Routing/MovedPageRedirect";
+import StatusPageSubscriberChannel, {
+  MOVED_SUBSCRIBER_LIST_PATHS,
+  getStatusPageSubscriberChannelQuery,
+} from "Common/Types/StatusPage/StatusPageSubscriberChannel";
 
 /*
  * Where a status page's Advanced Options page used to be, relative to the
@@ -555,17 +555,44 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(
-            PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS,
+            PageMap.STATUS_PAGE_VIEW_SUBSCRIBERS,
           )}
           element={
-            <StatusPagesViewEmailSubscribers
+            <StatusPagesViewSubscribers
               {...props}
               pageRoute={
-                RouteMap[PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS] as Route
+                RouteMap[PageMap.STATUS_PAGE_VIEW_SUBSCRIBERS] as Route
               }
             />
           }
         />
+
+        {/*
+         * Each channel's subscribers had a page of their own until #9125:
+         * their addresses forward to the channel's tab, so a bookmark, a
+         * link in a wiki or an email the server sent still arrives.
+         */}
+        {Object.keys(MOVED_SUBSCRIBER_LIST_PATHS).map(
+          (movedPath: string): ReactElement => {
+            const channel: StatusPageSubscriberChannel =
+              MOVED_SUBSCRIBER_LIST_PATHS[
+                movedPath
+              ] as StatusPageSubscriberChannel;
+
+            return (
+              <PageRoute
+                key={movedPath}
+                path={movedPath}
+                element={
+                  <MovedPageRedirect
+                    pageMap={PageMap.STATUS_PAGE_VIEW_SUBSCRIBERS}
+                    searchParams={getStatusPageSubscriberChannelQuery(channel)}
+                  />
+                }
+              />
+            );
+          },
+        )}
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(
@@ -622,64 +649,6 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS] as Route
-              }
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS,
-          )}
-          element={
-            <StatusPagesViewSMSSubscribers
-              {...props}
-              pageRoute={
-                RouteMap[PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS] as Route
-              }
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS,
-          )}
-          element={
-            <StatusPagesViewWebhookSubscribers
-              {...props}
-              pageRoute={
-                RouteMap[PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS] as Route
-              }
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.STATUS_PAGE_VIEW_SLACK_SUBSCRIBERS,
-          )}
-          element={
-            <StatusPagesViewSlackSubscribers
-              {...props}
-              pageRoute={
-                RouteMap[PageMap.STATUS_PAGE_VIEW_SLACK_SUBSCRIBERS] as Route
-              }
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.STATUS_PAGE_VIEW_MICROSOFT_TEAMS_SUBSCRIBERS,
-          )}
-          element={
-            <StatusPagesViewMicrosoftTeamsSubscribers
-              {...props}
-              pageRoute={
-                RouteMap[
-                  PageMap.STATUS_PAGE_VIEW_MICROSOFT_TEAMS_SUBSCRIBERS
-                ] as Route
               }
             />
           }
