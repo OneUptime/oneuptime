@@ -535,7 +535,7 @@ describe("Runner", () => {
       return index;
     }
 
-    test("the image installs nothing with npm, and takes only /usr/src from the build stage", () => {
+    test("the image installs nothing with npm, and takes only /usr/src and the JavaScript sandbox from the build stage", () => {
       expect(
         final.instructions.filter((line) => {
           return NPM_INSTALLS.test(line);
@@ -545,7 +545,57 @@ describe("Runner", () => {
         final.instructions.filter((line) => {
           return /^COPY/.test(line);
         }),
-      ).toEqual(["COPY --from=build /usr/src /usr/src"]);
+      ).toEqual([
+        "COPY --from=build /usr/src /usr/src",
+        "COPY --from=build /usr/lib/oneuptime-runner /usr/lib/oneuptime-runner",
+      ]);
+    });
+
+    /*
+     * A global Runner runs each JavaScript step in a process of its own, as a
+     * user of its own (packages/Runner/Utils/JavaScriptSandbox): the build
+     * stage compiles the launcher, which switches the step's process to that
+     * user, and bundles the worker it runs; the image owns the launcher as
+     * root, setuid, runnable by the node group alone, and runs both once.
+     * RunnerJavaScriptSandboxImage.test.ts in the Runner holds the flags and
+     * the source; RunnerImageRuntime.test.js has the built image run a step
+     * as its own user.
+     */
+    test("the build stage compiles the JavaScript sandbox's launcher and bundles its worker; the image owns, sets and runs them as root", () => {
+      const compile = build.instructions.find((line) => {
+        return line.includes(
+          "-o /usr/lib/oneuptime-runner/javascript-sandbox /usr/src/app/Utils/JavaScriptSandbox/Native/javascript-sandbox.c",
+        );
+      });
+      expect(compile).toBeDefined();
+      expect(compile).toContain("gcc -O2 -Wall -Wextra -Werror");
+      expect(compile).toContain(
+        "--outfile=/usr/lib/oneuptime-runner/javascript-sandbox-worker.js",
+      );
+      // Bundled before the prune, which may remove what the bundle holds.
+      expect(build.instructions.indexOf(compile)).toBeLessThan(
+        build.instructions.length - 1,
+      );
+
+      const setUp = final.instructions.find((line) => {
+        return line.includes(
+          "chmod 4750 /usr/lib/oneuptime-runner/javascript-sandbox",
+        );
+      });
+      expect(setUp).toBeDefined();
+      expect(setUp).toContain(
+        "chown root:node /usr/lib/oneuptime-runner/javascript-sandbox",
+      );
+      expect(setUp).toContain(
+        "{ /usr/lib/oneuptime-runner/javascript-sandbox 2>/dev/null; test $? -eq 64; }",
+      );
+      expect(setUp).toContain(
+        "node --no-node-snapshot /usr/lib/oneuptime-runner/javascript-sandbox-worker.js; test $? -eq 2; }",
+      );
+      // Set as root, before the image becomes the node user's.
+      expect(final.instructions.indexOf(setUp)).toBeLessThan(
+        final.instructions.indexOf("USER node"),
+      );
     });
 
     test("the build stage installs Common and the Runner, type-checks, then prunes both", () => {

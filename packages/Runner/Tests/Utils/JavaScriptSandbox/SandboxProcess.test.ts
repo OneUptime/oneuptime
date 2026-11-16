@@ -704,7 +704,41 @@ describe("the bundle the image runs", () => {
       "esbuild",
     );
 
-    // The Dockerfile's command, with the image's paths swapped for these.
+    /*
+     * The Dockerfile's own esbuild flags, with the image's paths swapped for
+     * these: the bundle under test is the one the image builds.
+     */
+    const command: string | undefined = fs
+      .readFileSync(
+        path.join(getRunnerPackageDirectory(), "Dockerfile.tpl"),
+        "utf8",
+      )
+      .replace(/\\\n/g, " ")
+      .split("\n")
+      .find((line: string): boolean => {
+        return (
+          line.includes("node_modules/.bin/esbuild ") &&
+          line.includes("--outfile=")
+        );
+      });
+
+    expect(command).toBeDefined();
+
+    const flags: Array<string> = command!
+      .slice(command!.indexOf("node_modules/.bin/esbuild "))
+      .split(/\s+/)
+      .filter((token: string): boolean => {
+        return (
+          token.startsWith("--") &&
+          !token.startsWith("--tsconfig=") &&
+          !token.startsWith("--outfile=")
+        );
+      });
+
+    expect(flags).toEqual(
+      expect.arrayContaining(["--bundle", "--external:isolated-vm"]),
+    );
+
     execFileSync(
       esbuild,
       [
@@ -712,13 +746,8 @@ describe("the bundle the image runs", () => {
           getRunnerPackageDirectory(),
           "Utils/JavaScriptSandbox/SandboxWorker.ts",
         ),
-        "--bundle",
-        "--platform=node",
-        "--target=node26",
-        "--external:isolated-vm",
+        ...flags,
         `--tsconfig=${path.join(getRunnerPackageDirectory(), "tsconfig.json")}`,
-        "--legal-comments=none",
-        "--log-level=warning",
         `--metafile=${metafile}`,
         `--outfile=${outfile}`,
       ],
