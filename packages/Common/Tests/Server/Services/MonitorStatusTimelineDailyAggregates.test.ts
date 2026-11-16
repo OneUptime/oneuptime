@@ -455,6 +455,64 @@ describe("MonitorStatusTimelineService.getDailyUptimeAggregate", () => {
     expect(sql).not.toMatch(/ORDER BY t\."startsAt" \)/);
   });
 
+  /*
+   * Issue #6887: each period finds its days on the window's grid of local
+   * midnights with width_bucket, as the monitor group statement does,
+   * instead of a generate_series of zone conversions per row. The Postgres
+   * suite (MonitorDailyUptimeAggregatePostgres.test.ts) holds it to the old
+   * statement's buckets in nine zones.
+   */
+  test("cuts the days on the monitor group's grid of local midnights, found with width_bucket", async () => {
+    const stub: StubbedService = stubService();
+
+    await stub.service.getDailyUptimeAggregate({
+      monitorIds: [new ObjectID(MONITOR_A)],
+      startDate: WINDOW_START,
+      endDate: WINDOW_END,
+    });
+
+    const sql: string = flatten(stub.calls[0]!.sql);
+
+    // The grid, the same text as the group's: one array of local midnights.
+    expect(sql).toContain(
+      flatten(MonitorStatusTimelineServiceType.getDayGridCte()),
+    );
+    expect(
+      flatten(
+        MonitorStatusTimelineServiceType.getMonitorGroupDailyUptimeAggregateSql(
+          { levelCount: 2 },
+        ),
+      ),
+    ).toContain(flatten(MonitorStatusTimelineServiceType.getDayGridCte()));
+    expect(sql).toContain(
+      "array_agg((d AT TIME ZONE p.tz) ORDER BY d) AS starts",
+    );
+
+    expect(sql).toContain("width_bucket(src.s, g.starts) AS first_day");
+    expect(sql).toContain(
+      "width_bucket(src.e - interval '1 microsecond', g.starts) AS last_day",
+    );
+    // A period inside one day is one segment; only one crossing midnight fans out.
+    expect(sql).toContain("FROM periods WHERE first_day = last_day UNION ALL");
+    expect(sql).toContain("LATERAL generate_series(pr.first_day, pr.last_day)");
+    expect(sql).toContain("GREATEST(pr.s, g.starts[di]) AS seg_start");
+    expect(sql).toContain("LEAST(pr.e, g.starts[di + 1]) AS seg_end");
+    // No zone conversion is made per row any more.
+    expect(sql).not.toContain("date_trunc('day', src.s AT TIME ZONE p.tz)");
+    expect(sql).not.toContain("AT TIME ZONE p.tz) AS day_start");
+
+    // The buckets are the group's too: clipped to the window, the empty left out.
+    expect(sql).toContain(
+      flatten(MonitorStatusTimelineServiceType.getDayBucketsCte()),
+    );
+    expect(sql).toContain(
+      "LEFT JOIN agg a ON a.monitor_id = m.monitor_id AND a.day_index = d.day_index",
+    );
+    expect(sql).toContain("WHERE d.bucket_end > d.bucket_start");
+    // A monitor asked for twice is read once, never counted twice.
+    expect(sql).toContain("SELECT DISTINCT UNNEST($1::uuid[]) AS monitor_id");
+  });
+
   test("the requested zone is bound as $4, which is the zone the SQL cuts days in", async () => {
     const stub: StubbedService = stubService();
 
@@ -745,7 +803,7 @@ describe("a monitor's time with monitoring off (issue #7112)", () => {
     expect(sql).toContain(
       "CASE WHEN src.is_off THEN NULL ELSE src.status_id END AS status_id",
     );
-    expect(sql).toContain("GROUP BY monitor_id, day_start, status_id, is_off");
+    expect(sql).toContain("GROUP BY monitor_id, day_index, status_id, is_off");
     expect(sql).toContain('COALESCE(a.is_off, false) AS "isMonitoringOff"');
     // Kept, not dropped: the day says it was off instead of having no data.
     expect(sql).not.toContain("AND NOT src.is_off");
