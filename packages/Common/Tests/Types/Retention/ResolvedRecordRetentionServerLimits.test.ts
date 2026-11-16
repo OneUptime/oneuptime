@@ -234,23 +234,28 @@ describe("isResolvedRecordRetentionWithinMaximum: what the card leaves open", ()
 });
 
 describe("getResolvedRecordRetentionMaximumProblem", () => {
-  test.each(KINDS)("%s: each choice, and empty, is a maximum", (kind) => {
-    for (const value of [
-      null,
-      undefined,
-      0,
-      "0",
-      "",
-      "  ",
-      ...RESOLVED_RECORD_RETENTION_CHOICES_IN_DAYS,
-    ]) {
-      expect(getResolvedRecordRetentionMaximumProblem(value, kind)).toBeNull();
-    }
-  });
+  test.each(KINDS)(
+    "%s: each choice, and empty, is a maximum",
+    (kind: ResolvedRecordKind) => {
+      for (const value of [
+        null,
+        undefined,
+        0,
+        "0",
+        "",
+        "  ",
+        ...RESOLVED_RECORD_RETENTION_CHOICES_IN_DAYS,
+      ]) {
+        expect(
+          getResolvedRecordRetentionMaximumProblem(value, kind),
+        ).toBeNull();
+      }
+    },
+  );
 
   test.each(KINDS)(
     "%s: anything else is refused with the choices and how to say none",
-    (kind) => {
+    (kind: ResolvedRecordKind) => {
       for (const value of NOT_A_CHOICE) {
         const problem: string | null = getResolvedRecordRetentionMaximumProblem(
           value,
@@ -266,19 +271,22 @@ describe("getResolvedRecordRetentionMaximumProblem", () => {
 });
 
 describe("getResolvedRecordRetentionDefaultProblem", () => {
-  test.each(KINDS)("%s: each choice, and empty, is a default", (kind) => {
-    for (const value of [
-      null,
-      undefined,
-      0,
-      "",
-      ...RESOLVED_RECORD_RETENTION_CHOICES_IN_DAYS,
-    ]) {
-      expect(
-        getResolvedRecordRetentionDefaultProblem({ value, kind }),
-      ).toBeNull();
-    }
-  });
+  test.each(KINDS)(
+    "%s: each choice, and empty, is a default",
+    (kind: ResolvedRecordKind) => {
+      for (const value of [
+        null,
+        undefined,
+        0,
+        "",
+        ...RESOLVED_RECORD_RETENTION_CHOICES_IN_DAYS,
+      ]) {
+        expect(
+          getResolvedRecordRetentionDefaultProblem({ value, kind }),
+        ).toBeNull();
+      }
+    },
+  );
 
   test("anything that is not a choice is refused", () => {
     for (const value of NOT_A_CHOICE) {
@@ -329,9 +337,9 @@ describe("toResolvedRecordRetentionServerValue", () => {
 
 describe("doesResolvedRecordRetentionMaximumDeleteMore: what the Admin Dashboard asks before", () => {
   test("setting one deletes more, lowering it deletes more, raising or removing it does not", () => {
-    expect(
-      doesResolvedRecordRetentionMaximumDeleteMore({ to: 365 }),
-    ).toBe(true);
+    expect(doesResolvedRecordRetentionMaximumDeleteMore({ to: 365 })).toBe(
+      true,
+    );
     expect(
       doesResolvedRecordRetentionMaximumDeleteMore({ from: 365, to: 90 }),
     ).toBe(true);

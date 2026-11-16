@@ -131,12 +131,10 @@ describe("a count request", () => {
       keepIncidentsInPostmortemStatusIds: [STATUS],
     };
 
-    expect(ResolvedRecordRetentionAnswers.toCountRequestJSON(request)).toEqual(
-      {
-        kind: ResolvedRecordKind.Alert,
-        retentionInDays: 90,
-      },
-    );
+    expect(ResolvedRecordRetentionAnswers.toCountRequestJSON(request)).toEqual({
+      kind: ResolvedRecordKind.Alert,
+      retentionInDays: 90,
+    });
     expect(
       ResolvedRecordRetentionAnswers.readCountRequest(
         ResolvedRecordRetentionAnswers.toCountRequestJSON(request),

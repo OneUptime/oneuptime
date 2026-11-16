@@ -471,6 +471,9 @@ interface FakeProjectRow {
   keptPostmortemStatusIds?: unknown;
 }
 
+// Where a page of projects says which id it starts after: its parameter's number.
+const AFTER_PARAM: RegExp = /p\."_id" > \$(\d+)::uuid/;
+
 class FakeRetentionDatabase {
   public projectRows: Array<FakeProjectRow> = [];
   // A project's records due, in the order a read finds them.
@@ -498,9 +501,7 @@ class FakeRetentionDatabase {
 
     if (sql.includes(`FROM "Project" p`)) {
       // The page starts after the id the statement names, wherever it is.
-      const afterParam: RegExpExecArray | null = /p\."_id" > \$(\d+)::uuid/.exec(
-        sql,
-      );
+      const afterParam: RegExpExecArray | null = AFTER_PARAM.exec(sql);
       const after: string | undefined = afterParam
         ? (params[Number(afterParam[1]) - 1] as string)
         : undefined;
@@ -2183,17 +2184,15 @@ describe("the server's limits and the count's runner, as they run", () => {
       ),
     ).toEqual({ maximumInDays: undefined, defaultInDays: 0 });
 
-    jest
-      .spyOn(GlobalConfigService, "findOneById")
-      .mockResolvedValueOnce(
-        GlobalConfig.fromJSON(
-          {
-            maxIncidentRetentionInDays: 45,
-            defaultIncidentRetentionInDays: -1,
-          },
-          GlobalConfig,
-        ) as GlobalConfig,
-      );
+    jest.spyOn(GlobalConfigService, "findOneById").mockResolvedValueOnce(
+      GlobalConfig.fromJSON(
+        {
+          maxIncidentRetentionInDays: 45,
+          defaultIncidentRetentionInDays: -1,
+        },
+        GlobalConfig,
+      ) as GlobalConfig,
+    );
 
     expect(
       await ResolvedRecordRetention.getServerLimits(
