@@ -41,7 +41,8 @@ import { DataSource } from "typeorm";
  *     moves the indexed nextPingAt, is not and cannot be;
  *   - a reachable poll's verdict whose state did not change is HOT, and so
  *     is its rate baseline; the claim (nextPollAt) is not, nor is a verdict
- *     that changes a state an index names (reachability, ports down);
+ *     that changes a state an index names (reachability, ports down, a walk
+ *     that starts failing - issue #8091);
  *   - with "lastSeenAt" indexed again, as it was before, the same verdict
  *     is not HOT.
  *
@@ -285,7 +286,7 @@ describePostgres("the probe tables' writes, HOT or not, on Postgres", () => {
       ).toBe(true);
     });
 
-    test("NetworkDevice: no index names lastSeenAt, the Status index has no fourth column, and no bare projectId index is left", async () => {
+    test("NetworkDevice: no index names lastSeenAt, the Status index's fourth column is isSnmpReachable, and no bare projectId index is left", async () => {
       const indexes: Array<IndexRow> = await indexesOf("NetworkDevice");
 
       expect(
@@ -296,14 +297,33 @@ describePostgres("the probe tables' writes, HOT or not, on Postgres", () => {
           );
         }),
       ).toEqual([]);
+      /*
+       * The Status index, with isSnmpReachable after its three columns
+       * (issue #8091), and not also without it: the three-column prefix
+       * serves every read the shorter index did.
+       */
       expect(
         indexes.filter((index: IndexRow): boolean => {
           return (
-            index.columns === "projectId,isArchived,isReachable" &&
+            index.columns ===
+              "projectId,isArchived,isReachable,isSnmpReachable" &&
             !index.predicate
           );
         }),
       ).toHaveLength(1);
+      expect(
+        indexes.filter((index: IndexRow): boolean => {
+          return index.columns === "projectId,isArchived,isReachable";
+        }),
+      ).toEqual([]);
+      expect(
+        indexes.filter((index: IndexRow): boolean => {
+          return (
+            index.columns.split(",").includes("lastSnmpSeenAt") ||
+            (index.predicate || "").includes("lastSnmpSeenAt")
+          );
+        }),
+      ).toEqual([]);
       expect(
         indexes.filter((index: IndexRow): boolean => {
           return index.columns === "projectId";
@@ -443,16 +463,23 @@ describePostgres("the probe tables' writes, HOT or not, on Postgres", () => {
       verdict: {
         isReachable: boolean;
         interfacesDown: number;
+        // The walk's verdict: the device's own unless the test says.
+        isSnmpReachable?: boolean | null | undefined;
+        // When the poll was received: now unless the test says.
+        receivedAt?: Date | undefined;
       },
     ): Promise<boolean> {
       return NetworkDeviceService.writePollVerdict({
         projectId: PROJECT_ID,
         deviceId: id,
-        receivedAt: NOW,
-        processedAt: NOW,
+        receivedAt: verdict.receivedAt || NOW,
+        processedAt: verdict.receivedAt || NOW,
         verdict: {
           isReachable: verdict.isReachable,
-          isSnmpReachable: verdict.isReachable,
+          isSnmpReachable:
+            verdict.isSnmpReachable === undefined
+              ? verdict.isReachable
+              : verdict.isSnmpReachable,
           interfaceCounts: verdict.isReachable
             ? {
                 total: 24,
@@ -549,6 +576,62 @@ describePostgres("the probe tables' writes, HOT or not, on Postgres", () => {
           });
         }),
       ).toEqual({ updates: 1, hot: 0 });
+    });
+
+    /*
+     * Issue #8091: the Status index names isSnmpReachable, so the Overview's
+     * "SNMP failing" list reads the failing devices rather than every
+     * reachable one. The verdict writes the column on every poll, but HOT is
+     * blocked only by a changed value: a device whose walk keeps succeeding
+     * - or keeps failing - stays HOT, and only the poll whose walk starts or
+     * stops failing is not.
+     */
+    test("a reachable verdict that leaves the walk's verdict as it was is HOT; one whose walk starts failing is not", async () => {
+      const unchanged: ObjectID = await insertDevice();
+      const startsFailing: ObjectID = await insertDevice();
+
+      expect(
+        await writesOf("NetworkDevice", () => {
+          return writeVerdict(unchanged, {
+            isReachable: true,
+            interfacesDown: 0,
+            isSnmpReachable: true,
+          });
+        }),
+      ).toEqual({ updates: 1, hot: 1 });
+
+      expect(
+        await writesOf("NetworkDevice", () => {
+          return writeVerdict(startsFailing, {
+            isReachable: true,
+            interfacesDown: 0,
+            isSnmpReachable: false,
+          });
+        }),
+      ).toEqual({ updates: 1, hot: 0 });
+    });
+
+    test("a device whose walk keeps failing stays HOT poll after poll", async () => {
+      const id: ObjectID = await insertDevice();
+
+      // The walk starts failing: the one poll that moves the index.
+      await writeVerdict(id, {
+        isReachable: true,
+        interfacesDown: 0,
+        isSnmpReachable: false,
+      });
+
+      // The next poll, five minutes on, finds it failing still.
+      expect(
+        await writesOf("NetworkDevice", () => {
+          return writeVerdict(id, {
+            isReachable: true,
+            interfacesDown: 0,
+            isSnmpReachable: false,
+            receivedAt: minutesFromNow(5),
+          });
+        }),
+      ).toEqual({ updates: 1, hot: 1 });
     });
 
     test("with lastSeenAt indexed again, as before #7921, the same verdict is not HOT", async () => {

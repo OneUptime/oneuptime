@@ -125,8 +125,19 @@ import {
  * the fleet tally on the same page already makes. Nor a partial index on
  * the unreachable devices: a partial index's columns block HOT like any
  * other's, whichever rows it holds.
+ *
+ * `isSnmpReachable` is the fourth column (OneUptime issue #8091), for the
+ * Overview's "SNMP failing" list and the device list's SNMP facet: the
+ * reachable devices whose last walk failed. With three columns both read
+ * the heap row of every reachable device to find the few whose walk is
+ * failing - about one pass over the table. The verdict writes it on every
+ * poll, but its value changes only when a walk starts or stops failing,
+ * and HOT is blocked only by a changed value, so the verdict of a device
+ * whose state did not change stays HOT. Not `lastSnmpSeenAt`, which every
+ * successful walk moves. The three-column prefix still serves the Status
+ * facet and the summary strip's counts.
  */
-@Index(["projectId", "isArchived", "isReachable"])
+@Index(["projectId", "isArchived", "isReachable", "isSnmpReachable"])
 /*
  * Every per-site rollup, the hierarchy drill-down, and the "unassigned
  * devices" count. A device's site almost never changes, so this is close to

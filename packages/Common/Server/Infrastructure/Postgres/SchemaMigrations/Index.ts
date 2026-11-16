@@ -1016,6 +1016,7 @@ import { AddOwnerNotificationFeedStatusIndex1809179610000 } from "./180917961000
 import { AddDataStoreWorkerContentScanIndex1809179800000 } from "./1809179800000-AddDataStoreWorkerContentScanIndex";
 import { AddServiceLevelObjectiveRequestFilter1809179900000 } from "./1809179900000-AddServiceLevelObjectiveRequestFilter";
 import { AddNetworkEndpointAttachmentSeenAt1809180000000 } from "./1809180000000-AddNetworkEndpointAttachmentSeenAt";
+import { AddIsSnmpReachableToNetworkDeviceStatusIndex1809180100000 } from "./1809180100000-AddIsSnmpReachableToNetworkDeviceStatusIndex";
 
 export default [
   InitialMigration,
@@ -2036,4 +2037,5 @@ export default [
   AddDataStoreWorkerContentScanIndex1809179800000,
   AddServiceLevelObjectiveRequestFilter1809179900000,
   AddNetworkEndpointAttachmentSeenAt1809180000000,
+  AddIsSnmpReachableToNetworkDeviceStatusIndex1809180100000,
 ];
