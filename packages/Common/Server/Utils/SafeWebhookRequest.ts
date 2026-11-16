@@ -25,11 +25,14 @@ import https from "https";
  * A WEBHOOK SENT TO THE ADDRESS ITS URL CHECK APPROVED, AND NOWHERE ELSE
  * (issue #6611).
  *
- * Every request OneUptime's server sends to a URL somebody typed - a status
- * page subscriber's webhook, a project's or a person's webhook, the SMS and
- * call gateway, a custom channel, a workflow's API, Zabbix and Mattermost
- * steps, an OpenStack project notice, a Mattermost server - goes through
- * here, so each keeps these rules:
+ * Every webhook OneUptime's server sends to a URL somebody typed - a status
+ * page subscriber's, a project's or a person's webhook, the SMS and call
+ * gateway, a custom channel, a workflow's API and Zabbix steps, an
+ * OpenStack project notice, a call to a Mattermost server - goes through
+ * here (WebhookSendersPinnedGuard holds every one to it), so each keeps
+ * these rules. Other outbound connections a project member chooses - data
+ * sources, LLM providers, SMTP and the like - go through
+ * DataSource/EgressGuard instead.
  *
  *   - The URL is checked (SSRFProtection.validateAndResolveWebhookTarget)
  *     with the policy its caller passes, unchanged: whether a private
@@ -68,7 +71,9 @@ import https from "https";
  *   - A total timeout, when the caller gives one, is a hard one: no new
  *     attempt starts that it cannot pay for (API's own budget), and an
  *     attempt still in flight when it runs out is aborted and its socket
- *     closed, so a server that trickles its answer cannot hold one open.
+ *     closed, so a server that trickles its answer cannot hold one open. A
+ *     notification webhook also reads at most WEBHOOK_MAX_RESPONSE_BYTES of
+ *     an answer.
  *
  * The Mattermost workflow step (Mattermost/MattermostWebhook) reads every
  * answer as text itself, so it sends with axios directly; it pins the same
