@@ -56441,5 +56441,7 @@
   "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open.": "{{count}} kommandoer, der blev kørt her, vises ikke: de blev kørt for AI-chats, hændelser eller advarsler, du ikke kan åbne.",
   "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "{{count}} kommando, der blev kørt her, vises ikke: den blev kørt for en AI-chat, en hændelse eller en advarsel, du ikke kan åbne.",
   "Test email report not sent": "Testrapport via e-mail ikke sendt",
-  "Test message not sent": "Testbesked ikke sendt"
+  "Test message not sent": "Testbesked ikke sendt",
+  "No projects yet": "Ingen projekter endnu",
+  "Welcome to OneUptime": "Velkommen til OneUptime"
 }

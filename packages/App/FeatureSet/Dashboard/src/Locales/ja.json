@@ -56441,5 +56441,7 @@
   "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open.": "ここで実行されたコマンドのうち {{count}} 件は一覧に表示されていません。開くことのできない AI チャット、インシデント、またはアラートのために実行されたものです。",
   "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "ここで実行されたコマンドのうち {{count}} 件は一覧に表示されていません。開くことのできない AI チャット、インシデント、またはアラートのために実行されたものです。",
   "Test email report not sent": "テストレポートのメールを送信できませんでした",
-  "Test message not sent": "テストメッセージを送信できませんでした"
+  "Test message not sent": "テストメッセージを送信できませんでした",
+  "No projects yet": "プロジェクトはまだありません",
+  "Welcome to OneUptime": "OneUptime へようこそ"
 }
