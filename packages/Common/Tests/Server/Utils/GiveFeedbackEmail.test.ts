@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import MailService from "../../../Server/Services/MailService";
 import ProductFeedbackService, {
   ServerFeedbackSettings,
@@ -87,7 +88,7 @@ const EMAIL_DATA: GiveFeedbackEmailData = {
 let serverSettings: ServerFeedbackSettings;
 let user: User | null;
 let project: Project | null;
-let sendMail: jest.SpiedFunction<typeof MailService.sendMail>;
+let sendMail: SpyInstance<typeof MailService.sendMail>;
 
 const makeUser: (data?: {
   name?: string;
