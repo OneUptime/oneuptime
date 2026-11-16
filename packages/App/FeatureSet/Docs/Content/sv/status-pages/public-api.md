@@ -135,7 +135,8 @@ Den samlade statusen är den sämsta aktuella statusen bland monitorerna och mon
 | `resourceGroups` | Grupperna, med `parentStatusPageGroupId` för nästlade grupper. |
 | `monitorStatuses` | Alla monitorstatusar i projektet, från lägst prioritet till högst. |
 | `monitorGroupCurrentStatuses`, `monitorsInGroup` | Aktuell status för varje monitorgrupp på sidan, och monitorerna i den. |
-| `notMonitoredResourceIds` | ID:na för de resurser som sidan visar som **Inte övervakad**: en monitor vars övervakning är avstängd, eller en monitorgrupp där alla monitorer har den avstängd. De avgör ingen status, och en sådan grupp har ingen post i `monitorGroupCurrentStatuses`. |
+| `notMonitoredResourceIds` | ID:na för de resurser som sidan visar som **Inte övervakad**: en monitor vars övervakning är avstängd, eller en monitorgrupp där alla monitorer har den avstängd. Listan tar också med resurserna i `notMonitoredYetResourceIds`. De avgör ingen status, och en sådan grupp har ingen post i `monitorGroupCurrentStatuses`. |
+| `notMonitoredYetResourceIds` | ID:na för de resurser som sidan visar som **Inte övervakad än**: en monitor som ingenting har kontrollerat än, fortfarande med den status i drift som varje monitor börjar med, eller en monitorgrupp där ingen av monitorerna har kontrollerats än. |
 | `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupUptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | Det som drifttidsstaplarna ritas utifrån, och sidans färgregler för staplarna. |
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | De olösta incidenter som sidan visar, deras offentliga anteckningar och tillståndsändringar, och projektets incidenttillstånd. |
 | `timelineIncidents` | Incidenterna i drifttidsstaplarnas tidsfönster, lösta inräknade, för staplarnas verktygstips. |
@@ -197,7 +198,7 @@ Svaret:
 | `activeIncidents` | De olösta incidenter som sidan visar, var och en med `affectedResourceIds` för de resurser den berör. |
 | `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | De underhållshändelser som pågår eller ska komma, var och en med sina `affectedResourceIds`. |
 
-En resurs `currentStatus` är `null` när sidan inte visar den, och när `isMonitored` är `false`: ingenting kontrollerar resursen, eftersom dess monitors övervakning är avstängd eller alla monitorer i dess monitorgrupp har den avstängd, så sidan visar den som **Inte övervakad**. `isUnderMaintenance` är `true` medan en pågående händelse nämner en av resursens monitorer, eller en monitor i dess monitorgrupp, oavsett vilken status de monitorerna har.
+En resurs `currentStatus` är `null` när sidan inte visar den, och när `isMonitored` är `false`: ingenting kontrollerar resursen, eftersom dess monitors övervakning är avstängd eller alla monitorer i dess monitorgrupp har den avstängd, så sidan visar den som **Inte övervakad**, eller så har ingenting kontrollerat den än, så sidan visar den som **Inte övervakad än**. `isUnderMaintenance` är `true` medan en pågående händelse nämner en av resursens monitorer, eller en monitor i dess monitorgrupp, oavsett vilken status de monitorerna har.
 
 ## Drifttid för ett datumintervall
 

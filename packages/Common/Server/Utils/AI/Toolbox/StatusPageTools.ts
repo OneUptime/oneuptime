@@ -17,7 +17,13 @@ import StatusPageSubscriberService from "../../../Services/StatusPageSubscriberS
 import Query from "../../../Types/Database/Query";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import OneUptimeDate from "../../../../Types/Date";
-import FrozenMonitorResources from "../../../../Utils/StatusPage/FrozenMonitorResources";
+import FrozenMonitorResources, {
+  MONITOR_NOT_MONITORED_YET_SELECT,
+  StartingStatusIds,
+} from "../../../../Utils/StatusPage/FrozenMonitorResources";
+import { STARTING_STATUS_SELECT } from "../../../../Utils/Monitor/MonitorFirstCheck";
+import MonitorStatus from "../../../../Models/DatabaseModels/MonitorStatus";
+import MonitorStatusService from "../../../Services/MonitorStatusService";
 import MonitorGroupService from "../../../Services/MonitorGroupService";
 import MonitorGroupResource from "../../../../Models/DatabaseModels/MonitorGroupResource";
 import Dictionary from "../../../../Types/Dictionary";
@@ -153,6 +159,9 @@ async function withoutArchivedMonitors(
       _id: true,
       isArchived: true,
       disableActiveMonitoring: true,
+      // Whether anything has checked it yet, and its status (issue #8899).
+      ...MONITOR_NOT_MONITORED_YET_SELECT,
+      currentMonitorStatusId: true,
     },
     limit: LIMIT_MAX,
     skip: 0,
@@ -178,6 +187,25 @@ async function withoutArchivedMonitors(
     const monitor: Monitor = resource.monitor || new Monitor();
     monitor.isArchived = read?.isArchived === true;
     monitor.disableActiveMonitoring = read?.disableActiveMonitoring === true;
+
+    /*
+     * As read, NULL included: an empty firstMeasuredAt is what says
+     * nothing has checked the monitor. One not read stays unread.
+     */
+    if (read) {
+      if (read.firstMeasuredAt !== undefined) {
+        monitor.firstMeasuredAt = read.firstMeasuredAt;
+      }
+
+      if (read.monitorType) {
+        monitor.monitorType = read.monitorType;
+      }
+
+      if (read.currentMonitorStatusId) {
+        monitor.currentMonitorStatusId = read.currentMonitorStatusId;
+      }
+    }
+
     resource.monitor = monitor;
   }
 
@@ -185,15 +213,72 @@ async function withoutArchivedMonitors(
 }
 
 /*
- * The ids of the resources the public page draws as Not monitored: a
- * monitor whose monitoring is off, a monitor group whose monitors all have
- * it off (FrozenMonitorResources). Pass the resources withoutArchivedMonitors
- * returned, which carry their monitor's switch; a group's members are read
- * as OneUptime, as the public page reads them.
+ * The project's statuses a monitor can start in - read only when one of
+ * these monitors has never been measured, so a page whose monitors all have
+ * been costs nothing more. A read that fails tells no monitor apart: the
+ * page's answer says only what is off, as it did before.
+ */
+async function readStartingStatusIds(data: {
+  ctx: ToolContext;
+  monitors: Array<unknown>;
+}): Promise<StartingStatusIds> {
+  const hasNeverMeasured: boolean = data.monitors.some(
+    (monitor: unknown): boolean => {
+      return (
+        Boolean(monitor) &&
+        (monitor as { firstMeasuredAt?: unknown }).firstMeasuredAt === null
+      );
+    },
+  );
+
+  if (!hasNeverMeasured) {
+    return new Set<string>();
+  }
+
+  try {
+    const monitorStatuses: Array<MonitorStatus> =
+      await MonitorStatusService.findBy({
+        query: {
+          projectId: data.ctx.projectId,
+        },
+        select: {
+          _id: true,
+          ...STARTING_STATUS_SELECT,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    return FrozenMonitorResources.getStartingStatusIds(monitorStatuses);
+  } catch {
+    return new Set<string>();
+  }
+}
+
+// The resources the public page draws as not monitored, and why.
+interface NotMonitoredResources {
+  // Every one the page draws as not monitored.
+  notMonitored: Set<string>;
+  // Of those, the ones nothing has checked yet: Not monitored yet.
+  notMonitoredYet: Set<string>;
+}
+
+/*
+ * The ids of the resources the public page draws as not monitored: a
+ * monitor whose monitoring is off or that nothing has checked yet, a
+ * monitor group whose monitors all are one or the other
+ * (FrozenMonitorResources). Pass the resources withoutArchivedMonitors
+ * returned, which carry what their monitor says of itself; a group's members
+ * and the project's statuses are read as OneUptime, as the public page reads
+ * them.
  */
 async function getNotMonitoredResourceIds(
+  ctx: ToolContext,
   resources: Array<StatusPageResource>,
-): Promise<Set<string>> {
+): Promise<NotMonitoredResources> {
   const monitorGroupResources: Dictionary<Array<MonitorGroupResource>> =
     await MonitorGroupService.getMonitorGroupResourcesByGroupIds(
       resources
@@ -205,12 +290,36 @@ async function getNotMonitoredResourceIds(
         }),
     );
 
-  return new Set<string>(
-    FrozenMonitorResources.getNotMonitoredResourceIds({
-      statusPageResources: resources,
-      monitorGroupResources: monitorGroupResources,
-    }),
-  );
+  const startingStatusIds: StartingStatusIds = await readStartingStatusIds({
+    ctx: ctx,
+    monitors: [
+      ...resources.map((resource: StatusPageResource): unknown => {
+        return resource.monitor;
+      }),
+      ...Object.values(monitorGroupResources)
+        .flat()
+        .map((member: MonitorGroupResource): unknown => {
+          return member.monitor;
+        }),
+    ],
+  });
+
+  return {
+    notMonitored: new Set<string>(
+      FrozenMonitorResources.getNotMonitoredResourceIds({
+        statusPageResources: resources,
+        monitorGroupResources: monitorGroupResources,
+        startingStatusIds: startingStatusIds,
+      }),
+    ),
+    notMonitoredYet: new Set<string>(
+      FrozenMonitorResources.getNotMonitoredYetResourceIds({
+        statusPageResources: resources,
+        monitorGroupResources: monitorGroupResources,
+        startingStatusIds: startingStatusIds,
+      }),
+    ),
+  };
 }
 
 /*
@@ -414,22 +523,35 @@ export const QueryStatusPagesTool: ObservabilityTool = {
       /*
        * A resource whose monitoring is off stays on the page, drawn as Not
        * monitored, and counts toward no status: say so, so a reply never
-       * reads its frozen status as live.
+       * reads its frozen status as live. One nothing has checked yet is
+       * drawn as Not monitored yet: its Operational is only the status it
+       * was created in.
        */
+      const notMonitoredResources: NotMonitoredResources =
+        await getNotMonitoredResourceIds(ctx, shownResources);
       const notMonitoredResourceIds: Set<string> =
-        await getNotMonitoredResourceIds(shownResources);
+        notMonitoredResources.notMonitored;
 
       const resourceSummaries: string = shownResources
         .map((resource: StatusPageResource) => {
           const description: string = describeResource(resource);
 
-          return description &&
-            FrozenMonitorResources.isNotMonitored(
+          if (
+            !description ||
+            !FrozenMonitorResources.isNotMonitored(
               resource,
               notMonitoredResourceIds,
             )
-            ? `${description} - not monitored`
-            : description;
+          ) {
+            return description;
+          }
+
+          return FrozenMonitorResources.isNotMonitored(
+            resource,
+            notMonitoredResources.notMonitoredYet,
+          )
+            ? `${description} - not monitored yet`
+            : `${description} - not monitored`;
         })
         .filter((value: string) => {
           return value.length > 0;

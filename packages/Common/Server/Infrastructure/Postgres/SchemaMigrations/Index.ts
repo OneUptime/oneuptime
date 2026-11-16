@@ -1022,8 +1022,9 @@ import { MasterApiKeyHashedColumn1809180790100 } from "./1809180790100-MasterApi
 import { RemoveSampleProject1809180800000 } from "./1809180800000-RemoveSampleProject";
 import { AddRunnerCanRunCodeFixes1809180900000 } from "./1809180900000-AddRunnerCanRunCodeFixes";
 import { AddResolvedRecordRetentionServerLimits1809181000000 } from "./1809181000000-AddResolvedRecordRetentionServerLimits";
-import { ApiKeyHashedColumn1809181100000 } from "./1809181100000-ApiKeyHashedColumn";
-import { AddMasterApiKeyCreatedByAndHint1809181200000 } from "./1809181200000-AddMasterApiKeyCreatedByAndHint";
+import { AddMonitorFirstMeasuredAt1809181100000 } from "./1809181100000-AddMonitorFirstMeasuredAt";
+import { ApiKeyHashedColumn1809181200000 } from "./1809181200000-ApiKeyHashedColumn";
+import { AddMasterApiKeyCreatedByAndHint1809181300000 } from "./1809181300000-AddMasterApiKeyCreatedByAndHint";
 
 export default [
   InitialMigration,
@@ -2050,6 +2051,7 @@ export default [
   RemoveSampleProject1809180800000,
   AddRunnerCanRunCodeFixes1809180900000,
   AddResolvedRecordRetentionServerLimits1809181000000,
-  ApiKeyHashedColumn1809181100000,
-  AddMasterApiKeyCreatedByAndHint1809181200000,
+  AddMonitorFirstMeasuredAt1809181100000,
+  ApiKeyHashedColumn1809181200000,
+  AddMasterApiKeyCreatedByAndHint1809181300000,
 ];

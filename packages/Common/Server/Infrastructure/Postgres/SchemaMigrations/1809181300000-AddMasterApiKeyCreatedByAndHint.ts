@@ -13,10 +13,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * writes its hint, and the page says nothing it does not know. No foreign
  * key on the maker: the row outlives any one admin.
  */
-export class AddMasterApiKeyCreatedByAndHint1809181200000
+export class AddMasterApiKeyCreatedByAndHint1809181300000
   implements MigrationInterface
 {
-  public name: string = "AddMasterApiKeyCreatedByAndHint1809181200000";
+  public name: string = "AddMasterApiKeyCreatedByAndHint1809181300000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

@@ -29,8 +29,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * random key comes from Postgres's own gen_random_uuid (core since
  * Postgres 13), which needs no extension on the search path.
  */
-export class ApiKeyHashedColumn1809181100000 implements MigrationInterface {
-  public name: string = "ApiKeyHashedColumn1809181100000";
+export class ApiKeyHashedColumn1809181200000 implements MigrationInterface {
+  public name: string = "ApiKeyHashedColumn1809181200000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

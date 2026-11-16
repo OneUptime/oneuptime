@@ -3815,6 +3815,27 @@ jobs:
           Tests/Server/Utils/Measurement/MeasurementBackfillProgressPostgres.test.ts
           --forceExit
 
+      # When something first measured a monitor (#8899): the column
+      # 1809180900000 adds is a nullable timestamp; BackfillMonitorFirstMeasuredAt
+      # stamps, with its creation time, every monitor that left a trace of being
+      # measured and every manual one, pages past a page, and changes nothing
+      # the second time; a first result's stamp lands once, and skips a row
+      # another writer holds rather than waiting for it. Clones the migrated
+      # Monitor, MonitorProbe and MonitorStatusTimeline tables into an
+      # isolated schema.
+      - name: Test when something first measured a monitor on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_MONITOR_FIRST_MEASURED_TESTS: "true"
+          MONITOR_FIRST_MEASURED_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          MONITOR_FIRST_MEASURED_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          MONITOR_FIRST_MEASURED_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/DataMigrations/BackfillMonitorFirstMeasuredAtPostgres.test.ts
+          --forceExit
+
       # Archiving the values records pick from, on migrated Postgres: the two
       # migrations on tables that already hold values (every value comes out
       # live, the keys to who archived one are added online and cleared when

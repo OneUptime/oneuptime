@@ -135,7 +135,8 @@ The overall status is the worst current status of the monitors and monitor group
 | `resourceGroups` | The groups, with `parentStatusPageGroupId` for nested groups. |
 | `monitorStatuses` | Every monitor status of the project, from the lowest priority to the highest. |
 | `monitorGroupCurrentStatuses`, `monitorsInGroup` | The current status of each monitor group on the page, and the monitors in it. |
-| `notMonitoredResourceIds` | The IDs of the resources the page shows as **Not monitored**: a monitor whose monitoring is off, or a monitor group whose monitors all have it off. They decide no status, and such a group has no entry in `monitorGroupCurrentStatuses`. |
+| `notMonitoredResourceIds` | The IDs of the resources the page shows as **Not monitored**: a monitor whose monitoring is off, or a monitor group whose monitors all have it off. It lists the resources in `notMonitoredYetResourceIds` too. They decide no status, and such a group has no entry in `monitorGroupCurrentStatuses`. |
+| `notMonitoredYetResourceIds` | The IDs of the resources the page shows as **Not monitored yet**: a monitor nothing has checked yet, still in the operational status every monitor starts in, or a monitor group none of whose monitors has been checked yet. |
 | `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupUptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | What the uptime bars are drawn from, and the page's bar color rules. |
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | The unresolved incidents the page shows, their public notes and state changes, and the project's incident states. |
 | `timelineIncidents` | The incidents in the uptime bars' window, resolved ones included, for the bars' tooltips. |
@@ -197,7 +198,7 @@ The response:
 | `activeIncidents` | The unresolved incidents the page shows, each with the `affectedResourceIds` of the resources it affects. |
 | `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | The maintenance events in progress and still to come, each with its `affectedResourceIds`. |
 
-A resource's `currentStatus` is `null` when the page does not show it, and when `isMonitored` is `false`: nothing checks the resource, because its monitor's monitoring is off or every monitor of its monitor group has it off, so the page shows it as **Not monitored**. `isUnderMaintenance` is `true` while an event in progress names one of the resource's monitors, or a monitor in its monitor group, whatever status those monitors are in.
+A resource's `currentStatus` is `null` when the page does not show it, and when `isMonitored` is `false`: nothing checks the resource, because its monitor's monitoring is off or every monitor of its monitor group has it off, so the page shows it as **Not monitored**, or nothing has checked it yet, so the page shows it as **Not monitored yet**. `isUnderMaintenance` is `true` while an event in progress names one of the resource's monitors, or a monitor in its monitor group, whatever status those monitors are in.
 
 ## Uptime for a date range
 

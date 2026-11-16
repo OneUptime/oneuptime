@@ -182,6 +182,7 @@ import HashMasterApiKey from "./HashMasterApiKey";
 import HashProjectApiKeys from "./HashProjectApiKeys";
 import BackfillNetworkEndpointCoarseLastSeenAt from "./BackfillNetworkEndpointCoarseLastSeenAt";
 import ResolveWhatMonitorsTurnedOffWouldHaveResolved from "./ResolveWhatMonitorsTurnedOffWouldHaveResolved";
+import BackfillMonitorFirstMeasuredAt from "./BackfillMonitorFirstMeasuredAt";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -1219,6 +1220,19 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new EncryptUploadedCertificateKeys(),
+  /*
+   * A monitor nothing has checked yet reads Operational, the status every
+   * monitor is created in (issue #8899): Monitor.firstMeasuredAt now says
+   * whether anything has measured it, and the lists and status pages say it
+   * is waiting for its first check instead. Each monitor checked stamps it
+   * on its next result; this stamps, with its creation time, every monitor
+   * that left a trace of being measured before the column existed - a
+   * probe result, a heartbeat, an email, a server report, a queued
+   * evaluation, a status change - and every manual monitor. Postgres only,
+   * paged by id and idempotent; before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new BackfillMonitorFirstMeasuredAt(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

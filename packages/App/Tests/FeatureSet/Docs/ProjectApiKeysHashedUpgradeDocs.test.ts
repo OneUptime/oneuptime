@@ -94,7 +94,7 @@ describe("the English upgrade note on a project's API keys", () => {
     expect(dataMigrations.indexOf("new HashMasterApiKey(),")).toBeLessThan(
       dataMigrations.indexOf("new HashProjectApiKeys(),"),
     );
-    expect(schemaMigrations).toContain("ApiKeyHashedColumn1809181100000,");
+    expect(schemaMigrations).toContain("ApiKeyHashedColumn1809181200000,");
     expect(ENGLISH_NOTE).toContain(
       "Now only its hash is stored, and the upgrade hashes the keys you have: the scripts, integrations and Terraform configurations that sign in with them keep working, with no change.",
     );
@@ -161,7 +161,7 @@ describe("the English upgrade note on a project's API keys", () => {
 
   it("says a rollback gives each key a new one, as the schema migration's down does", () => {
     const migration: string = source(
-      "packages/Common/Server/Infrastructure/Postgres/SchemaMigrations/1809181100000-ApiKeyHashedColumn.ts",
+      "packages/Common/Server/Infrastructure/Postgres/SchemaMigrations/1809181200000-ApiKeyHashedColumn.ts",
     );
 
     expect(migration).toContain(

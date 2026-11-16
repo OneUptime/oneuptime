@@ -4,6 +4,7 @@
 
 import URL from "../../Types/API/URL";
 import APIException from "../../Types/Exception/ApiException";
+import { NO_BREAK_SPACE } from "../../Types/NoBreakSpaces";
 import API from "../../Utils/API";
 import ResponseTooLarge from "../../Utils/ResponseTooLarge";
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
@@ -78,25 +79,27 @@ describe("ResponseTooLarge.isError", () => {
 describe("ResponseTooLarge.getMessage", () => {
   test("says what happened in a sentence, with the limit as people read sizes", () => {
     expect(ResponseTooLarge.getMessage(10 * 1024 * 1024)).toBe(
-      "The answer was larger than 10 MB, so it was not read.",
+      "The answer was larger than 10\u00A0MB, so it was not read.",
     );
     expect(ResponseTooLarge.getMessage(1024 * 1024)).toBe(
-      "The answer was larger than 1 MB, so it was not read.",
+      "The answer was larger than 1\u00A0MB, so it was not read.",
     );
   });
 
   test("names whose answer it was, when the sender says", () => {
     expect(
       ResponseTooLarge.getMessage(8 * 1024 * 1024, "Mattermost's answer"),
-    ).toBe("Mattermost's answer was larger than 8 MB, so it was not read.");
+    ).toBe(
+      "Mattermost's answer was larger than 8\u00A0MB, so it was not read.",
+    );
   });
 
   test.each([
-    [1024 * 1024 * 1024, "1 GB"],
-    [1.5 * 1024 * 1024, "1.5 MB"],
-    [10 * 1024 * 1024 + 1, "10 MB"],
-    [64 * 1024, "64 KB"],
-    [1024, "1 KB"],
+    [1024 * 1024 * 1024, "1\u00A0GB"],
+    [1.5 * 1024 * 1024, "1.5\u00A0MB"],
+    [10 * 1024 * 1024 + 1, "10\u00A0MB"],
+    [64 * 1024, "64\u00A0KB"],
+    [1024, "1\u00A0KB"],
     [1000, "1000 bytes"],
     [1, "1 byte"],
     [0, "0 bytes"],
@@ -104,6 +107,20 @@ describe("ResponseTooLarge.getMessage", () => {
     expect(ResponseTooLarge.getMessage(bytes)).toBe(
       `The answer was larger than ${size}, so it was not read.`,
     );
+  });
+
+  /*
+   * The sentence is shown on pages - a workflow run's log, a webhook's
+   * failure, Test LLM Provider - and a line may break at any plain space,
+   * so "10" and "MB" are held together (NumbersKeepTheirUnitsInCodeGuard).
+   */
+  test("never parts a figure from its unit at the end of a line", () => {
+    for (const bytes of [1024, 1.5 * 1024 * 1024, 16 * 1024 * 1024]) {
+      const message: string = ResponseTooLarge.getMessage(bytes);
+
+      expect(message).toMatch(new RegExp(`\\d${NO_BREAK_SPACE}[KMG]B,`));
+      expect(message).not.toMatch(/\d [KMG]B/);
+    }
   });
 });
 

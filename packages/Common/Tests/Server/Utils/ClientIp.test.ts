@@ -428,8 +428,8 @@ describe("normalizeIpCandidate", () => {
 
   it("rejects a string that merely contains an address", () => {
     /*
-     * IP.isIPv6's pattern is unanchored, so a substring would satisfy it on
-     * its own. The character-class guard is what stops that.
+     * IP.isIPv6's pattern is anchored now, and the character-class guard in
+     * front of it refuses such a value too: either alone is enough.
      */
     expect(normalizeIpCandidate("evil 2001:db8::1 evil")).toBeNull();
     expect(normalizeIpCandidate("x2001:db8::1")).toBeNull();
