@@ -5,7 +5,6 @@ import MonitorPauseState, {
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import MonitorService from "../../Services/MonitorService";
 import MonitorNetworkDeviceService from "../../Services/MonitorNetworkDeviceService";
-import MonitorNetworkDevice from "../../../Models/DatabaseModels/MonitorNetworkDevice";
 import NetworkDeviceService from "../../Services/NetworkDeviceService";
 import NetworkDeviceOidTemplateService from "../../Services/NetworkDeviceOidTemplateService";
 import NetworkDeviceOidTemplate from "../../../Models/DatabaseModels/NetworkDeviceOidTemplate";
@@ -21,7 +20,6 @@ import SnmpOidRateUtil, {
   SnmpOidCounterBaseline,
 } from "./SnmpOidRateUtil";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
-import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import PingMonitorResponse from "../../../Types/Monitor/PingMonitor/PingMonitorResponse";
 import SnmpMonitorResponse from "../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
@@ -926,8 +924,10 @@ export default class NetworkDeviceWalkUtil {
    * another device.
    *
    * Read through MonitorNetworkDevice, which Postgres keeps from every
-   * monitor's steps (see the model): one index lookup by device, then the
-   * monitors found, by id. The work is the device's, not the project's.
+   * monitor's steps (see the model): one index lookup by device
+   * (MonitorNetworkDeviceService.findMonitorIdsWatching, which the device
+   * page's Monitors card asks too), then the monitors found, by id. The
+   * work is the device's, not the project's.
    *
    * It used to read the steps of every hand-made Network Device monitor in
    * the project (a monitor no template, rule or policy provisioned, which
@@ -963,7 +963,7 @@ export default class NetworkDeviceWalkUtil {
     const monitorIds: Set<string> = new Set();
 
     for (const chunk of NetworkDeviceWalkUtil.toChunks(deviceIds)) {
-      for (const monitorId of await NetworkDeviceWalkUtil.findMonitorIdsWatching(
+      for (const monitorId of await MonitorNetworkDeviceService.findMonitorIdsWatching(
         {
           projectId: data.projectId,
           deviceIds: chunk,
@@ -1010,56 +1010,6 @@ export default class NetworkDeviceWalkUtil {
     }
 
     return monitors;
-  }
-
-  /*
-   * The ids of the monitors whose steps name one of the devices (at most
-   * FAN_OUT_ID_CHUNK_SIZE of them), in pages by row id - a device has a
-   * handful of monitors, so one page nearly always holds them all.
-   */
-  private static async findMonitorIdsWatching(data: {
-    projectId: ObjectID;
-    deviceIds: Array<string>;
-  }): Promise<Array<string>> {
-    const monitorIds: Array<string> = [];
-    let cursor: ObjectID | undefined = undefined;
-
-    for (;;) {
-      const page: Array<MonitorNetworkDevice> =
-        await MonitorNetworkDeviceService.findBy({
-          query: {
-            projectId: data.projectId,
-            networkDeviceId: QueryHelper.any(data.deviceIds),
-            ...(cursor ? { _id: QueryHelper.greaterThan(cursor) } : {}),
-          },
-          select: {
-            _id: true,
-            monitorId: true,
-          },
-          sort: {
-            _id: SortOrder.Ascending,
-          },
-          limit: LIMIT_MAX,
-          skip: 0,
-          props: {
-            isRoot: true,
-          },
-        });
-
-      for (const row of page) {
-        if (row.monitorId) {
-          monitorIds.push(row.monitorId.toString());
-        }
-      }
-
-      const last: ObjectID | null | undefined = page[page.length - 1]?.id;
-
-      if (page.length < LIMIT_MAX || !last) {
-        return monitorIds;
-      }
-
-      cursor = last;
-    }
   }
 
   private static toChunks(ids: Array<string>): Array<Array<string>> {
