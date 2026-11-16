@@ -499,8 +499,8 @@ describe("the methods a page reaches", () => {
   });
 
   test("an amount is shown as the balance pages show it", () => {
-    expect(formatUsdCents(0)).toBe("0.00 USD");
-    expect(formatUsdCents(1250)).toBe("12.50 USD");
+    expect(formatUsdCents(0)).toBe("0.00\u00A0USD");
+    expect(formatUsdCents(1250)).toBe("12.50\u00A0USD");
   });
 });
 

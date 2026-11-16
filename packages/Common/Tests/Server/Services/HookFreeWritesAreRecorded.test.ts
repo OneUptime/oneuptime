@@ -191,6 +191,13 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     {
       "stampTelemetryMonitorsScheduled Monitor": Why.Bookkeeping,
     },
+  /*
+   * The owner notification jobs' take: a state change marked as told
+   * (isOwnerNotified), by the run that tells its owners (issue #7974).
+   */
+  "packages/App/FeatureSet/Workers/Utils/OwnerNotificationBacklog.ts": {
+    "OwnerNotificationBacklog.take *": Why.Bookkeeping,
+  },
   "packages/Common/Server/API/DataObservabilityAPI.ts": {
     "(module) DataStore": Why.Recorded,
   },

@@ -95,6 +95,8 @@ A resource with owners - a monitor, an incident, an on-call policy and every oth
 
 `select` names the fields to return, and `_id` always comes back. `sort` orders them, `ASC` or `DESC`; without one, the newest come first. A list returns 10 records unless you set `limit`, up to 10,000, and `skip` passes over that many first: keep raising `skip` by `limit` until you have `count` of them. Add `?output-type=csv` to a list request for CSV instead of JSON.
 
+A field's order can also say where the records with no value in it go: `{ "declaredAt": { "direction": "DESC", "nulls": "LAST" } }` puts the latest first and those with none last, and `FIRST` puts them first. A relation of one record sorts by a field of the record it names: `{ "incidentSeverity": { "order": "ASC" } }` lists incidents in the order of their severities. A relation given only a direction, as in `{ "incidentSeverity": "DESC" }`, is refused with a `400` that names a field to sort by instead, and so is a relation of many records, such as an incident's `labels`: each incident has a list of them, and a list has no one value to put incidents in order by. Sorting by a field needs permission to read it too, through a relation as on the resource itself: a sort by a field you may not read is refused with a `422`.
+
 For example, the monitors whose name contains "checkout", created since the start of 2026, newest first:
 
 ```bash

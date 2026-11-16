@@ -66,6 +66,9 @@ import MonitorAutoResolveTemplates, {
   MonitorAutoResolveTemplateIds,
 } from "../../../Utils/Monitor/MonitorAutoResolveTemplates";
 import MonitorSummaryCapture from "./MonitorSummaryCapture";
+import MonitorResourceContextUtil, {
+  MonitorRecordResources,
+} from "./MonitorResourceContext";
 import MonitorRecordEvidence from "./MonitorRecordEvidence";
 import LatestIncomingRequest, {
   LatestIncomingRequestColumns,
@@ -1773,6 +1776,17 @@ export default class MonitorResourceUtil {
           };
 
         /*
+         * What every incident and alert opened below is about beyond its
+         * series - the resources the monitor's config names and those it
+         * was linked to by hand - read the first time a record is really
+         * created, and once for all of them (issue #8118): an evaluation
+         * that opened an incident and an alert read the linked resources
+         * twice, once per creator. One that opens nothing reads neither.
+         */
+        const recordResources: MonitorRecordResources =
+          MonitorResourceContextUtil.forEvaluation({ monitor: monitor });
+
+        /*
          * Incoming-request grouping is event-driven: a webhook describes
          * only the keys in its payload, so absence from this tick is not
          * recovery. Skip the snapshot absence-resolve pass; grouped
@@ -1969,6 +1983,7 @@ export default class MonitorResourceUtil {
               evaluationSummary: evaluationSummary,
               getMonitorSummary: getMonitorSummary,
               getEvaluationDetails: getEvaluationDetails,
+              recordResources: recordResources,
               props: {
                 telemetryQuery: telemetryQuery,
               },
@@ -1995,6 +2010,7 @@ export default class MonitorResourceUtil {
             evaluationSummary: evaluationSummary,
             getMonitorSummary: getMonitorSummary,
             getEvaluationDetails: getEvaluationDetails,
+            recordResources: recordResources,
             props: {
               telemetryQuery: telemetryQuery,
             },

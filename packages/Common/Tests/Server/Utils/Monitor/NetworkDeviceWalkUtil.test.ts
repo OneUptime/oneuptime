@@ -35,6 +35,8 @@ import {
 import TransceiverHealthUtil from "../../../../Utils/NetworkDevice/TransceiverHealthUtil";
 import logger from "../../../../Server/Utils/Logger";
 import OnCallPageTiming from "../../../../Server/Utils/OnCall/OnCallPageTiming";
+import BadDataException from "../../../../Types/Exception/BadDataException";
+import ExceptionMessages from "../../../../Types/Exception/ExceptionMessages";
 
 /*
  * NetworkDeviceWalkUtil is the server half of device-owned polling: the
@@ -764,6 +766,82 @@ describe("NetworkDeviceWalkUtil.processWalkResult — fault isolation", () => {
 
     expect(monitorResourceSpy).toHaveBeenCalledTimes(2);
     expect(synthesized(1).monitorId.toString()).toBe(later!.id!.toString());
+  });
+
+  /*
+   * A monitor paused, archived or disabled after the fan-out read it is
+   * refused by MonitorResource. Nothing anyone can act on: logged at debug,
+   * never at error, and the next monitor is still evaluated (issue #8069).
+   */
+  test.each([
+    ExceptionMessages.MonitorDisabledBecauseOfManualIncident,
+    ExceptionMessages.MonitorDisabledBecauseOfScheduledMaintenanceEvent,
+    ExceptionMessages.MonitorDisabled,
+    ExceptionMessages.MonitorArchived,
+    ExceptionMessages.MonitorNotFound,
+  ])(
+    "a monitor refused mid-check ('%s') is logged at debug, not error, and the next is evaluated",
+    async (refusal: string) => {
+      const first: Monitor = buildMonitor({ steps: [buildStep(DEVICE_ID)] });
+      const second: Monitor = buildMonitor({ steps: [buildStep(DEVICE_ID)] });
+      mockPipeline({ monitors: [first, second] });
+
+      const errorSpy: jest.SpyInstance = jest
+        .spyOn(logger, "error")
+        .mockImplementation(() => {
+          return undefined;
+        });
+      const debugSpy: jest.SpyInstance = jest
+        .spyOn(logger, "debug")
+        .mockImplementation(() => {
+          return undefined;
+        });
+
+      monitorResourceSpy.mockRejectedValueOnce(new BadDataException(refusal));
+
+      await expect(runWalk(buildSnmpResponse())).resolves.toBeUndefined();
+
+      const [earlier, later] = [first, second].sort(
+        (a: Monitor, b: Monitor) => {
+          return a.id!.toString().localeCompare(b.id!.toString());
+        },
+      );
+
+      expect(monitorResourceSpy).toHaveBeenCalledTimes(2);
+      expect(synthesized(1).monitorId.toString()).toBe(later!.id!.toString());
+      expect(errorSpy).not.toHaveBeenCalled();
+
+      const refusalLines: Array<string> = debugSpy.mock.calls
+        .map((call: Array<unknown>): string => {
+          return String(call[0]);
+        })
+        .filter((line: string): boolean => {
+          return line.includes(refusal);
+        });
+
+      expect(refusalLines).toHaveLength(1);
+      expect(refusalLines[0]).toContain(earlier!.id!.toString());
+    },
+  );
+
+  test("any other evaluation failure is still logged at error, and the next is evaluated", async () => {
+    const first: Monitor = buildMonitor({ steps: [buildStep(DEVICE_ID)] });
+    const second: Monitor = buildMonitor({ steps: [buildStep(DEVICE_ID)] });
+    mockPipeline({ monitors: [first, second] });
+
+    const errorSpy: jest.SpyInstance = jest
+      .spyOn(logger, "error")
+      .mockImplementation(() => {
+        return undefined;
+      });
+    const failure: Error = new Error("Acquire mutex timeout");
+
+    monitorResourceSpy.mockRejectedValueOnce(failure);
+
+    await expect(runWalk(buildSnmpResponse())).resolves.toBeUndefined();
+
+    expect(monitorResourceSpy).toHaveBeenCalledTimes(2);
+    expect(errorSpy).toHaveBeenCalledWith(failure, expect.anything());
   });
 });
 

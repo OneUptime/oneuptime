@@ -7,6 +7,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
+import { logMonitorEvaluationError } from "Common/Server/Utils/Monitor/NonActionableIngestError";
 import OneUptimeDate from "Common/Types/Date";
 import MonitorTestService, {
   MONITOR_TEST_NOT_HANDED_TO_PROBE_MESSAGE,
@@ -479,13 +480,22 @@ export async function processSnmpTrapFromQueue(
         jobData.ingestionTimestamp,
       );
 
+      /*
+       * A monitor paused, archived or disabled since it was read above is
+       * refused, as expected: logged at debug, and the trap goes on to the
+       * next monitor (logMonitorEvaluationError, issue #8069).
+       */
       try {
         await MonitorResourceUtil.monitorResource(trapResponse);
       } catch (err) {
-        logger.error(
-          `Error processing SNMP trap for monitor ${monitor.id.toString()}:`,
-        );
-        logger.error(err);
+        logMonitorEvaluationError({
+          error: err,
+          message: `Error processing SNMP trap for monitor ${monitor.id.toString()}`,
+          attributes: {
+            projectId: monitor.projectId.toString(),
+            probeId: probeId.toString(),
+          },
+        });
       }
     }
   }

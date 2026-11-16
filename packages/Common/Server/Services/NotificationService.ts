@@ -580,9 +580,9 @@ export class NotificationService extends BaseService {
           (project.name || ""),
         `We have successfully recharged your SMS and Call balance for project - ${
           project.name || ""
-        } by ${amountInUSD} USD. Your current balance is ${
+        } by ${amountInUSD}\u00A0USD. Your current balance is ${
           updatedAmount / 100
-        } USD.${
+        }\u00A0USD.${
           project.billingMarketplace
             ? ` It is billed through ${CloudMarketplaceUtil.getDisplayName(project.billingMarketplace)}.`
             : ""

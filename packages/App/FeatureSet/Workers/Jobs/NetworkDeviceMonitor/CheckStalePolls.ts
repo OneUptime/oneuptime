@@ -11,6 +11,7 @@ import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import JobDeadline from "Common/Server/Utils/JobDeadline";
 import logger from "Common/Server/Utils/Logger";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
+import { logMonitorEvaluationError } from "Common/Server/Utils/Monitor/NonActionableIngestError";
 import NetworkDeviceStalePoll, {
   MIN_STALE_AFTER_IN_MINUTES,
 } from "Common/Server/Utils/Monitor/NetworkDeviceStalePoll";
@@ -111,6 +112,13 @@ export interface StalePollSweepResult {
   evaluated: number;
   alreadyReported: number;
   failed: number;
+  /*
+   * Monitors MonitorResource refused because they stopped being monitored
+   * between this run's read and its own - paused, archived, disabled or
+   * deleted (issue #8069). Not recorded: a monitor monitored again while its
+   * device is still stale is evaluated for the spell then.
+   */
+  refused: number;
   // The run's deadline passed (RunCron) before it read every page.
   stoppedAtDeadline: boolean;
 }
@@ -133,6 +141,7 @@ export const checkStalePolls: (data: {
     evaluated: 0,
     alreadyReported: 0,
     failed: 0,
+    refused: 0,
     stoppedAtDeadline: false,
   };
 
@@ -422,9 +431,13 @@ async function evaluateOncePerSpell(data: {
         while (next < due.length) {
           const evaluation: StaleEvaluation = due[next++]!;
 
-          if (await evaluate(evaluation)) {
+          const outcome: EvaluationOutcome = await evaluate(evaluation);
+
+          if (outcome === EvaluationOutcome.Evaluated) {
             done.push(evaluation.report);
             data.result.evaluated++;
+          } else if (outcome === EvaluationOutcome.Refused) {
+            data.result.refused++;
           } else {
             data.result.failed++;
           }
@@ -444,10 +457,24 @@ async function evaluateOncePerSpell(data: {
   }
 }
 
-// Evaluates one monitor's steps for one device. True when every step went through.
-async function evaluate(evaluation: StaleEvaluation): Promise<boolean> {
+enum EvaluationOutcome {
+  // Every step went through.
+  Evaluated = "Evaluated",
+  /*
+   * MonitorResource refused a step: the monitor stopped being monitored
+   * after this run read it (logMonitorEvaluationError).
+   */
+  Refused = "Refused",
+  // A step failed some other way.
+  Failed = "Failed",
+}
+
+// Evaluates one monitor's steps for one device.
+async function evaluate(
+  evaluation: StaleEvaluation,
+): Promise<EvaluationOutcome> {
   const now: Date = OneUptimeDate.getCurrentDate();
-  let allEvaluated: boolean = true;
+  let outcome: EvaluationOutcome = EvaluationOutcome.Evaluated;
 
   for (const step of evaluation.steps) {
     /*
@@ -472,15 +499,28 @@ async function evaluate(evaluation: StaleEvaluation): Promise<boolean> {
     try {
       await MonitorResourceUtil.monitorResource(response);
     } catch (err) {
-      allEvaluated = false;
-      logger.error(
-        `${JOB_NAME}: could not check monitor ${evaluation.monitor.id!.toString()} for device ${evaluation.deviceId}:`,
-      );
-      logger.error(err);
+      /*
+       * A monitor paused, archived or disabled since this run read it is
+       * refused, as expected: logged at debug, and the run goes on
+       * (logMonitorEvaluationError, issue #8069). Anything else at error.
+       */
+      const isRefused: boolean = logMonitorEvaluationError({
+        error: err,
+        message: `${JOB_NAME}: could not check monitor ${evaluation.monitor.id!.toString()} for device ${evaluation.deviceId}`,
+        attributes: {
+          projectId: evaluation.monitor.projectId?.toString(),
+        },
+      });
+
+      if (!isRefused) {
+        outcome = EvaluationOutcome.Failed;
+      } else if (outcome === EvaluationOutcome.Evaluated) {
+        outcome = EvaluationOutcome.Refused;
+      }
     }
   }
 
-  return allEvaluated;
+  return outcome;
 }
 
 /*
@@ -548,7 +588,7 @@ RunCron(
       });
 
       logger.debug(
-        `${JOB_NAME}: read ${result.devicesRead} device(s) whose polls may have stopped, ${result.staleDevices} stale; evaluated ${result.evaluated} monitor(s), ${result.alreadyReported} already evaluated for their spell, ${result.failed} failed${result.stoppedAtDeadline ? ", stopped at the job's deadline" : ""}.`,
+        `${JOB_NAME}: read ${result.devicesRead} device(s) whose polls may have stopped, ${result.staleDevices} stale; evaluated ${result.evaluated} monitor(s), ${result.alreadyReported} already evaluated for their spell, ${result.refused} no longer monitored, ${result.failed} failed${result.stoppedAtDeadline ? ", stopped at the job's deadline" : ""}.`,
       );
     } catch (err) {
       logger.error(`Error in ${JOB_NAME}`);

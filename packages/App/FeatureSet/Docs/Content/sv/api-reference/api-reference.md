@@ -95,6 +95,8 @@ En resurs med ägare - en monitor, en incident, en jourpolicy och varje annan me
 
 `select` namnger fälten som ska returneras, och `_id` kommer alltid med. `sort` ordnar dem, `ASC` eller `DESC`; utan sortering kommer de nyaste först. En lista returnerar 10 poster om du inte anger `limit`, upp till 10 000, och `skip` hoppar först över så många: fortsätt att öka `skip` med `limit` tills du har `count` av dem. Lägg till `?output-type=csv` i en listbegäran för CSV i stället för JSON.
 
+Ett fälts ordning kan också säga var posterna utan värde i det hamnar: `{ "declaredAt": { "direction": "DESC", "nulls": "LAST" } }` sätter de senaste först och de utan värde sist, och `FIRST` sätter dem först. En relation till en post sorterar efter ett fält i posten den namnger: `{ "incidentSeverity": { "order": "ASC" } }` listar incidenter i ordningen för deras allvarlighetsgrader. En relation som bara får en riktning, som i `{ "incidentSeverity": "DESC" }`, avvisas med en `400` som i stället namnger ett fält att sortera efter, och detsamma gäller en relation till många poster, som en incidents `labels`: varje incident har en lista av dem, och en lista har inget enda värde att ordna incidenter efter. Att sortera efter ett fält kräver också behörighet att läsa det, genom en relation som på själva resursen: en sortering efter ett fält du inte får läsa avvisas med en `422`.
+
 Till exempel de monitorer vars namn innehåller ”checkout”, skapade sedan början av 2026, de nyaste först:
 
 ```bash

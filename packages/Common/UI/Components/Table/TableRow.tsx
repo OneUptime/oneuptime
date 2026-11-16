@@ -370,14 +370,15 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
         );
       /*
        * No amount, no share: "0 USD", "0%" - or the column's own words for
-       * that, drawn as every other empty value is.
+       * that, drawn as every other empty value is. An amount is held to its
+       * unit by a no-break space (#8826).
        */
       case FieldType.USDCents:
         return value
-          ? ((value as number) || 0) / 100 + " USD"
+          ? ((value as number) || 0) / 100 + "\u00A0USD"
           : column.noValueMessage
             ? getNoValue()
-            : "0 USD";
+            : "0\u00A0USD";
       case FieldType.Percent:
         return value
           ? value + "%"
