@@ -2,7 +2,10 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
-import { readDashboardLocale } from "Common/Tests/Helpers/DashboardLocales";
+import {
+  isWordedInDashboardLocale,
+  readDashboardLocale,
+} from "Common/Tests/Helpers/DashboardLocales";
 import {
   EVERY_LOCALE_FOLDER,
   INGESTION_KEY_WORDS,
@@ -916,6 +919,60 @@ describe("an ingestion key in each language", () => {
       ),
     ).toEqual([]);
   });
+});
+
+/*
+ * A THING'S OWN WORD THAT READS AS ITS ENGLISH IS KEPT ON PURPOSE (#8836).
+ *
+ * Where a language's one word for a thing is the English word itself -
+ * Norwegian's Offline, Danish's and Norwegian's Monitor, Italian's Log, the
+ * Russian and Traditional Chinese Runner - its key reads exactly as its
+ * English. The toolchain (npm run i18n:check) and the suites that ask
+ * whether a language words a key count such a key as untranslated unless
+ * the language's same-as-English list keeps it
+ * (Dashboard/i18n/Progress/<code>.json). #8797 made Norwegian's Offline read
+ * "Offline" without keeping it, so DefaultStatusNamesInDashboardLocales read
+ * Norwegian's Offline status as never worded.
+ */
+describe("a thing's own word that reads as English", () => {
+  test.each(
+    RULES.map((rule: SentenceRule): [string, string, SentenceRule] => {
+      return [rule.language, rule.thing, rule];
+    }),
+  )(
+    "%s keeps %s's own key, where it reads as English, on its same-as-English list",
+    (_language: string, _thing: string, rule: SentenceRule) => {
+      const english: Record<string, string> = readDashboardLocale("en");
+      const words: Record<string, string> = readDashboardLocale(rule.language);
+      const asEnglish: Array<string> = [
+        rule.thing,
+        rule.thing.replace(/s$/, ""),
+      ].filter((key: string): boolean => {
+        return words[key] !== undefined && words[key] === english[key];
+      });
+
+      expect(
+        asEnglish.filter((key: string): boolean => {
+          return !isWordedInDashboardLocale(key, rule.language);
+        }),
+      ).toEqual([]);
+    },
+  );
+
+  test.each([
+    ["no", "Offline"],
+    ["no", "Monitor"],
+    ["da", "Monitor"],
+    ["it", "Log"],
+    ["ru", "Runner"],
+    ["zh-TW", "Runner"],
+  ])(
+    "%s reads %p as English, and keeps it on purpose",
+    (language: string, key: string) => {
+      expect(readDashboardLocale(language)[key]).toBe(key);
+      expect(isWordedInDashboardLocale(key, language)).toBe(true);
+    },
+  );
 });
 
 describe("the single keys and the titles", () => {
