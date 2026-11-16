@@ -56420,5 +56420,10 @@
   "{{count}} more further upstream_one": "Mais {{count}} mais acima no fluxo",
   "{{count}} more further downstream": "Mais {{count}} mais abaixo no fluxo",
   "{{count}} more further downstream_one": "Mais {{count}} mais abaixo no fluxo",
-  "{{share}} of this graph is code without symbols, so its functions have no names.": "{{share}} deste gráfico é código sem símbolos, por isso as suas funções não têm nome."
+  "{{share}} of this graph is code without symbols, so its functions have no names.": "{{share}} deste gráfico é código sem símbolos, por isso as suas funções não têm nome.",
+  "Busiest: {{function}} · {{share}}": "Mais ativa: {{function}} · {{share}}",
+  "How to read a flame graph": "Como ler um flame graph",
+  "How to read this": "Como ler isto",
+  "Where the time goes, what to fix first, and what the colours mean.": "Para onde vai o tempo, o que corrigir primeiro e o que significam as cores.",
+  "Your code: {{function}} · {{share}}": "Seu código: {{function}} · {{share}}"
 }

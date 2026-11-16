@@ -56420,5 +56420,10 @@
   "{{count}} more further upstream_one": "{{count}} مورد دیگر دورتر در بالادست",
   "{{count}} more further downstream": "{{count}} مورد دیگر دورتر در پایین‌دست",
   "{{count}} more further downstream_one": "{{count}} مورد دیگر دورتر در پایین‌دست",
-  "{{share}} of this graph is code without symbols, so its functions have no names.": "{{share}} از این نمودار کدِ بدون نماد است، پس تابع‌های آن نامی ندارند."
+  "{{share}} of this graph is code without symbols, so its functions have no names.": "{{share}} از این نمودار کدِ بدون نماد است، پس تابع‌های آن نامی ندارند.",
+  "Busiest: {{function}} · {{share}}": "پرکارترین: {{function}} · {{share}}",
+  "How to read a flame graph": "چگونه یک نمودار شعله را بخوانیم",
+  "How to read this": "چگونه این را بخوانیم",
+  "Where the time goes, what to fix first, and what the colours mean.": "زمان کجا صرف می‌شود، اول چه چیزی را درست کنیم و رنگ‌ها چه معنایی دارند.",
+  "Your code: {{function}} · {{share}}": "کد شما: {{function}} · {{share}}"
 }

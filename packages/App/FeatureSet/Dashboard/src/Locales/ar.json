@@ -56420,5 +56420,10 @@
   "{{count}} more further upstream_one": "{{count}} أخرى أبعد في المصدر",
   "{{count}} more further downstream": "{{count}} أخرى أبعد في المصب",
   "{{count}} more further downstream_one": "{{count}} أخرى أبعد في المصب",
-  "{{share}} of this graph is code without symbols, so its functions have no names.": "{{share}} من هذا الرسم تعليمات برمجية بلا رموز، لذا لا أسماء لدوالّها."
+  "{{share}} of this graph is code without symbols, so its functions have no names.": "{{share}} من هذا الرسم تعليمات برمجية بلا رموز، لذا لا أسماء لدوالّها.",
+  "Busiest: {{function}} · {{share}}": "الأكثر انشغالًا: {{function}} · {{share}}",
+  "How to read a flame graph": "كيف تقرأ مخطط اللهب",
+  "How to read this": "كيف تقرأ هذا",
+  "Where the time goes, what to fix first, and what the colours mean.": "أين يذهب الوقت، وما الذي تصلحه أولًا، وماذا تعني الألوان.",
+  "Your code: {{function}} · {{share}}": "التعليمات البرمجية الخاصة بك: {{function}} · {{share}}"
 }

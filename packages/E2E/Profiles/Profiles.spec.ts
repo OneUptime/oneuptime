@@ -721,6 +721,37 @@ test.describe("a flame graph a newcomer can read", () => {
 
     await screenshot(page, testInfo, "flame-no-symbols");
   });
+
+  test("every service first, each with where its own time goes; how to read the graph one click away", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openLoaded(page);
+
+    // The services come before the merged answer.
+    const services: Locator = page.getByTestId("profiles-services");
+    const servicesBox: { y: number } | null = await services.boundingBox();
+    const headlineBox: { y: number } | null = await page
+      .getByTestId("profiles-headline-text")
+      .boundingBox();
+    expect(servicesBox!.y).toBeLessThan(headlineBox!.y);
+
+    await expect(
+      page.getByTestId("profiles-service-row").first(),
+    ).toContainText("Your code: parseOrder");
+
+    await page.getByTestId("profiles-flame-help").click();
+    const help: Locator = page.getByTestId("help-modal");
+    await expect(
+      page.getByText("How to read a flame graph", { exact: true }),
+    ).toBeVisible();
+    await expect(help).toContainText("Find what to fix first");
+    if (isPhone(testInfo)) {
+      await expectNoSidewaysScroll(page);
+    }
+    await screenshot(page, testInfo, "flame-help");
+  });
 });
 
 test.describe("the functions, ranked", () => {

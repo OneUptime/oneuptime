@@ -43,6 +43,7 @@ import {
   ProfilesWindowPair,
   buildProfileMonitorRoute,
   getNearestOwnCaller,
+  splitMinorProfileRows,
   suggestFunctionShareThreshold,
 } from "../../Utils/ProfilesView";
 import useAiOffered from "../../Utils/UseAiOffered";
@@ -142,6 +143,7 @@ const ProfileFunctionPanel: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const isAiOffered: boolean = useAiOffered();
   const [showGraphs, setShowGraphs] = useState<boolean>(false);
+  const [showMinorCallees, setShowMinorCallees] = useState<boolean>(false);
 
   // Comparing, the function is read in the window after.
   const readWindow: { startTime: Date; endTime: Date } = props.comparison
@@ -244,6 +246,21 @@ const ProfileFunctionPanel: FunctionComponent<ComponentProps> = (
       ? getTopCallees(focus.data.callees, { limit: 8 })
       : [];
   }, [focus.data]);
+
+  /*
+   * A function the kernel interrupts lists the kernel's interrupt handlers
+   * among what it "calls", each well under a tenth of a percent: they fold
+   * away behind "Show N more", so what it really calls is read first.
+   */
+  const calleesSplit: { shown: Array<ProfileCallee>; folded: number } =
+    useMemo(() => {
+      return splitMinorProfileRows(callees, (callee: ProfileCallee): number => {
+        return getShareOfWindow(callee.value, focus.data?.windowTotal || 0);
+      });
+    }, [callees, focus.data]);
+  const shownCallees: Array<ProfileCallee> = showMinorCallees
+    ? callees
+    : calleesSplit.shown;
 
   const monitorRoute: Route = buildProfileMonitorRoute({
     serviceId: props.serviceId || undefined,
@@ -593,7 +610,7 @@ const ProfileFunctionPanel: FunctionComponent<ComponentProps> = (
             </p>
           ) : (
             <ol className="mt-2 space-y-2">
-              {callees.map((callee: ProfileCallee) => {
+              {shownCallees.map((callee: ProfileCallee) => {
                 const share: number = getShareOfWindow(
                   callee.value,
                   windowTotal,
@@ -625,6 +642,29 @@ const ProfileFunctionPanel: FunctionComponent<ComponentProps> = (
                 );
               })}
             </ol>
+          )}
+          {calleesSplit.folded > 0 ? (
+            <button
+              type="button"
+              className="mt-2 rounded-sm text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              aria-expanded={showMinorCallees}
+              data-testid="profiles-panel-callees-more"
+              onClick={() => {
+                setShowMinorCallees(!showMinorCallees);
+              }}
+            >
+              {showMinorCallees
+                ? translator.translateText("Show fewer")
+                : translator.translatePlural(
+                    {
+                      one: "Show {{count}} more",
+                      other: "Show {{count}} more",
+                    },
+                    calleesSplit.folded,
+                  )}
+            </button>
+          ) : (
+            <></>
           )}
         </section>
 

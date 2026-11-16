@@ -56420,5 +56420,10 @@
   "{{count}} more further upstream_one": "{{count}} mere længere opstrøms",
   "{{count}} more further downstream": "{{count}} flere længere nedstrøms",
   "{{count}} more further downstream_one": "{{count}} mere længere nedstrøms",
-  "{{share}} of this graph is code without symbols, so its functions have no names.": "{{share}} af denne graf er kode uden symboler, så dens funktioner har ingen navne."
+  "{{share}} of this graph is code without symbols, so its functions have no names.": "{{share}} af denne graf er kode uden symboler, så dens funktioner har ingen navne.",
+  "Busiest: {{function}} · {{share}}": "Travlest: {{function}} · {{share}}",
+  "How to read a flame graph": "Sådan læser du en flamegraf",
+  "How to read this": "Sådan læser du den",
+  "Where the time goes, what to fix first, and what the colours mean.": "Hvor tiden går hen, hvad du skal rette først, og hvad farverne betyder.",
+  "Your code: {{function}} · {{share}}": "Din kode: {{function}} · {{share}}"
 }

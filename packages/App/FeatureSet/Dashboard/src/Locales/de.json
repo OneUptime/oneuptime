@@ -56420,5 +56420,10 @@
   "{{count}} more further upstream_one": "{{count}} weitere weiter stromaufwärts",
   "{{count}} more further downstream": "{{count}} weitere weiter stromabwärts",
   "{{count}} more further downstream_one": "{{count}} weitere weiter stromabwärts",
-  "{{share}} of this graph is code without symbols, so its functions have no names.": "{{share}} dieses Diagramms ist Code ohne Symbole, daher haben seine Funktionen keine Namen."
+  "{{share}} of this graph is code without symbols, so its functions have no names.": "{{share}} dieses Diagramms ist Code ohne Symbole, daher haben seine Funktionen keine Namen.",
+  "Busiest: {{function}} · {{share}}": "Am aktivsten: {{function}} · {{share}}",
+  "How to read a flame graph": "So lesen Sie ein Flame-Diagramm",
+  "How to read this": "So lesen Sie das",
+  "Where the time goes, what to fix first, and what the colours mean.": "Wohin die Zeit geht, was zuerst zu beheben ist und was die Farben bedeuten.",
+  "Your code: {{function}} · {{share}}": "Ihr Code: {{function}} · {{share}}"
 }

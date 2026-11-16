@@ -56420,5 +56420,10 @@
   "{{count}} more further upstream_one": "さらに上流に {{count}} 件",
   "{{count}} more further downstream": "さらに下流に {{count}} 件",
   "{{count}} more further downstream_one": "さらに下流に {{count}} 件",
-  "{{share}} of this graph is code without symbols, so its functions have no names.": "このグラフの {{share}} はシンボルのないコードのため、その関数には名前がありません。"
+  "{{share}} of this graph is code without symbols, so its functions have no names.": "このグラフの {{share}} はシンボルのないコードのため、その関数には名前がありません。",
+  "Busiest: {{function}} · {{share}}": "最も多い: {{function}} · {{share}}",
+  "How to read a flame graph": "フレームグラフの読み方",
+  "How to read this": "読み方",
+  "Where the time goes, what to fix first, and what the colours mean.": "時間の使われ方、最初に直すべき箇所、色の意味。",
+  "Your code: {{function}} · {{share}}": "自分のコード: {{function}} · {{share}}"
 }

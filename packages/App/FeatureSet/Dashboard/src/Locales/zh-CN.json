@@ -56420,5 +56420,10 @@
   "{{count}} more further upstream_one": "更上游还有 {{count}} 个",
   "{{count}} more further downstream": "更下游还有 {{count}} 个",
   "{{count}} more further downstream_one": "更下游还有 {{count}} 个",
-  "{{share}} of this graph is code without symbols, so its functions have no names.": "此图中 {{share}} 是没有符号的代码，因此其函数没有名称。"
+  "{{share}} of this graph is code without symbols, so its functions have no names.": "此图中 {{share}} 是没有符号的代码，因此其函数没有名称。",
+  "Busiest: {{function}} · {{share}}": "最繁忙：{{function}} · {{share}}",
+  "How to read a flame graph": "如何阅读火焰图",
+  "How to read this": "如何阅读",
+  "Where the time goes, what to fix first, and what the colours mean.": "时间花在哪里、先修复什么，以及颜色的含义。",
+  "Your code: {{function}} · {{share}}": "您的代码：{{function}} · {{share}}"
 }

@@ -56420,5 +56420,10 @@
   "{{count}} more further upstream_one": "Ещё {{count}} дальше вверх по потоку",
   "{{count}} more further downstream": "Ещё {{count}} дальше вниз по потоку",
   "{{count}} more further downstream_one": "Ещё {{count}} дальше вниз по потоку",
-  "{{share}} of this graph is code without symbols, so its functions have no names.": "{{share}} этого графа — код без символов, поэтому у его функций нет имён."
+  "{{share}} of this graph is code without symbols, so its functions have no names.": "{{share}} этого графа — код без символов, поэтому у его функций нет имён.",
+  "Busiest: {{function}} · {{share}}": "Самая загруженная: {{function}} · {{share}}",
+  "How to read a flame graph": "Как читать флейм-граф",
+  "How to read this": "Как это читать",
+  "Where the time goes, what to fix first, and what the colours mean.": "Куда уходит время, что исправить в первую очередь и что означают цвета.",
+  "Your code: {{function}} · {{share}}": "Ваш код: {{function}} · {{share}}"
 }

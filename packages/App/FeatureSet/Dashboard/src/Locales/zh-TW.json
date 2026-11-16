@@ -56420,5 +56420,10 @@
   "{{count}} more further upstream_one": "更上游還有 {{count}} 個",
   "{{count}} more further downstream": "更下游還有 {{count}} 個",
   "{{count}} more further downstream_one": "更下游還有 {{count}} 個",
-  "{{share}} of this graph is code without symbols, so its functions have no names.": "此圖中 {{share}} 是沒有符號的程式碼，因此其函式沒有名稱。"
+  "{{share}} of this graph is code without symbols, so its functions have no names.": "此圖中 {{share}} 是沒有符號的程式碼，因此其函式沒有名稱。",
+  "Busiest: {{function}} · {{share}}": "最繁忙：{{function}} · {{share}}",
+  "How to read a flame graph": "如何閱讀火焰圖",
+  "How to read this": "如何閱讀",
+  "Where the time goes, what to fix first, and what the colours mean.": "時間花在哪裡、先修正什麼，以及顏色的含義。",
+  "Your code: {{function}} · {{share}}": "您的程式碼：{{function}} · {{share}}"
 }
