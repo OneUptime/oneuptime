@@ -42,7 +42,8 @@ http://2001:db8::1/..., which no browser opens. Nor are the brackets put in
 here: 2001:db8::1:8080 is an address of its own, and also 2001:db8::1 on port
 8080. Two colons and no opening bracket is the shape: a domain name or an
 IPv4 address has one colon at most, before its port. Scripts/Install/Preflight.js
-stops `npm start` on the same host (tests/host_test.yaml).
+stops `npm start` on the same host. tests/host_test.yaml holds it template by
+template, and Tests/Ops/HelmHost.test.js renders the whole chart with helm.
 */}}
 {{- define "oneuptime.validateHost" -}}
 {{- $host := trim (toString (default "" .Values.host)) -}}
