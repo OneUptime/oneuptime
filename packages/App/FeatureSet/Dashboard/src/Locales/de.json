@@ -5541,7 +5541,6 @@
   "Which logs this filter applies to. Build rules with fields like severity, body, service, or custom attributes.": "Auf welche Protokolle dieser Filter angewendet wird. Erstellen Sie Regeln mit Feldern wie Schweregrad, Inhalt, Dienst oder benutzerdefinierten Attributen.",
   "Which OID configured on this monitor should this criteria evaluate?": "Welche auf diesem Monitor konfigurierte OID soll dieses Kriterium auswerten?",
   "Which parts of the log to scrub: the log body (message), attribute values, or both.": "Welche Teile des Protokolls bereinigt werden sollen: der Protokollinhalt (Nachricht), Attributwerte oder beide.",
-  "Which parts of the span to scrub: span name, attribute values, event attribute values, or all.": "Welche Teile des Span bereinigt werden sollen: Span-Name, Attributwerte, Ereignis-Attributwerte oder alle.",
   "Which probe do you want to use?": "Welche Sonde möchten Sie verwenden?",
   "Which resources this permission applies to: all (recommended), the ones this team owns, or the ones with certain labels.": "Für welche Ressourcen diese Berechtigung gilt: alle (empfohlen), die dieses Team besitzt, oder die mit bestimmten Beschriftungen.",
   "Which resources this role applies to: all (recommended), the ones this team owns, or the ones with certain labels.": "Für welche Ressourcen diese Rolle gilt: alle (empfohlen), die dieses Team besitzt, oder die mit bestimmten Beschriftungen.",
@@ -23918,7 +23917,6 @@
   "How {{name}} is notified when an incident episode of this severity is assigned to them while they are on call.": "Wie {{name}} benachrichtigt wird, wenn der Person während ihrer Bereitschaft eine Vorfallsepisode mit diesem Schweregrad zugewiesen wird.",
   "How {{name}} is notified when an incident of this severity is assigned to them while they are on call.": "Wie {{name}} benachrichtigt wird, wenn der Person während ihrer Bereitschaft ein Vorfall mit diesem Schweregrad zugewiesen wird.",
   "How {{name}} is notified, for each severity, when an incident, an alert or one of their episodes is assigned to them.": "Wie {{name}} für jeden Schweregrad benachrichtigt wird, wenn der Person ein Vorfall, eine Warnung oder eine ihrer Episoden zugewiesen wird.",
-  "Matches are replaced with [REDACTED] in span names, attributes and event attributes.": "Treffer werden in Span-Namen, Attributen und Ereignisattributen durch [REDACTED] ersetzt.",
   "Matches are replaced with [REDACTED] in the log body and attributes.": "Treffer werden im Protokollinhalt und in den Attributen durch [REDACTED] ersetzt.",
   "Named after the pattern type until you type a name of your own.": "Nach dem Mustertyp benannt, bis Sie einen eigenen Namen eingeben.",
   "On-call rules": "Bereitschaftsregeln",
@@ -56006,5 +56004,8 @@
   "Merged Into On-Call Log ID": "ID des Bereitschaftsprotokolls, in das dies zusammengeführt wurde",
   "Their page from another on-call policy is over, so this policy pages them now.": "Die Alarmierung durch eine andere Bereitschaftsrichtlinie ist beendet, daher alarmiert diese Richtlinie jetzt selbst.",
   "Their page from {{name}} is over, so this policy pages them now.": "Die Alarmierung durch {{name}} ist beendet, daher alarmiert diese Richtlinie jetzt selbst.",
-  "Runs AI Code Fixes": "Führt KI-Codekorrekturen aus"
+  "Matches are replaced with [REDACTED] in span names, status messages, attributes, events and links.": "Treffer werden in Span-Namen, Statusmeldungen, Attributen, Ereignissen und Links durch [REDACTED] ersetzt.",
+  "Runs AI Code Fixes": "Führt KI-Codekorrekturen aus",
+  "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "Die Werte von Schlüsseln, die sensibel aussehen, werden in Attributen und in einem JSON-Protokolltext durch [REDACTED] ersetzt.",
+  "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "Welche Teile des Span bereinigt werden sollen: Span-Name, Attribut- und Link-Attributwerte, Ereignis-Attributwerte oder alle, auch Statusmeldung und Ereignisnamen."
 }

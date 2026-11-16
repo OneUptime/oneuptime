@@ -5541,7 +5541,6 @@
   "Which logs this filter applies to. Build rules with fields like severity, body, service, or custom attributes.": "このフィルターが適用されるログ。重大度、本文、サービス、カスタム属性などのフィールドでルールを作成します。",
   "Which OID configured on this monitor should this criteria evaluate?": "この基準は、このモニターに設定されたどの OID を評価すべきですか？",
   "Which parts of the log to scrub: the log body (message), attribute values, or both.": "ログのどの部分をスクラブするか：ログ本文（メッセージ）、属性値、またはその両方。",
-  "Which parts of the span to scrub: span name, attribute values, event attribute values, or all.": "スパンのどの部分をスクラブするか：スパン名、属性値、イベント属性値、またはすべて。",
   "Which probe do you want to use?": "どのプローブを使用しますか？",
   "Which resources this permission applies to: all (recommended), the ones this team owns, or the ones with certain labels.": "この権限が適用されるリソース: すべて (推奨)、このチームが所有するもの、または特定のラベルを持つもの。",
   "Which resources this role applies to: all (recommended), the ones this team owns, or the ones with certain labels.": "このロールが適用されるリソース: すべて (推奨)、このチームが所有するもの、または特定のラベルを持つもの。",
@@ -23918,7 +23917,6 @@
   "How {{name}} is notified when an incident episode of this severity is assigned to them while they are on call.": "オンコール中に、この重大度のインシデントエピソードが {{name}} に割り当てられたときの通知方法。",
   "How {{name}} is notified when an incident of this severity is assigned to them while they are on call.": "オンコール中に、この重大度のインシデントが {{name}} に割り当てられたときの通知方法。",
   "How {{name}} is notified, for each severity, when an incident, an alert or one of their episodes is assigned to them.": "インシデント、アラート、またはそのエピソードが {{name}} に割り当てられたときの、重大度ごとの通知方法。",
-  "Matches are replaced with [REDACTED] in span names, attributes and event attributes.": "一致した部分は、スパン名、属性、イベント属性で [REDACTED] に置き換えられます。",
   "Matches are replaced with [REDACTED] in the log body and attributes.": "一致した部分は、ログ本文と属性で [REDACTED] に置き換えられます。",
   "Named after the pattern type until you type a name of your own.": "独自の名前を入力するまで、パターンタイプに合わせて名前が付きます。",
   "On-call rules": "オンコールルール",
@@ -56006,5 +56004,8 @@
   "Merged Into On-Call Log ID": "統合先のオンコールログの ID",
   "Their page from another on-call policy is over, so this policy pages them now.": "別のオンコールポリシーからの呼び出しが終了したため、このポリシーが代わりに呼び出します。",
   "Their page from {{name}} is over, so this policy pages them now.": "{{name}} からの呼び出しが終了したため、このポリシーが代わりに呼び出します。",
-  "Runs AI Code Fixes": "AI のコード修正を実行"
+  "Matches are replaced with [REDACTED] in span names, status messages, attributes, events and links.": "一致した部分は、スパン名、ステータスメッセージ、属性、イベント、リンクで [REDACTED] に置き換えられます。",
+  "Runs AI Code Fixes": "AI のコード修正を実行",
+  "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "機密情報に見えるキーの値は、属性と JSON のログ本文で [REDACTED] に置き換えられます。",
+  "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "スパンのどの部分をスクラブするか：スパン名、属性値とリンク属性値、イベント属性値、またはすべて（ステータスメッセージとイベント名も含む）。"
 }

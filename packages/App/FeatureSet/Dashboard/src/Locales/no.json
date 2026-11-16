@@ -5541,7 +5541,6 @@
   "Which logs this filter applies to. Build rules with fields like severity, body, service, or custom attributes.": "Hvilke logger dette filteret gjelder for. Bygg regler med felter som alvorlighetsgrad, brødtekst, tjeneste eller egendefinerte attributter.",
   "Which OID configured on this monitor should this criteria evaluate?": "Hvilken OID konfigurert på denne monitoren skal dette kriteriet evaluere?",
   "Which parts of the log to scrub: the log body (message), attribute values, or both.": "Hvilke deler av loggen som skal renses: loggbrødteksten (meldingen), attributtverdier eller begge.",
-  "Which parts of the span to scrub: span name, attribute values, event attribute values, or all.": "Hvilke deler av sporsegmentet som skal renses: sporsegmentnavn, attributtverdier, hendelsesattributtverdier eller alt.",
   "Which probe do you want to use?": "Hvilken sonde vil du bruke?",
   "Which resources this permission applies to: all (recommended), the ones this team owns, or the ones with certain labels.": "Hvilke ressurser denne tillatelsen gjelder for: alle (anbefalt), dem teamet eier, eller dem med bestemte etiketter.",
   "Which resources this role applies to: all (recommended), the ones this team owns, or the ones with certain labels.": "Hvilke ressurser denne rollen gjelder for: alle (anbefalt), dem teamet eier, eller dem med bestemte etiketter.",
@@ -23918,7 +23917,6 @@
   "How {{name}} is notified when an incident episode of this severity is assigned to them while they are on call.": "Hvordan {{name}} blir varslet når vedkommende får tildelt en hendelsesepisode med denne alvorlighetsgraden under vakt.",
   "How {{name}} is notified when an incident of this severity is assigned to them while they are on call.": "Hvordan {{name}} blir varslet når vedkommende får tildelt en hendelse med denne alvorlighetsgraden under vakt.",
   "How {{name}} is notified, for each severity, when an incident, an alert or one of their episodes is assigned to them.": "Hvordan {{name}} blir varslet for hver alvorlighetsgrad når vedkommende får tildelt en hendelse, et varsel eller en av episodene deres.",
-  "Matches are replaced with [REDACTED] in span names, attributes and event attributes.": "Treff erstattes med [REDACTED] i span-navn, attributter og hendelsesattributter.",
   "Matches are replaced with [REDACTED] in the log body and attributes.": "Treff erstattes med [REDACTED] i loggteksten og attributtene.",
   "Named after the pattern type until you type a name of your own.": "Navngitt etter mønstertypen til du skriver inn ditt eget navn.",
   "On-call rules": "Vaktregler",
@@ -56006,5 +56004,8 @@
   "Merged Into On-Call Log ID": "ID for vaktloggen dette ble slått sammen med",
   "Their page from another on-call policy is over, so this policy pages them now.": "Oppkallingen fra en annen vaktpolicy er over, så denne policyen kaller opp selv nå.",
   "Their page from {{name}} is over, so this policy pages them now.": "Oppkallingen fra {{name}} er over, så denne policyen kaller opp selv nå.",
-  "Runs AI Code Fixes": "Kjører AI-koderettinger"
+  "Matches are replaced with [REDACTED] in span names, status messages, attributes, events and links.": "Treff erstattes med [REDACTED] i span-navn, statusmeldinger, attributter, hendelser og lenker.",
+  "Runs AI Code Fixes": "Kjører AI-koderettinger",
+  "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "Verdiene til nøkler som ser sensitive ut, erstattes med [REDACTED] i attributter og i en loggtekst i JSON.",
+  "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "Hvilke deler av sporsegmentet som skal renses: sporsegmentnavn, verdier for attributter og lenkeattributter, hendelsesattributtverdier eller alt, også statusmeldingen og hendelsesnavnene."
 }

@@ -5541,7 +5541,6 @@
   "Which logs this filter applies to. Build rules with fields like severity, body, service, or custom attributes.": "此过滤器适用于哪些日志。使用严重程度、正文、服务或自定义属性等字段构建规则。",
   "Which OID configured on this monitor should this criteria evaluate?": "此条件应评估在此监视器上配置的哪个 OID？",
   "Which parts of the log to scrub: the log body (message), attribute values, or both.": "要清理日志的哪些部分：日志正文（消息）、属性值或两者。",
-  "Which parts of the span to scrub: span name, attribute values, event attribute values, or all.": "要清理跨度的哪些部分：跨度名称、属性值、事件属性值或全部。",
   "Which probe do you want to use?": "您要使用哪个探测器？",
   "Which resources this permission applies to: all (recommended), the ones this team owns, or the ones with certain labels.": "此权限适用的资源：全部（推荐）、此团队拥有的资源，或带有特定标签的资源。",
   "Which resources this role applies to: all (recommended), the ones this team owns, or the ones with certain labels.": "此角色适用的资源：全部（推荐）、此团队拥有的资源，或带有特定标签的资源。",
@@ -23918,7 +23917,6 @@
   "How {{name}} is notified when an incident episode of this severity is assigned to them while they are on call.": "{{name}} 在值班期间被分配到此严重程度的事件片段时，将如何收到通知。",
   "How {{name}} is notified when an incident of this severity is assigned to them while they are on call.": "{{name}} 在值班期间被分配到此严重程度的事件时，将如何收到通知。",
   "How {{name}} is notified, for each severity, when an incident, an alert or one of their episodes is assigned to them.": "{{name}} 被分配到事件、警报或其片段时，按严重程度分别如何收到通知。",
-  "Matches are replaced with [REDACTED] in span names, attributes and event attributes.": "匹配项会在跨度名称、属性和事件属性中替换为 [REDACTED]。",
   "Matches are replaced with [REDACTED] in the log body and attributes.": "匹配项会在日志正文和属性中替换为 [REDACTED]。",
   "Named after the pattern type until you type a name of your own.": "在您输入自己的名称之前，按模式类型命名。",
   "On-call rules": "值班规则",
@@ -56006,5 +56004,8 @@
   "Merged Into On-Call Log ID": "合并到的值班日志 ID",
   "Their page from another on-call policy is over, so this policy pages them now.": "另一个值班策略的呼叫已结束，因此现在由此策略自行呼叫。",
   "Their page from {{name}} is over, so this policy pages them now.": "{{name}} 的呼叫已结束，因此现在由此策略自行呼叫。",
-  "Runs AI Code Fixes": "执行 AI 代码修复"
+  "Matches are replaced with [REDACTED] in span names, status messages, attributes, events and links.": "匹配项会在跨度名称、状态消息、属性、事件和链路中替换为 [REDACTED]。",
+  "Runs AI Code Fixes": "执行 AI 代码修复",
+  "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "看起来敏感的键，其值会在属性和 JSON 日志正文中替换为 [REDACTED]。",
+  "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "要清理跨度的哪些部分：跨度名称、属性值和链路属性值、事件属性值，或全部（包括状态消息和事件名称）。"
 }

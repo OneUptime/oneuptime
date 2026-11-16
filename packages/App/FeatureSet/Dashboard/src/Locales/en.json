@@ -5541,7 +5541,6 @@
   "Which logs this filter applies to. Build rules with fields like severity, body, service, or custom attributes.": "Which logs this filter applies to. Build rules with fields like severity, body, service, or custom attributes.",
   "Which OID configured on this monitor should this criteria evaluate?": "Which OID configured on this monitor should this criteria evaluate?",
   "Which parts of the log to scrub: the log body (message), attribute values, or both.": "Which parts of the log to scrub: the log body (message), attribute values, or both.",
-  "Which parts of the span to scrub: span name, attribute values, event attribute values, or all.": "Which parts of the span to scrub: span name, attribute values, event attribute values, or all.",
   "Which probe do you want to use?": "Which probe do you want to use?",
   "Which resources this permission applies to: all (recommended), the ones this team owns, or the ones with certain labels.": "Which resources this permission applies to: all (recommended), the ones this team owns, or the ones with certain labels.",
   "Which resources this role applies to: all (recommended), the ones this team owns, or the ones with certain labels.": "Which resources this role applies to: all (recommended), the ones this team owns, or the ones with certain labels.",
@@ -23918,7 +23917,6 @@
   "How {{name}} is notified when an incident episode of this severity is assigned to them while they are on call.": "How {{name}} is notified when an incident episode of this severity is assigned to them while they are on call.",
   "How {{name}} is notified when an incident of this severity is assigned to them while they are on call.": "How {{name}} is notified when an incident of this severity is assigned to them while they are on call.",
   "How {{name}} is notified, for each severity, when an incident, an alert or one of their episodes is assigned to them.": "How {{name}} is notified, for each severity, when an incident, an alert or one of their episodes is assigned to them.",
-  "Matches are replaced with [REDACTED] in span names, attributes and event attributes.": "Matches are replaced with [REDACTED] in span names, attributes and event attributes.",
   "Matches are replaced with [REDACTED] in the log body and attributes.": "Matches are replaced with [REDACTED] in the log body and attributes.",
   "Named after the pattern type until you type a name of your own.": "Named after the pattern type until you type a name of your own.",
   "On-call rules": "On-call rules",
@@ -56006,5 +56004,8 @@
   "Merged Into On-Call Log ID": "Merged Into On-Call Log ID",
   "Their page from another on-call policy is over, so this policy pages them now.": "Their page from another on-call policy is over, so this policy pages them now.",
   "Their page from {{name}} is over, so this policy pages them now.": "Their page from {{name}} is over, so this policy pages them now.",
-  "Runs AI Code Fixes": "Runs AI Code Fixes"
+  "Matches are replaced with [REDACTED] in span names, status messages, attributes, events and links.": "Matches are replaced with [REDACTED] in span names, status messages, attributes, events and links.",
+  "Runs AI Code Fixes": "Runs AI Code Fixes",
+  "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].",
+  "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too."
 }

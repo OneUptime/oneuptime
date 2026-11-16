@@ -1,5 +1,6 @@
 import LogPipelineService, { LoadedPipeline } from "./LogPipelineService";
 import PatternWorkScope from "Common/Server/Utils/PatternWorkScope";
+import { EventLoopBudget } from "Common/Server/Utils/EventLoop";
 import { PatternWorkAllowance } from "Common/Utils/LinearRegExp/PatternWork";
 import LogDropFilterService, {
   LoadedLogDropFilter,
@@ -203,7 +204,19 @@ export default class ProbeSyslogIngestService {
      */
     const matcherProbe: FlowProbe = probe || { id: probeId, projectId: null };
 
+    /*
+     * A probe's batch can hold thousands of messages, each read by its
+     * project's drop filters, scrub rules and pipelines, and the lookups
+     * between them are mostly answered from memory: the event loop is
+     * handed back by the time the work took (Common/Server/Utils/EventLoop.ts).
+     */
+    const eventLoopBudget: EventLoopBudget = new EventLoopBudget();
+
     for (const rawMessage of rawMessages) {
+      if (eventLoopBudget.isSpent()) {
+        await eventLoopBudget.handBack();
+      }
+
       try {
         const syslogMessage: SyslogMessage | null =
           ProbeSyslogIngestService.deserializeSyslogMessage(rawMessage);
