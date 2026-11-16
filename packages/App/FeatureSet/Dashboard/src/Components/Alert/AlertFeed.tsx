@@ -3,7 +3,11 @@ import {
   ExecuteOnCallPolicyMenuLock,
   getExecuteOnCallPolicyDescription,
   getExecuteOnCallPolicyMenuLock,
+  getMenuLock,
 } from "../OnCallPolicy/ExecutePolicy/ExecuteOnCallPolicyWords";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import { usePrivateRecordGate } from "Common/UI/Utils/PrivateRecordScope";
+import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
 import { OnCallPageRecordType } from "Common/Types/OnCallDutyPolicy/OnCallPagePassOn";
 import { EventStanding } from "../../Utils/EventDuration";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -141,6 +145,11 @@ export const getAlertFeedEventIcon: (eventType: string) => IconProp = (
   return getFeedEntryKind({ kinds: ALERT_FEED_KINDS, eventType }).icon;
 };
 
+// What its menu's actions start, asked about with the record's scope.
+const PRIVATE_RECORD_PAGE: OnCallDutyPolicyExecutionLog =
+  new OnCallDutyPolicyExecutionLog();
+const PRIVATE_RECORD_RUN: RunbookExecution = new RunbookExecution();
+
 const AlertFeedElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -148,12 +157,35 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
   const [showOnCallPolicyModal, setShowOnCallPolicyModal] =
     React.useState<boolean>(false);
 
-  // Execute On-Call Policy, by where the alert stands.
+  /*
+   * What the reader holds on the alert when it is private
+   * (PrivateRecordScope): a page about it, and a runbook run linked to it,
+   * are started only through a team of theirs that owns it
+   * (#8913), so the menu locks them saying why when none of those may.
+   */
+  const privateRecordGate: ReturnType<typeof usePrivateRecordGate> =
+    usePrivateRecordGate();
+
+  // Execute On-Call Policy, by where the alert stands and who may page.
   const executePolicyLock: ExecuteOnCallPolicyMenuLock =
     getExecuteOnCallPolicyMenuLock({
       recordType: OnCallPageRecordType.Alert,
       standing: props.standing,
+      permissionGate: PermissionGate.check(
+        new OnCallDutyPolicyExecutionLog(),
+        ModelAction.Create,
+        privateRecordGate(PRIVATE_RECORD_PAGE),
+      ),
     });
+
+  // Execute Runbook, by who may start a run linked to it.
+  const executeRunbookLock: ExecuteOnCallPolicyMenuLock = getMenuLock(
+    PermissionGate.check(
+      new RunbookExecution(),
+      ModelAction.Create,
+      privateRecordGate(PRIVATE_RECORD_RUN),
+    ),
+  );
 
   const [showRunbookPickerModal, setShowRunbookPickerModal] =
     React.useState<boolean>(false);
@@ -299,6 +331,8 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
               key="alert-action-run-runbook"
               text="Execute Runbook"
               icon={IconProp.Play}
+              isDisabled={executeRunbookLock.isDisabled}
+              tooltip={executeRunbookLock.tooltip}
               onClick={() => {
                 setShowRunbookPickerModal(true);
               }}

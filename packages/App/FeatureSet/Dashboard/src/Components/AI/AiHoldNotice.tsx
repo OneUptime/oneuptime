@@ -18,8 +18,13 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
   ModelAction,
+  PermissionGateOptions,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
+import {
+  usePrivateRecordGateOptions,
+  withPrivateRecordGateOptions,
+} from "Common/UI/Utils/PrivateRecordScope";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
@@ -107,6 +112,10 @@ interface ReadHold {
   pagingStartsAt: Date | null;
 }
 
+// What Page now starts: a page about the record (OnCallDutyPolicyExecutionLog).
+const PRIVATE_RECORD_PAGE: OnCallDutyPolicyExecutionLog =
+  new OnCallDutyPolicyExecutionLog();
+
 const AiHoldNotice: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -118,11 +127,22 @@ const AiHoldNotice: FunctionComponent<ComponentProps> = (
   const mayReadHold: boolean = shouldAttemptRead(
     PermissionGate.check(new OnCallDutyPolicyExecutionLog(), ModelAction.Read),
   );
+  /*
+   * On a private incident's or alert's page, what the reader holds on it
+   * (PrivateRecordScope): a page about it is started only through a team of
+   * theirs that owns it (#8913), so Page now is locked saying why when
+   * none of those may page.
+   */
+  const privateRecordOptions: PermissionGateOptions | undefined =
+    usePrivateRecordGateOptions(PRIVATE_RECORD_PAGE);
   // Page now's lock: only a definite refusal locks it (see above).
   const pageNowGate: PermissionGateResult = PermissionGate.check(
     new OnCallDutyPolicyExecutionLog(),
     ModelAction.Create,
-    { sentence: PAGE_NOW_LOCKED_SENTENCE },
+    withPrivateRecordGateOptions(
+      { sentence: PAGE_NOW_LOCKED_SENTENCE },
+      privateRecordOptions,
+    ),
   );
   const pageNowLockedReason: string | undefined = shouldAttemptRead(pageNowGate)
     ? undefined

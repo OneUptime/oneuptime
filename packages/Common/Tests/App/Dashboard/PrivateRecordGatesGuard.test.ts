@@ -319,8 +319,88 @@ describe("every gate on a change of a private record or a part of one", () => {
         // The AI card's request to have OneUptime AI acknowledge it.
         "Pages/Incidents/View/Index.tsx",
         "Pages/Alerts/View/Index.tsx",
+        /*
+         * What is done about the record (#8913): Execute On-Call Policy and
+         * Execute Runbook in each feed's menu, and the AI card's Page now.
+         */
+        "Components/Incident/IncidentFeed.tsx",
+        "Components/Alert/AlertFeed.tsx",
+        "Components/IncidentEpisode/IncidentEpisodeFeed.tsx",
+        "Components/AlertEpisode/AlertEpisodeFeed.tsx",
+        "Components/AI/AiHoldNotice.tsx",
       ]),
     );
+  });
+
+  test("the feeds lock both a page and a runbook run about the record with its scope", () => {
+    const actionsOf: (file: string) => Array<string> = (
+      file: string,
+    ): Array<string> => {
+      return GATES_ON_PRIVATE_PARTS.filter((gate: Gate): boolean => {
+        return gate.file === file && gate.asksWithTheScope;
+      }).map((gate: Gate): string => {
+        return `${gate.model} ${gate.action}`;
+      });
+    };
+
+    for (const file of [
+      "Components/Incident/IncidentFeed.tsx",
+      "Components/Alert/AlertFeed.tsx",
+    ]) {
+      expect(actionsOf(file)).toEqual(
+        expect.arrayContaining([
+          "OnCallDutyPolicyExecutionLog Create",
+          "RunbookExecution Create",
+        ]),
+      );
+    }
+
+    for (const file of [
+      "Components/IncidentEpisode/IncidentEpisodeFeed.tsx",
+      "Components/AlertEpisode/AlertEpisodeFeed.tsx",
+      "Components/AI/AiHoldNotice.tsx",
+    ]) {
+      expect(actionsOf(file)).toEqual(
+        expect.arrayContaining(["OnCallDutyPolicyExecutionLog Create"]),
+      );
+    }
+  });
+
+  /*
+   * Gates the sweep cannot read, since they ask a list of permissions
+   * rather than a model (PermissionGate.checkPermissions): a fix's Approve,
+   * Dry run again and Dismiss, and the Runbooks card's Run Runbook, each of
+   * which starts a runbook run about the record (#8913). Each asks with the
+   * scope a runbook run takes on the record's page.
+   */
+  test("a fix's buttons and Run Runbook, asked with a permission list, ask with the scope of a runbook run", () => {
+    const step: string = read(
+      "Components/AutoRemediation/RemediationStep.tsx",
+    ).replace(/\s+/g, " ");
+
+    expect(step).toContain(
+      "const PRIVATE_RECORD_FIX_RUN: RunbookExecution = new RunbookExecution();",
+    );
+    expect(step).toContain(
+      "usePrivateRecordGateOptions(PRIVATE_RECORD_FIX_RUN)",
+    );
+    expect(step).toContain(
+      'getRemediationFixActGate("approveOrDismiss", fixPrivateRecordOptions)',
+    );
+    expect(step).toContain(
+      'getRemediationFixActGate( canApprove ? "approveOrDismiss" : "dismiss", fixPrivateRecordOptions, )',
+    );
+    // Every ask of the fix's gate takes the scope.
+    expect(step.split("getRemediationFixActGate(").length - 1).toBe(2);
+
+    const runbooks: string = read(
+      "Components/Runbook/EntityRunbooks.tsx",
+    ).replace(/\s+/g, " ");
+
+    expect(runbooks).toContain(
+      "usePrivateRecordGateOptions(PRIVATE_RECORD_RUN)",
+    );
+    expect(runbooks).toContain("getRunbookRunGate(privateRecordOptions)");
   });
 
   test("reads both models of a gate named by a conditional", () => {
