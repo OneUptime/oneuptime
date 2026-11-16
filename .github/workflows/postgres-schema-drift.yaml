@@ -471,6 +471,11 @@ jobs:
       # another member, a pending invitee, an API key without Project Admin
       # or a workflow's step - and a page, a runbook run or a fix about a
       # private incident or alert is started only through its owners (#8913).
+      # Through every relation to a private record or a part of one - a Data
+      # Security issue's incident, a public alert's private episode, a runner
+      # job's run - a select reads it, and a filter matches it, only for
+      # those who see it, through the services, a sort, the API's list route
+      # and OneUptime AI's read of a security case too (#9102).
       - name: Test that what is done about a private record follows its owners on migrated Postgres
         if: matrix.shard == 1
         working-directory: packages/Common
@@ -482,6 +487,45 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/PrivateRecordActionsPostgres.test.ts
+          --forceExit
+
+      # Clones the migrated incidents, alerts, episodes, their owners, every
+      # page, step, runbook run, fix, log, member row and link about one, and
+      # the runbook runs' Runner jobs into an isolated schema with the
+      # migrated foreign keys between them, and deletes a private record
+      # every way one goes - one delete by its service and through the API's
+      # route, a bulk delete, the retention purge, its project's deletion -
+      # for each kind: nothing that named it is left (#9103).
+      - name: Test that a deleted private record leaves nothing about it behind on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PRIVATE_RECORD_DELETION_TESTS: "true"
+          PRIVATE_RECORD_DELETION_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PRIVATE_RECORD_DELETION_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PRIVATE_RECORD_DELETION_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/PrivateRecordDeletionPostgres.test.ts
+          --forceExit
+
+      # Runs CascadeRunsAndFixesWithTheirRecord and
+      # DeleteRunsAndFixesOfDeletedRecords on clones of the migrated runbook
+      # runs, fixes, Runner jobs, incidents and alerts with their keys as
+      # they were before (ON DELETE SET NULL), holding every kind of run and
+      # fix: the keys cascade, what outlived its record goes and nothing else
+      # does, a stop part way finishes, and down() puts SET NULL back (#9103).
+      - name: Test that runbook runs and fixes go with their incident or alert on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_CASCADE_RUNS_AND_FIXES_TESTS: "true"
+          CASCADE_RUNS_AND_FIXES_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          CASCADE_RUNS_AND_FIXES_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          CASCADE_RUNS_AND_FIXES_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/CascadeRunsAndFixesWithTheirRecordPostgres.test.ts
           --forceExit
 
       # Several incidents or alerts added to an episode in one request, or an

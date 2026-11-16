@@ -1039,6 +1039,8 @@ import { AddEscalationRuleOrderAndNameToOnCallTimeline1809182500000 } from "./18
 import { KeepOnCallHistoryWhenItsSettingsAreDeleted1809182510000 } from "./1809182510000-KeepOnCallHistoryWhenItsSettingsAreDeleted";
 import { KeepOwnersWhenTheirPictureFileIsDeleted1809182520000 } from "./1809182520000-KeepOwnersWhenTheirPictureFileIsDeleted";
 import { KeepNotificationLogsWhenOnCallSettingsAreDeleted1809182530000 } from "./1809182530000-KeepNotificationLogsWhenOnCallSettingsAreDeleted";
+import { CascadeRunsAndFixesWithTheirRecord1809182600000 } from "./1809182600000-CascadeRunsAndFixesWithTheirRecord";
+import { DeleteRunsAndFixesOfDeletedRecords1809182610000 } from "./1809182610000-DeleteRunsAndFixesOfDeletedRecords";
 
 export default [
   InitialMigration,
@@ -2082,4 +2084,6 @@ export default [
   KeepOnCallHistoryWhenItsSettingsAreDeleted1809182510000,
   KeepOwnersWhenTheirPictureFileIsDeleted1809182520000,
   KeepNotificationLogsWhenOnCallSettingsAreDeleted1809182530000,
+  CascadeRunsAndFixesWithTheirRecord1809182600000,
+  DeleteRunsAndFixesOfDeletedRecords1809182610000,
 ];
