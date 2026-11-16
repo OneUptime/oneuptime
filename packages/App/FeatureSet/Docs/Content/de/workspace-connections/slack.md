@@ -132,7 +132,7 @@ Bei jeder Übergabe erfahren die Kanäle einer Bereitschaftsrichtlinie in einer 
 > 📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then @bob.
 
 - Payments verlinkt die Richtlinie in OneUptime. Alarmiert die Richtlinie mehr als einen Zeitplan, nennt die Zeile auch den Zeitplan: Payments (Primary).
-- Eine Person wird mit ihrem Slack-Namen genannt, sobald sie ihr Slack-Konto mit OneUptime verbunden hat, und bis dahin mit ihrem Namen in OneUptime. Zeiten erscheinen in der Zeitzone jedes Lesers.
+- Eine Person wird mit ihrem Slack-Namen genannt, sobald sie ihr Slack-Konto mit OneUptime verbunden hat, und bis dahin mit ihrem Namen in OneUptime, in jeder Bereitschaftszeile: bei Übergaben, Vertretungen und Personen, die der Richtlinie hinzugefügt oder aus ihr entfernt werden. Zeiten erscheinen in der Zeitzone jedes Lesers.
 - Alarmieren mehrere Eskalationsregeln der Richtlinie denselben Zeitplan, wird jede Übergabe einmal gepostet, nicht einmal pro Regel.
 
 Eine Regel postet, was sie in ihrem Schritt **Aktualisierungen** gewählt hat, und eine neue Regel beginnt mit **Nur wichtige Aktualisierungen**: wer jetzt Bereitschaft hat und wann niemand sie hat.
@@ -147,6 +147,8 @@ Eine Regel postet, was sie in ihrem Schritt **Aktualisierungen** gewählt hat, u
 | **Eigentümer** | Hinzugefügte und entfernte Eigentümer. |
 
 Ein Kanal erhält eine Nachricht pro Übergabe, auch wenn zwei Regeln in ihm posten. Eine Bereitschaftsregel, die gespeichert wurde, bevor Regeln ihre Aktualisierungen wählten, postet weiterhin alle.
+
+Ein Name benachrichtigt niemanden, sodass ein Kanal, der jede Übergabe erfährt, nicht bei jeder angepingt wird. Um die Person zu benachrichtigen, die Bereitschaft übernimmt, schalten Sie **Die Person erwähnen, die Bereitschaft übernimmt** im Schritt **Aktualisierungen** der Regel ein: Die Zeile der Übergabe erwähnt sie dann, sobald sie ihr Slack-Konto mit OneUptime verbunden hat. Wer als Nächstes dran ist, wird nie erwähnt, und auch niemand, der sein Konto nicht verbunden hat. Der Schalter erscheint, solange die Regel **Wer jetzt Bereitschaft hat** postet, und ist bei einer neuen Regel aus.
 
 ## Wer im Kanal eines Datensatzes ist
 
@@ -261,7 +263,7 @@ OneUptime antwortet nur auf das, was an OneUptime gerichtet ist.
 - **Im eigenen Kanal einer Warnung.** In dem Kanal, den OneUptime für eine Warnung erstellt hat, sagt das Formular, solange die Warnung offen ist, dass der Vorfall aus dieser Warnung gemeldet wird, und beginnt mit dem Titel der Warnung und den Ressourcen, mit denen sie verknüpft ist und die Sie sehen dürfen. Der Vorfall wird mit der Warnung verknüpft, wie einer, der auf der Seite der Warnung gemeldet wird, und der Vorfall einer privaten Warnung ist ebenfalls privat. Wenn Sie keine Warnungen mit Vorfällen verknüpfen dürfen, wird der Vorfall ohne die Verknüpfung gemeldet, und Sie erfahren, warum.
 - **Was ein Formular nennen darf.** Der Vorfall oder das Ereignis wird mit Ihren eigenen Berechtigungen erstellt und Ihnen zugeschrieben. Ein Monitor, eine Bereitschaftsrichtlinie, eine Beschriftung, ein Schweregrad oder Status, den Sie nicht lesen dürfen, oder einer eines anderen Projekts, wird abgelehnt wie einer, den das Projekt nicht hat, auch aus einem Formular, das vor der Änderung Ihres Zugriffs geöffnet wurde, und es wird nichts erstellt. OneUptime sagt Ihnen im Kanal, in einer Nachricht, die nur Sie sehen, warum.
 
-**Execute On-Call Policy** an einem Vorfall, einer Warnung oder Episode funktioniert genauso: Es braucht die Berechtigung, eine Bereitschaftsrichtlinie auszuführen (**Projektinhaber**, **Projektadministrator**, **Projektmitglied**, **Bereitschafts-Administrator** und **Bereitschafts-Mitglied**, oder **Execute On-Call Policies** in einer benutzerdefinierten Rolle) und diesen Vorfall, diese Warnung oder Episode zu lesen, und bietet die aktiven Bereitschaftsrichtlinien an, die Sie lesen dürfen.
+**Execute On-Call Policy** an einem Vorfall, einer Warnung oder Episode funktioniert genauso: Es braucht die Berechtigung, eine Bereitschaftsrichtlinie auszuführen (**Projektinhaber**, **Projektadministrator**, **Projektmitglied**, **Bereitschafts-Administrator** und **Bereitschafts-Mitglied**, oder **Execute On-Call Policies** in einer benutzerdefinierten Rolle) und diesen Vorfall, diese Warnung oder Episode zu lesen, und bietet die aktiven Bereitschaftsrichtlinien an, die Sie lesen dürfen. Die Richtlinie alarmiert ihre Personen, bis eine von ihnen antwortet oder der Vorfall, die Warnung oder Episode behoben ist, auch wenn jemand sie schon bestätigt hat, und das Formular sagt das unter seiner Liste.
 
 ## Jemanden aus Slack alarmieren
 

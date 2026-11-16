@@ -132,7 +132,7 @@ En cada relevo, los canales de una política de guardia se enteran de quién est
 > 📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then @bob.
 
 - Payments enlaza a la política en OneUptime. Cuando la política avisa a más de una programación, la línea también nombra la programación: Payments (Primary).
-- A una persona se la nombra por su nombre de Slack cuando ha conectado su cuenta de Slack a OneUptime, y por su nombre en OneUptime hasta entonces. Las horas se muestran en la zona horaria de cada lector.
+- A una persona se la nombra por su nombre de Slack cuando ha conectado su cuenta de Slack a OneUptime, y por su nombre en OneUptime hasta entonces, en cada línea de guardia: relevos, sustituciones y personas añadidas a la política o quitadas. Las horas se muestran en la zona horaria de cada lector.
 - Cuando varias reglas de escalado de la política avisan a la misma programación, cada relevo se publica una vez, no una vez por regla.
 
 Una regla publica lo que eligió en su paso **Actualizaciones**, y una regla nueva empieza con **Solo actualizaciones clave**: quién está de guardia ahora, y cuándo no hay nadie.
@@ -147,6 +147,8 @@ Una regla publica lo que eligió en su paso **Actualizaciones**, y una regla nue
 | **Propietarios** | Propietarios añadidos y quitados. |
 
 Un canal recibe un solo mensaje por relevo, aunque dos reglas publiquen en él. Una regla de guardia guardada antes de que las reglas eligieran sus actualizaciones las publica todas, como antes.
+
+Un nombre no notifica a nadie, así que un canal que recibe cada relevo no recibe un aviso en cada uno. Para notificar a la persona que entra de guardia, activa **Mencionar a la persona que entra de guardia** en el paso **Actualizaciones** de la regla: la línea del relevo la menciona entonces, una vez que haya conectado su cuenta de Slack a OneUptime. Quien va después nunca se menciona, ni nadie que no haya conectado su cuenta. El interruptor aparece mientras la regla publica **Quién está de guardia ahora**, y está desactivado en una regla nueva.
 
 ## Quién está en el canal de un registro
 
@@ -261,7 +263,7 @@ OneUptime solo responde a lo que va dirigido a él.
 - **En el canal propio de una alerta.** En el canal que OneUptime creó para una alerta, mientras la alerta está abierta, el formulario dice que el incidente se declara desde esa alerta, y empieza con el título de la alerta y los recursos a los que está vinculada que puedes ver. El incidente se vincula a la alerta, como uno declarado desde la página de la alerta, y el incidente de una alerta privada también es privado. Cuando no puedes vincular alertas a incidentes, el incidente se declara sin el vínculo, y se te dice por qué.
 - **Qué puede nombrar un formulario.** El incidente o el evento se crea con tus propios permisos y se te atribuye. Un monitor, una política de guardia, una etiqueta, una gravedad o un estado que no puedes leer, o uno de otro proyecto, se rechaza como uno que el proyecto no tiene, incluso desde un formulario abierto antes de que cambiara tu acceso, y no se crea nada. OneUptime te dice por qué en el canal, en un mensaje que solo tú ves.
 
-**Execute On-Call Policy** en un incidente, una alerta o un episodio funciona igual: necesita permiso para ejecutar una política de guardia (**Propietario del proyecto**, **Administrador del proyecto**, **Miembro del proyecto**, **Administrador de guardias** y **Miembro de guardias**, o **Execute On-Call Policies** en un rol personalizado) y para leer ese incidente, alerta o episodio, y ofrece las políticas de guardia activas que puedes leer.
+**Execute On-Call Policy** en un incidente, una alerta o un episodio funciona igual: necesita permiso para ejecutar una política de guardia (**Propietario del proyecto**, **Administrador del proyecto**, **Miembro del proyecto**, **Administrador de guardias** y **Miembro de guardias**, o **Execute On-Call Policies** en un rol personalizado) y para leer ese incidente, alerta o episodio, y ofrece las políticas de guardia activas que puedes leer. La política avisa a sus personas hasta que una de ellas responda o el incidente, la alerta o el episodio se resuelva, aunque alguien ya lo haya reconocido, y el formulario lo dice bajo su lista.
 
 ## Avisar a alguien desde Slack
 

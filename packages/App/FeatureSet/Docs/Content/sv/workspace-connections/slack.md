@@ -132,7 +132,7 @@ Vid varje överlämning får en jourpolicys kanaler veta vem som har jour, på e
 > 📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then @bob.
 
 - Payments länkar till policyn i OneUptime. När policyn larmar mer än ett schema nämner raden också schemat: Payments (Primary).
-- En person nämns med sitt Slack-namn när hen har kopplat sitt Slack-konto till OneUptime, och med sitt namn i OneUptime fram till dess. Tider visas i varje läsares egen tidszon.
+- En person nämns med sitt Slack-namn när hen har kopplat sitt Slack-konto till OneUptime, och med sitt namn i OneUptime fram till dess, i varje jourmeddelande: överlämningar, åsidosättningar och personer som läggs till i policyn eller tas bort. Tider visas i varje läsares egen tidszon.
 - När flera av policyns eskaleringsregler larmar samma schema publiceras varje överlämning en gång, inte en gång per regel.
 
 En regel publicerar det den valde i sitt steg **Uppdateringar**, och en ny regel börjar med **Bara viktiga uppdateringar**: vem som har jour nu, och när ingen har det.
@@ -147,6 +147,8 @@ En regel publicerar det den valde i sitt steg **Uppdateringar**, och en ny regel
 | **Ägare** | Ägare som lagts till och tagits bort. |
 
 En kanal får ett meddelande per överlämning, även när två regler publicerar i den. En jourregel som sparades innan regler valde sina uppdateringar publicerar alla, som förut.
+
+Ett namn aviserar ingen, så en kanal som hör varje överlämning blir inte pingad vid var och en. För att avisera personen som går på jour slår du på **Nämn personen som går på jour** i regelns steg **Uppdateringar**: meddelandet om överlämningen nämner då personen, när hen har kopplat sitt Slack-konto till OneUptime. Den som står näst på tur nämns aldrig, och inte heller någon som inte har kopplat sitt konto. Reglaget visas så länge regeln publicerar **Vem som har jour nu**, och är avstängt för en ny regel.
 
 ## Vem som är i en posts kanal
 
@@ -261,7 +263,7 @@ OneUptime svarar bara på det som riktas till den.
 - **I ett larms egen kanal.** I den kanal som OneUptime skapade för ett larm säger formuläret, så länge larmet är öppet, att incidenten deklareras från det larmet, och börjar med larmets titel och de resurser det är kopplat till som du får se. Incidenten kopplas till larmet, precis som en incident som deklareras från larmets sida, och incidenten för ett privat larm är också privat. När du inte får koppla larm till incidenter deklareras incidenten utan kopplingen, och du får veta varför.
 - **Vad ett formulär får ange.** Incidenten eller händelsen skapas med dina egna behörigheter och tillskrivs dig. En monitor, jourpolicy, etikett, allvarlighetsgrad eller status som du inte får läsa, eller en från ett annat projekt, avvisas som en som projektet inte har, även från ett formulär som öppnades innan din åtkomst ändrades, och inget skapas. OneUptime berättar varför i kanalen, i ett meddelande som bara du ser.
 
-**Execute On-Call Policy** på en incident, ett larm eller en episod fungerar på samma sätt: den kräver behörighet att köra en jourpolicy (**Projektägare**, **Projektadministratör**, **Projektmedlem**, **Jouradministratör** och **Jourmedlem**, eller **Execute On-Call Policies** i en anpassad roll) och att läsa den incidenten, det larmet eller den episoden, och den erbjuder de aktiva jourpolicyer som du får läsa.
+**Execute On-Call Policy** på en incident, ett larm eller en episod fungerar på samma sätt: den kräver behörighet att köra en jourpolicy (**Projektägare**, **Projektadministratör**, **Projektmedlem**, **Jouradministratör** och **Jourmedlem**, eller **Execute On-Call Policies** i en anpassad roll) och att läsa den incidenten, det larmet eller den episoden, och den erbjuder de aktiva jourpolicyer som du får läsa. Den larmar policyns personer tills någon av dem svarar eller incidenten, larmet eller episoden är löst, även när någon redan har bekräftat den, och formuläret säger det under sin lista.
 
 ## Larma någon från Slack
 

@@ -132,7 +132,7 @@ A cada passagem de turno, os canais de uma política de plantão ficam sabendo q
 > 📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then @bob.
 
 - Payments leva à política no OneUptime. Quando a política aciona mais de um agendamento, a linha também nomeia o agendamento: Payments (Primary).
-- Uma pessoa é nomeada pelo nome no Slack depois de conectar a conta do Slack ao OneUptime, e pelo nome no OneUptime até lá. Os horários aparecem no fuso horário de cada leitor.
+- Uma pessoa é nomeada pelo nome no Slack depois de conectar a conta do Slack ao OneUptime, e pelo nome no OneUptime até lá, em cada linha de plantão: passagens de turno, substituições e pessoas adicionadas à política ou removidas. Os horários aparecem no fuso horário de cada leitor.
 - Quando várias regras de escalonamento da política acionam o mesmo agendamento, cada passagem de turno é publicada uma vez, e não uma vez por regra.
 
 Uma regra publica o que escolheu na etapa **Atualizações**, e uma regra nova começa com **Somente atualizações importantes**: quem está de plantão agora, e quando não há ninguém.
@@ -147,6 +147,8 @@ Uma regra publica o que escolheu na etapa **Atualizações**, e uma regra nova c
 | **Proprietários** | Proprietários adicionados e removidos. |
 
 Um canal recebe uma mensagem por passagem de turno, mesmo quando duas regras publicam nele. Uma regra de plantão salva antes de as regras escolherem suas atualizações publica todas, como antes.
+
+Um nome não notifica ninguém, então um canal que recebe cada passagem de turno não é acionado a cada uma. Para notificar a pessoa que entra de plantão, ative **Mencionar a pessoa que entra de plantão** na etapa **Atualizações** da regra: a linha da passagem de turno passa a mencioná-la, depois que ela conectar a conta do Slack ao OneUptime. Quem vem a seguir nunca é mencionado, nem quem não conectou a conta. A chave aparece enquanto a regra publica **Quem está de plantão agora**, e fica desligada em uma regra nova.
 
 ## Quem está no canal de um registro
 
@@ -261,7 +263,7 @@ O OneUptime só responde ao que é dirigido a ele.
 - **No canal próprio de um alerta.** No canal que o OneUptime criou para um alerta, enquanto o alerta está aberto, o formulário diz que o incidente é declarado a partir desse alerta, e começa com o título do alerta e os recursos aos quais ele está vinculado que você pode ver. O incidente é vinculado ao alerta, como um declarado a partir da página do alerta, e o incidente de um alerta privado também é privado. Quando você não pode vincular alertas a incidentes, o incidente é declarado sem o vínculo, e você é avisado do motivo.
 - **O que um formulário pode indicar.** O incidente ou evento é criado com as suas próprias permissões e atribuído a você. Um monitor, política de plantão, rótulo, gravidade ou status que você não pode ler, ou um de outro projeto, é recusado como um que o projeto não tem, mesmo em um formulário aberto antes de o seu acesso mudar, e nada é criado. O OneUptime explica o motivo no canal, em uma mensagem que só você vê.
 
-**Execute On-Call Policy** em um incidente, alerta ou episódio funciona do mesmo jeito: requer permissão para executar uma política de plantão (**Proprietário do projeto**, **Administrador do projeto**, **Membro do projeto**, **Administrador de plantão** e **Membro de plantão**, ou **Execute On-Call Policies** em uma função personalizada) e para ler esse incidente, alerta ou episódio, e oferece as políticas de plantão ativas que você pode ler.
+**Execute On-Call Policy** em um incidente, alerta ou episódio funciona do mesmo jeito: requer permissão para executar uma política de plantão (**Proprietário do projeto**, **Administrador do projeto**, **Membro do projeto**, **Administrador de plantão** e **Membro de plantão**, ou **Execute On-Call Policies** em uma função personalizada) e para ler esse incidente, alerta ou episódio, e oferece as políticas de plantão ativas que você pode ler. A política aciona as pessoas dela até que uma delas responda ou o incidente, alerta ou episódio seja resolvido, mesmo quando alguém já o confirmou, e o formulário diz isso abaixo da lista.
 
 ## Acionar alguém pelo Slack
 

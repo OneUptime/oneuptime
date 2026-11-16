@@ -132,7 +132,7 @@ Bij elke overdracht horen de kanalen van een bereikbaarheidsbeleid in één rege
 > 📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then @bob.
 
 - Payments linkt naar het beleid in OneUptime. Roept het beleid meer dan één schema op, dan noemt de regel ook het schema: Payments (Primary).
-- Iemand wordt bij zijn Slack-naam genoemd zodra hij zijn Slack-account met OneUptime heeft verbonden, en tot dan bij zijn naam in OneUptime. Tijden verschijnen in de tijdzone van elke lezer.
+- Iemand wordt bij zijn Slack-naam genoemd zodra hij zijn Slack-account met OneUptime heeft verbonden, en tot dan bij zijn naam in OneUptime, in elk dienstbericht: overdrachten, overschrijvingen en personen die aan het beleid zijn toegevoegd of eruit zijn gehaald. Tijden verschijnen in de tijdzone van elke lezer.
 - Roepen meerdere escalatieregels van het beleid hetzelfde schema op, dan wordt elke overdracht één keer geplaatst, niet één keer per regel.
 
 Een regel plaatst wat hij in zijn stap **Updates** koos, en een nieuwe regel begint met **Alleen belangrijke updates**: wie nu dienst heeft, en wanneer niemand dienst heeft.
@@ -147,6 +147,8 @@ Een regel plaatst wat hij in zijn stap **Updates** koos, en een nieuwe regel beg
 | **Eigenaren** | Toegevoegde en verwijderde eigenaren. |
 
 Een kanaal krijgt één bericht per overdracht, ook als twee regels erin plaatsen. Een dienstregel die is opgeslagen voordat regels hun updates kozen, plaatst ze allemaal, zoals voorheen.
+
+Een naam stuurt niemand een melding, zodat een kanaal dat elke overdracht hoort niet bij elke wordt gepingd. Zet **De persoon vermelden die dienst krijgt** aan in de stap **Updates** van de regel om de persoon die dienst krijgt een melding te sturen: het bericht van de overdracht vermeldt diegene dan, zodra die zijn Slack-account met OneUptime heeft verbonden. Wie daarna komt, wordt nooit vermeld, en ook niemand die zijn account niet heeft verbonden. De schakelaar verschijnt zolang de regel **Wie nu dienst heeft** plaatst, en staat uit voor een nieuwe regel.
 
 ## Wie er in het kanaal van een record zit
 
@@ -261,7 +263,7 @@ OneUptime antwoordt alleen op wat aan OneUptime gericht is.
 - **In het eigen kanaal van een waarschuwing.** In het kanaal dat OneUptime voor een waarschuwing aanmaakte, zegt het formulier zolang de waarschuwing open is dat het incident vanuit die waarschuwing wordt gemeld, en begint het met de titel van de waarschuwing en de resources waaraan ze gekoppeld is die jij mag zien. Het incident wordt aan de waarschuwing gekoppeld, net als een incident dat vanaf de pagina van de waarschuwing wordt gemeld, en het incident van een privéwaarschuwing is ook privé. Als je geen waarschuwingen aan incidenten mag koppelen, wordt het incident zonder de koppeling gemeld, en krijg je te horen waarom.
 - **Wat een formulier mag noemen.** Het incident of de gebeurtenis wordt aangemaakt met jouw eigen rechten en op jouw naam gezet. Een monitor, bereikbaarheidsbeleid, label, ernstniveau of status die je niet mag lezen, of een uit een ander project, wordt geweigerd alsof het project die niet heeft, zelfs vanuit een formulier dat werd geopend voordat je toegang veranderde, en er wordt niets aangemaakt. OneUptime vertelt je in het kanaal waarom, in een bericht dat alleen jij ziet.
 
-**Execute On-Call Policy** op een incident, waarschuwing of episode werkt op dezelfde manier: het vereist rechten om een bereikbaarheidsbeleid uit te voeren (**Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Bereikbaarheidsbeheerder** en **Bereikbaarheidslid**, of **Execute On-Call Policies** in een aangepaste rol) en om dat incident, die waarschuwing of die episode te lezen, en het biedt het actieve bereikbaarheidsbeleid aan dat je mag lezen.
+**Execute On-Call Policy** op een incident, waarschuwing of episode werkt op dezelfde manier: het vereist rechten om een bereikbaarheidsbeleid uit te voeren (**Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Bereikbaarheidsbeheerder** en **Bereikbaarheidslid**, of **Execute On-Call Policies** in een aangepaste rol) en om dat incident, die waarschuwing of die episode te lezen, en het biedt het actieve bereikbaarheidsbeleid aan dat je mag lezen. Het roept de mensen van het beleid op totdat een van hen antwoordt of het incident, de waarschuwing of de episode is opgelost, ook als iemand het al heeft bevestigd, en het formulier zegt dat onder zijn lijst.
 
 ## Iemand oproepen vanuit Slack
 
