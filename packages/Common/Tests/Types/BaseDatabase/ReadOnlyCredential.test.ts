@@ -1,4 +1,5 @@
 import AnalyticsModelPermission from "../../../Server/Types/AnalyticsDatabase/ModelPermission";
+import ColumnPermissions from "../../../Server/Types/Database/Permissions/ColumnPermission";
 import CreatePermission from "../../../Server/Types/Database/Permissions/CreatePermission";
 import CreateScopePermission from "../../../Server/Types/Database/Permissions/CreateScopePermission";
 import RelationListPermission from "../../../Server/Types/Database/Permissions/RelationListPermission";
@@ -336,6 +337,23 @@ const POSTGRES_WRITE_ENTRY_POINTS: Array<WriteEntryPoint> = [
     },
     call: async (props: DatabaseCommonInteractionProps): Promise<unknown> => {
       return ModelPermission.checkCreatePermissions(Label, newLabel(), props);
+    },
+  },
+  {
+    /*
+     * Asked before a create's hooks run: a value in a server-set column is
+     * held to the column's create list.
+     */
+    name: "checkComputedColumnsSentOnCreate",
+    spyOnUnderlying: (): jest.SpyInstance<any, any> => {
+      return getJestSpyOn(ColumnPermissions, "checkComputedColumnsSentOnCreate");
+    },
+    call: async (props: DatabaseCommonInteractionProps): Promise<unknown> => {
+      return ModelPermission.checkComputedColumnsSentOnCreate(
+        Label,
+        newLabel(),
+        props,
+      );
     },
   },
   {
@@ -931,6 +949,7 @@ const PERMISSION_LAYERS: Array<PermissionLayer> = [
     target: ModelPermission as unknown as Record<string, unknown>,
     readOnlyMethods: ["checkReadQueryPermission"],
     expectedWriteMethods: [
+      "checkComputedColumnsSentOnCreate",
       "checkCreateInMemberProject",
       "checkCreateParentPermission",
       "checkCreatePermissions",
@@ -964,6 +983,8 @@ const PERMISSION_LAYERS: Array<PermissionLayer> = [
       "findOwnersOfResource",
       "getTelemetryResourceTypes",
       "checkIfUserIsLoggedIn",
+      // A sort reads the columns it orders by (#8839): a read's check.
+      "checkSortPermission",
     ],
     expectedWriteMethods: [
       "checkCreatePermissions",
