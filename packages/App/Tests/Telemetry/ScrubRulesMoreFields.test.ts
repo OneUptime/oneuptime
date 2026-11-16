@@ -573,6 +573,48 @@ describe("a span's status message and its events' names: All reaches them", () =
 
     expect("statusMessage" in noStatus).toBe(false);
   });
+
+  test("a span without a status message asks no rule about one: most spans set none", () => {
+    const rules: Array<CompiledRule> = traceRules([
+      { patternType: "email", action: "mask" },
+      { patternType: "custom", customRegex: "secret-[0-9]+", action: "redact" },
+    ]) as unknown as Array<CompiledRule>;
+    const asked: Array<string> = [];
+
+    for (const compiled of rules) {
+      const regex: ScrubRegExp = compiled.regex;
+
+      compiled.regex = {
+        source: regex.source,
+        flags: regex.flags,
+        test: (text: string): boolean => {
+          asked.push(text);
+          return regex.test(text);
+        },
+        replace: (
+          text: string,
+          replacer: (matchedText: string) => string,
+        ): string => {
+          asked.push(text);
+          return regex.replace(text, replacer);
+        },
+      };
+    }
+
+    TraceScrubRuleService.scrubSpan(
+      {
+        name: "GET /",
+        statusMessage: "",
+        attributes: {},
+        events: [],
+        links: [],
+      },
+      rules as never,
+    );
+
+    // The name, once for each rule: never the empty status message.
+    expect(asked).toEqual(["GET /", "GET /"]);
+  });
 });
 
 describe("an exception's type is scrubbed with the rest of its content", () => {

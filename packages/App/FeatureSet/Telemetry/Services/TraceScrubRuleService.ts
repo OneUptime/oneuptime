@@ -529,9 +529,14 @@ export class TraceScrubRuleService {
        * No scope but All names it (it is not the name, nor an attribute,
        * nor an event), so All reaches it, as All reaches every text a span
        * stores (#6513). A Sensitive Attribute Keys rule reads no free
-       * text: scrubString skips it.
+       * text: scrubString skips it. Most spans set none - an empty text,
+       * which no rule can match - and cost no rule a question.
        */
-      if (scrubAll && typeof spanRow["statusMessage"] === "string") {
+      if (
+        scrubAll &&
+        typeof spanRow["statusMessage"] === "string" &&
+        spanRow["statusMessage"] !== ""
+      ) {
         spanRow["statusMessage"] = this.scrubString(
           spanRow["statusMessage"] as string,
           singleRule,
