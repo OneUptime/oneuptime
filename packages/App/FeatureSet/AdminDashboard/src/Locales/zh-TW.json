@@ -4022,5 +4022,8 @@
   "The current key stops working at once, for every script and tool that uses it. The new key is shown once.": "目前的金鑰會立即對使用它的每個指令碼和工具失效。新金鑰只會顯示一次。",
   "Copy Your Master API Key": "複製你的主 API 金鑰",
   "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "請立即複製，並將其保存在安全的地方，例如密鑰管理工具。它只會顯示這一次：OneUptime 只保存它的雜湊值。",
-  "The server did not answer with the master API key. Try again.": "伺服器沒有傳回主 API 金鑰。請再試一次。"
+  "The server did not answer with the master API key. Try again.": "伺服器沒有傳回主 API 金鑰。請再試一次。",
+  "Made by {{name}} on {{date}}": "由 {{name}} 於 {{date}} 建立",
+  "Made on {{date}}": "建立於 {{date}}",
+  "Ends in {{hint}}": "結尾為 {{hint}}"
 }

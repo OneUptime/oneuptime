@@ -4022,5 +4022,8 @@
   "The current key stops working at once, for every script and tool that uses it. The new key is shown once.": "کلید فعلی فوراً برای هر اسکریپت و ابزاری که از آن استفاده می‌کند از کار می‌افتد. کلید جدید یک بار نمایش داده می‌شود.",
   "Copy Your Master API Key": "کلید API ارشد خود را کپی کنید",
   "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "همین حالا آن را کپی کنید و در جای امنی، مانند یک مدیر رازها، نگه دارید. فقط همین یک بار نمایش داده می‌شود: OneUptime فقط هش آن را نگه می‌دارد.",
-  "The server did not answer with the master API key. Try again.": "سرور کلید API ارشد را برنگرداند. دوباره امتحان کنید."
+  "The server did not answer with the master API key. Try again.": "سرور کلید API ارشد را برنگرداند. دوباره امتحان کنید.",
+  "Made by {{name}} on {{date}}": "ساخته‌شده توسط {{name}} در {{date}}",
+  "Made on {{date}}": "ساخته‌شده در {{date}}",
+  "Ends in {{hint}}": "به {{hint}} ختم می‌شود"
 }

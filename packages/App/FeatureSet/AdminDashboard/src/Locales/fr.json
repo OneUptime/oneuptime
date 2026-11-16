@@ -4022,5 +4022,8 @@
   "The current key stops working at once, for every script and tool that uses it. The new key is shown once.": "La clé actuelle cesse aussitôt de fonctionner, pour chaque script et chaque outil qui l'utilise. La nouvelle clé est affichée une seule fois.",
   "Copy Your Master API Key": "Copiez votre clé API principale",
   "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "Copiez-la maintenant et conservez-la en lieu sûr, par exemple dans un gestionnaire de secrets. Elle n'est affichée que cette fois : OneUptime n'en conserve qu'un hachage.",
-  "The server did not answer with the master API key. Try again.": "Le serveur n'a pas répondu avec la clé API principale. Réessayez."
+  "The server did not answer with the master API key. Try again.": "Le serveur n'a pas répondu avec la clé API principale. Réessayez.",
+  "Made by {{name}} on {{date}}": "Créée par {{name}} le {{date}}",
+  "Made on {{date}}": "Créée le {{date}}",
+  "Ends in {{hint}}": "Se termine par {{hint}}"
 }

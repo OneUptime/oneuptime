@@ -4022,5 +4022,8 @@
   "The current key stops working at once, for every script and tool that uses it. The new key is shown once.": "現在のキーは、それを使うすべてのスクリプトとツールで直ちに使えなくなります。新しいキーは一度だけ表示されます。",
   "Copy Your Master API Key": "マスターAPIキーをコピー",
   "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "今すぐコピーして、シークレットマネージャーなどの安全な場所に保管してください。表示されるのは今回だけです。OneUptime はハッシュしか保存しません。",
-  "The server did not answer with the master API key. Try again.": "サーバーはマスターAPIキーを返しませんでした。もう一度お試しください。"
+  "The server did not answer with the master API key. Try again.": "サーバーはマスターAPIキーを返しませんでした。もう一度お試しください。",
+  "Made by {{name}} on {{date}}": "{{name}} が {{date}} に作成",
+  "Made on {{date}}": "{{date}} に作成",
+  "Ends in {{hint}}": "末尾は {{hint}}"
 }

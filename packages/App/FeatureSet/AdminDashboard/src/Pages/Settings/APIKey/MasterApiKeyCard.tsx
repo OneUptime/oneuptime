@@ -3,6 +3,7 @@ import { createMasterApiKey, fetchMasterApiKeyState } from "./MasterApiKeyApi";
 import {
   getMasterApiKeySwitchDescription,
   MASTER_API_KEY_CARD_TEST_ID,
+  MASTER_API_KEY_FACTS_TEST_ID,
   MASTER_API_KEY_SHOWN_ONCE_TEST_ID,
   MASTER_API_KEY_STATE_TEST_ID,
   MASTER_API_KEY_SWITCH_TEST_ID,
@@ -10,6 +11,7 @@ import {
   MasterApiKeyCopy,
 } from "./MasterApiKeyCopy";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
+import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   CreatedMasterApiKey,
@@ -19,10 +21,10 @@ import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelSwitchRow from "Common/UI/Components/ModelSwitch/ModelSwitchRow";
+import ShownOnceSecretModal from "Common/UI/Components/ShownOnceSecret/ShownOnceSecretModal";
 import API from "Common/UI/Utils/API/API";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -41,15 +43,65 @@ import React, {
  * not a master admin. The card says whether there is one, and:
  *
  *   - with none, offers Create Key;
- *   - with one, says it was shown once and cannot be shown again, offers
- *     Reset Key - which asks first, since every script that uses the key
- *     stops working - and the Enabled switch, which saves when it is
- *     flipped (the shared ModelSwitchRow, through AdminModelAPI).
+ *   - with one, says which key it is (#8903) - when it was made, by whom,
+ *     how it ends: "Made by Ada Lovelace on Nov 16, 2026 · Ends in 2b34",
+ *     the date in the reader's language and time zone, and what is not
+ *     known left out - so an admin can match the key they hold against
+ *     it; says it was shown once and cannot be shown again, offers Reset
+ *     Key - which asks first, since every script that uses the key stops
+ *     working - and the Enabled switch, which saves when it is flipped
+ *     (the shared ModelSwitchRow, through AdminModelAPI).
  *
  * A key made here is turned on, and shown once, in a dialog whose only way
  * out is Done, so a reflex Escape or a click beside it cannot lose it. Once
  * the dialog is closed the page keeps the key nowhere.
  */
+
+/*
+ * Which key is set, as facts the card lists apart with " · ": when it was
+ * made and by whom, and how it ends. None for a key nothing is known of.
+ */
+export const getMasterApiKeyFacts: (
+  state: MasterApiKeyState,
+  translator: Translator,
+) => Array<string> = (
+  state: MasterApiKeyState,
+  translator: Translator,
+): Array<string> => {
+  if (!state.isSet) {
+    return [];
+  }
+
+  const facts: Array<string> = [];
+
+  if (state.createdAt) {
+    const date: string = OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+      state.createdAt,
+      true,
+    );
+
+    facts.push(
+      state.createdByName
+        ? translator.translateTemplate(MasterApiKeyCopy.madeByOn, {
+            name: state.createdByName,
+            date: date,
+          })
+        : translator.translateTemplate(MasterApiKeyCopy.madeOn, {
+            date: date,
+          }),
+    );
+  }
+
+  if (state.hint) {
+    facts.push(
+      translator.translateTemplate(MasterApiKeyCopy.endsIn, {
+        hint: state.hint,
+      }),
+    );
+  }
+
+  return facts;
+};
 
 const MasterApiKeyCard: FunctionComponent = (): ReactElement => {
   const translator: Translator = useTranslator();
@@ -84,7 +136,13 @@ const MasterApiKeyCard: FunctionComponent = (): ReactElement => {
     try {
       const created: CreatedMasterApiKey = await createMasterApiKey();
 
-      setState({ isSet: created.isSet, isEnabled: created.isEnabled });
+      setState({
+        isSet: created.isSet,
+        isEnabled: created.isEnabled,
+        createdAt: created.createdAt,
+        createdByName: created.createdByName,
+        hint: created.hint,
+      });
       setKeysMade((made: number): number => {
         return made + 1;
       });
@@ -148,8 +206,35 @@ const MasterApiKeyCard: FunctionComponent = (): ReactElement => {
       return <ComponentLoader />;
     }
 
+    const facts: Array<string> = getMasterApiKeyFacts(state, translator);
+
     return (
       <div className="space-y-4">
+        {/* Which key: what an admin matches the key they hold against. */}
+        {facts.length > 0 ? (
+          <p
+            className="text-sm font-medium text-gray-900"
+            data-testid={MASTER_API_KEY_FACTS_TEST_ID}
+          >
+            {facts.map((fact: string, index: number): ReactElement => {
+              return (
+                <React.Fragment key={index}>
+                  {index > 0 ? (
+                    <span className="text-gray-400" aria-hidden="true">
+                      {" · "}
+                    </span>
+                  ) : (
+                    <></>
+                  )}
+                  <span>{fact}</span>
+                </React.Fragment>
+              );
+            })}
+          </p>
+        ) : (
+          <></>
+        )}
+
         <p
           className="text-sm text-gray-600"
           data-testid={MASTER_API_KEY_STATE_TEST_ID}
@@ -183,7 +268,11 @@ const MasterApiKeyCard: FunctionComponent = (): ReactElement => {
               getDescription={getMasterApiKeySwitchDescription}
               modelAPI={AdminModelAPI}
               onSaved={(isOn: boolean) => {
-                setState({ isSet: true, isEnabled: isOn });
+                setState((current: MasterApiKeyState | null) => {
+                  return current
+                    ? { ...current, isSet: true, isEnabled: isOn }
+                    : current;
+                });
               }}
               dataTestId={MASTER_API_KEY_SWITCH_TEST_ID}
             />
@@ -229,37 +318,20 @@ const MasterApiKeyCard: FunctionComponent = (): ReactElement => {
        * SHOWN ONCE. The key is stored as its hash, so this is the one time
        * anyone sees it: Done is the only way out - no Escape, no X, no click
        * beside it - and the focus starts on the dialog, not on Done, so a
-       * reflex Enter does not close it either.
+       * reflex Enter does not close it either (ShownOnceSecretModal).
        */}
       {shownKey ? (
-        <ConfirmModal
+        <ShownOnceSecretModal
           title={MasterApiKeyCopy.shownOnceTitle}
           description={MasterApiKeyCopy.shownOnceDescription}
-          submitButtonText={MasterApiKeyCopy.done}
-          isInitialFocusOnDialog={true}
-          onSubmit={() => {
+          doneButtonText={MasterApiKeyCopy.done}
+          secret={shownKey}
+          onDone={() => {
             setShownKey(null);
           }}
-        >
-          <div
-            className="mt-4 flex items-center gap-3 rounded-md border border-gray-200 bg-gray-50 px-3 py-2"
-            data-testid={MASTER_API_KEY_SHOWN_ONCE_TEST_ID}
-          >
-            {/* A key reads left to right on every page. */}
-            <code
-              className="min-w-0 flex-1 break-all font-mono text-sm text-gray-900"
-              dir="ltr"
-              data-testid={MASTER_API_KEY_VALUE_TEST_ID}
-            >
-              {shownKey}
-            </code>
-            <CopyTextButton
-              textToBeCopied={shownKey}
-              size="sm"
-              variant="soft"
-            />
-          </div>
-        </ConfirmModal>
+          dataTestId={MASTER_API_KEY_SHOWN_ONCE_TEST_ID}
+          valueTestId={MASTER_API_KEY_VALUE_TEST_ID}
+        />
       ) : (
         <></>
       )}

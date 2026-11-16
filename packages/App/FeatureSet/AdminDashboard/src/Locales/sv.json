@@ -4022,5 +4022,8 @@
   "The current key stops working at once, for every script and tool that uses it. The new key is shown once.": "Den nuvarande nyckeln slutar fungera direkt, för varje skript och verktyg som använder den. Den nya nyckeln visas en gång.",
   "Copy Your Master API Key": "Kopiera din master-API-nyckel",
   "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "Kopiera den nu och förvara den på ett säkert ställe, till exempel i en secret manager. Den visas bara den här gången: OneUptime sparar bara en hash av den.",
-  "The server did not answer with the master API key. Try again.": "Servern svarade inte med master-API-nyckeln. Försök igen."
+  "The server did not answer with the master API key. Try again.": "Servern svarade inte med master-API-nyckeln. Försök igen.",
+  "Made by {{name}} on {{date}}": "Skapad av {{name}} den {{date}}",
+  "Made on {{date}}": "Skapad den {{date}}",
+  "Ends in {{hint}}": "Slutar på {{hint}}"
 }

@@ -4022,5 +4022,8 @@
   "The current key stops working at once, for every script and tool that uses it. The new key is shown once.": "Текущий ключ сразу перестанет работать во всех скриптах и инструментах, которые его используют. Новый ключ будет показан один раз.",
   "Copy Your Master API Key": "Скопируйте главный API-ключ",
   "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "Скопируйте его сейчас и храните в надёжном месте, например в менеджере секретов. Он показывается только в этот раз: OneUptime хранит только его хеш.",
-  "The server did not answer with the master API key. Try again.": "Сервер не вернул главный API-ключ. Повторите попытку."
+  "The server did not answer with the master API key. Try again.": "Сервер не вернул главный API-ключ. Повторите попытку.",
+  "Made by {{name}} on {{date}}": "Создан {{date}}, автор: {{name}}",
+  "Made on {{date}}": "Создан {{date}}",
+  "Ends in {{hint}}": "Заканчивается на {{hint}}"
 }

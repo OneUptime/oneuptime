@@ -4022,5 +4022,8 @@
   "The current key stops working at once, for every script and tool that uses it. The new key is shown once.": "현재 키는 이 키를 사용하는 모든 스크립트와 도구에서 즉시 작동하지 않습니다. 새 키는 한 번만 표시됩니다.",
   "Copy Your Master API Key": "마스터 API 키 복사",
   "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "지금 복사하여 시크릿 관리자와 같은 안전한 곳에 보관하세요. 이번 한 번만 표시됩니다. OneUptime은 해시만 저장합니다.",
-  "The server did not answer with the master API key. Try again.": "서버가 마스터 API 키를 반환하지 않았습니다. 다시 시도하세요."
+  "The server did not answer with the master API key. Try again.": "서버가 마스터 API 키를 반환하지 않았습니다. 다시 시도하세요.",
+  "Made by {{name}} on {{date}}": "{{name}}님이 {{date}}에 생성",
+  "Made on {{date}}": "{{date}}에 생성",
+  "Ends in {{hint}}": "끝자리 {{hint}}"
 }
