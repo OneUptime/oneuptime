@@ -56258,5 +56258,10 @@
   "Revocation Attempted At": "زمان تلاش برای ابطال",
   "Revocation Error": "خطای ابطال",
   "Worker ID": "شناسه کارگر",
-  "Roster Refresh Due At": "موعد به‌روزرسانی نوبت"
+  "Roster Refresh Due At": "موعد به‌روزرسانی نوبت",
+  "Deleted escalation rule": "قاعده تشدید حذف‌شده",
+  "Escalation Rule Name": "نام قاعده تشدید",
+  "Escalation Rule Order": "ترتیب قاعده تشدید",
+  "Level {{order}} (deleted)": "سطح {{order}} (حذف‌شده)",
+  "Level {{order}}: {{name}} (deleted)": "سطح {{order}}: {{name}} (حذف‌شده)"
 }

@@ -56258,5 +56258,10 @@
   "Revocation Attempted At": "Revocation Attempted At",
   "Revocation Error": "Revocation Error",
   "Worker ID": "Worker ID",
-  "Roster Refresh Due At": "Vagtplanens næste opdatering"
+  "Roster Refresh Due At": "Vagtplanens næste opdatering",
+  "Deleted escalation rule": "Slettet eskaleringsregel",
+  "Escalation Rule Name": "Eskaleringsregelens navn",
+  "Escalation Rule Order": "Eskaleringsregelens rækkefølge",
+  "Level {{order}} (deleted)": "Niveau {{order}} (slettet)",
+  "Level {{order}}: {{name}} (deleted)": "Niveau {{order}}: {{name}} (slettet)"
 }

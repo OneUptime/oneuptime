@@ -56258,5 +56258,10 @@
   "Revocation Attempted At": "وقت محاولة الإبطال",
   "Revocation Error": "خطأ الإبطال",
   "Worker ID": "معرّف العامل",
-  "Roster Refresh Due At": "موعد تحديث قائمة المناوبين"
+  "Roster Refresh Due At": "موعد تحديث قائمة المناوبين",
+  "Deleted escalation rule": "قاعدة تصعيد محذوفة",
+  "Escalation Rule Name": "اسم قاعدة التصعيد",
+  "Escalation Rule Order": "ترتيب قاعدة التصعيد",
+  "Level {{order}} (deleted)": "المستوى {{order}} (محذوف)",
+  "Level {{order}}: {{name}} (deleted)": "المستوى {{order}}: {{name}} (محذوف)"
 }

@@ -56258,5 +56258,10 @@
   "Revocation Attempted At": "Revocation Attempted At",
   "Revocation Error": "Revocation Error",
   "Worker ID": "Worker ID",
-  "Roster Refresh Due At": "रोस्टर रीफ़्रेश का नियत समय"
+  "Roster Refresh Due At": "रोस्टर रीफ़्रेश का नियत समय",
+  "Deleted escalation rule": "हटाया गया एस्केलेशन नियम",
+  "Escalation Rule Name": "एस्केलेशन नियम का नाम",
+  "Escalation Rule Order": "एस्केलेशन नियम का क्रम",
+  "Level {{order}} (deleted)": "स्तर {{order}} (हटाया गया)",
+  "Level {{order}}: {{name}} (deleted)": "स्तर {{order}}: {{name}} (हटाया गया)"
 }

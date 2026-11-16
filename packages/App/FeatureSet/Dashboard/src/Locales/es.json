@@ -56258,5 +56258,10 @@
   "Revocation Attempted At": "Revocation Attempted At",
   "Revocation Error": "Revocation Error",
   "Worker ID": "Worker ID",
-  "Roster Refresh Due At": "Actualización del turno prevista el"
+  "Roster Refresh Due At": "Actualización del turno prevista el",
+  "Deleted escalation rule": "Regla de escalado eliminada",
+  "Escalation Rule Name": "Nombre de la regla de escalado",
+  "Escalation Rule Order": "Orden de la regla de escalado",
+  "Level {{order}} (deleted)": "Nivel {{order}} (eliminado)",
+  "Level {{order}}: {{name}} (deleted)": "Nivel {{order}}: {{name}} (eliminado)"
 }
