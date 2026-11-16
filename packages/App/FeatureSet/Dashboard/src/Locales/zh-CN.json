@@ -55977,5 +55977,17 @@
   "Already paged about this by {{name}}, so not paged again.": "{{name}} 已为此呼叫过，因此不再重复呼叫。",
   "Merged Into On-Call Log ID": "合并到的值班日志 ID",
   "Their page from another on-call policy is over, so this policy pages them now.": "另一个值班策略的呼叫已结束，因此现在由此策略自行呼叫。",
-  "Their page from {{name}} is over, so this policy pages them now.": "{{name}} 的呼叫已结束，因此现在由此策略自行呼叫。"
+  "Their page from {{name}} is over, so this policy pages them now.": "{{name}} 的呼叫已结束，因此现在由此策略自行呼叫。",
+  "Copy Your API Key": "复制你的 API 密钥",
+  "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "请立即复制，并将其保存在安全的地方，例如密钥管理器。它只显示这一次：OneUptime 只保存它的哈希值。",
+  "Ends in {{hint}}": "末尾为 {{hint}}",
+  "Shown only once, when it was made. Reset it to get a new one.": "只在创建时显示过一次。如需新的密钥，请重置它。",
+  "Makes a new key and shows it once. The current key stops working within a minute.": "创建一个新密钥并只显示一次。当前密钥会在一分钟内失效。",
+  "Reset API Key?": "要重置 API 密钥吗？",
+  "The current key stops working within a minute, for every script and tool that uses it. The new key is shown once.": "当前密钥会在一分钟内对使用它的每个脚本和工具失效。新密钥只显示一次。",
+  "The server did not answer with the new API key. Try again.": "服务器没有返回新的 API 密钥。请重试。",
+  "API Key Hint": "API 密钥提示",
+  "Master API Key Created At": "主 API 密钥创建于",
+  "Master API Key Created By User ID": "主 API 密钥创建者用户 ID",
+  "Master API Key Hint": "主 API 密钥提示"
 }

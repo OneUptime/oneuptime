@@ -46,7 +46,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     key something, each permission a key would hold one the user may
  *     hand on (one limited to what someone owns gives a key nothing, so it
  *     is not weighed) - and one picked is given to the new key
- *     (ApiKeyCustomRole), with nothing else added.
+ *     (ApiKeyCustomRole), with nothing else added;
+ *   - the key itself, which the create's answer holds and nothing will hold
+ *     again (#8902), is shown once, in a dialog whose only way out is Done,
+ *     before the key's page opens; the list says how each key ends (#8903).
  */
 
 let allPermissionsForTest: Array<string> = [];
@@ -203,6 +206,11 @@ import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/P
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import { getDefaultApiKeyExpiry } from "../../../../App/FeatureSet/Dashboard/src/Components/ApiKey/ApiKeyCreateForm";
+import {
+  API_KEY_HINT_TEST_ID,
+  API_KEY_SHOWN_ONCE_VALUE_TEST_ID,
+  ApiKeyShownOnceCopy,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/ApiKey/ApiKeyShownOnceCopy";
 import { ROLE_ACCESS_LATER } from "../../../../App/FeatureSet/Dashboard/src/Components/Permission/RoleAccess";
 import ApiKey from "../../../Models/DatabaseModels/ApiKey";
 import ApiKeyCustomRole from "../../../Models/DatabaseModels/ApiKeyCustomRole";
@@ -1138,5 +1146,188 @@ describe("the request the key's create sends", () => {
 
     // A name and an expiry date: nothing the form added.
     expect(Object.keys(json).sort()).toEqual(["expiresAt", "name"]);
+  });
+});
+
+describe("the new key, shown once (#8902)", () => {
+  const KEY: string = "5f3b9c1e-7a2d-4e8f-b6c0-1d2e3f4a5b6c";
+
+  // The server answers a create with the new key, the one time it sends it.
+  function answerTheKey(): void {
+    createOrUpdateMock.mockImplementation(async (data: any): Promise<any> => {
+      return {
+        data: {
+          _id: NEW_KEY_ID,
+          name: data.model.name,
+          apiKey: { _type: "HashedString", value: KEY },
+          apiKeyHint: KEY.slice(-4),
+        },
+      };
+    });
+  }
+
+  function shownKey(): string | null {
+    return (
+      screen.queryByTestId(API_KEY_SHOWN_ONCE_VALUE_TEST_ID)?.textContent ||
+      null
+    );
+  }
+
+  test("is shown before anything else, in a dialog that says it is shown only once", async () => {
+    answerTheKey();
+
+    const modal: HTMLElement = await openCreateForm();
+
+    typeName(modal, "Terraform");
+    await submit(modal);
+
+    await waitFor(() => {
+      expect(shownKey()).toBe(KEY);
+    });
+
+    const shown: HTMLElement = screen.getByRole("dialog", {
+      name: ApiKeyShownOnceCopy.shownOnceTitle,
+    });
+
+    expect(
+      within(shown).getByText(ApiKeyShownOnceCopy.shownOnceDescription),
+    ).toBeVisible();
+    expect(within(shown).getByRole("button", { name: /Copy/ })).toBeVisible();
+    expect(screen.getByTestId(API_KEY_SHOWN_ONCE_VALUE_TEST_ID)).toHaveAttribute(
+      "dir",
+      "ltr",
+    );
+    // The key's page waits for Done: leaving now would lose the key.
+    expect(navigateCalls).toEqual([]);
+  });
+
+  test("Done is the only way out, and then the key's page opens - the key gone", async () => {
+    answerTheKey();
+
+    const modal: HTMLElement = await openCreateForm();
+
+    typeName(modal, "Terraform");
+    await submit(modal);
+
+    await waitFor(() => {
+      expect(shownKey()).toBe(KEY);
+    });
+
+    const shown: HTMLElement = screen.getByRole("dialog", {
+      name: ApiKeyShownOnceCopy.shownOnceTitle,
+    });
+
+    expect(
+      within(shown)
+        .getAllByRole("button")
+        .map((button: HTMLElement): string => {
+          return button.textContent || button.getAttribute("aria-label") || "";
+        })
+        .filter((name: string): boolean => {
+          return /Cancel|Close/.test(name);
+        }),
+    ).toEqual([]);
+
+    await act(async () => {
+      fireEvent.keyDown(shown, { key: "Escape", code: "Escape" });
+      fireEvent.keyDown(document, { key: "Escape", code: "Escape" });
+    });
+
+    expect(shownKey()).toBe(KEY);
+    expect(navigateCalls).toEqual([]);
+
+    await act(async () => {
+      fireEvent.click(within(shown).getByRole("button", { name: "Done" }));
+    });
+
+    expect(shownKey()).toBeNull();
+    expect(navigateCalls).toEqual([keyRoute(NEW_KEY_ID)]);
+    expect(document.body.textContent).not.toContain(KEY);
+  });
+
+  test("with a role picked, the role is given first, then the key is shown", async () => {
+    answerTheKey();
+
+    const modal: HTMLElement = await openCreateForm();
+
+    typeName(modal, "CI pipeline");
+    fireEvent.click(accessCard(modal, Permission.Viewer));
+    await submit(modal);
+
+    await waitFor(() => {
+      expect(shownKey()).toBe(KEY);
+    });
+
+    expect(createMock).toHaveBeenCalledTimes(1);
+    expect(createMock.mock.calls[0]![0].modelType).toBe(ApiKeyPermission);
+    expect(navigateCalls).toEqual([]);
+  });
+
+  test("a role the server refuses: the key is still shown once, then the notice stays on the list", async () => {
+    answerTheKey();
+    createMock.mockImplementation(async (): Promise<never> => {
+      throw new Error(
+        "You cannot grant an API key permission beyond your own authority",
+      );
+    });
+
+    const modal: HTMLElement = await openCreateForm();
+
+    typeName(modal, "Terraform");
+    fireEvent.click(accessCard(modal, Permission.ProjectAdmin));
+    await submit(modal);
+
+    await waitFor(() => {
+      expect(shownKey()).toBe(KEY);
+    });
+
+    await act(async () => {
+      fireEvent.click(
+        within(
+          screen.getByRole("dialog", {
+            name: ApiKeyShownOnceCopy.shownOnceTitle,
+          }),
+        ).getByRole("button", { name: "Done" }),
+      );
+    });
+
+    expect(shownKey()).toBeNull();
+    expect(screen.getByTestId("api-key-access-notice")).toHaveTextContent(
+      "Terraform was created without access.",
+    );
+    expect(navigateCalls).toEqual([]);
+  });
+
+  test("the list says how each key ends, and never reads a key", async () => {
+    getListMock.mockImplementation(async (): Promise<any> => {
+      const row: ApiKey = new ApiKey();
+      row._id = NEW_KEY_ID;
+      row.name = "Terraform";
+      row.expiresAt = OneUptimeDate.getSomeDaysAfter(30);
+      row.apiKeyHint = "2b34";
+
+      return { data: [row], count: 1, skip: 0, limit: 10 };
+    });
+
+    render(<APIKeysPage {...pageProps} />);
+
+    const hint: HTMLElement = await screen.findByTestId(API_KEY_HINT_TEST_ID);
+
+    expect(hint).toHaveTextContent("Ends in 2b34");
+
+    const selects: Array<Record<string, unknown>> = getListMock.mock.calls
+      .filter((call: Array<any>): boolean => {
+        return call[0]?.modelType === ApiKey;
+      })
+      .map((call: Array<any>): Record<string, unknown> => {
+        return (call[0]?.select || {}) as Record<string, unknown>;
+      });
+
+    expect(selects.length).toBeGreaterThan(0);
+
+    for (const select of selects) {
+      expect(select).not.toHaveProperty("apiKey");
+      expect(select["apiKeyHint"]).toBe(true);
+    }
   });
 });

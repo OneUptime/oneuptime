@@ -55977,5 +55977,17 @@
   "Already paged about this by {{name}}, so not paged again.": "Уже вызван по этому поводу политикой {{name}}, поэтому повторно не вызывается.",
   "Merged Into On-Call Log ID": "ID журнала дежурства, с которым объединено",
   "Their page from another on-call policy is over, so this policy pages them now.": "Вызов другой политикой дежурства завершён, поэтому теперь вызывает эта политика.",
-  "Their page from {{name}} is over, so this policy pages them now.": "Вызов политикой {{name}} завершён, поэтому теперь вызывает эта политика."
+  "Their page from {{name}} is over, so this policy pages them now.": "Вызов политикой {{name}} завершён, поэтому теперь вызывает эта политика.",
+  "Copy Your API Key": "Скопируйте API-ключ",
+  "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "Скопируйте его сейчас и храните в надёжном месте, например в менеджере секретов. Он показывается только в этот раз: OneUptime хранит только его хеш.",
+  "Ends in {{hint}}": "Заканчивается на {{hint}}",
+  "Shown only once, when it was made. Reset it to get a new one.": "Показан только один раз, при создании. Сбросьте его, чтобы получить новый.",
+  "Makes a new key and shows it once. The current key stops working within a minute.": "Создаёт новый ключ и показывает его один раз. Текущий ключ перестанет работать в течение минуты.",
+  "Reset API Key?": "Сбросить ключ API?",
+  "The current key stops working within a minute, for every script and tool that uses it. The new key is shown once.": "Текущий ключ перестанет работать в течение минуты во всех скриптах и инструментах, которые его используют. Новый ключ будет показан один раз.",
+  "The server did not answer with the new API key. Try again.": "Сервер не вернул новый API-ключ. Попробуйте снова.",
+  "API Key Hint": "Подсказка API-ключа",
+  "Master API Key Created At": "Главный API-ключ создан",
+  "Master API Key Created By User ID": "ID пользователя, создавшего главный API-ключ",
+  "Master API Key Hint": "Подсказка главного API-ключа"
 }

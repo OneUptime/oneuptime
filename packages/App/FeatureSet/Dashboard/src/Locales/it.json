@@ -55977,5 +55977,17 @@
   "Already paged about this by {{name}}, so not paged again.": "Già chiamato per questo da {{name}}, quindi non chiamato di nuovo.",
   "Merged Into On-Call Log ID": "ID del log di reperibilità in cui è stato unito",
   "Their page from another on-call policy is over, so this policy pages them now.": "La chiamata di un'altra policy di reperibilità è terminata, quindi ora chiama questa policy.",
-  "Their page from {{name}} is over, so this policy pages them now.": "La chiamata di {{name}} è terminata, quindi ora chiama questa policy."
+  "Their page from {{name}} is over, so this policy pages them now.": "La chiamata di {{name}} è terminata, quindi ora chiama questa policy.",
+  "Copy Your API Key": "Copia la tua chiave API",
+  "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "Copiala ora e conservala in un posto sicuro, ad esempio in un gestore di segreti. Viene mostrata solo questa volta: OneUptime ne conserva solo un hash.",
+  "Ends in {{hint}}": "Termina con {{hint}}",
+  "Shown only once, when it was made. Reset it to get a new one.": "Mostrata una sola volta, quando è stata creata. Reimpostala per averne una nuova.",
+  "Makes a new key and shows it once. The current key stops working within a minute.": "Crea una nuova chiave e la mostra una volta. La chiave attuale smette di funzionare entro un minuto.",
+  "Reset API Key?": "Reimpostare la chiave API?",
+  "The current key stops working within a minute, for every script and tool that uses it. The new key is shown once.": "La chiave attuale smette di funzionare entro un minuto, per ogni script e strumento che la usa. La nuova chiave viene mostrata una volta.",
+  "The server did not answer with the new API key. Try again.": "Il server non ha risposto con la nuova chiave API. Riprova.",
+  "API Key Hint": "Indizio della chiave API",
+  "Master API Key Created At": "Chiave API master creata il",
+  "Master API Key Created By User ID": "ID utente che ha creato la chiave API master",
+  "Master API Key Hint": "Indizio della chiave API master"
 }

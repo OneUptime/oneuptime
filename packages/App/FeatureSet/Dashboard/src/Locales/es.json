@@ -55977,5 +55977,17 @@
   "Already paged about this by {{name}}, so not paged again.": "Ya avisado de esto por {{name}}, así que no se avisa de nuevo.",
   "Merged Into On-Call Log ID": "ID del registro de guardia en el que se fusionó",
   "Their page from another on-call policy is over, so this policy pages them now.": "El aviso de otra política de guardia terminó, así que esta política avisa ahora por sí misma.",
-  "Their page from {{name}} is over, so this policy pages them now.": "El aviso de {{name}} terminó, así que esta política avisa ahora por sí misma."
+  "Their page from {{name}} is over, so this policy pages them now.": "El aviso de {{name}} terminó, así que esta política avisa ahora por sí misma.",
+  "Copy Your API Key": "Copia tu clave de API",
+  "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "Cópiala ahora y guárdala en un lugar seguro, como un gestor de secretos. Solo se muestra esta vez: OneUptime solo guarda un hash de ella.",
+  "Ends in {{hint}}": "Termina en {{hint}}",
+  "Shown only once, when it was made. Reset it to get a new one.": "Solo se muestra una vez, cuando se creó. Restablécela para obtener una nueva.",
+  "Makes a new key and shows it once. The current key stops working within a minute.": "Crea una clave nueva y la muestra una vez. La clave actual deja de funcionar en menos de un minuto.",
+  "Reset API Key?": "¿Restablecer la clave de API?",
+  "The current key stops working within a minute, for every script and tool that uses it. The new key is shown once.": "La clave actual deja de funcionar en menos de un minuto para todos los scripts y herramientas que la usan. La nueva clave se muestra una vez.",
+  "The server did not answer with the new API key. Try again.": "El servidor no respondió con la nueva clave de API. Inténtalo de nuevo.",
+  "API Key Hint": "Pista de la clave de API",
+  "Master API Key Created At": "Clave de API maestra creada el",
+  "Master API Key Created By User ID": "ID del usuario que creó la clave de API maestra",
+  "Master API Key Hint": "Pista de la clave de API maestra"
 }

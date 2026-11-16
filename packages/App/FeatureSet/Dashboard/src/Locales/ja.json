@@ -55977,5 +55977,17 @@
   "Already paged about this by {{name}}, so not paged again.": "これについては {{name}} からすでに呼び出されているため、再度呼び出されませんでした。",
   "Merged Into On-Call Log ID": "統合先のオンコールログの ID",
   "Their page from another on-call policy is over, so this policy pages them now.": "別のオンコールポリシーからの呼び出しが終了したため、このポリシーが代わりに呼び出します。",
-  "Their page from {{name}} is over, so this policy pages them now.": "{{name}} からの呼び出しが終了したため、このポリシーが代わりに呼び出します。"
+  "Their page from {{name}} is over, so this policy pages them now.": "{{name}} からの呼び出しが終了したため、このポリシーが代わりに呼び出します。",
+  "Copy Your API Key": "API キーをコピー",
+  "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "今すぐコピーして、シークレットマネージャーなどの安全な場所に保管してください。表示されるのは今回だけです。OneUptime はハッシュしか保存しません。",
+  "Ends in {{hint}}": "末尾は {{hint}}",
+  "Shown only once, when it was made. Reset it to get a new one.": "作成時に一度だけ表示されました。新しいキーが必要な場合はリセットしてください。",
+  "Makes a new key and shows it once. The current key stops working within a minute.": "新しいキーを作成し、一度だけ表示します。現在のキーは 1 分以内に使えなくなります。",
+  "Reset API Key?": "API キーをリセットしますか？",
+  "The current key stops working within a minute, for every script and tool that uses it. The new key is shown once.": "現在のキーは、それを使うすべてのスクリプトとツールで 1 分以内に使えなくなります。新しいキーは一度だけ表示されます。",
+  "The server did not answer with the new API key. Try again.": "サーバーが新しい API キーを返しませんでした。もう一度お試しください。",
+  "API Key Hint": "API キーのヒント",
+  "Master API Key Created At": "マスター API キーの作成日時",
+  "Master API Key Created By User ID": "マスター API キーを作成したユーザーの ID",
+  "Master API Key Hint": "マスター API キーのヒント"
 }

@@ -55977,5 +55977,17 @@
   "Already paged about this by {{name}}, so not paged again.": "Déjà appelé à ce sujet par {{name}}, donc pas appelé à nouveau.",
   "Merged Into On-Call Log ID": "ID du journal d'astreinte dans lequel il a été fusionné",
   "Their page from another on-call policy is over, so this policy pages them now.": "L'appel d'une autre politique d'astreinte est terminé, donc cette politique appelle elle-même maintenant.",
-  "Their page from {{name}} is over, so this policy pages them now.": "L'appel de {{name}} est terminé, donc cette politique appelle elle-même maintenant."
+  "Their page from {{name}} is over, so this policy pages them now.": "L'appel de {{name}} est terminé, donc cette politique appelle elle-même maintenant.",
+  "Copy Your API Key": "Copiez votre clé API",
+  "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "Copiez-la maintenant et conservez-la en lieu sûr, par exemple dans un gestionnaire de secrets. Elle n'est affichée que cette fois : OneUptime n'en conserve qu'un hachage.",
+  "Ends in {{hint}}": "Se termine par {{hint}}",
+  "Shown only once, when it was made. Reset it to get a new one.": "Affichée une seule fois, à sa création. Réinitialisez-la pour en obtenir une nouvelle.",
+  "Makes a new key and shows it once. The current key stops working within a minute.": "Crée une nouvelle clé et l'affiche une seule fois. La clé actuelle cesse de fonctionner en moins d'une minute.",
+  "Reset API Key?": "Réinitialiser la clé API ?",
+  "The current key stops working within a minute, for every script and tool that uses it. The new key is shown once.": "La clé actuelle cesse de fonctionner en moins d'une minute, pour chaque script et chaque outil qui l'utilise. La nouvelle clé est affichée une seule fois.",
+  "The server did not answer with the new API key. Try again.": "Le serveur n'a pas répondu avec la nouvelle clé API. Réessayez.",
+  "API Key Hint": "Indice de la clé API",
+  "Master API Key Created At": "Clé API maîtresse créée le",
+  "Master API Key Created By User ID": "ID de l'utilisateur créateur de la clé API maîtresse",
+  "Master API Key Hint": "Indice de la clé API maîtresse"
 }

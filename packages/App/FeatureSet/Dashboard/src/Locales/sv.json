@@ -55977,5 +55977,17 @@
   "Already paged about this by {{name}}, so not paged again.": "Redan larmad om detta av {{name}}, så inte larmad igen.",
   "Merged Into On-Call Log ID": "ID för jourloggen som detta slogs ihop med",
   "Their page from another on-call policy is over, so this policy pages them now.": "Larmet från en annan jourpolicy är över, så den här policyn larmar nu själv.",
-  "Their page from {{name}} is over, so this policy pages them now.": "Larmet från {{name}} är över, så den här policyn larmar nu själv."
+  "Their page from {{name}} is over, so this policy pages them now.": "Larmet från {{name}} är över, så den här policyn larmar nu själv.",
+  "Copy Your API Key": "Kopiera din API-nyckel",
+  "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "Kopiera den nu och förvara den på ett säkert ställe, till exempel i en secret manager. Den visas bara den här gången: OneUptime sparar bara en hash av den.",
+  "Ends in {{hint}}": "Slutar på {{hint}}",
+  "Shown only once, when it was made. Reset it to get a new one.": "Visas bara en gång, när den skapades. Återställ den för att få en ny.",
+  "Makes a new key and shows it once. The current key stops working within a minute.": "Skapar en ny nyckel och visar den en gång. Den nuvarande nyckeln slutar fungera inom en minut.",
+  "Reset API Key?": "Återställa API-nyckeln?",
+  "The current key stops working within a minute, for every script and tool that uses it. The new key is shown once.": "Den nuvarande nyckeln slutar fungera inom en minut, för varje skript och verktyg som använder den. Den nya nyckeln visas en gång.",
+  "The server did not answer with the new API key. Try again.": "Servern svarade inte med den nya API-nyckeln. Försök igen.",
+  "API Key Hint": "Tips för API-nyckel",
+  "Master API Key Created At": "Master-API-nyckel skapad den",
+  "Master API Key Created By User ID": "Id för användare som skapade master-API-nyckeln",
+  "Master API Key Hint": "Tips för master-API-nyckel"
 }
