@@ -35,6 +35,11 @@ import useCustomFieldFacets from "../CustomFields/useCustomFieldFacets";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import {
+  UsedByListActions,
+  getUsedByListActions,
+} from "../UsedBy/UsedByListActions";
+import { UsedByRecordKind } from "Common/Types/UsedBy/UsedBy";
+import {
   DISABLE_SWITCH_ACTION,
   ENABLE_SWITCH_ACTION,
   SwitchActionsResult,
@@ -174,6 +179,14 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
     isArchived: isArchivedView,
   } as Query<Monitor>;
 
+  /*
+   * A row's Delete and Archive, and the bulk ones, say what still uses the
+   * monitors first: status pages, SLOs, rules that name them (#7435).
+   */
+  const usedBy: UsedByListActions<Monitor> = getUsedByListActions<Monitor>(
+    UsedByRecordKind.Monitor,
+  );
+
   const {
     archiveBulkActions,
     unarchiveBulkActions,
@@ -185,6 +198,8 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
     pluralName: MONITOR_ARCHIVE_COPY.pluralName,
     archiveConfirmMessage: MONITOR_ARCHIVE_COPY.bulkArchiveConfirmMessage,
     unarchiveConfirmMessage: MONITOR_ARCHIVE_COPY.bulkUnarchiveConfirmMessage,
+    archiveConfirmDetails: usedBy.archiveConfirmDetails,
+    getArchiveConfirmationDetails: usedBy.getArchiveConfirmationDetails,
   });
 
   /*
@@ -695,7 +710,9 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                 ...archiveBulkActions,
                 ModalTableBulkDefaultActions.Delete,
               ],
+          deleteConfirmationDetails: usedBy.deleteConfirmationDetails,
         }}
+        getDeleteConfirmation={usedBy.getDeleteConfirmation}
         /*
          * Each row's ⋯ menu: Enable or Disable (the one that changes the
          * row), the page's own actions, then Archive - or, on the Archived

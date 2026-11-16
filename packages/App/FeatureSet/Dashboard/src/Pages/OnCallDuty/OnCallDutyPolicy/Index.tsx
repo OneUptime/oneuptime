@@ -14,6 +14,8 @@ import OverviewCustomFields from "../../../Components/CustomFields/OverviewCusto
 import OnCallDutyPolicyFeedElement from "../../../Components/OnCallPolicy/OnCallDutyPolicyFeed";
 import OnCallPolicySummary from "../../../Components/OnCallPolicy/OnCallPolicySummary";
 import ResponderReadinessCard from "../../../Components/OnCallPolicy/Readiness/ResponderReadinessCard";
+import UsedByCard from "../../../Components/UsedBy/UsedByCard";
+import { UsedByRecordKind } from "Common/Types/UsedBy/UsedBy";
 
 const OnCallDutyPolicyView: FunctionComponent<
   PageComponentProps
@@ -117,6 +119,16 @@ const OnCallDutyPolicyView: FunctionComponent<
        * that page lands.
        */}
       <ResponderReadinessCard onCallDutyPolicyId={modelId} />
+
+      {/*
+       * What runs it (#7758): the summary says who is paged, this says
+       * when - the on-call rules, monitors and templates that page the
+       * policy - and says so plainly when nothing does yet.
+       */}
+      <UsedByCard
+        recordKind={UsedByRecordKind.OnCallPolicy}
+        recordId={modelId}
+      />
 
       <OnCallDutyPolicyFeedElement onCallDutyPolicyId={modelId} />
     </Fragment>

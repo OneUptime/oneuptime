@@ -12,6 +12,7 @@ import { withoutGroupsOfProductsOff } from "Common/Types/UsedBy/UsedByServerProd
 import {
   UsedByRecordKind,
   UsedByRelation,
+  UsedBySummary,
   isUsedByNothing,
 } from "Common/Types/UsedBy/UsedBy";
 import Card, { CardHeaderLayout } from "Common/UI/Components/Card/Card";
@@ -75,14 +76,15 @@ const UsedByCard: FunctionComponent<ComponentProps> = (
       );
     }
 
-    const summary: ReturnType<typeof withoutGroupsOfProductsOff> =
-      withoutGroupsOfProductsOff(
-        used.state.summary,
-        getOffProducts(products.answer.offOnServer || {}),
-      );
+    const summary: UsedBySummary = withoutGroupsOfProductsOff(
+      used.state.summary,
+      getOffProducts(products.answer.offOnServer || {}),
+    );
 
     if (isUsedByNothing(summary)) {
-      return <UsedByEmpty recordKind={props.recordKind} />;
+      return (
+        <UsedByEmpty recordKind={props.recordKind} recordId={props.recordId} />
+      );
     }
 
     return (

@@ -43,6 +43,8 @@ import MonitorGroupMonitorsCopy, {
 import NoMonitorsStatus from "../../../Components/MonitorGroup/NoMonitorsStatus";
 import MonitorGroupDisabledStatus from "../../../Components/MonitorGroup/MonitorGroupDisabledStatus";
 import MonitorGroupMonitoringCard from "../../../Components/MonitorGroup/MonitorGroupMonitoringCard";
+import UsedByCard from "../../../Components/UsedBy/UsedByCard";
+import { UsedByRecordKind } from "Common/Types/UsedBy/UsedBy";
 import { fetchMonitorGroupMonitoringSummary } from "../../../Components/MonitorGroup/MonitorGroupMonitoringAPI";
 import MonitorGroupMonitoring, {
   MonitorGroupMonitoringState,
@@ -524,6 +526,15 @@ const MonitorGroupView: FunctionComponent<
           />
         </Card>
       )}
+
+      {/*
+       * What uses the group (#7437): the status pages that show it, and the
+       * SLOs that measure its monitors.
+       */}
+      <UsedByCard
+        recordKind={UsedByRecordKind.MonitorGroup}
+        recordId={modelId}
+      />
     </Fragment>
   );
 };
