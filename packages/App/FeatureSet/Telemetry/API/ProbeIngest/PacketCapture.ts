@@ -1,7 +1,9 @@
 import ProbeAuthorization from "../../Middleware/ProbeAuthorization";
+import ProbeSchedulingMiddleware from "../../Middleware/ProbeScheduling";
 import { ProbeExpressRequest } from "../../Types/Request";
 import PacketCaptureService from "Common/Server/Services/PacketCaptureService";
 import Express, {
+  ExpressRequest,
   ExpressResponse,
   ExpressRouter,
   NextFunction,
@@ -165,41 +167,101 @@ router.post(
   },
 );
 
+/*
+ * A list request, once its running captures are heard from: which of them
+ * to stop.
+ */
+interface PacketCaptureListRequest extends ProbeExpressRequest {
+  packetCapturesToStop?: Array<string>;
+}
+
+// The answer with no new captures: the running ones to stop, and no more.
+function answerStopsOnly(req: ExpressRequest, res: ExpressResponse): void {
+  return Response.sendJsonObjectResponse(req, res, {
+    packetCaptures: [],
+    stopPacketCaptureIds:
+      (req as PacketCaptureListRequest).packetCapturesToStop || [],
+  });
+}
+
+/*
+ * The first half of a list request: the captures the probe names are heard
+ * from - a capture no probe names for PACKET_CAPTURE_HEARTBEAT_TIMEOUT_IN_
+ * MINUTES is failed by the sweep - and the ones to stop are worked out.
+ *
+ * Before the probe scheduling limit, never held to it (issue #8051): it is
+ * a report of work in hand, at most two captures a probe, and a busy
+ * answer must neither lose it nor keep a Stop from the probe. A probe with
+ * no capture slot free asks for nothing more, and is answered here, without
+ * waiting for a scheduling slot it would not use.
+ */
+async function recordRunningCaptures(
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const listRequest: PacketCaptureListRequest =
+      req as PacketCaptureListRequest;
+    const probeId: ObjectID | null = getProbeId(listRequest);
+
+    if (!probeId) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Probe not found"),
+      );
+    }
+
+    const runningIds: Array<string> = readRunningIds(
+      readBody(listRequest)["runningPacketCaptureIds"],
+    );
+
+    /*
+     * Stops first, then claims: a slot freed by a stop is the probe's to
+     * report on its next request, not this one.
+     */
+    listRequest.packetCapturesToStop =
+      runningIds.length > 0
+        ? await PacketCaptureService.findCapturesToStop({
+            probeId: probeId,
+            runningPacketCaptureIds: runningIds,
+          })
+        : [];
+
+    if (resolveClaimLimit(readBody(listRequest)["limit"]) === 0) {
+      return answerStopsOnly(req, res);
+    }
+
+    return next();
+  } catch (err) {
+    return next(err);
+  }
+}
+
 router.post(
   "/probe/packet-capture/list",
   ProbeAuthorization.isAuthorizedServiceMiddleware,
+  recordRunningCaptures,
+  /*
+   * The claim runs under the probe scheduling limit (issue #8051): refused,
+   * it claims nothing, and the captures stay Pending for the probe's next
+   * tick. Every probe is answered busy with the stops alone, never a 429,
+   * which would lose them.
+   */
+  ProbeSchedulingMiddleware.limit(answerStopsOnly, { retriesWhenBusy: null }),
   async (
     req: ProbeExpressRequest,
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const probeId: ObjectID | null = getProbeId(req);
-
-      if (!probeId) {
-        return Response.sendErrorResponse(
-          req,
-          res,
-          new BadDataException("Probe not found"),
-        );
-      }
+      // A request with no probe was refused by recordRunningCaptures.
+      const probeId: ObjectID = getProbeId(req) as ObjectID;
 
       const body: JSONObject = readBody(req);
-      const runningIds: Array<string> = readRunningIds(
-        body["runningPacketCaptureIds"],
-      );
-
-      /*
-       * Stops first, then claims: a slot freed by a stop is the probe's to
-       * report on its next request, not this one.
-       */
       const stopIds: Array<string> =
-        runningIds.length > 0
-          ? await PacketCaptureService.findCapturesToStop({
-              probeId: probeId,
-              runningPacketCaptureIds: runningIds,
-            })
-          : [];
+        (req as PacketCaptureListRequest).packetCapturesToStop || [];
 
       const limit: number = resolveClaimLimit(body["limit"]);
 

@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 इन्हें `config.env` में सेट करें, फिर `npm start` चलाएँ। `DISABLE_TELEMETRY_FOR_APP` डिफ़ॉल्ट रूप से `true` होता है, और तब कुछ भी नहीं भेजा जाता।
 :::
 
-OneUptime को एंडपॉइंट और हेडर दोनों चाहिए: हेडर के बिना वह कुछ नहीं भेजता। हर हेडर को `name=value` के रूप में लिखें, और कई हेडर को `;` से, या `OTEL_EXPORTER_OTLP_HEADERS` की तरह `,` से अलग करें। किसी मान में `=` हो सकता है। `;` के बिना, मान को वैसे ही पढ़ा जाता है जैसे वह मानक उसे लिखता है, यानी स्पेस को `%20` के रूप में: किसी मान को ठीक वैसे ही भेजने के लिए जैसा वह लिखा है, सेटिंग को `;` पर ख़त्म करें। OneUptime एंडपॉइंट में `/v1/metrics` ख़ुद जोड़ता है, और यही सेटिंग्स उसके अपने ट्रेस और लॉग भी भेजती हैं। हर मेट्रिक तब दिखता है जब OneUptime उसे पहली बार दर्ज करता है: `notification.send.count` पहला संदेश भेजे जाने पर।
+OneUptime को एंडपॉइंट और हेडर दोनों चाहिए: हेडर के बिना वह कुछ नहीं भेजता। हर हेडर को `name=value` के रूप में लिखें, और कई हेडर को `;` से, या `OTEL_EXPORTER_OTLP_HEADERS` की तरह `,` से अलग करें। किसी मान में `=` हो सकता है। `;` के बिना, मान को वैसे ही पढ़ा जाता है जैसे वह मानक उसे लिखता है, यानी स्पेस को `%20` के रूप में: किसी मान को ठीक वैसे ही भेजने के लिए जैसा वह लिखा है, सेटिंग को `;` पर ख़त्म करें। ख़ुद `OTEL_EXPORTER_OTLP_HEADERS` में, या सिर्फ़ मेट्रिक्स के लिए `OTEL_EXPORTER_OTLP_METRICS_HEADERS` में सेट किए गए हेडर भी गिने जाते हैं: एक्सपोर्टर उन्हें भी भेजता है, और एक ही नाम होने पर OneUptime के अपने हेडर मान्य होते हैं। OneUptime एंडपॉइंट में `/v1/metrics` ख़ुद जोड़ता है, और यही सेटिंग्स उसके अपने ट्रेस और लॉग भी भेजती हैं। हर मेट्रिक तब दिखता है जब OneUptime उसे पहली बार दर्ज करता है: `notification.send.count` पहला संदेश भेजे जाने पर।
 
 ### OneUptime प्रोजेक्ट को डेल्टा भेजें
 
@@ -57,19 +57,15 @@ OneUptime काउंटर और हिस्टोग्राम उसी 
 :::tabs
 @tab Kubernetes
 ```yaml
-extraEnv:
-  - name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
-    value: delta
+openTelemetryExporter:
+  metricsTemporality: delta
 ```
-किसी सर्विस की अपनी सूची पूरे चार्ट वाली सूची की जगह ले लेती है: अगर आप `app.extraEnv` या `worker.extraEnv` सेट करते हैं, तो इसे वहाँ भी जोड़ें।
+चार्ट यह मान `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE` के रूप में हर उस सर्विस को देता है जो OneUptime की अपनी टेलीमेट्री भेजती है।
 @tab Docker Compose
-```yaml title="docker-compose.override.yml"
-services:
-  app:
-    environment:
-      OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: delta
+```bash
+OPENTELEMETRY_EXPORTER_OTLP_METRICS_TEMPORALITY=delta
 ```
-इसे `docker-compose.yml` के बगल में बनाएँ, या इसे अपनी मौजूदा फ़ाइल में जोड़ें, फिर `npm start` चलाएँ।
+इसे `config.env` में सेट करें, फिर `npm start` चलाएँ।
 :::
 
 यह हर उस मेट्रिक पर लागू होता है जो OneUptime अपने बारे में भेजता है। जो बैकएंड चालू योग ख़ुद पढ़ता है, जैसे Prometheus, उसमें कोई बदलाव नहीं चाहिए।
@@ -210,7 +206,7 @@ services:
 | `a` | `notification.send.count` | **योग** | `notification.channel = sms`, `notification.on_call_page = true`, `notification.provider.config = global`, `outcome != not_sent` |
 | `b` | `notification.send.count` | **योग** | वही, `outcome = failure` के साथ |
 
-फ़ॉर्मूला `$b / $a * 100` विफल हिस्सेदारी है, और लक्ष्य तब तक बना रहता है जब तक यह 1 या उससे नीचे रहे। बिना विफलता वाला स्टेप कोई पॉइंट नहीं बनाता, क्योंकि `b` के पास कोई नहीं होता। `outcome != not_sent` वह बाहर रखता है जो प्रोजेक्ट की अपनी सेटिंग्स ने रोका, और `global` प्रोजेक्ट के अपने Twilio खाते। जो इंस्टॉलेशन SMS अपने SMS और कॉल गेटवे से भेजता है, उस पर यही क्वेरी गेटवे को मापती हैं। किसी दूसरे चैनल के लिए `sms` बदलें: `call`, `push` या `email`।
+फ़ॉर्मूला `$b / $a * 100` विफल हिस्सेदारी है, और लक्ष्य तब तक बना रहता है जब तक यह 1 या उससे नीचे रहे। बिना विफलता वाला स्टेप 0 बनाता है, क्योंकि `b` ने उसमें कुछ नहीं गिना। `outcome != not_sent` वह बाहर रखता है जो प्रोजेक्ट की अपनी सेटिंग्स ने रोका, और `global` प्रोजेक्ट के अपने Twilio खाते। जो इंस्टॉलेशन SMS अपने SMS और कॉल गेटवे से भेजता है, उस पर यही क्वेरी गेटवे को मापती हैं। किसी दूसरे चैनल के लिए `sms` बदलें: `call`, `push` या `email`।
 
 ### पेज 30 सेकंड के भीतर निकलते हैं
 

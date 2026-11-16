@@ -28,7 +28,7 @@
         },
         "host": {
             "type": "string",
-            "description": "Domain name or IP where OneUptime server is hosted, with :port when people open it on one. An IPv6 address goes in brackets, quoted in a values file: \"[2001:db8::1]\" or \"[2001:db8::1]:8080\"."
+            "description": "Domain name or IP where OneUptime server is hosted, without http://, with :port when people open it on one. An IPv6 address goes in brackets, quoted in a values file: \"[2001:db8::1]\" or \"[2001:db8::1]:8080\". A domain name has the letters a to z, digits, hyphens and dots only."
         },
         "httpProtocol": {
             "type": "string",
@@ -3138,6 +3138,19 @@
                     ],
                     "description": "Headers OneUptime's own telemetry is exported with: name=value, several separated by ';', or by ',' with percent-encoded values as in OTEL_EXPORTER_OTLP_HEADERS. A value may hold '='."
                 },
+                "metricsTemporality": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "enum": [
+                        "",
+                        "cumulative",
+                        "delta",
+                        null
+                    ],
+                    "description": "How OneUptime's own metrics are sent (OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE): empty or cumulative for running totals, the OpenTelemetry default; delta for what happened since the last point, which a OneUptime project reads exactly."
+                },
                 "kubernetesClusterName": {
                     "type": [
                         "string",
@@ -3365,7 +3378,8 @@
                     "type": [
                         "string",
                         "null"
-                    ]
+                    ],
+                    "description": "The password of your own PostgreSQL. Read from a file (--set-file), it is stored without the line ending the file ends with, and otherwise exactly as written."
                 },
                 "existingSecret": {
                     "type": "object",
@@ -3446,7 +3460,8 @@
                     "type": [
                         "string",
                         "null"
-                    ]
+                    ],
+                    "description": "Deprecated alias of externalValkey.password, stored the same way."
                 },
                 "ipFamily": {
                     "type": [
@@ -3534,7 +3549,8 @@
                     "type": [
                         "string",
                         "null"
-                    ]
+                    ],
+                    "description": "The password of your own cache. Read from a file (--set-file), it is stored without the line ending the file ends with, and otherwise exactly as written."
                 },
                 "ipFamily": {
                     "type": [
@@ -3631,7 +3647,8 @@
                     "type": [
                         "string",
                         "null"
-                    ]
+                    ],
+                    "description": "The password of your own ClickHouse. Read from a file (--set-file), it is stored without the line ending the file ends with, and otherwise exactly as written."
                 },
                 "existingSecret": {
                     "type": "object",

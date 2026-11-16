@@ -94,6 +94,7 @@ Serviços, hosts, clusters Kubernetes, hosts Docker e Podman, clusters Docker Sw
 | Registros de monitores, uma linha por verificação | 1 dia, salvo alteração | Em uma instalação de hospedagem própria, **Retenção de Registros do Monitor (Dias)** no Admin Dashboard |
 | Métricas de monitores, e as métricas que os SLOs registram | 30 dias, salvo alteração | Em uma instalação de hospedagem própria, **Retenção de Métricas do Monitor (Dias)** no Admin Dashboard |
 | [Uso de telemetria](/docs/telemetry/usage), uma contagem por recurso, sinal e dia | 120 dias, salvo alteração | Em uma instalação de hospedagem própria, **Retenção do Uso de Telemetria (Dias)** no Admin Dashboard |
+| Incidentes e alertas resolvidos, com suas linhas do tempo, notas e arquivos | Até o projeto escolher um período | **Incidentes → Configurações → Retenção de dados** e **Alertas → Configurações → Retenção de dados**: veja [Retenção de dados](/docs/incidents/settings#retenção-de-dados). Em uma instalação de hospedagem própria, **Manter por no máximo** no Admin Dashboard sujeita todos os projetos a um limite |
 
 ## Quanto custa a retenção
 

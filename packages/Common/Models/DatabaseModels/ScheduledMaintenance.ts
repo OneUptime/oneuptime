@@ -1801,15 +1801,17 @@ export default class ScheduledMaintenance extends BaseModel {
   })
   public endsAt?: Date = undefined;
 
+  /*
+   * Whether the subscribers were told the event was scheduled, and how it
+   * went (subscriberNotificationStatusMessage below): OneUptime's record of
+   * the notification, so nobody may give a new event either (#8907). The
+   * create decides it from shouldStatusPageSubscribersBeNotifiedOnEventCreated
+   * - queued, or skipped saying why - and the job that sends it writes the
+   * rest. Editors may still write it back to Pending: that is how the
+   * dashboard sends it again.
+   */
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ScheduledMaintenanceAdmin,
-      Permission.ScheduledMaintenanceMember,
-      Permission.CreateProjectScheduledMaintenance,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -1849,14 +1851,7 @@ export default class ScheduledMaintenance extends BaseModel {
     undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ScheduledMaintenanceAdmin,
-      Permission.ScheduledMaintenanceMember,
-      Permission.CreateProjectScheduledMaintenance,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -2156,15 +2151,13 @@ export default class ScheduledMaintenance extends BaseModel {
   })
   public nextSubscriberNotificationBeforeTheEventAt?: Date = undefined;
 
+  /*
+   * The event's number in its project: taken from the project's counter on
+   * every create (ScheduledMaintenanceService.onBeforeCreate), so nobody may
+   * give a new event one (#8907), as for an incident's.
+   */
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ScheduledMaintenanceAdmin,
-      Permission.ScheduledMaintenanceMember,
-      Permission.CreateProjectScheduledMaintenance,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

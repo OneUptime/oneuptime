@@ -939,7 +939,7 @@ export const ReceivesIngressTraffic: boolean =
  * connection a sign-in needs (Utils/Database/ConnectionShares, #7920):
  *
  *   - PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS: probe scheduling requests
- *     (monitor, monitor test and network device lists, pending counts)
+ *     (every request a probe makes for work, and the pending counts)
  *     running at once. Default: a fifth of DATABASE_MAX_OPEN_CONNECTIONS.
  *   - DATABASE_MAX_QUEUE_JOB_CONNECTIONS: Postgres connections the queue jobs
  *     of this process hold at once. Default: the pool less a fifth kept for

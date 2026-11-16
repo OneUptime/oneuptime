@@ -78,6 +78,13 @@ export interface LeafPurgeBatch<TBaseModel extends BaseModel> {
 // How many of the rows that stay the log names by id.
 export const ROWS_NAMED_IN_LOG: number = 100;
 
+/*
+ * The most rows the cycle step reads, whatever the batch's limit: the purge
+ * deletes 1000 rows a call (SoftDeletedRowsPurge), and a closed cycle goes in
+ * one delete, so a cycle of up to this many is still seen whole.
+ */
+export const MAX_CYCLE_ROWS: number = 10_000;
+
 // A table or column name that is safe to write into SQL as it is.
 const PLAIN_IDENTIFIER: RegExp = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
@@ -287,9 +294,12 @@ export default class NetworkSiteLeafPurge {
   }
 
   /*
-   * The closed cycles of due rows, whole, as many as fit in the limit. Its
-   * rows are all named by exactly one row, so they are among the due rows
-   * read here; a cycle this read cannot see whole is not one it removes.
+   * The closed cycles of due rows, whole, as many as fit in the limit - and
+   * the first one whole even when it alone is larger: a cycle cannot be
+   * split, so one larger than a batch would otherwise never go. Its rows are
+   * all named by exactly one row, so they are among the due rows read here,
+   * up to MAX_CYCLE_ROWS of them however small the batch; a cycle this read
+   * cannot see whole is not one it removes.
    */
   private static async readClosedCycles<TBaseModel extends BaseModel>(
     batch: LeafPurgeBatch<TBaseModel>,
@@ -307,7 +317,7 @@ export default class NetworkSiteLeafPurge {
         [parentColumn]: true,
       } as Select<TBaseModel>,
       sort: { _id: SortOrder.Ascending } as Sort<TBaseModel>,
-      limit: batch.limit,
+      limit: Math.max(batch.limit, MAX_CYCLE_ROWS),
       skip: 0,
       props: { isRoot: true },
     });
@@ -332,8 +342,11 @@ export default class NetworkSiteLeafPurge {
     const chosen: Array<PurgeRow> = [];
 
     for (const cycle of findCycles(parentOf)) {
-      // A cycle goes whole: a part would leave a row naming one deleted.
-      if (chosen.length + cycle.length > batch.limit) {
+      /*
+       * A cycle goes whole: a part would leave a row naming one deleted.
+       * The first goes whatever its size, the rest only as they fit.
+       */
+      if (chosen.length > 0 && chosen.length + cycle.length > batch.limit) {
         continue;
       }
 

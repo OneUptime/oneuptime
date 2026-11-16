@@ -59,6 +59,17 @@ enum ProbeCapability {
    * without a word (issue #7920).
    */
   RetryWhenBusy = "retryWhenBusy",
+  /*
+   * Every work fetch of the probe reads a 429 that way, not only the three
+   * above: discovery scans, device diagnostics, packet captures, VMware and
+   * OpenStack collections, OpenStack checks, Data Security scans and Data
+   * Observability collections (issue #8051). The server answers a busy
+   * request for that work with a 429 to a probe that declares this, and with
+   * the endpoint's empty answer to any other: probes that declare only
+   * RetryWhenBusy log a 429 from those fetches as a failed request, every
+   * tick.
+   */
+  RetryAllWorkWhenBusy = "retryAllWorkWhenBusy",
 }
 
 // The first probe release that walks SNMP tables.

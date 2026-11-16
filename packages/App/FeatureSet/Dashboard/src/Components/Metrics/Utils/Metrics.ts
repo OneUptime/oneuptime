@@ -1,4 +1,6 @@
-import Metric from "Common/Models/AnalyticsModels/Metric";
+import Metric, {
+  AggregationTemporality,
+} from "Common/Models/AnalyticsModels/Metric";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -27,6 +29,9 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import MetricFormulaEvaluator from "Common/Utils/Metrics/MetricFormulaEvaluator";
+import MetricZeroFill, {
+  MetricZeroFillOptions,
+} from "Common/Utils/Metrics/MetricZeroFill";
 import MetricResultUnitConverter from "Common/Utils/Metrics/MetricResultUnitConverter";
 import Dictionary from "Common/Types/Dictionary";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -246,6 +251,28 @@ async function fetchPublicMetricTypes(
     const metricType: MetricType = new MetricType();
     metricType.name = (rawMetricType["name"] as string) || "";
     metricType.unit = (rawMetricType["unit"] as string) || "";
+
+    /*
+     * Counter semantics, so a public dashboard's formulas read a count with
+     * no point in a step as 0 where the dashboard's own page does
+     * (MetricZeroFill). Absent from an older server: nothing is filled.
+     */
+    if (typeof rawMetricType["isMonotonic"] === "boolean") {
+      metricType.isMonotonic = rawMetricType["isMonotonic"] as boolean;
+    }
+
+    const aggregationTemporality: unknown =
+      rawMetricType["aggregationTemporality"];
+
+    if (
+      Object.values(AggregationTemporality).includes(
+        aggregationTemporality as AggregationTemporality,
+      )
+    ) {
+      metricType.aggregationTemporality =
+        aggregationTemporality as AggregationTemporality;
+    }
+
     return metricType;
   });
 }
@@ -332,6 +359,58 @@ export const sanitizeAttributeFilters: SanitizeAttributeFiltersFunction = (
 };
 
 export default class MetricUtil {
+  /*
+   * How a chart's formulas read a query with no point in a step
+   * (MetricZeroFill): from the metric types' counter semantics, over the
+   * steps the aggregate API cuts `startAndEndDate` into - or the pinned
+   * `aggregationInterval`'s - in the zone it cuts days in for this reader,
+   * as read now. Undefined with no window: nothing is filled.
+   */
+  public static getFormulaZeroFill(data: {
+    metricTypes: Array<MetricType>;
+    startAndEndDate: InBetween<Date> | null | undefined;
+    aggregationInterval?: AggregationInterval | undefined;
+    readAt?: Date | undefined;
+  }): MetricZeroFillOptions | undefined {
+    const startDate: Date | undefined = data.startAndEndDate?.startValue as
+      | Date
+      | undefined;
+    const endDate: Date | undefined = data.startAndEndDate?.endValue as
+      | Date
+      | undefined;
+
+    if (!startDate || !endDate) {
+      return undefined;
+    }
+
+    let timezone: ReturnType<typeof AggregationIntervalUtil.getReaderTimezone> =
+      undefined;
+
+    try {
+      timezone = AggregationIntervalUtil.getReaderTimezone({
+        startDate: startDate,
+        endDate: endDate,
+        aggregationInterval: data.aggregationInterval,
+      });
+    } catch {
+      // A window with no interval to read: its days, if any, are UTC's.
+    }
+
+    return MetricZeroFill.getOptions({
+      metricTypes: data.metricTypes.map((metricType: MetricType) => {
+        return {
+          name: metricType.name,
+          isMonotonic: metricType.isMonotonic,
+          aggregationTemporality: metricType.aggregationTemporality,
+        };
+      }),
+      window: { startDate: startDate, endDate: endDate },
+      aggregationInterval: data.aggregationInterval,
+      timezone: timezone,
+      readAt: data.readAt || OneUptimeDate.getCurrentDate(),
+    });
+  }
+
   public static async fetchResults(data: {
     metricViewData: MetricViewData;
     metricTypes?: Array<MetricType> | undefined;
@@ -567,6 +646,23 @@ export default class MetricUtil {
     const formulaConfigs: Array<MetricFormulaConfigData> =
       metricViewData.formulaConfigs || [];
 
+    /*
+     * A query counting what happened (the Sum or Count of a counter or a
+     * histogram, as the metric types say) is 0 in a formula where it has
+     * no point, in a step that is over: a failure share draws 0% where
+     * nothing failed, as the monitor made from this chart reads it
+     * (MetricZeroFill). Its steps are the ones the aggregate API cut, in
+     * the zone it cut its days in.
+     */
+    const zeroFill: MetricZeroFillOptions | undefined =
+      formulaConfigs.length > 0
+        ? MetricUtil.getFormulaZeroFill({
+            metricTypes: metricTypes,
+            startAndEndDate: metricViewData.startAndEndDate,
+            aggregationInterval: data.aggregationInterval,
+          })
+        : undefined;
+
     for (let index: number = 0; index < formulaConfigs.length; index++) {
       const formulaConfig: MetricFormulaConfigData = formulaConfigs[index]!;
       const formula: string =
@@ -584,6 +680,7 @@ export default class MetricUtil {
             queryConfigs: metricViewData.queryConfigs,
             formulaConfigs: formulaConfigs.slice(0, index),
             results,
+            zeroFill,
           });
         results.push(formulaResult);
       } catch (err: unknown) {

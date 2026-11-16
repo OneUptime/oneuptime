@@ -58,6 +58,7 @@ Ya no existe el indicador de entorno `RUNBOOK_BASH_ENABLED`. Que estos pasos fun
 | Salida por paso | **50 KB**. La salida más larga se corta con una marca. | Cada paso automatizado |
 | Tiempo de espera de ejecución | **30 segundos** por defecto | Pasos JavaScript, Bash, SSH y kubectl |
 | Tiempo de espera de la solicitud | **30 segundos** por defecto | Pasos de solicitud HTTP |
+| Respuesta por solicitud | **10 MB**. Una respuesta mayor no se lee y hace fallar el paso. | Pasos de solicitud HTTP |
 | Tiempo de espera de reclamación | **2 minutos** por defecto: cuánto espera el Worker a que el Runner elegido tome el trabajo antes de darlo por fallido | Pasos JavaScript, Bash, SSH y kubectl |
 | Rango de los tiempos de espera | **1 segundo a 1 hora** | Cada tiempo de espera |
 | Espera de una persona | Sin límite | Pasos Manual y aprobaciones |

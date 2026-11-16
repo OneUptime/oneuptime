@@ -39,8 +39,17 @@ import {
 } from "../../../FeatureSet/Dashboard/src/Utils/ExceptionDetailPresentation";
 import { AI_INSIGHTS_SWITCHES } from "../../../FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
 import Log from "Common/Models/AnalyticsModels/Log";
-import Metric from "Common/Models/AnalyticsModels/Metric";
+import Metric, {
+  AggregationTemporality,
+} from "Common/Models/AnalyticsModels/Metric";
 import Span from "Common/Models/AnalyticsModels/Span";
+import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
+import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
+import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
+import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
+import MetricZeroFill, {
+  MetricPointSemantics,
+} from "Common/Utils/Metrics/MetricZeroFill";
 import Service from "Common/Models/DatabaseModels/Service";
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
@@ -1691,6 +1700,110 @@ describe("Metrics Explorer (telemetry/metrics-explorer)", () => {
     expect(page).toContain(
       "A variable can be written with or without its `$`, in any case. A formula that names a query you have not defined says so instead of drawing.",
     );
+  });
+
+  /*
+   * Issue #6761: a formula reads a query counting what happened as 0 in a
+   * step it has no point in (MetricZeroFill), and nothing else - a gauge, an
+   * average, a percentile, a silent step, a step still being counted - as
+   * the paragraph after the formula's says.
+   */
+  it("reads a count with no point in a step as 0 in a formula, as the page says, and nothing else", () => {
+    const paragraph: string =
+      "A query that counts what happened, the sum or the count of a counter or a histogram, has no data point in a step where nothing happened, so a formula reads it as 0 there: `$b / $a * 100` draws 0 in a step with no failure. A gauge, an average or a percentile with no data point is unknown, and the formula leaves that step out. It also leaves out a step none of its queries has a data point in, and one that ended less than a minute ago, whose last data points may still be arriving.";
+
+    expect(page).toContain(paragraph);
+
+    const queryOf: (
+      variable: string,
+      metricName: string,
+      aggregation: MetricsAggregationType,
+    ) => MetricQueryConfigData = (
+      variable: string,
+      metricName: string,
+      aggregation: MetricsAggregationType,
+    ): MetricQueryConfigData => {
+      return {
+        metricAliasData: {
+          metricVariable: variable,
+          title: "",
+          description: "",
+          legend: "",
+          legendUnit: "",
+        },
+        metricQueryData: {
+          filterData: { metricName, aggegationType: aggregation },
+        },
+      } as MetricQueryConfigData;
+    };
+
+    const catalog: Map<string, MetricPointSemantics> =
+      MetricZeroFill.getSemanticsByMetricName([
+        {
+          name: "http.server.requests",
+          isMonotonic: true,
+          aggregationTemporality: AggregationTemporality.Delta,
+        },
+        {
+          name: "http.server.request.duration",
+          isMonotonic: null,
+          aggregationTemporality: AggregationTemporality.Delta,
+        },
+        { name: "system.memory.usage" },
+      ]);
+
+    // The sum or the count of a counter or a histogram counts.
+    for (const [metricName, aggregation, counts] of [
+      ["http.server.requests", MetricsAggregationType.Sum, true],
+      ["http.server.requests", MetricsAggregationType.Count, true],
+      ["http.server.request.duration", MetricsAggregationType.Count, true],
+      ["http.server.request.duration", MetricsAggregationType.P95, false],
+      ["http.server.requests", MetricsAggregationType.Avg, false],
+      ["system.memory.usage", MetricsAggregationType.Sum, false],
+    ] as Array<[string, MetricsAggregationType, boolean]>) {
+      expect({
+        metricName,
+        aggregation,
+        counts: MetricZeroFill.isCountingQuery({
+          queryConfig: queryOf("a", metricName, aggregation),
+          semanticsByMetricName: catalog,
+        }),
+      }).toEqual({ metricName, aggregation, counts });
+    }
+
+    // "less than a minute ago": the ingest queue's normal lag.
+    expect(MetricZeroFill.SETTLE_MS).toBe(60 * 1000);
+
+    // The page's error rate: 0 where nothing failed, nothing where nothing came.
+    const share: AggregatedResult = MetricFormulaEvaluator.evaluateFormula({
+      formula: "$b / $a * 100",
+      queryConfigs: [
+        queryOf("a", "http.server.requests", MetricsAggregationType.Sum),
+        queryOf("b", "http.server.requests", MetricsAggregationType.Sum),
+      ],
+      formulaConfigs: [],
+      results: [
+        {
+          data: [
+            { timestamp: new Date("2026-11-01T00:00:00Z"), value: 50 },
+            { timestamp: new Date("2026-11-01T00:02:00Z"), value: 40 },
+          ],
+        },
+        {
+          data: [{ timestamp: new Date("2026-11-01T00:02:00Z"), value: 2 }],
+        },
+      ],
+      zeroFill: { semanticsByMetricName: catalog },
+    });
+
+    expect(
+      share.data.map((point: AggregatedModel): [string, number] => {
+        return [new Date(point.timestamp).toISOString(), point.value];
+      }),
+    ).toEqual([
+      ["2026-11-01T00:00:00.000Z", 0],
+      ["2026-11-01T00:02:00.000Z", 5],
+    ]);
   });
 
   it("explores around a chart with the buttons the toolbar draws, and uses a chart from the Actions menu", () => {

@@ -209,6 +209,21 @@ export class Service extends ProjectReferencesService<DashboardDomain> {
 
     createBy.data.cnameVerificationToken = ObjectID.generate().toString();
 
+    /*
+     * A new domain starts with nothing ordered, provisioned or reissued,
+     * whatever the request said, as a form's does: the sweeps and Check now
+     * find out. Nobody may create those columns, so a person's value never
+     * gets this far (#8907); this holds for OneUptime's own creates and a
+     * server admin's too. Its CNAME check is not written here: nobody may
+     * create that column either, and the create's column check refuses a
+     * value in it that the caller sent.
+     */
+    createBy.data.isSslOrdered = false;
+    createBy.data.isSslProvisioned = false;
+    delete (createBy.data as unknown as Record<string, unknown>)[
+      "certificateReissueRequestedAt"
+    ];
+
     // An uploaded certificate comes with a key that is its own (UploadedCertificate).
     UploadedCertificate.assertCreateIsServable(
       createBy.data as UploadedCertificateColumns,

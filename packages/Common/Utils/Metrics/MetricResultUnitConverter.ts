@@ -101,6 +101,12 @@ export default class MetricResultUnitConverter {
       },
     );
 
-    return { data: convertedData };
+    /*
+     * The read's own word on itself stays with it: whether it was cut at
+     * its row limit or to its top N series (truncated, totalGroups) is what
+     * a chart's "Showing top k of N" says and what a formula does not read
+     * a missing point of as 0 for (MetricZeroFill).
+     */
+    return { ...input.result, data: convertedData };
   }
 }

@@ -53,7 +53,9 @@ import path from "path";
  *     sends is replaced whoever sends it (ComputedColumnsReplacedOnCreate);
  *   - one some may create is taken from each permission that may create its
  *     table that the column's list names, and dropped or refused for each
- *     one it does not;
+ *     one it does not - and is one a creator chooses, named below with why
+ *     (CHOSEN_ON_CREATE): every other computed column has an empty create
+ *     list (#8907);
  *   - the check of the record as written lets it through only as one the
  *     create's own steps wrote, or one OneUptime's code marked;
  *   - the ones the check never weighs are ones OneUptime writes on every
@@ -655,6 +657,134 @@ describe("a create that gives a computed column some may create a value", () => 
     }
 
     expect(wrong).toEqual([]);
+  });
+});
+
+/*
+ * THE COMPUTED COLUMNS A CREATOR CHOOSES (#8907).
+ *
+ * Nobody may give a new record a value in a computed column - OneUptime's
+ * number, record or decision - unless the column is here, with why the
+ * person creating the record picks it. Every other computed column has an
+ * empty create list, so a value sent there is dropped or refused (above):
+ * a domain's certificate state, whether a record's subscribers or owners
+ * were told, a record's number, what a service derives from the rest of the
+ * write. A computed column given a create list fails this until it is
+ * decided: its list emptied, or the column named here with its reason, in
+ * the column's declaration too.
+ */
+const CHOSEN_ON_CREATE: ReadonlyArray<{ column: string; why: string }> = [
+  {
+    column: "Incident.currentIncidentState",
+    why: "The state a new incident starts in is its declarer's pick: the declare form's Initial State sends it under this name, the API under currentIncidentStateId (the same reference, which takes the same list). IncidentService checks it is one of the project's states; OneUptime moves it on from there.",
+  },
+  {
+    column: "StatusPage.downtimeMonitorStatuses",
+    why: "A setting: the monitor statuses that count as downtime on the page. OneUptime fills it in only when the create names none (every status of the project that is not operational).",
+  },
+  {
+    column: "ServiceLevelObjective.downtimeMonitorStatuses",
+    why: "A setting: the monitor statuses that spend the SLO's error budget. OneUptime fills it in only when the create names none (every status of the project that is not operational).",
+  },
+];
+
+describe("the computed columns a creator chooses", () => {
+  const SOME: Array<ComputedColumn> = WEIGHED.filter(
+    (entry: ComputedColumn): boolean => {
+      return entry.create.length > 0;
+    },
+  );
+
+  test("are the only computed columns anyone may create: every other one has an empty create list", () => {
+    expect(SOME.map(nameOf).sort()).toEqual(
+      CHOSEN_ON_CREATE.map((chosen: { column: string }): string => {
+        return chosen.column;
+      }).sort(),
+    );
+  });
+
+  test("are few, each named once, each with why", () => {
+    const names: Array<string> = CHOSEN_ON_CREATE.map(
+      (chosen: { column: string }): string => {
+        return chosen.column;
+      },
+    );
+
+    expect(names.length).toBeLessThanOrEqual(5);
+    expect(new Set(names).size).toBe(names.length);
+
+    for (const chosen of CHOSEN_ON_CREATE) {
+      expect([chosen.column, chosen.why.length > 80]).toEqual([
+        chosen.column,
+        true,
+      ]);
+    }
+  });
+
+  /*
+   * Chosen by whoever creates the record: a list narrower than the table's
+   * would refuse a creator's pick for no reason a column check can say, and
+   * one wider would let in someone who may not create the record at all.
+   */
+  test.each(
+    CHOSEN_ON_CREATE.map((chosen: { column: string }): [string] => {
+      return [chosen.column];
+    }),
+  )("%s is created by exactly whoever may create its table", (name: string) => {
+    const entry: ComputedColumn | undefined = SOME.find(
+      (column: ComputedColumn): boolean => {
+        return nameOf(column) === name;
+      },
+    );
+
+    expect(entry).toBeDefined();
+    expect([...entry!.create].sort()).toEqual(
+      [
+        ...TablePermission.getTablePermission(
+          entry!.modelType,
+          DatabaseRequestType.Create,
+        ),
+      ].sort(),
+    );
+  });
+
+  // So whoever reads the model learns it too, where the list is.
+  test.each(
+    CHOSEN_ON_CREATE.map((chosen: { column: string }): [string] => {
+      return [chosen.column];
+    }),
+  )("%s says why in its declaration", (name: string) => {
+    const entry: ComputedColumn = SOME.find(
+      (column: ComputedColumn): boolean => {
+        return nameOf(column) === name;
+      },
+    )!;
+
+    const source: string = fs.readFileSync(
+      path.join(
+        __dirname,
+        "..",
+        "..",
+        "..",
+        "Models",
+        "DatabaseModels",
+        `${entry.modelType.name}.ts`,
+      ),
+      "utf8",
+    );
+
+    const declaration: number = source.search(
+      new RegExp(`\\n  public ${entry.column}\\?`),
+    );
+    const decorator: number = source.lastIndexOf(
+      "@ColumnAccessControl({",
+      declaration,
+    );
+    const above: string = source.slice(0, decorator).trimEnd();
+
+    expect(declaration).toBeGreaterThan(0);
+    expect(above.endsWith("*/")).toBe(true);
+    expect(above.slice(above.lastIndexOf("/*"))).toContain("#8907");
   });
 });
 

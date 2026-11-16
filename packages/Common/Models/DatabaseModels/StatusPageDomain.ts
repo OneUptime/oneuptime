@@ -558,15 +558,20 @@ export default class StatusPageDomain extends BaseModel {
   })
   public isCnameVerified?: boolean = undefined;
 
+  /*
+   * Whether OneUptime has ordered the domain's free certificate, and whether
+   * the domain serves it yet (isSslProvisioned below): OneUptime's record of
+   * the certificate, which the sweeps and Check now keep, as on a form's
+   * domain. Nobody may give a new domain either (#8907): one added
+   * "provisioned" was taken as serving https from the start - subscribers'
+   * links went to it (StatusPageService.getUsableCustomDomain) before its
+   * CNAME record was even checked - and one added "ordered" was left out of
+   * the sweep that orders first certificates. A new domain starts with
+   * neither, whatever the request said
+   * (StatusPageDomainService.onBeforeCreate).
+   */
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.CreateStatusPageDomain,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -597,14 +602,7 @@ export default class StatusPageDomain extends BaseModel {
   public isSslOrdered?: boolean = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.CreateStatusPageDomain,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

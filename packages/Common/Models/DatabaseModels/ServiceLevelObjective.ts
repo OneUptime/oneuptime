@@ -912,6 +912,13 @@ export default class ServiceLevelObjective extends BaseModel {
   })
   public autoAddedMonitors?: Array<Monitor> = undefined;
 
+  /*
+   * The monitor statuses that spend the SLO's error budget: a setting, which
+   * whoever creates the SLO may choose (#8907), as whoever edits it may. It is
+   * OneUptime's only when the create names none: ServiceLevelObjectiveService
+   * .onBeforeCreate then fills in every status of the project that is not
+   * operational.
+   */
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

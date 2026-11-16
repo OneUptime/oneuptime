@@ -3,6 +3,10 @@ import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
 import CriteriaFilterValues from "Common/Types/Monitor/CriteriaFilterValues";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import RollingTimeUtil from "Common/Types/RollingTime/RollingTimeUtil";
+import { AggregationTemporality } from "Common/Models/AnalyticsModels/Metric";
+import AggregationType from "Common/Types/BaseDatabase/AggregationType";
+import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
+import MetricZeroFill from "Common/Utils/Metrics/MetricZeroFill";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -121,6 +125,77 @@ describe("the Metric monitor step's rolling time, in the API reference", () => {
     };
 
     expect(RollingTimeUtil.isRollingTime(example.rollingTime)).toBe(true);
+  });
+});
+
+/*
+ * Issue #6761: a Metrics monitor's formulas read a counting query with no
+ * data point in a bucket as 0, once the bucket is settled (MetricZeroFill) -
+ * what a monitor created through the API alerts on, so its reference says it.
+ */
+describe("the Metric monitor step's formulas, in the API reference", () => {
+  async function metricViewConfigDescription(): Promise<string> {
+    const page: DataTypePage = await dataTypePage(
+      "monitor-step-metric-monitor",
+    );
+
+    return (
+      page.properties.find(
+        (candidate: DataTypePage["properties"][number]): boolean => {
+          return candidate.name === "metricViewConfig";
+        },
+      )?.description || ""
+    );
+  }
+
+  it("says a count with no data point in a bucket is 0 to a formula, once the bucket has been over for a minute", async () => {
+    const description: string = await metricViewConfigDescription();
+
+    expect(description).toContain(
+      "A formula reads a query that counts what happened - the Sum or Count of a counter or a histogram, as the metric's type says - as 0 in a bucket it has no data point in, once the bucket has been over for a minute",
+    );
+    expect(MetricZeroFill.SETTLE_MS).toBe(60 * 1000);
+
+    for (const [aggregationType, counts] of [
+      [AggregationType.Sum, true],
+      [AggregationType.Count, true],
+      [AggregationType.Avg, false],
+      [AggregationType.P95, false],
+    ] as Array<[AggregationType, boolean]>) {
+      expect({
+        aggregationType,
+        counts: MetricZeroFill.isCountingQuery({
+          queryConfig: {
+            metricQueryData: {
+              filterData: {
+                metricName: "http.server.requests",
+                aggegationType: aggregationType,
+              },
+            },
+          } as MetricQueryConfigData,
+          semanticsByMetricName: new Map([
+            [
+              "http.server.requests",
+              {
+                isMonotonic: true,
+                aggregationTemporality: AggregationTemporality.Delta,
+              },
+            ],
+          ]),
+        }),
+      }).toEqual({ aggregationType, counts });
+    }
+
+    // A gauge is no count, whatever it is read as.
+    expect(
+      MetricZeroFill.countsWhatHappened({
+        isMonotonic: null,
+        aggregationTemporality: null,
+      }),
+    ).toBe(false);
+    expect(description).toContain(
+      "Any other query with no data point in a bucket - a gauge, an average, a percentile - leaves the bucket out of the formula.",
+    );
   });
 });
 

@@ -153,6 +153,11 @@ const InitJob: VoidFunction = (): void => {
 
 // Exported for tests: fetches this probe's due devices from the server.
 export async function fetchDeviceList(): Promise<Array<DevicePollConfig>> {
+  // The server asked this probe to wait (ServerBusy): it asks later.
+  if (ServerBusy.isBackingOff("network devices")) {
+    return [];
+  }
+
   const listUrl: URL = URL.fromString(PROBE_INGEST_URL.toString()).addRoute(
     "/probe/network-device/list",
   );
@@ -174,7 +179,7 @@ export async function fetchDeviceList(): Promise<Array<DevicePollConfig>> {
 
   // Too busy to hand out devices now: they stay due for the next tick.
   if (ServerBusy.isBusyAnswer(result)) {
-    ServerBusy.note("network devices");
+    ServerBusy.note("network devices", result);
     return [];
   }
 

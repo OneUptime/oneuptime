@@ -23,6 +23,8 @@ import { fetchDeviceList } from "../../Jobs/NetworkDevice/FetchList";
 import MonitorUtil from "../../Utils/Monitors/Monitor";
 import { PROBE_CAPABILITIES } from "../../Utils/ProbeAPIRequest";
 import ServerBusy, {
+  DEFAULT_SERVER_BUSY_BACK_OFF_MS,
+  MAX_SERVER_BUSY_BACK_OFF_MS,
   SERVER_BUSY_WARNING_EVERY_MS,
 } from "../../Utils/ServerBusy";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
@@ -105,6 +107,98 @@ describe("ServerBusy", () => {
 
   test("this probe tells the server it reads a 429 that way", () => {
     expect(PROBE_CAPABILITIES).toContain("retryWhenBusy");
+    // From every work fetch, not only these three (issue #8051).
+    expect(PROBE_CAPABILITIES).toContain("retryAllWorkWhenBusy");
+  });
+
+  test("a busy answer asks the fetch to wait its Retry-After, in seconds or as a date", () => {
+    jest.spyOn(Date, "now").mockReturnValue(1_000_000);
+
+    expect(ServerBusy.backOffMs(busyAnswer())).toBe(10_000);
+    expect(
+      ServerBusy.backOffMs(
+        new HTTPErrorResponse(429, {}, { "retry-after": "25" }),
+      ),
+    ).toBe(25_000);
+    expect(
+      ServerBusy.backOffMs(
+        new HTTPErrorResponse(429, {}, { "retry-after": "0" }),
+      ),
+    ).toBe(0);
+    // Not every client lower-cases a header.
+    expect(
+      ServerBusy.backOffMs(
+        new HTTPErrorResponse(429, {}, { "Retry-After": "3" }),
+      ),
+    ).toBe(3_000);
+    expect(
+      ServerBusy.backOffMs(
+        new HTTPErrorResponse(
+          429,
+          {},
+          { "retry-after": new Date(1_000_000 + 7_000).toUTCString() },
+        ),
+      ),
+    ).toBe(7_000);
+    // A date gone by means now.
+    expect(
+      ServerBusy.backOffMs(
+        new HTTPErrorResponse(
+          429,
+          {},
+          { "retry-after": new Date(1_000_000 - 60_000).toUTCString() },
+        ),
+      ),
+    ).toBe(0);
+  });
+
+  test("no Retry-After, or one that cannot be read, waits the server's ten seconds; none waits more than a minute", () => {
+    expect(ServerBusy.backOffMs(new HTTPErrorResponse(429, {}, {}))).toBe(
+      DEFAULT_SERVER_BUSY_BACK_OFF_MS,
+    );
+    expect(ServerBusy.backOffMs(undefined)).toBe(
+      DEFAULT_SERVER_BUSY_BACK_OFF_MS,
+    );
+    expect(
+      ServerBusy.backOffMs(
+        new HTTPErrorResponse(429, {}, { "retry-after": "soon" }),
+      ),
+    ).toBe(DEFAULT_SERVER_BUSY_BACK_OFF_MS);
+    // Date.parse alone would read these as days in 2001, gone by: no wait.
+    for (const unreadable of ["-5", "1.5", "5 seconds"]) {
+      expect(
+        ServerBusy.backOffMs(
+          new HTTPErrorResponse(429, {}, { "retry-after": unreadable }),
+        ),
+      ).toBe(DEFAULT_SERVER_BUSY_BACK_OFF_MS);
+    }
+    // A proxy's hour would stall the work for an hour.
+    expect(
+      ServerBusy.backOffMs(
+        new HTTPErrorResponse(429, {}, { "retry-after": "3600" }),
+      ),
+    ).toBe(MAX_SERVER_BUSY_BACK_OFF_MS);
+  });
+
+  test("a fetch backs off until its wait has passed, and only the fetch of the work that was refused", () => {
+    let now: number = 1_000_000;
+    jest.spyOn(Date, "now").mockImplementation((): number => {
+      return now;
+    });
+
+    expect(ServerBusy.isBackingOff("monitors")).toBe(false);
+
+    ServerBusy.note("monitors", busyAnswer());
+
+    expect(ServerBusy.isBackingOff("monitors")).toBe(true);
+    expect(ServerBusy.isBackingOff("network devices")).toBe(false);
+
+    now += 9_999;
+    expect(ServerBusy.isBackingOff("monitors")).toBe(true);
+
+    now += 1;
+    expect(ServerBusy.isBackingOff("monitors")).toBe(false);
+    expect(errorSpy).not.toHaveBeenCalled();
   });
 
   test("is said at most once a minute for each kind of work, with how many fetches were answered busy since", () => {
@@ -185,6 +279,43 @@ describe("the fetches, answered busy", () => {
 
     expect(await fetchDeviceList()).toEqual([]);
     expect(warnSpy).not.toHaveBeenCalled();
+    expect(errorSpy).not.toHaveBeenCalled();
+  });
+
+  test("each waits out the Retry-After before it asks again (issue #8051)", async () => {
+    let now: number = 1_000_000;
+    jest.spyOn(Date, "now").mockImplementation((): number => {
+      return now;
+    });
+    jest
+      .spyOn(MonitorUtil, "probeMonitorTest")
+      .mockResolvedValue(undefined as never);
+    // eslint-disable-next-line @typescript-eslint/typedef
+    const fetchSpy = jest
+      .spyOn(API, "fetch")
+      .mockResolvedValue(busyAnswer() as never);
+
+    InitMonitorTestJob();
+    const monitorTestTick: PromiseVoidFunction =
+      mockCapturedCronJobs[mockCapturedCronJobs.length - 1]!.runFunction;
+
+    await new FetchListAndProbe("Worker 1").run();
+    await monitorTestTick();
+    await fetchDeviceList();
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
+
+    // Their next ticks come before the ten seconds the server asked for.
+    now += 9_999;
+    await new FetchListAndProbe("Worker 2").run();
+    await monitorTestTick();
+    expect(await fetchDeviceList()).toEqual([]);
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
+
+    now += 1;
+    fetchSpy.mockResolvedValue(new HTTPResponse(200, [], {}) as never);
+    await new FetchListAndProbe("Worker 2").run();
+    await monitorTestTick();
+    expect(fetchSpy).toHaveBeenCalledTimes(5);
     expect(errorSpy).not.toHaveBeenCalled();
   });
 

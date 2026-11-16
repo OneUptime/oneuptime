@@ -551,15 +551,18 @@ export default class DashboardDomain extends BaseModel {
   })
   public isCnameVerified?: boolean = undefined;
 
+  /*
+   * Whether OneUptime has ordered the domain's free certificate, and whether
+   * the domain serves it yet (isSslProvisioned below): OneUptime's record of
+   * the certificate, which the sweeps and Check now keep, as on a form's
+   * domain. Nobody may give a new domain either (#8907): one added
+   * "provisioned" showed as serving a certificate it did not have, and one
+   * added "ordered" was left out of the sweep that orders first
+   * certificates. A new domain starts with neither, whatever the request
+   * said (DashboardDomainService.onBeforeCreate).
+   */
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.CreateDashboardDomain,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -590,14 +593,7 @@ export default class DashboardDomain extends BaseModel {
   public isSslOrdered?: boolean = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.CreateDashboardDomain,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
