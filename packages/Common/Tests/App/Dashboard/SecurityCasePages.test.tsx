@@ -226,6 +226,15 @@ import {
   testPriorityId,
   testStatusId,
 } from "../../Helpers/SecurityCaseValues";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * A read the Overview makes that these tests leave unanswered: the case's
+ * Impact, from the rest of OneUptime (SecurityCaseImpactCard), a card beside
+ * the ones under test. Refused at once, as the network refused it, and taken
+ * as a read the card could not make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/security-case-context/impact"]);
 
 const CASE_ID: string = "20000000-0000-4000-8000-000000000142";
 const PLAYBOOK_ID: string = "24000000-0000-4000-8000-000000000003";
