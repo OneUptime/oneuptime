@@ -40,6 +40,15 @@ import SecurityEventDetailPanel, {
   SECURITY_EVENT_DETAIL_PANEL_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventDetailPanel";
 import { SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventsFacets";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * A read the drawer makes that these tests leave unanswered: the name of
+ * the service an event's log line was sent under, for its source's sentence
+ * (SecurityEventSourceSection). Refused at once, as the network refused it,
+ * and the sentence says "your telemetry" (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/service/*/get-item"]);
 
 /*
  * One security event, opened from the list.
