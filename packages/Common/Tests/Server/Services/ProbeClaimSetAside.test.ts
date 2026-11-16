@@ -37,7 +37,7 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * Each claim walks its probe's rows in the order of a (probeId, ...,
  * next-due) index and only ever moves the rows it hands out. A row nothing
  * may hand out - a paused, archived or in-maintenance monitor, a device
- * with polling off, anything of a suspended, blocked or sample project -
+ * with polling off, anything of a suspended or blocked project -
  * kept the next-due time it had when it stopped being claimable, the oldest
  * on the probe, and sat at the head of that index for good: every claim of
  * every worker of every probe replica stepped over all of them, every
@@ -314,7 +314,6 @@ describe("the monitor claim reads only what it hands out", () => {
       'm."deletedAt" IS NULL',
       'p."deletedAt" IS NULL',
       'p."isBlocked" = false',
-      'p."isSampleProject" = false',
     ]) {
       expect(readPredicate).toContain(condition);
     }
@@ -918,7 +917,6 @@ describe("the network device claim sets aside what nothing may poll", () => {
       '(pr."isGlobalProbe" = true OR pr."projectId" = nd."projectId")',
       `(nd."monitoringMethod" IS NULL OR nd."monitoringMethod" <> 'Monitor')`,
       'p."isBlocked" = false',
-      'p."isSampleProject" = false',
     ]) {
       expect(claimPredicate).toContain(condition);
     }
