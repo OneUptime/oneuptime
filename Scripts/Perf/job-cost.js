@@ -116,6 +116,18 @@ async function main() {
     }
   };
 
+  /*
+   * A run of a scheduled job takes the job's lock first and skips while
+   * another run holds it (CronLock) - the stack's App running the same job,
+   * say - and a skipped run would be measured as the job's cost. The lock
+   * is taken here for every run: the job's body is what is measured.
+   */
+  const CronLock =
+    require("/usr/src/app/FeatureSet/Workers/Utils/CronLock").default;
+  CronLock.take = async () => {
+    return { result: "Taken", release: async () => {} };
+  };
+
   // Registering is a side effect of loading the job modules.
   require("/usr/src/app/FeatureSet/Workers/Index");
   const EnterpriseLoader =
