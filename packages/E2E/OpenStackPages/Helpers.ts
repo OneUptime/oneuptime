@@ -13,6 +13,7 @@ import {
 import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
+import { withSpacesShown } from "../SuiteHelpers/NoBreakSpaces";
 
 /*
  * What every spec of the OpenStack pages shares: how to reach a page of the fixture,
@@ -178,13 +179,18 @@ function locale(language: string): Record<string, string> {
  * right a size drawn as bare text put its unit first ("TiB ۶٫۰"); read its
  * own way, its number's box ends left of its unit's. In a narrow column a
  * size drawn as two words broke between them, its unit alone on the next
- * line; kept whole, its number and unit share a line.
+ * line; kept whole, its number and unit share a line. The product holds
+ * them with a no-break space (#8302, 7a4eadda449): a size is found with
+ * either space, so one written with a plain space fails as such rather
+ * than as no size at all (#8725).
  */
 export interface DrawnSize {
   text: string;
   numberRight: number;
   unitLeft: number;
   isOneLine: boolean;
+  // Whether its number and unit are joined by a no-break space.
+  isHeld: boolean;
 }
 
 export async function drawnSizes(locator: Locator): Promise<Array<DrawnSize>> {
@@ -199,7 +205,7 @@ export async function drawnSizes(locator: Locator): Promise<Array<DrawnSize>> {
     while (node) {
       const text: Text = node as Text;
       const pattern: RegExp =
-        /(?<![0-9.,\u06F0-\u06F9\u066B\u066C])([0-9\u06F0-\u06F9][0-9.,\u06F0-\u06F9\u066B\u066C]*) (B|KiB|MiB|GiB|TiB)\b/g;
+        /(?<![0-9.,\u06F0-\u06F9\u066B\u066C])([0-9\u06F0-\u06F9][0-9.,\u06F0-\u06F9\u066B\u066C]*)([ \u00A0])(B|KiB|MiB|GiB|TiB)\b/g;
       let match: RegExpExecArray | null = pattern.exec(text.data);
 
       while (match) {
@@ -215,7 +221,7 @@ export async function drawnSizes(locator: Locator): Promise<Array<DrawnSize>> {
         const number: DOMRect = boxOf(match.index, match[1]!.length);
         const unit: DOMRect = boxOf(
           match.index + match[1]!.length + 1,
-          match[2]!.length,
+          match[3]!.length,
         );
 
         sizes.push({
@@ -223,6 +229,7 @@ export async function drawnSizes(locator: Locator): Promise<Array<DrawnSize>> {
           numberRight: number.right,
           unitLeft: unit.left,
           isOneLine: Math.abs(number.top - unit.top) < 2,
+          isHeld: match[2] === "\u00A0",
         });
         match = pattern.exec(text.data);
       }
@@ -234,7 +241,10 @@ export async function drawnSizes(locator: Locator): Promise<Array<DrawnSize>> {
   });
 }
 
-// Every size drawn with its number first: its number's box left of its unit's, on one line.
+/*
+ * Every size drawn with its number first: its number's box left of its
+ * unit's, on one line, held to it by a no-break space.
+ */
 export async function expectSizesNumberFirst(
   locator: Locator,
   message: string,
@@ -244,6 +254,10 @@ export async function expectSizesNumberFirst(
   expect(sizes.length, message).toBeGreaterThan(0);
 
   for (const size of sizes) {
+    expect(
+      size.isHeld,
+      `${message}: ${withSpacesShown(size.text)} holds its number to its unit with a no-break space`,
+    ).toBe(true);
     expect(size.isOneLine, `${message}: ${size.text} on one line`).toBe(true);
     expect(
       size.numberRight,

@@ -3,6 +3,7 @@ import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { withUnit } from "../SuiteHelpers/NoBreakSpaces";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
@@ -695,7 +696,7 @@ test.describe("the Databases list", () => {
       ),
     ).toHaveText([
       fill(GERMAN, "Connections at {{percent}} of max_connections", {
-        percent: "96\u00A0%",
+        percent: withUnit(96, "%"),
       }),
       fill(GERMAN, "A replica {{minutes}} min behind", { minutes: "1" }),
     ]);
@@ -705,7 +706,7 @@ test.describe("the Databases list", () => {
       ),
     ).toHaveText([
       fill(GERMAN, "Transaction IDs at {{percent}} of wraparound", {
-        percent: "74\u00A0%",
+        percent: withUnit(74, "%"),
       }),
       fill(GERMAN, "A transaction open for {{hours}} h", { hours: "2" }),
     ]);

@@ -55878,5 +55878,11 @@
   "an unverified push notification device": "an unverified push notification device",
   "{{channels}} notifications are switched off for this project, so members will not be notified on these channels even when they meet this rule. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.": "{{channels}} notifications are switched off for this project, so members will not be notified on these channels even when they meet this rule. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.",
   "{{channel}} notifications are switched off for this project, so members will not be notified by {{channel}} even when they meet this rule. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.": "{{channel}} notifications are switched off for this project, so members will not be notified by {{channel}} even when they meet this rule. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.",
+  "MQTT WebSocket URL": "MQTT WebSocket URL",
+  "OTLP metrics endpoint": "OTLP metrics endpoint",
+  "Send the ingestion token below as the MQTT password — the username is ignored.": "Send the ingestion token below as the MQTT password — the username is ignored.",
+  "Record the serial number, make, model and firmware version": "Record the serial number, make, model and firmware version",
+  "Stamp the hardware facts no detector can read onto the host's Inventory item.": "Stamp the hardware facts no detector can read onto the host's Inventory item.",
+  "Upgrade the collector": "Upgrade the collector",
   "Act when an SLO burns its error budget too fast, such as turning a feature flag off.": "Act when an SLO burns its error budget too fast, such as turning a feature flag off."
 }
