@@ -1,10 +1,12 @@
-import { JOB_HEARTBEAT_INTERVAL_MS } from "../Config";
+import { JOB_HEARTBEAT_INTERVAL_MS, MAX_OUTPUT_BYTES } from "../Config";
 import AgentClient, { ClaimedJob } from "./RunnerClient";
 import SSHExecutor from "./SSHExecutor";
 import KubernetesExecutor from "./KubernetesExecutor";
 import KubectlExecutor from "./KubectlExecutor";
 import KubectlScriptExecutor from "./KubectlScriptExecutor";
-import { runBash, truncateOutput } from "../Utils/RunBash";
+import { runBash } from "../Utils/RunBash";
+import JavaScriptSandbox from "../Utils/JavaScriptSandbox/SandboxProcess";
+import { getJavaScriptStepOutcome } from "../Utils/JavaScriptSandbox/JavaScriptStepResult";
 import { redactSecretValues } from "Common/Types/Runbook/SecretOutputRedaction";
 import { KUBECONFIG_CREDENTIAL_TYPE } from "Common/Types/Runbook/RunnerFeatures";
 import RunnerCapabilities from "../Utils/RunnerCapabilities";
@@ -30,8 +32,6 @@ interface ExecResult {
   exitCode?: number | undefined;
   errorMessage?: string | undefined;
 }
-
-const truncate: (s: string) => string = truncateOutput;
 
 /*
  * The environment a Bash step runs with: the Runner's own, plus the run's
@@ -170,6 +170,10 @@ export function getJavaScriptSandboxPolicy(): {
  * with this host's own network access. Run agents where you would run any
  * other operator-authored automation - the trust boundary is the Runbook
  * author, not the isolate.
+ *
+ * In this Runner's own process: what a project's own Runner does, whose
+ * JavaScript steps are its project's own, as its Bash steps are. A global
+ * Runner runs each in a process of its own (runJavaScriptInOwnProcess).
  */
 async function runJavaScriptLocally(data: {
   script: string;
@@ -187,26 +191,7 @@ async function runJavaScriptLocally(data: {
       },
     });
 
-    const lines: string[] = [...(result.logMessages || [])];
-    if (result.returnValue !== undefined) {
-      lines.push(
-        `Return: ${
-          typeof result.returnValue === "string"
-            ? result.returnValue
-            : JSON.stringify(result.returnValue, null, 2)
-        }`,
-      );
-    }
-    const output: string = truncate(lines.join("\n"));
-
-    if (result.scriptError) {
-      return {
-        success: false,
-        output,
-        errorMessage: result.scriptError.message,
-      };
-    }
-    return { success: true, output };
+    return getJavaScriptStepOutcome(result, MAX_OUTPUT_BYTES);
   } catch (err) {
     return {
       success: false,
@@ -214,6 +199,28 @@ async function runJavaScriptLocally(data: {
       errorMessage: err instanceof Error ? err.message : String(err),
     };
   }
+}
+
+/*
+ * A global Runner's JavaScript step: the same isolate, with the same limits
+ * and the same egress policy, in a process started for this step alone - as
+ * a user of its own where the container allows it, with none of this
+ * Runner's environment or files - and ended with it (JavaScriptSandbox).
+ * The Runner's key and a code fix's token and workspace are then out of the
+ * step's reach even if its code got out of the isolate.
+ */
+function runJavaScriptInOwnProcess(data: {
+  script: string;
+  timeoutInMs: number;
+  args?: JSONObject | undefined;
+}): Promise<ExecResult> {
+  return JavaScriptSandbox.runStep({
+    script: data.script,
+    args: data.args || {},
+    timeoutInMs: data.timeoutInMs,
+    maxOutputBytes: MAX_OUTPUT_BYTES,
+    policy: getJavaScriptSandboxPolicy(),
+  });
 }
 
 /*
@@ -361,21 +368,29 @@ function prepareStep(job: ClaimedJob): PreparedStep {
   }
 
   if (job.stepType === RunbookStepType.JavaScript) {
+    const step: {
+      script: string;
+      timeoutInMs: number;
+      args?: JSONObject | undefined;
+    } = {
+      script: job.script,
+      timeoutInMs: job.timeoutInMs,
+      ...(job.inputs !== undefined
+        ? {
+            args: getRunbookInputArgs({
+              inputs: job.inputs,
+              trigger: job.trigger,
+            }),
+          }
+        : {}),
+    };
+
     return {
       isRefused: false,
       run: (): Promise<ExecResult> => {
-        return runJavaScriptLocally({
-          script: job.script,
-          timeoutInMs: job.timeoutInMs,
-          ...(job.inputs !== undefined
-            ? {
-                args: getRunbookInputArgs({
-                  inputs: job.inputs,
-                  trigger: job.trigger,
-                }),
-              }
-            : {}),
-        });
+        return GlobalRunnerMode.isActive()
+          ? runJavaScriptInOwnProcess(step)
+          : runJavaScriptLocally(step);
       },
     };
   }

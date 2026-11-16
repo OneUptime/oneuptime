@@ -1,5 +1,6 @@
 import { spawn } from "child_process";
 import { MAX_OUTPUT_BYTES } from "../Config";
+import { truncateToBytes } from "./OutputTruncation";
 
 /*
  * Running a script with bash on this Runner's host: what a Bash step does,
@@ -19,13 +20,7 @@ export interface BashRunResult {
 }
 
 export function truncateOutput(s: string): string {
-  if (Buffer.byteLength(s, "utf8") <= MAX_OUTPUT_BYTES) {
-    return s;
-  }
-  return (
-    Buffer.from(s, "utf8").slice(0, MAX_OUTPUT_BYTES).toString("utf8") +
-    "\n... [output truncated]"
-  );
+  return truncateToBytes(s, MAX_OUTPUT_BYTES);
 }
 
 export function runBash(data: {
