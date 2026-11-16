@@ -1,5 +1,8 @@
 import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
+import OwnerReminderBacklog, {
+  DueReminder,
+} from "../../Utils/OwnerReminderBacklog";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
@@ -19,7 +22,7 @@ import UserNotificationSettingService from "Common/Server/Services/UserNotificat
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
-import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceReminderRule from "Common/Models/DatabaseModels/ScheduledMaintenanceReminderRule";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -28,7 +31,6 @@ import ScheduledMaintenanceFeedService from "Common/Server/Services/ScheduledMai
 import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
 import { Blue500 } from "Common/Types/BrandColors";
 import UserService from "Common/Server/Services/UserService";
-import logger from "Common/Server/Utils/Logger";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
@@ -37,6 +39,10 @@ import OwnerNotificationDeliveries, {
   OwnerNotificationDelivery,
 } from "Common/Server/Utils/Notification/OwnerNotificationDeliveries";
 import { OwnerNotificationKind } from "Common/Types/Notification/OwnerNotificationDelivery";
+import { NotificationRuleUpdateKind } from "Common/Types/Workspace/NotificationRules/NotificationRuleUpdates";
+
+const JOB_NAME: string =
+  "ScheduledMaintenanceOwner:SendUnresolvedReminderNotification";
 
 // What a maintenance event is read with.
 const SCHEDULED_MAINTENANCE_SELECT: Select<ScheduledMaintenance> = {
@@ -60,13 +66,14 @@ const SCHEDULED_MAINTENANCE_SELECT: Select<ScheduledMaintenance> = {
   scheduledMaintenanceNumber: true,
   scheduledMaintenanceNumberWithPrefix: true,
   enableReminders: true,
+  nextReminderNotificationAt: true,
   reminderNotificationSentCount: true,
 };
 
 RunCron(
-  "ScheduledMaintenanceOwner:SendUnresolvedReminderNotification",
+  JOB_NAME,
   { schedule: EVERY_MINUTE, runOnStartup: false },
-  async () => {
+  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
     /*
      * The owners a run that stopped part way left untold - a worker killed
      * between moving the reminder on and the last owner (#8509) - told
@@ -107,35 +114,24 @@ RunCron(
       },
     });
 
-    // get all scheduled maintenances where the next reminder notification is due.
-
-    const scheduledMaintenances: Array<ScheduledMaintenance> =
-      await ScheduledMaintenanceService.findAllBy({
-        query: {
-          nextReminderNotificationAt: QueryHelper.lessThan(
-            OneUptimeDate.getCurrentDate(),
-          ),
-        },
-        props: {
-          isRoot: true,
-        },
-        skip: 0,
-        select: SCHEDULED_MAINTENANCE_SELECT,
-      });
-
-    for (const scheduledMaintenance of scheduledMaintenances) {
-      try {
-        await sendReminderForScheduledMaintenance(scheduledMaintenance);
-      } catch (error) {
-        logger.error(
-          `Error sending reminder for scheduled maintenance ${scheduledMaintenance.id}: ${error}`,
-          {
-            projectId: scheduledMaintenance.projectId?.toString(),
-            scheduledMaintenanceId: scheduledMaintenance.id?.toString(),
-          },
-        );
-      }
-    }
+    /*
+     * Every event whose reminder is due, a page at a time, the longest due
+     * first, each moved on by one run alone, which tells of it; the run stops
+     * at its deadline and the next carries on (OwnerReminderBacklog, issue
+     * #9019).
+     */
+    await OwnerReminderBacklog.forEachDue<ScheduledMaintenance>({
+      jobName: JOB_NAME,
+      service: ScheduledMaintenanceService,
+      select: SCHEDULED_MAINTENANCE_SELECT,
+      deadline: deadline,
+      remind: async (input: {
+        record: ScheduledMaintenance;
+        reminder: DueReminder<ScheduledMaintenance>;
+      }): Promise<void> => {
+        await sendReminderForScheduledMaintenance(input.record, input.reminder);
+      },
+    });
   },
 );
 
@@ -201,10 +197,14 @@ async function stopsOnItsState(
 
 type SendReminderForScheduledMaintenanceFunction = (
   scheduledMaintenance: ScheduledMaintenance,
+  reminder: DueReminder<ScheduledMaintenance>,
 ) => Promise<void>;
 
 const sendReminderForScheduledMaintenance: SendReminderForScheduledMaintenanceFunction =
-  async (scheduledMaintenance: ScheduledMaintenance): Promise<void> => {
+  async (
+    scheduledMaintenance: ScheduledMaintenance,
+    reminder: DueReminder<ScheduledMaintenance>,
+  ): Promise<void> => {
     const scheduledMaintenanceId: ObjectID = scheduledMaintenance.id!;
     const projectId: ObjectID = scheduledMaintenance.projectId!;
 
@@ -214,18 +214,6 @@ const sendReminderForScheduledMaintenance: SendReminderForScheduledMaintenanceFu
      */
     const rule: ScheduledMaintenanceReminderRule | null =
       await matchRule(scheduledMaintenance);
-
-    const stopReminders: () => Promise<void> = async (): Promise<void> => {
-      await ScheduledMaintenanceService.updateOneById({
-        id: scheduledMaintenanceId,
-        data: {
-          nextReminderNotificationAt: null,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-    };
 
     /*
      * A rule with no interval a reminder can follow - none, or one below a
@@ -241,7 +229,8 @@ const sendReminderForScheduledMaintenance: SendReminderForScheduledMaintenanceFu
       intervalInMinutes === null ||
       scheduledMaintenance.enableReminders === false
     ) {
-      return await stopReminders();
+      await reminder.stop();
+      return;
     }
 
     /*
@@ -254,27 +243,21 @@ const sendReminderForScheduledMaintenance: SendReminderForScheduledMaintenanceFu
       scheduledMaintenance.startsAt &&
       OneUptimeDate.isInTheFuture(scheduledMaintenance.startsAt)
     ) {
-      await ScheduledMaintenanceService.updateOneById({
-        id: scheduledMaintenanceId,
-        data: {
-          nextReminderNotificationAt: OneUptimeDate.addRemoveMinutes(
-            scheduledMaintenance.startsAt,
-            intervalInMinutes,
-          ),
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+      await reminder.putOffUntil(
+        OneUptimeDate.addRemoveMinutes(
+          scheduledMaintenance.startsAt,
+          intervalInMinutes,
+        ),
+      );
       return;
     }
 
     if (await stopsOnItsState(scheduledMaintenanceId, rule)) {
-      return await stopReminders();
+      await reminder.stop();
+      return;
     }
 
-    const reminderNumber: number =
-      (scheduledMaintenance.reminderNotificationSentCount || 0) + 1;
+    const reminderNumber: number = reminder.number;
 
     /*
      * Whom this reminder is to tell - the event's owners, or the project's
@@ -298,22 +281,13 @@ const sendReminderForScheduledMaintenance: SendReminderForScheduledMaintenanceFu
       });
 
     /*
-     * Advance the next reminder time BEFORE sending notifications so a
-     * failure mid-send does not cause duplicate reminders on the next run.
+     * Moved on before anybody is told, so a failure mid-send does not send
+     * the reminder again on the next run - and by one compare-and-set, so of
+     * two runs at once only the one that moved it tells of it.
      */
-    await ScheduledMaintenanceService.updateOneById({
-      id: scheduledMaintenanceId,
-      data: {
-        nextReminderNotificationAt: OneUptimeDate.addRemoveMinutes(
-          OneUptimeDate.getCurrentDate(),
-          intervalInMinutes,
-        ),
-        reminderNotificationSentCount: reminderNumber,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    if (!(await reminder.send(intervalInMinutes))) {
+      return;
+    }
 
     await notifyOwnersOfReminder(scheduledMaintenance, delivery);
   };
@@ -524,8 +498,14 @@ async function notifyOwnersOfReminder(
       mdText`🔔 **Reminder sent to owners of [Scheduled Maintenance ${scheduledMaintenanceDisplayNumber}](${scheduledMaintenanceViewLink})**: This scheduled maintenance is still **${currentStateName}** and has been open for **${openDuration}**.`.toString(),
     moreInformationInMarkdown:
       moreScheduledMaintenanceFeedInformationInMarkdown,
+    /*
+     * Posted to the event's channels as a reminder, a box of its own on a
+     * rule's Updates step (issue #7938): named here, so no other owner
+     * notice is ever posted as one.
+     */
     workspaceNotification: {
       sendWorkspaceNotification: true,
+      updateKinds: [NotificationRuleUpdateKind.Reminders],
     },
   });
 
