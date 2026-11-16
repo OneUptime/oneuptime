@@ -48,6 +48,9 @@ import HeldPermissionsUtil, {
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentInternalNote from "../../../Models/DatabaseModels/IncidentInternalNote";
 import IncidentStateTimeline from "../../../Models/DatabaseModels/IncidentStateTimeline";
+import OnCallDutyPolicyExecutionLog from "../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
+import RunbookExecution from "../../../Models/DatabaseModels/RunbookExecution";
+import { RUNBOOK_RUN_PERMISSIONS } from "../../../Types/Runbook/RunbookRunPermissions";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import { keepProjectPermissionsInTab } from "../../Helpers/TabProjectPermissions";
@@ -297,6 +300,149 @@ describe("the maintainer's case: Test User 2 on INC-17, owned by Team 2 (Viewer)
         privateRecordOptions({ owningTeamIds: [TEAM_2] }),
       ).disabledReason,
     ).toBe(`You do not have permission to update this Incident. ${REASON}`);
+  });
+});
+
+/*
+ * WHAT IS DONE ABOUT INC-17 FOLLOWS TEAM 2 TOO (#8913): paging about it,
+ * running a runbook for it and acting on a fix OneUptime AI proposed for it
+ * take their permission from the teams that own it, as the server asks
+ * (OnCallPageService, RunbookPrivateRecordAccess, RemediationApproval). The
+ * incident's page hands those gates the same scope, and the lock says why.
+ */
+describe("what is done about INC-17 follows Team 2 too", () => {
+  const FIX_SENTENCE: string =
+    "Only someone who may start runbook executions can approve or dismiss this fix.";
+
+  beforeEach(() => {
+    store(MAINTAINERS_ROWS);
+  });
+
+  test("anywhere else Team 1 lets them page, run runbooks and act on fixes", () => {
+    expect(
+      PermissionGate.check(
+        new OnCallDutyPolicyExecutionLog(),
+        ModelAction.Create,
+      ).isAllowed,
+    ).toBe(true);
+    expect(
+      PermissionGate.check(new RunbookExecution(), ModelAction.Create)
+        .isAllowed,
+    ).toBe(true);
+    expect(
+      PermissionGate.checkPermissions(RUNBOOK_RUN_PERMISSIONS, {
+        sentence: FIX_SENTENCE,
+      }).isAllowed,
+    ).toBe(true);
+  });
+
+  test("on INC-17, Execute On-Call Policy and Page now are locked, saying why", () => {
+    const gate: PermissionGateResult = PermissionGate.check(
+      new OnCallDutyPolicyExecutionLog(),
+      ModelAction.Create,
+      privateRecordOptions({ owningTeamIds: [TEAM_2] }),
+    );
+
+    expect(gate.isAllowed).toBe(false);
+    expect(gate.disabledReason).toMatch(/^You do not have permission to /);
+    expect(gate.disabledReason?.endsWith(REASON)).toBe(true);
+  });
+
+  test("on INC-17, running a runbook is locked, saying why", () => {
+    const gate: PermissionGateResult = PermissionGate.check(
+      new RunbookExecution(),
+      ModelAction.Create,
+      privateRecordOptions({ owningTeamIds: [TEAM_2] }),
+    );
+
+    expect(gate.isAllowed).toBe(false);
+    expect(gate.disabledReason?.endsWith(REASON)).toBe(true);
+  });
+
+  test("on INC-17, a fix's Approve & Run and Dismiss are locked in the fix's words, then why", () => {
+    const gate: PermissionGateResult = PermissionGate.checkPermissions(
+      RUNBOOK_RUN_PERMISSIONS,
+      {
+        sentence: FIX_SENTENCE,
+        ...privateRecordOptions({ owningTeamIds: [TEAM_2] }),
+      },
+    );
+
+    // Not by naming a permission they hold, through Team 1.
+    expect(gate).toEqual({
+      isAllowed: false,
+      disabledReason: `${FIX_SENTENCE} ${REASON}`,
+    });
+  });
+
+  test("a fix their whole snapshot refuses too still names the permission that would allow it", () => {
+    store([
+      ...DEFAULT_ROWS,
+      row(Permission.Viewer, { teamId: TEAM_1 }),
+      row(Permission.Viewer, { teamId: TEAM_2 }),
+    ]);
+
+    const gate: PermissionGateResult = PermissionGate.checkPermissions(
+      RUNBOOK_RUN_PERMISSIONS,
+      {
+        sentence: FIX_SENTENCE,
+        ...privateRecordOptions({ owningTeamIds: [TEAM_2] }),
+      },
+    );
+    const anywhere: PermissionGateResult = PermissionGate.checkPermissions(
+      RUNBOOK_RUN_PERMISSIONS,
+      { sentence: FIX_SENTENCE },
+    );
+
+    expect(gate.isAllowed).toBe(false);
+    expect(gate.disabledReason).not.toContain(REASON);
+    expect(gate.disabledReason).toBe(anywhere.disabledReason);
+    expect(gate.disabledReason?.startsWith(`${FIX_SENTENCE} `)).toBe(true);
+  });
+
+  test("once Team 2 may page and run runbooks, all of it is offered again", () => {
+    store([
+      ...MAINTAINERS_ROWS,
+      row(Permission.OnCallMember, { teamId: TEAM_2 }),
+      row(Permission.RunbookMember, { teamId: TEAM_2 }),
+    ]);
+
+    const options: PermissionGateOptions | undefined = privateRecordOptions({
+      owningTeamIds: [TEAM_2],
+    });
+
+    expect(
+      PermissionGate.check(
+        new OnCallDutyPolicyExecutionLog(),
+        ModelAction.Create,
+        options,
+      ).isAllowed,
+    ).toBe(true);
+    expect(
+      PermissionGate.check(new RunbookExecution(), ModelAction.Create, options)
+        .isAllowed,
+    ).toBe(true);
+    expect(
+      PermissionGate.checkPermissions(RUNBOOK_RUN_PERMISSIONS, {
+        sentence: FIX_SENTENCE,
+        ...options,
+      }).isAllowed,
+    ).toBe(true);
+  });
+
+  test("named an owner of INC-17, they act with everything they hold", () => {
+    expect(
+      privateRecordOptions({ owningTeamIds: [TEAM_2], isOwnedByReader: true }),
+    ).toBeUndefined();
+    expect(
+      PermissionGate.checkPermissions(RUNBOOK_RUN_PERMISSIONS, {
+        sentence: FIX_SENTENCE,
+        ...privateRecordOptions({
+          owningTeamIds: [TEAM_2],
+          isOwnedByReader: true,
+        }),
+      }).isAllowed,
+    ).toBe(true);
   });
 });
 
