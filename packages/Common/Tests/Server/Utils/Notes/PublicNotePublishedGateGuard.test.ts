@@ -24,6 +24,12 @@ import {
  * every read of a public note there to `isPublished: true` in its query. A
  * new read added without it fails here, with the file and the line.
  *
+ * An owner notification job reads its notes through OwnerNotificationBacklog
+ * (issue #8862): `forEachToNotify({ service: <a public note service>,
+ * notYetNotified: { ..., isPublished: true } })` is such a read, its
+ * notYetNotified the query it reads its pages by - and the mark its take
+ * matches, so a note is taken only while it is published.
+ *
  * And it holds PublishedImages to showing a note's images only while it is
  * published.
  */
@@ -58,8 +64,9 @@ const PUBLIC_FACING_READERS: ReadonlyArray<{ file: string; reads: number }> = [
     reads: 3,
   },
   /*
-   * Owners told a note was posted: the notes not told of yet, and the one
-   * whose owners a stopped run left to be told (#8199, #8509).
+   * Owners told a note was posted: the notes not told of yet, read a page at
+   * a time through OwnerNotificationBacklog (#8862), and the one whose owners
+   * a stopped run left to be told (#8199, #8509).
    */
   {
     file: "App/FeatureSet/Workers/Jobs/IncidentOwners/SendNotePostedNotification.ts",
@@ -106,6 +113,12 @@ const READ_METHODS: ReadonlyArray<string> = [
   "countBy",
 ];
 
+// The backlog's reads, by the object their first argument names the service in.
+const BACKLOG_READ_METHODS: ReadonlyArray<string> = [
+  "forEachToNotify",
+  "groupTable",
+];
+
 interface NoteRead {
   // The service and method: "IncidentPublicNoteService.findBy".
   call: string;
@@ -116,10 +129,30 @@ interface NoteRead {
   asksForPublished: boolean;
 }
 
-// `query: { ..., isPublished: true, ... }` in the call's first argument.
+// A property of an object literal, by its name.
+function propertyNamed(
+  literal: ts.ObjectLiteralExpression,
+  name: string,
+  file: ts.SourceFile,
+): ts.PropertyAssignment | undefined {
+  return literal.properties.find(
+    (property: ts.ObjectLiteralElementLike): boolean => {
+      return (
+        ts.isPropertyAssignment(property) &&
+        property.name.getText(file) === name
+      );
+    },
+  ) as ts.PropertyAssignment | undefined;
+}
+
+/*
+ * `query: { ..., isPublished: true, ... }` in the call's first argument - or,
+ * for a backlog read, `notYetNotified: { ..., isPublished: true, ... }`.
+ */
 function asksForPublished(
   call: ts.CallExpression,
   file: ts.SourceFile,
+  queryProperty: string = "query",
 ): boolean {
   const argument: ts.Expression | undefined = call.arguments[0];
 
@@ -127,13 +160,11 @@ function asksForPublished(
     return false;
   }
 
-  const query: ts.ObjectLiteralElementLike | undefined =
-    argument.properties.find((property: ts.ObjectLiteralElementLike) => {
-      return (
-        ts.isPropertyAssignment(property) &&
-        property.name.getText(file) === "query"
-      );
-    });
+  const query: ts.ObjectLiteralElementLike | undefined = propertyNamed(
+    argument,
+    queryProperty,
+    file,
+  );
 
   if (
     !query ||
@@ -180,6 +211,35 @@ function findNoteReads(source: string): Array<NoteRead> {
       });
     }
 
+    // OwnerNotificationBacklog.forEachToNotify({ service: <public note service>, ... }).
+    if (
+      ts.isCallExpression(node) &&
+      ts.isPropertyAccessExpression(node.expression) &&
+      ts.isIdentifier(node.expression.expression) &&
+      node.expression.expression.text === "OwnerNotificationBacklog" &&
+      BACKLOG_READ_METHODS.includes(node.expression.name.text)
+    ) {
+      const argument: ts.Expression | undefined = node.arguments[0];
+      const service: ts.PropertyAssignment | undefined =
+        argument && ts.isObjectLiteralExpression(argument)
+          ? propertyNamed(argument, "service", file)
+          : undefined;
+
+      if (
+        service &&
+        ts.isIdentifier(service.initializer) &&
+        PUBLIC_NOTE_SERVICE.test(service.initializer.text)
+      ) {
+        reads.push({
+          call: `OwnerNotificationBacklog.${node.expression.name.text}(${service.initializer.text})`,
+          line:
+            file.getLineAndCharacterOfPosition(node.getStart(file)).line + 1,
+          text: node.getText(file),
+          asksForPublished: asksForPublished(node, file, "notYetNotified"),
+        });
+      }
+    }
+
     ts.forEachChild(node, visit);
   };
 
@@ -219,6 +279,67 @@ describe("the detector", () => {
       // false is no published note.
       ["IncidentEpisodePublicNoteService.findAllBy", false],
     ]);
+  });
+
+  test("finds a read of public notes through the owner notification backlog, and whether its pages ask for published notes", () => {
+    const reads: Array<NoteRead> = findNoteReads(`
+      async function a() {
+        await OwnerNotificationBacklog.forEachToNotify<IncidentPublicNote>({
+          service: IncidentPublicNoteService,
+          notYetNotified: { isOwnerNotified: false, isPublished: true },
+          notified: { isOwnerNotified: true },
+        });
+        await OwnerNotificationBacklog.forEachToNotify({
+          service: ScheduledMaintenancePublicNoteService,
+          notYetNotified: { isOwnerNotified: false },
+          notified: { isOwnerNotified: true },
+        });
+        await OwnerNotificationBacklog.forEachToNotify({
+          service: IncidentInternalNoteService,
+          notYetNotified: { isOwnerNotified: false },
+        });
+      }
+    `);
+
+    expect(
+      reads.map((read: NoteRead) => {
+        return [read.call, read.asksForPublished];
+      }),
+    ).toEqual([
+      [
+        "OwnerNotificationBacklog.forEachToNotify(IncidentPublicNoteService)",
+        true,
+      ],
+      [
+        "OwnerNotificationBacklog.forEachToNotify(ScheduledMaintenancePublicNoteService)",
+        false,
+      ],
+    ]);
+  });
+
+  test("the gate removed from an owner job's backlog read is caught", () => {
+    const source: string = fs.readFileSync(
+      path.join(
+        PACKAGES,
+        "App/FeatureSet/Workers/Jobs/IncidentOwners/SendNotePostedNotification.ts",
+      ),
+      "utf8",
+    );
+    const backlogRead: number = source.indexOf(
+      "OwnerNotificationBacklog.forEachToNotify<IncidentPublicNote>",
+    );
+
+    expect(backlogRead).toBeGreaterThan(0);
+
+    const mutated: string =
+      source.slice(0, backlogRead) +
+      source.slice(backlogRead).replace(/isPublished: true,/, "");
+
+    expect(
+      findNoteReads(mutated).filter((read: NoteRead) => {
+        return !read.asksForPublished;
+      }),
+    ).toHaveLength(1);
   });
 
   test("a query built elsewhere is not taken as asking: the gate is written where the read is", () => {

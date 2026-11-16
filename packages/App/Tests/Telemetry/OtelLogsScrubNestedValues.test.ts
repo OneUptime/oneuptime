@@ -908,3 +908,146 @@ describe("log scrub rules over lists and nested values, on each OTLP route (#639
     },
   );
 });
+
+/*
+ * ---------------------------------------------------------------------------
+ * #8923: a body sent as a map is stored as its JSON text, and a pattern rule
+ * keeps it JSON - on each route - where an address right after a line break
+ * used to leave `\[REDACTED]`, and a card number at the start of a line was
+ * not found at all.
+ * ---------------------------------------------------------------------------
+ */
+function mapBodyRequest(): JSONObject {
+  return {
+    resourceLogs: [
+      {
+        resource: {
+          attributes: pairs([["service.name", text(SERVICE_NAME)]]),
+        },
+        scopeLogs: [
+          {
+            scope: { name: "checkout.logger" },
+            logRecords: [
+              {
+                timeUnixNano: "1794218400000000000",
+                severityNumber: 9,
+                body: keyValueList([
+                  ["message", text(`line one\n${EMAIL}`)],
+                  ["paid", text("paid with\n4111 1111 1111 1111")],
+                  ["retries", int("2")],
+                ]),
+                attributes: [],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+}
+
+/*
+ * #8924: a browser log stamped with its recording's session id - on the
+ * resource, as the recorder tells the page's own OpenTelemetry to - stays
+ * filed under the recording on each route, under a Sensitive Attribute
+ * Keys rule: its sessionId, what the recording's Logs and a session's
+ * erasure find it by, and the attribute it was read from, which the rule
+ * keeps. A login session in a cookie beside it is hidden.
+ */
+const REPLAY_SESSION_ID: string = "5f2c9e1a7b3d4c6e8f0a1b2c3d4e5f60";
+
+function browserLogRequest(): JSONObject {
+  return {
+    resourceLogs: [
+      {
+        resource: {
+          attributes: pairs([
+            ["service.name", text(SERVICE_NAME)],
+            ["session.id", text(REPLAY_SESSION_ID)],
+          ]),
+        },
+        scopeLogs: [
+          {
+            scope: { name: "browser" },
+            logRecords: [
+              {
+                timeUnixNano: "1794218400000000000",
+                severityNumber: 9,
+                body: text("checkout clicked"),
+                attributes: pairs([
+                  [
+                    "http.request.header.cookie",
+                    list(text("sessionid=abc123")),
+                  ],
+                ]),
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+}
+
+describe("a browser log stays filed under its recording on each OTLP route under a Sensitive Attribute Keys rule (#8924)", () => {
+  test.each(ROUTE_CASES)(
+    "%s: its session id is kept in its column and its attribute, and the cookie beside it hidden",
+    async (_label: string, routeIndex: number) => {
+      setupIngest([
+        compiledRule({
+          patternType: LogScrubPatternType.SensitiveKeys,
+          action: LogScrubAction.Redact,
+        }),
+      ]);
+
+      await ingestDecodedBody(
+        await ROUTES[routeIndex]!.decode(browserLogRequest()),
+      );
+
+      const row: JSONObject = rowWithBody("checkout clicked");
+      const attributes: JSONObject = attributesOf(row);
+
+      expect(row["sessionId"]).toBe(REPLAY_SESSION_ID);
+      expect(attributes["resource.session.id"]).toBe(REPLAY_SESSION_ID);
+      expect(attributes["http.request.header.cookie"]).toEqual(["[REDACTED]"]);
+    },
+  );
+});
+
+describe("a body sent as a map stays JSON on each OTLP route when a pattern rule scrubs it (#8923)", () => {
+  test.each(ROUTE_CASES)(
+    "%s: an address after a line break is redacted after it, and a card number at the start of a line is masked",
+    async (_label: string, routeIndex: number) => {
+      setupIngest([
+        compiledRule({
+          patternType: LogScrubPatternType.Email,
+          action: LogScrubAction.Redact,
+        }),
+        compiledRule({
+          patternType: LogScrubPatternType.CreditCard,
+          action: LogScrubAction.Mask,
+        }),
+      ]);
+
+      await ingestDecodedBody(
+        await ROUTES[routeIndex]!.decode(mapBodyRequest()),
+      );
+
+      expect(logRows).toHaveLength(1);
+
+      const body: string = logRows[0]!["body"] as string;
+
+      expect(body).not.toContain(EMAIL);
+      expect(body).not.toContain("4111 1111 1111 1111");
+
+      // The very JSON the route stores for the map, with the texts hidden.
+      expect(withoutKindNames(JSON.parse(body))).toEqual(
+        keyValueList([
+          ["message", text("line one\n[REDACTED]")],
+          ["paid", text("paid with\n****-****-****-1111")],
+          ["retries", int("2")],
+        ]),
+      );
+    },
+  );
+});

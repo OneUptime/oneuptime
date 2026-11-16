@@ -36,7 +36,7 @@ La línea superior nombra lo más urgente que hay abierto, en un color acorde:
 | Hay monitores funcionando y no hay nada abierto | **Todos los sistemas están operativos** |
 | El proyecto aún no tiene monitores | **Aún no se monitoriza nada** |
 
-Al lado, Inicio indica cuándo cargó el proyecto por última vez, y **Actualizar** lo vuelve a cargar. Cuando vuelves a una pestaña de Inicio después de un minuto o más, se actualiza sola.
+Al lado, Inicio indica cuándo cargó el proyecto por última vez, y **Actualizar** lo vuelve a cargar. Inicio también sigue lo que cuenta a medida que cambia: cuando se crea, cambia o elimina un incidente, una alerta, un monitor, un evento de mantenimiento o un SLO, la línea, los números, **Requiere atención** y **Próximos mantenimientos** se ponen al día en segundos, sin recargar. Cuando vuelves a una pestaña de Inicio después de un minuto o más, se actualiza sola.
 
 Mientras todavía no se monitoriza nada, la línea termina con el botón **Crea tu primer monitor**, que abre la configuración guiada **Saber cuándo cae mi sitio web o mi API**. Solo lo ven las personas que pueden crear monitores.
 
@@ -89,6 +89,8 @@ flowchart TB
 
 La lista desaparece para todos cuando todos los pasos están hechos. Para ocultarla antes, haz clic en **Ocultar**: se oculta solo para ti, en cada dispositivo, y queda una línea con **Mostrarlo** y **Cómo funciona OneUptime**. Las personas invitadas al proyecto como miembros no ven la lista. **Cómo funciona OneUptime** sigue a un clic, en cualquier proyecto: ábrelo desde **Ayuda** o con el botón junto a **Explora OneUptime**.
 
+**Cómo funciona OneUptime** se abre en **Cómo encaja todo**: los cuatro pasos por los que pasa un problema, **Detectar**, **Responder**, **Comunicar** y **Mejorar**, cada uno con los productos que lo hacen. Después vienen las categorías del menú **Productos**, cada una con sus productos y para qué sirve cada uno: elige una, o pasa a la siguiente con las flechas del teclado o **Siguiente**. Haz clic en un producto para abrirlo. Los productos que tu proyecto oculta no aparecen.
+
 ### Requiere atención
 
 **Requiere atención** lista, por su nombre, lo que cuentan los números: los incidentes abiertos, las alertas abiertas, los monitores no operativos, los SLO en riesgo y los mantenimientos en curso, primero lo más urgente. Cada fila muestra su gravedad o su estado, dice cuándo empezó un incidente o una alerta y cuándo termina un mantenimiento, y abre el elemento. De cada tipo se muestran hasta cinco, con **Ver todo** para el resto, que abre la misma lista que su número. Cuando no hay nada abierto, dice **Nada requiere tu atención**.
@@ -137,7 +139,7 @@ Una palabra con una línea de puntos debajo, como **Sondas** en el formulario de
 
 Sobre el título de cada página, una ruta como *Proyecto › Docker › Ajustes › Reglas del propietario* dice dónde está la página. Cada paso antes del último abre su página.
 
-- **Las listas se mantienen al día solas.** Cuando se crea, se reconoce o se resuelve un incidente o una alerta en cualquier lugar, las listas de incidentes, alertas y episodios lo muestran en segundos, sin recargar. Mientras estás a mitad de algo en una lista, como filas marcadas o un diálogo abierto, la lista espera y se pone al día cuando terminas.
+- **Las listas se mantienen al día solas.** Cuando se crea, cambia o elimina un incidente, una alerta, un monitor o un evento de mantenimiento en cualquier lugar, las listas de incidentes, alertas, episodios, monitores y eventos de mantenimiento lo muestran en segundos, sin recargar, y lo mismo hacen los recuentos que tienen al lado en los menús laterales. Los recuentos de la campana, y las listas **Incidentes activos**, **Alertas activas**, **Episodios de incidente activos** y **Episodios de alerta activos**, siguen todos los proyectos a los que perteneces, no solo el que está abierto. Mientras estás a mitad de algo en una lista, como filas marcadas o un diálogo abierto, la lista espera y se pone al día cuando terminas.
 - **En un teléfono, los chips de filtro se pliegan** tras **Filtro**, para que la lista empiece más arriba. Los chips que fijaste siguen a la vista, con **Borrar todo**. Pulsa **Filtro** para ver todos los chips, y otra vez para plegarlos.
 - La opción **Columnas** del menú **⋯** de una lista elige qué columnas muestra la lista y en qué orden, y las guarda para ti en este navegador. Un Propietario del proyecto o un Administrador del proyecto también puede marcar ahí **Mostrar estas columnas a todos en este proyecto**: quien no haya elegido sus propias columnas para esa lista las ve, y **Restablecer los valores predeterminados del proyecto** devuelve las tuyas a ellas.
 - La opción **Filas compactas**, en el mismo menú, dibuja más bajas las filas de todas las listas, así que una lista larga muestra alrededor de una quinta parte más. La elección se guarda en este navegador.

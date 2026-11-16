@@ -7,6 +7,7 @@ import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ModelEventType from "Common/Types/Realtime/ModelEventType";
 import { getRecordNumberColumns } from "Common/Utils/Project/RecordNumber";
@@ -120,23 +121,29 @@ describe("Pages and lists, in English", () => {
     );
   });
 
-  it("says the lists of incidents, alerts and episodes keep themselves current, and wait while you work", () => {
+  it("says the lists of incidents, alerts, episodes, monitors and maintenance events keep themselves current, and wait while you work", () => {
     expect(SECTION).toContain("**Lists keep themselves current.**");
     expect(SECTION).toContain(
-      "the lists of incidents, alerts and episodes show it within seconds, without a refresh",
+      "When an incident, alert, monitor or maintenance event is created, changed or deleted anywhere, the lists of incidents, alerts, episodes, monitors and maintenance events show it within seconds, without a refresh, and so do the counts beside them in the side menus.",
     );
     expect(SECTION).toContain("such as rows ticked or a dialog open, it waits");
 
-    // Each kind is announced as it is created and as it changes.
+    /*
+     * Each kind is announced as it is created, changed and deleted - monitors
+     * and maintenance events too, since #6918 - so its lists and the side
+     * menus' counts (UseLiveRows, UseLiveCount) hear them.
+     */
     for (const model of [
       new Incident(),
       new Alert(),
       new IncidentEpisode(),
       new AlertEpisode(),
+      new Monitor(),
+      new ScheduledMaintenance(),
     ] as Array<BaseModel>) {
       expect([model.tableName, getLiveRowEventTypes(model)]).toEqual([
         model.tableName,
-        expect.arrayContaining([ModelEventType.Create, ModelEventType.Update]),
+        [ModelEventType.Create, ModelEventType.Update, ModelEventType.Delete],
       ]);
     }
 
@@ -148,6 +155,50 @@ describe("Pages and lists, in English", () => {
       source(REPO_ROOT, "Common/UI/Components/ModelTable/BaseModelTable.tsx"),
     );
     expect(table).toContain("isEnabled:props.isLive!==false");
+  });
+
+  /*
+   * The bell counts across every project the person belongs to, and the
+   * four lists it opens list every project's records: both hear each
+   * project's changes, not only the open one's (#6917).
+   */
+  it("says the bell's counts and the Active lists follow every project you belong to", () => {
+    expect(SECTION).toContain(
+      "The bell's counts, and the **Active Incidents**, **Active Alerts**, **Active Incident Episodes** and **Active Alert Episodes** lists, follow every project you belong to, not only the one that is open.",
+    );
+
+    // The bell listens in each of the person's projects, for each kind it counts.
+    const header: string = dense(
+      source(DASHBOARD_SRC, "Components/Header/Header.tsx"),
+    );
+    for (const kind of [
+      "Incident",
+      "Alert",
+      "AlertEpisode",
+      "IncidentEpisode",
+    ]) {
+      expect(header).toContain(
+        `listenToHeaderCountChanges({modelType:${kind},projectIds:countProjectIds,`,
+      );
+    }
+
+    // Each Active list hears every project it lists, by the names its menu gives it.
+    for (const [page, title] of [
+      ["ActiveIncidents", "Active Incidents"],
+      ["ActiveAlerts", "Active Alerts"],
+      ["ActiveIncidentEpisodes", "Active Incident Episodes"],
+      ["ActiveAlertEpisodes", "Active Alert Episodes"],
+    ] as Array<[string, string]>) {
+      const list: string = dense(
+        source(DASHBOARD_SRC, `Pages/Global/${page}.tsx`),
+      );
+
+      expect({ page, live: list.includes("liveProjectIds={") }).toEqual({
+        page,
+        live: true,
+      });
+      expect(drawnDashboardLabel("en", title)).toBe(title);
+    }
   });
 
   it("says the chips fold behind Filter on a phone, the set ones in sight with Clear all", () => {
@@ -459,6 +510,29 @@ describe.each(
 
   it("gives the numbered heading's example as it is drawn", () => {
     expect(page).toContain("`INC-42 Checkout is down`");
+  });
+
+  it("names, where lists keep themselves current, the four Active lists that follow every project, as its dashboard draws them", () => {
+    const trail: string = `*${TRAIL.map((step: string): string => {
+      return drawnDashboardLabel(language, step);
+    }).join(" › ")}*`;
+    const rest: string = page.slice(page.indexOf(trail));
+    const bullet: string =
+      rest.split("\n").find((line: string): boolean => {
+        return line.startsWith("- **");
+      }) || "";
+
+    for (const title of [
+      "Active Incidents",
+      "Active Alerts",
+      "Active Incident Episodes",
+      "Active Alert Episodes",
+    ]) {
+      expect({
+        title,
+        named: bullet.includes(`**${drawnDashboardLabel(language, title)}**`),
+      }).toEqual({ title, named: true });
+    }
   });
 
   it("names Filter and Clear all as its dashboard draws them", () => {

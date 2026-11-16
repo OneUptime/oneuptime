@@ -1,5 +1,10 @@
 import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
+import OwnerNotificationBacklog, {
+  OwnerNotificationPage,
+} from "../../Utils/OwnerNotificationBacklog";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import Dictionary from "Common/Types/Dictionary";
 import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
@@ -71,7 +76,7 @@ const ALERT_SELECT: Select<Alert> = {
 RunCron(
   "AlertOwner:SendsNotePostedEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
-  async () => {
+  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
     /*
      * The owners a run that stopped part way left untold - a worker killed
      * between the take and the last owner (#8199) - told first, exactly
@@ -106,69 +111,145 @@ RunCron(
       },
     });
 
-    const privateNotes: Array<AlertInternalNote> =
-      await AlertInternalNoteService.findAllBy({
-        query: {
-          isOwnerNotified: false,
-        },
-        props: {
-          isRoot: true,
-        },
-        skip: 0,
-        select: NOTE_SELECT,
-      });
-
-    for (const note of privateNotes) {
-      // get all scheduled events of all the projects.
-      const alert: Alert | null = await readAlert(note.alertId!);
-
-      /*
-       * Whom it is to tell, written before the take: a worker stopped from
-       * here on leaves them to be told by a later run, and one stopped
-       * before the take leaves the note to be read again.
-       */
-      const delivery: OwnerNotificationDelivery | null = alert
-        ? await planOwnersOfNote({ note: note, alert: alert })
-        : null;
-
-      /*
-       * Marked as notified before its owners are told, so a note whose
-       * notification keeps failing is never read again on every run - one
-       * whose alert is gone too.
-       */
-      await AlertInternalNoteService.updateOneById({
-        id: note.id!,
-        data: {
-          isOwnerNotified: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (!alert || !delivery) {
-        continue;
-      }
-
-      try {
-        await notifyOwnersOfNote({
-          note: note,
-          alert: alert,
-          delivery: delivery,
+    /*
+     * Every note posted on an alert and not told of yet, a page at a time,
+     * oldest first, each taken by one run alone and told by the run that
+     * took it; the run stops at its deadline and the next carries on
+     * (OwnerNotificationBacklog, issue #8862).
+     */
+    await OwnerNotificationBacklog.forEachToNotify<AlertInternalNote>({
+      jobName: "AlertOwner:SendsNotePostedEmail",
+      service: AlertInternalNoteService,
+      notYetNotified: {
+        isOwnerNotified: false,
+      },
+      notified: {
+        isOwnerNotified: true,
+      },
+      select: NOTE_SELECT,
+      deadline: deadline,
+      readPage: readAlertsOfPage,
+      notify: async (input: {
+        record: AlertInternalNote;
+        page: OwnerNotificationPage;
+        take: () => Promise<boolean>;
+      }): Promise<void> => {
+        await notifyOfNote({
+          note: input.record,
+          page: input.page,
+          take: input.take,
         });
-      } catch (e) {
-        logger.error("Error in sending alert note posted notification", {
-          projectId: alert.projectId?.toString(),
-          alertId: alert.id?.toString(),
-        });
-        logger.error(e, {
-          projectId: alert.projectId?.toString(),
-          alertId: alert.id?.toString(),
-        });
-      }
-    }
+      },
+    });
   },
 );
+
+/*
+ * One note read by the run: whom it tells planned, the note taken, and -
+ * when this run took it - its owners told.
+ */
+async function notifyOfNote(data: {
+  note: AlertInternalNote;
+  page: OwnerNotificationPage;
+  take: () => Promise<boolean>;
+}): Promise<void> {
+  const note: AlertInternalNote = data.note;
+  const alertId: ObjectID | undefined = note.alertId;
+
+  // Read with the page's alerts.
+  const alert: Alert | null = alertId
+    ? await data.page.once(alertKey(alertId), (): Promise<Alert | null> => {
+        return readAlert(alertId);
+      })
+    : null;
+
+  /*
+   * Whom it is to tell, written before the take: a worker stopped from
+   * here on leaves them to be told by a later run, and one stopped before
+   * the take leaves the note to be read again.
+   */
+  const delivery: OwnerNotificationDelivery | null = alert
+    ? await planOwnersOfNote({ note: note, alert: alert, page: data.page })
+    : null;
+
+  /*
+   * Marked as notified before its owners are told, so a note whose
+   * notification keeps failing is never read again on every run - one
+   * whose alert is gone too. Taken by another run first: that run tells
+   * them.
+   */
+  if (!(await data.take())) {
+    return;
+  }
+
+  if (!alert || !delivery) {
+    return;
+  }
+
+  try {
+    await notifyOwnersOfNote({
+      note: note,
+      alert: alert,
+      delivery: delivery,
+    });
+  } catch (e) {
+    logger.error("Error in sending alert note posted notification", {
+      projectId: alert.projectId?.toString(),
+      alertId: alert.id?.toString(),
+    });
+    logger.error(e, {
+      projectId: alert.projectId?.toString(),
+      alertId: alert.id?.toString(),
+    });
+  }
+}
+
+function alertKey(alertId: ObjectID): string {
+  return `alert:${alertId.toString()}`;
+}
+
+/*
+ * The alerts of a page's notes, in one query: each is read once however
+ * many of its notes the page has.
+ */
+async function readAlertsOfPage(
+  notes: Array<AlertInternalNote>,
+  page: OwnerNotificationPage,
+): Promise<void> {
+  const alertIds: Map<string, ObjectID> = new Map<string, ObjectID>();
+
+  for (const note of notes) {
+    if (note.alertId) {
+      alertIds.set(note.alertId.toString(), note.alertId);
+    }
+  }
+
+  if (alertIds.size === 0) {
+    return;
+  }
+
+  const alerts: Array<Alert> = await AlertService.findBy({
+    query: {
+      _id: QueryHelper.any(Array.from(alertIds.values())),
+    },
+    select: ALERT_SELECT,
+    limit: alertIds.size,
+    skip: 0,
+    props: {
+      isRoot: true,
+    },
+  });
+
+  /*
+   * One not found - gone since its note was read - is read on its own when
+   * a note asks for it, as it would be without the page.
+   */
+  for (const each of alerts) {
+    if (each.id) {
+      page.prime<Alert | null>(alertKey(each.id), each);
+    }
+  }
+}
 
 async function readAlert(alertId: ObjectID): Promise<Alert | null> {
   return await AlertService.findOneById({
@@ -189,18 +270,30 @@ async function readAlert(alertId: ObjectID): Promise<Alert | null> {
 async function planOwnersOfNote(data: {
   note: AlertInternalNote;
   alert: Alert;
+  // What the notes of one page read once, for all of them.
+  page: OwnerNotificationPage;
 }): Promise<OwnerNotificationDelivery> {
   let owners: Array<User> = [];
   let isProjectOwners: boolean = false;
 
   try {
-    owners = await AlertService.findOwners(data.alert.id!);
+    owners = await data.page.once(
+      `owners:${data.alert.id!.toString()}`,
+      (): Promise<Array<User>> => {
+        return AlertService.findOwners(data.alert.id!);
+      },
+    );
 
     if (owners.length === 0) {
       isProjectOwners = true;
 
       // find project owners.
-      owners = await ProjectService.getOwners(data.note.projectId!);
+      owners = await data.page.once(
+        `projectOwners:${data.note.projectId!.toString()}`,
+        (): Promise<Array<User>> => {
+          return ProjectService.getOwners(data.note.projectId!);
+        },
+      );
     }
   } catch (e) {
     logger.error("Error in reading the owners of an alert's note", {

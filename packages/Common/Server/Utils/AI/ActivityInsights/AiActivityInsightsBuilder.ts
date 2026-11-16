@@ -141,6 +141,11 @@ export interface AiActivityFixInput {
   approvedFrom?: string | undefined;
   incidentId?: string | undefined;
   alertId?: string | undefined;
+  /*
+   * It waits for approval, and the reader gave the first of the two a
+   * riskier fix needs: it waits for someone else's approval, not theirs.
+   */
+  isFirstApprovedByReader?: boolean | undefined;
 }
 
 export interface AiActivityCommandStats {
@@ -1823,10 +1828,20 @@ export default class AiActivityInsightsBuilder {
     );
 
     if (awaiting.length > 0) {
+      // The ones the reader approved first wait for someone else's approval.
+      const approvedFirstByReader: number = awaiting.filter(
+        (fix: AiActivityFixInput): boolean => {
+          return fix.isFirstApprovedByReader === true;
+        },
+      ).length;
+
       insights.push({
         kind: AiActivityInsightKind.FixesAwaitingApproval,
         tone: AiActivityInsightTone.Warning,
         count: awaiting.length,
+        ...(approvedFirstByReader > 0
+          ? { approvedFirstByReaderCount: approvedFirstByReader }
+          : {}),
         ...this.getFixEvidence(awaiting, data.subjects),
       });
     }

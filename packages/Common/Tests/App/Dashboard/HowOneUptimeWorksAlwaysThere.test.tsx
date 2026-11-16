@@ -29,8 +29,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * The four core products in the order a problem flows through them used to
  * live only inside Home's Welcome checklist, and went for good once it was
  * done or dismissed. Now Help opens it on any page and Home opens it at any
- * time, in a dialog of its own; it says what feeds the loop and links Core
- * Concepts and the Glossary; and Help starts with the ways to learn.
+ * time, in a dialog of its own: the four steps a problem moves through, with
+ * the products that do each, then every product, by category (#8891,
+ * HowOneUptimeWorksOverview, whose own suite covers it in full); it links
+ * Core Concepts and the Glossary; and Help starts with the ways to learn.
  *
  * react-i18next answers from the Dashboard's REAL locale files, nested keys
  * and the reader's language included, so the words asserted are the words
@@ -212,10 +214,15 @@ import HowOneUptimeWorks, {
   HOW_IT_WORKS_CORE_CONCEPTS,
   HOW_IT_WORKS_FEEDS,
   HOW_IT_WORKS_GLOSSARY,
-  HOW_IT_WORKS_STEPS,
   HOW_IT_WORKS_TITLE,
-  HowItWorksStep,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/HowOneUptimeWorks";
+import {
+  HOW_IT_WORKS_LOOP,
+  HOW_IT_WORKS_LOOP_TAB,
+  HOW_ONEUPTIME_WORKS_OVERVIEW_TEST_ID,
+  HOW_ONEUPTIME_WORKS_PRODUCT_TEST_ID,
+  HowItWorksLoopStep,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Home/HowOneUptimeWorksOverview";
 import ExploreProducts, {
   HOME_HOW_ONEUPTIME_WORKS_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/ExploreProducts";
@@ -394,13 +401,27 @@ describe("Help starts with learning", () => {
   });
 });
 
+// The dialog's products are links: it is drawn inside the router, as App.tsx draws it.
+const withRouter: (element: React.ReactElement) => React.ReactElement = (
+  element: React.ReactElement,
+): React.ReactElement => {
+  return <MemoryRouter>{element}</MemoryRouter>;
+};
+
+// A step of How it fits together, in the dialog.
+const loopStep: (key: string) => HTMLElement = (key: string): HTMLElement => {
+  return screen.getByTestId(`how-oneuptime-works-step-${key}`);
+};
+
 describe("the dialog", () => {
-  test("opens from Help with the four steps, what feeds them and the docs, and says where it was opened", async () => {
+  test("opens from Help with the four steps, the products that do them and the docs, and says where it was opened", async () => {
     render(
-      <>
-        <Help />
-        <HowOneUptimeWorksDialog />
-      </>,
+      withRouter(
+        <>
+          <Help />
+          <HowOneUptimeWorksDialog />
+        </>,
+      ),
     );
 
     expect(dialog()).toBeNull();
@@ -413,24 +434,31 @@ describe("the dialog", () => {
     });
 
     expect(screen.getByRole("dialog")).toHaveTextContent(HOW_IT_WORKS_TITLE);
-    expect(within(shown).getAllByRole("listitem")).toHaveLength(4);
-    HOW_IT_WORKS_STEPS.forEach((step: HowItWorksStep) => {
-      expect(shown).toHaveTextContent(step.title);
+    expect(
+      within(shown).getByTestId(HOW_ONEUPTIME_WORKS_OVERVIEW_TEST_ID),
+    ).toHaveTextContent(HOW_IT_WORKS_LOOP_TAB);
+    HOW_IT_WORKS_LOOP.forEach((step: HowItWorksLoopStep) => {
+      expect(loopStep(step.key)).toHaveTextContent(step.title);
     });
+    // The core products are still where a problem meets them.
+    expect(loopStep("detect")).toHaveTextContent("Monitors");
+    expect(loopStep("respond")).toHaveTextContent("Incidents");
+    expect(loopStep("respond")).toHaveTextContent("On-Call");
+    expect(loopStep("communicate")).toHaveTextContent("Status Pages");
 
-    // What feeds the loop: two words, each with its definition.
-    const feeds: HTMLElement = within(shown).getByTestId(
-      "how-oneuptime-works-feeds",
+    // Detect watches telemetry and infrastructure: each word with its definition.
+    const words: Array<HTMLElement> = within(loopStep("detect")).getAllByTestId(
+      DEFINED_TERM_TEST_ID,
     );
-    const words: Array<HTMLElement> =
-      within(feeds).getAllByTestId(DEFINED_TERM_TEST_ID);
 
     expect(
       words.map((word: HTMLElement): string | null => {
         return word.getAttribute("data-glossary-term");
       }),
     ).toEqual(["telemetry", "infrastructure"]);
-    expect(feeds).toHaveTextContent("feed the loop");
+    expect(loopStep("detect")).toHaveTextContent(
+      "watch your telemetry and infrastructure for problems",
+    );
 
     // Core Concepts and the Glossary, in a new tab.
     expect(
@@ -452,8 +480,8 @@ describe("the dialog", () => {
     ]);
   });
 
-  test("a step opens its product in the current project, and the dialog closes", async () => {
-    render(<HowOneUptimeWorksDialog />);
+  test("a step's product opens its page in the current project, and the dialog closes", async () => {
+    render(withRouter(<HowOneUptimeWorksDialog />));
 
     act(() => {
       openHowOneUptimeWorks(HowOneUptimeWorksOpenedFrom.Help);
@@ -463,18 +491,29 @@ describe("the dialog", () => {
       expect(dialog()).not.toBeNull();
     });
 
-    fireEvent.click(screen.getByTestId("how-it-works-step-on-call"));
+    const onCall: HTMLElement = within(loopStep("respond"))
+      .getAllByTestId(HOW_ONEUPTIME_WORKS_PRODUCT_TEST_ID)
+      .find((link: HTMLElement): boolean => {
+        return link.textContent === "On-Call";
+      })!;
 
-    expect(navigateMock).toHaveBeenCalledTimes(1);
-    expect(String(navigateMock.mock.calls[0]![0])).toBe(
+    expect(onCall).toHaveAttribute(
+      "href",
       RouteMap[PageMap.ON_CALL_DUTY]!.toString().replace(
         ":projectId",
         PROJECT_ID,
       ),
     );
+
+    fireEvent.click(onCall);
+
     expect(captureMock).toHaveBeenCalledWith(
-      "dashboard/home/how-it-works-step",
-      { projectId: PROJECT_ID, step: "on-call", place: "dialog" },
+      ProductEventName.HowItWorksProductOpened,
+      expect.objectContaining({
+        product: "on-call",
+        place: "loop",
+        project_id: PROJECT_ID,
+      }),
     );
     await waitFor(() => {
       expect(dialog()).toBeNull();
@@ -482,7 +521,7 @@ describe("the dialog", () => {
   });
 
   test("closes with its Close button, and opens again", async () => {
-    render(<HowOneUptimeWorksDialog />);
+    render(withRouter(<HowOneUptimeWorksDialog />));
 
     act(() => {
       openHowOneUptimeWorks(HowOneUptimeWorksOpenedFrom.Home);
@@ -526,7 +565,7 @@ describe("the dialog", () => {
   ])(
     "opened from %s, the event says so",
     async (from: HowOneUptimeWorksOpenedFrom, source: string) => {
-      render(<HowOneUptimeWorksDialog />);
+      render(withRouter(<HowOneUptimeWorksDialog />));
 
       act(() => {
         openHowOneUptimeWorks(from);
@@ -543,7 +582,7 @@ describe("the dialog", () => {
 
   test("with no project picked yet, the steps say what each product does and open nothing", async () => {
     currentProjectId = null;
-    render(<HowOneUptimeWorksDialog />);
+    render(withRouter(<HowOneUptimeWorksDialog />));
 
     act(() => {
       openHowOneUptimeWorks(HowOneUptimeWorksOpenedFrom.Help);
@@ -552,11 +591,15 @@ describe("the dialog", () => {
       expect(dialog()).not.toBeNull();
     });
 
-    const step: HTMLElement = screen.getByTestId("how-it-works-step-monitor");
+    const monitors: HTMLElement = within(loopStep("detect")).getAllByTestId(
+      HOW_ONEUPTIME_WORKS_PRODUCT_TEST_ID,
+    )[0]!;
 
-    expect(step.tagName).not.toBe("BUTTON");
-    fireEvent.click(step);
+    expect(monitors).toHaveTextContent("Monitors");
+    expect(monitors.tagName).not.toBe("A");
+    fireEvent.click(monitors);
     expect(navigateMock).not.toHaveBeenCalled();
+    expect(dialog()).not.toBeNull();
     expect(openedEvents()).toEqual([
       expect.objectContaining({ product: "oneuptime", source: "help" }),
     ]);
@@ -577,7 +620,7 @@ describe("the dialog", () => {
 
   test("in German, every word of it is German", async () => {
     language = "de";
-    render(<HowOneUptimeWorksDialog />);
+    render(withRouter(<HowOneUptimeWorksDialog />));
 
     act(() => {
       openHowOneUptimeWorks(HowOneUptimeWorksOpenedFrom.Help);
@@ -593,6 +636,10 @@ describe("the dialog", () => {
       HOW_IT_WORKS_GLOSSARY,
       FEEDS_TELEMETRY_TEXT,
       FEEDS_INFRASTRUCTURE_TEXT,
+      HOW_IT_WORKS_LOOP_TAB,
+      ...HOW_IT_WORKS_LOOP.map((step: HowItWorksLoopStep): string => {
+        return step.title;
+      }),
     ]) {
       expect(typeof de[english]).toBe("string");
       expect(shown).toHaveTextContent(de[english] as string);
@@ -601,7 +648,8 @@ describe("the dialog", () => {
     expect(screen.getByRole("dialog")).toHaveTextContent(
       de[HOW_IT_WORKS_TITLE] as string,
     );
-    expect(shown).not.toHaveTextContent("feed the loop");
+    expect(shown).not.toHaveTextContent(HOW_IT_WORKS_LOOP_TAB);
+    expect(shown).not.toHaveTextContent("watch your");
     expect(
       within(shown).getByTestId("how-oneuptime-works-docs-glossary"),
     ).toHaveAttribute("href", `${DOCS}/de/introduction/glossary`);
@@ -665,7 +713,11 @@ describe("from Home, at any time", () => {
     await waitFor(() => {
       expect(dialog()).not.toBeNull();
     });
-    expect(screen.getByTestId("how-oneuptime-works")).toBeInTheDocument();
+    expect(
+      screen.getByTestId(HOW_ONEUPTIME_WORKS_OVERVIEW_TEST_ID),
+    ).toBeInTheDocument();
+    // The dialog is not the strip: the strip went with the checklist.
+    expect(screen.queryByTestId("how-oneuptime-works")).toBeNull();
   });
 });
 
@@ -683,15 +735,20 @@ describe("the strip in the Welcome checklist", () => {
     ).toBeInTheDocument();
   });
 
-  test("in a dialog, the dialog's title names it: no heading, no frame, two by two", () => {
-    render(<HowOneUptimeWorks projectId={PROJECT_ID} isInDialog={true} />);
+  test("its docs links are the dialog's: Core Concepts and the Glossary, in a new tab", () => {
+    render(<HowOneUptimeWorks projectId={PROJECT_ID} />);
 
-    const inDialog: HTMLElement = screen.getByTestId("how-oneuptime-works");
+    const strip: HTMLElement = screen.getByTestId("how-oneuptime-works");
 
-    expect(inDialog.className).toBe("");
-    expect(inDialog.textContent).not.toMatch(/^How OneUptime works/);
-    expect(within(inDialog).getByRole("list").className).toContain(
-      "sm:grid-cols-2",
+    expect(
+      within(strip).getByTestId("how-oneuptime-works-docs-core-concepts"),
+    ).toHaveAttribute("href", `${DOCS}/en/introduction/core-concepts`);
+    expect(
+      within(strip).getByTestId("how-oneuptime-works-docs-glossary"),
+    ).toHaveAttribute("target", "_blank");
+    // Four across on a wide Home.
+    expect(within(strip).getByRole("list").className).toContain(
+      "xl:grid-cols-4",
     );
   });
 

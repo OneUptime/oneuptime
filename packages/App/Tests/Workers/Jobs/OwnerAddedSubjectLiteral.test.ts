@@ -107,91 +107,208 @@ jest.mock("Common/Server/Utils/WhatsAppTemplateUtil", () => {
 jest.mock("Common/Server/Services/IncidentOwnerTeamService", () => {
   return {
     __esModule: true,
-    default: { findAllBy: jest.fn(), updateOneById: jest.fn() },
+    default: {
+      // Read a page at a time, with each record's rows (#8862).
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+      // Each row taken by one hook-free compare-and-set.
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(async () => {
+        return true;
+      }),
+    },
   };
 });
 
 jest.mock("Common/Server/Services/IncidentOwnerUserService", () => {
   return {
     __esModule: true,
-    default: { findAllBy: jest.fn(), updateOneById: jest.fn() },
+    default: {
+      // Read a page at a time, with each record's rows (#8862).
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+      // Each row taken by one hook-free compare-and-set.
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(async () => {
+        return true;
+      }),
+    },
   };
 });
 
 jest.mock("Common/Server/Services/AlertOwnerTeamService", () => {
   return {
     __esModule: true,
-    default: { findAllBy: jest.fn(), updateOneById: jest.fn() },
+    default: {
+      // Read a page at a time, with each record's rows (#8862).
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+      // Each row taken by one hook-free compare-and-set.
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(async () => {
+        return true;
+      }),
+    },
   };
 });
 
 jest.mock("Common/Server/Services/AlertOwnerUserService", () => {
   return {
     __esModule: true,
-    default: { findAllBy: jest.fn(), updateOneById: jest.fn() },
+    default: {
+      // Read a page at a time, with each record's rows (#8862).
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+      // Each row taken by one hook-free compare-and-set.
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(async () => {
+        return true;
+      }),
+    },
   };
 });
 
 jest.mock("Common/Server/Services/ScheduledMaintenanceOwnerTeamService", () => {
   return {
     __esModule: true,
-    default: { findAllBy: jest.fn(), updateOneById: jest.fn() },
+    default: {
+      // Read a page at a time, with each record's rows (#8862).
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+      // Each row taken by one hook-free compare-and-set.
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(async () => {
+        return true;
+      }),
+    },
   };
 });
 
 jest.mock("Common/Server/Services/ScheduledMaintenanceOwnerUserService", () => {
   return {
     __esModule: true,
-    default: { findAllBy: jest.fn(), updateOneById: jest.fn() },
+    default: {
+      // Read a page at a time, with each record's rows (#8862).
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+      // Each row taken by one hook-free compare-and-set.
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(async () => {
+        return true;
+      }),
+    },
   };
 });
 
 jest.mock("Common/Server/Services/AlertEpisodeOwnerTeamService", () => {
   return {
     __esModule: true,
-    default: { findAllBy: jest.fn(), updateOneById: jest.fn() },
+    default: {
+      // Read a page at a time, with each record's rows (#8862).
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+      // Each row taken by one hook-free compare-and-set.
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(async () => {
+        return true;
+      }),
+    },
   };
 });
 
 jest.mock("Common/Server/Services/AlertEpisodeOwnerUserService", () => {
   return {
     __esModule: true,
-    default: { findAllBy: jest.fn(), updateOneById: jest.fn() },
+    default: {
+      // Read a page at a time, with each record's rows (#8862).
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+      // Each row taken by one hook-free compare-and-set.
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(async () => {
+        return true;
+      }),
+    },
   };
 });
 
 jest.mock("Common/Server/Services/IncidentEpisodeOwnerTeamService", () => {
   return {
     __esModule: true,
-    default: { findAllBy: jest.fn(), updateOneById: jest.fn() },
+    default: {
+      // Read a page at a time, with each record's rows (#8862).
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+      // Each row taken by one hook-free compare-and-set.
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(async () => {
+        return true;
+      }),
+    },
   };
 });
 
 jest.mock("Common/Server/Services/IncidentEpisodeOwnerUserService", () => {
   return {
     __esModule: true,
-    default: { findAllBy: jest.fn(), updateOneById: jest.fn() },
+    default: {
+      // Read a page at a time, with each record's rows (#8862).
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+      // Each row taken by one hook-free compare-and-set.
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(async () => {
+        return true;
+      }),
+    },
   };
 });
 
 jest.mock("Common/Server/Services/AIAgentOwnerTeamService", () => {
   return {
     __esModule: true,
-    default: { findAllBy: jest.fn(), updateOneById: jest.fn() },
+    default: {
+      // Read a page at a time, with each record's rows (#8862).
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+      // Each row taken by one hook-free compare-and-set.
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(async () => {
+        return true;
+      }),
+    },
   };
 });
 
 jest.mock("Common/Server/Services/AIAgentOwnerUserService", () => {
   return {
     __esModule: true,
-    default: { findAllBy: jest.fn(), updateOneById: jest.fn() },
+    default: {
+      // Read a page at a time, with each record's rows (#8862).
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+      // Each row taken by one hook-free compare-and-set.
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(async () => {
+        return true;
+      }),
+    },
   };
 });
 
 jest.mock("Common/Server/Services/IncidentMemberService", () => {
   return {
     __esModule: true,
-    default: { findAllBy: jest.fn(), updateOneById: jest.fn() },
+    default: {
+      // Read a page at a time, with each record's rows (#8862).
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+      // Each row taken by one hook-free compare-and-set.
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(async () => {
+        return true;
+      }),
+    },
   };
 });
 
@@ -205,6 +322,9 @@ jest.mock("Common/Server/Services/IncidentService", () => {
     __esModule: true,
     default: {
       findOneById: jest.fn(),
+      findBy: jest.fn(async () => {
+        return [];
+      }),
       // The affected-resource reads: nothing linked.
       findAllBy: jest.fn(async () => {
         return [];
@@ -219,6 +339,9 @@ jest.mock("Common/Server/Services/AlertService", () => {
     __esModule: true,
     default: {
       findOneById: jest.fn(),
+      findBy: jest.fn(async () => {
+        return [];
+      }),
       // The affected-resource reads: nothing linked.
       findAllBy: jest.fn(async () => {
         return [];
@@ -233,6 +356,9 @@ jest.mock("Common/Server/Services/ScheduledMaintenanceService", () => {
     __esModule: true,
     default: {
       findOneById: jest.fn(),
+      findBy: jest.fn(async () => {
+        return [];
+      }),
       getScheduledMaintenanceLinkInDashboard: jest.fn(),
     },
   };
@@ -241,21 +367,39 @@ jest.mock("Common/Server/Services/ScheduledMaintenanceService", () => {
 jest.mock("Common/Server/Services/AlertEpisodeService", () => {
   return {
     __esModule: true,
-    default: { findOneById: jest.fn(), getEpisodeLinkInDashboard: jest.fn() },
+    default: {
+      findOneById: jest.fn(),
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+      getEpisodeLinkInDashboard: jest.fn(),
+    },
   };
 });
 
 jest.mock("Common/Server/Services/IncidentEpisodeService", () => {
   return {
     __esModule: true,
-    default: { findOneById: jest.fn(), getEpisodeLinkInDashboard: jest.fn() },
+    default: {
+      findOneById: jest.fn(),
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+      getEpisodeLinkInDashboard: jest.fn(),
+    },
   };
 });
 
 jest.mock("Common/Server/Services/AIAgentService", () => {
   return {
     __esModule: true,
-    default: { findOneById: jest.fn(), getLinkInDashboard: jest.fn() },
+    default: {
+      findOneById: jest.fn(),
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+      getLinkInDashboard: jest.fn(),
+    },
   };
 });
 
@@ -291,8 +435,8 @@ import "../../../FeatureSet/Workers/Jobs/IncidentOwners/SendOwnerAddedNotificati
 import "../../../FeatureSet/Workers/Jobs/ScheduledMaintenanceOwners/SendOwnerAddedNotification";
 
 interface RowServiceMock {
-  findAllBy: jest.Mock;
-  updateOneById: jest.Mock;
+  findBy: jest.Mock;
+  compareAndSetColumnsByIdWithoutHooks: jest.Mock;
 }
 
 interface ResourceServiceMock {
@@ -532,8 +676,8 @@ describe("an owner-added email about a resource whose title quotes template synt
   test.each(OWNER_ADDED_CASES)(
     "$job marks the subject literal and keeps the title as written",
     async (ownerAdded: OwnerAddedCase) => {
-      ownerAdded.teamService.findAllBy.mockResolvedValue([]);
-      ownerAdded.userService.findAllBy.mockResolvedValue([
+      ownerAdded.teamService.findBy.mockResolvedValue([]);
+      ownerAdded.userService.findBy.mockResolvedValue([
         ownerRow(ownerAdded.resourceIdColumn),
       ]);
       ownerAdded.resourceService.findOneById.mockResolvedValue(
@@ -551,7 +695,7 @@ describe("an owner-added email about a resource whose title quotes template synt
 
 describe("an incident member email", () => {
   test("marks the subject literal and keeps the role name and title as written", async () => {
-    (IncidentMemberService.findAllBy as jest.Mock).mockResolvedValue([
+    (IncidentMemberService.findBy as jest.Mock).mockResolvedValue([
       {
         id: new ObjectID("member-row-1"),
         incidentId: RESOURCE_ID,

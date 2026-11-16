@@ -30,10 +30,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * table - while it waited for its lock. Safe to run again after a stop part
  * way.
  */
-export class DropOnCallExecutionLogStepIndexes1809181400000
+export class DropOnCallExecutionLogStepIndexes1809181800000
   implements MigrationInterface
 {
-  public name: string = "DropOnCallExecutionLogStepIndexes1809181400000";
+  public name: string = "DropOnCallExecutionLogStepIndexes1809181800000";
 
   // DROP INDEX CONCURRENTLY runs outside a transaction.
   public transaction: boolean = false;

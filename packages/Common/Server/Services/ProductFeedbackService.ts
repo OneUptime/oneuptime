@@ -32,6 +32,7 @@ import {
   ProductFeedbackSettings,
   ProductFeedbackSubmission,
   decideFeedbackQuestion,
+  getGiveFeedbackDestination,
   readAskedQuestions,
   summarizeProductFeedback,
   withAskedQuestion,
@@ -44,8 +45,10 @@ import {
  * own checks are the gate.
  *
  *   - getSettings: whether the server asks (GlobalConfig.
- *     disableProductFeedback) and whether it asks this person
- *     (User.disableFeedbackQuestions).
+ *     disableProductFeedback), whether it asks this person
+ *     (User.disableFeedbackQuestions), and where Give feedback goes
+ *     (GiveFeedbackDestination: by GlobalConfig.adminNotificationEmail on a
+ *     self-hosted server, #8893).
  *   - ask: whether to ask a question now (decideFeedbackQuestion), and if
  *     so, writes down on the person's record that it was asked.
  *   - submit / addDetails: keep an answer, then the words written after it.
@@ -55,6 +58,12 @@ import {
 // The most answers the summary reads: far more than its window holds.
 export const PRODUCT_FEEDBACK_SUMMARY_MAX_ROWS: number = 10000;
 
+// This server's feedback settings (getServerFeedbackSettings).
+export interface ServerFeedbackSettings {
+  isOn: boolean;
+  adminNotificationEmail: string | null;
+}
+
 const MS_PER_DAY: number = 24 * 60 * 60 * 1000;
 
 export class Service extends DatabaseService<Model> {
@@ -62,24 +71,40 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
-  // Whether this server asks people at all: on unless a master admin turned it off.
-  public async isServerOn(): Promise<boolean> {
+  /*
+   * This server's feedback settings, in one read: whether it asks people
+   * at all (on unless a master admin turned it off), and its Admin
+   * Notification Email, where a self-hosted server emails Give feedback
+   * (GiveFeedbackEmail, #8893).
+   */
+  public async getServerFeedbackSettings(): Promise<ServerFeedbackSettings> {
     const config: GlobalConfig | null = await GlobalConfigService.findOneById({
       id: ObjectID.getZeroObjectID(),
       select: {
         disableProductFeedback: true,
+        adminNotificationEmail: true,
       },
       props: {
         isRoot: true,
       },
     });
 
-    return !config?.disableProductFeedback;
+    return {
+      isOn: !config?.disableProductFeedback,
+      adminNotificationEmail: config?.adminNotificationEmail
+        ? config.adminNotificationEmail.toString()
+        : null,
+    };
+  }
+
+  // Whether this server asks people at all: on unless a master admin turned it off.
+  public async isServerOn(): Promise<boolean> {
+    return (await this.getServerFeedbackSettings()).isOn;
   }
 
   public async getSettings(userId: ObjectID): Promise<ProductFeedbackSettings> {
-    const [isOn, user] = await Promise.all([
-      this.isServerOn(),
+    const [server, user] = await Promise.all([
+      this.getServerFeedbackSettings(),
       UserService.findOneById({
         id: userId,
         select: {
@@ -92,8 +117,13 @@ export class Service extends DatabaseService<Model> {
     ]);
 
     return {
-      isOn: isOn,
-      isAskingMe: isOn && !user?.disableFeedbackQuestions,
+      isOn: server.isOn,
+      isAskingMe: server.isOn && !user?.disableFeedbackQuestions,
+      // Where Give feedback goes, for the dialog to say before it is sent.
+      giveFeedbackGoesTo: getGiveFeedbackDestination({
+        isOneUptimeCloud: IsBillingEnabled,
+        adminNotificationEmail: server.adminNotificationEmail,
+      }),
     };
   }
 

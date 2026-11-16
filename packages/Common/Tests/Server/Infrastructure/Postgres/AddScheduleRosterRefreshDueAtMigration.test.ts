@@ -1,6 +1,6 @@
 import OnlineDdl from "../../../../Server/Infrastructure/Postgres/OnlineDdl";
-import { AddScheduleRosterRefreshDueAt1809181500000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809181500000-AddScheduleRosterRefreshDueAt";
-import { AddScheduleRosterRefreshDueAtIndex1809181510000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809181510000-AddScheduleRosterRefreshDueAtIndex";
+import { AddScheduleRosterRefreshDueAt1809181900000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809181900000-AddScheduleRosterRefreshDueAt";
+import { AddScheduleRosterRefreshDueAtIndex1809181910000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809181910000-AddScheduleRosterRefreshDueAtIndex";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { DefaultNamingStrategy, QueryRunner } from "typeorm";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
@@ -65,10 +65,10 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("AddScheduleRosterRefreshDueAt1809181500000", () => {
+describe("AddScheduleRosterRefreshDueAt1809181900000", () => {
   test("adds the column - nullable, no default - in a transaction, and nothing else", async () => {
-    const migration: AddScheduleRosterRefreshDueAt1809181500000 =
-      new AddScheduleRosterRefreshDueAt1809181500000();
+    const migration: AddScheduleRosterRefreshDueAt1809181900000 =
+      new AddScheduleRosterRefreshDueAt1809181900000();
 
     expect(
       (migration as unknown as { transaction?: boolean }).transaction,
@@ -89,7 +89,7 @@ describe("AddScheduleRosterRefreshDueAt1809181500000", () => {
     expect(
       await statementsOf(
         (runner: QueryRunner) => {
-          return new AddScheduleRosterRefreshDueAt1809181500000().down(runner);
+          return new AddScheduleRosterRefreshDueAt1809181900000().down(runner);
         },
         { isTransactionActive: true },
       ),
@@ -97,14 +97,14 @@ describe("AddScheduleRosterRefreshDueAt1809181500000", () => {
   });
 });
 
-describe("AddScheduleRosterRefreshDueAtIndex1809181510000", () => {
+describe("AddScheduleRosterRefreshDueAtIndex1809181910000", () => {
   test("the index is named as TypeORM names it", () => {
     expect(INDEX).toBe("IDX_d242a03092195f79e2e425ea62");
   });
 
   test("builds the partial index online, outside a transaction", async () => {
-    const migration: AddScheduleRosterRefreshDueAtIndex1809181510000 =
-      new AddScheduleRosterRefreshDueAtIndex1809181510000();
+    const migration: AddScheduleRosterRefreshDueAtIndex1809181910000 =
+      new AddScheduleRosterRefreshDueAtIndex1809181910000();
 
     expect(migration.transaction).toBe(false);
     expect(
@@ -132,7 +132,7 @@ describe("AddScheduleRosterRefreshDueAtIndex1809181510000", () => {
     expect(
       await statementsOf(
         (runner: QueryRunner) => {
-          return new AddScheduleRosterRefreshDueAtIndex1809181510000().down(
+          return new AddScheduleRosterRefreshDueAtIndex1809181910000().down(
             runner,
           );
         },
@@ -147,8 +147,8 @@ describe("registration", () => {
     const registered: Array<unknown> = SchemaMigrations as Array<unknown>;
 
     for (const migration of [
-      AddScheduleRosterRefreshDueAt1809181500000,
-      AddScheduleRosterRefreshDueAtIndex1809181510000,
+      AddScheduleRosterRefreshDueAt1809181900000,
+      AddScheduleRosterRefreshDueAtIndex1809181910000,
     ]) {
       expect(
         registered.filter((candidate: unknown): boolean => {
@@ -157,8 +157,8 @@ describe("registration", () => {
       ).toHaveLength(1);
     }
 
-    expect(positionOf(AddScheduleRosterRefreshDueAtIndex1809181510000)).toBe(
-      positionOf(AddScheduleRosterRefreshDueAt1809181500000) + 1,
+    expect(positionOf(AddScheduleRosterRefreshDueAtIndex1809181910000)).toBe(
+      positionOf(AddScheduleRosterRefreshDueAt1809181900000) + 1,
     );
 
     const timestamps: Array<number> = registered.map((migration: unknown) => {
@@ -172,15 +172,15 @@ describe("registration", () => {
       Math.max(
         ...timestamps.slice(
           0,
-          positionOf(AddScheduleRosterRefreshDueAt1809181500000),
+          positionOf(AddScheduleRosterRefreshDueAt1809181900000),
         ),
       ),
-    ).toBeLessThan(1809181500000);
-    expect(new AddScheduleRosterRefreshDueAt1809181500000().name).toBe(
-      "AddScheduleRosterRefreshDueAt1809181500000",
+    ).toBeLessThan(1809181900000);
+    expect(new AddScheduleRosterRefreshDueAt1809181900000().name).toBe(
+      "AddScheduleRosterRefreshDueAt1809181900000",
     );
-    expect(new AddScheduleRosterRefreshDueAtIndex1809181510000().name).toBe(
-      "AddScheduleRosterRefreshDueAtIndex1809181510000",
+    expect(new AddScheduleRosterRefreshDueAtIndex1809181910000().name).toBe(
+      "AddScheduleRosterRefreshDueAtIndex1809181910000",
     );
   });
 });

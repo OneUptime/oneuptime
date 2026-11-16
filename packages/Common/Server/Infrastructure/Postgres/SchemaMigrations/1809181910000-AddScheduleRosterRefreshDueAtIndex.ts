@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 
 /*
  * Generated with npm run generate-postgres-migration alongside
- * AddScheduleRosterRefreshDueAt1809181500000, and moved into a migration of
+ * AddScheduleRosterRefreshDueAt1809181900000, and moved into a migration of
  * its own: "OnCallDutyPolicySchedule" already holds rows, and every roster
  * hand-off writes them, so its index is built online, without blocking the
  * schedules written meanwhile. Partial - only the schedules whose change
@@ -12,10 +12,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * (OnCallDutySchedule:TellLayerChanges). Safe to run again after a stop
  * part way.
  */
-export class AddScheduleRosterRefreshDueAtIndex1809181510000
+export class AddScheduleRosterRefreshDueAtIndex1809181910000
   implements MigrationInterface
 {
-  public name: string = "AddScheduleRosterRefreshDueAtIndex1809181510000";
+  public name: string = "AddScheduleRosterRefreshDueAtIndex1809181910000";
 
   // CREATE INDEX CONCURRENTLY runs outside a transaction.
   public transaction: boolean = false;

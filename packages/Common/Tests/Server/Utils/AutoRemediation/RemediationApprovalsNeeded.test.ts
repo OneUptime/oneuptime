@@ -1,13 +1,19 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
+import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import Project from "../../../../Models/DatabaseModels/Project";
 import ProjectService from "../../../../Server/Services/ProjectService";
 import {
+  getCountedFirstApproverId,
   getFixApprovalsNeeded,
+  getFixApprovalStep,
   hasRiskierChangeNow,
   isRiskierChangeNow,
   readTwoApprovalsRule,
 } from "../../../../Server/Utils/AutoRemediation/RemediationApprovalsNeeded";
+import { RemediationApprovalStepKind } from "../../../../Types/AutoRemediation/RemediationApprovals";
+import { getRemediationPlanFingerprint } from "../../../../Types/AutoRemediation/RemediationPlanFingerprint";
+import { JSONObject } from "../../../../Types/JSON";
 import {
   AiRemediationCommand,
   AiRemediationCommandPolicyVerdict,
@@ -206,7 +212,24 @@ describe("getFixApprovalsNeeded", () => {
     ).toBe(2);
   });
 
-  test("one with the rule off, unread, or for safe changes, a runbook or MCP changes", () => {
+  test("two for a fix through MCP servers where the rule is on, one where it is off", () => {
+    expect(
+      getFixApprovalsNeeded({
+        project: { requireTwoApprovalsForRiskierFixes: true },
+        suggestionType: AutoRemediationSuggestionType.McpToolCalls,
+        plan: null,
+      }),
+    ).toBe(2);
+    expect(
+      getFixApprovalsNeeded({
+        project: { requireTwoApprovalsForRiskierFixes: false },
+        suggestionType: AutoRemediationSuggestionType.McpToolCalls,
+        plan: null,
+      }),
+    ).toBe(1);
+  });
+
+  test("one with the rule off, unread, or for safe changes or a runbook", () => {
     expect(
       getFixApprovalsNeeded({
         project: { requireTwoApprovalsForRiskierFixes: false },
@@ -236,18 +259,86 @@ describe("getFixApprovalsNeeded", () => {
       }),
     ).toBe(1);
 
-    for (const suggestionType of [
-      AutoRemediationSuggestionType.Runbook,
-      AutoRemediationSuggestionType.McpToolCalls,
+    expect(
+      getFixApprovalsNeeded({
+        project: { requireTwoApprovalsForRiskierFixes: true },
+        suggestionType: AutoRemediationSuggestionType.Runbook,
+        plan: riskier,
+      }),
+    ).toBe(1);
+  });
+});
+
+describe("the first approval that counts, and what a press does", () => {
+  const MAYA: ObjectID = new ObjectID("9a000000-0000-4000-8000-0000000000aa");
+
+  function fix(
+    overrides: Partial<AutoRemediationSuggestion> = {},
+  ): AutoRemediationSuggestion {
+    const suggestion: AutoRemediationSuggestion =
+      new AutoRemediationSuggestion();
+    suggestion.suggestionType = AutoRemediationSuggestionType.CommandPlan;
+    suggestion.commandPlan = {
+      commands: [cloud(STOP_INSTANCE, ResourceCommandTier.RiskyWrite)],
+    } as unknown as JSONObject;
+    Object.assign(suggestion, overrides);
+    return suggestion;
+  }
+
+  test("a first approval given to the fix as it is now counts", () => {
+    const suggestion: AutoRemediationSuggestion = fix();
+    suggestion.firstApprovedByUserId = MAYA;
+    suggestion.firstApprovedPlanFingerprint =
+      getRemediationPlanFingerprint(suggestion);
+
+    expect(getCountedFirstApproverId(suggestion)).toEqual(MAYA);
+    expect(
+      getFixApprovalStep({
+        project: { requireTwoApprovalsForRiskierFixes: true },
+        suggestion,
+      }),
+    ).toEqual({
+      kind: RemediationApprovalStepKind.Second,
+      firstApprovedByUserId: MAYA.toString(),
+    });
+  });
+
+  test("one given to another plan, or before what it approved was kept, or with nothing a fingerprint, counts for nothing", () => {
+    for (const recorded of [
+      "ffffffffffffffff",
+      undefined,
+      "",
+      "not a fingerprint",
     ]) {
+      const suggestion: AutoRemediationSuggestion = fix({
+        firstApprovedByUserId: MAYA,
+        ...(recorded !== undefined
+          ? { firstApprovedPlanFingerprint: recorded }
+          : {}),
+      } as Partial<AutoRemediationSuggestion>);
+
+      expect(getCountedFirstApproverId(suggestion)).toBeUndefined();
       expect(
-        getFixApprovalsNeeded({
+        getFixApprovalStep({
           project: { requireTwoApprovalsForRiskierFixes: true },
-          suggestionType,
-          plan: riskier,
+          suggestion,
         }),
-      ).toBe(1);
+      ).toEqual({ kind: RemediationApprovalStepKind.First });
     }
+  });
+
+  test("with the rule off, a press is the only approval, whoever approved first", () => {
+    const suggestion: AutoRemediationSuggestion = fix();
+    suggestion.firstApprovedByUserId = MAYA;
+    suggestion.firstApprovedPlanFingerprint =
+      getRemediationPlanFingerprint(suggestion);
+
+    expect(
+      getFixApprovalStep({
+        project: { requireTwoApprovalsForRiskierFixes: false },
+        suggestion,
+      }),
+    ).toEqual({ kind: RemediationApprovalStepKind.Only });
   });
 });
 

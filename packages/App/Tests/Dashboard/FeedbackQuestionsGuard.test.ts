@@ -2,6 +2,10 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import {
+  GiveFeedbackDestination,
+  getGiveFeedbackDestination,
+} from "Common/Types/ProductFeedback/ProductFeedback";
 
 /*
  * ASKING PEOPLE, KEPT TO ITS RULES (issue #6832).
@@ -21,7 +25,12 @@ import path from "path";
  *     product-wide score says nothing about what to fix;
  *   - an answer is kept with only the answer, the page and the version:
  *     the table has no column for a person, a project or an address, and
- *     the Dashboard posts nothing else.
+ *     the Dashboard posts nothing else;
+ *   - Give feedback is a message (#8893): the server emails it, naming the
+ *     person it reads from who is signed in, to the OneUptime team on Cloud
+ *     and to a self-hosted server's own admins - never to OneUptime from a
+ *     self-hosted server - and the dialog says to whom and with what, for
+ *     every place it can go, before anything is sent.
  */
 
 const REPOSITORY_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
@@ -185,12 +194,19 @@ describe("an answer carries the answer, the page and the version - nothing else"
       fs.readFileSync(path.join(COMMON_UI, "Utils/ProductFeedback.ts"), "utf8"),
     );
 
-    const submit: string =
+    // Every answer - submit() and giveFeedback() - is posted by keep().
+    const keep: string =
       client
-        .slice(client.indexOf("public static async submit("))
+        .slice(client.indexOf("private static async keep("))
         .split("public static async addDetails(")[0] || "";
+
+    expect(keep).toContain("url: apiUrl(PRODUCT_FEEDBACK_ROUTE)");
+    expect(
+      (client.match(/apiUrl\(PRODUCT_FEEDBACK_ROUTE\)/g) || []).length,
+    ).toBe(1);
+
     const posted: string =
-      submit.slice(submit.indexOf("data: {")).split("},")[0] || "";
+      keep.slice(keep.indexOf("data: {")).split("},")[0] || "";
 
     const keys: Array<string> = Array.from(posted.matchAll(/^\s*(\w+):/gm)).map(
       (match: RegExpMatchArray): string => {
@@ -211,5 +227,117 @@ describe("an answer carries the answer, the page and the version - nothing else"
       "page",
       "version",
     ]);
+  });
+});
+
+describe("Give feedback is a message, and reaches someone who can answer it (#8893)", () => {
+  const COMMON_ROOT: string = path.join(REPOSITORY_ROOT, "packages/Common");
+
+  const readCode: (file: string) => string = (file: string): string => {
+    return withoutComments(fs.readFileSync(file, "utf8"));
+  };
+
+  test("a self-hosted server never sends it to OneUptime: only OneUptime Cloud does", () => {
+    for (const adminNotificationEmail of [null, "", "ops@acme.test"]) {
+      expect(
+        getGiveFeedbackDestination({
+          isOneUptimeCloud: false,
+          adminNotificationEmail: adminNotificationEmail,
+        }),
+      ).not.toBe(GiveFeedbackDestination.OneUptimeTeam);
+    }
+
+    expect(
+      getGiveFeedbackDestination({
+        isOneUptimeCloud: true,
+        adminNotificationEmail: null,
+      }),
+    ).toBe(GiveFeedbackDestination.OneUptimeTeam);
+
+    // The server sends to OneUptime's address in one place: the Cloud's.
+    const sender: string = readCode(
+      path.join(COMMON_ROOT, "Server/Utils/GiveFeedbackEmail.ts"),
+    );
+    const sendsToOneUptime: Array<string> =
+      sender.match(/to: ONEUPTIME_SUPPORT_EMAIL/g) || [];
+
+    expect(sendsToOneUptime).toHaveLength(1);
+    expect(sender).toMatch(
+      /if \(destination === GiveFeedbackDestination\.OneUptimeTeam\) \{\s*return \{ destination, to: ONEUPTIME_SUPPORT_EMAIL \};/,
+    );
+  });
+
+  test("the person is named by the server, from who is signed in, never from what the Dashboard posts", () => {
+    const sender: string = readCode(
+      path.join(COMMON_ROOT, "Server/Utils/GiveFeedbackEmail.ts"),
+    );
+    const api: string = readCode(
+      path.join(COMMON_ROOT, "Server/API/ProductFeedbackAPI.ts"),
+    );
+
+    expect(sender).toMatch(/UserService\.findOneById\(\{\s*id: data\.userId,/);
+    expect(api).toMatch(
+      /GiveFeedbackEmail\.prepare\(\{\s*userId: userId,\s*projectId: readMemberProjectId\(props\),/,
+    );
+    // Kept first, answered, and only then emailed.
+    expect(
+      api.indexOf("ProductFeedbackService.submit(submission)"),
+    ).toBeLessThan(api.indexOf("GiveFeedbackEmail.prepare("));
+    expect(api.indexOf("isEmailed: receipt.isEmailed")).toBeGreaterThan(-1);
+    expect(api.indexOf("isEmailed: receipt.isEmailed")).toBeLessThan(
+      api.indexOf("void GiveFeedbackEmail.send(delivery)"),
+    );
+  });
+
+  test("the dialog says to whom and with what, wherever it goes, before anything is sent", () => {
+    const dialog: string = readCode(
+      path.join(DASHBOARD_SRC, "Components/Feedback/GiveFeedbackDialog.tsx"),
+    );
+    const whatIsSent: string =
+      dialog.slice(dialog.indexOf("const WHAT_IS_SENT")).split("};")[0] || "";
+
+    // The sentence a destination's line is, as its translationKey holds it.
+    const sentenceFor: (destination: string) => string = (
+      destination: string,
+    ): string => {
+      const found: RegExpMatchArray | null = whatIsSent.match(
+        new RegExp(
+          `\\[GiveFeedbackDestination\\.${destination}\\]:\\s*translationKey\\(\\s*"([^"]*)"`,
+        ),
+      );
+
+      expect(found).not.toBeNull();
+
+      return found?.[1] || "";
+    };
+
+    for (const destination of Object.keys(GiveFeedbackDestination)) {
+      const sentence: string = sentenceFor(destination);
+
+      // The page, as its breadcrumbs name it, and the version: always said.
+      expect(sentence).toContain("{{page}}");
+      expect(sentence).toContain("{{version}}");
+    }
+
+    // Emailed with who sent it: said, with their address.
+    for (const destination of ["OneUptimeTeam", "ServerAdminsByEmail"]) {
+      expect(sentenceFor(destination)).toContain(
+        "with your name and email ({{email}})",
+      );
+    }
+
+    expect(sentenceFor("OneUptimeTeam")).toContain("the OneUptime team");
+    expect(sentenceFor("ServerAdminsByEmail")).toContain(
+      "Nothing is sent to OneUptime.",
+    );
+    expect(sentenceFor("ServerAdmins")).toContain("without your name");
+    expect(sentenceFor("ServerAdmins")).toContain(
+      "Nothing leaves this server.",
+    );
+    expect(sentenceFor("ServerAdmins")).not.toContain("{{email}}");
+
+    // The line is drawn from the server's word on where it goes.
+    expect(dialog).toContain("ProductFeedback.getGiveFeedbackDestination()");
+    expect(dialog).toContain("WHAT_IS_SENT[destination]");
   });
 });

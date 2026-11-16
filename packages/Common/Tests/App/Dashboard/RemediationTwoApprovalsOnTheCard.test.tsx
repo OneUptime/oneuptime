@@ -42,6 +42,7 @@ import AutoRemediationApprovalSource from "../../../Types/AutoRemediation/AutoRe
 import AutoRemediationSuggestionStatus from "../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import AutoRemediationSuggestionType from "../../../Types/AutoRemediation/AutoRemediationSuggestionType";
 import { ALREADY_APPROVED_FIRST_MESSAGE } from "../../../Types/AutoRemediation/RemediationApprovals";
+import { getRemediationPlanFingerprint } from "../../../Types/AutoRemediation/RemediationPlanFingerprint";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import { JSONObject } from "../../../Types/JSON";
 import { KubectlCommandTier } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
@@ -621,5 +622,264 @@ describe("a first approver's press the server refused", () => {
       "AI remediation is off for this cluster, so nothing was run.",
     );
     expect(screen.queryByTestId("remediation-already-approved")).toBeNull();
+  });
+});
+
+/*
+ * What the card's Approve names (#6421): the fix it shows, by the
+ * fingerprint the server works out the same way, and - where its press only
+ * records the first of two approvals - that it does, so a press made after
+ * someone else approved first does nothing instead of running the fix.
+ */
+describe("what the card's Approve says it approves", () => {
+  function answerApprove(data: JSONObject): void {
+    postSpy.mockImplementation((async (request: PostRequest) => {
+      if (request.url.toString().includes("/auto-remediation/approve")) {
+        return new HTTPResponse<JSONObject>(200, data, {});
+      }
+
+      throw new Error(`unexpected ${request.url.toString()}`);
+    }) as never);
+  }
+
+  function approvePost(): JSONObject {
+    return (postSpy.mock.calls[0]![0] as PostRequest).data;
+  }
+
+  test("the first of two names the fix it shows, and that it is the first", async () => {
+    answerApprove({ isWaitingForSecondApproval: true });
+
+    renderStep();
+    await openRemediationFixes();
+    await waitFor(() => {
+      expect(approveButton()).toHaveTextContent("Approve");
+      expect(approveButton()).not.toHaveTextContent("Run");
+    });
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(approveButton()!);
+    });
+
+    expect(approvePost()).toEqual({
+      suggestionId: SUGGESTION_ID,
+      expectedPlanFingerprint: getRemediationPlanFingerprint({
+        suggestionType: AutoRemediationSuggestionType.CommandPlan,
+        commandPlan: plan(KubectlCommandTier.RiskyWrite),
+      }),
+      expectedApprovalStep: "first",
+    });
+  });
+
+  test("an Approve & Run names the fix and no step: running it is what it says", async () => {
+    isRuleOn = false;
+    answerApprove({ status: AutoRemediationSuggestionStatus.Approved });
+
+    renderStep();
+    await openRemediationFixes();
+    await waitFor(() => {
+      expect(approveButton()).toHaveTextContent("Approve & Run");
+    });
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(approveButton()!);
+    });
+
+    expect(approvePost()["expectedPlanFingerprint"]).toBe(
+      getRemediationPlanFingerprint({
+        suggestionType: AutoRemediationSuggestionType.CommandPlan,
+        commandPlan: plan(KubectlCommandTier.RiskyWrite),
+      }),
+    );
+    expect(approvePost()).not.toHaveProperty("expectedApprovalStep");
+  });
+});
+
+/*
+ * Where the keyboard goes once a press of the fix is answered (#6422): the
+ * pressed button goes away, or is locked while it works, and the focus fell
+ * to the top of the page. It goes to the step the press made - as after Try
+ * again - and to the button itself while it is still offered.
+ */
+describe("where the keyboard goes once a press is answered", () => {
+  function fixStep(kind: string): HTMLElement | undefined {
+    return screen
+      .queryAllByTestId("remediation-fix-step")
+      .find((each: HTMLElement): boolean => {
+        return each.getAttribute("data-step") === kind;
+      });
+  }
+
+  async function press(
+    testId: string,
+    answer: () => HTTPResponse<JSONObject> | HTTPErrorResponse,
+    after?: () => void,
+  ): Promise<void> {
+    postSpy.mockImplementation((async () => {
+      after?.();
+      return answer();
+    }) as never);
+
+    renderStep();
+    await openRemediationFixes();
+    await waitFor(() => {
+      expect(screen.getByTestId(testId)).toBeVisible();
+    });
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(screen.getByTestId(testId));
+    });
+  }
+
+  test("after the first of two approvals, on the step that says who approved first", async () => {
+    await press(
+      "remediation-approve-button",
+      () => {
+        return new HTTPResponse<JSONObject>(
+          200,
+          { isWaitingForSecondApproval: true },
+          {},
+        );
+      },
+      () => {
+        served = [waitingFix(firstApprovedBy(MAYA, "Maya Chen"))];
+      },
+    );
+
+    await waitFor(() => {
+      expect(fixStep("firstApproval")).toBeDefined();
+      expect(fixStep("firstApproval")!).toContainElement(
+        document.activeElement as HTMLElement,
+      );
+    });
+    expect(document.activeElement).not.toBe(document.body);
+  });
+
+  test("after a dismissal, on the step that says it was dismissed", async () => {
+    const dismissedBy: User = new User();
+    dismissedBy.name = new Name("Maya Chen");
+
+    await press(
+      "remediation-dismiss-button",
+      () => {
+        return new HTTPResponse<JSONObject>(
+          200,
+          { status: AutoRemediationSuggestionStatus.Dismissed },
+          {},
+        );
+      },
+      () => {
+        served = [
+          waitingFix({
+            status: AutoRemediationSuggestionStatus.Dismissed,
+            dismissedAt: new Date("2026-11-06T09:05:00Z"),
+            dismissedByUser: dismissedBy,
+          }),
+        ];
+      },
+    );
+
+    await waitFor(() => {
+      expect(fixStep("approval")).toBeDefined();
+      expect(fixStep("approval")!).toContainElement(
+        document.activeElement as HTMLElement,
+      );
+    });
+  });
+
+  test("after a refusal that leaves the button offered, back on the button", async () => {
+    await press("remediation-approve-button", () => {
+      return new HTTPErrorResponse(
+        400,
+        {
+          error: "AI remediation is off for this cluster, so nothing was run.",
+        },
+        {},
+      );
+    });
+
+    await screen.findByTestId("remediation-action-error");
+    await waitFor(() => {
+      expect(document.activeElement).toBe(approveButton());
+    });
+  });
+
+  test("a reader who moved on meanwhile keeps their place (negative control)", async () => {
+    const elsewhere: HTMLButtonElement = document.createElement("button");
+    document.body.appendChild(elsewhere);
+
+    await press(
+      "remediation-approve-button",
+      () => {
+        return new HTTPResponse<JSONObject>(
+          200,
+          { isWaitingForSecondApproval: true },
+          {},
+        );
+      },
+      () => {
+        served = [waitingFix(firstApprovedBy(MAYA, "Maya Chen"))];
+        elsewhere.focus();
+      },
+    );
+
+    await waitFor(() => {
+      expect(fixStep("firstApproval")).toBeDefined();
+    });
+    expect(document.activeElement).toBe(elsewhere);
+    elsewhere.remove();
+  });
+});
+
+/*
+ * A fix through MCP servers holds a riskier change whatever it changes
+ * (#6421): where the project asks two people to approve one, its press is
+ * the first of two.
+ */
+describe("a fix through MCP servers, where two people must approve a riskier fix", () => {
+  function mcpFix(
+    data: Record<string, unknown> = {},
+  ): AutoRemediationSuggestion {
+    return waitingFix({
+      suggestionType: AutoRemediationSuggestionType.McpToolCalls,
+      commandPlan: undefined,
+      mcpToolCallPlan: {
+        calls: [
+          {
+            sequence: 1,
+            serverId: "0193c0de-7777-4aaa-8bbb-0000000000e7",
+            serverNameSnapshot: "Feature flags",
+            toolName: "set_flag",
+            arguments: { flag: "checkout-db-pool-v2", enabled: false },
+            status: "Proposed",
+          },
+        ],
+      },
+      ...data,
+    });
+  }
+
+  test("its press says Approve, and the rule is read for it", async () => {
+    served = [mcpFix()];
+
+    renderStep();
+    await openRemediationFixes();
+
+    await waitFor(() => {
+      expect(approveButton()).toHaveTextContent("Approve");
+      expect(approveButton()).not.toHaveTextContent("Run");
+    });
+    expect(ruleReads()).toBeGreaterThanOrEqual(1);
+  });
+
+  test("negative control: with the rule off, its press runs it", async () => {
+    isRuleOn = false;
+    served = [mcpFix()];
+
+    renderStep();
+    await openRemediationFixes();
+
+    await waitFor(() => {
+      expect(approveButton()).toHaveTextContent("Approve & Run");
+    });
   });
 });

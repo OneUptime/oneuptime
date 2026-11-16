@@ -24,7 +24,7 @@ import { DataSource } from "typeorm";
  * (claimEscalationAdvance); a new pass writes its count. Each of those
  * columns had a bare index nothing read, so each such update changed an
  * indexed column, could not be HOT, and wrote all fourteen of the table's
- * indexes. DropOnCallExecutionLogStepIndexes1809181400000 took them away.
+ * indexes. DropOnCallExecutionLogStepIndexes1809181800000 took them away.
  * Only a database answers whether that holds, so this copies the migrated
  * table - its indexes as the migrations left them - and runs the service's
  * own statements on it, reading pg_stat_user_tables after each:
@@ -165,7 +165,7 @@ describePostgres("an escalation step's writes, against Postgres", () => {
         [schema, TABLE],
       );
 
-    // Ten, with the key: four went (DropOnCallExecutionLogStepIndexes1809181400000).
+    // Ten, with the key: four went (DropOnCallExecutionLogStepIndexes1809181800000).
     expect(indexes).toHaveLength(10);
 
     for (const index of indexes) {

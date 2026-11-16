@@ -11,7 +11,7 @@ import ts from "typescript";
  * (lastEscalationRuleExecutedAt), the level's order and wait
  * (lastExecutedEscalationRuleOrder, executeNextEscalationRuleInMinutes) and
  * a new pass's count (onCallPolicyExecutionRepeatCount). None of them is in
- * an index (DropOnCallExecutionLogStepIndexes1809181400000): an index by
+ * an index (DropOnCallExecutionLogStepIndexes1809181800000): an index by
  * one is written on every step - it keeps the step's update from being HOT
  * - and nothing read by them. This keeps it so. A read that finds runs by
  * one of them, or sorts runs by one, fails here until it either names the

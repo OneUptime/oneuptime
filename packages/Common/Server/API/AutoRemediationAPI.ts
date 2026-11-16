@@ -72,6 +72,30 @@ function readSuggestionId(req: ExpressRequest): unknown {
   return req.body ? req.body["suggestionId"] : undefined;
 }
 
+/*
+ * What the AI card's Approve says the person was shown: the fingerprint of
+ * the fix (expectedPlanFingerprint) and the step the press was offered as
+ * (expectedApprovalStep). RemediationApproval refuses a fix that changed
+ * since, and a press whose step did; a request that names neither (an
+ * older Dashboard) approves the fix as it is now, held to what was checked.
+ */
+function readShownFix(req: ExpressRequest): {
+  expectedPlanFingerprint?: string | undefined;
+  expectedApprovalStep?: unknown;
+} {
+  const body: JSONObject = (req.body || {}) as JSONObject;
+  const fingerprint: unknown = body["expectedPlanFingerprint"];
+
+  return {
+    ...(fingerprint !== undefined && fingerprint !== null
+      ? { expectedPlanFingerprint: String(fingerprint) }
+      : {}),
+    ...(body["expectedApprovalStep"] !== undefined
+      ? { expectedApprovalStep: body["expectedApprovalStep"] }
+      : {}),
+  };
+}
+
 router.post(
   "/auto-remediation/approve",
   UserMiddleware.getUserMiddleware,
@@ -89,6 +113,7 @@ router.post(
         await RemediationApproval.approve({
           props,
           suggestionId: readSuggestionId(req),
+          ...readShownFix(req),
         }),
       );
       return;

@@ -14,6 +14,7 @@ import RealTimeDetections, {
   REAL_TIME_RULES_CACHE_TTL_MS,
   REAL_TIME_TIME_PADDING_MS,
   RealTimeJobData,
+  RealTimeRule,
   readRowTime,
 } from "../../../../../Server/Utils/SecurityEvent/RealTime/RealTimeDetections";
 import RealTimeJobs, {
@@ -23,6 +24,9 @@ import RealTimeJobs, {
   getRealTimeJobDelayInMs,
 } from "../../../../../Server/Utils/SecurityEvent/RealTime/RealTimeJobs";
 import ProjectSigmaRules from "../../../../../Server/Utils/SecurityEvent/Correlation/ProjectSigmaRules";
+import EventLoop, {
+  EVENT_LOOP_BUDGET_MS,
+} from "../../../../../Server/Utils/EventLoop";
 import logger from "../../../../../Server/Utils/Logger";
 import { SigmaRuleReferenceResolver } from "../../../../../Types/SecurityEvent/SigmaCorrelation";
 import { indexSigmaRules } from "../../../../../Utils/SecurityEvent/Sigma/SigmaRuleIndex";
@@ -1020,5 +1024,99 @@ describe("the handover to real time", () => {
     ]) {
       expect(readRealTimeJobData({ ...job, window } as never)).toEqual(job);
     }
+  });
+});
+
+/*
+ * #8925: a write's rows are screened by the time the screening took, not
+ * every 500 rows. EventLoop.now is a fake clock each row's screening moves.
+ */
+describe("RealTimeDetections.screen hands the event loop back by the work done", () => {
+  let fakeNow: number;
+  let handBacksAt: Array<number>;
+
+  // A rule whose screening of each row costs `ms` on the fake clock.
+  function ruleScreeningIn(id: string, ms: number): RealTimeRule {
+    const rules: Array<never> = [];
+
+    rules.some = (): boolean => {
+      fakeNow += ms;
+      return false;
+    };
+
+    return { id: id, rules: rules, countsInWindows: false };
+  }
+
+  function longestStretch(): number {
+    let longest: number = 0;
+    let from: number = 0;
+
+    for (const at of handBacksAt) {
+      longest = Math.max(longest, at - from);
+      from = at;
+    }
+
+    return Math.max(longest, fakeNow - from);
+  }
+
+  beforeEach(() => {
+    fakeNow = 0;
+    handBacksAt = [];
+    getJestSpyOn(EventLoop, "now").mockImplementation((): number => {
+      return fakeNow;
+    });
+    getJestSpyOn(EventLoop, "yieldToEventLoop").mockImplementation(
+      async (): Promise<void> => {
+        handBacksAt.push(fakeNow);
+      },
+    );
+  });
+
+  test("rows that each take 7 ms to screen are never held longer than the budget and one row", async () => {
+    getJestSpyOn(RealTimeDetections, "getRules").mockResolvedValue([
+      ruleScreeningIn(RULE_ID, 7),
+      ruleScreeningIn(OTHER_RULE_ID, 7),
+    ] as never);
+
+    const rows: Array<JSONObject> = [];
+
+    for (let index: number = 0; index < 15; index++) {
+      rows.push(event({}));
+    }
+
+    await expect(
+      RealTimeDetections.screen({ projectId: PROJECT_ID, rows }),
+    ).resolves.toBe(0);
+
+    // 30 screenings of 7 ms, the two rules' rows alike.
+    expect(fakeNow).toBe(210);
+    expect(longestStretch()).toBeLessThan(EVENT_LOOP_BUDGET_MS + 7);
+    expect(handBacksAt).toEqual([21, 42, 63, 84, 105, 126, 147, 168, 189]);
+  });
+
+  test("a write of small rows is handed back no more often than every 500 rows, and a short one not at all", async () => {
+    getJestSpyOn(RealTimeDetections, "getRules").mockResolvedValue([
+      ruleScreeningIn(RULE_ID, 0.01),
+    ] as never);
+
+    const rows: Array<JSONObject> = [];
+
+    for (let index: number = 0; index < 3_000; index++) {
+      rows.push(event({}));
+    }
+
+    await RealTimeDetections.screen({ projectId: PROJECT_ID, rows });
+
+    // 30 ms of screening: one hand-back, where every 500 rows made six.
+    expect(handBacksAt).toHaveLength(1);
+
+    handBacksAt = [];
+    fakeNow = 0;
+    await RealTimeDetections.screen({
+      projectId: PROJECT_ID,
+      rows: rows.slice(0, 500),
+    });
+
+    expect(handBacksAt).toEqual([]);
   });
 });

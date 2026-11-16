@@ -145,6 +145,12 @@ enum EmailTemplateType {
 
   // The marketing site's Resellers page form (Home/Utils/ResellerInquiry.ts).
   ResellerInquiry = "ResellerInquiry.hbs",
+
+  /*
+   * What a person wrote in Give Feedback, to the team that reads it, the
+   * person copied (Server/Utils/ProductFeedback/GiveFeedbackEmail.ts).
+   */
+  GiveFeedback = "GiveFeedback.hbs",
 }
 
 export default EmailTemplateType;

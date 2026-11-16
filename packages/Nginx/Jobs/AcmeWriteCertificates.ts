@@ -148,6 +148,29 @@ export default class Jobs {
             continue;
           }
 
+          const certificatePem: string = cert.certificate?.toString() || "";
+          const certificateKeyPem: string =
+            cert.certificateKey?.toString() || "";
+
+          /*
+           * The key is kept encrypted at rest, and one encrypted under
+           * another ENCRYPTION_SECRET reads back empty. Written, it would
+           * take the domain off HTTPS: the files on disk keep the last
+           * certificate and key written, which still serve it. Neither is
+           * logged.
+           */
+          if (!certificatePem || !certificateKeyPem) {
+            logger.error(
+              `Not writing the Let's Encrypt certificate of ${domain}: its certificate or private key could not be read. Check that ENCRYPTION_SECRET is the one it was stored with.`,
+              {
+                service: "ingress",
+                job: "AcmeWriteCertificates",
+                domain: domain,
+              },
+            );
+            continue;
+          }
+
           try {
             await LocalFile.makeDirectory("/etc/nginx/certs/StatusPageCerts");
           } catch (err) {
@@ -164,13 +187,13 @@ export default class Jobs {
 
           // Write to disk.
           await LocalFile.write(
-            `/etc/nginx/certs/StatusPageCerts/${cert.domain?.toString().trim().toLocaleLowerCase()}.crt`,
-            cert.certificate?.toString() || "",
+            `/etc/nginx/certs/StatusPageCerts/${domain}.crt`,
+            certificatePem,
           );
 
           await LocalFile.write(
-            `/etc/nginx/certs/StatusPageCerts/${cert.domain?.toString().trim().toLocaleLowerCase()}.key`,
-            cert.certificateKey?.toString() || "",
+            `/etc/nginx/certs/StatusPageCerts/${domain}.key`,
+            certificateKeyPem,
           );
 
           logger.debug(

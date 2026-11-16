@@ -1,6 +1,6 @@
 import OnCallDutyPolicyExecutionLog from "../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import OnlineDdl from "../../../../Server/Infrastructure/Postgres/OnlineDdl";
-import { DropOnCallExecutionLogStepIndexes1809181400000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809181400000-DropOnCallExecutionLogStepIndexes";
+import { DropOnCallExecutionLogStepIndexes1809181800000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809181800000-DropOnCallExecutionLogStepIndexes";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import {
   DefaultNamingStrategy,
@@ -91,7 +91,7 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("DropOnCallExecutionLogStepIndexes1809181400000", () => {
+describe("DropOnCallExecutionLogStepIndexes1809181800000", () => {
   test("the indexes are named as TypeORM names them, as the first migration built them", () => {
     expect(
       DROPPED_COLUMNS.map((column: string): string => {
@@ -143,8 +143,8 @@ describe("DropOnCallExecutionLogStepIndexes1809181400000", () => {
   });
 
   test("drops the four indexes online, outside a transaction, and nothing else", async () => {
-    const migration: DropOnCallExecutionLogStepIndexes1809181400000 =
-      new DropOnCallExecutionLogStepIndexes1809181400000();
+    const migration: DropOnCallExecutionLogStepIndexes1809181800000 =
+      new DropOnCallExecutionLogStepIndexes1809181800000();
 
     expect(migration.transaction).toBe(false);
     expect(
@@ -181,7 +181,7 @@ describe("DropOnCallExecutionLogStepIndexes1809181400000", () => {
       },
     } as unknown as QueryRunner;
 
-    await new DropOnCallExecutionLogStepIndexes1809181400000().up(runner);
+    await new DropOnCallExecutionLogStepIndexes1809181800000().up(runner);
 
     expect(
       statements.filter((sql: string): boolean => {
@@ -198,7 +198,7 @@ describe("DropOnCallExecutionLogStepIndexes1809181400000", () => {
     expect(
       await statementsOf(
         (runner: QueryRunner) => {
-          return new DropOnCallExecutionLogStepIndexes1809181400000().down(
+          return new DropOnCallExecutionLogStepIndexes1809181800000().down(
             runner,
           );
         },
@@ -216,12 +216,12 @@ describe("DropOnCallExecutionLogStepIndexes1809181400000", () => {
 
     expect(
       registered.filter((candidate: unknown): boolean => {
-        return candidate === DropOnCallExecutionLogStepIndexes1809181400000;
+        return candidate === DropOnCallExecutionLogStepIndexes1809181800000;
       }),
     ).toHaveLength(1);
 
     const position: number = registered.indexOf(
-      DropOnCallExecutionLogStepIndexes1809181400000,
+      DropOnCallExecutionLogStepIndexes1809181800000,
     );
     const timestamps: Array<number> = registered.map((migration: unknown) => {
       return Number(
@@ -231,10 +231,10 @@ describe("DropOnCallExecutionLogStepIndexes1809181400000", () => {
     });
 
     expect(Math.max(...timestamps.slice(0, position))).toBeLessThan(
-      1809181400000,
+      1809181800000,
     );
-    expect(new DropOnCallExecutionLogStepIndexes1809181400000().name).toBe(
-      "DropOnCallExecutionLogStepIndexes1809181400000",
+    expect(new DropOnCallExecutionLogStepIndexes1809181800000().name).toBe(
+      "DropOnCallExecutionLogStepIndexes1809181800000",
     );
   });
 });

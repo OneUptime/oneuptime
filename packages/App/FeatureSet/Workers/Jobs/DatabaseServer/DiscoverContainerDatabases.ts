@@ -3,9 +3,7 @@ import RunCron from "../../Utils/Cron";
 import AutoCreateBudget from "./AutoCreateBudget";
 import logger from "Common/Server/Utils/Logger";
 import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
-import Semaphore, {
-  SemaphoreMutex,
-} from "Common/Server/Infrastructure/Semaphore";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import DatabaseServerService, {
   UpsertWorkloadDatabaseData,
@@ -111,10 +109,12 @@ import {
  * Fleet-wide shape: every connected cluster and host (all projects) is
  * listed in a stable order and visited round-robin from a cursor kept
  * in Redis, under a wall-clock budget, so no parent is starved however
- * large the fleet; one run at a time holds a Redis lock (the queue's
- * timeout never stops a running job). Each parent is isolated — one
- * failing never costs another its run — and every stage is capped,
- * with a warning naming what was skipped.
+ * large the fleet. One run goes at a time, as for every scheduled job
+ * (RunCron's lease, CronLock), and a run starts no parent once its budget
+ * is spent or its deadline has passed - its time limit, or its lease lost
+ * (JobDeadline): the next run continues from the cursor. Each parent is
+ * isolated — one failing never costs another its run — and every stage is
+ * capped, with a warning naming what was skipped.
  *
  * A database is always LOOKED UP first without permission to create
  * (see AutoCreateBudget); only a miss asks the project's auto-create
@@ -136,15 +136,13 @@ const JOB_NAME: string = "DatabaseServer:DiscoverContainerDatabases";
 
 // No parent is started after this much of a run; the rest continue next run.
 export const RUN_BUDGET_MS: number = 4 * 60 * 1000;
-// The queue's timeout for one run: it stops waiting then, it never stops the work.
-export const JOB_TIMEOUT_MS: number = 10 * 60 * 1000;
 /*
- * How long a crashed run's lock lingers. The mutex refreshes itself while
- * held, so a slow run keeps it; this only bounds a dead worker's.
+ * One run's time limit. The run's deadline passes then (and earlier, should
+ * the run lose its lease), and no parent is started after it; the parent
+ * being discovered as it passes is finished.
  */
-const RUN_LOCK_TIMEOUT_MS: number = 20 * 60 * 1000;
+export const JOB_TIMEOUT_MS: number = 10 * 60 * 1000;
 const DISCOVERY_CACHE_NAMESPACE: string = "database-server-discovery";
-const RUN_LOCK_KEY: string = "discover-container-databases-lock";
 const CURSOR_KEY: string = "discover-container-databases-cursor";
 const CURSOR_TTL_SECONDS: number = 7 * 24 * 60 * 60;
 
@@ -2123,7 +2121,7 @@ async function discoverContainerHost(data: {
 
 // ---- the run ------------------------------------------------------------------
 
-async function discoverDatabases(): Promise<void> {
+async function discoverDatabases(jobDeadline: JobDeadline): Promise<void> {
   const startedAt: number = Date.now();
   const deadline: number = startedAt + RUN_BUDGET_MS;
   // Rotates which namespaces / workloads a cap leaves out, run to run.
@@ -2179,8 +2177,19 @@ async function discoverDatabases(): Promise<void> {
 
   let visited: number = 0;
   let cursorWritable: boolean = true;
+  let stoppedAtDeadline: boolean = false;
 
   for (const parent of ordered) {
+    /*
+     * The run's deadline passed - its time limit, or its lease lost, when
+     * another run may hold the lock: no parent is started after it, not
+     * even the first. The cursor was moved past the parents done.
+     */
+    if (jobDeadline.hasPassed()) {
+      stoppedAtDeadline = true;
+      break;
+    }
+
     if (visited > 0 && Date.now() >= deadline) {
       break;
     }
@@ -2224,7 +2233,9 @@ async function discoverDatabases(): Promise<void> {
 
   if (visited < ordered.length) {
     logger.warn(
-      `${JOB_NAME}: visited ${visited} of ${ordered.length} connected clusters / hosts within the ${Math.round(RUN_BUDGET_MS / 1000)} s run budget; the next run continues with the rest`,
+      stoppedAtDeadline
+        ? `${JOB_NAME}: visited ${visited} of ${ordered.length} connected clusters / hosts before the run's deadline passed (its time limit, or its lease lost); the next run continues with the rest`
+        : `${JOB_NAME}: visited ${visited} of ${ordered.length} connected clusters / hosts within the ${Math.round(RUN_BUDGET_MS / 1000)} s run budget; the next run continues with the rest`,
     );
   }
 
@@ -2253,43 +2264,22 @@ RunCron(
     runOnStartup: false,
     timeoutInMS: JOB_TIMEOUT_MS,
   },
-  async (): Promise<void> => {
+  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
     /*
-     * One run at a time, fleet-wide: the queue materializes the next tick
-     * while a slow run is still going, and its timeout never cancels one.
-     * acquireAttemptsLimit 1 — never queue behind the run in flight; the
-     * next tick comes in 5 minutes anyway.
+     * One run at a time, fleet-wide: RunCron runs every scheduled job under
+     * a lease of its own (CronLock), so the Redis lock this job took - from
+     * when nothing stopped a slow run and the next tick started beside it -
+     * is gone. A run stops starting parents at its deadline, which passes at
+     * its time limit and as soon as its lease is lost. Should a parent's
+     * discovery outlast the lease all the same, a run beside it only repeats
+     * work: a workload's row is created once (a racing create finds the row
+     * the other made), the budget is read again before each create, and
+     * zeroing an unseen workload is the same write twice.
      */
-    let mutex: SemaphoreMutex | null = null;
-
     try {
-      mutex = await Semaphore.lock({
-        key: RUN_LOCK_KEY,
-        namespace: DISCOVERY_CACHE_NAMESPACE,
-        lockTimeout: RUN_LOCK_TIMEOUT_MS,
-        acquireAttemptsLimit: 1,
-      });
-    } catch (err) {
-      logger.debug(
-        `${JOB_NAME}: another run holds the discovery lock (or Redis is unavailable); skipping this tick: ${errorMessage(err)}`,
-      );
-      return;
-    }
-
-    const held: SemaphoreMutex = mutex;
-
-    try {
-      await discoverDatabases();
+      await discoverDatabases(deadline);
     } catch (err) {
       logger.error(`${JOB_NAME}: discovery failed: ${errorMessage(err)}`);
-    } finally {
-      try {
-        await Semaphore.release(held);
-      } catch (err) {
-        logger.error(
-          `${JOB_NAME}: releasing the discovery lock failed (it expires on its own): ${errorMessage(err)}`,
-        );
-      }
     }
   },
 );

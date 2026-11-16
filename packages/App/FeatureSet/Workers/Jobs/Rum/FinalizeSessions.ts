@@ -1,5 +1,4 @@
 import RunCron from "../../Utils/Cron";
-import crypto from "crypto";
 import Redis, { ClientType } from "Common/Server/Infrastructure/Redis";
 import RumSessionChunkService from "Common/Server/Services/RumSessionChunkService";
 import RumSessionService from "Common/Server/Services/RumSessionService";
@@ -8,6 +7,7 @@ import {
   Statement,
 } from "Common/Server/Utils/AnalyticsDatabase/Statement";
 import { isSessionErased } from "Common/Server/Utils/SessionReplay/SessionReplayErasureTombstone";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 import logger from "Common/Server/Utils/Logger";
 import AnalyticsTableName from "Common/Types/AnalyticsDatabase/AnalyticsTableName";
 import TableColumnType from "Common/Types/AnalyticsDatabase/TableColumnType";
@@ -138,11 +138,8 @@ const ENDED_JOB_NAME: string = "Rum:FinalizeEndedSessions";
  *
  * Owned by Rum:FinalizeEndedSessions alone, and deliberately outside both
  * prefixes above so neither the reconcile's SCAN nor anything that reads
- * replay:ended:<projectId> can mistake them for a project:
+ * replay:ended:<projectId> can mistake it for a project:
  *
- *   replay:finalize-ended:lock        STRING, a per-run token. The job's
- *                                     single-flight lock (SET NX PX), released
- *                                     by compare-and-delete.
  *   replay:finalize-ended:project-cursor
  *                                     STRING counter, INCRed once per run;
  *                                     where in the sorted project list the
@@ -165,9 +162,6 @@ export function getActiveSessionsKey(projectId: string): string {
 export function getEndedSessionsKey(projectId: string): string {
   return `${SESSION_REPLAY_ENDED_KEY_PREFIX}${projectId}`;
 }
-
-export const SESSION_REPLAY_ENDED_RUN_LOCK_KEY: string =
-  "replay:finalize-ended:lock";
 
 export const SESSION_REPLAY_ENDED_PROJECT_CURSOR_KEY: string =
   "replay:finalize-ended:project-cursor";
@@ -295,7 +289,9 @@ export const SESSION_CORRELATION_WINDOW_PADDING_MS: number = 30 * 60 * 1000;
 /*
  * Wall-clock budget for one run, under the 5-minute cron interval and the
  * job's own timeout. Sessions left over are picked up next run — their
- * sorted-set members are only removed on success.
+ * sorted-set members are only removed on success. A run also stops where it
+ * checks this once its deadline passes (JobDeadline): its time limit, or
+ * its lease lost (RunCron runs one copy of each job at a time, CronLock).
  */
 const RUN_BUDGET_MS: number = 4 * 60 * 1000;
 
@@ -309,16 +305,16 @@ const RUN_BUDGET_MS: number = 4 * 60 * 1000;
  * The budget is checked between sessions and once more right before a
  * session's correlation is resolved (the one slow step inside a check), so
  * it bounds a run loosely, not exactly: a correlation fetch already under
- * way can still take its two ClickHouse reads' worth of time. And the queue
- * runner's timeout does not cancel a job, it only stops waiting for it. So
- * runs are kept from overlapping by a Redis single-flight lock instead
- * (SESSION_REPLAY_ENDED_RUN_LOCK_KEY), whose TTL is well over the worst case
- * of one run: the budget, plus one correlation fetch of two reads at the app
- * pool's 58 s request timeout each, plus the conditional removals. A run
- * that finds the lock held skips; one that overruns even the TTL lets the
- * next run in, which is safe (every write is idempotent, every removal
- * conditional, and a header's version is stamped before its chunk read) but
- * wasted work.
+ * way can still take its two ClickHouse reads' worth of time. The run's
+ * deadline is checked in the same places (JobDeadline: its time limit, or
+ * its lease lost). RunCron runs one copy of the job at a time across every
+ * replica (CronLock), so the Redis single-flight lock this job took of its
+ * own - from when nothing stopped a run that outlived its time limit, and
+ * the next minute's run started beside it on the same candidates - is
+ * gone. A run whose correlation fetch outlasts even its lease lets the next
+ * run in beside it, which is safe (every write is idempotent, every removal
+ * conditional, and a header's version is stamped before its chunk read)
+ * but wasted work.
  *
  * The caps count sessions CHECKED, not finalized: a check that ends in
  * "still-recording" costs the same chunk-table read as one that writes a
@@ -328,7 +324,6 @@ const RUN_BUDGET_MS: number = 4 * 60 * 1000;
 export const ENDED_RUN_BUDGET_MS: number = 45 * 1000;
 export const MAX_ENDED_CANDIDATES_PER_PROJECT_PER_RUN: number = 1000;
 export const MAX_ENDED_SESSIONS_PER_RUN: number = 2000;
-export const ENDED_RUN_LOCK_TTL_MS: number = 3 * 60 * 1000;
 
 /*
  * Each project's share of one run, so a busy tenant cannot starve the rest.
@@ -740,21 +735,6 @@ for index = 1, #ARGV, 2 do
   end
 end
 return removed
-`;
-
-/*
- * Release half of Rum:FinalizeEndedSessions' single-flight lock: delete the
- * key only while it still holds this run's token. A plain DEL is a race in
- * disguise - a run that overran the TTL would delete the lock a LATER run
- * legitimately took, and let a third run in beside it. One key in KEYS, so
- * it is Redis Cluster safe. Exported so tests can emulate exactly this
- * script in their in-memory Redis.
- */
-export const SESSION_REPLAY_ENDED_RUN_LOCK_RELEASE_SCRIPT: string = `
-if redis.call('GET', KEYS[1]) == ARGV[1] then
-  return redis.call('DEL', KEYS[1])
-end
-return 0
 `;
 
 export interface ConditionalMemberRemoval {
@@ -2780,7 +2760,9 @@ export async function discoverActiveProjectIds(
   return Array.from(new Set<string>([...indexed, ...discovered]));
 }
 
-export async function finalizeExpiredSessions(): Promise<void> {
+export async function finalizeExpiredSessions(
+  deadline: JobDeadline = JobDeadline.none(),
+): Promise<void> {
   const client: ClientType | null = Redis.getClient();
 
   if (!client || !Redis.isConnected()) {
@@ -2800,6 +2782,13 @@ export async function finalizeExpiredSessions(): Promise<void> {
   let failedCount: number = 0;
 
   for (const projectId of projectIds) {
+    if (deadline.hasPassed()) {
+      logger.warn(
+        `${JOB_NAME}: the run's deadline passed (its time limit, or its lease lost) with ${projectIds.length} project(s) enumerated; remaining sessions are picked up next run.`,
+      );
+      break;
+    }
+
     if (Date.now() - runStartedAt > RUN_BUDGET_MS) {
       logger.warn(
         `${JOB_NAME}: run budget exhausted with ${projectIds.length} project(s) enumerated; remaining sessions are picked up next run.`,
@@ -2957,7 +2946,7 @@ export async function finalizeExpiredSessions(): Promise<void> {
     }
 
     for (const [sessionId, members] of membersBySessionId.entries()) {
-      if (Date.now() - runStartedAt > RUN_BUDGET_MS) {
+      if (deadline.hasPassed() || Date.now() - runStartedAt > RUN_BUDGET_MS) {
         break;
       }
 
@@ -3058,7 +3047,7 @@ export async function finalizeExpiredSessions(): Promise<void> {
  *      the idle path finalizes every early-finalized session once more (see
  *      the removal below for why).
  *
- * One run at a time (a Redis single-flight lock), and a fair share of each
+ * One run at a time (RunCron's lease, CronLock), and a fair share of each
  * run per project, from a start that rotates between runs - see the limits
  * near the top of this module.
  *
@@ -3081,8 +3070,11 @@ export interface FinalizeEndedSessionsSummary {
   deferred: number;
   failed: number;
   budgetExhausted: boolean;
-  /* The run did nothing because an earlier run still holds the lock. */
-  skippedLockHeld: boolean;
+  /*
+   * The run stopped because its deadline passed - its time limit, or its
+   * lease lost - rather than its own budget (budgetExhausted is set too).
+   */
+  stoppedAtDeadline: boolean;
 }
 
 interface EndedSessionCandidate {
@@ -3165,11 +3157,13 @@ function createEndedSessionsSummary(): FinalizeEndedSessionsSummary {
     deferred: 0,
     failed: 0,
     budgetExhausted: false,
-    skippedLockHeld: false,
+    stoppedAtDeadline: false,
   };
 }
 
-export async function finalizeEndedSessions(): Promise<FinalizeEndedSessionsSummary> {
+export async function finalizeEndedSessions(
+  deadline: JobDeadline = JobDeadline.none(),
+): Promise<FinalizeEndedSessionsSummary> {
   const summary: FinalizeEndedSessionsSummary = createEndedSessionsSummary();
 
   const client: ClientType | null = Redis.getClient();
@@ -3182,63 +3176,21 @@ export async function finalizeEndedSessions(): Promise<FinalizeEndedSessionsSumm
   }
 
   /*
-   * Single flight, across replicas.
-   *
-   * The queue runner's one-minute timeout stops WAITING for a run, it does
-   * not cancel it, and the worker queue runs many jobs at once. So without
-   * this a run stalled in a slow correlation fetch had the next minute's
-   * run start on the same candidates, repeating the same heavy Span and
-   * ExceptionInstance scans on a cluster that was already slow - load
-   * amplification exactly when it hurts most. The token makes the release
-   * safe: a run that overran the TTL cannot delete the lock a later run
-   * took (see SESSION_REPLAY_ENDED_RUN_LOCK_RELEASE_SCRIPT).
+   * One run at a time, across replicas: RunCron's lease (CronLock). A run
+   * stalled in a slow correlation fetch used to have the next minute's run
+   * start on the same candidates, repeating the same heavy Span and
+   * ExceptionInstance scans on a cluster that was already slow; now the
+   * next run skips while this one holds the lease, and this one stops at
+   * its deadline - its time limit, or its lease lost - wherever it checks
+   * its own budget.
    */
-  const lockToken: string = crypto.randomUUID();
+  await runFinalizeEndedSessions(client, summary, deadline);
 
-  let lockAcquired: "OK" | null = null;
-
-  try {
-    lockAcquired = await client.set(
-      SESSION_REPLAY_ENDED_RUN_LOCK_KEY,
-      lockToken,
-      "PX",
-      ENDED_RUN_LOCK_TTL_MS,
-      "NX",
-    );
-  } catch (error) {
+  if (summary.stoppedAtDeadline) {
     logger.warn(
-      `${ENDED_JOB_NAME}: could not take the run lock; skipping this run: ${getErrorMessage(error)}`,
+      `${ENDED_JOB_NAME}: the run's deadline passed (its time limit, or its lease lost) after checking ${summary.checked} session(s); the remaining candidates are picked up next run.`,
     );
-    return summary;
-  }
-
-  if (lockAcquired !== "OK") {
-    summary.skippedLockHeld = true;
-    logger.debug(
-      `${ENDED_JOB_NAME}: an earlier run still holds the lock; skipping this run.`,
-    );
-    return summary;
-  }
-
-  try {
-    await runFinalizeEndedSessions(client, summary);
-  } finally {
-    try {
-      await client.eval(
-        SESSION_REPLAY_ENDED_RUN_LOCK_RELEASE_SCRIPT,
-        1,
-        SESSION_REPLAY_ENDED_RUN_LOCK_KEY,
-        lockToken,
-      );
-    } catch (error) {
-      /* The TTL releases it instead; the next run or two may skip. */
-      logger.warn(
-        `${ENDED_JOB_NAME}: could not release the run lock; it expires on its own: ${getErrorMessage(error)}`,
-      );
-    }
-  }
-
-  if (summary.budgetExhausted) {
+  } else if (summary.budgetExhausted) {
     logger.warn(
       `${ENDED_JOB_NAME}: run budget exhausted after checking ${summary.checked} session(s); the remaining candidates are picked up next run.`,
     );
@@ -3256,10 +3208,31 @@ export async function finalizeEndedSessions(): Promise<FinalizeEndedSessionsSumm
 async function runFinalizeEndedSessions(
   client: ClientType,
   summary: FinalizeEndedSessionsSummary,
+  deadline: JobDeadline,
 ): Promise<void> {
   const databaseName: string = getDatabaseName();
   const runStartedAt: number = Date.now();
   const runDeadlineUnixMs: number = runStartedAt + ENDED_RUN_BUDGET_MS;
+
+  /*
+   * Whether the run is over: its own budget spent (by the clock as it is
+   * now, or as read at `now`), or its deadline passed. Says which on the
+   * summary.
+   */
+  const isRunOver: (now?: number) => boolean = (now?: number): boolean => {
+    if (deadline.hasPassed()) {
+      summary.stoppedAtDeadline = true;
+      summary.budgetExhausted = true;
+      return true;
+    }
+
+    if ((now ?? Date.now()) > runDeadlineUnixMs) {
+      summary.budgetExhausted = true;
+      return true;
+    }
+
+    return false;
+  };
 
   /*
    * Only a prefilter now. The grace is applied by hasSessionRecordingEnded
@@ -3293,8 +3266,7 @@ async function runFinalizeEndedSessions(
     const projectId: string = projectIds[position]!;
     const projectStartedAt: number = Date.now();
 
-    if (projectStartedAt > runDeadlineUnixMs) {
-      summary.budgetExhausted = true;
+    if (isRunOver(projectStartedAt)) {
       break;
     }
 
@@ -3334,7 +3306,8 @@ async function runFinalizeEndedSessions(
       databaseName: databaseName,
       projectId: projectId,
       cutoffUnixMs: cutoffUnixMs,
-      runDeadlineUnixMs: runDeadlineUnixMs,
+      isRunOver: isRunOver,
+      deadline: deadline,
       projectDeadlineUnixMs: projectDeadlineUnixMs,
       sessionShare: sessionShare,
     });
@@ -3347,7 +3320,9 @@ async function finalizeEndedSessionsOfProject(data: {
   databaseName: string;
   projectId: string;
   cutoffUnixMs: number;
-  runDeadlineUnixMs: number;
+  // The run's budget spent or its deadline passed (it says which on the summary).
+  isRunOver: (now?: number) => boolean;
+  deadline: JobDeadline;
   projectDeadlineUnixMs: number;
   sessionShare: number;
 }): Promise<void> {
@@ -3482,18 +3457,18 @@ async function finalizeEndedSessionsOfProject(data: {
   };
 
   /*
-   * Past the project's slice (which never outlasts the run's budget). Checked
-   * between sessions, and handed to the finalize as its defer check so a
-   * session that has ended but would start the slow correlation reads past
-   * the slice stays queued instead.
+   * Past the project's slice (which never outlasts the run's budget), or the
+   * run's deadline passed. Checked between sessions, and handed to the
+   * finalize as its defer check so a session that has ended but would start
+   * the slow correlation reads past the slice, or past the deadline, stays
+   * queued instead.
    */
   const isPastProjectSlice: () => boolean = (): boolean => {
-    return Date.now() > data.projectDeadlineUnixMs;
+    return data.deadline.hasPassed() || Date.now() > data.projectDeadlineUnixMs;
   };
 
   for (const [sessionId, candidates] of sessionsInShare) {
-    if (Date.now() > data.runDeadlineUnixMs) {
-      summary.budgetExhausted = true;
+    if (data.isRunOver()) {
       break;
     }
 
@@ -3538,9 +3513,8 @@ async function finalizeEndedSessionsOfProject(data: {
          */
         summary.deferred++;
 
-        if (Date.now() > data.runDeadlineUnixMs) {
-          summary.budgetExhausted = true;
-        }
+        // Says on the summary whether the run is over, and why.
+        data.isRunOver();
 
         break;
       }
@@ -3838,7 +3812,9 @@ async function sealLostSession(data: {
   return true;
 }
 
-export async function sweepNeverFinalizedSessions(): Promise<{
+export async function sweepNeverFinalizedSessions(
+  deadline: JobDeadline = JobDeadline.none(),
+): Promise<{
   scanned: number;
   finalized: number;
   sealedLost: number;
@@ -3899,6 +3875,14 @@ export async function sweepNeverFinalizedSessions(): Promise<{
       break;
     }
 
+    // Nor the project's correlation read, once the run's deadline passed.
+    if (deadline.hasPassed()) {
+      logger.warn(
+        `${SWEEP_JOB_NAME}: the run's deadline passed (its time limit, or its lease lost) after ${finalized + sealedLost} session(s); the rest are picked up next hour.`,
+      );
+      break;
+    }
+
     /*
      * The sweep knows session START times (from the headers), not last
      * activity, so the window closes a full session length after the
@@ -3937,6 +3921,14 @@ export async function sweepNeverFinalizedSessions(): Promise<{
     }
 
     for (const ref of projectRefs) {
+      if (deadline.hasPassed()) {
+        logger.warn(
+          `${SWEEP_JOB_NAME}: the run's deadline passed (its time limit, or its lease lost) after ${finalized + sealedLost} session(s); the rest are picked up next hour.`,
+        );
+        budgetExhausted = true;
+        break;
+      }
+
       if (Date.now() - runStartedAt > SWEEP_RUN_BUDGET_MS) {
         logger.warn(
           `${SWEEP_JOB_NAME}: run budget exhausted after ${finalized + sealedLost} session(s); the rest are picked up next hour.`,
@@ -4006,9 +3998,9 @@ RunCron(
     runOnStartup: false,
     timeoutInMS: OneUptimeDate.convertMinutesToMilliseconds(5),
   },
-  async (): Promise<void> => {
+  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
     try {
-      await sweepNeverFinalizedSessions();
+      await sweepNeverFinalizedSessions(deadline);
     } catch (error) {
       logger.error(`${SWEEP_JOB_NAME}: ${getErrorMessage(error)}`);
     }
@@ -4022,9 +4014,9 @@ RunCron(
     runOnStartup: false,
     timeoutInMS: OneUptimeDate.convertMinutesToMilliseconds(5),
   },
-  async (): Promise<void> => {
+  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
     try {
-      await finalizeExpiredSessions();
+      await finalizeExpiredSessions(deadline);
     } catch (error) {
       logger.error(`${JOB_NAME}: ${getErrorMessage(error)}`);
     }
@@ -4044,9 +4036,9 @@ RunCron(
     runOnStartup: false,
     timeoutInMS: OneUptimeDate.convertMinutesToMilliseconds(1),
   },
-  async (): Promise<void> => {
+  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
     try {
-      await finalizeEndedSessions();
+      await finalizeEndedSessions(deadline);
     } catch (error) {
       logger.error(`${ENDED_JOB_NAME}: ${getErrorMessage(error)}`);
     }

@@ -136,6 +136,7 @@ import ReadHashRoutesInProductAnalyticsEntryPages from "./ReadHashRoutesInProduc
 import ScrubProductAnalyticsAddresses from "./ScrubProductAnalyticsAddresses";
 import ScrubSessionReplayAddresses from "./ScrubSessionReplayAddresses";
 import EncryptUploadedCertificateKeys from "./EncryptUploadedCertificateKeys";
+import EncryptLetsEncryptKeys from "./EncryptLetsEncryptKeys";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
 import BackfillProjectMilestones from "./BackfillProjectMilestones";
 import AddNetworkTrafficUsageUplinkHealthColumns from "./AddNetworkTrafficUsageUplinkHealthColumns";
@@ -1220,6 +1221,16 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new EncryptUploadedCertificateKeys(),
+  /*
+   * The private keys of the free certificates ordered from Let's Encrypt
+   * (AcmeCertificate.certificateKey), and the account and certificate keys
+   * the Greenlock store it replaced kept (GreenlockCertificate.blob), stored
+   * as plaintext before they were kept encrypted at rest: each encrypted in
+   * place, in raw SQL, only while it still holds the value read. Paged and
+   * idempotent; nginx serves a key not encrypted yet as itself meanwhile.
+   * Before the last slot AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new EncryptLetsEncryptKeys(),
   /*
    * A monitor nothing has checked yet reads Operational, the status every
    * monitor is created in (issue #8899): Monitor.firstMeasuredAt now says

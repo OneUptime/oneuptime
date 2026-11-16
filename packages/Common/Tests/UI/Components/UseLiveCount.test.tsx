@@ -539,23 +539,41 @@ describe("starting over and stopping", () => {
  * count asks LiveConnection for the connection the app opened instead.
  */
 describe("what a count loads", () => {
+  /*
+   * The count hears its kind through UseLiveRefresh, which every part that
+   * reads again shares: neither loads Realtime itself, only its type, and
+   * asks LiveConnection for the connection the app opened.
+   */
   test("Realtime's type alone: the connection is asked for from LiveConnection", () => {
-    const source: string = fs.readFileSync(
+    const count: string = fs.readFileSync(
       path.join(__dirname, "../../../UI/Components/SideMenu/UseLiveCount.ts"),
       "utf8",
     );
 
+    expect(
+      Array.from(
+        count.matchAll(/^import[^;]*from "\.\.\/\.\.\/Utils\/[^"]*";$/gm),
+      ).map((match: RegExpMatchArray): string => {
+        return match[0];
+      }),
+    ).toEqual(['import useLiveRefresh from "../../Utils/UseLiveRefresh";']);
+
+    const refresh: string = fs.readFileSync(
+      path.join(__dirname, "../../../UI/Utils/UseLiveRefresh.ts"),
+      "utf8",
+    );
+
     const imports: Array<string> = Array.from(
-      source.matchAll(
-        /^import[^;]*from "\.\.\/\.\.\/Utils\/(?:Realtime|LiveConnection)";$/gm,
+      refresh.matchAll(
+        /^import[^;]*from "\.\/(?:Realtime|LiveConnection)";$/gm,
       ),
     ).map((match: RegExpMatchArray): string => {
       return match[0];
     });
 
     expect(imports).toEqual([
-      'import { getOpenLiveConnection } from "../../Utils/LiveConnection";',
-      'import type Realtime from "../../Utils/Realtime";',
+      'import { getOpenLiveConnection } from "./LiveConnection";',
+      'import type Realtime from "./Realtime";',
     ]);
   });
 });
