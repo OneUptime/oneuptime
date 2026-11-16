@@ -113,6 +113,7 @@ const SOURCES: Record<string, string> = {
   configure: "Scripts/Install/configure.sh",
   mergeEnvTemplate: "Scripts/Install/MergeEnvTemplate.js",
   installModules: "Scripts/Dev/install-node-modules.sh",
+  lintByProject: "Scripts/Lint/LintByProject.js",
   devCompose: "Scripts/Dev/docker-compose.dev.yml",
   baseCompose: "docker-compose.base.yml",
   compose: "docker-compose.yml",
@@ -1151,12 +1152,36 @@ describe("Local Development, against the scripts it runs", () => {
 
     for (const script of ["lint", "fix-lint"]) {
       expect(scripts[script]).toContain("node ./Scripts/Lint/LintByProject.js");
+      expect(scripts[script]).not.toContain("--changed");
     }
 
     expect(page).toContain(
       "Avoid `npm run lint` and `npm run fix-lint`: they lint the whole repository.",
     );
-    expect(page).toContain("npx eslint --fix packages/App/path/to/File.ts");
+  });
+
+  it("fix-lint:changed lints and fixes what the branch changed since origin/main, one ESLint process per project, as the page says", () => {
+    const scripts: Record<string, string> = scriptsOf("rootPackage");
+    const lintByProject: string = readSource("lintByProject");
+
+    // One `npx eslint` over several packages' files ran out of memory (#6848).
+    expect(scripts["fix-lint:changed"]).toContain(
+      "node ./Scripts/Lint/LintByProject.js --changed --fix",
+    );
+    expect(lintByProject).toContain('const DEFAULT_BASE = "origin/main";');
+    expect(page).toContain("```bash\nnpm run fix-lint:changed\n```");
+    expect(page).toContain(
+      "It takes every file that differs from `origin/main`, committed or not, and runs ESLint once for each TypeScript project they belong to",
+    );
+
+    // Paths after --: the files of your choice, grouped the same way.
+    expect(lintByProject).toContain(
+      "node Scripts/Lint/LintByProject.js [eslint options...] -- <path>...",
+    );
+    expect(page).toContain(
+      "```bash\nnode Scripts/Lint/LintByProject.js --fix -- packages/App/path/to/File.ts\n```",
+    );
+    expect(page).not.toContain("npx eslint --fix");
   });
 
   it("a PostgreSQL migration is generated into the folder the page names, and runs once Index.ts lists it", () => {
