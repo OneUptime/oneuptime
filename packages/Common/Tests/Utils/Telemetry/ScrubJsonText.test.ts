@@ -21,8 +21,9 @@ import {
   seededRandom,
   writeJson,
 } from "./JsonTextCases";
+import { getJestSpyOn } from "../../Spy";
 import crypto from "crypto";
-import { describe, expect, jest, test } from "@jest/globals";
+import { describe, expect, test } from "@jest/globals";
 
 /*
  * A PATTERN RULE OVER THE JSON TEXT OF A LIST OR A MAP KEEPS IT JSON (#8923).
@@ -619,10 +620,7 @@ describe("scrubText: a JSON text is kept JSON, any other text is scrubbed as it 
 
   test("each text of a record is parsed once, however many rules read it", () => {
     const jsonTexts: ScrubJsonTexts = new ScrubJsonTexts();
-    const parse: jest.SpiedFunction<typeof JSON.parse> = jest.spyOn(
-      JSON,
-      "parse",
-    );
+    const parse: ReturnType<typeof getJestSpyOn> = getJestSpyOn(JSON, "parse");
     let text: string = JSON.stringify({ a: "ada@example.com", b: "10.0.0.1" });
 
     try {
