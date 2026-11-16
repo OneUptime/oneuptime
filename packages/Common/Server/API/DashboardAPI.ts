@@ -1907,16 +1907,6 @@ export default class DashboardAPI extends BaseAPI<
   }
 
   /*
-   * Collect every metric name in the settings of the widgets a public
-   * dashboard's page draws that chart metrics (chart/value/gauge/table
-   * widgets all carry their metric in a `metricName` field somewhere under
-   * their query config). Used to build an allowlist for the public metric
-   * endpoints so an anonymous viewer can only read the metrics this
-   * dashboard was built to show. The services each is read for are
-   * collected from the same settings through the same walk
-   * (PublicDashboardMetricServices.getSavedServices).
-   */
-  /*
    * A metric type as the public dashboard reads it: its name and unit, and
    * its counter semantics - so its formulas read a count with no point in a
    * step as 0 where the dashboard's own page does (MetricZeroFill). Null
@@ -1934,6 +1924,16 @@ export default class DashboardAPI extends BaseAPI<
     };
   }
 
+  /*
+   * Collect every metric name in the settings of the widgets a public
+   * dashboard's page draws that chart metrics (chart/value/gauge/table
+   * widgets all carry their metric in a `metricName` field somewhere under
+   * their query config). Used to build an allowlist for the public metric
+   * endpoints so an anonymous viewer can only read the metrics this
+   * dashboard was built to show. The services each is read for are
+   * collected from the same settings through the same walk
+   * (PublicDashboardMetricServices.getSavedServices).
+   */
   private static collectDashboardMetricNames(
     metricWidgetSettings: unknown,
   ): Set<string> {
