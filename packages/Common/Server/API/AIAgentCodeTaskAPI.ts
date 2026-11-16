@@ -103,8 +103,8 @@ export default class AIAgentCodeTaskAPI {
 
           /*
            * A denial answers exactly like a missing run, so a probing key
-           * cannot tell another tenant's run from no run - nor a global
-           * Runner the run another worker holds (deniesAccessToRun).
+           * cannot tell another tenant's run from no run - nor any worker
+           * the run another worker holds (deniesAccessToRun).
            */
           if (
             !run ||

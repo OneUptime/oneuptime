@@ -4019,5 +4019,8 @@
   "### Setup Steps": "### 設定手順",
   "### Required WhatsApp Templates": "### 必要な WhatsApp テンプレート",
   "### Template Bodies": "### テンプレートの本文",
-  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Meta で各テンプレートを作成するときは、下のテンプレート本文を句読点や空白も含めてそのままコピーしてください。変数の一覧には、WhatsApp Manager で設定が必要なプレースホルダーがすべて示されています。"
+  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Meta で各テンプレートを作成するときは、下のテンプレート本文を句読点や空白も含めてそのままコピーしてください。変数の一覧には、WhatsApp Manager で設定が必要なプレースホルダーがすべて示されています。",
+  "Takes no AI code fixes: they are turned off for this Runner.": "AI のコード修正を受け付けません。この Runner ではオフになっています。",
+  "Runs AI Code Fixes": "AI のコード修正を実行",
+  "Lets it take OneUptime AI's code fixes, with a token for each repository. Off, it runs JavaScript steps only.": "OneUptime AI のコード修正を、リポジトリごとのトークンとともに受け付けます。オフにすると、JavaScript ステップだけを実行します。"
 }

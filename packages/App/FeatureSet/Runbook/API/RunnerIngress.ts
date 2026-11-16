@@ -55,6 +55,7 @@ import {
   GLOBAL_RUNNER_STEP_TYPES,
   canGlobalRunnersRunStepType,
 } from "Common/Types/Runner/GlobalRunnerWork";
+import { isCodeFixesTurnedOffInOneUptime } from "Common/Types/Runner/RunnerCodeFixes";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -403,9 +404,12 @@ export default class RunnerIngressAPI {
    * A global Runner is told it is one: it runs every project's JavaScript
    * steps (a master admin may pause those with "Runs Runbooks") and the AI
    * code fixes of every repository on the Global Runner, never with the
-   * repository's own commands. It then asks only for what global Runners
-   * run, and refuses anything else it is handed. The server serves it no
-   * other work whatever it asks for.
+   * repository's own commands - unless a master admin turned its code fixes
+   * off ("Runs AI Code Fixes", Runner.canRunCodeFixes): it then stops its
+   * code-fix loop, and its key proves no code-fix identity either
+   * (CodeFixAgentAuth). It asks only for what global Runners run, and
+   * refuses anything else it is handed. The server serves it no other work
+   * whatever it asks for.
    */
   public static getHeartbeatAnswer(
     agent: Runner,
@@ -418,7 +422,7 @@ export default class RunnerIngressAPI {
         globalStepTypes: [...GLOBAL_RUNNER_STEP_TYPES],
         capabilities: {
           canRunRunbooks: agent.canRunRunbooks !== false,
-          canRunCodeFixTasks: true,
+          canRunCodeFixTasks: !isCodeFixesTurnedOffInOneUptime(agent),
           canRunAiCommands: false,
         },
       };

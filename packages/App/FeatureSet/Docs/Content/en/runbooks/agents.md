@@ -75,6 +75,8 @@ A global Runner also takes OneUptime AI's code fixes, in every code repository t
 
 A global Runner older than 14.0.94, or one started with `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false`, takes no code fixes, and OneUptime does not count it for them. A repository on **Global Runner** then says that no global Runner online takes AI code fixes, and the Admin Dashboard's **Global Runners** page says why under that Runner's status.
 
+A master admin can keep a global Runner off code fixes altogether: its **Runs AI Code Fixes** switch, under **More fields** on the Admin Dashboard's **Global Runners** page, is on by default. Off, OneUptime grants that Runner no code fix and hands it no repository's token, so it runs JavaScript steps only. On OneUptime Cloud, global Runners work in GitHub repositories only: a GitLab, Forgejo, Gitea or Git repository is reached with its connection's own token, so its code fixes run on one of your own Runners.
+
 Pick one of your own Runners for a step that must reach your network, or to keep the step on hosts you control. To keep every step on your own Runners, turn **Use global Runners** off at the bottom of **Runbooks → Runners**. A JavaScript step that picks no Runner then runs on the project's default Runner or, with none set, fails, saying so, until it picks one of yours; a step that picks one of your Runners keeps it either way. A code repository that picks no Runner in its settings in Code works on the project's default Runner too or, with none set, on a global Runner, and needs one of yours while the switch is off; see [Code](/docs/ai/ai-agent#pick-the-repositorys-runner).
 
 ### Where global Runners come from

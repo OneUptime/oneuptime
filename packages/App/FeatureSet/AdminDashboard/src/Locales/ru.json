@@ -4019,5 +4019,8 @@
   "### Setup Steps": "### Шаги настройки",
   "### Required WhatsApp Templates": "### Нужные шаблоны WhatsApp",
   "### Template Bodies": "### Содержимое шаблонов",
-  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Создавая каждый шаблон в Meta, скопируйте его содержимое ниже в точности — со всеми знаками препинания и пробелами. В списке переменных показан каждый заполнитель, который нужно настроить в WhatsApp Manager."
+  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Создавая каждый шаблон в Meta, скопируйте его содержимое ниже в точности — со всеми знаками препинания и пробелами. В списке переменных показан каждый заполнитель, который нужно настроить в WhatsApp Manager.",
+  "Takes no AI code fixes: they are turned off for this Runner.": "Не берёт исправления кода от ИИ: для этого Runner-а они выключены.",
+  "Runs AI Code Fixes": "Выполняет исправления кода от ИИ",
+  "Lets it take OneUptime AI's code fixes, with a token for each repository. Off, it runs JavaScript steps only.": "Позволяет ему брать исправления кода от OneUptime AI с токеном для каждого репозитория. Если выключено, он выполняет только шаги JavaScript."
 }

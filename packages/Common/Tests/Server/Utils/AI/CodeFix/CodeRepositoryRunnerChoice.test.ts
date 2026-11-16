@@ -10,6 +10,7 @@ import RunnerService from "../../../../../Server/Services/RunnerService";
 import QueryHelper from "../../../../../Server/Types/Database/QueryHelper";
 import GlobalRunnerChoice from "../../../../../Server/Utils/Runner/GlobalRunnerChoice";
 import AIAgent from "../../../../../Models/DatabaseModels/AIAgent";
+import CodeRepositoryType from "../../../../../Types/CodeRepository/CodeRepositoryType";
 import CodeRepository from "../../../../../Models/DatabaseModels/CodeRepository";
 import Runner from "../../../../../Models/DatabaseModels/Runner";
 import OneUptimeDate from "../../../../../Types/Date";
@@ -153,18 +154,21 @@ describe("CodeRepositoryRunnerChoice", () => {
         projectId: true,
         runnerId: true,
         isGlobalRunnerPicked: true,
+        repositoryHostedAt: true,
       });
     });
 
-    test("a repository read with them hands over all three", () => {
+    test("a repository read with them hands over all four", () => {
       const row: CodeRepository = repository(RUNNER_ID);
       row.projectId = PROJECT_ID;
       row.isGlobalRunnerPicked = true;
+      row.repositoryHostedAt = CodeRepositoryType.GitLab;
 
       expect(getCodeRepositoryRunnerFactsRow(row)).toEqual({
         projectId: PROJECT_ID,
         runnerId: row.runnerId,
         isGlobalRunnerPicked: true,
+        repositoryHostedAt: CodeRepositoryType.GitLab,
       });
     });
   });
@@ -844,6 +848,103 @@ describe("CodeRepositoryRunnerChoice", () => {
         (await CodeRepositoryRunnerChoice.getStatusForRepository(facts()))
           .isOnline,
       ).toBe(true);
+    });
+
+    /*
+     * On OneUptime Cloud no global Runner is handed a GitLab, Forgejo,
+     * Gitea or Git repository's token (#6115): such a repository on the
+     * Global Runner has nothing to do its work, whoever is online, and
+     * says why - unless an agent of the project's own takes it.
+     */
+    describe("on OneUptime Cloud, a repository that is not on GitHub", () => {
+      let savedBilling: string | undefined;
+
+      beforeEach(() => {
+        savedBilling = process.env["BILLING_ENABLED"];
+        process.env["BILLING_ENABLED"] = "true";
+      });
+
+      afterEach(() => {
+        if (savedBilling === undefined) {
+          delete process.env["BILLING_ENABLED"];
+        } else {
+          process.env["BILLING_ENABLED"] = savedBilling;
+        }
+      });
+
+      test("on the Global Runner, is not online, and says it needs a Runner of the project's own", async () => {
+        for (const type of [
+          CodeRepositoryType.GitLab,
+          CodeRepositoryType.Forgejo,
+          CodeRepositoryType.Git,
+        ]) {
+          expect(
+            await CodeRepositoryRunnerChoice.getStatusForRepository({
+              ...facts(),
+              repositoryHostedAt: type,
+            }),
+          ).toEqual({
+            decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
+            isOnline: false,
+            needsOwnRunnerForItsToken: true,
+          });
+        }
+
+        // Whoever is online: the global Runners are never asked.
+        expect(globalOnline).not.toHaveBeenCalled();
+      });
+
+      test("an agent of the project's own still takes it", async () => {
+        projectAgent.mockResolvedValue(new AIAgent());
+
+        expect(
+          await CodeRepositoryRunnerChoice.getStatusForRepository({
+            ...facts(),
+            repositoryHostedAt: CodeRepositoryType.GitLab,
+          }),
+        ).toEqual({
+          decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
+          isOnline: true,
+        });
+      });
+
+      test("a GitHub repository, and one whose host is not read, are as before", async () => {
+        for (const repositoryHostedAt of [
+          CodeRepositoryType.GitHub,
+          undefined,
+        ]) {
+          expect(
+            await CodeRepositoryRunnerChoice.getStatusForRepository({
+              ...facts(),
+              repositoryHostedAt,
+            }),
+          ).toEqual({
+            decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
+            isOnline: true,
+          });
+        }
+      });
+    });
+
+    test("on a self-hosted OneUptime, a repository that is not on GitHub works on the Global Runner as before", async () => {
+      const saved: string | undefined = process.env["BILLING_ENABLED"];
+      delete process.env["BILLING_ENABLED"];
+
+      try {
+        expect(
+          await CodeRepositoryRunnerChoice.getStatusForRepository({
+            ...facts(),
+            repositoryHostedAt: CodeRepositoryType.GitLab,
+          }),
+        ).toEqual({
+          decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
+          isOnline: true,
+        });
+      } finally {
+        if (saved !== undefined) {
+          process.env["BILLING_ENABLED"] = saved;
+        }
+      }
     });
 
     test("no pick and no default: online while a global Runner is, or an agent of the project's own", async () => {
