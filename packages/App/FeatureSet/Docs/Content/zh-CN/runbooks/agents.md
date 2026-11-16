@@ -75,6 +75,8 @@ Runner 只保存自己的 ID 和密钥。其余一切都随它领取的任务一
 
 早于 14.0.94 的全局 Runner，或以 `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false` 启动的全局 Runner，不接受代码修复，OneUptime 也不会把它计入。此时，在 **全局 Runner** 上工作的存储库会提示没有在线的全局 Runner 接受 AI 代码修复，而 Admin Dashboard 的 **全局 Runner** 页面会在该 Runner 的状态下方说明原因。
 
+主管理员可以让某个全局 Runner 完全不参与代码修复：Admin Dashboard 的 **全局 Runner** 页面上 **更多字段** 中的开关 **执行 AI 代码修复** 默认是打开的。关闭后，OneUptime 不再交给该 Runner 任何代码修复，也不交给它任何代码仓库的令牌，因此它只运行 JavaScript 步骤。在 OneUptime Cloud 上，全局 Runner 只在 GitHub 代码仓库中工作：GitLab、Forgejo、Gitea 或 Git 代码仓库要用其连接自己的令牌访问，因此它的代码修复在你自己的 Runner 上运行。
+
 对于需要访问你的网络的步骤，或者要让步骤留在你掌控的主机上，请为它选择你自己的 Runner。要让每个步骤都在你自己的 Runner 上运行，请在 **运行手册 → Runbook 代理** 底部关闭 **使用全局 Runner** 。之后，未选择 Runner 的 JavaScript 步骤会在项目默认 Runner 上运行；如果没有设置默认 Runner，它会失败并说明原因，直到它选择你的某个 Runner；选择了你的某个 Runner 的步骤无论如何都会保留它。在代码的设置中没有选择 Runner 的代码存储库同样在项目默认 Runner 上工作，没有设置默认 Runner 时在全局 Runner 上工作，而在关闭该开关时需要你的某个 Runner；参见 [代码](/docs/ai/ai-agent#选择存储库的-runner)。
 
 ### 全局 Runner 从哪里来

@@ -5,7 +5,6 @@ import {
 import RunnerLiveStatus from "Common/Types/Runner/RunnerLiveStatus";
 import { canGlobalRunnersRunStepType } from "Common/Types/Runner/GlobalRunnerWork";
 import { isRepositoryKeptOffGlobalRunners } from "Common/Types/Runner/GlobalRunnerRepositoryTokens";
-import { BILLING_ENABLED } from "Common/UI/Config";
 import {
   ChosenRunnerKind,
   GLOBAL_RUNNER_CHOICE_ID,
@@ -265,7 +264,7 @@ export const CODE_GLOBAL_RUNNER_KEPT_OFF_TEXT: string = translationKey(
 export function getGlobalRunnerKeptOffText(
   provider: string | null | undefined,
   // OneUptime Cloud: billing on (Common/UI/Config BILLING_ENABLED).
-  isOneUptimeCloud: boolean = BILLING_ENABLED,
+  isOneUptimeCloud: boolean,
 ): string | null {
   return isRepositoryKeptOffGlobalRunners({
     repositoryHostedAt: provider,
