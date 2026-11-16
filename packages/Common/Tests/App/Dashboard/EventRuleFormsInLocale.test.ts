@@ -130,7 +130,7 @@ const PAGE_SENTENCES: Record<string, Array<string>> = {
   ],
   "Pages/Incidents/Settings/IncidentSlaRules.tsx": [
     "Track how fast incidents are acknowledged and resolved. The first rule that matches an incident applies - drag a rule to change its place.",
-    "What an SLA rule tracks, which incidents it applies to, and the notes it can post.",
+    "Set how long your team has to acknowledge and resolve an incident.",
     "How long the team has to acknowledge the incident. Leave empty to not track it.",
     "How long the team has to resolve the incident. Leave empty to not track it.",
     "The SLA is at risk once this much of a deadline has passed. Default is 80%.",
