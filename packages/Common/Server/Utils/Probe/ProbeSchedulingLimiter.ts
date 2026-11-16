@@ -15,12 +15,16 @@ import logger from "../Logger";
  * worker), the monitor tests people asked for (/monitor-test/list, every ten
  * seconds), the network devices due for a poll (/probe/network-device/list,
  * once a minute), and the pending count its autoscaler reads
- * (/monitor/pending-count). Each holds a Postgres connection of the pool the
- * process shares with everything else it serves (a network device list a
- * second one, for the moment it resolves the devices' SNMP credentials),
- * and nothing bounded how
- * many held one at once: when the database slowed down, a fleet's requests
- * piled up holding connections a sign-in needed.
+ * (/monitor/pending-count) - and, since issue #8051, the rest of its work:
+ * discovery scans, device diagnostics, packet captures, VMware and OpenStack
+ * collections, OpenStack checks, Data Security scans and Data Observability
+ * collections. Each holds a Postgres connection of the pool the process
+ * shares with everything else it serves (a network device list a second
+ * one, for the moment it resolves the devices' SNMP credentials), and
+ * nothing bounded how many held one at once: when the database slowed down,
+ * a fleet's requests piled up holding connections a sign-in needed. What a
+ * probe reports back - results, collections, captures - is not held to it:
+ * refusing a report would lose work the probe has done.
  *
  * So at most PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS of them run at once in
  * a process (a fifth of its pool by default, Utils/Database/ConnectionShares),

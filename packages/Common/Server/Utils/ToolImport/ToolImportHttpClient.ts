@@ -654,6 +654,10 @@ export function createToolImportTransport(
  *    DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES;
  *  - the host is resolved and checked before every request, and the socket
  *    dials exactly the addresses that were checked (no DNS rebinding);
+ *  - behind an outbound proxy (HTTPS_PROXY, HTTP_PROXY, ALL_PROXY) the
+ *    request goes through it, as every other request of the server does,
+ *    whether the proxy is named by address or by host name; a host in
+ *    NO_PROXY is dialled directly, at the address that was checked;
  *  - no redirects, so a checked host cannot send the request elsewhere;
  *  - plain http only where private addresses are allowed (`allowHttp`):
  *    OneUptime Cloud sends a key over https only.
@@ -701,11 +705,16 @@ export function createToolImportAddressTransport(data: {
       });
     }
 
-    return await sendToolImportRequest({
-      url: pinned.url,
-      request: request,
-      agents: { httpAgent: pinned.httpAgent, httpsAgent: pinned.httpsAgent },
-    });
+    try {
+      return await sendToolImportRequest({
+        url: pinned.url,
+        request: request,
+        agents: { httpAgent: pinned.httpAgent, httpsAgent: pinned.httpsAgent },
+      });
+    } finally {
+      pinned.httpAgent.destroy();
+      pinned.httpsAgent.destroy();
+    }
   };
 }
 
@@ -727,6 +736,8 @@ async function sendToolImportRequest(data: {
   agents?: PinnedAgents | undefined;
 }): Promise<ToolImportHttpResponse> {
   const response: AxiosResponse<string> = await axios.request<string>({
+    // Only Node's http adapter uses the pinned agents.
+    adapter: "http",
     method: data.request.method,
     url: data.url.toString(),
     headers: OutboundUserAgent.withDefault(data.request.headers),

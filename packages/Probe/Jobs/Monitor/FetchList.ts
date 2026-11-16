@@ -196,6 +196,11 @@ export class FetchListAndProbe {
       );
       await Sleep.sleep(sleepTime);
 
+      // The server asked this probe to wait (ServerBusy): it asks later.
+      if (ServerBusy.isBackingOff("monitors")) {
+        return;
+      }
+
       const monitorListUrl: URL = URL.fromString(
         PROBE_INGEST_URL.toString(),
       ).addRoute("/monitor/list");
@@ -220,7 +225,7 @@ export class FetchListAndProbe {
        * claimed, they stay due, and this worker asks again at its next tick.
        */
       if (ServerBusy.isBusyAnswer(result)) {
-        ServerBusy.note("monitors");
+        ServerBusy.note("monitors", result);
         return;
       }
 

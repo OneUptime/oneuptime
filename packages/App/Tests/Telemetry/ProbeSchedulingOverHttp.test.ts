@@ -289,7 +289,7 @@ describe("the probe scheduling limit over a real connection", () => {
         (_req: ExpressRequest, res: ExpressResponse): void => {
           res.status(200).send({ devices: [] });
         },
-        limiter,
+        { limiter },
       ),
       async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
         const label: string = String(req.body["label"]);

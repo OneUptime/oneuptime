@@ -58,6 +58,7 @@ De omgevingsvlag `RUNBOOK_BASH_ENABLED` bestaat niet meer. Of deze stappen in ee
 | Uitvoer per stap | **50 KB**. Langere uitvoer wordt afgekapt met een markering. | Elke geautomatiseerde stap |
 | Execution timeout | Standaard **30 seconden** | JavaScript-, Bash-, SSH- en kubectl-stappen |
 | Request timeout | Standaard **30 seconden** | HTTP-verzoekstappen |
+| Antwoord per verzoek | **10 MB**. Een groter antwoord wordt niet gelezen en laat de stap mislukken. | HTTP-verzoekstappen |
 | Claim timeout | Standaard **2 minuten**: hoe lang de Worker wacht tot de gekozen Runner de taak oppakt voordat hij die laat mislukken | JavaScript-, Bash-, SSH- en kubectl-stappen |
 | Bereik van time-outs | **1 seconde tot 1 uur** | Elke time-out |
 | Wachten op een persoon | Geen limiet | Manual-stappen en goedkeuringen |

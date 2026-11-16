@@ -48,6 +48,12 @@ import ProbeCapability from "Common/Types/Probe/ProbeCapability";
  * probe that declares this with a 429, and an older probe's with an empty
  * batch.
  *
+ * "retryAllWorkWhenBusy": so do the other work fetches - discovery scans,
+ * device diagnostics, packet captures, VMware and OpenStack collections,
+ * OpenStack checks, Data Security and Data Observability. The server
+ * answers those with a 429 only to a probe that declares this: before it,
+ * they logged a 429 as a failed request every tick.
+ *
  * Add to this list only when the code that honours the new capability
  * ships in the same build.
  */
@@ -58,6 +64,7 @@ export const PROBE_CAPABILITIES: Array<string> = [
   ProbeCapability.DataSecurityScan,
   ProbeCapability.DataObservabilityCollect,
   ProbeCapability.RetryWhenBusy,
+  ProbeCapability.RetryAllWorkWhenBusy,
 ];
 
 export default class ProbeAPIRequest {

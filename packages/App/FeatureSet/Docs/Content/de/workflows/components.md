@@ -67,6 +67,8 @@ Eine HTTP-Anfrage an jede URL senden. Es gibt einen Baustein pro Methode: **API-
 
 So oder so gibt der Baustein **Antwortstatus**, **Antwort-Header** und **Antworttext** zurück, dazu **Fehler** mit dem Grund, wenn er fehlgeschlagen ist. Lesen Sie ein Feld einer JSON-Antwort, indem Sie seinen Namen an den Verweis anhängen, wie in `{{local.components.api-get-1.returnValues.response-body.id}}`.
 
+Ein Baustein liest höchstens 10 MB einer Antwort. Eine größere Antwort wird nicht gelesen: Der Baustein nimmt **Fehler**, mit dem Grund.
+
 Weiterleitungen werden nicht verfolgt, richten Sie den Baustein also auf die Adresse, die antwortet. Anfragen gehen von OneUptime aus: Eine URL, die zu einer privaten Netzwerkadresse auflöst, wird abgelehnt, sofern ein Administrator einer selbst gehosteten Installation sie nicht erlaubt, und die Ausführung stoppt mit dem Grund. Siehe [Ausgehender Netzwerkzugriff](/docs/workflows/configuration#ausgehender-netzwerkzugriff).
 
 **API-Aufruf GET nach ID (JSON)** liest ein Element über eine ID, die von anderswo kam, etwa den Vorgangsschlüssel, den ein Webhook gesendet hat. Setzen Sie `{id}` in seine **URL**, wo die ID hingehört, wie in `https://your-domain.atlassian.net/rest/api/3/issue/{id}`, und die ID in **ID**. Der Baustein setzt die ID nur ein, wenn sie eine schlichte ID ist, höchstens 200 Buchstaben, Ziffern, Bindestriche und Unterstriche, und kodiert sie trotzdem mit Prozentzeichen: Alles andere, etwa `x/../users`, nimmt **Fehler**, bevor eine Anfrage gesendet wird, sodass Text von außen die Anfrage nicht woandershin lenken kann. Ansonsten arbeitet er wie **API-Aufruf GET (JSON)** und gibt dieselben Werte zurück.

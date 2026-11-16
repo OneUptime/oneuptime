@@ -58,6 +58,7 @@ Det finnes ikke lenger noe miljøflagg `RUNBOOK_BASH_ENABLED`. Om disse trinnene
 | Output per trinn | **50 KB**. Lengre output kuttes med en markør. | Hvert automatiserte trinn |
 | Kjøringstidsavbrudd | **30 sekunder** som standard | JavaScript-, Bash-, SSH- og kubectl-trinn |
 | Forespørselstidsavbrudd | **30 sekunder** som standard | HTTP request-trinn |
+| Svar per forespørsel | **10 MB**. Et større svar leses ikke og får trinnet til å feile. | HTTP request-trinn |
 | Overtakelsestidsavbrudd | **2 minutter** som standard: hvor lenge Workeren venter på at den valgte Runneren tar jobben før den feiles | JavaScript-, Bash-, SSH- og kubectl-trinn |
 | Intervall for tidsavbrudd | **1 sekund til 1 time** | Hvert tidsavbrudd |
 | Venter på en person | Ingen grense | Manual-trinn og godkjenninger |
