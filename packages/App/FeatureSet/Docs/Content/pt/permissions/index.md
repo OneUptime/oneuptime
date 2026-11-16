@@ -280,7 +280,7 @@ As chaves de API recebem permissões diretamente, na própria chave, ou pelas fu
 :::steps
 1. Abra **Configurações do projeto > Avançado > Chaves de API** e clique em **Criar: Chave de API**. No OneUptime Cloud, as chaves de API exigem o plano Growth.
 2. Digite o **Nome** da chave e escolha o **Acesso** dela. A descrição e a data de expiração ficam em **Mais campos**; uma chave expira um ano depois do dia em que é criada, a menos que você escolha outra data, e a seção recolhida diz isso.
-3. Crie a chave. Ela abre na página dela, onde você a copia.
+3. Crie a chave. O OneUptime a mostra uma única vez, em uma caixa de diálogo: copie-a ali. Depois, a página dela se abre.
 :::
 
 A função que você escolher se torna a primeira permissão da chave assim que a chave existe, exatamente como se você a tivesse adicionado na página da chave. Só são oferecidas as funções que você mesmo tem — uma chave nunca pode receber mais do que a pessoa que a dá tem — e quem pode criar chaves mas não alterar o que elas podem fazer não é consultado.

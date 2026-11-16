@@ -100,7 +100,7 @@
       "title": "身分驗證",
       "intro": "您需要對請求進行身分驗證才能存取 OneUptime API 中的任何端點。在本指南中,我們將了解身分驗證的運作方式。OneUptime 提供一種對您的 API 請求進行身分驗證的方式 - 使用 API 金鑰。",
       "generateApiKey": "產生 API 金鑰",
-      "generateApiKeyBody": "請前往 <strong>專案設定</strong> > <strong>進階</strong> > <strong>API 金鑰</strong>。建立一個新的 API 金鑰。請注意:新的 API 金鑰未指派任何權限,因此您必須先指派權限才能使用它。",
+      "generateApiKeyBody": "請前往 <strong>專案設定</strong> > <strong>進階</strong> > <strong>API 金鑰</strong>，建立一個 API 金鑰。OneUptime 只在建立金鑰時顯示一次：請在那時複製它，因為之後沒有任何頁面會再顯示它。金鑰只能做其權限允許的事：請在建立時選擇它的存取權限，或在它的頁面上新增權限。",
       "readMorePermissions": "閱讀更多關於權限的內容",
       "projectId": "專案 ID",
       "projectIdBody": "請前往 <strong>專案設定</strong> > <strong>專案</strong>。您應該能在那裡看到您的專案 ID。",

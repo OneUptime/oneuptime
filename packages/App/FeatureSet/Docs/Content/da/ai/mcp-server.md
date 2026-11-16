@@ -144,7 +144,7 @@ Under **Adgang** vælger du **Seer** til en agent, der kun læser, eller **Proje
 
 ### Kopier nøglen
 
-Klik på **Opret API-nøgle**: nøglens side åbnes. Kopier nøglen derfra.
+Klik på **Opret API-nøgle**. OneUptime viser nøglen én gang, i dialogen **Kopiér din API-nøgle**: kopiér den, før du trykker på **Færdig**.
 :::
 
 API-nøgler hører til ét projekt: MCP-serveren tager projektet fra nøglen, så oprettelsesværktøjer aldrig har brug for et `projectId`-argument.

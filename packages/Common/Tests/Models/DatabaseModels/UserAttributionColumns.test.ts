@@ -276,6 +276,13 @@ describe("which columns record a person doing something", () => {
       "markedAsArchived",
       "markedAsResolved",
       /*
+       * GlobalConfig.masterApiKeyCreatedByUserId: the master admin who made
+       * the server's master API key (#8903). The master API key's route
+       * stamps it from the signed-in master admin as the key is made; no
+       * request chooses it, and nobody reads it but OneUptime.
+       */
+      "masterApiKeyCreated",
+      /*
        * TelemetryException.mergedByUserId: who merged an exception into
        * another as the same bug. TelemetryExceptionMerge stamps it from the
        * caller as the merge is made, and clears it on unmerge; the column is

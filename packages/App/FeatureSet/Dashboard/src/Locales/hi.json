@@ -56021,5 +56021,17 @@
   "Every {{count}} seconds_one": "हर {{count}} सेकंड में",
   "First Measured At": "पहली बार मापा गया",
   "Missing-email check": "गुम ईमेल की जाँच",
-  "Missing-request check": "गुम अनुरोध की जाँच"
+  "Missing-request check": "गुम अनुरोध की जाँच",
+  "Copy Your API Key": "अपनी API कुंजी कॉपी करें",
+  "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "इसे अभी कॉपी करें और किसी सुरक्षित जगह रखें, जैसे सीक्रेट मैनेजर में। यह केवल इसी बार दिखाई जाती है: OneUptime इसका केवल हैश रखता है।",
+  "Ends in {{hint}}": "अंत में {{hint}}",
+  "Shown only once, when it was made. Reset it to get a new one.": "यह केवल एक बार दिखाई गई थी, जब इसे बनाया गया था। नई कुंजी पाने के लिए इसे रीसेट करें।",
+  "Makes a new key and shows it once. The current key stops working within a minute.": "एक नई कुंजी बनाता है और उसे एक बार दिखाता है। मौजूदा कुंजी एक मिनट के भीतर काम करना बंद कर देती है।",
+  "Reset API Key?": "API कुंजी रीसेट करें?",
+  "The current key stops working within a minute, for every script and tool that uses it. The new key is shown once.": "मौजूदा कुंजी इसका उपयोग करने वाली हर स्क्रिप्ट और टूल के लिए एक मिनट के भीतर काम करना बंद कर देती है। नई कुंजी एक बार दिखाई जाती है।",
+  "The server did not answer with the new API key. Try again.": "सर्वर ने नई API कुंजी के साथ जवाब नहीं दिया। फिर से कोशिश करें।",
+  "API Key Hint": "API कुंजी संकेत",
+  "Master API Key Created At": "मास्टर API कुंजी बनाई गई",
+  "Master API Key Created By User ID": "मास्टर API कुंजी बनाने वाले उपयोगकर्ता की ID",
+  "Master API Key Hint": "मास्टर API कुंजी संकेत"
 }

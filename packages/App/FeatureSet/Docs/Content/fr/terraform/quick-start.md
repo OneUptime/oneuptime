@@ -32,7 +32,7 @@ flowchart TB
 
 Dans le tableau de bord OneUptime, ouvrez **Paramètres du projet → Avancé → Clés API** et cliquez sur **Créer : Clé API**. Donnez-lui un **Nom**, comme `terraform`, et sous **Accès**, choisissez **Administrateur du projet** : Terraform crée, lit, modifie et supprime chaque type d'enregistrement qu'il gère, et **Administrateur du projet** peut faire tout cela. Pour une clé plus restreinte, choisissez **Choisir les autorisations plus tard** et n'ajoutez sur la page de la clé que les autorisations dont vous avez besoin.
 
-La clé expire dans un an. Pour choisir une autre date, ouvrez **Plus de champs** avant de la créer, ou modifiez la date plus tard sur la page de la clé. Une fois la clé créée, sa page s'ouvre : copiez la **Clé API** depuis la carte **Détails de la clé API**.
+La clé expire dans un an. Pour choisir une autre date, ouvrez **Plus de champs** avant de la créer, ou modifiez la date plus tard sur la page de la clé. Une fois la clé créée, OneUptime l'affiche une seule fois, dans la boîte de dialogue **Copiez votre clé API** : copiez-la avant d'appuyer sur **Terminé**.
 
 ### Rendre la clé disponible pour Terraform
 
@@ -218,7 +218,7 @@ Le fournisseur n'a trouvé aucune clé API. Exportez `ONEUPTIME_API_KEY` dans le
 :::
 
 :::details Message « the OneUptime API returned status 400: Invalid API Key »
-La clé est mal saisie, expirée ou supprimée, ou elle appartient à une autre instance OneUptime que celle vers laquelle pointe `oneuptime_url`. Copiez de nouveau la clé depuis sa page, ou créez-en une nouvelle.
+La clé est mal saisie, expirée ou supprimée, ou elle appartient à une autre instance OneUptime que celle vers laquelle pointe `oneuptime_url`. Comparez-la à la façon dont la clé se termine sur sa page, ou réinitialisez-la là pour en obtenir une nouvelle.
 :::
 
 :::details Message « the OneUptime API returned status 402: API keys need the Growth plan »

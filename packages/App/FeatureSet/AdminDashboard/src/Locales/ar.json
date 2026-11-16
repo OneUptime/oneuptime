@@ -4113,5 +4113,8 @@
   "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO._one": "{{count}} شخص لا يزال مسجّل الدخول بدون SSO. لا يمكنه فتح أي مشروع حتى يسجّل الدخول باستخدام SSO.",
   "Sign them out": "تسجيل خروجهم",
   "Sign out everyone signed in without SSO?": "هل تريد تسجيل خروج كل من سجّل الدخول بدون SSO؟",
-  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "تنتهي جلساتهم الآن على كل الأجهزة، ويسجّلون الدخول مجددًا باستخدام SSO. يبقى المسؤولون الرئيسيون مسجّلي الدخول."
+  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "تنتهي جلساتهم الآن على كل الأجهزة، ويسجّلون الدخول مجددًا باستخدام SSO. يبقى المسؤولون الرئيسيون مسجّلي الدخول.",
+  "Made by {{name}} on {{date}}": "أنشأه {{name}} في {{date}}",
+  "Made on {{date}}": "أُنشئ في {{date}}",
+  "Ends in {{hint}}": "ينتهي بـ {{hint}}"
 }

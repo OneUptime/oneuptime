@@ -4113,5 +4113,8 @@
   "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO._one": "{{count}} व्यक्ति अब भी बिना SSO के साइन इन है। SSO से साइन इन करने तक वह कोई प्रोजेक्ट नहीं खोल सकता।",
   "Sign them out": "उन्हें साइन आउट करें",
   "Sign out everyone signed in without SSO?": "बिना SSO के साइन इन सभी लोगों को साइन आउट करें?",
-  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "उनके सेशन अभी हर डिवाइस पर खत्म हो जाएंगे, और वे फिर से SSO से साइन इन करेंगे। मास्टर एडमिन साइन इन रहेंगे।"
+  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "उनके सेशन अभी हर डिवाइस पर खत्म हो जाएंगे, और वे फिर से SSO से साइन इन करेंगे। मास्टर एडमिन साइन इन रहेंगे।",
+  "Made by {{name}} on {{date}}": "{{name}} ने {{date}} को बनाई",
+  "Made on {{date}}": "{{date}} को बनाई गई",
+  "Ends in {{hint}}": "अंत में {{hint}}"
 }

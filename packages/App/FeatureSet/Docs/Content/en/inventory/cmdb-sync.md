@@ -63,7 +63,7 @@ A read-only export needs one permission, **Read Inventory Item**. On the key's p
 
 ### Copy the key
 
-Copy the **API Key** from the key's page, and make it available to your job:
+Use the key OneUptime showed you once, when you created it, and make it available to your job:
 
 ```bash
 export ONEUPTIME_API_KEY="your-api-key"
