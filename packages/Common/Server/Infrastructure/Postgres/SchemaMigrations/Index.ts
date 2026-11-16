@@ -1019,6 +1019,8 @@ import { AddNetworkEndpointAttachmentSeenAt1809180000000 } from "./1809180000000
 import { AddIsSnmpReachableToNetworkDeviceStatusIndex1809180100000 } from "./1809180100000-AddIsSnmpReachableToNetworkDeviceStatusIndex";
 import { AddUserOnCallLogMergedInto1809180370000 } from "./1809180370000-AddUserOnCallLogMergedInto";
 import { MasterApiKeyHashedColumn1809180790100 } from "./1809180790100-MasterApiKeyHashedColumn";
+import { ApiKeyHashedColumn1809180790200 } from "./1809180790200-ApiKeyHashedColumn";
+import { AddMasterApiKeyCreatedByAndHint1809180790300 } from "./1809180790300-AddMasterApiKeyCreatedByAndHint";
 
 export default [
   InitialMigration,
@@ -2042,4 +2044,6 @@ export default [
   AddIsSnmpReachableToNetworkDeviceStatusIndex1809180100000,
   AddUserOnCallLogMergedInto1809180370000,
   MasterApiKeyHashedColumn1809180790100,
+  ApiKeyHashedColumn1809180790200,
+  AddMasterApiKeyCreatedByAndHint1809180790300,
 ];

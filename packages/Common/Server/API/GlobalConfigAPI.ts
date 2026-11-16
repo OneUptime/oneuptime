@@ -432,6 +432,7 @@ export default class GlobalConfigAPI extends BaseAPI<
      *
      * A signed-in master admin only, never the master API key: a key that
      * leaked must not be able to replace itself and lock its admins out.
+     * The page says afterwards that they made it, and when (#8903).
      */
     this.router.post(
       MASTER_API_KEY_ROUTE,
@@ -439,7 +440,9 @@ export default class GlobalConfigAPI extends BaseAPI<
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const masterApiKey: string =
-            await GlobalConfigService.createMasterApiKey();
+            await GlobalConfigService.createMasterApiKey({
+              createdByUserId: await GlobalConfigAPI.getSessionUserId(req),
+            });
 
           res.setHeader("Cache-Control", "no-store");
 

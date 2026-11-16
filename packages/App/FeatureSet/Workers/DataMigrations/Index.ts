@@ -178,6 +178,7 @@ import RecordMonitoringOffOnStatusTimelines from "./RecordMonitoringOffOnStatusT
 import SettleOnCallNotificationsStuckBeforeUpgrade from "./SettleOnCallNotificationsStuckBeforeUpgrade";
 import EncryptGlobalConfigCredentials from "./EncryptGlobalConfigCredentials";
 import HashMasterApiKey from "./HashMasterApiKey";
+import HashProjectApiKeys from "./HashProjectApiKeys";
 import BackfillNetworkEndpointCoarseLastSeenAt from "./BackfillNetworkEndpointCoarseLastSeenAt";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
@@ -1096,6 +1097,17 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new HashMasterApiKey(),
+  /*
+   * Hashes the project API keys (ApiKey.apiKey, Project Settings > Advanced
+   * > API Keys) that were stored as they were written, before keys were
+   * stored hashed (#8902), with each key's hint, so every script and
+   * integration that uses one keeps working. After the schema migration
+   * ApiKeyHashedColumn, which makes the column a varchar and keeps the keys;
+   * paged, idempotent and safe twice at once; it writes only the ApiKey
+   * table, so it sits above the runbook migrations that keep their places
+   * before the last slot AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new HashProjectApiKeys(),
   /*
    * NetworkEndpoint.coarseLastSeenAt (#8092): lastSeenAt copied in for the
    * live endpoints that were seen, so the age-out of discovered devices,
