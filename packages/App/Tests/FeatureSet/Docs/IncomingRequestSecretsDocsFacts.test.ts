@@ -159,8 +159,12 @@ describe("the Incoming Request page on a project's incoming request secrets", ()
     expect(section()).toContain(
       "It cannot be turned on while the project has no secret",
     );
+    // A secret can be limited to some monitors (#8501): the guard keeps one that covers a monitor.
+    expect(squashed(secretService)).toContain(
+      "thrownewBadDataException(LAST_COVERING_INCOMING_REQUEST_SECRET_MESSAGE",
+    );
     expect(section()).toContain(
-      "the last one cannot be deleted while the requirement is on",
+      "Any of the project's secrets is accepted unless it is limited to other monitors, and the last one that covers a monitor cannot be deleted while the requirement is on",
     );
   });
 

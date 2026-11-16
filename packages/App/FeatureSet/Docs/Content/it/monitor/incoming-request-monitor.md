@@ -228,7 +228,7 @@ OneUptime non conserva mai il segreto: toglie l'intestazione dalla richiesta e m
 Un indirizzo che invia a un monitor più di 10 segreti errati diversi in 15 minuti viene poi rifiutato con `429` per qualsiasi segreto invii, giusto o sbagliato, fino all'ora indicata dalla sua intestazione `Retry-After`, al massimo 15 minuti. I mittenti ad altri indirizzi non ne risentono, e un mittente che continua a inviare un vecchio segreto continua a ricevere il `401` che dice cosa non va.
 
 > [!TIP]
-> Per sostituire un segreto senza rifiutare nessuno, createne un secondo, spostate i vostri mittenti su di esso, poi eliminate quello vecchio quando il suo **Ultimo utilizzo** smette di cambiare. Qualsiasi segreto del progetto viene accettato, e l'ultimo non si può eliminare finché il requisito è attivo.
+> Per sostituire un segreto senza rifiutare nessuno, createne un secondo, spostate i vostri mittenti su di esso, poi eliminate quello vecchio quando il suo **Ultimo utilizzo** smette di cambiare. Qualsiasi segreto del progetto viene accettato, a meno che non sia limitato ad altri monitor, e l'ultimo che copre un monitor non si può eliminare finché il requisito è attivo.
 
 ### Firmare le richieste con il segreto
 

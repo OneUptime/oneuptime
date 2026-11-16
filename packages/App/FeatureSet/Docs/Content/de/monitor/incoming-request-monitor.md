@@ -228,7 +228,7 @@ OneUptime speichert das Geheimnis nie: Es entfernt den Header aus der Anfrage un
 Eine Adresse, die einem Monitor in 15 Minuten mehr als 10 verschiedene falsche Geheimnisse sendet, wird danach bei jedem Geheimnis, das sie sendet, ob richtig oder falsch, mit `429` abgelehnt, bis zu der Zeit, die ihr Header `Retry-After` nennt, höchstens 15 Minuten. Absender an anderen Adressen sind nicht betroffen, und ein Absender, der immer wieder ein altes Geheimnis sendet, bekommt weiterhin die `401`, die sagt, was falsch ist.
 
 > [!TIP]
-> Um ein Geheimnis zu ersetzen, ohne jemanden abzulehnen, erstellen Sie ein zweites, stellen Ihre Absender darauf um und löschen das alte, sobald sich sein Wert unter **Zuletzt verwendet** nicht mehr ändert. Jedes Geheimnis des Projekts wird angenommen, und das letzte lässt sich nicht löschen, solange die Anforderung aktiv ist.
+> Um ein Geheimnis zu ersetzen, ohne jemanden abzulehnen, erstellen Sie ein zweites, stellen Ihre Absender darauf um und löschen das alte, sobald sich sein Wert unter **Zuletzt verwendet** nicht mehr ändert. Jedes Geheimnis des Projekts wird angenommen, sofern es nicht auf andere Monitore beschränkt ist, und das letzte, das einen Monitor abdeckt, lässt sich nicht löschen, solange die Anforderung aktiv ist.
 
 ### Anfragen mit dem Geheimnis signieren
 

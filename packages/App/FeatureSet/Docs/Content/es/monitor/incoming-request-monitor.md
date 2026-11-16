@@ -228,7 +228,7 @@ OneUptime nunca guarda el secreto: quita la cabecera de la solicitud y enmascara
 Una dirección que envía a un monitor más de 10 secretos incorrectos distintos en 15 minutos se rechaza después con `429` con cualquier secreto que envíe, correcto o no, hasta la hora que indica su cabecera `Retry-After`, como mucho 15 minutos. Los remitentes en otras direcciones no se ven afectados, y un remitente que sigue enviando un secreto antiguo sigue recibiendo el `401` que dice qué está mal.
 
 > [!TIP]
-> Para reemplazar un secreto sin rechazar a nadie, cree un segundo, pase sus remitentes a él y luego elimine el antiguo cuando su **Último uso** deje de cambiar. Se acepta cualquiera de los secretos del proyecto, y el último no se puede eliminar mientras el requisito esté activo.
+> Para reemplazar un secreto sin rechazar a nadie, cree un segundo, pase sus remitentes a él y luego elimine el antiguo cuando su **Último uso** deje de cambiar. Se acepta cualquiera de los secretos del proyecto salvo que esté limitado a otros monitores, y el último que cubre un monitor no se puede eliminar mientras el requisito esté activo.
 
 ### Firmar las solicitudes con el secreto
 

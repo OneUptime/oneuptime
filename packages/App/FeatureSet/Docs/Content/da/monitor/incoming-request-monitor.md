@@ -228,7 +228,7 @@ OneUptime gemmer aldrig hemmeligheden: Den fjerner headeren fra anmodningen og m
 En adresse, der sender en monitor mere end 10 forskellige forkerte hemmeligheder på 15 minutter, afvises derefter med `429` for hver hemmelighed, den sender, rigtig eller forkert, indtil det tidspunkt, dens header `Retry-After` angiver, højst 15 minutter. Afsendere på andre adresser påvirkes ikke, og en afsender, der bliver ved med at sende en gammel hemmelighed, får fortsat den `401`, der siger, hvad der er galt.
 
 > [!TIP]
-> For at udskifte en hemmelighed uden at afvise nogen skal du oprette en ny, flytte dine afsendere til den og slette den gamle, når dens **Sidst brugt** holder op med at ændre sig. Enhver af projektets hemmeligheder accepteres, og den sidste kan ikke slettes, mens kravet er slået til.
+> For at udskifte en hemmelighed uden at afvise nogen skal du oprette en ny, flytte dine afsendere til den og slette den gamle, når dens **Sidst brugt** holder op med at ændre sig. Enhver af projektets hemmeligheder accepteres, medmindre den er begrænset til andre monitorer, og den sidste, der dækker en monitor, kan ikke slettes, mens kravet er slået til.
 
 ### Signér anmodninger med hemmeligheden
 

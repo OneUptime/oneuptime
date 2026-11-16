@@ -228,7 +228,7 @@ OneUptime bewaart het geheim nooit: het haalt de header van het verzoek en maske
 Een adres dat een monitor in 15 minuten meer dan 10 verschillende verkeerde geheimen stuurt, wordt daarna geweigerd met `429` voor elk geheim dat het stuurt, goed of fout, tot de tijd die zijn header `Retry-After` noemt, hooguit 15 minuten. Afzenders op andere adressen merken er niets van, en een afzender die steeds één oud geheim stuurt, blijft de `401` krijgen die zegt wat er mis is.
 
 > [!TIP]
-> Om een geheim te vervangen zonder iemand te weigeren, maak je een tweede aan, zet je je afzenders erop over en verwijder je het oude zodra **Laatst gebruikt** niet meer verandert. Elk geheim van het project wordt geaccepteerd, en het laatste kan niet worden verwijderd zolang de vereiste aanstaat.
+> Om een geheim te vervangen zonder iemand te weigeren, maak je een tweede aan, zet je je afzenders erop over en verwijder je het oude zodra **Laatst gebruikt** niet meer verandert. Elk geheim van het project wordt geaccepteerd, tenzij het tot andere monitoren beperkt is, en het laatste dat een monitor dekt, kan niet worden verwijderd zolang de vereiste aanstaat.
 
 ### Verzoeken ondertekenen met het geheim
 

@@ -228,7 +228,7 @@ OneUptime sparar aldrig hemligheten: den tar bort headern från begäran och mas
 En adress som skickar mer än 10 olika felaktiga hemligheter till en monitor på 15 minuter avvisas sedan med `429` för varje hemlighet den skickar, rätt eller fel, fram till den tid som dess header `Retry-After` anger, högst 15 minuter. Avsändare på andra adresser påverkas inte, och en avsändare som fortsätter att skicka en gammal hemlighet får fortsatt den `401` som säger vad som är fel.
 
 > [!TIP]
-> För att byta ut en hemlighet utan att avvisa någon skapar du en andra, flyttar dina avsändare till den och tar sedan bort den gamla när dess **Senast använd** slutar ändras. Alla projektets hemligheter godtas, och den sista kan inte tas bort medan kravet är på.
+> För att byta ut en hemlighet utan att avvisa någon skapar du en andra, flyttar dina avsändare till den och tar sedan bort den gamla när dess **Senast använd** slutar ändras. Alla projektets hemligheter godtas om de inte är begränsade till andra monitorer, och den sista som täcker en monitor kan inte tas bort medan kravet är på.
 
 ### Signera begäranden med hemligheten
 

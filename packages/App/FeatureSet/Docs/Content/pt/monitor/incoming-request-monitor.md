@@ -228,7 +228,7 @@ O OneUptime nunca guarda o segredo: ele tira o cabeçalho da requisição e masc
 Um endereço que envia a um monitor mais de 10 segredos errados diferentes em 15 minutos é recusado em seguida com `429` para qualquer segredo que envie, certo ou errado, até a hora que o cabeçalho `Retry-After` indicar, no máximo 15 minutos. Remetentes em outros endereços não são afetados, e um remetente que continua enviando um segredo antigo continua recebendo o `401` que diz o que está errado.
 
 > [!TIP]
-> Para substituir um segredo sem recusar ninguém, crie um segundo, passe seus remetentes para ele e depois exclua o antigo quando o **Último uso** dele parar de mudar. Qualquer segredo do projeto é aceito, e o último não pode ser excluído enquanto a exigência estiver ativa.
+> Para substituir um segredo sem recusar ninguém, crie um segundo, passe seus remetentes para ele e depois exclua o antigo quando o **Último uso** dele parar de mudar. Qualquer segredo do projeto é aceito, a menos que esteja limitado a outros monitores, e o último que cobre um monitor não pode ser excluído enquanto a exigência estiver ativa.
 
 ### Assinar as requisições com o segredo
 

@@ -228,7 +228,7 @@ OneUptime ne stocke jamais le secret : il retire l'en-tête de la requête et ma
 Une adresse qui envoie à un moniteur plus de 10 secrets erronés différents en 15 minutes est ensuite refusée avec `429` pour tout secret qu'elle envoie, bon ou mauvais, jusqu'à l'heure qu'indique son en-tête `Retry-After`, 15 minutes au plus. Les expéditeurs à d'autres adresses ne sont pas touchés, et un expéditeur qui continue d'envoyer un ancien secret continue de recevoir le `401` qui dit ce qui ne va pas.
 
 > [!TIP]
-> Pour remplacer un secret sans refuser personne, créez-en un second, faites-y passer vos expéditeurs, puis supprimez l'ancien une fois que sa valeur **Dernière utilisation** ne change plus. N'importe quel secret du projet est accepté, et le dernier ne peut pas être supprimé tant que l'exigence est active.
+> Pour remplacer un secret sans refuser personne, créez-en un second, faites-y passer vos expéditeurs, puis supprimez l'ancien une fois que sa valeur **Dernière utilisation** ne change plus. N'importe quel secret du projet est accepté, sauf s'il est limité à d'autres moniteurs, et le dernier qui couvre un moniteur ne peut pas être supprimé tant que l'exigence est active.
 
 ### Signer les requêtes avec le secret
 

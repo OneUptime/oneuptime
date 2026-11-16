@@ -228,7 +228,7 @@ OneUptime never stores the secret: it takes the header off the request, and mask
 An address that sends one monitor more than 10 different wrong secrets in 15 minutes is refused with `429` for every secret it then sends, right or wrong, until the time its `Retry-After` header gives, at most 15 minutes. Senders at other addresses are not affected, and a sender that keeps sending one old secret keeps getting the `401` that says what is wrong.
 
 > [!TIP]
-> To replace a secret without refusing anyone, create a second one, move your senders to it, then delete the old one once its **Last Used** stops changing. Any of the project's secrets is accepted, and the last one cannot be deleted while the requirement is on.
+> To replace a secret without refusing anyone, create a second one, move your senders to it, then delete the old one once its **Last Used** stops changing. Any of the project's secrets is accepted unless it is limited to other monitors, and the last one that covers a monitor cannot be deleted while the requirement is on.
 
 ### Sign requests with the secret
 
