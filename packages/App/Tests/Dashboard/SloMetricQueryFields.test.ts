@@ -1,8 +1,11 @@
 import { describe, expect, jest, test } from "@jest/globals";
+import fs from "fs";
 import { Mock } from "jest-mock";
+import path from "path";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import SliType from "Common/Types/ServiceLevelObjective/SliType";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import {
@@ -367,6 +370,86 @@ describe("the Metric SLO's fields in the create form and in Settings", () => {
 
     for (const field of picked) {
       expect(field.stepId).toBeUndefined();
+    }
+  });
+});
+
+/*
+ * The fields draw nothing themselves, so they can be read here: App has no
+ * react (FeatureSetImportsStayReactFree). Each part's control comes from
+ * SloMetricQueryFieldElements.tsx, which hands them over as it loads.
+ */
+describe("the Metric SLO fields' controls", () => {
+  const DASHBOARD_SOURCE: string = path.join(
+    __dirname,
+    "../../FeatureSet/Dashboard/src",
+  );
+
+  function sourceFiles(directory: string): Array<string> {
+    return fs
+      .readdirSync(directory, { withFileTypes: true })
+      .flatMap((entry: fs.Dirent): Array<string> => {
+        const full: string = path.join(directory, entry.name);
+
+        if (entry.isDirectory()) {
+          return sourceFiles(full);
+        }
+
+        return entry.name.endsWith(".tsx") ? [full] : [];
+      });
+  }
+
+  test("are handed over by SloMetricQueryFieldElements as it loads", () => {
+    const elements: string = fs.readFileSync(
+      path.join(DASHBOARD_SOURCE, "Pages/Slo/SloMetricQueryFieldElements.tsx"),
+      "utf8",
+    );
+
+    expect(elements).toContain("setSloMetricPartElement(drawSloMetricPart);");
+  });
+
+  test("a part shown where they were not loaded says what to load", () => {
+    const field: SloField = partFieldOf(
+      getSloMetricFields(),
+      SloMetricQueryPart.MetricName,
+    );
+
+    expect(() => {
+      field.getCustomElement!(METRIC_SLO, {} as CustomElementProps);
+    }).toThrow(
+      "load Pages/Slo/SloMetricQueryFieldElements where the SLO form is shown",
+    );
+  });
+
+  // A page that shows the SLO form, and the import that loads the controls.
+  const SHOWS_THE_FORM: RegExp = /\b(getSloFormFields|pickSloFormFields)\(/;
+  const LOADS_THE_CONTROLS: RegExp =
+    /^import "[./]+(Slo\/)?SloMetricQueryFieldElements";$/m;
+
+  test("every page that shows the SLO form loads them", () => {
+    const pages: Array<string> = sourceFiles(DASHBOARD_SOURCE)
+      .filter((file: string): boolean => {
+        return SHOWS_THE_FORM.test(fs.readFileSync(file, "utf8"));
+      })
+      .map((file: string): string => {
+        return path.relative(DASHBOARD_SOURCE, file);
+      });
+
+    expect(pages).toEqual(
+      expect.arrayContaining([
+        "Pages/Slo/Slos.tsx",
+        "Pages/Slo/View/Settings.tsx",
+        "Pages/Service/View/Slos.tsx",
+      ]),
+    );
+
+    for (const page of pages) {
+      expect({
+        page,
+        loadsTheControls: LOADS_THE_CONTROLS.test(
+          fs.readFileSync(path.join(DASHBOARD_SOURCE, page), "utf8"),
+        ),
+      }).toEqual({ page, loadsTheControls: true });
     }
   });
 });

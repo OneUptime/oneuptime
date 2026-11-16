@@ -3,40 +3,23 @@ import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObje
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { JSONObject } from "Common/Types/JSON";
 import SliType from "Common/Types/ServiceLevelObjective/SliType";
-import Dropdown, {
-  DropdownOption,
-  DropdownValue,
-} from "Common/UI/Components/Dropdown/Dropdown";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import Input from "Common/UI/Components/Input/Input";
-import RadioButtons, {
-  RadioButton,
-} from "Common/UI/Components/RadioButtons/GroupRadioButtons";
 import {
   getGlobalTranslator,
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
-import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   getSloMetricQueryProblem,
   normalizeSloMetricQueryConfig,
-  SLO_METRIC_FILTER_MAX_LENGTH,
-  SLO_METRIC_NAME_MAX_LENGTH,
   SloMetricKind,
   SloMetricQueryConfig,
   SloMetricQueryPart,
   SloMetricQueryProblem,
 } from "Common/Utils/Slo/SloMetricSli";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
 
 /*
  * A METRIC SLO'S METRIC, IN THE CREATE FORM AND IN SETTINGS (#8445).
@@ -51,6 +34,12 @@ import React, {
  * rule's When it fires choice edits its two columns the same way. So the
  * create form, a service's SLOs page and Settings all edit it with no
  * wiring of their own.
+ *
+ * The fields are read where there is no browser, and App has no react
+ * (Tests/FeatureSetImportsStayReactFree.test.ts), so this module draws
+ * nothing itself: each part's control - the metric picker, the kind's
+ * choices, an input - is drawn by SloMetricQueryFieldElements.tsx, which
+ * the pages that show the form load (setSloMetricPartElement).
  */
 
 export const SLO_METRIC_FIELD_KEYS: Record<SloMetricQueryPart, string> = {
@@ -320,137 +309,25 @@ export const forgetSloMetricTypes: () => void = (): void => {
   metricTypesByProject.clear();
 };
 
-const useSloMetricTypes: () => Array<MetricType> | null =
-  (): Array<MetricType> | null => {
-    const [metricTypes, setMetricTypes] = useState<Array<MetricType> | null>(
-      null,
-    );
-
-    useEffect(() => {
-      let isCurrent: boolean = true;
-
-      loadSloMetricTypes()
-        .then((loaded: Array<MetricType>) => {
-          if (isCurrent) {
-            setMetricTypes(loaded);
-          }
-        })
-        .catch(() => {
-          if (isCurrent) {
-            setMetricTypes([]);
-          }
-        });
-
-      return () => {
-        isCurrent = false;
-      };
-    }, []);
-
-    return metricTypes;
-  };
-
-interface SloMetricNamePickerProps {
-  value: string;
-  onChange: (metricName: string) => void;
-  error?: string | undefined;
-  ariaLabelledby?: string | undefined;
-  ariaDescribedby?: string | undefined;
-}
-
 /*
- * The project's metrics to pick from, searchable; a name typed that is not
- * one of them yet is kept as typed (a metric is often set up before its
- * first points arrive).
+ * Draws one part's control in the form: the metric picker, the kind's
+ * choices, an input. SloMetricQueryFieldElements.tsx hands it over as it
+ * loads, and the pages that show the form load it.
  */
-export const SloMetricNamePicker: FunctionComponent<
-  SloMetricNamePickerProps
-> = (props: SloMetricNamePickerProps): ReactElement => {
-  const translator: Translator = useTranslator();
-  const metricTypes: Array<MetricType> | null = useSloMetricTypes();
+export type SloMetricPartElement = (
+  part: SloMetricQueryPart,
+  values: SloValues,
+  props: CustomElementProps,
+) => ReturnType<
+  NonNullable<ModelField<ServiceLevelObjective>["getCustomElement"]>
+>;
 
-  const names: Array<string> = Array.from(
-    new Set<string>(
-      (metricTypes || [])
-        .map((metricType: MetricType): string => {
-          return metricType.name || "";
-        })
-        .filter((name: string): boolean => {
-          return Boolean(name) && !name.toLowerCase().startsWith("oneuptime.");
-        }),
-    ),
-  );
+let drawSloMetricPart: SloMetricPartElement | null = null;
 
-  if (props.value && !names.includes(props.value)) {
-    names.unshift(props.value);
-  }
-
-  const options: Array<DropdownOption> = names.map(
-    (name: string): DropdownOption => {
-      return { label: name, value: name };
-    },
-  );
-
-  const selected: DropdownOption | undefined = options.find(
-    (option: DropdownOption): boolean => {
-      return option.value === props.value;
-    },
-  );
-
-  return (
-    <Dropdown
-      options={options}
-      value={selected}
-      onChange={(value: DropdownValue | Array<DropdownValue> | null): void => {
-        props.onChange(
-          typeof value === "string"
-            ? value.slice(0, SLO_METRIC_NAME_MAX_LENGTH)
-            : "",
-        );
-      }}
-      isCreatable={true}
-      isClearable={true}
-      isLoading={metricTypes === null}
-      placeholder={translator.translateText(
-        SLO_METRIC_FIELD_PLACEHOLDERS[SloMetricQueryPart.MetricName],
-      )}
-      isPlaceholderTranslated={true}
-      error={props.error}
-      ariaLabelledby={props.ariaLabelledby}
-      ariaDescribedby={props.ariaDescribedby}
-      dataTestId="slo-metric-name"
-    />
-  );
-};
-
-interface SloMetricUnitHintProps {
-  metricName: string;
-}
-
-// "In s, the metric's unit." under a histogram's value, when the metric has a unit.
-export const SloMetricUnitHint: FunctionComponent<SloMetricUnitHintProps> = (
-  props: SloMetricUnitHintProps,
-): ReactElement | null => {
-  const translator: Translator = useTranslator();
-  const metricTypes: Array<MetricType> | null = useSloMetricTypes();
-
-  const unit: string =
-    (metricTypes || []).find((metricType: MetricType): boolean => {
-      return metricType.name === props.metricName;
-    })?.unit || "";
-
-  if (!unit.trim()) {
-    return null;
-  }
-
-  return (
-    <p className="mt-1 text-sm text-gray-500" data-testid="slo-metric-unit">
-      {translator.translateTemplate(
-        SLO_METRIC_UNIT_TEMPLATE,
-        { unit: unit.trim() },
-        { setsValuesApart: true },
-      )}
-    </p>
-  );
+export const setSloMetricPartElement: (draw: SloMetricPartElement) => void = (
+  draw: SloMetricPartElement,
+): void => {
+  drawSloMetricPart = draw;
 };
 
 interface SloMetricFieldsOptions {
@@ -469,17 +346,12 @@ type GetSloMetricFieldsFunction = (
 export const getSloMetricFields: GetSloMetricFieldsFunction = (
   options: SloMetricFieldsOptions = {},
 ): Array<ModelField<ServiceLevelObjective>> => {
-  type PartField = Omit<
-    ModelField<ServiceLevelObjective>,
-    "overrideField" | "overrideFieldKey" | "title" | "description"
-  >;
-
   const partField: (
     part: SloMetricQueryPart,
-    field: PartField,
+    showIf: (values: SloValues) => boolean,
   ) => ModelField<ServiceLevelObjective> = (
     part: SloMetricQueryPart,
-    field: PartField,
+    showIf: (values: SloValues) => boolean,
   ): ModelField<ServiceLevelObjective> => {
     return {
       overrideField: { metricQueryConfig: true },
@@ -503,44 +375,22 @@ export const getSloMetricFields: GetSloMetricFieldsFunction = (
       ): void => {
         setNewFormValues(withSloMetricPart(currentValues, part, value));
       },
-      stepId: options.stepId,
-      dataTestId: `slo-metric-${part}-field`,
-      ...field,
-    } as ModelField<ServiceLevelObjective>;
-  };
-
-  const textPart: (
-    part: SloMetricQueryPart.GoodFilter | SloMetricQueryPart.Filter,
-    showIf: (values: SloValues) => boolean,
-  ) => ModelField<ServiceLevelObjective> = (
-    part: SloMetricQueryPart.GoodFilter | SloMetricQueryPart.Filter,
-    showIf: (values: SloValues) => boolean,
-  ): ModelField<ServiceLevelObjective> => {
-    return partField(part, {
       showIf: showIf,
       getCustomElement: (
         values: SloValues,
         props: CustomElementProps,
-      ): ReactElement => {
-        return (
-          <Input
-            value={String(readSloMetricConfigInForm(values)[part] || "")}
-            onChange={(text: string): void => {
-              props.onChange?.(text);
-            }}
-            placeholder={SLO_METRIC_FIELD_PLACEHOLDERS[part]}
-            isPlaceholderIdentifier={true}
-            readsLeftToRight={true}
-            disableSpellCheck={true}
-            maxLength={SLO_METRIC_FILTER_MAX_LENGTH}
-            error={props.error}
-            ariaLabelledby={props.ariaLabelledby}
-            ariaDescribedby={props.ariaDescribedby}
-            dataTestId={`slo-metric-${part}`}
-          />
-        );
+      ): ReturnType<SloMetricPartElement> => {
+        if (!drawSloMetricPart) {
+          throw new Error(
+            "A Metric SLO's fields are shown without their controls: load Pages/Slo/SloMetricQueryFieldElements where the SLO form is shown.",
+          );
+        }
+
+        return drawSloMetricPart(part, values, props);
       },
-    });
+      stepId: options.stepId,
+      dataTestId: `slo-metric-${part}-field`,
+    } as ModelField<ServiceLevelObjective>;
   };
 
   const isKind: (kind: SloMetricKind) => (values: SloValues) => boolean = (
@@ -569,109 +419,13 @@ export const getSloMetricFields: GetSloMetricFieldsFunction = (
       },
       stepId: options.stepId,
     },
-    partField(SloMetricQueryPart.MetricName, {
-      showIf: isMetricForm,
-      getCustomElement: (
-        values: SloValues,
-        props: CustomElementProps,
-      ): ReactElement => {
-        return (
-          <SloMetricNamePicker
-            value={String(readSloMetricConfigInForm(values).metricName || "")}
-            onChange={(metricName: string): void => {
-              props.onChange?.(metricName);
-            }}
-            error={props.error}
-            ariaLabelledby={props.ariaLabelledby}
-            ariaDescribedby={props.ariaDescribedby}
-          />
-        );
-      },
-    }),
-    partField(SloMetricQueryPart.Kind, {
-      showIf: isMetricForm,
-      getCustomElement: (
-        values: SloValues,
-        props: CustomElementProps,
-      ): ReactElement => {
-        const translator: Translator = getGlobalTranslator();
-        const radioButtons: Array<RadioButton> = SLO_METRIC_KIND_CHOICES.map(
-          (choice: {
-            kind: SloMetricKind;
-            title: string;
-            description: string;
-          }): RadioButton => {
-            return {
-              value: choice.kind,
-              title: translator.translateText(choice.title) || choice.title,
-              description:
-                translator.translateText(choice.description) ||
-                choice.description,
-            };
-          },
-        );
-
-        return (
-          <RadioButtons
-            options={radioButtons}
-            initialValue={readSloMetricConfigInForm(values).kind}
-            onChange={(kind: string): void => {
-              props.onChange?.(kind);
-            }}
-            error={props.error}
-            ariaLabelledby={props.ariaLabelledby}
-            ariaDescribedby={props.ariaDescribedby}
-            dataTestId="slo-metric-kind"
-          />
-        );
-      },
-    }),
-    textPart(SloMetricQueryPart.GoodFilter, isKind(SloMetricKind.Counter)),
-    partField(SloMetricQueryPart.GoodAtOrUnder, {
-      showIf: isKind(SloMetricKind.Histogram),
-      getCustomElement: (
-        values: SloValues,
-        props: CustomElementProps,
-      ): ReactElement => {
-        const config: Partial<SloMetricQueryConfig> =
-          readSloMetricConfigInForm(values);
-
-        return (
-          <div>
-            <Input
-              value={
-                config.goodAtOrUnder === undefined ||
-                config.goodAtOrUnder === null
-                  ? ""
-                  : String(config.goodAtOrUnder)
-              }
-              onChange={(text: string): void => {
-                const trimmed: string = text.trim();
-                const number: number = Number(trimmed);
-
-                props.onChange?.(
-                  trimmed === ""
-                    ? undefined
-                    : Number.isFinite(number)
-                      ? number
-                      : trimmed,
-                );
-              }}
-              placeholder={
-                SLO_METRIC_FIELD_PLACEHOLDERS[SloMetricQueryPart.GoodAtOrUnder]
-              }
-              isPlaceholderIdentifier={true}
-              inputMode="decimal"
-              error={props.error}
-              ariaLabelledby={props.ariaLabelledby}
-              ariaDescribedby={props.ariaDescribedby}
-              dataTestId="slo-metric-goodAtOrUnder"
-            />
-            <SloMetricUnitHint metricName={String(config.metricName || "")} />
-          </div>
-        );
-      },
-    }),
-    textPart(SloMetricQueryPart.Filter, isMetricForm),
+    partField(SloMetricQueryPart.MetricName, isMetricForm),
+    partField(SloMetricQueryPart.Kind, isMetricForm),
+    partField(SloMetricQueryPart.GoodFilter, isKind(SloMetricKind.Counter)),
+    partField(
+      SloMetricQueryPart.GoodAtOrUnder,
+      isKind(SloMetricKind.Histogram),
+    ),
+    partField(SloMetricQueryPart.Filter, isMetricForm),
   ];
 };
