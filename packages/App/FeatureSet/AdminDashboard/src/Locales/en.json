@@ -1244,6 +1244,8 @@
   "Copy Error": "Copy Error",
   "Full error message": "Full error message",
   "Next try: {{time}}": "Next try: {{time}}",
+  "Entries waiting to be sent start to be deleted from about {{time}}.": "Entries waiting to be sent start to be deleted from about {{time}}.",
+  "Since about {{time}}, entries waiting to be sent are being deleted.": "Since about {{time}}, entries waiting to be sent are being deleted.",
   "Needs a valid Enterprise license that includes audit logs.": "Needs a valid Enterprise license that includes audit logs.",
   "Paused": "Paused",
   "Nothing is sent while it is turned off. It keeps its place: turned back on, it sends what was recorded meanwhile.": "Nothing is sent while it is turned off. It keeps its place: turned back on, it sends what was recorded meanwhile.",

@@ -1244,6 +1244,8 @@
   "Copy Error": "エラーをコピー",
   "Full error message": "完全なエラーメッセージ",
   "Next try: {{time}}": "次回の試行: {{time}}",
+  "Entries waiting to be sent start to be deleted from about {{time}}.": "送信待ちのエントリは {{time}} 頃から削除され始めます。",
+  "Since about {{time}}, entries waiting to be sent are being deleted.": "{{time}} 頃から、送信待ちのエントリが削除されています。",
   "Needs a valid Enterprise license that includes audit logs.": "監査ログを含む有効な Enterprise ライセンスが必要です。",
   "Paused": "一時停止中",
   "Nothing is sent while it is turned off. It keeps its place: turned back on, it sends what was recorded meanwhile.": "オフの間は何も送信されません。位置は保持されるため、オンに戻すとその間に記録された内容を送信します。",

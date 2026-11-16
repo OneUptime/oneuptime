@@ -1244,6 +1244,8 @@
   "Copy Error": "نسخ الخطأ",
   "Full error message": "رسالة الخطأ كاملة",
   "Next try: {{time}}": "المحاولة التالية: {{time}}",
+  "Entries waiting to be sent start to be deleted from about {{time}}.": "تبدأ الإدخالات التي تنتظر الإرسال بالحذف من نحو {{time}}.",
+  "Since about {{time}}, entries waiting to be sent are being deleted.": "منذ نحو {{time}}، تُحذف الإدخالات التي تنتظر الإرسال.",
   "Needs a valid Enterprise license that includes audit logs.": "يحتاج إلى ترخيص مؤسسات صالح يشمل سجلات التدقيق.",
   "Paused": "متوقف مؤقتًا",
   "Nothing is sent while it is turned off. It keeps its place: turned back on, it sends what was recorded meanwhile.": "لا يُرسل أي شيء ما دام متوقفًا. ويحتفظ بموضعه: عند إعادة تشغيله، يرسل ما سُجّل في الأثناء.",
