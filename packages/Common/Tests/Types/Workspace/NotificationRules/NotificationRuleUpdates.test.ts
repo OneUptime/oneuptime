@@ -26,6 +26,10 @@ import { describe, expect, test } from "@jest/globals";
  * the policy and its owners. A NEW on-call rule starts on the key updates -
  * who is on call now, and when nobody is - where every other kind of rule
  * starts on every update.
+ *
+ * So does a security case rule (#7936), from the four notices a case posts.
+ * And an incident's custom field edits and still-open reminders are boxes
+ * of their own (#7937, #7938), as a maintenance event's reminders are.
  */
 
 const {
@@ -42,12 +46,18 @@ const {
   Postmortem,
   AI,
   Edits,
+  CustomFields,
+  Reminders,
   Other,
   OnCallNow,
   OnCallNext,
   NobodyOnCall,
   Overrides,
   PolicyChanges,
+  PriorityReached,
+  Assigned,
+  ApprovalRequested,
+  ResponseTargets,
 } = NotificationRuleUpdateKind;
 
 const EVERY_KIND: Array<NotificationRuleUpdateKind> = Object.values(
@@ -62,10 +72,22 @@ const CHOOSING: Array<NotificationRuleEventType> = [
   NotificationRuleEventType.AlertEpisode,
   NotificationRuleEventType.ScheduledMaintenance,
   NotificationRuleEventType.OnCallDutyPolicy,
+  NotificationRuleEventType.SecurityCase,
 ];
 
 const ON_CALL_RULE: NotificationRuleEventType =
   NotificationRuleEventType.OnCallDutyPolicy;
+
+const SECURITY_CASE_RULE: NotificationRuleEventType =
+  NotificationRuleEventType.SecurityCase;
+
+// A security case's four notices, in its Updates step's order (#7936).
+const SECURITY_NOTICES: Array<NotificationRuleUpdateKind> = [
+  PriorityReached,
+  Assigned,
+  ApprovalRequested,
+  ResponseTargets,
+];
 
 const NOT_CHOOSING: Array<NotificationRuleEventType> = Object.values(
   NotificationRuleEventType,
@@ -117,12 +139,18 @@ describe("the kinds of update", () => {
       "Postmortem",
       "AI",
       "Edits",
+      "CustomFields",
+      "Reminders",
       "Other",
       "OnCallNow",
       "OnCallNext",
       "NobodyOnCall",
       "Overrides",
       "PolicyChanges",
+      "PriorityReached",
+      "Assigned",
+      "ApprovalRequested",
+      "ResponseTargets",
     ]);
   });
 
@@ -181,6 +209,8 @@ describe("the updates each kind of rule chooses from", () => {
       Postmortem,
       AI,
       Edits,
+      CustomFields,
+      Reminders,
       Other,
     ]);
 
@@ -198,6 +228,8 @@ describe("the updates each kind of rule chooses from", () => {
       Paging,
       AI,
       Edits,
+      CustomFields,
+      Reminders,
       Other,
     ]);
 
@@ -230,12 +262,15 @@ describe("the updates each kind of rule chooses from", () => {
       Other,
     ]);
 
-    // A scheduled maintenance event's every state change is one update.
+    /*
+     * A scheduled maintenance event's every state change is one update; its
+     * reminders are a box of their own.
+     */
     expect(
       NotificationRuleUpdates.getChoosableKinds(
         NotificationRuleEventType.ScheduledMaintenance,
       ),
-    ).toEqual([StateChanges, PublicNotes, PrivateNotes, Other]);
+    ).toEqual([StateChanges, PublicNotes, PrivateNotes, Reminders, Other]);
 
     /*
      * An on-call policy's: who is on call, and what changed about it -
@@ -249,6 +284,70 @@ describe("the updates each kind of rule chooses from", () => {
       PolicyChanges,
       Owners,
     ]);
+
+    // A security case's four notices, and nothing else (#7936).
+    expect(
+      NotificationRuleUpdates.getChoosableKinds(SECURITY_CASE_RULE),
+    ).toEqual(SECURITY_NOTICES);
+  });
+
+  test("custom field edits and still-open reminders are boxes of their own, after Other edits, before Everything else (#7937, #7938)", () => {
+    for (const eventType of [
+      NotificationRuleEventType.Incident,
+      NotificationRuleEventType.Alert,
+    ]) {
+      const choosable: Array<NotificationRuleUpdateKind> =
+        NotificationRuleUpdates.getChoosableKinds(eventType);
+
+      expect(choosable.slice(-4)).toEqual([
+        Edits,
+        CustomFields,
+        Reminders,
+        Other,
+      ]);
+    }
+
+    // A maintenance event's edits are not posted; its reminders are.
+    expect(
+      NotificationRuleUpdates.getChoosableKinds(
+        NotificationRuleEventType.ScheduledMaintenance,
+      ),
+    ).not.toContain(CustomFields);
+
+    // An episode has neither custom fields nor reminders, nor an on-call policy.
+    for (const eventType of [
+      NotificationRuleEventType.IncidentEpisode,
+      NotificationRuleEventType.AlertEpisode,
+      ON_CALL_RULE,
+      SECURITY_CASE_RULE,
+    ]) {
+      for (const kind of [CustomFields, Reminders]) {
+        expect({ eventType, kind, offered: false }).toEqual({
+          eventType,
+          kind,
+          offered:
+            NotificationRuleUpdates.getChoosableKinds(eventType).includes(
+              kind,
+            ),
+        });
+      }
+    }
+  });
+
+  test("a security case's notices are its rules' alone, and its rules choose nothing else (#7936)", () => {
+    for (const eventType of CHOOSING) {
+      for (const kind of SECURITY_NOTICES) {
+        expect({ eventType, kind, offered: eventType === SECURITY_CASE_RULE })
+          .toEqual({
+            eventType,
+            kind,
+            offered:
+              NotificationRuleUpdates.getChoosableKinds(eventType).includes(
+                kind,
+              ),
+          });
+      }
+    }
   });
 
   test("a record's updates are never an on-call policy's, nor the other way round", () => {
@@ -285,7 +384,7 @@ describe("the updates each kind of rule chooses from", () => {
     ).toEqual([Owners]);
   });
 
-  test("monitor, security and SLO rules have no choice: they post every update", () => {
+  test("monitor, security hunt and SLO rules have no choice: they post every update", () => {
     expect(NOT_CHOOSING.length).toBeGreaterThan(0);
 
     for (const eventType of [...NOT_CHOOSING, undefined]) {
@@ -339,7 +438,7 @@ describe("the updates each kind of rule chooses from", () => {
 
     expect(
       NotificationRuleUpdates.getChoosableKinds(INCIDENT_RULE),
-    ).toHaveLength(11);
+    ).toHaveLength(13);
     expect(NotificationRuleUpdates.getKeyKinds(INCIDENT_RULE)).toEqual(
       INCIDENT_KEY,
     );
@@ -374,6 +473,16 @@ describe("Key updates only", () => {
       OnCallNow,
       NobodyOnCall,
     ]);
+    /*
+     * A security channel: what it has to act on - a case at its priority, a
+     * step waiting for approval, a target about to be missed - and not who
+     * a case is assigned to (#7936).
+     */
+    expect(NotificationRuleUpdates.getKeyKinds(SECURITY_CASE_RULE)).toEqual([
+      PriorityReached,
+      ApprovalRequested,
+      ResponseTargets,
+    ]);
   });
 
   test("leaves an on-call channel's noise out: who is next, overrides, changes to the policy, owners", () => {
@@ -401,9 +510,19 @@ describe("Key updates only", () => {
     }
   });
 
-  test("leaves the noise out: private notes, owners, paging and edits", () => {
+  test("leaves the noise out: private notes, owners, paging, edits, custom fields, reminders and assignments", () => {
     for (const eventType of CHOOSING) {
-      for (const noise of [PrivateNotes, Owners, Paging, Edits, AI, Other]) {
+      for (const noise of [
+        PrivateNotes,
+        Owners,
+        Paging,
+        Edits,
+        CustomFields,
+        Reminders,
+        AI,
+        Other,
+        Assigned,
+      ]) {
         expect(NotificationRuleUpdates.getKeyKinds(eventType)).not.toContain(
           noise,
         );
@@ -1027,10 +1146,10 @@ describe("what is wrong with the updates a rule is saved with", () => {
     ).toBe("Monitor rules post every update: leave updatesToPost out.");
     expect(
       NotificationRuleUpdates.getValidationError({
-        eventType: NotificationRuleEventType.SecurityCase,
+        eventType: NotificationRuleEventType.SecurityHunt,
         updatesToPost: [Paging],
       }),
-    ).toBe("Security Case rules post every update: leave updatesToPost out.");
+    ).toBe("Security Hunt rules post every update: leave updatesToPost out.");
     expect(
       NotificationRuleUpdates.getValidationError({
         eventType: undefined,
@@ -1052,7 +1171,7 @@ describe("what is wrong with the updates a rule is saved with", () => {
           updatesToPost,
         }),
       ).toBe(
-        "updatesToPost is a list of the updates the rule posts, any of: StateChanges, PublicNotes, PrivateNotes, Other. Leave it out to post every update.",
+        "updatesToPost is a list of the updates the rule posts, any of: StateChanges, PublicNotes, PrivateNotes, Reminders, Other. Leave it out to post every update.",
       );
     }
   });
@@ -1088,7 +1207,7 @@ describe("what is wrong with the updates a rule is saved with", () => {
         updatesToPost: [SeverityChanges, Postmortem],
       }),
     ).toBe(
-      'updatesToPost lists "Postmortem", which Alert rules cannot choose. They choose any of: ResolvedAndReopened, StateChanges, SeverityChanges, PrivateNotes, Owners, Paging, AI, Edits, Other.',
+      'updatesToPost lists "Postmortem", which Alert rules cannot choose. They choose any of: ResolvedAndReopened, StateChanges, SeverityChanges, PrivateNotes, Owners, Paging, AI, Edits, CustomFields, Reminders, Other.',
     );
 
     // What every rule posts is not chosen.
@@ -1098,6 +1217,39 @@ describe("what is wrong with the updates a rule is saved with", () => {
         updatesToPost: [Created],
       }),
     ).toContain('updatesToPost lists "Created", which Incident rules');
+  });
+
+  test("a security case rule takes its notices, and not a record's updates (#7936)", () => {
+    for (const updatesToPost of [
+      [],
+      SECURITY_NOTICES,
+      [ApprovalRequested],
+      [ResponseTargets, PriorityReached],
+    ]) {
+      expect(
+        NotificationRuleUpdates.getValidationError({
+          eventType: SECURITY_CASE_RULE,
+          updatesToPost,
+        }),
+      ).toBeNull();
+    }
+
+    expect(
+      NotificationRuleUpdates.getValidationError({
+        eventType: SECURITY_CASE_RULE,
+        updatesToPost: [ApprovalRequested, PrivateNotes],
+      }),
+    ).toBe(
+      'updatesToPost lists "PrivateNotes", which Security Case rules cannot choose. They choose any of: PriorityReached, Assigned, ApprovalRequested, ResponseTargets.',
+    );
+
+    // ...and an incident rule none of a security case's.
+    expect(
+      NotificationRuleUpdates.getValidationError({
+        eventType: INCIDENT_RULE,
+        updatesToPost: [Assigned],
+      }),
+    ).toContain('updatesToPost lists "Assigned", which Incident rules');
   });
 
   test("a value typed by hand is named, and a long one only by its start", () => {
@@ -1124,6 +1276,102 @@ describe("what is wrong with the updates a rule is saved with", () => {
     expect(error).toContain(`updatesToPost lists "${"x".repeat(79)}, which`);
     expect(error).not.toContain("x".repeat(80));
     expect(error.length).toBeLessThan(400);
+  });
+});
+
+describe("a security case rule's notices (#7936)", () => {
+  test("a rule saved before the Updates step posts every notice, as it always did", () => {
+    for (const rule of [undefined, null, {}]) {
+      for (const kind of SECURITY_NOTICES) {
+        expect(
+          NotificationRuleUpdates.wantsUpdate({
+            rule: rule,
+            updateKinds: [kind],
+          }),
+        ).toBe(true);
+      }
+
+      expect(
+        NotificationRuleUpdates.getChoice({
+          rule: rule,
+          eventType: SECURITY_CASE_RULE,
+        }),
+      ).toBe(NotificationRuleUpdatesChoice.EveryUpdate);
+    }
+  });
+
+  test("a channel meant for approvals gets an approval, and not an assignment", () => {
+    const approvalsOnly: RuleWithUpdates = NotificationRuleUpdates.withChoice({
+      rule: {},
+      eventType: SECURITY_CASE_RULE,
+      choice: NotificationRuleUpdatesChoice.ChosenUpdates,
+      kinds: [ApprovalRequested],
+    });
+
+    expect(approvalsOnly).toEqual({ updatesToPost: [ApprovalRequested] });
+
+    for (const [kind, wanted] of [
+      [ApprovalRequested, true],
+      [Assigned, false],
+      [PriorityReached, false],
+      [ResponseTargets, false],
+    ] as Array<[NotificationRuleUpdateKind, boolean]>) {
+      expect({
+        kind,
+        wanted: NotificationRuleUpdates.wantsUpdate({
+          rule: approvalsOnly,
+          updateKinds: [kind],
+        }),
+      }).toEqual({ kind, wanted });
+    }
+  });
+
+  test("Key updates only leaves the assignments out", () => {
+    const key: RuleWithUpdates = NotificationRuleUpdates.withChoice({
+      rule: {},
+      eventType: SECURITY_CASE_RULE,
+      choice: NotificationRuleUpdatesChoice.KeyUpdates,
+    });
+
+    expect(
+      NotificationRuleUpdates.getChoice({
+        rule: key,
+        eventType: SECURITY_CASE_RULE,
+      }),
+    ).toBe(NotificationRuleUpdatesChoice.KeyUpdates);
+    expect(
+      NotificationRuleUpdates.wantsUpdate({
+        rule: key,
+        updateKinds: [Assigned],
+      }),
+    ).toBe(false);
+    expect(
+      NotificationRuleUpdates.wantsUpdate({
+        rule: key,
+        updateKinds: [ResponseTargets],
+      }),
+    ).toBe(true);
+  });
+
+  test("a rule with every box cleared posts no notice: a case has no first message", () => {
+    for (const kind of SECURITY_NOTICES) {
+      expect(
+        NotificationRuleUpdates.wantsUpdate({
+          rule: { updatesToPost: [] },
+          updateKinds: [kind],
+        }),
+      ).toBe(false);
+    }
+  });
+
+  test("every box ticked is every notice: the list goes", () => {
+    expect(
+      NotificationRuleUpdates.withChosenKinds({
+        rule: { updatesToPost: [Assigned] },
+        eventType: SECURITY_CASE_RULE,
+        kinds: [...SECURITY_NOTICES].reverse(),
+      }),
+    ).toEqual({});
   });
 });
 
