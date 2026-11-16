@@ -472,8 +472,9 @@ export default class AlertEpisodeStateTimeline extends BaseModel {
    * Computed, as on every other state timeline: the create hook marks an
    * episode's first state as notified already (owners hear about the
    * episode itself), and a value a hook writes is held to the caller's
-   * create permission unless the column is computed - nobody may create
-   * this one, so a member's first state would be refused.
+   * create permission unless the column is computed, which the check takes
+   * as the create's own - nobody may create this one, so a member's first
+   * state would be refused, and so is a value a member sends for it.
    */
   @TableColumn({
     type: TableColumnType.Boolean,
