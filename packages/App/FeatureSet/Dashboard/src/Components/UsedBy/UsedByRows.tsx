@@ -105,12 +105,17 @@ export const UsedByRowList: FunctionComponent<{
               </span>
             )}
             {facts.length > 0 ? (
+              /*
+               * The line keeps the page's side, under its name: only its
+               * words read in their own direction. On the paragraph, a
+               * rule named in Latin letters put the line on the left of a
+               * Persian page, its name on the right.
+               */
               <p
                 className="text-xs text-gray-500"
-                dir="auto"
                 data-testid="used-by-row-detail"
               >
-                {facts.join(" · ")}
+                <span dir="auto">{facts.join(" · ")}</span>
               </p>
             ) : (
               <></>
