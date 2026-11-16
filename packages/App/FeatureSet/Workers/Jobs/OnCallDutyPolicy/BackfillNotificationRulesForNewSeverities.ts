@@ -20,6 +20,7 @@ import Semaphore, {
   SemaphoreMutex,
 } from "Common/Server/Infrastructure/Semaphore";
 import { EVERY_FIVE_MINUTE } from "Common/Utils/CronTime";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 import logger from "Common/Server/Utils/Logger";
 import AlertSeverityService from "Common/Server/Services/AlertSeverityService";
 import IncidentSeverityService from "Common/Server/Services/IncidentSeverityService";
@@ -85,24 +86,29 @@ const BACKFILL_LOOKBACK_IN_MINUTES: number = 60;
  * defeat: both read "no rule for this cell yet", both write one, and the
  * responder is paged twice for one incident. Nothing in the database settles
  * that on its own - UserNotificationRule carries no unique index over
- * (project, user, ruleType, severity, method) - so the sweep is serialised
- * here instead. Both ways this job can start, the five-minute schedule and the
- * by-name enqueue from IncidentSeverityService / AlertSeverityService, run the
- * same function and therefore take the same key, which is what makes "a
- * severity created one second before a tick" safe.
+ * (project, user, ruleType, severity, method) - so the sweep is serialised.
+ *
+ * RunCron runs one copy of this job at a time across every worker replica
+ * (CronLock), and both ways this job can start - the five-minute schedule and
+ * the by-name enqueue from IncidentSeverityService / AlertSeverityService -
+ * run the same function under the same name, so the run's lease keeps them
+ * apart too (issue #8103). The sweep stops between severities once the run's
+ * deadline has passed - its time limit, or its lease lost - and what it did
+ * not reach is still inside the lookback window for the next tick.
+ *
+ * This lock is kept beside the lease for what the lease cannot cover: the
+ * lease lapses half a minute past the time limit even while an await of the
+ * run has not returned, and a second sweep beside it would duplicate a rule -
+ * a page sent twice for as long as the rule exists. redis-semaphore refreshes
+ * a held lock for as long as the run lasts, so the timeout - longer than the
+ * job's own five-minute limit - only bounds how long a CRASHED worker's lock
+ * lingers before another replica may take over.
  *
  * acquireAttemptsLimit: 1 - a run that finds the lock held skips instead of
  * queueing behind it. The holder derives its work set from the same lookback
  * query, so it is already covering the same severities; waiting would only
  * repeat work in flight, and anything the holder misses is still inside the
  * window for the next tick.
- *
- * The lock timeout deliberately outlives the job's own five-minute timeout:
- * QueueWorker.runJobWithTimeout races the body rather than stopping it, so an
- * overrunning sweep must keep holding the lock rather than let a second one in
- * behind it. redis-semaphore's Mutex refreshes itself while it is held, so this
- * value only bounds how long a CRASHED worker's lock lingers before another
- * replica may take over.
  */
 const SWEEP_LOCK_KEY: string = JOB_NAME;
 const SWEEP_LOCK_NAMESPACE: string = "Workers.Cron";
@@ -189,10 +195,49 @@ interface ResponderIntent {
   hasOptOut: boolean;
 }
 
+/*
+ * Backfills each new severity in turn, until the run's deadline has passed.
+ * Between severities, never inside one: a severity in flight finishes, and
+ * the ones not reached are still inside the lookback window for the next
+ * tick. One project's bad data must not stop the others: a severity that
+ * throws is logged and skipped, and the next sweep tries it again while it is
+ * still inside the window. Hands back how many it went through.
+ */
+async function backfillSeveritiesUntilDeadline(data: {
+  severities: Array<NewSeverity>;
+  deadline: JobDeadline;
+  backfill: (severity: NewSeverity) => Promise<void>;
+}): Promise<number> {
+  let reached: number = 0;
+
+  for (const severity of data.severities) {
+    if (data.deadline.hasPassed()) {
+      logger.debug(
+        `${JOB_NAME}: the run's deadline has passed; stopping after ${reached} of ${data.severities.length} severity/severities. The rest are still inside the lookback window for the next tick.`,
+        { service: "workers" },
+      );
+      break;
+    }
+
+    reached++;
+
+    try {
+      await data.backfill(severity);
+    } catch (err) {
+      logger.error(
+        `${JOB_NAME}: failed to backfill notification rules for ${severity.kind} severity ${severity.id.toString()}`,
+      );
+      logger.error(err);
+    }
+  }
+
+  return reached;
+}
+
 RunCron(
   JOB_NAME,
   { schedule: EVERY_FIVE_MINUTE, runOnStartup: false },
-  async () => {
+  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
     let mutex: SemaphoreMutex | null = null;
 
     try {
@@ -233,21 +278,11 @@ RunCron(
         { service: "workers" },
       );
 
-      for (const severity of newSeverities) {
-        /*
-         * One project's bad data must not stop the others. A severity that
-         * throws is logged and skipped; the next sweep will try it again while
-         * it is still inside the lookback window.
-         */
-        try {
-          await backfillSeverity(severity);
-        } catch (err) {
-          logger.error(
-            `${JOB_NAME}: failed to backfill notification rules for ${severity.kind} severity ${severity.id.toString()}`,
-          );
-          logger.error(err);
-        }
-      }
+      await backfillSeveritiesUntilDeadline({
+        severities: newSeverities,
+        deadline: deadline,
+        backfill: backfillSeverity,
+      });
     } finally {
       try {
         await Semaphore.release(mutex);
@@ -1064,6 +1099,7 @@ const applyNotificationMethod: ApplyNotificationMethodFunction = (
 export {
   JOB_NAME,
   backfillSeverity,
+  backfillSeveritiesUntilDeadline,
   buildResponderIntents,
   findRecentlyCreatedSeverities,
   hasJoinedSinceSeverity,

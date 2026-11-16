@@ -12,6 +12,7 @@ import NetworkDeviceOidTemplate from "../../../Models/DatabaseModels/NetworkDevi
 import QueryHelper from "../../Types/Database/QueryHelper";
 import Select from "../../Types/Database/Select";
 import MonitorResourceUtil from "./MonitorResource";
+import { logMonitorEvaluationError } from "./NonActionableIngestError";
 import { NetworkDevicePollMode } from "./NetworkDeviceHydrationUtil";
 import NetworkDeviceMetricUtil from "./NetworkDeviceMetricUtil";
 import NetworkInventoryUtil from "./NetworkInventoryUtil";
@@ -529,13 +530,19 @@ export default class NetworkDeviceWalkUtil {
             : {}),
         };
 
+        /*
+         * A monitor paused, archived or disabled since it was read above is
+         * refused, as expected: logged at debug, and the walk goes on to
+         * the next monitor (logMonitorEvaluationError, issue #8069).
+         */
         try {
           await MonitorResourceUtil.monitorResource(walkResponse);
         } catch (err) {
-          logger.error(
-            `Error evaluating device poll for monitor ${monitor.id.toString()}:`,
-          );
-          logger.error(err);
+          logMonitorEvaluationError({
+            error: err,
+            message: `Error evaluating device poll for monitor ${monitor.id.toString()}`,
+            attributes: { projectId: monitor.projectId.toString() },
+          });
         }
       }
     }

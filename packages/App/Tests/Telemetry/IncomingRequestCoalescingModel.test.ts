@@ -146,7 +146,7 @@ import {
 import IncomingRequestLatestPayloadStore, {
   LatestIncomingRequestPayload,
 } from "../../FeatureSet/Telemetry/Utils/IncomingRequestLatestPayloadStore";
-import { isNonActionableIngestError } from "../../FeatureSet/Telemetry/Utils/NonActionableIngestError";
+import { isNonActionableIngestError } from "Common/Server/Utils/Monitor/NonActionableIngestError";
 import Queue from "Common/Server/Infrastructure/Queue";
 import MonitorService from "Common/Server/Services/MonitorService";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";

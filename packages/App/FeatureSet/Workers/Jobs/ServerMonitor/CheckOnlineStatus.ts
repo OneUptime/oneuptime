@@ -9,6 +9,7 @@ import MonitorService from "Common/Server/Services/MonitorService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import logger from "Common/Server/Utils/Logger";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
+import { logMonitorEvaluationError } from "Common/Server/Utils/Monitor/NonActionableIngestError";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ProjectService from "Common/Server/Services/ProjectService";
 RunCron(
@@ -101,10 +102,15 @@ RunCron(
 
             await MonitorResourceUtil.monitorResource(serverMonitorResponse);
           } catch (error) {
-            logger.error(
-              `Error in ServerMonitor:CheckOnlineStatus for monitorId: ${monitor.id}`,
-            );
-            logger.error(error);
+            /*
+             * A monitor paused, archived or disabled since the sweep read
+             * it is refused, as expected: logged at debug, and the sweep
+             * goes on (logMonitorEvaluationError, issue #8069).
+             */
+            logMonitorEvaluationError({
+              error: error,
+              message: `Error in ServerMonitor:CheckOnlineStatus for monitorId: ${monitor.id}`,
+            });
           }
         },
       });

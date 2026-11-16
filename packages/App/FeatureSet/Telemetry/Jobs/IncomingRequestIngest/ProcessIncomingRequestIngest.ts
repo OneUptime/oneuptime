@@ -27,7 +27,7 @@ import MonitorPauseState, {
 import IncomingRequestLatestPayloadStore, {
   LatestIncomingRequestPayload,
 } from "../../Utils/IncomingRequestLatestPayloadStore";
-import { isNonActionableIngestError } from "../../Utils/NonActionableIngestError";
+import { isNonActionableIngestError } from "Common/Server/Utils/Monitor/NonActionableIngestError";
 
 /*
  * Entry point for a queued Incoming Request job.

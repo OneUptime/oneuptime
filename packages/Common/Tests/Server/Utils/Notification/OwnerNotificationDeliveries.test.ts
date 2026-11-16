@@ -31,7 +31,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import type { Mock } from "jest-mock";
+import type { Mock, SpyInstance } from "jest-mock";
 
 type Notify = (delivery: OwnerNotificationDelivery) => Promise<void>;
 
@@ -1497,6 +1497,77 @@ describe("OwnerNotificationDeliveries", () => {
       expect(Object.keys(table.statusesOf(INCIDENT_ID))).toEqual(
         idsOf([CAROL]),
       );
+    });
+
+    /*
+     * A job telling of a page of records of one project reads the project's
+     * owners once for all of them (OwnerNotificationBacklog, issue #7974),
+     * and hands that read in.
+     */
+    test("reads the project's owners through the read it is handed, not ProjectService", async () => {
+      const getOwners: SpyInstance<typeof ProjectService.getOwners> = jest
+        .spyOn(ProjectService, "getOwners")
+        .mockResolvedValue([ALICE]);
+      const findProjectOwners: Mock<() => Promise<Array<User>>> = jest.fn(
+        async (): Promise<Array<User>> => {
+          return [CAROL];
+        },
+      );
+
+      const delivery: OwnerNotificationDelivery =
+        await OwnerNotificationDeliveries.planForOwnersOf({
+          notification: created(),
+          findOwners: async (): Promise<Array<User>> => {
+            return [];
+          },
+          findProjectOwners: findProjectOwners,
+          writesFeedItem: false,
+        });
+
+      expect(findProjectOwners).toHaveBeenCalledTimes(1);
+      expect(getOwners).not.toHaveBeenCalled();
+      expect(idsOf(delivery.owners)).toEqual(idsOf([CAROL]));
+      expect(delivery.isProjectOwners).toBe(true);
+    });
+
+    test("never reads the project's owners for a record that has its own", async () => {
+      const findProjectOwners: Mock<() => Promise<Array<User>>> = jest.fn(
+        async (): Promise<Array<User>> => {
+          return [CAROL];
+        },
+      );
+
+      const delivery: OwnerNotificationDelivery =
+        await OwnerNotificationDeliveries.planForOwnersOf({
+          notification: created(),
+          findOwners: async (): Promise<Array<User>> => {
+            return [ALICE];
+          },
+          findProjectOwners: findProjectOwners,
+          writesFeedItem: false,
+        });
+
+      expect(findProjectOwners).not.toHaveBeenCalled();
+      expect(idsOf(delivery.owners)).toEqual(idsOf([ALICE]));
+      expect(delivery.isProjectOwners).toBe(false);
+    });
+
+    test("tells nobody, and says so, when the project's owners cannot be read either", async () => {
+      const delivery: OwnerNotificationDelivery =
+        await OwnerNotificationDeliveries.planForOwnersOf({
+          notification: created(),
+          findOwners: async (): Promise<Array<User>> => {
+            return [];
+          },
+          findProjectOwners: async (): Promise<Array<User>> => {
+            throw new Error("connection reset");
+          },
+          writesFeedItem: true,
+        });
+
+      expect(delivery.owners).toEqual([]);
+      expect(delivery.isProjectOwners).toBe(false);
+      expect(table.rows).toEqual([]);
     });
 
     test("tells nobody, and says so, when the owners cannot be read", async () => {

@@ -11,6 +11,8 @@ import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 
 /*
  * Regression tests for the IncomingRequestMonitor:CheckHeartbeat cron's write
@@ -165,9 +167,11 @@ const projectService: { getActiveProjectStatusQuery: jest.Mock } =
   ProjectService as unknown as { getActiveProjectStatusQuery: jest.Mock };
 const monitorResourceMock: jest.Mock =
   MonitorResourceUtil.monitorResource as unknown as jest.Mock;
-const mockedLogger: { error: jest.Mock } = logger as unknown as {
-  error: jest.Mock;
-};
+const mockedLogger: { error: jest.Mock; debug: jest.Mock } =
+  logger as unknown as {
+    error: jest.Mock;
+    debug: jest.Mock;
+  };
 const trackMock: jest.Mock =
   IncomingRequestReceivedAtStore.track as unknown as jest.Mock;
 
@@ -544,6 +548,96 @@ describe("IncomingRequestMonitor:CheckHeartbeat worker", () => {
     const payload: IncomingMonitorRequest = monitorResourceMock.mock
       .calls[0]![0] as IncomingMonitorRequest;
     expect(payload.monitorId.toString()).toBe(MONITOR_B_ID.toString());
+  });
+
+  /*
+   * A monitor paused, archived or disabled after the sweep read it is
+   * refused by MonitorResource (issue #8069). The sweep reads only monitors
+   * that are being monitored, so this is the race between the two reads:
+   * nothing anyone can act on. It is logged at debug, never at error, and
+   * the sweep goes on with the next monitor.
+   */
+  test.each([
+    ExceptionMessages.MonitorDisabledBecauseOfManualIncident,
+    ExceptionMessages.MonitorDisabledBecauseOfScheduledMaintenanceEvent,
+    ExceptionMessages.MonitorDisabled,
+    ExceptionMessages.MonitorArchived,
+    ExceptionMessages.MonitorNotFound,
+  ])(
+    "a monitor refused mid-check ('%s') is logged at debug, not error, and the next monitor is evaluated",
+    async (refusal: string) => {
+      const paused: Monitor = makeMonitor({
+        id: MONITOR_A_ID,
+        monitorSteps: stepsWithCheckOn(CheckOn.IncomingRequest),
+      });
+      const next: Monitor = makeMonitor({
+        id: MONITOR_B_ID,
+        monitorSteps: stepsWithCheckOn(CheckOn.IncomingRequest),
+      });
+
+      monitorService.findBy.mockResolvedValueOnce([paused, next]);
+      monitorResourceMock.mockImplementation(
+        (request: IncomingMonitorRequest) => {
+          if (request.monitorId.toString() === MONITOR_A_ID.toString()) {
+            return Promise.reject(new BadDataException(refusal));
+          }
+
+          return Promise.resolve(undefined);
+        },
+      );
+
+      await runWorkerTick();
+
+      expect(mockedLogger.error).not.toHaveBeenCalled();
+
+      const refusalLines: Array<string> = mockedLogger.debug.mock.calls
+        .map((call: Array<unknown>): string => {
+          return String(call[0]);
+        })
+        .filter((line: string): boolean => {
+          return line.includes(refusal);
+        });
+
+      expect(refusalLines).toHaveLength(1);
+      expect(refusalLines[0]).toContain(MONITOR_A_ID.toString());
+
+      // The sweep went on: the next monitor was evaluated too.
+      expect(
+        monitorResourceMock.mock.calls.map((call: Array<unknown>): string => {
+          return (call[0] as IncomingMonitorRequest).monitorId.toString();
+        }),
+      ).toEqual([MONITOR_A_ID.toString(), MONITOR_B_ID.toString()]);
+    },
+  );
+
+  test("any other evaluation failure is still logged at error, and the next monitor is evaluated", async () => {
+    const failing: Monitor = makeMonitor({
+      id: MONITOR_A_ID,
+      monitorSteps: stepsWithCheckOn(CheckOn.IncomingRequest),
+    });
+    const next: Monitor = makeMonitor({
+      id: MONITOR_B_ID,
+      monitorSteps: stepsWithCheckOn(CheckOn.IncomingRequest),
+    });
+    const failure: Error = new Error("Acquire mutex timeout");
+
+    monitorService.findBy.mockResolvedValueOnce([failing, next]);
+    monitorResourceMock.mockImplementation(
+      (request: IncomingMonitorRequest) => {
+        if (request.monitorId.toString() === MONITOR_A_ID.toString()) {
+          return Promise.reject(failure);
+        }
+
+        return Promise.resolve(undefined);
+      },
+    );
+
+    await runWorkerTick();
+
+    expect(mockedLogger.error).toHaveBeenCalledWith(failure, {
+      projectId: PROJECT_ID.toString(),
+    });
+    expect(monitorResourceMock).toHaveBeenCalledTimes(2);
   });
 });
 

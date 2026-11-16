@@ -17,19 +17,21 @@ import { escapeRegExp } from "Common/Utils/RegExpEscape";
  *   1. App/FeatureSet/Workers/Index.ts imports the job module (a load-bearing
  *      side-effect import, matched as text — a reminder cron nobody imports
  *      is a reminder that never sends);
- *   2. the job is registered under the runner's own job name (the same name
- *      the sweep lock is keyed on) on the EVERY_FIVE_MINUTE constant;
+ *   2. the job is registered under the runner's own job name (the name
+ *      RunCron's lease, which runs one sweep at a time, is keyed on) on the
+ *      EVERY_FIVE_MINUTE constant;
  *   3. runOnStartup is false — reminders are user-facing side effects and
  *      the watermark makes a boot catch-up unnecessary;
- *   4. the registered timeout is the runner's 10-minute constant: longer than
- *      one tick, shorter than the 12-minute sweep lock (runJobWithTimeout
- *      races the body, it does not cancel it, so the lock must outlive it);
- *   5. the job function delegates to OnCallShiftReminderRunner.runSweepUnderLock
- *      and awaits it, so a failed tick is a failed job rather than a silent one.
+ *   4. the registered timeout is the runner's 10-minute constant, longer than
+ *      one tick: the run's deadline passes there, and the sweep stops between
+ *      projects (issue #8103);
+ *   5. the job function delegates to OnCallShiftReminderRunner.runSweep with
+ *      the run's deadline and awaits it, so a failed tick is a failed job
+ *      rather than a silent one. The runner takes no lock of its own.
  */
 
 const mockAddJob: jest.Mock = jest.fn().mockResolvedValue(undefined as never);
-const mockRunSweepUnderLock: jest.Mock = jest.fn();
+const mockRunSweep: jest.Mock = jest.fn();
 const mockDeleteOldLogs: jest.Mock = jest.fn();
 
 jest.mock("Common/Server/Infrastructure/Queue", () => {
@@ -49,9 +51,9 @@ jest.mock("Common/Server/Infrastructure/Queue", () => {
 });
 
 /*
- * The runner's constants are the real ones (requireActual) — the job name,
- * the timeout and the lock timeout are what this file is about — while the
- * two entry points the jobs call are observable stubs.
+ * The runner's constants are the real ones (requireActual) — the job name
+ * and the timeout are what this file is about — while the two entry points
+ * the jobs call are observable stubs.
  */
 jest.mock("Common/Server/Utils/OnCall/OnCallShiftReminderRunner", () => {
   const actual: Record<string, unknown> = jest.requireActual(
@@ -62,7 +64,7 @@ jest.mock("Common/Server/Utils/OnCall/OnCallShiftReminderRunner", () => {
     __esModule: true,
     ...actual,
     default: {
-      runSweepUnderLock: mockRunSweepUnderLock,
+      runSweep: mockRunSweep,
       deleteOldLogs: mockDeleteOldLogs,
     },
   };
@@ -84,10 +86,13 @@ jest.mock("Common/Server/Utils/Logger", () => {
 import {
   SHIFT_REMINDER_JOB_NAME,
   SHIFT_REMINDER_JOB_TIMEOUT_MS,
-  SHIFT_REMINDER_SWEEP_LOCK_TIMEOUT_MS,
 } from "Common/Server/Utils/OnCall/OnCallShiftReminderRunner";
+import * as OnCallShiftReminderRunnerModule from "Common/Server/Utils/OnCall/OnCallShiftReminderRunner";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 import logger from "Common/Server/Utils/Logger";
-import JobDictionary from "../../../../FeatureSet/Workers/Utils/JobDictionary";
+import JobDictionary, {
+  WorkerJobFunction,
+} from "../../../../FeatureSet/Workers/Utils/JobDictionary";
 import "../../../../FeatureSet/Workers/Jobs/OnCallDutySchedule/SendShiftReminders";
 
 const registrationAddJobCalls: Array<Array<unknown>> =
@@ -136,8 +141,8 @@ const DEFAULT_JOB_TIMEOUT_IN_MS: number = JobDictionary.getTimeoutInMs(
 );
 
 beforeEach(() => {
-  mockRunSweepUnderLock.mockReset();
-  mockRunSweepUnderLock.mockResolvedValue(null as never);
+  mockRunSweep.mockReset();
+  mockRunSweep.mockResolvedValue({} as never);
 });
 
 describe("SendShiftReminders - the job is wired into the worker at all", () => {
@@ -230,7 +235,7 @@ describe("SendShiftReminders - registration", () => {
     expect(options.scheduleAt).toBe(EVERY_FIVE_MINUTE);
   });
 
-  test("registers the runner's 10-minute timeout: longer than a tick, shorter than the sweep lock", () => {
+  test("registers the runner's 10-minute timeout: longer than a tick", () => {
     const timeoutInMs: number = JobDictionary.getTimeoutInMs(
       SHIFT_REMINDER_JOB_NAME,
     );
@@ -241,35 +246,70 @@ describe("SendShiftReminders - registration", () => {
     // Registered, not defaulted.
     expect(timeoutInMs).not.toBe(DEFAULT_JOB_TIMEOUT_IN_MS);
 
-    // Outlasts a tick (a sweep materializes every reminded schedule)...
+    // Outlasts a tick (a sweep materializes every reminded schedule).
     expect(timeoutInMs).toBeGreaterThan(TICK_INTERVAL_IN_MS);
+  });
 
-    /*
-     * ...and the cross-replica lock outlasts the timeout, because
-     * QueueWorker.runJobWithTimeout races the body without cancelling it.
-     */
-    expect(SHIFT_REMINDER_SWEEP_LOCK_TIMEOUT_MS).toBeGreaterThan(timeoutInMs);
+  /*
+   * RunCron runs one sweep at a time (CronLock): the runner's own lock, and
+   * the constants that sized it, are gone (issue #8103).
+   */
+  test("leaves one sweep at a time to RunCron: there is no sweep lock to size any more", () => {
+    expect(Object.keys(OnCallShiftReminderRunnerModule)).not.toContain(
+      "SHIFT_REMINDER_SWEEP_LOCK_TIMEOUT_MS",
+    );
+    expect(Object.keys(OnCallShiftReminderRunnerModule)).not.toContain(
+      "SHIFT_REMINDER_SWEEP_LOCK_NAMESPACE",
+    );
   });
 });
 
 describe("SendShiftReminders - what the registered function does", () => {
-  test("delegates to OnCallShiftReminderRunner.runSweepUnderLock with no arguments", async () => {
+  test("delegates to OnCallShiftReminderRunner.runSweep with the run's deadline only", async () => {
     const jobFunction: PromiseVoidFunction = JobDictionary.getJobFunction(
       SHIFT_REMINDER_JOB_NAME,
     );
 
     await jobFunction();
 
-    expect(mockRunSweepUnderLock).toHaveBeenCalledTimes(1);
-    // The runner picks `now` itself; the job passes nothing.
-    expect(mockRunSweepUnderLock.mock.calls[0]).toEqual([]);
+    expect(mockRunSweep).toHaveBeenCalledTimes(1);
+    // The runner picks `now` itself; the job hands it only the deadline.
+    const handed: Record<string, unknown> = mockRunSweep.mock
+      .calls[0]![0] as Record<string, unknown>;
+
+    expect(Object.keys(handed)).toEqual(["deadline"]);
+    expect(handed["deadline"]).toBeInstanceOf(JobDeadline);
+    expect((handed["deadline"] as JobDeadline).hasPassed()).toBe(false);
     expect(mockDeleteOldLogs).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Run by the queue, the job hands the sweep a deadline that passes with
+   * the queue job's own: its time limit, as QueueWorker counts it.
+   */
+  test("the deadline it hands the sweep passes when the queue job's deadline does", async () => {
+    const jobFunction: WorkerJobFunction = JobDictionary.getJobFunction(
+      SHIFT_REMINDER_JOB_NAME,
+    );
+    const queueDeadline: JobDeadline = new JobDeadline();
+
+    await jobFunction(undefined, queueDeadline);
+
+    const handed: JobDeadline = (
+      mockRunSweep.mock.calls[0]![0] as { deadline: JobDeadline }
+    ).deadline;
+
+    expect(handed.hasPassed()).toBe(false);
+
+    queueDeadline.end();
+
+    expect(handed.hasPassed()).toBe(true);
   });
 
   test("awaits the sweep, so a failed tick is a failed job rather than a silent one", async () => {
     const failure: Error = new Error("sweep failed");
 
-    mockRunSweepUnderLock.mockRejectedValue(failure as never);
+    mockRunSweep.mockRejectedValue(failure as never);
 
     const jobFunction: PromiseVoidFunction = JobDictionary.getJobFunction(
       SHIFT_REMINDER_JOB_NAME,
@@ -278,8 +318,8 @@ describe("SendShiftReminders - what the registered function does", () => {
     await expect(jobFunction()).rejects.toThrow(failure);
   });
 
-  test("a skipped tick (lock held, runner returns null) is a successful job", async () => {
-    mockRunSweepUnderLock.mockResolvedValue(null as never);
+  test("a sweep that stopped at its deadline is a successful job", async () => {
+    mockRunSweep.mockResolvedValue({ stoppedAtDeadline: true } as never);
 
     const jobFunction: PromiseVoidFunction = JobDictionary.getJobFunction(
       SHIFT_REMINDER_JOB_NAME,

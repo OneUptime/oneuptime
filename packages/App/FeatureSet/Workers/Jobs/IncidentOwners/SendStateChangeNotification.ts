@@ -1,5 +1,8 @@
 import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
+import OwnerNotificationBacklog, {
+  OwnerNotificationPage,
+} from "../../Utils/OwnerNotificationBacklog";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
@@ -12,7 +15,9 @@ import PushNotificationMessage from "Common/Types/PushNotification/PushNotificat
 import Text from "Common/Types/Text";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import IncidentService from "Common/Server/Services/IncidentService";
-import LinkedAffectedResources from "Common/Server/Utils/AffectedResources/LinkedAffectedResources";
+import LinkedAffectedResources, {
+  LinkedAffectedResource,
+} from "Common/Server/Utils/AffectedResources/LinkedAffectedResources";
 import IncidentStateTimelineService from "Common/Server/Services/IncidentStateTimelineService";
 import IncidentStateService from "Common/Server/Services/IncidentStateService";
 import ProjectService from "Common/Server/Services/ProjectService";
@@ -31,6 +36,7 @@ import UserService from "Common/Server/Services/UserService";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Select from "Common/Server/Types/Database/Select";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 import logger from "Common/Server/Utils/Logger";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
@@ -74,7 +80,7 @@ const INCIDENT_SELECT: Select<Incident> = {
 RunCron(
   "IncidentOwner:SendStateChangeEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
-  async () => {
+  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
     /*
      * The owners a run that stopped part way left untold - a worker killed
      * between the take and the last owner (#8199) - told first, exactly
@@ -105,80 +111,159 @@ RunCron(
           incidentStateTimeline: incidentStateTimeline,
           incident: incident,
           delivery: delivery,
+          page: new OwnerNotificationPage(),
         });
       },
     });
 
-    // get all scheduled events of all the projects.
-
-    const incidentStateTimelines: Array<IncidentStateTimeline> =
-      await IncidentStateTimelineService.findAllBy({
-        query: {
-          isOwnerNotified: false,
-        },
-        props: {
-          isRoot: true,
-        },
-        skip: 0,
-        select: STATE_TIMELINE_SELECT,
-      });
-
-    for (const incidentStateTimeline of incidentStateTimelines) {
-      const incidentId: ObjectID = incidentStateTimeline.incidentId!;
-
-      if (!incidentId) {
-        continue;
-      }
-
-      // get incident
-
-      const incident: Incident | null = await readIncident(incidentId);
-
-      if (!incident) {
-        continue;
-      }
-
-      /*
-       * Whom it is to tell, written before the take: a worker stopped from
-       * here on leaves them to be told by a later run, and one stopped
-       * before the take leaves the state change to be read again.
-       */
-      const delivery: OwnerNotificationDelivery = await planOwnersOfStateChange(
-        {
-          incidentStateTimeline: incidentStateTimeline,
-          incident: incident,
-        },
-      );
-
-      await IncidentStateTimelineService.updateOneById({
-        id: incidentStateTimeline.id!,
-        data: {
-          isOwnerNotified: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      try {
-        await notifyOwnersOfStateChange({
-          incidentStateTimeline: incidentStateTimeline,
-          incident: incident,
-          delivery: delivery,
+    /*
+     * Every state change nobody has been told about yet, a page at a time,
+     * oldest first, each taken by one run alone and told by the run that
+     * took it; the run stops at its deadline and the next carries on
+     * (OwnerNotificationBacklog, issue #7974).
+     */
+    await OwnerNotificationBacklog.forEachToNotify<IncidentStateTimeline>({
+      jobName: "IncidentOwner:SendStateChangeEmail",
+      service: IncidentStateTimelineService,
+      notYetNotified: {
+        isOwnerNotified: false,
+      },
+      notified: {
+        isOwnerNotified: true,
+      },
+      select: STATE_TIMELINE_SELECT,
+      deadline: deadline,
+      readPage: readIncidentsOfPage,
+      notify: async (input: {
+        record: IncidentStateTimeline;
+        page: OwnerNotificationPage;
+        take: () => Promise<boolean>;
+      }): Promise<void> => {
+        await notifyOfStateChange({
+          incidentStateTimeline: input.record,
+          page: input.page,
+          take: input.take,
         });
-      } catch (e) {
-        logger.error("Error in sending incident state change notification", {
-          projectId: incident.projectId?.toString(),
-          incidentId: incident.id?.toString(),
-        });
-        logger.error(e, {
-          projectId: incident.projectId?.toString(),
-          incidentId: incident.id?.toString(),
-        });
-      }
-    }
+      },
+    });
   },
 );
+
+/*
+ * One state change read by the run: whom it tells planned, the state change
+ * taken, and - when this run took it - its owners told.
+ */
+async function notifyOfStateChange(data: {
+  incidentStateTimeline: IncidentStateTimeline;
+  page: OwnerNotificationPage;
+  take: () => Promise<boolean>;
+}): Promise<void> {
+  const incidentStateTimeline: IncidentStateTimeline =
+    data.incidentStateTimeline;
+  const incidentId: ObjectID | undefined = incidentStateTimeline.incidentId;
+
+  const incident: Incident | null = incidentId
+    ? await data.page.once(
+        incidentKey(incidentId),
+        (): Promise<Incident | null> => {
+          return readIncident(incidentId);
+        },
+      )
+    : null;
+
+  /*
+   * The incident is gone: nobody can be told of its state change. Taken all
+   * the same, so no run reads it again.
+   */
+  if (!incident) {
+    await data.take();
+    return;
+  }
+
+  /*
+   * Whom it is to tell, written before the take: a worker stopped from
+   * here on leaves them to be told by a later run, and one stopped before
+   * the take leaves the state change to be read again.
+   */
+  const delivery: OwnerNotificationDelivery = await planOwnersOfStateChange({
+    incidentStateTimeline: incidentStateTimeline,
+    incident: incident,
+    page: data.page,
+  });
+
+  // Taken by another run first, or gone: that run tells the owners.
+  if (!(await data.take())) {
+    return;
+  }
+
+  try {
+    await notifyOwnersOfStateChange({
+      incidentStateTimeline: incidentStateTimeline,
+      incident: incident,
+      delivery: delivery,
+      page: data.page,
+    });
+  } catch (e) {
+    logger.error("Error in sending incident state change notification", {
+      projectId: incident.projectId?.toString(),
+      incidentId: incident.id?.toString(),
+    });
+    logger.error(e, {
+      projectId: incident.projectId?.toString(),
+      incidentId: incident.id?.toString(),
+    });
+  }
+}
+
+function incidentKey(incidentId: ObjectID): string {
+  return `incident:${incidentId.toString()}`;
+}
+
+/*
+ * The incidents of a page's state changes, in one query: each is read once
+ * however many of its state changes the page has.
+ */
+async function readIncidentsOfPage(
+  incidentStateTimelines: Array<IncidentStateTimeline>,
+  page: OwnerNotificationPage,
+): Promise<void> {
+  const incidentIds: Map<string, ObjectID> = new Map<string, ObjectID>();
+
+  for (const incidentStateTimeline of incidentStateTimelines) {
+    if (incidentStateTimeline.incidentId) {
+      incidentIds.set(
+        incidentStateTimeline.incidentId.toString(),
+        incidentStateTimeline.incidentId,
+      );
+    }
+  }
+
+  if (incidentIds.size === 0) {
+    return;
+  }
+
+  const incidents: Array<Incident> = await IncidentService.findBy({
+    query: {
+      _id: QueryHelper.any(Array.from(incidentIds.values())),
+    },
+    select: INCIDENT_SELECT,
+    limit: incidentIds.size,
+    skip: 0,
+    props: {
+      isRoot: true,
+    },
+  });
+
+  /*
+   * One not found - gone since its state change was read - is read on its
+   * own when a record asks for it, as it would be without the page.
+   */
+  for (const each of incidents) {
+    if (each.id) {
+      page.prime<Incident | null>(incidentKey(each.id), each);
+    }
+  }
+}
 
 async function readIncident(incidentId: ObjectID): Promise<Incident | null> {
   return await IncidentService.findOneById({
@@ -199,19 +284,31 @@ async function readIncident(incidentId: ObjectID): Promise<Incident | null> {
 async function planOwnersOfStateChange(data: {
   incidentStateTimeline: IncidentStateTimeline;
   incident: Incident;
+  // Each read once for every state change of the page.
+  page: OwnerNotificationPage;
 }): Promise<OwnerNotificationDelivery> {
   let owners: Array<User> = [];
   let isProjectOwners: boolean = false;
 
   try {
-    owners = await IncidentService.findOwners(data.incident.id!);
+    owners = await data.page.once(
+      `owners:${data.incident.id!.toString()}`,
+      (): Promise<Array<User>> => {
+        return IncidentService.findOwners(data.incident.id!);
+      },
+    );
 
     if (owners.length === 0) {
       isProjectOwners = true;
 
       // find project owners.
-      owners = await ProjectService.getOwners(
-        data.incidentStateTimeline.projectId!,
+      owners = await data.page.once(
+        `projectOwners:${data.incidentStateTimeline.projectId!.toString()}`,
+        (): Promise<Array<User>> => {
+          return ProjectService.getOwners(
+            data.incidentStateTimeline.projectId!,
+          );
+        },
       );
     }
   } catch (e) {
@@ -245,6 +342,8 @@ async function notifyOwnersOfStateChange(data: {
   incidentStateTimeline: IncidentStateTimeline;
   incident: Incident;
   delivery: OwnerNotificationDelivery;
+  // What the state changes of one page read once, for all of them.
+  page: OwnerNotificationPage;
 }): Promise<void> {
   const incidentStateTimeline: IncidentStateTimeline =
     data.incidentStateTimeline;
@@ -284,16 +383,24 @@ async function notifyOwnersOfStateChange(data: {
       });
 
     if (previousTimeline?.incidentStateId) {
-      previousState = await IncidentStateService.findOneById({
-        id: previousTimeline.incidentStateId,
-        props: {
-          isRoot: true,
+      const previousStateId: ObjectID = previousTimeline.incidentStateId;
+
+      // A project's few states, each read once for the page.
+      previousState = await data.page.once(
+        `incidentState:${previousStateId.toString()}`,
+        (): Promise<IncidentState | null> => {
+          return IncidentStateService.findOneById({
+            id: previousStateId,
+            props: {
+              isRoot: true,
+            },
+            select: {
+              name: true,
+              color: true,
+            },
+          });
         },
-        select: {
-          name: true,
-          color: true,
-        },
-      });
+      );
 
       /*
        * Calculate how long the incident was in the previous state
@@ -321,11 +428,17 @@ async function notifyOwnersOfStateChange(data: {
 
   // Every resource the incident's Affected Resources card lists.
   const resourcesAffected: string = LinkedAffectedResources.getText({
-    resources: await LinkedAffectedResources.readForIncident({
-      service: IncidentService,
-      projectId: incident.projectId!,
-      incidentId: incident.id!,
-    }),
+    // Read once for every state change of the incident on the page.
+    resources: await data.page.once(
+      `resourcesAffected:${incident.id!.toString()}`,
+      (): Promise<Array<LinkedAffectedResource>> => {
+        return LinkedAffectedResources.readForIncident({
+          service: IncidentService,
+          projectId: incident.projectId!,
+          incidentId: incident.id!,
+        });
+      },
+    ),
     fallback: "",
   });
 
