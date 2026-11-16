@@ -32,7 +32,7 @@ En grupp personer i ett projekt, vars behörigheter avgör vad medlemmarna får 
 
 Se [Användare, team och behörigheter](/docs/permissions/index).
 
-### Övervakning
+### Monitor
 
 Kontrollerar en sak som du kör, till exempel en webbplats, ett API, en server eller ett Kubernetes-kluster, och avgör om den fungerar. När dess kriterier matchar ändrar den sin status och kan deklarera en incident eller skapa ett larm.
 
@@ -54,7 +54,7 @@ Se [Kriterier och statusar](/docs/monitor/criteria-and-statuses).
 
 En maskin som kör monitorernas kontroller enligt ett schema: den hämtar en sida, anropar ett API eller pingar en värd. OneUptime Cloud kör sonder i flera regioner, och en anpassad sond som du kör i ditt eget nätverk kontrollerar det som bara det nätverket når.
 
-Kallas även: **Anpassade probes**. Se [Anpassade probes](/docs/probe/custom-probe).
+Kallas även: **Anpassade sonder**. Se [Anpassade sonder](/docs/probe/custom-probe).
 
 ### Incident
 
@@ -224,7 +224,7 @@ Se [Topologi](/docs/telemetry/topology).
 
 Ett tillförlitlighetsmål för det du övervakar, till exempel tillgängligt 99,9 % av tiden under 30 dagar. OneUptime mäter varje SLO mot dess monitorer var 5:e minut.
 
-Kallas även: **Service Level Objective**. Se [SLO:er – Översikt](/docs/slo/introduction).
+Kallas även: **Tjänstenivåmål**. Se [SLO:er – Översikt](/docs/slo/introduction).
 
 ### Felbudget
 
@@ -294,7 +294,7 @@ Se [Loggutforskare](/docs/telemetry/logs-explorer).
 
 Talen som dina tjänster och din infrastruktur rapporterar över tid, till exempel antal förfrågningar, latens, CPU och ködjup.
 
-Se [Måttutforskare](/docs/telemetry/metrics-explorer).
+Se [Mätvärdesutforskare](/docs/telemetry/metrics-explorer).
 
 ### Spår
 
@@ -436,7 +436,7 @@ Se [Grundbegrepp](/docs/introduction/core-concepts#olika-slags-regler).
 
 ### Roll
 
-Fyra olika saker: behörigheterna som ett team ger, till exempel Project Owner eller Project Admin; en **Anpassad roll** som du sätter ihop av behörigheter; en **Incidentroll**, den roll någon har i en incident; och en **Network Device Role**, vad en enhet i ditt nätverk gör.
+Fyra olika saker: behörigheterna som ett team ger, till exempel Projektägare eller Projektadministratör; en **Anpassad roll** som du sätter ihop av behörigheter; en **Incidentroll**, den roll någon har i en incident; och en **Network Device Role**, vad en enhet i ditt nätverk gör.
 
 Se [Användare, team och behörigheter](/docs/permissions/index).
 

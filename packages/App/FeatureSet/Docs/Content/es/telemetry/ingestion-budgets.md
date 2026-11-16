@@ -33,8 +33,8 @@ flowchart TB
 
 ## Antes de empezar
 
-- **Para los presupuestos de la instancia y de un proyecto, el Admin Dashboard.** En una instalación autoalojada, solo el administrador de la instancia los fija. Los propietarios y administradores de un proyecto ven sus presupuestos, pero no pueden cambiarlos.
-- **Para el presupuesto propio de una clave, un rol que edite claves de ingesta.** Project Owner o Project Admin, o un rol personalizado con el permiso Edit Ingestion Key.
+- **Para los presupuestos de la instancia y de un proyecto, el Admin Dashboard.** En una instalación autoalojada, solo el administrador de la instancia los fija. Los Propietarios del proyecto y los Administradores del proyecto ven los presupuestos de un proyecto, pero no pueden cambiarlos.
+- **Para el presupuesto propio de una clave, un rol que edite claves de ingesta.** Propietario del proyecto o Administrador del proyecto, o un rol personalizado con el permiso Edit Ingestion Key.
 - **Para ver los presupuestos, un rol que vea el uso del proyecto.** Los roles que ven la página [Uso de telemetría](/docs/telemetry/usage) ven en ella los presupuestos del proyecto.
 
 ## Fijar los presupuestos predeterminados de todos los proyectos
@@ -113,7 +113,7 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 
 ## La advertencia y el restablecimiento
 
-- **La advertencia.** Cuando un presupuesto diario supera el umbral de advertencia, el 80 % salvo que el administrador de la instancia lo cambie, los propietarios del proyecto reciben un correo, y los exploradores muestran un banner encima de los datos de esa señal. Reciben un correo más cuando el presupuesto se agota. Cada presupuesto envía cada correo como máximo una vez al día.
+- **La advertencia.** Cuando un presupuesto diario supera el umbral de advertencia, el 80 % salvo que el administrador de la instancia lo cambie, los Propietarios del proyecto reciben un correo, y los exploradores muestran un banner encima de los datos de esa señal. Reciben un correo más cuando el presupuesto se agota. Cada presupuesto envía cada correo como máximo una vez al día.
 - **El restablecimiento.** Cada día de presupuesto vuelve a empezar a las 00:00 UTC, salvo que el administrador de la instancia lo cambie. La tarjeta **Advertencia y restablecimiento** fija **Umbral de advertencia (%)**, de 1 a 99, **Hora de restablecimiento**, como HH:MM, y **Zona horaria de restablecimiento**: haga clic en **Editar advertencia y restablecimiento**.
 - **Horario de verano.** El restablecimiento sigue el reloj de la zona horaria, así que el día de presupuesto en que cambia la hora dura una hora menos o una más. Una hora de restablecimiento que el cambio de hora se salta ocurre ese mismo tiempo después del salto.
 - **Un restablecimiento cambiado empieza un día nuevo.** Cambiar la hora de restablecimiento o la zona horaria empieza al instante un nuevo día de presupuesto, sin nada contado todavía.

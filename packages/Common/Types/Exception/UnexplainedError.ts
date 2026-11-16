@@ -16,7 +16,7 @@ import { fillTemplate, translationKey } from "../Translator";
  *
  * The English sentences below are what travels: the API answers with the
  * server's (an API client, the CLI and Terraform read it as it is), and
- * API.getFriendlyMessage returns one of the four for every error it cannot
+ * API.getFriendlyMessage returns one of the five for every error it cannot
  * otherwise put into words. The Dashboard, Accounts and Admin Dashboard read
  * them back (readUnexplainedError) and draw them with ErrorExplanation, in
  * the reader's language, with Try again, the reference and a copy button.
@@ -91,6 +91,21 @@ export enum UnexplainedErrorKind {
   ServerDown = "ServerDown",
   // OneUptime could not be reached at all.
   Unreachable = "Unreachable",
+  /*
+   * What was sent was larger than the server, or a proxy in front of it,
+   * takes: a 413 that came as a page (nginx's "413 Request Entity Too
+   * Large"), said nothing, or said only its status (#8278). Trying again in
+   * a moment never helps; sending less does, or, for whoever runs a
+   * self-hosted server, a larger limit on that proxy.
+   */
+  TooLarge = "TooLarge",
+  /*
+   * What was sent was larger than OneUptime itself takes in one request
+   * (50 MB): its own body parsers refused it, not a proxy (#8419, #8567).
+   * Nothing on the way has a limit to raise, so it says OneUptime's and
+   * stops there.
+   */
+  TooLargeForOneUptime = "TooLargeForOneUptime",
   // The page failed before or after it asked the server.
   Page = "Page",
 }
@@ -113,6 +128,8 @@ export const UNEXPLAINED_ERROR_MESSAGES: {
   server: string;
   unreachable: string;
   page: string;
+  tooLarge: string;
+  tooLargeForOneUptime: string;
 } = {
   serverWithReference: translationKey(
     "The server ran into a problem it could not explain, so this did not finish. Try again, and if it keeps failing, give this reference to your administrator or OneUptime support: {{reference}}.",
@@ -125,6 +142,13 @@ export const UNEXPLAINED_ERROR_MESSAGES: {
   ),
   page: translationKey(
     "This page ran into a problem, so this did not finish. Reload the page, then try again.",
+  ),
+  tooLarge: translationKey(
+    "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.",
+  ),
+  // The App's own answer to a body over its limit (RequestBodyRefusal).
+  tooLargeForOneUptime: translationKey(
+    "What was sent is larger than the 50 MB OneUptime takes in one request, so this did not finish. Try again with less at once, such as a smaller file.",
   ),
 };
 
@@ -140,15 +164,19 @@ export const UnexplainedErrorWords: {
   serverDownWhy: string;
   unreachableWhy: string;
   pageWhy: string;
+  tooLargeWhy: string;
+  tooLargeForOneUptimeWhy: string;
   serverNextWithReferenceCloud: string;
   serverNextWithReferenceSelfHosted: string;
   serverNext: string;
   serverDownNext: string;
   unreachableNext: string;
   pageNext: string;
+  tooLargeNext: string;
   adminWhereToLookWithReference: string;
   adminWhereToLook: string;
   serverDownWhereToLook: string;
+  tooLargeWhereToLook: string;
   openHealth: string;
   // What a page was doing, for the first line.
   createFailed: string;
@@ -163,6 +191,12 @@ export const UnexplainedErrorWords: {
   serverDownWhy: translationKey("The OneUptime server did not answer."),
   unreachableWhy: translationKey("OneUptime could not be reached."),
   pageWhy: translationKey("This page ran into a problem."),
+  tooLargeWhy: translationKey(
+    "What was sent was too large for the server to accept.",
+  ),
+  tooLargeForOneUptimeWhy: translationKey(
+    "What was sent is larger than the 50 MB OneUptime takes in one request.",
+  ),
   serverNextWithReferenceCloud: translationKey(
     "Try again. If it keeps failing, contact OneUptime support and give them this reference:",
   ),
@@ -177,6 +211,9 @@ export const UnexplainedErrorWords: {
     "Check your internet connection, then try again.",
   ),
   pageNext: translationKey("Reload the page, then try again."),
+  tooLargeNext: translationKey(
+    "Try again with less at once, such as a smaller file.",
+  ),
   // For a master admin of a self-hosted server.
   adminWhereToLookWithReference: translationKey(
     "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder and look for this reference.",
@@ -187,6 +224,17 @@ export const UnexplainedErrorWords: {
   // For anyone on a self-hosted server: who installed it may not be signed in.
   serverDownWhereToLook: translationKey(
     "If you run this server, run npm run doctor in its oneuptime folder: it checks every container and shows the logs of any that is not running.",
+  ),
+  /*
+   * For a master admin of a self-hosted server, after a 413 (#8278).
+   * OneUptime's own ingress takes 50 MB on what the Dashboard sends
+   * (client_max_body_size 50M on /api and /file in
+   * Nginx/default.conf.template, which a test holds this sentence to), so
+   * a smaller limit is a proxy's in front of it: a plain nginx and
+   * ingress-nginx take 1 MB unless told otherwise.
+   */
+  tooLargeWhereToLook: translationKey(
+    "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).",
   ),
   openHealth: translationKey("Open OneUptime Health"),
   createFailed: translationKey("The {{itemName}} was not created."),
@@ -260,6 +308,14 @@ export const readUnexplainedError: (
 
   if (text === UNEXPLAINED_ERROR_MESSAGES.page) {
     return { kind: UnexplainedErrorKind.Page, reference: null };
+  }
+
+  if (text === UNEXPLAINED_ERROR_MESSAGES.tooLarge) {
+    return { kind: UnexplainedErrorKind.TooLarge, reference: null };
+  }
+
+  if (text === UNEXPLAINED_ERROR_MESSAGES.tooLargeForOneUptime) {
+    return { kind: UnexplainedErrorKind.TooLargeForOneUptime, reference: null };
   }
 
   if (
@@ -359,6 +415,25 @@ export const getExplanationWords: (
       return {
         why: UnexplainedErrorWords.unreachableWhy,
         next: UnexplainedErrorWords.unreachableNext,
+        whereToLook: null,
+      };
+    case UnexplainedErrorKind.TooLarge:
+      return {
+        why: UnexplainedErrorWords.tooLargeWhy,
+        next: UnexplainedErrorWords.tooLargeNext,
+        // The proxy's limit, for whoever can raise it.
+        whereToLook: isSelfHostedAdmin
+          ? UnexplainedErrorWords.tooLargeWhereToLook
+          : null,
+      };
+    case UnexplainedErrorKind.TooLargeForOneUptime:
+      return {
+        why: UnexplainedErrorWords.tooLargeForOneUptimeWhy,
+        next: UnexplainedErrorWords.tooLargeNext,
+        /*
+         * OneUptime refused it itself, so no proxy's limit is to blame, and
+         * nothing on a self-hosted server sets this one (#8567).
+         */
         whereToLook: null,
       };
     default:

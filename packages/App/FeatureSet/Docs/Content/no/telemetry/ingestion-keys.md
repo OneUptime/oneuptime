@@ -25,7 +25,7 @@ flowchart TB
 ```
 
 - **Nøkkelen bestemmer prosjektet.** Du sender aldri en prosjekt-ID: data som sendes med en nøkkel, havner i prosjektet nøkkelen tilhører.
-- **Endringer når alle servere innen ett minutt.** Å slå av en nøkkel, tilbakestille hemmeligheten eller endre origins, utløp eller grense trer i kraft innen omtrent ett minutt.
+- **Endringer når alle servere innen noen sekunder.** Å slå av en nøkkel, tilbakestille hemmeligheten eller endre origins, utløp eller grense trer i kraft på alle servere innen noen sekunder.
 - **En nøkkel kan ha egne budsjetter.** Et daglig budsjett og en hastighet per sekund for hvert signal, innenfor prosjektets: se [Inntaksbudsjetter](/docs/telemetry/ingestion-budgets).
 - **En servernøkkel er et passord.** Alle som har den, kan sende telemetri til prosjektet ditt. Oppbevar den blant serverens hemmeligheter, aldri i versjonskontroll eller på en nettside.
 
@@ -45,7 +45,7 @@ Alle andre steder avviser OneUptime en nettlesernøkkel, for eksempel over gRPC 
 
 ## Før du begynner
 
-- **En rolle som administrerer inntaksnøkler.** Project Owner eller Project Admin, eller en egendefinert rolle med tillatelsen Create Ingestion Key. Telemetry-rollene omfatter ikke inntaksnøkler.
+- **En rolle som administrerer inntaksnøkler.** Prosjekteier eller Prosjektadministrator, eller en egendefinert rolle med tillatelsen Create Ingestion Key. Telemetry-rollene omfatter ikke inntaksnøkler.
 - **På OneUptime Cloud, en betalingsmåte.** Telemetri faktureres etter bruk, så et prosjekt på Free-abonnementet trenger en betalingsmåte før det kan opprette en nøkkel. Opprettelsesdialogen ender da med et trinn **Fakturering** som viser prisene.
 
 ## Opprett en inntaksnøkkel
@@ -108,7 +108,7 @@ En origin er et skjema, en vert og en valgfri port: `https://app.example.com` de
 
 ## Bytt ut, slå av eller slett en nøkkel
 
-En nøkkels side viser **Status**, **Hemmelig nøkkel** bak **Klikk for å vise**, og **Last Used At**: siste gang OneUptime godtok data som ble sendt med den.
+En nøkkels side viser **Status**, **Hemmelig nøkkel** bak **Klikk for å vise**, og **Sist brukt den**: siste gang OneUptime godtok data som ble sendt med den.
 
 | For å | Gjør dette | Hva avsendere ser |
 | --- | --- | --- |
@@ -116,7 +116,7 @@ En nøkkels side viser **Status**, **Hemmelig nøkkel** bak **Klikk for å vise*
 | Erstatte en lekket hemmelighet | Klikk på **Tilbakestill hemmelig nøkkel**, og bekreft. Nøkkelen beholder innstillingene sine og får en ny hemmelighet. | `401` til de sender den nye hemmeligheten |
 | Stoppe en nøkkel for godt | Klikk på **Slett Inntaksnøkkel** nederst på siden dens. | `401` |
 
-For å bytte en hemmelighet uten å miste data oppretter du en ny nøkkel, flytter avsenderne dine over til den og sletter den gamle nøkkelen når **Last Used At** for den slutter å endre seg. **Last Used At** oppdateres hvert par minutter, ikke ved hver forespørsel.
+For å bytte en hemmelighet uten å miste data oppretter du en ny nøkkel, flytter avsenderne dine over til den og sletter den gamle nøkkelen når **Sist brukt den** for den slutter å endre seg. **Sist brukt den** oppdateres hvert par minutter, ikke ved hver forespørsel.
 
 ## Feilsøking
 
@@ -139,8 +139,8 @@ Nøkkelens side teller også: **Avvist telemetri** viser hva som er avvist fra n
 
 For de andre svarene en OTLP-eksportør kan få, se [Svar](/docs/telemetry/open-telemetry#svar).
 
-:::details Det kommer fortsatt data et minutt etter at jeg slo av nøkkelen
-Hver OneUptime-server husker det den vet om en nøkkel, i opptil ett minutt, så en endring når alle innen omtrent ett minutt. Forespørsler etter det avvises.
+:::details Det kommer fortsatt data etter at jeg slo av nøkkelen
+Hver OneUptime-server sjekker minst én gang i sekundet om en nøkkel er endret, så en endring når alle innen noen sekunder, og forespørsler etter det avvises. Mens en server ikke får kontakt med OneUptimes hurtigbuffer, kan den gå ut fra det den visste om nøkkelen i opptil ett minutt. En MQTT-klient som koblet til med nøkkelen, kobles fra innen noen sekunder.
 :::
 
 :::details En nettlesernøkkel virker på den bærbare maskinen min, men ikke i produksjon

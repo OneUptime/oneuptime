@@ -36,8 +36,8 @@ flowchart TB
 | **통화 알림용 전화번호** | **직접 연락** | 전화번호 | 전화로 읽어 주는 코드, SMS용으로 인증된 번호라면 필요 없음 |
 | **알림용 WhatsApp 번호** | **직접 연락** | WhatsApp 번호 | WhatsApp으로 받는 코드 |
 | **알림을 위한 Telegram 계정** | **직접 연락** | 내 Telegram 계정 | OneUptime 봇에 보내는 메시지 |
-| **Slack Account for Notifications** | **워크스페이스 앱** | 내 Slack 계정 | 프로젝트의 워크스페이스에 계정 연결 |
-| **Microsoft Teams Account for Notifications** | **워크스페이스 앱** | 내 Microsoft Teams 계정 | 프로젝트의 워크스페이스에 계정 연결 |
+| **알림용 Slack 계정** | **워크스페이스 앱** | 내 Slack 계정 | 프로젝트의 워크스페이스에 계정 연결 |
+| **알림용 Microsoft Teams 계정** | **워크스페이스 앱** | 내 Microsoft Teams 계정 | 프로젝트의 워크스페이스에 계정 연결 |
 | **알림용 Mattermost 계정** | **워크스페이스 앱** | 내 Mattermost 계정 | 프로젝트의 워크스페이스에 계정 연결 |
 | **푸시 알림 디바이스** | **푸시 알림** | OneUptime On-Call 앱이 설치된 휴대폰 또는 브라우저 | 디바이스 등록 |
 | **알림용 Webhook** | **웹훅** | 자체 HTTPS 엔드포인트 | 없음 |
@@ -67,7 +67,7 @@ flowchart TB
 :::
 
 - 코드는 15분 동안 유효합니다. 다섯 번 틀리면 코드가 취소되어 새 코드가 필요합니다.
-- 대화 상자에는 **Send a new code**가 있고, 전화 번호에는 **Call me with a new code**가 있습니다. 새 코드는 마지막 요청 1분 후부터 요청할 수 있습니다.
+- 대화 상자에는 **새 코드 보내기**가 있고, 전화 번호에는 **새 코드로 전화 받기**가 있습니다. 새 코드는 마지막 요청 1분 후부터 요청할 수 있습니다.
 - SMS용으로 인증한 번호는 전화용으로도 인증됩니다. **통화 알림용 전화번호**에 추가할 때 코드가 필요 없으며, SMS 번호를 인증하면 그 번호로 추가한 전화 번호도 인증됩니다.
 - 로그인 이메일은 프로젝트에 참여한 날부터 인증된 상태로 이미 등록되어 있습니다.
 
@@ -80,11 +80,11 @@ flowchart TB
 
 ### 봇에 메시지 보내기
 
-새 행의 **인증**을 클릭합니다. **Telegram 계정 인증** 대화 상자에는 OneUptime 봇에 연락하는 세 가지 방법이 있습니다. 휴대폰으로 QR 코드를 스캔하거나, **Open in Telegram**을 클릭하거나, Telegram에서 봇을 검색해 대화 상자에 표시된 `/start` 명령을 보냅니다.
+새 행의 **인증**을 클릭합니다. **Telegram 계정 인증** 대화 상자에는 OneUptime 봇에 연락하는 세 가지 방법이 있습니다. 휴대폰으로 QR 코드를 스캔하거나, **Telegram에서 열기**를 클릭하거나, Telegram에서 봇을 검색해 대화 상자에 표시된 `/start` 명령을 보냅니다.
 
 ### 확인하기
 
-OneUptime으로 돌아와 **I've sent the message — check**를 클릭합니다. 봇이 메시지를 받으면 계정이 인증됩니다.
+OneUptime으로 돌아와 **메시지를 보냈습니다 — 확인**을 클릭합니다. 봇이 메시지를 받으면 계정이 인증됩니다.
 :::
 
 **코드 교체**는 아직 인증되지 않은 계정의 새 코드를 만듭니다. 이전의 QR 코드와 열었던 링크는 더 이상 작동하지 않습니다. 자체 호스팅 OneUptime에서는 누군가 계정을 연결하기 전에 서버 관리자가 Telegram 봇을 연결해야 합니다.
@@ -92,8 +92,8 @@ OneUptime으로 돌아와 **I've sent the message — check**를 클릭합니다
 ## Slack, Microsoft Teams, Mattermost
 
 1. 내 계정을 프로젝트의 워크스페이스에 연결합니다: **사용자 설정 → 워크스페이스 → Slack**, **Microsoft Teams** 또는 **Mattermost**. [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost)를 참고하세요.
-2. **워크스페이스 앱** 탭에서 **Add Slack Account**, **Add Microsoft Teams Account** 또는 **Mattermost 계정 추가**를 클릭합니다. 계정은 추가되는 즉시 인증됩니다.
-3. 그 행의 **Send Test Message**를 클릭합니다. 호출은 OneUptime 앱의 다이렉트 메시지로 오며, Mattermost에서는 프로젝트의 봇이 보냅니다.
+2. **워크스페이스 앱** 탭에서 **Slack 계정 추가**, **Microsoft Teams 계정 추가** 또는 **Mattermost 계정 추가**를 클릭합니다. 계정은 추가되는 즉시 인증됩니다.
+3. 그 행의 **테스트 메시지 보내기**를 클릭합니다. 호출은 OneUptime 앱의 다이렉트 메시지로 오며, Mattermost에서는 프로젝트의 봇이 보냅니다.
 
 ## 푸시 알림
 
@@ -102,7 +102,7 @@ OneUptime으로 돌아와 **I've sent the message — check**를 클릭합니다
 - **휴대폰.** OneUptime On-Call 앱을 설치하고, 내 OneUptime에 연결해 로그인한 뒤 알림을 허용합니다. 그러면 휴대폰이 이 목록에 저절로 추가됩니다. [앱 개요](/docs/mobile-desktop-apps/index)를 참고하세요.
 - **이 브라우저.** **디바이스 등록**을 클릭하고 **디바이스 이름**을 입력한 뒤, 브라우저가 물으면 알림을 허용합니다.
 - 디바이스 행의 **테스트 알림**은 그 디바이스에 지금 푸시를 보냅니다.
-- **중요 알림**은 휴대폰에 오는 호출이 무음 모드와 방해 금지 모드를 뚫고 울리는지 보여 줍니다. 이 기능은 여기가 아니라 앱에서 켜며, 브라우저는 할 수 없습니다. [중요 온콜 알림](/docs/self-hosted/push-notifications#중요-온콜-알림무음-모드-무시)을 참고하세요.
+- **중요 알림**은 휴대폰에 오는 호출이 무음 모드와 방해 금지 모드를 뚫고 울리는지 보여 줍니다. 이 기능은 여기가 아니라 앱에서 켜며, 브라우저는 할 수 없습니다. [중요 온콜 알림](/docs/self-hosted/push-notifications#중요-온콜-경고무음-모드-무시)을 참고하세요.
 - **알림을 받지 못하고 있습니다**로 표시된 디바이스에는 아무것도 보내지 않습니다. 그 휴대폰에서 앱을 열거나 브라우저를 다시 등록하면 돌아옵니다.
 
 ## 웹훅
@@ -186,11 +186,11 @@ function isFromOneUptime(rawBody, signatureHeader, secret) {
 :::
 
 :::details 코드가 오지 않았습니다
-이메일은 몇 분 걸릴 수 있고 스팸함에 들어가기도 합니다. 문자는 1분쯤 걸릴 수 있습니다. 1분 기다린 다음 대화 상자에서 **Send a new code**를 클릭하세요. **프로젝트 설정 → 알림 → 알림 로그**에서 메시지가 어떻게 되었는지 볼 수 있습니다.
+이메일은 몇 분 걸릴 수 있고 스팸함에 들어가기도 합니다. 문자는 1분쯤 걸릴 수 있습니다. 1분 기다린 다음 대화 상자에서 **새 코드 보내기**를 클릭하세요. **프로젝트 설정 → 알림 → 알림 로그**에서 메시지가 어떻게 되었는지 볼 수 있습니다.
 :::
 
 :::details Slack 계정을 추가할 수 없습니다
-먼저 **사용자 설정 → 워크스페이스 → Slack**에서 계정을 연결한 다음, **Add Slack Account**를 다시 클릭하세요. 오류 대화 상자에 그곳으로 가는 버튼이 있습니다.
+먼저 **사용자 설정 → 워크스페이스 → Slack**에서 계정을 연결한 다음, **Slack 계정 추가**를 다시 클릭하세요. 오류 대화 상자에 그곳으로 가는 버튼이 있습니다.
 :::
 
 :::details 휴대폰에 푸시 알림이 오지 않습니다

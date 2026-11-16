@@ -1,11 +1,11 @@
 # GitHub
 
-OneUptime fonctionne avec [GitHub](https://github.com) de deux façons. Connectez vos dépôts via l'application GitHub de OneUptime, et l'IA de OneUptime ouvre des pull requests qui corrigent ce qu'elle trouve, et répond quand vous la mentionnez dans une issue ou une pull request. Ou construisez un workflow qui ouvre une issue GitHub pour chaque incident, afin que le travail qui en découle soit suivi dans le dépôt propriétaire du service.
+OneUptime fonctionne avec [GitHub](https://github.com) de deux façons. Connectez vos dépôts via l'application GitHub de OneUptime, et l'IA de OneUptime ouvre des pull requests qui corrigent ce qu'elle trouve, et répond quand vous la mentionnez dans une issue ou une pull request. Ou construisez un flux de travail qui ouvre une issue GitHub pour chaque incident, afin que le travail qui en découle soit suivi dans le dépôt propriétaire du service.
 
 :::cards
-- [Choisir comment connecter](#choisir-comment-connecter): L'application GitHub ou un workflow, et ce que fait chacun.
+- [Choisir comment connecter](#choisir-comment-connecter): L'application GitHub ou un flux de travail, et ce que fait chacun.
 - [Connecter vos dépôts](#connecter-vos-dépôts): L'application GitHub, pour les pull requests de correction.
-- [Ouvrir une issue pour chaque incident](#ouvrir-une-issue-github-pour-chaque-incident): Un workflow, deux blocs.
+- [Ouvrir une issue pour chaque incident](#ouvrir-une-issue-github-pour-chaque-incident): Un flux de travail, deux blocs.
 - [Dépannage](#dépannage): Quand GitHub refuse une requête.
 :::
 
@@ -15,18 +15,18 @@ OneUptime fonctionne avec [GitHub](https://github.com) de deux façons. Connecte
 flowchart TB
     app["L'application GitHub"] --> repos["Vos dépôts,<br/>importés"]
     repos --> pr["Pull requests de<br/>correction de<br/>l'IA de OneUptime"]
-    declared["Incident déclaré"] --> workflow["Workflow :<br/>On Create Incident"]
+    declared["Incident déclaré"] --> workflow["Flux de travail :<br/>À la création :<br/>Incident"]
     workflow -->|"POST issues"| issue["Issue GitHub"]
 ```
 
-Les deux sont indépendantes, et vous pouvez utiliser l'une, l'autre ou les deux. L'application GitHub fonctionne dans les dépôts où vous l'installez. Le workflow n'a besoin que d'un jeton, et appelle l'[API REST](https://docs.github.com/en/rest/issues/issues#create-an-issue) de GitHub comme n'importe quelle autre API.
+Les deux sont indépendantes, et vous pouvez utiliser l'une, l'autre ou les deux. L'application GitHub fonctionne dans les dépôts où vous l'installez. Le flux de travail n'a besoin que d'un jeton, et appelle l'[API REST](https://docs.github.com/en/rest/issues/issues#create-an-issue) de GitHub comme n'importe quelle autre API.
 
 ## Choisir comment connecter
 
 | Façon | Ce qu'elle fait | Ce dont elle a besoin |
 | --- | --- | --- |
 | L'application GitHub | Importe vos dépôts. L'IA de OneUptime y ouvre des pull requests qui corrigent des exceptions, des traces lentes et les causes que trouvent ses investigations, et répond aux mentions dans les issues et les pull requests. | Une organisation ou un compte où installer l'application. Sur OneUptime Cloud, l'offre **Growth**. |
-| Un workflow | Ouvre une issue GitHub pour chaque incident, dans le dépôt que vous choisissez. | Un jeton GitHub qui peut créer des issues, et un workflow de deux blocs. |
+| Un flux de travail | Ouvre une issue GitHub pour chaque incident, dans le dépôt que vous choisissez. | Un jeton GitHub qui peut créer des issues, et un flux de travail de deux blocs. |
 
 ## Connecter vos dépôts
 
@@ -38,10 +38,10 @@ Une instance auto-hébergée a d'abord besoin de sa propre application GitHub : 
 
 ## Avant de commencer
 
-Le reste de cette page construit le workflow. Il faut :
+Le reste de cette page construit le flux de travail. Il faut :
 
 - Un jeton GitHub qui peut créer des issues dans le dépôt : un jeton d'accès personnel à granularité fine pour ce dépôt, avec la permission **Issues** réglée sur **Read and write**, ou un jeton classique avec le scope `repo`. Créez-en un dans les [paramètres des jetons](https://github.com/settings/tokens) de GitHub.
-- Dans OneUptime, le droit de créer des workflows et des variables globales. Sur OneUptime Cloud, les workflows nécessitent l'offre **Growth** ou supérieure.
+- Dans OneUptime, le droit de créer des flux de travail et des variables globales. Sur OneUptime Cloud, les flux de travail nécessitent l'offre **Growth** ou supérieure.
 
 ## Enregistrer le jeton
 
@@ -56,17 +56,17 @@ Une variable secrète est remplacée par `[REDACTED]` dans les journaux d'exécu
 ## Ouvrir une issue GitHub pour chaque incident
 
 :::steps
-### Créer le workflow
+### Créer le flux de travail
 
 Allez dans **Flux de travail**, cliquez sur **Créer un flux de travail**, puis sur **Partir de zéro**. Nommez-le `Incidents to GitHub` et cliquez sur **Créer un flux de travail**.
 
 ### Ajouter le déclencheur
 
-Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail** et choisissez **On Create Incident**. Cliquez sur le déclencheur : ses **Fields to pass on** commencent par **Titre**, alors cliquez sur **Ajouter un champ** et choisissez **Description** et **Numéro d'incident avec préfixe**.
+Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail** et choisissez **À la création : Incident**. Cliquez sur le déclencheur : ses **Champs à transmettre** commencent par **Titre**, alors cliquez sur **Ajouter un champ** et choisissez **Description** et **Numéro d'incident avec préfixe**.
 
 ### Ouvrir l'issue
 
-Cliquez sur **Ajouter un composant**, ajoutez un bloc **API Post (JSON)** et reliez-y le point **Success** du déclencheur. Réglez son **URL** sur `https://api.github.com/repos/your-org/your-repo/issues`, avec le propriétaire et le nom de votre dépôt. Sous **Plus de champs**, réglez ses **Request Headers** sur :
+Cliquez sur **Ajouter un composant**, ajoutez un bloc **Appel d'API POST (JSON)** et reliez-y le point **Succès** du déclencheur. Réglez son **URL** sur `https://api.github.com/repos/your-org/your-repo/issues`, avec le propriétaire et le nom de votre dépôt. Sous **Plus de champs**, réglez ses **En-têtes de la requête** sur :
 
 ```json
 {
@@ -76,7 +76,7 @@ Cliquez sur **Ajouter un composant**, ajoutez un bloc **API Post (JSON)** et rel
 }
 ```
 
-Et son **Request Body** sur :
+Et son **Corps de la requête** sur :
 
 ```json
 {
@@ -88,7 +88,7 @@ Et son **Request Body** sur :
 
 ### Tester, puis activer
 
-Cliquez sur **Exécuter le flux de travail**, choisissez un incident de test sous **Incident** et lancez-le. L'étape **API Post (JSON)** affiche une réponse `201` contenant la nouvelle issue, avec son `number` et son `html_url`. Activez ensuite **Activé** en haut du **Constructeur**.
+Cliquez sur **Exécuter le flux de travail**, choisissez un incident de test sous **Incident** et lancez-le. L'étape **Appel d'API POST (JSON)** affiche une réponse `201` contenant la nouvelle issue, avec son `number` et son `html_url`. Activez ensuite **Activé** en haut du **Constructeur**.
 :::
 
 L'issue reste ouverte quand l'incident est résolu, car le travail qui en découle survit généralement à l'incident. Pour des tickets synchronisés avec l'incident dans les deux sens, voir [Jira](/docs/integrations/jira).
@@ -97,11 +97,11 @@ L'issue reste ouverte quand l'incident est résolu, car le travail qui en décou
 
 - **GitHub Enterprise Server.** Envoyez plutôt la requête à votre serveur : `https://your-github-host/api/v3/repos/your-org/your-repo/issues`. Un serveur sur une adresse de réseau privé exige un OneUptime auto-hébergé dont l'administrateur l'autorise : voir [Accès réseau sortant](/docs/workflows/configuration#accès-réseau-sortant).
 - **L'assigner.** Ajoutez `"assignees": ["octocat"]` ou `"milestone": 3` au corps. GitHub ignore sans un mot les labels, les assignés et les jalons quand le jeton ne peut pas pousser dans le dépôt.
-- **Seulement certains incidents.** Placez un bloc **If / Else** entre le déclencheur et le bloc d'API, et n'ouvrez des issues que sur son côté **Yes**, par exemple pour une gravité.
+- **Seulement certains incidents.** Placez un bloc **Si / Sinon** entre le déclencheur et le bloc d'API, et n'ouvrez des issues que sur son côté **Oui**, par exemple pour une gravité.
 
 ## Dépannage
 
-L'étape **API Post (JSON)** prend **Error** quand GitHub refuse la requête. Ses **Response Status** et **Response Body** dans l'exécution disent pourquoi.
+L'étape **Appel d'API POST (JSON)** prend **Erreur** quand GitHub refuse la requête. Ses **Statut de la réponse** et **Corps de la réponse** dans l'exécution disent pourquoi.
 
 :::details GitHub répond 401
 Le jeton est faux, expiré ou révoqué. Créez-en un nouveau, et remplacez le contenu de `GITHUB_TOKEN`.
@@ -124,7 +124,7 @@ Le propriétaire ou le dépôt dans l'**URL** est faux, ou le jeton ne peut pas 
 
 :::cards
 - [GitHub App](/docs/ai/github-app): Demander à l'IA de OneUptime une modification, une révision ou une revue depuis GitHub même.
-- [GitLab](/docs/integrations/gitlab): Le même workflow, pour les issues GitLab.
-- [Composants de workflow](/docs/workflows/components#api): Chaque paramètre des blocs d'API.
+- [GitLab](/docs/integrations/gitlab): Le même flux de travail, pour les issues GitLab.
+- [Composants de flux de travail](/docs/workflows/components#api): Chaque paramètre des blocs d'API.
 - [Présentation des intégrations](/docs/integrations/index): Les modèles derrière chaque intégration.
 :::

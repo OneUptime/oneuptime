@@ -2,6 +2,9 @@ import { expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
+import { withSpacesShown, withUnit } from "../SuiteHelpers/NoBreakSpaces";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * A monitor's Status Timeline and an incident's State Timeline (the name of
@@ -51,10 +54,12 @@ const OCT_4_CHANGES: Array<string> = [4, 5, 6, 7, 8].map(eventId);
 
 /*
  * The 38-second blip's name on the band: both ends in one minute, so to
- * the second (Chromium writes a narrow no-break space before AM).
+ * the second (Chromium writes a narrow no-break space before AM), and how
+ * long it lasted held to its unit (#8788).
  */
-const BLIP_LABEL: RegExp =
-  /^Offline, Oct 9, 7:26:01\sAM – 7:26:39\sAM, 38 secs$/;
+const BLIP_LABEL: RegExp = new RegExp(
+  `^Offline, Oct 9, 7:26:01\\sAM – 7:26:39\\sAM, ${withUnit(38, "secs")}$`,
+);
 
 // The buttons beside the Timeline | Table switch in an incident's header.
 const INCIDENT_HEADER_BUTTON_NAME: RegExp =
@@ -1305,7 +1310,9 @@ test.describe("a monitor's Status Timeline with monitoring turned off", () => {
     // A screen reader hears it, and so does the pointer.
     await expect(mark(page, OFF_LAST_MONTH)).toHaveAttribute(
       "aria-label",
-      /^Operational, monitoring off, Sep 24, 8:36\sAM – Sep 27, 8:36\sAM, 3 days$/,
+      new RegExp(
+        `^Operational, monitoring off, Sep 24, 8:36\\sAM – Sep 27, 8:36\\sAM, ${withUnit(3, "days")}$`,
+      ),
     );
     await mark(page, OFF_LAST_MONTH).hover();
     await expect(
@@ -1445,9 +1452,20 @@ test.describe("a monitor's Status Timeline in Japanese", () => {
      * "29 日23 時間10 分", one unit and part of the next past the two.
      */
     expect(items).toHaveLength(3);
-    expect(items[0]).toMatch(/ · 29 日23 時間$/);
-    expect(items[1]).toMatch(/ · 1 分47 秒$/);
-    expect(items[2]).toMatch(/ · 15 分32 秒 · 5 回$/);
+    // Each figure held to its unit (#8788), read with its spaces shown.
+    const endsWith: (end: string) => RegExp = (end: string): RegExp => {
+      return new RegExp(`${escapeRegExp(withSpacesShown(end))}$`);
+    };
+    expect(withSpacesShown(items[0]!)).toMatch(
+      endsWith(` · ${withUnit(29, "日")}${withUnit(23, "時間")}`),
+    );
+    expect(withSpacesShown(items[1]!)).toMatch(
+      endsWith(` · ${withUnit(1, "分")}${withUnit(47, "秒")}`),
+    );
+    // A count of times is no unit: "5 回" keeps its plain space.
+    expect(withSpacesShown(items[2]!)).toMatch(
+      endsWith(` · ${withUnit(15, "分")}${withUnit(32, "秒")} · 5 回`),
+    );
 
     for (const item of items) {
       // Japanese units, never an English one left over.
@@ -1952,4 +1970,21 @@ test.describe("every other status timeline page", () => {
       ),
     ).toBe(true);
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German, Japanese, Arabic and Persian whole, parsed on every page load of
+ * every test. English is in the bundle now, and each other language a chunk
+ * of its own, loaded only by a page drawn in it
+ * (SuiteHelpers/FixtureLocales.js), built as the Dashboard ships it
+ * (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "ja", "ar", "fa"],
+  address: (language: string): string => {
+    return language === "en"
+      ? MONITOR_ROUTE
+      : `${MONITOR_ROUTE}?lang=${language}`;
+  },
 });

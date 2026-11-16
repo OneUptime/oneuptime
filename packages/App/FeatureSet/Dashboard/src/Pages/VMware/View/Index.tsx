@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
@@ -86,6 +87,10 @@ import RangeStartAndEndDateTime, {
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import ValueFormatter from "Common/Utils/ValueFormatter";
+import {
+  formatReaderFigure,
+  getDateDisplayLanguage,
+} from "Common/Types/DateLanguage";
 import GoldenMetricTile, {
   GoldenMetricTileTone,
   tileColorClasses,
@@ -217,7 +222,7 @@ const formatPercent: (value: number | null) => string = (
   value: number | null,
 ): string => {
   if (value === null || !isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return `${value.toFixed(1)}%`;
 };
@@ -1740,7 +1745,7 @@ const VMwareVCenterOverview: FunctionComponent<
           iconColor="emerald"
           value={
             hostEffectivenessPct === null
-              ? "—"
+              ? undefined
               : // Counts in the reader's digits, as the hero's chips write them.
                 `${translator.formatNumber(clusterHostsEffective)}/${translator.formatNumber(clusterHostsTotal)}`
           }
@@ -1898,7 +1903,10 @@ const VMwareVCenterOverview: FunctionComponent<
         min: 0,
         max: 100,
         formatter: (value: number): string => {
-          return `${Math.round(value)}%`;
+          return formatReaderFigure(Math.round(value), {
+            decimals: 0,
+            isPercent: true,
+          });
         },
         precision: YAxisPrecision.NoDecimals,
       },
@@ -1934,7 +1942,9 @@ const VMwareVCenterOverview: FunctionComponent<
         max: "auto",
         precision: YAxisPrecision.NoDecimals,
         formatter: (value: number): string => {
-          return ValueFormatter.formatValue(value, "By");
+          return ValueFormatter.formatValue(value, "By", {
+            language: getDateDisplayLanguage(),
+          });
         },
       },
     };
@@ -1947,7 +1957,10 @@ const VMwareVCenterOverview: FunctionComponent<
         max: "auto",
         precision: YAxisPrecision.NoDecimals,
         formatter: (value: number): string => {
-          return `${Math.round(value)}%`;
+          return formatReaderFigure(Math.round(value), {
+            decimals: 0,
+            isPercent: true,
+          });
         },
       },
     };

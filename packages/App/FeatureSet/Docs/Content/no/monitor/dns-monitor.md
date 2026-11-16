@@ -1,4 +1,4 @@
-# DNS-overvåking
+# DNS-monitor
 
 En DNS-monitor slår opp en DNS-post etter en tidsplan og sjekker svaret: at navnet kan slås opp, hvor raskt, og hva postene sier. Bruk den til å fange opp et DNS-brudd, en post som er endret eller forsvunnet, eller en treg løser, før brukerne merker det.
 
@@ -28,7 +28,7 @@ En sonde som har mistet sin egen nettverkstilkobling, rapporterer ikke noe resul
 
 ## Før du starter
 
-- **En rolle som kan opprette monitorer**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member, eller en egendefinert rolle med tillatelsen Create Monitor.
+- **En rolle som kan opprette monitorer**: Prosjekteier, Prosjektadministrator, Prosjektmedlem, Monitoradministrator eller Monitormedlem, eller en egendefinert rolle med tillatelsen Create Monitor.
 - **En sonde som når DNS-serveren.** Prosjektets standardsonder velges for hver nye monitor. For å spørre en DNS-server på et privat nettverk, for eksempel en intern løser, bruker du en [egendefinert sonde](/docs/probe/custom-probe) i det nettverket.
 
 ## Opprett en DNS-monitor
@@ -48,7 +48,7 @@ Angi **Domenenavn** som skal slås opp, som `example.com`, og velg **Posttype**.
 
 ### Test den
 
-Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av overvåkingstest** viser postene sonden fikk tilbake.
+Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av monitortest** viser postene sonden fikk tilbake.
 
 ### Gå gjennom kriteriene
 
@@ -111,7 +111,7 @@ Med to eller flere filtre avgjør **Samsvarsbetingelse** om **Alle** må samsvar
 
 En ny DNS-monitor starter med to kriterier:
 
-- **Frakoblet** — navnet kan ikke slås opp, eller har ingen post av typen, etter alle nye forsøk. Monitoren merkes som **Frakoblet**, og det opprettes en hendelse med navnet "_monitor name_ is offline". Hendelsen løser seg selv når navnet kan slås opp igjen.
+- **Frakoblet** — navnet kan ikke slås opp, eller har ingen post av typen, etter alle nye forsøk. Monitoren merkes som **Frakoblet**, og det opprettes en hendelse med navnet "_monitornavn_ er frakoblet". Hendelsen løser seg selv når navnet kan slås opp igjen.
 - **Oppe** — navnet kan slås opp. Monitoren merkes som **I drift**.
 
 Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva som skjer. Når ingen samsvarer, viser monitoren standardstatusen sin: **I drift**, med mindre du velger en annen under **Flere felt** under kriteriene.
@@ -171,8 +171,8 @@ Serveren i **DNS-server (valgfritt)** validerer ikke DNSSEC og setter derfor ald
 ## Neste steg
 
 :::cards
-- [DNSSEC-overvåking](/docs/monitor/dnssec-monitor): Valider tillitskjeden til en signert sone.
-- [Domene-overvåking](/docs/monitor/domain-monitor): Følg med på domenets registrering og utløp.
-- [Egendefinerte probes](/docs/probe/custom-probe): Spør interne DNS-servere fra ditt eget nettverk.
+- [DNSSEC-monitor](/docs/monitor/dnssec-monitor): Valider tillitskjeden til en signert sone.
+- [Domene-monitor](/docs/monitor/domain-monitor): Følg med på domenets registrering og utløp.
+- [Egendefinerte sonder](/docs/probe/custom-probe): Spør interne DNS-servere fra ditt eget nettverk.
 - [Hendelser – Oversikt](/docs/incidents/index): Hva som skjer etter at monitoren har erklært en.
 :::

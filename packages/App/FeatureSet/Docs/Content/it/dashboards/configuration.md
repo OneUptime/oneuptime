@@ -15,15 +15,15 @@ Le dashboard seguono le [autorizzazioni](/docs/permissions/index) del tuo proget
 
 | Per | Serve |
 | --- | --- |
-| Leggere le dashboard | `ReadDashboard`, oppure un ruolo del progetto: Project Owner, Project Admin, Project Member, Viewer o un ruolo Settings |
-| Creare dashboard | `CreateDashboard`, Project Owner o Project Admin |
-| Modificare una dashboard: i suoi widget, le variabili, la condivisione, il branding, e archiviarla | `EditDashboard`, Project Owner o Project Admin |
-| Eliminare una dashboard | `DeleteDashboard`, Project Owner o Project Admin |
-| Aggiungere e rimuovere proprietari | Le autorizzazioni sui proprietari delle dashboard, Project Owner, Project Admin o Project Member |
-| Aggiungere e modificare domini personalizzati | Le autorizzazioni sui domini delle dashboard, Project Owner, Project Admin, Project Member, Settings Admin o Settings Member |
-| Creare regole del proprietario e regole delle etichette | Le autorizzazioni sulle regole, Project Owner o Project Admin |
+| Leggere le dashboard | `ReadDashboard`, oppure un ruolo del progetto: Proprietario del progetto, Amministratore del progetto, Membro del progetto, Visualizzatore o un ruolo Settings |
+| Creare dashboard | `CreateDashboard`, Proprietario del progetto o Amministratore del progetto |
+| Modificare una dashboard: i suoi widget, le variabili, la condivisione, il branding, e archiviarla | `EditDashboard`, Proprietario del progetto o Amministratore del progetto |
+| Eliminare una dashboard | `DeleteDashboard`, Proprietario del progetto o Amministratore del progetto |
+| Aggiungere e rimuovere proprietari | Le autorizzazioni sui proprietari delle dashboard, Proprietario del progetto, Amministratore del progetto o Membro del progetto |
+| Aggiungere e modificare domini personalizzati | Le autorizzazioni sui domini delle dashboard, Proprietario del progetto, Amministratore del progetto, Membro del progetto, Amministratore delle impostazioni o Membro delle impostazioni |
+| Creare regole del proprietario e regole delle etichette | Le autorizzazioni sulle regole, Proprietario del progetto o Amministratore del progetto |
 
-Quindi un Project Member legge ogni dashboard, ma ha bisogno di `CreateDashboard` ed `EditDashboard` per costruirne. Lettura, modifica ed eliminazione possono ciascuna essere limitate alle dashboard che un team possiede, o alle dashboard che hanno certe etichette: vedi [Ambito: fin dove arriva un'autorizzazione concessa](/docs/permissions/index#ambito-fin-dove-arriva-unautorizzazione-concessa).
+Quindi un Membro del progetto legge ogni dashboard, ma ha bisogno di `CreateDashboard` ed `EditDashboard` per costruirne. Lettura, modifica ed eliminazione possono ciascuna essere limitate alle dashboard che un team possiede, o alle dashboard che hanno certe etichette: vedi [Ambito: fin dove arriva un'autorizzazione concessa](/docs/permissions/index#ambito-fin-dove-arriva-unautorizzazione-concessa).
 
 Assegnale nella pagina **Autorizzazioni** di un team: apri **Prodotti → Team** e scegli il team.
 
@@ -100,9 +100,9 @@ Apri la pagina **Elimina** della dashboard. L'eliminazione non può essere annul
 
 Se la dashboard è pubblica su un dominio personalizzato, l'indirizzo smette di rispondere non appena la elimini. Per continuare a servire l'indirizzo, aggiungi il dominio a un'altra dashboard dopo aver eliminato questa: un dominio appartiene a una sola dashboard alla volta.
 
-## Registri di audit
+## Log di audit
 
-La pagina **Registri di audit** della dashboard elenca ogni modifica fatta alla dashboard, e chi l'ha fatta. I registri di audit fanno parte del piano Enterprise e dell'[Edizione Enterprise](/docs/self-hosted/enterprise).
+La pagina **Log di audit** della dashboard elenca ogni modifica fatta alla dashboard, e chi l'ha fatta. I log di audit fanno parte del piano Enterprise e dell'[Edizione Enterprise](/docs/self-hosted/enterprise).
 
 ## Conservazione dei dati e backup
 

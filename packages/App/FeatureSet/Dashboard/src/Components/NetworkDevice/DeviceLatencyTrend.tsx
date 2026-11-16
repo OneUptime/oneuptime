@@ -1,4 +1,5 @@
 import MetricSparkline from "../Metrics/MetricSparkline";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import MetricUtil from "../Metrics/Utils/Metrics";
 import { NETWORK_DEVICE_METRIC_DESCRIPTIONS } from "../MetricDescriptions/NetworkDeviceMetricDescriptions";
 import PageMap from "../../Utils/PageMap";
@@ -6,7 +7,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import {
   LatencyPoint,
   LatencySummary,
-  formatMilliseconds,
+  formatRoundTrip,
   formatPercent,
   latencyPointsFromAggregates,
   summarizeLatencySeries,
@@ -25,7 +26,7 @@ import Link from "Common/UI/Components/Link/Link";
 import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import ProjectUtil from "Common/UI/Utils/Project";
 import useTranslateValue from "Common/UI/Utils/Translation";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { composedValue, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -237,9 +238,16 @@ const DeviceLatencyTrend: FunctionComponent<ComponentProps> = (
             {translator.translateTemplate(
               "now {{latest}} · avg {{avg}} · max {{max}}",
               {
-                latest: formatMilliseconds(summary.latest),
-                avg: formatMilliseconds(summary.avg),
-                max: formatMilliseconds(summary.max),
+                // Each in the sentence's own language (#7418).
+                latest: composedValue((sentence: Translator): string => {
+                  return formatRoundTrip(summary.latest, sentence);
+                }),
+                avg: composedValue((sentence: Translator): string => {
+                  return formatRoundTrip(summary.avg, sentence);
+                }),
+                max: composedValue((sentence: Translator): string => {
+                  return formatRoundTrip(summary.max, sentence);
+                }),
               },
             )}
           </p>
@@ -248,7 +256,9 @@ const DeviceLatencyTrend: FunctionComponent<ComponentProps> = (
             <WordsWithInfoTooltip
               text={translator.translateTemplate("{{label}}: {{value}}", {
                 label: lossTitle,
-                value: lossSummary ? formatPercent(lossSummary.max) : "—",
+                value: lossSummary
+                  ? formatPercent(lossSummary.max)
+                  : EMPTY_VALUE_MARK,
               })}
               label={lossTitle}
               description={NETWORK_DEVICE_METRIC_DESCRIPTIONS.packetLossPeak}

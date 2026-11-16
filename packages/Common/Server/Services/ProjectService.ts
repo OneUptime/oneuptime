@@ -199,6 +199,10 @@ import SampleProjectAnalyticsData from "../Utils/SampleProject/SampleProjectAnal
 import ActiveMonitorLimitUtil from "../../Types/Monitor/ActiveMonitorLimit";
 import AiFirstResponder from "../Utils/AI/FirstResponder/AiFirstResponder";
 import PublicNoteApprovalPolicy from "../Utils/Notes/PublicNoteApprovalPolicy";
+import IncomingRequestSecretPolicy from "../Utils/Monitor/IncomingRequestSecretPolicy";
+import IncomingRequestSecretService, {
+  NO_INCOMING_REQUEST_SECRET_TO_REQUIRE_MESSAGE,
+} from "./IncomingRequestSecretService";
 import TelemetryIngestionBudgetSettings from "../Utils/Telemetry/TelemetryIngestionBudgetSettings";
 import TelemetryIngestionBudgetValidation, {
   isTelemetryIngestionBudgetColumnTouched,
@@ -1491,6 +1495,17 @@ export class ProjectService extends ProjectReferencesService<Model> {
     }
 
     /*
+     * Require Incoming Request Secret turned on or off: the next request to
+     * the project's Incoming Request monitors is judged by it, on every
+     * server (IncomingRequestSecretPolicy keeps it in Redis).
+     */
+    if (updateData["requireIncomingRequestSecret"] !== undefined) {
+      for (const projectId of updatedItemIds) {
+        await IncomingRequestSecretPolicy.forget(projectId);
+      }
+    }
+
+    /*
      * Blocked or unblocked: this server reads the flag again on the next
      * request, and every other server is told to (RealtimeAccessChanges) -
      * so the project's API requests are refused or let in again, its
@@ -1744,6 +1759,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
     // Public note approval turns on only with somebody to approve.
     await this.assertPublicNoteApprovalCanTurnOn(updateBy);
 
+    // Requiring an incoming request secret turns on only with a secret to send.
+    await this.assertIncomingRequestSecretCanTurnOn(updateBy);
+
     if (IsBillingEnabled) {
       if (
         updateBy.data.paymentProviderPlanId &&
@@ -1767,6 +1785,43 @@ export class ProjectService extends ProjectReferencesService<Model> {
    * the update held to them, so no project is turned on that was not
    * checked, and none the update does not write is asked about.
    */
+  /*
+   * Require Incoming Request Secret (issue #7526) refuses every request to the
+   * project's Incoming Request monitors that sends none of its incoming
+   * request secrets. Turned on with no secret, it would refuse every request
+   * at once - every heartbeat monitor going offline together - so it turns on
+   * only once the project has a secret for its senders to send.
+   */
+  private async assertIncomingRequestSecretCanTurnOn(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    if (updateBy.data.requireIncomingRequestSecret !== true) {
+      return;
+    }
+
+    const projects: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
+        _id: true,
+      },
+    );
+
+    for (const project of projects) {
+      if (!project.id) {
+        continue;
+      }
+
+      const secretCount: number =
+        await IncomingRequestSecretService.countSecretsOfProject(project.id);
+
+      if (secretCount < 1) {
+        throw new BadDataException(
+          NO_INCOMING_REQUEST_SECRET_TO_REQUIRE_MESSAGE,
+        );
+      }
+    }
+  }
+
   private async assertPublicNoteApprovalCanTurnOn(
     updateBy: UpdateBy<Model>,
   ): Promise<void> {
@@ -4179,7 +4234,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
     ownerTeam.isTeamEditable = false;
     ownerTeam.isTeamDeleteable = false;
     ownerTeam.description =
-      "This team is for project owners. Adding team members to this team will give them root level permissions.";
+      "This team is for Project Owners. Adding team members to this team will give them root level permissions.";
 
     ownerTeam = await TeamService.create({
       data: ownerTeam,
@@ -4228,7 +4283,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
     adminTeam.isTeamDeleteable = false;
     adminTeam.isTeamEditable = false;
     adminTeam.description =
-      "This team is for project admins. Admins can invite members to any team and create project resources.";
+      "This team is for Project Admins. Admins can invite members to any team and create project resources.";
 
     await TeamService.create({
       data: adminTeam,

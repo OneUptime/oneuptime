@@ -24,7 +24,7 @@ flowchart TB
 ## Før du begynder
 
 - **Metrikker, der ankommer.** Send dem med [OpenTelemetry](/docs/telemetry/open-telemetry) eller fra en agent som [OpenTelemetry-collectoren til værter](/docs/telemetry/host-otel-collector).
-- **En rolle, der må læse metrikker.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member eller Telemetry Viewer, eller en brugerdefineret rolle med tilladelsen Read Metrics. En rolle, der er begrænset til bestemte tjenester, læser kun deres metrikker.
+- **En rolle, der må læse metrikker.** Projektejer, Projektadministrator, Projektmedlem, Seer, Telemetriadministrator, Telemetrimedlem eller Telemetriseer, eller en brugerdefineret rolle med tilladelsen Read Metrics. En rolle, der er begrænset til bestemte tjenester, læser kun deres metrikker.
 - **Til Grafana eller et script: en API-nøgle til projektet** med en af disse roller eller tilladelsen Read Metrics. Se [Opret en API-nøgle](/docs/api-reference/api-reference#opret-en-api-nøgle). På OneUptime Cloud kræver API-nøgler abonnementet **Growth**.
 
 ## Skriv en forespørgsel
@@ -162,7 +162,7 @@ Forespørgslen beder om mere, end en læsning må rumme. Tilføj etiketmatchere,
 ## Næste trin
 
 :::cards
-- [Måleudforsker](/docs/telemetry/metrics-explorer): Vis metrikker i diagrammer uden at skrive en forespørgsel.
+- [Metrikudforsker](/docs/telemetry/metrics-explorer): Vis metrikker i diagrammer uden at skrive en forespørgsel.
 - [Metrik-monitor](/docs/monitor/metrics-monitor): Få en advarsel, når en metrik krydser en grænse.
 - [Eksterne datakilder](/docs/dashboards/data-sources): Vis en ekstern Prometheus på dine dashboards.
 :::

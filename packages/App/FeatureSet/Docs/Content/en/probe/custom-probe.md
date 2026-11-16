@@ -25,12 +25,12 @@ sequenceDiagram
 
 - **The probe connects out.** Every request goes from the probe to `ONEUPTIME_URL` over HTTPS. Nothing has to reach the probe from outside your network.
 - **It checks only its own monitors.** The probe asks OneUptime for the monitors it is added to, checks each one when it is due, and sends back the result. OneUptime decides from the results whether a monitor's status changes.
-- **OneUptime watches that it runs.** Every request from the probe counts as a sign of life, and the probe sends one at least every minute. After about three minutes without one, the probe shows **Disconnected**, and its owners are told. A probe with no owners tells the project's owners. To be paged as for any outage, with one incident until it is back, add a [Probe Status Monitor](/docs/monitor/probe-status-monitor): **Monitor this probe** on the probe's page creates one.
+- **OneUptime watches that it runs.** Every request from the probe counts as a sign of life, and the probe sends one at least every minute. After about three minutes without one, the probe shows **Disconnected**, and its owners are told. A probe with no owners tells the Project Owners. To be paged as for any outage, with one incident until it is back, add a [Probe Status Monitor](/docs/monitor/probe-status-monitor): **Monitor this probe** on the probe's page creates one.
 
 ## Before you begin
 
 - **The Growth plan, on OneUptime Cloud.** Creating a probe needs it. A self-hosted installation has no plan limits.
-- **Permission to create probes.** Project owners, admins and members have it, and so does anyone whose role lets them create probes.
+- **Permission to create probes.** Project Owners, Project Admins and Project Members have it, and so does anyone whose role lets them create probes.
 - **A machine in the network you want to monitor.** It needs Docker, Docker Compose or Kubernetes, a route to the services the probe will check, and outbound HTTPS to `ONEUPTIME_URL`.
 
 ## Install a probe
@@ -42,9 +42,9 @@ Open **Monitors → Settings → Probes** and click **Create Probe**. Give it a 
 
 ### Copy its ID and key
 
-The probe needs its ID and key to connect. To copy them, open the probe's menu in the **Custom Probes** table and pick **Show ID and Key**. Everyone who can see the table can copy a probe's ID; its key is shown only to project owners and admins, who see **Show ID and Key** where the others see **Show ID**.
+The probe needs its ID and key to connect. To copy them, open the probe's menu in the **Custom Probes** table and pick **Show ID and Key**. Everyone who can see the table can copy a probe's ID; its key is shown only to Project Owners and Project Admins, who see **Show ID and Key** where the others see **Show ID**.
 
-Project owners and admins can also click the probe: the **Set up your Custom Probe** card on its page shows the Docker command with its ID and key already filled in.
+Project Owners and Project Admins can also click the probe: the **Set up your Custom Probe** card on its page shows the Docker command with its ID and key already filled in.
 
 ### Run the probe
 

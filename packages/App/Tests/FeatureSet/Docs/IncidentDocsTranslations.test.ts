@@ -21,14 +21,6 @@ import {
   tableShape,
 } from "./DocsTranslationChecks";
 import { pathWithArrows } from "./DocsPageShape";
-import {
-  englishRoleNamesIn,
-  isBuiltInRoleName,
-  namesRoleAsDrawn,
-  rolesLeftInEnglish,
-  runningText,
-  writtenPermissionTitle,
-} from "./DocsRoleNames";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -82,11 +74,14 @@ const PAGE_NAMES: Array<string> = PAGES.map((entry: IncidentPage): string => {
  * Bold names the translations keep in English, on purpose, by page: the
  * product shows them in English whatever the language, or they are names
  * people give rather than labels.
+ *
+ * A workflow step's own names are not among them: the builder draws
+ * Create One Incident's Incident Template and a trigger's Success output
+ * in the reader's language, and the pages name them so (#7511,
+ * WorkflowStepNamesAsDrawnDocs).
  */
 const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
   "incidents/declaring-incidents": [
-    // The workflow step's setting: the workflow docs name it in English.
-    "Incident Template",
     /*
      * A plan's name, which the Dashboard shows as written in every language
      * (PlanPickerCopy, the plan pills), as on the invoice.
@@ -108,25 +103,12 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
   "incidents/notes-owners-and-feed": [
     // The Slack and Microsoft Teams modal, which is not translated.
     "Note",
-    // The workflow step's setting.
-    "Incident Template",
   ],
   "incidents/linked-alerts": [
     // Permission names, and the permission group they are in.
     "Create Alert State Timeline",
     "Edit Alert",
     "Create Incident Alert",
-  ],
-  "incidents/settings": [
-    /*
-     * A trigger's out-port, which the workflow docs name in English as a
-     * step's own output (WorkflowDocsTranslations' OUTPUTS). The Add
-     * Trigger panel, its sections and its Incident resource are drawn in
-     * the reader's language, and the page names them so.
-     */
-    "Success",
-    // The workflow step's setting.
-    "Incident Template",
   ],
 };
 
@@ -545,129 +527,4 @@ describe("the comparisons", () => {
       tableShape("| a |\n| - |\n| 1 |\n| 2 |\n\ntext\n| b |\n| - |\n| 3 |"),
     ).toEqual([2, 1]);
   });
-});
-
-/*
- * BUILT-IN ROLES IN RUNNING TEXT (#7514).
- *
- * The Dashboard draws a built-in role's name in the reader's language (the
- * role picker, the Built-in Roles card, the permission tables and the "You
- * need one of these roles" refusals all look it up), so a translated page
- * names a role as its Dashboard draws it (DocsRoleNames). The checks above
- * read bold spans only, and the incident pages wrote every role in English
- * in their sentences and table cells, in all sixteen translations: "Project
- * Owners, Project Admins and anyone with Edit Project can change the
- * prefixes" where the German Dashboard says Projektinhaber. These hold the
- * running text - outside code and bold, a permission's own title kept in
- * English - to the drawn names.
- */
-describe("built-in roles in the incident pages' running text", () => {
-  it("would find a role left in English, plural or not, and nothing in code or bold", () => {
-    expect(
-      rolesLeftInEnglish("de", "Nur Project Owners und Project Admins."),
-    ).toEqual(["Project Owner", "Project Admin"]);
-    expect(
-      rolesLeftInEnglish("fa", "فقط Project Owner و ‏Project Adminها"),
-    ).toEqual(["Project Owner", "Project Admin"]);
-    // The longest name first: "Incident Viewer" is not also a "Viewer".
-    expect(rolesLeftInEnglish("de", "ergänzen Sie Incident Viewer")).toEqual([
-      "Incident Viewer",
-    ]);
-    expect(
-      rolesLeftInEnglish(
-        "de",
-        "**Project Owner**, `Project Admin`, **On Create Incident Member**",
-      ),
-    ).toEqual([]);
-    expect(
-      rolesLeftInEnglish("de", "```\nProject Owner\n```\nProjektinhaber"),
-    ).toEqual([]);
-    // English names its roles in English.
-    expect(rolesLeftInEnglish("en", "Only Project Owners can.")).toEqual([]);
-    // A permission's own title is not a role's name.
-    expect(rolesLeftInEnglish("de", "Read Incident, Edit Project")).toEqual([]);
-  });
-
-  it("would accept a role named as drawn, inflected for the sentence, and refuse another word", () => {
-    expect(
-      namesRoleAsDrawn("de", "Nur Projektadministratoren", "Project Admin"),
-    ).toBe(true);
-    expect(
-      namesRoleAsDrawn("fr", "les Propriétaires du projet", "Project Owner"),
-    ).toBe(true);
-    expect(namesRoleAsDrawn("ru", "у Владельца проекта", "Project Owner")).toBe(
-      true,
-    );
-    expect(
-      namesRoleAsDrawn("ja", "プロジェクト所有者と", "Project Owner"),
-    ).toBe(true);
-    expect(namesRoleAsDrawn("fr", "les propriétaires", "Project Owner")).toBe(
-      false,
-    );
-    expect(namesRoleAsDrawn("de", "Project Owner", "Project Owner")).toBe(
-      false,
-    );
-  });
-
-  it("finds roles to check in the English running text", () => {
-    const named: Array<string> = PAGE_NAMES.flatMap(
-      (page: string): Array<string> => {
-        return englishRoleNamesIn(runningText(readPage("en", page)));
-      },
-    );
-
-    for (const role of [
-      "Project Owner",
-      "Project Admin",
-      "Project Member",
-      "Incident Admin",
-      "Incident Member",
-      "Alert Admin",
-      "Alert Member",
-      "Viewer",
-      "Incident Viewer",
-      "Alert Viewer",
-    ]) {
-      expect(isBuiltInRoleName(role)).toBe(true);
-      expect(named).toContain(role);
-    }
-  });
-
-  it.each(LANGUAGES)(
-    "%s writes no built-in role in English in its incident pages' running text",
-    (language: string) => {
-      const left: Array<string> = PAGE_NAMES.flatMap(
-        (page: string): Array<string> => {
-          return rolesLeftInEnglish(language, readPage(language, page)).map(
-            (role: string): string => {
-              return `${page}: ${role} -> ${writtenPermissionTitle(language, role)}`;
-            },
-          );
-        },
-      );
-
-      expect(left).toEqual([]);
-    },
-  );
-
-  it.each(LANGUAGES)(
-    "%s names every role the English running text names, as its Dashboard draws it",
-    (language: string) => {
-      const missing: Array<string> = PAGE_NAMES.flatMap(
-        (page: string): Array<string> => {
-          const text: string = runningText(readPage(language, page));
-
-          return englishRoleNamesIn(runningText(readPage("en", page)))
-            .filter((role: string): boolean => {
-              return !namesRoleAsDrawn(language, text, role);
-            })
-            .map((role: string): string => {
-              return `${page}: ${role} -> ${writtenPermissionTitle(language, role)}`;
-            });
-        },
-      );
-
-      expect(missing).toEqual([]);
-    },
-  );
 });

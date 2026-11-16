@@ -113,7 +113,7 @@ What a connected client can do:
 
 ### Managing Connected Clients
 
-Every client connected by signing in is listed on **Project Settings → AI → MCP Server**, under **Connected MCP Clients**, with who connected it, what it may do and when it was last used. You see the clients you connected; project owners and admins see everyone's.
+Every client connected by signing in is listed on **Project Settings → AI → MCP Server**, under **Connected MCP Clients**, with who connected it, what it may do and when it was last used. You see the clients you connected; Project Owners and Project Admins see everyone's.
 
 Click **Disconnect** to sign a client out. It stops working at once.
 
@@ -497,7 +497,7 @@ The MCP server is stateless: it neither issues nor tracks session ids, so every 
 | Security | Security Event, Threat Intel Indicator |
 | Changes and cost | Change Event, Kubernetes Cost Allocation |
 
-The tools are named in snake case: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` and `count_incidents`, or `list_logs` and `count_spans` for telemetry.
+The tools are named in snake case: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` and `count_incidents`, or `list_logs` and `count_spans` for telemetry. `create_incident` and `create_alert` also take `ownerUsers` and `ownerTeams`: the IDs of the users and teams who own the record from the start, who are told it was created.
 
 ## Next steps
 

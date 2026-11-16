@@ -20,7 +20,7 @@ sequenceDiagram
     O-->>P: 확인할 모니터
     Note over P: 네트워크에서<br/>각각 확인
     P->>O: 결과 전송
-    Note over O: 상태를 갱신하고<br/>인시던트나 알림을 엽니다
+    Note over O: 상태를 갱신하고<br/>인시던트나 경고를 엽니다
 ```
 
 - **프로브는 바깥으로 연결합니다.** 모든 요청은 프로브에서 `ONEUPTIME_URL`(으)로 HTTPS를 통해 갑니다. 네트워크 밖에서 프로브에 닿아야 하는 것은 없습니다.
@@ -30,7 +30,7 @@ sequenceDiagram
 ## 시작하기 전에
 
 - **OneUptime Cloud에서는 Growth 요금제.** 프로브를 만들려면 필요합니다. 자체 호스팅 설치에는 요금제 제한이 없습니다.
-- **프로브를 만들 권한.** 프로젝트 소유자, 관리자, 구성원에게 있으며, 역할이 프로브 생성을 허용하는 사람에게도 있습니다.
+- **프로브를 만들 권한.** 프로젝트 소유자, 프로젝트 관리자, 프로젝트 구성원에게 있으며, 역할이 프로브 생성을 허용하는 사람에게도 있습니다.
 - **모니터링할 네트워크 안의 머신.** Docker, Docker Compose 또는 Kubernetes, 프로브가 확인할 서비스까지의 경로, 그리고 `ONEUPTIME_URL`(으)로 나가는 HTTPS가 필요합니다.
 
 ## 프로브 설치
@@ -42,9 +42,9 @@ sequenceDiagram
 
 ### ID와 키 복사
 
-프로브는 연결하려면 ID와 키가 필요합니다. 복사하려면 **사용자 지정 프로브** 표에서 프로브의 메뉴를 열고 **ID 및 키 표시** 를 선택합니다. 표를 볼 수 있는 사람은 누구나 프로브의 ID를 복사할 수 있지만, 키는 프로젝트 소유자와 관리자에게만 표시됩니다. 이들에게는 **ID 및 키 표시** 가 보이고, 다른 사람에게는 **ID 표시** 가 보입니다.
+프로브는 연결하려면 ID와 키가 필요합니다. 복사하려면 **사용자 지정 프로브** 표에서 프로브의 메뉴를 열고 **ID 및 키 표시** 를 선택합니다. 표를 볼 수 있는 사람은 누구나 프로브의 ID를 복사할 수 있지만, 키는 프로젝트 소유자와 프로젝트 관리자에게만 표시됩니다. 이들에게는 **ID 및 키 표시** 가 보이고, 다른 사람에게는 **ID 표시** 가 보입니다.
 
-프로젝트 소유자와 관리자는 프로브를 클릭할 수도 있습니다. 해당 페이지의 **Set up your Custom Probe** 카드에 ID와 키가 이미 채워진 Docker 명령이 표시됩니다.
+프로젝트 소유자와 프로젝트 관리자는 프로브를 클릭할 수도 있습니다. 해당 페이지의 **Set up your Custom Probe** 카드에 ID와 키가 이미 채워진 Docker 명령이 표시됩니다.
 
 ### 프로브 실행
 
@@ -201,7 +201,7 @@ spec:
 프록시를 거치는 것:
 
 - **프로브가 OneUptime에 보내는 자체 요청.**
-- **모니터의 HTTP 확인** : Website, API, External Status Page, Custom Code, SSL 인증서, 합성, 도메인 모니터. SSL 인증서와 합성 모니터는 `HTTPS_PROXY_URL`을 쓰고, 그것만 설정되어 있으면 `HTTP_PROXY_URL`을 씁니다.
+- **모니터의 HTTP 확인** : Website, API, 외부 상태 페이지, Custom Code, SSL 인증서, 합성, 도메인 모니터. SSL 인증서와 합성 모니터는 `HTTPS_PROXY_URL`을 쓰고, 그것만 설정되어 있으면 `HTTP_PROXY_URL`을 씁니다.
 - **그 밖의 확인은 거치지 않습니다.** Ping, Port, DNS, SNMP 등 HTTP가 아닌 확인은 직접 연결합니다.
 
 `NO_PROXY` 항목은 호스트 이름(`api.internal`), 그 아래 모든 이름을 뜻하도록 앞에 점이나 `*.`를 붙인 도메인(`.internal.example.com`), 둘 중 하나에 `:port`를 붙인 것, 또는 모든 것을 뜻하는 `*`입니다. IP 범위는 읽지 않으므로 주소를 하나씩 나열하세요. 소문자 이름 `http_proxy`, `https_proxy`, `no_proxy`와 `HTTP_PROXY`, `HTTPS_PROXY`도 작동합니다.
@@ -287,8 +287,8 @@ Docker Engine 27 이상은 네트워크에 쓸 IPv6 서브넷을 고르고, 프�
 | `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | 합성 모니터 스크립트의 제한 시간(밀리초). |
 | `PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED` | `false` | `true`로 설정하면 합성 모니터의 Chromium을 자체 샌드박스 안에서 실행합니다. 프로브의 컨테이너가 Playwright의 프로필처럼 샌드박스를 허용하는 seccomp 프로필로 실행될 때만 켜세요. 그런 프로필이 없으면 Chromium이 시작되지 않습니다. 꺼져 있는 동안에는 프로브가 시작할 때 경고를 로그에 남깁니다. |
 | `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Custom Code 모니터 스크립트의 제한 시간(밀리초). |
-| `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` | `false` | `true`로 설정하면 이 프로브의 Website, API, External Status Page, Custom Code 모니터가 사설 주소에 닿을 수 있습니다. [프라이빗 네트워크 접근](/docs/self-hosted/private-network-access)을 참조하세요. |
-| `PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED` | `true` | 이 프로브의 SSL Certificate, Website, API 모니터는 브라우저처럼 인증서 발급 기관에 인증서를 취소했는지 묻습니다. `false`로 설정하면 묻지 않습니다. 인터넷에 접근할 수 없는 프로브 등에 쓰세요. 프로브가 닿을 수 없는 발급 기관은 절대 취소로 간주되지 않습니다. 프로브는 닿을 수 없는 응답자마다 몇 초씩 기다리며, 이는 대략 5분에 한 번입니다. [SSL 인증서 모니터](/docs/monitor/ssl-certificate-monitor)를 참조하세요. |
+| `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` | `false` | `true`로 설정하면 이 프로브의 Website, API, 외부 상태 페이지, Custom Code 모니터가 사설 주소에 닿을 수 있습니다. [프라이빗 네트워크 접근](/docs/self-hosted/private-network-access)을 참조하세요. |
+| `PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED` | `true` | 이 프로브의 SSL 인증서, Website, API 모니터는 브라우저처럼 인증서 발급 기관에 인증서를 취소했는지 묻습니다. `false`로 설정하면 묻지 않습니다. 인터넷에 접근할 수 없는 프로브 등에 쓰세요. 프로브가 닿을 수 없는 발급 기관은 절대 취소로 간주되지 않습니다. 프로브는 닿을 수 없는 응답자마다 몇 초씩 기다리며, 이는 대략 5분에 한 번입니다. [SSL 인증서 모니터](/docs/monitor/ssl-certificate-monitor)를 참조하세요. |
 | `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` | `25` | 프로브가 한 번에 폴링하는 네트워크 장치의 수. 많은 장치를 폴링하는 프로브라면 값을 높이세요. |
 
 합성 모니터가 실행되는 한도(동시에 실행되는 수, 메모리, 디스크)는 [합성 모니터](/docs/monitor/synthetic-monitor) 페이지에 있습니다.

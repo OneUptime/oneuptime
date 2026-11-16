@@ -38,7 +38,7 @@ sequenceDiagram
 
 - **프로젝트 전용 프로브.** 글로벌 프로브는 다른 프로젝트의 트래픽도 다루므로 캡처하지 않습니다. 전용 프로브 설치 방법은 [사용자 지정 프로브](/docs/probe/custom-probe)를 참고하세요.
 - **이 릴리스 이후의 프로브.** 이전 프로브는 어디에서 캡처할 수 있는지 보고하지 않습니다.
-- **알맞은 권한.** 캡처를 시작하고 중지하려면 **Start Packet Capture**가, 파일을 다운로드하려면 **Download Packet Capture**가 필요합니다. 프로젝트 소유자와 관리자는 둘 다 가지고 있습니다. [권한](#권한)을 참고하세요.
+- **알맞은 권한.** 캡처를 시작하고 중지하려면 **Start Packet Capture**가, 파일을 다운로드하려면 **Download Packet Capture**가 필요합니다. 프로젝트 소유자와 프로젝트 관리자는 둘 다 가지고 있습니다. [권한](#권한)을 참고하세요.
 - **프로브에 닿지 않는 트래픽을 위한 미러 포트.** 프로브는 자기 호스트의 인터페이스에 오가는 트래픽만 봅니다. 다른 장치 사이의 트래픽을 캡처하려면 그 장치들의 스위치 포트를 (SPAN으로) 프로브 호스트의 남는 인터페이스로 미러링하세요.
 
 ## 패킷 캡처 켜기
@@ -188,10 +188,10 @@ spec:
 
 | 권한 | 할 수 있는 일 | 기본으로 가진 역할 |
 | --- | --- | --- |
-| **Start Packet Capture** | 캡처 시작과 중지 | Project Owner, Project Admin |
-| **Download Packet Capture** | 캡처 파일 다운로드 | Project Owner, Project Admin |
-| **Delete Packet Capture** | 캡처와 그 파일 삭제 | Project Owner, Project Admin |
-| **Read Packet Capture** | 캡처 보기: 언제, 어느 프로브에서, 어떤 필터로 실행됐는지 | Project Owner, Project Admin, Project Member, Viewer |
+| **Start Packet Capture** | 캡처 시작과 중지 | 프로젝트 소유자, 프로젝트 관리자 |
+| **Download Packet Capture** | 캡처 파일 다운로드 | 프로젝트 소유자, 프로젝트 관리자 |
+| **Delete Packet Capture** | 캡처와 그 파일 삭제 | 프로젝트 소유자, 프로젝트 관리자 |
+| **Read Packet Capture** | 캡처 보기: 언제, 어느 프로브에서, 어떤 필터로 실행됐는지 | 프로젝트 소유자, 프로젝트 관리자, 프로젝트 구성원, 뷰어 |
 
 팀에 **Start Packet Capture** 또는 **Download Packet Capture**를 주려면 **설정 → 팀**에서 팀을 열고 **권한** 페이지에서 권한을 추가하세요. [권한](/docs/permissions/index)을 참고하세요.
 

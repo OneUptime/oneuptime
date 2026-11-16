@@ -39,7 +39,7 @@ flowchart TB
 ## Før du begynner
 
 - **Spans eller logger som kommer inn.** Instrumenter tjenestene dine med [OpenTelemetry](/docs/telemetry/open-telemetry). Fanen **Oppsettveiledning** viser koden for språket ditt.
-- **En rolle som kan lese telemetri.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member eller Telemetry Viewer, eller en egendefinert rolle med tillatelsen Read Exceptions. Å løse og arkivere krever Project Owner eller Project Admin, eller tillatelsen Edit Exceptions.
+- **En rolle som kan lese telemetri.** Prosjekteier, Prosjektadministrator, Prosjektmedlem, Leser, Telemetriadministrator, Telemetrimedlem eller Telemetrileser, eller en egendefinert rolle med tillatelsen Read Exceptions. Å løse og arkivere krever Prosjekteier eller Prosjektadministrator, eller tillatelsen Edit Exceptions.
 
 ## Gå gjennom listen
 
@@ -106,7 +106,7 @@ Knappene øverst på siden til unntaket og ⋯ ved siden av dem, siden **Innstil
 
 For å endre flere samtidig krysser du av radene deres i listen, eller boksen over radene for alle unntak på siden, og bruker de samme handlingene under **Massehandlinger**. Når alle unntak på siden er krysset av, tilbyr linjen over radene å velge alle unntak som samsvarer med listens søk og filtre, på alle sider, opptil 10 000 om gangen; en handling spør da før den endrer dem. Resultatet viser hvilke unntak som ble endret, hvilke som ble latt være, og hvorfor.
 
-**Tildel**, under **Ansvarlig** i unntakets overskrift, gir det til én person eller ett team; klikk på navnet for å gi det til noen andre, og på × ved siden av navnet for å oppheve tildelingen. Hver rad viser hvem den tilhører, menyen ⋯ tilbyr **Tildel meg**, og **Tildel til…** under **Massehandlinger** tildeler flere samtidig. Personen det tildeles, eller hvert medlem av teamet, får et varsel slik raden **Unntak tildelt meg** i deres [Varselinnstillinger](/docs/notifications/notification-settings) sier; den som tildelte det, får ikke noe.
+**Tildel**, under **Ansvarlig** i unntakets overskrift, gir det til én person eller ett team; klikk på navnet for å gi det til noen andre, og på × ved siden av navnet for å oppheve tildelingen. Hver rad viser hvem den tilhører, menyen ⋯ tilbyr **Tildel meg**, og **Tildel til…** under **Massehandlinger** tildeler flere samtidig. Personen det tildeles, eller hvert medlem av teamet, får en varsling slik raden **Unntak tildelt meg** i deres [Varslingsinnstillinger](/docs/notifications/notification-settings) sier; den som tildelte det, får ikke noe.
 
 **Opprett monitor**, i ⋯ øverst på siden til unntaket, åpner en ny [unntaksmonitor](/docs/monitor/exceptions-monitor) for typen til dette unntaket i tjenesten det kommer fra, slik at du blir varslet når det skjer igjen. Den vises bare for dem som kan opprette monitorer.
 
@@ -228,7 +228,7 @@ En ny forekomst gjenåpner et løst unntak med vilje: feilen skjer fortsatt. Kon
 ## Neste steg
 
 :::cards
-- [Unntak-overvåking](/docs/monitor/exceptions-monitor): Få varsel når unntak øker kraftig.
+- [Unntak-monitor](/docs/monitor/exceptions-monitor): Få varsel når unntak øker kraftig.
 - [Source maps](/docs/telemetry/source-maps): Lesbare stack traces for nettleserkode.
 - [Kode](/docs/ai/ai-agent): Hvordan AI retter kode og åpner pull requests.
 - [Sporutforsker](/docs/telemetry/traces-explorer): Se forespørselen et unntak skjedde i.

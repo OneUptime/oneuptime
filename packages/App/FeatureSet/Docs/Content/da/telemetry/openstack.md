@@ -946,14 +946,14 @@ Intet er optaget om en database, der nåede `ACTIVE`, fordi Nova afviste gæsten
 
 ## Gnocchi
 
-En cloud, der kører Gnocchi, får dens API på **Tjenester** af sig selv, og en, der ikke gør, viser intet spor af det. Gnocchi har ingen dele, nogen åbner én ad gangen, så det, den siger, står på det API's egen side: hvor mange målinger og metrikker der venter, og hvor mange processorer den har.
+En cloud, der kører Gnocchi, får dens API på **Tjenester** af sig selv, og en, der ikke gør, viser intet spor af det. Gnocchi har ingen dele, nogen åbner én ad gangen, så det, den siger, står på det API's egen side: hvor mange metrikker og metrikker der venter, og hvor mange processorer den har.
 
 Ingen processorer når **Kræver opmærksomhed**, og det gør også en bagstand over 10.000 målinger. Gnocchis API bliver ved med at svare og tage imod målinger med `gnocchi-metricd` stoppet, optaget, så dens processorer er det eneste sted, der viser det. Intet går tabt, så længe det varer, men intet nyere kan læses.
 
 | Hvad | Agent, Fuld visning | Sonde, Fuld visning | Alt mindre |
 | --- | --- | --- | --- |
 | Om dens API svarer | Ja | Ja | Intet: se nedenfor |
-| Hvor mange målinger og metrikker der venter, og hvor mange processorer den har | Ja | Ja | Nej |
+| Hvor mange metrikker og metrikker der venter, og hvor mange processorer den har | Ja | Ja | Nej |
 
 Exporteren læser Gnocchis status, som kun en admin må. Gnocchi afviser alt mindre, og exporteren læser en afvisning på samme måde som en stoppet Gnocchi: `openstack_gnocchi_up` læses 0. Så en legitimation, der aldrig én gang har læst Gnocchi, får det at vide frem for, at Gnocchi er nede, og tilbydes ikke dens advarsler. En sonde skelner de to: Gnocchi svarede, så dens API læses oppe, og forbindelsestesten siger, at den blev afvist.
 
@@ -1530,6 +1530,8 @@ openstack server list --name '^oneuptime-check-'
 openstack volume list --name 'oneuptime-check-'
 ```
 
+At arkivere clouden slår intet af dette fra. En arkiveret cloud er kun skjult i listerne: den indsamles stadig, og dens API-tjek og livscyklustjekket bliver ved med at køre. Slå et tjek fra for at stoppe det.
+
 ## AI-agent
 
 Agentens `docker-compose.yml` kører også **OpenStack AI-agent**, `oneuptime-openstack-ai-agent` (image `oneuptime/resource-ai-agent:release`). Mens OneUptime AI undersøger en hændelse eller advarsel på denne cloud, kører den skrivebeskyttede `openstack`-kommandoer gennem den — `openstack compute service list --host compute-01`, `openstack server list --all-projects --limit 50 --host compute-01`, `openstack server event list ID`, `openstack network agent list`, `openstack volume service list` — og angiver, hvad den kørte. Der er ingen `openstack`-binær i agenten og intet shell: hver kommando bliver til ét `GET` til den tjeneste, der besvarer den, med agentens egen legitimation. Agenten registrerer sig med det samme `OPENSTACK_CLOUD_NAME`, collectoren rapporterer, så den betjener denne cloud.
@@ -1639,9 +1641,9 @@ Cloudens side **AI-agent** tilbyder en runbook for hver af disse, som du kan til
 | RabbitMQ-partition | I hånden, på maskinerne: RabbitMQ er under OpenStack, og ingen kommando, OneUptime AI har, når den |
 | Galera mistede quorum | I hånden, på maskinerne, fra noden med den højeste `wsrep_last_committed` |
 
-### Rettelser fra en workflow
+### Rettelser fra en arbejdsgang
 
-En workflow kan starte fra en OpenStack-advarsel og foreslå en rettelse: trinnet **Propose an OpenStack fix** tager advarslen eller hændelsen og kommandoen. Det går gennem den samme policy, det samme skriveomfang og den samme læsning af, hvad en ændring rører, som en rettelse OneUptime AI foreslår, det kræver ingen AI-model, og en person godkender det på advarslen. En workflow kan ikke selv foretage ændringen eller godkende det, den foreslår, uanset cloudens rettelsestilstand. Skabelonen **Propose taking a failing OpenStack compute service out of scheduling** er et sted at begynde.
+En arbejdsgang kan starte fra en OpenStack-advarsel og foreslå en rettelse: trinnet **Foreslå en OpenStack-rettelse** tager advarslen eller hændelsen og kommandoen. Det går gennem den samme policy, det samme skriveomfang og den samme læsning af, hvad en ændring rører, som en rettelse OneUptime AI foreslår, det kræver ingen AI-model, og en person godkender det på advarslen. En arbejdsgang kan ikke selv foretage ændringen eller godkende det, den foreslår, uanset cloudens rettelsestilstand. Skabelonen **Propose taking a failing OpenStack compute service out of scheduling** er et sted at begynde.
 
 ## Kør som en systemd-tjeneste
 

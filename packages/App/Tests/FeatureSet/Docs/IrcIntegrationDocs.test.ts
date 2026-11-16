@@ -19,6 +19,7 @@ import {
   scanMarkdown,
 } from "./DocsContentSupport";
 import { pathSteps } from "./DocsPageShape";
+import { drawnStepName } from "./DocsWorkflowStepNames";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
 import SendMessageToChannel from "Common/Server/Types/Workflow/Components/IRC/SendMessageToChannel";
@@ -757,8 +758,14 @@ describe("the IRC page names the step's settings as the step does", () => {
     expect(IRC_METADATA.componentType).toBe(ComponentType.Component);
   });
 
+  /*
+   * The settings form titles each setting with its name, looked up in the
+   * Dashboard's locale (ArgumentsForm hands arg.name to FieldLabel), so a
+   * page names Message Text, Port and Channel as its language's form draws
+   * them, and the settings no locale has a word for in English (#7511).
+   */
   test.each(LANGUAGES)(
-    "%s names every setting of the step, in English bold, as the form does",
+    "%s names every setting of the step, in bold, as its language's form draws it",
     (language: string) => {
       const bold: Set<string> = boldTermsOf(readIrcPage(language));
 
@@ -768,7 +775,7 @@ describe("the IRC page names the step's settings as the step does", () => {
         expect({
           language,
           setting: argument.name,
-          named: bold.has(argument.name),
+          named: bold.has(dashboardWord(language, argument.name)),
         }).toEqual({
           language,
           setting: argument.name,
@@ -776,7 +783,8 @@ describe("the IRC page names the step's settings as the step does", () => {
         });
       }
 
-      expect(bold.has(IRC_METADATA.title)).toBe(true);
+      // The canvas card titles the step in the reader's words too (#8359).
+      expect(bold.has(dashboardWord(language, IRC_METADATA.title))).toBe(true);
     },
   );
 
@@ -1205,10 +1213,11 @@ describe("the IRC page and the template it points to", () => {
       expect(bold.has(template!.workflowName)).toBe(true);
 
       for (const variable of template!.variables) {
+        // The create dialog's field label looks a title up (FieldLabel): IRC Server is worded since #8359.
         expect({
           language,
           title: variable.title,
-          named: bold.has(variable.title),
+          named: bold.has(dashboardWord(language, variable.title)),
         }).toEqual({
           language,
           title: variable.title,
@@ -1325,8 +1334,14 @@ describe("the IRC page and the Builder panels it walks through", () => {
     (language: string) => {
       const bold: Set<string> = boldTermsOf(readIrcPage(language));
 
-      expect(bold.has("On Create Incident")).toBe(true);
-      expect(bold.has("Fields to pass on")).toBe(true);
+      /*
+       * A record step's title is built from its model's name, and drawn as
+       * the sentence it was built from (#8642, #8708).
+       */
+      expect(bold.has(drawnStepName(language, "On Create Incident"))).toBe(
+        true,
+      );
+      expect(bold.has(dashboardWord(language, "Fields to pass on"))).toBe(true);
       expect(bold.has("Select Fields")).toBe(false);
     },
   );
@@ -1460,9 +1475,13 @@ describe("the IRC page's diagram", () => {
         return line.trim().startsWith("loop ");
       });
 
-      expect(lines[optAt]).toContain("Send Without Joining");
+      // As the settings form names it in this language (#8359).
+      expect(lines[optAt]).toContain(
+        dashboardWord(language, "Send Without Joining"),
+      );
       expect(lines[optAt + 1]).toContain("JOIN");
-      expect(lines[loopAt]).toContain("Message Text");
+      // The setting, as the language's settings form names it.
+      expect(lines[loopAt]).toContain(dashboardWord(language, "Message Text"));
       expect(lines[loopAt]).toContain(String(IRC_MAX_LINES));
       expect(lines[loopAt + 1]).toContain("PRIVMSG");
     },

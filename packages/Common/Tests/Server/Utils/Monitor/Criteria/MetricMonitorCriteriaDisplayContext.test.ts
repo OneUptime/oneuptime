@@ -818,12 +818,12 @@ describe("MonitorCriteriaEvaluator metric root cause for a ratio formula", () =>
     expect(first[0]).toBe(
       `1. \`${TIMESTAMPS[0]!.toISOString()}\` — **86.26%**`,
     );
-    expect(first).toContain("   - `used_mem`: 222 GB");
-    expect(first).toContain("   - `alloc_mem`: 258 GB");
+    expect(first).toContain("   - `used_mem`: 222\u00A0GB");
+    expect(first).toContain("   - `alloc_mem`: 258\u00A0GB");
 
     expect(last[0]).toBe(`3. \`${TIMESTAMPS[2]!.toISOString()}\` — **88.82%**`);
-    expect(last).toContain("   - `used_mem`: 229 GB");
-    expect(last).toContain("   - `alloc_mem`: 258 GB");
+    expect(last).toContain("   - `used_mem`: 229\u00A0GB");
+    expect(last).toContain("   - `alloc_mem`: 258\u00A0GB");
   });
 
   test("no raw byte count reaches the text", async () => {
@@ -939,7 +939,7 @@ describe("MonitorCriteriaEvaluator metric root cause for a grouped Metrics monit
     const item: Array<string> = sampleItemLines(text, TIMESTAMPS[0]!);
 
     expect(item[0]).toBe(
-      `1. \`${TIMESTAMPS[0]!.toISOString()}\` — **17.2 GB**`,
+      `1. \`${TIMESTAMPS[0]!.toISOString()}\` — **17.2\u00A0GB**`,
     );
     expect(text).not.toContain("[object Object]");
     expect(item.join("\n")).toContain("prod-db-01");

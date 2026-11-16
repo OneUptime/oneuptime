@@ -15,7 +15,7 @@ OneUptime trabaja con [GitHub](https://github.com) de dos maneras. Conecta tus r
 flowchart TB
     app["La GitHub App"] --> repos["Tus repositorios,<br/>importados"]
     repos --> pr["Pull requests con<br/>correcciones de<br/>la IA de OneUptime"]
-    declared["Incidente declarado"] --> workflow["Flujo de trabajo:<br/>On Create Incident"]
+    declared["Incidente declarado"] --> workflow["Flujo de trabajo:<br/>Al crear Incidente"]
     workflow -->|"POST issues"| issue["Issue de GitHub"]
 ```
 
@@ -62,11 +62,11 @@ Ve a **Flujos de trabajo**, haz clic en **Crear flujo de trabajo** y luego en **
 
 ### Añadir el disparador
 
-Haz clic en el bloque discontinuo **Elige qué inicia este flujo de trabajo** y elige **On Create Incident**. Haz clic en el disparador: sus **Fields to pass on** empiezan con **Título**, así que haz clic en **Añadir campo** y elige **Descripción** y **Número de incidente con prefijo**.
+Haz clic en el bloque discontinuo **Elige qué inicia este flujo de trabajo** y elige **Al crear Incidente**. Haz clic en el disparador: sus **Campos que pasar** empiezan con **Título**, así que haz clic en **Añadir campo** y elige **Descripción** y **Número de incidente con prefijo**.
 
 ### Abrir el issue
 
-Haz clic en **Añadir componente**, añade un bloque **API Post (JSON)** y conecta a él el punto **Success** del disparador. Pon su **URL** en `https://api.github.com/repos/your-org/your-repo/issues`, con el propietario y el nombre de tu repositorio. En **Más campos**, pon sus **Request Headers** en:
+Haz clic en **Añadir componente**, añade un bloque **Llamada a API POST (JSON)** y conecta a él el punto **Éxito** del disparador. Pon su **URL** en `https://api.github.com/repos/your-org/your-repo/issues`, con el propietario y el nombre de tu repositorio. En **Más campos**, pon sus **Encabezados de la solicitud** en:
 
 ```json
 {
@@ -76,7 +76,7 @@ Haz clic en **Añadir componente**, añade un bloque **API Post (JSON)** y conec
 }
 ```
 
-Y su **Request Body** en:
+Y su **Cuerpo de la solicitud** en:
 
 ```json
 {
@@ -88,7 +88,7 @@ Y su **Request Body** en:
 
 ### Probarlo y luego activarlo
 
-Haz clic en **Ejecutar flujo de trabajo**, elige un incidente de prueba en **Incidente** y ejecútalo. El paso **API Post (JSON)** muestra una respuesta `201` con el nuevo issue, con su `number` y su `html_url`. Después activa **Habilitado** en la parte superior del **Constructor**.
+Haz clic en **Ejecutar flujo de trabajo**, elige un incidente de prueba en **Incidente** y ejecútalo. El paso **Llamada a API POST (JSON)** muestra una respuesta `201` con el nuevo issue, con su `number` y su `html_url`. Después activa **Habilitado** en la parte superior del **Constructor**.
 :::
 
 El issue sigue abierto cuando el incidente se resuelve, porque el trabajo de seguimiento suele durar más que el incidente. Para tickets que se mantienen al día con el incidente en ambos sentidos, consulta [Jira](/docs/integrations/jira).
@@ -97,11 +97,11 @@ El issue sigue abierto cuando el incidente se resuelve, porque el trabajo de seg
 
 - **GitHub Enterprise Server.** Envía la solicitud a tu servidor en su lugar: `https://your-github-host/api/v3/repos/your-org/your-repo/issues`. Un servidor en una dirección de red privada necesita un OneUptime autoalojado cuyo administrador lo permita: consulta [Acceso de red saliente](/docs/workflows/configuration#acceso-de-red-saliente).
 - **Asígnalo.** Añade `"assignees": ["octocat"]` o `"milestone": 3` al cuerpo. GitHub descarta sin avisar las etiquetas, los asignados y los hitos cuando el token no puede hacer push al repositorio.
-- **Solo algunos incidentes.** Pon un bloque **If / Else** entre el disparador y el bloque de API, y abre issues solo en su lado **Yes**, por ejemplo para una gravedad.
+- **Solo algunos incidentes.** Pon un bloque **Si / Si no** entre el disparador y el bloque de API, y abre issues solo en su lado **Sí**, por ejemplo para una gravedad.
 
 ## Solución de problemas
 
-El paso **API Post (JSON)** toma **Error** cuando GitHub rechaza la solicitud. Sus **Response Status** y **Response Body** en la ejecución dicen por qué.
+El paso **Llamada a API POST (JSON)** toma **Error** cuando GitHub rechaza la solicitud. Sus **Estado de la respuesta** y **Cuerpo de la respuesta** en la ejecución dicen por qué.
 
 :::details GitHub responde 401
 El token es incorrecto, caducó o se revocó. Crea uno nuevo y sustituye el contenido de `GITHUB_TOKEN`.

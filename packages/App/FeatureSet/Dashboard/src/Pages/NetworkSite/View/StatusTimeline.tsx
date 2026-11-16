@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import { formatUptimePercent } from "../../../Components/NetworkSite/SiteMapViewModel";
 import { Gray500 } from "Common/Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -255,7 +256,7 @@ const NetworkSiteStatusTimelinePage: FunctionComponent<
                         : "text-gray-900"
                     }`}
                   >
-                    {formatUptimePercent(uptime)}
+                    {getFigure(formatUptimePercent(uptime))}
                   </div>
                 }
               />
@@ -330,7 +331,8 @@ const NetworkSiteStatusTimelinePage: FunctionComponent<
               field: {
                 startsAt: true,
               },
-              title: "From",
+              // When a status began, never a message's sender (#8201).
+              title: "From (range start)",
               type: FieldType.Date,
             },
           ]}
@@ -368,7 +370,7 @@ const NetworkSiteStatusTimelinePage: FunctionComponent<
               field: {
                 startsAt: true,
               },
-              title: "From",
+              title: "From (range start)",
               type: FieldType.DateTime,
             },
             /*

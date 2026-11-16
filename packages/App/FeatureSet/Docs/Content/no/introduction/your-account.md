@@ -12,7 +12,7 @@ flowchart TB
 
 :::cards
 - [Profilen din](#profilen-din): Navnet, e-posten, tidssonen, språket og bildet ditt.
-- [Logg inn trygt](#logg-inn-trygt): Passordet ditt, innloggingslenker, passnøkler og totrinnsbekreftelse.
+- [Logg inn trygt](#logg-inn-trygt): Passordet ditt, innloggingslenker, passnøkler og tofaktorautentisering.
 - [Prosjektene dine](#prosjektene-dine): Bytt prosjekt, opprett et, og godta invitasjoner.
 - [Brukerinnstillinger](#det-hvert-prosjekt-tar-vare-på-for-deg): Hvordan OneUptime når deg i hvert prosjekt.
 :::
@@ -43,7 +43,7 @@ Klikk på **Rediger Bruker**, og endre det du trenger:
 
 - **E-post**: adressen du logger inn med. Endrer du den, bekrefter du den nye adressen på nytt.
 - **Fullt navn**: navnet teamet ditt ser overalt i OneUptime.
-- **Tidssone**: tidssonen dashbordet viser og leser tider i, og den som brukes for tidene i varsler til deg.
+- **Tidssone**: tidssonen dashbordet viser og leser tider i, og den som brukes for tidene i varslinger til deg.
 - **Språk**: språket i dashbordet i alle nettlesere du logger inn i, og i vakttilkallingene dine. Ikke valgt: tilkallingene er på engelsk, og dashbordet følger nettleseren din.
 
 Klikk på **Lagre endringer**.
@@ -96,14 +96,14 @@ Du kan logge inn med en lenke i stedet for passordet. Det er ingenting å sette 
 3. Åpne lenken i e-posten, og klikk på **Logg inn**.
 :::
 
-Lenken virker én gang, i 15 minutter, og en nyere lenke erstatter den. Du kan åpne den på en annen enhet, og da er du logget inn der. Hvis du bruker totrinnsbekreftelse, ber OneUptime fortsatt om det andre steget ditt.
+Lenken virker én gang, i 15 minutter, og en nyere lenke erstatter den. Du kan åpne den på en annen enhet, og da er du logget inn der. Hvis du bruker tofaktorautentisering, ber OneUptime fortsatt om det andre steget ditt.
 
 > [!NOTE]
 > Hovedadministratorer på en selvhostet installasjon kan slå av innloggingslenker med **La folk logge inn med en lenke på e-post**, under **Admin Dashboard > Innstillinger > Autentisering**. Lenker som allerede er sendt, slutter da å virke. Så lenge serveren krever SSO, tilbyr innloggingssiden bare SSO.
 
-### Slå på totrinnsbekreftelse
+### Slå på tofaktorautentisering
 
-Totrinnsbekreftelse gjelder når du logger inn med passordet ditt eller en lenke på e-post. Legg først til et andre steg, og slå den deretter på.
+Tofaktorautentisering gjelder når du logger inn med passordet ditt eller en lenke på e-post. Legg først til et andre steg, og slå den deretter på.
 
 :::steps
 ### Legg til en autentiseringsapp
@@ -137,10 +137,10 @@ Du kan høre til så mange prosjekter du vil. Prosjektvelgeren øverst til venst
 | Side | Hva den brukes til | Les mer |
 | --- | --- | --- |
 | **Oppsettsjekkliste** | Leder deg gjennom alt nedenfor, og viser hva som gjenstår. | |
-| **Varselmetoder** | E-postene, telefonnumrene, appene og webhookene OneUptime kan nå deg på. E-posten du logger inn med, legges til for deg. | |
+| **Varslingsmetoder** | E-postene, telefonnumrene, appene og webhookene OneUptime kan nå deg på. E-posten du logger inn med, legges til for deg. | |
 | **Slik når man meg** | Hvilken metode som brukes, og etter hvor lang tid, når en vaktpolicy varsler deg. | [Eskaleringsregler](/docs/on-call/escalation-rules) |
-| **Varselinnstillinger** | Hvilke oppdateringer om hendelser, varsler, monitorer og mer du får, og på hvilken kanal. | |
-| **E-postinnstillinger** | Hvor mange e-poster du får: én om gangen, eller samlet. | [Varseloppsummering](/docs/emails/notification-rollup) |
+| **Varslingsinnstillinger** | Hvilke oppdateringer om hendelser, varsler, monitorer og mer du får, og på hvilken kanal. | |
+| **E-postinnstillinger** | Hvor mange e-poster du får: én om gangen, eller samlet. | [Varslingsoppsummering](/docs/emails/notification-rollup) |
 | **Vaktlogger** | Hvert varsel sendt til deg, og hva som skjedde med det. | |
 | **Innkommende telefonnumre** | Nummeret en policy for innkommende anrop ringer deg på. | [Policy for innkommende anrop](/docs/on-call/incoming-call-policy) |
 | **Kalenderfeed** | Vaktene dine i Google Calendar, Apple Calendar eller Outlook. | [Kalenderfeeder](/docs/on-call/calendar-feeds) |
@@ -163,7 +163,7 @@ Logger du inn på nytt, sendes en ny lenke: sjekk også søppelpostmappen. Kan d
 :::
 
 :::details Jeg har mistet autentiseringsappen min
-Ved det andre steget av innloggingen velger du **Mistet tilgangen til autentiseringsappen din?** og skriver inn en av reservekodene dine. Åpne deretter **Sikkerhet → Two-factor authentication**, og legg til den nye appen. Uten reservekoder ber du en administrator av OneUptime-installasjonen din om å tilbakestille totrinnsbekreftelsen på kontoen din.
+Ved det andre steget av innloggingen velger du **Mistet tilgangen til autentiseringsappen din?** og skriver inn en av reservekodene dine. Åpne deretter **Sikkerhet → Two-factor authentication**, og legg til den nye appen. Uten reservekoder ber du en administrator av OneUptime-installasjonen din om å tilbakestille tofaktorautentiseringen på kontoen din.
 :::
 
 :::details Innloggingen ber meg vente før jeg prøver en ny kode

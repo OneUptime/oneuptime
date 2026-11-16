@@ -6,6 +6,7 @@ import React, {
   useState,
 } from "react";
 import Route from "Common/Types/API/Route";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import OneUptimeDate from "Common/Types/Date";
@@ -28,6 +29,10 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import ValueFormatter from "Common/Utils/ValueFormatter";
+import {
+  formatReaderFigure,
+  getDateDisplayLanguage,
+} from "Common/Types/DateLanguage";
 import { VMwareResourceKind } from "Common/Types/Monitor/MonitorStepVMwareMonitor";
 import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import GoldenMetricTile from "../../Infrastructure/GoldenMetricTile";
@@ -146,10 +151,12 @@ interface ChartWindow {
 
 function formatBytesPerSecond(value: number | null): string {
   if (value === null || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
-  return ValueFormatter.formatValue(value, "By/s");
+  return ValueFormatter.formatValue(value, "By/s", {
+    language: getDateDisplayLanguage(),
+  });
 }
 
 const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
@@ -443,7 +450,10 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
   const percentFormatter: (value: number) => string = (
     value: number,
   ): string => {
-    return `${Math.round(value)}%`;
+    return formatReaderFigure(Math.round(value), {
+      decimals: 0,
+      isPercent: true,
+    });
   };
 
   const renderCharts: () => ReactElement = (): ReactElement => {

@@ -42,7 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% uptime",
-    "uptimePercent": "{{percent}}% beschikbaarheid",
+    "uptimePercent": "{{percent}} beschikbaarheid",
     "operational": "Operationeel",
     "notMonitored": "Niet bewaakt",
     "noResourcesInGroup": "Geen bronnen toegevoegd aan deze groep.",
@@ -60,10 +60,9 @@
   },
   "eventItem": {
     "affectedResources": "Getroffen bronnen",
-    "stateChangedTo": "status gewijzigd naar",
     "view": "{{eventType}} bekijken",
     "updateTo": "Update voor deze {{eventType}}",
-    "postedOn": "geplaatst op"
+    "postedOnDate": "geplaatst op {{date}}"
   },
   "monitorOverview": {
     "daysAgo": "{{days}} dagen geleden",
@@ -276,6 +275,7 @@
       "channelSlack": "Slack-workspace",
       "channelMicrosoftTeams": "Microsoft Teams-workspace",
       "channelWebhook": "Webhook",
+      "channelWithColon": "{{channel}}:",
       "addedByTeamWarning": "Dit abonnement is toegevoegd door het team dat deze statuspagina beheert. Als het een gedeeld adres is, zoals een mailinglijst, stopt afmelden deze meldingen voor iedereen die ze ontvangt, en wordt het team op de hoogte gebracht.",
       "confirmButton": "Afmelden",
       "manageInstead": "Kies in plaats daarvan welke meldingen u ontvangt",
@@ -473,5 +473,6 @@
     "warning": "Waarschuwing"
   },
   "No options available": "Geen opties beschikbaar",
-  "No matches found": "Geen overeenkomsten gevonden"
+  "No matches found": "Geen overeenkomsten gevonden",
+  "{{eventType}} state changed to {{state}}": "{{eventType}}: status gewijzigd naar {{state}}"
 }

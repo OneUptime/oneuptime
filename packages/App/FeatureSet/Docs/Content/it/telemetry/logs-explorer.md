@@ -29,7 +29,7 @@ L'esploratore ha cinque schede:
 | Scheda | A cosa serve |
 | --- | --- |
 | **Visualizzatore** | Cercare, filtrare e leggere i log. Si apre sull'ultima ora, prima i più recenti, 100 log per pagina. |
-| **Informazioni** | Che cosa hanno registrato i vostri servizi in un intervallo di tempo, e che cosa è andato storto. |
+| **Analisi** | Che cosa hanno registrato i vostri servizi in un intervallo di tempo, e che cosa è andato storto. |
 | **IA** | I log di errore, i log mancanti e i log rumorosi che OneUptime trova nei vostri log, e ciò che OneUptime AI ha fatto al riguardo. Vedete [Trovare e correggere con l'IA i log di errore, mancanti o rumorosi](#trovare-e-correggere-con-lia-i-log-di-errore-mancanti-o-rumorosi). |
 | **Guida alla configurazione** | Come inviare log con OpenTelemetry, Fluent Bit o Fluentd, usando una delle vostre [chiavi di ingestione](/docs/telemetry/ingestion-keys). |
 | **Impostazioni** | Che cosa succede ai log quando arrivano: **Pipeline**, **Filtri di scarto**, **Regole di mascheramento** e **Regole di registrazione**. |
@@ -37,7 +37,7 @@ L'esploratore ha cinque schede:
 ## Prima di iniziare
 
 - **Log in arrivo.** Inviateli con [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd) o [Syslog](/docs/telemetry/syslog). La scheda **Guida alla configurazione** mostra la configurazione per il vostro linguaggio o collector.
-- **Un ruolo che può leggere la telemetria.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member o Telemetry Viewer, oppure un ruolo personalizzato con il permesso Read Logs. Il suo ambito decide di chi sono i log che vedete: vedere [Telemetria](/docs/permissions/index#telemetria).
+- **Un ruolo che può leggere la telemetria.** Proprietario del progetto, Amministratore del progetto, Membro del progetto, Visualizzatore, Amministratore della telemetria, Membro della telemetria o Visualizzatore della telemetria, oppure un ruolo personalizzato con il permesso Read Logs. Il suo ambito decide di chi sono i log che vedete: vedere [Telemetria](/docs/permissions/index#telemetria).
 
 ## Trovare una riga di log
 
@@ -108,7 +108,7 @@ Aprite **Viste salvate** e fate clic su **+ Salva vista corrente**. Inserite un 
 Scegliete la vista da **Viste salvate** per applicarla, e **Cancella vista** per tornare all'ultima ora senza filtri. Puntate una vista nell'elenco per **Modifica** o **Elimina**, oppure, mentre è applicata, per **Aggiorna** con le vostre modifiche.
 :::
 
-Le viste salvate appartengono al progetto, quindi tutti nel progetto vedono le stesse viste, e ogni vista resta nella pagina in cui è stata salvata: una vista salvata nella pagina Registri compare nella pagina Registri, e una vista salvata nella scheda Registri di una risorsa, come quella di un cluster Kubernetes o di un host, compare solo in quella scheda. Un intervallo mobile come l'ultima ora resta mobile: la vista mostra l'ora che precede la sua apertura, non l'ora in cui l'avete salvata. Finché una pagina non ha una vista predefinita, la prossima vista salvata in quella pagina diventa la sua predefinita, e ogni pagina ha una sola predefinita alla volta.
+Le viste salvate appartengono al progetto, quindi tutti nel progetto vedono le stesse viste, e ogni vista resta nella pagina in cui è stata salvata: una vista salvata nella pagina Log compare nella pagina Log, e una vista salvata nella scheda Log di una risorsa, come quella di un cluster Kubernetes o di un host, compare solo in quella scheda. Un intervallo mobile come l'ultima ora resta mobile: la vista mostra l'ora che precede la sua apertura, non l'ora in cui l'avete salvata. Finché una pagina non ha una vista predefinita, la prossima vista salvata in quella pagina diventa la sua predefinita, e ogni pagina ha una sola predefinita alla volta.
 
 ## Rappresentare i log in grafici
 
@@ -122,7 +122,7 @@ I pulsanti **Tracce** e **Metriche** accanto a **Viste salvate** aprono l'[Esplo
 
 ## Informazioni sui log
 
-La scheda **Informazioni** mostra che cosa hanno registrato i vostri servizi in un intervallo di tempo, e che cosa è andato storto. Limitatela ad alcuni servizi, host o cluster con il menu a discesa accanto al selettore del tempo.
+La scheda **Analisi** mostra che cosa hanno registrato i vostri servizi in un intervallo di tempo, e che cosa è andato storto. Limitatela ad alcuni servizi, host o cluster con il menu a discesa accanto al selettore del tempo.
 
 | Pannello | Cosa mostra |
 | --- | --- |
@@ -169,7 +169,7 @@ In **Altri campi** una regola sceglie i repository di codice, i server MCP e il 
 
 ### Vedere cosa ha fatto
 
-- **Log → IA → Informazioni** elenca ciò che OneUptime ha trovato, ogni rilevamento con le sue prove e **Apri in Registri**, che apre le righe di cui si tratta, dell'ora in cui è stato trovato, nel **Visualizzatore**. Un fallimento che non scrive alcuna riga di log non ha righe da aprire: **Apri in Tracce** apre invece i suoi span falliti. Su un log di errore, **Crea monitor** imposta un monitor dei log che conta le righe del messaggio.
+- **Log → IA → Insight** elenca ciò che OneUptime ha trovato, ogni rilevamento con le sue prove e **Apri in Log**, che apre le righe di cui si tratta, dell'ora in cui è stato trovato, nel **Visualizzatore**. Un fallimento che non scrive alcuna riga di log non ha righe da aprire: **Apri in Tracce** apre invece i suoi span falliti. Su un log di errore, **Crea monitor** imposta un monitor dei log che conta le righe del messaggio.
 - **Log → IA → Attività** elenca ogni indagine e ogni pull request, dalla più recente, con lo stato di ciascuna. Un'indagine conclusa dice anche cosa ha trovato OneUptime AI, come la causa di un errore fuori dal codice, ed è per questo che quel log di errore non ha ricevuto da solo alcuna pull request.
 - In Codice, l'attività indica che l'ha avviata OneUptime, con un link al suo rilevamento, e la pull request spiega perché è stata aperta.
 

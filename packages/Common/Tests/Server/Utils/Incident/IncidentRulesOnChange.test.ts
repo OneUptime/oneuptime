@@ -18,6 +18,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 jest.mock("../../../../Server/Utils/Logger");
 
@@ -43,18 +44,16 @@ const INCIDENT_ID: ObjectID = new ObjectID(
 const RESPONDERS: string = "7e000000-0000-4000-8000-00000000000a";
 const OBSERVERS: string = "7e000000-0000-4000-8000-00000000000b";
 
-let ownerRules: jest.SpiedFunction<
+let ownerRules: SpyInstance<
   typeof IncidentOwnerRuleEngineService.applyRulesToIncident
 >;
-let onCallRules: jest.SpiedFunction<
+let onCallRules: SpyInstance<
   typeof IncidentOnCallRuleEngineService.applyRulesToIncident
 >;
-let executePolicy: jest.SpiedFunction<
-  typeof OnCallDutyPolicyService.executePolicy
->;
-let pageObservers: jest.SpiedFunction<typeof OnCallObserverPaging.pagePolicies>;
-let lock: jest.SpiedFunction<typeof Semaphore.lock>;
-let release: jest.SpiedFunction<typeof Semaphore.release>;
+let executePolicy: SpyInstance<typeof OnCallDutyPolicyService.executePolicy>;
+let pageObservers: SpyInstance<typeof OnCallObserverPaging.pagePolicies>;
+let lock: SpyInstance<typeof Semaphore.lock>;
+let release: SpyInstance<typeof Semaphore.release>;
 let isResolved: boolean;
 let paging: OnCallRulesPaging;
 

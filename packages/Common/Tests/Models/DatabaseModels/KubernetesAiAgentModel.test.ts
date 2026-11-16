@@ -137,7 +137,7 @@ describe("KubernetesAiAgent model", () => {
   });
 
   it.each([DatabaseRequestType.Create, DatabaseRequestType.Update])(
-    "a project owner and admin cannot %s the key hash",
+    "a Project Owner and admin cannot %s the key hash",
     (requestType: DatabaseRequestType) => {
       expect(() => {
         ColumnPermissions.checkDataColumnPermissions(
@@ -150,7 +150,7 @@ describe("KubernetesAiAgent model", () => {
     },
   );
 
-  it("a project owner may read the table but not create in it", () => {
+  it("a Project Owner may read the table but not create in it", () => {
     expect(() => {
       TablePermission.checkTableLevelPermissions(
         KubernetesAiAgent,

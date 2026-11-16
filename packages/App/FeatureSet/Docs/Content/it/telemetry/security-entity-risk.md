@@ -30,7 +30,7 @@ Apri **Prodotti → Eventi di sicurezza → Rischio delle entità**: ogni utente
 
 - Eventi di sicurezza in arrivo, e regole di rilevamento, intelligence sulle minacce o prodotti collegati che vi trovano qualcosa. Vedi [Primi passi con la sicurezza](/docs/telemetry/security-getting-started).
 - Regole di rilevamento che raggruppano per un campo che nomina qualcuno: **Campo di raggruppamento**, come `principalUser`, `principalHost` o `principalIp`, o i campi per cui raggruppa una correlazione. Una regola che non raggruppa per nulla non aggiunge rischio.
-- Per modificare **Valutazione del rischio**: Project Owner o Project Admin per il suo interruttore e la sua soglia, e un ruolo che può creare regole di rilevamento per il suo elenco di entità. Security Viewer legge tutto. Vedi [Ruoli](/docs/permissions/reference#ruoli).
+- Per modificare **Valutazione del rischio**: Proprietario del progetto o Amministratore del progetto per il suo interruttore e la sua soglia, e un ruolo che può creare regole di rilevamento per il suo elenco di entità. Visualizzatore della sicurezza legge tutto. Vedi [Ruoli](/docs/permissions/reference#ruoli).
 
 ## Come si conta un punteggio
 
@@ -96,7 +96,7 @@ Fai clic su **Visualizza** in una riga di **Rischio delle entità**, o sul risch
 | **Rischio degli ultimi 30 giorni** | Il suo punteggio alla fine di ogni giorno, colorato secondo il livello |
 | **Casi che la riguardano** | I casi di sicurezza aperti su di essa, i più recenti per primi |
 
-**Apri in Correla** disegna un grafo dei suoi eventi, e **Cerca i suoi eventi** apre **Eventi** sulla sua settimana. **Azzera il rischio** azzera il punteggio e le fonti, ad esempio dopo un test pianificato: ciò che si trova dopo conta da zero, e i suoi casi non cambiano. Azzerare richiede un ruolo che può eliminare i dati di sicurezza, e il [registro di controllo](/docs/configuration/audit-logs) lo registra.
+**Apri in Correla** disegna un grafo dei suoi eventi, e **Cerca i suoi eventi** apre **Eventi** sulla sua settimana. **Azzera il rischio** azzera il punteggio e le fonti, ad esempio dopo un test pianificato: ciò che si trova dopo conta da zero, e i suoi casi non cambiano. Azzerare richiede un ruolo che può eliminare i dati di sicurezza, e il [log di controllo](/docs/configuration/audit-logs) lo registra.
 
 OneUptime AI legge il rischio delle entità di un caso quando ne fa il triage. Vedi [OneUptime AI nella sicurezza](/docs/telemetry/security-ai).
 

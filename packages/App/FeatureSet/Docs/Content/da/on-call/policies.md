@@ -4,7 +4,7 @@ En vagtpolitik afgør, hvem der tilkaldes om en hændelse eller advarsel, og hve
 
 :::cards
 - [Opret en politik](#opret-en-politik): Et navn, og hvem der tilkaldes først.
-- [Hvad der kører en politik](#hvad-der-kører-en-politik): Regler, skabeloner, overvågninger, chat og dig selv.
+- [Hvad der kører en politik](#hvad-der-kører-en-politik): Regler, skabeloner, monitorer, chat og dig selv.
 - [Udførelseslogs](#udførelseslogs): Hver kørsel, regel for regel, og hvorfor den stoppede.
 - [Arkiver eller slet en politik](#arkiver-eller-slet-en-politik): Tag en politik ud af drift.
 :::
@@ -30,11 +30,11 @@ En politik tilkalder ingen, før noget kører den. Hver hændelse, advarsel og e
 
 | Hvad | Hvordan politikken tilføjes | Læs mere |
 | --- | --- | --- |
-| Selve posten | Feltet **Vagtpolitik**, når en hændelse eller advarsel oprettes, en hændelsesskabelon eller den sammenfoldede del **Vagt** i en overvågnings kriterier | [Opret en hændelse](/docs/incidents/declaring-incidents) |
+| Selve posten | Feltet **Vagtpolitik**, når en hændelse eller advarsel oprettes, en hændelsesskabelon eller den sammenfoldede del **Vagt** i en monitor kriterier | [Opret en hændelse](/docs/incidents/declaring-incidents) |
 | Vagtregler | **Hændelser → Regler → Vagtregler** og **Advarsler → Regler → Vagtregler** tilføjer politikkerne fra hver regel, der matcher | [Vagtregler for hændelser](/docs/incidents/settings#vagtregler-for-hændelser) |
 | Grupperingsregler | En grupperingsregel kører sine politikker, når den åbner en episode | [Advarselsepisoder og grupperingsregler](/docs/alerts/episodes) |
 | Manuelt | **Udfør vagtpolitik**, i menuen **Handlinger** i et feed, eller på en besked i Slack eller Microsoft Teams | [Hændelsens feed](/docs/incidents/notes-owners-and-feed#hændelsens-feed) |
-| Chat og workflows | `/oneuptime page` i Slack eller Microsoft Teams, og et workflows trin **Page an On-Call Policy** | [Paging](/docs/workflows/components#paging) |
+| Chat og arbejdsgange | `/oneuptime page` i Slack eller Microsoft Teams, og en arbejdsgangs trin **Page an On-Call Policy** | [Paging](/docs/workflows/components#paging) |
 
 En politik, som flere regler tilføjer, kører én gang. En alvorlighed kører aldrig en politik af sig selv: det gør en vagtregel, der matcher alvorligheden. En hændelse eller advarsel, der oprettes allerede bekræftet eller løst, kører ingen af sine politikker. En vagtregel sat til **Kun i arbejdstiden** lader de politikker, den tilføjer, vente, til arbejdstiden begynder.
 
@@ -52,7 +52,7 @@ En politik, som flere regler tilføjer, kører én gang. En alvorlighed kører a
 **Grundlæggende** er åben; de andre sektioner starter foldet sammen, indtil du klikker på dem.
 
 - **Oversigt** viser **Detaljer om vagtpolitik** og derefter **Politikken i overblik**: hvor mange niveauer og modtagere politikken har, hvor lang tid der går til dens sidste niveau, og hvor ofte den gentages. **Modtagernes parathed** siger, om alle, den kan tilkalde, kan nås nu, og **Vagtpolitikkens feed** viser, hvad der er ændret: personer, teams og vagtplaner, der er tilføjet eller fjernet, tilsidesættelser og overdragelser. Dens regler for Slack, Microsoft Teams og Mattermost slår dem op i dine kanaler, et vagtskifte i én linje: se [Vagtbeskeder](/docs/workspace-connections/slack#vagtbeskeder).
-- **Ejere** er de personer og teams, der er ansvarlige for politikken. Når et tilkald fra den ikke finder en regel for nogen eller ikke kan leveres, får de en e-mail; en politik uden ejere sender i stedet en e-mail til projektets ejere.
+- **Ejere** er de personer og teams, der er ansvarlige for politikken. Når et tilkald fra den ikke finder en regel for nogen eller ikke kan leveres, får de en e-mail; en politik uden ejere sender i stedet en e-mail til Projektejere.
 - **Notifikationslogs** viser hver besked, politikken har sendt, med en fane pr. kanal.
 - **Brugertilsidesættelser** dækker kun for folk i denne politik. Se [Brugertilsidesættelser](/docs/on-call/user-overrides).
 - **Indstillinger** har **Eksportér Vagtpolitik** og kortet, der arkiverer politikken.
@@ -111,16 +111,16 @@ flowchart TB
 | Status | Hvad den betyder |
 | --- | --- |
 | **Venter** | En vagtregel sat til **Kun i arbejdstiden** lader kørslen vente, til arbejdstiden begynder: den siger, hvornår tilkaldelsen starter, og tilkalder ingen indtil da. Den slutter uden at tilkalde, hvis hændelsen eller advarslen bliver bekræftet eller løst først. Den begynder at tilkalde straks, hvis hændelsen eller advarslen ændrer sig og nu matcher en vagtregel, der tilkalder med det samme. |
-| **Planlagt**, **Startet** | Kørslen sættes op. En, der stadig står her efter 5 minutter, stoppes som **Fejl**. |
-| **Udføres** | Kørslen tilkalder. OneUptime fører den et skridt videre hvert minut. |
+| **Planlagt**, **Startet** | Kørslen sættes op. En, der stadig står her efter 5 minutter, blev ikke færdig med at starte: den går videre til **Udføres** og tilkalder derfra, hvor starten stoppede. Et direkte tilkald eller et testtilkald, der stadig står her, stoppes som **Fejl**. |
+| **Udføres** | Kørslen tilkalder. OneUptime fører den et skridt videre hvert minut. Et skridt, der fejler et øjeblik, for eksempel fordi databasen ikke kunne nås, prøves igen et minut senere, så 2 og 4 minutter senere, og derefter hvert 5. minut. |
 | **Udførelse fuldført** | Nogen kvitterede, hændelsen eller advarslen blev løst, alle regler og gentagelser blev brugt, eller politikken blev arkiveret. |
 | **Udførelse fuldført - ingen underrettet** | Kørslen gik gennem alle regler og tilkaldte ingen: som regel en vagtplan, hvor ingen har vagt, eller et niveau uden modtagere. |
-| **Fejl** | Kørslen mislykkedes. **Vis statusbesked** siger hvorfor. |
+| **Fejl** | Kørslen mislykkedes: et skridt fejlede på en måde, som et nyt forsøg ikke kan rette, for eksempel en slettet eskaleringsregel, eller fejlede 10 forsøg i træk over omkring 37 minutter. **Vis statusbesked** siger hvorfor. |
 
 Du finder udførelseslogs tre steder:
 
 - i politikkens egne **Udførelseslogs**, under **Protokoller**;
-- under **Vagt → Avanceret → Udførelseslogs**, for alle politikker, hvor direkte tilkald fra workflows og chat står som **Direkte tilkald**;
+- under **Vagt → Avanceret → Udførelseslogs**, for alle politikker, hvor direkte tilkald fra arbejdsgange og chat står som **Direkte tilkald**;
 - på en hændelses eller en advarsels side **Vagtudførelser**.
 
 Hver række viser, hvad der startede kørslen, hvornår, dens **Status** og hvem der kvitterede. **Vis tidslinje** åbner dens **Tidslinje for udførelsen**: hver eskaleringsregel, hvem den tilkaldte, via hvilken vagtplan, og hvordan hvert tilkald endte. **Notificeret via** viser, hvordan hvert tilkald nåede frem til personen: telefonopkald, SMS, e-mail, push-notifikation og så videre. En vagtplan, hvor ingen har vagt, viser **Ingen havde vagt** i stedet for en person. Et niveau, der ikke tilkaldte nogen, siger hvorfor, med **Gik videre med det samme** nedenunder: politikken ventede ikke på det. I OneUptime Cloud kræver udførelseslogs abonnementet **Growth**.

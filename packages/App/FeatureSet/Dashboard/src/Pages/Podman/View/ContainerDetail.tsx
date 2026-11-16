@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { getUnnamedText } from "../../../Components/Dashboard/Components/DashboardWidgetFallbackWords";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
@@ -260,7 +261,7 @@ const PodmanHostContainerDetail: FunctionComponent<
     PODMAN_CONTAINER_HOST_RUNTIME,
     modelId,
   );
-  const hostName: string = host.name || host.hostIdentifier || "—";
+  const hostName: string = host.name || host.hostIdentifier || getUnnamedText();
 
   const tabs: Array<Tab> = [
     {
@@ -299,6 +300,7 @@ const PodmanHostContainerDetail: FunctionComponent<
             "Container Metrics: {{containerName}}",
             { containerName: containerName },
           )}
+          isTitleTranslated={true}
           description="CPU and memory usage for this container."
           queryConfigs={metricQueryConfigs}
         />

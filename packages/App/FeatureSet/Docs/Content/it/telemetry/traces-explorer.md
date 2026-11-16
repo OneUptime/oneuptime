@@ -29,7 +29,7 @@ L'esploratore ha cinque schede:
 | Scheda | A cosa serve |
 | --- | --- |
 | **Visualizzatore** | Cercare e filtrare gli span, e aprire le loro tracce. Si apre sull'ultima ora, prima i più recenti, 50 span per pagina. |
-| **Informazioni** | Frequenza delle richieste, tassi di errore e latenza per servizio, e le richieste che meritano uno sguardo. |
+| **Analisi** | Frequenza delle richieste, tassi di errore e latenza per servizio, e le richieste che meritano uno sguardo. |
 | **IA** | Le operazioni lente o che falliscono e il tracciamento mancante che OneUptime trova nelle vostre tracce, e ciò che OneUptime AI ha fatto al riguardo. Vedete [Trovare e correggere le operazioni lente o che falliscono con l'IA](#trovare-e-correggere-le-operazioni-lente-o-che-falliscono-con-lia). |
 | **Guida alla configurazione** | Come inviare tracce con OpenTelemetry, usando una delle vostre [chiavi di ingestione](/docs/telemetry/ingestion-keys). |
 | **Impostazioni** | Che cosa succede agli span quando arrivano: **Pipeline**, **Filtri di scarto**, **Regole di mascheramento** e **Regole di registrazione**. |
@@ -37,7 +37,7 @@ L'esploratore ha cinque schede:
 ## Prima di iniziare
 
 - **Tracce in arrivo.** Strumentate i vostri servizi con [OpenTelemetry](/docs/telemetry/open-telemetry). La scheda **Guida alla configurazione** mostra il codice per il vostro linguaggio.
-- **Un ruolo che può leggere la telemetria.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member o Telemetry Viewer, oppure un ruolo personalizzato con il permesso Read Traces. Il suo ambito decide di chi sono gli span che vedete: vedere [Telemetria](/docs/permissions/index#telemetria).
+- **Un ruolo che può leggere la telemetria.** Proprietario del progetto, Amministratore del progetto, Membro del progetto, Visualizzatore, Amministratore della telemetria, Membro della telemetria o Visualizzatore della telemetria, oppure un ruolo personalizzato con il permesso Read Traces. Il suo ambito decide di chi sono gli span che vedete: vedere [Telemetria](/docs/permissions/index#telemetria).
 
 ## Trovare una richiesta
 
@@ -103,11 +103,11 @@ Per altro, passate l'elenco da **Span** ad **Analisi**. Scegliete una serie temp
 
 - Fate clic su **In pausa** sopra l'elenco per attivare gli aggiornamenti in diretta. Il pulsante mostra poi **In diretta**, e l'elenco cerca nuovi span ogni 10 secondi. Fate di nuovo clic per mettere in pausa.
 - **Viste salvate** conserva una ricerca, i suoi filtri e l'intervallo di tempo sotto un nome, per tutti nel progetto. Le viste salvate funzionano come nell'[Esploratore log](/docs/telemetry/logs-explorer#salvare-una-vista).
-- I pulsanti **Registri** e **Metriche** aprono quegli esploratori per la stessa finestra di tempo, con tutto il vostro filtraggio che possono usare. Puntate un pulsante per vedere che cosa non può riportare.
+- I pulsanti **Log** e **Metriche** aprono quegli esploratori per la stessa finestra di tempo, con tutto il vostro filtraggio che possono usare. Puntate un pulsante per vedere che cosa non può riportare.
 
 ## Informazioni sulle tracce
 
-La scheda **Informazioni** riassume le richieste di un intervallo di tempo:
+La scheda **Analisi** riassume le richieste di un intervallo di tempo:
 
 - il numero di richieste, il tasso di errore e la latenza P50, P95 e P99;
 - una tabella sullo stato dei vostri servizi, ordinata per tasso di errore, così i servizi che richiedono attenzione vengono per primi;
@@ -149,8 +149,8 @@ In **Altri campi** una regola sceglie i repository di codice, i server MCP e il 
 
 ### Vedere cosa ha fatto
 
-- **Tracce → IA → Informazioni** elenca ciò che OneUptime ha trovato, ogni rilevamento con le sue prove e **Apri in Tracce**, che apre gli span di cui si tratta, dell'ora in cui è stato trovato, nel **Visualizzatore**. Su un'operazione che fallisce, **Crea monitor** imposta un monitor delle tracce sui suoi span falliti.
-- **Tracce → IA → Registri** elenca ogni indagine e ogni pull request, dalla più recente, con lo stato di ciascuna e ciò che ogni indagine ha trovato.
+- **Tracce → IA → Insight** elenca ciò che OneUptime ha trovato, ogni rilevamento con le sue prove e **Apri in Tracce**, che apre gli span di cui si tratta, dell'ora in cui è stato trovato, nel **Visualizzatore**. Su un'operazione che fallisce, **Crea monitor** imposta un monitor delle tracce sui suoi span falliti.
+- **Tracce → IA → Log** elenca ogni indagine e ogni pull request, dalla più recente, con lo stato di ciascuna e ciò che ogni indagine ha trovato.
 - In Codice, l'attività indica che l'ha avviata OneUptime, con un link al suo rilevamento, e la pull request spiega perché è stata aperta.
 
 ## Che cosa succede agli span quando arrivano

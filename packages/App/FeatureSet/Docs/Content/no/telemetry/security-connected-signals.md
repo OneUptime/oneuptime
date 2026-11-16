@@ -1,6 +1,6 @@
 # Tilkoblede signaler
 
-En sikkerhetssak sier hvilke brukere, verter og adresser den handler om. Tilkoblede signaler sier hvilke av dem OneUptime allerede kjenner - vertene, containervertene, Kubernetes-klyngene, OpenStack-skyene, nettverksenhetene, skyressursene, de serverløse funksjonene, tjenestene, monitorene som sjekker dem, og medlemmene dine - og hva som skjedde på hver av dem rundt saken: loggene, sporene og målingene, hendelsene og varslene som er åpne på den, monitorene som overvåker den, og hva som endret seg på den. Den søker også i selve loggene og sporene dine etter dem: en angripers adresse i en webservers tilgangslogg, en lekket e-post i en applikasjons feil. Andre veien sier siden til en vert, en klynge, en skyressurs, en tjeneste, en monitor eller et medlem hva Security Events har funnet om den.
+En sikkerhetssak sier hvilke brukere, verter og adresser den handler om. Tilkoblede signaler sier hvilke av dem OneUptime allerede kjenner - vertene, containervertene, Kubernetes-klyngene, OpenStack-skyene, nettverksenhetene, skyressursene, de serverløse funksjonene, tjenestene, monitorene som sjekker dem, og medlemmene dine - og hva som skjedde på hver av dem rundt saken: loggene, sporene og målingene, hendelsene og varslene som er åpne på den, monitorene som overvåker den, og hva som endret seg på den. Den søker også i selve loggene og sporene dine etter dem: en angripers adresse i en webservers tilgangslogg, en lekket e-post i en applikasjons feil. Andre veien sier siden til en vert, en klynge, en skyressurs, en tjeneste, en monitor eller et medlem hva Sikkerhetshendelser har funnet om den.
 
 :::cards
 - [Hvor du ser det](#hvor-du-ser-det): Siden til en sak, fanen til en hendelse, siden til en entitet og sidene til det de nevner.
@@ -87,10 +87,10 @@ Under oppføringene søker Tilkoblede signaler i loggene og sporene dine, i det 
 
 ## Hvem ser hva
 
-- Tilkoblede signaler og en oppførings **Sikkerhet**-kort krever en rolle som kan lese sikkerhetshendelser: Security Admin, Security Member, Security Viewer, Project Owner eller Project Admin. Ingen andre ser sikkerhetsdata på noen side. Se [Roller](/docs/permissions/reference#roller).
+- Tilkoblede signaler og en oppførings **Sikkerhet**-kort krever en rolle som kan lese sikkerhetshendelser: Sikkerhetsadministrator, Sikkerhetsmedlem, Sikkerhetsleser, Prosjekteier eller Prosjektadministrator. Ingen andre ser sikkerhetsdata på noen side. Se [Roller](/docs/permissions/reference#roller).
 - En hendelses **Sikkerhet**-kort krever en rolle som kan lese sikkerhetssaker.
 - Hver oppføring leses med din egen rolle, og det samme gjør det som er på den: en rolle som ikke kan lese vaktplaner, ser ikke et medlems. En type oppføring rollen din ikke kan lese, utelates, og siden sier det; en som ikke kunne leses akkurat nå, sier det også, med **Prøv igjen**.
-- Siden til en oppføring viser **Sikkerhet**-kortet bare i et prosjekt som bruker Security Events: et som har mottatt en sikkerhetshendelse de siste 7 dagene.
+- Siden til en oppføring viser **Sikkerhet**-kortet bare i et prosjekt som bruker Sikkerhetshendelser: et som har mottatt en sikkerhetshendelse de siste 7 dagene.
 
 ## Hendelser en sak erklærer
 
@@ -123,7 +123,7 @@ Kortet vises for en monitor som sjekker en vert, en adresse eller en URL: en mon
 :::
 
 :::details Siden sier at rollen din ikke kan se en type oppføring
-Hver oppføring leses med din egen rolle. Be en Project Owner eller Project Admin om en rolle som kan lese den typen oppføring.
+Hver oppføring leses med din egen rolle. Be en Prosjekteier eller Prosjektadministrator om en rolle som kan lese den typen oppføring.
 :::
 
 ## Neste steg

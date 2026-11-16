@@ -1,6 +1,6 @@
 # Elastic Security
 
-把你的 [Elastic Security](https://www.elastic.co/security) 规则产生的检测警报导入 OneUptime 的安全事件。在那里，你可以把它们与日志、跟踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的警报呼叫值班人员。OneUptime 使用你创建的 API 密钥，通过 Kibana 的检测引擎 API 读取它们，不会在 Elastic 中更改任何内容。
+把你的 [Elastic Security](https://www.elastic.co/security) 规则产生的检测警报导入 OneUptime 的安全事件。在那里，你可以把它们与日志、追踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的警报呼叫值班人员。OneUptime 使用你创建的 API 密钥，通过 Kibana 的检测引擎 API 读取它们，不会在 Elastic 中更改任何内容。
 
 :::cards
 - [设置连接](#设置连接): 一个 API 密钥、它的权限，以及连接的表单。
@@ -23,7 +23,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 
 ## 开始之前
 
-- 在 OneUptime 中拥有 Project Owner、Project Admin 或 Security Admin 角色。Security Member 和 Security Viewer 可以查看连接及其运行历史，但不能更改它们。
+- 在 OneUptime 中拥有项目所有者、项目管理员或安全管理员角色。安全成员和安全查看者可以查看连接及其运行历史，但不能更改它们。
 - Elastic Security 8.x 或更高版本，位于 Elastic Cloud 或你自己的 Elastic 堆栈上，并且检测规则在某个 Kibana 空间中运行。
 - 能查看该空间中检测警报的 Kibana 访问权限：对 `.alerts-security.alerts-<space-id>` 的索引权限 `read` 和 `view_index_metadata`，以及允许在那里读取警报的 Kibana Security 功能权限。
 - 一个 OneUptime 能通过 HTTPS 访问到的 Kibana。OneUptime Cloud 从互联网连接，所以 Kibana 需要一个公网地址，就像 Elastic Cloud 部署那样：私有地址会被拒绝。自托管的 OneUptime 从它的应用和工作进程容器连接，可以访问你私有网络中的 Kibana，除非 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` 为 `true`。

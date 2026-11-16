@@ -2,7 +2,7 @@
 
 L'**Incoming Email Monitor** di OneUptime ti permette di creare e risolvere avvisi in base alle email inviate a indirizzi univoci, specifici di ogni monitor. È utile per integrare sistemi legacy, strumenti di allerta o qualsiasi servizio in grado di inviare email.
 
-La stessa configurazione permette anche ai workflow di ricevere email: un workflow con il trigger **Incoming Email** ottiene un proprio indirizzo sullo stesso dominio, e ogni email inviata a quell'indirizzo avvia il workflow. Vedi [Trigger](/docs/workflows/triggers#incoming-email).
+La stessa configurazione permette anche ai flussi di lavoro di ricevere email: un flusso di lavoro con il trigger **Email in arrivo** ottiene un proprio indirizzo sullo stesso dominio, e ogni email inviata a quell'indirizzo avvia il flusso di lavoro. Vedi [Trigger](/docs/workflows/triggers#incoming-email).
 
 Questa guida spiega come configurare SendGrid Inbound Parse per inoltrare le email in arrivo alla tua istanza self-hosted di OneUptime. OneUptime Cloud non ne ha bisogno: i suoi indirizzi funzionano subito.
 
@@ -22,7 +22,7 @@ sequenceDiagram
     participant OneUptime as OneUptime
     Sender->>SendGrid: Email<br/>all'indirizzo<br/>del monitor (il<br/>tuo record MX)
     SendGrid->>OneUptime: POST …/sendgrid/YOUR_SECRET
-    OneUptime->>OneUptime: Abbinare<br/>l'indirizzo a<br/>un monitor o<br/>a un workflow
+    OneUptime->>OneUptime: Abbinare<br/>l'indirizzo a<br/>un monitor o<br/>a un flusso di lavoro
     OneUptime-->>SendGrid: 200 OK
 ```
 
@@ -60,7 +60,7 @@ Inbound Parse è separato dall'invio di email in uscita. Ricevere le email dei m
 :::steps
 ### Scegli il tuo dominio per le email in arrivo
 
-Scegli un sottodominio dedicato alla ricezione delle email per OneUptime, come `inbound.yourdomain.com`, `email.yourdomain.com` o `monitor.yourdomain.com`. Serve solo per le email destinate ai monitor e ai workflow di OneUptime, quindi nessuna tua casella di posta vi risiede.
+Scegli un sottodominio dedicato alla ricezione delle email per OneUptime, come `inbound.yourdomain.com`, `email.yourdomain.com` o `monitor.yourdomain.com`. Serve solo per le email destinate ai monitor e ai flussi di lavoro di OneUptime, quindi nessuna tua casella di posta vi risiede.
 
 ### Fai puntare il suo record MX a SendGrid
 
@@ -118,11 +118,11 @@ inboundEmail:
 
 Poi applicale: esegui `npm run start` con Docker Compose, che ricrea i container con i nuovi valori, oppure aggiorna la release Helm su Kubernetes.
 
-### Crea un monitor Incoming Email
+### Crea un monitor Email in arrivo
 
 [Crea un monitor Incoming Email](/docs/monitor/incoming-email-monitor#creare-un-monitor-di-email-in-arrivo). La sua pagina **Panoramica** mostra il suo indirizzo, ad esempio `monitor-abc123def456@inbound.yourdomain.com`, e i suoi criteri decidono quali email creano un avviso e quali lo risolvono.
 
-I workflow usano lo stesso dominio. Aggiungi il trigger **Incoming Email** a un workflow e fai clic su di esso: il suo indirizzo (`workflow-…@inbound.yourdomain.com`) è in cima alle sue impostazioni. Finché le variabili per le email in arrivo qui sopra non sono impostate, il trigger indica che il server non è configurato per ricevere email.
+I flussi di lavoro usano lo stesso dominio. Aggiungi il trigger **Email in arrivo** a un flusso di lavoro e fai clic su di esso: il suo indirizzo (`workflow-…@inbound.yourdomain.com`) è in cima alle sue impostazioni. Finché le variabili per le email in arrivo qui sopra non sono impostate, il trigger indica che il server non è configurato per ricevere email.
 
 ### Invia un'email di prova
 
@@ -137,7 +137,7 @@ Invia un'email all'indirizzo del monitor, con un oggetto che corrisponda ai suoi
 | `INBOUND_EMAIL_DOMAIN` | `inboundEmail.domain` | Il sottodominio configurato per le email in arrivo. Le email in arrivo sono disattivate finché non è impostato. | Sì | Vuoto |
 | `INBOUND_EMAIL_WEBHOOK_SECRET` | `inboundEmail.webhookSecret` | Secret a cui deve corrispondere l'ultimo segmento dell'URL del webhook: `/incoming-email/sendgrid/YOUR_SECRET`. Ogni email viene rifiutata finché è vuoto o è un segnaposto. | Sì | Vuoto |
 
-Su che cosa può basarsi un monitor Incoming Email – l'oggetto, il mittente, il corpo, il destinatario e se un'email è arrivata in tempo – è spiegato in [Tipi di filtro disponibili](/docs/monitor/incoming-email-monitor#tipi-di-filtro-disponibili).
+Su che cosa può basarsi un monitor Email in arrivo – l'oggetto, il mittente, il corpo, il destinatario e se un'email è arrivata in tempo – è spiegato in [Tipi di filtro disponibili](/docs/monitor/incoming-email-monitor#tipi-di-filtro-disponibili).
 
 ## Risoluzione dei problemi
 
@@ -156,12 +156,12 @@ Su che cosa può basarsi un monitor Incoming Email – l'oggetto, il mittente, i
 
 :::details Il monitor non crea avvisi
 1. **Verifica i criteri:** controlla che i tuoi criteri di creazione degli avvisi corrispondano al contenuto dell'email, e prova prima con stringhe esatte prima di usare i pattern.
-2. **Controlla il monitor:** assicurati che non sia disattivato e che il suo tipo sia Incoming Email.
+2. **Controlla il monitor:** assicurati che non sia disattivato e che il suo tipo sia Email in arrivo.
 3. **Rivedi il riepilogo del monitor:** controlla se l'email è stata ricevuta ed elaborata, e leggi i log di valutazione per vedere come hanno corrisposto i criteri.
 :::
 
 :::details Il trigger indica che il server non è configurato per ricevere email
-`INBOUND_EMAIL_DOMAIN` è vuota sul server. Impostala, applica la modifica e riapri il trigger del workflow.
+`INBOUND_EMAIL_DOMAIN` è vuota sul server. Impostala, applica la modifica e riapri il trigger del flusso di lavoro.
 :::
 
 ## Buone pratiche di sicurezza
@@ -176,7 +176,7 @@ Su che cosa può basarsi un monitor Incoming Email – l'oggetto, il mittente, i
 
 :::cards
 - [Incoming Email Monitor](/docs/monitor/incoming-email-monitor): Criteri, formati degli indirizzi ed esempi.
-- [Trigger dei workflow](/docs/workflows/triggers): Avvia un workflow da un'email.
+- [Trigger dei flussi di lavoro](/docs/workflows/triggers): Avvia un flusso di lavoro da un'email.
 - [Accesso alla rete privata](/docs/self-hosted/private-network-access): Che cosa può raggiungere il tuo server nella tua rete.
 - [Architettura](/docs/self-hosted/architecture): Dove arriva il webhook in un'installazione self-hosted.
 :::

@@ -132,7 +132,7 @@ Under **Regel** angiver du et **Navn**, som "Fast burn". En ny regel er slået t
 
 ### Angiv forbrugsvinduet
 
-Under **Forbrugsvindue** angiver du **Tærskel for forbrugsrate** (for eksempel `14.4`), **Langt vindue (minutter)** og **Kort vindue (minutter)** og eventuelt **Undertrykkelse af genudløsning (minutter)**.
+Under **Forbrugsvindue** angiver du **Tærskel for forbrugsrate** (for eksempel `14.4`), **Langt vindue (minutter)** og **Kort vindue (minutter)** og eventuelt **Undertrykkelse af genudløsning (minutter)**. Reglen for et anmodnings-SLO har også **Mindste antal anmodninger**, for eksempel `100`: reglen springer et langt vindue over, der rummer færre anmodninger end det. Reglen for et metrik-SLO har på samme måde **Mindste antal begivenheder**, talt i metrikkens begivenheder.
 
 ### Vælg, hvad den erklærer
 
@@ -151,10 +151,12 @@ OneUptime tjekker en regels tal, når du gemmer den:
 | **Kort vindue (minutter)** | Større end 0. |
 | **Langt vindue (minutter)** | Længere end det korte vindue. |
 | **Undertrykkelse af genudløsning (minutter)** | 0 eller mere. Tom betyder det lange vindues længde. |
+| **Mindste antal anmodninger** | Et helt tal, 0 eller mere. Tom betyder intet minimum. |
+| **Mindste antal begivenheder** | Et helt tal, 0 eller mere. Tom betyder intet minimum. |
 
 Hvert svar på **Når den udløses** åbner noget. API'et afviser en regel, der hverken ville oprette en advarsel eller erklære en hændelse, fordi den ville blive tjekket ved hver evaluering uden nogensinde at erklære noget.
 
-Regeltabellen viser for hver regel tærsklen, vinduerne og undertrykkelsen, hvad den erklærer (og om advarslen eller hændelsen kun løses manuelt eller er privat), alvorsgraderne, vagtpolitikkerne, ejerne og etiketterne.
+Regeltabellen viser for hver regel tærsklen, vinduerne og undertrykkelsen, hvad den erklærer (og om advarslen eller hændelsen kun løses manuelt eller er privat), alvorsgraderne, vagtpolitikkerne, ejerne og etiketterne. For et anmodnings-SLO viser den også hver regels minimum under dens vinduer.
 
 > [!TIP]
 > Et godt udgangspunkt: behold de tre standardregler, send reglen for hurtigt forbrug til den vagtpolitik, der tilkalder folk, med høj alvor, lad reglen for langsomt forbrug udløse en advarsel med lavere alvor til arbejdstiden, og lad reglen for langsom lækage være en sag for det ansvarlige team. Arbejder dit team med hændelser, så vælg **Erklær en hændelse** for reglen for hurtigt forbrug, eller **Begge** for også at få en advarsel.
@@ -212,8 +214,8 @@ For at skrive din egen tekst bruger du skabelonvariabler i titlen, beskrivelsen 
 | `{{targetPercentage}}` | SLO'ets mål, i procent. | `99.9` |
 | `{{currentSliPercentage}}` | SLI'en målt over SLO'ets compliancevindue, i procent. | `99.87` |
 | `{{errorBudgetRemainingPercentage}}` | Andelen af fejlbudgettet, der stadig er til rådighed, i procent. Negativ, når budgettet er overskredet. | `42.5` |
-| `{{errorBudgetRemaining}}` | Fejlbudget, der stadig er til rådighed, som varighed. Starter med et minustegn, når budgettet er overskredet. | `18m 22s` |
-| `{{errorBudgetRemainingMinutes}}` | Fejlbudget, der stadig er til rådighed, i minutter. | `18.37` |
+| `{{errorBudgetRemaining}}` | Fejlbudget, der stadig er til rådighed, som varighed eller, for et anmodnings-SLO, som de fejlede eller langsomme anmodninger, det stadig tillader. Starter med et minustegn, når budgettet er overskredet. | `18m 22s` |
+| `{{errorBudgetRemainingMinutes}}` | Fejlbudget, der stadig er til rådighed, i minutter. Tom for et anmodnings-SLO, hvis budget tælles i anmodninger. | `18.37` |
 | `{{windowDescription}}` | SLO'ets compliancevindue, med ord. | `rolling 30-day window` |
 | `{{policyTier}}` | Navnet på det niveau i fejlbudgetpolitikken, som SLO'et er i efter denne evaluering. "None", når det ikke er i noget niveau. | `Reliability first` |
 | `{{policyTierThresholdPercentage}}` | Niveauets tærskel for resterende budget, i procent. Tom, når SLO'et ikke er i noget niveau. | `25` |
@@ -235,7 +237,7 @@ For eksempel bliver titlen `{{ruleName}}: {{sloName}} is burning {{longWindowBur
 - **Tilføj SLO-ejere som ejere** tilføjer også SLO'ets ejere, dets ejerbrugere og medlemmerne af dets ejerteams, til alt, hvad reglen opretter. SLO'ets ejere hører allerede om selve SLO'ets statusændringer, så det kan give dem besked to gange. Det er slået fra som standard.
 - Hver ejer tilføjes én gang: en bruger, der allerede er ejer af advarslen eller hændelsen, for eksempel via projektets ejerregler, eller som er med i et tilføjet ejerteam, tilføjes ikke igen.
 - **Advarselsmærkater** og **Hændelsesetiketter** tilføjes til advarslen eller hændelsen, så filtre, ejerregler og beskedregler for arbejdsområdet kan matche dem.
-- En privat advarsel eller hændelse er kun synlig for sine ejere, projektets administratorer og projektets ejere.
+- En privat advarsel eller hændelse er kun synlig for sine ejere, Projektadministratorer og Projektejere.
 
 Etiketter, ejerteams og vagtpolitikker skal høre til SLO'ets projekt.
 
@@ -276,7 +278,7 @@ Forbrugsrateregler er tavse, mens en af SLO'ets monitorer er i en igangværende 
 :::
 
 :::details Er der et minimumsantal målinger?
-Ikke for SLO'er, der måles på monitorernes tilgængelighed. Tilgængelighed måles i sekunder, så hvert sekund i vinduet er en måling, og der er ikke noget tilfælde med lav trafik at beskytte sig mod. Et minimumsantal målinger har kun betydning for hændelsesbaserede SLI'er, som endnu ikke findes.
+Ikke for SLO'er, der måles på monitorernes tilgængelighed. Tilgængelighed måles i sekunder, så hvert sekund i vinduet er en måling, og der er ikke noget tilfælde med lav trafik at beskytte sig mod. Reglen for et anmodnings-SLO har et: angiv dens **Mindste antal anmodninger**, så springer reglen et langt vindue med færre anmodninger end det over, og en stille time med én fejlet anmodning ud af fem tilkalder ikke nogen.
 :::
 
 ## Næste trin

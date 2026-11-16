@@ -198,6 +198,17 @@ import {
   PeoplePickerKind,
   PeoplePickerOption,
 } from "../../../UI/Components/PeoplePicker/PeoplePickerTypes";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo([
+  "/on-call-page/pass-on/incident-episode/*",
+  "/workspace-channel-link/incident-episode/*",
+]);
 
 const pageProps: PageComponentProps = {
   pageRoute: new Route("/incidents"),
@@ -1067,8 +1078,8 @@ describe("Incident Episode overview: loading and layout", () => {
       expect(screen.getByText("Triaged in")).toBeInTheDocument();
     });
 
-    expect(statValue("Triaged in")).toBe("42 minutes");
-    expect(statValue("Fixed in")).toBe("2 hours, 5 minutes");
+    expect(statValue("Triaged in")).toBe("42\u00A0minutes");
+    expect(statValue("Fixed in")).toBe("2\u00A0hours, 5\u00A0minutes");
     // Started when it was declared, not when the row was created.
     expect(statValue("Declared")).toBe(getEventStartTileText(declaredAt));
     expect(statValue("Incidents")).toBe("3");

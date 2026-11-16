@@ -262,7 +262,7 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
      *
      * It then looked at the record's update list alone. The form leaves out
      * every field its viewer may not change, and many columns are narrower
-     * than their record - a project's name is not a project admin's to
+     * than their record - a project's name is not a Project Admin's to
      * change, its notification channels are a Billing Admin's - so somebody
      * the record let in but none of the card's fields did was handed an
      * Edit button that opened an empty form. The button now locks for them
@@ -419,7 +419,13 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
 
       {showModel ? (
         <ModelFormModal<TBaseModel>
-          title={props.editModalTitle || editTitle}
+          title={
+            props.editModalTitle
+              ? translator.translateText(props.editModalTitle) ||
+                props.editModalTitle
+              : editTitle
+          }
+          isTitleTranslated={true}
           description={props.editModalDescription}
           modalWidth={props.createEditModalWidth}
           modelAPI={props.modelAPI}

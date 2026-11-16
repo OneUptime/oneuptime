@@ -704,6 +704,7 @@ const PostmortemActionItems: FunctionComponent<ComponentProps> = (
           text={POSTMORTEM_ACTION_ITEMS_COPY.assignToMe}
           isDisabled={!updateGate.isAllowed || isWorking}
           tooltip={updateGate.disabledReason}
+          isTooltipTranslated={true}
           onClick={() => {
             void change(item, { ownerUserId: myUserId });
           }}
@@ -718,6 +719,7 @@ const PostmortemActionItems: FunctionComponent<ComponentProps> = (
         text={POSTMORTEM_ACTION_ITEMS_COPY.assignToSomeoneElse}
         isDisabled={!updateGate.isAllowed || isWorking}
         tooltip={updateGate.disabledReason}
+        isTooltipTranslated={true}
         onClick={() => {
           openDialog({ kind: "assign", item });
         }}
@@ -732,6 +734,7 @@ const PostmortemActionItems: FunctionComponent<ComponentProps> = (
           text={POSTMORTEM_ACTION_ITEMS_COPY.unassign}
           isDisabled={!updateGate.isAllowed || isWorking}
           tooltip={updateGate.disabledReason}
+          isTooltipTranslated={true}
           onClick={() => {
             void change(item, { ownerUserId: null });
           }}
@@ -746,6 +749,7 @@ const PostmortemActionItems: FunctionComponent<ComponentProps> = (
         text={POSTMORTEM_ACTION_ITEMS_COPY.editActionItem}
         isDisabled={!updateGate.isAllowed || isWorking}
         tooltip={updateGate.disabledReason}
+        isTooltipTranslated={true}
         onClick={() => {
           openDialog({ kind: "edit", item });
         }}
@@ -810,6 +814,7 @@ const PostmortemActionItems: FunctionComponent<ComponentProps> = (
             text={POSTMORTEM_ACTION_ITEMS_COPY.createMonitor}
             isDisabled={!updateGate.isAllowed || isWorking}
             tooltip={updateGate.disabledReason}
+            isTooltipTranslated={true}
             onClick={() => {
               Navigation.navigate(
                 RouteUtil.getPageRoute(PageMap.MONITOR_CREATE, {
@@ -832,6 +837,7 @@ const PostmortemActionItems: FunctionComponent<ComponentProps> = (
           text={POSTMORTEM_ACTION_ITEMS_COPY.reopen}
           isDisabled={!updateGate.isAllowed || isWorking}
           tooltip={updateGate.disabledReason}
+          isTooltipTranslated={true}
           onClick={() => {
             void change(item, { status: PostmortemActionItemStatus.Open });
           }}
@@ -843,6 +849,7 @@ const PostmortemActionItems: FunctionComponent<ComponentProps> = (
           text={POSTMORTEM_ACTION_ITEMS_COPY.markWontDo}
           isDisabled={!updateGate.isAllowed || isWorking}
           tooltip={updateGate.disabledReason}
+          isTooltipTranslated={true}
           onClick={() => {
             void change(item, { status: PostmortemActionItemStatus.WontDo });
           }}
@@ -858,6 +865,7 @@ const PostmortemActionItems: FunctionComponent<ComponentProps> = (
         isDestructive={true}
         isDisabled={!deleteGate.isAllowed || isWorking}
         tooltip={deleteGate.disabledReason}
+        isTooltipTranslated={true}
         onClick={() => {
           openDialog({ kind: "delete", item });
         }}
@@ -1010,6 +1018,7 @@ const PostmortemActionItems: FunctionComponent<ComponentProps> = (
               TRACK_ACTION_ITEMS_BUTTON,
               untracked.length,
             )}
+            isTitleTranslated={true}
             icon={IconProp.CheckCircle}
             buttonStyle={ButtonStyleType.PRIMARY}
             buttonSize={ButtonSize.Small}

@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/app",
-  "version": "14.2.0",
+  "version": "14.3.0",
   "description": "",
   "repository": {
     "type": "git",
@@ -31,12 +31,13 @@
     "dev:api": "npx nodemon",
     "start": "export NODE_OPTIONS=\"--max-old-space-size=8096${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require ts-node/register Index.ts",
     "migrate": "export NODE_OPTIONS=\"--max-old-space-size=8096 --max-http-header-size=8388608${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require ts-node/register Migrate.ts",
-    "compile": "export NODE_OPTIONS=\"--max-old-space-size=8192${NODE_OPTIONS:+ $NODE_OPTIONS}\" && tsc",
+    "compile": "export NODE_OPTIONS=\"--max-old-space-size=8192${NODE_OPTIONS:+ $NODE_OPTIONS}\" && tsc && node scripts/compile-tests.js",
+    "compile-tests": "node scripts/compile-tests.js",
     "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
     "dev": "bash ./scripts/dev.sh",
     "audit": "npm audit --audit-level=low",
     "dep-check": "npm install -g depcheck && depcheck ./ --skip-missing=true",
-    "test": "cd ../.. && export $(grep -v '^#' config.env | xargs) && cd packages/App && rm -rf build && NODE_OPTIONS=--max-old-space-size=4096 node node_modules/.bin/jest ./Tests --forceExit --passWithNoTests",
+    "test": "cd ../.. && export $(grep -v '^#' config.env | xargs) && cd packages/App && rm -rf build && NODE_OPTIONS=--max-old-space-size=4096 node node_modules/.bin/jest ./Tests --forceExit --passWithNoTests --maxWorkers=2",
     "coverage": "jest --detectOpenHandles --coverage"
   },
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",

@@ -93,7 +93,7 @@ En verdi kan ha hvilken som helst størrelse - en svartekst eller en logg på ma
 - **E-post**: hver beskrivelse, merknad eller rotårsak bærer opptil rundt 256 KB av e-postens tekst, og merknaden på slutten av en lengre tekst lenker til hendelsen eller varselet. En hel e-post - teksten og skjermbildene - holder seg under 3 MB, som alle e-postservere og Microsoft Graph tar imot: et skjermbilde som ikke får plass ved siden av teksten, utelates, med en merknad i stedet.
 - **Siden til hendelsen eller varselet** viser alt. En beskrivelse på over 128 KB som ville ta lang tid å sette opp, vises som ren tekst, linje for linje.
 - **Slack** bærer høyst det Slack viser av en melding (rundt 30 000 tegn). **Microsoft Teams** bærer rundt 40 000 tegn i en melding fra OneUptime-appen og rundt 12 000 gjennom en innkommende webhook (abonnenter på statussider, arbeidsflyter) - målt når meldingen sendes, så en tabell teller som HTML-en den blir til.
-- **SMS, telefonsamtaler, push-varsler, WhatsApp og Telegram** bærer det leverandørene deres tar imot: se [Slik varsler nivåene folk](/docs/on-call/escalation-rules#slik-varsler-nivåene-folk).
+- **SMS, telefonsamtaler, push-varslinger, WhatsApp og Telegram** bærer det leverandørene deres tar imot: se [Slik varsler nivåene folk](/docs/on-call/escalation-rules#slik-varsler-nivåene-folk).
 
 Hver kanal gjengir teksten på en tid som vokser med lengden. En del som ville ta en renderer langt lengre tid - en linje på over 64 KB, et langt avsnitt med rene linjer, et avsnitt fullt av `*`, `_` eller `[` som aldri lukkes, sitater eller lister nestet mer enn seksten nivåer, og på siden til hendelsen eller varselet en tabell eller liste på mer enn tusen linjer - leses som ren tekst der den står, og resten av beskrivelsen gjengis som vanlig.
 
@@ -117,7 +117,7 @@ Inne i løkken:
 - En løkke over en sti som ikke er en liste, eller over en tom liste, skriver ingenting.
 - Løkker kan nestes: en `{{#each}}` inne i en annen leser den indre listen til hvert ytre element.
 
-For eksempel en [Innkommende forespørsel-overvåking](/docs/monitor/incoming-request-monitor) som mottar denne varslingen:
+For eksempel en [Innkommende forespørsel-monitor](/docs/monitor/incoming-request-monitor) som mottar denne varslingen:
 
 ```json title="Request body"
 {
@@ -150,9 +150,9 @@ Alerts for payments:
 
 ### Verdier fra en gruppert monitor
 
-En metrikkbasert monitor med attributter i **Grupper etter** åpner én hendelse per serie, og verdien til hvert attributt er en variabel under attributtets navn. Gruppering etter `host.name` gir `{{host.name}}`, og gruppering etter `resource.k8s.pod.name` gir `{{resource.k8s.pod.name}}`. `{{seriesLabels}}` inneholder alle, som et objekt.
+En målingsbasert monitor med attributter i **Grupper etter** åpner én hendelse per serie, og verdien til hvert attributt er en variabel under attributtets navn. Gruppering etter `host.name` gir `{{host.name}}`, og gruppering etter `resource.k8s.pod.name` gir `{{resource.k8s.pod.name}}`. `{{seriesLabels}}` inneholder alle, som et objekt.
 
-En gruppert [Logg-overvåking](/docs/monitor/logs-monitor) fungerer på samme måte: verdien til hvert grupperingsattributt er en variabel under nøkkelen sin.
+En gruppert [Logg-monitor](/docs/monitor/logs-monitor) fungerer på samme måte: verdien til hvert grupperingsattributt er en variabel under nøkkelen sin.
 
 ## Variabler som alle monitorer har
 
@@ -199,7 +199,7 @@ Disse beskriver serien som en gruppert monitor åpnet hendelsen for: en pod, en 
 Når kriteriet har **Group incidents and alerts by a payload field** slått på, er grupperingsnøkkelen også en variabel, oppkalt etter det **siste segmentet** av grupperingsstien: gruppering etter `requestBody.alerts[*].labels.alertname` gir `{{alertname}}`, og gruppering etter `requestBody.alerts[*].fingerprint` gir `{{fingerprint}}`. Hele `requestBody` finnes fortsatt ved siden av.
 
 > [!NOTE]
-> `[*]` virker bare i feltene for grupperingsstien. I en mal leser den ingenting, så plassholderen blir stående som den er skrevet. `{{requestBody.alerts[0].annotations.summary}}` leser alltid det første varselet i payloaden, ikke det hendelsen ble åpnet for: bruk grupperingsvariabelen og payloadens felles felt, som `commonLabels` og `commonAnnotations`. Se [Innkommende forespørsel-overvåking](/docs/monitor/incoming-request-monitor).
+> `[*]` virker bare i feltene for grupperingsstien. I en mal leser den ingenting, så plassholderen blir stående som den er skrevet. `{{requestBody.alerts[0].annotations.summary}}` leser alltid det første varselet i payloaden, ikke det hendelsen ble åpnet for: bruk grupperingsvariabelen og payloadens felles felt, som `commonLabels` og `commonAnnotations`. Se [Innkommende forespørsel-monitor](/docs/monitor/incoming-request-monitor).
 
 ### Monitorer for innkommende e-post
 
@@ -211,7 +211,7 @@ Når kriteriet har **Group incidents and alerts by a payload field** slått på,
 | `emailBody` | E-postens body som ren tekst. | `string` |
 | `emailReceivedAt` | Når e-posten ble mottatt, som et ISO 8601-tidsstempel i UTC. | `string` |
 
-I en tittel kuttes hver av dem til én linje på høyst 150 tegn. Beskrivelser og utbedringsnotater får hele verdien. Se [Innkommende e-post-overvåking](/docs/monitor/incoming-email-monitor#malvariabler).
+I en tittel kuttes hver av dem til én linje på høyst 150 tegn. Beskrivelser og utbedringsnotater får hele verdien. Se [Innkommende e-post-monitor](/docs/monitor/incoming-email-monitor#malvariabler).
 
 ### Ping-, IP- og portmonitorer
 
@@ -226,10 +226,10 @@ I en tittel kuttes hver av dem til én linje på høyst 150 tegn. Beskrivelser o
 
 | Variabel | Hva den inneholder | Type |
 | --- | --- | --- |
-| `isOnline` | Om tidsserveren svarte på probens forespørsel. | `boolean` |
+| `isOnline` | Om tidsserveren svarte på sondens forespørsel. | `boolean` |
 | `isSynchronized` | Om den svarte med stratum 1 til 15, uten leap-alarmen og med ekte tidsstempler. | `boolean` |
 | `stratum` | Stratumet serveren rapporterte: 1 for en primærserver, 16 når den ikke er synkronisert, 0 for en kiss-o'-death. | `number` |
-| `clockOffsetInMs` | Hvor langt serverens klokke er fra probens, i millisekunder. Positiv betyr at serveren er foran. | `number` |
+| `clockOffsetInMs` | Hvor langt serverens klokke er fra sondens, i millisekunder. Positiv betyr at serveren er foran. | `number` |
 | `referenceId` | Hva serveren synkroniserer mot: en kilde som `GPS` på stratum 1, eller adressen til serveren over den. | `string` |
 | `leapIndicator` | 0 til 2 når alt er i orden, 3 når serveren sier at klokken ikke er synkronisert. | `number` |
 | `kissCode` | Med stratum 0 koden på fire bokstaver som serveren sendte i stedet for tiden, som `RATE`. | `string` |
@@ -417,23 +417,23 @@ For å vise skjermbildet av hver feilet kjøring legger du bildet i en løkke. H
 | `trapSourceIp` | Adressen trapen kom fra. Bare når en SNMP-trap utløste sjekken. | `string` |
 | `trapVarbinds` | Trapens varbinds, hver som `{oid, value}`. Bare når en SNMP-trap utløste sjekken. | `Array<Object>` |
 
-En nettverksenhet pinges ved hver avspørring og gås bare gjennom via SNMP når den har påloggingsinformasjon, så **`isOnline` er den eneste variabelen over som en enhet med bare ping fyller ut**: alle de andre kommer fra SNMP-gjennomgangen og blir stående som de er skrevet uten den. Begynn med `{{isOnline}}` og enhetens navn i maler som kan brukes for enheter uten påloggingsinformasjon. Se [Nettverksenhets-overvåking](/docs/monitor/network-device-monitor#hva-en-polling-faktisk-gjør) for hva hver type avspørring samler inn.
+En nettverksenhet pinges ved hver avspørring og gås bare gjennom via SNMP når den har påloggingsinformasjon, så **`isOnline` er den eneste variabelen over som en enhet med bare ping fyller ut**: alle de andre kommer fra SNMP-gjennomgangen og blir stående som de er skrevet uten den. Begynn med `{{isOnline}}` og enhetens navn i maler som kan brukes for enheter uten påloggingsinformasjon. Se [Nettverksenhets-monitor](/docs/monitor/network-device-monitor#hva-en-polling-faktisk-gjør) for hva hver type avspørring samler inn.
 
 ### Monitorer for databasehelse
 
 | Variabel | Hva den inneholder | Type |
 | --- | --- | --- |
-| `isOnline` | Om proben kunne koble til og kjøre grunnspørringen. Manglende metrikker gjør den aldri usann. | `boolean` |
+| `isOnline` | Om sonden kunne koble til og kjøre grunnspørringen. Manglende målinger gjør den aldri usann. | `boolean` |
 | `responseTimeInMs` | Tiden det tok å koble til og kjøre grunnspørringen, i millisekunder. | `number` |
 | `failureCause` | Hvorfor sjekken feilet, når den gjorde det. | `string` |
 | `connectionError` | Tilkoblingsfeilen, uten påloggingsinformasjon eller tilkoblingsstrengen. | `string` |
 | `engineVersion` | Versjonen databaseserveren rapporterte. | `string` |
-| `collectedGroups` | Metrikkgruppene som ga verdier ved denne sjekken. | `Array<string>` |
+| `collectedGroups` | Målingsgruppene som ga verdier ved denne sjekken. | `Array<string>` |
 | `unavailableGroups` | Gruppene som ikke kunne samles inn, hver som `{group, reason, message, remediation}`. | `Array<Object>` |
 | `collectionIssueSummary` | Én linje om hver utilgjengelig gruppe, klar for en tittel. Tom når alt ble samlet inn. | `string` |
 | `metrics` | De innsamlede verdiene, etter serienavn. | `Object` |
 
-Serienavnene i `metrics` inneholder punktum, som `oneuptime.monitor.database.connections.used.percent`, og en mal kan likevel plukke ut én: skriv hele navnet etter `metrics.`, som i `{{metrics.oneuptime.monitor.database.connections.used.percent}}`. Sett inn `{{metrics}}` i sin helhet, som JSON, eller bruk `{{collectionIssueSummary}}`. En metrikk som ikke ble samlet inn, mangler i `metrics`; den er ikke null. For å handle på én verdi sammenligner du den i kriteriet med et [JavaScript-uttrykk](/docs/monitor/javascript-expression).
+Serienavnene i `metrics` inneholder punktum, som `oneuptime.monitor.database.connections.used.percent`, og en mal kan likevel plukke ut én: skriv hele navnet etter `metrics.`, som i `{{metrics.oneuptime.monitor.database.connections.used.percent}}`. Sett inn `{{metrics}}` i sin helhet, som JSON, eller bruk `{{collectionIssueSummary}}`. En måling som ikke ble samlet inn, mangler i `metrics`; den er ikke null. For å handle på én verdi sammenligner du den i kriteriet med et [JavaScript-uttrykk](/docs/monitor/javascript-expression).
 
 ### Monitorer for eksterne statussider
 
@@ -450,19 +450,19 @@ Serienavnene i `metrics` inneholder punktum, som `oneuptime.monitor.database.con
 | `responseTimeInMs` | Hvor lang tid statussiden brukte på å svare, i millisekunder. | `number` |
 | `failureCause` | Hvorfor sjekken feilet, når den gjorde det. | `string` |
 
-### Metrikk- og infrastrukturmonitorer
+### Målings- og infrastrukturmonitorer
 
-Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker Swarm-, Proxmox-, OpenStack-, VMware-, Ceph-, Storage Array- og IoT Device-monitorer har én egen variabel:
+Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker Swarm-, Proxmox-, OpenStack-, VMware-, Ceph-, Lagringsarray- og IoT-enhet-monitorer har én egen variabel:
 
 | Variabel | Hva den inneholder | Type |
 | --- | --- | --- |
-| `metricName` | Navnet på metrikken monitorens første spørring leser, som `container.cpu.time`. | `string` |
+| `metricName` | Navnet på målingen monitorens første spørring leser, som `container.cpu.time`. | `string` |
 
-Grupperte har de også verdien til hvert attributt i **Grupper etter**, og `seriesLabels`: se [Verdier fra en gruppert monitor](#verdier-fra-en-gruppert-monitor). Malene til IoT Device-monitoren grupperer etter enhet, så en monitor laget fra en av dem har også `{{device.id}}`.
+Grupperte har de også verdien til hvert attributt i **Grupper etter**, og `seriesLabels`: se [Verdier fra en gruppert monitor](#verdier-fra-en-gruppert-monitor). Malene til IoT-enhet-monitoren grupperer etter enhet, så en monitor laget fra en av dem har også `{{device.id}}`.
 
 ### Andre monitortyper
 
-Logs-, Traces-, Exceptions-, Security Events-, AI / LLM- og SQL Query-monitorer har ingen egne variabler. Bruk [variablene som alle monitorer har](#variabler-som-alle-monitorer-har), og på en gruppert Logs-monitor [gruppeverdiene](#verdier-fra-en-gruppert-monitor).
+Logs-, Traces-, Exceptions-, Sikkerhetshendelser-, AI / LLM- og SQL-spørring-monitorer har ingen egne variabler. Bruk [variablene som alle monitorer har](#variabler-som-alle-monitorer-har), og på en gruppert Logs-monitor [gruppeverdiene](#verdier-fra-en-gruppert-monitor).
 
 ## Eksempler
 
@@ -590,6 +590,6 @@ Sjekk bildets format og størrelse mot [Vis et skjermbilde](#vis-et-skjermbilde)
 :::cards
 - [JavaScript-uttrykk](/docs/monitor/javascript-expression): De samme plassholderne, i et kriteriums betingelser.
 - [Opprette en hendelse](/docs/incidents/declaring-incidents): Hva som skjer etter at et kriterium har erklært en.
-- [Syntetisk overvåking](/docs/monitor/synthetic-monitor): Ta skjermbildene en beskrivelse kan vise.
-- [Innkommende forespørsel-overvåking](/docs/monitor/incoming-request-monitor): Gjør webhooks om til hendelser oppkalt etter hvert varsel.
+- [Syntetisk monitor](/docs/monitor/synthetic-monitor): Ta skjermbildene en beskrivelse kan vise.
+- [Innkommende forespørsel-monitor](/docs/monitor/incoming-request-monitor): Gjør webhooks om til hendelser oppkalt etter hvert varsel.
 :::

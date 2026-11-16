@@ -28,7 +28,7 @@ flowchart LR
 ## 开始之前
 
 - **正在到达的遥测。** 服务地图需要追踪：请参阅 [OpenTelemetry](/docs/telemetry/open-telemetry)。基础设施视图需要一台发送数据的主机或一个集群：请参阅 [Kubernetes 代理](/docs/telemetry/kubernetes-agent)。网络视图需要网络设备：请参阅 [网络设备监控](/docs/monitor/network-device-monitor)。
-- **能够读取遥测的角色。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member 或 Telemetry Viewer，或者拥有 Read Inventory Item 权限的自定义角色。
+- **能够读取遥测的角色。** 项目所有者、项目管理员、项目成员、查看者、遥测管理员、遥测成员或遥测查看者，或者拥有 Read Inventory Item 权限的自定义角色。
 
 ## 打开拓扑
 
@@ -51,12 +51,12 @@ flowchart LR
 | 状态 | 条件 |
 | --- | --- |
 | **健康** | 收到的调用中最多 1% 失败。 |
-| **Some errors** | 超过 1% 且少于 5% 失败。 |
-| **High error rate** | 5% 或更多失败。 |
-| **Entry point** | 它没有收到调用，但发出过调用：例如 Web 前端或计划任务。 |
-| **No calls observed** | 它既没有发出也没有收到调用。 |
+| **有一些错误** | 超过 1% 且少于 5% 失败。 |
+| **错误率高** | 5% 或更多失败。 |
+| **入口点** | 它没有收到调用，但发出过调用：例如 Web 前端或计划任务。 |
+| **未观测到调用** | 它既没有发出也没有收到调用。 |
 
-有活跃事件或警报的服务会改为显示其数量，并且与处于 **Some errors** 或 **High error rate** 的服务一样，算作需要关注。
+有活跃事件或警报的服务会改为显示其数量，并且与处于 **有一些错误** 或 **错误率高** 状态的服务一样，算作需要关注。
 
 :::steps
 ### 找到需要关注的服务
@@ -115,7 +115,7 @@ OneUptime 每 10 分钟在你的追踪中查找一次服务之间的调用。当
 
 :::cards
 - [服务](/docs/telemetry/services): 关于一个服务的一切。
-- [跟踪浏览器](/docs/telemetry/traces-explorer): 每个箭头背后的请求。
+- [追踪浏览器](/docs/telemetry/traces-explorer): 每个箭头背后的请求。
 - [资产清单概览](/docs/inventory/overview): 地图绘制的每个资源。
 - [网络设备监控](/docs/monitor/network-device-monitor): 把你的网络放到地图上。
 :::

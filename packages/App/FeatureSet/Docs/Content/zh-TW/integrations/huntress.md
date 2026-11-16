@@ -13,7 +13,7 @@
 
 ## 運作方式
 
-Huntress 會在報告送出時、有人留言時以及報告關閉時傳送事件報告的事件。**Huntress Incident Report** 觸發器會為每個事件啟動一次工作流程，它的 **Event** 說明是哪種事件：`created`、`comment-added` 或 `closed`。
+Huntress 會在報告送出時、有人留言時以及報告關閉時傳送事件報告的事件。**Huntress 事件報告** 觸發器會為每個事件啟動一次工作流程，它的 **事件** 說明是哪種事件：`created`、`comment-added` 或 `closed`。
 
 ```mermaid title="一份 Huntress 事件報告在工作流程中"
 sequenceDiagram
@@ -55,11 +55,11 @@ sequenceDiagram
 
 ### 選擇呼叫誰
 
-接著對話方塊會詢問要呼叫誰：在 **Who to page for high and critical reports** 底下選擇要呼叫的待命策略，不選則不呼叫任何人，然後點選**建立工作流程**。工作流程會在**建構器**中開啟，處於關閉狀態。之後要變更呼叫誰，請點選它的 **Page an On-Call Policy** 步驟，變更其**待命策略**。
+接著對話方塊會詢問要呼叫誰：在 **Who to page for high and critical reports** 底下選擇要呼叫的待命策略，不選則不呼叫任何人，然後點選**建立工作流程**。工作流程會在**建構器**中開啟，處於關閉狀態。之後要變更呼叫誰，請點選它的 **啟動待命策略** 步驟，變更其**待命策略**。
 
 ### 在 Huntress 中新增 Webhook 端點
 
-點選 **Huntress Incident Report** 觸發器，在**在 Huntress 中新增 Webhook 端點**下點選**複製 URL**。URL 形如 `https://oneuptime.com/workflow/huntress/<key>`；自行託管的安裝會以你自己的主機開頭。
+點選 **Huntress 事件報告** 觸發器，在**在 Huntress 中新增 Webhook 端點**下點選**複製 URL**。URL 形如 `https://oneuptime.com/workflow/huntress/<key>`；自行託管的安裝會以你自己的主機開頭。
 
 在 Huntress 中開啟右上角的選單，選擇 **Integrations**。點選 **Add an Integration**，選擇 **Webhooks**，然後點選 **Add Endpoint**。貼上 URL，開啟 **Incident Reports**，然後儲存。讓 **Escalations**、**Platform Actions** 與 **Account Notices** 保持關閉：觸發器會接收這些事件，但不會為它們啟動任何內容。
 
@@ -79,19 +79,19 @@ sequenceDiagram
 
 ## 工作流程做什麼
 
-在觸發器之後， **Incident From Another Tool** 依報告的編號執行每種 **Event** 要求的操作：
+在觸發器之後， **來自其他工具的事件** 依報告的編號執行每種 **事件** 要求的操作：
 
 | Event | 工作流程做什麼 |
 | --- | --- |
-| `created` | 以觸發器的 **Incident Severity ID** 建立事件，並帶上其 **Organization Label ID** 標籤。對於高或嚴重的報告，**Page an On-Call Policy** 會呼叫你的策略；低報告不呼叫任何人。已有事件的報告不會再建立另一個事件。 |
+| `created` | 以觸發器的 **事件嚴重程度 ID** 建立事件，並帶上其 **組織標籤 ID** 標籤。對於高或嚴重的報告，**啟動待命策略** 會呼叫你的策略；低報告不呼叫任何人。已有事件的報告不會再建立另一個事件。 |
 | `comment-added` | 找到報告的事件，把留言作為私人備註加到事件上。 |
 | `closed` | 找到報告的事件並解決它，除非它已經解決。原因記錄在它的時間軸上：Huntress 關閉了該報告。 |
 
-它和其他工作流程一樣，所以你可以修改它做的事：修改 **Incident From Another Tool** 之後的 **If / Else** 比較的內容，只為嚴重報告呼叫；用 Slack 或 Microsoft Teams 步驟把每份報告貼到聊天頻道；或用依 **Organization** 判斷的 **Switch / Case** 把每個組織送給它自己的待命策略。每次執行都會列在工作流程的執行記錄中，並顯示每個步驟做了什麼。
+它和其他工作流程一樣，所以你可以修改它做的事：修改 **來自其他工具的事件** 之後的 **如果 / 否則** 比較的內容，只為嚴重報告呼叫；用 Slack 或 Microsoft Teams 步驟把每份報告貼到聊天頻道；或用依 **組織** 判斷的 **分支選擇** 把每個組織送給它自己的待命策略。每次執行都會列在工作流程的執行記錄中，並顯示每個步驟做了什麼。
 
 ### 嚴重性
 
-Huntress 會給每份事件報告三種嚴重性之一。觸發器的 **Incident Severity ID** 是報告建立事件時使用的事件嚴重性：由對應設定選擇，否則依**事件 → 設定 → 事件嚴重性**中列出的事件嚴重性順序決定：
+Huntress 會給每份事件報告三種嚴重性之一。觸發器的 **事件嚴重程度 ID** 是報告建立事件時使用的事件嚴重性：由對應設定選擇，否則依**事件 → 設定 → 事件嚴重性**中列出的事件嚴重性順序決定：
 
 | Huntress 嚴重性 | Huntress 的意思 | 設定 | 設定為空時的事件嚴重性 |
 | --- | --- | --- | --- |
@@ -103,7 +103,7 @@ Huntress 會給每份事件報告三種嚴重性之一。觸發器的 **Incident
 
 ### 組織
 
-觸發器的 **Organization Label ID** 是一個以報告所屬 Huntress 組織命名的標籤，例如 _Acme Corp_，該組織的第一份報告送達時會建立它。一個工作流程會接收你 Huntress 帳戶中所有組織的報告，觸發器的**僅限這些組織**可以縮小範圍：每行一個組織名稱或 ID，名稱不區分大小寫。
+觸發器的 **組織標籤 ID** 是一個以報告所屬 Huntress 組織命名的標籤，例如 _Acme Corp_，該組織的第一份報告送達時會建立它。一個工作流程會接收你 Huntress 帳戶中所有組織的報告，觸發器的**僅限這些組織**可以縮小範圍：每行一個組織名稱或 ID，名稱不區分大小寫。
 
 > [!TIP]
 > 要呼叫每個客戶自己的團隊，請為每個組織新增一條事件待命規則，例如「如果**事件標籤**包含任一 _Acme Corp_」，執行該客戶的策略。請參閱[事件待命規則](/docs/incidents/settings#事件待命規則)。
@@ -114,25 +114,25 @@ Huntress 會給每份事件報告三種嚴重性之一。觸發器的 **Incident
 
 | 值 | 內容 |
 | --- | --- |
-| **Event** | `created`、`comment-added` 或 `closed`。已經關閉或駁回的報告，無論由哪個事件帶來，都是 `closed`。 |
-| **Report ID** | 報告在 Huntress 中的編號。 |
-| **Severity** | `critical`、`high` 或 `low`。 |
-| **Status** | 報告在 Huntress 中的狀態，例如 `sent`、`closed` 或 `dismissed`。 |
-| **Subject** | 報告的主旨，即 Huntress 所寫的原文。 |
-| **Summary** | SOC 分析師寫的內容。 |
-| **Organization**、**Organization ID** | 報告涉及的 Huntress 組織。 |
-| **Affected** | 報告涉及的主機或身分。 |
-| **Platform**、**Indicators** | Huntress 在哪裡發現，以及發現了什麼。 |
-| **Comment** | 對於 `comment-added`，某人新增的留言。 |
-| **Report URL** | 報告在 Huntress 中開啟的位置。 |
-| **Incident Title**、**Incident Description** | 關於該報告的事件的標題與 Markdown 描述。 |
-| **Note** | 關於該事件的備註 Markdown：留言內容，或 Huntress 關閉了該報告。 |
-| **Incident Severity ID**、**Organization Label ID** | 上文所述的事件嚴重性與標籤。 |
-| **Received At** | OneUptime 收到該事件的時間。 |
+| **事件** | `created`、`comment-added` 或 `closed`。已經關閉或駁回的報告，無論由哪個事件帶來，都是 `closed`。 |
+| **報告 ID** | 報告在 Huntress 中的編號。 |
+| **嚴重程度** | `critical`、`high` 或 `low`。 |
+| **狀態** | 報告在 Huntress 中的狀態，例如 `sent`、`closed` 或 `dismissed`。 |
+| **主旨** | 報告的主旨，即 Huntress 所寫的原文。 |
+| **摘要** | SOC 分析師寫的內容。 |
+| **組織**、**組織 ID** | 報告涉及的 Huntress 組織。 |
+| **受影響對象** | 報告涉及的主機或身分。 |
+| **平台**、**指標** | Huntress 在哪裡發現，以及發現了什麼。 |
+| **評論** | 對於 `comment-added`，某人新增的留言。 |
+| **報告 URL** | 報告在 Huntress 中開啟的位置。 |
+| **事件標題**、**事件描述** | 關於該報告的事件的標題與 Markdown 描述。 |
+| **備註** | 關於該事件的備註 Markdown：留言內容，或 Huntress 關閉了該報告。 |
+| **事件嚴重程度 ID**、**組織標籤 ID** | 上文所述的事件嚴重性與標籤。 |
+| **接收時間** | OneUptime 收到該事件的時間。 |
 
-**Summary** 與 **Comment** 是 Huntress 分析師寫的文字。要把它們放進事件或備註，請使用 **Incident Description** 與 **Note**：它們會保留格式，而且其中的內容不會載入圖片，也不會提及任何人。
+**摘要** 與 **評論** 是 Huntress 分析師寫的文字。要把它們放進事件或備註，請使用 **事件描述** 與 **備註**：它們會保留格式，而且其中的內容不會載入圖片，也不會提及任何人。
 
-要在沒有 Huntress 的情況下試用工作流程，請在**建構器**中點選**執行工作流程**，輸入 **Event**、**Report ID** 與你需要的欄位。使用同一個 **Report ID** 可以把一份報告從 `created` 追到 `closed`。
+要在沒有 Huntress 的情況下試用工作流程，請在**建構器**中點選**執行工作流程**，輸入 **事件**、**報告 ID** 與你需要的欄位。使用同一個 **報告 ID** 可以把一份報告從 `created` 追到 `closed`。
 
 ## 之前建立的 Huntress 連線
 
@@ -170,15 +170,15 @@ Huntress 與你的 OneUptime 伺服器時鐘相差超過五分鐘，或者該請
 :::
 
 :::details "No Huntress workflow has this address."
-工作流程已被刪除或封存，它的觸發器不再是 **Huntress Incident Report**，或者 Huntress 中端點的 URL 不是該工作流程的 URL。從觸發器複製 URL，然後把它重新貼到 Huntress 的端點中。
+工作流程已被刪除或封存，它的觸發器不再是 **Huntress 事件報告**，或者 Huntress 中端點的 URL 不是該工作流程的 URL。從觸發器複製 URL，然後把它重新貼到 Huntress 的端點中。
 :::
 
 :::details 沒有建立事件
-開啟工作流程的執行記錄，以及該報告的那次執行。如果 **Incident From Another Tool** 以 `This project has no incident severities to put the incident at.` 失敗，請在**事件 → 設定 → 事件嚴重性**中新增一個。
+開啟工作流程的執行記錄，以及該報告的那次執行。如果 **來自其他工具的事件** 以 `This project has no incident severities to put the incident at.` 失敗，請在**事件 → 設定 → 事件嚴重性**中新增一個。
 :::
 
 :::details 沒有呼叫任何人
-低報告會建立事件但不呼叫。其他情況下，該報告的執行會顯示 **Page an On-Call Policy** 做了什麼，事件的**待命執行**頁面會顯示每個策略做了什麼。
+低報告會建立事件但不呼叫。其他情況下，該報告的執行會顯示 **啟動待命策略** 做了什麼，事件的**待命執行**頁面會顯示每個策略做了什麼。
 :::
 
 ## 後續步驟

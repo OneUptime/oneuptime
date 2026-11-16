@@ -38,7 +38,10 @@ import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 // Reset Risk, as the page offers it: who may, and what it does.
 export interface EntityRiskResetAction {
   isAllowed: boolean;
-  // Why it is locked, for whoever may not delete security data.
+  /*
+   * Why it is locked, for whoever may not delete security data: the
+   * permission check's reason, in the reader's words already.
+   */
   disabledReason?: string | undefined;
   onClick: () => void;
 }
@@ -202,6 +205,8 @@ const EntityRiskHeader: FunctionComponent<ComponentProps> = (
                       tooltip={
                         reset.isAllowed ? undefined : reset.disabledReason
                       }
+                      // A permission check's reason, in the reader's words already.
+                      isTooltipTranslated={true}
                       dataTestId={ENTITY_RISK_TEST_IDS.reset}
                       onClick={reset.onClick}
                     />,

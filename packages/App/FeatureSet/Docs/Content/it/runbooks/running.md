@@ -58,7 +58,7 @@ Per avviarne una a mano:
 3. Si apre la pagina dell'esecuzione.
 :::
 
-Avviare un'esecuzione richiede Project Owner, Project Admin, Project Member, Runbook Admin o Runbook Member, oppure l'autorizzazione **Create Runbook Execution**. Runbook Viewer e Viewer vedono **Esegui ora** bloccato, con il motivo. Vedi [Autorizzazioni](/docs/runbooks/configuration#autorizzazioni).
+Avviare un'esecuzione richiede Proprietario del progetto, Amministratore del progetto, Membro del progetto, Amministratore dei runbook o Membro dei runbook, oppure l'autorizzazione **Create Runbook Execution**. Visualizzatore dei runbook e Visualizzatore vedono **Esegui ora** bloccato, con il motivo. Vedi [Autorizzazioni](/docs/runbooks/configuration#autorizzazioni).
 
 ## La vista dell'esecuzione
 
@@ -89,7 +89,7 @@ Mentre l'esecuzione è in pausa, puoi anche saltare un passaggio automatico succ
 
 Completare, approvare, saltare e annullare richiedono gli stessi ruoli dell'avvio di un'esecuzione, oppure l'autorizzazione **Edit Runbook Execution**.
 
-La pagina **Registri di audit** del runbook registra chi ha avviato ogni esecuzione, chi ha approvato, completato o saltato ciascuno dei suoi passaggi e chi l'ha annullata. Un passaggio vi compare come ciò che gli è stato fatto, ad esempio `Approved "Restart the API" (step 3)`, mai con ciò che il passaggio ha stampato né con la nota lasciata con esso.
+La pagina **Log di audit** del runbook registra chi ha avviato ogni esecuzione, chi ha approvato, completato o saltato ciascuno dei suoi passaggi e chi l'ha annullata. Un passaggio vi compare come ciò che gli è stato fatto, ad esempio `Approved "Restart the API" (step 3)`, mai con ciò che il passaggio ha stampato né con la nota lasciata con esso.
 
 ## Alternare passaggi manuali e automatici
 
@@ -121,14 +121,14 @@ Un'esecuzione è un record unico e immutabile. Per eseguire di nuovo il runbook,
 
 | Dove | Cosa elenca |
 | --- | --- |
-| Le **Registri → Esecuzioni** di un runbook | Tutte le esecuzioni di quel runbook, con filtri per stato e data di inizio, e una colonna **Attivato da**. |
+| Le **Log → Esecuzioni** di un runbook | Tutte le esecuzioni di quel runbook, con filtri per stato e data di inizio, e una colonna **Attivato da**. |
 | **Runbook → Esecuzioni** | Tutte le esecuzioni di tutti i runbook del progetto. |
 | La pagina **Runbook** di un incidente, un avviso o un evento | Le esecuzioni collegate. Anche la panoramica dell'evento le mostra, appena ce n'è qualcuna. |
 
 ## Risoluzione dei problemi
 
 :::details Run Now è bloccato
-Il tuo ruolo legge i runbook ma non li esegue: il pulsante dice «Non hai l'autorizzazione per avviare esecuzioni di runbook in questo progetto.» Chiedi Runbook Member oppure l'autorizzazione **Create Runbook Execution**.
+Il tuo ruolo legge i runbook ma non li esegue: il pulsante dice «Non hai l'autorizzazione per avviare esecuzioni di runbook in questo progetto.» Chiedi il ruolo Membro dei runbook oppure l'autorizzazione **Create Runbook Execution**.
 :::
 
 :::details L'avvio di un'esecuzione fallisce con "Runbook is disabled" o "Runbook has no steps to run"

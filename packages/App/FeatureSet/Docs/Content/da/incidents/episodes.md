@@ -37,7 +37,7 @@ Under **Medlemshændelser** tager **Fjern** på en række, eller på de valgte r
 
 ## Én episode pr. hændelse
 
-En hændelse kan være i flere episoder på én gang. For at holde hver hændelse i højst én episode slår du **En hændelse kan kun være i én episode** til under **Hændelser → Indstillinger → Medlemskab af episoder**. For advarsler hedder kontakten **En advarsel kan kun være i én episode**, under **Advarsler → Indstillinger → Medlemskab af episoder**. Begge er slået fra, indtil du slår dem til, og kun Project Owners og Project Admins kan ændre dem.
+En hændelse kan være i flere episoder på én gang. For at holde hver hændelse i højst én episode slår du **En hændelse kan kun være i én episode** til under **Hændelser → Indstillinger → Medlemskab af episoder**. For advarsler hedder kontakten **En advarsel kan kun være i én episode**, under **Advarsler → Indstillinger → Medlemskab af episoder**. Begge er slået fra, indtil du slår dem til, og kun Projektejere og Projektadministratorer kan ændre dem.
 
 Mens den er slået til, bliver en hændelse, der er i en episode, ikke føjet til nogen anden:
 
@@ -51,7 +51,7 @@ At slå den til tager ingen hændelse ud af en episode: en hændelse, der allere
 
 ## Hvem kan tilføje
 
-Tilføjelse kræver tilladelse til at føje hændelser til en episode, som rollerne Project Owner, Project Admin, Project Member, Incident Admin og Incident Member har, ligesom en brugerdefineret rolle med Create Incident Episode Member. Du kan kun tilføje hændelser, du kan se: en privat hændelse kan kun tilføjes af sine ejere og af projektets ejere og administratorer. Tilføj til ny episode kræver også tilladelse til at oprette en episode. Når du ikke kan bruge en handling, er den låst, og dens værktøjstip nævner den tilladelse, der mangler.
+Tilføjelse kræver tilladelse til at føje hændelser til en episode, som rollerne Projektejer, Projektadministrator, Projektmedlem, Hændelsesadministrator og Hændelsesmedlem har, ligesom en brugerdefineret rolle med Create Incident Episode Member. Du kan kun tilføje hændelser, du kan se: en privat hændelse kan kun tilføjes af sine ejere og af Projektejere og Projektadministratorer. Tilføj til ny episode kræver også tilladelse til at oprette en episode. Når du ikke kan bruge en handling, er den låst, og dens værktøjstip nævner den tilladelse, der mangler.
 
 ## Med API'et
 

@@ -4,7 +4,7 @@ Invia i problemi di [New Relic](https://newrelic.com) a OneUptime, così ognuno 
 
 :::cards
 - [Partire dal modello](#partire-dal-modello): Scegli chi chiamare, copia l'URL e vedi cosa fa ogni problema.
-- [Configurare New Relic](#configurare-new-relic): Una destinazione webhook e il workflow che la notifica.
+- [Configurare New Relic](#configurare-new-relic): Una destinazione webhook e il workflow New Relic che la notifica.
 - [Provarlo](#provarlo): Invia un problema tu stesso, poi uno da New Relic.
 - [Risoluzione dei problemi](#risoluzione-dei-problemi): Quando i problemi non arrivano o gli incidenti restano aperti.
 :::
@@ -13,7 +13,7 @@ Invia i problemi di [New Relic](https://newrelic.com) a OneUptime, così ognuno 
 
 ```mermaid title="Da un problema di New Relic a un incidente"
 flowchart TB
-    issue["Il problema di<br/>New Relic cambia<br/>stato"] --> filter["Il filtro di un<br/>workflow lo lascia<br/>passare"]
+    issue["Il problema di<br/>New Relic cambia<br/>stato"] --> filter["Il filtro di un<br/>workflow New Relic<br/>lo lascia passare"]
     filter --> post["Il suo webhook invia<br/>il payload"]
     post --> state{"state"}
     state -->|"ACTIVATED"| open["Incidente aperto,<br/>reperibili chiamati"]
@@ -25,8 +25,8 @@ Un workflow di New Relic sceglie i problemi da inviare con il suo filtro, e noti
 
 ## Prima di iniziare
 
-- Un account New Relic in cui puoi creare destinazioni e workflow.
-- In OneUptime, il permesso di creare workflow. Su OneUptime Cloud, i workflow richiedono il piano **Growth** o superiore.
+- Un account New Relic in cui puoi creare destinazioni e workflow New Relic.
+- In OneUptime, il permesso di creare flussi di lavoro. Su OneUptime Cloud, i flussi di lavoro richiedono il piano **Growth** o superiore.
 
 ## Partire dal modello
 
@@ -34,18 +34,18 @@ Configura prima OneUptime: ti dà l'URL a cui invia New Relic. La finestra **Cre
 
 :::steps
 1. Vai su **Flussi di lavoro** e fai clic su **Crea flusso di lavoro**. In **Oppure parti da un modello**, scegli **New Relic** nell'elenco di categorie, fai clic su **Declare an incident for each New Relic issue**, o su **Create an alert for each New Relic issue**, e poi su **Usa questo modello**.
-2. In **Who to page for new New Relic issues**, scegli le policy di reperibilità da chiamare, o nessuna per non chiamare nessuno, e fai clic su **Crea flusso di lavoro**. Il workflow si apre nel **Costruttore**, disattivato.
+2. In **Who to page for new New Relic issues**, scegli le policy di reperibilità da chiamare, o nessuna per non chiamare nessuno, e fai clic su **Crea flusso di lavoro**. Il flusso di lavoro si apre nel **Costruttore**, disattivato.
 3. Fai clic sul trigger **Webhook**, poi su **Copia URL**, e conserva l'URL per New Relic.
-4. Attiva **Abilitato** in cima al **Costruttore**. Un workflow disattivato risponde a New Relic con `400`.
+4. Attiva **Abilitato** in cima al **Costruttore**. Un flusso di lavoro disattivato risponde a New Relic con `400`.
 :::
 
-Poi [configura New Relic](#configurare-new-relic) perché invii i suoi problemi a quell'URL. Il passo `read-event-1` del workflow si apre con la stessa configurazione, per quando ci torni nel **Costruttore**.
+Poi [configura New Relic](#configurare-new-relic) perché invii i suoi problemi a quell'URL. Il passo `read-event-1` del flusso di lavoro si apre con la stessa configurazione, per quando ci torni nel **Costruttore**.
 
-### Cosa fa il workflow
+### Cosa fa il flusso di lavoro
 
-Dopo il trigger **Webhook**, il passo **Check With JavaScript** `read-event-1` legge lo `state` che New Relic invia, e **Incident From Another Tool**, o **Alert From Another Tool** nel modello degli avvisi, fa ciò che significa, tramite l'ID del problema. L'incidente conserva l'ID nel suo campo personalizzato `newRelicIssueId`.
+Dopo il trigger **Webhook**, il passo **Verifica con JavaScript** `read-event-1` legge lo `state` che New Relic invia, e **Incidente da un altro strumento**, o **Avviso da un altro strumento** nel modello degli avvisi, fa ciò che significa, tramite l'ID del problema. L'incidente conserva l'ID nel suo campo personalizzato `newRelicIssueId`.
 
-| Cosa invia New Relic | Cosa fa il workflow |
+| Cosa invia New Relic | Cosa fa il flusso di lavoro |
 | --- | --- |
 | `state` è `ACTIVATED` o `CREATED` | Dichiara un incidente intitolato `New Relic: <issue>`, alla gravità a cui corrisponde la priorità del problema, fuori dalle tue pagine di stato. La sua descrizione collega il problema in New Relic e riporta la priorità, le entità, le policy e le condizioni. Chiama le policy di reperibilità che hai scelto. Lo stesso problema di nuovo, ad esempio quando New Relic lo porta a CRITICAL, non apre un secondo incidente e non chiama nessuno di nuovo. |
 | `state` è `ACTIVATED` e `isAcknowledged` è `true` | Riconosce l'incidente del problema, così la reperibilità smette di inoltrarlo in escalation. Il motivo è nella sua cronologia. |
@@ -75,13 +75,13 @@ Per mappare una priorità su una delle tue per nome, modifica `SEVERITY_BY_NAME`
 
 In New Relic, vai su **Alerts → Destinations** e aggiungi una destinazione **Webhook**. Imposta **Webhook name** su `OneUptime` e **Endpoint URL** sull'URL che hai copiato da OneUptime, e salvala. Lascia **Use authorization** disattivato: l'URL è l'unica credenziale.
 
-### Aggiungere il workflow
+### Aggiungere il workflow New Relic
 
 Vai su **Alerts → Workflows** e fai clic su **Add a workflow**. Chiamalo `OneUptime`. Il suo filtro decide quali problemi arrivano a OneUptime, come solo quelli CRITICAL, o quelli di un team.
 
 ### Notificare la destinazione
 
-Aggiungi al workflow la destinazione **Webhook** che hai creato. Lascia il payload che New Relic compila, e aggiungi una riga per `isAcknowledged` dopo `state`, così l'incidente viene riconosciuto con il suo problema:
+Aggiungi al workflow New Relic la destinazione **Webhook** che hai creato. Lascia il payload che New Relic compila, e aggiungi una riga per `isAcknowledged` dopo `state`, così l'incidente viene riconosciuto con il suo problema:
 
 ```json
 {
@@ -110,12 +110,12 @@ La riga da aggiungere è `"isAcknowledged": {{ json isAcknowledged }},`. Poi fai
 
 Fai clic sui tre puntini della destinazione e scegli **Notify when**. Lascia attivi **Activated**, **Acknowledged** e **Closed**.
 
-### Attivare il workflow
+### Attivare il workflow New Relic
 
 Fai clic su **Activate workflow**.
 :::
 
-Il workflow di OneUptime legge questi campi del payload e lascia stare gli altri:
+Il flusso di lavoro di OneUptime legge questi campi del payload e lascia stare gli altri:
 
 | Campo | Cosa ci mette New Relic |
 | --- | --- |
@@ -151,18 +151,18 @@ curl -X POST "<url>" \
 
 Si apre un incidente intitolato `New Relic: High CPU on checkout-service`, e le policy di reperibilità che hai scelto vengono chiamate. Invia la stessa richiesta con `isAcknowledged` impostato su `true`, e l'incidente viene riconosciuto. Invialo con `state` impostato su `CLOSED`, e l'incidente si risolve.
 
-Poi prova da New Relic: apri il messaggio webhook del workflow e fai clic su **Send test notification**. Per vedere che è arrivato, apri **Registri → Esecuzioni** del workflow di OneUptime.
+Poi prova da New Relic: apri il messaggio webhook del workflow New Relic e fai clic su **Send test notification**. Per vedere che è arrivato, apri **Log → Esecuzioni** del flusso di lavoro di OneUptime.
 
 ## Risoluzione dei problemi
 
 :::details Non arriva nulla in OneUptime
 - Verifica che il workflow in New Relic sia attivo e che il suo filtro lasci passare il problema.
 - Verifica che l'**Endpoint URL** della destinazione sia l'URL del trigger **Webhook**.
-- Un workflow disattivato risponde `400`. Attiva **Abilitato** in cima al suo **Costruttore**.
+- Un flusso di lavoro disattivato risponde `400`. Attiva **Abilitato** in cima al suo **Costruttore**.
 :::
 
-:::details Il workflow gira, ma non apre nulla
-Apri l'esecuzione in **Registri → Esecuzioni**. La voce `read-event-1` nei suoi **Passaggi** dice perché ha preso **No**.
+:::details Il flusso di lavoro gira, ma non apre nulla
+Apri l'esecuzione in **Log → Esecuzioni**. La voce `read-event-1` nei suoi **Passaggi** dice perché ha preso **No**.
 
 - `New Relic named no issue ID`: lascia la riga `"id": {{ json issueId }},` nel payload.
 - `is in no state`: lascia la riga `"state": {{ json state }},` nel payload.
@@ -175,7 +175,7 @@ Apri l'esecuzione in **Registri → Esecuzioni**. La voce `read-event-1` nei suo
 
 :::details Gli incidenti si aprono ma non vengono mai risolti
 - Il workflow in New Relic deve avere **Closed** attivo in **Notify when**.
-- Apri l'esecuzione della chiusura in **Registri → Esecuzioni**: il suo ultimo passo dice perché. L'`id` della chiusura deve essere quello del problema, quindi lascia `"id": {{ json issueId }},` così com'è nel payload.
+- Apri l'esecuzione della chiusura in **Log → Esecuzioni**: il suo ultimo passo dice perché. L'`id` della chiusura deve essere quello del problema, quindi lascia `"id": {{ json issueId }},` così com'è nel payload.
 :::
 
 :::details I reperibili vengono chiamati per troppi problemi
@@ -184,19 +184,19 @@ Ogni nuovo problema che arriva a OneUptime chiama. Restringi il filtro del workf
 
 :::details I reperibili non vengono chiamati
 - Una notifica per un problema che ha già il suo incidente non chiama nessuno di nuovo, quindi un passaggio a CRITICAL non chiama nessuno.
-- Se nella finestra **Crea un flusso di lavoro** non hai scelto nessuno, il workflow non ha alcun passo che chiami.
+- Se nella finestra **Crea un flusso di lavoro** non hai scelto nessuno, il flusso di lavoro non ha alcun passo che chiami.
 :::
 
 ## Sicurezza
 
-- **Tratta l'URL come una password.** Chiunque lo abbia può aprire incidenti. Se trapela, fai clic su **Reimposta URL** nel trigger **Webhook** del workflow. Poi aggiorna l'**Endpoint URL** della destinazione in New Relic.
+- **Tratta l'URL come una password.** Chiunque lo abbia può aprire incidenti. Se trapela, fai clic su **Reimposta URL** nel trigger **Webhook** del flusso di lavoro. Poi aggiorna l'**Endpoint URL** della destinazione in New Relic.
 - **I link portano a New Relic.** Il modello collega un problema solo su un sito New Relic, qualunque cosa dica una richiesta, e scrive ciò che New Relic ha inviato come testo.
 - **Self-hosted?** New Relic invia i webhook da internet, quindi il tuo OneUptime deve essere raggiungibile da lì via HTTPS.
 
 ## Prossimi passi
 
 :::cards
-- [Modelli di workflow](/docs/workflows/authoring): Crea un workflow da un modello e modificalo nel Costruttore.
+- [Modelli dei flussi di lavoro](/docs/workflows/authoring): Crea un flusso di lavoro da un modello e modificalo nel Costruttore.
 - [Datadog](/docs/integrations/datadog): Lo stesso modello, per i monitor di Datadog.
 - [Regole di escalation](/docs/on-call/escalation-rules): Decidi chi chiama una policy di reperibilità, e quando.
 - [Panoramica delle integrazioni](/docs/integrations/index): Gli altri strumenti che puoi collegare.

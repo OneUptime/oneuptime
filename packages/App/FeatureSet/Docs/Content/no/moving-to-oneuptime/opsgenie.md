@@ -25,7 +25,7 @@ flowchart TB
 
 ## Før du begynner
 
-- **Et OneUptime-prosjekt og retten til å opprette det du overfører.** Prosjekteiere og prosjektadministratorer kan overføre alt. Andre roller kan også kjøre en import og overføre de typene poster de kan opprette. Resten vises som ikke overført, med årsaken.
+- **Et OneUptime-prosjekt og retten til å opprette det du overfører.** Prosjekteiere og Prosjektadministratorer kan overføre alt. Andre roller kan også kjøre en import og overføre de typene poster de kan opprette. Resten vises som ikke overført, med årsaken.
 - **En Opsgenie-API-nøkkel med tilgangene Read og Configuration access.** Configuration access er det som lar en nøkkel lese brukere, team, vaktplaner og eskaleringer. Importen skriver aldri til Opsgenie.
 - **Opsgenie-regionen din.** Hvis du logger inn på `app.eu.opsgenie.com`, ligger kontoen din i Europa. Ellers ligger den i USA.
 
@@ -57,26 +57,26 @@ Rapporten teller hva som ble opprettet, invitert og ikke overført, og viser hve
 | Brukere | Prosjektmedlemmer | Kobles på e-postadresse. Alle som ikke er i prosjektet ennå, inviteres til teamet du velger. Blokkerte brukere overføres ikke. |
 | Team | Team | Opprettes med medlemmene sine. Et team som prosjektet allerede har navnet på, brukes som det er, og medlemmene røres ikke. |
 | Vaktplaner | Vaktplaner | Hver rotasjon blir et lag med de samme personene, samme start, samme vaktlengde og samme tidsbegrensning, i vaktplanens tidssone, eid av vaktplanens team. |
-| Eskaleringer | Vaktretningslinjer | Hver regel blir en eskaleringsregel som varsler den samme vaktplanen, brukeren eller det samme teamet. Regler med samme forsinkelse varsler sammen, og ventetiden før neste eskaleringsregel er forskjellen mellom forsinkelsene. Eskaleringens gjentakelser blir retningslinjens gjentakelser. |
+| Eskaleringer | Vaktpolicyer | Hver regel blir en eskaleringsregel som varsler den samme vaktplanen, brukeren eller det samme teamet. Regler med samme forsinkelse varsler sammen, og ventetiden før neste eskaleringsregel er forskjellen mellom forsinkelsene. Eskaleringens gjentakelser blir policyens gjentakelser. |
 | Tjenester | Tjenester | Opprettes i tjenestekatalogen, eid av teamet sitt. |
 
-En vaktplan der rotasjonene setter to personer på vakt samtidig, blir én OneUptime-vaktplan per rotasjon, fordi en OneUptime-vaktplan har én person på vakt om gangen. Hver vaktretningslinje som varslet vaktplanen, varsler alle.
+En vaktplan der rotasjonene setter to personer på vakt samtidig, blir én OneUptime-vaktplan per rotasjon, fordi en OneUptime-vaktplan har én person på vakt om gangen. Hver vaktpolicy som varslet vaktplanen, varsler alle.
 
 ## Hva som ikke overføres
 
 - **Varsler, hendelser og historikken deres.** OneUptime starter med oppsettet ditt, ikke med tidligere varsler.
-- **Integrasjoner, heartbeats, varslingsretningslinjer og rutingregler.** Pek i stedet monitorene og varselkildene dine mot OneUptime, som beskrevet i [Fullfør byttet](#fullfør-byttet).
+- **Integrasjoner, heartbeats, varslingspolicyer og rutingregler.** Pek i stedet monitorene og varselkildene dine mot OneUptime, som beskrevet i [Fullfør byttet](#fullfør-byttet).
 - **Overstyringer av vaktplaner, og rotasjoner som allerede er avsluttet.** Legg til overstyringene du fortsatt trenger, i OneUptime etter importen.
 - **Hver persons varslingsregler.** Hver person velger hvordan de varsles, i sine egne **Brukerinnstillinger** når de har godtatt invitasjonen.
 - **Trinn som OneUptime ikke har en eksakt motsvarighet til.** En regel som varsler den som har vakt neste gang, eller et teams administratorer, overføres som det nærmeste OneUptime har, og forhåndsvisningen sier hva som endres.
 
 ## Grenser
 
-Én import oppretter høyst 2 000 poster: høyst 500 personer, 200 team, 200 vaktplaner, 200 vaktretningslinjer og 500 tjenester. Alt over en grense vises som ikke overført. Kjør importen på nytt for å overføre resten.
+Én import oppretter høyst 2 000 poster: høyst 500 personer, 200 team, 200 vaktplaner, 200 vaktpolicyer og 500 tjenester. Alt over en grense vises som ikke overført. Kjør importen på nytt for å overføre resten.
 
 I OneUptime Cloud vises poster som abonnementet ditt ikke inkluderer, som ikke overført, med abonnementet de trenger.
 
-En forhåndsvisning lagres i én dag. Bare personen som leste kontoen, kan krysse av og starte importen. Prosjekteiere og prosjektadministratorer ser fremdriften og rapporten for hver import.
+En forhåndsvisning lagres i én dag. Bare personen som leste kontoen, kan krysse av og starte importen. Prosjekteiere og Prosjektadministratorer ser fremdriften og rapporten for hver import.
 
 ## Fullfør byttet
 
@@ -94,7 +94,7 @@ Hvis teamet ditt omtaler hendelser med nummer, la numrene i OneUptime starte ett
 Pek monitorene dine og verktøyene som utløser varsler, mot OneUptime, og varsle deg selv én gang for å teste det.
 
 ### Slå av varsling i Opsgenie
-Når OneUptime varsler de riktige personene, slår du av varslene i Opsgenie, så ingen varsles to ganger.
+Når OneUptime varsler de riktige personene, slår du av varslingene i Opsgenie, så ingen varsles to ganger.
 :::
 
 ## Feilsøking
@@ -115,6 +115,6 @@ Ved hvert står det hvorfor: en blokkert bruker, et navn prosjektet allerede har
 
 :::cards
 - [Vaktplaner](/docs/on-call/schedules): Lag, begrensninger og overleveringer.
-- [Eskaleringsregler](/docs/on-call/escalation-rules): Hvordan vaktretningslinjer varsler personer.
+- [Eskaleringsregler](/docs/on-call/escalation-rules): Hvordan vaktpolicyer varsler personer.
 - [Bytt fra incident.io](/docs/moving-to-oneuptime/incident-io): Hent et team over fra incident.io.
 :::

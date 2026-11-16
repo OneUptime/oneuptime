@@ -86,11 +86,11 @@ flowchart TB
 
 **监视器会自行产生警报，而且可能产生很多。** **Create a Jira issue when an alert is created** 会为每一条警报创建问题。除非每条警报都值得一张工单，否则请在 Jira 步骤前面加一个条件。只为 High 警报创建问题：
 
-1. 打开工作流的 **生成器**，添加一个 **If / Else** 块。
-2. 把 **Value to check** 设为 `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`，**Comparison** 设为 **is equal to**，**Compare with** 设为 `High`。
-3. 把从 `alert-on-create-1` 到 `prepare-issue-1` 的连线末端从点上拖开，删除这条线（参见 [整理画布](/docs/workflows/authoring#整理)）。把触发器的 **Success** 连接到 **If / Else** 块，再把它的 **Yes** 连接到 `prepare-issue-1`。
+1. 打开工作流的 **生成器**，添加一个 **如果 / 否则** 块。
+2. 把 **要检查的值** 设为 `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`，**比较** 设为 **等于**，**比较对象** 设为 `High`。
+3. 把从 `alert-on-create-1` 到 `prepare-issue-1` 的连线末端从点上拖开，删除这条线（参见 [整理画布](/docs/workflows/authoring#整理)）。把触发器的 **成功** 连接到 **如果 / 否则** 块，再把它的 **是** 连接到 `prepare-issue-1`。
 
-走 **No** 一侧的警报会在那里结束运行，不会为它创建问题。
+走 **否** 一侧的警报会在那里结束运行，不会为它创建问题。
 
 ### 模板需要的设置
 
@@ -129,7 +129,7 @@ flowchart TB
 4. 点击 **创建工作流**。每个工作流创建时都处于关闭状态：在它的 **生成器** 顶部打开 **已启用**。
 :::
 
-先从 **Create a Jira issue when an incident is declared** 开始，警报则从 **Create a Jira issue when an alert is created** 开始：同类的其他 OneUptime → Jira 模板都通过这个模板添加的标签找到问题。启用它，声明一个测试事件或创建一个测试警报，然后打开工作流的 **日志 → 运行记录**。这次运行应以 **已执行** 结束，其最后一步 `create-issue-1` 的 **Response Body** 会给出新问题。
+先从 **Create a Jira issue when an incident is declared** 开始，警报则从 **Create a Jira issue when an alert is created** 开始：同类的其他 OneUptime → Jira 模板都通过这个模板添加的标签找到问题。启用它，声明一个测试事件或创建一个测试警报，然后打开工作流的 **日志 → 运行记录**。这次运行应以 **已执行** 结束，其最后一步 `create-issue-1` 的 **响应主体** 会给出新问题。
 
 每个工作流都保存这些值的独立副本。更换令牌时，请在每个询问过它的 Jira 工作流的 **工作流变量** 下更新 `jiraBasicAuthToken`。如果 Jira 换了地址，请用同样的方式更新 `jiraSiteUrl` 和 `jiraBaseUrl`。
 
@@ -183,7 +183,7 @@ project = OPS AND issuetype = Alert AND (labels is EMPTY OR labels != oneuptime)
 每次运行的 **步骤** 都会说明模板做了什么，因此请在 **日志 → 运行记录** 中打开这次运行，看看它是如何结束的：
 
 - **已执行**：完成了工作，最后一步会给出问题、事件或警报。
-- **已执行**，且 **Check With JavaScript** 步骤走了 **No**：有意跳过了该事件，该步骤会说明原因：问题没有关联到这类记录、备注来自 Jira、记录是私密的，或者新状态没有映射到任何 Jira 状态。
+- **已执行**，且 **用 JavaScript 检查** 步骤走了 **否**：有意跳过了该事件，该步骤会说明原因：问题没有关联到这类记录、备注来自 Jira、记录是私密的，或者新状态没有映射到任何 Jira 状态。
 - **错误**：某个步骤失败了，它在 **步骤** 中的条目会说明原因。对于 Jira 调用，其中包含 Jira 的回应。
 - 在 `link-issue-1` 处 **错误**：根据 Jira 问题创建记录的模板已创建了记录，但 Jira 没有接受关联标签，所以其他模板暂时找不到它。请手动添加标签。
 
@@ -249,7 +249,7 @@ const STATE_TO_JIRA_STATUS = {
 
 ### 更改模板的行为
 
-打开工作流的 **生成器**，点击你想更改的块。你最可能想改的设置是脚本顶部附近的常量，位于 **Check With JavaScript** 块的 **JavaScript Code** 中，就在共享的辅助代码块下面。模板的事件版本和警报版本在相同的块中有相同的常量：
+打开工作流的 **生成器**，点击你想更改的块。你最可能想改的设置是脚本顶部附近的常量，位于 **用 JavaScript 检查** 块的 **JavaScript 代码** 中，就在共享的辅助代码块下面。模板的事件版本和警报版本在相同的块中有相同的常量：
 
 | 常量 | 模板和块 | 控制的内容 |
 | --- | --- | --- |
@@ -264,14 +264,14 @@ const STATE_TO_JIRA_STATUS = {
 
 用作键的状态名称必须与其名称拼写完全一致，包括大小写。不要在代码中使用 `{{`：脚本在运行前会像其他设置一样被填充，因此连续两个左花括号会被当作引用读取。
 
-要在新问题上发送更多字段，请编辑创建问题模板中 `create-issue-1` 块的 **Request Body**。它包含问题的项目、问题类型、摘要、标签和描述，你可以在 `fields` 中按 [填写更多字段](#填写更多字段) 中描述的格式添加优先级、组件、经办人或自定义字段。请保留这两个标签。摘要和描述的措辞在 `prepare-issue-1` 脚本中。描述会给出记录的严重程度、状态和描述，然后是它的根本原因和修复说明（如果有）：监视器在产生事件或警报时会填写这些内容，它们通常能解释发生了什么。
+要在新问题上发送更多字段，请编辑创建问题模板中 `create-issue-1` 块的 **请求主体**。它包含问题的项目、问题类型、摘要、标签和描述，你可以在 `fields` 中按 [填写更多字段](#填写更多字段) 中描述的格式添加优先级、组件、经办人或自定义字段。请保留这两个标签。摘要和描述的措辞在 `prepare-issue-1` 脚本中。描述会给出记录的严重程度、状态和描述，然后是它的根本原因和修复说明（如果有）：监视器在产生事件或警报时会填写这些内容，它们通常能解释发生了什么。
 
-私密备注和编辑评论由其 `post-comment-1` 块的 **Request Body** 中的 `properties` 条目 `sd.public.comment` 标记为内部评论。只有 Jira Service Management 会读取它。只有当客户应该看到这些评论时才删除它。
+私密备注和编辑评论由其 `post-comment-1` 块的 **请求主体** 中的 `properties` 条目 `sd.public.comment` 标记为内部评论。只有 Jira Service Management 会读取它。只有当客户应该看到这些评论时才删除它。
 
 ### 限制
 
 - **仅限 Jira Cloud。** 模板使用 Basic 身份验证调用 Jira Cloud REST API v3。Data Center 没有 v3，并且以 `Bearer` 方式接受个人访问令牌，因此每个 API 块都需要 [Jira Data Center](#jira-data-center) 中的修改：`/rest/api/2/...` 路径、用纯字符串代替 Atlassian Document Format 主体，以及请求头。`find-issue-1` 块改动最大：Data Center 没有 `/search/jql`，因此它们必须改为向 `/rest/api/2/search` 发送 `POST`。
-- **从 Jira 声明的事件是安静的。** 它们创建时对状态页隐藏，也不通知状态页订阅者，因为问题的文本不是为客户写的。要显示某个事件，请在事件的 **设置** 页面打开 **在状态页面上可见**（参见 [不在状态页上显示事件](/docs/incidents/states-and-severities#让事件不出现在状态页上)），或者在模板的 `incident-from-another-tool-1` 块中打开 **更多字段** 下的 **Show On Status Pages**。
+- **从 Jira 声明的事件是安静的。** 它们创建时对状态页隐藏，也不通知状态页订阅者，因为问题的文本不是为客户写的。要显示某个事件，请在事件的 **设置** 页面打开 **在状态页面上可见**（参见 [不在状态页上显示事件](/docs/incidents/states-and-severities#让事件不出现在状态页上)），或者在模板的 `incident-from-another-tool-1` 块中打开 **更多字段** 下的 **在状态页面上显示**。
 - **私密事件和警报留在 OneUptime 中。** OneUptime → Jira 模板会跳过它们，每次跳过都会在 **日志 → 运行记录** 中注明。要照样发送，请把 `SYNC_PRIVATE_INCIDENTS` 或 `SYNC_PRIVATE_ALERTS` 设为 `true`。之后再把记录设为私密，会从那时起停止同步，但不会收回 Jira 已有的内容。Jira → OneUptime 模板不做检查，因此已关联问题上的评论、编辑和状态变更仍会到达私密记录。
 - **一切都不会往回走。** 重新打开 Jira 问题不会改变 OneUptime 中的任何内容，To Do 类别中的状态不映射到任何状态。参见 [顺序是真正的约束](/docs/incidents/states-and-severities#顺序是真正的约束而不是显示偏好)。转换模板也从不把问题移到更早的状态类别。
 - **每个警报都会得到一个问题。** 除私密警报外，警报的创建问题模板会为每个警报创建问题，包括监视器产生的每一个。[警报有何不同](#警报有何不同) 介绍了如何添加条件。
@@ -306,9 +306,9 @@ Jira Cloud 接受由账户的电子邮件和 API 令牌编码在一起构成的 
 ### 为每个事件创建 Jira 问题
 
 :::steps
-1. 从零开始创建一个名为 `Incidents to Jira` 的工作流。点击虚线块，添加 **On Create Incident** 触发器。它的 **Fields to pass on** 已经包含 **标题**：点击 **添加字段** 并选择 **描述** 和 **事件编号**。ID 总会被传递。它的 **Identifier** 保持为 `incident-on-create-1`。
-2. 点击 **添加组件**，添加一个 **API Post (JSON)** 块，并把触发器的 **Success** 点连接到它。把它的 **Identifier** 设为 `create-issue`，**URL** 设为 `{{global.variables.JIRA_URL}}/rest/api/3/issue`，并在 **更多字段** 下把 **Request Headers** 设为 `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`。
-3. 把它的 **Request Body** 设为问题内容，并把 `OPS` 和 `Bug` 替换为你的项目键和该项目中的一个问题类型：
+1. 从零开始创建一个名为 `Incidents to Jira` 的工作流。点击虚线块，添加 **创建事件时** 触发器。它的 **要传递的字段** 已经包含 **标题**：点击 **添加字段** 并选择 **描述** 和 **事件编号**。ID 总会被传递。它的 **Identifier** 保持为 `incident-on-create-1`。
+2. 点击 **添加组件**，添加一个 **API 调用 POST (JSON)** 块，并把触发器的 **成功** 点连接到它。把它的 **Identifier** 设为 `create-issue`，**URL** 设为 `{{global.variables.JIRA_URL}}/rest/api/3/issue`，并在 **更多字段** 下把 **请求标头** 设为 `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`。
+3. 把它的 **请求主体** 设为问题内容，并把 `OPS` 和 `Bug` 替换为你的项目键和该项目中的一个问题类型：
 
    ```json
    {
@@ -371,7 +371,7 @@ curl -u 'you@example.com:your_api_token' \
 
 Jira 管理员也可以改为添加一个短文本自定义字段，例如命名为 OneUptime Incident ID，然后你用 `"customfield_10050": "{{local.components.incident-on-create-1.returnValues.model._id}}"` 设置它。读回它比读回标签更简单。
 
-要让 Jira 中的每个人都能跳回来，请在 `create-issue` 之后添加一个 **API Post (JSON)** 块，向 `{{global.variables.JIRA_URL}}/rest/api/3/issue/{{local.components.create-issue.returnValues.response-body.key}}/remotelink` 发布一个远程链接：
+要让 Jira 中的每个人都能跳回来，请在 `create-issue` 之后添加一个 **API 调用 POST (JSON)** 块，向 `{{global.variables.JIRA_URL}}/rest/api/3/issue/{{local.components.create-issue.returnValues.response-body.key}}/remotelink` 发布一个远程链接：
 
 ```json
 {
@@ -383,16 +383,16 @@ Jira 管理员也可以改为添加一个短文本自定义字段，例如命名
 }
 ```
 
-为此请在触发器的 **Fields to pass on** 中点击 **添加字段** 并选择 **项目 ID**，并保留 `.value`：保存另一条记录 ID 的列会以 `{"_type": "ObjectID", "value": "..."}` 的形式到达。`globalId` 让这个调用可以安全地重复执行：Jira 会更新带有它的链接，而不是再添加一个。
+为此请在触发器的 **要传递的字段** 中点击 **添加字段** 并选择 **项目 ID**，并保留 `.value`：保存另一条记录 ID 的列会以 `{"_type": "ObjectID", "value": "..."}` 的形式到达。`globalId` 让这个调用可以安全地重复执行：Jira 会更新带有它的链接，而不是再添加一个。
 
 ### 随事件进展发表评论并转换
 
 把这部分构建为第二个工作流，这样这里的失败永远不会妨碍创建问题。
 
 :::steps
-1. 创建一个名为 `Incident updates to Jira` 的工作流，使用 **On Update Incident** 触发器。在 **Fields to watch** 中点击 **添加字段** 并选择 **Current Incident State**。在 **Fields to pass on** 中点击 **添加字段**，展开 **Current Incident State** 并选择 **名称**。
-2. 添加一个 **If / Else** 块：**Value to check** 为 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`，**Comparison** 为 **is equal to**，**Compare with** 为 `Resolved` 或你的已解决状态的名称。
-3. 在它的 **Yes** 一侧之后，用一个 **Identifier** 为 `find-issue` 的 **API Post (JSON)** 块查找问题，发布到 `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`：
+1. 创建一个名为 `Incident updates to Jira` 的工作流，使用 **更新事件时** 触发器。在 **要关注的字段** 中点击 **添加字段** 并选择 **Current Incident State**。在 **要传递的字段** 中点击 **添加字段**，展开 **Current Incident State** 并选择 **名称**。
+2. 添加一个 **如果 / 否则** 块：**要检查的值** 为 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`，**比较** 为 **等于**，**比较对象** 为 `Resolved` 或你的已解决状态的名称。
+3. 在它的 **是** 一侧之后，用一个 **Identifier** 为 `find-issue` 的 **API 调用 POST (JSON)** 块查找问题，发布到 `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`：
 
    ```json
    {
@@ -407,8 +407,8 @@ Jira 管理员也可以改为添加一个短文本自定义字段，例如命名
 
 请以请求主体发布 JQL，而不是把它放进 URL：URL 会按原样发送，不会替你编码，而 JQL 中满是空格、引号和 `=` 号。查询必须有范围限制，所以才有 `project =` 子句。在 Cloud 上，端点是 `/rest/api/3/search/jql`；旧的 `/rest/api/3/search` 已经不存在了。
 
-- **评论**：一个发往 `{{global.variables.JIRA_URL}}/rest/api/3/issue/<id>/comment` 的 **API Post (JSON)** 块，以文档作为 `body`：`{"body": {"type": "doc", "version": 1, "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Resolved in OneUptime."}]}]}}`。
-- **转换**：一个针对 `{{global.variables.JIRA_URL}}/rest/api/3/issue/<id>/transitions` 的 **API Get (JSON)** 块会列出问题当前状态可用的转换，每个转换都有 `id`、`name` 以及它通向的状态 `to`。向同一个 URL 发送 `{"transition": {"id": "31"}}` 的 **API Post (JSON)** 块会执行一个转换，并返回 `204`。
+- **评论**：一个发往 `{{global.variables.JIRA_URL}}/rest/api/3/issue/<id>/comment` 的 **API 调用 POST (JSON)** 块，以文档作为 `body`：`{"body": {"type": "doc", "version": 1, "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Resolved in OneUptime."}]}]}}`。
+- **转换**：一个针对 `{{global.variables.JIRA_URL}}/rest/api/3/issue/<id>/transitions` 的 **API 调用 GET (JSON)** 块会列出问题当前状态可用的转换，每个转换都有 `id`、`name` 以及它通向的状态 `to`。向同一个 URL 发送 `{"transition": {"id": "31"}}` 的 **API 调用 POST (JSON)** 块会执行一个转换，并返回 `204`。
 
 转换 ID 属于问题的 Jira 工作流，因此 Jira 管理员编辑该工作流时，可能会使硬编码的 ID 失效。像模板那样在运行时读取列表，就能避免这个问题。
 
@@ -425,7 +425,7 @@ Jira 管理员也可以改为添加一个短文本自定义字段，例如命名
 
    自托管安装使用自己的主机。像对待密码一样对待这个 URL：任何拥有它的人都可以启动工作流。如果泄露，请在同一位置点击 **重置 URL**，旧 URL 会立即失效。
 
-3. 从触发器添加一个 **Update One Incident** 块。把它的 **Query** 设为 `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`，**Data (JSON Object)** 设为要做的变更，例如新的 `currentIncidentStateId`。一个查询为 `{"name": "Resolved"}` 的 **Find One Incident State** 块会以 `{{local.components.incident-state-find-one-1.returnValues.model._id}}` 给出那个 ID。
+3. 从触发器添加一个 **更新单个事件** 块。把它的 **查询** 设为 `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`，**数据（JSON 对象）** 设为要做的变更，例如新的 `currentIncidentStateId`。一个查询为 `{"name": "Resolved"}` 的 **查找单个事件状态** 块会以 `{{local.components.incident-state-find-one-1.returnValues.model._id}}` 给出那个 ID。
 
 启用它，然后让 Jira 通过自动化规则或 Webhook 调用它：
 
@@ -443,17 +443,17 @@ Jira 管理员也可以改为添加一个短文本自定义字段，例如命名
    }
    ```
 
-   如果用标签而不是自定义字段，请发送 `"labels": "{{issue.labels}}"`，并用一个 **Run Custom JavaScript** 块把 ID 取出来。
+   如果用标签而不是自定义字段，请发送 `"labels": "{{issue.labels}}"`，并用一个 **运行自定义 JavaScript** 块把 ID 取出来。
 
 4. 启用规则，并把一个测试问题移到 Done。在 Jira 中查看规则的审计日志，在 OneUptime 中查看 **日志 → 运行记录**。
 
-为确保请求来自你的规则，请添加第二个请求头 `X-OneUptime-Secret`，值由你自己设定，并对它使用该操作的 **Hide** 选项。在工作流中，在更新之前放一个 **If / Else** 块：**Value to check** 为 `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`，**Comparison** 为 **is equal to**，**Compare with** 为同一个值，保存在一个密钥全局变量中。
+为确保请求来自你的规则，请添加第二个请求头 `X-OneUptime-Secret`，值由你自己设定，并对它使用该操作的 **Hide** 选项。在工作流中，在更新之前放一个 **如果 / 否则** 块：**要检查的值** 为 `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`，**比较** 为 **等于**，**比较对象** 为同一个值，保存在一个密钥全局变量中。
 
 Send web request 只调用端口 80、8080、443、6017、8443、8444、7990、8090、8085、8060、8900 和 9900。Jira Cloud 会把规则运行次数计入取决于你套餐的每月额度，因此对一个繁忙项目的每次转换都运行的规则，次数会累积得很快。
 @tab Jira webhook
 1. 以 Jira 管理员身份前往 **Settings → System → WebHooks**（位于 **Advanced** 下），点击 **Create a WebHook**。
 2. 粘贴工作流的 URL，勾选 **Issue updated**，并输入一个 JQL 过滤器，例如 `project = OPS AND labels = oneuptime`。
-3. 在工作流中读取 Jira 自己的负载：`issue` 包含问题，`changelog.items` 包含每个已变更字段变更前后的值。对于状态变更，取 `field` 为 `status` 的那一项。读取它最简单的方式是用 **Run Custom JavaScript** 块。
+3. 在工作流中读取 Jira 自己的负载：`issue` 包含问题，`changelog.items` 包含每个已变更字段变更前后的值。对于状态变更，取 `field` 为 `status` 的那一项。读取它最简单的方式是用 **运行自定义 JavaScript** 块。
 
 Webhook 可以带一个密钥，这时 Jira 会在 `X-Hub-Signature` 请求头中对主体签名。工作流无法验证它，因为 Webhook 触发器交出的是已经按 JSON 读取过的主体。Jira 对失败的投递最多重试五次，因此工作流必须能应对同一个事件到达两次。
 :::
@@ -466,17 +466,17 @@ Webhook 可以带一个密钥，这时 Jira 会在 `X-Hub-Signature` 请求头�
 
 | 事件 | 警报 |
 | --- | --- |
-| **On Create Incident** (`incident-on-create-1`) | **On Create Alert** (`alert-on-create-1`) |
-| **On Update Incident** (`incident-on-update-1`) | **On Update Alert** (`alert-on-update-1`) |
-| **On Create Incident Internal Note** | **On Create Alert Internal Note** |
-| **On Create Incident Public Note** | 无：警报没有公开备注 |
+| **创建事件时** (`incident-on-create-1`) | **创建警报时** (`alert-on-create-1`) |
+| **更新事件时** (`incident-on-update-1`) | **更新警报时** (`alert-on-update-1`) |
+| **创建事件内部备注时** | **创建警报内部备注时** |
+| **创建事件公开备注时** | 无：警报没有公开备注 |
 | `incidentNumber`, `currentIncidentState`, `incidentSeverity` | `alertNumber`, `currentAlertState`, `alertSeverity` |
-| **Find One Incident State** | **Find One Alert State** |
-| **Update One Incident** | **Update One Alert** |
+| **查找单个事件状态** | **查找单个警报状态** |
+| **更新单个事件** | **更新单个警报** |
 | 标签 `oneuptime-incident-<incident id>` | 标签 `oneuptime-alert-<alert id>` |
 | `/dashboard/<project id>/incidents/<incident id>` | `/dashboard/<project id>/alerts/<alert id>` |
 
-一个工作流恰好只有一个触发器，因此事件和警报各需要一个工作流。要为两者做同样的 Jira 工作，请在一个使用 **Manual** 触发器的工作流中构建一次，然后在两边都用一个 **Execute Workflow** 块启动它。
+一个工作流恰好只有一个触发器，因此事件和警报各需要一个工作流。要为两者做同样的 Jira 工作，请在一个使用 **手动** 触发器的工作流中构建一次，然后在两边都用一个 **执行另一个工作流** 块启动它。
 
 ## Jira Data Center
 
@@ -532,7 +532,7 @@ Webhook 可以带一个密钥，这时 Jira 会在 `X-Hub-Signature` 请求头�
 :::
 
 :::details 429 Too Many Requests
-Jira 正在限制你的调用速度。响应中带有以秒为单位的 `Retry-After`。对单个问题的写入限制得很严，因此快速连续评论和转换的工作流可能会触发它。请在调用之间放一个 **Sleep** 块，或者把批量工作移到计划工作流中。
+Jira 正在限制你的调用速度。响应中带有以秒为单位的 `Retry-After`。对单个问题的写入限制得很严，因此快速连续评论和转换的工作流可能会触发它。请在调用之间放一个 **暂停** 块，或者把批量工作移到计划工作流中。
 :::
 
 :::details 转换调用返回 400
@@ -544,7 +544,7 @@ Jira 正在限制你的调用速度。响应中带有以秒为单位的 `Retry-A
 :::
 
 :::details 工作流运行了，但事件没有变化
-当查询没有匹配到任何内容时，**Update One Incident** 块会报告 `Items Updated: 0`，这是成功，而不是错误。请检查请求中的 ID 确实是 OneUptime 事件的 ID，并且你查询的是 `_id`。
+当查询没有匹配到任何内容时，**更新单个事件** 块会报告 `Items Updated: 0`，这是成功，而不是错误。请检查请求中的 ID 确实是 OneUptime 事件的 ID，并且你查询的是 `_id`。
 :::
 
 :::details Jira 问题中按原样显示了引用

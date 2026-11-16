@@ -1,6 +1,6 @@
 # 无服务器函数
 
-OneUptime 一收到无服务器函数发来的 OpenTelemetry 数据就会识别该函数，并把它连同其跟踪、日志和指标列在 **无服务器函数** 下。它适用于 AWS Lambda、Google Cloud Functions、Azure Functions、Cloudflare Workers，以及任何能发送 OpenTelemetry 的其他 FaaS 运行时。无需手动创建任何东西：用函数运行时对应的 OpenTelemetry SDK 对函数进行插桩，并让其 OTLP 导出器指向 OneUptime。
+OneUptime 一收到无服务器函数发来的 OpenTelemetry 数据就会识别该函数，并把它连同其追踪、日志和指标列在 **无服务器函数** 下。它适用于 AWS Lambda、Google Cloud Functions、Azure Functions、Cloudflare Workers，以及任何能发送 OpenTelemetry 的其他 FaaS 运行时。无需手动创建任何东西：用函数运行时对应的 OpenTelemetry SDK 对函数进行插桩，并让其 OTLP 导出器指向 OneUptime。
 
 :::cards
 - [OneUptime 如何识别函数](#oneuptime-如何识别函数): `faas.name`，或 FaaS 类型的 `cloud.platform` 加上 `service.name`。
@@ -89,7 +89,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 ## Azure Functions
 
-Azure Functions 主机本身就能发送 OpenTelemetry，因此无论 Function App 用什么语言编写，它都无需更改代码即可报告其调用（跟踪、日志和指标）。Microsoft 的指南是 [Use OpenTelemetry with Azure Functions](https://learn.microsoft.com/en-us/azure/azure-functions/opentelemetry-howto)。
+Azure Functions 主机本身就能发送 OpenTelemetry，因此无论 Function App 用什么语言编写，它都无需更改代码即可报告其调用（追踪、日志和指标）。Microsoft 的指南是 [Use OpenTelemetry with Azure Functions](https://learn.microsoft.com/en-us/azure/azure-functions/opentelemetry-howto)。
 
 ### Function App 如何显示
 
@@ -125,7 +125,7 @@ Azure 的资源检测器（Functions 主机自己的检测器、`Microsoft.Azure
 }
 ```
 
-此后，无论应用使用什么语言，主机都会发送它自己的跟踪（每次调用一个 span，外加触发器函数背后的 Service Bus 和 Event Hubs 处理器 span）、它的日志，以及包括 `faas.invoke_duration` 在内的指标。
+此后，无论应用使用什么语言，主机都会发送它自己的追踪（每次调用一个 span，外加触发器函数背后的 Service Bus 和 Event Hubs 处理器 span）、它的日志，以及包括 `faas.invoke_duration` 在内的指标。
 
 ### 让主机指向 OneUptime
 
@@ -150,7 +150,7 @@ az functionapp config appsettings set \
 
 ### 对函数代码进行插桩（可选）
 
-主机已经跟踪了每次调用。要从你自己的代码中添加与主机相连的 span 和日志，还需在语言工作进程中启用 OpenTelemetry。它使用相同的 `OTEL_EXPORTER_OTLP_*` 设置发送：
+主机已经追踪了每次调用。要从你自己的代码中添加与主机相连的 span 和日志，还需在语言工作进程中启用 OpenTelemetry。它使用相同的 `OTEL_EXPORTER_OTLP_*` 设置发送：
 
 - **C# (isolated worker)**：添加 NuGet 包 `Microsoft.Azure.Functions.Worker.OpenTelemetry`、`OpenTelemetry.Extensions.Hosting` 和 `OpenTelemetry.Exporter.OpenTelemetryProtocol`，然后在 `Program.cs` 中：`builder.Services.AddOpenTelemetry().UseFunctionsWorkerDefaults().UseOtlpExporter();`
 - **JavaScript / TypeScript**：在 OpenTelemetry Node.js SDK 及其 OTLP 导出器之外运行 `npm install @azure/functions-opentelemetry-instrumentation`，并在 `package.json` 的 `main` 字段所包含的文件中注册 `AzureFunctionsInstrumentation`。
@@ -185,7 +185,7 @@ az functionapp config appsettings set \
 
 一旦函数发送了 span、日志或指标，它就会出现在 **无服务器函数** 下。它的 **概览** 显示：
 
-- **调用次数**、**错误率** 和 **p95 时长**，根据你所选时间范围内的跟踪计算，并带有趋势图。
+- **调用次数**、**错误率** 和 **p95 时长**，根据你所选时间范围内的追踪计算，并带有趋势图。
 - **实例**：函数报告的 `faas.instance` 值的实时列表。
 - 限定于该函数的完整 **日志**、**追踪** 和 **指标** 页面。
 
@@ -224,7 +224,7 @@ OTEL_RESOURCE_ATTRIBUTES="faas.name=checkout-handler,oneuptime.label.team=paymen
 ## 后续步骤
 
 :::cards
-- [OpenTelemetry](/docs/telemetry/open-telemetry): 从任何应用程序发送跟踪、日志和指标。
+- [OpenTelemetry](/docs/telemetry/open-telemetry): 从任何应用程序发送追踪、日志和指标。
 - [队列](/docs/telemetry/queues): 你的函数发布消息和消费消息的队列与主题。
-- [跟踪监控](/docs/monitor/traces-monitor): 针对函数的失败或缓慢调用发出告警。
+- [追踪监控](/docs/monitor/traces-monitor): 针对函数的失败或缓慢调用发出告警。
 :::

@@ -247,7 +247,7 @@ describe("ServiceLevelObjectiveMonitorRule", () => {
     ]);
   });
 
-  test("gates CRUD on its own granular permissions plus the project admins", () => {
+  test("gates CRUD on its own granular permissions plus the Project Admins", () => {
     expect(model.getCreatePermissions()).toEqual([
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -803,7 +803,6 @@ describe("SLO overhaul permissions", () => {
     Permission.DeleteServiceLevelObjectiveMonitorRule,
     Permission.CreateServiceLevelObjectiveFeed,
     Permission.ReadServiceLevelObjectiveFeed,
-    Permission.EditServiceLevelObjectiveFeed,
   ])(
     "%s is in the catalogue under SLO, so it can be granted",
     (permission: Permission) => {
@@ -816,6 +815,18 @@ describe("SLO overhaul permissions", () => {
       expect(props!.title.length).toBeGreaterThan(0);
     },
   );
+
+  test("EditServiceLevelObjectiveFeed is in the catalogue under SLO, but never granted: a feed's entries are never edited (#8275)", () => {
+    const props: PermissionProps | undefined = permissionPropsFor(
+      Permission.EditServiceLevelObjectiveFeed,
+    );
+
+    expect(props).toBeDefined();
+    expect(props!.group).toBe(PermissionGroup.SLO);
+    expect(props!.isAssignableToTenant).toBe(false);
+    expect(props!.isRolePermission).toBe(false);
+    expect(props!.title).toBe("Edit SLO Feed");
+  });
 
   test.each([
     "CreateServiceLevelObjectiveMonitorRule",

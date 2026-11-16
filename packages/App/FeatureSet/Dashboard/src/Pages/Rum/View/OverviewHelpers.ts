@@ -9,12 +9,15 @@ import {
 import { SessionReplayHealthError } from "../../../Components/SessionReplay/SessionReplayHealthError";
 import {
   formatCompact,
-  formatDurationMs,
+  formatDurationMsInLanguage,
 } from "../../../Components/TelemetryResource/telemetryFormat";
 import {
+  composedValue,
+  getGlobalTranslator,
   translatePlural,
   translateTemplate,
   translationKey,
+  Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -149,7 +152,8 @@ export function describeRecordingHealthRow(health: {
 export const PAGE_LOAD_SPAN_NAME: string = "documentLoad";
 
 export interface TileText {
-  value: string;
+  // None, and the tile draws the figure's quiet dash (#8262).
+  value?: string | undefined;
   sublabel: string;
 }
 
@@ -173,16 +177,16 @@ export function describePageLoadsTile(input: {
   eventsTotal: number | null;
 }): TileText {
   if (input.failed) {
-    return { value: "—", sublabel: "could not load" };
+    return { value: undefined, sublabel: "could not load" };
   }
 
   if (!input.stats) {
-    return { value: "—", sublabel: "full page loads" };
+    return { value: undefined, sublabel: "full page loads" };
   }
 
   if (input.stats.count <= 0) {
     return {
-      value: "0",
+      value: formatCompact(0, getGlobalTranslator()),
       sublabel:
         input.eventsTotal !== null && input.eventsTotal > 0
           ? translateTemplate("no {{spanName}} spans", {
@@ -193,13 +197,18 @@ export function describePageLoadsTile(input: {
   }
 
   return {
-    value: formatCompact(input.stats.count),
+    value: formatCompact(input.stats.count, getGlobalTranslator()),
     sublabel:
       input.stats.errorCount > 0
         ? translatePlural(
             { one: "{{count}} failed", other: "{{count}} failed" },
             input.stats.errorCount,
-            { count: formatCompact(input.stats.errorCount) },
+            {
+              count: formatCompact(
+                input.stats.errorCount,
+                getGlobalTranslator(),
+              ),
+            },
           )
         : "full page loads",
   };
@@ -215,17 +224,22 @@ export function describePageLoadTimeTile(input: {
   failed: boolean;
 }): TileText {
   if (input.failed) {
-    return { value: "—", sublabel: "could not load" };
+    return { value: undefined, sublabel: "could not load" };
   }
 
   if (!input.stats || input.stats.count <= 0) {
-    return { value: "—", sublabel: "no page loads" };
+    return { value: undefined, sublabel: "no page loads" };
   }
 
   return {
-    value: formatDurationMs(input.stats.p95DurationMs),
+    value: formatDurationMsInLanguage(
+      input.stats.p95DurationMs,
+      getGlobalTranslator(),
+    ),
     sublabel: translateTemplate("median {{duration}}", {
-      duration: formatDurationMs(input.stats.p50DurationMs),
+      duration: composedValue((sentence: Translator): string => {
+        return formatDurationMsInLanguage(input.stats!.p50DurationMs, sentence);
+      }),
     }),
   };
 }
@@ -279,19 +293,19 @@ export function describeExceptionsTile(input: {
   isNotSetUp?: boolean | undefined;
 }): TileText {
   if (!input.exceptions) {
-    return { value: "—", sublabel: "reported by your app" };
+    return { value: undefined, sublabel: "reported by your app" };
   }
 
   if (input.exceptions.failed) {
-    return { value: "—", sublabel: "could not load" };
+    return { value: undefined, sublabel: "could not load" };
   }
 
   if (input.isNotSetUp && input.exceptions.total === 0) {
-    return { value: "—", sublabel: "not set up" };
+    return { value: undefined, sublabel: "not set up" };
   }
 
   return {
-    value: formatCompact(input.exceptions.total),
+    value: formatCompact(input.exceptions.total, getGlobalTranslator()),
     sublabel: "reported by your app",
   };
 }

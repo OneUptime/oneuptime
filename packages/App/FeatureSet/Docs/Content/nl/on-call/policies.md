@@ -52,7 +52,7 @@ Open een beleid vanuit de lijst. Het zijmenu ervan bevat alles over het beleid:
 **Basis** staat open; de andere secties beginnen ingeklapt tot je erop klikt.
 
 - **Overzicht** toont de **Details bereikbaarheidsbeleid**, dan **Beleid in één oogopslag**: hoeveel niveaus en ontvangers het beleid heeft, hoe lang het duurt tot het laatste niveau en hoe vaak het zich herhaalt. **Gereedheid van ontvangers** zegt of iedereen die het kan oproepen nu bereikbaar is, en **Feed van het bereikbaarheidsbeleid** toont wat er is veranderd: toegevoegde of verwijderde personen, teams en schema's, overschrijvingen en overdrachten. Zijn regels voor Slack, Microsoft Teams en Mattermost plaatsen ze in je kanalen, een overdracht in één regel: zie [Dienstberichten](/docs/workspace-connections/slack#dienstberichten).
-- **Eigenaren** zijn de personen en teams die verantwoordelijk zijn voor het beleid. Vindt een oproep van het beleid voor iemand geen regel, of kan die niet worden afgeleverd, dan krijgen zij een e-mail; een beleid zonder eigenaren mailt in plaats daarvan de eigenaren van het project.
+- **Eigenaren** zijn de personen en teams die verantwoordelijk zijn voor het beleid. Vindt een oproep van het beleid voor iemand geen regel, of kan die niet worden afgeleverd, dan krijgen zij een e-mail; een beleid zonder eigenaren mailt in plaats daarvan de Projecteigenaren.
 - **Meldingslogboeken** toont elk bericht dat het beleid stuurde, met een tabblad per kanaal.
 - **Gebruikersoverschrijvingen** vervangt personen alleen in dit beleid. Zie [Gebruikersoverschrijvingen](/docs/on-call/user-overrides).
 - **Instellingen** bevat **Bereikbaarheidsbeleid exporteren** en de kaart die het beleid archiveert.
@@ -111,11 +111,11 @@ flowchart TB
 | Status | Wat die betekent |
 | --- | --- |
 | **Wachten** | Een bereikbaarheidsregel op **Alleen tijdens werktijden** laat de uitvoering wachten tot die tijden beginnen: ze zegt wanneer het oproepen begint, en roept tot dan niemand op. Ze eindigt zonder oproep als het incident of de waarschuwing eerst wordt bevestigd of opgelost. Ze begint meteen met oproepen als het incident of de waarschuwing verandert en nu op een bereikbaarheidsregel past die direct oproept. |
-| **Gepland**, **Gestart** | De uitvoering wordt voorbereid. Een die er na 5 minuten nog staat, wordt gestopt als **Fout**. |
-| **Wordt uitgevoerd** | De uitvoering roept op. OneUptime brengt haar elke minuut een stap verder. |
+| **Gepland**, **Gestart** | De uitvoering wordt voorbereid. Een die er na 5 minuten nog staat, is niet klaar met starten: die gaat door naar **Wordt uitgevoerd** en roept op vanaf waar de start stopte. Een directe oproep of een testoproep die er nog staat, wordt gestopt als **Fout**. |
+| **Wordt uitgevoerd** | De uitvoering roept op. OneUptime brengt haar elke minuut een stap verder. Een stap die even mislukt, bijvoorbeeld omdat de database niet bereikbaar was, wordt een minuut later opnieuw geprobeerd, daarna na 2 en 4 minuten, en daarna elke 5 minuten. |
 | **Uitvoering voltooid** | Iemand heeft bevestigd, het incident of de waarschuwing is opgelost, elke regel en herhaling is gebruikt, of het beleid is gearchiveerd. |
 | **Uitvoering voltooid - niemand gemeld** | De uitvoering is door elke regel gegaan zonder iemand op te roepen: meestal een schema waarin niemand dienst heeft, of een niveau zonder ontvangers. |
-| **Fout** | De uitvoering is mislukt. **Statusbericht bekijken** zegt waarom. |
+| **Fout** | De uitvoering is mislukt: een stap mislukte op een manier die een nieuwe poging niet kan herstellen, zoals een verwijderde escalatieregel, of mislukte 10 pogingen achter elkaar, in ongeveer 37 minuten. **Statusbericht bekijken** zegt waarom. |
 
 Uitvoeringslogboeken vind je op drie plekken:
 

@@ -54,7 +54,12 @@ import Components from "../../../../Types/Workflow/Components";
 import BaseModelComponents from "../../../../Types/Workflow/Components/BaseModel";
 import { INCIDENT_TEMPLATE_ARGUMENT_ID } from "../../../../Types/Workflow/CreateFromTemplate";
 import { AFFECTED_RESOURCES_ARGUMENT_ID } from "../../../../Types/Workflow/AffectedResourcesSetting";
+import {
+  OWNER_TEAMS_ARGUMENT_ID,
+  OWNER_USERS_ARGUMENT_ID,
+} from "../../../../Types/Workflow/OwnersOnCreateSetting";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { Mock } from "jest-mock";
 
 const TEMPLATE_ID: string = "7c000000-0000-4000-8000-0000000000a1";
 const WORKFLOW_ID: string = "7c000000-0000-4000-8000-0000000000f1";
@@ -86,7 +91,7 @@ function argumentOf(metadata: ComponentMetadata, id: string): Argument {
 
 const JSON_OBJECT: Argument = argumentOf(CREATE_ONE_INCIDENT, "json");
 
-type GetListMock = jest.Mock<(args: JSONObject) => Promise<JSONObject>>;
+type GetListMock = Mock<(args: JSONObject) => Promise<JSONObject>>;
 
 const getList: GetListMock = ModelAPI.getList as unknown as GetListMock;
 
@@ -102,12 +107,15 @@ describe("Create One Incident's settings", () => {
       }),
       /*
        * Affected Resources (issue #5341) after JSON Object: the hosts and
-       * devices the incident is about, by name.
+       * devices the incident is about, by name. Then its owners from the
+       * start (#8198).
        */
     ).toEqual([
       INCIDENT_TEMPLATE_ARGUMENT_ID,
       "json",
       AFFECTED_RESOURCES_ARGUMENT_ID,
+      OWNER_USERS_ARGUMENT_ID,
+      OWNER_TEAMS_ARGUMENT_ID,
     ]);
 
     const setting: Argument = argumentOf(

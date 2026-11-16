@@ -53,7 +53,7 @@ Um painel público:
 
 Trate compartilhar um painel como publicar uma página na web. Todo widget nele passa a ser legível por qualquer pessoa com o link. Veja o que está na tela antes de compartilhá-lo.
 
-Cada widget publica só o que desenha, e só para os recursos para os quais foi configurado. Um widget SLO, por exemplo, publica os números principais desse SLO, mas nunca a definição dele: veja [SLO](/docs/dashboards/widgets#slo). Os widgets de **Data Source** externa são a exceção: eles são retirados por completo de um painel público em vez de renderizados, porque a configuração deles é a própria consulta. Alguns outros widgets não podem ser mostrados sem uma sessão conectada, e dizem isso no lugar deles: [Em um painel público](/docs/dashboards/widgets#em-um-painel-público) os lista. Eles publicam só o título, nunca as buscas e os filtros com que leem os dados. As variáveis também publicam só o que os seletores delas mostram: a consulta de uma variável de consulta antiga nunca é publicada.
+Cada widget publica só o que desenha, e só para os recursos para os quais foi configurado. Um widget SLO, por exemplo, publica os números principais desse SLO, mas nunca a definição dele: veja [SLO](/docs/dashboards/widgets#slo). Os widgets de **Fonte de dados** externa são a exceção: eles são retirados por completo de um painel público em vez de renderizados, porque a configuração deles é a própria consulta. Alguns outros widgets não podem ser mostrados sem uma sessão conectada, e dizem isso no lugar deles: [Em um painel público](/docs/dashboards/widgets#em-um-painel-público) os lista. Eles publicam só o título, nunca as buscas e os filtros com que leem os dados. As variáveis também publicam só o que os seletores delas mostram: a consulta de uma variável de consulta antiga nunca é publicada.
 
 ## Compartilhar com uma senha
 
@@ -139,9 +139,9 @@ Numa instalação auto-hospedada, os domínios personalizados de painéis são l
 
 ### Quem pode verificar e reemitir
 
-**Verificar agora**, a solicitação do certificado de um domínio e **Reissue SSL** alteram o domínio, então exigem permissão para editá-lo: **Edit Dashboard Domain**, ou um papel que a inclua (Project Owner, Project Admin, Project Member, Settings Admin ou Settings Member).
+**Verificar agora**, a solicitação do certificado de um domínio e **Reissue SSL** alteram o domínio, então exigem permissão para editá-lo: **Edit Dashboard Domain**, ou um papel que a inclua (Proprietário do projeto, Administrador do projeto, Membro do projeto, Administrador de configurações ou Membro de configurações).
 
-Quem só pode ler o domínio, como um Viewer ou um Settings Viewer, ainda vê a coluna **Status** e o registro a adicionar em **Configuração de DNS**. Para essas pessoas, **Verificar agora** e **Reissue SSL** ficam bloqueados, e dizem qual permissão é necessária. O OneUptime continua verificando cada domínio e solicitando o certificado dele sozinho, de qualquer forma.
+Quem só pode ler o domínio, como um Visualizador ou um Visualizador de configurações, ainda vê a coluna **Status** e o registro a adicionar em **Configuração de DNS**. Para essas pessoas, **Verificar agora** e **Reissue SSL** ficam bloqueados, e dizem qual permissão é necessária. O OneUptime continua verificando cada domínio e solicitando o certificado dele sozinho, de qualquer forma.
 
 O mesmo vale para as chaves de API. Uma chave que só pode ler domínios de painéis não pode chamar `verify-cname`, `order-ssl` ou `reissue-ssl` em `/dashboard-domain`. Dê a ela **Read Dashboard Domain** e **Edit Dashboard Domain** se ela precisar.
 

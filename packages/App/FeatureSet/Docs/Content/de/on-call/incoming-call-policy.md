@@ -155,12 +155,12 @@ Eine Regel lässt bei einer Person auf der Nummer klingeln, die sie in diesem Pr
 :::steps
 1. Öffnen Sie **Benutzereinstellungen** > **Richtlinie für eingehende Anrufe** > **Eingehende Telefonnummern**. **Richtlinie für eingehende Anrufe** ist ein Abschnitt des Seitenmenüs, der eingeklappt beginnt.
 2. Klicken Sie in der Karte **Telefonnummern für eingehende Anrufweiterleitung** auf **Telefonnummer für eingehende Anrufweiterleitung hinzufügen** und geben Sie die Nummer mit Ländervorwahl ein, etwa `+15551234567`.
-3. Geben Sie den 6-stelligen Code, den OneUptime per SMS an die Nummer sendet, unter **Verifizierungscode** ein und klicken Sie auf **Verifizieren**. **Send a new code** sendet einen weiteren.
+3. Geben Sie den 6-stelligen Code, den OneUptime per SMS an die Nummer sendet, unter **Verifizierungscode** ein und klicken Sie auf **Verifizieren**. **Neuen Code senden** sendet einen weiteren.
 :::
 
 Jede Person kann pro Projekt eine verifizierte Nummer haben. Um sie zu ändern, löschen Sie zuerst die alte Nummer. Diese Nummern sind getrennt von den Telefonnummern unter **Benachrichtigungsmethoden**, die die Bereitschaftsalarmierung nutzt. Siehe [Benachrichtigungsmethoden](/docs/notifications/notification-methods).
 
-Nummern für eingehende Anrufe werden per SMS verifiziert, deshalb muss **SMS** im Projekt zuerst eingeschaltet sein. Ein Projekteigentümer oder jemand mit der Rolle **Abrechnungs-Administrator** oder der Berechtigung **Manage Billing** schaltet es in der Karte **Benachrichtigungskanäle** unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungskanäle** ein.
+Nummern für eingehende Anrufe werden per SMS verifiziert, deshalb muss **SMS** im Projekt zuerst eingeschaltet sein. Ein Projektinhaber oder jemand mit der Rolle **Abrechnungs-Administrator** oder der Berechtigung **Manage Billing** schaltet es in der Karte **Benachrichtigungskanäle** unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungskanäle** ein.
 
 ## Sprachnachrichten und Richtlinieneinstellungen
 
@@ -198,7 +198,7 @@ Ein Anruf ist verpasst, wenn er endet, ohne jemanden zu erreichen: Sein Status i
 
 ### Wer benachrichtigt wird
 
-Wird ein Anruf verpasst, benachrichtigt OneUptime die Eigentümer der Richtlinie: die Benutzer und die Mitglieder der Teams, die auf der Seite **Eigentümer** der Richtlinie eingetragen sind. Hat die Richtlinie keine Eigentümer, werden stattdessen die Eigentümer des Projekts benachrichtigt.
+Wird ein Anruf verpasst, benachrichtigt OneUptime die Eigentümer der Richtlinie: die Benutzer und die Mitglieder der Teams, die auf der Seite **Eigentümer** der Richtlinie eingetragen sind. Hat die Richtlinie keine Eigentümer, werden stattdessen die Projektinhaber benachrichtigt.
 
 Die Benachrichtigung sagt, wer angerufen hat, welche Nummer gewählt wurde, warum niemand abgenommen hat und bei wem es geklingelt hat und wie jeder Versuch endete. Sie verlinkt den Anruf im Anrufprotokoll.
 
@@ -208,15 +208,15 @@ Eigentümer erhalten standardmäßig eine E-Mail. Jede Person kann andere Kanäl
 
 Protokolle eingehender Anrufe stehen als Workflow-Auslöser zur Verfügung:
 
-- **On Create Incoming Call Log** läuft, wenn ein Anruf eingeht.
-- **On Update Incoming Call Log** läuft, während der Anruf fortschreitet. Die Aktualisierung, die **Ended At** setzt, ist das Ende des Anrufs.
+- **Bei Erstellung: Eingangsanruf-Protokoll** läuft, wenn ein Anruf eingeht.
+- **Bei Aktualisierung: Eingangsanruf-Protokoll** läuft, während der Anruf fortschreitet. Die Aktualisierung, die **Ended At** setzt, ist das Ende des Anrufs.
 
 Um nur auf verpasste Anrufe zu reagieren, etwa um sie in Slack oder Microsoft Teams zu posten oder ein Ticket zu eröffnen:
 
 :::steps
-1. Fügen Sie den Auslöser **On Update Incoming Call Log** hinzu. Setzen Sie **Fields to watch** auf **Ended At** und wählen Sie die Felder, die Sie nutzen möchten, etwa **Status**, **Caller Phone Number** und **Routing Phone Number**.
-2. Fügen Sie einen Schritt **If / Else** hinzu. Prüfen Sie den **Status** des Auslösers mit dem Vergleich **ist ungleich** und `Completed`.
-3. Verbinden Sie Ihre Schritte mit dem Port **Yes**.
+1. Fügen Sie den Auslöser **Bei Aktualisierung: Eingangsanruf-Protokoll** hinzu. Setzen Sie **Beobachtete Felder** auf **Ended At** und wählen Sie die Felder, die Sie nutzen möchten, etwa **Status**, **Caller Phone Number** und **Routing Phone Number**.
+2. Fügen Sie einen Schritt **Wenn / Sonst** hinzu. Prüfen Sie den **Status** des Auslösers mit dem Vergleich **ist ungleich** und `Completed`.
+3. Verbinden Sie Ihre Schritte mit dem Port **Ja**.
 :::
 
 Ein Workflow kann Anrufprotokolle mit **Find One** und **Find Many** lesen, aber keine anlegen oder ändern.
@@ -275,7 +275,7 @@ Das Konto lässt sich nur ändern, solange die Richtlinie keine Telefonnummern h
 :::
 
 :::details Der Code für die Nummer einer Person kommt nicht an
-SMS muss im Projekt eingeschaltet sein. In OneUptime Cloud bezahlt ein Projekt ohne eigene Standard-Twilio-Konfiguration die SMS von seinem Guthaben, das über 1 USD liegen muss. Codes können eine Minute brauchen; klicken Sie auf **Send a new code**, um einen weiteren zu senden, und **Projekteinstellungen** > **Benachrichtigungen** > **Benachrichtigungsprotokolle** zeigt, was mit ihm passiert ist.
+SMS muss im Projekt eingeschaltet sein. In OneUptime Cloud bezahlt ein Projekt ohne eigene Standard-Twilio-Konfiguration die SMS von seinem Guthaben, das über 1 USD liegen muss. Codes können eine Minute brauchen; klicken Sie auf **Neuen Code senden**, um einen weiteren zu senden, und **Projekteinstellungen** > **Benachrichtigungen** > **Benachrichtigungsprotokolle** zeigt, was mit ihm passiert ist.
 :::
 
 ## Nächste Schritte

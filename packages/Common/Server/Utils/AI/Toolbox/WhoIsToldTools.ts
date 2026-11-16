@@ -30,6 +30,8 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 
+import { AI_TOOL_CITATIONS } from "../../../../Types/AI/AIReadTableWords";
+import { citationSentence } from "./ReadTableWords";
 /*
  * WHO IS TOLD WHEN A MONITOR GOES DOWN, FOR ASK AI (issues #6829, #6810).
  *
@@ -125,7 +127,7 @@ async function findMonitor(
 const OWNERS_WORDS: Readonly<Record<WhoIsToldOwnersSource, string>> = {
   [WhoIsToldOwnersSource.Named]: "its owners",
   [WhoIsToldOwnersSource.OwnerRules]: "the owners added by owner rules",
-  [WhoIsToldOwnersSource.ProjectOwners]: "the project's owners",
+  [WhoIsToldOwnersSource.ProjectOwners]: "the Project Owners",
   [WhoIsToldOwnersSource.MonitorOwners]: "the monitor's owners",
 };
 
@@ -324,7 +326,10 @@ export const WhoIsToldTool: ObservabilityTool = {
     return {
       dataForLlm: serialized.text,
       rowCount: serialized.rowCount,
-      citationLabel: `Who is told when "${result.monitorName}" goes down`,
+      // In the reader's language (issue #8311).
+      ...citationSentence(AI_TOOL_CITATIONS.whoIsTold, {
+        monitor: result.monitorName,
+      }),
       citationTarget: {
         type: AIChatCitationTargetType.MonitorView,
         params: { monitorId: monitor.id.toString() },

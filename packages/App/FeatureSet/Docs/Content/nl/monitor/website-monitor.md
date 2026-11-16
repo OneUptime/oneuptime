@@ -36,7 +36,7 @@ Een sonde die haar eigen netwerkverbinding kwijt is, meldt geen resultaat, en ka
 
 ## Voordat u begint
 
-- **Een rol die monitoren mag maken**: Project Owner, Project Admin, Project Member, Monitor Admin of Monitor Member, of een aangepaste rol met de machtiging Create Monitor.
+- **Een rol die monitoren mag maken**: Projecteigenaar, Projectbeheerder, Projectlid, Monitorbeheerder of Monitorlid, of een aangepaste rol met de machtiging Create Monitor.
 - **Een sonde die de site kan bereiken.** De standaardsondes van uw project worden voor elke nieuwe monitor gekozen. Staat er een firewall voor de site, sta dan de [IP-adressen van de sondes van OneUptime Cloud](/docs/configuration/ip-addresses) toe. Een site in een privénetwerk heeft een [aangepaste sonde](/docs/probe/custom-probe) in dat netwerk nodig, die privéadressen mag bereiken: zie [Toegang tot privénetwerk](/docs/self-hosted/private-network-access).
 
 ## Een websitemonitor maken
@@ -167,7 +167,7 @@ Een nieuwe websitemonitor begint met twee criteria, zodat hij werkt zonder dat u
 - **Offline** — de website antwoordt niet, of antwoordt met een statuscode van `400` of hoger (of lager dan `200`). De monitor wordt als **Offline** gemarkeerd en er wordt een incident gemaakt. Het incident lost zichzelf op wanneer de website terug is.
 - **Bereikbaar** — de website antwoordt met een willekeurige statuscode `2xx` of `3xx`, zoals `200`, `204` of `301`. De monitor wordt als **Operationeel** gemarkeerd.
 
-In de lijst met criteria zijn ze naar de monitor genoemd: _Check if (name) is offline_ en _Check if (name) is online_.
+In de lijst met criteria zijn ze naar de monitor genoemd: "Controleer of _monitornaam_ offline is" en "Controleer of _monitornaam_ online is".
 
 Een pagina die `204 No Content` antwoordt, of een omleiding die u bewaakt met **Omleidingen niet volgen** aan, telt dus als bereikbaar. Betekent voor u maar één statuscode gezond, wijzig dan beide criteria op de pagina **Configuratie → Criteria** van de monitor: bijvoorbeeld **Reactiestatuscode** / **Gelijk aan** / `200` in het online-criterium en **Niet gelijk aan** / `200` in het offline-criterium, in plaats van de twee statuscodefilters die elk heeft.
 

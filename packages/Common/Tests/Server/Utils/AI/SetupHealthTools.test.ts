@@ -30,6 +30,8 @@ import {
 import DashboardPages from "../../../../Server/Utils/AI/Docs/DashboardPages.json";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
+import fs from "fs";
+import path from "path";
 
 /*
  * get_setup_health (#6812): Ask AI answers "is my setup OK?" from the
@@ -224,6 +226,46 @@ describe("get_setup_health", () => {
     for (const fix of Object.values(SetupHealthFix)) {
       expect(SETUP_HEALTH_FIX_PAGES[fix].length).toBeGreaterThan(5);
     }
+  });
+
+  /*
+   * #8358: the guided setup was named "On-Call > Guided setup, which makes
+   * ...", a path through On-Call's side menu, which has no such entry. The
+   * page opens from the finding's own button, so it is named by that
+   * button's label, read here from the Dashboard's source so the two cannot
+   * drift apart, and by the page the button is on.
+   */
+  test("names the on-call guided setup, which no menu lists, by the button that opens it, never as an On-Call path", () => {
+    const setupHealthWords: string = fs.readFileSync(
+      path.join(
+        __dirname,
+        "..",
+        "..",
+        "..",
+        "..",
+        "..",
+        "App",
+        "FeatureSet",
+        "Dashboard",
+        "src",
+        "Components",
+        "SetupHealth",
+        "SetupHealthWords.ts",
+      ),
+      "utf8",
+    );
+    const buttonPattern: RegExp = new RegExp(
+      '\\[SetupHealthFix\\.OnCallGuidedSetup\\]: translationKey\\("([^"]+)"\\)',
+    );
+    const button: string | undefined =
+      buttonPattern.exec(setupHealthWords)?.[1];
+    const page: string =
+      SETUP_HEALTH_FIX_PAGES[SetupHealthFix.OnCallGuidedSetup];
+
+    expect(button).toBe("Set Up Paging");
+    expect(page).toContain(`${button} button on Setup Health`);
+    expect(page).toContain("first on-call policy");
+    expect(page).not.toMatch(/On-Call\s*(?:>|›|→)/);
   });
 
   test("is on Ask AI's belt, reads only, for everyone in the project", () => {

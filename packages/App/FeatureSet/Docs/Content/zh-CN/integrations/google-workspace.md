@@ -1,6 +1,6 @@
 # Google Workspace
 
-把 [Google Workspace](https://workspace.google.com) 的审计日志导入 OneUptime 的安全事件：登录以及 Google 对它们的标记、管理员的更改、获得数据访问权限的应用、单点登录、账户自身的安全设置；如果你愿意，还可以导入在组织外部共享或在 Google 云端硬盘中下载的文件。在那里，你可以把它们与日志、跟踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的内容呼叫值班人员。OneUptime 通过一个以你的某位管理员身份行事的服务账户读取它们，不会更改 Google Workspace 中的任何内容。
+把 [Google Workspace](https://workspace.google.com) 的审计日志导入 OneUptime 的安全事件：登录以及 Google 对它们的标记、管理员的更改、获得数据访问权限的应用、单点登录、账户自身的安全设置；如果你愿意，还可以导入在组织外部共享或在 Google 云端硬盘中下载的文件。在那里，你可以把它们与日志、追踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的内容呼叫值班人员。OneUptime 通过一个以你的某位管理员身份行事的服务账户读取它们，不会更改 Google Workspace 中的任何内容。
 
 :::cards
 - [设置连接](#设置连接): 一个服务账户、全网域授权，以及连接的表单。
@@ -23,7 +23,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 
 ## 开始之前
 
-- 在 OneUptime 中拥有 Project Owner、Project Admin 或 Security Admin 角色。Security Member 和 Security Viewer 可以查看连接及其运行历史，但不能更改它们。
+- 在 OneUptime 中拥有项目所有者、项目管理员或安全管理员角色。安全成员和安全查看者可以查看连接及其运行历史，但不能更改它们。
 - 一位用于允许全网域授权的 Google Workspace 超级管理员，以及一位供服务账户代为行事、拥有 Reports 权限的管理员。超级管理员拥有该权限。
 - 一个你可以在其中创建服务账户并开启 Admin SDK API 的 Google Cloud 项目。
 - 对于云端硬盘活动：带有云端硬盘审计日志的版本，例如 Business Standard、Business Plus、Enterprise 或 Education。

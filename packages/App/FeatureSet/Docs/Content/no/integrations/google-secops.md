@@ -1,6 +1,6 @@
 # Google SecOps
 
-Hent varsler og deteksjoner fra [Google SecOps](https://cloud.google.com/security/products/security-operations) (tidligere Chronicle) inn i sikkerhetshendelsene i OneUptime. Der søker du i dem ved siden av logger, sporinger og metrikker, korrelerer dem med alle andre kilder og varsler vakten om dem som betyr noe.
+Hent varsler og deteksjoner fra [Google SecOps](https://cloud.google.com/security/products/security-operations) (tidligere Chronicle) inn i sikkerhetshendelsene i OneUptime. Der søker du i dem ved siden av logger, sporinger og målinger, korrelerer dem med alle andre kilder og varsler vakten om dem som betyr noe.
 
 :::cards
 - [Velg hvordan du kobler til](#velg-hvordan-du-kobler-til): En webhook fra en SOAR-playbook, den administrerte koblingen eller UDM-videresending.
@@ -22,7 +22,7 @@ Hver vei normaliserer det som kommer inn, til [OCSF](https://schema.ocsf.io/), O
 
 ## Før du begynner
 
-- For den administrerte koblingen, i OneUptime, rollen Project Owner, Project Admin eller Security Admin. Security Member og Security Viewer kan lese tilkoblinger, men ikke opprette dem.
+- For den administrerte koblingen, i OneUptime, rollen Prosjekteier, Prosjektadministrator eller Sikkerhetsadministrator. Sikkerhetsmedlem og Sikkerhetsleser kan lese tilkoblinger, men ikke opprette dem.
 - For webhooken og UDM-videresendingen en inntaksnøkkel: åpne **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler**, og klikk på **Opprett ingestion-nøkkel**.
 - For den administrerte koblingen retten til å opprette en Google Cloud-tjenestekonto i prosjektet som SecOps-instansen din er knyttet til.
 
@@ -173,7 +173,7 @@ Hver forespørsel i en test har en frist på 20 sekunder. Tester rører verken p
 
 ## Forhåndsvis, kjør og importer ved behov
 
-Åpne **Diagnostikk** på en tilkobling for å se de siste kjøringene og betjene koblingen. Prosjekteiere, prosjektadministratorer og sikkerhetsadministratorer kan starte operasjoner. Sikkerhetsmedlemmer og -lesere kan lese historikken.
+Åpne **Diagnostikk** på en tilkobling for å se de siste kjøringene og betjene koblingen. Prosjekteiere, Prosjektadministratorer og Sikkerhetsadministratorer kan starte operasjoner. Sikkerhetsmedlemmer og -lesere kan lese historikken.
 
 - **Kjør nå** setter en poll i kø med en gang, med den vanlige markøren og inntaksveien, også når planlagt polling er slått av. Tilstandene i kø og kjører forblir synlige mens workeren utfører forespørselen. Hvis en kjøring blir stående i kø, sjekker du at workers behandler Worker-køen; kontrollen **Background workers** i Test tilkoblingen sier om noen prosess gjør det.
 - **Forhåndsvis deteksjoner** leser et valgt tidsrom uten å importere eller endre markøren. Bruk den siste timen, 24 timer, 7 dager eller et egendefinert tidsrom på opptil 7 dager. Tidsrommet samsvarer med varselvisningen i SecOps, som leser etter deteksjonstid, og de to søkegjennomgangene leser både deteksjoner som er opprettet i det, og deteksjoner der deteksjonstiden faller i det, så en forhåndsvisning av i går viser også deteksjoner som ble opprettet i går om eldre hendelser. Forhåndsvisningen viser deteksjonstid og opprettelsestid hver for seg. Resultatene følger tilkoblingens lagrede valg **Data som skal importeres**.
@@ -201,7 +201,7 @@ Gå gjennom disse punktene i rekkefølge. Hvert kan skilles fra det neste i **Di
 2. **Hvor ofte reglene kjører, og deteksjonsforsinkelse.** Deteksjoner opprettes når regelen kjører, og det kan være opptil en time eller en dag etter hendelsene de beskriver. Koblingen poller etter opprettelsestid, så de kommer med den første pollen etter at Google har opprettet dem, ikke på deteksjonstiden. En regel du nettopp har aktivert, har ikke opprettet noe ennå, og en stille leier har ingenting å opprette. Tilgjengelighetskontrollen rapporterer hvor mange deteksjoner som ble opprettet de siste 24 timene og 7 dagene; null med og uten **Deteksjoner** betyr at Google ennå ikke har noe OneUptime kan importere.
 3. **Les tallene fra den siste kjøringen.** I Diagnostics er **Returnert av Google SecOps** med null i **Importert til OneUptime** og et tilsvarende tall i **Allerede importert** koblingen som virker som tenkt: de deteksjonene ble importert av en tidligere poll. **Avvist**-poster er objekter som Google returnerte, og som ikke er deteksjoner i det hele tatt.
 4. **Poller noe i det hele tatt?** Last Polled med `Never` og en tom Last Error betyr at ingen poll er fullført for denne tilkoblingen. Test tilkoblingen rapporterer **Background workers** (prosesser som forbruker Worker-køen), **Poll scheduler** (registreringen av planleggeren med ett minutts takt) og **Planlagt henting** (denne tilkoblingens egen tidsplan, inkludert en forsinket poll eller en kjøring som sitter fast i kø). Se punktet om feilsøking nedenfor for utrullingsinnstillingene som forårsaker det.
-5. **Se på riktig sted.** Hendelser lagres under deteksjonstiden, som kan ligge timer eller dager før tidspunktet de ble opprettet og importert, så et filter på «siste time» i Security Events skjuler en deteksjon om i går som ble importert for et minutt siden. Bruk **Vis hendelser i dette tidsrommet** på en kjøring i Diagnostics: den åpner hendelsestidsrommet for deteksjonene den kjøringen returnerte.
+5. **Se på riktig sted.** Hendelser lagres under deteksjonstiden, som kan ligge timer eller dager før tidspunktet de ble opprettet og importert, så et filter på «siste time» i Sikkerhetshendelser skjuler en deteksjon om i går som ble importert for et minutt siden. Bruk **Vis hendelser i dette tidsrommet** på en kjøring i Diagnostics: den åpner hendelsestidsrommet for deteksjonene den kjøringen returnerte.
 
 ## Slik settes alvorlighetsgraden
 
@@ -361,7 +361,7 @@ Google SecOps hadde tidligere sitt eget tilkoblingskort, sitt eget API og sin eg
 ## Hva du får
 
 - **Søk.** Filtrer hendelser etter alvorlighetsgrad, OCSF-klasse, aktør, mål eller en hvilken som helst observable i utforskeren for sikkerhetshendelser.
-- **Korrelasjon.** Brukerne, vertene, IP-ene og domenene i hver hendelse indekseres som observables, så ett søk finner alt som nevner en vert, ved siden av loggene og metrikkene for den verten.
+- **Korrelasjon.** Brukerne, vertene, IP-ene og domenene i hver hendelse indekseres som observables, så ett søk finner alt som nevner en vert, ved siden av loggene og målingene for den verten.
 - **Deteksjonsregler.** Sigma-regler som kjører etter en tidsplan over sikkerhetshendelsene dine, åpner varsler som varsler vakten, og skriver hendelser av typen Detection Finding.
 - **Monitorer.** Monitorer for sikkerhetshendelser teller samsvarende hendelser, og åpner hendelser eller varsler over en terskel.
 - **Dashbord og KI.** Widgeter for sikkerhetshendelser på dashbord, blant dem en Sankey-flytvisning, og KI-verktøyene `search_security_events` og `security_event_summary` for spørsmål på vanlig språk.

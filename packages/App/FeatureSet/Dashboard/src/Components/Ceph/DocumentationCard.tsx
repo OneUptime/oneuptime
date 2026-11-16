@@ -11,6 +11,7 @@ import {
   getCephSetupGuide,
   resolveCephInstallMethod,
 } from "../../Pages/Ceph/Utils/DocumentationMarkdown";
+import { CEPH_DOCUMENTATION_TRANSLATIONS } from "../../Pages/Ceph/Utils/DocumentationTranslations";
 
 export interface ComponentProps extends SetupGuideFrameProps {
   title: string;
@@ -33,7 +34,9 @@ const CephDocumentationCard: FunctionComponent<ComponentProps> = (
       newKeyName={translationKey("Ceph key")}
       optionsLabel="How do you want to install the agent?"
       options={CEPH_INSTALL_METHODS}
-      keyStepDescription="The agent sends your cluster's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it."
+      keyStepDescription={translationKey(
+        "The agent sends your cluster's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.",
+      )}
       getContent={(context: SetupGuideRenderContext): SetupGuideContent => {
         return getCephSetupGuide({
           oneuptimeUrl: context.oneuptimeUrl,
@@ -43,6 +46,7 @@ const CephDocumentationCard: FunctionComponent<ComponentProps> = (
           clusterName: props.clusterName,
         });
       }}
+      translations={CEPH_DOCUMENTATION_TRANSLATIONS}
       isBare={props.isBare}
       inputs={props.inputs}
       lastStep={props.lastStep}

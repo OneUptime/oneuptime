@@ -142,13 +142,13 @@ import { CodeHost } from "../../Types/CodeRepository/CodeHost";
  */
 
 export const CODE_TASK_STOP_REFUSED_MESSAGE: string =
-  "Stopping AI takes permission to edit this task's repository - ask a project admin for it.";
+  "Stopping AI takes permission to edit this task's repository - ask a Project Admin for it.";
 
 export const CODE_TASK_REVIEW_AGAIN_REFUSED_MESSAGE: string =
-  "Reviewing a pull request again takes permission to edit its repository - ask a project admin for it.";
+  "Reviewing a pull request again takes permission to edit its repository - ask a Project Admin for it.";
 
 export const CODE_TASK_REVIEW_PULL_REQUEST_REFUSED_MESSAGE: string =
-  "Asking for a production review takes permission to edit the repository - ask a project admin for it.";
+  "Asking for a production review takes permission to edit the repository - ask a Project Admin for it.";
 
 export const CODE_TASK_NOT_A_PRODUCTION_REVIEW_MESSAGE: string =
   "Only a pull request's production review can be reviewed again.";
@@ -567,9 +567,10 @@ export default class CodeTaskAPI {
       await CodeTaskPresenter.summarize({ projectId, tasks, props });
 
     /*
-     * "totalCount", not "count": a body holding count, skip and limit
-     * together reads as a list envelope to the Dashboard's HTTPResponse,
-     * which then looks for the rows under "data" and finds none.
+     * "totalCount": the name this answer has always had (CodeApi.listTasks
+     * reads it). It was chosen while HTTPResponse took any body holding
+     * count, skip and limit for a list envelope and looked for rows under
+     * "data"; it takes only a real envelope for one now (issue #7794).
      */
     return {
       tasks: summaries as unknown as Array<JSONObject>,

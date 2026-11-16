@@ -3,6 +3,7 @@ import {
   getCoarsestChartGridStepWithin,
 } from "../../NetworkDevice/ChartGridStep";
 import { parseBucketTime } from "../../NetworkDevice/FlowSeriesUtil";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import {
   formatTrafficProtocolPort,
   getBitsPerSecond,
@@ -25,7 +26,12 @@ import {
 } from "Common/Types/NetFlow/NetworkTrafficUsage";
 import DataPoint from "Common/UI/Components/Charts/Types/DataPoint";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  DEFAULT_LANGUAGE,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import { formatReaderFigure } from "Common/Types/DateLanguage";
+import { formatMilliseconds } from "../../../Utils/Milliseconds";
 
 /*
  * The Meraki side of a Traffic page drawn with the flow side's own parts -
@@ -406,29 +412,66 @@ export function isNetworkAddressText(text: string): boolean {
 }
 
 // A number the page cannot give: unknown, where a 0 would say there was none.
-export const UNKNOWN_VALUE: string = "\u2014";
+export const UNKNOWN_VALUE: string = EMPTY_VALUE_MARK;
 
-// Latency, as the comparison's axis and rows write it: "24 ms", "1.2 ms".
-export function formatLatency(milliseconds: number): string {
-  const amount: string =
-    milliseconds < 10
-      ? milliseconds.toFixed(1)
-      : String(Math.round(milliseconds));
+/*
+ * Latency to a tenth under ten, whole from ten up ("1.2 ms", "24 ms"), with
+ * a no-break space so the unit never wraps away from its figure.
+ */
+const writeLatency: (milliseconds: number, translator: Translator) => string = (
+  milliseconds: number,
+  translator: Translator,
+): string => {
+  const decimals: number = milliseconds < 10 ? 1 : 0;
 
-  return `${amount}\u00a0ms`;
+  return formatMilliseconds(translator, milliseconds, {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  }).replace(/ /g, "\u00a0");
+};
+
+/*
+ * Latency in a row, and on the comparison's chart axis and in its tooltip,
+ * which write it as the rows beside them do: the reader's words ("24 ms",
+ * "۲۴ میلی‌ثانیه"; #7418, #8349).
+ */
+export function formatLatencyInLanguage(
+  milliseconds: number,
+  translator: Translator,
+): string {
+  return writeLatency(milliseconds, translator);
 }
 
-// Loss, written the same way: "0%", "0.2%", "12%".
-export function formatLoss(percent: number): string {
+/*
+ * Loss, written the same way: "0%", "0.2%", "12%", "<0.1%", in the
+ * reader's digits and percent sign when given their language ("0,2 %",
+ * "۰٫۲٪") - in a row and on the chart's axis alike. English as before.
+ */
+export function formatLoss(
+  percent: number,
+  language: string = DEFAULT_LANGUAGE,
+): string {
   if (percent === 0) {
-    return "0%";
+    return formatReaderFigure(0, {
+      decimals: 0,
+      isPercent: true,
+      language: language,
+    });
   }
 
   if (percent < 0.1) {
-    return "<0.1%";
+    return `<${formatReaderFigure(0.1, {
+      decimals: 1,
+      isPercent: true,
+      language: language,
+    })}`;
   }
 
-  return `${percent < 10 ? percent.toFixed(1) : Math.round(percent)}%`;
+  return formatReaderFigure(percent, {
+    decimals: percent < 10 ? 1 : 0,
+    isPercent: true,
+    language: language,
+  });
 }
 
 // What the comparison's chart shows of each uplink.

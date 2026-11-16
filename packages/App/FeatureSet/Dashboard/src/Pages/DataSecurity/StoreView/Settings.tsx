@@ -1,6 +1,8 @@
 import PageComponentProps from "../../PageComponentProps";
 import { SensitivityPill } from "../../../Components/DataSecurity/DataSecurityPills";
+import { getStoreContentScanKindRefusal } from "../../../Components/DataSecurity/StoreNextContentScan";
 import StoreExclusionsInput from "../../../Components/DataSecurity/StoreExclusionsInput";
+import { getDataStoreEnvironmentTitle } from "../../../Components/DataSecurity/DataSecurityCatalogTerms";
 import {
   STORE_ENVIRONMENT_OPTIONS,
   STORE_SENSITIVITY_OPTIONS,
@@ -29,7 +31,9 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
-import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
+import EmptyValue, {
+  EMPTY_VALUE_MARK,
+} from "Common/UI/Components/Detail/EmptyValue";
 
 /*
  * A STORE'S SETTINGS, each card one question:
@@ -163,14 +167,18 @@ const DataStoreSettings: FunctionComponent<
       title: "Scan Content",
       fieldType: FieldType.Element,
       getElement: (item: DataStore): ReactElement => {
-        if (!kindFacts.isContentScannable) {
-          return (
-            <span className="text-sm text-gray-500">
-              {translator.translateText(
-                "OneUptime cannot sample this kind of store's content yet. Its configuration is still checked.",
-              )}
-            </span>
-          );
+        // By the rule the server scans by: a probe samples SQL Server too.
+        const kindRefusal: string | undefined = getStoreContentScanKindRefusal(
+          {
+            kind: item.kind || dataStore?.kind,
+            provider: item.provider || dataStore?.provider,
+            scanProbeId: item.scanProbeId,
+          },
+          translator,
+        );
+
+        if (kindRefusal) {
+          return <span className="text-sm text-gray-500">{kindRefusal}</span>;
         }
 
         return yesOrNo(item.isContentScanEnabled);
@@ -223,7 +231,8 @@ const DataStoreSettings: FunctionComponent<
                       "The probe {{probe}}, with the connection string in {{variable}}",
                       {
                         probe: item.scanProbe.name,
-                        variable: item.probeConnectionVariable || "-",
+                        variable:
+                          item.probeConnectionVariable || EMPTY_VALUE_MARK,
                       },
                     )}
                   </span>
@@ -390,9 +399,10 @@ const DataStoreSettings: FunctionComponent<
               getElement: (item: DataStore): ReactElement => {
                 return (
                   <span className="text-sm text-gray-900">
-                    {translator.translateText(item.environment) || (
-                      <EmptyValue />
-                    )}
+                    {getDataStoreEnvironmentTitle(
+                      translator,
+                      item.environment,
+                    ) || <EmptyValue />}
                   </span>
                 );
               },
@@ -454,9 +464,15 @@ const DataStoreSettings: FunctionComponent<
           modelType: DataStore,
           id: "data-store-scanning",
           modelId: dataStoreId,
-          selectMoreFields: kindFacts.isSelfManaged
-            ? { probeConnectionVariable: true }
-            : {},
+          // What decides whether its content can be sampled at all.
+          selectMoreFields: {
+            kind: true,
+            provider: true,
+            scanProbeId: true,
+            ...(kindFacts.isSelfManaged
+              ? { probeConnectionVariable: true }
+              : {}),
+          },
           fields: scanningDetailFields,
         }}
       />

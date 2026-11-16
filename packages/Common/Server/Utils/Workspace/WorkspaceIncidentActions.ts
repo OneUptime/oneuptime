@@ -1422,11 +1422,11 @@ export default class WorkspaceIncidentActions {
    * name is the one the installation goes by.
    */
   public static getNoSeveritiesMessage(): string {
-    return `This project has no incident severities you can pick. Add one in ${ProductBrandingText.getProductName()} under Incidents → Settings → Incident Severity, or ask a project admin for access to them.`;
+    return `This project has no incident severities you can pick. Add one in ${ProductBrandingText.getProductName()} under Incidents → Settings → Incident Severity, or ask a Project Admin for access to them.`;
   }
 
   public static getNoRolesMessage(): string {
-    return `This project has no incident roles you can assign. Add one in ${ProductBrandingText.getProductName()} under Incidents → Settings → Incident Roles, or ask a project admin for access to them.`;
+    return `This project has no incident roles you can assign. Add one in ${ProductBrandingText.getProductName()} under Incidents → Settings → Incident Roles, or ask a Project Admin for access to them.`;
   }
 
   public static getNoCustomFieldsMessage(): string {

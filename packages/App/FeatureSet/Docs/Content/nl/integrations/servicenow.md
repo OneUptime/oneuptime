@@ -13,9 +13,9 @@ Open een [ServiceNow](https://www.servicenow.com)-incident voor elk OneUptime-in
 
 ```mermaid title="Twee workflows, één ServiceNow-incident"
 flowchart TB
-    declared["Incident gemeld"] --> create["Workflow 1:<br/>On Create Incident"]
+    declared["Incident gemeld"] --> create["Workflow 1:<br/>Bij aanmaken: Incident"]
     create -->|"POST incident"| sn["ServiceNow-incident"]
-    resolved["Incident opgelost"] --> update["Workflow 2:<br/>On Update Incident"]
+    resolved["Incident opgelost"] --> update["Workflow 2:<br/>Bij bijwerken: Incident"]
     update --> find["Het record zoeken<br/>via correlation_id"]
     find -->|"PATCH state 6"| sn
 ```
@@ -54,11 +54,11 @@ Ga naar **Workflows**, klik op **Workflow maken** en daarna op **Vanaf nul begin
 
 ### De trigger toevoegen
 
-Klik op het gestippelde blok **Kies wat deze workflow start** en kies **On Create Incident**. Klik op de trigger: de **Fields to pass on** ervan beginnen met **Titel**, dus klik op **Veld toevoegen** en kies **Beschrijving**.
+Klik op het gestippelde blok **Kies wat deze workflow start** en kies **Bij aanmaken: Incident**. Klik op de trigger: de **Velden om door te geven** ervan beginnen met **Titel**, dus klik op **Veld toevoegen** en kies **Beschrijving**.
 
 ### Het record aanmaken
 
-Klik op **Component toevoegen**, voeg een **API Post (JSON)**-blok toe en verbind de **Success**-punt van de trigger ermee. Stel de **URL** in op `https://your-instance.service-now.com/api/now/table/incident`. Stel onder **Meer velden** de **Request Headers** in op:
+Klik op **Component toevoegen**, voeg een **API-aanroep POST (JSON)**-blok toe en verbind de **Succes**-punt van de trigger ermee. Stel de **URL** in op `https://your-instance.service-now.com/api/now/table/incident`. Stel onder **Meer velden** de **Aanvraagheaders** in op:
 
 ```json
 {
@@ -67,7 +67,7 @@ Klik op **Component toevoegen**, voeg een **API Post (JSON)**-blok toe en verbin
 }
 ```
 
-En de **Request Body** op:
+En de **Verzoeklichaam** op:
 
 ```json
 {
@@ -81,7 +81,7 @@ En de **Request Body** op:
 
 ### Testen en daarna aanzetten
 
-Klik op **Workflow uitvoeren**, kies onder **Incident** een testincident en voer hem uit. De stap **API Post (JSON)** toont een `201`-antwoord met het nieuwe record, met zijn `sys_id` en zijn `number`, zoals `INC0012345`. Zet daarna **Ingeschakeld** aan bovenaan de **Bouwer**.
+Klik op **Workflow uitvoeren**, kies onder **Incident** een testincident en voer hem uit. De stap **API-aanroep POST (JSON)** toont een `201`-antwoord met het nieuwe record, met zijn `sys_id` en zijn `number`, zoals `INC0012345`. Zet daarna **Ingeschakeld** aan bovenaan de **Bouwer**.
 :::
 
 `urgency` en `impact` nemen `1` voor hoog, `2` voor gemiddeld en `3` voor laag, en ServiceNow leidt de prioriteit uit die twee af. Elke andere kolom van de tabel `incident` kan in de body, onder zijn kolomnaam.
@@ -91,9 +91,9 @@ Klik op **Workflow uitvoeren**, kies onder **Incident** een testincident en voer
 Een workflow heeft één trigger, dus voor het oplossen is een tweede workflow nodig, die start wanneer de status van een incident verandert.
 
 :::steps
-### De trigger On Update Incident toevoegen
+### De trigger "Bij bijwerken: Incident" toevoegen
 
-Maak een workflow met de naam `Resolve ServiceNow incidents` en kies **On Update Incident** als trigger. Klik in **Fields to watch** op **Veld toevoegen** en kies **Current Incident State**, zodat hij alleen draait wanneer de status verandert. Vraag in **Fields to pass on** of de nieuwe status een opgeloste status is: klik op **Veld toevoegen**, open **Current Incident State** en kies **Is Resolved State**. Of klik op **Bewerken als JSON** en vervang de JSON door:
+Maak een workflow met de naam `Resolve ServiceNow incidents` en kies **Bij bijwerken: Incident** als trigger. Klik in **Velden om te volgen** op **Veld toevoegen** en kies **Current Incident State**, zodat hij alleen draait wanneer de status verandert. Vraag in **Velden om door te geven** of de nieuwe status een opgeloste status is: klik op **Veld toevoegen**, open **Current Incident State** en kies **Is Resolved State**. Of klik op **Bewerken als JSON** en vervang de JSON door:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -101,11 +101,11 @@ Maak een workflow met de naam `Resolve ServiceNow incidents` en kies **On Update
 
 ### Controleren dat het incident is opgelost
 
-Voeg na de trigger een **If / Else**-blok toe. Stel **Value to check** in op `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` en **Comparison** op **is true**.
+Voeg na de trigger een **Als / Anders**-blok toe. Stel **Te controleren waarde** in op `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` en **Vergelijking** op **is waar**.
 
 ### Het record zoeken
 
-Voeg na de **Yes**-kant een **API Get (JSON)**-blok toe, met dezelfde **Request Headers** en deze **URL**:
+Voeg na de **Ja**-kant een **API-aanroep GET (JSON)**-blok toe, met dezelfde **Aanvraagheaders** en deze **URL**:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}&sysparm_fields=sys_id&sysparm_limit=1
@@ -113,13 +113,13 @@ https://your-instance.service-now.com/api/now/table/incident?sysparm_query=corre
 
 ### Het record oplossen
 
-Voeg na de **Success** van het zoekblok een **API Patch (JSON)**-blok toe, met dezelfde **Request Headers** en deze **URL**:
+Voeg na de **Succes** van het zoekblok een **API-aanroep PATCH (JSON)**-blok toe, met dezelfde **Aanvraagheaders** en deze **URL**:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident/{{local.components.api-get-1.returnValues.response-body.result[0].sys_id}}
 ```
 
-Stel de **Request Body** in op:
+Stel de **Verzoeklichaam** in op:
 
 ```json
 {

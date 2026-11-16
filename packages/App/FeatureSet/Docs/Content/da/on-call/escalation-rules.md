@@ -92,7 +92,7 @@ Oversigten øverst på siden **Eskaleringsregler** viser hele stigen: hvornår h
 
 ### Sådan nås hver person
 
-Hver person, et niveau tilkalder, nås sådan, som personens egne vagtregler siger: **Brugerindstillinger** > **Sådan når man mig**, med en fane for hændelser, hændelsesepisoder, advarsler og advarselsepisoder og et kort pr. alvorlighed, der viser, hvilken notifikationsmetode der prøves og efter hvor lang tid. En projektadministrator kan se og ændre et medlems regler under **Brugere** > medlemmet > **Sådan når man mig**. Se [Sådan når man mig](/docs/notifications/on-call-rules).
+Hver person, et niveau tilkalder, nås sådan, som personens egne vagtregler siger: **Brugerindstillinger** > **Sådan når man mig**, med en fane for hændelser, hændelsesepisoder, advarsler og advarselsepisoder og et kort pr. alvorlighed, der viser, hvilken notifikationsmetode der prøves og efter hvor lang tid. En Projektadministrator kan se og ændre et medlems regler under **Brugere** > medlemmet > **Sådan når man mig**. Se [Sådan når man mig](/docs/notifications/on-call-rules).
 
 ```mermaid title="Hvem et niveau tilkalder, og hvordan hver person nås"
 flowchart TB
@@ -165,7 +165,7 @@ Et tilkald, der ikke sendes, siger hvorfor i personens **Vagtlogs** (Brugerindst
 - projektets saldo kunne ikke betale for det, og hvem der kan tilføje saldo;
 - kanalen er slået fra i projektet, og hvem der kan slå den til.
 
-Projektets ejere får én e-mail om det, indtil saldoen er fyldt op, eller kanalen er slået til igen.
+Projektejerne får én e-mail om det, indtil saldoen er fyldt op, eller kanalen er slået til igen.
 
 Et tilkald, der ikke kunne nå OneUptimes notifikationstjeneste, siger `Could not reach the Notification service to send this (ECONNREFUSED).`, med netværksfejlens kode i parentesen. Et tilkald, hvis afsendelse aldrig blev færdig, for eksempel fordi en server genstartede under afsendelsen, siger `Sending did not finish within 15 minutes, so this notification may not have been sent.` Bliver afsendelsen alligevel færdig, erstatter resultatet den besked.
 
@@ -176,7 +176,7 @@ På OneUptime Cloud betales hver SMS, hvert opkald, hver WhatsApp- og Telegram-b
 - Tilkald bliver ved med at gå ud på den resterende saldo, mens automatisk genopfyldning ikke kan trække på kortet.
 
 > [!IMPORTANT]
-> SMS, telefonopkald, WhatsApp og Telegram er slået fra i et nyt projekt: på OneUptime Cloud betales hver besked af projektets saldo, og en selvhostet installation skal først have en Twilio-konto, en SMS- og opkaldsgateway eller en Telegram-bot sat op. Så længe en kanal er slået fra, kan ingen i projektet tilføje en metode på den. Kun en projektejer, en **Faktureringsadministrator** eller en person med tilladelsen **Manage Billing** kan slå en til, i kortet **Notifikationskanaler** på **Projektindstillinger > Notifikationer > Notifikationskanaler** — en projektadministrator kan ikke. Alle andre får præcis at vide, hvem der kan, overalt hvor en kanal er slået fra: over deres egen liste over metoder på den, på deres opsætningstjekliste og i den besked, de får, når noget har brug for den.
+> SMS, telefonopkald, WhatsApp og Telegram er slået fra i et nyt projekt: på OneUptime Cloud betales hver besked af projektets saldo, og en selvhostet installation skal først have en Twilio-konto, en SMS- og opkaldsgateway eller en Telegram-bot sat op. Så længe en kanal er slået fra, kan ingen i projektet tilføje en metode på den. Kun en Projektejer, en **Faktureringsadministrator** eller en person med tilladelsen **Manage Billing** kan slå en til, i kortet **Notifikationskanaler** på **Projektindstillinger > Notifikationer > Notifikationskanaler** — en Projektadministrator kan ikke. Alle andre får præcis at vide, hvem der kan, overalt hvor en kanal er slået fra: over deres egen liste over metoder på den, på deres opsætningstjekliste og i den besked, de får, når noget har brug for den.
 
 ## Eskalér til den næste person i rotationen
 
@@ -243,7 +243,7 @@ Hvad der sker bagefter, afhænger af, hvem der ellers bliver tilkaldt:
 
 At eskalere et tilkald kvitterer ikke for det: hændelsen eller advarslen venter stadig på, at nogen kvitterer, og den, der eskalerede det, kan stadig selv kvittere. Denne kørsel tilkalder ikke vedkommende om det igen: et senere niveau eller en gentagelse, der nævner vedkommende, springer vedkommende over. Når alle, den tilkaldte, har eskaleret det, og der ikke er nogen tilbage at tilkalde, stopper tilkaldet, og hændelsens feed siger det.
 
-Et tilkald, som et workflow sender direkte til personer, har ingen niveauer: eskalerer du det, bliver du ikke tilkaldt mere, og når alle, det tilkaldte, har eskaleret det, stopper tilkaldet.
+Et tilkald, som en arbejdsgang sender direkte til personer, har ingen niveauer: eskalerer du det, bliver du ikke tilkaldt mere, og når alle, det tilkaldte, har eskaleret det, stopper tilkaldet.
 
 Hver gang et tilkald eskaleres, bliver det registreret. Kørslens **Tidslinje for udførelsen** markerer personens linje **Eskaleret**, hændelsens feed siger "Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.", kørslens besked i Slack og Microsoft Teams siger, at vedkommende eskalerede det, og vedkommendes **Vagtlogs** viser tilkaldet som **Eskaleret**. Et niveau, der blev sprunget over for et senere, er markeret **Sprunget over** i **Tidslinje for udførelsen**, og feedet siger "On-call policy Payments skipped Platform leads (Level 2 of 3): the page was escalated past it."
 

@@ -459,11 +459,23 @@ const METRIC_COLUMN_CASES: Array<MetricColumnCase> = [
     title: "Memory",
     busiestFirst: {
       names: ["batch-9", "api", "web", "batch-10", "cache"],
-      cells: ["80.0%900 MB", "37.5%1.5 GB", "12.0%", "2.3%50.0 MB", "—300 MB"],
+      cells: [
+        "80.0%900\u00A0MB",
+        "37.5%1.5\u00A0GB",
+        "12.0%",
+        "2.3%50.0\u00A0MB",
+        "—300\u00A0MB",
+      ],
     },
     quietestFirst: {
       names: ["batch-10", "web", "api", "batch-9", "cache"],
-      cells: ["2.3%50.0 MB", "12.0%", "37.5%1.5 GB", "80.0%900 MB", "—300 MB"],
+      cells: [
+        "2.3%50.0\u00A0MB",
+        "12.0%",
+        "37.5%1.5\u00A0GB",
+        "80.0%900\u00A0MB",
+        "—300\u00A0MB",
+      ],
     },
   },
 ];
@@ -677,9 +689,9 @@ describe.each(CONTAINER_LISTS)(
         "batch-10",
       ]);
       expect(visibleCells("Last Started")).toEqual([
-        "2 minutes ago",
-        "3 hours ago",
-        "2 days ago",
+        "2\u00A0minutes ago",
+        "3\u00A0hours ago",
+        "2\u00A0days ago",
         "—",
         "—",
       ]);
@@ -761,11 +773,11 @@ describe.each(CONTAINER_LISTS)(
         "batch-9",
       ]);
       expect(visibleCells("Memory")).toEqual([
-        "95.0%2.0 GB",
-        "37.5%1.5 GB",
+        "95.0%2.0\u00A0GB",
+        "37.5%1.5\u00A0GB",
         "12.0%",
-        "2.3%50.0 MB",
-        "1.0%10.0 MB",
+        "2.3%50.0\u00A0MB",
+        "1.0%10.0\u00A0MB",
       ]);
     });
   },

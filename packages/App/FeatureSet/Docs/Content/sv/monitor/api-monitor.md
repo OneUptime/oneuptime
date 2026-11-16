@@ -34,7 +34,7 @@ En sond som har förlorat sin egen nätverksanslutning rapporterar inget resulta
 
 ## Innan du börjar
 
-- **En roll som kan skapa monitorer**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member, eller en anpassad roll med behörigheten Create Monitor.
+- **En roll som kan skapa monitorer**: Projektägare, Projektadministratör, Projektmedlem, Monitoradministratör eller Monitormedlem, eller en anpassad roll med behörigheten Create Monitor.
 - **En sond som når API:et.** Projektets standardsonder väljs för varje ny monitor. Om en brandvägg står framför API:et tillåter du [OneUptime Clouds sond-IP-adresser](/docs/configuration/ip-addresses). Ett API i ett privat nätverk behöver en [anpassad sond](/docs/probe/custom-probe) i det nätverket, som får nå privata adresser: se [Åtkomst till privat nätverk](/docs/self-hosted/private-network-access).
 - **Inloggningsuppgifter som övervakningshemligheter.** Om API:et behöver en nyckel eller en token sparar du den först som en [övervakningshemlighet](/docs/monitor/monitor-secrets), så att monitorn bara har en referens till den.
 
@@ -181,7 +181,7 @@ En ny API-monitor börjar med två kriterier, så den fungerar utan att du ändr
 - **Offline** — API:et svarar inte, eller svarar med en statuskod på `400` eller högre (eller under `200`). Monitorn markeras som **Offline** och en incident skapas. Incidenten löser sig själv när API:et är tillbaka.
 - **Uppe** — API:et svarar med valfri statuskod `2xx` eller `3xx`, som `200`, `201`, `202` eller `204`. Monitorn markeras som **Fungerar**.
 
-I listan över kriterier är de namngivna efter monitorn: _Check if (name) is offline_ och _Check if (name) is online_.
+I listan över kriterier är de namngivna efter monitorn: "Kontrollera om _monitornamn_ är offline" och "Kontrollera om _monitornamn_ är online".
 
 En slutpunkt som svarar `201 Created` eller `204 No Content` räknas alltså som uppe. Om bara en statuskod betyder frisk för dig ändrar du båda kriterierna på monitorns sida **Konfiguration → Kriterier**: till exempel **Statuskod för svar** / **Lika med** / `200` i online-kriteriet och **Inte lika med** / `200` i offline-kriteriet, i stället för de två statuskodsfilter som vart och ett har. För att även kontrollera vad API:et returnerar lägger du till ett filter **Svarstext** eller **JavaScript-uttryck** i offline-kriteriet.
 

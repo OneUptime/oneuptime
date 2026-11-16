@@ -54,7 +54,7 @@ import {
   fetchWebVitalByRoute,
   fetchWebVitals,
   formatCompact,
-  formatDurationMs,
+  formatDurationMsInLanguage,
   formatPercent,
   LogAndExceptionSignals,
   SpanMetrics,
@@ -804,7 +804,7 @@ const RumApplicationOverview: FunctionComponent<
     },
     {
       title: "Events",
-      value: m ? formatCompact(m.total) : "—",
+      value: m ? formatCompact(m.total, translator) : undefined,
       icon: IconProp.Activity,
       iconColor: "sky",
       loading: metricsLoading,
@@ -813,7 +813,7 @@ const RumApplicationOverview: FunctionComponent<
     },
     {
       title: "Error rate",
-      value: m ? formatPercent(m.errorRatePercent) : "—",
+      value: m ? formatPercent(m.errorRatePercent, translator) : undefined,
       icon: IconProp.Alert,
       iconColor: "rose",
       loading: metricsLoading,
@@ -821,7 +821,7 @@ const RumApplicationOverview: FunctionComponent<
         ? "could not load"
         : m
           ? translator.translateTemplate("{{errors}} errored", {
-              errors: formatCompact(m.errors),
+              errors: formatCompact(m.errors, translator),
             })
           : undefined,
       percent: m ? m.errorRatePercent : null,
@@ -830,7 +830,9 @@ const RumApplicationOverview: FunctionComponent<
     },
     {
       title: "Event duration (p95)",
-      value: m ? formatDurationMs(m.p95DurationMs) : "—",
+      value: m
+        ? formatDurationMsInLanguage(m.p95DurationMs, translator)
+        : undefined,
       icon: IconProp.Clock,
       iconColor: "violet",
       loading: metricsLoading,
@@ -852,8 +854,8 @@ const RumApplicationOverview: FunctionComponent<
       title: "Clients",
       value:
         clientCountFailed || clientCount === null
-          ? "—"
-          : formatCompact(clientCount),
+          ? undefined
+          : formatCompact(clientCount, translator),
       icon: IconProp.Window,
       iconColor: "amber",
       loading: clientCount === null && !clientCountFailed,
@@ -864,10 +866,10 @@ const RumApplicationOverview: FunctionComponent<
     {
       title: "Sessions recorded",
       value: sessionReplayCountFailed
-        ? "—"
+        ? undefined
         : sessionReplayCount === null
-          ? "—"
-          : `${formatCompact(sessionReplayCount)}${
+          ? undefined
+          : `${formatCompact(sessionReplayCount, translator)}${
               sessionReplayHasMore ? "+" : ""
             }`,
       icon: IconProp.Film,
@@ -886,7 +888,7 @@ const RumApplicationOverview: FunctionComponent<
 
   const syncId: string = `rum-${modelId.toString()}`;
   const durationFormatter: (n: number) => string = (n: number): string => {
-    return formatDurationMs(n);
+    return formatDurationMsInLanguage(n, translator);
   };
 
   const charts: ReactElement = (

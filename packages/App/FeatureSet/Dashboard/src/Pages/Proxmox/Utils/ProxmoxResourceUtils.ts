@@ -1,10 +1,16 @@
 import ProxmoxResourceModel from "Common/Models/DatabaseModels/ProxmoxResource";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { InfrastructureResource } from "../../../Components/Infrastructure/ResourceTable";
 import { getProxmoxPartStatus } from "./ProxmoxPartFacts";
+import {
+  getGlobalTranslator,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import { formatCompactDuration } from "../../../Utils/Milliseconds";
 
 /*
  * Shared helpers for the Proxmox list/detail pages. The pages read the
@@ -26,10 +32,10 @@ export type ProxmoxResourceKind = "Node" | "Guest" | "Storage";
 
 export function formatBytes(bytes: number | null | undefined): string {
   if (bytes === null || bytes === undefined || !Number.isFinite(bytes)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (bytes < 1024) {
-    return `${Math.round(bytes)} B`;
+    return `${Math.round(bytes)}\u00A0B`;
   }
   const units: Array<string> = ["KiB", "MiB", "GiB", "TiB", "PiB"];
   let value: number = bytes / 1024;
@@ -38,17 +44,25 @@ export function formatBytes(bytes: number | null | undefined): string {
     value /= 1024;
     idx++;
   }
-  return `${value.toFixed(value >= 100 ? 0 : 1)} ${units[idx]}`;
+  return `${value.toFixed(value >= 100 ? 0 : 1)}\u00A0${units[idx]}`;
 }
 
 export function formatPercent(value: number | null | undefined): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return `${value.toFixed(1)}%`;
 }
 
-export function formatUptime(seconds: number | null | undefined): string {
+/*
+ * How long a node or guest has been up: "3d 4h", "4h 12m", "12m" in
+ * English, the reader's short units and digits in their language ("3 T. 4
+ * Std.", "۳ روز ۴ ساعت"; #8455).
+ */
+export function formatUptime(
+  seconds: number | null | undefined,
+  translator: Translator = getGlobalTranslator(),
+): string {
   if (seconds === null || seconds === undefined || !Number.isFinite(seconds)) {
     return "";
   }
@@ -59,12 +73,12 @@ export function formatUptime(seconds: number | null | undefined): string {
   const hours: number = Math.floor((seconds % 86400) / 3600);
   const minutes: number = Math.floor((seconds % 3600) / 60);
   if (days > 0) {
-    return `${days}d ${hours}h`;
+    return formatCompactDuration(translator, { days, hours });
   }
   if (hours > 0) {
-    return `${hours}h ${minutes}m`;
+    return formatCompactDuration(translator, { hours, minutes });
   }
-  return `${minutes}m`;
+  return formatCompactDuration(translator, { minutes });
 }
 
 export function formatBytesForChart(value: number): string {

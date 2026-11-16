@@ -3,23 +3,23 @@
 En monitor sjekker noe du drifter, som et nettsted, et API, en vert eller en Kubernetes-klynge, og gir deg beskjed når det slutter å virke. **Opprett monitor** spør først hva som skal overvåkes, så hva som skal sjekkes, og deretter hvor ofte. Alt unntatt typen, navnet og hva som skal sjekkes, starter med standardverdier som passer for de fleste monitorer.
 
 > [!NOTE]
-> For å opprette en monitor trenger du rollen Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member, eller en egendefinert rolle med tillatelsen Create Monitor.
+> For å opprette en monitor trenger du rollen Prosjekteier, Prosjektadministrator, Prosjektmedlem, Monitoradministrator eller Monitormedlem, eller en egendefinert rolle med tillatelsen Create Monitor.
 
-## Overvåkingsinfo
+## Monitorinfo
 
 Første trinn spør hva som skal overvåkes, og hva monitoren skal hete.
 
 :::steps
 ### Åpne Opprett monitor
 
-Gå til **Monitorer**, og klikk på **Opprett monitor**. Skjemaet åpner på første trinn, **Overvåkingsinfo**.
+Gå til **Monitorer**, og klikk på **Opprett monitor**. Skjemaet åpner på første trinn, **Monitorinfo**.
 
 ### Velg monitortypen
 
 Det første spørsmålet er **Monitortype**: hva vil du overvåke?
 
 - De seks typene folk oppretter oftest, kommer først: **Nettsted**, **API**, **Ping**, **Port**, **SSL-sertifikat** og **Innkommende forespørsel**, for heartbeats fra cron-jobber og webhooks.
-- **Flere monitortyper** viser alle andre typer under kategorien sin, som **Infrastruktur** (Kubernetes, Docker, vert) og **Telemetri** (logger, målinger, spor). **Manuell**, en monitor der du selv setter statusen, og **Sondestatus**, som gir beskjed når en probe mister forbindelsen, ligger under **Annet**.
+- **Flere monitortyper** viser alle andre typer under kategorien sin, som **Infrastruktur** (Kubernetes, Docker, vert) og **Telemetri** (logger, målinger, spor). **Manuell**, en monitor der du selv setter statusen, og **Sondestatus**, som gir beskjed når en sonde mister forbindelsen, ligger under **Annet**.
 - Eller skriv i søkefeltet. Det kjenner ordene du allerede bruker, som `k8s`, `postgres`, `heartbeat` eller `tls`, og **Enter** velger det første treffet.
 
 Den valgte typen krymper til én linje. Klikk på **Endre** for å velge en annen; trykk på **Escape** mens du velger for å beholde typen du hadde.
@@ -40,7 +40,7 @@ Andre trinn spør hva som skal sjekkes, og avgjør hva som regnes som et problem
 
 Dette trinnet åpner på det som skal sjekkes. For et nettsted er det URL-en, med et eksempel i feltet; andre typer ber om en vert, en spørring, en klynge eller et loggfilter. Innstillinger de fleste monitorer aldri endrer, som tidsavbrudd og nye forsøk, er brettet sammen under **Flere felt**.
 
-For en monitor som sonder sjekker, kjører **Test monitor** sjekken én gang før du lagrer: velg en sonde under **Velg sonde**, og klikk på **Kjør test**. Svaret åpner i **Resultat av overvåkingstest**.
+For en monitor som sonder sjekker, kjører **Test monitor** sjekken én gang før du lagrer: velg en sonde under **Velg sonde**, og klikk på **Kjør test**. Svaret åpner i **Resultat av monitortest**.
 
 ### Gå gjennom kriteriene
 
@@ -48,7 +48,7 @@ Nedenfor avgjør **Kriterier** når monitoren endrer status, erklærer en hendel
 
 Klikk på et kriterium for å åpne og endre det. **Legg til kriterier** legger til ett, åpent og klart til å fylles ut. For å endre rekkefølgen drar du et kriterium i håndtaket til venstre for det.
 
-En logg-, trase-, unntaks- eller metrikkmonitor spør i stedet hva den skal fortelle deg om, og setter opp én regel med vanlige ord: hva du skal følge med på, **Når det skal varsles** og **Hva som skjer**, med et diagram over hva regelen ville ha fanget. Se [Logg-overvåking](/docs/monitor/logs-monitor#opprett-en-loggmonitor).
+En logg-, trase-, unntaks- eller målingsmonitor spør i stedet hva den skal fortelle deg om, og setter opp én regel med vanlige ord: hva du skal følge med på, **Når det skal varsles** og **Hva som skjer**, med et diagram over hva regelen ville ha fanget. Se [Logg-monitor](/docs/monitor/logs-monitor#opprett-en-loggmonitor).
 
 ### Gå til neste trinn
 
@@ -57,7 +57,7 @@ Klikk på **Neste**. Ingenting på dette trinnet merkes som manglende før du kl
 
 ### Slik evalueres kriterier
 
-Resultatet av hver sjekk går gjennom kriteriene fra topp til bunn, og det første som samsvarer, avgjør hva som skjer. Det kriteriet kan endre monitorens status, erklære en hendelse, opprette et varsel eller en hvilken som helst kombinasjon av de tre. Når ingenting samsvarer, viser monitoren sin **Standard overvåkingsstatus**, som settes under **Flere felt** under kriteriene (**I drift**, med mindre du velger en annen).
+Resultatet av hver sjekk går gjennom kriteriene fra topp til bunn, og det første som samsvarer, avgjør hva som skjer. Det kriteriet kan endre monitorens status, erklære en hendelse, opprette et varsel eller en hvilken som helst kombinasjon av de tre. Når ingenting samsvarer, viser monitoren sin **Standard monitorstatus**, som settes under **Flere felt** under kriteriene (**I drift**, med mindre du velger en annen).
 
 ```mermaid title="Fra en sjekk til en status, en hendelse eller et varsel"
 flowchart TB
@@ -76,7 +76,7 @@ Hendelser og varsler som er satt til å løses automatisk, slik standardkriterie
 
 ## Sonder og intervall
 
-Monitorer som sonder sjekker, avsluttes med dette trinnet: Nettsted, API, Ping, IP, Port, SSL-sertifikat, DNS, DNSSEC, NTP, Domene, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code og External Status Page. **Sonder** er maskinene som kjører sjekkene, og prosjektets standardsonder er valgt fra start. **Overvåkingsintervall** starter på **Hvert 5. minutt**.
+Monitorer som sonder sjekker, avsluttes med dette trinnet: Nettsted, API, Ping, IP, Port, SSL-sertifikat, DNS, DNSSEC, NTP, Domene, SQL-spørring, Databasehelse, Syntetisk monitor, Egendefinert JavaScript-kode og Ekstern statusside. **Sonder** er maskinene som kjører sjekkene, og prosjektets standardsonder er valgt fra start. **Overvåkingsintervall** starter på **Hvert 5. minutt**.
 
 :::steps
 ### Velg sondene
@@ -85,7 +85,7 @@ Behold de valgte **Sonder**, eller velg andre. En monitor uten sonder blir aldri
 
 ### Velg hvor ofte det skal sjekkes
 
-Velg et **Overvåkingsintervall**, fra **Hvert minutt** til **Hver uke**. Monitorer av typen Synthetic Monitor, Custom JavaScript Code og SSL-sertifikat får tilbud om intervaller på 5 minutter eller mer.
+Velg et **Overvåkingsintervall**, fra **Hvert minutt** til **Hver uke**. Monitorer av typen Syntetisk monitor, Egendefinert JavaScript-kode og SSL-sertifikat får tilbud om intervaller på 5 minutter eller mer.
 
 ### Opprett monitoren
 
@@ -96,13 +96,13 @@ Alle andre typer unntatt Manual opprettes fra trinnet **Kriterier**.
 
 ## Start fra en mal eller en lenke
 
-En monitormal, og lenkene som oppretter en monitor andre steder i OneUptime (på et metrikkdiagram, en nettverksenhet eller en deteksjonsregel), åpner **Opprett monitor** med typen valgt og resten fylt ut. Klikk på **Endre** for å velge en annen type. Skjemaet til en mal bruker den samme typevelgeren: se [Monitormaler](/docs/monitor/monitor-templates).
+En monitormal, og lenkene som oppretter en monitor andre steder i OneUptime (på et målingsdiagram, en nettverksenhet eller en deteksjonsregel), åpner **Opprett monitor** med typen valgt og resten fylt ut. Klikk på **Endre** for å velge en annen type. Skjemaet til en mal bruker den samme typevelgeren: se [Monitormaler](/docs/monitor/monitor-templates).
 
 Hver monitortype har sin egen side med innstillingene sine, standardkriteriene og eksempler. Gode steder å gå videre:
 
 :::cards
-- [Nettsted-overvåking](/docs/monitor/website-monitor): Sjekk at en side lastes, og hva den svarer.
-- [API-overvåking](/docs/monitor/api-monitor): Kall et endepunkt med en metode, hoder og en brødtekst.
+- [Nettsted-monitor](/docs/monitor/website-monitor): Sjekk at en side lastes, og hva den svarer.
+- [API-monitor](/docs/monitor/api-monitor): Kall et endepunkt med en metode, hoder og en brødtekst.
 - [Kriterier og statuser](/docs/monitor/criteria-and-statuses): Hva som setter statusen til hver monitor.
 - [Monitormaler](/docs/monitor/monitor-templates): Opprett mange monitorer fra én konfigurasjon, og hold dem like.
 - [Monitorgrupper](/docs/monitor/monitor-groups): Samle flere monitorer i én status.

@@ -41,7 +41,7 @@ En signatur med mindre end en dag tilbage tæller allerede som brudt, så du få
 
 ## Før du starter
 
-- **En rolle, der kan oprette monitorer**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member eller en brugerdefineret rolle med tilladelsen Create Monitor.
+- **En rolle, der kan oprette monitorer**: Projektejer, Projektadministrator, Projektmedlem, Monitoradministrator eller Monitormedlem eller en brugerdefineret rolle med tilladelsen Create Monitor.
 - **En signeret zone.** Zonen skal være signeret, og dens DS-post offentliggjort i den overordnede zone via din registrator.
 - **Udgående DNS fra sonden** til de resolvere, du angiver, og, til kontrollen af navneserverkonsistens, til zonens autoritative navneservere. Dit projekts standardsonder vælges for hver ny monitor.
 
@@ -62,7 +62,7 @@ Indtast den zone, der skal valideres, i **Zone (domænenavn)**, for eksempel `ex
 
 ### Test den
 
-Klik på **Test monitor**, vælg en sonde under **Vælg sonde**, og klik på **Kør test**. **Overvågningstestresultat** viser, hvad hver kontrol fandt.
+Klik på **Test monitor**, vælg en sonde under **Vælg sonde**, og klik på **Kør test**. **Monitortestresultat** viser, hvad hver kontrol fandt.
 
 ### Gennemgå kriterierne
 
@@ -103,7 +103,7 @@ Med to eller flere filtre afgør **Matchbetingelse**, om **Alle** skal matche, e
 
 En ny DNSSEC-monitor starter med to kriterier:
 
-- **Kæden er brudt** — **DNSSEC-kæde er gyldig** er **Falsk**. Monitoren markeres som **Offline**, og der oprettes en hændelse med navnet "_monitor name_ DNSSEC chain is broken". Hændelsen løser sig selv, så snart kæden er gyldig igen.
+- **Kæden er brudt** — **DNSSEC-kæde er gyldig** er **Falsk**. Monitoren markeres som **Offline**, og der oprettes en hændelse med navnet "DNSSEC-kæden for _monitornavn_ er brudt". Hændelsen løser sig selv, så snart kæden er gyldig igen.
 - **Kæden er gyldig** — monitoren markeres som **I drift**.
 
 Kriterier kontrolleres fra top til bund, og det første, der matcher, afgør, hvad der sker. Når ingen matcher, viser monitoren sin standardstatus: **I drift**, medmindre du vælger en anden under **Flere felter** under kriterierne.
@@ -130,7 +130,7 @@ Standardkriterierne holder ikke selv øje med signaturudløb eller navneserverko
 ## Fejlfinding
 
 :::details Kæden rapporteres som brudt, men zonen validerer med `dig`
-En af resolverne i **Resolvere** returnerede ikke AD-flaget: den kunne ikke nås fra sonden, eller den validerer ikke DNSSEC. Tabellen **Resolver-tjek**, i **Overvågningstestresultat** og i hver kontrols resumé, viser hver resolvers svar og fejl. Fjern de resolvere, sonden ikke kan nå, og angiv kun validerende resolvere.
+En af resolverne i **Resolvere** returnerede ikke AD-flaget: den kunne ikke nås fra sonden, eller den validerer ikke DNSSEC. Tabellen **Resolver-tjek**, i **Monitortestresultat** og i hver kontrols resumé, viser hver resolvers svar og fejl. Fjern de resolvere, sonden ikke kan nå, og angiv kun validerende resolvere.
 :::
 
 :::details Navneservere rapporteres som inkonsistente lige efter en ændring

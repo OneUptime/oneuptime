@@ -156,6 +156,12 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import logger from "Common/Server/Utils/Logger";
+import OwnerNotificationDeliveryService from "Common/Server/Services/OwnerNotificationDeliveryService";
+import { OwnerNotificationDeliveryStatus } from "Common/Types/Notification/OwnerNotificationDelivery";
+import {
+  InMemoryOwnerNotificationDeliveries,
+  useInMemoryOwnerNotificationDeliveries,
+} from "Common/Tests/Helpers/InMemoryOwnerNotificationDeliveries";
 
 // Imported for its side effect: RunCron (mocked above) records the handler.
 import "../../../../FeatureSet/Workers/Jobs/IncidentOwners/SendCreatedResourceNotification";
@@ -283,6 +289,7 @@ async function runWorkerTick(): Promise<void> {
 
 describe("IncidentOwner:SendCreatedResourceEmail worker", () => {
   let markdownSpy: jest.SpyInstance;
+  let deliveries: InMemoryOwnerNotificationDeliveries;
 
   afterEach(() => {
     jest.restoreAllMocks();
@@ -290,6 +297,12 @@ describe("IncidentOwner:SendCreatedResourceEmail worker", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    /*
+     * Whom each incident tells is written down before it is taken, and each
+     * owner told through it (OwnerNotificationDeliveries, #8199).
+     */
+    deliveries = useInMemoryOwnerNotificationDeliveries();
 
     // Real conversion, spied - call counts are the regression under test.
     markdownSpy = jest.spyOn(Markdown, "convertToHTML");
@@ -528,7 +541,7 @@ describe("IncidentOwner:SendCreatedResourceEmail worker", () => {
         }
       ).feedInfoInMarkdown,
     ).toBe(
-      "The project's owners were notified that this incident was created, as it has no owners yet.",
+      "The Project Owners were notified that this incident was created, as it has no owners yet.",
     );
     expect(
       (
@@ -776,7 +789,7 @@ describe("IncidentOwner:SendCreatedResourceEmail worker", () => {
       );
     });
 
-    test("takes each incident it read, as it read it, before reading its owners or telling anyone", async () => {
+    test("writes whom it is to tell, then takes each incident it read, as it read it, before telling anyone", async () => {
       const first: Incident = makeIncident({});
       const second: Incident = secondIncident();
       incidentService.findAllBy.mockResolvedValue([first, second]);
@@ -798,9 +811,19 @@ describe("IncidentOwner:SendCreatedResourceEmail worker", () => {
       const takenFirst: number =
         incidentService.takeCreatedNotification.mock.invocationCallOrder[0]!;
 
-      expect(takenFirst).toBeLessThan(
+      /*
+       * Its owners are read and written down first, so a worker stopped
+       * after the take leaves them to be told (#8199) - and nobody is told
+       * before the take.
+       */
+      expect(
         incidentService.findOwners.mock.invocationCallOrder[0]!,
-      );
+      ).toBeLessThan(takenFirst);
+      expect(
+        (
+          OwnerNotificationDeliveryService.writeOwnersToTell as unknown as jest.Mock
+        ).mock.invocationCallOrder[0]!,
+      ).toBeLessThan(takenFirst);
       expect(takenFirst).toBeLessThan(
         notificationService.sendUserNotification.mock.invocationCallOrder[0]!,
       );
@@ -824,11 +847,17 @@ describe("IncidentOwner:SendCreatedResourceEmail worker", () => {
       expect(sentFor(INCIDENT_ID)).toEqual([]);
       expect(sentFor(OTHER_INCIDENT_ID)).toEqual(["user-1"]);
 
-      // Nothing read or written for the one it did not take.
-      expect(incidentService.findOwners).toHaveBeenCalledTimes(1);
-      expect(incidentService.findOwners.mock.calls[0]![0].toString()).toBe(
-        OTHER_INCIDENT_ID.toString(),
-      );
+      /*
+       * Its owners were written down before the take, and wait, to be told,
+       * for the run that takes it; nothing was sent or written for it.
+       */
+      expect(incidentService.findOwners).toHaveBeenCalledTimes(2);
+      expect(deliveries.statusesOf(INCIDENT_ID)).toEqual({
+        ["user-1"]: OwnerNotificationDeliveryStatus.Pending,
+      });
+      expect(deliveries.statusesOf(OTHER_INCIDENT_ID)).toEqual({
+        ["user-1"]: OwnerNotificationDeliveryStatus.Sent,
+      });
       expect(feedService.createIncidentFeedItem).toHaveBeenCalledTimes(1);
       expect(
         (

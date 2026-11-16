@@ -14,6 +14,7 @@ Begge bruger den samme monitortype. Det, der skiller dem ad, er de kriterier, du
 - [Send et heartbeat](#send-et-heartbeat): Fra curl, cron, Node.js, Python eller Go.
 - [Advar, når kaldene stopper](#markér-som-offline-hvis-der-ikke-er-noget-heartbeat-i-10-minutter-en-dødmandsknap): Gør monitoren til en dødmandsknap.
 - [Modtag advarsler](#modtagelse-af-advarsler-fra-et-andet-system): Én hændelse pr. advarsel fra Alertmanager eller Grafana.
+- [Abonnér på SNS eller Event Grid](#abonnement-på-amazon-sns-eller-azure-event-grid): Bekræft abonnementet med ét klik.
 :::
 
 ## Sådan fungerer det
@@ -77,13 +78,13 @@ https://oneuptime.com/heartbeat/YOUR_SECRET_KEY
 
 Erstat `https://oneuptime.com` med URL'en til din OneUptime-instans, hvis du selv hoster.
 
-Send **GET**- eller **POST**-anmodninger til denne URL. HEAD accepteres og behandles som GET; PUT, PATCH og DELETE returnerer 404. Den hemmelige nøgle i stien er den eneste legitimation — der kræves ingen header eller token. Querystrenge ignoreres: send det, kriterierne skal læse, i brødteksten eller i headerne.
+Send **GET**- eller **POST**-anmodninger til denne URL. HEAD accepteres og behandles som GET; PUT, PATCH og DELETE returnerer 404. Den hemmelige nøgle i stien er legitimationen: Der kræves ingen header eller token, medmindre projektet [kræver en hemmelighed ved hver anmodning](#kræv-en-hemmelighed-ved-hver-anmodning). Querystrenge ignoreres: send det, kriterierne skal læse, i brødteksten eller i headerne.
 
 > [!WARNING]
 > Alle, der kender denne URL, kan markere monitoren som sund, så behandl den som en hemmelighed. Hvis den slipper ud, skal du åbne monitorens side **Indstillinger** og klikke på **Nulstil hemmelig nøgle for indgående anmodning** og derefter opdatere hver afsender. Monitorens oversigt viser den seneste anmodning, som dens logge gemmer den: med hemmeligheder og personoplysninger maskeret og uden headere og brødtekst, når **Behold anmodningsindhold** er slået fra. Maskeringen fanger kun de navne og mønstre, den kender, så send ikke API-nøgler eller tokens til dette endpoint.
 
 > [!IMPORTANT]
-> OneUptime svarer straks `200` med et tomt JSON-objekt (`{}`) og behandler anmodningen via en kø. Svaret skrives, før nogen validering finder sted, så en `200` er **ikke** en bekræftelse på, at anmodningen blev accepteret — en forkert hemmelig nøgle, en slettet monitor og en deaktiveret monitor returnerer også `200`. Tjek monitorens egen tidslinje for at bekræfte, at anmodningerne lander.
+> OneUptime svarer straks `200` med et tomt JSON-objekt (`{}`) og behandler anmodningen via en kø. Svaret skrives, før nogen validering finder sted, så en `200` er **ikke** en bekræftelse på, at anmodningen blev accepteret — en forkert hemmelig nøgle, en slettet monitor og en deaktiveret monitor returnerer også `200`. Tjek monitorens egen tidslinje for at bekræfte, at anmodningerne lander. Den eneste undtagelse er et projekt, der kræver en hemmelighed ved hver anmodning: En anmodning uden en hemmelighed besvares med `401`.
 
 ### Send en brødtekst i anmodningen
 
@@ -93,6 +94,7 @@ Hvis du vil bruge felter inde i brødteksten — `{{requestBody.status}}` i en h
 | --- | --- |
 | `application/json` | Den fortolkede JSON. |
 | `application/x-www-form-urlencoded` | Den fortolkede formular. Nøgler i firkantede parenteser indlejres (`alerts[0][status]=firing`), og alle værdier er strenge. |
+| `text/plain` | Den fortolkede JSON, når teksten er et JSON-objekt eller et JSON-array: sådan sender Amazon SNS sine beskeder. Al anden tekst bliver en tom brødtekst. |
 | Alt andet eller ingen | En tom brødtekst (`{}`), så enhver henvisning til `requestBody` ender som ingenting. |
 
 Brødtekster på op til 50 MB accepteres; en større afvises med en `413`. Komprimér ikke brødteksten med `Content-Encoding: gzip`: så gemmes den ikke som JSON, og stier ind i den bliver ikke løst op.
@@ -186,6 +188,42 @@ Invoke-RestMethod -Method Post `
   -Body '{"status": "healthy", "version": "1.2.3"}'
 ```
 :::
+
+## Kræv en hemmelighed ved hver anmodning
+
+Alle, der har en monitor URL, kan sende den anmodninger. En Projektejer eller Projektadministrator kan få alle monitorer af indgående anmodninger i projektet til også at kræve en af projektets egne hemmeligheder, uanset hvem der har sat monitoren op: slå **Kræv en hemmelighed ved hver anmodning** til. En anmodning uden en hemmelighed afvises med `401` og årsagen, før den tæller som heartbeat, gemmes som monitorens seneste anmodning eller når nogen kriterier. En anmodning med en hemmelighed går videre til monitorens egne kriterier som hidtil.
+
+:::steps
+### Opret en hemmelighed
+
+Gå til **Monitorer → Indstillinger → Hemmeligheder til indgående anmodninger** og opret en hemmelighed. Giv den et navn, så genererer OneUptime værdien; kopiér den fra listen.
+
+### Send den fra alle afsendere
+
+Send hemmeligheden i headeren `X-OneUptime-Secret` eller som Bearer-token i headeren `Authorization`, alt efter hvad din afsender kan sætte.
+
+### Find de afsendere, du har glemt
+
+Så snart projektet har en hemmelighed, tjekker OneUptime hver anmodning for en, uden at afvise nogen endnu. **Anmodninger uden hemmelighed** på samme side viser hver monitor af indgående anmodninger, der har fået en anmodning uden en gyldig hemmelighed inden for de seneste 24 timer, og hvorfor: Der blev ikke sendt nogen, eller der blev sendt en forkert. Ret de afsendere. En monitor, hvis afsendere er rettet, viser et senere tidspunkt under **Sidst med hemmelighed** end under **Sidst uden hemmelighed** og forsvinder fra listen inden for 24 timer.
+
+### Slå kravet til
+
+Slå **Kræv en hemmelighed ved hver anmodning** til. Kravet kan ikke slås til, mens projektet ingen hemmelighed har, så ingen afsender afvises ved en fejl.
+:::
+
+```bash
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "X-OneUptime-Secret: YOUR_PROJECT_SECRET"
+
+# Or as a bearer token
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "Authorization: Bearer YOUR_PROJECT_SECRET"
+```
+
+OneUptime gemmer aldrig hemmeligheden: Den fjerner headeren fra anmodningen og maskerer et Bearer-token, der er en af projektets hemmeligheder, før den gemmer noget.
+
+> [!TIP]
+> For at udskifte en hemmelighed uden at afvise nogen skal du oprette en ny, flytte dine afsendere til den og slette den gamle, når dens **Sidst brugt** holder op med at ændre sig. Enhver af projektets hemmeligheder accepteres, og den sidste kan ikke slettes, mens kravet er slået til.
 
 ## Overvågningskriterier
 
@@ -345,6 +383,40 @@ Hele payloaden er tilgængelig ved siden af, så både en hændelsestitel `{{ale
 
 En komplet Alertmanager-konfiguration finder du under [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). For Grafana, se [Grafana](/docs/integrations/grafana).
 
+## Abonnement på Amazon SNS eller Azure Event Grid
+
+Amazon SNS og Azure Event Grid sender intet til et nyt endpoint, før nogen bekræfter abonnementet ved at åbne et link, som tjenesten sender til det. Når den anmodning kommer, viser kortet **Monitor-resumé** på monitorens **Oversigt**, hvad tjenesten venter på, emnet og én knap, der åbner linket i en ny fane.
+
+| Tjeneste | Anmodningen | Knap | Linket virker i |
+| --- | --- | --- | --- |
+| Amazon SNS | `SubscriptionConfirmation`, for et nyt HTTPS-abonnement | **Bekræft abonnement** | To dage |
+| Amazon SNS | `UnsubscribeConfirmation`, når abonnementet slettes | **Gendan abonnement** | To dage |
+| Azure Event Grid | `SubscriptionValidationEvent`, for et nyt hændelsesabonnement med en webhook | **Valider abonnement** | 10 minutter |
+
+Knappen bliver stående, indtil monitorens næste anmodning kommer, også efter at du har åbnet linket. Når linkets tid er udløbet, siger kortet i stedet, hvordan du får et nyt. Er der kommet nyere anmodninger, så åbn **Overvågningslogs**, og klik på **Vis oversigt** i anmodningens række.
+
+Linket og det token, det indeholder, gemmes umaskeret overalt, hvor anmodningen gemmes: i dens detaljer, i dens logge og i de hændelser og advarsler, den åbner. Det eneste, linket kan, er at starte leveringer til denne monitor. Kun et link til tjenestens egen adresse tæller: alle andre maskeres som sædvanligt og får ingen knap.
+
+### Amazon SNS
+
+:::steps
+1. Åbn emnet i Amazon SNS-konsollen, og vælg **Create subscription**. Vælg `HTTPS` som protokol, og indsæt monitorens **Heartbeat URL** som endpoint.
+2. Åbn monitorens **Oversigt**, og klik på **Bekræft abonnement** i kortet **Monitor-resumé**. I SNS-konsollen skifter abonnementets status fra **Pending confirmation** til bekræftet.
+:::
+
+SNS sender sine beskeder som JSON mærket `text/plain`, og monitoren læser dem som JSON, så kriterier, skabeloner og gruppering af hændelser kan bruge deres felter, for eksempel `{{requestBody.Subject}}` og `{{requestBody.Message}}`. En notifikations egen JSON, for eksempel en CloudWatch-alarms, kommer som tekst i `Message`.
+
+Hvis kortet siger, at linket ikke længere kan åbnes, så markér abonnementet i SNS-konsollen, og vælg **Request confirmation**. SNS sletter et abonnement, der ikke er bekræftet inden for 48 timer; sker det, så opret abonnementet igen.
+
+### Azure Event Grid
+
+:::steps
+1. Åbn i Azure-portalen den ressource, hvis hændelser du vil have, og tilføj et hændelsesabonnement. Vælg **Event Grid Schema** som hændelsesskema, **Web Hook** som endpointtype og monitorens **Heartbeat URL** som endpoint.
+2. Åbn inden for 10 minutter monitorens **Oversigt**, og klik på **Valider abonnement** i kortet **Monitor-resumé**.
+:::
+
+Event Grid validerer et endpoint, der sender en kode tilbage til Event Grid, eller hvis ejer åbner det link, Event Grid sender. OneUptime besvarer hver anmodning med en tom `200`, så linket er vejen. Linket peger på Event Grid på port 553, som en firewall foran din browser skal tillade. Går der 10 minutter først, mislykkes hændelsesabonnementet: opret det igen.
+
 ## Bedste praksis
 
 1. **Sæt tidsvinduet passende** — Hvis dit cronjob kører hvert 5. minut, så sæt tærsklen for "Ikke modtaget inden for minutter" til 10–15 minutter for at give plads til lejlighedsvise forsinkelser, og placér det kriterium først.
@@ -359,16 +431,28 @@ En komplet Alertmanager-konfiguration finder du under [Prometheus Alertmanager](
 `200` sendes, før anmodningen valideres, så den beviser ikke, at anmodningen blev accepteret. Tjek, at den hemmelige nøgle i URL'en svarer til monitorens **Heartbeat URL**, og at monitoren ikke er deaktiveret. Se derefter på monitorens tidslinje, om anmodningerne lander.
 :::
 
+:::details Min afsender får en 401
+Projektet kræver en hemmelighed ved hver anmodning, og anmodningen sendte ingen eller en, der ikke er projektets: Svaret siger hvilken. Send en af projektets hemmeligheder i headeren `X-OneUptime-Secret` eller som Bearer-token, som [Kræv en hemmelighed ved hver anmodning](#kræv-en-hemmelighed-ved-hver-anmodning) viser. En afvist anmodning når aldrig frem til monitoren.
+:::
+
+:::details Monitoren får ikke længere anmodninger, efter at der kræves en hemmelighed
+Dens afsendere sender ingen hemmelighed eller en forkert, så hver anmodning, de sender, afvises. En linje under monitorens **Heartbeat URL** siger, hvornår den seneste afviste anmodning kom, og **Anmodninger uden hemmelighed** viser hver monitor, der har fået en inden for de seneste 24 timer, og hvorfor. Send en af projektets hemmeligheder fra de afsendere, som [Kræv en hemmelighed ved hver anmodning](#kræv-en-hemmelighed-ved-hver-anmodning) viser.
+:::
+
 :::details Monitoren går aldrig offline, når heartbeats stopper
 Kun et kriterium med **Indgående anmodning** (**Ikke modtaget inden for minutter**) kan opdage stilhed. Tilføj et, hvis der ikke er noget, og træk det op over standardkriterierne: standardkriteriet for online matcher den seneste anmodning ved hvert baggrundstjek, og det første kriterium, der matcher, afgør det.
 :::
 
 :::details Et filter på Anmodningsbrødtekst matcher aldrig
-Send `Content-Type: application/json`, og skriv værdien som kompakt JSON — `"status":"firing"` uden mellemrum efter kolonet. Uden en indholdstype for JSON eller formularer fortolkes brødteksten ikke.
+Send `Content-Type: application/json`, og skriv værdien som kompakt JSON — `"status":"firing"` uden mellemrum efter kolonet. Uden en indholdstype for JSON eller formularer fortolkes brødteksten ikke: kun JSON sendt som `text/plain` fortolkes alligevel.
 :::
 
 :::details Et filter på Anmodningsheader matcher aldrig
 Headernavne og -værdier sammenlignes i deres helhed. Angiv hele værdien, for eksempel `application/json; charset=utf-8`, i stedet for en del af den.
+:::
+
+:::details Amazon SNS siger, at abonnementet afventer bekræftelse
+Klik på **Bekræft abonnement** i kortet **Monitor-resumé** på monitorens **Oversigt**. Er der kommet nyere anmodninger, så åbn **Overvågningslogs**, og klik på **Vis oversigt** i bekræftelsens række. Med **Behold anmodningsindhold** slået fra gemmer monitoren ingen brødtekst og dermed heller intet link: slå det til i monitorens **Indstillinger**, så vises den seneste anmodning igen med sit link.
 :::
 
 :::details Afsenderen får en 500

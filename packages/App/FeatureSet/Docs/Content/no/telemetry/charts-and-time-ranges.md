@@ -51,7 +51,7 @@ stateDiagram-v2
 
 ### Tips på diagrammene
 
-De fleste diagrammer som zoomer, nevner bevegelsen over tegneflaten, **Dra for å zoome** eller **Klikk eller dra for å zoome**, og legger mens en zoom er aktiv til påminnelsen **dobbeltklikk for å tilbakestille**. Målingskort, målingsutforskeren og utforskernes volumdiagrammer viser alltid tipset. På diagramkortene i ressursoversikter og SLO-er, og på enkelte dashbord-widgeter, vises det bare mens du peker på kortet eller tabber inn i det. På en telefon eller et nettbrett viser ikke metrikkort og diagramkort tipset: Med en finger kan du ikke dra et zoomområde.
+De fleste diagrammer som zoomer, nevner bevegelsen over tegneflaten, **Dra for å zoome** eller **Klikk eller dra for å zoome**, og legger mens en zoom er aktiv til påminnelsen **dobbeltklikk for å tilbakestille**. Målingskort, målingsutforskeren og utforskernes volumdiagrammer viser alltid tipset. På diagramkortene i ressursoversikter og SLO-er, og på enkelte dashbord-widgeter, vises det bare mens du peker på kortet eller tabber inn i det. På en telefon eller et nettbrett viser ikke målingsort og diagramkort tipset: Med en finger kan du ikke dra et zoomområde.
 
 ## Hvor det virker
 
@@ -86,5 +86,5 @@ Noen få visualiseringer har ingen tidsakse å dra over, er for små til å dra 
 :::cards
 - [Opprette et dashbord](/docs/dashboards/authoring): Zoom virker i alle diagrammer på et dashbord.
 - [Søkesyntaks](/docs/telemetry/search-syntax): Filtrere utforskerne når du har funnet øyeblikket.
-- [Metrikk-overvåking](/docs/monitor/metrics-monitor): Få varsel på målingen du så på.
+- [Målingsmonitor](/docs/monitor/metrics-monitor): Få varsel på målingen du så på.
 :::

@@ -25,12 +25,12 @@ sequenceDiagram
 
 - **De sonde maakt verbinding naar buiten.** Elk verzoek gaat van de sonde naar `ONEUPTIME_URL` via HTTPS. Niets hoeft de sonde van buiten uw netwerk te bereiken.
 - **Hij controleert alleen zijn eigen monitors.** De sonde vraagt OneUptime om de monitors waaraan hij is toegevoegd, controleert elk ervan wanneer het aan de beurt is en stuurt het resultaat terug. OneUptime beslist aan de hand van de resultaten of de status van een monitor verandert.
-- **OneUptime let erop dat hij draait.** Elk verzoek van de sonde telt als levensteken, en de sonde stuurt er minstens één per minuut. Na ongeveer drie minuten zonder verzoek toont de sonde **Verbinding verbroken**, en krijgen zijn eigenaren bericht. Heeft een sonde geen eigenaren, dan krijgen de eigenaren van het project bericht. Om net als bij elke storing gewaarschuwd te worden, met één incident tot de sonde terug is, voegt u een [sondestatusmonitor](/docs/monitor/probe-status-monitor) toe: **Deze sonde bewaken** op de pagina van de sonde maakt er een.
+- **OneUptime let erop dat hij draait.** Elk verzoek van de sonde telt als levensteken, en de sonde stuurt er minstens één per minuut. Na ongeveer drie minuten zonder verzoek toont de sonde **Verbinding verbroken**, en krijgen zijn eigenaren bericht. Heeft een sonde geen eigenaren, dan krijgen de Projecteigenaren bericht. Om net als bij elke storing gewaarschuwd te worden, met één incident tot de sonde terug is, voegt u een [sondestatusmonitor](/docs/monitor/probe-status-monitor) toe: **Deze sonde bewaken** op de pagina van de sonde maakt er een.
 
 ## Voordat u begint
 
 - **Het Growth-abonnement, op OneUptime Cloud.** Een sonde aanmaken vereist het. Een zelf gehoste installatie heeft geen abonnementslimieten.
-- **Toestemming om sondes aan te maken.** Projecteigenaren, -beheerders en -leden hebben die, en ook iedereen wiens rol het aanmaken van sondes toestaat.
+- **Toestemming om sondes aan te maken.** Projecteigenaren, Projectbeheerders en Projectleden hebben die, en ook iedereen wiens rol het aanmaken van sondes toestaat.
 - **Een machine in het netwerk dat u wilt bewaken.** Die heeft Docker, Docker Compose of Kubernetes nodig, een route naar de diensten die de sonde controleert, en uitgaand HTTPS naar `ONEUPTIME_URL`.
 
 ## Een sonde installeren
@@ -42,9 +42,9 @@ Open **Monitoren → Instellingen → Sondes** en klik op **Sonde aanmaken**. Ge
 
 ### De ID en sleutel kopiëren
 
-De sonde heeft zijn ID en sleutel nodig om verbinding te maken. Om ze te kopiëren opent u het menu van de sonde in de tabel **Aangepaste sondes** en kiest u **ID en sleutel tonen**. Iedereen die de tabel ziet, kan de ID van een sonde kopiëren; de sleutel wordt alleen getoond aan projecteigenaren en -beheerders, die **ID en sleutel tonen** zien waar de anderen **ID weergeven** zien.
+De sonde heeft zijn ID en sleutel nodig om verbinding te maken. Om ze te kopiëren opent u het menu van de sonde in de tabel **Aangepaste sondes** en kiest u **ID en sleutel tonen**. Iedereen die de tabel ziet, kan de ID van een sonde kopiëren; de sleutel wordt alleen getoond aan Projecteigenaren en Projectbeheerders, die **ID en sleutel tonen** zien waar de anderen **ID weergeven** zien.
 
-Projecteigenaren en -beheerders kunnen ook op de sonde klikken: de kaart **Set up your Custom Probe** op de pagina ervan toont de Docker-opdracht met de ID en sleutel al ingevuld.
+Projecteigenaren en Projectbeheerders kunnen ook op de sonde klikken: de kaart **Set up your Custom Probe** op de pagina ervan toont de Docker-opdracht met de ID en sleutel al ingevuld.
 
 ### De sonde starten
 
@@ -201,7 +201,7 @@ spec:
 Wat via de proxy gaat:
 
 - **De eigen verzoeken van de sonde aan OneUptime.**
-- **De HTTP-controles van monitors**: Website-, API-, External Status Page-, Custom Code-, SSL-certificaat-, synthetische en domeinmonitors. SSL-certificaat- en synthetische monitors gebruiken `HTTPS_PROXY_URL`, of `HTTP_PROXY_URL` als alleen die is ingesteld.
+- **De HTTP-controles van monitors**: Website-, API-, Externe statuspagina-, Custom Code-, SSL-certificaat-, synthetische en domeinmonitors. SSL-certificaat- en synthetische monitors gebruiken `HTTPS_PROXY_URL`, of `HTTP_PROXY_URL` als alleen die is ingesteld.
 - **Niet de andere controles.** Ping, Port, DNS, SNMP en de andere controles die geen HTTP zijn, maken rechtstreeks verbinding.
 
 Een vermelding in `NO_PROXY` is een hostnaam (`api.internal`), een domein met een punt of `*.` ervoor voor elke naam eronder (`.internal.example.com`), elk van beide met een `:port`, of `*` voor alles. IP-bereiken worden niet gelezen: noem elk adres apart. De namen in kleine letters `http_proxy`, `https_proxy` en `no_proxy`, en ook `HTTP_PROXY` en `HTTPS_PROXY`, werken ook.
@@ -287,8 +287,8 @@ De sonde leest zijn instellingen bij het starten uit zijn omgeving: wijzig er ee
 | `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Time-out voor scripts van synthetische monitors, in milliseconden. |
 | `PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED` | `false` | Zet op `true` om Chromium in synthetische monitors in zijn eigen sandbox te laten draaien. Zet het alleen aan als de container van de sonde draait met een seccomp-profiel dat de sandbox toestaat, zoals dat van Playwright: zonder zo'n profiel kan Chromium niet starten. Zolang het uit staat, logt de sonde bij het opstarten een waarschuwing. |
 | `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Time-out voor scripts van Custom Code-monitors, in milliseconden. |
-| `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` | `false` | Zet op `true` zodat Website-, API-, External Status Page- en Custom Code-monitors op deze sonde privéadressen mogen bereiken. Zie [Toegang tot privénetwerk](/docs/self-hosted/private-network-access). |
-| `PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED` | `true` | SSL Certificate-, Website- en API-monitors op deze sonde vragen de uitgever van een certificaat of die het certificaat heeft ingetrokken, zoals browsers dat doen. Zet op `false` om niet meer te vragen, bijvoorbeeld op een sonde zonder internettoegang. Een uitgever die de sonde niet bereikt, geldt nooit als intrekking: de sonde wacht enkele seconden op elke responder die hij niet bereikt, ongeveer eens per 5 minuten. Zie [SSL-certificaat-monitor](/docs/monitor/ssl-certificate-monitor). |
+| `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` | `false` | Zet op `true` zodat Website-, API-, Externe statuspagina- en Custom Code-monitors op deze sonde privéadressen mogen bereiken. Zie [Toegang tot privénetwerk](/docs/self-hosted/private-network-access). |
+| `PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED` | `true` | SSL-certificaat-, Website- en API-monitors op deze sonde vragen de uitgever van een certificaat of die het certificaat heeft ingetrokken, zoals browsers dat doen. Zet op `false` om niet meer te vragen, bijvoorbeeld op een sonde zonder internettoegang. Een uitgever die de sonde niet bereikt, geldt nooit als intrekking: de sonde wacht enkele seconden op elke responder die hij niet bereikt, ongeveer eens per 5 minuten. Zie [SSL-certificaat-monitor](/docs/monitor/ssl-certificate-monitor). |
 | `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` | `25` | Hoeveel netwerkapparaten de sonde tegelijk bevraagt. Verhoog het voor een sonde die veel apparaten bevraagt. |
 
 De limieten waarbinnen een synthetische monitor draait (hoeveel tegelijk, hun geheugen en hun schijf) staan op de pagina [Synthetische monitor](/docs/monitor/synthetic-monitor).

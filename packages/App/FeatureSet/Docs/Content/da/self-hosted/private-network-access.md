@@ -1,6 +1,6 @@
 # Adgang til privat netværk
 
-OneUptime nægter at sende visse udgående forespørgsler til værter, der slås op til et privat område, et loopback-område eller et link-local-område. Hvis du har prøvet at pege et workflow mod et internt værktøj, har du set beskeden:
+OneUptime nægter at sende visse udgående forespørgsler til værter, der slås op til et privat område, et loopback-område eller et link-local-område. Hvis du har prøvet at pege en arbejdsgang mod et internt værktøj, har du set beskeden:
 
 > Webhook URL resolves to a private, loopback, or link-local address and is not allowed
 
@@ -10,15 +10,15 @@ Denne side forklarer, hvordan du tillader det, bevidst og snævert. Tre kontakte
 
 | Hvad du vil nå internt | Hvor indstillingen ligger | Standard på en selvhostet installation |
 | --- | --- | --- |
-| Workflows, projekt-webhooks, bruger-webhooks til vagt | Miljøet for **API-serveren** | Private adresser afvist |
+| Arbejdsgange, projekt-webhooks, bruger-webhooks til vagt | Miljøet for **API-serveren** | Private adresser afvist |
 | Datakilder, LLM-udbydere, SMTP-servere, OIDC-discovery og andre forbindelser | Miljøet for **API-serveren** | Private adresser tilladt |
-| **Monitorer** af typen API, Website, External Status Page og Custom JavaScript Code | **Sondens** eget miljø | Private adresser afvist |
+| **Monitorer** af typen API, Website, Ekstern statusside og Brugerdefineret JavaScript-kode | **Sondens** eget miljø | Private adresser afvist |
 
 ```mermaid title="Tre kontakter, hver for sin slags forbindelse"
 flowchart LR
     subgraph Server["OneUptime-serveren"]
         direction TB
-        Webhooks["Workflows<br/>og webhooks"]
+        Webhooks["Arbejdsgange<br/>og webhooks"]
         Outbound["Datakilder,<br/>LLM-udbydere,<br/>SMTP og andre<br/>forbindelser"]
     end
     subgraph Probe["Hver sonde"]
@@ -30,10 +30,10 @@ flowchart LR
     Monitors -->|"slået fra<br/>som standard"| Private
 ```
 
-Netværksnære monitortyper som Ping, Port, SSL-certifikat, DNS, DNSSEC, SNMP / Netværksenhed, SQL-forespørgsel, Databasesundhed, Synthetic og Network Path bruger deres egne transporter. Indstillingen på denne side styrer de HTTP-transporter, der returnerer vilkårligt svarindhold til et projekt: monitorer af typen API, Website, External Status Page og Custom JavaScript Code.
+Netværksnære monitortyper som Ping, Port, SSL-certifikat, DNS, DNSSEC, SNMP / Netværksenhed, SQL-forespørgsel, Databasesundhed, Synthetic og Network Path bruger deres egne transporter. Indstillingen på denne side styrer de HTTP-transporter, der returnerer vilkårligt svarindhold til et projekt: monitorer af typen API, Website, Ekstern statusside og Brugerdefineret JavaScript-kode.
 
 :::cards
-- [Webhooks og workflows](#webhooks-og-workflows): Lad en webhook sende ind i dit netværk.
+- [Webhooks og arbejdsgange](#webhooks-og-arbejdsgange): Lad en webhook sende ind i dit netværk.
 - [Andre udgående forbindelser](#andre-udgående-forbindelser): Datakilder, LLM-udbydere og mailservere.
 - [Sonder og monitorer](#sonder-og-monitorer): Lad en sonde tjekke private websteder.
 - [Bekræft, at det virker](#bekræft-at-det-virker): Læs, hvilken kontakt en afvisning nævner.
@@ -52,20 +52,20 @@ Cloud-metadata-endpointet `169.254.169.254` ligger i det forbudte niveau af en g
 
 IPv6-skrivemåder, der bærer et IPv4-mål i sig – IPv4-mapped (`::ffff:10.0.0.5`), NAT64, 6to4, Teredo – klassificeres efter den IPv4-adresse, de når, så de kan ikke bruges til at smugle en forbudt adresse forbi en tilladelse til det private niveau.
 
-## Webhooks og workflows
+## Webhooks og arbejdsgange
 
 Disse destinationer er omfattet, fordi målet er en URL, som et godkendt medlem af dit projekt har skrevet:
 
-- **API**-komponenter i workflows (GET / POST / PUT / PATCH / DELETE)
-- **Mattermost**-komponenten i workflows
-- HTTP-forespørgsler fra workflow-komponenten **Custom JavaScript**
+- **API**-komponenter i arbejdsgange (GET / POST / PUT / PATCH / DELETE)
+- **Mattermost**-komponenten i arbejdsgange
+- HTTP-forespørgsler fra arbejdsgangskomponenten **Custom JavaScript**
 - Projektets webhook-notifikationer (hændelser, alarmer, monitorer, vagt, planlagt vedligeholdelse, hændelser på statussider)
 - **Bruger-webhooks** til vagt
-- Webhook-abonnenter på statussider, som dit team tilføjer, fra dashboardet, med en API-nøgle eller af et workflow
+- Webhook-abonnenter på statussider, som dit team tilføjer, fra dashboardet, med en API-nøgle eller af en arbejdsgang
 
 **Ikke** omfattet, og det bliver de aldrig: **webhook-abonnenter, der tilmelder sig på en statusside**. Enhver besøgende på en offentlig statusside kan tilmelde en, så at løsne den destination ville lade alle på internettet få din server til at POSTe ind i dit private netværk. Deres webhooks når kun offentlige adresser, også efter at nogen på dit team har redigeret en af dem. Det kan ikke konfigureres.
 
-Udgående forbindelser, der ikke er webhooks – eksterne datakilder, LLM-udbydere, SMTP-servere (et projekts SMTP-indstillinger og workflow-komponenten **Email**), SMTP-OAuth-token-endpoints, OIDC-discovery og HTTP-trin i runbooks – styres særskilt, af `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES`, og tillader allerede private områder på selvhostede installationer. Se [Andre udgående forbindelser](#andre-udgående-forbindelser).
+Udgående forbindelser, der ikke er webhooks – eksterne datakilder, LLM-udbydere, SMTP-servere (et projekts SMTP-indstillinger og arbejdsgangskomponenten **Email**), SMTP-OAuth-token-endpoints, OIDC-discovery og HTTP-trin i runbooks – styres særskilt, af `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES`, og tillader allerede private områder på selvhostede installationer. Se [Andre udgående forbindelser](#andre-udgående-forbindelser).
 
 ### Konfigurer API-serveren
 
@@ -112,7 +112,7 @@ En anden beskyttelse dækker udgående forbindelser, hvis mål et projektmedlem 
 
 - eksterne datakilder (PostgreSQL-, MySQL-, SQL Server-, ClickHouse-, Elasticsearch- og REST API-forbindelser), forbindelser til sikkerhedshændelser som Splunk samt threat intel-feeds
 - LLM-udbydere, herunder en selvhostet Ollama eller vLLM
-- SMTP-servere – et projekts SMTP-indstillinger og workflow-komponenten **Email** – samt OAuth-token-URL'er til SMTP og workflows
+- SMTP-servere – et projekts SMTP-indstillinger og arbejdsgangskomponenten **Email** – samt OAuth-token-URL'er til SMTP og arbejdsgange
 - OIDC-discovery til single sign-on
 - verificering af egne domæner for statussider og dashboards
 - HTTP-trin i runbooks
@@ -136,7 +136,7 @@ outboundConnections:
 
 Denne indstilling gælder ikke for en global LLM-udbyder, som en administrator konfigurerer i stedet for et projekt (med variablerne `GLOBAL_LLM_PROVIDER_*`, Helm-chartets værdi `vllm.globalProvider` eller i Admin-dashboard under **Indstillinger** > **Globale LLM-udbydere**): En sådan udbyder kan stadig nå private adresser, selv om loopback og link-local også forbliver afvist for den.
 
-Kun den præcise værdi `true` slår den til. På en instans med `BILLING_ENABLED=true` er den altid slået til, uanset hvad du sætter. Den ændrer ikke, hvilke mål webhook-indstillingerne ovenfor eller sondeindstillingen nedenfor tillader; hver port konfigureres for sig. Den ændrer derimod, hvordan afvisninger formuleres, også for webhooks og workflow-forespørgsler: Når den er slået til, rapporteres et afvist værtsnavn uden at sige, hvad det blev slået op til (se [Bekræft, at det virker](#bekræft-at-det-virker)).
+Kun den præcise værdi `true` slår den til. På en instans med `BILLING_ENABLED=true` er den altid slået til, uanset hvad du sætter. Den ændrer ikke, hvilke mål webhook-indstillingerne ovenfor eller sondeindstillingen nedenfor tillader; hver port konfigureres for sig. Den ændrer derimod, hvordan afvisninger formuleres, også for webhooks og arbejdsgangsforespørgsler: Når den er slået til, rapporteres et afvist værtsnavn uden at sige, hvad det blev slået op til (se [Bekræft, at det virker](#bekræft-at-det-virker)).
 
 På Docker Compose har `config.env` en linje `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=false` (tilføj den, hvis din `config.env` er ældre). Ret den linje til `true` i stedet for at tilføje en linje mere, og kør så `npm run start`, så containerne genskabes med den nye værdi; `docker compose restart` læser ikke `config.env` igen. På Kubernetes sætter du den i din values-fil og opgraderer releasen; chartet giver den videre til app- og worker-podsene.
 
@@ -144,7 +144,7 @@ Når den er slået til, rapporteres et afvist værtsnavn uden at sige, hvad det 
 
 ## Sonder og monitorer
 
-Fire monitortyper er berørt: **API**, **Websted**, **External Status Page** og **Custom JavaScript Code**. På en standardsonde kan de nå offentlige HTTP(S)-mål, men afviser privat adresserum. Monitorer af typen API, Website og External Status Page validerer og fastlåser DNS-resultater for hver forbindelse og validerer hver omdirigering igen; Custom JavaScript Code anvender den samme adressepolitik i broen til sin sandkasse.
+Fire monitortyper er berørt: **API**, **Websted**, **Ekstern statusside** og **Brugerdefineret JavaScript-kode**. På en standardsonde kan de nå offentlige HTTP(S)-mål, men afviser privat adresserum. Monitorer af typen API, Website og Ekstern statusside validerer og fastlåser DNS-resultater for hver forbindelse og validerer hver omdirigering igen; Brugerdefineret JavaScript-kode anvender den samme adressepolitik i broen til sin sandkasse.
 
 Kontakten læses af **sondeprocessen fra dens eget miljø**, ikke fra API-serverens, og hver sonde læser den: dem, der følger med Docker Compose, dem, Helm-chartet udruller, og enhver [egen sonde](/docs/probe/custom-probe), du selv kører. Den, der udruller en sonde, styrer dens miljø og ved, hvilket netværk sonden kan se – en egen sonde er som regel en anden maskine, ofte drevet af en anden person, og den læser aldrig API-serverens konfiguration.
 
@@ -180,16 +180,16 @@ At slå den til åbner **ikke** loopback, link-local eller cloud-metadata-endpoi
 
 ## Bekræft, at det virker
 
-Kør workflowet eller monitoren igen. Hvis det stadig afvises, nævner fejlbeskeden, hvilken port der er lukket:
+Kør arbejdsgangen eller monitoren igen. Hvis det stadig afvises, nævner fejlbeskeden, hvilken port der er lukket:
 
 - _"...points to a private network address and is not allowed. Self-hosted instances can allow this by setting `ALLOW_PRIVATE_NETWORK_WEBHOOKS`..."_ – API-serverens indstilling mangler.
-- _"...is not allowed. This subscriber signed up on the status page, so its webhook must be on the public internet."_, eller _"...is not allowed. Use a webhook URL on the public internet."_ på selve statussiden – webhooken tilhører en abonnent, der tilmeldte sig på statussiden, og ingen indstilling omfatter den. Lad i stedet dit team tilføje den som webhook-abonnent, fra dashboardet, med en API-nøgle eller af et workflow.
+- _"...is not allowed. This subscriber signed up on the status page, so its webhook must be on the public internet."_, eller _"...is not allowed. Use a webhook URL on the public internet."_ på selve statussiden – webhooken tilhører en abonnent, der tilmeldte sig på statussiden, og ingen indstilling omfatter den. Lad i stedet dit team tilføje den som webhook-abonnent, fra dashboardet, med en API-nøgle eller af en arbejdsgang.
 - _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it."_ – en privat (egen) sonde kørte monitoren, og dens kontakt er slået fra. Bemærk, at den sættes på sonden, ikke på API-serveren.
 - _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it (probes.<name>.allowPrivateNetworkMonitors in the Helm chart). This is a global probe, so that allows it for every project on this instance; otherwise, select a private probe deployed on that network."_ – en medfølgende (global) sonde kørte monitoren, og dens kontakt er slået fra. Slå den til for den sonde som beskrevet ovenfor, hvis alle projekter på instansen må nå det netværk; vælg ellers en privat sonde på monitoren.
 - _"...Global probes cannot monitor private network addresses. Deploy and select a private probe for this target."_ – en global sonde med `BILLING_ENABLED=true` i sit miljø kørte monitoren. Automatisk registrerede globale sonder forbliver kun offentlige dér, uanset hvad deres kontakt siger; udrul en privat sonde inde i målets netværk, og vælg den på monitoren.
-- _"Monitor target host ... could not be reached."_ – en monitor af typen API, Website eller External Status Page, hvis mål er et **værtsnavn**, rapporterer dette både, når navnet slås op til en afvist adresse, og når DNS fejler, så en monitor ikke kan bruges til at kortlægge, hvilke interne navne der findes. Fejldetaljerne, der vises med den, nævner `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` i begge tilfælde; de siger ikke, hvilket tilfælde der var tale om. Hvis navnet peger på en privat adresse, så tjek sondens politik for private netværk i dens opstartslog; er den slået fra, er løsningen den samme som for beskederne ovenfor. Med `LOG_LEVEL=DEBUG` logger sonden også den præcise årsag for hvert afvist navn.
-- _"Request URL could not be reached."_ – den samme regel for en monitor af typen **Custom JavaScript Code**: Et script, der forespørger et **værtsnavn**, får dette både, når navnet slås op til en afvist adresse, og når DNS fejler. Med `LOG_LEVEL=DEBUG` logger sonden den præcise årsag.
-- _"Webhook URL could not be reached."_ eller, fra et workflow, _"Request URL could not be reached."_ – instansen kører med `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` (eller `BILLING_ENABLED=true`), så et afvist **værtsnavn** forklares ikke: Det blev enten slået op til en afvist adresse eller slet ikke slået op. Med `LOG_LEVEL=DEBUG` logger appen eller workeren, hvilket af de to, og adressen.
+- _"Monitor target host ... could not be reached."_ – en monitor af typen API, Website eller Ekstern statusside, hvis mål er et **værtsnavn**, rapporterer dette både, når navnet slås op til en afvist adresse, og når DNS fejler, så en monitor ikke kan bruges til at kortlægge, hvilke interne navne der findes. Fejldetaljerne, der vises med den, nævner `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` i begge tilfælde; de siger ikke, hvilket tilfælde der var tale om. Hvis navnet peger på en privat adresse, så tjek sondens politik for private netværk i dens opstartslog; er den slået fra, er løsningen den samme som for beskederne ovenfor. Med `LOG_LEVEL=DEBUG` logger sonden også den præcise årsag for hvert afvist navn.
+- _"Request URL could not be reached."_ – den samme regel for en monitor af typen **Brugerdefineret JavaScript-kode**: Et script, der forespørger et **værtsnavn**, får dette både, når navnet slås op til en afvist adresse, og når DNS fejler. Med `LOG_LEVEL=DEBUG` logger sonden den præcise årsag.
+- _"Webhook URL could not be reached."_ eller, fra en arbejdsgang, _"Request URL could not be reached."_ – instansen kører med `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` (eller `BILLING_ENABLED=true`), så et afvist **værtsnavn** forklares ikke: Det blev enten slået op til en afvist adresse eller slet ikke slået op. Med `LOG_LEVEL=DEBUG` logger appen eller workeren, hvilket af de to, og adressen.
 - _"...points to a private, loopback, or link-local address and is not allowed."_ – målet ligger i det forbudte niveau. For en webhook nævner du den præcise vært eller CIDR i `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`, hvis du virkelig har brug for det. For en monitor findes der ingen undtagelse.
 - _"...hostname could not be resolved via DNS."_ – containeren kan ikke slå navnet op. Tjek, at den deler et netværk med målet.
 
@@ -198,8 +198,8 @@ Kør workflowet eller monitoren igen. Hvis det stadig afvises, nævner fejlbeske
 At åbne for dette ændrer reelt, hvad din OneUptime-instans kan bringes til at nå, så det er værd at gøre det bevidst:
 
 - **Foretræk tilladelseslisten frem for den generelle kontakt.** At nævne `mattermost.internal` er en langt mindre tilladelse end at åbne alle RFC-1918-adresser.
-- **Alle, der kan oprette et workflow eller en monitor af typen API, Website, External Status Page eller Custom JavaScript Code eller tilføje en abonnent til en statusside, kan nå alt, hvad du har tilladt.** Behandl medlemskab af de projekter derefter.
-- **Svarets indhold kommer tilbage.** En API-komponent i et workflow returnerer status, headere og body i workflow-loggen, så en tilladt vært kan læses, ikke kun skrives til.
+- **Alle, der kan oprette en arbejdsgang eller en monitor af typen API, Website, External Status Page eller Custom JavaScript Code eller tilføje en abonnent til en statusside, kan nå alt, hvad du har tilladt.** Behandl medlemskab af de projekter derefter.
+- **Svarets indhold kommer tilbage.** En API-komponent i en arbejdsgang returnerer status, headere og body i arbejdsgangsloggen, så en tilladt vært kan læses, ikke kun skrives til.
 - **Omdirigeringer følges aldrig** ved webhook-forespørgsler, så en tilladt offentlig vært ikke kan sende serveren videre til en intern vært i et andet hop.
 - **Afgræns pr. sonde i stedet for for hele instansen, hvor du kan.** En sonde udrullet inde i ét netværk er en snævrere tilladelse end at åbne API-serverens udgående trafik.
 
@@ -207,7 +207,7 @@ At åbne for dette ændrer reelt, hvad din OneUptime-instans kan bringes til at 
 
 :::cards
 - [Egne sonder](/docs/probe/custom-probe): Kør en sonde inde i det netværk, den skal tjekke.
-- [Workflow-konfiguration](/docs/workflows/configuration): Hvad workflow-trin kan nå og gøre.
+- [Arbejdsgangskonfiguration](/docs/workflows/configuration): Hvad arbejdsgangstrin kan nå og gøre.
 - [LLM-udbydere](/docs/ai/llm-provider): Forbind OneUptime AI med en model på dit netværk.
 - [Arkitektur](/docs/self-hosted/architecture): Hvilken del af en selvhostet installation der laver hvilken forbindelse.
 - [Bag en VPN eller firewall](/docs/self-hosted/behind-a-firewall): Den anden vej rundt: Hvad der når din server udefra.

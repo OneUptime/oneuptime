@@ -15,6 +15,7 @@ import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
 import { sortLabelNames } from "../../../../Utils/LabelOrder";
 import { isOnCallDirectPage } from "../../../../Types/OnCallDutyPolicy/OnCallDirectPage";
+import { getOnCallPageStatusLabel } from "../../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import UserNotificationEventType from "../../../../Types/UserNotification/UserNotificationEventType";
 import {
   AIChatCitationTargetType,
@@ -53,6 +54,11 @@ import {
   aiActionPluralSentence,
   aiActionSentence,
   describeAIActionTableCell,
+  AI_READ_CARD_NAME,
+  aiActionFigure,
+  aiActionList,
+  aiActionTerm,
+  describeAIActionSentence,
 } from "../../../../Types/AI/AIActionWords";
 import {
   AI_READ_CITATIONS,
@@ -60,6 +66,11 @@ import {
   AI_READ_RECORD_TABLE_LINES,
   AI_READ_RECORD_TABLE_PLURAL_SENTENCES,
   AI_READ_RECORD_TABLE_TITLES,
+  AI_TOOL_CITATIONS,
+  AI_READ_ESCALATION_CHAIN,
+  AI_READ_ESCALATION_CHAIN_TERMS,
+  AI_READ_ON_CALL_PAGE_STATUSES,
+  AI_READ_NOTIFICATION_STATUSES,
 } from "../../../../Types/AI/AIReadTableWords";
 import {
   citationSentence,
@@ -131,6 +142,11 @@ interface EscalationRuleTargets {
   users: Array<string>;
   teams: Array<string>;
   schedules: Array<string>;
+  /*
+   * The schedules a rule pages the next in rotation of, by their entry in
+   * `schedules` ("Primary (next in rotation: ...)"): the table words them.
+   */
+  nextInRotation?: Set<string> | undefined;
 }
 
 interface PolicyEscalationData {
@@ -293,28 +309,23 @@ async function fetchEscalationData(
     const scheduleName: string =
       link.onCallDutyPolicySchedule?.name || "Unknown schedule";
 
-    getOrCreateTargets(data.targetsByRuleId, ruleKey).schedules.push(
-      link.pageNextInRotation
-        ? `${scheduleName} (${NEXT_IN_ROTATION_TARGET_NOTE})`
-        : scheduleName,
+    const targets: EscalationRuleTargets = getOrCreateTargets(
+      data.targetsByRuleId,
+      ruleKey,
     );
+    const entry: string = link.pageNextInRotation
+      ? `${scheduleName} (${NEXT_IN_ROTATION_TARGET_NOTE})`
+      : scheduleName;
+
+    targets.schedules.push(entry);
+
+    if (link.pageNextInRotation) {
+      targets.nextInRotation = targets.nextInRotation || new Set<string>();
+      targets.nextInRotation.add(entry);
+    }
   }
 
   return data;
-}
-
-function formatRuleTargets(targets: EscalationRuleTargets | undefined): string {
-  const parts: Array<string> = [];
-  if (targets && targets.users.length > 0) {
-    parts.push(`users [${targets.users.join(", ")}]`);
-  }
-  if (targets && targets.teams.length > 0) {
-    parts.push(`teams [${targets.teams.join(", ")}]`);
-  }
-  if (targets && targets.schedules.length > 0) {
-    parts.push(`schedules [${targets.schedules.join(", ")}]`);
-  }
-  return parts.join(", ") || "no targets";
 }
 
 function formatEscalationChain(
@@ -327,15 +338,142 @@ function formatEscalationChain(
 
   return rules
     .map((rule: OnCallDutyPolicyEscalationRule): string => {
-      const targetText: string = formatRuleTargets(
-        targetsByRuleId.get(rule.id?.toString() || ""),
+      return describeAIActionSentence(
+        getEscalationRuleWords(
+          rule,
+          targetsByRuleId.get(rule.id?.toString() || ""),
+        ),
       );
-      const escalateText: string = rule.escalateAfterInMinutes
-        ? ` (escalates after ${rule.escalateAfterInMinutes}m)`
-        : "";
-      return `${rule.order ?? "?"}. ${rule.name || "Unnamed rule"}: ${targetText}${escalateText}`;
     })
     .join(" | ");
+}
+
+/*
+ * One rule of a policy's chain, as words (issue #8313): its place, its
+ * name, whom it pages - "users [Ana]", the kinds in the reader's language
+ * and the names as named - and when it escalates. Its English is what
+ * formatEscalationChain says of it to the model.
+ */
+export function getEscalationRuleWords(
+  rule: Pick<
+    OnCallDutyPolicyEscalationRule,
+    "order" | "name" | "escalateAfterInMinutes"
+  >,
+  targets: EscalationRuleTargets | undefined,
+): AIActionSentence {
+  const names: (list: Array<string>) => AIActionSentenceValue = (
+    list: Array<string>,
+  ): AIActionSentenceValue => {
+    return aiActionList(
+      list.map((name: string): AIActionSentence => {
+        return aiActionSentence(AI_READ_CARD_NAME, { name });
+      }),
+    );
+  };
+  const groups: Array<AIActionSentence> = [];
+
+  if (targets && targets.users.length > 0) {
+    groups.push(
+      aiActionSentence(AI_READ_ESCALATION_CHAIN.users, {
+        names: names(targets.users),
+      }),
+    );
+  }
+
+  if (targets && targets.teams.length > 0) {
+    groups.push(
+      aiActionSentence(AI_READ_ESCALATION_CHAIN.teams, {
+        names: names(targets.teams),
+      }),
+    );
+  }
+
+  if (targets && targets.schedules.length > 0) {
+    const suffix: string = ` (${NEXT_IN_ROTATION_TARGET_NOTE})`;
+
+    groups.push(
+      aiActionSentence(AI_READ_ESCALATION_CHAIN.schedules, {
+        names: aiActionList(
+          targets.schedules.map((entry: string): AIActionSentence => {
+            return targets.nextInRotation?.has(entry) && entry.endsWith(suffix)
+              ? aiActionSentence(AI_READ_ESCALATION_CHAIN.nextInRotation, {
+                  name: entry.slice(0, -suffix.length),
+                })
+              : aiActionSentence(AI_READ_CARD_NAME, { name: entry });
+          }),
+        ),
+      }),
+    );
+  }
+
+  const values: Record<string, AIActionSentenceValue> = {
+    order:
+      typeof rule.order === "number" && Number.isFinite(rule.order)
+        ? aiActionFigure(rule.order)
+        : "?",
+    name: rule.name || aiActionTerm(AI_READ_ESCALATION_CHAIN_TERMS.unnamedRule),
+    targets:
+      groups.length > 0
+        ? aiActionList(groups)
+        : aiActionTerm(AI_READ_ESCALATION_CHAIN_TERMS.noTargets),
+  };
+
+  return rule.escalateAfterInMinutes
+    ? aiActionSentence(AI_READ_ESCALATION_CHAIN.ruleEscalates, {
+        ...values,
+        minutes: aiActionFigure(rule.escalateAfterInMinutes),
+      })
+    : aiActionSentence(AI_READ_ESCALATION_CHAIN.rule, values);
+}
+
+/*
+ * A policy's chain as the table's cell (issue #8313): each rule's words, in
+ * a list the reader's language joins; no rules said so.
+ */
+export function getEscalationChainCell(
+  rules: Array<OnCallDutyPolicyEscalationRule>,
+  targetsByRuleId: Map<string, EscalationRuleTargets>,
+): AIActionSentence {
+  if (rules.length === 0) {
+    return aiActionSentence(AI_READ_RECORD_TABLE_CELLS.noEscalationRules);
+  }
+
+  return aiActionSentence(AI_READ_CARD_NAME, {
+    name: aiActionList(
+      rules.map((rule: OnCallDutyPolicyEscalationRule): AIActionSentence => {
+        return getEscalationRuleWords(
+          rule,
+          targetsByRuleId.get(rule.id?.toString() || ""),
+        );
+      }),
+    ),
+  });
+}
+
+/*
+ * Who a page notified, and how it went, as words (issue #8313): "Ana:
+ * Completed (acknowledged)" - the status in the reader's language when it
+ * is one of OneUptime's, else as stored. One they escalated, stored
+ * "Passed On", reads "Escalated", as the logs say it.
+ */
+export function getNotifiedPersonWords(data: {
+  name: string;
+  status: string;
+  isAcknowledged: boolean;
+}): AIActionSentence {
+  const label: string = getOnCallPageStatusLabel(data.status);
+  const status: AIActionSentenceValue = AI_READ_NOTIFICATION_STATUSES.includes(
+    label,
+  )
+    ? aiActionTerm(label)
+    : data.status;
+
+  return aiActionSentence(
+    data.isAcknowledged
+      ? AI_READ_ESCALATION_CHAIN.notifiedPersonAcknowledged
+      : AI_READ_ESCALATION_CHAIN.notifiedPerson,
+    { name: data.name, status },
+  );
 }
 
 /*
@@ -550,6 +688,16 @@ export const QueryOnCallPoliciesTool: ObservabilityTool = {
       ctx,
     );
 
+    // Each policy's chain, as words (issue #8313), row by row.
+    const chainCells: Array<AIActionSentence> = policies.map(
+      (policy: OnCallDutyPolicy): AIActionSentence => {
+        return getEscalationChainCell(
+          escalation.rulesByPolicyId.get(policy.id?.toString() || "") || [],
+          escalation.targetsByRuleId,
+        );
+      },
+    );
+
     const rows: Array<JSONObject> = policies.map((policy: OnCallDutyPolicy) => {
       const rules: Array<OnCallDutyPolicyEscalationRule> =
         escalation.rulesByPolicyId.get(policy.id?.toString() || "") || [];
@@ -599,16 +747,15 @@ export const QueryOnCallPoliciesTool: ObservabilityTool = {
                   AI_READ_RECORD_TABLE_TITLES.onCallPolicies,
                   { count: countFigure(rows.length) },
                 ),
-                cells: rows.map(
-                  (row: JSONObject): Record<string, AIActionTableCell> => {
-                    return row["escalationChain"] ===
-                      AI_READ_RECORD_TABLE_CELLS.noEscalationRules
-                      ? {
-                          escalationChain: aiActionSentence(
-                            AI_READ_RECORD_TABLE_CELLS.noEscalationRules,
-                          ),
-                        }
-                      : {};
+                /*
+                 * Each chain in the reader's language (issue #8313): its
+                 * kinds of target and its escalation, the names as named.
+                 */
+                cells: chainCells.map(
+                  (
+                    escalationChain: AIActionSentence,
+                  ): Record<string, AIActionTableCell> => {
+                    return { escalationChain };
                   },
                 ),
               },
@@ -893,7 +1040,8 @@ export const GetOnCallStatusTool: ObservabilityTool = {
           dataForLlm:
             "(no rows found) — on-call policy not found or not accessible. Find valid ids with query_on_call_policies.",
           rowCount: 0,
-          citationLabel: "On-call now (policy not found)",
+          // In the reader's language (issue #8311).
+          ...citationSentence(AI_TOOL_CITATIONS.onCallNowPolicyNotFound),
           citationTarget: {
             type: AIChatCitationTargetType.OnCallPolicies,
           },
@@ -1425,20 +1573,30 @@ export const QueryOnCallPagesTool: ObservabilityTool = {
       string,
       Array<string>
     >();
+    // The same, as words (issue #8313): a person's status in the reader's language.
+    const notifiedWordsByExecutionId: Map<
+      string,
+      Array<AIActionSentence>
+    > = new Map<string, Array<AIActionSentence>>();
     for (const userLog of userLogs) {
       const executionKey: string =
         userLog.onCallDutyPolicyExecutionLogId?.toString() || "";
       if (!executionKey) {
         continue;
       }
+      const words: AIActionSentence = getNotifiedPersonWords({
+        name: nameOf(userLog.user) || "Unknown user",
+        status: userLog.status || "Unknown",
+        isAcknowledged: Boolean(userLog.acknowledgedAt),
+      });
       const entries: Array<string> =
         notifiedByExecutionId.get(executionKey) || [];
-      entries.push(
-        `${nameOf(userLog.user) || "Unknown user"}: ${userLog.status || "Unknown"}${
-          userLog.acknowledgedAt ? " (acknowledged)" : ""
-        }`,
-      );
+      entries.push(describeAIActionSentence(words));
       notifiedByExecutionId.set(executionKey, entries);
+      notifiedWordsByExecutionId.set(executionKey, [
+        ...(notifiedWordsByExecutionId.get(executionKey) || []),
+        words,
+      ]);
     }
 
     /*
@@ -1451,11 +1609,18 @@ export const QueryOnCallPagesTool: ObservabilityTool = {
         log: OnCallDutyPolicyExecutionLog,
       ): Record<string, AIActionTableCell> => {
         const trigger: AIActionSentence | undefined = getTriggerWords(log);
-        const hasNotified: boolean =
-          (notifiedByExecutionId.get(log.id?.toString() || "") || []).length >
-          0;
+        const notifiedWords: Array<AIActionSentence> =
+          notifiedWordsByExecutionId.get(log.id?.toString() || "") || [];
+        const hasNotified: boolean = notifiedWords.length > 0;
+        // The page's status, as the pages list says it (issue #8313).
+        const status: string | undefined =
+          typeof log.status === "string" &&
+          AI_READ_ON_CALL_PAGE_STATUSES.includes(log.status)
+            ? log.status
+            : undefined;
 
         return {
+          ...(status ? { status: aiActionTerm(status) } : {}),
           ...(!log.onCallDutyPolicy?.name && isOnCallDirectPage(log)
             ? {
                 policy: aiActionSentence(AI_READ_RECORD_TABLE_CELLS.directPage),
@@ -1463,7 +1628,11 @@ export const QueryOnCallPagesTool: ObservabilityTool = {
             : {}),
           ...(trigger ? { trigger } : {}),
           ...(hasNotified
-            ? {}
+            ? {
+                notified: aiActionSentence(AI_READ_CARD_NAME, {
+                  name: aiActionList(notifiedWords),
+                }),
+              }
             : {
                 notified: aiActionSentence(
                   AI_READ_RECORD_TABLE_CELLS.noNotificationsRecorded,

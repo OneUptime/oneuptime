@@ -261,17 +261,21 @@ describe("formatSloNumber and formatSloBurnRate in the reader's language", () =>
 
 describe("formatErrorBudgetRemainingSeconds: the line under the error budget", () => {
   test("without a translator, the English every other caller reads is unchanged", () => {
-    expect(formatErrorBudgetRemainingSeconds(2580)).toBe("43 min remaining");
-    expect(formatErrorBudgetRemainingSeconds(60)).toBe("1 min remaining");
-    expect(formatErrorBudgetRemainingSeconds(0)).toBe("0 min remaining");
+    expect(formatErrorBudgetRemainingSeconds(2580)).toBe(
+      "43\u00A0min remaining",
+    );
+    expect(formatErrorBudgetRemainingSeconds(60)).toBe("1\u00A0min remaining");
+    expect(formatErrorBudgetRemainingSeconds(0)).toBe("0\u00A0min remaining");
     expect(formatErrorBudgetRemainingSeconds(20)).toBe("under 1 min remaining");
     expect(formatErrorBudgetRemainingSeconds(-2520)).toBe(
-      `${MINUS_SIGN}42 min over budget`,
+      `${MINUS_SIGN}42\u00A0min over budget`,
     );
     expect(formatErrorBudgetRemainingSeconds(-20)).toBe(
       "under 1 min over budget",
     );
-    expect(formatErrorBudgetRemainingSeconds(86400)).toBe("1440 min remaining");
+    expect(formatErrorBudgetRemainingSeconds(86400)).toBe(
+      "1440\u00A0min remaining",
+    );
     expect(formatErrorBudgetRemainingSeconds(null)).toBeNull();
   });
 
@@ -602,7 +606,7 @@ describe("the tile's figure and the line under it, per metric", () => {
       ).toEqual({
         isEvaluated: true,
         value: "-12.5%",
-        subline: `${MINUS_SIGN}42 min over budget`,
+        subline: `${MINUS_SIGN}42\u00A0min over budget`,
       });
     }
   });
@@ -699,7 +703,7 @@ describe("the SLO list widget's row in the reader's language", () => {
       expect(display.sli).toBe("99.874%");
       expect(display.target).toBe("target 99.9%");
       expect(display.budget).toBe("42.5%");
-      expect(display.budgetTime).toBe("43 min remaining");
+      expect(display.budgetTime).toBe("43\u00A0min remaining");
       expect(display.burnRate).toBe("14.4×");
     }
   });
@@ -778,7 +782,7 @@ describe("the figures the overview's sentences hold", () => {
     );
     // The words fall back to English, with the count written the German way.
     expect(formatErrorBudgetRemainingSeconds(86400, bareGerman)).toBe(
-      "1.440 min remaining",
+      "1.440\u00A0min remaining",
     );
   });
 });

@@ -1,4 +1,4 @@
-# Syntetisk overvåking
+# Syntetisk monitor
 
 En syntetisk monitor styrer webappen din i en ekte nettleser, etter en tidsplan, med et Playwright-skript du skriver selv: den åpner sider, fyller ut skjemaer og klikker seg gjennom en brukerreise, og den mislykkes når reisen gjør det. Bruk den til å fange feil som en oppetidskontroll ikke ser — en pålogging som ikke lenger virker, en betalingsknapp som ikke gjør noe, et dashbord som aldri blir ferdig med å laste.
 
@@ -6,7 +6,7 @@ En syntetisk monitor styrer webappen din i en ekte nettleser, etter en tidsplan,
 - [Opprett monitoren](#opprett-en-syntetisk-monitor): Skriv et skript, og velg nettlesere og skjermstørrelser.
 - [Skriv skriptet](#skriv-skriptet): En kjørbar påloggingsreise å starte fra.
 - [Skjermbilder](#skjermbilder): Se hvordan siden så ut da en kjøring mislyktes.
-- [Hva skriptet kan bruke](#moduler-som-er-tilgjengelige-i-skriptet): Playwright, HTTP, kryptografi og metrikker.
+- [Hva skriptet kan bruke](#moduler-som-er-tilgjengelige-i-skriptet): Playwright, HTTP, kryptografi og målinger.
 :::
 
 ## Slik fungerer det
@@ -41,14 +41,14 @@ Nettleserne er Chromium og Firefox.
 ## Før du begynner
 
 - En **sonde** som når webappen din. Bruk en [egendefinert sonde](/docs/probe/custom-probe) for en app inne i nettverket ditt. Sondens Docker-bilde inneholder Chromium og Firefox; en sonde som kjører utenfor Docker, må ha dem installert.
-- Alle passord og tokener reisen trenger, lagret som [overvåkingshemmeligheter](/docs/monitor/monitor-secrets).
+- Alle passord og tokener reisen trenger, lagret som [monitorhemmeligheter](/docs/monitor/monitor-secrets).
 
 ## Opprett en syntetisk monitor
 
 :::steps
 ### Start en ny monitor
 
-Gå til **Monitorer**, og klikk på **Opprett monitor**. Under **Monitortype** klikker du på **Flere monitortyper** og velger **Synthetic Monitor** under **Syntetisk overvåking**, eller skriver `playwright` i søkefeltet. Skriv inn et **Navn**, og klikk deretter på **Neste**.
+Gå til **Monitorer**, og klikk på **Opprett monitor**. Under **Monitortype** klikker du på **Flere monitortyper** og velger **Syntetisk monitor** under **Syntetisk overvåking**, eller skriver `playwright` i søkefeltet. Skriv inn et **Navn**, og klikk deretter på **Neste**.
 
 ### Legg til skriptet
 
@@ -120,7 +120,7 @@ Syntetiske skript kjører ikke i Node.js-prosessen til sonden. Verdier krysser k
 
 `page.waitForNavigation(...)`, `page.setDefaultTimeout(...)` og `page.setDefaultNavigationTimeout(...)` støttes. `page.waitForEvent(...)` venter på `dialog`, `domcontentloaded`, `load`, `popup`, `request`, `requestfailed`, `requestfinished` og `response`. Evalueringsfunksjoner som gis til metoder som `page.evaluate()`, kjøres i den overvåkede nettlesersiden, aldri i sondeprosessen. Hver kjøring kan bruke opptil åtte sider.
 
-Nettlesertillatelser er begrenset til geolokasjon og varsler. Utklippstavle, kamera, mikrofon, MIDI, lokale skrifter og andre tillatelser for vertens enheter er ikke tilgjengelige for overvåkingsskript.
+Nettlesertillatelser er begrenset til geolokasjon og varslinger. Utklippstavle, kamera, mikrofon, MIDI, lokale skrifter og andre tillatelser for vertens enheter er ikke tilgjengelige for monitorskript.
 
 ### Hva skriptet returnerer
 
@@ -171,7 +171,7 @@ return {
 ```
 :::
 
-## Bruk av overvåkingshemmeligheter
+## Bruk av monitorhemmeligheter
 
 Henvis til en hemmelighet som `{{monitorSecrets.NAME}}` hvor som helst i skriptet. OneUptime erstatter henvisningen med verdien til hemmeligheten, som ren tekst, før skriptet når sonden. Sett derfor en hemmelighet i anførselstegn for å bruke den som en streng, og la den stå uten anførselstegn for å bruke den som et tall eller en boolsk verdi:
 
@@ -184,11 +184,11 @@ const retryLimit = {{monitorSecrets.RetryLimit}};
 const verbose = {{monitorSecrets.Verbose}};
 ```
 
-Se [Overvåkingshemmeligheter](/docs/monitor/monitor-secrets) for å opprette en hemmelighet og velge hvilke monitorer som kan bruke den.
+Se [Monitorhemmeligheter](/docs/monitor/monitor-secrets) for å opprette en hemmelighet og velge hvilke monitorer som kan bruke den.
 
-## Egendefinerte metrikker
+## Egendefinerte målinger
 
-Du kan samle inn egendefinerte metrikker fra skriptet ditt med funksjonen `oneuptime.captureMetric()`. Disse metrikkene lagres i OneUptime og kan vises i grafer på dashbord med Metric Explorer.
+Du kan samle inn egendefinerte målinger fra skriptet ditt med funksjonen `oneuptime.captureMetric()`. Disse målingene lagres i OneUptime og kan vises i grafer på dashbord med Metric Explorer.
 
 ```javascript
 oneuptime.captureMetric(name, value, attributes);
@@ -196,8 +196,8 @@ oneuptime.captureMetric(name, value, attributes);
 
 | Parameter | Type | Beskrivelse |
 | --- | --- | --- |
-| `name` | string, påkrevd | Navnet på metrikken (f.eks. `"dashboard.load.time"`). Det lagres automatisk med prefikset `custom.monitor.`. |
-| `value` | number, påkrevd | Den numeriske verdien til metrikken. |
+| `name` | string, påkrevd | Navnet på målingen (f.eks. `"dashboard.load.time"`). Det lagres automatisk med prefikset `custom.monitor.`. |
+| `value` | number, påkrevd | Den numeriske verdien til målingen. |
 | `attributes` | object, valgfritt | Nøkkel-verdi-par med ekstra kontekst. |
 
 ### Eksempel
@@ -223,9 +223,9 @@ return {
 };
 ```
 
-Når de er samlet inn, vises disse metrikkene i Metric Explorer under navn som `custom.monitor.dashboard.load.time`, og på monitorens side **Målinger** under **Egendefinerte målinger**. OneUptime legger til monitoren og sonden på hvert datapunkt; for å filtrere etter nettleser eller skjermstørrelse gir du dem med som attributter, slik eksempelet gjør.
+Når de er samlet inn, vises disse målingene i Metric Explorer under navn som `custom.monitor.dashboard.load.time`, og på monitorens side **Målinger** under **Egendefinerte målinger**. OneUptime legger til monitoren og sonden på hvert datapunkt; for å filtrere etter nettleser eller skjermstørrelse gir du dem med som attributter, slik eksempelet gjør.
 
-En kjøring kan samle inn høyst 100 metrikker, bare med numeriske verdier, og OneUptime beholder høyst 100 per kontroll på tvers av alle kjøringene. Som for en monitor med egendefinert kode er noen attributtnavn [reservert](/docs/monitor/custom-code-monitor#reserverte-attributtnøkler) og forkastes hvis et skript setter dem.
+En kjøring kan samle inn høyst 100 målinger, bare med numeriske verdier, og OneUptime beholder høyst 100 per kontroll på tvers av alle kjøringene. Som for en monitor med egendefinert kode er noen attributtnavn [reservert](/docs/monitor/custom-code-monitor#reserverte-attributtnøkler) og forkastes hvis et skript setter dem.
 
 ## Kriterier
 
@@ -252,7 +252,7 @@ I hendelses- og varslingsmaler ligger hver kjøring i `{{syntheticResponses}}`: 
 | `axios` | En promise-basert HTTP-klient som støtter Axios som funksjon pluss `request`, `get`, `head`, `options`, `post`, `put`, `patch`, `delete` og `create`. En forespørselstekst kan være opptil 1 MB og et svar opptil 5 MB; den følger opptil 5 omdirigeringer og får tidsavbrudd etter høyst 30 sekunder. Egendefinerte transporter, adaptere, sokler, agenter og overstyring av proxy er ikke tilgjengelige. |
 | `crypto` | En implementering i en nettleser-worker av SHA-256-hasher, HMAC-SHA-256, `randomBytes`, `randomInt` og `randomUUID`. |
 | `console` | `console.log`, `info`, `warn` og `error`. Meldingene beholdes sammen med hver kjøring. |
-| `oneuptime.captureMetric` | Samler inn en egendefinert metrikk. Se [Egendefinerte metrikker](#egendefinerte-metrikker). |
+| `oneuptime.captureMetric` | Samler inn en egendefinert måling. Se [Egendefinerte målinger](#egendefinerte-målinger). |
 | `http` | En bufret kompatibilitetsfasade bare for klienter, som støtter `request`, `get` og `Agent`. |
 | `https` | HTTPS-motstykket til fasaden `http` som bare er for klienter. |
 | `Buffer`, `setTimeout`, `setInterval` | Og `clear`-funksjonene deres. |
@@ -294,7 +294,7 @@ Sonden kjører utenfor Docker-bildet sitt, uten Chromium eller Firefox installer
 ## Neste trinn
 
 :::cards
-- [Egendefinert kode-overvåking](/docs/monitor/custom-code-monitor): Sjekk API-er med et skript, uten nettleser.
+- [Egendefinert kode-monitor](/docs/monitor/custom-code-monitor): Sjekk API-er med et skript, uten nettleser.
 - [Vis et skjermbilde](/docs/monitor/incident-alert-templating#vis-et-skjermbilde): Sett skjermbildet fra den mislykkede kjøringen inn i hendelsen.
-- [Overvåkingshemmeligheter](/docs/monitor/monitor-secrets): Hold påloggingsinformasjon utenfor skriptet ditt.
+- [Monitorhemmeligheter](/docs/monitor/monitor-secrets): Hold påloggingsinformasjon utenfor skriptet ditt.
 :::

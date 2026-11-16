@@ -27,7 +27,7 @@ flowchart TB
 
 ## 시작하기 전에
 
-- **템플릿을 만들 수 있는 역할**: Project Owner, Project Admin, Project Member, Monitor Admin 또는 Monitor Member, 또는 Create Monitor Template 권한이 있는 사용자 지정 역할. 템플릿을 바꾸려면 같은 역할이나 Edit Monitor Template 권한이 필요합니다.
+- **템플릿을 만들 수 있는 역할**: 프로젝트 소유자, 프로젝트 관리자, 프로젝트 구성원, 모니터 관리자 또는 모니터 구성원, 또는 Create Monitor Template 권한이 있는 사용자 지정 역할. 템플릿을 바꾸려면 같은 역할이나 Edit Monitor Template 권한이 필요합니다.
 - **연결된 모니터를 업데이트할 권한.** 동기화는 여러분의 이름으로 연결된 각 모니터에 기록하며, 권한이 닿지 않는 모니터는 건너뜁니다.
 
 ## 템플릿 만들기
@@ -57,7 +57,7 @@ flowchart TB
 - **새 모니터.** 목록의 템플릿 행에서 **모니터 생성**을 클릭하거나, 템플릿 페이지에서 **템플릿에서 모니터 만들기**를 클릭합니다. **모니터 생성**이 템플릿의 유형과 설정이 채워진 상태로 열립니다. 필요한 부분을 바꾼 뒤 만듭니다. 새 모니터는 템플릿에 연결됩니다.
 - **이미 있는 모니터.** **연결된 모니터**에서 **기존 모니터 연결**을 클릭하고 모니터를 고릅니다. 동기화하기 전까지 각 모니터는 자기 설정을 유지합니다.
 
-**사용자 지정 필드 기본값**에 설정한 값은 템플릿에서 만드는 모든 모니터에 기록됩니다. 자동 가져오기 규칙과 알림 정책이 템플릿으로 만드는 모니터도 포함됩니다.
+**사용자 지정 필드 기본값**에 설정한 값은 템플릿에서 만드는 모든 모니터에 기록됩니다. 자동 가져오기 규칙과 경고 정책이 템플릿으로 만드는 모니터도 포함됩니다.
 
 ## 연결된 모니터에 변경 사항 동기화
 
@@ -144,22 +144,22 @@ flowchart TB
 :::details 모니터 유형별 doNotSyncFields 필드 이름
 | 모니터 유형 | 필드 이름 |
 | --- | --- |
-| 웹사이트, API, Ping, IP, 포트, SSL Certificate, NTP | `monitorDestination`, `requestTimeoutInMs`, `retryCount` |
+| 웹사이트, API, Ping, IP, 포트, SSL 인증서, NTP | `monitorDestination`, `requestTimeoutInMs`, `retryCount` |
 | API만 | `requestHeaders`, `requestType`, `requestBody` |
 | 웹사이트와 API | `doNotFollowRedirects`, `allowSelfSignedCertificates`, `tlsClientAuthentication`(클라이언트 인증서, 키, 암호를 함께) |
 | 포트, NTP | `monitorDestinationPort` |
-| Synthetic Monitor, Custom JavaScript Code | `customCode` |
-| Synthetic Monitor | `browserTypes`, `screenSizeTypes`, `retryCountOnError` |
+| 합성 모니터, 사용자 지정 JavaScript 코드 | `customCode` |
+| 합성 모니터 | `browserTypes`, `screenSizeTypes`, `retryCountOnError` |
 | DNS | `dnsMonitor.queryName`, `dnsMonitor.recordType`, `dnsMonitor.resolver`(DNS 서버와 포트를 함께), `dnsMonitor.timeout`, `dnsMonitor.retries` |
 | 도메인 | `domainMonitor.domainName`, `domainMonitor.lookupMethod`, `domainMonitor.timeout`, `domainMonitor.retries` |
 | DNSSEC | `dnssecMonitor.domainName`, `dnssecMonitor.resolvers`, `dnssecMonitor.checkNameserverConsistency`, `dnssecMonitor.signatureExpiryWarningDays`, `dnssecMonitor.timeout`, `dnssecMonitor.retries` |
-| SQL Query | `sqlMonitor.connection`, `sqlMonitor.connectionTimeoutInMs`, `sqlMonitor.statementTimeoutInMs`, `sqlMonitor.query`, `sqlMonitor.maxRows` |
-| Database Health | `databaseMonitor.connection`, `databaseMonitor.connectionTimeoutInMs`, `databaseMonitor.statementTimeoutInMs`, `databaseMonitor.enabledMetricGroups` |
-| External Status Page | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
-| 로그, Security Events, 트레이스, AI / LLM, 메트릭, 예외, 프로필 | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor`(모니터의 전체 구성) |
+| SQL 쿼리 | `sqlMonitor.connection`, `sqlMonitor.connectionTimeoutInMs`, `sqlMonitor.statementTimeoutInMs`, `sqlMonitor.query`, `sqlMonitor.maxRows` |
+| 데이터베이스 상태 | `databaseMonitor.connection`, `databaseMonitor.connectionTimeoutInMs`, `databaseMonitor.statementTimeoutInMs`, `databaseMonitor.enabledMetricGroups` |
+| 외부 상태 페이지 | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
+| 로그, 보안 이벤트, 트레이스, AI / LLM, 메트릭, 예외, 프로필 | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor`(모니터의 전체 구성) |
 | 프로브 상태 | `probeStatusMonitor.probeIds` |
 
-인프라 모니터(Kubernetes, Docker Container, 호스트, Podman Container, Proxmox, Docker Swarm, Ceph, 스토리지 어레이, IoT Device)는 리소스 선택기, 필터(호스트 제외), 메트릭 쿼리, 쿼리 시간 범위를 보호할 수 있습니다. 그 이름은 해당 유형의 템플릿에 있는 **템플릿 동기화 설정**에 나열됩니다.
+인프라 모니터(Kubernetes, Docker 컨테이너, 호스트, Podman 컨테이너, Proxmox, Docker Swarm, Ceph, 스토리지 어레이, IoT 디바이스)는 리소스 선택기, 필터(호스트 제외), 메트릭 쿼리, 쿼리 시간 범위를 보호할 수 있습니다. 그 이름은 해당 유형의 템플릿에 있는 **템플릿 동기화 설정**에 나열됩니다.
 :::
 
 ## 문제 해결

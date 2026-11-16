@@ -9,7 +9,10 @@ import { Green, Yellow } from "Common/Types/BrandColors";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import Route from "Common/Types/API/Route";
-import { DeleteConfirmation } from "Common/UI/Components/ModelTable/BaseModelTable";
+import {
+  DeleteConfirmation,
+  ModalType,
+} from "Common/UI/Components/ModelTable/BaseModelTable";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -29,6 +32,10 @@ import {
 import InvitationLinkModal, {
   getInvitationLinkRowAction,
 } from "Common/UI/Components/InvitationLink/InvitationLinkModal";
+import {
+  MembersNotSignedUp,
+  useMembersNotSignedUp,
+} from "Common/UI/Components/InvitationLink/MembersNotSignedUp";
 
 const UserViewTeams: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -37,11 +44,16 @@ const UserViewTeams: FunctionComponent<PageComponentProps> = (
 
   /*
    * A server that cannot send email sent no invitation (Utils/ServerEmail):
-   * a master admin reads a pending team's invitation link from its row.
+   * a master admin reads a pending team's invitation link from its row - or
+   * a member's, who has not signed up yet (#8191) - and is handed it once
+   * Invite has added this person to another team (#8192).
    */
   const serverEmail: ServerEmail = useServerEmail();
   const [invitationLinkFor, setInvitationLinkFor] =
     React.useState<ObjectID | null>(null);
+  const membersNotSignedUp: MembersNotSignedUp = useMembersNotSignedUp(
+    canGetInvitationLinks(serverEmail),
+  );
 
   /*
    * A user is in the project only through their teams, so removing their last
@@ -90,6 +102,21 @@ const UserViewTeams: FunctionComponent<PageComponentProps> = (
           item.projectId = new ObjectID(props.currentProject._id);
           return Promise.resolve(item);
         }}
+        onCreateSuccess={async (
+          item: TeamMember,
+          modalType?: ModalType,
+        ): Promise<TeamMember> => {
+          // No email went out: a master admin is handed the link to send.
+          if (
+            modalType !== ModalType.Edit &&
+            canGetInvitationLinks(serverEmail) &&
+            item.id
+          ) {
+            setInvitationLinkFor(item.id);
+          }
+
+          return item;
+        }}
         singularName=" "
         pluralName=" "
         cardProps={{
@@ -103,7 +130,16 @@ const UserViewTeams: FunctionComponent<PageComponentProps> = (
               team: true,
             },
             title: "Team",
-            description: "Select the team you would like to add this user to.",
+            /*
+             * A server that cannot send email says so, as every other invite
+             * form does (#8192): nobody is emailed, and a master admin is
+             * handed the link once the invitation is made.
+             */
+            description: cannotSendEmail(serverEmail)
+              ? serverEmail.isMasterAdmin
+                ? SERVER_EMAIL_COPY.inviteEmailDescriptionForAdmin
+                : SERVER_EMAIL_COPY.inviteEmailDescription
+              : "Select the team you would like to add this user to.",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: Team,
@@ -137,11 +173,13 @@ const UserViewTeams: FunctionComponent<PageComponentProps> = (
         actionButtons={[
           getInvitationLinkRowAction<TeamMember>({
             isAvailable: canGetInvitationLinks(serverEmail),
+            isNotSignedUp: membersNotSignedUp.isNotSignedUp,
             onOpen: (teamMemberId: ObjectID) => {
               setInvitationLinkFor(teamMemberId);
             },
           }),
         ]}
+        onFetchSuccess={membersNotSignedUp.onFetchSuccess}
         filters={[
           /*
            * The table lists the project's teams for this filter itself, by
@@ -188,7 +226,17 @@ const UserViewTeams: FunctionComponent<PageComponentProps> = (
             type: FieldType.Boolean,
             getElement: (item: TeamMember): ReactElement => {
               if (item["hasAcceptedInvitation"]) {
-                return <Pill text="Member" color={Green} />;
+                return (
+                  <div className="flex space-x-2">
+                    <Pill text="Member" color={Green} />
+                    {membersNotSignedUp.isNotSignedUp(item) && (
+                      <Pill
+                        text={SERVER_EMAIL_COPY.notSignedUpPill}
+                        color={Yellow}
+                      />
+                    )}
+                  </div>
+                );
               }
               return (
                 <Pill

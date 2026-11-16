@@ -125,11 +125,11 @@ Klicken Sie auf den gestrichelten Baustein **Wählen Sie, was diesen Arbeitsabla
 
 ### Prüfen, ob die Benachrichtigung auslöst
 
-Klicken Sie auf **Komponente hinzufügen**, fügen Sie einen **If / Else**-Baustein hinzu und verbinden Sie den Punkt **Out** des Triggers damit. Setzen Sie **Value to check** auf `{{local.components.webhook-1.returnValues.request-body.status}}`, **Comparison** auf **is equal to** und **Compare with** auf `firing`.
+Klicken Sie auf **Komponente hinzufügen**, fügen Sie einen **Wenn / Sonst**-Baustein hinzu und verbinden Sie den Punkt **Ausgehend** des Triggers damit. Setzen Sie **Zu prüfender Wert** auf `{{local.components.webhook-1.returnValues.request-body.status}}`, **Vergleich** auf **ist gleich** und **Vergleichen mit** auf `firing`.
 
 ### Den Vorfall melden
 
-Fügen Sie einen **Create One Incident**-Baustein hinzu und verbinden Sie die Seite **Yes** des **If / Else**-Bausteins damit. Wählen Sie unter **Incident Template** eine Vorlage, die den Schweregrad und die zu alarmierenden Bereitschaftsrichtlinien festlegt (siehe [Vorfallvorlagen](/docs/incidents/settings#vorfall-vorlagen)). Setzen Sie in **JSON Object**, was von Grafana kommt:
+Fügen Sie einen **Vorfall erstellen (einzeln)**-Baustein hinzu und verbinden Sie die Seite **Ja** des **Wenn / Sonst**-Bausteins damit. Wählen Sie unter **Vorfallsvorlage** eine Vorlage, die den Schweregrad und die zu alarmierenden Bereitschaftsrichtlinien festlegt (siehe [Vorfallvorlagen](/docs/incidents/settings#vorfall-vorlagen)). Setzen Sie in **JSON-Objekt**, was von Grafana kommt:
 
 ```json
 {
@@ -138,14 +138,14 @@ Fügen Sie einen **Create One Incident**-Baustein hinzu und verbinden Sie die Se
 }
 ```
 
-Ohne Vorlage braucht **JSON Object** zusätzlich `incidentSeverityId`, die ID eines Vorfallschweregrads des Projekts.
+Ohne Vorlage braucht **JSON-Objekt** zusätzlich `incidentSeverityId`, die ID eines Vorfallschweregrads des Projekts.
 
 ### Den Workflow einschalten
 
 Schalten Sie oben im **Editor** **Aktiviert** ein. Ein ausgeschalteter Workflow antwortet Grafana mit `400`.
 :::
 
-Eine Ausführung bearbeitet eine Benachrichtigung und meldet also einen Vorfall, wie viele Warnungen die Benachrichtigung auch enthält. Eine Benachrichtigung mit `resolved` nimmt die Seite **No** des **If / Else**-Bausteins, an der nichts angeschlossen ist, die Ausführung endet also dort. Für einen Vorfall pro Warnung, bei der Erholung behoben, nutzen Sie den Monitor.
+Eine Ausführung bearbeitet eine Benachrichtigung und meldet also einen Vorfall, wie viele Warnungen die Benachrichtigung auch enthält. Eine Benachrichtigung mit `resolved` nimmt die Seite **Nein** des **Wenn / Sonst**-Bausteins, an der nichts angeschlossen ist, die Ausführung endet also dort. Für einen Vorfall pro Warnung, bei der Erholung behoben, nutzen Sie den Monitor.
 
 ## Fehlerbehebung
 

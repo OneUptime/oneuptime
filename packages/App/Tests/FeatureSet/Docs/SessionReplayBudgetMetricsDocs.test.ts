@@ -1160,7 +1160,13 @@ describe("Session replay storage budget alerts docs", (): void => {
 
       expect(limit).toBe(GIB);
 
-      const healthCopy: string = formatBytesForCopy(limit);
+      /*
+       * The Health page holds the figure to its unit with a no-break space
+       * (#8303); the docs write the same words with a plain one.
+       */
+      const healthCopy: string = formatBytesForCopy(limit)
+        .split("\u00A0")
+        .join(" ");
       const chartCopy: string = ValueFormatter.formatValue(
         limit,
         SessionReplayBudgetMetricTypeUtil.getUnit(
@@ -1177,8 +1183,9 @@ describe("Session replay storage budget alerts docs", (): void => {
 
       expect(own).toContain("Alert on the percent, not the bytes");
       expect(own).toContain('the Health page\'s "GB" is 1024³ bytes');
+      // The chart holds its figure to its unit (#8457); the page writes a plain space.
       expect(own).toContain(
-        `a day that spends the default ${healthCopy} limit charts as about ${chartCopy}`,
+        `a day that spends the default ${healthCopy} limit charts as about ${chartCopy.replace(/\u00A0/g, " ")}`,
       );
     });
   });

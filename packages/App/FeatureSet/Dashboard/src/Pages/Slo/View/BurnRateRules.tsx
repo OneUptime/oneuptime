@@ -1,13 +1,15 @@
 import PageComponentProps from "../../PageComponentProps";
 import {
-  BURN_RATE_RULE_FORM_FIELDS,
   BURN_RATE_RULE_FORM_STEPS,
   BURN_RATE_TEMPLATE_VARIABLES_MARKDOWN_TABLE,
   describeBurnRateOutputOptions,
   describeBurnRateOutputs,
+  getBurnRateRuleFormFields,
   willCreateAlert,
   willDeclareIncident,
 } from "../Utils/BurnRateRuleForm";
+import { isRequestSliType } from "Common/Utils/Slo/SloRequestSli";
+import SliType from "Common/Types/ServiceLevelObjective/SliType";
 import SloNoticeBanner from "../../../Components/Slo/SloNoticeBanner";
 import SloRecommendedBurnRateRulesBanner from "../../../Components/Slo/SloRecommendedBurnRateRulesBanner";
 import SloRecommendedBurnRateRulesModal from "../../../Components/Slo/SloRecommendedBurnRateRulesModal";
@@ -56,6 +58,7 @@ import { StateListType } from "Common/Utils/StateOrder";
 import {
   BURN_RATE_RULE_NOTHING_PICKED,
   BurnRateRuleWindowsText,
+  formatBurnRateRuleMinimumRequests,
   formatBurnRateRuleWindows,
   getNamesOrNothingPicked,
   getSeverityOrNothingPicked,
@@ -106,7 +109,7 @@ A variable that is misspelled is left exactly as written, so a typo shows up in 
 - **Owner teams and owner users** are added to the record when it is created, and are notified.
 - **Add SLO Owners as Owners** also adds this SLO's owners — its owner users and the members of its owner teams. They already hear about the SLO's status changes, so this can notify them twice.
 - **Labels** are added to the record, so filters, owner rules and workspace notification rules can match it.
-- A **private** record is visible only to its owners, project admins and project owners.
+- A **private** record is visible only to its owners, Project Admins and Project Owners.
 
 ---
 
@@ -271,6 +274,14 @@ const SloBurnRateRules: FunctionComponent<
   const [isArchived, setIsArchived] = useState<boolean | null>(null);
 
   /*
+   * A request SLO's rules can skip a quiet window (#8442): its form asks
+   * for Minimum Requests, and the table says a rule's minimum.
+   */
+  const [isRequestSlo, setIsRequestSlo] = useState<boolean>(false);
+  // A Metric SLO's rule counts its metric's events (#8445).
+  const [isMetricSlo, setIsMetricSlo] = useState<boolean>(false);
+
+  /*
    * "Add recommended rules": offered in a note above the table while the SLO
    * is missing one of the rules OneUptime recommends (an SLO created before
    * Slow leak existed, or one whose rule was deleted), with a confirmation
@@ -321,12 +332,15 @@ const SloBurnRateRules: FunctionComponent<
               isEnabled: true,
               sloStatus: true,
               isArchived: true,
+              sliType: true,
             },
           });
 
         if (!cancelled && slo) {
           setCanFire(canSloFireBurnRateRules(slo));
           setIsArchived(slo.isArchived === true);
+          setIsRequestSlo(isRequestSliType(slo.sliType));
+          setIsMetricSlo(slo.sliType === SliType.Metric);
         }
       } catch {
         // Keep the optimistic default; the notice banner owns real errors.
@@ -355,6 +369,11 @@ const SloBurnRateRules: FunctionComponent<
         isDeleteable={true}
         isEditable={true}
         isCreateable={true}
+        /*
+         * Show ID in each row's ⋯ menu: a workflow that turns a feature flag
+         * off when this rule fires is told which rule by its ID (#8447).
+         */
+        showViewIdButton={true}
         showRefreshButton={true}
         refreshToggle={rulesRefreshToggle}
         topContent={
@@ -415,7 +434,10 @@ const SloBurnRateRules: FunctionComponent<
         ]}
         createEditModalWidth={ModalWidth.Large}
         formSteps={BURN_RATE_RULE_FORM_STEPS}
-        formFields={BURN_RATE_RULE_FORM_FIELDS}
+        formFields={getBurnRateRuleFormFields({
+          isRequestSlo: isRequestSlo,
+          isMetricSlo: isMetricSlo,
+        })}
         columns={[
           {
             field: {
@@ -458,12 +480,32 @@ const SloBurnRateRules: FunctionComponent<
               const windows: BurnRateRuleWindowsText =
                 formatBurnRateRuleWindows(item, translator);
 
+              // "At least 100 requests" ("events" for a Metric SLO), for a rule that has one.
+              const minimumRequests: string | null =
+                isRequestSlo || isMetricSlo
+                  ? formatBurnRateRuleMinimumRequests(
+                      item.minimumSampleCount,
+                      translator,
+                      isMetricSlo,
+                    )
+                  : null;
+
               return (
                 <div>
                   <div className="text-sm text-gray-900">{windows.windows}</div>
                   <div className="text-xs text-gray-500">
                     {windows.suppression}
                   </div>
+                  {minimumRequests ? (
+                    <div
+                      className="text-xs text-gray-500"
+                      data-testid="burn-rate-rule-minimum-requests"
+                    >
+                      {minimumRequests}
+                    </div>
+                  ) : (
+                    <></>
+                  )}
                 </div>
               );
             },
@@ -807,6 +849,8 @@ const SloBurnRateRules: FunctionComponent<
         selectMoreFields={{
           shortWindowInMinutes: true,
           refireSuppressionMinutes: true,
+          // A request SLO's "At least 100 requests" (#8442).
+          minimumSampleCount: true,
           shouldCreateIncident: true,
           isAlertPrivate: true,
           autoResolveAlert: true,

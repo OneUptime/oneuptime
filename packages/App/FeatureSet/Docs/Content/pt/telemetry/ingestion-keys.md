@@ -25,7 +25,7 @@ flowchart TB
 ```
 
 - **A chave decide o projeto.** Você nunca envia um ID de projeto: os dados enviados com uma chave vão para o projeto ao qual a chave pertence.
-- **As mudanças chegam a todos os servidores em até um minuto.** Desativar uma chave, redefinir o segredo dela ou mudar as origens, a expiração ou o limite tem efeito em cerca de um minuto.
+- **As mudanças chegam a todos os servidores em poucos segundos.** Desativar uma chave, redefinir o segredo dela ou mudar as origens, a expiração ou o limite tem efeito em todos os servidores em poucos segundos.
 - **Uma chave pode ter orçamentos próprios.** Um orçamento diário e uma taxa por segundo para cada sinal, dentro dos do projeto dela: veja [Orçamentos de ingestão](/docs/telemetry/ingestion-budgets).
 - **Uma chave de servidor é uma senha.** Qualquer pessoa que a tenha pode enviar telemetria para o seu projeto. Guarde-a nos segredos dos seus servidores, nunca no controle de versão nem em uma página web.
 
@@ -45,7 +45,7 @@ Em qualquer outro lugar, o OneUptime recusa uma chave de navegador, como por gRP
 
 ## Antes de começar
 
-- **Uma função que gerencie chaves de ingestão.** Project Owner ou Project Admin, ou uma função personalizada com a permissão Create Ingestion Key. As funções de Telemetry não incluem as chaves de ingestão.
+- **Uma função que gerencie chaves de ingestão.** Proprietário do projeto ou Administrador do projeto, ou uma função personalizada com a permissão Create Ingestion Key. As funções de Telemetry não incluem as chaves de ingestão.
 - **No OneUptime Cloud, um método de pagamento.** A telemetria é cobrada conforme o uso, então um projeto no plano Free precisa de um método de pagamento antes de poder criar uma chave. A caixa de criação termina então com uma etapa **Cobrança** que mostra os preços.
 
 ## Criar uma chave de ingestão
@@ -108,7 +108,7 @@ Uma origem é um esquema, um host e uma porta opcional: `https://app.example.com
 
 ## Trocar, desativar ou excluir uma chave
 
-A página de uma chave mostra o seu **Status**, a sua **Chave secreta** por trás de **Clique para mostrar**, e o seu **Last Used At**: a última vez que o OneUptime aceitou dados enviados com ela.
+A página de uma chave mostra o seu **Status**, a sua **Chave secreta** por trás de **Clique para mostrar**, e o seu **Usado pela última vez em**: a última vez que o OneUptime aceitou dados enviados com ela.
 
 | Para | Faça isto | O que os remetentes veem |
 | --- | --- | --- |
@@ -116,7 +116,7 @@ A página de uma chave mostra o seu **Status**, a sua **Chave secreta** por trá
 | Substituir um segredo vazado | Clique em **Redefinir chave secreta** e confirme. A chave mantém as configurações e recebe um novo segredo. | `401` até eles enviarem o novo segredo |
 | Parar uma chave de vez | Clique em **Excluir: Chave de ingestão** no fim da página dela. | `401` |
 
-Para trocar um segredo sem perder dados, crie uma segunda chave, passe os seus remetentes para ela e exclua a chave antiga quando o **Last Used At** dela parar de mudar. **Last Used At** é atualizado a cada poucos minutos, não a cada requisição.
+Para trocar um segredo sem perder dados, crie uma segunda chave, passe os seus remetentes para ela e exclua a chave antiga quando o **Usado pela última vez em** dela parar de mudar. **Usado pela última vez em** é atualizado a cada poucos minutos, não a cada requisição.
 
 ## Solução de problemas
 
@@ -139,8 +139,8 @@ A página da chave também faz a conta: **Telemetria recusada** lista o que foi 
 
 Para as outras respostas que um exportador OTLP pode receber, veja [Respostas](/docs/telemetry/open-telemetry#respostas).
 
-:::details Ainda chegam dados um minuto depois de eu desativar a chave
-Cada servidor do OneUptime guarda o que sabe de uma chave por até um minuto, então uma mudança chega a todos eles em cerca de um minuto. As requisições depois disso são recusadas.
+:::details Ainda chegam dados depois de eu desativar a chave
+Cada servidor do OneUptime verifica pelo menos uma vez por segundo se uma chave mudou, então uma mudança chega a todos eles em poucos segundos e as requisições depois disso são recusadas. Enquanto um servidor não consegue acessar o cache do OneUptime, ele pode seguir o que sabia da chave por até um minuto. Um cliente MQTT que se conectou com a chave é desconectado em poucos segundos.
 :::
 
 :::details Uma chave de navegador funciona no meu notebook, mas não em produção

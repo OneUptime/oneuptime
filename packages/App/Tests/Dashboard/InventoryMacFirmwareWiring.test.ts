@@ -105,9 +105,10 @@ describe("inventory MAC, firmware and network devices are wired end to end (issu
     test.each(NEW_DRAWER_ROWS)(
       "%s has a drawer row labelled %p",
       (key: string, label: string) => {
+        // The label marked as a key, which the drawer looks up (#8260).
         expect(
           readCode("Components", "Topology", "EntityDetailPanel.tsx"),
-        ).toContain(`{ key: "${key}", label: "${label}" }`);
+        ).toContain(`{ key: "${key}", label: translationKey("${label}") }`);
       },
     );
 

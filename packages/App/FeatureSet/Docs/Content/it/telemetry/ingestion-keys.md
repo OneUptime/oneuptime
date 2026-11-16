@@ -25,7 +25,7 @@ flowchart TB
 ```
 
 - **La chiave decide il progetto.** Non inviate mai un ID di progetto: i dati inviati con una chiave finiscono nel progetto a cui la chiave appartiene.
-- **Le modifiche raggiungono ogni server entro un minuto.** Disattivare una chiave, reimpostarne il segreto o cambiarne le origini, la scadenza o il limite ha effetto entro un minuto circa.
+- **Le modifiche raggiungono ogni server in pochi secondi.** Disattivare una chiave, reimpostarne il segreto o cambiarne le origini, la scadenza o il limite ha effetto su ogni server in pochi secondi.
 - **Una chiave può avere budget propri.** Un budget giornaliero e un limite di frequenza al secondo per ogni segnale, entro quelli del suo progetto: vedete [Budget di acquisizione](/docs/telemetry/ingestion-budgets).
 - **Una chiave Server è una password.** Chiunque la possieda può inviare telemetria nel vostro progetto. Conservatela tra i segreti dei vostri server, mai nel controllo di versione né in una pagina web.
 
@@ -45,7 +45,7 @@ Ovunque altrove OneUptime rifiuta una chiave Browser, ad esempio su gRPC e MQTT,
 
 ## Prima di iniziare
 
-- **Un ruolo che gestisce le chiavi di acquisizione.** Project Owner o Project Admin, oppure un ruolo personalizzato con il permesso Create Ingestion Key. I ruoli Telemetry non includono le chiavi di acquisizione.
+- **Un ruolo che gestisce le chiavi di acquisizione.** Proprietario del progetto o Amministratore del progetto, oppure un ruolo personalizzato con il permesso Create Ingestion Key. I ruoli Telemetry non includono le chiavi di acquisizione.
 - **Su OneUptime Cloud, un metodo di pagamento.** La telemetria si paga in base all'uso, quindi un progetto sul piano Free ha bisogno di un metodo di pagamento prima di poter creare una chiave. La finestra di creazione termina allora con un passaggio **Fatturazione** che mostra i prezzi.
 
 ## Creare una chiave di acquisizione
@@ -108,7 +108,7 @@ Un'origine è uno schema, un host e una porta facoltativa: `https://app.example.
 
 ## Ruotare, disattivare o eliminare una chiave
 
-La pagina di una chiave mostra il suo **Stato**, la sua **Chiave segreta** dietro **Fai clic per mostrare**, e il suo **Last Used At**: l'ultima volta che OneUptime ha accettato dati inviati con essa.
+La pagina di una chiave mostra il suo **Stato**, la sua **Chiave segreta** dietro **Fai clic per mostrare**, e il suo **Ultimo utilizzo il**: l'ultima volta che OneUptime ha accettato dati inviati con essa.
 
 | Per | Fate questo | Che cosa vedono i mittenti |
 | --- | --- | --- |
@@ -116,7 +116,7 @@ La pagina di una chiave mostra il suo **Stato**, la sua **Chiave segreta** dietr
 | Sostituire un segreto trapelato | Fate clic su **Reimposta la chiave segreta** e confermate. La chiave mantiene le sue impostazioni e riceve un nuovo segreto. | `401` finché non inviano il nuovo segreto |
 | Fermare una chiave per sempre | Fate clic su **Elimina: Chiave di acquisizione** in fondo alla sua pagina. | `401` |
 
-Per cambiare un segreto senza perdere dati, create una seconda chiave, spostate i mittenti su di essa ed eliminate la vecchia chiave quando il suo **Last Used At** smette di muoversi. **Last Used At** si aggiorna ogni pochi minuti, non a ogni richiesta.
+Per cambiare un segreto senza perdere dati, create una seconda chiave, spostate i mittenti su di essa ed eliminate la vecchia chiave quando il suo **Ultimo utilizzo il** smette di muoversi. **Ultimo utilizzo il** si aggiorna ogni pochi minuti, non a ogni richiesta.
 
 ## Risoluzione dei problemi
 
@@ -139,8 +139,8 @@ Anche la pagina della chiave tiene il conto: **Telemetria rifiutata** elenca ci�
 
 Per le altre risposte che un esportatore OTLP può ricevere, vedete [Risposte](/docs/telemetry/open-telemetry#risposte).
 
-:::details I dati arrivano ancora un minuto dopo che ho disattivato la chiave
-Ogni server OneUptime conserva ciò che sa di una chiave per al massimo un minuto, quindi una modifica li raggiunge tutti entro un minuto circa. Le richieste successive vengono rifiutate.
+:::details I dati arrivano ancora dopo che ho disattivato la chiave
+Ogni server OneUptime controlla almeno una volta al secondo se una chiave è cambiata, quindi una modifica li raggiunge tutti in pochi secondi e le richieste successive vengono rifiutate. Finché un server non riesce a raggiungere la cache di OneUptime, può basarsi su ciò che sapeva della chiave per al massimo un minuto. Un client MQTT che si è connesso con la chiave viene disconnesso entro pochi secondi.
 :::
 
 :::details Una chiave Browser funziona sul mio portatile ma non in produzione

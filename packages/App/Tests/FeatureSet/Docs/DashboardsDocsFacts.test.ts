@@ -1060,13 +1060,13 @@ describe("Authoring a Dashboard, against the product", () => {
     }
 
     expect(before).toContain(
-      "Project owners and admins can create and edit every dashboard.",
+      "Project Owners and Project Admins can create and edit every dashboard.",
     );
     expect(before).toContain(
       `\`${Permission.CreateDashboard}\` to create dashboards, and \`${Permission.EditDashboard}\` to change them`,
     );
     expect(before).toContain(
-      "Project members and viewers can read dashboards without either.",
+      "Project Members and Viewers can read dashboards without either.",
     );
   });
 
@@ -2777,7 +2777,7 @@ describe("External Data Sources, against the connectors and their limits", () =>
     );
 
     expect(before).toContain(
-      `Project owners and admins can add data sources; anyone else needs \`${Permission.CreateDataSource}\`, with \`${Permission.EditDataSource}\` and \`${Permission.DeleteDataSource}\` to change and remove them.`,
+      `Project Owners and Project Admins can add data sources; anyone else needs \`${Permission.CreateDataSource}\`, with \`${Permission.EditDataSource}\` and \`${Permission.DeleteDataSource}\` to change and remove them.`,
     );
     expect(before).toContain("members and viewers included");
   });
@@ -3134,12 +3134,16 @@ describe("External Data Sources, against the connectors and their limits", () =>
   });
 
   it("shows a value's unit as the widget formats it", () => {
+    /*
+     * The widget holds a figure to its unit with a no-break space (#8457);
+     * the page writes them with the plain one prose has.
+     */
     const bytes: string = ValueFormatter.formatValueCompact(1500000, "Bytes", {
       metricName: "",
-    }).formatted;
+    }).formatted.replace(/\u00A0/g, " ");
     const milliseconds: string = ValueFormatter.formatValueCompact(2400, "ms", {
       metricName: "",
-    }).formatted;
+    }).formatted.replace(/\u00A0/g, " ");
 
     expect(page).toContain(
       `\`Bytes\` reads as ${bytes}, \`ms\` as ${milliseconds}.`,
@@ -3596,7 +3600,7 @@ describe("Dashboard Playlists, against the playlist model and the player", () =>
         dashboardCount: 3,
         intervalInSeconds: DASHBOARD_PLAYLIST_DEFAULT_INTERVAL_IN_SECONDS,
       }),
-    ).toBe("3 dashboards, 1 minute each");
+    ).toBe("3 dashboards, 1\u00A0minute each");
 
     expect(list).toContain('title: "Play",');
     expect(createSection).toContain(
@@ -3617,8 +3621,13 @@ describe("Dashboard Playlists, against the playlist model and the player", () =>
 
     const field: string = readSource(PLAYLIST_DASHBOARDS_FIELD);
 
-    // Handed to the picker as written: it looks its aria label up once (943f9ebf4b0).
+    /*
+     * The picker's name, handed to Dropdown in English: Dropdown looks it
+     * up in the reader's language, once (#7790), so the page neither looks
+     * it up first nor says it is translated already.
+     */
     expect(field).toContain('ariaLabel="Add a dashboard"');
+    expect(field).not.toContain("isAriaLabelTranslated");
     expect(createSection).toContain(
       `pick each one from ${bold("Add a dashboard")}`,
     );

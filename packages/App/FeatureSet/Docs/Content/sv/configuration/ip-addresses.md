@@ -64,6 +64,6 @@ När inget är angivet visar den här sidan **No IP addresses configured.** och 
 ## Nästa steg
 
 :::cards
-- [Anpassade probes](/docs/probe/custom-probe): Kör en sond i ditt eget nätverk i stället för att öppna brandväggen.
+- [Anpassade sonder](/docs/probe/custom-probe): Kör en sond i ditt eget nätverk i stället för att öppna brandväggen.
 - [Skapa en monitor](/docs/monitor/create-monitor): Börja kontrollera en webbplats, ett API eller en server.
 :::

@@ -63,6 +63,7 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
       modelType={GlobalSSO}
       modelAPI={AdminModelAPI}
       title={t("pages.settings.title")}
+      isTitleTranslated={true}
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),
@@ -233,9 +234,9 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
             data-testid="global-sso-test-link"
           >
             <p>
-              Open this link to test the provider. It must be enabled, which
-              only adds a &quot;Sign in with SSO&quot; option and locks no one
-              out.
+              {t(
+                'Open this link to test the provider. It must be enabled, which only adds a "Sign in with SSO" option and locks no one out.',
+              )}
             </p>
             <p>
               <Link

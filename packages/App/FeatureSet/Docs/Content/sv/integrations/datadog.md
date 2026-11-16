@@ -55,7 +55,7 @@ Sedan [konfigurerar du Datadog](#konfigurera-datadog) att skicka sina larm till 
 
 ### Vad arbetsflödet gör
 
-Efter utlösaren **Webhook** läser steget **Check With JavaScript** `read-event-1` den `transition` som Datadog skickar, och **Incident From Another Tool**, eller **Alert From Another Tool** i larmmallen, gör det den betyder, utifrån larmets cykelnyckel. Datadog behåller nyckeln från det att ett larm utlöses tills det återhämtar sig, och nästa gång det utlöses är nyckeln ny, så varje gång får en egen incident. Incidenten behåller nyckeln i sitt anpassade fält `datadogAlertCycleKey`.
+Efter utlösaren **Webhook** läser steget **Kontrollera med JavaScript** `read-event-1` den `transition` som Datadog skickar, och **Incident från ett annat verktyg**, eller **Larm från ett annat verktyg** i larmmallen, gör det den betyder, utifrån larmets cykelnyckel. Datadog behåller nyckeln från det att ett larm utlöses tills det återhämtar sig, och nästa gång det utlöses är nyckeln ny, så varje gång får en egen incident. Incidenten behåller nyckeln i sitt anpassade fält `datadogAlertCycleKey`.
 
 | Transition | Vad arbetsflödet gör |
 | --- | --- |
@@ -64,7 +64,7 @@ Efter utlösaren **Webhook** läser steget **Check With JavaScript** `read-event
 | `Warn`, `Re-Warn`, `No Data`, `Re-No Data` | Lägger till en privat anteckning på larmets incident, som säger vilket tillstånd monitorn har nu. |
 | `Renotify` | Ingenting: larmet är fortfarande öppet. |
 
-En varning eller en återhämtning för ett larm utan incident ändrar ingenting. Allt annat, till exempel en begäran från ett annat verktyg, lämnas orört: `read-event-1` tar **No**, och körningens **Steg** säger varför. Inget går tillbaka till Datadog: det löser sina egna larm när signalen återhämtar sig, och det är det som löser incidenten.
+En varning eller en återhämtning för ett larm utan incident ändrar ingenting. Allt annat, till exempel en begäran från ett annat verktyg, lämnas orört: `read-event-1` tar **Nej**, och körningens **Steg** säger varför. Inget går tillbaka till Datadog: det löser sina egna larm när signalen återhämtar sig, och det är det som löser incidenten.
 
 ### Prioriteter och larmning
 
@@ -82,7 +82,7 @@ En ny incident larmar de jourpolicyer du valde när dess monitor är P1 eller P2
 Med egna allvarlighetsgrader går P1, P2 och ingen prioritet till din allvarligaste, P3 till den mittersta, och P4 och P5 till din minst allvarliga.
 
 - För att koppla en prioritet till en av dina efter namn, redigera `SEVERITY_BY_NAME` i steget `read-event-1`, till exempel `{ P3: 'Minor Incident' }`.
-- För att larma även för P3, ställ in **Compare with** i steget `if-page-1` **If / Else** på `3`.
+- För att larma även för P3, ställ in **Jämför med** i steget `if-page-1` **Om / Annars** på `3`.
 
 ## Ta emot larm med en monitor
 
@@ -211,7 +211,7 @@ Testa sedan från Datadog: öppna en monitor som nämner webhooken, klicka på *
 :::
 
 :::details Arbetsflödet körs, men öppnar ingenting
-Öppna körningen i **Loggar → Körningar**. Posten `read-event-1` under dess **Steg** säger varför den tog **No**.
+Öppna körningen i **Loggar → Körningar**. Posten `read-event-1` under dess **Steg** säger varför den tog **Nej**.
 
 - `Datadog named no alert cycle key`: lägg till `"alert_cycle_key": "$ALERT_CYCLE_KEY"` i webhookens nyttolast i Datadog.
 - `Datadog named no transition`: lägg till `"transition": "$ALERT_TRANSITION"` i webhookens nyttolast i Datadog.

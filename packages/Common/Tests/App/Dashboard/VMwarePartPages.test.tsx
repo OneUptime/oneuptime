@@ -194,6 +194,7 @@ import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/P
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import ProjectUtil from "../../../UI/Utils/Project";
+import { QUIET_DASH_TEXT } from "../../Helpers/QuietDash";
 
 const PAGE_PROPS: PageComponentProps = {
   pageRoute: new Route(BASE),
@@ -456,7 +457,9 @@ describe("a virtual machine's page", () => {
       {
         key: "VirtualMachine:vm/db-primary-uuid",
         severity: "critical",
-        text: expect.stringContaining("1.5 GiB of memory swapped by the host"),
+        text: expect.stringContaining(
+          "1.5\u00A0GiB of memory swapped by the host",
+        ),
       },
     ]);
     expect(screen.getByTestId("vmware-vm-attention")).toHaveTextContent(
@@ -814,10 +817,11 @@ describe("a cluster's page", () => {
     expect(tiles).toHaveTextContent("1 not responding");
     /*
      * Host failure has no answer while a host is not effective, and says
-     * so under its dash rather than a bare "—".
+     * so under its dash rather than a bare "—": the quiet dash, which reads
+     * "Not set" to a screen reader (EmptyFigure, #8264).
      */
     expect(clusterTile("Host failure")).toHaveTextContent(
-      "Host failure—Not known while a host is not effective",
+      `Host failure${QUIET_DASH_TEXT}Not known while a host is not effective`,
     );
 
     const hosts: Array<string | null> = within(
@@ -873,7 +877,7 @@ describe("a cluster's page", () => {
     await openCluster();
 
     expect(clusterTile("Host failure")).toHaveTextContent(
-      "Host failure—Needs at least two running hosts",
+      `Host failure${QUIET_DASH_TEXT}Needs at least two running hosts`,
     );
     cleanup();
 
@@ -885,7 +889,7 @@ describe("a cluster's page", () => {
     await openCluster();
 
     expect(clusterTile("Host failure")).toHaveTextContent(
-      "Host failure—A host's memory size is not reported",
+      `Host failure${QUIET_DASH_TEXT}A host's memory size is not reported`,
     );
   });
 

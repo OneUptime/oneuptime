@@ -3,6 +3,8 @@ import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { NO_BREAK_SPACE } from "../SuiteHelpers/NoBreakSpaces";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * A Docker Swarm cluster's pages on a phone, in a browser, against the
@@ -1754,7 +1756,7 @@ test.describe("the lists say what the Overview says", () => {
     await page.goto(withQuery(`${CLUSTER_PATH}/tasks`, `${TROUBLE}&lang=fa`));
     const memory: Locator = page
       .locator("bdi")
-      .filter({ hasText: /^471 MiB$/ })
+      .filter({ hasText: new RegExp(`^471${NO_BREAK_SPACE}MiB$`) })
       .first();
     await expect(memory).toBeVisible();
     expect(
@@ -1924,4 +1926,20 @@ test.describe("a task near its memory limit", () => {
     await expectNoSidewaysScroll(page);
     await screenshot(page, "docker-swarm-task-trouble-phone");
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German and Persian whole, parsed on every page load of every test. English
+ * is in the bundle now, and each other language a chunk of its own, loaded
+ * only by a page drawn in it (SuiteHelpers/FixtureLocales.js), built as the
+ * Dashboard ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "fa"],
+  address: (language: string): string => {
+    return language === "en"
+      ? CLUSTER_PATH
+      : `${CLUSTER_PATH}?lang=${language}`;
+  },
 });

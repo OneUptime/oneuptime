@@ -28,7 +28,7 @@ flowchart LR
 ## Antes de começar
 
 - **Telemetria chegando.** O mapa de serviços precisa de traços: veja [OpenTelemetry](/docs/telemetry/open-telemetry). A visão de infraestrutura precisa de um host ou de um cluster que envie dados: veja o [agente Kubernetes](/docs/telemetry/kubernetes-agent). A visão de rede precisa de dispositivos de rede: veja [Monitor de dispositivos de rede](/docs/monitor/network-device-monitor).
-- **Uma função que leia a telemetria.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member ou Telemetry Viewer, ou uma função personalizada com a permissão Read Inventory Item.
+- **Uma função que leia a telemetria.** Proprietário do projeto, Administrador do projeto, Membro do projeto, Visualizador, Administrador de telemetria, Membro de telemetria ou Visualizador de telemetria, ou uma função personalizada com a permissão Read Inventory Item.
 
 ## Abrir a topologia
 
@@ -51,12 +51,12 @@ Cada serviço mostra o seu estado, calculado a partir das chamadas que recebeu n
 | Estado | Quando |
 | --- | --- |
 | **Íntegro** | No máximo 1% das chamadas recebidas falhou. |
-| **Some errors** | Mais de 1% e menos de 5% falharam. |
-| **High error rate** | 5% ou mais falharam. |
-| **Entry point** | Não recebeu chamadas, mas fez algumas: um frontend web ou uma tarefa agendada. |
-| **No calls observed** | Não fez nem recebeu nenhuma chamada. |
+| **Alguns erros** | Mais de 1% e menos de 5% falharam. |
+| **Taxa de erros alta** | 5% ou mais falharam. |
+| **Ponto de entrada** | Não recebeu chamadas, mas fez algumas: um frontend web ou uma tarefa agendada. |
+| **Nenhuma chamada observada** | Não fez nem recebeu nenhuma chamada. |
 
-Um serviço com um incidente ou um alerta ativo mostra quantos tem, e, como um serviço com **Some errors** ou com **High error rate**, conta como um que requer atenção.
+Um serviço com um incidente ou um alerta ativo mostra quantos tem, e, como um serviço com o estado **Alguns erros** ou **Taxa de erros alta**, conta como um que requer atenção.
 
 :::steps
 ### Encontrar os serviços que requerem atenção

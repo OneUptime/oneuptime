@@ -1,4 +1,3 @@
-import FilterCondition from "Common/Types/Filter/FilterCondition";
 import {
   AnomalyDetectionSensitivity,
   CheckOn,
@@ -28,9 +27,23 @@ import { ExternalStatusPageComponentStatusValue } from "Common/Utils/Monitor/Ext
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import {
+  composedValue,
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  fillTemplate,
+  PluralTemplate,
+  TemplateValues,
+  translatableTerm,
   translatePlural,
   translationKey,
+  Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import {
+  formatDurationUnit,
+  formatReaderFigure,
+  isEnglishDateLanguage,
+} from "Common/Types/DateLanguage";
+import { formatMilliseconds } from "../../Milliseconds";
 
 /*
  * The labels of the numbers an AI / LLM monitor's criteria compare: the
@@ -71,6 +84,307 @@ export const METRIC_FORECAST_ABOVE_LABEL: string = translationKey(
 export const METRIC_FORECAST_BELOW_LABEL: string = translationKey(
   "Forecast To Fall Below",
 );
+
+/*
+ * A CRITERIA FILTER, SUMMED UP AS ONE SENTENCE IN THE READER'S LANGUAGE
+ * (#8350).
+ *
+ * The criteria list wrote each filter as an English sentence built by hand
+ * - `Check if "Response Time (in ms)" is greater than 500ms and,` - so it
+ * read English under a German or a Persian form, its threshold glued to an
+ * English "ms" in Latin digits. Each part of it is a whole sentence now,
+ * with the part it wraps as a {{placeholder}}, worded in every Dashboard
+ * language: what is checked (a check's name, then where - a disk, a path,
+ * an interface, a table - then how its window is read), the comparison
+ * with the threshold, the window of checks it is judged on, and whether
+ * the next filter must match too. Each part goes into the one around it as
+ * a composedValue, so the whole summary is in one language: the reader's,
+ * or English while their language has not worded one of its sentences.
+ *
+ * The threshold is a figure in the reader's digits (formatReaderFigure), a
+ * percentage with the language's percent sign, a duration in milliseconds
+ * with formatMilliseconds ("500 ms", "۵۰۰ میلی‌ثانیه"); a unit the person
+ * typed, a text and an expression are put in as typed.
+ */
+
+// What is checked: a check's name, in quotes; a name the catalog gives.
+const CRITERIA_CHECK_SENTENCE: string = '"{{check}}"';
+
+// Where it is checked.
+export const CRITERIA_ON_DISK_SENTENCE: string = translationKey(
+  "{{measure}} on {{diskPath}}",
+);
+export const CRITERIA_AT_PATH_SENTENCE: string = translationKey(
+  "{{measure}} at {{path}}",
+);
+const CRITERIA_READING_SENTENCE: string = "{{measure}} ({{reading}})";
+export const CRITERIA_ON_INTERFACE_SENTENCE: string = translationKey(
+  "{{measure}} on interface {{interface}}",
+);
+export const CRITERIA_IN_TABLE_SENTENCE: string = translationKey(
+  "{{measure}} in SNMP table {{table}}",
+);
+export const CRITERIA_IN_TABLE_EACH_ROW_SENTENCE: string = translationKey(
+  "{{measure}} in SNMP table {{table}} for each row",
+);
+export const CRITERIA_IN_TABLE_ROW_SENTENCE: string = translationKey(
+  "{{measure}} in SNMP table {{table}} on row {{row}}",
+);
+
+// How a window's values are read, around what is checked.
+export const CRITERIA_EVALUATE_OVER_TIME_SENTENCES: Readonly<
+  Record<EvaluateOverTimeType, string>
+> = {
+  [EvaluateOverTimeType.AllValues]: translationKey("all values of {{measure}}"),
+  [EvaluateOverTimeType.AnyValue]: translationKey("any value of {{measure}}"),
+  [EvaluateOverTimeType.Average]: translationKey(
+    "average value of {{measure}}",
+  ),
+  [EvaluateOverTimeType.MaximumValue]: translationKey(
+    "maximum value of {{measure}}",
+  ),
+  [EvaluateOverTimeType.MunimumValue]: translationKey(
+    "minimum value of {{measure}}",
+  ),
+  [EvaluateOverTimeType.Sum]: translationKey(
+    "sum of all values of {{measure}}",
+  ),
+};
+
+// A metric's aggregation ("Average of ..."), read before the window.
+export const CRITERIA_AGGREGATION_SENTENCE: string = translationKey(
+  "{{aggregation}} of {{measure}}",
+);
+
+// The window a measured value is read over.
+export const CRITERIA_IN_THE_PAST_SENTENCE: PluralTemplate = {
+  one: "{{measure}} in the past {{count}} minute",
+  other: "{{measure}} in the past {{count}} minutes",
+};
+
+/*
+ * What is checked, compared with its threshold: one sentence for each
+ * condition, as RuleCriteriaSummary words a rule's. A text is quoted; a
+ * yes or no, an emptiness and a state take no value.
+ */
+export const CRITERIA_COMPARISON_SENTENCES: Readonly<
+  Partial<Record<FilterType, string>>
+> = {
+  [FilterType.EqualTo]: translationKey("{{subject}} is equal to {{value}}"),
+  [FilterType.NotEqualTo]: translationKey(
+    "{{subject}} is not equal to {{value}}",
+  ),
+  [FilterType.GreaterThan]: translationKey(
+    "{{subject}} is greater than {{value}}",
+  ),
+  [FilterType.LessThan]: translationKey("{{subject}} is less than {{value}}"),
+  [FilterType.GreaterThanOrEqualTo]: translationKey(
+    "{{subject}} is greater than or equal to {{value}}",
+  ),
+  [FilterType.LessThanOrEqualTo]: translationKey(
+    "{{subject}} is less than or equal to {{value}}",
+  ),
+  [FilterType.Contains]: translationKey('{{subject}} contains "{{value}}"'),
+  [FilterType.NotContains]: translationKey(
+    '{{subject}} does not contain "{{value}}"',
+  ),
+  [FilterType.StartsWith]: translationKey(
+    '{{subject}} starts with "{{value}}"',
+  ),
+  [FilterType.EndsWith]: translationKey('{{subject}} ends with "{{value}}"'),
+  [FilterType.IsEmpty]: translationKey("{{subject}} is empty"),
+  [FilterType.IsNotEmpty]: translationKey("{{subject}} is not empty"),
+  [FilterType.True]: translationKey("{{subject}} is true"),
+  [FilterType.False]: translationKey("{{subject}} is false"),
+  [FilterType.EvaluatesToTrue]: translationKey("{{subject}} evaluates to true"),
+  [FilterType.IsExecuting]: translationKey("{{subject}} is executing"),
+  [FilterType.IsNotExecuting]: translationKey("{{subject}} is not executing"),
+};
+
+// A condition whose threshold is a number of minutes.
+export const CRITERIA_MINUTES_COMPARISON_SENTENCES: Readonly<
+  Partial<Record<FilterType, PluralTemplate>>
+> = {
+  [FilterType.RecievedInMinutes]: {
+    one: "{{subject}} is received within {{count}} minute",
+    other: "{{subject}} is received within {{count}} minutes",
+  },
+  [FilterType.NotRecievedInMinutes]: {
+    one: "{{subject}} is not received within {{count}} minute",
+    other: "{{subject}} is not received within {{count}} minutes",
+  },
+};
+
+// A condition this list has no sentence of: its name, mid-sentence.
+export const CRITERIA_OTHER_COMPARISON_SENTENCE: string = translationKey(
+  "{{subject}} is {{comparison}} {{value}}",
+);
+
+// An anomaly against the metric's own baseline, and how far back it reaches.
+export const CRITERIA_ANOMALY_SENTENCES: Readonly<
+  Partial<Record<FilterType, PluralTemplate>>
+> = {
+  [FilterType.AnomalouslyHigh]: {
+    one: "{{subject}} is anomalously high (sensitivity: {{sensitivity}}, baseline window: {{count}} day)",
+    other:
+      "{{subject}} is anomalously high (sensitivity: {{sensitivity}}, baseline window: {{count}} days)",
+  },
+  [FilterType.AnomalouslyLow]: {
+    one: "{{subject}} is anomalously low (sensitivity: {{sensitivity}}, baseline window: {{count}} day)",
+    other:
+      "{{subject}} is anomalously low (sensitivity: {{sensitivity}}, baseline window: {{count}} days)",
+  },
+  [FilterType.Anomalous]: {
+    one: "{{subject}} is anomalous in either direction (sensitivity: {{sensitivity}}, baseline window: {{count}} day)",
+    other:
+      "{{subject}} is anomalous in either direction (sensitivity: {{sensitivity}}, baseline window: {{count}} days)",
+  },
+};
+
+// Where a metric is headed, and by when.
+export const CRITERIA_FORECAST_ABOVE_SENTENCE: string = translationKey(
+  "{{subject}} is forecast to rise above {{value}} within {{horizon}}",
+);
+export const CRITERIA_FORECAST_BELOW_SENTENCE: string = translationKey(
+  "{{subject}} is forecast to fall below {{value}} within {{horizon}}",
+);
+export const CRITERIA_FORECAST_DAYS: PluralTemplate = {
+  one: "{{count}} day",
+  other: "{{count}} days",
+};
+export const CRITERIA_FORECAST_HOURS: PluralTemplate = {
+  one: "{{count}} hour",
+  other: "{{count}} hours",
+};
+
+// A JavaScript expression, as typed, judged true.
+export const CRITERIA_EXPRESSION_SENTENCE: string = translationKey(
+  "JavaScript expression {{expression}} - evaluates to true",
+);
+
+/*
+ * A condition judged from the match history of a window: on every check
+ * of it, or on any one.
+ */
+export const CRITERIA_ON_EVERY_CHECK_SENTENCE: PluralTemplate = {
+  one: "{{condition}} on every check in the past {{count}} minute",
+  other: "{{condition}} on every check in the past {{count}} minutes",
+};
+export const CRITERIA_ON_ANY_CHECK_SENTENCE: PluralTemplate = {
+  one: "{{condition}} on any check in the past {{count}} minute",
+  other: "{{condition}} on any check in the past {{count}} minutes",
+};
+
+/*
+ * The whole filter. Whether all of a criteria's filters must match or any
+ * one is said once, above them (MonitorCriteriaInstance's heading), never
+ * as an "and," or "or," left at the end of each line (#8533).
+ */
+export const CRITERIA_FILTER_SENTENCE: string = translationKey(
+  "Check if {{condition}}",
+);
+export const CRITERIA_EXPRESSION_FILTER_SENTENCE: string = translationKey(
+  "Check if {{condition}}.",
+);
+
+export interface CheckByCheckWindow {
+  minutes: number;
+  // Any one check of the window is enough (Any Value); otherwise every check.
+  isAnyCheck: boolean;
+}
+
+// The criteria list in English: a test, and a caller with no translator.
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+
+// A threshold typed as a plain number: "90", "-14", "99.5".
+const NUMERIC_THRESHOLD: RegExp = /^-?\d+(\.\d+)?$/;
+
+/*
+ * A part of the summary: a sentence of `translator`'s language wrapped
+ * around the part inside it, which is written in the same language.
+ */
+type CriteriaPart = (translator: Translator) => string;
+
+// A sentence around `inner`, filled in the language it is read in.
+function wrapPart(
+  template: string,
+  placeholder: string,
+  inner: CriteriaPart,
+  values?: TemplateValues,
+): CriteriaPart {
+  return (translator: Translator): string => {
+    return translator.translateTemplate(template, {
+      ...values,
+      [placeholder]: composedValue(inner),
+    });
+  };
+}
+
+// A count-dependent sentence around `inner`.
+function wrapPluralPart(
+  template: PluralTemplate,
+  count: number,
+  placeholder: string,
+  inner: CriteriaPart,
+  values?: TemplateValues,
+): CriteriaPart {
+  return (translator: Translator): string => {
+    return translator.translatePlural(template, count, {
+      ...values,
+      [placeholder]: composedValue(inner),
+    });
+  };
+}
+
+/*
+ * A threshold as `translator`'s language writes it: a plain number in its
+ * digits ("3000", "3.000", "۳۰۰۰" - toFixed's figure in English), a
+ * percentage with its percent sign ("90%", "90 %", "۹۰٪"), milliseconds
+ * through formatMilliseconds ("3,000 ms", "۳٬۰۰۰ میلی‌ثانیه"), a unit
+ * after it as written ("10 GB", "-14 dBm"). Anything that is not a plain
+ * number is put in as it was typed.
+ */
+function writeThreshold(data: {
+  value: string;
+  translator: Translator;
+  isPercentage: boolean;
+  isMilliseconds: boolean;
+  units: Array<string>;
+}): string {
+  const isNumber: boolean = NUMERIC_THRESHOLD.test(data.value.trim());
+  const figure: number = Number(data.value);
+  const decimals: number = isNumber
+    ? (data.value.trim().split(".")[1] || "").length
+    : 0;
+  const units: Array<string> = data.units.filter((unit: string): boolean => {
+    return unit.length > 0;
+  });
+  const isUnitMilliseconds: boolean = units.length === 1 && units[0] === "ms";
+
+  if (!isNumber) {
+    return data.isPercentage
+      ? `${data.value}%`
+      : [data.value, ...units].join(" ");
+  }
+
+  if (data.isMilliseconds || isUnitMilliseconds) {
+    return formatMilliseconds(data.translator, figure);
+  }
+
+  const written: string = formatReaderFigure(figure, {
+    decimals: decimals,
+    isPercent: data.isPercentage,
+    language: data.translator.language,
+  });
+
+  // The figure held to its unit by a no-break space (#8720).
+  return units.length > 0
+    ? fillTemplate("{{value}}\u00A0{{unit}}", {
+        value: written,
+        unit: units.join(" "),
+      })
+    : written;
+}
 
 export default class CriteriaFilterUtil {
   /*
@@ -203,30 +517,19 @@ export default class CriteriaFilterUtil {
   }
 
   /*
-   * The filter as a sentence, for the criteria list. Pass the monitor type
-   * when it is known: whether a window is judged check by check depends on
-   * it (CommonCriteriaFilterUtil.isJudgedCheckByCheck).
+   * The filter as a sentence, for the criteria list, in the translator's
+   * language (#8350): "Check if "Response Time (in ms)" is greater than
+   * 3,000 ms", "Prüfen: "Antwortzeit (in ms)" ist größer als 3.000 ms". Pass
+   * the monitor type when it is known: whether a window is judged check by
+   * check depends on it (CommonCriteriaFilterUtil.isJudgedCheckByCheck).
+   * Without a translator it is English. How the filters combine is the
+   * list's to say, once (#8533).
    */
   public static translateFilterToText(
     criteriaFilter: CriteriaFilter,
-    filterCondition?: FilterCondition | undefined,
     monitorType?: MonitorType | undefined,
+    translator: Translator = ENGLISH,
   ): string {
-    let text: string = "Check if ";
-
-    /*
-     * add metic aggregation type to the text - not for a forecast, which
-     * reads every value of the window into its trend
-     */
-    if (
-      criteriaFilter?.metricMonitorOptions?.metricAggregationType &&
-      !CommonCriteriaFilterUtil.isForecastFilterType(criteriaFilter.filterType)
-    ) {
-      text += `${criteriaFilter.metricMonitorOptions.metricAggregationType.toString()} of `;
-    }
-
-    // template: the maximum percentage of disk usage on /dev/sda in the past three minutes exceeds 21%.
-
     const isPercentage: boolean =
       criteriaFilter?.checkOn === CheckOn.CPUUsagePercent ||
       criteriaFilter?.checkOn === CheckOn.DiskUsagePercent ||
@@ -276,11 +579,11 @@ export default class CriteriaFilterUtil {
      * A body, a header or an expression judged from its match history has
      * no values to speak of - "all values of Response Body" reads as
      * nonsense - so it says which checks it must have matched on, after
-     * what it checks: ... not contains "App Title" on every check in the
-     * past 5 minutes.
+     * what it checks: ... does not contain "App Title" on every check in
+     * the past 5 minutes.
      */
-    const checkByCheckWindow: string =
-      CriteriaFilterUtil.getCheckByCheckWindowText(criteriaFilter, monitorType);
+    const checkByCheckWindow: CheckByCheckWindow | null =
+      CriteriaFilterUtil.getCheckByCheckWindow(criteriaFilter, monitorType);
 
     /*
      * A body, header or expression filter with the box ticked but no minutes
@@ -289,231 +592,338 @@ export default class CriteriaFilterUtil {
     const isEvaluatedOverTime: boolean =
       CommonCriteriaFilterUtil.isEvaluatedOverTime(criteriaFilter, monitorType);
 
-    // check evaluation over time values.
-    if (isEvaluatedOverTime && evaluateOverTimeType && !checkByCheckWindow) {
-      if (evaluateOverTimeType === EvaluateOverTimeType.AllValues) {
-        text += `all values of `;
-      } else if (evaluateOverTimeType === EvaluateOverTimeType.AnyValue) {
-        text += `any value of `;
-      } else if (evaluateOverTimeType === EvaluateOverTimeType.Average) {
-        text += `average ${isPercentage ? "percentage " : ""}value`;
-      } else if (evaluateOverTimeType === EvaluateOverTimeType.MaximumValue) {
-        text += `maximum ${isPercentage ? "percentage " : ""}value `;
-      } else if (evaluateOverTimeType === EvaluateOverTimeType.MunimumValue) {
-        text += `minimum ${isPercentage ? "percentage " : ""}value `;
-      } else if (evaluateOverTimeType === EvaluateOverTimeType.Sum) {
-        text += `sum of all ${isPercentage ? "percentage " : ""}values `;
-      }
-    }
+    const isForecast: boolean = CommonCriteriaFilterUtil.isForecastFilterType(
+      criteriaFilter?.filterType,
+    );
 
-    /*
-     * Anomaly criteria don't use the static threshold value field.
-     * Render them as plain English so the rule list reads cleanly.
-     */
-    if (
-      CommonCriteriaFilterUtil.isAnomalyFilterType(criteriaFilter?.filterType)
-    ) {
-      const sensitivity: AnomalyDetectionSensitivity =
-        (criteriaFilter?.metricMonitorOptions?.anomalyDetection?.sensitivity as
-          | AnomalyDetectionSensitivity
-          | undefined) || AnomalyDetectionSensitivity.Medium;
-      const windowDays: number =
-        criteriaFilter?.metricMonitorOptions?.anomalyDetection?.windowDays ||
-        14;
-      const direction: string =
-        criteriaFilter?.filterType === FilterType.AnomalouslyHigh
-          ? "anomalously high"
-          : criteriaFilter?.filterType === FilterType.AnomalouslyLow
-            ? "anomalously low"
-            : "anomalous (either direction)";
-      text += `"${criteriaFilter?.checkOn.toString()}" is ${direction} (sensitivity: ${sensitivity}, baseline window: ${windowDays} days)`;
-      if (filterCondition === FilterCondition.All) {
-        text += " and,";
-      }
-      if (filterCondition === FilterCondition.Any) {
-        text += " or,";
-      }
-      return text;
-    }
+    // How a window's values are read, and a metric's aggregation, around it.
+    const readOverTime: (measure: CriteriaPart) => CriteriaPart = (
+      measure: CriteriaPart,
+    ): CriteriaPart => {
+      let part: CriteriaPart = measure;
 
-    // A forecast says where the metric is headed, and by when.
-    if (
-      CommonCriteriaFilterUtil.isForecastFilterType(criteriaFilter?.filterType)
-    ) {
-      const horizonInHours: number =
-        CommonCriteriaFilterUtil.getForecastHorizonInHours(criteriaFilter);
-      const horizon: string =
-        horizonInHours >= 24 && horizonInHours % 24 === 0
-          ? `${horizonInHours / 24} ${horizonInHours === 24 ? "day" : "days"}`
-          : `${horizonInHours} ${horizonInHours === 1 ? "hour" : "hours"}`;
-      const direction: string =
-        criteriaFilter?.filterType === FilterType.ForecastAbove
-          ? "rise above"
-          : "fall below";
-      const unit: string = criteriaFilter?.metricMonitorOptions?.thresholdUnit
-        ? ` ${criteriaFilter.metricMonitorOptions.thresholdUnit}`
-        : "";
-      text += `"${criteriaFilter?.checkOn.toString()}" is forecast to ${direction} ${criteriaFilter?.value ?? "..."}${unit} within ${horizon}`;
-      if (filterCondition === FilterCondition.All) {
-        text += " and,";
+      if (isEvaluatedOverTime && evaluateOverTimeType && !checkByCheckWindow) {
+        part = wrapPart(
+          CRITERIA_EVALUATE_OVER_TIME_SENTENCES[evaluateOverTimeType],
+          "measure",
+          part,
+        );
       }
-      if (filterCondition === FilterCondition.Any) {
-        text += " or,";
-      }
-      return text;
-    }
 
-    if (criteriaFilter?.checkOn === CheckOn.JavaScriptExpression) {
-      text +=
-        "JavaScript expression " +
-        criteriaFilter?.value +
-        " - evaluates to true" +
-        (checkByCheckWindow ? ` ${checkByCheckWindow.trim()}` : "") +
-        ".";
-    } else {
+      // Not for a forecast, which reads every value of the window into its trend.
+      const aggregation: string | undefined =
+        criteriaFilter?.metricMonitorOptions?.metricAggregationType?.toString();
+
+      if (aggregation && !isForecast) {
+        part = wrapPart(CRITERIA_AGGREGATION_SENTENCE, "measure", part, {
+          aggregation: translatableTerm(aggregation),
+        });
+      }
+
+      return part;
+    };
+
+    const checkName: (label: string) => CriteriaPart = (
+      label: string,
+    ): CriteriaPart => {
+      return (sentence: Translator): string => {
+        return sentence.translateTemplate(CRITERIA_CHECK_SENTENCE, {
+          check: translatableTerm(label),
+        });
+      };
+    };
+
+    const condition: CriteriaPart = ((): CriteriaPart => {
+      const filterType: FilterType | undefined = criteriaFilter?.filterType;
+      const anomaly: PluralTemplate | undefined = filterType
+        ? CRITERIA_ANOMALY_SENTENCES[filterType]
+        : undefined;
+
+      /*
+       * Anomaly criteria don't use the static threshold value field: they
+       * say how sensitive they are and how far back their baseline reaches.
+       */
+      if (anomaly) {
+        const sensitivity: AnomalyDetectionSensitivity =
+          (criteriaFilter?.metricMonitorOptions?.anomalyDetection
+            ?.sensitivity as AnomalyDetectionSensitivity | undefined) ||
+          AnomalyDetectionSensitivity.Medium;
+        const windowDays: number =
+          criteriaFilter?.metricMonitorOptions?.anomalyDetection?.windowDays ||
+          14;
+
+        return wrapPluralPart(
+          anomaly,
+          windowDays,
+          "subject",
+          readOverTime(checkName(`${criteriaFilter?.checkOn ?? ""}`)),
+          { sensitivity: translatableTerm(sensitivity) },
+        );
+      }
+
+      // A forecast says where the metric is headed, and by when.
+      if (isForecast) {
+        const horizonInHours: number =
+          CommonCriteriaFilterUtil.getForecastHorizonInHours(criteriaFilter);
+        const isInDays: boolean =
+          horizonInHours >= 24 && horizonInHours % 24 === 0;
+        const unit: string =
+          criteriaFilter?.metricMonitorOptions?.thresholdUnit || "";
+
+        return wrapPart(
+          filterType === FilterType.ForecastAbove
+            ? CRITERIA_FORECAST_ABOVE_SENTENCE
+            : CRITERIA_FORECAST_BELOW_SENTENCE,
+          "subject",
+          readOverTime(checkName(`${criteriaFilter?.checkOn ?? ""}`)),
+          {
+            value: composedValue((sentence: Translator): string => {
+              return criteriaFilter?.value === undefined ||
+                criteriaFilter?.value === null
+                ? "..."
+                : writeThreshold({
+                    value: criteriaFilter.value.toString(),
+                    translator: sentence,
+                    isPercentage: false,
+                    isMilliseconds: false,
+                    units: [unit],
+                  });
+            }),
+            /*
+             * "3 days" as the sentence's language writes a length in full
+             * (Intl: "3 Tage", "3 أيام", "۳ روز"), its plural forms all
+             * its own; English, and an engine Intl cannot write it in, as
+             * the plural keys word it.
+             */
+            horizon: composedValue((sentence: Translator): string => {
+              const count: number = isInDays
+                ? horizonInHours / 24
+                : horizonInHours;
+              const written: string | null = isEnglishDateLanguage(
+                sentence.language,
+              )
+                ? null
+                : formatDurationUnit({
+                    part: { count: count, unit: isInDays ? "day" : "hour" },
+                    locale: sentence.language,
+                    unitDisplay: "long",
+                  });
+
+              return (
+                written ||
+                sentence.translatePlural(
+                  isInDays ? CRITERIA_FORECAST_DAYS : CRITERIA_FORECAST_HOURS,
+                  count,
+                )
+              );
+            }),
+          },
+        );
+      }
+
+      /*
+       * The expression as typed. On a monitor type that keeps no match
+       * history, a window is read over its values like a measured one's.
+       */
+      if (criteriaFilter?.checkOn === CheckOn.JavaScriptExpression) {
+        return readOverTime((sentence: Translator): string => {
+          return sentence.translateTemplate(CRITERIA_EXPRESSION_SENTENCE, {
+            expression: `${criteriaFilter?.value}`,
+          });
+        });
+      }
+
       /*
        * Name the metric rather than the check: "Database Metric is greater
        * than 90" says nothing about what is being measured, and every
        * database filter would read identically in the criteria list.
        */
-      const checkOnLabel: string =
-        databaseMetric?.friendlyName || criteriaFilter?.checkOn.toString();
+      let measure: CriteriaPart = checkName(
+        databaseMetric?.friendlyName || `${criteriaFilter?.checkOn ?? ""}`,
+      );
 
-      text += `"${checkOnLabel}" `;
+      const diskPath: string | undefined =
+        criteriaFilter?.serverMonitorOptions?.diskPath;
 
-      if (criteriaFilter?.serverMonitorOptions?.diskPath) {
-        text += "on " + criteriaFilter?.serverMonitorOptions?.diskPath + " ";
+      if (diskPath) {
+        measure = wrapPart(CRITERIA_ON_DISK_SENTENCE, "measure", measure, {
+          diskPath: diskPath,
+        });
       }
 
       const resultValuePath: string | undefined =
         criteriaFilter?.customCodeMonitorOptions?.resultValuePath?.trim();
 
       if (resultValuePath && criteriaFilter?.checkOn === CheckOn.ResultValue) {
-        text += "at " + resultValuePath + " ";
+        measure = wrapPart(CRITERIA_AT_PATH_SENTENCE, "measure", measure, {
+          path: resultValuePath,
+        });
       }
 
       const transceiverReading: string | undefined =
         criteriaFilter?.snmpMonitorOptions?.transceiverReading;
+      const transceiverTitle: string | undefined = transceiverReading
+        ? TRANSCEIVER_READING_TITLES[
+            transceiverReading as TransceiverReadingKind
+          ]
+        : undefined;
 
       if (
         criteriaFilter?.checkOn === CheckOn.SnmpTransceiverReading &&
-        transceiverReading &&
-        TRANSCEIVER_READING_TITLES[transceiverReading as TransceiverReadingKind]
+        transceiverTitle
       ) {
-        text +=
-          "(" +
-          TRANSCEIVER_READING_TITLES[
-            transceiverReading as TransceiverReadingKind
-          ] +
-          ") ";
+        measure = wrapPart(CRITERIA_READING_SENTENCE, "measure", measure, {
+          reading: translatableTerm(transceiverTitle),
+        });
       }
 
-      if (criteriaFilter?.snmpMonitorOptions?.interfaceName) {
-        text +=
-          "on interface " +
-          criteriaFilter?.snmpMonitorOptions?.interfaceName +
-          " ";
+      const interfaceName: string | undefined =
+        criteriaFilter?.snmpMonitorOptions?.interfaceName;
+
+      if (interfaceName) {
+        measure = wrapPart(CRITERIA_ON_INTERFACE_SENTENCE, "measure", measure, {
+          interface: interfaceName,
+        });
       }
 
-      if (criteriaFilter?.snmpMonitorOptions?.tableKey) {
-        text +=
-          "in SNMP table " + criteriaFilter.snmpMonitorOptions.tableKey + " ";
+      const tableKey: string | undefined =
+        criteriaFilter?.snmpMonitorOptions?.tableKey;
 
-        if (criteriaFilter.snmpMonitorOptions.tableRow) {
-          text +=
-            criteriaFilter.snmpMonitorOptions.tableRow.trim() === "*"
-              ? "for each row "
-              : "on row " + criteriaFilter.snmpMonitorOptions.tableRow + " ";
-        }
+      if (tableKey) {
+        const tableRow: string | undefined =
+          criteriaFilter.snmpMonitorOptions?.tableRow;
+
+        measure = wrapPart(
+          !tableRow
+            ? CRITERIA_IN_TABLE_SENTENCE
+            : tableRow.trim() === "*"
+              ? CRITERIA_IN_TABLE_EACH_ROW_SENTENCE
+              : CRITERIA_IN_TABLE_ROW_SENTENCE,
+          "measure",
+          measure,
+          { table: tableKey, row: tableRow || "" },
+        );
       }
 
-      // add minutes if evaluate over time is true
-      if (
-        isEvaluatedOverTime &&
-        criteriaFilter.evaluateOverTimeOptions?.timeValueInMinutes &&
-        !checkByCheckWindow
-      ) {
-        text +=
-          "in the past " +
-          criteriaFilter.evaluateOverTimeOptions?.timeValueInMinutes +
-          " minutes ";
-      }
-
-      // ADD FILTER TYPE - like greater than, less than, etc
-
-      /*
-       * A text comparison reads as a verb of its own - contains, starts
-       * with - where the others read "is greater than", "is true".
-       */
-      const isTextComparison: boolean = CriteriaFilterUtil.isTextComparison(
-        criteriaFilter?.filterType,
+      // The minutes a measured value is read over.
+      const minutes: number = Number(
+        criteriaFilter?.evaluateOverTimeOptions?.timeValueInMinutes,
       );
 
-      if (criteriaFilter?.filterType) {
-        if (isTextComparison) {
-          text += criteriaFilter?.filterType.toString().toLowerCase() + " ";
-        } else {
-          text +=
-            "is " + criteriaFilter?.filterType.toString().toLowerCase() + " ";
+      let subject: CriteriaPart = readOverTime(measure);
+
+      if (isEvaluatedOverTime && minutes > 0 && !checkByCheckWindow) {
+        subject = wrapPluralPart(
+          CRITERIA_IN_THE_PAST_SENTENCE,
+          minutes,
+          "measure",
+          subject,
+        );
+      }
+
+      // A text comparison quotes what it looks for, as typed.
+      const isTextComparison: boolean =
+        CriteriaFilterUtil.isTextComparison(filterType);
+      // A transceiver reading is in its own unit: dBm, °C, V or mA.
+      const transceiverUnit: string | undefined =
+        criteriaFilter?.checkOn === CheckOn.SnmpTransceiverReading &&
+        transceiverReading
+          ? TRANSCEIVER_READING_UNITS[
+              transceiverReading as TransceiverReadingKind
+            ]
+          : undefined;
+      const hasValue: boolean =
+        criteriaFilter?.value !== undefined && criteriaFilter?.value !== null;
+      const value: TemplateValues["value"] = composedValue(
+        (sentence: Translator): string => {
+          if (!hasValue) {
+            return "...";
+          }
+
+          const typed: string = criteriaFilter.value!.toString();
+
+          return isTextComparison
+            ? typed
+            : writeThreshold({
+                value: typed,
+                translator: sentence,
+                isPercentage: isPercentage,
+                isMilliseconds: isMilliseconds,
+                units: [
+                  criteriaFilter?.checkOn === CheckOn.MetricValue
+                    ? criteriaFilter?.metricMonitorOptions?.thresholdUnit || ""
+                    : "",
+                  databaseMetric?.unit || "",
+                  transceiverUnit || "",
+                ],
+              });
+        },
+      );
+
+      const comparison: string | undefined = filterType
+        ? CRITERIA_COMPARISON_SENTENCES[filterType]
+        : undefined;
+      const minutesComparison: PluralTemplate | undefined = filterType
+        ? CRITERIA_MINUTES_COMPARISON_SENTENCES[filterType]
+        : undefined;
+      const thresholdMinutes: number =
+        hasValue && NUMERIC_THRESHOLD.test(criteriaFilter.value!.toString())
+          ? Number(criteriaFilter.value)
+          : NaN;
+
+      return (sentence: Translator): string => {
+        if (minutesComparison && Number.isFinite(thresholdMinutes)) {
+          return sentence.translatePlural(minutesComparison, thresholdMinutes, {
+            subject: composedValue(subject),
+          });
         }
-      }
 
-      /// FINALLY ADD THE VALUE
+        if (comparison) {
+          return sentence.translateTemplate(comparison, {
+            subject: composedValue(subject),
+            value: value,
+          });
+        }
 
-      if (
-        criteriaFilter?.value !== undefined &&
-        criteriaFilter?.value !== null &&
-        isTextComparison
-      ) {
-        /*
-         * The text a comparison looks for is quoted, as the evaluation log
-         * and an incident's root cause quote it (Response Body Not Contains
-         * "App Title"): a window can follow it - ... not contains "App
-         * Title" on every check in the past 5 minutes - and the reader has
-         * to see where the text ends.
-         */
-        text += `"${criteriaFilter.value.toString()}" `;
-      } else if (criteriaFilter?.value !== undefined) {
-        const thresholdUnitSuffix: string =
-          criteriaFilter?.checkOn === CheckOn.MetricValue &&
-          criteriaFilter?.metricMonitorOptions?.thresholdUnit
-            ? ` ${criteriaFilter.metricMonitorOptions.thresholdUnit}`
-            : "";
+        // No condition picked yet: what is checked, on its own.
+        if (!filterType) {
+          return subject(sentence);
+        }
 
-        const databaseUnitSuffix: string = databaseMetric?.unit
-          ? ` ${databaseMetric.unit}`
-          : "";
+        return sentence.translateTemplate(CRITERIA_OTHER_COMPARISON_SENTENCE, {
+          subject: composedValue(subject),
+          comparison: translatableTerm(filterType, { inSentence: true }),
+          value: value,
+        });
+      };
+    })();
 
-        // A transceiver reading is in its own unit: dBm, °C, V or mA.
-        const transceiverUnit: string | undefined =
-          criteriaFilter?.checkOn === CheckOn.SnmpTransceiverReading &&
-          criteriaFilter?.snmpMonitorOptions?.transceiverReading
-            ? TRANSCEIVER_READING_UNITS[
-                criteriaFilter.snmpMonitorOptions
-                  .transceiverReading as TransceiverReadingKind
-              ]
-            : undefined;
-        const transceiverUnitSuffix: string = transceiverUnit
-          ? ` ${transceiverUnit}`
-          : "";
+    // On every check of the window, or on any one.
+    const judged: CriteriaPart = checkByCheckWindow
+      ? wrapPluralPart(
+          checkByCheckWindow.isAnyCheck
+            ? CRITERIA_ON_ANY_CHECK_SENTENCE
+            : CRITERIA_ON_EVERY_CHECK_SENTENCE,
+          checkByCheckWindow.minutes,
+          "condition",
+          condition,
+        )
+      : condition;
 
-        text += `${criteriaFilter?.value.toString()}${
-          isPercentage ? "%" : ""
-        }${isMilliseconds ? "ms" : ""}${thresholdUnitSuffix}${databaseUnitSuffix}${transceiverUnitSuffix} `;
-      }
+    const isExpression: boolean =
+      criteriaFilter?.checkOn === CheckOn.JavaScriptExpression &&
+      !CommonCriteriaFilterUtil.isAnomalyFilterType(
+        criteriaFilter?.filterType,
+      ) &&
+      !isForecast;
 
-      text += checkByCheckWindow;
-    }
+    const whole: string = isExpression
+      ? CRITERIA_EXPRESSION_FILTER_SENTENCE
+      : CRITERIA_FILTER_SENTENCE;
 
-    if (filterCondition === FilterCondition.All) {
-      text += "and,";
-    }
-
-    if (filterCondition === FilterCondition.Any) {
-      text += "or,";
-    }
-
-    return text;
+    return translator.translateTemplate(whole, {
+      condition: composedValue(judged),
+    });
   }
 
   /*
@@ -530,46 +940,47 @@ export default class CriteriaFilterUtil {
   }
 
   /*
-   * "on every check in the past 5 minutes " for a body, header or
-   * expression filter judged from its match history, "on any check ..." for
-   * Any Value; empty for every other filter, for one whose window is not
-   * set (the server judges that one on the latest check alone), and for one
-   * on a monitor type that keeps no match history for it.
+   * The window a body, header or expression filter is judged on from its
+   * match history: its minutes, and whether any one check of it is enough
+   * (Any Value) or every check must have matched. Null for every other
+   * filter, for one whose window is not set (the server judges that one on
+   * the latest check alone), and for one on a monitor type that keeps no
+   * match history for it.
    *
    * Is Request Timeout keeps a match history too, but it is a true/false
    * check like Is Online and reads like one: "all values of ... is true".
    */
-  public static getCheckByCheckWindowText(
+  public static getCheckByCheckWindow(
     criteriaFilter: CriteriaFilter | undefined,
     monitorType?: MonitorType | undefined,
-  ): string {
-    const minutes: number | string | undefined =
-      criteriaFilter?.evaluateOverTimeOptions?.timeValueInMinutes;
+  ): CheckByCheckWindow | null {
+    const minutes: number = Number(
+      criteriaFilter?.evaluateOverTimeOptions?.timeValueInMinutes,
+    );
 
     if (
       !CommonCriteriaFilterUtil.isEvaluatedOverTime(
         criteriaFilter,
         monitorType,
       ) ||
-      !minutes ||
+      !(minutes > 0) ||
       !CommonCriteriaFilterUtil.keepsMatchHistory(
         criteriaFilter?.checkOn,
         monitorType,
       ) ||
       CommonCriteriaFilterUtil.isBooleanSeries(criteriaFilter?.checkOn)
     ) {
-      return "";
+      return null;
     }
 
-    const whichChecks: string =
-      CommonCriteriaFilterUtil.getEffectiveEvaluateOverTimeType(
-        criteriaFilter,
-        monitorType,
-      ) === EvaluateOverTimeType.AnyValue
-        ? "any check"
-        : "every check";
-
-    return `on ${whichChecks} in the past ${minutes} minutes `;
+    return {
+      minutes: minutes,
+      isAnyCheck:
+        CommonCriteriaFilterUtil.getEffectiveEvaluateOverTimeType(
+          criteriaFilter,
+          monitorType,
+        ) === EvaluateOverTimeType.AnyValue,
+    };
   }
 
   public static getCheckOnOptionsByMonitorType(

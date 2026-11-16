@@ -1,4 +1,4 @@
-# NTP-overvåking
+# NTP-monitor
 
 En NTP-monitor kontrollerer at en tidsserver svarer på UDP-port 123 og leverer pålitelig tid: at den er synkronisert, på et fornuftig stratum, og at klokken dens stemmer med sondens. Bruk den for tidsserverne du drifter selv, som en GPS-klokke i datasenteret eller de interne serverne maskinene dine synkroniserer mot, og for de offentlige serverne du er avhengig av.
 
@@ -33,7 +33,7 @@ En server som svarer, blir ikke spurt igjen, heller ikke når den svarer uten p�
 
 ## Før du begynner
 
-- **En rolle som kan opprette monitorer**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member, eller en egendefinert rolle med tillatelsen Create Monitor.
+- **En rolle som kan opprette monitorer**: Prosjekteier, Prosjektadministrator, Prosjektmedlem, Monitoradministrator eller Monitormedlem, eller en egendefinert rolle med tillatelsen Create Monitor.
 - **En sonde som når UDP-port 123 på serveren.** Alle sonder kan kontrollere en offentlig tidsserver. For en server på et privat nettverk bruker du en [egendefinert sonde](/docs/probe/custom-probe) inne i det nettverket. En brannmur foran serveren må slippe gjennom UDP, ikke bare TCP, fra [IP-adressene til OneUptime Clouds sonder](/docs/configuration/ip-addresses) eller fra den egendefinerte sonden din.
 
 ## Opprett en NTP-monitor
@@ -53,7 +53,7 @@ I **NTP-server** skriver du inn serverens vertsnavn eller IP-adresse, for eksemp
 
 ### Test den
 
-Klikk på **Test monitor**, velg en sonde under **Velg sonde** og klikk på **Kjør test**. **Resultat av overvåkingstest** viser om serveren svarte, om den er synkronisert, stratumet dens og hvor mye klokken dens avviker.
+Klikk på **Test monitor**, velg en sonde under **Velg sonde** og klikk på **Kjør test**. **Resultat av monitortest** viser om serveren svarte, om den er synkronisert, stratumet dens og hvor mye klokken dens avviker.
 
 ### Gå gjennom kriteriene
 
@@ -112,7 +112,7 @@ Med to eller flere filtre avgjør **Samsvarsbetingelse** om **Alle** må samsvar
 
 En ny NTP-monitor starter med to kriterier:
 
-- **Frakoblet** — serveren svarer ikke, er ikke synkronisert, eller klokken dens er `1000` ms eller mer fra sondens. Monitoren markeres som **Frakoblet**, og det opprettes en hendelse som heter "_monitornavn_ is not serving good time". Den løser seg selv når serveren igjen leverer pålitelig tid.
+- **Frakoblet** — serveren svarer ikke, er ikke synkronisert, eller klokken dens er `1000` ms eller mer fra sondens. Monitoren markeres som **Frakoblet**, og det opprettes en hendelse som heter "_monitornavn_ leverer ikke riktig tid". Den løser seg selv når serveren igjen leverer pålitelig tid.
 - **Online** — serveren svarer, er synkronisert, og klokken dens er innenfor `1000` ms fra sondens. Monitoren markeres som **I drift**.
 
 Kriteriene kontrolleres ovenfra og ned, og det første som samsvarer, avgjør hva som skjer. En server som svarer med feil tid, behandles med vilje som nede: hver klient som følger den, ville også ta den tiden.
@@ -155,8 +155,8 @@ Sonden er langt fra serveren, eller veien er tregere den ene veien enn den andre
 ## Neste trinn
 
 :::cards
-- [Ping-overvåking](/docs/monitor/ping-monitor): Kontroller at selve verten kan nås.
-- [Port-overvåking](/docs/monitor/port-monitor): Kontroller TCP-tjenestene på samme vert.
-- [Egendefinerte probes](/docs/probe/custom-probe): Kontroller tidsservere på ditt eget nettverk.
+- [Ping-monitor](/docs/monitor/ping-monitor): Kontroller at selve verten kan nås.
+- [Port-monitor](/docs/monitor/port-monitor): Kontroller TCP-tjenestene på samme vert.
+- [Egendefinerte sonder](/docs/probe/custom-probe): Kontroller tidsservere på ditt eget nettverk.
 - [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating): Sett stratum og avvik i tittelen på en hendelse.
 :::

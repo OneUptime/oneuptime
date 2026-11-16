@@ -54,6 +54,7 @@ import TelemetryIngest, {
   getEffectiveRequestsPerMinuteLimit,
 } from "Common/Server/Middleware/TelemetryIngest";
 import TelemetryIngestionKeyService from "Common/Server/Services/TelemetryIngestionKeyService";
+import CacheGenerations from "Common/Server/Infrastructure/CacheGenerations";
 import Response from "Common/Server/Utils/Response";
 import TelemetryIngestionKeyRateLimiter, {
   TelemetryIngestionKeyLimitOutcome,
@@ -943,14 +944,39 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
     );
   });
 
-  it("reaches every server within a minute, and records Last Used At every few minutes", () => {
+  /*
+   * Issue #8370: the lookup by secret - the HTTP and gRPC ingest paths - is
+   * kept under each key's generation, which an update or a delete renews
+   * through Redis, so a change reaches every server within
+   * CacheGenerations.SHARED_READ_TTL_MS (a second). While a server cannot
+   * reach Redis, its entries are kept for POSITIVE_TTL_MS, a minute.
+   */
+  it("reaches every server within seconds, a minute while a server cannot reach the cache, and records Last Used At every few minutes", () => {
+    expect(CacheGenerations.SHARED_READ_TTL_MS).toBe(1000);
     expect(numberConstant(keyService, "POSITIVE_TTL_MS")).toBe(60 * 1000);
+    expect(
+      between(
+        keyService,
+        "public async getPolicyFromSecretKey(",
+        "private async readPolicyBySecret(",
+      ),
+    ).toContain("=== cached.generation");
+    expect(
+      between(keyService, "protected override async onUpdateSuccess(", "\n  }"),
+    ).toContain("await this.forgetKeys(updatedItemIds);");
+    expect(
+      between(keyService, "protected override async onDeleteSuccess(", "\n  }"),
+    ).toContain("await this.forgetKeys(itemIdsBeforeDelete);");
     expect(numberConstant(keyService, "LAST_USED_THROTTLE_MS")).toBe(
       5 * 60 * 1000,
     );
     expect(page).toContain(
-      "**Changes reach every server within a minute.** Turning a key off, resetting its secret, or changing its origins, expiry or limit takes effect within about a minute.",
+      "**Changes reach every server within seconds.** Turning a key off, resetting its secret, or changing its origins, expiry or limit takes effect on every server within a few seconds.",
     );
+    expect(page).toContain(
+      ":::details Data still arrives after I turned the key off\nEach OneUptime server checks for a change to a key at least once a second, so a change reaches all of them within a few seconds, and requests after that are refused. While a server cannot reach OneUptime's cache, it may go by what it knew of the key for up to a minute.",
+    );
+    expect(page).not.toContain("within about a minute");
     expect(page).toContain(
       "**Last Used At** is updated every few minutes, not on every request.",
     );
@@ -2910,47 +2936,40 @@ describe("the four pages together", () => {
   );
 
   it("keep in English only the labels no Dashboard locale has, where the Dashboard draws them so", () => {
-    const drawnIn: Record<string, string> = {
-      "Entry point": "Components/Topology/ServiceMapViewModel.ts",
-      "No calls observed": "Components/Topology/ServiceMapViewModel.ts",
-    };
-    const keptOnTopology: Array<string> = [
-      ...(KEPT_AS_WRITTEN[TOPOLOGY] || []),
-    ];
-
-    expect([...keptOnTopology].sort()).toEqual(Object.keys(drawnIn).sort());
-
-    for (const word of [
-      ...keptOnTopology,
-      ...(KEPT_AS_WRITTEN[DATA_RETENTION] || []),
-    ]) {
+    for (const word of Object.values(KEPT_AS_WRITTEN).flat()) {
       expect({ word, isKey: word in DASHBOARD_ENGLISH }).toEqual({
         word,
         isKey: false,
       });
     }
 
-    for (const word of keptOnTopology) {
-      expect({
-        word,
-        drawn: readDashboardSource(drawnIn[word] as string).includes(
-          `"${word}"`,
-        ),
-      }).toEqual({ word, drawn: true });
-    }
-
     /*
-     * The service map's legend looks its statuses up in the locale, so the
-     * two that are keys - the queues' topology map draws them too - read
-     * as each language's Dashboard draws them, as other labels do.
+     * The service map's legend looks every status up in the locale. Entry
+     * point and No calls observed were English in every language, and the
+     * pages kept them so, until #8260 made them keys too: each language now
+     * names all five as its Dashboard draws them.
      */
     expect(
       readDashboardSource("Components/Topology/ServiceMapGraph.tsx"),
     ).toContain("{t(SERVICE_STATUS_LABELS[status])}");
+    expect(KEPT_AS_WRITTEN[TOPOLOGY]).toBeUndefined();
+
+    for (const word of Object.values(SERVICE_STATUS_LABELS)) {
+      expect({ word, isKey: word in DASHBOARD_ENGLISH }).toEqual({
+        word,
+        isKey: true,
+      });
+    }
+
+    // The retention-by-type form's fields, keys since #8461.
+    expect(KEPT_AS_WRITTEN[DATA_RETENTION]).toBeUndefined();
 
     for (const word of [
-      SERVICE_STATUS_LABELS.degraded,
-      SERVICE_STATUS_LABELS.critical,
+      "Edit Overrides",
+      "Logs default (days)",
+      "Traces default (days)",
+      "Metrics default (days)",
+      "Profiles default (days)",
     ]) {
       expect({ word, isKey: word in DASHBOARD_ENGLISH }).toEqual({
         word,

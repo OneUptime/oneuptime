@@ -25,7 +25,7 @@ flowchart TB
 ```
 
 - **Nyckeln bestämmer projektet.** Du skickar aldrig ett projekt-ID: data som skickas med en nyckel hamnar i det projekt som nyckeln tillhör.
-- **Ändringar når alla servrar inom en minut.** Att stänga av en nyckel, återställa dess hemlighet eller ändra dess ursprung, utgång eller gräns får effekt inom ungefär en minut.
+- **Ändringar når alla servrar inom några sekunder.** Att stänga av en nyckel, återställa dess hemlighet eller ändra dess ursprung, utgång eller gräns får effekt på alla servrar inom några sekunder.
 - **En nyckel kan ha egna budgetar.** En daglig budget och en hastighet per sekund för varje signal, inom projektets: se [Intagningsbudgetar](/docs/telemetry/ingestion-budgets).
 - **En servernyckel är ett lösenord.** Den som har den kan skicka telemetri till ditt projekt. Förvara den bland dina servrars hemligheter, aldrig i versionshantering eller på en webbsida.
 
@@ -45,7 +45,7 @@ Välj typ efter var nyckeln ska finnas. Typen kan inte ändras efter att nyckeln
 
 ## Innan du börjar
 
-- **En roll som hanterar intagningsnycklar.** Project Owner eller Project Admin, eller en anpassad roll med behörigheten Create Ingestion Key. Telemetry-rollerna omfattar inte intagningsnycklar.
+- **En roll som hanterar intagningsnycklar.** Projektägare eller Projektadministratör, eller en anpassad roll med behörigheten Create Ingestion Key. Telemetry-rollerna omfattar inte intagningsnycklar.
 - **På OneUptime Cloud, en betalningsmetod.** Telemetri faktureras efter användning, så ett projekt på Free-planen behöver en betalningsmetod innan det kan skapa en nyckel. Dialogrutan för att skapa slutar då med ett steg **Fakturering** som visar priserna.
 
 ## Skapa en intagningsnyckel
@@ -108,7 +108,7 @@ Ett ursprung är ett schema, en värd och en valfri port: `https://app.example.c
 
 ## Byt ut, stäng av eller ta bort en nyckel
 
-En nyckels sida visar dess **Status**, dess **Hemlig nyckel** bakom **Klicka för att visa** och dess **Last Used At**: senaste gången OneUptime tog emot data som skickades med den.
+En nyckels sida visar dess **Status**, dess **Hemlig nyckel** bakom **Klicka för att visa** och dess **Senast använd den**: senaste gången OneUptime tog emot data som skickades med den.
 
 | För att | Gör så här | Vad avsändare ser |
 | --- | --- | --- |
@@ -116,7 +116,7 @@ En nyckels sida visar dess **Status**, dess **Hemlig nyckel** bakom **Klicka fö
 | Ersätta en läckt hemlighet | Klicka på **Återställ hemlig nyckel** och bekräfta. Nyckeln behåller sina inställningar och får en ny hemlighet. | `401` tills de skickar den nya hemligheten |
 | Stoppa en nyckel för gott | Klicka på **Ta bort Intagningsnyckel** längst ned på dess sida. | `401` |
 
-För att byta en hemlighet utan att förlora data skapar du en andra nyckel, flyttar dina avsändare till den och tar bort den gamla nyckeln när dess **Last Used At** slutar ändras. **Last Used At** uppdateras med några minuters mellanrum, inte vid varje begäran.
+För att byta en hemlighet utan att förlora data skapar du en andra nyckel, flyttar dina avsändare till den och tar bort den gamla nyckeln när dess **Senast använd den** slutar ändras. **Senast använd den** uppdateras med några minuters mellanrum, inte vid varje begäran.
 
 ## Felsökning
 
@@ -139,8 +139,8 @@ Nyckelns sida räknar också: **Avvisad telemetri** visar vad som avvisats från
 
 För de andra svar som en OTLP-exportör kan få, se [Svar](/docs/telemetry/open-telemetry#svar).
 
-:::details Data kommer fortfarande in en minut efter att jag stängde av nyckeln
-Varje OneUptime-server minns vad den vet om en nyckel i upp till en minut, så en ändring når alla inom ungefär en minut. Begäranden efter det avvisas.
+:::details Data kommer fortfarande in efter att jag stängde av nyckeln
+Varje OneUptime-server kontrollerar minst en gång i sekunden om en nyckel har ändrats, så en ändring når alla inom några sekunder och begäranden efter det avvisas. Medan en server inte når OneUptimes cache kan den utgå från det den visste om nyckeln i upp till en minut. En MQTT-klient som anslöt med nyckeln kopplas bort inom några sekunder.
 :::
 
 :::details En webbläsarnyckel fungerar på min bärbara dator men inte i produktion

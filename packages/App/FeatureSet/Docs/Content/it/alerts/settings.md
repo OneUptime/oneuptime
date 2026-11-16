@@ -93,7 +93,7 @@ Una regola chiama appena un avviso corrisponde. Perché attenda invece l'orario 
 
 Una regola chiama le persone delle sue policy perché rispondano: riconoscere la chiamata riconosce l'avviso. Per tenere informato un team mentre un altro risponde, rispondete **Osservatori** a **Chiama le persone di queste policy come** sotto **Altri campi**. La loro chiamata dice che sono osservatori, e riconoscerla dice solo che l'hanno vista: l'avviso non viene riconosciuto e la chiamata di nessun altro si ferma. La loro chiamata continua finché uno di loro risponde o l'avviso viene risolto, e nell'elenco la regola dice sotto il nome che chiama come osservatori. Una policy che una regola corrispondente chiama per rispondere e un'altra come osservatori chiama per rispondere.
 
-Una regola può appartenere a dei team. **Team responsabili**, sotto **Altri campi**, la riserva ai team che scegli: solo i loro membri e gli amministratori del progetto possono modificarla o eliminarla, e tutti gli altri che vedono le regole la vedono in sola lettura. Una regola che non appartiene a nessun team può essere modificata da chiunque possa modificare le regole di reperibilità, e anche le regole degli episodi possono appartenere a dei team. Vedi [Regole che appartengono a dei team](/docs/permissions/index#regole-che-appartengono-a-dei-team).
+Una regola può appartenere a dei team. **Team responsabili**, sotto **Altri campi**, la riserva ai team che scegli: solo i loro membri e gli Amministratori del progetto possono modificarla o eliminarla, e tutti gli altri che vedono le regole la vedono in sola lettura. Una regola che non appartiene a nessun team può essere modificata da chiunque possa modificare le regole di reperibilità, e anche le regole degli episodi possono appartenere a dei team. Vedi [Regole che appartengono a dei team](/docs/permissions/index#regole-che-appartengono-a-dei-team).
 
 ## Regole degli incidenti
 
@@ -123,7 +123,7 @@ Le **Regole del proprietario** aggiungono utenti e team proprietari ai nuovi avv
 
 ## Regole di privacy e di runbook
 
-Le **Regole di privacy** rendono privati i nuovi avvisi corrispondenti, prima che giri qualsiasi altra cosa: solo i loro proprietari e gli amministratori e proprietari del progetto possono vederli. Una regola ha due passaggi: **Corrispondenza**, gli avvisi che rende privati, poi **Nome**, già compilato come «Rendi privati gli avvisi». Vedere [Avvisi privati](/docs/alerts/index#avvisi-privati).
+Le **Regole di privacy** rendono privati i nuovi avvisi corrispondenti, prima che giri qualsiasi altra cosa: solo i loro proprietari e gli Amministratori del progetto e Proprietari del progetto possono vederli. Una regola ha due passaggi: **Corrispondenza**, gli avvisi che rende privati, poi **Nome**, già compilato come «Rendi privati gli avvisi». Vedere [Avvisi privati](/docs/alerts/index#avvisi-privati).
 
 Le **Regole di runbook** avviano un runbook quando un nuovo avviso corrisponde, a meno che l'avviso non sia stato creato risolto. Vedere [Regole di runbook](/docs/runbooks/rules).
 
@@ -161,7 +161,7 @@ La misurazione **Tempo di riconoscimento dopo la chiamata** conta da **Qualcuno 
 
 ### Appartenenza agli episodi
 
-**Avvisi → Impostazioni → Appartenenza agli episodi** decide se un avviso può far parte di più di un episodio. Attivate **Un avviso può far parte di un solo episodio** e un avviso che fa parte di un episodio non viene aggiunto a nessun altro, né dalla dashboard né tramite l'API, un flusso di lavoro o una regola di raggruppamento, se prima non viene tolto da quell'episodio. È disattivato finché non lo attivate, e solo i Project Owners e i Project Admins possono cambiarlo. Attivarlo non toglie nessun avviso da un episodio. Vedere [Un solo episodio per incidente](/docs/incidents/episodes#un-solo-episodio-per-incidente), che funziona allo stesso modo per gli avvisi.
+**Avvisi → Impostazioni → Appartenenza agli episodi** decide se un avviso può far parte di più di un episodio. Attivate **Un avviso può far parte di un solo episodio** e un avviso che fa parte di un episodio non viene aggiunto a nessun altro, né dalla dashboard né tramite l'API, un flusso di lavoro o una regola di raggruppamento, se prima non viene tolto da quell'episodio. È disattivato finché non lo attivate, e solo i Proprietari del progetto e gli Amministratori del progetto possono cambiarlo. Attivarlo non toglie nessun avviso da un episodio. Vedere [Un solo episodio per incidente](/docs/incidents/episodes#un-solo-episodio-per-incidente), che funziona allo stesso modo per gli avvisi.
 
 ### Numerazione
 
@@ -171,18 +171,18 @@ La scheda **Numero successivo** sotto imposta il numero che ricevono il prossimo
 
 ### Conservazione dei dati
 
-**Avvisi → Impostazioni → Conservazione dei dati** elimina gli avvisi quando sono risolti da abbastanza tempo, come fa [Conservazione dei dati](/docs/incidents/settings#conservazione-dei-dati) per gli incidenti. La sua scheda **Avvisi risolti** chiede **Elimina dopo**, **Mai** finché non scegliete una durata, e chiede conferma prima di eliminare di più, con **Elimina gli avvisi vecchi**. Un avviso resta finché non è risolto, finché fa parte di un episodio ancora aperto o risolto più di recente, e finché resta un incidente a cui è collegato. Solo i Project Owners e i Project Admins possono modificarla; nell'API è `alertRetentionInDays` del progetto.
+**Avvisi → Impostazioni → Conservazione dei dati** elimina gli avvisi quando sono risolti da abbastanza tempo, come fa [Conservazione dei dati](/docs/incidents/settings#conservazione-dei-dati) per gli incidenti. La sua scheda **Avvisi risolti** chiede **Elimina dopo**, **Mai** finché non scegliete una durata, e chiede conferma prima di eliminare di più, con **Elimina gli avvisi vecchi**. Un avviso resta finché non è risolto, finché fa parte di un episodio ancora aperto o risolto più di recente, e finché resta un incidente a cui è collegato. Solo i Proprietari del progetto e gli Amministratori del progetto possono modificarla; nell'API è `alertRetentionInDays` del progetto.
 
 > [!NOTE]
 > Su OneUptime Cloud, i modelli di note e i campi personalizzati richiedono il piano **Growth** o superiore.
 
-## Workflow
+## Flussi di lavoro
 
-Ogni modello di avviso ha trigger e azioni di workflow che portano il suo nome: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** e **On Delete Alert**, lo stesso per **Episodio di avvisi**, **Cronologia stati dell'avviso** e gli altri, e azioni come **Create One Alert** e **Update One Alert**. Le definizioni dei campi personalizzati degli avvisi sono l'unica eccezione: non hanno trigger di workflow. Vedere [Panoramica dei workflow](/docs/workflows/index).
+Ogni modello di avviso ha trigger e azioni dei flussi di lavoro che portano il suo nome: **Alla creazione: Avviso**, **All'aggiornamento: Avviso**, **Alla creazione o all'aggiornamento: Avviso** e **All'eliminazione: Avviso**, lo stesso per **Episodio di avvisi**, **Cronologia stati dell'avviso** e gli altri, e azioni come **Crea: Avviso (un record)** e **Aggiorna: Avviso (un record)**. Le definizioni dei campi personalizzati degli avvisi sono l'unica eccezione: non hanno trigger del flusso di lavoro. Vedere [Panoramica dei flussi di lavoro](/docs/workflows/index).
 
 ## Chi può modificarle
 
-Regole, campi personalizzati e misurazioni richiedono un Project Owner o un Project Admin, o un ruolo personalizzato con il permesso specifico di quella regola. **Membro degli avvisi** lavora con avvisi ed episodi, le loro note, i proprietari e le cronologie degli stati, e con i modelli di note, e **Amministratore degli avvisi** gestisce anche gli stati e le gravità degli avvisi. Vedere [Utenti, team e autorizzazioni](/docs/permissions/index).
+Regole, campi personalizzati e misurazioni richiedono un Proprietario del progetto o un Amministratore del progetto, o un ruolo personalizzato con il permesso specifico di quella regola. **Membro degli avvisi** lavora con avvisi ed episodi, le loro note, i proprietari e le cronologie degli stati, e con i modelli di note, e **Amministratore degli avvisi** gestisce anche gli stati e le gravità degli avvisi. Vedere [Utenti, team e autorizzazioni](/docs/permissions/index).
 
 ## Passi successivi
 

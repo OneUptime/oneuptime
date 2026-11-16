@@ -1,20 +1,20 @@
 # OpenTelemetry-collector på verten
 
-Kjør OpenTelemetry Collector på en Linux-, macOS- eller Windows-maskin for å sende metrikkene, prosessene, loggene og tjenestetilstandene dens til OneUptime. Maskinen vises under **Produkter → Infrastruktur → Verter** med egne sider, uten noen OneUptime-agent å installere: collectoren er upstream-utgivelsen `otelcol-contrib`. [Vertsmonitorer](/docs/monitor/host-monitor) varsler på det den sender.
+Kjør OpenTelemetry Collector på en Linux-, macOS- eller Windows-maskin for å sende målingene, prosessene, loggene og tjenestetilstandene dens til OneUptime. Maskinen vises under **Produkter → Infrastruktur → Verter** med egne sider, uten noen OneUptime-agent å installere: collectoren er upstream-utgivelsen `otelcol-contrib`. [Vertsmonitorer](/docs/monitor/host-monitor) varsler på det den sender.
 
 > [!TIP]
 > La OneUptime installere og konfigurere innsamleren for deg: [Verter](/docs/telemetry/hosts) legger til en maskin med én kommando og holder konfigurasjonen oppdatert. Denne siden handler om å kjøre innsamleren med en `config.yaml` du selv vedlikeholder på maskinen.
 
 :::cards
 - [Installer collectoren](#installer-collectoren): Tre trinn på Linux, macOS eller Windows.
-- [Velg hva som skal samles inn](#velg-hva-som-skal-samles-inn): Metrikker, fillogger, journalen, hendelseslogger og tjenestetilstander.
+- [Velg hva som skal samles inn](#velg-hva-som-skal-samles-inn): Målinger, fillogger, journalen, hendelseslogger og tjenestetilstander.
 - [Inventarattributter](#inventarattributter-ip-mac-serienummer-produsent-modell-fastvare): IP, MAC, serienummer, produsent, modell og fastvare for CMDB-en din.
 - [Send mindre](#redusere-mengden-data-som-samles-inn): Færre logglinjer, grovere intervaller, færre serier.
 :::
 
 ## Slik fungerer det
 
-Collectoren leser maskinen gjennom receiverne sine, stempler hver post med maskinens identitet og sender den til OneUptime over OTLP med inntaksnøkkelen din. OneUptime registrerer verten ut fra de første metrikkene og fyller ut sidene dens etter hvert som dataene kommer inn.
+Collectoren leser maskinen gjennom receiverne sine, stempler hver post med maskinens identitet og sender den til OneUptime over OTLP med inntaksnøkkelen din. OneUptime registrerer verten ut fra de første målingene og fyller ut sidene dens etter hvert som dataene kommer inn.
 
 ```mermaid title="Fra en maskin til vertssidene"
 flowchart TB
@@ -39,7 +39,7 @@ flowchart TB
 | Inventarelementet | Prosessoren `resourcedetection`, pluss [attributtene du stempler](#inventarattributter-ip-mac-serienummer-produsent-modell-fastvare). |
 | **Agentversjon** | `oneuptime.agent.version` i prosessoren `resource`. |
 
-En vert registreres så snart en batch som har `host.name`, også har `hostmetrics`- eller `process`-metrikker, eller et `os.type`-attributt. Prosessoren `resourcedetection` setter alle sammen, og derfor setter hver konfigurasjon den først. `host.id` eller `host.arch` alene registrerer ikke en vert, og telemetri med en Kubernetes-identitet (`k8s.cluster.name`, `k8s.node.name`, `k8s.pod.name`) lagres i stedet under klyngen sin: overvåk Kubernetes-noder med [Kubernetes-agenten](/docs/telemetry/kubernetes-agent).
+En vert registreres så snart en batch som har `host.name`, også har `hostmetrics`- eller `process`-målinger, eller et `os.type`-attributt. Prosessoren `resourcedetection` setter alle sammen, og derfor setter hver konfigurasjon den først. `host.id` eller `host.arch` alene registrerer ikke en vert, og telemetri med en Kubernetes-identitet (`k8s.cluster.name`, `k8s.node.name`, `k8s.pod.name`) lagres i stedet under klyngen sin: overvåk Kubernetes-noder med [Kubernetes-agenten](/docs/telemetry/kubernetes-agent).
 
 ## Før du begynner
 
@@ -487,7 +487,7 @@ Navnet på utgivelsesfilen må begynne med `otelcol-contrib_`. Kjernearkivet `ot
 
 ### Sjekk at verten vises
 
-Åpne **Produkter → Infrastruktur → Verter → Alle verter**. Verten vises under vertsnavnet sitt når de første metrikkene kommer inn, vanligvis innen 30 sekunder, og sidene **Oversikt**, **Målinger**, **Prosesser** og **Logger** fylles ut. Hvis den ikke gjør det, les collectorens egne logger:
+Åpne **Produkter → Infrastruktur → Verter → Alle verter**. Verten vises under vertsnavnet sitt når de første målingene kommer inn, vanligvis innen 30 sekunder, og sidene **Oversikt**, **Målinger**, **Prosesser** og **Logger** fylles ut. Hvis den ikke gjør det, les collectorens egne logger:
 
 :::tabs
 @tab Linux
@@ -511,9 +511,9 @@ For å lage en testlogglinje, kjør `logger "hello from oneuptime"` (Linux, macO
 
 Hver konfigurasjon har samme form: receivere for det som skal leses, prosessorene `resourcedetection`, `resource` og `batch`, og eksportøren `otlphttp/oneuptime`. Legg til receiverne nedenfor under `receivers:` og i pipelinen deres, og start deretter collectoren på nytt (`sudo systemctl restart otelcol-contrib`, `launchctl unload` og `load` på en Mac, `Restart-Service otelcol-contrib` på Windows). Flett hvert utdrag inn i seksjonene konfigurasjonen din har: en ny `processors:`- eller `service:`-nøkkel erstatter den første.
 
-### Vertsmetrikker
+### Vertsmålinger
 
-`hostmetrics` fungerer på alle operativsystemer. Den leser CPU, minne, disker, filsystemer, nettverk, last, paging og prosesser fra kjernen, hvert `collection_interval`. `*.utilization`-metrikkene og `system.cpu.logical.count` er av som standard i receiveren, og vertens grafer og Host-varslingsmalene leser dem, så hold dem aktivert slik konfigurasjonene over gjør. Scraperen `process` forsyner siden **Prosesser**; den er også den største kilden til serier (se [Send mindre](#redusere-mengden-data-som-samles-inn)).
+`hostmetrics` fungerer på alle operativsystemer. Den leser CPU, minne, disker, filsystemer, nettverk, last, paging og prosesser fra kjernen, hvert `collection_interval`. `*.utilization`-målingene og `system.cpu.logical.count` er av som standard i receiveren, og vertens grafer og Host-varslingsmalene leser dem, så hold dem aktivert slik konfigurasjonene over gjør. Scraperen `process` forsyner siden **Prosesser**; den er også den største kilden til serier (se [Send mindre](#redusere-mengden-data-som-samles-inn)).
 
 På Linux leser collectoren `/proc` og `/sys`. En collector i en container må montere vertens og sette `HOST_PROC` og `HOST_SYS` (se [I en Docker-container](#i-en-docker-container)); en native installasjon trenger ingenting.
 
@@ -559,7 +559,7 @@ receivers:
 
 Receiveren kjører `journalctl`, som alle systemd-verter har, og collectorens bruker må være med i gruppen `systemd-journal`.
 
-### Linux-tjenester (systemd-enheter, metrikker)
+### Linux-tjenester (systemd-enheter, målinger)
 
 Vertens side **Systemd-enheter** viser hver enhet og tilstanden dens, fra [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) (konfigurasjonstype `systemd`), Linux-motstykket til siden **Tjenester** på Windows. Linux-konfigurasjonen over slår den på:
 
@@ -590,14 +590,14 @@ service:
       processors: [resourcedetection, resource, batch]
 ```
 
-Receiveren kom først i `otelcol-contrib` v0.142.0, og v0.143.0 er den første utgivelsen som er verdt å kjøre. På alt eldre feiler det å legge til `systemd` ved oppstart med `'receivers' unknown type: "systemd"`; v0.142.0 alene kaller CPU-metrikken sin `systemd.unit.cpu.time` og ser etter cgroup-statistikk på hver enhet, noe som logger en scrape-feil for hver enhet som ikke er `.service`.
+Receiveren kom først i `otelcol-contrib` v0.142.0, og v0.143.0 er den første utgivelsen som er verdt å kjøre. På alt eldre feiler det å legge til `systemd` ved oppstart med `'receivers' unknown type: "systemd"`; v0.142.0 alene kaller CPU-målingen sin `systemd.unit.cpu.time` og ser etter cgroup-statistikk på hver enhet, noe som logger en scrape-feil for hver enhet som ikke er `.service`.
 
-Den sender `systemd.unit.state` som et tilstandssett: ved hver scrape får hver enhet ett datapunkt per mulig tilstand (`active`, `reloading`, `inactive`, `failed`, `activating`, `deactivating`, `maintenance`, `refreshing`), `1` for tilstanden den er i og `0` for resten. Enhetsnavnet er ressursattributtet `systemd.unit.name` og tilstanden datapunktattributtet `systemd.unit.active_state`. Fordi enhetsnavnet er et ressursattributt, må `resourcedetection` bli værende i metrikkpipelinen: den stempler `host.name` på hver enhets ressurs, og uten den knyttes prøvene aldri til en vert.
+Den sender `systemd.unit.state` som et tilstandssett: ved hver scrape får hver enhet ett datapunkt per mulig tilstand (`active`, `reloading`, `inactive`, `failed`, `activating`, `deactivating`, `maintenance`, `refreshing`), `1` for tilstanden den er i og `0` for resten. Enhetsnavnet er ressursattributtet `systemd.unit.name` og tilstanden datapunktattributtet `systemd.unit.active_state`. Fordi enhetsnavnet er et ressursattributt, må `resourcedetection` bli værende i målingspipelinen: den stempler `host.name` på hver enhets ressurs, og uten den knyttes prøvene aldri til en vert.
 
 Den leser enhetstilstanden over system-D-Bus, med de skrivebeskyttede kallene `systemctl list-units` gjør, som systemd tillater uten privilegier. Den pakkede tjenesten, som kjører som brukeren `otelcol-contrib` og ikke root, trenger derfor ingen ekstra rettigheter. Den trenger likevel bussen: en collector i en container har ingen `/run/dbus/system_bus_socket` med mindre du monterer vertens, så bruk en native installasjon. Receiveren er alfa og bare for Linux.
 
 > [!WARNING]
-> Tilstandssettet koster åtte datapunkter per enhet per scrape, og `systemd.service.cpu.time`, som er på som standard, legger til to til (`user` og `system`): 10 datapunkter per enhet per scrape. En vert som følger 300 enheter hvert 30. sekund, sender omtrent 6 000 datapunkter i minuttet fra denne receiveren alene, eller omtrent 4 800 med CPU-metrikken av. Begrens `units:` til tjenestene du varsler på, eller øk `collection_interval`, før du slår den på i en hel flåte.
+> Tilstandssettet koster åtte datapunkter per enhet per scrape, og `systemd.service.cpu.time`, som er på som standard, legger til to til (`user` og `system`): 10 datapunkter per enhet per scrape. En vert som følger 300 enheter hvert 30. sekund, sender omtrent 6 000 datapunkter i minuttet fra denne receiveren alene, eller omtrent 4 800 med CPU-målingen av. Begrens `units:` til tjenestene du varsler på, eller øk `collection_interval`, før du slår den på i en hel flåte.
 
 ### Apple Unified Log
 
@@ -625,7 +625,7 @@ receivers:
           layout: "%Y-%m-%d %H:%M:%S.%f%j"
 ```
 
-Mange Mac-flåter klarer seg godt med vertsmetrikker og noen få fillogger, uten unified log.
+Mange Mac-flåter klarer seg godt med vertsmålinger og noen få fillogger, uten unified log.
 
 ### Windows-hendelseslogger
 
@@ -646,7 +646,7 @@ windowseventlog/iis:
   start_at: end
 ```
 
-### Windows-tjenester (metrikker)
+### Windows-tjenester (målinger)
 
 Vertens side **Tjenester** viser hver Windows-tjeneste med tilstand og oppstartstype, fra [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) (konfigurasjonstype `windows_service`). Den følger med `otelcol-contrib` fra v0.155.0: på tidligere utgivelser feiler det å legge til `windows_service` ved oppstart med `'receivers' unknown type: "windows_service"`. Windows-konfigurasjonen over slår den på:
 
@@ -856,7 +856,7 @@ docker run -d \
   --config /etc/otelcol-contrib/config.yaml
 ```
 
-`--network host`, `--pid host`, monteringen `/hostfs` og `HOST_*`-variablene lar `hostmetrics` og `process` lese vertens kjerne i stedet for containerens. Bruk bare metrikkpipelinen i konfigurasjonen: imaget har ingen `journalctl`, og receiveren `systemd` trenger vertens D-Bus.
+`--network host`, `--pid host`, monteringen `/hostfs` og `HOST_*`-variablene lar `hostmetrics` og `process` lese vertens kjerne i stedet for containerens. Bruk bare målingspipelinen i konfigurasjonen: imaget har ingen `journalctl`, og receiveren `systemd` trenger vertens D-Bus.
 
 ### Fra utgivelsens tarball
 
@@ -907,16 +907,16 @@ For å oppgradere manuelt, installer den nye utgivelsen på samme måte som du i
 
 ## Redusere mengden data som samles inn
 
-Du eier konfigurasjonen, så ingenting forlater maskinen med mindre en receiver du har lagt til, leser det. Hvis en vert sender mer enn du vil (som viser seg som mer inntak, og på OneUptime Cloud som høyere kostnad), kan du trimme det her. De to største spakene er hvilke logger du leser og hvor ofte du scraper metrikker; en `filter`-prosessor gjør resten. Endre én spak om gangen, og start collectoren på nytt etter hver endring.
+Du eier konfigurasjonen, så ingenting forlater maskinen med mindre en receiver du har lagt til, leser det. Hvis en vert sender mer enn du vil (som viser seg som mer inntak, og på OneUptime Cloud som høyere kostnad), kan du trimme det her. De to største spakene er hvilke logger du leser og hvor ofte du scraper målinger; en `filter`-prosessor gjør resten. Endre én spak om gangen, og start collectoren på nytt etter hver endring.
 
 ### Hvor volumet kommer fra
 
 | Signal | Største driver | Skru ned med |
 | --- | --- | --- |
 | Logger | Hver linje fra hver fil, journalenhet eller hendelseskanal | Færre receivere, en smalere `units:` eller `query:`, et `filter` på alvorlighetsgrad |
-| Vertsmetrikker | Hvor ofte du scraper, ganger antall serier | Et lengre `collection_interval`, færre scrapere |
-| Metrikkardinalitet | Metrikker per prosess: ett sett serier per prosess | Å utelate eller begrense scraperen `process` |
-| systemd-enheter | 10 datapunkter per enhet per scrape (tilstandssett og CPU) | En smalere `units:`, CPU-metrikken av, et lengre `collection_interval` |
+| Vertsmålinger | Hvor ofte du scraper, ganger antall serier | Et lengre `collection_interval`, færre scrapere |
+| Målingskardinalitet | Målinger per prosess: ett sett serier per prosess | Å utelate eller begrense scraperen `process` |
+| systemd-enheter | 10 datapunkter per enhet per scrape (tilstandssett og CPU) | En smalere `units:`, CPU-målingen av, et lengre `collection_interval` |
 
 ### Les bare loggene du trenger
 
@@ -937,7 +937,7 @@ receivers:
 
 - Begrens den høyvolums hendelseskanalen `Security` til hendelses-ID-ene du reviderer, med en `query:` (som i [Windows-hendelseslogger](#windows-hendelseslogger)), eller dropp kanalen.
 
-### Scrape metrikker sjeldnere
+### Scrape målinger sjeldnere
 
 Volumet til `hostmetrics` skalerer med `collection_interval`: hvis 30 sekunders oppløsning er mer enn du trenger, halverer 60 sekunder datapunktene.
 
@@ -981,11 +981,11 @@ receivers:
           match_type: strict
 ```
 
-Dette trimmer receiveren til standardmetrikkene sine: legg `metrics:`-blokkene fra konfigurasjonene over tilbake under `cpu`, `memory`, `filesystem` og `process` hvis du bruker vertens grafer og Host-varslingsmalene.
+Dette trimmer receiveren til standardmålingene sine: legg `metrics:`-blokkene fra konfigurasjonene over tilbake under `cpu`, `memory`, `filesystem` og `process` hvis du bruker vertens grafer og Host-varslingsmalene.
 
 ### Begrens systemd-enhetene
 
-Receiveren `systemd` sender et datapunkt per tilstand per enhet ved hver scrape, åtte per enhet, pluss to for `systemd.service.cpu.time`, som er på som standard, så volumet bestemmes av hvor mange enheter `units:` treffer. Standardverdien `["*.service"]` inkluderer dusinvis av engangsenheter som aldri endrer tilstand. List opp enhetene du varsler på, og slå av CPU-metrikken med mindre du lager grafer av den:
+Receiveren `systemd` sender et datapunkt per tilstand per enhet ved hver scrape, åtte per enhet, pluss to for `systemd.service.cpu.time`, som er på som standard, så volumet bestemmes av hvor mange enheter `units:` treffer. Standardverdien `["*.service"]` inkluderer dusinvis av engangsenheter som aldri endrer tilstand. List opp enhetene du varsler på, og slå av CPU-målingen med mindre du lager grafer av den:
 
 ```yaml
 receivers:
@@ -1047,7 +1047,7 @@ receivers:
 
 På en systemd-vert trenger journalen ikke noe av dette: `priority:` i `journald` filtrerer etter nivå i selve `journalctl`.
 
-Dropp metrikker du ikke lager grafer av, etter nøyaktig navn eller etter mønster:
+Dropp målinger du ikke lager grafer av, etter nøyaktig navn eller etter mønster:
 
 ```yaml
 processors:
@@ -1062,7 +1062,7 @@ processors:
         - 'IsMatch(name, "^system\\.paging\\.")'
 ```
 
-For å sende bare et fast sett metrikker, snu betingelsen: `filter` dropper det som samsvarer, så `not (...)` dropper alt du ikke har navngitt. Hold betingelsen på én linje:
+For å sende bare et fast sett målinger, snu betingelsen: `filter` dropper det som samsvarer, så `not (...)` dropper alt du ikke har navngitt. Hold betingelsen på én linje:
 
 ```yaml
 processors:
@@ -1073,7 +1073,7 @@ processors:
         - 'not (name == "system.cpu.utilization" or name == "system.memory.utilization" or name == "system.filesystem.utilization")'
 ```
 
-En tillatelsesliste er en stor slegge: det du glemmer å navngi, er borte, sammen med monitorene som bygger på det. Foretrekk å droppe de få metrikkene du ikke vil ha, eller å utelate scraperen som lager dem: en metrikk som aldri samles inn, koster ingenting å filtrere.
+En tillatelsesliste er en stor slegge: det du glemmer å navngi, er borte, sammen med monitorene som bygger på det. Foretrekk å droppe de få målingene du ikke vil ha, eller å utelate scraperen som lager dem: en måling som aldri samles inn, koster ingenting å filtrere.
 
 Legg deretter prosessoren til i pipelinen sin, før `batch`:
 
@@ -1094,7 +1094,7 @@ En pipeline som navngir en prosessor eller eksportør konfigurasjonen ikke defin
 
 ### Et magert utgangspunkt
 
-En vert med bare metrikker, med et grovt intervall og uten serier per prosess, er det minste nyttige fotavtrykket:
+En vert med bare målinger, med et grovt intervall og uten serier per prosess, er det minste nyttige fotavtrykket:
 
 ```yaml title="config.yaml"
 receivers:
@@ -1178,7 +1178,7 @@ service:
 Legg til en `logs`-pipeline igjen, med en smal `filelog`- eller `journald`-receiver, når du trenger den.
 
 > [!CAUTION]
-> Pass på hva du kutter. En loggmonitor trenger at loggene kommer inn, så å filtrere bort en alvorlighetsgrad eller en kanal gjør monitorene som overvåker den, tause, og Host-varslingsmalene trenger `*.utilization`-metrikkene. Trim dataene du ikke handler på, ikke dataene en monitor overvåker, og sjekk nedgangen under **Prosjektinnstillinger → Telemetri og APM → Forbruk** en dag eller to senere (bruk telles per dag) før du drar i neste spak.
+> Pass på hva du kutter. En loggmonitor trenger at loggene kommer inn, så å filtrere bort en alvorlighetsgrad eller en kanal gjør monitorene som overvåker den, tause, og Host-varslingsmalene trenger `*.utilization`-målingene. Trim dataene du ikke handler på, ikke dataene en monitor overvåker, og sjekk nedgangen under **Prosjektinnstillinger → Telemetri og APM → Forbruk** en dag eller to senere (bruk telles per dag) før du drar i neste spak.
 
 ## Selvhostet OneUptime og proxyer
 
@@ -1222,7 +1222,7 @@ Hva den kan kjøre, hvordan rettelser fungerer og hvordan du feilsøker den: [In
 1. Les collectorens logger for eksportfeil (se [Sjekk at verten vises](#sjekk-at-verten-vises)). Legg til `service.telemetry.logs.level: debug` i konfigurasjonen for flere detaljer.
 2. En HTTP `401` betyr at inntaksnøkkelen mangler, er feil eller er utløpt; `422` betyr at den er deaktivert, eller er en nettlesernøkkel, som ikke kan sende vertstelemetri. Opprett en nøkkel under **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler** og oppdater `x-oneuptime-token`.
 3. Sjekk at maskinen når OneUptime: `curl -v https://oneuptime.com/otlp` (eller den selvhostede URL-en din) fra den samme maskinen.
-4. Behold `resourcedetection` i metrikkpipelinen: den setter `host.name`, som er slik OneUptime gjenkjenner verten.
+4. Behold `resourcedetection` i målingspipelinen: den setter `host.name`, som er slik OneUptime gjenkjenner verten.
 :::
 
 :::details Collectoren kan ikke lese journalen eller en loggfil
@@ -1248,8 +1248,8 @@ Tjenesten mangler rettighetene. Kjør den som `LocalSystem` (standarden for `sc.
 
 :::details systemd-receiveren rapporterer en D-Bus-feil, eller siden Systemd Units er tom
 - Collectoren når ikke systembussen: sjekk at `/run/dbus/system_bus_socket` finnes og at collectorens bruker kan åpne den; `systemctl list-units` kjørt som den brukeren er den raskeste sjekken. Root kreves ikke. En collector i en container ser ingen buss med mindre du monterer vertens socket.
-- Siden er tom mens receiveren kjører: behold `resourcedetection` i den samme metrikkpipelinen. Receiveren knytter bare `systemd.unit.name` til hver enhets ressurs, så uten `resourcedetection` finnes det ingen `host.name`, og prøvene knyttes aldri til en vert.
-- En scrape-feil per enhet, eller en collector som nekter å starte på grunn av en ukjent metrikk, er versjonsskjevhet: v0.142.0 leser cgroup-statistikk på hver enhet og kaller CPU-metrikken sin `systemd.unit.cpu.time`; v0.143.0 og nyere leser bare tjenester og kaller den `systemd.service.cpu.time`. Kjør v0.143.0 eller nyere, og bruk nøkkelen bygget ditt har i enhver `metrics:`-overstyring.
+- Siden er tom mens receiveren kjører: behold `resourcedetection` i den samme målingspipelinen. Receiveren knytter bare `systemd.unit.name` til hver enhets ressurs, så uten `resourcedetection` finnes det ingen `host.name`, og prøvene knyttes aldri til en vert.
+- En scrape-feil per enhet, eller en collector som nekter å starte på grunn av en ukjent måling, er versjonsskjevhet: v0.142.0 leser cgroup-statistikk på hver enhet og kaller CPU-målingen sin `systemd.unit.cpu.time`; v0.143.0 og nyere leser bare tjenester og kaller den `systemd.service.cpu.time`. Kjør v0.143.0 eller nyere, og bruk nøkkelen bygget ditt har i enhver `metrics:`-overstyring.
 :::
 
 :::details CPU- og minnegrafene eller Host-varslingsmalene viser ingen data
@@ -1263,8 +1263,8 @@ Se [Redusere mengden data som samles inn](#redusere-mengden-data-som-samles-inn)
 ## Neste trinn
 
 :::cards
-- [Verts-overvåking](/docs/monitor/host-monitor): Varsle på CPU, minne, disk og prosesser.
-- [Logg-overvåking](/docs/monitor/logs-monitor): Varsle på loggmønstre, som mislykkede pålogginger i et 5-minutters vindu.
+- [Verts-monitor](/docs/monitor/host-monitor): Varsle på CPU, minne, disk og prosesser.
+- [Logg-monitor](/docs/monitor/logs-monitor): Varsle på loggmønstre, som mislykkede pålogginger i et 5-minutters vindu.
 - [Eksportere til en CMDB](/docs/inventory/cmdb-sync): Send inventarattributtene videre til CMDB-en din.
-- [Server- / VM-overvåking](/docs/monitor/server-monitor): Overvåk også en servers tilgjengelighet utenfra.
+- [Server- / VM-monitor](/docs/monitor/server-monitor): Overvåk også en servers tilgjengelighet utenfra.
 :::

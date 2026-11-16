@@ -55,7 +55,7 @@ Dann [konfigurieren Sie Datadog](#datadog-konfigurieren), damit es seine Warnung
 
 ### Was der Workflow tut
 
-Nach dem Trigger **Webhook** liest der Schritt **Check With JavaScript** `read-event-1` das `transition`, das Datadog sendet, und **Incident From Another Tool**, in der Vorlage für Warnungen **Alert From Another Tool**, tut, was es bedeutet, über den Zyklusschlüssel der Warnung. Datadog behält diesen Schlüssel von dem Moment an, in dem eine Warnung auslöst, bis sie sich erholt, und beim nächsten Auslösen ist der Schlüssel neu, sodass jedes Mal ein eigener Vorfall entsteht. Der Vorfall behält den Schlüssel in seinem benutzerdefinierten Feld `datadogAlertCycleKey`.
+Nach dem Trigger **Webhook** liest der Schritt **Mit JavaScript prüfen** `read-event-1` das `transition`, das Datadog sendet, und **Vorfall aus einem anderen Tool**, in der Vorlage für Warnungen **Warnung aus einem anderen Tool**, tut, was es bedeutet, über den Zyklusschlüssel der Warnung. Datadog behält diesen Schlüssel von dem Moment an, in dem eine Warnung auslöst, bis sie sich erholt, und beim nächsten Auslösen ist der Schlüssel neu, sodass jedes Mal ein eigener Vorfall entsteht. Der Vorfall behält den Schlüssel in seinem benutzerdefinierten Feld `datadogAlertCycleKey`.
 
 | Übergang | Was der Workflow tut |
 | --- | --- |
@@ -64,7 +64,7 @@ Nach dem Trigger **Webhook** liest der Schritt **Check With JavaScript** `read-e
 | `Warn`, `Re-Warn`, `No Data`, `Re-No Data` | Fügt dem Vorfall der Warnung eine private Notiz hinzu, die sagt, in welchem Zustand der Monitor jetzt ist. |
 | `Renotify` | Nichts: Die Warnung ist noch offen. |
 
-Ein Warnzustand oder eine Erholung für eine Warnung ohne Vorfall ändert nichts. Alles andere, etwa eine Anfrage eines anderen Werkzeugs, bleibt unberührt: `read-event-1` nimmt **No**, und die **Schritte** der Ausführung sagen, warum. Nichts geht an Datadog zurück: Es behebt seine eigenen Warnungen, wenn sich das Signal erholt, und das behebt den Vorfall.
+Ein Warnzustand oder eine Erholung für eine Warnung ohne Vorfall ändert nichts. Alles andere, etwa eine Anfrage eines anderen Werkzeugs, bleibt unberührt: `read-event-1` nimmt **Nein**, und die **Schritte** der Ausführung sagen, warum. Nichts geht an Datadog zurück: Es behebt seine eigenen Warnungen, wenn sich das Signal erholt, und das behebt den Vorfall.
 
 ### Prioritäten und Alarmierung
 
@@ -82,7 +82,7 @@ Ein neuer Vorfall alarmiert die gewählten Bereitschaftsrichtlinien, wenn sein M
 Mit eigenen Schweregraden gehen P1, P2 und keine Priorität an Ihren schwersten, P3 an den mittleren und P4 und P5 an Ihren leichtesten.
 
 - Um eine Priorität per Namen einem Ihrer Schweregrade zuzuordnen, bearbeiten Sie `SEVERITY_BY_NAME` im Schritt `read-event-1`, etwa `{ P3: 'Minor Incident' }`.
-- Um auch bei P3 zu alarmieren, setzen Sie **Compare with** des Schritts `if-page-1` **If / Else** auf `3`.
+- Um auch bei P3 zu alarmieren, setzen Sie **Vergleichen mit** des Schritts `if-page-1` **Wenn / Sonst** auf `3`.
 
 ## Warnungen mit einem Monitor empfangen
 
@@ -211,7 +211,7 @@ Testen Sie dann aus Datadog: Öffnen Sie einen Monitor, der den Webhook nennt, k
 :::
 
 :::details Der Workflow läuft, eröffnet aber nichts
-Öffnen Sie die Ausführung unter **Protokolle → Ausführungen**. Der Eintrag `read-event-1` unter **Schritte** sagt, warum er **No** genommen hat.
+Öffnen Sie die Ausführung unter **Protokolle → Ausführungen**. Der Eintrag `read-event-1` unter **Schritte** sagt, warum er **Nein** genommen hat.
 
 - `Datadog named no alert cycle key`: Fügen Sie `"alert_cycle_key": "$ALERT_CYCLE_KEY"` zur Nutzlast des Webhooks in Datadog hinzu.
 - `Datadog named no transition`: Fügen Sie `"transition": "$ALERT_TRANSITION"` zur Nutzlast des Webhooks in Datadog hinzu.

@@ -41,7 +41,7 @@ Em detalhe, o OneUptime lê estas configurações nesta ordem, e a primeira defi
 
 ## Antes de começar
 
-- **Uma função que altere o projeto.** Project Owner ou Project Admin mudam a retenção do projeto. A retenção de um serviço ou recurso exige a função que altera as outras configurações dele.
+- **Uma função que altere o projeto.** Proprietário do projeto ou Administrador do projeto mudam a retenção do projeto. A retenção de um serviço ou recurso exige a função que altera as outras configurações dele.
 - **Para as substituições, a Edição Enterprise ou o plano Scale.** Uma instalação de hospedagem própria precisa de uma licença Enterprise, e um projeto do OneUptime Cloud do plano Scale ou superior. A retenção padrão do projeto existe em todas as edições e planos.
 
 ## Mudar a retenção do projeto
@@ -64,14 +64,14 @@ As substituições mantêm por mais tempo o que você precisa e por menos tempo 
 
 ### Para o projeto inteiro
 
-Abaixo do padrão, recolhido em **Mais configurações**, o cartão **Retenção por tipo de telemetria** define dias para cada tipo de telemetria. Clique em **Edit Overrides**, preencha os campos de que precisa e deixe os outros em branco:
+Abaixo do padrão, recolhido em **Mais configurações**, o cartão **Retenção por tipo de telemetria** define dias para cada tipo de telemetria. Clique em **Editar substituições**, preencha os campos de que precisa e deixe os outros em branco:
 
 | Tipo | Campos |
 | --- | --- |
-| Registros | **Logs default (days)**, e um campo para cada gravidade de registro |
-| Traços | **Traces default (days)**, e um campo para cada status de span: Erro, Ok e Não definido |
-| Métricas | **Metrics default (days)** |
-| Perfis | **Profiles default (days)** |
+| Registros | **Padrão dos logs (dias)**, e um campo para cada gravidade de registro |
+| Traços | **Padrão dos traces (dias)**, e um campo para cada status de span: Erro, Ok e Não definido |
+| Métricas | **Padrão das métricas (dias)** |
+| Perfis | **Padrão dos perfis (dias)** |
 
 Um campo deixado em branco recorre à configuração seguinte da ordem acima, então uma gravidade sem dias próprios mantém os seus registros pelo padrão dos registros.
 

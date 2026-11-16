@@ -193,7 +193,7 @@ Quatro objetivos que a maioria das instalações pode prometer, cada um montado 
 
 :::steps
 1. Abra o [Explorador de métricas](/docs/telemetry/metrics-explorer) do projeto e clique na primeira métrica do objetivo. A consulta dela é `a`.
-2. Escolha a agregação dela em **Aggregate by**. Depois abra **Filters & grouping** e adicione cada uma das condições dela em **Filter by attributes**.
+2. Escolha a agregação dela em **Agregar por**. Depois abra **Filtros e agrupamento** e adicione cada uma das condições dela em **Filtrar por atributos**.
 3. Para uma segunda consulta, clique em **Adicionar métrica** e configure `b` da mesma forma.
 4. Para uma fórmula, clique em **Adicionar fórmula** e escreva-a em **Fórmula**.
 5. Para ser avisado quando o objetivo não for cumprido, clique em **Ações → Criar monitor a partir desta visualização** e alerte quando o valor passar do objetivo: veja [Monitor de métricas](/docs/monitor/metrics-monitor).

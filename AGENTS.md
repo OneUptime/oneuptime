@@ -50,6 +50,10 @@ File a GitHub issue for anything you notice outside your current task:
 
 When your current task is done, fix the bug follow-ups you filed, then the important enhancement ones, in pull requests separate from your current one. Enhancement follow-ups that aren't important can stay open as issues.
 
+### Tech debt and refactoring
+
+If you notice a tech debt problem while working on a pull request, fix it in that pull request itself. If you need to refactor code to make it easier to work with, do it in a same pull request and write extenisve tests so we dont break anything. 
+
 ### Changing AGENTS.md
 
 Change AGENTS.md only in a pull request of its own, never alongside other work. Put `UPDATE AGENTS.md` in its title (`chore(dev): UPDATE AGENTS.md - <what changed>` keeps it under Maintenance in the release notes), and file a separate issue for the change that the pull request closes.

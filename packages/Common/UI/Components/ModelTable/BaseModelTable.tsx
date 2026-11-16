@@ -255,6 +255,16 @@ import { refreshSideMenuCounts } from "../SideMenu/SideMenuCountRefresh";
  */
 export const DELETE_CONFIRMATION_LOADING_DELAY_MS: number = 300;
 
+/*
+ * How a bulk action's progress list and a dragged row name a row: its kind,
+ * then its name or id - "Monitor: API" - as one key, so the colon is the
+ * reader's language's ("Monitor : API" in French). It was English's colon,
+ * and a space before an id, written beside the kind (#8290).
+ */
+export const ROW_KIND_AND_NAME: string = translationKey(
+  "{{label}}: {{identifier}}",
+);
+
 export const DELETE_CONFIRMATION_LOADING: string = translationKey(
   "Checking what deleting it would change…",
 );
@@ -5043,12 +5053,23 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           );
           // Same deriver the delete confirmation uses, so the two cannot drift.
           const name: string = getItemLabel(item);
+          // "Monitor: API", the kind and the name as one key (#8290).
           if (name) {
-            return label ? `${label}: ${name}` : name;
+            return label
+              ? translator.translateTemplate(ROW_KIND_AND_NAME, {
+                  label,
+                  identifier: name,
+                })
+              : name;
           }
           const id: string =
             item[matchBulkSelectedItemByField]?.toString() || "";
-          return label ? `${label} ${id}` : id;
+          return label
+            ? translator.translateTemplate(ROW_KIND_AND_NAME, {
+                label,
+                identifier: id,
+              })
+            : id;
         }}
         filters={classicTableFilters}
         filterError={tableFilterError}
@@ -5154,7 +5175,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             props.singularName || item.singularName || "",
           );
           const name: string = getItemLabel(item);
-          return name && label ? `${label}: ${name}` : name || label;
+          return name && label
+            ? translator.translateTemplate(ROW_KIND_AND_NAME, {
+                label,
+                identifier: name,
+              })
+            : name || label;
         }}
         dragDropIdField={"_id"}
         dragDropIndexField={props.dragDropIndexField}
@@ -6181,6 +6207,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
            */
           isDefaultLayout={isEmptyColumnPreference(ownColumnPreference)}
           title={tx("Customize Columns")}
+          isTitleTranslated={true}
           onSave={onColumnCustomizationSave}
           projectDefault={projectDefault}
           isSaving={isSavingProjectDefault}
@@ -6396,12 +6423,18 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           isLoading={isDeleteAlternativeRunning}
           error={deleteAlternativeError || undefined}
           title={
-            deleteConfirmation?.title ||
-            translateNamedAction(translator, {
-              template: "Delete {{itemName}}",
-              itemName: getDeleteLabel(props.singularName, model.singularName),
-            })
+            deleteConfirmation?.title
+              ? translator.translateText(deleteConfirmation.title) ||
+                deleteConfirmation.title
+              : translateNamedAction(translator, {
+                  template: "Delete {{itemName}}",
+                  itemName: getDeleteLabel(
+                    props.singularName,
+                    model.singularName,
+                  ),
+                })
           }
+          isTitleTranslated={true}
           description={
             isDeleteConfirmationLoading ? (
               <InlineLoadingLine

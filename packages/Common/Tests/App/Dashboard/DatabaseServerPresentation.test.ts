@@ -355,29 +355,31 @@ describe("formatting", () => {
 
   test("bytes", () => {
     expect(formatDatabaseBytes(undefined)).toBe("—");
-    expect(formatDatabaseBytes(512)).toBe("512 B");
+    expect(formatDatabaseBytes(512)).toBe("512\u00A0B");
     // A count of bytes is whole (issue #7417): never "0.0 B" or "5.0 B".
-    expect(formatDatabaseBytes(0)).toBe("0 B");
-    expect(formatDatabaseBytes(5)).toBe("5 B");
-    expect(formatDatabaseBytes(1023)).toBe("1023 B");
-    expect(formatDatabaseBytes(1024)).toBe("1.0 KiB");
-    expect(formatDatabaseBytes(1536)).toBe("1.5 KiB");
-    expect(formatDatabaseBytes(5 * 1024 * 1024 * 1024)).toBe("5.0 GiB");
+    expect(formatDatabaseBytes(0)).toBe("0\u00A0B");
+    expect(formatDatabaseBytes(5)).toBe("5\u00A0B");
+    expect(formatDatabaseBytes(1023)).toBe("1023\u00A0B");
+    expect(formatDatabaseBytes(1024)).toBe("1.0\u00A0KiB");
+    expect(formatDatabaseBytes(1536)).toBe("1.5\u00A0KiB");
+    expect(formatDatabaseBytes(5 * 1024 * 1024 * 1024)).toBe("5.0\u00A0GiB");
   });
 
   test("seconds", () => {
     expect(formatDatabaseSeconds(null)).toBe("—");
-    expect(formatDatabaseSeconds(4.25)).toBe("4.3 s");
-    expect(formatDatabaseSeconds(42)).toBe("42 s");
-    expect(formatDatabaseSeconds(90)).toBe("1.5 min");
-    expect(formatDatabaseSeconds(7200)).toBe("2 h");
-    expect(formatDatabaseSeconds(3 * 86400)).toBe("3 d");
+    expect(formatDatabaseSeconds(4.25)).toBe("4.3\u00A0s");
+    expect(formatDatabaseSeconds(42)).toBe("42\u00A0s");
+    expect(formatDatabaseSeconds(90)).toBe("1.5\u00A0min");
+    expect(formatDatabaseSeconds(7200)).toBe("2\u00A0h");
+    expect(formatDatabaseSeconds(3 * 86400)).toBe("3\u00A0d");
   });
 
   test("catalog metric values by unit and kind", () => {
     expect(formatDatabaseMetricValue(null, "bytes", "gauge")).toBe("—");
-    expect(formatDatabaseMetricValue(2048, "bytes", "gauge")).toBe("2.0 KiB");
-    expect(formatDatabaseMetricValue(90, "s", "gauge")).toBe("1.5 min");
+    expect(formatDatabaseMetricValue(2048, "bytes", "gauge")).toBe(
+      "2.0\u00A0KiB",
+    );
+    expect(formatDatabaseMetricValue(90, "s", "gauge")).toBe("1.5\u00A0min");
     expect(formatDatabaseMetricValue(12, "connections", "gauge")).toBe(
       "12 connections",
     );
@@ -393,7 +395,7 @@ describe("formatting", () => {
       "0 commits/s",
     );
     expect(formatDatabaseMetricValue(4096, "bytes", "counter")).toBe(
-      "4.0 KiB/s",
+      "4.0\u00A0KiB/s",
     );
     expect(formatDatabaseMetricValue(3, "", "counter")).toBe("3/s");
   });
@@ -402,8 +404,8 @@ describe("formatting", () => {
     expect(formatDatabaseMetricUnitValue(null, "s")).toBe("—");
     expect(formatDatabaseMetricUnitValue(Number.NaN, "s")).toBe("—");
     // A 4 ms latency reported in seconds must not read "0" (the audit's bug).
-    expect(formatDatabaseMetricUnitValue(0.004, "s")).toBe("4 ms");
-    expect(formatDatabaseMetricUnitValue(1_500_000, "By")).toBe("1.5 MB");
+    expect(formatDatabaseMetricUnitValue(0.004, "s")).toBe("4\u00A0ms");
+    expect(formatDatabaseMetricUnitValue(1_500_000, "By")).toBe("1.5\u00A0MB");
     expect(formatDatabaseMetricUnitValue(12, "{connections}")).toBe(
       "12 connections",
     );
@@ -417,7 +419,7 @@ describe("formatting", () => {
     ).toBe("2.5 deadlocks/s");
     expect(formatDatabaseMetricUnitValue(2, "1", { isRate: true })).toBe("2/s");
     expect(formatDatabaseMetricUnitValue(2_000, "By", { isRate: true })).toBe(
-      "2 KB/s",
+      "2\u00A0KB/s",
     );
   });
 
@@ -433,7 +435,7 @@ describe("formatting", () => {
     expect(formatDatabaseRuntimeAxisValue(2.5, "cores")).toBe("2.5");
     expect(formatDatabaseRuntimeAxisValue(42.123, "percent")).toBe("42.1%");
     expect(formatDatabaseRuntimeAxisValue(1024 * 1024, "bytes")).toBe(
-      "1.0 MiB",
+      "1.0\u00A0MiB",
     );
   });
 });

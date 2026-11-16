@@ -115,7 +115,7 @@ Fråga AI ställer från en mening in det som de guidade inställningarna ställ
 - **En plan, ett godkännande.** Fråga AI föreslår varje del på ett godkännandekort, var och en med enkla ord: en monitor för en webbplats eller ett API, projektets första jourpolicy, en statussida och monitorerna den visar. Kortet slutar med "Inget annat ändras." Välj **Hoppa över** på varje del du inte vill ha och kör resten. Inget skapas innan dess.
 - **Frågar alltid.** Inställningen väntar på ditt godkännande i alla lägen, även **Kör automatiskt**, eftersom den skapar saker som larmar personer och som dina kunder ser. **Skrivskyddad** erbjuder den inte.
 - **De guidade inställningarnas poster.** Monitorn är den som **Veta när min webbplats eller mitt API ligger nere** skapar för samma adress: standardvärdena från Skapa monitor, som öppnar en incident när adressen inte svarar eller svarar med ett fel, kontrollerad var 5:e minut om du inte ber om ett annat av Skapa monitors intervall. Den är din, så du får ett e-postmeddelande när dess status ändras. Statussidan är den som **Publicera en statussida** skapar: offentlig så snart den skapats, och den visar varje monitors status, upptid och historik.
-- **Vem som larmas.** I ett projekt som ännu inte larmar någon föreslår Fråga AI projektets första jourpolicy, "Default on-call policy", som larmar dig, och de medlemmar och team du nämner, vid varje ny incident och varje nytt larm. Ett projekt som redan larmar personer behåller sina egna jourpolicyer och jourregler, och Fråga AI säger det i stället för att skapa en till.
+- **Vem som larmas.** I ett projekt som ännu inte larmar någon föreslår Fråga AI projektets första jourpolicy, **Standardjourpolicy**, som larmar dig, och de medlemmar och team du nämner, vid varje ny incident och varje nytt larm. Ett projekt som redan larmar personer behåller sina egna jourpolicyer och jourregler, och Fråga AI säger det i stället för att skapa en till.
 - **Vad som saknas.** Fråga AI lägger aldrig till ett telefonnummer eller mobilappen: du lägger till och verifierar dem själv under **Användarinställningar → Aviseringsmetoder**. Ber du om sms utan ett verifierat nummer säger kortet det, och svaret länkar till sidan. En del som Fråga AI inte kan skapa föreslås inte, till exempel när din roll inte tillåter det, adressen inte är en adress eller monitorerna inte finns: svaret säger vad som behövs.
 - **Vad varje del behöver.** En monitor behöver behörighet att skapa monitorer. Larmning behöver behörighet att skapa jourpolicyer, deras eskaleringsregler och jourregler för incidenter och larm. En statussida behöver behörighet att skapa statussidor och lägga till monitorer på dem. Projektets abonnemangsgränser gäller, som i de guidade inställningarna.
 - **Testa det sedan.** När planen har körts öppnar varje kort det som skapades, och **Testa den här policyn** (eller **Skicka ett testlarm till mig**, för en monitor ensam) under svaret skickar ett testlarm som du kvitterar från meddelandet. Om en del misslyckas säger svaret vad som skapades och vad som inte gjorde det.
@@ -137,7 +137,7 @@ Fråga AI ställer från en mening in det som de guidade inställningarna ställ
 - **Growth-planen, i OneUptime Cloud.** Ett projekt på en lägre plan ser att AI inte ingår i planen, med en länk till **Projektinställningar → Fakturering och fakturor → Fakturering**.
 - **AI påslaget för projektet.** **Aktivera AI**, på **Projektinställningar → AI → AI-funktioner**, stänger av alla projektets AI-funktioner, Fråga AI inräknat. Det är på om inte någon har stängt av det.
 
-Fråga AI räknas in i projektets egna dagliga AI-gränser när projektet sätter dem (Projektinställningar → AI → AI Features → Fler inställningar): när en nås visar Fråga AI en mening som säger vilken gräns som nåtts, att OneUptime AI börjar igen vid midnatt UTC och vem som kan höja eller ta bort gränsen. Projektets ägare får ett e-postmeddelande första gången en gräns nås varje dag. De dagliga gränserna för incidenter och larm stoppar aldrig Fråga AI. Se [projektets egna dagliga gränser](/docs/ai/ai-sre#projektets-egna-dagliga-gränser).
+Fråga AI räknas in i projektets egna dagliga AI-gränser när projektet sätter dem (Projektinställningar → AI → AI Features → Fler inställningar): när en nås visar Fråga AI en mening som säger vilken gräns som nåtts, att OneUptime AI börjar igen vid midnatt UTC och vem som kan höja eller ta bort gränsen. Projektägarna får ett e-postmeddelande första gången en gräns nås varje dag. De dagliga gränserna för incidenter och larm stoppar aldrig Fråga AI. Se [projektets egna dagliga gränser](/docs/ai/ai-sre#projektets-egna-dagliga-gränser).
 
 ## Felsökning
 
@@ -146,7 +146,7 @@ Fråga AI säger varför innan du skriver: projektets plan omfattar inte AI, **A
 :::
 
 :::details En åtgärd avvisades
-Fråga AI säger vilken behörighet åtgärden kräver, eller vilket team som blockerar den. Be någon som får göra ändringen, eller be en projektägare ge din roll behörigheten. Inget ändrades.
+Fråga AI säger vilken behörighet åtgärden kräver, eller vilket team som blockerar den. Be någon som får göra ändringen, eller be en Projektägare ge din roll behörigheten. Inget ändrades.
 :::
 
 :::details Svaren är vaga eller använder aldrig data

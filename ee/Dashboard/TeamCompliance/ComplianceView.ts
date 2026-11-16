@@ -9,16 +9,37 @@ import ComplianceRule, {
   ComplianceRuleCategory,
   ComplianceRuleDefinition,
   ComplianceSeverityKind,
+  getValueInSentence,
   joinAsProse,
 } from "Common/Types/Team/ComplianceRule";
 import ComplianceRuleType from "Common/Types/Team/ComplianceRuleType";
-import type {
+import {
+  TeamComplianceFindingJSON,
+  TeamComplianceFindingKind,
   TeamComplianceIssueJSON,
   TeamComplianceRuleJSON,
   TeamComplianceSeverityJSON,
   TeamComplianceStatusJSON,
+  TeamComplianceWarningJSON,
+  TeamComplianceWarningKind,
   TeamMemberComplianceJSON,
 } from "Common/Types/Team/TeamComplianceStatus";
+import {
+  getComplianceReasonText,
+  getComplianceWarningText,
+} from "Common/Types/Team/TeamComplianceFindings";
+import {
+  composedValue,
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  PluralTemplate,
+  TemplateValue,
+  translatableTerm,
+  translationKey,
+  Translator,
+} from "Common/Types/Translator";
+import { recordNameInSentence } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 
 /*
  * Everything the Teams > Compliance page decides, as plain functions over the
@@ -32,7 +53,18 @@ import type {
  * (Common/Types/Team/TeamComplianceStatus), the same file the server builds
  * its response from: a field renamed there breaks this build instead of
  * quietly rendering blanks.
+ *
+ * Every sentence the page reads is written here with the reader's
+ * Translator (#8296, #8461): each is one whole key - a count picks its
+ * language's form (translatePlural), a name or a rule's title goes in as a
+ * value - so a German page reads German from the verdict to the last
+ * member's line. Called without one (a unit test), each writes English, as
+ * the page always did. What the server words itself - a rule's warnings,
+ * why a member fails a rule - arrives in English and is drawn as it came.
  */
+
+// The language of a caller that hands no translator: English, word for word.
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
 
 export const CHANNEL_ICONS: Record<ComplianceNotificationChannel, IconProp> = {
   [ComplianceNotificationChannel.Call]: IconProp.Call,
@@ -126,14 +158,24 @@ export const hasNoSeveritiesLeft: (rule: TeamComplianceRuleJSON) => boolean = (
 };
 
 // The scope chip of a rule that has no severities left.
-export const NO_SEVERITIES_LEFT_LABEL: string = "No severities left";
+export const NO_SEVERITIES_LEFT_LABEL: string =
+  translationKey("No severities left");
 
 /*
  * What the page says about a rule with no severities left when the server did
  * not say it itself - the server's own warning, word for word.
  */
-export const NO_SEVERITIES_LEFT_WARNING: string =
-  "Every severity this rule was scoped to has been deleted, so it is paused. Edit it to choose new severities, or delete it.";
+export const NO_SEVERITIES_LEFT_WARNING: string = translationKey(
+  "Every severity this rule was scoped to has been deleted, so it is paused. Edit it to choose new severities, or delete it.",
+);
+
+// A rule on no channel in particular: any channel meets it.
+export const ANY_CHANNEL: string = translationKey("Any channel");
+
+// The scope of a rule whose every severity has since been deleted.
+const DELETED_SEVERITIES: string = translationKey(
+  "severities that have since been deleted",
+);
 
 /*
  * The channels of an on-call rule that members are not checked on, because
@@ -264,21 +306,139 @@ export const getRuleIcon: (rule: RuleIdentity) => IconProp = (
   return getRuleTypeIcon(rule.ruleType);
 };
 
+// A channel's chip: its name, or "Any channel", in the reader's words.
 export const getChannelLabel: (
   channel: ComplianceNotificationChannel | null | undefined,
+  translator?: Translator,
 ) => string = (
   channel: ComplianceNotificationChannel | null | undefined,
+  translator: Translator = ENGLISH,
 ): string => {
-  return ComplianceRule.getChannelDefinition(channel)?.label || "Any channel";
+  if (!ComplianceRule.getChannelDefinition(channel)) {
+    return translator.translateText(ANY_CHANNEL) || ANY_CHANNEL;
+  }
+
+  return ComplianceRule.getChannelLabel(channel, translator);
 };
 
-export const getRuleTitle: (rule: RuleIdentity) => string = (
+export const getRuleTitle: (
   rule: RuleIdentity,
+  translator?: Translator,
+) => string = (
+  rule: RuleIdentity,
+  translator: Translator = ENGLISH,
 ): string => {
-  return ComplianceRule.getTitle({
-    ruleType: rule.ruleType,
-    notificationChannels: rule.notificationChannels,
-  });
+  return ComplianceRule.getTitle(
+    {
+      ruleType: rule.ruleType,
+      notificationChannels: rule.notificationChannels,
+    },
+    translator,
+  );
+};
+
+/*
+ * The list a rule's severities belong to: a default name in it ("Critical
+ * Incident") is OneUptime's and reads in the reader's language, a name the
+ * project gave its severity reads as written (Common/Utils/DefaultRecordNames).
+ */
+export const getSeverityList: (
+  rule: Pick<TeamComplianceRuleJSON, "ruleType" | "severityKind">,
+) => StateListType = (
+  rule: Pick<TeamComplianceRuleJSON, "ruleType" | "severityKind">,
+): StateListType => {
+  return (rule.severityKind ||
+    ComplianceRule.getSeverityKind(rule.ruleType)) ===
+    ComplianceSeverityKind.Alert
+    ? StateListType.AlertSeverity
+    : StateListType.IncidentSeverity;
+};
+
+/*
+ * A severity's name as a sentence takes it: by its list, so a default name
+ * takes the sentence's language and a project's name reads as written. One
+ * that arrived without a name reads as its id.
+ */
+const getSeverityInSentence: (
+  rule: TeamComplianceRuleJSON,
+  severity: TeamComplianceSeverityJSON,
+) => TemplateValue = (
+  rule: TeamComplianceRuleJSON,
+  severity: TeamComplianceSeverityJSON,
+): TemplateValue => {
+  if (!severity.name) {
+    return severity.id;
+  }
+
+  return recordNameInSentence(getSeverityList(rule), severity.name);
+};
+
+/*
+ * A rule's warnings in the reader's language (#8632): each worded from what
+ * the server found, else the server's English at the same place - a server
+ * from before it sent the data, or a warning this page does not know yet.
+ */
+export const getRuleWarningTexts: (
+  rule: TeamComplianceRuleJSON,
+  translator?: Translator,
+) => Array<string> = (
+  rule: TeamComplianceRuleJSON,
+  translator: Translator = ENGLISH,
+): Array<string> => {
+  const details: Array<TeamComplianceWarningJSON> | undefined =
+    rule.warningDetails;
+
+  if (!details || details.length !== rule.warnings.length) {
+    return rule.warnings;
+  }
+
+  return details.map(
+    (warning: TeamComplianceWarningJSON, index: number): string => {
+      return (
+        getComplianceWarningText(warning, translator) ||
+        rule.warnings[index] ||
+        ""
+      );
+    },
+  );
+};
+
+/*
+ * Why a member fails a rule, in the reader's language (#8632): worded from
+ * the server's findings, the severities by their list as every sentence of
+ * the page names them. The server's English when it sent no findings, or
+ * one this page does not know.
+ */
+export const getIssueReasonText: (
+  issue: TeamComplianceIssueJSON,
+  rule: TeamComplianceRuleJSON | undefined,
+  translator?: Translator,
+) => string = (
+  issue: TeamComplianceIssueJSON,
+  rule: TeamComplianceRuleJSON | undefined,
+  translator: Translator = ENGLISH,
+): string => {
+  if (!issue.findings || issue.findings.length === 0) {
+    return issue.reason;
+  }
+
+  const severityRule: Pick<
+    TeamComplianceRuleJSON,
+    "ruleType" | "severityKind"
+  > = rule || { ruleType: issue.ruleType, severityKind: null };
+
+  return (
+    getComplianceReasonText(
+      issue.findings,
+      issue.ruleType,
+      translator,
+      (severity: TeamComplianceSeverityJSON): TemplateValue => {
+        return severity.name
+          ? recordNameInSentence(getSeverityList(severityRule), severity.name)
+          : severity.id;
+      },
+    ) || issue.reason
+  );
 };
 
 /*
@@ -287,35 +447,63 @@ export const getRuleTitle: (rule: RuleIdentity) => string = (
  * A rule whose selected severities have all since been deleted says so rather
  * than claiming every severity: it checks none.
  */
-export const getRuleSentence: (rule: TeamComplianceRuleJSON) => string = (
+export const getRuleSentence: (
   rule: TeamComplianceRuleJSON,
+  translator?: Translator,
+) => string = (
+  rule: TeamComplianceRuleJSON,
+  translator: Translator = ENGLISH,
 ): string => {
-  let severityNames: Array<string> = rule.severities.map(
-    (severity: TeamComplianceSeverityJSON): string => {
-      return severity.name || severity.id;
+  let severityNames: Array<TemplateValue> = rule.severities.map(
+    (severity: TeamComplianceSeverityJSON): TemplateValue => {
+      return getSeverityInSentence(rule, severity);
     },
   );
 
   if (rule.appliesToAllSeverities) {
     severityNames = [];
   } else if (hasNoSeveritiesLeft(rule)) {
-    severityNames = ["severities that have since been deleted"];
+    severityNames = [translatableTerm(DELETED_SEVERITIES)];
   }
 
-  return ComplianceRule.describe({
-    ruleType: rule.ruleType,
-    notificationChannels: rule.notificationChannels,
-    severityNames: severityNames,
-  });
+  return ComplianceRule.describe(
+    {
+      ruleType: rule.ruleType,
+      notificationChannels: rule.notificationChannels,
+      severityNames: severityNames,
+    },
+    translator,
+  );
 };
 
+// The scope chip of a rule on every severity of its kind: English, a key.
 export const getAllSeveritiesLabel: (
   kind: ComplianceSeverityKind | null | undefined,
 ) => string = (kind: ComplianceSeverityKind | null | undefined): string => {
   return kind === ComplianceSeverityKind.Alert
-    ? "All alert severities"
-    : "All incident severities";
+    ? translationKey("All alert severities")
+    : translationKey("All incident severities");
 };
+
+/*
+ * A rule's name with its scope, each shape one sentence: "{{title}} (no
+ * severities left)", "{{title}} (all alert severities)".
+ */
+const RULE_LABEL_NO_SEVERITIES_LEFT: string = translationKey(
+  "{{title}} (no severities left)",
+);
+
+const RULE_LABEL_ALL_ALERT_SEVERITIES: string = translationKey(
+  "{{title}} (all alert severities)",
+);
+
+const RULE_LABEL_ALL_INCIDENT_SEVERITIES: string = translationKey(
+  "{{title}} (all incident severities)",
+);
+
+const RULE_LABEL_WITH_SEVERITIES: string = translationKey(
+  "{{title}} ({{severities}})",
+);
 
 /*
  * The rule's name wherever it has to be told apart from every other rule on
@@ -330,30 +518,51 @@ export const getAllSeveritiesLabel: (
  * The rules card's heading stays the short title; the sentence and the scope
  * chips under it already say the rest.
  */
-export const getRuleLabel: (rule: TeamComplianceRuleJSON) => string = (
+export const getRuleLabel: (
   rule: TeamComplianceRuleJSON,
+  translator?: Translator,
+) => string = (
+  rule: TeamComplianceRuleJSON,
+  translator: Translator = ENGLISH,
 ): string => {
-  const title: string = getRuleTitle(rule);
-
   if (!ComplianceRule.supportsSeverityScope(rule.ruleType)) {
-    return title;
+    return getRuleTitle(rule, translator);
   }
 
+  // The title in the language of the sentence it is put into.
+  const title: TemplateValue = composedValue((sentence: Translator): string => {
+    return getRuleTitle(rule, sentence);
+  });
+
   if (hasNoSeveritiesLeft(rule)) {
-    return `${title} (${NO_SEVERITIES_LEFT_LABEL.toLowerCase()})`;
+    return translator.translateTemplate(RULE_LABEL_NO_SEVERITIES_LEFT, {
+      title: title,
+    });
   }
 
   if (rule.appliesToAllSeverities || rule.severities.length === 0) {
-    return `${title} (${getAllSeveritiesLabel(
-      rule.severityKind || ComplianceRule.getSeverityKind(rule.ruleType),
-    ).toLowerCase()})`;
+    return translator.translateTemplate(
+      getSeverityList(rule) === StateListType.AlertSeverity
+        ? RULE_LABEL_ALL_ALERT_SEVERITIES
+        : RULE_LABEL_ALL_INCIDENT_SEVERITIES,
+      { title: title },
+    );
   }
 
-  return `${title} (${joinAsProse(
-    rule.severities.map((severity: TeamComplianceSeverityJSON): string => {
-      return severity.name || severity.id;
+  return translator.translateTemplate(RULE_LABEL_WITH_SEVERITIES, {
+    title: title,
+    severities: composedValue((sentence: Translator): string => {
+      return joinAsProse(
+        rule.severities.map((severity: TeamComplianceSeverityJSON): string => {
+          return getValueInSentence(
+            getSeverityInSentence(rule, severity),
+            sentence,
+          );
+        }),
+        sentence,
+      );
     }),
-  )})`;
+  });
 };
 
 /*
@@ -383,34 +592,61 @@ export const getRulePassRate: (rule: TeamComplianceRuleJSON) => RulePassRate = (
 };
 
 /*
- * A rule's pass rate in words, as a bold count and the phrase after it:
- * "All 5" + "meet it", "2 of 3" + "members meet it", "1 of 1" + "member meets
- * it". `label` is the same sentence for the bar's accessible name. Only
+ * A rule's pass rate in words: "All 5 meet it", "2 of 3 members meet it",
+ * "1 of 1 member meets it" - one sentence, its count's form in the reader's
+ * language. `label` says the same for the bar's accessible name. Only
  * meaningful when `total` > 0.
  */
 export interface RulePassRateText {
-  count: string;
-  caption: string;
+  text: string;
   label: string;
 }
 
-export const getRulePassRateText: (rate: RulePassRate) => RulePassRateText = (
-  rate: RulePassRate,
-): RulePassRateText => {
-  let count: string = `${rate.passing} of ${rate.total}`;
-  let phrase: string = `${pluralize(rate.total, "member")} ${
-    rate.passing === 1 || rate.total === 1 ? "meets" : "meet"
-  }`;
+const EVERY_MEMBER_MEETS_IT: PluralTemplate = {
+  one: "All {{count}} meet it",
+  other: "All {{count}} meet it",
+};
 
+const EVERY_MEMBER_MEETS_THIS_RULE: PluralTemplate = {
+  one: "All {{count}} meet this rule",
+  other: "All {{count}} meet this rule",
+};
+
+const MEMBERS_MEET_IT: PluralTemplate = {
+  one: "{{passing}} of {{count}} member meets it",
+  other: "{{passing}} of {{count}} members meet it",
+};
+
+const MEMBERS_MEET_THIS_RULE: PluralTemplate = {
+  one: "{{passing}} of {{count}} member meets this rule",
+  other: "{{passing}} of {{count}} members meet this rule",
+};
+
+export const getRulePassRateText: (
+  rate: RulePassRate,
+  translator?: Translator,
+) => RulePassRateText = (
+  rate: RulePassRate,
+  translator: Translator = ENGLISH,
+): RulePassRateText => {
   if (rate.failing === 0 && rate.total > 1) {
-    count = `All ${rate.total}`;
-    phrase = "meet";
+    return {
+      text: translator.translatePlural(EVERY_MEMBER_MEETS_IT, rate.total),
+      label: translator.translatePlural(
+        EVERY_MEMBER_MEETS_THIS_RULE,
+        rate.total,
+      ),
+    };
   }
 
+  // Both counts in the reader's digits: {{count}} by translatePlural.
   return {
-    count: count,
-    caption: `${phrase} it`,
-    label: `${count} ${phrase} this rule`,
+    text: translator.translatePlural(MEMBERS_MEET_IT, rate.total, {
+      passing: translator.formatNumber(rate.passing),
+    }),
+    label: translator.translatePlural(MEMBERS_MEET_THIS_RULE, rate.total, {
+      passing: translator.formatNumber(rate.passing),
+    }),
   };
 };
 
@@ -518,44 +754,129 @@ export const areAllRulesPaused: (summary: ComplianceSummary) => boolean = (
   );
 };
 
-// "A, or B", "A, B, or C": the ways out, as one choice.
-const joinAsChoice: (items: Array<string>) => string = (
+// "A, or B", "A, B, or C": the ways out, as one choice, each shape a key.
+const CHOICE_LISTS: Readonly<Record<2 | 3 | 4, string>> = {
+  2: translationKey("{{first}}, or {{second}}"),
+  3: translationKey("{{first}}, {{second}}, or {{third}}"),
+  4: translationKey("{{first}}, {{second}}, {{third}}, or {{fourth}}"),
+};
+
+const joinAsChoice: (items: Array<string>, translator: Translator) => string = (
   items: Array<string>,
+  translator: Translator,
 ): string => {
   if (items.length <= 1) {
     return items[0] || "";
   }
 
-  return `${items.slice(0, -1).join(", ")}, or ${items[items.length - 1]}`;
+  const [first, second, third, fourth] = items;
+  const values: Record<string, string> = {
+    first: first!,
+    second: second!,
+  };
+
+  if (third !== undefined) {
+    values["third"] = third;
+  }
+
+  if (fourth !== undefined) {
+    values["fourth"] = fourth;
+  }
+
+  return translator.translateTemplate(
+    CHOICE_LISTS[Math.min(items.length, 4) as 2 | 3 | 4],
+    values,
+  );
 };
 
-const capitalize: (text: string) => string = (text: string): string => {
-  return text.charAt(0).toUpperCase() + text.slice(1);
+// The first letter as a sentence starts it, in a script that has capitals.
+const capitalize: (text: string, language: string) => string = (
+  text: string,
+  language: string,
+): string => {
+  return text.charAt(0).toLocaleUpperCase(language) + text.slice(1);
 };
 
-export const getNoActiveRulesAdvice: (summary: ComplianceSummary) => string = (
+/*
+ * Why nothing can be checked, when every rule of the team is in one of the
+ * states below - one whole sentence for each, in the form its count takes:
+ * "This team's rule ..." for one, "All 3 of this team's rules ..." for more.
+ */
+const ALL_UNRECOGNISED: PluralTemplate = {
+  one: "This team's rule is of a type this version does not recognise, so it is not checked. Delete it and add a supported rule.",
+  other:
+    "All {{count}} of this team's rules are of a type this version does not recognise, so they are not checked. Delete them and add a supported rule.",
+};
+
+const ALL_WITHOUT_SEVERITIES: PluralTemplate = {
+  one: "This team's rule has no severities left: every severity it was scoped to has been deleted. Edit it to choose new severities, or delete it.",
+  other:
+    "All {{count}} of this team's rules have no severities left: every severity they were scoped to has been deleted. Edit them to choose new severities, or delete them.",
+};
+
+const ALL_WITHOUT_A_CHANNEL: PluralTemplate = {
+  one: "This team's rule asks only for channels that cannot carry a page on this server right now, so it is not checked. Its warning says why.",
+  other:
+    "All {{count}} of this team's rules ask only for channels that cannot carry a page on this server right now, so they are not checked. Their warnings say why.",
+};
+
+// When the rules are in more than one of those states: each state, then each way out.
+const PAUSED_RULES: PluralTemplate = {
+  one: "{{count}} rule is paused",
+  other: "{{count}} rules are paused",
+};
+
+const RULES_WITHOUT_SEVERITIES: PluralTemplate = {
+  one: "{{count}} rule has no severities left",
+  other: "{{count}} rules have no severities left",
+};
+
+const UNRECOGNISED_RULES: PluralTemplate = {
+  one: "{{count}} rule is of a type this version does not recognise",
+  other: "{{count}} rules are of a type this version does not recognise",
+};
+
+const RULES_WITHOUT_A_CHANNEL: PluralTemplate = {
+  one: "{{count}} rule asks only for channels that cannot carry a page right now",
+  other:
+    "{{count}} rules ask only for channels that cannot carry a page right now",
+};
+
+const TURN_A_PAUSED_RULE_ON: string = translationKey("turn a paused rule on");
+
+const EDIT_THE_RULES_WITHOUT_SEVERITIES: PluralTemplate = {
+  one: "edit the one with no severities left to choose new severities",
+  other: "edit the ones with no severities left to choose new severities",
+};
+
+const REPLACE_THE_UNRECOGNISED_RULES: PluralTemplate = {
+  one: "replace the unrecognised one",
+  other: "replace the unrecognised ones",
+};
+
+const ADD_A_CHANNEL_TO_THE_RULES: PluralTemplate = {
+  one: "add another channel to the one that cannot be checked",
+  other: "add another channel to the ones that cannot be checked",
+};
+
+// The states, then the ways out: "{{states}}. {{choices}}."
+const STATES_AND_CHOICES: string = translationKey("{{states}}. {{choices}}.");
+
+export const TURN_A_RULE_ON: string = translationKey(
+  "Turn a rule on to see who meets it.",
+);
+
+export const getNoActiveRulesAdvice: (
   summary: ComplianceSummary,
+  translator?: Translator,
+) => string = (
+  summary: ComplianceSummary,
+  translator: Translator = ENGLISH,
 ): string => {
   const resumable: number = summary.resumableRuleCount;
   const noSeveritiesLeft: number = summary.noSeveritiesLeftRuleCount;
   const unrecognised: number = summary.unrecognisedRuleCount;
   const noChannel: number = summary.noChannelToCheckRuleCount;
-  const isOrAre: (count: number) => string = (count: number): string => {
-    return count === 1 ? "is" : "are";
-  };
-  const itOrThem: (count: number) => string = (count: number): string => {
-    return count === 1 ? "it" : "them";
-  };
-  // "This team's rule is", "All 2 of this team's rules are".
-  const everyRule: (count: number, verb: string, verbs: string) => string = (
-    count: number,
-    verb: string,
-    verbs: string,
-  ): string => {
-    return count === 1
-      ? `This team's rule ${verb}`
-      : `All ${count} of this team's rules ${verbs}`;
-  };
 
   if (
     resumable === 0 &&
@@ -563,69 +884,103 @@ export const getNoActiveRulesAdvice: (summary: ComplianceSummary) => string = (
     unrecognised === 0 &&
     noChannel === 0
   ) {
-    return "Turn a rule on to see who meets it.";
+    return translator.translateText(TURN_A_RULE_ON) || TURN_A_RULE_ON;
   }
 
   if (resumable === 0 && noSeveritiesLeft === 0 && noChannel === 0) {
-    return `${everyRule(unrecognised, "is", "are")} of a type this version does not recognise, so ${
-      unrecognised === 1 ? "it is" : "they are"
-    } not checked. Delete ${itOrThem(unrecognised)} and add a supported rule.`;
+    return translator.translatePlural(ALL_UNRECOGNISED, unrecognised);
   }
 
   if (resumable === 0 && unrecognised === 0 && noChannel === 0) {
-    return `${everyRule(noSeveritiesLeft, "has", "have")} no severities left: every severity ${
-      noSeveritiesLeft === 1 ? "it was" : "they were"
-    } scoped to has been deleted. Edit ${itOrThem(
-      noSeveritiesLeft,
-    )} to choose new severities, or delete ${itOrThem(noSeveritiesLeft)}.`;
+    return translator.translatePlural(ALL_WITHOUT_SEVERITIES, noSeveritiesLeft);
   }
 
   if (resumable === 0 && noSeveritiesLeft === 0 && unrecognised === 0) {
-    return `${everyRule(noChannel, "asks", "ask")} only for channels that cannot carry a page on this server right now, so ${
-      noChannel === 1 ? "it is" : "they are"
-    } not checked. ${noChannel === 1 ? "Its warning says" : "Their warnings say"} why.`;
+    return translator.translatePlural(ALL_WITHOUT_A_CHANNEL, noChannel);
   }
 
-  const states: Array<string> = [];
-  const choices: Array<string> = [];
+  // Each piece in the language of the sentence it is put into.
+  const states: (sentence: Translator) => Array<string> = (
+    sentence: Translator,
+  ): Array<string> => {
+    const words: Array<string> = [];
 
-  if (resumable > 0) {
-    states.push(`${countOf(resumable, "rule")} ${isOrAre(resumable)} paused`);
-    choices.push("turn a paused rule on");
-  }
+    if (resumable > 0) {
+      words.push(sentence.translatePlural(PAUSED_RULES, resumable));
+    }
 
-  if (noSeveritiesLeft > 0) {
-    states.push(
-      `${countOf(noSeveritiesLeft, "rule")} ${
-        noSeveritiesLeft === 1 ? "has" : "have"
-      } no severities left`,
-    );
-    choices.push(
-      `edit the ${pluralize(noSeveritiesLeft, "one")} with no severities left to choose new severities`,
-    );
-  }
+    if (noSeveritiesLeft > 0) {
+      words.push(
+        sentence.translatePlural(RULES_WITHOUT_SEVERITIES, noSeveritiesLeft),
+      );
+    }
 
-  if (unrecognised > 0) {
-    states.push(
-      `${countOf(unrecognised, "rule")} ${isOrAre(
-        unrecognised,
-      )} of a type this version does not recognise`,
-    );
-    choices.push(`replace the unrecognised ${pluralize(unrecognised, "one")}`);
-  }
+    if (unrecognised > 0) {
+      words.push(sentence.translatePlural(UNRECOGNISED_RULES, unrecognised));
+    }
 
-  if (noChannel > 0) {
-    states.push(
-      `${countOf(noChannel, "rule")} ${
-        noChannel === 1 ? "asks" : "ask"
-      } only for channels that cannot carry a page right now`,
-    );
-    choices.push(
-      `add another channel to the ${pluralize(noChannel, "one")} that cannot be checked`,
-    );
-  }
+    if (noChannel > 0) {
+      words.push(sentence.translatePlural(RULES_WITHOUT_A_CHANNEL, noChannel));
+    }
 
-  return `${joinAsProse(states)}. ${capitalize(joinAsChoice(choices))}.`;
+    return words;
+  };
+
+  const choices: (sentence: Translator) => Array<string> = (
+    sentence: Translator,
+  ): Array<string> => {
+    const words: Array<string> = [];
+
+    if (resumable > 0) {
+      words.push(
+        sentence.translateText(TURN_A_PAUSED_RULE_ON) || TURN_A_PAUSED_RULE_ON,
+      );
+    }
+
+    if (noSeveritiesLeft > 0) {
+      words.push(
+        sentence.translatePlural(
+          EDIT_THE_RULES_WITHOUT_SEVERITIES,
+          noSeveritiesLeft,
+        ),
+      );
+    }
+
+    if (unrecognised > 0) {
+      words.push(
+        sentence.translatePlural(REPLACE_THE_UNRECOGNISED_RULES, unrecognised),
+      );
+    }
+
+    if (noChannel > 0) {
+      words.push(
+        sentence.translatePlural(ADD_A_CHANNEL_TO_THE_RULES, noChannel),
+      );
+    }
+
+    return words;
+  };
+
+  return translator.translateTemplate(STATES_AND_CHOICES, {
+    states: composedValue((sentence: Translator): string => {
+      return capitalize(
+        joinAsProse(states(sentence), sentence),
+        sentence.language,
+      );
+    }),
+    choices: composedValue((sentence: Translator): string => {
+      return capitalize(
+        joinAsChoice(choices(sentence), sentence),
+        sentence.language,
+      );
+    }),
+  });
+};
+
+const INVITED_NOTE: PluralTemplate = {
+  one: "{{count}} person invited to this team is not checked until they accept their invitation.",
+  other:
+    "{{count}} people invited to this team are not checked until they accept their invitation.",
 };
 
 /*
@@ -633,16 +988,18 @@ export const getNoActiveRulesAdvice: (summary: ComplianceSummary) => string = (
  * nothing reaches them through the team until they accept, so there is
  * nothing to check yet. Empty when nobody is waiting.
  */
-export const getInvitedNote: (invitedCount: number) => string = (
+export const getInvitedNote: (
   invitedCount: number,
+  translator?: Translator,
+) => string = (
+  invitedCount: number,
+  translator: Translator = ENGLISH,
 ): string => {
   if (invitedCount <= 0) {
     return "";
   }
 
-  return invitedCount === 1
-    ? "1 person invited to this team is not checked until they accept their invitation."
-    : `${invitedCount} people invited to this team are not checked until they accept their invitation.`;
+  return translator.translatePlural(INVITED_NOTE, invitedCount);
 };
 
 export enum ComplianceVerdictKind {
@@ -655,63 +1012,127 @@ export enum ComplianceVerdictKind {
 
 export interface ComplianceVerdict {
   kind: ComplianceVerdictKind;
+  // Each in the reader's words already: drawn as given, never looked up again.
   badgeText: string;
   headline: string;
   detail: string;
 }
+
+const NO_ACTIVE_RULES: string = translationKey("No active rules");
+
+const EVERY_RULE_PAUSED: PluralTemplate = {
+  one: "All {{count}} rules are paused",
+  other: "All {{count}} rules are paused",
+};
+
+const NEED_ATTENTION: PluralTemplate = {
+  one: "{{count}} needs attention",
+  other: "{{count}} need attention",
+};
+
+const EVERY_MEMBER_MEETS_EVERY_RULE: PluralTemplate = {
+  one: "All {{count}} members meet every rule",
+  other: "All {{count}} members meet every rule",
+};
+
+const NO_MEMBER_MEETS_EVERY_RULE: PluralTemplate = {
+  one: "None of the {{count}} members meet every rule",
+  other: "None of the {{count}} members meet every rule",
+};
+
+const SOME_MEMBERS_MEET_EVERY_RULE: PluralTemplate = {
+  one: "{{compliant}} of {{count}} member meets every rule",
+  other: "{{compliant}} of {{count}} members meet every rule",
+};
+
+const NOBODY_IS_CHECKED: string = translationKey(
+  "Nobody is being checked right now. {{advice}}",
+);
 
 /*
  * The one-line answer at the top of the page. "All compliant" is only ever
  * claimed over at least one active rule and at least one member: a team with
  * nothing checked, or nobody to check, gets a neutral answer that says so
  * rather than a green one it has not earned.
+ *
+ * A count of one that means "the only one" is a sentence of its own, never
+ * a plural's "one" form: Russian reads 21 by that form.
  */
 export const getComplianceVerdict: (
   summary: ComplianceSummary,
-) => ComplianceVerdict = (summary: ComplianceSummary): ComplianceVerdict => {
+  translator?: Translator,
+) => ComplianceVerdict = (
+  summary: ComplianceSummary,
+  translator: Translator = ENGLISH,
+): ComplianceVerdict => {
+  const text: (english: string) => string = (english: string): string => {
+    return translator.translateText(english) || english;
+  };
+
   if (summary.ruleCount === 0) {
     return {
       kind: ComplianceVerdictKind.NoRules,
-      badgeText: "No active rules",
-      headline: "Nothing is being checked yet",
-      detail:
-        "Add a rule to say what everyone on this team must set up to be reachable - for example, a phone call for critical incidents.",
+      badgeText: text(NO_ACTIVE_RULES),
+      headline: text(translationKey("Nothing is being checked yet")),
+      detail: text(
+        translationKey(
+          "Add a rule to say what everyone on this team must set up to be reachable - for example, a phone call for critical incidents.",
+        ),
+      ),
     };
   }
 
   if (summary.activeRuleCount === 0) {
+    let headline: string = text(translationKey("No rule is being checked"));
+
+    if (areAllRulesPaused(summary)) {
+      headline =
+        summary.ruleCount === 1
+          ? text(translationKey("The only rule is paused"))
+          : translator.translatePlural(EVERY_RULE_PAUSED, summary.ruleCount);
+    }
+
     return {
       kind: ComplianceVerdictKind.NoActiveRules,
-      badgeText: "No active rules",
-      headline: areAllRulesPaused(summary)
-        ? `${summary.ruleCount === 1 ? "The only rule is" : `All ${summary.ruleCount} rules are`} paused`
-        : "No rule is being checked",
-      detail: areAllRulesPaused(summary)
-        ? "Nobody is being checked right now. Turn a rule on to see who meets it."
-        : `Nobody is being checked right now. ${getNoActiveRulesAdvice(summary)}`,
+      badgeText: text(NO_ACTIVE_RULES),
+      headline: headline,
+      detail: translator.translateTemplate(NOBODY_IS_CHECKED, {
+        advice: composedValue((sentence: Translator): string => {
+          return areAllRulesPaused(summary)
+            ? sentence.translateText(TURN_A_RULE_ON) || TURN_A_RULE_ON
+            : getNoActiveRulesAdvice(summary, sentence);
+        }),
+      }),
     };
   }
 
   if (summary.memberCount === 0) {
     return {
       kind: ComplianceVerdictKind.NoMembers,
-      badgeText: "No members",
-      headline: "This team has no members to check",
+      badgeText: text(translationKey("No members")),
+      headline: text(translationKey("This team has no members to check")),
       detail:
         summary.invitedCount > 0
-          ? getInvitedNote(summary.invitedCount)
-          : "Add people on the team's Members page and their compliance shows up here.",
+          ? getInvitedNote(summary.invitedCount, translator)
+          : text(
+              translationKey(
+                "Add people on the team's Members page and their compliance shows up here.",
+              ),
+            ),
     };
   }
 
   if (summary.attentionCount === 0) {
     return {
       kind: ComplianceVerdictKind.AllCompliant,
-      badgeText: "All compliant",
+      badgeText: text(translationKey("All compliant")),
       headline:
         summary.memberCount === 1
-          ? "The team's only member meets every rule"
-          : `All ${summary.memberCount} members meet every rule`,
+          ? text(translationKey("The team's only member meets every rule"))
+          : translator.translatePlural(
+              EVERY_MEMBER_MEETS_EVERY_RULE,
+              summary.memberCount,
+            ),
       detail: "",
     };
   }
@@ -721,22 +1142,27 @@ export const getComplianceVerdict: (
   if (summary.compliantCount === 0) {
     headline =
       summary.memberCount === 1
-        ? "The team's only member does not meet every rule"
-        : `None of the ${summary.memberCount} members meet every rule`;
+        ? text(
+            translationKey("The team's only member does not meet every rule"),
+          )
+        : translator.translatePlural(
+            NO_MEMBER_MEETS_EVERY_RULE,
+            summary.memberCount,
+          );
   } else {
-    headline = `${summary.compliantCount} of ${countOf(
+    headline = translator.translatePlural(
+      SOME_MEMBERS_MEET_EVERY_RULE,
       summary.memberCount,
-      "member",
-    )} ${summary.compliantCount === 1 ? "meets" : "meet"} every rule`;
+      { compliant: translator.formatNumber(summary.compliantCount) },
+    );
   }
 
   return {
     kind: ComplianceVerdictKind.NeedsAttention,
-    badgeText: `${summary.attentionCount} ${pluralize(
+    badgeText: translator.translatePlural(
+      NEED_ATTENTION,
       summary.attentionCount,
-      "needs",
-      "need",
-    )} attention`,
+    ),
     headline: headline,
     detail: "",
   };
@@ -748,10 +1174,25 @@ export enum MemberStatusFilter {
   Compliant = "Compliant",
 }
 
+// A member who has neither a name nor an email address.
+export const UNKNOWN_USER: string = translationKey("Unknown User");
+
+// "this member", in "Open this member's on-call setup".
+const THIS_MEMBER: string = translationKey("this member");
+
 export const getMemberDisplayName: (
   member: TeamMemberComplianceJSON,
-) => string = (member: TeamMemberComplianceJSON): string => {
-  return member.userName || member.userEmail || "Unknown User";
+  translator?: Translator,
+) => string = (
+  member: TeamMemberComplianceJSON,
+  translator: Translator = ENGLISH,
+): string => {
+  return (
+    member.userName ||
+    member.userEmail ||
+    translator.translateText(UNKNOWN_USER) ||
+    UNKNOWN_USER
+  );
 };
 
 // "Jane" from "Jane Doe"; the email when there is no name.
@@ -760,11 +1201,25 @@ export const getMemberFirstName: (
 ) => string = (member: TeamMemberComplianceJSON): string => {
   const name: string = (member.userName || "").trim();
 
-  if (!name || name === "Unknown User") {
-    return member.userEmail || "this member";
+  if (!name || name === UNKNOWN_USER) {
+    return member.userEmail || THIS_MEMBER;
   }
 
   return name.split(/\s+/)[0] || name;
+};
+
+/*
+ * The same, as a sentence takes it: a name or an email as written, "this
+ * member" in the sentence's language.
+ */
+export const getMemberFirstNameInSentence: (
+  member: TeamMemberComplianceJSON,
+) => TemplateValue = (member: TeamMemberComplianceJSON): TemplateValue => {
+  const firstName: string = getMemberFirstName(member);
+
+  return firstName === THIS_MEMBER && !member.userEmail
+    ? translatableTerm(THIS_MEMBER)
+    : firstName;
 };
 
 /*
@@ -989,8 +1444,25 @@ export const countFilteredMembersByStatus: (data: {
 export interface SelfFix {
   page: PageMap;
   query?: Dictionary<string> | undefined;
+  // English, a key: the link looks it up as it draws it.
   title: string;
 }
+
+// The link to the member's own On-Call Rules tab for each kind of rule.
+const OWN_ON_CALL_RULES_LINKS: Readonly<Record<string, string>> = {
+  [ComplianceRuleType.HasIncidentOnCallRules]: translationKey(
+    "Open my incident on-call rules",
+  ),
+  [ComplianceRuleType.HasAlertOnCallRules]: translationKey(
+    "Open my alert on-call rules",
+  ),
+  [ComplianceRuleType.HasIncidentEpisodeOnCallRules]: translationKey(
+    "Open my incident episode on-call rules",
+  ),
+  [ComplianceRuleType.HasAlertEpisodeOnCallRules]: translationKey(
+    "Open my alert episode on-call rules",
+  ),
+};
 
 // One fix per page AND tab: two links to the same tab are one link.
 export const getSelfFixKey: (fix: SelfFix) => string = (
@@ -1011,7 +1483,7 @@ export const getSelfFix: (ruleType: string | undefined) => SelfFix = (
   ) {
     return {
       page: PageMap.USER_SETTINGS_NOTIFICATION_METHODS,
-      title: "Open my notification methods",
+      title: translationKey("Open my notification methods"),
     };
   }
 
@@ -1025,7 +1497,9 @@ export const getSelfFix: (ruleType: string | undefined) => SelfFix = (
       definition.notificationRuleType ||
         NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
     ),
-    title: `Open my ${definition.subject || "on-call"} on-call rules`,
+    title:
+      OWN_ON_CALL_RULES_LINKS[definition.ruleType] ||
+      translationKey("Open my incident on-call rules"),
   };
 };
 
@@ -1073,8 +1547,10 @@ export interface RuleWarningGroup {
  */
 export const getRuleWarningGroups: (
   rules: Array<TeamComplianceRuleJSON>,
+  translator?: Translator,
 ) => Array<RuleWarningGroup> = (
   rules: Array<TeamComplianceRuleJSON>,
+  translator: Translator = ENGLISH,
 ): Array<RuleWarningGroup> => {
   return rules
     .filter((rule: TeamComplianceRuleJSON): boolean => {
@@ -1085,8 +1561,8 @@ export const getRuleWarningGroups: (
     .map((rule: TeamComplianceRuleJSON): RuleWarningGroup => {
       return {
         rule: rule,
-        title: getRuleLabel(rule),
-        warnings: rule.warnings,
+        title: getRuleLabel(rule, translator),
+        warnings: getRuleWarningTexts(rule, translator),
         channels: getRuleChannels(rule),
       };
     });
@@ -1212,6 +1688,76 @@ const parseChannels: (
   ) as Array<ComplianceNotificationChannel>;
 };
 
+const WARNING_KINDS: ReadonlyArray<string> = Object.values(
+  TeamComplianceWarningKind,
+);
+
+const FINDING_KINDS: ReadonlyArray<string> = Object.values(
+  TeamComplianceFindingKind,
+);
+
+/*
+ * What the server found about a rule (#8632). Undefined from a server from
+ * before it sent any, or when one of them is a kind this page does not
+ * know - the page then draws the server's English for every one.
+ */
+const parseWarningDetails: (
+  value: unknown,
+) => Array<TeamComplianceWarningJSON> | undefined = (
+  value: unknown,
+): Array<TeamComplianceWarningJSON> | undefined => {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const details: Array<TeamComplianceWarningJSON> = asObjects(value).map(
+    (json: JSONObject): TeamComplianceWarningJSON => {
+      return {
+        kind: asString(json["kind"]) as TeamComplianceWarningKind,
+        channels: ComplianceRule.normaliseChannels(json["channels"]),
+      };
+    },
+  );
+
+  return details.length === value.length &&
+    details.every((detail: TeamComplianceWarningJSON): boolean => {
+      return WARNING_KINDS.includes(detail.kind);
+    })
+    ? details
+    : undefined;
+};
+
+// Why a member fails a rule, as the server found it (#8632); as above.
+const parseFindings: (
+  value: unknown,
+) => Array<TeamComplianceFindingJSON> | undefined = (
+  value: unknown,
+): Array<TeamComplianceFindingJSON> | undefined => {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const findings: Array<TeamComplianceFindingJSON> = asObjects(value).map(
+    (json: JSONObject): TeamComplianceFindingJSON => {
+      const channel: ComplianceNotificationChannel | undefined =
+        ComplianceRule.normaliseChannels([json["channel"]])[0];
+
+      return {
+        kind: asString(json["kind"]) as TeamComplianceFindingKind,
+        ...(channel ? { channel: channel } : {}),
+        severities: asObjects(json["severities"]).map(parseSeverity),
+      };
+    },
+  );
+
+  return findings.length === value.length &&
+    findings.every((finding: TeamComplianceFindingJSON): boolean => {
+      return FINDING_KINDS.includes(finding.kind);
+    })
+    ? findings
+    : undefined;
+};
+
 const parseRule: (json: JSONObject, index: number) => TeamComplianceRuleJSON = (
   json: JSONObject,
   index: number,
@@ -1256,6 +1802,7 @@ const parseRule: (json: JSONObject, index: number) => TeamComplianceRuleJSON = (
     compliantCount: asCount(json["compliantCount"]),
     nonCompliantCount: asCount(json["nonCompliantCount"]),
     warnings: asStrings(json["warnings"]),
+    warningDetails: parseWarningDetails(json["warningDetails"]),
   };
 };
 
@@ -1266,6 +1813,7 @@ const parseIssue: (json: JSONObject) => TeamComplianceIssueJSON = (
     settingId: asString(json["settingId"]),
     ruleType: asString(json["ruleType"]) as ComplianceRuleType,
     reason: asString(json["reason"]),
+    findings: parseFindings(json["findings"]),
   };
 };
 

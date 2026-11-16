@@ -19,7 +19,7 @@ Jede Rolle und jede Berechtigung hat eine Zeile mit diesen Spalten:
 
 ## Rollen
 
-{{PERMISSION_ROLE_COUNT}} Rollen. Vier davon gelten im ganzen Projekt: Project Owner, Project Admin, Project Member und Viewer. Jede der anderen deckt einen Produktbereich ab, etwa Vorfälle oder Monitore, auf der Stufe Admin, Member oder Viewer. Diese Rollen bietet **Rolle hinzufügen** auf der Seite **Berechtigungen** eines Teams und auf der Seite eines API-Schlüssels an.
+{{PERMISSION_ROLE_COUNT}} Rollen. Vier davon gelten im ganzen Projekt: Projektinhaber, Projektadministrator, Projektmitglied und Betrachter. Jede der anderen deckt einen Produktbereich ab, etwa Vorfälle oder Monitore, auf der Stufe Administrator, Mitglied oder Betrachter. Diese Rollen bietet **Rolle hinzufügen** auf der Seite **Berechtigungen** eines Teams und auf der Seite eines API-Schlüssels an.
 
 {{PERMISSION_ROLE_TABLES}}
 

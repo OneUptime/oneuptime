@@ -207,12 +207,33 @@ export interface SecurityEntityRiskContribution {
   securityEventConnectionId?: string | undefined;
 }
 
-// An entity's score at the end of a day (UTC), as its history keeps it.
+/*
+ * A moment an entity's score changed, as its history keeps it (issue
+ * #8207): from `at` on it was `score`, until the next point. The page reads
+ * each of the reader's days off these, so the history serves every zone. A
+ * row written before keeps a point a UTC day ({ day, score }), read as the
+ * score at that day's end (readRiskHistory).
+ */
 export interface SecurityEntityRiskHistoryPoint {
-  // YYYY-MM-DD, UTC.
+  // An ISO 8601 instant, UTC.
+  at: string;
+  score: number;
+}
+
+// An entity's score at the end of one of the reader's days, as its bar draws it.
+export interface SecurityEntityRiskHistoryDay {
+  // YYYY-MM-DD, a day of the reader's calendar (UTC's when none is given).
   day: string;
   score: number;
 }
+
+/*
+ * The most changes a history keeps before it keeps one an hour instead of
+ * one a quarter hour (readRiskHistory). A score changes when a source
+ * starts or stops counting, so a month holds a few dozen; this bounds the
+ * row of an entity something churns.
+ */
+export const ENTITY_RISK_HISTORY_POINT_LIMIT: number = 1000;
 
 /*
  * THE RISKIEST ENTITIES, as the Security Overview shows them: the top of

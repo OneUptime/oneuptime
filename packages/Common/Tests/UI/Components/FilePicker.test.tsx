@@ -278,13 +278,13 @@ describe("FilePicker", () => {
     });
 
     it("words a limit as people read it", () => {
-      expect(formatFileSizeLimit(128 * 1024)).toBe("128 KB");
-      expect(formatFileSizeLimit(512 * 1024)).toBe("512 KB");
-      expect(formatFileSizeLimit(ONE_MB)).toBe("1 MB");
-      expect(formatFileSizeLimit(1.5 * ONE_MB)).toBe("1.5 MB");
-      expect(formatFileSizeLimit(10 * ONE_MB)).toBe("10 MB");
+      expect(formatFileSizeLimit(128 * 1024)).toBe("128\u00A0KB");
+      expect(formatFileSizeLimit(512 * 1024)).toBe("512\u00A0KB");
+      expect(formatFileSizeLimit(ONE_MB)).toBe("1\u00A0MB");
+      expect(formatFileSizeLimit(1.5 * ONE_MB)).toBe("1.5\u00A0MB");
+      expect(formatFileSizeLimit(10 * ONE_MB)).toBe("10\u00A0MB");
       // Never "0 KB".
-      expect(formatFileSizeLimit(100)).toBe("1 KB");
+      expect(formatFileSizeLimit(100)).toBe("1\u00A0KB");
     });
   });
 

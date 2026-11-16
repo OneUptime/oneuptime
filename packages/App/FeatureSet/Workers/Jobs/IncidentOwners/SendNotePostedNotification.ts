@@ -26,14 +26,115 @@ import User from "Common/Models/DatabaseModels/User";
 import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
 import { Blue500 } from "Common/Types/BrandColors";
+import Select from "Common/Server/Types/Database/Select";
+import logger from "Common/Server/Utils/Logger";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
+import OwnerNotificationDeliveries, {
+  OwnerNotificationDelivery,
+} from "Common/Server/Utils/Notification/OwnerNotificationDeliveries";
+import { OwnerNotificationKind } from "Common/Types/Notification/OwnerNotificationDelivery";
+
+// What each note is read with: a public one, and a private one.
+const PUBLIC_NOTE_SELECT: Select<IncidentPublicNote> = {
+  _id: true,
+  note: true,
+  incidentId: true,
+  projectId: true,
+};
+
+const PRIVATE_NOTE_SELECT: Select<IncidentInternalNote> = {
+  _id: true,
+  note: true,
+  incidentId: true,
+  projectId: true,
+};
+
+// What the incident of a note is read with.
+const INCIDENT_SELECT: Select<Incident> = {
+  _id: true,
+  title: true,
+  description: true,
+  projectId: true,
+  project: {
+    name: true,
+  },
+  currentIncidentState: {
+    name: true,
+    color: true,
+  },
+  incidentSeverity: {
+    name: true,
+    color: true,
+  },
+  incidentNumber: true,
+  incidentNumberWithPrefix: true,
+};
 
 RunCron(
   "IncidentOwner:SendsNotePostedEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
+    /*
+     * The owners a run that stopped part way left untold - a worker killed
+     * between the take and the last owner (#8199) - told first, exactly
+     * them, from the note as it is now (OwnerNotificationDeliveries).
+     */
+    await OwnerNotificationDeliveries.resume({
+      kinds: [
+        OwnerNotificationKind.IncidentPublicNotePosted,
+        OwnerNotificationKind.IncidentInternalNotePosted,
+      ],
+      notify: async (delivery: OwnerNotificationDelivery): Promise<void> => {
+        const isPrivateNote: boolean =
+          delivery.notification.kind ===
+          OwnerNotificationKind.IncidentInternalNotePosted;
+
+        const note: BaseModel | null = isPrivateNote
+          ? await IncidentInternalNoteService.findOneById({
+              id: delivery.notification.eventId,
+              select: PRIVATE_NOTE_SELECT,
+              props: {
+                isRoot: true,
+              },
+            })
+          : await IncidentPublicNoteService.findOneBy({
+              query: {
+                _id: delivery.notification.eventId,
+                /*
+                 * Published notes only, as the job's own read
+                 * (PublicNotePublishedGateGuard): owners are never told of
+                 * a note that is not published.
+                 */
+                isPublished: true,
+              },
+              select: PUBLIC_NOTE_SELECT,
+              props: {
+                isRoot: true,
+              },
+            });
+
+        const incident: Incident | null = note
+          ? await readIncident(delivery.notification.resourceId)
+          : null;
+
+        if (!note || !incident) {
+          await delivery.giveUp(
+            "the incident or its note is gone, or the note is no longer published",
+          );
+          return;
+        }
+
+        await notifyOwnersOfNote({
+          note: note,
+          isPrivateNote: isPrivateNote,
+          incident: incident,
+          delivery: delivery,
+        });
+      },
+    });
+
     const publicNotes: Array<IncidentPublicNote> =
       await IncidentPublicNoteService.findAllBy({
         query: {
@@ -48,12 +149,7 @@ RunCron(
           isRoot: true,
         },
         skip: 0,
-        select: {
-          _id: true,
-          note: true,
-          incidentId: true,
-          projectId: true,
-        },
+        select: PUBLIC_NOTE_SELECT,
       });
 
     const privateNotes: Array<IncidentInternalNote> =
@@ -65,156 +161,239 @@ RunCron(
           isRoot: true,
         },
         skip: 0,
-        select: {
-          _id: true,
-          note: true,
-          incidentId: true,
-          projectId: true,
-        },
+        select: PRIVATE_NOTE_SELECT,
       });
 
-    const privateNoteIds: Array<string> = privateNotes.map(
-      (note: IncidentInternalNote) => {
-        return note._id!;
-      },
-    );
+    const notes: Array<{ note: BaseModel; isPrivateNote: boolean }> = [
+      ...publicNotes.map((note: IncidentPublicNote) => {
+        return { note: note as BaseModel, isPrivateNote: false };
+      }),
+      ...privateNotes.map((note: IncidentInternalNote) => {
+        return { note: note as BaseModel, isPrivateNote: true };
+      }),
+    ];
 
-    for (const note of publicNotes) {
-      await IncidentPublicNoteService.updateOneById({
-        id: note.id!,
-        data: {
-          isOwnerNotified: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-    }
-
-    for (const note of privateNotes) {
-      await IncidentInternalNoteService.updateOneById({
-        id: note.id!,
-        data: {
-          isOwnerNotified: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-    }
-
-    const notes: Array<BaseModel> = [...publicNotes, ...privateNotes];
-
-    for (const noteObject of notes) {
-      let moreIncidentFeedInformationInMarkdown: string = "";
-
-      const note: BaseModel = noteObject as BaseModel;
-
+    for (const { note, isPrivateNote } of notes) {
       // get all scheduled events of all the projects.
-      const incident: Incident | null = await IncidentService.findOneById({
-        id: note.getColumnValue("incidentId")! as ObjectID,
-        props: {
-          isRoot: true,
-        },
-        select: {
-          _id: true,
-          title: true,
-          description: true,
-          projectId: true,
-          project: {
-            name: true,
-          },
-          currentIncidentState: {
-            name: true,
-            color: true,
-          },
-          incidentSeverity: {
-            name: true,
-            color: true,
-          },
-          incidentNumber: true,
-          incidentNumberWithPrefix: true,
-        },
-      });
-
-      if (!incident) {
-        continue;
-      }
-
-      // now find owners.
-
-      let doesResourceHasOwners: boolean = true;
-
-      let owners: Array<User> = await IncidentService.findOwners(
+      const incident: Incident | null = await readIncident(
         note.getColumnValue("incidentId")! as ObjectID,
       );
 
-      if (owners.length === 0) {
-        doesResourceHasOwners = false;
+      /*
+       * Whom it is to tell, written before the take: a worker stopped from
+       * here on leaves them to be told by a later run, and one stopped
+       * before the take leaves the note to be read again.
+       */
+      const delivery: OwnerNotificationDelivery | null = incident
+        ? await planOwnersOfNote({
+            note: note,
+            isPrivateNote: isPrivateNote,
+            incident: incident,
+          })
+        : null;
 
-        // find project owners.
-        owners = await ProjectService.getOwners(
-          note.getColumnValue("projectId") as ObjectID,
-        );
+      /*
+       * Marked as notified before its owners are told, so a note whose
+       * notification keeps failing is never read again on every run - one
+       * whose incident is gone too.
+       */
+      if (isPrivateNote) {
+        await IncidentInternalNoteService.updateOneById({
+          id: note.id!,
+          data: {
+            isOwnerNotified: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      } else {
+        await IncidentPublicNoteService.updateOneById({
+          id: note.id!,
+          data: {
+            isOwnerNotified: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
       }
 
-      if (owners.length === 0) {
+      if (!incident || !delivery) {
         continue;
       }
 
-      const incidentNumberStr: string =
-        incident.incidentNumberWithPrefix ||
-        (incident.incidentNumber ? `#${incident.incidentNumber}` : "");
+      try {
+        await notifyOwnersOfNote({
+          note: note,
+          isPrivateNote: isPrivateNote,
+          incident: incident,
+          delivery: delivery,
+        });
+      } catch (e) {
+        logger.error("Error in sending incident note posted notification", {
+          projectId: incident.projectId?.toString(),
+          incidentId: incident.id?.toString(),
+        });
+        logger.error(e, {
+          projectId: incident.projectId?.toString(),
+          incidentId: incident.id?.toString(),
+        });
+      }
+    }
+  },
+);
 
-      const vars: Dictionary<string> = {
-        incidentTitle: incident.title!,
-        incidentNumber: incidentNumberStr,
-        projectName: incident.project!.name!,
-        currentState: incident.currentIncidentState!.name!,
-        ...EmailColorUtil.getTemplateVariables(
-          "currentState",
-          incident.currentIncidentState?.color,
-        ),
-        note: await Markdown.convertToHTML(
-          (note.getColumnValue("note")! as string) || "",
-          MarkdownContentType.Email,
-        ),
-        // Every resource the incident's Affected Resources card lists.
-        resourcesAffected: LinkedAffectedResources.getText({
-          resources: await LinkedAffectedResources.readForIncident({
-            service: IncidentService,
-            projectId: incident.projectId!,
-            incidentId: incident.id!,
-          }),
-          fallback: "None",
+async function readIncident(incidentId: ObjectID): Promise<Incident | null> {
+  return await IncidentService.findOneById({
+    id: incidentId,
+    props: {
+      isRoot: true,
+    },
+    select: INCIDENT_SELECT,
+  });
+}
+
+/*
+ * Whom the note's notification tells - the incident's owners, or the
+ * project's when it has none - written down before the note is taken
+ * (OwnerNotificationDeliveries.plan). A failure to read them tells nobody,
+ * as it did when it came after the take.
+ */
+async function planOwnersOfNote(data: {
+  note: BaseModel;
+  isPrivateNote: boolean;
+  incident: Incident;
+}): Promise<OwnerNotificationDelivery> {
+  let owners: Array<User> = [];
+  let isProjectOwners: boolean = false;
+
+  try {
+    owners = await IncidentService.findOwners(data.incident.id!);
+
+    if (owners.length === 0) {
+      isProjectOwners = true;
+
+      // find project owners.
+      owners = await ProjectService.getOwners(
+        data.note.getColumnValue("projectId") as ObjectID,
+      );
+    }
+  } catch (e) {
+    logger.error("Error in reading the owners of an incident's note", {
+      projectId: data.incident.projectId?.toString(),
+      incidentId: data.incident.id?.toString(),
+    });
+    logger.error(e);
+    owners = [];
+  }
+
+  return await OwnerNotificationDeliveries.plan({
+    notification: {
+      kind: data.isPrivateNote
+        ? OwnerNotificationKind.IncidentInternalNotePosted
+        : OwnerNotificationKind.IncidentPublicNotePosted,
+      projectId: data.incident.projectId!,
+      resourceId: data.incident.id!,
+      eventId: data.note.id!,
+    },
+    owners: owners,
+    isProjectOwners: isProjectOwners,
+    writesFeedItem: true,
+  });
+}
+
+/*
+ * Tells the delivery's owners that a note was posted on the incident, each
+ * once (OwnerNotificationDelivery.tell), and says in the incident's feed
+ * whom it reached - those a stopped run told first among them.
+ */
+async function notifyOwnersOfNote(data: {
+  note: BaseModel;
+  isPrivateNote: boolean;
+  incident: Incident;
+  delivery: OwnerNotificationDelivery;
+}): Promise<void> {
+  const note: BaseModel = data.note;
+  const incident: Incident = data.incident;
+  const delivery: OwnerNotificationDelivery = data.delivery;
+  const isPrivateNote: boolean = data.isPrivateNote;
+
+  if (!delivery.hasWorkToDo) {
+    return;
+  }
+
+  let moreIncidentFeedInformationInMarkdown: string = "";
+
+  const doesResourceHasOwners: boolean = !delivery.isProjectOwners;
+
+  const incidentNumberStr: string =
+    incident.incidentNumberWithPrefix ||
+    (incident.incidentNumber ? `#${incident.incidentNumber}` : "");
+
+  const vars: Dictionary<string> = {
+    incidentTitle: incident.title!,
+    incidentNumber: incidentNumberStr,
+    projectName: incident.project!.name!,
+    currentState: incident.currentIncidentState!.name!,
+    ...EmailColorUtil.getTemplateVariables(
+      "currentState",
+      incident.currentIncidentState?.color,
+    ),
+    note: await Markdown.convertToHTML(
+      (note.getColumnValue("note")! as string) || "",
+      MarkdownContentType.Email,
+    ),
+    // Every resource the incident's Affected Resources card lists.
+    resourcesAffected: LinkedAffectedResources.getText({
+      resources: await LinkedAffectedResources.readForIncident({
+        service: IncidentService,
+        projectId: incident.projectId!,
+        incidentId: incident.id!,
+      }),
+      fallback: "None",
+    }),
+    incidentSeverity: incident.incidentSeverity!.name!,
+    ...EmailColorUtil.getTemplateVariables(
+      "incidentSeverity",
+      incident.incidentSeverity?.color,
+    ),
+    incidentViewLink: (
+      await IncidentService.getIncidentLinkInDashboard(
+        incident.projectId!,
+        incident.id!,
+      )
+    ).toString(),
+  };
+
+  if (doesResourceHasOwners === true) {
+    vars["isOwner"] = "true";
+  }
+
+  if (isPrivateNote) {
+    vars["isPrivateNote"] = "true";
+  }
+
+  const incidentIdentifier: string =
+    incident.incidentNumber !== undefined
+      ? `${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber} (${incident.title})`
+      : incident.title!;
+
+  // Whom a run that stopped part way told already.
+  for (const user of delivery.toldEarlier) {
+    moreIncidentFeedInformationInMarkdown +=
+      OwnerNotificationFeedText.notifiedLineMarkdown(
+        OwnerNotificationFeedText.nameAndEmail({
+          name: user.name?.toString(),
+          email: user.email?.toString(),
         }),
-        incidentSeverity: incident.incidentSeverity!.name!,
-        ...EmailColorUtil.getTemplateVariables(
-          "incidentSeverity",
-          incident.incidentSeverity?.color,
-        ),
-        incidentViewLink: (
-          await IncidentService.getIncidentLinkInDashboard(
-            incident.projectId!,
-            incident.id!,
-          )
-        ).toString(),
-      };
+      );
+  }
 
-      if (doesResourceHasOwners === true) {
-        vars["isOwner"] = "true";
-      }
-
-      if (privateNoteIds.includes(note._id!)) {
-        vars["isPrivateNote"] = "true";
-      }
-
-      const incidentIdentifier: string =
-        incident.incidentNumber !== undefined
-          ? `${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber} (${incident.title})`
-          : incident.title!;
-
-      for (const user of owners) {
+  for (const user of delivery.owners) {
+    const isTold: boolean = await delivery.tell(
+      user,
+      async (): Promise<void> => {
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.IncidentOwnerNotePosted,
           vars: vars,
@@ -240,7 +419,7 @@ RunCron(
           PushNotificationUtil.createIncidentNotePostedNotification({
             incidentTitle: incident.title!,
             projectName: incident.project!.name!,
-            isPrivateNote: privateNoteIds.includes(note._id!),
+            isPrivateNote: isPrivateNote,
             incidentViewLink: (
               await IncidentService.getIncidentLinkInDashboard(
                 incident.projectId!,
@@ -279,37 +458,46 @@ RunCron(
           incidentId: incident.id!,
           eventType,
         });
+      },
+    );
 
-        moreIncidentFeedInformationInMarkdown +=
-          OwnerNotificationFeedText.notifiedLineMarkdown(
-            OwnerNotificationFeedText.nameAndEmail({
-              name: user.name?.toString(),
-              email: user.email?.toString(),
-            }),
-          );
-      }
-
-      const isPrivateNote: boolean = privateNoteIds.includes(
-        note._id!.toString(),
-      );
-
-      const incidentFeedText: string = OwnerNotificationFeedText.notePosted({
-        recordNoun: "incident",
-        isProjectOwners: !doesResourceHasOwners,
-        isPrivateNote: isPrivateNote,
-      });
-
-      await IncidentFeedService.createIncidentFeedItem({
-        incidentId: incident.id!,
-        projectId: incident.projectId!,
-        incidentFeedEventType: IncidentFeedEventType.OwnerNotificationSent,
-        displayColor: Blue500,
-        feedInfoInMarkdown: incidentFeedText,
-        moreInformationInMarkdown: moreIncidentFeedInformationInMarkdown,
-        workspaceNotification: {
-          sendWorkspaceNotification: false,
-        },
-      });
+    if (isTold) {
+      moreIncidentFeedInformationInMarkdown +=
+        OwnerNotificationFeedText.notifiedLineMarkdown(
+          OwnerNotificationFeedText.nameAndEmail({
+            name: user.name?.toString(),
+            email: user.email?.toString(),
+          }),
+        );
     }
-  },
-);
+  }
+
+  /*
+   * Written by the run that set out to tell the owners, or by the one
+   * that took up the feed item a run that told them all left unwritten
+   * (#8510): a run that found every owner told already writes none.
+   */
+  if (!delivery.isFeedItemToWrite) {
+    return;
+  }
+
+  const incidentFeedText: string = OwnerNotificationFeedText.notePosted({
+    recordNoun: "incident",
+    isProjectOwners: !doesResourceHasOwners,
+    isPrivateNote: isPrivateNote,
+  });
+
+  await IncidentFeedService.createIncidentFeedItem({
+    incidentId: incident.id!,
+    projectId: incident.projectId!,
+    incidentFeedEventType: IncidentFeedEventType.OwnerNotificationSent,
+    displayColor: Blue500,
+    feedInfoInMarkdown: incidentFeedText,
+    moreInformationInMarkdown: moreIncidentFeedInformationInMarkdown,
+    workspaceNotification: {
+      sendWorkspaceNotification: false,
+    },
+  });
+
+  await delivery.feedItemWritten();
+}

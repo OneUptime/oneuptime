@@ -18,9 +18,8 @@ import DashboardNavbar from "../../App/FeatureSet/Dashboard/src/Components/NavBa
 import HiddenProductsWithData from "../../App/FeatureSet/Dashboard/src/Components/ProjectProducts/HiddenProductsWithData";
 import ProductsSettings from "../../App/FeatureSet/Dashboard/src/Components/ProjectProducts/ProductsSettings";
 import { useDashboardNavigationItems } from "../../App/FeatureSet/Dashboard/src/Utils/NavigationItems";
-import ar from "../../App/FeatureSet/Dashboard/src/Locales/ar.json";
-import de from "../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import en from "../../App/FeatureSet/Dashboard/src/Locales/en.json";
+import { localeResources } from "../SuiteHelpers/FixtureLocales";
 import {
   HeaderFixture,
   headerLanguage,
@@ -43,14 +42,29 @@ const language = isHeaderMode
     ? requestedLanguage
     : "en";
 
+/*
+ * English, the fallback, is in the bundle; German and Arabic are each a chunk
+ * of their own, loaded only by a page drawn in that language, as the
+ * Dashboard loads a locale (src/Utils/I18nLocaleLoader.ts). A page in English
+ * (nearly every test) parses neither.
+ */
+const LOCALE_LOADERS = {
+  de: () => {
+    return import("../../App/FeatureSet/Dashboard/src/Locales/de.json");
+  },
+  ar: () => {
+    return import("../../App/FeatureSet/Dashboard/src/Locales/ar.json");
+  },
+};
+
 await i18n.use(initReactI18next).init({
   lng: language,
   fallbackLng: "en",
-  resources: {
-    en: { translation: en },
-    de: { translation: de },
-    ar: { translation: ar },
-  },
+  resources: await localeResources({
+    language,
+    english: en,
+    loaders: LOCALE_LOADERS,
+  }),
   interpolation: { escapeValue: false },
 });
 /*
@@ -58,9 +72,6 @@ await i18n.use(initReactI18next).init({
  * Utils/i18n.ts sets them: the pages here are drawn in German and Arabic
  * too, and a date beside their words is never English in the product.
  */
-followLanguageForDates(i18n);
-
-// Dates in the reader's language ("vor 2 Stunden"), as Utils/i18n.ts sets them.
 followLanguageForDates(i18n);
 
 // <html lang dir> follow the reader's language: Arabic reads right to left.

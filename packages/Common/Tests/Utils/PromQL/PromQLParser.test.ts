@@ -36,6 +36,7 @@ import {
 import {
   CompiledPromQLRegex,
   compilePromQLRegex,
+  MAX_PATTERN_STEPS,
   PromQLPatternError,
   readNamedCapture,
 } from "../../../Utils/PromQL/PromQLRegex";
@@ -43,7 +44,9 @@ import { WIDER_CASE_FOLDS } from "../../../Utils/PromQL/RE2CharacterClass";
 import { getCaseVariants } from "../../../Utils/LinearRegExp/CaseCanonicalization";
 import LinearRegExp, {
   LinearRegExpMatch,
+  MAX_PATTERN_LENGTH,
 } from "../../../Utils/LinearRegExp/LinearRegExp";
+import { DEFAULT_MAX_STEPS } from "../../../Utils/LinearRegExp/Program";
 import {
   clearLinearRegExpCache,
   getCachedPatternCount,
@@ -889,14 +892,16 @@ describe("PromQL regular expressions", () => {
   ])(
     "RE2's spelling: %s matching %j is %s, as in Prometheus",
     (pattern: string, value: string, matches: boolean) => {
-      const regex: LinearRegExp = compilePromQLRegex(pattern).regex;
+      const compiled: CompiledPromQLRegex = compilePromQLRegex(pattern);
+      const regex: LinearRegExp = compiled.regex;
 
-      expect(regex.test(value)).toBe(matches);
+      expect(compiled.test(value)).toBe(matches);
+      // JavaScript's own engine reads the text the pattern reads the same way.
       expect(
         v8Tests({
           source: regex.source,
           flags: regex.flags,
-          text: value,
+          text: compiled.textOf(value),
           expected: matches,
         }),
       ).toBe(matches);
@@ -1002,13 +1007,56 @@ describe("PromQL regular expressions", () => {
       "{2}",
       "has the repeat {2} with nothing before it to repeat, which Prometheus does not read either. Write \\{ to match the character itself.",
     ],
+    // A Unicode class Go has no table for (unicodeTable, parse.go).
     [
-      "\\pL",
-      "uses the Unicode class \\pL, which OneUptime cannot match yet, though Prometheus can. Write the characters it stands for in a bracket instead, such as [a-zA-Z].",
+      "\\p{Nosuch}",
+      "uses the Unicode class \\p{Nosuch}, which Prometheus does not read either. A Unicode class names a general category, such as \\pL or \\p{Lu}, or a script, such as \\p{Greek} or \\p{Han}.",
     ],
-    ["\\p{Greek}", "uses the Unicode class \\p{Greek},"],
-    ["\\PL", "uses the Unicode class \\PL,"],
-    ["[\\p{L}]", "uses the Unicode class \\p{L},"],
+    ["\\pX", "uses the Unicode class \\pX, which Prometheus does not"],
+    ["\\p", "uses the Unicode class \\p, which Prometheus does not"],
+    ["a\\P", "uses the Unicode class \\P, which Prometheus does not"],
+    ["\\p{}", "uses the Unicode class \\p{}, which Prometheus does not"],
+    ["\\p{^}", "uses the Unicode class \\p{^}, which Prometheus does not"],
+    ["\\p^L", "uses the Unicode class \\p^, which Prometheus does not"],
+    ["[\\p{Nosuch}]", "uses the Unicode class \\p{Nosuch},"],
+    ["[a\\PX]", "uses the Unicode class \\PX,"],
+    // A script's ISO 15924 code is no name Go reads, in label_replace() either.
+    ["\\p{Grek}", "uses the Unicode class \\p{Grek}, which Prometheus does"],
+    ["\\p{Zzzz}", "uses the Unicode class \\p{Zzzz}, which Prometheus does"],
+    ["\\p{L&}", "uses the Unicode class \\p{L&}, which Prometheus does"],
+    [
+      "\\p{Greek",
+      'uses the Unicode class \\p{Greek without the "}" that ends its name, which Prometheus does not read either. Write a class as \\pL or \\p{Greek}.',
+    ],
+    ["[\\p{L]", 'uses the Unicode class \\p{L] without the "}"'],
+    /*
+     * Names Go 1.25 and later read, as Prometheus' label_replace() does, and
+     * its label matchers' older copy of regexp/syntax does not: the sentence
+     * names the class as a matcher writes it.
+     */
+    [
+      "\\p{Letter}",
+      "uses the Unicode class \\p{Letter}, which Prometheus reads in label_replace() but not in a label matcher, where a class has the name Go's Unicode tables give it. Write \\p{L} instead.",
+    ],
+    ["\\P{Letter}", "Write \\P{L} instead."],
+    ["\\p{^Letter}", "Write \\P{L} instead."],
+    ["\\P{^Letter}", "Write \\p{L} instead."],
+    ["\\p{greek}", "Write \\p{Greek} instead."],
+    ["\\p{GREEK}", "Write \\p{Greek} instead."],
+    ["\\p{old italic}", "Write \\p{Old_Italic} instead."],
+    ["\\p{OldItalic}", "Write \\p{Old_Italic} instead."],
+    ["\\p{Uppercase_Letter}", "Write \\p{Lu} instead."],
+    ["\\p{lu}", "Write \\p{Lu} instead."],
+    ["\\p{lc}", "Write \\p{LC} instead."],
+    ["\\p{Lc}", "Write \\p{LC} instead."],
+    ["\\p{digit}", "Write \\p{Nd} instead."],
+    ["\\p{any}", "Write \\p{Any} instead."],
+    ["\\p{Assigned}", "Write \\P{Cn} instead."],
+    ["\\P{Assigned}", "Write \\p{Cn} instead."],
+    ["\\p{ASCII}", "Write [[:ascii:]] instead."],
+    ["\\P{ascii}", "Write [[:^ascii:]] instead."],
+    ["[\\p{Letter}\\d]", "Write \\p{L} instead."],
+    ["\\pl", "uses the Unicode class \\pl, which Prometheus reads in"],
   ])(
     "%s is refused, as Prometheus refuses it, with a sentence",
     (pattern: string, problem: string) => {
@@ -1057,14 +1105,15 @@ describe("PromQL regular expressions", () => {
   ])(
     "%s matching %j is %s, each character beyond U+FFFF one, as in Prometheus",
     (pattern: string, value: string, matches: boolean) => {
-      const regex: LinearRegExp = compilePromQLRegex(pattern).regex;
+      const compiled: CompiledPromQLRegex = compilePromQLRegex(pattern);
+      const regex: LinearRegExp = compiled.regex;
 
-      expect(regex.test(value)).toBe(matches);
+      expect(compiled.test(value)).toBe(matches);
       expect(
         v8Tests({
           source: regex.source,
           flags: regex.flags,
-          text: value,
+          text: compiled.textOf(value),
           expected: matches,
         }),
       ).toBe(matches);
@@ -1072,46 +1121,43 @@ describe("PromQL regular expressions", () => {
   );
 
   test("a code point beyond U+FFFF is one character to a repeat, as in RE2", () => {
-    // Written as its two code units, in a group for the repeat.
+    /*
+     * Read as one code unit, a surrogate no other character is
+     * (AstralAlphabet): repeated as any one character is.
+     */
     expect(compilePromQLRegex("\\x{1F600}{2}").regex.source).toBe(
-      "^(?s:(?:\\ud83d\\ude00){2})$",
+      "^(?s:\\ud801{2})$",
     );
     expect(
-      compilePromQLRegex("\\x{1F600}{2}").regex.test(
-        "\ud83d\ude00\ud83d\ude00",
-      ),
+      compilePromQLRegex("\\x{1F600}{2}").test("\ud83d\ude00\ud83d\ude00"),
     ).toBe(true);
+    expect(compilePromQLRegex("\\x{1F600}{2}").test("\ud83d\ude00")).toBe(
+      false,
+    );
     // Written in the pattern itself, it is one character as well.
     expect(
-      compilePromQLRegex("\ud83d\ude00+").regex.test(
-        "\ud83d\ude00\ud83d\ude00",
-      ),
+      compilePromQLRegex("\ud83d\ude00+").test("\ud83d\ude00\ud83d\ude00"),
     ).toBe(true);
-    expect(
-      compilePromQLRegex("\ud83d\ude00+").regex.test("\ud83d\ude00\ude00"),
-    ).toBe(false);
+    expect(compilePromQLRegex("\ud83d\ude00+").test("\ud83d\ude00\ude00")).toBe(
+      false,
+    );
   });
 
   /*
-   * Decided, not matched as Prometheus does (PromQLRegex.ts's header): "."
-   * and a negated class read a character beyond U+FFFF as two, where RE2
-   * reads one; and a repeat whose iteration can match nothing captures as
-   * JavaScript's does.
+   * Decided, not matched as Prometheus does (PromQLRegex.ts's header): a
+   * repeat whose iteration can match nothing captures as JavaScript's does,
+   * and a surrogate named by its code matches nothing.
    */
   test("what still differs from Prometheus, as decided", () => {
-    const emoji: string = "\ud83d\ude00";
-
-    // Prometheus: ^.$ matches an emoji, ^..$ does not.
-    expect(compilePromQLRegex(".").regex.test(emoji)).toBe(false);
-    expect(compilePromQLRegex("..").regex.test(emoji)).toBe(true);
-    expect(compilePromQLRegex("[^a]{2}").regex.test(emoji)).toBe(true);
-    // Either way, .* and .+ match every value, emoji or not.
-    expect(compilePromQLRegex(".+").regex.test(`a${emoji}`)).toBe(true);
     // Prometheus captures "xx": its automaton leaves the repeat for "".
     expect(
-      compilePromQLRegex("(?:|x)+(\\w*)", { captures: true }).regex.exec("xx")
+      compilePromQLRegex("(?:|x)+(\\w*)", { captures: true }).exec("xx")
         ?.captures,
     ).toEqual([""]);
+    // Prometheus matches \x{D83D} with U+FFFD, and .\x{D83D} with nothing.
+    expect(compilePromQLRegex("\\x{D83D}").test("\ufffd")).toBe(false);
+    expect(compilePromQLRegex("\\x{D83D}").test("\ud83d")).toBe(false);
+    expect(compilePromQLRegex(".\\x{D83D}").test("a\ufffd")).toBe(false);
   });
 
   /*
@@ -1205,8 +1251,8 @@ describe("PromQL regular expressions", () => {
     // RE2 has no back-references: \1 and \8 without a group are refused too.
     ["\\1", PatternProblemReason.BackReference],
     ["\\8", PatternProblemReason.BackReference],
-    // Eleven repeats of 1000, each one Prometheus reads: too large to run.
-    [".{1000}".repeat(11), PatternProblemReason.TooLarge],
+    // Forty-one repeats of 1000, each one Prometheus reads: past MAX_PATTERN_STEPS.
+    [".{1000}".repeat(41), PatternProblemReason.TooLarge],
   ])(
     "%s is refused by the linear-time matcher",
     (pattern: string, reason: PatternProblemReason) => {
@@ -1216,6 +1262,99 @@ describe("PromQL regular expressions", () => {
       expect((refusal as PatternProblemError).reason).toBe(reason);
     },
   );
+
+  /*
+   * An alternation of hundreds of values, as a Grafana variable writes one
+   * for "All", is about a step a character: past about 9,000 characters it
+   * was refused as too large (issue #8464), where Prometheus reads it. A
+   * pattern may compile to MAX_PATTERN_STEPS, twice MAX_PATTERN_LENGTH, so
+   * any pattern with no repeat in it compiles.
+   */
+  describe("a long alternation compiles, as Prometheus reads it", () => {
+    // Values `${prefix}0`, `${prefix}1`, ..., as many as fit in `length`.
+    const valuesUpTo: (prefix: string, length: number) => Array<string> = (
+      prefix: string,
+      length: number,
+    ): Array<string> => {
+      const values: Array<string> = [];
+
+      for (let index: number = 0; ; index++) {
+        const value: string = `${prefix}${String(index).padStart(4, "0")}`;
+
+        if ([...values, value].join("|").length > length) {
+          return values;
+        }
+
+        values.push(value);
+      }
+    };
+
+    test("1,000 host names, the issue's case", () => {
+      const hosts: Array<string> = valuesUpTo("web-server-", 16000).slice(
+        0,
+        1000,
+      );
+      const compiled: CompiledPromQLRegex = compilePromQLRegex(hosts.join("|"));
+
+      expect(hosts).toHaveLength(1000);
+      expect(compiled.test("web-server-0000")).toBe(true);
+      expect(compiled.test("web-server-0500")).toBe(true);
+      expect(compiled.test("web-server-0999")).toBe(true);
+      expect(compiled.test("web-server-1000")).toBe(false);
+      expect(compiled.test("web-server-0999x")).toBe(false);
+      expect(compiled.test("")).toBe(false);
+      // Refused before: more than DEFAULT_MAX_STEPS.
+      expect(compiled.regex.steps).toBeGreaterThan(2 * DEFAULT_MAX_STEPS);
+    });
+
+    test("one as long as a pattern may be, case-insensitive and with captures too", () => {
+      const hosts: Array<string> = valuesUpTo(
+        "kube-system-svc-",
+        MAX_PATTERN_LENGTH - 6,
+      );
+      const pattern: string = `(?i)(${hosts.join("|")})`;
+
+      expect(pattern.length).toBeLessThanOrEqual(MAX_PATTERN_LENGTH);
+      expect(compilePromQLRegex(pattern).test(hosts[0]!.toUpperCase())).toBe(
+        true,
+      );
+      expect(
+        compilePromQLRegex(pattern, { captures: true }).exec(
+          hosts[hosts.length - 1]!,
+        )?.captures,
+      ).toEqual([hosts[hosts.length - 1]]);
+    });
+
+    test("the widest alternation, one character each, compiles", () => {
+      const characters: Array<string> = [];
+
+      while (characters.join("|").length + 2 <= MAX_PATTERN_LENGTH) {
+        characters.push(String.fromCharCode(0x4e00 + characters.length));
+      }
+
+      const compiled: CompiledPromQLRegex = compilePromQLRegex(
+        characters.join("|"),
+      );
+
+      expect(compiled.test(characters[characters.length - 1]!)).toBe(true);
+      expect(compiled.test("a")).toBe(false);
+    });
+
+    test("a pattern that compiles to more steps than MAX_PATTERN_STEPS is still refused, saying so", () => {
+      expect(MAX_PATTERN_STEPS).toBe(2 * MAX_PATTERN_LENGTH);
+      // Each .{1000} is a thousand steps: 39 of them fit, 41 do not.
+      expect(
+        compilePromQLRegex(".{1000}".repeat(39)).test("a".repeat(39000)),
+      ).toBe(true);
+
+      const refusal: unknown = refusalOf(".{1000}".repeat(41));
+
+      expect(refusal).toBeInstanceOf(PatternProblemError);
+      expect((refusal as Error).message).toBe(
+        `The pattern is too large: it would take more than ${MAX_PATTERN_STEPS} steps to run.`,
+      );
+    });
+  });
 
   test("are compiled once and kept, by the pattern", () => {
     clearLinearRegExpCache();
@@ -1340,9 +1479,9 @@ describe("PromQL selectors", () => {
       { start: 8, end: 16 },
     ],
     [
-      `up{path!~"${".{1000}".repeat(11)}"}`,
-      `The pattern "${".{1000}".repeat(11)}" for the label "path" is too large to run. Shorten it, or repeat its parts fewer times.`,
-      { start: 9, end: 88 },
+      `up{path!~"${".{1000}".repeat(41)}"}`,
+      `The pattern "${".{1000}".repeat(41)}" for the label "path" is too large to run. Shorten it, or repeat its parts fewer times.`,
+      { start: 9, end: 298 },
     ],
     [
       'up{job=~"[[:nosuch:]]"}',

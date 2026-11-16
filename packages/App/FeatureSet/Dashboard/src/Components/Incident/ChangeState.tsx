@@ -566,13 +566,13 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
    * so the confirm says so.
    */
   if (isAcknowledgeTarget) {
-    modalTitle = translationKey("Acknowledge Incident");
+    modalTitle = translator.translateText("Acknowledge Incident") as string;
     modalSubmitButtonText = translationKey("Acknowledge");
     modalDescription = translationKey(
       "This records an acknowledgement on the incident timeline and stops any on-call escalation for this incident.",
     );
   } else if (isResolveTarget) {
-    modalTitle = translationKey("Resolve Incident");
+    modalTitle = translator.translateText("Resolve Incident") as string;
     modalSubmitButtonText = translationKey("Resolve");
     modalDescription = translationKey(
       "This marks the incident as resolved on the incident timeline.",
@@ -644,6 +644,7 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
           modelType={IncidentStateTimeline}
           name={"create-incident-state-timeline"}
           title={modalTitle}
+          isTitleTranslated={true}
           description={modalDescription}
           onClose={() => {
             setShowModal(false);

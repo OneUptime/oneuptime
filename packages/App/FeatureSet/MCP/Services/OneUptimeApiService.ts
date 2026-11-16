@@ -19,6 +19,11 @@ import { JSONObject, JSONValue } from "Common/Types/JSON";
 import Protocol from "Common/Types/API/Protocol";
 import Hostname from "Common/Types/API/Hostname";
 import ObjectID from "Common/Types/ObjectID";
+import {
+  OWNER_TEAMS_ON_CREATE_KEY,
+  OWNER_USERS_ON_CREATE_KEY,
+  takesOwnersOnCreate,
+} from "Common/Types/Database/OwnersOnCreate";
 
 export interface OneUptimeApiConfig {
   url: string;
@@ -329,7 +334,7 @@ export default class OneUptimeApiService {
 
     switch (operation) {
       case OneUptimeOperation.Create:
-        return this.buildCreateData(args);
+        return this.buildCreateData(args, tableName);
 
       case OneUptimeOperation.Update:
         return this.buildUpdateData(args);
@@ -347,8 +352,12 @@ export default class OneUptimeApiService {
     }
   }
 
-  private static buildCreateData(args: OneUptimeToolCallArgs): JSONObject {
+  private static buildCreateData(
+    args: OneUptimeToolCallArgs,
+    tableName: string,
+  ): JSONObject {
     const createData: JSONObject = {};
+    const miscDataProps: JSONObject = {};
     const reservedFields: string[] = [
       "id",
       "query",
@@ -358,13 +367,74 @@ export default class OneUptimeApiService {
       "sort",
     ];
 
+    /*
+     * An incident's or an alert's owners go beside its fields, as the
+     * create's misc data, which its route asks about before anything is
+     * saved (Types/Database/OwnersOnCreate, #8198).
+     */
+    const ownerKeys: Array<string> = takesOwnersOnCreate(tableName)
+      ? [OWNER_USERS_ON_CREATE_KEY, OWNER_TEAMS_ON_CREATE_KEY]
+      : [];
+
     for (const [key, value] of Object.entries(args)) {
-      if (!reservedFields.includes(key)) {
-        createData[key] = value as JSONValue;
+      if (reservedFields.includes(key)) {
+        continue;
+      }
+
+      if (ownerKeys.includes(key)) {
+        const ids: Array<string> = this.readOwnerIds(key, value);
+
+        if (ids.length > 0) {
+          miscDataProps[key] = ids;
+        }
+
+        continue;
+      }
+
+      createData[key] = value as JSONValue;
+    }
+
+    return (
+      Object.keys(miscDataProps).length > 0
+        ? { data: createData, miscDataProps: miscDataProps }
+        : { data: createData }
+    ) as JSONObject;
+  }
+
+  /*
+   * The ids of an owner input: a list of user or team IDs, each once. One
+   * that is not an ID is refused before any request is made, in words that
+   * say where to find one, rather than adding none of the owners.
+   */
+  private static readOwnerIds(key: string, value: unknown): Array<string> {
+    if (value === undefined || value === null) {
+      return [];
+    }
+
+    const values: Array<unknown> = Array.isArray(value) ? value : [value];
+    const ids: Array<string> = [];
+
+    for (const each of values) {
+      const id: string = typeof each === "string" ? each.trim() : "";
+
+      if (!ObjectID.isValidUUID(id)) {
+        throw new Error(
+          key === OWNER_TEAMS_ON_CREATE_KEY
+            ? `Invalid ${key} entry '${String(each)}': expected the ID of a team of this project, a UUID like "550e8400-e29b-41d4-a716-446655440000". Use the list_teams tool to find one.`
+            : `Invalid ${key} entry '${String(each)}': expected the ID of a user of this project, a UUID like "550e8400-e29b-41d4-a716-446655440000".`,
+        );
+      }
+
+      if (
+        !ids.some((known: string): boolean => {
+          return known.toLowerCase() === id.toLowerCase();
+        })
+      ) {
+        ids.push(id);
       }
     }
 
-    return { data: createData } as JSONObject;
+    return ids;
   }
 
   private static buildUpdateData(args: OneUptimeToolCallArgs): JSONObject {

@@ -13,6 +13,7 @@ import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * The first-run path of the Network Overview, in a real browser: the real
@@ -389,7 +390,7 @@ test("someone who may add a probe but not read its key is told who can", async (
 
   const modal: Locator = dialog(page);
   await expect(modal.getByTestId("add-probe-key-hidden")).toHaveText(
-    "Only project owners and admins can see a probe's key. Ask one of them to run Network probe: it is under Monitors → Settings → Probes.",
+    "Only Project Owners and Project Admins can see a probe's key. Ask one of them to run Network probe: it is under Monitors → Settings → Probes.",
   );
   await expect(modal.getByTestId("add-probe-command")).toHaveCount(0);
 
@@ -1002,4 +1003,18 @@ test("a busy network's four lists end on one line two by two, and one above the 
     (header!.y + header!.height + card!.y + card!.height) / 2;
   expect(Math.abs(words!.y + words!.height / 2 - room)).toBeLessThanOrEqual(24);
   await screenshot(page, "network-overview-busy");
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German whole, parsed on every page load of every test. English is in the
+ * bundle now, and each other language a chunk of its own, loaded only by a
+ * page drawn in it (SuiteHelpers/FixtureLocales.js), built as the Dashboard
+ * ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de"],
+  address: (language: string): string => {
+    return language === "en" ? OVERVIEW : `${OVERVIEW}?lang=${language}`;
+  },
 });

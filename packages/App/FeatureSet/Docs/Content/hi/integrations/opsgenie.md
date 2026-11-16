@@ -16,9 +16,9 @@ OneUptime घटनाएं [Opsgenie](https://www.atlassian.com/software/opsge
 
 ```mermaid title="दो वर्कफ़्लो, एक Opsgenie अलर्ट"
 flowchart TB
-    declared["घटना घोषित"] --> create["वर्कफ़्लो 1:<br/>On Create Incident"]
+    declared["घटना घोषित"] --> create["वर्कफ़्लो 1:<br/>घटना बनने पर"]
     create -->|"POST /v2/alerts"| og["Opsgenie अलर्ट"]
-    resolved["घटना सुलझी"] --> update["वर्कफ़्लो 2:<br/>On Update Incident"]
+    resolved["घटना सुलझी"] --> update["वर्कफ़्लो 2:<br/>घटना अपडेट होने पर"]
     update -->|"alias से बंद"| og
 ```
 
@@ -49,17 +49,17 @@ flowchart TB
 
 ### ट्रिगर जोड़ें
 
-डैश वाले **चुनें कि यह वर्कफ़्लो किससे शुरू हो** ब्लॉक पर क्लिक करें और **On Create Incident** चुनें। ट्रिगर पर क्लिक करें: उसके **Fields to pass on** में पहले से **शीर्षक** है, इसलिए **फ़ील्ड जोड़ें** पर क्लिक करें और **विवरण** चुनें।
+डैश वाले **चुनें कि यह वर्कफ़्लो किससे शुरू हो** ब्लॉक पर क्लिक करें और **घटना बनने पर** चुनें। ट्रिगर पर क्लिक करें: उसके **आगे भेजने वाले फ़ील्ड** में पहले से **शीर्षक** है, इसलिए **फ़ील्ड जोड़ें** पर क्लिक करें और **विवरण** चुनें।
 
 ### अलर्ट बनाएं
 
-**घटक जोड़ें** पर क्लिक करें, एक **API Post (JSON)** ब्लॉक जोड़ें, और ट्रिगर के **Success** बिंदु को उससे जोड़ें। उसका **URL** `https://api.opsgenie.com/v2/alerts` पर सेट करें, या यूरोप में `https://api.eu.opsgenie.com/v2/alerts` पर। **और फ़ील्ड** के नीचे उसके **Request Headers** इस पर सेट करें:
+**घटक जोड़ें** पर क्लिक करें, एक **API कॉल POST (JSON)** ब्लॉक जोड़ें, और ट्रिगर के **सफलता** बिंदु को उससे जोड़ें। उसका **URL** `https://api.opsgenie.com/v2/alerts` पर सेट करें, या यूरोप में `https://api.eu.opsgenie.com/v2/alerts` पर। **और फ़ील्ड** के नीचे उसके **अनुरोध हेडर** इस पर सेट करें:
 
 ```json
 { "Authorization": "GenieKey {{global.variables.OPSGENIE_KEY}}" }
 ```
 
-और उसकी **Request Body** इस पर:
+और उसकी **अनुरोध बॉडी** इस पर:
 
 ```json
 {
@@ -73,7 +73,7 @@ flowchart TB
 
 ### टेस्ट करें, फिर चालू करें
 
-**वर्कफ़्लो चलाएं** पर क्लिक करें, **घटना** के नीचे कोई टेस्ट घटना चुनें, और चलाएं। **API Post (JSON)** चरण `202` जवाब दिखाता है, और थोड़ी देर बाद अलर्ट Opsgenie में दिखता है। फिर **बिल्डर** के ऊपर **सक्षम** चालू करें।
+**वर्कफ़्लो चलाएं** पर क्लिक करें, **घटना** के नीचे कोई टेस्ट घटना चुनें, और चलाएं। **API कॉल POST (JSON)** चरण `202` जवाब दिखाता है, और थोड़ी देर बाद अलर्ट Opsgenie में दिखता है। फिर **बिल्डर** के ऊपर **सक्षम** चालू करें।
 :::
 
 Opsgenie की स्कीम है: शब्द `GenieKey`, एक स्पेस, फिर कुंजी। Opsgenie `message` को 130 अक्षरों तक सीमित रखता है, और उसकी प्राथमिकताएं `P1` से `P5` तक होती हैं। हर घटना की अपनी प्राथमिकता भेजने के लिए [प्राथमिकताएं मैप करें](#प्राथमिकताएं-मैप-करें) देखें।
@@ -83,9 +83,9 @@ Opsgenie की स्कीम है: शब्द `GenieKey`, एक स्�
 एक वर्कफ़्लो में एक ही ट्रिगर होता है, इसलिए बंद करने के लिए दूसरा वर्कफ़्लो चाहिए, जो घटना की स्थिति बदलने पर शुरू हो।
 
 :::steps
-### On Update Incident ट्रिगर जोड़ें
+### "घटना अपडेट होने पर" ट्रिगर जोड़ें
 
-`Close Opsgenie alerts` नाम का एक वर्कफ़्लो बनाएं, और उसके ट्रिगर के रूप में **On Update Incident** चुनें। **Fields to watch** में **फ़ील्ड जोड़ें** पर क्लिक करें और **Current Incident State** चुनें, ताकि यह सिर्फ़ स्थिति बदलने पर चले। **Fields to pass on** में यह मांगें कि नई स्थिति सुलझी हुई है या नहीं: **फ़ील्ड जोड़ें** पर क्लिक करें, **Current Incident State** खोलें और **Is Resolved State** चुनें। या **JSON के रूप में संपादित करें** पर क्लिक करें और JSON को इससे बदल दें:
+`Close Opsgenie alerts` नाम का एक वर्कफ़्लो बनाएं, और उसके ट्रिगर के रूप में **घटना अपडेट होने पर** चुनें। **नज़र रखने वाले फ़ील्ड** में **फ़ील्ड जोड़ें** पर क्लिक करें और **Current Incident State** चुनें, ताकि यह सिर्फ़ स्थिति बदलने पर चले। **आगे भेजने वाले फ़ील्ड** में यह मांगें कि नई स्थिति सुलझी हुई है या नहीं: **फ़ील्ड जोड़ें** पर क्लिक करें, **Current Incident State** खोलें और **Is Resolved State** चुनें। या **JSON के रूप में संपादित करें** पर क्लिक करें और JSON को इससे बदल दें:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -93,17 +93,17 @@ Opsgenie की स्कीम है: शब्द `GenieKey`, एक स्�
 
 ### जांचें कि घटना सुलझ गई है
 
-ट्रिगर के बाद एक **If / Else** ब्लॉक जोड़ें। **Value to check** को `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` पर और **Comparison** को **is true** पर सेट करें।
+ट्रिगर के बाद एक **अगर / वरना** ब्लॉक जोड़ें। **जांचने वाला मान** को `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` पर और **तुलना** को **सत्य है** पर सेट करें।
 
 ### अलर्ट बंद करें
 
-**Yes** साइड के बाद एक **API Post (JSON)** ब्लॉक जोड़ें, उन्हीं **Request Headers** और इस **URL** के साथ:
+**हाँ** साइड के बाद एक **API कॉल POST (JSON)** ब्लॉक जोड़ें, उन्हीं **अनुरोध हेडर** और इस **URL** के साथ:
 
 ```text
 https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}/close?identifierType=alias
 ```
 
-उसकी **Request Body** को `{ "source": "OneUptime", "note": "Resolved in OneUptime" }` पर सेट करें।
+उसकी **अनुरोध बॉडी** को `{ "source": "OneUptime", "note": "Resolved in OneUptime" }` पर सेट करें।
 
 ### इसे चालू करें
 
@@ -114,10 +114,10 @@ https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-upda
 
 ## प्राथमिकताएं मैप करें
 
-हर घटना की गंभीरता को Opsgenie प्राथमिकता के रूप में भेजने के लिए, ट्रिगर और **API Post (JSON)** ब्लॉक के बीच एक **Run Custom JavaScript** ब्लॉक जोड़ें।
+हर घटना की गंभीरता को Opsgenie प्राथमिकता के रूप में भेजने के लिए, ट्रिगर और **API कॉल POST (JSON)** ब्लॉक के बीच एक **कस्टम JavaScript चलाएँ** ब्लॉक जोड़ें।
 
-1. ट्रिगर के **Fields to pass on** में **फ़ील्ड जोड़ें** पर क्लिक करें, **घटना गंभीरता** खोलें और **नाम** चुनें।
-2. ब्लॉक के **Arguments** को `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` पर, और उसके **JavaScript Code** को इस पर सेट करें:
+1. ट्रिगर के **आगे भेजने वाले फ़ील्ड** में **फ़ील्ड जोड़ें** पर क्लिक करें, **घटना गंभीरता** खोलें और **नाम** चुनें।
+2. ब्लॉक के **आर्ग्युमेंट** को `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` पर, और उसके **JavaScript कोड** को इस पर सेट करें:
 
    ```javascript
    // Your incident severities, by name, to Opsgenie's priorities.
@@ -149,7 +149,7 @@ Opsgenie अनुरोध प्रोसेस करने से पहल�
 :::
 
 :::details वर्कफ़्लो कभी नहीं चलता
-जांचें कि यह चालू है: उसके **बिल्डर** के ऊपर **सक्षम**। फिर **लॉग → रन** खोलें: जो रन **If / Else** ब्लॉक की **No** साइड पर गया, वह ऐसा अपडेट था जो सुलझाना नहीं था।
+जांचें कि यह चालू है: उसके **बिल्डर** के ऊपर **सक्षम**। फिर **लॉग → रन** खोलें: जो रन **अगर / वरना** ब्लॉक की **नहीं** साइड पर गया, वह ऐसा अपडेट था जो सुलझाना नहीं था।
 :::
 
 ## अगले कदम

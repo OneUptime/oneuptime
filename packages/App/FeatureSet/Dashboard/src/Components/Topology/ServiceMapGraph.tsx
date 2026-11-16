@@ -83,6 +83,8 @@ import {
   ServiceMapStatus,
   ServiceMapVisibility,
   buildServiceMapModel,
+  detailLabelInLanguage,
+  entryLabelInLanguage,
   layoutServiceMap,
   resolveServiceMapVisibility,
   summarizeRunsOn,
@@ -102,7 +104,9 @@ import {
   formatErrorRate,
   metaForEntityType,
 } from "./TopologyMeta";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Service Map: the project's services and everything they call — other
@@ -277,7 +281,9 @@ export function statusLabelForEntry(
  * What a node is, and the language or engine it reports when it does:
  * "Service · Node.js", "Datenbank · PostgreSQL". On a page read from the
  * right the name is set apart, so a name in Latin letters never takes the
- * separator into its run.
+ * separator into its run. A browser service's runtime is the one detail
+ * that is a word, not a product's name, and reads in the reader's
+ * language: "سرویس • مرورگر" (#8260).
  */
 export function subtitleForEntry(
   entry: ServiceMapEntry,
@@ -291,7 +297,7 @@ export function subtitleForEntry(
     [
       typeText,
       setApartInSentence(
-        entry.detailLabel,
+        detailLabelInLanguage(entry.detailLabel, translator),
         getReadingDirection(translator.language),
       ),
     ],
@@ -328,7 +334,7 @@ export function edgeLabelForMetric(
       rate: formatErrorRate(edge.calls, edge.errors, translator),
     });
   }
-  return formatDurationMs(edge.avgDurationMs ?? undefined);
+  return formatDurationMs(edge.avgDurationMs ?? undefined, translator);
 }
 
 /*
@@ -377,7 +383,7 @@ const ServiceMapCanvasNode: FunctionComponent<NodeProps<ServiceNodeData>> = (
   return (
     <TopologyNodeCard
       testId={`service-map-node-${entry.key}`}
-      title={entry.label}
+      title={props.data.label}
       subtitle={props.data.subtitle}
       icon={KIND_ICONS[entry.kind]}
       color={metaForEntityType(entry.entity.entityType).color}
@@ -435,8 +441,8 @@ export function statsForEntry(
       label: wordOf(STAT_AVERAGE, translator),
       value:
         traffic.avgDurationMs === null
-          ? "—"
-          : formatDurationMs(traffic.avgDurationMs),
+          ? undefined
+          : formatDurationMs(traffic.avgDurationMs, translator),
     },
   ];
 }
@@ -808,7 +814,8 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
         ...(size ? { width: size.width, height: size.height } : {}),
         data: {
           entry,
-          label: entry.label,
+          // An unnamed node in the reader's words (#8260).
+          label: entryLabelInLanguage(entry, translator),
           subtitle: subtitleForEntry(entry, translator),
           statusLabel: statusLabelForEntry(entry, translator),
           stats: statsForEntry(entry, props.metricsWindowSeconds, translator),
@@ -1190,7 +1197,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium text-gray-900">
-                    {entry.label}
+                    {entryLabelInLanguage(entry, translator)}
                   </span>
                   <span className="block truncate text-xs text-gray-500">
                     {runsOn
@@ -1340,7 +1347,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
                               selectNode(entry.key);
                             }}
                           >
-                            {entry.label}
+                            {entryLabelInLanguage(entry, translator)}
                           </button>
                           <span
                             className="mt-0.5 block text-xs text-gray-500"
@@ -1378,17 +1385,24 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
                       )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-gray-700">
-                      {formatErrorRate(
-                        entry.inbound.calls,
-                        entry.inbound.errors,
-                        translator,
+                      {getValueOrQuietDash(
+                        formatErrorRate(
+                          entry.inbound.calls,
+                          entry.inbound.errors,
+                          translator,
+                        ),
                       )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-gray-700">
-                      {entry.inbound.avgDurationMs === null ? (
-                        <TableEmptyValue />
-                      ) : (
-                        formatDurationMs(entry.inbound.avgDurationMs)
+                      {getValueOrQuietDash(
+                        entry.inbound.avgDurationMs === null ? (
+                          <TableEmptyValue />
+                        ) : (
+                          formatDurationMs(
+                            entry.inbound.avgDurationMs,
+                            translator,
+                          )
+                        ),
                       )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-xs text-gray-500">
@@ -1400,7 +1414,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
                         className="whitespace-nowrap text-xs font-semibold text-indigo-600 hover:text-indigo-800"
                         aria-label={translator.translateTemplate(
                           "Show on map {{name}}",
-                          { name: entry.label },
+                          { name: entryLabelInLanguage(entry, translator) },
                         )}
                         onClick={() => {
                           focusOn(entry.key);

@@ -270,11 +270,9 @@ function installSpies(data?: {
     .spyOn(OnCallDutyPolicyService, "countBy")
     .mockResolvedValue(new PositiveNumber(data?.policies ?? 0) as never);
   jest
-    .spyOn(IncidentOnCallRuleService, "countBy")
-    .mockResolvedValue(new PositiveNumber(0) as never);
-  jest
-    .spyOn(AlertOnCallRuleService, "countBy")
-    .mockResolvedValue(new PositiveNumber(0) as never);
+    .spyOn(IncidentOnCallRuleService, "findBy")
+    .mockResolvedValue([] as never);
+  jest.spyOn(AlertOnCallRuleService, "findBy").mockResolvedValue([] as never);
   jest.spyOn(OnCallReadinessService, "getReadinessForUser").mockResolvedValue({
     status: ReadinessStatus.PartiallyReady,
     methods: [
@@ -452,8 +450,9 @@ describe("one plan, one approval card", () => {
       ["set_up_paging", AIChatToolActionStatus.Pending, true],
     ]);
     expect(actions[0]!.title).toBe("Set up monitoring for example.com");
+    // With the probes card's own sentence: both locations must agree (#8245).
     expect(actions[0]!.description).toBe(
-      "A website monitor checks https://example.com every minute. It is checked from 2 locations. If it does not answer, or answers with an error, OneUptime opens an incident (Critical Incident). You own this monitor, so you are emailed when its status changes.",
+      "A website monitor checks https://example.com every minute. It is checked from 2 locations. If it does not answer, or answers with an error, OneUptime opens an incident (Critical Incident). A status change needs both connected probes to agree. You own this monitor, so you are emailed when its status changes.",
     );
     expect(actions[1]!.title).toBe(
       `Create on-call policy "${GUIDED_SETUP_POLICY_NAME}"`,
@@ -586,7 +585,7 @@ describe("what cannot be made is never on the card", () => {
     ]);
   });
 
-  test("a project member gets the monitor on the card, and is told paging needs the on-call rules a project admin may add", async () => {
+  test("a project member gets the monitor on the card, and is told paging needs the on-call rules a Project Admin may add", async () => {
     const spies: Spies = installSpies();
     spies.executeWithLogging.mockResolvedValueOnce(
       response({

@@ -132,7 +132,7 @@ En **Regla**, escribe un **Nombre**, como «Fast burn». Una regla nueva está a
 
 ### Fijar la ventana de consumo
 
-En **Ventana de consumo**, fija el **Umbral de tasa de consumo** (por ejemplo `14.4`), la **Ventana larga (minutos)** y la **Ventana corta (minutos)**, y si quieres la **Supresión de nueva activación (minutos)**.
+En **Ventana de consumo**, fija el **Umbral de tasa de consumo** (por ejemplo `14.4`), la **Ventana larga (minutos)** y la **Ventana corta (minutos)**, y si quieres la **Supresión de nueva activación (minutos)**. La regla de un SLO de solicitudes admite además un **Mínimo de solicitudes**, por ejemplo `100`: la regla omite una ventana larga que tenga menos solicitudes que ese número. La regla de un SLO de métrica admite del mismo modo un **Mínimo de eventos**, contado en eventos de su métrica.
 
 ### Elegir qué declara
 
@@ -151,10 +151,12 @@ OneUptime comprueba los números de una regla al guardarla:
 | **Ventana corta (minutos)** | Mayor que 0. |
 | **Ventana larga (minutos)** | Más larga que la ventana corta. |
 | **Supresión de nueva activación (minutos)** | 0 o más. Vacío significa la duración de la ventana larga. |
+| **Mínimo de solicitudes** | Un número entero, 0 o más. Vacío significa sin mínimo. |
+| **Mínimo de eventos** | Un número entero, 0 o más. Vacío significa sin mínimo. |
 
 Cada respuesta a **Cuando se dispara** abre algo. La API rechaza una regla que no crearía ninguna alerta ni declararía ningún incidente, porque se comprobaría en cada evaluación sin declarar nunca nada.
 
-La tabla de reglas muestra, para cada regla, su umbral, sus ventanas y su supresión, qué declara (y si la alerta o el incidente solo se resuelve a mano, o es privado), sus gravedades, políticas de guardia, propietarios y etiquetas.
+La tabla de reglas muestra, para cada regla, su umbral, sus ventanas y su supresión, qué declara (y si la alerta o el incidente solo se resuelve a mano, o es privado), sus gravedades, políticas de guardia, propietarios y etiquetas. En un SLO de solicitudes, también indica el mínimo de cada regla bajo sus ventanas.
 
 > [!TIP]
 > Un buen comienzo: conserva las tres reglas predeterminadas, envía la regla de consumo rápido a tu política de guardia que avisa con una gravedad alta, deja que la regla de consumo lento genere una alerta de gravedad más baja para el horario laboral, y mantén la regla de fuga lenta como un ticket para el equipo responsable. Si tu equipo lo gestiona todo con incidentes, elige **Declarar un incidente** para la regla de consumo rápido, o **Ambos** para recibir también una alerta.
@@ -212,8 +214,8 @@ Para escribir los tuyos, usa variables de plantilla en el título, la descripci�
 | `{{targetPercentage}}` | El objetivo del SLO, en porcentaje. | `99.9` |
 | `{{currentSliPercentage}}` | El SLI medido en la ventana de cumplimiento del SLO, en porcentaje. | `99.87` |
 | `{{errorBudgetRemainingPercentage}}` | Parte del presupuesto de errores que queda, en porcentaje. Negativa cuando el presupuesto se ha superado. | `42.5` |
-| `{{errorBudgetRemaining}}` | Presupuesto de errores que queda, como duración. Empieza con un signo menos cuando el presupuesto se ha superado. | `18m 22s` |
-| `{{errorBudgetRemainingMinutes}}` | Presupuesto de errores que queda, en minutos. | `18.37` |
+| `{{errorBudgetRemaining}}` | Presupuesto de errores que queda, como duración o, en un SLO de solicitudes, como las solicitudes fallidas o lentas que todavía permite. Empieza con un signo menos cuando el presupuesto se ha superado. | `18m 22s` |
+| `{{errorBudgetRemainingMinutes}}` | Presupuesto de errores que queda, en minutos. Vacío en un SLO de solicitudes, cuyo presupuesto se cuenta en solicitudes. | `18.37` |
 | `{{windowDescription}}` | La ventana de cumplimiento del SLO, en palabras. | `rolling 30-day window` |
 | `{{policyTier}}` | Nombre del nivel de la política de presupuesto de errores en el que está el SLO tras esta evaluación. "None" cuando no está en ningún nivel. | `Reliability first` |
 | `{{policyTierThresholdPercentage}}` | Umbral de presupuesto restante de ese nivel, como porcentaje. Vacío cuando el SLO no está en ningún nivel. | `25` |
@@ -235,7 +237,7 @@ Por ejemplo, el título `{{ruleName}}: {{sloName}} is burning {{longWindowBurnRa
 - **Añadir propietarios del SLO como propietarios** añade además a los propietarios del SLO, sus usuarios propietarios y los miembros de sus equipos propietarios, a todo lo que crea la regla. Los propietarios del SLO ya se enteran de los cambios de estado del propio SLO, así que esto puede avisarles dos veces. Está desactivado de forma predeterminada.
 - Cada propietario se añade una vez: un usuario que ya es propietario de la alerta o del incidente, por ejemplo por las reglas del propietario del proyecto, o que está en un equipo propietario que se añade, no se vuelve a añadir.
 - **Etiquetas de alertas** y **Etiquetas de incidentes** se añaden a la alerta o al incidente, para que los filtros, las reglas del propietario y las reglas de notificación del espacio de trabajo puedan coincidir con ellos.
-- Una alerta o un incidente privado solo lo ven sus propietarios, los administradores del proyecto y los propietarios del proyecto.
+- Una alerta o un incidente privado solo lo ven sus propietarios, los Administradores del proyecto y los Propietarios del proyecto.
 
 Las etiquetas, los equipos propietarios y las políticas de guardia deben pertenecer al proyecto del SLO.
 
@@ -276,7 +278,7 @@ Las reglas de tasa de consumo permanecen en silencio mientras alguno de los moni
 :::
 
 :::details ¿Hay un número mínimo de muestras?
-No para los SLO que se miden con la disponibilidad de los monitores. La disponibilidad se mide en segundos, así que cada segundo de la ventana es una muestra y no hay casos de poco tráfico de los que protegerse. Un número mínimo de muestras solo importa para los SLI basados en eventos, que todavía no están disponibles.
+No para los SLO que se miden con la disponibilidad de los monitores. La disponibilidad se mide en segundos, así que cada segundo de la ventana es una muestra y no hay casos de poco tráfico de los que protegerse. La regla de un SLO de solicitudes sí lo tiene: fija su **Mínimo de solicitudes**, y la regla omite una ventana larga con menos solicitudes que ese número, así que una hora tranquila con una solicitud fallida de cinco no avisa a nadie.
 :::
 
 ## Próximos pasos

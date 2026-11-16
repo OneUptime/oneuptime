@@ -27,7 +27,7 @@ Una clasificación solo lee. Funciona con la IA del propio proyecto: **Habilitar
 
 - **Habilitar IA** activado, en **Ajustes del proyecto → IA → Funciones de IA**. Si está desactivado, la seguridad no muestra nada de OneUptime AI y no se ejecuta nada.
 - Un proveedor de LLM que OneUptime AI pueda usar, en **Ajustes del proyecto → IA → Proveedores de LLM**. OneUptime Cloud ofrece uno.
-- Un rol que pueda trabajar los casos de seguridad, para iniciar una clasificación: Project Owner, Project Admin, Security Admin o Security Member. Security Viewer lee cada clasificación, pero no puede iniciar ninguna. Consulta [Roles](/docs/permissions/reference#roles).
+- Un rol que pueda trabajar los casos de seguridad, para iniciar una clasificación: Propietario del proyecto, Administrador del proyecto, Administrador de seguridad o Miembro de seguridad. Visor de seguridad lee cada clasificación, pero no puede iniciar ninguna. Consulta [Roles](/docs/permissions/reference#roles).
 
 ## Clasificar un caso
 
@@ -40,7 +40,7 @@ Abre un caso: la tarjeta **OneUptime AI** está en la parte superior de su pági
 | Una lectura, como **Probablemente malicioso** | La clasificación terminó. **Volver a clasificar** vuelve a leer el caso desde cero. |
 | **La clasificación no terminó** | La ejecución se detuvo. **Volver a intentar** inicia otra. |
 
-Un Security Viewer ve la misma tarjeta: **Clasificar con IA** y **Volver a intentar** quedan en gris junto a una línea que dice quién puede iniciar una clasificación, y no se ofrecen **Volver a clasificar** ni **Establecer prioridad**.
+Un Visor de seguridad ve la misma tarjeta: **Clasificar con IA** y **Volver a intentar** quedan en gris junto a una línea que dice quién puede iniciar una clasificación, y no se ofrecen **Volver a clasificar** ni **Establecer prioridad**.
 
 Una clasificación lee:
 
@@ -82,7 +82,7 @@ Los eventos, las alertas y los valores de las entidades vienen de fuera del proy
 
 ## Clasificar los casos nuevos automáticamente
 
-Abre **Productos → Eventos de seguridad → IA → Ajustes** y activa **Clasificar los casos nuevos**: así cada caso que abre una detección se clasifica al abrirse. El interruptor guarda en cuanto lo cambias. Project Owner y Project Admin pueden cambiarlo.
+Abre **Productos → Eventos de seguridad → IA → Ajustes** y activa **Clasificar los casos nuevos**: así cada caso que abre una detección se clasifica al abrirse. El interruptor guarda en cuanto lo cambias. Propietario del proyecto y Administrador del proyecto pueden cambiarlo.
 
 Los proyectos nuevos empiezan con la opción activada; un proyecto creado antes la mantiene desactivada hasta que alguien la activa. Un caso abierto a mano, y el caso del ataque de prueba de **Enviar un ataque de prueba**, se clasifican cuando alguien hace clic en **Clasificar con IA**.
 
@@ -123,7 +123,7 @@ Comprueba que **Habilitar IA** está activado, y también **Clasificar los casos
 :::
 
 :::details La tarjeta dice que el proyecto se quedó sin créditos de IA, o que alcanzó su límite diario de IA
-Un propietario del proyecto o alguien con Manage Billing puede añadir créditos en **Ajustes del proyecto → IA → Créditos de IA**, o subir o quitar el límite en **Ajustes del proyecto → IA → Funciones de IA**. Después haz clic en **Clasificar con IA** en el caso.
+Un Propietario del proyecto o alguien con Manage Billing puede añadir créditos en **Ajustes del proyecto → IA → Créditos de IA**, o subir o quitar el límite en **Ajustes del proyecto → IA → Funciones de IA**. Después haz clic en **Clasificar con IA** en el caso.
 :::
 
 :::details La tarjeta dice que un texto del caso parece contener instrucciones para una IA

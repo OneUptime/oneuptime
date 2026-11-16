@@ -152,6 +152,8 @@ export const WEBSITE_DOWN_COPY: {
   whoExistingHelp: string;
   whoExistingHelpNotOwner: string;
   policyMadeElsewhere: string;
+  policyDeleted: string;
+  policyArchived: string;
   whoOwnerOnlyHelp: string;
   whoOwnerOnlyHelpNotOwner: string;
   whoOnCallRulesLink: string;
@@ -210,7 +212,7 @@ export const WEBSITE_DOWN_COPY: {
   ),
   // The same, for someone who may not add a payment method.
   paymentNeededAskOwner: translationKey(
-    "This project is on the Free plan, where a monitor that checks your site is billed as you use it, at {{price}} per monitor per month. Ask a project owner to add a payment method before you start checking.",
+    "This project is on the Free plan, where a monitor that checks your site is billed as you use it, at {{price}} per monitor per month. Ask a Project Owner to add a payment method before you start checking.",
   ),
   // The billing page's own button, which this link opens it at.
   addPaymentMethod: translationKey("Add Payment Method"),
@@ -224,7 +226,7 @@ export const WEBSITE_DOWN_COPY: {
   ),
   continueButton: translationKey("Continue"),
   cannotCreateMonitor: translationKey(
-    "Creating a monitor needs permission you do not have in this project. Ask a project admin to give it to you, or to set this up.",
+    "Creating a monitor needs permission you do not have in this project. Ask a Project Admin to give it to you, or to set this up.",
   ),
   whoTitle: translationKey("Who should be told?"),
   whoCreateHelp: translationKey(
@@ -256,16 +258,35 @@ export const WEBSITE_DOWN_COPY: {
     "An on-call policy was added to this project while this page was open, so no new policy was made.",
   ),
   /*
+   * Said when the on-call policy this setup made was deleted - in another
+   * tab, or by a teammate - so "Who should be told?" opened again (#8235),
+   * and when the page opens on a run whose policy is gone. The setup only
+   * ever makes its policy, never picks one, so it says to choose who is
+   * told: making a policy again, or the project's own deciding.
+   */
+  policyDeleted: translationKey(
+    "The on-call policy this setup made was deleted, so choose who is told again.",
+  ),
+  /*
+   * Said when the on-call policy this setup made was archived since - in
+   * another tab, or by a teammate - so "Who should be told?" opened again
+   * (#8432), and when the page opens on a run whose policy is archived. An
+   * archived policy is still there, but pages no one.
+   */
+  policyArchived: translationKey(
+    "The on-call policy this setup made was archived, so it pages no one. Choose who is told again.",
+  ),
+  /*
    * Creating an on-call policy, its escalation rule and its two rules is not
    * an admin's alone: project members and on-call members may too. Who
    * cannot is pointed at the ones who always can, as the on-call setup's
    * whoCannotCreate does.
    */
   whoOwnerOnlyHelp: translationKey(
-    "You own this monitor, so you are emailed when it goes down. Paging a team needs an on-call policy: ask a project owner or admin to set one up.",
+    "You own this monitor, so you are emailed when it goes down. Paging a team needs an on-call policy: ask a Project Owner or Project Admin to set one up.",
   ),
   whoOwnerOnlyHelpNotOwner: translationKey(
-    "You do not own this monitor, so you are not emailed when it goes down: add yourself on its Owners page. Paging a team needs an on-call policy: ask a project owner or admin to set one up.",
+    "You do not own this monitor, so you are not emailed when it goes down: add yourself on its Owners page. Paging a team needs an on-call policy: ask a Project Owner or Project Admin to set one up.",
   ),
   whoOnCallRulesLink: translationKey("See the on-call rules"),
   noEmail: translationKey(
@@ -888,7 +909,7 @@ export const getWhoIsToldDoneLine: (data: {
         "You are emailed as the monitor's owner.",
       ) || ""
     : data.translator.translateText(
-        "The project's owners are emailed about incidents nobody owns.",
+        "Project Owners are emailed about incidents nobody owns.",
       ) || "";
 };
 
@@ -1086,7 +1107,7 @@ export const getWebsiteDownSummaryRows: (
     text:
       told.join(" ") ||
       translator.translateText(
-        "The project's owners are emailed about incidents nobody owns.",
+        "Project Owners are emailed about incidents nobody owns.",
       ) ||
       "",
   });

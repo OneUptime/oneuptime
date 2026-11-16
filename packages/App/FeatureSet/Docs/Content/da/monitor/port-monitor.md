@@ -31,7 +31,7 @@ Når et tjek fejler, sporer sonden også ruten til værten og slår dens navn op
 
 ## Før du starter
 
-- **En rolle, der kan oprette monitorer**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member eller en brugerdefineret rolle med tilladelsen Create Monitor.
+- **En rolle, der kan oprette monitorer**: Projektejer, Projektadministrator, Projektmedlem, Monitoradministrator eller Monitormedlem eller en brugerdefineret rolle med tilladelsen Create Monitor.
 - **En sonde, der kan nå porten.** Dit projekts standardsonder vælges for hver ny monitor. Står der en firewall foran tjenesten, så tillad [OneUptime Clouds sonde-IP-adresser](/docs/configuration/ip-addresses) at forbinde til porten. En tjeneste på et privat netværk, som en database, har brug for en [brugerdefineret sonde](/docs/probe/custom-probe) i det netværk.
 
 ## Opret en port-monitor
@@ -51,7 +51,7 @@ Angiv under **Værtsnavn eller IP-adresse** den vært, porten er på, som `db.ex
 
 ### Test den
 
-Klik på **Test monitor**, vælg en sonde under **Vælg sonde**, og klik på **Kør test**. **Overvågningstestresultat** viser, om forbindelsen åbnede, og hvor lang tid hver del tog.
+Klik på **Test monitor**, vælg en sonde under **Vælg sonde**, og klik på **Kør test**. **Monitortestresultat** viser, om forbindelsen åbnede, og hvor lang tid hver del tog.
 
 ### Gennemgå kriterierne
 
@@ -122,7 +122,7 @@ Med to eller flere filtre afgør **Matchbetingelse**, om **Alle** skal matche, e
 
 En ny port-monitor starter med to kriterier:
 
-- **Offline** — porten accepterer ikke en forbindelse efter alle genforsøg. Monitoren markeres som **Offline**, og der oprettes en hændelse med navnet "_monitor name_ is offline". Hændelsen løser sig selv, når porten accepterer forbindelser igen.
+- **Offline** — porten accepterer ikke en forbindelse efter alle genforsøg. Monitoren markeres som **Offline**, og der oprettes en hændelse med navnet "_monitornavn_ er offline". Hændelsen løser sig selv, når porten accepterer forbindelser igen.
 - **Oppe** — porten accepterer en forbindelse. Monitoren markeres som **I drift**.
 
 Kriterier tjekkes fra top til bund, og det første, der matcher, afgør, hvad der sker. Når intet matcher, viser monitoren sin standardstatus: **I drift**, medmindre du vælger en anden under **Flere felter** under kriterierne.

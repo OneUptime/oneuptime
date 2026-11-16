@@ -1,4 +1,4 @@
-import { getNumberLocale } from "Common/Types/DateLanguage";
+import { formatRelativeAmount } from "Common/Types/DateLanguage";
 import NetworkControllerConnection from "Common/Models/DatabaseModels/NetworkControllerConnection";
 import { Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
@@ -32,6 +32,7 @@ import {
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 import { formatRelativeTime, isJustNow } from "../../Home/HomeRelativeTime";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 
 /*
  * What the Traffic pages say about a Meraki connection, in the dashboard's
@@ -177,16 +178,16 @@ export function getMerakiReadTime(
     Math.round((now.getTime() - readAt.getTime()) / 1000),
   );
 
-  try {
-    return new Intl.RelativeTimeFormat(
-      getNumberLocale(options.language || "en"),
-      {
-        numeric: "always",
-      },
-    ).format(-seconds, "second");
-  } catch {
-    return `${seconds} ${seconds === 1 ? "second" : "seconds"} ago`;
-  }
+  // The number held to its unit: "12\u00A0seconds ago" (#8456).
+  return (
+    formatRelativeAmount({
+      count: seconds,
+      unit: "second",
+      isFuture: false,
+      locale: options.language || "en",
+    }) ||
+    `${seconds}${NO_BREAK_SPACE}${seconds === 1 ? "second" : "seconds"} ago`
+  );
 }
 
 /*

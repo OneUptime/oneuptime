@@ -359,8 +359,9 @@ test.describe("When this goes down", () => {
   }) => {
     const card: Locator = await open(page);
 
+    // The role named as the role picker draws it (#8520).
     await expect(card.getByTestId("who-is-told-summary")).toHaveText(
-      "OneUptime marks it Offline and opens an incident (Critical). It emails the project's owners (Ana Lopez). It pages Ana Lopez and Ben Ito through Primary On-Call.",
+      "OneUptime marks it Offline and opens an incident (Critical). It emails the Project Owners (Ana Lopez). It pages Ana Lopez and Ben Ito through Primary On-Call.",
     );
     await expect(card.getByTestId("who-is-told-no-breaks")).toBeVisible();
     await shoot(card, "1440");

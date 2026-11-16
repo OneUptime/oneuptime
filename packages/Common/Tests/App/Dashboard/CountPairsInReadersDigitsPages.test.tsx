@@ -161,8 +161,8 @@ import { VMwareHostVirtualMachineSummary } from "../../../../App/FeatureSet/Dash
 import {
   PingResultSummary,
   describePingResult,
-  formatMilliseconds,
   formatPercent,
+  formatRoundTrip,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceDiagnosticsViewModel";
 import { NetworkDeviceDiagnosticPingResult } from "../../../Types/NetworkDevice/NetworkDeviceDiagnosticResult";
 import ProbeAttempt from "../../../Types/Probe/ProbeAttempt";
@@ -517,7 +517,7 @@ describe("a probe's retry attempts", () => {
     const english: Array<string> = labels("en");
 
     expect(english[0]).toContain("Attempt 1/3");
-    expect(english[0]).toContain("1,234 ms");
+    expect(english[0]).toContain("1,234\u00A0ms");
 
     cleanup();
 
@@ -618,8 +618,11 @@ describe("a device ping's packet loss", () => {
     const summary: PingResultSummary = describePingResult(result);
 
     expect(rowValue(summary, "Packet loss")).toBe("۴۰٪ (۳/۵ دریافت‌شده)");
-    expect(rowValue(summary, "Average RTT")).toBe("۱۲٫۴ ms");
-    expect(rowValue(summary, "Min / Max RTT")).toBe("۱۰٫۲ ms / ۲۰٫۱ ms");
+    // The round trips in Persian's own unit too, never a Latin "ms" (#7418).
+    expect(rowValue(summary, "Average RTT")).toBe("۱۲٫۴\u00A0میلی‌ثانیه");
+    expect(rowValue(summary, "Min / Max RTT")).toBe(
+      "۱۰٫۲\u00A0میلی‌ثانیه / ۲۰٫۱\u00A0میلی‌ثانیه",
+    );
 
     for (const row of summary.rows) {
       expect({ row: row.label, latin: LATIN_DIGIT.test(row.value) }).toEqual({
@@ -653,16 +656,19 @@ describe("a device ping's packet loss", () => {
     const summary: PingResultSummary = describePingResult(result);
 
     expect(rowValue(summary, "Packet loss")).toBe("40% (3/5 received)");
-    expect(rowValue(summary, "Average RTT")).toBe("12.4 ms");
+    expect(rowValue(summary, "Average RTT")).toBe("12.4\u00A0ms");
     expect(formatPercent(33.333)).toBe("33.3%");
-    expect(formatMilliseconds(0)).toBe("0.0 ms");
+    expect(formatRoundTrip(0)).toBe("0.0\u00A0ms");
   });
 
-  test("German writes its decimal comma and its own percent", () => {
+  test("German writes its decimal comma and its own percent", async () => {
     setDateDisplayLanguage("de");
+    await i18next.changeLanguage("de");
 
     expect(formatPercent(33.333)).toBe("33,3\u{00A0}%");
     expect(formatPercent(40)).toBe("40\u{00A0}%");
-    expect(formatMilliseconds(12.44)).toBe("12,4 ms");
+    // A round trip is written in the language of the page's words.
+    expect(formatRoundTrip(12.44)).toBe("12,4\u00A0ms");
+    await i18next.changeLanguage("en");
   });
 });

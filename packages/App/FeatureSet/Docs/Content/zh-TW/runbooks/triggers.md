@@ -28,7 +28,7 @@ flowchart TB
 
 ## 開始之前
 
-- 一個至少有一個步驟的 Runbook，且其 **設定** 頁面上的 **執行此操作手冊** 開關已開啟。
+- 一個至少有一個步驟的 Runbook，且其 **設定** 頁面上的 **執行此運行手冊** 開關已開啟。
 - 編輯並執行該 Runbook 的權限。請參閱[誰可以設定觸發器](#誰可以設定觸發器)。
 
 ## 依排程執行
@@ -163,14 +163,14 @@ return { host };
 
 ## 誰可以設定觸發器
 
-排程或 Webhook 會在無人在場時啟動執行，因此設定它們需要編輯並執行該 Runbook 的權限：Project Owner、Project Admin 或 Runbook Admin，或者 **Edit Runbook** 加上 Project Member、Runbook Member 或 **Create Runbook Execution**。與 **立即執行** 一樣，角色所限的標籤也會計入。檢視或重設 Webhook URL 需要同樣的權限。
+排程或 Webhook 會在無人在場時啟動執行，因此設定它們需要編輯並執行該 Runbook 的權限：專案擁有者、專案管理員或運行手冊管理員，或者 **Edit Runbook** 加上專案成員、運行手冊成員或 **Create Runbook Execution**。與 **立即執行** 一樣，角色所限的標籤也會計入。檢視或重設 Webhook URL 需要同樣的權限。
 
 關閉排程或 Webhook 不會啟動任何內容，因此只需要編輯該 Runbook 的權限。能編輯但不能執行該 Runbook 的人會看到 **設定排程** 被鎖定的 **觸發器** 頁面，並得知誰可以檢視 Webhook URL。
 
 ## 疑難排解
 
 :::details 排程沒有執行任何內容
-Runbook 已關閉或沒有步驟：卡片會說明是哪一種。在 Runbook 的 **設定** 頁面開啟 **執行此操作手冊**，或在其 **步驟** 頁面新增步驟。如果卡片顯示排程已暫停，請開啟 **依此排程執行**。
+Runbook 已關閉或沒有步驟：卡片會說明是哪一種。在 Runbook 的 **設定** 頁面開啟 **執行此運行手冊**，或在其 **步驟** 頁面新增步驟。如果卡片顯示排程已暫停，請開啟 **依此排程執行**。
 :::
 
 :::details 某個排程時間沒有啟動任何內容
@@ -178,7 +178,7 @@ Runbook 已關閉或沒有步驟：卡片會說明是哪一種。在 Runbook 的
 :::
 
 :::details 儲存排程失敗，顯示 "You do not have permission to set up this runbook's schedule or webhook."
-設定觸發器除了需要編輯 Runbook 的權限，還需要執行它的權限。請申請 Runbook Admin，或者在 **Edit Runbook** 之外申請 Runbook Member 或 **Create Runbook Execution**。
+設定觸發器除了需要編輯 Runbook 的權限，還需要執行它的權限。請申請運行手冊管理員，或者在 **Edit Runbook** 之外申請運行手冊成員或 **Create Runbook Execution**。
 :::
 
 :::details 呼叫收到回應 "No runbook webhook answers at this URL."

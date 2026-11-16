@@ -1,4 +1,8 @@
-import { QuerySlosTool } from "../../../../Server/Utils/AI/Toolbox/SloTools";
+import {
+  QuerySlosTool,
+  formatRequestBudgetForAssistant,
+} from "../../../../Server/Utils/AI/Toolbox/SloTools";
+import Service from "../../../../Models/DatabaseModels/Service";
 import {
   ToolContext,
   ToolExecutionResult,
@@ -1723,4 +1727,176 @@ describe("query_slos — the card, in the reader's language", () => {
       ),
     ).not.toContain("Not evaluated yet");
   });
+});
+
+/*
+ * A request SLO (#8441) measures its services' requests: the assistant
+ * reads its services, its latency threshold, its counted requests and its
+ * budget in requests - "120 of 1,000 failed requests left" - since its
+ * budget in seconds is empty.
+ */
+describe("query_slos — a request SLO", () => {
+  function buildRequestSlo(): ServiceLevelObjective {
+    const slo: ServiceLevelObjective = buildSlo({ monitors: [] });
+    slo.sliType = SliType.RequestLatency;
+    slo.latencyThresholdInMilliseconds = 300;
+    slo.errorBudgetRemainingSeconds = undefined as unknown as number;
+    slo.errorBudgetTotalSeconds = undefined as unknown as number;
+    // Decimal columns: Postgres hands them over as text.
+    slo.goodEventCount = "998800" as unknown as number;
+    slo.totalEventCount = "1000000" as unknown as number;
+    slo.errorBudgetRemainingEvents = "-200.4" as unknown as number;
+    slo.errorBudgetTotalEvents = "1000" as unknown as number;
+    slo.services = ["checkout", "payments"].map((name: string): Service => {
+      const service: Service = new Service();
+      service.name = name;
+      return service;
+    });
+    return slo;
+  }
+
+  test("reads its services, threshold, counts and budget in requests", async () => {
+    const findSpy: jest.SpyInstance = jest
+      .spyOn(ServiceLevelObjectiveService, "findOneById")
+      .mockResolvedValue(buildRequestSlo() as never);
+    jest
+      .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
+      .mockResolvedValue([] as never);
+
+    const result: ToolExecutionResult = await QuerySlosTool.execute(
+      { sloId: SLO_ID.toString() },
+      ctx,
+    );
+
+    expect(result.dataForLlm).toContain("checkout, payments");
+    expect(result.dataForLlm).toContain("latencyThresholdInMilliseconds=300");
+    expect(result.dataForLlm).toContain("goodRequestCount=998800");
+    expect(result.dataForLlm).toContain("totalRequestCount=1000000");
+    expect(result.dataForLlm).toContain("errorBudgetRemainingRequests=-200");
+    expect(result.dataForLlm).toContain("errorBudgetTotalRequests=1000");
+    expect(result.dataForLlm).toContain("200 slow requests over budget");
+
+    // What it reads to say so.
+    const select: JSONObject = (findSpy.mock.calls[0]?.[0] as JSONObject)[
+      "select"
+    ] as JSONObject;
+
+    expect(select).toMatchObject({
+      sliType: true,
+      errorBudgetRemainingEvents: true,
+      errorBudgetTotalEvents: true,
+      goodEventCount: true,
+      totalEventCount: true,
+      latencyThresholdInMilliseconds: true,
+      requestFilter: true,
+      services: { _id: true, name: true },
+    });
+
+    // No filter: every request of its services counts, and nothing is said.
+    expect(result.dataForLlm).not.toContain("requestFilter");
+  });
+
+  test("reads which of its services' requests it counts (#8444)", async () => {
+    const slo: ServiceLevelObjective = buildRequestSlo();
+    slo.requestFilter = "@http.route:/checkout* -@http.route:/health";
+
+    jest
+      .spyOn(ServiceLevelObjectiveService, "findOneById")
+      .mockResolvedValue(slo as never);
+    jest
+      .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
+      .mockResolvedValue([] as never);
+
+    const result: ToolExecutionResult = await QuerySlosTool.execute(
+      { sloId: SLO_ID.toString() },
+      ctx,
+    );
+
+    expect(result.dataForLlm).toContain(
+      "@http.route:/checkout* -@http.route:/health",
+    );
+  });
+
+  test("a monitor uptime SLO reads as it did, with no request fields", async () => {
+    jest
+      .spyOn(ServiceLevelObjectiveService, "findOneById")
+      .mockResolvedValue(buildSlo() as never);
+    jest
+      .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
+      .mockResolvedValue([] as never);
+
+    const result: ToolExecutionResult = await QuerySlosTool.execute(
+      { sloId: SLO_ID.toString() },
+      ctx,
+    );
+
+    expect(result.dataForLlm).toContain("errorBudgetRemainingSeconds=20460");
+    expect(result.dataForLlm).not.toContain("errorBudgetRemainingRequests");
+    expect(result.dataForLlm).not.toContain("goodRequestCount");
+  });
+});
+
+describe("formatRequestBudgetForAssistant", () => {
+  test.each([
+    [SliType.RequestSuccess, 120, 1000, "120 of 1,000 failed requests left"],
+    [SliType.RequestSuccess, 1, 1, "1 of 1 failed request left"],
+    [
+      SliType.RequestLatency,
+      "600.4",
+      "2000",
+      "600 of 2,000 slow requests left",
+    ],
+    [SliType.RequestSuccess, -1, 1000, "1 failed request over budget"],
+    [SliType.RequestLatency, -1250, 1000, "1,250 slow requests over budget"],
+  ])(
+    "%s with %s of %s reads %s",
+    (
+      sliType: SliType,
+      remaining: number | string,
+      total: number | string,
+      expected: string,
+    ) => {
+      expect(
+        formatRequestBudgetForAssistant({
+          sliType: sliType,
+          remaining: remaining,
+          total: total,
+        }),
+      ).toBe(expected);
+    },
+  );
+
+  test.each([undefined, null, "", "many"])(
+    "is empty before the first evaluation (%s)",
+    (remaining: unknown) => {
+      expect(
+        formatRequestBudgetForAssistant({
+          sliType: SliType.RequestSuccess,
+          remaining: remaining as number,
+          total: 1000,
+        }),
+      ).toBe("");
+    },
+  );
+});
+
+// A Metric SLO's budget, in its metric's events (#8445).
+describe("formatRequestBudgetForAssistant - a Metric SLO", () => {
+  test.each([
+    [120, 1000, "120 of 1,000 bad events left"],
+    [1, 1, "1 of 1 bad event left"],
+    [-3, 1000, "3 bad events over budget"],
+    [-1, 1000, "1 bad event over budget"],
+  ])(
+    "%s of %s reads %s",
+    (remaining: number, total: number, expected: string) => {
+      expect(
+        formatRequestBudgetForAssistant({
+          sliType: SliType.Metric,
+          remaining: remaining,
+          total: total,
+        }),
+      ).toBe(expected);
+    },
+  );
 });

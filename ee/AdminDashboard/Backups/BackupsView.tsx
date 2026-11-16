@@ -652,6 +652,7 @@ const BackupsView: FunctionComponent<ComponentProps> = (
                 )
               : "",
           })}
+          isTitleTranslated={true}
           description={
             isBackupAtCurrentDestination({
               run: deleteRun,

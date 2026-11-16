@@ -27,6 +27,7 @@ import {
   buildWatchlistTextMatch,
   getWatchlistsParameterUrlBytes,
 } from "./SecurityWatchlistMatch";
+import { writeOwnValue } from "../../../../Utils/LookupTable";
 
 /*
  * A SEARCH, A MONITOR OR A HUNT THAT READS A WATCHLIST, as a read of the
@@ -58,8 +59,9 @@ import {
 export const MAX_WATCHLIST_SEARCH_PARAMETER_BYTES: number =
   MAX_DETECTION_READ_PARAMETER_BYTES - 64 * 1024;
 
+// The search's refusal, drawn where it was run: held to its unit (#8720).
 function formatKilobytes(bytes: number): string {
-  return `${Math.ceil(bytes / 1024).toLocaleString("en-US")} KB`;
+  return `${Math.ceil(bytes / 1024).toLocaleString("en-US")}\u00A0KB`;
 }
 
 // A list read for one read of events, on the field it was named on.
@@ -259,10 +261,11 @@ export default class SecurityWatchlistQueryBinder {
       ) {
         const attributes: Record<string, unknown> = {};
 
+        // An attribute's name is whoever wrote it: each the filter's own key.
         for (const [attributeKey, attributeValue] of Object.entries(
           value as Record<string, unknown>,
         )) {
-          attributes[attributeKey] = bindValue(attributeValue);
+          writeOwnValue(attributes, attributeKey, bindValue(attributeValue));
         }
 
         bound[key] = attributes;

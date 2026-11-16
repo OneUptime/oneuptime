@@ -1,7 +1,13 @@
 import Route from "Common/Types/API/Route";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
+import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import ObjectID from "Common/Types/ObjectID";
 import SideOver, { SideOverSize } from "Common/UI/Components/SideOver/SideOver";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  composedValue,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { joinWithArrowsOn } from "Common/Types/DirectionArrow";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -10,7 +16,7 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import AppLink from "../../AppLink/AppLink";
 import {
   formatMessageQueueCount,
-  formatMessageQueueDurationMs,
+  formatMessageQueueDurationMsInLanguage,
   getMessageQueueBrokerMetricTitle,
 } from "../MessageQueueOverviewPresentation";
 import {
@@ -70,7 +76,8 @@ export interface ComponentProps {
 
 interface Figure {
   label: string;
-  value: string;
+  // None, and it draws the quiet dash (#8262).
+  value?: string | undefined;
   detail?: string | undefined;
   testId: string;
   tone?: "warning" | "critical" | undefined;
@@ -128,10 +135,12 @@ const FigureGrid: FunctionComponent<{ figures: Array<Figure> }> = (props: {
             <dd
               className={`mt-1 text-lg font-semibold ${figure.tone === "critical" ? "text-red-600" : figure.tone === "warning" ? "text-amber-700" : "text-gray-900"}`}
             >
-              {figure.value}
+              {getFigure(figure.value)}
             </dd>
             {figure.detail ? (
-              <dd className="text-xs text-gray-500">{figure.detail}</dd>
+              <dd className="text-xs text-gray-500">
+                {getValueOrQuietDash(figure.detail, { isSmall: true })}
+              </dd>
             ) : (
               <></>
             )}
@@ -193,7 +202,7 @@ const LinkedList: FunctionComponent<{
                     </span>
                     {row.detail ? (
                       <span className="block truncate text-xs text-gray-500">
-                        {row.detail}
+                        {getValueOrQuietDash(row.detail, { isSmall: true })}
                       </span>
                     ) : (
                       <></>
@@ -263,13 +272,21 @@ const MessageQueueTopologyDetailPanel: FunctionComponent<ComponentProps> = (
             ? other.subtitle
             : ""
           : translator.translateTemplate(timeLabel, {
-              duration: formatMessageQueueDurationMs(edge.p95DurationMs),
+              duration: composedValue((sentence: Translator): string => {
+                return formatMessageQueueDurationMsInLanguage(
+                  edge.p95DurationMs,
+                  sentence,
+                );
+              }),
             }),
       messages: translator.translateTemplate("{{count}} messages", {
-        count: formatMessageQueueCount(edge.messages),
+        count: formatMessageQueueCount(edge.messages, translator),
       }),
       errorRate: translator.translateTemplate("{{rate}} errors", {
-        rate: formatMessageQueueTopologyPercent(edge.errorRatePercent),
+        rate: formatMessageQueueTopologyPercent(
+          edge.errorRatePercent,
+          translator,
+        ),
       }),
       tone: toneOfEdge(edge),
     };
@@ -325,8 +342,8 @@ const MessageQueueTopologyDetailPanel: FunctionComponent<ComponentProps> = (
           entry?.status === "loading"
             ? "…"
             : value
-              ? formatMessageQueueHeadlineFull(value)
-              : "—",
+              ? formatMessageQueueHeadlineFull(value, translator)
+              : undefined,
         detail:
           entry?.status === "ready" && !value
             ? translator.translateText("Not reported in this range")
@@ -353,21 +370,33 @@ const MessageQueueTopologyDetailPanel: FunctionComponent<ComponentProps> = (
     const figures: Array<Figure> = [
       {
         label: translator.translateText("Published") || "Published",
-        value: formatMessageQueueCount(queue.published),
-        detail: formatMessageQueueTopologyRate(queue.published, windowSeconds),
+        value: formatMessageQueueCount(queue.published, translator),
+        detail: formatMessageQueueTopologyRate(
+          queue.published,
+          windowSeconds,
+          translator,
+        ),
         testId: "message-queue-topology-drawer-published",
       },
       {
         label: translator.translateText("Consumed") || "Consumed",
-        value: formatMessageQueueCount(queue.consumed),
-        detail: formatMessageQueueTopologyRate(queue.consumed, windowSeconds),
+        value: formatMessageQueueCount(queue.consumed, translator),
+        detail: formatMessageQueueTopologyRate(
+          queue.consumed,
+          windowSeconds,
+          translator,
+        ),
         testId: "message-queue-topology-drawer-consumed",
       },
       {
         label: translator.translateText("Errors") || "Errors",
-        value: formatMessageQueueCount(queue.errors),
+        value: formatMessageQueueCount(queue.errors, translator),
         detail: translator.translateTemplate("{{rate}} of its spans", {
-          rate: formatMessageQueueTopologyErrorRate(queue.spans, queue.errors),
+          rate: formatMessageQueueTopologyErrorRate(
+            queue.spans,
+            queue.errors,
+            translator,
+          ),
         }),
         testId: "message-queue-topology-drawer-errors",
         tone: toneOf(queue.spans, queue.errors),
@@ -463,20 +492,22 @@ const MessageQueueTopologyDetailPanel: FunctionComponent<ComponentProps> = (
     const figures: Array<Figure> = [
       {
         label: translator.translateText("Published") || "Published",
-        value: formatMessageQueueCount(node.published.messages),
+        value: formatMessageQueueCount(node.published.messages, translator),
         detail: formatMessageQueueTopologyRate(
           node.published.messages,
           windowSeconds,
+          translator,
         ),
         testId: "message-queue-topology-drawer-published",
         tone: toneOf(node.published.attempts, node.published.errors),
       },
       {
         label: translator.translateText("Consumed") || "Consumed",
-        value: formatMessageQueueCount(node.consumed.messages),
+        value: formatMessageQueueCount(node.consumed.messages, translator),
         detail: formatMessageQueueTopologyRate(
           node.consumed.messages,
           windowSeconds,
+          translator,
         ),
         testId: "message-queue-topology-drawer-consumed",
         tone: toneOf(node.consumed.attempts, node.consumed.errors),
@@ -566,14 +597,21 @@ const MessageQueueTopologyDetailPanel: FunctionComponent<ComponentProps> = (
     const figures: Array<Figure> = [
       {
         label: translator.translateText("Messages") || "Messages",
-        value: formatMessageQueueCount(edge.messages),
-        detail: formatMessageQueueTopologyRate(edge.messages, windowSeconds),
+        value: formatMessageQueueCount(edge.messages, translator),
+        detail: formatMessageQueueTopologyRate(
+          edge.messages,
+          windowSeconds,
+          translator,
+        ),
         testId: "message-queue-topology-drawer-messages",
       },
       {
         label: translator.translateText("Errors") || "Errors",
-        value: formatMessageQueueCount(edge.errors),
-        detail: formatMessageQueueTopologyPercent(edge.errorRatePercent),
+        value: formatMessageQueueCount(edge.errors, translator),
+        detail: formatMessageQueueTopologyPercent(
+          edge.errorRatePercent,
+          translator,
+        ),
         testId: "message-queue-topology-drawer-errors",
         tone: toneOfEdge(edge),
       },
@@ -584,7 +622,10 @@ const MessageQueueTopologyDetailPanel: FunctionComponent<ComponentProps> = (
           (edge.direction === "publish"
             ? translator.translateText("p95 publish")
             : translator.translateText("p95 processing")) || "",
-        value: formatMessageQueueDurationMs(edge.p95DurationMs),
+        value: formatMessageQueueDurationMsInLanguage(
+          edge.p95DurationMs,
+          translator,
+        ),
         testId: "message-queue-topology-drawer-p95",
       });
     }

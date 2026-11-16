@@ -1,19 +1,19 @@
-# Ceph-overvåking
+# Ceph-monitor
 
-En Ceph-monitor følger med på én Ceph-klynge — helsen, health checks, monitorenes quorum, OSD-er, pooler og placement groups — og gir deg beskjed i det øyeblikket helsen blir dårligere, en OSD går ned eller kapasiteten blir knapp. Den leser `ceph_*`-metrikkene som Ceph-mgr-ens `prometheus`-modul eksporterer, og som OneUptime Ceph Agent samler inn, så ingenting blir sjekket utenfra.
+En Ceph-monitor følger med på én Ceph-klynge — helsen, health checks, monitorenes quorum, OSD-er, pooler og placement groups — og gir deg beskjed i det øyeblikket helsen blir dårligere, en OSD går ned eller kapasiteten blir knapp. Den leser `ceph_*`-målingene som Ceph-mgr-ens `prometheus`-modul eksporterer, og som OneUptime Ceph Agent samler inn, så ingenting blir sjekket utenfra.
 
 :::cards
 - [Opprett monitoren](#opprett-en-ceph-monitor): Seks steg i dashbordet.
 - [Maler](#ferdige-varselmaler): 24 ferdige varsler for en taus klynge, helse, OSD-er, placement groups og kapasitet.
 - [Health checks](#serier-for-health-checks): Varsle på et hvilket som helst Ceph-health check etter navn.
-- [Metrikker](#innsamlede-metrikker): Hver `ceph_*`-serie monitoren kan varsle på.
+- [Målinger](#innsamlede-målinger): Hver `ceph_*`-serie monitoren kan varsle på.
 :::
 
 ## Slik fungerer det
 
-Ceph-mgr-ens `prometheus`-modul gjør klyngens metrikker tilgjengelige på port 9283. OneUptime Ceph Agent henter fra hver mgr-daemon hvert 30. sekund — den aktive svarer, standby-ene returnerer ingenting før de tar over —, beholder Cephs egne etiketter (`ceph_daemon`, `pool_id`) og sender metrikkene til OneUptime over OTLP, merket med klyngens navn, `ceph.cluster.name`. De første dataene registrerer klyngen.
+Ceph-mgr-ens `prometheus`-modul gjør klyngens målinger tilgjengelige på port 9283. OneUptime Ceph Agent henter fra hver mgr-daemon hvert 30. sekund — den aktive svarer, standby-ene returnerer ingenting før de tar over —, beholder Cephs egne etiketter (`ceph_daemon`, `pool_id`) og sender målingene til OneUptime over OTLP, merket med klyngens navn, `ceph.cluster.name`. De første dataene registrerer klyngen.
 
-En Ceph-monitor hører til én klynge. Hvert minutt kjører den spørringen sin mot den klyngens metrikker og sammenligner resultatet med kriteriene sine.
+En Ceph-monitor hører til én klynge. Hvert minutt kjører den spørringen sin mot den klyngens målinger og sammenligner resultatet med kriteriene sine.
 
 ```mermaid title="Fra en Ceph-klynge til en hendelse"
 flowchart TB
@@ -22,9 +22,9 @@ flowchart TB
         active["Aktiv mgr"]
         standby["Standby-mgr-er"]
     end
-    active -->|"metrikker på port 9283"| agent["OneUptime Ceph Agent"]
+    active -->|"målinger på port 9283"| agent["OneUptime Ceph Agent"]
     standby -.->|"etter en failover"| agent
-    agent -->|"Ceph-metrikker over OTLP"| oneuptime["OneUptime"]
+    agent -->|"Ceph-målinger over OTLP"| oneuptime["OneUptime"]
     oneuptime -->|"første data"| registered["Klynge registrert"]
     oneuptime --> monitor["Ceph-monitor"]
     monitor -->|"hvert minutt"| criteria{"Kriterier oppfylt?"}
@@ -63,13 +63,13 @@ Velg klyngen i **Ceph-klynge** under **Ceph Monitor Configuration**. Alle klynge
 
 En ny monitor starter med **Cluster Stopped Reporting** under **Hva det skal varsles om**. Slik overvåker du noe annet:
 
-- **Endre** — velg en annen [mal](#ferdige-varselmaler). Den setter metrikker, filtre, aggregering, tidsintervall og terskler, og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
-- **Custom Metric** (under **Flere felt**) — velg én metrikk i **Ceph Metric**, og angi deretter **Aggregering** og **Tidsintervall**. **OSD** og **Pool-ID** snevrer den inn til én daemon eller pool. En metrikk som føres per pool eller per daemon, vurderes pool for pool eller daemon for daemon, med én hendelse hver.
+- **Endre** — velg en annen [mal](#ferdige-varselmaler). Den setter målinger, filtre, aggregering, tidsintervall og terskler, og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
+- **Custom Metric** (under **Flere felt**) — velg én måling i **Ceph Metric**, og angi deretter **Aggregering** og **Tidsintervall**. **OSD** og **Pool-ID** snevrer den inn til én daemon eller pool. En måling som føres per pool eller per daemon, vurderes pool for pool eller daemon for daemon, med én hendelse hver.
 - **Avansert** (under **Flere felt**) — bygg spørringer og formler selv under **Velg målinger**, for eksempel et forhold for brukt kapasitet fra `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Bruk **Grupper etter** `ceph_daemon` eller `pool_id` for å vurdere hver daemon eller pool for seg.
 
 ### Sjekk kriteriene
 
-Åpne hvert kriterium under **Kriterier** og sjekk **Måling**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller dem ut. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare legger merke til at metrikken ikke sender data, så sett din egen terskel.
+Åpne hvert kriterium under **Kriterier** og sjekk **Måling**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller dem ut. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare legger merke til at målingen ikke sender data, så sett din egen terskel.
 
 ### Opprett monitoren
 
@@ -86,10 +86,10 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 | **Ceph-klynge** | Alle | Påkrevd. Begrenser hver spørring til `resource.ceph.cluster.name`. |
 | **OSD** | Custom Metric, Avansert | Valgfritt. Eksakt treff på etiketten `ceph_daemon`, for eksempel `osd.3`. |
 | **Pool-ID** | Custom Metric, Avansert | Valgfritt. Eksakt treff på etiketten `pool_id`, for eksempel `2`. |
-| **Ceph Metric** | Custom Metric | Én metrikk fra [katalogen](#innsamlede-metrikker). |
-| **Aggregering** | Custom Metric | Hvordan målinger slås sammen: **Gjennomsnitt**, **Maksimum** eller **Minimum**. Starter med metrikkens vanlige aggregering. En sum eller en telling ville legge sammen hver skraping i et minutt, så de er overlatt til **Avansert**. |
+| **Ceph Metric** | Custom Metric | Én måling fra [katalogen](#innsamlede-målinger). |
+| **Aggregering** | Custom Metric | Hvordan målinger slås sammen: **Gjennomsnitt**, **Maksimum** eller **Minimum**. Starter med målingens vanlige aggregering. En sum eller en telling ville legge sammen hver skraping i et minutt, så de er overlatt til **Avansert**. |
 | **Tidsintervall** | Alle | Det glidende vinduet spørringen leser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter på **Past 1 Minute**; maler setter sitt eget. |
-| **Velg målinger** | Avansert | Spørringsbyggeren: **Måling**, **Aggregate by**, **Filter by attributes**, **Grupper etter**, pluss **Legg til måling** og **Legg til formel** for å kombinere spørringer. |
+| **Velg målinger** | Avansert | Spørringsbyggeren: **Måling**, **Aggreger etter**, **Filtrer etter attributter**, **Grupper etter**, pluss **Legg til måling** og **Legg til formel** for å kombinere spørringer. |
 
 Pooldataserier har bare etiketten `pool_id`: Poolens navn finnes bare på `ceph_pool_metadata`. Filtrer og grupper poolserier etter `pool_id`, og slå opp navnet i `ceph_pool_metadata` når du trenger det.
 
@@ -120,7 +120,7 @@ Maler leser de siste 5 minuttene med mindre tabellen sier noe annet. Et kriteriu
 | Monitor Quorum Degraded | Kritisk | `ceph_mon_quorum_status`, Min per `ceph_daemon`, siste minutt | En monitor faller under 1, ute av quorum. Én hendelse per monitor | Tilbake på 1 |
 | Slow Operations | Advarsel | `ceph_healthcheck_slow_ops`, Max | Over 0: Klyngens `SLOW_OPS`-check er aktiv | På 0 |
 | Daemon Slow Operations | Advarsel | `ceph_daemon_health_metrics` for `type = SLOW_OPS`, Max per `ceph_daemon` | Over 0. Én hendelse per OSD eller monitor | Serien forsvinner |
-| Daemon Crash | Kritisk | `ceph_health_detail` for `name = RECENT_CRASH`, Max | Checken er aktiv: Det finnes ikke-arkiverte daemonkrasj. Mgr-en har ingen `ceph_crash_*`-metrikk, så dette er det eneste krasjsignalet | Krasjene arkiveres |
+| Daemon Crash | Kritisk | `ceph_health_detail` for `name = RECENT_CRASH`, Max | Checken er aktiv: Det finnes ikke-arkiverte daemonkrasj. Mgr-en har ingen `ceph_crash_*`-måling, så dette er det eneste krasjsignalet | Krasjene arkiveres |
 | Monitor Clock Skew | Advarsel | `ceph_health_detail` for `name = MON_CLOCK_SKEW`, Max | Checken er aktiv: Monitorenes klokker avviker mer enn tillatt (standard 0,05 s) | Checken forsvinner |
 | Monitor Disk Critically Low | Kritisk | `ceph_health_detail` for `name = MON_DISK_CRIT`, Max | Checken er aktiv: Databasedisken til en monitor har under 5 % ledig (standard) | Checken forsvinner |
 | Monitor Disk Space Low | Advarsel | `ceph_health_detail` for `name = MON_DISK_LOW`, Max | Checken er aktiv: under 30 % ledig (standard) | Checken forsvinner |
@@ -161,28 +161,28 @@ Maler leser de siste 5 minuttene med mindre tabellen sier noe annet. Et kriteriu
 - **Health check-maler** gjenoppretter når checken forsvinner: Gjenopprettingskriteriene deres teller en manglende serie som 0.
 - **Daemon Slow Operations** har én serie per daemon, så når ingen daemon har en serie igjen, er det ingenting å lese. Den gjenoppretter da bare hvis `ceph_health_status` kom i samme vindu, så en stoppet agent lukker ingenting.
 
-Noen varsler har ingen mal. Skjevfordelte PG-er krever statistikk på tvers av serier som kriterier ikke kan beregne. Kapasitetsprognoser krever en vekstkurve, som klyngens dashbord tegner i stedet. Forutsigelse av diskfeil og forsinket scrubbing har ingen mgr-metrikk, og NVMe-oF, RBD-speiling og cephadm krever andre eksportører.
+Noen varsler har ingen mal. Skjevfordelte PG-er krever statistikk på tvers av serier som kriterier ikke kan beregne. Kapasitetsprognoser krever en vekstkurve, som klyngens dashbord tegner i stedet. Forutsigelse av diskfeil og forsinket scrubbing har ingen mgr-måling, og NVMe-oF, RBD-speiling og cephadm krever andre eksportører.
 
-## Innsamlede metrikker
+## Innsamlede målinger
 
 Agenten henter fra hver mgr-daemon hvert 30. sekund og beholder Cephs egne etiketter, så serier per daemon har `ceph_daemon` (`osd.3`, `mon.a`), og serier per pool har `pool_id`.
 
-### Metrikker for klyngens helse
+### Målinger for klyngens helse
 
-| Metrikk | Enhet | Beskrivelse |
+| Måling | Enhet | Beskrivelse |
 | --- | --- | --- |
 | `ceph_health_status` | — | Samlet helse: 0 = `HEALTH_OK`, 1 = `HEALTH_WARN`, 2 = `HEALTH_ERR`. |
 | `ceph_health_detail` | antall | Én serie per **aktivt** health check, med etikettene `name` og `severity`. Bare fra Quincy. |
 | `ceph_healthcheck_slow_ops` | antall | Trege OSD- og monitoroperasjoner som checken `SLOW_OPS` rapporterer. |
-| `ceph_daemon_health_metrics` | antall | Helsemetrikker per daemon, med `type` (for eksempel `SLOW_OPS`) og `ceph_daemon`. |
+| `ceph_daemon_health_metrics` | antall | Helsemålinger per daemon, med `type` (for eksempel `SLOW_OPS`) og `ceph_daemon`. |
 | `ceph_mon_quorum_status` | antall | 1 når monitoren er i quorum, per `ceph_daemon` (for eksempel `mon.a`). |
 | `ceph_mon_metadata` | antall | Monitorens metadata, alltid 1 mens monitoren rapporterer. En sum legger sammen hver skraping i et minutt, så den teller ikke monitorer. |
 | `ceph_cluster_total_bytes` | byte | Samlet rå kapasitet. |
 | `ceph_cluster_total_used_bytes` | byte | Rå kapasitet i bruk. |
 
-### OSD-metrikker
+### OSD-målinger
 
-| Metrikk | Enhet | Beskrivelse |
+| Måling | Enhet | Beskrivelse |
 | --- | --- | --- |
 | `ceph_osd_up` | antall | 1 når OSD-en kjører, per `ceph_daemon` (for eksempel `osd.3`). |
 | `ceph_osd_in` | antall | 1 når OSD-en er med i datafordelingen. |
@@ -193,9 +193,9 @@ Agenten henter fra hver mgr-daemon hvert 30. sekund og beholder Cephs egne etike
 | `ceph_osd_numpg` | antall | Placement groups på OSD-en. |
 | `ceph_osd_metadata` | antall | OSD-ens metadata (vertsnavn, enhetsklasse, versjon), alltid 1 mens OSD-en rapporterer. En sum legger sammen hver skraping i et minutt, så den teller ikke OSD-er. |
 
-### Poolmetrikker
+### Poolmålinger
 
-| Metrikk | Enhet | Beskrivelse |
+| Måling | Enhet | Beskrivelse |
 | --- | --- | --- |
 | `ceph_pool_stored` | byte | Brukerdata lagret i poolen. |
 | `ceph_pool_max_avail` | byte | Byte som fortsatt kan skrives til poolen, gitt replikerings- eller erasure coding-profilen. |
@@ -206,11 +206,11 @@ Agenten henter fra hver mgr-daemon hvert 30. sekund og beholder Cephs egne etike
 | `ceph_pool_wr_bytes` | byte | Byte skrevet til poolen. En teller over hele levetiden. |
 | `ceph_pool_metadata` | antall | Poolens metadata, alltid 1 — den eneste serien som kobler `pool_id` til et navn. |
 
-### Metrikker for placement groups
+### Målinger for placement groups
 
 Hver `ceph_pg_*`-serie er per pool, med etiketten `pool_id`. En sum legger sammen både hver skraping i et minutt og hver pool, så sammenlign pool for pool, gruppert etter `pool_id`, slik PG-malene gjør.
 
-| Metrikk | Enhet | Beskrivelse |
+| Måling | Enhet | Beskrivelse |
 | --- | --- | --- |
 | `ceph_pg_total` | antall | Placement groups i poolen. |
 | `ceph_pg_active` | antall | PG-er i tilstanden `active`, som kan betjene I/O. |
@@ -222,19 +222,19 @@ Hver `ceph_pg_*`-serie er per pool, med etiketten `pool_id`. En sum legger samme
 
 ## Overvåkingskriterier
 
-Et kriterium sammenligner en av monitorens spørringer eller formler med en terskel. Kriteriene til en Ceph-monitor har ingen **Filtertype**: Hver regel sjekker metrikkverdien, med disse feltene.
+Et kriterium sammenligner en av monitorens spørringer eller formler med en terskel. Kriteriene til en Ceph-monitor har ingen **Filtertype**: Hver regel sjekker målingsverdien, med disse feltene.
 
 | Felt | Hva det gjør |
 | --- | --- |
 | **Måling** | Spørringen eller formelen som sjekkes, etter variabelnavnet. |
 | **Aggregering** | Hvordan verdiene i vinduet blir til ett svar: **Gjennomsnitt**, **Sum**, **Maksimumsverdi**, **Minimumsverdi**, **Alle verdier** (hver verdi må stemme, i hele vinduet) eller **Minst én verdi** (én er nok). |
-| **Betingelse** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** eller **Lik** — eller en anomalibetingelse: **Unormalt høy**, **Unormalt lav** eller **Avvikende**. **Ingen data** stemmer når spørringen ikke ga noe i vinduet, og **Har data** når den ga noe. **Ventes å stige over** og **Ventes å falle under** treffer når metrikkens trend i vinduet er forbi terskelen ved slutten av **Tidshorisont**. |
-| **Terskel** | Verdien det sammenlignes med. Ved siden av står en enhetsliste når metrikken har en enhet. Vises ikke for anomalibetingelser. |
+| **Betingelse** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** eller **Lik** — eller en anomalibetingelse: **Unormalt høy**, **Unormalt lav** eller **Avvikende**. **Ingen data** stemmer når spørringen ikke ga noe i vinduet, og **Har data** når den ga noe. **Ventes å stige over** og **Ventes å falle under** treffer når målingens trend i vinduet er forbi terskelen ved slutten av **Tidshorisont**. |
+| **Terskel** | Verdien det sammenlignes med. Ved siden av står en enhetsliste når målingen har en enhet. Vises ikke for anomalibetingelser. |
 | **Følsomhet** | Bare for anomalibetingelser. **Lav** (4σ), **Middels** (3σ, standard) eller **Høy** (2σ). |
 | **Grunnlinjevindu** | Bare for anomalibetingelser. 14 dager (standard), 28, 60 eller 90 dager historikk. |
 | **Hvis ingen data** | Under **Flere felt**. Hva som skjer når vinduet ikke har målinger: **Ignore** (standard), **Treat As Zero** eller **Utløser**. |
 
-Anomalibetingelser sammenligner hver verdi med samme time i uken i grunnlinjen. De blir værende i tilstanden "Learning" og varsler ikke før grunnlinjevinduet har nok historikk. Denne monitoren filtrerer spørringene sine etter attributter, så hver spørring, og hver serie i en gruppert spørring, sammenlignes med sin egen historikk, så langt tilbake som metrikkene dine beholdes. Er det under to uker, blir en sum, en telling eller en spørring på et histogram værende i den tilstanden for alltid, og alt annet sammenlignes med alle seriene til metrikken. En persentil av et histogram blir alltid værende i den tilstanden.
+Anomalibetingelser sammenligner hver verdi med samme time i uken i grunnlinjen. De blir værende i tilstanden "Learning" og varsler ikke før grunnlinjevinduet har nok historikk. Denne monitoren filtrerer spørringene sine etter attributter, så hver spørring, og hver serie i en gruppert spørring, sammenlignes med sin egen historikk, så langt tilbake som målingene dine beholdes. Er det under to uker, blir en sum, en telling eller en spørring på et histogram værende i den tilstanden for alltid, og alt annet sammenlignes med alle seriene til målingen. En persentil av et histogram blir alltid værende i den tilstanden.
 
 Hvert kriterium sier også hva som skal skje når det treffer: endre monitorstatusen, opprette et varsel eller erklære en hendelse. Kriteriene sjekkes ovenfra og ned, og det første som treffer, avgjør.
 
@@ -244,11 +244,11 @@ En monitor du ikke bygger fra en mal, starter med to kriterier:
 
 | Rekkefølge | Kriterium | Treffer når | Deretter |
 | --- | --- | --- | --- |
-| 1 | Check if _monitornavn_ is offline | Den første spørringen har ingen data i hele vinduet | Setter monitoren til **Frakoblet** og erklærer hendelsen "_monitornavn_ is offline", som løser seg selv når monitoren kommer seg. |
-| 2 | Check if _monitornavn_ is online | Den første spørringen har data | Setter monitoren til **I drift**. |
+| 1 | Sjekk om _monitornavn_ er frakoblet | Den første spørringen har ingen data i hele vinduet | Setter monitoren til **Frakoblet** og erklærer hendelsen "_monitornavn_ er frakoblet", som løser seg selv når monitoren kommer seg. |
+| 2 | Sjekk om _monitornavn_ er tilkoblet | Den første spørringen har data | Setter monitoren til **I drift**. |
 
 > [!IMPORTANT]
-> En verdi på `0` er data, så en metrikk som ofte er null, som omstarter eller feil, gjør ikke monitoren frakoblet. For å få varsel om en verdi, start fra en mal eller legg til et kriterium med en terskel. Når ingen data kommer i det hele tatt og ingen kriterier passer, beholder monitoren statusen sin, og åpne hendelser forblir åpne: stillhet er ikke bedring. Tid da OneUptime selv ikke mottok data, regnes aldri som manglende data: en sjekk der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
+> En verdi på `0` er data, så en måling som ofte er null, som omstarter eller feil, gjør ikke monitoren frakoblet. For å få varsel om en verdi, start fra en mal eller legg til et kriterium med en terskel. Når ingen data kommer i det hele tatt og ingen kriterier passer, beholder monitoren statusen sin, og åpne hendelser forblir åpne: stillhet er ikke bedring. Tid da OneUptime selv ikke mottok data, regnes aldri som manglende data: en sjekk der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
 ## Feilsøking
 
@@ -256,7 +256,7 @@ En monitor du ikke bygger fra en mal, starter med to kriterier:
 Klynger registrerer seg selv ut fra agentens data. Sjekk at agenten kjører og sender data (se [veiledningen for Ceph Agent](/docs/telemetry/ceph)), og at `CEPH_CLUSTER_NAME` er satt.
 :::
 
-:::details Metrikkene stoppet etter en mgr-failover
+:::details Målingene stoppet etter en mgr-failover
 Agenten må hente fra **hver** mgr-daemon, ikke bare den aktive: Standby-er returnerer ingenting før de tar over. Før opp hver mgr i `CEPH_MGR_ENDPOINTS`.
 :::
 
@@ -282,7 +282,7 @@ Poolenes I/O-serier er tellere over hele levetiden, og kriterier sammenligner r�
 
 :::cards
 - [Ceph Agent](/docs/telemetry/ceph): Installer og oppgrader agenten denne monitoren leser.
-- [Proxmox-overvåking](/docs/monitor/proxmox-monitor): Overvåk Proxmox VE-klyngen som bruker lagringen.
-- [Lagringsmatrise-overvåking](/docs/monitor/storage-array-monitor): Samme type monitor for Pure Storage-matriser.
+- [Proxmox-monitor](/docs/monitor/proxmox-monitor): Overvåk Proxmox VE-klyngen som bruker lagringen.
+- [Lagringsmatrise-monitor](/docs/monitor/storage-array-monitor): Samme type monitor for Pure Storage-matriser.
 - [Hendelser](/docs/incidents/index): Hva som skjer etter at et kriterium har erklært en hendelse.
 :::

@@ -177,9 +177,9 @@ O OneUptime tem um endpoint MQTT próprio, então dispositivos que falam MQTT pu
 - **Com a chave de ingestão**: envie-a como a senha do MQTT. O nome de usuário é ignorado; se o seu cliente só tem um campo de nome de usuário, coloque a chave nele. Isso serve para um gateway que publica por muitos dispositivos.
 - **Com uma credencial por dispositivo**: recomendado para dispositivos que se conectam diretamente. Abra a página **Registro de dispositivos** da frota e registre o dispositivo, com o **Device ID** que ele usa como `device.id`. O **MQTT Username** do dispositivo é o nome de usuário dele, e o **MQTT Password (Secret)** dele é a senha.
 
-A credencial de um dispositivo só pode publicar nos próprios tópicos `oneuptime/<fleet>/<device>/`. Você pode revogar um dispositivo sem mexer no resto da frota: desligue o interruptor **Habilitado** dele, ou exclua-o, e um dispositivo conectado é desconectado em cerca de um minuto. Um dispositivo registrado que fica em silêncio continua no inventário como offline, e o modelo de alerta Device Offline dispara para ele, mesmo que ele caia sem um Last Will.
+A credencial de um dispositivo só pode publicar nos próprios tópicos `oneuptime/<fleet>/<device>/`. Você pode revogar um dispositivo sem mexer no resto da frota: desligue o interruptor **Habilitado** dele, ou exclua-o, e um dispositivo conectado é desconectado em poucos segundos. Um dispositivo registrado que fica em silêncio continua no inventário como offline, e o modelo de alerta Device Offline dispara para ele, mesmo que ele caia sem um Last Will.
 
-O OneUptime recusa credenciais inválidas no CONNECT com o código de retorno 4 (nome de usuário ou senha inválidos), então um dispositivo mal configurado falha de forma visível. Chaves de navegador são recusadas por MQTT.
+O OneUptime recusa credenciais inválidas no CONNECT com o código de retorno 4 (nome de usuário ou senha inválidos), então um dispositivo mal configurado falha de forma visível. Chaves de navegador são recusadas por MQTT. Um cliente que se conectou com a chave de ingestão é desconectado em poucos segundos quando a chave é desativada, expira, tem o segredo redefinido ou é excluída, e é recusado quando se conecta de novo.
 
 ### Tópicos e payloads
 
@@ -276,7 +276,7 @@ O OneUptime reconhece estes nomes de métricas `iot_*`. Envie só os que fazem s
 
 | Nome da métrica | Significado |
 | --- | --- |
-| `iot_device_up` | Disponibilidade: `1` é no ar e acessível, `0` é fora do ar. O monitor IoT Device a lê. |
+| `iot_device_up` | Disponibilidade: `1` é no ar e acessível, `0` é fora do ar. O monitor Dispositivo IoT a lê. |
 | `iot_device_info` | Só identidade. Ela carrega `device.id`, a classe, o tipo e o firmware, para que um dispositivo apareça no inventário antes de informar leituras. |
 | `iot_battery_percent` | Carga da bateria, de `0` a `100` (%). |
 | `iot_signal_strength_dbm` | Intensidade do sinal sem fio em dBm, como o RSSI de Wi-Fi, LoRa ou celular. |

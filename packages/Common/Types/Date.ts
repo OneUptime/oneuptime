@@ -20,9 +20,19 @@ import {
   getHourOption,
   getNumberLocale,
   isEnglishDateLanguage,
+  rememberEnglishOf,
   writeDigitsInLocale,
   writeInDateDisplayLanguage,
 } from "./DateLanguage";
+import { NO_BREAK_SPACE, withDurationWordsHeld } from "./NoBreakSpaces";
+import { Translator } from "./Translator";
+import {
+  CompactDuration,
+  CompactDurationUnit,
+  formatCompactDuration,
+  formatDurationInUnit,
+  formatMilliseconds,
+} from "../Utils/Milliseconds";
 
 export const Moment: typeof moment = moment;
 
@@ -111,6 +121,39 @@ const DURATION_DECIMAL_POINT: RegExp = /(\d)\.(\d)/g;
 // Every digit, to find the separator a language writes between them.
 const DIGITS: RegExp = /\d/g;
 
+/*
+ * A span's duration as getHumanizedDurationFromNanoseconds reads it, before
+ * it is written: one spaced unit ("1.72 s", "960 ms"), or the compact parts
+ * of a longer one ("2h 5m", "1m 5.5s"), with its sign. English and the
+ * reader's language are both written from it, so the two always say the
+ * same length.
+ */
+type HumanizedDurationReading =
+  | { kind: "unknown" }
+  | { kind: "zero" }
+  | {
+      kind: "nanosecond" | "microsecond" | "millisecond" | "second";
+      isNegative: boolean;
+      value: number;
+    }
+  | {
+      kind: "compact";
+      isNegative: boolean;
+      parts: Array<{ unit: CompactDurationUnit; value: number }>;
+    };
+
+// The compact parts' units, largest first, and their seconds and English letter.
+const HUMANIZED_DURATION_UNITS: ReadonlyArray<{
+  unit: CompactDurationUnit;
+  seconds: number;
+  english: string;
+}> = [
+  { unit: "days", seconds: 86400, english: "d" },
+  { unit: "hours", seconds: 3600, english: "h" },
+  { unit: "minutes", seconds: 60, english: "m" },
+  { unit: "seconds", seconds: 1, english: "s" },
+];
+
 // secondsToFormattedFriendlyTimeString's English unit words: one, many.
 const FRIENDLY_TIME_ENGLISH_UNITS: Readonly<
   Partial<Record<DurationTextPart["unit"], [string, string]>>
@@ -185,7 +228,7 @@ export interface FriendlyTimeOptions {
 }
 
 // What a duration of nothing reads in English, with writesZero.
-export const ZERO_FRIENDLY_TIME_TEXT: string = "0 secs";
+export const ZERO_FRIENDLY_TIME_TEXT: string = `0${NO_BREAK_SPACE}secs`;
 
 export default class OneUptimeDate {
   // get date time from unix timestamp
@@ -352,15 +395,16 @@ export default class OneUptimeDate {
       (): string => {
         let formattedString: string = "";
 
+        // Each number held to its word: "2 hours 5 minutes" (#8669).
         if (hours > 0) {
-          formattedString += hours + " hours ";
+          formattedString += `${hours}${NO_BREAK_SPACE}hours `;
         }
 
         if (mins > 0) {
-          formattedString += mins + " minutes";
+          formattedString += `${mins}${NO_BREAK_SPACE}minutes`;
         }
 
-        return formattedString.trim() || "0 minutes";
+        return formattedString.trim() || `0${NO_BREAK_SPACE}minutes`;
       },
       (_language: string, locale: string): string | null => {
         // "2 Stunden 5 Minuten", "0 Minuten".
@@ -1339,12 +1383,16 @@ export default class OneUptimeDate {
   /*
    * "5 hours ago", "in 3 days" - in the reader's language when a frontend set
    * one ("vor 5 Stunden"), rounded as moment rounds it. Counted from now, or
-   * from the moment a view reads its own clock at (one its tests pin).
+   * from the moment a view reads its own clock at (one its tests pin). The
+   * number is held to its unit in every language: moment's English through
+   * withDurationWordsHeld (#8669), Intl's through DateLanguage (#8456).
    */
   public static fromNow(date: Date, now?: Date | undefined): string {
     return writeInDateDisplayLanguage(
       (): string => {
-        return now ? moment(date).from(now) : moment(date).fromNow();
+        return withDurationWordsHeld(
+          now ? moment(date).from(now) : moment(date).fromNow(),
+        );
       },
       (_language: string, locale: string): string | null => {
         return formatRelativeDate({
@@ -1383,6 +1431,26 @@ export default class OneUptimeDate {
     date1 = this.fromString(date1);
     date2 = this.fromString(date2);
     return moment(date1).isSame(date2);
+  }
+
+  /*
+   * Whole days of 24 hours from `startDate` to `endDate`, rounded toward
+   * zero as moment's diff rounds: a length of time, the same in every zone
+   * - an event's age, the days until a certificate expires. The calendar
+   * day counts below (getDaysBetweenTwoDates, getNumberOfDaysBetweenDates)
+   * read the runtime's own calendar, so on a server whose zone changes its
+   * clocks 7 x 24 hours across the change counted 6 days (issue #8473).
+   */
+  public static getWholeDaysOfTimeBetween(
+    startDate: Date | string,
+    endDate: Date | string,
+  ): number {
+    const ms: number =
+      this.fromString(endDate).getTime() - this.fromString(startDate).getTime();
+    const days: number = Math.trunc(ms / (24 * 60 * 60 * 1000));
+
+    // Never -0: a moment and itself are 0 days apart.
+    return days === 0 ? 0 : days;
   }
 
   public static getDaysBetweenTwoDates(startDate: Date, endDate: Date): number {
@@ -2027,50 +2095,57 @@ export default class OneUptimeDate {
       .toDate();
   }
 
-  public static getSomeDaysAgo(days: PositiveNumber | number): Date {
+  /*
+   * THE getSomeDays FAMILY STEPS DAYS AS A LENGTH OF TIME: days x 24 hours,
+   * the same in every zone (addRemoveDurationInDays), as getSomeHoursAgo
+   * steps hours. Its callers ask for spans - a status page's last 90 days
+   * of uptime, a session that lasts 30 days, a link that expires in a day,
+   * rows older than 30 days - and stepped on the runtime's own calendar
+   * (moment's add(n, "days")) each was an hour short or long whenever the
+   * runtime's zone changed its clocks inside the span: on a self-hosted
+   * server outside UTC, and in a browser in the zone of the machine, which
+   * is not even the reader's (issue #8236, after #7623). CI runs in UTC,
+   * where every calendar day is 24 hours, so nothing failed there.
+   *
+   * A walk over calendar days - a strip of a bar a day - is not a span. It
+   * steps in the zone its days are in (addRemoveDays with a zone,
+   * addRemoveCalendarUnits), or on the runtime's own calendar with
+   * getSomeDaysAfterDate, as DayUptimeGraphUtil walks a strip with no zone.
+   */
+  private static toDayCount(days: PositiveNumber | number): number {
     if (!(days instanceof PositiveNumber)) {
       days = new PositiveNumber(days);
     }
-    return this.getCurrentMomentDate()
-      .add(-1 * days.toNumber(), "days")
-      .toDate();
+
+    return Number(days.toNumber());
+  }
+
+  public static getSomeDaysAgo(days: PositiveNumber | number): Date {
+    return this.addRemoveDurationInDays(
+      this.getCurrentMomentDate().toDate(),
+      -this.toDayCount(days),
+    );
   }
 
   public static getSomeDaysAgoFromDate(
     date: Date,
     days: PositiveNumber | number,
   ): Date {
-    date = this.fromString(date);
-    if (!(days instanceof PositiveNumber)) {
-      days = new PositiveNumber(days);
-    }
-    return moment(date)
-      .add(-1 * days.toNumber(), "days")
-      .toDate();
+    return this.addRemoveDurationInDays(date, -this.toDayCount(days));
   }
 
   public static getSomeDaysAfterFromDate(
     date: Date,
     days: PositiveNumber | number,
   ): Date {
-    date = this.fromString(date);
-    if (!(days instanceof PositiveNumber)) {
-      days = new PositiveNumber(days);
-    }
-    return moment(date).add(Number(days.toNumber()), "days").toDate();
+    return this.addRemoveDurationInDays(date, this.toDayCount(days));
   }
 
   public static getSomeDaysBeforeFromDate(
     date: Date,
     days: PositiveNumber | number,
   ): Date {
-    date = this.fromString(date);
-    if (!(days instanceof PositiveNumber)) {
-      days = new PositiveNumber(days);
-    }
-    return moment(date)
-      .add(-1 * Number(days.toNumber()), "days")
-      .toDate();
+    return this.addRemoveDurationInDays(date, -this.toDayCount(days));
   }
 
   public static getSomeSecondsAgo(seconds: PositiveNumber | number): Date {
@@ -2108,12 +2183,12 @@ export default class OneUptimeDate {
     return this.getCurrentMomentDate().add(hours.toNumber(), "hours").toDate();
   }
 
+  // A length of time, as the rest of the family (see getSomeDaysAgo).
   public static getSomeDaysAfter(days: PositiveNumber | number): Date {
-    if (!(days instanceof PositiveNumber)) {
-      days = new PositiveNumber(days);
-    }
-
-    return this.getCurrentMomentDate().add(days.toNumber(), "days").toDate();
+    return this.addRemoveDurationInDays(
+      this.getCurrentMomentDate().toDate(),
+      this.toDayCount(days),
+    );
   }
 
   public static secondsToFormattedTimeString(seconds: number): string {
@@ -2166,7 +2241,10 @@ export default class OneUptimeDate {
               part.unit
             ] || [part.unit, part.unit];
 
-            return `${part.count} ${part.count === 1 ? names[0] : names[1]}`;
+            // Each number held to its unit: "1 min 47 secs" (#8669).
+            return `${part.count}${NO_BREAK_SPACE}${
+              part.count === 1 ? names[0] : names[1]
+            }`;
           })
           .join(" ");
       },
@@ -2239,15 +2317,19 @@ export default class OneUptimeDate {
     return duration.asSeconds();
   }
 
+  /*
+   * `days` days on, on the runtime's own calendar: the same wall clock on a
+   * later day, 23 or 25 hours on where its clocks change. Unlike the rest
+   * of the getSomeDays family, which steps lengths of time (getSomeDaysAgo),
+   * this walks calendar days: DayUptimeGraphUtil walks a strip with no zone
+   * a bar a day with it, and 24 hours on from a minute past midnight is the
+   * same day again where the clocks go back.
+   */
   public static getSomeDaysAfterDate(
     date: Date,
     days: PositiveNumber | number,
   ): Date {
-    if (!(days instanceof PositiveNumber)) {
-      days = new PositiveNumber(days);
-    }
-
-    return moment(date).add(days.toNumber(), "days").toDate();
+    return moment(date).add(this.toDayCount(days), "days").toDate();
   }
 
   public static getSomeSecondsAfter(seconds: PositiveNumber | number): Date {
@@ -2766,7 +2848,7 @@ export default class OneUptimeDate {
     let formattedString: string = "";
 
     if (days > 0) {
-      formattedString += days + " days";
+      formattedString += `${days}${NO_BREAK_SPACE}days`;
     }
 
     if (hours > 0) {
@@ -2774,7 +2856,7 @@ export default class OneUptimeDate {
         formattedString += ", ";
       }
 
-      formattedString += hours + " hours";
+      formattedString += `${hours}${NO_BREAK_SPACE}hours`;
     }
 
     if (minutes > 0) {
@@ -2782,7 +2864,7 @@ export default class OneUptimeDate {
         formattedString += ", ";
       }
 
-      formattedString += minutes + " minutes";
+      formattedString += `${minutes}${NO_BREAK_SPACE}minutes`;
     }
 
     if (secs > 0) {
@@ -2790,7 +2872,7 @@ export default class OneUptimeDate {
         formattedString += ", ";
       }
 
-      formattedString += secs + " seconds";
+      formattedString += `${secs}${NO_BREAK_SPACE}seconds`;
     }
 
     return formattedString;
@@ -2836,7 +2918,7 @@ export default class OneUptimeDate {
     let formattedString: string = "";
 
     if (days > 0) {
-      formattedString += days + " days";
+      formattedString += `${days}${NO_BREAK_SPACE}days`;
     }
 
     if (hours > 0) {
@@ -2844,7 +2926,7 @@ export default class OneUptimeDate {
         formattedString += ", ";
       }
 
-      formattedString += hours + " hours";
+      formattedString += `${hours}${NO_BREAK_SPACE}hours`;
     }
 
     if (mins >= 0) {
@@ -2852,22 +2934,51 @@ export default class OneUptimeDate {
         formattedString += ", ";
       }
 
-      formattedString += mins + " minutes";
+      formattedString += `${mins}${NO_BREAK_SPACE}minutes`;
     }
 
     return formattedString;
   }
 
   /*
-   * "1.72 s", "960 ms", "2h 5m". The unit symbols read the same in every
-   * language, as a unit symbol does; the figure is written the reader's
-   * way - "1,72 s" in German.
+   * "1.72 s", "960 ms", "2h 5m".
+   *
+   * Handed the reader's Translator, every language writes it its own way
+   * (#8617): the Dashboard's spaced units ("1,72 Sek.", "۹۶۰ میلی‌ثانیه";
+   * formatMilliseconds and formatDurationInUnit) and its compact keys for a
+   * longer one ("2 Std. 5 Min.", "۲ ساعت ۵ دقیقه"; formatCompactDuration),
+   * each figure the reader's, remembered with its English for a sentence
+   * the language has not worded yet. English reads exactly as it always did.
+   *
+   * Without one - the server, a caller that has no reader - the unit
+   * symbols stay English and only the figure follows the date display
+   * language ("1,72 s" in German).
    */
   public static getHumanizedDurationFromNanoseconds(data: {
     nanoseconds: number;
     maxParts?: number;
+    translator?: Translator | undefined;
   }): string {
     const english: string = this.getEnglishHumanizedDuration(data);
+
+    if (data.translator) {
+      if (isEnglishDateLanguage(data.translator.language)) {
+        return english;
+      }
+
+      const localized: string = this.writeHumanizedDuration(
+        this.readHumanizedDuration(data),
+        data.translator,
+      );
+
+      if (localized !== english) {
+        rememberEnglishOf(localized, (): string => {
+          return english;
+        });
+      }
+
+      return localized;
+    }
 
     return writeInDateDisplayLanguage(
       (): string => {
@@ -2897,51 +3008,108 @@ export default class OneUptimeDate {
     nanoseconds: number;
     maxParts?: number;
   }): string {
-    let { nanoseconds } = data;
-    const maxParts: number = data.maxParts ?? 2;
+    const reading: HumanizedDurationReading = this.readHumanizedDuration(data);
 
-    if (!Number.isFinite(nanoseconds)) {
+    if (reading.kind === "unknown") {
       return "-";
     }
 
-    if (nanoseconds === 0) {
+    if (reading.kind === "zero") {
       return "0 ms";
     }
 
-    const sign: string = nanoseconds < 0 ? "-" : "";
-    nanoseconds = Math.abs(nanoseconds);
+    const sign: string = reading.isNegative ? "-" : "";
+
+    if (reading.kind === "compact") {
+      // "2h 5m", "1m 5.5s": each unit's letter right after its count.
+      return reading.parts
+        .map(
+          (
+            part: { unit: CompactDurationUnit; value: number },
+            index: number,
+          ): string => {
+            const count: string =
+              part.unit === "seconds"
+                ? OneUptimeDate.formatDurationValue(part.value)
+                : part.value.toString();
+            const letter: string =
+              HUMANIZED_DURATION_UNITS.find(
+                (unit: { unit: CompactDurationUnit }): boolean => {
+                  return unit.unit === part.unit;
+                },
+              )?.english || "";
+
+            return `${index === 0 ? sign : ""}${count}${letter}`;
+          },
+        )
+        .join(" ");
+    }
+
+    if (reading.kind === "nanosecond") {
+      return sign + reading.value.toString() + " ns";
+    }
+
+    const symbol: string =
+      reading.kind === "microsecond"
+        ? " μs"
+        : reading.kind === "millisecond"
+          ? " ms"
+          : " s";
+
+    return sign + OneUptimeDate.formatDurationValue(reading.value) + symbol;
+  }
+
+  /*
+   * How long `nanoseconds` is, as the humanized duration says it: under a
+   * microsecond in nanoseconds, then in microseconds, milliseconds and
+   * seconds, and from a minute up in at most `maxParts` of days, hours,
+   * minutes and seconds - the seconds keeping their fraction ("1m 5.5s").
+   */
+  private static readHumanizedDuration(data: {
+    nanoseconds: number;
+    maxParts?: number;
+  }): HumanizedDurationReading {
+    const maxParts: number = data.maxParts ?? 2;
+
+    if (!Number.isFinite(data.nanoseconds)) {
+      return { kind: "unknown" };
+    }
+
+    if (data.nanoseconds === 0) {
+      return { kind: "zero" };
+    }
+
+    const isNegative: boolean = data.nanoseconds < 0;
+    const nanoseconds: number = Math.abs(data.nanoseconds);
 
     if (nanoseconds < 1000) {
-      return sign + Math.round(nanoseconds).toString() + " ns";
+      return {
+        kind: "nanosecond",
+        isNegative,
+        value: Math.round(nanoseconds),
+      };
     }
 
     const microseconds: number = nanoseconds / 1000;
     if (microseconds < 1000) {
-      return sign + OneUptimeDate.formatDurationValue(microseconds) + " μs";
+      return { kind: "microsecond", isNegative, value: microseconds };
     }
 
     const milliseconds: number = nanoseconds / 1000000;
     if (milliseconds < 1000) {
-      return sign + OneUptimeDate.formatDurationValue(milliseconds) + " ms";
+      return { kind: "millisecond", isNegative, value: milliseconds };
     }
 
     const seconds: number = nanoseconds / 1000000000;
 
     if (seconds < 60) {
-      return sign + OneUptimeDate.formatDurationValue(seconds) + " s";
+      return { kind: "second", isNegative, value: seconds };
     }
 
-    const units: Array<{ label: string; seconds: number }> = [
-      { label: "d", seconds: 86400 },
-      { label: "h", seconds: 3600 },
-      { label: "m", seconds: 60 },
-      { label: "s", seconds: 1 },
-    ];
-
     let remainingSeconds: number = Math.floor(seconds);
-    const parts: string[] = [];
+    const parts: Array<{ unit: CompactDurationUnit; value: number }> = [];
 
-    for (const unit of units) {
+    for (const unit of HUMANIZED_DURATION_UNITS) {
       if (parts.length >= maxParts) {
         break;
       }
@@ -2953,40 +3121,96 @@ export default class OneUptimeDate {
       const value: number = Math.floor(remainingSeconds / unit.seconds);
 
       if (value > 0) {
-        parts.push(`${value}${unit.label}`);
+        parts.push({ unit: unit.unit, value });
         remainingSeconds -= value * unit.seconds;
       }
     }
 
     const fractionalSeconds: number = seconds - Math.floor(seconds);
     const leftoverSeconds: number = remainingSeconds + fractionalSeconds;
+    const last: { unit: CompactDurationUnit; value: number } | undefined =
+      parts[parts.length - 1];
 
     if (leftoverSeconds > 0) {
-      if (parts.length === 0) {
-        parts.push(`${OneUptimeDate.formatDurationValue(leftoverSeconds)}s`);
-      } else if (parts[parts.length - 1]?.endsWith("s")) {
-        const numericValue: number = parseFloat(
-          parts[parts.length - 1]!.slice(0, -1),
-        );
-        const updatedSeconds: number = numericValue + leftoverSeconds;
-        parts[parts.length - 1] =
-          `${OneUptimeDate.formatDurationValue(updatedSeconds)}s`;
+      if (!last) {
+        parts.push({ unit: "seconds", value: leftoverSeconds });
+      } else if (last.unit === "seconds") {
+        last.value += leftoverSeconds;
       } else if (parts.length < maxParts) {
-        parts.push(`${OneUptimeDate.formatDurationValue(leftoverSeconds)}s`);
+        parts.push({ unit: "seconds", value: leftoverSeconds });
       }
     }
 
     if (parts.length === 0) {
-      return sign + OneUptimeDate.formatDurationValue(seconds) + " s";
+      return { kind: "second", isNegative, value: seconds };
     }
 
-    const trimmedParts: string[] = parts.slice(0, maxParts);
+    return { kind: "compact", isNegative, parts: parts.slice(0, maxParts) };
+  }
 
-    if (sign) {
-      trimmedParts[0] = sign + trimmedParts[0];
+  /*
+   * A humanized duration in the reader's language: the Dashboard's spaced
+   * units for one unit, its compact keys for several, each figure the
+   * reader's, with the decimals the English writes (two, trailing zeros
+   * dropped, and none from a hundred up).
+   */
+  private static writeHumanizedDuration(
+    reading: HumanizedDurationReading,
+    translator: Translator,
+  ): string {
+    if (reading.kind === "unknown") {
+      return "-";
     }
 
-    return trimmedParts.join(" ");
+    if (reading.kind === "zero") {
+      return formatMilliseconds(translator, 0);
+    }
+
+    const signed: (value: number) => number = (value: number): number => {
+      return reading.isNegative ? -value : value;
+    };
+
+    if (reading.kind === "compact") {
+      const duration: CompactDuration = {};
+
+      reading.parts.forEach(
+        (
+          part: { unit: CompactDurationUnit; value: number },
+          index: number,
+        ): void => {
+          duration[part.unit] = index === 0 ? signed(part.value) : part.value;
+        },
+      );
+
+      return formatCompactDuration(translator, duration, {
+        decimals: 2,
+        dropTrailingZeros: true,
+      });
+    }
+
+    if (reading.kind === "nanosecond") {
+      return formatDurationInUnit(
+        translator,
+        signed(reading.value),
+        "nanosecond",
+        { decimals: 0 },
+      );
+    }
+
+    const decimals: number = reading.value >= 100 ? 0 : 2;
+
+    if (reading.kind === "millisecond") {
+      return formatMilliseconds(translator, signed(reading.value), {
+        maximumFractionDigits: decimals,
+      });
+    }
+
+    return formatDurationInUnit(
+      translator,
+      signed(reading.value),
+      reading.kind,
+      { decimals, dropTrailingZeros: true },
+    );
   }
 
   private static formatDurationValue(value: number): string {
@@ -3322,9 +3546,78 @@ export default class OneUptimeDate {
    * moment caches its guess, and the translation is a map read.
    */
   public static getCurrentTimezone(): Timezone {
-    return (
-      this.userTimezone || TimezoneAlias.getCanonicalTimezone(moment.tz.guess())
+    return this.userTimezone || this.getRuntimeTimezone();
+  }
+
+  /*
+   * The zone the browser (or the process) is in, in its current name:
+   * moment's guess, kept for each guess it gives, so this stays a lookup.
+   *
+   * moment trusts the zone Intl names only when its name is longer than
+   * three letters, so in a browser on UTC - Intl's "UTC" - it guessed from
+   * the offsets instead, and named Africa/Abidjan: zones read "GMT" (and
+   * "GMT+0" in German), a new user's profile was saved with Abidjan, and
+   * an Ask AI chart said "Days are in Africa/Abidjan." of a reader on UTC
+   * (issue #8475). Where Intl names such a zone, the Timezone list names it
+   * and moment's guess keeps its clock (the same offset now and half a year
+   * on), the zone is Intl's.
+   */
+  private static runtimeTimezoneOfGuess: {
+    guess: string;
+    timezone: Timezone;
+  } | null = null;
+
+  private static getRuntimeTimezone(): Timezone {
+    const guess: string = moment.tz.guess();
+
+    if (this.runtimeTimezoneOfGuess?.guess === guess) {
+      return this.runtimeTimezoneOfGuess.timezone;
+    }
+
+    const timezone: Timezone = TimezoneAlias.getCanonicalTimezone(
+      this.getShortIntlTimezoneFor(guess) || guess,
     );
+
+    this.runtimeTimezoneOfGuess = { guess, timezone };
+
+    return timezone;
+  }
+
+  // Intl's name for the runtime's zone, when moment passed it over for `guess`.
+  private static getShortIntlTimezoneFor(guess: string): string | undefined {
+    let intlName: string | undefined = undefined;
+
+    try {
+      intlName = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch {
+      return undefined;
+    }
+
+    if (
+      !intlName ||
+      intlName === guess ||
+      intlName.length > 3 ||
+      !TimezoneAlias.isListedName(intlName)
+    ) {
+      return undefined;
+    }
+
+    const intlZone: moment.MomentZone | null = moment.tz.zone(intlName);
+    const guessedZone: moment.MomentZone | null = moment.tz.zone(guess);
+
+    if (!intlZone || !guessedZone) {
+      return undefined;
+    }
+
+    const nowMs: number = Date.now();
+
+    for (const ms of [nowMs, nowMs + 182 * 24 * 60 * 60 * 1000]) {
+      if (intlZone.utcOffset(ms) !== guessedZone.utcOffset(ms)) {
+        return undefined;
+      }
+    }
+
+    return intlName;
   }
 
   /**

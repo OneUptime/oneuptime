@@ -82,7 +82,7 @@ Aggiungere, modificare o eliminare un livello ha effetto subito: OneUptime valut
 | **Reliability first** | 25% rimanente o meno | Reliability comes first. Only reliability improvements and critical fixes ship until the budget recovers. | Consentite |
 | **Budget exhausted** | 0% rimanente o meno | The error budget is spent. Freeze non-critical releases: only fixes for this SLO's reliability and security fixes ship until the budget is back. | Congelate |
 
-Nessuno di loro genera un avviso o dichiara un incidente finché non lo attivi. **Budget exhausted** congela le distribuzioni, come dice il suo accordo, e la conferma lo indica: vedi [Gate delle distribuzioni](#gate-delle-distribuzioni). I livelli aggiunti prima che il gate esistesse non congelano niente finché non attivi il congelamento. Vengono aggiunti solo i livelli che lo SLO non ha: un livello con lo stesso nome, o con la stessa soglia, conta come presente, che sia attivo o no. Chiederlo due volte, da una seconda scheda o tramite l'API, quindi non aggiunge niente due volte. Se uno dei livelli non si può aggiungere, non ne viene aggiunto nessuno: lo SLO resta com'era e puoi riprovare. Ogni livello aggiunto così viene registrato nei registri di audit dello SLO come aggiunto da te.
+Nessuno di loro genera un avviso o dichiara un incidente finché non lo attivi. **Budget exhausted** congela le distribuzioni, come dice il suo accordo, e la conferma lo indica: vedi [Gate delle distribuzioni](#gate-delle-distribuzioni). I livelli aggiunti prima che il gate esistesse non congelano niente finché non attivi il congelamento. Vengono aggiunti solo i livelli che lo SLO non ha: un livello con lo stesso nome, o con la stessa soglia, conta come presente, che sia attivo o no. Chiederlo due volte, da una seconda scheda o tramite l'API, quindi non aggiunge niente due volte. Se uno dei livelli non si può aggiungere, non ne viene aggiunto nessuno: lo SLO resta com'era e puoi riprovare. Ogni livello aggiunto così viene registrato nei log di audit dello SLO come aggiunto da te.
 
 ## Dove compare il livello
 
@@ -90,7 +90,7 @@ Nessuno di loro genera un avviso o dichiara un incidente finché non lo attivi. 
 - Il grafico **Burn-down del budget di errore** traccia una linea con etichetta alla soglia di ogni livello, accanto a quella della soglia a rischio.
 - Il **Feed** dello SLO pubblica ogni cambio di livello: il livello che lo SLO ha lasciato e quello in cui è entrato, il budget rimanente, cosa il team ha concordato di fare nel nuovo livello, e se il cambio ha congelato le distribuzioni o le ha di nuovo consentite.
 - I canali Slack, Microsoft Teams e Mattermost indicati dalle tue regole ricevono lo stesso messaggio: vedi [Pubblicare in Slack, Microsoft Teams e Mattermost](#pubblicare-in-slack-microsoft-teams-e-mattermost).
-- I **Registri di audit** dello SLO registrano ogni cambio di livello, e ogni volta che le distribuzioni vengono congelate o di nuovo consentite, come una modifica fatta da OneUptime stesso, quindi li mostrano solo con **Memorizza eventi di sistema** attivo: vedi [Attivare i registri di audit](/docs/slo/feed-and-audit-logs#attivare-i-registri-di-audit). L'aggiunta, la modifica e la rimozione di un livello vengono registrate a nome della persona che le ha fatte.
+- I **Log di audit** dello SLO registrano ogni cambio di livello, e ogni volta che le distribuzioni vengono congelate o di nuovo consentite, come una modifica fatta da OneUptime stesso, quindi li mostrano solo con **Memorizza eventi di sistema** attivo: vedi [Attivare i log di audit](/docs/slo/feed-and-audit-logs#attivare-i-log-di-audit). L'aggiunta, la modifica e la rimozione di un livello vengono registrate a nome della persona che le ha fatte.
 - L'API di lettura dello SLO restituisce il livello, e se le distribuzioni sono consentite: vedi [Leggere il livello dall'API](#leggere-il-livello-dallapi) e [Gate delle distribuzioni](#gate-delle-distribuzioni).
 
 ## Avvisi e incidenti
@@ -256,7 +256,7 @@ Lo SLO risponde con due campi, letti con l'autorizzazione di lettura dello SLO s
 Come cambia la risposta:
 
 - Le distribuzioni vengono congelate dalla valutazione che mette lo SLO in un livello che le congela, e di nuovo consentite da quella che lo fa uscire, con i margini di uscita propri del livello: vedi [Entrare in un livello e uscirne](#entrare-in-un-livello-e-uscirne). Da un livello che congela a un altro restano congelate, e `deploymentsFrozenAt` mantiene il suo orario.
-- Attivare o disattivare **Congela le distribuzioni** per il livello in cui si trova lo SLO ha effetto entro circa un minuto. Per rilasciare prima che il budget si riprenda, disattivalo: la modifica viene registrata a tuo nome nei registri di audit dello SLO.
+- Attivare o disattivare **Congela le distribuzioni** per il livello in cui si trova lo SLO ha effetto entro circa un minuto. Per rilasciare prima che il budget si riprenda, disattivalo: la modifica viene registrata a tuo nome nei log di audit dello SLO.
 - Uno SLO **In pausa** o **Configurato male** mantiene la risposta che aveva, come mantiene il suo livello: una finestra di manutenzione che mette in pausa ogni monitor non toglie un congelamento né ne avvia uno. Uno SLO disabilitato o archiviato non viene valutato affatto, quindi anche lui mantiene la sua risposta.
 - Finché le distribuzioni sono congelate, la **Panoramica** dello SLO mostra da quando, e il suo **Feed** dice quando vengono congelate e di nuovo consentite.
 
@@ -295,16 +295,16 @@ I livelli stessi sono una risorsa a sé, `/api/service-level-objective-error-bud
 | **Edit SLO Error Budget Policy Tier** | Modificare i livelli, e attivarli o disattivarli. |
 | **Delete SLO Error Budget Policy Tier** | Rimuovere livelli. |
 
-Queste autorizzazioni sono nel gruppo SLO di un ruolo. I ruoli Project Owner e Project Admin le hanno tutte, e i ruoli Project Member e Viewer possono leggere i livelli.
+Queste autorizzazioni sono nel gruppo SLO di un ruolo. I ruoli Proprietario del progetto e Amministratore del progetto le hanno tutte, e i ruoli Membro del progetto e Visualizzatore possono leggere i livelli.
 
 ## Non ancora disponibile
 
-Alcune parti di una policy del budget di errore non sono ancora disponibili: un trigger di workflow dedicato a ogni livello, una policy condivisa da più SLO, la presa in carico di un livello o la concessione di un'eccezione, e livelli basati sull'autonomia del budget invece che sul budget rimanente. OneUptime non ferma un rilascio da solo: lo fa una pipeline che controlla `deploymentsAllowed`, come mostra [Gate delle distribuzioni](#gate-delle-distribuzioni).
+Alcune parti di una policy del budget di errore non sono ancora disponibili: un trigger del flusso di lavoro dedicato a ogni livello, una policy condivisa da più SLO, la presa in carico di un livello o la concessione di un'eccezione, e livelli basati sull'autonomia del budget invece che sul budget rimanente. OneUptime non ferma un rilascio da solo: lo fa una pipeline che controlla `deploymentsAllowed`, come mostra [Gate delle distribuzioni](#gate-delle-distribuzioni).
 
 ## Passi successivi
 
 :::cards
 - [Budget di errore](/docs/slo/error-budget): Cos'è il budget e come lo stato lo segue.
 - [Avvisi e incidenti di tasso di consumo](/docs/slo/burn-rate-alerts): Avvisa il tuo team quando il budget si consuma troppo in fretta.
-- [Feed e registri di audit degli SLO](/docs/slo/feed-and-audit-logs): Ogni cambio di livello e ciò che hanno generato i livelli.
+- [Feed e log di audit degli SLO](/docs/slo/feed-and-audit-logs): Ogni cambio di livello e ciò che hanno generato i livelli.
 :::

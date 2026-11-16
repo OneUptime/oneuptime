@@ -1,5 +1,5 @@
 import App from "./App";
-import "./Utils/i18n";
+import { i18nReady } from "./Utils/i18n";
 import "Common/UI/Styles/Theme.css";
 import Telemetry from "Common/UI/Utils/Telemetry/Telemetry";
 import ErrorBoundary from "Common/UI/Components/ErrorBoundary";
@@ -29,9 +29,16 @@ ForeignDomMutationGuard.install();
 /*
  * When the person last clicked, typed or scrolled, in any tab: every renewal
  * of the session says how long ago that was, and the server's idle timeout
- * is counted from it (Common/UI/Utils/UserActivity).
+ * is counted from it (Common/UI/Utils/UserActivity). While they use the
+ * page, the session is renewed often enough that the server always knows
+ * they are here, so it can record an idle timeout soon after it ran out
+ * without ever signing out someone still working (issue #8188).
  */
-UserActivity.install();
+UserActivity.install({
+  reportActivity: (): void => {
+    void API.reportActivityWhileInUse();
+  },
+});
 
 ThemeUtil.initialize();
 
@@ -65,16 +72,31 @@ const root: any = ReactDOM.createRoot(
 );
 
 /*
- * Last-resort boundary. Anything that throws above the route-level boundary
- * (or before routing is even mounted) would otherwise unmount the entire tree
- * and paint a blank white page with no way back.
+ * Every language but English is a lazy chunk (Utils/i18n.ts, #8146), so a
+ * reader's language arrives asynchronously. Waiting for i18nReady before the
+ * first render means no frame is painted in English for a German or Persian
+ * reader; for English, bundled with the page, it settles in a microtask.
+ * i18nReady never hangs - a chunk that cannot be fetched resolves it after
+ * i18next's retries - and the catch below renders in English even if
+ * initialization itself failed.
+ *
+ * The ErrorBoundary is the last-resort boundary: anything that throws above
+ * the route-level boundary (or before routing is even mounted) would
+ * otherwise unmount the entire tree and paint a blank white page with no way
+ * back.
  */
-root.render(
-  <ErrorBoundary>
-    <BrowserRouter>
-      <NewVersionNavigation />
-      <App />
-    </BrowserRouter>
-    <NewVersionNotice />
-  </ErrorBoundary>,
-);
+i18nReady
+  .catch((): void => {
+    // Render anyway: the bundled English is always there.
+  })
+  .then((): void => {
+    root.render(
+      <ErrorBoundary>
+        <BrowserRouter>
+          <NewVersionNavigation />
+          <App />
+        </BrowserRouter>
+        <NewVersionNotice />
+      </ErrorBoundary>,
+    );
+  });

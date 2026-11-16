@@ -35,7 +35,7 @@ La [page des tarifs](https://oneuptime.com/pricing) compare les forfaits.
 ## Avant de commencer
 
 - **OneUptime Cloud.** La section **Facturation et factures** des **Paramètres du projet** n'existe que sur OneUptime Cloud, et elle est repliée au départ : cliquez sur son titre pour l'ouvrir.
-- **Un rôle qui peut lire la facturation.** Les Project Owners, les personnes avec **Manage Billing** et les trois rôles de facturation lisent chaque page de facturation. Voir [Qui peut faire quoi](#qui-peut-faire-quoi).
+- **Un rôle qui peut lire la facturation.** Les Propriétaires du projet, les personnes avec **Manage Billing** et les trois rôles de facturation lisent chaque page de facturation. Voir [Qui peut faire quoi](#qui-peut-faire-quoi).
 
 ## Votre forfait et vos sièges
 
@@ -138,19 +138,19 @@ Sur la carte **Solde actuel** de la page, cliquez sur **Recharger le solde**. Sa
 Sur la carte **Rechargement automatique**, cliquez sur **Modifier la recharge automatique** et activez **Activer la recharge automatique**. Elle est désactivée au départ. Une fois activée, OneUptime ajoute $20 chaque fois que le solde descend à $10, ou les montants que vous choisissez.
 :::
 
-Quand un solde ne peut pas payer, le message n'est pas envoyé ou OneUptime AI s'arrête, et les propriétaires du projet reçoivent un e-mail. Voir [Quand une alerte n'est pas envoyée](/docs/on-call/escalation-rules#quand-une-alerte-nest-pas-envoyée) et [Quand les crédits IA sont épuisés](/docs/ai/ai-sre#quand-les-crédits-ia-sont-épuisés).
+Quand un solde ne peut pas payer, le message n'est pas envoyé ou OneUptime AI s'arrête, et les Propriétaires du projet reçoivent un e-mail. Voir [Quand une alerte n'est pas envoyée](/docs/on-call/escalation-rules#quand-une-alerte-nest-pas-envoyée) et [Quand les crédits IA sont épuisés](/docs/ai/ai-sre#quand-les-crédits-ia-sont-épuisés).
 
 ## Qui peut faire quoi
 
 | Pour | Il faut |
 | --- | --- |
-| Lire les pages de facturation : le forfait, les factures, l'utilisation, les soldes et les moyens de paiement | Project Owner, **Manage Billing**, **Administrateur de la facturation**, **Membre de la facturation** ou **Lecteur de la facturation** |
-| Télécharger une facture | Project Owner, Project Admin, **Manage Billing**, **Read Invoices**, **Administrateur de la facturation** ou **Membre de la facturation** |
-| Modifier l'adresse de facturation et l'e-mail des factures | Project Owner, **Manage Billing**, **Administrateur de la facturation** ou **Membre de la facturation** |
-| Activer ou désactiver les SMS, les appels, WhatsApp ou Telegram | Project Owner, **Manage Billing** ou **Administrateur de la facturation** |
-| Ajouter un moyen de paiement | Project Owner, **Manage Billing** ou **Create Payment Method** |
-| Payer une facture | Project Owner, **Manage Billing** ou **Edit Invoices** |
-| Changer de forfait, recharger un solde ou modifier la recharge automatique | Project Owner ou **Manage Billing** |
+| Lire les pages de facturation : le forfait, les factures, l'utilisation, les soldes et les moyens de paiement | Propriétaire du projet, **Manage Billing**, **Administrateur de la facturation**, **Membre de la facturation** ou **Lecteur de la facturation** |
+| Télécharger une facture | Propriétaire du projet, Administrateur du projet, **Manage Billing**, **Read Invoices**, **Administrateur de la facturation** ou **Membre de la facturation** |
+| Modifier l'adresse de facturation et l'e-mail des factures | Propriétaire du projet, **Manage Billing**, **Administrateur de la facturation** ou **Membre de la facturation** |
+| Activer ou désactiver les SMS, les appels, WhatsApp ou Telegram | Propriétaire du projet, **Manage Billing** ou **Administrateur de la facturation** |
+| Ajouter un moyen de paiement | Propriétaire du projet, **Manage Billing** ou **Create Payment Method** |
+| Payer une facture | Propriétaire du projet, **Manage Billing** ou **Edit Invoices** |
+| Changer de forfait, recharger un solde ou modifier la recharge automatique | Propriétaire du projet ou **Manage Billing** |
 
 Un bouton que vous ne pouvez pas utiliser apparaît verrouillé et dit qui le peut. Voir [Utilisateurs, équipes et autorisations](/docs/permissions/index#équipes) pour les rôles de facturation.
 

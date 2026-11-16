@@ -1,6 +1,6 @@
 # Globales SSO
 
-Mit Global SSO richtet ein **Instanzadministrator** (Master-Admin) von OneUptime einen SAML-2.0- oder OpenID-Connect-Identitätsanbieter (OIDC) **einmal** auf Instanzebene ein und verbindet ihn mit beliebigen Projekten auf dem Server. Statt dass jeder Projekteigentümer einen eigenen Identitätsanbieter konfiguriert, richtet ein Master-Admin einen ein, der die ganze Instanz bedient.
+Mit Global SSO richtet ein **Instanzadministrator** (Master-Admin) von OneUptime einen SAML-2.0- oder OpenID-Connect-Identitätsanbieter (OIDC) **einmal** auf Instanzebene ein und verbindet ihn mit beliebigen Projekten auf dem Server. Statt dass jeder Projektinhaber einen eigenen Identitätsanbieter konfiguriert, richtet ein Master-Admin einen ein, der die ganze Instanz bedient.
 
 > [!NOTE]
 > Global SSO, einschließlich des instanzweiten Schalters "Require SSO for Login", ist Teil jeder OneUptime-Edition: Jede selbst gehostete Instanz hat es, auch die Community Edition, und es braucht keine Lizenz. Es gehört zur Instanzverwaltung und gilt daher nicht für OneUptime Cloud. Was jede Edition enthält, sehen Sie unter [Enterprise Edition](/docs/self-hosted/enterprise).
@@ -16,7 +16,7 @@ Mit Global SSO richtet ein **Instanzadministrator** (Master-Admin) von OneUptime
 
 |                  | Projekt-SSO                                       | Global SSO                                          |
 | ---------------- | ------------------------------------------------- | --------------------------------------------------- |
-| Eingerichtet von | Projekteigentümer/-admin (Projekteinstellungen)   | Master-Admin der Instanz (Admin Dashboard)          |
+| Eingerichtet von | Projektinhaber oder Projektadministrator (Projekteinstellungen)   | Master-Admin der Instanz (Admin Dashboard)          |
 | Reichweite       | Ein einzelnes Projekt                             | Die ganze Instanz – mit jedem Projekt verbindbar    |
 | Ergebnis der Anmeldung | Zugriff auf dieses eine Projekt             | Zugriff auf jedes Projekt, das der Benutzer erreicht |
 
@@ -44,20 +44,20 @@ Melden Sie sich als Master-Admin an und öffnen Sie das Admin Dashboard über **
 
 :::tabs
 @tab SAML
-Auf der Seite des Anbieters zeigt die Karte **Identity Provider URLs** die **ACS URL (Assertion Consumer Service / Reply URL)** und den **Issuer (Entity ID)**. Fügen Sie beide in Ihren Identitätsanbieter ein (Okta, Microsoft Entra ID, OneLogin, JumpCloud und andere).
+Auf der Seite des Anbieters zeigt die Karte **URLs des Identitätsanbieters** die **ACS URL (Assertion Consumer Service / Reply URL)** und den **Issuer (Entity ID)**. Fügen Sie beide in Ihren Identitätsanbieter ein (Okta, Microsoft Entra ID, OneLogin, JumpCloud und andere).
 @tab OpenID Connect
-Auf der Seite des Anbieters zeigt die Karte **Identity Provider URL** die **Redirect URI (Callback URL)**. Fügen Sie sie den erlaubten Weiterleitungs-URIs Ihres Identitätsanbieters hinzu.
+Auf der Seite des Anbieters zeigt die Karte **URL des Identitätsanbieters** die **Redirect URI (Callback URL)**. Fügen Sie sie den erlaubten Weiterleitungs-URIs Ihres Identitätsanbieters hinzu.
 :::
 
 ### Den Anbieter einschalten
 
-Ein neuer Anbieter ist zunächst ausgeschaltet. Klicken Sie auf der Seite des Anbieters auf **Edit Configuration** und schalten Sie **Aktiviert** ein.
+Ein neuer Anbieter ist zunächst ausgeschaltet. Klicken Sie auf der Seite des Anbieters auf **Konfiguration bearbeiten** und schalten Sie **Aktiviert** ein.
 
 Einen globalen Anbieter einzuschalten nimmt ihn nur in die Single-Sign-On-Optionen der Anmeldeseite auf – es erzwingt nie SSO und sperrt niemanden aus. Sie können ihn also gefahrlos einschalten, testen und bei Bedarf wieder ausschalten. Solange die ganze Instanz SSO verlangt, bietet die Anmeldeseite allerdings nur die eingeschalteten Anbieter an: Testen Sie einen Anbieter, bevor Sie SSO verlangen.
 
 ### Den Anbieter testen
 
-Mit dem Link in der Karte **Test this SSO provider** (**Test this OIDC provider** bei OpenID Connect) führen Sie eine vollständige Anmeldung über Ihren Identitätsanbieter durch. **Anmeldung testen** in der Zeile des Anbieters auf **Single Sign-On** startet dieselbe Anmeldung in einem neuen Tab. Sie müssen vorher keine Projekte zuweisen: Der Test meldet Sie in den Projekten an, zu denen Sie schon gehören. Der Anbieter muss eingeschaltet sein, damit der Link funktioniert.
+Mit dem Link in der Karte **Diesen SSO-Anbieter testen** (**Diesen OIDC-Anbieter testen** bei OpenID Connect) führen Sie eine vollständige Anmeldung über Ihren Identitätsanbieter durch. **Anmeldung testen** in der Zeile des Anbieters auf **Single Sign-On** startet dieselbe Anmeldung in einem neuen Tab. Sie müssen vorher keine Projekte zuweisen: Der Test meldet Sie in den Projekten an, zu denen Sie schon gehören. Der Anbieter muss eingeschaltet sein, damit der Link funktioniert.
 :::
 
 ## So melden sich Benutzer an
@@ -78,7 +78,7 @@ flowchart TB
 
 - **Keine Projekte zugewiesen (alle Projekte / zuerst einladen):** Benutzer können sich mit dem Anbieter anmelden und **jedes Projekt, in dem sie schon Mitglied sind**, erreichen. Neue Benutzer werden **nicht** automatisch angelegt – ein Benutzer muss zuerst in ein Projekt eingeladen werden. Nutzen Sie das für unternehmensweites SSO, wenn Mitgliedschaften anderswo verwaltet werden.
 
-- **Projekte zugewiesen (automatische Bereitstellung):** Öffnen Sie den Anbieter und weisen Sie über die Tabelle **Attached Projects** ein oder mehrere Projekte zu, jeweils mit einer Reihe von Standard-Teams. Benutzer, die sich anmelden, werden bei der ersten Anmeldung **automatisch bereitgestellt**: in diese Projekte aufgenommen und den Standard-Teams hinzugefügt. Ein zugewiesenes Projekt beginnt mit seinem Mitglieder-Team; wählen Sie andere Teams, wenn neue Benutzer mit anderem Zugriff starten sollen. Fügen Sie jeweils ein Projekt + Teams hinzu, um die Liste aufzubauen; um eine Zuweisung zu ändern, löschen Sie sie und fügen Sie sie erneut hinzu.
+- **Projekte zugewiesen (automatische Bereitstellung):** Öffnen Sie den Anbieter und weisen Sie über die Tabelle **Verknüpfte Projekte** ein oder mehrere Projekte zu, jeweils mit einer Reihe von Standard-Teams. Benutzer, die sich anmelden, werden bei der ersten Anmeldung **automatisch bereitgestellt**: in diese Projekte aufgenommen und den Standard-Teams hinzugefügt. Ein zugewiesenes Projekt beginnt mit seinem Mitglieder-Team; wählen Sie andere Teams, wenn neue Benutzer mit anderem Zugriff starten sollen. Fügen Sie jeweils ein Projekt + Teams hinzu, um die Liste aufzubauen; um eine Zuweisung zu ändern, löschen Sie sie und fügen Sie sie erneut hinzu.
 
 Wer bereits Mitglied eines zugewiesenen Projekts ist, behält dort seine Teams.
 

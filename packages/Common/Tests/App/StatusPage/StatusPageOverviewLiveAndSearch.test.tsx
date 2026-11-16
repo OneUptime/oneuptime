@@ -921,7 +921,7 @@ describe("Status page overview - searching a large page with uptime history", ()
     input.focus();
     expect(screen.getByRole("status")).toHaveTextContent("Operational");
     expect(
-      screen.queryByText("overview.uptimePercent 50"),
+      screen.queryByText("overview.uptimePercent 50%"),
     ).not.toBeInTheDocument();
     expect(
       screen.getAllByTestId("status-page-group-rollup")[0],
@@ -944,7 +944,7 @@ describe("Status page overview - searching a large page with uptime history", ()
     expect(
       screen.getAllByTestId("status-page-group-rollup")[0],
     ).toHaveTextContent("Offline");
-    expect(screen.getByText("overview.uptimePercent 50")).toBeInTheDocument();
+    expect(screen.getByText("overview.uptimePercent 50%")).toBeInTheDocument();
     expect(
       screen
         .getByText("Service 40")

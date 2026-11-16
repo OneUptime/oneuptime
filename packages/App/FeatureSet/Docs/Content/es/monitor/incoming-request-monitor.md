@@ -14,6 +14,7 @@ Ambos usan el mismo tipo de monitor. Lo que los separa son los criterios que con
 - [Enviar un latido](#enviar-un-latido): Desde curl, cron, Node.js, Python o Go.
 - [Alertar cuando cesan las llamadas](#marcar-sin-conexión-si-no-hay-latido-en-10-minutos-un-interruptor-de-hombre-muerto): Convierta el monitor en un interruptor de hombre muerto.
 - [Recibir alertas](#recibir-alertas-de-otro-sistema): Un incidente por cada alerta de Alertmanager o Grafana.
+- [Suscribirse a SNS o Event Grid](#suscribirse-a-amazon-sns-o-azure-event-grid): Confirme la suscripción con un clic.
 :::
 
 ## Cómo funciona
@@ -77,13 +78,13 @@ https://oneuptime.com/heartbeat/YOUR_SECRET_KEY
 
 Sustituya `https://oneuptime.com` por la URL de su instancia de OneUptime si la aloja usted mismo.
 
-Envíe solicitudes **GET** o **POST** a esta URL. HEAD se acepta y se trata como GET; PUT, PATCH y DELETE devuelven 404. La clave secreta de la ruta es la única credencial: no hace falta ninguna cabecera ni token. Las cadenas de consulta se ignoran: envíe lo que deban leer los criterios en el cuerpo o en las cabeceras.
+Envíe solicitudes **GET** o **POST** a esta URL. HEAD se acepta y se trata como GET; PUT, PATCH y DELETE devuelven 404. La clave secreta de la ruta es la credencial: no hace falta ninguna cabecera ni token, salvo que el proyecto [exija un secreto en cada solicitud](#exigir-un-secreto-en-cada-solicitud). Las cadenas de consulta se ignoran: envíe lo que deban leer los criterios en el cuerpo o en las cabeceras.
 
 > [!WARNING]
 > Cualquiera que conozca esta URL puede marcar el monitor como sano, así que trátela como un secreto. Si se filtra, abra la página **Ajustes** del monitor y haga clic en **Restablecer clave secreta de solicitud entrante**, y después actualice cada emisor. La vista general del monitor muestra la última solicitud tal como la guardan sus registros: con los secretos y los datos personales enmascarados, y sin cabeceras ni cuerpo cuando **Conservar el contenido de la solicitud** está desactivado. El enmascaramiento detecta los nombres y patrones que conoce, así que no envíe claves de API ni tokens a este endpoint.
 
 > [!IMPORTANT]
-> OneUptime responde `200` con un objeto JSON vacío (`{}`) al instante y procesa la solicitud en una cola. Esa respuesta se escribe antes de cualquier validación, así que un `200` **no** confirma que la solicitud se aceptó: una clave secreta incorrecta, un monitor eliminado y un monitor desactivado también devuelven `200`. Revise la cronología del monitor para confirmar que las solicitudes llegan.
+> OneUptime responde `200` con un objeto JSON vacío (`{}`) al instante y procesa la solicitud en una cola. Esa respuesta se escribe antes de cualquier validación, así que un `200` **no** confirma que la solicitud se aceptó: una clave secreta incorrecta, un monitor eliminado y un monitor desactivado también devuelven `200`. Revise la cronología del monitor para confirmar que las solicitudes llegan. La única excepción es un proyecto que exige un secreto en cada solicitud: una solicitud sin ninguno recibe `401`.
 
 ### Enviar un cuerpo de solicitud
 
@@ -93,6 +94,7 @@ Si quiere acceder a campos dentro del cuerpo (`{{requestBody.status}}` en un tí
 | --- | --- |
 | `application/json` | El JSON analizado. |
 | `application/x-www-form-urlencoded` | El formulario analizado. Las claves entre corchetes se anidan (`alerts[0][status]=firing`), y cada valor es una cadena. |
+| `text/plain` | El JSON analizado, cuando el texto es un objeto o un array JSON: así envía Amazon SNS sus mensajes. Cualquier otro texto es un cuerpo vacío. |
 | Cualquier otro, o ninguno | Un cuerpo vacío (`{}`), así que cada referencia a `requestBody` no da nada. |
 
 Se aceptan cuerpos de hasta 50 MB; uno más grande se rechaza con un `413`. No comprima el cuerpo con `Content-Encoding: gzip`: no se guarda como JSON, y las rutas dentro de él no se resolverán.
@@ -186,6 +188,42 @@ Invoke-RestMethod -Method Post `
   -Body '{"status": "healthy", "version": "1.2.3"}'
 ```
 :::
+
+## Exigir un secreto en cada solicitud
+
+Cualquiera que tenga la URL de un monitor puede enviarle solicitudes. Un Propietario del proyecto o Administrador del proyecto puede hacer que cada monitor de solicitudes entrantes del proyecto exija además uno de los secretos propios del proyecto, sin importar quién configuró el monitor: active **Exigir un secreto en cada solicitud**. Una solicitud sin ninguno se rechaza con `401` y el motivo, antes de contar como latido, de guardarse como la última solicitud del monitor o de llegar a ningún criterio. Una solicitud con uno sigue hacia los criterios propios del monitor, como antes.
+
+:::steps
+### Cree un secreto
+
+Vaya a **Monitores → Ajustes → Secretos de solicitud entrante** y cree un secreto. Dele un nombre y OneUptime genera el valor; cópielo de la lista.
+
+### Envíelo desde cada remitente
+
+Envíe el secreto en la cabecera `X-OneUptime-Secret`, o como token Bearer en la cabecera `Authorization`, según lo que su remitente pueda establecer.
+
+### Encuentre los remitentes que faltan
+
+En cuanto el proyecto tiene un secreto, OneUptime comprueba cada solicitud, todavía sin rechazar ninguna. **Solicitudes sin secreto**, en la misma página, enumera cada monitor de solicitudes entrantes que recibió una solicitud sin un secreto válido en las últimas 24 horas, y por qué: no se envió ninguno, o se envió uno incorrecto. Corrija esos remitentes. Un monitor cuyos remitentes estén corregidos muestra en **Última con secreto** una hora posterior a la de **Última sin secreto**, y sale de la lista en menos de 24 horas.
+
+### Active el requisito
+
+Active **Exigir un secreto en cada solicitud**. No se puede activar mientras el proyecto no tenga ningún secreto, para que ningún remitente sea rechazado por error.
+:::
+
+```bash
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "X-OneUptime-Secret: YOUR_PROJECT_SECRET"
+
+# Or as a bearer token
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "Authorization: Bearer YOUR_PROJECT_SECRET"
+```
+
+OneUptime nunca guarda el secreto: quita la cabecera de la solicitud y enmascara un token Bearer que sea uno de los secretos del proyecto antes de guardar nada.
+
+> [!TIP]
+> Para reemplazar un secreto sin rechazar a nadie, cree un segundo, pase sus remitentes a él y luego elimine el antiguo cuando su **Último uso** deje de cambiar. Se acepta cualquiera de los secretos del proyecto, y el último no se puede eliminar mientras el requisito esté activo.
 
 ## Criterios de monitoreo
 
@@ -345,6 +383,40 @@ La carga útil completa está disponible junto a ella, así que funcionan tanto 
 
 Para una configuración completa de Alertmanager, consulte [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). Para Grafana, consulte [Grafana](/docs/integrations/grafana).
 
+## Suscribirse a Amazon SNS o Azure Event Grid
+
+Amazon SNS y Azure Event Grid no envían nada a un endpoint nuevo hasta que alguien confirma la suscripción abriendo un enlace que el servicio le envía. Cuando llega esa solicitud, la tarjeta **Resumen del monitor** de la **Vista general** del monitor muestra qué espera el servicio, el tema y un botón que abre el enlace en una pestaña nueva.
+
+| Servicio | La solicitud | Botón | Validez del enlace |
+| --- | --- | --- | --- |
+| Amazon SNS | `SubscriptionConfirmation`, para una nueva suscripción HTTPS | **Confirmar suscripción** | Dos días |
+| Amazon SNS | `UnsubscribeConfirmation`, cuando se elimina la suscripción | **Restaurar suscripción** | Dos días |
+| Azure Event Grid | `SubscriptionValidationEvent`, para una nueva suscripción de eventos por webhook | **Validar suscripción** | 10 minutos |
+
+El botón se mantiene hasta que llega la próxima solicitud del monitor, incluso después de abrir el enlace. Cuando vence el plazo del enlace, la tarjeta indica en su lugar cómo obtener uno nuevo. Si han llegado solicitudes más recientes, abra **Registros de monitoreo** y haga clic en **Ver resumen** en la fila de la solicitud.
+
+El enlace, y el token que contiene, se guardan sin enmascarar dondequiera que se guarde la solicitud: sus detalles, sus registros y los incidentes y alertas que abre. Lo único que puede hacer el enlace es iniciar las entregas a este monitor. Solo cuenta un enlace a la dirección propia del servicio: cualquier otro se enmascara como de costumbre y no recibe botón.
+
+### Amazon SNS
+
+:::steps
+1. En la consola de Amazon SNS, abra el tema y elija **Create subscription**. Elija `HTTPS` como protocolo y pegue la **URL de latido** del monitor como endpoint.
+2. Abra la **Vista general** del monitor y haga clic en **Confirmar suscripción** en la tarjeta **Resumen del monitor**. En la consola de SNS, el estado de la suscripción pasa de **Pending confirmation** a confirmada.
+:::
+
+SNS envía sus mensajes como JSON etiquetado como `text/plain`, y el monitor los lee como JSON, así que los criterios, las plantillas y la agrupación de incidentes pueden usar sus campos, como `{{requestBody.Subject}}` y `{{requestBody.Message}}`. El JSON propio de una notificación, como el de una alarma de CloudWatch, llega como texto en `Message`.
+
+Si la tarjeta dice que el enlace ya no se puede abrir, seleccione la suscripción en la consola de SNS y elija **Request confirmation**. SNS elimina una suscripción que no se confirma en 48 horas; si eso ocurre, vuelva a crear la suscripción.
+
+### Azure Event Grid
+
+:::steps
+1. En el portal de Azure, abra el recurso cuyos eventos quiere recibir y añada una suscripción de eventos. Elija **Event Grid Schema** como esquema de eventos, **Web Hook** como tipo de endpoint y la **URL de latido** del monitor como endpoint.
+2. En un plazo de 10 minutos, abra la **Vista general** del monitor y haga clic en **Validar suscripción** en la tarjeta **Resumen del monitor**.
+:::
+
+Event Grid valida un endpoint que le devuelve un código, o cuyo propietario abre el enlace que envía. OneUptime responde a cada solicitud con un `200` vacío, así que el camino es el enlace. El enlace apunta a Event Grid en el puerto 553, que un firewall situado delante de su navegador debe permitir. Si antes pasan 10 minutos, la suscripción de eventos falla: vuelva a crearla.
+
 ## Buenas prácticas
 
 1. **Ajuste bien la ventana de tiempo**: si su trabajo cron se ejecuta cada 5 minutos, ponga el umbral de "No recibido en minutos" en 10–15 minutos para admitir retrasos ocasionales, y ponga ese criterio el primero.
@@ -359,16 +431,28 @@ Para una configuración completa de Alertmanager, consulte [Prometheus Alertmana
 El `200` se envía antes de validar la solicitud, así que no demuestra que se haya aceptado. Compruebe que la clave secreta de la URL coincide con la **URL de latido** del monitor, y que el monitor no está desactivado. Después, mire la cronología del monitor para ver si llegan solicitudes.
 :::
 
+:::details Mi remitente recibe un 401
+El proyecto exige un secreto en cada solicitud, y la solicitud no envió ninguno, o envió uno que no es del proyecto: la respuesta indica cuál de los dos. Envíe uno de los secretos del proyecto en la cabecera `X-OneUptime-Secret` o como token Bearer, como muestra [Exigir un secreto en cada solicitud](#exigir-un-secreto-en-cada-solicitud). Una solicitud rechazada nunca llega al monitor.
+:::
+
+:::details El monitor dejó de recibir solicitudes desde que se exige un secreto
+Sus remitentes no envían ningún secreto, o envían uno incorrecto, así que cada solicitud que envían se rechaza. Una línea bajo la **URL de latido** del monitor indica cuándo llegó la última solicitud rechazada, y **Solicitudes sin secreto** enumera cada monitor que recibió una en las últimas 24 horas, y por qué. Envíe uno de los secretos del proyecto desde esos remitentes, como muestra [Exigir un secreto en cada solicitud](#exigir-un-secreto-en-cada-solicitud).
+:::
+
 :::details El monitor nunca queda sin conexión cuando cesan los latidos
 Solo un criterio **Solicitud entrante** (**No recibido en minutos**) puede notar el silencio. Añada uno si no lo hay, y arrástrelo por encima de los criterios predeterminados: el criterio en línea predeterminado coincide con la última solicitud en cada comprobación en segundo plano, y el primer criterio que coincide decide.
 :::
 
 :::details Un filtro Cuerpo de la solicitud nunca coincide
-Envíe `Content-Type: application/json`, y escriba el valor como JSON compacto: `"status":"firing"`, sin espacio después de los dos puntos. Sin un tipo de contenido JSON o de formulario, el cuerpo no se analiza.
+Envíe `Content-Type: application/json`, y escriba el valor como JSON compacto: `"status":"firing"`, sin espacio después de los dos puntos. Sin un tipo de contenido JSON o de formulario, el cuerpo no se analiza: solo se analiza el JSON enviado como `text/plain`.
 :::
 
 :::details Un filtro Encabezado de la solicitud nunca coincide
 Los nombres y valores de las cabeceras se comparan completos. Indique el valor entero, como `application/json; charset=utf-8`, en lugar de una parte.
+:::
+
+:::details Amazon SNS dice que la suscripción está pendiente de confirmación
+Haga clic en **Confirmar suscripción** en la tarjeta **Resumen del monitor** de la **Vista general** del monitor. Si han llegado solicitudes más recientes, abra **Registros de monitoreo** y haga clic en **Ver resumen** en la fila de la confirmación. Con **Conservar el contenido de la solicitud** desactivado, el monitor no guarda ningún cuerpo, y por tanto tampoco ningún enlace: actívelo en los **Ajustes** del monitor, y la última solicitud vuelve a mostrarse con su enlace.
 :::
 
 :::details El emisor recibe un 500

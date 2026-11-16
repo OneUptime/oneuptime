@@ -1,6 +1,6 @@
 # Splunk Enterprise Security
 
-把 [Splunk Enterprise Security](https://www.splunk.com/en_us/products/enterprise-security.html) 的关联搜索创建的 notable event 导入 OneUptime 的安全事件。在那里，你可以把它们与日志、跟踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的事件呼叫值班人员。OneUptime 以你创建的 Splunk 用户身份，在你的搜索头上运行一次搜索来读取它们，不会在 Splunk 中更改任何内容。由于这只是一次搜索，它可以导入任何索引或任何已保存搜索的输出，而不仅仅是 notable event。
+把 [Splunk Enterprise Security](https://www.splunk.com/en_us/products/enterprise-security.html) 的关联搜索创建的 notable event 导入 OneUptime 的安全事件。在那里，你可以把它们与日志、追踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的事件呼叫值班人员。OneUptime 以你创建的 Splunk 用户身份，在你的搜索头上运行一次搜索来读取它们，不会在 Splunk 中更改任何内容。由于这只是一次搜索，它可以导入任何索引或任何已保存搜索的输出，而不仅仅是 notable event。
 
 :::cards
 - [设置连接](#设置连接): 一个令牌、一个角色，以及连接的表单。
@@ -23,7 +23,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 
 ## 开始之前
 
-- 在 OneUptime 中拥有 Project Owner、Project Admin 或 Security Admin 角色。Security Member 和 Security Viewer 可以查看连接及其运行历史，但不能更改它们。
+- 在 OneUptime 中拥有项目所有者、项目管理员或安全管理员角色。安全成员和安全查看者可以查看连接及其运行历史，但不能更改它们。
 - 运行 Splunk Enterprise 9.0.1 或更高版本的搜索头，或 Splunk Cloud Platform。OneUptime 在管理端口（通常为 `8089`）上与其 REST API 通信。端口 `8000` 上的 Splunk Web 不提供 REST API。
 - 一个供 OneUptime 使用的 Splunk 用户，其角色具有 `search` 能力，并且可以读取搜索所读取的索引：对于 notable event 是 `notable`。Enterprise Security 的 `ess_analyst` 和 `ess_user` 角色两者都会授予。连接只做读取，所以角色不需要其他任何权限。
 - 一个 OneUptime 能通过 HTTPS 访问到的搜索头。OneUptime Cloud 从互联网连接，所以搜索头需要一个公网地址：私有地址会被拒绝。自托管的 OneUptime 从它的应用和工作进程容器连接，可以访问你私有网络中的搜索头，除非 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` 为 `true`。

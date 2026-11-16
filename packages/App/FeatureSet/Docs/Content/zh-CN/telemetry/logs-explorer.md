@@ -37,7 +37,7 @@ flowchart TB
 ## 开始之前
 
 - **正在到达的日志。** 通过 [OpenTelemetry](/docs/telemetry/open-telemetry)、[Fluent Bit](/docs/telemetry/fluentbit)、[Fluentd](/docs/telemetry/fluentd) 或 [Syslog](/docs/telemetry/syslog) 发送。**设置指南** 标签页会显示适合你的语言或采集器的配置。
-- **可以读取遥测的角色。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member 或 Telemetry Viewer，或者拥有 Read Logs 权限的自定义角色。角色的范围决定你能看到谁的日志：参见 [遥测](/docs/permissions/index#遥测)。
+- **可以读取遥测的角色。** 项目所有者、项目管理员、项目成员、查看者、遥测管理员、遥测成员或遥测查看者，或者拥有 Read Logs 权限的自定义角色。角色的范围决定你能看到谁的日志：参见 [遥测](/docs/permissions/index#遥测)。
 
 ## 查找日志行
 
@@ -71,10 +71,10 @@ flowchart TB
 
 | 标签页 | 显示内容 |
 | --- | --- |
-| **详情** | **日志正文**，有的话还有它的 **跟踪 ID**、**跨度 ID** 和 **会话**，以及它的 **属性**，可以列表或 JSON 形式查看。 |
+| **详情** | **日志正文**，有的话还有它的 **追踪 ID**、**跨度 ID** 和 **会话**，以及它的 **属性**，可以列表或 JSON 形式查看。 |
 | **上下文** | 这条日志在相邻日志中的位置。**Nearby (service + time)** 显示同一服务中它前后各五行，**This trace** 显示其追踪中最多 100 条日志。 |
 
-- 点击跟踪 ID，即可在 [跟踪浏览器](/docs/telemetry/traces-explorer) 中打开整个请求。
+- 点击追踪 ID，即可在 [追踪浏览器](/docs/telemetry/traces-explorer) 中打开整个请求。
 - 指向一个属性并点击它的过滤图标，即可搜索该值，也可以复制它。你还可以把所有属性一次性复制为 JSON。
 - **This trace** 只对在追踪内写入的日志出现。
 
@@ -86,7 +86,7 @@ flowchart TB
 
 ## 选择列并导出
 
-- **列** 选择列表显示的内容。**时间**、**服务**、**严重程度** 和 **消息** 排在最前；你可以添加 **跟踪 ID**、**跨度 ID** 或任意属性，上下移动列，或用 **重置** 恢复默认。
+- **列** 选择列表显示的内容。**时间**、**服务**、**严重程度** 和 **消息** 排在最前；你可以添加 **追踪 ID**、**跨度 ID** 或任意属性，上下移动列，或用 **重置** 恢复默认。
 - **导出** 下载你正在查看的这一页日志。**导出为 CSV** 写出你显示的列；**导出为 JSON** 写出每条日志的所有字段及其全部属性。
 - 将指针移到标题行上，拖动列名末端的线即可加宽或收窄该列；双击这条线可让列适应其内容。列表会在此浏览器中记住你的列宽；标题行末端的 **重置列宽** 会让每一列恢复原本的宽度。
 
@@ -118,7 +118,7 @@ flowchart TB
 
 ## 打开相关的追踪和指标
 
-**已保存的视图** 旁边的 **追踪** 和 **指标** 按钮会针对同一时间窗口打开 [跟踪浏览器](/docs/telemetry/traces-explorer) 或 [指标浏览器](/docs/telemetry/metrics-explorer)，并尽可能带上该浏览器能使用的过滤条件。指向按钮即可看到它无法带过去的内容。
+**已保存的视图** 旁边的 **追踪** 和 **指标** 按钮会针对同一时间窗口打开 [追踪浏览器](/docs/telemetry/traces-explorer) 或 [指标浏览器](/docs/telemetry/metrics-explorer)，并尽可能带上该浏览器能使用的过滤条件。指向按钮即可看到它无法带过去的内容。
 
 ## 日志洞察
 
@@ -217,5 +217,5 @@ OneUptime AI 每天（UTC）最多自行打开 5 个拉取请求，这一上限�
 - [搜索语法](/docs/telemetry/search-syntax): 搜索框能理解的所有过滤条件。
 - [日志监控](/docs/monitor/logs-monitor): 当你搜索的日志出现时收到警报。
 - [日志管道](/docs/telemetry/log-pipelines): 把日志行的一部分变成可用于过滤的属性。
-- [跟踪浏览器](/docs/telemetry/traces-explorer): 跨服务跟随一条日志所属的请求。
+- [追踪浏览器](/docs/telemetry/traces-explorer): 跨服务跟随一条日志所属的请求。
 :::

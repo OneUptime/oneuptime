@@ -66,7 +66,7 @@ Tjekket af, om siden kan nås, er også udvejen, når en udbyder, du udtrykkelig
 :::steps
 ### Start en ny monitor
 
-Gå til **Monitorer**, og klik på **Opret monitor**. Under **Monitortype** skal du klikke på **Flere monitortyper** og vælge **External Status Page** under **Grundlæggende overvågning** eller skrive `statuspage` i søgefeltet. Angiv et **Navn**, og klik derefter på **Næste**.
+Gå til **Monitorer**, og klik på **Opret monitor**. Under **Monitortype** skal du klikke på **Flere monitortyper** og vælge **Ekstern statusside** under **Grundlæggende overvågning** eller skrive `statuspage` i søgefeltet. Angiv et **Navn**, og klik derefter på **Næste**.
 
 ### Angiv statussidens URL
 
@@ -181,7 +181,7 @@ Mens en igangværende vedligeholdelseshændelse berører en ressource, fordi den
 :::steps
 ### Tilføj kriteriet
 
-Klik på **Tilføj kriterier** i monitorens kriterier. Giv det filteret **Komponentstatus på ekstern statusside**, **Lig med**, **Under vedligeholdelse**, og vælg din vedligeholdelsesstatus i **Skift overvågningsstatus til**.
+Klik på **Tilføj kriterier** i monitorens kriterier. Giv det filteret **Komponentstatus på ekstern statusside**, **Lig med**, **Under vedligeholdelse**, og vælg din vedligeholdelsesstatus i **Skift monitorstatus til**.
 
 ### Flyt det helt op
 

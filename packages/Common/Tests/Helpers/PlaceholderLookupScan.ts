@@ -25,8 +25,8 @@ import ts from "typescript";
  * isPlaceholderTranslated, isAriaLabelTranslated, isTitleTranslated - and
  * the control draws it as given (Forms/Types/Field's placeholder says why).
  *
- * The scan reads the pages and shared components (App/FeatureSet and
- * Common/UI) as TypeScript. Which components look a prop up it works out
+ * The scan reads the pages and shared components (App/FeatureSet,
+ * Common/UI and the Enterprise pages in ee) as TypeScript. Which components look a prop up it works out
  * from their code: a lookup call that is given the prop, or the prop handed
  * on, not looked up, to a component that does - followed through imports,
  * lazy imports, re-exports, forwardRef and memo. The texts it holds to the
@@ -51,13 +51,29 @@ import ts from "typescript";
  *   usePageBreadcrumbLinks): Breadcrumbs, the browser tab and the phone's
  *   menu look it up, unless the crumb says isTitleTranslated, or is a
  *   record's name (isRecordName) (#8075);
+ * - the title of a link written for a side menu's entry: a link or
+ *   subItemLink handed to a component that looks it up (SideMenuItem,
+ *   CountModelSideMenuItem), or written as the link of an entry of a
+ *   menu's sections (SideMenuItemProps). The menu, and its phone's
+ *   summary, look it up unless the link says isTitleTranslated, or is a
+ *   record's name (#8225);
  * - is<Prop>Translated beside English - a word written as it is, or a
  *   translationKey - which the control would draw untranslated;
  * - is<Prop>Translated worked out as the page runs beside a text looked up
  *   whichever way it comes out: false some of the time, and the control
  *   then looks the translation up again;
  * - is<Prop>Translated given to a component that never reads it, which
- *   would still look the text up again.
+ *   would still look the text up again;
+ * - a component's own prop handed on, as it is, to a text its control
+ *   looks up unless told it is in the reader's words (<Tooltip text>,
+ *   <Page title>), from a component that offers no is<Prop>Translated for
+ *   it (#8423). A caller that words it cannot say so and has it looked up
+ *   twice, and the rules above cannot see that caller: the colour
+ *   squares' and the header alerts' tooltips were held to nothing. Offer
+ *   the flag and hand it on, and every caller is held through it - or
+ *   hand the control the text's own flag (is<Prop>Translated, or
+ *   is<Prop>UserContent for words someone wrote) when the component always
+ *   knows.
  */
 
 export interface PlaceholderProblem {
@@ -104,6 +120,9 @@ export const FLAG_NOT_READ_MESSAGE: string =
 export const SOMETIMES_SAID_TRANSLATED_MESSAGE: string =
   "is looked up here whichever way it comes out, but is said to be in the reader's words already only some of the time, and whenever it is not the control looks it up again: say so plainly with ";
 
+export const UNFLAGGED_HAND_ON_MESSAGE: string =
+  "is a prop of the component's own, handed on as it is to a text its control looks up unless told it is in the reader's words, but the component offers no flag for it: a caller that words it has it looked up twice, and the guard cannot see that caller. Offer ";
+
 // The calls that look a text up in the reader's language.
 const LOOKUPS: ReadonlyArray<string> = [
   "t",
@@ -122,10 +141,16 @@ const LOOKUPS: ReadonlyArray<string> = [
  */
 const TRANSLATOR_ARGUMENTS: ReadonlyArray<string> = ["translator", ...LOOKUPS];
 
-// Where pages and shared components are written, from the packages folder.
+/*
+ * Where pages and shared components are written, from the packages folder:
+ * the front ends, the shared components, and the Enterprise pages beside
+ * the packages (ee: the Admin Dashboard's Enterprise settings, whose
+ * headings, trails and menu entries are its own keyed texts too, #8224).
+ */
 const SOURCE_FOLDERS: ReadonlyArray<string> = [
   path.join("App", "FeatureSet"),
   path.join("Common", "UI"),
+  path.join("..", "ee"),
 ];
 
 const SKIPPED_FOLDERS: ReadonlyArray<string> = [
@@ -186,6 +211,11 @@ export function translatedFlagOf(prop: string): string {
   return `is${prop.charAt(0).toUpperCase()}${prop.slice(1)}Translated`;
 }
 
+// What says a prop's text is words someone wrote: isTextUserContent.
+function userContentFlagOf(prop: string): string {
+  return `is${prop.charAt(0).toUpperCase()}${prop.slice(1)}UserContent`;
+}
+
 // The prop a flag speaks for: isTitleTranslated, title.
 function propOfFlag(flag: string): string | null {
   const match: RegExpExecArray | null = TRANSLATED_FLAG.exec(flag);
@@ -235,6 +265,17 @@ interface PropReferences {
   propsNames: Set<string>;
   restNames: Set<string>;
   containsReference: (node: ts.Node) => boolean;
+}
+
+/*
+ * The names a component's code reads its props by: the props themselves
+ * (props), the rest of them, and each name a prop is taken out as (const
+ * { tooltip } = props), with the prop it is.
+ */
+interface PropNames {
+  propsNames: Set<string>;
+  restNames: Set<string>;
+  bound: Map<string, string>;
 }
 
 function listSourceFiles(folder: string): Array<string> {
@@ -304,6 +345,63 @@ function containsLookup(node: ts.Node): boolean {
   }
 
   return Boolean(ts.forEachChild(node, containsLookup));
+}
+
+/*
+ * A permission check's names: the type of what it answers, and the class
+ * that asks it (Common/UI/Utils/PermissionGate).
+ */
+const GATE_RESULT_TYPE: string = "PermissionGateResult";
+const GATE_CLASS: string = "PermissionGate";
+const GATE_REASON: string = "disabledReason";
+
+/*
+ * Whether a node is a permission check's reason: `gate.disabledReason`,
+ * where gate is a constant of the code around it that a permission check
+ * answered - written as a PermissionGateResult, or the answer of
+ * PermissionGate.check(...) (#8586). PermissionGate words its reason in
+ * the reader's language (buildFirstSentence), so it is looked up already,
+ * as t() is: a control that looks it up again reads the translation of
+ * the translation.
+ */
+function isGateReason(node: ts.Node): boolean {
+  if (
+    !ts.isPropertyAccessExpression(node) ||
+    node.name.text !== GATE_REASON ||
+    !ts.isIdentifier(node.expression)
+  ) {
+    return false;
+  }
+
+  const declaration: ts.VariableDeclaration | null = findDeclaration(
+    node.expression.text,
+    node,
+  );
+
+  if (!declaration) {
+    return false;
+  }
+
+  if (
+    declaration.type &&
+    declaration.type.getText().includes(GATE_RESULT_TYPE)
+  ) {
+    return true;
+  }
+
+  return Boolean(
+    declaration.initializer &&
+      declaration.initializer.getText().includes(`${GATE_CLASS}.`),
+  );
+}
+
+// A lookup call, or a permission check's reason, anywhere in a node.
+function containsLookedUpText(node: ts.Node): boolean {
+  if (isLookupCall(node) || isGateReason(node)) {
+    return true;
+  }
+
+  return Boolean(ts.forEachChild(node, containsLookedUpText));
 }
 
 // A flag written as plainly true: a bare attribute, or true itself.
@@ -398,7 +496,7 @@ function isLookedUpValue(value: ts.Node, at: ts.Node): boolean {
       return;
     }
 
-    if (isLookupCall(node)) {
+    if (isLookupCall(node) || isGateReason(node)) {
       found = true;
       return;
     }
@@ -416,7 +514,10 @@ function isLookedUpValue(value: ts.Node, at: ts.Node): boolean {
         at,
       );
 
-      if (declaration?.initializer && containsLookup(declaration.initializer)) {
+      if (
+        declaration?.initializer &&
+        containsLookedUpText(declaration.initializer)
+      ) {
         found = true;
         return;
       }
@@ -699,6 +800,77 @@ const TRAIL_HOOK: string = "usePageBreadcrumbLinks";
 // Where a breadcrumb's title goes: Breadcrumbs, the browser tab, the phone's menu.
 export const BREADCRUMB_TITLE: string = "a breadcrumb's title";
 
+// What a side menu's entry is handed its links by (SideMenuItem, SideMenuItemProps).
+const MENU_LINK_PROPS: ReadonlyArray<string> = ["link", "subItemLink"];
+
+// The type of a link (Types/Link): its title is held like a crumb's.
+const LINK_TYPE: string = "Link";
+
+// Where a side menu link's title goes: the menu's entry and the phone's summary (#8225).
+export const MENU_LINK_TITLE: string = "a side menu link's title";
+
+// The crumb's and the menu link's flag for a record's name, drawn as typed.
+function isWrittenAsRecordName(
+  properties: Map<string, ts.ObjectLiteralElementLike>,
+): boolean {
+  const recordName: ts.ObjectLiteralElementLike | undefined =
+    properties.get("isRecordName");
+
+  return Boolean(
+    recordName &&
+      ts.isPropertyAssignment(recordName) &&
+      recordName.initializer.kind === ts.SyntaxKind.TrueKeyword,
+  );
+}
+
+/*
+ * Where an object is handed to: the JSX attribute, or the property of an
+ * object literal, its value is - through a ?:, the right of && || ??, in
+ * brackets or cast, but not as an element of an array (a link is one
+ * object, never a list).
+ */
+function slotOf(
+  node: ts.ObjectLiteralExpression,
+):
+  | { attribute: ts.JsxAttribute }
+  | { property: ts.PropertyAssignment; owner: ts.ObjectLiteralExpression }
+  | null {
+  let current: ts.Node = node;
+
+  for (let depth: number = 0; depth < 10; depth++) {
+    const parent: ts.Node | undefined = current.parent;
+
+    if (!parent) {
+      return null;
+    }
+
+    if (passesOn(parent, current) && !ts.isArrayLiteralExpression(parent)) {
+      current = parent;
+      continue;
+    }
+
+    if (
+      ts.isPropertyAssignment(parent) &&
+      parent.initializer === current &&
+      ts.isObjectLiteralExpression(parent.parent)
+    ) {
+      return { property: parent, owner: parent.parent };
+    }
+
+    if (
+      ts.isJsxExpression(parent) &&
+      parent.parent &&
+      ts.isJsxAttribute(parent.parent)
+    ) {
+      return { attribute: parent.parent };
+    }
+
+    return null;
+  }
+
+  return null;
+}
+
 /*
  * The names a file hands a page as its trail - breadcrumbLinks={trail},
  * breadcrumbLinks: trail, usePageBreadcrumbLinks(trail) - so the arrays of
@@ -839,6 +1011,31 @@ function isWrittenAsCrumb(
   return false;
 }
 
+/*
+ * An optional member's type without its `| undefined` or `| null`: `Link |
+ * undefined` is a Link. A union of more than one other type is left as it
+ * is.
+ */
+function withoutUndefined(
+  type: ts.TypeNode | undefined,
+): ts.TypeNode | undefined {
+  if (!type || !ts.isUnionTypeNode(type)) {
+    return type;
+  }
+
+  const others: Array<ts.TypeNode> = type.types.filter(
+    (member: ts.TypeNode): boolean => {
+      return !(
+        member.kind === ts.SyntaxKind.UndefinedKeyword ||
+        (ts.isLiteralTypeNode(member) &&
+          member.literal.kind === ts.SyntaxKind.NullKeyword)
+      );
+    },
+  );
+
+  return others.length === 1 ? others[0] : type;
+}
+
 // The name of the type a type node says its values, or its elements, are.
 function elementTypeName(type: ts.TypeNode | undefined): string | null {
   if (!type) {
@@ -929,6 +1126,7 @@ class PlaceholderScan {
   private readonly spreads: Map<string, Array<string>> = new Map();
   // The props some component can be told are in the reader's words.
   private readonly flaggedProps: Set<string> = new Set();
+  private readonly propNames: Map<ComponentFunction, PropNames> = new Map();
 
   public constructor(packagesDirectory: string) {
     this.packagesDirectory = packagesDirectory;
@@ -951,12 +1149,22 @@ class PlaceholderScan {
     const sites: Array<PlaceholderSite> = [];
 
     const read: Array<{ file: string; text: string }> = [];
+    /*
+     * Every page's and component's JSX, for the props a component hands on
+     * (readHandOns): a component that hands its tooltip on to Tooltip need
+     * not look anything up itself, nor name a flag.
+     */
+    const drawn: Array<{ file: string; text: string }> = [];
 
     for (const folder of SOURCE_FOLDERS) {
       for (const file of listSourceFiles(
         path.join(this.packagesDirectory, folder),
       )) {
         const text: string = fs.readFileSync(file, "utf8");
+
+        if (file.endsWith(".tsx")) {
+          drawn.push({ file, text });
+        }
 
         if (!MAY_LOOK_UP.test(text)) {
           continue;
@@ -979,6 +1187,11 @@ class PlaceholderScan {
       this.readFieldTexts(file, source, problems, sites, seen);
       this.readTypedObjectTexts(file, source, problems, sites, seen);
       this.readCrumbTexts(file, source, problems, sites, seen);
+      this.readMenuLinkTexts(file, source, problems, sites, seen);
+    }
+
+    for (const { file, text } of drawn) {
+      this.readHandOns(file, this.sourceOf(file, text)!, problems);
     }
 
     problems.sort(byPlace);
@@ -1857,6 +2070,290 @@ class PlaceholderScan {
     return result;
   }
 
+  /*
+   * The names a component reads its props by (PropNames), worked out once
+   * for every prop.
+   */
+  private propNamesOf(component: Component): PropNames {
+    const cached: PropNames | undefined = this.propNames.get(component.fn);
+
+    if (cached) {
+      return cached;
+    }
+
+    const names: PropNames = {
+      propsNames: new Set(),
+      restNames: new Set(),
+      bound: new Map(),
+    };
+
+    this.propNames.set(component.fn, names);
+
+    const take: (pattern: ts.ObjectBindingPattern) => void = (
+      pattern: ts.ObjectBindingPattern,
+    ): void => {
+      for (const element of pattern.elements) {
+        if (!ts.isIdentifier(element.name)) {
+          continue;
+        }
+
+        if (element.dotDotDotToken) {
+          names.restNames.add(element.name.text);
+        } else {
+          names.bound.set(
+            element.name.text,
+            element.propertyName
+              ? element.propertyName.getText()
+              : element.name.text,
+          );
+        }
+      }
+    };
+
+    const parameter: ts.ParameterDeclaration | undefined =
+      component.fn.parameters[0];
+
+    if (parameter && ts.isIdentifier(parameter.name)) {
+      names.propsNames.add(parameter.name.text);
+    } else if (parameter && ts.isObjectBindingPattern(parameter.name)) {
+      take(parameter.name);
+    }
+
+    const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+      if (
+        ts.isVariableDeclaration(node) &&
+        ts.isObjectBindingPattern(node.name) &&
+        node.initializer &&
+        ts.isIdentifier(node.initializer) &&
+        names.propsNames.has(node.initializer.text)
+      ) {
+        take(node.name);
+      }
+
+      ts.forEachChild(node, visit);
+    };
+
+    if (component.fn.body) {
+      visit(component.fn.body);
+    }
+
+    return names;
+  }
+
+  /*
+   * The props of a component's own a value is, as they are: props.tooltip,
+   * a name a prop is taken out as, or a constant of the component that is
+   * one (const tip = props.tooltip || "") - either branch of a ?:, either
+   * side of || and ??, the right of &&. A value made from a prop (a
+   * sentence around it, a lookup of it) is none.
+   */
+  private ownPropsOf(
+    component: Component,
+    value: ts.Node,
+    depth: number = 0,
+  ): Array<string> {
+    if (depth > 8) {
+      return [];
+    }
+
+    if (ts.isJsxExpression(value)) {
+      return value.expression
+        ? this.ownPropsOf(component, value.expression, depth)
+        : [];
+    }
+
+    if (
+      ts.isParenthesizedExpression(value) ||
+      ts.isAsExpression(value) ||
+      ts.isNonNullExpression(value) ||
+      ts.isSatisfiesExpression(value)
+    ) {
+      return this.ownPropsOf(component, value.expression, depth + 1);
+    }
+
+    if (ts.isConditionalExpression(value)) {
+      return [
+        ...this.ownPropsOf(component, value.whenTrue, depth + 1),
+        ...this.ownPropsOf(component, value.whenFalse, depth + 1),
+      ];
+    }
+
+    if (ts.isBinaryExpression(value)) {
+      const operator: ts.SyntaxKind = value.operatorToken.kind;
+
+      if (
+        operator === ts.SyntaxKind.BarBarToken ||
+        operator === ts.SyntaxKind.QuestionQuestionToken
+      ) {
+        return [
+          ...this.ownPropsOf(component, value.left, depth + 1),
+          ...this.ownPropsOf(component, value.right, depth + 1),
+        ];
+      }
+
+      return operator === ts.SyntaxKind.AmpersandAmpersandToken
+        ? this.ownPropsOf(component, value.right, depth + 1)
+        : [];
+    }
+
+    const names: PropNames = this.propNamesOf(component);
+
+    if (
+      ts.isPropertyAccessExpression(value) &&
+      ts.isIdentifier(value.expression) &&
+      (names.propsNames.has(value.expression.text) ||
+        names.restNames.has(value.expression.text))
+    ) {
+      return [value.name.text];
+    }
+
+    if (ts.isIdentifier(value)) {
+      const bound: string | undefined = names.bound.get(value.text);
+
+      if (bound) {
+        return [bound];
+      }
+
+      const declaration: ts.VariableDeclaration | null = findDeclaration(
+        value.text,
+        value,
+      );
+
+      if (
+        declaration?.initializer &&
+        declaration.pos >= component.fn.pos &&
+        declaration.end <= component.fn.end &&
+        !containsLookup(declaration.initializer)
+      ) {
+        return this.ownPropsOf(component, declaration.initializer, depth + 1);
+      }
+    }
+
+    return [];
+  }
+
+  /*
+   * A component's own prop handed on, as it is, to a text its control looks
+   * up unless told it is in the reader's words - <Tooltip text={
+   * props.tooltip}> - from a component that offers no flag for it (#8423):
+   * a caller that words the prop cannot say so, has it looked up twice, and
+   * no rule above can see that caller. Where the element says the text's
+   * flag itself (is<Prop>Translated, or is<Prop>UserContent: Pill hands
+   * its tooltip on as words someone wrote), the component decides, and is
+   * left to.
+   */
+  private readHandOns(
+    file: string,
+    source: ts.SourceFile,
+    problems: Array<PlaceholderProblem>,
+  ): void {
+    for (const reference of this.namesOf(file).locals.values()) {
+      const key: string | undefined = reference.component;
+      const component: Component | undefined = key
+        ? this.components.get(key)
+        : undefined;
+
+      if (!key || !component?.fn.body || component.file !== file) {
+        continue;
+      }
+
+      const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+        if (ts.isJsxSelfClosingElement(node) || ts.isJsxOpeningElement(node)) {
+          this.readHandOnsOf(file, source, key, component, node, problems);
+        }
+
+        ts.forEachChild(node, visit);
+      };
+
+      visit(component.fn.body);
+    }
+  }
+
+  private readHandOnsOf(
+    file: string,
+    source: ts.SourceFile,
+    key: string,
+    component: Component,
+    element: ts.JsxSelfClosingElement | ts.JsxOpeningElement,
+    problems: Array<PlaceholderProblem>,
+  ): void {
+    const tag: string = element.tagName.getText(source);
+
+    if (!COMPONENT_NAME.test(tag)) {
+      return;
+    }
+
+    const target: string | null = this.resolveTag(
+      file,
+      tagNameOf(tag, element),
+    );
+
+    if (!target) {
+      return;
+    }
+
+    const attributes: Map<string, ts.JsxAttribute> = new Map();
+
+    for (const attribute of element.attributes.properties) {
+      if (ts.isJsxAttribute(attribute)) {
+        attributes.set(attribute.name.getText(source), attribute);
+      }
+    }
+
+    for (const [prop, attribute] of attributes) {
+      if (
+        !attribute.initializer ||
+        propOfFlag(prop) ||
+        // Held wherever a control looks them up, through every hand-on.
+        isHeldEverywhere(prop)
+      ) {
+        continue;
+      }
+
+      const flag: string = translatedFlagOf(prop);
+      // Said by the element - false is no saying: the control looks it up.
+      const isSaid: (said: ts.JsxAttribute | undefined) => boolean = (
+        said: ts.JsxAttribute | undefined,
+      ): boolean => {
+        return Boolean(said && !isFalse(said.initializer));
+      };
+
+      if (
+        isSaid(attributes.get(flag)) ||
+        isSaid(attributes.get(userContentFlagOf(prop))) ||
+        containsLookup(attribute.initializer) ||
+        !this.offers(target, flag) ||
+        !this.endsInLookup(target, prop)
+      ) {
+        continue;
+      }
+
+      for (const own of new Set(
+        this.ownPropsOf(component, attribute.initializer),
+      )) {
+        const ownFlag: string = translatedFlagOf(own);
+
+        /*
+         * A placeholder or an aria label of its own is held through the
+         * component already, wherever it ends in a lookup.
+         */
+        if (isHeldEverywhere(own) || this.offers(key, ownFlag)) {
+          continue;
+        }
+
+        problems.push({
+          where: `${this.relative(file)}:${
+            source.getLineAndCharacterOfPosition(attribute.getStart(source))
+              .line + 1
+          }`,
+          handedTo: `<${tag} ${prop}>`,
+          code: oneLine(attribute.initializer, source),
+          message: `${UNFLAGGED_HAND_ON_MESSAGE}${ownFlag} for ${own}, and hand it on as ${flag}`,
+        });
+      }
+    }
+  }
+
   private readJsxTexts(
     file: string,
     source: ts.SourceFile,
@@ -1903,6 +2400,32 @@ class PlaceholderScan {
            * other prop where the component offers its flag.
            */
           if (!isHeldEverywhere(prop) && !this.offers(target, flag)) {
+            /*
+             * Not held - but a flag given to a component that never reads
+             * it says nothing, and the component looks the text up again
+             * (#8423): a caller told isTooltipTranslated of a colour square
+             * that handed its tooltip on with no flag.
+             */
+            const unread: ts.JsxAttribute | undefined = attributes.get(flag);
+
+            if (
+              unread &&
+              !isFalse(unread.initializer) &&
+              !this.reads(target, flag) &&
+              this.endsInLookup(target, prop)
+            ) {
+              problems.push({
+                where: `${this.relative(file)}:${
+                  source.getLineAndCharacterOfPosition(
+                    attribute.getStart(source),
+                  ).line + 1
+                }`,
+                handedTo: `<${tag} ${prop}>`,
+                code: oneLine(attribute.initializer, source),
+                message: `${FLAG_NOT_READ_MESSAGE}${flag}`,
+              });
+            }
+
             continue;
           }
 
@@ -2121,15 +2644,7 @@ class PlaceholderScan {
           propertiesOf(node, source);
         const title: ts.ObjectLiteralElementLike | undefined =
           properties.get("title");
-        const recordName: ts.ObjectLiteralElementLike | undefined =
-          properties.get("isRecordName");
-        const isRecordName: boolean = Boolean(
-          recordName &&
-            ts.isPropertyAssignment(recordName) &&
-            recordName.initializer.kind === ts.SyntaxKind.TrueKeyword,
-        );
-
-        if (title && !isRecordName && !seen.has(title)) {
+        if (title && !isWrittenAsRecordName(properties) && !seen.has(title)) {
           seen.add(title);
           this.readObjectText(
             file,
@@ -2148,6 +2663,273 @@ class PlaceholderScan {
     };
 
     visit(source);
+  }
+
+  /*
+   * A side menu link's title (#8225): SideMenuItem draws a link's title,
+   * and the phone's summary names the lit entry by it, looked up unless
+   * the link says it is in the reader's words already
+   * (Link.isTitleTranslated: the Admin Dashboard's t("sideMenu.…")). A
+   * record's name (isRecordName: true) is drawn as typed, never looked up.
+   */
+  private readMenuLinkTexts(
+    file: string,
+    source: ts.SourceFile,
+    problems: Array<PlaceholderProblem>,
+    sites: Array<PlaceholderSite>,
+    seen: Set<ts.Node>,
+  ): void {
+    if (
+      !MENU_LINK_PROPS.some((prop: string): boolean => {
+        return source.text.includes(prop);
+      })
+    ) {
+      return;
+    }
+
+    const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+      if (
+        ts.isObjectLiteralExpression(node) &&
+        this.isWrittenAsMenuLink(file, source, node)
+      ) {
+        const properties: Map<string, ts.ObjectLiteralElementLike> =
+          propertiesOf(node, source);
+        const title: ts.ObjectLiteralElementLike | undefined =
+          properties.get("title");
+
+        if (title && !isWrittenAsRecordName(properties) && !seen.has(title)) {
+          seen.add(title);
+          this.readObjectText(
+            file,
+            source,
+            "title",
+            title,
+            properties.get(translatedFlagOf("title")),
+            MENU_LINK_TITLE,
+            problems,
+            sites,
+          );
+        }
+      }
+
+      ts.forEachChild(node, visit);
+    };
+
+    visit(source);
+  }
+
+  /*
+   * Whether an object is a link a side menu's entry draws: the link or
+   * subItemLink of an element whose component looks it up (SideMenuItem,
+   * and every component that hands it one), or the link of an object
+   * written as an interface whose link is a Link (an entry of a menu's
+   * sections, SideMenuItemProps).
+   */
+  private isWrittenAsMenuLink(
+    file: string,
+    source: ts.SourceFile,
+    node: ts.ObjectLiteralExpression,
+  ): boolean {
+    const slot:
+      | { attribute: ts.JsxAttribute }
+      | { property: ts.PropertyAssignment; owner: ts.ObjectLiteralExpression }
+      | null = slotOf(node);
+
+    if (!slot) {
+      return false;
+    }
+
+    if ("attribute" in slot) {
+      const prop: string = slot.attribute.name.getText(source);
+      const element: ts.Node = slot.attribute.parent.parent;
+
+      if (
+        !MENU_LINK_PROPS.includes(prop) ||
+        !(
+          ts.isJsxSelfClosingElement(element) || ts.isJsxOpeningElement(element)
+        )
+      ) {
+        return false;
+      }
+
+      const tag: string = element.tagName.getText(source);
+
+      if (!COMPONENT_NAME.test(tag)) {
+        return false;
+      }
+
+      const target: string | null = this.resolveTag(
+        file,
+        tagNameOf(tag, element),
+      );
+
+      return Boolean(target && this.endsInLookup(target, prop));
+    }
+
+    const prop: string = slot.property.name.getText(source);
+
+    if (!MENU_LINK_PROPS.includes(prop)) {
+      return false;
+    }
+
+    const owner: { file: string; name: string } | null = this.writtenTypeOf(
+      file,
+      slot.owner,
+    );
+
+    if (!owner) {
+      return false;
+    }
+
+    const member: { file: string; name: string } | null = this.memberTypeOf(
+      owner.file,
+      owner.name,
+      prop,
+    );
+
+    return Boolean(member && this.isLinkType(member));
+  }
+
+  /*
+   * The interface an object literal is written as, by the file its name is
+   * read in: its own declared type (declaredTypeOf), or - an object given
+   * as a property of an object written as an interface - that property's
+   * type. The entries of `const sections: Array<SideMenuSectionProps>` are
+   * SideMenuItemProps through `items`, and their links Links through
+   * `link`.
+   */
+  private writtenTypeOf(
+    file: string,
+    node: ts.ObjectLiteralExpression,
+    depth: number = 0,
+  ): { file: string; name: string } | null {
+    const declared: string | null = declaredTypeOf(node);
+
+    if (declared) {
+      return { file, name: declared };
+    }
+
+    if (depth > 6) {
+      return null;
+    }
+
+    let current: ts.Node = node;
+
+    for (let step: number = 0; step < 10; step++) {
+      const parent: ts.Node | undefined = current.parent;
+
+      if (!parent) {
+        return null;
+      }
+
+      if (passesOn(parent, current)) {
+        current = parent;
+        continue;
+      }
+
+      if (
+        ts.isPropertyAssignment(parent) &&
+        parent.initializer === current &&
+        ts.isObjectLiteralExpression(parent.parent)
+      ) {
+        const owner: { file: string; name: string } | null = this.writtenTypeOf(
+          file,
+          parent.parent,
+          depth + 1,
+        );
+
+        return owner
+          ? this.memberTypeOf(owner.file, owner.name, parent.name.getText())
+          : null;
+      }
+
+      return null;
+    }
+
+    return null;
+  }
+
+  /*
+   * The type a member of an interface is written as (its own, or that of
+   * an interface it extends), by the file the interface is written in. An
+   * optional member's `| undefined` is left out.
+   */
+  private memberTypeOf(
+    file: string,
+    name: string,
+    member: string,
+    depth: number = 0,
+  ): { file: string; name: string } | null {
+    const reference: NameReference | undefined =
+      this.namesOf(file).locals.get(name);
+
+    if (
+      !reference ||
+      depth > 8 ||
+      (reference.module && !this.isScanned(reference.module))
+    ) {
+      return null;
+    }
+
+    const key: string | null = this.resolveReference(file, reference);
+    const declaration: ts.InterfaceDeclaration | undefined = key
+      ? this.interfaces.get(key)
+      : undefined;
+
+    if (!key || !declaration) {
+      return null;
+    }
+
+    const declaredIn: string = key.split("#")[0]!;
+
+    for (const signature of declaration.members) {
+      if (
+        ts.isPropertySignature(signature) &&
+        signature.name.getText() === member
+      ) {
+        const typeName: string | null = elementTypeName(
+          withoutUndefined(signature.type),
+        );
+
+        return typeName ? { file: declaredIn, name: typeName } : null;
+      }
+    }
+
+    for (const clause of declaration.heritageClauses || []) {
+      for (const base of clause.types) {
+        if (ts.isIdentifier(base.expression)) {
+          const found: { file: string; name: string } | null =
+            this.memberTypeOf(
+              declaredIn,
+              base.expression.text,
+              member,
+              depth + 1,
+            );
+
+          if (found) {
+            return found;
+          }
+        }
+      }
+    }
+
+    return null;
+  }
+
+  // Whether a type, by the file its name is read in, is Types/Link.
+  private isLinkType(type: { file: string; name: string }): boolean {
+    if (type.name !== LINK_TYPE) {
+      return false;
+    }
+
+    const reference: NameReference | undefined = this.namesOf(
+      type.file,
+    ).locals.get(type.name);
+
+    return Boolean(
+      reference?.module &&
+        reference.module.endsWith(path.join("Common", "Types", "Link.ts")),
+    );
   }
 
   // A text an object says, and whether it says it is in the reader's words.

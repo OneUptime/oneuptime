@@ -1,17 +1,17 @@
 # Ceph-agent
 
-OneUptimes Ceph-agent overvåker en Ceph-klynge: tilstanden, monitor-quorumet, OSD-ene, poolene og placement groups. Den scraper Ceph mgr-modulen `prometheus` på hver mgr-daemon, stempler hver metrikk med navnet på klyngen din og sender den til OneUptime, der klyngen vises med OSD-ene, poolene og daemonene sine. [Ceph-overvåkere](/docs/monitor/ceph-monitor) varsler ut fra det som kommer inn.
+OneUptimes Ceph-agent overvåker en Ceph-klynge: tilstanden, monitor-quorumet, OSD-ene, poolene og placement groups. Den scraper Ceph mgr-modulen `prometheus` på hver mgr-daemon, stempler hver måling med navnet på klyngen din og sender den til OneUptime, der klyngen vises med OSD-ene, poolene og daemonene sine. [Ceph-monitorer](/docs/monitor/ceph-monitor) varsler ut fra det som kommer inn.
 
 :::cards
 - [Installer agenten](#installer-agenten): Aktiver mgr-modulen, deretter installasjonsskriptet eller Docker Compose.
-- [Hva agenten samler inn](#hva-agenten-samler-inn): Seriene bak Ceph-sidene, metrikkene og varselmalene.
+- [Hva agenten samler inn](#hva-agenten-samler-inn): Seriene bak Ceph-sidene, målingene og varselmalene.
 - [AI-agent](#ai-agent): La OneUptime AI lese klyngen mens den undersøker.
 - [Feilsøking](#feilsøking): Et diagnoseskript, og de vanlige problemene.
 :::
 
 ## Slik fungerer det
 
-Agenten er to containere som du kjører med Docker Compose på én maskin. En OpenTelemetry Collector scraper mgr-modulen `prometheus` på hver mgr-daemon hvert 30. sekund. Bare den aktive mgr-en svarer med metrikker, så når den feiler over til en standby, fortsetter metrikkene å komme uten noen endring. Ceph-AI-agenten ved siden av lar OneUptime AI kjøre skrivebeskyttede `ceph`-kommandoer mens den undersøker en hendelse eller et varsel.
+Agenten er to containere som du kjører med Docker Compose på én maskin. En OpenTelemetry Collector scraper mgr-modulen `prometheus` på hver mgr-daemon hvert 30. sekund. Bare den aktive mgr-en svarer med målinger, så når den feiler over til en standby, fortsetter målingene å komme uten noen endring. Ceph-AI-agenten ved siden av lar OneUptime AI kjøre skrivebeskyttede `ceph`-kommandoer mens den undersøker en hendelse eller et varsel.
 
 ```mermaid title="Fra Ceph-klyngen din til OneUptime"
 flowchart TB
@@ -23,7 +23,7 @@ flowchart TB
     ai -->|"skrivebeskyttede<br/>ceph-kommandoer"| daemons
 ```
 
-Klyngen registrerer seg med de første dataene sine, under navnet agenten stempler på hver metrikk som `ceph.cluster.name`.
+Klyngen registrerer seg med de første dataene sine, under navnet agenten stempler på hver måling som `ceph.cluster.name`.
 
 ## Før du begynner
 
@@ -43,7 +43,7 @@ På en Ceph-adminnode:
 ceph mgr module enable prometheus
 ```
 
-Hver mgr-daemon leverer da Prometheus-metrikker på port `9283` under `/metrics`. Bare den aktive mgr-en returnerer metrikker: standby-mgr-er svarer med et tomt svar, eller med en HTTP-feil hvis `mgr/prometheus/standby_behaviour` er satt til `error`. Derfor scraper agenten hver mgr. List dem opp:
+Hver mgr-daemon leverer da Prometheus-målinger på port `9283` under `/metrics`. Bare den aktive mgr-en returnerer målinger: standby-mgr-er svarer med et tomt svar, eller med en HTTP-feil hvis `mgr/prometheus/standby_behaviour` er satt til `error`. Derfor scraper agenten hver mgr. List dem opp:
 
 ```bash
 ceph mgr stat                    # active mgr
@@ -117,7 +117,7 @@ Installasjonsskriptet skriver disse til `/opt/oneuptime-ceph-agent/.env`; en Doc
 | --- | --- | --- |
 | `ONEUPTIME_URL` | Ja | OneUptime-URL-en din, for eksempel `https://oneuptime.com` eller den selvhostede instansen din. Bruk `http://` og porten hvis instansen bare bruker HTTP. |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | Inntaksnøkkelen fra **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler**. |
-| `CEPH_CLUSTER_NAME` | Nei | Klyngens navn i OneUptime, stemplet på hver metrikk som ressursattributtet `ceph.cluster.name`. Hold det stabilt: å endre det senere registrerer en ny klynge. Standard er `ceph`. |
+| `CEPH_CLUSTER_NAME` | Nei | Klyngens navn i OneUptime, stemplet på hver måling som ressursattributtet `ceph.cluster.name`. Hold det stabilt: å endre det senere registrerer en ny klynge. Standard er `ceph`. |
 | `CEPH_MGR_ENDPOINTS` | Ja | Hver mgr-daemon som en kommaseparert `host:port`-liste i hakeparenteser, for eksempel `[ceph-mon-1:9283,ceph-mon-2:9283,ceph-mon-3:9283]`. Installasjonsskriptet legger til parentesene for deg. |
 
 AI-agentens egne innstillinger står under [AI-agent](#ai-agent).
@@ -129,9 +129,9 @@ AI-agentens egne innstillinger står under [AI-agent](#ai-agent).
 
 ## Hva agenten samler inn
 
-Agenten sender alt mgr-modulen `prometheus` eksporterer. OneUptimes Ceph-sider, metrikkatalog og varselmaler bygger på disse seriene:
+Agenten sender alt mgr-modulen `prometheus` eksporterer. OneUptimes Ceph-sider, målingskatalog og varselmaler bygger på disse seriene:
 
-| Kategori | Metrikker |
+| Kategori | Målinger |
 | --- | --- |
 | Klyngetilstand | `ceph_health_status` (0 = OK, 1 = WARN, 2 = ERR), `ceph_health_detail` (én serie per helsesjekk, 1 mens den er aktiv og 0 etter at den er ryddet, med etikettene `name` og `severity`, fra Quincy og nyere; grunnlaget for varselmalene for helsesjekker og for sjekkene **Krever oppmerksomhet** i oversikten viser), `ceph_healthcheck_slow_ops`, `ceph_daemon_health_metrics` (per daemon, etter `type`), `ceph_mon_quorum_status`, `ceph_mon_metadata`, `ceph_cluster_total_bytes`, `ceph_cluster_total_used_bytes` |
 | OSD | `ceph_osd_up`, `ceph_osd_in`, `ceph_osd_apply_latency_ms`, `ceph_osd_commit_latency_ms`, `ceph_osd_stat_bytes`, `ceph_osd_stat_bytes_used`, `ceph_osd_numpg`, `ceph_osd_metadata`, per OSD etter etiketten `ceph_daemon` (for eksempel `osd.3`) |
@@ -144,7 +144,7 @@ Agenten sender alt mgr-modulen `prometheus` eksporterer. OneUptimes Ceph-sider, 
 mgr-modulen dekker klyngens tilstand og kapasitet. For en nærmere titt kan du legge til flere jobber under `scrape_configs` i `otel-collector-config.yaml`:
 
 - **`ceph-exporter` (Reef 18.2 og nyere).** cephadm kjører en `ceph-exporter`-daemon på hver vert i klyngen, som leverer ytelsestellere per daemon på port `9926`. Legg til ett mål per vert.
-- **`node_exporter`.** Den vanlige følgesvennen for CPU-, minne-, disk- og nettverksmetrikker for hver Ceph-vert, på port `9100` som standard.
+- **`node_exporter`.** Den vanlige følgesvennen for CPU-, minne-, disk- og nettverksmålinger for hver Ceph-vert, på port `9100` som standard.
 
 Begge får ressursattributtet `ceph.cluster.name` fra den medfølgende prosessoren `resource`, så de havner på samme klynge i OneUptime.
 
@@ -270,7 +270,7 @@ Hva den kan kjøre, hvordan rettinger fungerer og hvordan du feilsøker den: [In
 ## Feilsøking
 
 :::details Kjør diagnoseskriptet først
-Agenten leveres med et skript, [`troubleshoot.sh`](https://oneuptime.com/install/ceph-agent/troubleshoot.sh), som sjekker hele kjeden: container-kjøretiden, hvert mgr-endepunkt du har konfigurert, klyngenavnet som er stemplet på hver metrikk, tokenets form, collectorens egne metrikker, og om OneUptime godtar inntaksnøkkelen. Det advarer når ingen endepunkter returnerer `ceph_health_status`, eller når bare ett er konfigurert, siden bare den aktive mgr-en leverer metrikker. Nøkkelsjekken betyr mest. OneUptime avviser en dårlig nøkkel med `401` (`422` for en deaktivert nøkkel eller en nettlesernøkkel), og collectoren behandler begge som permanente: den dropper batchen og logger én `Exporting failed`-feil, som er lett å overse mens containeren forblir sunn. Skriptet spør `GET <url>/otlp/v1/validate` innenfra agentens nettverk for et direkte `200` (gyldig) eller `401` (ugyldig), og faller tilbake til `POST /fluentd/v1/logs` på eldre servere.
+Agenten leveres med et skript, [`troubleshoot.sh`](https://oneuptime.com/install/ceph-agent/troubleshoot.sh), som sjekker hele kjeden: container-kjøretiden, hvert mgr-endepunkt du har konfigurert, klyngenavnet som er stemplet på hver måling, tokenets form, collectorens egne målinger, og om OneUptime godtar inntaksnøkkelen. Det advarer når ingen endepunkter returnerer `ceph_health_status`, eller når bare ett er konfigurert, siden bare den aktive mgr-en leverer målinger. Nøkkelsjekken betyr mest. OneUptime avviser en dårlig nøkkel med `401` (`422` for en deaktivert nøkkel eller en nettlesernøkkel), og collectoren behandler begge som permanente: den dropper batchen og logger én `Exporting failed`-feil, som er lett å overse mens containeren forblir sunn. Skriptet spør `GET <url>/otlp/v1/validate` innenfra agentens nettverk for et direkte `200` (gyldig) eller `401` (ugyldig), og faller tilbake til `POST /fluentd/v1/logs` på eldre servere.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/ceph-agent/troubleshoot.sh -o troubleshoot.sh
@@ -282,7 +282,7 @@ Det avslutter med en dom som navngir den mest sannsynlige årsaken.
 
 :::details Ingen klynge vises i OneUptime
 1. Les collectorens logger: `docker logs oneuptime-ceph-agent`. En `401` ved eksport betyr en dårlig inntaksnøkkel; en avvist tilkobling betyr en feil `ONEUPTIME_URL`.
-2. Sjekk at en mgr leverer metrikker: `curl http://ACTIVE_MGR_HOST:9283/metrics | head` skal skrive ut `ceph_*`-linjer. Hvis ikke, aktiver modulen med `ceph mgr module enable prometheus`.
+2. Sjekk at en mgr leverer målinger: `curl http://ACTIVE_MGR_HOST:9283/metrics | head` skal skrive ut `ceph_*`-linjer. Hvis ikke, aktiver modulen med `ceph mgr module enable prometheus`.
 3. Sjekk at `CEPH_MGR_ENDPOINTS` står i hakeparenteser. Uten dem leser collectoren hele den kommaseparerte listen som ett mål, som ikke finnes.
 :::
 
@@ -290,7 +290,7 @@ Det avslutter med en dom som navngir den mest sannsynlige årsaken.
 En klynge blir frakoblet når OneUptime ikke har mottatt noe fra den på 15 minutter; OneUptime sjekker hvert 5. minutt, og tid da OneUptime selv ikke mottok data, teller ikke. Sjekk at collectoren kjører (`docker compose ps`), at loggene ikke viser eksportfeil, og at maskinen fortsatt når OneUptime-URL-en din. Klyngen blir tilkoblet igjen med de neste dataene.
 :::
 
-:::details Metrikkene stopper etter en mgr-failover
+:::details Målingene stopper etter en mgr-failover
 Du scraper sannsynligvis bare mgr-en som tidligere var aktiv. List opp hver mgr-daemon i `CEPH_MGR_ENDPOINTS`: Å scrape standby-ene koster nesten ingenting, og de svarer med tomme svar.
 :::
 
@@ -298,14 +298,14 @@ Du scraper sannsynligvis bare mgr-en som tidligere var aktiv. List opp hver mgr-
 Forventet når `mgr/prometheus/standby_behaviour` er satt til `error` på klyngen din: Standby-ene svarer da med HTTP 500. Scrapen av den aktive mgr-en lykkes fortsatt, så feilene er støy; sett oppførselen tilbake til `default` for å dempe dem.
 :::
 
-:::details Metrikkene havner under feil klynge
+:::details Målingene havner under feil klynge
 OneUptime registrerer en Ceph-klynge etter `ceph.cluster.name`, som agenten tar fra `CEPH_CLUSTER_NAME`. Å endre det etter de første dataene oppretter en ny klynge i stedet for å gi den første nytt navn.
 :::
 
 ## Neste trinn
 
 :::cards
-- [Ceph-overvåking](/docs/monitor/ceph-monitor): Varsle om tilstand, OSD-er, placement groups, kapasitet, krasj og trege operasjoner.
+- [Ceph-monitor](/docs/monitor/ceph-monitor): Varsle om tilstand, OSD-er, placement groups, kapasitet, krasj og trege operasjoner.
 - [Proxmox-agent](/docs/telemetry/proxmox): Kjører du Ceph under Proxmox VE? Overvåk klyngen også.
 - [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents): Hva Ceph-AI-agenten kan kjøre, og hvordan rettinger fungerer.
 - [OpenTelemetry-collector på verten](/docs/telemetry/host-otel-collector): Operativsystemets visning av hver Ceph-vert.

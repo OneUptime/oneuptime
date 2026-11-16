@@ -132,7 +132,7 @@ Em **Regra**, informe um **Nome**, como "Fast burn". Uma regra nova fica ligada;
 
 ### Definir a janela de consumo
 
-Em **Janela de consumo**, defina o **Limite da taxa de consumo** (por exemplo `14.4`), a **Janela longa (minutos)** e a **Janela curta (minutos)**, e se quiser a **Supressão de novo disparo (minutos)**.
+Em **Janela de consumo**, defina o **Limite da taxa de consumo** (por exemplo `14.4`), a **Janela longa (minutos)** e a **Janela curta (minutos)**, e se quiser a **Supressão de novo disparo (minutos)**. A regra de um SLO de requisições também aceita um **Mínimo de requisições**, por exemplo `100`: a regra ignora uma janela longa que tenha menos requisições do que isso. A regra de um SLO de métrica aceita um **Mínimo de eventos** do mesmo jeito, contado nos eventos da métrica dele.
 
 ### Escolher o que ela declara
 
@@ -151,10 +151,12 @@ O OneUptime confere os números de uma regra quando você a salva:
 | **Janela curta (minutos)** | Maior que 0. |
 | **Janela longa (minutos)** | Mais longa que a janela curta. |
 | **Supressão de novo disparo (minutos)** | 0 ou mais. Vazio significa a duração da janela longa. |
+| **Mínimo de requisições** | Um número inteiro, 0 ou mais. Vazio significa sem mínimo. |
+| **Mínimo de eventos** | Um número inteiro, 0 ou mais. Vazio significa sem mínimo. |
 
 Toda resposta a **Quando dispara** abre algo. A API recusa uma regra que não criaria nenhum alerta nem declararia nenhum incidente, porque seria verificada a cada avaliação sem nunca declarar nada.
 
-A tabela de regras mostra, para cada regra, o limite, as janelas e a supressão, o que ela declara (e se o alerta ou o incidente só se resolve à mão, ou é privado), as severidades, as políticas de plantão, os proprietários e os rótulos.
+A tabela de regras mostra, para cada regra, o limite, as janelas e a supressão, o que ela declara (e se o alerta ou o incidente só se resolve à mão, ou é privado), as severidades, as políticas de plantão, os proprietários e os rótulos. Em um SLO de requisições, ela também mostra o mínimo de cada regra abaixo das janelas dela.
 
 > [!TIP]
 > Um bom ponto de partida: mantenha as três regras padrão, envie a regra de consumo rápido para a política de plantão que aciona as pessoas, com severidade alta, deixe a regra de consumo lento gerar um alerta de severidade mais baixa para o horário comercial e deixe a regra de vazamento lento como um ticket para a equipe responsável. Se sua equipe trabalha com incidentes, escolha **Declarar um incidente** para a regra de consumo rápido, ou **Ambos** para receber também um alerta.
@@ -212,8 +214,8 @@ Para escrever os seus, use variáveis de modelo no título, na descrição e nas
 | `{{targetPercentage}}` | A meta do SLO, em porcentagem. | `99.9` |
 | `{{currentSliPercentage}}` | O SLI medido na janela de conformidade do SLO, em porcentagem. | `99.87` |
 | `{{errorBudgetRemainingPercentage}}` | Parcela do orçamento de erros ainda disponível, em porcentagem. Negativa quando o orçamento foi ultrapassado. | `42.5` |
-| `{{errorBudgetRemaining}}` | Orçamento de erros ainda disponível, como duração. Começa com um sinal de menos quando o orçamento foi ultrapassado. | `18m 22s` |
-| `{{errorBudgetRemainingMinutes}}` | Orçamento de erros ainda disponível, em minutos. | `18.37` |
+| `{{errorBudgetRemaining}}` | Orçamento de erros ainda disponível, como duração ou, em um SLO de requisições, como as requisições com falha ou lentas que ele ainda permite. Começa com um sinal de menos quando o orçamento foi ultrapassado. | `18m 22s` |
+| `{{errorBudgetRemainingMinutes}}` | Orçamento de erros ainda disponível, em minutos. Vazio em um SLO de requisições, cujo orçamento é contado em requisições. | `18.37` |
 | `{{windowDescription}}` | A janela de conformidade do SLO, por extenso. | `rolling 30-day window` |
 | `{{policyTier}}` | Nome do nível da política de orçamento de erros em que o SLO está após esta avaliação. "None" quando não está em nenhum nível. | `Reliability first` |
 | `{{policyTierThresholdPercentage}}` | Limite de orçamento restante desse nível, como porcentagem. Vazio quando o SLO não está em nenhum nível. | `25` |
@@ -235,7 +237,7 @@ Por exemplo, o título `{{ruleName}}: {{sloName}} is burning {{longWindowBurnRat
 - **Adicionar proprietários do SLO como proprietários** também adiciona os proprietários do SLO, seus usuários proprietários e os membros das equipes proprietárias, a tudo o que a regra cria. Os proprietários do SLO já ficam sabendo das mudanças de status do próprio SLO, então isso pode avisá-los duas vezes. Fica desligado por padrão.
 - Cada proprietário é adicionado uma vez: um usuário que já é proprietário do alerta ou do incidente, por exemplo pelas regras de proprietários do projeto, ou que está em uma equipe proprietária adicionada, não é adicionado de novo.
 - **Rótulos de alerta** e **Rótulos de incidentes** são adicionados ao alerta ou ao incidente, para que filtros, regras de proprietários e regras de notificação do workspace possam corresponder a eles.
-- Um alerta ou incidente privado só é visível para seus proprietários, para os administradores do projeto e para os proprietários do projeto.
+- Um alerta ou incidente privado só é visível para seus proprietários, para os Administradores do projeto e para os Proprietários do projeto.
 
 Rótulos, equipes proprietárias e políticas de plantão precisam pertencer ao projeto do SLO.
 
@@ -276,7 +278,7 @@ As regras de taxa de consumo ficam em silêncio enquanto algum dos monitores do 
 :::
 
 :::details Existe um número mínimo de amostras?
-Não para SLOs medidos pela disponibilidade dos monitores. A disponibilidade é medida em segundos, então cada segundo da janela é uma amostra e não há um caso de pouco tráfego contra o qual se proteger. Um número mínimo de amostras só importa para SLIs baseados em eventos, que ainda não estão disponíveis.
+Não para SLOs medidos pela disponibilidade dos monitores. A disponibilidade é medida em segundos, então cada segundo da janela é uma amostra e não há um caso de pouco tráfego contra o qual se proteger. A regra de um SLO de requisições tem um: defina o **Mínimo de requisições** dela, e a regra ignora uma janela longa com menos requisições do que isso, para que uma hora tranquila com uma requisição com falha em cinco não acione ninguém.
 :::
 
 ## Próximos passos

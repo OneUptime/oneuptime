@@ -1,4 +1,5 @@
 import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import IconProp from "Common/Types/Icon/IconProp";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import {
@@ -9,6 +10,11 @@ import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceK
 import { percentOf } from "Common/Types/OpenStack/OpenStackHealthRules";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  formatMilliseconds,
+  MillisecondsOptions,
+} from "../../../Utils/Milliseconds";
+import { formatReaderFigure } from "Common/Types/DateLanguage";
 import React, { FunctionComponent, ReactElement } from "react";
 import { fetchOpenStackRow } from "../../../Pages/OpenStack/Utils/OpenStackPartData";
 import { getOpenStackFlavorExternalId } from "../../../Pages/OpenStack/Utils/OpenStackPartFacts";
@@ -101,18 +107,24 @@ function useOpenStackInstanceUsageRead(data: {
   }, [part.externalId, part.cloudName, part.refreshToken]);
 }
 
-// A chart's axis and tooltip keep Latin digits, as every chart does.
+/*
+ * A chart's axis and tooltip write a figure as the tiles above them do, in
+ * the reader's digits, decimal sign and percent sign and a latency in their
+ * words: "۱٫۵ KiB/s", "۴۲٫۰٪", "۴٫۰ میلی‌ثانیه" (#8349).
+ */
 function formatBytesPerSecond(value: number): string {
   return `${formatOpenStackChartBytes(value)}/s`;
 }
 
 function formatPercentValue(value: number): string {
-  return `${value.toFixed(1)}%`;
+  return formatReaderFigure(value, { decimals: 1, isPercent: true });
 }
 
-function formatMilliseconds(value: number): string {
-  return `${value.toFixed(1)} ms`;
-}
+// A latency to a tenth: "4.0 ms", "۴٫۰ میلی‌ثانیه".
+const ONE_DECIMAL: MillisecondsOptions = {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+};
 
 const OpenStackInstanceUsageTiles: FunctionComponent<{
   part: OpenStackPart;
@@ -173,7 +185,7 @@ const OpenStackInstanceUsageTiles: FunctionComponent<{
         iconColor="blue"
         value={
           usage.cpuPercent === null
-            ? "—"
+            ? undefined
             : formatOpenStackPercent(usage.cpuPercent, {
                 language: translator.language,
               })
@@ -201,7 +213,7 @@ const OpenStackInstanceUsageTiles: FunctionComponent<{
         title="Memory in use"
         icon={IconProp.SquareStack}
         iconColor="violet"
-        value={memory === null ? "—" : formatOpenStackBytes(memory)}
+        value={memory === null ? undefined : formatOpenStackBytes(memory)}
         sublabel={
           flavorMemory
             ? translator.translateTemplate(
@@ -228,7 +240,7 @@ const OpenStackInstanceUsageTiles: FunctionComponent<{
         iconColor="amber"
         value={
           usage.contentionPercent === null
-            ? "—"
+            ? undefined
             : formatOpenStackPercent(usage.contentionPercent, {
                 language: translator.language,
               })
@@ -274,7 +286,11 @@ const OpenStackInstanceUsageTiles: FunctionComponent<{
         title="Disk latency"
         icon={IconProp.Clock}
         iconColor="sky"
-        value={diskLatency === null ? "—" : formatMilliseconds(diskLatency)}
+        value={
+          diskLatency === null
+            ? undefined
+            : formatMilliseconds(translator, diskLatency, ONE_DECIMAL)
+        }
         sublabel={
           diskLatency === null
             ? "No requests, or this source doesn't say"
@@ -389,17 +405,17 @@ export const OpenStackInstanceUsageCharts: FunctionComponent<{
               vcpus:
                 flavor.vcpuCapacity === undefined ||
                 flavor.vcpuCapacity === null
-                  ? "—"
+                  ? EMPTY_VALUE_MARK
                   : translator.formatNumber(flavor.vcpuCapacity),
               memory:
                 flavor.memoryCapacityBytes === undefined ||
                 flavor.memoryCapacityBytes === null
-                  ? "—"
+                  ? EMPTY_VALUE_MARK
                   : formatOpenStackBytes(flavor.memoryCapacityBytes),
               disk:
                 flavor.diskCapacityBytes === undefined ||
                 flavor.diskCapacityBytes === null
-                  ? "—"
+                  ? EMPTY_VALUE_MARK
                   : formatOpenStackBytes(flavor.diskCapacityBytes),
             },
             // Each value set apart: "۴٫۰ GiB" keeps its number first in a Persian sentence.
@@ -479,7 +495,9 @@ export const OpenStackInstanceUsageCharts: FunctionComponent<{
                 ),
                 metricName: OpenStackInstanceMetric.DiskReadLatency,
                 legend: translationKey("Read latency"),
-                format: formatMilliseconds,
+                format: (value: number): string => {
+                  return formatMilliseconds(translator, value, ONE_DECIMAL);
+                },
               }),
               chart({
                 variable: "instance_disk_write_latency",
@@ -489,7 +507,9 @@ export const OpenStackInstanceUsageCharts: FunctionComponent<{
                 ),
                 metricName: OpenStackInstanceMetric.DiskWriteLatency,
                 legend: translationKey("Write latency"),
-                format: formatMilliseconds,
+                format: (value: number): string => {
+                  return formatMilliseconds(translator, value, ONE_DECIMAL);
+                },
               }),
               chart({
                 variable: "instance_network_receive",

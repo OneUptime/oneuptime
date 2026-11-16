@@ -16,9 +16,9 @@
 
 ```mermaid title="两个工作流，一个 Opsgenie 告警"
 flowchart TB
-    declared["事件已声明"] --> create["工作流 1：<br/>On Create Incident"]
+    declared["事件已声明"] --> create["工作流 1：<br/>创建事件时"]
     create -->|"POST /v2/alerts"| og["Opsgenie 告警"]
-    resolved["事件已解决"] --> update["工作流 2：<br/>On Update Incident"]
+    resolved["事件已解决"] --> update["工作流 2：<br/>更新事件时"]
     update -->|"按 alias 关闭"| og
 ```
 
@@ -49,17 +49,17 @@ flowchart TB
 
 ### 添加触发器
 
-点击虚线的 **选择启动此工作流的方式** 块，选择 **On Create Incident**。点击该触发器：它的 **Fields to pass on** 已经包含 **标题**，所以点击 **添加字段** 并选择 **描述**。
+点击虚线的 **选择启动此工作流的方式** 块，选择 **创建事件时**。点击该触发器：它的 **要传递的字段** 已经包含 **标题**，所以点击 **添加字段** 并选择 **描述**。
 
 ### 创建告警
 
-点击 **添加组件**，添加一个 **API Post (JSON)** 块，并把触发器的 **Success** 点连接到它。把它的 **URL** 设为 `https://api.opsgenie.com/v2/alerts`，在欧洲则设为 `https://api.eu.opsgenie.com/v2/alerts`。在 **更多字段** 下，把 **Request Headers** 设为：
+点击 **添加组件**，添加一个 **API 调用 POST (JSON)** 块，并把触发器的 **成功** 点连接到它。把它的 **URL** 设为 `https://api.opsgenie.com/v2/alerts`，在欧洲则设为 `https://api.eu.opsgenie.com/v2/alerts`。在 **更多字段** 下，把 **请求标头** 设为：
 
 ```json
 { "Authorization": "GenieKey {{global.variables.OPSGENIE_KEY}}" }
 ```
 
-把 **Request Body** 设为：
+把 **请求主体** 设为：
 
 ```json
 {
@@ -73,7 +73,7 @@ flowchart TB
 
 ### 测试，然后启用
 
-点击 **运行工作流**，在 **事件** 中选择一个测试事件，然后运行。**API Post (JSON)** 步骤会显示 `202` 响应，片刻之后告警会出现在 Opsgenie 中。然后在 **生成器** 顶部打开 **已启用**。
+点击 **运行工作流**，在 **事件** 中选择一个测试事件，然后运行。**API 调用 POST (JSON)** 步骤会显示 `202` 响应，片刻之后告警会出现在 Opsgenie 中。然后在 **生成器** 顶部打开 **已启用**。
 :::
 
 Opsgenie 的认证方式是单词 `GenieKey`、一个空格，然后是密钥。Opsgenie 把 `message` 限制为 130 个字符，它的优先级从 `P1` 到 `P5`：要发送每个事件自己的优先级，请参见 [映射优先级](#映射优先级)。
@@ -83,9 +83,9 @@ Opsgenie 的认证方式是单词 `GenieKey`、一个空格，然后是密钥。
 一个工作流只有一个触发器，因此关闭需要第二个工作流，在事件状态变化时启动。
 
 :::steps
-### 添加 On Update Incident 触发器
+### 添加“更新事件时”触发器
 
-创建一个名为 `Close Opsgenie alerts` 的工作流，选择 **On Update Incident** 作为触发器。在 **Fields to watch** 中点击 **添加字段** 并选择 **Current Incident State**，使它只在状态变化时运行。在 **Fields to pass on** 中请求新状态是否为已解决状态：点击 **添加字段**，展开 **Current Incident State** 并选择 **Is Resolved State**。也可以点击 **以 JSON 编辑**，把 JSON 替换为：
+创建一个名为 `Close Opsgenie alerts` 的工作流，选择 **更新事件时** 作为触发器。在 **要关注的字段** 中点击 **添加字段** 并选择 **Current Incident State**，使它只在状态变化时运行。在 **要传递的字段** 中请求新状态是否为已解决状态：点击 **添加字段**，展开 **Current Incident State** 并选择 **Is Resolved State**。也可以点击 **以 JSON 编辑**，把 JSON 替换为：
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -93,17 +93,17 @@ Opsgenie 的认证方式是单词 `GenieKey`、一个空格，然后是密钥。
 
 ### 检查事件是否已解决
 
-在触发器之后添加一个 **If / Else** 块。把 **Value to check** 设为 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`，**Comparison** 设为 **is true**。
+在触发器之后添加一个 **如果 / 否则** 块。把 **要检查的值** 设为 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`，**比较** 设为 **为真**。
 
 ### 关闭告警
 
-在 **Yes** 一侧之后添加一个 **API Post (JSON)** 块，使用相同的 **Request Headers** 和以下 **URL**：
+在 **是** 一侧之后添加一个 **API 调用 POST (JSON)** 块，使用相同的 **请求标头** 和以下 **URL**：
 
 ```text
 https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}/close?identifierType=alias
 ```
 
-把它的 **Request Body** 设为 `{ "source": "OneUptime", "note": "Resolved in OneUptime" }`。
+把它的 **请求主体** 设为 `{ "source": "OneUptime", "note": "Resolved in OneUptime" }`。
 
 ### 启用
 
@@ -114,10 +114,10 @@ https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-upda
 
 ## 映射优先级
 
-要把每个事件的严重程度作为 Opsgenie 优先级发送，请在触发器和 **API Post (JSON)** 块之间添加一个 **Run Custom JavaScript** 块。
+要把每个事件的严重程度作为 Opsgenie 优先级发送，请在触发器和 **API 调用 POST (JSON)** 块之间添加一个 **运行自定义 JavaScript** 块。
 
-1. 在触发器的 **Fields to pass on** 中点击 **添加字段**，展开 **事件严重性** 并选择 **名称**。
-2. 把该块的 **Arguments** 设为 `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`，**JavaScript Code** 设为：
+1. 在触发器的 **要传递的字段** 中点击 **添加字段**，展开 **事件严重性** 并选择 **名称**。
+2. 把该块的 **参数** 设为 `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`，**JavaScript 代码** 设为：
 
    ```javascript
    // Your incident severities, by name, to Opsgenie's priorities.
@@ -149,7 +149,7 @@ Opsgenie 在处理请求之前就回应 `202`，因此之后被拒绝的请求�
 :::
 
 :::details 工作流从未运行
-检查它是否已启用：它的 **生成器** 顶部的 **已启用**。然后打开 **日志 → 运行记录**：走了 **If / Else** 块 **No** 一侧的运行，是一次不是解决的更新。
+检查它是否已启用：它的 **生成器** 顶部的 **已启用**。然后打开 **日志 → 运行记录**：走了 **如果 / 否则** 块 **否** 一侧的运行，是一次不是解决的更新。
 :::
 
 ## 后续步骤

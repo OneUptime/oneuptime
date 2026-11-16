@@ -484,6 +484,30 @@ describe("the two-factor, topology, status page, SLO and workspace texts in ever
         "{{count}} min remaining_one",
         "\u2212{{count}} min over budget",
         "\u2212{{count}} min over budget_one",
+        /*
+         * A request SLO's budget line, in requests (#8441): each plural's
+         * general and one forms, and the one form on its own, as a keys
+         * root marks it.
+         */
+        "{{count}} failed request over budget",
+        "{{count}} failed request remaining",
+        "{{count}} failed requests over budget",
+        "{{count}} failed requests over budget_one",
+        "{{count}} failed requests remaining",
+        "{{count}} failed requests remaining_one",
+        "{{count}} slow request over budget",
+        "{{count}} slow request remaining",
+        "{{count}} slow requests over budget",
+        "{{count}} slow requests over budget_one",
+        "{{count}} slow requests remaining",
+        "{{count}} slow requests remaining_one",
+        // A Metric SLO's, in its metric's events (#8445).
+        "{{count}} bad event over budget",
+        "{{count}} bad event remaining",
+        "{{count}} bad events over budget",
+        "{{count}} bad events over budget_one",
+        "{{count}} bad events remaining",
+        "{{count}} bad events remaining_one",
       ].sort(),
     );
 

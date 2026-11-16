@@ -16,11 +16,11 @@ Abre un issue de [GitLab](https://gitlab.com) por cada incidente de OneUptime, p
 
 ```mermaid title="Un flujo de trabajo, un issue de GitLab"
 flowchart TB
-    declared["Incidente declarado"] --> workflow["Flujo de trabajo:<br/>On Create Incident"]
+    declared["Incidente declarado"] --> workflow["Flujo de trabajo:<br/>Al crear Incidente"]
     workflow -->|"POST issues"| issue["Issue de GitLab"]
 ```
 
-El flujo de trabajo se ejecuta una vez por cada incidente nuevo. Su bloque **API Post (JSON)** envía el título y la descripción del incidente a los issues del proyecto, firmados con un token de acceso.
+El flujo de trabajo se ejecuta una vez por cada incidente nuevo. Su bloque **Llamada a API POST (JSON)** envía el título y la descripción del incidente a los issues del proyecto, firmados con un token de acceso.
 
 ## Antes de empezar
 
@@ -47,11 +47,11 @@ Ve a **Flujos de trabajo**, haz clic en **Crear flujo de trabajo** y luego en **
 
 ### Añadir el disparador
 
-Haz clic en el bloque discontinuo **Elige qué inicia este flujo de trabajo** y elige **On Create Incident**. Haz clic en el disparador: sus **Fields to pass on** empiezan con **Título**, así que haz clic en **Añadir campo** y elige **Descripción** y **Número de incidente con prefijo**.
+Haz clic en el bloque discontinuo **Elige qué inicia este flujo de trabajo** y elige **Al crear Incidente**. Haz clic en el disparador: sus **Campos que pasar** empiezan con **Título**, así que haz clic en **Añadir campo** y elige **Descripción** y **Número de incidente con prefijo**.
 
 ### Abrir el issue
 
-Haz clic en **Añadir componente**, añade un bloque **API Post (JSON)** y conecta a él el punto **Success** del disparador. Pon su **URL** en `https://gitlab.com/api/v4/projects/12345678/issues`, con el ID de tu proyecto en lugar de `12345678`. En **Más campos**, pon sus **Request Headers** en:
+Haz clic en **Añadir componente**, añade un bloque **Llamada a API POST (JSON)** y conecta a él el punto **Éxito** del disparador. Pon su **URL** en `https://gitlab.com/api/v4/projects/12345678/issues`, con el ID de tu proyecto en lugar de `12345678`. En **Más campos**, pon sus **Encabezados de la solicitud** en:
 
 ```json
 {
@@ -59,7 +59,7 @@ Haz clic en **Añadir componente**, añade un bloque **API Post (JSON)** y conec
 }
 ```
 
-Y su **Request Body** en:
+Y su **Cuerpo de la solicitud** en:
 
 ```json
 {
@@ -71,7 +71,7 @@ Y su **Request Body** en:
 
 ### Probarlo y luego activarlo
 
-Haz clic en **Ejecutar flujo de trabajo**, elige un incidente de prueba en **Incidente** y ejecútalo. El paso **API Post (JSON)** muestra una respuesta `201` con el nuevo issue, con su `iid` y su `web_url`. Después activa **Habilitado** en la parte superior del **Constructor**.
+Haz clic en **Ejecutar flujo de trabajo**, elige un incidente de prueba en **Incidente** y ejecútalo. El paso **Llamada a API POST (JSON)** muestra una respuesta `201` con el nuevo issue, con su `iid` y su `web_url`. Después activa **Habilitado** en la parte superior del **Constructor**.
 :::
 
 El bloque envía JSON, así que no necesita ninguna cabecera `Content-Type`. GitLab crea las etiquetas que aún no conoce, así que `incident` y `oneuptime` no necesitan ninguna preparación. El issue sigue abierto cuando el incidente se resuelve, porque el trabajo de seguimiento suele durar más que el incidente.
@@ -81,11 +81,11 @@ El bloque envía JSON, así que no necesita ninguna cabecera `Content-Type`. Git
 - **Un GitLab propio.** Envía la solicitud a tu servidor en su lugar: `https://gitlab.example.com/api/v4/projects/12345678/issues`. Un servidor en una dirección de red privada necesita un OneUptime autoalojado cuyo administrador lo permita: consulta [Acceso de red saliente](/docs/workflows/configuration#acceso-de-red-saliente).
 - **La ruta del proyecto en lugar de su ID.** La ruta funciona en lugar del ID, con su `/` escrita como `%2F`: `projects/your-group%2Fyour-project/issues`. La URL se envía exactamente como está escrita, así que codifícala tú.
 - **Asígnalo.** Añade `"assignee_ids": [42]` o `"due_date": "2026-12-31"` al cuerpo, o `"confidential": true` para mostrarlo solo a los miembros del proyecto.
-- **Solo algunos incidentes.** Pon un bloque **If / Else** entre el disparador y el bloque de API, y abre issues solo en su lado **Yes**, por ejemplo para una gravedad.
+- **Solo algunos incidentes.** Pon un bloque **Si / Si no** entre el disparador y el bloque de API, y abre issues solo en su lado **Sí**, por ejemplo para una gravedad.
 
 ## Solución de problemas
 
-El paso **API Post (JSON)** toma **Error** cuando GitLab rechaza la solicitud. Sus **Response Status** y **Response Body** en la ejecución dicen por qué.
+El paso **Llamada a API POST (JSON)** toma **Error** cuando GitLab rechaza la solicitud. Sus **Estado de la respuesta** y **Cuerpo de la respuesta** en la ejecución dicen por qué.
 
 :::details GitLab responde 401
 El token es incorrecto, caducó o se revocó. Crea uno nuevo y sustituye el contenido de `GITLAB_TOKEN`.

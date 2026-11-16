@@ -67,13 +67,13 @@ Abre **Productos → Eventos de seguridad**, en **Seguridad**. Su menú tiene un
 
 ## Antes de empezar
 
-Los datos de seguridad solo los leen los roles Project Owner y Project Admin y los tres roles de seguridad; los demás roles no ven nada en Eventos de seguridad. Consulta [Roles](/docs/permissions/reference#roles).
+Los datos de seguridad solo los leen los roles Propietario del proyecto y Administrador del proyecto y los tres roles de seguridad; los demás roles no ven nada en Eventos de seguridad. Consulta [Roles](/docs/permissions/reference#roles).
 
 | Rol | Qué puede hacer |
 | --- | --- |
-| Security Admin | Todo: eventos, casos, playbooks, reglas de detección, feeds de inteligencia de amenazas y conexiones |
-| Security Member | Leer eventos e inteligencia de amenazas, gestionar casos, ejecutar playbooks y aprobar sus pasos, y crear, cambiar y eliminar reglas de detección y feeds. No puede configurar playbooks ni conexiones, ni eliminar datos de seguridad. |
-| Security Viewer | Leer eventos, casos, playbooks, reglas, feeds, indicadores y conexiones |
+| Administrador de seguridad | Todo: eventos, casos, playbooks, reglas de detección, feeds de inteligencia de amenazas y conexiones |
+| Miembro de seguridad | Leer eventos e inteligencia de amenazas, gestionar casos, ejecutar playbooks y aprobar sus pasos, y crear, cambiar y eliminar reglas de detección y feeds. No puede configurar playbooks ni conexiones, ni eliminar datos de seguridad. |
+| Visor de seguridad | Leer eventos, casos, playbooks, reglas, feeds, indicadores y conexiones |
 
 ## Enviar eventos de seguridad
 
@@ -305,7 +305,7 @@ Una cacería es una búsqueda sobre tus eventos de seguridad guardada con un nom
 
 En **Eventos**, busca y filtra hasta que la lista muestre lo que buscas, luego abre **Cacerías** en la barra de herramientas y elige **Guardar como cacería**. Ponle un nombre, elige si se ejecuta según una programación, y se abre su página. **Eventos → Cacerías** lista las cacerías del proyecto, cada una con su búsqueda, con qué frecuencia se ejecuta, a quién avisa y qué encontró su última ejecución; **Crear Cacería** toma ahí la búsqueda tal como la escribirías en **Eventos**. Un proyecto guarda hasta 200 cacerías. Una búsqueda puede leer una [lista de seguimiento](#listas-de-seguimiento), como hace `user:%vip_users%`, y una cacería que lee una lista que el proyecto no tiene se rechaza al guardarla.
 
-La página de una cacería es su búsqueda, abierta en el explorador de eventos. Cambia ahí la búsqueda o los filtros, y la cabecera de la cacería ofrece **Guardar cambios** y **Descartar cambios**. **Editar** cambia su nombre, su búsqueda, hasta dónde mira hacia atrás, su programación y a quién avisa, y **Eliminar cacería** está en su menú. Desde Security Member se pueden guardar, cambiar y eliminar cacerías, y un Security Viewer puede abrirlas.
+La página de una cacería es su búsqueda, abierta en el explorador de eventos. Cambia ahí la búsqueda o los filtros, y la cabecera de la cacería ofrece **Guardar cambios** y **Descartar cambios**. **Editar** cambia su nombre, su búsqueda, hasta dónde mira hacia atrás, su programación y a quién avisa, y **Eliminar cacería** está en su menú. Desde Miembro de seguridad se pueden guardar, cambiar y eliminar cacerías, y un Visor de seguridad puede abrirlas.
 
 Una cacería guardada con filtros de la barra lateral de Eventos los muestra en **Editar** bajo **Filtros**, como los dibuja Eventos, cada uno con una x para quitarlo. Añade filtros en la página de la cacería, desde la barra lateral.
 
@@ -340,7 +340,7 @@ Cada ejecución programada se guarda 90 días. **Historial de ejecuciones**, al 
 
 La notificación **Una cacería encontró eventos de seguridad** nombra la cacería y su búsqueda, cuántos eventos encontró su ejecución y la ventana que leyó, y enlaza a la página de la cacería con esos eventos; no incluye ninguna palabra de los eventos. Todos la reciben por correo y push, y eligen sus canales en **Ajustes de usuario → Ajustes de notificaciones**. Como otros correos de rutina, puede retenerse en un [resumen de correos](/docs/emails/notification-rollup).
 
-Para publicar en Slack, Microsoft Teams o Mattermost lo que encuentran las cacerías, añade una regla a **Reglas de cacerías** en **Productos → Eventos de seguridad → Espacio de trabajo → Slack** (o **Microsoft Teams** o **Mattermost**), debajo de las reglas que publican los [casos de seguridad](/docs/telemetry/security-cases#publicar-en-canales-de-slack-microsoft-teams-y-mattermost). Una regla nombra los canales en los que publicar (y, en Microsoft Teams, los chats) y, si quieres, las cacerías a las que se aplica, por **Nombre de la cacería**: un nombre que es tu texto, lo contiene, empieza o termina con él. Cada vez que una ejecución programada encuentra eventos, publica la cacería, su búsqueda, cuántos eventos y cuándo, con un enlace a ellos, y ninguna de las palabras propias de un evento. Una regla de cacerías la configura un rol que puede configurar playbooks de seguridad, como Project Owner, Project Admin o Security Admin.
+Para publicar en Slack, Microsoft Teams o Mattermost lo que encuentran las cacerías, añade una regla a **Reglas de cacerías** en **Productos → Eventos de seguridad → Espacio de trabajo → Slack** (o **Microsoft Teams** o **Mattermost**), debajo de las reglas que publican los [casos de seguridad](/docs/telemetry/security-cases#publicar-en-canales-de-slack-microsoft-teams-y-mattermost). Una regla nombra los canales en los que publicar (y, en Microsoft Teams, los chats) y, si quieres, las cacerías a las que se aplica, por **Nombre de la cacería**: un nombre que es tu texto, lo contiene, empieza o termina con él. Cada vez que una ejecución programada encuentra eventos, publica la cacería, su búsqueda, cuántos eventos y cuándo, con un enlace a ellos, y ninguna de las palabras propias de un evento. Una regla de cacerías la configura un rol que puede configurar playbooks de seguridad, como Propietario del proyecto, Administrador del proyecto o Administrador de seguridad.
 
 ### Guardar eventos en un caso
 
@@ -543,7 +543,7 @@ Una excepción es algo que una regla omite porque lo esperas, como un escáner d
 
 - Los valores coinciden sin importar mayúsculas y minúsculas, y `*` representa cualquier serie de caracteres: `svc-*` omite cada cuenta de servicio, y `*.lab.example.com` cada host de un dominio. Una dirección IP puede ser un rango, como `10.20.0.0/16`. Un valor formado solo por `*` se rechaza: para detener una regla, desactívala.
 - Cada excepción dice por qué en su **Motivo**, que ve todo el que lee la lista, y guarda quién la añadió y cuándo. Una entidad o un valor puede tener una fecha en **Caduca el**, tras la cual la regla vuelve a verlo; una ventana de tiempo termina sola.
-- **Estado** dice en qué punto está cada una: **Activo**, **Próximos** para una ventana que aún no ha empezado, **Caducado** o **Finalizado**. Bajo el nombre de una regla en **Reglas de detección**, una línea cuenta sus excepciones activas, y **Ver excepciones** en la fila de la regla abre la lista filtrada por ella.
+- **Estado** dice en qué punto está cada una: **Activo**, **Programado** para una ventana que aún no ha empezado, **Caducado** o **Finalizado**. Bajo el nombre de una regla en **Reglas de detección**, una línea cuenta sus excepciones activas, y **Ver excepciones** en la fila de la regla abre la lista filtrada por ella.
 - Los eventos omitidos se descartan antes de que la regla cuente nada, así que nunca cuentan para su **Umbral de número de coincidencias** y no abren ningún caso, alerta, incidente ni hallazgo. Las excepciones se aplican a cada ejecución de la regla, correlaciones incluidas, y a **Ejecutar sobre eventos pasados**, pero nunca a un ataque de prueba, que comprueba que los eventos llegan.
 - Una regla tiene como máximo 100 excepciones. Quien puede editar reglas de detección las añade, las cambia y las elimina, cualquier rol de Security puede leerlas, y cada cambio queda en el registro de auditoría del proyecto.
 

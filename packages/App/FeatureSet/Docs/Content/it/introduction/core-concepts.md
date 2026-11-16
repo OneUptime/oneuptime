@@ -132,7 +132,7 @@ La **manutenzione programmata** annuncia in anticipo i lavori previsti. Un event
 
 ## Telemetria
 
-La **telemetria** è ciò che i tuoi sistemi inviano a OneUptime: log, metriche, tracce, eccezioni e profili. Le applicazioni la inviano con OpenTelemetry, e gli agenti di OneUptime la inviano da host, cluster Kubernetes, host Docker e dal resto dell'infrastruttura. Ogni mittente usa una **chiave di acquisizione**, creata in **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione**. Cerchi nella telemetria, la rappresenti nelle dashboard e la tieni sotto controllo con i monitor di telemetria, che aprono incidenti e avvisi come qualsiasi altro monitor. Nel menu, **Registri**, **Metriche**, **Tracce**, **Profili** ed **Eccezioni** aprono ciascuno un tipo; **IA / LLM** segue le conversazioni della tua IA, **Osservabilità dei dati** tiene sotto controllo le tabelle dei tuoi database e **Topologia** mostra come tutto si collega.
+La **telemetria** è ciò che i tuoi sistemi inviano a OneUptime: log, metriche, tracce, eccezioni e profili. Le applicazioni la inviano con OpenTelemetry, e gli agenti di OneUptime la inviano da host, cluster Kubernetes, host Docker e dal resto dell'infrastruttura. Ogni mittente usa una **chiave di acquisizione**, creata in **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione**. Cerchi nella telemetria, la rappresenti nelle dashboard e la tieni sotto controllo con i monitor di telemetria, che aprono incidenti e avvisi come qualsiasi altro monitor. Nel menu, **Log**, **Metriche**, **Tracce**, **Profili** ed **Eccezioni** aprono ciascuno un tipo; **IA / LLM** segue le conversazioni della tua IA, **Osservabilità dei dati** tiene sotto controllo le tabelle dei tuoi database e **Topologia** mostra come tutto si collega.
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Inviare log, metriche e tracce dalle tue applicazioni.
@@ -170,7 +170,7 @@ Una chiave di acquisizione serve solo a inviare telemetria. Una **chiave API** �
 - **OneUptime AI** indaga sui nuovi incidenti e avvisi e pubblica ciò che ha trovato nella loro cronologia, e **Chiedi all'IA** risponde alle domande sul tuo progetto. Un nuovo progetto parte con l'IA attiva; l'interruttore **Abilita IA** in **Impostazioni del progetto → IA → Funzionalità IA** la disattiva del tutto.
 
 :::cards
-- [Panoramica dei workflow](/docs/workflows/index): Automatizzare azioni con trigger e componenti.
+- [Panoramica dei flussi di lavoro](/docs/workflows/index): Automatizzare azioni con trigger e componenti.
 - [AI SRE](/docs/ai/ai-sre): Come OneUptime AI indaga su incidenti e avvisi.
 :::
 
@@ -206,6 +206,6 @@ Le regole proprie di un monitor sono i suoi criteri. Le regole di reperibilità 
 :::cards
 - [Guida rapida](/docs/introduction/quickstart): Mettere in pratica queste idee in quindici minuti.
 - [Glossario](/docs/introduction/glossary): Ogni parola che OneUptime usa, in una o due frasi.
-- [Quale usare?](/docs/introduction/which-one): Incidente o avviso, workflow o runbook, e gli altri elementi simili.
+- [Quale usare?](/docs/introduction/which-one): Incidente o avviso, flussi di lavoro o runbook, e gli altri elementi simili.
 - [Panoramica degli incidenti](/docs/incidents/index): Cosa succede dopo che un monitor dichiara un incidente.
 :::

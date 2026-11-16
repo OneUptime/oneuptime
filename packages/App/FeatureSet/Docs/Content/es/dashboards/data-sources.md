@@ -24,7 +24,7 @@ flowchart TB
 ## Antes de empezar
 
 - **Un plan que la incluya.** En OneUptime Cloud, crear y cambiar fuentes de datos requiere el plan **Growth**. Eliminar una funciona en todos los planes.
-- **Un permiso para añadirlas.** Los propietarios y administradores del proyecto pueden añadir fuentes de datos; los demás necesitan `CreateDataSource`, con `EditDataSource` y `DeleteDataSource` para cambiarlas y eliminarlas. Todos los que pueden leer las fuentes de datos del proyecto, miembros y observadores incluidos, ven los datos de sus widgets.
+- **Un permiso para añadirlas.** Los Propietarios del proyecto y Administradores del proyecto pueden añadir fuentes de datos; los demás necesitan `CreateDataSource`, con `EditDataSource` y `DeleteDataSource` para cambiarlas y eliminarlas. Todos los que pueden leer las fuentes de datos del proyecto, miembros y observadores incluidos, ven los datos de sus widgets.
 - **Una cuenta de solo lectura.** Los paneles solo leen. Conecta las bases de datos con una cuenta que solo pueda leer, y las fuentes HTTP con un token que solo pueda consultar.
 - **Un camino de entrada.** El servidor de API de OneUptime se conecta a tu sistema, así que debe poder alcanzarlo: consulta [Seguridad](#seguridad) para ver las direcciones que se rechazan.
 
@@ -77,7 +77,7 @@ Edita un panel, haz clic en **Añadir widget** y elige un widget del grupo Fuent
 
 - Elige la **Fuente de datos** y escribe la **Consulta**. El editor indica el lenguaje de consulta y muestra un ejemplo para el tipo.
 - En un gráfico, **Añadir consulta** superpone más consultas en los mismos ejes, y **Leyenda (opcional)** nombra cada serie a partir de sus etiquetas: `{{instance}} — errors` escribe delante la etiqueta `instance` de la serie.
-- En un valor o un indicador, **Reduce** convierte los puntos en un solo número: el último valor (el predeterminado), el primero, la media, la suma, el mínimo o el máximo. **Unidad** añade un sufijo, y escala las unidades conocidas: `Bytes` se lee como 1.5 MB, y `ms` como 2.4 s.
+- En un valor o un indicador, **Reducir** convierte los puntos en un solo número: el último valor (el predeterminado), el primero, la media, la suma, el mínimo o el máximo. **Unidad** añade un sufijo, y escala las unidades conocidas: `Bytes` se lee como 1.5 MB, y `ms` como 2.4 s.
 - En una tabla, cualquier consulta de solo lectura funciona, y sus filas se muestran tal como llegan.
 
 ## Escribir una consulta

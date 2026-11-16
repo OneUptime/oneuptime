@@ -32,6 +32,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 /*
  * What the agent's traces profile would have sent for a real signed boot, through the real OTLP
@@ -116,7 +117,7 @@ describe.each(getRecordedTraceReleases())(
     const recording: OpenStackTraceRecording = new OpenStackTraceRecording(
       release,
     );
-    let insert: jest.SpiedFunction<typeof SpanService.insertJsonRows>;
+    let insert: SpyInstance<typeof SpanService.insertJsonRows>;
 
     beforeAll(() => {
       TelemetryFanInWriter.configure({
@@ -185,7 +186,7 @@ describe.each(getRecordedTraceReleases())(
 
       insert = jest
         .spyOn(SpanService, "insertJsonRows")
-        .mockResolvedValue(undefined as never) as unknown as jest.SpiedFunction<
+        .mockResolvedValue(undefined as never) as unknown as SpyInstance<
         typeof SpanService.insertJsonRows
       >;
     });

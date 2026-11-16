@@ -24,7 +24,7 @@ flowchart TB
 ## Før du begynder
 
 - **Et abonnement, der omfatter det.** På OneUptime Cloud kræver oprettelse og ændring af datakilder abonnementet **Growth**. Sletning af en virker på alle abonnementer.
-- **En tilladelse til at tilføje dem.** Projektejere og -administratorer kan tilføje datakilder; alle andre skal have `CreateDataSource`, med `EditDataSource` og `DeleteDataSource` til at ændre og fjerne dem. Alle, der kan læse projektets datakilder, også medlemmer og seere, ser deres widgets' data.
+- **En tilladelse til at tilføje dem.** Projektejere og Projektadministratorer kan tilføje datakilder; alle andre skal have `CreateDataSource`, med `EditDataSource` og `DeleteDataSource` til at ændre og fjerne dem. Alle, der kan læse projektets datakilder, også medlemmer og seere, ser deres widgets' data.
 - **En skrivebeskyttet konto.** Dashboards læser kun. Forbind databaser med en konto, der kun kan læse, og HTTP-kilder med et token, der kun kan forespørge.
 - **En vej ind.** Det er OneUptimes API-server, der forbinder til dit system, så den skal kunne nå det: se [Sikkerhed](#sikkerhed) for de adresser, der afvises.
 
@@ -50,7 +50,7 @@ flowchart TB
 
 ### Vælg typen
 
-Klik på **Opret Data Source**. Dialogen **Choose a Data Source Type** grupperer typerne efter, hvad de indeholder: metrikker, logs, databaser, søgning og API'er. Klik på en.
+Klik på **Opret Datakilde**. Dialogen **Choose a Data Source Type** grupperer typerne efter, hvad de indeholder: metrikker, logs, databaser, søgning og API'er. Klik på en.
 
 ### Giv den et navn
 
@@ -58,15 +58,15 @@ Under **Grundlæggende oplysninger** giver du den et **Navn**, for eksempel "Pro
 
 ### Angiv, hvor den er
 
-Under **Forbindelse** får en HTTP-kilde den **URL**, den svarer på. En database får sin **Database Host**, sin **Database Port** (lad den være tom for 5432, 3306, 1433 eller 8123) og sit **Databasenavn**.
+Under **Forbindelse** får en HTTP-kilde den **URL**, den svarer på. En database får sin **Databasevært**, sin **Databaseport** (lad den være tom for 5432, 3306, 1433 eller 8123) og sit **Databasenavn**.
 
 ### Angiv, hvordan der logges ind
 
-Under **Godkendelse** indtaster du et **Brugernavn** og en **Adgangskode** eller, for en HTTP-kilde, et **API-token**, der sendes som bearer-token. **Flere felter** indeholder **Custom HTTP Headers**, for eksempel `{ "X-Scope-OrgID": "tenant-1" }`, og **Additional Options**: `sslEnabled` og `sslRejectUnauthorized` til databaser og `elasticsearchIndex` til Elasticsearch, som uden den læser alle indeks (`*`).
+Under **Godkendelse** indtaster du et **Brugernavn** og en **Adgangskode** eller, for en HTTP-kilde, et **API-token**, der sendes som bearer-token. **Flere felter** indeholder **Brugerdefinerede HTTP-headere**, for eksempel `{ "X-Scope-OrgID": "tenant-1" }`, og **Yderligere indstillinger**: `sslEnabled` og `sslRejectUnauthorized` til databaser og `elasticsearchIndex` til Elasticsearch, som uden den læser alle indeks (`*`).
 
 ### Test den
 
-Klik på **Opret Data Source** og derefter på **Test** i dens række. OneUptime forbinder med de oplysninger, du har givet, og fortæller, om det virkede, eller hvad der gik galt.
+Klik på **Opret Datakilde** og derefter på **Test** i dens række. OneUptime forbinder med de oplysninger, du har givet, og fortæller, om det virkede, eller hvad der gik galt.
 :::
 
 For at ændre en datakilde senere åbner du den fra listen. **Rediger** på **Data Source Details** ændrer alt undtagen dens hemmeligheder; **Opdater legitimationsoplysninger** erstatter adgangskoden, tokenet eller headerne og lader de felter, du lader stå tomme, være, som de var; **Test** tjekker den igen.
@@ -75,9 +75,9 @@ For at ændre en datakilde senere åbner du den fra listen. **Rediger** på **Da
 
 Rediger et dashboard, klik på **Tilføj widget**, og vælg en widget fra gruppen Eksterne datakilder: et **Diagram**, en **Værdi**, en **Måler** eller en **Tabel**. I dens indstillinger:
 
-- Vælg **Data Source**, og skriv **Forespørgsel**. Editoren navngiver forespørgselssproget og viser et eksempel for typen.
+- Vælg **Datakilde**, og skriv **Forespørgsel**. Editoren navngiver forespørgselssproget og viser et eksempel for typen.
 - På et diagram lægger **Tilføj forespørgsel** flere forespørgsler på de samme akser, og **Legend (optional)** navngiver hver serie ud fra dens etiketter: `{{instance}} — errors` skriver seriens etiket `instance` forrest.
-- På en værdi eller en måler gør **Reduce** punkterne til ét tal: den seneste værdi (standard), den første, gennemsnittet, summen, minimum eller maksimum. **Enhed** tilføjer et suffiks og skalerer de kendte enheder: `Bytes` læses som 1.5 MB, `ms` som 2.4 s.
+- På en værdi eller en måler gør **Saml** punkterne til ét tal: den seneste værdi (standard), den første, gennemsnittet, summen, minimum eller maksimum. **Enhed** tilføjer et suffiks og skalerer de kendte enheder: `Bytes` læses som 1.5 MB, `ms` som 2.4 s.
 - På en tabel virker enhver skrivebeskyttet forespørgsel, og dens rækker vises, som de kommer tilbage.
 
 ## Skriv en forespørgsel
@@ -162,14 +162,14 @@ Intervalforespørgsler til Prometheus og Loki beder om omkring 250 punkter over 
 ## Sikkerhed
 
 - **SQL forbliver skrivebeskyttet.** En forespørgsel skal være én sætning, der starter med `SELECT`, `WITH`, `SHOW`, `EXPLAIN`, `DESCRIBE` eller `DESC`. Ord, der skriver eller ændrer en session, for eksempel `INSERT`, `UPDATE`, `DELETE`, `DROP`, `INTO` eller `SET`, afvises overalt uden for strenge og citerede navne, så sæt en kolonne, der hedder som et af dem, i anførselstegn. Skriv et anførselstegn i en streng som to anførselstegn (`''`): en omvendt skråstreg før et anførselstegn afvises. Sessioner i PostgreSQL, MySQL og ClickHouse er også skrivebeskyttede. SQL Server har ingen skrivebeskyttet session, så forbind den med et skrivebeskyttet login.
-- **Loginoplysninger kan kun skrives.** **Adgangskode**, **API-token** og **Custom HTTP Headers** krypteres, når de er gemt, og API'et returnerer dem aldrig, heller ikke til dig.
+- **Loginoplysninger kan kun skrives.** **Adgangskode**, **API-token** og **Brugerdefinerede HTTP-headere** krypteres, når de er gemt, og API'et returnerer dem aldrig, heller ikke til dig.
 - **Adresser kontrolleres.** Loopback-, link-local- (hvor cloud-metadata ligger) og andre reserverede adresser afvises overalt. Private adresser afvises på OneUptime Cloud og tillades på en selvhostet installation, medmindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` er `true`: se [Adgang til privat netværk](/docs/self-hosted/private-network-access).
 - **Offentlige dashboards kører dem aldrig.** Widgets fra Eksterne datakilder udelades fra et [offentligt dashboard](/docs/dashboards/sharing), forespørgsler og det hele.
 
 ## Fejlfinding
 
 :::details Test siger, at der ikke kan oprettes forbindelse
-Tjek URL'en, eller værten og porten, fra der, hvor OneUptime kører: en firewall, en privat adresse på OneUptime Cloud eller en database, der kun lytter på sin egen maskine, ser ens ud herfra. For en database, der kræver TLS, tilføjer du `{ "sslEnabled": true }` under **Additional Options**.
+Tjek URL'en, eller værten og porten, fra der, hvor OneUptime kører: en firewall, en privat adresse på OneUptime Cloud eller en database, der kun lytter på sin egen maskine, ser ens ud herfra. For en database, der kræver TLS, tilføjer du `{ "sslEnabled": true }` under **Yderligere indstillinger**.
 :::
 
 :::details "Only read-only queries are allowed"

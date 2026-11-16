@@ -58,7 +58,7 @@ export const SIGN_IN_WITH_PROVIDER: string = translationKey(
 );
 
 export const NO_PROVIDER_HELP: string = translationKey(
-  "This project has no single sign-on provider you can use to log in. Ask a project admin to enable one.",
+  "This project has no single sign-on provider you can use to log in. Ask a Project Admin to enable one.",
 );
 
 // The project's sign-in providers, on the identity server.

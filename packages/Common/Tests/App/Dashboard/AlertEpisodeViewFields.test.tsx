@@ -167,6 +167,17 @@ import AlertEpisodeOwnerUser from "../../../Models/DatabaseModels/AlertEpisodeOw
 import Team from "../../../Models/DatabaseModels/Team";
 import { EventStatusFact } from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventStatusPanel";
 import { getEventStartTileText } from "../../../../App/FeatureSet/Dashboard/src/Utils/EventOverview";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo([
+  "/on-call-page/pass-on/alert-episode/*",
+  "/workspace-channel-link/alert-episode/*",
+]);
 
 const pageProps: PageComponentProps = {
   pageRoute: new Route("/alerts"),
@@ -1027,8 +1038,8 @@ describe("Alert Episode overview: loading and layout", () => {
       expect(screen.getByText("Triaged in")).toBeInTheDocument();
     });
 
-    expect(statValue("Triaged in")).toBe("42 minutes");
-    expect(statValue("Fixed in")).toBe("2 hours, 5 minutes");
+    expect(statValue("Triaged in")).toBe("42\u00A0minutes");
+    expect(statValue("Fixed in")).toBe("2\u00A0hours, 5\u00A0minutes");
     expect(statValue("Created")).toBe(getEventStartTileText(startedAt));
     expect(statValue("Alerts")).toBe("3");
   });

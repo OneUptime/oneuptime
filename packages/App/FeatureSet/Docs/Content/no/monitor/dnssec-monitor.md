@@ -1,4 +1,4 @@
-# DNSSEC-overvåking
+# DNSSEC-monitor
 
 En DNSSEC-monitor sjekker at en signert DNS-sone fortsatt validerer: at den publiserer nøklene sine, at den overordnede sonen går god for den, at signaturene ikke har utløpt, og at validerende løsere godtar den. Bruk den til å fange opp en brutt tillitskjede før løsere begynner å svare `SERVFAIL` for domenet ditt.
 
@@ -41,7 +41,7 @@ En signatur med mindre enn en dag igjen regnes allerede som brutt, så du får v
 
 ## Før du starter
 
-- **En rolle som kan opprette monitorer**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member, eller en egendefinert rolle med tillatelsen Create Monitor.
+- **En rolle som kan opprette monitorer**: Prosjekteier, Prosjektadministrator, Prosjektmedlem, Monitoradministrator eller Monitormedlem, eller en egendefinert rolle med tillatelsen Create Monitor.
 - **En signert sone.** Sonen må være signert, og DS-posten dens publisert i den overordnede sonen via registraren din.
 - **Utgående DNS fra sonden** til løserne du angir, og, for sjekken av navneserverkonsistens, til sonens autoritative navneservere. Prosjektets standardsonder velges for hver nye monitor.
 
@@ -62,7 +62,7 @@ Angi sonen som skal valideres, i **Sone (domenenavn)**, som `example.com`. Behol
 
 ### Test den
 
-Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av overvåkingstest** viser hva hver sjekk fant.
+Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av monitortest** viser hva hver sjekk fant.
 
 ### Gå gjennom kriteriene
 
@@ -103,7 +103,7 @@ Med to eller flere filtre avgjør **Samsvarsbetingelse** om **Alle** må samsvar
 
 En ny DNSSEC-monitor starter med to kriterier:
 
-- **Kjeden er brutt** — **DNSSEC-kjeden er gyldig** er **Usann**. Monitoren merkes som **Frakoblet**, og det opprettes en hendelse med navnet "_monitor name_ DNSSEC chain is broken". Hendelsen løser seg selv når kjeden er gyldig igjen.
+- **Kjeden er brutt** — **DNSSEC-kjeden er gyldig** er **Usann**. Monitoren merkes som **Frakoblet**, og det opprettes en hendelse med navnet "DNSSEC-kjeden for _monitornavn_ er brutt". Hendelsen løser seg selv når kjeden er gyldig igjen.
 - **Kjeden er gyldig** — monitoren merkes som **I drift**.
 
 Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva som skjer. Når ingen samsvarer, viser monitoren standardstatusen sin: **I drift**, med mindre du velger en annen under **Flere felt** under kriteriene.
@@ -130,7 +130,7 @@ Standardkriteriene følger ikke selv med på signaturutløp eller navneserverkon
 ## Feilsøking
 
 :::details Kjeden rapporteres som brutt, men sonen validerer med `dig`
-En av løserne i **Løsere** returnerte ikke AD-flagget: den kunne ikke nås fra sonden, eller den validerer ikke DNSSEC. Tabellen **Resolver-sjekker**, i **Resultat av overvåkingstest** og i oppsummeringen av hver sjekk, viser hver løsers svar og feil. Fjern løsere sonden ikke kan nå, og angi bare validerende løsere.
+En av løserne i **Løsere** returnerte ikke AD-flagget: den kunne ikke nås fra sonden, eller den validerer ikke DNSSEC. Tabellen **Resolver-sjekker**, i **Resultat av monitortest** og i oppsummeringen av hver sjekk, viser hver løsers svar og feil. Fjern løsere sonden ikke kan nå, og angi bare validerende løsere.
 :::
 
 :::details Navneservere rapporteres som inkonsistente rett etter en endring
@@ -144,8 +144,8 @@ Alle spørringene i ett forsøk deler tre ganger **Tidsavbrudd (ms)**. En treg e
 ## Neste steg
 
 :::cards
-- [DNS-overvåking](/docs/monitor/dns-monitor): Sjekk at et navn kan slås opp, og hva postene sier.
-- [Domene-overvåking](/docs/monitor/domain-monitor): Følg med på domenets registrering og utløp.
-- [SSL-sertifikat-overvåking](/docs/monitor/ssl-certificate-monitor): Følg med på sertifikatene som leveres på domenet.
+- [DNS-monitor](/docs/monitor/dns-monitor): Sjekk at et navn kan slås opp, og hva postene sier.
+- [Domene-monitor](/docs/monitor/domain-monitor): Følg med på domenets registrering og utløp.
+- [SSL-sertifikat-monitor](/docs/monitor/ssl-certificate-monitor): Følg med på sertifikatene som leveres på domenet.
 - [Hendelser – Oversikt](/docs/incidents/index): Hva som skjer etter at monitoren har erklært en.
 :::

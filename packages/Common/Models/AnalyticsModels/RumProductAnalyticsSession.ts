@@ -75,8 +75,34 @@ export const PRODUCT_ANALYTICS_SOURCE_OS_SQL: string = `multiIf(osName = 'Unknow
 /* A mobile app reports its version as the browser version; a web page has none. */
 export const PRODUCT_ANALYTICS_SOURCE_APP_VERSION_SQL: string = `if(recorderKind = 'rn-view-tree' AND browserVersion != 'unknown', toString(browserVersion), '')`;
 
-/* The path of the first page (app://<app>/<screen> for a mobile app). */
-export const PRODUCT_ANALYTICS_SOURCE_ENTRY_PAGE_SQL: string = `path(entryUrl)`;
+/*
+ * The page a stored URL is, as product analytics names a page everywhere
+ * else (toProductAnalyticsPage, the browser recorder's page views): its
+ * path, and for a hash router the route the scrubber keeps in the fragment
+ * ("#/orders", "#!/orders"), after the page's own path without its last
+ * "/": "https://shop.example.com/#/orders/42" is "/orders/42", and
+ * ".../app/#!/cart" is "/app/cart". path() alone stops at the fragment, so
+ * every session of a hash-routed app was filed under "/" (#8194).
+ *
+ * The scrubber keeps no other fragment and no query inside a route; the
+ * route's query is left out all the same, as toProductAnalyticsPage leaves
+ * it. A mobile screen is the path of its address: "/Checkout" for
+ * "app://<app>/Checkout", and for the "null/Checkout" a mobile session was
+ * stored as before #8384, whose path() ClickHouse reads as "/Checkout".
+ *
+ * `url` is a column or a lambda argument, never a request's value.
+ */
+export function productAnalyticsPageOfUrlSql(url: string): string {
+  const fragment: string = `fragment(${url})`;
+  const route: string = `splitByChar('?', multiIf(startsWith(${fragment}, '/'), ${fragment}, startsWith(${fragment}, '!/'), substring(${fragment}, 2), ''))[1]`;
+  const path: string = `path(${url})`;
+
+  return `if(${route} = '', ${path}, concat(if(endsWith(${path}, '/'), substring(${path}, 1, length(${path}) - 1), ${path}), ${route}))`;
+}
+
+/* The first page, as productAnalyticsPageOfUrlSql names it. */
+export const PRODUCT_ANALYTICS_SOURCE_ENTRY_PAGE_SQL: string =
+  productAnalyticsPageOfUrlSql("entryUrl");
 
 /*
  * The frustration total Session Replay counts: the four built-in signals
@@ -215,7 +241,7 @@ const MEASURES: Array<MeasureDefinition> = [
     key: "entryPage",
     title: "Entry Page",
     description:
-      "Path of the session's first page, as the recorder scrubbed it",
+      "The session's first page, as the recorder scrubbed it: its path, and a hash router's route after it",
     type: TableColumnType.Text,
     simpleAggregateFunction: "max",
   },
@@ -223,7 +249,7 @@ const MEASURES: Array<MeasureDefinition> = [
     key: "pages",
     title: "Pages",
     description:
-      "Distinct scrubbed paths the session visited (at most the 500 the finalizer keeps)",
+      "Distinct scrubbed addresses the session visited (its routes, at most the 500 the finalizer keeps); the reads name each by its page",
     type: TableColumnType.ArrayText,
     simpleAggregateFunction: "groupUniqArrayArray",
   },

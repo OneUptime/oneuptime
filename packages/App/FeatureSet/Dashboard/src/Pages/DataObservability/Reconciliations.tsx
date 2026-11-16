@@ -1,4 +1,5 @@
 import PageComponentProps from "../PageComponentProps";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import DataObservabilityApi from "../../Components/DataObservability/DataObservabilityApi";
 import DataAsset from "Common/Models/DatabaseModels/DataAsset";
 import DataReconciliation from "Common/Models/DatabaseModels/DataReconciliation";
@@ -38,7 +39,9 @@ import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Every reconciliation: one measure of two tables - rows, a column's sum or
@@ -59,6 +62,16 @@ type FormSide = "source" | "target";
  */
 export const RECONCILIATION_MEASURES_LINE_CLASS_NAME: string =
   "block whitespace-normal break-words text-xs text-gray-500";
+
+/*
+ * Why a reconciliation waits or failed - "Waiting for both sides to be read."
+ * - under its Status pill: a sentence, which wraps within its 20rem rather
+ * than holding the column at its whole width on one line (#7534). Cut short
+ * on one line, it held the Status column wide and the list ran under Run
+ * Now.
+ */
+export const RECONCILIATION_STATUS_MESSAGE_CLASS_NAME: string =
+  "block max-w-xs whitespace-normal break-words text-xs text-gray-500";
 
 const MEASURE_OPTIONS: Array<DropdownOption> = DATA_RECONCILIATION_MEASURES.map(
   (measure: DataReconciliationMeasure): DropdownOption => {
@@ -140,7 +153,7 @@ const DataObservabilityReconciliationsPage: FunctionComponent<
     value: number | undefined | null,
   ): string => {
     return value === undefined || value === null
-      ? "-"
+      ? EMPTY_VALUE_MARK
       : translator.formatNumber(Number(value));
   };
 
@@ -160,7 +173,7 @@ const DataObservabilityReconciliationsPage: FunctionComponent<
       {
         field: isSource ? { sourceDataAsset: true } : { targetDataAsset: true },
         stepId: side,
-        title: "Table",
+        title: "Table (database object)",
         description: isSource
           ? "The table to compare from: the system of record, usually."
           : "The table to compare with: its copy in another database, a warehouse or a replica.",
@@ -312,6 +325,13 @@ const DataObservabilityReconciliationsPage: FunctionComponent<
         actionButtons={[
           {
             title: "Run Now",
+            /*
+             * The row's button says the verb, named by its whole title (as
+             * a row's View is), so the sticky column takes less of a card
+             * beside the side menu (#8345): German "Ausführen", not "Jetzt
+             * ausführen".
+             */
+            rowButtonTitle: "Run",
             buttonStyleType: ButtonStyleType.NORMAL,
             icon: IconProp.Play,
             onClick: async (
@@ -406,7 +426,9 @@ const DataObservabilityReconciliationsPage: FunctionComponent<
                     {item.sourceDataAsset?.assetKey || <TableEmptyValue />}
                   </span>
                   <span className="block text-xs text-gray-500">
-                    {formatNumber(item.sourceValue)}
+                    {getValueOrQuietDash(formatNumber(item.sourceValue), {
+                      isSmall: true,
+                    })}
                   </span>
                 </div>
               );
@@ -417,6 +439,15 @@ const DataObservabilityReconciliationsPage: FunctionComponent<
             title: "Target",
             type: FieldType.Element,
             disableSort: true,
+            /*
+             * Under the source, named, where the list does not fit its card
+             * (#7534): at 1280px beside the side menu Run Now covered the
+             * Status column - "In Ste..." in English, only "St" of its
+             * heading in German. The two sides are read one over the other.
+             */
+            hideBelowLargeScreen: true,
+            foldInto: "sourceDataAsset",
+            showTitleWhenFolded: true,
             getElement: (item: DataReconciliation): ReactElement => {
               return (
                 <div className="min-w-0">
@@ -424,7 +455,9 @@ const DataObservabilityReconciliationsPage: FunctionComponent<
                     {item.targetDataAsset?.assetKey || <TableEmptyValue />}
                   </span>
                   <span className="block text-xs text-gray-500">
-                    {formatNumber(item.targetValue)}
+                    {getValueOrQuietDash(formatNumber(item.targetValue), {
+                      isSmall: true,
+                    })}
                   </span>
                 </div>
               );
@@ -434,13 +467,19 @@ const DataObservabilityReconciliationsPage: FunctionComponent<
             field: { difference: true },
             title: "Difference",
             type: FieldType.Element,
+            // Under the Status, named, where the list does not fit its card (#7534).
+            hideBelowLargeScreen: true,
+            foldInto: "status",
+            showTitleWhenFolded: true,
             getElement: (item: DataReconciliation): ReactElement => {
               return item.difference === undefined ||
                 item.difference === null ? (
                 <TableEmptyValue />
               ) : (
                 <div className="text-sm text-gray-700">
-                  <span className="block">{formatNumber(item.difference)}</span>
+                  <span className="block">
+                    {getValueOrQuietDash(formatNumber(item.difference))}
+                  </span>
                   <span className="block text-xs text-gray-500">
                     {`${formatNumber(
                       Math.round(Number(item.differencePercent || 0) * 100) /
@@ -460,7 +499,7 @@ const DataObservabilityReconciliationsPage: FunctionComponent<
                 <div className="min-w-0 space-y-1">
                   {getStatusPill(item.status)}
                   {item.statusMessage ? (
-                    <span className="block max-w-xs truncate text-xs text-gray-500">
+                    <span className={RECONCILIATION_STATUS_MESSAGE_CLASS_NAME}>
                       {item.statusMessage}
                     </span>
                   ) : item.comparedAt ? (

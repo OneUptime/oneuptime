@@ -34,7 +34,7 @@ En statussida stöder fem kanaler. De, och sidan besökare registrerar sig på, 
 
 - **Visa prenumerantsida** (`showSubscriberPageOnStatusPage`) — på som standard. Lägger objektet **Prenumerera** i statussidans navigeringsfält, där besökare registrerar sig via kanalerna nedan.
 - **E-post** (`enableEmailSubscribers`) — på som standard. Allt annat är av tills du slår på det.
-- **SMS** (`enableSmsSubscribers`) — av som standard. På OneUptime Cloud betalas varje SMS från projektets saldo för SMS och samtal, om inte sidan har en egen **Twilio-konfiguration** (se [nedan](#e-postsidfot-anpassad-smtp-och-twilio)). Att slå på den kräver också att **SMS** är på för projektet, i kortet **Aviseringskanaler** under **Projektinställningar > Aviseringar > Aviseringskanaler**, vilket en projektägare, en **Faktureringsadministratör** eller någon med **Manage Billing** kan göra.
+- **SMS** (`enableSmsSubscribers`) — av som standard. På OneUptime Cloud betalas varje SMS från projektets saldo för SMS och samtal, om inte sidan har en egen **Twilio-konfiguration** (se [nedan](#e-postsidfot-anpassad-smtp-och-twilio)). Att slå på den kräver också att **SMS** är på för projektet, i kortet **Aviseringskanaler** under **Projektinställningar > Aviseringar > Aviseringskanaler**, vilket en Projektägare, en **Faktureringsadministratör** eller någon med **Manage Billing** kan göra.
 - **Slack** (`enableSlackSubscribers`) — av som standard.
 - **Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — av som standard.
 - **Webhook** (`enableWebhookSubscribers`) — av som standard.
@@ -47,7 +47,7 @@ Varje kanal har också en egen lista i statussidans sidomeny under **Prenumerant
 
 **Ett reglage räcker inte.** Objektet **Prenumerera** i statussidans navigeringsfält visas bara när **Visa prenumerantsida** är på *och* minst en kanal är på. Om du slår på **E-post** men låter **Visa prenumerantsida** vara av har besökarna inget sätt att nå formuläret.
 
-**En kalender i stället.** Besökare som bara vill ha ditt planerade underhåll i sin egen kalender behöver inte prenumerera: **Prenumerera på kalender** på sidans sida **Schemalagt underhåll** lägger till det i Google Kalender, Apple Kalender eller Outlook, och kalendern håller sig själv uppdaterad. Den skickar ingenting och beror inte på kanalerna ovan, och en privat sida erbjuder den inte. Se [Underhållskalender](/docs/scheduled-maintenance/calendar#en-statussidas-kalender).
+**En kalender i stället.** Besökare som bara vill ha ditt schemalagda underhåll i sin egen kalender behöver inte prenumerera: **Prenumerera på kalender** på sidans sida **Schemalagt underhåll** lägger till det i Google Kalender, Apple Kalender eller Outlook, och kalendern håller sig själv uppdaterad. Den skickar ingenting och beror inte på kanalerna ovan, och en privat sida erbjuder den inte. Se [Underhållskalender](/docs/scheduled-maintenance/calendar#en-statussidas-kalender).
 
 ## Stänga av alla aviseringar
 
@@ -312,7 +312,7 @@ Två fall skickar med avsikt ingenting, och registrerar varför:
 - **Den ursprungliga aviseringen har inte skickats än.** Om ett meddelande eller en anteckning fortfarande väntar på att meddelas läser den aviseringen objektet när den skickas och innehåller redan din redigering, så ett separat meddelande om "uppdaterad" skulle bara förvirra folk. Om originalet håller på att skickas i det ögonblicket väntar uppdateringen i stället och skickas när originalet är klart: det utskicket läste objektet före din redigering, så prenumeranterna kan ha fått texten från före den.
 - **Meddelandet är schemalagt till senare.** Tills **Börja visa meddelande vid** har passerat finns det inte på någon statussida, och den som aviseras när det går live ser den redigerade versionen.
 
-Det redigerade objektet visar en **Uppdateringsaviseringsstatus** bredvid den ursprungliga, med samma tillstånd (**Sending Soon**, **Aviseringar skickade**, **Misslyckades** och så vidare). **Försök igen** på en misslyckad uppdateringsavisering skickar uppdateringen igen, aldrig det ursprungliga meddelandet om "publicerad". Varje statussida kan anpassa de här meddelandena med malltyperna **Subscriber Announcement Updated**, **Subscriber Incident Note Updated**, **Subscriber Scheduled Maintenance Note Updated** och **Subscriber Episode Note Updated**; utan en anpassad mall används den inbyggda uppdateringstexten.
+Det redigerade objektet visar en **Uppdateringsaviseringsstatus** bredvid den ursprungliga, med samma tillstånd (**Sending Soon**, **Aviseringar skickade**, **Misslyckades** och så vidare). **Försök igen** på en misslyckad uppdateringsavisering skickar uppdateringen igen, aldrig det ursprungliga meddelandet om "publicerad". Varje statussida kan anpassa de här meddelandena med malltyperna **Meddelande uppdaterat**, **Incidentanteckning uppdaterad**, **Anteckning för underhållshändelse uppdaterad** och **Anteckning för incidentepisod uppdaterad**; utan en anpassad mall används den inbyggda uppdateringstexten.
 
 Via API:et skickar du valet bredvid fälten du ändrar, i `miscDataProps`:
 
@@ -399,7 +399,7 @@ En statussida kan skicka sina prenumeranter en rapport via e-post enligt ett sch
 - **Att stänga av rapporter** behåller schemat. Påslagna igen skickas rapporter enligt det igen från nästa datum, så en sida som var avstängd i en månad skickar inte rapporten den missade.
 - **Skicka testrapport**, under kortet, skickar en rapport via e-post till en adress du anger, så att du kan se vad prenumeranter får, oavsett om rapporter är på eller inte. Den kräver detsamma som att slå på rapporter: behörighet att redigera sidan och, på OneUptime Cloud, abonnemanget **Growth**.
 
-Rapporter går till sidans e-postprenumeranter; prenumeranter via SMS, Slack, Microsoft Teams och webhook får dem inte. En mall **Subscriber Report** som är kopplad till sidan ersätter det inbyggda e-postmeddelandet när sidan har en **Anpassad SMTP-konfiguration** (se [Anpassa aviseringsmallar](#anpassa-aviseringsmallar)). På OneUptime Cloud kräver det abonnemanget **Growth** eller högre att slå på rapporter, och på ett lägre abonnemang står abonnemangets namn vid reglaget. Att stänga av dem fungerar på alla abonnemang, så en sida som en provperiod lämnade med rapporter påslagna alltid kan sluta: reglaget säger det under sig, och att slå på rapporter igen kräver **Growth**.
+Rapporter går till sidans e-postprenumeranter; prenumeranter via SMS, Slack, Microsoft Teams och webhook får dem inte. En mall **Rapport till prenumeranter** som är kopplad till sidan ersätter det inbyggda e-postmeddelandet när sidan har en **Anpassad SMTP-konfiguration** (se [Anpassa aviseringsmallar](#anpassa-aviseringsmallar)). På OneUptime Cloud kräver det abonnemanget **Growth** eller högre att slå på rapporter, och på ett lägre abonnemang står abonnemangets namn vid reglaget. Att stänga av dem fungerar på alla abonnemang, så en sida som en provperiod lämnade med rapporter påslagna alltid kan sluta: reglaget säger det under sig, och att slå på rapporter igen kräver **Growth**.
 
 **Via API:et eller Terraform** ger det sidan samma standardschema att slå på `isReportEnabled` utan `reportStartDateTime` eller `reportRecurringInterval`, i stället för att lämna rapporter påslagna utan något schemalagt. Ett schema som du skickar med behålls, och så även ett som sidan redan har. Skicka `reportRecurringInterval` utan `reportStartDateTime` så skickas den första rapporten kl. 09:00 i början av nästa period i det intervallet: nästa dag för ett dagligt schema, nästa måndag för ett veckovis, den 1:a nästa månad för ett månatligt och den 1 januari för ett årligt; ett schema per timme börjar vid nästa hela timme. Servern beräknar `sendNextReportBy`, tiden när nästa rapport skickas, och avvisar en `reportStartDateTime` eller `reportRecurringInterval` som den inte kan läsa.
 
@@ -425,7 +425,7 @@ Inget av detta behövs för att få med anpassade incidentfält i meddelanden. F
 
 ### Incidentvariabler
 
-Mallar för de fem händelsetyperna för incidenter — **Subscriber Incident Created**, **Subscriber Incident State Changed**, **Subscriber Incident Note Created**, **Subscriber Incident Note Updated** och **Subscriber Incident Postmortem Published** — kan använda de här utöver sina egna variabler:
+Mallar för de fem händelsetyperna för incidenter — **Incident skapad**, **Incidentstatus ändrad**, **Incidentanteckning skapad**, **Incidentanteckning uppdaterad** och **Efteranalys för incident publicerad** — kan använda de här utöver sina egna variabler:
 
 | Variabel | Fylls med |
 | --- | --- |
@@ -441,7 +441,7 @@ Nyckeln är fältets **Mallvariabel**, som inte ändras när fältet byter namn;
 
 ### Tillståndet i anteckningsmallar
 
-Mallar för **Subscriber Incident Note Created** och **Subscriber Scheduled Maintenance Note Created** kan ange händelsens tillstånd med `{{incidentState}}` och `{{scheduledMaintenanceState}}`. För en anteckning som publiceras med en tillståndsändring är det tillståndet som ändringen gick till, även om händelsen har gått vidare när meddelandet skickas; för alla andra anteckningar är det händelsens tillstånd när meddelandet skickas. Mallarna **Note Updated** får händelsens tillstånd när uppdateringen skickas. En anpassad e-postmall utan eget ämne faller, för en anteckning som publiceras med en tillståndsändring, tillbaka på tillståndsändringens ämne: `[Incident Resolved] <title>` eller `[Scheduled Maintenance Ongoing] <title>`.
+Mallar för **Incidentanteckning skapad** och **Anteckning för underhållshändelse skapad** kan ange händelsens tillstånd med `{{incidentState}}` och `{{scheduledMaintenanceState}}`. För en anteckning som publiceras med en tillståndsändring är det tillståndet som ändringen gick till, även om händelsen har gått vidare när meddelandet skickas; för alla andra anteckningar är det händelsens tillstånd när meddelandet skickas. Mallarna **Note Updated** får händelsens tillstånd när uppdateringen skickas. En anpassad e-postmall utan eget ämne faller, för en anteckning som publiceras med en tillståndsändring, tillbaka på tillståndsändringens ämne: `[Incident Resolved] <title>` eller `[Scheduled Maintenance Ongoing] <title>`.
 
 ### Infoga variabler
 

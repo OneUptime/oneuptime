@@ -95,7 +95,7 @@ Pour donner les règles recommandées à de nombreux SLO, partez de la liste des
 :::steps
 #### Sélectionner les SLO
 
-Ouvrez **SLOs** et sélectionnez les SLO à mettre à jour. Pour prendre tous les SLO qu'affiche un filtre, sélectionnez toute la page, puis toutes les correspondances que la liste propose.
+Ouvrez **SLO** et sélectionnez les SLO à mettre à jour. Pour prendre tous les SLO qu'affiche un filtre, sélectionnez toute la page, puis toutes les correspondances que la liste propose.
 
 #### Choisir l'action groupée
 
@@ -132,7 +132,7 @@ Dans **Règle**, saisissez un **Nom**, comme « Fast burn ». Une nouvelle règl
 
 ### Définir la fenêtre de consommation
 
-Dans **Fenêtre de consommation**, définissez le **Seuil de taux de consommation** (par exemple `14.4`), la **Fenêtre longue (minutes)** et la **Fenêtre courte (minutes)**, et éventuellement la **Suppression du redéclenchement (minutes)**.
+Dans **Fenêtre de consommation**, définissez le **Seuil de taux de consommation** (par exemple `14.4`), la **Fenêtre longue (minutes)** et la **Fenêtre courte (minutes)**, et éventuellement la **Suppression du redéclenchement (minutes)**. La règle d'un SLO de requêtes prend aussi un **Nombre minimal de requêtes**, par exemple `100` : la règle ignore une fenêtre longue qui compte moins de requêtes que cette valeur. La règle d'un SLO de métrique prend de la même façon un **Nombre minimal d'événements**, compté en événements de sa métrique.
 
 ### Choisir ce qu'elle déclare
 
@@ -151,10 +151,12 @@ OneUptime vérifie les nombres d'une règle quand vous l'enregistrez :
 | **Fenêtre courte (minutes)** | Supérieure à 0. |
 | **Fenêtre longue (minutes)** | Plus longue que la fenêtre courte. |
 | **Suppression du redéclenchement (minutes)** | 0 ou plus. Vide signifie la durée de la fenêtre longue. |
+| **Nombre minimal de requêtes** | Un nombre entier, 0 ou plus. Vide signifie aucun minimum. |
+| **Nombre minimal d'événements** | Un nombre entier, 0 ou plus. Vide signifie aucun minimum. |
 
 Chaque réponse à **Quand elle se déclenche** ouvre quelque chose. L'API refuse une règle qui ne créerait aucune alerte et ne déclarerait aucun incident, car elle serait vérifiée à chaque évaluation sans jamais rien déclarer.
 
-Le tableau des règles affiche, pour chaque règle, son seuil, ses fenêtres et sa suppression, ce qu'elle déclare (et si l'alerte ou l'incident n'est résolu qu'à la main, ou est privé), ses gravités, ses politiques d'astreinte, ses propriétaires et ses étiquettes.
+Le tableau des règles affiche, pour chaque règle, son seuil, ses fenêtres et sa suppression, ce qu'elle déclare (et si l'alerte ou l'incident n'est résolu qu'à la main, ou est privé), ses gravités, ses politiques d'astreinte, ses propriétaires et ses étiquettes. Pour un SLO de requêtes, il indique aussi le minimum de chaque règle sous ses fenêtres.
 
 > [!TIP]
 > Un bon départ : gardez les trois règles par défaut, envoyez la règle de consommation rapide à votre politique d'astreinte qui alerte, avec une gravité élevée, laissez la règle de consommation lente déclencher une alerte de gravité plus basse pour les heures de bureau, et faites de la règle de fuite lente un ticket pour l'équipe responsable. Si votre équipe gère tout par des incidents, choisissez **Déclarer un incident** pour la règle de consommation rapide, ou **Les deux** pour recevoir aussi une alerte.
@@ -212,8 +214,8 @@ Pour écrire les vôtres, utilisez des variables de modèle dans le titre, la de
 | `{{targetPercentage}}` | L'objectif du SLO, en pourcentage. | `99.9` |
 | `{{currentSliPercentage}}` | Le SLI mesuré sur la fenêtre de conformité du SLO, en pourcentage. | `99.87` |
 | `{{errorBudgetRemainingPercentage}}` | Part du budget d'erreur qui reste, en pourcentage. Négative une fois le budget dépassé. | `42.5` |
-| `{{errorBudgetRemaining}}` | Budget d'erreur qui reste, en durée. Commence par un signe moins une fois le budget dépassé. | `18m 22s` |
-| `{{errorBudgetRemainingMinutes}}` | Budget d'erreur qui reste, en minutes. | `18.37` |
+| `{{errorBudgetRemaining}}` | Budget d'erreur qui reste, en durée, ou, pour un SLO de requêtes, en requêtes en échec ou lentes qu'il autorise encore. Commence par un signe moins une fois le budget dépassé. | `18m 22s` |
+| `{{errorBudgetRemainingMinutes}}` | Budget d'erreur qui reste, en minutes. Vide pour un SLO de requêtes, dont le budget se compte en requêtes. | `18.37` |
 | `{{windowDescription}}` | La fenêtre de conformité du SLO, en toutes lettres. | `rolling 30-day window` |
 | `{{policyTier}}` | Nom du palier de la politique de budget d'erreur dans lequel se trouve le SLO après cette évaluation. « None » quand il n'est dans aucun palier. | `Reliability first` |
 | `{{policyTierThresholdPercentage}}` | Seuil de budget restant de ce palier, en pourcentage. Vide quand le SLO n'est dans aucun palier. | `25` |
@@ -235,7 +237,7 @@ Par exemple, le titre `{{ruleName}}: {{sloName}} is burning {{longWindowBurnRate
 - **Ajouter les propriétaires du SLO comme propriétaires** ajoute aussi les propriétaires du SLO, ses utilisateurs propriétaires et les membres de ses équipes propriétaires, à tout ce que crée la règle. Les propriétaires du SLO sont déjà informés des changements de statut du SLO lui-même, cela peut donc les notifier deux fois. C'est désactivé par défaut.
 - Chaque propriétaire n'est ajouté qu'une fois : un utilisateur déjà propriétaire de l'alerte ou de l'incident, par exemple par les règles de propriétaire du projet, ou membre d'une équipe propriétaire ajoutée, n'est pas ajouté de nouveau.
 - **Étiquettes d'alerte** et **Étiquettes d'incident** sont ajoutées à l'alerte ou à l'incident, pour que les filtres, les règles de propriétaire et les règles de notification d'espace de travail puissent y correspondre.
-- Une alerte ou un incident privé n'est visible que par ses propriétaires, les administrateurs du projet et les propriétaires du projet.
+- Une alerte ou un incident privé n'est visible que par ses propriétaires, les Administrateurs du projet et les Propriétaires du projet.
 
 Les étiquettes, les équipes propriétaires et les politiques d'astreinte doivent appartenir au projet du SLO.
 
@@ -276,7 +278,7 @@ Les règles de taux de consommation restent silencieuses tant que l'un des monit
 :::
 
 :::details Existe-t-il un nombre minimal d'échantillons ?
-Pas pour les SLO mesurés à partir de la disponibilité des moniteurs. La disponibilité se mesure en secondes, chaque seconde de la fenêtre est donc un échantillon, et il n'y a pas de cas de faible trafic à surveiller. Un nombre minimal d'échantillons ne compte que pour les SLI fondés sur des événements, qui ne sont pas encore disponibles.
+Pas pour les SLO mesurés à partir de la disponibilité des moniteurs. La disponibilité se mesure en secondes, chaque seconde de la fenêtre est donc un échantillon, et il n'y a pas de cas de faible trafic à surveiller. La règle d'un SLO de requêtes en a un : définissez son **Nombre minimal de requêtes**, et la règle ignore une fenêtre longue qui compte moins de requêtes que cette valeur, si bien qu'une heure calme avec une requête en échec sur cinq n'alerte personne.
 :::
 
 ## Prochaines étapes

@@ -68,10 +68,17 @@ beforeAll(async () => {
         translation: {
           "Event classes": "Ereignisklassen",
           "No severity": "Kein Schweregrad",
-          "less frequent observables not shown":
-            "seltenere Observables nicht angezeigt",
-          "matching event": "passendes Ereignis",
-          "matching events": "passende Ereignisse",
+          /*
+           * A count and its noun, one sentence each in the plural forms of
+           * the language: they were a count beside a looked-up noun in
+           * English's 1-or-more form (#8290).
+           */
+          "{{count}} less frequent observables not shown":
+            "{{count}} seltenere Observables nicht angezeigt",
+          "{{count}} less frequent observables not shown_one":
+            "{{count}} selteneres Observable nicht angezeigt",
+          "{{count}} matching events": "{{count}} passende Ereignisse",
+          "{{count}} matching events_one": "{{count}} passendes Ereignis",
           Close: "Schließen",
           "Filter to this class": "Auf diese Klasse filtern",
           "Clear selection": "Auswahl aufheben",
@@ -844,6 +851,7 @@ describe("CorrelateClassEventsPanel", () => {
 
     const relative: HTMLElement = within(row).getByText(
       OneUptimeDate.fromNow(EVENT_TIME),
+      { collapseWhitespace: false },
     );
     expect(relative).toHaveAttribute(
       "title",

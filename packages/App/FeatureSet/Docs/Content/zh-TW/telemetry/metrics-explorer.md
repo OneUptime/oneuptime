@@ -37,7 +37,7 @@ flowchart TB
 ## 開始之前
 
 - **正在到達的指標。** 透過 [OpenTelemetry](/docs/telemetry/open-telemetry) 傳送，或者從代理程式傳送，例如 [主機 OpenTelemetry Collector](/docs/telemetry/host-otel-collector) 或 [Kubernetes 代理程式](/docs/telemetry/kubernetes-agent)。
-- **可以讀取遙測的角色。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member 或 Telemetry Viewer，或者擁有 Read Metrics 權限的自訂角色。它能讀取哪些指標，請參閱 [遙測](/docs/permissions/index#遙測)。
+- **可以讀取遙測的角色。** 專案擁有者、專案管理員、專案成員、檢視者、遙測管理員、遙測成員或遙測檢視者，或者擁有 Read Metrics 權限的自訂角色。它能讀取哪些指標，請參閱 [遙測](/docs/permissions/index#遙測)。
 
 ## 尋找指標
 
@@ -56,11 +56,11 @@ flowchart TB
 
 ### 選擇彙總方式
 
-在 **Aggregate by** 下，選擇如何合併圖表中每個點內的值：預設的 Avg、Sum、Min、Max、Count，或一個百分位數 P50、P75、P90、P95 或 P99。直方圖指標（例如請求持續時間）的百分位數根據它的桶計算得出。
+在 **彙總方式** 下，選擇如何合併圖表中每個點內的值：預設的 Avg、Sum、Min、Max、Count，或一個百分位數 P50、P75、P90、P95 或 P99。直方圖指標（例如請求持續時間）的百分位數根據它的桶計算得出。
 
 ### 篩選和分組
 
-開啟 **Filters & grouping**。**Filter by attributes** 只保留屬性符合的資料點，例如某一個 `http.route`；**分組依據** 為你所選屬性的每個值畫一條線，例如每台主機一條線。
+開啟 **篩選與分組**。**依屬性篩選** 只保留屬性符合的資料點，例如某一個 `http.route`；**分組依據** 為你所選屬性的每個值畫一條線，例如每台主機一條線。
 
 ### 調整圖表
 

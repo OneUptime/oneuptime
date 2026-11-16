@@ -124,6 +124,18 @@ const LISTED: ReadonlyArray<ListedFile> = [
     builtFrom: "the element names NAMED_ELEMENTS lists",
   },
   {
+    file: "packages/Common/Types/NoBreakSpaces.ts",
+    count: 1,
+    builtFrom:
+      "the spaces the file writes from its own characters and the English duration words ENGLISH_DURATION_WORDS lists (second, minutes, hr ...), letters only",
+  },
+  {
+    file: "packages/Common/Types/OnCallDutyPolicy/OnCallLogLine.ts",
+    count: 1,
+    builtFrom:
+      "the record kinds ON_CALL_POLICY_RUN_RECORD_KINDS lists (incident, alert and their episodes), letters and spaces only, to read back the observer line getOnCallObserverPageSeenMessage writes",
+  },
+  {
     file: "packages/Common/Types/Telemetry/ScrubRule.ts",
     count: 1,
     builtFrom: "a copy of one of the built-in scrub patterns",
@@ -171,6 +183,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
     count: 1,
     builtFrom:
       "a pattern whose syntax JavaScript checks, for its own error message; it is never run",
+  },
+  {
+    file: "packages/Common/Utils/PromQL/RE2UnicodeClass.ts",
+    count: 1,
+    builtFrom:
+      "a Unicode property escape, \\p{gc=...} or \\p{sc=...}, of a category or script name the file lists (Go's tables), never a pattern's text; run on one character at a time, to read which characters the table holds",
   },
   {
     file: "packages/Common/Utils/Telemetry/LogErrorPattern.ts",

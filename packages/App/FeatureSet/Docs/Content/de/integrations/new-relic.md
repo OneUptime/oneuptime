@@ -43,7 +43,7 @@ Dann [konfigurieren Sie New Relic](#new-relic-konfigurieren), damit es seine Iss
 
 ### Was der Workflow tut
 
-Nach dem Trigger **Webhook** liest der Schritt **Check With JavaScript** `read-event-1` das `state`, das New Relic sendet, und **Incident From Another Tool**, in der Vorlage für Warnungen **Alert From Another Tool**, tut, was es bedeutet, über die ID des Issues. Der Vorfall behält die ID in seinem benutzerdefinierten Feld `newRelicIssueId`.
+Nach dem Trigger **Webhook** liest der Schritt **Mit JavaScript prüfen** `read-event-1` das `state`, das New Relic sendet, und **Vorfall aus einem anderen Tool**, in der Vorlage für Warnungen **Warnung aus einem anderen Tool**, tut, was es bedeutet, über die ID des Issues. Der Vorfall behält die ID in seinem benutzerdefinierten Feld `newRelicIssueId`.
 
 | Was New Relic sendet | Was der Workflow tut |
 | --- | --- |
@@ -51,7 +51,7 @@ Nach dem Trigger **Webhook** liest der Schritt **Check With JavaScript** `read-e
 | `state` ist `ACTIVATED` und `isAcknowledged` ist `true` | Bestätigt den Vorfall des Issues, sodass die Bereitschaft ihn nicht weiter eskaliert. Der Grund steht auf seiner Zeitleiste. |
 | `state` ist `CLOSED` | Behebt den Vorfall des Issues, sofern er nicht schon behoben ist. Der Grund steht auf seiner Zeitleiste. |
 
-Eine Bestätigung oder ein Schließen für ein Issue ohne Vorfall ändert nichts. Alles andere, etwa eine Anfrage eines anderen Werkzeugs, bleibt unberührt: `read-event-1` nimmt **No**, und die **Schritte** der Ausführung sagen, warum. Nichts geht an New Relic zurück: Es schließt seine eigenen Issues, wenn sich das Signal erholt, und das behebt den Vorfall.
+Eine Bestätigung oder ein Schließen für ein Issue ohne Vorfall ändert nichts. Alles andere, etwa eine Anfrage eines anderen Werkzeugs, bleibt unberührt: `read-event-1` nimmt **Nein**, und die **Schritte** der Ausführung sagen, warum. Nichts geht an New Relic zurück: Es schließt seine eigenen Issues, wenn sich das Signal erholt, und das behebt den Vorfall.
 
 ### Prioritäten und Alarmierung
 
@@ -162,7 +162,7 @@ Testen Sie dann aus New Relic: Öffnen Sie die Webhook-Nachricht des Workflows u
 :::
 
 :::details Der Workflow läuft, eröffnet aber nichts
-Öffnen Sie die Ausführung unter **Protokolle → Ausführungen**. Der Eintrag `read-event-1` unter **Schritte** sagt, warum er **No** genommen hat.
+Öffnen Sie die Ausführung unter **Protokolle → Ausführungen**. Der Eintrag `read-event-1` unter **Schritte** sagt, warum er **Nein** genommen hat.
 
 - `New Relic named no issue ID`: Behalten Sie die Zeile `"id": {{ json issueId }},` in der Nutzlast.
 - `is in no state`: Behalten Sie die Zeile `"state": {{ json state }},` in der Nutzlast.

@@ -26,6 +26,8 @@ export interface BulkChangeStateSubmitData {
 
 export interface ComponentProps {
   title: string;
+  // The title is in the reader's words already, drawn as given (Modal's isTitleTranslated).
+  isTitleTranslated?: boolean | undefined;
   description: string;
   submitButtonText?: string | undefined;
   /** The state timeline column the picked state is submitted under. */
@@ -142,6 +144,7 @@ const BulkChangeStateModal: FunctionComponent<ComponentProps> = (
   return (
     <BasicFormModal<JSONObject>
       title={props.title}
+      isTitleTranslated={props.isTitleTranslated}
       description={props.description}
       onClose={props.onClose}
       error={props.error}

@@ -33,8 +33,8 @@ flowchart TB
 
 ## Før du begynner
 
-- **For instansens og et prosjekts budsjetter: Admin Dashboard.** På en selvhostet installasjon er det bare instansadministratoren som angir dem. Et prosjekts eiere og administratorer ser budsjettene, men kan ikke endre dem.
-- **For en nøkkels eget budsjett: en rolle som redigerer inntaksnøkler.** Project Owner eller Project Admin, eller en egendefinert rolle med tillatelsen Edit Ingestion Key.
+- **For instansens og et prosjekts budsjetter: Admin Dashboard.** På en selvhostet installasjon er det bare instansadministratoren som angir dem. Prosjekteiere og Prosjektadministratorer ser et prosjekts budsjetter, men kan ikke endre dem.
+- **For en nøkkels eget budsjett: en rolle som redigerer inntaksnøkler.** Prosjekteier eller Prosjektadministrator, eller en egendefinert rolle med tillatelsen Edit Ingestion Key.
 - **For å se budsjettene: en rolle som ser prosjektets forbruk.** Rollene som ser siden [Telemetriforbruk](/docs/telemetry/usage), ser budsjettene der.
 
 ## Angi standardbudsjettene for alle prosjekter
@@ -113,7 +113,7 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 
 ## Advarselen og tilbakestillingen
 
-- **Advarselen.** Når et daglig budsjett passerer advarselsterskelen, 80 % med mindre instansadministratoren endrer den, får prosjektets eiere en e-post, og utforskerne viser et banner over dataene for det signalet. De får én e-post til når budsjettet er brukt opp. Hvert budsjett sender hver e-post høyst én gang om dagen.
+- **Advarselen.** Når et daglig budsjett passerer advarselsterskelen, 80 % med mindre instansadministratoren endrer den, får Prosjekteiere en e-post, og utforskerne viser et banner over dataene for det signalet. De får én e-post til når budsjettet er brukt opp. Hvert budsjett sender hver e-post høyst én gang om dagen.
 - **Tilbakestillingen.** Hver budsjettdag begynner på nytt kl. 00:00 UTC, med mindre instansadministratoren endrer det. Kortet **Advarsel og tilbakestilling** angir **Advarselsterskel (%)**, fra 1 til 99, **Tilbakestillingstidspunkt**, som HH:MM, og **Tidssone for tilbakestilling**: klikk på **Rediger advarsel og tilbakestilling**.
 - **Sommertid.** Tilbakestillingen følger klokken i tidssonen, så budsjettdagen da klokkene stilles om, er én time kortere eller lengre. Et tilbakestillingstidspunkt som klokkene hopper over, inntreffer like lenge etter hoppet.
 - **En endret tilbakestilling starter en ny dag.** Når tilbakestillingstidspunktet eller tidssonen endres, starter en ny budsjettdag med en gang, der ingenting er telt ennå.
@@ -138,9 +138,9 @@ Gå til **Prosjektinnstillinger → Telemetri og APM → Forbruk**. Mens et buds
 
 ## Bli varslet om et budsjett
 
-Hvert 5. minutt skriver OneUptime dagens tall for hvert budsjett som metrikker for prosjektet, og en [metrikkmonitor](/docs/monitor/metrics-monitor) varsler om dem som om alle andre metrikker:
+Hvert 5. minutt skriver OneUptime dagens tall for hvert budsjett som målinger for prosjektet, og en [målingsmonitor](/docs/monitor/metrics-monitor) varsler om dem som om alle andre målinger:
 
-| Metrikk | Enhet | Hva den inneholder |
+| Måling | Enhet | Hva den inneholder |
 | --- | --- | --- |
 | `oneuptime.telemetry.budget.used.bytes` | `By` | Bytene som er telt mot det daglige budsjettet siden budsjettdagen begynte. |
 | `oneuptime.telemetry.budget.used.percent` | `%` | Det samme, som prosent av det daglige budsjettet. Ved 100 eller mer avvises signalet til tilbakestillingen. |
@@ -157,12 +157,12 @@ Hvert punkt har disse attributtene:
 | `ingestionKeyId` | ID-en til nøkkelen, for en nøkkels eget budsjett. |
 | `ingestionKeyName` | Navnet på nøkkelen da punktet ble skrevet, for en nøkkels eget budsjett. |
 
-For å bli varslet ved 90 % av prosjektets loggbudsjett oppretter du en metrikkmonitor på `oneuptime.telemetry.budget.used.percent`, filtrert på `signal` `logs` og `scope` `project`, som varsler når maksimum er over 90:
+For å bli varslet ved 90 % av prosjektets loggbudsjett oppretter du en målingsmonitor på `oneuptime.telemetry.budget.used.percent`, filtrert på `signal` `logs` og `scope` `project`, som varsler når maksimum er over 90:
 
 - **Aggreger med maksimum.** Hvert tall vokser bare i løpet av en budsjettdag.
 - **Bruk et vindu på 15 minutter eller mer.** Et punkt skrives hvert 5. minutt, og et vindu uten punkter løser varselet.
 - **Forvent hull, ikke nuller.** Ingenting skrives for et tall som er 0, eller mens tellingene ikke kan leses.
-- **De koster ingenting.** Disse metrikkene telles ikke mot noe budsjett eller som telemetriforbruk, og de oppbevares like lenge som monitormetrikker: 30 dager, med mindre instansadministratoren endrer det. Metrikknavn som starter med `oneuptime.telemetry.budget.`, er reservert for dem: metrikker applikasjonene dine sender under et slikt navn, forkastes.
+- **De koster ingenting.** Disse målingene telles ikke mot noe budsjett eller som telemetriforbruk, og de oppbevares like lenge som monitormålinger: 30 dager, med mindre instansadministratoren endrer det. Målingsnavn som starter med `oneuptime.telemetry.budget.`, er reservert for dem: målinger applikasjonene dine sender under et slikt navn, forkastes.
 
 ## Feilsøking
 
@@ -188,5 +188,5 @@ OneUptime kan ikke nå Valkey, der budsjettene telles. Til det kan det, lagres t
 - [Telemetriforbruk](/docs/telemetry/usage): Se hva hvert prosjekt og hver tjeneste sender.
 - [Drop-filtre og scrub-regler](/docs/telemetry/drop-filters-and-scrub-rules): Slutt å lagre telemetrien du ikke trenger.
 - [Inntaksnøkler](/docs/telemetry/ingestion-keys): En nøkkel for hver avsender, slik at hver kan ha et budsjett.
-- [Metrikk-overvåking](/docs/monitor/metrics-monitor): Bli varslet om budsjettmetrikkene.
+- [Målingsmonitor](/docs/monitor/metrics-monitor): Bli varslet om budsjettmålingene.
 :::

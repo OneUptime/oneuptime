@@ -8,67 +8,67 @@ import { getNumberLocale } from "../../Types/DateLanguage";
 describe("ValueFormatter", () => {
   describe("formatValue - bytes", () => {
     test("scales bytes up to the right unit", () => {
-      expect(ValueFormatter.formatValue(1048576, "bytes")).toBe("1.05 MB");
-      expect(ValueFormatter.formatValue(1e6, "bytes")).toBe("1 MB");
-      expect(ValueFormatter.formatValue(1e9, "bytes")).toBe("1 GB");
-      expect(ValueFormatter.formatValue(1e12, "bytes")).toBe("1 TB");
-      expect(ValueFormatter.formatValue(1e15, "bytes")).toBe("1 PB");
+      expect(ValueFormatter.formatValue(1048576, "bytes")).toBe("1.05\u00A0MB");
+      expect(ValueFormatter.formatValue(1e6, "bytes")).toBe("1\u00A0MB");
+      expect(ValueFormatter.formatValue(1e9, "bytes")).toBe("1\u00A0GB");
+      expect(ValueFormatter.formatValue(1e12, "bytes")).toBe("1\u00A0TB");
+      expect(ValueFormatter.formatValue(1e15, "bytes")).toBe("1\u00A0PB");
     });
 
     test("keeps small byte values in B", () => {
-      expect(ValueFormatter.formatValue(512, "bytes")).toBe("512 B");
-      expect(ValueFormatter.formatValue(1, "bytes")).toBe("1 B");
+      expect(ValueFormatter.formatValue(512, "bytes")).toBe("512\u00A0B");
+      expect(ValueFormatter.formatValue(1, "bytes")).toBe("1\u00A0B");
     });
 
     test("recognizes UCUM byte aliases", () => {
-      expect(ValueFormatter.formatValue(2000, "By")).toBe("2 KB");
-      expect(ValueFormatter.formatValue(2000, "b")).toBe("2 KB");
-      expect(ValueFormatter.formatValue(2000, "byte")).toBe("2 KB");
+      expect(ValueFormatter.formatValue(2000, "By")).toBe("2\u00A0KB");
+      expect(ValueFormatter.formatValue(2000, "b")).toBe("2\u00A0KB");
+      expect(ValueFormatter.formatValue(2000, "byte")).toBe("2\u00A0KB");
     });
 
     test("renders 0 bytes with the natural byte unit", () => {
-      expect(ValueFormatter.formatValue(0, "bytes")).toBe("0 B");
+      expect(ValueFormatter.formatValue(0, "bytes")).toBe("0\u00A0B");
     });
 
     test("handles negative byte values", () => {
-      expect(ValueFormatter.formatValue(-2000, "bytes")).toBe("-2 KB");
+      expect(ValueFormatter.formatValue(-2000, "bytes")).toBe("-2\u00A0KB");
     });
   });
 
   describe("formatValue - seconds", () => {
     test("scales seconds into larger units", () => {
-      expect(ValueFormatter.formatValue(60, "seconds")).toBe("1 min");
-      expect(ValueFormatter.formatValue(3600, "seconds")).toBe("1 hours");
-      expect(ValueFormatter.formatValue(86400, "seconds")).toBe("1 days");
+      expect(ValueFormatter.formatValue(60, "seconds")).toBe("1\u00A0min");
+      expect(ValueFormatter.formatValue(3600, "seconds")).toBe("1\u00A0hours");
+      expect(ValueFormatter.formatValue(86400, "seconds")).toBe("1\u00A0days");
     });
 
     test("scales sub-second values down", () => {
-      expect(ValueFormatter.formatValue(0.5, "seconds")).toBe("500 ms");
-      expect(ValueFormatter.formatValue(0.0005, "seconds")).toBe("500 µs");
+      expect(ValueFormatter.formatValue(0.5, "seconds")).toBe("500\u00A0ms");
+      expect(ValueFormatter.formatValue(0.0005, "seconds")).toBe("500\u00A0µs");
     });
 
     test("renders 0 seconds with the natural second unit, not ns", () => {
-      expect(ValueFormatter.formatValue(0, "seconds")).toBe("0 sec");
+      expect(ValueFormatter.formatValue(0, "seconds")).toBe("0\u00A0sec");
     });
 
     test("recognizes second aliases", () => {
-      expect(ValueFormatter.formatValue(120, "s")).toBe("2 min");
-      expect(ValueFormatter.formatValue(120, "sec")).toBe("2 min");
+      expect(ValueFormatter.formatValue(120, "s")).toBe("2\u00A0min");
+      expect(ValueFormatter.formatValue(120, "sec")).toBe("2\u00A0min");
     });
   });
 
   describe("formatValue - milliseconds", () => {
     test("scales milliseconds into seconds and beyond", () => {
-      expect(ValueFormatter.formatValue(1000, "ms")).toBe("1 sec");
-      expect(ValueFormatter.formatValue(60000, "ms")).toBe("1 min");
+      expect(ValueFormatter.formatValue(1000, "ms")).toBe("1\u00A0sec");
+      expect(ValueFormatter.formatValue(60000, "ms")).toBe("1\u00A0min");
     });
 
     test("keeps small ms values", () => {
-      expect(ValueFormatter.formatValue(5, "ms")).toBe("5 ms");
+      expect(ValueFormatter.formatValue(5, "ms")).toBe("5\u00A0ms");
     });
 
     test("renders 0 ms with the natural ms unit", () => {
-      expect(ValueFormatter.formatValue(0, "ms")).toBe("0 ms");
+      expect(ValueFormatter.formatValue(0, "ms")).toBe("0\u00A0ms");
     });
   });
 
@@ -156,41 +156,45 @@ describe("ValueFormatter", () => {
 
   describe("formatValue - compound rate units", () => {
     test("scales the numerator and keeps a compact denominator", () => {
-      expect(ValueFormatter.formatValue(1500000, "By/s")).toBe("1.5 MB/s");
-      expect(ValueFormatter.formatValue(2000, "bytes/s")).toBe("2 KB/s");
+      expect(ValueFormatter.formatValue(1500000, "By/s")).toBe("1.5\u00A0MB/s");
+      expect(ValueFormatter.formatValue(2000, "bytes/s")).toBe("2\u00A0KB/s");
     });
 
     test("keeps the slash for a numerator it cannot scale, never the words (#8049)", () => {
-      expect(ValueFormatter.formatValue(5, "requests/s")).toBe("5 requests/s");
-      expect(ValueFormatter.formatValue(100, "req/s")).toBe("100 req/s");
+      expect(ValueFormatter.formatValue(5, "requests/s")).toBe(
+        "5\u00A0requests/s",
+      );
+      expect(ValueFormatter.formatValue(100, "req/s")).toBe("100\u00A0req/s");
     });
   });
 
   describe("formatValue - unknown units", () => {
-    test("formats number and appends a readable unit name", () => {
-      expect(ValueFormatter.formatValue(10, "hz")).toBe("10 Hertz");
-      expect(ValueFormatter.formatValue(5, "v")).toBe("5 Volts");
+    test("formats number and appends the unit's symbol (#8284)", () => {
+      expect(ValueFormatter.formatValue(10, "hz")).toBe("10\u00A0Hz");
+      expect(ValueFormatter.formatValue(5, "v")).toBe("5\u00A0V");
     });
 
     test("keeps the original unit when unrecognized", () => {
-      expect(ValueFormatter.formatValue(5, "widgets")).toBe("5 widgets");
+      expect(ValueFormatter.formatValue(5, "widgets")).toBe("5\u00A0widgets");
     });
   });
 
   describe("formatValue - large number abbreviation", () => {
     test("abbreviates thousands, millions, billions", () => {
-      expect(ValueFormatter.formatValue(5000, "widgets")).toBe("5K widgets");
+      expect(ValueFormatter.formatValue(5000, "widgets")).toBe(
+        "5K\u00A0widgets",
+      );
       expect(ValueFormatter.formatValue(1500000, "widgets")).toBe(
-        "1.5M widgets",
+        "1.5M\u00A0widgets",
       );
       expect(ValueFormatter.formatValue(2000000000, "widgets")).toBe(
-        "2B widgets",
+        "2B\u00A0widgets",
       );
     });
 
     test("trims trailing zeros but keeps distinguishing decimals", () => {
       expect(ValueFormatter.formatValue(119250000000, "widgets")).toBe(
-        "119.25B widgets",
+        "119.25B\u00A0widgets",
       );
     });
   });
@@ -198,10 +202,10 @@ describe("ValueFormatter", () => {
   describe("formatValue - small number precision", () => {
     test("keeps two significant digits below 1", () => {
       expect(ValueFormatter.formatValue(0.004, "widgets")).toBe(
-        "0.004 widgets",
+        "0.004\u00A0widgets",
       );
       expect(ValueFormatter.formatValue(0.006, "widgets")).toBe(
-        "0.006 widgets",
+        "0.006\u00A0widgets",
       );
     });
 
@@ -557,18 +561,18 @@ describe("ValueFormatter", () => {
     }
 
     const cases: Array<NoDriftCase> = [
-      { value: 23.5, unit: "Cel", expected: "23.5 Celsius" },
-      { value: 12, unit: "ug/m3", expected: "12 ug/m3" },
+      { value: 23.5, unit: "Cel", expected: "23.5\u00A0°C" },
+      { value: 12, unit: "ug/m3", expected: "12\u00A0ug/m3" },
       { value: 23.5, unit: "%", expected: "23.50%" },
-      { value: 1536, unit: "By", expected: "1.54 KB" },
-      { value: 0, unit: "By", expected: "0 B" },
-      { value: -2000, unit: "bytes", expected: "-2 KB" },
-      { value: 90, unit: "s", expected: "1.5 min" },
-      { value: 3600, unit: "seconds", expected: "1 hours" },
-      { value: 86400, unit: "seconds", expected: "1 days" },
-      { value: 0, unit: "seconds", expected: "0 sec" },
-      { value: 0.5, unit: "seconds", expected: "500 ms" },
-      { value: 1500, unit: "ms", expected: "1.5 sec" },
+      { value: 1536, unit: "By", expected: "1.54\u00A0KB" },
+      { value: 0, unit: "By", expected: "0\u00A0B" },
+      { value: -2000, unit: "bytes", expected: "-2\u00A0KB" },
+      { value: 90, unit: "s", expected: "1.5\u00A0min" },
+      { value: 3600, unit: "seconds", expected: "1\u00A0hours" },
+      { value: 86400, unit: "seconds", expected: "1\u00A0days" },
+      { value: 0, unit: "seconds", expected: "0\u00A0sec" },
+      { value: 0.5, unit: "seconds", expected: "500\u00A0ms" },
+      { value: 1500, unit: "ms", expected: "1.5\u00A0sec" },
       { value: 42, unit: "1", expected: "42" },
       { value: 1234, unit: "1", expected: "1.23K" },
       {
@@ -578,14 +582,14 @@ describe("ValueFormatter", () => {
         expected: "25.00%",
       },
       { value: 42, unit: "{thread}", expected: "42" },
-      { value: 1500000, unit: "By/s", expected: "1.5 MB/s" },
-      { value: 2000, unit: "bytes/s", expected: "2 KB/s" },
-      { value: 5, unit: "requests/s", expected: "5 requests/s" },
-      { value: 98.6, unit: "[degF]", expected: "98.6 Fahrenheit" },
-      { value: 10, unit: "hz", expected: "10 Hertz" },
-      { value: 5, unit: "v", expected: "5 Volts" },
-      { value: 5, unit: "widgets", expected: "5 widgets" },
-      { value: 7, unit: "St", expected: "7 St" },
+      { value: 1500000, unit: "By/s", expected: "1.5\u00A0MB/s" },
+      { value: 2000, unit: "bytes/s", expected: "2\u00A0KB/s" },
+      { value: 5, unit: "requests/s", expected: "5\u00A0requests/s" },
+      { value: 98.6, unit: "[degF]", expected: "98.6\u00A0°F" },
+      { value: 10, unit: "hz", expected: "10\u00A0Hz" },
+      { value: 5, unit: "v", expected: "5\u00A0V" },
+      { value: 5, unit: "widgets", expected: "5\u00A0widgets" },
+      { value: 7, unit: "St", expected: "7\u00A0St" },
       { value: 42, unit: "", expected: "42" },
     ];
 
@@ -694,7 +698,7 @@ describe("ValueFormatter", () => {
 
       expect(parts.value).toBe("23.5");
       expect(parts.unit).toBe("°C");
-      expect(parts.formatted).toBe("23.5 °C");
+      expect(parts.formatted).toBe("23.5\u00A0°C");
     });
 
     test("splits compound units the string-splitting heuristic got wrong", () => {
@@ -706,22 +710,22 @@ describe("ValueFormatter", () => {
       expect(ValueFormatter.formatValueCompact(5, "requests/s")).toEqual({
         value: "5",
         unit: "requests/s",
-        formatted: "5 requests/s",
+        formatted: "5\u00A0requests/s",
       });
       expect(ValueFormatter.formatValueCompact(12, "ug/m3")).toEqual({
         value: "12",
         unit: "ug/m3",
-        formatted: "12 ug/m3",
+        formatted: "12\u00A0ug/m3",
       });
       expect(ValueFormatter.formatValueCompact(12, "m/s")).toEqual({
         value: "12",
         unit: "m/s",
-        formatted: "12 m/s",
+        formatted: "12\u00A0m/s",
       });
       expect(ValueFormatter.formatValueCompact(1.5, "MB/s")).toEqual({
         value: "1.5",
         unit: "MB/s",
-        formatted: "1.5 MB/s",
+        formatted: "1.5\u00A0MB/s",
       });
     });
 
@@ -729,12 +733,12 @@ describe("ValueFormatter", () => {
       expect(ValueFormatter.formatValueCompact(1536, "By")).toEqual({
         value: "1.54",
         unit: "KB",
-        formatted: "1.54 KB",
+        formatted: "1.54\u00A0KB",
       });
       expect(ValueFormatter.formatValueCompact(1500000, "By/s")).toEqual({
         value: "1.5",
         unit: "MB/s",
-        formatted: "1.5 MB/s",
+        formatted: "1.5\u00A0MB/s",
       });
       expect(ValueFormatter.formatValueCompact(1234, "1").value).toBe("1.23K");
     });
@@ -747,7 +751,7 @@ describe("ValueFormatter", () => {
       expect(ValueFormatter.formatValueCompact(3600, "s")).toEqual({
         value: "1",
         unit: "h",
-        formatted: "1 h",
+        formatted: "1\u00A0h",
       });
       expect(ValueFormatter.formatValueCompact(86400, "seconds").unit).toBe(
         "d",
@@ -954,10 +958,12 @@ describe("ValueFormatter", () => {
         `12.345,00${NBSP}%`,
       );
       expect(ValueFormatter.formatValue(-4.25, "%", de)).toBe(`-4,25${NBSP}%`);
-      expect(ValueFormatter.formatValue(1536, "By", de)).toBe("1,54 KB");
-      expect(ValueFormatter.formatValue(-2000, "bytes", de)).toBe("-2 KB");
+      expect(ValueFormatter.formatValue(1536, "By", de)).toBe("1,54\u00A0KB");
+      expect(ValueFormatter.formatValue(-2000, "bytes", de)).toBe("-2\u00A0KB");
       // A span of time in German's words, and a big number in its scale (#7518).
-      expect(ValueFormatter.formatValue(3600, "seconds", de)).toBe("1 Stunde");
+      expect(ValueFormatter.formatValue(3600, "seconds", de)).toBe(
+        "1\u00A0Stunde",
+      );
       expect(ValueFormatter.formatValue(1234, "1", de)).toBe("1230");
       expect(ValueFormatter.formatValue(119250000000, "", de)).toBe(
         `119,25${NBSP}Mrd.`,
@@ -984,7 +990,7 @@ describe("ValueFormatter", () => {
       expect(ValueFormatter.isUnitSetApart(parts)).toBe(true);
       expect(
         ValueFormatter.formatValueCompact(23.5, "Cel", { language: "de" }),
-      ).toEqual({ value: "23,5", unit: "°C", formatted: "23,5 °C" });
+      ).toEqual({ value: "23,5", unit: "°C", formatted: "23,5\u00A0°C" });
     });
 
     test("in Persian: Persian digits, its decimal sign and its percent sign, no space before it", () => {
@@ -1001,7 +1007,7 @@ describe("ValueFormatter", () => {
         formatted: "۷۳٫۴۰٪",
       });
       expect(ValueFormatter.isUnitSetApart(parts)).toBe(false);
-      expect(ValueFormatter.formatValue(1536, "By", fa)).toBe("۱٫۵۴ KB");
+      expect(ValueFormatter.formatValue(1536, "By", fa)).toBe("۱٫۵۴\u00A0KB");
       expect(ValueFormatter.formatValue(1234, "1", fa)).toBe(`۱٫۲۳${NBSP}هزار`);
       expect(ValueFormatter.formatValue(42, "", fa)).toBe("۴۲");
 
@@ -1047,7 +1053,7 @@ describe("ValueFormatter", () => {
       expect(parts.formatted.startsWith("73.40")).toBe(true);
       expect(ValueFormatter.isUnitSetApart(parts)).toBe(false);
       expect(ValueFormatter.formatValue(1536, "By", { language: "ar" })).toBe(
-        "1.54 KB",
+        "1.54\u00A0KB",
       );
 
       for (const languageCase of CASES) {
@@ -1131,7 +1137,7 @@ describe("ValueFormatter", () => {
           "73.40%",
         );
         expect(ValueFormatter.formatValue(1536, "By", { language })).toBe(
-          "1.54 KB",
+          "1.54\u00A0KB",
         );
       }
     });
@@ -1142,15 +1148,17 @@ describe("ValueFormatter", () => {
       ).toEqual({
         value: "5",
         unit: "requests/s",
-        formatted: "5 requests/s",
+        formatted: "5\u00A0requests/s",
       });
     });
 
     /*
-     * A unit the formatter names in English words it has no translation
-     * of ("Hertz", "Celsius") is named by its caller, who knows the reader
-     * (unitName). Left to itself, it writes the English. A rate keeps its
-     * slash, as a chart writes it (#8049), whatever the caller names.
+     * A unit with a symbol is written by it, whatever the caller names
+     * ("Hz", "°C"; #8284). A unit the formatter names in English words and
+     * has no symbol for ("Kelvin": "300 K" would sit one space from the
+     * "300K" a big count reads) is named by its caller, who knows the
+     * reader (unitName). Left to itself, it writes the English. A rate keeps
+     * its slash, as a chart writes it (#8049), whatever the caller names.
      */
     test("a unit's name in words is the caller's to give, English when it gives none", () => {
       const naming: ValueFormatterOptions = {
@@ -1161,19 +1169,27 @@ describe("ValueFormatter", () => {
       };
 
       expect(
-        ValueFormatter.formatValueInParts(5, "Hz", { language: "de" }),
-      ).toEqual({ value: "5", unit: "Hertz", formatted: "5 Hertz" });
+        ValueFormatter.formatValueInParts(5, "K", { language: "de" }),
+      ).toEqual({ value: "5", unit: "Kelvin", formatted: "5\u00A0Kelvin" });
+      expect(ValueFormatter.formatValueInParts(5, "K", naming)).toEqual({
+        value: "5",
+        unit: "«K»",
+        formatted: "5\u00A0«K»",
+      });
       expect(ValueFormatter.formatValueInParts(5, "Hz", naming)).toEqual({
         value: "5",
-        unit: "«Hz»",
-        formatted: "5 «Hz»",
+        unit: "Hz",
+        formatted: "5\u00A0Hz",
       });
+      expect(
+        ValueFormatter.formatValueInParts(5, "Hz", { language: "de" }),
+      ).toEqual({ value: "5", unit: "Hz", formatted: "5\u00A0Hz" });
       expect(
         ValueFormatter.formatValueInParts(5, "requests/s", naming),
       ).toEqual({
         value: "5",
         unit: "requests/s",
-        formatted: "5 requests/s",
+        formatted: "5\u00A0requests/s",
       });
     });
   });
@@ -1324,33 +1340,35 @@ describe("ValueFormatter", () => {
       expect(ValueFormatter.formatValueInParts(3600, "s", de)).toEqual({
         value: "1",
         unit: "Stunde",
-        formatted: "1 Stunde",
+        formatted: "1\u00A0Stunde",
       });
       expect(ValueFormatter.formatValueInParts(6.91 * 3600, "s", de)).toEqual({
         value: "6,91",
         unit: "Stunden",
-        formatted: "6,91 Stunden",
+        formatted: "6,91\u00A0Stunden",
       });
-      expect(ValueFormatter.formatValue(2 * 86400, "s", de)).toBe("2 Tage");
-      expect(ValueFormatter.formatValue(120, "sec", de)).toBe("2 Min.");
-      expect(ValueFormatter.formatValue(1500, "ms", de)).toBe("1,5 Sek.");
+      expect(ValueFormatter.formatValue(2 * 86400, "s", de)).toBe(
+        "2\u00A0Tage",
+      );
+      expect(ValueFormatter.formatValue(120, "sec", de)).toBe("2\u00A0Min.");
+      expect(ValueFormatter.formatValue(1500, "ms", de)).toBe("1,5\u00A0Sek.");
       // A symbol reads as it is: milliseconds, bytes, a percentage.
-      expect(ValueFormatter.formatValue(12, "ms", de)).toBe("12 ms");
+      expect(ValueFormatter.formatValue(12, "ms", de)).toBe("12\u00A0ms");
     });
 
     test("in Persian and Arabic, its words; in Japanese and Chinese, set as they set them", () => {
       expect(
         ValueFormatter.formatValueInParts(3600, "seconds", { language: "fa" }),
-      ).toEqual({ value: "۱", unit: "ساعت", formatted: "۱ ساعت" });
+      ).toEqual({ value: "۱", unit: "ساعت", formatted: "۱\u00A0ساعت" });
       expect(
         ValueFormatter.formatValue(6.91 * 3600, "s", { language: "fa" }),
-      ).toBe("۶٫۹۱ ساعت");
+      ).toBe("۶٫۹۱\u00A0ساعت");
       expect(
         ValueFormatter.formatValue(6.91 * 3600, "s", { language: "ar" }),
-      ).toBe("6.91 ساعة");
+      ).toBe("6.91\u00A0ساعة");
       expect(
         ValueFormatter.formatValue(6.91 * 3600, "s", { language: "ja" }),
-      ).toBe("6.91 時間");
+      ).toBe("6.91\u00A0時間");
 
       const chinese: FormattedValue = ValueFormatter.formatValueInParts(
         6.91 * 3600,
@@ -1376,7 +1394,7 @@ describe("ValueFormatter", () => {
         );
 
         expect(parts.value).toBe(String(hours));
-        expect(parts.formatted).toBe(`${hours} ساعة`);
+        expect(parts.formatted).toBe(`${hours}\u00A0ساعة`);
       }
     });
 
@@ -1475,11 +1493,13 @@ describe("ValueFormatter", () => {
     test("a long span, scaled: in the language's scale and its words", () => {
       expect(
         ValueFormatter.formatValue(1500 * 86400, "s", { language: "de" }),
-      ).toBe("1500 Tage");
+      ).toBe("1500\u00A0Tage");
       expect(
         ValueFormatter.formatValue(1500 * 86400, "s", { language: "fa" }),
-      ).toBe(`۱٫۵${NBSP}هزار روز`);
-      expect(ValueFormatter.formatValue(1500 * 86400, "s")).toBe("1.5K days");
+      ).toBe(`۱٫۵${NBSP}هزار${NBSP}روز`);
+      expect(ValueFormatter.formatValue(1500 * 86400, "s")).toBe(
+        "1.5K\u00A0days",
+      );
     });
 
     test("a language Intl cannot read keeps English's letter and words", () => {
@@ -1487,7 +1507,7 @@ describe("ValueFormatter", () => {
         "1.23K",
       );
       expect(ValueFormatter.formatValue(3600, "s", { language: "!!" })).toBe(
-        "1 hours",
+        "1\u00A0hours",
       );
     });
   });

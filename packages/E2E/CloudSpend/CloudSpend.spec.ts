@@ -11,7 +11,9 @@ import fsPromises from "fs/promises";
 import path from "path";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { drawnTextOf, expectQuietDash } from "../SuiteHelpers/QuietDash";
 import { sideMenuAtRest } from "../SuiteHelpers/SideMenuAtRest";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * Cloud's Overview and its Spend pages, in a browser, against the offline
@@ -302,7 +304,8 @@ async function tileValue(
     "cloud-stat-tile-value",
   );
   await expect(value).toBeVisible();
-  return ((await value.textContent()) || "").trim();
+  // As drawn: a figure with no reading is "—", its "Not set" heard only (#8749).
+  return drawnTextOf(value);
 }
 
 function tileSublabel(page: Page, stripId: string, key: string): Locator {
@@ -1091,6 +1094,12 @@ test.describe("the Overview", () => {
     await open(page, CLOUD, "state=unread");
 
     expect(await tileValue(page, "cloud-overview-strip", "spend")).toBe("—");
+    // The quiet dash, and "Not set" for a screen reader, not a cost of nothing.
+    await expectQuietDash(
+      tileOf(page, "cloud-overview-strip", "spend").getByTestId(
+        "cloud-stat-tile-value",
+      ),
+    );
     await expect(
       tileSublabel(page, "cloud-overview-strip", "spend"),
     ).toHaveText("Costs not read yet");
@@ -2846,4 +2855,18 @@ test.describe("every page, every way", () => {
       }
     });
   }
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German and Persian whole, parsed on every page load of every test. English
+ * is in the bundle now, and each other language a chunk of its own, loaded
+ * only by a page drawn in it (SuiteHelpers/FixtureLocales.js), built as the
+ * Dashboard ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "fa"],
+  address: (language: string): string => {
+    return language === "en" ? CLOUD : `${CLOUD}?lang=${language}`;
+  },
 });

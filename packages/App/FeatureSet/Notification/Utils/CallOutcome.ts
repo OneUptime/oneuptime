@@ -1,6 +1,14 @@
 import CallStatus from "Common/Types/Call/CallStatus";
 import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
 import { NotificationDeliveryStatus } from "Common/Server/Utils/Telemetry/NotificationDeliveryMetrics";
+import {
+  CALL_ANSWERED_MESSAGE,
+  CALL_BUSY_MESSAGE,
+  CALL_NOT_CONNECTED_MESSAGE,
+  CALL_RANG_OUT_MESSAGE,
+  getCallAnsweredAndLastedMessage,
+  getCallOutcomeMessage,
+} from "Common/Types/OnCallDutyPolicy/OnCallSentLine";
 
 /*
  * HOW A CALL ENDED, AS TWILIO TELLS IT.
@@ -53,11 +61,6 @@ export interface CallOutcome {
   durationInSeconds: number | null;
 }
 
-// "42 seconds", "1 second": how long an answered call lasted.
-function getDurationText(durationInSeconds: number): string {
-  return durationInSeconds === 1 ? "1 second" : `${durationInSeconds} seconds`;
-}
-
 /*
  * What a call's final status means - or null for a status that is not how
  * a call ended (queued, ringing, in-progress), or one OneUptime does not
@@ -89,9 +92,13 @@ export function getCallOutcome(data: {
       return {
         callStatus: null,
         notificationStatus: null,
+        /*
+         * The sentences are written from OnCallSentLine, where the on-call
+         * logs read them back to word them in the reader's language (#8576).
+         */
         sentence: hasDuration
-          ? `The call was answered and lasted ${getDurationText(duration)}.`
-          : "The call was answered.",
+          ? getCallAnsweredAndLastedMessage(duration)
+          : CALL_ANSWERED_MESSAGE,
         deliveryStatus: NotificationDeliveryStatus.Answered,
         durationInSeconds: hasDuration ? duration : null,
       };
@@ -100,7 +107,7 @@ export function getCallOutcome(data: {
       return {
         callStatus: CallStatus.MissedCall,
         notificationStatus: UserNotificationStatus.NotAnswered,
-        sentence: "The call was not answered: it rang out.",
+        sentence: CALL_RANG_OUT_MESSAGE,
         deliveryStatus: NotificationDeliveryStatus.NotAnswered,
         durationInSeconds: null,
       };
@@ -108,8 +115,7 @@ export function getCallOutcome(data: {
       return {
         callStatus: CallStatus.Busy,
         notificationStatus: UserNotificationStatus.NotAnswered,
-        sentence:
-          "The call was not answered: the line was busy, or the call was declined.",
+        sentence: CALL_BUSY_MESSAGE,
         deliveryStatus: NotificationDeliveryStatus.NotAnswered,
         durationInSeconds: null,
       };
@@ -117,7 +123,7 @@ export function getCallOutcome(data: {
       return {
         callStatus: CallStatus.Error,
         notificationStatus: UserNotificationStatus.Error,
-        sentence: "The call could not be connected.",
+        sentence: CALL_NOT_CONNECTED_MESSAGE,
         deliveryStatus: NotificationDeliveryStatus.Failed,
         durationInSeconds: null,
       };
@@ -173,7 +179,8 @@ export function getCallOutcomeStatusMessage(data: {
   const callSid: string =
     typeof data.callSid === "string" ? data.callSid.trim() : "";
 
-  return TWILIO_CALL_SID.test(callSid)
-    ? `Call ID: ${callSid}. ${data.outcome.sentence}`
-    : data.outcome.sentence;
+  return getCallOutcomeMessage({
+    callId: TWILIO_CALL_SID.test(callSid) ? callSid : null,
+    sentence: data.outcome.sentence,
+  });
 }

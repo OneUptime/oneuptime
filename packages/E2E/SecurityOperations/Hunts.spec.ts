@@ -976,10 +976,11 @@ test.describe("a hunt's Run History", () => {
     await expect(runRow(page, 1)).toContainText(
       "Searched Oct 13, 9:58 AM to Oct 14, 9:58 AM",
     );
-    await expect(runRow(page, 1)).not.toContainText("GMT");
+    // The zone, the browser's UTC (#8475), only under the pointer.
+    await expect(runRow(page, 1)).not.toContainText("UTC");
     await expect(runRow(page, 1).locator("time").first()).toHaveAttribute(
       "title",
-      "Oct 14 2026, 10:00 AM GMT",
+      "Oct 14 2026, 10:00 AM UTC",
     );
     await expect(runRow(page, 2)).toContainText("Nothing found");
     await expect(runRow(page, 3)).toContainText("1 event");

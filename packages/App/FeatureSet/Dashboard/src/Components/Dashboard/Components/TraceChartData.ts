@@ -1,4 +1,5 @@
 import { JSONObject } from "Common/Types/JSON";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import OneUptimeDate from "Common/Types/Date";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import DashboardTraceChartComponent from "Common/Types/Dashboard/DashboardComponents/DashboardTraceChartComponent";
@@ -6,7 +7,15 @@ import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { getSpanStatusPresentation } from "../../../Utils/SpanStatusPresentation";
-import { getReaderNumberLocale } from "Common/Types/DateLanguage";
+import {
+  getDateDisplayLanguage,
+  getReaderNumberLocale,
+  writeFigureInLanguage,
+} from "Common/Types/DateLanguage";
+import {
+  formatDurationInUnit,
+  formatMilliseconds,
+} from "../../../Utils/Milliseconds";
 
 /*
  * Pure, React-free data helpers for the trace chart widget. Kept out of the
@@ -160,28 +169,61 @@ export function isDurationMetric(metric: string): boolean {
   return metric !== "count" && metric !== "errorCount";
 }
 
-export function formatDurationMs(ms: number): string {
+/*
+ * A span's duration in the unit that reads best ("500 µs", "5.0 ms", "42
+ * ms", "1.50 s", "1.5 min"), in the reader's words and digits: "۴۲
+ * میلی‌ثانیه", "1,50 Sek.", "1,5 Min.". In a table's cell, and on a chart's
+ * value axis and in its tooltip alike, which write their figures as the
+ * tiles beside them do (#8349). English reads exactly as it always did.
+ */
+export function formatDurationMsInLanguage(
+  ms: number,
+  translator: Translator,
+): string {
   if (!isFinite(ms)) {
-    return "-";
+    return EMPTY_VALUE_MARK;
   }
   if (ms < 1) {
-    return `${Math.round(ms * 1000)} µs`;
+    return formatDurationInUnit(translator, ms * 1000, "microsecond", {
+      decimals: 0,
+    });
   }
   if (ms < 1000) {
-    return `${ms < 10 ? ms.toFixed(1) : Math.round(ms)} ms`;
+    // "5.0 ms" under ten, "42 ms" from ten up.
+    return ms < 10
+      ? formatMilliseconds(translator, ms, {
+          minimumFractionDigits: 1,
+          maximumFractionDigits: 1,
+        })
+      : formatMilliseconds(translator, ms, { maximumFractionDigits: 0 });
   }
   if (ms < 60000) {
-    return `${(ms / 1000).toFixed(2)} s`;
+    return formatDurationInUnit(translator, ms / 1000, "second", {
+      decimals: 2,
+    });
   }
-  return `${(ms / 60000).toFixed(1)} min`;
+  return formatDurationInUnit(translator, ms / 60000, "minute", {
+    decimals: 1,
+  });
 }
 
+/*
+ * A count of spans: "42", "1.5K", "12K", "1.2M", in the page's digits and
+ * decimal sign ("1,5K", "۱٫۵K"), the scale letter kept, as a chart's axis
+ * and the tiles beside it write a count (#8349).
+ */
 export function formatCount(value: number): string {
   if (value >= 1000000) {
-    return `${(value / 1000000).toFixed(1)}M`;
+    return writeFigureInLanguage(
+      `${(value / 1000000).toFixed(1)}M`,
+      getDateDisplayLanguage(),
+    );
   }
   if (value >= 1000) {
-    return `${(value / 1000).toFixed(value >= 10000 ? 0 : 1)}K`;
+    return writeFigureInLanguage(
+      `${(value / 1000).toFixed(value >= 10000 ? 0 : 1)}K`,
+      getDateDisplayLanguage(),
+    );
   }
   return Math.round(value).toLocaleString(getReaderNumberLocale());
 }

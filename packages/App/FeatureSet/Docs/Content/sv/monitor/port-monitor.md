@@ -31,7 +31,7 @@ När en kontroll misslyckas spårar sonden också vägen till värden och slår 
 
 ## Innan du börjar
 
-- **En roll som kan skapa monitorer**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member, eller en anpassad roll med behörigheten Create Monitor.
+- **En roll som kan skapa monitorer**: Projektägare, Projektadministratör, Projektmedlem, Monitoradministratör eller Monitormedlem, eller en anpassad roll med behörigheten Create Monitor.
 - **En sond som når porten.** Projektets standardsonder väljs för varje ny monitor. Om en brandvägg står framför tjänsten tillåter du [OneUptime Clouds sond-IP-adresser](/docs/configuration/ip-addresses) att ansluta till porten. En tjänst i ett privat nätverk, som en databas, behöver en [anpassad sond](/docs/probe/custom-probe) i det nätverket.
 
 ## Skapa en portmonitor
@@ -122,7 +122,7 @@ Med två eller fler filter avgör **Matchningsvillkor** om **Alla** måste match
 
 En ny portmonitor börjar med två kriterier:
 
-- **Offline** — porten tar inte emot någon anslutning efter alla återförsök. Monitorn markeras som **Offline** och en incident som heter "_monitor name_ is offline" skapas. Incidenten löser sig själv när porten tar emot anslutningar igen.
+- **Offline** — porten tar inte emot någon anslutning efter alla återförsök. Monitorn markeras som **Offline** och en incident som heter "_monitornamn_ är offline" skapas. Incidenten löser sig själv när porten tar emot anslutningar igen.
 - **Uppe** — porten tar emot en anslutning. Monitorn markeras som **Fungerar**.
 
 Kriterier kontrolleras uppifrån och ned, och det första som matchar avgör vad som händer. När inget matchar visar monitorn sin standardstatus: **Fungerar**, om du inte väljer en annan under **Fler fält** under kriterierna.
@@ -181,5 +181,5 @@ Portmonitorer öppnar bara TCP-anslutningar. För en DNS-server använder du en 
 - [Ping-övervakning](/docs/monitor/ping-monitor): Kontrollera att värden själv kan nås.
 - [Övervakning av SSL-certifikat](/docs/monitor/ssl-certificate-monitor): Kontrollera certifikatet på en TLS-port.
 - [Övervakning av databashälsa](/docs/monitor/database-health-monitor): Gå längre än en öppen port och bevaka en databas hälsa.
-- [Anpassade probes](/docs/probe/custom-probe): Kontrollera portar i ditt eget nätverk.
+- [Anpassade sonder](/docs/probe/custom-probe): Kontrollera portar i ditt eget nätverk.
 :::

@@ -43,7 +43,7 @@ flowchart TB
 
 ## پیش از شروع
 
-- **نقشی که بتواند آن را راه‌اندازی کند.** نقش‌های Project Owner، Project Admin و Security Admin تنظیمات امنیت داده را تغییر می‌دهند. نقش Security Member به مسائل رسیدگی می‌کند و مخازن را اسکن می‌کند، و نقش Security Viewer آنچه را پیدا شده می‌خواند. نقش‌های دیگر هیچ‌کدام از این‌ها را نمی‌بینند، مگر اینکه مجوزهای آن به تیمشان داده شود: اینکه کدام باکت‌ها شماره کارت نگه می‌دارند دقیقاً همان چیزی است که یک مهاجم می‌خواهد بداند. [نقش‌ها](/docs/permissions/reference#نقشها) را ببینید.
+- **نقشی که بتواند آن را راه‌اندازی کند.** نقش‌های مالک پروژه، مدیر پروژه و مدیر امنیت تنظیمات امنیت داده را تغییر می‌دهند. نقش عضو امنیت به مسائل رسیدگی می‌کند و مخازن را اسکن می‌کند، و نقش بیننده امنیت آنچه را پیدا شده می‌خواند. نقش‌های دیگر هیچ‌کدام از این‌ها را نمی‌بینند، مگر اینکه مجوزهای آن به تیمشان داده شود: اینکه کدام باکت‌ها شماره کارت نگه می‌دارند دقیقاً همان چیزی است که یک مهاجم می‌خواهد بداند. [نقش‌ها](/docs/permissions/reference#نقشها) را ببینید.
 - **یک حساب ابری برای خواندن، یا یک پایگاه داده.** امنیت داده یک حساب ابری را از راه یک [اتصال ابری](/docs/telemetry/cloud-accounts) می‌خواند، و پایگاه داده‌ای را که خودتان اجرا می‌کنید از راه یک رشته اتصال فقط‌خواندنی. تله‌متری به چیزی نیاز ندارد: هر ساعت اسکن می‌شود.
 
 ## شروع سریع
@@ -69,7 +69,7 @@ flowchart TB
 | AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System, Amazon Athena | AWS S3 Bucket |
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
-| پایگاه‌های داده‌ای که خودتان اجرا می‌کنید | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL |
+| پایگاه‌های داده‌ای که خودتان اجرا می‌کنید | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
 | OneUptime | لاگ‌ها، ترِیس‌ها، استثناها، بازپخش‌های نشست، گفتگوهای هوش مصنوعی | لاگ‌ها، ترِیس‌ها، استثناها، بازپخش‌های نشست، گفتگوهای هوش مصنوعی |
 
 هر مخزن بررسی‌هایی را می‌گیرد که به گونهٔ آن مربوط‌اند. مخزنی که نمی‌توان از محتوایش نمونه برداشت همچنان بررسی می‌شود: یک باکت عمومی یا یک پایگاه دادهٔ رمزگذاری‌نشده، هر چه در خود داشته باشد، یک مشکل است.

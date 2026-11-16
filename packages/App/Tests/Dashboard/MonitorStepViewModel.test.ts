@@ -41,10 +41,15 @@ import {
   DictionaryEntryValue,
   DictionaryFilterOperator,
 } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
+import { formatDictionaryFilterSentence } from "Common/UI/Components/Dictionary/DictionaryFilterSentence";
+import { createTranslator, Translator } from "Common/Types/Translator";
 import MonitorStepViewModel, {
   MonitorStepViewRow,
   MonitorStepViewValueType,
 } from "../../FeatureSet/Dashboard/src/Utils/MonitorStepViewModel";
+
+// No language: each filter's sentence reads English, word for word.
+const ENGLISH: Translator = createTranslator(undefined);
 
 /*
  * WHAT THIS FILE PROTECTS
@@ -587,7 +592,7 @@ describe("MonitorStepViewModel.getRows — probe monitors", () => {
 
   it("shows configured retries and names the inherited default when omitted", () => {
     expect(getRow(MonitorType.API, "requestTimeoutInMs")?.value).toBe(
-      "5000 ms",
+      "5,000\u00A0ms",
     );
     expect(getRow(MonitorType.API, "retryCount")?.value).toBe(2);
 
@@ -632,7 +637,7 @@ describe("MonitorStepViewModel.getRows — probe monitors", () => {
     ).toEqual([
       ["monitorDestination", "NTP Server", "time.example.com"],
       ["monitorDestinationPort", "Port", "123"],
-      ["requestTimeoutInMs", "Request Timeout", "2000 ms"],
+      ["requestTimeoutInMs", "Request Timeout", "2,000\u00A0ms"],
       ["retryCount", "Retry Count", 1],
     ]);
   });
@@ -655,7 +660,7 @@ describe("MonitorStepViewModel.getRows — probe monitors", () => {
 
     expect(byKey("monitorDestination")?.value).toBe("192.0.2.10");
     expect(byKey("monitorDestinationPort")?.value).toBe("123");
-    expect(byKey("requestTimeoutInMs")?.value).toBe("5000 ms");
+    expect(byKey("requestTimeoutInMs")?.value).toBe("5,000\u00A0ms");
     expect(byKey("retryCount")).toMatchObject({
       value: undefined,
       placeholder: "Probe default (usually 3)",
@@ -858,7 +863,7 @@ describe("MonitorStepViewModel.getRows — DNS, domain and database monitors", (
     );
     expect(
       getRow(MonitorType.Database, "databaseStatementTimeoutInMs")?.value,
-    ).toBe("5000 ms");
+    ).toBe("5,000\u00A0ms");
   });
 
   /*
@@ -1002,7 +1007,7 @@ describe("MonitorStepViewModel.getRows — telemetry monitors", () => {
   it("shows the log filter, window, severity and attributes", () => {
     expect(getRow(MonitorType.Logs, "logBody")?.value).toBe("timeout");
     expect(getRow(MonitorType.Logs, "lastXSecondsOfLogs")?.value).toBe(
-      "5 minutes",
+      "5\u00A0minutes",
     );
     expect(getRow(MonitorType.Logs, "severityTexts")?.value).toEqual([
       LogSeverity.Error,
@@ -1030,7 +1035,7 @@ describe("MonitorStepViewModel.getRows — telemetry monitors", () => {
       "POST /checkout",
     );
     expect(getRow(MonitorType.Traces, "lastXSecondsOfSpans")?.value).toBe(
-      "2 minutes",
+      "2\u00A0minutes",
     );
   });
 
@@ -1043,7 +1048,7 @@ describe("MonitorStepViewModel.getRows — telemetry monitors", () => {
     ]);
     expect(
       getRow(MonitorType.Exceptions, "lastXSecondsOfExceptions")?.value,
-    ).toBe("10 minutes");
+    ).toBe("10\u00A0minutes");
     expect(getRow(MonitorType.Exceptions, "includeResolved")?.value).toBe(true);
     expect(getRow(MonitorType.Exceptions, "includeArchived")?.value).toBe(
       false,
@@ -1255,7 +1260,8 @@ interface AttributeOperatorCase {
   operator: DictionaryFilterOperator;
   rawValue: string;
   rawValues?: Array<string> | undefined;
-  rendersAs: string;
+  // The sentence the viewer says it as, for an "env" filter, in English.
+  saysInEnglish: string;
 }
 
 const ATTRIBUTE_OPERATOR_CASES: Array<AttributeOperatorCase> = [
@@ -1263,100 +1269,100 @@ const ATTRIBUTE_OPERATOR_CASES: Array<AttributeOperatorCase> = [
     label: "equals",
     operator: DictionaryFilterOperator.EqualTo,
     rawValue: "web",
-    // Bare, because `=` is the implicit operator and how these have always read.
-    rendersAs: "web",
+    // A symbol: the sentence is the key and the value either side of it.
+    saysInEnglish: "env = web",
   },
   {
     label: "does not equal",
     operator: DictionaryFilterOperator.NotEqual,
     rawValue: "web",
-    rendersAs: "does not equal web",
+    saysInEnglish: "env != web",
   },
   {
     label: "is any of",
     operator: DictionaryFilterOperator.IsAnyOf,
     rawValue: "",
     rawValues: ["web", "api"],
-    rendersAs: "is any of web, api",
+    saysInEnglish: "env is any of: web, api",
   },
   {
     label: "is none of",
     operator: DictionaryFilterOperator.IsNoneOf,
     rawValue: "",
     rawValues: ["web", "api"],
-    rendersAs: "is none of web, api",
+    saysInEnglish: "env is none of: web, api",
   },
   {
     label: "contains",
     operator: DictionaryFilterOperator.Contains,
     rawValue: "web",
-    rendersAs: "contains web",
+    saysInEnglish: "env contains web",
   },
   {
     label: "does not contain",
     operator: DictionaryFilterOperator.NotContains,
     rawValue: "web",
-    rendersAs: "does not contain web",
+    saysInEnglish: "env does not contain web",
   },
   {
     label: "starts with",
     operator: DictionaryFilterOperator.StartsWith,
     rawValue: "web",
-    rendersAs: "starts with web",
+    saysInEnglish: "env starts with web",
   },
   {
     label: "ends with",
     operator: DictionaryFilterOperator.EndsWith,
     rawValue: "web",
-    rendersAs: "ends with web",
+    saysInEnglish: "env ends with web",
   },
   {
     label: "matches",
     operator: DictionaryFilterOperator.Matches,
     rawValue: "web-*",
-    rendersAs: "matches web-*",
+    saysInEnglish: "env matches web-*",
   },
   {
     label: "does not match",
     operator: DictionaryFilterOperator.NotMatches,
     rawValue: "web-*",
-    rendersAs: "does not match web-*",
+    saysInEnglish: "env does not match web-*",
   },
   {
     label: "greater than",
     operator: DictionaryFilterOperator.GreaterThan,
     rawValue: "500",
-    rendersAs: "greater than 500",
+    saysInEnglish: "env > 500",
   },
   {
     label: "greater than or equal",
     operator: DictionaryFilterOperator.GreaterThanOrEqual,
     rawValue: "500",
-    rendersAs: "greater than or equal 500",
+    saysInEnglish: "env >= 500",
   },
   {
     label: "less than",
     operator: DictionaryFilterOperator.LessThan,
     rawValue: "500",
-    rendersAs: "less than 500",
+    saysInEnglish: "env < 500",
   },
   {
     label: "less than or equal",
     operator: DictionaryFilterOperator.LessThanOrEqual,
     rawValue: "500",
-    rendersAs: "less than or equal 500",
+    saysInEnglish: "env <= 500",
   },
   {
     label: "is empty",
     operator: DictionaryFilterOperator.IsEmpty,
     rawValue: "",
-    rendersAs: "is empty",
+    saysInEnglish: "env is empty",
   },
   {
     label: "is not empty",
     operator: DictionaryFilterOperator.IsNotEmpty,
     rawValue: "",
-    rendersAs: "is not empty",
+    saysInEnglish: "env is not empty",
   },
 ];
 
@@ -1405,53 +1411,78 @@ describe("MonitorStepViewModel.getRows — attribute filter operators", () => {
 describe.each(ATTRIBUTE_FILTER_FIXTURES)(
   "MonitorStepViewModel.getRows — $label monitor attribute filters",
   (fixture: AttributeFilterFixture) => {
+    /*
+     * The row hands the viewer the filters as stored, and the viewer says
+     * each one as a sentence in the reader's language (#8309). Formatted
+     * here, as "contains web", the operator read English in every language:
+     * this file translates nothing.
+     */
     it.each(ATTRIBUTE_OPERATOR_CASES)(
-      'renders "$label" as text instead of the operator object it is stored as',
+      'hands "$label" over as stored, for the viewer to say',
       (operatorCase: AttributeOperatorCase) => {
+        const stored: DictionaryEntryValue = buildDictionaryValue({
+          operator: operatorCase.operator,
+          rawValue: operatorCase.rawValue,
+          rawValues: operatorCase.rawValues,
+        });
         const row: MonitorStepViewRow | undefined = getAttributeRow(fixture, {
-          env: buildDictionaryValue({
-            operator: operatorCase.operator,
-            rawValue: operatorCase.rawValue,
-            rawValues: operatorCase.rawValues,
-          }),
+          env: stored,
         });
 
         /*
-         * A JSON row would be handed to `JSON.stringify`; a dictionary of
-         * strings is tabulated as-is. The value type is half the fix.
+         * A JSON row would be handed to `JSON.stringify`, and a dictionary
+         * of strings tabulated in English: an AttributeFilters row is said.
          */
-        expect(row?.valueType).toBe(
-          MonitorStepViewValueType.DictionaryOfStrings,
-        );
-        expect(row?.value).toEqual({ env: operatorCase.rendersAs });
+        expect(row?.valueType).toBe(MonitorStepViewValueType.AttributeFilters);
+        expect((row?.value as Dictionary<unknown>)["env"]).toBe(stored);
+
+        // What the viewer then says for it, in English.
+        expect(
+          formatDictionaryFilterSentence({
+            attributeKey: "env",
+            value: (row?.value as Dictionary<unknown>)["env"],
+            translator: ENGLISH,
+          }),
+        ).toBe(operatorCase.saysInEnglish);
       },
     );
 
-    it("names the operator for a step read back from storage as raw JSON", () => {
+    it("hands a step read back from storage over as its raw JSON, which the sentence reads", () => {
       /*
        * What the API actually returns: the operator instances serialized to
        * their `{_type, value}` form, never rehydrated into classes. That
-       * shape printed verbatim on the page before this fix.
+       * shape printed verbatim on the page before #7931's fix.
        */
-      const row: MonitorStepViewRow | undefined = getAttributeRow(fixture, {
-        env: new Search<string>(
-          "web",
-        ).toJSON() as unknown as DictionaryEntryValue,
-        tier: new Includes([
-          "web",
-          "api",
-        ]).toJSON() as unknown as DictionaryEntryValue,
-        region: new IsNull().toJSON() as unknown as DictionaryEntryValue,
+      const stored: Dictionary<unknown> = {
+        env: new Search<string>("web").toJSON(),
+        tier: new Includes(["web", "api"]).toJSON(),
+        region: new IsNull().toJSON(),
+      };
+      const row: MonitorStepViewRow | undefined = getAttributeRow(
+        fixture,
+        stored as Dictionary<DictionaryEntryValue>,
+      );
+
+      expect(row?.value).toEqual(stored);
+
+      const said: Array<string> = Object.entries(
+        row?.value as Dictionary<unknown>,
+      ).map(([key, value]: [string, unknown]): string => {
+        return formatDictionaryFilterSentence({
+          attributeKey: key,
+          value: value,
+          translator: ENGLISH,
+        });
       });
 
-      expect(row?.value).toEqual({
-        env: "contains web",
-        tier: "is any of web, api",
-        region: "is empty",
-      });
+      expect(said).toEqual([
+        "env contains web",
+        "tier is any of: web, api",
+        "region is empty",
+      ]);
     });
 
-    it("renders every value as a string, whatever the operator mix", () => {
+    it("never formats a value into the operator's English label", () => {
       const attributes: Dictionary<DictionaryEntryValue> = {};
 
       for (const operatorCase of ATTRIBUTE_OPERATOR_CASES) {
@@ -1466,33 +1497,32 @@ describe.each(ATTRIBUTE_FILTER_FIXTURES)(
         fixture,
         attributes,
       );
+      const values: Dictionary<unknown> = row?.value as Dictionary<unknown>;
 
-      const values: Array<unknown> = Object.values(
-        row?.value as Dictionary<string>,
-      );
+      expect(Object.keys(values)).toHaveLength(ATTRIBUTE_OPERATOR_CASES.length);
 
-      expect(values).toHaveLength(ATTRIBUTE_OPERATOR_CASES.length);
-
-      for (const value of values) {
-        expect(typeof value).toBe("string");
+      for (const operatorCase of ATTRIBUTE_OPERATOR_CASES) {
+        // As stored: the same value, never "contains web" and the like.
+        expect(values[operatorCase.label]).toBe(attributes[operatorCase.label]);
       }
     });
 
-    it("shows the operator alone when a membership filter names no values", () => {
+    it("hands an empty membership filter over as it is", () => {
       /*
-       * An empty `Includes` is a no-op downstream — StatementGenerator skips
-       * the predicate rather than emitting `IN ()` — so there is nothing to
-       * list after the label.
+       * An empty `Includes` is a no-op downstream - StatementGenerator skips
+       * the predicate rather than emitting `IN ()` - and the row keeps it,
+       * as stored, rather than a dangling English label.
        */
+      const empty: DictionaryEntryValue = buildDictionaryValue({
+        operator: DictionaryFilterOperator.IsAnyOf,
+        rawValue: "",
+        rawValues: [],
+      });
       const row: MonitorStepViewRow | undefined = getAttributeRow(fixture, {
-        env: buildDictionaryValue({
-          operator: DictionaryFilterOperator.IsAnyOf,
-          rawValue: "",
-          rawValues: [],
-        }),
+        env: empty,
       });
 
-      expect(row?.value).toEqual({ env: "is any of" });
+      expect((row?.value as Dictionary<unknown>)["env"]).toBe(empty);
     });
 
     it("keeps a plain string filter unchanged, as saved before operators shipped", () => {
@@ -2203,9 +2233,9 @@ describe("MonitorStepViewModel.getRows — an AI / LLM monitor", () => {
     expect(row(rows, "llmBadAnswerIssues")?.valueType).toBe(
       MonitorStepViewValueType.ArrayOfText,
     );
-    expect(row(rows, "llmSlowAnswerSeconds")?.value).toBe("30 seconds");
+    expect(row(rows, "llmSlowAnswerSeconds")?.value).toBe("30\u00A0seconds");
     expect(row(rows, "llmModel")?.value).toBe("gpt-4o");
-    expect(row(rows, "lastXSecondsOfCalls")?.value).toBe("30 minutes");
+    expect(row(rows, "lastXSecondsOfCalls")?.value).toBe("30\u00A0minutes");
     expect(row(rows, "llmTelemetryServices")?.valueType).toBe(
       MonitorStepViewValueType.TelemetryServices,
     );
@@ -2225,7 +2255,7 @@ describe("MonitorStepViewModel.getRows — an AI / LLM monitor", () => {
       "Empty",
       "Flagged",
     ]);
-    expect(row(rows, "lastXSecondsOfCalls")?.value).toBe("15 minutes");
+    expect(row(rows, "lastXSecondsOfCalls")?.value).toBe("15\u00A0minutes");
     expect(row(rows, "llmSlowAnswerSeconds")).toBeUndefined();
     expect(row(rows, "llmModel")).toBeUndefined();
     expect(row(rows, "llmTelemetryServices")).toBeUndefined();
@@ -2244,7 +2274,7 @@ describe("MonitorStepViewModel.getRows — an AI / LLM monitor", () => {
     expect(row(rows, "llmBadAnswerIssues")?.placeholder).toBe(
       "Only slow answers count",
     );
-    expect(row(rows, "llmSlowAnswerSeconds")?.value).toBe("45 seconds");
+    expect(row(rows, "llmSlowAnswerSeconds")?.value).toBe("45\u00A0seconds");
   });
 
   it("with no problem picked and no slow limit, every problem counts", () => {

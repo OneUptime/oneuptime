@@ -1,4 +1,5 @@
 import { MicrosoftTeamsAlertEpisodeActionType } from "./ActionTypes";
+import MicrosoftTeamsTimezone from "../MicrosoftTeamsTimezone";
 import ObjectID from "../../../../../Types/ObjectID";
 import AlertEpisodeService from "../../../../Services/AlertEpisodeService";
 import AlertEpisode from "../../../../../Models/DatabaseModels/AlertEpisode";
@@ -31,7 +32,7 @@ import FeedMarkdown, {
 export default class MicrosoftTeamsAlertEpisodeActions {
   // What a change-state card says instead of opening with nothing to pick.
   public static readonly NO_STATES_MESSAGE: string =
-    "No alert states are available to you in this project. Ask a project admin for access to them.";
+    "No alert states are available to you in this project. Ask a Project Admin for access to them.";
 
   @CaptureSpan()
   public static isAlertEpisodeAction(data: { actionType: string }): boolean {
@@ -220,7 +221,7 @@ export default class MicrosoftTeamsAlertEpisodeActions {
 
       // The title and the state and severity names are plain text, escaped as MarkdownEscape says a title must be.
       const message: string =
-        mdText`**Alert Episode Details**\n\n**Title:** ${episode.title}\n**Description:** ${FeedMarkdown.asChatMarkdown(episode.description || "No description")}\n**State:** ${episode.currentAlertState?.name || "Unknown"}\n**Severity:** ${episode.alertSeverity?.name || "Unknown"}\n**Alert Count:** ${episode.alertCount || 0}\n**Created At:** ${episode.createdAt ? new Date(episode.createdAt).toLocaleString("en-US") : "Unknown"}`.toString();
+        mdText`**Alert Episode Details**\n\n**Title:** ${episode.title}\n**Description:** ${FeedMarkdown.asChatMarkdown(episode.description || "No description")}\n**State:** ${episode.currentAlertState?.name || "Unknown"}\n**Severity:** ${episode.alertSeverity?.name || "Unknown"}\n**Alert Count:** ${episode.alertCount || 0}\n**Created At:** ${episode.createdAt ? MicrosoftTeamsTimezone.formatForActivity(episode.createdAt, turnContext.activity) : "Unknown"}`.toString();
 
       await turnContext.sendActivity(message);
       return;
@@ -335,7 +336,7 @@ export default class MicrosoftTeamsAlertEpisodeActions {
         );
       if (!card) {
         await turnContext.sendActivity(
-          "No on-call policies are available to you in this project yet. Add one in the OneUptime Dashboard under On-Call > On-Call Policies, or ask a project admin for access to one.",
+          "No on-call policies are available to you in this project yet. Add one in the OneUptime Dashboard under On-Call > On-Call Policies, or ask a Project Admin for access to one.",
         );
         return;
       }

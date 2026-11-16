@@ -15,7 +15,7 @@ Il risultato è una normale metrica. Visualizzatela in **Esplora metriche** e ne
 
 Usate una regola di registrazione dei log quando il numero che vi interessa esiste solo nei vostri log: i riepiloghi SLA di un firewall, un job batch che registra quanto è durato, le dimensioni delle risposte di un log di accesso, o semplicemente quanti log di errore scrive un servizio ogni minuto.
 
-Le regole di registrazione dei log si trovano in **Registri → Impostazioni → Regole di registrazione**. Le loro equivalenti per metriche e span sono in **Metriche → Impostazioni → Regole di registrazione** e **Tracce → Impostazioni → Regole di registrazione**.
+Le regole di registrazione dei log si trovano in **Log → Impostazioni → Regole di registrazione**. Le loro equivalenti per metriche e span sono in **Metriche → Impostazioni → Regole di registrazione** e **Tracce → Impostazioni → Regole di registrazione**.
 
 ## Come funziona una regola
 
@@ -42,7 +42,7 @@ La modifica della definizione di una regola si applica dal minuto successivo che
 :::steps
 ### Aprire le regole di registrazione
 
-Andate in **Registri → Impostazioni → Regole di registrazione** e scegliete **Crea: Log Recording Rule**.
+Andate in **Log → Impostazioni → Regole di registrazione** e scegliete **Crea: Log Recording Rule**.
 
 ### Dare un nome alla regola
 
@@ -127,12 +127,12 @@ flowchart TB
 ### Far arrivare i log, con i loro campi come attributi
 
 1. Inviate il syslog del firewall a OneUptime: vedete [Syslog](/docs/telemetry/syslog).
-2. In **Registri → Impostazioni → Pipeline**, aggiungete una pipeline con un processore che divide le coppie `key=value` del corpo in attributi del log, così che ogni riepilogo porti `log_type`, `log_component`, `profile_name`, `gw_name`, `latency`, `jitter` e `packet_loss` come attributi. Il [Key=Value Parser](/docs/telemetry/log-pipelines#keyvalue-parser) fa proprio questo.
-3. Aprite l'explorer **Registri** e controllate i nomi degli attributi su un log SLA. Se la vostra pipeline aggiunge un prefisso, usate i nomi con prefisso qui sotto.
+2. In **Log → Impostazioni → Pipeline**, aggiungete una pipeline con un processore che divide le coppie `key=value` del corpo in attributi del log, così che ogni riepilogo porti `log_type`, `log_component`, `profile_name`, `gw_name`, `latency`, `jitter` e `packet_loss` come attributi. Il [Key=Value Parser](/docs/telemetry/log-pipelines#keyvalue-parser) fa proprio questo.
+3. Aprite l'explorer **Log** e controllate i nomi degli attributi su un log SLA. Se la vostra pipeline aggiunge un prefisso, usate i nomi con prefisso qui sotto.
 
 ### Creare la regola di registrazione
 
-In **Registri → Impostazioni → Regole di registrazione**, create una regola:
+In **Log → Impostazioni → Regole di registrazione**, create una regola:
 
 - **Nome:** SD-WAN gateway latency
 - **Nome della metrica di output:** scegliete **Modifica** e digitate `sdwan.gateway.latency.ms`
@@ -180,7 +180,7 @@ Con il raggruppamento impostato, ogni gateway è una serie a sé: se WAN2 rallen
 - **I timestamp vengono dai log.** Un log finisce nel minuto del proprio timestamp. Un dispositivo il cui orologio sbaglia di più di poco mette i suoi log nel minuto sbagliato, o del tutto fuori dalla finestra.
 - **Nessun calcolo retroattivo.** Una nuova regola inizia dal minuto precedente alla sua prima esecuzione; i log più vecchi non vengono calcolati.
 - **Eliminare una regola** la ferma. I punti già scritti restano finché non scadono.
-- **Le regole di registrazione vedono tutti i log del progetto.** Chiunque possa leggere la metrica di output vede numeri calcolati da ogni log a cui corrisponde il filtro della regola, quindi creare e modificare regole di registrazione dei log è riservato a proprietari e amministratori del progetto e ai permessi **Create / Edit Log Recording Rule**.
+- **Le regole di registrazione vedono tutti i log del progetto.** Chiunque possa leggere la metrica di output vede numeri calcolati da ogni log a cui corrisponde il filtro della regola, quindi creare e modificare regole di registrazione dei log è riservato a Proprietari del progetto e Amministratori del progetto e ai permessi **Create / Edit Log Recording Rule**.
 
 ## Permessi
 
@@ -191,7 +191,7 @@ Con il raggruppamento impostato, ogni gateway è una serie a sé: se WAN2 rallen
 | Delete Log Recording Rule | Eliminare regole. |
 | Read Log Recording Rule | Vedere le regole e cosa calcolano. |
 
-Proprietari e amministratori del progetto possono fare tutto questo. I membri del progetto, i visualizzatori e i ruoli di telemetria possono leggere le regole.
+Proprietari del progetto e Amministratori del progetto possono fare tutto questo. I Membri del progetto, i Visualizzatori e i ruoli di telemetria possono leggere le regole.
 
 ## Passaggi successivi
 

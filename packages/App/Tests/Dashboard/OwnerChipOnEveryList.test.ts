@@ -74,6 +74,8 @@ const IDENTIFIER: RegExp = /^\w+$/;
  * file (from the Dashboard's src) and the table's id or name.
  */
 const NO_OWNER_CHIP: Record<string, string> = {
+  "Components/IncomingRequestSecret/RequestsWithoutSecretTable.tsx#incoming-request-monitors-without-secret-table":
+    "The monitors that received a request without the project's secret since it began checking: a short to-do on the secrets page, with no filters at all, not a list to search.",
   "Pages/DataProduct/View/Overview.tsx#data-product-tables":
     "The few tables one data product is made of, picked by hand: a part of its page, not a list to search.",
   "Pages/Global/ActiveIncidents.tsx#active-incidents-table":
@@ -90,6 +92,8 @@ const NO_OWNER_CHIP: Record<string, string> = {
     "OneUptime's global Runners: no project owns them.",
   "Pages/Monitor/View/Slos.tsx#monitor-slos-table":
     "The SLOs one monitor's downtime spends; the SLOs list filters them by owner.",
+  "Pages/Service/View/Slos.tsx#service-slos-table":
+    "The SLOs one service's requests spend; the SLOs list filters them by owner.",
   "Pages/Slo/View/Monitors.tsx#slo-monitors-table":
     "The monitors an SLO is measured on, added and removed by hand; the Monitors list filters them by owner.",
   "Pages/NetworkSite/View/Devices.tsx#network-site-devices-table":

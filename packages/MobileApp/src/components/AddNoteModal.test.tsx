@@ -8,6 +8,10 @@ import {
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import AddNoteModal from "./AddNoteModal";
+import {
+  listenForUserActivity,
+  type HeardUserActivity,
+} from "../__tests__/userActivityHeard";
 import { ThemeProvider, darkColors, lightColors } from "../theme";
 import { radius } from "../theme/tokens";
 import { SHEET_MAX_WIDTH } from "../layout/windowLayout";
@@ -60,6 +64,35 @@ function noop(): void {
 }
 
 describe("Typing and submitting a note", () => {
+  test("typing the note counts as using the app, so a long one does not end the session on Submit", async () => {
+    const activity: HeardUserActivity = listenForUserActivity();
+
+    try {
+      await render(
+        <AddNoteModal
+          visible={true}
+          onClose={noop}
+          onSubmit={noop}
+          isSubmitting={false}
+        />,
+      );
+
+      await fireEvent.changeText(
+        screen.getByPlaceholderText(PLACEHOLDER),
+        "Restarted the checkout pods.",
+      );
+
+      await waitFor((): void => {
+        expect(activity.heard.length).toBeGreaterThan(0);
+      });
+      expect(screen.getByPlaceholderText(PLACEHOLDER).props.value).toBe(
+        "Restarted the checkout pods.",
+      );
+    } finally {
+      activity.stop();
+    }
+  });
+
   test("the box starts empty", async () => {
     await render(
       <AddNoteModal

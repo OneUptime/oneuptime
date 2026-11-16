@@ -16,6 +16,7 @@ import { JSONObject } from "../../JSON";
 import { Argument, NodeDataProp } from "../Component";
 import { getCreateFromTemplateArgument } from "../CreateFromTemplate";
 import { getAffectedResourcesArgument } from "../AffectedResourcesSetting";
+import { getOwnersOnCreateArguments } from "../OwnersOnCreateSetting";
 import { WHAT_HAPPENED_ID, WhatHappened } from "../CreateOrUpdateTrigger";
 import {
   CUSTOM_FIELDS_COLUMN,
@@ -374,6 +375,29 @@ const affectedResourcesTopic: TemplateTopicFunction = (data: {
   };
 };
 
+/*
+ * An incident or alert owned from the moment it is created (Create One
+ * Incident's and Create One Alert's Owner Users and Owner Teams): who is
+ * told it was created, what is asked of the step, and what is left out.
+ */
+const ownersTopic: (data: {
+  words: ModelWords;
+  users: Argument;
+  teams: Argument;
+}) => ComponentDocumentationTopic = (data: {
+  words: ModelWords;
+  users: Argument;
+  teams: Argument;
+}): ComponentDocumentationTopic => {
+  return {
+    title: "Who owns it from the start",
+    paragraphs: [
+      `Pick the ${data.words.one}'s owners under **${data.users.name}** and **${data.teams.name}**, or take them from an earlier step: a user's ID or email address, a team's ID. They own the ${data.words.one} as it is created, so its created notification reaches them, and the Project Owners are not told in their place - which owners a later step adds can miss.`,
+      `The step is asked whether it may add them, as a Project Admin of this project, before the ${data.words.one} is saved. Somebody who is not a member of this project, or a team that is not one of its teams, is left out, and the run's log says so: the ${data.words.one} is still created.`,
+    ],
+  };
+};
+
 const createOne: BuildFunction = (
   context: ComponentDocumentationContext,
   words: ModelWords,
@@ -384,6 +408,9 @@ const createOne: BuildFunction = (
   );
   const affectedResourcesSetting: Argument | null =
     getAffectedResourcesArgument(words.model.tableName || undefined);
+  const [ownerUsersSetting, ownerTeamsSetting] = getOwnersOnCreateArguments(
+    words.model.tableName || undefined,
+  );
 
   return {
     summary: `Creates one ${words.one} in this project each time it runs.`,
@@ -429,6 +456,15 @@ const createOne: BuildFunction = (
             affectedResourcesTopic({
               words: words,
               setting: affectedResourcesSetting,
+            }),
+          ]
+        : []),
+      ...(ownerUsersSetting && ownerTeamsSetting
+        ? [
+            ownersTopic({
+              words: words,
+              users: ownerUsersSetting,
+              teams: ownerTeamsSetting,
             }),
           ]
         : []),

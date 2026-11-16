@@ -25,7 +25,7 @@ flowchart TB
 
 ## Avant de commencer
 
-- **Un projet OneUptime, et le droit de créer ce que vous importez.** Les propriétaires et administrateurs du projet peuvent tout importer. Les autres rôles peuvent aussi lancer un import, et importer les types d'enregistrements qu'ils peuvent créer. Le reste est affiché comme non importé, avec la raison.
+- **Un projet OneUptime, et le droit de créer ce que vous importez.** Les Propriétaires du projet et les Administrateurs du projet peuvent tout importer. Les autres rôles peuvent aussi lancer un import, et importer les types d'enregistrements qu'ils peuvent créer. Le reste est affiché comme non importé, avec la raison.
 - **Une clé API incident.io qui ne peut que consulter les données.** L'import n'écrit jamais dans incident.io : la clé n'a donc besoin d'aucun droit de création, de modification ou de gestion.
 
 ## Importer votre compte incident.io
@@ -68,7 +68,7 @@ Une rotation où plusieurs personnes sont d'astreinte en même temps devient un 
 ## Ce qui n'est pas importé
 
 - **Les incidents, les alertes et leur historique.** OneUptime démarre avec votre configuration, pas avec vos incidents passés.
-- **Les workflows, pages de statut, routes d'alerte et intégrations.** Dirigez plutôt vos moniteurs et sources d'alertes vers OneUptime, comme indiqué dans [Terminer la migration](#terminer-la-migration).
+- **Les flux de travail, pages de statut, routes d'alerte et intégrations.** Dirigez plutôt vos moniteurs et sources d'alertes vers OneUptime, comme indiqué dans [Terminer la migration](#terminer-la-migration).
 - **Les champs personnalisés dont les options viennent du catalogue,** et les statuts sans état dans OneUptime : declined, merged, canceled et learning.
 - **Les remplacements de planning, et les modifications d'une rotation prévues plus tard.** L'aperçu nomme chaque modification prévue, pour que vous la fassiez dans OneUptime le moment venu.
 - **Les étapes d'escalade sans équivalent exact dans OneUptime.** Une étape qui publie dans un canal Slack ou Microsoft Teams est laissée de côté, car ce sont les règles de notification de l'espace de travail qui s'en chargent dans OneUptime, tout comme une étape qui passe la main à un autre chemin d'escalade. Une étape qui alerte la personne d'astreinte suivante est importée sous la forme la plus proche dont dispose OneUptime, et l'aperçu indique ce qui change.
@@ -79,7 +79,7 @@ Un import crée au plus 2 000 enregistrements : au plus 500 personnes, 200 équi
 
 Sur OneUptime Cloud, les enregistrements que votre offre n'inclut pas sont affichés comme non importés, avec l'offre nécessaire.
 
-Un aperçu est conservé un jour. Seule la personne qui a lu le compte peut cocher et lancer l'import. Les propriétaires et administrateurs du projet voient la progression et le rapport de chaque import.
+Un aperçu est conservé un jour. Seule la personne qui a lu le compte peut cocher et lancer l'import. Les Propriétaires du projet et les Administrateurs du projet voient la progression et le rapport de chaque import.
 
 ## Terminer la migration
 

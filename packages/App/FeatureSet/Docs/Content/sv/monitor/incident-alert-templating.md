@@ -226,10 +226,10 @@ I en titel kapas var och en till en rad på högst 150 tecken. Beskrivningar och
 
 | Variabel | Vad den innehåller | Typ |
 | --- | --- | --- |
-| `isOnline` | Om tidsservern svarade på probens förfrågan. | `boolean` |
+| `isOnline` | Om tidsservern svarade på sondens förfrågan. | `boolean` |
 | `isSynchronized` | Om den svarade med stratum 1 till 15, utan leap-larmet och med riktiga tidsstämplar. | `boolean` |
 | `stratum` | Det stratum servern rapporterade: 1 för en primär server, 16 när den inte är synkroniserad, 0 för en kiss-o'-death. | `number` |
-| `clockOffsetInMs` | Hur långt serverns klocka är från probens, i millisekunder. Positivt betyder att servern ligger före. | `number` |
+| `clockOffsetInMs` | Hur långt serverns klocka är från sondens, i millisekunder. Positivt betyder att servern ligger före. | `number` |
 | `referenceId` | Vad servern synkroniserar mot: en källa som `GPS` på stratum 1, eller adressen till servern ovanför den. | `string` |
 | `leapIndicator` | 0 till 2 när allt är i ordning, 3 när servern säger att klockan inte är synkroniserad. | `number` |
 | `kissCode` | Med stratum 0 den kod på fyra bokstäver som servern skickade i stället för tiden, som `RATE`. | `string` |
@@ -423,7 +423,7 @@ En nätverksenhet pingas vid varje avsökning och gås bara igenom via SNMP när
 
 | Variabel | Vad den innehåller | Typ |
 | --- | --- | --- |
-| `isOnline` | Om proben kunde ansluta och köra basfrågan. Saknade mätvärden gör den aldrig falsk. | `boolean` |
+| `isOnline` | Om sonden kunde ansluta och köra basfrågan. Saknade mätvärden gör den aldrig falsk. | `boolean` |
 | `responseTimeInMs` | Tiden det tog att ansluta och köra basfrågan, i millisekunder. | `number` |
 | `failureCause` | Varför kontrollen misslyckades, när den gjorde det. | `string` |
 | `connectionError` | Anslutningsfelet, utan inloggningsuppgifter eller anslutningssträngen. | `string` |
@@ -452,17 +452,17 @@ Serienamnen i `metrics` innehåller punkter, som `oneuptime.monitor.database.con
 
 ### Mätvärdes- och infrastrukturmonitorer
 
-Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker Swarm-, Proxmox-, OpenStack-, VMware-, Ceph-, Storage Array- och IoT Device-monitorer har en egen variabel:
+Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker Swarm-, Proxmox-, OpenStack-, VMware-, Ceph-, Lagringsarray- och IoT-enhet-monitorer har en egen variabel:
 
 | Variabel | Vad den innehåller | Typ |
 | --- | --- | --- |
 | `metricName` | Namnet på mätvärdet som monitorns första fråga läser, som `container.cpu.time`. | `string` |
 
-Grupperade har de också värdet för varje attribut i **Gruppera efter**, och `seriesLabels`: se [Värden från en grupperad monitor](#värden-från-en-grupperad-monitor). Mallarna för IoT Device-monitorn grupperar efter enhet, så en monitor som skapats från en av dem har också `{{device.id}}`.
+Grupperade har de också värdet för varje attribut i **Gruppera efter**, och `seriesLabels`: se [Värden från en grupperad monitor](#värden-från-en-grupperad-monitor). Mallarna för IoT-enhet-monitorn grupperar efter enhet, så en monitor som skapats från en av dem har också `{{device.id}}`.
 
 ### Andra monitortyper
 
-Logs-, Traces-, Exceptions-, Security Events-, AI / LLM- och SQL Query-monitorer har inga egna variabler. Använd [variablerna som alla monitorer har](#variabler-som-alla-monitorer-har), och på en grupperad Logs-monitor [gruppvärdena](#värden-från-en-grupperad-monitor).
+Logs-, Traces-, Exceptions-, Säkerhetshändelser-, AI / LLM- och SQL-fråga-monitorer har inga egna variabler. Använd [variablerna som alla monitorer har](#variabler-som-alla-monitorer-har), och på en grupperad Logs-monitor [gruppvärdena](#värden-från-en-grupperad-monitor).
 
 ## Exempel
 

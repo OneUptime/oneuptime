@@ -283,6 +283,7 @@ const AddToNewEpisodeModal: FunctionComponent<ComponentProps> = (
       <NothingToAddToEpisodeModal
         config={config}
         title={title}
+        isTitleTranslated={true}
         count={count}
         dataTestId="add-to-new-episode-nothing-to-add"
         onClose={props.onClose}
@@ -293,6 +294,7 @@ const AddToNewEpisodeModal: FunctionComponent<ComponentProps> = (
   return (
     <BasicFormModal<NewEpisodeFormData>
       title={title}
+      isTitleTranslated={true}
       name="Add to New Episode"
       description={description}
       isLoading={isLoading}

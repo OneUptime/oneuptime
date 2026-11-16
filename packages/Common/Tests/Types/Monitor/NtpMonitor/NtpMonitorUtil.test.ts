@@ -7,7 +7,14 @@ import NtpMonitorUtil, {
   NTP_MIN_SYNCHRONIZED_STRATUM,
   NTP_UNSYNCHRONIZED_STRATUM,
 } from "../../../../Types/Monitor/NtpMonitor/NtpMonitorUtil";
+import {
+  DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS as DEFAULTS_MAX_CLOCK_OFFSET_IN_MS,
+  DEFAULT_NTP_PORT as DEFAULTS_PORT,
+  DEFAULT_NTP_REQUEST_TIMEOUT_IN_MS as DEFAULTS_REQUEST_TIMEOUT_IN_MS,
+} from "../../../../Types/Monitor/NtpMonitor/NtpMonitorDefaults";
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 
 /*
  * NtpMonitorUtil holds the rules every part of the NTP monitor shares: the
@@ -33,6 +40,41 @@ describe("NtpMonitorUtil", () => {
       expect(NTP_MIN_SYNCHRONIZED_STRATUM).toBe(1);
       expect(NTP_MAX_SYNCHRONIZED_STRATUM).toBe(15);
       expect(NTP_UNSYNCHRONIZED_STRATUM).toBe(16);
+    });
+
+    /*
+     * A monitor's default criteria, which every page loads, read the clock
+     * offset from NtpMonitorDefaults: read from NtpMonitorUtil, it brought
+     * the probe's failure causes into every page's first load
+     * (first-load-budgets.js, SignInFirstLoadBuild.test.ts).
+     */
+    test("are NtpMonitorDefaults' own, a module that imports nothing", () => {
+      expect([
+        DEFAULT_NTP_PORT,
+        DEFAULT_NTP_REQUEST_TIMEOUT_IN_MS,
+        DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS,
+      ]).toEqual([
+        DEFAULTS_PORT,
+        DEFAULTS_REQUEST_TIMEOUT_IN_MS,
+        DEFAULTS_MAX_CLOCK_OFFSET_IN_MS,
+      ]);
+
+      const source: string = fs.readFileSync(
+        path.resolve(
+          __dirname,
+          "../../../../Types/Monitor/NtpMonitor/NtpMonitorDefaults.ts",
+        ),
+        "utf8",
+      );
+
+      // `from "x"`, a bare `import "x"`, `import("x")` and `require("x")`.
+      expect(
+        Array.from(
+          source.matchAll(
+            /(?:\bfrom\s+|\bimport\s*\(?\s*|\brequire\(\s*)"([^"]+)"/g,
+          ),
+        ),
+      ).toEqual([]);
     });
   });
 

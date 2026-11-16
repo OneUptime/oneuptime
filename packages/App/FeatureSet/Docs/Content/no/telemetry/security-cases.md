@@ -1,6 +1,6 @@
 # Sikkerhetssaker og playbooks (SOAR)
 
-Security Events gjør det deteksjonsreglene, trusseletterretningen og de tilkoblede sikkerhetsproduktene dine finner, om til saker: én sak for hver ting som er verdt å undersøke, med alle deteksjoner om samme bruker, vert eller adresse samlet i den. Analytikere behandler sakene i en kø, og playbooks reagerer på dem, av seg selv eller med et klikk.
+Sikkerhetshendelser gjør det deteksjonsreglene, trusseletterretningen og de tilkoblede sikkerhetsproduktene dine finner, om til saker: én sak for hver ting som er verdt å undersøke, med alle deteksjoner om samme bruker, vert eller adresse samlet i den. Analytikere behandler sakene i en kø, og playbooks reagerer på dem, av seg selv eller med et klikk.
 
 :::cards
 - [Hvor saker kommer fra](#hvor-saker-kommer-fra): Deteksjonsregler, trusseletterretning, tilkoblede produkter, entitetsrisiko og personer.
@@ -33,13 +33,13 @@ flowchart TB
 
 ## Før du begynner
 
-Saker og playbooks følger de tre Security-rollene. Project Owner og Project Admin kan gjøre alt.
+Saker og playbooks følger de tre Security-rollene. Prosjekteier og Prosjektadministrator kan gjøre alt.
 
 | Rolle | Hva den kan gjøre |
 | --- | --- |
-| Security Admin | Alt, også å slette saker, fjerne bevis og sette opp playbooks |
-| Security Member | Åpne, tildele, endre og lukke saker, skrive notater, jobbe med oppgaver, legge til bevis, kjøre playbooks og godkjenne eller avvise stegene deres |
-| Security Viewer | Lese saker, deteksjoner, notater, oppgaver, bevis, playbooks og kjøringene deres |
+| Sikkerhetsadministrator | Alt, også å slette saker, fjerne bevis og sette opp playbooks |
+| Sikkerhetsmedlem | Åpne, tildele, endre og lukke saker, skrive notater, jobbe med oppgaver, legge til bevis, kjøre playbooks og godkjenne eller avvise stegene deres |
+| Sikkerhetsleser | Lese saker, deteksjoner, notater, oppgaver, bevis, playbooks og kjøringene deres |
 
 Hver av disse rettighetene kan også gis for seg, fra å opprette en sak til å godkjenne stegene i en playbook; se [Tillatelsesreferanse](/docs/permissions/reference).
 
@@ -105,7 +105,7 @@ Hver side beholder sakens topptekst øverst: nummer, prioritet, status og tittel
 - **Deteksjoner**: det som slo til og åpnet saken eller ble lagt til i den, hvor ofte, og den siste hendelsen som traff.
 - **Entiteter**: brukerne, vertene og adressene saken gjelder, med aktiviteten deres på tvers av alle sikkerhetshendelsene dine de siste 7 dagene. Hver av dem åpnes i **Korreler**.
 - **Tilkoblede signaler**: vertene, klyngene, tjenestene og medlemmene saken nevner, slik OneUptime kjenner dem, og hva som skjedde på hver av dem rundt deteksjonene: loggene, sporene og målingene deres, hva som er åpent på dem, og hva som endret seg. Se [Tilkoblede signaler](/docs/telemetry/security-connected-signals).
-- **Bevis**: filene, lenkene og sikkerhetshendelsene som oppbevares på saken, hver med hvem som la den til og når. Med **Legg til fil** laster du opp en fil på opptil 10 MB, og SHA-256 for det som ble lastet opp, registreres, så den som laster den ned senere kan kontrollere at det er det som ble oppbevart; med **Legg til lenke** viser du til bevis som oppbevares et annet sted. Bare en Security Admin kan fjerne bevis, og sakens **Tidslinje** viser hva som ble lagt til og fjernet. En sikkerhetshendelse oppbevares her slik den var, med **Legg til i sak** under **Hendelser** eller på siden til en [hunt](/docs/telemetry/security-events#hunts), og **Vis hendelse** åpner den. Steget **Preserve the evidence** i et playbook oppbevarer også her hendelsene bak sakens deteksjoner.
+- **Bevis**: filene, lenkene og sikkerhetshendelsene som oppbevares på saken, hver med hvem som la den til og når. Med **Legg til fil** laster du opp en fil på opptil 10 MB, og SHA-256 for det som ble lastet opp, registreres, så den som laster den ned senere kan kontrollere at det er det som ble oppbevart; med **Legg til lenke** viser du til bevis som oppbevares et annet sted. Bare en Sikkerhetsadministrator kan fjerne bevis, og sakens **Tidslinje** viser hva som ble lagt til og fjernet. En sikkerhetshendelse oppbevares her slik den var, med **Legg til i sak** under **Hendelser** eller på siden til en [hunt](/docs/telemetry/security-events#hunts), og **Vis hendelse** åpner den. Steget **Preserve the evidence** i et playbook oppbevarer også her hendelsene bak sakens deteksjoner.
 - **Oppgaver**: hva som må gjøres i saken, hvem som gjør det, og om det er gjort. Legg til en oppgave som én linje, gi den til noen, og kryss den av når den er utført. Den som får oppgaven, får beskjed, med mindre vedkommende tok den selv, og menyen viser ved siden av **Oppgaver** hvor mange oppgaver som er åpne. Steget **Legg til oppgaver** i et playbook legger også til oppgaver og hopper over dem saken allerede har.
 - **Playbooks**: hva hver playbook gjorde på saken, steg for steg, og stegene som venter på godkjenning. Mens kjøringer venter, viser menyen hvor mange ved siden av **Playbooks**.
 - **Private notater**: hva teamet skrev om saken. Redigeringens meny **Maler** setter inn en av prosjektets notatmaler i et notat.
@@ -195,7 +195,7 @@ Tre innstillinger til gjør sakene til prosjektets egne, under **Produkter → S
 - **Notatmaler**: ferdig tekst til notatene teamet ditt skriver sak etter sak, for eksempel en sjekkliste for inndemming eller en overlevering til neste vakt. På en saks **Private notater** setter redigeringens meny **Maler** inn en i notatet, som du kan redigere før det publiseres, og **Administrer maler** åpner listen.
 - **Nummerering**: teksten foran saksnumrene, `CASE-` i `CASE-42` med mindre du velger din egen, og nummeret den neste saken får. Bytter du fra et annet verktøy? Start etter det siste saksnummeret der, så et nummer aldri betyr to saker. Et nytt prefiks eller en ny start gjelder bare nye saker, og en start må være høyere enn det høyeste nummeret som er brukt så langt.
 
-En Security Admin administrerer de egendefinerte feltene og notatmalene, og en Security Member fyller ut feltene i en sak; på OneUptime Cloud krever de Growth-abonnementet eller høyere. Nummereringen settes av en Project Owner eller Project Admin, slik som for hendelser og varsler.
+En Sikkerhetsadministrator administrerer de egendefinerte feltene og notatmalene, og et Sikkerhetsmedlem fyller ut feltene i en sak; på OneUptime Cloud krever de Growth-abonnementet eller høyere. Nummereringen settes av en Prosjekteier eller Prosjektadministrator, slik som for hendelser og varsler.
 
 ## Varslinger
 
@@ -209,7 +209,7 @@ OneUptime gir folk beskjed om fem ting på en sak. Ingen trenger å sette opp no
 | Responsmål for sikkerhetssak | De som er på saken: personen den er tildelt, og medlemmene av teamet dens. Er ingen på den, de som får beskjed om nye saker med prioriteten dens | E-post og push |
 | Oppgave i sikkerhetssak tildelt meg | Personen som får en oppgave i saken, med mindre vedkommende tok den selv | E-post og push |
 
-- Bare personer som kan se saken, får beskjed om den: Project Owners, Project Admins og rollene Security Admin, Security Member og Security Viewer. En rolle som er begrenset til noen etiketter, får bare beskjed om sakene med de etikettene.
+- Bare personer som kan se saken, får beskjed om den: Prosjekteiere, Prosjektadministratorer og rollene Sikkerhetsadministrator, Sikkerhetsmedlem og Sikkerhetsleser. En rolle som er begrenset til noen etiketter, får bare beskjed om sakene med de etikettene.
 - Ingen får beskjed om det de selv gjorde: den som åpner en sak manuelt, tildeler den eller starter en kjøring, blir ikke varslet om det.
 - Hver person får høre om en sak én gang. En sak som åpnes på Medium og senere stiger til Kritisk, når ved stigningen fram til dem som valgte High eller Kritisk, og ikke på nytt til dem som valgte Medium, for de fikk høre om den da den ble åpnet.
 - Testangrepet fra **Send et testangrep** åpner en sak som ikke varsler noen.
@@ -218,7 +218,7 @@ OneUptime gir folk beskjed om fem ting på en sak. Ingen trenger å sette opp no
 
 ### Velg hva du får beskjed om
 
-Hver person velger selv, under **Brukerinnstillinger → Varselinnstillinger → Sikkerhet**: kanalene for hver varsling (e-post, SMS, anrop, push, Telegram, Slack, Microsoft Teams, Mattermost eller webhook), og under **Ny sikkerhetssak** prioriteten som varsler dem:
+Hver person velger selv, under **Brukerinnstillinger → Varslingsinnstillinger → Sikkerhet**: kanalene for hver varsling (e-post, SMS, anrop, push, Telegram, Slack, Microsoft Teams, Mattermost eller webhook), og under **Ny sikkerhetssak** prioriteten som varsler dem:
 
 | Valg | Varsler om saker med |
 | --- | --- |
@@ -230,7 +230,7 @@ Hver person velger selv, under **Brukerinnstillinger → Varselinnstillinger →
 
 Valgene følger prosjektets saksprioriteter, under sine egne navn: dette er valgene i et nytt prosjekt.
 
-Det sendes ikke WhatsApp-meldinger for sikkerhetssaker. Et push-varsel åpner saken i OneUptime On-Call-appen (1.7.0 eller nyere), der du kan godkjenne eller avvise et playbook-steg som venter, ta saken og lukke den. Lenken i det åpner saken i nettleseren.
+Det sendes ikke WhatsApp-meldinger for sikkerhetssaker. En push-varsling åpner saken i OneUptime On-Call-appen (1.7.0 eller nyere), der du kan godkjenne eller avvise et playbook-steg som venter, ta saken og lukke den. Lenken i det åpner saken i nettleseren.
 
 ### Legg ut i Slack-, Microsoft Teams- og Mattermost-kanaler
 
@@ -310,7 +310,7 @@ En deaktivert playbook kjører verken av seg selv eller manuelt.
 
 En playbook har høyst 25 steg. De kjører i rekkefølge, hvert steg når det forrige er ferdig. Hvert steg kan også:
 
-- **Krever godkjenning**: stoppe kjøringen før steget til noen godkjenner det på saken. De åtte stegene som stenger noen ute, stopper alltid kjøringen, med mindre en Security Admin slår det av. **Run a runbook**, **Post a status page announcement** og de to stegene for datalagre starter med godkjenning slått på, fordi de kjører kommandoer på systemene deres, snakker til kundene deres eller endrer innstillingene i en sky; den som legger til steget, kan slå det av.
+- **Krever godkjenning**: stoppe kjøringen før steget til noen godkjenner det på saken. De åtte stegene som stenger noen ute, stopper alltid kjøringen, med mindre en Sikkerhetsadministrator slår det av. **Run a runbook**, **Post a status page announcement** og de to stegene for datalagre starter med godkjenning slått på, fordi de kjører kommandoer på systemene deres, snakker til kundene deres eller endrer innstillingene i en sky; den som legger til steget, kan slå det av.
 - **Kjør dette trinnet**: **Alltid**, eller bare etter resultater av steg før det, for eksempel at **Sjekk entiteter mot trusselsinformasjon** finner en kjent ondsinnet entitet; se [Forgrein etter resultatet av et steg](#forgrein-etter-resultatet-av-et-steg).
 - **Fortsett hvis det mislykkes**: kjøre neste steg selv om dette feiler. Er det av, stopper et mislykket steg kjøringen. Den ligger under **Flere felt**, sammen med **Kjør dette trinnet**.
 
@@ -365,11 +365,11 @@ De to stegene for datalagre handler på datalagrene saken gjelder, høyst 10: da
 
 #### Beskyttede entiteter
 
-**Beskyttede entiteter**, under **Playbooks** i menyen, viser brukerne og vertene som ingen playbook demmer inn, for eksempel nødtilgangskontoer, domenekontrollere og VPN-gatewayer. En verdi treffer uten forskjell på store og små bokstaver, og `*` står for en hvilken som helst rekke tegn: `svc-*` beskytter alle tjenestekontoer. Et steg melder en beskyttet bruker eller vert som beskyttet og lar den være i fred. Security Admins vedlikeholder listen.
+**Beskyttede entiteter**, under **Playbooks** i menyen, viser brukerne og vertene som ingen playbook demmer inn, for eksempel nødtilgangskontoer, domenekontrollere og VPN-gatewayer. En verdi treffer uten forskjell på store og små bokstaver, og `*` står for en hvilken som helst rekke tegn: `svc-*` beskytter alle tjenestekontoer. Et steg melder en beskyttet bruker eller vert som beskyttet og lar den være i fred. Sikkerhetsadministratorer vedlikeholder listen.
 
 #### Godkjenning
 
-De åtte stegene som stenger noen ute, venter på godkjenning. Bare en Security Admin kan slå av **Krever godkjenning** for ett av dem, og OneUptime registrerer hvem som gjorde det. Godkjenningen viser under **Handle på** brukerne eller vertene steget ville handlet på, alle avkrysset: fjern krysset for dem det skal la være i fred. Beskyttede brukere og verter tilbys ikke. Den som startet en kjøring, kan ikke godkjenne stegene i den: det gjør noen andre, men vedkommende kan fortsatt avvise det.
+De åtte stegene som stenger noen ute, venter på godkjenning. Bare en Sikkerhetsadministrator kan slå av **Krever godkjenning** for ett av dem, og OneUptime registrerer hvem som gjorde det. Godkjenningen viser under **Handle på** brukerne eller vertene steget ville handlet på, alle avkrysset: fjern krysset for dem det skal la være i fred. Beskyttede brukere og verter tilbys ikke. Den som startet en kjøring, kan ikke godkjenne stegene i den: det gjør noen andre, men vedkommende kan fortsatt avvise det.
 
 #### Angre
 
@@ -440,7 +440,7 @@ Sjekk **Åpne en sak ved treff** i regelens steg **Ved treff**. En deteksjon om 
 :::
 
 :::details Ingen fikk beskjed om en sak
-Se på **Tidslinje** for saken, som viser hvem som ble varslet. En varsling om **Ny sikkerhetssak** går til personene som har valgt en prioritet saken når, så en sak med Medium varsler ingen som har beholdt standarden, **Høy og høyere**. Sjekk at personene som burde få beskjed, kan se sikkerhetssaker (en Security-rolle, Project Owner eller Project Admin), og at varslingen er slått på for dem under **Brukerinnstillinger → Varselinnstillinger → Sikkerhet**.
+Se på **Tidslinje** for saken, som viser hvem som ble varslet. En varsling om **Ny sikkerhetssak** går til personene som har valgt en prioritet saken når, så en sak med Medium varsler ingen som har beholdt standarden, **Høy og høyere**. Sjekk at personene som burde få beskjed, kan se sikkerhetssaker (en Security-rolle, Prosjekteier eller Prosjektadministrator), og at varslingen er slått på for dem under **Brukerinnstillinger → Varslingsinnstillinger → Sikkerhet**.
 :::
 
 :::details En sak viser ingen frist

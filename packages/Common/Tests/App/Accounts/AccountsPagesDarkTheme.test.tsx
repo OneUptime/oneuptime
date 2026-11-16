@@ -151,6 +151,12 @@ import NotFoundPage from "../../../../App/FeatureSet/Accounts/src/Pages/NotFound
 import RegisterPage from "../../../../App/FeatureSet/Accounts/src/Pages/Register";
 import ResetPasswordPage from "../../../../App/FeatureSet/Accounts/src/Pages/ResetPassword";
 import VerifyEmailPage from "../../../../App/FeatureSet/Accounts/src/Pages/VerifyEmail";
+import { standInForGlobalConfig } from "../../Helpers/GlobalConfigStandIn";
+
+// The server's global config, answered here rather than over the network.
+beforeEach((): void => {
+  standInForGlobalConfig();
+});
 
 const USER_JSON: JSONObject = {
   _id: "33333333-3333-4333-8333-333333333333",

@@ -1,6 +1,6 @@
 # Accesso alla rete privata
 
-OneUptime rifiuta di inviare certe richieste in uscita a host che si risolvono in un intervallo privato, di loopback o link-local. Se hai provato a puntare un workflow verso uno strumento interno, hai visto il messaggio:
+OneUptime rifiuta di inviare certe richieste in uscita a host che si risolvono in un intervallo privato, di loopback o link-local. Se hai provato a puntare un flusso di lavoro verso uno strumento interno, hai visto il messaggio:
 
 > Webhook URL resolves to a private, loopback, or link-local address and is not allowed
 
@@ -10,15 +10,15 @@ Questa pagina spiega come consentirlo, in modo deliberato e circoscritto. Lo dec
 
 | Che cosa vuoi raggiungere internamente | Dove si trova l'impostazione | Predefinito su un'installazione self-hosted |
 | --- | --- | --- |
-| Workflow, webhook di progetto, webhook utente della reperibilità | L'ambiente del **server API** | Indirizzi privati rifiutati |
+| Flussi di lavoro, webhook di progetto, webhook utente della reperibilità | L'ambiente del **server API** | Indirizzi privati rifiutati |
 | Sorgenti dati, provider di LLM, server SMTP, discovery OIDC e altre connessioni | L'ambiente del **server API** | Indirizzi privati consentiti |
-| **Monitor** API, Website, External Status Page e Custom JavaScript Code | L'ambiente proprio della **sonda** | Indirizzi privati rifiutati |
+| **Monitor** API, Website, Pagina di stato esterna e Codice JavaScript personalizzato | L'ambiente proprio della **sonda** | Indirizzi privati rifiutati |
 
 ```mermaid title="Tre interruttori, ciascuno per il proprio tipo di connessione"
 flowchart LR
     subgraph Server["Il server OneUptime"]
         direction TB
-        Webhooks["Workflow e webhook"]
+        Webhooks["Flussi di lavoro e webhook"]
         Outbound["Sorgenti dati,<br/>provider di LLM,<br/>SMTP e altre<br/>connessioni"]
     end
     subgraph Probe["Ogni sonda"]
@@ -30,10 +30,10 @@ flowchart LR
     Monitors -->|"disattivato per<br/>impostazione<br/>predefinita"| Private
 ```
 
-I tipi di monitor nativi di rete, come Ping, Port, Certificato SSL, DNS, DNSSEC, SNMP / Dispositivo di rete, Query SQL, Salute del database, Synthetic e Network Path, usano i propri trasporti. L'impostazione di questa pagina regola i trasporti HTTP che restituiscono a un progetto contenuti di risposta arbitrari: i monitor API, Website, External Status Page e Custom JavaScript Code.
+I tipi di monitor nativi di rete, come Ping, Port, Certificato SSL, DNS, DNSSEC, SNMP / Dispositivo di rete, Query SQL, Salute del database, Synthetic e Network Path, usano i propri trasporti. L'impostazione di questa pagina regola i trasporti HTTP che restituiscono a un progetto contenuti di risposta arbitrari: i monitor API, Website, Pagina di stato esterna e Codice JavaScript personalizzato.
 
 :::cards
-- [Webhook e workflow](#webhook-e-workflow): Consenti a un webhook di pubblicare nella tua rete.
+- [Webhook e flussi di lavoro](#webhook-e-flussi-di-lavoro): Consenti a un webhook di pubblicare nella tua rete.
 - [Altre connessioni in uscita](#altre-connessioni-in-uscita): Sorgenti dati, provider di LLM e server di posta.
 - [Sonde e monitor](#sonde-e-monitor): Lascia che una sonda controlli siti privati.
 - [Verificare che funzioni](#verificare-che-funzioni): Leggi quale interruttore nomina un rifiuto.
@@ -52,20 +52,20 @@ L'endpoint dei metadati del cloud `169.254.169.254` si trova nel livello vietato
 
 Le scritture IPv6 che contengono una destinazione IPv4 – IPv4-mapped (`::ffff:10.0.0.5`), NAT64, 6to4, Teredo – vengono classificate in base all'indirizzo IPv4 che raggiungono, quindi non si possono usare per far passare un indirizzo vietato attraverso un'autorizzazione del livello privato.
 
-## Webhook e workflow
+## Webhook e flussi di lavoro
 
 Queste destinazioni sono coperte, perché la destinazione è un URL scritto da un membro autenticato del tuo progetto:
 
-- I componenti **API** dei workflow (GET / POST / PUT / PATCH / DELETE)
-- Il componente **Mattermost** dei workflow
-- Le richieste HTTP effettuate dal componente di workflow **Custom JavaScript**
+- I componenti **API** dei flussi di lavoro (GET / POST / PUT / PATCH / DELETE)
+- Il componente **Mattermost** dei flussi di lavoro
+- Le richieste HTTP effettuate dal componente del flusso di lavoro **Custom JavaScript**
 - Le notifiche webhook del progetto (incidenti, avvisi, monitor, reperibilità, manutenzione programmata, eventi delle pagine di stato)
 - I **webhook utente** della reperibilità
-- Gli iscritti webhook delle pagine di stato aggiunti dal tuo team, dalla dashboard, con una chiave API o tramite un workflow
+- Gli iscritti webhook delle pagine di stato aggiunti dal tuo team, dalla dashboard, con una chiave API o tramite un flusso di lavoro
 
 **Non** sono coperti, e non lo saranno mai: gli **iscritti webhook che si registrano su una pagina di stato**. Qualsiasi visitatore di una pagina di stato pubblica può registrarne uno, quindi allentare questa destinazione permetterebbe a chiunque su internet di far inviare al tuo server delle POST nella tua rete privata. I loro webhook raggiungono solo indirizzi pubblici, anche dopo che qualcuno del tuo team ne ha modificato uno. Non è configurabile.
 
-Le connessioni in uscita che non sono webhook – sorgenti dati esterne, provider di LLM, server SMTP (le impostazioni SMTP di un progetto e il componente di workflow **Email**), endpoint dei token OAuth SMTP, discovery OIDC e passaggi HTTP dei runbook – sono regolate separatamente, da `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES`, e consentono già gli intervalli privati sulle installazioni self-hosted. Vedi [Altre connessioni in uscita](#altre-connessioni-in-uscita).
+Le connessioni in uscita che non sono webhook – sorgenti dati esterne, provider di LLM, server SMTP (le impostazioni SMTP di un progetto e il componente del flusso di lavoro **Email**), endpoint dei token OAuth SMTP, discovery OIDC e passaggi HTTP dei runbook – sono regolate separatamente, da `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES`, e consentono già gli intervalli privati sulle installazioni self-hosted. Vedi [Altre connessioni in uscita](#altre-connessioni-in-uscita).
 
 ### Configurare il server API
 
@@ -112,7 +112,7 @@ Una seconda protezione copre le connessioni in uscita la cui destinazione è sce
 
 - sorgenti dati esterne (connessioni PostgreSQL, MySQL, SQL Server, ClickHouse, Elasticsearch e API REST), connessioni di eventi di sicurezza come Splunk e feed di threat intel
 - provider di LLM, compreso un Ollama o vLLM self-hosted
-- server SMTP – le impostazioni SMTP di un progetto e il componente di workflow **Email** – e gli URL dei token OAuth di SMTP e dei workflow
+- server SMTP – le impostazioni SMTP di un progetto e il componente del flusso di lavoro **Email** – e gli URL dei token OAuth di SMTP e dei flussi di lavoro
 - la discovery OIDC per il single sign-on
 - la verifica dei domini personalizzati di pagine di stato e dashboard
 - i passaggi HTTP dei runbook
@@ -136,7 +136,7 @@ outboundConnections:
 
 Questa impostazione non si applica a un provider di LLM globale, che configura un amministratore invece di un progetto (con le variabili `GLOBAL_LLM_PROVIDER_*`, il valore `vllm.globalProvider` del chart Helm, oppure nel Pannello amministratore in **Impostazioni** > **Fornitori LLM globali**): un provider del genere può comunque raggiungere indirizzi privati, anche se loopback e link-local restano rifiutati anche per lui.
 
-Solo il valore esatto `true` la attiva. Su un'istanza con `BILLING_ENABLED=true` è sempre attiva, qualunque cosa imposti. Non cambia quali destinazioni consentono le impostazioni dei webhook sopra o l'impostazione delle sonde sotto; ogni barriera si configura per conto suo. Cambia invece come vengono formulati i rifiuti, anche per webhook e richieste dei workflow: se è attiva, un nome host rifiutato viene segnalato senza dire in che cosa si è risolto (vedi [Verificare che funzioni](#verificare-che-funzioni)).
+Solo il valore esatto `true` la attiva. Su un'istanza con `BILLING_ENABLED=true` è sempre attiva, qualunque cosa imposti. Non cambia quali destinazioni consentono le impostazioni dei webhook sopra o l'impostazione delle sonde sotto; ogni barriera si configura per conto suo. Cambia invece come vengono formulati i rifiuti, anche per webhook e richieste dei flussi di lavoro: se è attiva, un nome host rifiutato viene segnalato senza dire in che cosa si è risolto (vedi [Verificare che funzioni](#verificare-che-funzioni)).
 
 Con Docker Compose, `config.env` ha una riga `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=false` (aggiungila se il tuo `config.env` è precedente). Cambia quella riga in `true` invece di aggiungerne una seconda, poi esegui `npm run start` perché i container vengano ricreati con il nuovo valore; `docker compose restart` non rilegge `config.env`. Su Kubernetes, impostala nel file dei valori e aggiorna la release; il chart la passa ai pod dell'applicazione e del worker.
 
@@ -144,7 +144,7 @@ Se è attiva, un nome host rifiutato viene segnalato senza dire in che cosa si �
 
 ## Sonde e monitor
 
-Sono interessati quattro tipi di monitor: **API**, **Sito web**, **External Status Page** e **Custom JavaScript Code**. Su una sonda standard possono raggiungere destinazioni HTTP(S) pubbliche, ma rifiutano lo spazio di indirizzi privato. I monitor API, Website ed External Status Page convalidano e fissano i risultati DNS per ogni connessione e riconvalidano ogni reindirizzamento; Custom JavaScript Code applica la stessa politica sugli indirizzi nel ponte della sua sandbox.
+Sono interessati quattro tipi di monitor: **API**, **Sito web**, **Pagina di stato esterna** e **Codice JavaScript personalizzato**. Su una sonda standard possono raggiungere destinazioni HTTP(S) pubbliche, ma rifiutano lo spazio di indirizzi privato. I monitor API, Website ed Pagina di stato esterna convalidano e fissano i risultati DNS per ogni connessione e riconvalidano ogni reindirizzamento; Codice JavaScript personalizzato applica la stessa politica sugli indirizzi nel ponte della sua sandbox.
 
 L'interruttore viene letto dal **processo della sonda nel proprio ambiente**, non in quello del server API, e ogni sonda lo legge: quelle incluse con Docker Compose, quelle distribuite dal chart Helm e qualsiasi [sonda personalizzata](/docs/probe/custom-probe) che esegui tu. Chi distribuisce una sonda ne controlla l'ambiente ed è chi sa quale rete quella sonda può vedere: una sonda personalizzata di solito è un'altra macchina, spesso gestita da un'altra persona, e non legge mai la configurazione del server API.
 
@@ -180,16 +180,16 @@ Attivarlo **non** apre loopback, link-local né l'endpoint dei metadati del clou
 
 ## Verificare che funzioni
 
-Esegui di nuovo il workflow o il monitor. Se viene ancora rifiutato, il messaggio di errore nomina quale barriera è chiusa:
+Esegui di nuovo il flusso di lavoro o il monitor. Se viene ancora rifiutato, il messaggio di errore nomina quale barriera è chiusa:
 
 - _"...points to a private network address and is not allowed. Self-hosted instances can allow this by setting `ALLOW_PRIVATE_NETWORK_WEBHOOKS`..."_ – manca l'impostazione del server API.
-- _"...is not allowed. This subscriber signed up on the status page, so its webhook must be on the public internet."_, oppure _"...is not allowed. Use a webhook URL on the public internet."_ sulla pagina di stato stessa – il webhook appartiene a un iscritto che si è registrato sulla pagina di stato, cosa che nessuna impostazione copre. Fallo invece aggiungere dal tuo team come iscritto webhook, dalla dashboard, con una chiave API o tramite un workflow.
+- _"...is not allowed. This subscriber signed up on the status page, so its webhook must be on the public internet."_, oppure _"...is not allowed. Use a webhook URL on the public internet."_ sulla pagina di stato stessa – il webhook appartiene a un iscritto che si è registrato sulla pagina di stato, cosa che nessuna impostazione copre. Fallo invece aggiungere dal tuo team come iscritto webhook, dalla dashboard, con una chiave API o tramite un flusso di lavoro.
 - _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it."_ – una sonda privata (personalizzata) ha eseguito il monitor, e il suo interruttore è disattivato. Nota che si imposta sulla sonda, non sul server API.
 - _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it (probes.<name>.allowPrivateNetworkMonitors in the Helm chart). This is a global probe, so that allows it for every project on this instance; otherwise, select a private probe deployed on that network."_ – una sonda inclusa (globale) ha eseguito il monitor, e il suo interruttore è disattivato. Attivalo per quella sonda come descritto sopra se ogni progetto dell'istanza può raggiungere quella rete; altrimenti seleziona una sonda privata sul monitor.
 - _"...Global probes cannot monitor private network addresses. Deploy and select a private probe for this target."_ – una sonda globale con `BILLING_ENABLED=true` nel proprio ambiente ha eseguito il monitor. Le sonde globali registrate automaticamente restano lì solo pubbliche, qualunque cosa dica il loro interruttore; distribuisci una sonda privata dentro la rete della destinazione e selezionala sul monitor.
-- _"Monitor target host ... could not be reached."_ – un monitor API, Website o External Status Page la cui destinazione è un **nome host** lo segnala sia quando il nome si risolve in un indirizzo rifiutato sia quando il DNS fallisce, così un monitor non può essere usato per mappare quali nomi interni esistono. I dettagli dell'errore mostrati con esso citano `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` in entrambi i casi; non dicono quale si è verificato. Se il nome punta a un indirizzo privato, controlla nel log di avvio della sonda la sua politica sulla rete privata; se è disattivata, la soluzione è la stessa dei messaggi sopra. Con `LOG_LEVEL=DEBUG`, la sonda registra anche il motivo esatto di ogni nome rifiutato.
-- _"Request URL could not be reached."_ – la stessa regola per un monitor **Custom JavaScript Code**: uno script che richiede un **nome host** riceve questo messaggio sia quando il nome si risolve in un indirizzo rifiutato sia quando il DNS fallisce. Con `LOG_LEVEL=DEBUG`, la sonda registra il motivo esatto.
-- _"Webhook URL could not be reached."_ oppure, da un workflow, _"Request URL could not be reached."_ – l'istanza gira con `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` (o `BILLING_ENABLED=true`), quindi un **nome host** rifiutato non viene spiegato: o si è risolto in un indirizzo rifiutato o non si è risolto affatto. Con `LOG_LEVEL=DEBUG`, l'applicazione o il worker registrano quale dei due, e l'indirizzo.
+- _"Monitor target host ... could not be reached."_ – un monitor API, Website o Pagina di stato esterna la cui destinazione è un **nome host** lo segnala sia quando il nome si risolve in un indirizzo rifiutato sia quando il DNS fallisce, così un monitor non può essere usato per mappare quali nomi interni esistono. I dettagli dell'errore mostrati con esso citano `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` in entrambi i casi; non dicono quale si è verificato. Se il nome punta a un indirizzo privato, controlla nel log di avvio della sonda la sua politica sulla rete privata; se è disattivata, la soluzione è la stessa dei messaggi sopra. Con `LOG_LEVEL=DEBUG`, la sonda registra anche il motivo esatto di ogni nome rifiutato.
+- _"Request URL could not be reached."_ – la stessa regola per un monitor **Codice JavaScript personalizzato**: uno script che richiede un **nome host** riceve questo messaggio sia quando il nome si risolve in un indirizzo rifiutato sia quando il DNS fallisce. Con `LOG_LEVEL=DEBUG`, la sonda registra il motivo esatto.
+- _"Webhook URL could not be reached."_ oppure, da un flusso di lavoro, _"Request URL could not be reached."_ – l'istanza gira con `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` (o `BILLING_ENABLED=true`), quindi un **nome host** rifiutato non viene spiegato: o si è risolto in un indirizzo rifiutato o non si è risolto affatto. Con `LOG_LEVEL=DEBUG`, l'applicazione o il worker registrano quale dei due, e l'indirizzo.
 - _"...points to a private, loopback, or link-local address and is not allowed."_ – la destinazione è nel livello vietato. Per un webhook, nomina l'host o il CIDR esatto in `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` se ne hai davvero bisogno. Per un monitor non c'è deroga.
 - _"...hostname could not be resolved via DNS."_ – il container non riesce a risolvere il nome. Verifica che condivida una rete con la destinazione.
 
@@ -198,8 +198,8 @@ Esegui di nuovo il workflow o il monitor. Se viene ancora rifiutato, il messaggi
 Aprire questo accesso cambia davvero ciò che la tua istanza OneUptime può essere indotta a raggiungere, quindi vale la pena farlo in modo deliberato:
 
 - **Preferisci la allowlist all'interruttore generale.** Nominare `mattermost.internal` è un'autorizzazione molto più piccola che aprire ogni indirizzo RFC-1918.
-- **Chiunque possa creare un workflow o un monitor API, Website, External Status Page o Custom JavaScript Code, o aggiungere un iscritto a una pagina di stato, può raggiungere tutto ciò che hai consentito.** Tratta di conseguenza l'appartenenza a quei progetti.
-- **Il corpo della risposta torna indietro.** Un componente API di un workflow restituisce lo stato, le intestazioni e il corpo nel log del workflow, quindi un host consentito è leggibile, non solo scrivibile.
+- **Chiunque possa creare un flusso di lavoro o un monitor API, Website, External Status Page o Custom JavaScript Code, o aggiungere un iscritto a una pagina di stato, può raggiungere tutto ciò che hai consentito.** Tratta di conseguenza l'appartenenza a quei progetti.
+- **Il corpo della risposta torna indietro.** Un componente API di un flusso di lavoro restituisce lo stato, le intestazioni e il corpo nel log del flusso di lavoro, quindi un host consentito è leggibile, non solo scrivibile.
 - **I reindirizzamenti non vengono mai seguiti** nelle richieste dei webhook, quindi un host pubblico consentito non può rimbalzare il server su uno interno con un secondo salto.
 - **Limita per sonda anziché a livello di istanza quando puoi.** Una sonda distribuita dentro una rete è un'autorizzazione più ristretta che aprire il traffico in uscita del server API.
 
@@ -207,7 +207,7 @@ Aprire questo accesso cambia davvero ciò che la tua istanza OneUptime può esse
 
 :::cards
 - [Sonde personalizzate](/docs/probe/custom-probe): Esegui una sonda dentro la rete che deve controllare.
-- [Configurazione dei workflow](/docs/workflows/configuration): Che cosa possono raggiungere e fare i passaggi di un workflow.
+- [Configurazione dei flussi di lavoro](/docs/workflows/configuration): Che cosa possono raggiungere e fare i passaggi di un flusso di lavoro.
 - [Provider di LLM](/docs/ai/llm-provider): Collega OneUptime AI a un modello nella tua rete.
 - [Architettura](/docs/self-hosted/architecture): Quale parte di un'installazione self-hosted effettua ciascuna connessione.
 - [Dietro una VPN o un firewall](/docs/self-hosted/behind-a-firewall): Nella direzione opposta: cosa raggiunge il tuo server dall'esterno.

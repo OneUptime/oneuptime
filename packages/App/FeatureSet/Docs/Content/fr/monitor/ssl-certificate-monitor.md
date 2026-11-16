@@ -30,7 +30,7 @@ Une sonde qui a perdu sa propre connexion réseau ne rapporte aucun résultat, e
 
 ## Avant de commencer
 
-- **Un rôle qui peut créer des moniteurs** : Project Owner, Project Admin, Project Member, Monitor Admin ou Monitor Member, ou un rôle personnalisé avec l'autorisation Create Monitor.
+- **Un rôle qui peut créer des moniteurs** : Propriétaire du projet, Administrateur du projet, Membre du projet, Administrateur des moniteurs ou Membre des moniteurs, ou un rôle personnalisé avec l'autorisation Create Monitor.
 - **Une sonde qui peut joindre l'hôte et le port.** Les sondes par défaut de votre projet sont choisies pour chaque nouveau moniteur. Un service sur un réseau privé a besoin d'une [sonde personnalisée](/docs/probe/custom-probe) dans ce réseau.
 
 ## Créer un moniteur de certificat SSL
@@ -93,8 +93,8 @@ Avec deux filtres ou plus, **Condition de correspondance** décide si **Tous** d
 
 Un nouveau moniteur de certificat SSL commence avec trois critères, donc il vous avertit avant l'expiration d'un certificat sans rien configurer :
 
-1. **Certificat non valide** — le certificat a expiré, a été révoqué par son émetteur, est auto-signé, a été émis pour un autre nom d'hôte ou par une autorité non fiable, ou n'a pas pu être vérifié parce que le point de terminaison n'a pas répondu. Le moniteur est marqué **Hors ligne** et un incident appelé « _monitor name_ certificate is not valid » est créé. Sa cause racine indique lequel de ces cas s'est produit et, pour un certificat révoqué, quand et pourquoi son émetteur l'a révoqué. L'incident se résout de lui-même dès que le certificat est de nouveau valide.
-2. **Certificat bientôt expiré** — le certificat est valide mais expire dans 14 jours ou moins. Une **alerte** appelée « _monitor name_ certificate expires soon » est créée.
+1. **Certificat non valide** — le certificat a expiré, a été révoqué par son émetteur, est auto-signé, a été émis pour un autre nom d'hôte ou par une autorité non fiable, ou n'a pas pu être vérifié parce que le point de terminaison n'a pas répondu. Le moniteur est marqué **Hors ligne** et un incident appelé « Le certificat de _nom du moniteur_ n'est pas valide » est créé. Sa cause racine indique lequel de ces cas s'est produit et, pour un certificat révoqué, quand et pourquoi son émetteur l'a révoqué. L'incident se résout de lui-même dès que le certificat est de nouveau valide.
+2. **Certificat bientôt expiré** — le certificat est valide mais expire dans 14 jours ou moins. Une **alerte** appelée « Le certificat de _nom du moniteur_ expire bientôt » est créée.
 3. **Certificat valide** — le moniteur est marqué **Opérationnel**.
 
 L'avertissement « bientôt expiré » est une alerte, pas un incident : il n'apparaît pas sur vos pages de statut, il ne prévient personne tant que vous n'y ajoutez pas une politique d'astreinte, et il ne change pas l'état du moniteur. Il utilise la deuxième gravité d'alerte de votre projet, **Faible** sur un nouveau projet. Quand le certificat renouvelé est pris en compte, le moniteur revient sur « Certificat valide » et l'alerte se résout d'elle-même.

@@ -309,7 +309,9 @@ test("the German row the issue showed: Inaktiv over vor 65 Tagen", () => {
   const gone: LastSeen = lastSeenOf("infrastructure-row", "build-server-old");
 
   expect(gone.status).toHaveTextContent(/^Inaktiv$/);
-  expect(withoutIsolateMarks(gone.age!.textContent || "")).toBe("vor 65 Tagen");
+  expect(withoutIsolateMarks(gone.age!.textContent || "")).toBe(
+    "vor 65\u00A0Tagen",
+  );
   // Not the old one-line sentence.
   expect(gone.cell).not.toHaveTextContent("·");
   expectWholeLines(gone);

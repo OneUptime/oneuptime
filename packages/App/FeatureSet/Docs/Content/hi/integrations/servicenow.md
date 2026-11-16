@@ -13,9 +13,9 @@
 
 ```mermaid title="दो वर्कफ़्लो, एक ServiceNow incident"
 flowchart TB
-    declared["घटना घोषित"] --> create["वर्कफ़्लो 1:<br/>On Create Incident"]
+    declared["घटना घोषित"] --> create["वर्कफ़्लो 1:<br/>घटना बनने पर"]
     create -->|"POST incident"| sn["ServiceNow incident"]
-    resolved["घटना सुलझी"] --> update["वर्कफ़्लो 2:<br/>On Update Incident"]
+    resolved["घटना सुलझी"] --> update["वर्कफ़्लो 2:<br/>घटना अपडेट होने पर"]
     update --> find["correlation_id से<br/>रिकॉर्ड ढूंढें"]
     find -->|"PATCH state 6"| sn
 ```
@@ -54,11 +54,11 @@ Table API Basic ऑथ लेता है: यूज़र का नाम औ
 
 ### ट्रिगर जोड़ें
 
-डैश वाले **चुनें कि यह वर्कफ़्लो किससे शुरू हो** ब्लॉक पर क्लिक करें और **On Create Incident** चुनें। ट्रिगर पर क्लिक करें: उसके **Fields to pass on** में पहले से **शीर्षक** है, इसलिए **फ़ील्ड जोड़ें** पर क्लिक करें और **विवरण** चुनें।
+डैश वाले **चुनें कि यह वर्कफ़्लो किससे शुरू हो** ब्लॉक पर क्लिक करें और **घटना बनने पर** चुनें। ट्रिगर पर क्लिक करें: उसके **आगे भेजने वाले फ़ील्ड** में पहले से **शीर्षक** है, इसलिए **फ़ील्ड जोड़ें** पर क्लिक करें और **विवरण** चुनें।
 
 ### रिकॉर्ड बनाएं
 
-**घटक जोड़ें** पर क्लिक करें, एक **API Post (JSON)** ब्लॉक जोड़ें, और ट्रिगर के **Success** बिंदु को उससे जोड़ें। उसका **URL** `https://your-instance.service-now.com/api/now/table/incident` पर सेट करें। **और फ़ील्ड** के नीचे उसके **Request Headers** इस पर सेट करें:
+**घटक जोड़ें** पर क्लिक करें, एक **API कॉल POST (JSON)** ब्लॉक जोड़ें, और ट्रिगर के **सफलता** बिंदु को उससे जोड़ें। उसका **URL** `https://your-instance.service-now.com/api/now/table/incident` पर सेट करें। **और फ़ील्ड** के नीचे उसके **अनुरोध हेडर** इस पर सेट करें:
 
 ```json
 {
@@ -67,7 +67,7 @@ Table API Basic ऑथ लेता है: यूज़र का नाम औ
 }
 ```
 
-और उसकी **Request Body** इस पर:
+और उसकी **अनुरोध बॉडी** इस पर:
 
 ```json
 {
@@ -81,7 +81,7 @@ Table API Basic ऑथ लेता है: यूज़र का नाम औ
 
 ### टेस्ट करें, फिर चालू करें
 
-**वर्कफ़्लो चलाएं** पर क्लिक करें, **घटना** के नीचे कोई टेस्ट घटना चुनें, और चलाएं। **API Post (JSON)** चरण एक `201` जवाब दिखाता है जिसमें नया रिकॉर्ड होता है, उसके `sys_id` और उसके `number` के साथ, जैसे `INC0012345`। फिर **बिल्डर** के ऊपर **सक्षम** चालू करें।
+**वर्कफ़्लो चलाएं** पर क्लिक करें, **घटना** के नीचे कोई टेस्ट घटना चुनें, और चलाएं। **API कॉल POST (JSON)** चरण एक `201` जवाब दिखाता है जिसमें नया रिकॉर्ड होता है, उसके `sys_id` और उसके `number` के साथ, जैसे `INC0012345`। फिर **बिल्डर** के ऊपर **सक्षम** चालू करें।
 :::
 
 `urgency` और `impact` ऊंचे के लिए `1`, मध्यम के लिए `2` और निचले के लिए `3` लेते हैं, और ServiceNow इन दोनों से प्राथमिकता निकालता है। `incident` टेबल का कोई भी दूसरा कॉलम उसके कॉलम नाम से बॉडी में जा सकता है।
@@ -91,9 +91,9 @@ Table API Basic ऑथ लेता है: यूज़र का नाम औ
 एक वर्कफ़्लो में एक ही ट्रिगर होता है, इसलिए सुलझाने के लिए दूसरा वर्कफ़्लो चाहिए, जो घटना की स्थिति बदलने पर शुरू हो।
 
 :::steps
-### On Update Incident ट्रिगर जोड़ें
+### "घटना अपडेट होने पर" ट्रिगर जोड़ें
 
-`Resolve ServiceNow incidents` नाम का एक वर्कफ़्लो बनाएं, और उसके ट्रिगर के रूप में **On Update Incident** चुनें। **Fields to watch** में **फ़ील्ड जोड़ें** पर क्लिक करें और **Current Incident State** चुनें, ताकि यह सिर्फ़ स्थिति बदलने पर चले। **Fields to pass on** में यह मांगें कि नई स्थिति सुलझी हुई है या नहीं: **फ़ील्ड जोड़ें** पर क्लिक करें, **Current Incident State** खोलें और **Is Resolved State** चुनें। या **JSON के रूप में संपादित करें** पर क्लिक करें और JSON को इससे बदल दें:
+`Resolve ServiceNow incidents` नाम का एक वर्कफ़्लो बनाएं, और उसके ट्रिगर के रूप में **घटना अपडेट होने पर** चुनें। **नज़र रखने वाले फ़ील्ड** में **फ़ील्ड जोड़ें** पर क्लिक करें और **Current Incident State** चुनें, ताकि यह सिर्फ़ स्थिति बदलने पर चले। **आगे भेजने वाले फ़ील्ड** में यह मांगें कि नई स्थिति सुलझी हुई है या नहीं: **फ़ील्ड जोड़ें** पर क्लिक करें, **Current Incident State** खोलें और **Is Resolved State** चुनें। या **JSON के रूप में संपादित करें** पर क्लिक करें और JSON को इससे बदल दें:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -101,11 +101,11 @@ Table API Basic ऑथ लेता है: यूज़र का नाम औ
 
 ### जांचें कि घटना सुलझ गई है
 
-ट्रिगर के बाद एक **If / Else** ब्लॉक जोड़ें। **Value to check** को `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` पर और **Comparison** को **is true** पर सेट करें।
+ट्रिगर के बाद एक **अगर / वरना** ब्लॉक जोड़ें। **जांचने वाला मान** को `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` पर और **तुलना** को **सत्य है** पर सेट करें।
 
 ### रिकॉर्ड ढूंढें
 
-**Yes** साइड के बाद एक **API Get (JSON)** ब्लॉक जोड़ें, उन्हीं **Request Headers** और इस **URL** के साथ:
+**हाँ** साइड के बाद एक **API कॉल GET (JSON)** ब्लॉक जोड़ें, उन्हीं **अनुरोध हेडर** और इस **URL** के साथ:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}&sysparm_fields=sys_id&sysparm_limit=1
@@ -113,13 +113,13 @@ https://your-instance.service-now.com/api/now/table/incident?sysparm_query=corre
 
 ### रिकॉर्ड सुलझाएं
 
-ढूंढने वाले ब्लॉक के **Success** के बाद एक **API Patch (JSON)** ब्लॉक जोड़ें, उन्हीं **Request Headers** और इस **URL** के साथ:
+ढूंढने वाले ब्लॉक के **सफलता** के बाद एक **API कॉल PATCH (JSON)** ब्लॉक जोड़ें, उन्हीं **अनुरोध हेडर** और इस **URL** के साथ:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident/{{local.components.api-get-1.returnValues.response-body.result[0].sys_id}}
 ```
 
-उसकी **Request Body** इस पर सेट करें:
+उसकी **अनुरोध बॉडी** इस पर सेट करें:
 
 ```json
 {

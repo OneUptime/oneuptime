@@ -11,6 +11,7 @@ import {
   getDockerSetupGuide,
   resolveDockerInstallMethod,
 } from "../../Pages/Docker/Utils/DocumentationMarkdown";
+import { DOCKER_DOCUMENTATION_TRANSLATIONS } from "../../Pages/Docker/Utils/DocumentationTranslations";
 
 export interface ComponentProps extends SetupGuideFrameProps {
   title: string;
@@ -34,7 +35,9 @@ const DockerDocumentationCard: FunctionComponent<ComponentProps> = (
       newKeyName={translationKey("Docker key")}
       optionsLabel="How do you want to run the agent?"
       options={DOCKER_INSTALL_METHODS}
-      keyStepDescription="The agent sends this host's metrics and logs to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it."
+      keyStepDescription={translationKey(
+        "The agent sends this host's metrics and logs to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.",
+      )}
       getContent={(context: SetupGuideRenderContext): SetupGuideContent => {
         return getDockerSetupGuide({
           oneuptimeUrl: context.oneuptimeUrl,
@@ -43,6 +46,7 @@ const DockerDocumentationCard: FunctionComponent<ComponentProps> = (
           hostName: props.hostName,
         });
       }}
+      translations={DOCKER_DOCUMENTATION_TRANSLATIONS}
       isBare={props.isBare}
       inputs={props.inputs}
       lastStep={props.lastStep}

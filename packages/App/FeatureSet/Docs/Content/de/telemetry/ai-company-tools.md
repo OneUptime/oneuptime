@@ -1,6 +1,6 @@
 # KI-Tools im Unternehmen
 
-Sehen Sie, was Ihre Leute die KI-Tools fragen, die Ihr Unternehmen bezahlt, als Unterhaltungen pro Person. Verbinden Sie Claude Enterprise oder Microsoft 365 Copilot mit Zugangsdaten, die nur lesen können, und OneUptime holt jeden neuen Chat alle 15 Minuten in **Unterhaltungen**. Nur Projektinhaber und Admins können sie lesen, es sei denn, Sie entscheiden anders.
+Sehen Sie, was Ihre Leute die KI-Tools fragen, die Ihr Unternehmen bezahlt, als Unterhaltungen pro Person. Verbinden Sie Claude Enterprise oder Microsoft 365 Copilot mit Zugangsdaten, die nur lesen können, und OneUptime holt jeden neuen Chat alle 15 Minuten in **Unterhaltungen**. Nur Projektinhaber und Projektadministratoren können sie lesen, es sei denn, Sie entscheiden anders.
 
 :::cards
 - [Zuerst Ihre Leute informieren](#zuerst-ihre-leute-informieren): Ihre Chats sind ihre eigenen Worte.
@@ -29,7 +29,7 @@ Die Chats kommen so an wie die KI-Aufrufe Ihrer Apps, also gelten Scrub-Regeln, 
 
 ## Bevor Sie beginnen
 
-- Die Rolle Project Owner oder Project Admin. Nur sie können ein Tool verbinden, ändern oder entfernen.
+- Die Rolle Projektinhaber oder Projektadministrator. Nur sie können ein Tool verbinden, ändern oder entfernen.
 - Eine Administratorin oder ein Administrator des Tools, um die Zugangsdaten zu erstellen: Der Abschnitt jedes Tools unten nennt, wer.
 - Ihre Leute informiert, und die Antwort Ihrer Rechts- oder Personalabteilung.
 
@@ -97,7 +97,7 @@ Füllen Sie **Verzeichnis-ID (Tenant)**, **Anwendungs-ID (Client)** und **Client
 
 | Einstellung | Was sie bewirkt |
 | --- | --- |
-| **Wer Unterhaltungen lesen kann** | **Projektinhaber und Admins**, die Voreinstellung: Niemand sonst im Projekt sieht diese Unterhaltungen oder die KI-Aufrufe, aus denen sie bestehen, irgendwo in OneUptime. **Alle, die KI-Aufrufe lesen dürfen**: alle, die die Traces des Projekts lesen dürfen. |
+| **Wer Unterhaltungen lesen kann** | **Projektinhaber und Projektadministratoren**, die Voreinstellung: Niemand sonst im Projekt sieht diese Unterhaltungen oder die KI-Aufrufe, aus denen sie bestehen, irgendwo in OneUptime. **Alle, die KI-Aufrufe lesen dürfen**: alle, die die Traces des Projekts lesen dürfen. |
 | **Geschriebenes behalten** | An, die Voreinstellung: Fragen und Antworten werden behalten. Aus: OneUptime behält, wer gefragt hat, wann, mit welchem Modell und in welcher App, aber nicht die Worte. |
 
 Eine Änderung daran, wer lesen darf, gilt innerhalb einer Minute. **Geschriebenes behalten** auszuschalten gilt für die danach gelesenen Chats; was vorher behalten wurde, bleibt bis zum Ende seiner Aufbewahrung.
@@ -139,7 +139,7 @@ Erteilen Sie bei Copilot die Administratorzustimmung für die Graph-Berechtigung
 :::
 
 :::details Jemand sieht die Unterhaltungen nicht
-**Wer Unterhaltungen lesen kann** steht auf **Projektinhaber und Admins**. Ein Inhaber oder Admin kann es mit **Bearbeiten** in der Zeile der Verbindung ändern.
+**Wer Unterhaltungen lesen kann** steht auf **Projektinhaber und Projektadministratoren**. Ein Projektinhaber oder Projektadministrator kann es mit **Bearbeiten** in der Zeile der Verbindung ändern.
 :::
 
 :::details Die Unterhaltungen zeigen, wer gefragt hat, aber keine Worte

@@ -633,6 +633,7 @@ const SnmpWalkResults: FunctionComponent<ComponentProps> = (
                 ),
               ),
             })}
+            isTitleTranslated={true}
             buttonSize={ButtonSize.Small}
             buttonStyle={ButtonStyleType.NORMAL}
             className="!ml-0 !w-auto !text-sm"

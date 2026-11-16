@@ -37,6 +37,7 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -53,6 +54,8 @@ import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
 import EventMetricInvestigationPanel from "../../../Components/Telemetry/EventMetricInvestigationPanel";
 import { EventMetricSubject } from "../../../Utils/EventMetricInvestigation";
 import MetricSeriesScope from "Common/Utils/Metrics/MetricSeriesScope";
+import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
+import { getUnsetText } from "../../../Components/Dashboard/Components/DashboardWidgetFallbackWords";
 import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
 import TelemetrySnapshotPanel from "../../../Components/Telemetry/TelemetrySnapshotPanel";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
@@ -275,12 +278,40 @@ const IncidentView: FunctionComponent<
   const [telemetrySnapshotWindow, setTelemetrySnapshotWindow] =
     useState<InBetween<Date> | null>(null);
   /*
-   * "host.name = prod-01" when a grouped metric monitor opened this
-   * incident for one series. Empty for whole-monitor incidents.
+   * The queries a grouped metric monitor's incident was narrowed from, for the
+   * line that says to what. Null when its snapshot holds no metric view.
    */
-  const [seriesSummary, setSeriesSummary] = useState<string>("");
+  const [seriesScopeQueries, setSeriesScopeQueries] =
+    useState<Array<MetricQueryConfigData> | null>(null);
   // The raw series labels, handed to the affected resource card below.
   const [seriesLabels, setSeriesLabels] = useState<JSONObject | null>(null);
+
+  /*
+   * "host.name = prod-01" when a grouped metric monitor opened this incident
+   * for one series. Empty for whole-monitor incidents. Said as the page is
+   * drawn, in the reader's words: a group whose attribute held nothing
+   * reads "(nicht gesetzt)" on a German page, never the English "(unset)"
+   * beside the page's own words (#8269), and follows the language when it
+   * changes after the incident was read.
+   */
+  const unsetLabel: string = getUnsetText(translator);
+  const seriesSummary: string = useMemo(() => {
+    if (!seriesScopeQueries) {
+      return "";
+    }
+
+    /*
+     * Describe the narrowing that was actually applied, not the raw
+     * labels: a label the queries never grouped by narrows nothing, and
+     * announcing it would have the card vouch for a chart that still
+     * shows every series.
+     */
+    return MetricSeriesScope.getAppliedSeriesLabelSummary({
+      queryConfigs: seriesScopeQueries,
+      seriesLabels: seriesLabels,
+      unsetLabel: unsetLabel,
+    });
+  }, [seriesScopeQueries, seriesLabels, unsetLabel]);
   const [isPrivate, setIsPrivate] = useState<boolean>(false);
   /*
    * Off when the incident was declared without notifying status page
@@ -655,18 +686,8 @@ const IncidentView: FunctionComponent<
        * instead of every host the monitor watches.
        */
       if (telemetryQuery?.metricViewData) {
-        /*
-         * Describe the narrowing that was actually applied, not the raw
-         * labels: a label the queries never grouped by narrows nothing, and
-         * announcing it would have the card vouch for a chart that still
-         * shows every series.
-         */
-        setSeriesSummary(
-          MetricSeriesScope.getAppliedSeriesLabelSummary({
-            queryConfigs: telemetryQuery.metricViewData.queryConfigs,
-            seriesLabels: incident?.seriesLabels as JSONObject | undefined,
-          }),
-        );
+        // What the line under the charts says they were narrowed to (above).
+        setSeriesScopeQueries(telemetryQuery.metricViewData.queryConfigs);
 
         telemetryQuery = {
           ...telemetryQuery,
@@ -677,7 +698,7 @@ const IncidentView: FunctionComponent<
             }) || null,
         };
       } else {
-        setSeriesSummary("");
+        setSeriesScopeQueries(null);
       }
 
       setSeriesLabels(
@@ -1209,9 +1230,7 @@ const IncidentView: FunctionComponent<
           value={
             incidentStartedAt ? (
               <EventStartTileValue startedAt={incidentStartedAt} />
-            ) : (
-              "-"
-            )
+            ) : undefined
           }
           note={getImpactBeforeStartText(
             {

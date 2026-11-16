@@ -34,7 +34,7 @@ Una sonda que ha perdido su propia conexión de red no informa de ningún result
 
 ## Antes de empezar
 
-- **Un rol que pueda crear monitores**: Project Owner, Project Admin, Project Member, Monitor Admin o Monitor Member, o un rol personalizado con el permiso Create Monitor.
+- **Un rol que pueda crear monitores**: Propietario del proyecto, Administrador del proyecto, Miembro del proyecto, Administrador de monitores o Miembro de monitores, o un rol personalizado con el permiso Create Monitor.
 - **Una sonda que pueda llegar a la API.** Las sondas predeterminadas de su proyecto se eligen para cada monitor nuevo. Si un cortafuegos protege la API, permita las [direcciones IP de las sondas de OneUptime Cloud](/docs/configuration/ip-addresses). Una API en una red privada necesita una [sonda personalizada](/docs/probe/custom-probe) dentro de esa red, con permiso para llegar a direcciones privadas: consulte [Acceso a red privada](/docs/self-hosted/private-network-access).
 - **Credenciales como secretos de monitor.** Si la API necesita una clave o un token, guárdelo primero como [secreto de monitor](/docs/monitor/monitor-secrets), para que el monitor solo contenga una referencia a él.
 
@@ -181,7 +181,7 @@ Un monitor de API nuevo empieza con dos criterios, así que funciona sin cambiar
 - **Sin conexión** — la API no responde, o responde con un código de estado de `400` o superior (o inferior a `200`). El monitor se marca como **Sin conexión** y se crea un incidente. El incidente se resuelve solo cuando la API vuelve.
 - **En línea** — la API responde con cualquier código de estado `2xx` o `3xx`, como `200`, `201`, `202` o `204`. El monitor se marca como **Operativo**.
 
-En la lista de criterios llevan el nombre del monitor: _Check if (name) is offline_ y _Check if (name) is online_.
+En la lista de criterios llevan el nombre del monitor: «Comprobar si _nombre del monitor_ está sin conexión» y «Comprobar si _nombre del monitor_ está en línea».
 
 Así que un endpoint que responde `201 Created` o `204 No Content` cuenta como disponible. Si para usted solo un código de estado significa que está sano, cambie ambos criterios en la página **Configuración → Criterios** del monitor: por ejemplo **Código de estado de respuesta** / **Igual a** / `200` en el criterio en línea y **Distinto de** / `200` en el de sin conexión, en lugar de los dos filtros de código de estado que tiene cada uno. Para comprobar también lo que devuelve la API, añada un filtro **Cuerpo de la respuesta** o **Expresión de JavaScript** al criterio de sin conexión.
 

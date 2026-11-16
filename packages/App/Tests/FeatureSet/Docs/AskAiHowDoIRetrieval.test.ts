@@ -2,9 +2,14 @@ import DocsAIReader from "../../../FeatureSet/Docs/Utils/AIDocsReader";
 import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
 import {
   ASK_AI_HOW_DO_I_QUESTIONS,
+  ASK_AI_HOW_DO_I_QUESTIONS_IN_EVERY_LANGUAGE,
+  ASK_AI_QUESTIONS_BY_LANGUAGE,
   ASK_AI_HOW_DO_I_QUESTIONS_TRANSLATED,
+  ASK_AI_WEBSITE_QUESTIONS,
   AskAiHowDoIQuestion,
+  AskAiHowDoIQuestionTranslated,
 } from "./AskAiHowDoIQuestions";
+import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
 import { AIDocsSearchHit } from "Common/Server/Utils/AI/Docs/AIDocsLibrary";
 import DashboardPageFinder, {
   AIDashboardPage,
@@ -19,9 +24,25 @@ import path from "path";
  * search_docs, and ends at the page find_dashboard_page finds. Without a
  * model this holds the two searches to the list in AskAiHowDoIQuestions:
  * the question as asked finds the page that answers it among the first
- * results the model is shown, in English, German and Persian, and the
+ * results the model is shown, in every docs language (#7875), and the
  * Dashboard page is found by its name, at the route its button opens.
  */
+
+// Every question asked in a language other than English, with its language.
+const TRANSLATED: Array<AskAiHowDoIQuestionTranslated> = [
+  ...ASK_AI_HOW_DO_I_QUESTIONS_TRANSLATED,
+  ...ASK_AI_WEBSITE_QUESTIONS,
+  ...ASK_AI_HOW_DO_I_QUESTIONS_IN_EVERY_LANGUAGE,
+  ...ASK_AI_QUESTIONS_BY_LANGUAGE,
+];
+
+/*
+ * Questions search_docs does not show a page for in the six it hands the
+ * model, each with why (#8335). This list only shrinks: a question it
+ * finds fails its test until it is deleted here.
+ */
+// Empty since #8700 met Spanish's and Portuguese's "they" forms ("suscriben", "assinam").
+const NOT_IN_THE_FIRST_SIX: Record<string, string> = {};
 
 jest.mock("../../../FeatureSet/Docs/Utils/Config", () => {
   const nodePath: typeof path = jest.requireActual("path") as typeof path;
@@ -79,10 +100,7 @@ describe("Ask AI's how-do-I list", () => {
   test("holds about forty questions, each with a docs page that is in the docs", () => {
     expect(ASK_AI_HOW_DO_I_QUESTIONS.length).toBeGreaterThanOrEqual(40);
 
-    for (const entry of [
-      ...ASK_AI_HOW_DO_I_QUESTIONS,
-      ...ASK_AI_HOW_DO_I_QUESTIONS_TRANSLATED,
-    ]) {
+    for (const entry of [...ASK_AI_HOW_DO_I_QUESTIONS, ...TRANSLATED]) {
       for (const page of answeringPages(entry)) {
         expect(NAV_PAGES.has(page)).toBe(true);
       }
@@ -116,14 +134,68 @@ describe("Ask AI's how-do-I list", () => {
     },
   );
 
+  test("asks how to monitor a website in every docs language, and the same five questions in every one but English (#7875)", () => {
+    const asked: (
+      list: ReadonlyArray<AskAiHowDoIQuestionTranslated>,
+    ) => Array<string> = (
+      list: ReadonlyArray<AskAiHowDoIQuestionTranslated>,
+    ): Array<string> => {
+      return Array.from(
+        new Set<string>(
+          list.map((entry: AskAiHowDoIQuestionTranslated): string => {
+            return entry.language;
+          }),
+        ),
+      ).sort();
+    };
+
+    expect(asked(ASK_AI_WEBSITE_QUESTIONS)).toEqual(
+      [...SUPPORTED_DOCS_LANGUAGE_CODES].sort(),
+    );
+
+    for (const language of SUPPORTED_DOCS_LANGUAGE_CODES) {
+      const own: Array<AskAiHowDoIQuestionTranslated> = TRANSLATED.filter(
+        (entry: AskAiHowDoIQuestionTranslated): boolean => {
+          return entry.language === language;
+        },
+      );
+
+      expect({
+        language,
+        asked: own.length >= (language === "en" ? 1 : 4),
+      }).toEqual({
+        language,
+        asked: true,
+      });
+    }
+
+    // And about ten more in every one but English, as each asks them (#8335).
+    for (const language of SUPPORTED_DOCS_LANGUAGE_CODES) {
+      expect({
+        language,
+        asked:
+          ASK_AI_QUESTIONS_BY_LANGUAGE.filter(
+            (entry: AskAiHowDoIQuestionTranslated): boolean => {
+              return entry.language === language;
+            },
+          ).length >= (language === "en" ? 0 : 9),
+      }).toEqual({ language, asked: true });
+    }
+
+    // Each question is asked once.
+    const questions: Array<string> = TRANSLATED.map(
+      (entry: AskAiHowDoIQuestionTranslated): string => {
+        return `${entry.language} ${entry.question}`;
+      },
+    );
+    expect(new Set<string>(questions).size).toBe(questions.length);
+  });
+
   test.each(
-    ASK_AI_HOW_DO_I_QUESTIONS_TRANSLATED.map(
-      (entry: {
-        language: string;
-        question: string;
-        docsPage: string;
-        alsoAnswers?: Array<string> | undefined;
-      }): [string, string, Array<string>] => {
+    TRANSLATED.map(
+      (
+        entry: AskAiHowDoIQuestionTranslated,
+      ): [string, string, Array<string>] => {
         return [entry.language, entry.question, answeringPages(entry)];
       },
     ),
@@ -131,11 +203,23 @@ describe("Ask AI's how-do-I list", () => {
     'in %s, search_docs shows a page that answers "%s" (%p)',
     async (language: string, question: string, pages: Array<string>) => {
       const shown: Array<string> = await shownPages(question, language);
-      expect(
-        shown.filter((page: string): boolean => {
-          return pages.includes(page);
-        }),
-      ).not.toEqual([]);
+      const answering: Array<string> = shown.filter((page: string): boolean => {
+        return pages.includes(page);
+      });
+      const notYet: string | undefined =
+        NOT_IN_THE_FIRST_SIX[`${language} ${question}`];
+
+      if (notYet) {
+        // Found now: delete it from NOT_IN_THE_FIRST_SIX.
+        expect({ question, notYet, answering }).toEqual({
+          question,
+          notYet,
+          answering: [],
+        });
+        return;
+      }
+
+      expect(answering).not.toEqual([]);
     },
   );
 

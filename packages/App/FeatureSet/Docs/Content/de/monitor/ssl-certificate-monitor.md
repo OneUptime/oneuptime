@@ -30,7 +30,7 @@ Eine Sonde, die ihre eigene Netzwerkverbindung verloren hat, meldet kein Ergebni
 
 ## Bevor Sie beginnen
 
-- **Eine Rolle, die Monitore erstellen darf**: Project Owner, Project Admin, Project Member, Monitor Admin oder Monitor Member oder eine benutzerdefinierte Rolle mit der Berechtigung Create Monitor.
+- **Eine Rolle, die Monitore erstellen darf**: Projektinhaber, Projektadministrator, Projektmitglied, Monitor-Administrator oder Monitor-Mitglied oder eine benutzerdefinierte Rolle mit der Berechtigung Create Monitor.
 - **Eine Sonde, die den Host und den Port erreicht.** Die Standardsonden Ihres Projekts werden für jeden neuen Monitor ausgewählt. Ein Dienst in einem privaten Netzwerk braucht eine [benutzerdefinierte Sonde](/docs/probe/custom-probe) in diesem Netzwerk.
 
 ## Einen SSL-Zertifikat-Monitor erstellen
@@ -93,8 +93,8 @@ Bei zwei oder mehr Filtern entscheidet **Abgleichsbedingung**, ob **Alle** zutre
 
 Ein neuer SSL-Zertifikat-Monitor beginnt mit drei Kriterien, sodass er Sie ohne jede Einrichtung warnt, bevor ein Zertifikat abläuft:
 
-1. **Zertifikat ist nicht gültig** — das Zertifikat ist abgelaufen, wurde von seiner ausstellenden Stelle widerrufen, ist selbstsigniert, wurde für einen anderen Hostnamen oder von einer nicht vertrauenswürdigen Stelle ausgestellt oder konnte nicht geprüft werden, weil der Endpunkt nicht geantwortet hat. Der Monitor wird als **Offline** markiert und ein Vorfall namens „_monitor name_ certificate is not valid“ wird erstellt. Seine Grundursache sagt, welcher dieser Fälle es war, und bei einem widerrufenen Zertifikat, wann und warum die ausstellende Stelle es widerrufen hat. Der Vorfall löst sich von selbst auf, sobald das Zertifikat wieder gültig ist.
-2. **Zertifikat läuft bald ab** — das Zertifikat ist gültig, läuft aber in 14 Tagen oder früher ab. Eine **Warnung** namens „_monitor name_ certificate expires soon“ wird erstellt.
+1. **Zertifikat ist nicht gültig** — das Zertifikat ist abgelaufen, wurde von seiner ausstellenden Stelle widerrufen, ist selbstsigniert, wurde für einen anderen Hostnamen oder von einer nicht vertrauenswürdigen Stelle ausgestellt oder konnte nicht geprüft werden, weil der Endpunkt nicht geantwortet hat. Der Monitor wird als **Offline** markiert und ein Vorfall namens „Zertifikat von _Monitorname_ ist ungültig“ wird erstellt. Seine Grundursache sagt, welcher dieser Fälle es war, und bei einem widerrufenen Zertifikat, wann und warum die ausstellende Stelle es widerrufen hat. Der Vorfall löst sich von selbst auf, sobald das Zertifikat wieder gültig ist.
+2. **Zertifikat läuft bald ab** — das Zertifikat ist gültig, läuft aber in 14 Tagen oder früher ab. Eine **Warnung** namens „Zertifikat von _Monitorname_ läuft bald ab“ wird erstellt.
 3. **Zertifikat ist gültig** — der Monitor wird als **Betriebsbereit** markiert.
 
 Die Warnung „läuft bald ab“ ist eine Warnung, kein Vorfall: Sie erscheint nicht auf Ihren Statusseiten, sie alarmiert niemanden, solange Sie ihr keine Bereitschaftsrichtlinie hinzufügen, und sie ändert den Status des Monitors nicht. Sie verwendet den zweiten Warnungsschweregrad Ihres Projekts, bei einem neuen Projekt **Niedrig**. Sobald das erneuerte Zertifikat erkannt wird, landet der Monitor wieder bei „Zertifikat ist gültig“, und die Warnung löst sich von selbst auf.

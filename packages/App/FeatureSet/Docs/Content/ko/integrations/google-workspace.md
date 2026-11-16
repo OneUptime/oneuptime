@@ -23,7 +23,7 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 
 ## 사전 요건
 
-- OneUptime에서 Project Owner, Project Admin 또는 Security Admin 역할. Security Member와 Security Viewer는 연결과 그 실행 기록을 볼 수 있지만 변경할 수는 없습니다.
+- OneUptime에서 프로젝트 소유자, 프로젝트 관리자 또는 보안 관리자 역할. 보안 구성원과 보안 뷰어는 연결과 그 실행 기록을 볼 수 있지만 변경할 수는 없습니다.
 - 도메인 전체 위임을 허용할 Google Workspace 최고 관리자, 그리고 서비스 계정이 대신 동작할, Reports 권한을 가진 관리자. 최고 관리자는 이 권한을 가지고 있습니다.
 - 서비스 계정을 만들고 Admin SDK API를 켤 수 있는 Google Cloud 프로젝트.
 - 드라이브 활동의 경우 Business Standard, Business Plus, Enterprise, Education처럼 드라이브 감사 로그가 있는 버전.
@@ -153,7 +153,7 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 ## 다음 단계
 
 :::cards
-- [보안 이벤트](/docs/telemetry/security-events): 가져온 내용을 검색하고, 상관 분석하고, 알림을 받습니다.
+- [보안 이벤트](/docs/telemetry/security-events): 가져온 내용을 검색하고, 상관 분석하고, 경고를 받습니다.
 - [Microsoft Entra ID](/docs/integrations/microsoft-entra-id): Microsoft의 로그인과 디렉터리 변경을 가져옵니다.
 - [Google SecOps](/docs/integrations/google-secops): Google SecOps의 탐지도 가져옵니다.
 - [통합 개요](/docs/integrations/index): 연결할 수 있는 다른 도구.

@@ -132,7 +132,7 @@ Geben Sie unter **Regel** einen **Name** ein, etwa „Fast burn“. Eine neue Re
 
 ### Das Burn-Zeitfenster festlegen
 
-Legen Sie unter **Burn-Zeitfenster** den **Burn-Rate-Schwellenwert** fest (zum Beispiel `14.4`), das **Langes Zeitfenster (Minuten)** und das **Kurzes Zeitfenster (Minuten)**, und optional die **Unterdrückung erneuter Auslösung (Minuten)**.
+Legen Sie unter **Burn-Zeitfenster** den **Burn-Rate-Schwellenwert** fest (zum Beispiel `14.4`), das **Langes Zeitfenster (Minuten)** und das **Kurzes Zeitfenster (Minuten)**, und optional die **Unterdrückung erneuter Auslösung (Minuten)**. Bei der Regel eines Anfrage-SLO kommt die **Mindestanzahl Anfragen** hinzu, zum Beispiel `100`: Die Regel überspringt ein langes Zeitfenster, das weniger Anfragen enthält als angegeben. Bei der Regel eines Metrik-SLO kommt auf dieselbe Weise die **Mindestanzahl Ereignisse** hinzu, gezählt in den Ereignissen seiner Metrik.
 
 ### Festlegen, was sie meldet
 
@@ -151,10 +151,12 @@ OneUptime prüft die Zahlen einer Regel beim Speichern:
 | **Kurzes Zeitfenster (Minuten)** | Größer als 0. |
 | **Langes Zeitfenster (Minuten)** | Länger als das kurze Zeitfenster. |
 | **Unterdrückung erneuter Auslösung (Minuten)** | 0 oder mehr. Leer bedeutet die Länge des langen Zeitfensters. |
+| **Mindestanzahl Anfragen** | Eine ganze Zahl, 0 oder mehr. Leer bedeutet kein Minimum. |
+| **Mindestanzahl Ereignisse** | Eine ganze Zahl, 0 oder mehr. Leer bedeutet kein Minimum. |
 
 Jede Antwort auf **Wenn sie auslöst** öffnet etwas. Die API lehnt eine Regel ab, die weder eine Warnung erstellen noch einen Vorfall melden würde, denn sie würde bei jeder Auswertung geprüft und nie etwas melden.
 
-Die Regeltabelle zeigt für jede Regel ihren Schwellenwert, ihre Zeitfenster und die Unterdrückung, was sie meldet (und ob die Warnung oder der Vorfall nur von Hand aufgelöst wird oder privat ist), ihre Schweregrade, Bereitschaftsrichtlinien, Eigentümer und Beschriftungen.
+Die Regeltabelle zeigt für jede Regel ihren Schwellenwert, ihre Zeitfenster und die Unterdrückung, was sie meldet (und ob die Warnung oder der Vorfall nur von Hand aufgelöst wird oder privat ist), ihre Schweregrade, Bereitschaftsrichtlinien, Eigentümer und Beschriftungen. Bei einem Anfrage-SLO nennt sie unter den Zeitfenstern jeder Regel außerdem ihr Minimum.
 
 > [!TIP]
 > Ein guter Anfang: Behalten Sie die drei Standardregeln, schicken Sie die Fast-Burn-Regel mit hohem Schweregrad an Ihre alarmierende Bereitschaftsrichtlinie, lassen Sie die Slow-Burn-Regel eine Warnung mit niedrigerem Schweregrad für die Arbeitszeit auslösen, und belassen Sie die Slow-Leak-Regel als Ticket für das zuständige Team. Arbeitet Ihr Team alles über Vorfälle ab, wählen Sie bei der Fast-Burn-Regel **Vorfall melden**, oder **Beide**, um zusätzlich eine Warnung zu bekommen.
@@ -212,8 +214,8 @@ Für eigene Texte verwenden Sie Vorlagenvariablen im Titel, in der Beschreibung 
 | `{{targetPercentage}}` | Das Ziel des SLO, als Prozentsatz. | `99.9` |
 | `{{currentSliPercentage}}` | Der über das Compliance-Zeitfenster des SLO gemessene SLI, als Prozentsatz. | `99.87` |
 | `{{errorBudgetRemainingPercentage}}` | Anteil des noch verbleibenden Fehlerbudgets, als Prozentsatz. Negativ, sobald das Budget überzogen ist. | `42.5` |
-| `{{errorBudgetRemaining}}` | Noch verbleibendes Fehlerbudget, als Dauer. Beginnt mit einem Minuszeichen, sobald das Budget überzogen ist. | `18m 22s` |
-| `{{errorBudgetRemainingMinutes}}` | Noch verbleibendes Fehlerbudget, in Minuten. | `18.37` |
+| `{{errorBudgetRemaining}}` | Noch verbleibendes Fehlerbudget, als Dauer, oder bei einem Anfrage-SLO als die fehlgeschlagenen oder langsamen Anfragen, die es noch erlaubt. Beginnt mit einem Minuszeichen, sobald das Budget überzogen ist. | `18m 22s` |
+| `{{errorBudgetRemainingMinutes}}` | Noch verbleibendes Fehlerbudget, in Minuten. Leer bei einem Anfrage-SLO, dessen Budget in Anfragen gezählt wird. | `18.37` |
 | `{{windowDescription}}` | Das Compliance-Zeitfenster des SLO, in Worten. | `rolling 30-day window` |
 | `{{policyTier}}` | Name der Stufe der Fehlerbudget-Richtlinie, in der das SLO nach dieser Auswertung ist. „None“, wenn es in keiner Stufe ist. | `Reliability first` |
 | `{{policyTierThresholdPercentage}}` | Schwellenwert dieser Stufe für das verbleibende Budget, in Prozent. Leer, wenn das SLO in keiner Stufe ist. | `25` |
@@ -235,7 +237,7 @@ Zum Beispiel wird aus dem Titel `{{ruleName}}: {{sloName}} is burning {{longWind
 - **SLO-Eigentümer als Eigentümer hinzufügen** fügt außerdem die Eigentümer des SLO, seine Eigentümer-Benutzer und die Mitglieder seiner Eigentümer-Teams, zu allem hinzu, was die Regel erzeugt. SLO-Eigentümer erfahren schon von den Statusänderungen des SLO selbst, das kann sie also doppelt benachrichtigen. Standardmäßig ist es ausgeschaltet.
 - Jeder Eigentümer wird einmal hinzugefügt: Ein Benutzer, dem die Warnung oder der Vorfall schon gehört, etwa über die Eigentümerregeln des Projekts, oder der in einem hinzugefügten Eigentümer-Team ist, wird nicht noch einmal hinzugefügt.
 - **Warnungsbeschriftungen** und **Vorfall-Beschriftungen** werden der Warnung oder dem Vorfall hinzugefügt, damit Filter, Eigentümerregeln und Regeln für Workspace-Benachrichtigungen darauf passen können.
-- Eine private Warnung oder ein privater Vorfall ist nur für die Eigentümer, Projektadministratoren und Projekteigentümer sichtbar.
+- Eine private Warnung oder ein privater Vorfall ist nur für die Eigentümer, Projektadministratoren und Projektinhaber sichtbar.
 
 Beschriftungen, Eigentümer-Teams und Bereitschaftsrichtlinien müssen zum Projekt des SLO gehören.
 
@@ -276,7 +278,7 @@ Burn-Rate-Regeln bleiben still, solange einer der Monitore des SLO in einem lauf
 :::
 
 :::details Gibt es eine Mindestanzahl an Stichproben?
-Nicht für SLOs, die aus der Verfügbarkeit von Monitoren gemessen werden. Verfügbarkeit wird in Sekunden gemessen, jede Sekunde im Zeitfenster ist also eine Stichprobe, und es gibt keinen Fall mit wenig Verkehr, gegen den man sich absichern müsste. Eine Mindestanzahl an Stichproben ist nur für SLIs auf Basis von Ereignissen wichtig, die es noch nicht gibt.
+Nicht für SLOs, die aus der Verfügbarkeit von Monitoren gemessen werden. Verfügbarkeit wird in Sekunden gemessen, jede Sekunde im Zeitfenster ist also eine Stichprobe, und es gibt keinen Fall mit wenig Verkehr, gegen den man sich absichern müsste. Die Regel eines Anfrage-SLO hat eine: Legen Sie ihre **Mindestanzahl Anfragen** fest, dann überspringt die Regel ein langes Zeitfenster, das weniger Anfragen enthält als angegeben, sodass eine ruhige Stunde, in der eine von fünf Anfragen fehlschlägt, niemanden alarmiert.
 :::
 
 ## Nächste Schritte

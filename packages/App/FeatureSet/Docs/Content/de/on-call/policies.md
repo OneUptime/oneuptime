@@ -52,7 +52,7 @@ Eine Richtlinie, die mehrere Regeln hinzufügen, läuft einmal. Ein Schweregrad 
 **Grundlegend** ist geöffnet; die anderen Abschnitte starten eingeklappt, bis Sie sie anklicken.
 
 - **Übersicht** zeigt die **Details der Bereitschaftsrichtlinie**, dann **Richtlinie auf einen Blick**: wie viele Stufen und Bearbeiter die Richtlinie hat, wie lange es bis zu ihrer letzten Stufe dauert und wie oft sie sich wiederholt. **Einsatzbereitschaft der Bearbeiter** sagt, ob jede Person, die sie alarmieren kann, jetzt erreichbar ist, und **Bereitschaftsrichtlinien-Feed** listet, was sich geändert hat: hinzugefügte oder entfernte Personen, Teams und Pläne, Überschreibungen und Übergaben. Ihre Regeln für Slack, Microsoft Teams und Mattermost posten diese in Ihre Kanäle, eine Übergabe in einer Zeile: siehe [Bereitschaftsnachrichten](/docs/workspace-connections/slack#bereitschaftsnachrichten).
-- **Eigentümer** sind die Personen und Teams, die für die Richtlinie verantwortlich sind. Findet ein Alarm der Richtlinie für jemanden keine Regel oder lässt er sich nicht zustellen, bekommen sie eine E-Mail; eine Richtlinie ohne Eigentümer mailt stattdessen den Eigentümern des Projekts.
+- **Eigentümer** sind die Personen und Teams, die für die Richtlinie verantwortlich sind. Findet ein Alarm der Richtlinie für jemanden keine Regel oder lässt er sich nicht zustellen, bekommen sie eine E-Mail; eine Richtlinie ohne Eigentümer mailt stattdessen den Projektinhabern.
 - **Benachrichtigungsprotokolle** listet jede Nachricht, die die Richtlinie gesendet hat, mit einem Tab pro Kanal.
 - **Benutzerüberschreibungen** vertritt Personen nur in dieser Richtlinie. Siehe [Benutzerüberschreibungen](/docs/on-call/user-overrides).
 - **Einstellungen** enthält **Bereitschaftsrichtlinie exportieren** und die Karte, die die Richtlinie archiviert.
@@ -111,11 +111,11 @@ flowchart TB
 | Status | Was er bedeutet |
 | --- | --- |
 | **Wartet** | Eine Bereitschaftsregel mit **Nur während der Arbeitszeiten** lässt den Lauf warten, bis diese Zeiten beginnen: Er sagt, wann die Alarmierung beginnt, und alarmiert bis dahin niemanden. Er endet ohne Alarmierung, wenn der Vorfall oder die Warnung vorher bestätigt oder behoben wird. Er beginnt umgehend zu alarmieren, wenn sich der Vorfall oder die Warnung ändert und nun zu einer Bereitschaftsregel passt, die sofort alarmiert. |
-| **Geplant**, **Begonnen** | Der Lauf wird vorbereitet. Einer, der nach 5 Minuten noch hier steht, wird mit **Fehler** beendet. |
-| **Wird ausgeführt** | Der Lauf alarmiert. OneUptime bringt ihn jede Minute einen Schritt weiter. |
+| **Geplant**, **Begonnen** | Der Lauf wird vorbereitet. Einer, der nach 5 Minuten noch hier steht, ist nicht fertig gestartet: Er geht zu **Wird ausgeführt** über und alarmiert ab der Stelle, an der sein Start stehen blieb. Eine direkte Alarmierung oder eine Testalarmierung, die noch hier steht, wird mit **Fehler** beendet. |
+| **Wird ausgeführt** | Der Lauf alarmiert. OneUptime bringt ihn jede Minute einen Schritt weiter. Ein Schritt, der kurz fehlschlägt, etwa weil die Datenbank nicht erreichbar war, wird eine Minute später erneut versucht, dann nach 2 und 4 Minuten, danach alle 5 Minuten. |
 | **Ausführung abgeschlossen** | Jemand hat bestätigt, der Vorfall oder die Warnung wurde behoben, jede Regel und Wiederholung wurde genutzt, oder die Richtlinie wurde archiviert. |
 | **Ausführung abgeschlossen - niemand benachrichtigt** | Der Lauf ist durch jede Regel gegangen und hat niemanden alarmiert: meist ein Plan, in dem niemand Bereitschaft hat, oder eine Stufe ohne Empfänger. |
-| **Fehler** | Der Lauf ist fehlgeschlagen. **Statusmeldung anzeigen** sagt, warum. |
+| **Fehler** | Der Lauf ist fehlgeschlagen: Ein Schritt schlug so fehl, dass ein neuer Versuch es nicht beheben kann, etwa eine gelöschte Eskalationsregel, oder schlug 10 Versuche hintereinander fehl, über etwa 37 Minuten. **Statusmeldung anzeigen** sagt, warum. |
 
 Ausführungsprotokolle finden Sie an drei Stellen:
 

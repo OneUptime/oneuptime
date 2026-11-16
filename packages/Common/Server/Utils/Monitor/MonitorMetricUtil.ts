@@ -37,7 +37,7 @@ import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import ProbeStatusMonitorResponse from "../../../Types/Monitor/ProbeStatusMonitor/ProbeStatusMonitorResponse";
 import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import SyntheticMonitorResponse from "../../../Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
-import { CheckOn } from "../../../Types/Monitor/CriteriaFilter";
+import { translationKey } from "../../../Types/Translator";
 import {
   CRITERIA_FILTER_KEY_ATTRIBUTE,
   CRITERIA_FILTER_MATCH_METRIC_NAME,
@@ -156,7 +156,7 @@ export default class MonitorMetricUtil {
       TelemetryUtil.getAttributeKeys(attributes);
 
     const retentionDays: number = await this.getRetentionDays();
-    const retentionDate: Date = OneUptimeDate.addRemoveDays(
+    const retentionDate: Date = OneUptimeDate.addRemoveDurationInDays(
       ingestionDate,
       retentionDays,
     );
@@ -432,7 +432,7 @@ export default class MonitorMetricUtil {
         // add MetricType
         const metricType: MetricType = new MetricType();
         metricType.name = MonitorMetricType.IsOnline;
-        metricType.description = CheckOn.IsOnline + " status for monitor";
+        metricType.description = translationKey("Is Online status for monitor");
         metricType.unit = "";
 
         // add to map
@@ -468,7 +468,9 @@ export default class MonitorMetricUtil {
 
         const metricType: MetricType = new MetricType();
         metricType.name = MonitorMetricType.CPUUsagePercent;
-        metricType.description = CheckOn.CPUUsagePercent + " of Server/VM";
+        metricType.description = translationKey(
+          "CPU Usage (in %) of Server/VM",
+        );
         metricType.unit = "%";
 
         metricNameServiceNameMap[MonitorMetricType.CPUUsagePercent] =
@@ -496,7 +498,9 @@ export default class MonitorMetricUtil {
 
         const metricType: MetricType = new MetricType();
         metricType.name = MonitorMetricType.MemoryUsagePercent;
-        metricType.description = CheckOn.MemoryUsagePercent + " of Server/VM";
+        metricType.description = translationKey(
+          "Memory Usage (in %) of Server/VM",
+        );
         metricType.unit = "%";
 
         metricNameServiceNameMap[MonitorMetricType.MemoryUsagePercent] =
@@ -532,7 +536,9 @@ export default class MonitorMetricUtil {
 
           const metricType: MetricType = new MetricType();
           metricType.name = MonitorMetricType.DiskUsagePercent;
-          metricType.description = CheckOn.DiskUsagePercent + " of Server/VM";
+          metricType.description = translationKey(
+            "Disk Usage (in %) of Server/VM",
+          );
           metricType.unit = "%";
 
           metricNameServiceNameMap[MonitorMetricType.DiskUsagePercent] =
@@ -559,7 +565,9 @@ export default class MonitorMetricUtil {
             probeName: data.probeName,
             metricName: MonitorMetricType.DiskReadBytesTotal,
             value: diskMetric.readBytes,
-            description: "Total bytes read from disk since boot",
+            description: translationKey(
+              "Total bytes read from disk since boot",
+            ),
             unit: "bytes",
             extraAttributes: diskAttrs,
             metricRows,
@@ -573,7 +581,9 @@ export default class MonitorMetricUtil {
             probeName: data.probeName,
             metricName: MonitorMetricType.DiskWriteBytesTotal,
             value: diskMetric.writeBytes,
-            description: "Total bytes written to disk since boot",
+            description: translationKey(
+              "Total bytes written to disk since boot",
+            ),
             unit: "bytes",
             extraAttributes: diskAttrs,
             metricRows,
@@ -587,7 +597,9 @@ export default class MonitorMetricUtil {
             probeName: data.probeName,
             metricName: MonitorMetricType.DiskReadOpsTotal,
             value: diskMetric.readCount,
-            description: "Total disk read operations since boot",
+            description: translationKey(
+              "Total disk read operations since boot",
+            ),
             unit: "ops",
             extraAttributes: diskAttrs,
             metricRows,
@@ -601,7 +613,9 @@ export default class MonitorMetricUtil {
             probeName: data.probeName,
             metricName: MonitorMetricType.DiskWriteOpsTotal,
             value: diskMetric.writeCount,
-            description: "Total disk write operations since boot",
+            description: translationKey(
+              "Total disk write operations since boot",
+            ),
             unit: "ops",
             extraAttributes: diskAttrs,
             metricRows,
@@ -619,7 +633,7 @@ export default class MonitorMetricUtil {
           probeName: data.probeName,
           metricName: MonitorMetricType.LoadAverage1Min,
           value: basicMetrics.loadMetrics.load1,
-          description: "1-minute load average",
+          description: translationKey("1-minute load average"),
           unit: "",
           metricRows,
           metricNameServiceNameMap,
@@ -631,7 +645,7 @@ export default class MonitorMetricUtil {
           probeName: data.probeName,
           metricName: MonitorMetricType.LoadAverage5Min,
           value: basicMetrics.loadMetrics.load5,
-          description: "5-minute load average",
+          description: translationKey("5-minute load average"),
           unit: "",
           metricRows,
           metricNameServiceNameMap,
@@ -643,7 +657,7 @@ export default class MonitorMetricUtil {
           probeName: data.probeName,
           metricName: MonitorMetricType.LoadAverage15Min,
           value: basicMetrics.loadMetrics.load15,
-          description: "15-minute load average",
+          description: translationKey("15-minute load average"),
           unit: "",
           metricRows,
           metricNameServiceNameMap,
@@ -659,7 +673,7 @@ export default class MonitorMetricUtil {
           probeName: data.probeName,
           metricName: MonitorMetricType.SwapUsagePercent,
           value: basicMetrics.memoryMetrics.swapPercentUsed,
-          description: "Swap memory usage percentage",
+          description: translationKey("Swap memory usage percentage"),
           unit: "%",
           metricRows,
           metricNameServiceNameMap,
@@ -671,7 +685,7 @@ export default class MonitorMetricUtil {
           probeName: data.probeName,
           metricName: MonitorMetricType.MemoryAvailableBytes,
           value: basicMetrics.memoryMetrics.available,
-          description: "Memory available to new allocations",
+          description: translationKey("Memory available to new allocations"),
           unit: "bytes",
           metricRows,
           metricNameServiceNameMap,
@@ -687,7 +701,7 @@ export default class MonitorMetricUtil {
           probeName: data.probeName,
           metricName: MonitorMetricType.CPUTimeUserPercent,
           value: basicMetrics.cpuMetrics.timeUserPercent,
-          description: "CPU time spent in user space",
+          description: translationKey("CPU time spent in user space"),
           unit: "%",
           metricRows,
           metricNameServiceNameMap,
@@ -699,7 +713,7 @@ export default class MonitorMetricUtil {
           probeName: data.probeName,
           metricName: MonitorMetricType.CPUTimeSystemPercent,
           value: basicMetrics.cpuMetrics.timeSystemPercent,
-          description: "CPU time spent in kernel space",
+          description: translationKey("CPU time spent in kernel space"),
           unit: "%",
           metricRows,
           metricNameServiceNameMap,
@@ -711,7 +725,7 @@ export default class MonitorMetricUtil {
           probeName: data.probeName,
           metricName: MonitorMetricType.CPUTimeIoWaitPercent,
           value: basicMetrics.cpuMetrics.timeIoWaitPercent,
-          description: "CPU time spent waiting on I/O",
+          description: translationKey("CPU time spent waiting on I/O"),
           unit: "%",
           metricRows,
           metricNameServiceNameMap,
@@ -723,7 +737,7 @@ export default class MonitorMetricUtil {
           probeName: data.probeName,
           metricName: MonitorMetricType.CPUTimeIdlePercent,
           value: basicMetrics.cpuMetrics.timeIdlePercent,
-          description: "CPU time spent idle",
+          description: translationKey("CPU time spent idle"),
           unit: "%",
           metricRows,
           metricNameServiceNameMap,
@@ -735,7 +749,7 @@ export default class MonitorMetricUtil {
           probeName: data.probeName,
           metricName: MonitorMetricType.CPUTimeStealPercent,
           value: basicMetrics.cpuMetrics.timeStealPercent,
-          description: "CPU time stolen by the hypervisor",
+          description: translationKey("CPU time stolen by the hypervisor"),
           unit: "%",
           metricRows,
           metricNameServiceNameMap,
@@ -759,7 +773,9 @@ export default class MonitorMetricUtil {
             probeName: data.probeName,
             metricName: MonitorMetricType.NetworkBytesReceivedTotal,
             value: iface.bytesReceived,
-            description: "Network bytes received since boot (per-interface)",
+            description: translationKey(
+              "Network bytes received since boot (per-interface)",
+            ),
             unit: "bytes",
             extraAttributes: ifaceAttrs,
             metricRows,
@@ -772,7 +788,9 @@ export default class MonitorMetricUtil {
             probeName: data.probeName,
             metricName: MonitorMetricType.NetworkBytesSentTotal,
             value: iface.bytesSent,
-            description: "Network bytes sent since boot (per-interface)",
+            description: translationKey(
+              "Network bytes sent since boot (per-interface)",
+            ),
             unit: "bytes",
             extraAttributes: ifaceAttrs,
             metricRows,
@@ -785,7 +803,9 @@ export default class MonitorMetricUtil {
             probeName: data.probeName,
             metricName: MonitorMetricType.NetworkPacketsReceivedTotal,
             value: iface.packetsReceived,
-            description: "Network packets received since boot (per-interface)",
+            description: translationKey(
+              "Network packets received since boot (per-interface)",
+            ),
             unit: "packets",
             extraAttributes: ifaceAttrs,
             metricRows,
@@ -798,7 +818,9 @@ export default class MonitorMetricUtil {
             probeName: data.probeName,
             metricName: MonitorMetricType.NetworkPacketsSentTotal,
             value: iface.packetsSent,
-            description: "Network packets sent since boot (per-interface)",
+            description: translationKey(
+              "Network packets sent since boot (per-interface)",
+            ),
             unit: "packets",
             extraAttributes: ifaceAttrs,
             metricRows,
@@ -811,7 +833,9 @@ export default class MonitorMetricUtil {
             probeName: data.probeName,
             metricName: MonitorMetricType.NetworkErrorsIn,
             value: iface.errorsIn,
-            description: "Network receive errors since boot (per-interface)",
+            description: translationKey(
+              "Network receive errors since boot (per-interface)",
+            ),
             unit: "errors",
             extraAttributes: ifaceAttrs,
             metricRows,
@@ -824,7 +848,9 @@ export default class MonitorMetricUtil {
             probeName: data.probeName,
             metricName: MonitorMetricType.NetworkErrorsOut,
             value: iface.errorsOut,
-            description: "Network transmit errors since boot (per-interface)",
+            description: translationKey(
+              "Network transmit errors since boot (per-interface)",
+            ),
             unit: "errors",
             extraAttributes: ifaceAttrs,
             metricRows,
@@ -839,7 +865,9 @@ export default class MonitorMetricUtil {
           probeName: data.probeName,
           metricName: MonitorMetricType.NetworkConnectionsEstablished,
           value: net.connectionsEstablished,
-          description: "Count of ESTABLISHED network connections",
+          description: translationKey(
+            "Count of ESTABLISHED network connections",
+          ),
           unit: "connections",
           metricRows,
           metricNameServiceNameMap,
@@ -851,7 +879,7 @@ export default class MonitorMetricUtil {
           probeName: data.probeName,
           metricName: MonitorMetricType.NetworkConnectionsListen,
           value: net.connectionsListen,
-          description: "Count of LISTENing network sockets",
+          description: translationKey("Count of LISTENing network sockets"),
           unit: "connections",
           metricRows,
           metricNameServiceNameMap,
@@ -867,7 +895,7 @@ export default class MonitorMetricUtil {
           probeName: data.probeName,
           metricName: MonitorMetricType.HostUptimeSeconds,
           value: basicMetrics.hostMetrics.uptimeSeconds,
-          description: "Host uptime in seconds",
+          description: translationKey("Host uptime in seconds"),
           unit: "seconds",
           metricRows,
           metricNameServiceNameMap,
@@ -886,7 +914,7 @@ export default class MonitorMetricUtil {
           probeName: data.probeName,
           metricName: MonitorMetricType.ProcessCountTotal,
           value: serverProcesses.length,
-          description: "Total running processes on the server",
+          description: translationKey("Total running processes on the server"),
           unit: "processes",
           metricRows,
           metricNameServiceNameMap,
@@ -925,7 +953,9 @@ export default class MonitorMetricUtil {
 
       const metricType: MetricType = new MetricType();
       metricType.name = MonitorMetricType.ExecutionTime;
-      metricType.description = CheckOn.ExecutionTime + " of this monitor";
+      metricType.description = translationKey(
+        "Execution Time (in ms) of this monitor",
+      );
       metricType.unit = "ms";
 
       metricNameServiceNameMap[MonitorMetricType.ExecutionTime] = metricType;
@@ -980,7 +1010,9 @@ export default class MonitorMetricUtil {
 
         const metricType: MetricType = new MetricType();
         metricType.name = MonitorMetricType.ExecutionTime;
-        metricType.description = CheckOn.ExecutionTime + " of this monitor";
+        metricType.description = translationKey(
+          "Execution Time (in ms) of this monitor",
+        );
         metricType.unit = "ms";
 
         metricNameServiceNameMap[MonitorMetricType.ExecutionTime] = metricType;
@@ -1016,7 +1048,9 @@ export default class MonitorMetricUtil {
 
       const metricType: MetricType = new MetricType();
       metricType.name = MonitorMetricType.ResponseTime;
-      metricType.description = CheckOn.ResponseTime + " of this monitor";
+      metricType.description = translationKey(
+        "Response Time (in ms) of this monitor",
+      );
       metricType.unit = "ms";
 
       metricNameServiceNameMap[MonitorMetricType.ResponseTime] = metricType;
@@ -1100,31 +1134,33 @@ export default class MonitorMetricUtil {
           {
             metricName: MonitorMetricType.SnmpInterfaceOperStatus,
             value: snmpInterface.isOperationallyUp ? 1 : 0,
-            description: "SNMP interface operational status (1 up, 0 down)",
+            description: translationKey(
+              "SNMP interface operational status (1 up, 0 down)",
+            ),
             unit: "",
           },
           {
             metricName: MonitorMetricType.SnmpInterfaceInBitsPerSecond,
             value: snmpInterface.inBitsPerSecond,
-            description: "SNMP interface inbound bandwidth",
+            description: translationKey("SNMP interface inbound bandwidth"),
             unit: "bps",
           },
           {
             metricName: MonitorMetricType.SnmpInterfaceOutBitsPerSecond,
             value: snmpInterface.outBitsPerSecond,
-            description: "SNMP interface outbound bandwidth",
+            description: translationKey("SNMP interface outbound bandwidth"),
             unit: "bps",
           },
           {
             metricName: MonitorMetricType.SnmpInterfaceUtilizationPercent,
             value: snmpInterface.utilizationPercent,
-            description: "SNMP interface utilization",
+            description: translationKey("SNMP interface utilization"),
             unit: "%",
           },
           {
             metricName: MonitorMetricType.SnmpInterfaceErrorsPerSecond,
             value: snmpInterface.errorsPerSecond,
-            description: "SNMP interface errors per second",
+            description: translationKey("SNMP interface errors per second"),
             unit: "errors/s",
           },
         ];
@@ -1195,7 +1231,7 @@ export default class MonitorMetricUtil {
           probeName: data.probeName,
           metricName: MonitorMetricType.SnmpOidValue,
           value: numericValue,
-          description: "Value of a polled SNMP OID",
+          description: translationKey("Value of a polled SNMP OID"),
           unit: "",
           extraAttributes: {
             probeId: (
@@ -1229,27 +1265,29 @@ export default class MonitorMetricUtil {
         {
           metricName: MonitorMetricType.DnsLookupTime,
           value: httpTimings.dnsLookupInMs,
-          description: "DNS lookup time for this monitor",
+          description: translationKey("DNS lookup time for this monitor"),
         },
         {
           metricName: MonitorMetricType.TcpConnectTime,
           value: httpTimings.tcpConnectInMs,
-          description: "TCP connect time for this monitor",
+          description: translationKey("TCP connect time for this monitor"),
         },
         {
           metricName: MonitorMetricType.TlsHandshakeTime,
           value: httpTimings.tlsHandshakeInMs,
-          description: "TLS handshake time for this monitor",
+          description: translationKey("TLS handshake time for this monitor"),
         },
         {
           metricName: MonitorMetricType.TimeToFirstByte,
           value: httpTimings.timeToFirstByteInMs,
-          description: "Time to first byte for this monitor",
+          description: translationKey("Time to first byte for this monitor"),
         },
         {
           metricName: MonitorMetricType.DownloadTime,
           value: httpTimings.downloadInMs,
-          description: "Response download time for this monitor",
+          description: translationKey(
+            "Response download time for this monitor",
+          ),
         },
       ];
 
@@ -1289,12 +1327,12 @@ export default class MonitorMetricUtil {
         {
           metricName: MonitorMetricType.PortDnsLookupTime,
           value: portTimings.dnsLookupInMs,
-          description: "DNS lookup time for this Port monitor",
+          description: translationKey("DNS lookup time for this Port monitor"),
         },
         {
           metricName: MonitorMetricType.PortTcpConnectTime,
           value: portTimings.tcpConnectInMs,
-          description: "TCP connect time for this Port monitor",
+          description: translationKey("TCP connect time for this Port monitor"),
         },
       ];
 
@@ -1341,26 +1379,31 @@ export default class MonitorMetricUtil {
         {
           metricName: MonitorMetricType.NtpClockOffset,
           value: NtpMonitorUtil.getAbsoluteClockOffsetInMs(ntpResponse),
-          description: CheckOn.NtpClockOffset + " of this time server",
+          description: translationKey(
+            "NTP Clock Offset (in ms) of this time server",
+          ),
           unit: "ms",
         },
         {
           metricName: MonitorMetricType.NtpStratum,
           value: NtpMonitorUtil.getEffectiveStratum(ntpResponse.stratum),
-          description: CheckOn.NtpStratum + " of this time server",
+          description: translationKey("NTP Stratum of this time server"),
           unit: "",
         },
         {
           metricName: MonitorMetricType.NtpIsSynchronized,
           value: ntpResponse.isSynchronized ? 1 : 0,
-          description:
-            CheckOn.NtpIsSynchronized + " status of this time server",
+          description: translationKey(
+            "NTP Is Synchronized status of this time server",
+          ),
           unit: "",
         },
         {
           metricName: MonitorMetricType.NtpRootDispersion,
           value: ntpResponse.rootDispersionInMs,
-          description: CheckOn.NtpRootDispersion + " of this time server",
+          description: translationKey(
+            "NTP Root Dispersion (in ms) of this time server",
+          ),
           unit: "ms",
         },
       ];
@@ -1400,7 +1443,7 @@ export default class MonitorMetricUtil {
         probeName: data.probeName,
         metricName: MonitorMetricType.PacketLossPercent,
         value: pingResponse.packetLossPercent,
-        description: CheckOn.PacketLossPercent + " for this monitor",
+        description: translationKey("Packet Loss (in %) for this monitor"),
         unit: "%",
         extraAttributes: extraAttributes,
         metricRows: metricRows,
@@ -1414,7 +1457,7 @@ export default class MonitorMetricUtil {
         probeName: data.probeName,
         metricName: MonitorMetricType.Jitter,
         value: pingResponse.jitterInMs,
-        description: CheckOn.Jitter + " for this monitor",
+        description: translationKey("Jitter (in ms) for this monitor"),
         unit: "ms",
         extraAttributes: extraAttributes,
         metricRows: metricRows,
@@ -1450,7 +1493,7 @@ export default class MonitorMetricUtil {
 
       const metricType: MetricType = new MetricType();
       metricType.name = MonitorMetricType.IsOnline;
-      metricType.description = CheckOn.IsOnline + " status for monitor";
+      metricType.description = translationKey("Is Online status for monitor");
       metricType.unit = "";
 
       metricNameServiceNameMap[MonitorMetricType.IsOnline] = metricType;
@@ -1485,7 +1528,9 @@ export default class MonitorMetricUtil {
 
       const metricType: MetricType = new MetricType();
       metricType.name = MonitorMetricType.ResponseStatusCode;
-      metricType.description = CheckOn.ResponseStatusCode + " for this monitor";
+      metricType.description = translationKey(
+        "Response Status Code for this monitor",
+      );
       metricType.unit = "Status Code";
 
       metricNameServiceNameMap[MonitorMetricType.ResponseStatusCode] =
@@ -1514,8 +1559,9 @@ export default class MonitorMetricUtil {
         probeName: undefined,
         metricName: MonitorMetricType.ConnectedProbes,
         value: probeStatusResponse.connectedProbeCount,
-        description:
+        description: translationKey(
           "How many of the probes this monitor watches are connected",
+        ),
         unit: "probes",
         metricPointType: MetricPointType.Gauge,
         metricRows: metricRows,
@@ -1529,8 +1575,9 @@ export default class MonitorMetricUtil {
         probeName: undefined,
         metricName: MonitorMetricType.DisconnectedProbes,
         value: probeStatusResponse.disconnectedProbeCount,
-        description:
+        description: translationKey(
           "How many of the probes this monitor watches are disconnected",
+        ),
         unit: "probes",
         metricPointType: MetricPointType.Gauge,
         metricRows: metricRows,

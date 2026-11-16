@@ -250,7 +250,7 @@ OneUptime gjenkjenner disse attributtene og samler feilen i et issue under **Unn
 
 Er applikasjonen også instrumentert med OpenTelemetry .NET SDK for traces, får Serilog-hendelser som sendes innenfor et aktivt span, automatisk gjeldende `TraceId` og `SpanId` (det er en del av sinkens standard `IncludedData`). Da kan OneUptime koble en logglinje direkte til tracet den skjedde i, og du kan hoppe fra en logg til requesten rundt den og tilbake.
 
-Vil du også sende traces og metrikker, kan du se .NET-oppsettet i [hurtigstarten for OpenTelemetry](/docs/telemetry/open-telemetry#hurtigstart).
+Vil du også sende traces og målinger, kan du se .NET-oppsettet i [hurtigstarten for OpenTelemetry](/docs/telemetry/open-telemetry#hurtigstart).
 
 ## Feilsøking
 
@@ -283,8 +283,8 @@ Har du spørsmål eller trenger hjelp, kan du skrive til oss på support@oneupti
 ## Neste steg
 
 :::cards
-- [OpenTelemetry](/docs/telemetry/open-telemetry): Send også traces og metrikker fra .NET.
+- [OpenTelemetry](/docs/telemetry/open-telemetry): Send også traces og målinger fra .NET.
 - [Loggpipelines](/docs/telemetry/log-pipelines): Tolk og berik loggene når de kommer inn.
-- [Logg-overvåking](/docs/monitor/logs-monitor): Varsle når samsvarende logger dukker opp.
+- [Logg-monitor](/docs/monitor/logs-monitor): Varsle når samsvarende logger dukker opp.
 - [Søkesyntaks](/docs/telemetry/search-syntax): Filtrer på Serilog-egenskapene dine.
 :::

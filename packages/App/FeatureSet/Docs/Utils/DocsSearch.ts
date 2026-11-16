@@ -2,6 +2,7 @@ import DocsAIReader, {
   AIDocsIndexedPage,
   AIDocsIndexedSection,
   AIDocsLanguageIndex,
+  cutQuestionWords,
   splitDocsWords,
   tokenizeForDocs,
 } from "./AIDocsReader";
@@ -10,8 +11,10 @@ import {
   DocsVocabularyMatch,
   foldDocsSearchWord,
   getDocsSearchQuestionWords,
+  getDocsSearchSeparableParticles,
   getDocsSearchSynonyms,
   getTypoAllowance,
+  isDocsSearchAskingWord,
 } from "./DocsSearchWords";
 import { localizeDocsUrl } from "./I18n";
 
@@ -32,7 +35,11 @@ import { localizeDocsUrl } from "./I18n";
  * nearly spells, is set aside); when no page has them all, the pages with
  * most of them are offered. A word a question is phrased with is not
  * looked for, as Ask AI does not look for it: "Wie überwache ich meine
- * Website?" is "überwache" and "Website". A page's title counts most,
+ * Website?" is "überwache" and "Website". A question's verb may be one
+ * the page that answers it never says, so a question also gets the pages
+ * named for half its words or more (isQuestion, #8334), or, where none is,
+ * the sections whose headings are (#8698); keywords do not.
+ * A page's title counts most,
  * then a section's heading, then what a section says; a word every page
  * holds counts little. A guide (NavLink.isGuide) goes above a reference
  * page for the same words, and one page offers at most three results.
@@ -90,12 +97,52 @@ const GUIDE_BOOST: number = 1.4;
  */
 const PHRASE_BOOST: number = 3;
 const PHRASE_LEAST_WORDS: number = 3;
+/*
+ * A page whose name is what was typed, word for word: it opens first.
+ * Read without their endings, "Профили" (Profiles) and "Монитор профилей"
+ * (Profiles Monitor) both hold "профил" in their names, and "Обзор
+ * планового обслуживания" (Scheduled Maintenance Overview) meets the
+ * Glossary's "Плановое обслуживание" heading as well as itself (#7875).
+ */
+const NAME_BOOST: number = 3;
+/*
+ * A page named for part of a question, though it does not hold every one
+ * of its words (#8334): what its name holds counts for the square root of
+ * the share of the words it holds (half the words: 0.71), the rest for
+ * the share squared (0.25), as any result missing a word counts. So
+ * Website Monitor, named for "сайт", comes up for "Как отслеживать мой
+ * сайт?" though it never says "отслеживать". Counted in full, the name
+ * put French Sizing & Capacity Planning, named for "planifier" alone,
+ * above Scheduled Maintenance for "Comment planifier une maintenance ?";
+ * counted for the share itself, Norwegian Status Pages fell from 6th to
+ * 9th for "Hvordan lager jeg en statusside?".
+ */
+const QUESTION_NAME_SHARE_POWER: number = 0.5;
+/*
+ * A section a question is answered by, on a page named for something else
+ * (#8698): its heading must hold half the question's words or more, and it
+ * is offered only where no page is named for the question, as Your
+ * Account's "Slå på tofaktorautentisering" is for "Hvordan slår jeg på
+ * tofaktorautentisering?". Let in beside the pages named for a question
+ * as well, every section whose heading named part of it put Japanese
+ * Website Monitor 6th, behind headings that say ウェブサイト, and Italian
+ * Subscribers 17th; offered only on a page not offered itself, Norwegian
+ * API keys fell from 9th to 23rd.
+ */
+const QUESTION_HEADING_LEAST_SHARE: number = 0.5;
+// A question mark, wherever it is typed: Latin, full-width, Arabic script's, and Spanish's opening one.
+const QUESTION_MARK: RegExp = /[?？؟¿]/u;
 
 // Worked out once per section and per index, the first time a search needs it.
 const sectionLengths: WeakMap<AIDocsIndexedSection, number> = new WeakMap();
 const averageSectionLengths: WeakMap<AIDocsLanguageIndex, number> =
   new WeakMap();
 const sectionPhrases: WeakMap<AIDocsIndexedSection, string> = new WeakMap();
+// The last phrase each index was asked whether it says, and its answer.
+const lastPhrases: WeakMap<
+  AIDocsLanguageIndex,
+  { phrase: string; isPhrase: boolean }
+> = new WeakMap();
 
 // How many docs words one typed word may stand for, by its start or a typo.
 const MOST_WORD_STARTS: number = 12;
@@ -147,6 +194,18 @@ interface ScoredUnit {
   page: AIDocsIndexedPage;
   section: AIDocsIndexedSection | null;
   score: number;
+  terms: Set<string>;
+}
+
+// What a page or a section holds of what was typed.
+interface UnitScore {
+  score: number;
+  // The part of `score` its name holds: a page's title, a section's heading.
+  named: number;
+  // How many of the typed words its name holds.
+  namedWords: number;
+  // How many of the typed words it holds.
+  matched: number;
   terms: Set<string>;
 }
 
@@ -227,7 +286,7 @@ export default class DocsSearch {
       }
 
       const terms: Array<string> = Array.from(
-        new Set<string>(tokenizeForDocs(synonym.words)),
+        new Set<string>(tokenizeForDocs(synonym.words, index.language)),
       );
 
       if (
@@ -285,7 +344,18 @@ export default class DocsSearch {
    * Website-Überwachung. Typed with nothing else they are read, since the
    * index holds them: "ein" finds pages while "Einstellungen" is being
    * typed. A word left out still ends what was typed, so the word before
-   * it is not read by its start.
+   * it is not read by its start. Chinese and Japanese ones are cut out of
+   * what is typed, as Ask AI cuts them (cutQuestionWords): "如何监控我的网站"
+   * looks for "监控" and "网站" (#7875).
+   *
+   * A phrase a section says word for word is read whole, question words
+   * and all (isPhraseOfTheDocs): "le réseau de l'hôte ou si" is a phrase
+   * from the docs, and read as "réseau" and "hôte" it found the sections
+   * named for both, not the one that says it.
+   *
+   * In a language that writes a thing's name as one word, two typed words
+   * are also found in the word they make (DocsAIReader.compoundsOf):
+   * "övervaka webbplats" finds Webbplatsövervakning.
    */
   public static readQuery(
     index: AIDocsLanguageIndex,
@@ -293,19 +363,31 @@ export default class DocsSearch {
   ): Array<DocsQueryWord> {
     const typedWords: Array<string> = splitDocsWords(query);
     const isTyping: boolean = !ENDS_WITH_SPACE.test(query);
+    const isPhrase: boolean = DocsSearch.isPhraseOfTheDocs(index, query);
     const questionWords: ReadonlySet<string> = getDocsSearchQuestionWords(
       index.language,
     );
-    const isQuestionWord: (typed: string) => boolean = (
-      typed: string,
-    ): boolean => {
-      return questionWords.has(foldDocsSearchWord(typed));
-    };
-    const isOnlyQuestionWords: boolean = typedWords.every(isQuestionWord);
+    // Each typed word without the question words in it: nothing for one that is one.
+    const keptWords: Array<Array<string>> = typedWords.map(
+      (typed: string): Array<string> => {
+        if (isPhrase) {
+          return [typed];
+        }
+
+        return questionWords.has(foldDocsSearchWord(typed))
+          ? []
+          : cutQuestionWords(typed, index.language);
+      },
+    );
+    const isOnlyQuestionWords: boolean = keptWords.every(
+      (kept: Array<string>): boolean => {
+        return kept.length === 0;
+      },
+    );
     const words: Array<DocsQueryWord> = [];
 
     typedWords.forEach((typed: string, position: number): void => {
-      if (!isOnlyQuestionWords && isQuestionWord(typed)) {
+      if (!isOnlyQuestionWords && keptWords[position]!.length === 0) {
         return;
       }
 
@@ -315,13 +397,30 @@ export default class DocsSearch {
         .filter((part: string): boolean => {
           return part.length > 0;
         });
-      const tokens: Array<string> = tokenizeForDocs(typed);
+      const tokens: Array<string> = tokenizeForDocs(typed, index.language);
       const synonyms: Array<DocsQueryAlternative> =
         DocsSearch.synonymAlternatives(index, typed);
 
       // Chinese and Japanese: each pair of characters is a word to find.
       if (isUnspaced(typed)) {
-        for (const pair of Array.from(new Set<string>(tokens))) {
+        const pieces: Array<string> = isOnlyQuestionWords
+          ? [typed]
+          : keptWords[position]!;
+
+        for (const piece of pieces) {
+          if (piece !== typed) {
+            for (const synonym of DocsSearch.synonymAlternatives(
+              index,
+              piece,
+            )) {
+              addAlternative(synonyms, synonym.terms, synonym.weight);
+            }
+          }
+        }
+
+        for (const pair of Array.from(
+          new Set<string>(tokenizeForDocs(pieces.join(" "), index.language)),
+        )) {
           const alternatives: Array<DocsQueryAlternative> = [...synonyms];
           if (index.vocabulary.has(pair)) {
             addAlternative(alternatives, [pair], 1);
@@ -337,7 +436,7 @@ export default class DocsSearch {
         // "on-call": the whole word joined, or else its parts in one place.
         const joined: string = tokens[tokens.length - 1] || "";
         const partTerms: Array<string> = Array.from(
-          new Set<string>(tokenizeForDocs(parts.join(" "))),
+          new Set<string>(tokenizeForDocs(parts.join(" "), index.language)),
         );
 
         if (index.vocabulary.has(joined)) {
@@ -424,7 +523,51 @@ export default class DocsSearch {
       }
     });
 
-    return words;
+    DocsSearch.addCompounds(index, words);
+
+    /*
+     * A verb's first part (DOCS_SEARCH_SEPARABLE_PARTICLES) is found in the
+     * verb it joins, which its other word now holds, and never alone, as
+     * Ask AI reads it (tokenizeQueryForDocs, #8698). Typed with nothing
+     * else, or in a phrase the docs say, it is read as a word.
+     */
+    const particles: ReadonlySet<string> = isPhrase
+      ? new Set<string>()
+      : getDocsSearchSeparableParticles(index.language);
+    const joinable: Array<DocsQueryWord> = words.filter(
+      (word: DocsQueryWord): boolean => {
+        return !particles.has(foldDocsSearchWord(word.typed));
+      },
+    );
+
+    return joinable.length > 0 ? joinable : words;
+  }
+
+  /*
+   * Two typed words found in the one word they make, where the language
+   * writes names that way (DocsAIReader.compoundsOf): each of the two may
+   * be found in it, so a page named "Webbplatsövervakning" holds both
+   * "övervaka" and "webbplats".
+   */
+  private static addCompounds(
+    index: AIDocsLanguageIndex,
+    words: Array<DocsQueryWord>,
+  ): void {
+    for (const word of words) {
+      for (const other of words) {
+        if (other === word) {
+          continue;
+        }
+
+        for (const compound of DocsAIReader.compoundsOf(index, [
+          word.typed,
+          other.typed,
+        ])) {
+          addAlternative(word.alternatives, [compound], 1);
+          addAlternative(other.alternatives, [compound], 1);
+        }
+      }
+    }
   }
 
   private static pageFieldWeight(
@@ -515,6 +658,75 @@ export default class DocsSearch {
       .join(" ")} `;
   }
 
+  // A page's name, or what was typed, as the words it is written with: NAME_BOOST compares the two.
+  private static asName(text: string): string {
+    return DocsSearch.asPhrase(text).trim();
+  }
+
+  // What was typed as a phrase, as `rank` compares it with what a section says.
+  private static phraseOf(query: string): string | null {
+    if (splitDocsWords(query).length < PHRASE_LEAST_WORDS) {
+      return null;
+    }
+
+    return ENDS_WITH_SPACE.test(query)
+      ? DocsSearch.asPhrase(query)
+      : DocsSearch.asPhrase(query).trimEnd();
+  }
+
+  // Whether a section of `index` says what was typed word for word, three words or more.
+  public static isPhraseOfTheDocs(
+    index: AIDocsLanguageIndex,
+    query: string,
+  ): boolean {
+    const phrase: string | null = DocsSearch.phraseOf(query);
+
+    if (!phrase) {
+      return false;
+    }
+
+    // Asked twice a search (readQuery, isQuestion): every section is read once.
+    const last: { phrase: string; isPhrase: boolean } | undefined =
+      lastPhrases.get(index);
+
+    if (last && last.phrase === phrase) {
+      return last.isPhrase;
+    }
+
+    const isPhrase: boolean = index.pages.some(
+      (page: AIDocsIndexedPage): boolean => {
+        return page.sections.some((section: AIDocsIndexedSection): boolean => {
+          return DocsSearch.sectionPhrase(section).includes(phrase);
+        });
+      },
+    );
+
+    lastPhrases.set(index, { phrase, isPhrase });
+
+    return isPhrase;
+  }
+
+  /*
+   * Whether what was typed asks a question rather than names keywords
+   * (#8334): it has a question mark, or a word its language asks with
+   * (DOCS_SEARCH_ASKING_WORDS: "how", "wie", "как", "如何", "my"). A
+   * phrase a section says word for word is the docs' own words, not a
+   * question, even with "when" in it.
+   */
+  public static isQuestion(index: AIDocsLanguageIndex, query: string): boolean {
+    if (DocsSearch.isPhraseOfTheDocs(index, query)) {
+      return false;
+    }
+
+    if (QUESTION_MARK.test(query)) {
+      return true;
+    }
+
+    return splitDocsWords(query).some((word: string): boolean => {
+      return isDocsSearchAskingWord(word, index.language);
+    });
+  }
+
   private static sectionPhrase(section: AIDocsIndexedSection): string {
     let phrase: string | undefined = sectionPhrases.get(section);
 
@@ -558,21 +770,32 @@ export default class DocsSearch {
       );
     };
     const averageLength: number = DocsSearch.averageSectionLength(index);
-    const phrase: string | null =
-      splitDocsWords(trimmed).length >= PHRASE_LEAST_WORDS
-        ? ENDS_WITH_SPACE.test(trimmed)
-          ? DocsSearch.asPhrase(trimmed)
-          : DocsSearch.asPhrase(trimmed).trimEnd()
-        : null;
-
-    const scoreUnit: (fieldWeight: (term: string) => number) => {
-      score: number;
-      matched: number;
-      terms: Set<string>;
-    } = (
+    const phrase: string | null = DocsSearch.phraseOf(trimmed);
+    const typedName: string = DocsSearch.asName(trimmed);
+    /*
+     * A question's verb is often a word the page that answers it never
+     * says (#8334): Website Monitor's Russian page says "мониторинг" and
+     * "сайт", not "отслеживать" (track) or "настроить" (set up), and the
+     * pages that say every word in passing pushed it out of the first 30.
+     * So a page named for half a question's words or more is offered
+     * beside the results that hold all of them, its name counting most
+     * (QUESTION_NAME_SHARE_POWER), as Ask AI's search does not cut a
+     * page's name for the words it lacks. Keywords still need every word,
+     * as a section does: one that says some of a question's words in
+     * passing is no answer to it.
+     */
+    const isQuestion: boolean =
+      words.length >= 2 && DocsSearch.isQuestion(index, trimmed);
+    const scoreUnit: (
       fieldWeight: (term: string) => number,
-    ): { score: number; matched: number; terms: Set<string> } => {
+      isNamed: (term: string) => boolean,
+    ) => UnitScore = (
+      fieldWeight: (term: string) => number,
+      isNamed: (term: string) => boolean,
+    ): UnitScore => {
       let score: number = 0;
+      let named: number = 0;
+      let namedWords: number = 0;
       let matched: number = 0;
       const terms: Set<string> = new Set<string>();
 
@@ -609,25 +832,32 @@ export default class DocsSearch {
         if (best > 0) {
           matched++;
           score += best;
+          if (bestTerms.every(isNamed)) {
+            named += best;
+            namedWords++;
+          }
           for (const term of bestTerms) {
             terms.add(term);
           }
         }
       }
 
-      return { score, matched, terms };
+      return { score, named, namedWords, matched, terms };
     };
 
     const complete: Array<ScoredUnit> = [];
     const partial: Array<ScoredUnit> = [];
+    const asked: Map<AIDocsIndexedPage, ScoredUnit> = new Map();
+    // The sections a question's words name the heading of (#8698), lifted only where no page is named for it.
+    const askedSections: Map<AIDocsIndexedSection, ScoredUnit> = new Map();
     const keep: (
       page: AIDocsIndexedPage,
       section: AIDocsIndexedSection | null,
-      scored: { score: number; matched: number; terms: Set<string> },
+      scored: UnitScore,
     ) => void = (
       page: AIDocsIndexedPage,
       section: AIDocsIndexedSection | null,
-      scored: { score: number; matched: number; terms: Set<string> },
+      scored: UnitScore,
     ): void => {
       if (scored.matched === 0) {
         return;
@@ -649,10 +879,36 @@ export default class DocsSearch {
         ) {
           unit.score *= PHRASE_BOOST;
         }
+        if (
+          !section &&
+          typedName &&
+          DocsSearch.asName(page.title) === typedName
+        ) {
+          unit.score *= NAME_BOOST;
+        }
         complete.push(unit);
       } else if (share >= 0.5) {
         unit.score *= share * share;
         partial.push(unit);
+
+        const askedScore: number =
+          (scored.named * Math.pow(share, QUESTION_NAME_SHARE_POWER) +
+            (scored.score - scored.named) * share * share) *
+          (page.isGuide ? GUIDE_BOOST : 1);
+
+        // A page named for part of a question goes beside the results that hold all of it.
+        if (isQuestion && !section && scored.named > 0) {
+          asked.set(page, { ...unit, score: askedScore });
+        }
+
+        // So does a section whose own heading holds half its words or more, where no page is named for it.
+        if (
+          isQuestion &&
+          section &&
+          scored.namedWords / words.length >= QUESTION_HEADING_LEAST_SHARE
+        ) {
+          askedSections.set(section, { ...unit, score: askedScore });
+        }
       }
     };
 
@@ -660,29 +916,56 @@ export default class DocsSearch {
       keep(
         page,
         null,
-        scoreUnit((term: string): number => {
-          return DocsSearch.pageFieldWeight(page, term);
-        }),
+        scoreUnit(
+          (term: string): number => {
+            return DocsSearch.pageFieldWeight(page, term);
+          },
+          (term: string): boolean => {
+            return page.titleTerms.has(term);
+          },
+        ),
       );
 
       for (const section of page.sections) {
         keep(
           page,
           section,
-          scoreUnit((term: string): number => {
-            return DocsSearch.sectionFieldWeight(
-              page,
-              section,
-              term,
-              averageLength,
-            );
-          }),
+          scoreUnit(
+            (term: string): number => {
+              return DocsSearch.sectionFieldWeight(
+                page,
+                section,
+                term,
+                averageLength,
+              );
+            },
+            (term: string): boolean => {
+              return section.titleTerms.has(term);
+            },
+          ),
         );
       }
     }
 
+    /*
+     * The results that hold every word, and the pages named for part of a
+     * question beside them; with none of the first, the results that hold
+     * most of the words, as before. Where no page is named for a question,
+     * the sections whose headings are go beside them instead (#8698): the
+     * question was asked about a part of a page named for something else.
+     */
+    const sections: Map<AIDocsIndexedSection, ScoredUnit> =
+      asked.size === 0 ? askedSections : new Map();
     const units: Array<ScoredUnit> = (
-      complete.length > 0 ? complete : partial
+      complete.length > 0
+        ? [...complete, ...asked.values(), ...sections.values()]
+        : partial.map((unit: ScoredUnit): ScoredUnit => {
+            return (
+              (unit.section
+                ? sections.get(unit.section)
+                : asked.get(unit.page)) || unit
+            );
+          })
     ).sort((a: ScoredUnit, b: ScoredUnit): number => {
       return (
         b.score - a.score ||
@@ -712,10 +995,10 @@ export default class DocsSearch {
         ? unit.section.text || unit.page.summary
         : unit.page.summary;
       const snippet: { text: string; words: Array<string> } =
-        DocsSearch.snippetOf(text, unit.terms);
+        DocsSearch.snippetOf(text, unit.terms, index.language);
 
       for (const word of [
-        ...DocsSearch.wordsFound(title, unit.terms),
+        ...DocsSearch.wordsFound(title, unit.terms, index.language),
         ...snippet.words,
       ]) {
         marked.add(word);
@@ -753,6 +1036,7 @@ export default class DocsSearch {
   private static hitsIn(
     text: string,
     terms: Set<string>,
+    language?: string | undefined,
   ): Array<{ at: number; word: string }> {
     const hits: Array<{ at: number; word: string }> = [];
 
@@ -775,7 +1059,7 @@ export default class DocsSearch {
       }
 
       if (
-        tokenizeForDocs(written).some((term: string): boolean => {
+        tokenizeForDocs(written, language).some((term: string): boolean => {
           return terms.has(term);
         })
       ) {
@@ -786,8 +1070,12 @@ export default class DocsSearch {
     return hits;
   }
 
-  private static wordsFound(text: string, terms: Set<string>): Array<string> {
-    return DocsSearch.hitsIn(text, terms).map(
+  private static wordsFound(
+    text: string,
+    terms: Set<string>,
+    language?: string | undefined,
+  ): Array<string> {
+    return DocsSearch.hitsIn(text, terms, language).map(
       (hit: { word: string }): string => {
         return hit.word.toLowerCase();
       },
@@ -801,10 +1089,12 @@ export default class DocsSearch {
   public static snippetOf(
     text: string,
     terms: Set<string>,
+    language?: string | undefined,
   ): { text: string; words: Array<string> } {
     const hits: Array<{ at: number; word: string }> = DocsSearch.hitsIn(
       text,
       terms,
+      language,
     );
     const first: number = hits[0] ? hits[0].at : 0;
     let start: number = Math.max(0, first - SNIPPET_LEAD);

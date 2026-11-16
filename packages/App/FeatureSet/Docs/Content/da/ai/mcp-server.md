@@ -88,7 +88,7 @@ Føj dette til din MCP-konfiguration (se [VS Code med GitHub Copilot](#vs-code-m
 
 Enhver anden klient, der understøtter MCP-autorisation, fungerer på samme måde: giv den adressen, så finder den selv resten. Se [Log ind (OAuth 2.1)](#log-ind-oauth-21) for protokollen.
 
-Dashboardet har også disse trin, med din instans' adresse udfyldt: **Projektindstillinger → AI → MCP-server**. Og fra enhver ressource (en monitor, en hændelse, en statusside og så videre) folder du **Udvikler** ud i dens sidemenu og vælger **AI-assistenter**: den side foreslår også prompts, der nævner ressourcen og dens id, så assistenten finder den med det samme. For en ressource, som MCP-serveren endnu ikke har værktøjer til, såsom et workflow, viser siden, hvordan en assistent, der kan køre kommandoer, i stedet kan arbejde med den gennem REST API'et.
+Dashboardet har også disse trin, med din instans' adresse udfyldt: **Projektindstillinger → AI → MCP-server**. Og fra enhver ressource (en monitor, en hændelse, en statusside og så videre) folder du **Udvikler** ud i dens sidemenu og vælger **AI-assistenter**: den side foreslår også prompts, der nævner ressourcen og dens id, så assistenten finder den med det samme. For en ressource, som MCP-serveren endnu ikke har værktøjer til, såsom en arbejdsgang, viser siden, hvordan en assistent, der kan køre kommandoer, i stedet kan arbejde med den gennem REST API'et.
 
 ## Log ind med OneUptime
 
@@ -113,7 +113,7 @@ Hvad en forbundet klient kan:
 
 ### Administrer forbundne klienter
 
-Hver klient, der er forbundet ved login, står under **Projektindstillinger → AI → MCP-server** under **Forbundne MCP-klienter**, med hvem der forbandt den, hvad den må, og hvornår den sidst blev brugt. Du ser de klienter, du har forbundet; projektets ejere og administratorer ser alles.
+Hver klient, der er forbundet ved login, står under **Projektindstillinger → AI → MCP-server** under **Forbundne MCP-klienter**, med hvem der forbandt den, hvad den må, og hvornår den sidst blev brugt. Du ser de klienter, du har forbundet; Projektejere og Projektadministratorer ser alles.
 
 Klik på **Afbryd forbindelse** for at logge en klient ud. Den holder op med at virke med det samme.
 
@@ -430,7 +430,7 @@ Disse virker uden legitimationsoplysninger, alene med værktøjerne til offentli
 | Hvad agenten gør | Vælg under **Adgang** |
 | --- | --- |
 | Læser kun | **Seer**, eller tilføj læsetilladelser på nøglens side |
-| Opretter, opdaterer og sletter også | **Projektadministrator**, eller tilføj rollen Project Admin på nøglens side |
+| Opretter, opdaterer og sletter også | **Projektadministrator**, eller tilføj rollen Projektadministrator på nøglens side |
 
 Giv hver nøgle det mindste, den har brug for, roter nøgler jævnligt, hav en separat nøgle til hvert miljø, og hold øje med, hvad hver nøgle gør i OneUptime.
 
@@ -497,7 +497,7 @@ MCP-serveren er tilstandsløs: den hverken udsteder eller sporer sessions-id'er,
 | Sikkerhed | Security Event, Threat Intel Indicator |
 | Ændringer og omkostninger | Change Event, Kubernetes Cost Allocation |
 
-Værktøjerne er navngivet i snake case: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` og `count_incidents`, eller `list_logs` og `count_spans` for telemetri.
+Værktøjerne er navngivet i snake case: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` og `count_incidents`, eller `list_logs` og `count_spans` for telemetri. `create_incident` og `create_alert` tager også `ownerUsers` og `ownerTeams`: id'erne på de brugere og teams, der ejer posten fra starten, og som får besked om, at den er oprettet.
 
 ## Næste trin
 

@@ -432,7 +432,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.LongText,
     title: "Finance / Accounting Email",
     description:
-      "Invoices, receipts and billing related notifications will be sent to these emails in addition to project owner. Separate multiple emails with a comma.",
+      "Invoices, receipts and billing related notifications will be sent to these emails in addition to Project Owner. Separate multiple emails with a comma.",
     example: "accounting@example.com, finance@example.com",
   })
   @Column({
@@ -2293,7 +2293,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Date,
     title: "Daily AI Token Limit Reached At",
     description:
-      "Internal: when the project's daily AI token limit last stopped OneUptime AI - the first time on that UTC day. The project's owners are emailed then, once a day.",
+      "Internal: when the project's daily AI token limit last stopped OneUptime AI - the first time on that UTC day. Project Owners are emailed then, once a day.",
   })
   @Column({
     nullable: true,
@@ -2312,7 +2312,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Date,
     title: "Daily AI Spend Limit Reached At",
     description:
-      "Internal: when the project's daily AI spend limit last stopped OneUptime AI - the first time on that UTC day. The project's owners are emailed then, once a day.",
+      "Internal: when the project's daily AI spend limit last stopped OneUptime AI - the first time on that UTC day. Project Owners are emailed then, once a day.",
   })
   @Column({
     nullable: true,
@@ -2342,7 +2342,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Date,
     title: "Plan Cut-off Notice Sent At",
     description:
-      "Internal: when the project's owners were last emailed that its plan stops its API keys or limits its SCIM connections.",
+      "Internal: when the Project Owners were last emailed that its plan stops its API keys or limits its SCIM connections.",
   })
   @Column({
     nullable: true,
@@ -4786,6 +4786,49 @@ export default class Project extends TenantModel {
     default: false,
   })
   public doNotAddGlobalProbesByDefaultOnNewMonitors?: boolean = undefined;
+
+  /*
+   * Require a secret on every incoming request (issue #7526): while it is on,
+   * a request to any Incoming Request monitor of the project is refused,
+   * before it counts as a heartbeat or reaches the monitor's criteria, unless
+   * it sends one of the project's incoming request secrets
+   * (IncomingRequestSecret; Types/Monitor/IncomingMonitor/IncomingRequestSecret
+   * says how). Everyone in the project reads it, so a monitor's page can say
+   * its senders need a secret; only owners and admins change it, as only they
+   * manage the secrets. It cannot be turned on while the project has no
+   * secret (ProjectService), so turning it on never refuses every sender at
+   * once by mistake.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Boolean,
+    isDefaultValueColumn: false,
+    title: "Require Incoming Request Secret",
+    description:
+      "When on, requests to this project's Incoming Request monitors are refused with 401 unless they send one of the project's incoming request secrets, in the X-OneUptime-Secret header or as a Bearer token. Needs at least one incoming request secret to turn on.",
+    defaultValue: false,
+    example: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    unique: false,
+    default: false,
+  })
+  public requireIncomingRequestSecret?: boolean = undefined;
 
   /*
    * Use global Runners (Runbooks -> Runners): one switch for the whole

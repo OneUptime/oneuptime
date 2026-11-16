@@ -1,4 +1,5 @@
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import DirectionArrow from "Common/UI/Components/DirectionArrow/DirectionArrow";
@@ -31,7 +32,9 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { translateRecordName } from "Common/Utils/DefaultRecordNames";
 import { StateListType } from "Common/Utils/StateOrder";
 import {
+  composedValue,
   formatInline,
+  formatList,
   translatableTerm,
   translationKey,
   Translator,
@@ -73,8 +76,22 @@ import {
   resolveDatabaseServerLink,
 } from "../Inventory/ResolveTypedRowLink";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
-import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
+import { PluralTemplate } from "Common/Types/Translator";
+
+/*
+ * A section's count lines, each one sentence: the count where the reader's
+ * language puts it, in its plural forms and digits. They read "Showing" and
+ * "of" a word at a time, in English's order (#8290).
+ */
+export const NO_LONGER_IN_INVENTORY: PluralTemplate = {
+  one: "{{count}} no longer in inventory",
+  other: "{{count}} no longer in inventory",
+};
+
+export const SHOWING_CONNECTIONS: string = translationKey(
+  "Showing {{shown}} of {{total}}",
+);
 
 /*
  * Right-hand detail drawer for anything on a topology map. It keeps the user
@@ -149,7 +166,7 @@ interface SectionConfig {
 const SECTIONS: Array<SectionConfig> = [
   {
     section: "calls",
-    title: "Calls",
+    title: translationKey("Calls"),
     testId: "entity-detail-calls",
     showMetrics: true,
     infrastructureLinks: false,
@@ -157,7 +174,7 @@ const SECTIONS: Array<SectionConfig> = [
   },
   {
     section: "calledBy",
-    title: "Called by",
+    title: translationKey("Called by"),
     testId: "entity-detail-called-by",
     showMetrics: true,
     infrastructureLinks: false,
@@ -165,7 +182,7 @@ const SECTIONS: Array<SectionConfig> = [
   },
   {
     section: "runsOn",
-    title: "Runs on",
+    title: translationKey("Runs on"),
     testId: "entity-detail-runs-on",
     showMetrics: false,
     infrastructureLinks: true,
@@ -173,7 +190,7 @@ const SECTIONS: Array<SectionConfig> = [
   },
   {
     section: "related",
-    title: "Related infrastructure",
+    title: translationKey("Related infrastructure"),
     testId: "entity-detail-related",
     showMetrics: false,
     infrastructureLinks: false,
@@ -237,22 +254,22 @@ interface ResolvedLink<T> {
  * both are long, and neither reads at a glance.
  */
 const DETAIL_ATTRIBUTES: Array<{ key: string; label: string }> = [
-  { key: "telemetry.sdk.language", label: "Language" },
-  { key: "db.system.name", label: "Database engine" },
-  { key: "network.protocol.name", label: "Protocol" },
-  { key: "k8s.pod.name", label: "Pod name" },
-  { key: "k8s.node.name", label: "Node" },
-  { key: "os.type", label: "Operating system" },
-  { key: "os.version", label: "OS Version" },
-  { key: "host.arch", label: "Architecture" },
-  { key: "host.ip", label: "IP Address" },
-  { key: "host.mac", label: "MAC Address" },
-  { key: "device.manufacturer", label: "Manufacturer" },
-  { key: "device.model.name", label: "Model Name" },
-  { key: "host.serial_number", label: "Serial Number" },
-  { key: "device.firmware.version", label: "Firmware Version" },
-  { key: "cloud.provider", label: "Cloud provider" },
-  { key: "cloud.region", label: "Region" },
+  { key: "telemetry.sdk.language", label: translationKey("Language") },
+  { key: "db.system.name", label: translationKey("Database engine") },
+  { key: "network.protocol.name", label: translationKey("Protocol") },
+  { key: "k8s.pod.name", label: translationKey("Pod name") },
+  { key: "k8s.node.name", label: translationKey("Node") },
+  { key: "os.type", label: translationKey("Operating system") },
+  { key: "os.version", label: translationKey("OS Version") },
+  { key: "host.arch", label: translationKey("Architecture") },
+  { key: "host.ip", label: translationKey("IP Address") },
+  { key: "host.mac", label: translationKey("MAC Address") },
+  { key: "device.manufacturer", label: translationKey("Manufacturer") },
+  { key: "device.model.name", label: translationKey("Model Name") },
+  { key: "host.serial_number", label: translationKey("Serial Number") },
+  { key: "device.firmware.version", label: translationKey("Firmware Version") },
+  { key: "cloud.provider", label: translationKey("Cloud provider") },
+  { key: "cloud.region", label: translationKey("Region") },
 ];
 
 function normalizeHostName(value: string | undefined): string {
@@ -864,16 +881,20 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
             </div>
             <div>
               <p className="text-sm font-semibold text-gray-900">
-                {formatErrorRate(totals.calls, totals.errors, translator)}
+                {getValueOrQuietDash(
+                  formatErrorRate(totals.calls, totals.errors, translator),
+                )}
               </p>
               <p className="text-[11px] text-gray-400">{t("errors")}</p>
             </div>
             <div>
               <p className="text-sm font-semibold text-gray-900">
-                {totals.avgDurationMs === null ? (
-                  <EmptyValue />
-                ) : (
-                  formatDurationMs(totals.avgDurationMs)
+                {getValueOrQuietDash(
+                  totals.avgDurationMs === null ? (
+                    <EmptyValue />
+                  ) : (
+                    formatDurationMs(totals.avgDurationMs, translator)
+                  ),
                 )}
               </p>
               <p className="text-[11px] text-gray-400">{t("avg latency")}</p>
@@ -993,7 +1014,11 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
                       ),
                     }),
                     translator.translateTemplate("avg {{duration}}", {
-                      duration: formatDurationMs(row.avgDurationMs),
+                      duration: composedValue(
+                        (sentence: Translator): string => {
+                          return formatDurationMs(row.avgDurationMs, sentence);
+                        },
+                      ),
                     }),
                   ],
                   translator,
@@ -1050,8 +1075,10 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
         </h3>
         {config.reportsUnknown && section.unknownTotal > 0 && (
           <p className="mt-0.5 text-xs text-gray-500">
-            {section.unknownTotal.toLocaleString(getReaderNumberLocale())}{" "}
-            {t("no longer in inventory")}
+            {translator.translatePlural(
+              NO_LONGER_IN_INVENTORY,
+              section.unknownTotal,
+            )}
           </p>
         )}
         <ul className="mt-1 divide-y divide-gray-100">
@@ -1065,7 +1092,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
               {moreError.action === "reload"
                 ? t("Could not reload this list.")
                 : t("Could not load more connections.")}
-              {moreError.detail ? ` ${errorDetail(moreError, t)}` : ""}
+              {moreError.detail ? <> {errorDetail(moreError, t)}</> : ""}
             </p>
             {isOutdated && (
               <button
@@ -1109,10 +1136,13 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
         {section.nextOffset !== null && !isOutdated && (
           <div className="mt-1 flex items-center justify-between gap-2">
             <p className="text-xs text-gray-500">
-              {t("Showing")}{" "}
-              {section.rows.length.toLocaleString(getReaderNumberLocale())}{" "}
-              {t("of")}{" "}
-              {formatConnectionTotal(section.total, loaded.isScanLimited)}
+              {translator.translateTemplate(SHOWING_CONNECTIONS, {
+                shown: translator.formatNumber(section.rows.length),
+                total: formatConnectionTotal(
+                  section.total,
+                  loaded.isScanLimited,
+                ),
+              })}
             </p>
             <button
               type="button"
@@ -1160,6 +1190,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
                */
               <Button
                 title={t("Reload page")}
+                isTitleTranslated={true}
                 buttonStyle={ButtonStyleType.OUTLINE}
                 onClick={() => {
                   Navigation.reload();
@@ -1168,6 +1199,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
             ) : (
               <Button
                 title={t("Try again")}
+                isTitleTranslated={true}
                 buttonStyle={ButtonStyleType.OUTLINE}
                 onClick={() => {
                   setAttempt((previous: number): number => {
@@ -1262,7 +1294,22 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
       ? matchedDevice.value
       : null;
 
-  const description: string = props.traffic?.subtitle || typeMeta.label;
+  /*
+   * The SideOver looks its description up, so its own line is handed the
+   * type's English. The line a screen reader hears when the drawer moves
+   * to another entity is drawn here, so it is put in the reader's words
+   * here: the map's subtitle (already the reader's), or the type's label
+   * in the reader's language - "api, پاد Kubernetes" - joined as the
+   * language lists two things (formatList). A drawer opened from the
+   * explorer has no subtitle, and read "api, K8s Pod" in every language
+   * (#8260).
+   */
+  const spokenDescription: string =
+    props.traffic?.subtitle || t(typeMeta.label);
+  const focusLine: string = formatList(
+    [displayName, spokenDescription],
+    translator,
+  );
 
   /*
    * One SideOver for every state and every entity, so it stays mounted
@@ -1270,8 +1317,11 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
    */
   return (
     <SideOver
+      // The entity's own name, and its kind in the reader's words: as given.
       title={displayName}
-      description={description}
+      isTitleTranslated={true}
+      description={spokenDescription}
+      isDescriptionTranslated={true}
       onClose={props.onClose}
       size={SideOverSize.Small}
     >
@@ -1286,7 +1336,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
           className="sr-only"
           data-testid="entity-detail-focus-target"
         >
-          {`${displayName}, ${description}`}
+          {focusLine}
         </div>
         {isMissing ? (
           <p
@@ -1314,6 +1364,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
               <div className="flex flex-wrap gap-2">
                 <Button
                   title={t(props.focusButtonLabel || "Explore connections")}
+                  isTitleTranslated={true}
                   buttonStyle={ButtonStyleType.OUTLINE}
                   onClick={() => {
                     props.onFocus?.(entityKey);

@@ -2,6 +2,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import OneUptimeDate from "Common/Types/Date";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
+  composedValue,
   PluralTemplate,
   Translator,
   translationKey,
@@ -17,11 +18,13 @@ import {
 } from "../../Pages/AppPlatforms/Utils/CloudApps";
 import {
   formatCompact,
-  formatDurationMs,
+  formatDurationMsInLanguage,
   formatPercent,
 } from "../TelemetryResource/telemetryFormat";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * The cells an App Platforms app shows in a list - All Apps, an
@@ -238,7 +241,7 @@ export const CloudAppSignalCell: FunctionComponent<CloudAppSignalCellProps> = (
         className="text-sm tabular-nums text-gray-700"
         data-testid="cloud-app-requests"
       >
-        {formatCompact(signals.requests)}
+        {getValueOrQuietDash(formatCompact(signals.requests, translator))}
       </span>
     );
   }
@@ -249,7 +252,9 @@ export const CloudAppSignalCell: FunctionComponent<CloudAppSignalCellProps> = (
         className="text-sm tabular-nums text-gray-700"
         data-testid="cloud-app-p95"
       >
-        {formatDurationMs(signals.p95Ms)}
+        {getValueOrQuietDash(
+          formatDurationMsInLanguage(signals.p95Ms, translator),
+        )}
       </span>
     );
   }
@@ -264,7 +269,7 @@ export const CloudAppSignalCell: FunctionComponent<CloudAppSignalCellProps> = (
       data-testid="cloud-app-error-rate"
       data-tone={tone}
     >
-      {formatPercent(signals.errorRatePercent)}
+      {getValueOrQuietDash(formatPercent(signals.errorRatePercent, translator))}
     </span>
   );
 };
@@ -346,19 +351,21 @@ export const CloudAppSignalsSummaryCell: FunctionComponent<
         data-tone={tone}
       >
         {translator.translateTemplate(APP_ERRORS_SUMMARY, {
-          rate: formatPercent(signals.errorRatePercent),
+          rate: formatPercent(signals.errorRatePercent, translator),
         })}
       </div>
       <div className="mt-0.5 whitespace-nowrap text-xs tabular-nums text-gray-500">
         <span data-testid="cloud-app-requests">
           {translator.translateTemplate(APP_REQUESTS_SUMMARY, {
-            requests: formatCompact(signals.requests),
+            requests: formatCompact(signals.requests, translator),
           })}
         </span>
         <InlineSeparator />
         <span data-testid="cloud-app-p95">
           {translator.translateTemplate(APP_P95_SUMMARY, {
-            latency: formatDurationMs(signals.p95Ms),
+            latency: composedValue((sentence: Translator): string => {
+              return formatDurationMsInLanguage(signals.p95Ms, sentence);
+            }),
           })}
         </span>
       </div>

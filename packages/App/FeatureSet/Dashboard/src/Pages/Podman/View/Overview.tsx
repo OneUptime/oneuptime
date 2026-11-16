@@ -1,4 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
@@ -93,6 +95,10 @@ import {
   getNotMonitoredRegions,
 } from "../../../Utils/ReceivingGaps";
 import ValueFormatter from "Common/Utils/ValueFormatter";
+import {
+  formatReaderFigure,
+  getDateDisplayLanguage,
+} from "Common/Types/DateLanguage";
 import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionCard";
 import { ResourceAttentionItem } from "../../../Components/ResourcePart/ResourceAttention";
 import ContainerHostHealthPill from "../../../Components/ContainerHost/ContainerHostHealthPill";
@@ -145,7 +151,7 @@ const formatPercent: (value: number | null) => string = (
   value: number | null,
 ): string => {
   if (value === null || !isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return `${value.toFixed(1)}%`;
 };
@@ -154,7 +160,7 @@ const formatInt: (value: number | null) => string = (
   value: number | null,
 ): string => {
   if (value === null || !isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return Math.round(value).toString();
 };
@@ -1369,7 +1375,10 @@ const PodmanHostOverview: FunctionComponent<
         min: 0,
         max: 100,
         formatter: (value: number): string => {
-          return `${Math.round(value)}%`;
+          return formatReaderFigure(Math.round(value), {
+            decimals: 0,
+            isPercent: true,
+          });
         },
         precision: YAxisPrecision.NoDecimals,
       },
@@ -1422,7 +1431,9 @@ const PodmanHostOverview: FunctionComponent<
         max: "auto",
         precision: YAxisPrecision.NoDecimals,
         formatter: (value: number): string => {
-          return ValueFormatter.formatValue(value, "By/s");
+          return ValueFormatter.formatValue(value, "By/s", {
+            language: getDateDisplayLanguage(),
+          });
         },
       },
     };
@@ -1436,12 +1447,15 @@ const PodmanHostOverview: FunctionComponent<
         precision: YAxisPrecision.NoDecimals,
         formatter: (value: number): string => {
           if (value >= 100) {
-            return "Up";
+            return translator.translateText("Up") || "Up";
           }
           if (value <= 0) {
-            return "Down";
+            return translator.translateText("Down") || "Down";
           }
-          return `${Math.round(value)}%`;
+          return formatReaderFigure(Math.round(value), {
+            decimals: 0,
+            isPercent: true,
+          });
         },
       },
     };
@@ -1660,7 +1674,7 @@ const PodmanHostOverview: FunctionComponent<
                       </Link>
                     </div>
                     <div className="text-sm font-semibold text-gray-900">
-                      {formatPercent(value)}
+                      {getValueOrQuietDash(formatPercent(value))}
                     </div>
                   </div>
                 );

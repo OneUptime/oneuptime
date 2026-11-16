@@ -192,7 +192,7 @@ export const PublicNoteApprovalMessages: {
     "Only a signed-in person can approve or reject a public note: approvers are people.",
   notWaiting: "This public note is not waiting for approval.",
   noSteps:
-    "Nobody can approve this public note: no approvers are set up. A project admin can add them in Settings > Public Note Approval.",
+    "Nobody can approve this public note: no approvers are set up. A Project Admin can add them in Settings > Public Note Approval.",
   notAnApprover: (stepLabel: string): string => {
     return `You are not an approver of ${stepLabel}, which this public note is waiting for.`;
   },

@@ -47,13 +47,13 @@ stateDiagram-v2
 | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Gepland**                         | De trigger ging af en de uitvoering staat in de wachtrij voor een uitvoerder. Meestal een fractie van een seconde. Een uitvoering die na 5 minuten nog gepland is, mislukt: niets heeft haar opgepakt.                                                               |
 | **Actief**                          | De workflow is bezig.                                                                                                                                                                                                                                                 |
-| **Wachten**                         | De uitvoering staat geparkeerd op een **Sleep**-blok en gaat vanzelf verder. Tijdens het wachten bezet ze geen worker.                                                                                                                                              |
+| **Wachten**                         | De uitvoering staat geparkeerd op een **Pauze**-blok en gaat vanzelf verder. Tijdens het wachten bezet ze geen worker.                                                                                                                                              |
 | **Uitgevoerd**                        | De uitvoering bereikte het einde zonder te mislukken. Dit is de geslaagde status: het label zegt **Uitgevoerd**, niet «Geslaagd».                                                                                                                                      |
-| **Fout**                            | Een blok stopte de uitvoering, of mislukte terwijl er niets op zijn uitgang **Error** was aangesloten. Wordt ook gebruikt als een uitvoering in de wachtrij nooit wordt opgepakt, als de hervatting van een slapende uitvoering verloren gaat, als een schema-expressie niet kan worden opgelost en als de workflow werd uitgezet of gearchiveerd terwijl de uitvoering op een **Sleep**-blok wachtte. |
+| **Fout**                            | Een blok stopte de uitvoering, of mislukte terwijl er niets op zijn uitgang **Fout** was aangesloten. Wordt ook gebruikt als een uitvoering in de wachtrij nooit wordt opgepakt, als de hervatting van een slapende uitvoering verloren gaat, als een schema-expressie niet kan worden opgelost en als de workflow werd uitgezet of gearchiveerd terwijl de uitvoering op een **Pauze**-blok wachtte. |
 | **Time-out**                        | De uitvoering duurde langer dan toegestaan: standaard 2 minuten. Zie [Hoe lang een run mag duren](/docs/workflows/configuration#hoe-lang-een-run-mag-duren).                                                                                                            |
 | **Uitvoering overschrijdt huidig abonnement** | Het project heeft zijn workflow-uitvoeringen voor de laatste 30 dagen opgebruikt, of het abonnement is niet betaald. De uitvoering wordt vastgelegd maar niet uitgevoerd. Alleen OneUptime Cloud.                                                                   |
 
-Een blok dat zijn uitgang **Error** neemt — een API-blok dat een 4xx kreeg, bijvoorbeeld — laat de uitvoering alleen mislukken als er niets op **Error** is aangesloten. Zijn daar blokken aangesloten, dan draaien die, en de uitvoering kan toch als **Uitgevoerd** eindigen. Is er niets aangesloten, dan loopt de rest van de uitvoering door, daarna eindigt ze als **Fout**, en de laatste regel van haar **Full Log** noemt het blok. Hoe dan ook wordt de stap zelf rood getekend, zodat je hem vindt.
+Een blok dat zijn uitgang **Fout** neemt — een API-blok dat een 4xx kreeg, bijvoorbeeld — laat de uitvoering alleen mislukken als er niets op **Fout** is aangesloten. Zijn daar blokken aangesloten, dan draaien die, en de uitvoering kan toch als **Uitgevoerd** eindigen. Is er niets aangesloten, dan loopt de rest van de uitvoering door, daarna eindigt ze als **Fout**, en de laatste regel van haar **Full Log** noemt het blok. Hoe dan ook wordt de stap zelf rood getekend, zodat je hem vindt.
 
 ## Een uitvoering lezen
 
@@ -81,7 +81,7 @@ Een paar uitvoeringen lezen anders:
 - **Een testrun.** Een uitvoering die iemand met **Workflow uitvoeren** of **Run just this step** startte terwijl de workflow uit stond, zegt bovenaan **Testrun**, met wie hem startte, en beide lijsten met uitvoeringen markeren hem als **Testrun** naast zijn status. Zijn blokken draaiden echt; alleen de trigger van de workflow was gepauzeerd. Filter op **Testrun** om alleen de testruns te tonen, of alleen de andere.
 - **Een test van één stap.** Een uitvoering die met **Run just this step** is gestart, zegt bovenaan **Only this step ran**. De stappen ervoor draaiden niet, dus waarden die ze daaruit leest ontbreken (verwacht daarvoor een waarschuwing **Did not resolve**), en de stappen erna zeggen **(not run in this test)**. Gebruik **Workflow uitvoeren** om het hele pad te proberen.
 - **Een uitvoering die tussen stappen stopte.** Stopte de uitvoering om een reden die geen enkele stap verklaart — haar tijd liep tussen twee stappen af, of ze mislukte vóór haar eerste stap —, dan eindigt het pad met **The run stopped here** en de reden.
-- **Een slapende uitvoering.** Een uitvoering die op een **Sleep**-blok wacht, eindigt met **Sleeping** en het moment waarop ze vanzelf verdergaat; de stappen na de Sleep zeggen **(not run yet)**.
+- **Een slapende uitvoering.** Een uitvoering die op een **Pauze**-blok wacht, eindigt met **Sleeping** en het moment waarop ze vanzelf verdergaat; de stappen na de Sleep zeggen **(not run yet)**.
 
 De ID onder de titel van elke stap is precies wat er in een `{{local.components.<id>.returnValues.…}}`-verwijzing komt, wat dit de snelste manier maakt om een verwijzing goed te krijgen.
 
@@ -89,7 +89,7 @@ De getoonde waarden zijn wat het blok ontving, nadat de variabelen waren ingevul
 
 ### Het tabblad Full Log
 
-Het ruwe logboek, regel voor regel, dat de uitvoerder schreef, inclusief alles wat de blokken zelf logden, zoals de waarde van een **Log**-blok of de `console.log` van een script. Gebruik het als het tabblad Stappen de fout niet verklaart.
+Het ruwe logboek, regel voor regel, dat de uitvoerder schreef, inclusief alles wat de blokken zelf logden, zoals de waarde van een **Logboek**-blok of de `console.log` van een script. Gebruik het als het tabblad Stappen de fout niet verklaart.
 
 ## Een uitvoering kopiëren en downloaden
 
@@ -110,7 +110,7 @@ Een download bevat niets wat je niet al in de uitvoering kon lezen. Geheimen en 
 
 :::details Mijn workflow draaide niet
 1. Controleer of de workflow **Ingeschakeld** is: de schakelaar staat bovenaan de **Bouwer**, die boven het canvas zegt dat de workflow uit staat als dat zo is. Nieuwe workflows beginnen uitgeschakeld, en zolang een workflow uit staat, start zijn trigger hem niet: alleen **Workflow uitvoeren** en **Run just this step** doen dat, als testruns. Een webhook-aanroep ervan krijgt HTTP 400 met een melding die zegt hoe je hem inschakelt.
-2. Controleer bij een OneUptime-gebeurtenistrigger of de gebeurtenis echt plaatsvond: open het record en bekijk de geschiedenis ervan. Een **On Update**-trigger met **Fields to watch** gaat alleen af als een van die velden veranderde.
+2. Controleer bij een OneUptime-gebeurtenistrigger of de gebeurtenis echt plaatsvond: open het record en bekijk de geschiedenis ervan. Een **On Update**-trigger met **Velden om te volgen** gaat alleen af als een van die velden veranderde.
 3. Controleer bij een webhook-trigger of het andere systeem naar de juiste URL stuurt. De meeste tools loggen wanneer ze een webhook versturen — kijk daar.
 4. Controleer bij een schematrigger of de cron-expressie overeenkomt met de tijd die je verwacht. Schema's draaien in UTC.
 
@@ -121,7 +121,7 @@ Verschijnt de uitvoering wel, met de status **Uitvoering overschrijdt huidig abo
 Een blok dat niet draait, is meestal een aansluitprobleem. Open de **Bouwer** en controleer:
 
 - Is de uitgang van het eerdere blok aangesloten op de ingang van dit blok?
-- Nam het eerdere blok een andere uitgang dan je verwachtte — **Error** in plaats van **Success**, of **No** in plaats van **Yes**? Het tabblad **Stappen** zegt welke uitgang het nam en waar die naartoe leidde, of dat er niets op is aangesloten.
+- Nam het eerdere blok een andere uitgang dan je verwachtte — **Fout** in plaats van **Succes**, of **Nee** in plaats van **Ja**? Het tabblad **Stappen** zegt welke uitgang het nam en waar die naartoe leidde, of dat er niets op is aangesloten.
 :::
 
 :::details Een waarde kwam leeg binnen, of als {{…}}-tekst

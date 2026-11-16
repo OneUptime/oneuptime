@@ -1,4 +1,5 @@
 import { MicrosoftTeamsAlertActionType } from "./ActionTypes";
+import MicrosoftTeamsTimezone from "../MicrosoftTeamsTimezone";
 import ObjectID from "../../../../../Types/ObjectID";
 import AlertService from "../../../../Services/AlertService";
 import Alert from "../../../../../Models/DatabaseModels/Alert";
@@ -31,7 +32,7 @@ import FeedMarkdown, {
 export default class MicrosoftTeamsAlertActions {
   // What a change-state card says instead of opening with nothing to pick.
   public static readonly NO_STATES_MESSAGE: string =
-    "No alert states are available to you in this project. Ask a project admin for access to them.";
+    "No alert states are available to you in this project. Ask a Project Admin for access to them.";
 
   @CaptureSpan()
   public static isAlertAction(data: { actionType: string }): boolean {
@@ -205,7 +206,7 @@ export default class MicrosoftTeamsAlertActions {
 
       // The title and the state and severity names are plain text, escaped as MarkdownEscape says a title must be.
       const message: string =
-        mdText`**Alert Details**\n\n**Title:** ${alert.title}\n**Description:** ${FeedMarkdown.asChatMarkdown(alert.description || "No description")}\n**State:** ${alert.currentAlertState?.name || "Unknown"}\n**Severity:** ${alert.alertSeverity?.name || "Unknown"}\n**Created At:** ${alert.createdAt ? new Date(alert.createdAt).toLocaleString("en-US") : "Unknown"}`.toString();
+        mdText`**Alert Details**\n\n**Title:** ${alert.title}\n**Description:** ${FeedMarkdown.asChatMarkdown(alert.description || "No description")}\n**State:** ${alert.currentAlertState?.name || "Unknown"}\n**Severity:** ${alert.alertSeverity?.name || "Unknown"}\n**Created At:** ${alert.createdAt ? MicrosoftTeamsTimezone.formatForActivity(alert.createdAt, turnContext.activity) : "Unknown"}`.toString();
 
       await turnContext.sendActivity(message);
       return;
@@ -308,7 +309,7 @@ export default class MicrosoftTeamsAlertActions {
         );
       if (!card) {
         await turnContext.sendActivity(
-          "No on-call policies are available to you in this project yet. Add one in the OneUptime Dashboard under On-Call > On-Call Policies, or ask a project admin for access to one.",
+          "No on-call policies are available to you in this project yet. Add one in the OneUptime Dashboard under On-Call > On-Call Policies, or ask a Project Admin for access to one.",
         );
         return;
       }

@@ -32,7 +32,7 @@ En gruppe personer i et prosjekt, der tillatelsene avgjør hva medlemmene kan gj
 
 Se [Brukere, team og tillatelser](/docs/permissions/index).
 
-### Overvåking
+### Monitor
 
 Sjekker én ting du kjører, for eksempel et nettsted, et API, en server eller en Kubernetes-klynge, og avgjør om den virker. Når kriteriene treffer, endrer den status og kan erklære en hendelse eller opprette et varsel.
 
@@ -54,7 +54,7 @@ Se [Kriterier og statuser](/docs/monitor/criteria-and-statuses).
 
 En maskin som kjører monitorenes sjekker etter en tidsplan: den henter en side, kaller et API eller pinger en vert. OneUptime Cloud kjører sonder i flere regioner, og en egendefinert sonde du kjører i ditt eget nettverk, sjekker det bare det nettverket kan nå.
 
-Også kalt: **Egendefinerte probes**. Se [Egendefinerte probes](/docs/probe/custom-probe).
+Også kalt: **Egendefinerte sonder**. Se [Egendefinerte sonder](/docs/probe/custom-probe).
 
 ### Hendelse
 
@@ -78,7 +78,7 @@ Også kalt: **Hendelsesepisode**, **Varselsepisode**. Se [Episoder](/docs/incide
 
 Avgjør hvem som tilkalles om en hendelse, et varsel eller en episode, og hvem som er neste hvis ingen bekrefter. Nivåene er eskaleringsregler.
 
-Også kalt: **Vakttjeneste**, **On-Call Duty Policy**, **Vakt**, `OnCallDutyPolicy`. Se [Vaktretningslinjer](/docs/on-call/policies).
+Også kalt: **Vakttjeneste**, **On-Call Duty Policy**, **Vakt**, `OnCallDutyPolicy`. Se [Vaktpolicyer](/docs/on-call/policies).
 
 ### Eskaleringsregel
 
@@ -98,11 +98,11 @@ Også kalt: **Rotation**, **Vaktplan for vaktpolicy**. Se [Vaktplaner](/docs/on-
 
 Se [Vaktplaner](/docs/on-call/schedules#lag).
 
-### Varselmetode
+### Varslingsmetode
 
 En adresse OneUptime kan nå deg på i et prosjekt: en e-postadresse, et telefonnummer for SMS eller anrop, Slack- eller Microsoft Teams-kontoen din eller OneUptime-appen på telefonen din. Hver person legger til sine egne under **Brukerinnstillinger**.
 
-Se [Varselmetoder](/docs/notifications/notification-methods).
+Se [Varslingsmetoder](/docs/notifications/notification-methods).
 
 ### Slik når man meg
 
@@ -130,7 +130,7 @@ Også kalt: **Planlagt vedlikeholdshendelse**, **Planlagt hendelse**, **Hendelse
 
 ### Telemetri
 
-Det systemene dine sender til OneUptime: logger, metrikker, spor, unntak og profiler. Apper sender den med OpenTelemetry, og agentene til OneUptime sender den fra verter, klynger og annen infrastruktur, hver med en inntaksnøkkel.
+Det systemene dine sender til OneUptime: logger, målinger, spor, unntak og profiler. Apper sender den med OpenTelemetry, og agentene til OneUptime sender den fra verter, klynger og annen infrastruktur, hver med en inntaksnøkkel.
 
 Se [OpenTelemetry](/docs/telemetry/open-telemetry).
 
@@ -144,13 +144,13 @@ Se [Monitorgrupper](/docs/monitor/monitor-groups).
 
 ### Tjeneste
 
-En applikasjon eller mikrotjeneste du kjører. OneUptime legger den til første gang telemetrien dens kommer inn, navngitt etter `service.name`, og samler loggene, sporene, metrikkene, unntakene, hendelsene og eierne dens på én side.
+En applikasjon eller mikrotjeneste du kjører. OneUptime legger den til første gang telemetrien dens kommer inn, navngitt etter `service.name`, og samler loggene, sporene, målingene, unntakene, hendelsene og eierne dens på én side.
 
 Også kalt: **Tjenestekatalog**, **Telemetritjeneste**. Se [Tjenester](/docs/telemetry/services).
 
 ### Vert
 
-En Linux-, Windows- eller macOS-maskin som sender metrikkene, prosessene, loggene og tjenestetilstandene sine gjennom OpenTelemetry Collector. **Legg til vert** installerer innsamleren med én kommando, og OneUptime holder konfigurasjonen oppdatert.
+En Linux-, Windows- eller macOS-maskin som sender målingene, prosessene, loggene og tjenestetilstandene sine gjennom OpenTelemetry Collector. **Legg til vert** installerer innsamleren med én kommando, og OneUptime holder konfigurasjonen oppdatert.
 
 Se [Verter](/docs/telemetry/hosts).
 
@@ -170,11 +170,11 @@ Se [Verter](/docs/telemetry/hosts).
 
 Svitsjene, ruterne, brannmurene og tilgangspunktene dine, og alt annet med en adresse på nettverket ditt, enten det snakker SNMP eller ikke.
 
-Se [Nettverksenhets-overvåking](/docs/monitor/network-device-monitor).
+Se [Monitor for nettverksenhet](/docs/monitor/network-device-monitor).
 
 ### Sky
 
-AWS-kontoene, Azure-abonnementene og Google Cloud-prosjektene dine, koblet til fra dashbordet. OneUptime lister opp hver ressurs i dem, leser de viktigste metrikkene deres og registrerer hva som er endret i dem.
+AWS-kontoene, Azure-abonnementene og Google Cloud-prosjektene dine, koblet til fra dashbordet. OneUptime lister opp hver ressurs i dem, leser de viktigste målingene deres og registrerer hva som er endret i dem.
 
 Se [Koble til en skykonto](/docs/telemetry/cloud-accounts).
 
@@ -186,19 +186,19 @@ Også kalt: **Skymiljø**. Se [Skymiljøer](/docs/telemetry/cloud-environments).
 
 ### Serverløs
 
-De serverløse funksjonene dine, for eksempel AWS Lambda, Google Cloud Functions og Azure Functions, listet opp med spor, logger og metrikker så snart OpenTelemetry-dataene deres kommer inn.
+De serverløse funksjonene dine, for eksempel AWS Lambda, Google Cloud Functions og Azure Functions, listet opp med spor, logger og målinger så snart OpenTelemetry-dataene deres kommer inn.
 
 Også kalt: **Serverløse funksjoner**. Se [Serverløse funksjoner](/docs/telemetry/serverless-functions).
 
 ### Databaser
 
-Hver database applikasjonene dine spør mot, satt sammen fra sporene dine, databasens egne metrikker og de andre kildene OneUptime kan lese, og med hvordan motoren har det.
+Hver database applikasjonene dine spør mot, satt sammen fra sporene dine, databasens egne målinger og de andre kildene OneUptime kan lese, og med hvordan motoren har det.
 
 Se [Databaser](/docs/telemetry/databases).
 
 ### Køer
 
-Meldingskøene og emnene tjenestene dine bruker, for eksempel Apache Kafka, RabbitMQ og Amazon SQS, fra sporene dine og meglernes metrikker.
+Meldingskøene og emnene tjenestene dine bruker, for eksempel Apache Kafka, RabbitMQ og Amazon SQS, fra sporene dine og meglernes målinger.
 
 Se [Køer](/docs/telemetry/queues).
 
@@ -224,7 +224,7 @@ Se [Topologi](/docs/telemetry/topology).
 
 Et pålitelighetsmål for det du overvåker, for eksempel tilgjengelig 99,9 % av tiden over 30 dager. OneUptime måler hvert SLO mot monitorene sine hvert 5. minutt.
 
-Også kalt: **Service Level Objective**. Se [SLO-er – Oversikt](/docs/slo/introduction).
+Også kalt: **Tjenestenivåmål**. Se [SLO-er – Oversikt](/docs/slo/introduction).
 
 ### Feilbudsjett
 
@@ -266,7 +266,7 @@ Også kalt: **Unntakssporing**, `/telemetry-exception`. Se [Unntak](/docs/teleme
 
 ### KI-innsikt
 
-Problemer OneUptime finner i telemetrien din før noe tilkaller noen: nye unntak og unntak som skyter i været, topper i feillogger, tregere spor, metrikker som driver, og utrullinger som gjorde ting verre. Innsikt tilkaller aldri noen og åpner aldri hendelser; den venter i en innboks til noen ser på den. Siden **Innsikt** i AI-delen til et produkt eller en post er det OneUptime AI har lært der.
+Problemer OneUptime finner i telemetrien din før noe tilkaller noen: nye unntak og unntak som skyter i været, topper i feillogger, tregere spor, målinger som driver, og utrullinger som gjorde ting verre. Innsikt tilkaller aldri noen og åpner aldri hendelser; den venter i en innboks til noen ser på den. Siden **Innsikt** i AI-delen til et produkt eller en post er det OneUptime AI har lært der.
 
 Også kalt: **Innsikt**. Se [AI SRE](/docs/ai/ai-sre#innsikt-proaktiv-oppdagelse).
 
@@ -286,7 +286,7 @@ Også kalt: **Sak**. Se [Sikkerhetssaker og playbooks (SOAR)](/docs/telemetry/se
 
 ### Logger
 
-Linjene tjenestene, vertene og agentene dine skriver, som du søker gjennom i loggutforskeren og følger med på via en logg-overvåking.
+Linjene tjenestene, vertene og agentene dine skriver, som du søker gjennom i loggutforskeren og følger med på via en logg-monitor.
 
 Se [Loggutforsker](/docs/telemetry/logs-explorer).
 
@@ -294,7 +294,7 @@ Se [Loggutforsker](/docs/telemetry/logs-explorer).
 
 Tallene tjenestene og infrastrukturen din rapporterer over tid, for eksempel antall forespørsler, ventetid, CPU og kødybde.
 
-Se [Metrikkutforsker](/docs/telemetry/metrics-explorer).
+Se [Målingsutforsker](/docs/telemetry/metrics-explorer).
 
 ### Spor
 
@@ -328,7 +328,7 @@ Se [Oversikt over Datasikkerhet](/docs/data-security/index).
 
 ### Dashbord
 
-En side med widgets du ordner selv: diagrammer over metrikkene, loggene og sporene dine, lister over hendelser og monitorer, SLO-ene dine og mer. Et dashbord er privat for prosjektet ditt til du deler det.
+En side med widgets du ordner selv: diagrammer over målingene, loggene og sporene dine, lister over hendelser og monitorer, SLO-ene dine og mer. Et dashbord er privat for prosjektet ditt til du deler det.
 
 Se [Oversikt over dashbord](/docs/dashboards/index).
 
@@ -372,7 +372,7 @@ Også kalt: **AI SRE**. Se [AI SRE](/docs/ai/ai-sre).
 
 ### Spør AI
 
-En chat om dataene i prosjektet ditt. Den spør i loggene, sporene, metrikkene, hendelsene og monitorene dine og mer, og svarer med en kildehenvisning for hver påstand.
+En chat om dataene i prosjektet ditt. Den spør i loggene, sporene, målingene, hendelsene og monitorene dine og mer, og svarer med en kildehenvisning for hver påstand.
 
 Også kalt: **Chat**. Se [Spør AI](/docs/ai/ask-ai).
 
@@ -394,11 +394,11 @@ Se [Skjemaer – oversikt](/docs/forms/index).
 
 Tjenesten `oneuptime-infrastructure-agent` bak en Server / VM-monitor: den rapporterer én maskins CPU, minne, disker og prosesser hvert 30. sekund, signert med monitorens hemmelige nøkkel.
 
-Se [Server- / VM-overvåking](/docs/monitor/server-monitor).
+Se [Server- / VM-monitor](/docs/monitor/server-monitor).
 
 ### Kubernetes-agent
 
-Et Helm-chart som samler inn en klynges metrikker, hendelser og pod-logger og, med eBPF, sporene dens, og sender dem med en inntaksnøkkel.
+Et Helm-chart som samler inn en klynges målinger, hendelser og pod-logger og, med eBPF, sporene dens, og sender dem med en inntaksnøkkel.
 
 Se [Kubernetes-agent](/docs/telemetry/kubernetes-agent).
 
@@ -436,7 +436,7 @@ Se [Grunnbegreper](/docs/introduction/core-concepts#typer-regler).
 
 ### Rolle
 
-Fire forskjellige ting: tillatelsene et team gir, for eksempel Project Owner eller Project Admin; en **Egendefinert rolle** du setter sammen av tillatelser; en **Hendelsesrolle**, rollen noen har i én hendelse; og en **Network Device Role**, hva en enhet på nettverket ditt gjør.
+Fire forskjellige ting: tillatelsene et team gir, for eksempel Prosjekteier eller Prosjektadministrator; en **Egendefinert rolle** du setter sammen av tillatelser; en **Hendelsesrolle**, rollen noen har i én hendelse; og en **Network Device Role**, hva en enhet på nettverket ditt gjør.
 
 Se [Brukere, team og tillatelser](/docs/permissions/index).
 
@@ -452,11 +452,11 @@ Hvert nivå har sine egne: **Prosjektinnstillinger** for hele prosjektet, **Bruk
 
 Se [Prosjektinnstillinger](/docs/configuration/project-settings).
 
-### Retningslinje
+### Policy
 
 Oftest en **Vaktpolicy**: hvem som tilkalles, og hvem som er neste. En policy for innkommende anrop gir teamet ditt et telefonnummer som ringer den som har vakt, og en feilbudsjettpolicy skriver ned hva teamet ditt gjør når budsjettet til et SLO tar slutt.
 
-Se [Vaktretningslinjer](/docs/on-call/policies).
+Se [Vaktpolicyer](/docs/on-call/policies).
 
 ### Mal
 
@@ -482,11 +482,11 @@ Under **Hendelser** og **Varsler** velger vaktregler vaktpolicyene en ny hendels
 
 Se [Hendelsesinnstillinger og automatisering](/docs/incidents/settings#vaktregler-for-hendelser) og [Slik når man meg](/docs/notifications/on-call-rules).
 
-### Varselinnstillinger
+### Varslingsinnstillinger
 
-Under **Brukerinnstillinger**: hvilke oppdateringer du får om det du eier, og på hvilke kanaler. Prosjektets brytere for SMS og anrop, meldingssaldoen og prosjektets egen SMTP og Twilio het også varselinnstillinger: De heter nå **Varslingskanaler**, under **Prosjektinnstillinger**.
+Under **Brukerinnstillinger**: hvilke oppdateringer du får om det du eier, og på hvilke kanaler. Prosjektets brytere for SMS og anrop, meldingssaldoen og prosjektets egen SMTP og Twilio het også varslingsinnstillinger: De heter nå **Varslingskanaler**, under **Prosjektinnstillinger**.
 
-Se [Varselinnstillinger](/docs/notifications/notification-settings).
+Se [Varslingsinnstillinger](/docs/notifications/notification-settings).
 
 ## Neste steg
 

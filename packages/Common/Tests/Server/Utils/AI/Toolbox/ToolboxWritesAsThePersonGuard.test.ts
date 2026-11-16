@@ -261,7 +261,7 @@ function isReadMethod(receiver: string, method: string): boolean {
   return READ_METHOD.test(method) && !WRITE_IN_A_READ_NAME.test(method);
 }
 
-// `ctx.props`, or `{ ...ctx.props, writeSource: ... }`: the person's own props.
+// The person's props, as they are or saying only where the change came from.
 function isPersonProps(expression: ts.Expression): boolean {
   return (
     expression.getText() === PERSON_PROPS ||
@@ -269,10 +269,18 @@ function isPersonProps(expression: ts.Expression): boolean {
   );
 }
 
+/*
+ * Whether a write passes the person's props: as `props:` in its options
+ * object (`updateOneById({ ..., props: ctx.props })`), or as an argument of
+ * their own, which is how a service method that takes its props last
+ * receives them (`MonitorService.addOwners(projectId, monitorId, userIds,
+ * teamIds, notify, ctx.props)`, #8513). An options object's props decide
+ * when it has some: the person's props passed after it do not make someone
+ * else's theirs.
+ */
 function passesPersonProps(call: ts.CallExpression): boolean {
   const options: ts.Expression | undefined = call.arguments[0];
 
-  // An options object's props decide, when it has some.
   if (options && ts.isObjectLiteralExpression(options)) {
     const props: ts.PropertyAssignment | undefined = options.properties.find(
       (
@@ -290,10 +298,6 @@ function passesPersonProps(call: ts.CallExpression): boolean {
     }
   }
 
-  /*
-   * A method that takes its props in order (MonitorService.addOwners'
-   * last but one): the person's props, as an argument of their own.
-   */
   return call.arguments.some((argument: ts.Expression): boolean => {
     return isPersonProps(argument);
   });
@@ -826,35 +830,54 @@ describe("the scan's negative controls", () => {
     ).toEqual(["7", "8", "9", "10"]);
   });
 
-  test("D: takes the person's props passed in order, and no one else's", () => {
+  test("D: takes the person's props passed as an argument of their own, and nothing else there (#8513)", () => {
     const result: GuardResult = checkSnippet(
       'import MonitorService from "../../../Services/MonitorService";\n' +
-        SERVICE_IMPORT +
-        `export const OwnTool: ObservabilityTool = {
-  name: "own_monitor",
+        `export const SetUpTool: ObservabilityTool = {
+  name: "set_up_monitoring",
   isMutation: true,
   execute: async (args: JSONObject, ctx: ToolContext) => {
     await MonitorService.addOwners(ctx.projectId, args.id, [ctx.props.userId], [], false, ctx.props);
     await MonitorService.addOwners(ctx.projectId, args.id, [ctx.props.userId], [], false, { ...ctx.props, writeSource: WriteSource.AskAi });
     await MonitorService.addOwners(ctx.projectId, args.id, [ctx.props.userId], [], false, { isRoot: true });
     await MonitorService.addOwners(ctx.projectId, args.id, [ctx.props.userId], [], false, { ...ctx.props, isRoot: true });
+    await MonitorService.addOwners(ctx.projectId, args.id, [ctx.props.userId], [], false, rootProps);
     await MonitorService.addOwners(ctx.projectId, args.id, [ctx.props.userId], [], false);
+  },
+};
+`,
+    );
+
+    // Lines 6 and 7 pass the person's props; 8 to 11 pass someone else's, or none.
+    expect(
+      result.notAsThePerson.map((problem: string): string => {
+        return problem.split(":")[1] as string;
+      }),
+    ).toEqual(["8", "9", "10", "11"]);
+    // ctx.props.userId names the person; it is not their props.
+    expect(result.notAsThePerson[3]).toContain("MonitorService.addOwners");
+  });
+
+  test("D: an options object's props decide, whatever props follow it", () => {
+    const result: GuardResult = checkSnippet(
+      SERVICE_IMPORT +
+        `export const RenameTool: ObservabilityTool = {
+  name: "rename_incident",
+  isMutation: true,
+  execute: async (args: JSONObject, ctx: ToolContext) => {
+    await IncidentService.updateOneById({ id: args.id, data: { title: "x" }, props: ctx.props }, ctx.props);
     await IncidentService.updateOneById({ id: args.id, data: { title: "x" }, props: { isRoot: true } }, ctx.props);
   },
 };
 `,
     );
 
-    /*
-     * The first two (lines 7 and 8) are the person's. Then someone else's,
-     * the person's with more added, none (their user id is not their props),
-     * and an options object's someone else's beside the person's.
-     */
+    // Line 6's options carry the person's props; line 7's someone else's.
     expect(
       result.notAsThePerson.map((problem: string): string => {
         return problem.split(":")[1] as string;
       }),
-    ).toEqual(["9", "10", "11", "12"]);
+    ).toEqual(["7"]);
     expect(result.notAMutationTool).toEqual([]);
     expect(result.unseenCalls).toEqual([]);
   });

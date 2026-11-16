@@ -1064,7 +1064,7 @@ Beachten Sie, dass die Sitzungszeile mit ihrem Material abläuft: Fehlerzahlen, 
 
 ### Sitzungen löschen
 
-Um eine Löschanfrage zu erfüllen, stellen Sie über die OneUptime-API eine Löschanfrage — die Ressource `/rum-session-erasure-request`; ein Dashboard-Formular dafür gibt es noch nicht. Eine Anfrage braucht `CreateRumSessionErasureRequest` (oder einen Projekteigentümer / Admin) und nimmt:
+Um eine Löschanfrage zu erfüllen, stellen Sie über die OneUptime-API eine Löschanfrage — die Ressource `/rum-session-erasure-request`; ein Dashboard-Formular dafür gibt es noch nicht. Eine Anfrage braucht `CreateRumSessionErasureRequest` (oder einen Projektinhaber oder Projektadministrator) und nimmt:
 
 | Feld | Werte |
 | --- | --- |
@@ -1092,7 +1092,7 @@ Weil das Stempeln jeden Dienst erreicht, den eine Browser-Anfrage durchlaufen ha
 
 ## Wer eine Aufzeichnung ansehen kann
 
-Eine Aufzeichnung anzusehen ist eine eigene Berechtigung, getrennt vom Auflisten der Sitzungen, und keine von beiden gewährt die projektweite Viewer-Rolle. Projekteigentümer und -administratoren haben sie alle.
+Eine Aufzeichnung anzusehen ist eine eigene Berechtigung, getrennt vom Auflisten der Sitzungen, und keine von beiden gewährt die projektweite Betrachter-Rolle. Projektinhaber und Projektadministratoren haben sie alle.
 
 | Berechtigung | Erlaubt |
 | --- | --- |

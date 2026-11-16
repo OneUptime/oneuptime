@@ -54,6 +54,8 @@ export interface ComponentProps {
   stepTrace: WorkflowStepTrace;
   onClose: () => void;
   title?: string | undefined;
+  // The title is in the reader's words already, drawn as given (Modal's isTitleTranslated).
+  isTitleTranslated?: boolean | undefined;
   description?: string | undefined;
   /**
    * A line about the run itself — "Run running…", "Run finished successfully".
@@ -137,6 +139,7 @@ const WorkflowLogModal: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title={props.title || "Workflow Run"}
+      isTitleTranslated={Boolean(props.title) && props.isTitleTranslated}
       description={props.description}
       isLoading={false}
       modalWidth={ModalWidth.Large}

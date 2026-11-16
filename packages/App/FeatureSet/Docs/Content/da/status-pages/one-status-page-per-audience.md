@@ -110,7 +110,7 @@ På **Hændelser → Alle hændelser → Erklær hændelse** har trinnet **Berø
 Formularen advarer dig:
 
 - når en valgt side ikke viser nogen af hændelsens monitorer, eller der slet ikke er knyttet nogen monitor. Hændelsen vil ikke blive vist på den side eller give dens abonnenter besked;
-- når du også angiver **Skift overvågningsstatus til**, lige under monitorerne på samme trin. Se [Monitorstatus er delt](#monitorstatus-er-delt);
+- når du også angiver **Skift monitorstatus til**, lige under monitorerne på samme trin. Se [Monitorstatus er delt](#monitorstatus-er-delt);
 - når du også sætter kryds ved **Privat hændelse** under **Flere felter** på trinnet **Hændelsesdetaljer**. Private hændelser er skjult på alle statussider, også dem, du valgte.
 
 Trinnet **Detaljer**, lige efter **Berørte ressourcer**, spørger om de brugerdefinerede hændelsesfelter, der er markeret med **Vis ved oprettelse** (se [Opret en hændelse](/docs/incidents/declaring-incidents)). Svarene går til hver side, hændelsen når: værdier i brugerdefinerede felter hører til hændelsen, ikke til en statusside.
@@ -194,7 +194,7 @@ For i stedet at starte forfra, for eksempel efter at have rettet en skabelon ell
 
 Via API'et sender du `"miscDataProps": {"notifyAddedStatusPagesOfIncidentCreated": true}` med den opdatering, der ændrer `statusPages`. At sætte `subscriberNotificationStatusOnIncidentCreated` tilbage til `Pending` selv sender stadig notifikationen om "oprettet" igen til hver side, hændelsen når, som det altid har gjort: registreringen tømmes samtidig. Efter en fejl fortsætter den i stedet, hvor den mislykkede afsendelse stoppede. For også at sende den til hver side efter en fejl tilføjer du `"miscDataProps": {"resendIncidentCreatedToAllStatusPages": true}` til den opdatering. Den forespørgsel afvises for en notifikation, der blev sprunget over, eller som står i kø eller er ved at blive sendt.
 
-At skrive `shouldStatusPageSubscribersBeNotifiedOnIncidentCreated` er ikke et af disse tilfælde. Den vælges, når hændelsen erklæres, og ingen projektrolle kan ændre den via API'et bagefter. Et workflow, der skriver som systemet, og en instans' hovedadministrator kan, men det gemmer blot den nye værdi. At skrive den tilbage uændret, som et workflow, der kopierer hele hændelsen, gør, sender intet igen, og at slå den til senere sender ikke den notifikation om "oprettet", hændelsen blev erklæret uden. Slået fra, før den notifikation er sendt, springes den over.
+At skrive `shouldStatusPageSubscribersBeNotifiedOnIncidentCreated` er ikke et af disse tilfælde. Den vælges, når hændelsen erklæres, og ingen projektrolle kan ændre den via API'et bagefter. En arbejdsgang, der skriver som systemet, og en instans' hovedadministrator kan, men det gemmer blot den nye værdi. At skrive den tilbage uændret, som en arbejdsgang, der kopierer hele hændelsen, gør, sender intet igen, og at slå den til senere sender ikke den notifikation om "oprettet", hændelsen blev erklæret uden. Slået fra, før den notifikation er sendt, springes den over.
 
 ### Fjernelse af statussider
 
@@ -206,7 +206,7 @@ At tømme hele listen er noget andet end at fjerne sider: hændelsen er så slet
 
 At slette en statusside fjerner den fra hver hændelse, der var begrænset til den. En hændelse, hvis valgte sider alle er slettet, forbliver begrænset, til ingenting: den er skjult på hver statusside i stedet for at blive vist på hver side, der viser dens monitorer. Kortet **Statussideomfang** siger det. Vælg andre sider, eller tøm listen, for at vise den igen.
 
-Hændelsesskabeloner fungerer på samme måde. En skabelon, hvis sider alle er slettet, forbliver begrænset: en hændelse, som en [formular](/docs/forms/on-submit#hændelsesskabelonen) eller et workflows trin **Create One Incident** erklærer ud fra den, er skjult på hver statusside, skabelonens kort **Statussideomfang** advarer dig, og **Erklær hændelse** starter uden nogen valgt side og beder dig vælge de sider, hændelsen er til. Vælg andre sider på skabelonen, eller gem dens liste tom for at holde op med at begrænse de hændelser, der erklæres ud fra den.
+Hændelsesskabeloner fungerer på samme måde. En skabelon, hvis sider alle er slettet, forbliver begrænset: en hændelse, som en [formular](/docs/forms/on-submit#hændelsesskabelonen) eller en arbejdsgangs trin **Opret Hændelse (én post)** erklærer ud fra den, er skjult på hver statusside, skabelonens kort **Statussideomfang** advarer dig, og **Erklær hændelse** starter uden nogen valgt side og beder dig vælge de sider, hændelsen er til. Vælg andre sider på skabelonen, eller gem dens liste tom for at holde op med at begrænse de hændelser, der erklæres ud fra den.
 
 ## Én e-mail pr. person
 
@@ -236,9 +236,9 @@ Det forhindrer, at et forkert valg sætter en hændelse på en side om noget hel
 
 ## Monitorstatus er delt
 
-En monitor har én status, og hver statusside, der viser monitoren, viser den. At begrænse en hændelse ændrer ikke på det. Hvis hændelsen angiver **Skift overvågningsstatus til**, eller monitoren går ned af sig selv, bliver monitoren rød på hver side, der viser den, også sider, hændelsen ikke er begrænset til, og sider, der kun viser hændelser, der er begrænset til dem. Erklæringsformularen advarer dig, når du kombinerer en statusændring med valgte sider.
+En monitor har én status, og hver statusside, der viser monitoren, viser den. At begrænse en hændelse ændrer ikke på det. Hvis hændelsen angiver **Skift monitorstatus til**, eller monitoren går ned af sig selv, bliver monitoren rød på hver side, der viser den, også sider, hændelsen ikke er begrænset til, og sider, der kun viser hændelser, der er begrænset til dem. Erklæringsformularen advarer dig, når du kombinerer en statusændring med valgte sider.
 
-**Når hver lokation har brug for sin egen status, så giv hver lokation en manuel monitor.** Opret en [Manuel monitor](/docs/monitor/manual-monitor) pr. lokation, for eksempel `Site 03 network`, og vis den kun på den lokations side. Knyt de berørte lokationers manuelle monitorer til hændelsen, med **Skift overvågningsstatus til**, hvis du vil have deres status til at ændre sig, og lad den delte monitor være til de sider, der skal se den. Hændelsen når så præcis de lokationer, hvis monitorer den har, og en statusændring vises kun på deres sider.
+**Når hver lokation har brug for sin egen status, så giv hver lokation en manuel monitor.** Opret en [Manuel monitor](/docs/monitor/manual-monitor) pr. lokation, for eksempel `Site 03 network`, og vis den kun på den lokations side. Knyt de berørte lokationers manuelle monitorer til hændelsen, med **Skift monitorstatus til**, hvis du vil have deres status til at ændre sig, og lad den delte monitor være til de sider, der skal se den. Hændelsen når så præcis de lokationer, hvis monitorer den har, og en statusændring vises kun på deres sider.
 
 ## Hvad der registreres
 

@@ -274,11 +274,11 @@ describe("Security Events > Settings > Response Targets", () => {
 
     // A settings table has the room: "15 minutes", never the tile's "15 min".
     expect(drawElement(acknowledge!.getElement!(priority)).textContent).toBe(
-      "15 minutes",
+      "15\u00A0minutes",
     );
     cleanup();
     expect(drawElement(contain!.getElement!(priority)).textContent).toBe(
-      "4 hours",
+      "4\u00A0hours",
     );
     cleanup();
 
@@ -286,11 +286,11 @@ describe("Security Events > Settings > Response Targets", () => {
     longer.acknowledgeWithinInMinutes = 60;
     longer.containWithinInMinutes = 36 * 60;
     expect(drawElement(acknowledge!.getElement!(longer)).textContent).toBe(
-      "1 hour",
+      "1\u00A0hour",
     );
     cleanup();
     expect(drawElement(contain!.getElement!(longer)).textContent).toBe(
-      "1 day, 12 hours",
+      "1\u00A0day, 12\u00A0hours",
     );
     cleanup();
 
@@ -653,9 +653,9 @@ describe("a case's Evidence", () => {
         url: URL.fromString("https://example.com"),
       }),
     ).toBeNull();
-    expect(formatEvidenceSize(512)).toBe("512 B");
-    expect(formatEvidenceSize(1229)).toBe("1.2 KB");
-    expect(formatEvidenceSize(5 * 1024 * 1024)).toBe("5 MB");
+    expect(formatEvidenceSize(512)).toBe("512\u00A0B");
+    expect(formatEvidenceSize(1229)).toBe("1.2\u00A0KB");
+    expect(formatEvidenceSize(5 * 1024 * 1024)).toBe("5\u00A0MB");
     expect(formatEvidenceSize(undefined)).toBe("");
   });
 

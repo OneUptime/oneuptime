@@ -133,7 +133,7 @@ Ein Status sagt, wie viel Budget übrig ist, nicht, was Ihr Team dagegen tut. Um
 
 Wenn ein SLO **Gefährdet** oder **Budget ausgeschöpft** wird, benachrichtigt OneUptime seine Eigentümer:
 
-- Eigentümer sind die Benutzer und die Mitglieder der Teams auf der Seite **Eigentümer** des SLO, die noch Mitglieder des Projekts sind. Ein SLO ohne Eigentümer benachrichtigt stattdessen die Projekteigentümer.
+- Eigentümer sind die Benutzer und die Mitglieder der Teams auf der Seite **Eigentümer** des SLO, die noch Mitglieder des Projekts sind. Ein SLO ohne Eigentümer benachrichtigt stattdessen die Projektinhaber.
 - Jeder Eigentümer bekommt standardmäßig eine E-Mail und die Benachrichtigung auf jedem weiteren Kanal, den er für **SLO-Status geändert** unter **Benutzereinstellungen** → **Benachrichtigungseinstellungen** → **Überwachung** einschaltet.
 - Der Betreff der E-Mail nennt den Status und das SLO, zum Beispiel `[SLO At Risk] API Availability`.
 

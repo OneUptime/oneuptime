@@ -1,4 +1,4 @@
-# Trase-overvåking
+# Trase-monitor
 
 En trasemonitor teller innenfor et tidsvindu spans tjenestene dine sender til OneUptime som samsvarer med filtrene dine (span-navn, status, tjeneste, attributter). Når antallet oppfyller kriteriene dine, endrer den monitorens status, oppretter et varsel eller erklærer en hendelse. Bruk den til å bli varslet om mislykkede forespørsler til et endepunkt, en økning i feil-spans eller en tjeneste som har sluttet å sende traser.
 
@@ -40,7 +40,7 @@ Under **Monitortype** klikker du på **Flere monitortyper** og velger **Spor** u
 
 ### Velg hva monitoren skal fortelle deg om
 
-Under **Hva skal denne overvåkingen fortelle deg om?** velger du **For mange mislykkede forespørsler** eller **Forespørsler uteblir**. Hvert valg fyller ut spans du skal følge med på og regelen, som du kan endre lenger ned. Velg **Noe annet** for å sette dem opp selv.
+Under **Hva skal denne monitoren fortelle deg om?** velger du **For mange mislykkede forespørsler** eller **Forespørsler uteblir**. Hvert valg fyller ut spans du skal følge med på og regelen, som du kan endre lenger ned. Velg **Noe annet** for å sette dem opp selv.
 
 ### Velg spans som skal telles
 
@@ -116,7 +116,7 @@ Kriteriene til en trasemonitor har én **Filtertype**: **Antall spans**, antalle
 
 Avviksvilkårene har ingen **Verdi**. Velg en **Følsomhet** (Lav, Middels, som er standard, eller Høy) og, i de egne kriteriene, et **Grunnlinjevindu** på 14 (standard), 28, 60 eller 90 dager. OneUptime gjør antallet om til en rate per minutt og sammenligner den med vinduer av samme lengde rundt samme tidspunkt i tidligere uker, så langt tilbake som **Grunnlinjevindu** rekker; det som skjer nå, er aldri del av sammenligningen. Grunnlinjen dekker bare monitorens tjenester og span-statuser: filtrene på span-navn og attributter inngår ikke. Minutter uten spans teller også, så en tjeneste som ofte er stille, regnes ikke som uvanlig lav fordi den er stille. Et vindu regnes bare som uvanlig høyt mot vinduene som hadde spans, og bare med minst 20, 10 eller 5 spans ved følsomheten Lav, Middels eller Høy, så verken en jobbs vanlige utbrudd eller de første spansene fra en stille tjeneste utløser det. Inntil monitorens tjenester har to ukers historikk, lærer kriteriet fortsatt og utløses ikke.
 
-En trasemonitor som er opprettet i Opprett monitor, starter med regelen for det du valgte under **Hva skal denne overvåkingen fortelle deg om?**:
+En trasemonitor som er opprettet i Opprett monitor, starter med regelen for det du valgte under **Hva skal denne monitoren fortelle deg om?**:
 
 | Valg | Regel | Hva som skjer |
 | --- | --- | --- |
@@ -172,8 +172,8 @@ Det lærer fortsatt: monitorens tjenester har ikke to ukers historikk ennå inne
 ## Neste steg
 
 :::cards
-- [Unntak-overvåking](/docs/monitor/exceptions-monitor): Bli varslet om unntakene tjenestene dine registrerer.
-- [Logg-overvåking](/docs/monitor/logs-monitor): Bli varslet om loggmengde og -innhold.
+- [Unntak-monitor](/docs/monitor/exceptions-monitor): Bli varslet om unntakene tjenestene dine registrerer.
+- [Logg-monitor](/docs/monitor/logs-monitor): Bli varslet om loggmengde og -innhold.
 - [Søkesyntaks](/docs/telemetry/search-syntax): Finn span-navn og -statuser i trase-utforskeren.
 - [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating): Skriv nyttige titler og beskrivelser for varsler.
 :::

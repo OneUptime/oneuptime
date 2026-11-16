@@ -1,6 +1,6 @@
 # OpenTelemetry
 
-OneUptime acquisisce log, metriche e tracce tramite l'OpenTelemetry Protocol (OTLP). Punta qualsiasi SDK OpenTelemetry, o un OpenTelemetry Collector, verso OneUptime con una chiave di acquisizione, e i tuoi dati compaiono in **Registri**, **Tracce**, **Metriche** ed **Eccezioni**. Questa pagina fa inviare dati a un servizio in pochi minuti, poi descrive gli endpoint, i limiti e gli errori che ti servono in produzione.
+OneUptime acquisisce log, metriche e tracce tramite l'OpenTelemetry Protocol (OTLP). Punta qualsiasi SDK OpenTelemetry, o un OpenTelemetry Collector, verso OneUptime con una chiave di acquisizione, e i tuoi dati compaiono in **Log**, **Tracce**, **Metriche** ed **Eccezioni**. Questa pagina fa inviare dati a un servizio in pochi minuti, poi descrive gli endpoint, i limiti e gli errori che ti servono in produzione.
 
 :::cards
 - [Avvio rapido](#avvio-rapido): Crea una chiave, imposta quattro variabili d'ambiente e aggiungi l'SDK.
@@ -23,7 +23,7 @@ flowchart TB
     sdk -->|"OTLP"| collector
     sdk -->|"OTLP + chiave di acquisizione"| ingest["Acquisizione OneUptime"]
     collector -->|"OTLP + chiave di acquisizione"| ingest
-    ingest --> logs["Registri"]
+    ingest --> logs["Log"]
     ingest --> traces["Tracce"]
     ingest --> metrics["Metriche"]
     logs --> exceptions["Eccezioni"]
@@ -36,7 +36,7 @@ flowchart TB
 
 ## Prima di iniziare
 
-- Un progetto OneUptime in cui puoi creare chiavi di acquisizione: possono farlo i proprietari e gli amministratori del progetto, e chiunque abbia il permesso Create Ingestion Key.
+- Un progetto OneUptime in cui puoi creare chiavi di acquisizione: possono farlo i Proprietari del progetto e gli Amministratori del progetto, e chiunque abbia il permesso Create Ingestion Key.
 - Un'applicazione a cui puoi aggiungere un SDK OpenTelemetry, oppure un OpenTelemetry Collector.
 - HTTPS in uscita (porta 443) dalla tua applicazione o dal collector verso `oneuptime.com`, o verso il tuo host OneUptime.
 
@@ -246,7 +246,7 @@ curl -i -H "x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY" \
 
 Una chiave valida restituisce `200` con `"valid": true`. Qualsiasi altra cosa restituisce `401` con un messaggio che dice cosa non va: sconosciuta, disattivata o scaduta.
 
-Poi avvia la tua app e usala per un minuto. Apri **Prodotti → Servizi**: il tuo servizio è elencato con il nome impostato in `OTEL_SERVICE_NAME`, con i suoi log, tracce, metriche ed eccezioni. **Prodotti → Registri**, **Prodotti → Tracce** e **Prodotti → Metriche** mostrano gli stessi dati per tutti i servizi.
+Poi avvia la tua app e usala per un minuto. Apri **Prodotti → Servizi**: il tuo servizio è elencato con il nome impostato in `OTEL_SERVICE_NAME`, con i suoi log, tracce, metriche ed eccezioni. **Prodotti → Log**, **Prodotti → Tracce** e **Prodotti → Metriche** mostrano gli stessi dati per tutti i servizi.
 :::
 
 :::details Inviare un log di prova senza SDK
@@ -273,7 +273,7 @@ curl -i https://oneuptime.com/otlp/v1/logs \
   }'
 ```
 
-Un `200` significa che il log è stato accettato. Compare in **Prodotti → Registri** entro pochi secondi, nel servizio `my-service`.
+Un `200` significa che il log è stato accettato. Compare in **Prodotti → Log** entro pochi secondi, nel servizio `my-service`.
 :::
 
 ## Inviare tramite un OpenTelemetry Collector
@@ -410,7 +410,7 @@ La pagina di ogni chiave, in **Impostazioni del progetto → Telemetria e APM �
 | **Abilitato** | Disattivalo per smettere subito di accettare i dati inviati con la chiave, senza eliminarla. |
 | **Scade il** | Dopo questa data la chiave viene rifiutata. Vuoto significa che non scade mai. |
 | **Requests Per Minute Limit** | Il numero massimo di richieste OTLP/HTTP al minuto accettate con la chiave, considerando tutti i client che la usano. Vuoto significa nessun limite su una chiave Server e 6.000 su una chiave Browser. |
-| **Last Used At** | Quando sono stati accettati per l'ultima volta dei dati con la chiave. Usalo per trovare le chiavi che puoi ruotare o eliminare senza rischi. |
+| **Ultimo utilizzo il** | Quando sono stati accettati per l'ultima volta dei dati con la chiave. Usalo per trovare le chiavi che puoi ruotare o eliminare senza rischi. |
 
 **Reimposta la chiave segreta** nella pagina della chiave sostituisce il segreto. Ogni applicazione e ogni collector che invia con quello vecchio viene rifiutato finché non lo aggiorni. Per le chiavi del browser, come ruotare una chiave in sicurezza e cosa significa ogni rifiuto, vedi [Chiavi di acquisizione](/docs/telemetry/ingestion-keys).
 
@@ -424,13 +424,13 @@ Tutto ciò che è in questa pagina funziona allo stesso modo con la tua installa
 
 ## Eccezioni dai log
 
-OneUptime trova le eccezioni nei tuoi **registri** e le riunisce nella stessa vista **Eccezioni** alimentata dagli errori delle tracce. Ogni log appartiene già a un servizio o a un host, quindi l'eccezione viene attribuita a esso. Le eccezioni dei log e delle tracce condividono il raggruppamento per impronta, così un errore segnalato sia da una traccia sia da un log diventa un unico problema.
+OneUptime trova le eccezioni nei tuoi **log** e le riunisce nella stessa vista **Eccezioni** alimentata dagli errori delle tracce. Ogni log appartiene già a un servizio o a un host, quindi l'eccezione viene attribuita a esso. Le eccezioni dei log e delle tracce condividono il raggruppamento per impronta, così un errore segnalato sia da una traccia sia da un log diventa un unico problema.
 
 Un log diventa un'eccezione in due modi:
 
 | Rilevamento | Log a cui si applica | Come funziona |
 | --- | --- | --- |
-| **Attributi di eccezione** (consigliato) | Qualsiasi log | Un record di log con l'attributo OpenTelemetry `exception.type`, `exception.message` o `exception.stacktrace` diventa direttamente un'eccezione. La maggior parte delle integrazioni di logging li imposta quando registri un'eccezione: gli appender di Logback e Log4j, Serilog, la strumentazione del logging di Python. È preciso e funziona in ogni linguaggio. |
+| **Attributi di eccezione** (consigliato) | Qualsiasi log | Un record di log con l'attributo OpenTelemetry `exception.type`, `exception.message` o `exception.stacktrace` diventa direttamente un'eccezione. La maggior parte delle integrazioni di logging li imposta quando log un'eccezione: gli appender di Logback e Log4j, Serilog, la strumentazione del logging di Python. È preciso e funziona in ogni linguaggio. |
 | **Stack trace nel corpo** | Log di errore e fatali che non hanno un ID di traccia e un ID di span | OneUptime analizza i primi 16 KB del corpo cercando uno stack trace JavaScript, Python, Java, Go, Ruby, C#/.NET o PHP, e ne ricava tipo, messaggio e frame. Un log scritto all'interno di uno span viene saltato, perché è lo span stesso a segnalare l'eccezione. |
 
 L'analisi del corpo è adatta ai log in testo semplice come stdout grezzo, journald o syslog letti da un collector. Uno stack trace su più righe deve arrivare come un unico record di log, quindi attiva la ricomposizione multiriga nel collector: vedi la guida [Host OpenTelemetry Collector](/docs/telemetry/host-otel-collector).

@@ -1,6 +1,6 @@
 # Eksport af auditlog
 
-Send auditloggen, efterhånden som den registreres, til lager eller en tjeneste efter eget valg: Amazon S3 eller S3-kompatibelt lager, Google Cloud Storage, Azure Blob Storage, en webhook eller syslog. Gem posterne der, så længe dine compliance-gennemgange kræver det, og søg i dem i dit SIEM. Et projekts ejere og administratorer eksporterer dets auditlog fra projektindstillingerne, og master-admins eksporterer alle projekters fra Admin Dashboard. Den er en del af Enterprise-planen i OneUptime Cloud og af Enterprise Edition, når du selv hoster.
+Send auditloggen, efterhånden som den registreres, til lager eller en tjeneste efter eget valg: Amazon S3 eller S3-kompatibelt lager, Google Cloud Storage, Azure Blob Storage, en webhook eller syslog. Gem posterne der, så længe dine compliance-gennemgange kræver det, og søg i dem i dit SIEM. Projektejere og Projektadministratorer eksporterer et projekts auditlog fra projektindstillingerne, og master-admins eksporterer alle projekters fra Admin Dashboard. Den er en del af Enterprise-planen i OneUptime Cloud og af Enterprise Edition, når du selv hoster.
 
 :::cards
 - [Opsæt en eksport](#opsæt-en-eksport): Vælg en destination, test den, gem den.
@@ -146,7 +146,7 @@ Hver post er ét JSON-objekt, med nøglerne altid i denne rækkefølge:
 | `userId`, `userName`, `userEmail`, `userType` | Hvem der foretog ændringen. |
 | `apiKeyId`, `apiKeyName` | Den API-nøgle, den blev foretaget med, hvis nogen. |
 | `mcpOAuthGrantId`, `mcpClientName` | Den MCP-klient, den blev foretaget gennem, hvis nogen. |
-| `workflowId`, `workflowName` | Det workflow, der foretog den, hvis nogen. |
+| `workflowId`, `workflowName` | Den arbejdsgang, der foretog den, hvis nogen. |
 | `changes` | Hvert ændret felt: `field`, med `oldValue` og `newValue`, og i version 2 `summary`. |
 
 En fil rummer én post pr. linje, komprimeret med gzip, og arkiveres under timen for dens første post: `oneuptime/audit-logs/2026/10/24/09/20261024T091503Z_<first entry id>.ndjson.gz`.
@@ -159,8 +159,8 @@ Nøgler, tokens og adgangskoder forlader aldrig OneUptime: De registreres som `[
 
 | Version | Hvad den sender |
 | --- | --- |
-| `2` | Hver ændring har også `summary`: hvad der ændrede sig, i de linjer auditloggen viser, for eksempel `Added "Send Email" (send-email-1)` for et workflows trin eller stien, der ændrede sig i JSON, ellers `null`. Linjerne nævner indstillinger og stier, aldrig værdier. |
-| `1` | Posten, som den først blev sendt, uden `summary`. Et workflows trin sendes som deres størrelse før og efter, for eksempel `3 steps and 2 connections`. |
+| `2` | Hver ændring har også `summary`: hvad der ændrede sig, i de linjer auditloggen viser, for eksempel `Added "Send Email" (send-email-1)` for en arbejdsgangs trin eller stien, der ændrede sig i JSON, ellers `null`. Linjerne nævner indstillinger og stier, aldrig værdier. |
+| `1` | Posten, som den først blev sendt, uden `summary`. En arbejdsgangs trin sendes som deres størrelse før og efter, for eksempel `3 steps and 2 connections`. |
 
 En ny eksport sender version 2. En eksport, der blev gemt før version 2, bliver ved med at sende version 1, så det, der læser den, behøver ingen ændring: Når det er klar til `summary`, så klik på **Rediger** ved eksporten, og vælg version 2 i **Postversion** under **Flere felter**. Versionen gælder for de poster, der sendes fra da af, og hver post angiver sin egen i `schemaVersion`.
 
@@ -177,7 +177,7 @@ En batch forsøges tre gange med få sekunders mellemrum, og derefter venter eks
 
 Intet springes over: Posterne venter i auditloggen, og den næste levering, der lykkes, indhenter fra den ældste. Hver post slettes dog, når den er ældre end den opbevaring, den blev registreret med, sendt eller ej, så ret en eksport, der fejler, inden for den tid. En længere opbevaring gælder kun de poster, der registreres, efter at du ændrer den.
 
-En eksport, der fejler, sender en e-mail til dem, der kan rette den: projektets ejere for et projekts eksport og alle master-admins for instansens. Den første e-mail kommer efter 30 minutters fejl med det, destinationen svarede. Den anden kommer en dag før den første af de poster, som eksporten ikke har sendt, slettes, med hvornår poster begynder at gå tabt. Er det tidspunkt allerede passeret, som når **Eksportér fra** går længere tilbage end opbevaringen, kommer den anden e-mail i stedet for den første efter 30 minutter og siger, at poster går tabt nu. Hver sendes én gang, mens fejlene står på, og en levering, der lykkes, nulstiller begge.
+En eksport, der fejler, sender en e-mail til dem, der kan rette den: Projektejere for et projekts eksport og alle master-admins for instansens. Den første e-mail kommer efter 30 minutters fejl med det, destinationen svarede. Den anden kommer en dag før den første af de poster, som eksporten ikke har sendt, slettes, med hvornår poster begynder at gå tabt. Er det tidspunkt allerede passeret, som når **Eksportér fra** går længere tilbage end opbevaringen, kommer den anden e-mail i stedet for den første efter 30 minutter og siger, at poster går tabt nu. Hver sendes én gang, mens fejlene står på, og en levering, der lykkes, nulstiller begge.
 
 Vælg **Slå fra** i menuen på dens række for at sætte en eksport på pause: Den beholder sin plads, og **Slå til** sender, hvad der blev registreret i mellemtiden. I OneUptime Cloud holder et projekt, der forlader Enterprise-planen, op med at eksportere, og dets eksporter venter under opgraderingskortet, hvor de kan slås fra eller slettes. Når du selv hoster, stopper eksporten, så længe licensen ikke omfatter auditlogs, og fortsætter, hvor den slap, så snart en licens gør.
 

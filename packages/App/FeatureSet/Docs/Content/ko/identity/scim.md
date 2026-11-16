@@ -52,12 +52,12 @@ SCIM과 [SSO](/docs/identity/sso)는 서로 독립적입니다. SCIM은 프로�
 
    - **이름**을 입력합니다. **기본 팀**은 프로젝트의 멤버 팀으로 시작하며, 새 사용자는 이 팀에 추가됩니다
    - **추가 필드**에서는 **사용자 자동 프로비저닝**(IdP에서 할당되면 사용자 추가)과 **사용자 자동 프로비저닝 해제**(IdP에서 할당이 해제되면 사용자 제거)가 켜져 있고, **푸시 그룹 활성화**는 꺼져 있습니다. 필요하면 그곳에서 변경하세요
-   - 저장합니다. IdP 구성에 사용할 **SCIM Base URL**과 **Bearer Token**이 있는 대화 상자가 바로 열립니다
+   - 저장합니다. IdP 구성에 사용할 **SCIM 기본 URL**과 **Bearer 토큰**이 있는 대화 상자가 바로 열립니다
 
 3. **ID 공급자 구성**
 
-   - 대화 상자의 **SCIM Base URL**을 사용합니다. OneUptime Cloud에서는 `https://oneuptime.com/identity/scim/v2/<scim-id>`이며, 자체 호스팅 설치에서는 해당 설치의 호스트가 표시됩니다
-   - 대화 상자의 **Bearer Token**으로 Bearer 토큰 인증을 구성합니다. ID 공급자가 대신 OAuth 2.0 클라이언트 자격 증명을 요구한다면 같은 대화 상자의 [OAuth 2.0 클라이언트 자격 증명](#oauth-20-클라이언트-자격-증명)을 사용하세요
+   - 대화 상자의 **SCIM 기본 URL**을 사용합니다. OneUptime Cloud에서는 `https://oneuptime.com/identity/scim/v2/<scim-id>`이며, 자체 호스팅 설치에서는 해당 설치의 호스트가 표시됩니다
+   - 대화 상자의 **Bearer 토큰**으로 Bearer 토큰 인증을 구성합니다. ID 공급자가 대신 OAuth 2.0 클라이언트 자격 증명을 요구한다면 같은 대화 상자의 [OAuth 2.0 클라이언트 자격 증명](#oauth-20-클라이언트-자격-증명)을 사용하세요
    - 사용자 특성을 매핑합니다(이메일은 필수). Microsoft Entra ID와 Okta에 대한 자세한 내용은 [ID 공급자 연결](#id-공급자-연결)에 있습니다
 :::
 
@@ -80,15 +80,15 @@ sequenceDiagram
 
 ### OAuth 2.0 클라이언트 자격 증명
 
-일부 ID 공급자는 Bearer 토큰을 보관하지 않고 대신 OAuth 2.0 클라이언트 자격 증명을 요구합니다. 프로젝트의 연결이든 상태 페이지의 연결이든 모든 연결은 **SCIM Base URL**과 같은 대화 상자의 **OAuth 2.0 Client Credentials** 아래에 이 자격 증명이 있습니다.
+일부 ID 공급자는 Bearer 토큰을 보관하지 않고 대신 OAuth 2.0 클라이언트 자격 증명을 요구합니다. 프로젝트의 연결이든 상태 페이지의 연결이든 모든 연결은 **SCIM 기본 URL**과 같은 대화 상자의 **OAuth 2.0 클라이언트 자격 증명** 아래에 이 자격 증명이 있습니다.
 
-- **Token Endpoint**: ID 공급자가 액세스 토큰을 받는 곳입니다. 모든 연결에서 같으며, OneUptime Cloud에서는 `https://oneuptime.com/identity/scim/oauth/token`입니다.
-- **Client ID**: 연결의 ID입니다.
-- **Client Secret**: **Make Client Secret**을 클릭하고 시크릿을 바로 복사하세요. OneUptime은 시크릿의 해시만 보관하므로 다시 보여 줄 수 없습니다. 시크릿은 1년 동안 유효합니다.
+- **토큰 엔드포인트**: ID 공급자가 액세스 토큰을 받는 곳입니다. 모든 연결에서 같으며, OneUptime Cloud에서는 `https://oneuptime.com/identity/scim/oauth/token`입니다.
+- **클라이언트 ID**: 연결의 ID입니다.
+- **클라이언트 시크릿**: **클라이언트 시크릿 만들기**를 클릭하고 시크릿을 바로 복사하세요. OneUptime은 시크릿의 해시만 보관하므로 다시 보여 줄 수 없습니다. 시크릿은 1년 동안 유효합니다.
 
 ID 공급자는 클라이언트 ID와 시크릿을 토큰 엔드포인트로 보내고, 1시간 동안 유효한 액세스 토큰을 받습니다. 연결의 Bearer 토큰도 함께 계속 작동합니다.
 
-시크릿을 교체하려면 **Make New Client Secret**을 클릭합니다. 이전 시크릿은 만료되거나 **Delete Previous Secret**을 클릭할 때까지 계속 작동하므로, 프로비저닝을 끊지 않고 ID 공급자에 새 시크릿을 넣을 수 있습니다. ID 공급자가 새 시크릿을 쓰기 시작하면 이전 시크릿을 삭제하세요. 시크릿이 만료되거나 삭제되면 그 시크릿으로 발급된 액세스 토큰도 즉시 더 이상 작동하지 않습니다. 연결의 시크릿을 만들고 삭제할 수 있는 사람은 그 연결의 Bearer 토큰을 변경할 수 있는 사람입니다. 프로젝트에서는 프로젝트 소유자, 상태 페이지에서는 그 상태 페이지의 SSO를 편집할 수 있는 사람입니다.
+시크릿을 교체하려면 **새 클라이언트 시크릿 만들기**를 클릭합니다. 이전 시크릿은 만료되거나 **이전 시크릿 삭제**를 클릭할 때까지 계속 작동하므로, 프로비저닝을 끊지 않고 ID 공급자에 새 시크릿을 넣을 수 있습니다. ID 공급자가 새 시크릿을 쓰기 시작하면 이전 시크릿을 삭제하세요. 시크릿이 만료되거나 삭제되면 그 시크릿으로 발급된 액세스 토큰도 즉시 더 이상 작동하지 않습니다. 연결의 시크릿을 만들고 삭제할 수 있는 사람은 그 연결의 Bearer 토큰을 변경할 수 있는 사람입니다. 프로젝트에서는 프로젝트 소유자, 상태 페이지에서는 그 상태 페이지의 SSO를 편집할 수 있는 사람입니다.
 
 ## 상태 페이지용 SCIM
 
@@ -105,11 +105,11 @@ ID 공급자는 클라이언트 ID와 시크릿을 토큰 엔드포인트로 보
 2. **SCIM 설정 구성**
 
    - **이름**을 입력합니다. **추가 필드**에서는 **사용자 자동 프로비저닝**(IdP에서 할당되면 비공개 사용자 추가)과 **사용자 자동 프로비저닝 해제**(IdP에서 할당이 해제되면 비공개 사용자 삭제)가 켜져 있습니다. 필요하면 그곳에서 변경하세요
-   - 저장합니다. IdP 구성에 사용할 **SCIM Base URL**과 **Bearer Token**이 있는 대화 상자가 바로 열립니다
+   - 저장합니다. IdP 구성에 사용할 **SCIM 기본 URL**과 **Bearer 토큰**이 있는 대화 상자가 바로 열립니다
 
 3. **ID 공급자 구성**
 
-   - 대화 상자의 **SCIM Base URL**을 사용합니다. OneUptime Cloud에서는 `https://oneuptime.com/identity/status-page-scim/v2/<scim-id>`입니다
+   - 대화 상자의 **SCIM 기본 URL**을 사용합니다. OneUptime Cloud에서는 `https://oneuptime.com/identity/status-page-scim/v2/<scim-id>`입니다
    - 표시된 토큰으로 Bearer 토큰 인증을 구성하거나, 같은 대화 상자의 [OAuth 2.0 클라이언트 자격 증명](#oauth-20-클라이언트-자격-증명)을 사용합니다
    - 사용자 특성을 매핑합니다(이메일은 필수)
 :::
@@ -159,7 +159,7 @@ Microsoft Entra 애플리케이션 갤러리의 OneUptime 앱은 SSO(Single Sign
    - **사용자 자동 프로비저닝**과 **사용자 자동 프로비저닝 해제**: 켜져 있으며, **추가 필드** 안에 있습니다
    - **푸시 그룹 활성화**: **추가 필드** 안에 있습니다. Entra ID 그룹으로 팀 멤버 구성을 관리하려면 켜세요
 6. 구성을 저장합니다
-7. 열리는 대화 상자에서 **SCIM Base URL**과 **Bearer Token**을 복사합니다. Entra ID에서 필요합니다
+7. 열리는 대화 상자에서 **SCIM 기본 URL**과 **Bearer 토큰**을 복사합니다. Entra ID에서 필요합니다
 
 #### Entra ID에서 엔터프라이즈 애플리케이션 만들기
 
@@ -173,7 +173,7 @@ Microsoft Entra 애플리케이션 갤러리의 OneUptime 앱은 SSO(Single Sign
 
 1. OneUptime 엔터프라이즈 애플리케이션에서 **Provisioning**으로 이동하여 **Get started**를 클릭합니다
 2. **Provisioning Mode**를 **Automatic**으로 설정합니다
-3. **Admin Credentials**에서 **Tenant URL**을 OneUptime의 **SCIM Base URL**(예: `https://oneuptime.com/identity/scim/v2/<scim-id>`)로, **Secret Token**을 **Bearer Token**으로 설정합니다
+3. **Admin Credentials**에서 **Tenant URL**을 OneUptime의 **SCIM 기본 URL**(예: `https://oneuptime.com/identity/scim/v2/<scim-id>`)로, **Secret Token**을 **Bearer 토큰**으로 설정합니다
 4. **Test Connection**을 클릭하여 구성을 확인한 다음 **Save**를 클릭합니다
 
 #### Entra ID에서 사용자 특성 매핑
@@ -237,7 +237,7 @@ OneUptime Cloud에서는 Okta Integration Network에 OneUptime이 있으면 그�
    - **사용자 자동 프로비저닝**과 **사용자 자동 프로비저닝 해제**: 켜져 있으며, **추가 필드** 안에 있습니다
    - **푸시 그룹 활성화**: **추가 필드** 안에 있습니다. Okta 그룹으로 팀 멤버 구성을 관리하려면 켜세요
 6. 구성을 저장합니다
-7. 열리는 대화 상자에서 **SCIM Base URL**과 **Bearer Token**을 복사합니다. Okta에서 필요합니다
+7. 열리는 대화 상자에서 **SCIM 기본 URL**과 **Bearer 토큰**을 복사합니다. Okta에서 필요합니다
 
 #### Okta 애플리케이션 만들기 또는 열기
 
@@ -249,18 +249,18 @@ Okta Admin Console에서 **Applications** > **Applications**로 이동합니다.
 #### Okta에서 SCIM 프로비저닝 켜기
 
 1. OneUptime 애플리케이션의 **General** 탭으로 이동합니다
-2. **App Settings** 섹션에서 **Edit**를 클릭합니다. Okta Integration Network에서 추가한 애플리케이션이라면 **OneUptime SCIM Connection ID**를 **SCIM Base URL**의 마지막 부분인 `<scim-id>`로 설정합니다. 직접 만든 애플리케이션이라면 **Provisioning**에서 **SCIM**을 선택합니다. **Save**를 클릭합니다
+2. **App Settings** 섹션에서 **Edit**를 클릭합니다. Okta Integration Network에서 추가한 애플리케이션이라면 **OneUptime SCIM Connection ID**를 **SCIM 기본 URL**의 마지막 부분인 `<scim-id>`로 설정합니다. 직접 만든 애플리케이션이라면 **Provisioning**에서 **SCIM**을 선택합니다. **Save**를 클릭합니다
 3. 이제 애플리케이션에 **Provisioning** 탭이 있습니다
 
 #### Okta를 OneUptime에 연결
 
 1. **Provisioning** 탭에서 **Integration**을 클릭한 다음 **Configure API Integration**을 클릭하고 **Enable API integration**을 선택합니다
-2. Okta Integration Network에서 추가한 애플리케이션이라면 OneUptime의 **Bearer Token**을 **API Token**으로 입력합니다. 직접 만든 애플리케이션이라면 다음을 구성합니다.
-   - **SCIM connector base URL**: OneUptime의 **SCIM Base URL**(예: `https://oneuptime.com/identity/scim/v2/<scim-id>`)
+2. Okta Integration Network에서 추가한 애플리케이션이라면 OneUptime의 **Bearer 토큰**을 **API Token**으로 입력합니다. 직접 만든 애플리케이션이라면 다음을 구성합니다.
+   - **SCIM connector base URL**: OneUptime의 **SCIM 기본 URL**(예: `https://oneuptime.com/identity/scim/v2/<scim-id>`)
    - **Unique identifier field for users**: `userName`
    - **Supported provisioning actions**: Import New Users and Profile Updates, Push New Users, Push Profile Updates, 그리고 그룹 기반 프로비저닝을 사용한다면 Push Groups
    - **Authentication Mode**: **HTTP Header**
-   - **Authorization**: OneUptime의 **Bearer Token**. OneUptime은 `Authorization: Bearer <token>` 헤더를 기대합니다. Okta가 필드 앞에 이미 Bearer라는 단어를 표시한다면 토큰만 입력하세요
+   - **Authorization**: OneUptime의 **Bearer 토큰**. OneUptime은 `Authorization: Bearer <token>` 헤더를 기대합니다. Okta가 필드 앞에 이미 Bearer라는 단어를 표시한다면 토큰만 입력하세요
 3. **Test API Credentials**를 클릭하여 연결을 확인한 다음 **Save**를 클릭합니다
 
 #### Okta가 프로비저닝할 항목 선택
@@ -305,14 +305,14 @@ OneUptime의 SCIM 구현은 SCIM v2.0 사양을 따르며 규격을 준수하는
 
 | 설정 | 값 |
 | --- | --- |
-| SCIM Base URL | OneUptime의 **SCIM Base URL**: 프로젝트는 `https://oneuptime.com/identity/scim/v2/<scim-id>`, 상태 페이지는 `https://oneuptime.com/identity/status-page-scim/v2/<scim-id>` |
+| SCIM Base URL | OneUptime의 **SCIM 기본 URL**: 프로젝트는 `https://oneuptime.com/identity/scim/v2/<scim-id>`, 상태 페이지는 `https://oneuptime.com/identity/status-page-scim/v2/<scim-id>` |
 | 인증 | HTTP Bearer 토큰 또는 [OAuth 2.0 클라이언트 자격 증명](#oauth-20-클라이언트-자격-증명) |
 | 고유 사용자 식별자 | `userName`(유효한 이메일 주소여야 함) |
 | 작업 | 프로젝트 SCIM과 상태 페이지 SCIM에서 Users에 대한 GET, POST, PUT, PATCH, DELETE. Groups는 프로젝트 SCIM에서만 지원됩니다. |
 
 ## SCIM API 참조
 
-경로는 연결의 **SCIM Base URL**을 기준으로 한 상대 경로입니다.
+경로는 연결의 **SCIM 기본 URL**을 기준으로 한 상대 경로입니다.
 
 | 엔드포인트               | 메서드                  | 설명                                            |
 | ------------------------ | ----------------------- | ----------------------------------------------- |
@@ -401,7 +401,7 @@ OneUptime Cloud에서 SCIM 프로비저닝은 프로젝트가 **Scale** 이상�
 먼저 **프로젝트 설정** > **보안** > **SCIM**(또는 상태 페이지의 **SCIM** 페이지)의 **로그** 탭을 확인하세요. ID 공급자가 보낸 SCIM 요청이 상태와 함께 나열되며, **세부 정보 보기**로 요청과 OneUptime의 응답을 볼 수 있습니다.
 
 :::details Entra ID: Test Connection이 실패함
-**Tenant URL**이 OneUptime에 표시된 **SCIM Base URL**과 정확히 같고, **Secret Token**이 현재 **Bearer Token**인지 확인하세요. **Bearer 토큰 재설정** 후에는 이전 토큰이 더 이상 작동하지 않습니다.
+**Tenant URL**이 OneUptime에 표시된 **SCIM 기본 URL**과 정확히 같고, **Secret Token**이 현재 **Bearer 토큰**인지 확인하세요. **Bearer 토큰 재설정** 후에는 이전 토큰이 더 이상 작동하지 않습니다.
 :::
 
 :::details Okta: API 자격 증명 테스트가 실패하거나 요청이 401 Unauthorized를 받음

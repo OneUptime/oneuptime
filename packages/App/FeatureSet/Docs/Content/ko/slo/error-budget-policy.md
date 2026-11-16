@@ -295,7 +295,7 @@ curl -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-ite
 | **Edit SLO Error Budget Policy Tier** | 단계를 변경하고 켜거나 끄기. |
 | **Delete SLO Error Budget Policy Tier** | 단계 제거하기. |
 
-이 권한들은 역할의 SLO 그룹에 있습니다. Project Owner와 Project Admin 역할은 모두 가지고 있으며, Project Member와 Viewer 역할은 단계를 읽을 수 있습니다.
+이 권한들은 역할의 SLO 그룹에 있습니다. 프로젝트 소유자와 프로젝트 관리자 역할은 모두 가지고 있으며, 프로젝트 구성원과 뷰어 역할은 단계를 읽을 수 있습니다.
 
 ## 아직 제공되지 않는 기능
 

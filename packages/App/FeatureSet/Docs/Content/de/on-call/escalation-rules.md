@@ -165,7 +165,7 @@ Eine nicht gesendete Alarmierung sagt unter **Bereitschaftsprotokolle** in den B
 - das Guthaben des Projekts konnte sie nicht bezahlen, und wer Guthaben aufladen kann;
 - der Kanal ist im Projekt ausgeschaltet, und wer ihn einschalten kann.
 
-Die Eigentümer des Projekts erhalten dazu einmal eine E-Mail, bis das Guthaben aufgeladen oder der Kanal wieder eingeschaltet ist.
+Die Projektinhaber erhalten dazu einmal eine E-Mail, bis das Guthaben aufgeladen oder der Kanal wieder eingeschaltet ist.
 
 Eine Alarmierung, die den Benachrichtigungsdienst von OneUptime nicht erreichen konnte, sagt `Could not reach the Notification service to send this (ECONNREFUSED).`, mit dem Code des Netzwerkfehlers in den Klammern. Eine Alarmierung, deren Versand nie fertig wurde, etwa weil ein Server während des Versands neu gestartet ist, sagt `Sending did not finish within 15 minutes, so this notification may not have been sent.` Wird der Versand doch noch fertig, ersetzt sein Ergebnis diese Meldung.
 
@@ -176,7 +176,7 @@ In OneUptime Cloud wird jede SMS, jeder Anruf, jede WhatsApp- und Telegram-Nachr
 - Alarmierungen gehen mit dem verbleibenden Guthaben weiter hinaus, solange das automatische Aufladen die Karte nicht belasten kann.
 
 > [!IMPORTANT]
-> SMS, Telefonanrufe, WhatsApp und Telegram sind in einem neuen Projekt ausgeschaltet: In OneUptime Cloud wird jede Nachricht vom Guthaben des Projekts bezahlt, und eine selbst gehostete Installation braucht zuerst ein Twilio-Konto, ein SMS- und Anruf-Gateway oder einen Telegram-Bot. Solange ein Kanal aus ist, kann niemand im Projekt eine Methode dafür hinzufügen. Nur ein Projekteigentümer oder jemand mit der Rolle **Abrechnungs-Administrator** oder der Berechtigung **Manage Billing** kann einen Kanal einschalten, in der Karte **Benachrichtigungskanäle** unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungskanäle** — ein Projektadministrator kann es nicht. Alle anderen erfahren überall, wo ein Kanal aus ist, genau, wer ihn einschalten kann: über ihrer eigenen Liste der Methoden dafür, in ihrer Einrichtungs-Checkliste und in der Meldung, die sie bekommen, wenn etwas den Kanal braucht.
+> SMS, Telefonanrufe, WhatsApp und Telegram sind in einem neuen Projekt ausgeschaltet: In OneUptime Cloud wird jede Nachricht vom Guthaben des Projekts bezahlt, und eine selbst gehostete Installation braucht zuerst ein Twilio-Konto, ein SMS- und Anruf-Gateway oder einen Telegram-Bot. Solange ein Kanal aus ist, kann niemand im Projekt eine Methode dafür hinzufügen. Nur ein Projektinhaber oder jemand mit der Rolle **Abrechnungs-Administrator** oder der Berechtigung **Manage Billing** kann einen Kanal einschalten, in der Karte **Benachrichtigungskanäle** unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungskanäle** — ein Projektadministrator kann es nicht. Alle anderen erfahren überall, wo ein Kanal aus ist, genau, wer ihn einschalten kann: über ihrer eigenen Liste der Methoden dafür, in ihrer Einrichtungs-Checkliste und in der Meldung, die sie bekommen, wenn etwas den Kanal braucht.
 
 ## Zur nächsten Person in der Rotation eskalieren
 

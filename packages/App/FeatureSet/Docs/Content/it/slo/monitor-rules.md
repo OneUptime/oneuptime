@@ -129,7 +129,7 @@ La pagina di un monitor elenca gli SLO che lo misurano: apri il monitor e vai a 
 Le versioni precedenti avevano un'impostazione **Auto-Add Monitors With Labels** nel modulo dello SLO. Con l'aggiornamento, ogni SLO che la usava riceve una regola dei monitor abilitata chiamata **Auto-add monitors with labels** che corrisponde alle stesse etichette, così continua a misurare esattamente gli stessi monitor. Il campo `monitorLabels` dell'API degli SLO è deprecato: usa invece le regole dei monitor degli SLO.
 
 :::details E se qualcosa salva ancora la vecchia impostazione?
-Una scheda della dashboard aperta prima dell'aggiornamento, oppure un client API o un workflow scritto per la versione precedente, può ancora salvare la vecchia impostazione. Perché uno SLO non perda monitor in silenzio in questo modo:
+Una scheda della dashboard aperta prima dell'aggiornamento, oppure un client API o un flusso di lavoro scritto per la versione precedente, può ancora salvare la vecchia impostazione. Perché uno SLO non perda monitor in silenzio in questo modo:
 
 - **Uno SLO senza regole dei monitor** trasforma le etichette salvate in una regola **Auto-add monitors with labels**, e i suoi monitor vengono rivalutati subito. Salvare un elenco vuoto scollega i monitor collegati dall'impostazione, come prima.
 - **Uno SLO che ha regole dei monitor**, attive o no, ignora le etichette salvate tramite la vecchia impostazione, perché sono le sue regole a decidere cosa misura.
@@ -140,7 +140,7 @@ Una regola convertita che elimini resta eliminata, a meno che i suoi monitor sia
 
 ## Cronologia
 
-Ogni collegamento e scollegamento, e ogni regola creata, modificata o eliminata, compare nel **Feed** dello SLO. Le modifiche alle regole vengono registrate anche nei suoi **Registri di audit**. Vedi [Feed e registri di audit degli SLO](/docs/slo/feed-and-audit-logs).
+Ogni collegamento e scollegamento, e ogni regola creata, modificata o eliminata, compare nel **Feed** dello SLO. Le modifiche alle regole vengono registrate anche nei suoi **Log di audit**. Vedi [Feed e log di audit degli SLO](/docs/slo/feed-and-audit-logs).
 
 ## Risoluzione dei problemi
 

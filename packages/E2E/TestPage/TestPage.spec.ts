@@ -8,6 +8,8 @@ import {
 import fs from "fs";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
+import { withUnit } from "../SuiteHelpers/NoBreakSpaces";
 
 /*
  * Sending a test page (#6811), in a browser, against the offline fixture
@@ -95,9 +97,6 @@ function worded(
 async function wordsOf(locator: Locator): Promise<string> {
   return ((await locator.textContent()) || "").replace(/[\u2066-\u2069]/g, "");
 }
-
-// Between a German amount and its sign, as Intl writes it ("0,35 $").
-const NO_BREAK_SPACE: string = String.fromCharCode(0xa0);
 
 interface Box {
   x: number;
@@ -495,7 +494,7 @@ test("a server from before the codes and the walk: its English, and a walk price
       "This test sends {{items}}, paid from this project's SMS and call balance: about {{amount}}.",
       {
         items: worded(GERMAN, "{{count}} SMS_one", { count: "1" }),
-        amount: `0,10${NO_BREAK_SPACE}$`,
+        amount: withUnit("0,10", "$"),
       },
     ),
   );
@@ -646,7 +645,7 @@ test("in German, the policy's preview, its levels and the walk's cost are worded
           items: worded(GERMAN, "{{count}} SMS_one", { count: "1" }),
           last: worded(GERMAN, "{{count}} phone calls_one", { count: "1" }),
         }),
-        amount: `0,35${NO_BREAK_SPACE}$`,
+        amount: withUnit("0,35", "$"),
       },
     ),
   );
@@ -803,4 +802,18 @@ test("in Persian, the dialog and its result read from the right", async ({
 
   await expectNoSidewaysScroll(page);
   await screenshot(page, "self-result-fa-390");
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German, Persian and Arabic whole, parsed on every page load of every test.
+ * English is in the bundle now, and each other language a chunk of its own,
+ * loaded only by a page drawn in it (SuiteHelpers/FixtureLocales.js), built
+ * as the Dashboard ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "fa", "ar"],
+  address: (language: string): string => {
+    return language === "en" ? PAGE_PATH : `${PAGE_PATH}?lang=${language}`;
+  },
 });

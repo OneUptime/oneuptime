@@ -295,7 +295,7 @@ curl -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-ite
 | **Edit SLO Error Budget Policy Tier** | Изменять уровни, а также включать и выключать их. |
 | **Delete SLO Error Budget Policy Tier** | Удалять уровни. |
 
-Эти разрешения находятся в группе SLO роли. У ролей Project Owner и Project Admin есть все они, а роли Project Member и Viewer могут читать уровни.
+Эти разрешения находятся в группе SLO роли. У ролей Владелец проекта и Администратор проекта есть все они, а роли Участник проекта и Зритель могут читать уровни.
 
 ## Пока недоступно
 

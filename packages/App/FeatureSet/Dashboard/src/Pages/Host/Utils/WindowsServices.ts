@@ -1,3 +1,4 @@
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import {
   translateTemplate,
   translationKey,
@@ -111,7 +112,7 @@ export const startupModeLabel: (mode: string | null) => string = (
     case "system_start":
       return translationKey("System");
     default:
-      return mode || "—";
+      return mode || EMPTY_VALUE_MARK;
   }
 };
 

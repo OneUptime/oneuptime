@@ -41,7 +41,7 @@ In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **Met
 
 ### Aggiungere le query delle metriche
 
-In **Metrica da osservare**, scegliete una **Metrica** e come aggregarla con **Aggregate by**. Aprite **Filters & grouping** per filtrare per attributi o per raggruppare con **Raggruppa per**. Fate clic su **Aggiungi metrica** per un'altra query, o su **Aggiungi formula** per combinarle. Il grafico sotto le query mostra le ultime ore, con il valore della regola come linea rossa, così vedete i valori che la regola controllerà.
+In **Metrica da osservare**, scegliete una **Metrica** e come aggregarla con **Aggrega per**. Aprite **Filtri e raggruppamento** per filtrare per attributi o per raggruppare con **Raggruppa per**. Fate clic su **Aggiungi metrica** per un'altra query, o su **Aggiungi formula** per combinarle. Il grafico sotto le query mostra le ultime ore, con il valore della regola come linea rossa, così vedete i valori che la regola controllerà.
 
 ### Dire quando avvisare
 
@@ -63,9 +63,9 @@ Fate clic su **Crea monitor**. Il monitor si apre sulla sua pagina **Panoramica*
 | Campo | Cosa fa | Predefinito |
 | --- | --- | --- |
 | **Metrica** | La metrica da interrogare. | Obbligatorio |
-| **Aggregate by** | Come i valori di ogni intervallo di tempo vengono combinati in un punto dati: Media, Somma, Min, Max, Conteggio, oppure un percentile (P50, P75, P90, P95 o P99). | Media |
-| **Filter by attributes** (in **Filters & grouping**) | Solo le serie i cui attributi soddisfano queste condizioni. | Nessun filtro |
-| **Raggruppa per** (in **Filters & grouping**) | Una serie per ogni valore unico di questi attributi (vedete [Avvisi per serie](#avvisi-per-serie-group-by)). | Una sola serie |
+| **Aggrega per** | Come i valori di ogni intervallo di tempo vengono combinati in un punto dati: Media, Somma, Min, Max, Conteggio, oppure un percentile (P50, P75, P90, P95 o P99). | Media |
+| **Filtra per attributi** (in **Filtri e raggruppamento**) | Solo le serie i cui attributi soddisfano queste condizioni. | Nessun filtro |
+| **Raggruppa per** (in **Filtri e raggruppamento**) | Una serie per ogni valore unico di questi attributi (vedete [Avvisi per serie](#avvisi-per-serie-group-by)). | Una sola serie |
 
 Ogni query e ogni formula riceve una variabile (`a`, `b`, `c` e così via) nell'ordine in cui le aggiungete.
 
@@ -97,7 +97,7 @@ Più lunga è la finestra, più largo è ogni intervallo di raggruppamento, quin
 ## Come viene valutato
 
 - **Ogni minuto.** Un monitor metriche non viene controllato da sonde, quindi non ha un intervallo da impostare né una pagina **Sonde e intervallo**.
-- **Prima le query, poi le formule.** Ogni query restituisce un punto dati per intervallo di raggruppamento dell'intervallo di tempo, secondo il suo **Aggregate by**. Le formule vengono calcolate per ogni intervallo a partire dai punti dati delle query.
+- **Prima le query, poi le formule.** Ogni query restituisce un punto dati per intervallo di raggruppamento dell'intervallo di tempo, secondo il suo **Aggrega per**. Le formule vengono calcolate per ogni intervallo a partire dai punti dati delle query.
 - **Poi la misura della regola.** La regola riduce i punti dati della sua metrica a ciò che confronta con il suo valore, come dice **Misurato come**:
 
 | Misurato come | Nei criteri personalizzati | La condizione viene verificata su… |
@@ -111,7 +111,7 @@ Più lunga è la finestra, più largo è ogni intervallo di raggruppamento, quin
 
 - **Criteri dall'alto verso il basso.** In un monitor senza Group By decide il primo criterio che corrisponde, quindi mettete per primo il più grave. Un monitor raggruppato controlla ogni criterio per ogni serie (vedete [La valutazione dei criteri cambia](#la-valutazione-dei-criteri-cambia)).
 - **Nessun dato non è zero.** Quando la query non restituisce punti dati nell'intervallo, la regola fa ciò che dice **Se non ci sono dati**, in **Altri campi** di **Quando avvisare**: **Niente** (il predefinito: la regola non corrisponde), **Contare come zero** o **Avvisare, come se corrispondesse**.
-- **Ogni valore richiede tutto l'intervallo di tempo.** Una serie soddisfa una regola misurata come **Ogni valore (l'intera finestra)** solo quando i suoi punti dati coprono l'intervallo di tempo, dal suo inizio a ora, senza un vuoto di più di un punto dati mancante. I dati che continuano ad arrivare in ritardo (quelli di CloudWatch, o quelli di un collector il cui orologio è indietro) contano fin dove arrivano, e l'avviso o l'incidente indica con quanto ritardo arrivano. Un host, un container o un deployment che ha appena iniziato a inviare dati, o che è rimasto in silenzio per un po', attende di avere i dati di un intero intervallo di tempo, e il registro di valutazione indica a che punto è: `Waiting for 15 minutes of data: 2 of 15 minutes so far`. Una serie il cui avviso o incidente è già aperto viene giudicata solo sui suoi punti dati, quindi un breve vuoto nei suoi dati non lo risolve. Se la metrica invia dati meno spesso di quanto duri l'intervallo di tempo, un singolo punto dati vale per tutto l'intervallo una volta che ha qualche minuto; per giudicare quanto dura un valore, l'intervallo di tempo deve coprire almeno due intervalli di invio.
+- **Ogni valore richiede tutto l'intervallo di tempo.** Una serie soddisfa una regola misurata come **Ogni valore (l'intera finestra)** solo quando i suoi punti dati coprono l'intervallo di tempo, dal suo inizio a ora, senza un vuoto di più di un punto dati mancante. I dati che continuano ad arrivare in ritardo (quelli di CloudWatch, o quelli di un collector il cui orologio è indietro) contano fin dove arrivano, e l'avviso o l'incidente indica con quanto ritardo arrivano. Un host, un container o un deployment che ha appena iniziato a inviare dati, o che è rimasto in silenzio per un po', attende di avere i dati di un intero intervallo di tempo, e il log di valutazione indica a che punto è: `Waiting for 15 minutes of data: 2 of 15 minutes so far`. Una serie il cui avviso o incidente è già aperto viene giudicata solo sui suoi punti dati, quindi un breve vuoto nei suoi dati non lo risolve. Se la metrica invia dati meno spesso di quanto duri l'intervallo di tempo, un singolo punto dati vale per tutto l'intervallo una volta che ha qualche minuto; per giudicare quanto dura un valore, l'intervallo di tempo deve coprire almeno due intervalli di invio.
 - **L'interruzione di OneUptime stesso non è silenzio.** Finché l'intervallo di tempo contiene un periodo in cui OneUptime stesso non riceveva dati (si stava riavviando, veniva aggiornato o recuperava un arretrato), il controllo attende: lo stato non cambia e nessun incidente o avviso viene aperto o risolto, qualunque cosa dica **Se non ci sono dati**. Vedete [Quando OneUptime non riceve dati](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Criteri
@@ -160,7 +160,7 @@ Un nuovo monitor metriche creato tramite l'API o Terraform senza criteri parte c
 
 ## Esempio pratico: una coda che cresce
 
-Volete un incidente quando la coda di checkout resta profonda. La query `a` è il gauge `checkout.queue.depth`, con **Aggregate by** Max, e la **Finestra temporale** è **Ultimi 5 minuti**. Una valutazione vede questi cinque punti dati di un minuto:
+Volete un incidente quando la coda di checkout resta profonda. La query `a` è il gauge `checkout.queue.depth`, con **Aggrega per** Max, e la **Finestra temporale** è **Ultimi 5 minuti**. Una valutazione vede questi cinque punti dati di un minuto:
 
 | Minuto | 10:01 | 10:02 | 10:03 | 10:04 | 10:05 |
 | --- | --- | --- | --- | --- | --- |

@@ -1,6 +1,8 @@
 import UsedByCard from "../../../Components/UsedBy/UsedByCard";
 import { UsedByRecordKind } from "Common/Types/UsedBy/UsedBy";
 import PageComponentProps from "../../PageComponentProps";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import ObjectID from "Common/Types/ObjectID";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -47,7 +49,7 @@ import {
   fetchLogAndExceptionSignals,
   fetchSpanMetrics,
   formatCompact,
-  formatDurationMs,
+  formatDurationMsInLanguage,
   formatPercent,
   LogAndExceptionSignals,
   SpanMetrics,
@@ -85,6 +87,7 @@ const meanOf: (series: Array<TimePoint>) => number | null = (
 };
 
 const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [service, setService] = useState<Service | null>(null);
@@ -356,7 +359,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const tiles: Array<ResourceOverviewTile> = [
     {
       title: "Requests",
-      value: m ? formatCompact(m.total) : "—",
+      value: m ? formatCompact(m.total, translator) : undefined,
       icon: IconProp.Workflow,
       iconColor: "sky",
       loading: metricsLoading,
@@ -366,7 +369,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     },
     {
       title: "Error rate",
-      value: m ? formatPercent(m.errorRatePercent) : "—",
+      value: m ? formatPercent(m.errorRatePercent, translator) : undefined,
       icon: IconProp.Alert,
       iconColor: "rose",
       loading: metricsLoading,
@@ -377,7 +380,9 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     },
     {
       title: "Latency (p95)",
-      value: m ? formatDurationMs(m.p95DurationMs) : "—",
+      value: m
+        ? formatDurationMsInLanguage(m.p95DurationMs, translator)
+        : undefined,
       icon: IconProp.Clock,
       iconColor: "amber",
       loading: metricsLoading,
@@ -402,7 +407,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       : meanOf(firstRuntime.series);
     tiles.push({
       title: firstRuntime.def.title,
-      value: formatRuntimeValue(tileValue, firstRuntime.def.unit),
+      value: formatRuntimeValue(tileValue, firstRuntime.def.unit, translator),
       icon: firstRuntime.def.icon,
       iconColor: firstRuntime.def.iconColor,
       loading: metricsLoading,
@@ -465,7 +470,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         windowEnd={chartWindow?.end ?? null}
         syncId={syncId}
         yFormatter={(n: number): string => {
-          return formatDurationMs(n);
+          return formatDurationMsInLanguage(n, translator);
         }}
         loading={spanChartsLoading}
         description={SERVICE_METRIC_DESCRIPTIONS.latencyP95Chart}
@@ -533,7 +538,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             syncId={syncId}
             yMax={chart.def.unit === "percent" ? 100 : "auto"}
             yFormatter={(n: number): string => {
-              return formatRuntimeValue(n, chart.def.unit);
+              return formatRuntimeValue(n, chart.def.unit, translator);
             }}
             loading={metricsLoading && chart.series.length === 0}
             description={chart.def.description}

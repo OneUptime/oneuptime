@@ -104,7 +104,7 @@ Dataverse 中没有类似 Jira 标签的东西，因此案例和 OneUptime 记�
 
 除非你打开相应开关，否则 OneUptime → Dynamics 365 模板都不会把标记为 **私密事件** 的事件或标记为 **私密警报** 的警报发送到 Dynamics 365：记录本身、它的状态和备注都不会发送。参见 [更改模板的行为](#更改模板的行为)。
 
-**监视器会自行产生警报，而且可能产生很多。** **Create a Dynamics 365 case when an alert is created** 会为每一条警报创建案例。除非每条警报都值得一个案例，否则请在触发器和工作流的其余部分之间放一个 **If / Else** 块，例如基于 `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}` 判断，并且只把它的 **Yes** 一侧继续往后连接。
+**监视器会自行产生警报，而且可能产生很多。** **Create a Dynamics 365 case when an alert is created** 会为每一条警报创建案例。除非每条警报都值得一个案例，否则请在触发器和工作流的其余部分之间放一个 **如果 / 否则** 块，例如基于 `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}` 判断，并且只把它的 **是** 一侧继续往后连接。
 
 ### 模板需要的设置
 
@@ -118,7 +118,7 @@ Dataverse 中没有类似 Jira 标签的东西，因此案例和 OneUptime 记�
 - **Customer for New Cases** — 只有两个创建案例的模板会询问。每个案例都需要一个客户，而 OneUptime 事件没有客户，因此所有新案例都针对同一个客户提交：粘贴一个客户（account）的 ID，如果是联系人则粘贴 `contacts(<id>)`。在 Dynamics 365 中打开该记录：地址中 `id=` 之后的部分就是它的 ID。
 - **OneUptime URL** — 只有两个创建案例的模板会询问：你打开 OneUptime 的地址，例如 `https://oneuptime.com`。案例的描述用它链接回事件或警报。
 
-**模板如何登录。** 向导会把租户、客户端 ID 和密钥保存到工作流 **工作流变量** 下的一个 [OAuth 2.0 变量](/docs/workflows/variables#oauth-20-变量会自动刷新的令牌) `dynamicsAccessToken` 中：Client Credentials、令牌 URL `https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token`、作用域 `<environment URL>/.default`，以及在请求主体中发送并加密保存的客户端密钥。对 Dynamics 365 的每次调用都会发送 `Authorization: Bearer {{local.variables.dynamicsAccessToken}}`。OneUptime 在某个步骤第一次需要令牌时获取它，在过期之前获取新令牌，并在运行日志和步骤跟踪中把它替换为 `[REDACTED]`。
+**模板如何登录。** 向导会把租户、客户端 ID 和密钥保存到工作流 **工作流变量** 下的一个 [OAuth 2.0 变量](/docs/workflows/variables#oauth-20-变量会自动刷新的令牌) `dynamicsAccessToken` 中：Client Credentials、令牌 URL `https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token`、作用域 `<environment URL>/.default`，以及在请求主体中发送并加密保存的客户端密钥。对 Dynamics 365 的每次调用都会发送 `Authorization: Bearer {{local.variables.dynamicsAccessToken}}`。OneUptime 在某个步骤第一次需要令牌时获取它，在过期之前获取新令牌，并在运行日志和步骤追踪中把它替换为 `[REDACTED]`。
 
 要在运行任何内容之前检查登录，请打开 **工作流变量**，在 `dynamicsAccessToken` 上点击 **查看**，然后点击 **立即刷新**。显示 **已获取访问令牌** 表示应用注册正确。否则，Microsoft Entra ID 的错误会指出问题所在，例如 `AADSTS7000215: Invalid client secret provided`。
 
@@ -133,7 +133,7 @@ Dataverse 中没有类似 Jira 标签的东西，因此案例和 OneUptime 记�
 4. 点击 **创建工作流**。每个工作流创建时都处于关闭状态：在它的 **生成器** 顶部打开 **已启用**。
 :::
 
-先从 **Create a Dynamics 365 case when an incident is declared** 开始，警报则从 **Create a Dynamics 365 case when an alert is created** 开始：同类的其他 OneUptime → Dynamics 365 模板都通过这个模板写入的关联找到案例。启用它，声明一个测试事件或创建一个测试警报，然后打开工作流的 **日志 → 运行记录**。这次运行应以 **已执行** 结束，其最后一步 `create-case-1` 的 **Response Body** 中会有新案例的 `ticketnumber`，例如 `CAS-01001-X1Y2Z3`。
+先从 **Create a Dynamics 365 case when an incident is declared** 开始，警报则从 **Create a Dynamics 365 case when an alert is created** 开始：同类的其他 OneUptime → Dynamics 365 模板都通过这个模板写入的关联找到案例。启用它，声明一个测试事件或创建一个测试警报，然后打开工作流的 **日志 → 运行记录**。这次运行应以 **已执行** 结束，其最后一步 `create-case-1` 的 **响应主体** 中会有新案例的 `ticketnumber`，例如 `CAS-01001-X1Y2Z3`。
 
 ### 连接 Dynamics 365 → OneUptime 模板
 
@@ -184,7 +184,7 @@ Dynamics 365 → OneUptime 模板（3 个事件模板和 3 个警报模板）从
 每次运行的 **步骤** 都会说明模板做了什么，因此请在 **日志 → 运行记录** 中打开这次运行，看看它是如何结束的：
 
 - **已执行**：完成了工作，最后一步会给出案例、事件或警报。
-- **已执行**，且 **Check With JavaScript** 步骤走了 **No**：有意跳过了该事件，该步骤会说明原因：案例没有关联到这类记录、备注来自另一边、记录是私密的，或者新状态不会关闭案例。
+- **已执行**，且 **用 JavaScript 检查** 步骤走了 **否**：有意跳过了该事件，该步骤会说明原因：案例没有关联到这类记录、备注来自另一边、记录是私密的，或者新状态不会关闭案例。
 - **错误**：某个步骤失败了，它在 **步骤** 中的条目会说明原因。对于 Dynamics 365 调用，其中包含 Dynamics 365 的回应。
 - 在 `link-case-1` 处 **错误**：根据案例创建记录的模板已经创建了记录，但 Dynamics 365 没有接受关联，因此其他模板暂时还找不到它。请手动在案例的列中输入关联。
 
@@ -221,7 +221,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 
 ### 更改模板的行为
 
-打开工作流的 **生成器**，点击你想更改的块。你最可能想改的设置是脚本顶部附近的常量，位于 **Check With JavaScript** 块的 **JavaScript Code** 中，就在共享的辅助代码块下面。事件版本和警报版本在相同的块中有相同的常量。
+打开工作流的 **生成器**，点击你想更改的块。你最可能想改的设置是脚本顶部附近的常量，位于 **用 JavaScript 检查** 块的 **JavaScript 代码** 中，就在共享的辅助代码块下面。事件版本和警报版本在相同的块中有相同的常量。
 
 | 常量 | 模板和块 | 控制的内容 |
 | --- | --- | --- |
@@ -269,9 +269,9 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 ### 为每个事件创建案例
 
 :::steps
-1. 从零开始创建一个名为 `Incidents to Dynamics 365` 的工作流。点击虚线块，添加 **On Create Incident** 触发器。它的 **Fields to pass on** 已经包含 **标题**：点击 **添加字段** 并选择 **描述** 和 **事件编号**。ID 总会被传递。
-2. 点击 **添加组件**，添加一个 **API Post (JSON)** 块，并把触发器的 **Success** 点连接到它。把它的 **Identifier** 设为 `create-case`，**URL** 设为 `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`。
-3. 在 **更多字段** 下，把它的 **Request Headers** 设为：
+1. 从零开始创建一个名为 `Incidents to Dynamics 365` 的工作流。点击虚线块，添加 **创建事件时** 触发器。它的 **要传递的字段** 已经包含 **标题**：点击 **添加字段** 并选择 **描述** 和 **事件编号**。ID 总会被传递。
+2. 点击 **添加组件**，添加一个 **API 调用 POST (JSON)** 块，并把触发器的 **成功** 点连接到它。把它的 **Identifier** 设为 `create-case`，**URL** 设为 `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`。
+3. 在 **更多字段** 下，把它的 **请求标头** 设为：
 
    ```json
    {
@@ -284,7 +284,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
    }
    ```
 
-4. 把它的 **Request Body** 设为案例内容，并填入你的案例所属客户（account）的 GUID：
+4. 把它的 **请求主体** 设为案例内容，并填入你的案例所属客户（account）的 GUID：
 
    ```json
    {
@@ -306,7 +306,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 
 ### 映射优先级和状态
 
-Dynamics 365 自带的 `severitycode` 只有一个选项，所以请改为设置 `prioritycode`，并用一个 **If / Else** 块根据事件的严重程度分支，为每个严重程度设置一个优先级。以数字形式发送这些列：
+Dynamics 365 自带的 `severitycode` 只有一个选项，所以请改为设置 `prioritycode`，并用一个 **如果 / 否则** 块根据事件的严重程度分支，为每个严重程度设置一个优先级。以数字形式发送这些列：
 
 | 列 | 值 |
 | --- | --- |
@@ -323,15 +323,15 @@ Dynamics 365 自带的 `severitycode` 只有一个选项，所以请改为设置
 把这部分构建为第二个工作流，这样这里的失败永远不会妨碍创建案例。
 
 :::steps
-1. 创建一个名为 `Close Dynamics 365 cases` 的工作流，使用 **On Update Incident** 触发器。在 **Fields to watch** 中点击 **添加字段** 并选择 **Current Incident State**。在 **Fields to pass on** 中点击 **添加字段**，展开 **Current Incident State** 并选择 **Is Resolved State**。
-2. 添加一个 **If / Else** 块：**Value to check** 为 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`，**Comparison** 为 **is true**。
-3. 在它的 **Yes** 一侧之后，添加一个 **API Get (JSON)** 块，**Identifier** 为 `find-case`，使用不含 `Prefer` 的相同请求头和以下 **URL**：
+1. 创建一个名为 `Close Dynamics 365 cases` 的工作流，使用 **更新事件时** 触发器。在 **要关注的字段** 中点击 **添加字段** 并选择 **Current Incident State**。在 **要传递的字段** 中点击 **添加字段**，展开 **Current Incident State** 并选择 **Is Resolved State**。
+2. 添加一个 **如果 / 否则** 块：**要检查的值** 为 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`，**比较** 为 **为真**。
+3. 在它的 **是** 一侧之后，添加一个 **API 调用 GET (JSON)** 块，**Identifier** 为 `find-case`，使用不含 `Prefer` 的相同请求头和以下 **URL**：
 
    ```text
    https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid&$filter=new_oneuptimelink%20eq%20'oneuptime-incident-{{local.components.incident-on-update-1.returnValues.model._id}}'
    ```
 
-4. 在它之后添加一个发往 `https://yourorg.crm.dynamics.com/api/data/v9.2/CloseIncident` 的 **API Post (JSON)** 块，使用相同的请求头和以下主体：
+4. 在它之后添加一个发往 `https://yourorg.crm.dynamics.com/api/data/v9.2/CloseIncident` 的 **API 调用 POST (JSON)** 块，使用相同的请求头和以下主体：
 
    ```json
    {
@@ -347,7 +347,7 @@ Dynamics 365 自带的 `severitycode` 只有一个选项，所以请改为设置
 
 URL 会按原样发送，因此 `$filter` 中的空格要写成 `%20`。查询以 `value` 列表回应，`value[0]` 是其中第一个案例。`Status` 是 Resolved 状态下的一个 `statuscode`：`5` 是 Problem Solved。
 
-请用 `CloseIncident` 来解决，而不是对 `statecode` 做 `PATCH`：它会记录已解决案例应有的 Case Resolution，而在管理员配置了状态转换的地方，`PATCH` 会被拒绝。对于其他内容，例如优先级或标题，请向 `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents(<the case id>)` 发送一个 **API Patch (JSON)** 块，带上 `If-Match: *` 请求头（它能防止创建新案例），并且只包含你要更改的列。
+请用 `CloseIncident` 来解决，而不是对 `statecode` 做 `PATCH`：它会记录已解决案例应有的 Case Resolution，而在管理员配置了状态转换的地方，`PATCH` 会被拒绝。对于其他内容，例如优先级或标题，请向 `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents(<the case id>)` 发送一个 **API 调用 PATCH (JSON)** 块，带上 `If-Match: *` 请求头（它能防止创建新案例），并且只包含你要更改的列。
 
 ### 接收来自 Dynamics 365 的变更
 
@@ -362,8 +362,8 @@ URL 会按原样发送，因此 `$filter` 中的空格要写成 `%20`。查询�
 
    在自托管安装中，URL 使用你自己的主机。像对待密码一样对待这个 URL：任何拥有它的人都可以启动工作流。如果泄露，请在同一位置点击 **重置 URL**，旧 URL 会立即失效。
 
-3. 添加一个 **If / Else** 块，在做任何其他事之前先检查共享密钥：**Value to check** 为 `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`，**Comparison** 为 **is equal to**，**Compare with** 为你自己设定、保存在密钥全局变量中的值。
-4. 在它的 **Yes** 一侧之后，添加一个 **Update One Incident** 块。把它的 **Query** 设为 `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`，**Data (JSON Object)** 设为要做的变更，例如新的 `currentIncidentStateId`。一个查询为 `{"name": "Resolved"}` 的 **Find One Incident State** 块会以 `{{local.components.incident-state-find-one-1.returnValues.model._id}}` 给出那个 ID。
+3. 添加一个 **如果 / 否则** 块，在做任何其他事之前先检查共享密钥：**要检查的值** 为 `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`，**比较** 为 **等于**，**比较对象** 为你自己设定、保存在密钥全局变量中的值。
+4. 在它的 **是** 一侧之后，添加一个 **更新单个事件** 块。把它的 **查询** 设为 `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`，**数据（JSON 对象）** 设为要做的变更，例如新的 `currentIncidentStateId`。一个查询为 `{"name": "Resolved"}` 的 **查找单个事件状态** 块会以 `{{local.components.incident-state-find-one-1.returnValues.model._id}}` 给出那个 ID。
 
 启用它，然后让 Dynamics 365 调用它：
 
@@ -378,7 +378,7 @@ Microsoft Dataverse 连接器是高级连接器：流的所有者需要相应的
 @tab Dataverse webhook
 1. 用 [Plug-in Registration Tool](https://learn.microsoft.com/en-us/power-apps/developer/data-platform/register-web-hook) 注册工作流的 URL：选择 **Register New WebHook**，使用 **HttpHeader** 身份验证和请求头 `X-OneUptime-Secret`。
 2. 为 `incident` 上的 **Update** 消息注册一个步骤，把 **Filtering Attributes** 限制为你需要的列，并使用 **PostOperation** 和 **Asynchronous**。
-3. 在工作流中读取负载：它是插件执行上下文，其中 `InputParameters` 是一个 `{key, value}` 对的列表，变化的行位于 `Target` 下。读取它最简单的方式是用 **Run Custom JavaScript** 块。
+3. 在工作流中读取负载：它是插件执行上下文，其中 `InputParameters` 是一个 `{key, value}` 对的列表，变化的行位于 `Target` 下。读取它最简单的方式是用 **运行自定义 JavaScript** 块。
 
 Dataverse 只调用端口 80 和 443，最多等待 60 秒的响应，并且只在 `502`、`503` 和 `504` 时重试一次。更新只携带发生变化的列，因此如需其他列，请注册一个后映像（post image）。
 :::
@@ -389,13 +389,13 @@ Dataverse 只调用端口 80 和 443，最多等待 60 秒的响应，并且只�
 
 | 事件 | 警报 |
 | --- | --- |
-| **On Create Incident** (`incident-on-create-1`) | **On Create Alert** (`alert-on-create-1`) |
-| **On Update Incident** (`incident-on-update-1`) | **On Update Alert** (`alert-on-update-1`) |
+| **创建事件时** (`incident-on-create-1`) | **创建警报时** (`alert-on-create-1`) |
+| **更新事件时** (`incident-on-update-1`) | **更新警报时** (`alert-on-update-1`) |
 | `incidentNumber`, `currentIncidentState`, `incidentSeverity` | `alertNumber`, `currentAlertState`, `alertSeverity` |
-| **Find One Incident State** | **Find One Alert State** |
-| **Update One Incident** | **Update One Alert** |
+| **查找单个事件状态** | **查找单个警报状态** |
+| **更新单个事件** | **更新单个警报** |
 
-一个工作流恰好只有一个触发器，因此事件和警报各需要一个工作流。要为两者做同样的 Dynamics 365 工作，请在一个使用 **Manual** 触发器的工作流中构建一次，然后在两边都用一个 **Execute Workflow** 块启动它。
+一个工作流恰好只有一个触发器，因此事件和警报各需要一个工作流。要为两者做同样的 Dynamics 365 工作，请在一个使用 **手动** 触发器的工作流中构建一次，然后在两边都用一个 **执行另一个工作流** 块启动它。
 
 ## 故障排除
 
@@ -430,7 +430,7 @@ Dataverse 只调用端口 80 和 443，最多等待 60 秒的响应，并且只�
 :::
 
 :::details 429 Too Many Requests
-Dataverse 的服务保护限制允许每个用户在任意五分钟内发出约 6,000 个请求，并使用 20 分钟的执行时间。响应中带有以秒为单位的 `Retry-After`。请在请求集中爆发的工作流中放一个 **Sleep** 块，或者把工作移到计划工作流中。
+Dataverse 的服务保护限制允许每个用户在任意五分钟内发出约 6,000 个请求，并使用 20 分钟的执行时间。响应中带有以秒为单位的 `Retry-After`。请在请求集中爆发的工作流中放一个 **暂停** 块，或者把工作移到计划工作流中。
 :::
 
 :::details OneUptime 什么也没收到
@@ -438,7 +438,7 @@ Dataverse 的服务保护限制允许每个用户在任意五分钟内发出约 
 :::
 
 :::details 工作流运行了，但事件没有变化
-当查询没有匹配到任何内容时，**Update One Incident** 块会报告 `Items Updated: 0`，这是成功，而不是错误。请检查请求中的 ID 确实是 OneUptime 事件的 ID，并且你查询的是 `_id`。
+当查询没有匹配到任何内容时，**更新单个事件** 块会报告 `Items Updated: 0`，这是成功，而不是错误。请检查请求中的 ID 确实是 OneUptime 事件的 ID，并且你查询的是 `_id`。
 :::
 
 ## 后续步骤

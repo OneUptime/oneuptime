@@ -121,19 +121,19 @@ describe("describePageLoadsTile", () => {
   test("a failed lookup is unknown, never zero", () => {
     expect(
       describePageLoadsTile({ stats: null, failed: true, eventsTotal: 500 }),
-    ).toEqual({ value: "—", sublabel: "could not load" });
+    ).toEqual({ value: undefined, sublabel: "could not load" });
   });
 
   test("a failed flag wins over stale stats", () => {
     expect(
       describePageLoadsTile({ stats: STATS, failed: true, eventsTotal: 500 }),
-    ).toEqual({ value: "—", sublabel: "could not load" });
+    ).toEqual({ value: undefined, sublabel: "could not load" });
   });
 
   test("before any stats arrive it shows a dash, not 0", () => {
     expect(
       describePageLoadsTile({ stats: null, failed: false, eventsTotal: null }),
-    ).toEqual({ value: "—", sublabel: "full page loads" });
+    ).toEqual({ value: undefined, sublabel: "full page loads" });
   });
 
   test("no page loads while other events arrived names the missing span", () => {
@@ -244,14 +244,14 @@ describe("describePageLoadsTile", () => {
 describe("describePageLoadTimeTile", () => {
   test("a failed lookup is unknown", () => {
     expect(describePageLoadTimeTile({ stats: STATS, failed: true })).toEqual({
-      value: "—",
+      value: undefined,
       sublabel: "could not load",
     });
   });
 
   test("no stats yet is 'no page loads', never '0 ms'", () => {
     expect(describePageLoadTimeTile({ stats: null, failed: false })).toEqual({
-      value: "—",
+      value: undefined,
       sublabel: "no page loads",
     });
   });
@@ -262,13 +262,13 @@ describe("describePageLoadTimeTile", () => {
         stats: { ...STATS, count: 0, p95DurationMs: 1200, p50DurationMs: 300 },
         failed: false,
       }),
-    ).toEqual({ value: "—", sublabel: "no page loads" });
+    ).toEqual({ value: undefined, sublabel: "no page loads" });
   });
 
   test("the value is the p95 and the sublabel the median", () => {
     expect(describePageLoadTimeTile({ stats: STATS, failed: false })).toEqual({
-      value: "2.34 s",
-      sublabel: "median 850 ms",
+      value: "2.34\u00A0s",
+      sublabel: "median 850\u00A0ms",
     });
   });
 
@@ -278,17 +278,17 @@ describe("describePageLoadTimeTile", () => {
       failed: false,
     });
 
-    expect(text.value).toBe("900 ms");
-    expect(text.sublabel).toBe("median 100 ms");
+    expect(text.value).toBe("900\u00A0ms");
+    expect(text.sublabel).toBe("median 100\u00A0ms");
   });
 
   test.each([
-    [0.5, "500 µs"],
-    [9.5, "9.5 ms"],
-    [120, "120 ms"],
-    [999, "999 ms"],
-    [1000, "1.00 s"],
-    [12_345, "12.35 s"],
+    [0.5, "500\u00A0µs"],
+    [9.5, "9.5\u00A0ms"],
+    [120, "120\u00A0ms"],
+    [999, "999\u00A0ms"],
+    [1000, "1.00\u00A0s"],
+    [12_345, "12.35\u00A0s"],
   ])("a p95 of %d ms reads %s", (p95: number, value: string) => {
     expect(
       describePageLoadTimeTile({
@@ -309,14 +309,14 @@ describe("describePageLoadTimeTile", () => {
         },
         failed: false,
       }),
-    ).toEqual({ value: "700 ms", sublabel: "median 700 ms" });
+    ).toEqual({ value: "700\u00A0ms", sublabel: "median 700\u00A0ms" });
   });
 });
 
 describe("describeExceptionsTile", () => {
   test("before the lookup returns it shows a dash", () => {
     expect(describeExceptionsTile({ exceptions: null })).toEqual({
-      value: "—",
+      value: undefined,
       sublabel: "reported by your app",
     });
   });
@@ -324,13 +324,13 @@ describe("describeExceptionsTile", () => {
   test("a failed lookup is unknown, not zero", () => {
     expect(
       describeExceptionsTile({ exceptions: { total: 0, failed: true } }),
-    ).toEqual({ value: "—", sublabel: "could not load" });
+    ).toEqual({ value: undefined, sublabel: "could not load" });
   });
 
   test("a failed flag wins over a total", () => {
     expect(
       describeExceptionsTile({ exceptions: { total: 12, failed: true } }),
-    ).toEqual({ value: "—", sublabel: "could not load" });
+    ).toEqual({ value: undefined, sublabel: "could not load" });
   });
 
   test("zero that is really zero shows 0", () => {
@@ -378,7 +378,7 @@ describe("describeExceptionsTile", () => {
         exceptions: { total: 0, failed: false },
         isNotSetUp: true,
       }),
-    ).toEqual({ value: "—", sublabel: "not set up" });
+    ).toEqual({ value: undefined, sublabel: "not set up" });
   });
 
   test("an exception in the range always shows its count", () => {
@@ -396,13 +396,13 @@ describe("describeExceptionsTile", () => {
         exceptions: { total: 0, failed: true },
         isNotSetUp: true,
       }),
-    ).toEqual({ value: "—", sublabel: "could not load" });
+    ).toEqual({ value: undefined, sublabel: "could not load" });
   });
 
   test("before the lookup returns it shows a dash, not 'not set up'", () => {
     expect(
       describeExceptionsTile({ exceptions: null, isNotSetUp: true }),
-    ).toEqual({ value: "—", sublabel: "reported by your app" });
+    ).toEqual({ value: undefined, sublabel: "reported by your app" });
   });
 
   test("an app set up but quiet keeps its real 0", () => {
@@ -653,7 +653,8 @@ describe("Overview.tsx wiring: tiles", () => {
     );
 
     expect(events).toContain('"spans, selected range"');
-    expect(events).toContain("formatCompact(m.total)");
+    // In the reader's digits (#8481).
+    expect(events).toContain("formatCompact(m.total, translator)");
   });
 
   /*
@@ -1018,7 +1019,7 @@ describe("RUM_METRIC_DESCRIPTIONS say what the page computes", () => {
     );
 
     expect(errorRateTile).toContain(
-      'translator.translateTemplate("{{errors}} errored", { errors: formatCompact(m.errors), })',
+      'translator.translateTemplate("{{errors}} errored", { errors: formatCompact(m.errors, translator), })',
     );
     expect(D.errorRate).toContain("the line below is how many errored");
   });

@@ -1,6 +1,6 @@
 # AWS Security Hub
 
-把 [AWS Security Hub](https://aws.amazon.com/security-hub/) 的发现结果导入 OneUptime 的安全事件：GuardDuty、Inspector、Macie 和 IAM Access Analyzer 的发现结果，Security Hub 自己的控制检查，以及合作伙伴产品的发现结果。在那里，你可以把它们与日志、跟踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的发现结果呼叫值班人员。OneUptime 使用你创建的、只允许一个只读操作的访问密钥读取它们，不会在 AWS 中更改任何内容。无需设置代理、EventBridge 规则或 S3 导出。
+把 [AWS Security Hub](https://aws.amazon.com/security-hub/) 的发现结果导入 OneUptime 的安全事件：GuardDuty、Inspector、Macie 和 IAM Access Analyzer 的发现结果，Security Hub 自己的控制检查，以及合作伙伴产品的发现结果。在那里，你可以把它们与日志、追踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的发现结果呼叫值班人员。OneUptime 使用你创建的、只允许一个只读操作的访问密钥读取它们，不会在 AWS 中更改任何内容。无需设置代理、EventBridge 规则或 S3 导出。
 
 :::cards
 - [设置连接](#设置连接): 一个 IAM 策略、一个访问密钥，以及连接的表单。
@@ -23,7 +23,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 
 ## 开始之前
 
-- 在 OneUptime 中拥有 Project Owner、Project Admin 或 Security Admin 角色。Security Member 和 Security Viewer 可以查看连接及其运行历史，但不能更改它们。
+- 在 OneUptime 中拥有项目所有者、项目管理员或安全管理员角色。安全成员和安全查看者可以查看连接及其运行历史，但不能更改它们。
 - 一个在你要连接的区域中启用了 Security Hub 的 AWS 账户。Security Hub 是区域性的：一个连接读取的是一个账户在一个区域中持有的发现结果。
 - 要通过一个连接读取每个账户和每个区域的发现结果，需要使用 Security Hub 的委派管理员账户，在其主区域中并开启[跨区域聚合](https://docs.aws.amazon.com/securityhub/latest/userguide/finding-aggregation.html)。**Security Hub → Settings → Regions** 会显示主区域。
 - 从 OneUptime 应用和工作进程到 `securityhub.<region>.amazonaws.com`（中国区域为 `securityhub.<region>.amazonaws.com.cn`）的出站 HTTPS，以及这些主机上准确的时钟：AWS 会拒绝签名时间偏差超过 5 分钟的请求。

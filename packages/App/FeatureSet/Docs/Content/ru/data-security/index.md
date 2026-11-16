@@ -43,7 +43,7 @@ flowchart TB
 
 ## Перед началом
 
-- **Роль, которая может её настроить.** Настройки Безопасности данных меняют роли Project Owner, Project Admin и Security Admin. Роль Security Member работает с проблемами и сканирует хранилища, а Security Viewer читает найденное. Другие роли ничего этого не видят, если их команде не выданы её разрешения: в каких бакетах лежат номера карт — это именно то, что хочет знать злоумышленник. См. [Роли](/docs/permissions/reference#роли).
+- **Роль, которая может её настроить.** Настройки Безопасности данных меняют роли Владелец проекта, Администратор проекта и Администратор безопасности. Роль Участник безопасности работает с проблемами и сканирует хранилища, а Зритель безопасности читает найденное. Другие роли ничего этого не видят, если их команде не выданы её разрешения: в каких бакетах лежат номера карт — это именно то, что хочет знать злоумышленник. См. [Роли](/docs/permissions/reference#роли).
 - **Облачный аккаунт для чтения или база данных.** Безопасность данных читает облачный аккаунт через [облачное подключение](/docs/telemetry/cloud-accounts), а базу данных, которую вы обслуживаете сами, — через строку подключения только для чтения. Телеметрии ничего не нужно: она сканируется каждый час.
 
 ## Быстрый старт
@@ -69,7 +69,7 @@ flowchart TB
 | AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System, Amazon Athena | AWS S3 Bucket |
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
-| Ваши собственные базы данных | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL |
+| Ваши собственные базы данных | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
 | OneUptime | Журналы, трассировки, исключения, записи сеансов, разговоры с ИИ | Журналы, трассировки, исключения, записи сеансов, разговоры с ИИ |
 
 Каждое хранилище получает проверки, которые подходят к его виду. Хранилище, из содержимого которого нельзя взять образцы, всё равно проверяется: публичный бакет или незашифрованная база данных — это проблема, что бы в них ни лежало.

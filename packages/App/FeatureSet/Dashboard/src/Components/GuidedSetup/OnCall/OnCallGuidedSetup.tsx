@@ -10,7 +10,6 @@ import {
   DEFAULT_REPEAT_TIMES,
   EMAIL_METHOD_TYPE,
   NoAnswerChoice,
-  ON_CALL_POLICY_NAME,
   ON_CALL_SETUP,
   ON_CALL_SETUP_COPY,
   ON_CALL_SETUP_GUIDE_DOCS_PATH,
@@ -46,6 +45,7 @@ import {
   parseWaitMinutes,
 } from "./OnCallSetup";
 import GuidedSetupFrame, { GuidedSetupFrameStep } from "../GuidedSetupFrame";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import GuidedSetupRunStore, {
   GuidedSetupRun,
   getFirstOpenStepKey,
@@ -138,6 +138,12 @@ import { useServerSendingStatus } from "Common/UI/Utils/ServerSending";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import UserUtil from "Common/UI/Utils/User";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  getFirstOnCallPolicyName,
+  getSetupPolicyGone,
+  isSetupPolicyInService,
+  SetupPolicyGone,
+} from "Common/Utils/GuidedSetup/OnCallPolicyRecords";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -266,11 +272,11 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
   const [isPolicyMadeElsewhere, setIsPolicyMadeElsewhere] =
     useState<boolean>(false);
   /*
-   * The run's policy was deleted - in another tab, or by a teammate - so
-   * the step opened again to make or pick one (#7516): said first in the
-   * step, until a policy is set up.
+   * The run's policy was deleted (#7516) or archived (#8432) - in another
+   * tab, or by a teammate - so the step opened again to make or pick one:
+   * which of the two is said first in the step, until a policy is set up.
    */
-  const [isPolicyDeleted, setIsPolicyDeleted] = useState<boolean>(false);
+  const [policyGone, setPolicyGone] = useState<SetupPolicyGone | null>(null);
   const [reminders, setReminders] = useState<SetupReminderStatuses>({});
 
   // Step 3.
@@ -324,17 +330,24 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
   };
 
   /*
-   * THE RUN'S POLICY WAS DELETED - in another tab, or by a teammate - while
-   * this page was open (#7516). The run forgets it and what was built on
-   * it, as the page does when it opens on a policy that is gone; the
-   * project's policies are read again (or, unreadable, the ones read before
-   * lose the one that is gone), and "Who else is on call?" opens on making
-   * or picking one, saying why first. A step after it never opens on a
-   * policy that is gone, where its button could only do nothing.
+   * THE RUN'S POLICY WAS DELETED OR ARCHIVED - in another tab, or by a
+   * teammate - while this page was open (#7516, #8432). An archived policy
+   * is still there, but pages no one: incidents and alerts that use it skip
+   * it, so it is no more the run's than a deleted one. The run forgets it
+   * and what was built on it, as the page does when it opens on a policy
+   * that is gone; the project's policies are read again (or, unreadable,
+   * the ones read before lose the one that is gone), and "Who else is on
+   * call?" opens on making or picking one, saying why first. A step after
+   * it never opens on a policy that is gone, where its button could only do
+   * nothing. `policyAsRead` is the policy as just read: null when deleted.
    */
-  const forgetDeletedPolicy: (
-    deletedPolicyId: string,
-  ) => Promise<void> = async (deletedPolicyId: string): Promise<void> => {
+  const forgetGonePolicy: (
+    gonePolicyId: string,
+    policyAsRead: OnCallPolicyRecord | null,
+  ) => Promise<void> = async (
+    gonePolicyId: string,
+    policyAsRead: OnCallPolicyRecord | null,
+  ): Promise<void> => {
     const latest: PolicyChoiceFacts | null =
       await OnCallSetupApi.loadPolicyChoices().catch(() => {
         return null;
@@ -346,7 +359,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
             ...choices,
             policies: choices.policies.filter(
               (entry: { id: string }): boolean => {
-                return entry.id !== deletedPolicyId;
+                return entry.id !== gonePolicyId;
               },
             ),
           }
@@ -359,7 +372,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
     setReminders({});
     setShowNotReceivedHelp(false);
     setIsPolicyMadeElsewhere(false);
-    setIsPolicyDeleted(true);
+    setPolicyGone(getSetupPolicyGone(policyAsRead) || SetupPolicyGone.Deleted);
 
     if (nextChoices) {
       setChoices(nextChoices);
@@ -371,9 +384,9 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
 
   /*
    * The run's policy and whether a page reaches each of its people; null
-   * when it is gone, and then forgotten (forgetDeletedPolicy). A read that
-   * fails throws, for the step to say why: a policy is never taken for
-   * gone because the server could not be reached.
+   * when it is gone or archived, and then forgotten (forgetGonePolicy). A
+   * read that fails throws, for the step to say why: a policy is never
+   * taken for gone because the server could not be reached.
    */
   const readPolicy: (
     policyId: string,
@@ -385,8 +398,8 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
     const loaded: OnCallPolicyRecord | null =
       await OnCallSetupApi.loadPolicy(policyId);
 
-    if (!loaded) {
-      await forgetDeletedPolicy(policyId);
+    if (!isSetupPolicyInService(loaded)) {
+      await forgetGonePolicy(policyId, loaded);
       return null;
     }
 
@@ -422,23 +435,28 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
   };
 
   /*
-   * Whether the run's policy is still there, read just before a step that
-   * needs it moves on (#7516). Gone: the run forgets it, and "Who else is
-   * on call?" opens again. Unreadable: the step says why, and stays.
+   * Whether the run's policy is still there and in service, read just
+   * before a step that needs it moves on (#7516, #8432). Gone or archived:
+   * the run forgets it, and "Who else is on call?" opens again, saying
+   * which. Unreadable: the step says why, and stays.
    */
   const isPolicyStillThere: (policyId: string) => Promise<boolean> = async (
     policyId: string,
   ): Promise<boolean> => {
+    let latest: OnCallPolicyRecord | null = null;
+
     try {
-      if (await OnCallSetupApi.loadPolicy(policyId)) {
-        return true;
-      }
+      latest = await OnCallSetupApi.loadPolicy(policyId);
     } catch (err) {
       setSaveError(API.getFriendlyMessage(err));
       return false;
     }
 
-    await forgetDeletedPolicy(policyId);
+    if (isSetupPolicyInService(latest)) {
+      return true;
+    }
+
+    await forgetGonePolicy(policyId, latest);
     return false;
   };
 
@@ -474,7 +492,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
       let loadedPolicy: OnCallPolicyRecord | null = null;
       let loadedResponders: Array<ResponderReach> = [];
       let loadedResult: OnCallTestPageResult | null = null;
-      let isRunPolicyGone: boolean = false;
+      let runPolicyGone: SetupPolicyGone | null = null;
 
       const policyId: string | boolean | undefined =
         nextRun[OnCallRunValue.PolicyId];
@@ -486,14 +504,16 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
          * deleted, because the server could not be reached.
          */
         loadedPolicy = await OnCallSetupApi.loadPolicy(policyId);
+        runPolicyGone = getSetupPolicyGone(loadedPolicy);
 
-        if (!loadedPolicy) {
+        if (runPolicyGone) {
           /*
-           * The policy is gone: everything after "who is reached" starts
-           * again, and the step says why (#7516).
+           * The policy is gone (#7516), or archived and paging no one
+           * (#8432): everything after "who is reached" starts again, and
+           * the step says why.
            */
           nextRun = store.save(getRunWithoutPolicy());
-          isRunPolicyGone = true;
+          loadedPolicy = null;
         } else {
           loadedResponders = await OnCallSetupApi.loadPolicyReadiness({
             policyId: policyId,
@@ -525,7 +545,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
       setPolicy(loadedPolicy);
       setResponders(loadedResponders);
       setTestResult(loadedResult);
-      setIsPolicyDeleted(isRunPolicyGone);
+      setPolicyGone(runPolicyGone);
       setOpenStepKey(
         getFirstOpenStepKey(
           getOnCallProgress({
@@ -1109,12 +1129,12 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
           await OnCallSetupApi.loadPolicy(policyId);
 
         /*
-         * The policy picked was deleted since the project's policies were
-         * read (#7516): nothing is added to it, and the step offers the
-         * project's policies as they are now.
+         * The policy picked was deleted (#7516) or archived (#8432) since
+         * the project's policies were read: nothing is added to it, and the
+         * step offers the project's policies as they are now.
          */
-        if (!chosen) {
-          await forgetDeletedPolicy(policyId);
+        if (!isSetupPolicyInService(chosen)) {
+          await forgetGonePolicy(policyId, chosen);
           setIsSaving(false);
           return;
         }
@@ -1167,7 +1187,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
           setChosenPolicyId(latest.policies[0]?.id || "");
           setIsPolicyMadeElsewhere(latest.policies.length > 0);
           // The newer reason is the one said.
-          setIsPolicyDeleted(false);
+          setPolicyGone(null);
           setIsSaving(false);
           return;
         }
@@ -1176,12 +1196,13 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
           userIds: userIds,
           teamIds: teamIds,
           addRules: latest.mayAddRules,
+          translator: translator,
         });
         saveRun({ [OnCallRunValue.PolicyId]: policyId });
       }
 
       // The run has a policy again: why it lost the last one is said no more.
-      setIsPolicyDeleted(false);
+      setPolicyGone(null);
 
       /*
        * Everyone reached and the policy runs: on to the next step. Otherwise
@@ -1205,9 +1226,10 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
 
   /*
    * Adds the on-call rules nothing ran the policy by, then moves on - once
-   * the policy is read again, just before: deleted since, in another tab or
-   * by a teammate, the run forgets it and the step stays open to make or
-   * pick one, with nothing added (#7516); its rules added since by another
+   * the policy is read again, just before: deleted (#7516) or archived
+   * (#8432) since, in another tab or by a teammate, the run forgets it and
+   * the step stays open to make or pick one, with nothing added; its rules
+   * added since by another
    * tab or device are not added twice, as a second pair would run the
    * policy twice for every new incident and alert (#7252). Only the kinds
    * still missing are added, and only when the button offered to.
@@ -1226,8 +1248,8 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
         policy.id,
       );
 
-      if (!latest) {
-        await forgetDeletedPolicy(policy.id);
+      if (!isSetupPolicyInService(latest)) {
+        await forgetGonePolicy(policy.id, latest);
         setIsSaving(false);
         return;
       }
@@ -1242,6 +1264,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
             policyName: policy.name,
             incident: stillMissing.incident,
             alert: stillMissing.alert,
+            translator: translator,
           });
         }
 
@@ -1374,22 +1397,32 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
           describeFirstLevel(translator, {
             level: firstLevel,
             responders: responders,
-          }) || "-",
+          }) || EMPTY_VALUE_MARK,
       })
     : "";
 
   /*
    * Why the step is open again with no policy: the run's was deleted
-   * (#7516). Said first; in the step's polite live region when the step can
-   * make or pick one, so a screen reader hears why Continue led back here.
+   * (#7516), or archived and pages no one (#8432) - each said in a sentence
+   * of its own. Said first; in the step's polite live region when the step
+   * can make or pick one, so a screen reader hears why Continue led back
+   * here.
    */
-  const policyDeletedLine: ReactElement =
-    isPolicyDeleted && !policy ? (
+  const policyGoneLine: ReactElement =
+    policyGone && !policy ? (
       <p
         className="text-sm text-gray-700"
-        data-testid="on-call-setup-policy-deleted"
+        data-testid={
+          policyGone === SetupPolicyGone.Archived
+            ? "on-call-setup-policy-archived"
+            : "on-call-setup-policy-deleted"
+        }
       >
-        {translator.translateText(ON_CALL_SETUP_COPY.policyDeleted)}
+        {translator.translateText(
+          policyGone === SetupPolicyGone.Archived
+            ? ON_CALL_SETUP_COPY.policyArchived
+            : ON_CALL_SETUP_COPY.policyDeleted,
+        )}
       </p>
     ) : (
       <></>
@@ -1446,11 +1479,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
     whoContent = (
       <div data-testid="on-call-setup-cannot-create">
         <div aria-live="polite" data-testid="on-call-setup-who-help">
-          {isPolicyDeleted ? (
-            <div className="mb-4">{policyDeletedLine}</div>
-          ) : (
-            <></>
-          )}
+          {policyGone ? <div className="mb-4">{policyGoneLine}</div> : <></>}
         </div>
         <Alert
           type={AlertType.INFO}
@@ -1474,7 +1503,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
           aria-live="polite"
           data-testid="on-call-setup-who-help"
         >
-          {policyDeletedLine}
+          {policyGoneLine}
           {isPolicyMadeElsewhere && isExistingMode ? (
             <p
               className="text-sm text-gray-700"
@@ -1489,7 +1518,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
             {isExistingMode
               ? translator.translateText(ON_CALL_SETUP_COPY.whoExistingHelp)
               : translator.translateTemplate(ON_CALL_SETUP_COPY.whoCreateHelp, {
-                  policy: ON_CALL_POLICY_NAME,
+                  policy: getFirstOnCallPolicyName(translator),
                 })}
           </p>
         </div>
@@ -1621,8 +1650,12 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
     setIsSaving(true);
 
     try {
-      if (!(await OnCallSetupApi.loadPolicy(policy.id))) {
-        await forgetDeletedPolicy(policy.id);
+      const latest: OnCallPolicyRecord | null = await OnCallSetupApi.loadPolicy(
+        policy.id,
+      );
+
+      if (!isSetupPolicyInService(latest)) {
+        await forgetGonePolicy(policy.id, latest);
         setIsSaving(false);
         return;
       }
@@ -1869,7 +1902,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
             other: "After {{count}} minutes, {{people}} is paged.",
           },
           firstLevel.escalateAfterInMinutes,
-          { people: secondLevel.names.join(", ") || "-" },
+          { people: secondLevel.names.join(", ") || EMPTY_VALUE_MARK },
         )
       : policy.repeatTimes > 0
         ? translator.translatePlural(
@@ -1888,12 +1921,16 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
     testResult?.status === OnCallTestPageStatus.Acknowledged;
 
   /*
-   * Skipping the test leads to the summary, read from the records - once
-   * the policy is read again: deleted since, in another tab or by a
-   * teammate, there is nothing to sum up, and "Who else is on call?" opens
-   * again instead (#7516).
+   * Skipping the test, or Continue once it was acknowledged, leads to the
+   * summary, read from the records - once the policy is read again: deleted
+   * (#7516) or archived (#8432) since, in another tab or by a teammate,
+   * there is nothing true to sum up - the summary would say it pages people
+   * - and "Who else is on call?" opens again instead. Unreadable, the step
+   * says why and stays.
    */
-  const skipTest: () => Promise<void> = async (): Promise<void> => {
+  const finishTest: (skipped: boolean) => Promise<void> = async (
+    skipped: boolean,
+  ): Promise<void> => {
     setSaveError("");
 
     if (!policy) {
@@ -1901,11 +1938,18 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
       return;
     }
 
-    if (!(await isPolicyStillThere(policy.id))) {
+    setIsSaving(true);
+    const isThere: boolean = await isPolicyStillThere(policy.id);
+    setIsSaving(false);
+
+    if (!isThere) {
       return;
     }
 
-    saveRun({ [OnCallRunValue.TestSkipped]: true });
+    if (skipped) {
+      saveRun({ [OnCallRunValue.TestSkipped]: true });
+    }
+
     setOpenStepKey(null);
   };
 
@@ -1923,14 +1967,16 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
           {translator.translateText(ON_CALL_SETUP_COPY.testHelp)}
         </p>
       )}
+      {errorLine}
       {isAcknowledged ? (
         <div className={ACTIONS_CLASS_NAME}>
           <Button
             title={ON_CALL_SETUP_COPY.continueButton}
             buttonStyle={ButtonStyleType.PRIMARY}
+            isLoading={isSaving}
             dataTestId="on-call-setup-test-continue"
             onClick={() => {
-              setOpenStepKey(null);
+              void finishTest(false);
             }}
           />
         </div>
@@ -1964,17 +2010,17 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
               }}
               onClose={() => {
                 /*
-                 * The dialog closed: a policy deleted meanwhile, in another
-                 * tab or by a teammate, could not be tested (#7516). The
-                 * run forgets it, and "Who else is on call?" opens again; a
-                 * read that fails changes nothing.
+                 * The dialog closed: a policy deleted (#7516) or archived
+                 * (#8432) meanwhile, in another tab or by a teammate, could
+                 * not be tested. The run forgets it, and "Who else is on
+                 * call?" opens again; a read that fails changes nothing.
                  */
                 const policyId: string = policy.id;
 
                 void OnCallSetupApi.loadPolicy(policyId)
                   .then((latest: OnCallPolicyRecord | null) => {
-                    if (!latest) {
-                      return forgetDeletedPolicy(policyId);
+                    if (!isSetupPolicyInService(latest)) {
+                      return forgetGonePolicy(policyId, latest);
                     }
 
                     return undefined;
@@ -2004,7 +2050,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
             buttonStyle={ButtonStyleType.LINK}
             dataTestId="on-call-setup-skip-test"
             onClick={() => {
-              void skipTest();
+              void finishTest(true);
             }}
           />
         </div>
@@ -2191,7 +2237,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
             setRun(store.save({ [OnCallRunValue.ReachConfirmed]: true }));
             setPolicy(null);
             setIsPolicyMadeElsewhere(false);
-            setIsPolicyDeleted(false);
+            setPolicyGone(null);
             setResponders([]);
             setTestResult(null);
             setReminders({});

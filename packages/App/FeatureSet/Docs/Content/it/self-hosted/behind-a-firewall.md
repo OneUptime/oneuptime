@@ -77,7 +77,7 @@ Quando un reperibile preme 1 durante una chiamata per confermare l'avviso, Twili
 
 ### WhatsApp
 
-Avvisi e conferme non richiedono nulla in entrata. Meta invia le ricevute di consegna e di lettura a `/api/notification/whatsapp/webhook`; senza di esse, il registro WhatsApp di OneUptime non può mostrare se un messaggio è stato consegnato, letto o è fallito dopo che Meta l'ha accettato. Meta firma ogni richiesta e non pubblica indirizzi fissi.
+Avvisi e conferme non richiedono nulla in entrata. Meta invia le ricevute di consegna e di lettura a `/api/notification/whatsapp/webhook`; senza di esse, il log WhatsApp di OneUptime non può mostrare se un messaggio è stato consegnato, letto o è fallito dopo che Meta l'ha accettato. Meta firma ogni richiesta e non pubblica indirizzi fissi.
 
 ### Slack e Microsoft Teams
 

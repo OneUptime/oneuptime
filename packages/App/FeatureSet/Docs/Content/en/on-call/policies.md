@@ -52,7 +52,7 @@ Open a policy from the list. Its side menu holds everything about it:
 **Basic** is open; the other sections start folded until you click them.
 
 - **Overview** shows the **On-Call Policy Details**, then **Policy at a glance**: how many levels and responders the policy has, how long until its last level, and how often it repeats. **Responder readiness** says whether everyone it can page can be reached now, and **On-Call Policy Feed** lists what changed: people, teams and schedules added or removed, overrides and hand-offs. Its Slack, Microsoft Teams and Mattermost rules post them to your channels, a hand-off in one line: see [On-call messages](/docs/workspace-connections/slack#on-call-messages).
-- **Owners** are the people and teams responsible for the policy. When a page it sends finds no rule for someone, or cannot be delivered, they are emailed; a policy with no owners emails the project's owners instead.
+- **Owners** are the people and teams responsible for the policy. When a page it sends finds no rule for someone, or cannot be delivered, they are emailed; a policy with no owners emails the Project Owners instead.
 - **Notification Logs** lists every message the policy sent, with a tab per channel.
 - **User Overrides** covers people on this policy only. See [User Overrides](/docs/on-call/user-overrides).
 - **Settings** has **Export On-Call Policy** and the card that archives the policy.
@@ -111,11 +111,11 @@ flowchart TB
 | Status | What it means |
 | --- | --- |
 | **Waiting** | An on-call rule set to **Only during working hours** makes the run wait until those hours begin: it says when paging starts, and pages nobody until then. It ends without paging if the incident or alert is acknowledged or resolved first. It starts paging at once if the incident or alert changes and now matches an on-call rule that pages right away. |
-| **Scheduled**, **Started** | The run is being set up. One still here after 5 minutes is stopped as **Error**. |
-| **Executing** | The run is paging. OneUptime moves it on every minute. |
+| **Scheduled**, **Started** | The run is being set up. One still here after 5 minutes did not finish starting: it moves on to **Executing** and pages from where its start stopped. A direct page or a test page still here is stopped as **Error**. |
+| **Executing** | The run is paging. OneUptime moves it on every minute. A step that fails for a moment, because the database could not be reached for example, is tried again a minute later, then 2 and 4 minutes later, then every 5 minutes. |
 | **Execution Completed** | Someone acknowledged, the incident or alert was resolved, every rule and repeat was used, or the policy was archived. |
 | **Execution Completed - No One Notified** | The run went through every rule and paged nobody: usually a schedule with nobody on call, or a level with no responders. |
-| **Error** | The run failed. **View Status Message** says why. |
+| **Error** | The run failed: a step failed in a way a retry cannot fix, such as an escalation rule that was deleted, or failed 10 tries in a row, over about 37 minutes. **View Status Message** says why. |
 
 You find execution logs in three places:
 

@@ -37,7 +37,7 @@ El explorador tiene cinco pestañas:
 ## Antes de empezar
 
 - **Registros que llegan.** Envíelos con [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd) o [Syslog](/docs/telemetry/syslog). La pestaña **Guía de configuración** muestra la configuración para su lenguaje o su recolector.
-- **Un rol que pueda leer telemetría.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member o Telemetry Viewer, o un rol personalizado con el permiso Read Logs. Su ámbito decide de quién son los registros que ve: consulte [Telemetría](/docs/permissions/index#telemetría).
+- **Un rol que pueda leer telemetría.** Propietario del proyecto, Administrador del proyecto, Miembro del proyecto, Visor, Administrador de telemetría, Miembro de telemetría o Visor de telemetría, o un rol personalizado con el permiso Read Logs. Su ámbito decide de quién son los registros que ve: consulte [Telemetría](/docs/permissions/index#telemetría).
 
 ## Encontrar una línea de registro
 
@@ -169,7 +169,7 @@ En **Más campos** una regla elige los repositorios de código, los servidores M
 
 ### Ver lo que hizo
 
-- **Registros → IA → Análisis** muestra lo que OneUptime encontró, cada hallazgo con sus pruebas y **Abrir en Registros**, que abre las líneas de las que trata, de la hora en que se encontró, en el **Visor**. Un fallo que no escribe ninguna línea de registro no tiene líneas que abrir: **Abrir en Trazas** abre en su lugar sus spans fallidos. En un registro de error, **Crear monitor** configura un monitor de registros que cuenta las líneas del mensaje.
+- **Registros → IA → Hallazgos** muestra lo que OneUptime encontró, cada hallazgo con sus pruebas y **Abrir en Registros**, que abre las líneas de las que trata, de la hora en que se encontró, en el **Visor**. Un fallo que no escribe ninguna línea de registro no tiene líneas que abrir: **Abrir en Trazas** abre en su lugar sus spans fallidos. En un registro de error, **Crear monitor** configura un monitor de registros que cuenta las líneas del mensaje.
 - **Registros → IA → Actividad** muestra cada investigación y cada pull request, lo más reciente primero, con el estado de cada una. Una investigación terminada también dice lo que encontró la IA de OneUptime, como la causa de un error fuera del código, y por eso ese registro de error no recibió ninguna pull request por su cuenta.
 - En Código, la tarea indica que OneUptime la inició, con un enlace a su hallazgo, y la pull request explica por qué se abrió.
 

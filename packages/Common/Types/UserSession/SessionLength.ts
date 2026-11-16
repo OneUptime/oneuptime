@@ -33,8 +33,10 @@
  * it renews the session, and the longest time they went without since its
  * last renewal - a browser closed, a computer asleep - so opening
  * OneUptime again after the idle timeout does not bring the session back
- * (issue #6789); anything else (the mobile app, an older page) is active
- * whenever it renews. The server decides at every renewal
+ * (issue #6789). The mobile app says the same of its person's touches, and
+ * of the time it spent in the background or closed (issue #8187,
+ * MobileApp/src/auth/userActivity.ts). Anything else (an older app or
+ * page) is active whenever it renews. The server decides at every renewal
  * (decideSessionRenewal) and on every request (getSessionEnd), never the
  * browser, and a change applies to the sessions there are: a shorter
  * length signs out everyone it is past.
@@ -502,7 +504,8 @@ export const readSessionEndReason: (
 /*
  * The field of a renewal (POST /identity/refresh-token) in which the
  * Dashboard and the Admin Dashboard say how long their person has not
- * clicked, typed or scrolled, in whole seconds.
+ * clicked, typed or scrolled, and the mobile app how long its person has
+ * not touched it or typed in it, in whole seconds.
  */
 export const INACTIVE_FOR_IN_SECONDS_FIELD: string = "inactiveForInSeconds";
 
@@ -652,6 +655,12 @@ export const getActivityAtRenewal: (data: {
  * the browser's clock. The server ends the session when it reached the
  * idle timeout, counting it only from what the session knew of its
  * person's activity already: activity the server heard of cuts it short.
+ *
+ * The mobile app says the same (issue #8187): the longest time it spent in
+ * the background, or closed, or on the screen untouched. Without it the app
+ * was decided from its last renewal alone, and under the 15-minute idle
+ * timeout - whose end the access token runs out at - it was signed out at
+ * every renewal, however much it was used.
  */
 export const LONGEST_INACTIVITY_FIELD: string = "longestInactivity";
 
@@ -849,4 +858,73 @@ export const decideSessionRenewal: (data: {
   }
 
   return { hasEnded: false, lastActiveAt: lastActiveAt };
+};
+
+/*
+ * HOW SOON THE SERVER HEARS THAT A SESSION IS IN USE (issue #8188).
+ *
+ * The server knows when a session's person was last active from what the
+ * session's last renewal said, and a tab renews only when it must: a
+ * request after its access token ran out, or its live updates' notice a
+ * minute before. A page that asks the server nothing - a long note being
+ * typed, an Admin Dashboard page without live updates - could be in use
+ * for an hour while the server's record said its person had gone. So,
+ * while their person uses OneUptime, the Dashboard and the Admin Dashboard
+ * renew the session themselves once the activity the server last heard of
+ * is ACTIVITY_REPORTED_WITHIN_IN_MINUTES old (Common/UI/Utils/
+ * UserActivity), and every renewal says that they do
+ * (REPORTS_ACTIVITY_WHILE_IN_USE_FIELD), which the session keeps.
+ *
+ * Of a session whose last renewal said so, the server knows that while
+ * its person uses it, it hears of them within that time. One it has heard
+ * nothing of for its idle timeout and IDLE_TIMEOUT_SWEEP_MARGIN_IN_MINUTES
+ * more is not in use - the browser closed, the computer asleep, the person
+ * gone - and the five-minute sweep ends it and records its idle timeout,
+ * as having run out at its last activity plus the idle timeout
+ * (UserSessionService.endSessionsThatRanOut), rather than 30 days later as
+ * "Not used for 30 days". The margin is six times the interval, so a
+ * renewal that fails for a while (the network down) or a clock a little
+ * off never signs out someone still working. A session whose last renewal
+ * did not say so - a tab of an earlier release, the mobile app - is
+ * decided at its next renewal, as before.
+ */
+export const ACTIVITY_REPORTED_WITHIN_IN_MINUTES: number = 5;
+
+export const IDLE_TIMEOUT_SWEEP_MARGIN_IN_MINUTES: number = 30;
+
+/*
+ * The field of a renewal in which the Dashboard and the Admin Dashboard say
+ * they renew within ACTIVITY_REPORTED_WITHIN_IN_MINUTES of their person's
+ * activity, and the key of UserSession.additionalInfo the session keeps
+ * what its last renewal said under.
+ */
+export const REPORTS_ACTIVITY_WHILE_IN_USE_FIELD: string =
+  "reportsActivityWhileInUse";
+
+/*
+ * Whether a renewal says its browser renews while its person uses it: true
+ * only, never a value that merely looks like it.
+ */
+export const readReportsActivityWhileInUse: (value: unknown) => boolean = (
+  value: unknown,
+): boolean => {
+  return value === true;
+};
+
+/*
+ * The latest last activity at which the sweep ends, at `now`, a session
+ * whose browser renews while in use, under an idle timeout of
+ * `idleTimeoutInMinutes`: its idle timeout and the margin before `now`. A
+ * session last active then, or before, is ended; one active a moment after
+ * is not.
+ */
+export const getIdleTimeoutSweepCutoff: (data: {
+  idleTimeoutInMinutes: number;
+  now: Date;
+}) => Date = (data: { idleTimeoutInMinutes: number; now: Date }): Date => {
+  return new Date(
+    data.now.getTime() -
+      (data.idleTimeoutInMinutes + IDLE_TIMEOUT_SWEEP_MARGIN_IN_MINUTES) *
+        MS_IN_A_MINUTE,
+  );
 };

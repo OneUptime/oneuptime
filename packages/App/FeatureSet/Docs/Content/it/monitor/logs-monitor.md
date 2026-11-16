@@ -36,7 +36,7 @@ Andate in **Monitor** e fate clic su **Crea monitor**. Oppure, nell'esploratore 
 
 ### Scegliere Logs
 
-In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **Registri** sotto **Telemetria**, oppure digitate `logs` nella casella di ricerca. Inserite un **Nome**, poi fate clic su **Avanti**.
+In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **Log** sotto **Telemetria**, oppure digitate `logs` nella casella di ricerca. Inserite un **Nome**, poi fate clic su **Avanti**.
 
 ### Scegliere di cosa vi informa il monitor
 
@@ -86,11 +86,13 @@ Ogni log viene salvato con una di sette gravità. Per i log OpenTelemetry deriva
 | --- | --- |
 | **Traccia** | 1–4 |
 | **Debug** | 5–8 |
-| **Information** | 9–12 |
+| **Informazioni** | 9–12 |
 | **Avviso** | 13–16 |
 | **Errore** | 17–20 |
-| **Fatal** | 21–24 |
+| **Fatale** | 21–24 |
 | **Non specificato** | Tutto il resto |
+
+Un log senza numero di gravità prende la gravità dal suo testo di gravità, in maiuscolo o minuscolo: `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` e `FATAL`, i loro livelli numerati come `WARN2` e grafie come `warning`, `notice`, `critical` ed `emerg`. Qualsiasi altro testo lascia la gravità non specificata.
 
 ## Come viene valutato
 
@@ -123,7 +125,7 @@ Un monitor log creato in Crea monitor parte con la regola di ciò che avete scel
 
 | Scelta | Regola | Cosa succede |
 | --- | --- | --- |
-| **Troppi errori** | **Gravità del log** **Errore** e **Fatal**, **Più di** `10` in **Ultimi 5 minuti** | Crea un avviso, che si risolve da solo |
+| **Troppi errori** | **Gravità del log** **Errore** e **Fatale**, **Più di** `10` in **Ultimi 5 minuti** | Crea un avviso, che si risolve da solo |
 | **Compare un messaggio** | **Più di** `0` in **Ultimi 5 minuti** | Crea un avviso, che si risolve da solo |
 | **I log si fermano** | **Esattamente** `0` in **Ultimi 10 minuti** | Dichiara un incidente, che si risolve da solo |
 
@@ -210,7 +212,7 @@ log_component="IPSec" con_name="HQ-Branch1" status="Terminated" message="IPSec C
 ```
 
 :::steps
-1. Create un monitor **Registri** e scegliete **Compare un messaggio**.
+1. Create un monitor **Log** e scegliete **Compare un messaggio**.
 2. Impostate **Il messaggio contiene** su `terminated` e la **Finestra temporale** su **Ultimi 5 minuti**.
 3. In **Altri campi**, aggiungete il filtro di attributo `log_component` = `IPSec`.
 4. In **Raggruppa per attributi**, aggiungete `con_name`.

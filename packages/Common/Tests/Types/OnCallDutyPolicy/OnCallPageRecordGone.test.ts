@@ -7,7 +7,13 @@ import {
   getOnCallPageRecordDeletedMessage,
   ON_CALL_PAGE_NAMES_NO_RECORD_MESSAGE,
   ON_CALL_PAGE_RECORD_DELETED_MESSAGE_START,
+  ON_CALL_PAGE_RECORD_NOT_FOUND_MESSAGE,
+  OnCallPageRecordGoneException,
 } from "../../../Types/OnCallDutyPolicy/OnCallPageRecordGone";
+import BadDataException from "../../../Types/Exception/BadDataException";
+import Exception from "../../../Types/Exception/Exception";
+import ExceptionCode from "../../../Types/Exception/ExceptionCode";
+import { isErrorSentence } from "../../../Types/Exception/ErrorMessageRule";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
@@ -122,5 +128,50 @@ describe("the message of a log whose record was deleted", () => {
         OnCallAcknowledgementTimeout.getRunRecord({})?.kind,
       ),
     ).toBe(ON_CALL_PAGE_NAMES_NO_RECORD_MESSAGE);
+  });
+});
+
+/*
+ * A record deleted between the worker's read of where it stands and a
+ * rule's send is found gone by the send (issue #8168): it throws this, and
+ * the person's log ends with the words above, Completed, rather than in
+ * Error with the send's.
+ */
+describe("a record found gone as a page is sent", () => {
+  test.each(KINDS)(
+    "says which kind of record was gone: %s",
+    (kind: OnCallTimeoutRecordKind) => {
+      const error: OnCallPageRecordGoneException =
+        new OnCallPageRecordGoneException(kind);
+
+      expect(error.recordKind).toBe(kind);
+      expect(getOnCallPageRecordDeletedMessage(error.recordKind)).toBe(
+        `Execution completed because ${kind} is deleted.`,
+      );
+    },
+  );
+
+  test("is still the BadDataException the send always threw, with its message", () => {
+    const error: OnCallPageRecordGoneException =
+      new OnCallPageRecordGoneException("incident");
+
+    expect(error).toBeInstanceOf(BadDataException);
+    expect(error).toBeInstanceOf(Exception);
+    expect(error).toBeInstanceOf(Error);
+    expect(error.code).toBe(ExceptionCode.BadDataException);
+    expect(error.message).toBe(ON_CALL_PAGE_RECORD_NOT_FOUND_MESSAGE);
+    expect(ON_CALL_PAGE_RECORD_NOT_FOUND_MESSAGE).toBe(
+      "Incident, Alert, Alert Episode, or Incident Episode not found.",
+    );
+  });
+
+  test("its message is a sentence", () => {
+    expect(isErrorSentence(ON_CALL_PAGE_RECORD_NOT_FOUND_MESSAGE)).toBe(true);
+  });
+
+  test("a plain BadDataException is not one: bad data still ends a log in Error", () => {
+    expect(
+      new BadDataException(ON_CALL_PAGE_RECORD_NOT_FOUND_MESSAGE),
+    ).not.toBeInstanceOf(OnCallPageRecordGoneException);
   });
 });

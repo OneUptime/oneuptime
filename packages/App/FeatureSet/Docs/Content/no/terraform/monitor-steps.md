@@ -11,7 +11,7 @@
 
 ## Slik bedømmes en sjekk
 
-Hver sjekk gir et resultat: svaret fra en probe, returverdien fra et skript eller telemetrien sjekken leser. Trinnets kriterier bedømmer det så i sin rekkefølge. Det første kriteriet der filtrene stemmer, bestemmer hva som skjer: det kan endre monitorens status, åpne hendelser og åpne varsler. Kriteriene etter det blir ikke vurdert for den sjekken.
+Hver sjekk gir et resultat: svaret fra en sonde, returverdien fra et skript eller telemetrien sjekken leser. Trinnets kriterier bedømmer det så i sin rekkefølge. Det første kriteriet der filtrene stemmer, bestemmer hva som skjer: det kan endre monitorens status, åpne hendelser og åpne varsler. Kriteriene etter det blir ikke vurdert for den sjekken.
 
 ```mermaid title="Slik bedømmes hver sjekk"
 flowchart TB
@@ -26,7 +26,7 @@ Rekkefølgen på kriteriene betyr altså noe: sett kriteriene som varsler, førs
 
 ## Skriv trinnene
 
-`monitor_steps` er en liste med typede objekter som skrives rett i HCL. Det finnes ingen `jsonencode()`, ingen `{_type, value}`-innpakning, ingen camelCase-nøkkel og ingen ID å skrive: provideren gjør HCL-en din om til API-ets format, og serveren gir hvert trinn, kriterium, hendelsesmal og varselsmal sin ID. Den beholder de ID-ene ved hver apply ved å matche hvert kriterium og hver mal med den de erstatter, etter navn og ellers etter posisjon, slik at proberesultater blir hos trinnet sitt og hendelser fortsetter å peke på kriteriene som utløste dem.
+`monitor_steps` er en liste med typede objekter som skrives rett i HCL. Det finnes ingen `jsonencode()`, ingen `{_type, value}`-innpakning, ingen camelCase-nøkkel og ingen ID å skrive: provideren gjør HCL-en din om til API-ets format, og serveren gir hvert trinn, kriterium, hendelsesmal og varselsmal sin ID. Den beholder de ID-ene ved hver apply ved å matche hvert kriterium og hver mal med den de erstatter, etter navn og ellers etter posisjon, slik at sonderesultater blir hos trinnet sitt og hendelser fortsetter å peke på kriteriene som utløste dem.
 
 ```mermaid title="Delene av monitor_steps"
 flowchart TB
@@ -170,9 +170,9 @@ Hvert element i `monitor_steps` er én ting som skal sjekkes:
 | `tls_client_certificate` | string | Nettsted, API | Et klientsertifikat for gjensidig TLS: PEM eller en henvisning `{{monitorSecrets.name}}`. |
 | `tls_client_key` | string (sensitiv) | Nettsted, API | Klientsertifikatets private nøkkel. Angi den sammen med sertifikatet. |
 | `tls_client_key_passphrase` | string (sensitiv) | Nettsted, API | Passordfrasen til den private nøkkelen. |
-| `request_timeout_in_ms` | number | Sjekker som en probe gjør | Hvor lenge ett forsøk kan ta, i millisekunder. Proben senker alt over 60000 til 60000. |
-| `retry_count` | number | Sjekker som en probe gjør | Nye forsøk etter et mislykket første forsøk: `0` sjekker én gang, `3` opptil fire ganger. Proben senker alt over 3 til 3. |
-| `custom_code` | string | Custom JavaScript Code, Synthetic | Skriptet trinnet kjører. |
+| `request_timeout_in_ms` | number | Sjekker som en sonde gjør | Hvor lenge ett forsøk kan ta, i millisekunder. Sonden senker alt over 60000 til 60000. |
+| `retry_count` | number | Sjekker som en sonde gjør | Nye forsøk etter et mislykket første forsøk: `0` sjekker én gang, `3` opptil fire ganger. Sonden senker alt over 3 til 3. |
+| `custom_code` | string | Egendefinert JavaScript-kode, Synthetic | Skriptet trinnet kjører. |
 | `screen_size_types` | list(string) | Synthetic | `Mobile`, `Tablet` og `Desktop`. |
 | `browser_types` | list(string) | Synthetic | `Chromium` og `Firefox`. |
 | `retry_count_on_error` | number | Synthetic | Nye forsøk når skriptet feiler: `0` kjører det én gang. |
@@ -227,9 +227,9 @@ resource "oneuptime_monitor" "checkout_errors" {
 
 Hvert element i `criteria` er én regel: når filtrene stemmer, gjør det regelen sier.
 
-Kriteriene bedømmes fra toppen, og det første som stemmer, bestemmer, så sett kriteriene som varsler, først, det mest alvorlige først (kritisk, deretter advarsel), og det friske sist. Et friskt kriterium øverst er den vanligste måten å bygge en monitor som aldri varsler på: en bred regel som `Is Online` er `True`, eller en metrikkverdi `Greater Than` `0`, stemmer med nesten hver sjekk, og kriteriene under den blir aldri vurdert. Plassert sist stemmer den bare når ingenting over den stemte, og det er det du vil.
+Kriteriene bedømmes fra toppen, og det første som stemmer, bestemmer, så sett kriteriene som varsler, først, det mest alvorlige først (kritisk, deretter advarsel), og det friske sist. Et friskt kriterium øverst er den vanligste måten å bygge en monitor som aldri varsler på: en bred regel som `Is Online` er `True`, eller en målingsverdi `Greater Than` `0`, stemmer med nesten hver sjekk, og kriteriene under den blir aldri vurdert. Plassert sist stemmer den bare når ingenting over den stemte, og det er det du vil.
 
-Grupperte metrikkmonitorer er det ene unntaket. Når spørringen til en metrikkmonitor er gruppert (`groupByAttributeKeys` angitt i JSON-en for `metric_monitor`, ved `metricViewConfig.queryConfigs[].metricQueryData.groupByAttributeKeys`), åpner monitoren ett varsel eller én hendelse for hver gruppe (hver vert, container eller monteringspunkt), og hvert kriterium bedømmes, så et kritisk kriterium og et advarselskriterium kan slå til for forskjellige verter på samme sjekk. En vert som bryter begge, tilkalles likevel bare én gang, av det første kriteriet som stemmer, så det mest alvorlige skal fortsatt stå først. Se [Metrikk-overvåking](/docs/monitor/metrics-monitor).
+Grupperte målingsmonitorer er det ene unntaket. Når spørringen til en målingsmonitor er gruppert (`groupByAttributeKeys` angitt i JSON-en for `metric_monitor`, ved `metricViewConfig.queryConfigs[].metricQueryData.groupByAttributeKeys`), åpner monitoren ett varsel eller én hendelse for hver gruppe (hver vert, container eller monteringspunkt), og hvert kriterium bedømmes, så et kritisk kriterium og et advarselskriterium kan slå til for forskjellige verter på samme sjekk. En vert som bryter begge, tilkalles likevel bare én gang, av det første kriteriet som stemmer, så det mest alvorlige skal fortsatt stå først. Se [Målingsmonitor](/docs/monitor/metrics-monitor).
 
 | Attributt | Type | Hva det er |
 | --- | --- | --- |
@@ -311,7 +311,7 @@ Et filter kan også bedømme et tidsvindu i stedet for den siste sjekken: angi `
 | Unntak | `Exception Count` |
 | Profiler | `Profile Count`, `Function Share (in %)` |
 | KI / LLM | `Bad AI Answers (in %)`, `Bad AI Answers`, `AI Answers` |
-| Metrikker | `Metric Value` (metrikkfiltre kan ta JSON i `metric_monitor_options`) |
+| Målinger | `Metric Value` (målingsfiltre kan ta JSON i `metric_monitor_options`) |
 | Egendefinert kode / Synthetic | `Result Value` (kan sammenligne ett felt i de returnerte dataene, angitt i JSON-en i `custom_code_monitor_options`, f.eks. `jsonencode({ resultValuePath = "status" })` — se nedenfor), `Error`, `Execution Time (in ms)` |
 | DNS | `DNS Is Online`, `DNS Response Time (in ms)`, `DNS Record Value`, `DNS Record Exists` |
 | Domene | `Domain Expires In Days`, `Domain Is Expired`, `Domain Registrar`, `Domain Name Server` |
@@ -332,8 +332,8 @@ Et filter kan også bedømme et tidsvindu i stedet for den siste sjekken: angi `
 | Heartbeats | `Recieved In Minutes`, `Not Recieved In Minutes` (stavet slik API-et staver dem) |
 | Serverprosesser | `Is Executing`, `Is Not Executing` |
 | Skript | `Evaluates To True` |
-| Avvik, for metrikker, logger og spor | `Anomalously High`, `Anomalously Low`, `Anomalous` |
-| Prognoser, for metrikker | `Forecast Above`, `Forecast Below` (tidshorisonten er `forecast.horizonInHours` i `metric_monitor_options`: en uke hvis den utelates) |
+| Avvik, for målinger, logger og spor | `Anomalously High`, `Anomalously Low`, `Anomalous` |
+| Prognoser, for målinger | `Forecast Above`, `Forecast Below` (tidshorisonten er `forecast.horizonInHours` i `metric_monitor_options`: en uke hvis den utelates) |
 
 Et filter som stemmer når et SSL-sertifikat utløper om 14 dager eller mindre:
 
@@ -351,7 +351,7 @@ Provideren sjekker `check_on`, `filter_type` og de andre faste listene når den 
 
 ### Sammenligne ett felt i resultatet fra et skript
 
-Skriptet i en Egendefinert kode-overvåking eller en Synthetic-monitor returnerer `data`, og et filter `Result Value` sammenligner det. Når `data` er et objekt eller en matrise, angir `custom_code_monitor_options` det ene feltet i det som skal sammenlignes: **Feltsti** i dashbordets Result Value-filter. Bruk punktum for nestede felt og `[n]` for elementer i en matrise, og utelat attributtet for å sammenligne hele verdien:
+Skriptet i en Egendefinert kode-monitor eller en Synthetic-monitor returnerer `data`, og et filter `Result Value` sammenligner det. Når `data` er et objekt eller en matrise, angir `custom_code_monitor_options` det ene feltet i det som skal sammenlignes: **Feltsti** i dashbordets Result Value-filter. Bruk punktum for nestede felt og `[n]` for elementer i en matrise, og utelat attributtet for å sammenligne hele verdien:
 
 ```hcl
 monitor_steps = [{
@@ -401,7 +401,7 @@ En sjekk som ikke stemmer med noe kriterium, setter monitoren i standardstatusen
 
 ## En monitor uten trinn
 
-`monitor_steps` er valgfritt, men en monitor som opprettes uten, har ingen kriterier å bedømme et resultat etter: prober hopper over en monitor uten trinn, og den blir værende i statusen den startet i. Staten din holder attributtet tomt, og planen forblir ren. En manuell monitor trenger aldri trinn: du setter statusen dens selv. Alle andre typer trenger minst ett trinn for å sjekke noe.
+`monitor_steps` er valgfritt, men en monitor som opprettes uten, har ingen kriterier å bedømme et resultat etter: sonder hopper over en monitor uten trinn, og den blir værende i statusen den startet i. Staten din holder attributtet tomt, og planen forblir ren. En manuell monitor trenger aldri trinn: du setter statusen dens selv. Alle andre typer trenger minst ett trinn for å sjekke noe.
 
 ## Overføringsformatet
 
@@ -435,6 +435,6 @@ Provideren bygger dette fra HCL-en din når den skriver, og leser det tilbake ti
 :::cards
 - [Eksempler](/docs/terraform/examples): Ping-, port-, SSL-sertifikat- og API-monitorer, klare til bruk.
 - [Komplett guide](/docs/terraform/complete-guide): Datakilder, state og oppgraderinger.
-- [Metrikk-overvåking](/docs/monitor/metrics-monitor): Metrikkspørringer, gruppering og avvik.
+- [Målingsmonitor](/docs/monitor/metrics-monitor): Målingsspørringer, gruppering og avvik.
 - [Feilsøking](/docs/terraform/troubleshooting): Blant annet et inkonsistent resultat etter apply på en monitor.
 :::

@@ -26,7 +26,7 @@ flowchart TB
 
 ## Før du begynner
 
-- **En rolle som kan invitere.** Project Owner, Project Admin eller en rolle med tillatelsen **Invite New Members**. Du kan bare invitere folk til et team der du selv har tillatelsene, fordi en invitasjon gir dem teamets tilgang.
+- **En rolle som kan invitere.** Prosjekteier, Prosjektadministrator eller en rolle med tillatelsen **Invite New Members**. Du kan bare invitere folk til et team der du selv har tillatelsene, fordi en invitasjon gir dem teamets tilgang.
 - **I OneUptime Cloud: plass i abonnementet ditt.** Hver person i prosjektet er en plass på regningen, fra det øyeblikket personen blir invitert. Free-abonnementet har plass til én person. Se [Fakturering og bruk](/docs/configuration/billing#abonnementet-og-plassene-dine).
 - **Ingen SCIM Push Groups.** Så lenge identitetsleverandøren din styrer prosjektets team via SCIM Push Groups, inviterer og fjerner du folk der, ikke i OneUptime.
 
@@ -47,7 +47,7 @@ Skriv adressen i **E-post**. Hvis ingen OneUptime-konto bruker den ennå, ber di
 
 ### Velg teamet
 
-**Team** starter på prosjektets medlemsteam: teamet som har Project Member for hele prosjektet, ellers det som heter Members. Velg et annet team for å gi mer eller mindre tilgang. **Team** står tomt når prosjektet ikke har et slikt team, eller når du ikke selv kunne invitert noen til det.
+**Team** starter på prosjektets medlemsteam: teamet som har Prosjektmedlem for hele prosjektet, ellers det som heter Members. Velg et annet team for å gi mer eller mindre tilgang. **Team** står tomt når prosjektet ikke har et slikt team, eller når du ikke selv kunne invitert noen til det.
 
 ### Send invitasjonen
 
@@ -68,7 +68,7 @@ Invitasjonsmeldingen nevner prosjektet. Knappen i den er **Create Your Account**
 | Ennå ikke i noe prosjekt | Invitasjonen, på siden personen kommer til etter innlogging | **Accept & Join** eller **Decline** |
 | Allerede i et annet prosjekt | Den ventende invitasjonen ved bjellen øverst til høyre, som åpner **Prosjektinvitasjoner** | **Godta** eller **Avvis** |
 
-Når personen godtar, er den med i prosjektet med en gang, med teamets tillatelser og varseloppsettet alle medlemmer starter med: se [Det du starter med](/docs/notifications/index#dette-starter-du-med). Å avslå sletter invitasjonen, så det trengs en ny for å bli med senere.
+Når personen godtar, er den med i prosjektet med en gang, med teamets tillatelser og varslingsoppsettet alle medlemmer starter med: se [Det du starter med](/docs/notifications/index#dette-starter-du-med). Å avslå sletter invitasjonen, så det trengs en ny for å bli med senere.
 
 ## Se hvem som er i prosjektet
 
@@ -86,7 +86,7 @@ Filtrer listen etter **Bruker**, **Status** eller **Team**. Klikk på en rad for
 | --- | --- |
 | **Profil** | Navn, e-postadresse, bilde og bruker-ID. |
 | **Team** | Teamene personen er med i. Legg til eller fjern et team her. |
-| **Beredskap**, **Varselmetoder**, **Slik når man meg** | Om personen kan tilkalles, og hvordan. Vises for Project Owners, Project Admins, personen selv og alle som kan lese andres varselregler. Se [Beredskap og rapporter](/docs/on-call/readiness). |
+| **Beredskap**, **Varslingsmetoder**, **Slik når man meg** | Om personen kan tilkalles, og hvordan. Vises for Prosjekteiere, Prosjektadministratorer, personen selv og alle som kan lese andres varslingsregler. Se [Beredskap og rapporter](/docs/on-call/readiness). |
 | **Egendefinerte felt** | Prosjektets egendefinerte felt for personer, hvis det har noen. |
 | **Fjern fra prosjekt** | Ta personen ut av prosjektet. |
 
@@ -112,7 +112,7 @@ Owners-teamet beholder alltid minst ett medlem som har blitt med, så et prosjek
 
 Under **Brukere** åpner du radmenyen til personen, **⋯**, og klikker på **Fjern fra prosjekt**. Eller åpne personen og velg **Fjern fra prosjekt** i sidemenyen. For å fjerne flere personer samtidig merker du radene deres og sletter utvalget: hver av dem fjernes på samme måte.
 
-Å fjerne noen tar personen ut av alle prosjektets team. Personen mister tilgangen med en gang, selv om den er innlogget, tas av vaktplaner og eskaleringsregler og får ikke lenger prosjektets varsler. OneUptime-kontoen slettes ikke, og du kan invitere personen igjen. [Brukere, team og tillatelser](/docs/permissions/index#brukere) viser alt det tar med seg å forlate et prosjekt.
+Å fjerne noen tar personen ut av alle prosjektets team. Personen mister tilgangen med en gang, selv om den er innlogget, tas av vaktplaner og eskaleringsregler og får ikke lenger prosjektets varslinger. OneUptime-kontoen slettes ikke, og du kan invitere personen igjen. [Brukere, team og tillatelser](/docs/permissions/index#brukere) viser alt det tar med seg å forlate et prosjekt.
 
 ## Andre måter å bli med på
 

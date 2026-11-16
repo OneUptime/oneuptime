@@ -37,8 +37,8 @@ Un groupe de moniteurs n'est pas un groupe de page de statut. Un groupe de page 
 ## Avant de commencer
 
 - **Votre plan.** Sur OneUptime Cloud, les groupes de moniteurs nécessitent le plan Scale.
-- **L'interrupteur.** Les groupes de moniteurs sont masqués tant que **Groupes de moniteurs** n'est pas activé pour le projet (voir ci-dessous). L'activer demande le rôle Project Owner, ou un rôle personnalisé avec l'autorisation Edit Project ou Manage Billing.
-- **Votre rôle.** Créer, modifier et supprimer des groupes demande le rôle Project Owner, Project Admin, Project Member, Monitor Admin ou Monitor Member, ou un rôle personnalisé avec les autorisations de groupe de moniteurs correspondantes. Un Viewer peut voir les groupes mais pas les modifier.
+- **L'interrupteur.** Les groupes de moniteurs sont masqués tant que **Groupes de moniteurs** n'est pas activé pour le projet (voir ci-dessous). L'activer demande le rôle Propriétaire du projet, ou un rôle personnalisé avec l'autorisation Edit Project ou Manage Billing.
+- **Votre rôle.** Créer, modifier et supprimer des groupes demande le rôle Propriétaire du projet, Administrateur du projet, Membre du projet, Administrateur des moniteurs ou Membre des moniteurs, ou un rôle personnalisé avec les autorisations de groupe de moniteurs correspondantes. Un Lecteur peut voir les groupes mais pas les modifier.
 
 ## Activer les groupes de moniteurs
 

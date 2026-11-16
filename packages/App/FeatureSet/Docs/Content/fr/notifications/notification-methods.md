@@ -36,7 +36,7 @@ Chaque onglet des **Méthodes de notification** contient une ou plusieurs cartes
 | **Numéros de téléphone pour les notifications par appel** | **Contact direct** | Un numéro de téléphone | Un code lu lors d'un appel, ou aucun pour un numéro vérifié pour les SMS |
 | **Numéros WhatsApp pour les notifications** | **Contact direct** | Un numéro WhatsApp | Un code sur WhatsApp |
 | **Comptes Telegram pour les notifications** | **Contact direct** | Votre compte Telegram | Un message au bot OneUptime |
-| **Slack Account for Notifications** | **Applications d'espace de travail** | Votre compte Slack | Lier votre compte à l'espace de travail du projet |
+| **Compte Slack pour les notifications** | **Applications d'espace de travail** | Votre compte Slack | Lier votre compte à l'espace de travail du projet |
 | **Compte Microsoft Teams pour les notifications** | **Applications d'espace de travail** | Votre compte Microsoft Teams | Lier votre compte à l'espace de travail du projet |
 | **Compte Mattermost pour les notifications** | **Applications d'espace de travail** | Votre compte Mattermost | Lier votre compte à l'espace de travail du projet |
 | **Appareils de notification push** | **Notifications push** | Un téléphone avec l'application OneUptime On-Call, ou un navigateur | Enregistrer l'appareil |
@@ -67,7 +67,7 @@ La ligne est maintenant marquée **Vérifié**. Vous avez fermé la boîte de di
 :::
 
 - Un code est valable 15 minutes. Cinq essais erronés l'annulent, et il vous en faut un nouveau.
-- **Send a new code**, ou **Call me with a new code** pour un numéro d'appel, se trouve dans la boîte de dialogue. Vous pouvez en demander un une minute après le précédent.
+- **Envoyer un nouveau code**, ou **M'appeler avec un nouveau code** pour un numéro d'appel, se trouve dans la boîte de dialogue. Vous pouvez en demander un une minute après le précédent.
 - Un numéro vérifié pour les SMS l'est aussi pour les appels. L'ajouter sous **Numéros de téléphone pour les notifications par appel** ne demande pas de code, et vérifier un numéro SMS vérifie aussi le numéro d'appel que vous avez ajouté pour lui.
 - Votre e-mail de connexion est déjà là, vérifié, depuis le jour où vous avez rejoint le projet.
 
@@ -93,7 +93,7 @@ De retour dans OneUptime, cliquez sur **J'ai envoyé le message — vérifier**.
 
 1. Liez votre propre compte à l'espace de travail du projet : **Paramètres utilisateur → Espace de travail → Slack**, **Microsoft Teams** ou **Mattermost**. Voir [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams) et [Mattermost](/docs/workspace-connections/mattermost).
 2. Dans l'onglet **Applications d'espace de travail**, cliquez sur **Ajouter un compte Slack**, **Ajouter un compte Microsoft Teams** ou **Ajouter un compte Mattermost**. Le compte est vérifié dès qu'il est ajouté.
-3. Cliquez sur **Send Test Message** dans sa ligne. Les alertes arrivent en messages directs de l'application OneUptime ou, dans Mattermost, du bot du projet.
+3. Cliquez sur **Envoyer un message de test** dans sa ligne. Les alertes arrivent en messages directs de l'application OneUptime ou, dans Mattermost, du bot du projet.
 
 ## Notifications push
 
@@ -167,13 +167,13 @@ function isFromOneUptime(rawBody, signatureHeader, secret) {
 }
 ```
 
-Un webhook n'a pas besoin de vérification, donc l'ajouter ajoute aussitôt ses règles. Les adresses privées et internes sont refusées, sauf si l'admin d'un serveur auto-hébergé les autorise : voir [Accès au réseau privé](/docs/self-hosted/private-network-access#webhooks-et-workflows).
+Un webhook n'a pas besoin de vérification, donc l'ajouter ajoute aussitôt ses règles. Les adresses privées et internes sont refusées, sauf si l'admin d'un serveur auto-hébergé les autorise : voir [Accès au réseau privé](/docs/self-hosted/private-network-access#webhooks-et-flux-de-travail).
 
 ## Activer un canal pour votre projet
 
 **SMS**, **Appels téléphoniques**, **WhatsApp** et **Telegram** sont désactivés dans chaque nouveau projet, car chaque message coûte de l'argent : sur OneUptime Cloud, il est payé sur le solde du projet, et les SMS et les appels passent plutôt par le compte Twilio du projet quand son compte par défaut les envoie. L'e-mail, le push, Slack, Microsoft Teams, Mattermost et les webhooks sont toujours activés.
 
-Tant qu'un canal est désactivé, personne dans le projet ne peut y ajouter de méthode : sa carte n'a pas de bouton d'ajout et indique qui peut l'activer. Un propriétaire du projet, un **Administrateur de la facturation** ou une personne disposant de **Manage Billing** l'active, dans la carte **Canaux de notification** de **Paramètres du projet → Notifications → Canaux de notification**. Un admin du projet ne le peut pas. Sur un OneUptime auto-hébergé, les SMS et les appels nécessitent aussi un compte Twilio ou une passerelle que vous exploitez, et Telegram un bot que l'admin du serveur connecte ; voir [Intégration Twilio](/docs/self-hosted/twilio-integration) et [Passerelle SMS et appels](/docs/self-hosted/sms-and-call-gateway).
+Tant qu'un canal est désactivé, personne dans le projet ne peut y ajouter de méthode : sa carte n'a pas de bouton d'ajout et indique qui peut l'activer. Un Propriétaire du projet, un **Administrateur de la facturation** ou une personne disposant de **Manage Billing** l'active, dans la carte **Canaux de notification** de **Paramètres du projet → Notifications → Canaux de notification**. Un Administrateur du projet ne le peut pas. Sur un OneUptime auto-hébergé, les SMS et les appels nécessitent aussi un compte Twilio ou une passerelle que vous exploitez, et Telegram un bot que l'admin du serveur connecte ; voir [Intégration Twilio](/docs/self-hosted/twilio-integration) et [Passerelle SMS et appels](/docs/self-hosted/sms-and-call-gateway).
 
 ## Supprimer une méthode
 
@@ -186,7 +186,7 @@ Ce canal est désactivé dans ce projet. La carte indique qui peut l'activer ; v
 :::
 
 :::details Le code n'est jamais arrivé
-Les e-mails peuvent prendre quelques minutes, et arrivent parfois dans les spams ; les SMS peuvent prendre une minute. Attendez une minute, puis cliquez sur **Send a new code** dans la boîte de dialogue. **Paramètres du projet → Notifications → Journaux de notification** montre ce qu'il est advenu du message.
+Les e-mails peuvent prendre quelques minutes, et arrivent parfois dans les spams ; les SMS peuvent prendre une minute. Attendez une minute, puis cliquez sur **Envoyer un nouveau code** dans la boîte de dialogue. **Paramètres du projet → Notifications → Journaux de notification** montre ce qu'il est advenu du message.
 :::
 
 :::details L'ajout de mon compte Slack échoue

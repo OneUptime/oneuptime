@@ -36,7 +36,7 @@ flowchart TB
 
 ## 开始之前
 
-- **可以创建监视器的角色**：Project Owner、Project Admin、Project Member、Monitor Admin 或 Monitor Member，或者拥有 Create Monitor 权限的自定义角色。
+- **可以创建监视器的角色**：项目所有者、项目管理员、项目成员、监视器管理员或监视器成员，或者拥有 Create Monitor 权限的自定义角色。
 - **能够访问该网站的探测器。** 每个新监视器都会选中您项目的默认探测器。如果网站前面有防火墙，请放行 [OneUptime Cloud 探测器 IP 地址](/docs/configuration/ip-addresses)。私有网络中的网站需要在该网络内运行、并被允许访问私有地址的 [自定义探测器](/docs/probe/custom-probe)：请参阅 [私有网络访问](/docs/self-hosted/private-network-access)。
 
 ## 创建网站监视器
@@ -167,7 +167,7 @@ curl --cert client.crt --key client.key https://example.com/health
 - **离线** — 网站没有应答，或返回 `400` 及以上（或低于 `200`）的状态码。监视器被标记为 **离线** 并创建事件。网站恢复后，事件会自行解决。
 - **在线** — 网站返回任何 `2xx` 或 `3xx` 状态码，例如 `200`、`204` 或 `301`。监视器被标记为 **运行正常**。
 
-在条件列表中，它们以监视器命名：_Check if (name) is offline_ 和 _Check if (name) is online_。
+在条件列表中，它们以监视器命名：“检查 _监视器名称_ 是否离线” 和 “检查 _监视器名称_ 是否在线”。
 
 因此，返回 `204 No Content` 的页面，或者在打开 **不跟随重定向** 时监视的重定向，都算作正常。如果对您来说只有一个状态码表示健康，请在监视器的 **配置 → 标准** 页面上修改这两个条件：例如在线条件中使用 **响应状态码** / **等于** / `200`，离线条件中使用 **不等于** / `200`，替换各自原有的两个状态码筛选器。
 

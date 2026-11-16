@@ -41,7 +41,7 @@ Helt præcist læser OneUptime disse indstillinger i denne rækkefølge, og den 
 
 ## Før du begynder
 
-- **En rolle, der ændrer projektet.** Project Owner eller Project Admin ændrer projektets opbevaring. En tjenestes eller ressources opbevaring kræver den rolle, der ændrer dens andre indstillinger.
+- **En rolle, der ændrer projektet.** Projektejer eller Projektadministrator ændrer projektets opbevaring. En tjenestes eller ressources opbevaring kræver den rolle, der ændrer dens andre indstillinger.
 - **Til tilsidesættelser, Enterprise Edition eller Scale-abonnementet.** En selvhostet installation kræver en Enterprise-licens, og et OneUptime Cloud-projekt Scale-abonnementet eller højere. Projektets standardopbevaring findes i alle udgaver og abonnementer.
 
 ## Ændr projektets opbevaring
@@ -64,14 +64,14 @@ Tilsidesættelser opbevarer det, du har brug for, længere og resten kortere: fe
 
 ### For hele projektet
 
-Under standarden, sammenklappet under **Yderligere indstillinger**, angiver kortet **Opbevaring efter telemetritype** dage for hver type telemetri. Klik på **Edit Overrides**, udfyld de felter, du har brug for, og lad resten stå tomme:
+Under standarden, sammenklappet under **Yderligere indstillinger**, angiver kortet **Opbevaring efter telemetritype** dage for hver type telemetri. Klik på **Rediger tilsidesættelser**, udfyld de felter, du har brug for, og lad resten stå tomme:
 
 | Type | Felter |
 | --- | --- |
-| Protokoller | **Logs default (days)**, og ét felt for hver logalvorlighed |
-| Spor | **Traces default (days)**, og ét felt for hver span-status: Fejl, Ok og Ikke angivet |
-| Metrikker | **Metrics default (days)** |
-| Profiler | **Profiles default (days)** |
+| Protokoller | **Standard for logs (dage)**, og ét felt for hver logalvorlighed |
+| Spor | **Standard for traces (dage)**, og ét felt for hver span-status: Fejl, Ok og Ikke angivet |
+| Metrikker | **Standard for metrikker (dage)** |
+| Profiler | **Standard for profiler (dage)** |
 
 Et felt, der står tomt, falder tilbage på den næste indstilling i rækkefølgen ovenfor, så en alvorlighed uden egne dage opbevarer sine protokoller efter standarden for protokoller.
 
@@ -91,8 +91,8 @@ Tjenester, værter, Kubernetes-klynger, Docker- og Podman-værter, Docker Swarm-
 | Data | Opbevares i | Hvor det ændres |
 | --- | --- | --- |
 | Session Replays | 7 dage, medmindre det ændres | RUM-applikationens replaypolitik: se [Administrer applikationer](/docs/rum/applications#opbevaring-af-sessionsafspilninger). |
-| Monitorprotokoller, én række pr. tjek | 1 dag, medmindre det ændres | På en selvhostet installation, **Opbevaring af overvågningslogfiler (dage)** i Admin Dashboard |
-| Monitormetrikker, og de metrikker, SLO'er registrerer | 30 dage, medmindre det ændres | På en selvhostet installation, **Opbevaring af overvågningsmålinger (dage)** i Admin Dashboard |
+| Monitorprotokoller, én række pr. tjek | 1 dag, medmindre det ændres | På en selvhostet installation, **Opbevaring af monitorlogfiler (dage)** i Admin Dashboard |
+| Monitormetrikker, og de metrikker, SLO'er registrerer | 30 dage, medmindre det ændres | På en selvhostet installation, **Opbevaring af monitormetrikker (dage)** i Admin Dashboard |
 | [Telemetriforbrug](/docs/telemetry/usage), én optælling pr. ressource, signal og dag | 120 dage, medmindre det ændres | På en selvhostet installation, **Opbevaring af telemetriforbrug (dage)** i Admin Dashboard |
 
 ## Hvad opbevaring koster

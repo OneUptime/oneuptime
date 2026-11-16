@@ -129,7 +129,7 @@ Begge ligger i raden **Oppetidshistorikk** på kortet **Hva statussiden din vise
 - **Vis samlet oppetidsprosent**: en bryter, slått av som standard. Mens den er slått på, velger **Presisjon** ved siden av hvor mange desimaler prosenten viser: `99%`, `99.9%`, `99.99%` (standard) eller `99.999%`. På OneUptime Cloud krever det planen **Scale** å slå på prosenten; presisjonen kan endres på alle planer.
 - **Teller som nedetid**: monitorstatusene, som fargede merker, der tiden teller mot oppetiden på denne siden. Her avgjør du for eksempel om en redusert status teller mot oppetiden. Minst én status forblir valgt.
 
-De var tidligere to egne kort, **Samlet oppetidsprosent** og **Overvåkerstatuser for nedetid**, hvert bak en knapp **Rediger**. Se [Å velge hva som vises på siden](/docs/status-pages/index#å-velge-hva-som-vises-på-siden) for resten av kortet.
+De var tidligere to egne kort, **Samlet oppetidsprosent** og **Monitorstatuser for nedetid**, hvert bak en knapp **Rediger**. Se [Å velge hva som vises på siden](/docs/status-pages/index#å-velge-hva-som-vises-på-siden) for resten av kortet.
 
 ## Egendefinert HTML, CSS og JavaScript
 
@@ -217,7 +217,7 @@ Klikk på **Fortsett**. Hvis prosjektet har verifisert domenet adressen ligger p
 
 Et domenes fulle navn ligger fast når du legger det til, så **Rediger** endrer bare sertifikatet. For å bruke en annen adresse legger du til den og sletter den gamle. Et navn som et dashbord eller et skjema allerede bruker, i hvilket som helst prosjekt, avvises: ett domene viser én statusside, ett dashbord eller ett skjema.
 
-Å legge til et domene i prosjektet krever tillatelse til å opprette prosjektdomener (**Create Domain**, eller Project Owner eller Project Admin), og å verifisere det krever **Edit Domain**. Uten dem sier dialogen hvem som kan gjøre det.
+Å legge til et domene i prosjektet krever tillatelse til å opprette prosjektdomener (**Create Domain**, eller Prosjekteier eller Prosjektadministrator), og å verifisere det krever **Edit Domain**. Uten dem sier dialogen hvem som kan gjøre det.
 
 ### DNS-oppsett og verifisering
 
@@ -301,9 +301,9 @@ Se etter en CAA-post på domenet ditt som utelater `letsencrypt.org`, og sjekk p
 
 ### Hvem som kan sjekke og utstede på nytt
 
-**Sjekk nå**, bestilling av et domenes sertifikat og **Reissue SSL** endrer domenet, så de krever tillatelse til å redigere det: **Edit Status Page Domain**, eller en rolle som inneholder den (Project Owner, Project Admin, Project Member, Status Page Admin eller Status Page Member).
+**Sjekk nå**, bestilling av et domenes sertifikat og **Reissue SSL** endrer domenet, så de krever tillatelse til å redigere det: **Edit Status Page Domain**, eller en rolle som inneholder den (Prosjekteier, Prosjektadministrator, Prosjektmedlem, Statussideadministrator eller Statussidemedlem).
 
-Den som bare kan lese domenet, som en Viewer eller en Status Page Viewer, ser fortsatt kolonnen **Status** og posten som skal legges til, i **DNS-oppsett**. For dem er **Sjekk nå** og **Reissue SSL** låst og sier hvilken tillatelse som trengs. OneUptime fortsetter uansett selv å sjekke hvert domene og bestille sertifikatet.
+Den som bare kan lese domenet, som en Leser eller en Statussideleser, ser fortsatt kolonnen **Status** og posten som skal legges til, i **DNS-oppsett**. For dem er **Sjekk nå** og **Reissue SSL** låst og sier hvilken tillatelse som trengs. OneUptime fortsetter uansett selv å sjekke hvert domene og bestille sertifikatet.
 
 Det samme gjelder API-nøkler. En nøkkel som bare kan lese statussidedomener, kan ikke kalle `verify-cname`, `check-dns`, `order-ssl` eller `reissue-ssl` på `/status-page-domain`. Gi den **Read Status Page Domain** og **Edit Status Page Domain** hvis den trenger det. Når posten ikke er funnet, avviser `verify-cname` med hva den slo opp og hva som kom tilbake, med de samme ordene som **DNS-oppsett** viser; `check-dns` svarer for hver post den slo opp, uansett utfall.
 

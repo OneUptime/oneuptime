@@ -27,16 +27,16 @@ I en selvdriftet installasjon er OneUptimes egen e-postserver den som er angitt 
 
 ## Legg til en SMTP-server
 
-Legg til et prosjekts e-postserver under **Prosjektinnstillinger > Varsler > Varslingskanaler**, i kortet **Egendefinerte SMTP-konfigurasjoner** under **Flere innstillinger**. I en selvdriftet installasjon angis serveren som OneUptime selv sender fra, under **Admin Dashboard > Innstillinger > Varsler > E-poster**, i kortet **Egendefinerte e-post- og SMTP-innstillinger**. Begge skjemaene spør om serveren og avsenderen; et prosjekts skjema spør først om en **Leverandør**.
+Legg til et prosjekts e-postserver under **Prosjektinnstillinger > Varslinger > Varslingskanaler**, i kortet **Egendefinerte SMTP-konfigurasjoner** under **Flere innstillinger**. I en selvdriftet installasjon angis serveren som OneUptime selv sender fra, under **Admin Dashboard > Innstillinger > Varslinger > E-poster**, i kortet **Egendefinerte e-post- og SMTP-innstillinger**. Begge skjemaene spør om serveren og avsenderen; et prosjekts skjema spør først om en **Leverandør**.
 
 :::steps
 ### Åpne skjemaet
 
 :::tabs
 @tab Prosjekt
-Åpne **Flere innstillinger** under **Prosjektinnstillinger > Varsler > Varslingskanaler**, og klikk på **Opprett SMTP-konfigurasjon** i kortet **Egendefinerte SMTP-konfigurasjoner**.
+Åpne **Flere innstillinger** under **Prosjektinnstillinger > Varslinger > Varslingskanaler**, og klikk på **Opprett SMTP-konfigurasjon** i kortet **Egendefinerte SMTP-konfigurasjoner**.
 @tab Selvdriftet instans
-Åpne **Innstillinger** i Admin Dashboard, og deretter **Varsler > E-poster** i sidemenyen (**Varsler** er slått sammen fra start). Klikk i kortet **E-post-serverinnstillinger** på **Rediger server**, og sett **E-posttjenertype** til `Custom SMTP`. Klikk deretter på **Rediger SMTP-konfig** i kortet **Egendefinerte e-post- og SMTP-innstillinger**, som vises under.
+Åpne **Innstillinger** i Admin Dashboard, og deretter **Varslinger > E-poster** i sidemenyen (**Varslinger** er slått sammen fra start). Klikk i kortet **E-post-serverinnstillinger** på **Rediger server**, og sett **E-posttjenertype** til `Custom SMTP`. Klikk deretter på **Rediger SMTP-konfig** i kortet **Egendefinerte e-post- og SMTP-innstillinger**, som vises under.
 :::
 
 ### Velg leverandøren
@@ -279,7 +279,7 @@ Sjekk den deretter med **Send test-e-post**.
 ### Andre problemer
 
 :::details "Cannot send email. Please check your SMTP config."
-**Send test-e-post** sier dette når en server man logger på med brukernavn og passord, eller ikke logger på i det hele tatt, ikke tar imot e-posten. Kontroller **Vertsnavn**, **Port**, **Brukernavn** og **Passord**. Hvis serveren ikke tilbyr TLS, eller sertifikatet ikke er gyldig for vertsnavnet, slår du av **Krev TLS** under **Flere felt** og prøver igjen. Serverens eget svar lagres sammen med testen: åpne fanen **E-post** under **Prosjektinnstillinger > Varsler > Varsellogger**, og velg **Vis statusmelding** i raden.
+**Send test-e-post** sier dette når en server man logger på med brukernavn og passord, eller ikke logger på i det hele tatt, ikke tar imot e-posten. Kontroller **Vertsnavn**, **Port**, **Brukernavn** og **Passord**. Hvis serveren ikke tilbyr TLS, eller sertifikatet ikke er gyldig for vertsnavnet, slår du av **Krev TLS** under **Flere felt** og prøver igjen. Serverens eget svar lagres sammen med testen: åpne fanen **E-post** under **Prosjektinnstillinger > Varslinger > Varslingslogger**, og velg **Vis statusmelding** i raden.
 :::
 
 :::details "Cannot send email with OAuth authentication"
@@ -291,7 +291,7 @@ En konfigurasjon der **Transport** er `Microsoft Graph`, sier dette når Graph i
 :::
 
 :::details "SMTP server host … could not be reached"
-OneUptime nektet å koble til prosjektets e-postserver. På OneUptime Cloud avvises et vertsnavn som ikke kan slås opp, eller som slås opp til en privat adresse, loopback- eller link-local-adresse, med denne meldingen, som aldri sier hvilket av tilfellene det er: bruk e-postserverens offentlige vertsnavn. I en selvdriftet installasjon, og for en e-postserver som er oppgitt som IP-adresse, sier meldingen i stedet hvorfor. **Send test-e-post** viser den bare for en OAuth-konfigurasjon; for de andre finner du den under **Vis statusmelding** på fanen **E-post** i varselloggene.
+OneUptime nektet å koble til prosjektets e-postserver. På OneUptime Cloud avvises et vertsnavn som ikke kan slås opp, eller som slås opp til en privat adresse, loopback- eller link-local-adresse, med denne meldingen, som aldri sier hvilket av tilfellene det er: bruk e-postserverens offentlige vertsnavn. I en selvdriftet installasjon, og for en e-postserver som er oppgitt som IP-adresse, sier meldingen i stedet hvorfor. **Send test-e-post** viser den bare for en OAuth-konfigurasjon; for de andre finner du den under **Vis statusmelding** på fanen **E-post** i varslingsloggene.
 :::
 
 :::details Test-e-posten kommer ikke frem
@@ -318,6 +318,6 @@ Kontroller **E-post fra**: serveren din må tillate sending fra den. Se deretter
 
 :::cards
 - [E-postleverandører](/docs/emails/email-providers): Send i stedet gjennom Amazon SES, SendGrid, Mailgun, Postmark eller Resend.
-- [Varseloppsummering](/docs/emails/notification-rollup): Hvordan OneUptime samler bølger av e-post til eiere.
+- [Varslingsoppsummering](/docs/emails/notification-rollup): Hvordan OneUptime samler bølger av e-post til eiere.
 - [Abonnenter og kunngjøringer](/docs/status-pages/subscribers): Send e-posten til abonnentene på en statusside via en SMTP-konfigurasjon i prosjektet.
 :::

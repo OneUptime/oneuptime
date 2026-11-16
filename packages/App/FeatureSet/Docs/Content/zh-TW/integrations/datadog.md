@@ -55,7 +55,7 @@ Datadog 監測器在狀態改變時，也就是觸發、警告、恢復或沒有
 
 ### 工作流程做什麼
 
-在 **Webhook** 觸發器之後， **Check With JavaScript** 步驟 `read-event-1` 讀取 Datadog 傳送的 `transition`，再由 **Incident From Another Tool**（警示範本中為 **Alert From Another Tool** ）依警示的週期金鑰執行它所代表的操作。Datadog 從警示觸發起到它恢復為止都保留該金鑰，下次再觸發時金鑰是新的，所以每次都有自己的事件。事件把該金鑰保存在其自訂欄位 `datadogAlertCycleKey` 中。
+在 **Webhook** 觸發器之後， **用 JavaScript 檢查** 步驟 `read-event-1` 讀取 Datadog 傳送的 `transition`，再由 **來自其他工具的事件**（警示範本中為 **來自其他工具的警示** ）依警示的週期金鑰執行它所代表的操作。Datadog 從警示觸發起到它恢復為止都保留該金鑰，下次再觸發時金鑰是新的，所以每次都有自己的事件。事件把該金鑰保存在其自訂欄位 `datadogAlertCycleKey` 中。
 
 | 轉換 | 工作流程做什麼 |
 | --- | --- |
@@ -64,7 +64,7 @@ Datadog 監測器在狀態改變時，也就是觸發、警告、恢復或沒有
 | `Warn`, `Re-Warn`, `No Data`, `Re-No Data` | 把監測器現在的狀態作為私人備註新增到警示的事件。 |
 | `Renotify` | 無：警示仍然開啟。 |
 
-沒有事件的警示收到警告或恢復，不會改變任何東西。其他任何內容，例如來自其他工具的請求，都會原樣保留： `read-event-1` 走 **No**，執行的 **步驟** 會說明原因。不會有任何內容回到 Datadog：它會在訊號恢復時自行解決其警示，而這就是解決事件的原因。
+沒有事件的警示收到警告或恢復，不會改變任何東西。其他任何內容，例如來自其他工具的請求，都會原樣保留： `read-event-1` 走 **否**，執行的 **步驟** 會說明原因。不會有任何內容回到 Datadog：它會在訊號恢復時自行解決其警示，而這就是解決事件的原因。
 
 ### 優先順序與呼叫
 
@@ -82,7 +82,7 @@ Datadog 監測器在狀態改變時，也就是觸發、警告、恢復或沒有
 使用你自己的嚴重程度時，P1、P2 和無優先順序對應最嚴重的一個，P3 對應中間的一個，P4 和 P5 對應最輕的一個。
 
 - 要按名稱把某個優先順序對應到你的某個嚴重程度，請編輯 `read-event-1` 步驟中的 `SEVERITY_BY_NAME`，例如 `{ P3: 'Minor Incident' }`。
-- 要讓 P3 也呼叫待命人員，請把 `if-page-1` **If / Else** 步驟的 **Compare with** 設為 `3`。
+- 要讓 P3 也呼叫待命人員，請把 `if-page-1` **如果 / 否則** 步驟的 **比較對象** 設為 `3`。
 
 ## 用監測器接收警示
 
@@ -211,7 +211,7 @@ curl -X POST "<url>" \
 :::
 
 :::details 工作流程執行了，但沒有建立任何東西
-在 **日誌 → 執行記錄** 中開啟該次執行。其 **步驟** 中的 `read-event-1` 項目會說明它為什麼走 **No**。
+在 **日誌 → 執行記錄** 中開啟該次執行。其 **步驟** 中的 `read-event-1` 項目會說明它為什麼走 **否**。
 
 - `Datadog named no alert cycle key`：在 Datadog 中把 `"alert_cycle_key": "$ALERT_CYCLE_KEY"` 新增到 Webhook 的酬載中。
 - `Datadog named no transition`：在 Datadog 中把 `"transition": "$ALERT_TRANSITION"` 新增到 Webhook 的酬載中。

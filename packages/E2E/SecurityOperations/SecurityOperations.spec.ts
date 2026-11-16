@@ -18,6 +18,7 @@ import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { NO_BREAK_SPACE, withUnit } from "../SuiteHelpers/NoBreakSpaces";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
@@ -92,12 +93,8 @@ const POWERSHELL_CASE_PATH: string = `${PRODUCT}/cases/20000000-0000-4000-8000-0
 // The spray case's triage run, whose cited checks re-run.
 const SPRAY_TRIAGE_RUN_ID: string = "29000000-0000-4000-8000-000000000142";
 
-/*
- * A row of views drawn as toggle buttons. The product's Pin beside the page's
- * title (#6814) is a toggle too, on every product page, and no view.
- */
-const VIEW_TOGGLES: string =
-  'button[aria-pressed]:not([data-testid="product-pin-button"])';
+// A row of views drawn as toggle buttons.
+const VIEW_TOGGLES: string = "button[aria-pressed]";
 
 // The fixture's two correlation rules, beside its six library rules.
 const SEQUENCE_RULE: string = "Spray, then a success";
@@ -2368,8 +2365,6 @@ test.describe("the case queue", () => {
   }: {
     page: Page;
   }) => {
-    const NBSP: string = String.fromCharCode(0xa0);
-
     await open(page, CASES_PATH, { width: 1344, lang: "de" });
     const apiKey: Locator = page
       .locator("table tbody tr")
@@ -2384,7 +2379,7 @@ test.describe("the case queue", () => {
         .evaluate((element: Element): string => {
           return element.textContent || "";
         }),
-    ).toBe(`1 Erkennung, vor${NBSP}5${NBSP}Stunden`);
+    ).toBe(`1 Erkennung, vor${NO_BREAK_SPACE}${withUnit(5, "Stunden")}`);
 
     for (const caseNumber of ["CASE-142", "CASE-137"]) {
       const row: Locator = page
@@ -9099,9 +9094,10 @@ test.describe("OneUptime AI when a triage cannot run, or was steered", () => {
       role: "viewer",
       width: 1280,
     });
+    // The role named as the role picker draws it (#8520).
     await expect(
       card.getByTestId("security-case-ai-reason-who-can"),
-    ).toHaveText("A project administrator can review these settings.", {
+    ).toHaveText("A Project Admin can review these settings.", {
       timeout: 30000,
     });
     await expect(
@@ -9133,7 +9129,7 @@ test.describe("OneUptime AI when a triage cannot run, or was steered", () => {
     await expect(
       card.getByTestId("security-case-ai-reason-who-can"),
     ).toHaveText(
-      "A project owner or someone with Manage Billing can add AI credits.",
+      "A Project Owner or someone with Manage Billing can add AI credits.",
       { timeout: 30000 },
     );
   });

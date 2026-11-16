@@ -149,8 +149,8 @@ describe.each(DOMAINS)("changing $label", (domain: Domain) => {
 
   // Who may edit a measurement: the model's update list.
   const EDITORS: Array<[string, Array<Permission>]> = [
-    ["a project owner", [Permission.ProjectOwner]],
-    ["a project admin", [Permission.ProjectAdmin]],
+    ["a Project Owner", [Permission.ProjectOwner]],
+    ["a Project Admin", [Permission.ProjectAdmin]],
     [`someone holding ${domain.edit}`, [domain.edit, domain.read]],
   ];
 
@@ -196,6 +196,7 @@ describe.each(DOMAINS)("changing $label", (domain: Domain) => {
       expect(stored("backfillRequestedAt")).toBeInstanceOf(Date);
       // Cleared, or the restarted backfill would resume mid-way through.
       expect(stored("backfillCursorCreatedAt")).toBeNull();
+      expect(stored("backfillCursorId")).toBeNull();
       expect(stored("backfillCompletedAt")).toBeNull();
     },
   );
@@ -285,6 +286,7 @@ describe.each(DOMAINS)("changing $label", (domain: Domain) => {
       for (const column of [
         "backfillRequestedAt",
         "backfillCursorCreatedAt",
+        "backfillCursorId",
         "backfillCompletedAt",
       ]) {
         expect([column, data[column]]).toEqual([column, undefined]);

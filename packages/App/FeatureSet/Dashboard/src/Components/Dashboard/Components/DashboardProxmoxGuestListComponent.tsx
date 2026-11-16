@@ -156,7 +156,7 @@ function renderGuestRow(r: ProxmoxResource): ReactElement {
   const name: string = getGuestDisplayName(r);
   const status: { text: string; dot: string; textColor: string } =
     getGuestStatus(r);
-  const clusterName: string = (r.proxmoxCluster?.name as string) || "—";
+  const clusterName: string | undefined = r.proxmoxCluster?.name as string;
   const route: Route | undefined = getGuestRoute(r);
 
   let detailLink: ReactElement = <span>{name}</span>;
@@ -205,7 +205,7 @@ function renderGuestRow(r: ProxmoxResource): ReactElement {
         </span>
       </td>
       <ResourceListNameCell
-        name={(r.parentNodeName as string) || "—"}
+        name={r.parentNodeName as string}
         className="px-3 py-2 text-xs text-gray-500 truncate"
       />
       <ResourceListNameCell
@@ -221,7 +221,7 @@ function buildGuestTile(r: ProxmoxResource): HoneycombTile {
   const name: string = getGuestDisplayName(r);
   const status: { text: string; dot: string; textColor: string } =
     getGuestStatus(r);
-  const clusterName: string = (r.proxmoxCluster?.name as string) || "—";
+  const clusterName: string | undefined = r.proxmoxCluster?.name as string;
 
   return {
     id: id || name,
@@ -233,10 +233,13 @@ function buildGuestTile(r: ProxmoxResource): HoneycombTile {
       details: [
         {
           label: "VMID",
-          value: r.vmid !== undefined && r.vmid !== null ? String(r.vmid) : "—",
+          value:
+            r.vmid !== undefined && r.vmid !== null
+              ? String(r.vmid)
+              : undefined,
         },
-        { label: "Type", value: (r.guestType as string) || "—" },
-        { label: "Node", value: (r.parentNodeName as string) || "—" },
+        { label: "Type", value: r.guestType as string },
+        { label: "Node", value: r.parentNodeName as string },
         { label: "Cluster", value: clusterName },
       ],
     },

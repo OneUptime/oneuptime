@@ -546,7 +546,7 @@ test("the four POST /test routes of the notification API are registered", () => 
 });
 
 describe.each(ROUTES)("$name", (route: TestRoute) => {
-  test("the project owner sends it - through this route's own send, and no other", async () => {
+  test("the Project Owner sends it - through this route's own send, and no other", async () => {
     expect(await sendTest(route, OWNER)).toBe("sent");
     expect(route.send()).toHaveBeenCalledTimes(1);
 

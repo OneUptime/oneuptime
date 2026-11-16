@@ -3,6 +3,7 @@ import {
   ComponentArgumentSection,
   ComponentInputType,
 } from "../../../Types/Dashboard/DashboardComponents/ComponentArgument";
+import { translationKey } from "../../../Types/Translator";
 import DashboardBaseComponent from "../../../Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 
 export type DashboardListViewMode = "list" | "honeycomb";
@@ -16,7 +17,7 @@ export function getViewModeArgument<T extends DashboardBaseComponent>(
   section: ComponentArgumentSection,
 ): ComponentArgument<T> {
   return {
-    name: "View Mode",
+    name: translationKey("View Mode"),
     description:
       "Show entries as a list (default) or as a honeycomb where each cell is colored by status.",
     required: false,

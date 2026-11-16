@@ -14,6 +14,7 @@ import GenericObject from "../../../Types/GenericObject";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import { getFilterPlaceholder } from "./FilterPlaceholder";
+import { RANGE_END, RANGE_START } from "./RangeEnds";
 import React, { ReactElement, useEffect, useRef, useState } from "react";
 
 export interface ComponentProps<T extends GenericObject> {
@@ -140,10 +141,10 @@ const DateFilterControls: DateFilterFunction = <T extends GenericObject>(
               value={state.start || ""}
               placeholder={
                 isBetween
-                  ? translator.translateText("From")
+                  ? translator.translateText(RANGE_START)
                   : getFilterPlaceholder(translator, filter.title)
               }
-              // "From" or "Filter by {{field}}", in the reader's words here.
+              // A range's start or "Filter by {{field}}", in the reader's words here.
               isPlaceholderTranslated={true}
               type={inputType}
               outerDivClassName="relative rounded-md w-full"
@@ -159,7 +160,9 @@ const DateFilterControls: DateFilterFunction = <T extends GenericObject>(
                   apply({ ...state, end: parsed });
                 }}
                 value={state.end || ""}
-                placeholder="To"
+                // A range's end, never a message's recipient (#8201).
+                placeholder={translator.translateText(RANGE_END)}
+                isPlaceholderTranslated={true}
                 type={inputType}
                 outerDivClassName="relative rounded-md w-full"
               />

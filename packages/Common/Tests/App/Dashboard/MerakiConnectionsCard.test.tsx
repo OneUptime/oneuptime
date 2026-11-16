@@ -1376,7 +1376,7 @@ describe("the organization's devices that are not network devices here", () => {
     expect(lines(rows()[0]!)).toEqual([
       {
         state: "added",
-        text: "Added 105 network devices from Meraki 1 hour ago.",
+        text: "Added 105 network devices from Meraki 1\u00A0hour ago.",
       },
       { state: "sites-added", text: "Added 1 site for their Meraki networks." },
       {
@@ -1439,7 +1439,7 @@ describe("the organization's devices that are not network devices here", () => {
         return `${line.state}: ${line.text}`;
       }),
     ).toEqual([
-      "added: Added 5,000 network devices from Meraki 2 minutes ago.",
+      "added: Added 5,000 network devices from Meraki 2\u00A0minutes ago.",
       "remaining: 700 more devices are left to add.Add the rest",
     ]);
   });
@@ -1459,7 +1459,7 @@ describe("the organization's devices that are not network devices here", () => {
     expect(lines(rows()[0]!)).toEqual([
       {
         state: "nothing-added",
-        text: "Nothing was added 2 minutes ago: every device of the kinds picked is a network device here already.",
+        text: "Nothing was added 2\u00A0minutes ago: every device of the kinds picked is a network device here already.",
       },
     ]);
   });
@@ -1473,7 +1473,7 @@ describe("the organization's devices that are not network devices here", () => {
           updatedAt: "2026-10-24T11:58:00.000Z",
           finishedAt: "2026-10-24T11:58:00.000Z",
           message:
-            "You may not create network devices in this project, so you cannot add Meraki's devices. Ask a project owner or admin.",
+            "You may not create network devices in this project, so you cannot add Meraki's devices. Ask a Project Owner or Project Admin.",
         }),
       }),
     ];
@@ -1484,7 +1484,7 @@ describe("the organization's devices that are not network devices here", () => {
     )[0]!;
     expect(line).toHaveAttribute("data-tone", "error");
     expect(line).toHaveTextContent(
-      "Devices could not be added from Meraki: You may not create network devices in this project, so you cannot add Meraki's devices. Ask a project owner or admin.",
+      "Devices could not be added from Meraki: You may not create network devices in this project, so you cannot add Meraki's devices. Ask a Project Owner or Project Admin.",
     );
     // It added nothing before it failed: nothing is said to be added.
     expect(
@@ -1505,7 +1505,7 @@ describe("the organization's devices that are not network devices here", () => {
           toAddCount: 110,
           addedCount: 40,
           message:
-            "You may not create network devices in this project, so you cannot add Meraki's devices. Ask a project owner or admin.",
+            "You may not create network devices in this project, so you cannot add Meraki's devices. Ask a Project Owner or Project Admin.",
         }),
       }),
     ];
@@ -1514,11 +1514,11 @@ describe("the organization's devices that are not network devices here", () => {
     expect(lines(rows()[0]!)).toEqual([
       {
         state: "added",
-        text: "Added 40 network devices from Meraki 2 minutes ago.",
+        text: "Added 40 network devices from Meraki 2\u00A0minutes ago.",
       },
       {
         state: "add-failed",
-        text: "Devices could not be added from Meraki: You may not create network devices in this project, so you cannot add Meraki's devices. Ask a project owner or admin.",
+        text: "Devices could not be added from Meraki: You may not create network devices in this project, so you cannot add Meraki's devices. Ask a Project Owner or Project Admin.",
       },
     ]);
     expect(
@@ -1549,7 +1549,7 @@ describe("the organization's devices that are not network devices here", () => {
     expect(lines(rows()[0]!)).toEqual([
       {
         state: "added",
-        text: "Added 4 network devices from Meraki 5 minutes ago.",
+        text: "Added 4 network devices from Meraki 5\u00A0minutes ago.",
       },
       {
         state: "add-stopped",

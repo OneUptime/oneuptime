@@ -9,6 +9,8 @@ import {
   KubernetesCostAllocationIngestRow,
   KubernetesCostIngestPayload,
 } from "Common/Types/Kubernetes/KubernetesCostIngest";
+import { readOwnValue } from "Common/Utils/LookupTable";
+import { INHERITED_PROPERTY_NAMES } from "Common/Tests/Helpers/InheritedNames";
 
 /*
  * The Queue module pulls in BullMQ / bull-board at import time (via the
@@ -619,5 +621,102 @@ describe("KubernetesCostIngestService.processFromQueue", () => {
 
     const row: JSONObject = getSubmittedRows()[0]!;
     expect(row["currency"]).toBe("");
+  });
+
+  /*
+   * Issue #8220: a workload's labels are named as Kubernetes allows, and the
+   * row's map was written with an assignment, which drops a label named
+   * __proto__ (it still counted towards the cap). Written as the map's own
+   * key, every name is a label like any other, in the row and in labelKeys.
+   * The labels are built with JSON.parse, as the queued job hands them over.
+   */
+  test.each(INHERITED_PROPERTY_NAMES)(
+    "a label named %s is one of the row's labels and in its labelKeys",
+    async (name: string) => {
+      await KubernetesCostIngestService.processFromQueue(
+        makeJobData({
+          clusterName: "prod-cluster",
+          allocations: [
+            makeAllocation({
+              labels: JSON.parse(
+                `{"team":"payments",${JSON.stringify(name)}:"own ${name}","replicas":3}`,
+              ) as Record<string, string>,
+            }),
+          ],
+        }),
+      );
+
+      const row: JSONObject = getSubmittedRows()[0]!;
+      const labels: Record<string, string> = row["labels"] as Record<
+        string,
+        string
+      >;
+
+      expect(Object.getPrototypeOf(labels)).toBe(Object.prototype);
+      expect(Object.keys(labels)).toEqual(["team", name, "replicas"]);
+      expect(readOwnValue(labels, name)).toBe(`own ${name}`);
+      expect(readOwnValue(labels, "replicas")).toBe("3");
+      expect(row["labelKeys"]).toEqual(["team", name, "replicas"]);
+      expect(
+        readOwnValue(
+          (JSON.parse(JSON.stringify(row)) as JSONObject)[
+            "labels"
+          ] as JSONObject,
+          name,
+        ),
+      ).toBe(`own ${name}`);
+    },
+  );
+
+  test("an object under a label named __proto__ is its text, and never the map's prototype", async () => {
+    await KubernetesCostIngestService.processFromQueue(
+      makeJobData({
+        clusterName: "prod-cluster",
+        allocations: [
+          makeAllocation({
+            labels: JSON.parse(
+              '{"__proto__":{"polluted":"yes"},"team":"payments"}',
+            ) as Record<string, string>,
+          }),
+        ],
+      }),
+    );
+
+    const labels: Record<string, string> = getSubmittedRows()[0]![
+      "labels"
+    ] as Record<string, string>;
+
+    expect(Object.getPrototypeOf(labels)).toBe(Object.prototype);
+    expect(Object.keys(labels)).toEqual(["__proto__", "team"]);
+    expect(readOwnValue(labels, "__proto__")).toBe("[object Object]");
+    expect(labels["polluted"]).toBeUndefined();
+    expect(({} as Record<string, unknown>)["polluted"]).toBeUndefined();
+  });
+
+  test("a label named __proto__ counts towards the cap and is kept within it", async () => {
+    const labels: Record<string, string> = JSON.parse(
+      '{"__proto__":"first"}',
+    ) as Record<string, string>;
+
+    for (let i: number = 0; i < 150; i++) {
+      labels[`label-${i}`] = `value-${i}`;
+    }
+
+    await KubernetesCostIngestService.processFromQueue(
+      makeJobData({
+        clusterName: "prod-cluster",
+        allocations: [makeAllocation({ labels })],
+      }),
+    );
+
+    const row: JSONObject = getSubmittedRows()[0]!;
+    const stored: Record<string, string> = row["labels"] as Record<
+      string,
+      string
+    >;
+
+    expect(Object.keys(stored)).toHaveLength(100);
+    expect(readOwnValue(stored, "__proto__")).toBe("first");
+    expect(row["labelKeys"]).toEqual(Object.keys(stored));
   });
 });

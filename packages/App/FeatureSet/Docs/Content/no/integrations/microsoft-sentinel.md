@@ -1,6 +1,6 @@
 # Microsoft Sentinel
 
-Importer hendelsene som [Microsoft Sentinel](https://learn.microsoft.com/en-us/azure/sentinel/overview)-analysereglene dine åpner, til sikkerhetshendelsene i OneUptime. Der søker du i dem ved siden av logger, sporinger og metrikker, korrelerer dem med alle andre kilder og varsler vakten om dem som betyr noe. OneUptime leser dem med en appregistrering som du oppretter, og endrer ingenting i Azure.
+Importer hendelsene som [Microsoft Sentinel](https://learn.microsoft.com/en-us/azure/sentinel/overview)-analysereglene dine åpner, til sikkerhetshendelsene i OneUptime. Der søker du i dem ved siden av logger, sporinger og målinger, korrelerer dem med alle andre kilder og varsler vakten om dem som betyr noe. OneUptime leser dem med en appregistrering som du oppretter, og endrer ingenting i Azure.
 
 :::cards
 - [Sett opp tilkoblingen](#sett-opp-tilkoblingen): En appregistrering, en rolle og skjemaet for tilkoblingen.
@@ -23,7 +23,7 @@ Hvert minutt poller OneUptime hver aktiverte tilkobling der pollintervallet har 
 
 ## Før du begynner
 
-- I OneUptime rollen Project Owner, Project Admin eller Security Admin. Security Member og Security Viewer kan se tilkoblinger og kjøringshistorikken deres, men ikke endre dem.
+- I OneUptime rollen Prosjekteier, Prosjektadministrator eller Sikkerhetsadministrator. Sikkerhetsmedlem og Sikkerhetsleser kan se tilkoblinger og kjøringshistorikken deres, men ikke endre dem.
 - Et Log Analytics-arbeidsområde med Microsoft Sentinel aktivert, i den offentlige Azure-skyen eller i Azure Government (US).
 - I Microsoft Entra ID retten til å opprette en appregistrering og en klienthemmelighet.
 - På ressursgruppen som inneholder arbeidsområdet, retten til å tildele roller, for eksempel Eier eller Administrator for brukertilgang.

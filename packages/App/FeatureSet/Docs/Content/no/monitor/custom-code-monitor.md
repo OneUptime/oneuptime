@@ -1,17 +1,17 @@
-# Egendefinert kode-overvåking
+# Egendefinert kode-monitor
 
 En monitor med egendefinert kode kjører et JavaScript-skript du skriver selv, fra en sonde, etter en tidsplan. Bruk den til kontroller som de andre monitortypene ikke kan uttrykke — en pålogging etterfulgt av et autentisert API-kall, en transaksjon i flere trinn eller en verdi du regner ut fra flere svar. Hvis skriptet kaster en feil, mislykkes kontrollen; det skriptet returnerer, er tilgjengelig for kriteriene og hendelsesmalene dine.
 
 :::cards
 - [Opprett monitoren](#opprett-en-monitor-med-egendefinert-kode): Skriv et skript, og velg sondene som kjører det.
 - [Skriv skriptet](#skriv-skriptet): En kjørbar API-kontroll i flere trinn å starte fra.
-- [Bruk hemmeligheter](#bruk-av-overvåkingshemmeligheter): Hold passord og tokener utenfor skriptet.
-- [Samle egendefinerte metrikker](#egendefinerte-metrikker): Vis ethvert tall skriptet ditt regner ut, i en graf.
+- [Bruk hemmeligheter](#bruk-av-monitorhemmeligheter): Hold passord og tokener utenfor skriptet.
+- [Samle egendefinerte målinger](#egendefinerte-målinger): Vis ethvert tall skriptet ditt regner ut, i en graf.
 :::
 
 ## Slik fungerer det
 
-Ved hver kontroll kjører en sonde skriptet ditt i en isolert JavaScript-sandkasse, med overvåkingshemmelighetene dine allerede fylt inn. Skriptet kaller det det trenger, og returnerer deretter et resultat eller kaster en feil. Sonden rapporterer resultatet, skriptets loggmeldinger, hvor lenge det kjørte og metrikkene det samlet inn, og OneUptime evaluerer kriteriene dine mot dem.
+Ved hver kontroll kjører en sonde skriptet ditt i en isolert JavaScript-sandkasse, med monitorhemmelighetene dine allerede fylt inn. Skriptet kaller det det trenger, og returnerer deretter et resultat eller kaster en feil. Sonden rapporterer resultatet, skriptets loggmeldinger, hvor lenge det kjørte og målingene det samlet inn, og OneUptime evaluerer kriteriene dine mot dem.
 
 ```mermaid title="Én kjøring av en monitor med egendefinert kode"
 sequenceDiagram
@@ -21,7 +21,7 @@ sequenceDiagram
     O->>P: Skript, hemmeligheter<br/>fylt inn
     P->>A: Forespørsler fra skriptet
     A-->>P: Svar
-    P->>O: Resultat, logger,<br/>tid, metrikker
+    P->>O: Resultat, logger,<br/>tid, målinger
     O->>O: Evaluer kriteriene
 ```
 
@@ -29,16 +29,16 @@ Sandkassen er ikke Node.js: det finnes ingen `require`, `process`, `fetch` eller
 
 ## Før du begynner
 
-- En **probe** som når alle endepunktene skriptet kaller. Bruk en [egendefinert sonde](/docs/probe/custom-probe) for endepunkter inne i nettverket ditt.
+- En **sonde** som når alle endepunktene skriptet kaller. Bruk en [egendefinert sonde](/docs/probe/custom-probe) for endepunkter inne i nettverket ditt.
 - For å kalle en privat adresse (som `10.0.0.5`) må sonden tillate det: sett `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true` på den sonden. Loopback-, link-local- og skymetadata-adresser avvises alltid. Se [Tilgang til privat nettverk](/docs/self-hosted/private-network-access).
-- Alle passord, API-nøkler og tokener skriptet trenger, lagret som [overvåkingshemmeligheter](/docs/monitor/monitor-secrets).
+- Alle passord, API-nøkler og tokener skriptet trenger, lagret som [monitorhemmeligheter](/docs/monitor/monitor-secrets).
 
 ## Opprett en monitor med egendefinert kode
 
 :::steps
 ### Start en ny monitor
 
-Gå til **Monitorer**, og klikk på **Opprett monitor**. Under **Monitortype** klikker du på **Flere monitortyper** og velger **Custom JavaScript Code** under **Syntetisk overvåking**, eller skriver `script` i søkefeltet. Skriv inn et **Navn**, og klikk deretter på **Neste**.
+Gå til **Monitorer**, og klikk på **Opprett monitor**. Under **Monitortype** klikker du på **Flere monitortyper** og velger **Egendefinert JavaScript-kode** under **Syntetisk overvåking**, eller skriver `script` i søkefeltet. Skriv inn et **Navn**, og klikk deretter på **Neste**.
 
 ### Legg til skriptet
 
@@ -98,7 +98,7 @@ For å se en kjøring åpner du monitorens **Oversikt**: kortet **Monitor-sammen
 > [!NOTE]
 > `axios` i denne sandkassen følger ikke omdirigeringer, og forespørslene går ikke gjennom en proxy som er konfigurert på sonden. Be om den endelige URL-en.
 
-## Bruk av overvåkingshemmeligheter
+## Bruk av monitorhemmeligheter
 
 Henvis til en hemmelighet som `{{monitorSecrets.NAME}}` hvor som helst i skriptet. OneUptime erstatter henvisningen med verdien til hemmeligheten, som ren tekst, før skriptet når sonden. Sett derfor en hemmelighet i anførselstegn for å bruke den som en streng, og la den stå uten anførselstegn for å bruke den som et tall eller en boolsk verdi:
 
@@ -114,11 +114,11 @@ const verbose = {{monitorSecrets.Verbose}};
 console.log(apiKey.length > 0);
 ```
 
-En hemmelig verdi som inneholder et anførselstegn, ødelegger strengen rundt den. En henvisning som monitoren ikke kan bruke, blir stående i skriptet slik den er skrevet. Se [Overvåkingshemmeligheter](/docs/monitor/monitor-secrets) for å opprette en hemmelighet og velge hvilke monitorer som kan bruke den.
+En hemmelig verdi som inneholder et anførselstegn, ødelegger strengen rundt den. En henvisning som monitoren ikke kan bruke, blir stående i skriptet slik den er skrevet. Se [Monitorhemmeligheter](/docs/monitor/monitor-secrets) for å opprette en hemmelighet og velge hvilke monitorer som kan bruke den.
 
-## Egendefinerte metrikker
+## Egendefinerte målinger
 
-Du kan samle inn egendefinerte metrikker fra skriptet ditt med funksjonen `oneuptime.captureMetric()`. Disse metrikkene lagres i OneUptime og kan vises i grafer på dashbord med Metric Explorer.
+Du kan samle inn egendefinerte målinger fra skriptet ditt med funksjonen `oneuptime.captureMetric()`. Disse målingene lagres i OneUptime og kan vises i grafer på dashbord med Metric Explorer.
 
 ```javascript
 oneuptime.captureMetric(name, value, attributes);
@@ -126,9 +126,9 @@ oneuptime.captureMetric(name, value, attributes);
 
 | Parameter | Type | Beskrivelse |
 | --- | --- | --- |
-| `name` | string, påkrevd | Navnet på metrikken (f.eks. `"api.response.time"`). Det lagres automatisk med prefikset `custom.monitor.`. |
-| `value` | number, påkrevd | Den numeriske verdien til metrikken. En verdi som ikke er et tall, ignoreres. |
-| `attributes` | object, valgfritt | Nøkkel-verdi-par med ekstra kontekst. Strenger, tall og boolske verdier registreres (tall og boolske verdier lagres som tekst, fordi metrikkattributter er dimensjoner og ikke målinger). Verdier av alle andre typer ignoreres. |
+| `name` | string, påkrevd | Navnet på målingen (f.eks. `"api.response.time"`). Det lagres automatisk med prefikset `custom.monitor.`. |
+| `value` | number, påkrevd | Den numeriske verdien til målingen. En verdi som ikke er et tall, ignoreres. |
+| `attributes` | object, valgfritt | Nøkkel-verdi-par med ekstra kontekst. Strenger, tall og boolske verdier registreres (tall og boolske verdier lagres som tekst, fordi målingsattributter er dimensjoner og ikke målinger). Verdier av alle andre typer ignoreres. |
 
 ### Eksempel
 
@@ -149,27 +149,27 @@ return {
 };
 ```
 
-Når de er samlet inn, vises disse metrikkene i Metric Explorer under navn som `custom.monitor.api.response.time`, og på monitorens side **Målinger** under **Egendefinerte målinger**. OneUptime legger til monitoren og sonden på hvert datapunkt, slik at du kan vise dem i grafer, varsle på dem og filtrere etter monitor, sonde eller egendefinerte attributter du har oppgitt.
+Når de er samlet inn, vises disse målingene i Metric Explorer under navn som `custom.monitor.api.response.time`, og på monitorens side **Målinger** under **Egendefinerte målinger**. OneUptime legger til monitoren og sonden på hvert datapunkt, slik at du kan vise dem i grafer, varsle på dem og filtrere etter monitor, sonde eller egendefinerte attributter du har oppgitt.
 
 ### Grenser
 
 | Grense | Verdi | Over grensen |
 | --- | --- | --- |
-| Metrikker per skriptkjøring | 100 | Flere kall ignoreres. |
-| Lengde på metrikknavn | 200 tegn | Navnet kuttes. |
-| Attributter per metrikk | 50 | Flere attributter forkastes. |
+| Målinger per skriptkjøring | 100 | Flere kall ignoreres. |
+| Lengde på målingsnavn | 200 tegn | Navnet kuttes. |
+| Attributter per måling | 50 | Flere attributter forkastes. |
 | Lengde på attributtnøkkel | 200 tegn | Nøkkelen kuttes. |
 | Lengde på attributtverdi | 1000 tegn | Verdien kuttes. |
 
 ### Reserverte attributtnøkler
 
-Noen attributtnavn tilhører OneUptime selv, og et skript kan ikke skrive dem. Hvis skriptet ditt setter et av dem, forkastes attributtet — selve metrikken registreres likevel — og en advarsel med navnet på nøkkelen skrives til serverloggene til OneUptime. Det gjelder:
+Noen attributtnavn tilhører OneUptime selv, og et skript kan ikke skrive dem. Hvis skriptet ditt setter et av dem, forkastes attributtet — selve målingen registreres likevel — og en advarsel med navnet på nøkkelen skrives til serverloggene til OneUptime. Det gjelder:
 
 - Monitorens identitet: `monitorId`, `projectId`, `monitorName`, `probeName`, `probeId`, `isCustomMetric`.
 - Alt i navnerommene `oneuptime.` eller `resource.` — de bærer identifikatorene OneUptime setter på ved inntak.
 - Attributter for ressursidentitet: `service.name`, `host.name`, `k8s.cluster.name`, `iot.fleet.name`, `proxmox.cluster.name`, `openstack.cloud.name`, `vmware.vcenter.name`, `ceph.cluster.name`, `storage.array.name` og `docker.swarm.cluster.name`.
 
-Disse navnene er ikke bare etiketter — OneUptime leser dem tilbake som en påstand om hvilken ressurs et datapunkt tilhører. En metrikk merket `service.name: payments-api` ville dukke opp på fanen Målinger for den tjenesten, og hvis du senere bygde en metrikkmonitor gruppert etter `service.name`, ville varslene den gir, bli knyttet til den tjenesten, tilkalle eierne av tjenesten og tie under et vedlikeholdsvindu på den. Bruk i stedet monitorens egne etiketter for å knytte en monitor til en tjeneste eller en vert.
+Disse navnene er ikke bare etiketter — OneUptime leser dem tilbake som en påstand om hvilken ressurs et datapunkt tilhører. En måling merket `service.name: payments-api` ville dukke opp på fanen Målinger for den tjenesten, og hvis du senere bygde en målingsmonitor gruppert etter `service.name`, ville varslene den gir, bli knyttet til den tjenesten, tilkalle eierne av tjenesten og tie under et vedlikeholdsvindu på den. Bruk i stedet monitorens egne etiketter for å knytte en monitor til en tjeneste eller en vert.
 
 ## Kriterier
 
@@ -225,7 +225,7 @@ Legg til ett filter per felt du vil sjekke; hvert filter kan ha sitt eget vilkå
 | `crypto` | `createHash` og `createHmac` (kall `update()` én gang, deretter `digest()`), `randomBytes`, `randomInt` og `randomUUID`. Det er ikke `crypto`-modulen i Node.js: det finnes ingen chiffer eller signaturer. |
 | `http`, `https` | Bare klassen `Agent`, til å gi videre til `axios` — for eksempel `httpsAgent: new https.Agent({ rejectUnauthorized: false })`. Det finnes ingen `request` eller `get`. |
 | `console.log` | Logger data for feilsøking. Bare `console.log` finnes; `console.error` og de andre gjør ikke det. |
-| `oneuptime.captureMetric` | Samler inn en egendefinert metrikk. Se [Egendefinerte metrikker](#egendefinerte-metrikker). |
+| `oneuptime.captureMetric` | Samler inn en egendefinert måling. Se [Egendefinerte målinger](#egendefinerte-målinger). |
 | `setTimeout`, `clearTimeout`, `sleep(ms)` | Vent inne i skriptet. En forsinkelse varer aldri lenger enn skriptets tidsavbrudd. |
 
 ## Ting å tenke på
@@ -249,13 +249,13 @@ Sonden tillater ikke adresser i private nettverk. Sett `PROBE_ALLOW_PRIVATE_NETW
 :::
 
 :::details En hemmelighet fylles ikke inn
-Monitoren kan ikke bruke hemmeligheten, eller navnet i henvisningen samsvarer ikke nøyaktig med navnet på hemmeligheten. Se [Overvåkingshemmeligheter](/docs/monitor/monitor-secrets).
+Monitoren kan ikke bruke hemmeligheten, eller navnet i henvisningen samsvarer ikke nøyaktig med navnet på hemmeligheten. Se [Monitorhemmeligheter](/docs/monitor/monitor-secrets).
 :::
 
 ## Neste trinn
 
 :::cards
-- [Syntetisk overvåking](/docs/monitor/synthetic-monitor): Styr en ekte nettleser i stedet for å kalle API-er.
-- [Overvåkingshemmeligheter](/docs/monitor/monitor-secrets): Lagre påloggingsinformasjonen skriptet ditt bruker.
+- [Syntetisk monitor](/docs/monitor/synthetic-monitor): Styr en ekte nettleser i stedet for å kalle API-er.
+- [Monitorhemmeligheter](/docs/monitor/monitor-secrets): Lagre påloggingsinformasjonen skriptet ditt bruker.
 - [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating): Sett skriptets resultat og logger inn i hendelser.
 :::

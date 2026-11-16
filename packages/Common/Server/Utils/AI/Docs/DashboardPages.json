@@ -1384,6 +1384,51 @@
     "kind": "page"
   },
   {
+    "title": "Incoming Request Secrets",
+    "where": [
+      "Monitors",
+      "Settings"
+    ],
+    "keywords": [
+      "webhook secret",
+      "heartbeat secret",
+      "x-oneuptime-secret",
+      "incoming request security"
+    ],
+    "path": "/dashboard/:projectId/monitors/settings/incoming-request-secrets",
+    "kind": "page"
+  },
+  {
+    "title": "Require a Secret",
+    "where": [
+      "Monitors",
+      "Settings",
+      "Incoming Request Secrets"
+    ],
+    "path": "/dashboard/:projectId/monitors/settings/incoming-request-secrets",
+    "kind": "setting"
+  },
+  {
+    "title": "Require a secret on every request",
+    "where": [
+      "Monitors",
+      "Settings",
+      "Incoming Request Secrets"
+    ],
+    "path": "/dashboard/:projectId/monitors/settings/incoming-request-secrets",
+    "kind": "setting"
+  },
+  {
+    "title": "Requests Without a Secret",
+    "where": [
+      "Monitors",
+      "Settings",
+      "Incoming Request Secrets"
+    ],
+    "path": "/dashboard/:projectId/monitors/settings/incoming-request-secrets",
+    "kind": "setting"
+  },
+  {
     "title": "Templates",
     "where": [
       "Monitors",
@@ -3348,7 +3393,7 @@
     "kind": "page"
   },
   {
-    "title": "Insights",
+    "title": "Insights (explorer analytics)",
     "where": [
       "Logs"
     ],
@@ -3503,7 +3548,7 @@
     "kind": "page"
   },
   {
-    "title": "Insights",
+    "title": "Insights (explorer analytics)",
     "where": [
       "Metrics"
     ],
@@ -3611,7 +3656,7 @@
     "kind": "page"
   },
   {
-    "title": "Insights",
+    "title": "Insights (explorer analytics)",
     "where": [
       "Traces"
     ],
@@ -3826,7 +3871,7 @@
     "kind": "page"
   },
   {
-    "title": "Insights",
+    "title": "Insights (explorer analytics)",
     "where": [
       "Exceptions"
     ],

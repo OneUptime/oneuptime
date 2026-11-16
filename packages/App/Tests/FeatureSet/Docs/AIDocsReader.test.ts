@@ -1,11 +1,17 @@
 import DocsAIReader, {
   AIDocsLanguageIndex,
+  cutQuestionWords,
   normalizeDocsPage,
   splitDocsSections,
+  splitQuestionWords,
   stemDocsWord,
   tokenizeForDocs,
   tokenizeQueryForDocs,
 } from "../../../FeatureSet/Docs/Utils/AIDocsReader";
+import {
+  ASK_AI_WEBSITE_QUESTIONS,
+  AskAiHowDoIQuestionTranslated,
+} from "./AskAiHowDoIQuestions";
 import { makeDocsIndex } from "./DocsSearchHelpers";
 import {
   AIDocsPage,
@@ -43,12 +49,115 @@ const BUILD_TIMEOUT_MS: number = 600000;
 
 const reader: DocsAIReader = new DocsAIReader();
 
-// German "how do I" questions, each with the page named for what it asks about.
-const NAMED_FOR_THE_QUESTION: Array<[string, string]> = [
-  // Website-Überwachung, not "Wie ich erreichbar bin" (How to Reach Me).
-  ["Wie überwache ich meine Website?", "monitor/website-monitor"],
-  ["Wie erstelle ich eine Bereitschaftsrichtlinie?", "on-call/policies"],
-  ["Wie erstelle ich einen Monitor?", "monitor/create-monitor"],
+/*
+ * "How do I" questions in every docs language, each with the page named
+ * for what it asks about, once its words are read without their endings
+ * and without the question's own words (#7799, #7875): every language's
+ * website question (ASK_AI_WEBSITE_QUESTIONS: German's finds
+ * Website-Überwachung, not "Wie ich erreichbar bin", How to Reach Me), and
+ * these.
+ */
+const NAMED_FOR_THE_QUESTION: Array<[string, string, string]> = [
+  ["de", "Wie erstelle ich eine Bereitschaftsrichtlinie?", "on-call/policies"],
+  ["de", "Wie erstelle ich einen Monitor?", "monitor/create-monitor"],
+  ["fr", "Comment déclarer un incident ?", "incidents/declaring-incidents"],
+  ["fr", "Comment créer un moniteur ?", "monitor/create-monitor"],
+  ["fr", "Comment configurer un planning d'astreinte ?", "on-call/schedules"],
+  ["es", "¿Cómo declaro un incidente?", "incidents/declaring-incidents"],
+  ["es", "¿Cómo creo un monitor?", "monitor/create-monitor"],
+  ["it", "Come creo una pagina di stato?", "status-pages/index"],
+  [
+    "it",
+    "Come imposto una pianificazione di reperibilità?",
+    "on-call/schedules",
+  ],
+  ["it", "Come creo un monitor?", "monitor/create-monitor"],
+  ["pt", "Como crio uma página de status?", "status-pages/index"],
+  ["pt", "Como configuro um agendamento de plantão?", "on-call/schedules"],
+  ["pt", "Como crio um monitor?", "monitor/create-monitor"],
+  // "maak" is "maken", the name's word.
+  ["nl", "Hoe maak ik een monitor?", "monitor/create-monitor"],
+  ["nl", "Hoe meld ik een incident?", "incidents/declaring-incidents"],
+  // "opretter" is "Opret", the name's word.
+  ["da", "Hvordan opretter jeg en monitor?", "monitor/create-monitor"],
+  ["da", "Hvordan opretter jeg en statusside?", "status-pages/index"],
+  ["da", "Hvordan opretter jeg en hændelse?", "incidents/declaring-incidents"],
+  ["no", "Hvordan oppretter jeg en monitor?", "monitor/create-monitor"],
+  ["no", "Hvordan oppretter jeg en hendelse?", "incidents/declaring-incidents"],
+  ["sv", "Hur skapar jag en statussida?", "status-pages/index"],
+  ["sv", "Hur skapar jag en monitor?", "monitor/create-monitor"],
+  ["ru", "Как создать страницу статуса?", "status-pages/index"],
+  ["ru", "Как настроить расписание дежурств?", "on-call/schedules"],
+  ["ru", "Как создать монитор?", "monitor/create-monitor"],
+  [
+    "ja",
+    "ステータスページを作成するにはどうすればいいですか？",
+    "status-pages/index",
+  ],
+  [
+    "ja",
+    "モニターを作成するにはどうすればいいですか？",
+    "monitor/create-monitor",
+  ],
+  ["ko", "온콜 스케줄을 어떻게 설정하나요?", "on-call/schedules"],
+  ["ko", "인시던트를 어떻게 선언하나요?", "incidents/declaring-incidents"],
+  ["zh-CN", "如何创建状态页？", "status-pages/index"],
+  ["zh-CN", "如何创建监视器？", "monitor/create-monitor"],
+  ["zh-TW", "如何建立狀態頁？", "status-pages/index"],
+  ["zh-TW", "如何設定待命排程？", "on-call/schedules"],
+  ["hi", "मैं स्थिति पृष्ठ कैसे बनाऊँ?", "status-pages/index"],
+  ["hi", "मैं मॉनिटर कैसे बनाऊँ?", "monitor/create-monitor"],
+  ["fa", "چطور یک صفحه وضعیت بسازم؟", "status-pages/index"],
+  ["fa", "چطور یک حادثه اعلام کنم؟", "incidents/declaring-incidents"],
+  /*
+   * Named for the question once the forms its verb is asked in meet the
+   * name's (#8335): Persian "بسازم" is "ساخت" (making), "بنویسم"
+   * "نوشتن" (writing), "بگیرم" the "گیری" of "پشتیبان‌گیری" (backing
+   * up); Korean "만드나요" is "만들기", "가져오나요" "가져오기",
+   * "내보내나요" "내보내기"; Danish and Norwegian "inviterer" is
+   * "Inviter"; Dutch "nodig ... uit" is "uitnodigen"; Russian
+   * "пригласить" is "Приглашение".
+   */
+  ["fa", "چطور یک مانیتور بسازم؟", "monitor/create-monitor"],
+  ["fa", "چطور می‌توانم یک مانیتور بسازم؟", "monitor/create-monitor"],
+  ["fa", "چطور یک رانبوک بنویسم؟", "runbooks/authoring"],
+  ["fa", "چطور از OneUptime پشتیبان بگیرم؟", "installation/backups"],
+  ["fa", "چطور یک داشبورد بسازم؟", "dashboards/authoring"],
+  ["ko", "모니터를 어떻게 만드나요?", "monitor/create-monitor"],
+  ["ko", "리소스를 어떻게 가져오나요?", "terraform/importing-resources"],
+  ["ko", "감사 로그를 어떻게 내보내나요?", "configuration/audit-log-export"],
+  [
+    "da",
+    "Hvordan inviterer jeg en kollega til mit projekt?",
+    "permissions/inviting-people",
+  ],
+  [
+    "no",
+    "Hvordan inviterer jeg en kollega til prosjektet mitt?",
+    "permissions/inviting-people",
+  ],
+  [
+    "nl",
+    "Hoe nodig ik een collega uit voor mijn project?",
+    "permissions/inviting-people",
+  ],
+  ["ru", "Как пригласить коллегу в проект?", "permissions/inviting-people"],
+  // Spanish's and Portuguese's "they" form, and the people the page is named for (#8700).
+  [
+    "es",
+    "¿Cómo se suscriben mis clientes a la página de estado?",
+    "status-pages/subscribers",
+  ],
+  [
+    "pt",
+    "Como meus clientes assinam a página de status?",
+    "status-pages/subscribers",
+  ],
+  ...ASK_AI_WEBSITE_QUESTIONS.map(
+    (entry: AskAiHowDoIQuestionTranslated): [string, string, string] => {
+      return [entry.language, entry.question, entry.docsPage];
+    },
+  ),
 ];
 
 describe("normalizeDocsPage", () => {
@@ -104,6 +213,339 @@ describe("the words a question and a page are compared by", () => {
     expect(tokenizeForDocs("get a text")).not.toContain("sms");
   });
 
+  /*
+   * The forms of a word meet in every docs language (#7875): a page's
+   * word and a question's are both read without their language's ending.
+   */
+  test.each([
+    // Definite forms: "nettstedet" is the website, the name says "Nettsted".
+    ["no", ["nettsted", "nettstedet", "nettstedene", "nettsteder"]],
+    ["no", ["overvåker", "overvåke", "overvåking", "overvåkingen"]],
+    ["no", ["opprett", "oppretter", "opprette"]],
+    // "websted" keeps its "ed": English's "-ed" read it as "webst".
+    ["da", ["websted", "webstedet", "websteder", "webstederne"]],
+    ["da", ["overvåger", "overvåge", "overvågning"]],
+    ["da", ["opret", "opretter", "oprette"]],
+    ["da", ["hændelse", "hændelser", "hændelsen", "hændelserne"]],
+    ["sv", ["övervakar", "övervaka", "övervakning", "övervakningen"]],
+    ["sv", ["webbplatsen", "webbplatser"]],
+    ["sv", ["statussida", "statussidor", "statussidan"]],
+    ["sv", ["skapa", "skapar"]],
+    // A verb meets its noun.
+    ["pt", ["monitor", "monitorar", "monitoramento", "monitores"]],
+    ["pt", ["agendo", "agendar", "agendamento", "agendamentos"]],
+    ["pt", ["crio", "criar", "criação"]],
+    ["es", ["monitor", "monitorear", "monitoreo", "monitores"]],
+    ["es", ["configuro", "configurar", "configuración"]],
+    ["es", ["página", "páginas"]],
+    ["it", ["monitor", "monitorare", "monitoraggio"]],
+    ["it", ["pianifico", "pianificare", "pianificazione", "pianificazioni"]],
+    ["fr", ["surveiller", "surveillance"]],
+    ["fr", ["configurer", "configuration"]],
+    ["fr", ["déclarer", "déclaration"]],
+    ["nl", ["maak", "maken"]],
+    ["nl", ["stel", "stellen"]],
+    // Cases: "сайт" (site) is the name's "сайта".
+    ["ru", ["сайт", "сайта", "сайтом", "сайте", "сайты", "сайтов"]],
+    ["ru", ["отслеживать", "отслеживание", "отслеживания"]],
+    ["ru", ["монитор", "мониторить", "монитора", "мониторы"]],
+    ["ru", ["расписание", "расписания"]],
+    // A particle, and a verb's ending, on the word.
+    ["ko", ["웹사이트", "웹사이트를", "웹사이트에서", "웹사이트의"]],
+    ["ko", ["모니터링", "모니터링하나요", "모니터링하려면", "모니터링하세요"]],
+    // The possessive "my".
+    ["fa", ["سایت", "سایتم"]],
+    ["fa", ["مانیتور", "مانیتورم"]],
+    // A verb's forms, and a plural before a postposition.
+    ["hi", ["बनाना", "बनाऊँ", "बनाएँ", "बनाने"]],
+    ["hi", ["घटना", "घटनाएँ", "घटनाओं"]],
+    /*
+     * The forms no ending met before (#8335). A Hindi noun in "-इ" or
+     * "-ई" and its "-इयाँ" plural: policy and policies, key and keys.
+     */
+    ["hi", ["नीति", "नीतियाँ", "नीतियां", "नीतियों"]],
+    ["hi", ["कुंजी", "कुंजियाँ", "कुंजियां", "कुंजियों"]],
+    ["hi", ["अनुमति", "अनुमतियाँ", "अनुमतियों"]],
+    ["hi", ["सूची", "सूचियाँ", "सूचियों"]],
+    // A Persian verb's present stem and its past one, with its prefixes and person endings.
+    [
+      "fa",
+      [
+        "ساخت",
+        "ساختن",
+        "ساخته",
+        "بسازم",
+        "بسازید",
+        "سازد",
+        "میسازم",
+        "نمیسازد",
+        "سازی",
+      ],
+    ],
+    ["fa", ["گرفتن", "گرفته", "بگیرم", "بگیرید", "گیری"]],
+    ["fa", ["نوشتن", "نوشته", "بنویسم", "بنویسید", "نویسی"]],
+    ["fa", ["گذاشتن", "بگذارم", "گذاری"]],
+    ["fa", ["فرستادن", "بفرستم", "فرستاده"]],
+    // A plural written onto its noun without a half-space, and the Arabic plural.
+    ["fa", ["مانیتور", "مانیتورها", "مانیتورهای", "مانیتورهایی", "مانیتورم"]],
+    ["fa", ["تنظیم", "تنظیمات"]],
+    ["fa", ["کاربر", "کاربران"]],
+    ["fa", ["مشترک", "مشترکان"]],
+    // A Korean irregular verb: 만들다 drops its ㄹ, 끄다 its ㅡ; 가져오다 contracts.
+    [
+      "ko",
+      [
+        "만들기",
+        "만드나요",
+        "만드세요",
+        "만드는",
+        "만든",
+        "만듭니다",
+        "만들어",
+        "만들려면",
+        "만들고",
+        "만들어진",
+      ],
+    ],
+    ["ko", ["끄기", "끄나요", "끄세요", "꺼져", "꺼짐"]],
+    ["ko", ["켜기", "켜나요", "켜세요", "켜져", "켜짐"]],
+    ["ko", ["가져오기", "가져오나요", "가져와", "가져온", "가져오기가"]],
+    ["ko", ["내보내기", "내보내나요", "내보낸", "내보냅니다"]],
+    ["ko", ["받기", "받나요", "받습니다", "받으려면"]],
+    // A Korean particle written onto a Latin name.
+    ["ko", ["slack", "slack을", "slack에서", "slack의"]],
+    ["ko", ["api", "api를", "api가"]],
+    // A Russian noun made from a verb, and the imperative a step is written in.
+    [
+      "ru",
+      [
+        "настроить",
+        "настройка",
+        "настройки",
+        "настроек",
+        "настройками",
+        "настройте",
+        "настраивать",
+      ],
+    ],
+    ["ru", ["установить", "установка", "установки", "установите"]],
+    ["ru", ["проверить", "проверка", "проверок", "проверьте"]],
+    ["ru", ["создать", "создайте"]],
+    ["ru", ["включить", "включите"]],
+    ["ru", ["пригласить", "приглашение", "приглашения"]],
+    ["ru", ["подписаться", "подписка", "подписчики", "подписчиков"]],
+    // Swedish loanwords in "-or" keep it; their definite forms meet them.
+    ["sv", ["monitor", "monitorer", "monitorn", "monitorns", "monitorerna"]],
+    ["sv", ["villkor", "villkoret", "villkoren"]],
+    ["sv", ["administratör", "administratörer", "administratören"]],
+    ["sv", ["lista", "listor", "listorna"]],
+    // A French verb in "-ier" in its other forms.
+    ["fr", ["planifier", "planifiée", "planifie", "planification"]],
+    ["fr", ["notifier", "notifié", "notifie", "notification"]],
+    ["fr", ["vérifier", "vérifiez", "vérifiées", "vérification"]],
+    // ... but a "-yer" verb keeps its "-ie": "envoie" (sends) is "envoi" (sending).
+    ["fr", ["envoi", "envoie"]],
+    /*
+     * A Spanish or Portuguese verb's "they" form, and the people a page
+     * names by a form of the verb no ending makes (#8700).
+     */
+    [
+      "es",
+      ["suscribo", "suscriben", "suscribirse", "suscriptor", "suscriptores"],
+    ],
+    ["es", ["funciona", "funcionan", "funcionar"]],
+    ["es", ["monitorear", "monitorean", "monitor"]],
+    ["pt", ["assinar", "assinam", "assinante", "assinantes"]],
+    ["pt", ["enviar", "enviam", "enviamos", "envia"]],
+    ["pt", ["receber", "recebem", "recebe"]],
+    // ... and a noun's plural meets its singular, the "-en" or "-em" taken off both.
+    ["es", ["imagen", "imágenes"]],
+    ["es", ["volumen", "volúmenes"]],
+    ["pt", ["mensagem", "mensagens"]],
+    ["pt", ["nuvem", "nuvens"]],
+    // ... but a noun whose verb keeps "-en", and an English word with its "-s", keep it.
+    ["es", ["orden", "órdenes", "ordenar"]],
+    ["es", ["almacén", "almacenes", "almacenar"]],
+    ["es", ["token", "tokens"]],
+    ["es", ["mantén", "mantener"]],
+    ["pt", ["token", "tokens"]],
+    ["pt", ["stream", "streams"]],
+    ["pt", ["program", "programs"]],
+    ["pt", ["problem", "problems"]],
+  ] as Array<[string, Array<string>]>)(
+    "%s: %p are one word (#7875)",
+    (language: string, forms: Array<string>) => {
+      const stems: Array<string> = forms.map((form: string): string => {
+        return stemDocsWord(form, language);
+      });
+
+      expect(new Set<string>(stems).size).toBe(1);
+    },
+  );
+
+  test.each([
+    // Words that only look alike stay apart.
+    ["sv", "webbplats", "webbplatsövervakning"],
+    ["ru", "сайт", "сеть"],
+    ["ko", "추가", "추"],
+    ["no", "nettsted", "nettst"],
+    ["pt", "estado", "este"],
+    // A list is not a notification: "सूची" keeps its vowel apart from "सूचना" (#8335).
+    ["hi", "सूची", "सूचना"],
+    // Persian "داده" (data) is not "داد" (gave); a host is not a desk, nor a guest important.
+    ["fa", "داده", "داد"],
+    ["fa", "میزبان", "میز"],
+    ["fa", "مهمان", "مهم"],
+    ["fa", "کاربرد", "کاربر"],
+    // A character is not writing; an explorer is not exploring.
+    ["fa", "نویسه", "نوشتن"],
+    ["ko", "탐색기", "탐색"],
+    ["ko", "수집기", "수집"],
+    // A Swedish condition and a word that merely starts like it.
+    ["sv", "villkor", "villk"],
+    // French nouns in "-ie" stay theirs: a part is not "you leave", a series not "you will be".
+    ["fr", "partie", "partez"],
+    ["fr", "série", "serez"],
+  ] as Array<[string, string, string]>)(
+    "%s: %s and %s stay apart",
+    (language: string, one: string, other: string) => {
+      expect(stemDocsWord(one, language)).not.toBe(
+        stemDocsWord(other, language),
+      );
+    },
+  );
+
+  test("keeps English's and German's endings as they were, and English's for a Latin-script word elsewhere", () => {
+    // The eight English endings, on English and German words alike.
+    for (const language of ["en", "de", undefined]) {
+      expect(stemDocsWord("monitoring", language)).toBe("monitor");
+      expect(stemDocsWord("subscribers", language)).toBe("subscrib");
+      expect(stemDocsWord("bereitschaftspläne", language)).toBe(
+        "bereitschaftsplan",
+      );
+      expect(stemDocsWord("überwache", language)).toBe("uberwach");
+      expect(stemDocsWord("websted", language)).toBe("webst");
+    }
+    // A Latin-script word on a Russian, Korean or Persian page: English's endings.
+    expect(stemDocsWord("monitors", "ru")).toBe("monitor");
+    expect(stemDocsWord("monitors", "ko")).toBe("monitor");
+    expect(stemDocsWord("monitors", "fa")).toBe("monitor");
+    // A word of a script its language has no endings for is compared as written.
+    expect(stemDocsWord("сайта", "en")).toBe("сайта");
+    expect(stemDocsWord("웹사이트를", "ja")).toBe("웹사이트를");
+    expect(stemDocsWord("監視", "ja")).toBe("監視");
+    // A language the docs do not have reads as English.
+    expect(stemDocsWord("monitoring", "xx")).toBe("monitor");
+  });
+
+  test("reads a page in its index's language: Norwegian's Website Monitor is named for the website", () => {
+    expect(tokenizeForDocs("Nettsted-overvåking", "no")).toEqual([
+      "nettsted",
+      "overvak",
+      "nettstedovervak",
+    ]);
+    // With English's endings, as every language was read: "nettst".
+    expect(tokenizeForDocs("Nettsted-overvåking")).toEqual([
+      "nettst",
+      "overvak",
+      "nettstedovervak",
+    ]);
+  });
+
+  /*
+   * Every docs language leaves a question's own words out of it, not out
+   * of a page (#7875): "how", "I" and "my", in its own words.
+   */
+  test.each([
+    ["fr", "Comment surveiller mon site web ?", ["surveill", "sit", "web"]],
+    [
+      "fr",
+      "Comment puis-je surveiller mon site web ?",
+      ["surveill", "sit", "web"],
+    ],
+    ["es", "¿Cómo puedo monitorear mi sitio web?", ["monitor", "siti", "web"]],
+    ["it", "Come posso monitorare il mio sito web?", ["monitor", "sit", "web"]],
+    ["pt", "Como faço para monitorar meu site?", ["monitor", "sit"]],
+    ["nl", "Hoe monitor ik mijn website?", ["monitor", "websit"]],
+    ["da", "Hvordan overvåger jeg mit websted?", ["overvag", "websted"]],
+    ["no", "Hvordan overvåker jeg nettstedet mitt?", ["overvak", "nettsted"]],
+    ["sv", "Hur kan jag övervaka min webbplats?", ["overvak", "webbplat"]],
+    ["ru", "Как я могу отслеживать свой сайт?", ["отслежив", "сайт"]],
+    [
+      "ko",
+      "웹사이트를 모니터링하려면 어떻게 해야 하나요?",
+      ["웹사이트", "모니터링"],
+    ],
+    // "निगरानी" (monitoring) ends in the long "ी" its plural shortens: read as "निगरानि" (#8335).
+    ["hi", "मैं अपनी वेबसाइट की निगरानी कैसे करूँ?", ["वेबसाइट", "निगरानि"]],
+    ["fa", "چطور وب‌سایتم را پایش کنم؟", ["وب", "سایت", "پایش"]],
+    // As people type it: "چطوری", "میشه" and "یه" are spoken Persian's how, can and a (#8335).
+    ["fa", "چطوری میشه یه مانیتور ساخت؟", ["مانیتور", "ساخت"]],
+    ["fa", "چطور یک مانیتور بسازم؟", ["مانیتور", "ساخت"]],
+    [
+      "fa",
+      "آیا می‌توانم مانیتورها را گروه‌بندی کنم؟",
+      ["مانیتور", "گروه", "بندی"],
+    ],
+    // A particle on a Latin name, and a verb that drops its ㄹ (#8335).
+    ["ko", "Slack을 어떻게 연결하나요?", ["slack", "연결"]],
+    ["ko", "모니터를 어떻게 만드나요?", ["모니터", "만들"]],
+    // A step's imperative and a question's infinitive meet (#8335).
+    ["ru", "Как установить агент?", ["установ", "агент"]],
+    ["hi", "मैं OneUptime का बैकअप कैसे लूँ?", ["oneuptim", "बैकअप"]],
+    // A Dutch verb's first part is read joined to the verb, never alone (#8698).
+    [
+      "nl",
+      "Hoe zet ik tweestapsverificatie aan?",
+      ["zet", "tweestapsverificati"],
+    ],
+    // A Spanish and a Portuguese "they" form meet the page (#8700).
+    [
+      "es",
+      "¿Cómo se suscriben mis clientes a la página de estado?",
+      ["suscrib", "client", "pagin", "estad"],
+    ],
+    [
+      "pt",
+      "Como meus clientes assinam a página de status?",
+      ["client", "assin", "pagin", "statu"],
+    ],
+    // Written without spaces: the question's words are cut out where they stand.
+    ["zh-CN", "如何监控我的网站？", ["监控", "网站"]],
+    ["zh-TW", "如何監控我的網站？", ["監控", "網站"]],
+    [
+      "ja",
+      "ウェブサイトを監視するにはどうすればいいですか？",
+      ["ウェ", "ェブ", "ブサ", "サイ", "イト", "監視"],
+    ],
+  ] as Array<[string, string, Array<string>]>)(
+    '%s: "%s" asks about %p (#7875)',
+    (language: string, question: string, words: Array<string>) => {
+      expect(tokenizeQueryForDocs(question, language)).toEqual(words);
+    },
+  );
+
+  test.each([
+    ["fr", "Comment me joindre", ["comment", "joindr"]],
+    ["nl", "Hoe ik bereikbaar ben", ["hoe", "ik", "bereikbar", "ben"]],
+    ["ru", "Как со мной связаться", ["как", "со", "мной", "связ"]],
+    ["zh-CN", "如何联系我", ["如何", "何联", "联系", "系我"]],
+    ["fa", "راه‌های تماس با من", ["راه", "های", "تماس", "با", "من"]],
+  ] as Array<[string, string, Array<string>]>)(
+    '%s: a page keeps them: "%s" (How to Reach Me) is read word for word',
+    (language: string, name: string, words: Array<string>) => {
+      expect(tokenizeForDocs(name, language)).toEqual(words);
+    },
+  );
+
+  test("reads a question that is only its language's question words as nothing", () => {
+    expect(tokenizeQueryForDocs("Comment puis-je ?", "fr")).toEqual([]);
+    expect(tokenizeQueryForDocs("如何", "zh-CN")).toEqual([]);
+    expect(tokenizeQueryForDocs("どうすればいいですか", "ja")).toEqual([]);
+    // Another language's question words are words: "hur" is not left out of a Danish question.
+    expect(tokenizeQueryForDocs("hur", "da")).toEqual(["hur"]);
+  });
+
   test("leaves a German question's own words out of it, not out of a page (#7799)", () => {
     // The German docs say "Sie" and "Ihre": a question's "ich" and "meine" are on few pages.
     expect(
@@ -132,6 +574,156 @@ describe("the words a question and a page are compared by", () => {
       "tim",
       "ist",
     ]);
+  });
+});
+
+describe("a question's own words, where words are not spaced (#7875)", () => {
+  test("cuts Chinese question words out wherever they stand, longest first", () => {
+    expect(cutQuestionWords("如何监控我的网站", "zh-CN")).toEqual([
+      "监控",
+      "网站",
+    ]);
+    // "我们的" (our) before "我" (I): nothing of it is left behind.
+    expect(cutQuestionWords("如何设置我们的值班计划", "zh-CN")).toEqual([
+      "设置",
+      "值班计划",
+    ]);
+    expect(cutQuestionWords("我的網站在哪裡", "zh-TW")).toEqual(["網站在"]);
+    expect(cutQuestionWords("如何", "zh-CN")).toEqual([]);
+  });
+
+  test("cuts a Japanese question's ending and its 'を' out", () => {
+    expect(
+      cutQuestionWords("ウェブサイトを監視するにはどうすればいいですか", "ja"),
+    ).toEqual(["ウェブサイト", "監視"]);
+    expect(
+      cutQuestionWords("モニターを作成する方法を教えてください", "ja"),
+    ).toEqual(["モニター", "作成する"]);
+  });
+
+  test("leaves a word of a spaced language, and another language's words, as they are", () => {
+    expect(cutQuestionWords("website", "zh-CN")).toEqual(["website"]);
+    // Chinese question words mean nothing to a Korean or English question.
+    expect(cutQuestionWords("如何监控", "ko")).toEqual(["如何监控"]);
+    expect(cutQuestionWords("如何监控", "en")).toEqual(["如何监控"]);
+  });
+
+  test("splits a question into the words it asks with, in order", () => {
+    expect(
+      splitQuestionWords("Hvordan overvåker jeg nettstedet mitt?", "no"),
+    ).toEqual(["overvåker", "nettstedet"]);
+    expect(splitQuestionWords("如何监控我的网站？", "zh-CN")).toEqual([
+      "监控",
+      "网站",
+    ]);
+    expect(splitQuestionWords("Wie ich erreichbar bin", "de")).toEqual([
+      "erreichbar",
+    ]);
+  });
+});
+
+describe("DocsAIReader.compoundsOf (#7875)", () => {
+  const index: AIDocsLanguageIndex = makeDocsIndex(
+    [
+      {
+        page: "monitor/website-monitor",
+        title: "Webbplatsövervakning",
+        summary: "En webbplatsmonitor kontrollerar att en webbsida svarar.",
+      },
+      {
+        page: "status-pages/index",
+        title: "Statussidor",
+        summary: "Berätta för kunderna vad som händer.",
+      },
+    ],
+    "sv",
+  );
+
+  test("reads two of a question's words as the one word they make, in either order", () => {
+    expect(DocsAIReader.compoundsOf(index, ["övervaka", "webbplats"])).toEqual([
+      "webbplatsovervak",
+    ]);
+    expect(DocsAIReader.compoundsOf(index, ["webbplats", "övervakar"])).toEqual(
+      ["webbplatsovervak"],
+    );
+    // With the "s" that links them: Norwegian "nettstedsmonitor".
+    expect(
+      DocsAIReader.compoundsOf(
+        makeDocsIndex(
+          [
+            {
+              page: "monitor/website-monitor",
+              title: "Nettsted-overvåking",
+              summary: "En nettstedsmonitor sjekker at en nettside svarer.",
+            },
+          ],
+          "no",
+        ),
+        ["monitor", "nettstedet"],
+      ),
+    ).toEqual(["nettstedsmonitor"]);
+  });
+
+  test("reads a Dutch verb a question writes in two parts as the one word the docs write (#8335)", () => {
+    const dutch: AIDocsLanguageIndex = makeDocsIndex(
+      [
+        {
+          page: "permissions/inviting-people",
+          title: "Mensen uitnodigen",
+          summary: "Nodig een collega uit voor je project.",
+        },
+        {
+          page: "api-reference/api-reference",
+          title: "API-referentie",
+          summary: "Een API-sleutel aanmaken en een verzoek sturen.",
+        },
+      ],
+      "nl",
+    );
+
+    // "nodig ... uit" is "uitnodigen", "maak ... aan" is "aanmaken".
+    expect(
+      DocsAIReader.compoundsOf(dutch, ["nodig", "collega", "uit"]),
+    ).toEqual(["uitnodig"]);
+    expect(
+      DocsAIReader.compoundsOf(dutch, ["maak", "api-sleutel", "aan"]),
+    ).toEqual(["aanmak"]);
+    expect(
+      DocsAIReader.rank(
+        dutch,
+        "Hoe nodig ik een collega uit voor mijn project?",
+        2,
+      ).map((hit: AIDocsSearchHit): string => {
+        return hit.page;
+      })[0],
+    ).toBe("permissions/inviting-people");
+  });
+
+  test("reads only words the docs hold, and only where a language writes them as one", () => {
+    expect(DocsAIReader.compoundsOf(index, ["övervaka", "status"])).toEqual([]);
+    expect(DocsAIReader.compoundsOf(index, ["webbplats"])).toEqual([]);
+    expect(
+      DocsAIReader.compoundsOf(
+        makeDocsIndex(
+          [{ page: "monitor/website-monitor", title: "Websitemonitor" }],
+          "en",
+        ),
+        ["monitor", "website"],
+      ),
+    ).toEqual([]);
+  });
+
+  test("makes Swedish's Website Monitor the first page for the question", () => {
+    expect(
+      DocsAIReader.rank(index, "Hur övervakar jag min webbplats?", 2).map(
+        (hit: AIDocsSearchHit): string => {
+          return hit.page;
+        },
+      )[0],
+    ).toBe("monitor/website-monitor");
+    expect(
+      DocsAIReader.readQuestion(index, "Hur övervakar jag min webbplats?"),
+    ).toContain("webbplatsovervak");
   });
 });
 
@@ -222,15 +814,20 @@ describe("DocsAIReader.search", () => {
   });
 
   test.each(NAMED_FOR_THE_QUESTION)(
-    'in German, "%s" finds the page named for what it asks about first (#7799)',
-    async (question: string, page: string) => {
+    '%s: "%s" finds the page named for what it asks about first (#7799, #7875)',
+    async (language: string, question: string, page: string) => {
       const hits: Array<AIDocsSearchHit> = await reader.search({
         query: question,
-        language: "de",
+        language,
         limit: 6,
       });
 
-      expect(hits[0]?.page).toBe(page);
+      expect({
+        question,
+        first: hits.slice(0, 3).map((hit: AIDocsSearchHit): string => {
+          return hit.page;
+        })[0],
+      }).toEqual({ question, first: page });
     },
     BUILD_TIMEOUT_MS,
   );

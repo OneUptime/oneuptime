@@ -1,4 +1,5 @@
 import IncidentStateUtil from "../../Utils/IncidentState";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import AlertStateUtil from "../../Utils/AlertState";
 import ScheduledMaintenanceStateUtil from "../../Utils/ScheduledMaintenanceState";
 import Route from "Common/Types/API/Route";
@@ -24,7 +25,9 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import EmptyFigure, {
+  getFigure,
+} from "Common/UI/Components/EmptyFigure/EmptyFigure";
 
 /*
  * Each of the Incident, Alert, and ScheduledMaintenance models exposes
@@ -218,7 +221,7 @@ const ResourceActivityCards: FunctionComponent<ComponentProps> = (
     count: number | null,
   ): string => {
     if (count === null) {
-      return "—";
+      return EMPTY_VALUE_MARK;
     }
     /*
      * In the reader's digits, as every other figure on a resource's
@@ -329,12 +332,14 @@ const ResourceActivityCards: FunctionComponent<ComponentProps> = (
                 className={`text-2xl font-semibold leading-none ${card.countText}`}
                 data-testid="resource-activity-count"
               >
-                {card.isLoading ? (
-                  <span className="text-gray-300">…</span>
-                ) : card.hasError ? (
-                  <TableEmptyValue />
-                ) : (
-                  formatCount(card.count)
+                {getFigure(
+                  card.isLoading ? (
+                    <span className="text-gray-300">…</span>
+                  ) : card.hasError ? (
+                    <EmptyFigure />
+                  ) : (
+                    formatCount(card.count)
+                  ),
                 )}
               </div>
               <div className="mt-1 text-xs text-gray-500">

@@ -10,7 +10,9 @@ import {
 } from "Common/Types/Rum/SessionReplayApi";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { readStoredAddress } from "Common/Utils/Rum/UserFlow";
 import { APP_API_URL } from "Common/UI/Config";
+import { Translator } from "Common/Types/Translator";
 import { formatSessionDuration } from "./SessionReplayPlayability";
 
 /*
@@ -135,8 +137,13 @@ export async function fetchSessionReplayAuditSummaries(data: {
   return summaries;
 }
 
+/*
+ * The page a session entered on: its path and query, and a React Native
+ * screen stored as "null/<route>" before #8384 by its route
+ * (readStoredAddress).
+ */
 export function sessionReplayEntryPath(entryUrl: string): string {
-  const value: string = entryUrl.trim();
+  const value: string = readStoredAddress(entryUrl.trim());
 
   if (!value) {
     return "";
@@ -196,6 +203,8 @@ export function sessionReplayStartDate(
 export function describeSessionReplayAuditSession(data: {
   sessionId: string;
   summary?: SessionReplayAuditSummary | undefined;
+  // The reader's, for the session's length in their language (#8455).
+  translator?: Translator | undefined;
 }): SessionReplayAuditPresentation {
   const fullSessionId: string = data.sessionId.trim();
   const summary: SessionReplayAuditSummary | undefined =
@@ -205,7 +214,7 @@ export function describeSessionReplayAuditSession(data: {
     SESSION_REPLAY_AUDIT_SHORT_ID_LENGTH,
   );
   const durationLabel: string = summary
-    ? formatSessionDuration(summary.durationMs)
+    ? formatSessionDuration(summary.durationMs, data.translator)
     : "";
 
   return {

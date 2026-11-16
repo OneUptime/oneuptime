@@ -127,6 +127,7 @@ import {
   PublicDashboardContext,
   setPublicDashboardContext,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Utils/PublicDashboardContext";
+import SliType from "../../../Types/ServiceLevelObjective/SliType";
 import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
@@ -359,7 +360,53 @@ describe("SLO List widget — what it asks for", () => {
       sloStatus: true,
       // Without it a disabled SLO's frozen status reads as live.
       isEnabled: true,
+      // A request SLO's budget line is in requests (#8441).
+      sliType: true,
+      errorBudgetRemainingEvents: true,
     });
+  });
+
+  /*
+   * A request SLO's budget is a count of requests (#8441): the worker leaves
+   * its budget in seconds empty, so the line under its budget used to be
+   * blank. It says the failed - or slow - requests left, or over.
+   */
+  test("says a request SLO's budget in requests", async () => {
+    getListMock.mockResolvedValue({
+      data: [
+        buildSlo({
+          name: "Checkout requests",
+          sliType: SliType.RequestSuccess,
+          errorBudgetRemainingPercentage: 42.5,
+          errorBudgetRemainingSeconds: undefined as unknown as number,
+          errorBudgetRemainingEvents: "425" as unknown as number,
+        }),
+        buildSlo({
+          name: "Search latency",
+          sliType: SliType.RequestLatency,
+          errorBudgetRemainingPercentage: -5,
+          errorBudgetRemainingSeconds: undefined as unknown as number,
+          errorBudgetRemainingEvents: -50,
+          sloStatus: SloStatus.BudgetExhausted,
+        }),
+      ],
+      count: 2,
+      skip: 0,
+      limit: SLO_LIST_DEFAULT_MAX_ROWS,
+    });
+
+    renderList();
+
+    const rows: Array<HTMLElement> =
+      await screen.findAllByTestId("slo-list-row");
+
+    expect(
+      within(rows[0] as HTMLElement).getByText("425 failed requests remaining"),
+    ).toBeInTheDocument();
+    expect(
+      within(rows[1] as HTMLElement).getByText("50 slow requests over budget"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/min remaining|min over budget/)).toBeNull();
   });
 
   /*

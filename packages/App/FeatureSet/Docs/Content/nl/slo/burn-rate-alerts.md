@@ -132,7 +132,7 @@ Vul onder **Regel** een **Naam** in, zoals "Fast burn". Een nieuwe regel staat a
 
 ### Het verbruiksvenster instellen
 
-Stel onder **Verbruiksvenster** de **Drempel voor verbruikssnelheid** in (bijvoorbeeld `14.4`), de **Lang venster (minuten)** en de **Kort venster (minuten)**, en eventueel de **Onderdrukking van opnieuw afgaan (minuten)**.
+Stel onder **Verbruiksvenster** de **Drempel voor verbruikssnelheid** in (bijvoorbeeld `14.4`), de **Lang venster (minuten)** en de **Kort venster (minuten)**, en eventueel de **Onderdrukking van opnieuw afgaan (minuten)**. De regel van een SLO voor aanvragen heeft ook een **Minimaal aantal aanvragen**, bijvoorbeeld `100`: de regel slaat een lang venster over dat minder aanvragen bevat dan dat. De regel van een SLO voor een metriek heeft op dezelfde manier een **Minimaal aantal gebeurtenissen**, in gebeurtenissen van zijn metriek.
 
 ### Kiezen wat hij meldt
 
@@ -151,10 +151,12 @@ OneUptime controleert de getallen van een regel als u hem opslaat:
 | **Kort venster (minuten)** | Groter dan 0. |
 | **Lang venster (minuten)** | Langer dan het korte venster. |
 | **Onderdrukking van opnieuw afgaan (minuten)** | 0 of meer. Leeg betekent de lengte van het lange venster. |
+| **Minimaal aantal aanvragen** | Een geheel getal, 0 of meer. Leeg betekent geen minimum. |
+| **Minimaal aantal gebeurtenissen** | Een geheel getal, 0 of meer. Leeg betekent geen minimum. |
 
 Elk antwoord op **Wanneer hij afgaat** opent iets. De API weigert een regel die geen waarschuwing zou maken en geen incident zou melden, omdat hij bij elke evaluatie zou worden gecontroleerd zonder ooit iets te melden.
 
-De regeltabel toont voor elke regel de drempel, de vensters en de onderdrukking, wat hij meldt (en of de waarschuwing of het incident alleen met de hand wordt opgelost, of privé is), de ernstniveaus, het bereikbaarheidsbeleid, de eigenaren en de labels.
+De regeltabel toont voor elke regel de drempel, de vensters en de onderdrukking, wat hij meldt (en of de waarschuwing of het incident alleen met de hand wordt opgelost, of privé is), de ernstniveaus, het bereikbaarheidsbeleid, de eigenaren en de labels. Voor een SLO voor aanvragen toont hij ook het minimum van elke regel onder de vensters.
 
 > [!TIP]
 > Een goed begin: houd de drie standaardregels, stuur de regel voor snel verbruik met een hoge ernst naar uw bereikbaarheidsbeleid dat mensen oproept, laat de regel voor langzaam verbruik een waarschuwing met lagere ernst geven voor kantooruren, en laat de regel voor een langzaam lek een ticket blijven voor het verantwoordelijke team. Werkt uw team met incidenten, kies dan **Een incident melden** voor de regel voor snel verbruik, of **Beide** om ook een waarschuwing te krijgen.
@@ -212,8 +214,8 @@ Om uw eigen tekst te schrijven, gebruikt u sjabloonvariabelen in de titel, de be
 | `{{targetPercentage}}` | Het doel van de SLO, als percentage. | `99.9` |
 | `{{currentSliPercentage}}` | De SLI gemeten over het compliancevenster van de SLO, als percentage. | `99.87` |
 | `{{errorBudgetRemainingPercentage}}` | Aandeel van het foutbudget dat nog beschikbaar is, als percentage. Negatief als het budget is overschreden. | `42.5` |
-| `{{errorBudgetRemaining}}` | Foutbudget dat nog beschikbaar is, als duur. Begint met een minteken als het budget is overschreden. | `18m 22s` |
-| `{{errorBudgetRemainingMinutes}}` | Foutbudget dat nog beschikbaar is, in minuten. | `18.37` |
+| `{{errorBudgetRemaining}}` | Foutbudget dat nog beschikbaar is, als duur, of voor een SLO voor aanvragen als de mislukte of trage aanvragen die het nog toestaat. Begint met een minteken als het budget is overschreden. | `18m 22s` |
+| `{{errorBudgetRemainingMinutes}}` | Foutbudget dat nog beschikbaar is, in minuten. Leeg voor een SLO voor aanvragen, waarvan het budget in aanvragen wordt geteld. | `18.37` |
 | `{{windowDescription}}` | Het compliancevenster van de SLO, in woorden. | `rolling 30-day window` |
 | `{{policyTier}}` | Naam van het niveau van het foutbudgetbeleid waarin de SLO na deze evaluatie zit. "None" als hij in geen enkel niveau zit. | `Reliability first` |
 | `{{policyTierThresholdPercentage}}` | Drempel voor het resterende budget van dat niveau, als percentage. Leeg als de SLO in geen enkel niveau zit. | `25` |
@@ -235,7 +237,7 @@ Zo wordt de titel `{{ruleName}}: {{sloName}} is burning {{longWindowBurnRate}}x`
 - **SLO-eigenaren als eigenaren toevoegen** voegt ook de eigenaren van de SLO, zijn eigenaarsgebruikers en de leden van zijn eigenaarsteams, toe aan alles wat de regel aanmaakt. De eigenaren van de SLO horen al over de statuswijzigingen van de SLO zelf, dus dit kan ze twee keer informeren. Het staat standaard uit.
 - Elke eigenaar wordt één keer toegevoegd: een gebruiker die al eigenaar van de waarschuwing of het incident is, bijvoorbeeld via de eigenaarsregels van het project, of die in een toegevoegd eigenaarsteam zit, wordt niet nog eens toegevoegd.
 - **Waarschuwingslabels** en **Incident-labels** worden aan de waarschuwing of het incident toegevoegd, zodat filters, eigenaarsregels en meldingsregels voor de werkruimte erop kunnen letten.
-- Een privé-waarschuwing of -incident is alleen zichtbaar voor de eigenaren, projectbeheerders en projecteigenaren.
+- Een privé-waarschuwing of -incident is alleen zichtbaar voor de eigenaren, Projectbeheerders en Projecteigenaren.
 
 Labels, eigenaarsteams en bereikbaarheidsbeleid moeten bij het project van de SLO horen.
 
@@ -276,7 +278,7 @@ Regels voor verbruikssnelheid blijven stil terwijl een van de monitoren van de S
 :::
 
 :::details Is er een minimaal aantal metingen?
-Niet voor SLO's die worden gemeten aan de beschikbaarheid van monitoren. Beschikbaarheid wordt in seconden gemeten, dus elke seconde van het venster is een meting en er is geen geval met weinig verkeer om tegen te beschermen. Een minimaal aantal metingen doet er alleen toe voor op gebeurtenissen gebaseerde SLI's, die nog niet beschikbaar zijn.
+Niet voor SLO's die worden gemeten aan de beschikbaarheid van monitoren. Beschikbaarheid wordt in seconden gemeten, dus elke seconde van het venster is een meting en er is geen geval met weinig verkeer om tegen te beschermen. De regel van een SLO voor aanvragen heeft er wel een: stel zijn **Minimaal aantal aanvragen** in, en de regel slaat een lang venster met minder aanvragen dan dat over, zodat een rustig uur met één mislukte aanvraag op vijf niemand oproept.
 :::
 
 ## Volgende stappen

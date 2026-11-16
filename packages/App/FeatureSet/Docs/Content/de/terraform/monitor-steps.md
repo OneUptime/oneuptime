@@ -11,7 +11,7 @@
 
 ## Wie eine Prüfung beurteilt wird
 
-Jede Prüfung liefert ein Ergebnis: die Antwort einer Probe, den Rückgabewert eines Skripts oder die Telemetrie, die die Prüfung liest. Die Kriterien des Schritts beurteilen es dann in ihrer Reihenfolge. Das erste Kriterium, dessen Filter passen, entscheidet, was geschieht: Es kann den Status des Monitors ändern, Vorfälle öffnen und Warnungen öffnen. Die Kriterien danach werden für diese Prüfung nicht angesehen.
+Jede Prüfung liefert ein Ergebnis: die Antwort einer Sonde, den Rückgabewert eines Skripts oder die Telemetrie, die die Prüfung liest. Die Kriterien des Schritts beurteilen es dann in ihrer Reihenfolge. Das erste Kriterium, dessen Filter passen, entscheidet, was geschieht: Es kann den Status des Monitors ändern, Vorfälle öffnen und Warnungen öffnen. Die Kriterien danach werden für diese Prüfung nicht angesehen.
 
 ```mermaid title="Wie jede Prüfung beurteilt wird"
 flowchart TB
@@ -26,7 +26,7 @@ Die Reihenfolge der Kriterien zählt also: Führen Sie die Kriterien, die alarmi
 
 ## Die Schritte schreiben
 
-`monitor_steps` ist eine Liste typisierter Objekte, direkt in HCL geschrieben. Es gibt kein `jsonencode()`, keine Hülle `{_type, value}`, keinen Schlüssel in camelCase und keine ID zu schreiben: Der Provider macht aus Ihrem HCL das Format der API, und der Server gibt jedem Schritt, jedem Kriterium, jeder Vorfallvorlage und jeder Warnungsvorlage ihre ID. Er behält diese IDs über jedes Apply hinweg und ordnet jedes Kriterium und jede Vorlage der zu, die sie ersetzt, nach Name, sonst nach Position, sodass Probe-Ergebnisse bei ihrem Schritt bleiben und Vorfälle weiter auf die Kriterien zeigen, die sie ausgelöst haben.
+`monitor_steps` ist eine Liste typisierter Objekte, direkt in HCL geschrieben. Es gibt kein `jsonencode()`, keine Hülle `{_type, value}`, keinen Schlüssel in camelCase und keine ID zu schreiben: Der Provider macht aus Ihrem HCL das Format der API, und der Server gibt jedem Schritt, jedem Kriterium, jeder Vorfallvorlage und jeder Warnungsvorlage ihre ID. Er behält diese IDs über jedes Apply hinweg und ordnet jedes Kriterium und jede Vorlage der zu, die sie ersetzt, nach Name, sonst nach Position, sodass Sondenergebnisse bei ihrem Schritt bleiben und Vorfälle weiter auf die Kriterien zeigen, die sie ausgelöst haben.
 
 ```mermaid title="Die Teile von monitor_steps"
 flowchart TB
@@ -170,9 +170,9 @@ Jedes Element von `monitor_steps` ist eine Sache, die geprüft wird:
 | `tls_client_certificate` | string | Website, API | Ein Client-Zertifikat für gegenseitiges TLS: PEM oder ein Verweis `{{monitorSecrets.name}}`. |
 | `tls_client_key` | string (sensibel) | Website, API | Der private Schlüssel des Client-Zertifikats. Setzen Sie ihn mit dem Zertifikat. |
 | `tls_client_key_passphrase` | string (sensibel) | Website, API | Die Passphrase des privaten Schlüssels. |
-| `request_timeout_in_ms` | number | Prüfungen einer Probe | Wie lange ein Versuch dauern darf, in Millisekunden. Die Probe senkt alles über 60000 auf 60000. |
-| `retry_count` | number | Prüfungen einer Probe | Wiederholungen nach einem gescheiterten ersten Versuch: `0` prüft einmal, `3` bis zu viermal. Die Probe senkt alles über 3 auf 3. |
-| `custom_code` | string | Custom JavaScript Code, Synthetic | Das Skript, das der Schritt ausführt. |
+| `request_timeout_in_ms` | number | Prüfungen einer Sonde | Wie lange ein Versuch dauern darf, in Millisekunden. Die Sonde senkt alles über 60000 auf 60000. |
+| `retry_count` | number | Prüfungen einer Sonde | Wiederholungen nach einem gescheiterten ersten Versuch: `0` prüft einmal, `3` bis zu viermal. Die Sonde senkt alles über 3 auf 3. |
+| `custom_code` | string | Benutzerdefinierter JavaScript-Code, Synthetic | Das Skript, das der Schritt ausführt. |
 | `screen_size_types` | list(string) | Synthetic | `Mobile`, `Tablet` und `Desktop`. |
 | `browser_types` | list(string) | Synthetic | `Chromium` und `Firefox`. |
 | `retry_count_on_error` | number | Synthetic | Wiederholungen, wenn das Skript scheitert: `0` führt es einmal aus. |
@@ -401,7 +401,7 @@ Eine Prüfung, auf die keines der Kriterien passt, setzt den Monitor auf seinen 
 
 ## Ein Monitor ohne Schritte
 
-`monitor_steps` ist optional, aber ein ohne das Attribut angelegter Monitor hat keine Kriterien, nach denen ein Ergebnis beurteilt wird: Probes überspringen einen Monitor ohne Schritte, und er bleibt in dem Status, in dem er begonnen hat. Ihr State hält das Attribut leer, und der Plan bleibt sauber. Ein manueller Monitor braucht nie Schritte: Sie setzen seinen Status selbst. Jeder andere Typ braucht mindestens einen Schritt, um etwas zu prüfen.
+`monitor_steps` ist optional, aber ein ohne das Attribut angelegter Monitor hat keine Kriterien, nach denen ein Ergebnis beurteilt wird: Sonden überspringen einen Monitor ohne Schritte, und er bleibt in dem Status, in dem er begonnen hat. Ihr State hält das Attribut leer, und der Plan bleibt sauber. Ein manueller Monitor braucht nie Schritte: Sie setzen seinen Status selbst. Jeder andere Typ braucht mindestens einen Schritt, um etwas zu prüfen.
 
 ## Das Übertragungsformat
 

@@ -108,7 +108,7 @@ Voor een nauwere toekenning geeft u de gebruiker `SELECT` op alleen de tabellen 
 :::steps
 ### Een nieuwe monitor beginnen
 
-Ga naar **Monitoren** en klik op **Monitor maken**. Klik onder **Monitortype** op **Meer monitortypen** en kies **SQL Query** onder **Databasebewaking**, of typ `query` in het zoekvak. Voer een **Naam** in en klik op **Volgende**.
+Ga naar **Monitoren** en klik op **Monitor maken**. Klik onder **Monitortype** op **Meer monitortypen** en kies **SQL-query** onder **Databasebewaking**, of typ `query` in het zoekvak. Voer een **Naam** in en klik op **Volgende**.
 
 ### De verbindingsgegevens invoeren
 
@@ -116,7 +116,7 @@ Kies het **Database Type** (de poort springt naar de standaard van die engine) e
 
 ### De query invoeren
 
-Typ één alleen-lezen instructie in **SQL Query** (zie [De query schrijven](#de-query-schrijven)).
+Typ één alleen-lezen instructie in **SQL-query** (zie [De query schrijven](#de-query-schrijven)).
 
 ### Het testen
 
@@ -142,7 +142,7 @@ Selecteer de **Sondes** die de database bereiken en een **Bewakingsinterval**, e
 | **Authenticatie** | Alleen Microsoft SQL Server: **Gebruikersnaam en wachtwoord**, de standaard, of **Windows Integrated Authentication**, dat aanmeldt met het account waaronder de sonde draait. Zie [Geïntegreerde Windows-verificatie](#geïntegreerde-windows-verificatie). |
 | **Gebruikersnaam** | Een alleen-lezen databasegebruiker met minimale rechten. |
 | **Wachtwoord** | Het databasewachtwoord. We raden sterk aan met `{{monitorSecrets.name}}` naar een [monitorgeheim](/docs/monitor/monitor-secrets) te verwijzen in plaats van het wachtwoord als platte tekst in te typen (zie [Een monitorgeheim voor het wachtwoord gebruiken](#een-monitorgeheim-voor-het-wachtwoord-gebruiken)). |
-| **SQL Query** | De alleen-lezen query die wordt uitgevoerd (zie [De query schrijven](#de-query-schrijven)). |
+| **SQL-query** | De alleen-lezen query die wordt uitgevoerd (zie [De query schrijven](#de-query-schrijven)). |
 | **Use SSL/TLS** | Zet dit aan om via TLS verbinding te maken. Staat het aan, dan kunt u **Verify server certificate** uitzetten als de database een zelfondertekend certificaat gebruikt. |
 
 ### Meer velden
@@ -151,7 +151,7 @@ Selecteer de **Sondes** die de database bereiken en een **Bewakingsinterval**, e
 |---|---|---|---|
 | **Connection Timeout (ms)** | `10000` | `30000` | Hoe lang er op het opzetten van een verbinding wordt gewacht. |
 | **Statement Timeout (ms)** | `15000` | `60000` | De harde bovengrens voor hoe lang de query mag lopen. |
-| **Max Rows** | `100` | `1000` | De bovengrens van rijen die uit de database worden teruggelezen. |
+| **Max. rijen** | `100` | `1000` | De bovengrens van rijen die uit de database worden teruggelezen. |
 
 Een waarde boven het maximum wordt verlaagd tot het maximum.
 
@@ -216,7 +216,7 @@ Zodat het databasewachtwoord nooit als platte tekst op de monitor wordt opgeslag
 3. Voer in het veld **Wachtwoord** van de monitor `{{monitorSecrets.dbPassword}}` in.
 :::
 
-OneUptime lost het geheim op de server op voordat de configuratie aan de sonde wordt overgedragen. OneUptime maakt deze geheimen nooit voor u aan: of u ernaar verwijst, is uw keuze. De velden **Gebruikersnaam**, **Host**, **Databasenaam** en **SQL Query** accepteren ook verwijzingen naar geheimen; **Poort** niet.
+OneUptime lost het geheim op de server op voordat de configuratie aan de sonde wordt overgedragen. OneUptime maakt deze geheimen nooit voor u aan: of u ernaar verwijst, is uw keuze. De velden **Gebruikersnaam**, **Host**, **Databasenaam** en **SQL-query** accepteren ook verwijzingen naar geheimen; **Poort** niet.
 
 ## Criteria instellen
 
@@ -231,7 +231,7 @@ Voeg criteria toe om te bepalen wanneer de monitor als online, verminderd of off
 | **SQL-queryfout** | De foutmelding van de query. Waarschuw als die (niet) leeg is, of overeenkomt met een bepaalde tekenreeks. |
 | **JavaScript-expressie** | Een eigen JavaScript-expressie evalueren over `rowCount`, `scalarValue`, `firstRow`, `executionTimeInMs`, `queryError` en `isOnline`. Zie [JavaScript-expressies](/docs/monitor/javascript-expression#sql-querymonitoren). |
 
-Numerieke drempels zijn gehele getallen: schrijf `10`, niet `10.5`. SQL Query-filters kunnen niet over een periode worden geëvalueerd; elke controle staat op zichzelf.
+Numerieke drempels zijn gehele getallen: schrijf `10`, niet `10.5`. SQL-query-filters kunnen niet over een periode worden geëvalueerd; elke controle staat op zichzelf.
 
 Een nieuwe SQL-query-monitor begint met twee criteria: **SQL is online** is onwaar (de monitor gaat offline en verklaart een incident dat zichzelf oplost) en **SQL is online** is waar, wat hem als online markeert. **Criteria toevoegen** voegt er een onderaan toe; sleep het boven het online-criterium, want criteria worden van boven af gecontroleerd en het eerste dat overeenkomt, beslist.
 

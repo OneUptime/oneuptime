@@ -1,6 +1,6 @@
 # Google SecOps
 
-把 [Google SecOps](https://cloud.google.com/security/products/security-operations)（原 Chronicle）的警报和检测导入 OneUptime 的安全事件。在那里，你可以把它们与日志、跟踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的内容呼叫值班人员。
+把 [Google SecOps](https://cloud.google.com/security/products/security-operations)（原 Chronicle）的警报和检测导入 OneUptime 的安全事件。在那里，你可以把它们与日志、追踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的内容呼叫值班人员。
 
 :::cards
 - [选择连接方式](#选择连接方式): SOAR playbook Webhook、托管连接器，或 UDM 转发。
@@ -22,7 +22,7 @@
 
 ## 开始之前
 
-- 对于托管连接器，在 OneUptime 中拥有 Project Owner、Project Admin 或 Security Admin 角色。Security Member 和 Security Viewer 可以读取连接，但不能创建它们。
+- 对于托管连接器，在 OneUptime 中拥有项目所有者、项目管理员或安全管理员角色。安全成员和安全查看者可以读取连接，但不能创建它们。
 - 对于 Webhook 和 UDM 转发，需要一个摄取密钥：打开 **项目设置 → 遥测与 APM → 摄取密钥**，然后点击 **创建摄取密钥**。
 - 对于托管连接器，需要在你的 SecOps 实例所绑定的项目上创建 Google Cloud 服务账号的权限。
 
@@ -173,7 +173,7 @@ Partial 轮询还会把它的警告存储在 **最近错误** 中，直到一次
 
 ## 按需预览、运行和导入
 
-在连接上打开 **诊断**，可以查看最近的运行并操作连接器。Project Owner、Project Admin 和 Security Admin 可以启动操作。Security Member 和 Security Viewer 可以阅读历史记录。
+在连接上打开 **诊断**，可以查看最近的运行并操作连接器。项目所有者、项目管理员和安全管理员可以启动操作。安全成员和安全查看者可以阅读历史记录。
 
 - **立即运行** 会立即排入一次轮询，使用正常的游标和摄取路径，即使计划轮询已被禁用也可以。工作进程执行请求期间，排队中和运行中的状态会一直可见。如果某次运行一直处于排队状态，请检查工作进程是否在处理 Worker 队列；测试连接中的 **Background workers** 检查会告诉你是否有进程在处理。
 - **预览检测** 读取选定的时间范围，不导入也不改变游标。可以使用过去 1 小时、24 小时、7 天，或最长 7 天的自定义范围。该范围与按检测时间读取的 SecOps 警报视图一致，而两个搜索读取过程既读取在该范围内创建的检测，也读取检测时间落在该范围内的检测，所以预览昨天时，也会显示昨天创建的、关于更早事件的检测。预览会分别显示检测时间和创建时间。结果反映连接已保存的 **要导入的数据** 选择。

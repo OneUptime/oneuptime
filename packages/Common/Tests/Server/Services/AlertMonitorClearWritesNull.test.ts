@@ -8,6 +8,7 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
 import { DataSource, EntityMetadata } from "typeorm";
 import { Subject } from "typeorm/persistence/Subject";
 import { SubjectChangedColumnsComputer } from "typeorm/persistence/SubjectChangedColumnsComputer";
@@ -20,6 +21,16 @@ import {
   expect,
   test,
 } from "@jest/globals";
+
+/*
+ * A request the write sends that these tests leave unanswered: an alert's
+ * update is announced to the Workflow service (DatabaseService
+ * onTriggerWorkflow, which does not wait for it), and what reaches TypeORM
+ * does not depend on it. Refused at once, as the network refused it, and
+ * logged as an announcement that could not be made
+ * (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/workflow/model/*/alert/on-update"]);
 
 /*
  * Clearing an alert's monitor in the dashboard has to store NULL, not leave

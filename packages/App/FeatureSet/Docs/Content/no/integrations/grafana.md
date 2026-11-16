@@ -5,7 +5,7 @@ Send varsler fra [Grafana](https://grafana.com) til OneUptime, slik at hvert var
 :::cards
 - [Velg hvordan OneUptime mottar varsler](#velg-hvordan-oneuptime-mottar-varsler): En monitor for innkommende forespørsler eller en egen arbeidsflyt.
 - [Motta varsler med en monitor](#motta-varsler-med-en-monitor): Én hendelse per varsel, løst ved gjenoppretting.
-- [Konfigurer Grafana](#konfigurer-grafana): Et webhook-kontaktpunkt og retningslinjen som bruker det.
+- [Konfigurer Grafana](#konfigurer-grafana): Et webhook-kontaktpunkt og policyen som bruker det.
 - [Feilsøking](#feilsøking): Når varsler ikke kommer frem, eller hendelser blir stående åpne.
 :::
 
@@ -13,14 +13,14 @@ Send varsler fra [Grafana](https://grafana.com) til OneUptime, slik at hvert var
 
 ```mermaid title="Fra et Grafana-varsel til en hendelse"
 flowchart TB
-    rule["En Grafana-<br/>varslingsregel<br/>utløses"] --> policy["En varslings-<br/>retningslinje<br/>grupperer varslene"]
+    rule["En Grafana-<br/>varslingsregel<br/>utløses"] --> policy["En varslings-<br/>policy<br/>grupperer varslene"]
     policy --> post["Kontaktpunktet<br/>poster dem til<br/>OneUptime"]
     post --> status{"Statusen til<br/>hvert varsel"}
     status -->|"firing"| open["Hendelse åpnet,<br/>vakten varslet"]
     status -->|"resolved"| resolve["Hendelse løst"]
 ```
 
-Grafanas varslingsretningslinjer grupperer varslene som utløses, og et webhook-kontaktpunkt poster hver gruppe som én JSON-varsling. Den har samme form som en varsling fra [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager): en `status`, en liste `alerts` der hvert varsel har sin egen `status` og sitt eget `fingerprint`, og `commonLabels` og `commonAnnotations` som varslene deler. Grafana legger til en `title` og en `message` som er skrevet for mennesker.
+Grafanas varslingspolicyer grupperer varslene som utløses, og et webhook-kontaktpunkt poster hver gruppe som én JSON-varsling. Den har samme form som en varsling fra [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager): en `status`, en liste `alerts` der hvert varsel har sin egen `status` og sitt eget `fingerprint`, og `commonLabels` og `commonAnnotations` som varslene deler. Grafana legger til en `title` og en `message` som er skrevet for mennesker.
 
 ## Før du begynner
 
@@ -54,7 +54,7 @@ Gå til **Monitorer**, og klikk på **Opprett monitor**. Velg **Innkommende fore
 - **Hendelsestittel**: `{{requestBody.commonLabels.alertname}}`.
 - **Hendelsesbeskrivelse**, under **Beskrivelse**: `{{requestBody.message}}`, teksten Grafana skriver for varslingen.
 - **Alvorlighetsgrad**: hendelsesalvorlighetsgraden disse varslene skal ha.
-- **Vaktretningslinjer**, under **Vakt**: retningslinjene som skal varsles.
+- **Vaktpolicyer**, under **Vakt**: policyene som skal varsles.
 - **Løs hendelse automatisk**, under **Flere felt**: la den være slått på, slik den starter. Uten den ignoreres gjenopprettinger, og hendelser blir stående åpne.
 
 ### Åpne én hendelse per varsel
@@ -85,9 +85,9 @@ En selvdriftet installasjon har sin egen vert i stedet for `oneuptime.com`.
 Hvert varsel i en varsling åpner sin egen hendelse, opptil **Max incidents per request** (`100` med mindre du endrer det), og hvert varsels egen `status` avgjør når hendelsen løses. Grafanas `fingerprint` identifiserer et varsel ut fra etikettene, så det er verdien du skal gruppere etter. Se [Motta varsler fra et annet system](/docs/monitor/incoming-request-monitor#motta-varsler-fra-et-annet-system) for hva hver innstilling gjør.
 
 > [!WARNING]
-> Ikke grupper etter en etikett som alle varslene i en varsling deler. Grafanas standard varslingsretningslinje grupperer varsler etter `grafana_folder` og `alertname`, så alle varslene i én varsling har samme `alertname`: gruppering etter `requestBody.alerts[*].labels.alertname` slår sammen hele varslingen til én hendelse.
+> Ikke grupper etter en etikett som alle varslene i en varsling deler. Grafanas standard varslingspolicy grupperer varsler etter `grafana_folder` og `alertname`, så alle varslene i én varsling har samme `alertname`: gruppering etter `requestBody.alerts[*].labels.alertname` slår sammen hele varslingen til én hendelse.
 
-`{{requestBody.commonLabels.alertname}}` og `{{requestBody.message}}` beskriver hele varslingen, som under standardretningslinjen er én varslingsregel. Grupperingsnøkkelen er også en variabel, `{{fingerprint}}`, men den er en hash som ikke forteller en responder noe. Se [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating) for alle variablene du kan bruke.
+`{{requestBody.commonLabels.alertname}}` og `{{requestBody.message}}` beskriver hele varslingen, som under standardpolicyen er én varslingsregel. Grupperingsnøkkelen er også en variabel, `{{fingerprint}}`, men den er en hash som ikke forteller en responder noe. Se [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating) for alle variablene du kan bruke.
 
 ## Konfigurer Grafana
 
@@ -100,7 +100,7 @@ Gi kontaktpunktet navnet `OneUptime`, velg **Webhook** under **Integration**, og
 
 ### Send varsler dit
 
-Gå til **Alerting → Notification policies**. Sett kontaktpunktet for standardretningslinjen til `OneUptime`, eller legg til en underordnet retningslinje som samsvarer med varslene OneUptime skal få, med `OneUptime` som kontaktpunkt.
+Gå til **Alerting → Notification policies**. Sett kontaktpunktet for standardpolicyen til `OneUptime`, eller legg til en underordnet policy som samsvarer med varslene OneUptime skal få, med `OneUptime` som kontaktpunkt.
 :::
 
 Grafana sender `Content-Type: application/json`, som monitoren trenger for å lese feltene i en varsling. Innstillingen **Max Alerts** for kontaktpunktet begrenser varslene i én varsling: hold den på `0`, ingen grense, eller høyst på monitorens **Max incidents per request**.
@@ -125,11 +125,11 @@ Klikk på den stiplede blokken **Velg hva som starter denne arbeidsflyten**, og 
 
 ### Kontroller at varslingen er utløst
 
-Klikk på **Legg til komponent**, legg til en blokk **If / Else**, og koble triggerens punkt **Out** til den. Sett **Value to check** til `{{local.components.webhook-1.returnValues.request-body.status}}`, **Comparison** til **is equal to** og **Compare with** til `firing`.
+Klikk på **Legg til komponent**, legg til en blokk **Hvis / Ellers**, og koble triggerens punkt **Ut** til den. Sett **Verdi som skal sjekkes** til `{{local.components.webhook-1.returnValues.request-body.status}}`, **Sammenligning** til **er lik** og **Sammenlign med** til `firing`.
 
 ### Erklær hendelsen
 
-Legg til en blokk **Create One Incident**, og koble siden **Yes** av blokken **If / Else** til den. Velg en mal under **Incident Template** som setter alvorlighetsgraden og vaktretningslinjene som skal varsles (se [Hendelsesmaler](/docs/incidents/settings#hendelsesmaler)). Angi under **JSON Object** hva som kommer fra Grafana:
+Legg til en blokk **Opprett Hendelse (én post)**, og koble siden **Ja** av blokken **Hvis / Ellers** til den. Velg en mal under **Hendelsesmal** som setter alvorlighetsgraden og vaktpolicyene som skal varsles (se [Hendelsesmaler](/docs/incidents/settings#hendelsesmaler)). Angi under **JSON-objekt** hva som kommer fra Grafana:
 
 ```json
 {
@@ -138,14 +138,14 @@ Legg til en blokk **Create One Incident**, og koble siden **Yes** av blokken **I
 }
 ```
 
-Uten en mal må **JSON Object** også inneholde `incidentSeverityId`, ID-en til en av prosjektets hendelsesalvorlighetsgrader.
+Uten en mal må **JSON-objekt** også inneholde `incidentSeverityId`, ID-en til en av prosjektets hendelsesalvorlighetsgrader.
 
 ### Slå på arbeidsflyten
 
 Slå på **Aktivert** øverst i **Bygger**. En arbeidsflyt som er slått av, svarer Grafana med `400`.
 :::
 
-En kjøring håndterer én varsling, så den erklærer én hendelse uansett hvor mange varsler varslingen inneholder. En varsling som er `resolved`, tar siden **No** av blokken **If / Else**, der ingenting er koblet til, så kjøringen slutter der. Bruk monitoren for én hendelse per varsel som løses ved gjenoppretting.
+En kjøring håndterer én varsling, så den erklærer én hendelse uansett hvor mange varsler varslingen inneholder. En varsling som er `resolved`, tar siden **Nei** av blokken **Hvis / Ellers**, der ingenting er koblet til, så kjøringen slutter der. Bruk monitoren for én hendelse per varsel som løses ved gjenoppretting.
 
 ## Feilsøking
 
@@ -162,7 +162,7 @@ En kjøring håndterer én varsling, så den erklærer én hendelse uansett hvor
 :::
 
 :::details Én hendelse for en varsling full av varsler
-Du har gruppert etter en etikett som er lik for hvert varsel i en varsling, som `alertname` under standardretningslinjen. Grupper i stedet etter `requestBody.alerts[*].fingerprint`.
+Du har gruppert etter en etikett som er lik for hvert varsel i en varsling, som `alertname` under standardpolicyen. Grupper i stedet etter `requestBody.alerts[*].fingerprint`.
 :::
 
 :::details Hendelsen viser en referanse i stedet for en verdi
@@ -179,8 +179,8 @@ Veiledningen for [Prometheus Alertmanager](/docs/integrations/prometheus-alertma
 ## Neste trinn
 
 :::cards
-- [Innkommende forespørsel-overvåking](/docs/monitor/incoming-request-monitor): Hver innstilling for monitoren som mottar varslene dine.
+- [Innkommende forespørsel-monitor](/docs/monitor/incoming-request-monitor): Hver innstilling for monitoren som mottar varslene dine.
 - [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager): Det samme oppsettet, med en dødmannsbryter for varslingen din.
-- [Metrikk-overvåking](/docs/monitor/metrics-monitor): Varsle på de samme metrikkene i selve OneUptime.
+- [Målingsmonitor](/docs/monitor/metrics-monitor): Varsle på de samme målingene i selve OneUptime.
 - [Oversikt over integrasjoner](/docs/integrations/index): De andre verktøyene du kan koble til.
 :::

@@ -293,7 +293,7 @@ describe("the transceiver checks", () => {
         },
       }),
     ).toContain(
-      '"SNMP Transceiver Reading" (RX Power) on interface * is less than -14 dBm',
+      '"SNMP Transceiver Reading" (RX Power) on interface * is less than -14\u00A0dBm',
     );
 
     expect(
@@ -306,7 +306,7 @@ describe("the transceiver checks", () => {
         },
       }),
     ).toContain(
-      '"SNMP Transceiver Reading" (Temperature) is greater than 70 °C',
+      '"SNMP Transceiver Reading" (Temperature) is greater than 70\u00A0°C',
     );
   });
 
@@ -318,7 +318,7 @@ describe("the transceiver checks", () => {
       snmpMonitorOptions: { transceiverReading: "wavelength" },
     });
 
-    expect(text).toContain('"SNMP Transceiver Reading" is less than -14 ');
+    expect(text).toMatch(/"SNMP Transceiver Reading" is less than -14$/);
     expect(text).not.toContain("(");
   });
 });

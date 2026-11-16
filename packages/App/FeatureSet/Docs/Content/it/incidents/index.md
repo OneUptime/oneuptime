@@ -61,13 +61,13 @@ Cinque strade portano allo stesso oggetto:
 - **Tramite l'API** — `POST /api/incident` con una chiave API. Il server compila per voi `declaredAt`, lo stato di creazione e il numero dell'incidente.
 - **Con un modulo** — qualcuno esterno al vostro team compila un modulo che avete condiviso come link, senza un account OneUptime. L'incidente viene dichiarato nascosto dalle pagine di stato, a partire dal modello di incidente del modulo, se ne ha uno. Vedete [Moduli](/docs/forms/index).
 
-Anche i workflow aprono incidenti: il workflow di [Huntress](/docs/integrations/huntress) trasforma ogni rapporto di incidente inviato dal suo SOC in un incidente, che avvisa la policy di reperibilità che scegliete voi. Vedete [Dichiarare un incidente](/docs/incidents/declaring-incidents) per la descrizione campo per campo.
+Anche i flussi di lavoro aprono incidenti: il flusso di lavoro di [Huntress](/docs/integrations/huntress) trasforma ogni rapporto di incidente inviato dal suo SOC in un incidente, che avvisa la policy di reperibilità che scegliete voi. Vedete [Dichiarare un incidente](/docs/incidents/declaring-incidents) per la descrizione campo per campo.
 
 ### 2. Le persone giuste vengono informate
 
 Alla creazione, OneUptime esegue l'automazione che avete configurato: regole di privacy, regole del proprietario, regole delle etichette, regole di reperibilità e regole di runbook. Tutte le policy di reperibilità collegate all'incidente — a mano, da un modello o aggiunte da una regola di reperibilità che corrisponde — vengono eseguite in parallelo.
 
-I proprietari vengono avvisati sui canali che ciascuno ha attivato in **Impostazioni utente → Impostazioni notifiche**: e-mail, SMS, chiamata vocale, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost o webhook. Se un incidente non ha alcun proprietario, la notifica ripiega sui proprietari del progetto invece di andare persa.
+I proprietari vengono avvisati sui canali che ciascuno ha attivato in **Impostazioni utente → Impostazioni notifiche**: e-mail, SMS, chiamata vocale, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost o webhook. Se un incidente non ha alcun proprietario, la notifica ripiega sui Proprietari del progetto invece di andare persa.
 
 Se l'incidente è visibile su una pagina di stato e le notifiche agli iscritti sono attive, vengono informati anche gli iscritti: quelli di ogni pagina di stato che elenca uno dei suoi monitor, oppure solo quelli delle pagine a cui lo avete limitato. Vedete [Una pagina di stato per pubblico](/docs/status-pages/one-status-page-per-audience) per dare a ogni pubblico la propria pagina di stato.
 
@@ -157,9 +157,9 @@ Aprite **Incidenti** dal menu **Prodotti** nella barra superiore. Il suo menu la
 
 | Sezione              | Che cosa ci fate                                                                                                                                                           |
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Panoramica**       | **Tutti gli incidenti**, **Incidenti attivi**, **Post-mortem** e **Azioni da intraprendere** — il secondo porta un badge rosso con il numero di incidenti in uno stato sopra lo stato risolto, il terzo elenca il post-mortem di ogni incidente, da filtrare per proprietario, gravità o stato, e il quarto elenca le azioni da intraprendere di tutti i post-mortem, dalla scadenza più vicina. |
+| **Panoramica**       | **Tutti gli incidenti**, **Incidenti attivi**, **Post-mortem** e **Azioni da intraprendere** — il secondo porta un badge rosso con il numero di incidenti in uno stato sopra lo stato risolto, il terzo elenca il post-mortem di ogni incidente, da filtrare per proprietario, gravità o stato, e il quarto elenca le azioni da intraprendere di tutti i post-mortem, prima quelle con la scadenza più vicina. Vedete [Post-mortem](/docs/incidents/postmortems#vedere-tutte-le-azioni-da-intraprendere). |
 | **Episodi**          | Gli episodi degli incidenti, una funzione di raggruppamento separata con le proprie pagine.                                                                                |
-| **IA**               | **Informazioni**, **Registri**, **Impostazioni**: che cosa OneUptime AI ha imparato dai vostri incidenti e tutto ciò che ha fatto per loro, e che cosa può fare da sola — con le regole su quali incidenti esamina e corregge. Vedete [AI SRE](/docs/ai/ai-sre). |
+| **IA**               | **Insight**, **Log**, **Impostazioni**: che cosa OneUptime AI ha imparato dai vostri incidenti e tutto ciò che ha fatto per loro, e che cosa può fare da sola — con le regole su quali incidenti esamina e corregge. Vedete [AI SRE](/docs/ai/ai-sre). |
 | **Area di lavoro**   | Gli spazi di chat che questo progetto ha collegato: **Slack**, **Microsoft Teams** e **Mattermost**, ciascuno con le sue regole di notifica per gli incidenti. Se nessuno è collegato, contiene **Collega un'area di lavoro**, una pagina che mostra tutti e tre e come collegarli. |
 | **Regole**           | I motori di regole: **Regole di raggruppamento**, **Regole di reperibilità**, **Regole del proprietario**, **Regole di runbook**, **Regole di privacy**, **Regole etichette**, **Regole SLA**, **Regole dei promemoria**. |
 | **Impostazioni**     | **Stato incidente**, **Gravità incidente**, **Modelli di incidenti**, **Modelli di note**, **Approvazione delle note pubbliche**, **Notifiche agli iscritti**, **Modelli post-mortem**, **Stati del post-mortem**, **Campi personalizzati**, **Ruoli incidente**, **Misurazioni**, **Avvisi collegati**, **Appartenenza agli episodi**, **Numerazione**, **Conservazione dei dati**. |
@@ -177,10 +177,10 @@ Aprite un incidente e il suo menu laterale ne raggruppa le pagine così:
 | **Panoramica**            | **Panoramica**, **Cronologia stato**, **SLA**                                             |
 | **Indagine**              | **Descrizione**, **Causa principale**, **Rimedio**, **Runbook**, **Post-mortem**, **Avvisi collegati** |
 | **Team**                  | **Ruoli**, **Esecuzioni di reperibilità**, **Proprietari**                                |
-| **Notifiche**             | **Registri di notifica**, **Registri IA** — ripiegata finché non fate clic su **Notifiche** |
+| **Notifiche**             | **Log di notifica**, **Log IA** — ripiegata finché non fate clic su **Notifiche** |
 | **Note**                  | **Note private**, **Note pubbliche**                                                      |
 | **Sviluppatori**          | **Terraform**, **API**, **CLI**, **Assistenti IA** — ripiegata finché non fate clic su **Sviluppatori** |
-| **Avanzato**              | **Campi personalizzati**, **Impostazioni**, **Registri di audit**, **Elimina incidente** — ripiegata finché non fate clic su **Avanzato** |
+| **Avanzato**              | **Campi personalizzati**, **Impostazioni**, **Log di audit**, **Elimina incidente** — ripiegata finché non fate clic su **Avanzato** |
 
 Che cosa contiene ciascuna:
 
@@ -192,7 +192,7 @@ Che cosa contiene ciascuna:
 - **Post-mortem** — il resoconto e i suoi allegati, che potete pubblicare facoltativamente sulla pagina di stato. **Modifica nota post mortem** chiede la nota e gli allegati, poi **Pubblica nella pagina di stato**; solo finché questa opzione è attiva chiede **Notifica agli iscritti** e **Postmortem pubblicato il**, che l'attivazione della pubblicazione imposta su adesso. **Generate with AI** stende la nota per voi, e **Applica modello** — mostrato non appena il progetto ha un modello di post-mortem — la fa partire da un modello. Gli iscritti vengono informati una volta, quando il post-mortem viene pubblicato: la prima volta che la pagina di stato lo mostra, il che richiede **Pubblica nella pagina di stato** attivo e una nota scritta. Salvarlo di nuovo, o modificarlo mentre è pubblicato, aggiorna la pagina di stato senza informare nessuno; ripubblicarlo dopo averlo tolto dalla pagina di stato li informa di nuovo. Uno pubblicato mentre l'incidente è nascosto viene inviato quando l'incidente diventa visibile. Vedete [Il post-mortem](/docs/status-pages/subscribers#il-post-mortem). La scheda mostra anche a che punto è il post-mortem, come **Non iniziato**, **Bozza** o **Completato**, e chi ne è proprietario, e **Scrivi il post-mortem** ne avvia uno che nessuno ha ancora scritto: vedete [Post-mortem](/docs/incidents/postmortems).
 - **Avvisi collegati** — gli avvisi collegati a questo incidente, con lo stato attuale di ciascun avviso, e chi l'ha collegato e quando. Gli avvisi hanno una pagina **Incidenti collegati** corrispondente. Vedete [Avvisi collegati](/docs/incidents/linked-alerts).
 - **Ruoli**, **Esecuzioni di reperibilità**, **Proprietari** — chi ci sta lavorando, quali policy sono scattate e chi viene avvisato.
-- **Registri di notifica**, **Registri IA**, **Registri di audit** — che cosa è stato inviato e che cosa è cambiato.
+- **Log di notifica**, **Log IA**, **Log di audit** — che cosa è stato inviato e che cosa è cambiato.
 - **Note private** e **Note pubbliche** — che cosa è stato detto al vostro team e ai vostri clienti. Vedete [Note, proprietari e feed degli incidenti](/docs/incidents/notes-owners-and-feed).
 - **Campi personalizzati**, **Impostazioni**, **Elimina incidente** — la pagina **Impostazioni** contiene **Visibile sulla pagina di stato** e **Incidente privato**, la scheda **Ambito delle pagine di stato** che limita l'incidente ad alcune pagine di stato, e la scheda **Promemoria**, il cui interruttore **Invia promemoria** si salva non appena lo cambiate e mostra quando parte il prossimo promemoria.
 
@@ -203,7 +203,7 @@ Che cosa contiene ciascuna:
 - **Le policy di reperibilità si occupano degli avvisi.** Collegate le policy nel passaggio **Reperibilità e ruoli** della procedura guidata di dichiarazione, su un modello, oppure tramite **Incidenti → Regole → Regole di reperibilità**. Scatta ogni regola che corrisponde: l'insieme eseguito è l'unione di tutte le corrispondenze più tutto ciò che è collegato direttamente, senza duplicati.
 - **I runbook dicono alle persone che cosa fare.** Le regole di runbook collegano automaticamente una procedura quando viene creato un incidente che corrisponde, e i responder possono avviarne uno a mano dall'incidente. Vedete [Panoramica dei Runbook](/docs/runbooks/index).
 - **Le pagine di stato informano i clienti.** Un incidente compare nell'elenco attivo di una pagina di stato quando la pagina elenca uno dei suoi monitor, la pagina ha gli incidenti attivi, l'incidente è contrassegnato come visibile sulla pagina di stato e il suo stato attuale si trova sopra lo stato risolto. Un incidente limitato ad alcune pagine di stato compare solo su quelle. Gli incidenti privati sono nascosti da ogni pagina di stato, sempre. Vedete [Panoramica delle pagine di stato](/docs/status-pages/index) e [Una pagina di stato per pubblico](/docs/status-pages/one-status-page-per-audience).
-- **I workflow automatizzano tutto intorno.** I trigger **On Create Incident**, **On Update Incident**, **On Create or Update Incident** e **On Delete Incident** vi permettono di costruire automazioni senza codice sul ciclo di vita dell'incidente. Vedete [Panoramica dei workflow](/docs/workflows/index).
+- **I flussi di lavoro automatizzano tutto intorno.** I trigger **Alla creazione: Incidente**, **All'aggiornamento: Incidente**, **Alla creazione o all'aggiornamento: Incidente** e **All'eliminazione: Incidente** vi permettono di costruire automazioni senza codice sul ciclo di vita dell'incidente. Vedete [Panoramica dei flussi di lavoro](/docs/workflows/index).
 
 ## Passaggi successivi
 

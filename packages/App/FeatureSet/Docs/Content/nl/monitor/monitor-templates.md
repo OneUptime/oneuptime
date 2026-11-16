@@ -27,7 +27,7 @@ flowchart TB
 
 ## Voordat u begint
 
-- **Een rol die sjablonen mag maken**: Project Owner, Project Admin, Project Member, Monitor Admin of Monitor Member, of een aangepaste rol met de machtiging Create Monitor Template. Een sjabloon wijzigen vraagt dezelfde rollen, of de machtiging Edit Monitor Template.
+- **Een rol die sjablonen mag maken**: Projecteigenaar, Projectbeheerder, Projectlid, Monitorbeheerder of Monitorlid, of een aangepaste rol met de machtiging Create Monitor Template. Een sjabloon wijzigen vraagt dezelfde rollen, of de machtiging Edit Monitor Template.
 - **Machtiging om de gekoppelde monitoren bij te werken.** Een synchronisatie schrijft namens u naar elke gekoppelde monitor en slaat de monitoren over die uw machtigingen niet dekken.
 
 ## Een sjabloon maken
@@ -144,22 +144,22 @@ Laat de array weg of zet hem op `[]` om elke ondersteunde stapinstelling te sync
 :::details Veldnamen voor doNotSyncFields, per monitortype
 | Monitortype | Veldnamen |
 | --- | --- |
-| Website, API, Ping, IP, Poort, SSL Certificate, NTP | `monitorDestination`, `requestTimeoutInMs`, `retryCount` |
+| Website, API, Ping, IP, Poort, SSL-certificaat, NTP | `monitorDestination`, `requestTimeoutInMs`, `retryCount` |
 | Alleen API | `requestHeaders`, `requestType`, `requestBody` |
 | Website en API | `doNotFollowRedirects`, `allowSelfSignedCertificates`, `tlsClientAuthentication` (het clientcertificaat, de sleutel en de wachtwoordzin samen) |
 | Poort, NTP | `monitorDestinationPort` |
-| Synthetic Monitor, Custom JavaScript Code | `customCode` |
-| Synthetic Monitor | `browserTypes`, `screenSizeTypes`, `retryCountOnError` |
+| Synthetische monitor, Aangepaste JavaScript-code | `customCode` |
+| Synthetische monitor | `browserTypes`, `screenSizeTypes`, `retryCountOnError` |
 | DNS | `dnsMonitor.queryName`, `dnsMonitor.recordType`, `dnsMonitor.resolver` (de DNS-server en de poort samen), `dnsMonitor.timeout`, `dnsMonitor.retries` |
 | Domein | `domainMonitor.domainName`, `domainMonitor.lookupMethod`, `domainMonitor.timeout`, `domainMonitor.retries` |
 | DNSSEC | `dnssecMonitor.domainName`, `dnssecMonitor.resolvers`, `dnssecMonitor.checkNameserverConsistency`, `dnssecMonitor.signatureExpiryWarningDays`, `dnssecMonitor.timeout`, `dnssecMonitor.retries` |
-| SQL Query | `sqlMonitor.connection`, `sqlMonitor.connectionTimeoutInMs`, `sqlMonitor.statementTimeoutInMs`, `sqlMonitor.query`, `sqlMonitor.maxRows` |
-| Database Health | `databaseMonitor.connection`, `databaseMonitor.connectionTimeoutInMs`, `databaseMonitor.statementTimeoutInMs`, `databaseMonitor.enabledMetricGroups` |
-| External Status Page | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
-| Logboeken, Security Events, Traces, AI / LLM, Metrieken, Uitzonderingen, Profielen | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor` (de hele configuratie van de monitor) |
+| SQL-query | `sqlMonitor.connection`, `sqlMonitor.connectionTimeoutInMs`, `sqlMonitor.statementTimeoutInMs`, `sqlMonitor.query`, `sqlMonitor.maxRows` |
+| Databasegezondheid | `databaseMonitor.connection`, `databaseMonitor.connectionTimeoutInMs`, `databaseMonitor.statementTimeoutInMs`, `databaseMonitor.enabledMetricGroups` |
+| Externe statuspagina | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
+| Logboeken, Beveiligingsgebeurtenissen, Traces, AI / LLM, Metrieken, Uitzonderingen, Profielen | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor` (de hele configuratie van de monitor) |
 | Sondestatus | `probeStatusMonitor.probeIds` |
 
-Infrastructuurmonitoren (Kubernetes, Docker Container, Host, Podman Container, Proxmox, Docker Swarm, Ceph, Opslagarray, IoT Device) bieden hun resourceselector, filters (alle behalve Host), metriekquery's en het tijdvenster van de query. Hun namen staan onder **Instellingen voor sjabloonsynchronisatie** op een sjabloon van dat type.
+Infrastructuurmonitoren (Kubernetes, Docker-container, Host, Podman-container, Proxmox, Docker Swarm, Ceph, Opslagarray, IoT-apparaat) bieden hun resourceselector, filters (alle behalve Host), metriekquery's en het tijdvenster van de query. Hun namen staan onder **Instellingen voor sjabloonsynchronisatie** op een sjabloon van dat type.
 :::
 
 ## Problemen oplossen

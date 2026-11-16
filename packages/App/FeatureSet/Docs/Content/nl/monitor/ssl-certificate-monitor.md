@@ -30,7 +30,7 @@ Een sonde die haar eigen netwerkverbinding kwijt is, meldt geen resultaat en kan
 
 ## Voordat u begint
 
-- **Een rol die monitoren mag maken**: Project Owner, Project Admin, Project Member, Monitor Admin of Monitor Member, of een aangepaste rol met de machtiging Create Monitor.
+- **Een rol die monitoren mag maken**: Projecteigenaar, Projectbeheerder, Projectlid, Monitorbeheerder of Monitorlid, of een aangepaste rol met de machtiging Create Monitor.
 - **Een sonde die de host en de poort kan bereiken.** De standaardsondes van uw project worden voor elke nieuwe monitor gekozen. Een service in een privénetwerk heeft een [aangepaste sonde](/docs/probe/custom-probe) in dat netwerk nodig.
 
 ## Een SSL-certificaatmonitor maken
@@ -93,8 +93,8 @@ Met twee of meer filters bepaalt **Overeenkomstvoorwaarde** of **Alle** filters 
 
 Een nieuwe SSL-certificaatmonitor begint met drie criteria, zodat hij u zonder instellen waarschuwt voordat een certificaat verloopt:
 
-1. **Certificaat is niet geldig** — het certificaat is verlopen, ingetrokken door de uitgever, zelfondertekend, uitgegeven voor een andere hostnaam of door een niet-vertrouwde instantie, of kon niet worden gecontroleerd omdat het eindpunt niet antwoordde. De monitor wordt als **Offline** gemarkeerd en er wordt een incident met de naam "_monitor name_ certificate is not valid" gemaakt. De hoofdoorzaak ervan zegt welk van deze gevallen het was en, bij een ingetrokken certificaat, wanneer en waarom de uitgever het heeft ingetrokken. Het incident lost zichzelf op zodra het certificaat weer geldig is.
-2. **Certificaat verloopt binnenkort** — het certificaat is geldig, maar verloopt binnen 14 dagen. Er wordt een **waarschuwing** met de naam "_monitor name_ certificate expires soon" aangemaakt.
+1. **Certificaat is niet geldig** — het certificaat is verlopen, ingetrokken door de uitgever, zelfondertekend, uitgegeven voor een andere hostnaam of door een niet-vertrouwde instantie, of kon niet worden gecontroleerd omdat het eindpunt niet antwoordde. De monitor wordt als **Offline** gemarkeerd en er wordt een incident met de naam "Certificaat van _monitornaam_ is ongeldig" gemaakt. De hoofdoorzaak ervan zegt welk van deze gevallen het was en, bij een ingetrokken certificaat, wanneer en waarom de uitgever het heeft ingetrokken. Het incident lost zichzelf op zodra het certificaat weer geldig is.
+2. **Certificaat verloopt binnenkort** — het certificaat is geldig, maar verloopt binnen 14 dagen. Er wordt een **waarschuwing** met de naam "Certificaat van _monitornaam_ verloopt binnenkort" aangemaakt.
 3. **Certificaat is geldig** — de monitor wordt als **Operationeel** gemarkeerd.
 
 De waarschuwing "verloopt binnenkort" is een waarschuwing, geen incident: ze verschijnt niet op uw statuspagina's, ze roept niemand op tenzij u er een bereikbaarheidsbeleid aan toevoegt, en ze wijzigt de status van de monitor niet. Ze gebruikt de tweede waarschuwingsernst van uw project, **Laag** in een nieuw project. Zodra het vernieuwde certificaat wordt opgepikt, staat de monitor weer op "Certificaat is geldig" en lost de waarschuwing zichzelf op.

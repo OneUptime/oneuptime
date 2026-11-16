@@ -1,3 +1,5 @@
+import { getUnnamedText } from "./DashboardWidgetFallbackWords";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -41,6 +43,10 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
+  formatDurationInUnit,
+  formatMilliseconds,
+} from "../../../Utils/Milliseconds";
+import {
   SPAN_STATUS_PRESENTATIONS,
   SpanStatusPresentation,
   getSpanStatusPresentation,
@@ -65,22 +71,41 @@ const HONEYCOMB_LEGEND: Array<HoneycombLegendItem> =
     },
   );
 
-const formatDuration: (durationNano: number) => string = (
+/*
+ * A span's duration in the reader's language, in every unit: "850 ns",
+ * "12 µs", "12.3 ms", "1.25 s"; "۱۲٫۳ میلی‌ثانیه", "۱٫۲۵ ثانیه" (#7418,
+ * #8348). Each unit stands apart from its figure, as the milliseconds
+ * between them always did.
+ */
+export const formatTraceListDuration: (
   durationNano: number,
-): string => {
+  translator: Translator,
+) => string = (durationNano: number, translator: Translator): string => {
+  const durationMs: number = durationNano / 1000000;
+
   if (durationNano < 1000) {
-    return `${durationNano}ns`;
+    return formatDurationInUnit(translator, durationNano, "nanosecond", {
+      decimals: 0,
+      dropTrailingZeros: true,
+    });
   }
-  const durationMicro: number = durationNano / 1000;
-  if (durationMicro < 1000) {
-    return `${Math.round(durationMicro)}µs`;
+  if (durationNano < 1000000) {
+    return formatDurationInUnit(
+      translator,
+      durationNano / 1000,
+      "microsecond",
+      { decimals: 0, dropTrailingZeros: true },
+    );
   }
-  const durationMs: number = durationMicro / 1000;
   if (durationMs < 1000) {
-    return `${Math.round(durationMs * 10) / 10}ms`;
+    return formatMilliseconds(translator, durationMs, {
+      maximumFractionDigits: 1,
+    });
   }
-  const durationS: number = durationMs / 1000;
-  return `${Math.round(durationS * 100) / 100}s`;
+  return formatDurationInUnit(translator, durationNano / 1000000000, "second", {
+    decimals: 2,
+    dropTrailingZeros: true,
+  });
 };
 
 const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
@@ -208,9 +233,12 @@ const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
         status: status.displayLabel,
         color: status.color,
         tooltip: {
-          title: (span.name as string) || "—",
+          title: (span.name as string) || getUnnamedText(),
           details: [
-            { label: "Duration", value: formatDuration(durationNano) },
+            {
+              label: "Duration",
+              value: formatTraceListDuration(durationNano, translator),
+            },
             {
               label: "Time",
               value: startTimeLabel,
@@ -239,11 +267,11 @@ const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
           className="hover:bg-gray-50/50 transition-colors duration-100 group"
         >
           <ResourceListNameCell
-            name={(span.name as string) || "—"}
+            name={span.name as string}
             className="px-3 py-2 text-xs text-gray-700 font-mono truncate"
           />
           <td className="px-3 py-2 text-xs text-gray-600 tabular-nums font-medium">
-            {formatDuration(durationNano)}
+            {formatTraceListDuration(durationNano, translator)}
           </td>
           <td className="px-3 py-2">
             <span
@@ -258,7 +286,7 @@ const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
             className="px-3 py-2 text-xs text-gray-500 tabular-nums whitespace-nowrap"
             title={startTime.title}
           >
-            {startTime.label}
+            {getValueOrQuietDash(startTime.label, { isSmall: true })}
           </td>
         </tr>
       );

@@ -53,7 +53,7 @@ En offentlig instrumentpanel:
 
 Behandla delning av en instrumentpanel som publicering av en webbsida. Varje widget på den blir läsbar för alla med länken. Titta på vad som finns på arbetsytan innan du delar den.
 
-Varje widget publicerar bara det den ritar, och bara för resurserna den har riktats mot. En SLO-widget publicerar till exempel det SLO:ets nyckeltal men aldrig dess definition: se [SLO](/docs/dashboards/widgets#slo). Widgetar med en extern **Data Source** är undantaget: de tas helt bort från en offentlig instrumentpanel i stället för att renderas, eftersom deras konfiguration är själva frågan. Några fler widgetar kan inte visas utan en inloggad session, och säger det på sin plats: [På en offentlig instrumentpanel](/docs/dashboards/widgets#på-en-offentlig-instrumentpanel) listar dem. De publicerar bara sin titel, aldrig de sökningar och filter de läser sina data med. Även variabler publicerar bara det deras väljare visar: frågan i en äldre frågevariabel publiceras aldrig.
+Varje widget publicerar bara det den ritar, och bara för resurserna den har riktats mot. En SLO-widget publicerar till exempel det SLO:ets nyckeltal men aldrig dess definition: se [SLO](/docs/dashboards/widgets#slo). Widgetar med en extern **Datakälla** är undantaget: de tas helt bort från en offentlig instrumentpanel i stället för att renderas, eftersom deras konfiguration är själva frågan. Några fler widgetar kan inte visas utan en inloggad session, och säger det på sin plats: [På en offentlig instrumentpanel](/docs/dashboards/widgets#på-en-offentlig-instrumentpanel) listar dem. De publicerar bara sin titel, aldrig de sökningar och filter de läser sina data med. Även variabler publicerar bara det deras väljare visar: frågan i en äldre frågevariabel publiceras aldrig.
 
 ## Dela med ett lösenord
 
@@ -139,9 +139,9 @@ På en egeninstallation slås anpassade domäner för instrumentpaneler på med 
 
 ### Vem som kan kontrollera och utfärda på nytt
 
-**Kontrollera nu**, beställning av en domäns certifikat och **Reissue SSL** ändrar domänen, så de kräver behörighet att redigera den: **Edit Dashboard Domain**, eller en roll som innehåller den (Project Owner, Project Admin, Project Member, Settings Admin eller Settings Member).
+**Kontrollera nu**, beställning av en domäns certifikat och **Reissue SSL** ändrar domänen, så de kräver behörighet att redigera den: **Edit Dashboard Domain**, eller en roll som innehåller den (Projektägare, Projektadministratör, Projektmedlem, Inställningsadministratör eller Inställningsmedlem).
 
-Den som bara kan läsa domänen, till exempel en Viewer eller en Settings Viewer, ser fortfarande kolumnen **Status** och posten som ska läggas till i **DNS-inställning**. För dem är **Kontrollera nu** och **Reissue SSL** låsta, och säger vilken behörighet som krävs. OneUptime fortsätter i vilket fall som helst att kontrollera varje domän och beställa dess certifikat på egen hand.
+Den som bara kan läsa domänen, till exempel en Tittare eller en Inställningstittare, ser fortfarande kolumnen **Status** och posten som ska läggas till i **DNS-inställning**. För dem är **Kontrollera nu** och **Reissue SSL** låsta, och säger vilken behörighet som krävs. OneUptime fortsätter i vilket fall som helst att kontrollera varje domän och beställa dess certifikat på egen hand.
 
 Samma sak gäller API-nycklar. En nyckel som bara kan läsa instrumentpanelsdomäner kan inte anropa `verify-cname`, `order-ssl` eller `reissue-ssl` på `/dashboard-domain`. Ge den **Read Dashboard Domain** och **Edit Dashboard Domain** om den behöver det.
 

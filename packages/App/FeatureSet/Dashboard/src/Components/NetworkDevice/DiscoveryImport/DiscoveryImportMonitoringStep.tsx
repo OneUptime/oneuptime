@@ -55,6 +55,7 @@ import {
   ADDRESS_TEMPLATES_GROUP_TITLE,
   LISTED_TEMPLATE_KINDS_RULE,
   MANAGE_TEMPLATES_LINK_TITLE,
+  NO_DEVICE_MONITOR_TEMPLATE_REASON,
   POLL_TEMPLATES_GROUP_TITLE,
   UNNAMED_TEMPLATE_NAME,
 } from "./DiscoveryImportTemplateCopy";
@@ -622,7 +623,15 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
           "You may not create monitors in this project, so the import cannot give the devices one.",
         ) as string)
       : facts.templates.length === 0
-        ? facts.templatesUnavailableReason ||
+        ? /*
+           * Why there is no template, in the reader's words: a permission
+           * check's reason, or the server's message, as they came; the
+           * English one of the facts, looked up here (#8586).
+           */
+          (facts.templatesUnavailableReason ===
+          NO_DEVICE_MONITOR_TEMPLATE_REASON
+            ? translator.translateText(NO_DEVICE_MONITOR_TEMPLATE_REASON)
+            : facts.templatesUnavailableReason) ||
           (translator.translateText(
             "This project has no Network Device, Ping, IP, Port or NTP monitor template to monitor the devices with.",
           ) as string)
@@ -911,6 +920,8 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
                   }
                   isLocked={props.isDisabled}
                   lockedReason={choiceLockedReason}
+                  // Each of its reasons is worded above, in the reader's words.
+                  isLockedReasonTranslated={true}
                   options={[
                     {
                       value: DiscoveryImportAlerting.None,

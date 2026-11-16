@@ -39,7 +39,7 @@ flowchart TB
 
 | 服务商 | 说明 |
 | ------------------------ | ---------------------------------------------------------------------- |
-| **Auto**（默认） | 自动识别状态页格式 |
+| **自动**（默认） | 自动识别状态页格式 |
 | **Atlassian Statuspage** | 由 Atlassian Statuspage 提供的状态页（JSON API） |
 | **incident.io** | 由 incident.io 提供的状态页（例如 `https://status.openai.com`） |
 | **OneUptime Status Page** | 用 OneUptime 制作的状态页：每个资源的状态，以及哪些正在维护 |
@@ -48,7 +48,7 @@ flowchart TB
 
 ### 自动识别
 
-设置为 **Auto** 时，OneUptime 会按以下顺序自动识别状态页格式：
+设置为 **自动** 时，OneUptime 会按以下顺序自动识别状态页格式：
 
 1. 首先尝试 incident.io 状态页 API（`/proxy/<host>`）。
 2. 接着尝试 Atlassian Statuspage JSON API（`/api/v2/status.json`、`/api/v2/components.json` 和 `/api/v2/incidents/unresolved.json`）。
@@ -66,11 +66,11 @@ flowchart TB
 :::steps
 ### 开始一个新监视器
 
-进入 **监视器**，点击 **创建监视器**。在 **监视器类型** 下点击 **更多监视器类型**，然后在 **基础监控** 下选择 **External Status Page**，或在搜索框中输入 `statuspage`。输入 **名称**，然后点击 **下一步**。
+进入 **监视器**，点击 **创建监视器**。在 **监视器类型** 下点击 **更多监视器类型**，然后在 **基础监控** 下选择 **外部状态页**，或在搜索框中输入 `statuspage`。输入 **名称**，然后点击 **下一步**。
 
 ### 输入状态页 URL
 
-输入 **状态页 URL**。除非你知道格式，否则请把 **提供商** 保留为 **Auto**。
+输入 **状态页 URL**。除非你知道格式，否则请把 **提供商** 保留为 **自动**。
 
 ### 如有需要，选择组件
 
@@ -94,7 +94,7 @@ flowchart TB
 | 选项 | 填写内容 | 默认值 |
 | --- | --- | --- |
 | **状态页 URL** | 状态页的 URL。对于由 Atlassian Statuspage 和 incident.io 提供的站点，通常是根 URL（例如 `https://status.example.com`）。对于 RSS/Atom 订阅源，请直接输入订阅源的 URL。 | — |
-| **提供商** | **Auto** 表示自动识别格式；如果你知道格式，可选择 **Atlassian Statuspage**、**incident.io**、**OneUptime Status Page**、**RSS** 或 **Atom**。 | **Auto** |
+| **提供商** | **自动** 表示自动识别格式；如果你知道格式，可选择 **Atlassian Statuspage**、**incident.io**、**OneUptime Status Page**、**RSS** 或 **Atom**。 | **自动** |
 | **组件** | 要关注的组件，从页面自己的列表中选择或直接输入。 | 整个页面 |
 | **组件组过滤器** | 监视器限定到的组。位于 **更多字段** 下。 | 所有组 |
 | **超时（ms）** | 等待状态页的最长时间。位于 **更多字段** 下。 | `10000`（10 秒） |
@@ -152,7 +152,7 @@ flowchart TB
 
 ## OneUptime 状态页
 
-要监视用 OneUptime 制作的状态页（另一个团队的项目，或者服务商在 OneUptime Cloud 或自托管 OneUptime 上的页面），把提供商选为 **OneUptime Status Page** ，或保留 **Auto** 。在 **状态页 URL** 中输入页面自己的地址：有域名就输入域名，例如 `https://status.example.com`，没有就输入 `https://oneuptime.com/status-page/<status-page-id>`。
+要监视用 OneUptime 制作的状态页（另一个团队的项目，或者服务商在 OneUptime Cloud 或自托管 OneUptime 上的页面），把提供商选为 **OneUptime Status Page** ，或保留 **自动** 。在 **状态页 URL** 中输入页面自己的地址：有域名就输入域名，例如 `https://status.example.com`，没有就输入 `https://oneuptime.com/status-page/<status-page-id>`。
 
 监视器读取页面的摘要 `/status-page-api/summary/<page>`（参见 [读取摘要](/docs/status-pages/public-api#读取摘要)）：只读取页面向访客展示的内容，不读取另一个项目的其他任何内容。页面上的每个资源（一个监视器或一个监视器组）都是一个组件，使用页面为它起的名称，位于页面的分组中；一个分组中的分组写作 `Core / Databases`。在 **组件** 中选择资源，或用 **组件组过滤器** 监视一个分组。
 
@@ -215,7 +215,7 @@ flowchart TB
 
 ## 常用状态页 URL
 
-下面列出了一些常用服务的状态页。其中许多使用 Atlassian Statuspage 或 incident.io，因此 **Auto** 服务商会自动识别它们。既不基于这两者、也不是订阅源的页面只会进行可达性检查；对于这类页面，如果服务商发布了 RSS 或 Atom 订阅源，请改为监控该订阅源。
+下面列出了一些常用服务的状态页。其中许多使用 Atlassian Statuspage 或 incident.io，因此 **自动** 服务商会自动识别它们。既不基于这两者、也不是订阅源的页面只会进行可达性检查；对于这类页面，如果服务商发布了 RSS 或 Atom 订阅源，请改为监控该订阅源。
 
 | 服务 | 状态页 URL |
 | ---------------------------- | --------------------------------------------- |

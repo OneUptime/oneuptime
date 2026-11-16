@@ -123,7 +123,7 @@ Der Vorfall übernimmt Titel, Beschreibung, Monitor, betroffene Ressourcen und B
 
 ## Datenschutz- und Runbook-Regeln
 
-**Datenschutzregeln** machen passende neue Warnungen privat, bevor irgendetwas anderes läuft: Nur ihre Eigentümer sowie die Admins und Eigentümer des Projekts können sie sehen. Eine Regel hat zwei Schritte: **Übereinstimmung**, die Warnungen, die sie privat macht, dann **Name**, schon ausgefüllt mit „Warnungen privat machen“. Siehe [Private Warnungen](/docs/alerts/index#private-warnungen).
+**Datenschutzregeln** machen passende neue Warnungen privat, bevor irgendetwas anderes läuft: Nur ihre Eigentümer sowie die Projektadministratoren und Projektinhaber können sie sehen. Eine Regel hat zwei Schritte: **Übereinstimmung**, die Warnungen, die sie privat macht, dann **Name**, schon ausgefüllt mit „Warnungen privat machen“. Siehe [Private Warnungen](/docs/alerts/index#private-warnungen).
 
 **Runbook-Regeln** starten ein Runbook, wenn eine neue Warnung zutrifft, es sei denn, die Warnung wurde behoben erstellt. Siehe [Runbook-Regeln](/docs/runbooks/rules).
 
@@ -161,7 +161,7 @@ Die **Zeit bis zur Bestätigung nach der Alarmierung** zählt ab **Jemand wird z
 
 ### Episodenzugehörigkeit
 
-**Warnungen → Einstellungen → Episodenzugehörigkeit** legt fest, ob eine Warnung in mehr als einer Episode sein kann. Schalten Sie **Eine Warnung kann nur in einer Episode sein** ein, wird eine Warnung, die in einer Episode ist, keiner anderen hinzugefügt, weder im Dashboard noch über die API, einen Workflow oder eine Gruppierungsregel, bis sie aus dieser Episode entfernt ist. Der Schalter ist aus, bis Sie ihn einschalten, und nur Project Owners und Project Admins können ihn ändern. Das Einschalten nimmt keine Warnung aus einer Episode heraus. Siehe [Eine Episode pro Vorfall](/docs/incidents/episodes#eine-episode-pro-vorfall), was für Warnungen genauso funktioniert.
+**Warnungen → Einstellungen → Episodenzugehörigkeit** legt fest, ob eine Warnung in mehr als einer Episode sein kann. Schalten Sie **Eine Warnung kann nur in einer Episode sein** ein, wird eine Warnung, die in einer Episode ist, keiner anderen hinzugefügt, weder im Dashboard noch über die API, einen Workflow oder eine Gruppierungsregel, bis sie aus dieser Episode entfernt ist. Der Schalter ist aus, bis Sie ihn einschalten, und nur Projektinhaber und Projektadministratoren können ihn ändern. Das Einschalten nimmt keine Warnung aus einer Episode heraus. Siehe [Eine Episode pro Vorfall](/docs/incidents/episodes#eine-episode-pro-vorfall), was für Warnungen genauso funktioniert.
 
 ### Nummerierung
 
@@ -171,18 +171,18 @@ Die Karte **Nächste Nummer** darunter legt die Nummer fest, die die nächste Wa
 
 ### Datenaufbewahrung
 
-**Warnungen → Einstellungen → Datenaufbewahrung** löscht Warnungen, sobald sie lange genug behoben sind, wie es [Datenaufbewahrung](/docs/incidents/settings#datenaufbewahrung) für Vorfälle tut. Die Karte **Behobene Warnungen** fragt nach **Löschen nach**, **Nie**, bis Sie eine Dauer wählen, und fragt nach, bevor mehr gelöscht wird, mit **Alte Warnungen löschen**. Eine Warnung bleibt, solange sie nicht behoben ist, solange sie in einer Episode ist, die noch offen ist oder vor kürzerer Zeit behoben wurde, und so lange, wie ein mit ihr verknüpfter Vorfall bleibt. Nur Project Owners und Project Admins können sie ändern; über die API ist es `alertRetentionInDays` des Projekts.
+**Warnungen → Einstellungen → Datenaufbewahrung** löscht Warnungen, sobald sie lange genug behoben sind, wie es [Datenaufbewahrung](/docs/incidents/settings#datenaufbewahrung) für Vorfälle tut. Die Karte **Behobene Warnungen** fragt nach **Löschen nach**, **Nie**, bis Sie eine Dauer wählen, und fragt nach, bevor mehr gelöscht wird, mit **Alte Warnungen löschen**. Eine Warnung bleibt, solange sie nicht behoben ist, solange sie in einer Episode ist, die noch offen ist oder vor kürzerer Zeit behoben wurde, und so lange, wie ein mit ihr verknüpfter Vorfall bleibt. Nur Projektinhaber und Projektadministratoren können sie ändern; über die API ist es `alertRetentionInDays` des Projekts.
 
 > [!NOTE]
 > In OneUptime Cloud brauchen Notiz-Vorlagen und benutzerdefinierte Felder den Plan **Growth** oder höher.
 
 ## Workflows
 
-Jedes Warnungsmodell hat Workflow-Auslöser und -Aktionen, nach ihm benannt: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** und **On Delete Alert**, dasselbe für **Warnungsepisode**, **Statuszeitachse der Warnung** und die anderen, sowie Aktionen wie **Create One Alert** und **Update One Alert**. Die Definitionen benutzerdefinierter Felder für Warnungen sind die einzige Ausnahme: Sie haben keine Workflow-Auslöser. Siehe [Workflows – Übersicht](/docs/workflows/index).
+Jedes Warnungsmodell hat Workflow-Auslöser und -Aktionen, nach ihm benannt: **Bei Erstellung: Warnung**, **Bei Aktualisierung: Warnung**, **Bei Erstellung oder Aktualisierung: Warnung** und **Bei Löschung: Warnung**, dasselbe für **Warnungsepisode**, **Statuszeitachse der Warnung** und die anderen, sowie Aktionen wie **Warnung erstellen (einzeln)** und **Warnung aktualisieren (einzeln)**. Die Definitionen benutzerdefinierter Felder für Warnungen sind die einzige Ausnahme: Sie haben keine Workflow-Auslöser. Siehe [Workflows – Übersicht](/docs/workflows/index).
 
 ## Wer das ändern kann
 
-Regeln, benutzerdefinierte Felder und Messungen brauchen einen Project Owner oder Project Admin oder eine eigene Rolle mit der eigenen Berechtigung dieser Regel. **Warnungs-Mitglied** arbeitet mit Warnungen und Episoden, ihren Notizen, Eigentümern und Statuszeitachsen sowie mit Notiz-Vorlagen, und **Warnungs-Administrator** verwaltet zusätzlich Warnungsstatus und Schweregrade. Siehe [Benutzer, Teams & Berechtigungen](/docs/permissions/index).
+Regeln, benutzerdefinierte Felder und Messungen brauchen einen Projektinhaber oder Projektadministrator oder eine eigene Rolle mit der eigenen Berechtigung dieser Regel. **Warnungs-Mitglied** arbeitet mit Warnungen und Episoden, ihren Notizen, Eigentümern und Statuszeitachsen sowie mit Notiz-Vorlagen, und **Warnungs-Administrator** verwaltet zusätzlich Warnungsstatus und Schweregrade. Siehe [Benutzer, Teams & Berechtigungen](/docs/permissions/index).
 
 ## Nächste Schritte
 

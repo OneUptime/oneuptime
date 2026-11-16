@@ -11,6 +11,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import downloadFile from "Common/UI/Utils/DownloadFile";
+import { translateText } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -87,7 +88,11 @@ export const requestOfflineLicenseToken: (data: {
   const token: unknown = response.data?.["token"];
 
   if (typeof token !== "string" || token.length === 0) {
-    throw new Error("The license server did not return a license token.");
+    throw new Error(
+      translateText(
+        "The license server did not return a license token.",
+      ) as string,
+    );
   }
 
   return {
@@ -175,6 +180,7 @@ const OfflineLicenseTokenCard: FunctionComponent<ComponentProps> = (
         {showModal ? (
           <BasicFormModal<OfflineTokenFormValues>
             title={t("pages.enterpriseLicenseView.offlineTokenModalTitle")}
+            isTitleTranslated={true}
             description={t(
               "pages.enterpriseLicenseView.offlineTokenModalDescription",
             )}

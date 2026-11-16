@@ -115,9 +115,9 @@ La scheda **Numero successivo** sotto imposta il numero che riceve il prossimo e
 > [!NOTE]
 > Su OneUptime Cloud, i campi personalizzati richiedono il piano **Growth** o superiore, così come aggiungere e modificare stati di manutenzione e modelli.
 
-## Workflow
+## Flussi di lavoro
 
-Ogni modello della manutenzione ha trigger e azioni di workflow, con il suo nome: **On Create Maintenance Event**, **On Update Maintenance Event**, **On Create or Update Maintenance Event** e **On Delete Maintenance Event**, lo stesso per **Scheduled Maintenance State Timeline** e gli altri, e azioni come **Create One Maintenance Event** e **Update One Maintenance Event**. Le definizioni dei campi personalizzati e i valori delle misurazioni sono le eccezioni: non hanno passi di workflow. Vedere [Panoramica dei workflow](/docs/workflows/index).
+Ogni modello della manutenzione ha trigger e azioni dei flussi di lavoro, con il suo nome: **Alla creazione: Evento di manutenzione**, **All'aggiornamento: Evento di manutenzione**, **Alla creazione o all'aggiornamento: Evento di manutenzione** e **All'eliminazione: Evento di manutenzione**, lo stesso per **Scheduled Maintenance State Timeline** e gli altri, e azioni come **Crea: Evento di manutenzione (un record)** e **Aggiorna: Evento di manutenzione (un record)**. Le definizioni dei campi personalizzati e i valori delle misurazioni sono le eccezioni: non hanno passi dei flussi di lavoro. Vedere [Panoramica dei flussi di lavoro](/docs/workflows/index).
 
 ## Chi può modificarle
 

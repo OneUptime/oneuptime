@@ -24,7 +24,7 @@ const TableViewSideMenu: FunctionComponent<ComponentProps> = (
 
   return (
     <SideMenu>
-      <SideMenuSection title="Table">
+      <SideMenuSection title="Table (database object)">
         <SideMenuItem
           link={{
             title: "Overview",

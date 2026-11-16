@@ -4,7 +4,7 @@
 
 :::cards
 - [创建监视器](#创建域名监视器): 在控制台中完成六个步骤。
-- [查询方式](#查询方式): RDAP、WHOIS，以及为什么默认使用 **Auto**。
+- [查询方式](#查询方式): RDAP、WHOIS，以及为什么默认使用 **自动**。
 - [默认标准](#默认标准): 无需设置，提前 30 天发出过期警告。
 - [故障排查](#故障排查): 已停用的 WHOIS 服务器、代理和缺失的日期。
 :::
@@ -32,7 +32,7 @@ flowchart TB
 
 ## 开始之前
 
-- **可以创建监视器的角色**：Project Owner、Project Admin、Project Member、Monitor Admin 或 Monitor Member，或者拥有 Create Monitor 权限的自定义角色。
+- **可以创建监视器的角色**：项目所有者、项目管理员、项目成员、监视器管理员或监视器成员，或者拥有 Create Monitor 权限的自定义角色。
 - **探测器到注册局的出站访问。** 每个新监视器都会选中您项目的默认探测器；[自定义探测器](/docs/probe/custom-probe) 需要能够访问：
 
 | 目标 | 协议 | 用途 |
@@ -41,7 +41,7 @@ flowchart TB
 | 各注册局的 RDAP 服务器 | HTTPS，端口 443 | RDAP 查询。 |
 | WHOIS 服务器 | TCP 端口 43 | WHOIS 查询。 |
 
-RDAP 请求遵循探测器的 `HTTP_PROXY_URL` / `HTTPS_PROXY_URL` / `NO_PROXY` 设置。WHOIS 通过原始套接字运行，不遵循这些设置。如果探测器无法访问 `data.iana.org`，**Auto** 会回退到 WHOIS，并在五分钟后再次尝试 IANA。
+RDAP 请求遵循探测器的 `HTTP_PROXY_URL` / `HTTPS_PROXY_URL` / `NO_PROXY` 设置。WHOIS 通过原始套接字运行，不遵循这些设置。如果探测器无法访问 `data.iana.org`，**自动** 会回退到 WHOIS，并在五分钟后再次尝试 IANA。
 
 ## 创建域名监视器
 
@@ -56,7 +56,7 @@ RDAP 请求遵循探测器的 `HTTP_PROXY_URL` / `HTTPS_PROXY_URL` / `NO_PROXY` 
 
 ### 输入域名
 
-输入 **域名**，例如 `example.com`。除非有理由，否则请将 **查询方式** 保持为 **Auto**（参见 [查询方式](#查询方式)）。
+输入 **域名**，例如 `example.com`。除非有理由，否则请将 **查询方式** 保持为 **自动**（参见 [查询方式](#查询方式)）。
 
 ### 测试
 
@@ -76,13 +76,13 @@ RDAP 请求遵循探测器的 `HTTP_PROXY_URL` / `HTTPS_PROXY_URL` / `NO_PROXY` 
 | 字段 | 默认值 | 要填写的内容 |
 | --- | --- | --- |
 | **域名** | 无 | 已注册的域名，例如 `example.com`。粘贴的地址也可以：`https://example.com/pricing` 会被读作 `example.com`。 |
-| **查询方式** | **Auto** | **Auto**、**RDAP** 或 **WHOIS**。参见 [查询方式](#查询方式)。 |
+| **查询方式** | **自动** | **自动**、**RDAP** 或 **WHOIS**。参见 [查询方式](#查询方式)。 |
 | **超时（ms）**（在 **更多字段** 下） | `10000` | 等待每次注册查询的时间，单位为毫秒。 |
 | **重试**（在 **更多字段** 下） | `3` | 第一次尝试失败后的重试次数。`0` 表示只尝试一次。 |
 
 每次失败的查询都会重试，两次尝试之间暂停一秒。即使注册局回答域名未注册，或者它没有注册服务，也会重试，以防这个回答只是一次临时故障。只有格式错误的域名会立即报告，不进行查询。
 
-超时适用于每个请求，而不是整个检查：一次先尝试 RDAP、再回退到 WHOIS 的 **Auto** 检查，耗时可能是两倍甚至更长。
+超时适用于每个请求，而不是整个检查：一次先尝试 RDAP、再回退到 WHOIS 的 **自动** 检查，耗时可能是两倍甚至更长。
 
 ### 查询方式
 
@@ -90,11 +90,11 @@ RDAP 请求遵循探测器的 `HTTP_PROXY_URL` / `HTTPS_PROXY_URL` / `NO_PROXY` 
 
 | 方式 | 行为 |
 | --- | --- |
-| **Auto** | 默认。TLD 发布了 RDAP 服务时使用 RDAP；没有发布，或 RDAP 查询失败时，回退到 WHOIS。 |
+| **自动** | 默认。TLD 发布了 RDAP 服务时使用 RDAP；没有发布，或 RDAP 查询失败时，回退到 WHOIS。 |
 | **RDAP** | 仅使用 RDAP。如果 TLD 没有发布 RDAP 服务，会以明确的错误失败。 |
 | **WHOIS** | 仅使用 WHOIS。 |
 
-**RDAP**（[RFC 9083](https://www.rfc-editor.org/rfc/rfc9083)）是 ICANN 强制要求的 WHOIS 替代方案。每个 TLD 的权威服务器通过 [IANA 的引导注册表](https://www.rfc-editor.org/rfc/rfc9224) 查找，因此在注册局迁移时也能保持正确。每个 gTLD 都会发布一个。当 TLD 的 RDAP 服务器表示域名未注册时，**Auto** 会把它当作答案，不再询问 WHOIS。
+**RDAP**（[RFC 9083](https://www.rfc-editor.org/rfc/rfc9083)）是 ICANN 强制要求的 WHOIS 替代方案。每个 TLD 的权威服务器通过 [IANA 的引导注册表](https://www.rfc-editor.org/rfc/rfc9224) 查找，因此在注册局迁移时也能保持正确。每个 gTLD 都会发布一个。当 TLD 的 RDAP 服务器表示域名未注册时，**自动** 会把它当作答案，不再询问 WHOIS。
 
 **WHOIS** 没有对应的发现机制——客户端随附一张从 TLD 到 WHOIS 主机的固定映射表，而这些表会过时。Identity Digital 的每个 TLD（`.digital`、`.email`、`.life`、`.today`、`.zone` 以及另外约 290 个）仍映射到一个已停用的主机，该主机现在对每个查询都只返回字面文本 `TLD is not supported.`，而不是记录。对于许多根本不发布 RDAP 服务的 ccTLD（例如 `.io`、`.co`、`.de`、`.ch` 和 `.jp`），WHOIS 仍是唯一的选择。
 
@@ -112,7 +112,7 @@ RDAP 请求遵循探测器的 `HTTP_PROXY_URL` / `HTTPS_PROXY_URL` / `NO_PROXY` 
 | **域名服务器** | **包含**、**不包含**、**开头是**、**结尾是**、**等于**、**不等于** | 域名的域名服务器。只要其中任意一个匹配即匹配。 |
 | **域名状态码** | **包含**、**不包含**、**开头是**、**结尾是**、**等于**、**不等于** | 域名的 EPP 状态码。只要其中任意一个匹配即匹配。 |
 
-无论是哪种协议应答，状态码都会规范化为它们的 EPP 名称（`clientTransferProhibited`），因此当 **Auto** 在 RDAP 和 WHOIS 之间切换时，条件仍能继续匹配。注册商的 _名称_ 取决于应答服务发布的内容，在两种协议之间可能略有不同，因此对于 **域名注册商** 条件，请优先使用 **包含** 而不是 **等于**。
+无论是哪种协议应答，状态码都会规范化为它们的 EPP 名称（`clientTransferProhibited`），因此当 **自动** 在 RDAP 和 WHOIS 之间切换时，条件仍能继续匹配。注册商的 _名称_ 取决于应答服务发布的内容，在两种协议之间可能略有不同，因此对于 **域名注册商** 条件，请优先使用 **包含** 而不是 **等于**。
 
 日期会规范化为 ISO 8601。注册局以无法解析的格式发布的日期会被省略而不是存储，这样到期条件就无法判断、也不会匹配，而不是一直悄悄地回答“未过期”。
 
@@ -122,8 +122,8 @@ RDAP 请求遵循探测器的 `HTTP_PROXY_URL` / `HTTPS_PROXY_URL` / `NO_PROXY` 
 
 新的域名监视器以三个条件开始，因此无需任何设置就能在注册过期之前提醒您：
 
-1. **域名检查失败** — 注册已过期，或无法读取其注册数据。监视器被标记为 **离线**，并创建名为“_monitor name_ domain check failed”的事件。注册再次能够读取并且有效时，事件会自行解决。
-2. **域名即将过期** — 注册尚未过期，但将在 30 天内过期。会创建名为“_monitor name_ domain expires soon”的 **警报**。
+1. **域名检查失败** — 注册已过期，或无法读取其注册数据。监视器被标记为 **离线**，并创建名为“_监视器名称_ 域名检查失败”的事件。注册再次能够读取并且有效时，事件会自行解决。
+2. **域名即将过期** — 注册尚未过期，但将在 30 天内过期。会创建名为“_监视器名称_ 的域名即将到期”的 **警报**。
 3. **域名未过期** — 监视器被标记为 **运行正常**。
 
 “即将过期”的提醒是警报，而不是事件：它不会显示在您的状态页上，除非您为它添加值班策略，否则不会呼叫任何人，也不会改变监视器的状态。它使用您项目的第二个警报严重程度，在新项目中为 **低**。续期出现在注册记录中后，警报会自行解决。不发布到期日期的注册局不会给提醒任何依据，因此提醒保持安静。
@@ -163,11 +163,11 @@ RDAP 请求遵循探测器的 `HTTP_PROXY_URL` / `HTTPS_PROXY_URL` / `NO_PROXY` 
 ## 故障排查
 
 :::details WHOIS 服务器“answered without any registration data”
-该 TLD 的 WHOIS 主机已停用、正在对探测器限速，或暂时出现故障。已停用的主机（例如 Identity Digital 的 TLD 仍映射到的那台）每次都回答 `TLD is not supported.`。如果在 **查询方式** 为 **WHOIS** 时故障持续存在，请切换到 **Auto**，让探测器在有 RDAP 服务的地方读取该 TLD 的 RDAP 服务。
+该 TLD 的 WHOIS 主机已停用、正在对探测器限速，或暂时出现故障。已停用的主机（例如 Identity Digital 的 TLD 仍映射到的那台）每次都回答 `TLD is not supported.`。如果在 **查询方式** 为 **WHOIS** 时故障持续存在，请切换到 **自动**，让探测器在有 RDAP 服务的地方读取该 TLD 的 RDAP 服务。
 :::
 
 :::details 检查失败，提示“No RDAP service is published”
-监视器使用的是 **RDAP**，而该 TLD 没有发布 RDAP 服务，许多 ccTLD 都是如此。请将 **查询方式** 切换为会回退到 WHOIS 的 **Auto**。
+监视器使用的是 **RDAP**，而该 TLD 没有发布 RDAP 服务，许多 ccTLD 都是如此。请将 **查询方式** 切换为会回退到 WHOIS 的 **自动**。
 :::
 
 :::details 域名被报告为未注册
@@ -175,7 +175,7 @@ RDAP 请求遵循探测器的 `HTTP_PROXY_URL` / `HTTPS_PROXY_URL` / `NO_PROXY` 
 :::
 
 :::details 代理后面的探测器上查询失败
-RDAP 会经过探测器的代理设置，WHOIS 不会。请为 WHOIS 放行出站 TCP 端口 43，或者对发布了 RDAP 服务的 TLD 使用 **Auto** 或 **RDAP**。
+RDAP 会经过探测器的代理设置，WHOIS 不会。请为 WHOIS 放行出站 TCP 端口 43，或者对发布了 RDAP 服务的 TLD 使用 **自动** 或 **RDAP**。
 :::
 
 :::details 到期日期为空，到期条件从不触发

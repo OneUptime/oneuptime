@@ -1,7 +1,16 @@
 import DocsSearch, {
+  DocsQueryAlternative,
+  DocsQueryWord,
   DocsSearchAnswer,
   DocsSearchResult,
 } from "../../../FeatureSet/Docs/Utils/DocsSearch";
+import {
+  ASK_AI_HOW_DO_I_QUESTIONS_IN_EVERY_LANGUAGE,
+  ASK_AI_HOW_DO_I_QUESTIONS_TRANSLATED,
+  ASK_AI_QUESTIONS_BY_LANGUAGE,
+  ASK_AI_WEBSITE_QUESTIONS,
+  AskAiHowDoIQuestionTranslated,
+} from "./AskAiHowDoIQuestions";
 import DocsAIReader, {
   AIDocsIndexedPage,
   AIDocsIndexedSection,
@@ -46,6 +55,21 @@ jest.mock("../../../FeatureSet/Docs/Utils/Config", () => {
 
 const BUILD_TIMEOUT_MS: number = 600000;
 
+/*
+ * Questions of AskAiHowDoIQuestions that the docs search box does not
+ * show a page for in its first ten, each with why. Ask AI's search finds
+ * each in the six it shows the model. This list only shrinks: a question
+ * the box finds fails its test until it is deleted here. #8698 found the
+ * two-factor questions (a section of Your Account) in five languages, and
+ * #8700 the Spanish and Portuguese subscribers.
+ */
+const NOT_IN_THE_BOX_FIRST_TEN: Record<string, string> = {
+  "de Wie eskaliere ich, wenn niemand antwortet?":
+    'Escalation Rules ("Eskalationsregeln") is named for none of its words, nor is a heading: "eskaliere" is "eskalier", the name one word of its own. The box lifts only a page or a heading named for half a question\'s words; Ask AI finds it first.',
+  "zh-TW 如何安排維護？":
+    "The maintenance pages say 排定 (schedule), never 安排 (arrange): the box reads 安排維護 as 安排, 排維 and 維護, and they hold one of the three, while Home, OpenStack and Declaring an Incident say 安排維護 in passing.",
+};
+
 const search: (
   language: string,
   query: string,
@@ -64,6 +88,92 @@ const urls: (answer: DocsSearchAnswer) => Array<string> = (
   return answer.results.map((result: DocsSearchResult): string => {
     return result.url;
   });
+};
+
+// Whether one of `found` opens `page` of the docs in `language`, at the top or at a section.
+const opensPage: (
+  found: Array<string>,
+  language: string,
+  page: string,
+) => boolean = (
+  found: Array<string>,
+  language: string,
+  page: string,
+): boolean => {
+  const address: string = `/docs/${language}/${page}`;
+
+  return found.some((url: string): boolean => {
+    return url === address || url.startsWith(`${address}#`);
+  });
+};
+
+/*
+ * Whether a result holds every one of `words`: one of each word's ways
+ * of being found, every term of it, in the page (its name, summary,
+ * headings, group or text) or in the section (its heading, its text, or
+ * its page's name), as DocsSearch.rank reads them.
+ */
+const holdsEveryWord: (
+  index: AIDocsLanguageIndex,
+  result: DocsSearchResult,
+  words: Array<DocsQueryWord>,
+) => boolean = (
+  index: AIDocsLanguageIndex,
+  result: DocsSearchResult,
+  words: Array<DocsQueryWord>,
+): boolean => {
+  const [address, anchor] = result.url.split("#") as [
+    string,
+    string | undefined,
+  ];
+  const page: AIDocsIndexedPage | undefined = index.pages.find(
+    (candidate: AIDocsIndexedPage): boolean => {
+      return address === `/docs/${index.language}/${candidate.page}`;
+    },
+  );
+
+  if (!page) {
+    return false;
+  }
+
+  const holdsAll: (holds: (term: string) => boolean) => boolean = (
+    holds: (term: string) => boolean,
+  ): boolean => {
+    return words.every((word: DocsQueryWord): boolean => {
+      return word.alternatives.some(
+        (alternative: DocsQueryAlternative): boolean => {
+          return alternative.terms.every(holds);
+        },
+      );
+    });
+  };
+
+  if (anchor === undefined) {
+    return holdsAll((term: string): boolean => {
+      return (
+        page.titleTerms.has(term) ||
+        page.summaryTerms.has(term) ||
+        page.headingTerms.has(term) ||
+        page.groupTerms.has(term) ||
+        page.bodyTerms.has(term)
+      );
+    });
+  }
+
+  // A Glossary term and its other names share an anchor.
+  return page.sections
+    .filter((section: AIDocsIndexedSection): boolean => {
+      return section.anchor === anchor;
+    })
+    .some((section: AIDocsIndexedSection): boolean => {
+      return holdsAll((term: string): boolean => {
+        return (
+          section.terms.has(term) ||
+          section.titleTerms.has(term) ||
+          (!section.isOtherName && page.titleTerms.has(term))
+        );
+      });
+    });
 };
 
 // How many of the sampled middle-of-section phrases open their section in the first five.
@@ -258,6 +368,252 @@ describe("docs search, on the real docs", () => {
     BUILD_TIMEOUT_MS,
   );
 
+  /*
+   * Every docs language's website question opens Website Monitor in the
+   * search box too (#7875): its question words are left out, its words
+   * read without their endings, as Ask AI reads them. Before, the French,
+   * Dutch, Danish, Norwegian, Swedish, Korean and Persian ones did not show
+   * it in the first 30.
+   */
+  test.each([
+    ["en", "How do I monitor my website?"],
+    ["de", "Wie überwache ich meine Website?"],
+    ["fr", "Comment surveiller mon site web ?"],
+    ["es", "¿Cómo puedo monitorear mi sitio web?"],
+    ["it", "Come posso monitorare il mio sito web?"],
+    ["pt", "Como faço para monitorar meu site?"],
+    ["nl", "Hoe monitor ik mijn website?"],
+    ["da", "Hvordan overvåger jeg mit websted?"],
+    ["no", "Hvordan overvåker jeg nettstedet mitt?"],
+    ["sv", "Hur övervakar jag min webbplats?"],
+    ["ru", "Как мне мониторить мой веб-сайт?"],
+    ["ja", "ウェブサイトを監視するにはどうすればいいですか？"],
+    ["ko", "내 웹사이트를 어떻게 모니터링하나요?"],
+    ["zh-CN", "如何监控我的网站？"],
+    ["zh-TW", "如何監控我的網站？"],
+    ["hi", "मैं अपनी वेबसाइट को मॉनिटर कैसे करूँ?"],
+    ["fa", "چطور وب‌سایتم را پایش کنم؟"],
+  ] as Array<[string, string]>)(
+    '%s: "%s" opens Website Monitor in the first 5',
+    async (language: string, question: string) => {
+      const address: string = `/docs/${language}/monitor/website-monitor`;
+      const first: Array<string> = urls(await search(language, question)).slice(
+        0,
+        5,
+      );
+
+      expect({
+        question,
+        first,
+        opens: first.some((url: string): boolean => {
+          return url === address || url.startsWith(`${address}#`);
+        }),
+      }).toEqual({ question, first, opens: true });
+    },
+    BUILD_TIMEOUT_MS,
+  );
+
+  /*
+   * A question whose verb the answer's page never says (#8334): Website
+   * Monitor's Russian page says "мониторинг" and "сайт", not
+   * "отслеживать" (track) or "настроить" (set up); On-Call Schedules'
+   * Danish page says "vagtplan", not "opsætte" (set up). Every typed
+   * word had to be in a result, so other pages that say every word in
+   * passing pushed the page out of the first 30. Six of the nine Russian
+   * website questions did not show Website Monitor at all.
+   */
+  test.each([
+    ...ASK_AI_WEBSITE_QUESTIONS.filter(
+      (entry: AskAiHowDoIQuestionTranslated): boolean => {
+        return entry.language === "ru";
+      },
+    ).map((entry: AskAiHowDoIQuestionTranslated): [string, string, string] => {
+      return [entry.language, entry.question, entry.docsPage];
+    }),
+    ["da", "Hvordan opsætter jeg en vagtplan?", "on-call/schedules"],
+    ["es", "¿Cómo configuro una programación de guardia?", "on-call/schedules"],
+    ["zh-CN", "如何设置值班计划？", "on-call/schedules"],
+    ["nl", "Hoe stel ik een bereikbaarheidsschema in?", "on-call/schedules"],
+    ["de", "Wie richte ich einen Bereitschaftsplan ein?", "on-call/schedules"],
+    ["ru", "Как настроить расписание дежурств?", "on-call/schedules"],
+  ] as Array<[string, string, string]>)(
+    '%s: "%s" opens %s in the first 5, though its page never says the verb (#8334)',
+    async (language: string, question: string, page: string) => {
+      const first: Array<string> = urls(await search(language, question)).slice(
+        0,
+        5,
+      );
+
+      expect({
+        question,
+        first,
+        opens: opensPage(first, language, page),
+      }).toEqual({ question, first, opens: true });
+    },
+    BUILD_TIMEOUT_MS,
+  );
+
+  /*
+   * A question answered by a section of a page named for something else
+   * (#8698): two-factor authentication is a step of Your Account, whose
+   * heading names it ("Slå på tofaktorautentisering", "2 要素認証をオンにする")
+   * where the question's verb is another ("slår", "aktiverar", 有効).
+   * None of these was in the box's first 30.
+   */
+  test.each([
+    ["nl", "Hoe zet ik tweestapsverificatie aan?"],
+    ["da", "Hvordan slår jeg totrinsgodkendelse til?"],
+    ["no", "Hvordan slår jeg på tofaktorautentisering?"],
+    ["sv", "Hur aktiverar jag tvåfaktorsautentisering?"],
+    ["ja", "二要素認証を有効にするにはどうすればいいですか？"],
+  ] as Array<[string, string]>)(
+    '%s: "%s" opens Your Account\'s two-factor step in the first 3 (#8698)',
+    async (language: string, question: string) => {
+      const first: Array<string> = urls(await search(language, question)).slice(
+        0,
+        3,
+      );
+
+      expect({
+        question,
+        first,
+        opens: first.some((url: string): boolean => {
+          return url.startsWith(`/docs/${language}/introduction/your-account#`);
+        }),
+      }).toEqual({ question, first, opens: true });
+    },
+    BUILD_TIMEOUT_MS,
+  );
+
+  /*
+   * Every question asked in another language than English, in the
+   * search box as in Ask AI (AskAiHowDoIQuestions): its page is in the
+   * first ten, but for the ones in NOT_IN_THE_BOX_FIRST_TEN.
+   */
+  test.each(
+    [
+      ...ASK_AI_WEBSITE_QUESTIONS,
+      ...ASK_AI_HOW_DO_I_QUESTIONS_IN_EVERY_LANGUAGE,
+      ...ASK_AI_HOW_DO_I_QUESTIONS_TRANSLATED,
+      ...ASK_AI_QUESTIONS_BY_LANGUAGE,
+    ].map(
+      (
+        entry: AskAiHowDoIQuestionTranslated,
+      ): [string, string, Array<string>] => {
+        return [
+          entry.language,
+          entry.question,
+          [entry.docsPage, ...(entry.alsoAnswers || [])],
+        ];
+      },
+    ),
+  )(
+    '%s: the search box shows a page that answers "%s" (%p) in the first 10',
+    async (language: string, question: string, pages: Array<string>) => {
+      const first: Array<string> = urls(await search(language, question)).slice(
+        0,
+        10,
+      );
+      const opens: boolean = pages.some((page: string): boolean => {
+        return opensPage(first, language, page);
+      });
+      const notYet: string | undefined =
+        NOT_IN_THE_BOX_FIRST_TEN[`${language} ${question}`];
+
+      if (notYet) {
+        // Found now: delete it from NOT_IN_THE_BOX_FIRST_TEN.
+        expect({ question, notYet, opens }).toEqual({
+          question,
+          notYet,
+          opens: false,
+        });
+        return;
+      }
+
+      expect({ question, first, opens }).toEqual({
+        question,
+        first,
+        opens: true,
+      });
+    },
+    BUILD_TIMEOUT_MS,
+  );
+
+  /*
+   * Keywords are as strict as before (#8334): every result holds every
+   * word typed, as the docs search box has always asked. Only a question
+   * gets the results that hold most of its words.
+   */
+  test.each([
+    ["en", "kubernetes helm"],
+    ["en", "website ssl"],
+    ["en", "escalation rules"],
+    ["de", "API-Schlüssel erstellen"],
+    ["fr", "politique astreinte"],
+    ["ru", "отслеживать сайт"],
+    ["ru", "настроить мониторинг сайта"],
+    ["da", "opsætte vagtplan"],
+    ["es", "configurar programación guardia"],
+    ["zh-CN", "设置值班计划"],
+    ["ja", "ステータスページ 作成"],
+  ] as Array<[string, string]>)(
+    '%s: keywords "%s" still need every word in every result',
+    async (language: string, keywords: string) => {
+      const index: AIDocsLanguageIndex = await DocsAIReader.getIndex(language);
+      const answer: DocsSearchAnswer = DocsSearch.rank(
+        index,
+        `${keywords} `,
+        30,
+      );
+      const words: Array<DocsQueryWord> = DocsSearch.readQuery(
+        index,
+        `${keywords} `,
+      );
+
+      expect(DocsSearch.isQuestion(index, `${keywords} `)).toBe(false);
+      expect(
+        answer.results
+          .filter((result: DocsSearchResult): boolean => {
+            return !holdsEveryWord(index, result, words);
+          })
+          .map((result: DocsSearchResult): string => {
+            return result.url;
+          }),
+      ).toEqual([]);
+    },
+    BUILD_TIMEOUT_MS,
+  );
+
+  test(
+    "Russian: asked as a question, the words find Website Monitor first; typed as keywords, only results that hold both",
+    async () => {
+      const index: AIDocsLanguageIndex = await DocsAIReader.getIndex("ru");
+      const keywords: DocsSearchAnswer = DocsSearch.rank(
+        index,
+        "настроить сайт ",
+        30,
+      );
+      const question: Array<string> = urls(
+        await search("ru", "Как отслеживать мой сайт?", 30),
+      );
+      const words: Array<DocsQueryWord> = DocsSearch.readQuery(
+        index,
+        "настроить сайт ",
+      );
+
+      expect(keywords.results.length).toBeGreaterThan(0);
+      expect(
+        keywords.results.every((result: DocsSearchResult): boolean => {
+          return holdsEveryWord(index, result, words);
+        }),
+      ).toBe(true);
+      expect(
+        opensPage(question.slice(0, 3), "ru", "monitor/website-monitor"),
+      ).toBe(true);
+    },
+    BUILD_TIMEOUT_MS,
+  );
+
   test(
     "French: a half-typed word, a reader's word and a phrase from the middle of a page",
     async () => {
@@ -335,8 +691,9 @@ describe("docs search, on the real docs", () => {
             continue;
           }
 
+          // Read as the index reads its language's words (#7875).
           if (
-            !tokenizeForDocs(value).every((term: string): boolean => {
+            !tokenizeForDocs(value, language).every((term: string): boolean => {
               return index.vocabulary.has(term);
             })
           ) {

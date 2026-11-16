@@ -100,6 +100,17 @@ import {
 import userEvent, { UserEvent } from "@testing-library/user-event";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import { escapeRegExp } from "../../../../Utils/RegExpEscape";
+import { refuseRequestsTo } from "../../../Helpers/RealNetworkRequests";
+
+/*
+ * The Incident and Alert From Another Tool steps write a record, so their
+ * JSON settings are drawn as rows of the record's columns
+ * (ModelColumnEditor), read from the Workflow service's
+ * model-schema/<table>. These tests leave that read unanswered: refused at
+ * once, as the network refused it, and those settings are drawn as they are
+ * when the columns cannot be read (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/model-schema/*"]);
 
 const WEBHOOK_BODY: string =
   "{{local.components.webhook-1.returnValues.request-body}}";

@@ -155,12 +155,12 @@ Uma regra faz tocar uma pessoa no número que ela verificou para chamadas recebi
 :::steps
 1. Abra **Configurações do usuário** > **Política de chamadas recebidas** > **Números de telefone recebidos**. **Política de chamadas recebidas** é uma seção do menu lateral que começa recolhida.
 2. No cartão **Números de telefone para roteamento de chamadas recebidas**, clique em **Adicionar: Número de telefone para roteamento de chamadas recebidas** e digite o número com o código do país, por exemplo `+15551234567`.
-3. Digite o código de 6 dígitos que o OneUptime envia por SMS para o número em **Código de verificação** e clique em **Verificar**. **Send a new code** envia outro.
+3. Digite o código de 6 dígitos que o OneUptime envia por SMS para o número em **Código de verificação** e clique em **Verificar**. **Enviar um novo código** envia outro.
 :::
 
 Cada pessoa pode ter um número verificado por projeto. Para trocá-lo, exclua antes o número antigo. Esses números são separados dos números de telefone em **Métodos de notificação**, que os acionamentos de plantão usam. Veja [Métodos de notificação](/docs/notifications/notification-methods).
 
-Os números para chamadas recebidas são verificados por SMS, então o **SMS** precisa estar ligado no projeto antes. Um proprietário do projeto ou alguém com o papel **Administrador de cobrança** ou a permissão **Manage Billing** o liga no cartão **Canais de notificação** de **Configurações do projeto > Notificações > Canais de notificação**.
+Os números para chamadas recebidas são verificados por SMS, então o **SMS** precisa estar ligado no projeto antes. Um Proprietário do projeto ou alguém com o papel **Administrador de cobrança** ou a permissão **Manage Billing** o liga no cartão **Canais de notificação** de **Configurações do projeto > Notificações > Canais de notificação**.
 
 ## Mensagens de voz e configurações da política
 
@@ -198,7 +198,7 @@ Uma chamada é perdida quando termina sem alcançar ninguém: o status dela é *
 
 ### Quem é avisado
 
-Quando uma chamada é perdida, o OneUptime avisa os proprietários da política: os usuários e os membros das equipes adicionados na página **Proprietários** da política. Se a política não tiver proprietários, os proprietários do projeto são avisados no lugar.
+Quando uma chamada é perdida, o OneUptime avisa os proprietários da política: os usuários e os membros das equipes adicionados na página **Proprietários** da política. Se a política não tiver proprietários, os Proprietários do projeto são avisados no lugar.
 
 O aviso diz quem ligou, qual número foi discado, por que ninguém atendeu, e quem tocou e como cada tentativa terminou. Ele traz um link para a chamada no registro de chamadas.
 
@@ -208,15 +208,15 @@ Os proprietários recebem um e-mail por padrão. Cada pessoa pode escolher outro
 
 Os registros de chamadas recebidas estão disponíveis como gatilhos de fluxos de trabalho:
 
-- **On Create Incoming Call Log** é executado quando uma chamada chega.
-- **On Update Incoming Call Log** é executado conforme a chamada avança. A atualização que define **Ended At** é o fim da chamada.
+- **Ao criar: Registro de chamada recebida** é executado quando uma chamada chega.
+- **Ao atualizar: Registro de chamada recebida** é executado conforme a chamada avança. A atualização que define **Ended At** é o fim da chamada.
 
 Para agir só sobre chamadas perdidas, por exemplo para publicá-las no Slack ou no Microsoft Teams ou abrir um ticket:
 
 :::steps
-1. Adicione o gatilho **On Update Incoming Call Log**. Defina **Fields to watch** como **Ended At** e selecione os campos que quer usar, como **Status**, **Caller Phone Number** e **Routing Phone Number**.
-2. Adicione um passo **If / Else**. Confira o **Status** do gatilho, com a comparação **não é igual a** e `Completed`.
-3. Ligue os seus passos à porta **Yes**.
+1. Adicione o gatilho **Ao atualizar: Registro de chamada recebida**. Defina **Campos a observar** como **Ended At** e selecione os campos que quer usar, como **Status**, **Caller Phone Number** e **Routing Phone Number**.
+2. Adicione um passo **Se / Senão**. Confira o **Status** do gatilho, com a comparação **não é igual a** e `Completed`.
+3. Ligue os seus passos à porta **Sim**.
 :::
 
 Um fluxo de trabalho pode ler registros de chamadas com **Find One** e **Find Many**, mas não pode criá-los nem alterá-los.
@@ -275,7 +275,7 @@ A conta só pode mudar enquanto a política não tem números de telefone: a pá
 :::
 
 :::details O código para o número de uma pessoa não chega
-O SMS precisa estar ligado no projeto. No OneUptime Cloud, um projeto sem uma configuração do Twilio padrão própria paga os SMS com o saldo dele, que precisa passar de 1 USD. Os códigos podem levar um minuto para chegar; clique em **Send a new code** para enviar outro, e **Configurações do projeto** > **Notificações** > **Logs de notificação** mostra o que aconteceu com ele.
+O SMS precisa estar ligado no projeto. No OneUptime Cloud, um projeto sem uma configuração do Twilio padrão própria paga os SMS com o saldo dele, que precisa passar de 1 USD. Os códigos podem levar um minuto para chegar; clique em **Enviar um novo código** para enviar outro, e **Configurações do projeto** > **Notificações** > **Logs de notificação** mostra o que aconteceu com ele.
 :::
 
 ## Próximos passos

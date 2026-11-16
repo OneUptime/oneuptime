@@ -1133,6 +1133,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
                 },
                 selectedRecommendations.length,
               )}
+              isTitleTranslated={true}
               icon={IconProp.Add}
               buttonStyle={ButtonStyleType.PRIMARY}
               disabled={Boolean(createLockReason)}
@@ -1207,6 +1208,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
           title={translator.translateTemplate('Dismiss "{{name}}"?', {
             name: dismissTarget.recommendation.name,
           })}
+          isTitleTranslated={true}
           description={
             <div className="space-y-3">
               <p className="text-sm text-gray-500">

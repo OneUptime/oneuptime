@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
@@ -56,7 +57,9 @@ import {
   DOCKER_CONTAINER_HOST_RUNTIME,
   getContainerHostRoutes,
 } from "../../../Components/ContainerHost/ContainerHostRuntime";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 // The columns that sort: each by the value behind its cell.
 type ContainerSortKey =
@@ -115,20 +118,20 @@ const formatBytes: (bytes: number) => string = (bytes: number): string => {
     value /= 1024;
     idx++;
   }
-  return `${value.toFixed(value >= 100 || idx === 0 ? 0 : 1)} ${units[idx]}`;
+  return `${value.toFixed(value >= 100 || idx === 0 ? 0 : 1)}\u00A0${units[idx]}`;
 };
 
 const formatReadingBytes: (value: number | null) => string = (
   value: number | null,
 ): string => {
-  return value === null ? "—" : formatBytes(value);
+  return value === null ? EMPTY_VALUE_MARK : formatBytes(value);
 };
 
 // "3.1%", as the container's own page and the Overview write it.
 const formatReadingPercent: (value: number | null) => string = (
   value: number | null,
 ): string => {
-  return value === null ? "—" : `${value.toFixed(1)}%`;
+  return value === null ? EMPTY_VALUE_MARK : `${value.toFixed(1)}%`;
 };
 
 // A reading past its alert's line reads amber, as Needs attention says it.
@@ -366,7 +369,11 @@ const DockerHostContainers: FunctionComponent<
               {row.memoryUsage !== null ? (
                 <span className="text-xs text-gray-500">
                   {/* "24.0 MB" reads as written on a page read right to left. */}
-                  <bdi>{formatReadingBytes(row.memoryUsage)}</bdi>
+                  <bdi>
+                    {getValueOrQuietDash(formatReadingBytes(row.memoryUsage), {
+                      isSmall: true,
+                    })}
+                  </bdi>
                 </span>
               ) : (
                 <></>
@@ -382,7 +389,7 @@ const DockerHostContainers: FunctionComponent<
         headerTooltip: CONTAINER_HOST_METRIC_DESCRIPTIONS.containerRestarts,
         getElement: (row: ContainerHostRow): ReactElement => {
           return renderReading(
-            row.restarts === null ? "—" : String(row.restarts),
+            row.restarts === null ? EMPTY_VALUE_MARK : String(row.restarts),
             row.restartsTone,
           );
         },

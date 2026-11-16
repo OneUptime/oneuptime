@@ -7,7 +7,7 @@ Planlæg vedligeholdelse i to korte trin: sig, hvad der sker og hvornår, og der
 - [Hvad der sker, når du opretter den](#hvad-der-sker-når-du-opretter-den): Dens nummer, regler, ejere og de første beskeder.
 - [Offentliggør den senere](#offentliggør-den-senere): Hold den væk fra dine statussider indtil en dato og et klokkeslæt.
 - [Ændr en begivenhed senere](#ændr-en-begivenhed-senere): Dens vindue, ressourcer, statussider og noter.
-- [Opret begivenheder fra kode](#opret-begivenheder-fra-kode): API'et, Terraform, workflows og chat.
+- [Opret begivenheder fra kode](#opret-begivenheder-fra-kode): API'et, Terraform, arbejdsgange og chat.
 :::
 
 ## Sådan fungerer det
@@ -39,7 +39,7 @@ Skriv en **Titel**, og tilføj en **Beskrivelse**, hvis det hjælper: den er i M
 
 ### Vælg, hvad det påvirker
 
-Klik på **Næste** for at komme til **Berørte ressourcer**. Vælg de **Monitorer**, arbejdet rører. Så snart du vælger én, vises **Skift overvågningsstatus til** under dem: den status, monitorerne skifter til, når begivenheden starter. Vælg derefter eventuelle **Andre berørte ressourcer**, såsom værter, klynger, databaser, netværkslokationer eller tjenester.
+Klik på **Næste** for at komme til **Berørte ressourcer**. Vælg de **Monitorer**, arbejdet rører. Så snart du vælger én, vises **Skift monitorstatus til** under dem: den status, monitorerne skifter til, når begivenheden starter. Vælg derefter eventuelle **Andre berørte ressourcer**, såsom værter, klynger, databaser, netværkslokationer eller tjenester.
 
 ### Vælg, hvem der hører om det
 
@@ -63,7 +63,7 @@ Intet sendes, før du vælger en statusside: en begivenhed, der ikke vises på n
 | **Ejere**                            | **Detaljer om vedligeholdelse**     | Ingen                           | Personer og teams, der ejer begivenheden og får besked om den.                   |
 | **Etiketter**                        | **Detaljer om vedligeholdelse**     | Ingen                           | Etiketter, som regler og filtre kan matche på.                                   |
 | **Monitorer**                        | **Berørte ressourcer** | Ingen                       | De monitorer, der ikke kontrolleres, mens begivenheden står på.                  |
-| **Skift overvågningsstatus til**     | **Berørte ressourcer** | Ingen ændring               | Den status, de monitorer viser under begivenheden. Spørges om, så snart en monitor er valgt. |
+| **Skift monitorstatus til**     | **Berørte ressourcer** | Ingen ændring               | Den status, de monitorer viser under begivenheden. Spørges om, så snart en monitor er valgt. |
 | **Andre berørte ressourcer**         | **Berørte ressourcer** | Ingen                       | Værter, klynger, databaser, netværkslokationer, tjenester og mere.               |
 | **Vis begivenhed på disse statussider** | **Berørte ressourcer** | Ingen                    | De statussider, der viser begivenheden og giver deres abonnenter besked.         |
 | **Notifikationer til abonnenter**    | **Berørte ressourcer** | Offentliggjort med det samme, alle tre tidspunkter slået til, ingen påmindelser | Hvornår begivenheden vises på de sider, og hvornår deres abonnenter får besked. |
@@ -90,7 +90,7 @@ I det øjeblik du klikker på **Opret vedligeholdelseshændelse**, gennemgår On
 5. **Runbook-regler starter** de runbooks, der matcher begivenheden.
 6. **Påmindelser planlægges**, når en påmindelsesregel matcher, for dens ejere.
 
-Inden for et minut efter dens offentliggørelse, som sker med det samme, medmindre du har valgt et **Offentliggør den**, får abonnenterne på dens statussider besked om, at den er planlagt, medmindre du har slået **Når begivenheden planlægges** fra. Workflow-triggeren **On Create Maintenance Event** starter ethvert workflow, der er bygget på den, og dens ejere hører om den, hvis de har slået den notifikation til: se [Notifikationsindstillinger](/docs/notifications/notification-settings).
+Inden for et minut efter dens offentliggørelse, som sker med det samme, medmindre du har valgt et **Offentliggør den**, får abonnenterne på dens statussider besked om, at den er planlagt, medmindre du har slået **Når begivenheden planlægges** fra. Arbejdsgangstriggeren **Ved oprettelse: Vedligeholdelseshændelse** starter enhver arbejdsgang, der er bygget på den, og dens ejere hører om den, hvis de har slået den notifikation til: se [Notifikationsindstillinger](/docs/notifications/notification-settings).
 
 ## Offentliggør den senere
 
@@ -119,7 +119,7 @@ Alt fra formularen kan ændres på begivenhedens egne sider, undtagen de tre abo
 | Beskrivelsen                                | **Beskrivelse** i dens sidemenu                                                |
 | Ejerne                                      | **Ejere** i dens sidemenu                                                      |
 
-**Skift overvågningsstatus til** kan ændres, indtil begivenheden starter. Derefter viser kortet den skrivebeskyttet, fordi monitorerne allerede er i den status. En redigering tilføjer en post i **Feed for planlagt vedligeholdelse**, der nævner, hvad den ændrede; at gemme uden ændringer tilføjer ingen.
+**Skift monitorstatus til** kan ændres, indtil begivenheden starter. Derefter viser kortet den skrivebeskyttet, fordi monitorerne allerede er i den status. En redigering tilføjer en post i **Feed for planlagt vedligeholdelse**, der nævner, hvad den ændrede; at gemme uden ændringer tilføjer ingen.
 
 ## Post noter, mens arbejdet skrider frem
 
@@ -150,12 +150,12 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 | ----------------------------------------------------- | ----------------------------------------------------------------------------------------- |
 | `title`, `startsAt`, `endsAt`                          | Påkrævet, som i formularen.                                                               |
 | `monitors`, `statusPages`, `labels`                   | Begivenhedens monitorer, statussider og etiketter, alle fra API-nøglens projekt.         |
-| `changeMonitorStatusToId`                             | Den overvågningsstatus, dens monitorer skifter til, når den starter.                      |
+| `changeMonitorStatusToId`                             | Den monitorstatus, dens monitorer skifter til, når den starter.                      |
 | `currentScheduledMaintenanceStateId`                  | Ignoreres: hver begivenhed starter i din planlagte tilstand.                              |
 | `shouldStatusPageSubscribersBeNotifiedOnEventCreated` | Kontakten **Når begivenheden planlægges**. De to andre tidspunkter har deres egne felter. |
 | `publishOnStatusPageAt`                               | Hvornår begivenheden offentliggøres på sine statussider, og dens abonnenter får besked om, at den er planlagt. Udeladt: med det samme. |
 
-Den samme begivenhed som kode er Terraform-ressourcen `oneuptime_scheduled_maintenance_event`: se [Eksempler](/docs/terraform/examples#planlagt-vedligeholdelse). Et workflow opretter én med sit trin **Create One Maintenance Event**, og `/oneuptime maintenance` åbner formularen i Slack: se [Slack](/docs/workspace-connections/slack#opret-hændelser-og-vedligeholdelse-fra-slack).
+Den samme begivenhed som kode er Terraform-ressourcen `oneuptime_scheduled_maintenance_event`: se [Eksempler](/docs/terraform/examples#planlagt-vedligeholdelse). En arbejdsgang opretter én med sit trin **Opret Vedligeholdelseshændelse (én post)**, og `/oneuptime maintenance` åbner formularen i Slack: se [Slack](/docs/workspace-connections/slack#opret-hændelser-og-vedligeholdelse-fra-slack).
 
 ## Fejlfinding
 
@@ -163,11 +163,11 @@ Den samme begivenhed som kode er Terraform-ressourcen `oneuptime_scheduled_maint
 Vinduet skal være i orden: begivenheden slutter, efter at den er startet. Flyt først **Begynder den**, da **Slutter den** følger med, og indstil derefter **Slutter den**.
 :::
 
-:::details Skift overvågningsstatus til mangler i formularen
+:::details Skift monitorstatus til mangler i formularen
 Der spørges kun om den, når begivenheden har en monitor. Vælg én under **Monitorer**, så vises den lige under dem.
 :::
 
-:::details Skift overvågningsstatus til kan ikke længere ændres
+:::details Skift monitorstatus til kan ikke længere ændres
 Begivenheden er startet, og dens monitorer er allerede i den status. Statussen gælder fra det øjeblik, begivenheden starter, til den slutter.
 :::
 

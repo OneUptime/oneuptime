@@ -46,7 +46,7 @@ Gli annunci sono trattati in [Iscritti e annunci](/docs/status-pages/subscribers
 - **Una pianificazione.** Un modello ricorrente crea un nuovo evento secondo una pianificazione, per esempio ogni settimana o ogni mese, senza che nessuno apra il modulo.
 - **Un modulo.** Un modulo i cui invii creano eventi di manutenzione trasforma una richiesta di modifica in un evento. Vedere [Cosa crea un invio](/docs/forms/on-submit#come-un-invio-diventa-un-evento-di-manutenzione).
 - **La chat.** `/oneuptime maintenance` in Slack, oppure `maintenance` scritto al bot di OneUptime in Microsoft Teams, apre il modulo nel vostro strumento di chat. Vedere [Slack](/docs/workspace-connections/slack#creare-incidenti-e-manutenzioni-da-slack).
-- **Il codice.** L'API in `/api/scheduled-maintenance`, la risorsa Terraform `oneuptime_scheduled_maintenance_event` e il passo **Create One Maintenance Event** di un workflow.
+- **Il codice.** L'API in `/api/scheduled-maintenance`, la risorsa Terraform `oneuptime_scheduled_maintenance_event` e il passo **Crea: Evento di manutenzione (un record)** di un flusso di lavoro.
 
 ## Dove si trova la manutenzione nella dashboard
 
@@ -72,7 +72,7 @@ Mentre un evento è in corso, OneUptime tratta come previsto il fermo che pianif
 
 - **I suoi monitor non vengono controllati.** Ogni monitor in **Monitor** smette di essere controllato, e le sue pagine indicano **Questo monitor è disabilitato**. Se avete scelto un **Cambia lo stato del monitor in**, i monitor mostrano quello stato, anche sulle vostre pagine di stato. Quando l'evento termina, o viene eliminato, i controlli riprendono e ogni monitor torna «operativo», a meno che un altro evento in corso lo trattenga ancora.
 - **Le sue altre risorse restano in silenzio.** Un monitor di telemetria che sorveglia molti host, cluster, database o servizi, una serie ciascuno, non crea incidenti né avvisi per una serie la cui risorsa è coperta dall'evento, mentre le altre serie continuano ad avvisare. I monitor di una risorsa cloud coperta dall'evento, come quelli consigliati, non creano alcun incidente né avviso.
-- **Siti di rete e SLO si trattengono.** Un sito di rete coperto dall'evento smette di contare il suo fermo pianificato a carico dei siti sopra di lui, e le regole del tasso di consumo di uno SLO non fanno scattare nulla finché uno dei suoi monitor è in manutenzione. Vedere [Siti di rete](/docs/monitor/network-sites#manutenzione-programmata-per-i-siti-di-rete) e [Avvisi e incidenti di tasso di consumo](/docs/slo/burn-rate-alerts#manutenzione-pianificata).
+- **Siti di rete e SLO si trattengono.** Un sito di rete coperto dall'evento smette di contare il suo fermo pianificato a carico dei siti sopra di lui, e le regole del tasso di consumo di uno SLO non fanno scattare nulla finché uno dei suoi monitor è in manutenzione. Vedere [Siti di rete](/docs/monitor/network-sites#manutenzione-programmata-per-i-siti-di-rete) e [Avvisi e incidenti di tasso di consumo](/docs/slo/burn-rate-alerts#manutenzione-programmata).
 - **Le vostre pagine di stato lo mostrano.** L'evento compare sulle pagine di stato scelte, prima come imminente, poi in corso, poi concluso, finché **Visibile sulla pagina di stato** è attivo nelle sue **Impostazioni**, e dal suo **Pubblica il** se ne avete scelto uno. Una volta iniziato, su quelle pagine la cronologia del tempo di attività di ogni risorsa dei suoi monitor lo riporta in ogni giorno toccato dalla sua finestra, e quelle risorse mostrano «In manutenzione» finché è in corso; la cronologia del tempo di attività del monitor nella dashboard lo mostra allo stesso modo. Vedi [Percentuali di tempo di attività e grafici della cronologia](/docs/status-pages/resources-and-groups#percentuali-di-tempo-di-attività-e-grafici-della-cronologia).
 - **Gli iscritti ne vengono a conoscenza.** Per impostazione predefinita, gli iscritti di quelle pagine vengono avvisati quando viene pianificato, quando inizia e quando termina, e ricevono un promemoria prima dell'inizio se impostate dei promemoria. Vedere [Eventi di manutenzione](/docs/status-pages/subscribers#eventi-di-manutenzione).
 - **Il vostro team ne viene a conoscenza.** I suoi proprietari vengono avvisati come prevedono le loro [impostazioni notifiche](/docs/notifications/notification-settings), e le regole Slack, Microsoft Teams e Mattermost in **Area di lavoro** lo pubblicano nei vostri canali.
@@ -85,10 +85,10 @@ Aprite un evento dall'elenco per vedere le sue pagine. Il suo menu laterale cont
 | ----------------- | --------------------------------------------------------------------------------------------- |
 | **Panoramica** | **Panoramica**, **Cronologia stato**, **Descrizione**, **Runbook** |
 | **Team** | **Proprietari** |
-| **Notifiche**      | **Registri di notifica** e **Registri IA**: ogni messaggio inviato sull'evento, e ciò che l'IA ha fatto per lui |
+| **Notifiche**      | **Log di notifica** e **Log IA**: ogni messaggio inviato sull'evento, e ciò che l'IA ha fatto per lui |
 | **Note**          | **Note private** e **Note pubbliche**                                                          |
 | **Sviluppatori**  | **Terraform**, **API**, **CLI** e **Assistenti IA**: l'evento gestito dal codice               |
-| **Avanzato**      | **Campi personalizzati**, **Impostazioni**, **Registri di audit**, **Elimina evento di manutenzione**          |
+| **Avanzato**      | **Campi personalizzati**, **Impostazioni**, **Log di audit**, **Elimina evento di manutenzione**          |
 
 **Panoramica**, **Team** e **Note** sono aperte; le altre sezioni restano chiuse finché non ci fate clic.
 

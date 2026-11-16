@@ -91,7 +91,7 @@ L'avviso indica l'ora pianificata e lo stato che l'evento non ha ancora raggiunt
 
 ## L'ordine è obbligatorio
 
-Ogni cambio di stato viene controllato rispetto all'elenco, chiunque lo faccia: la dashboard, Slack, Microsoft Teams, l'API, Terraform, un workflow o OneUptime stesso.
+Ogni cambio di stato viene controllato rispetto all'elenco, chiunque lo faccia: la dashboard, Slack, Microsoft Teams, l'API, Terraform, un flusso di lavoro o OneUptime stesso.
 
 - **I passi indietro vengono rifiutati**, con un messaggio che nomina entrambi gli stati: "Scheduled Maintenance cannot transition to Scheduled state from Ongoing state because Scheduled is before Ongoing in the order of scheduled maintenance states."
 - **Passare allo stato in cui si trova già viene rifiutato**: "Scheduled Maintenance state cannot be same as previous state."
@@ -137,7 +137,7 @@ Archivia uno stato creato da te che il tuo team non deve più usare, invece di e
 
 - **Archivia** si trova nel menu **⋯** della riga. Chiede prima conferma ed elenca le misurazioni e i flussi di lavoro configurati per usare lo stato.
 - **Nessuno può più sceglierlo.** L'intestazione dell'evento, **Cambia stato**, Slack e Microsoft Teams lo escludono, e l'API, Terraform e MCP lo rifiutano. Puoi ancora filtrare gli eventi in base a esso.
-- **Gli stati archiviati sono elencati a parte**, nella sezione compressa **Stati di manutenzione pianificata archiviati** sotto la tabella. **Annulla archiviazione** ne ripristina uno com'era.
+- **Gli stati archiviati sono elencati a parte**, nella sezione compressa **Stati di manutenzione programmata archiviati** sotto la tabella. **Annulla archiviazione** ne ripristina uno com'era.
 - **I quattro stati predefiniti non possono essere archiviati**: OneUptime vi sposta gli eventi. Il loro **Archivia** è bloccato, con il motivo.
 
 ## La cronologia di stato

@@ -1,5 +1,6 @@
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import Route from "Common/Types/API/Route";
+import { BILLING_ENABLED } from "Common/UI/Config";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -14,11 +15,7 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
-import {
-  TemplateValue,
-  Translator,
-  translatableTerm,
-} from "Common/UI/Utils/TranslateTemplate";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -28,6 +25,7 @@ import React, {
 } from "react";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import { getNextClaimWords } from "../Probe/NextClaimWords";
 import { OpenStackCertificateDetails } from "./OpenStackConnectionTestPanel";
 import {
   OPENSTACK_STATUS_POLL_INTERVAL_IN_MS,
@@ -35,9 +33,11 @@ import {
   OpenStackCollectionTone,
   OpenStackGentlerRow,
   OpenStackServiceRow,
+  getOpenStackCollectionDescription,
   getOpenStackCollectionStatusView,
   getOpenStackGentlerRows,
   getOpenStackInventoryPhrases,
+  getOpenStackNextCollection,
   getOpenStackServiceRows,
   getOpenStackSummaryModeLine,
   isOpenStackProbeCollected,
@@ -121,8 +121,15 @@ const OpenStackCollectionStatusCard: FunctionComponent<ComponentProps> = (
         collectionIntervalInMinutes: true,
         trustedCertificateFingerprints: true,
         authUrl: true,
+        // What decides whether a probe may collect it (OpenStackCollectionStop).
+        projectId: true,
+        isCredentialSet: true,
+        collectionProbeId: true,
         collectionProbe: {
           name: true,
+          isGlobalProbe: true,
+          projectId: true,
+          connectionStatus: true,
         },
       },
     });
@@ -142,7 +149,12 @@ const OpenStackCollectionStatusCard: FunctionComponent<ComponentProps> = (
 
   const view: OpenStackCollectionStatusView | null =
     cloud && isOpenStackProbeCollected(cloud)
-      ? getOpenStackCollectionStatusView(cloud, translator)
+      ? getOpenStackCollectionStatusView(
+          cloud,
+          translator,
+          new Date(),
+          BILLING_ENABLED,
+        )
       : null;
 
   // Ask again while the probe has the new settings and has not answered yet.
@@ -183,10 +195,6 @@ const OpenStackCollectionStatusCard: FunctionComponent<ComponentProps> = (
     RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_SETTINGS] as Route,
     { modelId: props.modelId },
   );
-
-  // Translated along with the sentence it goes into, never on its own.
-  const probeName: TemplateValue =
-    cloud.collectionProbe?.name || translatableTerm("its probe");
 
   const trustCertificate: (fingerprint: string) => Promise<void> = async (
     fingerprint: string,
@@ -239,21 +247,11 @@ const OpenStackCollectionStatusCard: FunctionComponent<ComponentProps> = (
     <div className="mb-5" data-testid="openstack-data-collection-status">
       <Card
         title="Data Collection"
-        description={translator.translatePlural(
-          {
-            /*
-             * The one form names the count too: Russian's "one" is 1, 21, 31, 41 and 51 as
-             * well, and a cloud may be collected every 21 minutes.
-             */
-            one: "Collected by {{probe}} from {{address}}, every {{count}} minute. No agent runs for it.",
-            other:
-              "Collected by {{probe}} from {{address}}, every {{count}} minutes. No agent runs for it.",
-          },
-          cloud.collectionIntervalInMinutes || 2,
-          {
-            probe: probeName,
-            address: cloud.authUrl || "",
-          },
+        description={getOpenStackCollectionDescription(
+          cloud,
+          translator,
+          new Date(),
+          BILLING_ENABLED,
         )}
         rightElement={
           <StatusBadge text={view.label} type={badgeTypeOf(view.tone)} />
@@ -395,7 +393,7 @@ const OpenStackCollectionStatusCard: FunctionComponent<ComponentProps> = (
             <></>
           )}
 
-          <dl className="grid grid-cols-1 gap-x-6 gap-y-2 text-xs sm:grid-cols-2">
+          <dl className="grid grid-cols-1 gap-x-6 gap-y-2 text-xs sm:grid-cols-3">
             <div>
               <dt className="text-gray-500">
                 {translator.translateText("Last collection")}
@@ -414,6 +412,24 @@ const OpenStackCollectionStatusCard: FunctionComponent<ComponentProps> = (
                 {cloud.lastSuccessfulCollectionAt
                   ? OneUptimeDate.fromNow(cloud.lastSuccessfulCollectionAt)
                   : translator.translateText("Not yet")}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-gray-500">
+                {translator.translateText("Next collection")}
+              </dt>
+              <dd
+                className="text-gray-900"
+                data-testid="openstack-next-collection"
+              >
+                {getNextClaimWords(
+                  getOpenStackNextCollection(
+                    cloud,
+                    new Date(),
+                    BILLING_ENABLED,
+                  ),
+                  translator,
+                )}
               </dd>
             </div>
           </dl>

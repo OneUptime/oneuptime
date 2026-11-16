@@ -248,7 +248,7 @@ curl -X DELETE https://oneuptime.com/api/incident-alert/<link-id> \
 
 Les deux identifiants sont obligatoires. Une requête de liaison est aussi rejetée quand l'alerte ou l'incident appartient à un autre projet ou fait partie de ceux que vous ne pouvez pas voir. L'erreur est la même que l'alerte ou l'incident n'existe pas ou vous soit seulement caché, si bien qu'elle ne révèle jamais l'existence d'un élément privé.
 
-La même ressource alimente les composants de workflow générés — **On Create Incident Alert** se déclenche quand une alerte est liée et **On Delete Incident Alert** quand elle est dissociée — et les outils Incident Alert du serveur MCP. La [référence de l'API](/reference) donne la forme complète des requêtes et des réponses.
+La même ressource alimente les composants de flux de travail générés — **À la création : Alerte de l'incident** se déclenche quand une alerte est liée et **À la suppression : Alerte de l'incident** quand elle est dissociée — et les outils Incident Alert du serveur MCP. La [référence de l'API](/reference) donne la forme complète des requêtes et des réponses.
 
 ## Dissocier
 

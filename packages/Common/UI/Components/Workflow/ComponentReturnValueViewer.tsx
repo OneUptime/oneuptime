@@ -2,6 +2,11 @@ import CopyTextButton from "../CopyTextButton/CopyTextButton";
 import BreakableCode from "./BreakableCode";
 import { ReturnValue } from "../../../Types/Workflow/Component";
 import { componentReturnValueReference } from "../../../Types/Workflow/TemplateSyntax";
+import {
+  returnValueDescription,
+  returnValueName,
+  returnValueTypeLabel,
+} from "./ReturnValueNames";
 import React, { FunctionComponent, ReactElement } from "react";
 import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
@@ -49,6 +54,16 @@ const ComponentReturnValueViewer: FunctionComponent<ComponentProps> = (
             const reference: string | null = props.componentId
               ? componentReturnValueReference(props.componentId, returnValue.id)
               : null;
+            /*
+             * Its name and what it holds in the reader's words, as the
+             * step's settings and outputs are drawn; the reference keeps
+             * the id, which workflows read (ReturnValueNames).
+             */
+            const name: string = returnValueName(returnValue, translator);
+            const description: string = returnValueDescription(
+              returnValue,
+              translator,
+            );
 
             return (
               <li
@@ -63,17 +78,25 @@ const ComponentReturnValueViewer: FunctionComponent<ComponentProps> = (
                  * was a long way from the name it describes.
                  */}
                 <p className="text-sm font-medium text-gray-900">
-                  {returnValue.name}
+                  <span data-testid="workflow-return-value-name">{name}</span>
                   <span
                     className="ml-2 inline-block whitespace-nowrap rounded-full border border-indigo-100 bg-indigo-50 px-2 py-0.5 align-middle text-[11px] font-medium leading-4 text-indigo-700"
                     data-testid="workflow-return-value-type"
                   >
-                    {returnValue.type}
+                    {/*
+                     * The kind of value in the words the value picker uses,
+                     * in the reader's language ("Key / value"), not the
+                     * code's type name ("Dictionary of String", #8361).
+                     */}
+                    {returnValueTypeLabel(returnValue, translator)}
                   </span>
                 </p>
-                {returnValue.description && (
-                  <p className="mt-0.5 text-xs text-gray-500">
-                    {returnValue.description}
+                {description && (
+                  <p
+                    className="mt-0.5 text-xs text-gray-500"
+                    data-testid="workflow-return-value-description"
+                  >
+                    {description}
                   </p>
                 )}
                 {reference ? (

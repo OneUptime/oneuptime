@@ -5,6 +5,7 @@ import { JSONObject } from "Common/Types/JSON";
 import { buildSearchTokenValue } from "Common/Types/Telemetry/TelemetrySearchQuery";
 import TelemetryServiceUtil from "Common/UI/Utils/TelemetryService";
 import {
+  getGlobalTranslator,
   PluralTemplate,
   Translator,
   translationKey,
@@ -77,9 +78,18 @@ export function getServiceInfo(
   );
 }
 
-export function formatDurationNano(nanoseconds: number): string {
+/*
+ * "1.28 s", "716 ms", "2h 5m": in the reader's units and digits ("1,28
+ * Sek.", "۷۱۶ میلی‌ثانیه"; #8617), English exactly as it was. The page's
+ * translator unless one is handed in.
+ */
+export function formatDurationNano(
+  nanoseconds: number,
+  translator: Translator = getGlobalTranslator(),
+): string {
   return OneUptimeDate.getHumanizedDurationFromNanoseconds({
     nanoseconds: Math.max(0, nanoseconds),
+    translator,
   });
 }
 

@@ -25,7 +25,7 @@ A sonda que executa a verificação recebe o valor, então um monitor que usa um
 ## Antes de começar
 
 - **O plano Growth ou superior**, no OneUptime Cloud. Instalações auto-hospedadas não têm planos.
-- **Uma função que possa gerenciar segredos**: Project Owner, Project Admin, ou uma função personalizada com a permissão Create Monitor Secret.
+- **Uma função que possa gerenciar segredos**: Proprietário do projeto, Administrador do projeto, ou uma função personalizada com a permissão Create Monitor Secret.
 
 ## Trabalhar com segredos
 
@@ -69,16 +69,16 @@ Estes tipos de monitor e campos aceitam segredos:
 | --- | --- |
 | API | A URL, os cabeçalhos e o corpo da requisição, e o certificado do cliente, a chave privada e a frase secreta (mTLS) |
 | Site | A URL, e o certificado do cliente, a chave privada e a frase secreta (mTLS) |
-| Ping, IP, Porta, NTP, SSL Certificate | O host ou a URL a verificar |
+| Ping, IP, Porta, NTP, Certificado SSL | O host ou a URL a verificar |
 | DNS | O nome de domínio e o servidor DNS |
 | DNSSEC, Domínio | O nome de domínio |
-| SQL Query | O host, o nome do banco de dados, o usuário, a senha e a consulta |
-| Database Health | O host, o nome do banco de dados, o usuário e a senha |
-| External Status Page | A URL da página de status |
-| Synthetic Monitor, Custom JavaScript Code | O script |
-| Network Device | A community string SNMP, e as chaves de autenticação e de privacidade do SNMPv3 |
+| Consulta SQL | O host, o nome do banco de dados, o usuário, a senha e a consulta |
+| Integridade do banco de dados | O host, o nome do banco de dados, o usuário e a senha |
+| Página de status externa | A URL da página de status |
+| Monitor sintético, Código JavaScript personalizado | O script |
+| Dispositivo de rede | A community string SNMP, e as chaves de autenticação e de privacidade do SNMPv3 |
 
-Os segredos são preenchidos antes de o script de um monitor Synthetic Monitor ou Custom JavaScript Code rodar, então uma referência como `{{monitorSecrets.ApiKey}}` dentro do script é o valor descriptografado quando ele roda.
+Os segredos são preenchidos antes de o script de um monitor Monitor sintético ou Código JavaScript personalizado rodar, então uma referência como `{{monitorSecrets.ApiKey}}` dentro do script é o valor descriptografado quando ele roda.
 
 Se um monitor faz referência a um segredo que não pode usar, a referência fica como está e não é substituída pelo valor.
 

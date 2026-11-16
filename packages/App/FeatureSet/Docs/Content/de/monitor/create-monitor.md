@@ -3,7 +3,7 @@
 Ein Monitor prüft etwas, das Sie betreiben, etwa eine Website, eine API, einen Host oder einen Kubernetes-Cluster, und meldet sich, wenn es nicht mehr funktioniert. **Monitor erstellen** fragt zuerst, was überwacht werden soll, dann, was geprüft wird, und dann, wie oft. Bis auf den Typ, den Namen und das Prüfziel beginnt alles mit Standardwerten, die für die meisten Monitore passen.
 
 > [!NOTE]
-> Um einen Monitor zu erstellen, brauchen Sie die Rolle Project Owner, Project Admin, Project Member, Monitor Admin oder Monitor Member oder eine benutzerdefinierte Rolle mit der Berechtigung Create Monitor.
+> Um einen Monitor zu erstellen, brauchen Sie die Rolle Projektinhaber, Projektadministrator, Projektmitglied, Monitor-Administrator oder Monitor-Mitglied oder eine benutzerdefinierte Rolle mit der Berechtigung Create Monitor.
 
 ## Überwachungsinformationen
 
@@ -76,7 +76,7 @@ Vorfälle und Warnungen, die sich automatisch auflösen sollen, wie die der Stan
 
 ## Sonden & Intervall
 
-Monitore, die von Sonden geprüft werden, enden mit diesem Schritt: Website, API, Ping, IP, Port, SSL-Zertifikat, DNS, DNSSEC, NTP, Domäne, SQL-Abfrage, Datenbank-Integrität, Synthetischer Monitor, Custom JavaScript Code und Externe Statusseite. **Sonden** sind die Maschinen, die die Prüfungen ausführen; die Standardsonden Ihres Projekts sind bereits ausgewählt. Das **Überwachungsintervall** beginnt bei **Alle 5 Minuten**.
+Monitore, die von Sonden geprüft werden, enden mit diesem Schritt: Website, API, Ping, IP, Port, SSL-Zertifikat, DNS, DNSSEC, NTP, Domäne, SQL-Abfrage, Datenbank-Integrität, Synthetischer Monitor, Benutzerdefinierter JavaScript-Code und Externe Statusseite. **Sonden** sind die Maschinen, die die Prüfungen ausführen; die Standardsonden Ihres Projekts sind bereits ausgewählt. Das **Überwachungsintervall** beginnt bei **Alle 5 Minuten**.
 
 :::steps
 ### Die Sonden wählen
@@ -85,7 +85,7 @@ Behalten Sie die ausgewählten **Sonden** oder wählen Sie andere. Ein Monitor o
 
 ### Wählen, wie oft geprüft wird
 
-Wählen Sie ein **Überwachungsintervall**, von **Jede Minute** bis **Jede Woche**. Monitoren vom Typ Synthetischer Monitor, Custom JavaScript Code und SSL-Zertifikat werden Intervalle von 5 Minuten oder länger angeboten.
+Wählen Sie ein **Überwachungsintervall**, von **Jede Minute** bis **Jede Woche**. Monitoren vom Typ Synthetischer Monitor, Benutzerdefinierter JavaScript-Code und SSL-Zertifikat werden Intervalle von 5 Minuten oder länger angeboten.
 
 ### Den Monitor erstellen
 

@@ -25,7 +25,7 @@ flowchart TB
 ```
 
 - **De sleutel bepaalt het project.** U stuurt nooit een project-ID mee: gegevens die met een sleutel worden verzonden, komen terecht in het project waar de sleutel bij hoort.
-- **Wijzigingen bereiken elke server binnen een minuut.** Een sleutel uitschakelen, zijn geheim opnieuw instellen of zijn origins, vervaldatum of limiet wijzigen werkt binnen ongeveer een minuut.
+- **Wijzigingen bereiken elke server binnen enkele seconden.** Een sleutel uitschakelen, zijn geheim opnieuw instellen of zijn origins, vervaldatum of limiet wijzigen werkt op elke server binnen enkele seconden.
 - **Een sleutel kan eigen budgetten hebben.** Een dagbudget en een snelheid per seconde voor elk signaal, binnen die van zijn project: zie [Ingestiebudgetten](/docs/telemetry/ingestion-budgets).
 - **Een serversleutel is een wachtwoord.** Iedereen die hem heeft, kan telemetrie naar uw project sturen. Bewaar hem in de geheimen van uw servers, nooit in versiebeheer of op een webpagina.
 
@@ -45,7 +45,7 @@ Overal elders weigert OneUptime een browsersleutel, zoals via gRPC en MQTT, voor
 
 ## Voordat u begint
 
-- **Een rol die ingestiesleutels beheert.** Project Owner of Project Admin, of een aangepaste rol met de machtiging Create Ingestion Key. De Telemetry-rollen omvatten geen ingestiesleutels.
+- **Een rol die ingestiesleutels beheert.** Projecteigenaar of Projectbeheerder, of een aangepaste rol met de machtiging Create Ingestion Key. De Telemetry-rollen omvatten geen ingestiesleutels.
 - **Op OneUptime Cloud, een betaalmethode.** Telemetrie wordt gefactureerd naar gebruik, dus een project op het Free-abonnement heeft een betaalmethode nodig voordat het een sleutel kan aanmaken. Het dialoogvenster eindigt dan met een stap **Facturering** die de prijzen toont.
 
 ## Een ingestiesleutel aanmaken
@@ -108,7 +108,7 @@ Een origin is een schema, een host en een optionele poort: `https://app.example.
 
 ## Een sleutel vervangen, uitschakelen of verwijderen
 
-De pagina van een sleutel toont zijn **Status**, zijn **Geheime sleutel** achter **Klik om te tonen**, en zijn **Last Used At**: de laatste keer dat OneUptime gegevens accepteerde die ermee waren verzonden.
+De pagina van een sleutel toont zijn **Status**, zijn **Geheime sleutel** achter **Klik om te tonen**, en zijn **Laatst gebruikt op**: de laatste keer dat OneUptime gegevens accepteerde die ermee waren verzonden.
 
 | Om | Doe dit | Wat afzenders zien |
 | --- | --- | --- |
@@ -116,7 +116,7 @@ De pagina van een sleutel toont zijn **Status**, zijn **Geheime sleutel** achter
 | Een uitgelekt geheim te vervangen | Klik op **Geheime sleutel opnieuw instellen** en bevestig. De sleutel houdt zijn instellingen en krijgt een nieuw geheim. | `401` totdat ze het nieuwe geheim sturen |
 | Een sleutel voorgoed te stoppen | Klik op **Ingestiesleutel verwijderen** onderaan zijn pagina. | `401` |
 
-Om een geheim te wisselen zonder gegevens te verliezen, maakt u een tweede sleutel aan, zet u uw afzenders daarop over en verwijdert u de oude sleutel zodra zijn **Last Used At** niet meer verandert. **Last Used At** wordt om de paar minuten bijgewerkt, niet bij elk verzoek.
+Om een geheim te wisselen zonder gegevens te verliezen, maakt u een tweede sleutel aan, zet u uw afzenders daarop over en verwijdert u de oude sleutel zodra zijn **Laatst gebruikt op** niet meer verandert. **Laatst gebruikt op** wordt om de paar minuten bijgewerkt, niet bij elk verzoek.
 
 ## Problemen oplossen
 
@@ -139,8 +139,8 @@ De pagina van de sleutel houdt ook de telling bij: **Geweigerde telemetrie** too
 
 Voor de andere antwoorden die een OTLP-exporter kan krijgen, zie [Antwoorden](/docs/telemetry/open-telemetry#antwoorden).
 
-:::details Er komen nog gegevens binnen een minuut nadat ik de sleutel uitzette
-Elke OneUptime-server onthoudt wat hij over een sleutel weet hooguit een minuut, dus een wijziging bereikt ze allemaal binnen ongeveer een minuut. Verzoeken daarna worden geweigerd.
+:::details Er komen nog gegevens binnen nadat ik de sleutel uitzette
+Elke OneUptime-server controleert minstens eens per seconde of een sleutel is gewijzigd, dus een wijziging bereikt ze allemaal binnen enkele seconden en verzoeken daarna worden geweigerd. Zolang een server de cache van OneUptime niet kan bereiken, kan hij hooguit een minuut uitgaan van wat hij over de sleutel wist. Een MQTT-client die met de sleutel verbonden is, wordt binnen een paar seconden afgesloten.
 :::
 
 :::details Een browsersleutel werkt op mijn laptop, maar niet in productie

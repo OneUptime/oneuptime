@@ -12,6 +12,7 @@ import {
   toMessageQueueDate,
 } from "../../Pages/MessageQueue/Utils/MessageQueuePresentation";
 import { MESSAGE_QUEUE_DOCS_PATH } from "../../Pages/MessageQueue/Utils/DocumentationMarkdown";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
@@ -24,12 +25,18 @@ import {
   getMessagingSystemDescriptor,
 } from "Common/Types/MessageQueue/MessagingSystem";
 import {
+  DEFAULT_LANGUAGE,
   Translator,
   getGlobalTranslator,
   translatableTerm,
   translateTemplate,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
+import { formatReaderFigure } from "Common/Types/DateLanguage";
+import {
+  formatDurationInUnit,
+  formatMilliseconds,
+} from "../../Utils/Milliseconds";
 
 /*
  * How a queue's Overview and telemetry tabs describe it: whether anything
@@ -506,49 +513,96 @@ export function getMessageQueueMetricListCaption(
   }
 }
 
-/** A broker metric's tile value in its catalog unit ("1.2k messages"). */
+/*
+ * A broker metric's tile value in its catalog unit ("1.2k messages"), in
+ * the reader's digits when handed their translator ("۱٫۲k messages").
+ */
 export function formatMessageQueueMetricValue(
   value: number | null | undefined,
   descriptor: Pick<MessageQueueMetricDescriptor, "unit" | "kind">,
+  translator?: Translator | undefined,
 ): string {
-  return formatDatabaseMetricValue(value, descriptor.unit, descriptor.kind);
+  return formatDatabaseMetricValue(
+    value,
+    descriptor.unit,
+    descriptor.kind,
+    translator,
+  );
 }
 
-/** A broker metric's chart tick (the title carries the unit word). */
+/*
+ * A broker metric's chart tick (the title carries the unit word), written
+ * as the tiles beside the chart write their figures when handed the
+ * reader's translator (#8283).
+ */
 export function formatMessageQueueMetricAxisValue(
   value: number | null | undefined,
   descriptor: Pick<MessageQueueMetricDescriptor, "unit">,
+  translator?: Translator | undefined,
 ): string {
-  return formatDatabaseMetricAxisValue(value, descriptor.unit);
+  return formatDatabaseMetricAxisValue(value, descriptor.unit, translator);
 }
 
 // ---- span figures ----------------------------------------------------------
 
-/** A count on a tile or table: "12", "1.2k", "3.4M"; "—" for nothing. */
+/*
+ * A count on a tile or table: "12", "1.2k", "3.4M"; "—" for nothing. In
+ * the reader's digits when handed their translator: "۱٫۲k", "1,2k".
+ */
 export function formatMessageQueueCount(
   value: number | null | undefined,
+  translator?: Translator | undefined,
 ): string {
-  return formatDatabaseCount(value);
+  return formatDatabaseCount(value, translator);
 }
 
-/** An error rate: "2.5%"; "—" when there is nothing to divide. */
-export function formatMessageQueueErrorRate(value: number | null): string {
+/*
+ * An error rate: "2.5%"; "—" when there is nothing to divide. In the
+ * reader's digits and percent sign when handed their translator: "2,5 %",
+ * "۲٫۵٪".
+ */
+export function formatMessageQueueErrorRate(
+  value: number | null,
+  translator?: Translator | undefined,
+): string {
   if (value === null || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
-  return `${value.toFixed(1)}%`;
+  return formatReaderFigure(value, {
+    decimals: 1,
+    isPercent: true,
+    language: translator ? translator.language : DEFAULT_LANGUAGE,
+  });
 }
 
-/** A span duration in milliseconds: "850 µs", "12 ms", "1.25 s". */
-export function formatMessageQueueDurationMs(value: number | null): string {
+/*
+ * A span duration in milliseconds: "850 µs", "12 ms", "1.25 s", in the
+ * reader's words and digits (issue #7418): "۸۵۰ میکروثانیه", "۱۲
+ * میلی‌ثانیه", "1,25 Sek." - on a tile, in a row, on a line of the
+ * topology and on a chart's value axis and its tooltip alike, as the tiles
+ * beside the chart write them (#8349).
+ */
+export function formatMessageQueueDurationMsInLanguage(
+  value: number | null,
+  translator: Translator,
+): string {
   if (value === null || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (value < 1) {
-    return `${(value * 1000).toFixed(0)} µs`;
+    return formatDurationInUnit(translator, value * 1000, "microsecond", {
+      decimals: 0,
+    });
   }
   if (value < 1000) {
-    return `${value.toFixed(value < 10 ? 1 : 0)} ms`;
+    const decimals: number = value < 10 ? 1 : 0;
+
+    return formatMilliseconds(translator, value, {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    });
   }
-  return `${(value / 1000).toFixed(2)} s`;
+  return formatDurationInUnit(translator, value / 1000, "second", {
+    decimals: 2,
+  });
 }

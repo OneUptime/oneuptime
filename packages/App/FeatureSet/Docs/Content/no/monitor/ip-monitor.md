@@ -1,4 +1,4 @@
-# IP-overvåking
+# IP-monitor
 
 En IP-monitor sjekker at en IPv4- eller IPv6-adresse svarer på ping (ICMP-ekkoforespørsler), og måler tur-retur-tiden, pakketapet og jitteren. Bruk den for infrastruktur du kjenner på adressen, som en gateway, den virtuelle IP-en til en lastbalanserer eller en server med fast adresse.
 
@@ -39,7 +39,7 @@ En sonde som har mistet sin egen nettverkstilkobling, rapporterer ikke noe resul
 
 ## Før du starter
 
-- **En rolle som kan opprette monitorer**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member, eller en egendefinert rolle med tillatelsen Create Monitor.
+- **En rolle som kan opprette monitorer**: Prosjekteier, Prosjektadministrator, Prosjektmedlem, Monitoradministrator eller Monitormedlem, eller en egendefinert rolle med tillatelsen Create Monitor.
 - **En sonde som når adressen**, med ICMP tillatt på veien. Prosjektets standardsonder velges for hver nye monitor. Står det en brannmur foran den, tillater du ICMP-ekkoforespørsler fra [OneUptime Clouds sonde-IP-adresser](/docs/configuration/ip-addresses). En privat adresse trenger en [egendefinert sonde](/docs/probe/custom-probe) på det nettverket, og en IPv6-adresse trenger en sonde med IPv6-tilkobling.
 
 ## Opprett en IP-monitor
@@ -59,7 +59,7 @@ Angi under **IP-adresse** IPv4- eller IPv6-adressen som skal sjekkes, som `192.1
 
 ### Test den
 
-Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av overvåkingstest** viser tur-retur-tidene og pakketapet sonden så.
+Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av monitortest** viser tur-retur-tidene og pakketapet sonden så.
 
 ### Gå gjennom kriteriene
 
@@ -98,7 +98,7 @@ Med to eller flere filtre avgjør **Samsvarsbetingelse** om **Alle** må samsvar
 
 En ny IP-monitor starter med to kriterier:
 
-- **Frakoblet** — adressen svarer ikke på noen av ekkoforespørslene, eller kan ikke nås i det hele tatt etter alle nye forsøk. Monitoren merkes som **Frakoblet**, og en hendelse kalt "_monitor name_ is offline" opprettes. Hendelsen løser seg selv når adressen svarer igjen.
+- **Frakoblet** — adressen svarer ikke på noen av ekkoforespørslene, eller kan ikke nås i det hele tatt etter alle nye forsøk. Monitoren merkes som **Frakoblet**, og en hendelse kalt "_monitornavn_ er frakoblet" opprettes. Hendelsen løser seg selv når adressen svarer igjen.
 - **Oppe** — adressen svarer. Monitoren merkes som **I drift**.
 
 Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva som skjer. Når ingen samsvarer, viser monitoren standardstatusen sin: **I drift**, med mindre du velger en annen under **Flere felt** under kriteriene.
@@ -143,7 +143,7 @@ Adressen, eller en brannmur foran den, svarer ikke på ICMP-ekkoforespørsler fr
 :::
 
 :::details En IPv6-adresse feiler alltid
-Sonden som kjørte sjekken, har ingen IPv6-tilkobling; feilmeldingen sier det. Kjør monitoren på en sonde med IPv6: se [Egendefinerte probes](/docs/probe/custom-probe).
+Sonden som kjørte sjekken, har ingen IPv6-tilkobling; feilmeldingen sier det. Kjør monitoren på en sonde med IPv6: se [Egendefinerte sonder](/docs/probe/custom-probe).
 :::
 
 :::details Pakketap og jitter er tomme
@@ -153,8 +153,8 @@ Sonden som kjørte sjekken, kan ikke sende ping, så den sjekket i stedet TCP-po
 ## Neste steg
 
 :::cards
-- [Ping-overvåking](/docs/monitor/ping-monitor): Ping en vert ved navn, og følg DNS-endringer.
-- [Port-overvåking](/docs/monitor/port-monitor): Sjekk en tjeneste på adressen, ikke bare adressen.
-- [Egendefinerte probes](/docs/probe/custom-probe): Sjekk private adresser og IPv6-adresser fra ditt eget nettverk.
+- [Ping-monitor](/docs/monitor/ping-monitor): Ping en vert ved navn, og følg DNS-endringer.
+- [Port-monitor](/docs/monitor/port-monitor): Sjekk en tjeneste på adressen, ikke bare adressen.
+- [Egendefinerte sonder](/docs/probe/custom-probe): Sjekk private adresser og IPv6-adresser fra ditt eget nettverk.
 - [Hendelser](/docs/incidents/index): Hva som skjer etter at monitoren har erklært en.
 :::

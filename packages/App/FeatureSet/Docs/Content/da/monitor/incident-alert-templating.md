@@ -92,7 +92,7 @@ En værdi kan have enhver størrelse - en svartekst eller en log på mange megab
 
 - **E-mail**: hver beskrivelse, note eller grundårsag bærer op til cirka 256 KB af e-mailens tekst, og noten i slutningen af en længere tekst linker til hændelsen eller advarslen. En hel e-mail - teksten og skærmbillederne - holder sig under 3 MB, hvilket enhver mailserver og Microsoft Graph accepterer: et skærmbillede, der ikke kan være ved siden af teksten, udelades, med en note i stedet.
 - **Hændelsens eller advarslens side** viser det hele. En beskrivelse på over 128 KB, som ville tage lang tid at layoute, vises som ren tekst, linje for linje.
-- **Slack** bærer højst det, Slack viser af en besked (cirka 30.000 tegn). **Microsoft Teams** bærer cirka 40.000 tegn i en besked fra OneUptime-appen og cirka 12.000 via en indgående webhook (abonnenter på statussider, workflows) - målt, når beskeden sendes, så en tabel tæller som den HTML, den bliver til.
+- **Slack** bærer højst det, Slack viser af en besked (cirka 30.000 tegn). **Microsoft Teams** bærer cirka 40.000 tegn i en besked fra OneUptime-appen og cirka 12.000 via en indgående webhook (abonnenter på statussider, arbejdsgange) - målt, når beskeden sendes, så en tabel tæller som den HTML, den bliver til.
 - **SMS, telefonopkald, push-notifikationer, WhatsApp og Telegram** bærer det, deres udbydere tager imod: se [Sådan kalder niveauerne folk op](/docs/on-call/escalation-rules#sådan-tilkalder-niveauerne-folk).
 
 Hver kanal gengiver teksten på en tid, der vokser med længden. En del, der ville tage en renderer langt længere tid - en linje på over 64 KB, et langt afsnit af rene linjer, et afsnit fuld af `*`, `_` eller `[`, der aldrig lukkes, citater eller lister indlejret mere end seksten niveauer, og på hændelsens eller advarslens side en tabel eller liste på mere end tusind linjer - læses som ren tekst, hvor den står, og resten af beskrivelsen gengives som normalt.
@@ -367,7 +367,7 @@ Skærmbilledet vises så på hændelsens eller advarslens side, på de statussid
 - Upload til Slack kræver appens tilladelse `files:write`. Hvis dit arbejdsområde forbandt Slack, før OneUptime bad om den, så forbind Slack igen under **Projektindstillinger → Arbejdsområde → Slack** (på en selvhostet server skal du først føje tilladelsen til din Slack-app - se [Slack-integration](/docs/self-hosted/slack-integration#billeder-i-beskeder)).
 - Et skærmbillede, som en chat ikke kan vise - et WebP, et over de grænser, et som Slack eller Teams afviser, eller ethvert skærmbillede i en besked sendt via en indgående webhook - vises som sin alt-tekst, eller "[image]", når det ikke har en, så giv hvert billede en alt-tekst. Billedets base64 når aldrig chatten.
 - Kun et billede, du skriver i skabelonen, vises. Et billede i en værdi, som den overvågede side eller det overvågede script rapporterede - en fejlmeddelelse, en loglinje - vises stadig som tekst (se [Værdier i beskrivelser og afhjælpningsnoter](#værdier-i-beskrivelser-og-afhjælpningsnoter)).
-- OneUptime AI læser teksten omkring et skærmbillede, ikke skærmbilledet. Det, en undersøgelse, en udkastet postmortem eller note, et runbooks AI-trin eller et workflows AI-trin giver modellen, har en kort note i billedets sted, som `[image omitted: PNG, 340 KB]`: en model læser tekst, ikke billeder, og et skærmbilledes base64 ville være hundredtusindvis af tokens ved hvert kald. Undersøgelsens aktivitet fortæller, hvad der blev udeladt.
+- OneUptime AI læser teksten omkring et skærmbillede, ikke skærmbilledet. Det, en undersøgelse, en udkastet postmortem eller note, et runbooks AI-trin eller en arbejdsgangs AI-trin giver modellen, har en kort note i billedets sted, som `[image omitted: PNG, 340 KB]`: en model læser tekst, ikke billeder, og et skærmbilledes base64 ville være hundredtusindvis af tokens ved hvert kald. Undersøgelsens aktivitet fortæller, hvad der blev udeladt.
 
 For at vise skærmbilledet af hver fejlet kørsel sætter du billedet i en løkke. Her gemmer scriptet hvert skærmbillede som `screenshots["failure"]`:
 
@@ -452,17 +452,17 @@ Serienavnene i `metrics` indeholder punktummer, som `oneuptime.monitor.database.
 
 ### Metrik- og infrastruktur-monitorer
 
-Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker Swarm-, Proxmox-, OpenStack-, VMware-, Ceph-, Storage Array- og IoT Device-monitorer har én variabel for sig selv:
+Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker Swarm-, Proxmox-, OpenStack-, VMware-, Ceph-, Lagerarray- og IoT-enhed-monitorer har én variabel for sig selv:
 
 | Variabel | Hvad den indeholder | Type |
 | --- | --- | --- |
 | `metricName` | Navnet på den metrik, monitorens første forespørgsel læser, som `container.cpu.time`. | `string` |
 
-Grupperede har de også værdien af hver attribut i **Gruppér efter** samt `seriesLabels`: se [Værdier fra en grupperet monitor](#værdier-fra-en-grupperet-monitor). IoT Device-monitorens skabeloner grupperer efter enhed, så en monitor, der er lavet ud fra en af dem, har også `{{device.id}}`.
+Grupperede har de også værdien af hver attribut i **Gruppér efter** samt `seriesLabels`: se [Værdier fra en grupperet monitor](#værdier-fra-en-grupperet-monitor). IoT-enhed-monitorens skabeloner grupperer efter enhed, så en monitor, der er lavet ud fra en af dem, har også `{{device.id}}`.
 
 ### Andre monitortyper
 
-Logs-, Traces-, Exceptions-, Security Events-, AI / LLM- og SQL Query-monitorer har ingen variabler for sig selv. Brug [variablerne, som alle monitorer har](#variabler-som-alle-monitorer-har), og på en grupperet Logs-monitor [gruppeværdierne](#værdier-fra-en-grupperet-monitor).
+Logs-, Traces-, Exceptions-, Sikkerhedshændelser-, AI / LLM- og SQL-forespørgsel-monitorer har ingen variabler for sig selv. Brug [variablerne, som alle monitorer har](#variabler-som-alle-monitorer-har), og på en grupperet Logs-monitor [gruppeværdierne](#værdier-fra-en-grupperet-monitor).
 
 ## Eksempler
 

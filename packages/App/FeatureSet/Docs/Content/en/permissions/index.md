@@ -80,7 +80,7 @@ The **Owners** and **Admin** teams are deliberately locked: their permissions ca
 
 Turning SMS, phone calls, WhatsApp or Telegram on or off for the project counts as billing, because every message costs money. Only `ProjectOwner`, the `BillingAdmin` role (**Billing Admin**) and the `ManageProjectBilling` permission (**Manage Billing**) can change those switches, on **Project Settings > Notifications > Notification Channels** — not `ProjectAdmin`.
 
-Recharging the project's prepaid balances counts as billing too. On OneUptime Cloud, SMS, phone calls, WhatsApp and Telegram are paid from the balance on **Project Settings > Notifications > Notification Channels**, and AI from the AI credits on **Project Settings > AI > AI Credits**. Only a project owner or someone with **Manage Billing** can recharge them or change their **Auto Recharge** — a project admin cannot. A message about a balance that has run low names who can add to it, and only those people get a working **Recharge Balance** button or a link to the page.
+Recharging the project's prepaid balances counts as billing too. On OneUptime Cloud, SMS, phone calls, WhatsApp and Telegram are paid from the balance on **Project Settings > Notifications > Notification Channels**, and AI from the AI credits on **Project Settings > AI > AI Credits**. Only a Project Owner or someone with **Manage Billing** can recharge them or change their **Auto Recharge** — a Project Admin cannot. A message about a balance that has run low names who can add to it, and only those people get a working **Recharge Balance** button or a link to the page.
 
 Create as many additional teams as you like — "Frontend On-Call", "Support", "Read-Only Auditors" — and give each the permissions it needs. On OneUptime Cloud, creating a team and changing its permissions needs the Scale plan.
 
@@ -338,9 +338,9 @@ Resolved permissions are cached per user and project, and refreshed when team me
 
 ### Private incidents, alerts and episodes
 
-An incident, an alert or an episode marked private is seen only by its owners — the people named as its owners and the members of its owner teams who have accepted their invitation — and by the project's owners and admins.
+An incident, an alert or an episode marked private is seen only by its owners — the people named as its owners and the members of its owner teams who have accepted their invitation — and by Project Owners and Project Admins.
 
-It is changed only with the permissions of the teams that own it and of the people named as its owners. Someone named as an owner acts on it with every permission they hold. Anyone else acts on it only with the permissions of their teams that own it, each with its own scope and labels: another team's permission reaches no private record that team does not own. That holds for everything done to the record and to what belongs to it — editing it, changing its state, its notes, owners, roles, labels, linked alerts, episode members and calls, and deleting it — from the dashboard, the API, bulk actions, Slack, Microsoft Teams and OneUptime AI alike. Project owners and admins change every private record, and so do workflow steps, which act as a project admin; an API key does only with `ProjectOwner` or `ProjectAdmin`.
+It is changed only with the permissions of the teams that own it and of the people named as its owners. Someone named as an owner acts on it with every permission they hold. Anyone else acts on it only with the permissions of their teams that own it, each with its own scope and labels: another team's permission reaches no private record that team does not own. That holds for everything done to the record and to what belongs to it — editing it, changing its state, its notes, owners, roles, labels, linked alerts, episode members and calls, and deleting it — from the dashboard, the API, bulk actions, Slack, Microsoft Teams and OneUptime AI alike. Project Owners and Project Admins change every private record, and so do workflow steps, which act as a Project Admin; an API key does only with `ProjectOwner` or `ProjectAdmin`.
 
 | Someone on Team 1 and Team 2 | A private incident Team 2 owns | A public incident Team 2 owns |
 | --- | --- | --- |
@@ -352,11 +352,11 @@ A team that owns private records but holds no permissions, one used only to grou
 
 ### Rules owned by teams
 
-An incident or alert on-call rule, an episode on-call rule, an incident owner rule and a Slack or Microsoft Teams notification rule can belong to teams. A rule no team owns is the project's: everyone whose permissions let them change rules of its kind changes it. A rule some teams own is changed and deleted only with the permissions of the teams that own it, and by the project's owners and admins. Everyone who may read rules still reads it, and sees which teams own it.
+An incident or alert on-call rule, an episode on-call rule, an incident owner rule and a Slack or Microsoft Teams notification rule can belong to teams. A rule no team owns is the project's: everyone whose permissions let them change rules of its kind changes it. A rule some teams own is changed and deleted only with the permissions of the teams that own it, and by Project Owners and Project Admins. Everyone who may read rules still reads it, and sees which teams own it.
 
-Pick the teams on the rule's form, in **Owning Teams** under **More fields**. Picking them takes the owning-team permission of the rule's kind, such as `CreateIncidentOnCallRuleOwningTeam`, which project owners and admins hold. Adding or removing a rule's owning teams changes the rule, so once teams own a rule, only they and project owners and admins change who owns it. In a list of rules, a rule only other teams own is read-only to you: its edit and delete actions are locked and name the teams that own it.
+Pick the teams on the rule's form, in **Owning Teams** under **More fields**. Picking them takes the owning-team permission of the rule's kind, such as `CreateIncidentOnCallRuleOwningTeam`, which Project Owners and Project Admins hold. Adding or removing a rule's owning teams changes the rule, so once teams own a rule, only they and Project Owners and Project Admins change who owns it. In a list of rules, a rule only other teams own is read-only to you: its edit and delete actions are locked and name the teams that own it.
 
-Each team's permission reaches the rules that team owns. Someone on two teams, one allowed to edit on-call rules and one allowed only to read them, edits every rule no team owns and the rules the first team owns, and only reads the rules only the second team owns. An API key changes a rule teams own only with `ProjectOwner` or `ProjectAdmin`; a workflow step acts as a project admin. Through the API and Terraform, a rule's owning teams are records of their own, such as `oneuptime_incident_on_call_rule_owning_team`.
+Each team's permission reaches the rules that team owns. Someone on two teams, one allowed to edit on-call rules and one allowed only to read them, edits every rule no team owns and the rules the first team owns, and only reads the rules only the second team owns. An API key changes a rule teams own only with `ProjectOwner` or `ProjectAdmin`; a workflow step acts as a Project Admin. Through the API and Terraform, a rule's owning teams are records of their own, such as `oneuptime_incident_on_call_rule_owning_team`.
 
 ## Recipes
 
@@ -368,7 +368,7 @@ Each team's permission reaches the rules that team owns. Someone on two teams, o
 
 **A CI pipeline that only reports deployments.** Create an API key with **Choose permissions later**, then add just the granular permissions it needs on its page — no roles.
 
-**Someone who should not change billing or see invoices.** Give them `ProjectMember`, not `ProjectAdmin`: a project admin cannot change the plan, payment methods or balances, but reads and downloads invoices. To let someone read the billing pages without changing anything, give them `BillingViewer`.
+**Someone who should not change billing or see invoices.** Give them `ProjectMember`, not `ProjectAdmin`: a Project Admin cannot change the plan, payment methods or balances, but reads and downloads invoices. To let someone read the billing pages without changing anything, give them `BillingViewer`.
 
 When access is not what you expect:
 

@@ -37,7 +37,7 @@ El explorador tiene seis pestañas:
 ## Antes de empezar
 
 - **Métricas que llegan.** Envíelas con [OpenTelemetry](/docs/telemetry/open-telemetry), o desde un agente como el [colector de OpenTelemetry para hosts](/docs/telemetry/host-otel-collector) o el [agente de Kubernetes](/docs/telemetry/kubernetes-agent).
-- **Un rol que pueda leer telemetría.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member o Telemetry Viewer, o un rol personalizado con el permiso Read Metrics. Consulte [Telemetría](/docs/permissions/index#telemetría) para saber qué métricas lee.
+- **Un rol que pueda leer telemetría.** Propietario del proyecto, Administrador del proyecto, Miembro del proyecto, Visor, Administrador de telemetría, Miembro de telemetría o Visor de telemetría, o un rol personalizado con el permiso Read Metrics. Consulte [Telemetría](/docs/permissions/index#telemetría) para saber qué métricas lee.
 
 ## Encontrar una métrica
 
@@ -146,7 +146,7 @@ En **Más campos** una regla elige los repositorios de código, los servidores M
 
 ### Ver lo que hizo
 
-- **Métricas → IA → Análisis** muestra lo que OneUptime encontró, cada hallazgo con sus pruebas y **Abrir en Métricas**, que abre su métrica para su servicio, de la hora en que se encontró. Un servicio sin métricas, o sin métricas de sus solicitudes, ofrece en su lugar **Abrir en Trazas**: los spans que sus métricas medirían.
+- **Métricas → IA → Hallazgos** muestra lo que OneUptime encontró, cada hallazgo con sus pruebas y **Abrir en Métricas**, que abre su métrica para su servicio, de la hora en que se encontró. Un servicio sin métricas, o sin métricas de sus solicitudes, ofrece en su lugar **Abrir en Trazas**: los spans que sus métricas medirían.
 - **Métricas → IA → Registros** muestra cada investigación y cada pull request, lo más reciente primero, con el estado de cada una y lo que encontró cada investigación.
 - En Código, la tarea indica que OneUptime la inició, con un enlace a su hallazgo, y la pull request explica por qué se abrió.
 

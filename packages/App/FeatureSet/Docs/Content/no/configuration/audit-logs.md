@@ -32,7 +32,7 @@ flowchart TB
 
 - **I OneUptime Cloud: Enterprise-abonnementet.** På andre abonnementer viser revisjonsloggens sider hva funksjonen gjør og hvordan du får den.
 - **Når du selvhoster: Enterprise Edition**, med en lisens som inkluderer revisjonslogger. Se [Enterprise Edition](/docs/self-hosted/enterprise).
-- **En rolle som kan lese revisjonsloggen.** Project Owner, Project Admin, Settings Admin eller tillatelsen **Read Audit Log**. Å slå på revisjonslogging og endre innstillingene krever en Project Owner, en Project Admin eller tillatelse til å redigere prosjektet.
+- **En rolle som kan lese revisjonsloggen.** Prosjekteier, Prosjektadministrator, Innstillingsadministrator eller tillatelsen **Read Audit Log**. Å slå på revisjonslogging og endre innstillingene krever en Prosjekteier, en Prosjektadministrator eller tillatelse til å redigere prosjektet.
 
 ## Slå på revisjonslogging
 
@@ -43,7 +43,7 @@ Gå til **Prosjektinnstillinger → Revisjonslogger → Innstillinger**. **Revis
 
 ### Rediger innstillingene
 
-Klikk på **Edit Audit Log Settings**.
+Klikk på **Rediger innstillinger for revisjonslogger**.
 
 ### Slå den på
 
@@ -82,7 +82,7 @@ Alt folk oppretter, endrer eller sletter i et prosjekt, registreres: monitorer, 
 
 | Registreres ikke | Hvorfor |
 | --- | --- |
-| Logger over meldinger | Hver av dem er allerede registreringen av en e-post, SMS, en samtale, et pushvarsel eller en chatmelding OneUptime har sendt eller mottatt. |
+| Logger over meldinger | Hver av dem er allerede registreringen av en e-post, SMS, en samtale, en pushvarsling eller en chatmelding OneUptime har sendt eller mottatt. |
 | Registreringer av kjøringer | Hver av dem er allerede registreringen av en kjøring av en arbeidsflyt, en vakteskalering, en skanning, en import eller en AI-kjøring. |
 | Det agenter og telemetri rapporterer | Oppdagede ressurser, målinger og forbruk endrer seg med hver rapport, ikke fordi noen har endret dem. |
 | Aktivitetsfeeder | En feed viser endringer som revisjonsloggen allerede registrerer. |
@@ -116,11 +116,11 @@ Hver gang et medlem av prosjektet logger på OneUptime, registrerer revisjonslog
 | `Sign In` | Noen logger på: med passord eller en innloggingslenke, en passnøkkel, Google, Microsoft, Vercel eller enkel pålogging. |
 | `Sign Out` | Personen logger ut. |
 | `Session Timeout` | OneUptime avslutter økten fordi tiden er ute: inaktivitetsperioden eller øktlengden en serveradministrator har angitt, eller 30 dager uten bruk. |
-| `Session Revoked` | OneUptime avslutter økten fordi passordet ble endret, kontoen ble blokkert, eller en serveradministrator tilbakestilte eller krevde totrinnsbekreftelse. |
+| `Session Revoked` | OneUptime avslutter økten fordi passordet ble endret, kontoen ble blokkert, eller en serveradministrator tilbakestilte eller krevde tofaktorautentisering. |
 
 For en slik oppføring er **Ressurs** økten, navngitt etter enheten den logget på fra, for eksempel `Chrome 130 on macOS`. **Aktør** er personen økten tilhører, så filtrering etter **Bruker-e-post** finner alle påloggingene og øktene deres. Detaljene sier hvordan de logget på og med hvilken andre faktor, IP-adressen og stedet, og for en økt som er avsluttet, når den logget på, når den sist ble brukt og når den utløp. Et prosjekts egen SSO-leverandør nevnes bare i revisjonsloggen til det prosjektet.
 
-Pålogginger og økter registreres enten prosjektet lagrer systemhendelser eller ikke. En utløpt øktlengde eller 30 dager uten bruk registreres innen noen minutter. En utløpt inaktivitetsperiode registreres neste gang personens nettleser eller mobilappen kontakter OneUptime: fra en fane som står åpen, eller når personen åpner OneUptime igjen.
+Pålogginger og økter registreres enten prosjektet lagrer systemhendelser eller ikke. En utløpt øktlengde eller 30 dager uten bruk registreres innen noen minutter. En utløpt inaktivitetsperiode i nettleseren, eller i en versjon av mobilappen nyere enn 1.6.0, registreres innen 35 minutter, enten personen kommer tilbake eller ikke. I mobilappen versjon 1.6.0 og eldre registreres den neste gang appen kontakter OneUptime.
 
 ## Hvor lenge oppføringer beholdes
 

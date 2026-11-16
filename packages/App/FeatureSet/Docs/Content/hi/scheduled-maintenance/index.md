@@ -46,7 +46,7 @@ flowchart TB
 - **शेड्यूल।** आवर्ती टेम्पलेट किसी शेड्यूल पर नया इवेंट बनाता है, जैसे हर हफ़्ते या हर महीने, बिना किसी के फ़ॉर्म खोले।
 - **फ़ॉर्म।** ऐसा फ़ॉर्म जिसके सबमिशन रखरखाव इवेंट बनाते हैं, किसी बदलाव अनुरोध को इवेंट में बदल देता है। देखें [सबमिशन क्या बनाता है](/docs/forms/on-submit#सबमिशन-रखरखाव-इवेंट-कैसे-बनता-है)।
 - **चैट।** Slack में `/oneuptime maintenance`, या Microsoft Teams में OneUptime बॉट को लिखा गया `maintenance`, आपके चैट टूल में फ़ॉर्म खोलता है। देखें [Slack](/docs/workspace-connections/slack#slack-से-घटनाएं-और-रखरखाव-बनाना)।
-- **कोड।** `/api/scheduled-maintenance` पर API, Terraform संसाधन `oneuptime_scheduled_maintenance_event`, और वर्कफ़्लो का **Create One Maintenance Event** चरण।
+- **कोड।** `/api/scheduled-maintenance` पर API, Terraform संसाधन `oneuptime_scheduled_maintenance_event`, और वर्कफ़्लो का **एक रखरखाव इवेंट बनाएँ** चरण।
 
 ## डैशबोर्ड में रखरखाव कहाँ है
 

@@ -39,7 +39,7 @@ flowchart TB
 ## 시작하기 전에
 
 - **도착하는 스팬이나 로그.** [OpenTelemetry](/docs/telemetry/open-telemetry)로 서비스를 계측합니다. **설정 가이드** 탭에 사용하는 언어에 맞는 코드가 표시됩니다.
-- **텔레메트리를 읽을 수 있는 역할.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member, Telemetry Viewer 중 하나이거나 Read Exceptions 권한이 있는 사용자 지정 역할입니다. 해결하고 보관하려면 Project Owner나 Project Admin, 또는 Edit Exceptions 권한이 필요합니다.
+- **텔레메트리를 읽을 수 있는 역할.** 프로젝트 소유자, 프로젝트 관리자, 프로젝트 구성원, 뷰어, 텔레메트리 관리자, 텔레메트리 구성원, 텔레메트리 뷰어 중 하나이거나 Read Exceptions 권한이 있는 사용자 지정 역할입니다. 해결하고 보관하려면 프로젝트 소유자나 프로젝트 관리자, 또는 Edit Exceptions 권한이 필요합니다.
 
 ## 목록 분류하기
 
@@ -108,7 +108,7 @@ flowchart TB
 
 예외 헤더의 **담당자** 아래에 있는 **할당**은 예외를 한 사람 또는 한 팀에 맡깁니다. 이름을 클릭하면 다른 사람에게 맡기고, 그 옆의 ×를 클릭하면 할당을 해제합니다. 각 행에는 담당자가 표시되고, 행의 ⋯ 메뉴에는 **나에게 할당**이 있으며, **일괄 작업**의 **할당 대상…** 메뉴로 여러 개를 한 번에 할당합니다. 할당받은 사람 또는 팀의 각 구성원은 자신의 [알림 설정](/docs/notifications/notification-settings)에 있는 **나에게 할당된 예외** 행에 따라 알림을 받으며, 할당한 사람은 받지 않습니다.
 
-예외 페이지 맨 위의 ⋯에 있는 **모니터 생성**은 이 예외의 유형에 대해 해당 서비스의 새 [예외 모니터](/docs/monitor/exceptions-monitor)를 열어, 예외가 다시 일어나면 알림을 받게 합니다. 모니터를 만들 수 있는 사람에게 표시됩니다.
+예외 페이지 맨 위의 ⋯에 있는 **모니터 생성**은 이 예외의 유형에 대해 해당 서비스의 새 [예외 모니터](/docs/monitor/exceptions-monitor)를 열어, 예외가 다시 일어나면 경고를 받게 합니다. 모니터를 만들 수 있는 사람에게 표시됩니다.
 
 예외 **개요**의 맨 아래에 있는 **활동**은 누가 언제 변경했는지를 최신순으로 보여 줍니다. 누가 해결, 다시 열기, 보관, 할당을 했는지, 다른 예외를 병합하거나 병합 해제했는지, 그리고 해결된 후 언제 다시 발생했는지입니다. 예외 페이지, 목록, **일괄 작업**, API, OneUptime 자체 어디에서 한 변경이든 모두 기록되며, API 키로 한 변경에는 키 이름이 표시됩니다.
 
@@ -228,7 +228,7 @@ OneUptime AI는 하루(UTC)에 스스로 최대 5개의 pull request를 발견 �
 ## 다음 단계
 
 :::cards
-- [예외 모니터](/docs/monitor/exceptions-monitor): 예외가 급증하면 알림을 받습니다.
+- [예외 모니터](/docs/monitor/exceptions-monitor): 예외가 급증하면 경고를 받습니다.
 - [소스 맵](/docs/telemetry/source-maps): 브라우저 코드의 읽기 쉬운 스택 추적.
 - [코드](/docs/ai/ai-agent): AI가 코드를 고치고 pull request를 여는 방식.
 - [트레이스 탐색기](/docs/telemetry/traces-explorer): 예외가 일어난 요청을 봅니다.

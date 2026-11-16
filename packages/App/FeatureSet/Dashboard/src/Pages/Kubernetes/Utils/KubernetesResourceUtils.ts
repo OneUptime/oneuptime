@@ -1,5 +1,10 @@
 import Metric from "Common/Models/AnalyticsModels/Metric";
 import { formatReaderFigure } from "Common/Types/DateLanguage";
+import {
+  getGlobalTranslator,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import { formatCompactDuration } from "../../../Utils/Milliseconds";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import OneUptimeDate from "Common/Types/Date";
@@ -283,7 +288,15 @@ export default class KubernetesResourceUtils {
     return resources;
   }
 
-  public static formatAge(creationTimestamp: string | undefined): string {
+  /*
+   * An object's age, as kubectl's AGE column says it: "12s", "5m", "3h",
+   * "2d", "4mo" in English, the reader's short units and digits in their
+   * language ("5 Min.", "۴ ماه"; #8455).
+   */
+  public static formatAge(
+    creationTimestamp: string | undefined,
+    translator: Translator = getGlobalTranslator(),
+  ): string {
     if (!creationTimestamp) {
       return "N/A";
     }
@@ -293,22 +306,22 @@ export default class KubernetesResourceUtils {
     const diffSec: number = Math.floor(diffMs / 1000);
 
     if (diffSec < 60) {
-      return `${diffSec}s`;
+      return formatCompactDuration(translator, { seconds: diffSec });
     }
     const diffMin: number = Math.floor(diffSec / 60);
     if (diffMin < 60) {
-      return `${diffMin}m`;
+      return formatCompactDuration(translator, { minutes: diffMin });
     }
     const diffHours: number = Math.floor(diffMin / 60);
     if (diffHours < 24) {
-      return `${diffHours}h`;
+      return formatCompactDuration(translator, { hours: diffHours });
     }
     const diffDays: number = Math.floor(diffHours / 24);
     if (diffDays < 30) {
-      return `${diffDays}d`;
+      return formatCompactDuration(translator, { days: diffDays });
     }
     const diffMonths: number = Math.floor(diffDays / 30);
-    return `${diffMonths}mo`;
+    return formatCompactDuration(translator, { months: diffMonths });
   }
 
   /*
@@ -357,20 +370,20 @@ export default class KubernetesResourceUtils {
       return `${formatReaderFigure(bytes, {
         decimals: 1,
         dropTrailingZeros: true,
-      })} B`;
+      })}\u00A0B`;
     }
 
     if (bytes < 1024 * 1024) {
-      return `${formatReaderFigure(bytes / 1024, { decimals: 1 })} KB`;
+      return `${formatReaderFigure(bytes / 1024, { decimals: 1 })}\u00A0KB`;
     }
 
     if (bytes < 1024 * 1024 * 1024) {
-      return `${formatReaderFigure(bytes / (1024 * 1024), { decimals: 1 })} MB`;
+      return `${formatReaderFigure(bytes / (1024 * 1024), { decimals: 1 })}\u00A0MB`;
     }
 
     return `${formatReaderFigure(bytes / (1024 * 1024 * 1024), {
       decimals: 2,
-    })} GB`;
+    })}\u00A0GB`;
   }
 
   /**
@@ -436,18 +449,18 @@ export default class KubernetesResourceUtils {
     const absValue: number = Math.abs(value);
 
     if (absValue < 1024) {
-      return `${value.toFixed(0)} B`;
+      return `${value.toFixed(0)}\u00A0B`;
     }
 
     if (absValue < 1024 * 1024) {
-      return `${(value / 1024).toFixed(1)} KB`;
+      return `${(value / 1024).toFixed(1)}\u00A0KB`;
     }
 
     if (absValue < 1024 * 1024 * 1024) {
-      return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+      return `${(value / (1024 * 1024)).toFixed(1)}\u00A0MB`;
     }
 
-    return `${(value / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+    return `${(value / (1024 * 1024 * 1024)).toFixed(2)}\u00A0GB`;
   }
 
   public static formatBytesPerSecForChart(value: number): string {
@@ -458,18 +471,18 @@ export default class KubernetesResourceUtils {
     const absValue: number = Math.abs(value);
 
     if (absValue < 1024) {
-      return `${value.toFixed(0)} B/s`;
+      return `${value.toFixed(0)}\u00A0B/s`;
     }
 
     if (absValue < 1024 * 1024) {
-      return `${(value / 1024).toFixed(1)} KB/s`;
+      return `${(value / 1024).toFixed(1)}\u00A0KB/s`;
     }
 
     if (absValue < 1024 * 1024 * 1024) {
-      return `${(value / (1024 * 1024)).toFixed(1)} MB/s`;
+      return `${(value / (1024 * 1024)).toFixed(1)}\u00A0MB/s`;
     }
 
-    return `${(value / (1024 * 1024 * 1024)).toFixed(2)} GB/s`;
+    return `${(value / (1024 * 1024 * 1024)).toFixed(2)}\u00A0GB/s`;
   }
 
   /*

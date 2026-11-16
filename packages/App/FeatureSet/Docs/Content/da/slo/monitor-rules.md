@@ -80,20 +80,20 @@ Hver betingelse sammenligner ét felt på en monitor:
 
 | Felt | Sammenlignes med | Operatorer |
 | --- | --- | --- |
-| **Overvågningsetiketter** | Monitorens etiketter. | **Har en af**, **Har alle**, **Har ingen af** |
+| **Monitoretiketter** | Monitorens etiketter. | **Har en af**, **Har alle**, **Har ingen af** |
 | **Monitortype** | Monitorens type, valgt fra listen over typer. | **Er lig med**, **Er ikke lig med** |
-| **Overvågningsnavn** | Monitorens navn. | **Indeholder**, **Indeholder ikke**, **Er lig med**, **Er ikke lig med**, **Starter med**, **Slutter med**, **Matcher mønster**, **Matcher ikke mønster** |
-| **Overvågningsbeskrivelse** | Monitorens beskrivelse. | De samme som for **Overvågningsnavn** |
+| **Monitornavn** | Monitorens navn. | **Indeholder**, **Indeholder ikke**, **Er lig med**, **Er ikke lig med**, **Starter med**, **Slutter med**, **Matcher mønster**, **Matcher ikke mønster** |
+| **Monitorbeskrivelse** | Monitorens beskrivelse. | De samme som for **Monitornavn** |
 
-Et mønster er et regulært udtryk, som `^api-.*`, eller et `*`-jokertegn, som `*checkout*`, og skelner ikke mellem store og små bogstaver. Et mønster, der ikke er nogen af delene, som `api-(01`, afvises, når du gemmer, i stedet for stille og roligt ikke at matche noget. For at tilknytte alle monitorer i projektet tilføjer du en betingelse på **Overvågningsnavn**, der matcher mønsteret `.*`.
+Et mønster er et regulært udtryk, som `^api-.*`, eller et `*`-jokertegn, som `*checkout*`, og skelner ikke mellem store og små bogstaver. Et mønster, der ikke er nogen af delene, som `api-(01`, afvises, når du gemmer, i stedet for stille og roligt ikke at matche noget. For at tilknytte alle monitorer i projektet tilføjer du en betingelse på **Monitornavn**, der matcher mønsteret `.*`.
 
 | Du vil have | Betingelser |
 | --- | --- |
-| Hver produktionsmonitor | **Overvågningsetiketter** har en af _Production_ |
+| Hver produktionsmonitor | **Monitoretiketter** har en af _Production_ |
 | Hver API-monitor | **Monitortype** er lig med _API_ |
 | Hver monitor undtagen de manuelle | **Monitortype** er ikke lig med _Manual_ |
-| Hver monitor, hvis navn starter med api- | **Overvågningsnavn** matcher mønsteret `^api-` |
-| Checkout-monitorerne, men ikke dem fra staging | **Alle skal matche**: **Overvågningsnavn** matcher mønsteret `*checkout*`, og **Overvågningsetiketter** har ingen af _Staging_ |
+| Hver monitor, hvis navn starter med api- | **Monitornavn** matcher mønsteret `^api-` |
+| Checkout-monitorerne, men ikke dem fra staging | **Alle skal matche**: **Monitornavn** matcher mønsteret `*checkout*`, og **Monitoretiketter** har ingen af _Staging_ |
 
 ### Hvornår regler kører
 
@@ -129,7 +129,7 @@ En monitors side viser de SLO'er, der måler den: åbn monitoren, og gå til **S
 Tidligere versioner havde en indstilling **Auto-Add Monitors With Labels** på SLO-formularen. Ved opgraderingen får hvert SLO, der brugte den, en aktiveret monitorregel med navnet **Auto-add monitors with labels**, der matcher de samme etiketter, så det bliver ved med at måle præcis de samme monitorer. Feltet `monitorLabels` i SLO-API'en er forældet: brug SLO-monitorregler i stedet.
 
 :::details Hvad hvis noget stadig gemmer den gamle indstilling?
-En dashboardfane, der blev åbnet før opgraderingen, eller en API-klient eller et workflow, der er skrevet til den tidligere version, kan stadig gemme den gamle indstilling. Så et SLO ikke stille og roligt mister monitorer på den måde:
+En dashboardfane, der blev åbnet før opgraderingen, eller en API-klient eller en arbejdsgang, der er skrevet til den tidligere version, kan stadig gemme den gamle indstilling. Så et SLO ikke stille og roligt mister monitorer på den måde:
 
 - **Et SLO uden monitorregler** gør de gemte etiketter til en regel **Auto-add monitors with labels**, og dets monitorer vurderes igen med det samme. At gemme en tom liste frakobler de monitorer, som indstillingen havde tilknyttet, som før.
 - **Et SLO, der har monitorregler**, slået til eller ej, ignorerer etiketter, der er gemt via den gamle indstilling, fordi det er dets regler, der bestemmer, hvad det måler.

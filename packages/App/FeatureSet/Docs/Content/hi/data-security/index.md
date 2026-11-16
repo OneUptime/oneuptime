@@ -43,7 +43,7 @@ flowchart TB
 
 ## शुरू करने से पहले
 
-- **ऐसी भूमिका जो इसे सेट कर सके।** Project Owner, Project Admin और Security Admin डेटा सुरक्षा की सेटिंग्स बदलते हैं। Security Member समस्याओं पर काम करते हैं और स्टोर स्कैन करते हैं, और Security Viewer पढ़ते हैं कि इसे क्या मिला। दूसरी भूमिकाओं को इसमें से कुछ नहीं दिखता, जब तक उनकी टीम को इसकी अनुमतियां न दी जाएं: किन बकेट में कार्ड नंबर हैं, यह ठीक वही है जो कोई हमलावर जानना चाहता है। देखें [भूमिकाएं](/docs/permissions/reference#भूमिकाएँ)।
+- **ऐसी भूमिका जो इसे सेट कर सके।** प्रोजेक्ट स्वामी, प्रोजेक्ट एडमिन और सुरक्षा एडमिन डेटा सुरक्षा की सेटिंग्स बदलते हैं। सुरक्षा सदस्य समस्याओं पर काम करते हैं और स्टोर स्कैन करते हैं, और सुरक्षा दर्शक पढ़ते हैं कि इसे क्या मिला। दूसरी भूमिकाओं को इसमें से कुछ नहीं दिखता, जब तक उनकी टीम को इसकी अनुमतियां न दी जाएं: किन बकेट में कार्ड नंबर हैं, यह ठीक वही है जो कोई हमलावर जानना चाहता है। देखें [भूमिकाएं](/docs/permissions/reference#भूमिकाएँ)।
 - **पढ़ने के लिए एक क्लाउड खाता, या एक डेटाबेस।** डेटा सुरक्षा किसी क्लाउड खाते को [क्लाउड कनेक्शन](/docs/telemetry/cloud-accounts) से पढ़ता है, और आपके चलाए डेटाबेस को केवल पढ़ने वाली कनेक्शन स्ट्रिंग से। टेलीमेट्री के लिए कुछ नहीं चाहिए: वह हर घंटे स्कैन होती है।
 
 ## जल्दी शुरू करें
@@ -69,7 +69,7 @@ flowchart TB
 | AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System, Amazon Athena | AWS S3 Bucket |
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
-| आपके चलाए डेटाबेस | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL |
+| आपके चलाए डेटाबेस | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
 | OneUptime | लॉग, ट्रेस, अपवाद, सेशन रीप्ले, AI बातचीत | लॉग, ट्रेस, अपवाद, सेशन रीप्ले, AI बातचीत |
 
 हर स्टोर पर वे जांचें चलती हैं जो उसके प्रकार पर लागू होती हैं। जिस स्टोर की सामग्री का नमूना नहीं लिया जा सकता, उसकी भी जांच होती है: सार्वजनिक बकेट या बिना एन्क्रिप्शन वाला डेटाबेस अपने आप में समस्या है, उसमें चाहे जो रखा हो।

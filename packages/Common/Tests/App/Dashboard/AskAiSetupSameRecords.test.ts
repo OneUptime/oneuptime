@@ -39,6 +39,8 @@ import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
+import AlertOnCallRule from "../../../Models/DatabaseModels/AlertOnCallRule";
+import IncidentOnCallRule from "../../../Models/DatabaseModels/IncidentOnCallRule";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import Project from "../../../Models/DatabaseModels/Project";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
@@ -48,13 +50,26 @@ import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { createTranslator, Translator } from "../../../Types/Translator";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import PermissionGate from "../../../UI/Utils/PermissionGate";
+import {
+  WhoIsToldMode,
+  getWhoIsToldMode,
+} from "../../../Utils/GuidedSetup/OnCallPolicyRecords";
 import ProjectUtil from "../../../UI/Utils/Project";
 import { GUIDED_SETUP_MONITORING_INTERVAL } from "../../../Utils/GuidedSetup/WebsiteMonitorRecords";
 import UserLanguage from "../../../Server/Utils/Notification/UserLanguage";
 import {
   FIRST_STRONG_ISOLATE,
+  getRecordWordsTranslator,
   POP_DIRECTIONAL_ISOLATE,
 } from "../../../Server/Utils/ServerTranslation";
+import {
+  EVERY_NEW_EVENT_RULES_LANGUAGE_KEY,
+  getEveryNewAlertRuleDescription,
+  getEveryNewAlertRuleName,
+  getEveryNewIncidentRuleDescription,
+  getEveryNewIncidentRuleName,
+} from "../../../Types/OnCallDutyPolicy/EveryNewEventRules";
 import { dashboardTranslator } from "../../Helpers/DashboardLocales";
 
 /*
@@ -75,8 +90,9 @@ import { dashboardTranslator } from "../../Helpers/DashboardLocales";
  * alert they open, are named in the language the person reads the
  * Dashboard in - the guided setup with the Dashboard's translator, Ask AI
  * with the server's for the language the Dashboard sent - and so is the
- * name a status page the person does not name starts with, so the records
- * are compared read in English, German, Arabic, Persian and Japanese.
+ * name a status page the person does not name starts with, and the first
+ * on-call policy with its two catch-all rules (#7995), so the records are
+ * compared read in English, German, Arabic, Persian and Japanese.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -186,6 +202,65 @@ function browserCreates(): Array<{ model: unknown; miscDataProps?: unknown }> {
   return createSpy.mock.calls.map((call: Array<unknown>) => {
     return call[0] as { model: unknown; miscDataProps?: unknown };
   });
+}
+
+// The first on-call policy the website guided setup creates, as the browser sends it.
+async function guidedSetupPolicy(
+  translator: Translator,
+): Promise<{ model: unknown; miscDataProps?: unknown }> {
+  createSpy.mockClear();
+
+  await WebsiteDownApi.createPolicy({
+    userIds: [USER_ID],
+    teamIds: [TEAM_ID],
+    translator: translator,
+  }).catch(() => {
+    // Its answer is the browser's to read; the create is what is compared.
+  });
+
+  return browserCreates()[0]!;
+}
+
+// The first on-call policy Ask AI's set_up_paging creates, as the person.
+async function askAiPolicy(
+  context: ToolContext,
+): Promise<{ data: OnCallDutyPolicy; miscDataProps: JSONObject }> {
+  jest
+    .spyOn(OnCallDutyPolicyService, "countBy")
+    .mockResolvedValue(new PositiveNumber(0) as never);
+  jest
+    .spyOn(IncidentOnCallRuleService, "findBy")
+    .mockResolvedValue([] as never);
+  jest.spyOn(AlertOnCallRuleService, "findBy").mockResolvedValue([] as never);
+  const serverCreate: SpyInstance<(...args: Array<never>) => unknown> = jest
+    .spyOn(OnCallDutyPolicyService, "create")
+    .mockImplementation((async (args: {
+      data: OnCallDutyPolicy;
+    }): Promise<OnCallDutyPolicy> => {
+      const created: OnCallDutyPolicy = args.data;
+      created._id = ObjectID.generate().toString();
+      return created;
+    }) as never) as unknown as SpyInstance<(...args: Array<never>) => unknown>;
+
+  await SetUpPagingTool.execute(
+    {
+      userIds: [USER_ID],
+      teamIds: [TEAM_ID],
+      otherPeople: [],
+      pagedTeams: ["Platform"],
+    },
+    context,
+  );
+
+  const created: { data: OnCallDutyPolicy; miscDataProps: JSONObject } =
+    serverCreate.mock.calls[0]![0] as unknown as {
+      data: OnCallDutyPolicy;
+      miscDataProps: JSONObject;
+    };
+
+  delete (created.data as unknown as Record<string, unknown>)["_id"];
+
+  return created;
 }
 
 beforeEach(() => {
@@ -468,56 +543,126 @@ describe("the same records, for the same answers", () => {
   });
 
   test("the project's first on-call policy, and what its create carries, are the guided setup's", async () => {
-    await WebsiteDownApi.createPolicy({
-      userIds: [USER_ID],
-      teamIds: [TEAM_ID],
-    }).catch(() => {
-      // Its answer is the browser's to read; the create is what is compared.
-    });
     const fromGuidedSetup: { model: unknown; miscDataProps?: unknown } =
-      browserCreates()[0]!;
+      await guidedSetupPolicy(dashboardTranslator("en"));
+    const fromAskAi: { data: OnCallDutyPolicy; miscDataProps: JSONObject } =
+      await askAiPolicy(ctx);
 
-    jest
-      .spyOn(OnCallDutyPolicyService, "countBy")
-      .mockResolvedValue(new PositiveNumber(0) as never);
-    jest
-      .spyOn(IncidentOnCallRuleService, "countBy")
-      .mockResolvedValue(new PositiveNumber(0) as never);
-    jest
-      .spyOn(AlertOnCallRuleService, "countBy")
-      .mockResolvedValue(new PositiveNumber(0) as never);
-    const serverCreate: SpyInstance<(...args: Array<never>) => unknown> = jest
-      .spyOn(OnCallDutyPolicyService, "create")
-      .mockImplementation((async (args: {
-        data: OnCallDutyPolicy;
-      }): Promise<OnCallDutyPolicy> => {
-        const created: OnCallDutyPolicy = args.data;
-        created._id = ObjectID.generate().toString();
-        return created;
-      }) as never) as unknown as SpyInstance<
-      (...args: Array<never>) => unknown
-    >;
-
-    await SetUpPagingTool.execute(
-      {
-        userIds: [USER_ID],
-        teamIds: [TEAM_ID],
-        otherPeople: [],
-        pagedTeams: ["Platform"],
-      },
-      ctx,
-    );
-    const fromAskAi: { data: OnCallDutyPolicy; miscDataProps: unknown } =
-      serverCreate.mock.calls[0]![0] as unknown as {
-        data: OnCallDutyPolicy;
-        miscDataProps: unknown;
-      };
-
-    delete (fromAskAi.data as unknown as Record<string, unknown>)["_id"];
     expect(comparable(fromAskAi.data)).toEqual(
       comparable(fromGuidedSetup.model),
     );
     expect(fromAskAi.miscDataProps).toEqual(fromGuidedSetup.miscDataProps);
+    // English, byte for byte as it always was.
+    expect(fromAskAi.data.name).toBe("Default on-call policy");
+  });
+
+  /*
+   * #7995: a person reading the Dashboard in German gets a German first
+   * policy from the guided setup - and the same one from Ask AI, which the
+   * Dashboard tells the language it is read in. Its two catch-all rules
+   * are made by the server from the create, in the language the create
+   * carries: the same for both, and worded as the Dashboard words them.
+   */
+  describe.each(RECORD_LANGUAGES)(
+    "the first on-call policy read in %s",
+    (language: string) => {
+      test("is named, and asks for its rules, in the reader's language, as the guided setup does", async () => {
+        const fromGuidedSetup: { model: unknown; miscDataProps?: unknown } =
+          await guidedSetupPolicy(dashboardTranslator(language));
+        const fromAskAi: {
+          data: OnCallDutyPolicy;
+          miscDataProps: JSONObject;
+        } = await askAiPolicy({ ...ctx, language: language });
+
+        expect(comparable(fromAskAi.data)).toEqual(
+          comparable(fromGuidedSetup.model),
+        );
+        expect(fromAskAi.miscDataProps).toEqual(fromGuidedSetup.miscDataProps);
+        expect(
+          fromAskAi.miscDataProps[EVERY_NEW_EVENT_RULES_LANGUAGE_KEY],
+        ).toBe(language);
+
+        const name: string = fromAskAi.data.name!;
+
+        expect(name).toBe(
+          dashboardTranslator(language).translateText("Default on-call policy"),
+        );
+        // A record keeps no invisible marks, in a language read from the right too.
+        expect(name).not.toContain(FIRST_STRONG_ISOLATE);
+        expect(name).not.toContain(POP_DIRECTIONAL_ISOLATE);
+
+        if (language === "en") {
+          expect(name).toBe("Default on-call policy");
+        } else {
+          expect(name).not.toBe("Default on-call policy");
+        }
+      });
+
+      test("its two rules are named and described as the Dashboard words them, by the language its create carries", async () => {
+        const fromAskAi: {
+          data: OnCallDutyPolicy;
+          miscDataProps: JSONObject;
+        } = await askAiPolicy({ ...ctx, language: language });
+        const serverLanguage: string =
+          await OnCallDutyPolicyService.readEveryNewEventRulesLanguage({
+            miscDataProps: fromAskAi.miscDataProps,
+            props: ctx.props,
+          });
+        const server: Translator | undefined =
+          getRecordWordsTranslator(serverLanguage);
+        const dashboard: Translator = dashboardTranslator(language);
+        const policyName: string = fromAskAi.data.name!;
+
+        expect(serverLanguage).toBe(language);
+        expect(getEveryNewIncidentRuleName(policyName, server)).toBe(
+          getEveryNewIncidentRuleName(policyName, dashboard),
+        );
+        expect(getEveryNewAlertRuleName(policyName, server)).toBe(
+          getEveryNewAlertRuleName(policyName, dashboard),
+        );
+        expect(getEveryNewIncidentRuleDescription(server)).toBe(
+          getEveryNewIncidentRuleDescription(dashboard),
+        );
+        expect(getEveryNewAlertRuleDescription(server)).toBe(
+          getEveryNewAlertRuleDescription(dashboard),
+        );
+
+        const words: string = [
+          getEveryNewIncidentRuleName(policyName, server),
+          getEveryNewAlertRuleName(policyName, server),
+          getEveryNewIncidentRuleDescription(server),
+          getEveryNewAlertRuleDescription(server),
+        ].join("\n");
+
+        expect(words).toContain(policyName);
+        expect(words).not.toContain(FIRST_STRONG_ISOLATE);
+        expect(words).not.toContain(POP_DIRECTIONAL_ISOLATE);
+
+        if (language === "en") {
+          expect(getEveryNewIncidentRuleName(policyName, server)).toBe(
+            "Page Default on-call policy for every incident",
+          );
+        } else {
+          expect(words).not.toContain("for every incident");
+          expect(words).not.toContain("Added when the policy was created.");
+        }
+      });
+    },
+  );
+
+  test("with no language from the Dashboard, the person's saved language names the first policy and carries on to its rules", async () => {
+    savedLanguage.mockResolvedValue("de" as never);
+
+    const fromGuidedSetup: { model: unknown; miscDataProps?: unknown } =
+      await guidedSetupPolicy(dashboardTranslator("de"));
+    const fromAskAi: { data: OnCallDutyPolicy; miscDataProps: JSONObject } =
+      await askAiPolicy(ctx);
+
+    expect(comparable(fromAskAi.data)).toEqual(
+      comparable(fromGuidedSetup.model),
+    );
+    expect(fromAskAi.miscDataProps).toEqual(fromGuidedSetup.miscDataProps);
+    expect(savedLanguage).toHaveBeenCalledWith(new ObjectID(USER_ID));
   });
 
   test("the status page and each monitor on it are the status page guided setup's", async () => {
@@ -660,4 +805,171 @@ describe("the same records, for the same answers", () => {
       }
     },
   );
+});
+
+/*
+ * THE SAME DECISION OF WHO IS TOLD, FOR THE SAME PROJECT (#8518). The
+ * website-down guided setup (WebsiteDownApi.loadWhoIsToldFacts) and Ask
+ * AI's set_up_paging (SetupTools' readPagingCounts) each ask whether the
+ * project pages people already. Only what pages people counts in both: a
+ * policy in service (#8234), and an on-call rule that runs one (#8433). The
+ * project is one database here, read by both: the browser through the
+ * model API, the server through the services, each answering as the real
+ * ones do - only what the query matches, each rule with its policies.
+ */
+describe("the same decision of who is told, for the same project (#8518)", () => {
+  interface Shape {
+    name: string;
+    policies: Array<boolean>;
+    incidentRules: Array<Array<boolean>>;
+    alertRules: Array<Array<boolean>>;
+    pagesAlready: boolean;
+  }
+
+  const SHAPES: Array<Shape> = [
+    {
+      name: "a new project",
+      policies: [],
+      incidentRules: [],
+      alertRules: [],
+      pagesAlready: false,
+    },
+    {
+      name: "its only policy archived, with the two rules that run it",
+      policies: [true],
+      incidentRules: [[true]],
+      alertRules: [[true]],
+      pagesAlready: false,
+    },
+    {
+      name: "rules that run no policy",
+      policies: [],
+      incidentRules: [[]],
+      alertRules: [[]],
+      pagesAlready: false,
+    },
+    {
+      name: "an archived policy beside one in service",
+      policies: [true, false],
+      incidentRules: [[true]],
+      alertRules: [],
+      pagesAlready: true,
+    },
+    {
+      name: "a rule running a policy in service beside an archived one",
+      policies: [true, false],
+      incidentRules: [[true, false]],
+      alertRules: [],
+      pagesAlready: true,
+    },
+    {
+      name: "a policy in service and no rule",
+      policies: [false],
+      incidentRules: [],
+      alertRules: [],
+      pagesAlready: true,
+    },
+  ];
+
+  const policiesOf: (archived: Array<boolean>) => Array<OnCallDutyPolicy> = (
+    archived: Array<boolean>,
+  ): Array<OnCallDutyPolicy> => {
+    return archived.map((isArchived: boolean): OnCallDutyPolicy => {
+      return model(OnCallDutyPolicy, {
+        _id: ObjectID.generate().toString(),
+        isArchived: isArchived,
+      });
+    });
+  };
+
+  const rulesOf: <T>(
+    type: { new (): T },
+    rules: Array<Array<boolean>>,
+  ) => Array<T> = <T>(
+    type: { new (): T },
+    rules: Array<Array<boolean>>,
+  ): Array<T> => {
+    return rules.map((archived: Array<boolean>): T => {
+      return model(type, {
+        _id: ObjectID.generate().toString(),
+        onCallDutyPolicies: policiesOf(archived),
+      });
+    });
+  };
+
+  // How many of the project's policies a query matches, as a count does.
+  const matching: (
+    archived: Array<boolean>,
+    query: Record<string, unknown>,
+  ) => number = (
+    archived: Array<boolean>,
+    query: Record<string, unknown>,
+  ): number => {
+    return archived.filter((isArchived: boolean): boolean => {
+      return !("isArchived" in query) || query["isArchived"] === isArchived;
+    }).length;
+  };
+
+  test.each(SHAPES)("$name: both decide alike", async (shape: Shape) => {
+    // The browser's reads.
+    jest.spyOn(PermissionGate, "check").mockReturnValue({ isAllowed: true });
+    jest.spyOn(ModelAPI, "count").mockImplementation((async (args: {
+      query: Record<string, unknown>;
+    }): Promise<number> => {
+      return matching(shape.policies, args.query);
+    }) as never);
+    getListSpy.mockImplementation((async (args: {
+      modelType: { new (): unknown };
+    }) => {
+      if (args.modelType === IncidentOnCallRule) {
+        return list(rulesOf(IncidentOnCallRule, shape.incidentRules));
+      }
+
+      if (args.modelType === AlertOnCallRule) {
+        return list(rulesOf(AlertOnCallRule, shape.alertRules));
+      }
+
+      return list([]);
+    }) as unknown as (...args: Array<never>) => Promise<unknown>);
+
+    // The server's.
+    jest
+      .spyOn(OnCallDutyPolicyService, "countBy")
+      .mockImplementation((async (args: {
+        query: Record<string, unknown>;
+      }): Promise<PositiveNumber> => {
+        return new PositiveNumber(matching(shape.policies, args.query));
+      }) as never);
+    jest
+      .spyOn(IncidentOnCallRuleService, "findBy")
+      .mockResolvedValue(
+        rulesOf(IncidentOnCallRule, shape.incidentRules) as never,
+      );
+    jest
+      .spyOn(AlertOnCallRuleService, "findBy")
+      .mockResolvedValue(rulesOf(AlertOnCallRule, shape.alertRules) as never);
+
+    const guidedSetup: WhoIsToldMode = getWhoIsToldMode(
+      await WebsiteDownApi.loadWhoIsToldFacts(),
+    );
+    const askAi: { toldModel: string } | null =
+      await SetUpPagingTool.checkBeforeApproval!({ userIds: [USER_ID] }, ctx);
+
+    expect({
+      guidedSetup: guidedSetup,
+      askAiPagesAlready: Boolean(
+        askAi?.toldModel.includes("already pages people"),
+      ),
+    }).toEqual({
+      guidedSetup: shape.pagesAlready
+        ? WhoIsToldMode.ExistingPolicy
+        : WhoIsToldMode.CreatePolicy,
+      askAiPagesAlready: shape.pagesAlready,
+    });
+
+    // Where the project pages nobody, nothing else stood in Ask AI's way.
+    if (!shape.pagesAlready) {
+      expect(askAi).toBeNull();
+    }
+  });
 });

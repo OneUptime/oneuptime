@@ -177,9 +177,9 @@ OneUptime dispose de son propre endpoint MQTT : les appareils qui parlent MQTT y
 - **Avec la clé d'ingestion** : envoyez-la comme mot de passe MQTT. Le nom d'utilisateur est ignoré ; si votre client n'a qu'un champ de nom d'utilisateur, mettez-y la clé. Cela convient à une passerelle qui publie pour de nombreux appareils.
 - **Avec des identifiants par appareil** : recommandé pour les appareils qui se connectent directement. Ouvrez la page **Registre des appareils** de la flotte et enregistrez l'appareil, avec l'**ID de l'appareil** qu'il utilise comme `device.id`. Le **Nom d'utilisateur MQTT** de l'appareil est son nom d'utilisateur, et son **Mot de passe MQTT (secret)** son mot de passe.
 
-Les identifiants d'un appareil ne peuvent publier que sous ses propres topics `oneuptime/<fleet>/<device>/`. Vous pouvez révoquer un appareil sans toucher au reste de la flotte : désactivez son interrupteur **Activé**, ou supprimez-le, et un appareil connecté est déconnecté en une minute environ. Un appareil enregistré qui se tait reste dans l'inventaire comme hors ligne, et le modèle d'alerte Device Offline se déclenche pour lui, même s'il meurt sans Last Will.
+Les identifiants d'un appareil ne peuvent publier que sous ses propres topics `oneuptime/<fleet>/<device>/`. Vous pouvez révoquer un appareil sans toucher au reste de la flotte : désactivez son interrupteur **Activé**, ou supprimez-le, et un appareil connecté est déconnecté en quelques secondes. Un appareil enregistré qui se tait reste dans l'inventaire comme hors ligne, et le modèle d'alerte Device Offline se déclenche pour lui, même s'il meurt sans Last Will.
 
-OneUptime refuse les identifiants erronés au CONNECT avec le code de retour 4 (nom d'utilisateur ou mot de passe incorrect) : un appareil mal configuré échoue donc de façon visible. Les clés de navigateur sont refusées via MQTT.
+OneUptime refuse les identifiants erronés au CONNECT avec le code de retour 4 (nom d'utilisateur ou mot de passe incorrect) : un appareil mal configuré échoue donc de façon visible. Les clés de navigateur sont refusées via MQTT. Un client connecté avec la clé d'ingestion est déconnecté en quelques secondes dès que la clé est désactivée, expire, voit son secret réinitialisé ou est supprimée, et il est refusé quand il se reconnecte.
 
 ### Topics et payloads
 
@@ -276,7 +276,7 @@ OneUptime reconnaît ces noms de métriques `iot_*`. N'envoyez que ceux qui ont 
 
 | Nom de la métrique | Signification |
 | --- | --- |
-| `iot_device_up` | Disponibilité : `1` signifie disponible et joignable, `0` indisponible. Le moniteur IoT Device la lit. |
+| `iot_device_up` | Disponibilité : `1` signifie disponible et joignable, `0` indisponible. Le moniteur Appareil IoT la lit. |
 | `iot_device_info` | Identité uniquement. Elle porte `device.id`, la classe, le type et le firmware, pour qu'un appareil apparaisse dans l'inventaire avant de signaler des relevés. |
 | `iot_battery_percent` | Charge de la batterie, de `0` à `100` (%). |
 | `iot_signal_strength_dbm` | Force du signal sans fil en dBm, comme le RSSI Wi-Fi, LoRa ou cellulaire. |

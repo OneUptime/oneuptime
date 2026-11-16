@@ -1202,7 +1202,7 @@ describe("the monitor overview in German", () => {
     expect(factOf(presentation, "latest-result")).toMatchObject({
       label: "Letztes Ergebnis",
       // "Up" is drawn as the German network pages and docs draw it.
-      value: "Up · 120 ms · HTTP 200",
+      value: "Up · 120\u00A0ms · HTTP 200",
       secondary: "von London",
     });
     expect(factOf(presentation, "probes")).toMatchObject({
@@ -1436,12 +1436,12 @@ describe("the latest result and the probes in the reader's digits", () => {
   };
 
   test("English: the response time grouped as English groups it", () => {
-    expect(latestOf(undefined)).toBe("Down · 2,410 ms · HTTP 503");
-    expect(latestOf("en")).toBe("Down · 2,410 ms · HTTP 503");
+    expect(latestOf(undefined)).toBe("Down · 2,410\u00A0ms · HTTP 503");
+    expect(latestOf("en")).toBe("Down · 2,410\u00A0ms · HTTP 503");
   });
 
   test("German: German grouping, the unit as German writes it", () => {
-    expect(latestOf("de")).toBe("Ausgefallen · 2.410 ms · HTTP 503");
+    expect(latestOf("de")).toBe("Ausgefallen · 2.410\u00A0ms · HTTP 503");
   });
 
   test("Persian: Persian digits and unit, set apart by bullets", () => {
@@ -1457,7 +1457,7 @@ describe("the latest result and the probes in the reader's digits", () => {
   test("Arabic: Latin digits, the unit as Arabic writes it", () => {
     const latest: string = latestOf("ar");
 
-    expect(latest).toBe("متوقف · 2,410\u00A0ملي ث · HTTP 503");
+    expect(latest).toBe("متوقف · 2,410\u00A0ملي\u00A0ث · HTTP 503");
     expect(latest).not.toMatch(/\bms\b/);
   });
 

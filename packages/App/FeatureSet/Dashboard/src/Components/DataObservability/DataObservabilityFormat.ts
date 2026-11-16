@@ -1,4 +1,5 @@
 import OneUptimeDate from "Common/Types/Date";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -16,7 +17,7 @@ export function formatRowCount(
   rows: number | null | undefined,
 ): string {
   if (rows === null || rows === undefined || !Number.isFinite(rows)) {
-    return "-";
+    return EMPTY_VALUE_MARK;
   }
 
   return translator.formatNumber(rows);
@@ -24,7 +25,7 @@ export function formatRowCount(
 
 export function formatSize(bytes: number | null | undefined): string {
   if (bytes === null || bytes === undefined || !Number.isFinite(bytes)) {
-    return "-";
+    return EMPTY_VALUE_MARK;
   }
 
   let value: number = Math.max(0, bytes);
@@ -37,7 +38,7 @@ export function formatSize(bytes: number | null | undefined): string {
 
   const digits: number = value >= 100 || unit === 0 ? 0 : 1;
 
-  return `${value.toFixed(digits)} ${BYTE_UNITS[unit]}`;
+  return `${value.toFixed(digits)}\u00A0${BYTE_UNITS[unit]}`;
 }
 
 // "about every 5 minutes", from a learned interval in seconds.

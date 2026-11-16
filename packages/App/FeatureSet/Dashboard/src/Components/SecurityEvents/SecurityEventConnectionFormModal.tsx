@@ -1136,7 +1136,7 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
       ? translator.translateTemplate("Edit connection: {{name}}", {
           name: props.connection?.name || "",
         })
-      : translationKey("Add connection");
+      : (translator.translateText("Add connection") as string);
 
   const hasOptionalSecret: boolean = Boolean(
     lockedDefinition?.secretFields.some((field: ConnectorField): boolean => {
@@ -1165,6 +1165,7 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
   return (
     <BasicFormModal<JSONObject>
       title={title}
+      isTitleTranslated={true}
       description={description}
       name={
         credentialsOnly

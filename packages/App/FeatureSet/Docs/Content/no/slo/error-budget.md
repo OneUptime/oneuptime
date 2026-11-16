@@ -80,7 +80,7 @@ Diagrammet **Nedbrenning av feilbudsjett** i **Oversikt** viser gjenværende bud
 - Et punkt registreres ved hver evaluering, hvert 5. minutt, så diagrammet til et nytt SLO er tomt til den første evalueringen.
 - Dra over diagrammet for å zoome inn på en del av vinduet. Dobbeltklikk, eller klikk på **Tilbakestill zoom**, for å se hele vinduet igjen.
 
-**Åpne målinger** åpner siden **Målinger** til SLO-et, der fanen **Feilbudsjettets historikk** går opptil 400 dager tilbake. Se [SLO-metrikker og -dashbord](/docs/slo/metrics).
+**Åpne målinger** åpner siden **Målinger** til SLO-et, der fanen **Feilbudsjettets historikk** går opptil 400 dager tilbake. Se [SLO-målinger og -dashbord](/docs/slo/metrics).
 
 ## Hvordan budsjettet kommer tilbake
 
@@ -133,8 +133,8 @@ En status sier hvor mye budsjett som er igjen, ikke hva teamet ditt gjør med de
 
 Når et SLO går over til **I faresonen** eller **Budsjett oppbrukt**, gir OneUptime eierne beskjed:
 
-- Eierne er brukerne og teammedlemmene på siden **Eiere** til SLO-et som fortsatt er medlemmer av prosjektet. Et SLO uten eiere gir i stedet prosjekteierne beskjed.
-- Hver eier får en e-post som standard, og beskjeden på alle andre kanaler vedkommende slår på for **SLO-status endret** under **Brukerinnstillinger** → **Varselinnstillinger** → **Overvåking**.
+- Eierne er brukerne og teammedlemmene på siden **Eiere** til SLO-et som fortsatt er medlemmer av prosjektet. Et SLO uten eiere gir i stedet Prosjekteierne beskjed.
+- Hver eier får en e-post som standard, og beskjeden på alle andre kanaler vedkommende slår på for **SLO-status endret** under **Brukerinnstillinger** → **Varslingsinnstillinger** → **Overvåking**.
 - Emnet i e-posten nevner statusen og SLO-et, for eksempel `[SLO At Risk] API Availability`.
 
 For at et SLO nær en grense ikke skal varsle hele tiden, får eierne høyst én beskjed i timen. En overgang til **Budsjett oppbrukt** sendes alltid, også innenfor den timen.
@@ -147,6 +147,6 @@ For at et SLO nær en grense ikke skal varsle hele tiden, får eierne høyst én
 :::cards
 - [Forbruksratevarsler og -hendelser](/docs/slo/burn-rate-alerts): Varsle teamet ditt når budsjettet brennes for fort.
 - [Feilbudsjettpolicy](/docs/slo/error-budget-policy): Skriv ned hva teamet gjør mens budsjettet tømmes.
-- [SLO-metrikker og -dashbord](/docs/slo/metrics): Vis budsjettet over tid i et diagram.
+- [SLO-målinger og -dashbord](/docs/slo/metrics): Vis budsjettet over tid i et diagram.
 - [SLO-er – Oversikt](/docs/slo/introduction): Mål, vinduer og nedetidsstatuser.
 :::

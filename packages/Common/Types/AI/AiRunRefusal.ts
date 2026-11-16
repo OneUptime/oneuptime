@@ -141,18 +141,18 @@ export const AI_RUN_REFUSALS: Readonly<Record<AiRunRefusalCode, string>> = {
     "The investigation could not be started. Try again in a moment.",
   ),
   [AiRunRefusalCode.AiOff]: translationKey(
-    "OneUptime AI is switched off for this project. A project owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.",
+    "OneUptime AI is switched off for this project. A Project Owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.",
   ),
   [AiRunRefusalCode.NoProviderToInvestigate]: translationKey(
     "This project has no LLM provider to investigate with. Add one in Project Settings > AI > LLM Providers, then try again.",
   ),
   // PROJECT_AI_CREDITS_USED_UP_MESSAGE (Utils/Project/ProjectBalance).
   [AiRunRefusalCode.AiCreditsUsedUp]: translationKey(
-    "This project's AI credits are used up. A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.",
+    "This project's AI credits are used up. A Project Owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.",
   ),
   // Ends with ProjectAiDailyLimits.getWhoCanChangeSentence().
   [AiRunRefusalCode.ProjectDailyLimitReached]: translationKey(
-    "The project reached its daily AI limit. OneUptime AI starts again at midnight UTC. A project owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI → AI Features → More settings.",
+    "The project reached its daily AI limit. OneUptime AI starts again at midnight UTC. A Project Owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI → AI Features → More settings.",
   ),
   // getRecordAiTokenLimitMessage (Types/AI/RecordAiTokenLimit), each kind.
   [AiRunRefusalCode.IncidentTokenLimitPaused]: translationKey(
@@ -190,7 +190,7 @@ export const AI_RUN_REFUSALS: Readonly<Record<AiRunRefusalCode, string>> = {
    * AI that works on the insight's kind is on (getLaneWorkingOn).
    */
   [AiRunRefusalCode.InsightsOff]: translationKey(
-    "AI Insights is switched off for this project, so no insight is triaged. A project owner or admin can turn on Watch telemetry for problems in AI → Insights → Settings.",
+    "AI Insights is switched off for this project, so no insight is triaged. A Project Owner or Project Admin can turn on Watch telemetry for problems in AI → Insights → Settings.",
   ),
   [AiRunRefusalCode.NoProviderToTriage]: translationKey(
     "This project has no LLM provider to triage with. Add one in Project Settings > AI > LLM Providers, then try again.",

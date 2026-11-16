@@ -866,7 +866,7 @@ Det dagliga paret bär bara `projectId`: siffran är projektets, och ingenting i
 
 **När aviseringar öppnas och löses.** En överskridning skrivs vid nästa körning var 5:e minut, så en avisering öppnas inom ungefär 6 minuter. Den löses 10 till 15 minuter efter att värdet har fallit under tröskeln igen, när den sista avläsningen på eller över den har lämnat fönstret på 15 minuter: de dagliga aviseringarna av sig själva runt 00:10–00:15 UTC, månadsaviseringarna vid samma tid den 1:a i månaden, eller 10 till 15 minuter efter att budgeten har höjts. En daglig gräns som förbrukas under de sista minuterna före 00:00 UTC ger kanske ingen avisering alls: dagen är över innan nästa körning kan skriva den.
 
-**Lagring och användning.** De här serierna lagras lika länge som övervakningsmått: **30 dagar** som standard, satt på en installation i egen drift av **Lagringstid för övervakningsmått (dagar)** i Admin Dashboards inställningar för **Datalagring**. De räknas inte som telemetrianvändning. Mätvärdesnamn som börjar med `oneuptime.rum.session.replay.`, oavsett stora och små bokstäver, är reserverade för dem: mätvärden som dina egna applikationer skickar under ett sådant namn, eller ger ett sådant namn med en regel i en mätvärdespipeline, kastas vid intag, och en inspelningsregel kan inte sparas med ett sådant namn som utdata.
+**Lagring och användning.** De här serierna lagras lika länge som övervakningsmätvärden: **30 dagar** som standard, satt på en installation i egen drift av **Lagringstid för övervakningsmätvärden (dagar)** i Admin Dashboards inställningar för **Datalagring**. De räknas inte som telemetrianvändning. Mätvärdesnamn som börjar med `oneuptime.rum.session.replay.`, oavsett stora och små bokstäver, är reserverade för dem: mätvärden som dina egna applikationer skickar under ett sådant namn, eller ger ett sådant namn med en regel i en mätvärdespipeline, kastas vid intag, och en inspelningsregel kan inte sparas med ett sådant namn som utdata.
 
 ## Frustrationssignaler
 
@@ -1064,7 +1064,7 @@ Var medveten om att sessionsraden går ut tillsammans med inspelningen: antalet 
 
 ### Radera sessioner
 
-För att tillgodose en raderingsbegäran skickar du in en raderingsbegäran via OneUptimes API — resursen `/rum-session-erasure-request`; det finns ännu inget formulär i instrumentpanelen för det. En begäran kräver `CreateRumSessionErasureRequest` (eller en projektägare / -administratör) och tar:
+För att tillgodose en raderingsbegäran skickar du in en raderingsbegäran via OneUptimes API — resursen `/rum-session-erasure-request`; det finns ännu inget formulär i instrumentpanelen för det. En begäran kräver `CreateRumSessionErasureRequest` (eller en Projektägare / Projektadministratör) och tar:
 
 | Fält | Värden |
 | --- | --- |
@@ -1092,7 +1092,7 @@ Eftersom märkningen når varje tjänst som en webbläsarförfrågan gick igenom
 
 ## Vem kan titta på en inspelning
 
-Att titta på en inspelning är en annan behörighet än att lista sessioner, och ingen av dem ges av Viewer-rollen för hela projektet. Projektägare och -administratörer har alla.
+Att titta på en inspelning är en annan behörighet än att lista sessioner, och ingen av dem ges av Tittare-rollen för hela projektet. Projektägare och Projektadministratörer har alla.
 
 | Behörighet | Låser upp |
 | --- | --- |

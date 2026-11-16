@@ -1,6 +1,6 @@
 # Kubernetes-agent (Helm-installasjon)
 
-OneUptimes Kubernetes-agent er et Helm-chart som samler inn metrikkene, hendelsene og pod-loggene i clusteret ditt, applikasjonsspor fanget med eBPF og operativsystemmetrikkene til hver node, og sender dem til OneUptime. Én `helm install` setter den opp, uten kodeendringer i appene dine. [Kubernetes-monitorer](/docs/monitor/kubernetes-monitor) varsler ut fra det den sender.
+OneUptimes Kubernetes-agent er et Helm-chart som samler inn målingene, hendelsene og pod-loggene i clusteret ditt, applikasjonsspor fanget med eBPF og operativsystemmålingene til hver node, og sender dem til OneUptime. Én `helm install` setter den opp, uten kodeendringer i appene dine. [Kubernetes-monitorer](/docs/monitor/kubernetes-monitor) varsler ut fra det den sender.
 
 > [!NOTE]
 > Denne siden installerer agenten med Helm, trinn for trinn, med et preset for plattformen din. Alle innstillinger, Amazon EKS-tillegget, OpenShift og Kubernetes-AI-agenten står på [Kubernetes-agent](/docs/telemetry/kubernetes-agent), den fullstendige referansen.
@@ -24,16 +24,16 @@ flowchart LR
         collector["Cluster-collector"]
         ai["Kubernetes AI-agent"]
     end
-    nodes -->|"logger, metrikker,<br/>spor"| oneuptime["OneUptime"]
-    collector -->|"metrikker,<br/>hendelser"| oneuptime
+    nodes -->|"logger, målinger,<br/>spor"| oneuptime["OneUptime"]
+    collector -->|"målinger,<br/>hendelser"| oneuptime
     ai <-->|"skrivebeskyttet<br/>kubectl"| oneuptime
 ```
 
 | Workload | Type | Hva den gjør | På som standard |
 | --- | --- | --- | --- |
-| Cluster-collector | Deployment | Clustermetrikker, Kubernetes-hendelser og de fullstendige spesifikasjonene for pods, noder og workloads, fra Kubernetes-API-et. | Ja |
-| Node-collector | DaemonSet | Pod-logger fra `/var/log/pods`, kubelet- og cAdvisor-metrikker og nodens operativsystemmetrikker. | Ja |
-| eBPF-instrumentering (OBI) | DaemonSet | HTTP-, gRPC-, SQL- og Redis-spor og forespørselsmetrikker fra hver pod, og tjenestekartet. | Ja |
+| Cluster-collector | Deployment | Clustermålinger, Kubernetes-hendelser og de fullstendige spesifikasjonene for pods, noder og workloads, fra Kubernetes-API-et. | Ja |
+| Node-collector | DaemonSet | Pod-logger fra `/var/log/pods`, kubelet- og cAdvisor-målinger og nodens operativsystemmålinger. | Ja |
+| eBPF-instrumentering (OBI) | DaemonSet | HTTP-, gRPC-, SQL- og Redis-spor og forespørselsmålinger fra hver pod, og tjenestekartet. | Ja |
 | Kubernetes AI-agent | Deployment | Lar OneUptime AI kjøre skrivebeskyttet `kubectl` mens den undersøker en hendelse eller et varsel på dette clusteret. | Ja |
 | Logg-tailer | Deployment | Pod-logger gjennom Kubernetes-API-et, der node-collectoren ikke kan lese dem. | Med presetene `gke-autopilot`, `eks-fargate` og `openshift-restricted` |
 | eBPF-profiler | DaemonSet | Kontinuerlige CPU-flammegrafer for hver prosess. | Nei |
@@ -92,11 +92,11 @@ Noen Kubernetes-plattformer lar ikke en workload montere et `hostPath`-volum ell
 
 | Preset | Brukes til | Pod-logger | På hver node |
 | --- | --- | --- | --- |
-| `standard` (standard) | Selvadministrert, **EKS on EC2**, **GKE Standard**, **AKS**, minikube, kind, k3s | Node-collectoren leser `/var/log/pods` | Kubelet-, cAdvisor- og operativsystemmetrikker |
-| `gke-autopilot` | **GKE Autopilot** | Logg-taileren leser dem gjennom Kubernetes-API-et | Kubelet- og cAdvisor-metrikker, uten `hostPath` |
+| `standard` (standard) | Selvadministrert, **EKS on EC2**, **GKE Standard**, **AKS**, minikube, kind, k3s | Node-collectoren leser `/var/log/pods` | Kubelet-, cAdvisor- og operativsystemmålinger |
+| `gke-autopilot` | **GKE Autopilot** | Logg-taileren leser dem gjennom Kubernetes-API-et | Kubelet- og cAdvisor-målinger, uten `hostPath` |
 | `eks-fargate` | **EKS Fargate** | Logg-taileren leser dem gjennom Kubernetes-API-et | Ingenting: Fargate kjører ingen DaemonSets |
-| `openshift` | **OpenShift**: OpenShift Container Platform, ROSA, ARO, OKD | Node-collectoren leser `/var/log/pods` | Kubelet-, cAdvisor- og operativsystemmetrikker |
-| `openshift-restricted` | **OpenShift**, hvis en administrator ikke vil legge til en SCC | Logg-taileren leser dem gjennom Kubernetes-API-et | Kubelet- og cAdvisor-metrikker, uten `hostPath` |
+| `openshift` | **OpenShift**: OpenShift Container Platform, ROSA, ARO, OKD | Node-collectoren leser `/var/log/pods` | Kubelet-, cAdvisor- og operativsystemmålinger |
+| `openshift-restricted` | **OpenShift**, hvis en administrator ikke vil legge til en SCC | Logg-taileren leser dem gjennom Kubernetes-API-et | Kubelet- og cAdvisor-målinger, uten `hostPath` |
 
 Er du usikker, lar du `preset` stå tom for å få `standard`. Hvis installasjonen feiler med en Pod Security-feil som nevner `hostPath`, installerer du på nytt med `gke-autopilot`, eller `eks-fargate` på EKS Fargate.
 
@@ -142,7 +142,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 ```
 :::
 
-Hvis en administrator ikke vil legge til en SCC, installerer du i stedet med `--set preset=openshift-restricted`. Chartet oppretter da ingen SCC, og hver pod kjører under `restricted-v2`: pod-logger kommer gjennom Kubernetes-API-et, og det finnes ingen operativsystemmetrikker, eBPF-spor eller profiler. Se [OpenShift](/docs/telemetry/kubernetes-agent#openshift).
+Hvis en administrator ikke vil legge til en SCC, installerer du i stedet med `--set preset=openshift-restricted`. Chartet oppretter da ingen SCC, og hver pod kjører under `restricted-v2`: pod-logger kommer gjennom Kubernetes-API-et, og det finnes ingen operativsystemmålinger, eBPF-spor eller profiler. Se [OpenShift](/docs/telemetry/kubernetes-agent#openshift).
 
 ## Merk clusteret med etiketter
 
@@ -179,7 +179,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   -f values.yaml
 ```
 
-Hver post denne agenten sender - logger, metrikker, spor og profiler - bærer da `team:payments`, `env:production` og `region:us-east-1`. Hver etikett er et ressursattributt `oneuptime.label.<key>=<value>`, og OneUptime gjør hvert attributt som begynner med `oneuptime.label.`, om til en etikett. Etiketter sammenlignes uten hensyn til store og små bokstaver, så en eksisterende etikett `Production` gjenbrukes i stedet for å bli duplisert. Agenten fjerner aldri en etikett du har lagt til i OneUptime.
+Hver post denne agenten sender - logger, målinger, spor og profiler - bærer da `team:payments`, `env:production` og `region:us-east-1`. Hver etikett er et ressursattributt `oneuptime.label.<key>=<value>`, og OneUptime gjør hvert attributt som begynner med `oneuptime.label.`, om til en etikett. Etiketter sammenlignes uten hensyn til store og små bokstaver, så en eksisterende etikett `Production` gjenbrukes i stedet for å bli duplisert. Agenten fjerner aldri en etikett du har lagt til i OneUptime.
 
 ## Pod-logger
 
@@ -191,11 +191,11 @@ Hver post denne agenten sender - logger, metrikker, spor og profiler - bærer da
 | `api` | Én logg-tailer strømmer loggen til hver container fra Kubernetes-API-et, slik `kubectl logs -f` gjør. | Virker der `hostPath` er blokkert, eller der Pod Security Standard `restricted` gjelder. | Hver containerstrøm er en langvarig tilkobling til API-serveren. Én replika håndterer noen tusen containere. |
 | `disabled` | Ingenting. | For apper som allerede sender loggene sine på en annen måte. | |
 
-For å slå av logginnsamling setter du `--set logs.enabled=false` og sender applikasjonslogger med [OpenTelemetry](/docs/telemetry/open-telemetry)-SDK-ene i stedet. Metrikker påvirkes ikke: node-collectoren fortsetter å kjøre.
+For å slå av logginnsamling setter du `--set logs.enabled=false` og sender applikasjonslogger med [OpenTelemetry](/docs/telemetry/open-telemetry)-SDK-ene i stedet. Målinger påvirkes ikke: node-collectoren fortsetter å kjøre.
 
 ### Clustere med flere operativsystemer (Windows-nodepooler)
 
-Windows-noder kjører aldri en agent-pod. Data på clusternivå om dem og podene deres kommer likevel inn, fordi de kommer fra Kubernetes-API-et: nodebetingelser, pod-faser, Kubernetes-hendelser og kube-state-metrics. Det Windows-noder mangler, er det som samles inn på noden: operativsystemmetrikker, kubelet- og cAdvisor-metrikker, eBPF-spor, profiler og, i loggmodusen `daemonset`, pod-logger.
+Windows-noder kjører aldri en agent-pod. Data på clusternivå om dem og podene deres kommer likevel inn, fordi de kommer fra Kubernetes-API-et: nodebetingelser, pod-faser, Kubernetes-hendelser og kube-state-metrics. Det Windows-noder mangler, er det som samles inn på noden: operativsystemmålinger, kubelet- og cAdvisor-målinger, eBPF-spor, profiler og, i loggmodusen `daemonset`, pod-logger.
 
 For også å samle inn loggene fra pods på Windows-noder slår du på hybridmodusen:
 
@@ -212,7 +212,7 @@ Logg-taileren kjører da ved siden av node-collectorene, bare for podene på Win
 
 ## Applikasjonsspor med eBPF
 
-Chartet kjører [OpenTelemetry eBPF Instrumentation (OBI)](https://opentelemetry.io/docs/zero-code/obi/) på hver node. OBI laster eBPF-programmer inn i Linux-kjernen og følger med på nettverkstrafikken til hver pod, så det kan gjenskape HTTP- og HTTPS-, gRPC- og SQL- og Redis-kall uten noen endring i appene dine: ingen SDK, ingen sidecar. Det sender dem til OneUptime som spor og forespørselsmetrikker.
+Chartet kjører [OpenTelemetry eBPF Instrumentation (OBI)](https://opentelemetry.io/docs/zero-code/obi/) på hver node. OBI laster eBPF-programmer inn i Linux-kjernen og følger med på nettverkstrafikken til hver pod, så det kan gjenskape HTTP- og HTTPS-, gRPC- og SQL- og Redis-kall uten noen endring i appene dine: ingen SDK, ingen sidecar. Det sender dem til OneUptime som spor og forespørselsmålinger.
 
 Tjenestene dine vises under **Produkter → Spor** og på tjenestekartet innen et minutt eller to, med `k8s.cluster.name` satt til clusterets navn, så du kan filtrere etter cluster.
 
@@ -230,8 +230,8 @@ OBI sender flere typer signaler. Hver kan slås av med `--set ebpf.features.<key
 
 | Innstilling | Standard | Hva den legger til |
 | --- | --- | --- |
-| `ebpf.features.httpMetrics` | på | HTTP- og gRPC-forespørselsmetrikker per tjeneste: forespørselsrate, latenshistogrammer og feil. |
-| `ebpf.features.spanMetrics` | på | Span-metrikker: kall og varighet per tjeneste, rute eller operasjon, span-type og status - `traces.span.metrics.calls` og `traces.span.metrics.duration` (sekunder). |
+| `ebpf.features.httpMetrics` | på | HTTP- og gRPC-forespørselsmålinger per tjeneste: forespørselsrate, latenshistogrammer og feil. |
+| `ebpf.features.spanMetrics` | på | Span-målinger: kall og varighet per tjeneste, rute eller operasjon, span-type og status - `traces.span.metrics.calls` og `traces.span.metrics.duration` (sekunder). |
 | `ebpf.features.serviceGraph` | på | Raten og latensen for hvert kall fra én tjeneste til en annen, som tegner tjenestekartet. |
 | `ebpf.features.networkMetrics` | på | Byte og pakker mellom hvert par av pods, over TCP og UDP, med Kubernetes-navnene deres. Viser hvert par av pods som snakker sammen, selv over protokoller OBI ikke kan lese. |
 | `ebpf.features.networkInterZoneMetrics` | av | Det samme mellom soner. Dobler antallet serier: slå det bare på hvis du planlegger etter sone. |
@@ -248,7 +248,7 @@ OBI fører også sporet videre gjennom et kall: når pod A kaller pod B over HTT
 | `ebpf.trackRequestHeaders` | på | Sporer forespørselsheadere i kjernen, så mottakersiden også finner `traceparent` på vanlige HTTP-servere. Har bare virkning når `contextPropagation` er på. |
 
 > [!WARNING]
-> Hver propageringsmodus endrer trafikk som allerede er underveis. For vanlig HTTP gjør OBI den utgående forespørselen større i kjernen så headeren får plass; for TLS og rå TCP legger den til et TCP-alternativ fra en Traffic Control-hook og skriver om pakken og sjekksummen. Hvis tilkoblingens bytetelling da ikke rettes nøyaktig, **desynkroniseres** strømmen: overføringer gjennom en proxy som nginx henger halvveis, så snart et svar passerer rundt 64 KB, til tilkoblingen får tidsavbrudd. Små forespørsler fortsetter å virke, så det ser ut som en feil i applikasjonen eller proxyen. Ingen kjerneversjon får omskrivingen til å forsvinne. Hvis store overføringer gjennom proxyen din henger etter at du har installert agenten, eller pods begynner å feile på grunn av et service mesh eller en eBPF-nettverksplugin, slår du av propageringen: spor, forespørselsmetrikker og tjenestekartet virker alle uten den, og en OpenTelemetry-SDK i tjenestene dine knytter spor sammen helt uten omskriving i kjernen. En agent som er oppgradert med `--reuse-values`, beholder verdien den hadde, og i tidligere charts var propageringen slått av: oppgrader med `--reset-then-reuse-values` for å ta i bruk den nye standardverdien.
+> Hver propageringsmodus endrer trafikk som allerede er underveis. For vanlig HTTP gjør OBI den utgående forespørselen større i kjernen så headeren får plass; for TLS og rå TCP legger den til et TCP-alternativ fra en Traffic Control-hook og skriver om pakken og sjekksummen. Hvis tilkoblingens bytetelling da ikke rettes nøyaktig, **desynkroniseres** strømmen: overføringer gjennom en proxy som nginx henger halvveis, så snart et svar passerer rundt 64 KB, til tilkoblingen får tidsavbrudd. Små forespørsler fortsetter å virke, så det ser ut som en feil i applikasjonen eller proxyen. Ingen kjerneversjon får omskrivingen til å forsvinne. Hvis store overføringer gjennom proxyen din henger etter at du har installert agenten, eller pods begynner å feile på grunn av et service mesh eller en eBPF-nettverksplugin, slår du av propageringen: spor, forespørselsmålinger og tjenestekartet virker alle uten den, og en OpenTelemetry-SDK i tjenestene dine knytter spor sammen helt uten omskriving i kjernen. En agent som er oppgradert med `--reuse-values`, beholder verdien den hadde, og i tidligere charts var propageringen slått av: oppgrader med `--reset-then-reuse-values` for å ta i bruk den nye standardverdien.
 
 ### Knytt logger til spor
 
@@ -355,14 +355,14 @@ Profilering krever **Linux 5.10** eller nyere og en privilegert pod med nodens p
 
 | Innstilling | Standard | Hva den legger til |
 | --- | --- | --- |
-| `hostMetrics.enabled` | på | Hver nodes operativsystemmetrikker fra `/proc` og `/sys`: diskens I/O-køer, filsystemenes inoder, feil på nettverksgrensesnitt, paging og load average. Kjører i node-collectoren, uten ekstra pods. |
+| `hostMetrics.enabled` | på | Hver nodes operativsystemmålinger fra `/proc` og `/sys`: diskens I/O-køer, filsystemenes inoder, feil på nettverksgrensesnitt, paging og load average. Kjører i node-collectoren, uten ekstra pods. |
 | `kubeletstats.utilizationMetrics.enabled` | på | CPU og minne for containere og pods i prosent av request og limit, som malene Pod CPU Saturating Container Limit og Pod Memory Saturating Container Limit leser. En container uten limit (eller request) får ingen av disse seriene, og en pod bare når hver container i den har en. |
-| `kubeletstats.volumeMetrics.enabled` | på | Ledig og total plass for hver PVC (`k8s.volume.available`, `k8s.volume.capacity`), for egne grafer og metrikkmonitorer: ingen innebygd mal leser dem. Én serie per PVC per pod. |
+| `kubeletstats.volumeMetrics.enabled` | på | Ledig og total plass for hver PVC (`k8s.volume.available`, `k8s.volume.capacity`), for egne grafer og målingsmonitorer: ingen innebygd mal leser dem. Én serie per PVC per pod. |
 | `cadvisor.enabled` | på | CPU-struping og OOM-avslutninger fra hver kubelets `/metrics/cadvisor`: `container_cpu_cfs_throttled_seconds_total`, `container_cpu_cfs_periods_total` og `container_oom_events_total`, og ingenting annet. |
 | `kubeStateMetrics.enabled` | av | Pod-faser (Pending, Terminating), pods som ikke kan planlegges, containeres venteårsaker (CrashLoopBackOff, ImagePullBackOff) og bruk av ressurskvoter, fra kube-state-metrics. `kubeStateMetrics.mode: bundled` (standarden) kjører en liten kube-state-metrics for deg; `external` leser en du allerede kjører, på `kubeStateMetrics.endpoint`. |
 | `auditLogs.enabled` | av | Kubernetes' revisjonslogg, `/var/log/kubernetes/audit.log`: hver forespørsel til API-et, fra hvem og på hva. Bare selvadministrerte clustere: administrerte (EKS, GKE, AKS, DOKS) sender den til skyleverandøren. |
-| `csi.enabled` | av | Metrikker fra CSI-lagringsdrivere, fra pods med etiketten `app=csi-driver` eller `app.kubernetes.io/component=csi-driver`: tider for å koble til og fra volumer, klargjøringsfeil, IOPS. |
-| `coreDns.enabled` | av | CoreDNS' metrikker på `:9153/metrics`: spørringsrate, latens, treff i hurtigbufferen og feil. |
+| `csi.enabled` | av | Målinger fra CSI-lagringsdrivere, fra pods med etiketten `app=csi-driver` eller `app.kubernetes.io/component=csi-driver`: tider for å koble til og fra volumer, klargjøringsfeil, IOPS. |
+| `coreDns.enabled` | av | CoreDNS' målinger på `:9153/metrics`: spørringsrate, latens, treff i hurtigbufferen og feil. |
 | `controlPlane.enabled` | av | API-serveren på adressen sin inne i klyngen, og etcd, scheduleren og controller manageren på endepunktene du oppgir ([Aktiver overvåking av kontrollplanet](/docs/telemetry/kubernetes-agent#aktiver-overvåking-av-kontrollplanet)). Bare selvadministrerte clustere: administrerte eksponerer dem ikke. |
 | `cost.enabled` | av | Hva hver workload koster. Se [Kubernetes-kostnadsobserverbarhet](/docs/telemetry/kubernetes-cost). |
 
@@ -377,13 +377,13 @@ Profilering krever **Linux 5.10** eller nyere og en privilegert pod med nodens p
 | `oneuptime.labels` | `{}` | Etiketter for hver post fra denne agenten. Se [Merk clusteret med etiketter](#merk-clusteret-med-etiketter). |
 | `namespaceFilters.rules` | Holder `kube-system` utenfor `podLogs` og `ebpfDiscovery` | Regler som tar med eller utelukker namespaces, for `podLogs`, `ebpfDiscovery`, `metrics` og `traces`. Mønstre kan bruke `*`, og utelukkelse vinner alltid. |
 | `filters.logs.minSeverity` | `""` | Forkaster pod-logglinjer under dette nivået: `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` eller `FATAL`. |
-| `filters.metrics.exclude` | `[]` | Metrikknavn som skal forkastes. |
+| `filters.metrics.exclude` | `[]` | Målingsnavn som skal forkastes. |
 | `sampling.traces.percentage` | `100` | Andelen spor som skal beholdes, fra 0 til 100. Hele spor beholdes eller forkastes. |
 | `logs.enabled` | `true` | Samler inn pod-logger. |
 | `logs.mode` | (fra `preset`) | `daemonset`, `api` eller `disabled`. Overstyrer presetet. |
 | `logs.windowsPods.enabled` | `false` | Følger også pods på Windows-noder. Se [Clustere med flere operativsystemer](#clustere-med-flere-operativsystemer-windows-nodepooler). |
 | `logs.api.replicas` | `1` | Replikaer av logg-taileren, i modusen `api`. |
-| `ebpf.enabled` | `true` | eBPF-spor og forespørselsmetrikker. Se [Applikasjonsspor med eBPF](#applikasjonsspor-med-ebpf). |
+| `ebpf.enabled` | `true` | eBPF-spor og forespørselsmålinger. Se [Applikasjonsspor med eBPF](#applikasjonsspor-med-ebpf). |
 | `profiling.enabled` | `false` | CPU-flammegrafer. Se [Kontinuerlig CPU-profilering](#kontinuerlig-cpu-profilering). |
 | `kubeStateMetrics.enabled` | `false` | Clustertilstand fra kube-state-metrics. |
 | `aiAgent.enabled` | `true` | Kubernetes AI-agenten. Se [Kubernetes AI-agent](/docs/telemetry/kubernetes-agent#kubernetes-ai-agent) for hva den har lov til å gjøre. |
@@ -411,7 +411,7 @@ helm get values kubernetes-agent --namespace oneuptime-agent -o yaml > values.ya
 Ikke oppgrader med `--reuse-values`: den beholder også standardverdiene fra chartet du oppgraderer fra, så standardverdiene i et nyere chart, blant dem eBPF-imaget, aldri tas i bruk. Når en release kjører på standardverdiene til et eldre chart, slutter notatene Helm skriver etter installasjonen eller oppgraderingen med en advarsel og kommandoen som retter det.
 
 > [!WARNING]
-> **eBPF-span-metrikker har nye navn.** `ebpf.features.spanMetrics` sender nå `traces.span.metrics.calls` og `traces.span.metrics.duration` (sekunder) i stedet for `traces_spanmetrics_calls_total` og `traces_spanmetrics_latency`: de samme seriene, under navnene OBI beholder (det har faset ut de gamle). Et dashbord, en graf eller en metrikkmonitor på et gammelt navn får ingen nye data etter oppgraderingen, uten noen feil - flytt det til det nye navnet, og oppdater enhver oppføring i `filters.metrics` som nevner et gammelt navn.
+> **eBPF-span-målinger har nye navn.** `ebpf.features.spanMetrics` sender nå `traces.span.metrics.calls` og `traces.span.metrics.duration` (sekunder) i stedet for `traces_spanmetrics_calls_total` og `traces_spanmetrics_latency`: de samme seriene, under navnene OBI beholder (det har faset ut de gamle). Et dashbord, en graf eller en målingsmonitor på et gammelt navn får ingen nye data etter oppgraderingen, uten noen feil - flytt det til det nye navnet, og oppdater enhver oppføring i `filters.metrics` som nevner et gammelt navn.
 
 ## Avinstallering
 
@@ -500,8 +500,8 @@ helm install kubernetes-agent-ns-a oneuptime/kubernetes-agent \
 ## Neste steg
 
 :::cards
-- [Kubernetes-overvåking](/docs/monitor/kubernetes-monitor): Varsle ut fra det agenten sender.
+- [Kubernetes-monitor](/docs/monitor/kubernetes-monitor): Varsle ut fra det agenten sender.
 - [Kubernetes-agent](/docs/telemetry/kubernetes-agent): Filtrering, sampling, AI-agenten og å holde datamengden nede.
 - [Kubernetes-kostnadsobserverbarhet](/docs/telemetry/kubernetes-cost): Se hva hver workload koster.
-- [Trase-overvåking](/docs/monitor/traces-monitor): Varsle ut fra sporene eBPF fanger.
+- [Trase-monitor](/docs/monitor/traces-monitor): Varsle ut fra sporene eBPF fanger.
 :::

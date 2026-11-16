@@ -28,7 +28,7 @@ flowchart LR
 ## Voordat u begint
 
 - **Telemetrie die binnenkomt.** De servicekaart heeft traces nodig: zie [OpenTelemetry](/docs/telemetry/open-telemetry). De infrastructuurweergave heeft een host of een cluster nodig die gegevens stuurt: zie de [Kubernetes-agent](/docs/telemetry/kubernetes-agent). De netwerkweergave heeft netwerkapparaten nodig: zie [Netwerkapparaat-monitor](/docs/monitor/network-device-monitor).
-- **Een rol die telemetrie leest.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member of Telemetry Viewer, of een aangepaste rol met de machtiging Read Inventory Item.
+- **Een rol die telemetrie leest.** Projecteigenaar, Projectbeheerder, Projectlid, Kijker, Telemetriebeheerder, Telemetrielid of Telemetriekijker, of een aangepaste rol met de machtiging Read Inventory Item.
 
 ## Topologie openen
 
@@ -51,12 +51,12 @@ Elke service toont zijn status, berekend uit de aanroepen die hij in de laatste 
 | Status | Wanneer |
 | --- | --- |
 | **Gezond** | Hooguit 1% van de ontvangen aanroepen mislukte. |
-| **Some errors** | Meer dan 1% en minder dan 5% mislukte. |
-| **High error rate** | 5% of meer mislukte. |
-| **Entry point** | Hij ontving geen aanroepen, maar deed er wel: een webfrontend of een geplande taak. |
-| **No calls observed** | Hij deed noch ontving een aanroep. |
+| **Enkele fouten** | Meer dan 1% en minder dan 5% mislukte. |
+| **Hoog foutpercentage** | 5% of meer mislukte. |
+| **Ingangspunt** | Hij ontving geen aanroepen, maar deed er wel: een webfrontend of een geplande taak. |
+| **Geen aanroepen waargenomen** | Hij deed noch ontving een aanroep. |
 
-Een service met een actief incident of een actieve waarschuwing toont in plaats daarvan hoeveel, en net als een service met **Some errors** of een **High error rate** telt hij als een die aandacht vraagt.
+Een service met een actief incident of een actieve waarschuwing toont in plaats daarvan hoeveel, en net als een service met de status **Enkele fouten** of **Hoog foutpercentage** telt hij als een die aandacht vraagt.
 
 :::steps
 ### De services vinden die aandacht vragen

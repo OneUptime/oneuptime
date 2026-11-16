@@ -63,7 +63,7 @@ Apri una dashboard, e il suo menu laterale ha queste pagine. Ogni sezione tranne
 | **Branding** | Titolo della pagina, descrizione, logo, tema e favicon della dashboard pubblica. |
 | **Domini personalizzati** | Ospitare la dashboard pubblica sul tuo dominio. |
 | **Impostazioni** | Duplicare, esportare o archiviare la dashboard. |
-| **Registri di audit** | Ogni modifica fatta alla dashboard, e chi l'ha fatta. |
+| **Log di audit** | Ogni modifica fatta alla dashboard, e chi l'ha fatta. |
 | **Elimina** | Eliminare la dashboard per sempre. |
 
 ## Creare la tua prima dashboard
@@ -94,7 +94,7 @@ L'obiettivo: una pagina per il servizio di checkout, con la sua latenza, il tass
 - **I monitor e la telemetria** sono da dove arrivano i dati. Ogni metrica, log e traccia che invii può finire in un widget.
 - **Gli incidenti e gli avvisi** compaiono nei widget **Elenco incidenti** ed **Elenco avvisi**. Una dashboard si limita a mostrarli: ci lavori sulle loro pagine.
 - **Le pagine di stato** dicono ai tuoi clienti se il tuo servizio funziona. Le dashboard mostrano nel dettaglio come si comporta. Le due cose lavorano fianco a fianco.
-- **I workflow** agiscono su ciò che succede. Le dashboard sono dove lo leggi.
+- **I flussi di lavoro** agiscono su ciò che succede. Le dashboard sono dove lo leggi.
 
 ## Passaggi successivi
 

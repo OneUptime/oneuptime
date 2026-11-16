@@ -165,8 +165,8 @@ const SUBSCRIBER_READERS: Array<[string, Array<Permission>, boolean]> = [
 
 // Roles that may change subscribers - from the dashboard, never by the id here.
 const SUBSCRIBER_EDITORS: Array<[string, Array<Permission>]> = [
-  ["a project owner", [Permission.ProjectOwner]],
-  ["a project admin", [Permission.ProjectAdmin]],
+  ["a Project Owner", [Permission.ProjectOwner]],
+  ["a Project Admin", [Permission.ProjectAdmin]],
   ["a project member", [Permission.ProjectMember]],
   ["a status page admin", [Permission.StatusPageAdmin]],
 ];

@@ -10,6 +10,8 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import Card from "Common/UI/Components/Card/Card";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
@@ -21,15 +23,12 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import API from "Common/UI/Utils/API/API";
 import { APP_API_URL } from "Common/UI/Config";
-import WhatsAppTemplateMessages, {
-  WhatsAppTemplateId,
+import {
   WhatsAppTemplateIds,
   WhatsAppTemplateLanguage,
 } from "Common/Types/WhatsApp/WhatsAppTemplates";
-import {
-  TemplatePlaceholder,
-  findTemplatePlaceholders,
-} from "Common/Utils/TemplatePlaceholders";
+import { getReadingDirection } from "Common/Types/ReadingDirection";
+import { buildWhatsAppSetupMarkdown } from "./WhatsAppSetupGuide";
 import { useTranslation } from "react-i18next";
 
 /*
@@ -41,190 +40,11 @@ import { useTranslation } from "react-i18next";
 const advancedSection: FormFieldCollapsibleSection<GlobalConfig> =
   getAdvancedFormSection<GlobalConfig>();
 
-type ToFriendlyName = (value: string) => string;
-
-const toFriendlyName: ToFriendlyName = (value: string): string => {
-  return value
-    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-    .replace(/_/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-};
-
-type ExtractTemplateVariables = (template: string) => Array<string>;
-
-const extractTemplateVariables: ExtractTemplateVariables = (
-  template: string,
-): Array<string> => {
-  const placeholders: Array<TemplatePlaceholder> =
-    findTemplatePlaceholders(template);
-
-  if (placeholders.length === 0) {
-    return [];
-  }
-
-  const uniqueVariables: Set<string> = new Set<string>();
-
-  for (const placeholder of placeholders) {
-    // What stands between the braces: the text without its "{{" and "}}".
-    const variable: string = placeholder.inner.trim();
-
-    if (variable) {
-      uniqueVariables.add(variable);
-    }
-  }
-
-  return Array.from(uniqueVariables).sort((a: string, b: string) => {
-    return a.localeCompare(b);
-  });
-};
-
-type BuildWhatsAppSetupMarkdown = () => string;
-
-const buildWhatsAppSetupMarkdown: BuildWhatsAppSetupMarkdown = (): string => {
-  const templateKeys: Array<keyof typeof WhatsAppTemplateIds> = Object.keys(
-    WhatsAppTemplateIds,
-  ) as Array<keyof typeof WhatsAppTemplateIds>;
-
-  const appApiBaseUrl: string = APP_API_URL.toString().replace(/\/$/, "");
-  const primaryWebhookUrl: string = `${appApiBaseUrl}/notification/whatsapp/webhook`;
-
-  const description: string =
-    "Follow these steps to connect Meta WhatsApp with OneUptime so notifications can be delivered via WhatsApp.";
-
-  const prerequisitesList: Array<string> = [
-    "Meta Business Manager admin access for the WhatsApp Business Account.",
-    "A WhatsApp Business phone number approved for API messaging.",
-    "Admin access to OneUptime with permission to edit global notification settings.",
-    "A webhook verify token string that you'll configure identically in Meta and OneUptime.",
-  ];
-
-  const setupStepsList: Array<string> = [
-    "Sign in to the [Meta Business Manager](https://business.facebook.com/) with admin access to your WhatsApp Business Account.",
-    "From **Business Settings → Accounts → WhatsApp Accounts**, create or select the account that owns your sender phone number.",
-    "In Buisness Portfolio, create a system user and assign it to the WhatsApp Business Account with the role of **Admin**.",
-    "Generate a token for this system user and this will be your long-lived access token. Make sure to select the **whatsapp_business_management** and **whatsapp_business_messaging** permissions when generating the token.",
-    "Paste the access token and phone number ID into the **Meta WhatsApp Settings** card above, then save. The Business Account ID, App ID and App Secret from the next steps go under **More fields** in the same form.",
-    "For the **Business Account ID**, go to **Business Settings → Business Info** (or **Business Settings → WhatsApp Accounts → Settings**) and copy the **WhatsApp Business Account ID** value.",
-    "To locate the **App ID** and **App Secret**, open [Meta for Developers](https://developers.facebook.com/apps/), select your WhatsApp app, then navigate to **Settings → Basic**. The App ID is shown at the top; click **Show** next to **App Secret** to reveal and copy it.",
-    "Create each template listed below in the Meta WhatsApp Manager. Make sure the template name, language, and variables match exactly. You can however change the content to your preference. Please make sure it's approved by Meta.",
-    "Send a test notification from OneUptime to confirm that WhatsApp delivery succeeds.",
-  ];
-
-  const prerequisitesMarkdown: string = prerequisitesList
-    .map((item: string) => {
-      return `- ${item}`;
-    })
-    .join("\n");
-
-  const setupStepsMarkdown: string = setupStepsList
-    .map((item: string, index: number) => {
-      return `${index + 1}. ${item}`;
-    })
-    .join("\n");
-
-  const tableRows: string = templateKeys
-    .map((enumKey: keyof typeof WhatsAppTemplateIds) => {
-      const templateId: WhatsAppTemplateId = WhatsAppTemplateIds[enumKey];
-      const friendlyName: string = toFriendlyName(enumKey.toString());
-      const templateMessage: string = WhatsAppTemplateMessages[templateId];
-      const language: string = WhatsAppTemplateLanguage[templateId] || "en";
-      const variables: Array<string> =
-        extractTemplateVariables(templateMessage);
-      const variableList: string =
-        variables.length > 0
-          ? variables
-              .map((variable: string) => {
-                return `\`${variable}\``;
-              })
-              .join(", ")
-          : "_None_";
-
-      return `| ${friendlyName} | \`${templateId}\` | ${language} | ${variableList} |`;
-    })
-    .join("\n");
-
-  const templateBodies: string = templateKeys
-    .map((enumKey: keyof typeof WhatsAppTemplateIds) => {
-      const templateId: WhatsAppTemplateId = WhatsAppTemplateIds[enumKey];
-      const friendlyName: string = toFriendlyName(enumKey.toString());
-      const templateMessage: string = WhatsAppTemplateMessages[templateId];
-      const language: string = WhatsAppTemplateLanguage[templateId] || "en";
-      const variables: Array<string> =
-        extractTemplateVariables(templateMessage);
-      const variableMarkdown: string =
-        variables.length > 0
-          ? variables
-              .map((variable: string) => {
-                return `- \`${variable}\``;
-              })
-              .join("\n")
-          : "_None_";
-      const variablesHeading: string = variables.length
-        ? `**Variables (${variables.length})**`
-        : "**Variables**";
-
-      return [
-        `#### ${friendlyName}`,
-        "",
-        `**Template Name:** \`${templateId}\``,
-        `**Language:** ${language}`,
-        "",
-        variablesHeading,
-        variableMarkdown,
-        "",
-        "**Body**",
-        "```plaintext",
-        templateMessage,
-        "```",
-        "",
-        "---",
-      ].join("\n");
-    })
-    .join("\n\n");
-
-  const templateSummaryTable: string = [
-    "| Friendly Name | Template Name | Language | Variables |",
-    "| --- | --- | --- | --- |",
-    tableRows,
-  ]
-    .filter(Boolean)
-    .join("\n");
-
-  const webhookSection: string = [
-    "### Configure Meta Webhook Subscription",
-    "1. In the OneUptime Admin Dashboard, open **Settings → WhatsApp → Meta WhatsApp Settings**, expand **More fields** and enter a strong value in **Webhook Verify Token**. Save the form so the encrypted token is stored in Global Config.",
-    "2. Keep that verify token handy-Meta does not generate one for you. You'll paste the exact same value when configuring the callback.",
-    "3. In [Meta for Developers](https://developers.facebook.com/apps/), select your WhatsApp app and navigate to **WhatsApp → Configuration → Webhooks**.",
-    `4. Click **Configure**, then supply one of the following callback URLs when Meta asks for your endpoint:\n   - \`${primaryWebhookUrl}\`\n `,
-    "5. Paste the verify token from step 1 into Meta's **Verify Token** field and submit. Meta will call the callback URL and expect that value to match before it approves the subscription.",
-    "6. After verification succeeds, subscribe to the **messages** field (and any other WhatsApp webhook categories you need) so delivery status updates are forwarded to OneUptime.",
-    "7. Save the **App Secret** under **More fields** as well: Meta signs every webhook call with it, and OneUptime refuses calls whose signature it cannot check.",
-  ]
-    .filter(Boolean)
-    .join("\n\n");
-
-  return [
-    description,
-    "### Prerequisites",
-    prerequisitesMarkdown,
-    "### Setup Steps",
-    setupStepsMarkdown,
-    webhookSection,
-    "### Required WhatsApp Templates",
-    templateSummaryTable,
-    "### Template Bodies",
-    "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.",
-    templateBodies,
-  ]
-    .filter(Boolean)
-    .join("\n\n");
-};
-
-const whatsappSetupMarkdown: string = buildWhatsAppSetupMarkdown();
-
 const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
+  const translator: Translator = useTranslator();
+  // The guide in the reader's language (#8677), laid out the way it reads.
+  const whatsappSetupMarkdown: string = buildWhatsAppSetupMarkdown(translator);
   const [isSendingTest, setIsSendingTest] = useState<boolean>(false);
   const [testError, setTestError] = useState<string>("");
   const [testSuccess, setTestSuccess] = useState<string>("");
@@ -232,6 +52,7 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
   return (
     <Page
       title={t("pages.settings.title")}
+      isTitleTranslated={true}
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),
@@ -501,7 +322,10 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
         title={t("pages.settings.whatsapp.setupCardTitle")}
         description={t("pages.settings.whatsapp.setupCardDescription")}
       >
-        <MarkdownViewer text={whatsappSetupMarkdown} />
+        <MarkdownViewer
+          text={whatsappSetupMarkdown}
+          readingDirection={getReadingDirection(translator.language)}
+        />
       </Card>
     </Page>
   );

@@ -103,7 +103,7 @@ OneUptime bruker to sett med hendelser, og de gjør ulike jobber.
 
 Hvis du ikke abonnerer på noen av disse, kobler GitHub-appen fortsatt til repositorier og åpner fortsatt rettingenes pull requests fra OneUptime — den svarer bare aldri på noe som skrives i GitHub. Det er den vanligste årsaken til «boten ignorerer meg». Se [Arbeid med OneUptime fra GitHub](/docs/ai/github-app) for hvilke kommandoer som finnes, og hvem som får gi dem.
 
-Andre hendelser (**Push**, **Workflow run**) bekreftes og ignoreres; å abonnere på dem slår ikke på varsler eller CI/CD-automatisering.
+Andre hendelser (**Push**, **Workflow run**) bekreftes og ignoreres; å abonnere på dem slår ikke på varslinger eller CI/CD-automatisering.
 
 ### Velg hvor appen kan installeres
 
@@ -239,7 +239,7 @@ Når GitHub sender deg tilbake og installasjonen ikke ble koblet til, viser **Ko
 | Siden sier | Hva du gjør |
 | --- | --- |
 | **"Denne tilkoblingslenken er ugyldig, har utløpt eller er allerede brukt. Start på nytt."** | Lenken virker én gang, i 15 minutter, i nettleseren som startet den. Start på nytt fra **Kode**, og fullfør på GitHub innen 15 minutter i samme nettleser. Å installere appen fra siden dens på GitHub kobler den ikke til noe prosjekt: en installasjon som er gjort der, kobler du til med **Koble til en eksisterende installasjon**. |
-| **"Du har ikke tillatelse til å legge til kode-repositorier i dette prosjektet."** | Tilkoblingen krever tillatelse til å legge til koderepositorier (se [Koble til repositorier](#koble-til-repositorier)). Be en prosjektadministrator om å gi den. Den kontrolleres på nytt når GitHub sender deg tilbake, så en tillatelse som er fjernet i mellomtiden, avslutter også tilkoblingen her. |
+| **"Du har ikke tillatelse til å legge til kode-repositorier i dette prosjektet."** | Tilkoblingen krever tillatelse til å legge til koderepositorier (se [Koble til repositorier](#koble-til-repositorier)). Be en Prosjektadministrator om å gi den. Den kontrolleres på nytt når GitHub sender deg tilbake, så en tillatelse som er fjernet i mellomtiden, avslutter også tilkoblingen her. |
 | **"Å koble til GitHub krever ...-abonnementet."** | På OneUptime Cloud krever koderepositorier abonnementet setningen nevner. Oppgrader prosjektets abonnement, og koble til på nytt. |
 | **"GitHub bekreftet ikke hvem som installerte appen, så installasjonen kunne ikke kontrolleres."** | Slå på **Request user authorization (OAuth) during installation** i GitHub-appens innstillinger (se [Opprett GitHub-appen](#opprett-github-appen)), og koble til på nytt. |
 | **"OneUptime kunne ikke bekrefte at GitHub-kontoen din kan administrere denne installasjonen."** | GitHub-kontoen som fullførte installasjonen, administrerer den ikke (se [Koble til repositorier](#koble-til-repositorier) for hvem som gjør det). Appen forblir installert på GitHub, så be noen som administrerer installasjonen, om å koble den til med **Koble til en eksisterende installasjon**. |

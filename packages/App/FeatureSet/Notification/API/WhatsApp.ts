@@ -1,3 +1,4 @@
+import { getProviderDeliveryStatusMessage } from "Common/Types/OnCallDutyPolicy/OnCallSentLine";
 import WhatsAppService from "../Services/WhatsAppService";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
@@ -287,13 +288,16 @@ export function buildFailedDeliveryMessage(data: {
   messageId: string;
   statusPayload: JSONObject;
 }): string {
-  let message: string = `Delivery status: ${WhatsAppStatus.Failed}. Message ID: ${data.messageId}.`;
+  const status: {
+    status: string;
+    messageId: string;
+  } = { status: WhatsAppStatus.Failed, messageId: data.messageId };
 
   const errors: JSONArray | undefined =
     (data.statusPayload["errors"] as JSONArray | undefined) || undefined;
 
   if (!Array.isArray(errors) || errors.length === 0) {
-    return message;
+    return getProviderDeliveryStatusMessage(status);
   }
 
   const firstError: JSONObject = (errors[0] || {}) as JSONObject;
@@ -327,11 +331,10 @@ export function buildFailedDeliveryMessage(data: {
     parts.push(details);
   }
 
-  if (parts.length > 0) {
-    message += ` Provider error: ${parts.join(": ")}.`;
-  }
-
-  return message;
+  return getProviderDeliveryStatusMessage({
+    ...status,
+    ...(parts.length > 0 ? { providerError: parts.join(": ") } : {}),
+  });
 }
 
 /*

@@ -92,7 +92,7 @@ Het overzicht boven aan de pagina **Escalatieregels** toont de hele ladder: wann
 
 ### Hoe iedere persoon wordt bereikt
 
-Iedere persoon die een niveau oproept, wordt bereikt zoals diens eigen bereikbaarheidsregels voorschrijven: **Gebruikersinstellingen** > **Hoe ik bereikbaar ben**, met een tabblad voor incidenten, incidentepisodes, waarschuwingen en waarschuwingsepisodes, en per ernst een kaart die laat zien welke meldingsmethode na hoeveel tijd wordt geprobeerd. Een projectbeheerder kan de regels van een lid bekijken en wijzigen onder **Gebruikers** > het lid > **Hoe ik bereikbaar ben**. Zie [Hoe ik bereikbaar ben](/docs/notifications/on-call-rules).
+Iedere persoon die een niveau oproept, wordt bereikt zoals diens eigen bereikbaarheidsregels voorschrijven: **Gebruikersinstellingen** > **Hoe ik bereikbaar ben**, met een tabblad voor incidenten, incidentepisodes, waarschuwingen en waarschuwingsepisodes, en per ernst een kaart die laat zien welke meldingsmethode na hoeveel tijd wordt geprobeerd. Een Projectbeheerder kan de regels van een lid bekijken en wijzigen onder **Gebruikers** > het lid > **Hoe ik bereikbaar ben**. Zie [Hoe ik bereikbaar ben](/docs/notifications/on-call-rules).
 
 ```mermaid title="Wie een niveau oproept en hoe iedere persoon wordt bereikt"
 flowchart TB
@@ -165,7 +165,7 @@ Een oproep die niet wordt verstuurd, zegt waarom in de **Bereikbaarheidslogboeke
 - het saldo van het project kon hem niet betalen, en wie saldo kan toevoegen;
 - het kanaal staat uit in het project, en wie het kan aanzetten.
 
-De eigenaren van het project krijgen daar één keer een e-mail over, totdat het saldo is aangevuld of het kanaal weer aan staat.
+De Projecteigenaren krijgen daar één keer een e-mail over, totdat het saldo is aangevuld of het kanaal weer aan staat.
 
 Een oproep die de meldingsdienst van OneUptime niet kon bereiken, zegt `Could not reach the Notification service to send this (ECONNREFUSED).`, met de code van de netwerkfout tussen de haakjes. Een oproep waarvan het verzenden nooit klaar was, bijvoorbeeld omdat een server tijdens het verzenden opnieuw opstartte, zegt `Sending did not finish within 15 minutes, so this notification may not have been sent.` Als het verzenden toch nog klaar is, vervangt het resultaat dat bericht.
 
@@ -176,7 +176,7 @@ Op OneUptime Cloud wordt elke SMS, oproep, WhatsApp- en Telegram-bericht betaald
 - Oproepen blijven uitgaan op het resterende saldo zolang automatisch bijvullen de kaart niet kan belasten.
 
 > [!IMPORTANT]
-> SMS, telefoonoproepen, WhatsApp en Telegram staan uit in een nieuw project: op OneUptime Cloud wordt elk bericht betaald uit het saldo van het project, en een zelfgehoste installatie heeft eerst een Twilio-account, een sms- en belgateway of een ingestelde Telegram-bot nodig. Zolang een kanaal uit staat, kan niemand in het project er een methode op toevoegen. Alleen een projecteigenaar of iemand met de rol **Factureringsbeheerder** of de machtiging **Manage Billing** kan er een aanzetten, in de kaart **Meldingskanalen** onder **Projectinstellingen > Meldingen > Meldingskanalen** — een projectbeheerder kan dat niet. Alle anderen krijgen overal waar een kanaal uit staat precies te horen wie het kan aanzetten: boven hun eigen lijst met methoden op dat kanaal, op hun installatiechecklist en in het bericht dat ze krijgen wanneer iets het kanaal nodig heeft.
+> SMS, telefoonoproepen, WhatsApp en Telegram staan uit in een nieuw project: op OneUptime Cloud wordt elk bericht betaald uit het saldo van het project, en een zelfgehoste installatie heeft eerst een Twilio-account, een sms- en belgateway of een ingestelde Telegram-bot nodig. Zolang een kanaal uit staat, kan niemand in het project er een methode op toevoegen. Alleen een Projecteigenaar of iemand met de rol **Factureringsbeheerder** of de machtiging **Manage Billing** kan er een aanzetten, in de kaart **Meldingskanalen** onder **Projectinstellingen > Meldingen > Meldingskanalen** — een Projectbeheerder kan dat niet. Alle anderen krijgen overal waar een kanaal uit staat precies te horen wie het kan aanzetten: boven hun eigen lijst met methoden op dat kanaal, op hun installatiechecklist en in het bericht dat ze krijgen wanneer iets het kanaal nodig heeft.
 
 ## Escaleren naar de volgende persoon in de rotatie
 

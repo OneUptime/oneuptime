@@ -107,6 +107,11 @@ const PRODUCT_NAMES: Array<ProductName> = [
     once: "Red",
     twice: "Rojo",
   },
+  /*
+   * Italian's "Log" read "Registro" looked up again until Italian took "log"
+   * for every log (#8628): its file below keeps that word, so the nav is
+   * still held to one lookup of the Logs title.
+   */
   {
     language: "it",
     key: "navbar.items.logsTitle",
@@ -253,6 +258,9 @@ beforeAll(async () => {
 
   spanish[spanish[HIDDEN_ROW_TITLE] as string] = MENU_WORD_TWICE;
 
+  // The word Italian's "Log" read before #8628 (PRODUCT_NAMES).
+  const italian: Locale = { ...readDashboardLocale("it"), Log: "Registro" };
+
   await i18next.use(initReactI18next).init({
     lng: "es",
     fallbackLng: "en",
@@ -260,7 +268,7 @@ beforeAll(async () => {
       en: { translation: readDashboardLocale("en") },
       es: { translation: spanish },
       nl: { translation: readDashboardLocale("nl") },
-      it: { translation: readDashboardLocale("it") },
+      it: { translation: italian },
       de: { translation: readDashboardLocale("de") },
     },
     interpolation: { escapeValue: false },

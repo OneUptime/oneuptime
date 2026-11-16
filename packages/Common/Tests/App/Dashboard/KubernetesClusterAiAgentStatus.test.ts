@@ -887,7 +887,7 @@ describe("the meta line", () => {
 
   test("the previous Runner has no agent version but the same scope reading", () => {
     expect(getAiAgentMetaParts(legacyStatus())).toEqual([
-      "last seen 2 minutes ago",
+      "last seen 2\u00A0minutes ago",
       "kubectl v1.30.0",
       "Read-only",
     ]);
@@ -1181,7 +1181,9 @@ describe("the Needs attention card", () => {
   });
 
   test("tells a user without permission who to ask", () => {
-    expect(ASK_PROJECT_ADMIN_TEXT).toBe("Ask a project owner or admin.");
+    expect(ASK_PROJECT_ADMIN_TEXT).toBe(
+      "Ask a Project Owner or Project Admin.",
+    );
   });
 });
 

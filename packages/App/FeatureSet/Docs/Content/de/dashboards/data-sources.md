@@ -24,7 +24,7 @@ flowchart TB
 ## Bevor Sie beginnen
 
 - **Ein Tarif, der sie enthält.** In OneUptime Cloud braucht das Erstellen und Ändern von Datenquellen den Tarif **Growth**. Das Löschen funktioniert in jedem Tarif.
-- **Eine Berechtigung, sie hinzuzufügen.** Projektinhaber und -administratoren können Datenquellen hinzufügen; alle anderen brauchen `CreateDataSource`, dazu `EditDataSource` und `DeleteDataSource`, um sie zu ändern und zu entfernen. Alle, die die Datenquellen des Projekts lesen dürfen, Mitglieder und Betrachter eingeschlossen, sehen die Daten ihrer Widgets.
+- **Eine Berechtigung, sie hinzuzufügen.** Projektinhaber und Projektadministratoren können Datenquellen hinzufügen; alle anderen brauchen `CreateDataSource`, dazu `EditDataSource` und `DeleteDataSource`, um sie zu ändern und zu entfernen. Alle, die die Datenquellen des Projekts lesen dürfen, Mitglieder und Betrachter eingeschlossen, sehen die Daten ihrer Widgets.
 - **Ein reines Lesekonto.** Dashboards lesen immer nur. Verbinden Sie Datenbanken mit einem Konto, das nur lesen darf, und HTTP-Quellen mit einem Token, das nur abfragen darf.
 - **Ein Weg hinein.** Der API-Server von OneUptime verbindet sich mit Ihrem System, also muss er es erreichen können: Welche Adressen abgelehnt werden, steht unter [Sicherheit](#sicherheit).
 
@@ -77,7 +77,7 @@ Bearbeiten Sie ein Dashboard, klicken Sie auf **Widget hinzufügen** und wählen
 
 - Wählen Sie die **Datenquelle** und schreiben Sie die **Abfrage**. Der Editor nennt die Abfragesprache und zeigt ein Beispiel für den Typ.
 - In einem Diagramm legt **Abfrage hinzufügen** weitere Abfragen auf dieselben Achsen, und **Legende (optional)** benennt jede Reihe nach ihren Labels: `{{instance}} — errors` schreibt das Label `instance` der Reihe nach vorn.
-- Bei einem Wert oder Messwert macht **Reduce** aus den Punkten eine Zahl: den letzten Wert (Standard), den ersten, den Durchschnitt, die Summe, das Minimum oder das Maximum. **Einheit** fügt ein Suffix hinzu und skaliert die bekannten: `Bytes` wird zu 1.5 MB, `ms` zu 2.4 s.
+- Bei einem Wert oder Messwert macht **Zusammenfassen** aus den Punkten eine Zahl: den letzten Wert (Standard), den ersten, den Durchschnitt, die Summe, das Minimum oder das Maximum. **Einheit** fügt ein Suffix hinzu und skaliert die bekannten: `Bytes` wird zu 1.5 MB, `ms` zu 2.4 s.
 - In einer Tabelle funktioniert jede reine Leseabfrage, und ihre Zeilen erscheinen so, wie sie zurückkommen.
 
 ## Eine Abfrage schreiben

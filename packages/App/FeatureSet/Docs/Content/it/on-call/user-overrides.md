@@ -70,7 +70,7 @@ Una sostituzione già terminata non si può più modificare: il suo **Modifica**
 
 Due sostituzioni per la stessa persona non possono sovrapporsi sulla stessa policy, né quando sono entrambe globali. Il modulo lo dice appena vengono scelti gli orari, con **Modifica quella sostituzione** per modificare invece quella. Una può terminare quando inizia la successiva.
 
-La sostituzione propria di una policy può sovrapporsi a una globale della stessa persona: su quella policy si usa la sua finché valgono entrambe, e il modulo lo dice. Un avviso inviato senza policy, da un workflow o dalla chat, segue solo le sostituzioni globali.
+La sostituzione propria di una policy può sovrapporsi a una globale della stessa persona: su quella policy si usa la sua finché valgono entrambe, e il modulo lo dice. Un avviso inviato senza policy, da un flusso di lavoro o dalla chat, segue solo le sostituzioni globali.
 
 Le sostituzioni che si sovrapponevano già prima di questa regola restano come sono. Entrambe sono segnate con **Si sovrappone**, che dice quale si usa: quella che indica un sostituto prima di un salto, poi quella che inizia prima, poi quella aggiunta per prima.
 
@@ -126,7 +126,7 @@ Controllate dove è stata aggiunta la sostituzione. Una sulla pagina **Sostituzi
 :::
 
 :::details Neanche il sostituto è stato avvisato
-Viene raggiunto tramite le sue regole di reperibilità personali e i suoi metodi verificati. Cercatelo in **Reperibilità → Prontezza** e controllate l'esecuzione nei **Registri di esecuzione** della policy.
+Viene raggiunto tramite le sue regole di reperibilità personali e i suoi metodi verificati. Cercatelo in **Reperibilità → Prontezza** e controllate l'esecuzione nei **Log di esecuzione** della policy.
 :::
 
 :::details Non riesco ad aggiungere una sostituzione

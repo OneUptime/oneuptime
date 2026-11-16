@@ -16,11 +16,11 @@
 
 ```mermaid title="一個工作流程，一個 GitLab issue"
 flowchart TB
-    declared["事件已宣佈"] --> workflow["工作流程：<br/>On Create Incident"]
+    declared["事件已宣佈"] --> workflow["工作流程：<br/>建立事件時"]
     workflow -->|"POST issues"| issue["GitLab issue"]
 ```
 
-每個新事件都會讓工作流程執行一次。它的 **API Post (JSON)** 區塊會把事件的標題和描述傳送到專案的 issues，並使用存取權杖簽名。
+每個新事件都會讓工作流程執行一次。它的 **API 呼叫 POST (JSON)** 區塊會把事件的標題和描述傳送到專案的 issues，並使用存取權杖簽名。
 
 ## 開始之前
 
@@ -47,11 +47,11 @@ flowchart TB
 
 ### 新增觸發器
 
-點選虛線的 **選擇啟動此工作流程的方式** 區塊，然後選擇 **On Create Incident**。點選觸發器：它的 **Fields to pass on** 已經包含 **標題**，所以點選 **新增欄位** 並選擇 **描述** 和 **Incident Number With Prefix**。
+點選虛線的 **選擇啟動此工作流程的方式** 區塊，然後選擇 **建立事件時**。點選觸發器：它的 **要傳遞的欄位** 已經包含 **標題**，所以點選 **新增欄位** 並選擇 **描述** 和 **Incident Number With Prefix**。
 
 ### 開啟 issue
 
-點選 **新增元件**，新增一個 **API Post (JSON)** 區塊，然後把觸發器的 **Success** 點連接到它。把它的 **URL** 設為 `https://gitlab.com/api/v4/projects/12345678/issues`，並用你的專案 ID 替換 `12345678`。在 **更多欄位** 下，把它的 **Request Headers** 設為：
+點選 **新增元件**，新增一個 **API 呼叫 POST (JSON)** 區塊，然後把觸發器的 **成功** 點連接到它。把它的 **URL** 設為 `https://gitlab.com/api/v4/projects/12345678/issues`，並用你的專案 ID 替換 `12345678`。在 **更多欄位** 下，把它的 **請求標頭** 設為：
 
 ```json
 {
@@ -59,7 +59,7 @@ flowchart TB
 }
 ```
 
-把 **Request Body** 設為：
+把 **請求內文** 設為：
 
 ```json
 {
@@ -71,7 +71,7 @@ flowchart TB
 
 ### 測試，然後啟用
 
-點選 **執行工作流程**，在 **事件** 中選擇一個測試事件，然後執行它。**API Post (JSON)** 步驟會顯示一個包含新 issue 的 `201` 回應，其中帶有它的 `iid` 和 `web_url`。然後在 **建構器** 頂部開啟 **已啟用**。
+點選 **執行工作流程**，在 **事件** 中選擇一個測試事件，然後執行它。**API 呼叫 POST (JSON)** 步驟會顯示一個包含新 issue 的 `201` 回應，其中帶有它的 `iid` 和 `web_url`。然後在 **建構器** 頂部開啟 **已啟用**。
 :::
 
 該區塊傳送的是 JSON，所以不需要 `Content-Type` 標頭。GitLab 會建立它沒見過的標籤，所以 `incident` 和 `oneuptime` 無需事先設定。事件解決後 issue 仍保持開啟，因為後續工作通常比事件持續得更久。
@@ -81,11 +81,11 @@ flowchart TB
 - **你自己的 GitLab。** 改為把請求傳送到你的伺服器：`https://gitlab.example.com/api/v4/projects/12345678/issues`。位於私有網路位址上的伺服器需要一個由管理員允許這樣做的自行託管 OneUptime：請參閱 [對外網路存取](/docs/workflows/configuration#對外網路存取)。
 - **用專案路徑代替 ID。** 路徑可以代替 ID 使用，其中的 `/` 寫作 `%2F`：`projects/your-group%2Fyour-project/issues`。URL 會完全按寫法傳送，所以請自己進行編碼。
 - **指派它。** 在正文中新增 `"assignee_ids": [42]` 或 `"due_date": "2026-12-31"`，或者新增 `"confidential": true`，只讓專案成員看到它。
-- **只針對部分事件。** 在觸發器和 API 區塊之間放一個 **If / Else** 區塊，只在它的 **Yes** 一側開啟 issue，例如只針對某一種嚴重程度。
+- **只針對部分事件。** 在觸發器和 API 區塊之間放一個 **如果 / 否則** 區塊，只在它的 **是** 一側開啟 issue，例如只針對某一種嚴重程度。
 
 ## 疑難排解
 
-當 GitLab 拒絕請求時，**API Post (JSON)** 步驟會走 **Error**。執行中的 **Response Status** 和 **Response Body** 會說明原因。
+當 GitLab 拒絕請求時，**API 呼叫 POST (JSON)** 步驟會走 **錯誤**。執行中的 **回應狀態** 和 **回應內文** 會說明原因。
 
 :::details GitLab 傳回 401
 權杖錯誤、已過期或已被吊銷。請建立一個新權杖，並替換 `GITLAB_TOKEN` 的內容。

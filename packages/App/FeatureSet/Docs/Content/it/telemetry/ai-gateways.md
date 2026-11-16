@@ -92,7 +92,7 @@ litellm --config config.yaml
 
 ### Fai passare una richiesta
 
-Chiama il proxy una volta, poi controlla AI / LLM come descritto in [Verifica che le chiamate arrivino](#verifica-che-le-chiamate-arrivino).
+Chiama il proxy una volta, poi controlla IA / LLM come descritto in [Verifica che le chiamate arrivino](#verifica-che-le-chiamate-arrivino).
 :::
 
 | Variabile | Valore | Note |
@@ -199,7 +199,7 @@ services:
 - Portkey invia OTLP su HTTP solo in JSON, che OneUptime accetta senza un collector in mezzo.
 - Ogni chiamata è uno span chiamato `{operation} {model}`, come `chat gpt-4o`, sotto il servizio `portkey`, con `gen_ai.provider.name`, il modello richiesto e quello servito, i conteggi dei token, `gen_ai.conversation.id`, e i messaggi in `gen_ai.input.messages` e `gen_ai.output.messages`.
 - Prompt e risposte completi sono sempre inclusi. Maschera ciò che serve con le regole di pulizia in **Tracce → Impostazioni**.
-- Ogni chiamata viene inviata da sola dopo la risposta, senza raggruppamento e senza nuovi tentativi: un export fallito è perso. Trattalo come osservabilità, non come registro di audit.
+- Ogni chiamata viene inviata da sola dopo la risposta, senza raggruppamento e senza nuovi tentativi: un export fallito è perso. Trattalo come osservabilità, non come log di audit.
 - Quando il tuo `x-portkey-trace-id` è un ID di traccia valido (32 caratteri esadecimali), Portkey lo riusa, così gli span del gateway si uniscono alla traccia della tua app.
 
 Portkey segnala questo export come sperimentale. Se le variabili non hanno effetto, confronta la documentazione attuale di Portkey con la versione del tuo gateway.

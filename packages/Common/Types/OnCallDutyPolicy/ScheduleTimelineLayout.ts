@@ -1,5 +1,10 @@
 import OneUptimeDate from "../Date";
+import { createTranslator, DEFAULT_LANGUAGE, Translator } from "../Translator";
+import { formatCompactDuration } from "../../Utils/Milliseconds";
 import moment from "moment-timezone";
+
+// English, as the server and a test read the timeline without a translator.
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
 
 /*
  * The geometry of the schedule timeline, kept free of React so every rule
@@ -442,13 +447,20 @@ export default class ScheduleTimelineLayout {
     )}`;
   }
 
-  // "7d", "3d 12h", "8h", "8h 30m", "45m", "<1m".
-  public static formatDuration(milliseconds: number): string {
+  /*
+   * "7d", "3d 12h", "8h", "8h 30m", "45m", "<1m" in English, the reader's
+   * short units and digits with their Translator ("3 T. 12 Std.", "۸ ساعت
+   * ۳۰ دقیقه"; #8617). The timeline's bars and legend pass theirs.
+   */
+  public static formatDuration(
+    milliseconds: number,
+    translator: Translator = ENGLISH,
+  ): string {
     if (
       !Number.isFinite(milliseconds) ||
       milliseconds < MILLISECONDS_PER_MINUTE
     ) {
-      return "<1m";
+      return `<${formatCompactDuration(translator, { minutes: 1 })}`;
     }
 
     const totalMinutes: number = Math.round(
@@ -459,14 +471,20 @@ export default class ScheduleTimelineLayout {
     const minutes: number = totalMinutes % 60;
 
     if (days > 0) {
-      return hours > 0 ? `${days}d ${hours}h` : `${days}d`;
+      return formatCompactDuration(
+        translator,
+        hours > 0 ? { days, hours } : { days },
+      );
     }
 
     if (hours > 0) {
-      return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+      return formatCompactDuration(
+        translator,
+        minutes > 0 ? { hours, minutes } : { hours },
+      );
     }
 
-    return `${minutes}m`;
+    return formatCompactDuration(translator, { minutes });
   }
 
   /*

@@ -30,7 +30,7 @@ En sond som har förlorat sin egen nätverksanslutning rapporterar inget resulta
 
 ## Innan du börjar
 
-- **En roll som kan skapa monitorer**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member, eller en anpassad roll med behörigheten Create Monitor.
+- **En roll som kan skapa monitorer**: Projektägare, Projektadministratör, Projektmedlem, Monitoradministratör eller Monitormedlem, eller en anpassad roll med behörigheten Create Monitor.
 - **En sond som når värden och porten.** Projektets standardsonder väljs för varje ny monitor. En tjänst i ett privat nätverk behöver en [anpassad sond](/docs/probe/custom-probe) i det nätverket.
 
 ## Skapa en SSL-certifikatmonitor
@@ -93,8 +93,8 @@ Med två eller fler filter avgör **Matchningsvillkor** om **Alla** måste match
 
 En ny SSL-certifikatmonitor börjar med tre kriterier, så den varnar dig innan ett certifikat går ut utan några inställningar alls:
 
-1. **Certifikatet är inte giltigt** — certifikatet har gått ut, har återkallats av sin utfärdare, är självsignerat, utfärdat för ett annat värdnamn eller av en utfärdare som inte är betrodd, eller kunde inte kontrolleras eftersom slutpunkten inte svarade. Monitorn markeras som **Offline** och en incident med namnet "_monitor name_ certificate is not valid" skapas. Dess grundorsak säger vilket av dessa fall det var, och för ett återkallat certifikat när och varför utfärdaren återkallade det. Incidenten löser sig själv när certifikatet är giltigt igen.
-2. **Certifikatet går snart ut** — certifikatet är giltigt men går ut om 14 dagar eller mindre. Ett **larm** med namnet "_monitor name_ certificate expires soon" skapas.
+1. **Certifikatet är inte giltigt** — certifikatet har gått ut, har återkallats av sin utfärdare, är självsignerat, utfärdat för ett annat värdnamn eller av en utfärdare som inte är betrodd, eller kunde inte kontrolleras eftersom slutpunkten inte svarade. Monitorn markeras som **Offline** och en incident med namnet "Certifikatet för _monitornamn_ är ogiltigt" skapas. Dess grundorsak säger vilket av dessa fall det var, och för ett återkallat certifikat när och varför utfärdaren återkallade det. Incidenten löser sig själv när certifikatet är giltigt igen.
+2. **Certifikatet går snart ut** — certifikatet är giltigt men går ut om 14 dagar eller mindre. Ett **larm** med namnet "Certifikatet för _monitornamn_ löper snart ut" skapas.
 3. **Certifikatet är giltigt** — monitorn markeras som **Fungerar**.
 
 Varningen "går snart ut" är ett larm, inte en incident: det visas inte på dina statussidor, det kallar inte in någon om du inte lägger till en jourpolicy på det, och det ändrar inte monitorns status. Det använder projektets andra larmallvarlighetsgrad, **Låg** i ett nytt projekt. När det förnyade certifikatet plockas upp är monitorn tillbaka på "Certifikatet är giltigt", och larmet löser sig själv.

@@ -224,7 +224,7 @@ Vedi [Topologia](/docs/telemetry/topology).
 
 Un obiettivo di affidabilità per ciò che monitori, come essere disponibile il 99,9% del tempo su 30 giorni. OneUptime misura ogni SLO rispetto ai suoi monitor ogni 5 minuti.
 
-Altri nomi: **Service Level Objective**. Vedi [Panoramica degli SLO](/docs/slo/introduction).
+Altri nomi: **Obiettivo del livello di servizio**. Vedi [Panoramica degli SLO](/docs/slo/introduction).
 
 ### Budget di errore
 
@@ -266,9 +266,9 @@ Altri nomi: **Tracciamento delle eccezioni**, `/telemetry-exception`. Vedi [Ecce
 
 ### Insight IA
 
-Problemi che OneUptime trova nella tua telemetria prima che scatti qualsiasi avviso: eccezioni nuove o in aumento, picchi di log di errore, tracce più lente, derive delle metriche e deploy che hanno peggiorato le cose. Gli insight non avvisano mai nessuno e non aprono mai incidenti; attendono in una casella finché qualcuno non li guarda. La pagina **Informazioni** nella sezione IA di un prodotto o di un record è ciò che OneUptime AI ha imparato lì.
+Problemi che OneUptime trova nella tua telemetria prima che scatti qualsiasi avviso: eccezioni nuove o in aumento, picchi di log di errore, tracce più lente, derive delle metriche e deploy che hanno peggiorato le cose. Gli insight non avvisano mai nessuno e non aprono mai incidenti; attendono in una casella finché qualcuno non li guarda. La pagina **Insight** nella sezione IA di un prodotto o di un record è ciò che OneUptime AI ha imparato lì.
 
-Altri nomi: **Informazioni**. Vedi [AI SRE](/docs/ai/ai-sre#insight-rilevamento-proattivo).
+Altri nomi: **Insight**. Vedi [AI SRE](/docs/ai/ai-sre#insight-rilevamento-proattivo).
 
 ### Eventi di sicurezza
 
@@ -284,7 +284,7 @@ Altri nomi: **Caso**. Vedi [Casi di sicurezza e playbook (SOAR)](/docs/telemetry
 
 ## Telemetria e dashboard
 
-### Registri
+### Log
 
 Le righe che scrivono i tuoi servizi, host e agenti, in cui cerchi con l'esploratore log e che tieni sotto controllo con un monitor log.
 
@@ -344,7 +344,7 @@ Vedi [Condivisione e dashboard pubbliche](/docs/dashboards/sharing).
 
 Un'automazione senza codice: blocchi su una tela che vengono eseguiti quando scatta il loro trigger, per esempio per pubblicare un messaggio su Slack quando viene dichiarato un incidente, o per chiamare un altro strumento.
 
-Vedi [Panoramica dei workflow](/docs/workflows/index).
+Vedi [Panoramica dei flussi di lavoro](/docs/workflows/index).
 
 ### Runbook
 
@@ -436,7 +436,7 @@ Vedi [Concetti fondamentali](/docs/introduction/core-concepts#i-tipi-di-regola).
 
 ### Ruolo
 
-Quattro cose diverse: le autorizzazioni che un team concede, come Project Owner o Project Admin; un **Ruolo personalizzato** che componi a partire dalle autorizzazioni; un **Ruolo dell'incidente**, la parte che qualcuno svolge in un incidente; e un **Network Device Role**, cosa fa un dispositivo sulla tua rete.
+Quattro cose diverse: le autorizzazioni che un team concede, come Proprietario del progetto o Amministratore del progetto; un **Ruolo personalizzato** che componi a partire dalle autorizzazioni; un **Ruolo dell'incidente**, la parte che qualcuno svolge in un incidente; e un **Network Device Role**, cosa fa un dispositivo sulla tua rete.
 
 Vedi [Utenti, team e autorizzazioni](/docs/permissions/index).
 
@@ -491,7 +491,7 @@ Vedi [Impostazioni notifiche](/docs/notifications/notification-settings).
 ## Passaggi successivi
 
 :::cards
-- [Quale usare?](/docs/introduction/which-one): Incidente o avviso, workflow o runbook, e gli altri elementi simili fianco a fianco.
+- [Quale usare?](/docs/introduction/which-one): Incidente o avviso, flussi di lavoro o runbook, e gli altri elementi simili fianco a fianco.
 - [Concetti fondamentali](/docs/introduction/core-concepts): Come si collegano i pezzi, in una sola pagina.
 - [Guida rapida](/docs/introduction/quickstart): Metti in pratica queste parole in quindici minuti.
 :::

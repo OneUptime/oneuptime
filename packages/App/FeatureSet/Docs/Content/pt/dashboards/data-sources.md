@@ -24,7 +24,7 @@ flowchart TB
 ## Antes de começar
 
 - **Um plano que a inclua.** No OneUptime Cloud, criar e alterar fontes de dados exige o plano **Growth**. Excluir uma funciona em todos os planos.
-- **Uma permissão para adicioná-las.** Os proprietários e administradores do projeto podem adicionar fontes de dados; os demais precisam de `CreateDataSource`, com `EditDataSource` e `DeleteDataSource` para alterá-las e removê-las. Todos que podem ler as fontes de dados do projeto, inclusive membros e visualizadores, veem os dados dos widgets delas.
+- **Uma permissão para adicioná-las.** Os Proprietários do projeto e Administradores do projeto podem adicionar fontes de dados; os demais precisam de `CreateDataSource`, com `EditDataSource` e `DeleteDataSource` para alterá-las e removê-las. Todos que podem ler as fontes de dados do projeto, inclusive membros e visualizadores, veem os dados dos widgets delas.
 - **Uma conta somente leitura.** Os painéis só leem. Conecte os bancos de dados com uma conta que só possa ler, e as fontes HTTP com um token que só possa consultar.
 - **Um caminho de acesso.** É o servidor de API do OneUptime que se conecta ao seu sistema, então ele precisa conseguir alcançá-lo: veja [Segurança](#segurança) para os endereços que são recusados.
 
@@ -50,7 +50,7 @@ Abra **Produtos → Painéis**, expanda **Configurações** no menu lateral e cl
 
 ### Escolha o tipo
 
-Clique em **Criar: Data Source**. A caixa de diálogo **Choose a Data Source Type** agrupa os tipos pelo que eles guardam: métricas, logs, bancos de dados, busca e APIs. Clique em um.
+Clique em **Criar: Fonte de dados**. A caixa de diálogo **Choose a Data Source Type** agrupa os tipos pelo que eles guardam: métricas, logs, bancos de dados, busca e APIs. Clique em um.
 
 ### Dê um nome a ela
 
@@ -58,15 +58,15 @@ Em **Informações básicas**, dê a ela um **Nome**, como "Prometheus de produ�
 
 ### Diga onde ela está
 
-Em **Conexão**, uma fonte HTTP recebe a **URL** em que responde. Um banco de dados recebe o seu **Database Host**, a sua **Database Port** (deixe vazia para 5432, 3306, 1433 ou 8123) e o seu **Nome do Banco de Dados**.
+Em **Conexão**, uma fonte HTTP recebe a **URL** em que responde. Um banco de dados recebe o seu **Host do banco de dados**, a sua **Porta do banco de dados** (deixe vazia para 5432, 3306, 1433 ou 8123) e o seu **Nome do Banco de Dados**.
 
 ### Diga como entrar
 
-Em **Autenticação**, informe um **Nome de usuário** e uma **Senha** ou, para uma fonte HTTP, um **Token de API**, enviado como token bearer. **Mais campos** contém **Custom HTTP Headers**, como `{ "X-Scope-OrgID": "tenant-1" }`, e **Additional Options**: `sslEnabled` e `sslRejectUnauthorized` para bancos de dados, e `elasticsearchIndex` para o Elasticsearch, que sem ele lê todos os índices (`*`).
+Em **Autenticação**, informe um **Nome de usuário** e uma **Senha** ou, para uma fonte HTTP, um **Token de API**, enviado como token bearer. **Mais campos** contém **Cabeçalhos HTTP personalizados**, como `{ "X-Scope-OrgID": "tenant-1" }`, e **Opções adicionais**: `sslEnabled` e `sslRejectUnauthorized` para bancos de dados, e `elasticsearchIndex` para o Elasticsearch, que sem ele lê todos os índices (`*`).
 
 ### Teste-a
 
-Clique em **Criar: Data Source** e depois em **Testar** na linha dela. O OneUptime se conecta com os dados que você informou, e diz se funcionou ou o que deu errado.
+Clique em **Criar: Fonte de dados** e depois em **Testar** na linha dela. O OneUptime se conecta com os dados que você informou, e diz se funcionou ou o que deu errado.
 :::
 
 Para alterar uma fonte de dados depois, abra-a pela lista. **Editar** em **Data Source Details** altera tudo menos os segredos; **Atualizar credenciais** substitui a senha, o token ou os cabeçalhos, e deixa como estavam os campos que você deixar vazios; **Testar** verifica de novo.
@@ -75,9 +75,9 @@ Para alterar uma fonte de dados depois, abra-a pela lista. **Editar** em **Data 
 
 Edite um painel, clique em **Adicionar widget** e escolha um widget do grupo Fontes de dados externas: um **Gráfico**, um **Valor**, um **Medidor** ou uma **Tabela**. Nas configurações dele:
 
-- Escolha a **Data Source** e escreva a **Consulta**. O editor indica a linguagem de consulta e mostra um exemplo para o tipo.
+- Escolha a **Fonte de dados** e escreva a **Consulta**. O editor indica a linguagem de consulta e mostra um exemplo para o tipo.
 - Num gráfico, **Adicionar consulta** sobrepõe mais consultas nos mesmos eixos, e **Legend (optional)** dá nome a cada série a partir dos rótulos dela: `{{instance}} — errors` escreve na frente o rótulo `instance` da série.
-- Num valor ou num medidor, **Reduce** transforma os pontos em um único número: o último valor (o padrão), o primeiro, a média, a soma, o mínimo ou o máximo. **Unidade** adiciona um sufixo, e ajusta a escala das unidades conhecidas: `Bytes` aparece como 1.5 MB, e `ms` como 2.4 s.
+- Num valor ou num medidor, **Reduzir** transforma os pontos em um único número: o último valor (o padrão), o primeiro, a média, a soma, o mínimo ou o máximo. **Unidade** adiciona um sufixo, e ajusta a escala das unidades conhecidas: `Bytes` aparece como 1.5 MB, e `ms` como 2.4 s.
 - Numa tabela, qualquer consulta somente leitura funciona, e as linhas aparecem como chegam.
 
 ## Escrever uma consulta
@@ -162,14 +162,14 @@ As consultas de intervalo do Prometheus e do Loki pedem cerca de 250 pontos ao l
 ## Segurança
 
 - **O SQL continua somente leitura.** Uma consulta precisa ser uma única instrução que comece com `SELECT`, `WITH`, `SHOW`, `EXPLAIN`, `DESCRIBE` ou `DESC`. Palavras que gravam ou alteram uma sessão, como `INSERT`, `UPDATE`, `DELETE`, `DROP`, `INTO` ou `SET`, são recusadas em qualquer lugar fora de strings e de nomes entre aspas, então coloque entre aspas uma coluna com o nome de uma delas. Escreva uma aspa dentro de uma string como duas aspas (`''`): uma barra invertida antes de uma aspa é recusada. As sessões do PostgreSQL, do MySQL e do ClickHouse também são somente leitura. O SQL Server não tem sessão somente leitura, então conecte-o com um login somente leitura.
-- **As credenciais são somente gravação.** **Senha**, **Token de API** e **Custom HTTP Headers** são criptografados em repouso, e a API nunca os retorna, nem para você.
+- **As credenciais são somente gravação.** **Senha**, **Token de API** e **Cabeçalhos HTTP personalizados** são criptografados em repouso, e a API nunca os retorna, nem para você.
 - **Os endereços são verificados.** Endereços de loopback, de link local (onde ficam os metadados da nuvem) e outros endereços reservados são recusados em todos os casos. Endereços privados são recusados no OneUptime Cloud, e permitidos numa instalação auto-hospedada, a menos que `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` seja `true`: veja [Acesso à rede privada](/docs/self-hosted/private-network-access).
 - **Os painéis públicos nunca as executam.** Os widgets de Fontes de dados externas ficam fora de um [painel público](/docs/dashboards/sharing), com consultas e tudo.
 
 ## Solução de problemas
 
 :::details Testar diz que não consegue conectar
-Verifique a URL, ou o host e a porta, a partir de onde o OneUptime roda: um firewall, um endereço privado no OneUptime Cloud ou um banco de dados que só escuta na própria máquina parecem iguais daqui. Para um banco de dados que exige TLS, adicione `{ "sslEnabled": true }` em **Additional Options**.
+Verifique a URL, ou o host e a porta, a partir de onde o OneUptime roda: um firewall, um endereço privado no OneUptime Cloud ou um banco de dados que só escuta na própria máquina parecem iguais daqui. Para um banco de dados que exige TLS, adicione `{ "sslEnabled": true }` em **Opções adicionais**.
 :::
 
 :::details "Only read-only queries are allowed"

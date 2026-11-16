@@ -4,6 +4,7 @@ import OneUptimeDate from "../../../Types/Date";
 import Dictionary from "../../../Types/Dictionary";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
+import { RANGE_END, RANGE_START } from "../Filters/RangeEnds";
 import { translationKey } from "../../Utils/TranslateTemplate";
 import Icon from "../Icon/Icon";
 import Input, { InputType } from "../Input/Input";
@@ -26,6 +27,8 @@ export interface ComponentProps {
    */
   initialValue?: InBetween<Date> | undefined;
   title?: string | undefined;
+  // The title is in the reader's words already, drawn as given (Modal's isTitleTranslated).
+  isTitleTranslated?: boolean | undefined;
   description?: string | undefined;
   onClose: () => void;
   onSave: (value: InBetween<Date>) => void;
@@ -160,6 +163,7 @@ const CustomTimeRangeModal: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title={props.title || "Custom Time Range"}
+      isTitleTranslated={Boolean(props.title) && props.isTitleTranslated}
       description={
         props.description ||
         "Choose the exact start and end date & time of the data you want to see."
@@ -217,7 +221,7 @@ const CustomTimeRangeModal: FunctionComponent<ComponentProps> = (
                 icon={IconProp.Calendar}
                 className="h-4 w-4 text-gray-400"
               />
-              {translateString("From")}
+              {translateString(RANGE_START)}
             </label>
             <Input
               id={startFieldId}
@@ -246,7 +250,7 @@ const CustomTimeRangeModal: FunctionComponent<ComponentProps> = (
                 icon={IconProp.Calendar}
                 className="h-4 w-4 text-gray-400"
               />
-              {translateString("To")}
+              {translateString(RANGE_END)}
             </label>
             <Input
               id={endFieldId}
@@ -269,13 +273,17 @@ const CustomTimeRangeModal: FunctionComponent<ComponentProps> = (
             className="rounded-lg border border-gray-200 bg-white p-3"
           >
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-500">{translateString("From")}</span>
+              <span className="text-gray-500">
+                {translateString(RANGE_START)}
+              </span>
               <span className="font-medium text-gray-900">
                 {formatDateTime(startDate!)}
               </span>
             </div>
             <div className="mt-2 flex items-center justify-between text-sm">
-              <span className="text-gray-500">{translateString("To")}</span>
+              <span className="text-gray-500">
+                {translateString(RANGE_END)}
+              </span>
               <span className="font-medium text-gray-900">
                 {formatDateTime(endDate!)}
               </span>

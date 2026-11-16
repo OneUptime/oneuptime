@@ -125,8 +125,8 @@ const CASES: Array<AgreementCase> = [
     nativeUnit: "By",
     sample: 1073741824,
     threshold: "1000000000",
-    expectedValue: "1.07 GB",
-    expectedThreshold: "1 GB",
+    expectedValue: "1.07\u00A0GB",
+    expectedThreshold: "1\u00A0GB",
   },
   {
     name: "milliseconds rescale to seconds",
@@ -134,8 +134,8 @@ const CASES: Array<AgreementCase> = [
     nativeUnit: "ms",
     sample: 1500,
     threshold: "1000",
-    expectedValue: "1.5 sec",
-    expectedThreshold: "1 sec",
+    expectedValue: "1.5\u00A0sec",
+    expectedThreshold: "1\u00A0sec",
   },
   {
     name: "a fraction metric reads as a percentage",

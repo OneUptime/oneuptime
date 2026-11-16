@@ -1,4 +1,5 @@
 import StorageArrayResourceModel from "Common/Models/DatabaseModels/StorageArrayResource";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
@@ -14,6 +15,22 @@ import {
   getStorageArrayMetricById,
 } from "Common/Types/Monitor/StorageArrayMetricCatalog";
 import { formatStorageArrayLag } from "./StorageArrayHealth";
+import {
+  getGlobalTranslator,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import {
+  formatDurationInUnit,
+  formatMilliseconds,
+} from "../../../Utils/Milliseconds";
+import {
+  formatReaderFigure,
+  writeFigureInLanguage,
+} from "Common/Types/DateLanguage";
+import {
+  getReadingDirection,
+  setApartInSentence,
+} from "Common/Types/ReadingDirection";
 
 /*
  * Shared helpers for the Storage Array list/detail pages. The pages read
@@ -147,12 +164,36 @@ export function formatStatusLabel(status: string | null | undefined): string {
     .join(" ");
 }
 
-export function formatBytes(bytes: number | null | undefined): string {
+/*
+ * THE STORAGE ARRAYS PAGES' FIGURES, IN THE READER'S DIGITS (#8272).
+ *
+ * A volume's size, its latency, its IOPS and its share were written with
+ * toFixed: "3.5 TiB", "2.35 ms", "1.2K/s" on every page, so a Persian reader
+ * who clicked a volume showing "۳٫۵ TiB" on a dashboard widget
+ * (StorageArrayWidgetData) landed on a page that said "3.5 TiB". Each figure
+ * below is written in the reader's digits, decimal sign and percent sign,
+ * with the decimals it always had - "۳٫۵ TiB", "3,5 TiB", "۹۲٫۴٪", "۴٫۲:۱" -
+ * the unit, the scale letter and the "/s" kept as written. The reader is
+ * the page's (getGlobalTranslator) unless a translator is handed in, as a
+ * list column's getElement does not; English reads exactly as it always
+ * did, and so does any caller outside a page, where no language is set.
+ */
+const writeInLanguage: (english: string, translator: Translator) => string = (
+  english: string,
+  translator: Translator,
+): string => {
+  return writeFigureInLanguage(english, translator.language);
+};
+
+export function formatBytes(
+  bytes: number | null | undefined,
+  translator: Translator = getGlobalTranslator(),
+): string {
   if (bytes === null || bytes === undefined || !Number.isFinite(bytes)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (bytes < 1024) {
-    return `${Math.round(bytes)} B`;
+    return writeInLanguage(`${Math.round(bytes)}\u00A0B`, translator);
   }
   const units: Array<string> = ["KiB", "MiB", "GiB", "TiB", "PiB", "EiB"];
   let value: number = bytes / 1024;
@@ -161,60 +202,92 @@ export function formatBytes(bytes: number | null | undefined): string {
     value /= 1024;
     idx++;
   }
-  return `${value.toFixed(value >= 100 ? 0 : 1)} ${units[idx]}`;
+  return writeInLanguage(
+    `${value.toFixed(value >= 100 ? 0 : 1)}\u00A0${units[idx]}`,
+    translator,
+  );
 }
 
-export function formatBytesPerSec(value: number | null | undefined): string {
+export function formatBytesPerSec(
+  value: number | null | undefined,
+  translator: Translator = getGlobalTranslator(),
+): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
-  return `${formatBytes(value)}/s`;
+  return `${formatBytes(value, translator)}/s`;
 }
 
-export function formatPercent(value: number | null | undefined): string {
+export function formatPercent(
+  value: number | null | undefined,
+  translator: Translator = getGlobalTranslator(),
+): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
-  return `${value.toFixed(1)}%`;
+  return formatReaderFigure(value, {
+    decimals: 1,
+    isPercent: true,
+    language: translator.language,
+  });
 }
 
-export function formatCount(value: number | null | undefined): string {
+export function formatCount(
+  value: number | null | undefined,
+  translator: Translator = getGlobalTranslator(),
+): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (value >= 1_000_000) {
-    return `${(value / 1_000_000).toFixed(1)}M`;
+    return writeInLanguage(`${(value / 1_000_000).toFixed(1)}M`, translator);
   }
   if (value >= 1_000) {
-    return `${(value / 1_000).toFixed(1)}K`;
+    return writeInLanguage(`${(value / 1_000).toFixed(1)}K`, translator);
   }
-  return Math.round(value).toString();
+  return writeInLanguage(Math.round(value).toString(), translator);
 }
 
-// Operations per second: "1.2K/s".
-export function formatIops(value: number | null | undefined): string {
+// Operations per second: "1.2K/s", "۱٫۲K/s".
+export function formatIops(
+  value: number | null | undefined,
+  translator: Translator = getGlobalTranslator(),
+): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (value < 10 && value > 0) {
-    return `${value.toFixed(1)}/s`;
+    return writeInLanguage(`${value.toFixed(1)}/s`, translator);
   }
-  return `${formatCount(value)}/s`;
+  return `${formatCount(value, translator)}/s`;
 }
 
 /*
  * Pure reports latency in microseconds per operation. Below a millisecond
  * it reads best in µs (a FlashArray read is usually 150–500 µs); above,
- * in ms.
+ * in ms, in the reader's words ("2.35 ms", "۲٫۳۵ میلی‌ثانیه": #7418) - and
+ * its microseconds too ("۲۵۰ میکروثانیه", #8272).
  */
-export function formatLatencyUsec(value: number | null | undefined): string {
+export function formatLatencyUsec(
+  value: number | null | undefined,
+  translator: Translator = getGlobalTranslator(),
+): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (value < 1000) {
-    return `${Math.round(value)} µs`;
+    return formatDurationInUnit(translator, value, "microsecond", {
+      decimals: 0,
+      english: `${Math.round(value)}\u00A0µs`,
+    });
   }
-  return `${(value / 1000).toFixed(value >= 100_000 ? 0 : 2)} ms`;
+
+  const decimals: number = value >= 100_000 ? 0 : 2;
+
+  return formatMilliseconds(translator, value / 1000, {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
 }
 
 /*
@@ -224,29 +297,59 @@ export function formatLatencyUsec(value: number | null | undefined): string {
  */
 export function formatDurationMs(value: number | null | undefined): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return formatStorageArrayLag(value);
 }
 
-// Data reduction as Pure writes it: 4.2 -> "4.2:1".
-export function formatRatio(value: number | null | undefined): string {
-  if (value === null || value === undefined || !Number.isFinite(value)) {
-    return "—";
-  }
-  return `${value.toFixed(1)}:1`;
+/*
+ * Two figures in one cell ("received / sent"), each set apart on a page
+ * read from the right, as the dashboard widget sets a volume's read and
+ * write latency apart (formatReadWriteLatencyUsec): otherwise the line puts
+ * a figure's unit before its number ("KiB/s ۱٫۵").
+ */
+export function joinFiguresOfACell(
+  figures: Array<string>,
+  translator: Translator = getGlobalTranslator(),
+): string {
+  const direction: ReturnType<typeof getReadingDirection> = getReadingDirection(
+    translator.language,
+  );
+
+  return figures
+    .map((figure: string): string => {
+      return setApartInSentence(figure, direction);
+    })
+    .join(" / ");
 }
 
-export function formatTemperature(value: number | null | undefined): string {
+// Data reduction as Pure writes it: 4.2 -> "4.2:1", "4,2:1", "۴٫۲:۱".
+export function formatRatio(
+  value: number | null | undefined,
+  translator: Translator = getGlobalTranslator(),
+): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
-  return `${Math.round(value)} °C`;
+  return `${formatReaderFigure(value, {
+    decimals: 1,
+    language: translator.language,
+  })}:${formatReaderFigure(1, { decimals: 0, language: translator.language })}`;
+}
+
+export function formatTemperature(
+  value: number | null | undefined,
+  translator: Translator = getGlobalTranslator(),
+): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return EMPTY_VALUE_MARK;
+  }
+  return writeInLanguage(`${Math.round(value)}\u00A0°C`, translator);
 }
 
 export function formatLastSeen(date: Date | undefined | null): string {
   if (!date) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return OneUptimeDate.fromNow(new Date(date));
 }
@@ -571,6 +674,7 @@ export default {
   formatDurationMs,
   formatRatio,
   formatTemperature,
+  joinFiguresOfACell,
   formatLastSeen,
   routeParamFromExternalId,
   externalIdFromRouteParam,

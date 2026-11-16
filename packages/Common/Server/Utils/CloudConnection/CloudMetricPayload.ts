@@ -6,6 +6,7 @@ import {
 import { JSONArray, JSONObject } from "../../../Types/JSON";
 import { CLOUD_CONNECTION_ID_ATTRIBUTE } from "../../../Types/Cloud/CloudConnectionTelemetry";
 import TelemetryUtil, { AttributeType } from "../Telemetry/Telemetry";
+import { assignOwnValues } from "../../../Utils/LookupTable";
 
 /*
  * OTLP/JSON METRICS, IN THE SHAPE EACH CLOUD'S COLLECTOR RECEIVER SENDS.
@@ -201,22 +202,26 @@ export function countPayloadPoints(groups: Array<CloudMetricGroup>): number {
  * The attributes of a datapoint as the metrics ingest stores them on its
  * row: the datapoint's own keys bare, the resource's prefixed with
  * `resource.`, a kvlist flattened to `<key>.<nested key>` - the same
- * TelemetryUtil.getAttributes the ingest uses.
+ * TelemetryUtil.getAttributes the ingest uses - and merged as the ingest
+ * merges them (assignOwnValues), so a dimension named "__proto__" is in
+ * the map the resolver reads, as it is on the stored row. The spreads this
+ * was, compiled to Object.assign, dropped it.
  */
 export function storedAttributesOf(
   resourceAttributes: Array<OtlpAttribute>,
   datapointAttributes: Array<OtlpAttribute>,
 ): Dictionary<AttributeType | Array<AttributeType>> {
-  return {
-    ...TelemetryUtil.getAttributes({
+  return assignOwnValues<AttributeType | Array<AttributeType>>(
+    {},
+    TelemetryUtil.getAttributes({
       prefixKeysWithString: "resource",
       items: resourceAttributes as unknown as JSONArray,
     }),
-    ...TelemetryUtil.getAttributes({
+    TelemetryUtil.getAttributes({
       prefixKeysWithString: "",
       items: datapointAttributes as unknown as JSONArray,
     }),
-  };
+  );
 }
 
 /*

@@ -41,7 +41,7 @@ Eine Signatur mit weniger als einem Tag Restlaufzeit gilt bereits als unterbroch
 
 ## Bevor Sie beginnen
 
-- **Eine Rolle, die Monitore erstellen darf**: Project Owner, Project Admin, Project Member, Monitor Admin oder Monitor Member oder eine benutzerdefinierte Rolle mit der Berechtigung Create Monitor.
+- **Eine Rolle, die Monitore erstellen darf**: Projektinhaber, Projektadministrator, Projektmitglied, Monitor-Administrator oder Monitor-Mitglied oder eine benutzerdefinierte Rolle mit der Berechtigung Create Monitor.
 - **Eine signierte Zone.** Die Zone muss signiert sein und ihr DS-Eintrag über Ihren Registrar bei der übergeordneten Zone veröffentlicht.
 - **Ausgehendes DNS von der Sonde** zu den Resolvern, die Sie angeben, und für die Prüfung der Nameserver-Konsistenz zu den autoritativen Nameservern der Zone. Die Standardsonden Ihres Projekts werden für jeden neuen Monitor ausgewählt.
 
@@ -103,7 +103,7 @@ Bei zwei oder mehr Filtern entscheidet **Abgleichsbedingung**, ob **Alle** zutre
 
 Ein neuer DNSSEC-Monitor beginnt mit zwei Kriterien:
 
-- **Kette unterbrochen** — **DNSSEC-Kette ist gültig** ist **Falsch**. Der Monitor wird als **Offline** markiert und ein Vorfall namens „_monitor name_ DNSSEC chain is broken“ wird erstellt. Der Vorfall löst sich von selbst auf, sobald die Kette wieder gültig ist.
+- **Kette unterbrochen** — **DNSSEC-Kette ist gültig** ist **Falsch**. Der Monitor wird als **Offline** markiert und ein Vorfall namens „DNSSEC-Kette von _Monitorname_ ist unterbrochen“ wird erstellt. Der Vorfall löst sich von selbst auf, sobald die Kette wieder gültig ist.
 - **Kette gültig** — der Monitor wird als **Betriebsbereit** markiert.
 
 Kriterien werden von oben nach unten geprüft, und das erste zutreffende entscheidet, was passiert. Trifft keines zu, zeigt der Monitor seinen Standardstatus: **Betriebsbereit**, sofern Sie unter **Weitere Felder** unterhalb der Kriterien keinen anderen wählen.

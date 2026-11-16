@@ -1,5 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import { JSONObject } from "Common/Types/JSON";
+import { createTranslator, Translator } from "Common/Types/Translator";
 import DashboardVariable, {
   DashboardVariableType,
 } from "Common/Types/Dashboard/DashboardVariable";
@@ -11,7 +13,7 @@ import {
   buildTraceAnalyticsRequest,
   computeBucketSizeInMinutes,
   formatCount,
-  formatDurationMs,
+  formatDurationMsInLanguage,
   formatTickTime,
   formatTraceSeriesLabel,
   hexToRgba,
@@ -741,12 +743,16 @@ describe("TraceChartData formatters", () => {
     expect(formatCount(2_000_000)).toBe("2.0M");
   });
 
-  test("formatDurationMs picks a sensible unit", () => {
-    expect(formatDurationMs(0.5)).toBe("500 µs");
-    expect(formatDurationMs(5)).toBe("5.0 ms");
-    expect(formatDurationMs(1500)).toBe("1.50 s");
-    expect(formatDurationMs(90000)).toBe("1.5 min");
-    expect(formatDurationMs(Infinity)).toBe("-");
+  test("formatDurationMsInLanguage picks a sensible unit, in English as it always read", () => {
+    const english: Translator = createTranslator(undefined, "en");
+
+    expect(formatDurationMsInLanguage(0.5, english)).toBe("500\u00A0µs");
+    expect(formatDurationMsInLanguage(5, english)).toBe("5.0\u00A0ms");
+    expect(formatDurationMsInLanguage(1500, english)).toBe("1.50\u00A0s");
+    expect(formatDurationMsInLanguage(90000, english)).toBe("1.5\u00A0min");
+    expect(formatDurationMsInLanguage(Infinity, english)).toBe(
+      EMPTY_VALUE_MARK,
+    );
   });
 
   test("formatTickTime returns the input when it is not a date", () => {

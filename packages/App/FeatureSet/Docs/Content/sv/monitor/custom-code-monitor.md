@@ -29,7 +29,7 @@ Sandlådan är inte Node.js: det finns ingen `require`, `process`, `fetch` eller
 
 ## Innan du börjar
 
-- En **probe** som når alla slutpunkter som skriptet anropar. Använd en [anpassad sond](/docs/probe/custom-probe) för slutpunkter i ditt nätverk.
+- En **sond** som når alla slutpunkter som skriptet anropar. Använd en [anpassad sond](/docs/probe/custom-probe) för slutpunkter i ditt nätverk.
 - För att anropa en privat adress (som `10.0.0.5`) måste sonden tillåta det: ange `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true` på den sonden. Loopback-, link-local- och molnmetadataadresser avvisas alltid. Se [Åtkomst till privat nätverk](/docs/self-hosted/private-network-access).
 - Alla lösenord, API-nycklar och token som skriptet behöver, sparade som [övervakningshemligheter](/docs/monitor/monitor-secrets).
 
@@ -38,7 +38,7 @@ Sandlådan är inte Node.js: det finns ingen `require`, `process`, `fetch` eller
 :::steps
 ### Starta en ny monitor
 
-Gå till **Monitorer** och klicka på **Skapa monitor**. Under **Monitortyp** klickar du på **Fler monitortyper** och väljer **Custom JavaScript Code** under **Syntetisk övervakning**, eller skriver `script` i sökrutan. Ange ett **Namn** och klicka sedan på **Nästa**.
+Gå till **Monitorer** och klicka på **Skapa monitor**. Under **Monitortyp** klickar du på **Fler monitortyper** och väljer **Anpassad JavaScript-kod** under **Syntetisk övervakning**, eller skriver `script` i sökrutan. Ange ett **Namn** och klicka sedan på **Nästa**.
 
 ### Lägg till skriptet
 

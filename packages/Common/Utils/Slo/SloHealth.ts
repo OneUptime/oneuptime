@@ -2,6 +2,12 @@ import SliType from "../../Types/ServiceLevelObjective/SliType";
 import SloMultiMonitorMode from "../../Types/ServiceLevelObjective/SloMultiMonitorMode";
 import SloStatus from "../../Types/ServiceLevelObjective/SloStatus";
 import SloWindowType from "../../Types/ServiceLevelObjective/SloWindowType";
+import { fillTemplate, translationKey } from "../../Types/Translator";
+import {
+  getSloMetricQueryProblem,
+  normalizeSloMetricQueryConfig,
+} from "./SloMetricSli";
+import { isEventSliType } from "./SloRequestSli";
 
 /**
  * The "should I be worried, and about what?" layer of the SLO UI.
@@ -126,11 +132,30 @@ export interface SloNoticeAction {
   target: SloNoticeActionTarget;
 }
 
+/** A figure a notice's sentence states, written in the reader's digits. */
+export interface SloNoticeFigure {
+  value: number;
+  isPercent: boolean;
+}
+
+/*
+ * A notice's title, body and action label are translation keys: the banner
+ * looks each up in the reader's language (the title through AlertBanner).
+ * Here they are English, as plain-node tests and the docs read them.
+ */
 export interface SloNotice {
   type: SloNoticeType;
   title: string;
   /** One sentence of "here is what to do about it". */
   body: string;
+  /*
+   * When the body states figures: the same sentence as a template, and its
+   * figures, so the banner words the sentence and writes each figure the
+   * reader's way ("99,9" in German, "۹۹٫۹" in Persian). `body` is the
+   * template filled in, in English.
+   */
+  bodyTemplate?: string | undefined;
+  bodyFigures?: Record<string, SloNoticeFigure> | undefined;
   /**
    * The page where the user can fix it. Absent when there is nothing to
    * do but wait, or when no page in the product can fix it.
@@ -150,24 +175,149 @@ export interface SloNoticeData {
   sliType?: SliType | undefined | null;
   /** Number of monitors currently attached. */
   monitorCount?: number | undefined | null;
+  /** A request SLO's services: how many are chosen. */
+  serviceCount?: number | undefined | null;
+  /** A Request Latency SLO's threshold, in milliseconds. */
+  latencyThresholdInMilliseconds?: number | undefined | null;
+  /** A Metric SLO's metric (#8445), as stored. */
+  metricQueryConfig?: unknown;
   /** Of the attached monitors, how many have active monitoring disabled. */
   disabledMonitorCount?: number | undefined | null;
   targetPercentage?: number | undefined | null;
   lastEvaluatedAt?: Date | string | undefined | null;
 }
 
+/*
+ * The target's limits and an example, as figures of the sentence: a reader
+ * writes "greater than 0" and "99.9" in their own digits.
+ */
+export const SLO_TARGET_OUT_OF_RANGE_BODY_TEMPLATE: string = translationKey(
+  "A target must be greater than {{min}} and less than {{max}} — a {{fullTarget}} target leaves no error budget to track. Set a target such as {{exampleTarget}} in Settings.",
+);
+
+export const SLO_TARGET_OUT_OF_RANGE_FIGURES: Record<string, SloNoticeFigure> =
+  {
+    min: { value: 0, isPercent: false },
+    max: { value: 100, isPercent: false },
+    fullTarget: { value: 100, isPercent: true },
+    exampleTarget: { value: 99.9, isPercent: false },
+  };
+
+const SLO_TARGET_OUT_OF_RANGE_ENGLISH_VALUES: Record<string, string> = {
+  min: "0",
+  max: "100",
+  fullTarget: "100%",
+  exampleTarget: "99.9",
+};
+
 type GetNoMonitorsNoticeFunction = () => SloNotice;
 
 const getNoMonitorsNotice: GetNoMonitorsNoticeFunction = (): SloNotice => {
   return {
     type: SloNoticeType.Warning,
-    title: "No monitors attached",
-    body: "An SLO measures uptime from its monitors, so it cannot be evaluated without at least one. Attach monitors on the Monitors page, or add a monitor rule that attaches matching monitors for you.",
+    title: translationKey("No monitors attached"),
+    body: translationKey(
+      "An SLO measures uptime from its monitors, so it cannot be evaluated without at least one. Attach monitors on the Monitors page, or add a monitor rule that attaches matching monitors for you.",
+    ),
     action: {
-      label: "Attach monitors",
+      label: translationKey("Attach monitors"),
       target: SloNoticeActionTarget.Monitors,
     },
   };
+};
+
+type GetNoServicesNoticeFunction = (
+  sliType: SliType | undefined | null,
+) => SloNotice;
+
+const getNoServicesNotice: GetNoServicesNoticeFunction = (
+  sliType: SliType | undefined | null,
+): SloNotice => {
+  return {
+    type: SloNoticeType.Warning,
+    title: translationKey("No services chosen"),
+    body:
+      sliType === SliType.Metric
+        ? translationKey(
+            "A Metric SLO measures the metric its services send, so it cannot be evaluated without at least one. Choose its services in Settings.",
+          )
+        : translationKey(
+            "A request SLO measures the requests its services serve, so it cannot be evaluated without at least one. Choose its services in Settings.",
+          ),
+    action: {
+      label: translationKey("Choose services"),
+      target: SloNoticeActionTarget.Settings,
+    },
+  };
+};
+
+/*
+ * A Metric SLO with no metric it can count (#8445): none chosen yet, or one
+ * stored before a rule tightened. The worker counts nothing until it is
+ * fixed (EvaluateSlos.getRequestSloMisconfiguredReason).
+ */
+type GetNoMetricNoticeFunction = () => SloNotice;
+
+const getNoMetricNotice: GetNoMetricNoticeFunction = (): SloNotice => {
+  return {
+    type: SloNoticeType.Warning,
+    title: translationKey("No metric to count"),
+    body: translationKey(
+      "A Metric SLO counts good and total events from a counter or a histogram its services send. Choose the metric, and how its good events are told apart, in Settings.",
+    ),
+    action: {
+      label: translationKey("Choose the metric"),
+      target: SloNoticeActionTarget.Settings,
+    },
+  };
+};
+
+/*
+ * What stops a request SLO (Request Success, Request Latency) from being
+ * measured, in the order a person fixes it - the worker's own guards
+ * (EvaluateSlos.getRequestSloMisconfiguredReason) - or null when nothing in
+ * its setup does.
+ */
+type GetRequestSetupNoticeFunction = (data: SloNoticeData) => SloNotice | null;
+
+const getRequestSetupNotice: GetRequestSetupNoticeFunction = (
+  data: SloNoticeData,
+): SloNotice | null => {
+  if ((toFiniteNumber(data.serviceCount) ?? 0) === 0) {
+    return getNoServicesNotice(data.sliType);
+  }
+
+  if (
+    data.sliType === SliType.Metric &&
+    getSloMetricQueryProblem(
+      normalizeSloMetricQueryConfig(data.metricQueryConfig),
+    ) !== null
+  ) {
+    return getNoMetricNotice();
+  }
+
+  const threshold: number | null = toFiniteNumber(
+    data.latencyThresholdInMilliseconds,
+  );
+
+  if (
+    data.sliType === SliType.RequestLatency &&
+    (threshold === null || threshold < 1)
+  ) {
+    return {
+      type: SloNoticeType.Warning,
+      title: translationKey("No latency threshold"),
+      body: translationKey(
+        "A Request Latency SLO counts a request as good when it is served within its latency threshold. Set the threshold in Settings.",
+      ),
+      action: {
+        label: translationKey("Set the threshold"),
+        target: SloNoticeActionTarget.Settings,
+      },
+    };
+  }
+
+  return null;
 };
 
 /**
@@ -186,7 +336,9 @@ const getNoMonitorsNotice: GetNoMonitorsNoticeFunction = (): SloNotice => {
  * (App/FeatureSet/Workers/Jobs/Slo/EvaluateSlos.ts):
  *   isArchived=true      -> the SLO is skipped entirely by getDueSlos()
  *   isEnabled=false      -> the SLO is skipped entirely by getDueSlos()
- *   sliType != Uptime    -> Misconfigured (Metric SLIs are not built yet)
+ *   sliType is Metric    -> Misconfigured (Metric SLIs are not built yet)
+ *   request SLI with no services, or a latency SLI with no threshold,
+ *   or no requests in its window -> Misconfigured
  *   monitorCount == 0    -> Misconfigured
  *   target outside (0,100) -> Misconfigured
  *   all monitors disabled -> Paused
@@ -199,10 +351,12 @@ export const getSloNotice: GetSloNoticeFunction = (
   if (data.isArchived === true) {
     return {
       type: SloNoticeType.Info,
-      title: "This SLO is archived",
-      body: "Archived SLOs are hidden from the SLO list and are not evaluated, so its numbers are frozen and its burn rate rules will not fire. Unarchive it in Settings to resume measuring.",
+      title: translationKey("This SLO is archived"),
+      body: translationKey(
+        "Archived SLOs are hidden from the SLO list and are not evaluated, so its numbers are frozen and its burn rate rules will not fire. Unarchive it in Settings to resume measuring.",
+      ),
       action: {
-        label: "Open Settings",
+        label: translationKey("Open Settings"),
         target: SloNoticeActionTarget.Settings,
       },
     };
@@ -211,10 +365,12 @@ export const getSloNotice: GetSloNoticeFunction = (
   if (data.isEnabled === false) {
     return {
       type: SloNoticeType.Info,
-      title: "This SLO is disabled",
-      body: "It is not being evaluated and its burn rate rules will not fire alerts. Turn evaluation back on to resume measuring.",
+      title: translationKey("This SLO is disabled"),
+      body: translationKey(
+        "It is not being evaluated and its burn rate rules will not fire alerts. Turn evaluation back on to resume measuring.",
+      ),
       action: {
-        label: "Turn evaluation on",
+        label: translationKey("Turn evaluation on"),
         target: SloNoticeActionTarget.TurnEvaluationOn,
       },
     };
@@ -222,20 +378,36 @@ export const getSloNotice: GetSloNoticeFunction = (
 
   const monitorCount: number = toFiniteNumber(data.monitorCount) ?? 0;
 
+  // Counted in events, from traces or from a metric (#8445).
+  const isRequestSli: boolean = isEventSliType(data.sliType);
+
   if (data.sloStatus === SloStatus.Misconfigured) {
-    /*
-     * No action: the SLI type is not editable anywhere in the product, so
-     * a link would lead to a page that cannot fix this.
-     */
-    if (data.sliType && data.sliType !== SliType.MonitorUptime) {
+    // The SLI type is chosen in Settings, What It Measures.
+    if (
+      data.sliType &&
+      data.sliType !== SliType.MonitorUptime &&
+      !isRequestSli
+    ) {
       return {
         type: SloNoticeType.Warning,
-        title: "This SLO cannot be evaluated",
-        body: `Only "${SliType.MonitorUptime}" SLIs are supported today. Change the SLI type to Monitor Uptime and attach the monitors this objective measures.`,
+        title: translationKey("This SLO cannot be evaluated"),
+        body: translationKey(
+          "OneUptime does not measure this SLI type. Choose what this SLO measures in Settings: monitor uptime, request success, request latency or a metric.",
+        ),
+        action: {
+          label: translationKey("Open Settings"),
+          target: SloNoticeActionTarget.Settings,
+        },
       };
     }
 
-    if (monitorCount === 0) {
+    if (isRequestSli) {
+      const setupNotice: SloNotice | null = getRequestSetupNotice(data);
+
+      if (setupNotice) {
+        return setupNotice;
+      }
+    } else if (monitorCount === 0) {
       return getNoMonitorsNotice();
     }
 
@@ -244,10 +416,47 @@ export const getSloNotice: GetSloNoticeFunction = (
     if (target === null || target <= 0 || target >= 100) {
       return {
         type: SloNoticeType.Warning,
-        title: "The target is out of range",
-        body: "A target must be greater than 0 and less than 100 — a 100% target leaves no error budget to track. Set a target such as 99.9 in Settings.",
+        title: translationKey("The target is out of range"),
+        body: fillTemplate(
+          SLO_TARGET_OUT_OF_RANGE_BODY_TEMPLATE,
+          SLO_TARGET_OUT_OF_RANGE_ENGLISH_VALUES,
+        ),
+        bodyTemplate: SLO_TARGET_OUT_OF_RANGE_BODY_TEMPLATE,
+        bodyFigures: SLO_TARGET_OUT_OF_RANGE_FIGURES,
         action: {
-          label: "Edit objective",
+          label: translationKey("Edit objective"),
+          target: SloNoticeActionTarget.Settings,
+        },
+      };
+    }
+
+    /*
+     * A request SLO whose services have served no request in its window yet
+     * - a quiet service, or one whose traces do not reach OneUptime.
+     */
+    if (data.sliType === SliType.Metric) {
+      return {
+        type: SloNoticeType.Info,
+        title: translationKey("Waiting for its metric"),
+        body: translationKey(
+          "None of this SLO's services has sent an event of its metric in its window yet. It is measured automatically once the metric reaches OneUptime.",
+        ),
+        action: {
+          label: translationKey("View services"),
+          target: SloNoticeActionTarget.Settings,
+        },
+      };
+    }
+
+    if (isRequestSli) {
+      return {
+        type: SloNoticeType.Info,
+        title: translationKey("Waiting for requests"),
+        body: translationKey(
+          "None of this SLO's services has served a request in its window yet. It is measured automatically once their traces reach OneUptime.",
+        ),
+        action: {
+          label: translationKey("View services"),
           target: SloNoticeActionTarget.Settings,
         },
       };
@@ -261,10 +470,12 @@ export const getSloNotice: GetSloNoticeFunction = (
      */
     return {
       type: SloNoticeType.Info,
-      title: "Waiting for SLO evaluation",
-      body: "Monitors are attached. OneUptime evaluates this SLO every few minutes. Results will appear once monitor status data is available and the next evaluation completes.",
+      title: translationKey("Waiting for SLO evaluation"),
+      body: translationKey(
+        "Monitors are attached. OneUptime evaluates this SLO every few minutes. Results will appear once monitor status data is available and the next evaluation completes.",
+      ),
       action: {
-        label: "View monitors",
+        label: translationKey("View monitors"),
         target: SloNoticeActionTarget.Monitors,
       },
     };
@@ -273,10 +484,12 @@ export const getSloNotice: GetSloNoticeFunction = (
   if (data.sloStatus === SloStatus.Paused) {
     return {
       type: SloNoticeType.Info,
-      title: "Measurement is paused",
-      body: "Every monitor attached to this SLO has active monitoring disabled — by hand, by a manual incident, or by a maintenance event — so there is no signal to measure. The SLO resumes automatically when a monitor starts reporting again.",
+      title: translationKey("Measurement is paused"),
+      body: translationKey(
+        "Every monitor attached to this SLO has active monitoring disabled — by hand, by a manual incident, or by a maintenance event — so there is no signal to measure. The SLO resumes automatically when a monitor starts reporting again.",
+      ),
       action: {
-        label: "View monitors",
+        label: translationKey("View monitors"),
         target: SloNoticeActionTarget.Monitors,
       },
     };
@@ -291,14 +504,25 @@ export const getSloNotice: GetSloNoticeFunction = (
      * Only an explicit, loaded 0 counts: a caller that did not select the
      * monitors has not told us anything.
      */
-    if (toFiniteNumber(data.monitorCount) === 0) {
+    if (isRequestSli) {
+      const setupNotice: SloNotice | null =
+        data.serviceCount === undefined || data.serviceCount === null
+          ? null
+          : getRequestSetupNotice(data);
+
+      if (setupNotice) {
+        return setupNotice;
+      }
+    } else if (toFiniteNumber(data.monitorCount) === 0) {
       return getNoMonitorsNotice();
     }
 
     return {
       type: SloNoticeType.Info,
-      title: "Not evaluated yet",
-      body: "OneUptime evaluates SLOs every few minutes. The first numbers will appear shortly after this SLO is created.",
+      title: translationKey("Not evaluated yet"),
+      body: translationKey(
+        "OneUptime evaluates SLOs every few minutes. The first numbers will appear shortly after this SLO is created.",
+      ),
     };
   }
 

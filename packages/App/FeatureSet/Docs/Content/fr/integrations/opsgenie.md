@@ -1,11 +1,11 @@
 # Opsgenie
 
-Envoyez les incidents OneUptime à [Opsgenie](https://www.atlassian.com/software/opsgenie). Un workflow crée une alerte Opsgenie quand un incident OneUptime est déclaré, et un second la ferme quand l'incident OneUptime est résolu. Utilisez-le tant qu'Opsgenie prévient encore votre équipe et que OneUptime surveille vos systèmes.
+Envoyez les incidents OneUptime à [Opsgenie](https://www.atlassian.com/software/opsgenie). Un flux de travail crée une alerte Opsgenie quand un incident OneUptime est déclaré, et un second la ferme quand l'incident OneUptime est résolu. Utilisez-le tant qu'Opsgenie prévient encore votre équipe et que OneUptime surveille vos systèmes.
 
 :::cards
-- [Enregistrer la clé d'API](#enregistrer-la-clé-dapi): Gardez la clé d'Opsgenie hors de vos workflows.
-- [Créer des alertes Opsgenie](#créer-une-alerte-opsgenie-pour-chaque-incident): Un workflow, deux blocs.
-- [Les fermer](#fermer-lalerte-opsgenie): Un second workflow qui suit l'état de l'incident.
+- [Enregistrer la clé d'API](#enregistrer-la-clé-dapi): Gardez la clé d'Opsgenie hors de vos flux de travail.
+- [Créer des alertes Opsgenie](#créer-une-alerte-opsgenie-pour-chaque-incident): Un flux de travail, deux blocs.
+- [Les fermer](#fermer-lalerte-opsgenie): Un second flux de travail qui suit l'état de l'incident.
 - [Dépannage](#dépannage): Quand Opsgenie refuse une requête.
 :::
 
@@ -14,21 +14,21 @@ Envoyez les incidents OneUptime à [Opsgenie](https://www.atlassian.com/software
 
 ## Fonctionnement
 
-```mermaid title="Deux workflows, une alerte Opsgenie"
+```mermaid title="Deux flux de travail, une alerte Opsgenie"
 flowchart TB
-    declared["Incident déclaré"] --> create["Workflow 1 :<br/>On Create Incident"]
+    declared["Incident déclaré"] --> create["Flux de travail 1 :<br/>À la création :<br/>Incident"]
     create -->|"POST /v2/alerts"| og["Alerte Opsgenie"]
-    resolved["Incident résolu"] --> update["Workflow 2 :<br/>On Update Incident"]
+    resolved["Incident résolu"] --> update["Flux de travail 2 :<br/>À la mise à jour :<br/>Incident"]
     update -->|"fermer par alias"| og
 ```
 
-Les deux workflows appellent l'[API Alert d'Opsgenie](https://docs.opsgenie.com/docs/alert-api). Le premier donne à l'alerte un `alias` formé à partir de l'ID de l'incident OneUptime, et le second ferme l'alerte par cet alias.
+Les deux flux de travail appellent l'[API Alert d'Opsgenie](https://docs.opsgenie.com/docs/alert-api). Le premier donne à l'alerte un `alias` formé à partir de l'ID de l'incident OneUptime, et le second ferme l'alerte par cet alias.
 
 ## Avant de commencer
 
 - Une intégration Opsgenie de type **API**, et son **API Key**. Ajoutez-en une sous **Settings → Integrations** dans Opsgenie, ou sous les **Integrations** d'une équipe pour envoyer les alertes à cette équipe.
 - Votre région Opsgenie. Les comptes en Europe, qui se connectent sur `app.eu.opsgenie.com`, utilisent `api.eu.opsgenie.com`. Tous les autres utilisent `api.opsgenie.com`.
-- Dans OneUptime, le droit de créer des workflows et des variables globales. Sur OneUptime Cloud, les workflows nécessitent l'offre **Growth** ou supérieure.
+- Dans OneUptime, le droit de créer des flux de travail et des variables globales. Sur OneUptime Cloud, les flux de travail nécessitent l'offre **Growth** ou supérieure.
 
 ## Enregistrer la clé d'API
 
@@ -43,23 +43,23 @@ Une variable secrète est remplacée par `[REDACTED]` dans les journaux d'exécu
 ## Créer une alerte Opsgenie pour chaque incident
 
 :::steps
-### Créer le workflow
+### Créer le flux de travail
 
 Allez dans **Flux de travail**, cliquez sur **Créer un flux de travail**, puis sur **Partir de zéro**. Nommez-le `Incidents to Opsgenie` et cliquez sur **Créer un flux de travail**.
 
 ### Ajouter le déclencheur
 
-Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail** et choisissez **On Create Incident**. Cliquez sur le déclencheur : ses **Fields to pass on** commencent par **Titre**, alors cliquez sur **Ajouter un champ** et choisissez **Description**.
+Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail** et choisissez **À la création : Incident**. Cliquez sur le déclencheur : ses **Champs à transmettre** commencent par **Titre**, alors cliquez sur **Ajouter un champ** et choisissez **Description**.
 
 ### Créer l'alerte
 
-Cliquez sur **Ajouter un composant**, ajoutez un bloc **API Post (JSON)** et reliez-y le point **Success** du déclencheur. Réglez son **URL** sur `https://api.opsgenie.com/v2/alerts`, ou `https://api.eu.opsgenie.com/v2/alerts` en Europe. Sous **Plus de champs**, réglez ses **Request Headers** sur :
+Cliquez sur **Ajouter un composant**, ajoutez un bloc **Appel d'API POST (JSON)** et reliez-y le point **Succès** du déclencheur. Réglez son **URL** sur `https://api.opsgenie.com/v2/alerts`, ou `https://api.eu.opsgenie.com/v2/alerts` en Europe. Sous **Plus de champs**, réglez ses **En-têtes de la requête** sur :
 
 ```json
 { "Authorization": "GenieKey {{global.variables.OPSGENIE_KEY}}" }
 ```
 
-Et son **Request Body** sur :
+Et son **Corps de la requête** sur :
 
 ```json
 {
@@ -73,19 +73,19 @@ Et son **Request Body** sur :
 
 ### Tester, puis activer
 
-Cliquez sur **Exécuter le flux de travail**, choisissez un incident de test sous **Incident** et lancez-le. L'étape **API Post (JSON)** affiche une réponse `202`, et l'alerte apparaît dans Opsgenie un instant plus tard. Activez ensuite **Activé** en haut du **Constructeur**.
+Cliquez sur **Exécuter le flux de travail**, choisissez un incident de test sous **Incident** et lancez-le. L'étape **Appel d'API POST (JSON)** affiche une réponse `202`, et l'alerte apparaît dans Opsgenie un instant plus tard. Activez ensuite **Activé** en haut du **Constructeur**.
 :::
 
 Le schéma d'Opsgenie est le mot `GenieKey`, une espace, puis la clé. Opsgenie limite `message` à 130 caractères, et ses priorités vont de `P1` à `P5` : pour envoyer celle de chaque incident, voir [Faire correspondre les priorités](#faire-correspondre-les-priorités).
 
 ## Fermer l'alerte Opsgenie
 
-Un workflow a un seul déclencheur, la fermeture demande donc un second workflow, démarré quand l'état d'un incident change.
+Un flux de travail a un seul déclencheur, la fermeture demande donc un second flux de travail, démarré quand l'état d'un incident change.
 
 :::steps
-### Ajouter le déclencheur On Update Incident
+### Ajouter le déclencheur « À la mise à jour : Incident »
 
-Créez un workflow nommé `Close Opsgenie alerts` et choisissez **On Update Incident** comme déclencheur. Dans **Fields to watch**, cliquez sur **Ajouter un champ** et choisissez **État actuel de l'incident**, pour qu'il ne s'exécute que quand l'état change. Dans **Fields to pass on**, demandez si le nouvel état est un état résolu : cliquez sur **Ajouter un champ**, ouvrez **État actuel de l'incident** et choisissez **Est un état de résolution**. Ou cliquez sur **Modifier en JSON** et remplacez le JSON par :
+Créez un flux de travail nommé `Close Opsgenie alerts` et choisissez **À la mise à jour : Incident** comme déclencheur. Dans **Champs à surveiller**, cliquez sur **Ajouter un champ** et choisissez **État actuel de l'incident**, pour qu'il ne s'exécute que quand l'état change. Dans **Champs à transmettre**, demandez si le nouvel état est un état résolu : cliquez sur **Ajouter un champ**, ouvrez **État actuel de l'incident** et choisissez **Est un état de résolution**. Ou cliquez sur **Modifier en JSON** et remplacez le JSON par :
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -93,17 +93,17 @@ Créez un workflow nommé `Close Opsgenie alerts` et choisissez **On Update Inci
 
 ### Vérifier que l'incident est résolu
 
-Ajoutez un bloc **If / Else** après le déclencheur. Réglez **Value to check** sur `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` et **Comparison** sur **is true**.
+Ajoutez un bloc **Si / Sinon** après le déclencheur. Réglez **Valeur à vérifier** sur `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` et **Comparaison** sur **est vrai**.
 
 ### Fermer l'alerte
 
-Ajoutez un bloc **API Post (JSON)** après le côté **Yes**, avec les mêmes **Request Headers**, et cette **URL** :
+Ajoutez un bloc **Appel d'API POST (JSON)** après le côté **Oui**, avec les mêmes **En-têtes de la requête**, et cette **URL** :
 
 ```text
 https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}/close?identifierType=alias
 ```
 
-Réglez son **Request Body** sur `{ "source": "OneUptime", "note": "Resolved in OneUptime" }`.
+Réglez son **Corps de la requête** sur `{ "source": "OneUptime", "note": "Resolved in OneUptime" }`.
 
 ### L'activer
 
@@ -114,10 +114,10 @@ Activez **Activé**, puis résolvez un incident de test dans OneUptime. Opsgenie
 
 ## Faire correspondre les priorités
 
-Pour envoyer la gravité de chaque incident comme priorité Opsgenie, ajoutez un bloc **Run Custom JavaScript** entre le déclencheur et le bloc **API Post (JSON)**.
+Pour envoyer la gravité de chaque incident comme priorité Opsgenie, ajoutez un bloc **Exécuter du JavaScript personnalisé** entre le déclencheur et le bloc **Appel d'API POST (JSON)**.
 
-1. Dans les **Fields to pass on** du déclencheur, cliquez sur **Ajouter un champ**, ouvrez **Gravité de l'incident** et choisissez **Nom**.
-2. Réglez les **Arguments** du bloc sur `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, et son **JavaScript Code** sur :
+1. Dans les **Champs à transmettre** du déclencheur, cliquez sur **Ajouter un champ**, ouvrez **Gravité de l'incident** et choisissez **Nom**.
+2. Réglez les **Arguments** du bloc sur `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, et son **Code JavaScript** sur :
 
    ```javascript
    // Your incident severities, by name, to Opsgenie's priorities.
@@ -141,15 +141,15 @@ La clé est erronée, ou elle appartient à l'autre région. Vérifiez que l'en-
 :::
 
 :::details La fermeture répond 404
-Aucune alerte n'a cet alias. Les deux workflows doivent former l'alias de la même façon, `oneuptime-` suivi du `_id` de l'incident, et l'URL doit se terminer par `?identifierType=alias`.
+Aucune alerte n'a cet alias. Les deux flux de travail doivent former l'alias de la même façon, `oneuptime-` suivi du `_id` de l'incident, et l'URL doit se terminer par `?identifierType=alias`.
 :::
 
 :::details L'alerte n'apparaît jamais, bien que l'étape affiche 202
 Opsgenie répond `202` avant de traiter la requête, donc une requête qu'il refuse ensuite affiche quand même `202`. Cherchez la requête dans les journaux d'Opsgenie pour voir pourquoi elle a été refusée, par exemple une intégration désactivée.
 :::
 
-:::details Le workflow ne s'exécute jamais
-Vérifiez qu'il est activé : **Activé**, en haut de son **Constructeur**. Ouvrez ensuite **Journaux → Exécutions** : une exécution qui a pris le côté **No** du bloc **If / Else** est une mise à jour qui n'était pas une résolution.
+:::details Le flux de travail ne s'exécute jamais
+Vérifiez qu'il est activé : **Activé**, en haut de son **Constructeur**. Ouvrez ensuite **Journaux → Exécutions** : une exécution qui a pris le côté **Non** du bloc **Si / Sinon** est une mise à jour qui n'était pas une résolution.
 :::
 
 ## Étapes suivantes
@@ -157,6 +157,6 @@ Vérifiez qu'il est activé : **Activé**, en haut de son **Constructeur**. Ouvr
 :::cards
 - [Quitter Opsgenie](/docs/moving-to-oneuptime/opsgenie): Faites venir votre équipe, vos plannings et vos escalades avant la fin d'Opsgenie.
 - [Règles d'escalade](/docs/on-call/escalation-rules): Prévenez les gens depuis OneUptime lui-même.
-- [PagerDuty](/docs/integrations/pagerduty): Les deux mêmes workflows pour PagerDuty.
+- [PagerDuty](/docs/integrations/pagerduty): Les deux mêmes flux de travail pour PagerDuty.
 - [Présentation des intégrations](/docs/integrations/index): Les modèles derrière chaque intégration.
 :::

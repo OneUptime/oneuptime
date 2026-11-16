@@ -39,6 +39,10 @@ import {
 import InvitationLinkModal, {
   getInvitationLinkRowAction,
 } from "Common/UI/Components/InvitationLink/InvitationLinkModal";
+import {
+  MembersNotSignedUp,
+  useMembersNotSignedUp,
+} from "Common/UI/Components/InvitationLink/MembersNotSignedUp";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -70,6 +74,11 @@ const TeamViewMembers: FunctionComponent<PageComponentProps> = (
   const serverEmail: ServerEmail = useServerEmail();
   const [invitationLinkFor, setInvitationLinkFor] =
     React.useState<ObjectID | null>(null);
+
+  // A member who has not signed up yet, for a master admin (#8191).
+  const membersNotSignedUp: MembersNotSignedUp = useMembersNotSignedUp(
+    canGetInvitationLinks(serverEmail),
+  );
 
   const { isEmailRegistered, checkEmail } = useUserEmailRegistrationStatus({
     getRequestHeaders: () => {
@@ -235,6 +244,7 @@ const TeamViewMembers: FunctionComponent<PageComponentProps> = (
           // A pending member's invitation link, for a master admin (#7168).
           getInvitationLinkRowAction<TeamMember>({
             isAvailable: canGetInvitationLinks(serverEmail),
+            isNotSignedUp: membersNotSignedUp.isNotSignedUp,
             onOpen: (teamMemberId: ObjectID) => {
               setInvitationLinkFor(teamMemberId);
             },
@@ -289,6 +299,7 @@ const TeamViewMembers: FunctionComponent<PageComponentProps> = (
             },
           },
         ]}
+        onFetchSuccess={membersNotSignedUp.onFetchSuccess}
         filters={[
           {
             field: {
@@ -342,7 +353,17 @@ const TeamViewMembers: FunctionComponent<PageComponentProps> = (
             type: FieldType.Boolean,
             getElement: (item: TeamMember): ReactElement => {
               if (item["hasAcceptedInvitation"]) {
-                return <Pill text="Member" color={Green} />;
+                return (
+                  <div className="flex space-x-2">
+                    <Pill text="Member" color={Green} />
+                    {membersNotSignedUp.isNotSignedUp(item) && (
+                      <Pill
+                        text={SERVER_EMAIL_COPY.notSignedUpPill}
+                        color={Yellow}
+                      />
+                    )}
+                  </div>
+                );
               }
               // Nothing was sent by a server that cannot send email.
               return (

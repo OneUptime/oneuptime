@@ -41,7 +41,7 @@ Volledig uitgeschreven leest OneUptime deze instellingen in deze volgorde, en de
 
 ## Voordat u begint
 
-- **Een rol die het project wijzigt.** Project Owner of Project Admin wijzigen de bewaring van het project. De bewaring van een service of resource vraagt de rol die de andere instellingen ervan wijzigt.
+- **Een rol die het project wijzigt.** Projecteigenaar of Projectbeheerder wijzigen de bewaring van het project. De bewaring van een service of resource vraagt de rol die de andere instellingen ervan wijzigt.
 - **Voor overschrijvingen, de Enterprise Edition of het Scale-abonnement.** Een zelfgehoste installatie heeft een Enterprise-licentie nodig, en een OneUptime Cloud-project het Scale-abonnement of hoger. De standaardbewaring van het project zit in elke editie en elk abonnement.
 
 ## De bewaring van het project wijzigen
@@ -64,14 +64,14 @@ Overschrijvingen bewaren wat u nodig hebt langer en de rest korter: foutlogboeke
 
 ### Voor het hele project
 
-Onder de standaard, ingeklapt onder **Meer instellingen**, stelt de kaart **Bewaring per telemetrietype** dagen in voor elk soort telemetrie. Klik op **Edit Overrides**, vul de velden in die u nodig hebt, en laat de rest leeg:
+Onder de standaard, ingeklapt onder **Meer instellingen**, stelt de kaart **Bewaring per telemetrietype** dagen in voor elk soort telemetrie. Klik op **Overschrijvingen bewerken**, vul de velden in die u nodig hebt, en laat de rest leeg:
 
 | Type | Velden |
 | --- | --- |
-| Logboeken | **Logs default (days)**, en één veld voor elke logboekernst |
-| Traces | **Traces default (days)**, en één veld voor elke spanstatus: Fout, Ok en Niet ingesteld |
-| Metrieken | **Metrics default (days)** |
-| Profielen | **Profiles default (days)** |
+| Logboeken | **Standaard voor logs (dagen)**, en één veld voor elke logboekernst |
+| Traces | **Standaard voor traces (dagen)**, en één veld voor elke spanstatus: Fout, Ok en Niet ingesteld |
+| Metrieken | **Standaard voor metrieken (dagen)** |
+| Profielen | **Standaard voor profielen (dagen)** |
 
 Een leeg veld valt terug op de volgende instelling in de volgorde hierboven, dus een ernstniveau zonder eigen dagen bewaart zijn logboeken volgens de standaard voor logboeken.
 

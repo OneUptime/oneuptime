@@ -1,6 +1,6 @@
 # IoT-Geräte-Überwachung
 
-Ein IoT-Geräte-Monitor beobachtet eine Flotte von Geräten und meldet Ihnen, wenn ein Gerät offline geht, sein Akku schwach wird, sein Signal nachlässt, es überhitzt oder seine CPU dauerhaft ausgelastet bleibt. Er liest die `iot_*`-Metriken, die Ihre Geräte über OpenTelemetry oder MQTT an OneUptime senden, sodass nichts von außen geprüft wird und keine Probe beteiligt ist.
+Ein IoT-Geräte-Monitor beobachtet eine Flotte von Geräten und meldet Ihnen, wenn ein Gerät offline geht, sein Akku schwach wird, sein Signal nachlässt, es überhitzt oder seine CPU dauerhaft ausgelastet bleibt. Er liest die `iot_*`-Metriken, die Ihre Geräte über OpenTelemetry oder MQTT an OneUptime senden, sodass nichts von außen geprüft wird und keine Sonde beteiligt ist.
 
 :::cards
 - [Den Monitor erstellen](#einen-iot-geräte-monitor-erstellen): Sechs Schritte im Dashboard.
@@ -160,8 +160,8 @@ Ein Monitor, den Sie nicht aus einer Vorlage bauen, beginnt mit zwei Kriterien:
 
 | Reihenfolge | Kriterium | Trifft zu, wenn | Dann |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Die erste Abfrage hat im ganzen Zeitfenster keine Daten | Markiert den Monitor als **Offline** und meldet den Vorfall „_monitor name_ is offline“, der sich von selbst auflöst, wenn der Monitor sich erholt. |
-| 2 | Check if _monitor name_ is online | Die erste Abfrage hat Daten | Markiert den Monitor als **Betriebsbereit**. |
+| 1 | Prüfen, ob _Monitorname_ offline ist | Die erste Abfrage hat im ganzen Zeitfenster keine Daten | Markiert den Monitor als **Offline** und meldet den Vorfall „_Monitorname_ ist offline“, der sich von selbst auflöst, wenn der Monitor sich erholt. |
+| 2 | Prüfen, ob _Monitorname_ online ist | Die erste Abfrage hat Daten | Markiert den Monitor als **Betriebsbereit**. |
 
 > [!IMPORTANT]
 > Ein Wert von `0` sind Daten: Eine Metrik, die oft null ist, etwa Neustarts oder Fehler, setzt den Monitor nicht auf offline. Um bei einem Wert benachrichtigt zu werden, beginnen Sie mit einer Vorlage oder fügen Sie ein Kriterium mit einem Schwellenwert hinzu. Kommen gar keine Daten an und trifft kein Kriterium zu, behält der Monitor seinen Status, und offene Vorfälle bleiben offen: Stille ist keine Erholung. Zeit, in der OneUptime selbst keine Daten empfing, gilt nie als fehlende Daten: Eine Prüfung, deren Zeitfenster solche Zeit enthält, wartet stattdessen, wie [Wenn OneUptime keine Daten empfängt](/docs/monitor/when-oneuptime-is-not-receiving) erklärt.

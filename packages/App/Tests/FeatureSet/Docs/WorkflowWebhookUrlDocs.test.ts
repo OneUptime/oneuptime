@@ -132,7 +132,8 @@ describe("docs for the webhook URL, now in the Webhook trigger", () => {
             language,
             step: "2. ",
           });
-          expect(step).toContain("**Webhook**");
+          // The trigger, as the canvas draws its title (#7511).
+          expect(step).toContain(`**${dashboardLabel(language, "Webhook")}**`);
           expect(step).toContain(`**${dashboardLabel(language, "Copy URL")}**`);
 
           // Not the Settings page, and not the card that used to be there.

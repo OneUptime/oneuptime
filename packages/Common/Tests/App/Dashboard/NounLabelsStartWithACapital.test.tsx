@@ -389,18 +389,19 @@ describe("a sentence that starts with a word worded for the middle of one", () =
   const CANNOT_LOAD: string =
     "Cannot load {{itemName}}. It could be because you don't have enough permissions to read this {{itemName}}.";
 
+  // Danish, Norwegian and Swedish call a monitor "monitor" in a sentence (#8628).
   test.each([
     [
       "da",
-      "Overvågning kan ikke indlæses. Det kan skyldes, at du ikke har tilladelse til at se dette element.",
+      "Monitor kan ikke indlæses. Det kan skyldes, at du ikke har tilladelse til at se dette element.",
     ],
     [
       "no",
-      "Overvåking kan ikke lastes inn. Det kan skyldes at du ikke har tillatelse til å se dette elementet.",
+      "Monitor kan ikke lastes inn. Det kan skyldes at du ikke har tillatelse til å se dette elementet.",
     ],
     [
       "sv",
-      "Övervakning kan inte läsas in. Det kan bero på att du saknar behörighet att visa det här objektet.",
+      "Monitor kan inte läsas in. Det kan bero på att du saknar behörighet att visa det här objektet.",
     ],
     [
       "nl",

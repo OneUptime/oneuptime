@@ -145,7 +145,7 @@ Per eliminare i dati di una persona anziché un'intera applicazione, presenta un
 
 ## Autorizzazioni
 
-Chiunque abbia il ruolo Viewer del progetto può vedere le applicazioni RUM e la loro telemetria. La riproduzione delle sessioni è esclusa da quel ruolo di proposito: elencare le registrazioni, guardarne una e leggere chi l'ha guardata sono autorizzazioni separate. I proprietari e gli amministratori del progetto le hanno tutte. I selettori delle autorizzazioni mostrano ogni autorizzazione con il suo titolo, qui in corsivo.
+Chiunque abbia il ruolo Visualizzatore del progetto può vedere le applicazioni RUM e la loro telemetria. La riproduzione delle sessioni è esclusa da quel ruolo di proposito: elencare le registrazioni, guardarne una e leggere chi l'ha guardata sono autorizzazioni separate. I Proprietari del progetto e gli Amministratori del progetto le hanno tutte. I selettori delle autorizzazioni mostrano ogni autorizzazione con il suo titolo, qui in corsivo.
 
 | Autorizzazione | Consente a un membro di |
 | --- | --- |
@@ -153,13 +153,13 @@ Chiunque abbia il ruolo Viewer del progetto può vedere le applicazioni RUM e la
 | `CreateRumApplication`, `EditRumApplication`, `DeleteRumApplication` | Aggiungere, modificare ed eliminare applicazioni. |
 | `ReadRumSessionReplay` (_List Session Replays_) | Elencare le sessioni registrate e i loro dettagli, senza riprodurle né sapere chi era l'utente. |
 | `ReadRumSessionReplayPayload` (_Watch Session Replays_) | Riprodurre le registrazioni e leggere il riferimento e gli attributi dell'utente identificato. |
-| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_) | Leggere il **Registro degli accessi alle riproduzioni**: chi ha guardato quale registrazione. |
+| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_) | Leggere il **Log degli accessi alle riproduzioni**: chi ha guardato quale registrazione. |
 | `DeleteRumSessionReplay` (_Delete Session Replays_) | Eliminare le registrazioni. |
 | `CreateRumSessionErasureRequest`, `ReadRumSessionErasureRequest` | Presentare richieste di cancellazione e seguirle. |
 | `ReadRumApplicationLabelRule`, `ReadRumApplicationOwnerRule` (e i loro Create, Edit e Delete) | Gestire le regole per le etichette e le regole per i proprietari. |
 | `ReadRumApplicationOwnerUser`, `ReadRumApplicationOwnerTeam` (e i loro Create, Edit e Delete) | Aggiungere e rimuovere proprietari tramite l'API. |
 
-Una suddivisione utile: dai a un tecnico del supporto `ReadRumApplication` e `ReadRumSessionReplay`. Potrà vedere quali sessioni hanno avuto errori senza guardare lo schermo di nessuno né sapere chi era l'utente. Dai `ReadRumSessionReplayPayload` solo alle persone che ne hanno bisogno; i membri con `ReadRumSessionReplayAudit` vedranno allora ogni riproduzione nella pagina **Registro degli accessi alle riproduzioni** dell'applicazione. [Chi può guardare una registrazione](/docs/telemetry/session-replay#chi-può-guardare-una-registrazione) mostra cosa sblocca ogni autorizzazione nell'elenco delle sessioni e nel lettore.
+Una suddivisione utile: dai a un tecnico del supporto `ReadRumApplication` e `ReadRumSessionReplay`. Potrà vedere quali sessioni hanno avuto errori senza guardare lo schermo di nessuno né sapere chi era l'utente. Dai `ReadRumSessionReplayPayload` solo alle persone che ne hanno bisogno; i membri con `ReadRumSessionReplayAudit` vedranno allora ogni riproduzione nella pagina **Log degli accessi alle riproduzioni** dell'applicazione. [Chi può guardare una registrazione](/docs/telemetry/session-replay#chi-può-guardare-una-registrazione) mostra cosa sblocca ogni autorizzazione nell'elenco delle sessioni e nel lettore.
 
 ## Avvisi sui dati RUM
 

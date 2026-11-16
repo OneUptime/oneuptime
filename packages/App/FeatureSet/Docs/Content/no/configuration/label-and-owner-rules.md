@@ -50,7 +50,7 @@ I trinnet **Etiketter** velger du **Etiketter å legge til**. I en eierregel het
 
 ### Sjekk de sammenslåtte feltene
 
-**Flere felt** inneholder den valgfrie **Beskrivelse** og, i en eierregel, **Varsle eiere**, som er på som standard: eierne en regel legger til, får det samme varselet «du er lagt til som eier» som en eier som legges til manuelt. Slå det av for å legge til eiere uten å varsle dem.
+**Flere felt** inneholder den valgfrie **Beskrivelse** og, i en eierregel, **Varsle eiere**, som er på som standard: eierne en regel legger til, får den samme varslingen «du er lagt til som eier» som en eier som legges til manuelt. Slå det av for å legge til eiere uten å varsle dem.
 
 ### Lagre regelen
 
@@ -80,18 +80,18 @@ Regler du allerede har, røres ikke: se [Rediger en regel](#rediger-en-regel).
 
 Regler for hendelser, varsler og planlagt vedlikehold kan også gi videre det ressursene en hendelse berører, bærer. Under **Etiketter å legge til** (eller **Eiere**) inneholder den sammenslåtte delen **Arv etiketter** (eller **Arv eiere**) seks brytere:
 
-- **Arv etiketter fra overvåkere**: hver etikett på hendelsens monitorer settes også på hendelsen. Et varsel har én monitor, så i en varselregel heter bryteren **Arv etiketter fra overvåking** (og i en eierregel for varsler **Arv eiere fra overvåking**).
+- **Arv etiketter fra monitorer**: hver etikett på hendelsens monitorer settes også på hendelsen. Et varsel har én monitor, så i en varselregel heter bryteren **Arv etiketter fra monitor** (og i en eierregel for varsler **Arv eiere fra monitor**).
 - **Arv etiketter fra verter**, **Arv etiketter fra Kubernetes-klynger**, **Arv etiketter fra Docker-verter**, **Inherit Labels From Podman Hosts** og **Arv etiketter fra tjenester** gjør det samme for de ressursene.
 
-Eierregler har de samme seks bryterne for eiere (**Arv eiere fra overvåkere** og så videre). Så lenge ingen bryter er på, forteller den sammenslåtte delen hva den er til; i en regel som arver, åpner den seg av seg selv. Episoderegler har ingen arvebrytere.
+Eierregler har de samme seks bryterne for eiere (**Arv eiere fra monitorer** og så videre). Så lenge ingen bryter er på, forteller den sammenslåtte delen hva den er til; i en regel som arver, åpner den seg av seg selv. Episoderegler har ingen arvebrytere.
 
 En regel som arver, kan la **Etiketter å legge til** (eller **Eiere**) stå tom: den legger til det den arver. En slik regel får navn etter det den arver fra:
 
 | Brytere slått på | Navn |
 | --- | --- |
-| **Arv etiketter fra overvåkere** | _Arv etiketter fra: monitorer_ |
-| **Arv etiketter fra overvåkere** og **Arv etiketter fra verter** | _Arv etiketter fra: monitorer, verter_ |
-| **Arv etiketter fra overvåking**, i en varselregel | _Arv etiketter fra: overvåking_ |
+| **Arv etiketter fra monitorer** | _Arv etiketter fra: monitorer_ |
+| **Arv etiketter fra monitorer** og **Arv etiketter fra verter** | _Arv etiketter fra: monitorer, verter_ |
+| **Arv etiketter fra monitor**, i en varselregel | _Arv etiketter fra: monitor_ |
 
 Navnet følger bryterne til du velger en etikett (da får regelen navn etter etikettene sine) eller skriver et eget navn.
 

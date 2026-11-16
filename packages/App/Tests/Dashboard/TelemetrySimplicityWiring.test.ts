@@ -398,14 +398,22 @@ describe("each edit dialog names what it edits", () => {
   test("the SLO Settings dialogs are titled like the buttons that open them", () => {
     const code: string = readCode("Pages/Slo/View/Settings.tsx");
 
+    /*
+     * Downtime Calculation is drawn only for a monitor uptime SLO, so its
+     * card sits inside a condition and is indented further than the rest:
+     * the button and the title are next to each other, at any indent.
+     */
     for (const [key, title] of [
+      ["measures", "Edit What It Measures"],
       ["objective", "Edit Objective"],
       ["period", "Edit Period"],
       ["downtime", "Edit Downtime Calculation"],
     ] as Array<[string, string]>) {
       expect(code).toContain(`${key}: translationKey("${title}"),`);
-      expect(code).toContain(
-        `editButtonText="${title}"\n        editModalTitle={SLO_SETTINGS_DIALOG_TITLES.${key}}`,
+      expect(code).toMatch(
+        new RegExp(
+          `editButtonText="${title}"\\n\\s+editModalTitle=\\{SLO_SETTINGS_DIALOG_TITLES\\.${key}\\}`,
+        ),
       );
     }
   });

@@ -29,6 +29,7 @@ import {
 } from "./DocsContentSupport";
 import {
   drawnActionLabel,
+  drawnLabelOnPage,
   drawnCreateButton,
   isActionLabel,
 } from "./DocsDashboardLabels";
@@ -67,6 +68,7 @@ import {
 } from "./DocsTranslationChecks";
 import { anchorInLanguage } from "./NetworkDocsLabels";
 import { describe, expect, it } from "@jest/globals";
+import { isStepNameOnPage } from "./DocsWorkflowStepNames";
 
 /*
  * Docs overhaul task 24b: the rest of the AI Observability group (Gemini
@@ -163,12 +165,16 @@ const CREATE_BUTTONS: Record<string, Array<string>> = {
 };
 
 /*
- * A workflow step's own names, which the workflow builder draws as the step
- * names them and the workflow pages keep in English: the trigger and the
- * blocks the circuit breaker uses, their settings, and their dots. "Error"
- * is also a span status on that page, which a translation draws as its
- * Dashboard does; the dot keeps it in English. AiToolingDocsFacts holds
- * each to the workflow components that define it.
+ * A workflow step's own names: the trigger and the blocks the circuit
+ * breaker uses, their settings, and their dots. AiToolingDocsFacts holds
+ * each to the workflow components that define it. The builder looks each
+ * up in the Dashboard's locale, so a translation names the ones a locale
+ * has a word for as its builder draws them - the URL, Request Headers and
+ * Request Body settings, the Success, Yes, No and Error dots (#7511,
+ * WorkflowStepNamesAsDrawnDocs), the steps' titles (#8359) and the On
+ * Create Alert trigger, drawn as the sentence it was built from (#8708) -
+ * and keeps the rest as written. "Error" is also a span status on that
+ * page, drawn the same.
  *
  * If / Else's Value to check, Comparison and Compare with are not among
  * them: its editor draws them in the reader's language (ConditionModel),
@@ -268,12 +274,23 @@ function listed(
 
 // Bold words a translation keeps exactly as the English page writes them.
 function keptAsWritten(page: string): Array<string> {
-  return [...listed(WORKFLOW_STEP_NAMES, page), ...listed(GLYPHS, page)];
+  return [
+    ...listed(WORKFLOW_STEP_NAMES, page).filter((name: string): boolean => {
+      return !isStepNameOnPage(page, name);
+    }),
+    ...listed(GLYPHS, page),
+  ];
 }
 
-// Whether a list accounts for a bold English word on a page.
+/*
+ * Whether a list accounts for a bold English word on a page: a step's own
+ * name that is no Dashboard label (a record step's title, built from its
+ * model's name) is held by WorkflowStepNamesAsDrawnDocs.
+ */
 function accountedFor(page: string, span: string): boolean {
   return (
+    (listed(WORKFLOW_STEP_NAMES, page).includes(span) &&
+      !isActionLabel(span)) ||
     keptAsWritten(page).includes(span) ||
     listed(MENU_ITEMS, page).includes(span) ||
     listed(CREATE_BUTTONS, page).includes(span)
@@ -301,7 +318,7 @@ function englishBoldDrawings(
 ): Array<[string, string]> {
   return [
     ...dashboardLabels(page).map((label: string): [string, string] => {
-      return [`**${label}**`, `**${drawnActionLabel(language, label)}**`];
+      return [`**${label}**`, `**${drawnLabelOnPage(language, page, label)}**`];
     }),
     ...listed(CREATE_BUTTONS, page).map((button: string): [string, string] => {
       return [`**${button}**`, `**${drawnCreateButton(language, button)}**`];
@@ -774,7 +791,7 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       const translated: string = readPage(language, entry.page);
       const missing: Array<string> = [
         ...dashboardLabels(entry.page).map((label: string): string => {
-          return drawnActionLabel(language, label);
+          return drawnLabelOnPage(language, entry.page, label);
         }),
         ...listed(CREATE_BUTTONS, entry.page).map((button: string): string => {
           return drawnCreateButton(language, button);
@@ -895,8 +912,16 @@ describe("the helpers, on these pages' shapes", () => {
     expect(drawnPathSegment("da", ["Monitors", "Create Monitor"], 0)).toBe(
       drawnMenuItem("da", "Monitors"),
     );
-    expect(drawnMenuItem("da", "Monitors")).not.toBe(
+    // The menu says its page's title since #8229 (it said Overvågninger).
+    expect(drawnMenuItem("da", "Monitors")).toBe(
       drawnActionLabel("da", "Monitors"),
+    );
+    // Chat's page draws no title, so its menu item is a word of its own.
+    expect(drawnPathSegment("fa", ["Chat", "Monitors"], 0)).toBe(
+      drawnMenuItem("fa", "Chat"),
+    );
+    expect(drawnMenuItem("fa", "Chat")).not.toBe(
+      drawnActionLabel("fa", "Chat"),
     );
   });
 

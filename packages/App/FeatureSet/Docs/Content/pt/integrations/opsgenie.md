@@ -16,9 +16,9 @@ Envie os incidentes do OneUptime para o [Opsgenie](https://www.atlassian.com/sof
 
 ```mermaid title="Dois workflows, um alerta no Opsgenie"
 flowchart TB
-    declared["Incidente declarado"] --> create["Workflow 1:<br/>On Create Incident"]
+    declared["Incidente declarado"] --> create["Workflow 1:<br/>Ao criar: Incidente"]
     create -->|"POST /v2/alerts"| og["Alerta no Opsgenie"]
-    resolved["Incidente resolvido"] --> update["Workflow 2:<br/>On Update Incident"]
+    resolved["Incidente resolvido"] --> update["Workflow 2:<br/>Ao atualizar:<br/>Incidente"]
     update -->|"fechar por alias"| og
 ```
 
@@ -49,17 +49,17 @@ Vá para **Fluxos de trabalho**, clique em **Criar fluxo de trabalho** e depois 
 
 ### Adicionar o gatilho
 
-Clique no bloco tracejado **Escolha o que inicia este fluxo de trabalho** e escolha **On Create Incident**. Clique no gatilho: os seus **Fields to pass on** começam com **Título**, então clique em **Adicionar campo** e escolha **Descrição**.
+Clique no bloco tracejado **Escolha o que inicia este fluxo de trabalho** e escolha **Ao criar: Incidente**. Clique no gatilho: os seus **Campos a repassar** começam com **Título**, então clique em **Adicionar campo** e escolha **Descrição**.
 
 ### Criar o alerta
 
-Clique em **Adicionar componente**, adicione um bloco **API Post (JSON)** e ligue a ele o ponto **Success** do gatilho. Defina a **URL** dele como `https://api.opsgenie.com/v2/alerts`, ou `https://api.eu.opsgenie.com/v2/alerts` na Europa. Em **Mais campos**, defina os **Request Headers** dele como:
+Clique em **Adicionar componente**, adicione um bloco **Chamada de API POST (JSON)** e ligue a ele o ponto **Sucesso** do gatilho. Defina a **URL** dele como `https://api.opsgenie.com/v2/alerts`, ou `https://api.eu.opsgenie.com/v2/alerts` na Europa. Em **Mais campos**, defina os **Cabeçalhos da Requisição** dele como:
 
 ```json
 { "Authorization": "GenieKey {{global.variables.OPSGENIE_KEY}}" }
 ```
 
-E o **Request Body** como:
+E o **Corpo da Requisição** como:
 
 ```json
 {
@@ -73,7 +73,7 @@ E o **Request Body** como:
 
 ### Testar e depois ativar
 
-Clique em **Executar fluxo de trabalho**, escolha um incidente de teste em **Incidente** e execute. A etapa **API Post (JSON)** mostra uma resposta `202`, e o alerta aparece no Opsgenie logo depois. Depois, ative **Habilitado** no topo do **Construtor**.
+Clique em **Executar fluxo de trabalho**, escolha um incidente de teste em **Incidente** e execute. A etapa **Chamada de API POST (JSON)** mostra uma resposta `202`, e o alerta aparece no Opsgenie logo depois. Depois, ative **Habilitado** no topo do **Construtor**.
 :::
 
 O esquema do Opsgenie é a palavra `GenieKey`, um espaço e depois a chave. O Opsgenie limita `message` a 130 caracteres, e as prioridades dele vão de `P1` a `P5`: para enviar a de cada incidente, veja [Mapear as prioridades](#mapear-as-prioridades).
@@ -83,9 +83,9 @@ O esquema do Opsgenie é a palavra `GenieKey`, um espaço e depois a chave. O Op
 Um workflow tem um só gatilho, então fechar exige um segundo workflow, iniciado quando o estado de um incidente muda.
 
 :::steps
-### Adicionar o gatilho On Update Incident
+### Adicionar o gatilho "Ao atualizar: Incidente"
 
-Crie um workflow chamado `Close Opsgenie alerts` e escolha **On Update Incident** como gatilho. Em **Fields to watch**, clique em **Adicionar campo** e escolha **Current Incident State**, para que ele só rode quando o estado mudar. Em **Fields to pass on**, peça se o novo estado é um estado resolvido: clique em **Adicionar campo**, abra **Current Incident State** e escolha **Is Resolved State**. Ou clique em **Editar como JSON** e substitua o JSON por:
+Crie um workflow chamado `Close Opsgenie alerts` e escolha **Ao atualizar: Incidente** como gatilho. Em **Campos a observar**, clique em **Adicionar campo** e escolha **Current Incident State**, para que ele só rode quando o estado mudar. Em **Campos a repassar**, peça se o novo estado é um estado resolvido: clique em **Adicionar campo**, abra **Current Incident State** e escolha **Is Resolved State**. Ou clique em **Editar como JSON** e substitua o JSON por:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -93,17 +93,17 @@ Crie um workflow chamado `Close Opsgenie alerts` e escolha **On Update Incident*
 
 ### Verificar que o incidente está resolvido
 
-Adicione um bloco **If / Else** depois do gatilho. Defina **Value to check** como `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` e **Comparison** como **is true**.
+Adicione um bloco **Se / Senão** depois do gatilho. Defina **Valor a verificar** como `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` e **Comparação** como **é verdadeiro**.
 
 ### Fechar o alerta
 
-Adicione um bloco **API Post (JSON)** depois do lado **Yes**, com os mesmos **Request Headers** e esta **URL**:
+Adicione um bloco **Chamada de API POST (JSON)** depois do lado **Sim**, com os mesmos **Cabeçalhos da Requisição** e esta **URL**:
 
 ```text
 https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}/close?identifierType=alias
 ```
 
-Defina o **Request Body** dele como `{ "source": "OneUptime", "note": "Resolved in OneUptime" }`.
+Defina o **Corpo da Requisição** dele como `{ "source": "OneUptime", "note": "Resolved in OneUptime" }`.
 
 ### Ativá-lo
 
@@ -114,10 +114,10 @@ Ative **Habilitado** e depois resolva um incidente de teste no OneUptime. O Opsg
 
 ## Mapear as prioridades
 
-Para enviar a gravidade de cada incidente como prioridade do Opsgenie, adicione um bloco **Run Custom JavaScript** entre o gatilho e o bloco **API Post (JSON)**.
+Para enviar a gravidade de cada incidente como prioridade do Opsgenie, adicione um bloco **Executar JavaScript personalizado** entre o gatilho e o bloco **Chamada de API POST (JSON)**.
 
-1. Em **Fields to pass on** do gatilho, clique em **Adicionar campo**, abra **Severidade do incidente** e escolha **Nome**.
-2. Defina os **Arguments** do bloco como `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` e o **JavaScript Code** dele como:
+1. Em **Campos a repassar** do gatilho, clique em **Adicionar campo**, abra **Severidade do incidente** e escolha **Nome**.
+2. Defina os **Argumentos** do bloco como `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` e o **Código JavaScript** dele como:
 
    ```javascript
    // Your incident severities, by name, to Opsgenie's priorities.
@@ -149,7 +149,7 @@ O Opsgenie responde `202` antes de processar a requisição, então uma requisi�
 :::
 
 :::details O workflow nunca roda
-Verifique se ele está ativado: **Habilitado**, no topo do **Construtor** dele. Depois abra **Registros → Execuções**: uma execução que seguiu o lado **No** do bloco **If / Else** é uma atualização que não era uma resolução.
+Verifique se ele está ativado: **Habilitado**, no topo do **Construtor** dele. Depois abra **Registros → Execuções**: uma execução que seguiu o lado **Não** do bloco **Se / Senão** é uma atualização que não era uma resolução.
 :::
 
 ## Próximos passos

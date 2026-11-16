@@ -37,8 +37,8 @@ Un gruppo di monitor non è un gruppo di una pagina di stato. Un gruppo di una p
 ## Prima di iniziare
 
 - **Il vostro piano.** Su OneUptime Cloud, i gruppi di monitor richiedono il piano Scale.
-- **L'interruttore.** I gruppi di monitor sono nascosti finché **Gruppi di monitor** non viene attivato per il progetto (vedere sotto). Attivarlo richiede il ruolo Project Owner, oppure un ruolo personalizzato con il permesso Edit Project o Manage Billing.
-- **Il vostro ruolo.** Creare, modificare ed eliminare gruppi richiede il ruolo Project Owner, Project Admin, Project Member, Monitor Admin o Monitor Member, oppure un ruolo personalizzato con i permessi corrispondenti per i gruppi di monitor. Un Viewer può vedere i gruppi, ma non modificarli.
+- **L'interruttore.** I gruppi di monitor sono nascosti finché **Gruppi di monitor** non viene attivato per il progetto (vedere sotto). Attivarlo richiede il ruolo Proprietario del progetto, oppure un ruolo personalizzato con il permesso Edit Project o Manage Billing.
+- **Il vostro ruolo.** Creare, modificare ed eliminare gruppi richiede il ruolo Proprietario del progetto, Amministratore del progetto, Membro del progetto, Amministratore dei monitor o Membro dei monitor, oppure un ruolo personalizzato con i permessi corrispondenti per i gruppi di monitor. Un Visualizzatore può vedere i gruppi, ma non modificarli.
 
 ## Attivare i gruppi di monitor
 
@@ -87,7 +87,7 @@ Aprite un gruppo per vederne le pagine nel menu laterale:
 | **Incidenti** | Gli incidenti su qualsiasi monitor del gruppo. |
 | **Avvisi** | Gli avvisi su qualsiasi monitor del gruppo. |
 | **Proprietari** | Le persone e i team responsabili del gruppo. Si trova sotto **Avanzato**, che parte chiuso. |
-| **Registri di audit** | Chi ha modificato il gruppo, e quando, anche questa sotto **Avanzato**. |
+| **Log di audit** | Chi ha modificato il gruppo, e quando, anche questa sotto **Avanzato**. |
 | **Elimina gruppo** | Elimina il gruppo, anche questa sotto **Avanzato**. |
 
 La disponibilità nella **Panoramica** conta come inattività ogni stato tranne quello operativo. Una pagina di stato conta solo gli stati nel proprio elenco **Conta come inattività**: vedere [Scegliere cosa mostra la pagina](/docs/status-pages/index#scegliere-che-cosa-compare-sulla-pagina).

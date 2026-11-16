@@ -26,7 +26,7 @@ import { JSONObject } from "Common/Types/JSON";
 import {
   formatBytes,
   formatCompact,
-  formatDurationMs,
+  formatDurationMsInLanguage,
   formatPercent,
 } from "./telemetryFormat";
 
@@ -35,7 +35,12 @@ import {
  * (and a React-free helper module) can use them without pulling in the
  * API client this file needs. Re-exported so existing imports keep working.
  */
-export { formatBytes, formatCompact, formatDurationMs, formatPercent };
+export {
+  formatBytes,
+  formatCompact,
+  formatDurationMsInLanguage,
+  formatPercent,
+};
 
 export interface TimePoint {
   x: Date;

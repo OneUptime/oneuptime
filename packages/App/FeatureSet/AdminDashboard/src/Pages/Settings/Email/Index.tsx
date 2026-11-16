@@ -58,8 +58,9 @@ import { useTranslation } from "react-i18next";
  * section with the transport, TLS, sign-in type and OAuth), then Sender -
  * the Dashboard's Custom SMTP form, from the same builder
  * (Common/UI/Components/SmtpConfig), built once. An edit form of the one
- * GlobalConfig row: nothing is filled in, so an instance saves what it
- * holds.
+ * GlobalConfig row: an instance saves what it holds, and only what it holds
+ * nothing for starts on a default - the port on 587, the From Name on the
+ * product's name (#8183).
  */
 const SMTP_HOST_FORM_STEPS: Array<FormStep<GlobalConfig>> =
   getSmtpConfigFormSteps<GlobalConfig>();
@@ -208,6 +209,7 @@ const Settings: FunctionComponent = (): ReactElement => {
   return (
     <Page
       title={t("pages.settings.title")}
+      isTitleTranslated={true}
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),

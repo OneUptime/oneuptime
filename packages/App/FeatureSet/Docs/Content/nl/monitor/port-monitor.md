@@ -31,7 +31,7 @@ Wanneer een controle mislukt, traceert de sonde ook de route naar de host en zoe
 
 ## Voordat u begint
 
-- **Een rol die monitoren mag maken**: Project Owner, Project Admin, Project Member, Monitor Admin of Monitor Member, of een aangepaste rol met de machtiging Create Monitor.
+- **Een rol die monitoren mag maken**: Projecteigenaar, Projectbeheerder, Projectlid, Monitorbeheerder of Monitorlid, of een aangepaste rol met de machtiging Create Monitor.
 - **Een sonde die de poort kan bereiken.** De standaardsondes van uw project worden voor elke nieuwe monitor gekozen. Staat er een firewall voor de dienst, sta dan de [IP-adressen van de sondes van OneUptime Cloud](/docs/configuration/ip-addresses) toe om met de poort te verbinden. Een dienst in een privénetwerk, zoals een database, heeft een [aangepaste sonde](/docs/probe/custom-probe) in dat netwerk nodig.
 
 ## Een poortmonitor maken
@@ -122,7 +122,7 @@ Bij twee of meer filters bepaalt **Overeenkomstvoorwaarde** of **Alle** moeten o
 
 Een nieuwe poortmonitor begint met twee criteria:
 
-- **Offline** — de poort accepteert na alle nieuwe pogingen geen verbinding. De monitor wordt als **Offline** gemarkeerd en er wordt een incident met de naam "_monitor name_ is offline" gemaakt. Het incident lost zichzelf op wanneer de poort weer verbindingen accepteert.
+- **Offline** — de poort accepteert na alle nieuwe pogingen geen verbinding. De monitor wordt als **Offline** gemarkeerd en er wordt een incident met de naam "_monitornaam_ is offline" gemaakt. Het incident lost zichzelf op wanneer de poort weer verbindingen accepteert.
 - **Bereikbaar** — de poort accepteert een verbinding. De monitor wordt als **Operationeel** gemarkeerd.
 
 Criteria worden van boven naar beneden gecontroleerd, en het eerste dat overeenkomt bepaalt wat er gebeurt. Komt er geen overeen, dan toont de monitor zijn standaardstatus: **Operationeel**, tenzij u onder **Meer velden** onder de criteria een andere kiest.

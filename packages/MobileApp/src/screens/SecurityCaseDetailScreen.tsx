@@ -361,7 +361,7 @@ export default function SecurityCaseDetailScreen({
         >
           <EmptyState
             title="You cannot see this case"
-            subtitle="Your role in this project does not cover this case. A project admin can give you access."
+            subtitle="Your role in this project does not cover this case. A Project Admin can give you access."
             icon="access"
           />
         </ScrollView>

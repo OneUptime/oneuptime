@@ -147,7 +147,7 @@ describe("the prompt's words", () => {
     expect(wordsOf({})).toEqual({
       label: "Upload files",
       instruction: "Click to choose a file or drag & drop.",
-      hint: "Max 10 MB each.",
+      hint: "Max 10\u00A0MB each.",
     });
   });
 
@@ -170,28 +170,28 @@ describe("the prompt's words", () => {
   test("the words it is given win over its own", () => {
     const words: FilePickerPromptWords = wordsOf({
       placeholder: "Add your logo",
-      hint: "PDF, pictures or ZIP, up to 10 MB.",
+      hint: "PDF, pictures or ZIP, up to 10\u00A0MB.",
       mimeTypes: [MimeType.png],
     });
 
     expect(words.label).toBe("Add your logo");
-    expect(words.hint).toBe("PDF, pictures or ZIP, up to 10 MB.");
+    expect(words.hint).toBe("PDF, pictures or ZIP, up to 10\u00A0MB.");
   });
 
   test("it names the types it takes, each once", () => {
     expect(
       wordsOf({ mimeTypes: [MimeType.png, MimeType.jpg, MimeType.png] }).hint,
-    ).toBe("Types: PNG, JPG. Max 10 MB each.");
+    ).toBe("Types: PNG, JPG. Max 10\u00A0MB each.");
   });
 
   test("it names its own limit when it has one", () => {
     expect(wordsOf({ maxFileSizeInBytes: 512 * 1024 }).hint).toBe(
-      "Max 512 KB each.",
+      "Max 512\u00A0KB each.",
     );
     expect(
       wordsOf({ maxFileSizeInBytes: 512 * 1024, mimeTypes: [MimeType.png] })
         .hint,
-    ).toBe("Types: PNG. Max 512 KB each.");
+    ).toBe("Types: PNG. Max 512\u00A0KB each.");
   });
 
   /*
@@ -206,10 +206,10 @@ describe("the prompt's words", () => {
     };
 
     test.each([
-      [10, "Up to 10 files of 10 MB each."],
-      [3, "Up to 3 files of 10 MB each."],
-      [2, "Up to 2 files of 10 MB each."],
-      [1, "One file of up to 10 MB."],
+      [10, "Up to 10 files of 10\u00A0MB each."],
+      [3, "Up to 3 files of 10\u00A0MB each."],
+      [2, "Up to 2 files of 10\u00A0MB each."],
+      [1, "One file of up to 10\u00A0MB."],
     ])(
       "a picker of at most %p files says %p",
       (maxFiles: number, hint: string) => {
@@ -232,7 +232,7 @@ describe("the prompt's words", () => {
           maxFileSizeInBytes: 5 * 1024 * 1024,
           hint: COUNT_HINT,
         }).hint,
-      ).toBe("Up to 4 files of 5 MB each.");
+      ).toBe("Up to 4 files of 5\u00A0MB each.");
     });
 
     test("a picker with no most files has no count to say: its types and limit instead", () => {
@@ -244,10 +244,10 @@ describe("the prompt's words", () => {
             hint: COUNT_HINT,
             mimeTypes: [MimeType.png],
           }).hint,
-        ).toBe("Types: PNG. Max 10 MB each.");
+        ).toBe("Types: PNG. Max 10\u00A0MB each.");
         expect(
           wordsOf({ isMultiFilePicker: true, maxFiles, hint: COUNT_HINT }).hint,
-        ).toBe("Max 10 MB each.");
+        ).toBe("Max 10\u00A0MB each.");
       }
     });
 
@@ -258,7 +258,7 @@ describe("the prompt's words", () => {
           maxFiles: 3,
           hint: "PDF, pictures or ZIP, up to {{size}}.",
         }).hint,
-      ).toBe("PDF, pictures or ZIP, up to 10 MB.");
+      ).toBe("PDF, pictures or ZIP, up to 10\u00A0MB.");
     });
 
     test("only a plural is a count hint", () => {
@@ -314,7 +314,7 @@ describe("the prompt's words", () => {
       ).toEqual({
         label: "Upload a file",
         instruction: "Click to choose a file or drag & drop.",
-        hint: "One file of up to 10 MB: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+        hint: "One file of up to 10\u00A0MB: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
       });
     });
 

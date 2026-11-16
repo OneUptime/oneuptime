@@ -1,4 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import React, {
   Fragment,
   FunctionComponent,
@@ -43,7 +45,11 @@ import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  getInlineSeparator,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import { formatMilliseconds } from "../../../Utils/Milliseconds";
 import Navigation from "Common/UI/Utils/Navigation";
 import ObjectID from "Common/Types/ObjectID";
 import Route from "Common/Types/API/Route";
@@ -179,7 +185,7 @@ const formatTimestamp: FormatTimestampFunction = (
   date: Date | undefined,
 ): string => {
   if (!date) {
-    return "-";
+    return EMPTY_VALUE_MARK;
   }
 
   return OneUptimeDate.getDateAsLocalFormattedString(date, false);
@@ -338,7 +344,9 @@ const LogEntryRow: FunctionComponent<{
       />
       <div className="flex min-w-0 flex-1 items-center gap-x-3 gap-y-0.5 max-sm:flex-wrap">
         <span className="shrink-0 font-mono text-xs text-gray-400">
-          {formatTimestamp(entry.createdAt)}
+          {getValueOrQuietDash(formatTimestamp(entry.createdAt), {
+            isSmall: true,
+          })}
         </span>
         <Pill
           text={getEntryLabel(entry)}
@@ -368,7 +376,7 @@ const LogEntryRow: FunctionComponent<{
         </span>
         {entry.durationInMs !== undefined ? (
           <span className="ml-auto shrink-0 text-xs text-gray-400">
-            {entry.durationInMs} ms
+            {formatMilliseconds(translator, entry.durationInMs)}
           </span>
         ) : (
           <></>
@@ -547,7 +555,9 @@ const LlmCallRow: FunctionComponent<{ call: LlmCallLog }> = (props: {
   return (
     <div className="flex items-center gap-x-3 gap-y-0.5 border-b border-gray-100 py-2 max-sm:flex-wrap">
       <span className="shrink-0 font-mono text-xs text-gray-400">
-        {formatTimestamp(call.startedAt)}
+        {getValueOrQuietDash(formatTimestamp(call.startedAt), {
+          isSmall: true,
+        })}
       </span>
       <Pill
         text={call.status || "Unknown"}
@@ -585,7 +595,12 @@ const LlmCallRow: FunctionComponent<{ call: LlmCallLog }> = (props: {
               }),
             )
           : ""}
-        {call.durationMs !== undefined ? ` · ${call.durationMs} ms` : ""}
+        {call.durationMs !== undefined
+          ? `${getInlineSeparator(translator.language)}${formatMilliseconds(
+              translator,
+              call.durationMs,
+            )}`
+          : ""}
       </span>
     </div>
   );
@@ -1058,7 +1073,7 @@ const CodeTaskLogPage: FunctionComponent<
             type={AlertType.INFO}
             strongTitle="Prompts and model output are hidden"
             title={
-              "These embed your source code, so only project owners and admins can read them. Everything else about the run is shown below."
+              "These embed your source code, so only Project Owners and Project Admins can read them. Everything else about the run is shown below."
             }
           />
         ) : (

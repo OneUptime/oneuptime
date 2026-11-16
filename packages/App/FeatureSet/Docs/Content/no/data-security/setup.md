@@ -176,9 +176,11 @@ En skanning leser litt av et datalager, innenfor prosjektets grenser, og stopper
 
 Hver skanning fører en oversikt over hva den leste, etter navn: objektene, tabellene eller tjenestene, aldri innholdet. Det den ikke kunne lese – en forespørsel skyen avviste, tidsfristen, bytebudsjettet – blir en advarsel på skanningen, og skanningen merkes **Delvis vellykket**.
 
+Et datalagers **Oversikt** sier når innholdet skannes neste gang. **Neste innholdsskanning** er tidspunktet noe skanner det, **Står for tur nå** mens det venter på tur, og **Forsinket** når det har stått for tur i en time. Ellers sier den hvorfor ingenting vil skanne det: **Av** mens **Skann innhold** er slått av for datalageret eller prosjektet, eller mens datalageret ikke lenger blir funnet; **Skannes ikke** når OneUptime ikke kan ta prøver av denne typen datalager, eller sonden dets ikke kan skanne det; og **Venter** mens sonden dets er frakoblet. En tjenestes telemetri skannes **Hver time**, med prosjektets telemetriskanning. **Skann nå** er slått av, med årsaken, for et datalager som ingenting ville skanne. En skanning som pågår når innholdsskanning slås av, eller når prosjektet suspenderes, beholder ingenting av det den fant.
+
 ## Skann en database du drifter selv
 
-Datasikkerhet tar prøver av PostgreSQL- og MySQL-databaser, på én av to måter. En database som Database-produktet overvåker, eller som tjenestene dine snakker med på tjenestekartet, er allerede et datalager. En database ingen skanning finner, legger du selv til som et datalager.
+Datasikkerhet tar prøver av PostgreSQL-, MySQL- og SQL Server-databaser, på én av to måter. En database som Database-produktet overvåker, eller som tjenestene dine snakker med på tjenestekartet, er allerede et datalager. En database ingen skanning finner, legger du selv til som et datalager.
 
 - **Fra OneUptimes workers.** I datalagerets **Innstillinger** setter du **Tilkoblingsstreng** til en som bare kan lese, som `postgresql://reader:password@db.internal:5432/app`. Den krypteres ved lagring og returneres aldri av API-et. Gi den en databasebruker som kan lese og ikke noe annet.
 - **Fra en sonde i nettverket ditt.** Velg sonden under **Skann fra sonde**, og skriv inn i **Tilkoblingsvariabel for sonde** navnet på miljøvariabelen på sonden som inneholder tilkoblingsstrengen. Sonden leser databasen fra innsiden av nettverket ditt og sender bare tilbake det den fant: tilkoblingsstrengen når aldri OneUptime. Se [Egendefinerte sonder](/docs/probe/custom-probe) for å kjøre en sonde.

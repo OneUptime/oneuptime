@@ -2,7 +2,7 @@
 
 Mit dem **Incoming Email Monitor** von OneUptime können Sie Alarme anhand von E-Mails erstellen und auflösen, die an eindeutige, monitorspezifische E-Mail-Adressen gesendet werden. Das ist nützlich für die Anbindung von Altsystemen, Alarmierungswerkzeugen oder jedem Dienst, der E-Mails senden kann.
 
-Dieselbe Einrichtung lässt auch Workflows E-Mails empfangen: Ein Workflow mit dem Trigger **Incoming Email** erhält eine eigene Adresse auf derselben Domain, und jede E-Mail an diese Adresse startet den Workflow. Siehe [Trigger](/docs/workflows/triggers#incoming-email).
+Dieselbe Einrichtung lässt auch Workflows E-Mails empfangen: Ein Workflow mit dem Trigger **Eingehende E-Mail** erhält eine eigene Adresse auf derselben Domain, und jede E-Mail an diese Adresse startet den Workflow. Siehe [Trigger](/docs/workflows/triggers#incoming-email).
 
 Diese Anleitung erklärt, wie Sie SendGrid Inbound Parse so einrichten, dass eingehende E-Mails an Ihre selbst gehostete OneUptime-Instanz weitergeleitet werden. OneUptime Cloud braucht nichts davon: Dort funktionieren die Adressen sofort.
 
@@ -122,7 +122,7 @@ Wenden Sie sie dann an: Führen Sie unter Docker Compose `npm run start` aus, wa
 
 [Erstellen Sie einen Incoming-Email-Monitor](/docs/monitor/incoming-email-monitor#einen-monitor-für-eingehende-e-mails-erstellen). Seine Seite **Übersicht** zeigt seine Adresse, etwa `monitor-abc123def456@inbound.yourdomain.com`, und seine Kriterien entscheiden, welche E-Mails einen Alarm erstellen und welche ihn auflösen.
 
-Workflows nutzen dieselbe Domain. Fügen Sie einem Workflow den Trigger **Incoming Email** hinzu und klicken Sie darauf: Seine Adresse (`workflow-…@inbound.yourdomain.com`) steht oben in seinen Einstellungen. Solange die Inbound-E-Mail-Variablen oben nicht gesetzt sind, meldet der Trigger, dass der Server nicht für den E-Mail-Empfang eingerichtet ist.
+Workflows nutzen dieselbe Domain. Fügen Sie einem Workflow den Trigger **Eingehende E-Mail** hinzu und klicken Sie darauf: Seine Adresse (`workflow-…@inbound.yourdomain.com`) steht oben in seinen Einstellungen. Solange die Inbound-E-Mail-Variablen oben nicht gesetzt sind, meldet der Trigger, dass der Server nicht für den E-Mail-Empfang eingerichtet ist.
 
 ### Eine Test-E-Mail senden
 
@@ -156,7 +156,7 @@ Worauf ein Incoming-Email-Monitor prüfen kann – den Betreff, den Absender, de
 
 :::details Der Monitor erstellt keine Alarme
 1. **Die Kriterien prüfen:** Prüfen Sie, ob Ihre Kriterien zum Erstellen von Alarmen zum Inhalt der E-Mail passen, und testen Sie zuerst mit exakten Zeichenfolgen, bevor Sie Muster verwenden.
-2. **Den Monitor prüfen:** Stellen Sie sicher, dass er nicht deaktiviert ist und dass sein Typ Incoming Email ist.
+2. **Den Monitor prüfen:** Stellen Sie sicher, dass er nicht deaktiviert ist und dass sein Typ Eingehende E-Mail ist.
 3. **Die Zusammenfassung des Monitors ansehen:** Prüfen Sie, ob die E-Mail empfangen und verarbeitet wurde, und lesen Sie in den Auswertungslogs nach, wie die Kriterien zugetroffen haben.
 :::
 

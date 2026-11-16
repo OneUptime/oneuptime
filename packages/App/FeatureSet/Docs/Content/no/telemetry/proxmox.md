@@ -1,18 +1,18 @@
 # Proxmox-agent
 
-OneUptime Proxmox-agenten overvåker en Proxmox VE-klynge: nodene, QEMU-VM-ene, LXC-containerne, lagringen, HA-tilstanden, sikkerhetskopidekningen og replikeringen. Den leser klyngen gjennom Proxmox VE-API-et med et skrivebeskyttet token og sender det den finner til OneUptime, der klyngen vises med nodene, gjestene og lagringen sin. På Proxmox VE 9 og nyere kan nodene også sende sine egne metrikker selv, uten å installere noe. [Proxmox-monitorer](/docs/monitor/proxmox-monitor) varsler på det som kommer inn.
+OneUptime Proxmox-agenten overvåker en Proxmox VE-klynge: nodene, QEMU-VM-ene, LXC-containerne, lagringen, HA-tilstanden, sikkerhetskopidekningen og replikeringen. Den leser klyngen gjennom Proxmox VE-API-et med et skrivebeskyttet token og sender det den finner til OneUptime, der klyngen vises med nodene, gjestene og lagringen sin. På Proxmox VE 9 og nyere kan nodene også sende sine egne målinger selv, uten å installere noe. [Proxmox-monitorer](/docs/monitor/proxmox-monitor) varsler på det som kommer inn.
 
 :::cards
 - [Velg hvordan du kobler til](#velg-hvordan-du-kobler-til): Agenten, eller den innebygde pushen i Proxmox VE 9.
 - [Installer agenten](#installer-agenten): Et API-token, deretter installasjonsskriptet eller Docker Compose.
 - [Sikkerhetskopiresultater](#send-notifikasjonene-fra-proxmox-ve): Notifikasjonene fra Proxmox VE selv, sendt med to kommandoer.
-- [Native push](#alternativ-uten-installasjon-native-opentelemetry-push-i-proxmox-ve-9): Proxmox VE 9 sender metrikkene sine selv.
+- [Native push](#alternativ-uten-installasjon-native-opentelemetry-push-i-proxmox-ve-9): Proxmox VE 9 sender målingene sine selv.
 - [Feilsøking](#feilsøking): Et diagnoseskript, og de vanlige problemene.
 :::
 
 ## Slik fungerer det
 
-Agenten er et sett containere du kjører med Docker Compose på én maskin: [prometheus-pve-exporter](https://github.com/prometheus-pve/prometheus-pve-exporter) leser Proxmox VE-API-et på port 8006, en OpenTelemetry Collector scraper eksportøren hvert 30. sekund og stempler hver metrikk med klyngens navn, og Proxmox-AI-agenten lar OneUptime AI lese klyngen mens den undersøker. Den innebygde pushen i Proxmox VE 9 sender i stedet metrikkene til hver node rett til OneUptime.
+Agenten er et sett containere du kjører med Docker Compose på én maskin: [prometheus-pve-exporter](https://github.com/prometheus-pve/prometheus-pve-exporter) leser Proxmox VE-API-et på port 8006, en OpenTelemetry Collector scraper eksportøren hvert 30. sekund og stempler hver måling med klyngens navn, og Proxmox-AI-agenten lar OneUptime AI lese klyngen mens den undersøker. Den innebygde pushen i Proxmox VE 9 sender i stedet målingene til hver node rett til OneUptime.
 
 ```mermaid title="To måter å få en klynge inn i OneUptime"
 flowchart TB
@@ -24,14 +24,14 @@ flowchart TB
     nodes -->|"native push,<br/>ingen agent"| oneuptime
 ```
 
-Klyngen registrerer seg med de første dataene sine, under navnet agenten stempler på hver metrikk som `proxmox.cluster.name`.
+Klyngen registrerer seg med de første dataene sine, under navnet agenten stempler på hver måling som `proxmox.cluster.name`.
 
 ## Velg hvordan du kobler til
 
 | | Agenten | Native push |
 | --- | --- | --- |
 | Proxmox VE | Enhver støttet versjon | 9.0 eller nyere |
-| Å installere | Docker Compose på én maskin | Ingenting: en metrikkserver i Proxmox-webgrensesnittet |
+| Å installere | Docker Compose på én maskin | Ingenting: en målingsserver i Proxmox-webgrensesnittet |
 | Noder, gjester og lagring | Ja | Ja |
 | HA-tilstand, start ved oppstart, sikkerhetskopidekning og replikering | Ja | Nei |
 | Sikkerhetskopiresultater, isolerte noder og mislykket replikering, fra notifikasjonene i Proxmox VE (8.3 eller nyere) | Ja | Ja |
@@ -153,7 +153,7 @@ Installasjonsskriptet skriver disse til `/opt/oneuptime-proxmox-agent/.env`; en 
 | --- | --- | --- |
 | `ONEUPTIME_URL` | Ja | OneUptime-URL-en din, for eksempel `https://oneuptime.com` eller den selvhostede instansen din. Bruk `http://` og porten hvis instansen bare bruker HTTP. |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | Inntaksnøkkelen fra **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler**. |
-| `PROXMOX_CLUSTER_NAME` | Ja | Klyngens navn i OneUptime, stemplet på hver metrikk som ressursattributtet `proxmox.cluster.name`. Hold det stabilt: å endre det senere registrerer en ny klynge. Standard er `proxmox-cluster`. |
+| `PROXMOX_CLUSTER_NAME` | Ja | Klyngens navn i OneUptime, stemplet på hver måling som ressursattributtet `proxmox.cluster.name`. Hold det stabilt: å endre det senere registrerer en ny klynge. Standard er `proxmox-cluster`. |
 | `PVE_HOST` | Ja | Noden med Proxmox VE-API-et som eksportøren leser klyngen fra og AI-agenten spør, for eksempel `192.168.1.10`. Mens API-et ikke svarer, bruker begge neste node i `PVE_NODES` som svarer. |
 | `PVE_NODES` | På en klynge | Hver nodes egen API-adresse, kommaseparert i hakeparenteser, for eksempel `[192.168.1.10,192.168.1.11,192.168.1.12]`. Eksportøren leser start ved oppstart, replikering og abonnementet bare for noden den spør, så hver node spørres etter tur, og agenten leser klyngen fra den neste av dem når `PVE_HOST` går ned. Standard er `PVE_HOST` alene, noe som holder for én enkelt node. |
 | `PVE_EXPORTER_URL` | Nei | Adressen (`host:port`, uten skjema) til prometheus-pve-exporter. Standard er den medfølgende eksportøren, `pve-exporter:9221`. |
@@ -166,7 +166,7 @@ Installasjonsskriptet skriver disse til `/opt/oneuptime-proxmox-agent/.env`; en 
 
 Collectoren scraper eksportøren hvert 30. sekund: klyngecollectorene én gang, på `PVE_HOST` (eller noden den leser klyngen fra mens `PVE_HOST` er nede), og nodecollectorene én gang for hver node i `PVE_NODES`. Enhver node svarer på klyngecollectorene, blant dem `backup-info`, som er på som standard, for hele klyngen. Nodecollectorene (`config`, for start ved oppstart, og `replication`) leser bare noden eksportøren spør, så en node som mangler i `PVE_NODES`, sender verken gjestenes flagg for start ved oppstart, som **Guest Down** trenger, eller replikeringsjobbene sine. Hver serie har en `id`-etikett som navngir ressursen: `node/<name>`, `qemu/<vmid>`, `lxc/<vmid>` eller `storage/<node>/<storage>`.
 
-| Kategori | Metrikker |
+| Kategori | Målinger |
 | --- | --- |
 | Tilgjengelighet | `pve_up`, `pve_uptime_seconds` |
 | Node | `pve_node_info`, `pve_cpu_usage_ratio`, `pve_cpu_usage_limit`, `pve_memory_usage_bytes`, `pve_memory_size_bytes` |
@@ -233,12 +233,12 @@ pvesh delete /cluster/notifications/endpoints/webhook/oneuptime
 
 ## Valgfritt — Send Proxmox-tjenestelogger
 
-Som standard sender agenten bare metrikker, så klyngens side **Logger** forblir tom. Proxmox VE-tjenestene logger til systemd-journalen under åtte enheter: `pveproxy`, `pvedaemon`, `pve-firewall`, `pve-ha-crm`, `pve-ha-lrm`, `pvescheduler`, `pvestatd` og `qmeventd`. Den medfølgende `otel-collector-config.yaml` har en utkommentert `journald`-receiver for nøyaktig disse enhetene, koblet til en utkommentert `logs`-pipeline som stempler `proxmox.cluster.name`, slik at loggene havner på klyngen din.
+Som standard sender agenten bare målinger, så klyngens side **Logger** forblir tom. Proxmox VE-tjenestene logger til systemd-journalen under åtte enheter: `pveproxy`, `pvedaemon`, `pve-firewall`, `pve-ha-crm`, `pve-ha-lrm`, `pvescheduler`, `pvestatd` og `qmeventd`. Den medfølgende `otel-collector-config.yaml` har en utkommentert `journald`-receiver for nøyaktig disse enhetene, koblet til en utkommentert `logs`-pipeline som stempler `proxmox.cluster.name`, slik at loggene havner på klyngen din.
 
 :::steps
 ### Kjør agenten på en node
 
-Journalen er per vert, så en ekstern agent kan ikke lese den. Dette er det ene oppsettet som går imot [Hvor du kjører agenten](#hvor-du-kjører-agenten): for å holde metrikkagenten utenfor klyngen, kjør i stedet en ekstra collector bare for logger på noden (kopier konfigurasjonen, og slett deretter receiveren `prometheus` og pipelinen `metrics`).
+Journalen er per vert, så en ekstern agent kan ikke lese den. Dette er det ene oppsettet som går imot [Hvor du kjører agenten](#hvor-du-kjører-agenten): for å holde målingsagenten utenfor klyngen, kjør i stedet en ekstra collector bare for logger på noden (kopier konfigurasjonen, og slett deretter receiveren `prometheus` og pipelinen `metrics`).
 
 ### Slå på receiveren
 
@@ -285,7 +285,7 @@ Du mister filteret per enhet (syslog inneholder alt, ikke bare de åtte tjeneste
 
 ## Alternativ uten installasjon: native OpenTelemetry-push i Proxmox VE 9+
 
-Proxmox VE 9.0 og nyere leveres med en OpenTelemetry-metrikkserver som pusher node-, gjeste- og lagringsmetrikker til et hvilket som helst OTLP/HTTP-endepunkt, uten agent eller eksportør å installere. I Proxmox-webgrensesnittet, gå til *Datacenter → Metric Server → Add → OpenTelemetry* og fyll inn:
+Proxmox VE 9.0 og nyere leveres med en OpenTelemetry-målingsserver som pusher node-, gjeste- og lagringsmålinger til et hvilket som helst OTLP/HTTP-endepunkt, uten agent eller eksportør å installere. I Proxmox-webgrensesnittet, gå til *Datacenter → Metric Server → Add → OpenTelemetry* og fyll inn:
 
 | Felt | Verdi |
 | --- | --- |
@@ -295,10 +295,10 @@ Proxmox VE 9.0 og nyere leveres med en OpenTelemetry-metrikkserver som pusher no
 | Path | `/otlp/v1/metrics` |
 | Headers | `{"x-oneuptime-token": "YOUR_TELEMETRY_INGESTION_TOKEN"}` |
 
-Legg den til én gang: hver node i klyngen pusher sine egne metrikker. OneUptime gjenkjenner pushen og oversetter den til de samme `pve_*`-seriene agenten sender, så:
+Legg den til én gang: hver node i klyngen pusher sine egne målinger. OneUptime gjenkjenner pushen og oversetter den til de samme `pve_*`-seriene agenten sender, så:
 
 - klyngen registrerer seg under navnet på Proxmox-klyngen din (en frittstående node under nodenavnet sitt), og en `proxmox.cluster.name` du setter under *Resource Attributes*, brukes i stedet;
-- sidene for noder, gjester og lagring, oversiktsgrafene, metrikkatalogen og varslingsmalene for CPU, minne og lagring fungerer som med agenten;
+- sidene for noder, gjester og lagring, oversiktsgrafene, målingskatalogen og varslingsmalene for CPU, minne og lagring fungerer som med agenten;
 - de opprinnelige seriene `proxmox_node_*`, `proxmox_vm_*` og `proxmox_storage_*` blir værende i [Metrics Explorer](/docs/monitor/metrics-monitor) for alt annet Proxmox VE rapporterer (load average, swap, pressure stall, trafikk per NIC).
 
 ### Når en node slutter å rapportere
@@ -332,7 +332,7 @@ Native push sender bare det hver node vet om seg selv, så en del av det agenten
 | Flagg for start ved oppstart | Pushes ikke: **Guest Down**, som bare varsler for gjester satt til å starte ved oppstart, trenger agenten. |
 | Sikkerhetskopidekning og replikering | Pushes ikke: **Guest Not Backed Up**, **Backup Running Too Long** og **Replication Failing** trenger agenten. |
 
-Hvis du trenger disse, kjør agenten i stedet, og fjern metrikkserveren: å kjøre begge rapporterer hver ressurs to ganger.
+Hvis du trenger disse, kjør agenten i stedet, og fjern målingsserveren: å kjøre begge rapporterer hver ressurs to ganger.
 
 Sikkerhetskopiresultater, isolerte noder og mislykkede replikeringer når likevel OneUptime: [send notifikasjonene fra Proxmox VE](#send-notifikasjonene-fra-proxmox-ve), som også virker med native push.
 
@@ -390,7 +390,7 @@ Hva den kan kjøre, hvordan rettelser fungerer og hvordan du feilsøker den: [In
 ## Feilsøking
 
 :::details Kjør diagnoseskriptet først
-Agenten leveres med et skript, [`troubleshoot.sh`](https://oneuptime.com/install/proxmox-agent/troubleshoot.sh), som sjekker hele kjeden: container-kjøretiden, eksportørens scrape, klyngenavnet som er stemplet på hver metrikk, tokenets form, collectorens egne metrikker, og om OneUptime godtar inntaksnøkkelen. Den siste sjekken betyr mest. OneUptime avviser en dårlig nøkkel med `401` (`422` for en deaktivert nøkkel eller en nettlesernøkkel), og collectoren behandler begge som permanente: den dropper batchen og logger én `Exporting failed`-feil, som er lett å overse mens containeren forblir sunn. Skriptet spør `GET <url>/otlp/v1/validate` innenfra agentens nettverk for et direkte `200` (gyldig) eller `401` (ugyldig), og faller tilbake til `POST /fluentd/v1/logs` på eldre servere.
+Agenten leveres med et skript, [`troubleshoot.sh`](https://oneuptime.com/install/proxmox-agent/troubleshoot.sh), som sjekker hele kjeden: container-kjøretiden, eksportørens scrape, klyngenavnet som er stemplet på hver måling, tokenets form, collectorens egne målinger, og om OneUptime godtar inntaksnøkkelen. Den siste sjekken betyr mest. OneUptime avviser en dårlig nøkkel med `401` (`422` for en deaktivert nøkkel eller en nettlesernøkkel), og collectoren behandler begge som permanente: den dropper batchen og logger én `Exporting failed`-feil, som er lett å overse mens containeren forblir sunn. Skriptet spør `GET <url>/otlp/v1/validate` innenfra agentens nettverk for et direkte `200` (gyldig) eller `401` (ugyldig), og faller tilbake til `POST /fluentd/v1/logs` på eldre servere.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/proxmox-agent/troubleshoot.sh -o troubleshoot.sh
@@ -414,7 +414,7 @@ API-tokenet er feil eller mangler tillatelser. Sjekk formatet på token-ID-en (`
 Agenten kjører, men har ikke lest klyngen fra Proxmox VE API-et på 15 minutter eller mer, så klyngen viser **Kan ikke lese API** i stedet for **Tilkoblet**: noden den leser fra er nede og ingen annen node i `PVE_NODES` svarer, API-tokenet er trukket tilbake eller har mistet rollen **PVEAuditor**, eller agentens maskin når ikke port `8006` på noen node. Sidene beholder det den sist leste. Diagnoseskriptet ovenfor sjekker hver av disse årsakene, og `docker logs oneuptime-pve-api-failover` sier hvilken node agenten leser fra, og hvorfor den hoppet over de andre.
 :::
 
-:::details Bare nodemetrikker, ingen gjestemetrikker
+:::details Bare nodemålinger, ingen gjestemålinger
 Gjesteserier (ID-ene `qemu/*` og `lxc/*`) kommer fra eksportørens klyngecollector, som den medfølgende konfigurasjonen slår på med scrape-parameteren `cluster=1`. Hvis du har tilpasset `otel-collector-config.yaml`, legg parameteren `cluster: ["1"]` tilbake.
 :::
 
@@ -422,7 +422,7 @@ Gjesteserier (ID-ene `qemu/*` og `lxc/*`) kommer fra eksportørens klyngecollect
 Flaggene deres for start ved oppstart og replikeringsjobbene deres kommer fra noden de kjører på, og agenten leser bare nodene i `PVE_NODES`. List adressen til hver node der, for eksempel `PVE_NODES=[192.168.1.10,192.168.1.11,192.168.1.12]`, og kjør `docker compose up -d`. Hvis collectoren slutter å starte etter at du har redigert den, har listen mistet hakeparentesene sine. Diagnoseskriptet sjekker hver node i listen.
 :::
 
-:::details Metrikkene havner under feil klynge
+:::details Målingene havner under feil klynge
 OneUptime registrerer en Proxmox-klynge etter sitt `proxmox.cluster.name`, som agenten tar fra `PROXMOX_CLUSTER_NAME`. Å endre det etter de første dataene oppretter en ny klynge i stedet for å gi den første nytt navn.
 :::
 
@@ -431,7 +431,7 @@ Den sluttet å rapportere: en node som er nede, en `pvestatd` som henger, en sto
 :::
 
 :::details Med native push utløses aldri Guest Down-, HA- eller sikkerhetskopivarsler
-Native push sender ikke HA-tilstand, start ved oppstart, sikkerhetskopidekning eller replikering. [Installer agenten](#installer-agenten) for dem, og fjern metrikkserveren: å kjøre begge rapporterer hver ressurs to ganger.
+Native push sender ikke HA-tilstand, start ved oppstart, sikkerhetskopidekning eller replikering. [Installer agenten](#installer-agenten) for dem, og fjern målingsserveren: å kjøre begge rapporterer hver ressurs to ganger.
 :::
 
 :::details Sikkerhetskopiresultater dukker aldri opp
@@ -444,7 +444,7 @@ Native push sender ikke HA-tilstand, start ved oppstart, sikkerhetskopidekning e
 ## Neste trinn
 
 :::cards
-- [Proxmox-overvåking](/docs/monitor/proxmox-monitor): Varsle på noder, gjester, lagring, HA, sikkerhetskopier og replikering.
+- [Proxmox-monitor](/docs/monitor/proxmox-monitor): Varsle på noder, gjester, lagring, HA, sikkerhetskopier og replikering.
 - [Ceph-agent](/docs/telemetry/ceph): Overvåk Ceph-lagringen under Proxmox-klyngen din.
 - [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents): Hva Proxmox-AI-agenten kan kjøre, og hvordan rettelser fungerer.
 - [OpenTelemetry-collector på verten](/docs/telemetry/host-otel-collector): Visningen på OS-nivå av hver node.

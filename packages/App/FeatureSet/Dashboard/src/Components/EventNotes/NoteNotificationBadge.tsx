@@ -135,7 +135,8 @@ const NoteNotificationBadge: FunctionComponent<ComponentProps> = (
           {content}
         </button>
       ) : (
-        <Tooltip text={tx(props.summary.label)}>
+        // In English: the tooltip looks it up, once (#8226).
+        <Tooltip text={props.summary.label}>
           <span data-testid={props.dataTestId} className={className}>
             {content}
           </span>
@@ -145,6 +146,7 @@ const NoteNotificationBadge: FunctionComponent<ComponentProps> = (
       {isDetailsOpen && dialogStep === "details" && (
         <ConfirmModal
           title={tx(props.kindLabel)}
+          isTitleTranslated={true}
           description={
             <div className="space-y-3" data-testid="note-notification-details">
               <span className={className}>{content}</span>
@@ -205,6 +207,7 @@ const NoteNotificationBadge: FunctionComponent<ComponentProps> = (
                 ? SubscriberNotificationResendCopy.resendConfirmTitle
                 : SubscriberNotificationResendCopy.retryConfirmTitle,
             )}
+            isTitleTranslated={true}
             description={
               <div
                 className="space-y-3"

@@ -727,7 +727,7 @@ export default class PlanDowngradeOwnerNotice {
     paragraphs.push(
       SafeHtml.escape(
         data.fromPlan
-          ? "Project owners get this email when a plan change stops the project's API keys or SCIM provisioning."
+          ? "Project Owners get this email when a plan change stops the project's API keys or SCIM provisioning."
           : PlanDowngradeOwnerNotice.getWhyOnce({
               stopped: data.stopped,
               apiKeyPlan: apiKeyPlan,
@@ -769,14 +769,14 @@ export default class PlanDowngradeOwnerNotice {
     scimPlan: PlanType | null;
   }): string {
     if (data.stopped.apiKeys > 0 && data.stopped.scimConnections > 0) {
-      return "Project owners get this email once, because the project was already below these plans when API keys and SCIM provisioning started to need them.";
+      return "Project Owners get this email once, because the project was already below these plans when API keys and SCIM provisioning started to need them.";
     }
 
     if (data.stopped.apiKeys > 0) {
-      return `Project owners get this email once, because the project was already below the ${data.apiKeyPlan} plan when API keys started to need it.`;
+      return `Project Owners get this email once, because the project was already below the ${data.apiKeyPlan} plan when API keys started to need it.`;
     }
 
-    return `Project owners get this email once, because the project was already below the ${data.scimPlan} plan when SCIM provisioning started to need it.`;
+    return `Project Owners get this email once, because the project was already below the ${data.scimPlan} plan when SCIM provisioning started to need it.`;
   }
 
   // What need not be done again once the project is back on the plan.

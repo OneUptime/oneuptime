@@ -53,7 +53,7 @@ Abre **Ajustes de usuario**, a la derecha de la barra que está debajo de la bar
 
 **Primeros pasos** y **Alertas y notificaciones** están abiertas; las demás secciones empiezan plegadas, y una sección se abre sola cuando estás en una de sus páginas. **Espacio de trabajo** solo aparece si el proyecto ha conectado Slack, Microsoft Teams o Mattermost.
 
-Los propietarios y administradores del proyecto también pueden ver tu configuración: en **Usuarios**, abren tu fila y su sección **Guardia**, con **Preparación**, **Métodos de notificación** y **Cómo contactarme**. Pueden añadir un método por ti allí, pero el código va al propio método, así que solo tú puedes verificarlo.
+Los Propietarios del proyecto y Administradores del proyecto también pueden ver tu configuración: en **Usuarios**, abren tu fila y su sección **Guardia**, con **Preparación**, **Métodos de notificación** y **Cómo contactarme**. Pueden añadir un método por ti allí, pero el código va al propio método, así que solo tú puedes verificarlo.
 
 ## Con qué empiezas
 
@@ -95,7 +95,7 @@ Un aviso puede llegarte para un tipo y una gravedad para los que no tienes regla
 2. Si no tienes ninguno, un método de pago, en este orden: SMS, una llamada, WhatsApp, Telegram. Es el primero que tengas verificado, en un canal que el proyecto ha activado.
 3. Si tampoco tienes ninguno de esos, un webhook.
 
-Recibes un correo avisándote, y también los propietarios de la política de guardia, o los del proyecto si la política no tiene. Si no hay nada verificado, el aviso no se puede entregar, y el correo dice eso. Estos correos se retienen mientras siguen llegando avisos, para que una tormenta de avisos no sea una tormenta de correos. Para añadir la regla que falta, consulta [Cómo contactarme](/docs/notifications/on-call-rules#cuando-una-gravedad-no-tiene-regla).
+Recibes un correo avisándote, y también los propietarios de la política de guardia, o los Propietarios del proyecto si la política no tiene. Si no hay nada verificado, el aviso no se puede entregar, y el correo dice eso. Estos correos se retienen mientras siguen llegando avisos, para que una tormenta de avisos no sea una tormenta de correos. Para añadir la regla que falta, consulta [Cómo contactarme](/docs/notifications/on-call-rules#cuando-una-gravedad-no-tiene-regla).
 
 ## El idioma de tus avisos
 
@@ -116,7 +116,7 @@ Abre **Ajustes de usuario → Registros de guardia**. Si no hay fila para el inc
 :::
 
 :::details Recibo correos sobre registros que nunca pedí
-Eres propietario del registro, directamente o a través de un equipo, o el registro no tiene propietarios y tú eres propietario del proyecto. Desactiva el evento en **Ajustes de usuario → Ajustes de notificaciones**, o reduce el volumen en **Ajustes de usuario → Preferencias de correo**.
+Eres propietario del registro, directamente o a través de un equipo, o el registro no tiene propietarios y tú eres Propietario del proyecto. Desactiva el evento en **Ajustes de usuario → Ajustes de notificaciones**, o reduce el volumen en **Ajustes de usuario → Preferencias de correo**.
 :::
 
 :::details Mis avisos están en inglés, aunque el panel no

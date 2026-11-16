@@ -866,7 +866,7 @@ Det daglige par bærer kun `projectId`: dets tal er projektets, og intet i et da
 
 **Hvornår alarmer åbner og løses.** En overskridelse skrives ved den næste kørsel hvert 5. minut, så en alarm åbner inden for omkring 6 minutter. Den løses 10 til 15 minutter efter, at værdien igen er faldet under tærsklen, når den sidste aflæsning på eller over den har forladt vinduet på 15 minutter: de daglige alarmer af sig selv omkring 00:10–00:15 UTC, de månedlige på samme tidspunkt den 1. i måneden, eller 10 til 15 minutter efter, at budgettet er hævet. En daglig grænse, der bruges op i de sidste minutter før 00:00 UTC, giver måske slet ingen alarm: dagen slutter, før den næste kørsel kan skrive den.
 
-**Opbevaring og forbrug.** Disse serier opbevares lige så længe som monitormetrikker: **30 dage** som standard, sat på en selvhostet installation af **Opbevaring af overvågningsmålinger (dage)** i Admin Dashboards indstillinger for **Dataopbevaring**. De tæller ikke som telemetriforbrug. Metriknavne, der starter med `oneuptime.rum.session.replay.`, uanset store og små bogstaver, er reserveret til dem: metrikker, som dine egne applikationer sender under sådan et navn, eller omdøber til et med en regel i en metrikpipeline, smides væk ved indtagelse, og en optageregel kan ikke gemmes med sådan et navn som output.
+**Opbevaring og forbrug.** Disse serier opbevares lige så længe som monitormetrikker: **30 dage** som standard, sat på en selvhostet installation af **Opbevaring af monitormetrikker (dage)** i Admin Dashboards indstillinger for **Dataopbevaring**. De tæller ikke som telemetriforbrug. Metriknavne, der starter med `oneuptime.rum.session.replay.`, uanset store og små bogstaver, er reserveret til dem: metrikker, som dine egne applikationer sender under sådan et navn, eller omdøber til et med en regel i en metrikpipeline, smides væk ved indtagelse, og en optageregel kan ikke gemmes med sådan et navn som output.
 
 ## Frustrationssignaler
 
@@ -1064,7 +1064,7 @@ Vær opmærksom på, at sessionsrækken udløber sammen med sin optagelse: antal
 
 ### Slet sessioner
 
-For at efterkomme en sletteanmodning skal du indsende en sletteanmodning via OneUptimes API — ressourcen `/rum-session-erasure-request`; der er endnu ingen formular i dashboardet til det. En anmodning kræver `CreateRumSessionErasureRequest` (eller en projektejer / -administrator) og tager:
+For at efterkomme en sletteanmodning skal du indsende en sletteanmodning via OneUptimes API — ressourcen `/rum-session-erasure-request`; der er endnu ingen formular i dashboardet til det. En anmodning kræver `CreateRumSessionErasureRequest` (eller en Projektejer / Projektadministrator) og tager:
 
 | Felt | Værdier |
 | --- | --- |
@@ -1092,7 +1092,7 @@ Fordi markeringen når hver tjeneste, som en browserforespørgsel passerede, fje
 
 ## Hvem kan se en optagelse
 
-At se en optagelse er en separat tilladelse fra at vise sessioner, og ingen af dem gives af Viewer-rollen for hele projektet. Projektejere og -administratorer har dem alle.
+At se en optagelse er en separat tilladelse fra at vise sessioner, og ingen af dem gives af Seer-rollen for hele projektet. Projektejere og Projektadministratorer har dem alle.
 
 | Tilladelse | Låser op for |
 | --- | --- |

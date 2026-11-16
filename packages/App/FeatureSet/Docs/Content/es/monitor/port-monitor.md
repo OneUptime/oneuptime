@@ -31,7 +31,7 @@ Cuando una comprobación falla, la sonda también traza la ruta hasta el host y 
 
 ## Antes de empezar
 
-- **Un rol que pueda crear monitores**: Project Owner, Project Admin, Project Member, Monitor Admin o Monitor Member, o un rol personalizado con el permiso Create Monitor.
+- **Un rol que pueda crear monitores**: Propietario del proyecto, Administrador del proyecto, Miembro del proyecto, Administrador de monitores o Miembro de monitores, o un rol personalizado con el permiso Create Monitor.
 - **Una sonda que pueda llegar al puerto.** Las sondas predeterminadas de su proyecto se eligen para cada monitor nuevo. Si un cortafuegos protege el servicio, permita que las [direcciones IP de las sondas de OneUptime Cloud](/docs/configuration/ip-addresses) se conecten al puerto. Un servicio en una red privada, como una base de datos, necesita una [sonda personalizada](/docs/probe/custom-probe) dentro de esa red.
 
 ## Crear un monitor de puerto
@@ -122,7 +122,7 @@ Con dos o más filtros, **Condición de coincidencia** decide si deben coincidir
 
 Un monitor de puerto nuevo empieza con dos criterios:
 
-- **Sin conexión** — el puerto no acepta una conexión, después de todos los reintentos. El monitor se marca como **Sin conexión** y se crea un incidente llamado «_monitor name_ is offline». El incidente se resuelve solo cuando el puerto vuelve a aceptar conexiones.
+- **Sin conexión** — el puerto no acepta una conexión, después de todos los reintentos. El monitor se marca como **Sin conexión** y se crea un incidente llamado «_nombre del monitor_ está sin conexión». El incidente se resuelve solo cuando el puerto vuelve a aceptar conexiones.
 - **En línea** — el puerto acepta una conexión. El monitor se marca como **Operativo**.
 
 Los criterios se comprueban de arriba abajo, y el primero que coincide decide qué ocurre. Cuando ninguno coincide, el monitor muestra su estado predeterminado: **Operativo**, salvo que elija otro en **Más campos**, debajo de los criterios.

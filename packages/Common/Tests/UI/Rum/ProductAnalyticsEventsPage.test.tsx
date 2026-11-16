@@ -112,6 +112,8 @@ import RouteMap, {
   RouteUtil,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import { createTranslator } from "../../../Types/Translator";
+import { EMPTY_VALUE_MARK } from "../../../UI/Components/Detail/EmptyValue";
+import { ResourceOverviewTile } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/ResourceOverview";
 
 const PROJECT_ID: string = "0193a1b2-3c4d-4e5f-8a9b-0c1d2e3f4a5b";
 const APP_ID: string = "0193c0de-1111-4aaa-8bbb-000000000001";
@@ -497,34 +499,34 @@ describe("ProductAnalyticsEvents: the event", () => {
       undefined,
       "en",
     );
-    const empty: Array<{ value: string; sublabel?: string | undefined }> =
-      buildProductAnalyticsEventTiles({
-        trend: {
-          timeZone: "UTC",
-          days: [],
-          totalEvents: 0,
-          totalUsers: 0,
-          totalSessions: 0,
-        },
-        isLoading: false,
-        translator: english,
-      });
+    const empty: Array<ResourceOverviewTile> = buildProductAnalyticsEventTiles({
+      trend: {
+        timeZone: "UTC",
+        days: [],
+        totalEvents: 0,
+        totalUsers: 0,
+        totalSessions: 0,
+      },
+      isLoading: false,
+      translator: english,
+    });
 
     expect(empty[0]!.value).toBe("0");
     expect(empty[0]!.sublabel).toBeUndefined();
 
-    const unread: Array<{ value: string; loading?: boolean | undefined }> =
-      buildProductAnalyticsEventTiles({
+    const unread: Array<ResourceOverviewTile> = buildProductAnalyticsEventTiles(
+      {
         trend: null,
         isLoading: true,
         translator: english,
-      });
+      },
+    );
 
     expect(
-      unread.map((tile: { value: string }): string => {
+      unread.map((tile: ResourceOverviewTile): string | undefined => {
         return tile.value;
       }),
-    ).toEqual(["-", "-", "-"]);
+    ).toEqual([EMPTY_VALUE_MARK, EMPTY_VALUE_MARK, EMPTY_VALUE_MARK]);
     expect(unread[0]!.loading).toBe(true);
   });
 
@@ -722,6 +724,98 @@ describe("ProductAnalyticsEvents: breakdown and segment", () => {
         "Nothing to break down: the event did not happen in this range and segment.",
       ),
     ).toBeInTheDocument();
+  });
+});
+
+/*
+ * #8196: a page is stored as the browser escapes it ("/caf%C3%A9"), and the
+ * Events page drew it so - "Viewed /caf%C3%A9" - where User Flows draws the
+ * same page "/café". It reads as it does there; what is asked for, linked
+ * and narrowed by keeps the stored spelling.
+ */
+describe("ProductAnalyticsEvents: a page with letters beyond ASCII", () => {
+  const CAFE: string = "/caf%C3%A9";
+
+  function cafeNames(): JSONObject {
+    return names({
+      events: [
+        { kind: "page", name: CAFE, events: 400, users: 200, lastSeenAt: 1 },
+        {
+          kind: "custom",
+          name: "Signed up",
+          events: 120,
+          users: 100,
+          lastSeenAt: 1,
+        },
+      ],
+    });
+  }
+
+  function pageBreakdown(data?: JSONObject): JSONObject {
+    const asked: JSONObject = (data?.["breakdown"] as JSONObject) || {};
+
+    if (asked["field"] !== "page") {
+      return breakdown(data);
+    }
+
+    return {
+      field: "page",
+      key: "",
+      rows: [
+        { value: CAFE, events: 90, users: 70 },
+        { value: "/a%2Fb", events: 30, users: 30 },
+      ],
+      hasMore: false,
+      totalEvents: 120,
+      totalUsers: 100,
+    };
+  }
+
+  it("lists a page view as the page reads, and opens it in the spelling it was stored in", async () => {
+    mockReads({ names: cafeNames() });
+
+    renderPage();
+
+    expect(await waitForRows("product-analytics-event-list-bars", 2)).toEqual([
+      "Viewed /café | 400 | 200",
+      "Signed up | 120 | 100",
+    ]);
+
+    selectRow("product-analytics-event-list-bars", "Viewed /café");
+
+    await waitFor(() => {
+      expect(lastRequestTo("event-trend")["event"]).toEqual({
+        kind: "page",
+        name: CAFE,
+      });
+    });
+    expect(searchParams().get("event")).toBe(`page:${CAFE}`);
+    expect(document.body).not.toHaveTextContent("caf%C3%A9");
+  });
+
+  it("breaks down by page as the pages read, and narrows the segment by the stored page", async () => {
+    mockReads({ names: cafeNames(), breakdown: pageBreakdown });
+
+    renderPage();
+
+    await waitForRows("product-analytics-event-breakdown-bars", 2);
+    await chooseOption("Break down by", "Page");
+
+    expect(
+      await waitForRows("product-analytics-event-breakdown-bars", 2),
+    ).toEqual(["/café | 90 | 70 | 75%", "/a%2Fb | 30 | 30 | 25%"]);
+
+    selectRow("product-analytics-event-breakdown-bars", "/café");
+
+    const cafe: JSONObject = { field: "page", key: "", value: CAFE };
+
+    await waitFor(() => {
+      expect(lastRequestTo("event-trend")["filters"]).toEqual([cafe]);
+    });
+    expect(JSON.parse(searchParams().get("segment")!)).toEqual([cafe]);
+    expect(
+      screen.getByTestId("product-analytics-event-segment-filter"),
+    ).toHaveTextContent("Page is /café");
   });
 });
 

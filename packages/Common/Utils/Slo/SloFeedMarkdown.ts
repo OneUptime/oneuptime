@@ -1,7 +1,15 @@
+import SliType from "../../Types/ServiceLevelObjective/SliType";
 import SloStatus from "../../Types/ServiceLevelObjective/SloStatus";
 import SloWindowType from "../../Types/ServiceLevelObjective/SloWindowType";
 import FeedMarkdown, { MarkdownText, mdText } from "../Markdown/FeedMarkdown";
 import { formatSloPolicyTierThreshold } from "./SloErrorBudgetPolicy";
+import { formatRequestBudget } from "./SloRequestSli";
+import {
+  getSloMetricQueryFingerprintParts,
+  normalizeSloMetricQueryConfig,
+  SloMetricKind,
+  SloMetricQueryConfig,
+} from "./SloMetricSli";
 
 /*
  * The words of the SLO feed.
@@ -227,6 +235,48 @@ export const formatSloFeedDuration: FormatSloFeedDurationFunction = (
 
   return pluralize(formatSloFeedNumber(absoluteSeconds / 86400, 1), "day");
 };
+
+/*
+ * A request SLO's budget, in the bad requests it has left: what its feed
+ * items, alert texts and chat posts say in place of a duration.
+ */
+export interface SloFeedRequestBudget {
+  sliType: SliType | string | undefined | null;
+  // SIGNED: negative once the budget is spent.
+  remainingEvents: number;
+}
+
+export type GetSloFeedBudgetRemainingDetailFunction = (data: {
+  errorBudgetRemainingPercentage: number;
+  errorBudgetRemainingSeconds: number;
+  requestBudget?: SloFeedRequestBudget | undefined | null;
+}) => MarkdownText;
+
+/*
+ * "**Error budget remaining**: 62% (12 minutes)", or "(1,234 failed
+ * requests)" for a request SLO, and "(over budget by ...)" once it is spent.
+ */
+export const getSloFeedBudgetRemainingDetail: GetSloFeedBudgetRemainingDetailFunction =
+  (data: {
+    errorBudgetRemainingPercentage: number;
+    errorBudgetRemainingSeconds: number;
+    requestBudget?: SloFeedRequestBudget | undefined | null;
+  }): MarkdownText => {
+    const remaining: number = data.requestBudget
+      ? data.requestBudget.remainingEvents
+      : data.errorBudgetRemainingSeconds;
+
+    const amount: string = data.requestBudget
+      ? formatRequestBudget({
+          sliType: data.requestBudget.sliType,
+          remainingEvents: data.requestBudget.remainingEvents,
+        })
+      : formatSloFeedDuration(data.errorBudgetRemainingSeconds);
+
+    return remaining < 0
+      ? mdText`**Error budget remaining**: ${formatSloFeedPercent(data.errorBudgetRemainingPercentage)} (over budget by ${amount})`
+      : mdText`**Error budget remaining**: ${formatSloFeedPercent(data.errorBudgetRemainingPercentage)} (${amount})`;
+  };
 
 /*
  * ---------------------------------------------------------------------------
@@ -468,6 +518,8 @@ export enum SloFeedValueKind {
   Percent = "Percent",
   Days = "Days",
   Minutes = "Minutes",
+  // A latency threshold, e.g. 300 ms.
+  Milliseconds = "Milliseconds",
   // A burn rate multiple, e.g. 14.4x.
   Multiplier = "Multiplier",
   Count = "Count",
@@ -476,6 +528,11 @@ export enum SloFeedValueKind {
   EntityList = "EntityList",
   // A foreign key column whose name is read from `relationProperty`.
   EntityReference = "EntityReference",
+  /*
+   * A Metric SLO's metric (#8445): compared as the counting reads it, and
+   * written as its name and what makes an event good.
+   */
+  Metric = "Metric",
 }
 
 export interface SloFeedColumn {
@@ -602,6 +659,10 @@ export const isSloFeedValueEqual: IsSloFeedValueEqualFunction = (
         normalizeSloFeedBoolean(beforeValue) ===
         normalizeSloFeedBoolean(afterValue)
       );
+    case SloFeedValueKind.Metric:
+      return (
+        getSloFeedMetricKey(beforeValue) === getSloFeedMetricKey(afterValue)
+      );
     default:
       // Text kinds: an empty string and a null are both "not set".
       return (
@@ -649,6 +710,7 @@ export const formatSloFeedValue: FormatSloFeedValueFunction = (
     case SloFeedValueKind.Percent:
     case SloFeedValueKind.Days:
     case SloFeedValueKind.Minutes:
+    case SloFeedValueKind.Milliseconds:
     case SloFeedValueKind.Multiplier:
     case SloFeedValueKind.Count: {
       const numeric: number | null = normalizeNumber(value);
@@ -669,6 +731,10 @@ export const formatSloFeedValue: FormatSloFeedValueFunction = (
         return formatSloFeedMinutes(numeric);
       }
 
+      if (column.kind === SloFeedValueKind.Milliseconds) {
+        return mdText`${formatSloFeedNumber(numeric)} ms`;
+      }
+
       if (column.kind === SloFeedValueKind.Multiplier) {
         return mdText`${formatSloFeedNumber(numeric)}x`;
       }
@@ -677,12 +743,66 @@ export const formatSloFeedValue: FormatSloFeedValueFunction = (
     }
     case SloFeedValueKind.Opaque:
       return String(value ?? "").trim() ? mdText`_set_` : emptyText;
+    case SloFeedValueKind.Metric:
+      return formatSloFeedMetric(value) || emptyText;
     default: {
       const text: MarkdownText = formatSloFeedText(value);
 
       return text.isEmpty() ? emptyText : text;
     }
   }
+};
+
+/*
+ * A Metric SLO's metric as the counting reads it, so two configurations
+ * that count the same events are the same value; "" for none.
+ */
+export const getSloFeedMetricKey: (value: unknown) => string = (
+  value: unknown,
+): string => {
+  const config: SloMetricQueryConfig | null =
+    normalizeSloMetricQueryConfig(value);
+
+  return config
+    ? JSON.stringify(getSloMetricQueryFingerprintParts(config))
+    : "";
+};
+
+/*
+ * `http_requests_total`, good when `@http.response.status_code:<500`;
+ * `http.server.request.duration`, good at or under 0.3, only
+ * `@http.route:/checkout*`. Null for no metric.
+ */
+export const formatSloFeedMetric: (value: unknown) => MarkdownText | null = (
+  value: unknown,
+): MarkdownText | null => {
+  const config: SloMetricQueryConfig | null =
+    normalizeSloMetricQueryConfig(value);
+
+  if (!config || !config.metricName) {
+    return null;
+  }
+
+  const parts: Array<MarkdownText> = [FeedMarkdown.code(config.metricName)];
+
+  if (config.kind === SloMetricKind.Counter && config.goodFilter) {
+    parts.push(mdText`good when ${FeedMarkdown.code(config.goodFilter)}`);
+  }
+
+  if (
+    config.kind === SloMetricKind.Histogram &&
+    config.goodAtOrUnder !== undefined
+  ) {
+    parts.push(
+      mdText`good at or under ${formatSloFeedNumber(config.goodAtOrUnder)}`,
+    );
+  }
+
+  if (config.filter) {
+    parts.push(mdText`only ${FeedMarkdown.code(config.filter)}`);
+  }
+
+  return FeedMarkdown.join(parts, ", ");
 };
 
 export type GetSloFeedColumnChangesFunction = (data: {
@@ -848,6 +968,31 @@ export const SLO_FEED_UPDATE_COLUMNS: Array<SloFeedColumn> = [
     column: "downtimeMonitorStatuses",
     title: "Downtime monitor statuses",
     kind: SloFeedValueKind.EntityList,
+  },
+  /*
+   * What a request SLO measures. A change to any of them starts its
+   * request counting again, so the feed says when its numbers changed
+   * meaning.
+   */
+  { column: "sliType", title: "SLI type", kind: SloFeedValueKind.Text },
+  { column: "services", title: "Services", kind: SloFeedValueKind.EntityList },
+  {
+    column: "latencyThresholdInMilliseconds",
+    title: "Latency threshold",
+    kind: SloFeedValueKind.Milliseconds,
+  },
+  // Which of the services' requests count (#8444): a traces search.
+  {
+    column: "requestFilter",
+    title: "Request filter",
+    kind: SloFeedValueKind.LongText,
+    emptyText: mdText`every request`,
+  },
+  // What a Metric SLO counts (#8445).
+  {
+    column: "metricQueryConfig",
+    title: "Metric",
+    kind: SloFeedValueKind.Metric,
   },
 ];
 
@@ -1209,6 +1354,8 @@ export interface SloFeedStatusMeasurement {
   targetPercentage: number;
   errorBudgetRemainingPercentage: number;
   errorBudgetRemainingSeconds: number;
+  // A request SLO's budget, said in requests instead of the seconds above.
+  requestBudget?: SloFeedRequestBudget | undefined | null;
   currentBurnRate: number;
   currentBurnRateWindowInMinutes: number;
   atRiskThresholdPercentage: number;
@@ -1252,14 +1399,13 @@ export const getSloStatusChangedFeedMarkdown: GetSloStatusChangedFeedMarkdownFun
         mdText`**SLI**: ${formatSloFeedPercent(measurement.sliPercentage, 4)} against a ${formatSloFeedPercent(measurement.targetPercentage, 3)} target`,
       );
 
-      const budgetDuration: string = formatSloFeedDuration(
-        measurement.errorBudgetRemainingSeconds,
-      );
-
       details.push(
-        measurement.errorBudgetRemainingSeconds < 0
-          ? mdText`**Error budget remaining**: ${formatSloFeedPercent(measurement.errorBudgetRemainingPercentage)} (over budget by ${budgetDuration})`
-          : mdText`**Error budget remaining**: ${formatSloFeedPercent(measurement.errorBudgetRemainingPercentage)} (${budgetDuration})`,
+        getSloFeedBudgetRemainingDetail({
+          errorBudgetRemainingPercentage:
+            measurement.errorBudgetRemainingPercentage,
+          errorBudgetRemainingSeconds: measurement.errorBudgetRemainingSeconds,
+          requestBudget: measurement.requestBudget,
+        }),
       );
 
       details.push(
@@ -1333,9 +1479,10 @@ export const SLO_BURN_RATE_RULE_FEED_COLUMNS: Array<SloFeedColumn> = [
     kind: SloFeedValueKind.Minutes,
     emptyText: mdText`_default_`,
   },
+  // A request SLO's rule's Minimum Requests, as the rule form names it (#8442).
   {
     column: "minimumSampleCount",
-    title: "Minimum sample count",
+    title: "Minimum requests",
     kind: SloFeedValueKind.Count,
   },
   {
@@ -1682,6 +1829,8 @@ export interface SloFeedPolicyTierChange {
   isEscalation: boolean;
   errorBudgetRemainingPercentage: number;
   errorBudgetRemainingSeconds: number;
+  // A request SLO's budget, said in requests instead of the seconds above.
+  requestBudget?: SloFeedRequestBudget | undefined | null;
   // The deploy gate after the change; unset when it plays no part.
   deployments?: SloFeedDeploymentGate | undefined;
 }
@@ -1743,14 +1892,12 @@ export const getSloPolicyTierChangedFeedParts: GetSloPolicyTierChangedFeedPartsF
       details.push(deploymentGate);
     }
 
-    const budgetDuration: string = formatSloFeedDuration(
-      data.errorBudgetRemainingSeconds,
-    );
-
     details.push(
-      data.errorBudgetRemainingSeconds < 0
-        ? mdText`**Error budget remaining**: ${formatSloFeedPercent(data.errorBudgetRemainingPercentage)} (over budget by ${budgetDuration})`
-        : mdText`**Error budget remaining**: ${formatSloFeedPercent(data.errorBudgetRemainingPercentage)} (${budgetDuration})`,
+      getSloFeedBudgetRemainingDetail({
+        errorBudgetRemainingPercentage: data.errorBudgetRemainingPercentage,
+        errorBudgetRemainingSeconds: data.errorBudgetRemainingSeconds,
+        requestBudget: data.requestBudget,
+      }),
     );
 
     let whatWeDo: string | undefined;
@@ -1793,6 +1940,8 @@ export interface SloFeedDeploymentGateChange {
   isAllowed: boolean;
   errorBudgetRemainingPercentage: number;
   errorBudgetRemainingSeconds: number;
+  // A request SLO's budget, said in requests instead of the seconds above.
+  requestBudget?: SloFeedRequestBudget | undefined | null;
 }
 
 export type GetSloDeploymentGateChangedFeedMarkdownFunction = (
@@ -1827,16 +1976,14 @@ export const getSloDeploymentGateChangedFeedParts: GetSloDeploymentGateChangedFe
         : mdText`🔒 Deployments of ${data.sloMarkdownLink} are frozen.`;
     }
 
-    const budgetDuration: string = formatSloFeedDuration(
-      data.errorBudgetRemainingSeconds,
-    );
-
     const details: Array<MarkdownText> = [
       data.isAllowed ? DEPLOYMENTS_ALLOWED_DETAIL : DEPLOYMENTS_FROZEN_DETAIL,
       mdText`**Error budget policy tier**: ${tierName || "none"}`,
-      data.errorBudgetRemainingSeconds < 0
-        ? mdText`**Error budget remaining**: ${formatSloFeedPercent(data.errorBudgetRemainingPercentage)} (over budget by ${budgetDuration})`
-        : mdText`**Error budget remaining**: ${formatSloFeedPercent(data.errorBudgetRemainingPercentage)} (${budgetDuration})`,
+      getSloFeedBudgetRemainingDetail({
+        errorBudgetRemainingPercentage: data.errorBudgetRemainingPercentage,
+        errorBudgetRemainingSeconds: data.errorBudgetRemainingSeconds,
+        requestBudget: data.requestBudget,
+      }),
     ];
 
     return {

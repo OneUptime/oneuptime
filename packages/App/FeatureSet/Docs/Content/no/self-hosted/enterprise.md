@@ -34,7 +34,7 @@ Denne siden beskriver hva hver utgave inneholder, hvordan du kjører Enterprise 
 
 | Funksjon | Community | Enterprise | OneUptime Cloud |
 | --- | --- | --- | --- |
-| Overvåking, varsler, hendelser, vakt, statussider, logger, metrikker, sporinger, unntak, dashbord, arbeidsflyter, KI-funksjoner, API og Terraform | Ja | Ja | Alle abonnementer |
+| Overvåking, varsler, hendelser, vakt, statussider, logger, målinger, sporinger, unntak, dashbord, arbeidsflyter, KI-funksjoner, API og Terraform | Ja | Ja | Alle abonnementer |
 | Pålogging med passord, tofaktorautentisering, team, innebygde roller og API-nøkler | Ja | Ja | Alle abonnementer |
 | [SAML-SSO og OpenID Connect](/docs/identity/sso) for pålogging i prosjekter | Ja | Ja | Abonnementet Scale og høyere |
 | SAML-SSO og OpenID Connect for pålogging på private statussider | Ja | Ja | Abonnementet Scale og høyere |
@@ -42,7 +42,7 @@ Denne siden beskriver hva hver utgave inneholder, hvordan du kjører Enterprise 
 | [SCIM-klargjøring](/docs/identity/scim) for prosjekter og statussider | Nei | Ja | Abonnementet Scale og høyere |
 | Innstillinger for teamsamsvar | Nei | Ja | Abonnementet Scale og høyere |
 | Revisjonslogger | Nei | Ja | Abonnementet Enterprise |
-| Overstyringer av oppbevaring: oppbevaring etter telemetritype (logger, sporinger, metrikker, profiler, med regler etter loggalvorlighet og sporingsstatus) og oppbevaring per tjeneste og per ressurs | Nei | Ja | Abonnementet Scale og høyere |
+| Overstyringer av oppbevaring: oppbevaring etter telemetritype (logger, sporinger, målinger, profiler, med regler etter loggalvorlighet og sporingsstatus) og oppbevaring per tjeneste og per ressurs | Nei | Ja | Abonnementet Scale og høyere |
 | Egendefinerte roller: sett med tillatelser du gir navn én gang og gir til team og API-nøkler | Nei | Ja | Abonnementet Scale og høyere |
 | IP-tillatelseslister for statussider, offentlige dashbord og skjemaer | Nei | Ja | Abonnementet Scale og høyere |
 | Tilgangskontroll for statussider: hvor lenge lesere av en privat statusside forblir pålogget, og hvem som kan abonnere | Nei | Ja | Abonnementet Scale og høyere |
@@ -54,7 +54,7 @@ Denne siden beskriver hva hver utgave inneholder, hvordan du kjører Enterprise 
 | [Egendefinerte varslingskanaler](/docs/self-hosted/custom-notification-channels): varsle folk gjennom din egen tjeneste, for eksempel bedriftens egen app | Nei | Ja | Ikke aktuelt |
 | [Øktlengde](/docs/self-hosted/session-length): hvor lenge folk forblir pålogget, og hvor lenge uten å bruke OneUptime | Nei | Ja | Ikke aktuelt |
 | Kapasitetsvisning for ClickHouse, kapasitetsvarsler og automatisk opprydding av disken | Ja | Ja | Ikke aktuelt |
-| Migreringsstatus, støttepakke og globale prober i Admin-dashbordet | Ja | Ja | Ikke aktuelt |
+| Migreringsstatus, støttepakke og globale sonder i Admin-dashbordet | Ja | Ja | Ikke aktuelt |
 | Administrasjon av Enterprise-lisens, plasser og instanser | Nei | Ja | Ikke aktuelt |
 
 Enkel pålogging omfatter "Require SSO for login" for prosjekter, private statussider og hele instansen, i begge utgavene.
@@ -196,7 +196,7 @@ Hva som stopper når en lisens utløper:
 - **Overstyringer av oppbevaring slutter å gjelde.** Ny telemetri beholdes i prosjektets standardoppbevaring. Telemetri som allerede er lagret, beholder oppbevaringen den ble skrevet med. Du kan fortsatt fjerne en overstyring via API-et, men ikke angi en.
 - **Statussider viser Powered by OneUptime igjen.** En side som skjuler linjen, viser den til en lisens aktiveres. Innstillingen beholdes.
 - **Planlagte sikkerhetskopier stopper.** Ingen ny sikkerhetskopi lages. Sikkerhetskopier som allerede er laget, blir værende på målet sitt, og du kan fortsatt gjenopprette og slette dem.
-- **Egendefinerte kanaler stopper.** Ingen vaktvarsler eller andre varsler sendes til en egendefinert kanal, og ingen tilbys i vaktregler. Kanalene og reglene som bruker dem, beholdes, og du kan fortsatt slette en kanal.
+- **Egendefinerte kanaler stopper.** Ingen vaktvarslinger eller andre varslinger sendes til en egendefinert kanal, og ingen tilbys i vaktregler. Kanalene og reglene som bruker dem, beholdes, og du kan fortsatt slette en kanal.
 
 Hva som **ikke** stopper:
 

@@ -155,7 +155,7 @@ OneUptime 會把號碼的語音 webhook 設為 `https://<your host>/notification
 :::steps
 1. 開啟 **使用者設定** > **來電策略** > **來電號碼** 。 **來電策略** 是側邊選單中的一個區段，一開始為收合狀態。
 2. 在 **電話號碼用於來電路由** 卡片中點選 **新增電話號碼用於來電路由** ，輸入含國碼的號碼，例如 `+15551234567` 。
-3. 在 **驗證碼** 中輸入 OneUptime 透過簡訊傳送到該號碼的 6 位數驗證碼，然後點選 **驗證** 。 **Send a new code** 會再傳送一個。
+3. 在 **驗證碼** 中輸入 OneUptime 透過簡訊傳送到該號碼的 6 位數驗證碼，然後點選 **驗證** 。 **傳送新驗證碼** 會再傳送一個。
 :::
 
 每個人在每個專案中只能有一個已驗證的號碼。若要更換號碼，請先刪除舊號碼。這些號碼與待命呼叫使用的 **通知方式** 中的電話號碼分開。請參閱 [通知方式](/docs/notifications/notification-methods)。
@@ -208,15 +208,15 @@ Twilio 以文字轉語音朗讀這些訊息，因此請依您希望聽到的樣�
 
 來電通話日誌可用作工作流程觸發條件：
 
-- **On Create Incoming Call Log** 會在來電到達時執行。
-- **On Update Incoming Call Log** 會隨著通話進行而執行。設定 **Ended At** 的那次更新就是通話結束。
+- **建立Incoming Call 日誌時** 會在來電到達時執行。
+- **更新Incoming Call 日誌時** 會隨著通話進行而執行。設定 **Ended At** 的那次更新就是通話結束。
 
 若只要處理未接來電，例如把它們發布到 Slack 或 Microsoft Teams，或建立工單：
 
 :::steps
-1. 新增 **On Update Incoming Call Log** 觸發條件。將 **Fields to watch** 設為 **Ended At** ，並選擇要使用的欄位，例如 **Status** 、 **Caller Phone Number** 和 **Routing Phone Number** 。
-2. 新增一個 **If / Else** 步驟。用比較 **不等於** 和 `Completed` 檢查觸發條件的 **Status** 。
-3. 把您的步驟連接到 **Yes** 連接埠。
+1. 新增 **更新Incoming Call 日誌時** 觸發條件。將 **要關注的欄位** 設為 **Ended At** ，並選擇要使用的欄位，例如 **Status** 、 **Caller Phone Number** 和 **Routing Phone Number** 。
+2. 新增一個 **如果 / 否則** 步驟。用比較 **不等於** 和 `Completed` 檢查觸發條件的 **Status** 。
+3. 把您的步驟連接到 **是** 連接埠。
 :::
 
 工作流程可以用 **Find One** 和 **Find Many** 讀取通話日誌，但不能建立或修改它們。
@@ -275,7 +275,7 @@ Twilio 以文字轉語音朗讀這些訊息，因此請依您希望聽到的樣�
 :::
 
 :::details 工程師號碼的驗證碼沒有收到
-專案必須開啟簡訊。在 OneUptime Cloud 上，沒有自己預設 Twilio 設定的專案會用其餘額支付簡訊費用，餘額必須高於 1 USD。驗證碼可能需要一分鐘才會送達；點選 **Send a new code** 再傳送一個， **專案設定** > **通知** > **通知日誌** 會顯示它的處理情況。
+專案必須開啟簡訊。在 OneUptime Cloud 上，沒有自己預設 Twilio 設定的專案會用其餘額支付簡訊費用，餘額必須高於 1 USD。驗證碼可能需要一分鐘才會送達；點選 **傳送新驗證碼** 再傳送一個， **專案設定** > **通知** > **通知日誌** 會顯示它的處理情況。
 :::
 
 ## 後續步驟

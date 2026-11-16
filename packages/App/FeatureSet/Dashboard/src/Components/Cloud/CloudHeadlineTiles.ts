@@ -52,6 +52,10 @@ import {
 } from "Common/Types/Cloud/CloudResourceHealth";
 import IconProp from "Common/Types/Icon/IconProp";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  formatDurationInUnit,
+  formatMilliseconds,
+} from "../../Utils/Milliseconds";
 
 /*
  * WHAT A CLOUD RESOURCE'S PAGE LEADS WITH.
@@ -209,7 +213,7 @@ export function formatCloudBytes(
   const rounded: number =
     value < 10 ? Math.round(value * 10) / 10 : Math.round(value);
 
-  return `${translator.formatNumber(rounded)} ${BYTE_UNITS[index]}`;
+  return `${translator.formatNumber(rounded)}\u00A0${BYTE_UNITS[index]}`;
 }
 
 /*
@@ -231,24 +235,51 @@ export function formatCloudAmount(
   return translator.formatNumber(rounded);
 }
 
-// A time from seconds: milliseconds under one second ("230 ms"), else "1.8 s".
+/*
+ * The decimals formatCloudAmount rounds a figure to: none from a hundred
+ * up, one from one up, two under one.
+ */
+function cloudAmountDecimals(value: number): number {
+  const magnitude: number = Math.abs(value);
+
+  return magnitude >= 100 ? 0 : magnitude >= 1 ? 1 : 2;
+}
+
+/*
+ * A time from seconds: milliseconds under one second ("230 ms"), else "1.8
+ * s", "12 min" or "2.5 h" - each unit in the reader's words and digits
+ * ("۱٫۸ ثانیه", "12 Min."; issues #7418, #8348).
+ */
 export function formatCloudSeconds(
   seconds: number,
   translator: Translator,
 ): string {
+  const milliseconds: number = seconds * 1000;
+
   if (Math.abs(seconds) < 1) {
-    return `${translator.formatNumber(Math.round(seconds * 1000))} ms`;
+    return formatMilliseconds(translator, milliseconds, {
+      maximumFractionDigits: 0,
+    });
   }
 
   if (Math.abs(seconds) < 120) {
-    return `${formatCloudAmount(seconds, translator)} s`;
+    return formatDurationInUnit(translator, seconds, "second", {
+      decimals: cloudAmountDecimals(seconds),
+      dropTrailingZeros: true,
+    });
   }
 
   if (Math.abs(seconds) < 2 * 3600) {
-    return `${translator.formatNumber(Math.round(seconds / 60))} min`;
+    return formatDurationInUnit(translator, seconds / 60, "minute", {
+      decimals: 0,
+      dropTrailingZeros: true,
+    });
   }
 
-  return `${formatCloudAmount(seconds / 3600, translator)} h`;
+  return formatDurationInUnit(translator, seconds / 3600, "hour", {
+    decimals: cloudAmountDecimals(seconds / 3600),
+    dropTrailingZeros: true,
+  });
 }
 
 function formatValue(data: {

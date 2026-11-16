@@ -25,7 +25,7 @@ Le etichette e i proprietari servono a filtrare e raggruppare le risorse, decido
 
 ## Dove trovare le regole
 
-Ogni prodotto con etichette e proprietari ha entrambe le regole nelle sue **Impostazioni** (per incidenti, avvisi, manutenzione programmata e Sicurezza dei dati, in **Regole**): monitor, incidenti ed episodi di incidente, avvisi ed episodi di avviso, eventi di manutenzione, pagine di stato, servizi, host, cluster Kubernetes, host Docker, cluster Docker Swarm, host Podman, cluster Proxmox, cloud OpenStack, vCenter VMware, cluster Ceph, storage array, database, archivi dati, tabelle, code, flotte IoT, funzioni serverless, risorse cloud, applicazioni RUM, dashboard, policy di reperibilità, turni di reperibilità, policy per le chiamate in arrivo, workflow, runbook, dispositivi di rete e SLO.
+Ogni prodotto con etichette e proprietari ha entrambe le regole nelle sue **Impostazioni** (per incidenti, avvisi, manutenzione programmata e Sicurezza dei dati, in **Regole**): monitor, incidenti ed episodi di incidente, avvisi ed episodi di avviso, eventi di manutenzione, pagine di stato, servizi, host, cluster Kubernetes, host Docker, cluster Docker Swarm, host Podman, cluster Proxmox, cloud OpenStack, vCenter VMware, cluster Ceph, storage array, database, archivi dati, tabelle, code, flotte IoT, funzioni serverless, risorse cloud, applicazioni RUM, dashboard, policy di reperibilità, turni di reperibilità, policy per le chiamate in arrivo, flussi di lavoro, runbook, dispositivi di rete e SLO.
 
 Per esempio, le regole per le etichette dei monitor sono in **Monitor → Impostazioni → Regole etichette**, e quelle degli incidenti in **Incidenti → Regole → Regole etichette**. **Impostazioni** e **Regole** sono inizialmente chiuse nel menu laterale: fai clic sul titolo della sezione per aprirla. Le pagine degli incidenti e degli avvisi hanno una scheda **Regole degli incidenti** (o **Regole degli avvisi**) e una scheda **Regole degli episodi**.
 
@@ -61,7 +61,7 @@ Una nuova regola deve aggiungere qualcosa: almeno un'etichetta (o un proprietari
 
 ### Comunque venga creata la regola
 
-Lo stesso vale per una regola creata tramite l'API, Terraform, un workflow o un'[importazione di regole per etichette](/docs/configuration/label-rule-import-export): OneUptime rifiuta una nuova regola che non aggiunge nulla, con un messaggio che indica i campi da compilare. Questi messaggi sono in inglese in tutte le lingue.
+Lo stesso vale per una regola creata tramite l'API, Terraform, un flusso di lavoro o un'[importazione di regole per etichette](/docs/configuration/label-rule-import-export): OneUptime rifiuta una nuova regola che non aggiunge nulla, con un messaggio che indica i campi da compilare. Questi messaggi sono in inglese in tutte le lingue.
 
 | Regola | Messaggio |
 | --- | --- |
@@ -97,7 +97,7 @@ Il nome segue gli interruttori finché non scegli un'etichetta (la regola prende
 
 ### Il team del creatore
 
-Una regola per proprietari di incidenti o avvisi ha una voce in più, l'ultima della sua sezione **Eredita proprietari**: **Team del creatore**, un elenco di team. Quando la persona che dichiara un incidente corrispondente, o crea un avviso corrispondente, è membro di un team dell'elenco, anche quel team diventa proprietario. È un elenco e non tutti i suoi team perché le persone entrano per impostazione predefinita nel team **Membri** del progetto, e rendere tutti proprietari non aiuta nessuno. Un incidente o un avviso creato da un monitor, un workflow, un modulo o una chiave API non ha un creatore, quindi non riceve nessuno di questi team. Vengono avvisati come dice **Notifica ai proprietari** della regola, e una regola che aggiunge solo loro si chiama _Aggiungi il team del creatore come proprietario_. Tramite l'API, l'elenco è `creatorTeams`.
+Una regola per proprietari di incidenti o avvisi ha una voce in più, l'ultima della sua sezione **Eredita proprietari**: **Team del creatore**, un elenco di team. Quando la persona che dichiara un incidente corrispondente, o crea un avviso corrispondente, è membro di un team dell'elenco, anche quel team diventa proprietario. È un elenco e non tutti i suoi team perché le persone entrano per impostazione predefinita nel team **Membri** del progetto, e rendere tutti proprietari non aiuta nessuno. Un incidente o un avviso creato da un monitor, un flusso di lavoro, un modulo o una chiave API non ha un creatore, quindi non riceve nessuno di questi team. Vengono avvisati come dice **Notifica ai proprietari** della regola, e una regola che aggiunge solo loro si chiama _Aggiungi il team del creatore come proprietario_. Tramite l'API, l'elenco è `creatorTeams`.
 
 La persona che dichiara un incidente o crea un avviso ne diventa proprietaria qualunque cosa dicano le regole, e i moduli di creazione elencano nel loro riepilogo ogni regola del proprietario che verrà eseguita, e chi aggiungerà: vedete [Chi ne sarà proprietario](/docs/incidents/declaring-incidents#chi-ne-sarà-proprietario).
 

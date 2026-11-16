@@ -25,7 +25,7 @@ flowchart TB
 ## 开始之前
 
 - **Growth 套餐或更高**，适用于 OneUptime Cloud。自托管安装没有套餐。
-- **可以管理密钥的角色**：Project Owner、Project Admin，或者拥有 Create Monitor Secret 权限的自定义角色。
+- **可以管理密钥的角色**：项目所有者、项目管理员，或者拥有 Create Monitor Secret 权限的自定义角色。
 
 ## 管理密钥
 
@@ -69,16 +69,16 @@ flowchart TB
 | --- | --- |
 | API | URL、请求标头和正文，以及客户端证书、私钥和密码短语（mTLS） |
 | 网站 | URL，以及客户端证书、私钥和密码短语（mTLS） |
-| Ping, IP, 端口, NTP, SSL Certificate | 要检查的主机或 URL |
+| Ping, IP, 端口, NTP, SSL 证书 | 要检查的主机或 URL |
 | DNS | 域名和 DNS 服务器 |
 | DNSSEC, 域名 | 域名 |
-| SQL Query | 主机、数据库名称、用户名、密码和查询 |
-| Database Health | 主机、数据库名称、用户名和密码 |
-| External Status Page | 状态页 URL |
-| Synthetic Monitor, Custom JavaScript Code | 脚本 |
-| Network Device | SNMP 团体字符串，以及 SNMPv3 的认证密钥和隐私密钥 |
+| SQL 查询 | 主机、数据库名称、用户名、密码和查询 |
+| 数据库健康状况 | 主机、数据库名称、用户名和密码 |
+| 外部状态页 | 状态页 URL |
+| 合成监视器, 自定义 JavaScript 代码 | 脚本 |
+| 网络设备 | SNMP 团体字符串，以及 SNMPv3 的认证密钥和隐私密钥 |
 
-密钥会在 Synthetic Monitor 或 Custom JavaScript Code 监视器的脚本运行之前填入，因此脚本中诸如 `{{monitorSecrets.ApiKey}}` 的引用在执行时就是解密后的值。
+密钥会在 合成监视器 或 自定义 JavaScript 代码 监视器的脚本运行之前填入，因此脚本中诸如 `{{monitorSecrets.ApiKey}}` 的引用在执行时就是解密后的值。
 
 如果监视器引用了它不能使用的密钥，该引用会保持原样，不会被替换为值。
 

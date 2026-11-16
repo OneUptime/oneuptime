@@ -34,7 +34,7 @@ sequenceDiagram
 
 ## 开始之前
 
-- **可以创建监视器的角色**：Project Owner、Project Admin、Project Member、Monitor Admin 或 Monitor Member，或者拥有 Create Monitor 权限的自定义角色。
+- **可以创建监视器的角色**：项目所有者、项目管理员、项目成员、监视器管理员或监视器成员，或者拥有 Create Monitor 权限的自定义角色。
 - **能够访问该 API 的探测器。** 每个新监视器都会选中您项目的默认探测器。如果 API 前面有防火墙，请放行 [OneUptime Cloud 探测器 IP 地址](/docs/configuration/ip-addresses)。私有网络中的 API 需要在该网络内运行、并被允许访问私有地址的 [自定义探测器](/docs/probe/custom-probe)：请参阅 [私有网络访问](/docs/self-hosted/private-network-access)。
 - **存为监视器密钥的凭据。** 如果 API 需要密钥或令牌，请先将其存储为 [监视器密钥](/docs/monitor/monitor-secrets)，这样监视器只保存对它的引用。
 
@@ -181,7 +181,7 @@ JSON 响应以紧凑形式检查，键和值之间没有空格。要用 **响应
 - **离线** — API 没有应答，或返回 `400` 及以上（或低于 `200`）的状态码。监视器被标记为 **离线** 并创建事件。API 恢复后，事件会自行解决。
 - **在线** — API 返回任何 `2xx` 或 `3xx` 状态码，例如 `200`、`201`、`202` 或 `204`。监视器被标记为 **运行正常**。
 
-在条件列表中，它们以监视器命名：_Check if (name) is offline_ 和 _Check if (name) is online_。
+在条件列表中，它们以监视器命名：“检查 _监视器名称_ 是否离线” 和 “检查 _监视器名称_ 是否在线”。
 
 因此，返回 `201 Created` 或 `204 No Content` 的端点都算作正常。如果对您来说只有一个状态码表示健康，请在监视器的 **配置 → 标准** 页面上修改这两个条件：例如在线条件中使用 **响应状态码** / **等于** / `200`，离线条件中使用 **不等于** / `200`，替换各自原有的两个状态码筛选器。要同时检查 API 返回的内容，请在离线条件中添加 **响应主体** 或 **JavaScript 表达式** 筛选器。
 

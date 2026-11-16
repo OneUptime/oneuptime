@@ -1,4 +1,5 @@
 import OneUptimeDate from "Common/Types/Date";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import {
   formatReaderFigure,
   formatRelativeAmount,
@@ -28,7 +29,7 @@ import {
  */
 
 // What a cell shows for a figure the host has not reported.
-export const NO_HOST_FIGURE: string = "—";
+export const NO_HOST_FIGURE: string = EMPTY_VALUE_MARK;
 
 export type HostLastSeenUnit = "second" | "minute" | "hour" | "day";
 
@@ -136,7 +137,7 @@ export function formatHostListBytes(
   return `${formatReaderFigure(value, {
     decimals: value >= 100 || i === 0 ? 0 : 1,
     language: translator.language,
-  })} ${units[i]}`;
+  })}\u00A0${units[i]}`;
 }
 
 /*

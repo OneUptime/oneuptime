@@ -7,6 +7,7 @@ import React, {
   useState,
 } from "react";
 import DashboardPodmanContainerListComponent from "Common/Types/Dashboard/DashboardComponents/DashboardPodmanContainerListComponent";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DashboardResourceListBase, {
   ResourceListColumn,
@@ -49,7 +50,9 @@ import {
   getGlobalTranslator,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 const ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
   "container.name": "name",
@@ -109,7 +112,7 @@ export function formatBytes(
   translator: Translator = getGlobalTranslator(),
 ): string {
   if (bytes === null || bytes === undefined) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   const units: Array<string> = ["B", "KiB", "MiB", "GiB", "TiB"];
   let value: number = bytes;
@@ -124,7 +127,7 @@ export function formatBytes(
   return `${formatReaderFigure(value, {
     decimals: precision,
     language: translator.language,
-  })} ${units[unitIdx]}`;
+  })}\u00A0${units[unitIdx]}`;
 }
 
 // A container's CPU, as a share: "12.5%", "12,5 %", "۱۲٫۵٪".
@@ -133,7 +136,7 @@ export function formatCpuPercent(
   translator: Translator = getGlobalTranslator(),
 ): string {
   if (percent === null || percent === undefined || !Number.isFinite(percent)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
   return formatReaderFigure(percent, {
@@ -268,13 +271,13 @@ const DashboardPodmanContainerListComponentElement: FunctionComponent<
     (container: PodmanResource): HoneycombTile => {
       const id: string = (container._id as string) || "";
       const name: string = (container.name as string) || getUnnamedText();
-      const image: string = (container.imageName as string) || "—";
+      const image: string | undefined = container.imageName as string;
       const stateRaw: string | undefined = container.state as
         | string
         | undefined;
       const stateInfo: { color: string; label: string } =
         getContainerStateInfo(stateRaw);
-      const hostName: string = (container.podmanHost?.name as string) || "—";
+      const hostName: string | undefined = container.podmanHost?.name as string;
       const hostId: string =
         (container.podmanHostId?.toString() as string) || "";
 
@@ -306,7 +309,7 @@ const DashboardPodmanContainerListComponentElement: FunctionComponent<
     (container: PodmanResource) => {
       const id: string = (container._id as string) || "";
       const name: string = (container.name as string) || getUnnamedText();
-      const image: string = (container.imageName as string) || "—";
+      const image: string | undefined = container.imageName as string;
       const cpu: number | null =
         typeof container.latestCpuPercent === "number"
           ? (container.latestCpuPercent as number)
@@ -315,7 +318,7 @@ const DashboardPodmanContainerListComponentElement: FunctionComponent<
         typeof container.latestMemoryBytes === "number"
           ? (container.latestMemoryBytes as number)
           : null;
-      const hostName: string = (container.podmanHost?.name as string) || "—";
+      const hostName: string | undefined = container.podmanHost?.name as string;
       const hostId: string =
         (container.podmanHostId?.toString() as string) || "";
 
@@ -351,14 +354,19 @@ const DashboardPodmanContainerListComponentElement: FunctionComponent<
             className="px-3 py-2 text-xs text-gray-500 truncate font-mono"
           />
           <td className="px-3 py-2 text-xs text-gray-600 tabular-nums text-right">
-            {cpu !== null ? (
-              formatCpuPercent(cpu, translator)
-            ) : (
-              <TableEmptyValue isSmall={true} />
+            {getValueOrQuietDash(
+              cpu !== null ? (
+                formatCpuPercent(cpu, translator)
+              ) : (
+                <TableEmptyValue isSmall={true} />
+              ),
+              { isSmall: true },
             )}
           </td>
           <td className="px-3 py-2 text-xs text-gray-600 tabular-nums text-right">
-            {formatBytes(mem, translator)}
+            {getValueOrQuietDash(formatBytes(mem, translator), {
+              isSmall: true,
+            })}
           </td>
           <ResourceListNameCell
             name={hostName}

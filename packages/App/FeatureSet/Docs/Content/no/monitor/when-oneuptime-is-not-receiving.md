@@ -25,7 +25,7 @@ En omstart som tar under 90 sekunder, er ikke et hull: collectorer sender på ny
 | --- | --- |
 | Server- / VM-monitorer | Filteret **Er tilkoblet** teller bare minuttene OneUptime mottok: som standard er en server offline etter 3 minutter med stillhet som OneUptime kunne ha hørt. |
 | Monitorer for innkommende forespørsler og innkommende e-post | **Mottatt innen (minutter)** og **Ikke mottatt innen (minutter)** teller bare minuttene OneUptime mottok. Når et slikt kriterium er oppfylt, sier årsaken hvor mange av minuttene som ble utelatt. |
-| Verts-, Kubernetes-, Docker-, metrikk-, logg- og trace-monitorer og de andre monitorene som leser telemetri | En sjekk der vinduet inneholder tid uten mottak, venter til den tiden har forlatt vinduet, og aldri lenger enn 15 minutter etter at den sluttet. Inntil da endres ingenting: ingen statusendring, og ingen hendelse eller varsel åpnes eller løses. Så lenge køen er bak, leser en sjekk fram til der køen er i stedet for fram til nå. |
+| Verts-, Kubernetes-, Docker-, målings-, logg- og trace-monitorer og de andre monitorene som leser telemetri | En sjekk der vinduet inneholder tid uten mottak, venter til den tiden har forlatt vinduet, og aldri lenger enn 15 minutter etter at den sluttet. Inntil da endres ingenting: ingen statusendring, og ingen hendelse eller varsel åpnes eller løses. Så lenge køen er bak, leser en sjekk fram til der køen er i stedet for fram til nå. |
 | Verter, klynger og resten av inventaret | En ressurs blir først **Frakoblet** når stillhetsterskelen, 15 minutter for de fleste, har gått mens OneUptime mottok. |
 | Sonder og AI-agenter | Blir **Frakoblet** etter 3 minutter med stillhet mens OneUptime mottok. |
 | **Tilgjengelighet**-diagrammer for verter, Docker- og Podman-verter og Kubernetes-klynger | Tiden skraveres som **Ikke overvåket**, og linjen brytes der i stedet for å falle til nede. Uptime-merket utelater den tiden; et intervall med data teller fortsatt som oppe. |
@@ -57,8 +57,8 @@ OneUptime begynner å føre denne registreringen når du oppgraderer til en vers
 ## Neste trinn
 
 :::cards
-- [Verts-overvåking](/docs/monitor/host-monitor): Varsle på en verts metrikker.
-- [Server- / VM-overvåking](/docs/monitor/server-monitor): Få vite når en servers agent slutter å rapportere.
-- [Innkommende forespørsel-overvåking](/docs/monitor/incoming-request-monitor): Gjør et heartbeat om til en dødmannsknapp.
+- [Verts-monitor](/docs/monitor/host-monitor): Varsle på en verts målinger.
+- [Server- / VM-monitor](/docs/monitor/server-monitor): Få vite når en servers agent slutter å rapportere.
+- [Innkommende forespørsel-monitor](/docs/monitor/incoming-request-monitor): Gjør et heartbeat om til en dødmannsknapp.
 - [Oppgradering](/docs/installation/upgrading): Oppgrader en selvhostet installasjon.
 :::

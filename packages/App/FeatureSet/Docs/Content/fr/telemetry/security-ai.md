@@ -27,7 +27,7 @@ Une qualification ne fait que lire. Elle s'appuie sur l'IA du projet lui-même :
 
 - **Activer l'IA** activé, sous **Paramètres du projet → IA → Fonctionnalités IA**. Désactivé, la sécurité n'affiche rien de OneUptime AI et rien ne s'exécute.
 - Un fournisseur LLM que OneUptime AI peut utiliser, sous **Paramètres du projet → IA → Fournisseurs LLM**. OneUptime Cloud en fournit un.
-- Un rôle qui peut traiter les dossiers de sécurité, pour lancer une qualification : Project Owner, Project Admin, Security Admin ou Security Member. Security Viewer lit chaque qualification, mais ne peut pas en lancer. Voir [Rôles](/docs/permissions/reference#rôles).
+- Un rôle qui peut traiter les dossiers de sécurité, pour lancer une qualification : Propriétaire du projet, Administrateur du projet, Administrateur de la sécurité ou Membre de la sécurité. Lecteur de la sécurité lit chaque qualification, mais ne peut pas en lancer. Voir [Rôles](/docs/permissions/reference#rôles).
 
 ## Qualifier un dossier
 
@@ -40,7 +40,7 @@ Ouvrez un dossier : la carte **OneUptime AI** se trouve en haut de sa page.
 | Une lecture, comme **Probablement malveillant** | La qualification est terminée. **Qualifier à nouveau** relit le dossier depuis le début. |
 | **La qualification n'a pas abouti** | L'exécution s'est arrêtée. **Réessayer** en lance une autre. |
 
-Un Security Viewer lit la même carte : **Qualifier avec l'IA** et **Réessayer** restent grisés à côté d'une ligne qui dit qui peut lancer une qualification, et **Qualifier à nouveau** et **Définir la priorité** ne sont pas proposés.
+Un Lecteur de la sécurité lit la même carte : **Qualifier avec l'IA** et **Réessayer** restent grisés à côté d'une ligne qui dit qui peut lancer une qualification, et **Qualifier à nouveau** et **Définir la priorité** ne sont pas proposés.
 
 Une qualification lit :
 
@@ -82,7 +82,7 @@ Les événements, les alertes et les valeurs des entités viennent de l'extérie
 
 ## Qualifier automatiquement les nouveaux dossiers
 
-Ouvrez **Produits → Événements de sécurité → IA → Paramètres** et activez **Qualifier les nouveaux dossiers** : chaque dossier ouvert par une détection est alors qualifié dès son ouverture. L'interrupteur enregistre dès que vous le basculez. Project Owner et Project Admin peuvent le modifier.
+Ouvrez **Produits → Événements de sécurité → IA → Paramètres** et activez **Qualifier les nouveaux dossiers** : chaque dossier ouvert par une détection est alors qualifié dès son ouverture. L'interrupteur enregistre dès que vous le basculez. Propriétaire du projet et Administrateur du projet peuvent le modifier.
 
 Les nouveaux projets démarrent avec l'option activée ; un projet créé avant la garde désactivée jusqu'à ce que quelqu'un l'active. Un dossier ouvert à la main, et le dossier de l'attaque de test de **Envoyer une attaque de test**, sont qualifiés quand quelqu'un clique sur **Qualifier avec l'IA**.
 
@@ -123,7 +123,7 @@ Vérifiez que **Activer l'IA** est activé, ainsi que **Qualifier les nouveaux d
 :::
 
 :::details La carte indique que le projet n'a plus de crédits IA, ou qu'il a atteint sa limite quotidienne d'IA
-Un propriétaire du projet ou une personne disposant de Manage Billing peut ajouter des crédits sous **Paramètres du projet → IA → Crédits IA**, ou relever ou supprimer la limite sous **Paramètres du projet → IA → Fonctionnalités IA**. Cliquez ensuite sur **Qualifier avec l'IA** sur le dossier.
+Un Propriétaire du projet ou une personne disposant de Manage Billing peut ajouter des crédits sous **Paramètres du projet → IA → Crédits IA**, ou relever ou supprimer la limite sous **Paramètres du projet → IA → Fonctionnalités IA**. Cliquez ensuite sur **Qualifier avec l'IA** sur le dossier.
 :::
 
 :::details La carte indique qu'un texte du dossier ressemble à des instructions adressées à une IA

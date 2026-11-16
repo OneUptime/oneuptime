@@ -1077,16 +1077,16 @@ describe("words", () => {
   test("formatReading writes each unit the way switch CLIs do", () => {
     expect(
       TransceiverHealthUtil.formatReading(TransceiverReadingKind.RxPower, -4.7),
-    ).toBe("-4.70 dBm");
+    ).toBe("-4.70\u00A0dBm");
     expect(
       TransceiverHealthUtil.formatReading(TransceiverReadingKind.RxPower, -40),
-    ).toBe("-40.00 dBm (no light)");
+    ).toBe("-40.00\u00A0dBm (no light)");
     expect(
       TransceiverHealthUtil.formatReading(
         TransceiverReadingKind.Temperature,
         34.62,
       ),
-    ).toBe("34.6 °C");
+    ).toBe("34.6\u00A0°C");
     expect(
       TransceiverHealthUtil.formatReading(TransceiverReadingKind.Voltage, 3.3),
     ).toBe("3.30 V");
@@ -1124,8 +1124,8 @@ describe("words", () => {
 
   test("describeIssues lists alarms before warnings, lanes named", () => {
     expect(TransceiverHealthUtil.describeIssues(transceiver)).toEqual([
-      "RX Power -19.00 dBm on lane 2 is below the low alarm threshold of -18.40 dBm",
-      "Temperature 72.0 °C is above the high warning threshold of 70.0 °C",
+      "RX Power -19.00\u00A0dBm on lane 2 is below the low alarm threshold of -18.40\u00A0dBm",
+      "Temperature 72.0\u00A0°C is above the high warning threshold of 70.0\u00A0°C",
     ]);
   });
 

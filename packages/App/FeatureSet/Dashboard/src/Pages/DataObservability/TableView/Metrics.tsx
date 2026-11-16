@@ -21,7 +21,7 @@ const TableMetricsPage: FunctionComponent<
         [DataObservabilityAttribute.TableId]: dataAssetId.toString(),
       }}
       attributeFilterDisplayKeys={{
-        [DataObservabilityAttribute.TableId]: "Table",
+        [DataObservabilityAttribute.TableId]: "Table (database object)",
       }}
       attributeFilterDisplayValues={
         dataAsset?.assetKey

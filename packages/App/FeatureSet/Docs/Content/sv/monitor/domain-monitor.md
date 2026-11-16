@@ -32,7 +32,7 @@ Internationaliserade domännamn godtas i båda formerna: `münchen.de` konverter
 
 ## Innan du börjar
 
-- **En roll som kan skapa monitorer**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member, eller en anpassad roll med behörigheten Create Monitor.
+- **En roll som kan skapa monitorer**: Projektägare, Projektadministratör, Projektmedlem, Monitoradministratör eller Monitormedlem, eller en anpassad roll med behörigheten Create Monitor.
 - **Utgående åtkomst från sonden** till registren. Projektets standardsonder väljs för varje ny monitor; en [anpassad sond](/docs/probe/custom-probe) behöver nå:
 
 | Mål | Protokoll | Används för |
@@ -122,8 +122,8 @@ Med två eller fler filter avgör **Matchningsvillkor** om **Alla** måste match
 
 En ny domänmonitor börjar med tre kriterier, så den varnar dig innan en registrering går ut utan några inställningar alls:
 
-1. **Domänkontrollen misslyckades** — registreringen har gått ut, eller dess registreringsdata kunde inte läsas. Monitorn markeras som **Offline** och en incident med namnet "_monitor name_ domain check failed" skapas. Incidenten löser sig själv när registreringen kan läsas och är aktuell igen.
-2. **Domänen går snart ut** — registreringen har inte gått ut men går ut om 30 dagar eller mindre. Ett **larm** med namnet "_monitor name_ domain expires soon" skapas.
+1. **Domänkontrollen misslyckades** — registreringen har gått ut, eller dess registreringsdata kunde inte läsas. Monitorn markeras som **Offline** och en incident med namnet "Domänkontrollen för _monitornamn_ misslyckades" skapas. Incidenten löser sig själv när registreringen kan läsas och är aktuell igen.
+2. **Domänen går snart ut** — registreringen har inte gått ut men går ut om 30 dagar eller mindre. Ett **larm** med namnet "Domänen _monitornamn_ löper snart ut" skapas.
 3. **Domänen har inte gått ut** — monitorn markeras som **Fungerar**.
 
 Varningen "går snart ut" är ett larm, inte en incident: det visas inte på dina statussidor, det kallar inte in någon om du inte lägger till en jourpolicy på det, och det ändrar inte monitorns status. Det använder projektets andra larmallvarlighetsgrad, **Låg** i ett nytt projekt. När förnyelsen syns i registreringsposten löser larmet sig själv. Ett register som inte publicerar något utgångsdatum ger inte varningen något att gå på, så den förblir tyst.

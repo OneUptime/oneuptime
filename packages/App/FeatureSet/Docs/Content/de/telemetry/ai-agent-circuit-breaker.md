@@ -15,7 +15,7 @@ Ein KI-Agent fällt selten aus, indem er abstürzt. Er fällt aus, indem er weit
 flowchart TB
     agent["Ihr Agent sendet<br/>gen_ai.*-Spans"] --> ingest["OneUptime"]
     ingest --> wire{"Auslöser: Budget-<br/>oder Schleifenwarnung"}
-    wire -->|"Warnung erstellt"| workflow["Workflow:<br/>On Create Alert"]
+    wire -->|"Warnung erstellt"| workflow["Workflow:<br/>Bei Erstellung: Warnung"]
     workflow -->|"API Post (JSON)"| endpoint["Ihr Stopp-Endpunkt"]
     endpoint --> runner["Der Runner hält<br/>den Agenten an"]
 ```
@@ -125,26 +125,26 @@ Speichern Sie zuerst das Token des Endpunkts dort, wo der Workflow es nutzen kan
 
 ### Den Trigger hinzufügen
 
-Klicken Sie auf den gestrichelten Baustein **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **On Create Alert** im Bereich **Auslöser hinzufügen**. Klicken Sie auf den Trigger: **Fields to pass on** beginnt mit dem Titel, klicken Sie also auf **Feld hinzufügen**, haken Sie die Beschreibung an und klicken Sie auf **Speichern**. Die ID auf dem Baustein, `alert-on-create-1`, ist der Name, unter dem spätere Bausteine auf ihn verweisen.
+Klicken Sie auf den gestrichelten Baustein **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **Bei Erstellung: Warnung** im Bereich **Auslöser hinzufügen**. Klicken Sie auf den Trigger: **Weiterzugebende Felder** beginnt mit dem Titel, klicken Sie also auf **Feld hinzufügen**, haken Sie die Beschreibung an und klicken Sie auf **Speichern**. Die ID auf dem Baustein, `alert-on-create-1`, ist der Name, unter dem spätere Bausteine auf ihn verweisen.
 
 ### Den Titel prüfen
 
-Klicken Sie auf **Komponente hinzufügen**, wählen Sie **If / Else** und verbinden Sie den Punkt **Success** des Triggers damit. Setzen Sie **Zu prüfender Wert** auf den Titel der Warnung (klicken Sie auf **{ }** und wählen Sie ihn), **Vergleich** auf **enthält** und **Vergleichen mit** auf den Anfang, den Ihre Auslösertitel gemeinsam haben, etwa `LLM budget exceeded`.
+Klicken Sie auf **Komponente hinzufügen**, wählen Sie **Wenn / Sonst** und verbinden Sie den Punkt **Erfolg** des Triggers damit. Setzen Sie **Zu prüfender Wert** auf den Titel der Warnung (klicken Sie auf **{ }** und wählen Sie ihn), **Vergleich** auf **enthält** und **Vergleichen mit** auf den Anfang, den Ihre Auslösertitel gemeinsam haben, etwa `LLM budget exceeded`.
 
 ### Ihren Endpunkt aufrufen
 
-Fügen Sie **API Post (JSON)** hinzu und verbinden Sie den Punkt **Yes** des **If / Else** damit. Setzen Sie seine **URL** auf Ihren Endpunkt, etwa `https://agents.example.com/circuit-breaker`, und füllen Sie die Header und den Body unten aus.
+Fügen Sie **API-Aufruf POST (JSON)** hinzu und verbinden Sie den Punkt **Ja** des **Wenn / Sonst** damit. Setzen Sie seine **URL** auf Ihren Endpunkt, etwa `https://agents.example.com/circuit-breaker`, und füllen Sie die Header und den Body unten aus.
 
 ### Einen Fehlschlag melden
 
-Fügen Sie **Send Message to Slack** oder **Send Email** hinzu und verbinden Sie den Punkt **Error** des API-Bausteins damit. Ein Schutzschalter, der nicht auslöst, ist genau die Warnung, die ein Mensch sehen muss.
+Fügen Sie **Nachricht an Slack senden** oder **E-Mail senden** hinzu und verbinden Sie den Punkt **Fehler** des API-Bausteins damit. Ein Schutzschalter, der nicht auslöst, ist genau die Warnung, die ein Mensch sehen muss.
 
 ### Ihn einschalten
 
 Schalten Sie **Aktiviert** oben im **Editor** ein.
 :::
 
-Die **Request Headers** des API-Bausteins:
+Die **Anfrage-Header** des API-Bausteins:
 
 ```json title="Request Headers"
 {
@@ -153,7 +153,7 @@ Die **Request Headers** des API-Bausteins:
 }
 ```
 
-Sein **Request Body**:
+Sein **Anfragetext**:
 
 ```json title="Request Body"
 {
@@ -164,7 +164,7 @@ Sein **Request Body**:
 }
 ```
 
-Um auf mehrere Auslöser zu reagieren, beginnen Sie alle ihre Titel gleich, oder hängen Sie weitere **If / Else**-Bausteine an den Punkt **No**. Siehe [Einen Workflow erstellen](/docs/workflows/authoring) für die Arbeitsfläche und [Variablen](/docs/workflows/variables) für die `{{…}}`-Verweise.
+Um auf mehrere Auslöser zu reagieren, beginnen Sie alle ihre Titel gleich, oder hängen Sie weitere **Wenn / Sonst**-Bausteine an den Punkt **Nein**. Siehe [Einen Workflow erstellen](/docs/workflows/authoring) für die Arbeitsfläche und [Variablen](/docs/workflows/variables) für die `{{…}}`-Verweise.
 
 ## Den Schutzschalter testen
 
@@ -180,7 +180,7 @@ Um auf mehrere Auslöser zu reagieren, beginnen Sie alle ihre Titel gleich, oder
 - Ein Budget zählt den UTC-Tag, also beginnt sein Prozentsatz um Mitternacht UTC wieder bei 0. Eine Budgetwarnung kann sich dann schließen, und der nächste schlechte Tag öffnet eine neue Warnung, die den Schutzschalter erneut auslöst.
 - Ein Monitor hält seine Warnung offen, solange seine Kriterien erfüllt sind. Mit **Warnung automatisch beheben** schließt sich die Warnung, wenn sie nicht mehr erfüllt sind, und die nächste Überschreitung öffnet eine neue Warnung.
 - Das Zurücksetzen ist auf beiden Seiten die Entscheidung eines Menschen: Beheben Sie die Warnung in OneUptime, und setzen Sie den Schutzschalter in Ihrem Runner zurück.
-- Jede neue Warnung im Projekt startet den Workflow. Das **If / Else** hält andere Warnungen vom Schutzschalter fern: Lassen Sie es nicht weg.
+- Jede neue Warnung im Projekt startet den Workflow. Das **Wenn / Sonst** hält andere Warnungen vom Schutzschalter fern: Lassen Sie es nicht weg.
 
 ## Fehlerbehebung
 
@@ -189,7 +189,7 @@ Prüfen Sie, ob **Aktiviert** oben im **Editor** eingeschaltet ist: Workflows we
 :::
 
 :::details Der Workflow läuft, nimmt aber immer den Zweig No
-Der Titel ist leer oder passt nicht. Ein Feld, das nicht in **Fields to pass on** des Triggers steht, kommt leer an, also fügen Sie den Titel dort hinzu. Vergleichen Sie dann den Titel der Warnung mit **Vergleichen mit**: **enthält** muss genau diesen Text darin finden.
+Der Titel ist leer oder passt nicht. Ein Feld, das nicht in **Weiterzugebende Felder** des Triggers steht, kommt leer an, also fügen Sie den Titel dort hinzu. Vergleichen Sie dann den Titel der Warnung mit **Vergleichen mit**: **enthält** muss genau diesen Text darin finden.
 :::
 
 :::details Ihr Endpunkt antwortet mit 401
@@ -201,7 +201,7 @@ Der **Zeitbereich** des Monitors ist kürzer als die 15 Minuten zwischen zwei Pu
 :::
 
 :::details Die Anfrage erreicht Ihren Endpunkt nie
-Öffnen Sie die Ausführung unter **Arbeitsabläufe → Protokolle → Ausführungen** und darin den Schritt **API Post (JSON)**: Er sagt, warum die Anfrage fehlgeschlagen ist. Bei OneUptime Cloud muss der Endpunkt aus dem Internet erreichbar sein; eine selbst betriebene Installation lehnt private Netzwerkadressen ab, außer ein Administrator erlaubt sie.
+Öffnen Sie die Ausführung unter **Arbeitsabläufe → Protokolle → Ausführungen** und darin den Schritt **API-Aufruf POST (JSON)**: Er sagt, warum die Anfrage fehlgeschlagen ist. Bei OneUptime Cloud muss der Endpunkt aus dem Internet erreichbar sein; eine selbst betriebene Installation lehnt private Netzwerkadressen ab, außer ein Administrator erlaubt sie.
 :::
 
 ## Nächste Schritte

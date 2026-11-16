@@ -417,9 +417,10 @@ const PROSE: Record<string, Array<string>> = {
   [GITHUB]: ["Required"],
   /*
    * The databases, which a data store's kind names the same in every
-   * language (ClickHouse is one since Data Observability reads it).
+   * language (ClickHouse is one since Data Observability reads it, and
+   * Valkey since the Databases engine picker names it, 8cc8831fade).
    */
-  [SIZING]: ["PostgreSQL", "ClickHouse"],
+  [SIZING]: ["PostgreSQL", "ClickHouse", "Valkey"],
   /*
    * A lead-in of the Terraform section's list (#7737): the key Terraform
    * signs in with, which a language writes in its own words.
@@ -457,7 +458,6 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Presets",
   ],
   [SIZING]: [
-    "Valkey",
     "no CPU or memory requests or limits",
     "25 Gi",
     "ingest rate × retention",
@@ -566,7 +566,6 @@ const LEADS_THE_SAME_IN_EVERY_LANGUAGE: Array<string> = [
   "10 clusters",
   "3 instances",
   "3 nodes",
-  "Valkey",
   "25 Gi",
   "~0.4–1.2 TB",
   "~1.2–3.5 TB",

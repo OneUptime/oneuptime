@@ -42,7 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% अपटाइम",
-    "uptimePercent": "{{percent}}% अपटाइम",
+    "uptimePercent": "{{percent}} अपटाइम",
     "operational": "कार्यरत",
     "notMonitored": "निगरानी नहीं",
     "noResourcesInGroup": "इस समूह में कोई संसाधन नहीं जोड़ा गया है।",
@@ -60,10 +60,9 @@
   },
   "eventItem": {
     "affectedResources": "प्रभावित संसाधन",
-    "stateChangedTo": "स्थिति बदलकर हुई",
     "view": "{{eventType}} देखें",
     "updateTo": "इस {{eventType}} पर अपडेट",
-    "postedOn": "पोस्ट किया गया"
+    "postedOnDate": "{{date}} को पोस्ट किया गया"
   },
   "monitorOverview": {
     "daysAgo": "{{days}} दिन पहले",
@@ -276,6 +275,7 @@
       "channelSlack": "Slack वर्कस्पेस",
       "channelMicrosoftTeams": "Microsoft Teams वर्कस्पेस",
       "channelWebhook": "वेबहुक",
+      "channelWithColon": "{{channel}}:",
       "addedByTeamWarning": "यह सदस्यता इस स्थिति पृष्ठ को चलाने वाली टीम ने जोड़ी थी। अगर यह कोई साझा पता है, जैसे मेलिंग सूची, तो सदस्यता समाप्त करने पर इसे पाने वाले सभी लोगों को ये सूचनाएँ मिलना बंद हो जाएँगी, और टीम को इसकी जानकारी दी जाएगी।",
       "confirmButton": "सदस्यता समाप्त करें",
       "manageInstead": "इसके बजाय चुनें कि आपको कौन-सी सूचनाएँ मिलें",
@@ -473,5 +473,6 @@
     "warning": "चेतावनी"
   },
   "No options available": "कोई विकल्प उपलब्ध नहीं",
-  "No matches found": "कोई मिलान नहीं मिला"
+  "No matches found": "कोई मिलान नहीं मिला",
+  "{{eventType}} state changed to {{state}}": "{{eventType}} की स्थिति बदलकर {{state}} हुई"
 }

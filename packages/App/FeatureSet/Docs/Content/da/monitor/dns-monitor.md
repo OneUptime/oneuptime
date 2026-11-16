@@ -28,7 +28,7 @@ En sonde, der har mistet sin egen netværksforbindelse, rapporterer intet result
 
 ## Før du starter
 
-- **En rolle, der kan oprette monitorer**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member eller en brugerdefineret rolle med tilladelsen Create Monitor.
+- **En rolle, der kan oprette monitorer**: Projektejer, Projektadministrator, Projektmedlem, Monitoradministrator eller Monitormedlem eller en brugerdefineret rolle med tilladelsen Create Monitor.
 - **En sonde, der kan nå DNS-serveren.** Dit projekts standardsonder vælges for hver ny monitor. For at slå op i en DNS-server på et privat netværk, for eksempel en intern resolver, skal du bruge en [brugerdefineret sonde](/docs/probe/custom-probe) i det netværk.
 
 ## Opret en DNS-monitor
@@ -48,7 +48,7 @@ Indtast det **Domænenavn**, der skal slås op, for eksempel `example.com`, og v
 
 ### Test den
 
-Klik på **Test monitor**, vælg en sonde under **Vælg sonde**, og klik på **Kør test**. **Overvågningstestresultat** viser de poster, sonden fik tilbage.
+Klik på **Test monitor**, vælg en sonde under **Vælg sonde**, og klik på **Kør test**. **Monitortestresultat** viser de poster, sonden fik tilbage.
 
 ### Gennemgå kriterierne
 
@@ -111,7 +111,7 @@ Med to eller flere filtre afgør **Matchbetingelse**, om **Alle** skal matche, e
 
 En ny DNS-monitor starter med to kriterier:
 
-- **Offline** — navnet kan ikke slås op, eller har ingen post af typen, efter alle genforsøg. Monitoren markeres som **Offline**, og der oprettes en hændelse med navnet "_monitor name_ is offline". Hændelsen løser sig selv, når navnet kan slås op igen.
+- **Offline** — navnet kan ikke slås op, eller har ingen post af typen, efter alle genforsøg. Monitoren markeres som **Offline**, og der oprettes en hændelse med navnet "_monitornavn_ er offline". Hændelsen løser sig selv, når navnet kan slås op igen.
 - **Oppe** — navnet kan slås op. Monitoren markeres som **I drift**.
 
 Kriterier kontrolleres fra top til bund, og det første, der matcher, afgør, hvad der sker. Når ingen matcher, viser monitoren sin standardstatus: **I drift**, medmindre du vælger en anden under **Flere felter** under kriterierne.

@@ -1,10 +1,14 @@
 import PageMap from "../../Utils/PageMap";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import ServiceCallsTable, {
   ServiceCallsTableRow,
 } from "../ServiceCalls/ServiceCallsTable";
 import { DatabaseCallingService } from "../../Pages/Database/Utils/DatabaseServerTelemetryQueries";
-import { formatDatabaseCount } from "../../Pages/Database/Utils/DatabaseServerPresentation";
+import {
+  formatDatabaseCount,
+  formatDatabaseErrorRate,
+} from "../../Pages/Database/Utils/DatabaseServerPresentation";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
@@ -16,6 +20,10 @@ import {
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  formatDurationInUnit,
+  formatMilliseconds,
+} from "../../Utils/Milliseconds";
 
 /*
  * "Who queries this database": the application services whose CLIENT spans
@@ -52,28 +60,31 @@ export function getCallingServicesFooter(
       other: "Showing the {{shown}} busiest of {{count}} calling services.",
     },
     total,
-    { shown: shown, count: formatDatabaseCount(total) },
+    { shown: shown, count: formatDatabaseCount(total, translator) },
   );
 }
 
-function formatMs(value: number | null): string {
+// A service's p95: "850 µs", "12 ms" in the reader's words (#7418), "1.25 s".
+function formatMs(value: number | null, translator: Translator): string {
   if (value === null || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (value < 1) {
-    return `${(value * 1000).toFixed(0)} µs`;
+    return formatDurationInUnit(translator, value * 1000, "microsecond", {
+      decimals: 0,
+    });
   }
   if (value < 1000) {
-    return `${value.toFixed(value < 10 ? 1 : 0)} ms`;
-  }
-  return `${(value / 1000).toFixed(2)} s`;
-}
+    const decimals: number = value < 10 ? 1 : 0;
 
-function formatErrorRate(value: number | null): string {
-  if (value === null || !Number.isFinite(value)) {
-    return "—";
+    return formatMilliseconds(translator, value, {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    });
   }
-  return `${value.toFixed(1)}%`;
+  return formatDurationInUnit(translator, value / 1000, "second", {
+    decimals: 2,
+  });
 }
 
 // The table's count and duration columns, as English keys.
@@ -126,9 +137,12 @@ const DatabaseCallingServicesCard: FunctionComponent<ComponentProps> = (
                   RouteMap[PageMap.SERVICE_VIEW] as Route,
                   { modelId: new ObjectID(service.serviceId) },
                 ),
-                calls: formatDatabaseCount(service.calls),
-                errorRate: formatErrorRate(service.errorRatePercent),
-                duration: formatMs(service.p95DurationMs),
+                calls: formatDatabaseCount(service.calls, translator),
+                errorRate: formatDatabaseErrorRate(
+                  service.errorRatePercent,
+                  translator,
+                ),
+                duration: formatMs(service.p95DurationMs, translator),
               };
             },
           )}

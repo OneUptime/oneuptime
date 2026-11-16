@@ -27,8 +27,8 @@ flowchart LR
 
 ## Før du begynner
 
-- **Telemetri som kommer inn.** Tjenestekartet trenger spor: se [OpenTelemetry](/docs/telemetry/open-telemetry). Infrastrukturvisningen trenger en vert eller en klynge som sender data: se [Kubernetes-agenten](/docs/telemetry/kubernetes-agent). Nettverksvisningen trenger nettverksenheter: se [Nettverksenhets-overvåking](/docs/monitor/network-device-monitor).
-- **En rolle som leser telemetri.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member eller Telemetry Viewer, eller en egendefinert rolle med tillatelsen Read Inventory Item.
+- **Telemetri som kommer inn.** Tjenestekartet trenger spor: se [OpenTelemetry](/docs/telemetry/open-telemetry). Infrastrukturvisningen trenger en vert eller en klynge som sender data: se [Kubernetes-agenten](/docs/telemetry/kubernetes-agent). Nettverksvisningen trenger nettverksenheter: se [Monitor for nettverksenhet](/docs/monitor/network-device-monitor).
+- **En rolle som leser telemetri.** Prosjekteier, Prosjektadministrator, Prosjektmedlem, Leser, Telemetriadministrator, Telemetrimedlem eller Telemetrileser, eller en egendefinert rolle med tillatelsen Read Inventory Item.
 
 ## Åpne Topologi
 
@@ -51,12 +51,12 @@ Hver tjeneste viser statusen sin, beregnet fra kallene den mottok de siste 15 mi
 | Status | Når |
 | --- | --- |
 | **Feilfri** | Høyst 1 % av de mottatte kallene feilet. |
-| **Some errors** | Mer enn 1 % og mindre enn 5 % feilet. |
-| **High error rate** | 5 % eller mer feilet. |
-| **Entry point** | Den mottok ingen kall, men gjorde noen: en webfrontend eller en planlagt jobb. |
-| **No calls observed** | Den verken gjorde eller mottok et kall. |
+| **Noen feil** | Mer enn 1 % og mindre enn 5 % feilet. |
+| **Høy feilrate** | 5 % eller mer feilet. |
+| **Inngangspunkt** | Den mottok ingen kall, men gjorde noen: en webfrontend eller en planlagt jobb. |
+| **Ingen kall observert** | Den verken gjorde eller mottok et kall. |
 
-En tjeneste med en aktiv hendelse eller et aktivt varsel viser i stedet hvor mange, og i likhet med en tjeneste med **Some errors** eller en **High error rate** teller den som en som krever oppmerksomhet.
+En tjeneste med en aktiv hendelse eller et aktivt varsel viser i stedet hvor mange, og i likhet med en tjeneste med status **Noen feil** eller **Høy feilrate** teller den som en som krever oppmerksomhet.
 
 :::steps
 ### Finn tjenestene som krever oppmerksomhet
@@ -117,5 +117,5 @@ Et svært stort prosjekt når kartets grenser, og en melding sier hvor mange res
 - [Tjenester](/docs/telemetry/services): Alt om én tjeneste.
 - [Sporutforsker](/docs/telemetry/traces-explorer): Forespørslene bak hver pil.
 - [Inventar – Oversikt](/docs/inventory/overview): Hver ressurs kartet tegner.
-- [Nettverksenhets-overvåking](/docs/monitor/network-device-monitor): Sett nettverket ditt på kartet.
+- [Monitor for nettverksenhet](/docs/monitor/network-device-monitor): Sett nettverket ditt på kartet.
 :::

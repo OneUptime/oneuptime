@@ -24,7 +24,7 @@ flowchart TB
 ## 시작하기 전에
 
 - **도착하는 메트릭.** [OpenTelemetry](/docs/telemetry/open-telemetry)로 보내거나, [호스트용 OpenTelemetry Collector](/docs/telemetry/host-otel-collector) 같은 에이전트에서 보냅니다.
-- **메트릭을 읽을 수 있는 역할.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member, Telemetry Viewer 중 하나이거나 Read Metrics 권한이 있는 사용자 지정 역할입니다. 일부 서비스로 제한된 역할은 그 서비스의 메트릭만 읽습니다.
+- **메트릭을 읽을 수 있는 역할.** 프로젝트 소유자, 프로젝트 관리자, 프로젝트 구성원, 뷰어, 텔레메트리 관리자, 텔레메트리 구성원, 텔레메트리 뷰어 중 하나이거나 Read Metrics 권한이 있는 사용자 지정 역할입니다. 일부 서비스로 제한된 역할은 그 서비스의 메트릭만 읽습니다.
 - **Grafana나 스크립트에서 쓸 프로젝트 API 키.** 위 역할 중 하나나 Read Metrics 권한이 있어야 합니다. [API 키 만들기](/docs/api-reference/api-reference#api-키-만들기)를 참조하세요. OneUptime Cloud에서 API 키를 쓰려면 **Growth** 요금제가 필요합니다.
 
 ## 쿼리 작성
@@ -120,7 +120,7 @@ API는 `/api/prometheus` 아래에서 Prometheus HTTP API의 경로에 `GET` 또
 | `/api/v1/label/<name>/values` | 레이블 하나의 값. `__name__`은 메트릭 이름을 나열합니다. |
 | `/api/v1/metadata` | 각 메트릭의 유형, 도움말, 단위. |
 
-시각은 Unix 초 또는 RFC 3339로, 기간은 초 또는 `15s` 같은 기간으로 쓰며, 응답은 Prometheus 형식입니다. `/api/v1/status/buildinfo`는 Prometheus 3 서버로서 응답합니다. 규칙과 알림은 비어 있는데, OneUptime은 [모니터](/docs/monitor/metrics-monitor)로 알림을 보내기 때문입니다.
+시각은 Unix 초 또는 RFC 3339로, 기간은 초 또는 `15s` 같은 기간으로 쓰며, 응답은 Prometheus 형식입니다. `/api/v1/status/buildinfo`는 Prometheus 3 서버로서 응답합니다. 규칙과 경고는 비어 있는데, OneUptime은 [모니터](/docs/monitor/metrics-monitor)로 경고를 보내기 때문입니다.
 
 ## 지원하는 PromQL 기능
 

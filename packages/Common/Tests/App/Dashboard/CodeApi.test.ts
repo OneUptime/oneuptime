@@ -20,12 +20,13 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * HTTPResponse exactly as the browser's API client builds it from the
  * server's JSON.
  *
- * That is the point of the first test. HTTPResponse reads any body holding
- * count, skip and limit together as a list envelope and looks for its rows
- * under "data" - so /code-task/list, which answered { tasks, count, skip,
- * limit }, threw "array is not iterable" and no repository's tasks ever
- * loaded. The server answers totalCount now (CodeTaskAPI.listTasks); this
- * keeps the two in step.
+ * That is the point of the first tests. HTTPResponse once read any body
+ * holding count, skip and limit together as a list envelope and looked for
+ * its rows under "data" - so /code-task/list, which answered { tasks,
+ * count, skip, limit }, threw "array is not iterable" and no repository's
+ * tasks ever loaded. The server answers totalCount (CodeTaskAPI.listTasks),
+ * and HTTPResponse now takes only a real envelope for one (issue #7794):
+ * these keep all three in step.
  */
 
 const postMock: MockFunction = getJestMockFunction();
@@ -146,10 +147,18 @@ describe("a repository's tasks", () => {
     });
   });
 
-  test("an answer with count, skip and limit side by side would lose its rows - which is why the server never sends one", () => {
-    expect(() => {
-      return answer({ tasks: [], count: 0, skip: 0, limit: 20 });
-    }).toThrow("not iterable");
+  test("an answer with count, skip and limit side by side keeps its tasks: it is no list envelope", () => {
+    const body: JSONObject = {
+      tasks: [{ id: TASK_ID, title: "Retry charges" }],
+      count: 1,
+      skip: 0,
+      limit: 20,
+    };
+
+    const response: HTTPResponse<JSONObject> = answer(body);
+
+    expect(response.data).toEqual(body);
+    expect(response.data["tasks"]).toHaveLength(1);
   });
 
   test("the tasks with no repository are asked for as such", async () => {
@@ -689,7 +698,7 @@ describe("every Code route", () => {
       403,
       {
         message:
-          "Reviewing a pull request again takes permission to edit its repository - ask a project admin for it.",
+          "Reviewing a pull request again takes permission to edit its repository - ask a Project Admin for it.",
       },
       {},
     );

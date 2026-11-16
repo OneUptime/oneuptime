@@ -76,7 +76,7 @@ Zabbix 通过用户的媒介把问题发送给该用户。这里的媒介是一�
 
 ### 工作流做什么
 
-在 **Webhook** 触发器之后， **Check With JavaScript** 步骤 `read-event-1` 读取媒介类型发送的 `event`，再由 **Incident From Another Tool**（警报模板中为 **Alert From Another Tool** ）按问题的事件 ID 执行它所代表的操作：
+在 **Webhook** 触发器之后， **用 JavaScript 检查** 步骤 `read-event-1` 读取媒介类型发送的 `event`，再由 **来自其他工具的事件**（警报模板中为 **来自其他工具的警报** ）按问题的事件 ID 执行它所代表的操作：
 
 | 事件类型 | 工作流做什么 |
 | --- | --- |
@@ -84,7 +84,7 @@ Zabbix 通过用户的媒介把问题发送给该用户。这里的媒介是一�
 | `recovery` | 解决问题的事件，除非它已经解决。原因记录在它的时间线上。 |
 | `update` | 把在 Zabbix 中所做的操作作为私密备注添加到事件：谁做的、做了什么、写了什么。如果这次更新确认了问题，它也会确认事件，值班升级随之停止。 |
 
-其他任何内容，例如来自其他工具的请求，都会原样保留： `read-event-1` 走 **No**，运行的 **步骤** 会说明原因。失败的步骤会让运行失败，它在 **步骤** 中的条目会说明原因。
+其他任何内容，例如来自其他工具的请求，都会原样保留： `read-event-1` 走 **否**，运行的 **步骤** 会说明原因。失败的步骤会让运行失败，它在 **步骤** 中的条目会说明原因。
 
 ### 严重程度
 
@@ -102,7 +102,7 @@ Zabbix 通过用户的媒介把问题发送给该用户。这里的媒介是一�
 使用你自己的严重程度时，Disaster 和 High 对应最严重的一个，Average 和 Warning 对应中间的一个，Information 和 Not classified 对应最轻的一个。Zabbix 把严重程度编号为 0（Not classified）到 5（Disaster），模板读取的是编号，所以在 Zabbix 中重命名严重程度不会改变任何东西。
 
 - 要按名称把某个严重程度映射到你的某个严重程度，请编辑 `read-event-1` 步骤中的 `SEVERITY_BY_NAME`，例如 Warning 对应 `{ 2: 'Minor Incident' }`。
-- 要让 Average 问题也呼叫值班人员，请把 `if-page-1` **If / Else** 步骤的 **Compare with** 设为 `3`。
+- 要让 Average 问题也呼叫值班人员，请把 `if-page-1` **如果 / 否则** 步骤的 **比较对象** 设为 `3`。
 
 ### 把确认和备注发送回 Zabbix
 
@@ -126,7 +126,7 @@ Zabbix 通过用户的媒介把问题发送给该用户。这里的媒介是一�
 
 ### 在 Zabbix 6.0 上
 
-Zabbix 6.0 从请求正文而不是 `Authorization` 标头中读取 API 令牌。在每个调用 Zabbix 的模板的 **Update Zabbix Problem** 步骤中，打开 **更多字段** 下的 **Zabbix 6.0**。Zabbix 7.2 及更高版本会拒绝正文中的令牌，所以升级时请再次关闭它。
+Zabbix 6.0 从请求正文而不是 `Authorization` 标头中读取 API 令牌。在每个调用 Zabbix 的模板的 **更新 Zabbix 问题** 步骤中，打开 **更多字段** 下的 **Zabbix 6.0**。Zabbix 7.2 及更高版本会拒绝正文中的令牌，所以升级时请再次关闭它。
 
 ## 用监视器接收问题
 

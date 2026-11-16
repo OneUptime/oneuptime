@@ -41,7 +41,7 @@ Vollständig liest OneUptime diese Einstellungen in dieser Reihenfolge, und die 
 
 ## Bevor Sie beginnen
 
-- **Eine Rolle, die das Projekt ändern darf.** Project Owner oder Project Admin ändern die Aufbewahrung des Projekts. Die Aufbewahrung eines Dienstes oder einer Ressource erfordert die Rolle, die auch ihre anderen Einstellungen ändert.
+- **Eine Rolle, die das Projekt ändern darf.** Projektinhaber oder Projektadministrator ändern die Aufbewahrung des Projekts. Die Aufbewahrung eines Dienstes oder einer Ressource erfordert die Rolle, die auch ihre anderen Einstellungen ändert.
 - **Für Überschreibungen die Enterprise Edition oder der Scale-Plan.** Eine selbst gehostete Installation braucht eine Enterprise-Lizenz, ein Projekt in OneUptime Cloud den Scale-Plan oder höher. Die Standardaufbewahrung des Projekts gibt es in jeder Edition und jedem Plan.
 
 ## Die Aufbewahrung des Projekts ändern
@@ -64,14 +64,14 @@ Die neue Zahl gilt für jeden Datensatz, der ab dann ankommt und keine eigene Ü
 
 ### Für das ganze Projekt
 
-Unter dem Standard, eingeklappt unter **Weitere Einstellungen**, legt die Karte **Aufbewahrung nach Telemetrietyp** Tage für jeden Telemetrietyp fest. Klicken Sie auf **Edit Overrides**, füllen Sie die Felder aus, die Sie brauchen, und lassen Sie den Rest leer:
+Unter dem Standard, eingeklappt unter **Weitere Einstellungen**, legt die Karte **Aufbewahrung nach Telemetrietyp** Tage für jeden Telemetrietyp fest. Klicken Sie auf **Überschreibungen bearbeiten**, füllen Sie die Felder aus, die Sie brauchen, und lassen Sie den Rest leer:
 
 | Typ | Felder |
 | --- | --- |
-| Protokolle | **Logs default (days)**, und ein Feld für jeden Protokoll-Schweregrad |
-| Traces | **Traces default (days)**, und ein Feld für jeden Span-Status: Fehler, OK und Nicht festgelegt |
-| Metriken | **Metrics default (days)** |
-| Profile | **Profiles default (days)** |
+| Protokolle | **Standard für Logs (Tage)**, und ein Feld für jeden Protokoll-Schweregrad |
+| Traces | **Standard für Traces (Tage)**, und ein Feld für jeden Span-Status: Fehler, OK und Nicht festgelegt |
+| Metriken | **Standard für Metriken (Tage)** |
+| Profile | **Standard für Profile (Tage)** |
 
 Ein leeres Feld fällt auf die nächste Einstellung der obigen Reihenfolge zurück, sodass ein Schweregrad ohne eigene Tage seine Protokolle so lange aufbewahrt wie der Protokoll-Standard.
 

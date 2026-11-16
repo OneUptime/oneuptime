@@ -36,7 +36,7 @@ flowchart TB
 
 ## 開始之前
 
-- 一個你可以在其中建立擷取金鑰的 OneUptime 專案：專案擁有者與管理員可以建立，擁有 Create Ingestion Key 權限的任何人也可以。
+- 一個你可以在其中建立擷取金鑰的 OneUptime 專案：專案擁有者與專案管理員可以建立，擁有 Create Ingestion Key 權限的任何人也可以。
 - 一個可以加入 OpenTelemetry SDK 的應用程式，或一個 OpenTelemetry Collector。
 - 從應用程式或 Collector 到 `oneuptime.com`（或你自己的 OneUptime 主機）的對外 HTTPS（連接埠 443）。
 
@@ -410,7 +410,7 @@ OneUptime 重新啟動或升級期間，會以 `503` 與 `Retry-After: 5` 回應
 | **已啟用** | 關閉後會立即停止接受以此金鑰傳送的資料，而不需刪除金鑰。 |
 | **到期於** | 超過此日期後金鑰會被拒絕。留空表示永不過期。 |
 | **Requests Per Minute Limit** | 使用此金鑰的所有用戶端合計，每分鐘可被接受的 OTLP/HTTP 請求數上限。留空時，伺服器金鑰沒有上限，瀏覽器金鑰為 6,000。 |
-| **Last Used At** | 最近一次以此金鑰接受資料的時間。可用來找出能安全輪替或刪除的金鑰。 |
+| **上次使用時間** | 最近一次以此金鑰接受資料的時間。可用來找出能安全輪替或刪除的金鑰。 |
 
 金鑰頁面上的 **重設密鑰** 會取代密鑰。所有仍以舊密鑰傳送的應用程式與 Collector 都會被拒絕，直到你更新它們。關於瀏覽器金鑰、如何安全輪換金鑰以及每種拒絕的含義，請參閱 [擷取金鑰](/docs/telemetry/ingestion-keys)。
 

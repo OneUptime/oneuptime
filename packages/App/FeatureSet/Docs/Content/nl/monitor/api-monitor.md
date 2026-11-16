@@ -34,7 +34,7 @@ Een sonde die haar eigen netwerkverbinding kwijt is, meldt geen resultaat, en ka
 
 ## Voordat u begint
 
-- **Een rol die monitoren mag maken**: Project Owner, Project Admin, Project Member, Monitor Admin of Monitor Member, of een aangepaste rol met de machtiging Create Monitor.
+- **Een rol die monitoren mag maken**: Projecteigenaar, Projectbeheerder, Projectlid, Monitorbeheerder of Monitorlid, of een aangepaste rol met de machtiging Create Monitor.
 - **Een sonde die de API kan bereiken.** De standaardsondes van uw project worden voor elke nieuwe monitor gekozen. Staat er een firewall voor de API, sta dan de [IP-adressen van de sondes van OneUptime Cloud](/docs/configuration/ip-addresses) toe. Een API in een privénetwerk heeft een [aangepaste sonde](/docs/probe/custom-probe) in dat netwerk nodig, die privéadressen mag bereiken: zie [Toegang tot privénetwerk](/docs/self-hosted/private-network-access).
 - **Inloggegevens als monitorgeheimen.** Heeft de API een sleutel of token nodig, bewaar die dan eerst als [monitorgeheim](/docs/monitor/monitor-secrets), zodat de monitor er alleen een verwijzing naar bevat.
 
@@ -181,7 +181,7 @@ Een nieuwe API-monitor begint met twee criteria, zodat hij werkt zonder dat u ie
 - **Offline** — de API antwoordt niet, of antwoordt met een statuscode van `400` of hoger (of lager dan `200`). De monitor wordt als **Offline** gemarkeerd en er wordt een incident gemaakt. Het incident lost zichzelf op wanneer de API terug is.
 - **Bereikbaar** — de API antwoordt met een willekeurige statuscode `2xx` of `3xx`, zoals `200`, `201`, `202` of `204`. De monitor wordt als **Operationeel** gemarkeerd.
 
-In de lijst met criteria zijn ze naar de monitor genoemd: _Check if (name) is offline_ en _Check if (name) is online_.
+In de lijst met criteria zijn ze naar de monitor genoemd: "Controleer of _monitornaam_ offline is" en "Controleer of _monitornaam_ online is".
 
 Een endpoint dat `201 Created` of `204 No Content` antwoordt, telt dus als bereikbaar. Betekent voor u maar één statuscode gezond, wijzig dan beide criteria op de pagina **Configuratie → Criteria** van de monitor: bijvoorbeeld **Reactiestatuscode** / **Gelijk aan** / `200` in het online-criterium en **Niet gelijk aan** / `200` in het offline-criterium, in plaats van de twee statuscodefilters die elk heeft. Om ook te controleren wat de API teruggeeft, voegt u een filter **Antwoordlichaam** of **JavaScript-expressie** toe aan het offline-criterium.
 

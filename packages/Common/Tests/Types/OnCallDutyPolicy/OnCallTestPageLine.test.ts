@@ -798,6 +798,38 @@ describe("every code a reader gives is one the enum names, and every code is giv
       );
     }
 
+    // Why a message was not sent, in OneUptime's own words (#7550).
+    for (const [statusMessage, channel] of [
+      [
+        "The Notification service refused to send this (HTTP 400): Email ana@ is not in valid format.",
+        OnCallPageChannel.Email,
+      ],
+      [
+        "The Notification service answered with an error (HTTP 500), so this may not have been sent: Server Error.",
+        OnCallPageChannel.SMS,
+      ],
+      [
+        "Could not reach the Notification service to send this (ECONNREFUSED).",
+        OnCallPageChannel.SMS,
+      ],
+      ["Error sending SMS.", OnCallPageChannel.SMS],
+      [
+        "This project's balance is used up. A Project Owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
+        OnCallPageChannel.SMS,
+      ],
+      [
+        "This project is not connected to Slack. Please go to Project Settings and connect the account.",
+        OnCallPageChannel.Slack,
+      ],
+    ] as Array<[string, OnCallPageChannel]>) {
+      add(
+        readOnCallTestPageDeliveryLine({
+          statusMessage: statusMessage,
+          channel: channel,
+        }),
+      );
+    }
+
     for (const statusMessage of [
       ON_CALL_TEST_PAGE_NOBODY_PAGED_MESSAGE,
       ON_CALL_TEST_PAGE_FIRST_LEVEL_REACHED_NOBODY_MESSAGE,
@@ -811,5 +843,280 @@ describe("every code a reader gives is one the enum names, and every code is giv
     expect(Array.from(given).sort()).toEqual(
       Object.values(OnCallTestPageLineCode).sort(),
     );
+  });
+});
+
+/*
+ * ISSUE #7550: WHY A MESSAGE WAS NOT SENT, IN ONEUPTIME'S OWN WORDS.
+ *
+ * The Notification service refusing a request or answering with an error,
+ * a request that never reached it, a send that failed with no words of its
+ * own, a balance that could not pay for it and a chat workspace that is
+ * not connected are OneUptime's sentences, not a provider's. A test page's
+ * result read none of them back, so they were English on every page. Each
+ * row below is written as it was before the code existed - the English as
+ * it is in a database today - and reads into its code, with the values it
+ * names.
+ */
+describe("why a message was not sent, read back from a row written before its code existed (#7550)", () => {
+  function read(
+    statusMessage: string,
+    channel: OnCallPageChannel,
+  ): OnCallTestPageLine | null {
+    return readOnCallTestPageDeliveryLine({
+      statusMessage: statusMessage,
+      channel: channel,
+    });
+  }
+
+  test("the Notification service refused it: its status, and its own words as they were written", () => {
+    expect(
+      read(
+        "The Notification service refused to send this (HTTP 400): Email ana@ is not in valid format.",
+        OnCallPageChannel.Email,
+      ),
+    ).toEqual({
+      code: OnCallTestPageLineCode.NotificationServiceRefused,
+      statusCode: 400,
+      words: "Email ana@ is not in valid format.",
+    });
+
+    // With no words of the service's own.
+    expect(
+      read(
+        "The Notification service refused to send this (HTTP 422).",
+        OnCallPageChannel.Webhook,
+      ),
+    ).toEqual({
+      code: OnCallTestPageLineCode.NotificationServiceRefused,
+      statusCode: 422,
+    });
+  });
+
+  test("the Notification service answered with an error: with or without a status, with or without words", () => {
+    expect(
+      read(
+        "The Notification service answered with an error (HTTP 500), so this may not have been sent: Server Error.",
+        OnCallPageChannel.SMS,
+      ),
+    ).toEqual({
+      code: OnCallTestPageLineCode.NotificationServiceAnswerFailed,
+      statusCode: 500,
+      words: "Server Error.",
+    });
+    expect(
+      read(
+        "The Notification service answered with an error (HTTP 503), so this may not have been sent.",
+        OnCallPageChannel.Call,
+      ),
+    ).toEqual({
+      code: OnCallTestPageLineCode.NotificationServiceAnswerFailed,
+      statusCode: 503,
+    });
+    expect(
+      read(
+        "The Notification service answered with an error, so this may not have been sent: upstream reset.",
+        OnCallPageChannel.WhatsApp,
+      ),
+    ).toEqual({
+      code: OnCallTestPageLineCode.NotificationServiceAnswerFailed,
+      words: "upstream reset.",
+    });
+    expect(
+      read(
+        "The Notification service answered with an error, so this may not have been sent.",
+        OnCallPageChannel.Telegram,
+      ),
+    ).toEqual({ code: OnCallTestPageLineCode.NotificationServiceAnswerFailed });
+  });
+
+  test("a refusal whose words are OneUptime's own line reads as that line: SMS off, a balance used up", () => {
+    const smsOff: string = getProjectNotificationChannelOffMessage(
+      ProjectNotificationChannel.SMS,
+    );
+
+    expect(
+      read(
+        `The Notification service refused to send this (HTTP 400): ${smsOff}`,
+        OnCallPageChannel.SMS,
+      ),
+    ).toEqual({
+      code: OnCallTestPageLineCode.ChannelOff,
+      channel: OnCallPageChannel.SMS,
+    });
+    expect(
+      read(
+        "The Notification service refused to send this (HTTP 400): This project's balance is used up. A Project Owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
+        OnCallPageChannel.Call,
+      ),
+    ).toEqual({
+      code: OnCallTestPageLineCode.ProjectBalanceTooLow,
+      channel: OnCallPageChannel.Call,
+    });
+  });
+
+  test("the request never reached the Notification service: the socket's code", () => {
+    for (const reason of ["ECONNREFUSED", "ENOTFOUND", "EAI_AGAIN"]) {
+      expect(
+        read(
+          `Could not reach the Notification service to send this (${reason}).`,
+          OnCallPageChannel.SMS,
+        ),
+      ).toEqual({
+        code: OnCallTestPageLineCode.NotificationServiceNotReached,
+        reason: reason,
+      });
+    }
+  });
+
+  test("a send that failed with no words: each channel's own line, and only on its own channel", () => {
+    for (const [statusMessage, channel] of [
+      ["Error sending email.", OnCallPageChannel.Email],
+      ["Error sending SMS.", OnCallPageChannel.SMS],
+      ["Error sending WhatsApp message.", OnCallPageChannel.WhatsApp],
+      ["Error sending Telegram message.", OnCallPageChannel.Telegram],
+      ["Error sending webhook.", OnCallPageChannel.Webhook],
+      ["Error making call.", OnCallPageChannel.Call],
+      ["Error sending push notification.", OnCallPageChannel.Push],
+      ["Error sending Slack message.", OnCallPageChannel.Slack],
+      [
+        "Error sending Microsoft Teams message.",
+        OnCallPageChannel.MicrosoftTeams,
+      ],
+      ["Error sending Mattermost message.", OnCallPageChannel.Mattermost],
+      ["Failed to send Slack direct message.", OnCallPageChannel.Slack],
+      [
+        "Failed to send Microsoft Teams direct message.",
+        OnCallPageChannel.MicrosoftTeams,
+      ],
+    ] as Array<[string, OnCallPageChannel]>) {
+      expect([statusMessage, read(statusMessage, channel)]).toEqual([
+        statusMessage,
+        { code: OnCallTestPageLineCode.SendFailed, channel: channel },
+      ]);
+    }
+
+    // Another channel's line on this row is no code.
+    expect(read("Error sending SMS.", OnCallPageChannel.Call)).toBeNull();
+    expect(
+      read("Error sending Slack message.", OnCallPageChannel.MicrosoftTeams),
+    ).toBeNull();
+  });
+
+  test("a custom channel's failed send names the channel, unless it had no name", () => {
+    expect(
+      read("Error sending to Ops bridge.", OnCallPageChannel.CustomChannel),
+    ).toEqual({
+      code: OnCallTestPageLineCode.SendFailed,
+      channel: OnCallPageChannel.CustomChannel,
+      name: "Ops bridge",
+    });
+    expect(
+      read(
+        "Error sending to the custom channel.",
+        OnCallPageChannel.CustomChannel,
+      ),
+    ).toEqual({
+      code: OnCallTestPageLineCode.SendFailed,
+      channel: OnCallPageChannel.CustomChannel,
+    });
+    expect(
+      read("Error sending to .", OnCallPageChannel.CustomChannel),
+    ).toBeNull();
+  });
+
+  test("the project's balance could not pay for it: used up, or how much was left against what it costs", () => {
+    expect(
+      read(
+        "This project's balance (0.05 USD) is less than this SMS costs (0.10 USD). A Project Owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
+        OnCallPageChannel.SMS,
+      ),
+    ).toEqual({
+      code: OnCallTestPageLineCode.ProjectBalanceTooLow,
+      channel: OnCallPageChannel.SMS,
+      balance: "0.05 USD",
+      cost: "0.10 USD",
+    });
+    expect(
+      read(
+        "This project's balance (0.20 USD) is less than this call costs (0.35 USD). A Project Owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
+        OnCallPageChannel.Call,
+      ),
+    ).toEqual({
+      code: OnCallTestPageLineCode.ProjectBalanceTooLow,
+      channel: OnCallPageChannel.Call,
+      balance: "0.20 USD",
+      cost: "0.35 USD",
+    });
+
+    // An SMS's shortfall on a call's row is not the call's.
+    expect(
+      read(
+        "This project's balance (0.05 USD) is less than this SMS costs (0.10 USD). A Project Owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
+        OnCallPageChannel.Call,
+      ),
+    ).toBeNull();
+    // A channel the balance does not pay for.
+    expect(
+      read(
+        "This project's balance is used up. A Project Owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
+        OnCallPageChannel.Email,
+      ),
+    ).toBeNull();
+  });
+
+  test("a chat workspace that is not connected: the project's, or the person's account", () => {
+    expect(
+      read(
+        "This project is not connected to Microsoft Teams. Please go to Project Settings and connect the account.",
+        OnCallPageChannel.MicrosoftTeams,
+      ),
+    ).toEqual({
+      code: OnCallTestPageLineCode.WorkspaceNotConnected,
+      channel: OnCallPageChannel.MicrosoftTeams,
+      isProjectConnection: true,
+    });
+    expect(
+      read(
+        "This account is not connected to Slack. Please go to User Settings and connect the account.",
+        OnCallPageChannel.Slack,
+      ),
+    ).toEqual({
+      code: OnCallTestPageLineCode.WorkspaceNotConnected,
+      channel: OnCallPageChannel.Slack,
+      isProjectConnection: false,
+    });
+    expect(
+      read(
+        "This account is not connected to Slack. Please go to User Settings and connect the account.",
+        OnCallPageChannel.Mattermost,
+      ),
+    ).toBeNull();
+  });
+
+  test("a provider's own words, and lines that only look like ours, are still no code", () => {
+    for (const [statusMessage, channel] of [
+      // Twilio's own words, as the Notification service writes them on the row.
+      ["Attempt to send to unsubscribed recipient", OnCallPageChannel.SMS],
+      ["Error sending SMS. Twilio said no.", OnCallPageChannel.SMS],
+      [
+        "The Notification service refused to send this (HTTP 500): oops.",
+        OnCallPageChannel.SMS,
+      ],
+      [
+        "The Notification service answered with an error (HTTP 404), so this may not have been sent.",
+        OnCallPageChannel.SMS,
+      ],
+      [
+        "Could not reach the Notification service to send this ().",
+        OnCallPageChannel.SMS,
+      ],
+      ["The Notification service refused to send this.", OnCallPageChannel.SMS],
+    ] as Array<[string, OnCallPageChannel]>) {
+      expect([statusMessage, read(statusMessage, channel)]).toEqual([
+        statusMessage,
+        null,
+      ]);
+    }
   });
 });

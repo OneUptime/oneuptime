@@ -3,7 +3,7 @@
 监视器会检查您运行的对象，例如网站、API、主机或 Kubernetes 集群，并在它停止工作时通知您。**创建监视器** 先问要监控什么，再问要检查什么，最后问多久检查一次。除了类型、名称和要检查的对象，其余内容都以适合大多数监视器的默认值开始。
 
 > [!NOTE]
-> 要创建监视器，您需要 Project Owner、Project Admin、Project Member、Monitor Admin 或 Monitor Member 角色，或者拥有 Create Monitor 权限的自定义角色。
+> 要创建监视器，您需要项目所有者、项目管理员、项目成员、监视器管理员或监视器成员角色，或者拥有 Create Monitor 权限的自定义角色。
 
 ## 监视器信息
 
@@ -76,7 +76,7 @@ flowchart TB
 
 ## 探测器与间隔
 
-由探测器检查的监视器以这一步结束：网站、API、Ping、IP、端口、SSL 证书、DNS、DNSSEC、NTP、域名、SQL Query、Database Health、Synthetic Monitor、Custom JavaScript Code 和 External Status Page。**探测器** 是运行检查的机器，您项目的默认探测器已预先选中。**监控间隔** 从 **每 5 分钟** 开始。
+由探测器检查的监视器以这一步结束：网站、API、Ping、IP、端口、SSL 证书、DNS、DNSSEC、NTP、域名、SQL 查询、数据库健康状况、合成监视器、自定义 JavaScript 代码 和 外部状态页。**探测器** 是运行检查的机器，您项目的默认探测器已预先选中。**监控间隔** 从 **每 5 分钟** 开始。
 
 :::steps
 ### 选择探测器
@@ -85,7 +85,7 @@ flowchart TB
 
 ### 选择检查频率
 
-选择 **监控间隔**，从 **每分钟** 到 **每周**。Synthetic Monitor、Custom JavaScript Code 和 SSL 证书 监视器只提供 5 分钟或更长的间隔。
+选择 **监控间隔**，从 **每分钟** 到 **每周**。合成监视器、自定义 JavaScript 代码 和 SSL 证书 监视器只提供 5 分钟或更长的间隔。
 
 ### 完成创建
 

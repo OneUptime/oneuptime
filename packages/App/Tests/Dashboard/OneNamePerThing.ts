@@ -58,6 +58,47 @@ export interface OneName {
  */
 const SWEDISH_NOUN_FOR_A_WATCHER: RegExp = /övervakar(?=\p{L})/iu;
 
+/*
+ * The words Norwegian dropped for an on-call or incoming call policy: a
+ * vakt(tjeneste)retningslinje in any form, a retningslinje for vakttjeneste
+ * or for innkommende anrop, and an (innkommende) anropsretningslinje. A
+ * retningslinje on its own is read by NORWEGIAN_RETNINGSLINJE_KEPT's check
+ * (OneNamePerThingGuard), since Norwegian keeps the word for a guideline.
+ */
+export const NORWEGIAN_ON_CALL_POLICY_DROPPED: RegExp =
+  /vakt(?:tjeneste-?|ordning-)?retningslinj|retningslinj\p{L}* for (?:vakttjeneste|innkommende anrop)|anropsretningslinj/iu;
+
+/*
+ * Every policy a product has is a "policy" in Norwegian, as the Dashboard
+ * draws it: a vaktpolicy, a varslingspolicy, an avspillingspolicy (Session
+ * Replay's), an omstartspolicy and a nettverkspolicy (Kubernetes'), a
+ * page's Content Security Policy (#8527, #8562). "Retningslinje" is a
+ * guideline, and is kept only where one is meant, with why: the texts below
+ * are taken out of a string or a docs block before it is read for the word.
+ */
+export const NORWEGIAN_RETNINGSLINJE_KEPT: {
+  keys: Readonly<Record<string, string>>;
+  phrases: ReadonlyArray<KeptPhrase>;
+} = {
+  keys: {
+    "Accepted Policies":
+      "the legal terms a Vercel Marketplace customer accepted when installing OneUptime, which Norwegian calls retningslinjer: not a product's policy",
+  },
+  phrases: [
+    {
+      phrase: /retningslinjene deres og lokal lov/u,
+      why: "a company's own guidelines (its legal and HR rules) for keeping people's AI chats: not a product's policy",
+    },
+    {
+      phrase: /Twilios SMS-retningslinjer/u,
+      why: "Twilio's own guidelines for SMS senders, which Twilio's Norwegian pages call so",
+    },
+  ],
+};
+
+// The word Norwegian keeps for a guideline only, in any form.
+export const NORWEGIAN_RETNINGSLINJE: RegExp = /retningslinj/iu;
+
 // Several keys kept for one reason.
 function keptForOneReason(
   keys: ReadonlyArray<string>,
@@ -87,6 +128,24 @@ const BI_TOOLS_DASHBOARDS: ReadonlyArray<string> = [
   "Read its dashboards every hour.",
 ];
 
+/*
+ * Other products' workflows, which the docs name by that product's own
+ * word: New Relic's (its alert routing, which New Relic names Workflows in
+ * every language it has) and Jira's (an issue type's statuses and
+ * transitions).
+ */
+const ANOTHER_PRODUCTS_WORKFLOW: string =
+  "another product's own workflow - New Relic's alert routing, a Jira issue's statuses and transitions - which that product names so: not a OneUptime workflow";
+
+const PAGERDUTY_INCIDENT_WORKFLOWS: string =
+  "PagerDuty's Incident Workflows, a PagerDuty feature named so in the list of what does not move to OneUptime";
+
+const TEAMS_WORKFLOWS: string =
+  "Microsoft Teams' Workflows app, which makes an incoming webhook URL: Microsoft's name for it";
+
+const WORKFLOW_STEPS_MESSAGE: string =
+  "the run log's own message, which the product writes in English and the page quotes as written";
+
 const RUSSIAN_BI_DASHBOARDS: string =
   "A BI tool's own dashboard, which Russian BI users call a дашборд: set apart from OneUptime's Панели, as another product's workflow keeps its name";
 
@@ -96,6 +155,18 @@ export const ONE_NAME: Readonly<Record<string, ReadonlyArray<OneName>>> = {
       title: "Workflows",
       word: /flux de travail/i,
       others: /workflow/i,
+      keptPhrases: [
+        {
+          phrase: /workflows?\s+(?:New Relic|dans New Relic|Jira)/i,
+          why: ANOTHER_PRODUCTS_WORKFLOW,
+        },
+        { phrase: /Incident Workflows/, why: PAGERDUTY_INCIDENT_WORKFLOWS },
+        { phrase: /Workflows de Teams/, why: TEAMS_WORKFLOWS },
+        {
+          phrase: /Workflow steps can do only what/,
+          why: WORKFLOW_STEPS_MESSAGE,
+        },
+      ],
     },
   ],
   it: [
@@ -103,6 +174,45 @@ export const ONE_NAME: Readonly<Record<string, ReadonlyArray<OneName>>> = {
       title: "Workflows",
       word: /fluss[oi] di lavoro/i,
       others: /workflow/i,
+      keptPhrases: [
+        {
+          phrase: /workflows?\s+(?:New Relic|in New Relic|di New Relic|Jira)/i,
+          why: ANOTHER_PRODUCTS_WORKFLOW,
+        },
+        { phrase: /Incident Workflows/, why: PAGERDUTY_INCIDENT_WORKFLOWS },
+        { phrase: /Workflows di Teams/, why: TEAMS_WORKFLOWS },
+        {
+          phrase: /Workflow steps can do only what/,
+          why: WORKFLOW_STEPS_MESSAGE,
+        },
+      ],
+    },
+    /*
+     * An on-call policy is a "policy di reperibilità", as the On-Call
+     * menu (Reperibilità) and its Policy di reperibilità list say it; 48
+     * Dashboard strings said "criterio di reperibilità" (#8435).
+     */
+    {
+      title: "On-Call",
+      word: /reperibilità/i,
+      others: /criteri[oi] di reperibilità/i,
+    },
+  ],
+  /*
+   * "Plantão" is the On-Call menu's name, so a menu's path keeps its
+   * capital ("Plantão > Prontidão"), and so does a label in Title Case
+   * ("Minhas Políticas de Plantão"); in the middle of a name in sentence
+   * case it is a common noun: "ID da política de plantão", as "Políticas
+   * de plantão" says it (#8435). The Incidents and Alerts menus' On-Call
+   * Rules are "Regras de plantão", which 28 docs lines wrote "Regras de
+   * Plantão", where no Title Case word comes first (#8565).
+   */
+  pt: [
+    {
+      title: "On-Call",
+      word: /plantão/i,
+      others:
+        /(?:^|\s)\p{Ll}\S* d[eoa] Plantão|(?<!\p{Lu}\p{Ll}*\s)Regras de Plantão/u,
     },
   ],
   da: [
@@ -110,6 +220,23 @@ export const ONE_NAME: Readonly<Record<string, ReadonlyArray<OneName>>> = {
       title: "Workflows",
       word: /arbejdsgang/i,
       others: /workflow/i,
+      keptPhrases: [
+        {
+          // Jira's own word in Danish is arbejdsgang, as Atlassian's Danish screens say it.
+          phrase: /New Relic-workflow\p{L}*|workflow\p{L}* i New Relic/iu,
+          why: ANOTHER_PRODUCTS_WORKFLOW,
+        },
+        { phrase: /Incident Workflows/, why: PAGERDUTY_INCIDENT_WORKFLOWS },
+        { phrase: /Teams Workflows|Teams-workflow/, why: TEAMS_WORKFLOWS },
+        {
+          phrase: /CI-workflows/,
+          why: "a CI system's own workflows (GitHub Actions and the like), which a repository says how it is built and tested in: not OneUptime workflows",
+        },
+        {
+          phrase: /Workflow steps can do only what/,
+          why: WORKFLOW_STEPS_MESSAGE,
+        },
+      ],
     },
   ],
   sv: [
@@ -126,7 +253,7 @@ export const ONE_NAME: Readonly<Record<string, ReadonlyArray<OneName>>> = {
       others: /监控项|监控器/,
       keptPhrases: [
         {
-          phrase: /^\| 监控项 \||监控项原型/,
+          phrase: /^\s*\| 监控项 \||监控项原型/,
           why: "Zabbix's own words for an item and an item prototype, in the network device page's table of what a Zabbix user knows each thing as",
         },
       ],
@@ -143,6 +270,15 @@ export const ONE_NAME: Readonly<Record<string, ReadonlyArray<OneName>>> = {
       word: /排定維護/,
       others: /排程維護/,
     },
+    /*
+     * An on-call policy is a 待命策略, as the On-Call menu and every
+     * Dashboard sentence say it; seven docs pages said 待命政策 (#8527).
+     */
+    {
+      title: "On-Call",
+      word: /待命/,
+      others: /待命政策/,
+    },
   ],
   ru: [
     {
@@ -155,6 +291,11 @@ export const ONE_NAME: Readonly<Record<string, ReadonlyArray<OneName>>> = {
       word: /панел/i,
       others: /дашборд/i,
       keptKeys: keptForOneReason(BI_TOOLS_DASHBOARDS, RUSSIAN_BI_DASHBOARDS),
+      keptPhrases: [
+        // The docs call a BI tool's own dashboard a BI-дашборд, as the BI Dashboards section does.
+        { phrase: /BI-дашборд\p{L}*/iu, why: RUSSIAN_BI_DASHBOARDS },
+        { phrase: /дашборд\p{L}* Power BI/iu, why: RUSSIAN_BI_DASHBOARDS },
+      ],
     },
   ],
   hi: [
@@ -169,11 +310,59 @@ export const ONE_NAME: Readonly<Record<string, ReadonlyArray<OneName>>> = {
       others: /मीट्रिक/,
     },
   ],
+  /*
+   * An on-call policy is a سیاست آنکال, as the On-Call menu (آنکال) and the
+   * Dashboard's sentences say it; sixteen docs pages said سیاست کشیک (#8527).
+   */
+  fa: [
+    {
+      title: "On-Call",
+      word: /آنکال/,
+      others: /سیاست(?:‌های)? کشیک/,
+    },
+  ],
   no: [
     {
       title: "Metrics",
       word: /måling/i,
       others: /metrikk/i,
+    },
+    /*
+     * An on-call policy is a vaktpolicy, and an incoming call policy a
+     * policy for innkommende anrop: "policy" is the Norwegian Dashboard's
+     * word for every policy it has (varslingspolicy, feilbudsjettpolicy,
+     * avspillingspolicy), and a new project's first policy is named
+     * "Standard vaktpolicy". The list, the menu and about a hundred
+     * sentences said vaktretningslinje, vakttjenesteretningslinje or
+     * retningslinje for vakttjeneste beside it (#8527; #8435 had settled on
+     * the list's word, and #8527 moved the list and #8435's names to the
+     * one policy's). Both nouns are common gender (en retningslinje, en
+     * policy), so en, den, denne and dens stayed as they were.
+     */
+    {
+      title: "On-Call",
+      word: /vakt/i,
+      others: NORWEGIAN_ON_CALL_POLICY_DROPPED,
+    },
+    /*
+     * A network alert policy is a varslingspolicy, as a dozen Network
+     * sentences say it; the Network menu's Alert Policies page and its docs
+     * said Varslingsretningslinjer (#8562).
+     */
+    {
+      title: "Network",
+      word: /nettverk/i,
+      others: /varslingsretningslinj/i,
+    },
+    /*
+     * Session Replay's policy is an avspillingspolicy, as its page (Replay
+     * Policy) is titled; the Session Replay docs said retningslinje some 60
+     * times, and avspillingsretningslinje (#8562).
+     */
+    {
+      title: "Real User Monitoring",
+      word: /reelle brukere/i,
+      others: /avspillingsretningslinj|applikasjonens retningslinj/i,
     },
   ],
 };

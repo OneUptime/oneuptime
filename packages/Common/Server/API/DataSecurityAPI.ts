@@ -2,6 +2,7 @@ import CloudConnection from "../../Models/DatabaseModels/CloudConnection";
 import CodeRepository from "../../Models/DatabaseModels/CodeRepository";
 import DataStore from "../../Models/DatabaseModels/DataStore";
 import DataStoreFinding from "../../Models/DatabaseModels/DataStoreFinding";
+import DataSecuritySetting from "../../Models/DatabaseModels/DataSecuritySetting";
 import DataSecurityIssue from "../../Models/DatabaseModels/DataSecurityIssue";
 import { DataSecurityIssueFeedEventType } from "../../Models/DatabaseModels/DataSecurityIssueFeed";
 import User from "../../Models/DatabaseModels/User";
@@ -14,8 +15,8 @@ import OneUptimeDate from "../../Types/Date";
 import Timezone from "../../Types/Timezone";
 import {
   CalendarDay,
-  calendarDaysBetween,
   findCalendarDay,
+  getLastCalendarDays,
 } from "../../Utils/SecurityCase/SecurityOverviewMetrics";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -63,6 +64,8 @@ import DataStoreService, {
 } from "../Services/DataStoreService";
 import DataSecurityIssueFeedService from "../Services/DataSecurityIssueFeedService";
 import DataSecurityIssueService from "../Services/DataSecurityIssueService";
+import DataSecuritySettingService from "../Services/DataSecuritySettingService";
+import { getDataStoreScanNowRefusalSentence } from "../../Utils/DataSecurity/DataStoreContentScanSchedule";
 import AIService from "../Services/AIService";
 import AiContextReader from "../Utils/AI/AiContext/AiContextReader";
 import { withAiContext } from "../Utils/AI/AiContext/AiContextPrompt";
@@ -256,16 +259,47 @@ export default class DataSecurityAPI extends BaseAPI<
       DATA_SECURITY_API_ROUTES.scanNow(":id"),
       OPERATE_PERMISSIONS,
       async (projectId: ObjectID, req: ExpressRequest) => {
-        const store: DataStore = await DataSecurityAPI.readStore(
+        const store: DataStore = await DataSecurityAPI.readStoreToScan(
           projectId,
           req,
         );
+        const setting: DataSecuritySetting | null =
+          await DataSecuritySettingService.findOneBy({
+            query: { projectId },
+            select: {
+              isContentScanEnabled: true,
+              isTelemetryScanEnabled: true,
+            },
+            props: { isRoot: true },
+          });
+
+        /*
+         * Scan Now scans only what a claim would hand out, by the rule the
+         * store's Overview turns the button off by: never a store whose
+         * scanning a person turned off, nor one nothing will scan.
+         */
+        const refusal: string | null = getDataStoreScanNowRefusalSentence(
+          {
+            store: store,
+            scanProbe: store.scanProbeId ? store.scanProbe || null : undefined,
+            projectSetting: setting,
+          },
+          store.scanProbe?.name,
+        );
+
+        if (refusal) {
+          throw new BadDataException(refusal);
+        }
 
         await DataStoreService.updateColumnsByIdWithoutHooks({
           id: store.id!,
           data: { nextContentScanAt: OneUptimeDate.getCurrentDate() },
         });
-        await queueDataStoreScan({ projectId, dataStoreId: store.id! });
+
+        // A probe's store waits for its probe to ask: no worker scans it.
+        if (!store.scanProbeId) {
+          await queueDataStoreScan({ projectId, dataStoreId: store.id! });
+        }
 
         return {};
       },
@@ -637,6 +671,44 @@ export default class DataSecurityAPI extends BaseAPI<
   }
 
   /*
+   * The store Scan Now names, with what decides whether anything scans its
+   * content (DataStoreContentScanSchedule): its probe read through it, as
+   * the probe's claim joins it, so a deleted probe comes back as none.
+   */
+  private static async readStoreToScan(
+    projectId: ObjectID,
+    req: ExpressRequest,
+  ): Promise<DataStore> {
+    const store: DataStore | null = await DataStoreService.findOneBy({
+      query: { _id: this.readId(req), projectId },
+      select: {
+        _id: true,
+        projectId: true,
+        kind: true,
+        provider: true,
+        isContentScanEnabled: true,
+        isArchived: true,
+        scanProbeId: true,
+        probeConnectionVariable: true,
+        scanProbe: {
+          _id: true,
+          name: true,
+          isGlobalProbe: true,
+          projectId: true,
+          connectionStatus: true,
+        },
+      },
+      props: { isRoot: true },
+    });
+
+    if (!store?.id) {
+      throw new BadDataException("Data store not found.");
+    }
+
+    return store;
+  }
+
+  /*
    * The issue a response was run from, when the request names one: one of
    * this store's, in this project - never another store's, whose timeline
    * would then claim a change it did not see.
@@ -868,7 +940,8 @@ export default class DataSecurityAPI extends BaseAPI<
           isSuppressed: false,
           isScrubbed: false,
           lastSeenAt: QueryHelper.greaterThanEqualTo(
-            OneUptimeDate.addRemoveDays(
+            // A length of time, the same on every server (issue #8236).
+            OneUptimeDate.addRemoveDurationInDays(
               OneUptimeDate.getCurrentDate(),
               -FINDING_FRESHNESS_IN_DAYS,
             ),
@@ -972,10 +1045,23 @@ export default class DataSecurityAPI extends BaseAPI<
       }
     }
 
-    const since: Date = OneUptimeDate.addRemoveDays(
-      OneUptimeDate.getCurrentDate(),
-      -TREND_DAYS,
+    /*
+     * The last TREND_DAYS days of the reader's calendar, today's included
+     * (UTC's when the request named no zone): walked a day at a time in
+     * their zone, so a day the clocks change on is one bar of 23 or 25
+     * hours, never two bars or none (issue #7925). The first is the day
+     * TREND_DAYS - 1 days before today on that calendar, stepped in that
+     * zone: stepped on the server's own calendar it was an hour off across
+     * a clock change on a server outside UTC (issue #8236).
+     */
+    const now: Date = OneUptimeDate.getCurrentDate();
+    const trendDays: Array<CalendarDay> = getLastCalendarDays(
+      now,
+      TREND_DAYS,
+      timezone,
     );
+    // What the trend counts: from the start of its first day.
+    const since: Date = new Date(trendDays[0]!.startMs);
     const issues: Array<DataSecurityIssue> =
       await DataSecurityIssueService.findBy({
         query: { projectId },
@@ -1001,18 +1087,6 @@ export default class DataSecurityAPI extends BaseAPI<
       [SecuritySeverity.Medium]: 0,
       [SecuritySeverity.Low]: 0,
     };
-    /*
-     * The last TREND_DAYS days of the reader's calendar, today's included
-     * (UTC's when the request named no zone): walked a day at a time in
-     * their zone, so a day the clocks change on is one bar of 23 or 25
-     * hours, never two bars or none (issue #7925).
-     */
-    const now: Date = OneUptimeDate.getCurrentDate();
-    const trendDays: Array<CalendarDay> = calendarDaysBetween(
-      OneUptimeDate.addRemoveDays(now, -TREND_DAYS),
-      now,
-      timezone,
-    ).slice(-TREND_DAYS);
     const trend: Map<string, { opened: number; resolved: number }> = new Map();
 
     for (const { day } of trendDays) {

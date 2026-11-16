@@ -32,7 +32,7 @@ Los nombres de dominio internacionalizados se aceptan en cualquiera de sus forma
 
 ## Antes de empezar
 
-- **Un rol que pueda crear monitores**: Project Owner, Project Admin, Project Member, Monitor Admin o Monitor Member, o un rol personalizado con el permiso Create Monitor.
+- **Un rol que pueda crear monitores**: Propietario del proyecto, Administrador del proyecto, Miembro del proyecto, Administrador de monitores o Miembro de monitores, o un rol personalizado con el permiso Create Monitor.
 - **Acceso saliente desde la sonda** a los registros. Las sondas predeterminadas de su proyecto se eligen para cada monitor nuevo; una [sonda personalizada](/docs/probe/custom-probe) necesita llegar a:
 
 | Destino | Protocolo | Se usa para |
@@ -122,8 +122,8 @@ Con dos o más filtros, **Condición de coincidencia** decide si deben coincidir
 
 Un monitor de dominio nuevo empieza con tres criterios, así que le avisa antes de que caduque un registro sin configurar nada:
 
-1. **Falló la comprobación del dominio** — el registro ha caducado, o no se pudieron leer sus datos de registro. El monitor se marca como **Sin conexión** y se crea un incidente llamado «_monitor name_ domain check failed». El incidente se resuelve solo en cuanto el registro vuelve a leerse y está al día.
-2. **El dominio caduca pronto** — el registro no ha caducado pero caduca en 30 días o menos. Se crea una **alerta** llamada «_monitor name_ domain expires soon».
+1. **Falló la comprobación del dominio** — el registro ha caducado, o no se pudieron leer sus datos de registro. El monitor se marca como **Sin conexión** y se crea un incidente llamado «La verificación del dominio _nombre del monitor_ falló». El incidente se resuelve solo en cuanto el registro vuelve a leerse y está al día.
+2. **El dominio caduca pronto** — el registro no ha caducado pero caduca en 30 días o menos. Se crea una **alerta** llamada «El dominio _nombre del monitor_ caduca pronto».
 3. **El dominio no ha caducado** — el monitor se marca como **Operativo**.
 
 El aviso de «caduca pronto» es una alerta, no un incidente: no aparece en sus páginas de estado, no avisa a nadie salvo que le añada una política de guardia, y no cambia el estado del monitor. Usa la segunda gravedad de alerta de su proyecto, **Baja** en un proyecto nuevo. En cuanto la renovación aparece en el registro, la alerta se resuelve sola. Un registro que no publica fecha de caducidad no le da nada al aviso, así que este no salta.

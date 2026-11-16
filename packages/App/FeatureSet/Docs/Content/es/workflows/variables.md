@@ -142,7 +142,7 @@ sequenceDiagram
    - **Parámetros adicionales**: campos de formulario extra para la solicitud de token, como `audience` para Auth0 (necesario para Client Credentials) o `resource` para Azure AD v1. Cualquiera que pueda leer la variable puede leerlos, así que no pongas secretos aquí.
    - **Autenticación del cliente**: si el ID y el secreto de cliente van en una cabecera HTTP Basic (lo predeterminado) o en el cuerpo de la solicitud. Si tu proveedor responde `invalid_client`, prueba la otra opción.
 
-Debajo de algunos campos, el formulario añade una línea de ayuda para el proveedor que elegiste, por ejemplo dónde muestra Microsoft Entra ID tu ID de inquilino, y que su secreto de cliente es el **Value** del secreto, no su **Secret ID**.
+Debajo de algunos campos, el formulario añade una línea de ayuda para el proveedor que elegiste, por ejemplo dónde muestra Microsoft Entra ID tu ID de inquilino, y que su secreto de cliente es el **Valor** del secreto, no su **Secret ID**.
 
 Cuando guardas una variable OAuth 2.0 nueva, OneUptime obtiene su primer token de inmediato y te dice lo que respondió el proveedor. Una errata en el secreto o en la URL aparece en ese momento, no horas después en una ejecución fallida. Obtener un token escribe en la variable, así que necesita permiso para editar variables del flujo de trabajo; si puedes crear variables pero no editarlas, la primera ejecución de un flujo de trabajo que use la variable obtiene su token en su lugar.
 
@@ -195,8 +195,8 @@ Haz referencia a la salida de un bloque anterior así:
 | Después de un bloque como…                                | Lee                                                                                    |
 | --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | Un bloque **API** cuyo ID es `lookup-user`                | Su código de estado: `{{local.components.lookup-user.returnValues.response-status}}`. Su cuerpo: `{{local.components.lookup-user.returnValues.response-body}}`. |
-| Un bloque **Run Custom JavaScript** cuyo ID es `transform` | Lo que devolvió: `{{local.components.transform.returnValues.returnValue}}`.          |
-| Un disparador **On Create Incident** cuyo ID es `incident-on-create-1` | El título del incidente: `{{local.components.incident-on-create-1.returnValues.model.title}}`. Los disparadores de registros devuelven el registro como `model`, y profundizas en él. |
+| Un bloque **Ejecutar JavaScript personalizado** cuyo ID es `transform` | Lo que devolvió: `{{local.components.transform.returnValues.returnValue}}`.          |
+| Un disparador **Al crear Incidente** cuyo ID es `incident-on-create-1` | El título del incidente: `{{local.components.incident-on-create-1.returnValues.model.title}}`. Los disparadores de registros devuelven el registro como `model`, y profundizas en él. |
 
 Los valores de los bloques solo existen durante la ejecución actual. Cada ejecución nueva empieza de cero.
 
@@ -208,22 +208,22 @@ Casi todos los campos de texto aceptan variables:
 - El texto del mensaje en Slack, Teams, Discord, Telegram, IRC, Mattermost, Email.
 - El asunto y el cuerpo de un correo.
 - Las cabeceras y los campos del cuerpo (dentro de valores de cadena).
-- Los dos lados de un bloque **If / Else**.
+- Los dos lados de un bloque **Si / Si no**.
 
-En los campos JSON — **Data (JSON Object)** y **Query** en los componentes de registros, el **Request Body** de un bloque API, los **Arguments** de **Run Custom JavaScript** — una referencia se rellena según dónde esté:
+En los campos JSON — **Datos (objeto JSON)** y **Consulta** en los componentes de registros, el **Cuerpo de la solicitud** de un bloque API, los **Argumentos** de **Ejecutar JavaScript personalizado** — una referencia se rellena según dónde esté:
 
 - **Entre comillas, es texto.** `{"title": "Down: {{local.components.ci-webhook.returnValues.request-body.service}}"}` mete el valor en la cadena. Las comillas, las barras invertidas y los saltos de línea del valor se escapan, así que el JSON sigue siendo válido y el valor sigue siendo una sola cadena.
 - **Sola, es el propio valor.** `{"customFields": {{local.components.transform.returnValues.returnValue}}}` inserta el objeto entero, una lista sigue siendo una lista y un número sigue siendo un número. Un texto que es JSON en sí — `5`, `true` o un objeto que un bloque devolvió como texto JSON — entra como ese valor. Cualquier otro texto entra como una cadena.
 
-Una referencia dentro de las comillas de una clave también es texto. Si necesitas construir una estructura de forma dinámica, constrúyela con un bloque **Run Custom JavaScript** y pasa su salida al bloque siguiente.
+Una referencia dentro de las comillas de una clave también es texto. Si necesitas construir una estructura de forma dinámica, constrúyela con un bloque **Ejecutar JavaScript personalizado** y pasa su salida al bloque siguiente.
 
-El bloque **Run Custom JavaScript** no recibe las variables automáticamente: no se inyecta nada en el sandbox. Pon `{{global.variables.NAME}}` (o cualquier referencia de componente) en el campo JSON **Arguments** del bloque; esos valores se sustituyen antes de que se ejecute el script y llegan como `args`.
+El bloque **Ejecutar JavaScript personalizado** no recibe las variables automáticamente: no se inyecta nada en el sandbox. Pon `{{global.variables.NAME}}` (o cualquier referencia de componente) en el campo JSON **Argumentos** del bloque; esos valores se sustituyen antes de que se ejecute el script y llegan como `args`.
 
 ## Recorrer arrays
 
 Dentro de un campo de texto puedes repetir un fragmento de texto para cada elemento de una lista con `{{#each path}}…{{/each}}`. Dentro del bloque, `{{property}}` lee del elemento actual, `{{@index}}` es su posición empezando en 0, y `{{this}}` es el propio elemento en listas de valores simples. Los nombres dentro de un bloque `{{#each}}` se recortan, así que los espacios sobrantes no hacen daño ahí, a diferencia de en cualquier otro sitio.
 
-Por ejemplo, este **Message Text** enumera todas las alertas que envió un webhook:
+Por ejemplo, este **Texto del mensaje** enumera todas las alertas que envió un webhook:
 
 ```text title="Message Text"
 {{#each local.components.ci-webhook.returnValues.request-body.alerts}}
@@ -238,8 +238,8 @@ Por ejemplo, este **Message Text** enumera todas las alertas que envió un webho
 Llega un webhook con un cuerpo como `{ "service": "checkout", "status": "failed" }`. Para convertirlo en un incidente de OneUptime:
 
 1. Un disparador **Webhook** con el ID `ci-webhook`.
-2. Un bloque **If / Else**: **Valor que comprobar** es el campo `status` del Request Body del webhook (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Comparación** es **es igual a** y **Comparar con** es `failed`.
-3. Desde la rama **Yes**, un bloque **Create One Incident** con:
+2. Un bloque **Si / Si no**: **Valor que comprobar** es el campo `status` del Request Body del webhook (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Comparación** es **es igual a** y **Comparar con** es `failed`.
+3. Desde la rama **Sí**, un bloque **Crear Incidente (individual)** con:
    - Título: `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - Descripción: `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`
 
@@ -259,7 +259,7 @@ La primera llamada te da un ID que necesita la segunda:
 1. Componente **API** `lookup-order`: en su **URL**, después de `/orders?email=`, usa **{ }** para insertar el JSON del disparador manual con la ruta `email`.
 2. Componente **API** `cancel-order`: `POST /orders/{{local.components.lookup-order.returnValues.response-body.id}}/cancel`.
 
-Si `lookup-order` falla, salta su salida **Error** en lugar de **Success**. Conéctala a un bloque de Email o de Slack para que los fallos no pasen desapercibidos.
+Si `lookup-order` falla, salta su salida **Error** en lugar de **Éxito**. Conéctala a un bloque de Email o de Slack para que los fallos no pasen desapercibidos.
 
 ## Actualizar una variable desde un flujo de trabajo
 
@@ -290,8 +290,8 @@ Dos cosas a vigilar:
 
 - **Usa { } (o escribe `{{`).** Inserta los ID exactos de componente, de valor de retorno y de variable que espera el ejecutor, y solo ofrece valores que existen cuando se ejecuta el bloque.
 - **Los nombres de las variables distinguen mayúsculas y minúsculas.** `{{global.variables.MyKey}}` y `{{global.variables.mykey}}` son distintos.
-- **Una referencia que no se resuelve se deja tal cual, no se vacía.** Hacer referencia a algo que no existe no es un error, y tampoco te da una cadena vacía: las llaves pasan tal cual, así que `{{local.components.api-get-1.returnValues.body}}` con un ID de paso mal escrito acaba literalmente en tu mensaje de Slack, tu URL o el cuerpo de tu solicitud, y la ejecución sigue indicando **Ejecutado**. La pestaña **Pasos** de la ejecución muestra en el paso una advertencia que nombra cualquier referencia que se haya colado, y marca el ajuste en el que estaba como **No se resolvió**; el registro de la ejecución lleva la misma línea de advertencia. La excepción es un ID que un componente de datos lee o escribe, como `_id` en su **Query**: ahí el paso se detiene antes de leer o escribir nada, toma su salida **Error** y dice qué referencia no se resolvió y qué comprobar.
-- **Un campo sin contenido llega vacío.** No todos los registros tienen todos los campos. Una alerta que ningún monitor generó, como una de un SLO o una creada a mano, no tiene monitor, así que `{{local.components.alert-on-create-1.returnValues.model.monitor.name}}` no tiene nada que dar: en un mensaje no aparece nada, y por sí solo en JSON es `null`. Lo mismo ocurre con una descripción que nadie escribió, un campo personalizado que el registro no tiene, un **Find One** que no encontró ningún registro, una lista sin ese elemento y un campo que el bloque no transmite, lo que además pone en el paso una advertencia que dice qué añadir a sus **Fields to pass on**. Una URL y un bloque que lee o escribe registros son las excepciones, porque un vacío cambiaría aquello sobre lo que actúa el bloque: ahí la referencia se queda tal cual, y un ID detiene el bloque. Para tomar otro camino, comprueba el valor con **está vacío** en un **If / Else**. Para nombrar el SLO detrás de una alerta, transmite su nombre y usa `{{#each local.components.alert-on-create-1.returnValues.model.serviceLevelObjectives}}{{name}}{{/each}}`.
+- **Una referencia que no se resuelve se deja tal cual, no se vacía.** Hacer referencia a algo que no existe no es un error, y tampoco te da una cadena vacía: las llaves pasan tal cual, así que `{{local.components.api-get-1.returnValues.body}}` con un ID de paso mal escrito acaba literalmente en tu mensaje de Slack, tu URL o el cuerpo de tu solicitud, y la ejecución sigue indicando **Ejecutado**. La pestaña **Pasos** de la ejecución muestra en el paso una advertencia que nombra cualquier referencia que se haya colado, y marca el ajuste en el que estaba como **No se resolvió**; el registro de la ejecución lleva la misma línea de advertencia. La excepción es un ID que un componente de datos lee o escribe, como `_id` en su **Consulta**: ahí el paso se detiene antes de leer o escribir nada, toma su salida **Error** y dice qué referencia no se resolvió y qué comprobar.
+- **Un campo sin contenido llega vacío.** No todos los registros tienen todos los campos. Una alerta que ningún monitor generó, como una de un SLO o una creada a mano, no tiene monitor, así que `{{local.components.alert-on-create-1.returnValues.model.monitor.name}}` no tiene nada que dar: en un mensaje no aparece nada, y por sí solo en JSON es `null`. Lo mismo ocurre con una descripción que nadie escribió, un campo personalizado que el registro no tiene, un **Find One** que no encontró ningún registro, una lista sin ese elemento y un campo que el bloque no transmite, lo que además pone en el paso una advertencia que dice qué añadir a sus **Campos que pasar**. Una URL y un bloque que lee o escribe registros son las excepciones, porque un vacío cambiaría aquello sobre lo que actúa el bloque: ahí la referencia se queda tal cual, y un ID detiene el bloque. Para tomar otro camino, comprueba el valor con **está vacío** en un **Si / Si no**. Para nombrar el SLO detrás de una alerta, transmite su nombre y usa `{{#each local.components.alert-on-create-1.returnValues.model.serviceLevelObjectives}}{{name}}{{/each}}`.
 - **El panel de problemas no puede comprobar los nombres de las variables.** Señala las referencias de componente que no puede emparejar — un ID de paso desconocido, un valor de retorno desconocido, una raíz mal formada — antes de guardar. No puede saber si una variable existe. Los ajustes de un bloque sí: una referencia a una variable que falta aparece allí como una ficha ámbar. Fuera de eso, una variable renombrada solo la detecta el registro de la ejecución.
 - **Los espacios dentro de las llaves no se recortan.** `{{ local.variables.NAME }}` es una búsqueda distinta de `{{local.variables.NAME}}` y nunca se resuelve. La única excepción es dentro de un bloque `{{#each}}`, donde los nombres se recortan.
 

@@ -23,7 +23,7 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 
 ## 사전 요건
 
-- OneUptime에서 Project Owner, Project Admin 또는 Security Admin 역할. Security Member와 Security Viewer는 연결과 그 실행 기록을 볼 수 있지만 변경할 수는 없습니다.
+- OneUptime에서 프로젝트 소유자, 프로젝트 관리자 또는 보안 관리자 역할. 보안 구성원과 보안 뷰어는 연결과 그 실행 기록을 볼 수 있지만 변경할 수는 없습니다.
 - 로그인과 위험 탐지의 경우 Microsoft 365 E3, E5, Business Premium에 포함된 Microsoft Entra ID P1 또는 P2. Microsoft Graph는 이런 테넌트에만 이를 제공하며, 각 위험 탐지의 세부 정보는 P2에서 제공됩니다. 디렉터리 변경은 어떤 테넌트에서든 읽습니다.
 - Application Administrator처럼 애플리케이션을 등록할 수 있는 Entra 역할, 그리고 관리자 동의를 부여할 Global Administrator 또는 Privileged Role Administrator.
 - Microsoft 365 감사 로그의 경우 테넌트에서 감사가 켜져 있어야 하며, 기본값이 켜짐입니다. [Microsoft Purview 포털](https://purview.microsoft.com)의 **Audit**에 **Start recording user and admin activity**가 표시되면 안 됩니다.
@@ -94,7 +94,7 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 | SharePoint 또는 OneDrive에서 공유한 파일 | File Hosting Activity (`6006`) | 게스트나 누구나 열 수 있는 링크와 공유하면 Low이며 `microsoft365.sharedOutside`가 `true`로 설정됩니다 |
 | 추가되거나 제거된 사이트 모음 관리자 | User Access Management (`3005`) | Low |
 | Microsoft Defender for Office 365가 찾은 맬웨어 또는 피싱 메일 | Detection Finding (`2004`) | 맬웨어는 High, 피싱은 Medium |
-| Microsoft 365가 발생시킨 알림 | Detection Finding (`2004`) | 알림 자체의 심각도 |
+| Microsoft 365가 발생시킨 경고 | Detection Finding (`2004`) | 경고 자체의 심각도 |
 | 팀에 추가된 앱, 봇 또는 커넥터 | Application Lifecycle (`6002`) | Low |
 
 시스템 계정으로 실행되는 Exchange 자체의 내부 작업은 메일을 전달하지 않는 한 제외됩니다. 모든 이벤트는 `status.errorCode`나 `Parameters.ForwardTo` 같은 점 구분 키로 평탄화한 레코드 전체를 보관하므로, 규칙은 Microsoft가 붙인 이름으로 어떤 필드든 읽을 수 있습니다. 규칙 라이브러리의 Entra ID 규칙은 여기서 가져온 그대로 읽습니다.
@@ -187,7 +187,7 @@ Microsoft 365 감사 로그는 Microsoft가 각 콘텐츠 Blob을 사용할 수 
 ## 다음 단계
 
 :::cards
-- [보안 이벤트](/docs/telemetry/security-events): 가져온 내용을 검색하고, 상관 분석하고, 알림을 받습니다.
+- [보안 이벤트](/docs/telemetry/security-events): 가져온 내용을 검색하고, 상관 분석하고, 경고를 받습니다.
 - [Okta 시스템 로그](/docs/integrations/okta): 다른 ID 공급자의 로그인을 가져옵니다.
 - [Google Workspace](/docs/integrations/google-workspace): Google의 로그인과 관리자 변경을 가져옵니다.
 - [통합 개요](/docs/integrations/index): 연결할 수 있는 다른 도구.

@@ -26,7 +26,7 @@ flowchart TB
 
 ## Før du begynner
 
-- **Et OneUptime-prosjekt og retten til å opprette det du overfører.** Prosjekteiere og prosjektadministratorer kan overføre alt. Andre roller kan også kjøre en import og overføre de typene poster de kan opprette. Resten vises som ikke overført, med årsaken.
+- **Et OneUptime-prosjekt og retten til å opprette det du overfører.** Prosjekteiere og Prosjektadministratorer kan overføre alt. Andre roller kan også kjøre en import og overføre de typene poster de kan opprette. Resten vises som ikke overført, med årsaken.
 - **Et API-token fra Grafana OnCall.** Bruk et OnCall-API-token, ikke et token fra en Grafana-tjenestekonto. Importen skriver aldri til Grafana OnCall. Slett tokenet når importen er ferdig.
 - **OnCall-API-URL-en din.** Innstillingene i OnCall viser den ved siden av API-tokenene. I Grafana Cloud ser den ut som `https://oncall-prod-us-central-0.grafana.net/oncall`. På din egen installasjon er det adressen til OnCall-motoren din.
 
@@ -58,9 +58,9 @@ Rapporten teller hva som ble opprettet, invitert og ikke overført, og viser hve
 | Brukere | Prosjektmedlemmer | Kobles på e-postadresse. Alle som ikke er i prosjektet ennå, inviteres til teamet du velger. |
 | Team | Team | Opprettes med medlemmene sine. Et team som prosjektet allerede har navnet på, brukes som det er, og medlemmene røres ikke. |
 | Vaktplaner | Vaktplaner | Hver rotasjon blir et lag med de samme personene, samme start, samme overlevering og de samme vakttimene, i vaktplanens tidssone, eid av vaktplanens team. En rotasjon på et høyere lag går fortsatt foran lagene under. |
-| Eskaleringskjeder | Vaktretningslinjer | Trinnene som varsler personer, et team eller den som har vakt i en vaktplan, blir eskaleringsregler, og et ventetrinn blir ventetiden før neste regel. Et trinn som gjentar kjeden, blir retningslinjens gjentakelser. |
+| Eskaleringskjeder | Vaktpolicyer | Trinnene som varsler personer, et team eller den som har vakt i en vaktplan, blir eskaleringsregler, og et ventetrinn blir ventetiden før neste regel. Et trinn som gjentar kjeden, blir policyens gjentakelser. |
 
-Rotasjoner på samme lag som har vakt samtidig, og en rotasjon som setter flere personer på vakt på én gang, blir hver sin OneUptime-vaktplan, fordi en OneUptime-vaktplan har én person på vakt om gangen. Hver vaktretningslinje som varslet vaktplanen, varsler alle.
+Rotasjoner på samme lag som har vakt samtidig, og en rotasjon som setter flere personer på vakt på én gang, blir hver sin OneUptime-vaktplan, fordi en OneUptime-vaktplan har én person på vakt om gangen. Hver vaktpolicy som varslet vaktplanen, varsler alle.
 
 ## Hva som ikke overføres
 
@@ -73,11 +73,11 @@ Rotasjoner på samme lag som har vakt samtidig, og en rotasjon som setter flere 
 
 ## Grenser
 
-Én import oppretter høyst 2 000 poster: høyst 500 personer, 200 team, 200 vaktplaner og 200 vaktretningslinjer. Alt over en grense vises som ikke overført. Kjør importen på nytt for å overføre resten.
+Én import oppretter høyst 2 000 poster: høyst 500 personer, 200 team, 200 vaktplaner og 200 vaktpolicyer. Alt over en grense vises som ikke overført. Kjør importen på nytt for å overføre resten.
 
 I OneUptime Cloud vises poster som abonnementet ditt ikke inkluderer, som ikke overført, med abonnementet de trenger.
 
-En forhåndsvisning lagres i én dag. Bare personen som leste kontoen, kan krysse av og starte importen. Prosjekteiere og prosjektadministratorer ser fremdriften og rapporten for hver import.
+En forhåndsvisning lagres i én dag. Bare personen som leste kontoen, kan krysse av og starte importen. Prosjekteiere og Prosjektadministratorer ser fremdriften og rapporten for hver import.
 
 ## Fullfør byttet
 
@@ -95,7 +95,7 @@ Hvis teamet ditt omtaler hendelser med nummer, la numrene i OneUptime starte ett
 Pek monitorene dine og verktøyene som utløser varsler, mot OneUptime, og varsle deg selv én gang for å teste det.
 
 ### Slå av varsling i Grafana OnCall
-Når OneUptime varsler de riktige personene, slår du av varslene i Grafana OnCall, så ingen varsles to ganger.
+Når OneUptime varsler de riktige personene, slår du av varslingene i Grafana OnCall, så ingen varsles to ganger.
 :::
 
 ## Feilsøking
@@ -120,6 +120,6 @@ Ved hvert står det hvorfor: et navn prosjektet allerede har, noe en tidligere i
 
 :::cards
 - [Vaktplaner](/docs/on-call/schedules): Lag, begrensninger og overleveringer.
-- [Eskaleringsregler](/docs/on-call/escalation-rules): Hvordan vaktretningslinjer varsler personer.
+- [Eskaleringsregler](/docs/on-call/escalation-rules): Hvordan vaktpolicyer varsler personer.
 - [Bytt fra PagerDuty](/docs/moving-to-oneuptime/pagerduty): Hent et team over fra PagerDuty.
 :::

@@ -45,7 +45,8 @@ export const PricingPlans: Array<PricingPlan> = [
     name: "Free",
     monthlyPricePerUser: "$0",
     yearlyMonthlyPricePerUser: "$0",
-    description: "For individuals and small projects. No credit card required.",
+    description:
+      "For individuals and small projects. No credit card required to sign up; active monitors and telemetry are billed as used and need a payment method.",
   },
   {
     key: "growth",

@@ -28,7 +28,7 @@ flowchart LR
 ## Prima di iniziare
 
 - **Telemetria in arrivo.** La mappa dei servizi ha bisogno di tracce: vedete [OpenTelemetry](/docs/telemetry/open-telemetry). La vista dell'infrastruttura ha bisogno di un host o di un cluster che invii dati: vedete l'[agent Kubernetes](/docs/telemetry/kubernetes-agent). La vista di rete ha bisogno di dispositivi di rete: vedete [Monitor dispositivi di rete](/docs/monitor/network-device-monitor).
-- **Un ruolo che legge la telemetria.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member o Telemetry Viewer, oppure un ruolo personalizzato con il permesso Read Inventory Item.
+- **Un ruolo che legge la telemetria.** Proprietario del progetto, Amministratore del progetto, Membro del progetto, Visualizzatore, Amministratore della telemetria, Membro della telemetria o Visualizzatore della telemetria, oppure un ruolo personalizzato con il permesso Read Inventory Item.
 
 ## Aprire la topologia
 
@@ -51,12 +51,12 @@ Ogni servizio mostra il suo stato, calcolato dalle chiamate ricevute negli ultim
 | Stato | Quando |
 | --- | --- |
 | **Integro** | Al massimo l'1% delle chiamate ricevute è fallito. |
-| **Some errors** | È fallito più dell'1% e meno del 5%. |
-| **High error rate** | È fallito il 5% o più. |
-| **Entry point** | Non ha ricevuto chiamate, ma ne ha fatte: un frontend web o un job pianificato. |
-| **No calls observed** | Non ha né fatto né ricevuto chiamate. |
+| **Alcuni errori** | È fallito più dell'1% e meno del 5%. |
+| **Tasso di errore elevato** | È fallito il 5% o più. |
+| **Punto di ingresso** | Non ha ricevuto chiamate, ma ne ha fatte: un frontend web o un job pianificato. |
+| **Nessuna chiamata osservata** | Non ha né fatto né ricevuto chiamate. |
 
-Un servizio con un incidente o un avviso attivi ne mostra invece il numero e, come un servizio con **Some errors** o con un **High error rate**, conta come uno che richiede attenzione.
+Un servizio con un incidente o un avviso attivi ne mostra invece il numero e, come un servizio con lo stato **Alcuni errori** o **Tasso di errore elevato**, conta come uno che richiede attenzione.
 
 :::steps
 ### Trovare i servizi che richiedono attenzione

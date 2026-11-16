@@ -1,6 +1,6 @@
 # Sådan når OneUptime dig
 
-OneUptime når dig på to måder. Den tilkalder dig, når en hændelse eller en advarsel udløses, mens du har vagt, og den holder dig orienteret om det, du ejer: en note på din hændelse, en overvågning, der skiftede status, din næste vagt. Begge dele når frem til de adresser, du har i **Brugerindstillinger**, projekt for projekt. Denne side forklarer, hvordan delene hænger sammen, hvor de findes, og hvad du starter med.
+OneUptime når dig på to måder. Den tilkalder dig, når en hændelse eller en advarsel udløses, mens du har vagt, og den holder dig orienteret om det, du ejer: en note på din hændelse, en monitor, der skiftede status, din næste vagt. Begge dele når frem til de adresser, du har i **Brugerindstillinger**, projekt for projekt. Denne side forklarer, hvordan delene hænger sammen, hvor de findes, og hvad du starter med.
 
 :::cards
 - [Tre sider, tre spørgsmål](#tre-sider-tre-spørgsmål): Metoder, vagtregler og notifikationsindstillinger, og hvad hver af dem afgør.
@@ -53,7 +53,7 @@ De er adskilt med vilje. At slå alle kanaler til i **Notifikationsindstillinger
 
 **Kom godt i gang** og **Advarsler og notifikationer** er åbne; de andre sektioner starter foldet sammen, og en sektion åbner af sig selv, når du er på en af dens sider. **Arbejdsområde** vises kun, når projektet har forbundet Slack, Microsoft Teams eller Mattermost.
 
-Projektejere og administratorer kan også se din opsætning: Under **Brugere** åbner de din række og dens sektion **Vagt**, med **Parathed**, **Notifikationsmetoder** og **Sådan når man mig**. De kan tilføje en metode for dig der, men koden går til selve metoden, så kun du kan bekræfte den.
+Projektejere og Projektadministratorer kan også se din opsætning: Under **Brugere** åbner de din række og dens sektion **Vagt**, med **Parathed**, **Notifikationsmetoder** og **Sådan når man mig**. De kan tilføje en metode for dig der, men koden går til selve metoden, så kun du kan bekræfte den.
 
 ## Det starter du med
 
@@ -95,7 +95,7 @@ Et tilkald kan nå dig for en slags og en alvorlighed, du ikke har en regel for:
 2. Har du ingen af dem, én betalt metode, i denne rækkefølge: sms, et telefonopkald, WhatsApp, Telegram. Det er den første, du har bekræftet, på en kanal, projektet har slået til.
 3. Har du heller ingen af dem, en webhook.
 
-Du får en e-mail om det, og det gør vagtpolitikkens ejere også, eller projektets ejere, hvis politikken ingen har. Er intet bekræftet, kan tilkaldet ikke leveres, og e-mailen siger det i stedet. Disse e-mails holdes tilbage, mens tilkaldene bliver ved med at komme, så en storm af tilkald ikke bliver en storm af e-mails. Hvordan du tilføjer den manglende regel, står under [Sådan når man mig](/docs/notifications/on-call-rules#når-en-alvorlighed-ingen-regel-har).
+Du får en e-mail om det, og det gør vagtpolitikkens ejere også, eller Projektejere, hvis politikken ingen har. Er intet bekræftet, kan tilkaldet ikke leveres, og e-mailen siger det i stedet. Disse e-mails holdes tilbage, mens tilkaldene bliver ved med at komme, så en storm af tilkald ikke bliver en storm af e-mails. Hvordan du tilføjer den manglende regel, står under [Sådan når man mig](/docs/notifications/on-call-rules#når-en-alvorlighed-ingen-regel-har).
 
 ## Sproget i dine tilkald
 
@@ -116,7 +116,7 @@ Det, der ændres, er OneUptimes egne ord: emnelinjer, overskrifter, knapper og s
 :::
 
 :::details Jeg får e-mails om ting, jeg aldrig har bedt om
-Du ejer tingen, direkte eller gennem et team, eller tingen har ingen ejere, og du er projektejer. Slå begivenheden fra under **Brugerindstillinger → Notifikationsindstillinger**, eller skru ned for mængden under **Brugerindstillinger → E-mailindstillinger**.
+Du ejer tingen, direkte eller gennem et team, eller tingen har ingen ejere, og du er Projektejer. Slå begivenheden fra under **Brugerindstillinger → Notifikationsindstillinger**, eller skru ned for mængden under **Brugerindstillinger → E-mailindstillinger**.
 :::
 
 :::details Mine tilkald er på engelsk, selvom dashboardet ikke er

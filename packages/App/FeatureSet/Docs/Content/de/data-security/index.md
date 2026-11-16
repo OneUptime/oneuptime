@@ -43,7 +43,7 @@ flowchart TB
 
 ## Bevor Sie beginnen
 
-- **Eine Rolle, die sie einrichten darf.** Project Owners, Project Admins und Security Admins ändern die Einstellungen der Datensicherheit. Security Members bearbeiten Probleme und scannen Datenspeicher, und Security Viewers lesen, was sie gefunden hat. Andere Rollen sehen nichts davon, sofern ihr Team nicht die entsprechenden Berechtigungen erhält: Welche Buckets Kartennummern enthalten, ist genau das, was ein Angreifer wissen will. Siehe [Rollen](/docs/permissions/reference#rollen).
+- **Eine Rolle, die sie einrichten darf.** Projektinhaber, Projektadministratoren und Sicherheits-Administratoren ändern die Einstellungen der Datensicherheit. Sicherheits-Mitglieder bearbeiten Probleme und scannen Datenspeicher, und Sicherheits-Betrachter lesen, was sie gefunden hat. Andere Rollen sehen nichts davon, sofern ihr Team nicht die entsprechenden Berechtigungen erhält: Welche Buckets Kartennummern enthalten, ist genau das, was ein Angreifer wissen will. Siehe [Rollen](/docs/permissions/reference#rollen).
 - **Ein Cloud-Konto zum Lesen oder eine Datenbank.** Datensicherheit liest ein Cloud-Konto über eine [Cloud-Verbindung](/docs/telemetry/cloud-accounts) und eine Datenbank, die Sie betreiben, über eine schreibgeschützte Verbindungszeichenfolge. Telemetrie braucht nichts: Sie wird jede Stunde gescannt.
 
 ## Schnellstart
@@ -69,7 +69,7 @@ Setzen Sie unter **Weitere Felder** die Option **Datensicherheit** auf **Nur Kon
 | AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System, Amazon Athena | AWS S3 Bucket |
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
-| Datenbanken, die Sie betreiben | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL |
+| Datenbanken, die Sie betreiben | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
 | OneUptime | Protokolle, Traces, Ausnahmen, Sitzungswiedergaben, KI-Unterhaltungen | Protokolle, Traces, Ausnahmen, Sitzungswiedergaben, KI-Unterhaltungen |
 
 Jeder Datenspeicher erhält die Prüfungen, die für seine Art gelten. Ein Datenspeicher, von dessen Inhalt sich keine Stichproben nehmen lassen, wird trotzdem geprüft: Ein öffentlicher Bucket oder eine unverschlüsselte Datenbank ist ein Problem, egal was darin liegt.

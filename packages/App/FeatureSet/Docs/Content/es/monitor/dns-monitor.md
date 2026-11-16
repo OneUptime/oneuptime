@@ -28,7 +28,7 @@ Una sonda que ha perdido su propia conexión de red no informa de ningún result
 
 ## Antes de empezar
 
-- **Un rol que pueda crear monitores**: Project Owner, Project Admin, Project Member, Monitor Admin o Monitor Member, o un rol personalizado con el permiso Create Monitor.
+- **Un rol que pueda crear monitores**: Propietario del proyecto, Administrador del proyecto, Miembro del proyecto, Administrador de monitores o Miembro de monitores, o un rol personalizado con el permiso Create Monitor.
 - **Una sonda que pueda llegar al servidor DNS.** Las sondas predeterminadas de su proyecto se eligen para cada monitor nuevo. Para consultar un servidor DNS de una red privada, como un resolutor interno, use una [sonda personalizada](/docs/probe/custom-probe) dentro de esa red.
 
 ## Crear un monitor de DNS
@@ -111,7 +111,7 @@ Con dos o más filtros, **Condición de coincidencia** decide si deben coincidir
 
 Un monitor de DNS nuevo empieza con dos criterios:
 
-- **Sin conexión** — el nombre no se resuelve, o no tiene ningún registro del tipo, después de todos los reintentos. El monitor se marca como **Sin conexión** y se crea un incidente llamado «_monitor name_ is offline». El incidente se resuelve solo cuando el nombre vuelve a resolverse.
+- **Sin conexión** — el nombre no se resuelve, o no tiene ningún registro del tipo, después de todos los reintentos. El monitor se marca como **Sin conexión** y se crea un incidente llamado «_nombre del monitor_ está sin conexión». El incidente se resuelve solo cuando el nombre vuelve a resolverse.
 - **En línea** — el nombre se resuelve. El monitor se marca como **Operativo**.
 
 Los criterios se comprueban de arriba abajo, y el primero que coincide decide qué ocurre. Cuando ninguno coincide, el monitor muestra su estado predeterminado: **Operativo**, salvo que elija otro en **Más campos**, debajo de los criterios.

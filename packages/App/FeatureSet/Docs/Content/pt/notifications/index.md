@@ -53,7 +53,7 @@ Abra **Configurações do usuário**, à direita da barra abaixo da barra superi
 
 **Primeiros passos** e **Alertas e notificações** ficam abertas; as outras seções começam recolhidas, e uma seção se abre sozinha quando você está em uma das páginas dela. **Espaço de trabalho** só aparece quando o projeto conectou o Slack, o Microsoft Teams ou o Mattermost.
 
-Proprietários e administradores do projeto também podem ver a sua configuração: em **Usuários**, eles abrem a sua linha e a seção **Plantão** dela, com **Prontidão**, **Métodos de notificação** e **Como me contatar**. Eles podem adicionar um método para você ali, mas o código vai para o próprio método, então só você pode verificá-lo.
+Proprietários do projeto e Administradores do projeto também podem ver a sua configuração: em **Usuários**, eles abrem a sua linha e a seção **Plantão** dela, com **Prontidão**, **Métodos de notificação** e **Como me contatar**. Eles podem adicionar um método para você ali, mas o código vai para o próprio método, então só você pode verificá-lo.
 
 ## Com o que você começa
 
@@ -95,7 +95,7 @@ Um acionamento pode chegar até você para um tipo e uma gravidade para os quais
 2. Se você não tem nenhum desses, um método pago, nesta ordem: SMS, uma chamada telefônica, WhatsApp, Telegram. É o primeiro que você verificou, em um canal que o projeto ativou.
 3. Se você também não tem nenhum desses, um webhook.
 
-Você recebe um e-mail avisando, e também os proprietários da política de plantão, ou os do projeto se a política não tiver. Se não houver nada verificado, o acionamento não pode ser entregue, e o e-mail diz isso. Esses e-mails ficam retidos enquanto os acionamentos continuam chegando, para que uma tempestade de acionamentos não vire uma tempestade de e-mails. Para adicionar a regra que falta, veja [Como me contatar](/docs/notifications/on-call-rules#quando-uma-gravidade-não-tem-regra).
+Você recebe um e-mail avisando, e também os proprietários da política de plantão, ou os Proprietários do projeto se a política não tiver. Se não houver nada verificado, o acionamento não pode ser entregue, e o e-mail diz isso. Esses e-mails ficam retidos enquanto os acionamentos continuam chegando, para que uma tempestade de acionamentos não vire uma tempestade de e-mails. Para adicionar a regra que falta, veja [Como me contatar](/docs/notifications/on-call-rules#quando-uma-gravidade-não-tem-regra).
 
 ## O idioma dos seus acionamentos
 
@@ -116,7 +116,7 @@ Abra **Configurações do usuário → Registros de plantão**. Nenhuma linha pa
 :::
 
 :::details Recebo e-mails sobre registros que nunca pedi
-Você é proprietário do registro, diretamente ou por meio de uma equipe, ou o registro não tem proprietários e você é proprietário do projeto. Desative o evento em **Configurações do usuário → Configurações de notificação**, ou reduza o volume em **Configurações do usuário → Preferências de e-mail**.
+Você é proprietário do registro, diretamente ou por meio de uma equipe, ou o registro não tem proprietários e você é Proprietário do projeto. Desative o evento em **Configurações do usuário → Configurações de notificação**, ou reduza o volume em **Configurações do usuário → Preferências de e-mail**.
 :::
 
 :::details Meus acionamentos estão em inglês, mas o painel não

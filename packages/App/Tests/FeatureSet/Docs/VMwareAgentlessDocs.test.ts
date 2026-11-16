@@ -9,6 +9,7 @@ import {
   getLocalizedNav,
 } from "../../../FeatureSet/Docs/Utils/I18n";
 import { drawnDashboardLabel } from "./DocsDashboardLabels";
+import { VMWARE_COLLECTION_OVERDUE_AFTER_IN_MS } from "../../../FeatureSet/Dashboard/src/Components/VMware/VMwareProbeCollectionView";
 import { pathWithArrows } from "./DocsPageShape";
 import VMwareCollectionErrorCode, {
   VMwareCollectionErrorUtil,
@@ -67,6 +68,12 @@ const LABELS: Array<string> = [
   "Data Collection",
   "Checking",
   "Collecting",
+  // When no probe comes, or none may, and when one comes next (#8331).
+  "Not collecting",
+  "Next collection",
+  "Due now",
+  "Overdue",
+  "Not scheduled",
   "Test connection",
   "Trust this certificate",
   "Collect With a Probe",
@@ -248,6 +255,16 @@ describe("the docs page on VMware without an agent", () => {
     expect(settingsCard).toContain('title: "Edit Connection"');
     expect(view).toContain('translateText("Checking")');
     expect(view).toContain('translateText("Collecting")');
+    expect(view).toContain('translateText("Not collecting")');
+    expect(statusCard).toContain('translateText("Next collection")');
+
+    const nextClaimWords: string = readSource(
+      "Components/Probe/NextClaimWords.ts",
+    );
+
+    for (const word of ["Due now", "Overdue", "Not scheduled"]) {
+      expect(nextClaimWords).toContain(`translateText("${word}")`);
+    }
     expect(readSource("Pages/VMware/SideMenu.tsx")).toContain(
       'title: "All vCenters"',
     );
@@ -351,6 +368,50 @@ describe("the docs page on VMware without an agent", () => {
       expect(numbersIn(reference[3]![2]!)).toEqual([
         VMWARE_CONNECTION_TEST_RUN_TIMEOUT_IN_SECONDS / 60,
       ]);
+    },
+  );
+
+  /*
+   * A vCenter no probe has come for is Not collecting after
+   * VMWARE_COLLECTION_OVERDUE_AFTER_IN_MS, and its Next collection Overdue
+   * (#8331), as OpenStackAgentlessDocs pins OpenStack's 15 minutes.
+   */
+  it("says how long a vCenter waits for a probe before it is not collecting, from the card's own rule", () => {
+    const minutes: number = VMWARE_COLLECTION_OVERDUE_AFTER_IN_MS / 60_000;
+
+    expect(minutes).toBe(20);
+
+    const page: string = readPage("en");
+
+    expect(page).toContain(
+      `If no probe comes for the vCenter for ${minutes} minutes`,
+    );
+    expect(page).toContain(
+      `**Overdue** once none has come for ${minutes} minutes`,
+    );
+  });
+
+  it.each(LANGUAGES)(
+    "%s: says the same minutes, and that an archived vCenter is still collected",
+    (lang: string) => {
+      const minutes: number = VMWARE_COLLECTION_OVERDUE_AFTER_IN_MS / 60_000;
+      const page: string = readPage(lang);
+      const paragraph: string | undefined = page
+        .split("\n\n")
+        .find((block: string): boolean => {
+          return block.includes(`**${drawn(lang, "Next collection")}**`);
+        });
+
+      expect(paragraph).toBeDefined();
+      // Both waits: before Not collecting, and before Overdue.
+      expect(
+        numbersIn(paragraph!).filter((value: number): boolean => {
+          return value === minutes;
+        }),
+      ).toHaveLength(2);
+      expect(
+        paragraph!.split(`**${drawn(lang, "Not collecting")}**`).length - 1,
+      ).toBe(2);
     },
   );
 

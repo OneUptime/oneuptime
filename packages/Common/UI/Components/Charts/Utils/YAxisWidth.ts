@@ -47,39 +47,87 @@ function roundValuesAbove(value: number): Array<number> {
   return [sign * Math.ceil(magnitude / power) * power, sign * power * 10];
 }
 
-// How many characters a tick's text takes: a letter, a digit or a sign each.
+/*
+ * The marks a tick's text carries that take no room: the left-to-right and
+ * right-to-left marks Intl sets around a figure in Arabic and Persian
+ * ("23.5‎%‎"), the joiners Persian writes inside a word ("میلی‌ثانیه"), and
+ * every other format character (Unicode's Cf).
+ */
+const INVISIBLE_MARKS: RegExp = /\p{Cf}/gu;
+
+/*
+ * How many characters a tick's text takes: a letter, a digit or a sign
+ * each, and nothing for a mark that is never drawn - an Arabic or Persian
+ * tick is not wider than it reads (#8349).
+ */
 export function getTickTextLength(text: string): number {
-  return Array.from(text).length;
+  return Array.from(text.replace(INVISIBLE_MARKS, "")).length;
 }
 
-export function getYAxisWidthInPx(input: YAxisWidthInput): number {
-  const values: Array<number> = [];
+/*
+ * The ticks an axis over `highest` may draw: recharts steps a rounded top
+ * in four or five, so a duration axis up to 1.5 s also draws 500 ms and
+ * 750 ms - in Persian a longer tick than "۱٫۵۰ ثانیه" at its top.
+ */
+function stepsUpTo(top: number): Array<number> {
+  if (!Number.isFinite(top) || top === 0) {
+    return [];
+  }
 
-  for (const series of input.data || []) {
-    for (const point of series.data || ([] as Array<DataPoint>)) {
-      if (typeof point.y === "number" && Number.isFinite(point.y)) {
-        values.push(point.y);
-      }
+  return [
+    top / 5,
+    top / 4,
+    (top * 2) / 5,
+    top / 2,
+    (top * 3) / 5,
+    (top * 3) / 4,
+    (top * 4) / 5,
+  ];
+}
+
+export interface YAxisWidthForValuesInput {
+  // Every value the axis is drawn over, a stacked bar's total among them.
+  values: Array<number>;
+  formatter?: ((value: number) => string) | undefined;
+  // The width the axis keeps when its ticks are short: 64 px, as before.
+  minWidthInPx?: number | undefined;
+  // The tick's font size, when it is not the 10 px the shared charts draw.
+  tickFontSizeInPx?: number | undefined;
+}
+
+/*
+ * The value axis' width for a chart drawn straight with recharts (a trace
+ * chart, the logs and traces histogram), measured as the shared charts
+ * measure theirs: as wide as the widest tick the values can draw, in the
+ * reader's language - "۴۲ میلی‌ثانیه" is wider than "42 ms" - never
+ * narrower than the chart's own width, and capped.
+ */
+export function getYAxisWidthForValuesInPx(
+  input: YAxisWidthForValuesInput,
+): number {
+  const minimum: number = input.minWidthInPx ?? Y_AXIS_WIDTH_IN_PX;
+  let lowest: number = Number.POSITIVE_INFINITY;
+  let highest: number = Number.NEGATIVE_INFINITY;
+
+  for (const value of input.values) {
+    if (typeof value === "number" && Number.isFinite(value)) {
+      lowest = Math.min(lowest, value);
+      highest = Math.max(highest, value);
     }
   }
 
-  for (const bound of [input.min, input.max]) {
-    if (typeof bound === "number" && Number.isFinite(bound)) {
-      values.push(bound);
-    }
+  if (!Number.isFinite(lowest) || !Number.isFinite(highest)) {
+    return minimum;
   }
 
-  if (values.length === 0) {
-    return Y_AXIS_WIDTH_IN_PX;
-  }
-
-  const lowest: number = Math.min(...values);
-  const highest: number = Math.max(...values);
+  const roundedTops: Array<number> = roundValuesAbove(highest);
   const candidates: Array<number> = [
     lowest,
     highest,
     ...roundValuesAbove(lowest),
-    ...roundValuesAbove(highest),
+    ...roundedTops,
+    ...stepsUpTo(highest),
+    ...stepsUpTo(roundedTops[0] ?? highest),
   ];
 
   const format: (value: number) => string =
@@ -102,9 +150,68 @@ export function getYAxisWidthInPx(input: YAxisWidthInput): number {
     longest = Math.max(longest, getTickTextLength(text || ""));
   }
 
+  const characterWidth: number =
+    (Y_AXIS_TICK_CHARACTER_WIDTH_IN_PX * (input.tickFontSizeInPx ?? 10)) / 10;
   const needed: number = Math.ceil(
-    longest * Y_AXIS_TICK_CHARACTER_WIDTH_IN_PX + Y_AXIS_TICK_PADDING_IN_PX,
+    longest * characterWidth + Y_AXIS_TICK_PADDING_IN_PX,
   );
 
-  return Math.min(Y_AXIS_MAX_WIDTH_IN_PX, Math.max(Y_AXIS_WIDTH_IN_PX, needed));
+  return Math.min(
+    Math.max(Y_AXIS_MAX_WIDTH_IN_PX, minimum),
+    Math.max(minimum, needed),
+  );
+}
+
+/*
+ * Every value a chart drawn from rows draws over: each series' value, and
+ * for bars stacked one on another each row's total, which the stack reaches.
+ */
+export function getChartRowValues<Row>(
+  rows: ReadonlyArray<Row>,
+  keys: ReadonlyArray<string>,
+  options?: { isStacked?: boolean | undefined },
+): Array<number> {
+  const values: Array<number> = [];
+
+  for (const row of rows) {
+    let total: number = 0;
+
+    for (const key of keys) {
+      const value: unknown = (row as unknown as Record<string, unknown>)[key];
+
+      if (typeof value === "number" && Number.isFinite(value)) {
+        values.push(value);
+        total += value;
+      }
+    }
+
+    if (options?.isStacked) {
+      values.push(total);
+    }
+  }
+
+  return values;
+}
+
+export function getYAxisWidthInPx(input: YAxisWidthInput): number {
+  const values: Array<number> = [];
+
+  for (const series of input.data || []) {
+    for (const point of series.data || ([] as Array<DataPoint>)) {
+      if (typeof point.y === "number" && Number.isFinite(point.y)) {
+        values.push(point.y);
+      }
+    }
+  }
+
+  for (const bound of [input.min, input.max]) {
+    if (typeof bound === "number" && Number.isFinite(bound)) {
+      values.push(bound);
+    }
+  }
+
+  return getYAxisWidthForValuesInPx({
+    values: values,
+    formatter: input.formatter,
+  });
 }

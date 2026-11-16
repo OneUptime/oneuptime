@@ -35,7 +35,7 @@ A [página de preços](https://oneuptime.com/pricing) compara os planos.
 ## Antes de começar
 
 - **OneUptime Cloud.** A seção **Cobrança e faturas** das **Configurações do projeto** só existe no OneUptime Cloud e começa recolhida: clique no título dela para abri-la.
-- **Uma função que pode ler a cobrança.** Project Owners, pessoas com **Manage Billing** e as três funções de cobrança leem todas as páginas de cobrança. Veja [Quem pode fazer o quê](#quem-pode-fazer-o-quê).
+- **Uma função que pode ler a cobrança.** Proprietários do projeto, pessoas com **Manage Billing** e as três funções de cobrança leem todas as páginas de cobrança. Veja [Quem pode fazer o quê](#quem-pode-fazer-o-quê).
 
 ## Seu plano e seus assentos
 
@@ -138,19 +138,19 @@ No cartão **Saldo Atual** da página, clique em **Recarregar Saldo**. Informe u
 No cartão **Recarga automática**, clique em **Editar: Recarga automática** e ative **Habilitar recarga automática**. Ela começa desativada. Depois de ativada, o OneUptime adiciona $20 sempre que o saldo cai para $10, ou os valores que você escolher.
 :::
 
-Quando um saldo não consegue pagar, a mensagem não é enviada ou o OneUptime AI para, e os proprietários do projeto recebem um e-mail. Veja [Quando um acionamento não é enviado](/docs/on-call/escalation-rules#quando-um-acionamento-não-é-enviado) e [Quando os créditos de IA acabam](/docs/ai/ai-sre#quando-os-créditos-de-ia-acabam).
+Quando um saldo não consegue pagar, a mensagem não é enviada ou o OneUptime AI para, e os Proprietários do projeto recebem um e-mail. Veja [Quando um acionamento não é enviado](/docs/on-call/escalation-rules#quando-um-acionamento-não-é-enviado) e [Quando os créditos de IA acabam](/docs/ai/ai-sre#quando-os-créditos-de-ia-acabam).
 
 ## Quem pode fazer o quê
 
 | Para | É preciso |
 | --- | --- |
-| Ler as páginas de cobrança: o plano, as faturas, o uso, os saldos e os métodos de pagamento | Project Owner, **Manage Billing**, **Administrador de cobrança**, **Membro de cobrança** ou **Visualizador de cobrança** |
-| Baixar uma fatura | Project Owner, Project Admin, **Manage Billing**, **Read Invoices**, **Administrador de cobrança** ou **Membro de cobrança** |
-| Mudar o endereço de cobrança e o e-mail das faturas | Project Owner, **Manage Billing**, **Administrador de cobrança** ou **Membro de cobrança** |
-| Ativar ou desativar SMS, chamadas, WhatsApp ou Telegram | Project Owner, **Manage Billing** ou **Administrador de cobrança** |
-| Adicionar um método de pagamento | Project Owner, **Manage Billing** ou **Create Payment Method** |
-| Pagar uma fatura | Project Owner, **Manage Billing** ou **Edit Invoices** |
-| Mudar o plano, recarregar um saldo ou mudar a recarga automática | Project Owner ou **Manage Billing** |
+| Ler as páginas de cobrança: o plano, as faturas, o uso, os saldos e os métodos de pagamento | Proprietário do projeto, **Manage Billing**, **Administrador de cobrança**, **Membro de cobrança** ou **Visualizador de cobrança** |
+| Baixar uma fatura | Proprietário do projeto, Administrador do projeto, **Manage Billing**, **Read Invoices**, **Administrador de cobrança** ou **Membro de cobrança** |
+| Mudar o endereço de cobrança e o e-mail das faturas | Proprietário do projeto, **Manage Billing**, **Administrador de cobrança** ou **Membro de cobrança** |
+| Ativar ou desativar SMS, chamadas, WhatsApp ou Telegram | Proprietário do projeto, **Manage Billing** ou **Administrador de cobrança** |
+| Adicionar um método de pagamento | Proprietário do projeto, **Manage Billing** ou **Create Payment Method** |
+| Pagar uma fatura | Proprietário do projeto, **Manage Billing** ou **Edit Invoices** |
+| Mudar o plano, recarregar um saldo ou mudar a recarga automática | Proprietário do projeto ou **Manage Billing** |
 
 Um botão que você não pode usar aparece bloqueado e diz quem pode. Veja [Usuários, equipes e permissões](/docs/permissions/index#equipes) para as funções de cobrança.
 

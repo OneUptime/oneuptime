@@ -1,8 +1,10 @@
 import {
-  getNumberLocale,
+  formatRelativeAmount,
   getReaderNumberLocale,
+  RelativeDateUnit,
 } from "Common/Types/DateLanguage";
 import OneUptimeDate from "Common/Types/Date";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import TimeRange from "Common/Types/Time/TimeRange";
@@ -35,8 +37,9 @@ function toValidDate(value: unknown): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+// "4 minutes", the number held to its word (#8669).
 function plural(count: number, unit: string): string {
-  return `${count} ${unit}${count === 1 ? "" : "s"}`;
+  return `${count}${NO_BREAK_SPACE}${unit}${count === 1 ? "" : "s"}`;
 }
 
 /*
@@ -66,24 +69,25 @@ export function formatRelativeTime(
 
   const diffMs: number = now.getTime() - date.getTime();
   const absMs: number = Math.abs(diffMs);
+  // Intl's words, the number held to its unit ("vor 5\u00A0Minuten", #8456).
   const inReadersWords: (
     count: number,
-    unit: Intl.RelativeTimeFormatUnit,
+    unit: RelativeDateUnit,
   ) => string | null = (
     count: number,
-    unit: Intl.RelativeTimeFormatUnit,
+    unit: RelativeDateUnit,
   ): string | null => {
     if (!language || language.toLowerCase().startsWith("en")) {
       return null;
     }
 
-    try {
-      return new Intl.RelativeTimeFormat(getNumberLocale(language), {
-        numeric: "auto",
-      }).format(diffMs >= 0 ? -count : count, unit);
-    } catch {
-      return null;
-    }
+    return formatRelativeAmount({
+      count: count,
+      unit: unit,
+      isFuture: diffMs < 0,
+      locale: language,
+      numeric: "auto",
+    });
   };
 
   if (absMs < 45 * SECOND_MS) {

@@ -37,8 +37,8 @@ En monitorgrupp är inte en statussidegrupp. En statussidegrupp är en rubrik p�
 ## Innan du börjar
 
 - **Din plan.** På OneUptime Cloud kräver monitorgrupper Scale-planen.
-- **Brytaren.** Monitorgrupper är dolda tills **Monitorgrupper** har slagits på för projektet (se nedan). Att slå på den kräver rollen Project Owner, eller en anpassad roll med behörigheten Edit Project eller Manage Billing.
-- **Din roll.** Att skapa, ändra och ta bort grupper kräver rollen Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member, eller en anpassad roll med motsvarande behörigheter för monitorgrupper. En Viewer kan se grupper men inte ändra dem.
+- **Brytaren.** Monitorgrupper är dolda tills **Monitorgrupper** har slagits på för projektet (se nedan). Att slå på den kräver rollen Projektägare, eller en anpassad roll med behörigheten Edit Project eller Manage Billing.
+- **Din roll.** Att skapa, ändra och ta bort grupper kräver rollen Projektägare, Projektadministratör, Projektmedlem, Monitoradministratör eller Monitormedlem, eller en anpassad roll med motsvarande behörigheter för monitorgrupper. En Tittare kan se grupper men inte ändra dem.
 
 ## Slå på monitorgrupper
 
@@ -82,7 +82,7 @@ För att ta bort en monitor från gruppen klickar du på **Ta bort** på dess ra
 
 | Sida | Vad den visar |
 | --- | --- |
-| **Översikt** | **Detaljer för övervakningsgrupp**, **Aktuell status**, **Övervakning** och **Drifttidsgraf** med gruppens tillgänglighet i procent under de senaste 90 dagarna. En grupp utan monitorer erbjuder **Lägg till monitorer** i stället för grafen. |
+| **Översikt** | **Detaljer för monitorgrupp**, **Aktuell status**, **Övervakning** och **Drifttidsgraf** med gruppens tillgänglighet i procent under de senaste 90 dagarna. En grupp utan monitorer erbjuder **Lägg till monitorer** i stället för grafen. |
 | **Monitorer** | **Monitorer i grupp**, med **Lägg till monitorer** och **Ta bort**. |
 | **Incidenter** | Incidenterna på någon monitor i gruppen. |
 | **Larm** | Larmen på någon monitor i gruppen. |

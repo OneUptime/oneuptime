@@ -443,7 +443,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
     const actionText: string = props.submitButtonText || "Submit";
 
-    const submitButtonText: string = translateString(actionText) ?? actionText;
+    const submitButtonText: string = translateString(actionText) as string;
 
     const nextButtonText: string =
       translateString(NEXT_BUTTON_TEXT) ?? NEXT_BUTTON_TEXT;
@@ -603,11 +603,12 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
     };
 
     /*
-     * Whether a field the record holds nothing for (null) starts on its
-     * default: only where it says its default stands in for nothing
-     * (startsOnDefaultWhenEmpty), and only while it is shown - a hidden
-     * field is sent as it was, so an untouched form saves the record as it
-     * holds it (a Microsoft Graph server keeps its empty port).
+     * Whether a field the record holds nothing for (null, or text of only
+     * spaces) starts on its default: only where it says its default stands
+     * in for nothing (startsOnDefaultWhenEmpty), and only while it is shown
+     * - a hidden field is sent as it was, so an untouched form saves the
+     * record as it holds it (a Microsoft Graph server keeps its empty
+     * port). A fresh server's SMTP From Name is "", not null (#8183).
      */
     type StartsOnDefaultForEmptyFunction = (
       field: Field<T>,
@@ -618,10 +619,11 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
       field: Field<T>,
       values: FormValues<T>,
     ): boolean => {
-      if (
-        !field.startsOnDefaultWhenEmpty ||
-        (values as any)[field.name!] !== null
-      ) {
+      const held: unknown = (values as any)[field.name!];
+      const holdsNothing: boolean =
+        held === null || (typeof held === "string" && held.trim() === "");
+
+      if (!field.startsOnDefaultWhenEmpty || !holdsNothing) {
         return false;
       }
 
@@ -1379,9 +1381,10 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         /*
          * A field the form does not start with a value for starts on its
          * default - 0 and false included (hasDefaultValue). So does one
-         * whose record holds nothing (null), where the field says its
-         * default stands in for nothing (startsOnDefaultWhenEmpty): the
-         * server's SMTP port, empty on a fresh server, starts on 587.
+         * whose record holds nothing (null or blank text), where the field
+         * says its default stands in for nothing (startsOnDefaultWhenEmpty):
+         * the server's SMTP port, empty on a fresh server, starts on 587,
+         * and its blank From Name on the product's name.
          */
         if (
           hasDefaultValue(field) &&
@@ -1449,6 +1452,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         >
           <Button
             title={nextButtonText}
+            isTitleTranslated={true}
             dataTestId={FORM_NEXT_BUTTON_TEST_ID}
             id={`${props.id}-next-button`}
             onClick={() => {
@@ -1831,6 +1835,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                     >
                       <Button
                         title={submitButtonText}
+                        isTitleTranslated={true}
                         dataTestId={props.submitButtonText!}
                         onClick={() => {
                           // Checks every step, and opens one with a problem.
@@ -1851,9 +1856,11 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                     <div>
                       <Button
                         title={
-                          translateString(props.cancelButtonText || "Cancel") ??
-                          (props.cancelButtonText || "Cancel")
+                          translateString(
+                            props.cancelButtonText || "Cancel",
+                          ) as string
                         }
+                        isTitleTranslated={true}
                         type={ButtonTypes.Button}
                         id={`${props.id}-cancel-button`}
                         disabled={

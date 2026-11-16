@@ -67,13 +67,13 @@ flowchart TB
 
 ## Innan du börjar
 
-Säkerhetsdata kan bara läsas av rollerna Project Owner och Project Admin och av de tre Security-rollerna; andra roller ser ingenting i Security Events. Se [Roller](/docs/permissions/reference#roller).
+Säkerhetsdata kan bara läsas av rollerna Projektägare och Projektadministratör och av de tre Security-rollerna; andra roller ser ingenting i Säkerhetshändelser. Se [Roller](/docs/permissions/reference#roller).
 
 | Roll | Vad den kan göra |
 | --- | --- |
-| Security Admin | Allt: händelser, ärenden, playbooks, detektionsregler, threat intel-flöden och anslutningar |
-| Security Member | Läsa händelser och threat intel, arbeta med ärenden, köra playbooks och godkänna deras steg, samt skapa, ändra och ta bort detektionsregler och flöden. Den kan inte konfigurera playbooks eller anslutningar, och inte ta bort säkerhetsdata. |
-| Security Viewer | Läsa händelser, ärenden, playbooks, regler, flöden, indikatorer och anslutningar |
+| Säkerhetsadministratör | Allt: händelser, ärenden, playbooks, detektionsregler, threat intel-flöden och anslutningar |
+| Säkerhetsmedlem | Läsa händelser och threat intel, arbeta med ärenden, köra playbooks och godkänna deras steg, samt skapa, ändra och ta bort detektionsregler och flöden. Den kan inte konfigurera playbooks eller anslutningar, och inte ta bort säkerhetsdata. |
+| Säkerhetstittare | Läsa händelser, ärenden, playbooks, regler, flöden, indikatorer och anslutningar |
 
 ## Skicka säkerhetshändelser
 
@@ -305,7 +305,7 @@ En hunt är en sökning i dina säkerhetshändelser som sparats med ett namn: s�
 
 Sök och filtrera under **Händelser** tills listan visar det du letar efter, öppna sedan **Hunts** i verktygsfältet och välj **Spara som hunt**. Ge den ett namn, välj om den körs enligt ett schema, så öppnas dess sida. **Händelser → Hunts** listar projektets hunts, var och en med sin sökning, hur ofta den körs, vem den aviserar och vad dess senaste körning hittade; **Skapa Hunt** tar där sökningen som du skulle skriva den under **Händelser**. Ett projekt kan ha upp till 200 hunts. En sökning kan läsa en [bevakningslista](#bevakningslistor), som `user:%vip_users%` gör, och en hunt som läser en lista som projektet inte har avvisas när du sparar den.
 
-En hunts sida är dess sökning, öppnad i händelseutforskaren. Ändra sökningen eller filtren där, så erbjuder huntens rubrik **Spara ändringar** och **Kasta ändringar**. **Redigera** ändrar dess namn, dess sökning, hur långt bakåt den tittar, dess schema och vem den aviserar, och **Ta bort hunt** finns i dess meny. Från Security Member och uppåt kan man spara, ändra och ta bort hunts, och en Security Viewer kan öppna dem.
+En hunts sida är dess sökning, öppnad i händelseutforskaren. Ändra sökningen eller filtren där, så erbjuder huntens rubrik **Spara ändringar** och **Kasta ändringar**. **Redigera** ändrar dess namn, dess sökning, hur långt bakåt den tittar, dess schema och vem den aviserar, och **Ta bort hunt** finns i dess meny. Från Säkerhetsmedlem och uppåt kan man spara, ändra och ta bort hunts, och en Säkerhetstittare kan öppna dem.
 
 En hunt som sparats med filter från sidofältet under Händelser visar dem i **Redigera** under **Filter**, så som Händelser ritar dem, vart och ett med ett x för att ta bort det. Lägg till filter på huntens sida, från sidofältet.
 
@@ -340,7 +340,7 @@ Varje schemalagd körning sparas i 90 dagar. **Körningshistorik**, i slutet av 
 
 Aviseringen **En hunt hittade säkerhetshändelser** nämner hunten och dess sökning, hur många händelser körningen hittade och vilket fönster den läste, och länkar till huntens sida för de händelserna; inga av händelsernas egna ord finns i den. Alla får den via e-post och push och väljer dess kanaler under **Användarinställningar → Aviseringsinställningar**. Liksom andra rutinmejl kan den hållas tillbaka i en [mejlsammanställning](/docs/emails/notification-rollup).
 
-För att posta det hunts hittar i Slack, Microsoft Teams eller Mattermost lägger du till en regel i **Regler för hunts** under **Produkter → Säkerhetshändelser → Arbetsyta → Slack** (eller **Microsoft Teams** eller **Mattermost**), under reglerna som postar [säkerhetsärenden](/docs/telemetry/security-cases#posta-i-kanaler-i-slack-microsoft-teams-och-mattermost). En regel anger kanalerna att posta i (och i Microsoft Teams chattarna) och, om du vill, de hunts den gäller för, efter **Huntens namn**: ett namn som är din text, innehåller den, börjar eller slutar med den. Varje gång en schemalagd körning hittar händelser postar den hunten, dess sökning, hur många händelser och när, med en länk till dem, och inga av en händelses egna ord. En huntregel sätts upp av en roll som får sätta upp säkerhets-playbooks, som Project Owner, Project Admin eller Security Admin.
+För att posta det hunts hittar i Slack, Microsoft Teams eller Mattermost lägger du till en regel i **Regler för hunts** under **Produkter → Säkerhetshändelser → Arbetsyta → Slack** (eller **Microsoft Teams** eller **Mattermost**), under reglerna som postar [säkerhetsärenden](/docs/telemetry/security-cases#posta-i-kanaler-i-slack-microsoft-teams-och-mattermost). En regel anger kanalerna att posta i (och i Microsoft Teams chattarna) och, om du vill, de hunts den gäller för, efter **Huntens namn**: ett namn som är din text, innehåller den, börjar eller slutar med den. Varje gång en schemalagd körning hittar händelser postar den hunten, dess sökning, hur många händelser och när, med en länk till dem, och inga av en händelses egna ord. En huntregel sätts upp av en roll som får sätta upp säkerhets-playbooks, som Projektägare, Projektadministratör eller Säkerhetsadministratör.
 
 ### Spara händelser i ett ärende
 
@@ -571,10 +571,10 @@ level: high
 - **Exportera värden** hämtar en listas värden som en CSV-fil med kolumnerna `value`, `note` och `expires`, som **Importera värden** läser in igen. En fil vars första rad nämner dessa kolumner ger varje värde dess anteckning och när det upphör: ett datum som `2026-12-31`, eller ett datum och en tid i UTC.
 - En lista kan i stället läsas från en fil på en https-adress, igen **Varje timme**, **Var 6:e timme** eller **Varje dag**: välj **En fil på en adress** under **Fler fält** när du skapar den. Varje läsning gör listan till det filen innehåller, läst som en import läser den. En misslyckad läsning ändrar inga värden och listans sida säger varför, och **Läs nu** läser den direkt.
 - I stället för att underhålla värden kan en lista med IP-adresser, filhashar, domäner eller URL:er följa ett flöde med hotinformation: Dess värden är då flödets aktiva indikatorer av listans typ, som hålls uppdaterade när flödet läses.
-- `expand` används ensamt, eftersom listans värden avgör hur de träffar. Ett fält med flera värden, som `observables`, träffar när något av dem finns på listan. **Läses av** nämner reglerna, Security Events-monitorerna och de hunts som läser varje lista, och under en regels YAML nämner dess formulär listorna som regeln läser.
+- `expand` används ensamt, eftersom listans värden avgör hur de träffar. Ett fält med flera värden, som `observables`, träffar när något av dem finns på listan. **Läses av** nämner reglerna, Säkerhetshändelser-monitorerna och de hunts som läser varje lista, och under en regels YAML nämner dess formulär listorna som regeln läser.
 - En regel nämner en lista oavsett versaler och gemener. En regel, en monitor eller en hunt som nämner en lista som projektet inte har avvisas när du sparar den, och en lista som någon av dem läser kan inte byta namn eller tas bort förrän inget läser den.
 - En ändring i en lista når varje regel som läser den vid regelns nästa körning. Korrelationsregler och **Kör på tidigare händelser** läser också listor.
-- En Security Events-monitor läser listor i sin **Filtrera efter bevakningslistor**, och en sökning under **Händelser** eller i en hunt läser en som `user:%vip_users%`. Ett minus framför, som i `-ip:%admin_addresses%`, behåller händelserna vars fält inte finns på listan.
+- En Säkerhetshändelser-monitor läser listor i sin **Filtrera efter bevakningslistor**, och en sökning under **Händelser** eller i en hunt läser en som `user:%vip_users%`. Ett minus framför, som i `-ip:%admin_addresses%`, behåller händelserna vars fält inte finns på listan.
 - En lista innehåller högst 5 000 värden, varav högst 100 med `*` och 100 intervall, och ett projekt har högst 200 listor: Följ ett flöde med hotinformation för en längre lista. Den som får skapa, redigera eller ta bort detektionsregler får göra detsamma med listor, och den som får redigera detektionsregler lägger till, ändrar och tar bort deras värden. Alla Security-roller kan läsa dem, och varje ändring sparas i projektets granskningslogg.
 
 ### Kör på tidigare händelser

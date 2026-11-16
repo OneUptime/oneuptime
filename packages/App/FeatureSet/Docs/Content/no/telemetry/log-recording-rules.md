@@ -25,8 +25,8 @@ flowchart TB
     bucket --> groups["Én gruppe per grupperingsverdi"]
     groups --> agg["Tell, eller aggreger et numerisk attributt"]
     agg --> points["Ett målepunkt per serie"]
-    points --> explorer["Metrikkutforsker og dashbord"]
-    points --> monitor["Metrikk-monitorer"]
+    points --> explorer["Målingsutforsker og dashbord"]
+    points --> monitor["Målingsmonitorer"]
 ```
 
 - **Ett punkt per minutt per serie.** Logger grupperes i buckets på 1 minutt etter tidsstempelet. Hver bucket gir ett punkt for hver unike kombinasjon av verdiene i grupperingsattributtene.
@@ -120,7 +120,7 @@ flowchart TB
     logs --> pipeline["Loggpipeline tolker key=value-par"]
     pipeline --> rule["Opptaksregel: gjennomsnittlig latens per gateway"]
     rule --> metric["sdwan.gateway.latency.ms"]
-    metric --> monitor["Metrikk-monitor, ett varsel per gateway"]
+    metric --> monitor["Målingsmonitor, ett varsel per gateway"]
 ```
 
 :::steps
@@ -160,13 +160,13 @@ Via API-et, MCP eller Terraform er **definisjonen** av samme regel:
 
 Gjenta med `jitter` (`sdwan.gateway.jitter.ms`, enhet `ms`) og `packet_loss` (`sdwan.gateway.packet_loss.percent`, enhet `%`) for de to andre SLA-målingene. En regel **Count of logs** filtrert på `gw_status` = `down` og gruppert etter `gw_name` teller meldingene om nede gatewayer per gateway.
 
-Innen noen få minutter viser regellisten et tidspunkt under **Computed Until**, og `sdwan.gateway.latency.ms` dukker opp i metrikkutforskeren: velg den, grupper etter `gw_name`, og du har én latenslinje per gateway.
+Innen noen få minutter viser regellisten et tidspunkt under **Computed Until**, og `sdwan.gateway.latency.ms` dukker opp i målingsutforskeren: velg den, grupper etter `gw_name`, og du har én latenslinje per gateway.
 
 ### Få varsel når latensen til én gateway holder seg høy
 
-Opprett en monitor av typen **Målinger** (se [Metrikk-overvåking](/docs/monitor/metrics-monitor)):
+Opprett en monitor av typen **Målinger** (se [Målingsmonitor](/docs/monitor/metrics-monitor)):
 
-1. **Metrikkspørring:** `sdwan.gateway.latency.ms`, aggregering **Gjennomsnitt**, **Grupper etter** `gw_name` og `profile_name`.
+1. **Målingsspørring:** `sdwan.gateway.latency.ms`, aggregering **Gjennomsnitt**, **Grupper etter** `gw_name` og `profile_name`.
 2. **Rullerende tidsvindu:** Past 15 Minutes. Brannmuren rapporterer med noen minutters mellomrom, så vinduet inneholder flere punkter per gateway.
 3. **Aggregeringsstrategi:** **Alle verdier**: hvert punkt i vinduet må overskride grensen, slik at ett tregt sammendrag ikke vekker noen. Bruk heller **Gjennomsnitt** for å få varsel ved et høyt gjennomsnitt.
 4. **Kriterier:** Metric value **Større enn** `150` åpner et varsel.
@@ -180,7 +180,7 @@ Med gruppering satt er hver gateway sin egen serie: blir WAN2 treg, åpnes et va
 - **Tidsstempler kommer fra loggene.** En logg havner i minuttet til sitt eget tidsstempel. En enhet der klokken går mer enn litt feil, legger loggene sine i feil minutt, eller helt utenfor vinduet.
 - **Ingen tilbakeberegning.** En ny regel starter med minuttet før den første kjøringen; eldre logger beregnes ikke.
 - **Å slette en regel** stopper den. Punktene den allerede har skrevet, blir værende til de utløper.
-- **Opptaksregler ser alle prosjektets logger.** Alle som kan lese utdata-målingen, ser tall som er beregnet fra hver logg regelens filter samsvarer med, så det å opprette og redigere opptaksregler for logger er forbeholdt prosjekteiere, administratorer og tillatelsene **Create / Edit Log Recording Rule**.
+- **Opptaksregler ser alle prosjektets logger.** Alle som kan lese utdata-målingen, ser tall som er beregnet fra hver logg regelens filter samsvarer med, så det å opprette og redigere opptaksregler for logger er forbeholdt Prosjekteiere, Prosjektadministratorer og tillatelsene **Create / Edit Log Recording Rule**.
 
 ## Tillatelser
 
@@ -191,12 +191,12 @@ Med gruppering satt er hver gateway sin egen serie: blir WAN2 treg, åpnes et va
 | Delete Log Recording Rule | Å slette regler. |
 | Read Log Recording Rule | Å se regler og hva de beregner. |
 
-Prosjekteiere og administratorer kan gjøre alt dette. Prosjektmedlemmer, lesere og telemetrirollene kan lese regler.
+Prosjekteiere og Prosjektadministratorer kan gjøre alt dette. Prosjektmedlemmer, Lesere og telemetrirollene kan lese regler.
 
 ## Neste trinn
 
 :::cards
-- [Metrikk-overvåking](/docs/monitor/metrics-monitor): Få varsel på målingene reglene dine skriver.
+- [Målingsmonitor](/docs/monitor/metrics-monitor): Få varsel på målingene reglene dine skriver.
 - [Loggpipelines](/docs/telemetry/log-pipelines): Trekk ut attributtene en regel aggregerer.
 - [Syslog](/docs/telemetry/syslog): Send logger fra brannmurer og servere til OneUptime.
 :::

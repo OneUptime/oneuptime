@@ -33,7 +33,7 @@ En server, der svarer, bliver ikke spurgt igen, heller ikke når den svarer uden
 
 ## Før du starter
 
-- **En rolle, der kan oprette monitorer**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member, eller en brugerdefineret rolle med tilladelsen Create Monitor.
+- **En rolle, der kan oprette monitorer**: Projektejer, Projektadministrator, Projektmedlem, Monitoradministrator eller Monitormedlem, eller en brugerdefineret rolle med tilladelsen Create Monitor.
 - **En sonde, der kan nå UDP-port 123 på serveren.** Enhver sonde kan kontrollere en offentlig tidsserver. Til en server på et privat netværk skal du bruge en [brugerdefineret sonde](/docs/probe/custom-probe) inde i det netværk. En firewall foran serveren skal lukke UDP igennem, ikke kun TCP, fra [OneUptime Clouds sonde-IP-adresser](/docs/configuration/ip-addresses) eller fra din brugerdefinerede sonde.
 
 ## Opret en NTP-monitor
@@ -53,7 +53,7 @@ I **NTP-server** indtaster du serverens værtsnavn eller IP-adresse, f.eks. `tim
 
 ### Test den
 
-Klik på **Test monitor**, vælg en sonde under **Vælg sonde** og klik på **Kør test**. **Overvågningstestresultat** viser, om serveren svarede, om den er synkroniseret, dens stratum, og hvor meget dens ur afviger.
+Klik på **Test monitor**, vælg en sonde under **Vælg sonde** og klik på **Kør test**. **Monitortestresultat** viser, om serveren svarede, om den er synkroniseret, dens stratum, og hvor meget dens ur afviger.
 
 ### Gennemgå kriterierne
 
@@ -112,7 +112,7 @@ Med to eller flere filtre afgør **Matchbetingelse**, om **Alle** skal matche, e
 
 En ny NTP-monitor starter med to kriterier:
 
-- **Offline** — serveren svarer ikke, er ikke synkroniseret, eller dens ur er `1000` ms eller mere fra sondens. Monitoren markeres som **Offline**, og der oprettes en hændelse ved navn "_monitornavn_ is not serving good time". Den løser sig selv, når serveren igen leverer pålidelig tid.
+- **Offline** — serveren svarer ikke, er ikke synkroniseret, eller dens ur er `1000` ms eller mere fra sondens. Monitoren markeres som **Offline**, og der oprettes en hændelse ved navn "_monitornavn_ leverer ikke korrekt tid". Den løser sig selv, når serveren igen leverer pålidelig tid.
 - **Online** — serveren svarer, er synkroniseret, og dens ur er inden for `1000` ms af sondens. Monitoren markeres som **I drift**.
 
 Kriterierne kontrolleres oppefra og ned, og det første, der matcher, afgør, hvad der sker. En server, der svarer med forkert tid, behandles med vilje som nede: hver klient, der følger den, ville også tage den tid.

@@ -412,7 +412,7 @@ OPENSTACK_CONTROL_PLANE_REGION=RegionOne
 | `OPENSTACK_NETWORK_EXPORTER_TARGETS` | openstack-network-exporter روی هر ماشین با Open vSwitch یا پایگاه‌های داده OVN | collectorهای پیش‌فرضش. هر ماشین آنچه را اجرا می‌کند گزارش می‌دهد |
 | `OPENSTACK_LIBVIRT_HEALTH_TARGETS` | prometheus-libvirt-exporter روی هر نود compute، و فقط اینکه libvirt پاسخ می‌دهد یا نه | چیزی فراتر از exporter لازم نیست |
 
-سپس کارت **Control Plane** ابر برای هر کدام یک خط دارد، و یک صفحه برای هر وابستگی با یک خط برای هر ماشین. **پایش نمی‌شود** روی آن کارت یعنی آن را نام نبرده‌اید: هرگز سالم نشان داده نمی‌شود. مشکل آنجا به **نیاز به توجه** ابر می‌رود. صفحه **توصیه‌ها**ی ابر [الگوهای هشدار](/docs/monitor/openstack-monitor#آنچه-ابر-روی-آن-ایستاده) را پیشنهاد می‌کند، و `troubleshoot.sh` بررسی می‌کند که هر target پاسخ می‌دهد و همان چیزی است که گفته‌اید.
+سپس کارت **صفحه کنترل** ابر برای هر کدام یک خط دارد، و یک صفحه برای هر وابستگی با یک خط برای هر ماشین. **پایش نمی‌شود** روی آن کارت یعنی آن را نام نبرده‌اید: هرگز سالم نشان داده نمی‌شود. مشکل آنجا به **نیاز به توجه** ابر می‌رود. صفحه **توصیه‌ها**ی ابر [الگوهای هشدار](/docs/monitor/openstack-monitor#آنچه-ابر-روی-آن-ایستاده) را پیشنهاد می‌کند، و `troubleshoot.sh` بررسی می‌کند که هر target پاسخ می‌دهد و همان چیزی است که گفته‌اید.
 
 برای اطلاعات بیشتر از یک RabbitMQ یا پایگاه داده نسبت به آنچه سلامت ابر نیاز دارد، محصولات [صف‌ها](/docs/telemetry/queues) و [پایگاه‌های داده](/docs/telemetry/databases) آن‌ها را از طریق عامل‌های خودشان می‌خوانند، که داده‌ای بیش از این است و به شرایط خودش. صفحه‌های Control Plane به آن‌ها پیوند دارند. نصب آن‌ها جداست، چون آن محصولات سری‌های آن عامل‌ها را می‌خوانند و نه این‌ها را.
 
@@ -1530,6 +1530,8 @@ openstack server list --name '^oneuptime-check-'
 openstack volume list --name 'oneuptime-check-'
 ```
 
+بایگانی کردن ابر هیچ‌کدام از این‌ها را خاموش نمی‌کند. ابری که بایگانی شده است فقط از فهرست‌ها پنهان می‌شود: همچنان جمع‌آوری می‌شود، و بررسی‌های API و بررسی چرخه عمر آن همچنان اجرا می‌شوند. برای متوقف کردن یک بررسی، آن را خاموش کنید.
+
 ## عامل هوش مصنوعی
 
 `docker-compose.yml` عامل همچنین **عامل هوش مصنوعی OpenStack**، یعنی `oneuptime-openstack-ai-agent` (ایمیج `oneuptime/resource-ai-agent:release`)، را اجرا می‌کند. وقتی هوش مصنوعی OneUptime incident یا هشداری روی این ابر را بررسی می‌کند، دستورهای فقط‌خواندنی `openstack` را از طریق آن اجرا می‌کند — `openstack compute service list --host compute-01`، `openstack server list --all-projects --limit 50 --host compute-01`، `openstack server event list ID`، `openstack network agent list`، `openstack volume service list` — و آنچه اجرا کرده را ذکر می‌کند. در عامل هیچ باینری `openstack` و هیچ shellی نیست: هر دستور به یک `GET` به سرویسی تبدیل می‌شود که به آن پاسخ می‌دهد، با اعتبارنامه خود عامل. عامل با همان `OPENSTACK_CLOUD_NAME` که collector گزارش می‌دهد ثبت می‌شود، پس به همین ابر سرویس می‌دهد.
@@ -1641,7 +1643,7 @@ ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_SECRET=...
 
 ### fixها از یک workflow
 
-یک workflow می‌تواند از هشداری در OpenStack شروع شود و fixی پیشنهاد دهد: گام **Propose an OpenStack fix** هشدار یا incident و دستور را می‌گیرد. از همان سیاست، همان محدوده نوشتن و همان خواندن آنچه تغییر لمس می‌کند می‌گذرد که fixای که هوش مصنوعی OneUptime پیشنهاد می‌دهد، مدل هوش مصنوعی نمی‌خواهد، و انسان آن را روی هشدار تأیید می‌کند. workflow نمی‌تواند خودش تغییر را انجام دهد یا آنچه پیشنهاد می‌دهد را تأیید کند، حالت fix ابر هر چه باشد. الگوی **Propose taking a failing OpenStack compute service out of scheduling** جای شروع است.
+یک workflow می‌تواند از هشداری در OpenStack شروع شود و fixی پیشنهاد دهد: گام **پیشنهاد یک اصلاح OpenStack** هشدار یا incident و دستور را می‌گیرد. از همان سیاست، همان محدوده نوشتن و همان خواندن آنچه تغییر لمس می‌کند می‌گذرد که fixای که هوش مصنوعی OneUptime پیشنهاد می‌دهد، مدل هوش مصنوعی نمی‌خواهد، و انسان آن را روی هشدار تأیید می‌کند. workflow نمی‌تواند خودش تغییر را انجام دهد یا آنچه پیشنهاد می‌دهد را تأیید کند، حالت fix ابر هر چه باشد. الگوی **Propose taking a failing OpenStack compute service out of scheduling** جای شروع است.
 
 ## اجرا به‌صورت سرویس systemd
 

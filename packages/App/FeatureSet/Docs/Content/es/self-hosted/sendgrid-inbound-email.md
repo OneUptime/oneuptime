@@ -2,7 +2,7 @@
 
 El **Incoming Email Monitor** de OneUptime te permite crear y resolver alertas a partir de correos enviados a direcciones únicas, específicas de cada monitor. Es útil para integrar sistemas heredados, herramientas de alertas o cualquier servicio capaz de enviar correos.
 
-La misma configuración permite que los workflows reciban correo: un workflow con el disparador **Incoming Email** obtiene su propia dirección en el mismo dominio, y cada correo enviado a ella inicia el workflow. Consulta [Disparadores](/docs/workflows/triggers#incoming-email).
+La misma configuración permite que los workflows reciban correo: un workflow con el disparador **Correo entrante** obtiene su propia dirección en el mismo dominio, y cada correo enviado a ella inicia el workflow. Consulta [Disparadores](/docs/workflows/triggers#incoming-email).
 
 Esta guía explica cómo configurar SendGrid Inbound Parse para reenviar los correos entrantes a tu instancia autoalojada de OneUptime. OneUptime Cloud no necesita nada de esto: sus direcciones funcionan desde el primer momento.
 
@@ -118,11 +118,11 @@ inboundEmail:
 
 Después aplícalas: ejecuta `npm run start` en Docker Compose, que vuelve a crear los contenedores con los nuevos valores, o actualiza la release de Helm en Kubernetes.
 
-### Crea un monitor Incoming Email
+### Crea un monitor Correo entrante
 
 [Crea un monitor Incoming Email](/docs/monitor/incoming-email-monitor#crear-un-monitor-de-correos-entrantes). Su página **Vista general** muestra su dirección, como `monitor-abc123def456@inbound.yourdomain.com`, y sus criterios deciden qué correos crean una alerta y cuáles la resuelven.
 
-Los workflows usan el mismo dominio. Añade el disparador **Incoming Email** a un workflow y haz clic en él: su dirección (`workflow-…@inbound.yourdomain.com`) aparece arriba en sus ajustes. Hasta que se definan las variables de correo entrante de arriba, el disparador indica que el servidor no está preparado para recibir correo.
+Los workflows usan el mismo dominio. Añade el disparador **Correo entrante** a un workflow y haz clic en él: su dirección (`workflow-…@inbound.yourdomain.com`) aparece arriba en sus ajustes. Hasta que se definan las variables de correo entrante de arriba, el disparador indica que el servidor no está preparado para recibir correo.
 
 ### Envía un correo de prueba
 
@@ -137,7 +137,7 @@ Envía un correo a la dirección del monitor, con un asunto que coincida con sus
 | `INBOUND_EMAIL_DOMAIN` | `inboundEmail.domain` | El subdominio configurado para el correo entrante. El correo entrante está desactivado hasta que se define. | Sí | Vacío |
 | `INBOUND_EMAIL_WEBHOOK_SECRET` | `inboundEmail.webhookSecret` | Secreto con el que debe coincidir el último segmento de la URL del webhook: `/incoming-email/sendgrid/YOUR_SECRET`. Todo correo se rechaza mientras esté vacío o sea un marcador. | Sí | Vacío |
 
-En qué puede fijarse un monitor Incoming Email – el asunto, el remitente, el cuerpo, el destinatario y si un correo llegó a tiempo – se explica en [Tipos de filtro disponibles](/docs/monitor/incoming-email-monitor#tipos-de-filtro-disponibles).
+En qué puede fijarse un monitor Correo entrante – el asunto, el remitente, el cuerpo, el destinatario y si un correo llegó a tiempo – se explica en [Tipos de filtro disponibles](/docs/monitor/incoming-email-monitor#tipos-de-filtro-disponibles).
 
 ## Solución de problemas
 
@@ -156,7 +156,7 @@ En qué puede fijarse un monitor Incoming Email – el asunto, el remitente, el 
 
 :::details El monitor no crea alertas
 1. **Verifica los criterios:** comprueba que tus criterios de creación de alertas coinciden con el contenido del correo, y prueba primero con cadenas exactas antes de usar patrones.
-2. **Revisa el monitor:** asegúrate de que no está desactivado y de que su tipo es Incoming Email.
+2. **Revisa el monitor:** asegúrate de que no está desactivado y de que su tipo es Correo entrante.
 3. **Revisa el resumen del monitor:** comprueba si el correo se recibió y se procesó, y lee los logs de evaluación para ver cómo coincidieron los criterios.
 :::
 

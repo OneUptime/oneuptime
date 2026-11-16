@@ -7,9 +7,15 @@ import Link from "Common/UI/Components/Link/Link";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import IncomingRequestSecretNote from "../../IncomingRequestSecret/IncomingRequestSecretNote";
+import useIncomingRequestSecretStatus, {
+  IncomingRequestSecretStatus,
+} from "../../IncomingRequestSecret/UseIncomingRequestSecretStatus";
 
 export interface ComponentProps {
   secretKey: ObjectID;
+  // The monitor, so the card can say when its requests are refused.
+  monitorId?: ObjectID | undefined;
 }
 
 /*
@@ -33,6 +39,9 @@ const IncomingMonitorLink: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const heartbeatUrl: URL = getHeartbeatUrl(props.secretKey);
+  // Whether requests without one of the project's secrets are, or would be, refused.
+  const secretStatus: IncomingRequestSecretStatus =
+    useIncomingRequestSecretStatus(props.monitorId);
 
   return (
     <Card
@@ -60,6 +69,7 @@ const IncomingMonitorLink: FunctionComponent<ComponentProps> = (
             title="Copy heartbeat URL"
           />
         </div>
+        <IncomingRequestSecretNote status={secretStatus} className="mt-3" />
       </div>
     </Card>
   );

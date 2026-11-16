@@ -1747,7 +1747,27 @@ jobs:
             --repository docker.io/oneuptime/provider-oneuptime \
             --sign
 
-
+  # Gate: the docs' screenshots must still show the pages they picture, in
+  # every docs language (#6823), before the release is published (#7510). The
+  # pictures are in the docs the App image serves, so push-release-tags needs
+  # this, and everything published after it waits for it through that job. A
+  # stale shot fails it: draw the shots again in the release branch
+  # (`cd packages/E2E && npm run docs-screens`) and commit what it changes.
+  docs-screens:
+    uses: ./.github/workflows/docs-screens.yml
+    # The workflow's report job keeps the staleness issue, so it asks to write
+    # issues, and GitHub refuses to start a run whose called workflow has a
+    # job asking for more than the caller grants, even a job its `if` skips.
+    # That job runs on main only, never here; the check itself reads the
+    # repository, nothing more (Tests/Ops/WorkflowTokenPermissions).
+    permissions:
+      contents: read
+      issues: write
+    # A concurrency group of this run's own, so neither a check on main nor
+    # another release run cancels this release's (see the workflow's
+    # concurrency).
+    with:
+      release_run_id: ${{ github.run_id }}
 
   # Moves release / enterprise-release onto this version's images only once the
   # three e2e jobs have passed. Every image in RELEASE_TAG_IMAGES is built with
@@ -1774,12 +1794,16 @@ jobs:
   # not install the packages it publishes (the e2e image installs packages/E2E's
   # lockfile and packages/Common from the checkout), so they no longer wait for
   # it.
+  #
+  # docs-screens is needed for the same reason: a stale docs screenshot holds
+  # the tags, the GitHub release and everything after them back (#7510).
   push-release-tags:
     name: Push release tags before GitHub release
     needs:
       - read-version
       - generate-build-number
       - publish-npm-packages
+      - docs-screens
       - nginx-docker-image-merge
       - e2e-docker-image-merge
       - home-docker-image-merge

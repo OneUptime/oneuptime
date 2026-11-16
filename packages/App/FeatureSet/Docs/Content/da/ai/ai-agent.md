@@ -48,7 +48,7 @@ Klik på **Start opgave**, eller tryk på Enter. Opgavens side åbner, og AI's a
 | **Link** | En webadresse, som reference. |
 | **Hændelse** eller **Advarsel** | Dens tilstand, beskrivelse og grundlæggende årsag, som de er, når du sender anmodningen. |
 | **Undtagelse** | Dens meddelelse og stack trace. |
-| **Overvågning** | Dens type, status og beskrivelse. |
+| **Monitor** | Dens type, status og beskrivelse. |
 | **Spor** | Dets spans: deres navne, tider og fejl. |
 | **Protokoller** | De seneste 20 loglinjer, der indeholder din søgning, fra den seneste time, dag eller uge. |
 | **Ydeevneprofil** | Hvor en funktions tid går hen i dens tjenestes profiler: hvem der kalder den, hvad den kalder, og dens varmeste linjer. |
@@ -283,7 +283,7 @@ Sådan kører du en Runner et andet sted, for eksempel på en maskine tæt på d
 :::steps
 ### Opret Runneren
 
-Opret en Runner under **Runbooks → Runbook-agenter**, og klik på **Vis opsætningsvejledning** i dens række. Kommandoen indeholder Runnerens hemmelige nøgle, som kun en Project Owner, Project Admin eller Runbook Admin kan læse. Den ser sådan ud:
+Opret en Runner under **Runbooks → Runbook-agenter**, og klik på **Vis opsætningsvejledning** i dens række. Kommandoen indeholder Runnerens hemmelige nøgle, som kun en Projektejer, Projektadministrator eller Runbook-administrator kan læse. Den ser sådan ud:
 
 ```bash
 docker run --name oneuptime-runner --restart unless-stopped \

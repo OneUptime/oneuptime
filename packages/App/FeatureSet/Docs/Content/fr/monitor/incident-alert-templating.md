@@ -92,7 +92,7 @@ Une valeur peut avoir n'importe quelle taille - un corps de réponse ou un journ
 
 - **E-mail** : chaque description, note ou cause racine transporte jusqu'à environ 256 Ko du texte de l'e-mail, et la note à la fin d'un texte plus long renvoie vers l'incident ou l'alerte. Un e-mail entier - son texte et ses captures d'écran - reste sous 3 Mo, ce que tout serveur de messagerie et Microsoft Graph acceptent : une capture d'écran qui ne tient pas à côté du texte est omise, avec une note à sa place.
 - **La page de l'incident ou de l'alerte** affiche tout. Une description de plus de 128 Ko qui prendrait longtemps à mettre en page s'affiche en texte brut, ligne par ligne.
-- **Slack** transporte au plus ce que Slack affiche d'un message (environ 30 000 caractères). **Microsoft Teams** transporte environ 40 000 caractères dans un message de l'application OneUptime, et environ 12 000 via un webhook entrant (abonnés des pages de statut, workflows) - mesurés au moment de l'envoi du message, donc un tableau compte pour le HTML qu'il devient.
+- **Slack** transporte au plus ce que Slack affiche d'un message (environ 30 000 caractères). **Microsoft Teams** transporte environ 40 000 caractères dans un message de l'application OneUptime, et environ 12 000 via un webhook entrant (abonnés des pages de statut, flux de travail) - mesurés au moment de l'envoi du message, donc un tableau compte pour le HTML qu'il devient.
 - **SMS, appels téléphoniques, notifications push, WhatsApp et Telegram** transportent ce que leurs fournisseurs acceptent : voir [Comment les niveaux alertent les personnes](/docs/on-call/escalation-rules#comment-les-niveaux-alertent-les-personnes).
 
 Chaque canal rend le texte en un temps qui croît avec sa longueur. Une partie qui prendrait bien plus longtemps à un moteur de rendu - une ligne de plus de 64 Ko, un long paragraphe de lignes simples, un paragraphe plein de `*`, `_` ou `[` qui ne se ferment jamais, des citations ou des listes imbriquées sur plus de seize niveaux, et sur la page de l'incident ou de l'alerte un tableau ou une liste de plus de mille lignes - se lit comme du texte brut là où elle se trouve, et le reste de la description est rendu normalement.
@@ -367,7 +367,7 @@ La capture d'écran apparaît alors sur la page de l'incident ou de l'alerte, su
 - Le téléversement vers Slack nécessite la permission `files:write` de l'application. Si votre espace de travail a connecté Slack avant que OneUptime ne la demande, reconnectez Slack dans **Paramètres du projet → Espace de travail → Slack** (sur un serveur auto-hébergé, ajoutez d'abord la permission à votre application Slack - voir [Intégration Slack](/docs/self-hosted/slack-integration#images-dans-les-messages)).
 - Une capture d'écran qu'un chat ne peut pas afficher - un WebP, une capture au-delà de ces limites, une capture que Slack ou Teams refuse, ou toute capture dans un message envoyé via un webhook entrant - s'affiche sous la forme de son texte alternatif, ou « [image] » lorsqu'elle n'en a pas, donc donnez un texte alternatif à chaque image. Le base64 de l'image n'atteint jamais le chat.
 - Seule une image que vous écrivez dans le modèle est affichée. Une image dans une valeur que la page ou le script surveillé a rapportée - un message d'erreur, une ligne de journal - s'affiche toujours comme texte (voir [Valeurs dans les descriptions et les notes de remédiation](#valeurs-dans-les-descriptions-et-les-notes-de-remédiation)).
-- OneUptime AI lit le texte autour d'une capture d'écran, pas la capture. Ce qu'une investigation, un postmortem ou une note rédigés, l'étape IA d'un runbook ou l'étape IA d'un workflow donnent au modèle comporte une courte note à la place de l'image, comme `[image omitted: PNG, 340 KB]` : un modèle lit du texte, pas des images, et le base64 d'une capture représenterait des centaines de milliers de tokens à chaque appel. L'activité de l'investigation indique ce qui a été omis.
+- OneUptime AI lit le texte autour d'une capture d'écran, pas la capture. Ce qu'une investigation, un postmortem ou une note rédigés, l'étape IA d'un runbook ou l'étape IA d'un flux de travail donnent au modèle comporte une courte note à la place de l'image, comme `[image omitted: PNG, 340 KB]` : un modèle lit du texte, pas des images, et le base64 d'une capture représenterait des centaines de milliers de tokens à chaque appel. L'activité de l'investigation indique ce qui a été omis.
 
 Pour afficher la capture de chaque exécution en échec, placez l'image dans une boucle. Ici, le script enregistre chaque capture sous `screenshots["failure"]` :
 
@@ -452,17 +452,17 @@ Les noms de séries dans `metrics` contiennent des points, comme `oneuptime.moni
 
 ### Moniteurs de métriques et d'infrastructure
 
-Les moniteurs Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, OpenStack, VMware, Ceph, Storage Array et IoT Device ont une variable qui leur est propre :
+Les moniteurs Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, OpenStack, VMware, Ceph, Baie de stockage et Appareil IoT ont une variable qui leur est propre :
 
 | Variable | Ce qu'elle contient | Type |
 | --- | --- | --- |
 | `metricName` | Le nom de la métrique que lit la première requête du moniteur, comme `container.cpu.time`. | `string` |
 
-Groupés, ils ont aussi la valeur de chaque attribut **Regrouper par**, et `seriesLabels` : voir [Valeurs d'un moniteur groupé](#valeurs-dun-moniteur-groupé). Les modèles du moniteur IoT Device regroupent par appareil : un moniteur créé à partir de l'un d'eux a donc aussi `{{device.id}}`.
+Groupés, ils ont aussi la valeur de chaque attribut **Regrouper par**, et `seriesLabels` : voir [Valeurs d'un moniteur groupé](#valeurs-dun-moniteur-groupé). Les modèles du moniteur Appareil IoT regroupent par appareil : un moniteur créé à partir de l'un d'eux a donc aussi `{{device.id}}`.
 
 ### Autres types de moniteurs
 
-Les moniteurs Logs, Traces, Exceptions, Security Events, AI / LLM et SQL Query n'ont pas de variables propres. Utilisez les [variables de tous les moniteurs](#variables-de-tous-les-moniteurs), et sur un moniteur Logs groupé les [valeurs de groupe](#valeurs-dun-moniteur-groupé).
+Les moniteurs Logs, Traces, Exceptions, Événements de sécurité, IA / LLM et Requête SQL n'ont pas de variables propres. Utilisez les [variables de tous les moniteurs](#variables-de-tous-les-moniteurs), et sur un moniteur Logs groupé les [valeurs de groupe](#valeurs-dun-moniteur-groupé).
 
 ## Exemples
 

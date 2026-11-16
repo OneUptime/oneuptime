@@ -52,7 +52,7 @@ Abre una política desde la lista. Su menú lateral contiene todo lo relativo a 
 **Básico** está abierta; las demás secciones empiezan plegadas hasta que haces clic en ellas.
 
 - **Vista general** muestra los **Detalles de la política de guardia** y luego **La política de un vistazo**: cuántos niveles y respondedores tiene la política, cuánto falta hasta su último nivel y cuántas veces se repite. **Preparación de los respondedores** dice si cada persona a la que puede avisar es localizable ahora, y **Feed de la política de guardia** enumera lo que cambió: personas, equipos y programaciones añadidos o quitados, sustituciones y relevos. Sus reglas de Slack, Microsoft Teams y Mattermost los publican en tus canales, un relevo en una línea: consulta [Mensajes de guardia](/docs/workspace-connections/slack#mensajes-de-guardia).
-- Los **Propietarios** son las personas y los equipos responsables de la política. Cuando un aviso que envía no encuentra regla para alguien, o no se puede entregar, reciben un correo; una política sin propietarios escribe en su lugar a los propietarios del proyecto.
+- Los **Propietarios** son las personas y los equipos responsables de la política. Cuando un aviso que envía no encuentra regla para alguien, o no se puede entregar, reciben un correo; una política sin propietarios escribe en su lugar a los Propietarios del proyecto.
 - **Registros de notificación** enumera cada mensaje que envió la política, con una pestaña por canal.
 - **Sustituciones de usuarios** cubre a personas solo en esta política. Consulta [Sustituciones de usuarios](/docs/on-call/user-overrides).
 - **Ajustes** tiene **Exportar Política de guardia** y la tarjeta que archiva la política.
@@ -111,11 +111,11 @@ flowchart TB
 | Estado | Qué significa |
 | --- | --- |
 | **Esperando** | Una regla de guardia configurada como **Solo en horario laboral** hace esperar la ejecución hasta que empieza ese horario: dice cuándo empiezan los avisos, y hasta entonces no avisa a nadie. Termina sin avisar si el incidente o la alerta se reconoce o se resuelve antes. Empieza a avisar en ese momento si el incidente o la alerta cambia y ahora coincide con una regla de guardia que avisa de inmediato. |
-| **Programado**, **Iniciado** | La ejecución se está preparando. Una que sigue aquí al cabo de 5 minutos se detiene como **Error**. |
-| **Ejecutándose** | La ejecución está avisando. OneUptime la hace avanzar cada minuto. |
+| **Programado**, **Iniciado** | La ejecución se está preparando. Una que sigue aquí al cabo de 5 minutos no terminó de iniciarse: pasa a **Ejecutándose** y avisa desde donde se detuvo su inicio. Un aviso directo o un aviso de prueba que sigue aquí se detiene como **Error**. |
+| **Ejecutándose** | La ejecución está avisando. OneUptime la hace avanzar cada minuto. Un paso que falla un momento, por ejemplo porque no se pudo llegar a la base de datos, se vuelve a intentar un minuto después, luego a los 2 y a los 4 minutos, y después cada 5 minutos. |
 | **Ejecución completada** | Alguien lo reconoció, el incidente o la alerta se resolvió, se usaron todas las reglas y repeticiones, o la política se archivó. |
 | **Ejecución completada - no se notificó a nadie** | La ejecución recorrió todas las reglas sin avisar a nadie: normalmente una programación sin nadie de guardia, o un nivel sin destinatarios. |
-| **Error** | La ejecución falló. **Ver mensaje de estado** dice por qué. |
+| **Error** | La ejecución falló: un paso falló de una forma que un nuevo intento no puede arreglar, como una regla de escalado eliminada, o falló 10 intentos seguidos, durante unos 37 minutos. **Ver mensaje de estado** dice por qué. |
 
 Encontrarás registros de ejecución en tres lugares:
 

@@ -10,6 +10,11 @@ import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
+import {
+  NO_BREAK_SPACE,
+  withSpacesShown,
+  withUnit,
+} from "../SuiteHelpers/NoBreakSpaces";
 
 /*
  * Renders the real Incident, Alert, Scheduled Maintenance, Incident Episode
@@ -238,7 +243,7 @@ const INCIDENT_PAGE: EventPage = {
   ],
   state: "Resolved",
   severity: "SEV-2",
-  duration: "Lasted 11 minutes",
+  duration: `Lasted ${withUnit(11, "minutes")}`,
   /*
    * Who is on it before what it touched: the Incident Commander (the roles
    * card's primary role) and the owners, teams first.
@@ -259,19 +264,19 @@ const INCIDENT_PAGE: EventPage = {
   stats: [
     {
       label: "Declared",
-      value: "Sep 14, 06:01 PM GMT",
+      value: "Sep 14, 06:01 PM UTC",
       note: "3 minutes after impact began",
       description: "By eu-west-1 probe",
     },
     {
       label: "Acknowledged in",
       value: "3 minutes",
-      description: "Sep 14 2026, 06:04 PM GMT",
+      description: "Sep 14 2026, 06:04 PM UTC",
     },
     {
       label: "Resolved in",
       value: "11 minutes",
-      description: "Sep 14 2026, 06:12 PM GMT",
+      description: "Sep 14 2026, 06:12 PM UTC",
     },
   ],
   // What it touched leads the column.
@@ -317,7 +322,7 @@ const ALERT_PAGE: EventPage = {
   ],
   state: "Resolved",
   severity: "High",
-  duration: "Lasted 9 minutes",
+  duration: `Lasted ${withUnit(9, "minutes")}`,
   // An alert has no roles: its owners lead.
   facts: [
     { label: "Owners", value: "Payments" },
@@ -328,18 +333,18 @@ const ALERT_PAGE: EventPage = {
   stats: [
     {
       label: "Created",
-      value: "Sep 14, 06:06 PM GMT",
+      value: "Sep 14, 06:06 PM UTC",
       description: "By eu-west-1 probe",
     },
     {
       label: "Acknowledged in",
       value: "2 minutes",
-      description: "Sep 14 2026, 06:08 PM GMT",
+      description: "Sep 14 2026, 06:08 PM UTC",
     },
     {
       label: "Resolved in",
       value: "9 minutes",
-      description: "Sep 14 2026, 06:15 PM GMT",
+      description: "Sep 14 2026, 06:15 PM UTC",
     },
   ],
   rightColumn: ["Affected Resources", "Alert Details", "Measurements"],
@@ -352,7 +357,7 @@ const ALERT_PAGE: EventPage = {
     "Alert Number",
   ],
   recordId: ALERT_ID,
-  recordCreated: "Sep 14 2026, 06:06 PM GMT",
+  recordCreated: "Sep 14 2026, 06:06 PM UTC",
   whatHappened: {
     description:
       "payments-webhooks returned 5xx for 7.8% of payment provider callbacks over the last 5 minutes.",
@@ -376,7 +381,7 @@ const SCHEDULED_MAINTENANCE_PAGE: EventPage = {
     "Maintenance duration",
   ],
   state: "Scheduled",
-  duration: "Starts in 2 hours",
+  duration: `Starts in ${withUnit(2, "hours")}`,
   /*
    * Who owns it (teams first), where it shows - each status page a link -
    * and who created it.
@@ -393,18 +398,18 @@ const SCHEDULED_MAINTENANCE_PAGE: EventPage = {
   stats: [
     {
       label: "Starts",
-      value: "Sep 14 2026, 08:20 PM GMT",
+      value: "Sep 14 2026, 08:20 PM UTC",
       description: "in 2 hours",
     },
     {
       label: "Ends",
-      value: "Sep 14 2026, 09:20 PM GMT",
+      value: "Sep 14 2026, 09:20 PM UTC",
       description: "in 3 hours",
     },
     {
       label: "Duration",
       value: "1 hour",
-      description: "Planned window · times in GMT",
+      description: "Planned window · times in UTC",
     },
   ],
   rightColumn: ["Maintenance Details", "Measurements", "Affected Resources"],
@@ -419,7 +424,7 @@ const SCHEDULED_MAINTENANCE_PAGE: EventPage = {
     "Scheduled Maintenance Number",
   ],
   recordId: SCHEDULED_MAINTENANCE_ID,
-  recordCreated: "Sep 10 2026, 09:00 AM GMT",
+  recordCreated: "Sep 10 2026, 09:00 AM UTC",
 };
 
 const INCIDENT_EPISODE_PAGE: EventPage = {
@@ -437,19 +442,19 @@ const INCIDENT_EPISODE_PAGE: EventPage = {
   ],
   state: "Resolved",
   severity: "SEV-2",
-  duration: "Lasted 18 minutes",
+  duration: `Lasted ${withUnit(18, "minutes")}`,
   facts: [
     { label: "Incident Commander", value: "Maya Chen" },
     { label: "Owners", value: "Checkout SRE, Sam Rivera" },
     { label: "Grouping", value: "Checkout incidents within 30 minutes" },
-    { label: "Last incident added", value: "19 minutes ago" },
+    { label: "Last incident added", value: `${withUnit(19, "minutes")} ago` },
   ],
   statBar: "Episode timing",
   stats: [
     // A grouping rule opened it: nobody to name.
     {
       label: "Declared",
-      value: "Sep 14, 05:56 PM GMT",
+      value: "Sep 14, 05:56 PM UTC",
       description: "Automatically",
     },
     { label: "Acknowledged in", value: "8 minutes" },
@@ -468,7 +473,7 @@ const INCIDENT_EPISODE_PAGE: EventPage = {
     "Labels",
   ],
   recordId: INCIDENT_EPISODE_ID,
-  recordCreated: "Sep 14 2026, 05:56 PM GMT",
+  recordCreated: "Sep 14 2026, 05:56 PM UTC",
   whatHappened: {
     description:
       "Grouped automatically: four checkout incidents opened within 30 minutes of each other.",
@@ -491,17 +496,17 @@ const ALERT_EPISODE_PAGE: EventPage = {
   ],
   state: "Resolved",
   severity: "High",
-  duration: "Lasted 36 minutes",
+  duration: `Lasted ${withUnit(36, "minutes")}`,
   facts: [
     { label: "Owners", value: "Payments" },
     { label: "Grouping", value: "Payments webhook alerts" },
-    { label: "Last alert added", value: "14 minutes ago" },
+    { label: "Last alert added", value: `${withUnit(14, "minutes")} ago` },
   ],
   statBar: "Episode timing",
   stats: [
     {
       label: "Created",
-      value: "Sep 14, 05:40 PM GMT",
+      value: "Sep 14, 05:40 PM UTC",
       description: "Automatically",
     },
     { label: "Acknowledged in", value: "15 minutes" },
@@ -520,7 +525,7 @@ const ALERT_EPISODE_PAGE: EventPage = {
     "Labels",
   ],
   recordId: ALERT_EPISODE_ID,
-  recordCreated: "Sep 14 2026, 05:40 PM GMT",
+  recordCreated: "Sep 14 2026, 05:40 PM UTC",
   whatHappened: {
     description:
       "Grouped automatically: payment webhook alerts from the same monitor group.",
@@ -1283,11 +1288,12 @@ async function expectHeroDuration(
   header: Locator,
   text: string,
 ): Promise<void> {
+  // Each number held to its unit (#8779): a failure says which space it read.
   await expect
     .poll(async (): Promise<string> => {
-      return heroDuration(header);
+      return withSpacesShown(await heroDuration(header));
     })
-    .toBe(text);
+    .toBe(withSpacesShown(text));
 }
 
 async function detailLabels(scope: Locator): Promise<Array<string>> {
@@ -1628,7 +1634,7 @@ test.describe("AI investigation report", () => {
       "Checkout requests timing out on orders-db",
     );
     await expect(hero(page)).toContainText("#1029");
-    await expectHeroDuration(hero(page), "Lasted 51 minutes");
+    await expectHeroDuration(hero(page), `Lasted ${withUnit(51, "minutes")}`);
     await expect(
       page.getByText("Checkout requests timing out on orders-db").first(),
     ).toBeVisible();
@@ -2655,21 +2661,25 @@ interface EvidenceCase {
   expectRows: (details: Locator) => Promise<void>;
 }
 
-const RAN_AT: LabelledValue = { label: "Ran at", value: "Sep 14, 6:01 PM GMT" };
+/*
+ * When each query ran, in the browser's zone, UTC (#8475). How long it took
+ * is read as a raw string, its number held to its unit (#8302, #8689).
+ */
+const RAN_AT: LabelledValue = { label: "Ran at", value: "Sep 14, 6:01 PM UTC" };
 
 const INCIDENT_EVIDENCE: ReadonlyArray<EvidenceCase> = [
   {
     citationId: "C1",
     kind: "an incident list",
     label: 'Incident search "checkout latency" (3 found)',
-    description: "Searched past incidents · Sep 14, 6:01 PM GMT",
+    description: "Searched past incidents · Sep 14, 6:01 PM UTC",
     rowCount: "3 rows",
     query: [
       { label: "Search", value: "“checkout latency”" },
       { label: "Time window", value: "Created within the last 90 days" },
       { label: "Limit", value: "10" },
       RAN_AT,
-      { label: "Took", value: "412 ms" },
+      { label: "Took", value: withUnit(412, "ms") },
       { label: "Tool", value: "search_incidents" },
     ],
     openIn: { name: "Open in Incidents", href: `${DASHBOARD}/incidents` },
@@ -2689,15 +2699,15 @@ const INCIDENT_EVIDENCE: ReadonlyArray<EvidenceCase> = [
     citationId: "C2",
     kind: "a time series chart",
     label: "P95(http.server.request.duration), Sep 14, 5:00 PM – 6:20 PM",
-    description: "Queried a metric · Sep 14, 6:01 PM GMT",
+    description: "Queried a metric · Sep 14, 6:01 PM UTC",
     rowCount: "80 rows",
     query: [
-      { label: "Time window", value: "Sep 14, 5:00 PM – 6:20 PM GMT" },
+      { label: "Time window", value: "Sep 14, 5:00 PM – 6:20 PM UTC" },
       { label: "Metric", value: "http.server.request.duration" },
       { label: "Aggregation", value: "P95" },
       { label: "Entity", value: "75000000…" },
       RAN_AT,
-      { label: "Took", value: "1.2 s" },
+      { label: "Took", value: withUnit(1.2, "s") },
       { label: "Tool", value: "query_metrics" },
     ],
     openIn: { name: "Open in Metrics", href: `${DASHBOARD}/metrics` },
@@ -2721,15 +2731,15 @@ const INCIDENT_EVIDENCE: ReadonlyArray<EvidenceCase> = [
     citationId: "C3",
     kind: "a table",
     label: "Logs Sep 14, 5:45 PM – 6:15 PM (50 shown)",
-    description: "Searched logs · Sep 14, 6:01 PM GMT",
+    description: "Searched logs · Sep 14, 6:01 PM UTC",
     rowCount: "50 rows",
     query: [
-      { label: "Time window", value: "Sep 14, 5:45 PM – 6:15 PM GMT" },
+      { label: "Time window", value: "Sep 14, 5:45 PM – 6:15 PM UTC" },
       { label: "Search", value: "“pool”" },
       { label: "Service", value: "75000000…" },
       { label: "Limit", value: "50" },
       RAN_AT,
-      { label: "Took", value: "864 ms" },
+      { label: "Took", value: withUnit(864, "ms") },
       { label: "Tool", value: "search_logs" },
     ],
     openIn: { name: "Open in Logs", href: `${DASHBOARD}/logs` },
@@ -2755,13 +2765,13 @@ const INCIDENT_EVIDENCE: ReadonlyArray<EvidenceCase> = [
     citationId: "C5",
     kind: "plain text",
     label: "Changes Sep 13, 6:02 PM → Sep 14, 6:02 PM (3 events)",
-    description: "Checked recent changes · Sep 14, 6:01 PM GMT",
+    description: "Checked recent changes · Sep 14, 6:01 PM UTC",
     rowCount: "3 rows",
     query: [
-      { label: "Time window", value: "Sep 13, 6:02 PM – Sep 14, 6:02 PM GMT" },
+      { label: "Time window", value: "Sep 13, 6:02 PM – Sep 14, 6:02 PM UTC" },
       { label: "Limit per source", value: "20" },
       RAN_AT,
-      { label: "Took", value: "522 ms" },
+      { label: "Took", value: withUnit(522, "ms") },
       { label: "Tool", value: "recent_changes" },
     ],
     isPinned: true,
@@ -2778,12 +2788,12 @@ const INCIDENT_EVIDENCE: ReadonlyArray<EvidenceCase> = [
     citationId: "C7",
     kind: "a trace waterfall",
     label: "Trace 5c1e0b7a9d2f4e6b8a3c1d5e7f9b2a4c (38 spans)",
-    description: "Opened a trace · Sep 14, 6:01 PM GMT",
+    description: "Opened a trace · Sep 14, 6:01 PM UTC",
     rowCount: "38 rows",
     query: [
       { label: "Trace", value: "5c1e0b7a…" },
       RAN_AT,
-      { label: "Took", value: "640 ms" },
+      { label: "Took", value: withUnit(640, "ms") },
       { label: "Tool", value: "get_trace" },
     ],
     openIn: {
@@ -2795,8 +2805,12 @@ const INCIDENT_EVIDENCE: ReadonlyArray<EvidenceCase> = [
       await expect(details).toContainText(
         "Trace 5c1e0b7a…2a4c — POST /api/checkout",
       );
+      /*
+       * Its duration as formatMilliseconds writes it (9c6f55c0ee0): grouped,
+       * and held to its unit (#8302). A title is matched as written.
+       */
       await expect(
-        details.getByTitle("pg.pool.connect · 1940 ms"),
+        details.getByTitle(`pg.pool.connect · ${withUnit("1,940", "ms")}`),
       ).toBeVisible();
       await expect(details.getByTitle("Span recorded an error")).toHaveCount(2);
       await expect(details).toContainText("1,940 ms");
@@ -2806,14 +2820,14 @@ const INCIDENT_EVIDENCE: ReadonlyArray<EvidenceCase> = [
     citationId: "C8",
     kind: "no rows with the server's explanation",
     label: "Top exceptions, last 1h (0 found)",
-    description: "Listed top exceptions · Sep 14, 6:01 PM GMT",
+    description: "Listed top exceptions · Sep 14, 6:01 PM UTC",
     rowCount: "No rows",
     query: [
       { label: "Time window", value: "Last seen within the last 1 hour" },
       { label: "Include resolved", value: "No" },
       { label: "Limit", value: "10" },
       RAN_AT,
-      { label: "Took", value: "288 ms" },
+      { label: "Took", value: withUnit(288, "ms") },
       { label: "Tool", value: "top_exceptions" },
     ],
     openIn: {
@@ -2836,13 +2850,13 @@ const INCIDENT_EVIDENCE: ReadonlyArray<EvidenceCase> = [
     citationId: "C10",
     kind: "a timeline table",
     label: "Incident #1042 timeline (1 entry)",
-    description: "Read an incident timeline · Sep 14, 6:01 PM GMT",
+    description: "Read an incident timeline · Sep 14, 6:01 PM UTC",
     rowCount: "1 row",
     query: [
       { label: "Incident", value: "20000000…" },
       { label: "Limit", value: "50" },
       RAN_AT,
-      { label: "Took", value: "204 ms" },
+      { label: "Took", value: withUnit(204, "ms") },
       { label: "Tool", value: "get_incident_timeline" },
     ],
     openIn: { name: "Open in Incident", href: INCIDENT_PATH },
@@ -2967,7 +2981,7 @@ test.describe("evidence checked", () => {
         );
       } else {
         await expect(details).toContainText(
-          "Shows current data with your permissions — it may differ from what the AI saw at Sep 14, 6:01 PM GMT.",
+          "Shows current data with your permissions — it may differ from what the AI saw at Sep 14, 6:01 PM UTC.",
         );
       }
 
@@ -2997,7 +3011,7 @@ test.describe("evidence checked", () => {
       { label: "Looked up", value: "Service" },
       { label: "Search", value: "“checkout”" },
       RAN_AT,
-      { label: "Took", value: "96 ms" },
+      { label: "Took", value: withUnit(96, "ms") },
       { label: "Tool", value: "lookup_context" },
     ]);
     await expect(details).toContainText(
@@ -3024,7 +3038,7 @@ test.describe("evidence checked", () => {
       .click();
     await expect(page).toHaveURL(new RegExp(`${incidentPath(1017)}$`));
     await expect(hero(page)).toContainText("#1017");
-    await expectHeroDuration(hero(page), "Lasted 38 minutes");
+    await expectHeroDuration(hero(page), `Lasted ${withUnit(38, "minutes")}`);
   });
 
   test("?fail=evidence shows the error and Try again requests the rows again", async ({
@@ -3478,9 +3492,12 @@ const FAILED_CAUSE: string =
   "The LLM provider could not be reached, or was too busy to answer.";
 const FAILED_FIX: string =
   "Check that the LLM provider is up and that OneUptime can reach it, then try again.";
-// The fixture's refusal of Try again (?fail=investigation-try-again).
+/*
+ * The fixture's refusal of Try again (?fail=investigation-try-again), the
+ * role named as the role picker draws it (#8520).
+ */
 const TRY_AGAIN_REFUSAL: string =
-  "OneUptime AI is switched off for this project. A project owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.";
+  "OneUptime AI is switched off for this project. A Project Owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.";
 // ?ai=retrying tries again two minutes after the pinned clock.
 const RETRY_TIME: string = "(6:22 PM|18:22)";
 
@@ -3820,7 +3837,7 @@ const WAITING_ALERT_DESCRIPTION: string =
   "An AI rule makes OneUptime AI wait 10 minutes, so alerts resolved by then are not investigated.";
 // InvestigationRuleWait's refusal when the project's own daily limit is reached.
 const DAILY_LIMIT_REFUSAL: string =
-  "The project reached its daily AI limit. OneUptime AI starts again at midnight UTC. A project owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI → AI Features → More settings.";
+  "The project reached its daily AI limit. OneUptime AI starts again at midnight UTC. A Project Owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI → AI Features → More settings.";
 
 function waitingBody(page: Page): Locator {
   return investigationCard(page).getByTestId("investigation-waiting");
@@ -5603,9 +5620,10 @@ test.describe("one AI card: the investigation and the conversation", () => {
         /*
          * The asker's zone, so a chart over days cuts them at the asker's
          * midnight (#7922, ffec1f96e59): the browser runs in UTC here (the
-         * config's timezoneId), the listed zone the Dashboard names it by.
+         * config's timezoneId), the listed zone the Dashboard names it by -
+         * UTC itself since #8475, where moment guessed Africa/Abidjan.
          */
-        timezone: "Africa/Abidjan",
+        timezone: "UTC",
       });
 
       // While it is written: a status line, Stop instead of Send.
@@ -6940,12 +6958,13 @@ const INCIDENT_NOTE_WITH_ASK: string =
   "This applies to new incidents only, not to this one. You can still ask OneUptime AI about it.";
 const INCIDENT_NOTE_AI_OFF: string =
   "This applies to new incidents only, not to this one.";
+// Who can, each role named as the role picker draws it (#8520).
 const WHO_CAN_CHANGE_INCIDENT_SETTINGS: string =
-  "A project owner or admin can make these changes in Incidents → AI → Settings.";
+  "A Project Owner or Project Admin can make these changes in Incidents → AI → Settings.";
 const WHO_CAN_CHANGE_INCIDENT_RULES: string =
-  "A project owner or admin, or someone who may edit AI rules, can change them in Incidents → AI → Settings.";
+  "A Project Owner or Project Admin, or someone who may edit AI rules, can change them in Incidents → AI → Settings.";
 const WHO_CAN_TURN_AI_ON: string =
-  "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.";
+  "A Project Owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.";
 
 interface AiOffStepRow {
   step: string | null;
@@ -8394,14 +8413,14 @@ test.describe("incident and alert overview", () => {
       "detail-created-at-value",
     );
 
-    await expect(created).toHaveText("Sep 14 2026, 06:06 PM GMT");
+    await expect(created).toHaveText("Sep 14 2026, 06:06 PM UTC");
     await expect(created).toHaveAttribute(
       "datetime",
       "2026-09-14T18:06:00.000Z",
     );
     await created.hover();
     await expect(page.getByRole("tooltip")).toHaveText(
-      "Sep 14 2026, 06:06:00 PM GMT",
+      "Sep 14 2026, 06:06:00 PM UTC",
     );
   });
 
@@ -8454,7 +8473,10 @@ test.describe("incident and alert overview", () => {
     const actions: Locator = page.getByRole("group", { name: "Event actions" });
     await expect(actions.getByRole("button")).toHaveText(["Resolve"]);
     await expectRenderedText(heroChips(page), "Acknowledged SEV-2");
-    await expectHeroDuration(hero(page), "Ongoing for 19 minutes");
+    await expectHeroDuration(
+      hero(page),
+      `Ongoing for ${withUnit(19, "minutes")}`,
+    );
     // How long it has run is the header's, beside its state.
     expect(await statCells(page, INCIDENT_PAGE.statBar)).toEqual([
       INCIDENT_PAGE.stats[0],
@@ -8490,7 +8512,7 @@ test.describe("incident and alert overview", () => {
 
     await expect(actions.getByRole("button")).toHaveCount(0);
     await expectRenderedText(heroChips(page), "Resolved SEV-2");
-    await expectHeroDuration(hero(page), "Lasted 19 minutes");
+    await expectHeroDuration(hero(page), `Lasted ${withUnit(19, "minutes")}`);
     await expect
       .poll(async (): Promise<number> => {
         return (await fixture(page)).getItemRequests.length;
@@ -8564,7 +8586,10 @@ test.describe("incident and alert overview", () => {
       DECLARE_INCIDENT,
     ]);
     await expectRenderedText(heroChips(page), "Acknowledged High");
-    await expectHeroDuration(hero(page), "Ongoing for 14 minutes");
+    await expectHeroDuration(
+      hero(page),
+      `Ongoing for ${withUnit(14, "minutes")}`,
+    );
     const creates: Array<RecordedWrite> = (await fixture(page)).creates.filter(
       (write: RecordedWrite): boolean => {
         return write.modelName === "AlertStateTimeline";
@@ -10381,9 +10406,12 @@ test.describe("the header, by its own width", () => {
     await expect(band).toHaveAttribute("data-tone", "warning");
     await expect(band).toContainText("Start overdue");
     await expect(band).toContainText(
-      "Planned to start at Sep 14 2026, 06:00 PM GMT, but it has not been marked as Ongoing yet.",
+      "Planned to start at Sep 14 2026, 06:00 PM UTC, but it has not been marked as Ongoing yet.",
     );
-    await expectHeroDuration(hero(page), "Start overdue by 20 minutes");
+    await expectHeroDuration(
+      hero(page),
+      `Start overdue by ${withUnit(20, "minutes")}`,
+    );
     expect((await headerColours(page)).unreadable).toEqual([]);
     await page.mouse.move(0, 0);
     await screenshotElement(hero(page), "event-header-maintenance-overdue");
@@ -10418,7 +10446,7 @@ test.describe("the header, by its own width", () => {
     );
     await expect(notice).toContainText("Not on status pages yet");
     await expect(notice).toContainText(
-      "It shows on its status pages from Sep 14 2026, 07:30 PM GMT, when their subscribers are told it is scheduled.",
+      "It shows on its status pages from Sep 14 2026, 07:30 PM UTC, when their subscribers are told it is scheduled.",
     );
     // The state actions stay where they were; the band holds its own.
     await expect(
@@ -10428,7 +10456,7 @@ test.describe("the header, by its own width", () => {
     const details: Locator = card(page, "Maintenance Details");
     await expect(
       details.getByTestId("scheduled-maintenance-publish-on-status-pages"),
-    ).toHaveText("Sep 14 2026, 07:30 PM GMT");
+    ).toHaveText("Sep 14 2026, 07:30 PM UTC");
     await expect(details).toContainText("Sent when it is published");
 
     expect((await headerColours(page)).unreadable).toEqual([]);
@@ -10648,7 +10676,7 @@ test.describe("the header, by its own width", () => {
       card(page, "Maintenance Details").getByTestId(
         "scheduled-maintenance-publish-on-status-pages",
       ),
-    ).toHaveText("Sep 14 2026, 07:30 PM GMT");
+    ).toHaveText("Sep 14 2026, 07:30 PM UTC");
   });
 
   test("the details say a reminder due before the event is published is not sent (?publish=later), and say nothing once it is (?publish=past)", async ({
@@ -10664,7 +10692,7 @@ test.describe("the header, by its own width", () => {
     // The 1-hour reminder (19:20) comes before the publish time (19:30).
     const details: Locator = card(page, "Maintenance Details");
     await expect(details).toContainText(
-      "Next reminder: Sep 14 2026, 07:20 PM GMT",
+      "Next reminder: Sep 14 2026, 07:20 PM UTC",
     );
     await expect(
       details.getByTestId("scheduled-maintenance-next-reminder-not-sent"),
@@ -10678,7 +10706,7 @@ test.describe("the header, by its own width", () => {
       card(page, "Maintenance Details").getByTestId(
         "scheduled-maintenance-publish-on-status-pages",
       ),
-    ).toHaveText("Sep 14 2026, 12:00 PM GMT");
+    ).toHaveText("Sep 14 2026, 12:00 PM UTC");
     await expect(
       card(page, "Maintenance Details").getByTestId(
         "scheduled-maintenance-next-reminder-not-sent",
@@ -10698,7 +10726,7 @@ test.describe("the header, by its own width", () => {
       card(page, "Maintenance Details").getByTestId(
         "scheduled-maintenance-publish-on-status-pages",
       ),
-    ).toHaveText("Sep 14 2026, 12:00 PM GMT");
+    ).toHaveText("Sep 14 2026, 12:00 PM UTC");
   });
 
   test("someone who may not change an incident's state sees its state actions locked, each saying which permission (?role=alert-member)", async ({
@@ -10951,33 +10979,33 @@ const MAINTENANCE_PHASES: ReadonlyArray<MaintenancePhase> = [
   {
     sm: "scheduled",
     state: "Scheduled",
-    duration: "Starts in 2 hours",
+    duration: `Starts in ${withUnit(2, "hours")}`,
     actions: ["Mark as Ongoing", "Mark as Ended", "More actions"],
     starts: {
       label: "Starts",
-      value: "Sep 14 2026, 08:20 PM GMT",
+      value: "Sep 14 2026, 08:20 PM UTC",
       description: "in 2 hours",
     },
     ends: {
       label: "Ends",
-      value: "Sep 14 2026, 09:20 PM GMT",
+      value: "Sep 14 2026, 09:20 PM UTC",
       description: "in 3 hours",
     },
-    readyText: "Next reminder: Sep 14 2026, 07:20 PM GMT",
+    readyText: "Next reminder: Sep 14 2026, 07:20 PM UTC",
   },
   {
     sm: "ongoing",
     state: "Ongoing",
-    duration: "In progress for 15 minutes",
+    duration: `In progress for ${withUnit(15, "minutes")}`,
     actions: ["Mark as Ended", "More actions"],
     starts: {
       label: "Starts",
-      value: "Sep 14 2026, 06:05 PM GMT",
+      value: "Sep 14 2026, 06:05 PM UTC",
       description: "15 minutes ago",
     },
     ends: {
       label: "Ends",
-      value: "Sep 14 2026, 07:05 PM GMT",
+      value: "Sep 14 2026, 07:05 PM UTC",
       description: "in 45 minutes",
     },
     readyText: "Failover started.",
@@ -10985,16 +11013,16 @@ const MAINTENANCE_PHASES: ReadonlyArray<MaintenancePhase> = [
   {
     sm: "ended",
     state: "Ended",
-    duration: "Completed in 1 hour, 2 minutes",
+    duration: `Completed in ${withUnit(1, "hour")}, ${withUnit(2, "minutes")}`,
     actions: ["More actions"],
     starts: {
       label: "Starts",
-      value: "Sep 14 2026, 04:00 PM GMT",
+      value: "Sep 14 2026, 04:00 PM UTC",
       description: "2 hours ago",
     },
     ends: {
       label: "Ends",
-      value: "Sep 14 2026, 05:00 PM GMT",
+      value: "Sep 14 2026, 05:00 PM UTC",
       description: "1 hour ago",
     },
     readyText: "Failover started.",
@@ -11002,16 +11030,16 @@ const MAINTENANCE_PHASES: ReadonlyArray<MaintenancePhase> = [
   {
     sm: "overdue",
     state: "Scheduled",
-    duration: "Start overdue by 20 minutes",
+    duration: `Start overdue by ${withUnit(20, "minutes")}`,
     actions: ["Mark as Ongoing", "Mark as Ended", "More actions"],
     starts: {
       label: "Starts",
-      value: "Sep 14 2026, 06:00 PM GMT",
+      value: "Sep 14 2026, 06:00 PM UTC",
       description: "20 minutes ago",
     },
     ends: {
       label: "Ends",
-      value: "Sep 14 2026, 07:00 PM GMT",
+      value: "Sep 14 2026, 07:00 PM UTC",
       description: "in 40 minutes",
     },
     readyText: "No upcoming reminders",
@@ -11020,16 +11048,16 @@ const MAINTENANCE_PHASES: ReadonlyArray<MaintenancePhase> = [
   {
     sm: "overrun",
     state: "Ongoing",
-    duration: "Overrunning by 30 minutes",
+    duration: `Overrunning by ${withUnit(30, "minutes")}`,
     actions: ["Mark as Ended", "More actions"],
     starts: {
       label: "Starts",
-      value: "Sep 14 2026, 04:50 PM GMT",
+      value: "Sep 14 2026, 04:50 PM UTC",
       description: "2 hours ago",
     },
     ends: {
       label: "Ends",
-      value: "Sep 14 2026, 05:50 PM GMT",
+      value: "Sep 14 2026, 05:50 PM UTC",
       description: "30 minutes ago",
     },
     readyText: "Failover started.",
@@ -11807,7 +11835,7 @@ test.describe("affected resources card", () => {
 
 test.describe("scheduled maintenance overview", () => {
   for (const phase of MAINTENANCE_PHASES) {
-    test(`?sm=${phase.sm} shows "${phase.duration}", its actions and the window`, async ({
+    test(`?sm=${phase.sm} shows "${phase.duration.split(NO_BREAK_SPACE).join(" ")}", its actions and the window`, async ({
       page,
     }: {
       page: Page;
@@ -11850,8 +11878,8 @@ test.describe("scheduled maintenance overview", () => {
         await expect(notice).toContainText(phase.overdueNotice);
         await expect(notice).toContainText(
           phase.sm === "overdue"
-            ? "Planned to start at Sep 14 2026, 06:00 PM GMT"
-            : "Planned to end at Sep 14 2026, 05:50 PM GMT",
+            ? "Planned to start at Sep 14 2026, 06:00 PM UTC"
+            : "Planned to end at Sep 14 2026, 05:50 PM UTC",
         );
       } else {
         await expect(notice).toHaveCount(0);
@@ -11863,7 +11891,7 @@ test.describe("scheduled maintenance overview", () => {
         {
           label: "Duration",
           value: "1 hour",
-          description: "Planned window · times in GMT",
+          description: "Planned window · times in UTC",
         },
       ]);
       await expect(card(page, "Scheduled Maintenance Feed")).toBeVisible();
@@ -13534,10 +13562,10 @@ test.describe("the feed, as a timeline", () => {
     await expect(day.getByTestId("feed-day-relative")).toHaveText("Today");
     /*
      * The zone the dashboard reads every date in (OneUptimeDate's current
-     * timezone): for this browser's UTC clock, moment-timezone's guess,
-     * whose name is GMT - the same clock.
+     * timezone): this browser's UTC, named as it is. moment-timezone's
+     * guess, Africa/Abidjan, read GMT until #8475.
      */
-    await expect(day.getByTestId("feed-day-zone")).toHaveText("GMT");
+    await expect(day.getByTestId("feed-day-zone")).toHaveText("UTC");
     // The day's section is named by its heading.
     await expect(
       feed.getByRole("region", { name: "Monday, September 14, 2026" }),
@@ -15034,7 +15062,7 @@ test.describe("Escalate", () => {
       const kept: Locator = escalateDialog(page)
         .getByTestId("pass-on-preview")
         .getByTestId("pass-on-kept-together");
-      await expect(kept).toHaveText(["6:40 PM GMT", "(Level 2 of 3)"]);
+      await expect(kept).toHaveText(["6:40 PM UTC", "(Level 2 of 3)"]);
 
       for (const phrase of await kept.all()) {
         const drawn: { lines: number; whiteSpace: string } =
@@ -15051,7 +15079,7 @@ test.describe("Escalate", () => {
 
       // The sentence a reader gets is whole, and fits the screen.
       expect(await dialogLines(page, "pass-on-preview")).toEqual([
-        "Bob Smith is still being paged. If nobody acknowledges by 6:40 PM GMT, the policy pages Platform leads (Level 2 of 3) next.",
+        "Bob Smith is still being paged. If nobody acknowledges by 6:40 PM UTC, the policy pages Platform leads (Level 2 of 3) next.",
         NOT_PAGED_AGAIN,
       ]);
       await expectNoSidewaysScroll(page, { tolerance: 1 });
@@ -15064,7 +15092,7 @@ test.describe("Escalate", () => {
         escalateDialog(page)
           .getByTestId("pass-on-answer")
           .getByTestId("pass-on-kept-together"),
-      ).toHaveText(["6:40 PM GMT", "(Level 2 of 3)"]);
+      ).toHaveText(["6:40 PM UTC", "(Level 2 of 3)"]);
     });
   }
 });
@@ -15289,7 +15317,9 @@ test.describe("Escalate to a level the person picks", () => {
       .evaluate((input: Element): string => {
         return (input as HTMLInputElement).labels![0]!.textContent || "";
       });
-    expect(label).toBe("DBA leads (Level\u00a03\u00a0of\u00a04)");
+    expect(label).toBe(
+      `DBA leads (Level${NO_BREAK_SPACE}3${NO_BREAK_SPACE}of${NO_BREAK_SPACE}4)`,
+    );
 
     await screenshotElement(
       escalateDialog(page),
@@ -18004,15 +18034,16 @@ test.describe("time to acknowledge after paging", () => {
       INCIDENT_PAGE.statBar,
       ACKNOWLEDGED_TILE,
     );
+    // Read as written: each number held to its unit (#8669).
     expect(
       lines.map((line: StatTileLine): string => {
         return line.text;
       }),
     ).toEqual([
       "Acknowledged in",
-      "3 minutes",
-      "2 minutes after paging",
-      "Sep 14 2026, 06:04 PM GMT",
+      withUnit(3, "minutes"),
+      `${withUnit(2, "minutes")} after paging`,
+      "Sep 14 2026, 06:04 PM UTC",
     ]);
     const [, value, note, date] = lines;
     // Smaller and lighter than the value, larger than the date: value, note, date.
@@ -18049,9 +18080,9 @@ test.describe("time to acknowledge after paging", () => {
       ),
     ).toEqual([
       "Acknowledged in",
-      "2 minutes",
-      "1 minute after paging",
-      "Sep 14 2026, 06:08 PM GMT",
+      withUnit(2, "minutes"),
+      `${withUnit(1, "minute")} after paging`,
+      "Sep 14 2026, 06:08 PM UTC",
     ]);
     expect(await measurementRows(page)).toEqual([
       {
@@ -18135,7 +18166,7 @@ test.describe("time to acknowledge after paging", () => {
           INCIDENT_PAGE.statBar,
           ACKNOWLEDGED_TILE,
         );
-        expect(note!.text).toBe("2 minutes after paging");
+        expect(note!.text).toBe(`${withUnit(2, "minutes")} after paging`);
         // Its own colour in both themes: quieter than the value, not the date's.
         expect(note!.color).not.toBe(value!.color);
         expect(note!.color).not.toBe(date!.color);
@@ -18162,8 +18193,6 @@ test.describe("time to acknowledge after paging", () => {
  * after the impact began, and by whom. Each is said once. ?owners=,
  * ?commander= and ?what= pick what there is to show (Fixture.js).
  */
-
-const NO_BREAK_SPACE: string = String.fromCharCode(0xa0);
 
 /*
  * Where "+3 more" leads: the record's Owners page, which manages the whole
@@ -19680,9 +19709,9 @@ test.describe("at a glance: when, and what it touched", () => {
         .evaluate((value: Element): string => {
           return value.textContent || "";
         }),
-    ).toBe(`Sep${NO_BREAK_SPACE}14, 06:01${NO_BREAK_SPACE}PM GMT`);
+    ).toBe(`Sep${NO_BREAK_SPACE}14, 06:01${NO_BREAK_SPACE}PM UTC`);
     const zone: Locator = statBar.getByTestId("event-start-tile-zone");
-    await expect(zone).toHaveText("GMT");
+    await expect(zone).toHaveText("UTC");
     const valueSize: number = await statBar
       .getByTestId("event-start-tile-value")
       .evaluate((value: Element): number => {
@@ -19694,7 +19723,7 @@ test.describe("at a glance: when, and what it touched", () => {
     expect(zoneSize).toBeLessThan(valueSize);
     // How long it lasted is the header's alone.
     await expect(statBar.getByText("Duration", { exact: true })).toHaveCount(0);
-    await expectHeroDuration(hero(page), "Lasted 11 minutes");
+    await expectHeroDuration(hero(page), `Lasted ${withUnit(11, "minutes")}`);
     // And when and by whom it was declared is the tile's alone.
     const detailsLabels: Array<string> = await detailLabels(
       card(page, INCIDENT_PAGE.detailsCard),
@@ -19724,22 +19753,22 @@ test.describe("at a glance: when, and what it touched", () => {
       );
       /*
        * However many lines it takes, each is whole parts: the date, the
-       * time, the zone - never "GM" over "T".
+       * time, the zone - never "UT" over "C".
        */
-      expect(lines.join(" ")).toBe("Sep 14, 06:01 PM GMT");
+      expect(lines.join(" ")).toBe("Sep 14, 06:01 PM UTC");
       for (const line of lines) {
         expect([
-          "Sep 14, 06:01 PM GMT",
+          "Sep 14, 06:01 PM UTC",
           "Sep 14, 06:01 PM",
-          "06:01 PM GMT",
+          "06:01 PM UTC",
           "Sep 14,",
           "06:01 PM",
-          "GMT",
+          "UTC",
         ]).toContain(line);
       }
       // Where the tile is wide enough, one line.
       if (width === 390) {
-        expect(lines).toEqual(["Sep 14, 06:01 PM GMT"]);
+        expect(lines).toEqual(["Sep 14, 06:01 PM UTC"]);
       }
       await expectNoSidewaysScroll(page, { tolerance: 1 });
     });
@@ -19758,9 +19787,9 @@ test.describe("at a glance: when, and what it touched", () => {
       INCIDENT_EPISODE_PAGE.statBar,
       0,
     );
-    expect(lines.join(" ")).toBe("Sep 14, 05:56 PM GMT");
+    expect(lines.join(" ")).toBe("Sep 14, 05:56 PM UTC");
     // Balanced lines: the date over the time and its zone, never a lone zone.
-    expect(lines).not.toContain("GMT");
+    expect(lines).not.toContain("UTC");
     await expectNoSidewaysScroll(page, { tolerance: 1 });
   });
 

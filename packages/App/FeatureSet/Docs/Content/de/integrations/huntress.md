@@ -13,7 +13,7 @@ Diese Integration ist **eingehend**: Huntress sendet jedes Ereignis zu einer Vor
 
 ## So funktioniert es
 
-Huntress sendet ein Ereignis zu einer Vorfallsmeldung, wenn die Meldung versendet wird, wenn jemand sie kommentiert und wenn sie geschlossen wird. Der Trigger **Huntress Incident Report** startet den Workflow einmal für jedes Ereignis, und sein **Event** sagt, welches es war: `created`, `comment-added` oder `closed`.
+Huntress sendet ein Ereignis zu einer Vorfallsmeldung, wenn die Meldung versendet wird, wenn jemand sie kommentiert und wenn sie geschlossen wird. Der Trigger **Huntress-Vorfallsbericht** startet den Workflow einmal für jedes Ereignis, und sein **Ereignis** sagt, welches es war: `created`, `comment-added` oder `closed`.
 
 ```mermaid title="Eine Huntress-Vorfallsmeldung in einem Workflow"
 sequenceDiagram
@@ -55,11 +55,11 @@ Der Vorfall bewahrt die Nummer der Meldung in seinen benutzerdefinierten Feldern
 
 ### Wählen, wer alarmiert wird
 
-Der Dialog fragt dann, wen er alarmieren soll: Wählen Sie unter **Who to page for high and critical reports** die zu alarmierenden Bereitschaftsrichtlinien, oder keine, um niemanden zu alarmieren, und klicken Sie auf **Arbeitsablauf erstellen**. Der Workflow öffnet sich im **Editor**, ausgeschaltet. Um später zu ändern, wen er alarmiert, klicken Sie auf seinen Schritt **Page an On-Call Policy** und ändern Sie seine **Bereitschaftsrichtlinien**.
+Der Dialog fragt dann, wen er alarmieren soll: Wählen Sie unter **Who to page for high and critical reports** die zu alarmierenden Bereitschaftsrichtlinien, oder keine, um niemanden zu alarmieren, und klicken Sie auf **Arbeitsablauf erstellen**. Der Workflow öffnet sich im **Editor**, ausgeschaltet. Um später zu ändern, wen er alarmiert, klicken Sie auf seinen Schritt **Eine Bereitschaftsrichtlinie alarmieren** und ändern Sie seine **Bereitschaftsrichtlinien**.
 
 ### Einen Webhook-Endpunkt in Huntress anlegen
 
-Klicken Sie auf den Trigger **Huntress Incident Report** und dort unter **Webhook-Endpunkt in Huntress hinzufügen** auf **URL kopieren**. Die URL sieht aus wie `https://oneuptime.com/workflow/huntress/<key>`; bei einer selbst gehosteten Installation beginnt sie mit Ihrem eigenen Host.
+Klicken Sie auf den Trigger **Huntress-Vorfallsbericht** und dort unter **Webhook-Endpunkt in Huntress hinzufügen** auf **URL kopieren**. Die URL sieht aus wie `https://oneuptime.com/workflow/huntress/<key>`; bei einer selbst gehosteten Installation beginnt sie mit Ihrem eigenen Host.
 
 Öffnen Sie in Huntress das Menü oben rechts und wählen Sie **Integrations**. Klicken Sie auf **Add an Integration**, wählen Sie **Webhooks** und klicken Sie auf **Add Endpoint**. Fügen Sie die URL ein, schalten Sie **Incident Reports** ein und speichern Sie. Lassen Sie **Escalations**, **Platform Actions** und **Account Notices** aus: Der Trigger nimmt diese Ereignisse an und startet für sie nichts.
 
@@ -79,19 +79,19 @@ Schalten Sie **Aktiviert** oben im **Editor** ein. Öffnen Sie in Huntress das M
 
 ## Was der Workflow tut
 
-Nach dem Trigger tut **Incident From Another Tool**, was jedes **Event** verlangt, über die Nummer der Meldung:
+Nach dem Trigger tut **Vorfall aus einem anderen Tool**, was jedes **Ereignis** verlangt, über die Nummer der Meldung:
 
 | Event | Was der Workflow tut |
 | --- | --- |
-| `created` | Öffnet einen Vorfall mit der **Incident Severity ID** des Triggers, mit seiner **Organization Label ID** beschriftet. Bei einer hohen oder kritischen Meldung alarmiert **Page an On-Call Policy** Ihre Richtlinie; eine niedrige Meldung alarmiert niemanden. Eine Meldung, die schon einen Vorfall hat, öffnet keinen weiteren. |
+| `created` | Öffnet einen Vorfall mit der **Vorfallsschweregrad-ID** des Triggers, mit seiner **ID der Organisationsbeschriftung** beschriftet. Bei einer hohen oder kritischen Meldung alarmiert **Eine Bereitschaftsrichtlinie alarmieren** Ihre Richtlinie; eine niedrige Meldung alarmiert niemanden. Eine Meldung, die schon einen Vorfall hat, öffnet keinen weiteren. |
 | `comment-added` | Findet den Vorfall der Meldung und fügt den Kommentar als private Notiz hinzu. |
 | `closed` | Findet den Vorfall der Meldung und behebt ihn, sofern er nicht schon behoben ist. Der Grund steht in seiner Zeitleiste: Huntress hat die Meldung geschlossen. |
 
-Es ist ein Workflow wie jeder andere, Sie können also ändern, was er tut: nur bei kritischen Meldungen alarmieren, indem Sie ändern, womit das **If / Else** nach **Incident From Another Tool** vergleicht, jede Meldung mit einem Slack- oder Microsoft-Teams-Schritt in einen Chatkanal senden oder jede Organisation mit einem **Switch / Case** auf **Organization** zu ihrer eigenen Bereitschaftsrichtlinie leiten. Jeder Durchlauf steht in den Durchläufen des Workflows, mit dem, was jeder Schritt getan hat.
+Es ist ein Workflow wie jeder andere, Sie können also ändern, was er tut: nur bei kritischen Meldungen alarmieren, indem Sie ändern, womit das **Wenn / Sonst** nach **Vorfall aus einem anderen Tool** vergleicht, jede Meldung mit einem Slack- oder Microsoft-Teams-Schritt in einen Chatkanal senden oder jede Organisation mit einem **Auswahl / Fall** auf **Organisation** zu ihrer eigenen Bereitschaftsrichtlinie leiten. Jeder Durchlauf steht in den Durchläufen des Workflows, mit dem, was jeder Schritt getan hat.
 
 ### Schweregrade
 
-Huntress gibt jeder Vorfallsmeldung einen von drei Schweregraden. Die **Incident Severity ID** des Triggers ist der Vorfallsschweregrad, mit dem die Meldung öffnet: der, den seine Einstellung wählt, oder sonst die Rangfolge Ihrer Vorfallsschweregrade, wie **Vorfälle → Einstellungen → Vorfallsschweregrad** sie auflistet:
+Huntress gibt jeder Vorfallsmeldung einen von drei Schweregraden. Die **Vorfallsschweregrad-ID** des Triggers ist der Vorfallsschweregrad, mit dem die Meldung öffnet: der, den seine Einstellung wählt, oder sonst die Rangfolge Ihrer Vorfallsschweregrade, wie **Vorfälle → Einstellungen → Vorfallsschweregrad** sie auflistet:
 
 | Huntress-Schweregrad | Was Huntress damit meint | Einstellung | Vorfallsschweregrad, wenn die Einstellung leer ist |
 | --- | --- | --- | --- |
@@ -103,7 +103,7 @@ Ein Projekt mit weniger Schweregraden nutzt für den Rest seinen niedrigsten. Ei
 
 ### Organisationen
 
-Die **Organization Label ID** des Triggers ist eine Beschriftung, die nach der Huntress-Organisation der Meldung benannt ist, etwa _Acme Corp_, und die er anlegt, wenn die erste Meldung dieser Organisation eintrifft. Ein Workflow empfängt die Meldungen aller Organisationen Ihres Huntress-Kontos, und **Nur diese Organisationen** des Triggers schränkt das ein: ein Organisationsname oder eine ID pro Zeile, bei Namen zählt die Groß- und Kleinschreibung nicht.
+Die **ID der Organisationsbeschriftung** des Triggers ist eine Beschriftung, die nach der Huntress-Organisation der Meldung benannt ist, etwa _Acme Corp_, und die er anlegt, wenn die erste Meldung dieser Organisation eintrifft. Ein Workflow empfängt die Meldungen aller Organisationen Ihres Huntress-Kontos, und **Nur diese Organisationen** des Triggers schränkt das ein: ein Organisationsname oder eine ID pro Zeile, bei Namen zählt die Groß- und Kleinschreibung nicht.
 
 > [!TIP]
 > Um das eigene Team jedes Kunden zu alarmieren, legen Sie pro Organisation eine Bereitschaftsregel für Vorfälle an, etwa „Wenn **Vorfall-Beschriftungen** eines von _Acme Corp_ hat“, die die Richtlinie dieses Kunden ausführt. Siehe [Bereitschaftsregeln für Vorfälle](/docs/incidents/settings#bereitschaftsregeln-für-vorfälle).
@@ -114,25 +114,25 @@ Der Trigger öffnet sich mit Huntress: seiner URL, einem Haken neben jedem erled
 
 | Wert | Was er enthält |
 | --- | --- |
-| **Event** | `created`, `comment-added` oder `closed`. Eine Meldung, die schon geschlossen oder verworfen ist, ist `closed`, gleich welches Ereignis sie brachte. |
-| **Report ID** | Die Nummer der Meldung in Huntress. |
-| **Severity** | `critical`, `high` oder `low`. |
+| **Ereignis** | `created`, `comment-added` oder `closed`. Eine Meldung, die schon geschlossen oder verworfen ist, ist `closed`, gleich welches Ereignis sie brachte. |
+| **Berichts-ID** | Die Nummer der Meldung in Huntress. |
+| **Schweregrad** | `critical`, `high` oder `low`. |
 | **Status** | Der Status der Meldung in Huntress, etwa `sent`, `closed` oder `dismissed`. |
-| **Subject** | Der Betreff der Meldung, so wie Huntress ihn schreibt. |
-| **Summary** | Was der SOC-Analyst geschrieben hat. |
-| **Organization**, **Organization ID** | Die Huntress-Organisation, um die es in der Meldung geht. |
-| **Affected** | Der Host oder die Identität, um die es in der Meldung geht. |
-| **Platform**, **Indicators** | Wo Huntress es gefunden hat und was es gefunden hat. |
-| **Comment** | Der Kommentar, den jemand hinzugefügt hat, bei `comment-added`. |
-| **Report URL** | Wo sich die Meldung in Huntress öffnet. |
-| **Incident Title**, **Incident Description** | Ein Titel und eine Markdown-Beschreibung für einen Vorfall zu der Meldung. |
-| **Note** | Markdown für eine Notiz zu dem Ereignis: der Kommentar, oder dass Huntress die Meldung geschlossen hat. |
-| **Incident Severity ID**, **Organization Label ID** | Der Vorfallsschweregrad und die Beschriftung, wie oben. |
-| **Received At** | Wann OneUptime das Ereignis empfangen hat. |
+| **Betreff** | Der Betreff der Meldung, so wie Huntress ihn schreibt. |
+| **Zusammenfassung** | Was der SOC-Analyst geschrieben hat. |
+| **Organisation**, **Organisations-ID** | Die Huntress-Organisation, um die es in der Meldung geht. |
+| **Betroffen** | Der Host oder die Identität, um die es in der Meldung geht. |
+| **Plattform**, **Indikatoren** | Wo Huntress es gefunden hat und was es gefunden hat. |
+| **Kommentar** | Der Kommentar, den jemand hinzugefügt hat, bei `comment-added`. |
+| **Berichts-URL** | Wo sich die Meldung in Huntress öffnet. |
+| **Vorfalltitel**, **Vorfallbeschreibung** | Ein Titel und eine Markdown-Beschreibung für einen Vorfall zu der Meldung. |
+| **Notiz** | Markdown für eine Notiz zu dem Ereignis: der Kommentar, oder dass Huntress die Meldung geschlossen hat. |
+| **Vorfallsschweregrad-ID**, **ID der Organisationsbeschriftung** | Der Vorfallsschweregrad und die Beschriftung, wie oben. |
+| **Empfangen am** | Wann OneUptime das Ereignis empfangen hat. |
 
-**Summary** und **Comment** sind Text, den die Analysten von Huntress geschrieben haben. Um sie in einen Vorfall oder eine Notiz zu setzen, verwenden Sie **Incident Description** und **Note**: Sie behalten die Formatierung, und nichts darin lädt ein Bild oder erwähnt jemanden.
+**Zusammenfassung** und **Kommentar** sind Text, den die Analysten von Huntress geschrieben haben. Um sie in einen Vorfall oder eine Notiz zu setzen, verwenden Sie **Vorfallbeschreibung** und **Notiz**: Sie behalten die Formatierung, und nichts darin lädt ein Bild oder erwähnt jemanden.
 
-Um den Workflow ohne Huntress auszuprobieren, klicken Sie im **Editor** auf **Arbeitsablauf ausführen** und geben ein **Event**, eine **Report ID** und die Felder ein, die Sie brauchen. Verwenden Sie dieselbe **Report ID**, um eine Meldung von `created` bis `closed` zu verfolgen.
+Um den Workflow ohne Huntress auszuprobieren, klicken Sie im **Editor** auf **Arbeitsablauf ausführen** und geben ein **Ereignis**, eine **Berichts-ID** und die Felder ein, die Sie brauchen. Verwenden Sie dieselbe **Berichts-ID**, um eine Meldung von `created` bis `closed` zu verfolgen.
 
 ## Früher angelegte Huntress-Verbindungen
 
@@ -170,15 +170,15 @@ Schalten Sie **Aktiviert** oben im **Editor** ein. Huntress sendet die abgelehnt
 :::
 
 :::details "No Huntress workflow has this address."
-Der Workflow wurde gelöscht oder archiviert, sein Trigger ist nicht mehr **Huntress Incident Report**, oder die URL des Endpunkts in Huntress ist nicht die des Workflows. Kopieren Sie die URL aus dem Trigger und fügen Sie sie erneut in den Endpunkt in Huntress ein.
+Der Workflow wurde gelöscht oder archiviert, sein Trigger ist nicht mehr **Huntress-Vorfallsbericht**, oder die URL des Endpunkts in Huntress ist nicht die des Workflows. Kopieren Sie die URL aus dem Trigger und fügen Sie sie erneut in den Endpunkt in Huntress ein.
 :::
 
 :::details Es wurde kein Vorfall geöffnet
-Öffnen Sie die Durchläufe des Workflows und den Durchlauf der Meldung. Ist **Incident From Another Tool** mit `This project has no incident severities to put the incident at.` fehlgeschlagen, legen Sie einen unter **Vorfälle → Einstellungen → Vorfallsschweregrad** an.
+Öffnen Sie die Durchläufe des Workflows und den Durchlauf der Meldung. Ist **Vorfall aus einem anderen Tool** mit `This project has no incident severities to put the incident at.` fehlgeschlagen, legen Sie einen unter **Vorfälle → Einstellungen → Vorfallsschweregrad** an.
 :::
 
 :::details Niemand wurde alarmiert
-Eine niedrige Meldung öffnet einen Vorfall, ohne zu alarmieren. Sonst sagt der Durchlauf der Meldung, was **Page an On-Call Policy** getan hat, und die Seite **Bereitschaftsausführungen** des Vorfalls zeigt, was jede Richtlinie getan hat.
+Eine niedrige Meldung öffnet einen Vorfall, ohne zu alarmieren. Sonst sagt der Durchlauf der Meldung, was **Eine Bereitschaftsrichtlinie alarmieren** getan hat, und die Seite **Bereitschaftsausführungen** des Vorfalls zeigt, was jede Richtlinie getan hat.
 :::
 
 ## Nächste Schritte

@@ -32,7 +32,7 @@ En sond som har förlorat sin egen nätverksanslutning rapporterar inget resulta
 
 ## Innan du börjar
 
-- **En roll som kan skapa monitorer**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member, eller en anpassad roll med behörigheten Create Monitor.
+- **En roll som kan skapa monitorer**: Projektägare, Projektadministratör, Projektmedlem, Monitoradministratör eller Monitormedlem, eller en anpassad roll med behörigheten Create Monitor.
 - **En sond som når värden**, med ICMP tillåtet på vägen. Projektets standardsonder väljs för varje ny monitor. Om en brandvägg står framför värden tillåter du ICMP-ekobegäranden från [OneUptime Clouds sond-IP-adresser](/docs/configuration/ip-addresses). En värd i ett privat nätverk behöver en [anpassad sond](/docs/probe/custom-probe) i det nätverket.
 
 ## Skapa en ping-monitor
@@ -93,7 +93,7 @@ Med två eller fler filter avgör **Matchningsvillkor** om **Alla** måste match
 
 En ny ping-monitor börjar med två kriterier:
 
-- **Offline** — värden svarar inte på någon av ekobegärandena, eller kan inte nås alls, efter alla återförsök. Monitorn markeras som **Offline** och en incident som heter "_monitor name_ is offline" skapas. Incidenten löser sig själv när värden svarar igen.
+- **Offline** — värden svarar inte på någon av ekobegärandena, eller kan inte nås alls, efter alla återförsök. Monitorn markeras som **Offline** och en incident som heter "_monitornamn_ är offline" skapas. Incidenten löser sig själv när värden svarar igen.
 - **Uppe** — värden svarar. Monitorn markeras som **Fungerar**.
 
 Kriterier kontrolleras uppifrån och ned, och det första som matchar avgör vad som händer. När inget matchar visar monitorn sin standardstatus: **Fungerar**, om du inte väljer en annan under **Fler fält** under kriterierna.
@@ -152,6 +152,6 @@ Sonden som körde kontrollen kan inte skicka ping, så den kontrollerade i stäl
 :::cards
 - [IP-övervakning](/docs/monitor/ip-monitor): Bevaka en fast IPv4- eller IPv6-adress.
 - [Portövervakning](/docs/monitor/port-monitor): Kontrollera en tjänst på värden, inte bara värden.
-- [Anpassade probes](/docs/probe/custom-probe): Pinga värdar i ditt eget nätverk.
+- [Anpassade sonder](/docs/probe/custom-probe): Pinga värdar i ditt eget nätverk.
 - [Incidenter](/docs/incidents/index): Vad som händer efter att monitorn har deklarerat en.
 :::

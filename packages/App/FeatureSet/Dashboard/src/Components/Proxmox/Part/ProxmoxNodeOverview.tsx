@@ -283,7 +283,7 @@ const ProxmoxNodeOverview: FunctionComponent<ComponentProps> = (
           value={
             guestSummary.total > 0
               ? `${guestSummary.running}/${guestSummary.total}`
-              : "—"
+              : undefined
           }
           sublabel={
             guestSummary.templates > 0

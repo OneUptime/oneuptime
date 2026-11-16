@@ -142,7 +142,7 @@ sequenceDiagram
    - **Extra parameters**: extra formuliervelden voor het tokenverzoek, zoals `audience` voor Auth0 (nodig voor Client Credentials) of `resource` voor Azure AD v1. Iedereen die de variabele kan lezen, kan deze lezen, dus zet hier geen geheimen in.
    - **Clientauthenticatie**: of de client-ID en het secret in een HTTP Basic-header gaan (de standaard) of in de body van het verzoek. Antwoordt je provider `invalid_client`, probeer dan de andere optie.
 
-Onder sommige velden voegt het formulier een regel hulp toe voor de provider die je koos, bijvoorbeeld waar Microsoft Entra ID je tenant-ID toont, en dat het client-secret daar de **Value** van het geheim is, niet de **Secret ID**.
+Onder sommige velden voegt het formulier een regel hulp toe voor de provider die je koos, bijvoorbeeld waar Microsoft Entra ID je tenant-ID toont, en dat het client-secret daar de **Waarde** van het geheim is, niet de **Secret ID**.
 
 Als je een nieuwe OAuth 2.0-variabele opslaat, haalt OneUptime meteen het eerste token op en vertelt je wat de provider antwoordde. Een typfout in het secret of de URL komt dan aan het licht, niet uren later in een mislukte uitvoering. Een token ophalen schrijft naar de variabele, dus daarvoor heb je toestemming nodig om workflow-variabelen te bewerken; kun je variabelen wel maken maar niet bewerken, dan haalt de eerste workflow-uitvoering die de variabele gebruikt het token op.
 
@@ -195,8 +195,8 @@ Verwijs zo naar de uitvoer van een eerder blok:
 | Na een blok zoals…                                        | Lees                                                                                   |
 | --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | Een **API**-blok met de ID `lookup-user`                  | De statuscode: `{{local.components.lookup-user.returnValues.response-status}}`. De body: `{{local.components.lookup-user.returnValues.response-body}}`. |
-| Een **Run Custom JavaScript**-blok met de ID `transform`  | Wat het teruggaf: `{{local.components.transform.returnValues.returnValue}}`.           |
-| Een **On Create Incident**-trigger met de ID `incident-on-create-1` | De titel van het incident: `{{local.components.incident-on-create-1.returnValues.model.title}}`. Recordtriggers geven het record terug als `model`, en daarin ga je dieper. |
+| Een **Eigen JavaScript uitvoeren**-blok met de ID `transform`  | Wat het teruggaf: `{{local.components.transform.returnValues.returnValue}}`.           |
+| Een **Bij aanmaken: Incident**-trigger met de ID `incident-on-create-1` | De titel van het incident: `{{local.components.incident-on-create-1.returnValues.model.title}}`. Recordtriggers geven het record terug als `model`, en daarin ga je dieper. |
 
 Blokwaarden bestaan alleen tijdens de huidige uitvoering. Elke nieuwe uitvoering begint opnieuw.
 
@@ -208,22 +208,22 @@ Bijna elk tekstveld accepteert variabelen:
 - De berichttekst bij Slack, Teams, Discord, Telegram, IRC, Mattermost, Email.
 - Het onderwerp en de body van een e-mail.
 - Headers en velden in de body (binnen stringwaarden).
-- Beide kanten van een **If / Else**-blok.
+- Beide kanten van een **Als / Anders**-blok.
 
-In JSON-velden — **Data (JSON Object)** en **Query** bij de recordcomponenten, de **Request Body** van een API-blok, de **Arguments** van **Run Custom JavaScript** — wordt een verwijzing ingevuld naargelang waar ze staat:
+In JSON-velden — **Gegevens (JSON-object)** en **Query** bij de recordcomponenten, de **Verzoeklichaam** van een API-blok, de **Argumenten** van **Eigen JavaScript uitvoeren** — wordt een verwijzing ingevuld naargelang waar ze staat:
 
 - **Tussen aanhalingstekens is het tekst.** `{"title": "Down: {{local.components.ci-webhook.returnValues.request-body.service}}"}` zet de waarde in de string. Aanhalingstekens, backslashes en regeleinden in de waarde worden ge-escaped, zodat de JSON geldig blijft en de waarde één string blijft.
 - **Op zichzelf is het de waarde zelf.** `{"customFields": {{local.components.transform.returnValues.returnValue}}}` voegt het hele object in, een lijst blijft een lijst en een getal blijft een getal. Tekst die zelf JSON is — `5`, `true` of een object dat een blok als JSON-tekst teruggaf — gaat erin als die waarde. Alle andere tekst gaat erin als string.
 
-Een verwijzing tussen de aanhalingstekens van een sleutel is ook tekst. Moet je een structuur dynamisch opbouwen, bouw haar dan in een **Run Custom JavaScript**-blok en geef de uitvoer ervan door aan het volgende blok.
+Een verwijzing tussen de aanhalingstekens van een sleutel is ook tekst. Moet je een structuur dynamisch opbouwen, bouw haar dan in een **Eigen JavaScript uitvoeren**-blok en geef de uitvoer ervan door aan het volgende blok.
 
-Het **Run Custom JavaScript**-blok krijgt variabelen niet automatisch — er wordt niets in de sandbox geïnjecteerd. Zet `{{global.variables.NAME}}` (of een andere componentverwijzing) in het JSON-veld **Arguments** van het blok; die waarden worden ingevuld voordat het script draait en komen binnen als `args`.
+Het **Eigen JavaScript uitvoeren**-blok krijgt variabelen niet automatisch — er wordt niets in de sandbox geïnjecteerd. Zet `{{global.variables.NAME}}` (of een andere componentverwijzing) in het JSON-veld **Argumenten** van het blok; die waarden worden ingevuld voordat het script draait en komen binnen als `args`.
 
 ## Over arrays itereren
 
 In een tekstveld kun je een stuk tekst herhalen voor elk item van een lijst met `{{#each path}}…{{/each}}`. Binnen het blok leest `{{property}}` uit het huidige item, is `{{@index}}` de positie vanaf 0 en is `{{this}}` het item zelf bij lijsten met eenvoudige waarden. Namen binnen een `{{#each}}`-blok worden ontdaan van spaties, dus losse spaties kunnen daar geen kwaad — in tegenstelling tot overal elders.
 
-Deze **Message Text** somt bijvoorbeeld elke waarschuwing op die een webhook stuurde:
+Deze **Berichttekst** somt bijvoorbeeld elke waarschuwing op die een webhook stuurde:
 
 ```text title="Message Text"
 {{#each local.components.ci-webhook.returnValues.request-body.alerts}}
@@ -238,8 +238,8 @@ Deze **Message Text** somt bijvoorbeeld elke waarschuwing op die een webhook stu
 Er komt een webhook binnen met een body zoals `{ "service": "checkout", "status": "failed" }`. Om daar een OneUptime-incident van te maken:
 
 1. Een **Webhook**-trigger met de ID `ci-webhook`.
-2. Een **If / Else**-blok: **Te controleren waarde** is het veld `status` van de Request Body van de webhook (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Vergelijking** is **is gelijk aan** en **Vergelijken met** is `failed`.
-3. Vanuit de tak **Yes** een **Create One Incident**-blok met:
+2. Een **Als / Anders**-blok: **Te controleren waarde** is het veld `status` van de Request Body van de webhook (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Vergelijking** is **is gelijk aan** en **Vergelijken met** is `failed`.
+3. Vanuit de tak **Ja** een **Incident aanmaken (één record)**-blok met:
    - Titel: `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - Beschrijving: `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`
 
@@ -259,7 +259,7 @@ De eerste aanroep levert een ID op die de tweede nodig heeft:
 1. **API**-component `lookup-order`: gebruik in de **URL** ervan, na `/orders?email=`, **{ }** om de JSON van de handmatige trigger met het pad `email` in te voegen.
 2. **API**-component `cancel-order`: `POST /orders/{{local.components.lookup-order.returnValues.response-body.id}}/cancel`.
 
-Mislukt `lookup-order`, dan gaat de uitgang **Error** ervan af in plaats van **Success**. Sluit die aan op een Email- of Slack-blok, zodat fouten niet onopgemerkt blijven.
+Mislukt `lookup-order`, dan gaat de uitgang **Fout** ervan af in plaats van **Succes**. Sluit die aan op een Email- of Slack-blok, zodat fouten niet onopgemerkt blijven.
 
 ## Een variabele bijwerken vanuit een workflow
 
@@ -290,8 +290,8 @@ Twee dingen om op te letten:
 
 - **Gebruik { } (of typ `{{`).** Dat voegt de exacte ID's van componenten, retourwaarden en variabelen in die de uitvoerder verwacht, en biedt alleen waarden aan die bestaan als het blok draait.
 - **Variabelenamen zijn hoofdlettergevoelig.** `{{global.variables.MyKey}}` en `{{global.variables.mykey}}` zijn verschillend.
-- **Een verwijzing die niet wordt opgelost, blijft staan zoals ze is en wordt niet leeggemaakt.** Verwijzen naar iets wat niet bestaat is geen fout, en het levert ook geen lege string op: de accolades gaan gewoon door, dus `{{local.components.api-get-1.returnValues.body}}` met een verkeerd getypte stap-ID belandt letterlijk in je Slack-bericht, je URL of de body van je verzoek, en de uitvoering meldt nog steeds **Uitgevoerd**. Het tabblad **Stappen** van de uitvoering toont bij de stap een waarschuwing die elke doorgeglipte verwijzing noemt, en markeert de instelling waarin die stond als **Did not resolve**; het logboek van de uitvoering bevat dezelfde waarschuwingsregel. De uitzondering is een ID die een datacomponent leest of schrijft, zoals `_id` in zijn **Query**: daar stopt de stap voordat die iets leest of schrijft, gaat de uitgang **Error** af en zegt de stap welke verwijzing niet werd opgelost en wat je moet controleren.
-- **Een veld zonder inhoud komt leeg aan.** Niet elk record heeft elk veld. Een waarschuwing die geen monitor heeft gegeven, bijvoorbeeld uit een SLO of met de hand gemaakt, heeft geen monitor, dus `{{local.components.alert-on-create-1.returnValues.model.monitor.name}}` heeft niets te geven: in een bericht staat er niets, en op zichzelf in JSON is het `null`. Hetzelfde geldt voor een beschrijving die niemand schreef, een aangepast veld dat het record niet heeft, een **Find One** die geen record vond, een lijst zonder dat item en een veld dat het blok niet doorgeeft, wat ook een waarschuwing op de stap zet die zegt wat je aan **Fields to pass on** moet toevoegen. Een URL en een blok dat records leest of schrijft zijn de uitzonderingen, omdat iets leegs zou veranderen waarop het blok werkt: daar blijft de verwijzing staan, en een ID stopt het blok. Om een ander pad te nemen, controleer je de waarde met **is leeg** in een **If / Else**. Om de SLO achter een waarschuwing te noemen, geef je de naam ervan door en gebruik je `{{#each local.components.alert-on-create-1.returnValues.model.serviceLevelObjectives}}{{name}}{{/each}}`.
+- **Een verwijzing die niet wordt opgelost, blijft staan zoals ze is en wordt niet leeggemaakt.** Verwijzen naar iets wat niet bestaat is geen fout, en het levert ook geen lege string op: de accolades gaan gewoon door, dus `{{local.components.api-get-1.returnValues.body}}` met een verkeerd getypte stap-ID belandt letterlijk in je Slack-bericht, je URL of de body van je verzoek, en de uitvoering meldt nog steeds **Uitgevoerd**. Het tabblad **Stappen** van de uitvoering toont bij de stap een waarschuwing die elke doorgeglipte verwijzing noemt, en markeert de instelling waarin die stond als **Did not resolve**; het logboek van de uitvoering bevat dezelfde waarschuwingsregel. De uitzondering is een ID die een datacomponent leest of schrijft, zoals `_id` in zijn **Query**: daar stopt de stap voordat die iets leest of schrijft, gaat de uitgang **Fout** af en zegt de stap welke verwijzing niet werd opgelost en wat je moet controleren.
+- **Een veld zonder inhoud komt leeg aan.** Niet elk record heeft elk veld. Een waarschuwing die geen monitor heeft gegeven, bijvoorbeeld uit een SLO of met de hand gemaakt, heeft geen monitor, dus `{{local.components.alert-on-create-1.returnValues.model.monitor.name}}` heeft niets te geven: in een bericht staat er niets, en op zichzelf in JSON is het `null`. Hetzelfde geldt voor een beschrijving die niemand schreef, een aangepast veld dat het record niet heeft, een **Find One** die geen record vond, een lijst zonder dat item en een veld dat het blok niet doorgeeft, wat ook een waarschuwing op de stap zet die zegt wat je aan **Velden om door te geven** moet toevoegen. Een URL en een blok dat records leest of schrijft zijn de uitzonderingen, omdat iets leegs zou veranderen waarop het blok werkt: daar blijft de verwijzing staan, en een ID stopt het blok. Om een ander pad te nemen, controleer je de waarde met **is leeg** in een **Als / Anders**. Om de SLO achter een waarschuwing te noemen, geef je de naam ervan door en gebruik je `{{#each local.components.alert-on-create-1.returnValues.model.serviceLevelObjectives}}{{name}}{{/each}}`.
 - **Het problemenpaneel kan geen variabelenamen controleren.** Het markeert componentverwijzingen die het niet kan koppelen — een onbekende stap-ID, een onbekende retourwaarde, een ongeldige root — voordat je opslaat. Het kan niet zien of een variabele bestaat. De instellingen van een blok kunnen dat wel: een verwijzing naar een ontbrekende variabele verschijnt daar als oranje chip. Verder valt een hernoemde variabele alleen op in het logboek van de uitvoering.
 - **Spaties binnen de accolades worden niet weggehaald.** `{{ local.variables.NAME }}` is een andere opzoeking dan `{{local.variables.NAME}}` en wordt nooit opgelost. De enige uitzondering is binnen een `{{#each}}`-blok, waar namen van spaties worden ontdaan.
 

@@ -41,11 +41,11 @@
 :::steps
 ### 创建监视器
 
-按 [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#用监视器接收告警) 的说明创建一个 Incoming Request 监视器，并复制它的 **Heartbeat URL**。这就是下面每种工具的接收器中的 `<secret key>` 地址。
+按 [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#用监视器接收告警) 的说明创建一个 传入请求 监视器，并复制它的 **Heartbeat URL**。这就是下面每种工具的接收器中的 `<secret key>` 地址。
 
 ### 将它关联到云
 
-打开监视器的 **概览 → 已关联资源**，添加该 OpenStack 云。之后每个事件都出现在该云的 **事件** 页面上：Incoming Request 监视器自身的设置不指明任何云，因此每个云的 Alertmanager 都需要一个专属的监视器。该云在其首批数据到达后才会出现在列表中，所以请在完成下面的步骤之后再做这一步，或先在 **OpenStack → 所有云** 下添加该云。
+打开监视器的 **概览 → 已关联资源**，添加该 OpenStack 云。之后每个事件都出现在该云的 **事件** 页面上：传入请求 监视器自身的设置不指明任何云，因此每个云的 Alertmanager 都需要一个专属的监视器。该云在其首批数据到达后才会出现在列表中，所以请在完成下面的步骤之后再做这一步，或先在 **OpenStack → 所有云** 下添加该云。
 :::
 
 Alertmanager（Kolla-Ansible 所固定的版本）已被记录下按这个确切的格式发送请求，它发出的内容在运行中的 OneUptime 上打开了一个事件，并由它自己的 `resolved` 状态解决。
@@ -268,7 +268,7 @@ conf:
 
 打开 **OpenStack → 所有云**，点击 **连接云**，提供 Keystone 的地址、应用凭据和要使用的探测器。探测器只通过 HTTPS 与云通信。然后针对 chart 所运行的集群，按 **Kubernetes → 文档** 操作：其 pod、日志和节点会进入 Kubernetes 页面。
 
-若要让这些服务的日志也出现在该云的 **日志** 页面上，并且每个堆栈跟踪作为一条记录，请在代理的 values 中指定云的名称，以及其服务所运行的命名空间：
+若要让这些服务的日志也出现在该云的 **日志** 页面上，并且每个堆栈追踪作为一条记录，请在代理的 values 中指定云的名称，以及其服务所运行的命名空间：
 
 ```yaml title="Kubernetes agent values"
 logs:
@@ -346,7 +346,7 @@ kube_prometheus_stack_helm_values:
 
 打开 **OpenStack → 所有云**，点击 **连接云**，提供 Keystone 的地址、应用凭据和要使用的探测器。探测器只通过 HTTPS 与云通信。然后针对 Atmosphere 所运行的集群，按 **Kubernetes → 文档** 操作。
 
-若要让这些服务的日志也出现在该云的 **日志** 页面上，并且每个堆栈跟踪作为一条记录，请在代理的 values 中指定云的名称，以及其服务所运行的命名空间：
+若要让这些服务的日志也出现在该云的 **日志** 页面上，并且每个堆栈追踪作为一条记录，请在代理的 values 中指定云的名称，以及其服务所运行的命名空间：
 
 ```yaml title="Kubernetes agent values"
 logs:
@@ -456,7 +456,7 @@ spec:
 
 打开 **OpenStack → 所有云**，点击 **连接云**，提供 Keystone 的地址、应用凭据和要使用的探测器。探测器只通过 HTTPS 与云通信。然后针对运行控制平面的集群，按 **Kubernetes → 文档** 操作，并选择 **Red Hat OpenShift**，这会设置 `preset=openshift`。
 
-若要让这些服务的日志也出现在该云的 **日志** 页面上，并且每个堆栈跟踪作为一条记录，请在代理的 values 中指定云的名称，以及其服务所运行的命名空间：
+若要让这些服务的日志也出现在该云的 **日志** 页面上，并且每个堆栈追踪作为一条记录，请在代理的 values 中指定云的名称，以及其服务所运行的命名空间：
 
 ```yaml title="Kubernetes agent values"
 logs:

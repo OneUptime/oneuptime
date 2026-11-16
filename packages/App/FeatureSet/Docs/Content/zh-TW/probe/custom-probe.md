@@ -25,12 +25,12 @@ sequenceDiagram
 
 - **探測器向外連線。** 每個請求都從探測器透過 HTTPS 送往 `ONEUPTIME_URL`。網路外部不需要連到探測器。
 - **它只檢查自己的監測器。** 探測器向 OneUptime 詢問加入了它的監測器，在每個監測器到期時進行檢查，並把結果傳回。監測器的狀態是否改變，由 OneUptime 根據結果決定。
-- **OneUptime 會留意它是否在執行。** 探測器的每個請求都算作存活訊號，探測器至少每分鐘傳送一次。大約三分鐘內沒有任何請求時，探測器會顯示 **已中斷** ，並通知它的擁有者。沒有擁有者的探測器會通知專案的擁有者。如需像對待任何故障一樣收到通知，並在恢復前只保留一個事件，請新增 [探測器狀態監控](/docs/monitor/probe-status-monitor)：在探測器頁面上點選 **監測此探測器** 即可建立。
+- **OneUptime 會留意它是否在執行。** 探測器的每個請求都算作存活訊號，探測器至少每分鐘傳送一次。大約三分鐘內沒有任何請求時，探測器會顯示 **已中斷** ，並通知它的擁有者。沒有擁有者的探測器會通知專案擁有者。如需像對待任何故障一樣收到通知，並在恢復前只保留一個事件，請新增 [探測器狀態監控](/docs/monitor/probe-status-monitor)：在探測器頁面上點選 **監測此探測器** 即可建立。
 
 ## 開始之前
 
 - **在 OneUptime Cloud 上需要 Growth 方案。** 建立探測器需要它。自行託管的安裝沒有方案限制。
-- **建立探測器的權限。** 專案擁有者、管理員和成員擁有此權限，角色允許建立探測器的任何人也有。
+- **建立探測器的權限。** 專案擁有者、專案管理員和專案成員擁有此權限，角色允許建立探測器的任何人也有。
 - **要監控的網路中的一台機器。** 它需要 Docker、Docker Compose 或 Kubernetes，一條通往探測器要檢查之服務的路由，以及到 `ONEUPTIME_URL` 的對外 HTTPS。
 
 ## 安裝探測器
@@ -42,9 +42,9 @@ sequenceDiagram
 
 ### 複製它的 ID 和金鑰
 
-探測器需要 ID 和金鑰才能連線。若要複製，請在 **自訂探測器** 表格中開啟探測器的選單，選擇 **顯示 ID 和金鑰** 。能看到該表格的人都能複製探測器的 ID；只有專案擁有者和管理員能看到金鑰，他們看到的是 **顯示 ID 和金鑰** ，其他人看到的是 **顯示 ID** 。
+探測器需要 ID 和金鑰才能連線。若要複製，請在 **自訂探測器** 表格中開啟探測器的選單，選擇 **顯示 ID 和金鑰** 。能看到該表格的人都能複製探測器的 ID；只有專案擁有者和專案管理員能看到金鑰，他們看到的是 **顯示 ID 和金鑰** ，其他人看到的是 **顯示 ID** 。
 
-專案擁有者和管理員也可以按一下探測器：其頁面上的 **Set up your Custom Probe** 卡片會顯示已填好 ID 和金鑰的 Docker 指令。
+專案擁有者和專案管理員也可以按一下探測器：其頁面上的 **Set up your Custom Probe** 卡片會顯示已填好 ID 和金鑰的 Docker 指令。
 
 ### 執行探測器
 
@@ -201,7 +201,7 @@ spec:
 會經過 Proxy 的內容：
 
 - **探測器本身送往 OneUptime 的請求。**
-- **監測器的 HTTP 檢查** ：Website、API、External Status Page、Custom Code、SSL 憑證、合成和網域監測器。SSL 憑證和合成監測器使用 `HTTPS_PROXY_URL`，只設定了 `HTTP_PROXY_URL` 時則使用它。
+- **監測器的 HTTP 檢查** ：Website、API、外部狀態頁面、Custom Code、SSL 憑證、合成和網域監測器。SSL 憑證和合成監測器使用 `HTTPS_PROXY_URL`，只設定了 `HTTP_PROXY_URL` 時則使用它。
 - **不包括其他檢查。** Ping、Port、DNS、SNMP 等非 HTTP 的檢查會直接連線。
 
 `NO_PROXY` 的項目可以是主機名稱（`api.internal`）、以點或 `*.` 開頭表示其下所有名稱的網域（`.internal.example.com`）、它們加上 `:port` 的形式，或表示全部的 `*`。不會讀取 IP 範圍：請逐一列出位址。小寫的 `http_proxy`、`https_proxy` 和 `no_proxy`，以及 `HTTP_PROXY` 和 `HTTPS_PROXY`，同樣有效。
@@ -287,8 +287,8 @@ Docker Engine 27 及更新版本會為該網路選擇一個 IPv6 子網路，並
 | `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | 合成監測器指令碼的逾時時間，單位為毫秒。 |
 | `PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED` | `false` | 設為 `true` 後，合成監測器中的 Chromium 會在它自己的沙箱中執行。只有在探測器的容器使用允許沙箱的 seccomp 設定檔（例如 Playwright 的設定檔）執行時才開啟它：沒有這樣的設定檔，Chromium 無法啟動。關閉時，探測器會在啟動時記錄一則警告。 |
 | `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Custom Code 監測器指令碼的逾時時間，單位為毫秒。 |
-| `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` | `false` | 設為 `true` 後，此探測器上的 Website、API、External Status Page 和 Custom Code 監測器可以連到私有位址。請參閱 [私有網路存取](/docs/self-hosted/private-network-access)。 |
-| `PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED` | `true` | 此探測器上的 SSL Certificate、Website 和 API 監測器會像瀏覽器一樣，詢問憑證的簽發者是否已撤銷該憑證。設為 `false` 可停止詢問，例如在無法存取網際網路的探測器上。探測器無法連到的簽發者永遠不會被當作撤銷：對於每個無法連到的回應程式，探測器大約每 5 分鐘會等待幾秒。請參閱 [SSL 憑證監控](/docs/monitor/ssl-certificate-monitor)。 |
+| `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` | `false` | 設為 `true` 後，此探測器上的 Website、API、外部狀態頁面 和 Custom Code 監測器可以連到私有位址。請參閱 [私有網路存取](/docs/self-hosted/private-network-access)。 |
+| `PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED` | `true` | 此探測器上的 SSL 憑證、Website 和 API 監測器會像瀏覽器一樣，詢問憑證的簽發者是否已撤銷該憑證。設為 `false` 可停止詢問，例如在無法存取網際網路的探測器上。探測器無法連到的簽發者永遠不會被當作撤銷：對於每個無法連到的回應程式，探測器大約每 5 分鐘會等待幾秒。請參閱 [SSL 憑證監控](/docs/monitor/ssl-certificate-monitor)。 |
 | `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` | `25` | 探測器同時輪詢的網路裝置數量。輪詢裝置很多的探測器可以調高它。 |
 
 合成監測器執行時的限制（同時執行的數量、記憶體和磁碟）請見 [合成監控](/docs/monitor/synthetic-monitor) 頁面。

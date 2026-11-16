@@ -27,6 +27,8 @@ export const MonitorsRoutePath: Dictionary<string> = {
   [PageMap.MONITORS_SETTINGS]: "settings/status",
   [PageMap.MONITORS_SETTINGS_CUSTOM_FIELDS]: "settings/custom-fields",
   [PageMap.MONITORS_SETTINGS_SECRETS]: "settings/secrets",
+  [PageMap.MONITORS_SETTINGS_INCOMING_REQUEST_SECRETS]:
+    "settings/incoming-request-secrets",
   [PageMap.MONITORS_SETTINGS_TEMPLATES]: "settings/templates",
   [PageMap.MONITORS_SETTINGS_TEMPLATES_VIEW]: `settings/templates/${RouteParams.ModelID}`,
   [PageMap.MONITORS_SETTINGS_OWNER_RULES]: "settings/owner-rules",
@@ -58,6 +60,7 @@ export const MonitorsRoutePath: Dictionary<string> = {
 export const ServiceRoutePath: Dictionary<string> = {
   [PageMap.SERVICE_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.SERVICE_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
+  [PageMap.SERVICE_VIEW_SLOS]: `${RouteParams.ModelID}/slos`,
   [PageMap.SERVICE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.SERVICE_VIEW_FEED]: `${RouteParams.ModelID}/feed`,
   [PageMap.SERVICE_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
@@ -1955,6 +1958,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.MONITORS_SETTINGS_INCOMING_REQUEST_SECRETS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/monitors/${
+      MonitorsRoutePath[PageMap.MONITORS_SETTINGS_INCOMING_REQUEST_SECRETS]
+    }`,
+  ),
+
   [PageMap.MONITORS_SETTINGS_TEMPLATES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/monitors/${
       MonitorsRoutePath[PageMap.MONITORS_SETTINGS_TEMPLATES]
@@ -3331,6 +3340,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SERVICE_VIEW_ALERTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/service/${
       ServiceRoutePath[PageMap.SERVICE_VIEW_ALERTS]
+    }`,
+  ),
+
+  [PageMap.SERVICE_VIEW_SLOS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_SLOS]
     }`,
   ),
 

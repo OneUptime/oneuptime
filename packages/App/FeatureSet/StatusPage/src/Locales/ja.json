@@ -42,7 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% 稼働率",
-    "uptimePercent": "稼働率 {{percent}}%",
+    "uptimePercent": "稼働率 {{percent}}",
     "operational": "稼働中",
     "notMonitored": "未監視",
     "noResourcesInGroup": "このグループにリソースが追加されていません。",
@@ -60,10 +60,9 @@
   },
   "eventItem": {
     "affectedResources": "影響を受けるリソース",
-    "stateChangedTo": "状態が次に変更されました:",
     "view": "{{eventType}} を表示",
     "updateTo": "この {{eventType}} の更新",
-    "postedOn": "投稿日:"
+    "postedOnDate": "{{date}} に投稿"
   },
   "monitorOverview": {
     "daysAgo": "{{days}} 日前",
@@ -85,7 +84,7 @@
     "declared": "報告日時",
     "oneIncidentOnThisDay": "この日に 1 件のインシデントが報告されました",
     "incidentsOnThisDay": "この日に {{total}} 件のインシデントが報告されました",
-    "scheduledMaintenance": "予定されたメンテナンス",
+    "scheduledMaintenance": "定期メンテナンス",
     "dayLabelWithMaintenance": "{{label}}、{{maintenance}}",
     "oneMaintenanceEvent": "メンテナンスイベント 1 件",
     "maintenanceEvents": "メンテナンスイベント {{total}} 件",
@@ -138,7 +137,7 @@
   "scheduledEvents": {
     "title": "定期メンテナンス",
     "singular": "メンテナンスイベント",
-    "scheduledMaintenance": "予定されたメンテナンス",
+    "scheduledMaintenance": "定期メンテナンス",
     "ongoing": "進行中のメンテナンス",
     "upcoming": "今後のメンテナンス",
     "completed": "完了したメンテナンス",
@@ -150,8 +149,8 @@
     "notFound": "このステータスページにメンテナンスイベントは見つかりません。",
     "calendar": {
       "subscribe": "カレンダーを購読",
-      "subscribeTitle": "計画メンテナンスを購読",
-      "subscribeDescription": "このページの計画メンテナンスをカレンダーアプリで受け取れます。自動で最新の状態に保たれます。",
+      "subscribeTitle": "定期メンテナンスを購読",
+      "subscribeDescription": "このページの定期メンテナンスをカレンダーアプリで受け取れます。自動で最新の状態に保たれます。",
       "eventTitle": "カレンダーに追加",
       "eventDescription": "このメンテナンスイベントをカレンダーアプリに追加します。",
       "addToCalendar": "カレンダーに追加",
@@ -276,6 +275,7 @@
       "channelSlack": "Slack ワークスペース",
       "channelMicrosoftTeams": "Microsoft Teams ワークスペース",
       "channelWebhook": "Webhook",
+      "channelWithColon": "{{channel}}:",
       "addedByTeamWarning": "この購読は、このステータスページを運営するチームが追加したものです。メーリングリストなどの共有アドレスの場合、購読を解除すると、それを受け取っている全員にこれらの通知が届かなくなり、チームにも通知されます。",
       "confirmButton": "購読を解除",
       "manageInstead": "代わりに受け取る通知を選択する",
@@ -473,5 +473,6 @@
     "warning": "警告"
   },
   "No options available": "利用できるオプションはありません",
-  "No matches found": "一致するものが見つかりません"
+  "No matches found": "一致するものが見つかりません",
+  "{{eventType}} state changed to {{state}}": "{{eventType}}の状態が {{state}} に変更されました"
 }

@@ -9,6 +9,7 @@ import {
   SetUpWebsiteMonitoringTool,
   SetupReachMethod,
   countMonitorsSetUpInPlan,
+  describeProbeAgreementForPerson,
   describeReachForPerson,
   describeWebsiteMonitoringForPerson,
   getMonitorNamesSetUpInPlan,
@@ -56,7 +57,9 @@ import StatusPageResourceService from "../../../../../Server/Services/StatusPage
 import StatusPageService from "../../../../../Server/Services/StatusPageService";
 import TeamMemberService from "../../../../../Server/Services/TeamMemberService";
 import TeamService from "../../../../../Server/Services/TeamService";
+import AlertOnCallRule from "../../../../../Models/DatabaseModels/AlertOnCallRule";
 import AlertSeverity from "../../../../../Models/DatabaseModels/AlertSeverity";
+import IncidentOnCallRule from "../../../../../Models/DatabaseModels/IncidentOnCallRule";
 import IncidentSeverity from "../../../../../Models/DatabaseModels/IncidentSeverity";
 import Monitor from "../../../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../../../Models/DatabaseModels/MonitorStatus";
@@ -73,8 +76,10 @@ import {
 } from "../../../../../Types/AI/AIChatTypes";
 import {
   AI_ACTION_CARD_KINDS,
+  AI_ACTION_LINES,
   AIActionSentence,
   describeAIActionCardWords,
+  describeAIActionSentence,
   isKnownAIActionCardWords,
   isKnownAIActionSentence,
 } from "../../../../../Types/AI/AIActionWords";
@@ -92,9 +97,17 @@ import MonitorStep from "../../../../../Types/Monitor/MonitorStep";
 import MonitorType from "../../../../../Types/Monitor/MonitorType";
 import Name from "../../../../../Types/Name";
 import ObjectID from "../../../../../Types/ObjectID";
-import { PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY } from "../../../../../Types/OnCallDutyPolicy/EveryNewEventRules";
+import { LIMIT_PER_PROJECT } from "../../../../../Types/Database/LimitMax";
+import {
+  EVERY_NEW_EVENT_RULES_LANGUAGE_KEY,
+  getEveryNewIncidentRuleName,
+  PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY,
+} from "../../../../../Types/OnCallDutyPolicy/EveryNewEventRules";
 import PositiveNumber from "../../../../../Types/PositiveNumber";
-import { GUIDED_SETUP_POLICY_NAME } from "../../../../../Utils/GuidedSetup/OnCallPolicyRecords";
+import {
+  getFirstOnCallPolicyName,
+  GUIDED_SETUP_POLICY_NAME,
+} from "../../../../../Utils/GuidedSetup/OnCallPolicyRecords";
 import { GUIDED_SETUP_RESOURCE_OPTIONS } from "../../../../../Utils/GuidedSetup/StatusPageRecords";
 import {
   GUIDED_SETUP_MONITORING_INTERVAL,
@@ -102,6 +115,10 @@ import {
   parseWebsiteAddress,
 } from "../../../../../Utils/GuidedSetup/WebsiteMonitorRecords";
 import { Translator } from "../../../../../Types/Translator";
+import {
+  getProbeAgreementSentence,
+  PROBE_AGREEMENT_SENTENCES,
+} from "../../../../../Utils/Monitor/ProbeAgreementRule";
 import {
   actionLineText,
   actionTitleText,
@@ -259,20 +276,80 @@ function stubMonitorCreate(): Spy {
   }) as never);
 }
 
+/*
+ * The project's paging, as its database holds it: each policy archived or
+ * not, and each on-call rule with the policies it runs, archived or not.
+ * The fake answers as the services do: a count of the policies the query
+ * matches, and the rules read with their policies (#8518).
+ */
+function servePaging(project: {
+  policies: Array<boolean>;
+  incidentRules?: Array<Array<boolean>>;
+  alertRules?: Array<Array<boolean>>;
+}): { policyCount: Spy; incidentRules: Spy; alertRules: Spy } {
+  const rulesOf: <T extends IncidentOnCallRule | AlertOnCallRule>(
+    type: { new (): T },
+    rules: Array<Array<boolean>>,
+  ) => Array<T> = <T extends IncidentOnCallRule | AlertOnCallRule>(
+    type: { new (): T },
+    rules: Array<Array<boolean>>,
+  ): Array<T> => {
+    return rules.map((policiesArchived: Array<boolean>): T => {
+      const rule: T = new type();
+      rule._id = ObjectID.generate().toString();
+      rule.onCallDutyPolicies = policiesArchived.map(
+        (isArchived: boolean): OnCallDutyPolicy => {
+          const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
+          policy._id = ObjectID.generate().toString();
+          policy.isArchived = isArchived;
+          return policy;
+        },
+      );
+      return rule;
+    });
+  };
+
+  return {
+    policyCount: jest
+      .spyOn(OnCallDutyPolicyService, "countBy")
+      .mockImplementation((async (args: {
+        query: Record<string, unknown>;
+      }): Promise<PositiveNumber> => {
+        return new PositiveNumber(
+          project.policies.filter((isArchived: boolean): boolean => {
+            return (
+              !("isArchived" in args.query) ||
+              args.query["isArchived"] === isArchived
+            );
+          }).length,
+        );
+      }) as never),
+    incidentRules: jest
+      .spyOn(IncidentOnCallRuleService, "findBy")
+      .mockResolvedValue(
+        rulesOf(IncidentOnCallRule, project.incidentRules || []) as never,
+      ),
+    alertRules: jest
+      .spyOn(AlertOnCallRuleService, "findBy")
+      .mockResolvedValue(
+        rulesOf(AlertOnCallRule, project.alertRules || []) as never,
+      ),
+  };
+}
+
+// A project with this many policies in service, and rules that run one.
 function stubPagingCounts(counts: {
   policies: number;
   incidentRules: number;
   alertRules: number;
 }): void {
-  jest
-    .spyOn(OnCallDutyPolicyService, "countBy")
-    .mockResolvedValue(new PositiveNumber(counts.policies) as never);
-  jest
-    .spyOn(IncidentOnCallRuleService, "countBy")
-    .mockResolvedValue(new PositiveNumber(counts.incidentRules) as never);
-  jest
-    .spyOn(AlertOnCallRuleService, "countBy")
-    .mockResolvedValue(new PositiveNumber(counts.alertRules) as never);
+  servePaging({
+    policies: new Array<boolean>(counts.policies).fill(false),
+    incidentRules: new Array<Array<boolean>>(counts.incidentRules).fill([
+      false,
+    ]),
+    alertRules: new Array<Array<boolean>>(counts.alertRules).fill([false]),
+  });
 }
 
 function readiness(data: {
@@ -523,7 +600,7 @@ describe("set_up_website_monitoring", () => {
       isApi: false,
     });
     expect(line(prepared.description)).toBe(
-      "A website monitor checks https://example.com every minute. It is checked from 2 locations. If it does not answer, or answers with an error, OneUptime opens an incident (Critical Incident). You own this monitor, so you are emailed when its status changes.",
+      "A website monitor checks https://example.com every minute. It is checked from 2 locations. If it does not answer, or answers with an error, OneUptime opens an incident (Critical Incident). A status change needs both connected probes to agree. You own this monitor, so you are emailed when its status changes.",
     );
     expect(prepared.describedArguments).toEqual([
       "address",
@@ -535,6 +612,169 @@ describe("set_up_website_monitoring", () => {
       expect(isKnownAIActionSentence(sentence)).toBe(true);
     }
   });
+
+  /*
+   * A probe-based monitor's status changes only when its probes agree, and
+   * a new monitor's minimum is not set: every location must find the site
+   * down. The card said an incident opens when it does not answer, so the
+   * person expected one failing region to open one (#8245).
+   */
+  test.each<[number, Array<string>]>([
+    [
+      1,
+      [
+        "A website monitor checks https://example.com every 5 minutes.",
+        "It is checked from 1 location.",
+        "If it does not answer, or answers with an error, OneUptime opens an incident (Critical Incident).",
+        "You own this monitor, so you are emailed when its status changes.",
+      ],
+    ],
+    [
+      2,
+      [
+        "A website monitor checks https://example.com every 5 minutes.",
+        "It is checked from 2 locations.",
+        "If it does not answer, or answers with an error, OneUptime opens an incident (Critical Incident).",
+        "A status change needs both connected probes to agree.",
+        "You own this monitor, so you are emailed when its status changes.",
+      ],
+    ],
+    [
+      3,
+      [
+        "A website monitor checks https://example.com every 5 minutes.",
+        "It is checked from 3 locations.",
+        "If it does not answer, or answers with an error, OneUptime opens an incident (Critical Incident).",
+        "A status change needs all 3 connected probes to agree.",
+        "You own this monitor, so you are emailed when its status changes.",
+      ],
+    ],
+  ])(
+    "checked from %i location(s), the card says how many must agree before an incident opens",
+    async (locations: number, sentences: Array<string>) => {
+      stubSeeds();
+      stubLocations({ global: locations });
+
+      const prepared: PreparedMutation =
+        await SetUpWebsiteMonitoringTool.prepareMutation!(
+          { address: "example.com" },
+          ctx,
+        );
+
+      expect(
+        (prepared.description || []).map((sentence: AIActionSentence) => {
+          return actionTitleText(sentence);
+        }),
+      ).toEqual(sentences);
+
+      for (const sentence of prepared.description || []) {
+        expect(isKnownAIActionSentence(sentence)).toBe(true);
+      }
+    },
+  );
+
+  test("the agreement line is the probes card's own sentence, its counts figures", () => {
+    expect(
+      describeProbeAgreementForPerson({
+        minimumProbeAgreement: null,
+        locationCount: 3,
+      }),
+    ).toEqual({
+      template: AI_ACTION_LINES.probeAgreementAll,
+      values: { count: { figure: 3 } },
+    });
+    expect(
+      describeProbeAgreementForPerson({
+        minimumProbeAgreement: undefined,
+        locationCount: 2,
+      }),
+    ).toEqual({ template: AI_ACTION_LINES.probeAgreementBoth });
+    // A minimum below all of them: how many of how many.
+    expect(
+      describeProbeAgreementForPerson({
+        minimumProbeAgreement: 2,
+        locationCount: 4,
+      }),
+    ).toEqual({
+      template: AI_ACTION_LINES.probeAgreementSome,
+      values: { required: { figure: 2 }, count: { figure: 4 } },
+    });
+    // Nothing to agree on: one location, none, or a minimum of one.
+    expect(
+      describeProbeAgreementForPerson({
+        minimumProbeAgreement: null,
+        locationCount: 1,
+      }),
+    ).toBeNull();
+    expect(
+      describeProbeAgreementForPerson({
+        minimumProbeAgreement: null,
+        locationCount: 0,
+      }),
+    ).toBeNull();
+    expect(
+      describeProbeAgreementForPerson({
+        minimumProbeAgreement: 1,
+        locationCount: 3,
+      }),
+    ).toBeNull();
+    // The keys the probes card is worded by, one copy.
+    expect([
+      AI_ACTION_LINES.probeAgreementSome,
+      AI_ACTION_LINES.probeAgreementBoth,
+      AI_ACTION_LINES.probeAgreementAll,
+    ]).toEqual([
+      PROBE_AGREEMENT_SENTENCES.some,
+      PROBE_AGREEMENT_SENTENCES.both,
+      PROBE_AGREEMENT_SENTENCES.all,
+    ]);
+  });
+
+  test("a monitor that goes Offline rather than opening an incident says the agreement too", () => {
+    expect(
+      describeWebsiteMonitoringForPerson({
+        address: {
+          url: "https://example.com",
+          host: "example.com",
+          monitorName: "example.com",
+        },
+        isApi: false,
+        minutes: 5,
+        locationCount: 4,
+        incidentSeverityName: null,
+      }).map((sentence: AIActionSentence) => {
+        return actionTitleText(sentence);
+      }),
+    ).toEqual([
+      "A website monitor checks https://example.com every 5 minutes.",
+      "It is checked from 4 locations.",
+      "If it does not answer, or answers with an error, its status changes to Offline.",
+      "A status change needs all 4 connected probes to agree.",
+      "You own this monitor, so you are emailed when its status changes.",
+    ]);
+  });
+
+  test.each(["de", "ar", "fa"])(
+    "in %s, the agreement line reads as the probes card reads it, its count in the reader's digits",
+    (language: string) => {
+      const translator: Translator = dashboardTranslator(language);
+      const sentence: AIActionSentence = describeProbeAgreementForPerson({
+        minimumProbeAgreement: null,
+        locationCount: 3,
+      })!;
+      const worded: string = describeAIActionSentence(sentence, translator);
+
+      expect(worded).toBe(
+        getProbeAgreementSentence({
+          minimumProbeAgreement: null,
+          activeProbeCount: 3,
+          translator,
+        }),
+      );
+      expect(worded).not.toContain("connected probes");
+      expect(worded).toContain(translator.formatNumber(3));
+    },
+  );
 
   test("an API is said to be one, every five minutes by default", async () => {
     stubSeeds();
@@ -772,7 +1012,7 @@ describe("set_up_website_monitoring", () => {
       'Created the Website monitor "example.com", checking https://example.com every minute from 2 locations.',
     );
     expect(result.dataForLlm).toContain(
-      "opens an incident (Critical Incident)",
+      "opens an incident (Critical Incident). A status change needs both connected probes to agree. The person owns it",
     );
     expect(result.dataForLlm).toContain("never say one was sent");
     expect(result.widget?.data.testPage).toEqual({ kind: "self" });
@@ -1359,7 +1599,7 @@ describe("set_up_paging", () => {
       );
 
     expect(refused?.refusal).toBe(AIToolRefusal.Permission);
-    expect(refused?.toldModel).toContain("a project admin can set up paging");
+    expect(refused?.toldModel).toContain("a Project Admin can set up paging");
   });
 
   test("nobody to page is not proposed", async () => {
@@ -1382,6 +1622,8 @@ describe("set_up_paging", () => {
 
   test("approved, it creates the guided setup's policy as the person, paging who the card named for every new incident and alert", async () => {
     stubPagingCounts({ policies: 0, incidentRules: 0, alertRules: 0 });
+    // No language sent, none saved: English, as it always was.
+    jest.spyOn(UserLanguage, "getLanguage").mockResolvedValue("en" as never);
     const create: Spy = jest
       .spyOn(OnCallDutyPolicyService, "create")
       .mockImplementation((async (args: {
@@ -1418,6 +1660,8 @@ describe("set_up_paging", () => {
       users: [USER_ID.toString(), ANA_ID],
       teams: [TEAM_ID],
       [PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY]: true,
+      // The server words the two rules in the person's language (#7995).
+      [EVERY_NEW_EVENT_RULES_LANGUAGE_KEY]: "en",
     });
 
     expect(result.citationTarget).toEqual({
@@ -1440,6 +1684,94 @@ describe("set_up_paging", () => {
     );
   });
 
+  /*
+   * #7995: the policy is named in the language the person reads the
+   * Dashboard in, as the guided setup names it, and its create carries
+   * that language so the server words its two rules in it. Its card, its
+   * citation and its test page name it as it was made.
+   */
+  test.each(["de", "ar", "fa", "ja"])(
+    "approved by a reader of %s, it names the policy in their language, and asks for its rules in it",
+    async (language: string) => {
+      stubPagingCounts({ policies: 0, incidentRules: 0, alertRules: 0 });
+      const saved: Spy = jest
+        .spyOn(UserLanguage, "getLanguage")
+        .mockResolvedValue("en" as never);
+      const create: Spy = jest
+        .spyOn(OnCallDutyPolicyService, "create")
+        .mockImplementation((async (args: {
+          data: OnCallDutyPolicy;
+        }): Promise<OnCallDutyPolicy> => {
+          const created: OnCallDutyPolicy = args.data;
+          created._id = POLICY_ID;
+          return created;
+        }) as never);
+
+      const result: ToolExecutionResult = await SetUpPagingTool.execute(
+        { userIds: [USER_ID.toString()], teamIds: [] },
+        { ...ctx, language: language },
+      );
+
+      const args: { data: OnCallDutyPolicy; miscDataProps: JSONObject } = create
+        .mock.calls[0]![0] as {
+        data: OnCallDutyPolicy;
+        miscDataProps: JSONObject;
+      };
+      const name: string = getFirstOnCallPolicyName(
+        dashboardTranslator(language),
+      );
+
+      expect(name).not.toBe(GUIDED_SETUP_POLICY_NAME);
+      expect(args.data.name).toBe(name);
+      expect(args.miscDataProps[EVERY_NEW_EVENT_RULES_LANGUAGE_KEY]).toBe(
+        language,
+      );
+      // The Dashboard's language decides: the saved one is not read.
+      expect(saved).not.toHaveBeenCalled();
+      expect(result.widget?.data.testPage).toEqual({
+        kind: "policy",
+        policyId: POLICY_ID,
+        policyName: name,
+      });
+      expect(result.citationLabel).toBe(`Created on-call policy "${name}"`);
+      expect(result.dataForLlm).toContain(
+        `Created the on-call policy "${name}"`,
+      );
+    },
+  );
+
+  test("its approval card names the policy as it will be made: in the reader's language", async () => {
+    jest
+      .spyOn(OnCallReadinessService, "getReadinessForUser")
+      .mockResolvedValue(
+        readiness({ verified: [ReadinessMethodType.Email] }) as never,
+      );
+    jest.spyOn(UserLanguage, "getLanguage").mockResolvedValue("en" as never);
+
+    const english: PreparedMutation = await SetUpPagingTool.prepareMutation!(
+      {},
+      ctx,
+    );
+    const german: PreparedMutation = await SetUpPagingTool.prepareMutation!(
+      {},
+      { ...ctx, language: "de" },
+    );
+
+    expect(actionTitleText(english.title!)).toBe(
+      `Create on-call policy "${GUIDED_SETUP_POLICY_NAME}"`,
+    );
+    expect(actionTitleText(german.title!)).toBe(
+      `Create on-call policy "${getFirstOnCallPolicyName(dashboardTranslator("de"))}"`,
+    );
+    // The rule the server then adds names it as it was made.
+    expect(
+      getEveryNewIncidentRuleName(
+        getFirstOnCallPolicyName(dashboardTranslator("de")),
+        dashboardTranslator("de"),
+      ),
+    ).toContain(getFirstOnCallPolicyName(dashboardTranslator("de")));
+  });
+
   test("approved after a policy was made elsewhere, it makes no second one", async () => {
     stubPagingCounts({ policies: 1, incidentRules: 1, alertRules: 1 });
     const create: Spy = jest.spyOn(OnCallDutyPolicyService, "create");
@@ -1458,6 +1790,174 @@ describe("set_up_paging", () => {
       SetUpPagingTool.execute({ userIds: ["nope"] }, ctx),
     ).rejects.toThrow("nobody named is a member or a team");
     expect(create).not.toHaveBeenCalled();
+  });
+
+  /*
+   * ONLY WHAT PAGES PEOPLE COUNTS (#8518), as the website-down guided setup
+   * counts a project (#8234, #8433). An archived policy pages no one, and
+   * an on-call rule pages people only through a policy in service: a
+   * project whose only policy was archived, with the rules that run it, was
+   * told "this project already pages people", and nobody was paged when
+   * its monitor opened an incident.
+   */
+  describe("archived policies, and rules that run only archived ones (#8518)", () => {
+    const propose: () => Promise<SetupActionRefusal | null> =
+      async (): Promise<SetupActionRefusal | null> => {
+        return await SetUpPagingTool.checkBeforeApproval!(
+          { userIds: [USER_ID.toString()] },
+          ctx,
+        );
+      };
+
+    test("the policies are counted as the On-Call Policies list shows them: archived ones left out, as the person", async () => {
+      const spies: { policyCount: Spy; incidentRules: Spy; alertRules: Spy } =
+        servePaging({ policies: [] });
+
+      await propose();
+
+      expect(spies.policyCount).toHaveBeenCalledTimes(1);
+      expect(spies.policyCount.mock.calls[0]![0]).toEqual({
+        query: { projectId: PROJECT_ID, isArchived: false },
+        props: ctx.props,
+      });
+    });
+
+    test("the rules are read with each policy's archived flag, one list each, as the person - never just counted", async () => {
+      const spies: { policyCount: Spy; incidentRules: Spy; alertRules: Spy } =
+        servePaging({ policies: [] });
+      const ruleCounts: Array<Spy> = [
+        jest.spyOn(IncidentOnCallRuleService, "countBy"),
+        jest.spyOn(AlertOnCallRuleService, "countBy"),
+      ];
+
+      await propose();
+
+      for (const spy of [spies.incidentRules, spies.alertRules]) {
+        expect(spy).toHaveBeenCalledTimes(1);
+        expect(spy.mock.calls[0]![0]).toEqual({
+          query: { projectId: PROJECT_ID },
+          select: {
+            _id: true,
+            onCallDutyPolicies: { _id: true, isArchived: true },
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: ctx.props,
+        });
+      }
+
+      for (const spy of ruleCounts) {
+        expect(spy).not.toHaveBeenCalled();
+      }
+    });
+
+    test("the issue's project: its only policy archived, with the two rules that run it - Ask AI proposes paging", async () => {
+      servePaging({
+        policies: [true],
+        incidentRules: [[true]],
+        alertRules: [[true]],
+      });
+
+      expect(await propose()).toBeNull();
+    });
+
+    test("approved for that project, it makes the guided setup's policy", async () => {
+      servePaging({
+        policies: [true],
+        incidentRules: [[true]],
+        alertRules: [[true]],
+      });
+      jest.spyOn(UserLanguage, "getLanguage").mockResolvedValue("en" as never);
+      const create: Spy = jest
+        .spyOn(OnCallDutyPolicyService, "create")
+        .mockImplementation((async (args: {
+          data: OnCallDutyPolicy;
+        }): Promise<OnCallDutyPolicy> => {
+          const created: OnCallDutyPolicy = args.data;
+          created._id = POLICY_ID;
+          return created;
+        }) as never);
+
+      await SetUpPagingTool.execute({ userIds: [USER_ID.toString()] }, ctx);
+
+      expect(create).toHaveBeenCalledTimes(1);
+    });
+
+    test("several archived policies, and rules that run only them, are still none", async () => {
+      servePaging({
+        policies: [true, true, true],
+        incidentRules: [[true, true], [true]],
+        alertRules: [[true]],
+      });
+
+      expect(await propose()).toBeNull();
+    });
+
+    test("a rule that runs no policy at all pages no one, and does not count", async () => {
+      servePaging({ policies: [], incidentRules: [[]], alertRules: [[]] });
+
+      expect(await propose()).toBeNull();
+    });
+
+    test("a rule running a policy in service beside an archived one: the project pages people already", async () => {
+      servePaging({
+        policies: [true, false],
+        incidentRules: [[true, false]],
+      });
+
+      const refused: SetupActionRefusal | null = await propose();
+
+      expect(refused?.toldModel).toContain(
+        "this project already pages people through its on-call policies and on-call rules (1 on-call policy, 1 on-call rule)",
+      );
+    });
+
+    test("the counts it says are of what pages people: archived policies and their rules left out", async () => {
+      servePaging({
+        policies: [true, false, false],
+        incidentRules: [[false], [true], []],
+        alertRules: [[false], [true, false], [true]],
+      });
+
+      const refused: SetupActionRefusal | null = await propose();
+
+      expect(refused?.toldModel).toContain(
+        "(2 on-call policies, 3 on-call rules)",
+      );
+    });
+
+    test("approved after a policy was archived elsewhere, it still makes one: execute counts the same way", async () => {
+      servePaging({ policies: [false], incidentRules: [[false]] });
+      expect((await propose())?.toldModel).toContain("already pages people");
+
+      // Archived meanwhile: the card's approval finds no policy in service.
+      servePaging({ policies: [true], incidentRules: [[true]] });
+      jest.spyOn(UserLanguage, "getLanguage").mockResolvedValue("en" as never);
+      const create: Spy = jest
+        .spyOn(OnCallDutyPolicyService, "create")
+        .mockImplementation((async (args: {
+          data: OnCallDutyPolicy;
+        }): Promise<OnCallDutyPolicy> => {
+          const created: OnCallDutyPolicy = args.data;
+          created._id = POLICY_ID;
+          return created;
+        }) as never);
+
+      await SetUpPagingTool.execute({ userIds: [USER_ID.toString()] }, ctx);
+
+      expect(create).toHaveBeenCalledTimes(1);
+    });
+
+    test("rules that cannot be read are unknown, never none: the person is told who can set it up", async () => {
+      servePaging({ policies: [] });
+      jest
+        .spyOn(AlertOnCallRuleService, "findBy")
+        .mockRejectedValue(new Error("not allowed") as never);
+
+      const refused: SetupActionRefusal | null = await propose();
+
+      expect(refused?.refusal).toBe(AIToolRefusal.Permission);
+    });
   });
 });
 

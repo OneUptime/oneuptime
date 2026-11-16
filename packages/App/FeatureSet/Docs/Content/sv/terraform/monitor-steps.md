@@ -11,7 +11,7 @@
 
 ## Så bedöms en kontroll
 
-Varje kontroll ger ett resultat: svaret från en probe, returvärdet från ett skript eller den telemetri som kontrollen läser. Stegets kriterier bedömer det sedan i sin ordning. Det första kriterium vars filter stämmer avgör vad som händer: det kan ändra monitorns status, öppna incidenter och öppna larm. Kriterierna efter det tittas inte på för den kontrollen.
+Varje kontroll ger ett resultat: svaret från en sond, returvärdet från ett skript eller den telemetri som kontrollen läser. Stegets kriterier bedömer det sedan i sin ordning. Det första kriterium vars filter stämmer avgör vad som händer: det kan ändra monitorns status, öppna incidenter och öppna larm. Kriterierna efter det tittas inte på för den kontrollen.
 
 ```mermaid title="Så bedöms varje kontroll"
 flowchart TB
@@ -26,7 +26,7 @@ Ordningen på kriterierna spelar alltså roll: lägg de kriterier som larmar fö
 
 ## Skriv stegen
 
-`monitor_steps` är en lista med typade objekt som skrivs direkt i HCL. Det finns ingen `jsonencode()`, inget `{_type, value}`-omslag, ingen camelCase-nyckel och inget ID att skriva: providern gör om din HCL till API:ets format, och servern ger varje steg, kriterium, incidentmall och larmmall dess ID. Den behåller de ID:na vid varje apply genom att matcha varje kriterium och mall mot den som de ersätter, efter namn och annars efter position, så att proberesultat stannar hos sitt steg och incidenter fortsätter att peka på de kriterier som utlöste dem.
+`monitor_steps` är en lista med typade objekt som skrivs direkt i HCL. Det finns ingen `jsonencode()`, inget `{_type, value}`-omslag, ingen camelCase-nyckel och inget ID att skriva: providern gör om din HCL till API:ets format, och servern ger varje steg, kriterium, incidentmall och larmmall dess ID. Den behåller de ID:na vid varje apply genom att matcha varje kriterium och mall mot den som de ersätter, efter namn och annars efter position, så att sondresultat stannar hos sitt steg och incidenter fortsätter att peka på de kriterier som utlöste dem.
 
 ```mermaid title="Delarna i monitor_steps"
 flowchart TB
@@ -170,9 +170,9 @@ Varje element i `monitor_steps` är en sak att kontrollera:
 | `tls_client_certificate` | string | Webbplats, API | Ett klientcertifikat för ömsesidig TLS: PEM, eller en hänvisning `{{monitorSecrets.name}}`. |
 | `tls_client_key` | string (känslig) | Webbplats, API | Klientcertifikatets privata nyckel. Ange den tillsammans med certifikatet. |
 | `tls_client_key_passphrase` | string (känslig) | Webbplats, API | Den privata nyckelns lösenfras. |
-| `request_timeout_in_ms` | number | Kontroller som en probe gör | Hur länge ett försök får ta, i millisekunder. Proben sänker allt över 60000 till 60000. |
-| `retry_count` | number | Kontroller som en probe gör | Nya försök efter ett misslyckat första försök: `0` kontrollerar en gång, `3` upp till fyra gånger. Proben sänker allt över 3 till 3. |
-| `custom_code` | string | Custom JavaScript Code, Synthetic | Skriptet som steget kör. |
+| `request_timeout_in_ms` | number | Kontroller som en sond gör | Hur länge ett försök får ta, i millisekunder. Sonden sänker allt över 60000 till 60000. |
+| `retry_count` | number | Kontroller som en sond gör | Nya försök efter ett misslyckat första försök: `0` kontrollerar en gång, `3` upp till fyra gånger. Sonden sänker allt över 3 till 3. |
+| `custom_code` | string | Anpassad JavaScript-kod, Synthetic | Skriptet som steget kör. |
 | `screen_size_types` | list(string) | Synthetic | `Mobile`, `Tablet` och `Desktop`. |
 | `browser_types` | list(string) | Synthetic | `Chromium` och `Firefox`. |
 | `retry_count_on_error` | number | Synthetic | Nya försök när skriptet misslyckas: `0` kör det en gång. |
@@ -401,7 +401,7 @@ En kontroll som inte stämmer med något kriterium sätter monitorn i dess stand
 
 ## En monitor utan steg
 
-`monitor_steps` är valfritt, men en monitor som skapas utan det har inga kriterier att bedöma ett resultat efter: prober hoppar över en monitor utan steg, och den stannar i den status som den startade i. Din state håller attributet tomt, och planen förblir ren. En manuell monitor behöver aldrig steg: du sätter dess status själv. Alla andra typer behöver minst ett steg för att kontrollera något.
+`monitor_steps` är valfritt, men en monitor som skapas utan det har inga kriterier att bedöma ett resultat efter: sonder hoppar över en monitor utan steg, och den stannar i den status som den startade i. Din state håller attributet tomt, och planen förblir ren. En manuell monitor behöver aldrig steg: du sätter dess status själv. Alla andra typer behöver minst ett steg för att kontrollera något.
 
 ## Överföringsformatet
 

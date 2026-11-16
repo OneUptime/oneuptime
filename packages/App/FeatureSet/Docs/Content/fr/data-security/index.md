@@ -43,7 +43,7 @@ flowchart TB
 
 ## Avant de commencer
 
-- **Un rôle qui peut la configurer.** Les Project Owners, Project Admins et Security Admins modifient les paramètres de Sécurité des données. Les Security Members traitent les problèmes et analysent les magasins de données, et les Security Viewers lisent ce qu'elle a trouvé. Les autres rôles n'en voient rien, sauf si leur équipe reçoit ses autorisations : savoir quels buckets contiennent des numéros de carte, c'est exactement ce qu'un attaquant veut connaître. Voir [Rôles](/docs/permissions/reference#rôles).
+- **Un rôle qui peut la configurer.** Les Propriétaires du projet, Administrateurs du projet et Administrateurs de la sécurité modifient les paramètres de Sécurité des données. Les Membres de la sécurité traitent les problèmes et analysent les magasins de données, et les Lecteurs de la sécurité lisent ce qu'elle a trouvé. Les autres rôles n'en voient rien, sauf si leur équipe reçoit ses autorisations : savoir quels buckets contiennent des numéros de carte, c'est exactement ce qu'un attaquant veut connaître. Voir [Rôles](/docs/permissions/reference#rôles).
 - **Un compte cloud à lire, ou une base de données.** Sécurité des données lit un compte cloud via une [connexion cloud](/docs/telemetry/cloud-accounts), et une base de données que vous exploitez via une chaîne de connexion en lecture seule. La télémétrie ne demande rien : elle est analysée toutes les heures.
 
 ## Démarrage rapide
@@ -69,7 +69,7 @@ Ouvrez **Sécurité des données**. Les magasins de données apparaissent sous *
 | AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System, Amazon Athena | AWS S3 Bucket |
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
-| Bases de données que vous exploitez | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL |
+| Bases de données que vous exploitez | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
 | OneUptime | Journaux, Traces, Exceptions, Relectures de session, Conversations IA | Journaux, Traces, Exceptions, Relectures de session, Conversations IA |
 
 Chaque magasin de données reçoit les contrôles qui s'appliquent à son type. Un magasin de données dont le contenu ne peut pas être échantillonné est tout de même contrôlé : un bucket public ou une base de données non chiffrée est un problème, quoi qu'il contienne.
@@ -96,5 +96,5 @@ La **Chronologie** d'un magasin de données indique ce qui lui est arrivé, et q
 - [Configurer la Sécurité des données](/docs/data-security/setup): Les trois niveaux, les autorisations que chacun accorde, et l'analyse de vos propres bases de données.
 - [Types de données sensibles](/docs/data-security/data-types): Comment une valeur est trouvée, et chaque type de données que connaît Sécurité des données.
 - [Contrôles et problèmes de Sécurité des données](/docs/data-security/checks-and-issues): Chaque contrôle, le score de risque et ce qu'il advient d'un problème.
-- [Intégrations de Sécurité des données](/docs/data-security/integrations): Dossiers de sécurité, alertes, propriétaires, workflows et OneUptime AI.
+- [Intégrations de Sécurité des données](/docs/data-security/integrations): Dossiers de sécurité, alertes, propriétaires, flux de travail et OneUptime AI.
 :::

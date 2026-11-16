@@ -2,7 +2,7 @@
 
 Telemetri innehåller allt som din kod skriver: en e-postadress i en loggrad, ett kortnummer i ett span-attribut, en token i en stackspårning, en kunds fråga i en prompt. Datasäkerhet behandlar varje tjänsts loggar, spår, undantag och AI-konversationer, och varje RUM-applikations sessioner, som egna datalager. Den tar prov ur dem varje timme, hittar känsliga data i dem på samma sätt som i en bucket, och **Rensa** gör om ett fynd till en rensningsregel som maskerar dessa data vid intaget från och med då.
 
-Det finns inget att konfigurera: varje tjänsts telemetri skannas varje timme, om inte **Skanna telemetri** är avstängt i projektets inställningar.
+Det finns inget att konfigurera: varje tjänsts telemetri skannas varje timme, om inte **Skanna telemetri** är avstängt i projektets inställningar. Om du vill utesluta en tjänsts loggar, spårningar eller en annan av dess signaler stänger du av **Skanna innehåll** i det datalagrets **Inställningar**: från nästa skanning läses inget av det.
 
 :::cards
 - [Vad som läses](#vad-som-läses): Attributen, kropparna, meddelandena och promptarna i varje signal.
@@ -45,7 +45,7 @@ En sessionsuppspelnings inspelning innehåller texten på sidorna som personer s
 
 Ett AI-anrops prompt bär med sig hela chatten före personens senaste meddelande, så upp till 16 384 tecken av varje värde i ett AI-anrop läses. När AI-konversationer innehåller känsliga data följer två saker till: AI-leverantören som anropen gick till blir ett dataflöde för dessa data, och [Känsliga data skickas till en AI-leverantör](/docs/data-security/checks-and-issues#ai) misslyckas för datalagret.
 
-Konversationerna i ett [AI-verktyg för företaget](/docs/telemetry/ai-company-tools) lämnas utanför. Bara rollerna Project Owner och Project Admin får läsa dem, och ett fynd hamnar där alla som läser Datasäkerhet kan läsa det, så de tjänsternas spans läses aldrig, och deras AI-konversationer rapporteras som inte lästa.
+Konversationerna i ett [AI-verktyg för företaget](/docs/telemetry/ai-company-tools) lämnas utanför. Bara rollerna Projektägare och Projektadministratör får läsa dem, och ett fynd hamnar där alla som läser Datasäkerhet kan läsa det, så de tjänsternas spans läses aldrig, och deras AI-konversationer rapporteras som inte lästa.
 
 ## Hur en skanning tar prov
 
@@ -101,7 +101,7 @@ Vissa fynd kan inte rensas av en regel, och **Rensa** säger varför:
 - En av dina egna datatyper: lägg själv till en anpassad rensningsregel med dess mönster.
 - En sessions egna uppgifter (`sessions.*`): intaget av sessionsuppspelningar kör inga rensningsregler.
 
-**Rensa** skapar regeln i ditt namn, med dina egna behörigheter: rollerna Project Owner och Project Admin kan klicka på den, och det kan även ett team som får skapa loggrensningsregler, och spårrensningsregler för spans, undantag och AI-anrop.
+**Rensa** skapar regeln i ditt namn, med dina egna behörigheter: rollerna Projektägare och Projektadministratör kan klicka på den, och det kan även ett team som får skapa loggrensningsregler, och spårrensningsregler för spans, undantag och AI-anrop.
 
 ## Vad som räknas som rensat
 

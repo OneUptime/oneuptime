@@ -1,6 +1,6 @@
 # Global SSO
 
-Med global SSO setter en **instansadministrator** i OneUptime (master-admin) opp en SAML 2.0- eller OpenID Connect-identitetsleverandør (OIDC) **én gang**, på instansnivå, og kobler den til hvilket som helst prosjekt på serveren. I stedet for at hver prosjekteier setter opp sin egen identitetsleverandør, setter en master-admin opp én som betjener hele instansen.
+Med global SSO setter en **instansadministrator** i OneUptime (master-admin) opp en SAML 2.0- eller OpenID Connect-identitetsleverandør (OIDC) **én gang**, på instansnivå, og kobler den til hvilket som helst prosjekt på serveren. I stedet for at hver Prosjekteier setter opp sin egen identitetsleverandør, setter en master-admin opp én som betjener hele instansen.
 
 > [!NOTE]
 > Global SSO, inkludert den instansomfattende bryteren "Require SSO for Login", er en del av alle OneUptime-utgaver: alle selvhostede instanser har det, også Community Edition, og det krever ingen lisens. Det hører til instansadministrasjonen og gjelder derfor ikke for OneUptime Cloud. Se [Enterprise Edition](/docs/self-hosted/enterprise) for hva hver utgave inneholder.
@@ -16,7 +16,7 @@ Med global SSO setter en **instansadministrator** i OneUptime (master-admin) opp
 
 |                     | Prosjekt-SSO                                       | Global SSO                                          |
 | ------------------- | -------------------------------------------------- | --------------------------------------------------- |
-| Settes opp av       | Prosjekteier/-administrator (Prosjektinnstillinger) | Instansens master-admin (Admin Dashboard)          |
+| Settes opp av       | Prosjekteier eller Prosjektadministrator (Prosjektinnstillinger) | Instansens master-admin (Admin Dashboard)          |
 | Omfang              | Ett enkelt prosjekt                                | Hele instansen, kan kobles til alle prosjekter      |
 | Resultat av pålogging | Tilgang til det ene prosjektet                   | Tilgang til alle prosjekter brukeren kan nå         |
 
@@ -44,20 +44,20 @@ Logg inn som master-admin, og åpne Admin Dashboard med **Admin-innstillinger** 
 
 :::tabs
 @tab SAML
-På siden til leverandøren viser kortet **Identity Provider URLs** **ACS URL (Assertion Consumer Service / Reply URL)** og **Issuer (Entity ID)**. Lim inn begge i identitetsleverandøren din (Okta, Microsoft Entra ID, OneLogin, JumpCloud og andre).
+På siden til leverandøren viser kortet **URL-ene til identitetsleverandøren** **ACS URL (Assertion Consumer Service / Reply URL)** og **Issuer (Entity ID)**. Lim inn begge i identitetsleverandøren din (Okta, Microsoft Entra ID, OneLogin, JumpCloud og andre).
 @tab OpenID Connect
-På siden til leverandøren viser kortet **Identity Provider URL** **Redirect URI (Callback URL)**. Legg den til i identitetsleverandørens tillatte redirect-URI-er.
+På siden til leverandøren viser kortet **URL-en til identitetsleverandøren** **Redirect URI (Callback URL)**. Legg den til i identitetsleverandørens tillatte redirect-URI-er.
 :::
 
 ### Slå på leverandøren
 
-En ny leverandør starter avslått. Klikk på **Edit Configuration** på siden til leverandøren, og slå på **Aktivert**.
+En ny leverandør starter avslått. Klikk på **Rediger konfigurasjon** på siden til leverandøren, og slå på **Aktivert**.
 
 Å slå på en global leverandør legger den bare til blant påloggingssidens valg for enkel pålogging — den håndhever aldri SSO og stenger ingen ute, så det er trygt å slå den på, teste den og slå den av igjen om nødvendig. Så lenge hele instansen krever SSO, tilbyr påloggingssiden likevel bare leverandørene som er slått på: test en leverandør før du krever SSO.
 
 ### Test leverandøren
 
-Bruk lenken i kortet **Test this SSO provider** (**Test this OIDC provider** for OpenID Connect) til å gjennomføre en fullstendig pålogging via identitetsleverandøren din. **Test innlogging** i leverandørens rad på **Enkel pålogging** starter den samme påloggingen i en ny fane. Du trenger ikke knytte til prosjekter først: testen logger deg inn i prosjektene du allerede er med i. Leverandøren må være slått på for at lenken skal virke.
+Bruk lenken i kortet **Test denne SSO-leverandøren** (**Test denne OIDC-leverandøren** for OpenID Connect) til å gjennomføre en fullstendig pålogging via identitetsleverandøren din. **Test innlogging** i leverandørens rad på **Enkel pålogging** starter den samme påloggingen i en ny fane. Du trenger ikke knytte til prosjekter først: testen logger deg inn i prosjektene du allerede er med i. Leverandøren må være slått på for at lenken skal virke.
 :::
 
 ## Slik logger brukere inn
@@ -78,7 +78,7 @@ flowchart TB
 
 - **Ingen prosjekter tilknyttet (alle prosjekter / invitasjon først):** Brukere kan logge inn med leverandøren og nå **alle prosjekter de allerede er medlem av**. Nye brukere opprettes **ikke** automatisk — en bruker må først inviteres til et prosjekt. Bruk dette for SSO i hele virksomheten når medlemskap styres et annet sted.
 
-- **Prosjekter knyttet til (automatisk klargjøring):** Åpne leverandøren og bruk tabellen **Attached Projects** for å knytte til ett eller flere prosjekter, hvert med et sett standardteam. Brukere som logger inn blir **automatisk klargjort** inn i disse prosjektene og lagt til i standardteamene ved første innlogging. Et prosjekt du knytter til, starter med medlemsteamet sitt; velg andre team hvis nye brukere skal starte med annen tilgang. Legg til ett prosjekt + team om gangen for å bygge listen; for å endre en tilknytning, slett den og legg den til på nytt.
+- **Prosjekter knyttet til (automatisk klargjøring):** Åpne leverandøren og bruk tabellen **Tilknyttede prosjekter** for å knytte til ett eller flere prosjekter, hvert med et sett standardteam. Brukere som logger inn blir **automatisk klargjort** inn i disse prosjektene og lagt til i standardteamene ved første innlogging. Et prosjekt du knytter til, starter med medlemsteamet sitt; velg andre team hvis nye brukere skal starte med annen tilgang. Legg til ett prosjekt + team om gangen for å bygge listen; for å endre en tilknytning, slett den og legg den til på nytt.
 
 En person som allerede er medlem av et tilknyttet prosjekt, beholder teamene sine der.
 

@@ -33,8 +33,8 @@ flowchart TB
 
 ## Før du begynder
 
-- **Til instansens og et projekts budgetter: Admin Dashboard.** På en selvhostet installation er det kun instansadministratoren, der angiver dem. Et projekts ejere og administratorer kan se dets budgetter, men ikke ændre dem.
-- **Til en nøgles eget budget: en rolle, der redigerer indtagelsesnøgler.** Project Owner eller Project Admin, eller en brugerdefineret rolle med tilladelsen Edit Ingestion Key.
+- **Til instansens og et projekts budgetter: Admin Dashboard.** På en selvhostet installation er det kun instansadministratoren, der angiver dem. Projektejere og Projektadministratorer kan se et projekts budgetter, men ikke ændre dem.
+- **Til en nøgles eget budget: en rolle, der redigerer indtagelsesnøgler.** Projektejer eller Projektadministrator, eller en brugerdefineret rolle med tilladelsen Edit Ingestion Key.
 - **For at se budgetterne: en rolle, der ser projektets forbrug.** De roller, der ser siden [Telemetriforbrug](/docs/telemetry/usage), ser projektets budgetter på den.
 
 ## Angiv alle projekters standardbudgetter
@@ -113,7 +113,7 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 
 ## Advarslen og nulstillingen
 
-- **Advarslen.** Når et dagligt budget passerer advarselstærsklen, 80 %, medmindre instansadministratoren ændrer den, får projektets ejere en e-mail, og explorerne viser et banner over det signals data. De får endnu en e-mail, når budgettet er brugt op. Hvert budget sender hver e-mail højst én gang om dagen.
+- **Advarslen.** Når et dagligt budget passerer advarselstærsklen, 80 %, medmindre instansadministratoren ændrer den, får Projektejere en e-mail, og explorerne viser et banner over det signals data. De får endnu en e-mail, når budgettet er brugt op. Hvert budget sender hver e-mail højst én gang om dagen.
 - **Nulstillingen.** Hver budgetdag begynder forfra kl. 00:00 UTC, medmindre instansadministratoren ændrer det. Kortet **Advarsel og nulstilling** angiver **Advarselstærskel (%)**, fra 1 til 99, **Nulstillingstidspunkt**, som HH:MM, og **Tidszone for nulstilling**: klik på **Rediger advarsel og nulstilling**.
 - **Sommertid.** Nulstillingen følger tidszonens ur, så den budgetdag, hvor urene stilles om, er en time kortere eller længere. Et nulstillingstidspunkt, som urene springer over, indtræffer lige så længe efter springet.
 - **En ændret nulstilling starter en ny dag.** Når nulstillingstidspunktet eller tidszonen ændres, starter en ny budgetdag med det samme, hvor intet er talt endnu.

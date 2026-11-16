@@ -25,7 +25,7 @@ Die Sonde, die die Prüfung ausführt, erhält den Wert. Ein Monitor, der ein Ge
 ## Bevor Sie beginnen
 
 - **Der Growth-Tarif oder höher**, auf OneUptime Cloud. Selbst gehostete Installationen haben keine Tarife.
-- **Eine Rolle, die Geheimnisse verwalten darf**: Project Owner, Project Admin oder eine benutzerdefinierte Rolle mit der Berechtigung Create Monitor Secret.
+- **Eine Rolle, die Geheimnisse verwalten darf**: Projektinhaber, Projektadministrator oder eine benutzerdefinierte Rolle mit der Berechtigung Create Monitor Secret.
 
 ## Mit Geheimnissen arbeiten
 
@@ -75,7 +75,7 @@ Diese Monitortypen und Felder nehmen Geheimnisse an:
 | SQL-Abfrage | Der Host, der Datenbankname, der Benutzername, das Passwort und die Abfrage |
 | Datenbank-Integrität | Der Host, der Datenbankname, der Benutzername und das Passwort |
 | Externe Statusseite | Die URL der Statusseite |
-| Synthetischer Monitor, Custom JavaScript Code | Das Skript |
+| Synthetischer Monitor, Benutzerdefinierter JavaScript-Code | Das Skript |
 | Netzwerkgerät | Der SNMP-Community-String sowie die Authentifizierungs- und Privacy-Schlüssel von SNMPv3 |
 
 Geheimnisse werden ausgefüllt, bevor das Skript eines Synthetischen Monitors oder eines Custom-JavaScript-Code-Monitors läuft, sodass ein Verweis wie `{{monitorSecrets.ApiKey}}` im Skript beim Ausführen der entschlüsselte Wert ist.

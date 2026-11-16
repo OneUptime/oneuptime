@@ -49,13 +49,13 @@ De här fyra widgetarna läser en mätvärdesfråga, byggd som mätvärdesutfors
 
 ### Diagram
 
-En tidsserie med en eller flera mätvärdesfrågor över instrumentpanelens tidsintervall. **Chart Type** ritar den som ett linje-, stapel-, yt-, staplat yt- eller cirkeldiagram. **Additional Queries** lägger fler mätvärden på samma axlar, och **Formulas** kombinerar dem med `+`, `-`, `*`, `/`, `%`, `^` och parenteser, som i `(1 - a) * 100`. Varje frågas visningsinställningar lägger till en förklaring och en enhet, en färg, varnings- och kritiska linjer och en takt per sekund för räknare som bara växer.
+En tidsserie med en eller flera mätvärdesfrågor över instrumentpanelens tidsintervall. **Diagramtyp** ritar den som ett linje-, stapel-, yt-, staplat yt- eller cirkeldiagram. **Ytterligare frågor** lägger fler mätvärden på samma axlar, och **Formler** kombinerar dem med `+`, `-`, `*`, `/`, `%`, `^` och parenteser, som i `(1 - a) * 100`. Varje frågas visningsinställningar lägger till en förklaring och en enhet, en färg, varnings- och kritiska linjer och en takt per sekund för räknare som bara växer.
 
 Använd den när linjens form berättar historien: svarstid, fel, genomströmning eller ködjup.
 
 ### Värde
 
-Ett stort tal med en sparkline: frågans värde över hela tidsintervallet, summerat för en summa eller ett antal, det högsta för ett maximum, det lägsta för ett minimum och annars medelvärdet. En pil jämför intervallets andra halva med den första, varje halva beräknad på samma sätt, färgad efter **Trend Direction**: om ett högre värde är bättre eller sämre, eller avläst från mätvärdets namn. Peka på pilen för att se båda halvornas värden, och på sparklinen för att läsa av en punkts värde och tid. **Varningströskel** gör bakgrunden gul och **Kritiskt tröskelvärde** röd när värdet når dem.
+Ett stort tal med en sparkline: frågans värde över hela tidsintervallet, summerat för en summa eller ett antal, det högsta för ett maximum, det lägsta för ett minimum och annars medelvärdet. En pil jämför intervallets andra halva med den första, varje halva beräknad på samma sätt, färgad efter **Trendriktning**: om ett högre värde är bättre eller sämre, eller avläst från mätvärdets namn. Peka på pilen för att se båda halvornas värden, och på sparklinen för att läsa av en punkts värde och tid. **Varningströskel** gör bakgrunden gul och **Kritiskt tröskelvärde** röd när värdet når dem.
 
 Använd den när ett tal besvarar frågan: felfrekvensen, P95-svarstiden eller antalet förfrågningar som hanterats i dag.
 
@@ -67,11 +67,11 @@ Använd den när värdet lever i ett känt intervall: CPU- eller diskanvändning
 
 ### Tabell
 
-Mätvärden som rader. **Group By Attributes** ger en rad per värde, till exempel en per `host.name`; utan den är varje rad ett tidsfack. **Metrics & Columns** anger kolumnerna: mätvärden, och formler över dem, som tillgänglighet i procent. När du grupperar gör **Reduce across time** om varje rads serie till ett enda värde: det senaste värdet, medelvärdet, summan, minimum eller maximum.
+Mätvärden som rader. **Gruppera efter attribut** ger en rad per värde, till exempel en per `host.name`; utan den är varje rad ett tidsfack. **Mätvärden och kolumner** anger kolumnerna: mätvärden, och formler över dem, som tillgänglighet i procent. När du grupperar gör **Slå ihop över tid** om varje rads serie till ett enda värde: det senaste värdet, medelvärdet, summan, minimum eller maximum.
 
 Slå på **Färga efter tröskelvärden** i en kolumn för att färga dess värden: Ett värde som når **Varningströskel** blir bärnstensfärgat med en triangel, och ett som når **Kritiskt tröskelvärde** blir rött och fetstilt med en cirkel. En procentkolumn börjar på 80 och 90. För en kolumn där låga värden är problemet, som ledigt diskutrymme, väljer du **Lägre är sämre** under **Riktning**.
 
-Tröskelvärden läser talet som tabellen visar, så ett användningsmått som skickas som en andel av 1, som `system.cpu.utilization`, visas och jämförs som procent. Under **Tröskelfärger** fyller **Färgad bakgrund** hela cellen i stället för att färga talet.
+Tröskelvärden läser talet som tabellen visar, så ett användningsmätvärde som skickas som en andel av 1, som `system.cpu.utilization`, visas och jämförs som procent. Under **Tröskelfärger** fyller **Färgad bakgrund** hela cellen i stället för att färga talet.
 
 Använd den för en uppdelning i stället för en trend: de mest bullriga värdarna, felen per tjänst, förfrågningarna per slutpunkt.
 
@@ -120,11 +120,11 @@ Widgeten laddas om varje gång instrumentpanelen uppdateras, så en widget som h
 
 #### Behörigheter
 
-**Run JavaScript** (på som standard) kör ditt skript. Stäng av den för att bara rendera markering och stilar: skriptet utelämnas då helt från widgeten i stället för att bara blockeras.
+**Kör JavaScript** (på som standard) kör ditt skript. Stäng av den för att bara rendera markering och stilar: skriptet utelämnas då helt från widgeten i stället för att bara blockeras.
 
-**Open links in a new tab** (på som standard) låter länkar och `window.open` öppna en webbläsarflik. Länkar öppnas alltid i en ny flik; widgeten kan aldrig få själva instrumentpanelen att navigera.
+**Öppna länkar i en ny flik** (på som standard) låter länkar och `window.open` öppna en webbläsarflik. Länkar öppnas alltid i en ny flik; widgeten kan aldrig få själva instrumentpanelen att navigera.
 
-**Allow forms to submit** (av som standard) låter ett `<form>` inuti widgeten skickas.
+**Tillåt att formulär skickas** (av som standard) låter ett `<form>` inuti widgeten skickas.
 
 Den som kan redigera instrumentpanelen bestämmer vad den här widgeten kör, och alla som visar instrumentpanelen kör det: på en offentlig instrumentpanel gäller det även anonyma besökare. Behandla redigeringsåtkomst till en instrumentpanel med en HTML-widget som du skulle behandla åtkomst till all annan kod du levererar.
 
@@ -160,7 +160,7 @@ Ett servicenivåmål (SLO), ritat antingen som ett enda tal eller som en linje �
 
 **Inställningar**: vilket SLO, eller det SLO som valts i en instrumentpanelsvariabel; vilket av dess tre tal (SLI, Error Budget Remaining eller Burn Rate); visning som Tile eller Diagram; och en valfri titel.
 
-- **Tile** visar det aktuella talet, plus en andra rad där det finns en: målet under SLI:n, återstående minuter under felbudgeten. En statusbricka färgar det hela.
+- **Ruta** visar det aktuella talet, plus en andra rad där det finns en: målet under SLI:n, återstående minuter under felbudgeten. En statusbricka färgar det hela.
 - **Diagram** ritar samma tal över instrumentpanelens tidsintervall, med målet markerat som en streckad linje på SLI-serien. Historiken skrivs med några minuters mellanrum av utvärderingsworkern, så ett helt nytt SLO visas som ett tomt diagram tills det har utvärderats första gången.
 
 Använd den när instrumentpanelen svarar på "håller vi det vi lovat?" snarare än "vad händer just nu?".
@@ -194,7 +194,7 @@ Var och en av de här widgetarna listar resurserna som en agent eller en collect
 | **Proxmox** | **Noder**, **Gäster** | Proxmox-agenten |
 | **VMware** | **Värdar**, **Virtuella maskiner** | VMware-agenten, eller ett vCenter som du ansluter |
 | **Ceph** | **OSD:er**, som en vägg färgad efter tillstånd, och **Pools** | Ceph-agenten |
-| **Lagringsarrayer** | **Volymer**, och **Hårdvara** som en vägg färgad efter status | Storage Array-agenten |
+| **Lagringsarrayer** | **Volymer**, och **Hårdvara** som en vägg färgad efter status | Lagringsarray-agenten |
 
 Använd dem för en sida som blandar tillståndet i din infrastruktur med telemetrin från arbetslasterna som körs på den.
 

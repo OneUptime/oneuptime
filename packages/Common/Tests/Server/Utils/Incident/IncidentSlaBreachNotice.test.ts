@@ -114,7 +114,7 @@ describe("IncidentSlaBreachNotice", () => {
         slaRuleName: "P1 customer SLA",
         currentState: "Investigating",
         incidentSeverity: "Critical",
-        openDuration: "2 hours, 30 minutes",
+        openDuration: "2\u00A0hours, 30\u00A0minutes",
         incidentViewLink: LINK,
         isOwner: "true",
       });
@@ -158,7 +158,7 @@ describe("IncidentSlaBreachNotice", () => {
       );
     });
 
-    test("tells a project owner why it came: the incident has no owners", () => {
+    test("tells a Project Owner why it came: the incident has no owners", () => {
       const vars: Record<string, unknown> = messagesFor(undefined, {
         isOwner: false,
       }).emailEnvelope.vars as Record<string, unknown>;
@@ -272,7 +272,7 @@ describe("IncidentSlaBreachNotice", () => {
         ),
       ).toBe(WhatsAppTemplateIds.IncidentReminderOwnerNotification);
       expect(whatsApp.body).toBe(
-        `Reminder: Incident #42 (Checkout API is down) is still Investigating and has been open for 2 hours, 30 minutes. Review the incident using ${LINK} on the OneUptime dashboard.`,
+        `Reminder: Incident #42 (Checkout API is down) is still Investigating and has been open for 2\u00A0hours, 30\u00A0minutes. Review the incident using ${LINK} on the OneUptime dashboard.`,
       );
       expect(whatsApp.body).not.toContain("has been created");
     });

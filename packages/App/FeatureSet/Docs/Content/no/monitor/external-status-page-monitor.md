@@ -1,4 +1,4 @@
-# Ekstern statusside-overvåking
+# Ekstern statusside-monitor
 
 En monitor for eksterne statussider følger med på den offentlige statussiden til en tjeneste du er avhengig av — AWS, GCP, Azure, GitHub, OpenAI, Anthropic og mange flere — og varsler deg når leverandøren melder om et driftsavbrudd eller redusert ytelse. Bruk den til å få vite om problemer hos leverandørene dine så snart de melder dem, og til å skille dem fra dine egne.
 
@@ -66,7 +66,7 @@ Kontrollen av om siden kan nås, er også utveien når en leverandør du har val
 :::steps
 ### Start en ny monitor
 
-Gå til **Monitorer**, og klikk på **Opprett monitor**. Under **Monitortype** klikker du på **Flere monitortyper** og velger **External Status Page** under **Grunnleggende overvåking**, eller skriver `statuspage` i søkefeltet. Skriv inn et **Navn**, og klikk deretter på **Neste**.
+Gå til **Monitorer**, og klikk på **Opprett monitor**. Under **Monitortype** klikker du på **Flere monitortyper** og velger **Ekstern statusside** under **Grunnleggende overvåking**, eller skriver `statuspage` i søkefeltet. Skriv inn et **Navn**, og klikk deretter på **Neste**.
 
 ### Skriv inn URL-en til statussiden
 
@@ -181,7 +181,7 @@ Mens en pågående vedlikeholdshendelse berører en ressurs, fordi den nevner en
 :::steps
 ### Legg til kriteriet
 
-Klikk **Legg til kriterier** i kriteriene til monitoren. Gi det filteret **Komponentstatus på ekstern statusside**, **Lik**, **Under vedlikehold**, og velg vedlikeholdsstatusen din i **Endre overvåkingsstatus til**.
+Klikk **Legg til kriterier** i kriteriene til monitoren. Gi det filteret **Komponentstatus på ekstern statusside**, **Lik**, **Under vedlikehold**, og velg vedlikeholdsstatusen din i **Endre monitorstatus til**.
 
 ### Flytt det helt øverst
 
@@ -279,6 +279,6 @@ En sonde avviser adresser i private nettverk med mindre den har lov til å nå d
 
 :::cards
 - [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating): Sett statusen til leverandøren inn i titlene på hendelsene dine.
-- [API-overvåking](/docs/monitor/api-monitor): Sjekk dine egne endepunkter ved siden av statusen til leverandøren din.
+- [API-monitor](/docs/monitor/api-monitor): Sjekk dine egne endepunkter ved siden av statusen til leverandøren din.
 - [Opprett en monitor](/docs/monitor/create-monitor): Trinnene alle monitortyper har felles.
 :::

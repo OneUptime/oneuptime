@@ -1,5 +1,6 @@
 import { IoTResourceScope } from "./MonitorStepIoTMonitor";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
+import { translationKey } from "../Translator";
 
 export type IoTMetricCategory =
   | "Availability"
@@ -31,9 +32,10 @@ const iotMetricCatalog: Array<IoTMetricDefinition> = [
   // Availability Metrics
   {
     id: "iot-device-up",
-    friendlyName: "Device Up",
-    description:
+    friendlyName: translationKey("Device Up"),
+    description: translationKey(
       "Whether an IoT device is up (1) or down/offline (0). Reported per device — filter on the device.id label to scope to one device.",
+    ),
     metricName: "iot_device_up",
     category: "Availability",
     defaultAggregation: MetricsAggregationType.Min,
@@ -43,9 +45,10 @@ const iotMetricCatalog: Array<IoTMetricDefinition> = [
   // Power Metrics
   {
     id: "iot-battery-percent",
-    friendlyName: "Battery Level",
-    description:
+    friendlyName: translationKey("Battery Level"),
+    description: translationKey(
       "Remaining battery charge of a device as a percentage (0 to 100). Falling levels indicate a device that will soon go offline.",
+    ),
     metricName: "iot_battery_percent",
     category: "Power",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -56,9 +59,10 @@ const iotMetricCatalog: Array<IoTMetricDefinition> = [
   // Connectivity Metrics
   {
     id: "iot-signal-strength",
-    friendlyName: "Signal Strength",
-    description:
+    friendlyName: translationKey("Signal Strength"),
+    description: translationKey(
       "Wireless signal strength of a device in dBm (closer to 0 is stronger; more negative is weaker). Weak signal precedes connectivity loss.",
+    ),
     metricName: "iot_signal_strength_dbm",
     category: "Connectivity",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -69,9 +73,10 @@ const iotMetricCatalog: Array<IoTMetricDefinition> = [
   // Environment Metrics
   {
     id: "iot-temperature",
-    friendlyName: "Temperature",
-    description:
+    friendlyName: translationKey("Temperature"),
+    description: translationKey(
       "Temperature reported by a device in degrees Celsius. High readings can indicate overheating hardware or an environmental issue.",
+    ),
     metricName: "iot_temperature_celsius",
     category: "Environment",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -82,9 +87,10 @@ const iotMetricCatalog: Array<IoTMetricDefinition> = [
   // System Metrics
   {
     id: "iot-cpu-usage",
-    friendlyName: "CPU Usage Ratio",
-    description:
+    friendlyName: translationKey("CPU Usage Ratio"),
+    description: translationKey(
       "CPU usage of a device as a ratio of available CPU (0 to 1, where 1 = fully used).",
+    ),
     metricName: "iot_cpu_usage_ratio",
     category: "System",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -93,9 +99,10 @@ const iotMetricCatalog: Array<IoTMetricDefinition> = [
   },
   {
     id: "iot-memory-usage",
-    friendlyName: "Memory Usage",
-    description:
+    friendlyName: translationKey("Memory Usage"),
+    description: translationKey(
       "Memory currently in use by a device, in bytes. Compare against the device's total memory to gauge memory pressure.",
+    ),
     metricName: "iot_memory_usage_bytes",
     category: "System",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -104,9 +111,10 @@ const iotMetricCatalog: Array<IoTMetricDefinition> = [
   },
   {
     id: "iot-uptime",
-    friendlyName: "Uptime",
-    description:
+    friendlyName: translationKey("Uptime"),
+    description: translationKey(
       "How long a device has been running. Drops to zero when the device is restarted or rebooted.",
+    ),
     metricName: "iot_uptime_seconds",
     category: "System",
     defaultAggregation: MetricsAggregationType.Max,
@@ -143,4 +151,21 @@ export function getIoTMetricByMetricName(
 
 export function getAllIoTMetricCategories(): Array<IoTMetricCategory> {
   return ["Availability", "Power", "Connectivity", "Environment", "System"];
+}
+
+/*
+ * Each group's heading in the metric picker, a key: a category is an
+ * identifier the catalog's metrics name, so the picker looks its heading up
+ * here, once (#8353).
+ */
+const categoryLabels: Record<IoTMetricCategory, string> = {
+  Availability: translationKey("Availability"),
+  Power: translationKey("Power"),
+  Connectivity: translationKey("Connectivity"),
+  Environment: translationKey("Environment"),
+  System: translationKey("System"),
+};
+
+export function getIoTMetricCategoryLabel(category: IoTMetricCategory): string {
+  return categoryLabels[category] || category;
 }

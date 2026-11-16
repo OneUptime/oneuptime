@@ -127,6 +127,14 @@ import AnalyticsModelAPI from "../../../UI/Utils/AnalyticsModelAPI/AnalyticsMode
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/resource-ai-access/status"]);
 
 const D: Record<ContainerHostMetric, string> =
   CONTAINER_HOST_METRIC_DESCRIPTIONS;
@@ -1421,11 +1429,14 @@ describe.each(RUNTIME_CASES)(
         "Running",
         "api:latest",
         "250.0%",
-        "37.5%1.5 GB",
+        "37.5%1.5\u00A0GB",
         "—",
         "—",
       ]);
-      expect(cellsOf("worker").slice(3, 5)).toEqual(["12.3%", "2.3%50.0 MB"]);
+      expect(cellsOf("worker").slice(3, 5)).toEqual([
+        "12.3%",
+        "2.3%50.0\u00A0MB",
+      ]);
     });
 
     test("the network totals are a container's page's, not the list's", async () => {

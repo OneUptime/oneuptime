@@ -15,6 +15,11 @@ import React, { FunctionComponent, ReactElement } from "react";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import IncomingRequestSecretNote from "../../IncomingRequestSecret/IncomingRequestSecretNote";
+import useIncomingRequestSecretStatus, {
+  IncomingRequestSecretStatus,
+  NOTHING_TO_SAY,
+} from "../../IncomingRequestSecret/UseIncomingRequestSecretStatus";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -44,6 +49,13 @@ const MonitorConnectionCard: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const monitor: Monitor = props.monitor;
+  // Whether requests without one of the project's secrets are, or would be, refused.
+  const secretStatus: IncomingRequestSecretStatus =
+    useIncomingRequestSecretStatus(
+      props.kind === MonitorOverviewSetupKind.HeartbeatUrl
+        ? props.monitorId
+        : undefined,
+    );
 
   type GetValueRowFunction = (value: string) => ReactElement;
 
@@ -197,6 +209,14 @@ const MonitorConnectionCard: FunctionComponent<ComponentProps> = (
       <div>
         {getValue()}
         {getMeta()}
+        <IncomingRequestSecretNote
+          status={
+            props.kind === MonitorOverviewSetupKind.HeartbeatUrl
+              ? secretStatus
+              : NOTHING_TO_SAY
+          }
+          className="mt-3"
+        />
         <div className="mt-3">
           <SloOverviewActionLink
             variant="text"

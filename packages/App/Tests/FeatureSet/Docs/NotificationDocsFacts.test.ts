@@ -68,6 +68,7 @@ import {
   getOnCallPageCallPassOnPrompt,
 } from "Common/Types/OnCallDutyPolicy/OnCallPagePassOn";
 import { NO_NOTIFICATION_RULES_STATUS_MESSAGE } from "Common/Types/OnCallDutyPolicy/OnCallPageLine";
+import { getUserOnCallLogRecordAcknowledgedMessage } from "Common/Types/OnCallDutyPolicy/OnCallPageEnding";
 import {
   PROJECT_NOTIFICATION_CHANNEL_UPDATE_PERMISSIONS,
   WHO_MAY_TURN_THEM_ON,
@@ -488,17 +489,20 @@ describe("the Notifications group in the docs", () => {
     }
   });
 
-  it("takes its Norwegian title from the Norwegian User Settings menu, since Notifications and Alerts are both Varsler there", () => {
+  // Norwegian once read Varsler for both, and the group was Notifikasjoner (#8719).
+  it("takes its Norwegian title from the Norwegian Dashboard, now that Notifications is Varslinger and Alerts Varsler there", () => {
     const norwegian: Record<string, unknown> = JSON.parse(
       readDashboardSource("Locales/no.json"),
     ) as Record<string, unknown>;
-
-    expect(norwegian["Notifications"]).toBe(norwegian["Alerts"]);
-    expect(
-      (norwegian["Alerts & Notifications"] as string).toLowerCase(),
-    ).toContain(
-      (NOTIFICATIONS_GROUP_TITLE_OVERRIDES["no"] as string).toLowerCase(),
+    const docs: { navGroups: Record<string, string> } = JSON.parse(
+      readPackageFile("App/FeatureSet/Docs/Locales/no.json"),
     );
+
+    expect(NOTIFICATIONS_GROUP_TITLE_OVERRIDES).toEqual({});
+    expect(norwegian["Notifications"]).toBe("Varslinger");
+    expect(norwegian["Alerts"]).toBe("Varsler");
+    expect(docs.navGroups[NOTIFICATIONS_NAV_GROUP]).toBe("Varslinger");
+    expect(norwegian["Alerts & Notifications"]).toBe("Varsler og varslinger");
   });
 
   it("is linked from Getting Started's Incident Response cards, right after On-call, and from Core Concepts' on-call section", () => {
@@ -922,7 +926,7 @@ describe("when a page finds no rule", () => {
       "const NOTIFICATION_WINDOW_IN_MS: number = 24 * 60 * 60 * 1000;",
     );
     expect(english(REACHING_YOU)).toContain(
-      "You get an email saying so, and so do the on-call policy's owners, or the project's owners when the policy has none.",
+      "You get an email saying so, and so do the on-call policy's owners, or the Project Owners when the policy has none.",
     );
   });
 
@@ -955,7 +959,7 @@ describe("when a page finds no rule", () => {
       "statusMessage: NO_NOTIFICATION_RULES_STATUS_MESSAGE,",
     );
     expect(english(PERSONAL_ON_CALL_RULES)).toContain(
-      "A project owner, or someone with **Manage Billing**, can set the project's `disableOnCallNotificationFallback` through the API.",
+      "A Project Owner, or someone with **Manage Billing**, can set the project's `disableOnCallNotificationFallback` through the API.",
     );
   });
 
@@ -1469,7 +1473,7 @@ describe("notification methods", () => {
         Permission.ProjectAdmin,
       );
       expect(WHO_MAY_TURN_THEM_ON).toBe(
-        "a project owner, a Billing Admin or someone with Manage Billing",
+        "a Project Owner, a Billing Admin or someone with Manage Billing",
       );
       expect(PermissionHelper.getTitle(Permission.BillingAdmin)).toBe(
         "Billing Admin",
@@ -1486,7 +1490,7 @@ describe("notification methods", () => {
         expect.arrayContaining(["Notification Channels", "Notification Logs"]),
       );
       expect(methods).toContain(
-        "A project owner, a **Billing Admin** or someone with **Manage Billing** turns it on, in the **Notification Channels** card on **Project Settings → Notifications → Notification Channels**. A project admin cannot.",
+        "A Project Owner, a **Billing Admin** or someone with **Manage Billing** turns it on, in the **Notification Channels** card on **Project Settings → Notifications → Notification Channels**. A Project Admin cannot.",
       );
     });
   });
@@ -1718,6 +1722,10 @@ describe("personal on-call rules", () => {
     );
 
     expect(pending).toContain("EVERY_MINUTE");
+    /*
+     * The page's ending is written by the shared builder (dc9e9009f7a),
+     * once for each kind of record a page can be about.
+     */
     for (const record of [
       "incident",
       "alert",
@@ -1725,7 +1733,10 @@ describe("personal on-call rules", () => {
       "incident episode",
     ]) {
       expect(pending).toContain(
-        `"Execution completed because ${record} is acknowledged."`,
+        `getUserOnCallLogRecordAcknowledgedMessage("${record}")`,
+      );
+      expect(getUserOnCallLogRecordAcknowledgedMessage(record)).toBe(
+        `Execution completed because ${record} is acknowledged.`,
       );
     }
     expect(rules).toContain(
@@ -2203,6 +2214,27 @@ describe("notification settings", () => {
   it("tells a record's owners, members of its owner teams included, or the project's owners when it has none, but tells only the person added that they were", () => {
     const jobs: string = path.join(PACKAGES_DIR, "App/FeatureSet/Workers/Jobs");
 
+    /*
+     * A job falls back on its own, or through planForOwnersOf, which reads
+     * the project's owners for a record with none (#8509).
+     */
+    expect(
+      readCommonSource(
+        "Server/Utils/Notification/OwnerNotificationDeliveries.ts",
+      ),
+    ).toContain(
+      "owners = await ProjectService.getOwners(data.notification.projectId);",
+    );
+
+    const fallsBack: (source: string) => boolean = (
+      source: string,
+    ): boolean => {
+      return (
+        source.includes("ProjectService.getOwners(") ||
+        source.includes("OwnerNotificationDeliveries.planForOwnersOf(")
+      );
+    };
+
     for (const job of [
       "IncidentOwners/SendCreatedResourceNotification.ts",
       "AlertOwners/SendStateChangeNotification.ts",
@@ -2212,9 +2244,7 @@ describe("notification settings", () => {
     ]) {
       expect({
         job,
-        fallsBack: fs
-          .readFileSync(path.join(jobs, job), "utf8")
-          .includes("ProjectService.getOwners("),
+        fallsBack: fallsBack(fs.readFileSync(path.join(jobs, job), "utf8")),
       }).toEqual({ job, fallsBack: true });
     }
 
@@ -2225,9 +2255,7 @@ describe("notification settings", () => {
     ]) {
       expect({
         job,
-        fallsBack: fs
-          .readFileSync(path.join(jobs, job), "utf8")
-          .includes("ProjectService.getOwners("),
+        fallsBack: fallsBack(fs.readFileSync(path.join(jobs, job), "utf8")),
       }).toEqual({ job, fallsBack: false });
     }
 
@@ -2235,7 +2263,7 @@ describe("notification settings", () => {
       "AlertOwnerTeamService.findBy(",
     );
     expect(settings).toContain(
-      "When a record has no owners, it goes to the project's owners instead.",
+      "When a record has no owners, it goes to the Project Owners instead.",
     );
   });
 

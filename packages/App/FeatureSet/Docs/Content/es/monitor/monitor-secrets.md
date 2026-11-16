@@ -25,7 +25,7 @@ La sonda que ejecuta la comprobación recibe el valor, así que un monitor que u
 ## Antes de empezar
 
 - **El plan Growth o superior**, en OneUptime Cloud. Las instalaciones autoalojadas no tienen planes.
-- **Un rol que pueda gestionar secretos**: Project Owner, Project Admin, o un rol personalizado con el permiso Create Monitor Secret.
+- **Un rol que pueda gestionar secretos**: Propietario del proyecto, Administrador del proyecto, o un rol personalizado con el permiso Create Monitor Secret.
 
 ## Trabajar con secretos
 
@@ -75,10 +75,10 @@ Estos tipos de monitor y campos admiten secretos:
 | Consulta SQL | El host, el nombre de la base de datos, el usuario, la contraseña y la consulta |
 | Salud de la base de datos | El host, el nombre de la base de datos, el usuario y la contraseña |
 | Página de estado externa | La URL de la página de estado |
-| Monitor sintético, Custom JavaScript Code | El script |
+| Monitor sintético, Código JavaScript personalizado | El script |
 | Dispositivo de red | La cadena de comunidad SNMP, y las claves de autenticación y de privacidad de SNMPv3 |
 
-Los secretos se rellenan antes de que se ejecute el script de un monitor sintético o de Custom JavaScript Code, así que una referencia como `{{monitorSecrets.ApiKey}}` dentro del script es el valor descifrado cuando se ejecuta.
+Los secretos se rellenan antes de que se ejecute el script de un monitor sintético o de Código JavaScript personalizado, así que una referencia como `{{monitorSecrets.ApiKey}}` dentro del script es el valor descifrado cuando se ejecuta.
 
 Si un monitor referencia un secreto que no puede usar, la referencia se queda como está y no se sustituye por el valor.
 

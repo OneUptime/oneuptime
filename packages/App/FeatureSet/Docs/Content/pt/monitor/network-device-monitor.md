@@ -256,14 +256,14 @@ Um [site de rede](/docs/monitor/network-sites#padrões-de-monitoramento) carrega
 
 ## A substituição por monitor vinculado
 
-Alguns equipamentos nenhuma sonda consegue alcançar ou consultar com ping de forma útil: um dispositivo atrás de um NAT, um appliance cuja saúde é melhor avaliada por uma verificação HTTP, um serviço cujo sinal real é uma verificação de porta. Para esses, **Editar definições** na página **Configurações** do dispositivo tem um **Monitoring Method**:
+Alguns equipamentos nenhuma sonda consegue alcançar ou consultar com ping de forma útil: um dispositivo atrás de um NAT, um appliance cuja saúde é melhor avaliada por uma verificação HTTP, um serviço cujo sinal real é uma verificação de porta. Para esses, **Editar definições** na página **Configurações** do dispositivo tem um **Método de monitoramento**:
 
 | Método | O que significa |
 | --- | --- |
 | **Sonda** | O padrão. Recebe ping da sonda atribuída no agendamento dela, e walk SNMP quando tem credenciais. |
-| **Bound monitor** | O status de um monitor existente é o status deste dispositivo. |
+| **Monitor vinculado** | O status de um monitor existente é o status deste dispositivo. |
 
-Mudar um dispositivo para **Bound monitor** interrompe a sondagem dele. A sonda, o intervalo e o interruptor de sondagem saem do cartão **Polling & Data Collection**, os resultados de sondagem antigos do dispositivo são apagados, e o status dele vem do monitor que você vincular. Vincular um é opcional: até você fazer isso, o dispositivo aparece como **Pendente**, marcado com **Sem monitor**.
+Mudar um dispositivo para **Monitor vinculado** interrompe a sondagem dele. A sonda, o intervalo e o interruptor de sondagem saem do cartão **Polling & Data Collection**, os resultados de sondagem antigos do dispositivo são apagados, e o status dele vem do monitor que você vincular. Vincular um é opcional: até você fazer isso, o dispositivo aparece como **Pendente**, marcado com **Sem monitor**.
 
 Voltar para **Sonda** restaura a sondagem e pede uma sonda. Um monitor que estava vinculado continua vinculado e continua alertando; ele só deixa de decidir o status do dispositivo.
 
@@ -655,13 +655,13 @@ Um host descoberto recebe o primeiro destes nomes que tiver:
 3. O nome de DNS reverso dele, o registro PTR que a sonda consulta depois da varredura.
 4. O endereço IP dele.
 
-Os nomes do próprio dispositivo vêm primeiro porque são os nomes que os responsáveis por ele usam: um host Windows chamado `WB0024KDS03` mantém esse nome mesmo quando a zona reversa o chama de `wb-0024-kds03.wbhq.com`. O nome de DNS reverso também é mantido: **Revisar resultados** o mostra ao lado do endereço, e o dispositivo o guarda como seu **DNS Name**. O NetBIOS corta o nome de um computador em 15 caracteres, então um nome NetBIOS que é o começo de um nome de DNS reverso mais longo (`WB-0024-KITCHEN` para `wb-0024-kitchen-display-03.wbhq.com`) cede lugar ao nome de DNS reverso.
+Os nomes do próprio dispositivo vêm primeiro porque são os nomes que os responsáveis por ele usam: um host Windows chamado `WB0024KDS03` mantém esse nome mesmo quando a zona reversa o chama de `wb-0024-kds03.wbhq.com`. O nome de DNS reverso também é mantido: **Revisar resultados** o mostra ao lado do endereço, e o dispositivo o guarda como seu **Nome DNS**. O NetBIOS corta o nome de um computador em 15 caracteres, então um nome NetBIOS que é o começo de um nome de DNS reverso mais longo (`WB-0024-KITCHEN` para `wb-0024-kitchen-display-03.wbhq.com`) cede lugar ao nome de DNS reverso.
 
 **Revisar resultados** mostra o nome que um dispositivo vai receber, e ele recebe o mesmo nome quer você o importe dali, quer uma [regra de importação automática](#importar-automaticamente-com-regras-de-importação-automática) o importe. O nome do host do dispositivo é sempre o endereço IP dele. Enquanto o nome de um dispositivo ainda for o que a descoberta deu a ele, a visão geral mostra de onde o nome veio como **Origem do nome**.
 
 **Nomear dispositivos pelo nome curto do host** corta um nome totalmente qualificado no primeiro rótulo: `core-sw-01.corp.example.com` é importado como `core-sw-01`. Vale para um nome de DNS reverso e para um `sysName` que seja um nome de host totalmente qualificado; todo o resto (`Core Switch`, `ubuntu-22.04`, um endereço IP) fica como está. Muda só como os dispositivos se chamam, então nenhuma nova varredura é necessária: **Revisar resultados** e as regras de importação automática o usam na próxima vez que dão nome a um host, e os dispositivos já importados mantêm os seus nomes.
 
-Um dispositivo importado de um host com nome de DNS reverso guarda o nome completo como seu **DNS Name**, use a varredura nomes curtos ou não. Ele aparece na visão geral do dispositivo, a busca da lista **Dispositivos** o encontra, e as regras de atribuição de site comparam padrões de nome de host com ele, então uma regra `*.store-0660.corp.example.com` continua posicionando um dispositivo cujo nome perdeu o domínio. Um nome NetBIOS nunca é guardado como DNS Name: o host o informa sobre si mesmo, e ele não é um registro DNS.
+Um dispositivo importado de um host com nome de DNS reverso guarda o nome completo como seu **Nome DNS**, use a varredura nomes curtos ou não. Ele aparece na visão geral do dispositivo, a busca da lista **Dispositivos** o encontra, e as regras de atribuição de site comparam padrões de nome de host com ele, então uma regra `*.store-0660.corp.example.com` continua posicionando um dispositivo cujo nome perdeu o domínio. Um nome NetBIOS nunca é guardado como DNS Name: o host o informa sobre si mesmo, e ele não é um registro DNS.
 
 > [!WARNING]
 > As regras de rótulos e de proprietários comparam o nome do dispositivo. Um padrão escrito para nomes DNS (`*.wbhq.com`) ou nomes completos (`*.corp.example.com`) não corresponde a um dispositivo com o próprio nome ou com o nome curto. As regras de atribuição de site também tentam o DNS Name, então continuam correspondendo.
@@ -795,7 +795,7 @@ Sem nenhuma política ainda, a página oferece **Create the recommended policy**
 
 ### Um dispositivo de cada vez
 
-Abra a página do dispositivo e clique em **Criar monitor** no cartão **Monitors alerting on this device**. O formulário do monitor abre com o tipo Network Device e o dispositivo já escolhidos, e com o [pacote de alertas recomendado](#pacote-de-alertas-recomendado) preenchido: revise, defina as severidades e as políticas de plantão e salve.
+Abra a página do dispositivo e clique em **Criar monitor** no cartão **Monitors alerting on this device**. O formulário do monitor abre com o tipo Dispositivo de rede e o dispositivo já escolhidos, e com o [pacote de alertas recomendado](#pacote-de-alertas-recomendado) preenchido: revise, defina as severidades e as políticas de plantão e salve.
 
 A maioria dos switches, roteadores, firewalls e impressoras também oferece uma interface web no próprio endereço. **Monitorar a interface web**, no mesmo cartão, abre um monitor de **Site** para ela: `https://` no endereço do dispositivo, com **Permitir certificados autoassinados** ativado, já que a interface web de um dispositivo quase sempre usa um, verificado a partir da própria sonda do dispositivo e com o nome do dispositivo. Altere a URL se a interface responder em `http`, em outra porta ou sob um caminho, e então salve. O cartão lista o monitor enquanto o nome dele contiver o nome do dispositivo e a URL estiver no endereço do dispositivo; ele não altera o status do dispositivo.
 
@@ -1014,13 +1014,13 @@ Selecione dispositivos, ou todos os que correspondem à busca, e então:
 
 Os botões de uma linha fazem o mesmo para um único dispositivo. No mapa, o endereço IP de um nó aparece sob o nome dele, e a busca também encontra um nó pelo endereço IP ou pelo endereço MAC, do jeito que um switch o tenha escrito. Clique em um dispositivo descoberto no mapa e o painel dele oferece **Adicionar ao monitoramento**, que o adiciona da mesma forma, além de **Ocultar do mapa**.
 
-Um dispositivo não visto há 30 dias é removido da lista e do mapa, a menos que esteja monitorado, classificado ou tenha sido adicionado ou alterado por alguém. A linha abaixo da lista diz por quanto tempo os dispositivos ficam; proprietários e administradores do projeto mudam isso em **Mais configurações → Dispositivos não vistos → Remover após**: 7, 14, 30, 60, 90, 180 ou 365 dias, ou **Nunca**. A lista é verificada a cada hora, e nada que um switch ou controlador viu é removido enquanto ele não relatar nada. Um dispositivo removido que é visto de novo volta como um novo, mostrado no mapa mesmo que antes estivesse oculto.
+Um dispositivo não visto há 30 dias é removido da lista e do mapa, a menos que esteja monitorado, classificado ou tenha sido adicionado ou alterado por alguém. A linha abaixo da lista diz por quanto tempo os dispositivos ficam; Proprietários do projeto e Administradores do projeto mudam isso em **Mais configurações → Dispositivos não vistos → Remover após**: 7, 14, 30, 60, 90, 180 ou 365 dias, ou **Nunca**. A lista é verificada a cada hora, e nada que um switch ou controlador viu é removido enquanto ele não relatar nada. Um dispositivo removido que é visto de novo volta como um novo, mostrado no mapa mesmo que antes estivesse oculto.
 
 ### Escolher o layout com que o mapa abre
 
 **Map options → Arrange the map** organiza o mapa como **Automático**, **By network layer**, **Concentric**, **Hub and spoke** ou **Parent and child**. O mapa abre no layout marcado como **Padrão**: **Automático** para todos os dispositivos e **By network layer** para um site, a menos que o seu projeto tenha escolhido um layout para todos. Qualquer pessoa pode trocar de layout enquanto olha o mapa; na próxima vez, ele abre de novo no padrão.
 
-Proprietários e administradores do projeto escolhem o padrão: mude para um layout e selecione **Make default for everyone**. A partir daí, toda visão do mapa de dispositivos abre nele: **Topologia do dispositivo**, um site no **Mapa** e a aba **Rede** de **Topologia**. No layout padrão, **Clear default** devolve cada mapa ao seu próprio padrão. As posições arrastadas são salvas para cada layout no seu navegador, então o mapa abre com o arranjo que você fez nesse layout.
+Proprietários do projeto e Administradores do projeto escolhem o padrão: mude para um layout e selecione **Make default for everyone**. A partir daí, toda visão do mapa de dispositivos abre nele: **Topologia do dispositivo**, um site no **Mapa** e a aba **Rede** de **Topologia**. No layout padrão, **Clear default** devolve cada mapa ao seu próprio padrão. As posições arrastadas são salvas para cada layout no seu navegador, então o mapa abre com o arranjo que você fez nesse layout.
 
 ### Orientar-se em uma rede grande
 
@@ -1055,7 +1055,7 @@ Clicar em um dispositivo gerenciado no mapa abre o painel dele, e a seção **Co
 - **Ping** envia cinco requisições de eco ICMP ao dispositivo e informa se ele respondeu, o tempo de ida e volta mínimo, médio e máximo, o jitter e a perda de pacotes. Um dispositivo que responde a algumas delas é informado como acessível, com perda de pacotes.
 - **Traceroute** informa o caminho da sonda até o dispositivo salto a salto — o número do salto, o host que respondeu e o tempo de ida e volta dele —, com os saltos sem resposta marcados como `* * *` e, quando a rota não chegou ao dispositivo, o salto em que ela se interrompeu.
 
-Os dois partem da sonda atribuída ao dispositivo, não do servidor do OneUptime, então a resposta é a visão de onde o dispositivo é realmente monitorado. A sonda pega a requisição em cerca de dez segundos e o resultado aparece assim que ela responde. Se a sonda não responder em dois minutos, o painel avisa e sugere verificar se a sonda está online e roda uma versão compatível com diagnósticos. Um dispositivo sem sonda mostra, no lugar dos botões, uma nota que aponta para a página **Configurações** dele. Executar um diagnóstico exige a permissão **Create Network Device Diagnostic**, que os membros do projeto têm; sem ela os botões ficam ocultos, mas o gráfico de ida e volta continua aparecendo.
+Os dois partem da sonda atribuída ao dispositivo, não do servidor do OneUptime, então a resposta é a visão de onde o dispositivo é realmente monitorado. A sonda pega a requisição em cerca de dez segundos e o resultado aparece assim que ela responde. Se a sonda não responder em dois minutos, o painel avisa e sugere verificar se a sonda está online e roda uma versão compatível com diagnósticos. Um dispositivo sem sonda mostra, no lugar dos botões, uma nota que aponta para a página **Configurações** dele. Executar um diagnóstico exige a permissão **Create Network Device Diagnostic**, que os Membros do projeto têm; sem ela os botões ficam ocultos, mas o gráfico de ida e volta continua aparecendo.
 
 Os resultados são mantidos por dois dias e depois excluídos. As mesmas ferramentas estão na visão geral do dispositivo, no cartão **Connectivity tools**, para quando você chega ao dispositivo em vez de ao mapa.
 

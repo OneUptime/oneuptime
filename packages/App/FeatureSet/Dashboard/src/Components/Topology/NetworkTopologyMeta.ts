@@ -10,6 +10,7 @@ import {
   NetworkTopologyNodeStatus,
 } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
 import { isMonitorNotCheckedReason } from "Common/Types/Monitor/MonitorNotCheckedReason";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import { getNetworkControllerProviderShortTitle } from "Common/Types/NetworkController/NetworkControllerProvider";
 import { fillTemplate, translationKey } from "Common/Types/Translator";
 import { DEVICE_ROLES_IN_LEGEND_ORDER } from "Common/Utils/Monitor/NetworkDeviceRoleUtil";
@@ -290,20 +291,20 @@ export function isolationReasonForNode(
 
 export function formatMbps(value: number | undefined): string {
   if (value === undefined) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (value >= 1000) {
-    return `${(value / 1000).toFixed(2)} Gbps`;
+    return `${(value / 1000).toFixed(2)}\u00A0Gbps`;
   }
   if (value >= 10) {
-    return `${Math.round(value)} Mbps`;
+    return `${Math.round(value)}\u00A0Mbps`;
   }
-  return `${value.toFixed(1)} Mbps`;
+  return `${value.toFixed(1)}\u00A0Mbps`;
 }
 
 export function formatUtilization(value: number | undefined): string {
   if (value === undefined) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return `${Math.round(value)}%`;
 }

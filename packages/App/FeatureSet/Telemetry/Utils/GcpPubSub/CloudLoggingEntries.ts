@@ -10,6 +10,7 @@ import {
   FaasCloudPlatform,
 } from "Common/Types/Cloud/CloudPlatform";
 import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
+import { readOwnValue, writeOwnValue } from "Common/Utils/LookupTable";
 
 /*
  * A CLOUD LOGGING ENTRY, AS PUB/SUB PUSHES IT, AS ONE OTLP LOG RECORD.
@@ -125,19 +126,21 @@ function readLabels(value: unknown): Record<string, string> {
   for (const key of Object.keys(object).slice(0, MAX_FIELDS)) {
     const item: unknown = object[key];
 
-    if (
-      key.length === 0 ||
-      key.length > 256 ||
-      key === "__proto__" ||
-      key === "constructor"
-    ) {
+    if (key.length === 0 || key.length > 256) {
       continue;
     }
 
+    /*
+     * Each label is the map's own key (writeOwnValue), so one named
+     * "constructor" - a valid label key in Google Cloud - or "__proto__" is
+     * kept like any other (issue #8487); both were left out. Only text is
+     * kept, and each reader of these labels walks their own keys or reads
+     * a name no object inherits (project_id, zone ...).
+     */
     if (typeof item === "string") {
-      labels[key] = item.slice(0, MAX_VALUE_LENGTH);
+      writeOwnValue(labels, key, item.slice(0, MAX_VALUE_LENGTH));
     } else if (typeof item === "number" || typeof item === "boolean") {
-      labels[key] = String(item);
+      writeOwnValue(labels, key, String(item));
     }
   }
 
@@ -420,9 +423,15 @@ export function buildCloudLoggingResourceLogs(data: {
   // The monitored resource, as the receiver stores a metric's: its type and labels.
   const stored: Record<string, string> = {};
 
+  /*
+   * The alias is read as the table's own key (readOwnValue): a resource
+   * type an entry names "constructor" or "toString" is not one of its
+   * aliases, and a plain read handed the resolver a function for it.
+   */
   if (entry.resourceType) {
     stored[`resource.${GCP_RESOURCE_TYPE_ATTRIBUTE}`] =
-      LOG_RESOURCE_TYPE_ALIASES[entry.resourceType] || entry.resourceType;
+      readOwnValue(LOG_RESOURCE_TYPE_ALIASES, entry.resourceType) ||
+      entry.resourceType;
   }
 
   for (const key of Object.keys(labels)) {

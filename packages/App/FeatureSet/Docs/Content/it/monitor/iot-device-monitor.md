@@ -44,7 +44,7 @@ flowchart TB
 
 Vai su **Monitor** e fai clic su **Crea monitor**.
 
-### Scegliere IoT Device
+### Scegliere Dispositivo IoT
 
 In **Tipo di monitor**, fai clic su **Altri tipi di monitor** e scegli **Dispositivo IoT** sotto **Infrastruttura**, oppure digita `iot` nella casella di ricerca. Inserisci un **Nome** - viene usato nei titoli di incidenti e avvisi - e fai clic su **Avanti**.
 
@@ -82,7 +82,7 @@ Fai clic su **Crea monitor**. OneUptime apre la pagina del monitor e lo valuta o
 | **IoT Metric** | Custom Metric | Una metrica del [catalogo](#metriche-raccolte). |
 | **Aggregazione** | Custom Metric | Come vengono combinati i campioni: **Media**, **Massimo**, **Minimo**, **Somma** o **Conteggio**. Parte dall'aggregazione abituale della metrica. |
 | **Intervallo di tempo** | Tutte | La finestra mobile che la query legge, da **Past 1 Minute** a **Past 365 Days**. Un nuovo monitor parte da **Past 1 Minute**; i modelli impostano la propria. |
-| **Seleziona metriche** | Avanzato | Il generatore di query: **Metrica**, **Aggregate by**, **Filter by attributes**, **Raggruppa per**, più **Aggiungi metrica** e **Aggiungi formula** per combinare le query. |
+| **Seleziona metriche** | Avanzato | Il generatore di query: **Metrica**, **Aggrega per**, **Filtra per attributi**, **Raggruppa per**, più **Aggiungi metrica** e **Aggiungi formula** per combinare le query. |
 
 I filtri agiscono insieme: con un **Device ID** e un **Tipo di dispositivo**, un dispositivo di un altro tipo non corrisponde a nulla.
 
@@ -95,7 +95,7 @@ Un criterio scatta solo quando la condizione vale per ogni minuto della sua fine
 | Modello | Categoria | Gravità | Osserva | Scatta quando | Rientra quando |
 | --- | --- | --- | --- | --- | --- |
 | Device Offline | Disponibilità | Critico | `iot_device_up`, Min per `device.id`, ultimi 30 minuti | Una lettura è sotto 1, oppure un dispositivo registrato non invia nulla per tutta la finestra | Di nuovo a 1 |
-| Low Battery | Power | Avviso | `iot_battery_percent`, Avg per `device.id`, ultimi 5 minuti | Sotto il 20 % | Al 22 % o più |
+| Low Battery | Alimentazione | Avviso | `iot_battery_percent`, Avg per `device.id`, ultimi 5 minuti | Sotto il 20 % | Al 22 % o più |
 | Weak Signal | Connettività | Avviso | `iot_signal_strength_dbm`, Avg per `device.id`, ultimi 5 minuti | Sotto -100 dBm | A -90 dBm o più |
 | High Temperature | Ambiente | Critico | `iot_temperature_celsius`, Max per `device.id`, ultimi 5 minuti | Sopra 70 °C | A 63 °C o meno |
 | High CPU Usage | Sistema | Avviso | `iot_cpu_usage_ratio`, Avg per `device.id`, ultimi 5 minuti | Sopra 0.9 (il 90 % della sua CPU) | A 0.81 o meno |
@@ -160,8 +160,8 @@ Un monitor che non costruisci da un modello parte con due criteri:
 
 | Ordine | Criterio | Corrisponde quando | Poi |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | La prima query non ha dati per l'intera finestra | Segna il monitor come **Offline** e dichiara l'incidente «_monitor name_ is offline», che si risolve da solo quando il monitor rientra. |
-| 2 | Check if _monitor name_ is online | La prima query ha dati | Segna il monitor come **Operativo**. |
+| 1 | Verifica se _nome del monitor_ è offline | La prima query non ha dati per l'intera finestra | Segna il monitor come **Offline** e dichiara l'incidente «_nome del monitor_ è offline», che si risolve da solo quando il monitor rientra. |
+| 2 | Verifica se _nome del monitor_ è online | La prima query ha dati | Segna il monitor come **Operativo**. |
 
 > [!IMPORTANT]
 > Un valore di `0` è un dato: una metrica che spesso vale zero, come i riavvii o gli errori, non porta il monitor offline. Per ricevere un avviso su un valore, parti da un modello o aggiungi un criterio con una soglia. Quando non arriva alcun dato e nessun criterio corrisponde, il monitor mantiene il suo stato e gli incidenti aperti restano aperti: il silenzio non è un ripristino. Il tempo in cui OneUptime stesso non riceveva dati non conta mai come assenza di dati: un controllo la cui finestra lo contiene attende, come spiega [Quando OneUptime non riceve dati](/docs/monitor/when-oneuptime-is-not-receiving).

@@ -24,6 +24,7 @@ import Route from "Common/Types/API/Route";
 import { DOCS_URL } from "Common/UI/Config";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import {
+  composedValue,
   PluralTemplate,
   TranslatableTerm,
   translatableTerm,
@@ -86,7 +87,9 @@ import { getReplayAssetFailureDocsHref } from "./ReplayRecordedAssets";
  */
 
 import type { ReplaySessionDetails } from "./ReplaySessionDetails";
-import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
+import EmptyValue, {
+  EMPTY_VALUE_MARK,
+} from "Common/UI/Components/Detail/EmptyValue";
 
 export type ReplayCorrelationPanelTabId = "session" | "provenance" | "fidelity";
 
@@ -626,7 +629,7 @@ const EnvironmentTile: FunctionComponent<EnvironmentTileProps> = (
 
 function formatBytes(bytes: number): string {
   if (!isFinite(bytes) || bytes <= 0) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
   const units: Array<string> = ["B", "KiB", "MiB", "GiB"];
@@ -639,7 +642,7 @@ function formatBytes(bytes: number): string {
   }
 
   // Plain bytes are whole: "512 B", never "512.0 B" (issue #7417).
-  return `${value.toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
+  return `${value.toFixed(index === 0 ? 0 : 1)}\u00A0${units[index]}`;
 }
 
 function hasEntries(
@@ -1312,12 +1315,12 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
             />
             <DetailRow
               label="Consent"
-              value={getReplayConsentStateLabel(d.consentState)}
+              value={getReplayConsentStateLabel(d.consentState, translator)}
               testId="replay-details-consent"
             />
             <DetailRow
               label="Why recorded"
-              value={getReplayTriggerReasonLabel(d.triggerReason)}
+              value={getReplayTriggerReasonLabel(d.triggerReason, translator)}
               testId="replay-details-trigger"
             />
           </dl>
@@ -1375,7 +1378,7 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
         <dl>
           <DetailRow
             label="Client clock skew"
-            value={formatReplayClockSkew(d.clockSkewMs)}
+            value={formatReplayClockSkew(d.clockSkewMs, translator)}
             testId="replay-details-skew"
           />
         </dl>
@@ -1575,7 +1578,14 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
                     {translator.translateTemplate(
                       "{{duration}} missing between chunk {{from}} and chunk {{to}}",
                       {
-                        duration: formatReplayMilliseconds(gap.missingMs),
+                        duration: composedValue(
+                          (sentence: Translator): string => {
+                            return formatReplayMilliseconds(
+                              gap.missingMs,
+                              sentence,
+                            );
+                          },
+                        ),
                         from: translator.formatNumber(gap.fromIndex),
                         to: translator.formatNumber(gap.toIndex),
                       },

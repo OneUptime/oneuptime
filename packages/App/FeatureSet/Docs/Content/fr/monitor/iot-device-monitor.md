@@ -95,7 +95,7 @@ Un critère ne déclenche que lorsque la condition est vraie pour chaque minute 
 | Modèle | Catégorie | Gravité | Surveille | Déclenche quand | Se rétablit quand |
 | --- | --- | --- | --- | --- | --- |
 | Device Offline | Disponibilité | Critique | `iot_device_up`, Min par `device.id`, 30 dernières minutes | Une mesure est inférieure à 1, ou un appareil enregistré n'envoie rien pendant toute la fenêtre | De retour à 1 |
-| Low Battery | Power | Avertissement | `iot_battery_percent`, Avg par `device.id`, 5 dernières minutes | Sous 20 % | À 22 % ou plus |
+| Low Battery | Alimentation | Avertissement | `iot_battery_percent`, Avg par `device.id`, 5 dernières minutes | Sous 20 % | À 22 % ou plus |
 | Weak Signal | Connectivité | Avertissement | `iot_signal_strength_dbm`, Avg par `device.id`, 5 dernières minutes | Sous -100 dBm | À -90 dBm ou plus |
 | High Temperature | Environnement | Critique | `iot_temperature_celsius`, Max par `device.id`, 5 dernières minutes | Au-dessus de 70 °C | À 63 °C ou moins |
 | High CPU Usage | Système | Avertissement | `iot_cpu_usage_ratio`, Avg par `device.id`, 5 dernières minutes | Au-dessus de 0.9 (90 % de son CPU) | À 0.81 ou moins |
@@ -160,8 +160,8 @@ Un moniteur que vous ne construisez pas à partir d'un modèle commence avec deu
 
 | Ordre | Critère | Correspond quand | Ensuite |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | La première requête n'a aucune donnée sur toute la fenêtre | Marque le moniteur **Hors ligne** et déclare l'incident « _monitor name_ is offline », qui se résout de lui-même lorsque le moniteur se rétablit. |
-| 2 | Check if _monitor name_ is online | La première requête a des données | Marque le moniteur **Opérationnel**. |
+| 1 | Vérifier si _nom du moniteur_ est hors ligne | La première requête n'a aucune donnée sur toute la fenêtre | Marque le moniteur **Hors ligne** et déclare l'incident « _nom du moniteur_ est hors ligne », qui se résout de lui-même lorsque le moniteur se rétablit. |
+| 2 | Vérifier si _nom du moniteur_ est en ligne | La première requête a des données | Marque le moniteur **Opérationnel**. |
 
 > [!IMPORTANT]
 > Une valeur de `0` est une donnée : une métrique souvent nulle, comme les redémarrages ou les erreurs, ne met pas le moniteur hors ligne. Pour être alerté sur une valeur, partez d'un modèle ou ajoutez un critère avec un seuil. Quand aucune donnée n'arrive et qu'aucun critère ne correspond, le moniteur garde son statut et les incidents ouverts restent ouverts : le silence n'est pas un rétablissement. Le temps où OneUptime lui-même ne recevait rien ne compte jamais comme une absence de données : une vérification dont la fenêtre en contient attend, comme l'explique [Quand OneUptime ne reçoit pas de données](/docs/monitor/when-oneuptime-is-not-receiving).

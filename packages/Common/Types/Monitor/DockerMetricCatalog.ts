@@ -1,4 +1,5 @@
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
+import { translationKey } from "../Translator";
 
 export type DockerMetricCategory =
   | "CPU"
@@ -42,8 +43,8 @@ const dockerMetricCatalog: Array<DockerMetricDefinition> = [
   // CPU Metrics
   {
     id: "container-cpu-usage-total",
-    friendlyName: "Container CPU Usage (Total)",
-    description: "Total CPU time consumed by the container",
+    friendlyName: translationKey("Container CPU Usage (Total)"),
+    description: translationKey("Total CPU time consumed by the container"),
     metricName: "container.cpu.usage.total",
     category: "CPU",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -51,9 +52,10 @@ const dockerMetricCatalog: Array<DockerMetricDefinition> = [
   },
   {
     id: "container-cpu-utilization",
-    friendlyName: "Container CPU Utilization",
-    description:
+    friendlyName: translationKey("Container CPU Utilization"),
+    description: translationKey(
       "CPU utilization of the container as a percentage (100% = 1 full CPU core)",
+    ),
     metricName: "container.cpu.utilization",
     category: "CPU",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -61,8 +63,10 @@ const dockerMetricCatalog: Array<DockerMetricDefinition> = [
   },
   {
     id: "container-cpu-throttled-time",
-    friendlyName: "Container CPU Throttled Time",
-    description: "Total time the container CPU has been throttled",
+    friendlyName: translationKey("Container CPU Throttled Time"),
+    description: translationKey(
+      "Total time the container CPU has been throttled",
+    ),
     metricName: "container.cpu.throttling_data.throttled_time",
     category: "CPU",
     defaultAggregation: MetricsAggregationType.Sum,
@@ -72,8 +76,8 @@ const dockerMetricCatalog: Array<DockerMetricDefinition> = [
   // Memory Metrics
   {
     id: "container-memory-usage-total",
-    friendlyName: "Container Memory Usage",
-    description: "Total memory usage of the container",
+    friendlyName: translationKey("Container Memory Usage"),
+    description: translationKey("Total memory usage of the container"),
     metricName: "container.memory.usage.total",
     category: "Memory",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -81,8 +85,8 @@ const dockerMetricCatalog: Array<DockerMetricDefinition> = [
   },
   {
     id: "container-memory-usage-limit",
-    friendlyName: "Container Memory Limit",
-    description: "Memory limit configured for the container",
+    friendlyName: translationKey("Container Memory Limit"),
+    description: translationKey("Memory limit configured for the container"),
     metricName: "container.memory.usage.limit",
     category: "Memory",
     defaultAggregation: MetricsAggregationType.Max,
@@ -90,9 +94,10 @@ const dockerMetricCatalog: Array<DockerMetricDefinition> = [
   },
   {
     id: "container-memory-percent",
-    friendlyName: "Container Memory Percent",
-    description:
+    friendlyName: translationKey("Container Memory Percent"),
+    description: translationKey(
       "Memory usage as a percentage of the container limit or host total",
+    ),
     metricName: "container.memory.percent",
     category: "Memory",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -102,8 +107,10 @@ const dockerMetricCatalog: Array<DockerMetricDefinition> = [
   // Network Metrics
   {
     id: "container-network-rx-bytes",
-    friendlyName: "Container Network Received",
-    description: "Bytes received over the network by the container",
+    friendlyName: translationKey("Container Network Received"),
+    description: translationKey(
+      "Bytes received over the network by the container",
+    ),
     metricName: "container.network.io.usage.rx_bytes",
     category: "Network",
     defaultAggregation: MetricsAggregationType.Sum,
@@ -111,8 +118,10 @@ const dockerMetricCatalog: Array<DockerMetricDefinition> = [
   },
   {
     id: "container-network-tx-bytes",
-    friendlyName: "Container Network Transmitted",
-    description: "Bytes transmitted over the network by the container",
+    friendlyName: translationKey("Container Network Transmitted"),
+    description: translationKey(
+      "Bytes transmitted over the network by the container",
+    ),
     metricName: "container.network.io.usage.tx_bytes",
     category: "Network",
     defaultAggregation: MetricsAggregationType.Sum,
@@ -122,9 +131,10 @@ const dockerMetricCatalog: Array<DockerMetricDefinition> = [
   // Block I/O Metrics
   {
     id: "container-blockio-read",
-    friendlyName: "Container Block I/O Read",
-    description:
+    friendlyName: translationKey("Container Block I/O Read"),
+    description: translationKey(
       "Bytes the container has read from each block device since it started. A lifetime counter, per device: chart it as a rate.",
+    ),
     metricName: "container.blockio.io_service_bytes_recursive",
     attributes: { operation: "read" },
     category: "BlockIO",
@@ -137,9 +147,10 @@ const dockerMetricCatalog: Array<DockerMetricDefinition> = [
   },
   {
     id: "container-blockio-write",
-    friendlyName: "Container Block I/O Write",
-    description:
+    friendlyName: translationKey("Container Block I/O Write"),
+    description: translationKey(
       "Bytes the container has written to each block device since it started. A lifetime counter, per device: chart it as a rate.",
+    ),
     metricName: "container.blockio.io_service_bytes_recursive",
     attributes: { operation: "write" },
     category: "BlockIO",
@@ -150,8 +161,8 @@ const dockerMetricCatalog: Array<DockerMetricDefinition> = [
   // Container Info Metrics
   {
     id: "container-uptime",
-    friendlyName: "Container Uptime",
-    description: "How long the container has been running",
+    friendlyName: translationKey("Container Uptime"),
+    description: translationKey("How long the container has been running"),
     metricName: "container.uptime",
     category: "Container",
     defaultAggregation: MetricsAggregationType.Max,
@@ -159,8 +170,8 @@ const dockerMetricCatalog: Array<DockerMetricDefinition> = [
   },
   {
     id: "container-restarts",
-    friendlyName: "Container Restarts",
-    description: "Number of times the container has restarted",
+    friendlyName: translationKey("Container Restarts"),
+    description: translationKey("Number of times the container has restarted"),
     metricName: "container.restarts",
     category: "Container",
     defaultAggregation: MetricsAggregationType.Max,
@@ -175,9 +186,10 @@ const dockerMetricCatalog: Array<DockerMetricDefinition> = [
    */
   {
     id: "container-restarts-increase",
-    friendlyName: "Container Restarts (Increase)",
-    description:
+    friendlyName: translationKey("Container Restarts (Increase)"),
+    description: translationKey(
       "Restarts since the agent's previous sample of the container. Their sum over a window is the restarts in it.",
+    ),
     metricName: "container.restarts.increase",
     category: "Container",
     defaultAggregation: MetricsAggregationType.Sum,
@@ -185,9 +197,10 @@ const dockerMetricCatalog: Array<DockerMetricDefinition> = [
   },
   {
     id: "container-pids-count",
-    friendlyName: "Container Process Count",
-    description:
+    friendlyName: translationKey("Container Process Count"),
+    description: translationKey(
       "Tasks in the container: processes and their threads, as the cgroup pids controller counts them.",
+    ),
     metricName: "container.pids.count",
     category: "Container",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -225,4 +238,23 @@ export function getDockerMetricByMetricName(
 
 export function getAllDockerMetricCategories(): Array<DockerMetricCategory> {
   return ["CPU", "Memory", "Network", "BlockIO", "Container"];
+}
+
+/*
+ * Each group's heading in the metric picker, a key: a category is an
+ * identifier the catalog's metrics name, so the picker looks its heading up
+ * here, once (#8353).
+ */
+const categoryLabels: Record<DockerMetricCategory, string> = {
+  CPU: translationKey("CPU"),
+  Memory: translationKey("Memory"),
+  Network: translationKey("Network"),
+  BlockIO: translationKey("Block I/O"),
+  Container: translationKey("Container"),
+};
+
+export function getDockerMetricCategoryLabel(
+  category: DockerMetricCategory,
+): string {
+  return categoryLabels[category] || category;
 }

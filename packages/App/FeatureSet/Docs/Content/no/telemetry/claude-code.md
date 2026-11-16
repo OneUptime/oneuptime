@@ -142,7 +142,7 @@ På **Produkter → AI / LLM → Forbruk** fyller `claude_code.cost.usage` tabel
 - **Claude Code telles ved siden av appene dine.** Målingene kommer inn under Claude Codes egen tjeneste, så forbruket legges til AI-kallene appene dine sender til samme prosjekt. Hvis du slår på traces (beta), slå dem på for alle: fra da av telles Claude Code bare fra sine traces, én gang. Se [Hver tjeneste telles ut fra det den sender](/docs/telemetry/ai-llm-observability#hver-tjeneste-telles-ut-fra-det-den-sender).
 - **En rad fra målinger nevner ingen kall.** Den sier **Fra bruksmålinger** under navnet sitt, cellen for kall viser `—`, og tabellen **Leverandør** plasserer den under **Ikke tilordnet**: målingene nevner ingen leverandør.
 
-Alt annet, som godkjenningsrate, kodelinjer, commits og pull requests per utvikler, eller forbruk per `query_source`, viser du i et [dashboard](/docs/dashboards/index) ut fra målingene nedenfor, og varsler på med en [metrikk-overvåking](/docs/monitor/metrics-monitor).
+Alt annet, som godkjenningsrate, kodelinjer, commits og pull requests per utvikler, eller forbruk per `query_source`, viser du i et [dashboard](/docs/dashboards/index) ut fra målingene nedenfor, og varsler på med en [målingsmonitor](/docs/monitor/metrics-monitor).
 
 ## Målinger
 
@@ -267,5 +267,5 @@ OneUptime avviser en feil `x-oneuptime-token`. Kopier nøkkelen på nytt fra **P
 :::cards
 - [AI-kodeassistenter](/docs/telemetry/ai-coding-assistants): Slik tilordnes forbruk på tvers av alle kodeassistenter.
 - [AI- / LLM-observerbarhet](/docs/telemetry/ai-llm-observability): Samtaler, varsler, kostnad og budsjetter for dine egne AI-kall.
-- [Metrikk-overvåking](/docs/monitor/metrics-monitor): Varsle på forbruk eller tokens per utvikler.
+- [Målingsmonitor](/docs/monitor/metrics-monitor): Varsle på forbruk eller tokens per utvikler.
 :::

@@ -57,7 +57,7 @@ describe("the 14 upgrade notes", () => {
   test("say an LLM provider's Additional Parameters are read like its API key", () => {
     for (const sentence of [
       "**An LLM provider's Additional Parameters are read like its API key, and its Base URL is changed only by those who may read them.**",
-      "so they are now read only by project owners and admins (`ProjectOwner`, `ProjectAdmin`), as the **API Key** already was.",
+      "so they are now read only by Project Owners and Project Admins (`ProjectOwner`, `ProjectAdmin`), as the **API Key** already was.",
       "Other members, and API keys holding their roles, get a `422` when they ask for `additionalParams`; they can read the new read-only `hasAdditionalParams` field instead, which says whether any parameters are saved and is worked out from them on every read.",
       "Members who may edit a provider can still replace its API key and its parameters.",
       "a Terraform API key that manages `additional_params` or `base_url` needs `ProjectOwner` or `ProjectAdmin`.",
@@ -90,7 +90,7 @@ describe("the 14 upgrade notes", () => {
       "**Probes and AI agents are read only by members of their project.**",
       "Reading a project's probes or AI agents takes a role that may read them, such as **Viewer**, **Settings Viewer**, **Read Probe** or **Read AI Agent** (and the monitor roles, for probes), and a request without a signed-in user or an API key is answered with a `401`.",
       "Whoever may read, create or edit monitors, a monitor's probes, network devices, their discovery scans or network sites reads what a probe picker shows of the project's probes - name, description, icon, status and whether new monitors start with it - but not a probe's key, version, labels or packet capture report.",
-      "A probe's key stays with project owners and admins.",
+      "A probe's key stays with Project Owners and Project Admins.",
       // The global AI agents' list went with the shared Runner.
       "The list of global probes answers signed-in users only.",
     ]) {
@@ -103,13 +103,13 @@ describe("the 14 upgrade notes", () => {
 
   test("the LLM provider guide says who changes the Base URL", () => {
     expect(squash(read("ai/llm-provider.md"))).toContain(
-      "Only project owners and admins can change a provider's **Base URL**, because its API Key and Additional Parameters are sent to that address; the other members who may edit a provider can change everything else.",
+      "Only Project Owners and Project Admins can change a provider's **Base URL**, because its API Key and Additional Parameters are sent to that address; the other members who may edit a provider can change everything else.",
     );
   });
 
   test("the custom probe guide says where to copy a probe's ID and key, and who sees the key", () => {
     expect(squash(read("probe/custom-probe.md"))).toContain(
-      "To copy them, open the probe's menu in the **Custom Probes** table and pick **Show ID and Key**. Everyone who can see the table can copy a probe's ID; its key is shown only to project owners and admins, who see **Show ID and Key** where the others see **Show ID**.",
+      "To copy them, open the probe's menu in the **Custom Probes** table and pick **Show ID and Key**. Everyone who can see the table can copy a probe's ID; its key is shown only to Project Owners and Project Admins, who see **Show ID and Key** where the others see **Show ID**.",
     );
   });
 

@@ -127,7 +127,7 @@ Le impostazioni proprie dell'agente IA sono in [Agente IA](#agente-ia).
 | Conteggi del cluster (nodi pronti, task in esecuzione, servizi, stack, …) | Lo stesso snapshot | I chip dei conteggi della panoramica e i badge del menu laterale |
 | Se ogni nodo è pronto e le repliche di ogni servizio, ogni minuto | Il poller dell'inventario, come le metriche `docker.swarm.node.ready`, `docker.swarm.service.replicas.desired` e `docker.swarm.service.replicas.running` | Gli avvisi Node Not Ready e Service Replicas Mismatch, e la pagina **Metriche** |
 | CPU, memoria, numero di processi e uptime dei container | Il receiver `docker_stats` | La pagina **Metriche** |
-| Log stdout e stderr dei container | Il receiver `filelog` | La pagina **Registri** |
+| Log stdout e stderr dei container | Il receiver `filelog` | La pagina **Log** |
 
 Le metriche di ogni task portano l'identità del suo container, che aggiunge il receiver `docker_stats` (`container.name`, `container.image.name`, `container.id` e `container.runtime=docker`), il suo servizio e l'ID del suo nodo, che il collector copia dalle etichette che Swarm mette sul task (`docker.swarm.service.name` e `docker.swarm.node.id`), e il nome del suo nodo da `DOCKER_SWARM_NODE_NAME` (`docker.swarm.node.name`). I [monitor Docker Swarm](/docs/monitor/docker-swarm-monitor#impostazioni-del-monitor) filtrano in base a questi attributi.
 

@@ -139,7 +139,7 @@
     "text": [
       "1",
       "Wat moeten we controleren?",
-      "OneUptime controleert dit elke 5 minuten vanaf meerdere locaties. Als er geen antwoord komt, of het antwoord een fout is, wordt een incident geopend.",
+      "OneUptime controleert dit elke 5 minuten. Er wordt een incident geopend wanneer elke locatie die het controleert een storing ziet: geen antwoord, of een antwoord met een fout.",
       "Adres van de website of API",
       "Dit is een API-endpoint",
       "Beginnen met controleren",
@@ -165,7 +165,7 @@
       "Teamleden toevoegen",
       "AL",
       "Ada Lovelace",
-      "Hiermee wordt het bereikbaarheidsbeleid \"Default on-call policy\" aangemaakt, dat hen oproept voor elk nieuw incident en elke nieuwe waarschuwing in dit project.",
+      "Hiermee wordt het bereikbaarheidsbeleid \"Standaard bereikbaarheidsbeleid\" aangemaakt, dat hen oproept voor elk nieuw incident en elke nieuwe waarschuwing in dit project.",
       "Opslaan en doorgaan"
     ],
     "outline": [
@@ -197,9 +197,9 @@
       "Gecontroleerd",
       "Elke 5 minuten, vanaf 2 locaties.",
       "Bij een storing",
-      "Als er geen antwoord komt, of het antwoord een fout is, opent OneUptime een incident (Critical Incident).",
+      "Als er geen antwoord komt, of het antwoord een fout is, opent OneUptime een incident (Kritiek incident). Voor een statuswijziging moeten beide verbonden sondes het eens zijn.",
       "Wie wordt ingelicht",
-      "Het bereikbaarheidsbeleid \"Default on-call policy\" roept Ada Lovelace op voor elk nieuw incident en elke nieuwe waarschuwing. Je bent eigenaar van deze monitor, dus je krijgt een e-mail wanneer de status ervan verandert.",
+      "Het bereikbaarheidsbeleid \"Standaard bereikbaarheidsbeleid\" roept Ada Lovelace op voor elk nieuw incident en elke nieuwe waarschuwing. Je bent eigenaar van deze monitor, dus je krijgt een e-mail wanneer de status ervan verandert.",
       "Getest",
       "Ada Lovelace heeft hem na 14 seconden per e-mail bevestigd.",
       "Volgende stappen",
@@ -217,7 +217,7 @@
       "button: Een ander adres controleren"
     ],
     "width": 768,
-    "height": 511
+    "height": 551
   },
   "paging-reach-you": {
     "text": [
@@ -284,7 +284,7 @@
     "text": [
       "2",
       "Wie is er nog meer bereikbaar?",
-      "Hiermee wordt het bereikbaarheidsbeleid \"Default on-call policy\" aangemaakt. Het roept eerst deze mensen op, bij elk nieuw incident en elke nieuwe waarschuwing in dit project.",
+      "Hiermee wordt het bereikbaarheidsbeleid \"Standaard bereikbaarheidsbeleid\" aangemaakt. Het roept eerst deze mensen op, bij elk nieuw incident en elke nieuwe waarschuwing in dit project.",
       "Eerst opgeroepen",
       "Teamleden toevoegen",
       "AL",
@@ -349,7 +349,7 @@
     "text": [
       "Oproepen zijn ingericht",
       "Wie wordt opgeroepen",
-      "Elk nieuw incident en elke nieuwe waarschuwing voert \"Default on-call policy\" uit, dat Ada Lovelace (E-mail, SMS, Telefoonoproep) oproept.",
+      "Elk nieuw incident en elke nieuwe waarschuwing voert \"Standaard bereikbaarheidsbeleid\" uit, dat Ada Lovelace (E-mail, SMS, Telefoonoproep) oproept.",
       "Als niemand antwoordt",
       "Als niemand binnen 30 minuten bevestigt, wordt Grace Hopper opgeroepen.",
       "Getest",
@@ -373,7 +373,7 @@
       "button: Nog een beleid inrichten"
     ],
     "width": 768,
-    "height": 482
+    "height": 502
   },
   "status-page-pick": {
     "text": [
@@ -386,7 +386,7 @@
       "Wissen",
       "1 van 1 gekozen",
       "Acme website",
-      "Operational",
+      "Operationeel",
       "Zodra u de pagina aanmaakt, is ze openbaar: iedereen met de link ziet de status van de monitoren die u hebt gekozen.",
       "De statuspagina aanmaken",
       "value: Status van Acme Commerce",
@@ -410,7 +410,7 @@
       "Status van Acme Commerce",
       "ZE TOONT",
       "Acme website",
-      "Operational",
+      "Operationeel",
       "Openbare link",
       "https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-000000000020",
       "Een incident bij een van deze monitoren verschijnt hier vanzelf, en abonnees krijgen een e-mail.",
@@ -519,7 +519,7 @@
     "outline": [
       "heading: Ingestiesleutels",
       "button: Ingestiesleutels",
-      "button: Open search",
+      "button: Zoeken openen",
       "field text: Ingestiesleutels zoeken op naam, beschrijving…",
       "button: Inname-sleutel aanmaken",
       "button: Meer opties",
@@ -607,7 +607,7 @@
       "SEV-2",
       "Checkout API p95 latency above 2s",
       "Oplossen",
-      "Aangemaakt",
+      "Created",
       "Bevestigd",
       "Opgelost",
       "BEZIG SINDS",

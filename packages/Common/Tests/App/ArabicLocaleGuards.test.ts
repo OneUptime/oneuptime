@@ -151,6 +151,8 @@ const GLOSSARY_WORDS_IN_PROSE: Array<GlossaryWordInProse> = [
 // Texts that name one of them as code would, though no code marks it so.
 const NAMED_AS_CODE: Record<string, string> = {
   "e.g. latency": "an example of a log attribute's name",
+  "How the trend arrow is coloured. Auto reads the metric name (e.g. 'error_count' and 'latency' are treated as 'higher is worse'). Pick a value to override.":
+    "a word Auto finds in a metric's name, quoted as the name writes it",
 };
 
 // A function an English sentence names with its brackets: track(), grantConsent().
@@ -183,6 +185,8 @@ const SAME_AS_ENGLISH: Record<string, Array<string>> = {
     "https://outlook.office.com/webhook/...",
     "my-company-workspace",
     "subscriber@company.com",
+    // The unsubscribe page's channel before its address: Arabic's colon is the same.
+    "{{channel}}:",
   ],
   Server: [
     "{{first}} {{second}}",
@@ -192,6 +196,8 @@ const SAME_AS_ENGLISH: Record<string, Array<string>> = {
     "{{title}}.",
   ],
   AdminDashboard: [
+    "# One command per line, redis-cli style.\nDBSIZE\nINFO server\nKEYS *",
+    "0 USD",
     "8012345678:ABCdefGHIjklMNOpqrsTUVwxyz-0987654321",
     "Alt",
     "Amazon S3",
@@ -204,6 +210,7 @@ const SAME_AS_ENGLISH: Record<string, Array<string>> = {
     "Cloudflare R2",
     "Command",
     "Company, Inc.",
+    "CorpoApp",
     "Delete",
     "Docker",
     "Docker Swarm",
@@ -219,29 +226,47 @@ const SAME_AS_ENGLISH: Record<string, Array<string>> = {
     "John Smith",
     "Kubernetes",
     "MinIO",
+    "OneUptime",
     "OneUptimeAlertsBot",
+    "OpenID Connect (OIDC)",
     "OpenStack",
     "Option",
+    "PID",
     "Podman",
     "PostgreSQL",
+    "Postgres",
     "Proxmox",
+    'SELECT * FROM "User" ORDER BY "createdAt" DESC LIMIT 50;',
+    "SELECT * FROM system.tables WHERE database = currentDatabase() LIMIT 50;",
+    "SMTP",
+    "SendGrid",
     "Shift",
     "Syslog",
     "Tab",
     "Telegram",
+    "Twilio",
     "VMware",
     "Valkey",
     "Wasabi",
     "WhatsApp",
     "Windows",
+    "buyer@acme.com",
+    "email@company.com",
+    "email@yourcompany.com",
+    "enterprise@oneuptime.com",
     "gpt-4o, claude-3-opus, llama-3.3-70b-versatile",
+    "internal-probe",
+    "member@company.com",
     "mm",
+    "pg {{version}}",
     "test@example.com",
     "vCenter",
+    "you@company.com",
     "{{size}} GB",
     "{{size}} KB",
     "{{size}} MB",
     "{{time}} (UTC)",
+    "⌘ / Ctrl + ↵",
   ],
 };
 

@@ -8,9 +8,22 @@
  * so it can be seen and removed, but a warning one that says what is wrong.
  * These mirror GraphLint's rules, so the chip and the issues panel agree.
  *
+ * The step and its value are named in the reader's language, as the canvas
+ * and the step's settings panel name them, when the context has the
+ * reader's translator (ReturnValueNames); the reference itself, in the
+ * tooltip, is as stored.
+ *
  * Pure: no DOM, no API.
  */
 
+import {
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  translatableTerm,
+  TemplateValue,
+  translationKey,
+  Translator,
+} from "../../../../Types/Translator";
 import {
   NodeDataProp,
   ReturnValue,
@@ -28,6 +41,50 @@ import {
   pathAfter,
   pathPastReturnValue,
 } from "../../../../Types/Workflow/TemplateSyntax";
+import { returnValueName } from "../ReturnValueNames";
+
+/*
+ * What a warning chip says is wrong, one sentence each, in the reader's
+ * language (#8360). They were glued from the step's English title in code,
+ * so a chip's tooltip read English in every language. A step is named as
+ * the canvas names it; an id, a value's id and a variable's name as written.
+ */
+export const ReferenceProblemCopy: {
+  readonly noSuchStep: string;
+  readonly noSuchValue: string;
+  readonly ownValue: string;
+  readonly runsAfter: string;
+  readonly notPassedOn: string;
+  readonly noSuchWorkflowVariable: string;
+  readonly noSuchGlobalVariable: string;
+  readonly variable: string;
+  readonly globalVariable: string;
+} = {
+  noSuchStep: translationKey('No step in this workflow has the ID "{{id}}".'),
+  noSuchValue: translationKey(
+    '"{{step}}" does not return anything called "{{value}}".',
+  ),
+  ownValue: translationKey(
+    "This is this step's own value, which does not exist yet while its settings are read.",
+  ),
+  runsAfter: translationKey(
+    '"{{step}}" runs after this step, so this value is empty here.',
+  ),
+  notPassedOn: translationKey(
+    '"{{step}}" doesn\'t pass this field on, so it is empty here. Add it to its {{setting}}.',
+  ),
+  noSuchWorkflowVariable: translationKey(
+    'There is no workflow variable called "{{name}}".',
+  ),
+  noSuchGlobalVariable: translationKey(
+    'There is no global variable called "{{name}}".',
+  ),
+  // Where a variable's chip says its value comes from.
+  variable: translationKey("Variable"),
+  globalVariable: translationKey("Global variable"),
+};
+
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
 
 export enum ReferenceKind {
   StepValue = "StepValue",
@@ -75,6 +132,11 @@ export interface ReferenceDescriptionContext {
   variableNames?:
     | { workflow: Array<string>; global: Array<string> }
     | undefined;
+  /*
+   * The reader's: the chip names a step and its value in their language
+   * with it, and in English without it.
+   */
+  translator?: Translator | undefined;
 }
 
 type SingleReferenceFunction = (text: string) => TemplateExpression | null;
@@ -156,6 +218,9 @@ export const describeReference: DescribeReferenceFunction = (
     return null;
   }
 
+  // The reader's, so the chip says what it says in their words; English without it.
+  const translator: Translator = context.translator || ENGLISH;
+
   const parsed: ParsedReferencePath = parseReferencePath(expression.inner);
 
   if (
@@ -168,7 +233,15 @@ export const describeReference: DescribeReferenceFunction = (
     // Anything after the name: a path into a JSON variable.
     const deeper: string = pathAfter(expression.inner, 2);
     const parts: Array<string> = deeper ? [name, deeper] : [name];
-    const source: string = isGlobal ? "Global variable" : "Variable";
+    const source: string =
+      translator.translateText(
+        isGlobal
+          ? ReferenceProblemCopy.globalVariable
+          : ReferenceProblemCopy.variable,
+      ) ||
+      (isGlobal
+        ? ReferenceProblemCopy.globalVariable
+        : ReferenceProblemCopy.variable);
 
     const known: Array<string> | undefined = isGlobal
       ? context.variableNames?.global
@@ -185,7 +258,12 @@ export const describeReference: DescribeReferenceFunction = (
       label: join(source, parts),
       tone: isMissing ? ReferenceTone.Warning : ReferenceTone.Normal,
       problem: isMissing
-        ? `There is no ${isGlobal ? "global" : "workflow"} variable called "${name}".`
+        ? translator.translateTemplate(
+            isGlobal
+              ? ReferenceProblemCopy.noSuchGlobalVariable
+              : ReferenceProblemCopy.noSuchWorkflowVariable,
+            { name: name },
+          )
         : undefined,
     };
   }
@@ -234,7 +312,9 @@ export const describeReference: DescribeReferenceFunction = (
       parts: parts,
       label: join(componentId, parts),
       tone: ReferenceTone.Warning,
-      problem: `No step in this workflow has the ID "${componentId}".`,
+      problem: translator.translateTemplate(ReferenceProblemCopy.noSuchStep, {
+        id: componentId,
+      }),
     };
   }
 
@@ -243,7 +323,13 @@ export const describeReference: DescribeReferenceFunction = (
     steps.filter((candidate: NodeDataProp) => {
       return (candidate.metadata.title || candidate.id) === title;
     }).length > 1;
-  const source: string = sharesTitle ? `${title} (${step.id})` : title;
+  // The step as the canvas draws it: its catalogue name in the reader's words.
+  const drawnTitle: string = step.metadata.title
+    ? context.translator?.translateText(step.metadata.title) || title
+    : title;
+  const source: string = sharesTitle
+    ? `${drawnTitle} (${step.id})`
+    : drawnTitle;
 
   const returnValue: ReturnValue | undefined = (
     step.metadata.returnValues || []
@@ -252,22 +338,34 @@ export const describeReference: DescribeReferenceFunction = (
   });
 
   const parts: Array<string> = [
-    returnValue ? returnValue.name || returnValue.id : returnValueId,
+    returnValue
+      ? returnValueName(returnValue, context.translator)
+      : returnValueId,
     ...(deeper ? [deeper] : []),
   ];
 
   let problem: string | undefined = undefined;
+  // The step as the canvas names it, in the sentence's language.
+  const stepWord: TemplateValue = step.metadata.title
+    ? translatableTerm(step.metadata.title)
+    : step.id;
 
   if (!returnValue) {
-    problem = `"${title}" does not return anything called "${returnValueId}".`;
+    problem = translator.translateTemplate(ReferenceProblemCopy.noSuchValue, {
+      step: stepWord,
+      value: returnValueId,
+    });
   } else if (
     context.editedComponentId &&
     componentId === context.editedComponentId
   ) {
     problem =
-      "This is this step's own value, which does not exist yet while its settings are read.";
+      translator.translateText(ReferenceProblemCopy.ownValue) ||
+      ReferenceProblemCopy.ownValue;
   } else if ((context.downstreamIds || []).includes(componentId)) {
-    problem = `"${title}" runs after this step, so this value is empty here.`;
+    problem = translator.translateTemplate(ReferenceProblemCopy.runsAfter, {
+      step: stepWord,
+    });
   } else if (
     readsFieldNotPassedOn({
       step: step,
@@ -280,7 +378,10 @@ export const describeReference: DescribeReferenceFunction = (
      * not: the value picker lists it apart, the chip says so too, and so do
      * the workflow's checks and a run (Types/Workflow/EmptyValues).
      */
-    problem = `"${title}" doesn't pass this field on, so it is empty here. Add it to its ${SELECT_FIELDS_NAME}.`;
+    problem = translator.translateTemplate(ReferenceProblemCopy.notPassedOn, {
+      step: stepWord,
+      setting: translatableTerm(SELECT_FIELDS_NAME),
+    });
   }
 
   return {

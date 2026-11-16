@@ -42,7 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% 가동 시간",
-    "uptimePercent": "가동 시간 {{percent}}%",
+    "uptimePercent": "가동 시간 {{percent}}",
     "operational": "정상 작동",
     "notMonitored": "모니터링되지 않음",
     "noResourcesInGroup": "이 그룹에 추가된 리소스가 없습니다.",
@@ -60,10 +60,9 @@
   },
   "eventItem": {
     "affectedResources": "영향을 받은 리소스",
-    "stateChangedTo": "상태가 다음으로 변경됨:",
     "view": "{{eventType}} 보기",
     "updateTo": "이 {{eventType}}에 대한 업데이트",
-    "postedOn": "게시일:"
+    "postedOnDate": "{{date}}에 게시됨"
   },
   "monitorOverview": {
     "daysAgo": "{{days}}일 전",
@@ -276,6 +275,7 @@
       "channelSlack": "Slack 워크스페이스",
       "channelMicrosoftTeams": "Microsoft Teams 워크스페이스",
       "channelWebhook": "웹훅",
+      "channelWithColon": "{{channel}}:",
       "addedByTeamWarning": "이 구독은 이 상태 페이지를 운영하는 팀이 추가했습니다. 메일링 리스트와 같은 공유 주소라면 구독을 취소할 때 이 알림을 받는 모든 사람에게 알림이 중단되며, 팀에도 이 사실이 알려집니다.",
       "confirmButton": "구독 취소",
       "manageInstead": "대신 받을 알림 선택하기",
@@ -473,5 +473,6 @@
     "warning": "경고"
   },
   "No options available": "사용 가능한 옵션 없음",
-  "No matches found": "일치하는 항목이 없습니다"
+  "No matches found": "일치하는 항목이 없습니다",
+  "{{eventType}} state changed to {{state}}": "{{eventType}} 상태가 {{state}}(으)로 변경됨"
 }

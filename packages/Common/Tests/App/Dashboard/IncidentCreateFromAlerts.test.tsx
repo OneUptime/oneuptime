@@ -681,7 +681,7 @@ describe("declaring an incident from alerts", () => {
 
       expect(banner).toContainElement(note);
       expect(note).toHaveTextContent(
-        "At least one of these alerts is private, so Private Incident starts switched on. While it stays on, only the incident's owners, project owners and project admins can see it, and the owners of these alerts are added as its owners once it is declared.",
+        "At least one of these alerts is private, so Private Incident starts switched on. While it stays on, only the incident's owners, Project Owners and Project Admins can see it, and the owners of these alerts are added as its owners once it is declared.",
       );
     });
 

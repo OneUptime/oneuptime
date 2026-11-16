@@ -1062,11 +1062,8 @@ export function getResourceAiAgentInstall(data: {
   // Where the installer comes from, and the URL it is answered with.
   const oneuptimeUrl: string = data.oneuptimeUrl || SETUP_GUIDE_URL_PLACEHOLDER;
   const service: string = getResourceAiAgentServiceName(data.resourceType);
-  const noun: string =
-    data.resourceType === AiResourceType.DatabaseServer ||
-    data.resourceType === AiResourceType.Host
-      ? info.displayName.toLowerCase()
-      : info.displayName;
+  // The kind as the middle of a sentence names it: "host", "Docker host" (#8250).
+  const noun: string = info.sentenceName;
 
   const identityVariables: Array<ResourceAiAgentInstallVariable> =
     data.resourceType === AiResourceType.DatabaseServer

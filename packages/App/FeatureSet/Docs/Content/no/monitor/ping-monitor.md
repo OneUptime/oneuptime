@@ -1,4 +1,4 @@
-# Ping-overvåking
+# Ping-monitor
 
 En ping-monitor sjekker at en vert svarer på ping (ICMP-ekkoforespørsler), og måler tur-retur-tiden, pakketapet og jitteren. Bruk den for servere, rutere, brannmurer og andre enheter du når via vertsnavn eller IP-adresse.
 
@@ -32,7 +32,7 @@ En sonde som har mistet sin egen nettverkstilkobling, rapporterer ikke noe resul
 
 ## Før du starter
 
-- **En rolle som kan opprette monitorer**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member, eller en egendefinert rolle med tillatelsen Create Monitor.
+- **En rolle som kan opprette monitorer**: Prosjekteier, Prosjektadministrator, Prosjektmedlem, Monitoradministrator eller Monitormedlem, eller en egendefinert rolle med tillatelsen Create Monitor.
 - **En sonde som når verten**, med ICMP tillatt på veien. Prosjektets standardsonder velges for hver nye monitor. Står det en brannmur foran verten, tillater du ICMP-ekkoforespørsler fra [OneUptime Clouds sonde-IP-adresser](/docs/configuration/ip-addresses). En vert på et privat nettverk trenger en [egendefinert sonde](/docs/probe/custom-probe) i det nettverket.
 
 ## Opprett en ping-monitor
@@ -52,7 +52,7 @@ Angi under **Vertsnavn eller IP-adresse** vertsnavnet eller IPv4- eller IPv6-adr
 
 ### Test den
 
-Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av overvåkingstest** viser tur-retur-tidene og pakketapet sonden så.
+Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av monitortest** viser tur-retur-tidene og pakketapet sonden så.
 
 ### Gå gjennom kriteriene
 
@@ -93,7 +93,7 @@ Med to eller flere filtre avgjør **Samsvarsbetingelse** om **Alle** må samsvar
 
 En ny ping-monitor starter med to kriterier:
 
-- **Frakoblet** — verten svarer ikke på noen av ekkoforespørslene, eller kan ikke nås i det hele tatt etter alle nye forsøk. Monitoren merkes som **Frakoblet**, og en hendelse kalt "_monitor name_ is offline" opprettes. Hendelsen løser seg selv når verten svarer igjen.
+- **Frakoblet** — verten svarer ikke på noen av ekkoforespørslene, eller kan ikke nås i det hele tatt etter alle nye forsøk. Monitoren merkes som **Frakoblet**, og en hendelse kalt "_monitornavn_ er frakoblet" opprettes. Hendelsen løser seg selv når verten svarer igjen.
 - **Oppe** — verten svarer. Monitoren merkes som **I drift**.
 
 Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva som skjer. Når ingen samsvarer, viser monitoren standardstatusen sin: **I drift**, med mindre du velger en annen under **Flere felt** under kriteriene.
@@ -150,8 +150,8 @@ Sonden som kjørte sjekken, kan ikke sende ping, så den sjekket i stedet TCP-po
 ## Neste steg
 
 :::cards
-- [IP-overvåking](/docs/monitor/ip-monitor): Overvåk en fast IPv4- eller IPv6-adresse.
-- [Port-overvåking](/docs/monitor/port-monitor): Sjekk en tjeneste på verten, ikke bare verten.
-- [Egendefinerte probes](/docs/probe/custom-probe): Ping verter på ditt eget nettverk.
+- [IP-monitor](/docs/monitor/ip-monitor): Overvåk en fast IPv4- eller IPv6-adresse.
+- [Port-monitor](/docs/monitor/port-monitor): Sjekk en tjeneste på verten, ikke bare verten.
+- [Egendefinerte sonder](/docs/probe/custom-probe): Ping verter på ditt eget nettverk.
 - [Hendelser](/docs/incidents/index): Hva som skjer etter at monitoren har erklært en.
 :::

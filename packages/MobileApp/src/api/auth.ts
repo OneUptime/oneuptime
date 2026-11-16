@@ -1,5 +1,8 @@
 import axios, { AxiosResponse } from "axios";
-import apiClient from "./client";
+import apiClient, {
+  closeSessionRenewals,
+  waitForSessionRenewal,
+} from "./client";
 import { getServerUrl } from "../storage/serverUrl";
 import {
   storeTokens,
@@ -510,9 +513,27 @@ export async function requestPasswordReset(email: string): Promise<void> {
  * (ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING_FLAG) and landed straight in the
  * catch, so under test the revoke below was never even built and could not be
  * covered by anything.
+ *
+ * A renewal in flight is waited for first. It rotates the refresh token, and
+ * the tap on Sign out is itself a use of the app that can renew a session
+ * about to run out (renewSessionAheadOfExpiry): a revoke that sent the token
+ * the renewal replaced would find no session, and leave the renewed one
+ * signed in on the server.
+ *
+ * And no renewal starts after that (issue #8382): renewals are closed before
+ * anything is awaited, until the next sign-in stores tokens
+ * (closeSessionRenewals). A request that meets a 401 while the revoke is on
+ * its way is refused with it rather than renewing the session the revoke
+ * names, and nothing is renewed ahead; so the revoke always carries the
+ * refresh token the server holds, and nothing a renewal brings back is
+ * written after the tokens are cleared.
  */
 export async function logout(): Promise<void> {
+  closeSessionRenewals();
+
   try {
+    await waitForSessionRenewal();
+
     const serverUrl: string = await getServerUrl();
     const tokens: StoredTokens | null = await getTokens();
 

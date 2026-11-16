@@ -1,6 +1,6 @@
 # Discord
 
-Posta ett meddelande i en [Discord](https://discord.com)-kanal när en incident öppnas, så att de som följer kanalen får veta det direkt. OneUptimes arbetsflödessteg **Send Message to Discord** postar via kanalens webhook, och en färdig mall bygger hela arbetsflödet åt dig. Den här integrationen är **utgående**: OneUptime postar i kanalen och läser inte det som sägs där.
+Posta ett meddelande i en [Discord](https://discord.com)-kanal när en incident öppnas, så att de som följer kanalen får veta det direkt. OneUptimes arbetsflödessteg **Skicka meddelande till Discord** postar via kanalens webhook, och en färdig mall bygger hela arbetsflödet åt dig. Den här integrationen är **utgående**: OneUptime postar i kanalen och läser inte det som sägs där.
 
 :::cards
 - [Så fungerar det](#så-fungerar-det): Vad arbetsflödet gör när en incident öppnas.
@@ -13,13 +13,13 @@ Posta ett meddelande i en [Discord](https://discord.com)-kanal när en incident 
 
 ```mermaid title="Från incident till Discord-meddelande"
 flowchart TB
-    declared["Incident deklarerad"] --> trigger["On Create Incident"]
-    trigger --> step["Send Message<br/>to Discord"]
-    step -->|"Success"| channel["Meddelande i<br/>din kanal"]
-    step -->|"Error"| failed["Körningen<br/>misslyckas och<br/>säger varför"]
+    declared["Incident deklarerad"] --> trigger["Vid skapande:<br/>Incident"]
+    trigger --> step["Skicka meddelande<br/>till Discord"]
+    step -->|"Framgång"| channel["Meddelande i<br/>din kanal"]
+    step -->|"Fel"| failed["Körningen<br/>misslyckas och<br/>säger varför"]
 ```
 
-Steget postar **Message Text** till kanalens webhook. Det tar sin utgång **Success** när Discord tar emot meddelandet, och sin utgång **Error**, med Discords skäl, när Discord avvisar det. Är inget kopplat till **Error**, som i mallen, misslyckas en körning som inte kunde posta, och dess **Steg** säger varför.
+Steget postar **Meddelandetext** till kanalens webhook. Det tar sin utgång **Framgång** när Discord tar emot meddelandet, och sin utgång **Fel**, med Discords skäl, när Discord avvisar det. Är inget kopplat till **Fel**, som i mallen, misslyckas en körning som inte kunde posta, och dess **Steg** säger varför.
 
 ## Innan du börjar
 
@@ -48,13 +48,13 @@ Börja från mallen, som bygger hela arbetsflödet åt dig, eller från grunden.
 3. Behåll namnet **Notify Discord on new incident** eller ändra det, och klicka på **Nästa**.
 4. Klistra in URL:en i **Discord Webhook URL** och klicka på **Skapa arbetsflöde**.
 
-Arbetsflödet öppnas i **Byggare** med två steg: **On Create Incident** och **Send Message to Discord**, som postar incidentens nummer, titel, allvarlighetsgrad och tillstånd. URL:en sparas som arbetsflödets hemliga variabel `discordWebhookUrl`.
+Arbetsflödet öppnas i **Byggare** med två steg: **Vid skapande: Incident** och **Skicka meddelande till Discord**, som postar incidentens nummer, titel, allvarlighetsgrad och tillstånd. URL:en sparas som arbetsflödets hemliga variabel `discordWebhookUrl`.
 @tab Från grunden
 1. Spara URL:en som en hemlig global variabel: gå till **Arbetsflöden → Globala variabler**, klicka på **Skapa Arbetsflödesvariabel**, ge den namnet `DISCORD_WEBHOOK_URL` och klicka på **Nästa**. Klistra in URL:en i **Innehåll**, slå på **Hemlighet** och klicka på **Skapa Arbetsflödesvariabel**.
 2. Gå till **Arbetsflöden**, klicka på **Skapa arbetsflöde**, välj **Börja från grunden**, ge arbetsflödet ett namn och klicka på **Skapa arbetsflöde**.
-3. Klicka på **Välj vad som startar det här arbetsflödet** i **Byggare** och välj **On Create Incident** under **Populära**. Klicka på utlösaren: dess **Fields to pass on** börjar med **Titel**, så klicka på **Lägg till fält** och välj de andra fält som ditt meddelande visar, till exempel **Incident Number With Prefix**.
-4. Klicka på **Lägg till komponent**, sök efter `discord` och klicka på **Send Message to Discord**. Anslut utlösarens utgång **Success** till det.
-5. Klicka på det nya steget. Klicka på **{ }** i **Discord Incoming Webhook URL** och välj `DISCORD_WEBHOOK_URL` under **Global variables**. Skriv meddelandet i **Message Text** och infoga incidentens fält med **{ }**.
+3. Klicka på **Välj vad som startar det här arbetsflödet** i **Byggare** och välj **Vid skapande: Incident** under **Populära**. Klicka på utlösaren: dess **Fält att skicka vidare** börjar med **Titel**, så klicka på **Lägg till fält** och välj de andra fält som ditt meddelande visar, till exempel **Incident Number With Prefix**.
+4. Klicka på **Lägg till komponent**, sök efter `discord` och klicka på **Skicka meddelande till Discord**. Anslut utlösarens utgång **Framgång** till det.
+5. Klicka på det nya steget. Klicka på **{ }** i **Discord-webhook-URL för inkommande meddelanden** och välj `DISCORD_WEBHOOK_URL` under **Global variables**. Skriv meddelandet i **Meddelandetext** och infoga incidentens fält med **{ }**.
 :::
 
 Ett meddelande byggt från grunden läser incidentens fält med referenser som dessa:
@@ -68,19 +68,19 @@ Ett meddelande byggt från grunden läser incidentens fält med referenser som d
 
 Slå på **Aktiverad** högst upp i **Byggare**. Från och med nu postas varje ny incident i kanalen.
 
-För att testa utan att öppna en incident klickar du på **Kör arbetsflöde** och väljer en incident du redan har under **Incident**: de senaste visas i listan, och genom att skriva dess nummer eller en del av dess titel hittar du en annan. Klicka på **Kör arbetsflödet manuellt** och bekräfta med **Kör**. Panelen **Arbetsflödeskörning** följer körningen, och meddelandet dyker upp i kanalen. Om steget i stället tar **Error** misslyckas körningen, och stegets post under **Steg** säger varför: se [Felsökning](#felsökning).
+För att testa utan att öppna en incident klickar du på **Kör arbetsflöde** och väljer en incident du redan har under **Incident**: de senaste visas i listan, och genom att skriva dess nummer eller en del av dess titel hittar du en annan. Klicka på **Kör arbetsflödet manuellt** och bekräfta med **Kör**. Panelen **Arbetsflödeskörning** följer körningen, och meddelandet dyker upp i kanalen. Om steget i stället tar **Fel** misslyckas körningen, och stegets post under **Steg** säger varför: se [Felsökning](#felsökning).
 :::
 
 ## Tips
 
 - **Formatera med Discords Markdown.** Texten skickas som den är skriven, så Discords Markdown fungerar i den: asterisker runt ett ord gör det fetstilt, och en URL visas som en länk.
 - **Tänk på gränsen på 2 000 tecken.** Discord tar emot meddelanden på upp till 2 000 tecken. Ett längre kortas av och slutar med "… (truncated — see OneUptime for the full text)" i stället för att avvisas.
-- **Posta mer än nya incidenter.** Bygg ett annat arbetsflöde på **On Update Incident** för tillståndsändringar, eller på **On Create Alert** för larm, med samma steg. För att bara posta vissa incidenter sätter du ett block **If / Else** före steget.
+- **Posta mer än nya incidenter.** Bygg ett annat arbetsflöde på **Vid uppdatering: Incident** för tillståndsändringar, eller på **Vid skapande: Larm** för larm, med samma steg. För att bara posta vissa incidenter sätter du ett block **Om / Annars** före steget.
 - **Bara Discords egna adresser.** Steget postar till en `https`-URL på `discord.com` eller `discordapp.com` och följer inte omdirigeringar, så en URL som pekar någon annanstans stoppar körningen.
 
 ## Felsökning
 
-När steget tar **Error** misslyckas körningen, och stegets post under körningens **Steg** ger Discords skäl.
+När steget tar **Fel** misslyckas körningen, och stegets post under körningens **Steg** ger Discords skäl.
 
 :::details Discord svarar "Unknown Webhook" eller "Invalid Webhook Token"
 Webhooken har tagits bort, eller så kopierades URL:en fel. Skapa en ny webhook och ersätt URL:en: i mallens arbetsflöde variabeln `discordWebhookUrl`, i ditt eget arbetsflöde innehållet i `DISCORD_WEBHOOK_URL`.
@@ -91,7 +91,7 @@ Discord begränsar hur ofta en webhook kan posta. En skur av incidenter kan nå 
 :::
 
 :::details Körningen stoppar med "Discord Webhook URL must be an https URL on discord.com or discordapp.com"
-**Discord Incoming Webhook URL** innehåller något annat än en Discord-webhook, eller så är variabeln den läser tom. Klistra in URL:en från **Copy Webhook URL** igen.
+**Discord-webhook-URL för inkommande meddelanden** innehåller något annat än en Discord-webhook, eller så är variabeln den läser tom. Klistra in URL:en från **Copy Webhook URL** igen.
 :::
 
 ## Nästa steg

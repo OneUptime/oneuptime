@@ -2,7 +2,7 @@
 
 La telemetria contiene tutto ciò che scrive il tuo codice: un indirizzo email in una riga di log, un numero di carta in un attributo di uno span, un token in uno stack trace, la domanda di un cliente in un prompt. Sicurezza dei dati tratta i log, le tracce, le eccezioni e le conversazioni IA di ogni servizio, e le sessioni di ogni applicazione RUM, come archivi dati a sé stanti. Li campiona ogni ora, vi trova i dati sensibili come fa in un bucket, e **Ripulisci** trasforma un risultato in una regola di pulizia che da quel momento in poi maschera quei dati all'ingestione.
 
-Non c'è nulla da configurare: la telemetria di ogni servizio viene scansionata ogni ora, a meno che **Scansiona telemetria** non sia disattivato nelle impostazioni del progetto.
+Non c'è nulla da configurare: la telemetria di ogni servizio viene scansionata ogni ora, a meno che **Scansiona telemetria** non sia disattivato nelle impostazioni del progetto. Per escludere i log, le tracce o un altro segnale di un servizio, disattiva **Scansiona contenuto** nelle **Impostazioni** di quell'archivio: dalla scansione successiva non se ne legge nulla.
 
 :::cards
 - [Cosa viene letto](#cosa-viene-letto): Gli attributi, i corpi, i messaggi e i prompt di ogni segnale.
@@ -29,7 +29,7 @@ Un risultato coperto da una regola di pulizia viene contrassegnato come ripulito
 
 | Archivio | Cosa viene letto | Dove punta un risultato |
 | --- | --- | --- |
-| Registri | Ogni attributo, e il corpo | `attributes.<key>`, `body` |
+| Log | Ogni attributo, e il corpo | `attributes.<key>`, `body` |
 | Tracce | Ogni attributo degli span, e gli attributi di ogni evento degli span | `attributes.<key>`, `events.<event>.<key>` |
 | Eccezioni | Il messaggio, lo stack trace e gli attributi | `message`, `stackTrace`, `attributes.<key>` |
 | Conversazioni IA | I prompt e le risposte di ogni chiamata IA, sotto le chiavi in cui li mettono le convenzioni GenAI, e ogni altro attributo | La chiave in cui si trovano, come `gen_ai.input.messages` o `gen_ai.prompt[].content` |
@@ -45,7 +45,7 @@ La registrazione di un replay di sessione contiene il testo delle pagine che le 
 
 Il prompt di una chiamata IA porta con sé l'intera chat che precede il messaggio più recente della persona, quindi di ogni valore di una chiamata IA vengono letti fino a 16.384 caratteri. Quando le conversazioni IA contengono dati sensibili, ne seguono altre due cose: il provider di IA a cui sono andate le chiamate è un flusso di quei dati, e [Dati sensibili vengono inviati a un provider di IA](/docs/data-security/checks-and-issues#ia) non viene superato sull'archivio.
 
-Le conversazioni di uno [strumento di IA aziendale](/docs/telemetry/ai-company-tools) restano escluse. Solo i Project Owner e i Project Admin possono leggerle, e un risultato finisce dove lo legge chiunque legga Sicurezza dei dati, quindi gli span di quei servizi non vengono mai letti, e le loro conversazioni IA vengono indicate come non lette.
+Le conversazioni di uno [strumento di IA aziendale](/docs/telemetry/ai-company-tools) restano escluse. Solo i Proprietari del progetto e gli Amministratori del progetto possono leggerle, e un risultato finisce dove lo legge chiunque legga Sicurezza dei dati, quindi gli span di quei servizi non vengono mai letti, e le loro conversazioni IA vengono indicate come non lette.
 
 ## Come campiona una scansione
 
@@ -74,7 +74,7 @@ Per escludere qualcosa, aggiungilo alle **Esclusioni dalla scansione** dell'arch
 :::steps
 ### Apri il risultato
 
-Apri l'archivio di telemetria - i **Registri** di un servizio, per esempio - e il risultato.
+Apri l'archivio di telemetria - i **Log** di un servizio, per esempio - e il risultato.
 
 ### Premi Ripulisci
 
@@ -101,7 +101,7 @@ Alcuni risultati non possono essere ripuliti da una regola, e **Ripulisci** dice
 - Uno dei tuoi tipi di dati: aggiungi tu una regola di pulizia personalizzata con il suo pattern.
 - I dettagli propri di una sessione (`sessions.*`): l'ingestione dei replay di sessione non esegue regole di pulizia.
 
-**Ripulisci** crea la regola a tuo nome, con i tuoi permessi: possono premerlo i Project Owner e i Project Admin, e anche un team che può creare regole di pulizia dei log, e regole di pulizia delle tracce per span, eccezioni e chiamate IA.
+**Ripulisci** crea la regola a tuo nome, con i tuoi permessi: possono premerlo i Proprietari del progetto e gli Amministratori del progetto, e anche un team che può creare regole di pulizia dei log, e regole di pulizia delle tracce per span, eccezioni e chiamate IA.
 
 ## Cosa conta come ripulito
 

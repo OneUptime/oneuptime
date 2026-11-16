@@ -197,7 +197,7 @@ const CALL_LABEL: string =
   "Call for incidents (Critical Incident and Major Incident)";
 
 const CALL_WARNING: string =
-  "Call notifications are switched off for this project, so members will not be notified by Call even when they meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.";
+  "Call notifications are switched off for this project, so members will not be notified by Call even when they meet this rule. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.";
 
 interface Deferred<T> {
   promise: Promise<T>;
@@ -797,7 +797,7 @@ describe("the verdict", () => {
       "2 need attention",
     );
     expect(screen.getByTestId("compliance-hero-headline")).toHaveTextContent(
-      "1 of 3 members meets every rule",
+      "1 of 3 members meet every rule",
     );
     expect(screen.getByTestId("compliance-hero-subline")).toHaveTextContent(
       /^Checked against 2 active rules · checked .+ ago$/,
@@ -1373,7 +1373,7 @@ describe("rule warnings", () => {
       expect(
         screen.getByTestId(`compliance-rule-warning-${CALL_RULE_ID}`),
       ).toHaveTextContent(
-        "A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.",
+        "A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.",
       );
     },
   );
@@ -1442,7 +1442,7 @@ describe("rule warnings", () => {
    */
   test("a WhatsApp rule's warning links to the project's notification settings", async () => {
     const warning: string =
-      "WhatsApp is switched off for this project, so members cannot add a WhatsApp number to meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Channels.";
+      "WhatsApp is switched off for this project, so members cannot add a WhatsApp number to meet this rule. A Project Owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Channels.";
 
     await renderPage(
       buildStatus({
@@ -1841,7 +1841,7 @@ describe("who may change rules", () => {
     await renderPage(buildStatus());
 
     expect(screen.getByTestId("compliance-rules-empty")).toHaveTextContent(
-      "Ask a project admin to add one.",
+      "Ask a Project Admin to add one.",
     );
     expect(screen.queryByTestId("compliance-presets")).toBeNull();
     expect(screen.queryByTestId("compliance-rules-empty-add")).toBeNull();

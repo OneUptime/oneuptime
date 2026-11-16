@@ -41,7 +41,7 @@ En signatur med mindre än en dag kvar räknas redan som bruten, så du får vet
 
 ## Innan du börjar
 
-- **En roll som kan skapa monitorer**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member, eller en anpassad roll med behörigheten Create Monitor.
+- **En roll som kan skapa monitorer**: Projektägare, Projektadministratör, Projektmedlem, Monitoradministratör eller Monitormedlem, eller en anpassad roll med behörigheten Create Monitor.
 - **En signerad zon.** Zonen måste vara signerad och dess DS-post publicerad i den överordnade zonen via din registrar.
 - **Utgående DNS från sonden** till upplösarna du anger och, för kontrollen av namnserverkonsekvens, till zonens auktoritativa namnservrar. Projektets standardsonder väljs för varje ny monitor.
 
@@ -103,7 +103,7 @@ Med två eller fler filter avgör **Matchningsvillkor** om **Alla** måste match
 
 En ny DNSSEC-monitor börjar med två kriterier:
 
-- **Kedjan är bruten** — **DNSSEC-kedjan är giltig** är **Falskt**. Monitorn markeras som **Offline** och en incident med namnet "_monitor name_ DNSSEC chain is broken" skapas. Incidenten löser sig själv när kedjan är giltig igen.
+- **Kedjan är bruten** — **DNSSEC-kedjan är giltig** är **Falskt**. Monitorn markeras som **Offline** och en incident med namnet "DNSSEC-kedjan för _monitornamn_ är bruten" skapas. Incidenten löser sig själv när kedjan är giltig igen.
 - **Kedjan är giltig** — monitorn markeras som **Fungerar**.
 
 Kriterier kontrolleras uppifrån och ned, och det första som matchar avgör vad som händer. När inget matchar visar monitorn sin standardstatus: **Fungerar**, om du inte väljer en annan under **Fler fält** under kriterierna.

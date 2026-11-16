@@ -282,6 +282,14 @@ import Validation from "../../../UI/Components/Forms/Validation";
 import Fields from "../../../UI/Components/Forms/Types/Fields";
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import Dictionary from "../../../Types/Dictionary";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/network-device-discovery-import/active"]);
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -1707,7 +1715,7 @@ describe("Name identifies the scan in the list", () => {
       nextScanAt: new Date(Date.now() + 30 * 60000),
     });
 
-    expect(cell).toContain("Every 60 min");
+    expect(cell).toContain("Every 60\u00A0min");
     expect(cell).toContain("Next scan");
   });
 
@@ -1727,7 +1735,7 @@ describe("Name identifies the scan in the list", () => {
       status: "Completed",
     });
 
-    expect(cell).toContain("Every 60 min");
+    expect(cell).toContain("Every 60\u00A0min");
     expect(cell).toContain("No next scan is scheduled");
   });
 
@@ -3792,7 +3800,10 @@ describe("the Scan cell's status message (issue #3842)", () => {
     await renderPage();
     installLayout();
     const { container } = renderScanCell(REPORTED_SWITCH_SCAN);
-    const text: string = container.textContent || "";
+    // The scan's interval holds its figure to its unit (#8302): read as words.
+    const text: string = (container.textContent || "")
+      .split("\u00A0")
+      .join(" ");
 
     expect(text.indexOf("Switch Discovery - WBHQ Unit/Core Switches")).toBe(0);
     expect(text.indexOf("10.240-249.0-255.220-225")).toBeLessThan(

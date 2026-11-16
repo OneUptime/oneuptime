@@ -43,7 +43,7 @@ flowchart TB
 
 ## 시작하기 전에
 
-- **설정할 수 있는 역할.** Project Owner, Project Admin, Security Admin은 데이터 보안의 설정을 변경합니다. Security Member는 이슈를 처리하고 저장소를 스캔하며, Security Viewer는 찾은 내용을 읽습니다. 다른 역할은 팀에 해당 권한이 주어지지 않는 한 아무것도 볼 수 없습니다. 어떤 버킷에 카드 번호가 있는지는 바로 공격자가 알고 싶어 하는 정보이기 때문입니다. [역할](/docs/permissions/reference#역할)을 참고하세요.
+- **설정할 수 있는 역할.** 프로젝트 소유자, 프로젝트 관리자, 보안 관리자는 데이터 보안의 설정을 변경합니다. 보안 구성원은 이슈를 처리하고 저장소를 스캔하며, 보안 뷰어는 찾은 내용을 읽습니다. 다른 역할은 팀에 해당 권한이 주어지지 않는 한 아무것도 볼 수 없습니다. 어떤 버킷에 카드 번호가 있는지는 바로 공격자가 알고 싶어 하는 정보이기 때문입니다. [역할](/docs/permissions/reference#역할)을 참고하세요.
 - **읽을 클라우드 계정 또는 데이터베이스.** 데이터 보안은 [클라우드 연결](/docs/telemetry/cloud-accounts)을 통해 클라우드 계정을 읽고, 직접 운영하는 데이터베이스는 읽기 전용 연결 문자열로 읽습니다. 텔레메트리는 아무것도 필요하지 않으며, 매시간 스캔됩니다.
 
 ## 빠른 시작
@@ -69,7 +69,7 @@ flowchart TB
 | AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System, Amazon Athena | AWS S3 Bucket |
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
-| 직접 운영하는 데이터베이스 | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL |
+| 직접 운영하는 데이터베이스 | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
 | OneUptime | 로그, 트레이스, 예외, 세션 리플레이, AI 대화 | 로그, 트레이스, 예외, 세션 리플레이, AI 대화 |
 
 모든 저장소는 그 종류에 해당하는 검사를 받습니다. 콘텐츠를 샘플링할 수 없는 저장소도 검사합니다. 공개 버킷이나 암호화되지 않은 데이터베이스는 무엇을 담고 있든 문제이기 때문입니다.

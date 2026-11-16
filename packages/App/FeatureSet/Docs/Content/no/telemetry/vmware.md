@@ -1,10 +1,10 @@
 # VMware-agent
 
-OneUptimes VMware-agent overvåker VMware vSphere: vCenter Server, ESXi-verter, virtuelle maskiner, datastores, klynger, ressurspooler og vSAN. Den er en vanlig OpenTelemetry Collector der [`vcenter`-mottakeren](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/vcenterreceiver) leser vSphere-API-et med en skrivebeskyttet bruker, stempler hver metrikk med navnet på vCenter-et ditt og sender den til OneUptime: ingen plugin på vCenter og ingenting inne i VM-ene. [VMware-overvåkere](/docs/monitor/vmware-monitor) varsler ut fra det som kommer inn.
+OneUptimes VMware-agent overvåker VMware vSphere: vCenter Server, ESXi-verter, virtuelle maskiner, datastores, klynger, ressurspooler og vSAN. Den er en vanlig OpenTelemetry Collector der [`vcenter`-mottakeren](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/vcenterreceiver) leser vSphere-API-et med en skrivebeskyttet bruker, stempler hver måling med navnet på vCenter-et ditt og sender den til OneUptime: ingen plugin på vCenter og ingenting inne i VM-ene. [VMware-monitorer](/docs/monitor/vmware-monitor) varsler ut fra det som kommer inn.
 
 :::cards
 - [Installer agenten](#installer-agenten): En skrivebeskyttet bruker, deretter installasjonsskriptet, Docker Compose eller systemd.
-- [Hva agenten samler inn](#hva-agenten-samler-inn): Hvert vSphere-objekt, identiteten og metrikkene.
+- [Hva agenten samler inn](#hva-agenten-samler-inn): Hvert vSphere-objekt, identiteten og målingene.
 - [AI-agent](#ai-agent): La OneUptime AI lese vCenter mens den undersøker.
 - [Feilsøking](#feilsøking): Et diagnoseskript, og de vanlige problemene.
 :::
@@ -22,7 +22,7 @@ flowchart TB
     ai -->|"skrivebeskyttede<br/>govc-kommandoer"| vsphere
 ```
 
-vCenter-et registrerer seg med de første dataene sine, under navnet agenten stempler på hver metrikk som `vmware.vcenter.name`. For å overvåke et vCenter uten å kjøre agenten i det hele tatt, se [VMware uten agent](/docs/telemetry/vmware-agentless): En av probene dine samler inn de samme dataene med en skrivebeskyttet konto.
+vCenter-et registrerer seg med de første dataene sine, under navnet agenten stempler på hver måling som `vmware.vcenter.name`. For å overvåke et vCenter uten å kjøre agenten i det hele tatt, se [VMware uten agent](/docs/telemetry/vmware-agentless): En av sondene dine samler inn de samme dataene med en skrivebeskyttet konto.
 
 ## Før du begynner
 
@@ -158,7 +158,7 @@ sudo systemctl enable oneuptime-vmware-agent
 sudo systemctl restart oneuptime-vmware-agent
 ```
 
-Denne installasjonen kjører bare collectoren: [AI-agenten](#ai-agent) leveres bare som containerimage. Kjør én agent per vCenter: Hvis du går bort fra Docker-installasjonen, kjør `docker compose down` der først, ellers kommer hver metrikk inn to ganger.
+Denne installasjonen kjører bare collectoren: [AI-agenten](#ai-agent) leveres bare som containerimage. Kjør én agent per vCenter: Hvis du går bort fra Docker-installasjonen, kjør `docker compose down` der først, ellers kommer hver måling inn to ganger.
 :::
 
 ### Bekreft installasjonen
@@ -196,7 +196,7 @@ Docker Compose leser disse fra `.env` ved siden av `docker-compose.yml`; systemd
 | --- | --- | --- |
 | `ONEUPTIME_URL` | Ja | OneUptime-URL-en din, for eksempel `https://oneuptime.com` eller den selvhostede instansen din. Bruk `http://` og porten hvis instansen bare bruker HTTP. |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | Inntaksnøkkelen fra **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler**. |
-| `VMWARE_VCENTER_NAME` | Nei | vCenter-ets navn i OneUptime, stemplet på hver metrikk som ressursattributtet `vmware.vcenter.name`. Hold det stabilt: å endre det senere registrerer et nytt vCenter. Standard er `vmware-vcenter`. |
+| `VMWARE_VCENTER_NAME` | Nei | vCenter-ets navn i OneUptime, stemplet på hver måling som ressursattributtet `vmware.vcenter.name`. Hold det stabilt: å endre det senere registrerer et nytt vCenter. Standard er `vmware-vcenter`. |
 | `VCENTER_ENDPOINT` | Ja | Skjemaet og verten til vCenter Server eller en frittstående ESXi-vert, **uten** `/sdk`, for eksempel `https://vcsa.example.com`. |
 | `VCENTER_USERNAME` | Ja | vSphere-brukeren med rollen Read-Only, for eksempel `oneuptime@vsphere.local` (eller `DOMAIN\user` for en Active Directory-identitetskilde). |
 | `VCENTER_PASSWORD` | Ja | Passordet til den brukeren. Hvis det inneholder `$`, `#`, mellomrom eller anførselstegn, setter du det i enkle anførselstegn i `.env`-filen til Docker-installasjonen (`install.sh` gjør dette for deg), og i doble i den til systemd-installasjonen (se [Feilsøking](#feilsøking)). |
@@ -209,7 +209,7 @@ AI-agentens egne innstillinger står under [AI-agent](#ai-agent).
 
 Ved hvert `VCENTER_COLLECTION_INTERVAL` går mottakeren gjennom hele vSphere-inventaret og sender én OpenTelemetry-ressurs per objekt. Identiteten til hvert objekt ligger i **ressursattributtene** — `vcenter.datacenter.name`, `vcenter.cluster.name`, `vcenter.host.name`, `vcenter.vm.name` / `vcenter.vm.id`, `vcenter.datastore.name`, `vcenter.resource_pool.name` / `vcenter.resource_pool.inventory_path` — og agenten legger `vmware.vcenter.name` på toppen, så OneUptime arkiverer alt under vCenter-et ditt:
 
-| vSphere-objekt | Identitet (ressursattributter) | Metrikker |
+| vSphere-objekt | Identitet (ressursattributter) | Målinger |
 | --- | --- | --- |
 | Datasenter | `vcenter.datacenter.name` | `vcenter.datacenter.cluster.count`, `vcenter.datacenter.host.count`, `vcenter.datacenter.vm.count`, `vcenter.datacenter.datastore.count`, `vcenter.datacenter.disk.space`, `vcenter.datacenter.cpu.limit`, `vcenter.datacenter.memory.limit` |
 | Klynge | + `vcenter.cluster.name` | `vcenter.cluster.cpu.effective`, `vcenter.cluster.cpu.limit`, `vcenter.cluster.memory.effective`, `vcenter.cluster.memory.limit`, `vcenter.cluster.host.count`, `vcenter.cluster.vm.count`, `vcenter.cluster.vm_template.count`, `vcenter.cluster.vsan.*` (gjennomstrømning, operasjoner, latens, overbelastninger) |
@@ -219,7 +219,7 @@ Ved hvert `VCENTER_COLLECTION_INTERVAL` går mottakeren gjennom hele vSphere-inv
 | Datastore | + `vcenter.datastore.name` | `vcenter.datastore.disk.usage`, `vcenter.datastore.disk.utilization` |
 | Ressurspool | + `vcenter.resource_pool.name`, `vcenter.resource_pool.inventory_path` | `vcenter.resource_pool.cpu.usage` / `.cpu.shares`, `vcenter.resource_pool.memory.usage` / `.memory.shares` / `.memory.ballooned` / `.memory.swapped` / `.memory.granted` |
 
-Tellings- og kapasitetsmetrikker fordeles over **datapunktattributter**, som er nøyaktig det du filtrerer og grupperer etter i overvåkingskriterier:
+Tellings- og kapasitetsmålinger fordeles over **datapunktattributter**, som er nøyaktig det du filtrerer og grupperer etter i monitorkriterier:
 
 | Attributt | Verdier | Båret av |
 | --- | --- | --- |
@@ -232,13 +232,13 @@ Tellings- og kapasitetsmetrikker fordeles over **datapunktattributter**, som er 
 | `cpu_reservation_type` | `total` / `used` | `vcenter.host.cpu.reserved` |
 | `type` | Minne: `guest` / `host` / `overhead`, `private` / `shared`; vSAN: `read` / `write` / `unmap` | Minneserier for ressurspooler, vSAN-latens og -operasjoner |
 
-Enhetene er mottakerens egne OTLP-enheter, som OneUptime skalerer for visning: `MHz` for CPU-bruk og -kapasitet, `%` for utnyttelse og CPU ready, `MiBy` for minne i verter, VM-er og ressurspooler, `By` for minne i klynger og datasentre og all diskplass, `ms` for disklatens i verter og VM-er, og `us` (mikrosekunder) for vSAN-latens. I overvåkingskriterier får identitetsattributtene prefikset `resource.` (`resource.vcenter.host.name`, `resource.vmware.vcenter.name`), mens datapunktattributter står uten prefiks (`disk_state`, `power_state`, `status`).
+Enhetene er mottakerens egne OTLP-enheter, som OneUptime skalerer for visning: `MHz` for CPU-bruk og -kapasitet, `%` for utnyttelse og CPU ready, `MiBy` for minne i verter, VM-er og ressurspooler, `By` for minne i klynger og datasentre og all diskplass, `ms` for disklatens i verter og VM-er, og `us` (mikrosekunder) for vSAN-latens. I monitorkriterier får identitetsattributtene prefikset `resource.` (`resource.vcenter.host.name`, `resource.vmware.vcenter.name`), mens datapunktattributter står uten prefiks (`disk_state`, `power_state`, `status`).
 
-`vcenter.host.memory.capacity` er av som standard upstream; den medfølgende konfigurasjonen slår den på, fordi OneUptime deler på den for minneutnyttelsen til verter. En kommentar i `otel-collector-config.yaml` lister opp de andre valgfrie metrikkene (`vcenter.vm.cpu.time`, `vcenter.vm.memory.granted`, `vcenter.host.memory.active`, `vcenter.host.memory.ballooned`, `vcenter.host.memory.granted`, `vcenter.vm.network.broadcast.packet.rate`, `vcenter.vm.network.multicast.packet.rate`): Slå på hvilken som helst av dem på samme måte.
+`vcenter.host.memory.capacity` er av som standard upstream; den medfølgende konfigurasjonen slår den på, fordi OneUptime deler på den for minneutnyttelsen til verter. En kommentar i `otel-collector-config.yaml` lister opp de andre valgfrie målingene (`vcenter.vm.cpu.time`, `vcenter.vm.memory.granted`, `vcenter.host.memory.active`, `vcenter.host.memory.ballooned`, `vcenter.host.memory.granted`, `vcenter.vm.network.broadcast.packet.rate`, `vcenter.vm.network.multicast.packet.rate`): Slå på hvilken som helst av dem på samme måte.
 
 ### Strømtilstanden til VM-er
 
-Mottakeren sender ingen metrikk for strømtilstanden til en VM. Den sender `vcenter.vm.cpu.*` **bare for påslåtte VM-er**, så OneUptime utleder tilstanden fra det som kom inn i hver innsamling: En VM som rapporterte CPU-metrikker, er **Powered on**; en som bare rapporterte minne- og diskbruk, er **Slått av** (eller suspendert: vSphere skiller ikke mellom de to her). VM-maler har ingen strømtilstand. Dette leser **en hel innsamling om gangen**, og derfor har den medfølgende prosessoren `batch` en stor `send_batch_size` og med vilje ingen `send_batch_max_size`: En innsamling fordelt over to eksporter ville nullstille inventartellingene og "slå av" VM-er. Behold batch-innstillingene slik de leveres.
+Mottakeren sender ingen måling for strømtilstanden til en VM. Den sender `vcenter.vm.cpu.*` **bare for påslåtte VM-er**, så OneUptime utleder tilstanden fra det som kom inn i hver innsamling: En VM som rapporterte CPU-målinger, er **Powered on**; en som bare rapporterte minne- og diskbruk, er **Slått av** (eller suspendert: vSphere skiller ikke mellom de to her). VM-maler har ingen strømtilstand. Dette leser **en hel innsamling om gangen**, og derfor har den medfølgende prosessoren `batch` en stor `send_batch_size` og med vilje ingen `send_batch_max_size`: En innsamling fordelt over to eksporter ville nullstille inventartellingene og "slå av" VM-er. Behold batch-innstillingene slik de leveres.
 
 ## vCenter-et i OneUptime
 
@@ -301,7 +301,7 @@ En side der dataene ikke kan leses, sier det, med **Prøv igjen**, og en liste s
 
 ## Valgfritt — Send ESXi-syslog
 
-Som standard sender agenten bare metrikker, så vCenter-ets side **Logger** forblir tom. ESXi-verter (og vCenter selv) kan videresende syslog til en hvilken som helst lytter, og den medfølgende `otel-collector-config.yaml` har et utkommentert mottakerpar `syslog` (TCP og UDP på port 5514, RFC 3164: ESXi sitt eget format), koblet til en utkommentert pipeline `logs` som stempler `vmware.vcenter.name`, så loggene havner på vCenter-et ditt.
+Som standard sender agenten bare målinger, så vCenter-ets side **Logger** forblir tom. ESXi-verter (og vCenter selv) kan videresende syslog til en hvilken som helst lytter, og den medfølgende `otel-collector-config.yaml` har et utkommentert mottakerpar `syslog` (TCP og UDP på port 5514, RFC 3164: ESXi sitt eget format), koblet til en utkommentert pipeline `logs` som stempler `vmware.vcenter.name`, så loggene havner på vCenter-et ditt.
 
 :::steps
 ### Slå på mottakerne
@@ -438,7 +438,7 @@ Hva den kan kjøre, hvordan rettinger fungerer og hvordan du feilsøker den: [In
 ## Feilsøking
 
 :::details Kjør diagnoseskriptet først
-Agenten leveres med et skript, [`troubleshoot.sh`](https://oneuptime.com/install/vmware-agent/troubleshoot.sh), som sjekker hele kjeden: container-kjøretiden, om vCenter svarer og godtar legitimasjonen, vCenter-navnet som er stemplet på hver metrikk, tokenets form, collectorens egne metrikker, og om OneUptime godtar inntaksnøkkelen. Den siste sjekken betyr mest. OneUptime avviser en dårlig nøkkel med `401` (`422` for en deaktivert nøkkel eller en nettlesernøkkel), og collectoren behandler begge som permanente: den dropper batchen og logger én `Exporting failed`-feil, som er lett å overse mens containeren forblir sunn. Skriptet spør `GET <url>/otlp/v1/validate` innenfra agentens nettverk for et direkte `200` (gyldig) eller `401` (ugyldig), faller tilbake til `POST /fluentd/v1/logs` på eldre servere og spør etter `<VCENTER_ENDPOINT>/sdk/vimServiceVersions.xml` på samme måte, så DNS-, brannmur- og TLS-feil viser seg akkurat slik collectoren møter dem.
+Agenten leveres med et skript, [`troubleshoot.sh`](https://oneuptime.com/install/vmware-agent/troubleshoot.sh), som sjekker hele kjeden: container-kjøretiden, om vCenter svarer og godtar legitimasjonen, vCenter-navnet som er stemplet på hver måling, tokenets form, collectorens egne målinger, og om OneUptime godtar inntaksnøkkelen. Den siste sjekken betyr mest. OneUptime avviser en dårlig nøkkel med `401` (`422` for en deaktivert nøkkel eller en nettlesernøkkel), og collectoren behandler begge som permanente: den dropper batchen og logger én `Exporting failed`-feil, som er lett å overse mens containeren forblir sunn. Skriptet spør `GET <url>/otlp/v1/validate` innenfra agentens nettverk for et direkte `200` (gyldig) eller `401` (ugyldig), faller tilbake til `POST /fluentd/v1/logs` på eldre servere og spør etter `<VCENTER_ENDPOINT>/sdk/vimServiceVersions.xml` på samme måte, så DNS-, brannmur- og TLS-feil viser seg akkurat slik collectoren møter dem.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/vmware-agent/troubleshoot.sh -o troubleshoot.sh
@@ -505,19 +505,19 @@ Hver innsamling går gjennom hele inventaret og gjør én ytelsesspørring per b
 Pek `VCENTER_ENDPOINT` mot selve verten (`https://esxi01.example.com`), med en lokal ESXi-bruker som har rollen Read-Only. Alt én vert vet om, samles inn: verten, VM-ene, datastorene og ressurspoolene. En frittstående vert har ikke noe datasenter- eller klyngeobjekt, så de sidene forblir tomme, og den har ikke noe vCenter-REST-API, så diagnoseskriptet rapporterer sjekken av legitimasjonen som uavklart (collectorens logg har svaret der).
 :::
 
-:::details Metrikker havner under feil vCenter
+:::details Målinger havner under feil vCenter
 OneUptime registrerer et vCenter etter `vmware.vcenter.name`, som agenten tar fra `VMWARE_VCENTER_NAME`. Å endre det etter de første dataene oppretter et nytt vCenter i stedet for å gi det første nytt navn.
 :::
 
-:::details Sende metrikker uten agenten
+:::details Sende målinger uten agenten
 vSphere har ingen egen OpenTelemetry-push, så agenten (eller en hvilken som helst OpenTelemetry Collector med `vcenter`-mottakeren) er veien inn. Kjører du allerede collectorer, legg `vcenter`-mottakeren til i en av dem i stedet for å kjøre denne agenten: Kopier `vcenter`-mottakeren og prosessoren `resource` fra den medfølgende `otel-collector-config.yaml` inn i din egen konfigurasjon. Ressursattributtet `vmware.vcenter.name` er det som registrerer vCenter-et i OneUptime, og slettingene av `service.name` / `service.instance.id` hindrer at dataene arkiveres under en tjeneste: Behold begge.
 :::
 
 ## Neste trinn
 
 :::cards
-- [VMware-overvåking](/docs/monitor/vmware-monitor): Varsle om verter, VM-er, datastores, klynger, datasentre og vSAN.
-- [VMware uten agent](/docs/telemetry/vmware-agentless): La en probe samle inn vCenter-et i stedet.
+- [VMware-monitor](/docs/monitor/vmware-monitor): Varsle om verter, VM-er, datastores, klynger, datasentre og vSAN.
+- [VMware uten agent](/docs/telemetry/vmware-agentless): La en sonde samle inn vCenter-et i stedet.
 - [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents): Hva VMware-AI-agenten kan kjøre, og hvordan rettinger fungerer.
 - [OpenTelemetry-collector på verten](/docs/telemetry/host-otel-collector): Operativsystemets visning inne i VM-ene, eller av agentens maskin.
 :::

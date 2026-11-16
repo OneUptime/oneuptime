@@ -1,6 +1,6 @@
 # SSO global
 
-O SSO global permite que um **administrador da instância** do OneUptime (administrador mestre) configure **uma única vez**, no nível da instância, um provedor de identidade SAML 2.0 ou OpenID Connect (OIDC) e o conecte a qualquer projeto do servidor. Em vez de cada proprietário de projeto configurar o próprio provedor de identidade, um administrador mestre configura um que atende a instância inteira.
+O SSO global permite que um **administrador da instância** do OneUptime (administrador mestre) configure **uma única vez**, no nível da instância, um provedor de identidade SAML 2.0 ou OpenID Connect (OIDC) e o conecte a qualquer projeto do servidor. Em vez de cada Proprietário do projeto configurar o próprio provedor de identidade, um administrador mestre configura um que atende a instância inteira.
 
 > [!NOTE]
 > O SSO global, incluindo o interruptor "Require SSO for Login" para a instância inteira, faz parte de todas as edições do OneUptime: toda instância auto-hospedada o tem, inclusive a Community Edition, e ele não precisa de licença. É administração da instância, portanto não se aplica ao OneUptime Cloud. Consulte [Edição Enterprise](/docs/self-hosted/enterprise) para ver o que cada edição inclui.
@@ -16,7 +16,7 @@ O SSO global permite que um **administrador da instância** do OneUptime (admini
 
 |                     | SSO de projeto                                        | SSO global                                            |
 | ------------------- | ----------------------------------------------------- | ----------------------------------------------------- |
-| Configurado por     | Proprietário/administrador do projeto (Configurações do projeto) | Administrador mestre da instância (Admin Dashboard) |
+| Configurado por     | Proprietário do projeto ou Administrador do projeto (Configurações do projeto) | Administrador mestre da instância (Admin Dashboard) |
 | Escopo              | Um único projeto                                      | A instância inteira, conectável a qualquer projeto    |
 | Resultado do login  | Acesso a esse único projeto                           | Acesso a todos os projetos que o usuário alcança      |
 
@@ -44,20 +44,20 @@ Faça login como administrador mestre e abra o Admin Dashboard com **Configuraç
 
 :::tabs
 @tab SAML
-Na página do provedor, o cartão **Identity Provider URLs** mostra a **ACS URL (Assertion Consumer Service / Reply URL)** e o **Issuer (Entity ID)**. Cole os dois no seu provedor de identidade (Okta, Microsoft Entra ID, OneLogin, JumpCloud e outros).
+Na página do provedor, o cartão **URLs do provedor de identidade** mostra a **ACS URL (Assertion Consumer Service / Reply URL)** e o **Issuer (Entity ID)**. Cole os dois no seu provedor de identidade (Okta, Microsoft Entra ID, OneLogin, JumpCloud e outros).
 @tab OpenID Connect
-Na página do provedor, o cartão **Identity Provider URL** mostra a **Redirect URI (Callback URL)**. Adicione-a às URIs de redirecionamento permitidas do seu provedor de identidade.
+Na página do provedor, o cartão **URL do provedor de identidade** mostra a **Redirect URI (Callback URL)**. Adicione-a às URIs de redirecionamento permitidas do seu provedor de identidade.
 :::
 
 ### Ligar o provedor
 
-Um provedor novo começa desligado. Clique em **Edit Configuration** na página do provedor e ative **Habilitado**.
+Um provedor novo começa desligado. Clique em **Editar configuração** na página do provedor e ative **Habilitado**.
 
 Ligar um provedor global apenas o adiciona às opções de login único da página de login — ele nunca impõe o SSO nem bloqueia ninguém, então é seguro ligá-lo, testá-lo e desligá-lo de novo se precisar. Enquanto a instância inteira exige SSO, porém, a página de login oferece só os provedores ligados: teste um provedor antes de exigir SSO.
 
 ### Testar o provedor
 
-Use o link do cartão **Test this SSO provider** (**Test this OIDC provider** no OpenID Connect) para fazer um login completo pelo seu provedor de identidade. **Testar login** na linha do provedor em **Login único** inicia o mesmo login em uma nova aba. Você não precisa anexar nenhum projeto antes: o teste faz o seu login nos projetos dos quais você já faz parte. O provedor precisa estar ligado para o link funcionar.
+Use o link do cartão **Testar este provedor de SSO** (**Testar este provedor OIDC** no OpenID Connect) para fazer um login completo pelo seu provedor de identidade. **Testar login** na linha do provedor em **Login único** inicia o mesmo login em uma nova aba. Você não precisa anexar nenhum projeto antes: o teste faz o seu login nos projetos dos quais você já faz parte. O provedor precisa estar ligado para o link funcionar.
 :::
 
 ## Como os usuários fazem login
@@ -78,7 +78,7 @@ flowchart TB
 
 - **Nenhum projeto anexado (todos os projetos / convite primeiro):** os usuários podem fazer login com o provedor e acessar **qualquer projeto do qual já sejam membros**. Usuários novos **não** são criados automaticamente — o usuário precisa ser convidado para um projeto primeiro. Use isso para um SSO de toda a empresa quando as associações são gerenciadas em outro lugar.
 
-- **Projetos anexados (provisionamento automático):** Abra o provedor e use a tabela **Attached Projects** para anexar um ou mais projetos, cada um com um conjunto de equipes padrão. Os usuários que fazem login são **provisionados automaticamente** nesses projetos e adicionados às equipes padrão no primeiro login. Um projeto que você anexa começa com a equipe de membros dele; escolha outras equipes se os recém-chegados devem começar com outro acesso. Adicione um projeto + equipes por vez para construir a lista; para alterar um anexo, exclua-o e adicione-o novamente.
+- **Projetos anexados (provisionamento automático):** Abra o provedor e use a tabela **Projetos vinculados** para anexar um ou mais projetos, cada um com um conjunto de equipes padrão. Os usuários que fazem login são **provisionados automaticamente** nesses projetos e adicionados às equipes padrão no primeiro login. Um projeto que você anexa começa com a equipe de membros dele; escolha outras equipes se os recém-chegados devem começar com outro acesso. Adicione um projeto + equipes por vez para construir a lista; para alterar um anexo, exclua-o e adicione-o novamente.
 
 Quem já é membro de um projeto anexado mantém as equipes que tem lá.
 

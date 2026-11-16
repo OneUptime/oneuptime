@@ -1,4 +1,5 @@
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
+import { translationKey } from "../Translator";
 
 export type HostMetricCategory =
   | "CPU"
@@ -42,9 +43,10 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
   // CPU Metrics
   {
     id: "system-cpu-utilization",
-    friendlyName: "CPU Utilization",
-    description:
+    friendlyName: translationKey("CPU Utilization"),
+    description: translationKey(
       "Share of CPU time spent running applications (the user state), as a ratio (0 to 1). The High CPU Utilization template adds system time.",
+    ),
     metricName: "system.cpu.utilization",
     category: "CPU",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -53,9 +55,10 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
   },
   {
     id: "process-cpu-utilization",
-    friendlyName: "Process CPU Utilization",
-    description:
+    friendlyName: translationKey("Process CPU Utilization"),
+    description: translationKey(
       "CPU utilization of each process on the host, as a ratio (0 to 1), one series per executable.",
+    ),
     metricName: "process.cpu.utilization",
     category: "CPU",
     defaultAggregation: MetricsAggregationType.Max,
@@ -66,9 +69,10 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
   // Memory Metrics
   {
     id: "system-memory-utilization",
-    friendlyName: "Memory Utilization",
-    description:
+    friendlyName: translationKey("Memory Utilization"),
+    description: translationKey(
       "Share of physical memory in use, as a ratio (0 to 1). Page cache and buffers are left out.",
+    ),
     metricName: "system.memory.utilization",
     category: "Memory",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -77,9 +81,10 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
   },
   {
     id: "system-memory-usage",
-    friendlyName: "Memory Usage",
-    description:
+    friendlyName: translationKey("Memory Usage"),
+    description: translationKey(
       "Memory in use, in bytes. Page cache and buffers are left out.",
+    ),
     metricName: "system.memory.usage",
     category: "Memory",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -90,9 +95,10 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
   // Disk / Filesystem Metrics
   {
     id: "system-filesystem-utilization",
-    friendlyName: "Filesystem Utilization",
-    description:
+    friendlyName: translationKey("Filesystem Utilization"),
+    description: translationKey(
       "Share of each filesystem in use, as a ratio (0 to 1), one series per mount point.",
+    ),
     metricName: "system.filesystem.utilization",
     category: "Disk",
     defaultAggregation: MetricsAggregationType.Max,
@@ -101,8 +107,10 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
   },
   {
     id: "system-filesystem-usage",
-    friendlyName: "Filesystem Usage",
-    description: "Bytes in use on each filesystem, one series per mount point.",
+    friendlyName: translationKey("Filesystem Usage"),
+    description: translationKey(
+      "Bytes in use on each filesystem, one series per mount point.",
+    ),
     metricName: "system.filesystem.usage",
     category: "Disk",
     defaultAggregation: MetricsAggregationType.Max,
@@ -114,9 +122,10 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
   // Network Metrics
   {
     id: "system-network-io",
-    friendlyName: "Network I/O",
-    description:
+    friendlyName: translationKey("Network I/O"),
+    description: translationKey(
       "Bytes received and sent since the host started, one series per direction. A lifetime counter: it only grows.",
+    ),
     metricName: "system.network.io",
     category: "Network",
     defaultAggregation: MetricsAggregationType.Max,
@@ -127,8 +136,10 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
   // Load Average Metrics
   {
     id: "system-cpu-load-average-1m",
-    friendlyName: "Load Average (1m)",
-    description: "Host CPU load average over the last 1 minute.",
+    friendlyName: translationKey("Load Average (1m)"),
+    description: translationKey(
+      "Host CPU load average over the last 1 minute.",
+    ),
     metricName: "system.cpu.load_average.1m",
     category: "Load",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -136,8 +147,10 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
   },
   {
     id: "system-cpu-load-average-5m",
-    friendlyName: "Load Average (5m)",
-    description: "Host CPU load average over the last 5 minutes.",
+    friendlyName: translationKey("Load Average (5m)"),
+    description: translationKey(
+      "Host CPU load average over the last 5 minutes.",
+    ),
     metricName: "system.cpu.load_average.5m",
     category: "Load",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -145,8 +158,10 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
   },
   {
     id: "system-cpu-load-average-15m",
-    friendlyName: "Load Average (15m)",
-    description: "Host CPU load average over the last 15 minutes.",
+    friendlyName: translationKey("Load Average (15m)"),
+    description: translationKey(
+      "Host CPU load average over the last 15 minutes.",
+    ),
     metricName: "system.cpu.load_average.15m",
     category: "Load",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -156,9 +171,10 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
   // Process Metrics
   {
     id: "system-processes-count",
-    friendlyName: "Process Count",
-    description:
+    friendlyName: translationKey("Process Count"),
+    description: translationKey(
       "Number of processes on the host, one series per status (running, sleeping, blocked...).",
+    ),
     metricName: "system.processes.count",
     category: "Processes",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -197,4 +213,24 @@ export function getHostMetricByMetricName(
 
 export function getAllHostMetricCategories(): Array<HostMetricCategory> {
   return ["CPU", "Memory", "Disk", "Network", "Load", "Processes"];
+}
+
+/*
+ * Each group's heading in the metric picker, a key: a category is an
+ * identifier the catalog's metrics name, so the picker looks its heading up
+ * here, once (#8353).
+ */
+const categoryLabels: Record<HostMetricCategory, string> = {
+  CPU: translationKey("CPU"),
+  Memory: translationKey("Memory"),
+  Disk: translationKey("Disk"),
+  Network: translationKey("Network"),
+  Load: translationKey("Load Average"),
+  Processes: translationKey("Processes"),
+};
+
+export function getHostMetricCategoryLabel(
+  category: HostMetricCategory,
+): string {
+  return categoryLabels[category] || category;
 }

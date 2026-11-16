@@ -42,7 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% de disponibilidad",
-    "uptimePercent": "{{percent}}% de disponibilidad",
+    "uptimePercent": "{{percent}} de disponibilidad",
     "operational": "Operativo",
     "notMonitored": "No monitoreado",
     "noResourcesInGroup": "No se han añadido recursos a este grupo.",
@@ -60,10 +60,9 @@
   },
   "eventItem": {
     "affectedResources": "Recursos afectados",
-    "stateChangedTo": "estado cambiado a",
     "view": "Ver {{eventType}}",
     "updateTo": "Actualización de este {{eventType}}",
-    "postedOn": "publicado el"
+    "postedOnDate": "publicado el {{date}}"
   },
   "monitorOverview": {
     "daysAgo": "hace {{days}} días",
@@ -276,6 +275,7 @@
       "channelSlack": "Espacio de trabajo de Slack",
       "channelMicrosoftTeams": "Espacio de trabajo de Microsoft Teams",
       "channelWebhook": "Webhook",
+      "channelWithColon": "{{channel}}:",
       "addedByTeamWarning": "Esta suscripción la añadió el equipo que gestiona esta página de estado. Si es una dirección compartida, como una lista de correo, al cancelarla dejarán de recibir estas notificaciones todas las personas que las reciben, y se avisará al equipo.",
       "confirmButton": "Cancelar suscripción",
       "manageInstead": "Elegir en su lugar qué notificaciones recibe",
@@ -473,5 +473,6 @@
     "warning": "Advertencia"
   },
   "No options available": "No hay opciones disponibles",
-  "No matches found": "No se encontraron coincidencias"
+  "No matches found": "No se encontraron coincidencias",
+  "{{eventType}} state changed to {{state}}": "{{eventType}}: estado cambiado a {{state}}"
 }

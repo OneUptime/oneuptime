@@ -64,12 +64,12 @@ De fleste regler virker på varsler og episoder som opprettes etter at du har la
 
 ### Betingelser
 
-Betingelsene i en regel avgjør hvilke varsler den virker på, og leses som setninger: "Hvis **Varseltittel** inneholder `database`", "Og **Overvåkingsetiketter** har en av *Production*". En regel uten betingelser samsvarer med hvert varsel.
+Betingelsene i en regel avgjør hvilke varsler den virker på, og leses som setninger: "Hvis **Varseltittel** inneholder `database`", "Og **Monitoretiketter** har en av *Production*". En regel uten betingelser samsvarer med hvert varsel.
 
 | Betingelse                                                    | Sammenligner med                                                                                               |
 | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| **Monitorer**, **Alvorlighetsgrader for varsler**, **Varseletiketter**, **Overvåkingsetiketter** | **Har en av**, **Har alle** eller **Har ingen av** verdiene du velger.                         |
-| **Varseltittel**, **Varselbeskrivelse**, **Overvåkingsnavn**, **Overvåkingsbeskrivelse** | **Inneholder**, **Inneholder ikke**, **Er lik**, **Er ikke lik**, **Starter med**, **Slutter med**, uten hensyn til store og små bokstaver, eller **Samsvarer med mønster** og **Samsvarer ikke med mønster** for et regulært uttrykk eller et `*`-jokertegn. |
+| **Monitorer**, **Alvorlighetsgrader for varsler**, **Varseletiketter**, **Monitoretiketter** | **Har en av**, **Har alle** eller **Har ingen av** verdiene du velger.                         |
+| **Varseltittel**, **Varselbeskrivelse**, **Monitornavn**, **Monitorbeskrivelse** | **Inneholder**, **Inneholder ikke**, **Er lik**, **Er ikke lik**, **Starter med**, **Slutter med**, uten hensyn til store og små bokstaver, eller **Samsvarer med mønster** og **Samsvarer ikke med mønster** for et regulært uttrykk eller et `*`-jokertegn. |
 
 Med to eller flere betingelser velger du **Samsvar med alle**, der hver må stemme, eller **Samsvar med én**, der én er nok. Episoderegler samsvarer i stedet med en episodes alvorlighetsgrad, etiketter, tittel og beskrivelse.
 
@@ -84,16 +84,16 @@ Klikk på **Opprett Alert On-Call Rule**. Under **Treff** samsvarer **Alle varsl
 
 ### Velg policyene
 
-Under **Vaktretningslinjer** velger du **Vaktretningslinjer** regelen tilkaller. **Navn** følger dem, for eksempel "Tilkall Platform on-call", til du skriver inn ditt eget, og en **Beskrivelse** venter under **Flere felt**. Opprett deretter regelen.
+Under **Vaktpolicyer** velger du **Vaktpolicyer** regelen tilkaller. **Navn** følger dem, for eksempel "Tilkall Platform on-call", til du skriver inn ditt eget, og en **Beskrivelse** venter under **Flere felt**. Opprett deretter regelen.
 :::
 
 En alvorlighetsgrad tilkaller ingen på egen hånd: En vaktregel som samsvarer på **Alvorlighetsgrader for varsler**, er måten å sette opp "tilkall databaseteamet for hvert High-varsel" på. For å se hva som kjørte for ett varsel, åpner du siden **Vaktutførelser**. Hver person nås deretter på den måten de har satt opp under **Brukerinnstillinger → Slik når man meg** på fanen **Varsler**; se [Eskaleringsregler](/docs/on-call/escalation-rules).
 
-En regel tilkaller så snart et varsel samsvarer med den. For å la den vente på arbeidstiden i stedet, svarer du **Bare i arbeidstiden** på **Når skal denne regelen tilkalle?** under **Flere felt**. **Arbeidstid** starter som mandag til fredag, 09:00 til 17:00, i din egen tidssone: velg andre dager, et annet **Starttidspunkt** eller **Sluttidspunkt** eller en annen **Tidssone**, og en setning under valget forteller hva som skjer. I listen viser regelen arbeidstiden under navnet. Et varsel som samsvarer utenfor disse tidene, får en kjøring som venter og ikke tilkaller noen; når arbeidstiden begynner, tilkaller retningslinjen sin første eskaleringsregel og eskalerer som vanlig. Blir varselet bekreftet eller løst først, blir ingen tilkalt. Endrer varselet seg mens det venter, slik at det nå samsvarer med en regel som tilkaller med en gang, for eksempel fordi alvorlighetsgraden heves, begynner kjøringen å tilkalle straks, og feeden til varselet forteller hvorfor. To regler som tilkaller den samme retningslinjen, tilkaller den så snart en av dem tillater det: en regel for de høyeste alvorlighetsgradene som tilkaller med en gang, ved siden av en regel for resten som venter på arbeidstiden, holder nettene rolige.
+En regel tilkaller så snart et varsel samsvarer med den. For å la den vente på arbeidstiden i stedet, svarer du **Bare i arbeidstiden** på **Når skal denne regelen tilkalle?** under **Flere felt**. **Arbeidstid** starter som mandag til fredag, 09:00 til 17:00, i din egen tidssone: velg andre dager, et annet **Starttidspunkt** eller **Sluttidspunkt** eller en annen **Tidssone**, og en setning under valget forteller hva som skjer. I listen viser regelen arbeidstiden under navnet. Et varsel som samsvarer utenfor disse tidene, får en kjøring som venter og ikke tilkaller noen; når arbeidstiden begynner, tilkaller policyen sin første eskaleringsregel og eskalerer som vanlig. Blir varselet bekreftet eller løst først, blir ingen tilkalt. Endrer varselet seg mens det venter, slik at det nå samsvarer med en regel som tilkaller med en gang, for eksempel fordi alvorlighetsgraden heves, begynner kjøringen å tilkalle straks, og feeden til varselet forteller hvorfor. To regler som tilkaller den samme policyen, tilkaller den så snart en av dem tillater det: en regel for de høyeste alvorlighetsgradene som tilkaller med en gang, ved siden av en regel for resten som venter på arbeidstiden, holder nettene rolige.
 
-En regel tilkaller personene i policyene sine for å håndtere varselet: Den som bekrefter tilkallingen, bekrefter varselet. For å holde et team orientert mens et annet håndterer det, svarer du **Observatører** på **Tilkall personene i disse retningslinjene som** under **Flere felt**. Tilkallingen deres sier at de er observatører, og bekrefter de den, sier det bare at de har sett den: Varselet blir ikke bekreftet, og ingen andres tilkalling stopper. Tilkallingen deres fortsetter til en av dem svarer eller varselet er løst, og i listen sier regelen under navnet at den tilkaller som observatører. En policy som én samsvarende regel tilkaller for å håndtere varselet og en annen som observatører, tilkaller for å håndtere det.
+En regel tilkaller personene i policyene sine for å håndtere varselet: Den som bekrefter tilkallingen, bekrefter varselet. For å holde et team orientert mens et annet håndterer det, svarer du **Observatører** på **Tilkall personene i disse policyene som** under **Flere felt**. Tilkallingen deres sier at de er observatører, og bekrefter de den, sier det bare at de har sett den: Varselet blir ikke bekreftet, og ingen andres tilkalling stopper. Tilkallingen deres fortsetter til en av dem svarer eller varselet er løst, og i listen sier regelen under navnet at den tilkaller som observatører. En policy som én samsvarende regel tilkaller for å håndtere varselet og en annen som observatører, tilkaller for å håndtere det.
 
-En regel kan tilhøre team. **Ansvarlige team** under **Flere felt** forbeholder den teamene du velger: bare medlemmene deres og prosjektadministratorer kan redigere eller slette den, og alle andre som ser regler, ser den skrivebeskyttet. En regel som ikke tilhører noe team, kan endres av alle som kan redigere vaktregler, og episoderegler kan også tilhøre team. Se [Regler som tilhører team](/docs/permissions/index#regler-som-tilhører-team).
+En regel kan tilhøre team. **Ansvarlige team** under **Flere felt** forbeholder den teamene du velger: bare medlemmene deres og Prosjektadministratorer kan redigere eller slette den, og alle andre som ser regler, ser den skrivebeskyttet. En regel som ikke tilhører noe team, kan endres av alle som kan redigere vaktregler, og episoderegler kan også tilhøre team. Se [Regler som tilhører team](/docs/permissions/index#regler-som-tilhører-team).
 
 ## Hendelsesregler
 
@@ -123,7 +123,7 @@ Hendelsen får varselets tittel, beskrivelse, monitor, berørte ressurser og eti
 
 ## Personvern- og runbook-regler
 
-**Personvernregler** gjør nye varsler som samsvarer, private før noe annet kjører: Bare eierne deres og prosjektets administratorer og eiere kan se dem. En regel har to trinn: **Treff**, varslene den gjør private, og deretter **Navn**, allerede fylt ut som "Gjør varsler private". Se [Private varsler](/docs/alerts/index#private-varsler).
+**Personvernregler** gjør nye varsler som samsvarer, private før noe annet kjører: Bare eierne deres og Prosjektadministratorer og Prosjekteiere kan se dem. En regel har to trinn: **Treff**, varslene den gjør private, og deretter **Navn**, allerede fylt ut som "Gjør varsler private". Se [Private varsler](/docs/alerts/index#private-varsler).
 
 **Runbook-regler** starter en runbook når et nytt varsel samsvarer, med mindre varselet ble opprettet løst. Se [Runbook-regler](/docs/runbooks/rules).
 
@@ -161,7 +161,7 @@ Eiere får hver påminnelse som **Påminnelse om varsel**, som er slått på via
 
 ### Medlemskap i episoder
 
-**Varsler → Innstillinger → Medlemskap i episoder** avgjør om et varsel kan være i mer enn én episode. Slå på **Et varsel kan bare være i én episode**, så blir et varsel som er i en episode, ikke lagt til i noen annen, verken fra dashbordet eller via API-et, en arbeidsflyt eller en grupperingsregel, før det er tatt ut av den episoden. Bryteren er slått av til du slår den på, og bare Project Owners og Project Admins kan endre den. Å slå den på tar ikke noe varsel ut av en episode. Se [Én episode per hendelse](/docs/incidents/episodes#én-episode-per-hendelse), som fungerer på samme måte for varsler.
+**Varsler → Innstillinger → Medlemskap i episoder** avgjør om et varsel kan være i mer enn én episode. Slå på **Et varsel kan bare være i én episode**, så blir et varsel som er i en episode, ikke lagt til i noen annen, verken fra dashbordet eller via API-et, en arbeidsflyt eller en grupperingsregel, før det er tatt ut av den episoden. Bryteren er slått av til du slår den på, og bare Prosjekteiere og Prosjektadministratorer kan endre den. Å slå den på tar ikke noe varsel ut av en episode. Se [Én episode per hendelse](/docs/incidents/episodes#én-episode-per-hendelse), som fungerer på samme måte for varsler.
 
 ### Nummerering
 
@@ -171,18 +171,18 @@ Kortet **Neste nummer** under setter nummeret det neste varselet og den neste ep
 
 ### Dataoppbevaring
 
-**Varsler → Innstillinger → Dataoppbevaring** sletter varsler når de har vært løst lenge nok, slik [Dataoppbevaring](/docs/incidents/settings#dataoppbevaring) gjør for hendelser. Kortet **Løste varsler** spør om **Slett etter**, **Aldri** til du velger en periode, og ber om bekreftelse før mer slettes, med **Slett gamle varsler**. Et varsel blir værende så lenge det ikke er løst, så lenge det er i en episode som fortsatt er åpen eller ble løst for kortere tid siden, og så lenge en hendelse det er knyttet til, blir værende. Bare Project Owners og Project Admins kan endre den; i API-et er det prosjektets `alertRetentionInDays`.
+**Varsler → Innstillinger → Dataoppbevaring** sletter varsler når de har vært løst lenge nok, slik [Dataoppbevaring](/docs/incidents/settings#dataoppbevaring) gjør for hendelser. Kortet **Løste varsler** spør om **Slett etter**, **Aldri** til du velger en periode, og ber om bekreftelse før mer slettes, med **Slett gamle varsler**. Et varsel blir værende så lenge det ikke er løst, så lenge det er i en episode som fortsatt er åpen eller ble løst for kortere tid siden, og så lenge en hendelse det er knyttet til, blir værende. Bare Prosjekteiere og Prosjektadministratorer kan endre den; i API-et er det prosjektets `alertRetentionInDays`.
 
 > [!NOTE]
 > På OneUptime Cloud krever notatmaler og egendefinerte felt planen **Growth** eller høyere.
 
 ## Arbeidsflyter
 
-Hver varselmodell har arbeidsflytutløsere og -handlinger oppkalt etter seg: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** og **On Delete Alert**, det samme for **Varselsepisode**, **Tilstandstidslinje for varsel** og de andre, og handlinger som **Create One Alert** og **Update One Alert**. Definisjonene av egendefinerte felt for varsler er det eneste unntaket: De har ingen arbeidsflytutløsere. Se [Oversikt over arbeidsflyter](/docs/workflows/index).
+Hver varselmodell har arbeidsflytutløsere og -handlinger oppkalt etter seg: **Ved oppretting: Varsel**, **Ved oppdatering: Varsel**, **Ved oppretting eller oppdatering: Varsel** og **Ved sletting: Varsel**, det samme for **Varselsepisode**, **Tilstandstidslinje for varsel** og de andre, og handlinger som **Opprett Varsel (én post)** og **Oppdater Varsel (én post)**. Definisjonene av egendefinerte felt for varsler er det eneste unntaket: De har ingen arbeidsflytutløsere. Se [Oversikt over arbeidsflyter](/docs/workflows/index).
 
 ## Hvem som kan endre dem
 
-Regler, egendefinerte felt og målinger krever en Project Owner eller Project Admin, eller en egendefinert rolle med regelens egen tillatelse. **Varselmedlem** jobber med varsler og episoder, notatene deres, eiere og tilstandstidslinjer og notatmaler, og **Varseladministrator** administrerer i tillegg varseltilstander og alvorlighetsgrader. Se [Brukere, team og tillatelser](/docs/permissions/index).
+Regler, egendefinerte felt og målinger krever en Prosjekteier eller Prosjektadministrator, eller en egendefinert rolle med regelens egen tillatelse. **Varselmedlem** jobber med varsler og episoder, notatene deres, eiere og tilstandstidslinjer og notatmaler, og **Varseladministrator** administrerer i tillegg varseltilstander og alvorlighetsgrader. Se [Brukere, team og tillatelser](/docs/permissions/index).
 
 ## Neste steg
 

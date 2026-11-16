@@ -139,7 +139,7 @@
     "text": [
       "1",
       "Was sollen wir prüfen?",
-      "OneUptime prüft es alle 5 Minuten von mehreren Standorten aus. Kommt keine Antwort oder eine Fehlerantwort, wird ein Vorfall eröffnet.",
+      "OneUptime prüft es alle 5 Minuten. Ein Vorfall wird eröffnet, wenn jeder Standort, der es prüft, einen Ausfall feststellt: keine Antwort oder eine Fehlerantwort.",
       "Adresse der Website oder API",
       "Dies ist ein API-Endpunkt",
       "Prüfung starten",
@@ -165,7 +165,7 @@
       "Teammitglieder hinzufügen",
       "AL",
       "Ada Lovelace",
-      "Dadurch wird die Bereitschaftsrichtlinie „Default on-call policy“ erstellt, die sie bei jedem neuen Vorfall und jeder neuen Warnung in diesem Projekt alarmiert.",
+      "Dadurch wird die Bereitschaftsrichtlinie „Standard-Bereitschaftsrichtlinie“ erstellt, die sie bei jedem neuen Vorfall und jeder neuen Warnung in diesem Projekt alarmiert.",
       "Speichern und weiter"
     ],
     "outline": [
@@ -197,9 +197,9 @@
       "Geprüft",
       "Alle 5 Minuten, von 2 Standorten aus.",
       "Bei einem Ausfall",
-      "Kommt keine Antwort oder eine Fehlerantwort, eröffnet OneUptime einen Vorfall (Critical Incident).",
+      "Kommt keine Antwort oder eine Fehlerantwort, eröffnet OneUptime einen Vorfall (Kritischer Vorfall). Für eine Statusänderung müssen beide verbundenen Sonden übereinstimmen.",
       "Wer informiert wird",
-      "Die Bereitschaftsrichtlinie „Default on-call policy“ alarmiert Ada Lovelace bei jedem neuen Vorfall und jeder neuen Warnung. Sie sind Eigentümer dieses Monitors und erhalten daher eine E-Mail, wenn sich sein Status ändert.",
+      "Die Bereitschaftsrichtlinie „Standard-Bereitschaftsrichtlinie“ alarmiert Ada Lovelace bei jedem neuen Vorfall und jeder neuen Warnung. Sie sind Eigentümer dieses Monitors und erhalten daher eine E-Mail, wenn sich sein Status ändert.",
       "Getestet",
       "Ada Lovelace hat sie nach 14 Sekunden per E-Mail bestätigt.",
       "Nächste Schritte",
@@ -217,7 +217,7 @@
       "button: Andere Adresse prüfen"
     ],
     "width": 768,
-    "height": 511
+    "height": 531
   },
   "paging-reach-you": {
     "text": [
@@ -284,7 +284,7 @@
     "text": [
       "2",
       "Wer hat sonst Bereitschaft?",
-      "Dadurch wird die Bereitschaftsrichtlinie „Default on-call policy“ erstellt. Sie alarmiert zuerst diese Personen, bei jedem neuen Vorfall und jeder neuen Warnung in diesem Projekt.",
+      "Dadurch wird die Bereitschaftsrichtlinie „Standard-Bereitschaftsrichtlinie“ erstellt. Sie alarmiert zuerst diese Personen, bei jedem neuen Vorfall und jeder neuen Warnung in diesem Projekt.",
       "Zuerst alarmiert",
       "Teammitglieder hinzufügen",
       "AL",
@@ -349,7 +349,7 @@
     "text": [
       "Die Alarmierung ist eingerichtet",
       "Wer alarmiert wird",
-      "Jeder neue Vorfall und jede neue Warnung führt „Default on-call policy“ aus, das Ada Lovelace (E-Mail, SMS, Telefonanruf) alarmiert.",
+      "Jeder neue Vorfall und jede neue Warnung führt „Standard-Bereitschaftsrichtlinie“ aus, das Ada Lovelace (E-Mail, SMS, Telefonanruf) alarmiert.",
       "Wenn niemand antwortet",
       "Bestätigt niemand innerhalb von 30 Minuten, wird Grace Hopper alarmiert.",
       "Getestet",
@@ -373,7 +373,7 @@
       "button: Weitere Richtlinie einrichten"
     ],
     "width": 768,
-    "height": 482
+    "height": 522
   },
   "status-page-pick": {
     "text": [
@@ -386,7 +386,7 @@
       "Löschen",
       "1 von 1 ausgewählt",
       "Acme website",
-      "Operational",
+      "Betriebsbereit",
       "Die Seite ist öffentlich, sobald Sie sie erstellen: Jeder mit dem Link sieht den Status der ausgewählten Monitore.",
       "Statusseite erstellen",
       "value: Status von Acme Commerce",
@@ -410,7 +410,7 @@
       "Status von Acme Commerce",
       "SIE ZEIGT",
       "Acme website",
-      "Operational",
+      "Betriebsbereit",
       "Öffentlicher Link",
       "https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-000000000020",
       "Ein Vorfall bei einem dieser Monitore erscheint hier von selbst, und die Abonnenten werden per E-Mail benachrichtigt.",
@@ -607,7 +607,7 @@
       "SEV-2",
       "Checkout API p95 latency above 2s",
       "Beheben",
-      "Erstellt",
+      "Created",
       "Bestätigt",
       "Behoben",
       "LÄUFT SEIT",

@@ -68,7 +68,13 @@ import {
   AUDIT_LOG_SESSION_RESOURCE_TYPE,
   SESSION_AUDIT_LOG_ACTIONS,
 } from "Common/Types/AuditLog/AuditLogSessionEvent";
-import { DEFAULT_SESSION_IDLE_DAYS } from "Common/Types/UserSession/SessionLength";
+import {
+  ACTIVITY_REPORTED_WITHIN_IN_MINUTES,
+  DEFAULT_SESSION_IDLE_DAYS,
+  IDLE_TIMEOUT_SWEEP_MARGIN_IN_MINUTES,
+  REPORTS_ACTIVITY_WHILE_IN_USE_FIELD,
+} from "Common/Types/UserSession/SessionLength";
+import { EVERY_FIVE_MINUTE } from "Common/Utils/CronTime";
 import {
   AUDIT_LOG_EXEMPTION_KINDS,
   AUDIT_LOG_EXEMPT_TABLES,
@@ -994,7 +1000,7 @@ describe("Inviting People", () => {
 
       // The Users list offers it on a pending row, to a master admin, on a server that cannot send email.
       expect(usersPage).toContain(
-        "actionButtons={[ getInvitationLinkRowAction<TeamMember>({ isAvailable: canGetInvitationLinks(serverEmail), onOpen: (teamMemberId: ObjectID) => { setInvitationLinkFor({ teamMemberId: teamMemberId, viewPageRoute: null, }); }, }), ]}",
+        "actionButtons={[ getInvitationLinkRowAction<TeamMember>({ isAvailable: canGetInvitationLinks(serverEmail), isNotSignedUp: membersNotSignedUp.isNotSignedUp, onOpen: (teamMemberId: ObjectID) => { setInvitationLinkFor({ teamMemberId: teamMemberId, viewPageRoute: null, }); }, }), ]}",
       );
       expect(serverEmail).toContain(
         "return cannotSendEmail(serverEmail) && serverEmail.isMasterAdmin;",
@@ -1003,8 +1009,12 @@ describe("Inviting People", () => {
         'getLink: translationKey("Get Invitation Link"),',
       );
       expect(invitationLink).toContain("title: INVITATION_LINK_COPY.getLink,");
+      /*
+       * On a pending row - or a member's whose person has not signed up yet
+       * (#8191), whom the same link lets in.
+       */
       expect(invitationLink).toContain(
-        "data.isAvailable && !item.hasAcceptedInvitation && Boolean(item.id)",
+        "if (!data.isAvailable || !item.id) { return false; } return !item.hasAcceptedInvitation || Boolean(data.isNotSignedUp?.(item));",
       );
       // In the row menu: the row's button is View, which ModelTable puts first.
       expect(invitationLink).not.toContain("ActionButtonPlacement.Primary");
@@ -2455,6 +2465,75 @@ describe("Audit Logs", () => {
     );
     expect(sessionService).toContain("await this.recordSessionEnds({");
     expect(sessionService).toContain("public async endSessionsThatRanOut(");
+  });
+
+  /*
+   * Issue #8188: an idle timeout was recorded only when the browser came
+   * back, and for one that never did, 30 days later as "Not used for 30
+   * days". The five-minute sweep records it once the idle timeout and the
+   * margin have passed with nothing heard of the browser, so the page says
+   * within how long: the margin and one sweep.
+   *
+   * Issue #8458: the mobile app after 1.6.0 renews while in use and says so
+   * with every renewal (reportsActivityWhileInUse), so its sessions are
+   * swept the same way; 1.6.0, the latest store release when it changed
+   * (packages/MobileApp/app.json), and earlier say nothing, and theirs are
+   * still recorded when the app next reaches OneUptime.
+   */
+  it("says how soon an idle timeout is recorded, as the sweep's margin and its schedule make it", () => {
+    const sessions: string = section(page, "## Sign-ins and sessions");
+    const sweepEveryMinutes: number = 5;
+
+    expect(EVERY_FIVE_MINUTE).toBe(`*/${sweepEveryMinutes} * * * *`);
+    expect(sessions).toContain(
+      `An idle timeout in the browser, or in a version of the mobile app newer than 1.6.0, is recorded within ${
+        IDLE_TIMEOUT_SWEEP_MARGIN_IN_MINUTES + sweepEveryMinutes
+      } minutes of running out, whether or not the person comes back. In version 1.6.0 and earlier of the mobile app, it is recorded the next time the app reaches OneUptime.`,
+    );
+    expect(sessions).not.toContain("from a tab left open");
+
+    // What makes it so: every renewal of the app says it renews while in use.
+    const mobileClient: string = fs.readFileSync(
+      path.join(PACKAGES_DIR, "MobileApp", "src", "api", "client.ts"),
+      "utf8",
+    );
+    const mobileActivity: string = fs.readFileSync(
+      path.join(PACKAGES_DIR, "MobileApp", "src", "auth", "userActivity.ts"),
+      "utf8",
+    );
+
+    expect(mobileClient).toContain(
+      "[REPORTS_ACTIVITY_WHILE_IN_USE_FIELD]: true,",
+    );
+    expect(mobileActivity).toContain(
+      `export const REPORTS_ACTIVITY_WHILE_IN_USE_FIELD: string =\n  "${REPORTS_ACTIVITY_WHILE_IN_USE_FIELD}";`,
+    );
+    expect(mobileActivity).toContain(
+      `export const ACTIVITY_REPORT_INTERVAL_MS: number = ${ACTIVITY_REPORTED_WITHIN_IN_MINUTES} * 60 * 1000;`,
+    );
+
+    expect(readCommonSource("Server/Services/UserSessionService.ts")).toContain(
+      "ended += await this.endSessionsPastIdleTimeout(condition);",
+    );
+
+    /*
+     * The sweep is the Enterprise Edition's audit log job. Core CI runs
+     * without ee/: its schedule is held to the page wherever ee/ is present.
+     */
+    if (fs.existsSync(EE_DIR)) {
+      const sweepJob: string = fs.readFileSync(
+        path.join(
+          EE_DIR,
+          "Server",
+          "AuditLog",
+          "Jobs",
+          "EndSessionsThatRanOut.ts",
+        ),
+        "utf8",
+      );
+
+      expect(sweepJob).toContain("schedule: EVERY_FIVE_MINUTE,");
+    }
   });
 
   it("says an administrator's changes to someone else's notification setup are recorded", () => {

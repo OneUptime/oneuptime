@@ -172,16 +172,15 @@ describe("the Switch / Case section of the Components guide", () => {
     expect(outputs).toEqual([SWITCH_DEFAULT_PORT.title]);
 
     /*
-     * Value to check is the one setting the editor draws in the reader's
-     * language (it shares If / Else's label, ConditionModel), so a page
-     * names it as its Dashboard does; the rest are named as the step does.
+     * The editor draws Value to check (it shares If / Else's label,
+     * ConditionModel), Cases and the canvas its Default and Yes outputs in
+     * the reader's language, so a page names each as its Dashboard does
+     * (#7511); the step's title has no word in any locale, and stays.
      */
     type DrawnFunction = (language: string, name: string) => string;
 
     const drawn: DrawnFunction = (language: string, name: string): string => {
-      return name === VALUE_TO_CHECK
-        ? drawnDashboardLabel(language, name)
-        : name;
+      return drawnDashboardLabel(language, name);
     };
 
     for (const language of LANGUAGES) {
@@ -372,9 +371,12 @@ describe("the rest of the Components guide points to Switch / Case", () => {
       expect({
         language,
         bullets: bullets.length,
-        yesNo: (bullets[0] || "").includes("**Yes**"),
+        // The outputs, as the canvas draws them (#7511).
+        yesNo: (bullets[0] || "").includes(
+          `**${drawnDashboardLabel(language, "Yes")}**`,
+        ),
         default: (bullets[0] || "").includes(
-          `**${SWITCH_DEFAULT_PORT.title}**`,
+          `**${drawnDashboardLabel(language, SWITCH_DEFAULT_PORT.title)}**`,
         ),
       }).toEqual({ language, bullets: 1, yesNo: true, default: true });
     }
@@ -387,7 +389,11 @@ describe("the rest of the Components guide points to Switch / Case", () => {
         page.indexOf("\n## Conditions\n"),
         page.indexOf(`\n${HEADING}\n`),
       );
-      const intro: Array<string> = linesWith(conditions, "**If / Else**");
+      // The step's name, as the canvas draws it (#8359).
+      const intro: Array<string> = linesWith(
+        conditions,
+        `**${drawnDashboardLabel(language, "If / Else")}**`,
+      );
 
       expect({
         language,

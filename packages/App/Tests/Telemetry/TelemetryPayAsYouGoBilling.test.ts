@@ -2,6 +2,7 @@ import { beforeAll, beforeEach, describe, expect, test } from "@jest/globals";
 import * as grpc from "@grpc/grpc-js";
 import { Client, PublishPacket, AuthenticateError } from "aedes";
 import ObjectID from "Common/Types/ObjectID";
+import SecretDigest from "Common/Server/Utils/Telemetry/SecretDigest";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import PaymentRequiredException from "Common/Types/Exception/PaymentRequiredException";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
@@ -31,6 +32,8 @@ jest.mock("Common/Server/Services/TelemetryIngestionKeyService", () => {
     __esModule: true,
     default: {
       getPolicyFromSecretKey: jest.fn(),
+      // A connected MQTT session's key, as it is now (issue #8147).
+      getCurrentPolicyById: jest.fn(),
       // An accepted export stamps its key as used (issue #7887).
       markUsed: (): Promise<void> => {
         return Promise.resolve();
@@ -135,9 +138,7 @@ beforeEach(() => {
   (MetricsQueueService.addMetricIngestJob as MockFn).mockResolvedValue(
     undefined,
   );
-  (
-    TelemetryIngestionKeyService.getPolicyFromSecretKey as MockFn
-  ).mockResolvedValue({
+  const policy: Record<string, unknown> = {
     ingestionKeyId: ObjectID.generate(),
     projectId,
     keyType: TelemetryIngestionKeyType.Server,
@@ -146,7 +147,14 @@ beforeEach(() => {
     isEnabled: true,
     expiresAt: null,
     requestsPerMinuteLimit: null,
-  });
+  };
+  (
+    TelemetryIngestionKeyService.getPolicyFromSecretKey as MockFn
+  ).mockResolvedValue(policy);
+  // Unchanged since CONNECT: stopping a key is MqttServerKeyStopped.test.ts.
+  (
+    TelemetryIngestionKeyService.getCurrentPolicyById as MockFn
+  ).mockResolvedValue(policy);
 });
 
 describe("gRPC payment refusal", () => {
@@ -282,7 +290,7 @@ describe("MQTT payment admission", () => {
       IoTDeviceCredentialService.getCredentialContext as MockFn
     ).mockResolvedValue({
       credentialId,
-      secretKey,
+      secretKeyDigest: SecretDigest.of(secretKey),
       projectId: projectId.toString(),
       iotFleetId: ObjectID.generate().toString(),
       fleetName: "fleet",
@@ -322,7 +330,7 @@ describe("MQTT payment admission", () => {
       IoTDeviceCredentialService.getCredentialContext as MockFn
     ).mockResolvedValue({
       credentialId,
-      secretKey,
+      secretKeyDigest: SecretDigest.of(secretKey),
       projectId: projectId.toString(),
       iotFleetId: ObjectID.generate().toString(),
       fleetName: "fleet",

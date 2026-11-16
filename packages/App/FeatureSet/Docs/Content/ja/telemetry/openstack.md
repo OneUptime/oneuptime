@@ -1530,6 +1530,8 @@ openstack server list --name '^oneuptime-check-'
 openstack volume list --name 'oneuptime-check-'
 ```
 
+クラウドをアーカイブしても、これらは何もオフになりません。アーカイブしたクラウドは一覧に表示されなくなるだけで、引き続き収集され、API チェックとライフサイクルチェックも実行され続けます。チェックを止めるには、そのチェックをオフにしてください。
+
 ## AI エージェント
 
 エージェントの `docker-compose.yml` は、**OpenStack AI エージェント**（`oneuptime-openstack-ai-agent`、イメージ `oneuptime/resource-ai-agent:release`）も動かします。OneUptime AI がこのクラウドのインシデントやアラートを調査する間、これを通じて読み取り専用の `openstack` コマンドを実行します。`openstack compute service list --host compute-01`、`openstack server list --all-projects --limit 50 --host compute-01`、`openstack server event list ID`、`openstack network agent list`、`openstack volume service list` などで、実行したものを引用して示します。エージェントには `openstack` バイナリもシェルもありません。各コマンドは、それに答えるサービスへの 1 回の `GET` になり、エージェント自身の認証情報で実行されます。エージェントは、Collector が報告するのと同じ `OPENSTACK_CLOUD_NAME` で登録されるため、このクラウドを担当します。
@@ -1641,7 +1643,7 @@ ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_SECRET=...
 
 ### ワークフローからの修正
 
-ワークフローは OpenStack のアラートから開始して修正を提案できます。**Propose an OpenStack fix** ステップは、アラートまたはインシデントと、コマンドを受け取ります。OneUptime AI が提案する修正と同じポリシー、同じ書き込み範囲、変更が触れるものの同じ読み取りを通り、AI モデルは不要で、人がアラート上で承認します。ワークフロー自身が変更を行ったり、提案したものを承認したりすることはできません。クラウドの修正モードがどうであってもです。**Propose taking a failing OpenStack compute service out of scheduling** テンプレートが出発点になります。
+ワークフローは OpenStack のアラートから開始して修正を提案できます。**OpenStack の修正を提案** ステップは、アラートまたはインシデントと、コマンドを受け取ります。OneUptime AI が提案する修正と同じポリシー、同じ書き込み範囲、変更が触れるものの同じ読み取りを通り、AI モデルは不要で、人がアラート上で承認します。ワークフロー自身が変更を行ったり、提案したものを承認したりすることはできません。クラウドの修正モードがどうであってもです。**Propose taking a failing OpenStack compute service out of scheduling** テンプレートが出発点になります。
 
 ## systemd サービスとして動かす
 

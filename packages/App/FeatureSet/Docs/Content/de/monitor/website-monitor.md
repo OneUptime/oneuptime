@@ -36,7 +36,7 @@ Eine Sonde, die ihre eigene Netzwerkverbindung verloren hat, meldet kein Ergebni
 
 ## Bevor Sie beginnen
 
-- **Eine Rolle, die Monitore erstellen darf**: Project Owner, Project Admin, Project Member, Monitor Admin oder Monitor Member oder eine benutzerdefinierte Rolle mit der Berechtigung Create Monitor.
+- **Eine Rolle, die Monitore erstellen darf**: Projektinhaber, Projektadministrator, Projektmitglied, Monitor-Administrator oder Monitor-Mitglied oder eine benutzerdefinierte Rolle mit der Berechtigung Create Monitor.
 - **Eine Sonde, die die Website erreicht.** Die Standardsonden Ihres Projekts werden für jeden neuen Monitor ausgewählt. Steht eine Firewall vor der Website, lassen Sie die [Sonden-IP-Adressen von OneUptime Cloud](/docs/configuration/ip-addresses) zu. Eine Website in einem privaten Netzwerk braucht eine [benutzerdefinierte Sonde](/docs/probe/custom-probe) in diesem Netzwerk, die private Adressen erreichen darf: siehe [Zugriff auf private Netzwerke](/docs/self-hosted/private-network-access).
 
 ## Einen Website-Monitor erstellen
@@ -167,7 +167,7 @@ Ein neuer Website-Monitor beginnt mit zwei Kriterien, sodass er ohne Änderungen
 - **Offline** — die Website antwortet nicht oder mit einem Statuscode ab `400` (oder unter `200`). Der Monitor wird als **Offline** markiert und ein Vorfall wird erstellt. Der Vorfall löst sich von selbst auf, wenn die Website wieder da ist.
 - **Online** — die Website antwortet mit einem beliebigen Statuscode `2xx` oder `3xx`, etwa `200`, `204` oder `301`. Der Monitor wird als **Betriebsbereit** markiert.
 
-In der Liste der Kriterien sind sie nach dem Monitor benannt: _Check if (name) is offline_ und _Check if (name) is online_.
+In der Liste der Kriterien sind sie nach dem Monitor benannt: „Prüfen, ob _Monitorname_ offline ist“ und „Prüfen, ob _Monitorname_ online ist“.
 
 Eine Seite, die `204 No Content` antwortet, oder eine Weiterleitung, die Sie mit eingeschaltetem **Weiterleitungen nicht folgen** beobachten, zählt also als erreichbar. Wenn für Sie nur ein Statuscode gesund bedeutet, ändern Sie beide Kriterien auf der Seite **Konfiguration → Kriterien** des Monitors: zum Beispiel **Antwort-Statuscode** / **Gleich** / `200` im Online-Kriterium und **Ungleich** / `200` im Offline-Kriterium, anstelle der beiden Statuscode-Filter, die jedes hat.
 

@@ -1,16 +1,37 @@
+import {
+  getGlobalTranslator,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import {
+  formatCompactDuration,
+  formatDurationInUnit,
+  formatMilliseconds,
+} from "../../Utils/Milliseconds";
+
 /*
- * How the AI pages write numbers: a latency, a cost, a token count. Pure, so
- * the rules are pinned by tests and every surface (the list, the replay, the
+ * How the AI pages write numbers: a latency, a cost, a token count, so the
+ * rules are pinned by tests and every surface (the list, the replay, the
  * alert cards) writes "2.3 s" and "$0.0012" the same way.
  *
- * Units and symbols read the same in every language the Dashboard ships, so
- * they are not routed through translation.
+ * A latency is the Dashboard's duration, in the reader's language and
+ * digits, in every unit ("850 ms", "۸۵۰ میلی‌ثانیه", "850 ملي ث"; "۲٫۳
+ * ثانیه", "4 min 05 s"; issues #7418, #8348), its translator the page's
+ * unless one is handed in. The cost's dollar sign is not routed through
+ * translation yet.
  */
 
-// "850 ms", "2.3 s", "42 s", "4m 05s", "1h 02m".
-export function formatLlmDuration(ms: number): string {
+/*
+ * "850 ms", "2.3 s", "42 s", "4m 05s", "1h 02m". From a minute up, the
+ * Dashboard's compact minutes and hours (formatCompactDuration, #8455): a
+ * two-digit field is the reader's zero before the reader's digit ("۴ دقیقه
+ * ۰۵ ثانیه").
+ */
+export function formatLlmDuration(
+  ms: number,
+  translator: Translator = getGlobalTranslator(),
+): string {
   if (!Number.isFinite(ms) || ms <= 0) {
-    return "0 ms";
+    return formatMilliseconds(translator, 0);
   }
 
   /*
@@ -19,32 +40,47 @@ export function formatLlmDuration(ms: number): string {
    * "10 s" and 59.6 s is "1m 00s" - never "1000 ms", "10.0 s" or "60 s".
    */
   if (Math.round(ms) < 1000) {
-    return `${Math.round(ms)} ms`;
+    return formatMilliseconds(translator, ms, { maximumFractionDigits: 0 });
   }
 
   const tenths: number = Math.round(ms / 100);
 
   if (tenths < 100) {
-    return `${(tenths / 10).toFixed(1)} s`;
+    return formatDurationInUnit(translator, tenths / 10, "second", {
+      decimals: 1,
+    });
   }
 
   const totalSeconds: number = Math.round(ms / 1000);
 
   if (totalSeconds < 60) {
-    return `${totalSeconds} s`;
+    return formatDurationInUnit(translator, totalSeconds, "second", {
+      decimals: 0,
+      dropTrailingZeros: true,
+    });
   }
 
   if (totalSeconds < 3600) {
-    const minutes: number = Math.floor(totalSeconds / 60);
-    const seconds: number = totalSeconds % 60;
-    return `${minutes}m ${String(seconds).padStart(2, "0")}s`;
+    return formatCompactDuration(
+      translator,
+      {
+        minutes: Math.floor(totalSeconds / 60),
+        seconds: totalSeconds % 60,
+      },
+      { padsAfterTheFirst: true },
+    );
   }
 
   const totalMinutes: number = Math.round(totalSeconds / 60);
-  const hours: number = Math.floor(totalMinutes / 60);
-  const minutes: number = totalMinutes % 60;
 
-  return `${hours}h ${String(minutes).padStart(2, "0")}m`;
+  return formatCompactDuration(
+    translator,
+    {
+      hours: Math.floor(totalMinutes / 60),
+      minutes: totalMinutes % 60,
+    },
+    { padsAfterTheFirst: true },
+  );
 }
 
 /*

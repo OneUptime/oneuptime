@@ -151,6 +151,15 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
  * English; "Resend" and "Test" are also OneUptime labels, by coincidence.
  */
 const THIRD_PARTY_IN_ENGLISH: Record<string, Array<string>> = {
+  [INCOMING_REQUEST_MONITOR]: [
+    // The Amazon SNS console's button and status (#7723).
+    "Create subscription",
+    "Pending confirmation",
+    "Request confirmation",
+    // The Azure portal's event schema and endpoint type.
+    "Event Grid Schema",
+    "Web Hook",
+  ],
   [INCOMING_EMAIL_MONITOR]: ["Resend", "Test", "Confirm subscription"],
 };
 
@@ -908,7 +917,7 @@ describe("the helpers, on these pages' shapes", () => {
       "Monitor Log Retention (Days)",
     );
     expect(adminDashboardLabel("da", "Monitor Log Retention (Days)")).toBe(
-      "Opbevaring af overvågningslogfiler (dage)",
+      "Opbevaring af monitorlogfiler (dage)",
     );
     expect(isActionLabel("Monitor Log Retention (Days)")).toBe(false);
   });

@@ -155,12 +155,12 @@ Een regel laat een persoon overgaan op het nummer dat die persoon in dit project
 :::steps
 1. Open **Gebruikersinstellingen** > **Beleid inkomend gesprek** > **Inkomende telefoonnummers**. **Beleid inkomend gesprek** is een sectie van het zijmenu die ingeklapt begint.
 2. Klik in de kaart **Telefoonnummers voor inkomende oproeproutering** op **Telefoonnummer voor inkomende oproeproutering toevoegen** en vul het nummer in met de landcode, zoals `+15551234567`.
-3. Vul de 6-cijferige code die OneUptime per SMS naar het nummer stuurt in onder **Verificatiecode**, en klik op **Verifiëren**. **Send a new code** stuurt een nieuwe.
+3. Vul de 6-cijferige code die OneUptime per SMS naar het nummer stuurt in onder **Verificatiecode**, en klik op **Verifiëren**. **Nieuwe code sturen** stuurt een nieuwe.
 :::
 
 Iedereen kan één geverifieerd nummer per project hebben. Om het te wijzigen, verwijdert u eerst het oude nummer. Deze nummers staan los van de telefoonnummers onder **Meldingsmethoden**, die oproepen voor bereikbaarheidsdiensten gebruiken. Zie [Meldingsmethoden](/docs/notifications/notification-methods).
 
-Nummers voor inkomende oproepen worden per sms geverifieerd, dus **SMS** moet eerst aan staan voor het project. Een projecteigenaar, een **Factureringsbeheerder** of iemand met **Manage Billing** zet het aan in de kaart **Meldingskanalen** op **Projectinstellingen > Meldingen > Meldingskanalen**.
+Nummers voor inkomende oproepen worden per sms geverifieerd, dus **SMS** moet eerst aan staan voor het project. Een Projecteigenaar, een **Factureringsbeheerder** of iemand met **Manage Billing** zet het aan in de kaart **Meldingskanalen** op **Projectinstellingen > Meldingen > Meldingskanalen**.
 
 ## Spraakberichten en beleidsinstellingen
 
@@ -198,7 +198,7 @@ Een gesprek is gemist wanneer het eindigt zonder iemand te bereiken: de status e
 
 ### Wie een melding krijgt
 
-Wanneer een gesprek is gemist, stelt OneUptime de eigenaren van het beleid op de hoogte: de gebruikers en de leden van de teams die op de pagina **Eigenaren** van het beleid zijn toegevoegd. Heeft het beleid geen eigenaren, dan krijgen in plaats daarvan de eigenaren van het project een melding.
+Wanneer een gesprek is gemist, stelt OneUptime de eigenaren van het beleid op de hoogte: de gebruikers en de leden van de teams die op de pagina **Eigenaren** van het beleid zijn toegevoegd. Heeft het beleid geen eigenaren, dan krijgen in plaats daarvan de Projecteigenaren een melding.
 
 De melding zegt wie er belde, welk nummer werd gekozen, waarom niemand opnam, en wie er is gebeld en hoe elke poging eindigde. Ze linkt naar het gesprek in het belogboek.
 
@@ -208,15 +208,15 @@ Eigenaren krijgen standaard een e-mail. Iedereen kan andere kanalen kiezen (sms,
 
 Logboeken van inkomende oproepen zijn beschikbaar als workflowtriggers:
 
-- **On Create Incoming Call Log** wordt uitgevoerd wanneer een gesprek binnenkomt.
-- **On Update Incoming Call Log** wordt uitgevoerd terwijl het gesprek verloopt. De update die **Ended At** invult, is het einde van het gesprek.
+- **Bij aanmaken: Incoming Call Logboek** wordt uitgevoerd wanneer een gesprek binnenkomt.
+- **Bij bijwerken: Incoming Call Logboek** wordt uitgevoerd terwijl het gesprek verloopt. De update die **Ended At** invult, is het einde van het gesprek.
 
 Om alleen op gemiste oproepen te reageren, bijvoorbeeld om ze in Slack of Microsoft Teams te plaatsen of een ticket te openen:
 
 :::steps
-1. Voeg de trigger **On Update Incoming Call Log** toe. Stel **Fields to watch** in op **Ended At**, en selecteer de velden die u wilt gebruiken, zoals **Status**, **Caller Phone Number** en **Routing Phone Number**.
-2. Voeg een stap **If / Else** toe. Controleer de **Status** van de trigger, met de vergelijking **is niet gelijk aan** en `Completed`.
-3. Verbind uw stappen met de poort **Yes**.
+1. Voeg de trigger **Bij bijwerken: Incoming Call Logboek** toe. Stel **Velden om te volgen** in op **Ended At**, en selecteer de velden die u wilt gebruiken, zoals **Status**, **Caller Phone Number** en **Routing Phone Number**.
+2. Voeg een stap **Als / Anders** toe. Controleer de **Status** van de trigger, met de vergelijking **is niet gelijk aan** en `Completed`.
+3. Verbind uw stappen met de poort **Ja**.
 :::
 
 Een workflow kan belogboeken lezen met **Find One** en **Find Many**, maar kan ze niet aanmaken of wijzigen.
@@ -275,7 +275,7 @@ Het account kan alleen wijzigen zolang het beleid geen telefoonnummers heeft: de
 :::
 
 :::details De code voor het nummer van een engineer komt niet aan
-SMS moet aan staan voor het project. Op OneUptime Cloud betaalt een project zonder eigen standaard-Twilio-configuratie de sms'jes uit zijn saldo, dat boven 1 USD moet liggen. Codes kunnen een minuut onderweg zijn; klik op **Send a new code** om een nieuwe te sturen, en **Projectinstellingen** > **Meldingen** > **Meldingslogboeken** toont wat ermee is gebeurd.
+SMS moet aan staan voor het project. Op OneUptime Cloud betaalt een project zonder eigen standaard-Twilio-configuratie de sms'jes uit zijn saldo, dat boven 1 USD moet liggen. Codes kunnen een minuut onderweg zijn; klik op **Nieuwe code sturen** om een nieuwe te sturen, en **Projectinstellingen** > **Meldingen** > **Meldingslogboeken** toont wat ermee is gebeurd.
 :::
 
 ## Volgende stappen

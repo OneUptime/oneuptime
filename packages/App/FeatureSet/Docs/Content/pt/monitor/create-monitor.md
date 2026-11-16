@@ -3,7 +3,7 @@
 Um monitor verifica algo que você opera, como um site, uma API, um host ou um cluster Kubernetes, e avisa quando isso para de funcionar. **Criar monitor** pergunta primeiro o que monitorar, depois o que verificar e então com que frequência. Tudo, exceto o tipo, o nome e o que verificar, começa com padrões que servem para a maioria dos monitores.
 
 > [!NOTE]
-> Para criar um monitor, você precisa da função Project Owner, Project Admin, Project Member, Monitor Admin ou Monitor Member, ou de uma função personalizada com a permissão Create Monitor.
+> Para criar um monitor, você precisa da função Proprietário do projeto, Administrador do projeto, Membro do projeto, Administrador de monitores ou Membro de monitores, ou de uma função personalizada com a permissão Create Monitor.
 
 ## Informações do Monitor
 
@@ -76,7 +76,7 @@ Incidentes e alertas configurados para se resolver automaticamente, como os dos 
 
 ## Sondas e intervalo
 
-Os monitores que as sondas verificam terminam com esta etapa: Site, API, Ping, IP, Porta, Certificado SSL, DNS, DNSSEC, NTP, Domínio, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code e External Status Page. As **Sondas** são as máquinas que executam as verificações, e as sondas padrão do seu projeto começam selecionadas. O **Intervalo de monitoramento** começa em **A cada 5 minutos**.
+Os monitores que as sondas verificam terminam com esta etapa: Site, API, Ping, IP, Porta, Certificado SSL, DNS, DNSSEC, NTP, Domínio, Consulta SQL, Integridade do banco de dados, Monitor sintético, Código JavaScript personalizado e Página de status externa. As **Sondas** são as máquinas que executam as verificações, e as sondas padrão do seu projeto começam selecionadas. O **Intervalo de monitoramento** começa em **A cada 5 minutos**.
 
 :::steps
 ### Escolher as sondas
@@ -85,7 +85,7 @@ Mantenha as **Sondas** selecionadas ou escolha outras. Um monitor sem sondas nun
 
 ### Escolher com que frequência verificar
 
-Escolha um **Intervalo de monitoramento**, de **A cada minuto** a **Toda semana**. Monitores Synthetic Monitor, Custom JavaScript Code e Certificado SSL recebem intervalos de 5 minutos ou mais.
+Escolha um **Intervalo de monitoramento**, de **A cada minuto** a **Toda semana**. Monitores Monitor sintético, Código JavaScript personalizado e Certificado SSL recebem intervalos de 5 minutos ou mais.
 
 ### Criar o monitor
 

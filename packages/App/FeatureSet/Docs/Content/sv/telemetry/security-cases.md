@@ -1,6 +1,6 @@
 # Säkerhetsärenden och playbooks (SOAR)
 
-Security Events gör det som dina detektionsregler, hotunderrättelser och anslutna säkerhetsprodukter hittar till ärenden: ett ärende för varje sak som är värd att titta närmare på, med alla detektioner om samma användare, värd eller adress samlade i det. Analytiker arbetar med ärendena i en kö, och playbooks reagerar på dem, av sig själva eller med ett klick.
+Säkerhetshändelser gör det som dina detektionsregler, hotunderrättelser och anslutna säkerhetsprodukter hittar till ärenden: ett ärende för varje sak som är värd att titta närmare på, med alla detektioner om samma användare, värd eller adress samlade i det. Analytiker arbetar med ärendena i en kö, och playbooks reagerar på dem, av sig själva eller med ett klick.
 
 :::cards
 - [Var ärenden kommer ifrån](#var-ärenden-kommer-ifrån): Detektionsregler, hotunderrättelser, anslutna produkter, entitetsrisk och personer.
@@ -33,13 +33,13 @@ flowchart TB
 
 ## Innan du börjar
 
-Ärenden och playbooks följer de tre Security-rollerna. Project Owner och Project Admin kan göra allt.
+Ärenden och playbooks följer de tre Security-rollerna. Projektägare och Projektadministratör kan göra allt.
 
 | Roll | Vad den kan göra |
 | --- | --- |
-| Security Admin | Allt, inklusive att ta bort ärenden, ta bort bevis och konfigurera playbooks |
-| Security Member | Öppna, tilldela, ändra och stänga ärenden, skriva anteckningar, arbeta med uppgifter, lägga till bevis, köra playbooks samt godkänna eller avvisa deras steg |
-| Security Viewer | Läsa ärenden, detektioner, anteckningar, uppgifter, bevis, playbooks och deras körningar |
+| Säkerhetsadministratör | Allt, inklusive att ta bort ärenden, ta bort bevis och konfigurera playbooks |
+| Säkerhetsmedlem | Öppna, tilldela, ändra och stänga ärenden, skriva anteckningar, arbeta med uppgifter, lägga till bevis, köra playbooks samt godkänna eller avvisa deras steg |
+| Säkerhetstittare | Läsa ärenden, detektioner, anteckningar, uppgifter, bevis, playbooks och deras körningar |
 
 Var och en av dessa behörigheter kan också ges för sig, från att skapa ett ärende till att godkänna en playbooks steg; se [Behörighetsreferens](/docs/permissions/reference).
 
@@ -105,7 +105,7 @@ Varje sida behåller ärendets sidhuvud överst: nummer, prioritet, status och t
 - **Detektioner**: det som löste ut och öppnade ärendet eller lades till i det, hur ofta, och den senaste händelsen som träffade.
 - **Entiteter**: användarna, värdarna och adresserna som ärendet handlar om, med deras aktivitet i alla dina säkerhetshändelser under de senaste 7 dagarna. Var och en öppnas i **Korrelera**.
 - **Kopplade signaler**: de värdar, kluster, tjänster och medlemmar som ärendet nämner, som OneUptime känner dem, och vad som hände på var och en kring dess detekteringar: deras loggar, spår och mätvärden, vad som är öppet på dem och vad som ändrades. Se [Kopplade signaler](/docs/telemetry/security-connected-signals).
-- **Bevis**: filerna, länkarna och säkerhetshändelserna som sparas i ärendet, var och en med vem som lade till den och när. Med **Lägg till fil** laddar du upp en fil på upp till 10 MB, och SHA-256 för det som laddades upp sparas, så att den som laddar ner den senare kan kontrollera att det är det som sparades; med **Lägg till länk** pekar du på bevis som sparas någon annanstans. Bara en Security Admin kan ta bort bevis, och ärendets **Tidslinje** visar vad som lades till och togs bort. En säkerhetshändelse sparas här som den var, med **Lägg till i ärende** under **Händelser** eller på en [hunts](/docs/telemetry/security-events#hunts) sida, och **Visa händelse** öppnar den. En playbooks steg **Preserve the evidence** sparar också här händelserna bakom ärendets detektioner.
+- **Bevis**: filerna, länkarna och säkerhetshändelserna som sparas i ärendet, var och en med vem som lade till den och när. Med **Lägg till fil** laddar du upp en fil på upp till 10 MB, och SHA-256 för det som laddades upp sparas, så att den som laddar ner den senare kan kontrollera att det är det som sparades; med **Lägg till länk** pekar du på bevis som sparas någon annanstans. Bara en Säkerhetsadministratör kan ta bort bevis, och ärendets **Tidslinje** visar vad som lades till och togs bort. En säkerhetshändelse sparas här som den var, med **Lägg till i ärende** under **Händelser** eller på en [hunts](/docs/telemetry/security-events#hunts) sida, och **Visa händelse** öppnar den. En playbooks steg **Preserve the evidence** sparar också här händelserna bakom ärendets detektioner.
 - **Uppgifter**: vad som måste göras i ärendet, vem som gör det och om det är gjort. Lägg till en uppgift som en rad, ge den till någon och bocka av den när den är klar. Den som får uppgiften får veta det, om inte personen tog den själv, och menyn visar bredvid **Uppgifter** hur många uppgifter som är öppna. En playbooks steg **Lägg till uppgifter** lägger också till uppgifter och hoppar över dem som ärendet redan har.
 - **Playbooks**: vad varje playbook gjorde i ärendet, steg för steg, och stegen som väntar på godkännande. Medan körningar väntar visar menyn hur många bredvid **Playbooks**.
 - **Privata anteckningar**: vad teamet skrev om ärendet. Redigerarens meny **Mallar** lägger in en av projektets anteckningsmallar i en anteckning.
@@ -195,7 +195,7 @@ Tre inställningar till gör ärendena till ditt projekts egna, under **Produkte
 - **Anteckningsmallar**: färdig text för anteckningarna ditt team skriver i ärende efter ärende, till exempel en checklista för begränsning eller en överlämning till nästa skift. På ett ärendes **Privata anteckningar** lägger redigerarens meny **Mallar** in en i anteckningen, som du kan redigera innan den publiceras, och **Hantera mallar** öppnar listan.
 - **Numrering**: texten framför ärendenumren, `CASE-` i `CASE-42` om du inte väljer en egen, och numret som nästa ärende får. Byter du från ett annat verktyg? Börja efter dess sista ärendenummer, så att ett nummer aldrig betyder två ärenden. Ett nytt prefix eller en ny start gäller bara nya ärenden, och en start måste vara högre än det högsta numret hittills.
 
-En Security Admin hanterar de anpassade fälten och anteckningsmallarna, och en Security Member fyller i ett ärendes fält; på OneUptime Cloud kräver de Growth-planen eller högre. Numreringen ställs in av en Project Owner eller Project Admin, precis som för incidenter och aviseringar.
+En Säkerhetsadministratör hanterar de anpassade fälten och anteckningsmallarna, och en Säkerhetsmedlem fyller i ett ärendes fält; på OneUptime Cloud kräver de Growth-planen eller högre. Numreringen ställs in av en Projektägare eller Projektadministratör, precis som för incidenter och aviseringar.
 
 ## Aviseringar
 
@@ -209,7 +209,7 @@ OneUptime berättar för personer om fem saker som händer i ett ärende. Ingen 
 | Svarsmål för säkerhetsärende | De som är på ärendet: personen som ärendet är tilldelat och medlemmarna i dess team. När ingen är på det, de som får veta om nya ärenden med dess prioritet | E-post och push |
 | Uppgift i säkerhetsärende tilldelad mig | Personen som får en uppgift i ärendet, om inte personen tog den själv | E-post och push |
 
-- Bara personer som kan se ärendet får veta om det: Project Owner, Project Admin och rollerna Security Admin, Security Member och Security Viewer. Den som har en roll som är begränsad till vissa etiketter får bara veta om ärenden med de etiketterna.
+- Bara personer som kan se ärendet får veta om det: Projektägare, Projektadministratör och rollerna Säkerhetsadministratör, Säkerhetsmedlem och Säkerhetstittare. Den som har en roll som är begränsad till vissa etiketter får bara veta om ärenden med de etiketterna.
 - Ingen får veta om det den själv har gjort: den som öppnar ett ärende manuellt, tilldelar det eller startar en körning aviseras inte om det.
 - Varje person får bara veta om ett ärende en gång. Ett ärende som öppnas med Medium och senare stiger till Critical når dem som valde High eller Critical när det stiger, men inte igen dem som valde Medium, som fick veta om det när det öppnades.
 - Testattacken från **Skicka en testattack** öppnar ett ärende som inte aviserar någon.
@@ -310,7 +310,7 @@ En inaktiverad playbook körs varken av sig själv eller manuellt.
 
 En playbook har högst 25 steg. De körs i ordning, vart och ett när det föregående är klart. Varje steg har också de här inställningarna:
 
-- **Kräver godkännande**: stoppar körningen före steget tills någon godkänner det i ärendet. För de åtta stegen som stänger ute någon är den alltid påslagen, om inte en Security Admin slår av den. **Run a runbook**, **Post a status page announcement** och de två datalagerstegen börjar med godkännande påslaget, eftersom de kör kommandon på era system, vänder sig till era kunder eller ändrar ett molns inställningar; den som lägger till steget kan slå av det.
+- **Kräver godkännande**: stoppar körningen före steget tills någon godkänner det i ärendet. För de åtta stegen som stänger ute någon är den alltid påslagen, om inte en Säkerhetsadministratör slår av den. **Run a runbook**, **Post a status page announcement** och de två datalagerstegen börjar med godkännande påslaget, eftersom de kör kommandon på era system, vänder sig till era kunder eller ändrar ett molns inställningar; den som lägger till steget kan slå av det.
 - **Kör det här steget**: **Alltid**, eller bara efter resultat av steg före det, till exempel att **Kontrollera entiteter mot hotinformation** hittar en känd skadlig entitet; se [Förgrena efter ett stegs resultat](#förgrena-efter-ett-stegs-resultat).
 - **Fortsätt om det misslyckas**: kör nästa steg även om det här misslyckas. Är den avstängd stoppar ett misslyckat steg körningen. Den finns under **Fler fält**, tillsammans med **Kör det här steget**.
 
@@ -365,11 +365,11 @@ De två datalagerstegen agerar på de datalager som ärendet handlar om, högst 
 
 #### Skyddade entiteter
 
-**Skyddade entiteter**, under **Playbooks** i menyn, listar de användare och värdar som ingen playbook begränsar, till exempel konton för nödåtkomst, domänkontrollanter och VPN-gatewayer. Ett värde matchar oavsett skiftläge, och `*` står för en valfri följd av tecken: `svc-*` skyddar alla tjänstkonton. Ett steg rapporterar en skyddad användare eller värd som skyddad och lämnar den i fred. Listan sköts av användare med rollen Security Admin.
+**Skyddade entiteter**, under **Playbooks** i menyn, listar de användare och värdar som ingen playbook begränsar, till exempel konton för nödåtkomst, domänkontrollanter och VPN-gatewayer. Ett värde matchar oavsett skiftläge, och `*` står för en valfri följd av tecken: `svc-*` skyddar alla tjänstkonton. Ett steg rapporterar en skyddad användare eller värd som skyddad och lämnar den i fred. Listan sköts av användare med rollen Säkerhetsadministratör.
 
 #### Godkännande
 
-De åtta stegen som stänger ute någon väntar på godkännande. Bara en Security Admin kan slå av **Kräver godkännande** för ett av dem, och OneUptime registrerar vem som gjorde det. Godkännandet listar användarna eller värdarna som steget skulle agera på under **Agera på**, alla förbockade: avmarkera dem som steget ska lämna i fred. Skyddade finns inte med bland alternativen. Den som startade en körning kan inte godkänna dess steg: det gör någon annan, men den som startade körningen kan fortfarande avvisa steget.
+De åtta stegen som stänger ute någon väntar på godkännande. Bara en Säkerhetsadministratör kan slå av **Kräver godkännande** för ett av dem, och OneUptime registrerar vem som gjorde det. Godkännandet listar användarna eller värdarna som steget skulle agera på under **Agera på**, alla förbockade: avmarkera dem som steget ska lämna i fred. Skyddade finns inte med bland alternativen. Den som startade en körning kan inte godkänna dess steg: det gör någon annan, men den som startade körningen kan fortfarande avvisa steget.
 
 #### Ångra
 
@@ -440,7 +440,7 @@ Kontrollera **Öppna ett ärende vid matchning** i regelns steg **Vid träff**. 
 :::
 
 :::details Ingen fick veta om ett ärende
-Titta på ärendets **Tidslinje**, som visar vem som aviserades. En avisering om **Nytt säkerhetsärende** går till de personer vars valda prioritet ärendet når, så ett ärende med Medium aviserar ingen som har kvar standardvalet, **Hög och högre**. Kontrollera att de som borde få veta kan se säkerhetsärenden (en Security-roll, eller Project Owner eller Project Admin), och att aviseringen är påslagen för dem under **Användarinställningar → Aviseringsinställningar → Säkerhet**.
+Titta på ärendets **Tidslinje**, som visar vem som aviserades. En avisering om **Nytt säkerhetsärende** går till de personer vars valda prioritet ärendet når, så ett ärende med Medium aviserar ingen som har kvar standardvalet, **Hög och högre**. Kontrollera att de som borde få veta kan se säkerhetsärenden (en Security-roll, eller Projektägare eller Projektadministratör), och att aviseringen är påslagen för dem under **Användarinställningar → Aviseringsinställningar → Säkerhet**.
 :::
 
 :::details Ett ärende visar ingen förfallotid

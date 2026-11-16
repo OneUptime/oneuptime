@@ -41,7 +41,7 @@ Nel dettaglio, OneUptime legge queste impostazioni in quest'ordine, e decide la 
 
 ## Prima di iniziare
 
-- **Un ruolo che modifica il progetto.** Project Owner o Project Admin cambiano la conservazione del progetto. La conservazione di un servizio o di una risorsa richiede il ruolo che ne modifica le altre impostazioni.
+- **Un ruolo che modifica il progetto.** Proprietario del progetto o Amministratore del progetto cambiano la conservazione del progetto. La conservazione di un servizio o di una risorsa richiede il ruolo che ne modifica le altre impostazioni.
 - **Per le sostituzioni, l'Edizione Enterprise o il piano Scale.** Un'installazione self-hosted ha bisogno di una licenza Enterprise, e un progetto OneUptime Cloud del piano Scale o superiore. La conservazione predefinita del progetto c'è in ogni edizione e piano.
 
 ## Cambiare la conservazione del progetto
@@ -64,14 +64,14 @@ Le sostituzioni conservano più a lungo ciò che vi serve e meno a lungo il rest
 
 ### Per l'intero progetto
 
-Sotto il predefinito, chiusa in **Altre impostazioni**, la scheda **Conservazione per tipo di telemetria** imposta i giorni per ogni tipo di telemetria. Fate clic su **Edit Overrides**, compilate i campi che vi servono e lasciate vuoti gli altri:
+Sotto il predefinito, chiusa in **Altre impostazioni**, la scheda **Conservazione per tipo di telemetria** imposta i giorni per ogni tipo di telemetria. Fate clic su **Modifica sostituzioni**, compilate i campi che vi servono e lasciate vuoti gli altri:
 
 | Tipo | Campi |
 | --- | --- |
-| Log | **Logs default (days)**, e un campo per ogni gravità dei log |
-| Tracce | **Traces default (days)**, e un campo per ogni stato degli span: Errore, Ok e Non impostato |
-| Metriche | **Metrics default (days)** |
-| Profili | **Profiles default (days)** |
+| Log | **Predefinito dei log (giorni)**, e un campo per ogni gravità dei log |
+| Tracce | **Predefinito delle tracce (giorni)**, e un campo per ogni stato degli span: Errore, Ok e Non impostato |
+| Metriche | **Predefinito delle metriche (giorni)** |
+| Profili | **Predefinito dei profili (giorni)** |
 
 Un campo lasciato vuoto ricade sull'impostazione successiva nell'ordine sopra, quindi una gravità senza giorni propri conserva i suoi log secondo il predefinito dei log.
 

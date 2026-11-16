@@ -1,5 +1,6 @@
 import { ResourceOwnerEntry } from "../ResourceOwners/OwnerEntry";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import Service from "Common/Models/DatabaseModels/Service";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
 import ServiceLevelObjectiveErrorBudgetPolicyTier from "Common/Models/DatabaseModels/ServiceLevelObjectiveErrorBudgetPolicyTier";
@@ -76,6 +77,22 @@ export const SLO_OVERVIEW_SELECT: Select<ServiceLevelObjective> = {
     name: true,
     color: true,
   },
+  // A request SLO: what it counts, its numbers in requests, how far it has counted.
+  services: {
+    _id: true,
+    name: true,
+  },
+  latencyThresholdInMilliseconds: true,
+  // Which of the services' requests count (#8444).
+  requestFilter: true,
+  // A Metric SLO's metric, for the hero's line under its services (#8445).
+  metricQueryConfig: true,
+  goodEventCount: true,
+  totalEventCount: true,
+  errorBudgetTotalEvents: true,
+  errorBudgetRemainingEvents: true,
+  firstAccumulatedBucketStartAt: true,
+  lastAccumulatedBucketEndAt: true,
 };
 
 /*
@@ -105,6 +122,8 @@ export const getSloNoticeFingerprint: GetSloNoticeFingerprintFunction = (
     slo.multiMonitorMode ?? null,
     Boolean(slo.lastEvaluatedAt),
     monitors.length,
+    ((slo.services as Array<Service> | undefined) || []).length,
+    slo.latencyThresholdInMilliseconds ?? null,
     isRollingWindowNotYetFull({
       windowType: slo.windowType,
       windowDays: slo.windowDays,

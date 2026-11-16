@@ -30,13 +30,39 @@ export const MEANING_KEYS: ReadonlyArray<string> = [
   "Open (status)",
   // An invoice that is issued and not paid yet (Settings > Invoices).
   "Open (invoice status)",
+  /*
+   * An invoice deleted in Stripe, and one with no status: worded for the
+   * invoice, feminine where it is ("Eliminada", "Supprimée"), as Paid and
+   * Void are. The bare "Deleted" and "Undefined" are the whole Dashboard's,
+   * worded masculine (#8181).
+   */
+  "Deleted (invoice status)",
+  "Undefined (invoice status)",
   // What an import did with a row (ImportResultWords).
   "Created (import result)",
-  // A data asset's kind: a database's view and table (DataAssetKindWords).
+  /*
+   * A data asset's kind: a database's view and table (DataAssetKindWords).
+   * The table is also the title over Data Observability's lists of tables,
+   * a table's page and its side menu (#8176).
+   */
   "View (database object)",
   "Table (database object)",
   // The Schema Changes list's Change filter and column.
   "Change (schema change)",
+  /*
+   * The dbt Tests card's Test column and filter, over the names of the
+   * tests dbt runs: "Test" alone is the Test buttons' verb ("Testen",
+   * "Probar", "Tester").
+   */
+  "Test (dbt test)",
+  /*
+   * The environment a data store serves, beside Production and Staging:
+   * its form's and the Data Stores list's choice, its Overview and its
+   * settings (DATA_STORE_ENVIRONMENT_TITLES). The bare "Test" read
+   * "Testen" on a German store and "Probar" ("to try") on a Spanish one
+   * (#8342).
+   */
+  "Test (environment)",
   /*
    * The storage array a hardware component or a volume is in: the storage
    * widgets' column, a tile's row and the Sort setting's choice (#7522).
@@ -44,6 +70,42 @@ export const MEANING_KEYS: ReadonlyArray<string> = [
    * Matriz, Tableau, 배열, 数组, Matrise).
    */
   "Array (storage array)",
+  /*
+   * The two ends of a range: a date or number filter's "is between", a
+   * custom time range, a dashboard's time range and a facet's date range
+   * (#8201). The bare "From" and "To" are a message's sender and recipient
+   * - the notification logs' columns - so a German filter read "Von" ...
+   * "An" (to someone), a Japanese one 差出人 ... 宛先.
+   */
+  "From (range start)",
+  "To (range end)",
+  /*
+   * The states a page draws together for one kind of thing agree with each
+   * other (Common/Tests/App/StatesDrawnTogetherAgree, #8659). A shared word
+   * worded for one thing's gender read wrong beside another's: Russian's
+   * "Истёк" (masculine, as a token is) under a threat indicator's and a
+   * rule exception's neuter "Активно", and "Ещё не запрашивалась"
+   * (feminine) beside a token's "Действителен" and a calendar link's
+   * "Отключено". Each of these pages words its state with a key of its own.
+   */
+  // A threat intel indicator past its validity: the Indicators list's Status.
+  "Expired (threat indicator)",
+  // A rule exception past its expiry, and a window not started yet (Rule Exceptions).
+  "Expired (rule exception)",
+  "Upcoming (rule exception)",
+  // A workflow variable's OAuth token: never fetched, and valid.
+  "Not fetched yet (OAuth token)",
+  "Valid (OAuth token)",
+  // An on-call calendar link no calendar app has read in its first two days.
+  "Not fetched yet (calendar feed)",
+  /*
+   * The Logs, Traces, Metrics and Exceptions explorers' tab that counts and
+   * charts what came in (their NavTabs, breadcrumbs and search entries).
+   * The bare "Insights" is OneUptime AI's findings - the Products menu's
+   * Insights and each AI section's page - so Spanish named both "Análisis"
+   * beside sentences about "hallazgos", and Italian "Informazioni" (#8629).
+   */
+  "Insights (explorer analytics)",
 ];
 
 // "<word> (<what it means>)": the word, and its meaning in brackets.

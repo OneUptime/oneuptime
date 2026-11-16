@@ -35,7 +35,7 @@ flowchart TB
 
 ## Voordat je begint
 
-- **Een projecteigenaar of -beheerder.** Alleen zij kunnen cloudaccounts koppelen, testen en bewerken.
+- **Een Projecteigenaar of Projectbeheerder.** Alleen zij kunnen cloudaccounts koppelen, testen en bewerken.
 - **De terminal van je cloud** (AWS CloudShell, Azure Cloud Shell of Google Cloud Shell), aangemeld als iemand die een IAM-rol of -gebruiker, een app-registratie of een serviceaccount mag maken.
 
 ## Amazon Web Services

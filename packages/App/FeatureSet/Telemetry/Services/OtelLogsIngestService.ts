@@ -26,7 +26,10 @@ import ObjectID from "Common/Types/ObjectID";
 import { RumTelemetrySignal } from "Common/Types/Rum/RumTelemetrySignal";
 import LogEventName from "Common/Types/Log/LogEventName";
 import LlmLogEventsUtil from "Common/Utils/Telemetry/LlmLogEvents";
-import LogSeverity from "Common/Types/Log/LogSeverity";
+import LogSeverity, {
+  logSeverityFromNumber,
+  logSeverityNumberFromText,
+} from "Common/Types/Log/LogSeverity";
 import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import {
   IngestionStamp,
@@ -891,9 +894,21 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                   const hasRecordTime: boolean =
                     recordTime.source === OtlpLogTimeSource.Record;
 
+                  /*
+                   * The record's severityNumber, or - for a record that
+                   * sets only its severityText - the number that text
+                   * names (issue #8248). A number the record sets always
+                   * wins over its text.
+                   */
                   let logSeverityNumber: number = this.normalizeSeverityNumber(
                     log["severityNumber"],
                   );
+
+                  if (logSeverityNumber === 0) {
+                    logSeverityNumber = this.severityNumberFromText(
+                      log["severityText"],
+                    );
+                  }
 
                   let body: string = "";
                   try {
@@ -1995,6 +2010,20 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
   }
 
   /*
+   * The SeverityNumber a log record's severityText names, for a record that
+   * sets no number (issue #8248): the spec's short names and their numbered
+   * steps, and the spellings other logging systems write, in any case and
+   * with spaces around them - the one table Fluent ingest and the severity
+   * remapper read too (LOG_SEVERITY_NUMBER_BY_TEXT, issue #8425). Anything
+   * else - text that names no severity, or a value that is not text - is
+   * UNSPECIFIED (0), as a record with neither field is: a severity is never
+   * guessed from a word that does not name one.
+   */
+  public static severityNumberFromText(severityText: unknown): number {
+    return logSeverityNumberFromText(severityText);
+  }
+
+  /*
    * Reads the Kubernetes Event out of a k8sobjects Event record's body and
    * stamps what it says onto the record's attributes (KubernetesEvent.ts
    * says which, and why). Returns the severity the record is stored with -
@@ -2192,19 +2221,6 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
   }
 
   private static getSeverityText(severityNumber: number): LogSeverity {
-    if (severityNumber >= 1 && severityNumber <= 4) {
-      return LogSeverity.Trace;
-    } else if (severityNumber >= 5 && severityNumber <= 8) {
-      return LogSeverity.Debug;
-    } else if (severityNumber >= 9 && severityNumber <= 12) {
-      return LogSeverity.Information;
-    } else if (severityNumber >= 13 && severityNumber <= 16) {
-      return LogSeverity.Warning;
-    } else if (severityNumber >= 17 && severityNumber <= 20) {
-      return LogSeverity.Error;
-    } else if (severityNumber >= 21 && severityNumber <= 24) {
-      return LogSeverity.Fatal;
-    }
-    return LogSeverity.Unspecified;
+    return logSeverityFromNumber(severityNumber);
   }
 }

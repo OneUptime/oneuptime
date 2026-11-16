@@ -687,8 +687,8 @@ describe("a turn: the AI's side", () => {
   });
 
   test.each([
-    [9 * 60000, "worked 9 minutes"],
-    [65 * 60000, "worked 1 hour, 5 minutes"],
+    [9 * 60000, "worked 9\u00A0minutes"],
+    [65 * 60000, "worked 1\u00A0hour, 5\u00A0minutes"],
     [20 * 1000, "worked less than a minute"],
   ])(
     "how long a turn took is said in words (%s ms: %s)",
@@ -2755,12 +2755,12 @@ describe("what stops AI working", () => {
       [
         CodeTaskBlockerType.AiDisabled,
         Permission.ManageProjectBilling,
-        "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.",
+        "A Project Owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.",
       ],
       [
         CodeTaskBlockerType.NoLlmProvider,
         Permission.CreateProjectLlm,
-        "A project admin can add an LLM provider in Project Settings → AI → LLM Providers.",
+        "A Project Admin can add an LLM provider in Project Settings → AI → LLM Providers.",
       ],
     ])(
       "%s: linked for someone with %s, who can for everyone else",
@@ -2823,7 +2823,7 @@ describe("what stops AI working", () => {
         );
         expect(screen.queryByTestId("code-blocker-fix")).toBeNull();
         expect(screen.getByTestId("code-blocker-who-can")).toHaveTextContent(
-          "A project admin can pick this repository's Runner in its settings.",
+          "A Project Admin can pick this repository's Runner in its settings.",
         );
         cleanup();
         jest.restoreAllMocks();
@@ -2973,7 +2973,7 @@ describe("what stops AI working", () => {
           expect(
             within(notice).getByTestId("code-blocker-who-can"),
           ).toHaveTextContent(
-            "A project owner or someone with Manage Billing can add AI credits.",
+            "A Project Owner or someone with Manage Billing can add AI credits.",
           );
         }
       },
@@ -3018,7 +3018,7 @@ describe("what stops AI working", () => {
       />,
     );
     const notice: HTMLElement = screen.getByTestId("code-blocker");
-    expect(notice).toHaveTextContent("ask a project admin for it");
+    expect(notice).toHaveTextContent("ask a Project Admin for it");
     expect(notice.className).toContain("bg-gray-50");
     expect(screen.queryByTestId("code-blocker-fix")).toBeNull();
   });

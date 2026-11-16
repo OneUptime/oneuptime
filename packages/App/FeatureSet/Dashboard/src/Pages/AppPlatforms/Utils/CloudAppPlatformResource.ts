@@ -18,7 +18,12 @@ import {
 import { CloudResourceKind } from "Common/Types/Cloud/CloudResourceKind";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { formatDurationCompactInLanguage } from "Common/Utils/Slo/SloDuration";
-import { formatDurationMs } from "../../../Components/TelemetryResource/telemetryFormat";
+import { formatDurationMsInLanguage } from "../../../Components/TelemetryResource/telemetryFormat";
+import {
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * THE CLOUD RESOURCE AN APP RUNS AS, IN ITS PROVIDER'S MONITORING (issue
@@ -419,9 +424,16 @@ export function summarizeAppServiceSeries(
 export function formatAppServiceCpuTime(
   seconds: number | null,
   language?: string | undefined,
+  translator?: Translator | undefined,
 ): string {
   if (seconds === null || !Number.isFinite(seconds) || seconds < 60) {
-    return formatDurationMs(seconds === null ? null : seconds * 1000);
+    const milliseconds: number | null =
+      seconds === null ? null : seconds * 1000;
+
+    return formatDurationMsInLanguage(
+      milliseconds,
+      translator || createTranslator(undefined, DEFAULT_LANGUAGE),
+    );
   }
 
   return formatDurationCompactInLanguage(seconds, language);

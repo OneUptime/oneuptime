@@ -1,3 +1,4 @@
+import { PUSH_NOTIFICATION_SENT_MESSAGE } from "../../Types/OnCallDutyPolicy/OnCallSentLine";
 import PushNotificationRequest from "../../Types/PushNotification/PushNotificationRequest";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 import PushDeviceType from "../../Types/PushNotification/PushDeviceType";
@@ -948,9 +949,7 @@ export default class PushNotificationService {
         userOnCallLogTimelineId: options.userOnCallLogTimelineId,
         isSent: successCount > 0,
         statusMessage:
-          successCount > 0
-            ? "Push notification sent successfully"
-            : failureMessage,
+          successCount > 0 ? PUSH_NOTIFICATION_SENT_MESSAGE : failureMessage,
       });
     }
 

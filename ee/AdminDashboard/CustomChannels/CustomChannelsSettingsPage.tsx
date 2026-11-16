@@ -178,13 +178,16 @@ const CustomChannelsSettingsPage: FunctionComponent = (): ReactElement => {
   return (
     <Page
       title={t("pages.settings.title")}
+      isTitleTranslated={true}
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
           title: t("breadcrumbs.settings"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.SETTINGS] as Route,
           ),
@@ -392,6 +395,7 @@ const CustomChannelsSettingsPage: FunctionComponent = (): ReactElement => {
           title={t("Send test: {{name}}", {
             name: testedChannel.name || t("Custom channel"),
           })}
+          isTitleTranslated={true}
           error={testError}
           description={
             isTesting ? (

@@ -1088,7 +1088,7 @@ describe("the words for each kind of failure", () => {
       whatHappened:
         "The project reached its daily AI limit. OneUptime AI starts again at midnight UTC.",
       whatToDo:
-        "A project owner or someone with Manage Billing can change the project's daily AI limits in Project Settings → AI → AI Features.",
+        "A Project Owner or someone with Manage Billing can change the project's daily AI limits in Project Settings → AI → AI Features.",
     });
   });
 

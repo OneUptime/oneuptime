@@ -1,4 +1,4 @@
-# Logg-overvåking
+# Logg-monitor
 
 En loggmonitor teller innenfor et tidsvindu loggene tjenestene dine sender til OneUptime som samsvarer med filtrene dine (tekst, alvorlighetsgrad, tjeneste, attributter). Når antallet oppfyller kriteriene dine, endrer den monitorens status, oppretter et varsel eller erklærer en hendelse. Bruk den til å oppdage en økning i feil, en bestemt feilmelding eller en tjeneste som har sluttet å logge.
 
@@ -40,7 +40,7 @@ Under **Monitortype** klikker du på **Flere monitortyper** og velger **Logger**
 
 ### Velg hva monitoren skal fortelle deg om
 
-Under **Hva skal denne overvåkingen fortelle deg om?** velger du **For mange feil**, **En melding dukker opp** eller **Logger uteblir**. Hvert valg fyller ut loggene du skal følge med på og regelen, som du kan endre lenger ned. Velg **Noe annet** for å sette dem opp selv.
+Under **Hva skal denne monitoren fortelle deg om?** velger du **For mange feil**, **En melding dukker opp** eller **Logger uteblir**. Hvert valg fyller ut loggene du skal følge med på og regelen, som du kan endre lenger ned. Velg **Noe annet** for å sette dem opp selv.
 
 ### Velg loggene som skal telles
 
@@ -85,12 +85,14 @@ Hver logg lagres med en av sju alvorlighetsgrader. For logger fra OpenTelemetry 
 | Alvorlighetsgrad | OpenTelemetrys alvorlighetsnumre |
 | --- | --- |
 | **Spor** | 1–4 |
-| **Debug** | 5–8 |
-| **Information** | 9–12 |
+| **Feilsøking** | 5–8 |
+| **Informasjon** | 9–12 |
 | **Advarsel** | 13–16 |
 | **Feil** | 17–20 |
 | **Fatal** | 21–24 |
 | **Uspesifisert** | Alt annet |
+
+En logg uten alvorlighetsnummer får alvorlighetsgraden fra alvorlighetsteksten sin, med store eller små bokstaver: `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` og `FATAL`, de nummererte trinnene deres som `WARN2`, og stavemåter som `warning`, `notice`, `critical` og `emerg`. All annen tekst lar alvorlighetsgraden være uspesifisert.
 
 ## Slik evalueres den
 
@@ -119,7 +121,7 @@ Kriteriene til en loggmonitor har én **Filtertype**: **Antall logger**, antalle
 
 Avviksvilkårene har ingen **Verdi**. Velg en **Følsomhet** (Lav, Middels, som er standard, eller Høy) og, i de egne kriteriene, et **Grunnlinjevindu** på 14 (standard), 28, 60 eller 90 dager. OneUptime gjør antallet om til en rate per minutt og sammenligner den med vinduer av samme lengde rundt samme tidspunkt i tidligere uker, så langt tilbake som **Grunnlinjevindu** rekker; det som skjer nå, er aldri del av sammenligningen. Grunnlinjen dekker bare monitorens tjenester og alvorlighetsgrader: tekst- og attributtfiltrene inngår ikke. Minutter uten logger teller også, så en tjeneste som ofte er stille, regnes ikke som uvanlig lav fordi den er stille. Et vindu regnes bare som uvanlig høyt mot vinduene som hadde logger, og bare med minst 20, 10 eller 5 logger ved følsomheten Lav, Middels eller Høy, så verken en jobbs vanlige utbrudd eller de første linjene fra en stille tjeneste utløser det. Inntil monitorens tjenester har to ukers historikk, lærer kriteriet fortsatt og utløses ikke.
 
-En loggmonitor som er opprettet i Opprett monitor, starter med regelen for det du valgte under **Hva skal denne overvåkingen fortelle deg om?**:
+En loggmonitor som er opprettet i Opprett monitor, starter med regelen for det du valgte under **Hva skal denne monitoren fortelle deg om?**:
 
 | Valg | Regel | Hva som skjer |
 | --- | --- | --- |
@@ -157,7 +159,7 @@ Fordi vinduene overlapper, holder én bølge av feil antallet høyt i opptil fem
 
 ## Varsler per gruppe (Group By)
 
-**Grupper etter attributter** deler en loggmonitors telling opp i én telling per særskilt kombinasjon av attributtverdier (én per IPsec-tunnel, per VPN-bruker, per brannmurgrensesnitt) og evaluerer kriteriene for hver gruppe for seg. Det er loggmotstykket til en metrikkmonitors [Group By](/docs/monitor/metrics-monitor#varsler-per-serie-group-by).
+**Grupper etter attributter** deler en loggmonitors telling opp i én telling per særskilt kombinasjon av attributtverdier (én per IPsec-tunnel, per VPN-bruker, per brannmurgrensesnitt) og evaluerer kriteriene for hver gruppe for seg. Det er loggmotstykket til en målingsmonitors [Group By](/docs/monitor/metrics-monitor#varsler-per-serie-group-by).
 
 ### Ett varsel per gruppe
 
@@ -221,7 +223,7 @@ Hver tunnel som logger en avslutning, får nå sitt eget varsel (`IPsec tunnel H
 
 ### Gruppeverdier i titler og beskrivelser
 
-Verdien til hvert Group By-attributt er en [malvariabel](/docs/monitor/incident-alert-templating) i tittelen, beskrivelsen og utbedringsnotatene for varselet eller hendelsen, akkurat som etikettene på en metrikkserie: gruppering etter `con_name` gir deg `{{con_name}}`. En nøkkel med punktum leses som en sti, så `sophos.con_name` blir `{{sophos.con_name}}`. Når tittelen ikke allerede nevner gruppen, legges gruppen til i den (`IPsec tunnel terminated - Con Name: HQ-Branch1`), og `{{seriesResourceSuffix}}` og `{{seriesResourceSummary}}` virker som på metrikkmonitorer.
+Verdien til hvert Group By-attributt er en [malvariabel](/docs/monitor/incident-alert-templating) i tittelen, beskrivelsen og utbedringsnotatene for varselet eller hendelsen, akkurat som etikettene på en målingsserie: gruppering etter `con_name` gir deg `{{con_name}}`. En nøkkel med punktum leses som en sti, så `sophos.con_name` blir `{{sophos.con_name}}`. Når tittelen ikke allerede nevner gruppen, legges gruppen til i den (`IPsec tunnel terminated - Con Name: HQ-Branch1`), og `{{seriesResourceSuffix}}` og `{{seriesResourceSummary}}` virker som på målingsmonitorer.
 
 ### Slik telles grupper
 
@@ -232,7 +234,7 @@ Verdien til hvert Group By-attributt er en [malvariabel](/docs/monitor/incident-
 
 ### Evalueringen av kriterier er annerledes
 
-- **Alle kriterier evalueres**, som på en gruppert metrikkmonitor, så ulike grupper kan oppfylle ulike kriterier samtidig. En gruppe som oppfyller to kriterier, får fortsatt bare ett varsel, fra det første; sorter derfor kriteriene fra mest til minst alvorlige.
+- **Alle kriterier evalueres**, som på en gruppert målingsmonitor, så ulike grupper kan oppfylle ulike kriterier samtidig. En gruppe som oppfyller to kriterier, får fortsatt bare ett varsel, fra det første; sorter derfor kriteriene fra mest til minst alvorlige.
 - **En gruppe finnes bare hvis den har logget noe i tidsvinduet.** Kriterier som **Lik 0** og **Mindre enn** utløses derfor bare for grupper som har logget minst én gang; for å bli varslet når logger slutter å komme helt, bruker du en monitor uten Group By.
 - **Avviksdeteksjon** (**Unormalt høy**, **Unormalt lav**, **Avvikende**) evalueres ikke per gruppe (grunnlinjen dekker hele monitoren), så de filtrene samsvarer aldri på en gruppert monitor.
 - Monitorens status følger det første kriteriet en gruppe oppfyller. Når ingen gruppe oppfyller noe kriterium, går monitoren tilbake til standardstatusen sin.
@@ -260,6 +262,6 @@ Logger som mangler Group By-attributtet, telles med en tom verdi. Sjekk det nøy
 :::cards
 - [Loggpipelines](/docs/telemetry/log-pipelines): Del logglinjer opp i attributter du kan filtrere og gruppere på.
 - [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating): Sett gruppeverdier og antall inn i titler og beskrivelser.
-- [Metrikk-overvåking](/docs/monitor/metrics-monitor): Bli varslet om en metrikk, per vert eller per container.
-- [Trase-overvåking](/docs/monitor/traces-monitor): Bli varslet på samme måte om mislykkede spans.
+- [Målingsmonitor](/docs/monitor/metrics-monitor): Bli varslet om en måling, per vert eller per container.
+- [Trase-monitor](/docs/monitor/traces-monitor): Bli varslet på samme måte om mislykkede spans.
 :::

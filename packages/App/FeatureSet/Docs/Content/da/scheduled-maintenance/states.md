@@ -72,7 +72,7 @@ Headerens knapper er opkaldt efter dine tilstande. Mens begivenheden venter, til
 
 En begivenhed starter, når den går fra en tilstand, hvor den venter, til **Igangværende**, eller direkte til en af dine egne tilstande mellem **Igangværende** og **Afsluttet**. Så:
 
-- **Dens monitorer holder op med at blive kontrolleret** og skifter til dens **Skift overvågningsstatus til**, hvis den har en. En monitor, du føjer til begivenheden, mens den står på, skifter også.
+- **Dens monitorer holder op med at blive kontrolleret** og skifter til dens **Skift monitorstatus til**, hvis den har en. En monitor, du føjer til begivenheden, mens den står på, skifter også.
 - **Dens statussider viser den som igangværende**, og dens abonnenter får besked: til tiden, hvis **Når begivenheden starter** er slået til, og manuelt, som **Underret statussideabonnenter** i dialogen siger.
 - **Dens ejere får besked**, hvis de har slået notifikationen om tilstandsskift til, og begivenheden vises under **Igangværende vedligeholdelseshændelser**.
 
@@ -91,7 +91,7 @@ Beskeden nævner det planlagte tidspunkt og den tilstand, begivenheden endnu ikk
 
 ## Rækkefølgen håndhæves
 
-Hvert tilstandsskift kontrolleres mod listen, uanset hvem der foretager det: dashboardet, Slack, Microsoft Teams, API'et, Terraform, et workflow eller OneUptime selv.
+Hvert tilstandsskift kontrolleres mod listen, uanset hvem der foretager det: dashboardet, Slack, Microsoft Teams, API'et, Terraform, en arbejdsgang eller OneUptime selv.
 
 - **Skridt tilbage afvises**, med en besked, der nævner begge tilstande: "Scheduled Maintenance cannot transition to Scheduled state from Ongoing state because Scheduled is before Ongoing in the order of scheduled maintenance states."
 - **At skifte til den tilstand, den allerede er i, afvises**: "Scheduled Maintenance state cannot be same as previous state."

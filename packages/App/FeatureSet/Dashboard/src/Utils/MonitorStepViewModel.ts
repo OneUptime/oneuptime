@@ -32,8 +32,11 @@ import {
   describeSecurityWatchlistFilters,
   readSecurityWatchlistFilters,
 } from "Common/Types/SecurityEvent/SecurityWatchlistFilter";
-import { formatDictionaryValueForDisplay } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  getGlobalTranslator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
+import { formatMilliseconds } from "./Milliseconds";
 import MonitorStepMetricQueries, {
   MonitorStepMetricReads,
 } from "Common/Utils/Monitor/MonitorStepMetricQueries";
@@ -58,11 +61,9 @@ import { PROBE_DEFAULT_RETRY_COUNT_LABEL } from "./MonitorRetryHelpText";
  * suite can hold to every monitor type at once.
  *
  * Rows carry a `valueType` rather than a UI FieldType so this file never
- * imports the component layer's rendering. The viewer translates them.
- * `formatDictionaryValueForDisplay` is the one import from under
- * `Common/UI`: a pure string function with no React in it, shared so the
- * criteria page names filter operators exactly the way the log viewer's
- * chips do.
+ * imports the component layer's rendering. The viewer translates them: an
+ * attribute filter row hands it the filters as stored, and the viewer says
+ * each as one sentence in the reader's language (#8309).
  */
 
 export enum MonitorStepViewValueType {
@@ -84,6 +85,15 @@ export enum MonitorStepViewValueType {
   NetworkDevice = "NetworkDevice",
   // Value is an array of probe id strings, resolved to the probes' names.
   Probes = "Probes",
+  /*
+   * Value is a dictionary of attribute filters as stored: a bare value (=)
+   * or an operator's (a Search, an Includes, an IsNull..., or the
+   * `{_type, value}` JSON a step read back from storage holds). The viewer
+   * says each as one sentence in the reader's language
+   * (DictionaryFilterSentence): "http.route stimmt überein /api/*", never
+   * the operator's English word glued before the value (#8309).
+   */
+  AttributeFilters = "AttributeFilters",
 }
 
 export type MonitorStepViewValue =
@@ -165,6 +175,7 @@ const toText: (value: unknown) => string | undefined = (
   return String(value);
 };
 
+// A timeout in the reader's words: "5,000 ms", "۵٬۰۰۰ میلی‌ثانیه" (#7418).
 const toMilliseconds: (value: number | undefined) => string | undefined = (
   value: number | undefined,
 ): string | undefined => {
@@ -172,7 +183,7 @@ const toMilliseconds: (value: number | undefined) => string | undefined = (
     return undefined;
   }
 
-  return `${value} ms`;
+  return formatMilliseconds(getGlobalTranslator(), value);
 };
 
 const toDuration: (seconds: number | undefined) => string | undefined = (
@@ -212,23 +223,25 @@ const toSpanStatusText: (status: SpanStatus) => string = (
  * Emitting the raw object as a JSON row printed that wire shape at the
  * operator, so the criteria page showed
  * `{ "env": { "_type": "Search", "value": "web" } }` where it meant
- * `env: contains web`. The shared formatter names the operator instead, and
- * the row leaves here as a dictionary of strings so the viewer tabulates it
- * the way it already tabulates request headers.
+ * `env: contains web`. Formatting it here as "contains web" named the
+ * operator in English in every language (#8309): this file is React-free
+ * and translates nothing. So the row leaves here as the filters as stored
+ * (an AttributeFilters row), and the viewer says each one as a sentence in
+ * the reader's language.
  */
 const toAttributeFilters: (
   attributes: Dictionary<string | number | boolean> | undefined,
-) => Dictionary<string> | undefined = (
+) => JSONObject | undefined = (
   attributes: Dictionary<string | number | boolean> | undefined,
-): Dictionary<string> | undefined => {
+): JSONObject | undefined => {
   if (!attributes) {
     return undefined;
   }
 
-  const filters: Dictionary<string> = {};
+  const filters: JSONObject = {};
 
   for (const key of Object.keys(attributes)) {
-    filters[key] = formatDictionaryValueForDisplay(attributes[key]);
+    filters[key] = attributes[key] as JSONObject[string];
   }
 
   return filters;
@@ -1214,7 +1227,7 @@ export default class MonitorStepViewModel {
         key: "logAttributes",
         title: "Log Attributes",
         description: "Attributes of the logs to monitor.",
-        valueType: MonitorStepViewValueType.DictionaryOfStrings,
+        valueType: MonitorStepViewValueType.AttributeFilters,
         value: toAttributeFilters(logMonitor?.attributes),
         placeholder: "No attributes entered",
       }),
@@ -1310,7 +1323,7 @@ export default class MonitorStepViewModel {
         key: "securityEventAttributes",
         title: "Event Attributes",
         description: "Attributes of the security events to monitor.",
-        valueType: MonitorStepViewValueType.DictionaryOfStrings,
+        valueType: MonitorStepViewValueType.AttributeFilters,
         value: toAttributeFilters(securityEventsMonitor?.attributes),
         placeholder: "No attributes entered",
       }),
@@ -1445,7 +1458,7 @@ export default class MonitorStepViewModel {
         key: "spanAttributes",
         title: "Span Attributes",
         description: "Attributes of the spans to monitor.",
-        valueType: MonitorStepViewValueType.DictionaryOfStrings,
+        valueType: MonitorStepViewValueType.AttributeFilters,
         value: toAttributeFilters(traceMonitor?.attributes),
         placeholder: "No attributes entered",
       }),

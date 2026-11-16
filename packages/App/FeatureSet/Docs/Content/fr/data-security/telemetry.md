@@ -2,7 +2,7 @@
 
 La télémétrie contient tout ce qu'écrit votre code : une adresse e-mail dans une ligne de journal, un numéro de carte dans un attribut de span, un jeton dans une trace de pile, la question d'un client dans un prompt. Sécurité des données traite les journaux, traces, exceptions et conversations IA de chaque service, ainsi que les sessions de chaque application RUM, comme des magasins de données à part entière. Elle les échantillonne toutes les heures, y trouve les données sensibles comme dans un bucket, et **Nettoyer** transforme une détection en une règle de nettoyage qui masque ces données à l'ingestion à partir de là.
 
-Il n'y a rien à configurer : la télémétrie de chaque service est analysée toutes les heures, sauf si **Analyser la télémétrie** est désactivé dans les paramètres du projet.
+Il n'y a rien à configurer : la télémétrie de chaque service est analysée toutes les heures, sauf si **Analyser la télémétrie** est désactivé dans les paramètres du projet. Pour laisser de côté les journaux, les traces ou un autre signal d'un service, désactivez **Analyser le contenu** dans les **Paramètres** de ce magasin de données : dès l'analyse suivante, rien n'en est lu.
 
 :::cards
 - [Ce qui est lu](#ce-qui-est-lu): Les attributs, les corps, les messages et les prompts de chaque signal.
@@ -45,7 +45,7 @@ L'enregistrement d'une relecture de session contient le texte des pages que les 
 
 Le prompt d'un appel d'IA porte toute la conversation qui précède le dernier message de la personne, c'est pourquoi jusqu'à 16 384 caractères de chaque valeur d'un appel d'IA sont lus. Quand des conversations IA contiennent des données sensibles, deux choses de plus en découlent : le fournisseur d'IA auquel les appels sont allés devient un flux de ces données, et [Des données sensibles sont envoyées à un fournisseur d'IA](/docs/data-security/checks-and-issues#ia) échoue sur le magasin de données.
 
-Les conversations d'un [outil d'IA de l'entreprise](/docs/telemetry/ai-company-tools) sont exclues. Seuls les Project Owners et les Project Admins peuvent les lire, et une détection arrive là où la lit quiconque lit Sécurité des données : les spans de ces services ne sont donc jamais lus, et leurs conversations IA sont signalées comme non lues.
+Les conversations d'un [outil d'IA de l'entreprise](/docs/telemetry/ai-company-tools) sont exclues. Seuls les Propriétaires du projet et les Administrateurs du projet peuvent les lire, et une détection arrive là où la lit quiconque lit Sécurité des données : les spans de ces services ne sont donc jamais lus, et leurs conversations IA sont signalées comme non lues.
 
 ## Comment une analyse échantillonne
 
@@ -101,7 +101,7 @@ Certaines détections ne peuvent pas être nettoyées par une règle, et **Netto
 - L'un de vos propres types de données : ajoutez vous-même une règle de nettoyage personnalisée avec son motif.
 - Les détails propres d'une session (`sessions.*`) : l'ingestion des relectures de session n'applique aucune règle de nettoyage.
 
-**Nettoyer** crée la règle en votre nom, avec vos propres autorisations : les Project Owners et les Project Admins peuvent l'utiliser, tout comme une équipe autorisée à créer des règles de nettoyage de journaux, et des règles de nettoyage de traces pour les spans, les exceptions et les appels d'IA.
+**Nettoyer** crée la règle en votre nom, avec vos propres autorisations : les Propriétaires du projet et les Administrateurs du projet peuvent l'utiliser, tout comme une équipe autorisée à créer des règles de nettoyage de journaux, et des règles de nettoyage de traces pour les spans, les exceptions et les appels d'IA.
 
 ## Ce qui compte comme nettoyé
 

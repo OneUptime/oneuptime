@@ -9,6 +9,9 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Page from "Common/UI/Components/Page/Page";
 import API from "Common/UI/Utils/API/API";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translationKey } from "Common/Types/Translator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -39,6 +42,7 @@ import {
 const NOT_FOUND_STATUS: number = 404;
 
 const WhiteLabelSettingsPage: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const { t } = useTranslation();
   const isAvailable: boolean = isWhiteLabelAvailable();
 
@@ -107,8 +111,8 @@ const WhiteLabelSettingsPage: FunctionComponent = (): ReactElement => {
      * otherwise.
      */
     const withoutLogoText: string = settings.productName
-      ? "The product name is shown in its place."
-      : "OneUptime's logo is shown.";
+      ? translationKey("The product name is shown in its place.")
+      : translationKey("OneUptime's logo is shown.");
 
     return (
       <div className="space-y-6" data-testid="white-label-settings">
@@ -128,8 +132,10 @@ const WhiteLabelSettingsPage: FunctionComponent = (): ReactElement => {
                 emptyText={withoutLogoText}
                 removedText={
                   settings.productName
-                    ? "People will see the product name in its place."
-                    : "People will see OneUptime's logo again."
+                    ? translationKey(
+                        "People will see the product name in its place.",
+                      )
+                    : translationKey("People will see OneUptime's logo again.")
                 }
                 onSaved={setSettings}
               />
@@ -141,17 +147,19 @@ const WhiteLabelSettingsPage: FunctionComponent = (): ReactElement => {
                 background="dark"
                 emptyText={
                   settings.logo
-                    ? "The logo for light backgrounds is used."
+                    ? translationKey("The logo for light backgrounds is used.")
                     : withoutLogoText
                 }
-                removedText="Dark mode will use the logo for light backgrounds."
+                removedText={translationKey(
+                  "Dark mode will use the logo for light backgrounds.",
+                )}
                 onSaved={setSettings}
               />
             </div>
             <p className="mt-4 text-sm text-gray-500">
-              PNG, JPEG, GIF, WebP or SVG, up to 512 KB. A wide logo about 32
-              pixels tall looks best. Emails show the logo when it is a PNG,
-              JPEG or GIF, and the product name otherwise.
+              {translator.translateText(
+                "PNG, JPEG, GIF, WebP or SVG, up to 512 KB. A wide logo about 32 pixels tall looks best. Emails show the logo when it is a PNG, JPEG or GIF, and the product name otherwise.",
+              )}
             </p>
           </div>
         </Card>
@@ -167,15 +175,18 @@ const WhiteLabelSettingsPage: FunctionComponent = (): ReactElement => {
                 label="Browser tab icon"
                 image={settings.favicon}
                 background="light"
-                emptyText="OneUptime's icon is shown."
-                removedText="Browser tabs will show OneUptime's icon again."
+                emptyText={translationKey("OneUptime's icon is shown.")}
+                removedText={translationKey(
+                  "Browser tabs will show OneUptime's icon again.",
+                )}
                 isCompact={true}
                 onSaved={setSettings}
               />
             </div>
             <p className="mt-4 text-sm text-gray-500">
-              PNG, ICO, SVG, GIF, JPEG or WebP, up to 128 KB. A square image of
-              at least 32 by 32 pixels looks best.
+              {translator.translateText(
+                "PNG, ICO, SVG, GIF, JPEG or WebP, up to 128 KB. A square image of at least 32 by 32 pixels looks best.",
+              )}
             </p>
           </div>
         </Card>
@@ -186,13 +197,16 @@ const WhiteLabelSettingsPage: FunctionComponent = (): ReactElement => {
   return (
     <Page
       title={t("pages.settings.title")}
+      isTitleTranslated={true}
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
           title: t("breadcrumbs.settings"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.SETTINGS] as Route,
           ),

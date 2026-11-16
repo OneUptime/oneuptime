@@ -120,7 +120,9 @@ OneUptimeDate.fromNow(date) })`), or draw a time component in a
   locale's chunk holds its translations and the `_one` forms it reads. Read
   strings through the lookups above only, and a `_one` key only as the plural
   it belongs to. `i18n.exists()` or `getResourceBundle()` would see the
-  shipped copy, not these files.
+  shipped copy, not these files. The Admin Dashboard ships its locale files
+  the same way (its `esbuild.config.js`, `Utils/I18nLocaleLoader.ts`): English
+  in the entry chunk, the reader's language fetched when it is needed.
 
 Everything above lives in `Common/UI/Utils/TranslateTemplate.ts`, which has a
 `Translator` with `translateText`, `translateTemplate`, `translatePlural`,
@@ -345,6 +347,20 @@ Translation guidelines:
   English's on purpose, list its English as same-as-English (see Plurals
   above). In ja/ko/zh-CN/zh-TW, `_one` is never shown, so translate it the
   same as the general form or leave it.
+- A state on its own ("Active", "Inactive", "Drained") is worded once for
+  every page that draws it, and a page draws several states of one thing
+  together, row after row. Word it as your locale words the others: Russian
+  in the neuter ("Активно", "Неактивно", "Выведено из работы"), Arabic in the
+  masculine (نشط, مُفرَّغ). A state of another gender beside them reads as a
+  word about something else: Russian's list said "Активно" over "Неактивен"
+  (#8588). `Common/Tests/App/StatesDrawnTogetherAgree` holds the sets.
+  Where a shared word cannot agree with every page that draws it, a page
+  words its state with a key of its own (`Common/Types/MeaningKeys`), which
+  English reads as the bare word: a threat indicator's "Expired (threat
+  indicator)" is Russian "Истекло" while a token's Expired stays "Истёк"
+  (#8659). Word such a key as your bare word unless that disagrees there.
+- Give each of OneUptime's things a word no other thing has in your language:
+  Arabic had called both the collector and a Ceph pool المجمّع (#8581).
 
 ### Spaces in Chinese and Japanese (zh-CN, zh-TW, ja)
 
@@ -374,6 +390,14 @@ number or a date, which the space sets apart. It never adds one: the key
 `{{agentName}}已不再上报数据` read `OpenTelemetry Collector已不再上报数据`
 (issue #7864). A space beside punctuation (`。`, `：`, `？`) is yours to write
 or leave out.
+
+A value can be a sentence of its own inside yours (a `composedValue` in the
+code): a criteria filter's summary is a comparison, `{{subject}} 大于
+{{value}}`, around `{{measure}} 的平均值`. Write the space beside it too. The
+Translator drops it the same way where the inner sentence's letter on that
+side is OneUptime's words, and keeps it where that letter is a name someone
+typed: `过去 5 分钟内的 /dev/sda 上的 "磁盘使用率（%）" 的平均值大于 90%`
+(issue #8532).
 
 Korean writes a space between its words anyway, so none of this applies to
 `ko`.
@@ -546,7 +570,11 @@ that `en.json`'s share of the entry stays under 32 KB.
 `packages/Common/Tests/App/Dashboard/DashboardRuntimeLocales.test.tsx` checks
 that every string in all eighteen languages reads the same from the shipped
 copies as from these files, every plural at counts that pick each form, and
-that no source looks a `_one` key up on its own.
+that no source looks a `_one` key up on its own. The Admin Dashboard's are
+held the same way, by the Admin Dashboard block of `EsbuildLocales.test.ts`,
+`Common/Tests/App/AdminDashboard/AdminRuntimeLocales.test.tsx` and
+`AdminLazyLocalesInTheBrowser.test.tsx` (only the reader's language is
+fetched, and a switch fetches the next).
 
 ## Merging and conflicts
 
@@ -601,10 +629,27 @@ translated the same locale. Take either side, then run
   (UTC)") read in English in every language (`Common/Utils/CronScheduleText`).
 - The monitor metric charts' own titles, units and descriptions
   (`MonitorMetricTypeUtil.getTitleByMonitorMetricType` and its siblings) are
-  not keys yet; the metric groups' titles and descriptions are. Nor are the
-  database monitor's metric names
-  (`Common/Types/Monitor/DatabaseMetricCatalog`), which its criteria draw as
-  written, so the docs' metric table keeps them in English.
+  not keys yet, except a Database monitor's titles and descriptions, which
+  are its catalog's; the metric groups' titles and descriptions are. Every
+  monitor metric catalog's descriptions are keys that every language words
+  (`Common/Types/Monitor/*MetricCatalog`, #8014), and so are the database
+  catalog's metric names and its groups' headings (#8354), which the
+  criteria's metric dropdown, the summary and the charts look up once, and
+  the translated Database Health pages name as each language draws them.
+  The VMware, Kubernetes, Docker, Docker Swarm, Podman, host and IoT
+  catalogs' metric names are keys too, and so are their pickers' group
+  headings (`get*MetricCategoryLabel`: a category is an identifier, so
+  "ControlPlane" is headed Control Plane and the host's Load is headed Load
+  Average), each looked up once by its picker (#8353); the translated
+  Kubernetes Monitor pages name the metrics as the picker draws them. The
+  storage array, Proxmox, Ceph and OpenStack pickers head their groups the
+  same way (#8653), and the translated Storage Array and Proxmox Monitor
+  pages head their metric tables as the picker heads its groups. A Database
+  monitor's
+  summary names a collection group it could not collect as the form's
+  Metric Groups switch does, says why in the reader's words and keeps the
+  database's own error as written (`Common/Utils/Monitor/DatabaseCollectionIssueReading`,
+  #8609); the translated docs name the groups the same way.
 - "Up", "Down", "Manual", "Not evaluated yet", "Interfaces" and "Security
   Events" are still English in some languages, the monitor overview's
   verdicts among them. The translated docs quote each label as that

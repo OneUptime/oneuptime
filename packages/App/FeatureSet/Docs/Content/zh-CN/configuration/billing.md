@@ -35,7 +35,7 @@ flowchart TB
 ## 开始之前
 
 - **OneUptime Cloud。** **项目设置**中的**账单和发票**部分仅存在于 OneUptime Cloud，并且默认折叠：点击其标题即可展开。
-- **可以读取账单的角色。** Project Owner、拥有 **Manage Billing** 的人以及三个账单角色可以读取所有账单页面。参见[谁可以做什么](#谁可以做什么)。
+- **可以读取账单的角色。** 项目所有者、拥有 **Manage Billing** 的人以及三个账单角色可以读取所有账单页面。参见[谁可以做什么](#谁可以做什么)。
 
 ## 你的套餐和席位
 
@@ -138,19 +138,19 @@ API 密钥需要 Growth 或更高的套餐，而在 Scale 套餐以下，SCIM �
 在**自动充值**卡片上点击**编辑自动充值**，然后打开**启用自动充值**。它默认关闭。打开后，每当余额降到 $10 时，OneUptime 就会充值 $20，金额也可以自行设定。
 :::
 
-当余额不足以支付时，消息不会发送，或 OneUptime AI 会停止，项目的所有者会收到电子邮件。参见[呼叫未发送时](/docs/on-call/escalation-rules#呼叫未发送时)和[AI 积分用完时](/docs/ai/ai-sre#ai-积分用完时)。
+当余额不足以支付时，消息不会发送，或 OneUptime AI 会停止，项目所有者会收到电子邮件。参见[呼叫未发送时](/docs/on-call/escalation-rules#呼叫未发送时)和[AI 积分用完时](/docs/ai/ai-sre#ai-积分用完时)。
 
 ## 谁可以做什么
 
 | 要做的事 | 需要 |
 | --- | --- |
-| 读取账单页面：套餐、发票、用量、余额和支付方式 | Project Owner、**Manage Billing**、**账单管理员**、**账单成员** 或 **账单查看者** |
-| 下载发票 | Project Owner、Project Admin、**Manage Billing**、**Read Invoices**、**账单管理员** 或 **账单成员** |
-| 更改账单地址和发票邮箱 | Project Owner、**Manage Billing**、**账单管理员** 或 **账单成员** |
-| 打开或关闭短信、电话、WhatsApp 或 Telegram | Project Owner、**Manage Billing** 或 **账单管理员** |
-| 添加支付方式 | Project Owner、**Manage Billing** 或 **Create Payment Method** |
-| 支付发票 | Project Owner、**Manage Billing** 或 **Edit Invoices** |
-| 更改套餐、为余额充值或更改自动充值 | Project Owner 或 **Manage Billing** |
+| 读取账单页面：套餐、发票、用量、余额和支付方式 | 项目所有者、**Manage Billing**、**账单管理员**、**账单成员** 或 **账单查看者** |
+| 下载发票 | 项目所有者、项目管理员、**Manage Billing**、**Read Invoices**、**账单管理员** 或 **账单成员** |
+| 更改账单地址和发票邮箱 | 项目所有者、**Manage Billing**、**账单管理员** 或 **账单成员** |
+| 打开或关闭短信、电话、WhatsApp 或 Telegram | 项目所有者、**Manage Billing** 或 **账单管理员** |
+| 添加支付方式 | 项目所有者、**Manage Billing** 或 **Create Payment Method** |
+| 支付发票 | 项目所有者、**Manage Billing** 或 **Edit Invoices** |
+| 更改套餐、为余额充值或更改自动充值 | 项目所有者或 **Manage Billing** |
 
 你无权使用的按钮会显示为锁定状态，并说明谁可以使用。关于账单角色，参见[用户、团队与权限](/docs/permissions/index#团队)。
 

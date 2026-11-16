@@ -2,7 +2,7 @@
 
 Telemetri inneholder det koden din skriver: en e-postadresse i en logglinje, et kortnummer i et span-attributt, et token i en stakksporing, et spørsmål fra en kunde i en prompt. Datasikkerhet behandler loggene, sporene, unntakene og AI-samtalene til hver tjeneste, og øktene til hver RUM-applikasjon, som egne datalagre. Den tar stikkprøver av dem hver time, finner sensitive data i dem slik den gjør i en bucket, og **Rens** gjør et funn om til en rensingsregel som maskerer disse dataene ved inntak fra da av.
 
-Det er ingenting å sette opp: telemetrien til hver tjeneste skannes hver time, med mindre **Skann telemetri** er slått av i prosjektets innstillinger.
+Det er ingenting å sette opp: telemetrien til hver tjeneste skannes hver time, med mindre **Skann telemetri** er slått av i prosjektets innstillinger. For å utelate én tjenestes logger, sporinger eller et annet av dens signaler, slår du av **Skann innhold** i det datalagerets **Innstillinger**: fra neste skanning leses ingenting av det.
 
 :::cards
 - [Hva som leses](#hva-som-leses): Attributtene, brødtekstene, meldingene og promptene til hvert signal.
@@ -45,7 +45,7 @@ Opptaket i en øktavspilling inneholder teksten på sidene folk så. Å se det k
 
 Prompten i et AI-kall inneholder hele chatten før personens nyeste melding, så opptil 16 384 tegn av hver verdi i et AI-kall leses. Når AI-samtaler inneholder sensitive data, følger to ting til: AI-leverandøren kallene gikk til, er en dataflyt for disse dataene, og [Sensitive data sendes til en AI-leverandør](/docs/data-security/checks-and-issues#ai) feiler på datalageret.
 
-Samtalene i et [AI-verktøy for bedriften](/docs/telemetry/ai-company-tools) utelates. Bare Project Owners og Project Admins kan lese dem, og et funn havner der alle som leser Datasikkerhet, leser det, så spans fra disse tjenestene leses aldri, og AI-samtalene deres rapporteres som ikke lest.
+Samtalene i et [AI-verktøy for bedriften](/docs/telemetry/ai-company-tools) utelates. Bare Prosjekteiere og Prosjektadministratorer kan lese dem, og et funn havner der alle som leser Datasikkerhet, leser det, så spans fra disse tjenestene leses aldri, og AI-samtalene deres rapporteres som ikke lest.
 
 ## Slik tar en skanning stikkprøver
 
@@ -101,7 +101,7 @@ Noen funn kan ikke renses av en regel, og **Rens** sier hvorfor:
 - En av dine egne datatyper: legg selv til en egendefinert rensingsregel med mønsteret dens.
 - Detaljene til selve økten (`sessions.*`): inntak av øktavspillinger kjører ingen rensingsregler.
 
-**Rens** lager regelen som deg, med dine egne tillatelser: Project Owners og Project Admins kan trykke på den, og det kan også et team som har lov til å opprette rensingsregler for logger, og rensingsregler for spor når det gjelder spans, unntak og AI-kall.
+**Rens** lager regelen som deg, med dine egne tillatelser: Prosjekteiere og Prosjektadministratorer kan trykke på den, og det kan også et team som har lov til å opprette rensingsregler for logger, og rensingsregler for spor når det gjelder spans, unntak og AI-kall.
 
 ## Hva som regnes som renset
 

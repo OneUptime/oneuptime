@@ -33,8 +33,8 @@ flowchart TB
 
 ## Voordat u begint
 
-- **Voor de budgetten van de instantie en van een project: het Admin Dashboard.** Op een zelfgehoste installatie stelt alleen de instantiebeheerder ze in. De eigenaren en beheerders van een project zien de budgetten ervan, maar kunnen ze niet wijzigen.
-- **Voor het eigen budget van een sleutel: een rol die ingestiesleutels bewerkt.** Project Owner of Project Admin, of een aangepaste rol met de machtiging Edit Ingestion Key.
+- **Voor de budgetten van de instantie en van een project: het Admin Dashboard.** Op een zelfgehoste installatie stelt alleen de instantiebeheerder ze in. De Projecteigenaren en Projectbeheerders zien de budgetten van een project, maar kunnen ze niet wijzigen.
+- **Voor het eigen budget van een sleutel: een rol die ingestiesleutels bewerkt.** Projecteigenaar of Projectbeheerder, of een aangepaste rol met de machtiging Edit Ingestion Key.
 - **Om de budgetten te zien: een rol die het gebruik van het project ziet.** De rollen die de pagina [Telemetriegebruik](/docs/telemetry/usage) zien, zien daar ook de budgetten.
 
 ## De standaardbudgetten van elk project instellen
@@ -113,7 +113,7 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 
 ## De waarschuwing en de reset
 
-- **De waarschuwing.** Wanneer een dagbudget de waarschuwingsdrempel passeert, 80% tenzij de instantiebeheerder dat wijzigt, krijgen de eigenaren van het project een e-mail, en tonen de explorers een banner boven de gegevens van dat signaal. Ze krijgen nog een e-mail wanneer het budget op is. Elk budget verstuurt elke e-mail hooguit één keer per dag.
+- **De waarschuwing.** Wanneer een dagbudget de waarschuwingsdrempel passeert, 80% tenzij de instantiebeheerder dat wijzigt, krijgen de Projecteigenaren een e-mail, en tonen de explorers een banner boven de gegevens van dat signaal. Ze krijgen nog een e-mail wanneer het budget op is. Elk budget verstuurt elke e-mail hooguit één keer per dag.
 - **De reset.** Elke budgetdag begint opnieuw om 00:00 UTC, tenzij de instantiebeheerder dat wijzigt. De kaart **Waarschuwing en reset** stelt **Waarschuwingsdrempel (%)** in, van 1 tot 99, **Resettijd**, als HH:MM, en **Tijdzone van de reset**: klik op **Waarschuwing en reset bewerken**.
 - **Zomertijd.** De reset volgt de klok van de tijdzone, dus de budgetdag waarop de klok wordt verzet, is een uur korter of langer. Een resettijd die de klok overslaat, valt even lang na de sprong.
 - **Een gewijzigde reset begint een nieuwe dag.** Het wijzigen van de resettijd of de tijdzone begint meteen een nieuwe budgetdag, waarin nog niets is geteld.

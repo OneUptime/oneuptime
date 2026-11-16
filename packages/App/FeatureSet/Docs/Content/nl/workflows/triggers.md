@@ -20,26 +20,26 @@ Om de trigger toe te voegen klik je op het gestippelde blok **Kies wat deze work
 | Op een knop klikken om de workflow uit te voeren | **Handmatig**                |
 | Volgens een terugkerend schema draaien         | **Schema**                  |
 | Een ander systeem gegevens laten aanleveren    | **Webhook**                 |
-| Starten vanuit een e-mail                      | **Incoming Email**          |
-| Handelen op incidentrapporten van Huntress     | **Huntress Incident Report** |
+| Starten vanuit een e-mail                      | **Inkomende e-mail**          |
+| Handelen op incidentrapporten van Huntress     | **Huntress-incidentrapport** |
 | Reageren op iets binnen OneUptime              | **OneUptime-gebeurtenis**   |
 
-Een workflow kan maar één trigger hebben. Heb je twee manieren nodig om dezelfde automatisering te starten, bouw de gedeelde logica dan in een workflow met een **Handmatig**-trigger en start die vanuit twee lichte «omhulsel»-workflows met een **Execute Workflow**-blok.
+Een workflow kan maar één trigger hebben. Heb je twee manieren nodig om dezelfde automatisering te starten, bouw de gedeelde logica dan in een workflow met een **Handmatig**-trigger en start die vanuit twee lichte «omhulsel»-workflows met een **Andere workflow uitvoeren**-blok.
 
 ## Manual
 
-Voer de workflow uit wanneer je wilt: klik op **Workflow uitvoeren** op de pagina **Bouwer**, vul de **JSON** van de trigger in, klik op **Workflow handmatig uitvoeren** en bevestig met **Uitvoeren**. Een andere workflow kan hem ook starten, met een **Execute Workflow**-blok.
+Voer de workflow uit wanneer je wilt: klik op **Workflow uitvoeren** op de pagina **Bouwer**, vul de **JSON** van de trigger in, klik op **Workflow handmatig uitvoeren** en bevestig met **Uitvoeren**. Een andere workflow kan hem ook starten, met een **Andere workflow uitvoeren**-blok.
 
 Handig voor: automatiseringen met één klik waarvoor je een knop wilt, zoals «deze sleutel vervangen» of «een testwaarschuwing sturen», en logica die je tussen workflows deelt.
 
 **Returns**: **JSON** — waarmee de uitvoering is gestart.
 
 - Vanuit **Workflow uitvoeren** is het de JSON die je typte. Om één veld ervan te lezen, voeg je de naam van het veld aan de verwijzing toe, zoals in `{{local.components.manual-1.returnValues.value.name}}`.
-- Vanuit een **Execute Workflow**-blok is elke sleutel van de **Arguments** van het blok een eigen waarde. Met `{"customerId": "42"}` leest een later blok `{{local.components.manual-1.returnValues.customerId}}`, waarbij `manual-1` de ID van de Manual-trigger is.
+- Vanuit een **Andere workflow uitvoeren**-blok is elke sleutel van de **Argumenten** van het blok een eigen waarde. Met `{"customerId": "42"}` leest een later blok `{{local.components.manual-1.returnValues.customerId}}`, waarbij `manual-1` de ID van de Manual-trigger is.
 
 ## Schedule
 
-Laat de workflow draaien volgens een terugkerend schema. Stel in **Schedule at** in hoe vaak: kies een van de **Common schedules**, schrijf een **Custom cron**-expressie of kies een **Variabele** die er een bevat. Onder het veld wordt het schema in woorden uitgelegd, met de **Volgende uitvoeringen**.
+Laat de workflow draaien volgens een terugkerend schema. Stel in **Inplannen om** in hoe vaak: kies een van de **Common schedules**, schrijf een **Custom cron**-expressie of kies een **Variabele** die er een bevat. Onder het veld wordt het schema in woorden uitgelegd, met de **Volgende uitvoeringen**.
 
 Handig voor: nachtelijke opschoning, synchronisatie per uur, wekelijkse rapporten.
 
@@ -92,9 +92,9 @@ sequenceDiagram
 
 | Waarde                   | Wat erin zit                                                                                                          |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------- |
-| **Request Headers**      | Elke header van het verzoek, op naam in kleine letters, zoals `content-type`.                                         |
-| **Request Query Params** | De queryparameters in de URL, op naam.                                                                                |
-| **Request Body**         | De body die de aanroeper stuurde. Een JSON-body, verstuurd met `Content-Type: application/json`, kun je veld voor veld lezen. |
+| **Aanvraagheaders**      | Elke header van het verzoek, op naam in kleine letters, zoals `content-type`.                                         |
+| **Queryparameters van het verzoek** | De queryparameters in de URL, op naam.                                                                                |
+| **Verzoeklichaam**         | De body die de aanroeper stuurde. Een JSON-body, verstuurd met `Content-Type: application/json`, kun je veld voor veld lezen, net als JSON die als platte tekst wordt verstuurd, zoals Amazon SNS dat doet. |
 
 Lees één veld door de naam ervan aan de verwijzing toe te voegen, zoals in `{{local.components.webhook-1.returnValues.request-body.message}}`.
 
@@ -117,7 +117,7 @@ OneUptime geeft de workflow een eigen e-mailadres. Elke e-mail naar dat adres st
 
 Handig voor: handelen op e-mail van systemen die geen webhook kunnen aanroepen — waarschuwingen van oudere monitoringtools, statusmeldingen van een leverancier, het rapport dat een nachtelijke taak mailt.
 
-Om het adres te krijgen, klik je op de Incoming Email-trigger op het canvas. Het adres staat bovenaan de instellingen, met een knop **Adres kopiëren**. Geef het aan wat de workflow moet starten: een tool die alleen e-mail kan sturen, de meldingsinstellingen van een leverancier of een doorstuurregel in je eigen mailbox.
+Om het adres te krijgen, klik je op de Inkomende e-mail-trigger op het canvas. Het adres staat bovenaan de instellingen, met een knop **Adres kopiëren**. Geef het aan wat de workflow moet starten: een tool die alleen e-mail kan sturen, de meldingsinstellingen van een leverancier of een doorstuurregel in je eigen mailbox.
 
 Elke e-mail start een eigen uitvoering. E-mail bereikt de workflow of het adres nu in Aan of CC staat, als bcc wordt meegestuurd of via een doorstuurregel binnenkomt. Een e-mail die het adres twee keer noemt, start één uitvoering.
 
@@ -125,21 +125,21 @@ Elke e-mail start een eigen uitvoering. E-mail bereikt de workflow of het adres 
 
 | Waarde          | Wat erin zit                                                                                            |
 | --------------- | ------------------------------------------------------------------------------------------------------- |
-| **From**        | Het adres van de afzender.                                                                              |
-| **To**          | Iedereen aan wie de e-mail was gericht, op één regel, zoals `ops@example.com, oncall@example.com`.      |
+| **Van**        | Het adres van de afzender.                                                                              |
+| **Aan**          | Iedereen aan wie de e-mail was gericht, op één regel, zoals `ops@example.com, oncall@example.com`.      |
 | **CC**          | Iedereen die een kopie kreeg, op één regel.                                                             |
-| **Subject**     | De onderwerpregel.                                                                                      |
+| **Onderwerp**     | De onderwerpregel.                                                                                      |
 | **Body**        | De platte tekst van de e-mail.                                                                          |
-| **HTML Body**   | De HTML van de e-mail, als die er is. Body en HTML Body worden elk op 1 MB afgekapt.                     |
+| **HTML-inhoud**   | De HTML van de e-mail, als die er is. Body en HTML Body worden elk op 1 MB afgekapt.                     |
 | **Headers**     | Elke header van de e-mail, op naam in kleine letters, zoals `message-id`.                               |
-| **Attachments** | De naam, het type en de grootte van elk bijgevoegd bestand. De bestanden zelf worden niet bewaard.      |
-| **Received At** | Wanneer OneUptime de e-mail ontving.                                                                    |
+| **Bijlagen** | De naam, het type en de grootte van elk bijgevoegd bestand. De bestanden zelf worden niet bewaard.      |
+| **Ontvangen op** | Wanneer OneUptime de e-mail ontving.                                                                    |
 
 Zodra er een e-mail is binnengekomen, weet de waardekiezer in elk blok na de trigger wat erin zat: hij toont elke header en elke bijlage van de e-mail, met de inhoud, zodat je `headers.message-id` kiest in plaats van een pad te typen. Tot die tijd zegt hij dat er nog geen e-mail op het adres is binnengekomen. Zie [Waarden uit eerdere blokken gebruiken](/docs/workflows/authoring#waarden-uit-eerdere-blokken-gebruiken).
 
 Om de workflow te proberen zonder een e-mail te sturen, klik je op **Workflow uitvoeren** op de pagina **Bouwer** en vul je een afzender, een onderwerp en een body in. De waarden die je weglaat, komen leeg aan.
 
-E-mail start de workflow alleen zolang hij aan staat. E-mail naar een workflow die uit staat, wordt genegeerd, net als e-mail naar een workflow waarvan de trigger niet langer Incoming Email is.
+E-mail start de workflow alleen zolang hij aan staat. E-mail naar een workflow die uit staat, wordt genegeerd, net als e-mail naar een workflow waarvan de trigger niet langer Inkomende e-mail is.
 
 ### Houd het adres geheim
 
@@ -148,7 +148,7 @@ Het deel van het adres vóór de `@` bevat de geheime sleutel van de workflow, e
 Lekt het adres uit, klik dan op dezelfde plek op **Adres opnieuw instellen**: de workflow krijgt een nieuw adres, en e-mail naar het oude wordt vanaf dan genegeerd, dus geef het nieuwe aan alles wat de workflow mailt. Alleen mensen die de workflow mogen bewerken, kunnen het adres zien of opnieuw instellen — zie [Beveiliging van binnenkomende e-mail](/docs/workflows/configuration#beveiliging-van-binnenkomende-e-mail).
 
 > [!WARNING]
-> Iedereen kan elke willekeurige afzender op een e-mail zetten, dus **From** bewijst niet wie hem stuurde. Controleer iets wat alleen de echte afzender weet voordat een stap iets belangrijks doet.
+> Iedereen kan elke willekeurige afzender op een e-mail zetten, dus **Van** bewijst niet wie hem stuurde. Controleer iets wat alleen de echte afzender weet voordat een stap iets belangrijks doet.
 
 > [!NOTE]
 > Op een zelf gehoste installatie ontvangt OneUptime e-mail via een provider voor inkomende e-mail die je beheerder instelt — zie [SendGrid Inbound Email](/docs/self-hosted/sendgrid-inbound-email). Tot die tijd heeft de trigger geen adres, en de instellingen ervan zeggen dat.
@@ -159,7 +159,7 @@ OneUptime geeft de workflow een eigen URL voor Huntress, de managed detection an
 
 Handig voor: een incident openen voor elk incidentrapport van Huntress, de bereikbaarheidsdienst oproepen en het rapport volgen tot het gesloten is. Het sjabloon **Open an incident for each Huntress incident report** doet alle drie.
 
-Om Huntress te koppelen, klik je op het canvas op de trigger **Huntress Incident Report**: die toont de URL die je aan Huntress geeft, slaat het ondertekeningsgeheim van het endpoint op en zegt wanneer Huntress de workflow het laatst bereikte. Een verzoek dat niet met dat geheim is ondertekend, start niets, dus de URL is geen wachtwoord. Zie [Huntress](/docs/integrations/huntress) voor de instelling in Huntress, de waarden die de trigger teruggeeft en zijn instellingen.
+Om Huntress te koppelen, klik je op het canvas op de trigger **Huntress-incidentrapport**: die toont de URL die je aan Huntress geeft, slaat het ondertekeningsgeheim van het endpoint op en zegt wanneer Huntress de workflow het laatst bereikte. Een verzoek dat niet met dat geheim is ondertekend, start niets, dus de URL is geen wachtwoord. Zie [Huntress](/docs/integrations/huntress) voor de instelling in Huntress, de waarden die de trigger teruggeeft en zijn instellingen.
 
 ## OneUptime-gebeurtenistriggers
 
@@ -172,7 +172,7 @@ Bijna alles in OneUptime — monitoren, incidenten, waarschuwingen, onderhoudsge
 
 Zo bouw je «als X gebeurt in OneUptime, doe dan Y» zonder dingen in een lus te hoeven controleren.
 
-**On Update** kun je beperken tot sommige velden met **Fields to watch**: hij gaat dan alleen af als een update een van die velden wijzigt, naar welke waarde ook — een schakelaar uitzetten of een veld leegmaken telt mee. **On Create or Update** heeft dezelfde **Fields to watch**, alleen voor zijn updates: elk nieuw record laat hem nog steeds afgaan.
+**On Update** kun je beperken tot sommige velden met **Velden om te volgen**: hij gaat dan alleen af als een update een van die velden wijzigt, naar welke waarde ook — een schakelaar uitzetten of een veld leegmaken telt mee. **On Create or Update** heeft dezelfde **Velden om te volgen**, alleen voor zijn updates: elk nieuw record laat hem nog steeds afgaan.
 
 ```mermaid title="Wanneer een On Update-trigger afgaat"
 flowchart TB
@@ -185,11 +185,11 @@ flowchart TB
     field -->|"Nee"| nothing
 ```
 
-**On Create**, **On Update** en **On Create or Update** geven het record door aan het volgende blok, met de velden die je in **Fields to pass on** van de trigger kiest. Zo geeft de trigger **Incident → On Create** het nieuwe incident door, zodat het volgende blok de titel, de beschrijving, de ernst of elk ander geselecteerd veld kan lezen, zoals `{{local.components.incident-on-create-1.returnValues.model.title}}`. Een veld dat je niet selecteerde, komt leeg aan. Dat geldt ook voor een veld waarin het record niets heeft, zoals de monitor van een waarschuwing die geen monitor heeft gegeven.
+**On Create**, **On Update** en **On Create or Update** geven het record door aan het volgende blok, met de velden die je in **Velden om door te geven** van de trigger kiest. Zo geeft de trigger **Incident → On Create** het nieuwe incident door, zodat het volgende blok de titel, de beschrijving, de ernst of elk ander geselecteerd veld kan lezen, zoals `{{local.components.incident-on-create-1.returnValues.model.title}}`. Een veld dat je niet selecteerde, komt leeg aan. Dat geldt ook voor een veld waarin het record niets heeft, zoals de monitor van een waarschuwing die geen monitor heeft gegeven.
 
-**On Create or Update** geeft ook **What Happened** door: `created` als een nieuw record de uitvoering startte, en `updated` als een wijziging dat deed, zoals in `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. Om die twee verschillend te behandelen, vergelijk je het in een **If / Else**-blok, of neem je met **Switch / Case** voor elk een eigen pad.
+**On Create or Update** geeft ook **Wat er gebeurde** door: `created` als een nieuw record de uitvoering startte, en `updated` als een wijziging dat deed, zoals in `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. Om die twee verschillend te behandelen, vergelijk je het in een **Als / Anders**-blok, of neem je met **Keuze / Geval** voor elk een eigen pad.
 
-Eén keer opslaan laat hem één keer afgaan. Wat OneUptime invult terwijl het een record aanmaakt, hoort bij het aanmaken, dus een nieuw record laat hem één keer afgaan, als `created`. Wijzigingen die OneUptime later maakt, zoals het koppelen van het Slack-kanaal van een incident, zijn updates zoals elke andere: om ze buiten te houden, zet je alleen de velden die ertoe doen in **Fields to watch**.
+Eén keer opslaan laat hem één keer afgaan. Wat OneUptime invult terwijl het een record aanmaakt, hoort bij het aanmaken, dus een nieuw record laat hem één keer afgaan, als `created`. Wijzigingen die OneUptime later maakt, zoals het koppelen van het Slack-kanaal van een incident, zijn updates zoals elke andere: om ze buiten te houden, zet je alleen de velden die ertoe doen in **Velden om te volgen**.
 
 **On Delete** geeft alleen de ID van het verwijderde record door: het record is weg als de workflow draait, dus de andere velden ervan kunnen niet worden gelezen.
 

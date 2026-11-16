@@ -1,10 +1,10 @@
 # IP-Adressen
 
-Die Probes von OneUptime Cloud prüfen Ihre Websites, APIs und Server von einer festen Gruppe von IP-Adressen aus. Steht eine Firewall oder eine Allowlist vor dem, was Sie überwachen, erlauben Sie diese Adressen, damit die Prüfungen durchkommen.
+Die Sonden von OneUptime Cloud prüfen Ihre Websites, APIs und Server von einer festen Gruppe von IP-Adressen aus. Steht eine Firewall oder eine Allowlist vor dem, was Sie überwachen, erlauben Sie diese Adressen, damit die Prüfungen durchkommen.
 
 ```mermaid title="Wo die Allowlist greift"
 flowchart TB
-    P["OneUptime-Probes"] -->|"prüfen von den aufgeführten IPs"| F["Ihre Firewall"]
+    P["OneUptime-Sonden"] -->|"prüfen von den aufgeführten IPs"| F["Ihre Firewall"]
     F -->|"erlaubt"| S["Ihre Website, API oder Ihr Server"]
 ```
 
@@ -39,7 +39,7 @@ curl -s https://oneuptime.com/ip-whitelist | jq -r '.ipWhitelist[]'
 
 ## Selbst gehostetes OneUptime
 
-Auf Ihrer eigenen Instanz zeigen diese Seite und der Endpunkt `/ip-whitelist` die Adressen aus der Einstellung `IP_WHITELIST` der Instanz, einer kommagetrennten Liste. Tragen Sie die Adressen ein, von denen Ihre eigenen Probes ihre Prüfungen senden.
+Auf Ihrer eigenen Instanz zeigen diese Seite und der Endpunkt `/ip-whitelist` die Adressen aus der Einstellung `IP_WHITELIST` der Instanz, einer kommagetrennten Liste. Tragen Sie die Adressen ein, von denen Ihre eigenen Sonden ihre Prüfungen senden.
 
 :::tabs
 @tab Kubernetes
@@ -64,6 +64,6 @@ Ist nichts gesetzt, zeigt diese Seite **No IP addresses configured.** und der En
 ## Nächste Schritte
 
 :::cards
-- [Benutzerdefinierte Probes](/docs/probe/custom-probe): Eine Probe in Ihrem eigenen Netzwerk betreiben, statt die Firewall zu öffnen.
+- [Benutzerdefinierte Sonden](/docs/probe/custom-probe): Eine Sonde in Ihrem eigenen Netzwerk betreiben, statt die Firewall zu öffnen.
 - [Einen Monitor erstellen](/docs/monitor/create-monitor): Eine Website, eine API oder einen Server prüfen.
 :::

@@ -38,7 +38,7 @@ Servern är tillståndslös: den utfärdar inga sessions-id:n och varje begäran
 - **Larm**: kvittera och lösa larm, lägga till anteckningar och hantera larmens tillstånd och allvarlighetsgrader.
 - **Team och jour**: hantera team och jourpolicyer.
 - **Statussidor**: hantera statussidor och publicera meddelanden.
-- **Planerat underhåll**: skapa och hantera underhållshändelser.
+- **Schemalagt underhåll**: skapa och hantera underhållshändelser.
 - **Telemetri**: fråga efter loggar, mätvärden, spår, undantag, monitorloggar, säkerhetshändelser med mera, endast läsning.
 
 Det finns verktyg för att skapa, hämta, lista, uppdatera, ta bort och räkna för 54 sorters poster, verktyg för att lista och räkna för 9 sorters telemetri, och verktyg gjorda för incidenthantering. Skrivskyddade verktyg har `readOnlyHint`, varje verktyg som ändrar något har `destructiveHint`, och bara verktygen för publika statussidor har `openWorldHint`, så att en klient själv kan köra skrivskyddade anrop och fråga dig före varje ändring. Ett misslyckat verktygsanrop kommer tillbaka som ett verktygsresultat (`isError: true`) med en `statusCode`, detaljerna och ett förslag, inte som ett fel i MCP-protokollet, så att agenten kan läsa felet och rätta sig själv.
@@ -113,7 +113,7 @@ Vad en ansluten klient kan göra:
 
 ### Hantera anslutna klienter
 
-Varje klient som anslutits genom inloggning listas på **Projektinställningar → AI → MCP-server**, under **Anslutna MCP-klienter**, med vem som anslöt den, vad den får göra och när den senast användes. Du ser de klienter du har anslutit; projektets ägare och administratörer ser allas.
+Varje klient som anslutits genom inloggning listas på **Projektinställningar → AI → MCP-server**, under **Anslutna MCP-klienter**, med vem som anslöt den, vad den får göra och när den senast användes. Du ser de klienter du har anslutit; Projektägare och Projektadministratörer ser allas.
 
 Klicka på **Koppla från** för att logga ut en klient. Den slutar fungera direkt.
 
@@ -430,7 +430,7 @@ De här fungerar utan inloggningsuppgifter, med enbart verktygen för publika st
 | Vad agenten gör | Välj under **Åtkomst** |
 | --- | --- |
 | Läser bara | **Tittare**, eller lägg till läsbehörigheter på nyckelns sida |
-| Skapar, uppdaterar och tar också bort | **Projektadministratör**, eller lägg till rollen Project Admin på nyckelns sida |
+| Skapar, uppdaterar och tar också bort | **Projektadministratör**, eller lägg till rollen Projektadministratör på nyckelns sida |
 
 Ge varje nyckel det minsta den behöver, rotera nycklar regelbundet, ha en separat nyckel för varje miljö och håll koll på vad varje nyckel gör i OneUptime.
 
@@ -483,7 +483,7 @@ MCP-servern är tillståndslös: den varken utfärdar eller spårar sessions-id:
 | Incidenter | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert, Postmortem Action Item, Postmortem Status |
 | Larm | Alert, Alert State, Alert Severity, Alert State Timeline, Alert Internal Note |
 | Statussidor | Status Page, Status Page Announcement |
-| Planerat underhåll | Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
+| Schemalagt underhåll | Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
 | Team och jour | Team, On-Call Policy |
 | Etiketter | Label |
 | Säkerhet | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
@@ -497,7 +497,7 @@ MCP-servern är tillståndslös: den varken utfärdar eller spårar sessions-id:
 | Säkerhet | Security Event, Threat Intel Indicator |
 | Ändringar och kostnader | Change Event, Kubernetes Cost Allocation |
 
-Verktygen namnges i snake case: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` och `count_incidents`, eller `list_logs` och `count_spans` för telemetri.
+Verktygen namnges i snake case: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` och `count_incidents`, eller `list_logs` och `count_spans` för telemetri. `create_incident` och `create_alert` tar också `ownerUsers` och `ownerTeams`: id:n för de användare och team som äger posten från början och som får veta att den skapats.
 
 ## Nästa steg
 

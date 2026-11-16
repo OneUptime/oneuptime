@@ -46,8 +46,8 @@ flowchart TB
 
 ## Перед началом работы
 
-- Логи, поступающие в OneUptime: через [OpenTelemetry](/docs/telemetry/open-telemetry), [syslog](/docs/telemetry/syslog), [Fluentd](/docs/telemetry/fluentd) или проб.
-- Право изменять конвейеры. Оно есть у владельцев и администраторов проекта; остальным нужны разрешения **Create Log Pipeline** и **Create Log Pipeline Processor**.
+- Логи, поступающие в OneUptime: через [OpenTelemetry](/docs/telemetry/open-telemetry), [syslog](/docs/telemetry/syslog), [Fluentd](/docs/telemetry/fluentd) или зондов.
+- Право изменять конвейеры. Оно есть у Владельцев проекта и Администраторов проекта; остальным нужны разрешения **Create Log Pipeline** и **Create Log Pipeline Processor**.
 
 ## Создание конвейера
 
@@ -110,7 +110,7 @@ flowchart TB
 
 ### Пример: межсетевой экран Sophos XGS
 
-OneUptime сам читает syslog Sophos и FortiGate как атрибуты `sophos.*` и `fortigate.*` (см. [Сетевые события](/docs/monitor/network-events)); этот пример строит то же самое вручную, как вы сделали бы для формата, которого он не знает. Когда межсетевой экран Sophos XGS отправляет syslog на [проб](/docs/monitor/network-device-monitor), каждое сообщение сохраняется как лог сетевого устройства, а сообщение syslog становится его телом. Чтобы разобрать его:
+OneUptime сам читает syslog Sophos и FortiGate как атрибуты `sophos.*` и `fortigate.*` (см. [Сетевые события](/docs/monitor/network-events)); этот пример строит то же самое вручную, как вы сделали бы для формата, которого он не знает. Когда межсетевой экран Sophos XGS отправляет syslog на [зондов](/docs/monitor/network-device-monitor), каждое сообщение сохраняется как лог сетевого устройства, а сообщение syslog становится его телом. Чтобы разобрать его:
 
 :::steps
 #### Создайте конвейер для межсетевого экрана

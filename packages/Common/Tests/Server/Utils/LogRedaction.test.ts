@@ -98,6 +98,23 @@ describe("isSensitiveLogKey", () => {
   });
 
   /*
+   * An Amazon SNS message's SignatureVersion ("1" or "2") and an AWS query
+   * request's SignatureVersion and SignatureMethod name a signature scheme;
+   * the signature itself stays secret (#7723).
+   */
+  it("keeps which signature scheme is used, and masks the signature", () => {
+    expect(isSensitiveLogKey("SignatureVersion", "1")).toBe(false);
+    expect(isSensitiveLogKey("signature_version", "2")).toBe(false);
+    expect(isSensitiveLogKey("SignatureMethod", "HmacSHA256")).toBe(false);
+
+    expect(isSensitiveLogKey("Signature", "EXAMPLEpH+DcEw")).toBe(true);
+    expect(isSensitiveLogKey("X-Amz-Signature", "abc123")).toBe(true);
+    expect(
+      serialize({ SignatureVersion: "1", Signature: "EXAMPLEpH+DcEw" }),
+    ).toBe('{"SignatureVersion":"1","Signature":"[REDACTED]"}');
+  });
+
+  /*
    * `code` is the one key that has to be decided by its value: it is the OAuth
    * authorization code and the TOTP code, and it is also the `ECONNREFUSED` on
    * every failed socket.
@@ -1072,7 +1089,7 @@ describe("the keys OneUptime's own components present", () => {
       "Unable to register probe after 10 attempts. Check PROBE_KEY / REGISTER_PROBE_KEY / connectivity to https://oneuptime.com/probe-ingest.",
       "ONEUPTIME_RUNNER_KEY is not set. Create a Runner in your OneUptime dashboard (Runbooks > Runners) and copy its id and key into this container.",
       "Runner key not found - the Runner has not finished registering yet.",
-      "The ingestion key was rotated by a project admin.",
+      "The ingestion key was rotated by a Project Admin.",
       "A license key is required to turn this on.",
     ]) {
       expect(redactLogString(text)).toBe(text);

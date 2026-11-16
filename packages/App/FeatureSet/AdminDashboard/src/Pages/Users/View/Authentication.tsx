@@ -299,6 +299,7 @@ const UserAuthentication: FunctionComponent = (): ReactElement => {
       modelType={User}
       modelAPI={AdminModelAPI}
       title={t("pages.userView.title")}
+      isTitleTranslated={true}
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),
@@ -606,6 +607,7 @@ const UserAuthentication: FunctionComponent = (): ReactElement => {
         {showRequireTwoFactorModal ? (
           <ConfirmModal
             title={t("pages.userAuthentication.twoFactorRequireModalTitle")}
+            isTitleTranslated={true}
             description={t(
               "pages.userAuthentication.twoFactorRequireModalDescription",
             )}
@@ -633,6 +635,7 @@ const UserAuthentication: FunctionComponent = (): ReactElement => {
             title={t(
               "pages.userAuthentication.twoFactorDoNotRequireModalTitle",
             )}
+            isTitleTranslated={true}
             description={t(
               "pages.userAuthentication.twoFactorDoNotRequireModalDescription",
             )}
@@ -658,6 +661,7 @@ const UserAuthentication: FunctionComponent = (): ReactElement => {
         {showResetTwoFactorModal ? (
           <ConfirmModal
             title={t("pages.userAuthentication.twoFactorResetModalTitle")}
+            isTitleTranslated={true}
             description={t(
               "pages.userAuthentication.twoFactorResetModalDescription",
             )}
@@ -683,6 +687,7 @@ const UserAuthentication: FunctionComponent = (): ReactElement => {
         {showResetLinkModal ? (
           <ConfirmModal
             title={t("pages.userAuthentication.resetLinkModalTitle")}
+            isTitleTranslated={true}
             description={t(
               "pages.userAuthentication.resetLinkModalDescription",
             )}

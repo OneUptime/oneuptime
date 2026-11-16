@@ -164,6 +164,7 @@ const Settings: FunctionComponent = (): ReactElement => {
   return (
     <Page
       title={t("pages.settings.title")}
+      isTitleTranslated={true}
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),
@@ -323,6 +324,7 @@ const Settings: FunctionComponent = (): ReactElement => {
       {currentRunner ? (
         <Modal
           title={t("pages.settings.globalRunners.keyModalTitle")}
+          isTitleTranslated={true}
           modalWidth={ModalWidth.Medium}
           closeButtonText={t("common.close")}
           onClose={() => {

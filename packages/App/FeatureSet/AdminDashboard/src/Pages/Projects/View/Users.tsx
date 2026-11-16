@@ -34,6 +34,10 @@ import InvitationLinkModal, {
   INVITATION_LINK_COPY,
   getInvitationLinkRowAction,
 } from "Common/UI/Components/InvitationLink/InvitationLinkModal";
+import {
+  MembersNotSignedUp,
+  useMembersNotSignedUp,
+} from "Common/UI/Components/InvitationLink/MembersNotSignedUp";
 import React, {
   Fragment,
   FunctionComponent,
@@ -59,6 +63,14 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
    * Get Invitation Link reads it again, and stays on the list (#7168).
    */
   const cannotSendEmail: boolean = useServerCanSendEmail() === false;
+
+  /*
+   * A member whose invitation was accepted for them before they had an
+   * account still has to sign up (#8191): their row says so, and offers
+   * their link.
+   */
+  const membersNotSignedUp: MembersNotSignedUp =
+    useMembersNotSignedUp(cannotSendEmail);
   const [invitationLinkFor, setInvitationLinkFor] = useState<{
     teamMemberId: ObjectID;
     userPage: Route | null;
@@ -113,6 +125,7 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
       modelType={Project}
       modelAPI={AdminModelAPI}
       title={t("pages.projectUsers.title")}
+      isTitleTranslated={true}
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),
@@ -162,6 +175,7 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
           actionButtons={[
             getInvitationLinkRowAction<TeamMember>({
               isAvailable: cannotSendEmail,
+              isNotSignedUp: membersNotSignedUp.isNotSignedUp,
               onOpen: (teamMemberId: ObjectID) => {
                 setInvitationLinkFor({
                   teamMemberId: teamMemberId,
@@ -170,6 +184,7 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
               },
             }),
           ]}
+          onFetchSuccess={membersNotSignedUp.onFetchSuccess}
           onFilterApplied={(isApplied: boolean) => {
             setIsFilterApplied(isApplied);
           }}
@@ -332,10 +347,10 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
                 const name: string =
                   item.user.name?.toString() ||
                   item.user.email?.toString() ||
-                  "-";
+                  "";
                 return (
                   <div>
-                    <p className="font-medium">{name}</p>
+                    <p className="font-medium">{name || <TableEmptyValue />}</p>
                     {item.user.email ? (
                       <p className="text-xs text-gray-500">
                         {item.user.email.toString()}
@@ -370,7 +385,17 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
               type: FieldType.Element,
               getElement: (item: TeamMember): ReactElement => {
                 if (item.hasAcceptedInvitation) {
-                  return <Pill text="Member" color={Green} />;
+                  return (
+                    <div className="flex space-x-2">
+                      <Pill text="Member" color={Green} />
+                      {membersNotSignedUp.isNotSignedUp(item) && (
+                        <Pill
+                          text={INVITATION_LINK_COPY.notSignedUpPill}
+                          color={Yellow}
+                        />
+                      )}
+                    </div>
+                  );
                 }
                 // Nothing was sent by a server that cannot send email.
                 return (
@@ -394,6 +419,7 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
             modelAPI={AdminModelAPI}
             name="Invite New User"
             title={t("pages.projectUsers.inviteUserTitle")}
+            isTitleTranslated={true}
             description={t("pages.projectUsers.inviteUserDescription")}
             onClose={() => {
               setShowInviteUserModal(false);

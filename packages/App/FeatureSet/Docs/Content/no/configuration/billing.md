@@ -35,7 +35,7 @@ flowchart TB
 ## Før du begynner
 
 - **OneUptime Cloud.** Seksjonen **Fakturering og fakturaer** i **Prosjektinnstillinger** finnes bare i OneUptime Cloud og er slått sammen fra start: klikk på tittelen for å åpne den.
-- **En rolle som kan lese faktureringen.** Project Owners, folk med **Manage Billing** og de tre faktureringsrollene leser alle faktureringssidene. Se [Hvem kan gjøre hva](#hvem-kan-gjøre-hva).
+- **En rolle som kan lese faktureringen.** Prosjekteiere, folk med **Manage Billing** og de tre faktureringsrollene leser alle faktureringssidene. Se [Hvem kan gjøre hva](#hvem-kan-gjøre-hva).
 
 ## Abonnementet og plassene dine
 
@@ -110,7 +110,7 @@ Når banken din fortsatt behandler en betaling, sier OneUptime det: noen banker 
 
 | Kolonne | Hva den viser |
 | --- | --- |
-| **Produkt** | Logger, sporinger, metrikker og de andre typene telemetri. |
+| **Produkt** | Logger, sporinger, målinger og de andre typene telemetri. |
 | **Dag** | Dagen den ble sendt. |
 | **Tjeneste** | Tjenesten, eller verten, klyngen eller den andre ressursen som sendte den. |
 | **Data inntatt (i GB)** | Hvor mye som kom inn. |
@@ -125,7 +125,7 @@ SMS, anrop, WhatsApp- og Telegram-meldinger betales fra prosjektets saldo, og On
 
 | Saldo | Hvor |
 | --- | --- |
-| SMS, anrop, WhatsApp og Telegram | **Prosjektinnstillinger → Varsler → Varslingskanaler** |
+| SMS, anrop, WhatsApp og Telegram | **Prosjektinnstillinger → Varslinger → Varslingskanaler** |
 | OneUptime AI | **Prosjektinnstillinger → KI → AI-kreditter** |
 
 :::steps
@@ -138,19 +138,19 @@ Klikk på **Fyll på saldo** på sidens kort **Gjeldende saldo**. Skriv inn et b
 Klikk på **Rediger Automatisk påfylling** på kortet **Automatisk påfylling**, og slå på **Aktiver automatisk påfylling**. Den er av fra start. Når den er på, legger OneUptime til $20 hver gang saldoen faller til $10, eller beløpene du velger.
 :::
 
-Når en saldo ikke kan betale, sendes ikke meldingen, eller OneUptime AI stopper, og prosjektets eiere får en e-post. Se [Når et varsel ikke sendes](/docs/on-call/escalation-rules#når-et-varsel-ikke-sendes) og [Når AI-kredittene tar slutt](/docs/ai/ai-sre#når-ai-kredittene-tar-slutt).
+Når en saldo ikke kan betale, sendes ikke meldingen, eller OneUptime AI stopper, og Prosjekteiere får en e-post. Se [Når et varsel ikke sendes](/docs/on-call/escalation-rules#når-et-varsel-ikke-sendes) og [Når AI-kredittene tar slutt](/docs/ai/ai-sre#når-ai-kredittene-tar-slutt).
 
 ## Hvem kan gjøre hva
 
 | For å | Kreves |
 | --- | --- |
-| Lese faktureringssidene: abonnementet, fakturaer, bruk, saldoer og betalingsmetoder | Project Owner, **Manage Billing**, **Faktureringsadministrator**, **Faktureringsmedlem** eller **Faktureringsleser** |
-| Laste ned en faktura | Project Owner, Project Admin, **Manage Billing**, **Read Invoices**, **Faktureringsadministrator** eller **Faktureringsmedlem** |
-| Endre fakturaadressen og faktura-e-posten | Project Owner, **Manage Billing**, **Faktureringsadministrator** eller **Faktureringsmedlem** |
-| Slå SMS, anrop, WhatsApp eller Telegram på eller av | Project Owner, **Manage Billing** eller **Faktureringsadministrator** |
-| Legge til en betalingsmetode | Project Owner, **Manage Billing** eller **Create Payment Method** |
-| Betale en faktura | Project Owner, **Manage Billing** eller **Edit Invoices** |
-| Endre abonnementet, fylle på en saldo eller endre automatisk påfylling | Project Owner eller **Manage Billing** |
+| Lese faktureringssidene: abonnementet, fakturaer, bruk, saldoer og betalingsmetoder | Prosjekteier, **Manage Billing**, **Faktureringsadministrator**, **Faktureringsmedlem** eller **Faktureringsleser** |
+| Laste ned en faktura | Prosjekteier, Prosjektadministrator, **Manage Billing**, **Read Invoices**, **Faktureringsadministrator** eller **Faktureringsmedlem** |
+| Endre fakturaadressen og faktura-e-posten | Prosjekteier, **Manage Billing**, **Faktureringsadministrator** eller **Faktureringsmedlem** |
+| Slå SMS, anrop, WhatsApp eller Telegram på eller av | Prosjekteier, **Manage Billing** eller **Faktureringsadministrator** |
+| Legge til en betalingsmetode | Prosjekteier, **Manage Billing** eller **Create Payment Method** |
+| Betale en faktura | Prosjekteier, **Manage Billing** eller **Edit Invoices** |
+| Endre abonnementet, fylle på en saldo eller endre automatisk påfylling | Prosjekteier eller **Manage Billing** |
 
 En knapp du ikke kan bruke, vises låst og sier hvem som kan. Se [Brukere, team og tillatelser](/docs/permissions/index#team) for faktureringsrollene.
 

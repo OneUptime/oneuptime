@@ -172,7 +172,7 @@ resource "oneuptime_monitor" "website" {
 | `tls_client_key_passphrase` | string（敏感） | 網站、API | 私密金鑰的密碼短語。 |
 | `request_timeout_in_ms` | number | 由探測器執行的檢查 | 單次嘗試允許的時長，單位為毫秒。探測器會把超過 60000 的值降為 60000。 |
 | `retry_count` | number | 由探測器執行的檢查 | 首次嘗試失敗後的重試次數：`0` 只檢查一次，`3` 最多檢查四次。探測器會把超過 3 的值降為 3。 |
-| `custom_code` | string | Custom JavaScript Code、Synthetic | 步驟執行的指令碼。 |
+| `custom_code` | string | 自訂 JavaScript 程式碼、Synthetic | 步驟執行的指令碼。 |
 | `screen_size_types` | list(string) | Synthetic | `Mobile`、`Tablet` 和 `Desktop`。 |
 | `browser_types` | list(string) | Synthetic | `Chromium` 和 `Firefox`。 |
 | `retry_count_on_error` | number | Synthetic | 指令碼失敗時的重試次數：`0` 只執行一次。 |

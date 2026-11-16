@@ -1,3 +1,4 @@
+import { getWorkspaceMessageSentMessage } from "../../Types/OnCallDutyPolicy/OnCallSentLine";
 import BaseService from "./BaseService";
 import WorkspaceNotificationLogService from "./WorkspaceNotificationLogService";
 import WorkspaceProjectAuthTokenService from "./WorkspaceProjectAuthTokenService";
@@ -24,6 +25,11 @@ import {
 import WorkspaceProjectAuthToken from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import {
+  getOnCallWorkspaceDirectMessageFailedMessage,
+  getWorkspaceAccountNotConnectedLine,
+  getWorkspaceProjectNotConnectedLine,
+} from "../../Types/OnCallDutyPolicy/OnCallSendFailureLine";
 import WorkspaceNotificationActionType from "../../Types/Workspace/WorkspaceNotificationActionType";
 import WorkspaceNotificationStatus from "../../Types/Workspace/WorkspaceNotificationStatus";
 import { WorkspaceMessageBlock } from "../../Types/Workspace/WorkspaceMessagePayload";
@@ -150,9 +156,13 @@ export class WorkspaceUserNotificationService extends BaseService {
         throw new BadDataException(silencedReason);
       }
 
+      /*
+       * Each line a person's on-call timeline shows, worded on a test
+       * page's result in the reader's language (OnCallSendFailureLine).
+       */
       if (!options.workspaceUserId) {
         throw new BadDataException(
-          `This account is not connected to ${workspaceDisplayName}. Please go to User Settings and connect the account.`,
+          getWorkspaceAccountNotConnectedLine(workspaceDisplayName),
         );
       }
 
@@ -164,7 +174,7 @@ export class WorkspaceUserNotificationService extends BaseService {
 
       if (!projectAuth || !projectAuth.authToken) {
         throw new BadDataException(
-          `This project is not connected to ${workspaceDisplayName}. Please go to Project Settings and connect the account.`,
+          getWorkspaceProjectNotConnectedLine(workspaceDisplayName),
         );
       }
 
@@ -290,8 +300,8 @@ export class WorkspaceUserNotificationService extends BaseService {
         isSent: !sendError,
         statusMessage: sendError
           ? sendError.message ||
-            `Failed to send ${workspaceDisplayName} direct message.`
-          : `Message sent on ${workspaceDisplayName}.`,
+            getOnCallWorkspaceDirectMessageFailedMessage(workspaceDisplayName)
+          : getWorkspaceMessageSentMessage(workspaceDisplayName),
       });
     }
 

@@ -16,7 +16,7 @@ Abra **Alertas** no menu **Produtos** da barra superior. As seções **Regras** 
 | Página de regras             | O que faz                                                                                      |
 | ---------------------------- | ---------------------------------------------------------------------------------------------- |
 | **Regras de agrupamento**    | Reúne alertas relacionados em episódios. Veja [Episódios de alertas e regras de agrupamento](/docs/alerts/episodes). |
-| **Regras de Plantão**        | Executa políticas de plantão para os alertas e episódios correspondentes.                      |
+| **Regras de plantão**        | Executa políticas de plantão para os alertas e episódios correspondentes.                      |
 | **Regras de incidentes** | Declara um incidente a partir dos alertas correspondentes, na hora ou quando um alerta continua sem resolução. |
 | **Regras de proprietário**   | Adiciona proprietários aos alertas e episódios correspondentes.                                |
 | **Regras de runbook**        | Inicia runbooks para os alertas correspondentes.                                               |
@@ -56,9 +56,9 @@ flowchart TB
 As regras diferem na forma como várias correspondências são resolvidas:
 
 - **Regras de agrupamento**, **Regras de incidentes** e **Regras de lembrete** são verificadas de cima para baixo na lista, e a primeira correspondência vence. Arraste uma regra para mudar sua posição; uma regra nova vai para o fim.
-- **Regras de Plantão**, **Regras de proprietário**, **Regras de Rótulos**, **Regras de privacidade** e **Regras de runbook** atuam todas quando correspondem. Políticas de plantão, proprietários e rótulos que várias regras adicionam são adicionados uma única vez.
+- **Regras de plantão**, **Regras de proprietário**, **Regras de Rótulos**, **Regras de privacidade** e **Regras de runbook** atuam todas quando correspondem. Políticas de plantão, proprietários e rótulos que várias regras adicionam são adicionados uma única vez.
 
-**Regras de Plantão**, **Regras de proprietário**, **Regras de Rótulos** e **Regras de privacidade** têm duas abas: **Regras de alertas**, para alertas, e **Regras de episódios**, que atuam da mesma forma sobre cada novo episódio de alerta. Uma regra nova começa habilitada; desative **Habilitado** no formulário de edição para pausá-la, e a lista mostra um **Habilitado** verde ou um **Desabilitado** vermelho para cada regra.
+**Regras de plantão**, **Regras de proprietário**, **Regras de Rótulos** e **Regras de privacidade** têm duas abas: **Regras de alertas**, para alertas, e **Regras de episódios**, que atuam da mesma forma sobre cada novo episódio de alerta. Uma regra nova começa habilitada; desative **Habilitado** no formulário de edição para pausá-la, e a lista mostra um **Habilitado** verde ou um **Desabilitado** vermelho para cada regra.
 
 A maioria das regras atua sobre alertas e episódios criados depois que você as salva. Para aplicar uma regra de proprietário, de rótulos ou de privacidade aos que você já tem, use **Executar agora**: veja [Executar regras em recursos existentes](/docs/configuration/run-rules-now). As regras de lembrete são a exceção: salvar uma faz todos os alertas abertos corresponderem novamente.
 
@@ -75,7 +75,7 @@ Com duas ou mais condições, escolha **Corresponder a todas**, em que todas pre
 
 ## Regras de plantão
 
-**Alertas → Regras → Regras de Plantão** torna os acionamentos automáticos. Cada regra correspondente adiciona suas políticas ao novo alerta, e o alerta as executa junto com as políticas que já tinha, cada uma uma vez.
+**Alertas → Regras → Regras de plantão** torna os acionamentos automáticos. Cada regra correspondente adiciona suas políticas ao novo alerta, e o alerta as executa junto com as políticas que já tinha, cada uma uma vez.
 
 :::steps
 ### Escolher os alertas
@@ -93,7 +93,7 @@ Uma regra aciona assim que um alerta corresponde a ela. Para que ela aguarde o h
 
 Uma regra aciona as pessoas das suas políticas para que respondam: confirmar o acionamento confirma o alerta. Para manter uma equipe informada enquanto outra responde, responda **Acionar as pessoas destas políticas como** em **Mais campos** com **Observadores**. O acionamento delas diz que são observadoras, e confirmá-lo só diz que o viram: o alerta não é confirmado e o acionamento de mais ninguém para. O acionamento delas continua até que uma delas responda ou o alerta seja resolvido, e na lista a regra diz abaixo do nome que aciona como observadores. Uma política que uma regra correspondente aciona para responder e outra como observadores aciona para responder.
 
-Uma regra pode pertencer a equipes. **Equipes responsáveis**, sob **Mais campos**, reserva a regra às equipes que você escolher: só os membros delas e os administradores do projeto podem editá-la ou excluí-la, e todos os outros que veem as regras a veem como somente leitura. Uma regra que não pertence a nenhuma equipe pode ser alterada por todos que podem editar regras de plantão, e as regras de episódio também podem pertencer a equipes. Veja [Regras que pertencem a equipes](/docs/permissions/index#regras-que-pertencem-a-equipes).
+Uma regra pode pertencer a equipes. **Equipes responsáveis**, sob **Mais campos**, reserva a regra às equipes que você escolher: só os membros delas e os Administradores do projeto podem editá-la ou excluí-la, e todos os outros que veem as regras a veem como somente leitura. Uma regra que não pertence a nenhuma equipe pode ser alterada por todos que podem editar regras de plantão, e as regras de episódio também podem pertencer a equipes. Veja [Regras que pertencem a equipes](/docs/permissions/index#regras-que-pertencem-a-equipes).
 
 ## Regras de incidentes
 
@@ -123,7 +123,7 @@ As **Regras de proprietário** adicionam usuários e equipes proprietários aos 
 
 ## Regras de privacidade e de runbook
 
-As **Regras de privacidade** tornam privados os novos alertas que correspondem, antes que qualquer outra coisa seja executada: só seus proprietários e os administradores e proprietários do projeto podem vê-los. Uma regra tem duas etapas: **Corresponder**, os alertas que ela torna privados, e depois **Nome**, já preenchido como "Tornar privados os alertas". Veja [Alertas privados](/docs/alerts/index#alertas-privados).
+As **Regras de privacidade** tornam privados os novos alertas que correspondem, antes que qualquer outra coisa seja executada: só seus proprietários e os Administradores do projeto e Proprietários do projeto podem vê-los. Uma regra tem duas etapas: **Corresponder**, os alertas que ela torna privados, e depois **Nome**, já preenchido como "Tornar privados os alertas". Veja [Alertas privados](/docs/alerts/index#alertas-privados).
 
 As **Regras de runbook** iniciam um runbook quando um novo alerta corresponde, a menos que o alerta tenha sido criado resolvido. Veja [Regras de runbook](/docs/runbooks/rules).
 
@@ -161,7 +161,7 @@ O **Tempo até a confirmação após o acionamento** conta a partir de **Alguém
 
 ### Participação em episódios
 
-**Alertas → Configurações → Participação em episódios** decide se um alerta pode estar em mais de um episódio. Ative **Um alerta só pode estar em um episódio** e um alerta que está em um episódio não é adicionado a nenhum outro, nem pelo painel, nem pela API, por um fluxo de trabalho ou por uma regra de agrupamento, até ser tirado desse episódio. Ele fica desativado até você ativá-lo, e só Project Owners e Project Admins podem alterá-lo. Ativá-lo não tira nenhum alerta de um episódio. Veja [Um só episódio por incidente](/docs/incidents/episodes#um-só-episódio-por-incidente), que funciona da mesma forma para alertas.
+**Alertas → Configurações → Participação em episódios** decide se um alerta pode estar em mais de um episódio. Ative **Um alerta só pode estar em um episódio** e um alerta que está em um episódio não é adicionado a nenhum outro, nem pelo painel, nem pela API, por um fluxo de trabalho ou por uma regra de agrupamento, até ser tirado desse episódio. Ele fica desativado até você ativá-lo, e só Proprietários do projeto e Administradores do projeto podem alterá-lo. Ativá-lo não tira nenhum alerta de um episódio. Veja [Um só episódio por incidente](/docs/incidents/episodes#um-só-episódio-por-incidente), que funciona da mesma forma para alertas.
 
 ### Numeração
 
@@ -171,18 +171,18 @@ O cartão **Próximo número** abaixo define o número que o próximo alerta e o
 
 ### Retenção de dados
 
-**Alertas → Configurações → Retenção de dados** exclui os alertas depois que estão resolvidos há tempo suficiente, como [Retenção de dados](/docs/incidents/settings#retenção-de-dados) faz com os incidentes. O cartão **Alertas resolvidos** pergunta **Excluir após**, **Nunca** até você escolher um período, e pede confirmação antes de excluir mais, com **Excluir alertas antigos**. Um alerta fica enquanto não estiver resolvido, enquanto estiver em um episódio ainda aberto ou resolvido há menos tempo, e enquanto ficar um incidente ao qual está vinculado. Só Project Owners e Project Admins podem alterá-la; na API, é `alertRetentionInDays` do projeto.
+**Alertas → Configurações → Retenção de dados** exclui os alertas depois que estão resolvidos há tempo suficiente, como [Retenção de dados](/docs/incidents/settings#retenção-de-dados) faz com os incidentes. O cartão **Alertas resolvidos** pergunta **Excluir após**, **Nunca** até você escolher um período, e pede confirmação antes de excluir mais, com **Excluir alertas antigos**. Um alerta fica enquanto não estiver resolvido, enquanto estiver em um episódio ainda aberto ou resolvido há menos tempo, e enquanto ficar um incidente ao qual está vinculado. Só Proprietários do projeto e Administradores do projeto podem alterá-la; na API, é `alertRetentionInDays` do projeto.
 
 > [!NOTE]
 > No OneUptime Cloud, os modelos de notas e os campos personalizados exigem o plano **Growth** ou superior.
 
 ## Workflows
 
-Cada modelo de alerta tem gatilhos e ações de workflow com o seu nome: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** e **On Delete Alert**, o mesmo para **Episódio de alertas**, **Linha do tempo de estado do alerta** e os demais, e ações como **Create One Alert** e **Update One Alert**. As definições de campos personalizados de alerta são a única exceção: elas não têm gatilhos de workflow. Veja [Visão geral dos workflows](/docs/workflows/index).
+Cada modelo de alerta tem gatilhos e ações de workflow com o seu nome: **Ao criar: Alerta**, **Ao atualizar: Alerta**, **Ao criar ou atualizar: Alerta** e **Ao excluir: Alerta**, o mesmo para **Episódio de alertas**, **Linha do tempo de estado do alerta** e os demais, e ações como **Criar: Alerta (um registro)** e **Atualizar: Alerta (um registro)**. As definições de campos personalizados de alerta são a única exceção: elas não têm gatilhos de workflow. Veja [Visão geral dos workflows](/docs/workflows/index).
 
 ## Quem pode alterar isso
 
-Regras, campos personalizados e medições exigem um Project Owner ou Project Admin, ou uma função personalizada com a permissão própria dessa regra. **Membro de alertas** trabalha com alertas e episódios, suas notas, proprietários e linhas do tempo de estado, e com os modelos de notas, e **Administrador de alertas** também gerencia os estados e as gravidades de alertas. Veja [Usuários, equipes e permissões](/docs/permissions/index).
+Regras, campos personalizados e medições exigem um Proprietário do projeto ou Administrador do projeto, ou uma função personalizada com a permissão própria dessa regra. **Membro de alertas** trabalha com alertas e episódios, suas notas, proprietários e linhas do tempo de estado, e com os modelos de notas, e **Administrador de alertas** também gerencia os estados e as gravidades de alertas. Veja [Usuários, equipes e permissões](/docs/permissions/index).
 
 ## Próximos passos
 

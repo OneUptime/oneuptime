@@ -43,7 +43,7 @@ flowchart TB
 
 ## 始める前に
 
-- **設定できるロール。** データセキュリティの設定を変更できるのは Project Owner、Project Admin、Security Admin です。Security Member は問題に対応してデータストアをスキャンし、Security Viewer は見つかったものを閲覧します。それ以外のロールには、チームにその権限が与えられない限り何も表示されません: どのバケットにカード番号があるかは、まさに攻撃者が知りたい情報だからです。 [ロール](/docs/permissions/reference#ロール) を参照してください。
+- **設定できるロール。** データセキュリティの設定を変更できるのはプロジェクト所有者、プロジェクト管理者、セキュリティ管理者です。セキュリティメンバーは問題に対応してデータストアをスキャンし、セキュリティ閲覧者は見つかったものを閲覧します。それ以外のロールには、チームにその権限が与えられない限り何も表示されません: どのバケットにカード番号があるかは、まさに攻撃者が知りたい情報だからです。 [ロール](/docs/permissions/reference#ロール) を参照してください。
 - **読み取るクラウドアカウント、またはデータベース。** データセキュリティは、クラウドアカウントを [クラウド接続](/docs/telemetry/cloud-accounts) を通じて、自分で運用しているデータベースを読み取り専用の接続文字列を通じて読み取ります。テレメトリには何も必要ありません: 1 時間ごとにスキャンされます。
 
 ## クイックスタート
@@ -69,7 +69,7 @@ flowchart TB
 | AWS | AWS S3 Bucket、AWS RDS Instance、AWS Aurora Cluster、AWS RDS Snapshot、AWS DynamoDB Table、AWS Redshift Cluster、AWS DocumentDB Cluster、AWS OpenSearch Domain、AWS ElastiCache Cluster、AWS EFS File System、Amazon Athena | AWS S3 Bucket |
 | Azure | Azure Storage Account、Azure SQL Database、Azure Cosmos DB Account、Azure PostgreSQL Server、Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket、Google Cloud SQL Instance、Google BigQuery Dataset、Google Firestore Database、Google Spanner Instance、Google Bigtable Instance | Google Cloud Storage Bucket、Google BigQuery Dataset |
-| 自分で運用するデータベース | PostgreSQL、MySQL、MongoDB、SQL Server、Oracle、Redis、Elasticsearch、Snowflake、ClickHouse、Databricks、Microsoft Dataverse | PostgreSQL、MySQL |
+| 自分で運用するデータベース | PostgreSQL、MySQL、MongoDB、SQL Server、Oracle、Redis、Elasticsearch、Snowflake、ClickHouse、Databricks、Microsoft Dataverse | PostgreSQL、MySQL、SQL Server |
 | OneUptime | ログ、トレース、例外、セッションリプレイ、AI の会話 | ログ、トレース、例外、セッションリプレイ、AI の会話 |
 
 すべてのデータストアに、その種類に当てはまるチェックが行われます。コンテンツをサンプリングできないデータストアもチェックされます: 公開されたバケットや暗号化されていないデータベースは、何を保持していても問題だからです。

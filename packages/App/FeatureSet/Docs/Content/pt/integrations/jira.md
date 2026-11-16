@@ -86,11 +86,11 @@ Cada modelo para alertas é montado como o seu gêmeo para incidentes, etapa por
 
 **Os monitores geram alertas sozinhos, e podem gerar muitos.** **Create a Jira issue when an alert is created** abre um item para cada um. A menos que cada alerta mereça um ticket, coloque uma condição antes da etapa do Jira. Para abrir itens só para os alertas High:
 
-1. Abra o **Construtor** do workflow e adicione um bloco **If / Else**.
-2. Defina **Value to check** como `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, **Comparison** como **is equal to** e **Compare with** como `High`.
-3. Remova a linha de `alert-on-create-1` para `prepare-issue-1` arrastando a ponta dela para fora do ponto (veja [Organizar](/docs/workflows/authoring#organizar-o-canvas)). Ligue o **Success** do gatilho ao bloco **If / Else**, e o **Yes** dele a `prepare-issue-1`.
+1. Abra o **Construtor** do workflow e adicione um bloco **Se / Senão**.
+2. Defina **Valor a verificar** como `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, **Comparação** como **é igual a** e **Comparar com** como `High`.
+3. Remova a linha de `alert-on-create-1` para `prepare-issue-1` arrastando a ponta dela para fora do ponto (veja [Organizar](/docs/workflows/authoring#organizar-o-canvas)). Ligue o **Sucesso** do gatilho ao bloco **Se / Senão**, e o **Sim** dele a `prepare-issue-1`.
 
-Um alerta que segue o lado **No** encerra a execução ali, e nenhum item é aberto para ele.
+Um alerta que segue o lado **Não** encerra a execução ali, e nenhum item é aberto para ele.
 
 ### O que os modelos pedem
 
@@ -129,7 +129,7 @@ Uma **conta de serviço** da Atlassian também funciona. Um administrador da org
 4. Clique em **Criar fluxo de trabalho**. Todo workflow é criado desativado: ative **Habilitado** no topo do **Construtor** dele.
 :::
 
-Comece com **Create a Jira issue when an incident is declared**, ou com **Create a Jira issue when an alert is created** para os alertas: todo outro modelo OneUptime → Jira do mesmo tipo encontra o item pela etiqueta que este adiciona. Ative-o, declare um incidente de teste ou crie um alerta de teste, e abra **Registros → Execuções** do workflow. A execução deve terminar como **Executado**, e o **Response Body** da sua última etapa, `create-issue-1`, cita o novo item.
+Comece com **Create a Jira issue when an incident is declared**, ou com **Create a Jira issue when an alert is created** para os alertas: todo outro modelo OneUptime → Jira do mesmo tipo encontra o item pela etiqueta que este adiciona. Ative-o, declare um incidente de teste ou crie um alerta de teste, e abra **Registros → Execuções** do workflow. A execução deve terminar como **Executado**, e o **Corpo da Resposta** da sua última etapa, `create-issue-1`, cita o novo item.
 
 Cada workflow guarda a sua própria cópia desses valores. Quando você trocar o token, atualize `jiraBasicAuthToken` em **Variáveis do fluxo** em cada workflow do Jira que o pediu. Se o Jira mudar de endereço, atualize `jiraSiteUrl` e `jiraBaseUrl` da mesma forma.
 
@@ -183,7 +183,7 @@ Antes de confiar nisso:
 As **Etapas** de cada execução dizem o que o modelo fez, então abra a execução em **Registros → Execuções** e veja como ela terminou:
 
 - **Executado**: ele fez o seu trabalho, e a última etapa cita o item, o incidente ou o alerta.
-- **Executado**, com a etapa **Check With JavaScript** em **No**: ele ignorou o evento de propósito, e a etapa diz por quê: o item não está ligado a um registro desse tipo, a nota veio do Jira, o registro é privado ou não há status do Jira mapeado para o novo estado.
+- **Executado**, com a etapa **Verificar com JavaScript** em **Não**: ele ignorou o evento de propósito, e a etapa diz por quê: o item não está ligado a um registro desse tipo, a nota veio do Jira, o registro é privado ou não há status do Jira mapeado para o novo estado.
 - **Erro**: uma etapa falhou, e a entrada dela em **Etapas** diz por quê. Para uma chamada ao Jira, inclui a resposta do Jira.
 - **Erro** em `link-issue-1`: um modelo que cria um registro a partir de um item do Jira o criou, mas o Jira não aceitou as etiquetas de vínculo, então os outros modelos ainda não conseguem encontrá-lo. Adicione as etiquetas à mão.
 
@@ -249,7 +249,7 @@ const STATE_TO_JIRA_STATUS = {
 
 ### Mudar o que um modelo faz
 
-Abra o **Construtor** do workflow e clique no bloco que você quer mudar. As configurações que você mais provavelmente vai querer mexer são constantes perto do topo de um script, o **JavaScript Code** de um bloco **Check With JavaScript**, logo abaixo do bloco auxiliar comum. As versões para incidentes e para alertas de um modelo mantêm as mesmas constantes nos mesmos blocos:
+Abra o **Construtor** do workflow e clique no bloco que você quer mudar. As configurações que você mais provavelmente vai querer mexer são constantes perto do topo de um script, o **Código JavaScript** de um bloco **Verificar com JavaScript**, logo abaixo do bloco auxiliar comum. As versões para incidentes e para alertas de um modelo mantêm as mesmas constantes nos mesmos blocos:
 
 | Constante | Modelo e bloco | O que controla |
 | --- | --- | --- |
@@ -264,14 +264,14 @@ Abra o **Construtor** do workflow e clique no bloco que você quer mudar. As con
 
 Os nomes de estado e de status usados como chaves precisam ser escritos exatamente como são chamados, maiúsculas incluídas. Evite `{{` no código: um script é preenchido como qualquer outra configuração antes de rodar, então duas chaves de abertura seguidas seriam lidas como uma referência.
 
-Para enviar mais campos nos itens novos, edite o **Request Body** do bloco `create-issue-1` dos modelos que criam um item. Ele contém o projeto, o tipo, o resumo, as etiquetas e a descrição do item, e você pode adicionar uma prioridade, componentes, um responsável ou campos personalizados dentro de `fields`, nos formatos que [Preencher mais campos](#preencher-mais-campos) descreve. Mantenha as duas etiquetas. O texto do resumo e da descrição está no script `prepare-issue-1`. A descrição traz a gravidade, o estado e a descrição do registro e, depois, a causa raiz e as notas de correção dele quando existem: um monitor as preenche quando gera um incidente ou um alerta, e muitas vezes elas o explicam.
+Para enviar mais campos nos itens novos, edite o **Corpo da Requisição** do bloco `create-issue-1` dos modelos que criam um item. Ele contém o projeto, o tipo, o resumo, as etiquetas e a descrição do item, e você pode adicionar uma prioridade, componentes, um responsável ou campos personalizados dentro de `fields`, nos formatos que [Preencher mais campos](#preencher-mais-campos) descreve. Mantenha as duas etiquetas. O texto do resumo e da descrição está no script `prepare-issue-1`. A descrição traz a gravidade, o estado e a descrição do registro e, depois, a causa raiz e as notas de correção dele quando existem: um monitor as preenche quando gera um incidente ou um alerta, e muitas vezes elas o explicam.
 
-As notas privadas e os comentários de edição são marcados como internos pela entrada `properties`, `sd.public.comment`, no **Request Body** do bloco `post-comment-1` deles. Só o Jira Service Management a lê. Apague-a só se os clientes tiverem de ver esses comentários.
+As notas privadas e os comentários de edição são marcados como internos pela entrada `properties`, `sd.public.comment`, no **Corpo da Requisição** do bloco `post-comment-1` deles. Só o Jira Service Management a lê. Apague-a só se os clientes tiverem de ver esses comentários.
 
 ### Limitações
 
 - **Só o Jira Cloud.** Os modelos chamam a REST API v3 do Jira Cloud com autenticação Basic. O Data Center não tem v3 e aceita um token de acesso pessoal como `Bearer`, então cada bloco de API precisa das mudanças de [Jira Data Center](#jira-data-center): caminhos `/rest/api/2/...`, strings simples em vez de corpos em Atlassian Document Format, e o cabeçalho. Os blocos `find-issue-1` são os que mais mudam: o Data Center não tem `/search/jql`, então eles precisam fazer um `POST` para `/rest/api/2/search` no lugar.
-- **Os incidentes declarados a partir do Jira são discretos.** Eles são criados ocultos das suas páginas de status, sem avisar os assinantes das páginas de status, porque o texto de um item não foi escrito para clientes. Para mostrar um, ative **Visível na página de status** na página **Configurações** do incidente (veja [Manter um incidente fora da página de status](/docs/incidents/states-and-severities#manter-um-incidente-fora-da-página-de-status)), ou ative **Show On Status Pages**, em **Mais campos**, no bloco `incident-from-another-tool-1` do modelo.
+- **Os incidentes declarados a partir do Jira são discretos.** Eles são criados ocultos das suas páginas de status, sem avisar os assinantes das páginas de status, porque o texto de um item não foi escrito para clientes. Para mostrar um, ative **Visível na página de status** na página **Configurações** do incidente (veja [Manter um incidente fora da página de status](/docs/incidents/states-and-severities#manter-um-incidente-fora-da-página-de-status)), ou ative **Mostrar nas páginas de status**, em **Mais campos**, no bloco `incident-from-another-tool-1` do modelo.
 - **Os incidentes e alertas privados ficam no OneUptime.** Os modelos OneUptime → Jira os ignoram, e cada item ignorado é registrado em **Registros → Execuções**. Para enviá-los mesmo assim, defina `SYNC_PRIVATE_INCIDENTS` ou `SYNC_PRIVATE_ALERTS` como `true`. Tornar um registro privado depois interrompe a sincronização a partir daí, mas não retira o que o Jira já tem. Os modelos Jira → OneUptime não verificam isso, então comentários, edições e mudanças de status em um item ligado ainda chegam a um registro privado.
 - **Nada volta para trás.** Reabrir um item do Jira não muda nada no OneUptime, e um status da categoria To Do não corresponde a nenhum estado. Veja [A ordem é uma restrição real](/docs/incidents/states-and-severities#a-ordem-é-uma-restrição-real-não-uma-preferência-de-exibição). Os modelos de transição também nunca movem um item para uma categoria de status anterior.
 - **Cada alerta ganha um item.** Exceto os alertas privados, o modelo de alertas que cria itens abre um para cada alerta, inclusive cada um que um monitor gera. [O que muda para os alertas](#o-que-muda-para-os-alertas) mostra como adicionar uma condição.
@@ -306,9 +306,9 @@ Os tokens expiram depois de um ano por padrão e não se renovam. Para não ter 
 ### Abrir um item do Jira para cada incidente
 
 :::steps
-1. Crie do zero um workflow chamado `Incidents to Jira`. Clique no bloco tracejado e adicione o gatilho **On Create Incident**. Os seus **Fields to pass on** começam com **Título**: clique em **Adicionar campo** e escolha **Descrição** e **Número do incidente**. O ID é sempre repassado. Deixe o **Identifier** dele como `incident-on-create-1`.
-2. Clique em **Adicionar componente**, adicione um bloco **API Post (JSON)** e ligue a ele o ponto **Success** do gatilho. Defina o **Identifier** dele como `create-issue`, a **URL** como `{{global.variables.JIRA_URL}}/rest/api/3/issue` e, em **Mais campos**, os **Request Headers** como `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
-3. Defina o **Request Body** dele como o item, e troque `OPS` e `Bug` pela chave do seu projeto e por um tipo de item desse projeto:
+1. Crie do zero um workflow chamado `Incidents to Jira`. Clique no bloco tracejado e adicione o gatilho **Ao criar: Incidente**. Os seus **Campos a repassar** começam com **Título**: clique em **Adicionar campo** e escolha **Descrição** e **Número do incidente**. O ID é sempre repassado. Deixe o **Identifier** dele como `incident-on-create-1`.
+2. Clique em **Adicionar componente**, adicione um bloco **Chamada de API POST (JSON)** e ligue a ele o ponto **Sucesso** do gatilho. Defina o **Identifier** dele como `create-issue`, a **URL** como `{{global.variables.JIRA_URL}}/rest/api/3/issue` e, em **Mais campos**, os **Cabeçalhos da Requisição** como `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
+3. Defina o **Corpo da Requisição** dele como o item, e troque `OPS` e `Bug` pela chave do seu projeto e por um tipo de item desse projeto:
 
    ```json
    {
@@ -371,7 +371,7 @@ Cada metade de uma sincronização bidirecional precisa que um sistema guarde o 
 
 Um administrador do Jira pode, em vez disso, adicionar um campo personalizado de texto curto, chamado por exemplo OneUptime Incident ID, que você define como `"customfield_10050": "{{local.components.incident-on-create-1.returnValues.model._id}}"`. Ele é mais simples de ler de volta do que uma etiqueta.
 
-Para dar a todos no Jira um caminho de volta, adicione depois de `create-issue` um bloco **API Post (JSON)** que publique um link remoto em `{{global.variables.JIRA_URL}}/rest/api/3/issue/{{local.components.create-issue.returnValues.response-body.key}}/remotelink`:
+Para dar a todos no Jira um caminho de volta, adicione depois de `create-issue` um bloco **Chamada de API POST (JSON)** que publique um link remoto em `{{global.variables.JIRA_URL}}/rest/api/3/issue/{{local.components.create-issue.returnValues.response-body.key}}/remotelink`:
 
 ```json
 {
@@ -383,16 +383,16 @@ Para dar a todos no Jira um caminho de volta, adicione depois de `create-issue` 
 }
 ```
 
-Para isso, em **Fields to pass on** do gatilho, clique em **Adicionar campo** e escolha **ID do Projeto**, e mantenha o `.value`: uma coluna que guarda o ID de outro registro chega como `{"_type": "ObjectID", "value": "..."}`. O `globalId` torna a chamada segura de repetir: o Jira atualiza o link que o tem em vez de adicionar um segundo.
+Para isso, em **Campos a repassar** do gatilho, clique em **Adicionar campo** e escolha **ID do Projeto**, e mantenha o `.value`: uma coluna que guarda o ID de outro registro chega como `{"_type": "ObjectID", "value": "..."}`. O `globalId` torna a chamada segura de repetir: o Jira atualiza o link que o tem em vez de adicionar um segundo.
 
 ### Comentar e fazer a transição conforme o incidente avança
 
 Monte isso como um segundo workflow, para que uma falha aqui nunca impeça a abertura dos itens.
 
 :::steps
-1. Crie um workflow chamado `Incident updates to Jira`, com o gatilho **On Update Incident**. Em **Fields to watch**, clique em **Adicionar campo** e escolha **Current Incident State**. Em **Fields to pass on**, clique em **Adicionar campo**, abra **Current Incident State** e escolha **Nome**.
-2. Adicione um bloco **If / Else**: **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Comparison** **is equal to**, **Compare with** `Resolved`, ou o nome do seu estado resolvido.
-3. Depois do lado **Yes** dele, encontre o item com um bloco **API Post (JSON)** cujo **Identifier** seja `find-issue`, publicando em `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`:
+1. Crie um workflow chamado `Incident updates to Jira`, com o gatilho **Ao atualizar: Incidente**. Em **Campos a observar**, clique em **Adicionar campo** e escolha **Current Incident State**. Em **Campos a repassar**, clique em **Adicionar campo**, abra **Current Incident State** e escolha **Nome**.
+2. Adicione um bloco **Se / Senão**: **Valor a verificar** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Comparação** **é igual a**, **Comparar com** `Resolved`, ou o nome do seu estado resolvido.
+3. Depois do lado **Sim** dele, encontre o item com um bloco **Chamada de API POST (JSON)** cujo **Identifier** seja `find-issue`, publicando em `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`:
 
    ```json
    {
@@ -407,8 +407,8 @@ Monte isso como um segundo workflow, para que uma falha aqui nunca impeça a abe
 
 Envie a JQL no corpo em vez de colocá-la na URL: uma URL é enviada exatamente como foi escrita, sem ser codificada por você, e a JQL é cheia de espaços, aspas e sinais `=`. Uma consulta precisa ser limitada, e é por isso que a cláusula `project =` está ali. No Cloud o endpoint é `/rest/api/3/search/jql`; o antigo `/rest/api/3/search` não existe mais.
 
-- **Comentário**: um bloco **API Post (JSON)** para `{{global.variables.JIRA_URL}}/rest/api/3/issue/<id>/comment`, com um documento como `body`: `{"body": {"type": "doc", "version": 1, "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Resolved in OneUptime."}]}]}}`.
-- **Transição**: um bloco **API Get (JSON)** em `{{global.variables.JIRA_URL}}/rest/api/3/issue/<id>/transitions` lista as transições abertas a partir do status do item, cada uma com um `id`, um `name` e o status a que leva, `to`. Um bloco **API Post (JSON)** para a mesma URL com `{"transition": {"id": "31"}}` executa uma, e responde `204`.
+- **Comentário**: um bloco **Chamada de API POST (JSON)** para `{{global.variables.JIRA_URL}}/rest/api/3/issue/<id>/comment`, com um documento como `body`: `{"body": {"type": "doc", "version": 1, "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Resolved in OneUptime."}]}]}}`.
+- **Transição**: um bloco **Chamada de API GET (JSON)** em `{{global.variables.JIRA_URL}}/rest/api/3/issue/<id>/transitions` lista as transições abertas a partir do status do item, cada uma com um `id`, um `name` e o status a que leva, `to`. Um bloco **Chamada de API POST (JSON)** para a mesma URL com `{"transition": {"id": "31"}}` executa uma, e responde `204`.
 
 Um ID de transição pertence ao fluxo de trabalho do Jira do item, então um administrador do Jira que edite esse fluxo pode quebrar um ID fixado no código. Ler a lista na hora da execução, como os modelos fazem, evita isso.
 
@@ -425,7 +425,7 @@ Primeiro monte o workflow que recebe:
 
    Uma instalação auto-hospedada usa o próprio host. Trate a URL como uma senha: quem a tiver pode iniciar o workflow. Se ela vazar, clique em **Redefinir URL** no mesmo lugar, e a URL antiga deixa de funcionar na hora.
 
-3. A partir do gatilho, adicione um bloco **Update One Incident**. Defina a **Query** dele como `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}` e o **Data (JSON Object)** como a mudança, por exemplo um novo `currentIncidentStateId`. Um bloco **Find One Incident State** com a consulta `{"name": "Resolved"}` dá a você esse ID como `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
+3. A partir do gatilho, adicione um bloco **Atualizar: Incidente (um registro)**. Defina a **Consulta** dele como `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}` e o **Dados (objeto JSON)** como a mudança, por exemplo um novo `currentIncidentStateId`. Um bloco **Encontrar: Estado do incidente (um registro)** com a consulta `{"name": "Resolved"}` dá a você esse ID como `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
 
 Ative-o e depois faça o Jira chamá-lo, a partir de uma regra de automação ou de um webhook:
 
@@ -443,17 +443,17 @@ Ative-o e depois faça o Jira chamá-lo, a partir de uma regra de automação ou
    }
    ```
 
-   Com uma etiqueta em vez de um campo personalizado, envie `"labels": "{{issue.labels}}"` e extraia o ID com um bloco **Run Custom JavaScript**.
+   Com uma etiqueta em vez de um campo personalizado, envie `"labels": "{{issue.labels}}"` e extraia o ID com um bloco **Executar JavaScript personalizado**.
 
 4. Ative a regra e mova um item de teste para Done. Confira o log de auditoria da regra no Jira e **Registros → Execuções** no OneUptime.
 
-Para ter certeza de que uma requisição vem da sua regra, adicione um segundo cabeçalho, `X-OneUptime-Secret`, com um valor que você inventar, e use nele a opção **Hide** da ação. No workflow, coloque um bloco **If / Else** antes da atualização: **Value to check** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Comparison** **is equal to** e **Compare with** o mesmo valor, guardado em uma variável global secreta.
+Para ter certeza de que uma requisição vem da sua regra, adicione um segundo cabeçalho, `X-OneUptime-Secret`, com um valor que você inventar, e use nele a opção **Hide** da ação. No workflow, coloque um bloco **Se / Senão** antes da atualização: **Valor a verificar** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Comparação** **é igual a** e **Comparar com** o mesmo valor, guardado em uma variável global secreta.
 
 Send web request só chama as portas 80, 8080, 443, 6017, 8443, 8444, 7990, 8090, 8085, 8060, 8900 e 9900. O Jira Cloud conta as execuções de regras contra uma cota mensal que depende do seu plano, então uma regra em toda transição de um projeto movimentado vai somando.
 @tab Jira webhook
 1. Como administrador do Jira, vá para **Settings → System → WebHooks** (em **Advanced**) e clique em **Create a WebHook**.
 2. Cole a URL do workflow, marque **Issue updated** e informe um filtro JQL, como `project = OPS AND labels = oneuptime`.
-3. No workflow, leia o payload próprio do Jira: `issue` contém o item, e `changelog.items` contém cada campo alterado, antes e depois. Para uma mudança de status, pegue o elemento cujo `field` é `status`. Um bloco **Run Custom JavaScript** é a forma mais fácil de lê-lo.
+3. No workflow, leia o payload próprio do Jira: `issue` contém o item, e `changelog.items` contém cada campo alterado, antes e depois. Para uma mudança de status, pegue o elemento cujo `field` é `status`. Um bloco **Executar JavaScript personalizado** é a forma mais fácil de lê-lo.
 
 Um webhook pode ter um segredo, e então o Jira assina o corpo em um cabeçalho `X-Hub-Signature`. Um workflow não consegue verificá-lo, porque o gatilho Webhook entrega um corpo já lido como JSON. O Jira tenta de novo uma entrega com falha até cinco vezes, então o workflow precisa lidar com o mesmo evento duas vezes.
 :::
@@ -466,17 +466,17 @@ Comece pelos modelos para alertas de [Começar a partir de um modelo](#começar-
 
 | Incidente | Alerta |
 | --- | --- |
-| **On Create Incident** (`incident-on-create-1`) | **On Create Alert** (`alert-on-create-1`) |
-| **On Update Incident** (`incident-on-update-1`) | **On Update Alert** (`alert-on-update-1`) |
-| **On Create Incident Internal Note** | **On Create Alert Internal Note** |
-| **On Create Incident Public Note** | Nenhum: os alertas não têm notas públicas |
+| **Ao criar: Incidente** (`incident-on-create-1`) | **Ao criar: Alerta** (`alert-on-create-1`) |
+| **Ao atualizar: Incidente** (`incident-on-update-1`) | **Ao atualizar: Alerta** (`alert-on-update-1`) |
+| **Ao criar: Nota interna do incidente** | **Ao criar: Nota interna do alerta** |
+| **Ao criar: Nota pública do incidente** | Nenhum: os alertas não têm notas públicas |
 | `incidentNumber`, `currentIncidentState`, `incidentSeverity` | `alertNumber`, `currentAlertState`, `alertSeverity` |
-| **Find One Incident State** | **Find One Alert State** |
-| **Update One Incident** | **Update One Alert** |
+| **Encontrar: Estado do incidente (um registro)** | **Encontrar: Estado do alerta (um registro)** |
+| **Atualizar: Incidente (um registro)** | **Atualizar: Alerta (um registro)** |
 | Etiqueta `oneuptime-incident-<incident id>` | Etiqueta `oneuptime-alert-<alert id>` |
 | `/dashboard/<project id>/incidents/<incident id>` | `/dashboard/<project id>/alerts/<alert id>` |
 
-Um workflow tem exatamente um gatilho, então incidentes e alertas precisam de um workflow cada. Para fazer o mesmo trabalho no Jira para os dois, monte-o uma vez em um workflow com um gatilho **Manual** e inicie-o a partir dos dois com um bloco **Execute Workflow**.
+Um workflow tem exatamente um gatilho, então incidentes e alertas precisam de um workflow cada. Para fazer o mesmo trabalho no Jira para os dois, monte-o uma vez em um workflow com um gatilho **Manual** e inicie-o a partir dos dois com um bloco **Executar outro fluxo de trabalho**.
 
 ## Jira Data Center
 
@@ -532,7 +532,7 @@ Verifique a URL base e a versão da API: `/rest/api/3/...` no Cloud, `/rest/api/
 :::
 
 :::details 429 Too Many Requests
-O Jira está limitando a velocidade com que você o chama. A resposta traz `Retry-After`, em segundos. As gravações em um mesmo item têm um limite apertado, então um workflow que comenta e faz uma transição em sequência rápida pode atingi-lo. Coloque um bloco **Sleep** entre as chamadas, ou leve o trabalho em massa para um workflow agendado.
+O Jira está limitando a velocidade com que você o chama. A resposta traz `Retry-After`, em segundos. As gravações em um mesmo item têm um limite apertado, então um workflow que comenta e faz uma transição em sequência rápida pode atingi-lo. Coloque um bloco **Pausa** entre as chamadas, ou leve o trabalho em massa para um workflow agendado.
 :::
 
 :::details A chamada de transição responde 400
@@ -544,7 +544,7 @@ Verifique a porta primeiro: o Jira só chama as portas permitidas dele. Depois e
 :::
 
 :::details O workflow roda, mas o incidente não muda
-Um bloco **Update One Incident** informa `Items Updated: 0` quando a consulta dele não encontrou nada, e isso é um sucesso, não um erro. Verifique se o ID na requisição é mesmo o do incidente do OneUptime e se a consulta é por `_id`.
+Um bloco **Atualizar: Incidente (um registro)** informa `Items Updated: 0` quando a consulta dele não encontrou nada, e isso é um sucesso, não um erro. Verifique se o ID na requisição é mesmo o do incidente do OneUptime e se a consulta é por `_id`.
 :::
 
 :::details Uma referência aparece como foi escrita em um item do Jira

@@ -44,6 +44,12 @@ import {
   getOnCallPolicyRunStatusFilterOptions,
   ON_CALL_POLICY_RUN_STATUS_LABELS,
 } from "./OnCallLogStatusLabels";
+import WaitingRunLine from "./WaitingRunLine";
+import {
+  getOnCallRunWords,
+  ON_CALL_LOG_DIALOG_LINE_CLASS_NAME,
+} from "./OnCallLogLineWords";
+import ResultLine from "../../OnCallTestPage/ResultLine";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
@@ -203,10 +209,10 @@ const getStatusPill: (item: OnCallDutyPolicyExecutionLog) => ReactElement = (
   } else if (item["status"] === OnCallDutyPolicyStatus.Waiting) {
     /*
      * Paging nobody yet, on purpose: an on-call rule held it until
-     * working hours (OnCallDutyPolicyRunWait). Its status message says
-     * what it waits for and when paging starts - the words the
-     * record's feed says too - so the row says it, not only a click
-     * on View Status Message.
+     * working hours, or OneUptime AI while it works
+     * (OnCallDutyPolicyRunWait). The row says what it waits for and when
+     * paging starts, not only a click on View Status Message - in the
+     * reader's words, from the run itself (WaitingRunLine, #7552).
      */
     return (
       <div>
@@ -217,12 +223,11 @@ const getStatusPill: (item: OnCallDutyPolicyExecutionLog) => ReactElement = (
           }
         />
         {item.statusMessage ? (
-          <p
+          <WaitingRunLine
+            run={item}
             className={ON_CALL_LOGS_WAITING_MESSAGE_CLASS_NAME}
-            data-testid="execution-log-waiting-message"
-          >
-            {item.statusMessage}
-          </p>
+            dataTestId="execution-log-waiting-message"
+          />
         ) : (
           <></>
         )}
@@ -277,7 +282,14 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const [showViewStatusMessageModal, setShowViewStatusMessageModal] =
     useState<boolean>(false);
-  const [statusMessage, setStatusMessage] = useState<string>("");
+  /*
+   * The run whose message the dialog shows. A waiting run's line is worded
+   * from the run, as its row words it (WaitingRunLine, #7552); any other
+   * run's from how it ended, in the reader's words, or as written
+   * (OnCallLogLineWords, #8330).
+   */
+  const [statusRun, setStatusRun] =
+    useState<OnCallDutyPolicyExecutionLog | null>(null);
 
   const query: Query<OnCallDutyPolicyExecutionLog> = {
     projectId: ProjectUtil.getCurrentProjectId()!,
@@ -628,6 +640,8 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
         }}
         selectMoreFields={{
           statusMessage: true,
+          // When a waiting run pages, in the reader's date and time (#7552).
+          pagingStartsAt: true,
           // How a hold OneUptime AI kept ended, under the status.
           aiHoldOutcome: true,
           // A page again says so under its status.
@@ -682,7 +696,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
               onError: ErrorFunction,
             ) => {
               try {
-                setStatusMessage(item["statusMessage"] as string);
+                setStatusRun(item);
                 setShowViewStatusMessageModal(true);
 
                 onCompleteAction();
@@ -700,7 +714,24 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
       {showViewStatusMessageModal ? (
         <ConfirmModal
           title={"Status Message"}
-          description={statusMessage}
+          description={
+            statusRun?.status === OnCallDutyPolicyStatus.Waiting &&
+            statusRun.statusMessage ? (
+              <WaitingRunLine
+                run={statusRun}
+                dataTestId="execution-log-status-message-waiting"
+              />
+            ) : (
+              <ResultLine
+                statusMessage={statusRun?.statusMessage || ""}
+                words={
+                  statusRun ? getOnCallRunWords(translator, statusRun) : null
+                }
+                className={ON_CALL_LOG_DIALOG_LINE_CLASS_NAME}
+                dataTestId="execution-log-status-message"
+              />
+            )
+          }
           submitButtonText={"Close"}
           onSubmit={async () => {
             setShowViewStatusMessageModal(false);

@@ -13,9 +13,9 @@ Skapa en [ServiceNow](https://www.servicenow.com)-incident för varje OneUptime-
 
 ```mermaid title="Två arbetsflöden, en ServiceNow-incident"
 flowchart TB
-    declared["Incident deklarerad"] --> create["Arbetsflöde 1:<br/>On Create Incident"]
+    declared["Incident deklarerad"] --> create["Arbetsflöde 1:<br/>Vid skapande: Incident"]
     create -->|"POST incident"| sn["ServiceNow-incident"]
-    resolved["Incident löst"] --> update["Arbetsflöde 2:<br/>On Update Incident"]
+    resolved["Incident löst"] --> update["Arbetsflöde 2:<br/>Vid uppdatering:<br/>Incident"]
     update --> find["Hitta posten<br/>via correlation_id"]
     find -->|"PATCH state 6"| sn
 ```
@@ -54,11 +54,11 @@ Gå till **Arbetsflöden**, klicka på **Skapa arbetsflöde** och sedan på **B�
 
 ### Lägg till utlösaren
 
-Klicka på det streckade blocket **Välj vad som startar det här arbetsflödet** och välj **On Create Incident**. Klicka på utlösaren: dess **Fields to pass on** börjar med **Titel**, så klicka på **Lägg till fält** och välj **Beskrivning**.
+Klicka på det streckade blocket **Välj vad som startar det här arbetsflödet** och välj **Vid skapande: Incident**. Klicka på utlösaren: dess **Fält att skicka vidare** börjar med **Titel**, så klicka på **Lägg till fält** och välj **Beskrivning**.
 
 ### Skapa posten
 
-Klicka på **Lägg till komponent**, lägg till ett **API Post (JSON)**-block och koppla utlösarens **Success**-punkt till det. Ställ in **URL** på `https://your-instance.service-now.com/api/now/table/incident`. Ställ in **Request Headers** under **Fler fält** på:
+Klicka på **Lägg till komponent**, lägg till ett **API-anrop POST (JSON)**-block och koppla utlösarens **Framgång**-punkt till det. Ställ in **URL** på `https://your-instance.service-now.com/api/now/table/incident`. Ställ in **Begärandehuvuden** under **Fler fält** på:
 
 ```json
 {
@@ -67,7 +67,7 @@ Klicka på **Lägg till komponent**, lägg till ett **API Post (JSON)**-block oc
 }
 ```
 
-Och **Request Body** på:
+Och **Begärandekropp** på:
 
 ```json
 {
@@ -81,7 +81,7 @@ Och **Request Body** på:
 
 ### Testa det och slå sedan på det
 
-Klicka på **Kör arbetsflöde**, välj en testincident under **Incident** och kör det. Steget **API Post (JSON)** visar ett `201`-svar med den nya posten, med dess `sys_id` och dess `number`, t.ex. `INC0012345`. Slå sedan på **Aktiverad** högst upp i **Byggare**.
+Klicka på **Kör arbetsflöde**, välj en testincident under **Incident** och kör det. Steget **API-anrop POST (JSON)** visar ett `201`-svar med den nya posten, med dess `sys_id` och dess `number`, t.ex. `INC0012345`. Slå sedan på **Aktiverad** högst upp i **Byggare**.
 :::
 
 `urgency` och `impact` tar `1` för hög, `2` för medel och `3` för låg, och ServiceNow räknar fram prioriteten från de två. Alla andra kolumner i tabellen `incident` kan läggas i innehållet under sitt kolumnnamn.
@@ -91,9 +91,9 @@ Klicka på **Kör arbetsflöde**, välj en testincident under **Incident** och k
 Ett arbetsflöde har en utlösare, så det krävs ett andra arbetsflöde för att lösa den, som startar när en incidents status ändras.
 
 :::steps
-### Lägg till utlösaren On Update Incident
+### Lägg till utlösaren ”Vid uppdatering: Incident”
 
-Skapa ett arbetsflöde som heter `Resolve ServiceNow incidents` och välj **On Update Incident** som utlösare. Klicka på **Lägg till fält** i **Fields to watch** och välj **Current Incident State**, så att det bara körs när statusen ändras. Fråga i **Fields to pass on** om den nya statusen är en löst status: klicka på **Lägg till fält**, öppna **Current Incident State** och välj **Is Resolved State**. Eller klicka på **Redigera som JSON** och ersätt JSON:en med:
+Skapa ett arbetsflöde som heter `Resolve ServiceNow incidents` och välj **Vid uppdatering: Incident** som utlösare. Klicka på **Lägg till fält** i **Fält att bevaka** och välj **Current Incident State**, så att det bara körs när statusen ändras. Fråga i **Fält att skicka vidare** om den nya statusen är en löst status: klicka på **Lägg till fält**, öppna **Current Incident State** och välj **Is Resolved State**. Eller klicka på **Redigera som JSON** och ersätt JSON:en med:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -101,11 +101,11 @@ Skapa ett arbetsflöde som heter `Resolve ServiceNow incidents` och välj **On U
 
 ### Kontrollera att incidenten är löst
 
-Lägg till ett **If / Else**-block efter utlösaren. Ställ in **Value to check** på `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` och **Comparison** på **is true**.
+Lägg till ett **Om / Annars**-block efter utlösaren. Ställ in **Värde att kontrollera** på `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` och **Jämförelse** på **är sant**.
 
 ### Hitta posten
 
-Lägg till ett **API Get (JSON)**-block efter **Yes**-sidan, med samma **Request Headers** och denna **URL**:
+Lägg till ett **API-anrop GET (JSON)**-block efter **Ja**-sidan, med samma **Begärandehuvuden** och denna **URL**:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}&sysparm_fields=sys_id&sysparm_limit=1
@@ -113,13 +113,13 @@ https://your-instance.service-now.com/api/now/table/incident?sysparm_query=corre
 
 ### Lös posten
 
-Lägg till ett **API Patch (JSON)**-block efter sökblockets **Success**, med samma **Request Headers** och denna **URL**:
+Lägg till ett **API-anrop PATCH (JSON)**-block efter sökblockets **Framgång**, med samma **Begärandehuvuden** och denna **URL**:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident/{{local.components.api-get-1.returnValues.response-body.result[0].sys_id}}
 ```
 
-Ställ in **Request Body** på:
+Ställ in **Begärandekropp** på:
 
 ```json
 {

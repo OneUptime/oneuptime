@@ -24,7 +24,7 @@ flowchart TB
 ## Innan du börjar
 
 - **Mätvärden som kommer in.** Skicka dem med [OpenTelemetry](/docs/telemetry/open-telemetry), eller från en agent som [OpenTelemetry Collector för värdar](/docs/telemetry/host-otel-collector).
-- **En roll som får läsa mätvärden.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member eller Telemetry Viewer, eller en anpassad roll med behörigheten Read Metrics. En roll som är begränsad till vissa tjänster läser bara deras mätvärden.
+- **En roll som får läsa mätvärden.** Projektägare, Projektadministratör, Projektmedlem, Tittare, Telemetriadministratör, Telemetrimedlem eller Telemetritittare, eller en anpassad roll med behörigheten Read Metrics. En roll som är begränsad till vissa tjänster läser bara deras mätvärden.
 - **För Grafana eller ett skript: en API-nyckel för projektet** med en av de rollerna eller behörigheten Read Metrics. Se [Skapa en API-nyckel](/docs/api-reference/api-reference#skapa-en-api-nyckel). På OneUptime Cloud kräver API-nycklar planen **Growth**.
 
 ## Skriv en fråga
@@ -162,7 +162,7 @@ Frågan begär mer än en läsning får hålla. Lägg till etikettmatchare, kort
 ## Nästa steg
 
 :::cards
-- [Måttutforskare](/docs/telemetry/metrics-explorer): Visa mätvärden i diagram utan att skriva en fråga.
+- [Mätvärdesutforskare](/docs/telemetry/metrics-explorer): Visa mätvärden i diagram utan att skriva en fråga.
 - [Metrikövervakning](/docs/monitor/metrics-monitor): Larma när ett mätvärde passerar en tröskel.
 - [Externa datakällor](/docs/dashboards/data-sources): Visa en extern Prometheus i diagram på dina instrumentpaneler.
 :::

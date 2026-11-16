@@ -53,8 +53,13 @@ export interface StateSettingsNameCellProps {
    */
   stateList: StateListType;
   color: Color;
-  // What OneUptime does with this row, when it is a built-in one.
+  /*
+   * What OneUptime does with this row, when it is a built-in one: English,
+   * looked up here - unless isBuiltInTooltipTranslated says the page put it
+   * in the reader's words already, and it is drawn as given (#8423).
+   */
   builtInTooltip?: string | undefined;
+  isBuiltInTooltipTranslated?: boolean | undefined;
 }
 
 /*
@@ -72,7 +77,9 @@ export const StateSettingsNameCell: FunctionComponent<
     StateSettingsSharedCopy.builtInTag;
 
   const builtInTooltip: string | undefined = props.builtInTooltip
-    ? translateString(props.builtInTooltip) || props.builtInTooltip
+    ? props.isBuiltInTooltipTranslated
+      ? props.builtInTooltip
+      : translateString(props.builtInTooltip) || props.builtInTooltip
     : undefined;
 
   /*
@@ -98,7 +105,11 @@ export const StateSettingsNameCell: FunctionComponent<
          * says is in the tag as well, for a screen reader, which is why the
          * tooltip does not describe the tag a second time.
          */
-        <Tooltip text={builtInTooltip} isTriggerAlreadyDescribed={true}>
+        <Tooltip
+          text={builtInTooltip}
+          isTextTranslated={true}
+          isTriggerAlreadyDescribed={true}
+        >
           <div
             tabIndex={0}
             data-testid="state-settings-built-in"

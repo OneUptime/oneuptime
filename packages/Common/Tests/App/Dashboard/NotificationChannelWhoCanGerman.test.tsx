@@ -163,10 +163,16 @@ describe("in German, the sentences that say who can turn a channel on", () => {
       expect([key, DE[key] === key]).toEqual([key, false]);
     }
 
-    // The permission keeps the name people see it under in the permissions list.
+    /*
+     * The permission keeps the name people see it under in the permissions
+     * list, and the roles read as the German role picker draws them (#8546).
+     */
     for (const definition of CHANNEL_GATED_METHOD_LISTS) {
       expect(DE[definition.offSentence]).toContain("„Manage Billing“");
-      expect(DE[definition.offSentence]).toContain("Projekteigentümer");
+      expect(DE["Project Owner"]).toBe("Projektinhaber");
+      expect(DE[definition.offSentence]).toContain("Projektinhaber");
+      expect(DE[definition.offSentence]).toContain("Abrechnungs-Administrator");
+      expect(DE[definition.offSentence]).not.toContain("Billing Admin");
     }
   });
 
@@ -179,7 +185,7 @@ describe("in German, the sentences that say who can turn a channel on", () => {
       },
     ),
   )(
-    "%s: a project admin reads the German sentence above the list",
+    "%s: a Project Admin reads the German sentence above the list",
     (_list: string, definition: ChannelGatedMethodListDefinition) => {
       signInAs([Permission.ProjectAdmin]);
 

@@ -8,6 +8,7 @@ import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelOb
 import SloMultiMonitorMode from "../../../Types/ServiceLevelObjective/SloMultiMonitorMode";
 import SloStatus from "../../../Types/ServiceLevelObjective/SloStatus";
 import SloWindowType from "../../../Types/ServiceLevelObjective/SloWindowType";
+import SliType from "../../../Types/ServiceLevelObjective/SliType";
 
 /*
  * The SLO overview's headline numbers, RENDERED.
@@ -226,13 +227,18 @@ describe("SloKpiStrip", () => {
     );
 
     const sli: HTMLElement = getTile("slo-kpi-sli");
-    expect(within(sli).getByText("—")).toHaveClass("text-gray-400");
+    // The figure's quiet dash, read out as "Not set" (#8264).
+    expect(within(sli).getByTestId("empty-figure")).toHaveClass(
+      "text-gray-400",
+    );
     expect(
       within(sli).getByText("Target 99.9% · not evaluated yet"),
     ).toBeInTheDocument();
 
     const budget: HTMLElement = getTile("slo-kpi-budget");
-    expect(within(budget).getByText("—")).toHaveClass("text-gray-400");
+    expect(within(budget).getByTestId("empty-figure")).toHaveClass(
+      "text-gray-400",
+    );
     expect(within(budget).getByText("Not evaluated yet")).toBeInTheDocument();
     expect(within(budget).queryByTestId("slo-budget-bar-fill")).toBeNull();
     expect(within(budget).queryByTestId("slo-budget-bar-marker")).toBeNull();
@@ -243,7 +249,9 @@ describe("SloKpiStrip", () => {
     expect(screen.queryByTestId("slo-kpi-burn-rate-badge")).toBeNull();
 
     const runway: HTMLElement = getTile("slo-kpi-runway");
-    expect(within(runway).getByText("—")).toHaveClass("text-gray-400");
+    expect(within(runway).getByTestId("empty-figure")).toHaveClass(
+      "text-gray-400",
+    );
     expect(within(runway).getByText("Not evaluated yet")).toBeInTheDocument();
   });
 
@@ -535,7 +543,9 @@ describe("SloKpiStrip", () => {
       );
 
       const budget: HTMLElement = getTile("slo-kpi-budget");
-      expect(within(budget).getByText("—")).toHaveClass("text-gray-400");
+      expect(within(budget).getByTestId("empty-figure")).toHaveClass(
+        "text-gray-400",
+      );
       expect(within(budget).getByText("Not evaluated yet")).toBeInTheDocument();
       expect(budget).not.toHaveTextContent(/NaN|Infinity|window .* full/);
       expect(within(budget).queryByText("Budget exceeded")).toBeNull();
@@ -760,11 +770,191 @@ describe("SloKpiStrip", () => {
     );
 
     const runway: HTMLElement = getTile("slo-kpi-runway");
-    expect(within(runway).getByText("—")).toHaveClass("text-gray-400");
+    expect(within(runway).getByTestId("empty-figure")).toHaveClass(
+      "text-gray-400",
+    );
     expect(
       within(runway).getByText(
         "Not projected when downtime is averaged across monitors",
       ),
     ).toBeInTheDocument();
+  });
+});
+
+/*
+ * A request SLO's headline numbers: the error budget is a count of failed
+ * (or slow) requests, never a duration; the window fills as OneUptime
+ * counts the older requests of its services; and the runway is projected
+ * from the share of the budget left over the time its counts cover.
+ */
+describe("SloKpiStrip - a request SLO", () => {
+  const DAY_IN_MS: number = 24 * 60 * 60 * 1000;
+  const COUNTED_UNTIL: Date = new Date("2026-09-15T11:55:00.000Z");
+
+  const buildRequestSlo: BuildSloFunction = (
+    overrides: Partial<ServiceLevelObjective>,
+  ): ServiceLevelObjective => {
+    return buildSlo({
+      sliType: SliType.RequestSuccess,
+      // Counted over the whole 30-day window.
+      firstAccumulatedBucketStartAt: new Date(
+        COUNTED_UNTIL.getTime() - 30 * DAY_IN_MS,
+      ),
+      lastAccumulatedBucketEndAt: COUNTED_UNTIL,
+      lastEvaluatedAt: NOW,
+      ...overrides,
+    });
+  };
+
+  test("says its budget in failed requests, and a slow burn outlasts the window", () => {
+    render(
+      <SloKpiStrip
+        slo={buildRequestSlo({
+          currentSliPercentage: 99.96,
+          errorBudgetRemainingPercentage: 60,
+          errorBudgetRemainingEvents: 600,
+          errorBudgetTotalEvents: 1000,
+          currentBurnRate: 0.5,
+          sloStatus: SloStatus.Healthy,
+        })}
+        lowestEnabledBurnRateThreshold={2}
+        now={NOW}
+      />,
+    );
+
+    const budget: HTMLElement = getTile("slo-kpi-budget");
+    expect(within(budget).getByText("60%")).toHaveClass("text-emerald-700");
+    expect(
+      within(budget).getByText("600 of 1,000 failed requests left"),
+    ).toBeInTheDocument();
+    // Never a duration: a request SLO has no budget in time.
+    expect(within(budget).queryByText(/left of/)).toBeNull();
+
+    const runway: HTMLElement = getTile("slo-kpi-runway");
+    expect(within(runway).getByText("Sustainable")).toBeInTheDocument();
+  });
+
+  test("a Request Latency SLO counts slow requests", () => {
+    render(
+      <SloKpiStrip
+        slo={buildRequestSlo({
+          sliType: SliType.RequestLatency,
+          latencyThresholdInMilliseconds: 300,
+          errorBudgetRemainingPercentage: 99.9,
+          errorBudgetRemainingEvents: 999,
+          errorBudgetTotalEvents: 1000,
+          currentBurnRate: 0,
+        })}
+        lowestEnabledBurnRateThreshold={2}
+        now={NOW}
+      />,
+    );
+
+    expect(
+      within(getTile("slo-kpi-budget")).getByText(
+        "999 of 1,000 slow requests left",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("a fast burn's runway is projected from the share left over the counted time", () => {
+    render(
+      <SloKpiStrip
+        slo={buildRequestSlo({
+          errorBudgetRemainingPercentage: 15,
+          errorBudgetRemainingEvents: 150,
+          errorBudgetTotalEvents: 1000,
+          currentBurnRate: 14.4,
+          sloStatus: SloStatus.AtRisk,
+        })}
+        lowestEnabledBurnRateThreshold={14.4}
+        now={NOW}
+      />,
+    );
+
+    // 15% of 0.1% of 30 days = 388.8s; / (14.4 x 0.001) = 27,000s.
+    expect(within(getTile("slo-kpi-runway")).getByText("~7h 30m")).toHaveClass(
+      "text-red-700",
+    );
+  });
+
+  test("an overspent budget says by how many requests, on the budget and the runway", () => {
+    render(
+      <SloKpiStrip
+        slo={buildRequestSlo({
+          sliType: SliType.RequestLatency,
+          latencyThresholdInMilliseconds: 300,
+          currentSliPercentage: 99.85,
+          errorBudgetRemainingPercentage: -50,
+          errorBudgetRemainingEvents: -500,
+          errorBudgetTotalEvents: 1000,
+          currentBurnRate: 3,
+          sloStatus: SloStatus.BudgetExhausted,
+        })}
+        lowestEnabledBurnRateThreshold={14.4}
+        now={NOW}
+      />,
+    );
+
+    const budget: HTMLElement = getTile("slo-kpi-budget");
+    expect(within(budget).getByText("Budget exceeded")).toHaveClass(
+      "text-red-700",
+    );
+    expect(
+      within(budget).getByText("500 slow requests over budget"),
+    ).toBeInTheDocument();
+
+    const runway: HTMLElement = getTile("slo-kpi-runway");
+    expect(within(runway).getByText("Overspent")).toHaveClass("text-red-700");
+    expect(
+      within(runway).getByText("500 slow requests over budget"),
+    ).toBeInTheDocument();
+    expect(within(runway).queryByText(/downtime|\d+m \d+s/)).toBeNull();
+  });
+
+  test("while its older requests are still being counted, the budget says how much of the window they cover", () => {
+    render(
+      <SloKpiStrip
+        slo={buildRequestSlo({
+          firstAccumulatedBucketStartAt: new Date(
+            COUNTED_UNTIL.getTime() - 6 * DAY_IN_MS,
+          ),
+          errorBudgetRemainingPercentage: 60,
+          errorBudgetRemainingEvents: 120,
+          errorBudgetTotalEvents: 200,
+          currentBurnRate: 0.5,
+        })}
+        lowestEnabledBurnRateThreshold={2}
+        now={NOW}
+      />,
+    );
+
+    expect(
+      within(getTile("slo-kpi-budget")).getByText(
+        "120 of 200 failed requests left · window 20% full",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("asserts nothing before its first evaluation", () => {
+    render(
+      <SloKpiStrip
+        slo={buildRequestSlo({
+          lastEvaluatedAt: undefined as unknown as Date,
+          firstAccumulatedBucketStartAt: undefined as unknown as Date,
+          lastAccumulatedBucketEndAt: undefined as unknown as Date,
+        })}
+        lowestEnabledBurnRateThreshold={2}
+        now={NOW}
+      />,
+    );
+
+    expect(
+      within(getTile("slo-kpi-budget")).getAllByText("Not evaluated yet")
+        .length,
+    ).toBeGreaterThan(0);
+    expect(
+      within(getTile("slo-kpi-budget")).queryByText(/failed requests/),
+    ).toBeNull();
   });
 });

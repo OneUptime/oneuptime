@@ -22,6 +22,7 @@ import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import Select from "Common/Server/Types/Database/Select";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertReminderRule from "Common/Models/DatabaseModels/AlertReminderRule";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -34,11 +35,87 @@ import logger from "Common/Server/Utils/Logger";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
+import OwnerNotificationDeliveries, {
+  OwnerNotificationDelivery,
+} from "Common/Server/Utils/Notification/OwnerNotificationDeliveries";
+import { OwnerNotificationKind } from "Common/Types/Notification/OwnerNotificationDelivery";
+
+// What a reminder is made of, read for each alert.
+const ALERT_SELECT: Select<Alert> = {
+  _id: true,
+  createdAt: true,
+  title: true,
+  description: true,
+  projectId: true,
+  project: {
+    name: true,
+  },
+  alertSeverityId: true,
+  alertSeverity: {
+    name: true,
+    color: true,
+  },
+  labels: {
+    _id: true,
+  },
+  currentAlertState: {
+    name: true,
+    color: true,
+  },
+  /*
+   * The series a grouped monitor raised this alert for, named in the
+   * monitor's place under Resources Affected, as the created email does.
+   */
+  seriesLabels: true,
+  alertNumber: true,
+  alertNumberWithPrefix: true,
+  enableReminders: true,
+  reminderNotificationSentCount: true,
+};
 
 RunCron(
   "AlertOwner:SendUnresolvedReminderNotification",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
+    /*
+     * The owners a run that stopped part way left untold - a worker killed
+     * between moving the reminder on and the last owner (#8199) - told
+     * first, exactly them, while the alert is still to be reminded of
+     * (OwnerNotificationDeliveries).
+     */
+    await OwnerNotificationDeliveries.resume({
+      kinds: [OwnerNotificationKind.AlertReminder],
+      notify: async (delivery: OwnerNotificationDelivery): Promise<void> => {
+        const alert: Alert | null = await AlertService.findOneById({
+          id: delivery.notification.resourceId,
+          select: ALERT_SELECT,
+          props: {
+            isRoot: true,
+          },
+        });
+
+        if (!alert) {
+          await delivery.giveUp("the alert is gone");
+          return;
+        }
+
+        /*
+         * Late, so asked again: a reminder that an alert resolved since is
+         * still open would be wrong. Not of a reminder that went out, whose
+         * feed item alone is left to write (#8510).
+         */
+        if (
+          !delivery.isFeedLeftUnwritten &&
+          (await getReminderIntervalFor(alert)) === null
+        ) {
+          await delivery.giveUp("the alert's reminders stopped since");
+          return;
+        }
+
+        await notifyOwnersOfReminder(alert, delivery);
+      },
+    });
+
     // get all alerts where the next reminder notification is due.
 
     const alerts: Array<Alert> = await AlertService.findAllBy({
@@ -51,37 +128,7 @@ RunCron(
         isRoot: true,
       },
       skip: 0,
-      select: {
-        _id: true,
-        createdAt: true,
-        title: true,
-        description: true,
-        projectId: true,
-        project: {
-          name: true,
-        },
-        alertSeverityId: true,
-        alertSeverity: {
-          name: true,
-          color: true,
-        },
-        labels: {
-          _id: true,
-        },
-        currentAlertState: {
-          name: true,
-          color: true,
-        },
-        /*
-         * The series a grouped monitor raised this alert for, named in the
-         * monitor's place under Resources Affected, as the created email does.
-         */
-        seriesLabels: true,
-        alertNumber: true,
-        alertNumberWithPrefix: true,
-        enableReminders: true,
-        reminderNotificationSentCount: true,
-      },
+      select: ALERT_SELECT,
     });
 
     for (const alert of alerts) {
@@ -97,11 +144,13 @@ RunCron(
   },
 );
 
-type SendReminderForAlertFunction = (alert: Alert) => Promise<void>;
-
-const sendReminderForAlert: SendReminderForAlertFunction = async (
-  alert: Alert,
-): Promise<void> => {
+/*
+ * How often the alert is to be reminded of now, in minutes - or null when
+ * it is not to be reminded of at all: no rule matches it any more, it has
+ * reminders turned off, it is resolved, or it is acknowledged and its rule
+ * stops there.
+ */
+async function getReminderIntervalFor(alert: Alert): Promise<number | null> {
   const alertId: ObjectID = alert.id!;
   const projectId: ObjectID = alert.projectId!;
 
@@ -118,18 +167,6 @@ const sendReminderForAlert: SendReminderForAlertFunction = async (
       }),
     });
 
-  const stopReminders: () => Promise<void> = async (): Promise<void> => {
-    await AlertService.updateOneById({
-      id: alertId,
-      data: {
-        nextReminderNotificationAt: null,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-  };
-
   /*
    * A rule with no interval a reminder can follow - none, or one below a
    * minute, which only a rule saved before the check can hold - reminds
@@ -140,7 +177,7 @@ const sendReminderForAlert: SendReminderForAlertFunction = async (
   );
 
   if (!rule || intervalInMinutes === null || alert.enableReminders === false) {
-    return await stopReminders();
+    return null;
   }
 
   // Resolved alerts never get reminders.
@@ -158,8 +195,48 @@ const sendReminderForAlert: SendReminderForAlertFunction = async (
   }
 
   if (shouldStop) {
+    return null;
+  }
+
+  return intervalInMinutes;
+}
+
+type SendReminderForAlertFunction = (alert: Alert) => Promise<void>;
+
+const sendReminderForAlert: SendReminderForAlertFunction = async (
+  alert: Alert,
+): Promise<void> => {
+  const alertId: ObjectID = alert.id!;
+
+  const stopReminders: () => Promise<void> = async (): Promise<void> => {
+    await AlertService.updateOneById({
+      id: alertId,
+      data: {
+        nextReminderNotificationAt: null,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+  };
+
+  const intervalInMinutes: number | null = await getReminderIntervalFor(alert);
+
+  if (intervalInMinutes === null) {
     return await stopReminders();
   }
+
+  const reminderNumber: number = (alert.reminderNotificationSentCount || 0) + 1;
+
+  /*
+   * Whom this reminder is to tell, written before the reminder is moved
+   * on: a worker stopped from here on leaves them to be told by a later
+   * run, and one stopped before the move leaves the reminder due.
+   */
+  const delivery: OwnerNotificationDelivery = await planOwnersOfReminder({
+    alert: alert,
+    reminderNumber: reminderNumber,
+  });
 
   /*
    * Advance the next reminder time BEFORE sending notifications so a
@@ -172,30 +249,79 @@ const sendReminderForAlert: SendReminderForAlertFunction = async (
         OneUptimeDate.getCurrentDate(),
         intervalInMinutes,
       ),
-      reminderNotificationSentCount:
-        (alert.reminderNotificationSentCount || 0) + 1,
+      reminderNotificationSentCount: reminderNumber,
     },
     props: {
       isRoot: true,
     },
   });
 
-  // now find owners.
+  await notifyOwnersOfReminder(alert, delivery);
+};
 
-  let doesResourceHasOwners: boolean = true;
+/*
+ * Whom the reminder tells - the alert's owners, or the project's when it
+ * has none - written down before the reminder is moved on
+ * (OwnerNotificationDeliveries.plan): the reminder's number tells one
+ * reminder from the next. A failure to read them tells nobody, as it did
+ * when it came after the move.
+ */
+async function planOwnersOfReminder(data: {
+  alert: Alert;
+  reminderNumber: number;
+}): Promise<OwnerNotificationDelivery> {
+  let owners: Array<User> = [];
+  let isProjectOwners: boolean = false;
 
-  let owners: Array<User> = await AlertService.findOwners(alertId);
+  try {
+    owners = await AlertService.findOwners(data.alert.id!);
 
-  if (owners.length === 0) {
-    doesResourceHasOwners = false;
+    if (owners.length === 0) {
+      isProjectOwners = true;
 
-    // find project owners.
-    owners = await ProjectService.getOwners(projectId);
+      // find project owners.
+      owners = await ProjectService.getOwners(data.alert.projectId!);
+    }
+  } catch (e) {
+    logger.error("Error in reading the owners of an alert to remind", {
+      projectId: data.alert.projectId?.toString(),
+      alertId: data.alert.id?.toString(),
+    });
+    logger.error(e);
+    owners = [];
   }
 
-  if (owners.length === 0) {
+  return await OwnerNotificationDeliveries.plan({
+    notification: {
+      kind: OwnerNotificationKind.AlertReminder,
+      projectId: data.alert.projectId!,
+      resourceId: data.alert.id!,
+      eventId: data.alert.id!,
+      occurrence: data.reminderNumber,
+    },
+    owners: owners,
+    isProjectOwners: isProjectOwners,
+    writesFeedItem: true,
+  });
+}
+
+/*
+ * Reminds the delivery's owners that the alert is still open, each once
+ * (OwnerNotificationDelivery.tell), and says in the alert's feed whom it
+ * reached - those a stopped run told first among them.
+ */
+async function notifyOwnersOfReminder(
+  alert: Alert,
+  delivery: OwnerNotificationDelivery,
+): Promise<void> {
+  if (!delivery.hasWorkToDo) {
     return;
   }
+
+  const alertId: ObjectID = alert.id!;
+  const projectId: ObjectID = alert.projectId!;
+
+  const doesResourceHasOwners: boolean = !delivery.isProjectOwners;
 
   const openedAt: Date = alert.createdAt!;
 
@@ -230,107 +356,135 @@ const sendReminderForAlert: SendReminderForAlertFunction = async (
 
   let moreAlertFeedInformationInMarkdown: string = "";
 
-  for (const user of owners) {
-    const vars: Dictionary<string> = {
-      alertTitle: alert.title!,
-      alertNumber: alertNumberStr,
-      projectName: alert.project!.name!,
-      currentState: currentStateName,
-      ...EmailColorUtil.getTemplateVariables(
-        "currentState",
-        alert.currentAlertState?.color,
-      ),
-      openDuration: openDuration,
-      createdAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
-        date: openedAt,
-        timezones: user.timezone ? [user.timezone] : [],
-      }),
-      alertDescription: await Markdown.convertToHTML(
-        alert.description! || "",
-        MarkdownContentType.Email,
-      ),
-      resourcesAffected: resourcesAffected,
-      alertSeverity: alert.alertSeverity?.name || "",
-      ...EmailColorUtil.getTemplateVariables(
-        "alertSeverity",
-        alert.alertSeverity?.color,
-      ),
-      alertViewLink: alertViewLink,
-    };
-
-    if (doesResourceHasOwners === true) {
-      vars["isOwner"] = "true";
-    }
-
-    const alertIdentifier: string =
-      alert.alertNumber !== undefined
-        ? `${alertNumberStr} (${alert.title})`
-        : alert.title!;
-
-    const emailMessage: EmailEnvelope = {
-      templateType: EmailTemplateType.AlertOwnerUnresolvedReminder,
-      vars: vars,
-      subject: `[Reminder] Alert ${alertNumberStr} is still ${currentStateName} - ${alert.title!}`,
-      isSubjectLiteral: true,
-    };
-
-    const sms: SMSMessage = {
-      message: buildNotificationSms(
-        `Reminder: Alert ${alertIdentifier} is still ${currentStateName} and has been open for ${openDuration}.`,
-      ),
-    };
-
-    const callMessage: CallRequestMessage = {
-      data: [
-        {
-          sayMessage: `This is a message from OneUptime. Reminder: Alert ${alertIdentifier} is still ${currentStateName} and has been open for ${openDuration}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
-        },
-      ],
-    };
-
-    const pushMessage: PushNotificationMessage =
-      PushNotificationUtil.createGenericNotification({
-        title: `Reminder: Alert ${alertNumberStr} is still open`,
-        body: `${alert.title!} is still ${currentStateName}. Open for ${openDuration}.`,
-        clickAction: alertViewLink,
-        tag: "alert-reminder",
-        requireInteraction: true,
-      });
-
-    const eventType: NotificationSettingEventType =
-      NotificationSettingEventType.SEND_ALERT_REMINDER_OWNER_NOTIFICATION;
-
-    const whatsAppMessage: WhatsAppMessagePayload =
-      createWhatsAppMessageFromTemplate({
-        eventType,
-        templateVariables: {
-          alert_title: alert.title!,
-          alert_state: currentStateName,
-          alert_number:
-            alert.alertNumber !== undefined ? alert.alertNumber.toString() : "",
-          elapsed_time: openDuration,
-          alert_link: alertViewLink,
-        },
-      });
-
-    await UserNotificationSettingService.sendUserNotification({
-      userId: user.id!,
-      projectId: projectId,
-      emailEnvelope: emailMessage,
-      smsMessage: sms,
-      callRequestMessage: callMessage,
-      pushNotificationMessage: pushMessage,
-      whatsAppMessage,
-      alertId: alertId,
-      eventType,
-    });
-
+  // Whom a run that stopped part way told already.
+  for (const user of delivery.toldEarlier) {
     moreAlertFeedInformationInMarkdown += mdText`**Notified:** ${await UserService.getUserMarkdownString(
       {
         userId: user.id!,
         projectId: projectId,
       },
     )}\n`;
+  }
+
+  for (const user of delivery.owners) {
+    const isTold: boolean = await delivery.tell(
+      user,
+      async (): Promise<void> => {
+        const vars: Dictionary<string> = {
+          alertTitle: alert.title!,
+          alertNumber: alertNumberStr,
+          projectName: alert.project!.name!,
+          currentState: currentStateName,
+          ...EmailColorUtil.getTemplateVariables(
+            "currentState",
+            alert.currentAlertState?.color,
+          ),
+          openDuration: openDuration,
+          createdAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
+            date: openedAt,
+            timezones: user.timezone ? [user.timezone] : [],
+          }),
+          alertDescription: await Markdown.convertToHTML(
+            alert.description! || "",
+            MarkdownContentType.Email,
+          ),
+          resourcesAffected: resourcesAffected,
+          alertSeverity: alert.alertSeverity?.name || "",
+          ...EmailColorUtil.getTemplateVariables(
+            "alertSeverity",
+            alert.alertSeverity?.color,
+          ),
+          alertViewLink: alertViewLink,
+        };
+
+        if (doesResourceHasOwners === true) {
+          vars["isOwner"] = "true";
+        }
+
+        const alertIdentifier: string =
+          alert.alertNumber !== undefined
+            ? `${alertNumberStr} (${alert.title})`
+            : alert.title!;
+
+        const emailMessage: EmailEnvelope = {
+          templateType: EmailTemplateType.AlertOwnerUnresolvedReminder,
+          vars: vars,
+          subject: `[Reminder] Alert ${alertNumberStr} is still ${currentStateName} - ${alert.title!}`,
+          isSubjectLiteral: true,
+        };
+
+        const sms: SMSMessage = {
+          message: buildNotificationSms(
+            `Reminder: Alert ${alertIdentifier} is still ${currentStateName} and has been open for ${openDuration}.`,
+          ),
+        };
+
+        const callMessage: CallRequestMessage = {
+          data: [
+            {
+              sayMessage: `This is a message from OneUptime. Reminder: Alert ${alertIdentifier} is still ${currentStateName} and has been open for ${openDuration}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
+            },
+          ],
+        };
+
+        const pushMessage: PushNotificationMessage =
+          PushNotificationUtil.createGenericNotification({
+            title: `Reminder: Alert ${alertNumberStr} is still open`,
+            body: `${alert.title!} is still ${currentStateName}. Open for ${openDuration}.`,
+            clickAction: alertViewLink,
+            tag: "alert-reminder",
+            requireInteraction: true,
+          });
+
+        const eventType: NotificationSettingEventType =
+          NotificationSettingEventType.SEND_ALERT_REMINDER_OWNER_NOTIFICATION;
+
+        const whatsAppMessage: WhatsAppMessagePayload =
+          createWhatsAppMessageFromTemplate({
+            eventType,
+            templateVariables: {
+              alert_title: alert.title!,
+              alert_state: currentStateName,
+              alert_number:
+                alert.alertNumber !== undefined
+                  ? alert.alertNumber.toString()
+                  : "",
+              elapsed_time: openDuration,
+              alert_link: alertViewLink,
+            },
+          });
+
+        await UserNotificationSettingService.sendUserNotification({
+          userId: user.id!,
+          projectId: projectId,
+          emailEnvelope: emailMessage,
+          smsMessage: sms,
+          callRequestMessage: callMessage,
+          pushNotificationMessage: pushMessage,
+          whatsAppMessage,
+          alertId: alertId,
+          eventType,
+        });
+      },
+    );
+
+    if (isTold) {
+      moreAlertFeedInformationInMarkdown += mdText`**Notified:** ${await UserService.getUserMarkdownString(
+        {
+          userId: user.id!,
+          projectId: projectId,
+        },
+      )}\n`;
+    }
+  }
+
+  /*
+   * Written by the run that set out to tell the owners, or by the one
+   * that took up the feed item a run that told them all left unwritten
+   * (#8510): a run that found every owner told already writes none.
+   */
+  if (!delivery.isFeedItemToWrite) {
+    return;
   }
 
   const alertNumberDisplayValue: string =
@@ -348,4 +502,6 @@ const sendReminderForAlert: SendReminderForAlertFunction = async (
       sendWorkspaceNotification: true,
     },
   });
-};
+
+  await delivery.feedItemWritten();
+}

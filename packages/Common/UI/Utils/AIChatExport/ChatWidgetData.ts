@@ -1,4 +1,5 @@
 import OneUptimeDate from "../../../Types/Date";
+import { EMPTY_VALUE_MARK } from "../../../Types/EmptyValueMark";
 import {
   AI_ACTION_ARGUMENTS_KEPT_BY_ONEUPTIME,
   AIChatWidget,
@@ -26,6 +27,8 @@ import {
   getReaderNumberLocale,
   inEnglishDates,
 } from "../../../Types/DateLanguage";
+import { getChartBucketTimezone } from "../../../Types/AI/AIChatChartCalendar";
+import Timezone from "../../../Types/Timezone";
 
 /*
  * The formatting rules the AI chat widgets use on screen, factored out so the
@@ -101,7 +104,7 @@ export function getChatTableCellText(
   column: AIChatWidgetColumn,
 ): ChatTableCellText {
   if (value === null || value === undefined || value === "") {
-    return { text: "—", fullText: "—" };
+    return { text: EMPTY_VALUE_MARK, fullText: EMPTY_VALUE_MARK };
   }
 
   if (column.type === "date") {
@@ -343,7 +346,7 @@ export function formatTableCell(
   column: AIChatWidgetColumn,
 ): string {
   if (value === null || value === undefined || value === "") {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (column.type === "date") {
     const date: Date | null = readDate(value);
@@ -639,6 +642,47 @@ export function toExportChartSeries(
   }
 
   return series;
+}
+
+/*
+ * The zone a time chart's day buckets were cut in (issue #8206), or
+ * undefined for finer buckets, a chart of categories and one saved before
+ * the zone was kept: an export names each bucket by the day it counted
+ * there, and says whose days they are, since the file is read anywhere.
+ */
+export function getExportChartBucketTimezone(
+  widget: AIChatWidget,
+): Timezone | undefined {
+  return widget.data.xIsTime === false
+    ? undefined
+    : getChartBucketTimezone(widget.data);
+}
+
+/*
+ * A point's time in an export, in the reader's language (issue #8231): a
+ * day bucket by its date in the zone it was cut in, "Nov 5, 2026"; any
+ * other point by its moment in the reader's zone, with the zone, "Nov 5,
+ * 2026, 5:14 AM EST". It was the browser's toLocaleString: the browser's
+ * zone, unnamed, and the language's own clock.
+ */
+export function formatExportPointTime(
+  date: Date,
+  bucketTimezone?: Timezone | undefined,
+): string {
+  if (bucketTimezone) {
+    return OneUptimeDate.getDateAsFormattedStringInTimezone({
+      date,
+      timezone: bucketTimezone,
+      onlyShowDate: true,
+    });
+  }
+
+  return OneUptimeDate.getDateAsFormattedStringInTimezone({ date });
+}
+
+// The line under an exported chart of day buckets: "Days are in UTC."
+export function describeExportBucketTimezone(bucketTimezone: Timezone): string {
+  return `Days are in ${bucketTimezone}.`;
 }
 
 export function chartHasData(series: Array<ExportChartSeries>): boolean {

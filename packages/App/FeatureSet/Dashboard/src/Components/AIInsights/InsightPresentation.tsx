@@ -1,7 +1,12 @@
 import AIInsightHumanVerdict from "Common/Types/AI/AIInsightHumanVerdict";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import AIInsightSeverity from "Common/Types/AI/AIInsightSeverity";
 import AIInsightStatus from "Common/Types/AI/AIInsightStatus";
 import AIInsightType from "Common/Types/AI/AIInsightType";
+import {
+  AI_INSIGHT_SEVERITY_LABELS,
+  AI_INSIGHT_STATUS_LABELS,
+} from "Common/Types/AI/AIReadTableWords";
 import IconProp from "Common/Types/Icon/IconProp";
 import { CodeTaskSummaryJSON } from "Common/Types/AI/CodeTask";
 import CodeTaskStageUtil from "Common/Types/AI/CodeTaskStage";
@@ -49,27 +54,17 @@ export const INSIGHT_TYPE_LABELS: Record<AIInsightType, string> = {
   ),
 };
 
-// Human labels for the wire-contract status values (e.g. "ActionRequired").
-export const STATUS_LABELS: Record<AIInsightStatus, string> = {
-  [AIInsightStatus.Detected]: translationKey("Detected"),
-  [AIInsightStatus.ActionRequired]: translationKey("Needs Attention"),
-  /*
-   * A fix task is attached. Where it stands - in progress, its pull request
-   * open, failed - is the task's to say (getStatusElement with the task),
-   * never this status: it is set when the task starts, before any pull
-   * request.
-   */
-  [AIInsightStatus.FixOpened]: translationKey("Fix task"),
-  [AIInsightStatus.Resolved]: translationKey("Resolved"),
-  [AIInsightStatus.Dismissed]: translationKey("Dismissed"),
-};
+/*
+ * Human labels for the wire-contract status values (e.g. "ActionRequired"):
+ * one copy, in Common, so Ask AI's insights table says the same words
+ * (Types/AI/AIReadTableWords, issue #8313).
+ */
+export const STATUS_LABELS: Record<AIInsightStatus, string> =
+  AI_INSIGHT_STATUS_LABELS;
 
 // The severity values are words too; this is how each one reads.
-const SEVERITY_LABELS: Record<AIInsightSeverity, string> = {
-  [AIInsightSeverity.High]: translationKey("High"),
-  [AIInsightSeverity.Medium]: translationKey("Medium"),
-  [AIInsightSeverity.Low]: translationKey("Low"),
-};
+const SEVERITY_LABELS: Record<AIInsightSeverity, string> =
+  AI_INSIGHT_SEVERITY_LABELS;
 
 // A severity in the reader's language.
 const SeverityLabel: FunctionComponent<{
@@ -171,14 +166,14 @@ export function getInsightTypeLabel(
   insightType: AIInsightType | undefined,
 ): string {
   if (!insightType) {
-    return "-";
+    return EMPTY_VALUE_MARK;
   }
   return INSIGHT_TYPE_LABELS[insightType] || insightType;
 }
 
 export function getStatusLabel(status: AIInsightStatus | undefined): string {
   if (!status) {
-    return "-";
+    return EMPTY_VALUE_MARK;
   }
   return STATUS_LABELS[status] || status;
 }

@@ -256,14 +256,14 @@ En [nätverksplats](/docs/monitor/network-sites#standardvärden-för-övervaknin
 
 ## Åsidosättningen med bunden monitor
 
-Viss utrustning kan ingen sond nå eller pinga på ett meningsfullt sätt: en enhet bakom en NAT, en appliance vars hälsa bättre bedöms med en HTTP-kontroll, en tjänst vars verkliga signal är en portkontroll. För dem har **Redigera inställningar** på enhetens sida **Inställningar** en **Monitoring Method**:
+Viss utrustning kan ingen sond nå eller pinga på ett meningsfullt sätt: en enhet bakom en NAT, en appliance vars hälsa bättre bedöms med en HTTP-kontroll, en tjänst vars verkliga signal är en portkontroll. För dem har **Redigera inställningar** på enhetens sida **Inställningar** en **Övervakningsmetod**:
 
 | Metod | Vad den betyder |
 | --- | --- |
 | **Sond** | Standard. Pingas av den tilldelade sonden enligt dess schema, och walkas via SNMP när den har autentiseringsuppgifter. |
-| **Bound monitor** | En befintlig monitors status är den här enhetens status. |
+| **Bunden monitor** | En befintlig monitors status är den här enhetens status. |
 
-Att byta en enhet till **Bound monitor** stoppar avsökningen av den. Sonden, intervallet och avsökningsreglaget försvinner från kortet **Polling & Data Collection**, enhetens gamla avsökningsresultat rensas och dess status kommer från den monitor du binder. Att binda en är valfritt: tills du gör det visar enheten **Väntar**, markerad med **Ingen övervakning**.
+Att byta en enhet till **Bunden monitor** stoppar avsökningen av den. Sonden, intervallet och avsökningsreglaget försvinner från kortet **Polling & Data Collection**, enhetens gamla avsökningsresultat rensas och dess status kommer från den monitor du binder. Att binda en är valfritt: tills du gör det visar enheten **Väntar**, markerad med **Ingen övervakning**.
 
 Att byta tillbaka till **Sond** återställer avsökningen och ber om en sond. En monitor som var bunden förblir bunden och fortsätter att varna; den bestämmer bara inte längre enhetens status.
 
@@ -655,13 +655,13 @@ En upptäckt värd namnges efter det första av dessa som den har:
 3. Dess omvända DNS-namn, den PTR-post som sonden slår upp efter skanningen.
 4. Dess IP-adress.
 
-Enhetens egna namn kommer först eftersom det är de namn som dess ägare använder: en Windows-värd som heter `WB0024KDS03` behåller det namnet även när dess omvända zon kallar den `wb-0024-kds03.wbhq.com`. Det omvända DNS-namnet behålls också: **Granska resultat** visar det bredvid adressen, och enheten behåller det som sitt **DNS Name**. NetBIOS kortar ett datornamn till 15 tecken, så ett NetBIOS-namn som är början på ett längre omvänt DNS-namn (`WB-0024-KITCHEN` för `wb-0024-kitchen-display-03.wbhq.com`) får ge vika för det omvända DNS-namnet.
+Enhetens egna namn kommer först eftersom det är de namn som dess ägare använder: en Windows-värd som heter `WB0024KDS03` behåller det namnet även när dess omvända zon kallar den `wb-0024-kds03.wbhq.com`. Det omvända DNS-namnet behålls också: **Granska resultat** visar det bredvid adressen, och enheten behåller det som sitt **DNS-namn**. NetBIOS kortar ett datornamn till 15 tecken, så ett NetBIOS-namn som är början på ett längre omvänt DNS-namn (`WB-0024-KITCHEN` för `wb-0024-kitchen-display-03.wbhq.com`) får ge vika för det omvända DNS-namnet.
 
 **Granska resultat** visar det namn en enhet kommer att få, och den får samma namn oavsett om du importerar den där eller om en [regel för automatisk import](#importera-automatiskt-med-regler-för-automatisk-import) gör det. Enhetens värdnamn är alltid dess IP-adress. Så länge en enhets namn fortfarande är det som discovery gav den, visar dess översikt var namnet kom ifrån som **Namnkälla**.
 
 **Namnge enheter efter deras korta värdnamn** kortar ett fullständigt kvalificerat namn till dess första etikett: `core-sw-01.corp.example.com` importeras som `core-sw-01`. Det gäller ett omvänt DNS-namn och ett `sysName` som är ett fullständigt kvalificerat värdnamn; allt annat (`Core Switch`, `ubuntu-22.04`, en IP-adress) lämnas som det är. Det ändrar bara vad enheter heter, så ingen ny skanning behövs: **Granska resultat** och regler för automatisk import använder det nästa gång de namnger en värd, och enheter som redan är importerade behåller sina namn.
 
-En enhet som importeras från en värd med ett omvänt DNS-namn behåller hela namnet som sitt **DNS Name**, oavsett om skanningen använder korta namn. Det visas på enhetens översikt, sökningen i listan **Enheter** hittar det, och platstilldelningsregler matchar värdnamnsmönster mot det, så en regel `*.store-0660.corp.example.com` fortsätter att placera en enhet vars namn har förlorat sin domän. Ett NetBIOS-namn lagras aldrig som DNS Name: värden rapporterar det om sig själv, och det är inte en DNS-post.
+En enhet som importeras från en värd med ett omvänt DNS-namn behåller hela namnet som sitt **DNS-namn**, oavsett om skanningen använder korta namn. Det visas på enhetens översikt, sökningen i listan **Enheter** hittar det, och platstilldelningsregler matchar värdnamnsmönster mot det, så en regel `*.store-0660.corp.example.com` fortsätter att placera en enhet vars namn har förlorat sin domän. Ett NetBIOS-namn lagras aldrig som DNS Name: värden rapporterar det om sig själv, och det är inte en DNS-post.
 
 > [!WARNING]
 > Etikett- och ägarregler matchar på enhetens namn. Ett mönster som är skrivet för DNS-namn (`*.wbhq.com`) eller fullständiga namn (`*.corp.example.com`) matchar inte en enhet som är namngiven efter sitt eget namn eller sitt korta namn. Platstilldelningsregler provar också DNS Name, så de fortsätter att matcha.
@@ -795,9 +795,9 @@ Utan några policyer ännu erbjuder sidan **Create the recommended policy**: en 
 
 ### En enhet i taget
 
-Öppna enhetens sida och klicka på **Skapa monitor** på kortet **Monitors alerting on this device**. Monitorformuläret öppnas med typen Network Device och enheten valda, och det [rekommenderade larmpaketet](#rekommenderat-larmpaket) ifyllt: granska det, ange allvarlighetsgrader och jourpolicyer och spara.
+Öppna enhetens sida och klicka på **Skapa monitor** på kortet **Monitors alerting on this device**. Monitorformuläret öppnas med typen Nätverksenhet och enheten valda, och det [rekommenderade larmpaketet](#rekommenderat-larmpaket) ifyllt: granska det, ange allvarlighetsgrader och jourpolicyer och spara.
 
-De flesta switchar, routrar, brandväggar och skrivare har också ett webbgränssnitt på sin egen adress. **Övervaka webbgränssnitt**, på samma kort, öppnar en **Webbplats**-monitor för det: `https://` på enhetens adress, med **Tillåt självsignerade certifikat** påslaget, eftersom en enhets webbgränssnitt nästan alltid har ett, kontrollerad från enhetens egen probe och med namn efter enheten. Ändra URL:en om gränssnittet svarar på `http`, på en annan port eller under en sökväg, och spara sedan. Kortet visar monitorn så länge dess namn innehåller enhetens namn och dess URL ligger på enhetens adress; den ändrar inte enhetens status.
+De flesta switchar, routrar, brandväggar och skrivare har också ett webbgränssnitt på sin egen adress. **Övervaka webbgränssnitt**, på samma kort, öppnar en **Webbplats**-monitor för det: `https://` på enhetens adress, med **Tillåt självsignerade certifikat** påslaget, eftersom en enhets webbgränssnitt nästan alltid har ett, kontrollerad från enhetens egen sond och med namn efter enheten. Ändra URL:en om gränssnittet svarar på `http`, på en annan port eller under en sökväg, och spara sedan. Kortet visar monitorn så länge dess namn innehåller enhetens namn och dess URL ligger på enhetens adress; den ändrar inte enhetens status.
 
 För att i stället skapa en från **Monitorer**:
 
@@ -1014,13 +1014,13 @@ Välj enheter, eller varje enhet som matchar sökningen, och sedan:
 
 En rads egna knappar gör samma sak för en enhet. På kartan står en nods IP-adress under dess namn, och sökningen hittar också en nod på dess IP-adress eller MAC-adress, hur en switch än skrev den. Klicka på en upptäckt enhet på kartan, så erbjuder dess panel **Lägg till i övervakning**, som lägger till den på samma sätt, och **Dölj på kartan**.
 
-En enhet som inte har setts på 30 dagar tas bort från listan och kartan, om den inte övervakas, är klassificerad eller har lagts till eller ändrats av någon. Raden under listan säger hur länge enheter finns kvar; projektägare och projektadministratörer ändrar det under **Fler inställningar → Osedda enheter → Ta bort efter**: 7, 14, 30, 60, 90, 180 eller 365 dagar, eller **Aldrig**. Listan kontrolleras varje timme, och inget som en switch eller kontroller har sett tas bort medan den inte rapporterar något. En borttagen enhet som ses igen kommer tillbaka som ny och visas på kartan, även om den var dold tidigare.
+En enhet som inte har setts på 30 dagar tas bort från listan och kartan, om den inte övervakas, är klassificerad eller har lagts till eller ändrats av någon. Raden under listan säger hur länge enheter finns kvar; Projektägare och Projektadministratörer ändrar det under **Fler inställningar → Osedda enheter → Ta bort efter**: 7, 14, 30, 60, 90, 180 eller 365 dagar, eller **Aldrig**. Listan kontrolleras varje timme, och inget som en switch eller kontroller har sett tas bort medan den inte rapporterar något. En borttagen enhet som ses igen kommer tillbaka som ny och visas på kartan, även om den var dold tidigare.
 
 ### Välj layouten som kartan öppnas med
 
 **Map options → Arrange the map** ordnar kartan som **Automatiskt**, **By network layer**, **Concentric**, **Hub and spoke** eller **Parent and child**. Kartan öppnas med layouten som är märkt **Standard**: **Automatiskt** för alla enheter och **By network layer** för en plats, om inte ditt projekt har valt en layout för alla. Alla kan byta layout medan de tittar; nästa gång öppnas kartan med standarden igen.
 
-Projektägare och projektadministratörer väljer standarden: byt till en layout och välj **Make default for everyone**. Därefter öppnas varje vy av enhetskartan med den: **Enhetstopologi**, en plats på **Karta** och fliken **Nätverk** under **Topologi**. På standardlayouten skickar **Clear default** tillbaka varje karta till dess egen standard. Flyttade positioner sparas för varje layout i din webbläsare, så kartan öppnas med den placering du gjorde i den layouten.
+Projektägare och Projektadministratörer väljer standarden: byt till en layout och välj **Make default for everyone**. Därefter öppnas varje vy av enhetskartan med den: **Enhetstopologi**, en plats på **Karta** och fliken **Nätverk** under **Topologi**. På standardlayouten skickar **Clear default** tillbaka varje karta till dess egen standard. Flyttade positioner sparas för varje layout i din webbläsare, så kartan öppnas med den placering du gjorde i den layouten.
 
 ### Hitta rätt i ett stort nätverk
 
@@ -1055,7 +1055,7 @@ Ett klick på en hanterad enhet på kartan öppnar dess panel, och panelens avsn
 - **Ping** skickar fem ICMP-ekoförfrågningar till enheten och rapporterar om den svarade, lägsta, genomsnittliga och högsta svarstid, jitter och paketförlust. En enhet som svarar på några av dem rapporteras som nåbar, med paketförlust.
 - **Traceroute** rapporterar vägen från sonden till enheten hopp för hopp — hoppets nummer, värden som svarade och dess svarstid — med hopp utan svar markerade `* * *` och, när rutten inte nådde enheten, det hopp där den bröts.
 
-Båda körs från enhetens tilldelade sond, inte från OneUptime-servern, så svaret är utsikten från där enheten faktiskt övervakas. Sonden hämtar förfrågan inom ungefär tio sekunder och resultatet visas så snart den rapporterar tillbaka. Om sonden inte har svarat inom två minuter säger panelen det och föreslår att du kontrollerar att sonden är online och kör en version som stöder diagnostik. En enhet utan sond visar en anteckning som pekar på dess sida **Inställningar** i stället för knapparna. Att köra en diagnostik kräver behörigheten **Create Network Device Diagnostic**, som projektmedlemmar har; utan den är knapparna dolda, men svarstidsdiagrammet visas fortfarande.
+Båda körs från enhetens tilldelade sond, inte från OneUptime-servern, så svaret är utsikten från där enheten faktiskt övervakas. Sonden hämtar förfrågan inom ungefär tio sekunder och resultatet visas så snart den rapporterar tillbaka. Om sonden inte har svarat inom två minuter säger panelen det och föreslår att du kontrollerar att sonden är online och kör en version som stöder diagnostik. En enhet utan sond visar en anteckning som pekar på dess sida **Inställningar** i stället för knapparna. Att köra en diagnostik kräver behörigheten **Create Network Device Diagnostic**, som Projektmedlemmar har; utan den är knapparna dolda, men svarstidsdiagrammet visas fortfarande.
 
 Resultaten sparas i två dagar och tas sedan bort. Samma verktyg finns på enhetens översikt, på kortet **Connectivity tools**, för när du kommer till enheten i stället för till kartan.
 

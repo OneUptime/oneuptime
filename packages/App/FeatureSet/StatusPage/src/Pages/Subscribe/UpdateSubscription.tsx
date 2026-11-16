@@ -352,6 +352,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
                */}
               <Button
                 title={t("subscribe.update.getNewLink")}
+                isTitleTranslated={true}
                 buttonStyle={ButtonStyleType.PRIMARY}
                 style={{ marginInlineStart: "0px", width: "100%" }}
                 dataTestId="update-subscription-get-new-link"

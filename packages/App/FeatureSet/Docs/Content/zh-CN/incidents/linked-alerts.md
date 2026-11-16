@@ -248,7 +248,7 @@ curl -X DELETE https://oneuptime.com/api/incident-alert/<link-id> \
 
 两个 ID 都是必需的。当告警或事件属于另一个项目，或者是你看不到的对象时，关联请求也会被拒绝。无论告警或事件是不存在还是只是对你隐藏，错误信息都一样，所以它永远不会泄露某个私密对象的存在。
 
-同一个资源驱动着生成的工作流组件——**On Create Incident Alert** 在告警被关联时触发，**On Delete Incident Alert** 在取消关联时触发——以及 MCP 服务器的 Incident Alert 工具。完整的请求和响应结构见 [API 参考](/reference)。
+同一个资源驱动着生成的工作流组件——**创建Incident Alert时** 在告警被关联时触发，**删除Incident Alert时** 在取消关联时触发——以及 MCP 服务器的 Incident Alert 工具。完整的请求和响应结构见 [API 参考](/reference)。
 
 ## 取消关联
 

@@ -1,17 +1,18 @@
 # Visión general de los SLO
 
-Un objetivo de nivel de servicio (SLO) es un objetivo de fiabilidad para lo que supervisas, como «disponible el 99,9 % del tiempo durante 30 días móviles». OneUptime mide cada SLO frente a su objetivo cada 5 minutos, así que en lugar de «¿funciona ahora mismo?» puedes responder «¿hemos sido lo bastante fiables, en una ventana que importa a nuestros usuarios, y cuánto margen de fallo nos queda?». El [Glosario](/docs/introduction/glossary#slo) sitúa los SLO junto a las demás palabras que usa OneUptime.
+Un objetivo de nivel de servicio (SLO) es un objetivo de fiabilidad para lo que ejecutas, como «disponible el 99,9 % del tiempo durante 30 días móviles» o «el 99,9 % de las solicitudes de pago tienen éxito». OneUptime mide cada SLO frente a su objetivo cada 5 minutos, así que en lugar de «¿funciona ahora mismo?» puedes responder «¿hemos sido lo bastante fiables, en una ventana que importa a nuestros usuarios, y cuánto margen de fallo nos queda?». El [Glosario](/docs/introduction/glossary#slo) sitúa los SLO junto a las demás palabras que usa OneUptime.
 
 :::cards
-- [Crear un SLO](#crear-un-slo): Un nombre y un objetivo. Todo lo demás empieza con un valor predeterminado.
+- [Crear un SLO](#crear-un-slo): Qué mide, un nombre y un objetivo. Todo lo demás empieza con un valor predeterminado.
 - [Monitores y reglas de monitores](/docs/slo/monitor-rules): Elige los monitores que mide un SLO.
+- [SLO de solicitudes y latencia](/docs/slo/request-slos): Mide las solicitudes de los servicios, a partir de sus trazas.
 - [Presupuestos de errores](/docs/slo/error-budget): Cuánto tiempo de inactividad permite un objetivo y cómo se recupera.
 - [Alertas e incidentes de tasa de consumo](/docs/slo/burn-rate-alerts): Avisa a tu equipo cuando el presupuesto se consume demasiado rápido.
 :::
 
 ## Cómo funciona
 
-Un SLO lee las líneas de tiempo de estado de los monitores asociados a él: los mismos datos que muestran tus páginas de estado. A partir de ellas, OneUptime calcula qué parte de la ventana de cumplimiento fue tiempo bueno, cuánto queda del presupuesto de errores y a qué velocidad se consume. El tiempo con el monitoreo de un monitor desactivado queda fuera: nada comprueba entonces el monitor, así que ese tiempo ni consume presupuesto de errores ni cuenta como tiempo bueno.
+Un SLO mide una de dos cosas. Un SLO de disponibilidad de monitores lee las líneas de tiempo de estado de los monitores asociados a él: los mismos datos que muestran tus páginas de estado. Un SLO de solicitudes cuenta las solicitudes que sirven sus servicios, a partir de sus trazas: consulta [SLO de solicitudes y latencia](/docs/slo/request-slos). El resto de esta página describe los SLO de disponibilidad de monitores, y los SLO de solicitudes funcionan igual salvo que se indique lo contrario. A partir de esos datos, OneUptime calcula qué parte de la ventana de cumplimiento fue tiempo bueno, cuánto queda del presupuesto de errores y a qué velocidad se consume. El tiempo con el monitoreo de un monitor desactivado queda fuera: nada comprueba entonces el monitor, así que ese tiempo ni consume presupuesto de errores ni cuenta como tiempo bueno.
 
 ```mermaid title="De las comprobaciones de los monitores al estado de un SLO"
 flowchart TB
@@ -30,25 +31,29 @@ Las palabras que se usan en todo OneUptime están en el [Glosario](/docs/introdu
 
 | Término | Significado |
 | --- | --- |
-| **SLI** (indicador de nivel de servicio) | La medición: el porcentaje de la ventana de cumplimiento en el que los monitores del SLO estuvieron disponibles. |
+| **SLI** (indicador de nivel de servicio) | La medición: el porcentaje de la ventana de cumplimiento en el que los monitores del SLO estuvieron disponibles, o de las solicitudes de sus servicios que fueron buenas. |
 | **SLO** (objetivo de nivel de servicio) | Un objetivo para el SLI, por ejemplo «al menos el 99,9 % en los últimos 30 días». |
-| **Presupuesto de errores** | El tiempo de inactividad que permite el objetivo: `(100% − target) × window`. Con 99,9 % en 30 días son 43 minutos y 12 segundos. |
+| **Presupuesto de errores** | El tiempo de inactividad que permite el objetivo: `(100% − target) × window`. Con 99,9 % en 30 días son 43 minutos y 12 segundos. Para un SLO de solicitudes, son las solicitudes malas que permite el objetivo: una de cada 1.000 con 99,9 %. |
 | **Tasa de consumo** | La velocidad a la que se gasta el presupuesto comparada con un ritmo uniforme. Con una tasa de consumo de 1, el presupuesto se agota justo al final de la ventana. |
 
 Un presupuesto de errores convierte la fiabilidad en algo que puedes gastar. Si queda mucho, publica más rápido y asume riesgos; si queda poco, frena e invierte en estabilidad. El SLO le da a esa conversación una cifra que todos ven.
 
 ## Crear un SLO
 
-Necesitas un rol que pueda crear SLO: Project Owner, Project Admin o un rol personalizado con el permiso Create Service Level Objective.
+Necesitas un rol que pueda crear SLO: Propietario del proyecto, Administrador del proyecto o un rol personalizado con el permiso Create Service Level Objective.
 
 :::steps
 ### Abrir los SLO
 
 Abre **SLO** desde el menú **Productos** de la barra superior. Está en el primer grupo, junto a monitores e incidentes. Haz clic en **Crear Objetivo de nivel de servicio**.
 
+### Elegir qué mide
+
+En **Qué mide**, deja **Disponibilidad de monitores** para medir la parte del tiempo en la que los monitores están disponibles. Para medir en su lugar las solicitudes de unos servicios, elige **Éxito de solicitudes** o **Latencia de solicitudes** y selecciona sus **Servicios**: consulta [SLO de solicitudes y latencia](/docs/slo/request-slos). Elige **Métrica** para contar los eventos buenos de un contador o un histograma que envían tus servicios: consulta [SLO a partir de una métrica](/docs/slo/request-slos#slo-a-partir-de-una-métrica). Haz clic en **Siguiente**.
+
 ### Ponerle nombre y fijar un objetivo
 
-Escribe un **Nombre**, por ejemplo «API Availability», y un **Objetivo (%)**: la parte del tiempo en la que sus monitores deben estar disponibles. El objetivo empieza en `99.9`. Debe ser mayor que 0 y como máximo 99,999, porque un objetivo del 100 % no deja presupuesto de errores que seguir.
+Escribe un **Nombre**, por ejemplo «API Availability», y un **Objetivo (%)**: la parte del tiempo, o de las solicitudes, que debe ser buena. El objetivo empieza en `99.9`. Debe ser mayor que 0 y como máximo 99,999, porque un objetivo del 100 % no deja presupuesto de errores que seguir.
 
 ### Revisar los valores predeterminados en Más campos
 
@@ -56,15 +61,15 @@ Escribe un **Nombre**, por ejemplo «API Availability», y un **Objetivo (%)**: 
 
 ### Guardar el SLO
 
-Haz clic en **Crear Objetivo de nivel de servicio**. OneUptime abre el nuevo SLO. Su **Vista general** muestra **Elige qué mide este SLO**, porque un SLO nuevo todavía no tiene monitores.
+Haz clic en **Crear Objetivo de nivel de servicio**. OneUptime abre el nuevo SLO. La **Vista general** de un SLO de disponibilidad de monitores muestra **Elige qué mide este SLO**, porque todavía no tiene monitores.
 
 ### Asociar monitores
 
-Haz clic en **Crear una regla de monitores** para asociar todos los monitores que coincidan, ahora y en el futuro, o en **Añadir monitores** para elegirlos a mano. Consulta [Monitores y reglas de monitores](/docs/slo/monitor-rules).
+En un SLO de disponibilidad de monitores, haz clic en **Crear una regla de monitores** para asociar todos los monitores que coincidan, ahora y en el futuro, o en **Añadir monitores** para elegirlos a mano. Consulta [Monitores y reglas de monitores](/docs/slo/monitor-rules).
 
 ### Ver llegar las primeras cifras
 
-OneUptime evalúa los SLO habilitados cada 5 minutos. El SLI, el presupuesto de errores y el gráfico de consumo aparecen tras la primera evaluación que tiene monitores que medir.
+OneUptime evalúa los SLO habilitados cada 5 minutos. El SLI, el presupuesto de errores y el gráfico de consumo aparecen tras la primera evaluación que tiene monitores que medir, o solicitudes que contar.
 :::
 
 Los campos de **Más campos**:
@@ -92,7 +97,8 @@ Todo lo que determina cómo mide el SLO empieza con un valor predeterminado que 
 
 | Parte | Qué decide |
 | --- | --- |
-| Monitores | De dónde sale el SLI. Asócialos a mano o con reglas de monitores: consulta [Monitores y reglas de monitores](/docs/slo/monitor-rules). |
+| Qué mide | **Disponibilidad de monitores**, **Éxito de solicitudes** o **Latencia de solicitudes**. |
+| Monitores o servicios | De dónde sale el SLI: monitores, asociados a mano o con reglas de monitores (consulta [Monitores y reglas de monitores](/docs/slo/monitor-rules)), o los servicios cuyas solicitudes cuenta un SLO de solicitudes. |
 | Objetivo | La parte de tiempo bueno que promete el SLO, mayor que 0 y como máximo 99,999. |
 | Ventana de cumplimiento | El periodo sobre el que se miden el SLI y el presupuesto: una ventana móvil de 1 a 366 días o un mes natural. |
 | Umbral de riesgo | La parte del presupuesto restante en la que el SLO pasa a **En riesgo**. |
@@ -133,14 +139,14 @@ OneUptime da un estado a cada SLO evaluado:
 | **En buen estado** | Queda más presupuesto que el umbral de riesgo. |
 | **En riesgo** | El presupuesto restante ha bajado al umbral de riesgo o por debajo: el 20 % de forma predeterminada. |
 | **Presupuesto agotado** | El presupuesto se ha gastado por completo, o se ha superado. |
-| **Mal configurado** | El SLO no se puede medir: no tiene monitores, sus monitores ya no existen o todavía no han registrado ningún estado en su ventana, o su objetivo está fuera de rango. |
+| **Mal configurado** | El SLO no se puede medir: no tiene monitores, sus monitores ya no existen o todavía no han registrado ningún estado en su ventana, o su objetivo está fuera de rango. Un SLO de solicitudes está mal configurado si no tiene servicios, si no tiene umbral de latencia o mientras sus servicios no hayan servido ninguna solicitud en su ventana. |
 | **Pausado** | Todos los monitores que mide están archivados o tienen la supervisión activa desactivada, a mano, por un incidente manual o por un mantenimiento programado. Se reanuda solo en cuanto alguno de ellos vuelve a supervisarse. |
 
 Un SLO desactivado o archivado no se evalúa, así que su estado se queda como estaba; la lista de SLO muestra en su lugar una etiqueta **Deshabilitado** o **Archivado**. Se notifica a los propietarios de un SLO cuando el estado cambia a **En riesgo** o **Presupuesto agotado**: consulta [Presupuestos de errores](/docs/slo/error-budget).
 
 ## La lista de SLO
 
-La página **SLO** muestra cada SLO no archivado, con su estado, SLI, presupuesto restante, tasa de consumo, objetivo, ventana, monitores, etiquetas y propietarios.
+La página **SLO** muestra cada SLO no archivado, con su estado, SLI, presupuesto restante, tasa de consumo, objetivo, ventana, monitores, etiquetas y propietarios. Su columna **Qué mide** muestra los servicios de un SLO de solicitudes donde muestra los monitores de un SLO de disponibilidad, y el filtro **Servicios** encuentra los SLO que miden un servicio.
 
 - Los mosaicos sobre la lista cuentan los SLO por estado: **En buen estado**, **En riesgo**, **Presupuesto agotado**, **Mal configurado**, **Pausado** y **Deshabilitado**. Aparecen en cuanto hay un SLO que no está archivado. Haz clic en un mosaico para ver solo esos SLO, y otra vez para verlos todos.
 - Selecciona SLO para añadir o quitar etiquetas y propietarios, activarlos o desactivarlos, darles las [reglas de tasa de consumo recomendadas](/docs/slo/burn-rate-alerts#añadirlas-a-muchos-slo-a-la-vez) que les faltan, archivarlos o eliminarlos, todos a la vez.
@@ -158,12 +164,12 @@ Abre un SLO para ver sus páginas en el menú lateral:
 | **Incidentes** | Los incidentes que declararon sus reglas de tasa de consumo y su política de presupuesto de errores. El distintivo cuenta los abiertos. |
 | **Alertas** | Las alertas que generaron sus reglas de tasa de consumo y su política de presupuesto de errores. El distintivo cuenta las abiertas. |
 | **Feed** | Lo que le ha pasado al SLO, como línea de tiempo. Consulta [Feed y registros de auditoría de SLO](/docs/slo/feed-and-audit-logs). |
-| **Monitores** | Los monitores que mide, y si cada uno lo asoció una persona o una regla. |
-| **Reglas de monitores** | Las reglas que asocian los monitores que coinciden. |
+| **Monitores** | Los monitores que mide, y si cada uno lo asoció una persona o una regla. Solo en los SLO de disponibilidad de monitores. |
+| **Reglas de monitores** | Las reglas que asocian los monitores que coinciden. Solo en los SLO de disponibilidad de monitores. |
 | **Reglas de tasa de consumo** | Las reglas que generan alertas y declaran incidentes cuando el presupuesto se consume demasiado rápido. |
 | **Política de presupuesto de errores** | Lo que el equipo acordó hacer a medida que se agota el presupuesto de errores, y las alertas e incidentes que genera cada nivel de la política. Consulta [Política de presupuesto de errores](/docs/slo/error-budget-policy). |
 | **Propietarios** | Los usuarios y equipos que se enteran de sus cambios de estado. |
-| **Ajustes** | El objetivo, el periodo de cumplimiento, el cálculo del tiempo de inactividad, el interruptor de evaluación y la tarjeta de archivo. |
+| **Ajustes** | Qué mide, el objetivo, el periodo de cumplimiento, el cálculo del tiempo de inactividad, el interruptor de evaluación y la tarjeta de archivo. |
 | **Registros de auditoría** | Quién cambió el SLO, sus reglas y sus propietarios, y cuándo. |
 | **Eliminar SLO** | Elimina el SLO para siempre y resuelve las alertas e incidentes de tasa de consumo que tenía abiertos. |
 
@@ -175,10 +181,10 @@ Cuando algo impide que un SLO mida, un aviso en la parte superior de cada una de
 
 La **Vista general** responde a «¿estamos dentro del presupuesto?», de arriba abajo:
 
-- **El resumen**: el estado, una frase sobre lo que significa y la descripción. Al lado están **Actualizar** y cuándo se evaluó el SLO por última vez. Debajo están el objetivo, la **Ventana de cumplimiento** (con un indicador de llenado mientras una ventana móvil joven se llena: consulta [Los SLO jóvenes y el indicador de llenado de la ventana](#los-slo-jóvenes-y-el-indicador-de-llenado-de-la-ventana)), el número de monitores y los propietarios, con **Añadir propietarios** para añadir uno allí mismo.
+- **El resumen**: el estado, una frase sobre lo que significa y la descripción. Al lado están **Actualizar** y cuándo se evaluó el SLO por última vez. Debajo están el objetivo, la **Ventana de cumplimiento** (con un indicador de llenado mientras una ventana móvil joven se llena: consulta [Los SLO jóvenes y el indicador de llenado de la ventana](#los-slo-jóvenes-y-el-indicador-de-llenado-de-la-ventana)), el número de monitores (o los servicios de un SLO de solicitudes) y los propietarios, con **Añadir propietarios** para añadir uno allí mismo.
 - **Las cifras principales**:
   - **SLI**: la parte de tiempo bueno en la ventana, y cuánto está por encima o por debajo del objetivo.
-  - **Presupuesto de errores restante**: un porcentaje, una duración como "Quedan 12 min 30 s de 43 min 12 s" y una barra con una marca en el umbral de riesgo. Cuando el presupuesto se supera, muestra **Presupuesto superado** y por cuánto.
+  - **Presupuesto de errores restante**: un porcentaje, una duración como "Quedan 12 min 30 s de 43 min 12 s" (en un SLO de solicitudes, un número de solicitudes malas) y una barra con una marca en el umbral de riesgo. Cuando el presupuesto se supera, muestra **Presupuesto superado** y por cuánto.
   - **Tasa de consumo**: a qué velocidad se gasta el presupuesto en los últimos 60 minutos, el periodo que usa la regla de consumo rápido predeterminada. Se vuelve ámbar por encima de 1× y roja, con **Se alcanzó el umbral de la regla**, en el umbral más bajo de las reglas de tasa de consumo habilitadas del SLO cuyo periodo es de 6 horas o menos. Una hora dice poco de una regla cuyo periodo abarca días, como **Slow leak**, así que no se compara con una regla de ese tipo.
   - **Autonomía del presupuesto**: cuánto dura el presupuesto a ese ritmo. Consulta [Presupuestos de errores](/docs/slo/error-budget#autonomía-del-presupuesto).
 - **Consumo del presupuesto de errores**: el presupuesto restante a lo largo de la ventana actual. Consulta [Presupuestos de errores](/docs/slo/error-budget#consumo-del-presupuesto-de-errores).
@@ -195,13 +201,14 @@ La página **Ajustes** reúne cómo mide un SLO, una tarjeta para cada cosa:
 
 | Tarjeta | Qué cambias | Conviene saber |
 | --- | --- | --- |
+| **Qué mide** | **Qué mide**, **Servicios**, **Umbral de latencia (ms)**, **Filtro de solicitudes** y **Métrica**, con **Editar qué mide**. | Tras un cambio, un SLO de solicitudes vuelve a contar sus solicitudes desde el principio. |
 | **Objetivo** | **Objetivo (%)** y **Umbral de riesgo (%)**, con **Editar objetivo**. | Muestra el tiempo de inactividad que permite el objetivo, por ejemplo «43 min 12 s de tiempo de inactividad por ventana de 30 días». |
 | **Periodo de cumplimiento** | **Tipo de ventana**, **Ventana (días)** y **Zona horaria**, con **Editar periodo**. | Las reglas de tasa de consumo conservan sus umbrales cuando cambia la ventana, así que revísalas después. |
-| **Cálculo del tiempo de inactividad** | **Modo de varios monitores** y **Estados de monitor de tiempo de inactividad**, con **Editar cálculo del tiempo de inactividad**. | Sin estados se cuentan todos los estados no operativos, incluidos los que se añadan después. |
+| **Cálculo del tiempo de inactividad** | **Modo de varios monitores** y **Estados de monitor de tiempo de inactividad**, con **Editar cálculo del tiempo de inactividad**. | Solo en los SLO de disponibilidad de monitores. Sin estados se cuentan todos los estados no operativos, incluidos los que se añadan después. |
 | **Evaluación** | El interruptor **Evaluar este SLO**, que guarda en cuanto lo cambias. | Al desactivarlo pide confirmación, porque también resuelve las alertas e incidentes de tasa de consumo abiertos del SLO. |
 | **Archivar SLO** | **Archivar** o **Desarchivar**. | Consulta [Archivar un SLO](#archivar-un-slo). |
 
-Tras un cambio en el objetivo, el periodo o el cálculo del tiempo de inactividad, OneUptime vuelve a evaluar el SLO en su siguiente ejecución.
+Tras un cambio en lo que mide, el objetivo, el periodo o el cálculo del tiempo de inactividad, OneUptime vuelve a evaluar el SLO en su siguiente ejecución.
 
 ## Archivar un SLO
 
@@ -240,7 +247,7 @@ El menú lateral de un monitor también tiene una página **SLO**: los SLO que m
 
 Un SLO con ventana móvil más joven que su ventana se mide sobre los datos que existen hasta ahora: un SLO de 30 días creado ayer tiene un día de datos. Su presupuesto de errores empieza pequeño y crece a medida que la ventana se llena, así que sus primeras cifras se mueven más de lo que lo harán después.
 
-Mientras sea así, la **Vista general** lo indica: el resumen muestra un indicador **Ventana llena al 23 %** (**Ventana llena a menos del 1 %** el primer día), y el mosaico **Presupuesto de errores restante** lo repite bajo su cifra. Ambos desaparecen cuando la ventana está llena. Los SLO de mes natural nunca los muestran, porque su presupuesto cubre todo el mes desde el primer día, y tampoco los SLO en modo **Promedio de segundos del monitor**, cuyo presupuesto se cuenta entre varios monitores.
+Mientras sea así, la **Vista general** lo indica: el resumen muestra un indicador **Ventana llena al 23 %** (**Ventana llena a menos del 1 %** el primer día), y el mosaico **Presupuesto de errores restante** lo repite bajo su cifra. Ambos desaparecen cuando la ventana está llena. Los SLO de mes natural nunca los muestran, porque su presupuesto cubre todo el mes desde el primer día, y tampoco los SLO en modo **Promedio de segundos del monitor**, cuyo presupuesto se cuenta entre varios monitores. Un SLO de solicitudes los muestra mientras OneUptime sigue contando las solicitudes más antiguas de sus servicios: consulta [SLO de solicitudes y latencia](/docs/slo/request-slos#cómo-se-cuentan-las-solicitudes).
 
 ## Solución de problemas
 
@@ -249,18 +256,23 @@ Un aviso en la parte superior de las páginas del SLO dice qué le impide medir:
 | Aviso | Qué significa | Qué hacer |
 | --- | --- | --- |
 | **No hay monitores asociados** | El SLO no tiene monitores, así que no hay nada que medir. | Asocia monitores o crea una regla de monitores. |
-| **Waiting for SLO evaluation** | Hay monitores asociados, pero la última evaluación no tenía datos de estado de ellos. | Comprueba que los monitores se están comprobando. Las cifras aparecen tras la siguiente evaluación con datos. |
-| **Measurement is paused** | Todos los monitores que mide están archivados o tienen la supervisión activa desactivada. | Vuelve a activar la supervisión de al menos un monitor, o espera a que termine el mantenimiento. |
-| **The target is out of range** | El objetivo no es mayor que 0 y menor que 100. | Fija un objetivo como 99,9 en **Ajustes** → **Objetivo**. |
-| **This SLO is disabled** | La evaluación está desactivada. | Haz clic en **Activar la evaluación**. |
-| **This SLO is archived** | El SLO está archivado. | Desarchívalo en **Ajustes**. |
+| **Esperando la evaluación del SLO** | Hay monitores asociados, pero la última evaluación no tenía datos de estado de ellos. | Comprueba que los monitores se están comprobando. Las cifras aparecen tras la siguiente evaluación con datos. |
+| **La medición está en pausa** | Todos los monitores que mide están archivados o tienen la supervisión activa desactivada. | Vuelve a activar la supervisión de al menos un monitor, o espera a que termine el mantenimiento. |
+| **El objetivo está fuera de rango** | El objetivo no es mayor que 0 y menor que 100. | Fija un objetivo como 99,9 en **Ajustes** → **Objetivo**. |
+| **Este SLO está deshabilitado** | La evaluación está desactivada. | Haz clic en **Activar la evaluación**. |
+| **Este SLO está archivado** | El SLO está archivado. | Desarchívalo en **Ajustes**. |
 | **Aún no evaluado** | El SLO se acaba de crear. | Espera a la primera evaluación, unos minutos como mucho. |
+| **No se eligieron servicios** | Un SLO de solicitudes no tiene servicios, así que no tiene solicitudes que contar. | Elige sus servicios en **Ajustes** → **Qué mide**. |
+| **No hay umbral de latencia** | Un SLO de latencia de solicitudes no tiene umbral, así que ninguna solicitud puede contar como lo bastante rápida. | Fija el **Umbral de latencia (ms)** en **Ajustes** → **Qué mide**. |
+| **Esperando solicitudes** | Ninguno de los servicios de un SLO de solicitudes ha servido todavía una solicitud en su ventana. | Comprueba que los servicios envían trazas a OneUptime. Las cifras aparecen tras la siguiente evaluación que cuenta una solicitud. |
+| **No hay métrica que contar** | Un SLO de métrica no tiene ninguna métrica que pueda contar: no se ha elegido ninguna, o falta cómo se distinguen sus eventos buenos. | Elige la métrica, y su condición o su valor de evento bueno, en **Ajustes** → **Qué mide**. |
+| **Esperando su métrica** | Ninguno de los servicios de un SLO de métrica ha enviado todavía un evento de su métrica en su ventana. | Comprueba que los servicios envían la métrica a OneUptime, con el nombre que cuenta el SLO. Las cifras aparecen tras la siguiente evaluación que cuenta un evento. |
 
 ## Próximos pasos
 
 :::cards
 - [Monitores y reglas de monitores](/docs/slo/monitor-rules): Asocia monitores a mano o con reglas.
+- [SLO de solicitudes y latencia](/docs/slo/request-slos): Mide las solicitudes de un servicio a partir de sus trazas.
 - [Presupuestos de errores](/docs/slo/error-budget): El cálculo del presupuesto, la autonomía y cómo vuelve el presupuesto.
-- [Alertas e incidentes de tasa de consumo](/docs/slo/burn-rate-alerts): Avisa a tu equipo de guardia cuando el presupuesto se consume demasiado rápido.
-- [Métricas y paneles de SLO](/docs/slo/metrics): Representa los SLO en gráficos y crea un panel de SLO.
+- [Comprobaciones de lanzamiento](/docs/slo/release-checks): Revierte un lanzamiento que consume el presupuesto de errores.
 :::

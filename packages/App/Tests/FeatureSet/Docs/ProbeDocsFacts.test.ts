@@ -24,6 +24,10 @@ import ProbeNetworkFailureUtil, {
   ProbeNetworkOperation,
 } from "Common/Utils/ProbeNetworkFailureUtil";
 import {
+  ProbeFailureCause,
+  writeProbeFailureCause,
+} from "Common/Utils/Monitor/ProbeFailureCauses";
+import {
   DocsFence,
   DocsHeading,
   DocsLink,
@@ -795,7 +799,7 @@ describe("the Custom Probes page: how OneUptime knows a probe is running", () =>
 
     expect(minutes).toBe(3);
     expect(howItWorks).toContain(
-      "After about three minutes without one, the probe shows **Disconnected**, and its owners are told. A probe with no owners tells the project's owners.",
+      "After about three minutes without one, the probe shows **Disconnected**, and its owners are told. A probe with no owners tells the Project Owners.",
     );
     expect(service).toMatch(
       /let owners: Array<User> = await this\.getOwners\(probe\.id!\);[\s\S]{0,200}if \(owners\.length === 0\) \{[\s\S]{0,200}owners = await ProjectService\.getOwners\(probe\.projectId!\);/,
@@ -836,7 +840,7 @@ describe("the Custom Probes page: creating and installing a probe", () => {
     }
 
     expect(page).toContain(
-      "Project owners, admins and members have it, and so does anyone whose role lets them create probes.",
+      "Project Owners, Project Admins and Project Members have it, and so does anyone whose role lets them create probes.",
     );
   });
 
@@ -908,7 +912,7 @@ describe("the Custom Probes page: creating and installing a probe", () => {
       'title: canReadProbeKey ? "Show ID and Key" : "Show ID",',
     );
     expect(install).toContain(
-      "its key is shown only to project owners and admins, who see **Show ID and Key** where the others see **Show ID**.",
+      "its key is shown only to Project Owners and Project Admins, who see **Show ID and Key** where the others see **Show ID**.",
     );
   });
 
@@ -922,7 +926,7 @@ describe("the Custom Probes page: creating and installing a probe", () => {
     expect(card).toContain("title={`Set up your Custom Probe`}");
     expect(view).toContain('title={"Reset Probe Key"}');
     expect(install).toContain(
-      "Project owners and admins can also click the probe: the **Set up your Custom Probe** card on its page shows the Docker command with its ID and key already filled in.",
+      "Project Owners and Project Admins can also click the probe: the **Set up your Custom Probe** card on its page shows the Docker command with its ID and key already filled in.",
     );
     expect(page).toContain("**Reset Probe Key**, on the probe's page");
   });
@@ -1160,9 +1164,15 @@ describe("the Custom Probes page: IPv6", () => {
     expect(clause.startsWith("this probe cannot send IPv6 traffic (")).toBe(
       true,
     );
+    // The check writes the line from the failure causes' table (#8656).
     expect(readSource(PROBE_NETWORK_PATH_MONITOR)).toContain(
-      "return `Traceroute could not run: ${ProbeNetworkFailureUtil.describeClause(",
+      "writeProbeFailureCause(ProbeFailureCause.TracerouteCouldNotRun, {\n        clause: ProbeNetworkFailureUtil.describeClause({",
     );
+    expect(
+      writeProbeFailureCause(ProbeFailureCause.TracerouteCouldNotRun, {
+        clause: clause,
+      }),
+    ).toBe(`Traceroute could not run: ${clause}.`);
     expect(ipv6).toContain(
       "`Traceroute could not run: this probe cannot send IPv6 traffic (...)`",
     );
@@ -1470,7 +1480,7 @@ describe("the Incoming Request Ingress page", () => {
       'export const INGRESS_BODY_LIMIT: string = "50mb";',
     );
     expect(ingress).toMatch(
-      /app\.use\(ExpressJson\(\{ limit: INGRESS_BODY_LIMIT \}\)\);\s*app\.use\(ExpressUrlEncoded\(\{ extended: true, limit: INGRESS_BODY_LIMIT \}\)\);\s*app\.use\(router\);/,
+      /app\.use\(ExpressJson\(\{ limit: INGRESS_BODY_LIMIT \}\)\);\s*app\.use\(ExpressUrlEncoded\(\{ extended: true, limit: INGRESS_BODY_LIMIT \}\)\);\s*app\.use\(PlainTextJsonBody\.getReader\(INGRESS_BODY_LIMIT\)\);\s*app\.use\(router\);/,
     );
     expect(appParsers).toMatch(
       /export const jsonBodyParserOptions: BodyParserOptions = \{\s*limit: "50mb",/,
@@ -1482,7 +1492,7 @@ describe("the Incoming Request Ingress page", () => {
       "const ingressApp: ExpressApplication = createIngressApp();",
     );
     expect(forwardingRow("The body")).toBe(
-      "JSON and form bodies of up to 50 MB, as when you send to OneUptime directly. As there, any other body reaches the monitor empty.",
+      "JSON and form bodies of up to 50 MB, and JSON sent as plain text (as Amazon SNS sends it), as when you send to OneUptime directly. As there, any other body reaches the monitor empty.",
     );
   });
 

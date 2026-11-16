@@ -53,6 +53,7 @@ const RuleLibraryAddDialog: FunctionComponent<ComponentProps> = (
         props.isRecommended ? ADD_RECOMMENDED_TITLE : ADD_RULES_TITLE,
         count,
       )}
+      isTitleTranslated={true}
       description={translator.translatePlural(ADD_RULES_DESCRIPTION, count)}
       submitButtonText={count === 1 ? "Add Rule" : "Add Rules"}
       onClose={props.onClose}

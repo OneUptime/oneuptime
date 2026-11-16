@@ -130,11 +130,21 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
             monitorType: monitorType,
             metric: monitorMetricType,
             probes: probes,
+            /*
+             * Each chart's title, description and legend, and a series
+             * named by its metric, in the reader's language: looked up
+             * once, there.
+             */
+            translator: translator,
           });
         },
       );
     },
-    [props.monitorId, monitorType, probes],
+    /*
+     * The translator is built afresh each render: its language is what
+     * changes what it says, and new configs make every chart fetch again.
+     */
+    [props.monitorId, monitorType, probes, translator.language],
   );
 
   const categories: Array<MonitorMetricCategory> = useMemo(() => {
@@ -188,10 +198,12 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
             <EmbeddedMetricCard
               key={category.title}
               /*
-               * The card draws its title as given (a chart's own title is a
-               * name someone typed), so a group's title is translated here.
+               * A group's title and the words under it go over in English:
+               * the card looks its title up and Card its description, once
+               * each. Looked up here as well, a translation that is itself
+               * an English key read as another word (#7790).
                */
-              title={translator.translateTemplate(category.title)}
+              title={category.title}
               description={category.description}
               queryConfigs={categoryQueryConfigs[index] || []}
               timeRange={timeRange}

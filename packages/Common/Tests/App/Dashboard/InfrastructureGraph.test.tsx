@@ -395,7 +395,7 @@ describe("cardForNode", () => {
       NOW,
     );
     expect(card.dimmed).toBe(true);
-    expect(card.statusLabel).toBe("Inactive · seen 3 days ago");
+    expect(card.statusLabel).toBe("Inactive · seen 3\u00A0days ago");
   });
 });
 
@@ -1006,13 +1006,13 @@ describe("traffic between the cards (issue #3972)", () => {
       "0.5% errors",
     );
     expect(trafficMetricLabel(backendToBlob, "latency", WINDOW_SECONDS)).toBe(
-      "45ms",
+      "45\u00A0ms",
     );
 
     for (const [label, expected] of [
       ["calls", "80/min"],
       ["errors", "0.5% errors"],
-      ["latency", "45ms"],
+      ["latency", "45\u00A0ms"],
     ] as const) {
       const edges: Array<Edge<TrafficEdgeData>> = trafficEdges({
         model,
@@ -1122,7 +1122,9 @@ describe("traffic between the cards (issue #3972)", () => {
         linkFor(layout, "pod-backend", "pod-blob"),
         WINDOW_SECONDS,
       ),
-    ).toBe("wb-ims-backend → wb-ims-blob: 80/min · 0.5% errors · 45ms avg");
+    ).toBe(
+      "wb-ims-backend → wb-ims-blob: 80/min · 0.5% errors · 45\u00A0ms avg",
+    );
   });
 
   test("a line standing for many calls names the busiest three", () => {
@@ -1160,7 +1162,7 @@ describe("traffic between the cards (issue #3972)", () => {
         WINDOW_SECONDS,
       ),
     ).toBe(
-      "alpha → charlie, alpha → delta, alpha → echo +1: 6.7/min · 0% errors · 1ms avg",
+      "alpha → charlie, alpha → delta, alpha → echo +1: 6.7/min · 0% errors · 1\u00A0ms avg",
     );
   });
 });
@@ -1205,7 +1207,7 @@ describe("InfrastructureGraph traffic", () => {
     expect(screen.getByTestId("edge-count")).toHaveTextContent("4");
     expect(
       screen.getByRole("button", {
-        name: "wb-ims-backend → wb-ims-blob: 80/min · 0.5% errors · 45ms avg",
+        name: "wb-ims-backend → wb-ims-blob: 80/min · 0.5% errors · 45\u00A0ms avg",
       }),
     ).toBeInTheDocument();
   });
@@ -1238,13 +1240,13 @@ describe("InfrastructureGraph traffic", () => {
       screen.queryByTestId("infrastructure-traffic-hover"),
     ).not.toBeInTheDocument();
     const line: HTMLElement = screen.getByRole("button", {
-      name: "wb-ims-backend → wb-ims-integration-edh: 20/min · 10.0% errors · 120ms avg",
+      name: "wb-ims-backend → wb-ims-integration-edh: 20/min · 10.0% errors · 120\u00A0ms avg",
     });
     fireEvent.mouseEnter(line);
     expect(
       screen.getByTestId("infrastructure-traffic-hover"),
     ).toHaveTextContent(
-      "wb-ims-backend → wb-ims-integration-edh: 20/min · 10.0% errors · 120ms avg",
+      "wb-ims-backend → wb-ims-integration-edh: 20/min · 10.0% errors · 120 ms avg",
     );
     fireEvent.mouseLeave(line);
     expect(
@@ -1257,7 +1259,7 @@ describe("InfrastructureGraph traffic", () => {
     renderNode(aksNodeModel(), onOpenTraffic);
     fireEvent.click(
       screen.getByRole("button", {
-        name: "wb-ims-backend → wb-ims-blob: 80/min · 0.5% errors · 45ms avg",
+        name: "wb-ims-backend → wb-ims-blob: 80/min · 0.5% errors · 45\u00A0ms avg",
       }),
     );
     expect(onOpenTraffic).toHaveBeenCalledTimes(1);

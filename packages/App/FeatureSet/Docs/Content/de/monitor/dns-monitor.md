@@ -28,7 +28,7 @@ Eine Sonde, die ihre eigene Netzwerkverbindung verloren hat, meldet kein Ergebni
 
 ## Bevor Sie beginnen
 
-- **Eine Rolle, die Monitore erstellen darf**: Project Owner, Project Admin, Project Member, Monitor Admin oder Monitor Member oder eine benutzerdefinierte Rolle mit der Berechtigung Create Monitor.
+- **Eine Rolle, die Monitore erstellen darf**: Projektinhaber, Projektadministrator, Projektmitglied, Monitor-Administrator oder Monitor-Mitglied oder eine benutzerdefinierte Rolle mit der Berechtigung Create Monitor.
 - **Eine Sonde, die den DNS-Server erreicht.** Die Standardsonden Ihres Projekts werden für jeden neuen Monitor ausgewählt. Um einen DNS-Server in einem privaten Netzwerk abzufragen, etwa einen internen Resolver, verwenden Sie eine [benutzerdefinierte Sonde](/docs/probe/custom-probe) in diesem Netzwerk.
 
 ## Einen DNS-Monitor erstellen
@@ -111,7 +111,7 @@ Bei zwei oder mehr Filtern entscheidet **Abgleichsbedingung**, ob **Alle** zutre
 
 Ein neuer DNS-Monitor beginnt mit zwei Kriterien:
 
-- **Offline** — der Name wird nach allen Wiederholungen nicht aufgelöst oder hat keinen Eintrag des Typs. Der Monitor wird als **Offline** markiert und ein Vorfall namens „_monitor name_ is offline“ wird erstellt. Der Vorfall löst sich von selbst auf, wenn der Name wieder aufgelöst wird.
+- **Offline** — der Name wird nach allen Wiederholungen nicht aufgelöst oder hat keinen Eintrag des Typs. Der Monitor wird als **Offline** markiert und ein Vorfall namens „_Monitorname_ ist offline“ wird erstellt. Der Vorfall löst sich von selbst auf, wenn der Name wieder aufgelöst wird.
 - **Online** — der Name wird aufgelöst. Der Monitor wird als **Betriebsbereit** markiert.
 
 Kriterien werden von oben nach unten geprüft, und das erste zutreffende entscheidet, was passiert. Trifft keines zu, zeigt der Monitor seinen Standardstatus: **Betriebsbereit**, sofern Sie unter **Weitere Felder** unterhalb der Kriterien keinen anderen wählen.
@@ -173,6 +173,6 @@ Der Server unter **DNS-Server (Optional)** validiert DNSSEC nicht und setzt desh
 :::cards
 - [DNSSEC-Überwachung](/docs/monitor/dnssec-monitor): Die Vertrauenskette einer signierten Zone validieren.
 - [Domain-Überwachung](/docs/monitor/domain-monitor): Die Registrierung und den Ablauf der Domain beobachten.
-- [Benutzerdefinierte Probes](/docs/probe/custom-probe): Interne DNS-Server aus Ihrem eigenen Netzwerk abfragen.
+- [Benutzerdefinierte Sonden](/docs/probe/custom-probe): Interne DNS-Server aus Ihrem eigenen Netzwerk abfragen.
 - [Vorfälle – Übersicht](/docs/incidents/index): Was passiert, nachdem der Monitor einen gemeldet hat.
 :::

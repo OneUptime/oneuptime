@@ -112,6 +112,7 @@ import { OPENSTACK_STATUS_POLL_INTERVAL_IN_MS } from "../../../../App/FeatureSet
 import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
 import OpenStackCloudConnectionTest from "../../../Models/DatabaseModels/OpenStackCloudConnectionTest";
 import Probe from "../../../Models/DatabaseModels/Probe";
+import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import OpenStackCollectionErrorCode, {
   OpenStackCollectionErrorAdvice,
@@ -545,6 +546,13 @@ describe("the Overview's Data Collection card", () => {
       ).toHaveTextContent(
         "Check that the probe is connected on the Probes page.",
       );
+      // No probe has come for it: what it is set to, not a promise.
+      expect(
+        screen.getByText(
+          "Set to be collected by Datacenter probe from https://keystone.example.com:5000, every 5 minutes.",
+        ),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/^Collected by /)).toBeNull();
     });
 
     test("a new cloud no probe ever came for stops saying Checking", async () => {
@@ -610,6 +618,276 @@ describe("the Overview's Data Collection card", () => {
         (getItemMock.mock.calls[0]![0] as { select: Record<string, unknown> })
           .select["nextCollectionAt"],
       ).toBe(true);
+    });
+  });
+
+  /*
+   * A cloud nothing may collect is set aside by the probes' claim a quarter of an hour at a time
+   * (OneUptime issue #8042), so its nextCollectionAt keeps moving and is never overdue: the card
+   * read "Collecting" for good. It says why from the cloud's own row, and promises no next time.
+   */
+  describe("a cloud no probe may collect", () => {
+    const MINUTE_IN_MS: number = 60 * 1000;
+    const PROJECT_ID: string = "7e7e7e7e-0000-4000-8000-000000000009";
+
+    // As the set-aside leaves it: due again in a quarter of an hour, a last report of success.
+    const SET_ASIDE: Record<string, unknown> = {
+      ...PROBE_COLLECTED,
+      projectId: new ObjectID(PROJECT_ID),
+      collectionStatus: OpenStackCollectionStatus.Succeeded,
+      lastCollectionAt: new Date(Date.now() - 600 * MINUTE_IN_MS),
+      nextCollectionAt: new Date(Date.now() + 17 * MINUTE_IN_MS),
+      collectionSummary: summary(),
+    };
+
+    /*
+     * The description is what the cloud is set to, never "Collected by" beside Not collecting
+     * (OneUptime issue #8326), and nothing at all when the probe or the address is what is
+     * missing: the body says so.
+     */
+    test.each([
+      [
+        "with no credential",
+        { isCredentialSet: false },
+        "No credential is saved for this cloud.",
+        "Save an application credential or a password in Settings, and test the connection.",
+        "Set to be collected by Datacenter probe from https://keystone.example.com:5000, every 5 minutes.",
+      ],
+      [
+        "with no Keystone address",
+        { authUrl: undefined },
+        "This cloud has no Keystone address.",
+        "Enter Keystone's address in Settings, and test the connection.",
+        null,
+      ],
+      [
+        "with no probe",
+        { collectionProbeId: undefined, collectionProbe: undefined },
+        "No probe is set to collect this cloud.",
+        "Pick one of this project's probes in Settings.",
+        null,
+      ],
+      [
+        "on another project's probe",
+        {
+          collectionProbe: {
+            name: "Datacenter probe",
+            isGlobalProbe: false,
+            projectId: new ObjectID("7e7e7e7e-0000-4000-8000-00000000000a"),
+          },
+        },
+        "This probe may not collect this cloud",
+        "Pick a probe of this project's own. Shared OneUptime probes never receive OpenStack credentials.",
+        "Set to be collected by Datacenter probe from https://keystone.example.com:5000, every 5 minutes.",
+      ],
+    ])(
+      "%s: not collecting, why, the fix, no next collection, and no promise of one",
+      async (
+        _name: string,
+        stop: Record<string, unknown>,
+        title: string,
+        nextStep: string,
+        description: string | null,
+      ) => {
+        stored = { ...SET_ASIDE, ...stop };
+
+        render(<OpenStackCollectionStatusCard modelId={modelId()} />);
+        await flush();
+
+        expect(screen.queryByText(/^Collected by /)).toBeNull();
+
+        if (description) {
+          expect(screen.getByText(description)).toBeInTheDocument();
+        } else {
+          expect(screen.queryByText(/^Set to be collected by /)).toBeNull();
+        }
+
+        const status: HTMLElement = screen.getByTestId(
+          "openstack-collection-status",
+        );
+
+        expect(screen.getByText("Not collecting")).toBeInTheDocument();
+        expect(screen.queryByText("Collecting")).toBeNull();
+        expect(status).toHaveAttribute("data-tone", "Failing");
+        expect(within(status).getByText(title)).toBeInTheDocument();
+        expect(within(status).getByText(nextStep)).toBeInTheDocument();
+        // Its last report's inventory is not what it is doing now.
+        expect(
+          screen.queryByTestId("openstack-collection-inventory"),
+        ).toBeNull();
+        expect(
+          screen.getByTestId("openstack-next-collection"),
+        ).toHaveTextContent("Not scheduled");
+      },
+    );
+
+    test("a disconnected probe: named, and nothing collects the cloud until it is back", async () => {
+      stored = {
+        ...SET_ASIDE,
+        collectionProbe: {
+          name: "Datacenter probe",
+          isGlobalProbe: false,
+          projectId: new ObjectID(PROJECT_ID),
+          connectionStatus: "disconnected",
+        },
+      };
+
+      render(<OpenStackCollectionStatusCard modelId={modelId()} />);
+      await flush();
+
+      expect(screen.getByText("Not collecting")).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "Nothing collects this cloud while Datacenter probe is disconnected.",
+        ),
+      ).toBeInTheDocument();
+      expect(screen.getByTestId("openstack-next-collection")).toHaveTextContent(
+        "Not scheduled",
+      );
+      expect(
+        screen.getByText(
+          "Set to be collected by Datacenter probe from https://keystone.example.com:5000, every 5 minutes.",
+        ),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/^Collected by /)).toBeNull();
+    });
+
+    test("a probe the reader may not read, on a cloud with no credential: the setting, by 'its probe'", async () => {
+      stored = {
+        ...SET_ASIDE,
+        isCredentialSet: false,
+        collectionProbe: undefined,
+        collectionIntervalInMinutes: 1,
+      };
+
+      render(<OpenStackCollectionStatusCard modelId={modelId()} />);
+      await flush();
+
+      expect(
+        screen.getByText(
+          "Set to be collected by its probe from https://keystone.example.com:5000, every 1 minute.",
+        ),
+      ).toBeInTheDocument();
+    });
+
+    /*
+     * OneUptime issue #8324: the claim set an archived cloud aside while its Archived page said
+     * it keeps collecting, as an archived vCenter does. It is collected now.
+     */
+    test("archived: still collected, so the card reads Collecting, by whom, and when next", async () => {
+      const dueAt: Date = new Date(Date.now() + 2 * MINUTE_IN_MS);
+
+      stored = {
+        ...SET_ASIDE,
+        isArchived: true,
+        nextCollectionAt: dueAt,
+      };
+
+      render(<OpenStackCollectionStatusCard modelId={modelId()} />);
+      await flush();
+
+      expect(screen.getByText("Collecting")).toBeInTheDocument();
+      expect(screen.queryByText("Not collecting")).toBeNull();
+      expect(
+        screen.getByText(
+          "Collected by Datacenter probe from https://keystone.example.com:5000, every 5 minutes. No agent runs for it.",
+        ),
+      ).toBeInTheDocument();
+      expect(screen.getByTestId("openstack-next-collection").textContent).toBe(
+        OneUptimeDate.fromNow(dueAt),
+      );
+    });
+
+    test("nothing to wait for: the card does not keep asking", async () => {
+      jest.useFakeTimers();
+      stored = { ...SET_ASIDE, isCredentialSet: false };
+
+      render(<OpenStackCollectionStatusCard modelId={modelId()} />);
+      await flush();
+
+      const reads: number = getItemMock.mock.calls.length;
+
+      await act(async () => {
+        jest.advanceTimersByTime(OPENSTACK_STATUS_POLL_INTERVAL_IN_MS * 3);
+      });
+      await flush();
+
+      expect(getItemMock.mock.calls.length).toBe(reads);
+    });
+
+    test("it asks for what decides whether a probe may collect it", async () => {
+      render(<OpenStackCollectionStatusCard modelId={modelId()} />);
+      await flush();
+
+      const select: Record<string, unknown> = (
+        getItemMock.mock.calls[0]![0] as { select: Record<string, unknown> }
+      ).select;
+
+      for (const column of [
+        "projectId",
+        "isCredentialSet",
+        "authUrl",
+        "collectionProbeId",
+        "nextCollectionAt",
+        "collectionIntervalInMinutes",
+      ]) {
+        expect(select[column]).toBe(true);
+      }
+
+      // Archiving stops nothing, so it is not asked for.
+      expect(select["isArchived"]).toBeUndefined();
+
+      expect(select["collectionProbe"]).toEqual({
+        name: true,
+        isGlobalProbe: true,
+        projectId: true,
+        connectionStatus: true,
+      });
+    });
+  });
+
+  describe("the next collection", () => {
+    const MINUTE_IN_MS: number = 60 * 1000;
+
+    test("due later, with a probe able to take it: when", async () => {
+      const dueAt: Date = new Date(Date.now() + 2 * MINUTE_IN_MS);
+
+      stored = {
+        ...PROBE_COLLECTED,
+        collectionStatus: OpenStackCollectionStatus.Succeeded,
+        nextCollectionAt: dueAt,
+      };
+
+      render(<OpenStackCollectionStatusCard modelId={modelId()} />);
+      await flush();
+
+      expect(screen.getByTestId("openstack-next-collection").textContent).toBe(
+        OneUptimeDate.fromNow(dueAt),
+      );
+    });
+
+    test("never collected, with a probe able to take it: due now", async () => {
+      render(<OpenStackCollectionStatusCard modelId={modelId()} />);
+      await flush();
+
+      expect(screen.getByTestId("openstack-next-collection")).toHaveTextContent(
+        "Due now",
+      );
+    });
+
+    test("overdue, with a probe able to take it: overdue", async () => {
+      stored = {
+        ...PROBE_COLLECTED,
+        collectionStatus: OpenStackCollectionStatus.Succeeded,
+        nextCollectionAt: new Date(Date.now() - 60 * MINUTE_IN_MS),
+      };
+
+      render(<OpenStackCollectionStatusCard modelId={modelId()} />);
+      await flush();
+
+      expect(screen.getByTestId("openstack-next-collection")).toHaveTextContent(
+        "Overdue",
+      );
     });
   });
 

@@ -38,7 +38,7 @@ sequenceDiagram
 
 - **你项目自己的探测器。** 全局探测器承载其他项目的流量，因此从不抓包。要安装自己的探测器，请参阅 [自定义探测器](/docs/probe/custom-probe)。
 - **本版本或更新版本的探测器。** 旧版探测器不会报告它们可以在哪些接口上抓包。
-- **合适的权限。** 开始和停止抓包需要 **Start Packet Capture**，下载文件需要 **Download Packet Capture**。项目所有者和管理员两者都有。请参阅 [权限](#权限)。
+- **合适的权限。** 开始和停止抓包需要 **Start Packet Capture**，下载文件需要 **Download Packet Capture**。项目所有者和项目管理员两者都有。请参阅 [权限](#权限)。
 - **镜像端口，用于到达不了探测器的流量。** 探测器只能看到自己主机接口上的流量。要抓取其他设备之间的流量，请将它们的交换机端口镜像（SPAN）到探测器主机上的一个空闲接口。
 
 ## 开启抓包
@@ -188,10 +188,10 @@ spec:
 
 | 权限 | 允许 | 默认拥有者 |
 | --- | --- | --- |
-| **Start Packet Capture** | 开始抓包以及停止抓包 | Project Owner, Project Admin |
-| **Download Packet Capture** | 下载抓包文件 | Project Owner, Project Admin |
-| **Delete Packet Capture** | 删除抓包及其文件 | Project Owner, Project Admin |
-| **Read Packet Capture** | 查看抓包：何时运行、在哪个探测器上、使用哪个过滤器 | Project Owner, Project Admin, Project Member, Viewer |
+| **Start Packet Capture** | 开始抓包以及停止抓包 | 项目所有者、项目管理员 |
+| **Download Packet Capture** | 下载抓包文件 | 项目所有者、项目管理员 |
+| **Delete Packet Capture** | 删除抓包及其文件 | 项目所有者、项目管理员 |
+| **Read Packet Capture** | 查看抓包：何时运行、在哪个探测器上、使用哪个过滤器 | 项目所有者、项目管理员、项目成员、查看者 |
 
 要给团队 **Start Packet Capture** 或 **Download Packet Capture**，请在 **设置 → 团队** 下打开该团队，并在其 **权限** 页面上添加该权限。请参阅 [权限](/docs/permissions/index)。
 

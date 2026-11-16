@@ -30,6 +30,7 @@ import {
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import {
   Translator,
+  translatableTerm,
   translateText,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
@@ -37,6 +38,17 @@ import OpenStackAuthUrl, {
   OpenStackAddressResult,
 } from "Common/Utils/OpenStack/OpenStackAuthUrl";
 import OpenStackCollectionSettings from "Common/Utils/OpenStack/OpenStackCollectionSettings";
+import {
+  OpenStackCollectionStop,
+  OpenStackCollectionStopFacts,
+  getOpenStackCollectionStop,
+} from "Common/Utils/OpenStack/OpenStackCollectionStop";
+import {
+  ClaimDue,
+  ClaimDueState,
+  readClaimDue,
+} from "Common/Utils/Probe/ClaimDueTime";
+import { getProbeCollectionDescription } from "../Probe/ProbeCollectionDescription";
 
 /*
  * What the Dashboard says about a cloud a probe collects: which probes may collect it,
@@ -421,6 +433,62 @@ export interface OpenStackCollectionStatusView {
  */
 export const OPENSTACK_COLLECTION_OVERDUE_AFTER_IN_MS: number = 15 * 60 * 1000;
 
+// The columns the stop and the next collection are read from, for a card's select.
+export type OpenStackCollectionScheduleFacts = OpenStackCollectionStopFacts &
+  Pick<OpenStackCloud, "nextCollectionAt">;
+
+/*
+ * When a probe collects this cloud next, and whether that is a promise
+ * (Common/Utils/Probe/ClaimDueTime): the cloud's nextCollectionAt only when nothing stops the
+ * claim handing it out (getOpenStackCollectionStop). A cloud nothing may collect is set aside a
+ * quarter of an hour at a time, so its nextCollectionAt keeps moving and promises nothing.
+ */
+export function getOpenStackNextCollection(
+  cloud: OpenStackCollectionScheduleFacts,
+  now: Date,
+  isBillingEnabled: boolean,
+): ClaimDue<OpenStackCollectionStop> {
+  return readClaimDue<OpenStackCollectionStop>({
+    stop: getOpenStackCollectionStop(cloud, isBillingEnabled),
+    dueAt: cloud.nextCollectionAt,
+    now: now,
+    overdueAfterInMs: OPENSTACK_COLLECTION_OVERDUE_AFTER_IN_MS,
+  });
+}
+
+/*
+ * The Overview card's description: how the cloud is collected, as a promise only while a probe
+ * comes for it - while its Next collection is a time or due now - and otherwise what it is set
+ * to, or nothing when no probe or no Keystone address is set (Components/Probe/
+ * ProbeCollectionDescription, OneUptime issue #8326).
+ */
+export function getOpenStackCollectionDescription(
+  cloud: OpenStackCollectionScheduleFacts &
+    Pick<OpenStackCloud, "collectionProbe" | "collectionIntervalInMinutes">,
+  translator: Translator,
+  now: Date,
+  isBillingEnabled: boolean,
+): string | undefined {
+  const state: ClaimDueState = getOpenStackNextCollection(
+    cloud,
+    now,
+    isBillingEnabled,
+  ).state;
+
+  return getProbeCollectionDescription(
+    {
+      isCollected:
+        state === ClaimDueState.Scheduled || state === ClaimDueState.DueNow,
+      hasProbe: Boolean(cloud.collectionProbeId),
+      // Translated along with the sentence it goes into, never on its own.
+      probeName: cloud.collectionProbe?.name || translatableTerm("its probe"),
+      address: cloud.authUrl,
+      intervalInMinutes: cloud.collectionIntervalInMinutes || 2,
+    },
+    translator,
+  );
+}
+
 /*
  * Whether the probe has stopped coming for this cloud. Claiming a cloud moves its
  * nextCollectionAt on, and saving new settings sets it to now, so one far in the past means
@@ -431,29 +499,134 @@ export function isOpenStackCollectionOverdue(
   cloud: Pick<OpenStackCloud, "nextCollectionAt">,
   now: Date,
 ): boolean {
-  if (!cloud.nextCollectionAt) {
-    return false;
-  }
-
   return (
-    now.getTime() - new Date(cloud.nextCollectionAt).getTime() >
-    OPENSTACK_COLLECTION_OVERDUE_AFTER_IN_MS
+    readClaimDue<null>({
+      stop: null,
+      dueAt: cloud.nextCollectionAt,
+      now: now,
+      overdueAfterInMs: OPENSTACK_COLLECTION_OVERDUE_AFTER_IN_MS,
+    }).state === ClaimDueState.Overdue
   );
 }
 
-// How a probe-collected cloud's collection stands, in words.
-export function getOpenStackCollectionStatusView(
-  cloud: Pick<
-    OpenStackCloud,
-    | "collectionStatus"
-    | "collectionErrorCode"
-    | "collectionError"
-    | "presentedCertificate"
-    | "nextCollectionAt"
+// What the card says for a cloud no probe collects, and the one thing that fixes it.
+const STOP_WORDS: Record<
+  Exclude<
+    OpenStackCollectionStop,
+    | OpenStackCollectionStop.ProbeNotAllowed
+    | OpenStackCollectionStop.ProbeDisconnected
   >,
+  { title: string; nextStep: string }
+> = {
+  [OpenStackCollectionStop.NoCredential]: {
+    title: translationKey("No credential is saved for this cloud."),
+    nextStep: translationKey(
+      "Save an application credential or a password in Settings, and test the connection.",
+    ),
+  },
+  [OpenStackCollectionStop.NoAddress]: {
+    title: translationKey("This cloud has no Keystone address."),
+    nextStep: translationKey(
+      "Enter Keystone's address in Settings, and test the connection.",
+    ),
+  },
+  [OpenStackCollectionStop.NoProbe]: {
+    title: translationKey("No probe is set to collect this cloud."),
+    nextStep: translationKey("Pick one of this project's probes in Settings."),
+  },
+};
+
+// Why no probe collects this cloud, in words, or null when one will.
+function getOpenStackStopView(
+  cloud: OpenStackCollectionStopFacts & Pick<OpenStackCloud, "collectionProbe">,
+  translator: Translator,
+  isBillingEnabled: boolean,
+): OpenStackCollectionStatusView | null {
+  const stop: OpenStackCollectionStop | null = getOpenStackCollectionStop(
+    cloud,
+    isBillingEnabled,
+  );
+
+  if (!stop) {
+    return null;
+  }
+
+  let title: string;
+  let message: string | null = null;
+  let nextStep: string;
+
+  if (
+    stop === OpenStackCollectionStop.ProbeNotAllowed ||
+    stop === OpenStackCollectionStop.ProbeDisconnected
+  ) {
+    const advice: OpenStackCollectionErrorAdvice =
+      OpenStackCollectionErrorUtil.getAdvice(
+        stop === OpenStackCollectionStop.ProbeNotAllowed
+          ? OpenStackCollectionErrorCode.ProbeNotAllowed
+          : OpenStackCollectionErrorCode.ProbeNotAvailable,
+      );
+
+    title = translator.translateText(advice.title) as string;
+    nextStep = translator.translateText(advice.nextStep) as string;
+
+    if (stop === OpenStackCollectionStop.ProbeDisconnected) {
+      message = translator.translateTemplate(
+        "Nothing collects this cloud while {{probe}} is disconnected.",
+        {
+          probe: cloud.collectionProbe?.name || translatableTerm("its probe"),
+        },
+      );
+    }
+  } else {
+    title = translator.translateText(STOP_WORDS[stop].title) as string;
+    nextStep = translator.translateText(STOP_WORDS[stop].nextStep) as string;
+  }
+
+  return {
+    tone: OpenStackCollectionTone.Failing,
+    label: translator.translateText("Not collecting") as string,
+    title: title,
+    message: message,
+    nextStep: nextStep,
+    certificate: null,
+    /*
+     * Nothing changes it but a write to the cloud or its probe coming back, which the page
+     * reads again after: no need to keep asking.
+     */
+    isPending: false,
+  };
+}
+
+/*
+ * How a probe-collected cloud's collection stands, in words. What stops the probes' claim
+ * handing it out comes first: a cloud nothing may collect is set aside, never overdue, and its
+ * last report is not what it is doing now.
+ */
+export function getOpenStackCollectionStatusView(
+  cloud: OpenStackCollectionStopFacts &
+    Pick<
+      OpenStackCloud,
+      | "collectionStatus"
+      | "collectionErrorCode"
+      | "collectionError"
+      | "presentedCertificate"
+      | "nextCollectionAt"
+      | "collectionProbe"
+    >,
   translator: Translator,
   now: Date = new Date(),
+  isBillingEnabled: boolean = false,
 ): OpenStackCollectionStatusView {
+  const stopView: OpenStackCollectionStatusView | null = getOpenStackStopView(
+    cloud,
+    translator,
+    isBillingEnabled,
+  );
+
+  if (stopView) {
+    return stopView;
+  }
+
   if (isOpenStackCollectionOverdue(cloud, now)) {
     const advice: OpenStackCollectionErrorAdvice =
       OpenStackCollectionErrorUtil.getAdvice(

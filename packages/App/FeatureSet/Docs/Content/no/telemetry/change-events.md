@@ -35,7 +35,7 @@ Disse krever ikke at du sender noe. OneUptime registrerer dem ut fra telemetrien
 | En runbook | En runbook OneUptime kjørte, fullføres, mislykkes eller avbrytes etter at den har startet | `runbook` |
 | En skyendring | Aktivitetsloggen til en tilkoblet skykonto registrerer en endring: AWS CloudTrail, aktivitetsloggen i Azure eller revisjonsloggen Admin Activity i Google Cloud | `cloud` |
 | En leverandørhendelse | Skyleverandøren publiserer en helsehendelse om kontoen: AWS Health, Azure Service Health eller Resource Health, eller Google Cloud Service Health | `cloud-health` |
-| En OpenStack-endring | Skyens egne varsler sier hva som skjedde med en av delene dens, eller en probes lesing av Nova gjør det: se [Livssyklushendelser](/docs/telemetry/openstack#livssyklushendelser) | `openstack` |
+| En OpenStack-endring | Skyens egne varslinger sier hva som skjedde med en av delene dens, eller en sonder lesing av Nova gjør det: se [Livssyklushendelser](/docs/telemetry/openstack#livssyklushendelser) | `openstack` |
 
 - **Den første versjonen en tjeneste rapporterer, er utgangspunktet dens, ikke en utrulling.** En tjeneste som har kjørt i måneder, blir ikke rullet ut i det øyeblikket OneUptime begynner å motta telemetrien dens.
 - **En rollback til en versjon som er sett de siste 30 dagene, registreres ikke,** fordi den versjonen ikke er ny. En rollback som OneUptime AI kjører, registreres som en rettelse.

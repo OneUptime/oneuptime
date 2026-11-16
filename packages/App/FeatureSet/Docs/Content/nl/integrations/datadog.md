@@ -55,7 +55,7 @@ Daarna [configureer je Datadog](#datadog-configureren) zodat het zijn waarschuwi
 
 ### Wat de workflow doet
 
-Na de trigger **Webhook** leest de stap **Check With JavaScript** `read-event-1` de `transition` die Datadog stuurt, en **Incident From Another Tool**, of **Alert From Another Tool** in het sjabloon voor waarschuwingen, doet wat die betekent, via de cyclussleutel van de waarschuwing. Datadog bewaart die sleutel vanaf het moment dat een waarschuwing afgaat tot ze herstelt, en de volgende keer dat ze afgaat is de sleutel nieuw, zodat elke keer een eigen incident krijgt. Het incident bewaart de sleutel in zijn aangepaste veld `datadogAlertCycleKey`.
+Na de trigger **Webhook** leest de stap **Controleren met JavaScript** `read-event-1` de `transition` die Datadog stuurt, en **Incident uit een andere tool**, of **Waarschuwing uit een andere tool** in het sjabloon voor waarschuwingen, doet wat die betekent, via de cyclussleutel van de waarschuwing. Datadog bewaart die sleutel vanaf het moment dat een waarschuwing afgaat tot ze herstelt, en de volgende keer dat ze afgaat is de sleutel nieuw, zodat elke keer een eigen incident krijgt. Het incident bewaart de sleutel in zijn aangepaste veld `datadogAlertCycleKey`.
 
 | Overgang | Wat de workflow doet |
 | --- | --- |
@@ -64,7 +64,7 @@ Na de trigger **Webhook** leest de stap **Check With JavaScript** `read-event-1`
 | `Warn`, `Re-Warn`, `No Data`, `Re-No Data` | Voegt een privénotitie aan het incident van de waarschuwing toe, met wat de status van de monitor nu is. |
 | `Renotify` | Niets: de waarschuwing is nog open. |
 
-Een waarschuwingsniveau of een herstel voor een waarschuwing zonder incident verandert niets. Al het andere, zoals een verzoek van een ander hulpmiddel, blijft ongemoeid: `read-event-1` neemt **No**, en de **Stappen** van de uitvoering zeggen waarom. Er gaat niets terug naar Datadog: het lost zijn eigen waarschuwingen op wanneer het signaal herstelt, en daarmee wordt het incident opgelost.
+Een waarschuwingsniveau of een herstel voor een waarschuwing zonder incident verandert niets. Al het andere, zoals een verzoek van een ander hulpmiddel, blijft ongemoeid: `read-event-1` neemt **Nee**, en de **Stappen** van de uitvoering zeggen waarom. Er gaat niets terug naar Datadog: het lost zijn eigen waarschuwingen op wanneer het signaal herstelt, en daarmee wordt het incident opgelost.
 
 ### Prioriteiten en oproepen
 
@@ -82,7 +82,7 @@ Een nieuw incident roept het bereikbaarheidsbeleid op dat je hebt gekozen wannee
 Met eigen ernstniveaus gaan P1, P2 en geen prioriteit naar je ernstigste, P3 naar het middelste en P4 en P5 naar je minst ernstige.
 
 - Om een prioriteit op naam aan een van de jouwe toe te wijzen, bewerk je `SEVERITY_BY_NAME` in de stap `read-event-1`, zoals `{ P3: 'Minor Incident' }`.
-- Om ook voor P3 op te roepen, zet je **Compare with** van de stap `if-page-1` **If / Else** op `3`.
+- Om ook voor P3 op te roepen, zet je **Vergelijken met** van de stap `if-page-1` **Als / Anders** op `3`.
 
 ## Waarschuwingen ontvangen met een monitor
 
@@ -211,7 +211,7 @@ Test daarna vanuit Datadog: open een monitor die de webhook noemt, klik op **Tes
 :::
 
 :::details De workflow draait, maar opent niets
-Open de uitvoering in **Logboeken → Uitvoeringen**. De vermelding `read-event-1` in de **Stappen** ervan zegt waarom hij **No** nam.
+Open de uitvoering in **Logboeken → Uitvoeringen**. De vermelding `read-event-1` in de **Stappen** ervan zegt waarom hij **Nee** nam.
 
 - `Datadog named no alert cycle key`: voeg `"alert_cycle_key": "$ALERT_CYCLE_KEY"` toe aan de payload van de webhook in Datadog.
 - `Datadog named no transition`: voeg `"transition": "$ALERT_TRANSITION"` toe aan de payload van de webhook in Datadog.

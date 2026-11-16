@@ -425,7 +425,7 @@ describe("the hero's latest result in the reader's digits and unit (#7416)", () 
   test("English, as it always read, its figure grouped", () => {
     drawFailedCheck("en");
 
-    expect(latestValue()).toBe("Down · 2,410 ms · HTTP 503");
+    expect(latestValue()).toBe("Down · 2,410\u00A0ms · HTTP 503");
     expect(cause()).toHaveTextContent("Connection refused.");
     expect(isolate()).toBeNull();
   });
@@ -433,7 +433,7 @@ describe("the hero's latest result in the reader's digits and unit (#7416)", () 
   test("German: the verdict in German, the figure grouped as German groups it", () => {
     drawFailedCheck("de");
 
-    expect(latestValue()).toBe("Ausgefallen · 2.410 ms · HTTP 503");
+    expect(latestValue()).toBe("Ausgefallen · 2.410\u00A0ms · HTTP 503");
     // An English cause on a page that reads left to right needs no isolate.
     expect(isolate()).toBeNull();
     expect(cause()).toHaveTextContent("Connection refused.");
@@ -459,7 +459,7 @@ describe("the hero's latest result in the reader's digits and unit (#7416)", () 
 
     const latest: string = latestValue();
 
-    expect(latest).toBe("متوقف · 2,410\u00A0ملي ث · HTTP 503");
+    expect(latest).toBe("متوقف · 2,410\u00A0ملي\u00A0ث · HTTP 503");
     expect(latest).not.toMatch(/\bms\b/);
     expect(isolate()).toHaveAttribute("dir", "ltr");
     expect(isolate()).toHaveTextContent("Connection refused.");
@@ -669,10 +669,10 @@ describe("a compact duration in a sentence's language", () => {
 
   test("German abbreviates each unit as German does", () => {
     expect(formatDurationCompactInLanguage(SECONDS, "de")).toBe(
-      "2 Std., 8 Min.",
+      "2\u00A0Std., 8\u00A0Min.",
     );
     expect(formatDurationCompactInLanguage(12 * DAY + 3 * 3600, "de")).toBe(
-      "12 Tg., 3 Std.",
+      "12\u00A0Tg., 3\u00A0Std.",
     );
   });
 

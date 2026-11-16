@@ -142,7 +142,7 @@ sequenceDiagram
    - **추가 매개변수**: 토큰 요청에 넣을 추가 양식 필드입니다. Auth0의 `audience`(Client Credentials에 필수)나 Azure AD v1의 `resource` 같은 것입니다. 변수를 읽을 수 있는 사람이면 누구나 읽을 수 있으므로, 여기에 시크릿을 넣지 마세요.
    - **클라이언트 인증**: 클라이언트 ID와 시크릿을 HTTP Basic 헤더(기본값)로 보낼지 요청 본문으로 보낼지입니다. 공급자가 `invalid_client` 로 응답하면 다른 쪽을 시도하세요.
 
-일부 필드 아래에는 선택한 공급자에 대한 도움말이 붙습니다. 예를 들어 Microsoft Entra ID가 테넌트 ID를 어디에 보여 주는지, 그리고 클라이언트 시크릿은 시크릿의 **Secret ID**가 아니라 **Value**라는 점입니다.
+일부 필드 아래에는 선택한 공급자에 대한 도움말이 붙습니다. 예를 들어 Microsoft Entra ID가 테넌트 ID를 어디에 보여 주는지, 그리고 클라이언트 시크릿은 시크릿의 **Secret ID**가 아니라 **값**이라는 점입니다.
 
 새 OAuth 2.0 변수를 저장하면 OneUptime이 첫 토큰을 바로 가져오고 공급자가 무엇이라고 답했는지 알려 줍니다. 시크릿이나 URL의 오타는 몇 시간 뒤 실패한 실행이 아니라 그 자리에서 드러납니다. 토큰을 가져오는 일은 변수에 쓰는 일이므로 워크플로 변수를 편집할 권한이 필요합니다. 변수를 만들 수는 있지만 편집할 수는 없다면, 그 변수를 쓰는 첫 워크플로 실행이 토큰을 가져옵니다.
 
@@ -195,8 +195,8 @@ OAuth 2.0 변수 페이지의 **접근 토큰** 카드에는 다음 상태 중 �
 | 이런 블록 다음이라면…                                     | 읽을 것                                                                                |
 | --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | ID가 `lookup-user` 인 **API** 블록                        | 상태 코드: `{{local.components.lookup-user.returnValues.response-status}}`. 본문: `{{local.components.lookup-user.returnValues.response-body}}`. |
-| ID가 `transform` 인 **Run Custom JavaScript** 블록        | 반환한 것: `{{local.components.transform.returnValues.returnValue}}`.                  |
-| ID가 `incident-on-create-1` 인 **On Create Incident** 트리거 | 인시던트 제목: `{{local.components.incident-on-create-1.returnValues.model.title}}`. 레코드 트리거는 레코드를 `model` 로 반환하며, 그 안으로 들어가 읽습니다. |
+| ID가 `transform` 인 **사용자 지정 JavaScript 실행** 블록        | 반환한 것: `{{local.components.transform.returnValues.returnValue}}`.                  |
+| ID가 `incident-on-create-1` 인 **인시던트 생성 시** 트리거 | 인시던트 제목: `{{local.components.incident-on-create-1.returnValues.model.title}}`. 레코드 트리거는 레코드를 `model` 로 반환하며, 그 안으로 들어가 읽습니다. |
 
 블록 값은 현재 실행 중에만 존재합니다. 새 실행은 매번 처음부터 시작합니다.
 
@@ -208,22 +208,22 @@ OAuth 2.0 변수 페이지의 **접근 토큰** 카드에는 다음 상태 중 �
 - Slack, Teams, Discord, Telegram, IRC, Mattermost, Email의 메시지 텍스트.
 - 이메일의 제목과 본문.
 - 헤더와 본문 필드(문자열 값 안).
-- **If / Else** 블록의 양쪽.
+- **조건 분기** 블록의 양쪽.
 
-JSON 입력란 — 레코드 구성 요소의 **Data (JSON Object)**와 **Query**, API 블록의 **Request Body**, **Run Custom JavaScript**의 **Arguments** — 에서는 참조가 놓인 위치에 따라 채워집니다.
+JSON 입력란 — 레코드 구성 요소의 **데이터(JSON 객체)**와 **쿼리**, API 블록의 **요청 본문**, **사용자 지정 JavaScript 실행**의 **인수** — 에서는 참조가 놓인 위치에 따라 채워집니다.
 
 - **따옴표 안에서는 텍스트입니다.** `{"title": "Down: {{local.components.ci-webhook.returnValues.request-body.service}}"}` 는 값을 문자열 안에 넣습니다. 값에 있는 따옴표, 백슬래시, 줄 바꿈은 이스케이프되므로 JSON은 유효하게 유지되고 값은 하나의 문자열로 남습니다.
 - **혼자 있으면 값 그 자체입니다.** `{"customFields": {{local.components.transform.returnValues.returnValue}}}` 는 객체 전체를 넣고, 목록은 목록으로, 숫자는 숫자로 남습니다. 그 자체가 JSON인 텍스트 — `5`, `true`, 또는 블록이 JSON 텍스트로 반환한 객체 — 는 그 값으로 들어갑니다. 그 밖의 텍스트는 문자열로 들어갑니다.
 
-키의 따옴표 안에 있는 참조도 텍스트입니다. 구조를 동적으로 만들어야 한다면 **Run Custom JavaScript** 블록으로 만들고 그 출력을 다음 블록에 넘기세요.
+키의 따옴표 안에 있는 참조도 텍스트입니다. 구조를 동적으로 만들어야 한다면 **사용자 지정 JavaScript 실행** 블록으로 만들고 그 출력을 다음 블록에 넘기세요.
 
-**Run Custom JavaScript** 블록은 변수를 자동으로 받지 않습니다. 샌드박스에는 아무것도 주입되지 않습니다. 블록의 JSON 입력란 **Arguments**에 `{{global.variables.NAME}}` (또는 아무 구성 요소 참조)를 넣으세요. 그 값은 스크립트가 실행되기 전에 채워지고 `args` 로 도착합니다.
+**사용자 지정 JavaScript 실행** 블록은 변수를 자동으로 받지 않습니다. 샌드박스에는 아무것도 주입되지 않습니다. 블록의 JSON 입력란 **인수**에 `{{global.variables.NAME}}` (또는 아무 구성 요소 참조)를 넣으세요. 그 값은 스크립트가 실행되기 전에 채워지고 `args` 로 도착합니다.
 
 ## 배열 순회하기
 
 텍스트 입력란에서는 `{{#each path}}…{{/each}}` 로 목록의 각 항목마다 텍스트 일부를 반복할 수 있습니다. 블록 안에서 `{{property}}` 는 현재 항목에서 읽고, `{{@index}}` 는 0부터 시작하는 그 위치이며, `{{this}}` 는 단순한 값의 목록에서 항목 자체입니다. `{{#each}}` 블록 안의 이름은 앞뒤 공백이 제거되므로, 거기서는 여분의 공백이 문제가 되지 않습니다. 다른 모든 곳과는 다릅니다.
 
-예를 들어 이 **Message Text**는 웹훅이 보낸 각 경고를 나열합니다.
+예를 들어 이 **메시지 텍스트**는 웹훅이 보낸 각 경고를 나열합니다.
 
 ```text title="Message Text"
 {{#each local.components.ci-webhook.returnValues.request-body.alerts}}
@@ -238,8 +238,8 @@ JSON 입력란 — 레코드 구성 요소의 **Data (JSON Object)**와 **Query*
 웹훅이 `{ "service": "checkout", "status": "failed" }` 같은 본문과 함께 도착합니다. 이것을 OneUptime 인시던트로 만들려면:
 
 1. ID가 `ci-webhook` 인 **웹훅** 트리거.
-2. **If / Else** 블록: **확인할 값**은 웹훅 Request Body의 `status` 필드(`{{local.components.ci-webhook.returnValues.request-body.status}}`), **비교**는 **같음**, **비교 대상**은 `failed`.
-3. **Yes** 분기에서 다음 내용의 **Create One Incident** 블록:
+2. **조건 분기** 블록: **확인할 값**은 웹훅 Request Body의 `status` 필드(`{{local.components.ci-webhook.returnValues.request-body.status}}`), **비교**는 **같음**, **비교 대상**은 `failed`.
+3. **예** 분기에서 다음 내용의 **인시던트 1개 만들기** 블록:
    - 제목: `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - 설명: `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`
 
@@ -259,7 +259,7 @@ PagerDuty를 호출하는 워크플로:
 1. **API** 구성 요소 `lookup-order`: **URL**의 `/orders?email=` 뒤에서 **{ }** 를 사용해 수동 트리거의 JSON을 경로 `email` 로 삽입합니다.
 2. **API** 구성 요소 `cancel-order`: `POST /orders/{{local.components.lookup-order.returnValues.response-body.id}}/cancel`.
 
-`lookup-order` 가 실패하면 **Success** 대신 **Error** 출력이 발생합니다. 실패가 눈에 띄지 않고 지나가지 않도록 그것을 Email이나 Slack 블록에 연결하세요.
+`lookup-order` 가 실패하면 **성공** 대신 **오류** 출력이 발생합니다. 실패가 눈에 띄지 않고 지나가지 않도록 그것을 Email이나 Slack 블록에 연결하세요.
 
 ## 워크플로에서 변수 갱신하기
 
@@ -290,8 +290,8 @@ API 키에는 **Edit Workflow Variables**가 있어야 합니다. 읽기 권한�
 
 - **{ } 를 쓰세요(또는 `{{` 를 입력하세요).** 실행기가 기대하는 정확한 구성 요소, 반환 값, 변수 ID가 삽입되고, 블록이 실행될 때 존재할 값만 제안됩니다.
 - **변수 이름은 대소문자를 구분합니다.** `{{global.variables.MyKey}}` 와 `{{global.variables.mykey}}` 는 다릅니다.
-- **확인할 수 없는 참조는 그대로 남으며, 비지 않습니다.** 존재하지 않는 것을 참조해도 오류가 아니고, 빈 문자열이 되지도 않습니다. 중괄호가 그대로 넘어가므로, 단계 ID의 철자가 틀린 `{{local.components.api-get-1.returnValues.body}}` 는 Slack 메시지, URL, 요청 본문에 글자 그대로 들어가고, 실행은 그래도 **실행됨**으로 보고합니다. 실행의 **단계** 탭은 빠져나간 참조를 모두 언급하는 경고를 그 단계에 표시하고, 그 참조가 있던 설정에 **Did not resolve**라고 표시합니다. 실행의 로그에도 같은 경고 줄이 있습니다. 예외는 데이터 구성 요소가 읽거나 쓰는 ID로, 예를 들어 **Query**의 `_id`입니다. 이 경우 단계는 무엇이든 읽거나 쓰기 전에 멈추고 **Error** 출력을 선택하며, 어떤 참조가 확인되지 않았는지와 무엇을 확인해야 하는지 알려 줍니다.
-- **내용이 없는 필드는 비어 있는 상태로 도착합니다.** 모든 레코드에 모든 필드가 있는 것은 아닙니다. 모니터가 발생시키지 않은 경고(SLO에서 온 것이나 직접 만든 것 등)에는 모니터가 없으므로 `{{local.components.alert-on-create-1.returnValues.model.monitor.name}}` 은(는) 줄 값이 없습니다. 메시지에서는 그 자리에 아무것도 없고, JSON에서 단독 값으로는 `null` 입니다. 아무도 쓰지 않은 설명, 레코드에 없는 사용자 지정 필드, 레코드를 찾지 못한 **Find One**, 그 항목이 없는 목록, 블록이 넘기지 않는 필드도 마찬가지이며, 블록이 넘기지 않는 필드의 경우 **Fields to pass on** 에 무엇을 추가할지 알려 주는 경고도 단계에 표시됩니다. URL과 레코드를 읽거나 쓰는 블록은 예외입니다. 비어 있으면 블록이 작용하는 대상이 달라지므로 거기서는 참조가 그대로 남고, ID는 블록을 멈춥니다. 다른 경로로 가려면 **If / Else** 의 **비어 있음** 조건으로 값을 확인하세요. 경고의 원인인 SLO를 표시하려면 그 이름을 넘기고 `{{#each local.components.alert-on-create-1.returnValues.model.serviceLevelObjectives}}{{name}}{{/each}}` 를 사용하세요.
+- **확인할 수 없는 참조는 그대로 남으며, 비지 않습니다.** 존재하지 않는 것을 참조해도 오류가 아니고, 빈 문자열이 되지도 않습니다. 중괄호가 그대로 넘어가므로, 단계 ID의 철자가 틀린 `{{local.components.api-get-1.returnValues.body}}` 는 Slack 메시지, URL, 요청 본문에 글자 그대로 들어가고, 실행은 그래도 **실행됨**으로 보고합니다. 실행의 **단계** 탭은 빠져나간 참조를 모두 언급하는 경고를 그 단계에 표시하고, 그 참조가 있던 설정에 **Did not resolve**라고 표시합니다. 실행의 로그에도 같은 경고 줄이 있습니다. 예외는 데이터 구성 요소가 읽거나 쓰는 ID로, 예를 들어 **쿼리**의 `_id`입니다. 이 경우 단계는 무엇이든 읽거나 쓰기 전에 멈추고 **오류** 출력을 선택하며, 어떤 참조가 확인되지 않았는지와 무엇을 확인해야 하는지 알려 줍니다.
+- **내용이 없는 필드는 비어 있는 상태로 도착합니다.** 모든 레코드에 모든 필드가 있는 것은 아닙니다. 모니터가 발생시키지 않은 경고(SLO에서 온 것이나 직접 만든 것 등)에는 모니터가 없으므로 `{{local.components.alert-on-create-1.returnValues.model.monitor.name}}` 은(는) 줄 값이 없습니다. 메시지에서는 그 자리에 아무것도 없고, JSON에서 단독 값으로는 `null` 입니다. 아무도 쓰지 않은 설명, 레코드에 없는 사용자 지정 필드, 레코드를 찾지 못한 **Find One**, 그 항목이 없는 목록, 블록이 넘기지 않는 필드도 마찬가지이며, 블록이 넘기지 않는 필드의 경우 **넘겨줄 필드** 에 무엇을 추가할지 알려 주는 경고도 단계에 표시됩니다. URL과 레코드를 읽거나 쓰는 블록은 예외입니다. 비어 있으면 블록이 작용하는 대상이 달라지므로 거기서는 참조가 그대로 남고, ID는 블록을 멈춥니다. 다른 경로로 가려면 **조건 분기** 의 **비어 있음** 조건으로 값을 확인하세요. 경고의 원인인 SLO를 표시하려면 그 이름을 넘기고 `{{#each local.components.alert-on-create-1.returnValues.model.serviceLevelObjectives}}{{name}}{{/each}}` 를 사용하세요.
 - **문제 패널은 변수 이름을 확인할 수 없습니다.** 맞출 수 없는 구성 요소 참조 — 알 수 없는 단계 ID, 알 수 없는 반환 값, 잘못된 루트 — 는 저장하기 전에 표시하지만, 변수가 존재하는지는 볼 수 없습니다. 블록의 설정은 볼 수 있습니다. 없는 변수에 대한 참조는 거기서 주황색 칩으로 표시됩니다. 그 밖에는 이름이 바뀐 변수를 실행의 로그만 잡아냅니다.
 - **중괄호 안의 공백은 제거되지 않습니다.** `{{ local.variables.NAME }}` 은 `{{local.variables.NAME}}` 과 다른 조회이며 절대 확인되지 않습니다. 유일한 예외는 `{{#each}}` 블록 안으로, 거기서는 이름의 공백이 제거됩니다.
 

@@ -3,7 +3,7 @@
 Invia gli avvisi di [Prometheus Alertmanager](https://prometheus.io/docs/alerting/latest/alertmanager/) a OneUptime, così ogni avviso che scatta diventa un incidente che chiama il tuo team reperibile e si risolve quando l'avviso rientra. Alertmanager pubblica le sue notifiche su un ricevitore webhook, quindi non c'è nulla da installare né da una parte né dall'altra.
 
 :::cards
-- [Scegliere come OneUptime riceve gli avvisi](#scegliere-come-oneuptime-riceve-gli-avvisi): Un monitor di richieste in arrivo o un workflow tuo.
+- [Scegliere come OneUptime riceve gli avvisi](#scegliere-come-oneuptime-riceve-gli-avvisi): Un monitor di richieste in arrivo o un flusso di lavoro tuo.
 - [Ricevere gli avvisi con un monitor](#ricevere-gli-avvisi-con-un-monitor): Un incidente per avviso, risolto al rientro.
 - [Configurare Alertmanager](#configurare-alertmanager): Un ricevitore webhook e la route che lo usa.
 - [Risoluzione dei problemi](#risoluzione-dei-problemi): Quando gli avvisi non arrivano o gli incidenti restano aperti.
@@ -25,7 +25,7 @@ Prometheus valuta le tue regole di avviso e invia ad Alertmanager gli avvisi che
 ## Prima di iniziare
 
 - Un Alertmanager di cui puoi modificare `alertmanager.yml` e che può raggiungere il tuo OneUptime via HTTPS.
-- In OneUptime, il permesso di creare monitor, o workflow se scegli quella strada.
+- In OneUptime, il permesso di creare monitor, o flussi di lavoro se scegli quella strada.
 
 ## Scegliere come OneUptime riceve gli avvisi
 
@@ -34,7 +34,7 @@ Configura prima OneUptime: ti dà l'URL a cui invia Alertmanager.
 | Strada | Usala quando |
 | --- | --- |
 | Un monitor di richieste in arrivo (consigliato) | Vuoi che ogni avviso sia un incidente che chiama la reperibilità e si risolve quando l'avviso rientra. Non c'è nulla da costruire. |
-| Un workflow con un trigger Webhook | Ti serve una logica tua: filtrare gli avvisi, rimodellarli o chiamare prima altri sistemi. Un workflow apre un incidente per notifica, non per avviso, e non lo risolve al rientro. |
+| Un flusso di lavoro con un trigger Webhook | Ti serve una logica tua: filtrare gli avvisi, rimodellarli o chiamare prima altri sistemi. Un flusso di lavoro apre un incidente per notifica, non per avviso, e non lo risolve al rientro. |
 
 Entrambi ricevono lo stesso JSON dallo stesso ricevitore, quindi puoi iniziare con uno e passare all'altro in seguito cambiando un URL in `alertmanager.yml`.
 
@@ -178,12 +178,12 @@ amtool alert add test_alert severity=warning \
   --alertmanager.url=http://localhost:9093
 ```
 
-## Ricevere gli avvisi con un workflow
+## Ricevere gli avvisi con un flusso di lavoro
 
-Usa un [workflow](/docs/workflows/index) quando ti servono passaggi tuoi tra Alertmanager e l'incidente.
+Usa un [flusso di lavoro](/docs/workflows/index) quando ti servono passaggi tuoi tra Alertmanager e l'incidente.
 
 :::steps
-### Creare il workflow
+### Creare il flusso di lavoro
 
 Vai su **Flussi di lavoro**, fai clic su **Crea flusso di lavoro**, poi su **Parti da zero**. Chiamalo `Alertmanager alerts` e fai clic su **Crea flusso di lavoro**.
 
@@ -193,11 +193,11 @@ Fai clic sul blocco tratteggiato **Scegli cosa avvia questo flusso di lavoro** e
 
 ### Verificare che la notifica stia scattando
 
-Fai clic su **Aggiungi componente**, aggiungi un blocco **If / Else** e collegaci il punto **Out** del trigger. Imposta **Value to check** su `{{local.components.webhook-1.returnValues.request-body.status}}`, **Comparison** su **is equal to** e **Compare with** su `firing`.
+Fai clic su **Aggiungi componente**, aggiungi un blocco **Se / Altrimenti** e collegaci il punto **Uscita** del trigger. Imposta **Valore da verificare** su `{{local.components.webhook-1.returnValues.request-body.status}}`, **Confronto** su **è uguale a** e **Confronta con** su `firing`.
 
 ### Dichiarare l'incidente
 
-Aggiungi un blocco **Create One Incident** e collegaci il lato **Yes** del blocco **If / Else**. In **Incident Template**, scegli un modello che imposti la gravità e le policy di reperibilità da chiamare (vedi [Modelli di incidenti](/docs/incidents/settings#modelli-di-incidenti)). In **JSON Object**, imposta ciò che arriva da Alertmanager:
+Aggiungi un blocco **Crea: Incidente (un record)** e collegaci il lato **Sì** del blocco **Se / Altrimenti**. In **Modello di incidente**, scegli un modello che imposti la gravità e le policy di reperibilità da chiamare (vedi [Modelli di incidenti](/docs/incidents/settings#modelli-di-incidenti)). In **Oggetto JSON**, imposta ciò che arriva da Alertmanager:
 
 ```json
 {
@@ -206,14 +206,14 @@ Aggiungi un blocco **Create One Incident** e collegaci il lato **Yes** del blocc
 }
 ```
 
-Senza un modello, **JSON Object** deve contenere anche `incidentSeverityId`, l'ID di una delle gravità d'incidente del progetto.
+Senza un modello, **Oggetto JSON** deve contenere anche `incidentSeverityId`, l'ID di una delle gravità d'incidente del progetto.
 
-### Attivare il workflow
+### Attivare il flusso di lavoro
 
-Attiva **Abilitato** in cima al **Costruttore**. Un workflow disattivato risponde ad Alertmanager con `400`.
+Attiva **Abilitato** in cima al **Costruttore**. Un flusso di lavoro disattivato risponde ad Alertmanager con `400`.
 :::
 
-Un'esecuzione gestisce una notifica, quindi dichiara un solo incidente, qualunque sia il numero di avvisi della notifica. Una notifica `resolved` prende il lato **No** del blocco **If / Else**, dove non è collegato nulla, quindi l'esecuzione finisce lì. Per un incidente per avviso, risolto al rientro, usa il monitor.
+Un'esecuzione gestisce una notifica, quindi dichiara un solo incidente, qualunque sia il numero di avvisi della notifica. Una notifica `resolved` prende il lato **No** del blocco **Se / Altrimenti**, dove non è collegato nulla, quindi l'esecuzione finisce lì. Per un incidente per avviso, risolto al rientro, usa il monitor.
 
 ## Sorvegliare Alertmanager stesso
 
@@ -258,7 +258,7 @@ Quando l'avviso watchdog non arriva da dieci minuti, il monitor watchdog va offl
 :::details Non arriva nulla in OneUptime
 - Cerca nel log di Alertmanager gli errori di consegna al ricevitore.
 - Il monitor risponde `200` subito, prima di controllare qualsiasi cosa, anche con una chiave segreta errata. Guarda la timeline del monitor per vedere se le notifiche arrivano.
-- Un workflow disattivato risponde `400`. Attiva **Abilitato** in cima al suo **Costruttore**.
+- Un flusso di lavoro disattivato risponde `400`. Attiva **Abilitato** in cima al suo **Costruttore**.
 :::
 
 :::details Gli incidenti si aprono ma non vengono mai risolti
@@ -291,7 +291,7 @@ Quando una richiesta più recente raggiunge un monitor prima che ne venga valuta
 
 ## Sicurezza
 
-- **Tratta l'URL come una password.** Chiunque lo abbia può aprire incidenti. Se trapela, reimpostalo: **Reimposta la chiave segreta della richiesta in arrivo** nella pagina **Impostazioni** del monitor, o **Reimposta URL** nel trigger **Webhook** del workflow. Poi aggiorna l'`url` del ricevitore in `alertmanager.yml`.
+- **Tratta l'URL come una password.** Chiunque lo abbia può aprire incidenti. Se trapela, reimpostalo: **Reimposta la chiave segreta della richiesta in arrivo** nella pagina **Impostazioni** del monitor, o **Reimposta URL** nel trigger **Webhook** del flusso di lavoro. Poi aggiorna l'`url` del ricevitore in `alertmanager.yml`.
 - **Self-hosted?** Consenti ad Alertmanager di raggiungere il tuo OneUptime via HTTPS attraverso il tuo firewall.
 
 ## Prossimi passi

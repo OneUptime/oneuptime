@@ -1,5 +1,6 @@
 import * as grpc from "@grpc/grpc-js";
 import * as protoLoader from "@grpc/proto-loader";
+import fs from "fs";
 import path from "path";
 import protobuf from "protobufjs";
 import { Readable } from "stream";
@@ -34,7 +35,16 @@ import TelemetryFanInWriter, {
 } from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
 import Dictionary from "Common/Types/Dictionary";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
-import LogSeverity from "Common/Types/Log/LogSeverity";
+import LogSeverity, {
+  LOG_SEVERITY_NUMBER_BY_TEXT,
+} from "Common/Types/Log/LogSeverity";
+import {
+  LOG_SEVERITY_WORDS,
+  LogSeverityWord,
+  OTHER_LOGGER_WORDS,
+  WORDS_THAT_NAME_NOTHING,
+  spellingsOf,
+} from "./Helpers/LogSeverityWords";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import ObjectID from "Common/Types/ObjectID";
 import TelemetryIngestionKeyPolicy from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
@@ -893,5 +903,634 @@ describe("OTLP log severity wire-format round trip (GH#3978)", () => {
         })
         .sort(),
     );
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * A record that sets only its severityText (issue #8248).
+ *
+ * The OpenTelemetry Logs Data Model makes severityNumber and severityText
+ * both optional, and some senders set only the text: a Node.js app that
+ * emits { severityText: "INFO", body }, a log shipper that maps a level field
+ * to the text alone. Ingest read only the number, so a record sent with
+ * severityText "ERROR" and no number was stored as Unspecified: missing from
+ * an Error filter, and from every alert on error logs.
+ *
+ * Now the text names the severity when the record sets no number - the
+ * spec's short names and their numbered steps, and the spellings other
+ * logging systems write, in any case - and the number still wins when both
+ * are set. Every case goes through the same three producer routes as above.
+ * ---------------------------------------------------------------------------
+ */
+
+// A record with the severityNumber and severityText given; undefined leaves a field out.
+function logRecordWithText(data: {
+  severityNumber?: unknown;
+  severityText?: unknown;
+  bodySeverity: number;
+}): JSONObject {
+  return {
+    timeUnixNano: TIME_UNIX_NANO,
+    ...(data.severityNumber === undefined
+      ? {}
+      : { severityNumber: data.severityNumber as number }),
+    ...(data.severityText === undefined
+      ? {}
+      : { severityText: data.severityText as string }),
+    body: { stringValue: probeBody(data.bodySeverity) },
+  };
+}
+
+// The severity each short name or numbered step of the spec stands for.
+const SEVERITY_TEXT_CASES: Array<SeverityCase> = SEVERITY_CASES.filter(
+  (severity: SeverityCase): boolean => {
+    return severity.number > 0;
+  },
+).map((severity: SeverityCase): SeverityCase => {
+  // SEVERITY_NUMBER_WARN2 -> WARN2: the text the spec gives each step.
+  return { ...severity, name: severity.name.replace("SEVERITY_NUMBER_", "") };
+});
+
+/*
+ * The spellings other logging systems write, as the spec's table of example
+ * mappings (Logs Data Model, Appendix B) maps them to a SeverityNumber: the
+ * table every log ingest reads (issue #8425), written out by hand in
+ * Helpers/LogSeverityWords - Fluent ingest and the remapper are held to
+ * the same one. `critical` is FATAL there, not ERROR2 (the helper and
+ * LOG_SEVERITY_NUMBER_BY_TEXT say why).
+ */
+const OTHER_SPELLINGS: Array<[string, number, LogSeverity]> =
+  OTHER_LOGGER_WORDS.map(
+    (word: LogSeverityWord): [string, number, LogSeverity] => {
+      return [word.word, word.severityNumber, word.severity];
+    },
+  );
+
+// Text that names no severity: stored as Unspecified, as before.
+const TEXT_THAT_NAMES_NOTHING: Array<[string, unknown]> = [
+  ["an empty text", ""],
+  ["spaces", "   "],
+  ["a word that is no level", "DETAIL"],
+  ["another word that is no level", "LOG"],
+  ["a single letter", "E"],
+  ["a step past the fourth", "INFO5"],
+  ["a step before the second", "WARN1"],
+  ["step zero", "ERROR0"],
+  ["the enum name, a number's name and not a text", "SEVERITY_NUMBER_ERROR"],
+  ["a level inside other words", "ERROR: disk full"],
+  ["a level with punctuation", "[ERROR]"],
+  ["the word Unspecified", "UNSPECIFIED"],
+  ["an Object.prototype key", "constructor"],
+  ["another Object.prototype key", "toString"],
+  ["a number", 17],
+  ["null", null],
+  ["a boolean", true],
+  ["an object", { value: "ERROR" }],
+  ["an array", ["ERROR"]],
+];
+
+async function ingestOverHttpJson(records: Array<JSONObject>): Promise<void> {
+  await ingestDecodedBody(
+    await decodeJob(
+      await postOverHttp(
+        Buffer.from(JSON.stringify(otlpJsonRequest(records)), "utf-8"),
+        "application/json",
+      ),
+    ),
+  );
+}
+
+function resetRows(): void {
+  logRows = [];
+  exceptionRows = [];
+  exceptionUpserts = [];
+  mockEnqueuedJobs.length = 0;
+}
+
+function routeMatrix(): Array<[string, number]> {
+  return ROUTES.map((route: Route, routeIndex: number): [string, number] => {
+    return [route.label, routeIndex];
+  });
+}
+
+describe("a record that sets only its severityText (issue #8248)", () => {
+  describe("every short name and numbered step the spec gives, through every producer", () => {
+    const matrix: Array<[string, string, number, number, SeverityCase]> = [];
+    ROUTES.forEach((route: Route, routeIndex: number) => {
+      for (const severity of SEVERITY_TEXT_CASES) {
+        matrix.push([
+          route.label,
+          severity.name,
+          severity.number,
+          routeIndex,
+          severity,
+        ]);
+      }
+    });
+
+    test.each(matrix)(
+      "%s: severityText %s with no severityNumber is stored as %i and its level",
+      async (
+        _label: string,
+        _name: string,
+        _number: number,
+        routeIndex: number,
+        severity: SeverityCase,
+      ) => {
+        const body: JSONObject = await ROUTES[routeIndex]!.decode(
+          otlpJsonRequest([
+            logRecordWithText({
+              severityText: severity.name,
+              bodySeverity: severity.number,
+            }),
+          ]),
+        );
+        // The decoder hands the text on, and no number but UNSPECIFIED.
+        expect(decodedRecords(body)[0]!["severityText"]).toBe(severity.name);
+        expect(
+          OtelLogsIngestService.normalizeSeverityNumber(
+            decodedRecords(body)[0]!["severityNumber"],
+          ),
+        ).toBe(0);
+
+        await ingestDecodedBody(body);
+
+        expectStoredSeverity({
+          severityNumber: severity.number,
+          text: severity.text,
+          bodyScanned: severity.bodyScanned,
+          bodySeverity: severity.number,
+        });
+      },
+    );
+  });
+
+  describe("every other logger's spelling, through every producer (issue #8425)", () => {
+    const matrix: Array<[string, string, number, LogSeverity, number]> = [];
+    ROUTES.forEach((route: Route, routeIndex: number) => {
+      for (const [spelling, severityNumber, text] of OTHER_SPELLINGS) {
+        matrix.push([route.label, spelling, severityNumber, text, routeIndex]);
+      }
+    });
+
+    test.each(matrix)(
+      "%s: severityText %s with no severityNumber is stored as %i (%s)",
+      async (
+        _label: string,
+        spelling: string,
+        severityNumber: number,
+        text: LogSeverity,
+        routeIndex: number,
+      ) => {
+        await ingestDecodedBody(
+          await ROUTES[routeIndex]!.decode(
+            otlpJsonRequest([
+              logRecordWithText({
+                severityText: spelling,
+                bodySeverity: severityNumber,
+              }),
+            ]),
+          ),
+        );
+
+        expectStoredSeverity({
+          severityNumber: severityNumber,
+          text: text,
+          bodyScanned: severityNumber >= 17,
+          bodySeverity: severityNumber,
+        });
+      },
+    );
+  });
+
+  /*
+   * The words the issue found the paths disagreeing on: `{"level":
+   * "critical"}` was Fatal through Fluent Bit and Error as an OTLP
+   * severityText. Now Fatal both ways, and scanned for an exception as any
+   * Fatal record is.
+   */
+  test.each([
+    ["critical", 21, LogSeverity.Fatal],
+    ["CRITICAL", 21, LogSeverity.Fatal],
+    ["crit", 18, LogSeverity.Error],
+    ["fatal", 21, LogSeverity.Fatal],
+    ["emergency", 21, LogSeverity.Fatal],
+    ["notice", 10, LogSeverity.Information],
+  ])(
+    "%s, a word Fluent and OTLP used to store differently, is stored as %i (%s)",
+    async (written: string, severityNumber: number, text: LogSeverity) => {
+      await ingestOverHttpJson([
+        logRecordWithText({
+          severityText: written,
+          bodySeverity: severityNumber,
+        }),
+      ]);
+
+      expectStoredSeverity({
+        severityNumber: severityNumber,
+        text: text,
+        bodyScanned: severityNumber >= 17,
+        bodySeverity: severityNumber,
+      });
+    },
+  );
+
+  test.each(OTHER_SPELLINGS)(
+    "the spelling %s is stored as %i (%s), in any case and with spaces around it",
+    async (spelling: string, severityNumber: number, text: LogSeverity) => {
+      for (const written of [
+        spelling,
+        spelling.toUpperCase(),
+        `${spelling.charAt(0).toUpperCase()}${spelling.slice(1)}`,
+        ` ${spelling}\t`,
+      ]) {
+        resetRows();
+
+        await ingestOverHttpJson([
+          logRecordWithText({
+            severityText: written,
+            bodySeverity: severityNumber,
+          }),
+        ]);
+
+        expectStoredSeverity({
+          severityNumber: severityNumber,
+          text: text,
+          bodyScanned: severityNumber >= 17,
+          bodySeverity: severityNumber,
+        });
+      }
+    },
+  );
+
+  test.each([
+    ["info", 9, LogSeverity.Information],
+    ["Warn", 13, LogSeverity.Warning],
+    ["error", 17, LogSeverity.Error],
+    ["eRrOr3", 19, LogSeverity.Error],
+    ["fatal4", 24, LogSeverity.Fatal],
+    ["trace2", 2, LogSeverity.Trace],
+    [" DEBUG ", 5, LogSeverity.Debug],
+  ])(
+    "a short name in any case, %p, is stored as %i (%s)",
+    async (written: string, severityNumber: number, text: LogSeverity) => {
+      await ingestOverHttpJson([
+        logRecordWithText({
+          severityText: written,
+          bodySeverity: severityNumber,
+        }),
+      ]);
+
+      expectStoredSeverity({
+        severityNumber: severityNumber,
+        text: text,
+        bodyScanned: severityNumber >= 17,
+        bodySeverity: severityNumber,
+      });
+    },
+  );
+
+  test.each(TEXT_THAT_NAMES_NOTHING)(
+    "%s (%p) with no severityNumber is stored as 0 / Unspecified, and not scanned",
+    async (_label: string, written: unknown) => {
+      await ingestOverHttpJson([
+        logRecordWithText({ severityText: written, bodySeverity: 21 }),
+      ]);
+
+      expectStoredSeverity({
+        severityNumber: 0,
+        text: LogSeverity.Unspecified,
+        bodyScanned: false,
+        bodySeverity: 21,
+      });
+    },
+  );
+
+  describe("with a severityNumber too, the number wins", () => {
+    test.each(routeMatrix())(
+      "%s: INFO (9) with severityText ERROR is stored as 9 / Information, and not scanned",
+      async (_label: string, routeIndex: number) => {
+        await ingestDecodedBody(
+          await ROUTES[routeIndex]!.decode(
+            otlpJsonRequest([
+              logRecordWithText({
+                severityNumber: 9,
+                severityText: "ERROR",
+                bodySeverity: 9,
+              }),
+            ]),
+          ),
+        );
+
+        expectStoredSeverity({
+          severityNumber: 9,
+          text: LogSeverity.Information,
+          bodyScanned: false,
+          bodySeverity: 9,
+        });
+      },
+    );
+
+    test.each(routeMatrix())(
+      "%s: ERROR2 (18) with severityText INFO is stored as 18 / Error, and scanned",
+      async (_label: string, routeIndex: number) => {
+        await ingestDecodedBody(
+          await ROUTES[routeIndex]!.decode(
+            otlpJsonRequest([
+              logRecordWithText({
+                severityNumber: 18,
+                severityText: "INFO",
+                bodySeverity: 18,
+              }),
+            ]),
+          ),
+        );
+
+        expectStoredSeverity({
+          severityNumber: 18,
+          text: LogSeverity.Error,
+          bodyScanned: true,
+          bodySeverity: 18,
+        });
+      },
+    );
+
+    test("a number spelled as its enum name wins over the text as well", async () => {
+      await ingestOverHttpJson([
+        logRecordWithText({
+          severityNumber: "SEVERITY_NUMBER_WARN",
+          severityText: "FATAL",
+          bodySeverity: 13,
+        }),
+      ]);
+
+      expectStoredSeverity({
+        severityNumber: 13,
+        text: LogSeverity.Warning,
+        bodyScanned: false,
+        bodySeverity: 13,
+      });
+    });
+
+    test("an explicit UNSPECIFIED number (0) is no number: the text names the severity", async () => {
+      await ingestOverHttpJson([
+        logRecordWithText({
+          severityNumber: 0,
+          severityText: "WARN",
+          bodySeverity: 13,
+        }),
+      ]);
+
+      expectStoredSeverity({
+        severityNumber: 13,
+        text: LogSeverity.Warning,
+        bodyScanned: false,
+        bodySeverity: 13,
+      });
+    });
+
+    test("so is SEVERITY_NUMBER_UNSPECIFIED, the name protobuf and gRPC give 0", async () => {
+      await ingestOverHttpJson([
+        logRecordWithText({
+          severityNumber: "SEVERITY_NUMBER_UNSPECIFIED",
+          severityText: "ERROR",
+          bodySeverity: 17,
+        }),
+      ]);
+
+      expectStoredSeverity({
+        severityNumber: 17,
+        text: LogSeverity.Error,
+        bodyScanned: true,
+        bodySeverity: 17,
+      });
+    });
+
+    test("a number no SeverityNumber is (25) is no number either: the text names the severity", async () => {
+      await ingestOverHttpJson([
+        logRecordWithText({
+          severityNumber: 25,
+          severityText: "error",
+          bodySeverity: 17,
+        }),
+      ]);
+
+      expectStoredSeverity({
+        severityNumber: 17,
+        text: LogSeverity.Error,
+        bodyScanned: true,
+        bodySeverity: 17,
+      });
+    });
+  });
+
+  test("with neither field the record is stored as 0 / Unspecified, as before", async () => {
+    await ingestOverHttpJson([logRecordWithText({ bodySeverity: 21 })]);
+
+    expectStoredSeverity({
+      severityNumber: 0,
+      text: LogSeverity.Unspecified,
+      bodyScanned: false,
+      bodySeverity: 21,
+    });
+  });
+
+  test("a mixed batch keeps each record's own severity: number only, text only, both and neither", async () => {
+    await ingestOverHttpJson([
+      logRecordWithText({ severityNumber: 13, bodySeverity: 1 }),
+      logRecordWithText({ severityText: "ERROR", bodySeverity: 2 }),
+      logRecordWithText({
+        severityNumber: 5,
+        severityText: "FATAL",
+        bodySeverity: 3,
+      }),
+      logRecordWithText({ bodySeverity: 4 }),
+      logRecordWithText({ severityText: "notice", bodySeverity: 5 }),
+    ]);
+
+    expect(
+      logRows.map((row: JSONObject) => {
+        return [row["severityNumber"], row["severityText"]];
+      }),
+    ).toEqual([
+      [13, LogSeverity.Warning],
+      [17, LogSeverity.Error],
+      [5, LogSeverity.Debug],
+      [0, LogSeverity.Unspecified],
+      [10, LogSeverity.Information],
+    ]);
+    // Only the record its text made an ERROR is scanned for a stack trace.
+    expect(
+      exceptionRows.map((row: JSONObject) => {
+        return row["message"];
+      }),
+    ).toEqual(["severity probe 2"]);
+  });
+
+  describe("severityNumberFromText", () => {
+    test("names every SeverityNumber from 1 to 24 by its short name or numbered step, in either case", () => {
+      expect(SEVERITY_TEXT_CASES).toHaveLength(24);
+
+      for (const severity of SEVERITY_TEXT_CASES) {
+        expect([
+          OtelLogsIngestService.severityNumberFromText(severity.name),
+          OtelLogsIngestService.severityNumberFromText(
+            severity.name.toLowerCase(),
+          ),
+        ]).toEqual([severity.number, severity.number]);
+      }
+    });
+
+    test.each(OTHER_SPELLINGS)(
+      "%s -> %i",
+      (spelling: string, severityNumber: number) => {
+        expect(OtelLogsIngestService.severityNumberFromText(spelling)).toBe(
+          severityNumber,
+        );
+      },
+    );
+
+    test.each(TEXT_THAT_NAMES_NOTHING)(
+      "%s (%p) -> 0",
+      (_label: string, written: unknown) => {
+        expect(OtelLogsIngestService.severityNumberFromText(written)).toBe(0);
+      },
+    );
+
+    test("undefined -> 0", () => {
+      expect(OtelLogsIngestService.severityNumberFromText(undefined)).toBe(0);
+    });
+
+    test("reads the one table every log ingest reads, and that table is the hand-written one, word for word", () => {
+      expect(Array.from(LOG_SEVERITY_NUMBER_BY_TEXT.entries()).sort()).toEqual(
+        LOG_SEVERITY_WORDS.map((word: LogSeverityWord): [string, number] => {
+          return [word.word.toUpperCase(), word.severityNumber];
+        }).sort(),
+      );
+
+      for (const word of LOG_SEVERITY_WORDS) {
+        for (const written of spellingsOf(word.word)) {
+          expect({
+            written,
+            severityNumber:
+              OtelLogsIngestService.severityNumberFromText(written),
+          }).toEqual({ written, severityNumber: word.severityNumber });
+        }
+      }
+
+      for (const [, written] of WORDS_THAT_NAME_NOTHING) {
+        expect({
+          written,
+          severityNumber: OtelLogsIngestService.severityNumberFromText(written),
+        }).toEqual({ written, severityNumber: 0 });
+      }
+    });
+
+    /*
+     * The Logs monitor page tells people which texts name a severity
+     * (### Log severity). Every one it names, in every language's page, is
+     * one this maps - and every page names the same ones.
+     */
+    test("names a severity for every text the Logs monitor page lists, in every language", () => {
+      const docsDir: string = path.resolve(
+        __dirname,
+        "..",
+        "..",
+        "FeatureSet",
+        "Docs",
+        "Content",
+      );
+      const languages: Array<string> = fs
+        .readdirSync(docsDir)
+        .filter((language: string): boolean => {
+          return fs.existsSync(
+            path.join(docsDir, language, "monitor", "logs-monitor.md"),
+          );
+        });
+
+      expect(languages).toContain("en");
+      expect(languages.length).toBeGreaterThan(1);
+
+      const namedIn: (language: string) => Array<string> = (
+        language: string,
+      ): Array<string> => {
+        const page: string = fs.readFileSync(
+          path.join(docsDir, language, "monitor", "logs-monitor.md"),
+          "utf-8",
+        );
+        const paragraph: string | undefined = page
+          .split("\n")
+          .find((line: string): boolean => {
+            return line.includes("`WARN2`");
+          });
+
+        expect({ language, found: Boolean(paragraph) }).toEqual({
+          language,
+          found: true,
+        });
+
+        return Array.from(
+          (paragraph as string).matchAll(/`([^`]+)`/g),
+          (match: RegExpMatchArray): string => {
+            return match[1] as string;
+          },
+        );
+      };
+
+      const named: Array<string> = namedIn("en");
+
+      expect(named).toEqual([
+        "TRACE",
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "FATAL",
+        "WARN2",
+        "warning",
+        "notice",
+        "critical",
+        "emerg",
+      ]);
+
+      for (const written of named) {
+        expect({
+          written,
+          named: OtelLogsIngestService.severityNumberFromText(written) > 0,
+        }).toEqual({ written, named: true });
+      }
+
+      for (const language of languages) {
+        expect({ language, named: namedIn(language) }).toEqual({
+          language,
+          named,
+        });
+      }
+    });
+
+    test("every number it gives is a SeverityNumber from 1 to 24, so the row's text and number agree", () => {
+      for (const written of [
+        ...SEVERITY_TEXT_CASES.map((severity: SeverityCase): string => {
+          return severity.name;
+        }),
+        ...OTHER_SPELLINGS.map(
+          (spelling: [string, number, LogSeverity]): string => {
+            return spelling[0];
+          },
+        ),
+      ]) {
+        const severityNumber: number =
+          OtelLogsIngestService.severityNumberFromText(written);
+
+        expect({ written, severityNumber }).toEqual({
+          written,
+          severityNumber:
+            OtelLogsIngestService.normalizeSeverityNumber(severityNumber),
+        });
+        expect(severityNumber).toBeGreaterThanOrEqual(1);
+        expect(severityNumber).toBeLessThanOrEqual(24);
+      }
+    });
   });
 });

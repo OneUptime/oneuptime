@@ -85,7 +85,8 @@ interface AllowedRepeatedButton {
 const ALLOWED_REPEATED_FILLED_BUTTONS: Array<AllowedRepeatedButton> = [
   {
     file: "packages/App/FeatureSet/Dashboard/src/Components/DataObservability/DataAlertExplanationCard.tsx",
-    label: "button.feedback",
+    // Titled by each answer's words (Useful, Expected), not its stored value.
+    label: "button.label",
     reason:
       "A choice of one answer, not a list of actions: only the answer the alert already has is drawn filled.",
   },
@@ -166,7 +167,8 @@ const EXPECTED_ENTERPRISE_DIALOGS: Array<{ file: string; title: string }> = [
   },
   {
     file: "ee/AdminDashboard/Health/BackgroundQueues.tsx",
-    title: "Failed jobs · … queue",
+    // Its English key: the walk reads a Translator's first argument.
+    title: "Failed jobs · {{queue}} queue",
   },
 ];
 

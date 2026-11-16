@@ -47,13 +47,13 @@ stateDiagram-v2
 | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Geplant**                         | Der Trigger hat ausgelöst, und die Ausführung wartet in der Warteschlange auf einen Runner. Meist ein Bruchteil einer Sekunde. Eine Ausführung, die nach 5 Minuten noch geplant ist, schlägt fehl: Nichts hat sie übernommen.                                  |
 | **Wird ausgeführt**                 | Der Workflow läuft gerade.                                                                                                                                                                                                                                        |
-| **Wartet**                          | Die Ausführung parkt an einem **Sleep**-Baustein und setzt von selbst fort. Während sie wartet, belegt sie keinen Worker.                                                                                                                                        |
+| **Wartet**                          | Die Ausführung parkt an einem **Pause**-Baustein und setzt von selbst fort. Während sie wartet, belegt sie keinen Worker.                                                                                                                                        |
 | **Ausgeführt**                      | Die Ausführung hat das Ende erreicht, ohne fehlzuschlagen. Das ist der Erfolgsstatus: Die Pille zeigt **Ausgeführt**, nicht "Erfolg".                                                                                                                             |
-| **Fehler**                          | Ein Baustein hat die Ausführung gestoppt oder ist fehlgeschlagen, ohne dass etwas mit seinem Ausgang **Error** verbunden war. Auch verwendet, wenn eine eingereihte Ausführung nie übernommen wird, wenn die Fortsetzung einer schlafenden Ausführung verloren geht, wenn sich ein Zeitplanausdruck nicht auflösen lässt und wenn der Workflow ausgeschaltet oder archiviert wurde, während die Ausführung an einem **Sleep**-Baustein wartete. |
+| **Fehler**                          | Ein Baustein hat die Ausführung gestoppt oder ist fehlgeschlagen, ohne dass etwas mit seinem Ausgang **Fehler** verbunden war. Auch verwendet, wenn eine eingereihte Ausführung nie übernommen wird, wenn die Fortsetzung einer schlafenden Ausführung verloren geht, wenn sich ein Zeitplanausdruck nicht auflösen lässt und wenn der Workflow ausgeschaltet oder archiviert wurde, während die Ausführung an einem **Pause**-Baustein wartete. |
 | **Zeitüberschreitung**              | Die Ausführung hat länger gedauert als erlaubt: standardmäßig 2 Minuten. Siehe [Wie lange eine Ausführung dauern darf](/docs/workflows/configuration#wie-lange-eine-ausführung-dauern-darf).                                                                                   |
 | **Ausführung überschreitet aktuellen Tarif** | Das Projekt hat seine Workflow-Ausführungen für die letzten 30 Tage aufgebraucht, oder das Abonnement ist unbezahlt. Die Ausführung wird aufgezeichnet, aber nicht ausgeführt. Nur OneUptime Cloud.                                                               |
 
-Ein Baustein, der seinen Ausgang **Error** nimmt – etwa ein API-Baustein, der eine 4xx-Antwort bekommt –, lässt die Ausführung nur fehlschlagen, wenn mit **Error** nichts verbunden ist. Sind dort Bausteine verbunden, laufen sie, und die Ausführung kann trotzdem mit **Ausgeführt** enden. Ist nichts verbunden, läuft der Rest der Ausführung weiter, dann endet sie mit **Fehler**, und die letzte Zeile ihres **Full Log** nennt den Baustein. So oder so wird der Schritt selbst rot gezeichnet, damit Sie ihn finden.
+Ein Baustein, der seinen Ausgang **Fehler** nimmt – etwa ein API-Baustein, der eine 4xx-Antwort bekommt –, lässt die Ausführung nur fehlschlagen, wenn mit **Fehler** nichts verbunden ist. Sind dort Bausteine verbunden, laufen sie, und die Ausführung kann trotzdem mit **Ausgeführt** enden. Ist nichts verbunden, läuft der Rest der Ausführung weiter, dann endet sie mit **Fehler**, und die letzte Zeile ihres **Full Log** nennt den Baustein. So oder so wird der Schritt selbst rot gezeichnet, damit Sie ihn finden.
 
 ## Eine Ausführung lesen
 
@@ -81,7 +81,7 @@ Einige Ausführungen lesen sich anders:
 - **Ein Testlauf.** Eine Ausführung, die jemand mit **Arbeitsablauf ausführen** oder **Nur diesen Schritt ausführen** gestartet hat, während der Workflow aus war, zeigt oben **Testlauf**, mit dem, der sie gestartet hat, und beide Listen der Ausführungen markieren sie neben ihrem Status als **Testlauf**. Ihre Bausteine liefen wirklich; nur der Trigger des Workflows war pausiert. Filtern Sie nach **Testlauf**, um nur die Testläufe aufzulisten, oder nur die anderen.
 - **Ein Test eines einzelnen Schritts.** Eine mit **Nur diesen Schritt ausführen** gestartete Ausführung zeigt oben **Nur dieser Schritt wurde ausgeführt**. Die Schritte davor liefen nicht, daher fehlen Werte, die er aus ihnen liest (rechnen Sie dafür mit einer Warnung **Nicht behoben**), und die Schritte danach zeigen **(not run in this test)**. Verwenden Sie **Arbeitsablauf ausführen**, um den ganzen Pfad auszuprobieren.
 - **Eine Ausführung, die zwischen Schritten stoppte.** Hat die Ausführung aus einem Grund gestoppt, den kein Schritt erklärt – sie lief zwischen zwei Schritten in einen Timeout oder schlug vor ihrem ersten Schritt fehl –, endet der Pfad mit **Die Ausführung wurde hier beendet** und dem Grund.
-- **Eine schlafende Ausführung.** Eine Ausführung, die an einem **Sleep**-Baustein wartet, endet mit **Ruhend** und der Zeit, zu der sie von selbst weitermacht; die Schritte nach dem Sleep zeigen **(not run yet)**.
+- **Eine schlafende Ausführung.** Eine Ausführung, die an einem **Pause**-Baustein wartet, endet mit **Ruhend** und der Zeit, zu der sie von selbst weitermacht; die Schritte nach dem Sleep zeigen **(not run yet)**.
 
 Die ID unter dem Titel jedes Schritts ist genau das, was in einen `{{local.components.<id>.returnValues.…}}`-Verweis gehört, was dies zum schnellsten Weg macht, einen Verweis richtig hinzubekommen.
 
@@ -89,7 +89,7 @@ Die gezeigten Werte sind das, was der Baustein erhalten hat, nachdem Variablen e
 
 ### Der Reiter Full Log
 
-Das rohe, zeilenweise Protokoll, das der Runner geschrieben hat, einschließlich allem, was die Bausteine selbst protokolliert haben, etwa der Wert eines **Log**-Bausteins oder das `console.log` eines Skripts. Verwenden Sie es, wenn der Reiter Schritte den Fehler nicht erklärt.
+Das rohe, zeilenweise Protokoll, das der Runner geschrieben hat, einschließlich allem, was die Bausteine selbst protokolliert haben, etwa der Wert eines **Protokoll**-Bausteins oder das `console.log` eines Skripts. Verwenden Sie es, wenn der Reiter Schritte den Fehler nicht erklärt.
 
 ## Eine Ausführung kopieren und herunterladen
 
@@ -110,7 +110,7 @@ Ein Download enthält nichts, was Sie nicht schon in der Ausführung lesen könn
 
 :::details Mein Workflow lief nicht
 1. Stellen Sie sicher, dass der Workflow **Aktiviert** ist: Der Schalter steht oben in seinem **Editor**, der über der Arbeitsfläche sagt, wenn der Workflow aus ist. Neue Workflows beginnen deaktiviert, und solange ein Workflow aus ist, startet ihn sein Trigger nicht: Nur **Arbeitsablauf ausführen** und **Nur diesen Schritt ausführen** tun es, als Testläufe. Ein Webhook-Aufruf an ihn bekommt HTTP 400 mit einer Meldung, wie er sich einschalten lässt.
-2. Bei einem OneUptime-Ereignis-Trigger bestätigen Sie, dass das Ereignis wirklich stattgefunden hat: Öffnen Sie den Datensatz und prüfen Sie seinen Verlauf. Ein Trigger **On Update** mit **Fields to watch** löst nur aus, wenn sich eines dieser Felder geändert hat.
+2. Bei einem OneUptime-Ereignis-Trigger bestätigen Sie, dass das Ereignis wirklich stattgefunden hat: Öffnen Sie den Datensatz und prüfen Sie seinen Verlauf. Ein Trigger **On Update** mit **Beobachtete Felder** löst nur aus, wenn sich eines dieser Felder geändert hat.
 3. Bei einem Webhook-Trigger bestätigen Sie, dass das andere System an die richtige URL sendet. Die meisten Tools protokollieren, wann sie einen Webhook senden – schauen Sie dort nach.
 4. Bei einem Zeitplan-Trigger bestätigen Sie, dass der Cron-Ausdruck zur erwarteten Zeit passt. Zeitpläne laufen in UTC.
 
@@ -121,7 +121,7 @@ Erscheint die Ausführung doch, mit dem Status **Ausführung überschreitet aktu
 Ein Baustein, der nicht läuft, ist meist ein Verdrahtungsproblem. Öffnen Sie den **Editor** und prüfen Sie:
 
 - Ist der Ausgang des früheren Bausteins mit dem Eingang dieses Bausteins verbunden?
-- Hat der frühere Baustein einen anderen Ausgang genommen als erwartet – **Error** statt **Success** oder **No** statt **Yes**? Der Reiter **Schritte** sagt, welchen Ausgang er genommen hat und wohin das führte, oder dass nichts damit verbunden ist.
+- Hat der frühere Baustein einen anderen Ausgang genommen als erwartet – **Fehler** statt **Erfolg** oder **Nein** statt **Ja**? Der Reiter **Schritte** sagt, welchen Ausgang er genommen hat und wohin das führte, oder dass nichts damit verbunden ist.
 :::
 
 :::details Ein Wert kam leer oder als {{…}}-Text an

@@ -93,7 +93,7 @@ A rule pages as soon as an alert matches it. To make it wait for working hours i
 
 A rule pages its policies' people to respond: acknowledging the page acknowledges the alert. To keep a team informed while another one responds, answer **Page the people of these policies as** under **More fields** with **Observers**. Their page says they are observers, and acknowledging it only says they have seen it: the alert is not acknowledged and nobody else's page stops. Their page goes on until one of them answers it or the alert is resolved, and in the list, the rule says under its name that it pages as observers. A policy that one matching rule pages as responders and another as observers pages responders.
 
-A rule can belong to teams. **Owning Teams**, under **More fields**, keeps it to the teams you pick: only their members and project admins can edit or delete it, and everyone else who can see rules sees it read-only. A rule no team owns can be changed by everyone who can edit on-call rules, and episode rules can belong to teams too. See [Rules owned by teams](/docs/permissions/index#rules-owned-by-teams).
+A rule can belong to teams. **Owning Teams**, under **More fields**, keeps it to the teams you pick: only their members and Project Admins can edit or delete it, and everyone else who can see rules sees it read-only. A rule no team owns can be changed by everyone who can edit on-call rules, and episode rules can belong to teams too. See [Rules owned by teams](/docs/permissions/index#rules-owned-by-teams).
 
 ## Incident rules
 
@@ -123,7 +123,7 @@ The incident takes the alert's title, description, monitor, affected resources a
 
 ## Privacy and runbook rules
 
-**Privacy Rules** make new alerts that match private, before anything else runs: only their owners and the project's admins and owners can see them. A rule has two steps: **Match**, the alerts it makes private, then **Name**, filled in as "Make alerts private". See [Private alerts](/docs/alerts/index#private-alerts).
+**Privacy Rules** make new alerts that match private, before anything else runs: only their owners, Project Admins and Project Owners can see them. A rule has two steps: **Match**, the alerts it makes private, then **Name**, filled in as "Make alerts private". See [Private alerts](/docs/alerts/index#private-alerts).
 
 **Runbook Rules** start a runbook when a new alert matches, unless the alert was created resolved. See [Runbook Rules](/docs/runbooks/rules).
 

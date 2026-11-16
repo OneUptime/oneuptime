@@ -16,11 +16,11 @@
 
 ```mermaid title="Én arbeidsflyt, ett GitLab-issue"
 flowchart TB
-    declared["Hendelse erklært"] --> workflow["Arbeidsflyt:<br/>On Create Incident"]
+    declared["Hendelse erklært"] --> workflow["Arbeidsflyt:<br/>Ved oppretting:<br/>Hendelse"]
     workflow -->|"POST issues"| issue["GitLab-issue"]
 ```
 
-Arbeidsflyten kjører én gang for hver ny hendelse. Blokken **API Post (JSON)** sender tittelen og beskrivelsen av hendelsen til issuene i prosjektet, signert med et tilgangstoken.
+Arbeidsflyten kjører én gang for hver ny hendelse. Blokken **API-kall POST (JSON)** sender tittelen og beskrivelsen av hendelsen til issuene i prosjektet, signert med et tilgangstoken.
 
 ## Før du begynner
 
@@ -47,11 +47,11 @@ Gå til **Arbeidsflyter**, klikk på **Opprett arbeidsflyt** og deretter på **S
 
 ### Legg til triggeren
 
-Klikk på den stiplede blokken **Velg hva som starter denne arbeidsflyten**, og velg **On Create Incident**. Klikk på utløseren: **Fields to pass on** starter med **Tittel**, så klikk på **Legg til felt**, og velg **Beskrivelse** og **Incident Number With Prefix**.
+Klikk på den stiplede blokken **Velg hva som starter denne arbeidsflyten**, og velg **Ved oppretting: Hendelse**. Klikk på utløseren: **Felt som sendes videre** starter med **Tittel**, så klikk på **Legg til felt**, og velg **Beskrivelse** og **Incident Number With Prefix**.
 
 ### Åpne issuet
 
-Klikk på **Legg til komponent**, legg til en blokk **API Post (JSON)**, og koble utløserens punkt **Success** til den. Sett **URL** til `https://gitlab.com/api/v4/projects/12345678/issues`, med ID-en til prosjektet ditt i stedet for `12345678`. Sett **Request Headers** under **Flere felt** til:
+Klikk på **Legg til komponent**, legg til en blokk **API-kall POST (JSON)**, og koble utløserens punkt **Suksess** til den. Sett **URL** til `https://gitlab.com/api/v4/projects/12345678/issues`, med ID-en til prosjektet ditt i stedet for `12345678`. Sett **Forespørselshoder** under **Flere felt** til:
 
 ```json
 {
@@ -59,7 +59,7 @@ Klikk på **Legg til komponent**, legg til en blokk **API Post (JSON)**, og kobl
 }
 ```
 
-Og **Request Body** til:
+Og **Forespørselstekst** til:
 
 ```json
 {
@@ -71,7 +71,7 @@ Og **Request Body** til:
 
 ### Test den, og slå den deretter på
 
-Klikk på **Kjør arbeidsflyt**, velg en testhendelse under **Hendelse**, og kjør den. Trinnet **API Post (JSON)** viser et `201`-svar med det nye issuet, med `iid` og `web_url`. Slå deretter på **Aktivert** øverst i **Bygger**.
+Klikk på **Kjør arbeidsflyt**, velg en testhendelse under **Hendelse**, og kjør den. Trinnet **API-kall POST (JSON)** viser et `201`-svar med det nye issuet, med `iid` og `web_url`. Slå deretter på **Aktivert** øverst i **Bygger**.
 :::
 
 Blokken sender JSON, så den trenger ingen `Content-Type`-header. GitLab oppretter etiketter den ikke har sett før, så `incident` og `oneuptime` trenger ikke settes opp. Issuet forblir åpent når hendelsen er løst, siden oppfølgingsarbeidet vanligvis varer lenger enn hendelsen.
@@ -81,11 +81,11 @@ Blokken sender JSON, så den trenger ingen `Content-Type`-header. GitLab opprett
 - **Din egen GitLab.** Send forespørselen til serveren din i stedet: `https://gitlab.example.com/api/v4/projects/12345678/issues`. En server på en privat nettverksadresse krever en selvdriftet OneUptime der administratoren tillater det: se [Utgående nettverkstilgang](/docs/workflows/configuration#utgående-nettverkstilgang).
 - **Prosjektbanen i stedet for ID-en.** Banen fungerer i stedet for ID-en, med `/` skrevet som `%2F`: `projects/your-group%2Fyour-project/issues`. URL-en sendes nøyaktig slik den er skrevet, så kod den selv.
 - **Tildel det.** Legg til `"assignee_ids": [42]` eller `"due_date": "2026-12-31"` i bodyen, eller `"confidential": true` for å vise det bare til prosjektmedlemmer.
-- **Bare noen hendelser.** Sett en blokk **If / Else** mellom utløseren og API-blokken, og åpne issues bare på **Yes**-siden, for eksempel for én alvorlighetsgrad.
+- **Bare noen hendelser.** Sett en blokk **Hvis / Ellers** mellom utløseren og API-blokken, og åpne issues bare på **Ja**-siden, for eksempel for én alvorlighetsgrad.
 
 ## Feilsøking
 
-Trinnet **API Post (JSON)** tar **Error** når GitLab avviser forespørselen. **Response Status** og **Response Body** i kjøringen sier hvorfor.
+Trinnet **API-kall POST (JSON)** tar **Feil** når GitLab avviser forespørselen. **Svarstatus** og **Svartekst** i kjøringen sier hvorfor.
 
 :::details GitLab svarer 401
 Tokenet er feil, utløpt eller tilbakekalt. Opprett et nytt, og erstatt innholdet i `GITLAB_TOKEN`.

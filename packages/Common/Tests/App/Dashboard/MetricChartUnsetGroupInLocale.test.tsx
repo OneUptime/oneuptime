@@ -25,6 +25,7 @@ import { Chart } from "../../../UI/Components/Charts/ChartGroup/ChartGroup";
 import type { ComponentProps as LineChartProps } from "../../../UI/Components/Charts/Line/LineChart";
 import SeriesPoint from "../../../UI/Components/Charts/Types/SeriesPoints";
 import { Translator } from "../../../Types/Translator";
+import { escapeRegExp } from "../../../Utils/RegExpEscape";
 import {
   DASHBOARD_LANGUAGES,
   dashboardTranslator,
@@ -134,7 +135,6 @@ import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationTyp
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
 import MetricViewData from "../../../Types/Metrics/MetricViewData";
 import MetricSeriesScope from "../../../Utils/Metrics/MetricSeriesScope";
-import { escapeRegExp } from "../../../Utils/RegExpEscape";
 
 const WINDOW_START: Date = new Date("2026-11-12T10:00:00.000Z");
 const WINDOW_END: Date = new Date("2026-11-12T11:00:00.000Z");

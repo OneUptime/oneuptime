@@ -1,4 +1,5 @@
 import { JSONArray, JSONObject } from "Common/Types/JSON";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 
 /*
  * -----------------------------------------------------------------------------
@@ -135,7 +136,9 @@ export function parseSignalIngestion(
       const counts: TelemetryCounts = parseCounts(row);
 
       return {
-        telemetryType: String(row["telemetryType"] ?? row["table"] ?? "—"),
+        telemetryType: String(
+          row["telemetryType"] ?? row["table"] ?? EMPTY_VALUE_MARK,
+        ),
         table: String(row["table"] ?? ""),
         uncompressedBytes: toCountOrNull(row["uncompressedBytes"]),
         available: Boolean(row["available"]),
@@ -177,7 +180,9 @@ export function parseProjectIngestion(
             const signalRow: JSONObject = asObject(signalValue);
 
             return {
-              telemetryType: String(signalRow["telemetryType"] ?? "—"),
+              telemetryType: String(
+                signalRow["telemetryType"] ?? EMPTY_VALUE_MARK,
+              ),
               ...parseCounts(signalRow),
             };
           },
@@ -439,7 +444,7 @@ export function computeSharePercent(
  */
 
 export function formatCount(value: number | null): string {
-  return value === null ? "—" : Math.round(value).toLocaleString();
+  return value === null ? EMPTY_VALUE_MARK : Math.round(value).toLocaleString();
 }
 
 /*
@@ -448,7 +453,7 @@ export function formatCount(value: number | null): string {
  */
 export function formatCompactCount(value: number | null): string {
   if (value === null) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
   const abs: number = Math.abs(value);
@@ -475,11 +480,11 @@ export function formatCompactCount(value: number | null): string {
  */
 export function formatBytes(value: number | null): string {
   if (value === null || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
   if (value === 0) {
-    return "0 B";
+    return "0\u00A0B";
   }
 
   const units: Array<string> = ["B", "KB", "MB", "GB", "TB", "PB"];
@@ -490,7 +495,8 @@ export function formatBytes(value: number | null): string {
   const scaled: number = value / Math.pow(1024, exponent);
   const decimals: number = Math.abs(scaled) >= 10 || exponent === 0 ? 0 : 1;
 
-  return `${scaled.toFixed(decimals)} ${units[exponent]}`;
+  // The figure held to its unit by a no-break space (#8720).
+  return `${scaled.toFixed(decimals)}\u00A0${units[exponent]}`;
 }
 
 /*

@@ -421,7 +421,7 @@ output "nightly_backup_heartbeat_key" {
 }
 ```
 
-Jobben sender forespørselen sin til `https://oneuptime.com/heartbeat/YOUR_SECRET_KEY`, med nøkkelen som `terraform output -raw nightly_backup_heartbeat_key` skriver ut: se [Innkommende forespørsel-overvåking](/docs/monitor/incoming-request-monitor). Agenten til en servermonitor melder seg på samme måte, med `server_monitor_secret_key`.
+Jobben sender forespørselen sin til `https://oneuptime.com/heartbeat/YOUR_SECRET_KEY`, med nøkkelen som `terraform output -raw nightly_backup_heartbeat_key` skriver ut: se [Innkommende forespørsel-monitor](/docs/monitor/incoming-request-monitor). Agenten til en servermonitor melder seg på samme måte, med `server_monitor_secret_key`.
 
 ### Monitorgruppe
 
@@ -604,9 +604,9 @@ Tidspunkter er i RFC 3339, og det samme øyeblikket skrevet på en annen måte e
 
 For å sette hendelsens monitorer i en status mens den pågår, knytter du dem til med `monitors` og setter `change_monitor_status_to_id` til en av monitorstatusene dine: monitorene bytter til den når hendelsen starter, og tilbake til operativ når den slutter. Terraform endrer `change_monitor_status_to_id` på stedet til hendelsen starter. Når hendelsen har startet, er monitorene allerede i den statusen, og en apply som endrer den, feiler med «Change Monitor Status to can no longer be changed: this event has already started.»
 
-## Prober
+## Sonder
 
-En egen probe kjører sjekker fra nettverket ditt. Gi den et navn, så lager OneUptime dens `key`, hemmeligheten proben melder seg på med. Terraform holder nøkkelen utenfor planer og logger, og et output av den må merkes som sensitivt:
+En egen sonde kjører sjekker fra nettverket ditt. Gi den et navn, så lager OneUptime dens `key`, hemmeligheten sonden melder seg på med. Terraform holder nøkkelen utenfor planer og logger, og et output av den må merkes som sensitivt:
 
 ```hcl
 resource "oneuptime_probe" "eu_west" {
@@ -622,7 +622,7 @@ output "eu_west_probe_key" {
 }
 ```
 
-Kjør proben med `PROBE_ID` satt til probens `id` og `PROBE_KEY` satt til nøkkelen, som `terraform output -raw eu_west_probe_key` skriver ut: se [Egendefinerte probes](/docs/probe/custom-probe). Vil du velge nøkkelen selv, setter du `key` fra en sensitiv variabel. Ende-til-ende-testene `23-probe-crud` og `61-name-only-and-choices` bruker prober.
+Kjør sonden med `PROBE_ID` satt til sondens `id` og `PROBE_KEY` satt til nøkkelen, som `terraform output -raw eu_west_probe_key` skriver ut: se [Egendefinerte sonder](/docs/probe/custom-probe). Vil du velge nøkkelen selv, setter du `key` fra en sensitiv variabel. Ende-til-ende-testene `23-probe-crud` og `61-name-only-and-choices` bruker sonder.
 
 ## Neste steg
 

@@ -3,6 +3,8 @@ import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { NO_BREAK_SPACE } from "../SuiteHelpers/NoBreakSpaces";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * A step asks for approval before it runs, and every step's options are
@@ -838,7 +840,9 @@ test.describe("on every screen", () => {
     const elapsed: Locator = page.getByTestId("runbook-execution-elapsed");
 
     // The fixture's run started ten minutes ago.
-    await expect(elapsed).toHaveText(/^10 mins( \d+ secs?)?$/);
+    await expect(elapsed).toHaveText(
+      new RegExp(`^10${NO_BREAK_SPACE}mins( \\d+${NO_BREAK_SPACE}secs?)?$`),
+    );
     await expect(elapsed).toHaveAttribute("role", "timer");
 
     const first: string = (await elapsed.textContent()) || "";
@@ -1074,4 +1078,18 @@ test.describe("on every screen", () => {
     ).toBeVisible();
     await screenshot(page, "run-german");
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German whole, parsed on every page load of every test. English is in the
+ * bundle now, and each other language a chunk of its own, loaded only by a
+ * page drawn in it (SuiteHelpers/FixtureLocales.js), built as the Dashboard
+ * ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de"],
+  address: (language: string): string => {
+    return `/?page=steps${language === "en" ? "" : `&lang=${language}`}`;
+  },
 });

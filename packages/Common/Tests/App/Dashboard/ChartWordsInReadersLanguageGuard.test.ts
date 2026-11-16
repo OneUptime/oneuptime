@@ -29,6 +29,13 @@ import {
  * can itself be an English key and read as the translation of the
  * translation (#7790). This reads every Dashboard source's syntax tree
  * (ChartWordsScan), so a page added later is held too.
+ *
+ * A monitor's, an incident's, an alert's and an SLO's charts take their
+ * words from shared utilities that write them in English
+ * (MonitorMetricTypeUtil, IncidentMetricTypeUtil, AlertMetricTypeUtil,
+ * SloMetricTypeUtil), which the scan could not see: they read English in
+ * every language (#8282). The scan reads a word from one of them as
+ * English now, so those pages are held the same way.
  */
 
 const DASHBOARD_SRC: string = path.resolve(
@@ -229,6 +236,91 @@ describe("the detector (ChartWordsScan), on small pages", () => {
   });
 });
 
+describe("the detector, on a word a shared utility writes in English (#8282)", () => {
+  const UTILITY_ALIAS: string = `
+    const queries = [];
+    for (const metricType of IncidentMetricTypeUtil.getAllIncidentMetricTypes()) {
+      queries.push({
+        metricAliasData: {
+          metricVariable: metricType,
+          title: IncidentMetricTypeUtil.getTitleByIncidentMetricType(metricType),
+          description: IncidentMetricTypeUtil.getDescriptionByIncidentMetricType(metricType),
+          legend: IncidentMetricTypeUtil.getLegendByIncidentMetricType(metricType),
+          legendUnit: "s",
+        },
+      });
+    }
+    const card = <EmbeddedMetricCard queryConfigs={queries} />;
+  `;
+
+  test("negative control: the monitor's Incident Metrics as they were, handing the utility's English, are found", () => {
+    const problems: Array<string> = problemsOf("Page.tsx", UTILITY_ALIAS);
+
+    expect(problems).toHaveLength(3);
+    expect(problems[0]).toContain(
+      "title from IncidentMetricTypeUtil.getTitleByIncidentMetricType() is handed to the chart in English",
+    );
+  });
+
+  test("handed through the helper, the same page is sound", () => {
+    expect(
+      problemsOf(
+        "Page.tsx",
+        UTILITY_ALIAS.replace(
+          "queryConfigs={queries}",
+          "queryConfigs={chartWordsInReadersLanguage(queries, translator)}",
+        ),
+      ),
+    ).toEqual([]);
+  });
+
+  test("a builder that looks each utility word up where it writes it is sound", () => {
+    expect(
+      problemsOf(
+        "Builder.ts",
+        `const query = {
+          metricAliasData: {
+            title: translateChartWord(SloMetricTypeUtil.getTitle(metricType), translator),
+            description: getSloMetricChartDescription(metricType, translator),
+            legend: translateChartWord(SloMetricTypeUtil.getLegend(metricType), translator),
+          },
+        };`,
+      ),
+    ).toEqual([]);
+  });
+
+  test("negative control: a builder's word looked up and handed through the helper as well is found", () => {
+    const twice: Array<string> = problemsOf(
+      "Page.tsx",
+      `const query = {
+        metricAliasData: {
+          title: translateChartWord(MonitorMetricTypeUtil.getTitleByMonitorMetricType(metric), translator),
+          legend: "",
+        },
+      };
+      const card = <EmbeddedMetricCard queryConfigs={chartWordsInReadersLanguage([query], translator)} />;`,
+    );
+
+    expect(twice).toHaveLength(1);
+    expect(twice[0]).toContain("looked up here and again");
+  });
+
+  test("the SLO page's own incident and alert sentences read as English too", () => {
+    expect(
+      problemsOf(
+        "Builder.ts",
+        `const query = { metricAliasData: { title: "", description: getSloIncidentMetricDescription(metricType), legend: "" } };`,
+      ),
+    ).toHaveLength(1);
+  });
+
+  test("a utility word is no literal: its text stays out of the page's words", () => {
+    expect(
+      getChartWordTexts(readChartWords("Page.tsx", UTILITY_ALIAS)),
+    ).toEqual([]);
+  });
+});
+
 describe("every Dashboard page hands its charts their words in the reader's language", () => {
   test("the scan reads the pages the issue found English", () => {
     const files: Array<string> = SOURCES.map(
@@ -249,6 +341,35 @@ describe("every Dashboard page hands its charts their words in the reader's lang
     ]) {
       expect(files).toContain(page);
     }
+
+    /*
+     * And the pages that take their words from a shared utility: the
+     * monitor's Metrics tab and its Incident and Alert Metrics, and the SLO
+     * Metrics page (#8282).
+     */
+    for (const page of [
+      "Components/Monitor/MonitorMetricQueryConfig.ts",
+      "Components/Monitor/MonitorIncidentMetrics.tsx",
+      "Components/Monitor/MonitorAlertMetrics.tsx",
+      "Components/Slo/SloMetricsQueryConfig.ts",
+    ]) {
+      expect(files).toContain(page);
+    }
+
+    const fromUtilities: number = SOURCES.reduce(
+      (count: number, source: { words: ChartWordsOfSource }): number => {
+        return (
+          count +
+          source.words.words.filter(
+            (word: { source?: string | undefined }): boolean => {
+              return Boolean(word.source);
+            },
+          ).length
+        );
+      },
+      0,
+    );
+    expect(fromUtilities).toBeGreaterThanOrEqual(6);
 
     // And it finds their words: hundreds of them.
     const words: number = SOURCES.reduce(

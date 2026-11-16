@@ -100,7 +100,7 @@ Varje nivå kan utlösa ett larm, deklarera en incident eller båda när SLO:et 
 - Att gå in i en allvarligare nivå löser det som den föregående nivån utlöste, oavsett dess inställning för automatisk lösning, eftersom den nya nivån ersätter den. Därför är högst en nivås larm och incident öppna åt gången, och de hör till den nivå SLO:et är i.
 - Att återhämta sig till en mindre allvarlig nivå, eller ut ur alla nivåer, löser dem när nivåns automatiska lösning är påslagen, som den är som standard. Med automatisk lösning avstängd förblir de öppna tills någon löser dem.
 - Det finns ingen undertryckning av nya utlösningar. En nivå utlöser igen först när SLO:et tydligt har lämnat den och gått in i den igen, så den kan inte fladdra. Om någon manuellt löser det nivån utlöste medan SLO:et fortfarande är i nivån, förblir det löst.
-- Så länge någon monitor i SLO:et är i planerat underhåll utlöser nivåerna ingenting. Själva nivån byts ändå, och det som är öppet löses fortfarande. Är SLO:et fortfarande i nivån när underhållet tar slut, utlöser nivån då det den är inställd att utlösa.
+- Så länge någon monitor i SLO:et är i schemalagt underhåll utlöser nivåerna ingenting. Själva nivån byts ändå, och det som är öppet löses fortfarande. Är SLO:et fortfarande i nivån när underhållet tar slut, utlöser nivån då det den är inställd att utlösa.
 
 Precis som för en regel för förbrukningstakt listar ett larm eller en incident som en nivå utlöser SLO:et under **Berörda resurser**, och en incident visas aldrig på statussidor. SLO:ets flöde visar varje larm och incident, och när de löses.
 
@@ -295,7 +295,7 @@ Själva nivåerna är en egen resurs, `/api/service-level-objective-error-budget
 | **Edit SLO Error Budget Policy Tier** | Ändra nivåer och slå på eller av dem. |
 | **Delete SLO Error Budget Policy Tier** | Ta bort nivåer. |
 
-Dessa behörigheter finns i en rolls SLO-grupp. Rollerna Project Owner och Project Admin har alla, och rollerna Project Member och Viewer kan läsa nivåer.
+Dessa behörigheter finns i en rolls SLO-grupp. Rollerna Projektägare och Projektadministratör har alla, och rollerna Projektmedlem och Tittare kan läsa nivåer.
 
 ## Inte tillgängligt än
 

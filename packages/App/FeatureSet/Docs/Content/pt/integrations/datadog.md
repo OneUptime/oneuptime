@@ -55,7 +55,7 @@ Depois [configure o Datadog](#configurar-o-datadog) para enviar os alertas dele 
 
 ### O que o workflow faz
 
-Depois do gatilho **Webhook**, a etapa **Check With JavaScript** `read-event-1` lê o `transition` que o Datadog envia, e **Incident From Another Tool**, ou **Alert From Another Tool** no modelo de alertas, faz o que ele significa, pela chave de ciclo do alerta. O Datadog mantém essa chave desde o momento em que um alerta dispara até ele se recuperar, e na próxima vez que disparar a chave é nova, então cada vez ganha um incidente próprio. O incidente guarda a chave no seu campo personalizado `datadogAlertCycleKey`.
+Depois do gatilho **Webhook**, a etapa **Verificar com JavaScript** `read-event-1` lê o `transition` que o Datadog envia, e **Incidente de outra ferramenta**, ou **Alerta de outra ferramenta** no modelo de alertas, faz o que ele significa, pela chave de ciclo do alerta. O Datadog mantém essa chave desde o momento em que um alerta dispara até ele se recuperar, e na próxima vez que disparar a chave é nova, então cada vez ganha um incidente próprio. O incidente guarda a chave no seu campo personalizado `datadogAlertCycleKey`.
 
 | Transição | O que o workflow faz |
 | --- | --- |
@@ -64,7 +64,7 @@ Depois do gatilho **Webhook**, a etapa **Check With JavaScript** `read-event-1` 
 | `Warn`, `Re-Warn`, `No Data`, `Re-No Data` | Adiciona uma nota privada ao incidente do alerta, dizendo qual é agora o estado do monitor. |
 | `Renotify` | Nada: o alerta ainda está aberto. |
 
-Um aviso ou uma recuperação de um alerta sem incidente não muda nada. Todo o resto, como uma requisição de outra ferramenta, é deixado como está: `read-event-1` segue por **No**, e as **Etapas** da execução dizem por quê. Nada volta para o Datadog: ele resolve os próprios alertas quando o sinal se recupera, e é isso que resolve o incidente.
+Um aviso ou uma recuperação de um alerta sem incidente não muda nada. Todo o resto, como uma requisição de outra ferramenta, é deixado como está: `read-event-1` segue por **Não**, e as **Etapas** da execução dizem por quê. Nada volta para o Datadog: ele resolve os próprios alertas quando o sinal se recupera, e é isso que resolve o incidente.
 
 ### Prioridades e chamadas
 
@@ -82,7 +82,7 @@ Um novo incidente chama as políticas de plantão que você escolheu quando o mo
 Com gravidades próprias, P1, P2 e sem prioridade vão para a sua mais grave, P3 para a do meio, e P4 e P5 para a sua menos grave.
 
 - Para mapear uma prioridade para uma das suas pelo nome, edite `SEVERITY_BY_NAME` na etapa `read-event-1`, como `{ P3: 'Minor Incident' }`.
-- Para chamar o plantão também para P3, defina **Compare with** da etapa `if-page-1` **If / Else** como `3`.
+- Para chamar o plantão também para P3, defina **Comparar com** da etapa `if-page-1` **Se / Senão** como `3`.
 
 ## Receber alertas com um monitor
 
@@ -211,7 +211,7 @@ Depois teste a partir do Datadog: abra um monitor que mencione o webhook, clique
 :::
 
 :::details O workflow roda, mas não abre nada
-Abra a execução em **Registros → Execuções**. A entrada `read-event-1` em **Etapas** diz por que ela seguiu por **No**.
+Abra a execução em **Registros → Execuções**. A entrada `read-event-1` em **Etapas** diz por que ela seguiu por **Não**.
 
 - `Datadog named no alert cycle key`: adicione `"alert_cycle_key": "$ALERT_CYCLE_KEY"` ao payload do webhook no Datadog.
 - `Datadog named no transition`: adicione `"transition": "$ALERT_TRANSITION"` ao payload do webhook no Datadog.

@@ -25,7 +25,7 @@ import { CriteriaIncident } from "./CriteriaIncident";
 import CriteriaFilterValues from "./CriteriaFilterValues";
 import IncidentGroupingConfig from "./IncomingMonitor/IncidentGroupingConfig";
 import MonitorType, { MonitorTypeHelper } from "./MonitorType";
-import { DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS } from "./NtpMonitor/NtpMonitorUtil";
+import { DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS } from "./NtpMonitor/NtpMonitorDefaults";
 import { FindOperator } from "typeorm";
 
 export interface MonitorCriteriaInstanceType {

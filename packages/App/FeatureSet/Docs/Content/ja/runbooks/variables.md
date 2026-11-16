@@ -33,7 +33,7 @@ flowchart TB
 
 ## 始める前に
 
-- **変数を管理できるロール。** Project Owner と Project Admin、または **Create Runbook Variable** 権限です。Runbook Admin は自分が書くステップで選ぶために変数を読めますが、変更はできません。
+- **変数を管理できるロール。** プロジェクト所有者とプロジェクト管理者、または **Create Runbook Variable** 権限です。Runbook 管理者は自分が書くステップで選ぶために変数を読めますが、変更はできません。
 - **変数を含むプラン。** OneUptime Cloud では、Runbook の変数には **Growth** 以上のプランが必要です。
 
 ## 変数を作成する

@@ -3,7 +3,7 @@
 En monitor kontrollerar något du driver, som en webbplats, ett API, en värd eller ett Kubernetes-kluster, och säger till när det slutar fungera. **Skapa monitor** frågar först vad som ska övervakas, sedan vad som ska kontrolleras och därefter hur ofta. Allt utom typen, namnet och vad som ska kontrolleras börjar med standardvärden som passar de flesta monitorer.
 
 > [!NOTE]
-> För att skapa en monitor behöver du rollen Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member, eller en anpassad roll med behörigheten Create Monitor.
+> För att skapa en monitor behöver du rollen Projektägare, Projektadministratör, Projektmedlem, Monitoradministratör eller Monitormedlem, eller en anpassad roll med behörigheten Create Monitor.
 
 ## Övervakningsinformation
 
@@ -19,7 +19,7 @@ Gå till **Monitorer** och klicka på **Skapa monitor**. Formuläret öppnas på
 Den första frågan är **Monitortyp**: vad vill du övervaka?
 
 - De sex typer som flest skapar kommer först: **Webbplats**, **API**, **Ping**, **Port**, **SSL-certifikat** och **Inkommande begäran**, för heartbeats från cron-jobb och webhooks.
-- **Fler monitortyper** listar alla andra typer under sin kategori, som **Infrastruktur** (Kubernetes, Docker, värd) och **Telemetri** (loggar, mätvärden, spår). **Manuell**, en monitor vars status du själv sätter, och **Sondstatus**, som säger till när en prob tappar anslutningen, finns under **Annat**.
+- **Fler monitortyper** listar alla andra typer under sin kategori, som **Infrastruktur** (Kubernetes, Docker, värd) och **Telemetri** (loggar, mätvärden, spår). **Manuell**, en monitor vars status du själv sätter, och **Sondstatus**, som säger till när en sond tappar anslutningen, finns under **Annat**.
 - Eller skriv i sökrutan. Den känner till orden du redan använder, som `k8s`, `postgres`, `heartbeat` eller `tls`, och **Enter** väljer den första träffen.
 
 Den valda typen krymper till en rad. Klicka på **Ändra** för att välja en annan; tryck på **Escape** medan du väljer för att behålla den typ du hade.
@@ -76,7 +76,7 @@ Incidenter och larm som är inställda på att lösas automatiskt, som standardk
 
 ## Sonder och intervall
 
-Monitorer som sonder kontrollerar avslutas med det här steget: Webbplats, API, Ping, IP, Port, SSL-certifikat, DNS, DNSSEC, NTP, Domän, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code och External Status Page. **Sonder** är maskinerna som kör kontrollerna, och projektets standardsonder är förvalda. **Övervakningsintervall** börjar på **Var 5:e minut**.
+Monitorer som sonder kontrollerar avslutas med det här steget: Webbplats, API, Ping, IP, Port, SSL-certifikat, DNS, DNSSEC, NTP, Domän, SQL-fråga, Databashälsa, Syntetisk monitor, Anpassad JavaScript-kod och Extern statussida. **Sonder** är maskinerna som kör kontrollerna, och projektets standardsonder är förvalda. **Övervakningsintervall** börjar på **Var 5:e minut**.
 
 :::steps
 ### Välj sonderna
@@ -85,7 +85,7 @@ Behåll de valda **Sonder** eller välj andra. En monitor utan sonder kontroller
 
 ### Välj hur ofta kontrollen körs
 
-Välj ett **Övervakningsintervall**, från **Varje minut** till **Varje vecka**. Monitorer av typen Synthetic Monitor, Custom JavaScript Code och SSL-certifikat erbjuds intervall på 5 minuter eller längre.
+Välj ett **Övervakningsintervall**, från **Varje minut** till **Varje vecka**. Monitorer av typen Syntetisk monitor, Anpassad JavaScript-kod och SSL-certifikat erbjuds intervall på 5 minuter eller längre.
 
 ### Skapa monitorn
 

@@ -1,7 +1,7 @@
 import AggregationType from "../../Types/BaseDatabase/AggregationType";
 import SloMetricType from "../../Types/ServiceLevelObjective/SloMetricType";
 import SloStatus from "../../Types/ServiceLevelObjective/SloStatus";
-import { SLO_CURRENT_BURN_RATE_WINDOW_MINUTES } from "./SloEvaluation";
+import { translationKey } from "../../Types/Translator";
 
 /*
  * Display and catalog metadata for the `oneuptime.slo.*` metrics the SLO
@@ -14,6 +14,13 @@ import { SLO_CURRENT_BURN_RATE_WINDOW_MINUTES } from "./SloEvaluation";
  *
  * React-free and import-light on purpose: the worker, the dashboard and plain
  * node tests all load it.
+ *
+ * A title, a legend and a description are keys of the Dashboard's locales
+ * (translationKey; this file is a `keys` root of its extractor): the SLO
+ * Metrics page looks each up once where it builds the chart's query
+ * (SloMetricsQueryConfig, #8282), and the metrics list a description the
+ * server stored from here. The Burn Rate description carries its window,
+ * so the page words it as a sentence of its own.
  */
 
 /*
@@ -93,17 +100,17 @@ class SloMetricTypeUtil {
   public static getTitle(metricType: SloMetricType): string {
     switch (metricType) {
       case SloMetricType.SliPercent:
-        return "SLI";
+        return translationKey("SLI");
       case SloMetricType.TargetPercent:
-        return "Target";
+        return translationKey("Target");
       case SloMetricType.ErrorBudgetRemainingPercent:
-        return "Error Budget Remaining";
+        return translationKey("Error Budget Remaining");
       case SloMetricType.ErrorBudgetRemainingSeconds:
-        return "Error Budget Remaining Time";
+        return translationKey("Error Budget Remaining Time");
       case SloMetricType.BurnRate:
-        return "Burn Rate";
+        return translationKey("Burn Rate");
       case SloMetricType.Status:
-        return "Status";
+        return translationKey("Status");
       default:
         throw new Error("Invalid SloMetricType value");
     }
@@ -117,17 +124,35 @@ class SloMetricTypeUtil {
   public static getDescription(metricType: SloMetricType): string {
     switch (metricType) {
       case SloMetricType.SliPercent:
-        return "Service Level Indicator over the SLO's compliance window: the percentage of measured time that counted as good.";
+        return translationKey(
+          "Service Level Indicator over the SLO's compliance window: the percentage of measured time that counted as good.",
+        );
       case SloMetricType.TargetPercent:
-        return "The objective the SLI is measured against. Charted with the SLI so a dip below the target reads at a glance.";
+        return translationKey(
+          "The objective the SLI is measured against. Charted with the SLI so a dip below the target reads at a glance.",
+        );
       case SloMetricType.ErrorBudgetRemainingPercent:
-        return "Share of the error budget still unspent in the compliance window. Negative once the budget is overspent.";
+        return translationKey(
+          "Share of the error budget still unspent in the compliance window. Negative once the budget is overspent.",
+        );
       case SloMetricType.ErrorBudgetRemainingSeconds:
-        return "Downtime the SLO can still absorb in its compliance window before it breaches. Negative once the budget is overspent.";
+        return translationKey(
+          "Downtime the SLO can still absorb in its compliance window before it breaches. Negative once the budget is overspent.",
+        );
       case SloMetricType.BurnRate:
-        return `How fast the error budget is being spent, measured over the trailing ${SLO_CURRENT_BURN_RATE_WINDOW_MINUTES} minutes. 1x spends the budget exactly over the compliance window; anything higher exhausts it early.`;
+        /*
+         * Written out whole, for the window SLO_CURRENT_BURN_RATE_WINDOW_MINUTES
+         * holds (60), so the series' stored description is a key the
+         * metrics list words (#8356). SloBurnRateDescriptionWindow holds the
+         * two together.
+         */
+        return translationKey(
+          "How fast the error budget is being spent, measured over the trailing 60 minutes. 1x spends the budget exactly over the compliance window; anything higher exhausts it early.",
+        );
       case SloMetricType.Status:
-        return "The SLO's status at each evaluation: 0 = Healthy, 1 = At Risk, 2 = Budget Exhausted. Paused and misconfigured evaluations record no point.";
+        return translationKey(
+          "The SLO's status at each evaluation: 0 = Healthy, 1 = At Risk, 2 = Budget Exhausted. Paused and misconfigured evaluations record no point.",
+        );
       default:
         throw new Error("Invalid SloMetricType value");
     }
@@ -136,17 +161,17 @@ class SloMetricTypeUtil {
   public static getLegend(metricType: SloMetricType): string {
     switch (metricType) {
       case SloMetricType.SliPercent:
-        return "SLI";
+        return translationKey("SLI");
       case SloMetricType.TargetPercent:
-        return "Target";
+        return translationKey("Target");
       case SloMetricType.ErrorBudgetRemainingPercent:
-        return "Budget Remaining";
+        return translationKey("Budget Remaining");
       case SloMetricType.ErrorBudgetRemainingSeconds:
-        return "Budget Remaining";
+        return translationKey("Budget Remaining");
       case SloMetricType.BurnRate:
-        return "Burn Rate";
+        return translationKey("Burn Rate");
       case SloMetricType.Status:
-        return "Status";
+        return translationKey("Status");
       default:
         throw new Error("Invalid SloMetricType value");
     }

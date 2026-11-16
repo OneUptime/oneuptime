@@ -23,7 +23,7 @@ A cada minuto, o OneUptime consulta cada conexão habilitada cujo intervalo de c
 
 ## Antes de começar
 
-- No OneUptime, a função Project Owner, Project Admin ou Security Admin. As funções Security Member e Security Viewer veem as conexões e o histórico de execuções delas, mas não podem alterá-las.
+- No OneUptime, a função Proprietário do projeto, Administrador do projeto ou Administrador de segurança. As funções Membro de segurança e Visualizador de segurança veem as conexões e o histórico de execuções delas, mas não podem alterá-las.
 - Um superadministrador do Google Workspace, para permitir a delegação em todo o domínio, e um administrador como o qual a conta de serviço age, com o privilégio Reports. Um superadministrador tem esse privilégio.
 - Um projeto do Google Cloud em que você possa criar uma conta de serviço e ativar a Admin SDK API.
 - Para a atividade do Drive, uma edição com o log de auditoria do Drive, como Business Standard, Business Plus, Enterprise ou Education.

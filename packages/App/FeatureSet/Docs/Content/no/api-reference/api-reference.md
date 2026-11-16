@@ -156,9 +156,9 @@ I OneUptime Cloud fungerer et prosjekts API-nøkler bare mens prosjektet er på 
 
 Ingenting slettes eller slås av. Nøklene og tilkoblingene beholdes, og de fungerer fullt ut igjen, slik de er, så snart prosjektet er tilbake på abonnementet: ingen nye nøkler å lage, ingenting å sette opp igjen i identitetsleverandøren. En abonnementsendring trer i kraft innen et minutt.
 
-Under **Growth** viser **Prosjektinnstillinger** > **Avansert** > **API-nøkler** nøklene prosjektet fortsatt har, og sier at de har stoppet, så hvem som helst av dem kan slettes (tilbakekalles) på alle abonnementer. Å opprette eller endre nøkler krever **Growth**. **Prosjektinnstillinger** > **Fakturering og fakturaer** > **Fakturering** oppgir hvor mange API-nøkler et lavere abonnement stopper og hvor mange SCIM-tilkoblinger det begrenser, på hvert abonnement du kan velge, og hva prosjektets abonnement har stoppet; prosjektets eiere får en e-post når en abonnementsendring stopper dem. Eierne av prosjekter som allerede lå under disse abonnementene da dette begynte, får én e-post som sier hva som har stoppet, og hvordan det slås på igjen.
+Under **Growth** viser **Prosjektinnstillinger** > **Avansert** > **API-nøkler** nøklene prosjektet fortsatt har, og sier at de har stoppet, så hvem som helst av dem kan slettes (tilbakekalles) på alle abonnementer. Å opprette eller endre nøkler krever **Growth**. **Prosjektinnstillinger** > **Fakturering og fakturaer** > **Fakturering** oppgir hvor mange API-nøkler et lavere abonnement stopper og hvor mange SCIM-tilkoblinger det begrenser, på hvert abonnement du kan velge, og hva prosjektets abonnement har stoppet; Prosjekteiere får en e-post når en abonnementsendring stopper dem. Eierne av prosjekter som allerede lå under disse abonnementene da dette begynte, får én e-post som sier hva som har stoppet, og hvordan det slås på igjen.
 
-Bare et prosjekts API-nøkler og SCIM-tilkoblinger berøres. Personer berøres ikke: innlogging i dashbordet, og MCP-klienter som er koblet til ved innlogging, fungerer som før. Inntaksnøkler for telemetri, probenøkler og agentnøkler er ikke API-nøkler og fortsetter å fungere. Selvdriftede installasjoner har ingen abonnementer, så for dem endres ingenting.
+Bare et prosjekts API-nøkler og SCIM-tilkoblinger berøres. Personer berøres ikke: innlogging i dashbordet, og MCP-klienter som er koblet til ved innlogging, fungerer som før. Inntaksnøkler for telemetri, sondenøkler og agentnøkler er ikke API-nøkler og fortsetter å fungere. Selvdriftede installasjoner har ingen abonnementer, så for dem endres ingenting.
 
 ## Navngi og skrive poster
 
@@ -168,7 +168,7 @@ Forespørsler som leser, endrer eller sletter én ressurs, nevner den med ID-en,
 
 ### Poster en forespørsel nevner
 
-Mange ressurser nevner andre poster: en monitor etikettene og probene sine, en abonnent på en statusside statussiden sin, en nettverksenhet stedet sitt, et medlem av en hendelse hendelsen og rollen. Hver regel nedenfor gjelder likt for API-et, Terraform og arbeidsflyter:
+Mange ressurser nevner andre poster: en monitor etikettene og sondene sine, en abonnent på en statusside statussiden sin, en nettverksenhet stedet sitt, et medlem av en hendelse hendelsen og rollen. Hver regel nedenfor gjelder likt for API-et, Terraform og arbeidsflyter:
 
 | Når en forespørsel | må den | Ellers |
 | --- | --- | --- |
@@ -188,11 +188,11 @@ Hver ID du sender for en post som en ressurs nevner, må være en post i prosjek
 This network device references records that are not in this project: Network Site "…". Please pick values from this project and try again.
 ```
 
-Personer kontrolleres ut fra medlemskap: en som ikke er medlem av prosjektet, avvises på samme måte. En global probe, som alle prosjekter kan bruke, regnes som prosjektets. En endring av en ressurs kontrollerer bare ID-ene endringen legger til, så en ressurs som nevner noe som senere har forsvunnet, kan fortsatt lagres.
+Personer kontrolleres ut fra medlemskap: en som ikke er medlem av prosjektet, avvises på samme måte. En global sonde, som alle prosjekter kan bruke, regnes som prosjektets. En endring av en ressurs kontrollerer bare ID-ene endringen legger til, så en ressurs som nevner noe som senere har forsvunnet, kan fortsatt lagres.
 
 #### Poster som leses via en annen
 
-En post som leses via en annen - notatene og tilstandstidslinjen til en hendelse eller et varsel, kunngjøringene, domenene og gruppene til en statusside - må også nevne en du får lese, etter regelen lesingen av den følger: en hendelse utenfor etikettene eller eierne tillatelsen din til å lese hendelser når, med en etikett som en blokkering av lesing av hendelser fjerner, eller merket som privat uten at du er blant eierne, direkte eller via et team (prosjekteiere og -administratorer ser hver privat hendelse, hvert private varsel og hver private episode), avvises med samme `400`, og ingenting skrives. Hver statusside en kunngjøring nevner, må være en du får lese, og en nøkkel der tillatelsen til å lese statussider bare når noen av dem, må nevne minst én. En tillatelse til å opprette en slik post krever en tillatelse til å lese posten den opprettes under; uten den avvises opprettelsen med en `422` som nevner tillatelsene som ville sluppet den gjennom:
+En post som leses via en annen - notatene og tilstandstidslinjen til en hendelse eller et varsel, kunngjøringene, domenene og gruppene til en statusside - må også nevne en du får lese, etter regelen lesingen av den følger: en hendelse utenfor etikettene eller eierne tillatelsen din til å lese hendelser når, med en etikett som en blokkering av lesing av hendelser fjerner, eller merket som privat uten at du er blant eierne, direkte eller via et team (Prosjekteiere og Prosjektadministratorer ser hver privat hendelse, hvert private varsel og hver private episode), avvises med samme `400`, og ingenting skrives. Hver statusside en kunngjøring nevner, må være en du får lese, og en nøkkel der tillatelsen til å lese statussider bare når noen av dem, må nevne minst én. En tillatelse til å opprette en slik post krever en tillatelse til å lese posten den opprettes under; uten den avvises opprettelsen med en `422` som nevner tillatelsene som ville sluppet den gjennom:
 
 ```text
 You do not have permissions to create Incident Internal Note. It is read through its Incident, and you need one of these permissions to read Incidents: …
@@ -208,7 +208,7 @@ Eierne av en ressurs - bruker- og teameierpostene for en monitor, en vaktpolicy,
 
 Postene en opprettelse eller endring lister opp - en hendelses monitorer og vaktpolicyer, et varsels tjenester, statussidene til en vedlikeholdshendelse, en regels runbooks - holder seg til tillatelsen din til å lese den typen post når du har en, og i alle tilfeller til en blokkering med etiketter av lesingen: en post utenfor dem avvises med samme `400`. En endring kontrollerer bare postene den legger til i en liste, så de som listen allerede har, blir værende.
 
-Den ene posten en opprettelse eller endring nevner i et eget felt - et varsels monitor, monitoren en statussideressurs viser, et kostnadsbudsjetts tjeneste, hendelsen en runbook-kjøring er knyttet til - følger samme regel, under begge navnene sine: en post utenfor tillatelsen din til å lese den typen post, eller med en etikett som en blokkering av lesingen fjerner, avvises med samme `400`. En endring kontrollerer den bare når den nevner en annen post enn den feltet allerede har. OneUptimes globale prober og AI-agenter, som alle prosjekter kan bruke, er fortsatt åpne for alle prosjekter. Postene en mal fyller ut for deg, kontrolleres på samme måte når de er fylt ut, før noe lagres: monitorene, statussidene og vaktpolicyene en hendelsesmal legger til en hendelse som erklæres fra den, må være poster du får lese, som om du hadde valgt dem selv.
+Den ene posten en opprettelse eller endring nevner i et eget felt - et varsels monitor, monitoren en statussideressurs viser, et kostnadsbudsjetts tjeneste, hendelsen en runbook-kjøring er knyttet til - følger samme regel, under begge navnene sine: en post utenfor tillatelsen din til å lese den typen post, eller med en etikett som en blokkering av lesingen fjerner, avvises med samme `400`. En endring kontrollerer den bare når den nevner en annen post enn den feltet allerede har. OneUptimes globale sonder og AI-agenter, som alle prosjekter kan bruke, er fortsatt åpne for alle prosjekter. Postene en mal fyller ut for deg, kontrolleres på samme måte når de er fylt ut, før noe lagres: monitorene, statussidene og vaktpolicyene en hendelsesmal legger til en hendelse som erklæres fra den, må være poster du får lese, som om du hadde valgt dem selv.
 
 #### Innstillinger som inneholder legitimasjon
 
@@ -252,7 +252,7 @@ Et felt som er på eller av - `isEnabled`, `isVisibleOnStatusPage`, `isArchived`
 isVisibleOnStatusPage must be true or false.
 ```
 
-En oppdatering som skriver en posts verdier slik de allerede er, endrer ingenting: den starter ikke postens **On Update**-arbeidsflyter, sender ikke liveoppdateringer og legger ikke til en oppføring i revisjonsloggen. `false` skrevet over `false` regnes som samme verdi, og det samme gjør `"false"` skrevet over `false`, et tall skrevet som tekst, et tidspunkt skrevet som samme øyeblikk i et annet format og etiketter skrevet som de samme etikettene i vilkårlig rekkefølge. Når en oppdatering endrer noen verdier og skriver andre tilbake slik de er, viser revisjonsloggoppføringen bare verdiene som ble endret, og en arbeidsflyts **Fields to watch** hører bare dem.
+En oppdatering som skriver en posts verdier slik de allerede er, endrer ingenting: den starter ikke postens **On Update**-arbeidsflyter, sender ikke liveoppdateringer og legger ikke til en oppføring i revisjonsloggen. `false` skrevet over `false` regnes som samme verdi, og det samme gjør `"false"` skrevet over `false`, et tall skrevet som tekst, et tidspunkt skrevet som samme øyeblikk i et annet format og etiketter skrevet som de samme etikettene i vilkårlig rekkefølge. Når en oppdatering endrer noen verdier og skriver andre tilbake slik de er, viser revisjonsloggoppføringen bare verdiene som ble endret, og en arbeidsflyts **Felt som overvåkes** hører bare dem.
 
 ### Hvor et prosjekt ble kjøpt
 

@@ -25,7 +25,7 @@ flowchart TB
 
 ## 开始之前
 
-- Project Owner 或 Project Admin 角色。只有他们可以连接、修改或删除账户；所有能读取项目遥测数据的人都能看到连接和用量。
+- 项目所有者或项目管理员角色。只有他们可以连接、修改或删除账户；所有能读取项目遥测数据的人都能看到连接和用量。
 - 由账户管理员提供的该账户凭据。下面每个提供商的部分会说明需要哪种凭据以及在哪里创建。
 - 无需安装任何东西：OneUptime 从自己的服务器调用提供商的 API。
 
@@ -195,7 +195,7 @@ Cursor 按小时汇总用量，并要求每小时最多读取一次，因此 One
 
 ## 为什么 OneUptime 没有自己的网关
 
-OneUptime 读取你的账户；它从不位于你的应用和提供商之间。代理会持有你的提供商密钥，并给你的应用的每次模型调用多加一跳。如果你的模型流量已经经过 LiteLLM、Portkey 或 OpenRouter，请按 [AI 网关](/docs/telemetry/ai-gateways) 的说明把网关的跟踪发送到 OneUptime，并连接账户以获取账单。
+OneUptime 读取你的账户；它从不位于你的应用和提供商之间。代理会持有你的提供商密钥，并给你的应用的每次模型调用多加一跳。如果你的模型流量已经经过 LiteLLM、Portkey 或 OpenRouter，请按 [AI 网关](/docs/telemetry/ai-gateways) 的说明把网关的追踪发送到 OneUptime，并连接账户以获取账单。
 
 ## 故障排除
 
@@ -236,6 +236,6 @@ Cursor 的 Admin API 每分钟接受一个团队的 20 个请求，用量事件�
 :::cards
 - [AI / LLM 可观测性](/docs/telemetry/ai-llm-observability): 你自己应用的 AI 调用的对话、警报和成本。
 - [公司的 AI 工具](/docs/telemetry/ai-company-tools): 你的员工向 Claude Enterprise 和 Microsoft 365 Copilot 提了什么问题。
-- [AI 网关](/docs/telemetry/ai-gateways): 跟踪经过 LiteLLM、Portkey 或 OpenRouter 的每次模型调用。
+- [AI 网关](/docs/telemetry/ai-gateways): 追踪经过 LiteLLM、Portkey 或 OpenRouter 的每次模型调用。
 - [指标监控](/docs/monitor/metrics-monitor): 针对提供商指标设置警报。
 :::

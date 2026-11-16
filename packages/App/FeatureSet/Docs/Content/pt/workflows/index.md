@@ -17,7 +17,7 @@ Todo workflow tem três partes:
 2. **Componentes** — o que o workflow faz: enviar uma mensagem, chamar uma API, verificar uma condição, criar ou atualizar um registro do OneUptime.
 3. **Ligações** — as linhas que você desenha de um bloco para o próximo. Elas decidem o que roda depois do quê.
 
-Quando o gatilho dispara, o OneUptime inicia uma **execução**. Cada bloco termina tomando uma das suas saídas, como **Success** ou **Error**, **Yes** ou **No**, e só os blocos ligados a essa saída rodam em seguida. Quando nenhum bloco está ligado à saída que um bloco tomou, esse caminho termina. A execução é salva com o seu status, o caminho percorrido e o que cada bloco recebeu e devolveu.
+Quando o gatilho dispara, o OneUptime inicia uma **execução**. Cada bloco termina tomando uma das suas saídas, como **Sucesso** ou **Erro**, **Sim** ou **Não**, e só os blocos ligados a essa saída rodam em seguida. Quando nenhum bloco está ligado à saída que um bloco tomou, esse caminho termina. A execução é salva com o seu status, o caminho percorrido e o que cada bloco recebeu e devolveu.
 
 ```mermaid title="O que acontece quando um workflow roda"
 flowchart TB
@@ -36,7 +36,7 @@ flowchart TB
     wired -->|"Não"| saved["Execução salva com os passos e o log"]
 ```
 
-Você monta tudo isso visualmente, em um canvas. A maioria dos workflows não precisa de código nenhum; quando algum precisa, um bloco **Run Custom JavaScript** roda algumas linhas de JavaScript.
+Você monta tudo isso visualmente, em um canvas. A maioria dos workflows não precisa de código nenhum; quando algum precisa, um bloco **Executar JavaScript personalizado** roda algumas linhas de JavaScript.
 
 ## O que dá para fazer com workflows
 
@@ -44,7 +44,7 @@ Você monta tudo isso visualmente, em um canvas. A maioria dos workflows não pr
 - **Reagir ao que acontece no OneUptime** — quando um incidente é criado, avisar o canal certo e abrir um ticket automaticamente.
 - **Rodar tarefas agendadas** — a cada cinco minutos, toda noite, toda segunda de manhã.
 - **Receber dados de fora** — deixar outros sistemas iniciarem um workflow chamando a URL dele ou mandando e-mail para o endereço dele.
-- **Reutilizar automações comuns** — monte uma vez e inicie a partir de qualquer outro workflow com um bloco **Execute Workflow**.
+- **Reutilizar automações comuns** — monte uma vez e inicie a partir de qualquer outro workflow com um bloco **Executar outro fluxo de trabalho**.
 
 ## Termos principais
 
@@ -52,10 +52,10 @@ As palavras usadas em todo o OneUptime estão no [Glossário](/docs/introduction
 
 | Termo                  | O que significa                                                                                                    |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| **Workflow**           | A automação inteira: um nome, um canvas de blocos e uma chave para ligá-la ou desligá-la.                          |
+| **Fluxo de trabalho**           | A automação inteira: um nome, um canvas de blocos e uma chave para ligá-la ou desligá-la.                          |
 | **Gatilho**            | O primeiro bloco. Ele decide quando o workflow roda. Todo workflow tem exatamente um.                              |
 | **Componente**         | Qualquer outro bloco: envia uma mensagem, faz uma requisição, verifica uma condição ou altera um registro.         |
-| **Saída**              | Um ponto na parte de baixo de um bloco, como **Success** ou **Error**. As linhas que saem dele levam aos próximos blocos. |
+| **Saída**              | Um ponto na parte de baixo de um bloco, como **Sucesso** ou **Erro**. As linhas que saem dele levam aos próximos blocos. |
 | **Execução**           | Uma execução do workflow, salva com o status, os horários e o que cada bloco fez.                                  |
 | **Variável global**    | Um valor, como uma chave de API, que você salva uma vez e usa em qualquer workflow do projeto.                     |
 
@@ -107,13 +107,13 @@ Este workflow envia um resumo em JSON de cada novo incidente para uma URL sua �
 
 ```mermaid title="O exemplo pronto"
 flowchart TB
-    trigger["On Create Incident"] -->|"Success"| post["API Post (JSON)"]
-    post -->|"Error"| log["Log"]
-    post -->|"Success"| done["A execução termina"]
+    trigger["Ao criar: Incidente"] -->|"Sucesso"| post["Chamada de API POST (JSON)"]
+    post -->|"Erro"| log["Registro"]
+    post -->|"Sucesso"| done["A execução termina"]
 ```
 
 > [!TIP]
-> O modelo **Forward new incidents to another system** monta este workflow para você, sem o bloco Log: sem nada em **Error**, uma requisição que falha faz a execução falhar, e as **Etapas** da execução dizem por quê. Ele fica em **Incidentes** quando você cria um workflow.
+> O modelo **Forward new incidents to another system** monta este workflow para você, sem o bloco Log: sem nada em **Erro**, uma requisição que falha faz a execução falhar, e as **Etapas** da execução dizem por quê. Ele fica em **Incidentes** quando você cria um workflow.
 
 :::steps
 ### Criar o workflow
@@ -124,23 +124,23 @@ O novo workflow abre no **Construtor**, desligado.
 
 ### Adicionar o gatilho
 
-Clique no bloco tracejado **Escolha o que inicia este fluxo de trabalho** e depois em **On Create Incident**, em **Populares**, no painel **Adicionar gatilho**.
+Clique no bloco tracejado **Escolha o que inicia este fluxo de trabalho** e depois em **Ao criar: Incidente**, em **Populares**, no painel **Adicionar gatilho**.
 
 O gatilho ocupa o lugar do bloco tracejado. O ID que aparece nele, `incident-on-create-1`, é como os blocos seguintes se referem a ele.
 
 ### Escolher os campos do incidente
 
-Clique no gatilho. **Fields to pass on** começa com o título: clique em **Adicionar campo**, marque a descrição e qualquer outro campo que a requisição deva levar, e clique em **Salvar**.
+Clique no gatilho. **Campos a repassar** começa com o título: clique em **Adicionar campo**, marque a descrição e qualquer outro campo que a requisição deva levar, e clique em **Salvar**.
 
 O gatilho repassa o novo incidente com esses campos. Um campo que você não seleciona chega vazio.
 
 ### Adicionar o bloco de API
 
-Clique em **Adicionar componente** e depois em **API Post (JSON)**, em **Populares**. Arraste do ponto **Success** do gatilho até o ponto superior do novo bloco.
+Clique em **Adicionar componente** e depois em **Chamada de API POST (JSON)**, em **Populares**. Arraste do ponto **Sucesso** do gatilho até o ponto superior do novo bloco.
 
 ### Preencher a requisição
 
-Clique no bloco de API, que mostra **Click to set up**. Coloque o seu endpoint em **URL**. Em **Request Body**, escreva o JSON a enviar, usando **{ }** para inserir os campos do incidente onde precisar, e clique em **Salvar**.
+Clique no bloco de API, que mostra **Click to set up**. Coloque o seu endpoint em **URL**. Em **Corpo da Requisição**, escreva o JSON a enviar, usando **{ }** para inserir os campos do incidente onde precisar, e clique em **Salvar**.
 
 ```json title="Request Body"
 {
@@ -154,7 +154,7 @@ Cada referência `{{…}}` é substituída pelo valor do incidente quando o work
 
 ### Capturar as falhas
 
-Clique em **Adicionar componente** e depois em **Registro**. Ligue a ele o ponto **Error** do bloco de API e defina o **Value** do bloco Log como `Could not send the incident: {{local.components.api-post-1.returnValues.error}}`.
+Clique em **Adicionar componente** e depois em **Registro**. Ligue a ele o ponto **Erro** do bloco de API e defina o **Valor** do bloco Log como `Could not send the incident: {{local.components.api-post-1.returnValues.error}}`.
 
 Uma requisição que falha — uma URL inacessível ou uma resposta que não é 2xx — agora segue esse caminho, e o log da execução diz por quê.
 
@@ -162,7 +162,7 @@ Uma requisição que falha — uma URL inacessível ou uma resposta que não é 
 
 Clique em **Executar fluxo de trabalho** e escolha um incidente deste projeto em **Incidente**: os mais recentes são listados, e digitar o número dele ou parte do título encontra outro. Clique em **Executar fluxo de trabalho manualmente** e confirme com **Executar**. O workflow continua desligado, então esta é uma **Execução de teste**, e a requisição é enviada de verdade.
 
-Um painel **Execução do Fluxo de Trabalho** se abre e acompanha a execução. Abra o passo **API Post (JSON)** para ver o corpo que ele enviou e a resposta que recebeu.
+Um painel **Execução do Fluxo de Trabalho** se abre e acompanha a execução. Abra o passo **Chamada de API POST (JSON)** para ver o corpo que ele enviou e a resposta que recebeu.
 
 ### Ligar
 

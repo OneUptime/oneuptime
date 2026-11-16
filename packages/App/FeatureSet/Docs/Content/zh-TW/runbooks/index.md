@@ -1,6 +1,6 @@
 # Runbook 概觀
 
-Runbook 是可重複使用的應變程序：一份由手動步驟和自動步驟組成的有序清單，您可以在事件、警示或維護事件上執行它。它把「現在該怎麼辦？」的討論變成一份檢查清單，任何值班人員都能在凌晨 3 點照著執行，指令碼、API 呼叫和核准都已事先寫好。Runbook 是為處理事件的值班工程師，以及將這類應變自動化的平台團隊而設計。如需在 Runbook、工作流程、劇本和 AI 規則之間做選擇，請參閱 [該用哪一個？](/docs/introduction/which-one#工作流程操作手冊劇本還是-ai-規則)。
+Runbook 是可重複使用的應變程序：一份由手動步驟和自動步驟組成的有序清單，您可以在事件、警示或維護事件上執行它。它把「現在該怎麼辦？」的討論變成一份檢查清單，任何值班人員都能在凌晨 3 點照著執行，指令碼、API 呼叫和核准都已事先寫好。Runbook 是為處理事件的值班工程師，以及將這類應變自動化的平台團隊而設計。如需在 Runbook、工作流程、劇本和 AI 規則之間做選擇，請參閱 [該用哪一個？](/docs/introduction/which-one#工作流程運行手冊劇本還是-ai-規則)。
 
 :::cards
 - [撰寫 Runbook](/docs/runbooks/authoring): 建立 Runbook 並撰寫其步驟。
@@ -44,10 +44,10 @@ OneUptime 各處使用的詞彙都收錄在 [詞彙表](/docs/introduction/gloss
 
 | 概念 | 意義 |
 | --- | --- |
-| **Runbook** | 範本。一個具名、可重複使用的程序，包含有序的步驟清單和 **執行此操作手冊** 開關。 |
+| **Runbook** | 範本。一個具名、可重複使用的程序，包含有序的步驟清單和 **執行此運行手冊** 開關。 |
 | **步驟** | Runbook 中的一個項目。它有類型（Manual、JavaScript、HTTP request、Bash、SSH、kubectl 或 AI）、標題、描述以及與類型相關的設定。 |
 | **Runbook 規則** | 一條規則，會自動將一個或多個 Runbook 關聯到符合其條件（監測器、嚴重性、標籤、監測器標籤、標題或描述）的事件、警示或維護事件。 |
-| **執行** | Runbook 的一次執行。在規則觸發、有人在事件上點選 **執行操作手冊** ，或在 Runbook 本身點選 **立即執行** 時建立。它保存步驟的快照，以及每個步驟的狀態和輸出。 |
+| **執行** | Runbook 的一次執行。在規則觸發、有人在事件上點選 **執行運行手冊** ，或在 Runbook 本身點選 **立即執行** 時建立。它保存步驟的快照，以及每個步驟的狀態和輸出。 |
 | **快照** | 保存在每次執行中的 Runbook 步驟凍結副本。之後編輯 Runbook 不會改寫過去執行的歷史。 |
 | **Runner** | 您在自己基礎架構中的主機上執行的小型代理程式。它會執行指定它的 JavaScript、Bash、SSH 和 kubectl 步驟。也稱為 Runbook 代理程式。 全域 Runner 是 OneUptime 為所有專案執行的 Runner，除非專案有預設 Runner，它會執行未指定任何 Runner 的 JavaScript 步驟。 |
 | **變數** | 步驟透過名稱使用的值，例如主機或 URL：`{{global.variables.NAME}}` 表示專案的變數，每個 Runbook 都可以使用；`{{local.variables.NAME}}` 表示 Runbook 自己的變數。 |
@@ -74,13 +74,13 @@ OneUptime 各處使用的詞彙都收錄在 [詞彙表](/docs/introduction/gloss
 | 方式 | 位置 | 執行關聯到 |
 | --- | --- | --- |
 | Runbook 規則 | **事件** 、 **警示** 或 **排定維護** → **規則** → **Runbook 規則** | 新的事件、警示或排定維護事件 |
-| **執行操作手冊** | 事件、警示或維護事件的 **運行手冊** 頁面 | 該事件、警示或維護事件 |
+| **執行運行手冊** | 事件、警示或維護事件的 **運行手冊** 頁面 | 該事件、警示或維護事件 |
 | **立即執行** | Runbook 的 **概覽** 頁面 | 無：一次臨時執行 |
 | AI 規則 | 請參閱 [AI SRE](/docs/ai/ai-sre) | 事件或警示 |
 | Runbook 的排程 | Runbook 的 **觸發器** 頁面，請參閱 [Runbook 觸發器](/docs/runbooks/triggers#依排程執行) | 無：一次無人看管的執行 |
 | 對 Runbook Webhook URL 的呼叫 | Runbook 的 **觸發器** 頁面，請參閱 [Runbook 觸發器](/docs/runbooks/triggers#呼叫-webhook) | 無：執行會保留呼叫傳送的值 |
 
-如果 Runbook 在 **設定** 頁面上關閉了 **執行此操作手冊** 開關，以上任何方式都不會啟動它。已經開始的執行會繼續進行。
+如果 Runbook 在 **設定** 頁面上關閉了 **執行此運行手冊** 開關，以上任何方式都不會啟動它。已經開始的執行會繼續進行。
 
 ## Runbook 在儀表板中的位置
 
@@ -95,12 +95,12 @@ Runbook 位於 **產品** 下的 **儀表板與自動化** 群組中。
 | Runbook 的 **觸發器** | 依[排程](/docs/runbooks/triggers#依排程執行)執行，或從其他工具透過其 [Webhook URL](/docs/runbooks/triggers#呼叫-webhook) 執行。 |
 | Runbook 的 **變數** | 管理只有該 Runbook 的步驟使用的 [變數](/docs/runbooks/variables)。 |
 | Runbook 的 **擁有者** | 新增對它負責的人員和團隊。 |
-| Runbook 的 **設定** | 在不刪除 Runbook 的情況下關閉 **執行此操作手冊** 。 |
+| Runbook 的 **設定** | 在不刪除 Runbook 的情況下關閉 **執行此運行手冊** 。 |
 | **運行手冊 → 執行次數** | 專案中所有 Runbook 的所有執行。 |
-| **運行手冊 → Runbook 代理程式** | 安裝運行手冊步驟所執行的 [Runner](/docs/runbooks/agents)。 |
+| **運行手冊 → Runner** | 安裝運行手冊步驟所執行的 [Runner](/docs/runbooks/agents)。 |
 | **運行手冊 → 設定** | 管理每個 Runbook 都可以 [使用](/docs/runbooks/variables) 的 **全域變數** ，以及為新 Runbook 新增擁有者和標籤的 **擁有者規則** 和 **標籤規則** 。 |
 | **事件 / 警示 / 排定維護 → 規則 → Runbook 規則** | 建立自動啟動 Runbook 的規則。 |
-| 事件、警示或維護事件 → **運行手冊** | 查看與其關聯的執行，並點選 **執行操作手冊** 啟動新的執行。 |
+| 事件、警示或維護事件 → **運行手冊** | 查看與其關聯的執行，並點選 **執行運行手冊** 啟動新的執行。 |
 
 Runbook 自己的側邊選單依下列方式組織頁面。預設只展開**基礎**：點選某個區段的標題即可展開。在某個區段的任意頁面上，該區段會自動展開。
 
@@ -120,7 +120,7 @@ Runbook 自己的側邊選單依下列方式組織頁面。預設只展開**基�
 :::steps
 ### 建立 Runbook
 
-在 **運行手冊** 中點選 **建立操作手冊** ，將其命名為「DB primary failover」。它會在 **步驟** 開啟：新增以下步驟，然後點選 **儲存步驟** ：
+在 **運行手冊** 中點選 **建立運行手冊** ，將其命名為「DB primary failover」。它會在 **步驟** 開啟：新增以下步驟，然後點選 **儲存步驟** ：
 
 | # | 類型 | 標題 |
 | --- | --- | --- |
@@ -169,7 +169,7 @@ Runbooks:    [DB primary failover]
 - **[值班原則](/docs/on-call/schedules)** 決定要呼叫誰。Runbook 決定這個人醒來後要做什麼。
 - Slack 和 Microsoft Teams 等 **[工作區連線](/docs/workspace-connections/slack)** 是發布更新的 HTTP 請求步驟的自然目標。
 - **[狀態頁面](/docs/status-pages/index)** 常以面向客戶的 Runbook 中的一個 Manual 步驟來更新。
-- **[OneUptime AI](/docs/ai/ai-sre#將奏效的修正儲存為運行手冊)** 會根據自己奏效的修正撰寫 Runbook：在已驗證的修正上點選 **儲存為操作手冊**，會儲存已執行的步驟，並在您審核之前保持關閉。
+- **[OneUptime AI](/docs/ai/ai-sre#將奏效的修正儲存為運行手冊)** 會根據自己奏效的修正撰寫 Runbook：在已驗證的修正上點選 **儲存為運行手冊**，會儲存已執行的步驟，並在您審核之前保持關閉。
 
 ## 後續步驟
 

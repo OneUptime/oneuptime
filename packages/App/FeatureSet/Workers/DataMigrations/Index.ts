@@ -131,6 +131,10 @@ import RestoreNamespaceMetricMonitorTotals from "./RestoreNamespaceMetricMonitor
 import RedactLatestIncomingRequests from "./RedactLatestIncomingRequests";
 import ClearMonitorGroupOnMonitorStatusPageResources from "./ClearMonitorGroupOnMonitorStatusPageResources";
 import RestampDevicesOfMonitorsNotChecked from "./RestampDevicesOfMonitorsNotChecked";
+import RedactPersonalDataInProductAnalyticsPages from "./RedactPersonalDataInProductAnalyticsPages";
+import ReadHashRoutesInProductAnalyticsEntryPages from "./ReadHashRoutesInProductAnalyticsEntryPages";
+import ScrubProductAnalyticsAddresses from "./ScrubProductAnalyticsAddresses";
+import ScrubSessionReplayAddresses from "./ScrubSessionReplayAddresses";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
 import BackfillProjectMilestones from "./BackfillProjectMilestones";
 import AddNetworkTrafficUsageUplinkHealthColumns from "./AddNetworkTrafficUsageUplinkHealthColumns";
@@ -1125,6 +1129,48 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new RemoveRunbookCredentials(),
+  /*
+   * Product analytics pages a client sent unscrubbed (#8197): deletes the
+   * page views named by a page with an email, a uuid, an id or a token in
+   * it (the name is in the sort key) and redacts those segments in every
+   * other event's page, as the ingest now scrubs what it stores. ClickHouse
+   * mutations queued in the background, on the local table ON CLUSTER;
+   * idempotent; it sits before the last slot AddAuditLogMcpClientColumns
+   * asserts for itself.
+   */
+  new RedactPersonalDataInProductAnalyticsPages(),
+  /*
+   * The Product Analytics overview files a hash-routed app's session under
+   * its route, not "/" (#8194): RumProductAnalyticsSessionV1_mv's query is
+   * replaced in place (ALTER TABLE ... MODIFY QUERY, ON CLUSTER) with the
+   * model's, whose entry page reads the route. Atomic, so no session header
+   * goes by unfiled; idempotent; it sits before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new ReadHashRoutesInProductAnalyticsEntryPages(),
+  /*
+   * What product analytics stored before the scrubber caught it (#8385,
+   * #8386): page views named by a page with a JSON Web Token, an address
+   * escaped twice or an email beyond ASCII are deleted, those segments are
+   * redacted in every other event's page and in the sessions' pages, and
+   * address-valued properties, user properties and metric() attributes are
+   * scrubbed as the ingest scrubs them now. ClickHouse mutations queued in
+   * the background, on the local tables ON CLUSTER; idempotent; after
+   * RedactPersonalDataInProductAnalyticsPages, whose ASCII rule it extends,
+   * and before the last slot AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new ScrubProductAnalyticsAddresses(),
+  /*
+   * Session Replay's headers and chunks keep a JSON Web Token, an address
+   * escaped twice or a token in standard base64 recorded before #8385 and
+   * #8489 (#8490): those segments are redacted in a session's entry and exit
+   * URLs and routes and a chunk's url and routes, the rest of each address
+   * as written; the product analytics scrub is queued again for the base64
+   * rule. ClickHouse mutations queued in the background, on the local tables
+   * ON CLUSTER; idempotent; after ScrubProductAnalyticsAddresses and before
+   * the last slot AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new ScrubSessionReplayAddresses(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

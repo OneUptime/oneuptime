@@ -56,7 +56,7 @@ flowchart TB
 ## 開始之前
 
 - **包含表單的方案。** 在 OneUptime Cloud 上，表單需要 **Growth** 或更高的方案。請參閱 [方案](#方案)。
-- **建立表單的權限。** **Create Form** 屬於專案擁有者和管理員，以及您授予該權限的角色。請參閱 [權限](#權限)。
+- **建立表單的權限。** **Create Form** 屬於專案擁有者和專案管理員，以及您授予該權限的角色。請參閱 [權限](#權限)。
 - **事件表單需要嚴重程度。** 每個事件都需要一個嚴重程度：來自某個問題、表單的設定或其事件範本。沒有嚴重程度時，每次提交都會被拒絕。請參閱 [提交會建立什麼](/docs/forms/on-submit#提交如何成為事件)。
 
 ## 建立您的第一個表單
@@ -127,22 +127,22 @@ flowchart TB
 
 ## 權限
 
-表單讓團隊以外的人可以在您的專案中建立事件和維護事件，因此表單由專案擁有者和管理員，以及您授予 **Form** 權限的角色來管理。這些權限位於 [權限參考](/docs/permissions/reference) 的 **Form** 群組中：
+表單讓團隊以外的人可以在您的專案中建立事件和維護事件，因此表單由專案擁有者和專案管理員，以及您授予 **Form** 權限的角色來管理。這些權限位於 [權限參考](/docs/permissions/reference) 的 **Form** 群組中：
 
 | 權限 | 允許的操作 | 預設擁有者 |
 | --- | --- | --- |
-| **Create Form** | 建立表單以及複製表單。 | Project Owner, Project Admin |
-| **Edit Form** | 變更表單：其問題、品牌、範本、提交時設定、**接受提交**、連結和 **IP 允許清單**。 | Project Owner, Project Admin |
-| **Delete Form** | 刪除表單，其提交紀錄也會隨之刪除。 | Project Owner, Project Admin |
-| **Read Form** | 檢視表單及其問題、設定和連結。 | 以上角色，以及 Project Member、Viewer，和事件與排定維護相關的角色 |
-| **Read Form Submission** | 檢視提交及其答案。 | Project Owner, Project Admin |
-| **Delete Form Submission** | 刪除提交。 | Project Owner, Project Admin |
-| **Create Form Domain** | 為表單新增 [自訂網域](/docs/forms/sharing-and-security#自訂網域)。 | Project Owner, Project Admin 和 **Edit Form** |
-| **Edit Form Domain** | 檢查表單的自訂網域，以及訂購、重新核發或更換它們的憑證。 | Project Owner, Project Admin 和 **Edit Form** |
-| **Delete Form Domain** | 移除表單的自訂網域。 | Project Owner, Project Admin 和 **Edit Form** |
+| **Create Form** | 建立表單以及複製表單。 | 專案擁有者、專案管理員 |
+| **Edit Form** | 變更表單：其問題、品牌、範本、提交時設定、**接受提交**、連結和 **IP 允許清單**。 | 專案擁有者、專案管理員 |
+| **Delete Form** | 刪除表單，其提交紀錄也會隨之刪除。 | 專案擁有者、專案管理員 |
+| **Read Form** | 檢視表單及其問題、設定和連結。 | 以上角色，以及專案成員、檢視者，和事件與排定維護相關的角色 |
+| **Read Form Submission** | 檢視提交及其答案。 | 專案擁有者、專案管理員 |
+| **Delete Form Submission** | 刪除提交。 | 專案擁有者、專案管理員 |
+| **Create Form Domain** | 為表單新增 [自訂網域](/docs/forms/sharing-and-security#自訂網域)。 | 專案擁有者、專案管理員和 **Edit Form** |
+| **Edit Form Domain** | 檢查表單的自訂網域，以及訂購、重新核發或更換它們的憑證。 | 專案擁有者、專案管理員和 **Edit Form** |
+| **Delete Form Domain** | 移除表單的自訂網域。 | 專案擁有者、專案管理員和 **Edit Form** |
 | **Read Form Domain** | 檢視表單的自訂網域、它們的 DNS 記錄，以及每個網域在通往 HTTPS 的路上走到了哪一步。 | 擁有 **Read Form** 的任何人 |
 
-提交中包含陌生人輸入的內容（姓名、電子郵件地址，以及可能永遠不會進入紀錄的答案），因此除非您授予 **Read Form Submission**，否則只有專案擁有者和管理員能看到它們。任何能讀取表單的人都能看到並分享其連結。提交表單不需要任何權限。關於角色和細部權限如何組合，請參閱 [使用者、團隊與權限](/docs/permissions/index)。
+提交中包含陌生人輸入的內容（姓名、電子郵件地址，以及可能永遠不會進入紀錄的答案），因此除非您授予 **Read Form Submission**，否則只有專案擁有者和專案管理員能看到它們。任何能讀取表單的人都能看到並分享其連結。提交表單不需要任何權限。關於角色和細部權限如何組合，請參閱 [使用者、團隊與權限](/docs/permissions/index)。
 
 ## 方案
 
@@ -257,7 +257,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
 
 ### 工作流程
 
-表單擁有自動產生的工作流程元件，例如 **On Create Form**、**On Update Form** 等。若要對表單建立的內容執行動作，請使用 **On Create Incident** 或 **On Create Maintenance Event**。
+表單擁有自動產生的工作流程元件，例如 **建立表單時**、**更新表單時** 等。若要對表單建立的內容執行動作，請使用 **建立事件時** 或 **建立維護事件時**。
 
 ### 公開頁面自己的端點
 

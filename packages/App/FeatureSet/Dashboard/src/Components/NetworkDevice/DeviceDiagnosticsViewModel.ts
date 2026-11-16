@@ -1,4 +1,5 @@
 import AggregateModel from "Common/Types/BaseDatabase/AggregatedModel";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import NetworkPathTrace, {
   TraceRouteHop,
 } from "Common/Types/Monitor/NetworkMonitor/NetworkPathTrace";
@@ -10,10 +11,12 @@ import { NETWORK_DEVICE_METRIC_DESCRIPTIONS } from "../MetricDescriptions/Networ
 import {
   Translator,
   composedValue,
+  getGlobalTranslator,
   translatePlural,
   translateTemplate,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
+import { formatMilliseconds } from "../../Utils/Milliseconds";
 import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 
 /*
@@ -76,6 +79,13 @@ export interface DiagnosticRow {
    * only name something — Host, Reason.
    */
   description?: string | undefined;
+  /*
+   * The value is the probe's message - why a ping failed, as the probe
+   * stored it - which the drawer words in the reader's language where it is
+   * one of OneUptime's own sentences, and keeps whole in a line of its own
+   * direction otherwise (ProbeMessageLine, #8675).
+   */
+  isProbeMessage?: boolean | undefined;
 }
 
 export interface PingResultSummary {
@@ -85,15 +95,23 @@ export interface PingResultSummary {
 }
 
 /*
- * A round trip in the reader's digits ("12.4 ms", "۱۲٫۴ ms" in Persian), as
- * the rest of the device's figures are; English reads as it always has.
+ * A round trip to a tenth, in the reader's language: "12.4 ms", "۱۲٫۴
+ * میلی‌ثانیه", "12.4 ملي ث". It wrote "۱۲٫۴ ms" in Persian with its own
+ * copy of the duration helper; it is the Dashboard's one helper now
+ * (formatMilliseconds, issue #7418), and a missing reading a dash.
  */
-export function formatMilliseconds(value: number | undefined): string {
+export function formatRoundTrip(
+  value: number | undefined,
+  translator: Translator = getGlobalTranslator(),
+): string {
   if (value === undefined || value === null || Number.isNaN(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
-  return `${formatReaderFigure(value, { decimals: 1 })} ms`;
+  return formatMilliseconds(translator, value, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
 }
 
 /*
@@ -114,6 +132,7 @@ export function formatPercent(
 export function describePingResult(
   result: NetworkDeviceDiagnosticPingResult,
   hostname?: string | undefined,
+  translator: Translator = getGlobalTranslator(),
 ): PingResultSummary {
   const rows: Array<DiagnosticRow> = [];
 
@@ -128,7 +147,11 @@ export function describePingResult(
    */
   if (!result.pingResponse) {
     if (result.failureCause) {
-      rows.push({ label: "Reason", value: result.failureCause });
+      rows.push({
+        label: "Reason",
+        value: result.failureCause,
+        isProbeMessage: true,
+      });
     }
 
     // An English key: the drawer looks the headline up.
@@ -158,24 +181,32 @@ export function describePingResult(
   }
 
   if (isDown && result.failureCause) {
-    rows.push({ label: "Reason", value: result.failureCause });
+    rows.push({
+      label: "Reason",
+      value: result.failureCause,
+      isProbeMessage: true,
+    });
   }
 
   rows.push({
     label: "Average RTT",
-    value: formatMilliseconds(result.pingResponse.avgRoundTripTimeInMs),
+    value: formatRoundTrip(
+      result.pingResponse.avgRoundTripTimeInMs,
+      translator,
+    ),
     description: NETWORK_DEVICE_METRIC_DESCRIPTIONS.pingAverageRtt,
   });
   rows.push({
     label: "Min / Max RTT",
-    value: `${formatMilliseconds(
+    value: `${formatRoundTrip(
       result.pingResponse.minRoundTripTimeInMs,
-    )} / ${formatMilliseconds(result.pingResponse.maxRoundTripTimeInMs)}`,
+      translator,
+    )} / ${formatRoundTrip(result.pingResponse.maxRoundTripTimeInMs, translator)}`,
     description: NETWORK_DEVICE_METRIC_DESCRIPTIONS.pingMinMaxRtt,
   });
   rows.push({
     label: "Jitter",
-    value: formatMilliseconds(result.pingResponse.jitterInMs),
+    value: formatRoundTrip(result.pingResponse.jitterInMs, translator),
     description: NETWORK_DEVICE_METRIC_DESCRIPTIONS.pingJitter,
   });
   rows.push({

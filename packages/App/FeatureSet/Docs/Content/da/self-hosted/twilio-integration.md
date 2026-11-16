@@ -49,7 +49,7 @@ Sådan tilføjer du en projektkonfiguration:
 5. Gem. Et projekt har én standard for SMS og én for opkald, så en konfiguration sat til **Kun SMS** og en sat til **Kun opkald** kan begge være standard: se [En konto kun til SMS eller kun til opkald](#en-konto-kun-til-sms-eller-kun-til-opkald). Statussider bruger den konfiguration, der udtrykkeligt er tildelt hver statusside.
 
 > [!IMPORTANT]
-> **SMS** og **Telefonopkald** er slået fra fra start i hvert projekt, og indtil de er slået til, kan ingen i projektet tilføje et telefonnummer til dem. En projektejer, en **Faktureringsadministrator** eller en person med **Manage Billing** slår dem til i kortet **Notifikationskanaler** på samme side.
+> **SMS** og **Telefonopkald** er slået fra fra start i hvert projekt, og indtil de er slået til, kan ingen i projektet tilføje et telefonnummer til dem. En Projektejer, en **Faktureringsadministrator** eller en person med **Manage Billing** slår dem til i kortet **Notifikationskanaler** på samme side.
 :::
 
 For en standard for hele installationen kan en administrator i stedet åbne **Admin Dashboard > Indstillinger > Opkald og SMS**, vælge, hvad kontoen sender, redigere Twilio-legitimationsoplysningerne og telefonnumrene og gemme. Medlemmernes notifikationer bruger denne globale konfiguration, når deres projekt ikke har en standard. Hold Auth Token fortroligt.
@@ -243,6 +243,6 @@ Et nummer, der er bekræftet til SMS, er også bekræftet til opkald, uden en ny
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Bestem, hvem der tilkaldes på hvert niveau, via SMS, opkald eller en anden metode.
 - [SMS- og opkaldsgateway](/docs/self-hosted/sms-and-call-gateway): Send SMS og opkald gennem din egen udbyder i stedet for Twilio.
 - [SMTP](/docs/emails/smtp): Send også e-mail gennem din egen mailserver.
-- [Adgang til private netværk](/docs/self-hosted/private-network-access): Lad workflows og webhooks nå interne værktøjer.
+- [Adgang til private netværk](/docs/self-hosted/private-network-access): Lad arbejdsgange og webhooks nå interne værktøjer.
 - [Metrikker for notifikationslevering](/docs/self-hosted/notification-delivery-metrics): Mål, hvor mange SMS'er og opkald der når frem til Twilio og telefonen.
 :::

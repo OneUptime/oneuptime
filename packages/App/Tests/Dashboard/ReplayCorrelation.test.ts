@@ -492,24 +492,33 @@ describe("buildReplayLogsAtMomentQueryParams / Route", () => {
  */
 describe("formatReplayMilliseconds", () => {
   test("milliseconds below a second, seconds below a minute, minutes beyond", () => {
-    expect(formatReplayMilliseconds(0)).toBe("0 ms");
-    expect(formatReplayMilliseconds(420)).toBe("420 ms");
-    expect(formatReplayMilliseconds(999)).toBe("999 ms");
+    expect(formatReplayMilliseconds(0)).toBe("0\u00A0ms");
+    expect(formatReplayMilliseconds(420)).toBe("420\u00A0ms");
+    expect(formatReplayMilliseconds(999)).toBe("999\u00A0ms");
     expect(formatReplayMilliseconds(1000)).toBe("1s");
     expect(formatReplayMilliseconds(1500)).toBe("1.5s");
     expect(formatReplayMilliseconds(12_400)).toBe("12s");
     expect(formatReplayMilliseconds(65_000)).toBe("1m 05s");
-    expect(formatReplayMilliseconds(-300)).toBe("-300 ms");
+    expect(formatReplayMilliseconds(-300)).toBe("-300\u00A0ms");
   });
 
   test("a non-finite value is unknown rather than NaN", () => {
     expect(formatReplayMilliseconds(NaN)).toBe("unknown");
   });
+
+  // Whole seconds carry into the minute: 119.6 s used to read "1m 60s".
+  test("a length just short of the next minute reads as that minute", () => {
+    expect(formatReplayMilliseconds(119_600)).toBe("2m 00s");
+    expect(formatReplayMilliseconds(119_400)).toBe("1m 59s");
+    expect(formatReplayMilliseconds(-119_600)).toBe("-2m 00s");
+  });
 });
 
 describe("formatReplayClockSkew", () => {
   test("a sub-second skew is shown in milliseconds with its direction", () => {
-    expect(formatReplayClockSkew(300)).toBe("300 ms ahead (server-clamped)");
+    expect(formatReplayClockSkew(300)).toBe(
+      "300\u00A0ms ahead (server-clamped)",
+    );
     expect(formatReplayClockSkew(-2500)).toBe("2.5s behind (server-clamped)");
   });
 
@@ -613,11 +622,20 @@ describe("replay correlation panel wiring", () => {
   });
 
   test("the sub-second formatters and enum labels are what the panel renders", () => {
-    expect(panelSource).toContain("formatReplayClockSkew(d.clockSkewMs)");
-    expect(panelSource).toContain("formatReplayMilliseconds(gap.missingMs)");
-    expect(panelSource).toContain("getReplayConsentStateLabel(d.consentState)");
+    // In the reader's language, one sentence each way (#8299, #8350).
     expect(panelSource).toContain(
-      "getReplayTriggerReasonLabel(d.triggerReason)",
+      "formatReplayClockSkew(d.clockSkewMs, translator)",
+    );
+    // A gap's milliseconds in the language of the sentence that holds them (#7418).
+    expect(panelSource).toContain(
+      "duration: composedValue( (sentence: Translator): string => { return formatReplayMilliseconds( gap.missingMs, sentence, );",
+    );
+    // Each label in the reader's language, as Masking mode beside it is (#8299).
+    expect(panelSource).toContain(
+      "getReplayConsentStateLabel(d.consentState, translator)",
+    );
+    expect(panelSource).toContain(
+      "getReplayTriggerReasonLabel(d.triggerReason, translator)",
     );
     expect(panelSource).not.toContain("Math.round(d.clockSkewMs / 1000)");
     expect(panelSource).not.toContain("Math.round(gap.missingMs / 1000)");

@@ -11,9 +11,9 @@ Runbook은 **단계** 페이지에서 순서 있는 단계 목록으로 작성�
 
 ## 시작하기 전에
 
-- **Runbook을 작성할 수 있는 역할.** Project Owner, Project Admin, Runbook Admin은 Runbook을 만들고 단계를 저장할 수 있습니다. 세분화된 권한을 쓰는 경우 **Create Runbook**과 **Edit Runbook**이 필요합니다. [권한](/docs/runbooks/configuration#권한)을 참조하세요.
+- **Runbook을 작성할 수 있는 역할.** 프로젝트 소유자, 프로젝트 관리자, 런북 관리자는 Runbook을 만들고 단계를 저장할 수 있습니다. 세분화된 권한을 쓰는 경우 **Create Runbook**과 **Edit Runbook**이 필요합니다. [권한](/docs/runbooks/configuration#권한)을 참조하세요.
 - **Bash, SSH, kubectl 단계를 위한 Runner.** 이 단계들은 OneUptime Worker가 아니라 자체 인프라의 [Runner](/docs/runbooks/agents)에서 실행됩니다. 먼저 하나를 설치하세요. Runner를 고르지 않은 단계는 설정해 두었다면 [프로젝트 기본 Runner](/docs/runbooks/agents#프로젝트-기본-runner)에서 실행되고, 그렇지 않으면 JavaScript 단계는 [글로벌 Runner](/docs/runbooks/agents#글로벌-runner)에서 실행됩니다.
-- **SSH와 kubectl 단계를 위한 시크릿 변수.** 단계가 로그인에 쓰는 키, 비밀번호 또는 kubeconfig는 시크릿 [Runbook 변수](/docs/runbooks/variables)입니다. 변수는 Project Owner와 Project Admin이 만들고, Runbook Admin은 자신이 작성하는 단계에서 변수를 고릅니다. kubectl 단계는 대신 Runner 자체 액세스를 사용할 수 있습니다.
+- **SSH와 kubectl 단계를 위한 시크릿 변수.** 단계가 로그인에 쓰는 키, 비밀번호 또는 kubeconfig는 시크릿 [Runbook 변수](/docs/runbooks/variables)입니다. 변수는 프로젝트 소유자와 프로젝트 관리자가 만들고, 런북 관리자는 자신이 작성하는 단계에서 변수를 고릅니다. kubectl 단계는 대신 Runner 자체 액세스를 사용할 수 있습니다.
 - **AI 단계를 위한 LLM 공급자.** [LLM 공급자](/docs/ai/llm-provider)를 참조하세요.
 
 ## Runbook 만들기
@@ -198,7 +198,7 @@ kubectl rollout status deployment/checkout-api --namespace checkout --timeout=12
 | **프롬프트** | AI가 할 일입니다. 예: "이전 단계의 출력을 검토하고 해결 조치를 계속해도 안전한지 알려 주세요." |
 | **LLM 공급자** | 선택 사항입니다. **프로젝트 기본값**은 프로젝트의 기본 공급자를 사용합니다. 네트워크 밖으로 나가면 안 되는 데이터용 자체 호스팅 모델처럼 특정 모델이 필요한 단계라면 공급자를 고정하세요. [LLM 공급자](/docs/ai/llm-provider)를 참조하세요. |
 | **이전 단계 컨텍스트 포함** | 켜면 AI가 이 단계 전에 실행된 단계의 모든 것(제목, 유형, 상태, 출력, 오류 메시지)을 봅니다. 각 단계 출력은 최대 4,000자까지 전달됩니다. |
-| **트리거 컨텍스트 포함** | 켜면 AI가 실행을 시작한 것을 봅니다. 연결된 인시던트, 알림 또는 유지 관리 이벤트(설명, 심각도, 현재 상태, 영향받은 모니터, 근본 원인, 상태 타임라인, 공개 메모) 또는 Runbook을 수동으로 실행한 사람입니다. |
+| **트리거 컨텍스트 포함** | 켜면 AI가 실행을 시작한 것을 봅니다. 연결된 인시던트, 경고 또는 유지 관리 이벤트(설명, 심각도, 현재 상태, 영향받은 모니터, 근본 원인, 상태 타임라인, 공개 메모) 또는 Runbook을 수동으로 실행한 사람입니다. |
 
 사람을 과정에 남겨 두려면 AI 단계 다음 단계에서 **승인 필요**를 켜세요. AI가 분석하고, 사람이 응답을 읽고 승인한 뒤에야 해결 단계가 실행됩니다.
 

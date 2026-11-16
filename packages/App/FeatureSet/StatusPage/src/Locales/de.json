@@ -42,7 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% Verfügbarkeit",
-    "uptimePercent": "{{percent}}% Verfügbarkeit",
+    "uptimePercent": "{{percent}} Verfügbarkeit",
     "operational": "Betriebsbereit",
     "notMonitored": "Nicht überwacht",
     "noResourcesInGroup": "Dieser Gruppe wurden keine Ressourcen hinzugefügt.",
@@ -60,10 +60,9 @@
   },
   "eventItem": {
     "affectedResources": "Betroffene Ressourcen",
-    "stateChangedTo": "Status geändert auf",
     "view": "{{eventType}} anzeigen",
     "updateTo": "Update zu diesem {{eventType}}",
-    "postedOn": "veröffentlicht am"
+    "postedOnDate": "veröffentlicht am {{date}}"
   },
   "monitorOverview": {
     "daysAgo": "vor {{days}} Tagen",
@@ -276,6 +275,7 @@
       "channelSlack": "Slack-Workspace",
       "channelMicrosoftTeams": "Microsoft Teams-Workspace",
       "channelWebhook": "Webhook",
+      "channelWithColon": "{{channel}}:",
       "addedByTeamWarning": "Dieses Abonnement wurde vom Team hinzugefügt, das diese Statusseite betreibt. Handelt es sich um eine gemeinsam genutzte Adresse wie eine Mailingliste, erhält nach dem Abbestellen niemand mehr diese Benachrichtigungen, der sie über diese Adresse bekommt, und das Team wird informiert.",
       "confirmButton": "Abbestellen",
       "manageInstead": "Stattdessen auswählen, welche Benachrichtigungen Sie erhalten",
@@ -473,5 +473,6 @@
     "warning": "Warnung"
   },
   "No options available": "Keine Optionen verfügbar",
-  "No matches found": "Keine Treffer gefunden"
+  "No matches found": "Keine Treffer gefunden",
+  "{{eventType}} state changed to {{state}}": "{{eventType}}: Status geändert auf {{state}}"
 }

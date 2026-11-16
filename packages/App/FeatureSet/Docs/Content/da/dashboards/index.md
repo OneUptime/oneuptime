@@ -1,6 +1,6 @@
 # Dashboards – Oversigt
 
-Et dashboard er én side med widgets, som du selv arrangerer: diagrammer over dine metrikker, logs og traces, lister over hændelser, advarsler og overvågninger, dine SLO'er og din infrastruktur, ja endda data fra systemer uden for OneUptime. Byg et til vagtskærmen, til et teams morgentjek eller som en side til dine kunder, og del det med dit projekt eller med alle, der har linket. Se [Hvilken skal jeg bruge?](/docs/introduction/which-one#dashboard-offentligt-dashboard-eller-statusside) for at vælge mellem et dashboard, et offentligt dashboard og en statusside.
+Et dashboard er én side med widgets, som du selv arrangerer: diagrammer over dine metrikker, logs og traces, lister over hændelser, advarsler og monitorer, dine SLO'er og din infrastruktur, ja endda data fra systemer uden for OneUptime. Byg et til vagtskærmen, til et teams morgentjek eller som en side til dine kunder, og del det med dit projekt eller med alle, der har linket. Se [Hvilken skal jeg bruge?](/docs/introduction/which-one#dashboard-offentligt-dashboard-eller-statusside) for at vælge mellem et dashboard, et offentligt dashboard og en statusside.
 
 :::cards
 - [Sådan fungerer et dashboard](#sådan-fungerer-et-dashboard): Hvor dataene kommer fra, og hvem der ser dem.
@@ -94,7 +94,7 @@ Målet: én side for checkout-tjenesten med dens latenstid, fejlrate, åbne hæn
 - **Overvågninger og telemetri** er der, hvor dataene kommer fra. Alle metrikker, logs og traces, du sender, kan komme på en widget.
 - **Hændelser og advarsler** vises i widgets **Hændelsesliste** og **Advarselsliste**. Et dashboard viser dem kun: du arbejder med dem på deres egne sider.
 - **Statussider** fortæller dine kunder, om din tjeneste kører. Dashboards viser i detaljer, hvordan den opfører sig. De to arbejder side om side.
-- **Workflows** handler på det, der sker. Dashboards er der, hvor du læser det.
+- **Arbejdsgange** handler på det, der sker. Dashboards er der, hvor du læser det.
 
 ## Næste trin
 

@@ -9,7 +9,7 @@ export function getTracesBreadcrumbs(path: string): Array<Link> | undefined {
     ...BuildBreadcrumbLinksByTitles(PageMap.TRACES_INSIGHTS, [
       "Project",
       "Traces",
-      "Insights",
+      "Insights (explorer analytics)",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.TRACE_VIEW, [
       "Project",

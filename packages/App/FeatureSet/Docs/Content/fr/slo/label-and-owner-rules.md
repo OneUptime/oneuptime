@@ -22,7 +22,7 @@ Les deux s'appliquent à tout le projet. Vous les trouvez dans le menu latéral 
 :::steps
 ### Ouvrir la liste des règles
 
-Ouvrez **SLOs**, puis **Paramètres** → **Règles d'étiquettes** ou **Paramètres** → **Règles de propriétaire** dans le menu latéral, et cliquez sur **Créer : Règle d'étiquettes des SLO** ou **Créer : Règle de propriétaire des SLO**.
+Ouvrez **SLO**, puis **Paramètres** → **Règles d'étiquettes** ou **Paramètres** → **Règles de propriétaire** dans le menu latéral, et cliquez sur **Créer : Règle d'étiquettes des SLO** ou **Créer : Règle de propriétaire des SLO**.
 
 ### Choisir ce à quoi la règle correspond
 
@@ -98,7 +98,7 @@ Chaque fois qu'une règle modifie un SLO, le **Fil d'activité** du SLO enregist
 | Exécuter une règle d'étiquettes | **Edit SLO Label Rule** et **Edit Service Level Objective** |
 | Exécuter une règle de propriétaire | **Edit SLO Owner Rule**, **Edit Service Level Objective**, **Create SLO User Owner** et **Create SLO Team Owner** |
 
-Ces permissions se trouvent dans le groupe SLO d'un rôle, et les rôles Project Owner et Project Admin les ont toutes. Une exécution modifie chaque SLO du projet : une permission limitée à certaines étiquettes, ou aux SLO dont vous êtes propriétaire, ne suffit donc pas pour exécuter une règle.
+Ces permissions se trouvent dans le groupe SLO d'un rôle, et les rôles Propriétaire du projet et Administrateur du projet les ont toutes. Une exécution modifie chaque SLO du projet : une permission limitée à certaines étiquettes, ou aux SLO dont vous êtes propriétaire, ne suffit donc pas pour exécuter une règle.
 
 ## Prochaines étapes
 

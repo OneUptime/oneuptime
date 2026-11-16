@@ -3,7 +3,7 @@
 Send advarsler fra [Grafana](https://grafana.com) til OneUptime, så hver advarsel, der udløses, bliver en hændelse, der kalder dit vagthold op og løses, når advarslen er kommet sig. Grafana sender sine advarsler via et webhook-kontaktpunkt, så der er intet at installere på nogen af siderne.
 
 :::cards
-- [Vælg, hvordan OneUptime modtager advarsler](#vælg-hvordan-oneuptime-modtager-advarsler): En monitor for indgående anmodninger eller dit eget workflow.
+- [Vælg, hvordan OneUptime modtager advarsler](#vælg-hvordan-oneuptime-modtager-advarsler): En monitor for indgående anmodninger eller din egen arbejdsgang.
 - [Modtag advarsler med en monitor](#modtag-advarsler-med-en-monitor): Én hændelse pr. advarsel, løst ved genopretning.
 - [Konfigurer Grafana](#konfigurer-grafana): Et webhook-kontaktpunkt og den politik, der bruger det.
 - [Fejlfinding](#fejlfinding): Når advarsler ikke kommer frem, eller hændelser bliver ved med at være åbne.
@@ -25,7 +25,7 @@ Grafanas notifikationspolitikker grupperer de advarsler, der udløses, og et web
 ## Før du går i gang
 
 - Grafana 9 eller nyere, med Grafana Alerting, standarden siden Grafana 9. Den skal kunne nå din OneUptime over HTTPS.
-- I OneUptime retten til at oprette monitorer, eller workflows, hvis du vælger den vej.
+- I OneUptime retten til at oprette monitorer, eller arbejdsgange, hvis du vælger den vej.
 
 ## Vælg, hvordan OneUptime modtager advarsler
 
@@ -34,7 +34,7 @@ Sæt OneUptime op først: det giver dig den URL, Grafana sender til.
 | Vej | Brug den, når |
 | --- | --- |
 | En monitor for indgående anmodninger (anbefalet) | Du vil have, at hver advarsel bliver en hændelse, der kalder vagten op og løses, når advarslen er kommet sig. Der er intet at bygge. |
-| Et workflow med en Webhook-trigger | Du har brug for din egen logik: filtrere advarsler, omforme dem eller kalde andre systemer først. Et workflow åbner én hændelse pr. notifikation, ikke pr. advarsel, og løser den ikke ved genopretning. |
+| En arbejdsgang med en Webhook-trigger | Du har brug for din egen logik: filtrere advarsler, omforme dem eller kalde andre systemer først. En arbejdsgang åbner én hændelse pr. notifikation, ikke pr. advarsel, og løser den ikke ved genopretning. |
 
 Begge får den samme JSON fra det samme kontaktpunkt, så du kan begynde med den ene og skifte senere ved at ændre én URL i Grafana.
 
@@ -110,14 +110,14 @@ Grafana sender `Content-Type: application/json`, som monitoren skal bruge for at
 1. Åbn kontaktpunktet `OneUptime` i Grafana, og klik på **Test**. Grafana sender en udløst testadvarsel, og en hændelse åbnes i OneUptime. En testadvarsel kommer sig aldrig, så løs den hændelse manuelt.
 2. Lad en rigtig advarselsregel udløses, for eksempel ved at sænke dens tærskel et øjeblik, og se dens hændelse åbne og derefter blive løst, når du sætter tærsklen tilbage.
 
-## Modtag advarsler med et workflow
+## Modtag advarsler med en arbejdsgang
 
-Brug et [workflow](/docs/workflows/index), når du har brug for dine egne trin mellem Grafana og hændelsen.
+Brug et [arbejdsgang](/docs/workflows/index), når du har brug for dine egne trin mellem Grafana og hændelsen.
 
 :::steps
-### Opret workflowet
+### Opret arbejdsgangen
 
-Gå til **Arbejdsgange**, klik på **Opret arbejdsgang** og derefter på **Start fra bunden**. Kald det `Grafana alerts`, og klik på **Opret arbejdsgang**.
+Gå til **Arbejdsgange**, klik på **Opret arbejdsgang** og derefter på **Start fra bunden**. Kald den `Grafana alerts`, og klik på **Opret arbejdsgang**.
 
 ### Tilføj Webhook-triggeren
 
@@ -125,11 +125,11 @@ Klik på den stiplede blok **Vælg, hvad der starter denne arbejdsgang**, og væ
 
 ### Kontrollér, at notifikationen er udløst
 
-Klik på **Tilføj komponent**, tilføj en blok **If / Else**, og forbind triggerens punkt **Out** med den. Sæt **Value to check** til `{{local.components.webhook-1.returnValues.request-body.status}}`, **Comparison** til **is equal to** og **Compare with** til `firing`.
+Klik på **Tilføj komponent**, tilføj en blok **Hvis / Ellers**, og forbind triggerens punkt **Ud** med den. Sæt **Værdi, der skal tjekkes** til `{{local.components.webhook-1.returnValues.request-body.status}}`, **Sammenligning** til **er lig med** og **Sammenlign med** til `firing`.
 
 ### Erklær hændelsen
 
-Tilføj en blok **Create One Incident**, og forbind siden **Yes** af blokken **If / Else** med den. Vælg under **Incident Template** en skabelon, der sætter alvorligheden og de vagtpolitikker, der skal kaldes op (se [Hændelsesskabeloner](/docs/incidents/settings#hændelsesskabeloner)). Angiv under **JSON Object**, hvad der kommer fra Grafana:
+Tilføj en blok **Opret Hændelse (én post)**, og forbind siden **Ja** af blokken **Hvis / Ellers** med den. Vælg under **Hændelsesskabelon** en skabelon, der sætter alvorligheden og de vagtpolitikker, der skal kaldes op (se [Hændelsesskabeloner](/docs/incidents/settings#hændelsesskabeloner)). Angiv under **JSON-objekt**, hvad der kommer fra Grafana:
 
 ```json
 {
@@ -138,21 +138,21 @@ Tilføj en blok **Create One Incident**, og forbind siden **Yes** af blokken **I
 }
 ```
 
-Uden en skabelon skal **JSON Object** også indeholde `incidentSeverityId`, ID'et på en af projektets hændelsesalvorligheder.
+Uden en skabelon skal **JSON-objekt** også indeholde `incidentSeverityId`, ID'et på en af projektets hændelsesalvorligheder.
 
-### Slå workflowet til
+### Slå arbejdsgangen til
 
-Slå **Aktiveret** til øverst i **Bygger**. Et workflow, der er slået fra, svarer Grafana med `400`.
+Slå **Aktiveret** til øverst i **Bygger**. En arbejdsgang, der er slået fra, svarer Grafana med `400`.
 :::
 
-En kørsel håndterer én notifikation, så den erklærer én hændelse, uanset hvor mange advarsler notifikationen indeholder. En notifikation, der er `resolved`, tager siden **No** af blokken **If / Else**, hvor intet er forbundet, så kørslen slutter der. Brug monitoren til én hændelse pr. advarsel, der løses ved genopretning.
+En kørsel håndterer én notifikation, så den erklærer én hændelse, uanset hvor mange advarsler notifikationen indeholder. En notifikation, der er `resolved`, tager siden **Nej** af blokken **Hvis / Ellers**, hvor intet er forbundet, så kørslen slutter der. Brug monitoren til én hændelse pr. advarsel, der løses ved genopretning.
 
 ## Fejlfinding
 
 :::details Intet kommer frem til OneUptime
 - Klik på **Test** på kontaktpunktet: Grafana viser en fejl, når den ikke kan nå URL'en. Grafanas serverlog har detaljerne.
 - Monitoren svarer `200` med det samme, før den kontrollerer noget, også ved en forkert hemmelig nøgle. Tjek monitorens tidslinje for at se, om notifikationer kommer frem.
-- Et workflow, der er slået fra, svarer `400`. Slå **Aktiveret** til øverst i dets **Bygger**.
+- En arbejdsgang, der er slået fra, svarer `400`. Slå **Aktiveret** til øverst i dens **Bygger**.
 :::
 
 :::details Hændelser oprettes, men løses aldrig
@@ -166,14 +166,14 @@ Du har grupperet efter en etiket, der er den samme for hver advarsel i en notifi
 :::
 
 :::details Hændelsen viser en henvisning i stedet for en værdi
-En henvisning til et felt, som notifikationen ikke har, bliver stående, som den er skrevet, med klammer og det hele. Sammenlign feltets navn med det, Grafana sendte: for et workflow åbner du kørslen i **Protokoller → Kørsler** og sammenligner med det, triggeren modtog.
+En henvisning til et felt, som notifikationen ikke har, bliver stående, som den er skrevet, med klammer og det hele. Sammenlign feltets navn med det, Grafana sendte: for en arbejdsgang åbner du kørslen i **Protokoller → Kørsler** og sammenligner med det, triggeren modtog.
 :::
 
 Vejledningen til [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#fejlfinding) dækker flere tilfælde, og de gælder også for Grafanas notifikationer.
 
 ## Sikkerhed
 
-- **Behandl URL'en som en adgangskode.** Alle, der har den, kan åbne hændelser. Hvis den slipper ud, så nulstil den: **Nulstil hemmelig nøgle for indgående anmodning** på monitorens side **Indstillinger**, eller **Nulstil URL** i workflowets **Webhook**-trigger. Opdater derefter kontaktpunktets **URL** i Grafana.
+- **Behandl URL'en som en adgangskode.** Alle, der har den, kan åbne hændelser. Hvis den slipper ud, så nulstil den: **Nulstil hemmelig nøgle for indgående anmodning** på monitorens side **Indstillinger**, eller **Nulstil URL** i arbejdsgangens **Webhook**-trigger. Opdater derefter kontaktpunktets **URL** i Grafana.
 - **Selvhostet?** Lad Grafana nå din OneUptime over HTTPS gennem din firewall.
 
 ## Næste trin

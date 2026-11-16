@@ -73,10 +73,10 @@ Un incident déclaré via un formulaire est un incident ordinaire, avec quelques
 
 - **Masqué des pages de statut.** **Visible sur la page de statut** est désactivé, de même que **Notifier les abonnés de la page de statut**. Tant qu'un intervenant ne le publie pas, rien de l'incident n'atteint une page de statut ou un abonné — hormis le changement d'état de moniteur d'un modèle, plus haut.
 - **Déclaré par personne.** La personne qui soumet n'est pas un utilisateur de OneUptime, donc aucun utilisateur n'est enregistré comme ayant déclaré l'incident.
-- **Ses propriétaires sont informés.** Les propriétaires que nomment les paramètres et le modèle sont ajoutés dès que les canaux Slack et Microsoft Teams de l'incident existent, et sont notifiés — la notification **Incident créé** de l'incident attend qu'ils en soient propriétaires, pour leur parvenir à eux plutôt qu'aux propriétaires du projet.
+- **Ses propriétaires sont informés.** Les propriétaires que nomment les paramètres et le modèle sont ajoutés dès que les canaux Slack et Microsoft Teams de l'incident existent, et sont notifiés — la notification **Incident créé** de l'incident attend qu'ils en soient propriétaires, pour leur parvenir à eux plutôt qu'aux Propriétaires du projet.
 - **Une note privée consigne la soumission** — voir [La note privée](#la-note-privée).
 
-Tout ce qui s'exécute pour un nouvel incident s'exécute aussi pour ceux-ci : les règles de confidentialité, de propriétaires, d'étiquettes, d'astreinte et de runbooks, les politiques d'astreinte, et les flux de travail **On Create Incident**. Les règles d'astreinte correspondent aux incidents d'un formulaire comme aux autres — y compris sur leur titre et leur description, écrits par la personne qui soumet.
+Tout ce qui s'exécute pour un nouvel incident s'exécute aussi pour ceux-ci : les règles de confidentialité, de propriétaires, d'étiquettes, d'astreinte et de runbooks, les politiques d'astreinte, et les flux de travail **À la création : Incident**. Les règles d'astreinte correspondent aux incidents d'un formulaire comme aux autres — y compris sur leur titre et leur description, écrits par la personne qui soumet.
 
 :::steps
 #### Lire ce qu'a écrit la personne qui soumet

@@ -250,6 +250,13 @@ work out, starts from a default for everything else, and folds what most people 
   [DisclosureTogglesGuard](../../packages/Common/Tests/UI/DisclosureTogglesGuard.test.ts).
 - **A fold never cuts off what it holds.** No fixed height cap on an open fold. Enforced by
   [FoldHeightCapGuard](../../packages/Common/Tests/UI/Components/FoldHeightCapGuard.test.ts).
+- **A folded line never cuts off the choice it names.** Folded on a type it holds, More monitor types
+  names it after its words: "More monitor types · Selected: Kubernetes". The choice goes on the
+  words' line when it fits, under them, whole, when it does not, and wraps between its words when it
+  is wider than a line by itself. It is never cut off with an ellipsis and a tooltip, which a phone
+  cannot show. German's "Ausgewählt: Benutzerdefinierter JavaScript-Code" takes two lines on a 390px
+  phone, and that is right (#8380). Enforced by
+  [FoldedChoiceNamedWholeGuard](../../packages/Common/Tests/UI/Components/FoldedChoiceNamedWholeGuard.test.tsx).
 
 ### Help text
 
@@ -304,9 +311,11 @@ work out, starts from a default for everything else, and folds what most people 
   in a way no message describes, it answers with what happened and what to do next, and a reference
   (the start of the request's id) that one of its log lines names
   (`Common/Server/Utils/UnexplainedServerError`). `API.getFriendlyMessage` turns every unexplained
-  failure into one of four sentences (`Common/Types/Exception/UnexplainedError`): the server failed,
-  the server did not answer, OneUptime could not be reached, or the page failed; never a
-  TypeError's words or a URL. A form's alert, a list or table that did not load, a dialog and the
+  failure into one of five sentences (`Common/Types/Exception/UnexplainedError`): the server failed,
+  the server did not answer, OneUptime could not be reached, the page failed, or what was sent was
+  too large (a proxy's 413 page, which read as a failure the server could not explain, #8278, or
+  the App's own 50 MB limit, which it answers with that sentence and a 413, #8419); never
+  a TypeError's words, a URL or a proxy's page. A form's alert, a list or table that did not load, a dialog and the
   page that did not load draw them with `ErrorExplanation`: what failed ("The monitor was not
   saved."), why, Try again, the reference with a copy button, and, for a master admin of a
   self-hosted server, where to look (`npm run doctor -- --logs`, OneUptime Health). Use
@@ -331,7 +340,11 @@ work out, starts from a default for everything else, and folds what most people 
   (`<p>{error}</p>`), a gateway's 502 read "Error connecting to server. Please try again in few
   minutes." in English on a German or a Persian page, and a server failure's reference had no copy
   button (#7537). A message the server wrote in any script is kept as written; only an empty or
-  generic one becomes the sentence for a failure nobody explained (#7536). Enforced by
+  generic one becomes the sentence for a failure nobody explained (#7536). Where no sentence of the
+  page's surrounds it, a message that reads the other way from the page (the server's English on an
+  Arabic or Persian page) is set apart, so its full stop stays at its end (#8279), and a refusal
+  with a value in it is said in the reader's language around its value in every one of these
+  places (#8280). Enforced by
   [FriendlyMessageDrawnGuard](../../packages/Common/Tests/App/Dashboard/FriendlyMessageDrawnGuard.test.ts).
 - **A dashboard widget says why it has nothing to draw with the one error line,** in the reader's
   words: `DashboardWidgetError` (and its line, `DashboardWidgetErrorLine`), a public dashboard's
@@ -377,8 +390,16 @@ work out, starts from a default for everything else, and folds what most people 
   field out (#7603, #8209). Draw `<TableEmptyValue />` or `<EmptyValue />` where the dash was
   (`{team.name || <TableEmptyValue />}`, `isSmall` in a line of `text-xs`); a monitor summary's
   fact is handed no value and draws it itself. A page that wants words writes words ("Never", "No
-  labels attached."). A dash between two values, a minus sign, code and a tile's big figure are
-  not empty values. Enforced by
+  labels attached."). A stat tile's figure (`text-lg` and up) draws `EmptyFigure`: the same light
+  grey dash at the figure's size, read out as "Not set", where tiles drew bare dashes of their own
+  in several greys that a screen reader heard as "dash" (#8264). Every tile draws it for a value
+  that is missing, blank or a dash, so a tile is handed no value. A formatter never writes a dash
+  of its own for nothing (`return "—"`, `host || "-"`): pages drew some five hundred of those
+  straight into their cells (#8262). A component that draws a value is handed nothing, and plain
+  text (a chart's label, an export, a sentence) gets the shared mark `EMPTY_VALUE_MARK`. A page
+  that draws a formatter's text in an element of its own draws it through `getValueOrQuietDash`
+  (or `getFigure` in a figure), which turns that mark into the quiet dash. A dash between two
+  values, a minus sign and code are not empty values. Enforced by
   [TableEmptyValueDashGuard](../../packages/Common/Tests/UI/Components/Table/TableEmptyValueDashGuard.test.ts)
   and
   [HandWrittenEmptyValueGuard](../../packages/Common/Tests/UI/Components/Table/HandWrittenEmptyValueGuard.test.ts).
@@ -514,6 +535,11 @@ work out, starts from a default for everything else, and folds what most people 
   server and the front ends write, the English docs with their diagrams, and the website, and
   [RetiredNamesFindable](../../packages/App/Tests/Dashboard/RetiredNamesFindable.test.ts), which checks
   that each old name still finds the page.
+- **A permission is named after the record it guards.** A feed's permissions read "Create Incident
+  Feed" and "Read Scheduled Maintenance Feed", as the feed calls itself, so a search of the permission
+  picker for "feed" finds every one, and a refusal names the same thing the permission does. They
+  read "Scheduled Maintenance Log" until #8451. Enforced by
+  [FeedPermissionTitles](../../packages/Common/Tests/Types/FeedPermissionTitles.test.ts).
 - **At most three words on a page are marked as defined terms, each the first time it is met.** A
   `DefinedTerm` draws the word with a dotted line and shows its definition on hover, focus or tap.
   Enforced by
@@ -554,12 +580,43 @@ work out, starts from a default for everything else, and folds what most people 
   decimals, English exactly as toFixed writes it) or `translator.formatNumber`; a figure inside a
   sentence takes the sentence's language (`figureInSentence`, `withSentenceDigits`), and a count in
   a list column is a count column (`isCount`). Arabic is written in Latin digits. A name, an id, a
-  port or a Kubernetes quantity ("500m") is drawn as written. Checked on the Host and Kubernetes
-  pages, and on a database's Runtime charts. Enforced by
+  port or a Kubernetes quantity ("500m") is drawn as written. A figure a helper wrote in English
+  ("2.5k", "3.5 TiB") is put in the reader's language with `writeFigureInLanguage`, its scale letter
+  and unit kept. Checked on the Host and Kubernetes pages, on a database's Runtime charts, on the
+  Storage Arrays pages (a volume read "۳٫۵ TiB" on a dashboard and "3.5 TiB" on its page, #8272) and
+  on a status page's uptime ("99.95٪ زمان کارکرد", #8292). The telemetry helpers (`formatCompact`,
+  `formatPercent`, `formatBytes`) take the reader's translator, and every Overview tile passes it: a
+  service's, a function's, a site's and a cloud app's Requests, Error rate and Memory read "1.2k" in
+  Latin digits beside a p95 tile in Persian (#8481). A figure's unit word is the reader's too: a
+  database's and a queue's engine metric tile counts in a plural sentence of the locale, its noun
+  agreeing with the number by the language's rules ("1 Verbindung", "24 Verbindungen",
+  "۲۴ اتصال"), never "۲۴ connections" (#8482). Enforced by
   [HostOverviewFiguresInPersian](../../packages/Common/Tests/App/Dashboard/HostOverviewFiguresInPersian.test.tsx),
-  [KubernetesOverviewFiguresInPersian](../../packages/Common/Tests/App/Dashboard/KubernetesOverviewFiguresInPersian.test.tsx)
+  [KubernetesOverviewFiguresInPersian](../../packages/Common/Tests/App/Dashboard/KubernetesOverviewFiguresInPersian.test.tsx),
+  [DatabaseRuntimeChartsInReadersLanguage](../../packages/Common/Tests/App/Dashboard/DatabaseRuntimeChartsInReadersLanguage.test.tsx),
+  [StorageArrayPageFiguresInReadersLanguage](../../packages/Common/Tests/App/Dashboard/StorageArrayPageFiguresInReadersLanguage.test.ts),
+  [TelemetryOverviewTileFiguresInReadersLanguage](../../packages/Common/Tests/App/Dashboard/TelemetryOverviewTileFiguresInReadersLanguage.test.tsx),
+  [EngineMetricTileUnitsInReadersLanguage](../../packages/Common/Tests/App/Dashboard/EngineMetricTileUnitsInReadersLanguage.test.ts)
   and
-  [DatabaseRuntimeChartsInReadersLanguage](../../packages/Common/Tests/App/Dashboard/DatabaseRuntimeChartsInReadersLanguage.test.tsx).
+  [StatusPageUptimeFiguresInLanguage](../../packages/Common/Tests/App/StatusPage/StatusPageUptimeFiguresInLanguage.test.ts).
+- **A chart's value axis, its legend and its tooltip write a figure as the tiles beside it do:** in
+  the reader's digits, decimal sign and percent sign, as its time axis always has. A duration in
+  milliseconds is `formatMilliseconds` with the reader's translator and a longer or shorter one
+  `formatDurationInUnit` ("۴۲ میلی‌ثانیه", "1,50 Sek."); a metric's unit goes through `ValueFormatter`
+  with the reader's language, which writes a unit by its symbol ("23,5 °C", "50 Hz", "1,5 MB/s"),
+  never its English name; a count keeps its scale letter ("1,5K", `formatChartCount`); a metric
+  query's own `yAxisValueFormatter` writes English, and the metric chart words it
+  (`writeFigureInLanguage`), as it does the resource pages' byte and rate charts (#8428). The value
+  axis is as wide as its widest tick: the shared charts measure it, and a chart drawn with recharts
+  asks `getYAxisWidthForValuesInPx`, which counts no mark that is never drawn. A Persian chart's
+  time axis was in Persian digits and the tile above it said "۴۲ میلی‌ثانیه", while its value axis
+  and tooltip said "42 ms" in English on purpose, and a German metric chart read "23,5 Celsius"
+  (#8349, #8284). Only the AI chat's PDF export writes English (`formatMillisecondsInEnglish`): its
+  Latin-1 font holds no Persian digit. The words stay where there is room for them: the unit chip
+  and the metric's details. Enforced by
+  [ChartValueAxesInReadersLanguageGuard](../../packages/Common/Tests/UI/ChartValueAxesInReadersLanguageGuard.test.ts),
+  whose list of charts still to write only shrinks, and
+  [ChartFiguresInReadersLanguage](../../packages/Common/Tests/App/Dashboard/ChartFiguresInReadersLanguage.test.ts).
 - **A rate on a chart keeps its slash:** "100 req/s", as "1.5 MB/s" always read, on the value axis,
   in the legend and in the tooltip, and the value axis is as wide as its widest tick. Written out,
   "100 req per Second" broke over two lines on a 64px axis and was cut at the card's edge, with
@@ -584,6 +641,18 @@ work out, starts from a default for everything else, and folds what most people 
   [TwelveHourClockLeadingZeroGuard](../../packages/Common/Tests/Types/TwelveHourClockLeadingZeroGuard.test.ts)
   and
   [TwentyFourHourClockLeadingZeroGuard](../../packages/Common/Tests/Types/TwentyFourHourClockLeadingZeroGuard.test.ts).
+- **A date and a time are the reader's, never the browser's:** in the zone they picked in User
+  Settings, on their 12- or 24-hour clock, written by `OneUptimeDate` or
+  `Common/UI/Utils/ReaderMoments` (a moment, a day, a time of day). `toLocaleString`,
+  `toLocaleDateString` and `toLocaleTimeString` with no options write the browser's zone and the
+  language's own clock, with seconds: Topology's "Last refreshed" read "05:14:00" in the browser's
+  zone beside a table's "5:14 AM" in the zone the reader picked (#8231). Enforced by
+  [DatesOnTheReadersClockGuard](../../packages/Common/Tests/Types/DatesOnTheReadersClockGuard.test.ts).
+- **A chart of days names whose days they are when they are not the reader's:** an Ask AI chart is
+  a snapshot, cut in the asker's zone or in UTC, and read later anywhere, so it draws each day where
+  it counted and says "Days are in America/New_York." A New York day sat under the day before in Los
+  Angeles (#8206). Enforced by
+  [AskAiChartDaysWhereTheyWereCut](../../packages/Common/Tests/App/Dashboard/AskAiChartDaysWhereTheyWereCut.test.tsx).
 - **A date and time people fill in shows and keeps hours and minutes, never seconds.** Add User
   Override's Starts read "13/11/2026 11:15:52", and nobody schedules a shift to the second (#7593).
   Draw the field with the shared Input. Only a field read against telemetry's own timestamps, like a
@@ -592,26 +661,78 @@ work out, starts from a default for everything else, and folds what most people 
   [MinutePickersGuard](../../packages/Common/Tests/UI/MinutePickersGuard.test.ts).
 - **A duration in milliseconds is written in the reader's language,** with the Dashboard's
   `formatMilliseconds` ("{{value}} ms", each language's own unit and order, the figure in the
-  reader's digits), never a figure joined to " ms": every monitor's Response Time read "ms 411" on
-  an Arabic or Persian page (#7224). Enforced by
+  reader's digits), never a figure joined to " ms" or written before "ms" in a template or JSX:
+  every monitor's Response Time read "ms 411" on an Arabic or Persian page (#7224), and a trace's
+  p95 "۱۲٫۴ ms" (#7418). `minimumFractionDigits` keeps the decimals toFixed wrote, `showsSign` an
+  offset's sign. Its other units are `formatDurationInUnit` (microseconds, seconds, minutes,
+  hours, days, each language's own short unit), never `${x} s`, `${x}µs`, `${x}ns` or `${x} min`
+  by hand: a Persian row read "1.25 s" under "۴۲ میلی‌ثانیه" (#8348). A chart's value axis and its
+  tooltip write it so too; only the AI chat's PDF export writes it in English
+  (`formatMillisecondsInEnglish`). A compact duration ("12s", "4m 05s", "2d 5h", "3mo") is
+  `formatCompactDuration`, and an age ("5m ago") `formatCompactDurationAgo`: the Dashboard's compact
+  keys, worded by every language, each figure in the reader's digits ("۴ دقیقه ۰۵ ثانیه"), never
+  `${diffSec}s`, `${minutes}m ${rest}s` or `{minutes}m {seconds}s` by hand - a Kubernetes object's
+  age, an uptime and an SLA's countdown read English letters and Latin digits on every page
+  (#8455). A span's humanized duration (`getHumanizedDurationFromNanoseconds`) and the on-call
+  schedule timeline's lengths (`ScheduleTimelineLayout.formatDuration`) take the reader's
+  translator for the same reason (#8617). A token the code parses back or a file's name keeps its compact English, listed with its
+  reason. Enforced by
   [MillisecondsInReadersLanguageGuard](../../packages/Common/Tests/UI/MillisecondsInReadersLanguageGuard.test.ts).
 - **A number keeps its unit on its line.** English writes "Uptime ({{hours}}h)", German
   "Verfügbarkeit ({{hours}} Std.)", and on a phone the network site hero's title broke as
   "Verfügbarkeit (24" over "Std.)" (#8043). Wherever the English writes a number beside a unit's
   symbol ("{{minutes}} min", "{{percent}}%", "24h"), the space a translation puts after that number
-  is drawn as a no-break space (`withNumbersKeptWithUnits` in `Common/Types/NoBreakSpaces`). Write
-  the unit as its symbol after the number in the English, so the rule finds it. Enforced by
-  [NumbersKeepTheirUnitsGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsGuard.test.ts).
+  is drawn as a no-break space (`withNumbersKeptWithUnits` in `Common/Types/NoBreakSpaces`), and so
+  is the space English itself writes there ("Every 5 min", #8302). A unit a language writes in two
+  words, Arabic's "ملي ث", is held together after its number too (#8304). Write the unit as its
+  symbol after the number in the English, so the rule finds it. Code that joins a figure and a unit
+  itself joins them with a no-break space (`` `${size}\u00A0MB` ``, #8303), or goes through a key
+  as `formatMilliseconds` does, and so does code that holds the unit in a variable or a property
+  (`` `${figure}\u00A0${reading.unit}` ``, `ValueFormatter`, `Common/Types`, #8457) or writes them
+  as JSX text (`` {`${figure}\u00A0dBm`} ``, in the Admin Dashboard, the Status Page and the
+  server's forms too, #8720): a holder
+  named `unit` or `symbol` holds a unit's symbol, and a word is named for what it holds (`word`,
+  `noun`, `unitName`) and keeps its plain space ("2,340 groups"), unless it is a duration's word
+  (below). Text that is no page's - a prompt, a Markdown export, a stored name, an API's answer
+  the docs quote - keeps its plain space, listed with its reason, and a CSV export writes a plain
+  one (`TableColumnsToCsv`). Intl writes a plain space there too ("5 Min.", "vor 5 Minuten", "2
+  Tage, 3 Stunden", #8456), so ask Intl for a unit or a relative time only through
+  `Common/Types/DateLanguage` (`formatDurationUnit`, `formatDurationText`, `formatUnitAmount`,
+  `getUnitAmountParts`, `formatRelativeAmount`), which holds the number to its unit in every
+  language, English included, and keeps French's own no-break spaces; never with `style: "unit"`
+  or `Intl.RelativeTimeFormat` yourself. English OneUptime writes in words holds its number too
+  ("5 hours ago", "1 min 47 secs", "10 days, 23 hours", #8669): code joins a figure to a
+  duration's word with `NO_BREAK_SPACE` (`` `${count}${NO_BREAK_SPACE}minutes` ``), and English it
+  did not join itself, such as moment's, goes through `withDurationWordsHeld`. Enforced by
+  [NumbersKeepTheirUnitsGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsGuard.test.ts),
+  [NumbersKeepTheirUnitsInCodeGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsInCodeGuard.test.ts)
+  and
+  [NumbersKeepTheirUnitsInIntlGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsInIntlGuard.test.ts).
 - **A probe's message on a monitor's summary reads in the reader's language.** The probe stores why
   a check failed in English, and the summaries drew it as it came: "Request was tried 3 times and
   it timed out." stayed English on every page, and on an Arabic or Persian page an English message
   lost its full stop and its brackets to the line's other end (#7422, #7424). The timeout sentence,
   its count in the reader's plural forms, is written only by its template
   (`Common/Utils/Monitor/ProbeFailureReading`), and so is what a failed request means, its Error
-  Details ("DNS resolution failed. ...", `Common/Utils/Monitor/RequestFailureDescriptions`, #8001);
-  a summary draws a probe's message with `ProbeMessageLine`, which words those sentences and keeps
-  any other message whole in a right-to-left line. Enforced by
-  [ProbeMessagesInReadersLanguageGuard](../../packages/Common/Tests/UI/Monitor/ProbeMessagesInReadersLanguageGuard.test.ts).
+  Details ("DNS resolution failed. ...", `Common/Utils/Monitor/RequestFailureDescriptions`, #8001),
+  and so is every cause with values in it (`Common/Utils/Monitor/ProbeFailureCauses`): an NTP
+  server that did not answer, or answered but is not synchronized; a probe with no IPv6 or no
+  route; a connect that failed on every address; the Ping and Traceroute checks' own sentences; an
+  attempt's "Server returned 503" (#8267, #8656). Their values stay as the probe found them, and a
+  timeout or a count is written in the reader's digits. A summary draws a probe's message with
+  `ProbeMessageLine`, which words those sentences and keeps any other message whole in a
+  right-to-left line, and so do a network device's diagnostics (a ping's Reason, a traceroute's
+  note, #8675). An incident's root cause words its figures the same way: a response time, the
+  attempts and an NTP server's facts in the reader's digits and units (#8268), and a metric
+  criteria's Time Window, Data Arrives and Forecast lines with a duration as the reader's
+  language says one in a sentence (#8674). A Database
+  Health check's collection issues read
+  the same way (`Common/Utils/Monitor/DatabaseCollectionIssueReading`, #8609): the group by its
+  Metric Groups switch's name, OneUptime's own sentence in the reader's words, and a database's own
+  error kept as written after a sentence that says what kind of failure it is. Enforced by
+  [ProbeMessagesInReadersLanguageGuard](../../packages/Common/Tests/UI/Monitor/ProbeMessagesInReadersLanguageGuard.test.ts)
+  and
+  [DatabaseCollectionIssuesInReadersLanguage](../../packages/Common/Tests/App/Dashboard/DatabaseCollectionIssuesInReadersLanguage.test.tsx).
 - **A chart of one point a day labels its axis by the day** (`xAxisPrecision={XAxisPrecision.EVERY_DAY}`),
   never by an hour or a step guessed from the window's length. Enforced by
   [ProductAnalyticsDayAxisGuard](../../packages/Common/Tests/App/Dashboard/ProductAnalyticsDayAxisGuard.test.ts).
@@ -624,9 +745,24 @@ work out, starts from a default for everything else, and folds what most people 
   translator.formatNumber(index + 1) })`), a `translatePlural` for a count, or a `TranslatedSentence`
   around an element. Two whole sentences side by side, a label that carries its own colon and its
   value, facts set apart by " · ", a path and an aside in brackets are no sentence built from
-  pieces. Enforced by
+  pieces. The same goes for JSX: `{t("Showing")} {n} {t("of")} {total}` read "Page 2 of 5" in
+  English's order in Japanese, and a status page's "posted on" sat before its date in every
+  language (#8290). A label whose colon the code wrote (`{t("Capabilities")}:`) takes it from a key
+  instead, `LABEL_WITH_COLON` ("{{label}}:", "Statut :" in French, "状态：" in Chinese). A sentence
+  around an element is one too: a pill, a name, a date, a bold count, or a link around a phrase
+  (`{t("Read the")} <Link>{t("docs")}</Link>`) goes in a `TranslatedSentence` slot, and so do words
+  only a screen reader reads ("Connect" before a product's name, "AWS Security Hub verbinden" in
+  German). The status page's "Incident state changed to" and its state's pill kept English's
+  order until #8290, and the schedule timeline's bold counts sat before "covered now" (#8483). An
+  icon, a badge after its word, a block, a link to act on after a sentence ("Read the guide") and
+  what is drawn for the eye only are no word of a sentence. Enforced by
   [SentencesFromTranslatedPiecesGuard](../../packages/Common/Tests/UI/SentencesFromTranslatedPiecesGuard.test.ts),
-  which reads template literals, `+` and `join()`.
+  which reads template literals, `+`, `join()` and an element's children, each child element as
+  what it draws, and follows a name that holds a translation (`const label = t("Key")`), a page's
+  own translation helper (`text(COPY.openSettings)`), a lookup in a constant table and a nested
+  key's English. A colon written after an element that holds a label
+  (`<span>{t("Logo Alt Text")}</span>{": "}`) is English's too, and comes from `LABEL_WITH_COLON`
+  (#8571); an element's key or id is never read, and is no sentence.
 
 ### In every language
 
@@ -646,9 +782,36 @@ then `npm run i18n:validate` from the root.
   for the service map and the infrastructure explorer, whose cards built "3 active incidents"
   and "10.0% errors" in English at run time (#7725),
   [TopologyScreensWordsGuard](../../packages/App/Tests/Dashboard/TopologyScreensWordsGuard.test.ts),
-  and, for the import screens (the label rule import, the CSV upload, the JSON import's editor,
+  for the import screens (the label rule import, the CSV upload, the JSON import's editor,
   Network's Auto Import Rules) and the docs that name their buttons,
-  [ImportScreensInEveryLanguage](../../packages/App/Tests/Dashboard/ImportScreensInEveryLanguage.test.ts).
+  [ImportScreensInEveryLanguage](../../packages/App/Tests/Dashboard/ImportScreensInEveryLanguage.test.ts),
+  for the metric query form (the metric picker, its attribute filter, the series and group
+  colour pickers, a formula's row), which was English in twelve languages (#8310),
+  [MetricQueryFormInEveryLanguage](../../packages/App/Tests/Dashboard/MetricQueryFormInEveryLanguage.test.ts),
+  for a tab's name however a page builds its tabs (`const tabs: Array<Tab> = [...]`), which
+  the extraction missed, so "Env Vars" on a pod read English in every language (#8367),
+  [TabNamesAreKeys](../../packages/App/Tests/Dashboard/TabNamesAreKeys.test.ts),
+  for every word of a built-in workflow step (its card, its settings form, its Outputs and
+  Returns lists), which read English in most languages because the step catalogue was never
+  extracted (#8359),
+  [WorkflowStepWordsInEveryLanguage](../../packages/App/Tests/Dashboard/WorkflowStepWordsInEveryLanguage.test.ts),
+  for a monitor's type and a security event's severity wherever they are drawn as text (#8294,
+  #8295),
+  [MonitorTypeAndEventSeverityInReadersLanguage](../../packages/Common/Tests/App/Dashboard/MonitorTypeAndEventSeverityInReadersLanguage.test.tsx),
+  for a picker's label with an English word glued on, an archived SLO's "(archived)" and an
+  unnamed ingestion key's "Unnamed Key" (#8297),
+  [PickerLabelsInReadersLanguage](../../packages/Common/Tests/App/Dashboard/PickerLabelsInReadersLanguage.test.tsx),
+  for the topology screens' "Unnamed resource", a browser service's "Browser" and the entity
+  drawer's screen-reader line (#8260),
+  [TopologyUnnamedBrowserAndDrawerInLanguages](../../packages/Common/Tests/App/Dashboard/TopologyUnnamedBrowserAndDrawerInLanguages.test.tsx),
+  and, for the Admin Dashboard's own pages (Feedback, Health, the SMS and call provider, global SSO),
+  whose 186 texts had no entry in its locales and read English in every language (#8227),
+  [AdminOwnPagesStringsLocales](../../packages/App/Tests/AdminDashboard/AdminOwnPagesStringsLocales.test.ts),
+  with the texts those pages drew as written, which no lookup read (#8555),
+  [AdminOwnPagesDrawnAsWrittenGuard](../../packages/App/Tests/AdminDashboard/AdminOwnPagesDrawnAsWrittenGuard.test.ts),
+  and the sentences the extractor could not see there, kept in a variable or handed to a prop it
+  does not know (#8636),
+  [AdminUnseenTextsGuard](../../packages/App/Tests/AdminDashboard/AdminUnseenTextsGuard.test.ts).
 - **A filter or a rule is summed up one sentence per condition, in the reader's language.** The
   filter bar's chip, a metric query's chips and a chart's details drew an attribute filter's
   operator as its English symbol between the key and the value ("http.route matches /api/*" under a
@@ -656,13 +819,25 @@ then `npm run i18n:validate` from the root.
   in "10.16.0.0/16"` in English, its quotes jumping on a Persian page (#7931, #7958). Draw an
   attribute filter with `DictionaryFilterSentence` and a rule with `RuleCriteriaSummary`: each
   condition is one sentence with its field and value as slots, the value set apart as typed, inside
-  the language's own quotes; an operator that is a symbol (=, >) stays one. And an empty dropdown
+  the language's own quotes; an operator that is a symbol (=, >) stays one. A log monitor's criteria
+  chips and a monitor's detail page said "contains web" in every language through
+  `formatDictionaryValueForDisplay`, which glues the operator's English label before the value
+  (#8309): a locked chip whose filter holds an operator carries its stored value (`filterValue`) and
+  says the sentence, and the detail page is handed the filters as stored. That formatter's text is
+  a key, never a line a person reads. A monitor's criteria list words each filter the same way,
+  every part of it a sentence of the locale around the part it holds: it read `Check if "Response
+  Time (in ms)" is greater than 500ms and,` under a Persian form (#8350). Whether all of the filters
+  must match or any one is said once, above them, never as an "and," left at the end of each line
+  (#8533). And an empty dropdown
   says so in the reader's words ("No matches found", "No options available"), never react-select's
   English "No options" (#7805). Enforced by
   [AttributeFilterSymbolGuard](../../packages/Common/Tests/UI/Components/AttributeFilterSymbolGuard.test.ts),
   [AttributeFilterSentencesInEveryLanguage](../../packages/Common/Tests/UI/Components/AttributeFilterSentencesInEveryLanguage.test.tsx),
+  [LockedFilterChipSentencesInReadersLanguage](../../packages/Common/Tests/UI/Components/LockedFilterChipSentencesInReadersLanguage.test.tsx),
   [MetricAttributeFiltersInReadersLanguage](../../packages/Common/Tests/App/Dashboard/MetricAttributeFiltersInReadersLanguage.test.tsx),
-  [RuleCriteriaSummary](../../packages/Common/Tests/UI/Components/RuleCriteria/RuleCriteriaSummary.test.tsx)
+  [RuleCriteriaSummary](../../packages/Common/Tests/UI/Components/RuleCriteria/RuleCriteriaSummary.test.tsx),
+  [CriteriaFilterSummaryInLanguages](../../packages/Common/Tests/App/Dashboard/CriteriaFilterSummaryInLanguages.test.tsx),
+  [CriteriaListSaysHowFiltersCombine](../../packages/Common/Tests/App/Dashboard/CriteriaListSaysHowFiltersCombine.test.tsx)
   and
   [DropdownEmptyMenuInReadersLanguage](../../packages/Common/Tests/UI/Components/Dropdown/DropdownEmptyMenuInReadersLanguage.test.tsx).
 - **A chart's words reach it in the reader's language.** A page hands each metric chart its title,
@@ -671,10 +846,48 @@ then `npm run i18n:validate` from the root.
   German description (#8047). A page that writes its chart words as English literals hands its
   queries through `chartWordsInReadersLanguage`, once, where they go to the chart; a page that words
   a chart itself (a description built around a node's name) looks each literal up where it writes
-  it. Never both: a translation looked up again can itself be an English key. Enforced by
-  [ChartWordsInReadersLanguageGuard](../../packages/Common/Tests/App/Dashboard/ChartWordsInReadersLanguageGuard.test.ts)
+  it. Never both: a translation looked up again can itself be an English key. A word a shared
+  utility writes in English (a monitor's, an incident's, an alert's or an SLO's metric title, legend
+  or description) is a key (`translationKey`), and the page hands it through the helper or its
+  builder looks it up with the reader's translator: the monitor's Metrics tab said "Response Time"
+  under a German heading (#8282). The line over an incident's or an alert's scoped charts says a
+  group with no value in the reader's word, "(nicht gesetzt)", worked out as the page is drawn so it
+  follows a change of language (#8269). Enforced by
+  [ChartWordsInReadersLanguageGuard](../../packages/Common/Tests/App/Dashboard/ChartWordsInReadersLanguageGuard.test.ts),
+  [ResourcePageChartWords](../../packages/Common/Tests/App/Dashboard/ResourcePageChartWords.test.tsx),
+  [MonitorAndSloChartWordsInEveryLanguage](../../packages/App/Tests/Dashboard/MonitorAndSloChartWordsInEveryLanguage.test.ts),
+  [MonitorAndSloChartsInReadersLanguage](../../packages/Common/Tests/App/Dashboard/MonitorAndSloChartsInReadersLanguage.test.tsx),
+  [ScopedChartsLineInReadersWords](../../packages/App/Tests/Dashboard/ScopedChartsLineInReadersWords.test.ts)
   and
-  [ResourcePageChartWords](../../packages/Common/Tests/App/Dashboard/ResourcePageChartWords.test.tsx).
+  [ScopedChartsLineFollowsTheLanguage](../../packages/Common/Tests/App/Dashboard/ScopedChartsLineFollowsTheLanguage.test.tsx).
+- **A metric's description reads in the reader's language, its code and names as written.** Every
+  monitor metric catalog marks its descriptions as keys (`translationKey`), written out whole: one
+  glued together at run time is no key, and read English in every language (#8014). So are the
+  descriptions the server stores with a monitor's series, the SLO Burn Rate's among them, written
+  out whole for the window they name (#8356). Each place that draws one looks it up once: a metric
+  picker's line, a Database Health criteria's line, a Database monitor's charts and summary, a
+  metric a monitor stored, and a chart the metrics explorer builds from a metric: it marks the
+  description it copies (`isMetricTypeDescription`) and keeps the English in the chart's
+  configuration, so a description a person typed is drawn as written (#8572). A translation keeps
+  each piece of code between backticks exactly and as
+  often, since the picker draws it as code, and the metric, attribute and product names, unit
+  symbols, printed values and numbers the English gives. Enforced by
+  [MonitorMetricDescriptionsInLocales](../../packages/App/Tests/Dashboard/MonitorMetricDescriptionsInLocales.test.ts),
+  [MonitorStoredMetricDescriptionsInLocales](../../packages/App/Tests/Dashboard/MonitorStoredMetricDescriptionsInLocales.test.ts)
+  and
+  [ExplorerChartDescriptionInReadersLanguage](../../packages/Common/Tests/App/Dashboard/ExplorerChartDescriptionInReadersLanguage.test.tsx).
+- **A product's Help > Documentation page reads in the reader's language, its code as written.** A
+  page that is one Markdown text holds a text per language (`DocumentationInReadersLanguage`, as Data
+  Observability's does, #7531). A page that is a setup guide holds each language's words for every
+  piece of its markdown in `Pages/<Product>/DocumentationTranslations/<code>.ts`
+  (`SetupGuideTranslation`), one chunk per language: Docker's guide read "Replace `my-docker-host`
+  with a name for this host" under a German step title (#8341). Commands, code spans, field names
+  and product names stay as the English writes them; what the Dashboard draws (a tab, a page, a
+  guide's own topic) is named as the locale words it. A change to a guide's English changes every
+  language's words in the same pull request. Enforced by
+  [SetupGuideDocumentationInLocale](../../packages/Common/Tests/App/Dashboard/SetupGuideDocumentationInLocale.test.ts)
+  and
+  [DocumentationPagesInEveryLanguage](../../packages/Common/Tests/App/Dashboard/DocumentationPagesInEveryLanguage.test.ts).
 - **A phone number is never printed as it is.** On a page that reads right to left its "+" would go after
   its digits; print it so it keeps its own direction. Enforced by
   [PhoneNumberTextGuard](../../packages/Common/Tests/UI/PhoneNumberTextGuard.test.ts).
@@ -709,19 +922,33 @@ then `npm run i18n:validate` from the root.
   "Any" is the Match Condition's word. A word that means something else in one place takes a key
   that names its meaning, the word then what it means in brackets: "View (database object)", a
   database's view beside the View buttons' verb. A Spanish catalog named a view "Ver" ("see it")
-  and headed its schema changes "Cambiar" ("change it", #8078). List the key in
+  and headed its schema changes "Cambiar" ("change it", #8078), and named an explorer's Insights tab
+  and OneUptime AI's findings both "Análisis" (#8629: the tab is "Insights (explorer analytics)"). List the key in
   [`Common/Types/MeaningKeys`](../../packages/Common/Types/MeaningKeys.ts), so English reads it as
   the word alone, "View", wherever it is drawn: a column's or a filter's title, an option, a pill.
-  Enforced by
+  Look such a key up as any key, and never write its English by hand: no `hasTranslation` check,
+  no constant holding "Created", no lookup that falls back to the word, no options translated up
+  front to get the English right (#8180). A word one list words for its own noun takes such a key
+  too: an invoice's Deleted is "Eliminada" beside its "Pagada", where the Dashboard's shared
+  "Deleted" is "Eliminado" (#8181). Enforced by
   [MatchConditionAnyWordGuard](../../packages/Common/Tests/UI/Components/Forms/MatchConditionAnyWordGuard.test.ts),
-  [OneMeaningPerKey](../../packages/App/Tests/Dashboard/OneMeaningPerKey.test.ts)
+  [OneMeaningPerKey](../../packages/App/Tests/Dashboard/OneMeaningPerKey.test.ts),
+  [MeaningKeys](../../packages/Common/Tests/Types/MeaningKeys.test.tsx)
   and
-  [MeaningKeys](../../packages/Common/Tests/Types/MeaningKeys.test.tsx).
+  [MeaningKeyFallbacksGuard](../../packages/Common/Tests/Types/MeaningKeyFallbacksGuard.test.ts).
 - **A thing has one name in each language: the one its menus say.** The side menu, the Products menu
   and a page's title name a thing, and every count, sentence and button on its pages says the same
   noun, in every app and in the docs that quote them. French said "Archiver ce workflow" under a list
   called "Flux de travail", Swedish counted "övervakare" under "Monitorer", and Russian named a
-  status page three ways (#8029, #8030, #8031). A word that names another product's thing keeps that
+  status page three ways (#8029, #8030, #8031). The Products menu says a product's page title word for
+  word: Danish "Overvågninger" opened a page titled "Monitorer", and German "Status-Seiten" one titled
+  "Statusseiten" (#8229). A string whose English names the thing says that word too, even where the
+  other word has a meaning of its own: Korean said 알림, its word for a notification, for an alert in
+  600 strings beside 경고 in 1,100, and Danish said "overvågning" (monitoring) for a monitor (#8628).
+  The docs prose says it on every line whose English line names the thing (#8692), and so do
+  the docs titles, with the headings, anchors and links that name them (#8705), and the Admin
+  Dashboard (#8740).
+  A word that names another product's thing keeps that
   product's name, such as a GitHub Actions workflow or a BI tool's dashboards: list it with its reason
   in [`OneNamePerThing`](../../packages/App/Tests/Dashboard/OneNamePerThing.ts). A probe is the
   Dashboard's word too, in the apps and every docs page: the Danish docs said "probes" over a list
@@ -731,9 +958,27 @@ then `npm run i18n:validate` from the root.
   درگاه is a gateway's or a portal's, and the docs told a reader to free "gateway 443" (#7932).
   Enforced by
   [OneNamePerThingGuard](../../packages/App/Tests/Dashboard/OneNamePerThingGuard.test.ts),
+  [OneWordInSentencesPerThing](../../packages/App/Tests/Dashboard/OneWordInSentencesPerThing.test.ts),
   [ProbeWordPerLanguage](../../packages/App/Tests/FeatureSet/Docs/ProbeWordPerLanguage.test.ts)
   and
   [PersianPortWordDocs](../../packages/App/Tests/FeatureSet/Docs/PersianPortWordDocs.test.ts).
+- **Two things never share one name in a language.** Arabic called the collector an agent runs
+  and a Ceph pool both المجمّع, and a Ceph cluster's pages and its setup guide name the two side by
+  side: "the collector reads `CEPH_MGR_ENDPOINTS`" beside the **Pool** row of what it collects
+  (#8581). A pool is التجمّع now, in the locale and every setup guide, and a new row of a
+  language's glossary takes a word no other row gives. Enforced by
+  [ArabicTermsApart](../../packages/Common/Tests/App/ArabicTermsApart.test.ts).
+- **The states a page draws for one thing agree with each other.** A state is worded once for
+  every place that draws it, so in a language whose adjectives take a gender two states of one
+  thing can disagree: Russian's infrastructure list said "Активно" on one row and "Неактивен" on
+  the next (#8588). Word a state as the locale words the others it is drawn with (Russian words a
+  state on its own in the neuter: "Неактивно", "Выведено из работы"), and list a new set of states
+  a page draws together, with the files that draw it. Where a shared word cannot agree with every
+  page, the page takes a key of its own in
+  [`Common/Types/MeaningKeys`](../../packages/Common/Types/MeaningKeys.ts), read in English as
+  the bare word: a threat indicator's Expired is Russian "Истекло" while a token's stays "Истёк"
+  (#8659). Enforced by
+  [StatesDrawnTogetherAgree](../../packages/Common/Tests/App/StatesDrawnTogetherAgree.test.ts).
 - **A noun the sentences share starts a label with a capital.** Many nouns are worded for the middle
   of a sentence, so Spanish says "clúster de Kubernetes" and French "ressource cloud". Where the same
   key names a row, a chip or a line of a card, draw it through `toLabelTerm`, which starts it with a
@@ -775,11 +1020,16 @@ then `npm run i18n:validate` from the root.
   "Network"; the email provider Resend read "Reenviar". Draw an option through
   `getDropdownOptionText`. A stored value is offered in the words its rows draw it in, never as it
   is stored: a runbook run waiting on a manual step read "Esperando" in its pill and
-  "WaitingForManualStep" in the Status filter (#7781). Enforced by
+  "WaitingForManualStep" in the Status filter (#7781). A name the API takes is no reason to
+  draw it as stored: a subscriber template's event type read "Subscriber Incident Note
+  Created" in every language, in the filters, the form's field and the cells. It is a key
+  whose English is the stored name, so English reads what the API and Terraform take and
+  every other language its own words ("Vorfallsnotiz erstellt", #8179). Enforced by
   [FilterOptionLabelsGuard](../../packages/Common/Tests/App/Dashboard/FilterOptionLabelsGuard.test.ts),
-  [FilterChipAndMenuInSpanish](../../packages/Common/Tests/App/Dashboard/FilterChipAndMenuInSpanish.test.tsx)
+  [FilterChipAndMenuInSpanish](../../packages/Common/Tests/App/Dashboard/FilterChipAndMenuInSpanish.test.tsx),
+  [FilterOptionKeysInSpanish](../../packages/Common/Tests/App/Dashboard/FilterOptionKeysInSpanish.test.tsx)
   and
-  [FilterOptionKeysInSpanish](../../packages/Common/Tests/App/Dashboard/FilterOptionKeysInSpanish.test.tsx).
+  [SubscriberNotificationEventTypesInReadersLanguage](../../packages/Common/Tests/App/Dashboard/SubscriberNotificationEventTypesInReadersLanguage.test.tsx).
 - **A name reads as written, in a badge, a menu, a picker, a sentence and a line of text.** A label,
   a monitor or a state is named by its project, and a name is never looked up: in Spanish a label
   named "Network" read "Red", and a state a project named "Open" read "Abrir", the verb, in its badge,

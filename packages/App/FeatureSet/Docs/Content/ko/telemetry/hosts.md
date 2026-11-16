@@ -96,7 +96,7 @@ curl -fsSL https://oneuptime.com/docs/static/scripts/host-collector/install.sh |
 
 측정값은 호스트의 마지막 보고이며, OneUptime이 약 1분마다 호스트에 저장하므로 목록에서 시간 범위를 고를 필요가 없습니다. 막대는 호스트에 확인이 필요하면 노란색, 심각하면 빨간색이 됩니다. **CPU** 는 모든 코어의 사용 시간이며 90%를 넘으면 노란색이 되고 빨간색이 되지는 않습니다. 바쁜 CPU는 일하고 있는 호스트이며, 작업이 쌓이는지는 평균 부하가 알려 줍니다. **디스크** 는 가장 많이 찬 파일 시스템이며 그 아래에 마운트 지점이 표시됩니다. `df` 의 `Use%` 와 같이 root용 예약 공간은 제외합니다.
 
-호스트의 **개요** 도 같은 내용을 보여 줍니다. 컬렉터 상태 옆의 호스트 상태, 가동 시간, 그리고 호스트 자체의 파일 시스템, 메모리, 스왑, 부하, 컬렉터, 실패한 각 systemd 유닛(해당 유닛 페이지를 엽니다)에 대한 **확인 필요** 입니다. **호스트 알림** 은 OneUptime이 호스트에 [권장하는 알림](/docs/monitor/host-monitor#미리-만들어진-알림-템플릿)과 그중 이 호스트를 감시하는 알림을 보여 주며, 그 버튼을 선택하면 나머지가 선택된 채로 **권장 사항** 이 열립니다.
+호스트의 **개요** 도 같은 내용을 보여 줍니다. 컬렉터 상태 옆의 호스트 상태, 가동 시간, 그리고 호스트 자체의 파일 시스템, 메모리, 스왑, 부하, 컬렉터, 실패한 각 systemd 유닛(해당 유닛 페이지를 엽니다)에 대한 **확인 필요** 입니다. **호스트 경고** 는 OneUptime이 호스트에 [권장하는 경고](/docs/monitor/host-monitor#미리-만들어진-경고-템플릿)과 그중 이 호스트를 감시하는 경고를 보여 주며, 그 버튼을 선택하면 나머지가 선택된 채로 **권장 사항** 이 열립니다.
 
 호스트의 가동 시간은 `system.uptime` 에서 가져오며, OneUptime 기본 구성의 `system` 스크레이퍼가 이를 보냅니다. 직접 작성한 구성에도 이 스크레이퍼가 필요합니다. [호스트 OpenTelemetry 컬렉터](/docs/telemetry/host-otel-collector)를 참고하세요.
 
@@ -260,7 +260,7 @@ OneUptime은 오래된 값을 보여 주기보다 값을 보여 주지 않습니
 
 :::cards
 - [호스트 OpenTelemetry Collector](/docs/telemetry/host-otel-collector): 대신 컬렉터를 직접 설치하고 구성을 작성합니다.
-- [호스트 모니터](/docs/monitor/host-monitor): 호스트가 보고하는 내용으로 알림을 받습니다.
+- [호스트 모니터](/docs/monitor/host-monitor): 호스트가 보고하는 내용으로 경고를 받습니다.
 - [수집 키](/docs/telemetry/ingestion-keys): 호스트가 보낼 때 쓰는 키를 만들고, 범위를 정하고, 교체합니다.
 - [Kubernetes Agent](/docs/telemetry/kubernetes-agent): 클러스터의 노드와 워크로드를 모니터링합니다.
 :::

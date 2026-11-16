@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import {
   DATA_SECURITY_CATALOG_TERMS,
+  DATA_STORE_ENVIRONMENT_TITLES,
   DATA_STORE_FAMILY_TITLES,
 } from "../../FeatureSet/Dashboard/src/Components/DataSecurity/DataSecurityCatalogTerms";
 import {
@@ -137,7 +138,12 @@ describe("Data Security's catalog terms", () => {
       ...Object.values(DataStoreFamily).map((family: DataStoreFamily) => {
         return DATA_STORE_FAMILY_TITLES[family];
       }),
-      ...Object.values(DataStoreEnvironment),
+      // An environment by its title: "Test" is a store's environment, worded as a noun.
+      ...Object.values(DataStoreEnvironment).map(
+        (environment: DataStoreEnvironment) => {
+          return DATA_STORE_ENVIRONMENT_TITLES[environment];
+        },
+      ),
       ...Object.values(DataStorePrincipalType),
       ...Object.values(DataStoreAccessLevel),
       ...Object.values(DataStoreLocationKind),
@@ -165,6 +171,26 @@ describe("Data Security's catalog terms", () => {
     );
     expect(Object.values(DATA_STORE_FAMILY_TITLES)).not.toContain("Search");
     expect(DATA_SECURITY_CATALOG_TERMS).not.toContain("Search");
+  });
+
+  /*
+   * A store's environment is a noun beside Production and Staging, never
+   * the key "Test", which most languages word as the Test buttons' verb:
+   * "Testen", "Probar" (#8342).
+   */
+  test("every environment has a noun title of its own, and the test environment is not the Test verb", () => {
+    for (const environment of Object.values(DataStoreEnvironment)) {
+      expect({
+        environment,
+        title: typeof DATA_STORE_ENVIRONMENT_TITLES[environment],
+      }).toEqual({ environment, title: "string" });
+    }
+
+    expect(DATA_STORE_ENVIRONMENT_TITLES[DataStoreEnvironment.Test]).toBe(
+      "Test (environment)",
+    );
+    expect(Object.values(DATA_STORE_ENVIRONMENT_TITLES)).not.toContain("Test");
+    expect(DATA_SECURITY_CATALOG_TERMS).not.toContain("Test");
   });
 
   test("what every response action changes, on every kind of store it acts on", () => {

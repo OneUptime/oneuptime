@@ -7,7 +7,9 @@ import {
 } from "Common/Types/LlmObservability/LlmConnectionCatalog";
 import LlmConnectionProvider from "Common/Types/LlmObservability/LlmConnectionProvider";
 import Icon from "Common/UI/Components/Icon/Icon";
-import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
+import LockedReason, {
+  LOCKED_CONTROL_CLASS_NAME,
+} from "Common/UI/Components/Tooltip/LockedReason";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -24,6 +26,11 @@ export interface ComponentProps {
   kind: LlmConnectionKind;
   connectionCounts: Partial<Record<LlmConnectionProvider, number>>;
   canConnect: boolean;
+  /*
+   * Why connecting is refused, as the permission check (PermissionGate)
+   * words it: in the reader's language already, so its tooltip draws it as
+   * given (#8423).
+   */
   connectDisabledReason?: string | undefined;
   onConnect: (provider: LlmConnectionProvider) => void;
 }
@@ -43,6 +50,10 @@ const LlmConnectionTiles: FunctionComponent<ComponentProps> = (
       {definitions.map((definition: LlmConnectionDefinition): ReactElement => {
         const count: number = props.connectionCounts[definition.provider] || 0;
 
+        // Locked with a reason: the wrapper around it takes the pointer.
+        const isExplainedLock: boolean =
+          !props.canConnect && Boolean(props.connectDisabledReason);
+
         const tile: ReactElement = (
           <button
             type="button"
@@ -56,7 +67,7 @@ const LlmConnectionTiles: FunctionComponent<ComponentProps> = (
                 isLocked: !props.canConnect,
                 hoverClassName: "hover:border-indigo-300 hover:shadow",
               },
-            )}`}
+            )}${isExplainedLock ? ` ${LOCKED_CONTROL_CLASS_NAME}` : ""}`}
           >
             <LlmConnectionLogo provider={definition.provider} size="lg" />
             <div className="min-w-0 flex-1">
@@ -95,8 +106,14 @@ const LlmConnectionTiles: FunctionComponent<ComponentProps> = (
 
         return (
           <li key={definition.provider} className="min-w-0">
-            {!props.canConnect && props.connectDisabledReason ? (
-              <Tooltip text={props.connectDisabledReason}>{tile}</Tooltip>
+            {isExplainedLock && props.connectDisabledReason ? (
+              <LockedReason
+                reason={props.connectDisabledReason}
+                layoutClassName="flex h-full w-full"
+                dataTestId={`llm-connection-tile-locked-${definition.provider}`}
+              >
+                {tile}
+              </LockedReason>
             ) : (
               tile
             )}

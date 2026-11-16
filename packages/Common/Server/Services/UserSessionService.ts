@@ -2,6 +2,7 @@ import AuditLogService from "./AuditLogService";
 import DatabaseService from "./DatabaseService";
 import EnterpriseEdition from "../Enterprise/EnterpriseEdition";
 import { OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { IsNull, SelectQueryBuilder, UpdateResult } from "typeorm";
@@ -37,9 +38,12 @@ import {
   decideSessionRenewal,
   DEFAULT_SESSION_IDLE_DAYS,
   getIdleTimeoutInMinutes,
+  getIdleTimeoutSweepCutoff,
   getSessionEnd,
   getSessionLengthRule,
+  IDLE_TIMEOUT_SWEEP_MARGIN_IN_MINUTES,
   ReportedInactivity,
+  REPORTS_ACTIVITY_WHILE_IN_USE_FIELD,
   SessionEnd,
   SessionEndReason,
   SessionFacts,
@@ -696,9 +700,7 @@ export class Service extends DatabaseService<Model> {
     const minutesParameter: string = `pastLengthMinutes${index}`;
     parameters[minutesParameter] = condition.minutes;
 
-    const kindSql: string = condition.isSsoSignIn
-      ? `(session.additionalInfo ->> 'isGlobalLogin') = 'false'`
-      : `(session.additionalInfo ->> 'isGlobalLogin') IS DISTINCT FROM 'false'`;
+    const kindSql: string = Service.getSessionKindSql(condition.isSsoSignIn);
 
     const timeSql: string =
       condition.reason === SessionEndReason.LengthReached
@@ -706,6 +708,17 @@ export class Service extends DatabaseService<Model> {
         : `session.lastActiveAt <= NOW() - make_interval(mins => :${minutesParameter})`;
 
     return `${kindSql} AND ${timeSql}`;
+  }
+
+  /*
+   * The sessions of one kind as SQL: SSO sign-ins, or every other. Whether a
+   * session is an SSO sign-in is what it was created with (isSsoSignIn):
+   * additionalInfo.isGlobalLogin false.
+   */
+  private static getSessionKindSql(isSsoSignIn: boolean): string {
+    return isSsoSignIn
+      ? `(session.additionalInfo ->> 'isGlobalLogin') = 'false'`
+      : `(session.additionalInfo ->> 'isGlobalLogin') IS DISTINCT FROM 'false'`;
   }
 
   // Ends the sessions one condition ends, a batch at a time; how many it ended.
@@ -730,18 +743,27 @@ export class Service extends DatabaseService<Model> {
    * Ends, a batch at a time, the sessions that have run out and that
    * nobody has ended yet - so their ends are in the audit log within
    * minutes of happening, rather than whenever their browser or app comes
-   * back, if it ever does (issue #6762). Two kinds of session are past
+   * back, if it ever does (issue #6762). Three kinds of session are past
    * saving, and only those:
    *
    *   - one whose refresh token ran out: 30 days without use, which its
    *     next refresh refuses all the same;
    *   - one past its session length, when a master admin set one: the
-   *     length counts from its sign-in, however active its person is.
+   *     length counts from its sign-in, however active its person is;
+   *   - one past its idle timeout, when a master admin set one, that no
+   *     browser can still be using (issue #8188): its last renewal said
+   *     its browser renews while its person uses OneUptime
+   *     (REPORTS_ACTIVITY_WHILE_IN_USE_FIELD), and nothing has been heard
+   *     of it for its idle timeout and IDLE_TIMEOUT_SWEEP_MARGIN_IN_MINUTES
+   *     more since its last activity (endSessionsPastIdleTimeout).
+   *     Recorded as having run out at that last activity plus the idle
+   *     timeout, within minutes of it, rather than 30 days later as "Not
+   *     used for 30 days".
    *
-   * Never a session past its idle timeout alone: a browser that renews it
-   * says how long its person has not used OneUptime, and that is what the
-   * timeout counts from (decideRenewal) - so whether it has timed out is
-   * decided at its renewal, and recorded then.
+   * Any other session past its idle timeout alone - its last renewal from
+   * the mobile app, or from a tab of an earlier release - is decided at its
+   * next renewal, which says how long its person has really been away
+   * (decideRenewal), and recorded then.
    *
    * Only sessions that ran out in the last SESSIONS_RAN_OUT_LOOKBACK_IN_HOURS
    * are ended: the first sweep after an upgrade records a day of them at
@@ -769,6 +791,7 @@ export class Service extends DatabaseService<Model> {
 
     for (const condition of Service.getPastLengthConditions(lengths)) {
       if (condition.reason !== SessionEndReason.LengthReached) {
+        ended += await this.endSessionsPastIdleTimeout(condition);
         continue;
       }
 
@@ -798,6 +821,62 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Ends the live sessions of one kind past its idle timeout that no
+   * browser could still be using (issue #8188): the browser of each said,
+   * at the session's last renewal, that it renews within
+   * ACTIVITY_REPORTED_WITHIN_IN_MINUTES of its person's activity while they
+   * use OneUptime, and has said nothing for the idle timeout and
+   * IDLE_TIMEOUT_SWEEP_MARGIN_IN_MINUTES since its last activity. Only those
+   * that ran out in the last SESSIONS_RAN_OUT_LOOKBACK_IN_HOURS, by the
+   * database's clock. Each is revoked as the idle timeout, and recorded as
+   * having run out at its last activity plus the idle timeout (getRanOutAt).
+   *
+   * A renewal that lands between the read and the write moves the
+   * session's last activity on, and the write asks again: a session whose
+   * last activity is now later than the cutoff is left as it is.
+   */
+  private async endSessionsPastIdleTimeout(
+    condition: PastLengthCondition,
+  ): Promise<number> {
+    const cutoff: Date = getIdleTimeoutSweepCutoff({
+      idleTimeoutInMinutes: condition.minutes,
+      now: OneUptimeDate.getCurrentDate(),
+    });
+
+    return await this.endSessionsSelectedBy({
+      buildQuery: (): SelectQueryBuilder<Model> => {
+        const parameters: Record<string, unknown> = {
+          reportsActivityWhileInUseKey: REPORTS_ACTIVITY_WHILE_IN_USE_FIELD,
+          idleSweepMinutes:
+            condition.minutes + IDLE_TIMEOUT_SWEEP_MARGIN_IN_MINUTES,
+          ranOutLookbackMinutes:
+            condition.minutes + SESSIONS_RAN_OUT_LOOKBACK_IN_HOURS * 60,
+        };
+
+        return this.getLiveSessionsQuery()
+          .andWhere(Service.getSessionKindSql(condition.isSsoSignIn))
+          .andWhere(
+            "(session.additionalInfo ->> :reportsActivityWhileInUseKey) = 'true'",
+            parameters,
+          )
+          .andWhere(
+            "session.lastActiveAt <= NOW() - make_interval(mins => :idleSweepMinutes)",
+            parameters,
+          )
+          .andWhere(
+            "session.lastActiveAt > NOW() - make_interval(mins => :ranOutLookbackMinutes)",
+            parameters,
+          );
+      },
+      revokedReason: SESSION_END_REVOKED_REASONS[SessionEndReason.Inactive],
+      description: "past their idle timeout",
+      revokeOnlyWhere: {
+        lastActiveAt: QueryHelper.lessThanEqualTo(cutoff),
+      },
+    });
+  }
+
+  /*
    * Ends the sessions a query selects, a batch at a time, each revoked with
    * `revokedReason` - through updateBy, so every one ends its live updates
    * and its end is recorded (onUpdateSuccess). How many it ended.
@@ -806,6 +885,8 @@ export class Service extends DatabaseService<Model> {
     buildQuery: () => SelectQueryBuilder<Model>;
     revokedReason: string;
     description: string;
+    // What the write asks of each session again, beside being live.
+    revokeOnlyWhere?: Query<Model> | undefined;
   }): Promise<number> {
     let ended: number = 0;
 
@@ -833,6 +914,7 @@ export class Service extends DatabaseService<Model> {
 
       await this.updateBy({
         query: {
+          ...(data.revokeOnlyWhere || {}),
           _id: QueryHelper.any(sessionIds),
           isRevoked: false,
         },
@@ -1105,18 +1187,63 @@ export class Service extends DatabaseService<Model> {
     return props;
   }
 
+  // Ends the live session a refresh token belongs to, and answers whether there was one.
   public async revokeSessionByRefreshToken(
     refreshToken: string,
     options?: RevokeSessionOptions,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const session: Model | null =
       await this.findActiveSessionByRefreshToken(refreshToken);
 
     if (!session || !session.id) {
-      return;
+      return false;
     }
 
     await this.revokeSessionById(session.id, options);
+
+    return true;
+  }
+
+  /*
+   * Ends `sessionId` when it is a live session of `userId`, and answers
+   * whether there was one: the session a sign-out names when the refresh
+   * token it sent matches no session (POST /identity/logout) - by its own
+   * access token, expired or not (JSONWebToken.decode with acceptExpired,
+   * issue #8592), or by a browser's sign-out cookie once that token's
+   * cookie has gone (JSONWebToken.decodeSessionToSignOut, issue #8638).
+   * The server rotates the refresh token at every renewal and keeps only
+   * the new one, so a client whose renewal's answer was lost signs out with
+   * the refresh token the renewal replaced; the session both tokens name is
+   * still the same one. A session of anybody else, or one already over, is
+   * left as it is - a sign-out replayed later ends nothing a second time,
+   * and records nothing.
+   */
+  @CaptureSpan()
+  public async revokeLiveSessionOfUser(
+    data: { userId: ObjectID; sessionId: ObjectID },
+    options?: RevokeSessionOptions,
+  ): Promise<boolean> {
+    const session: Model | null = await this.findOneBy({
+      query: {
+        _id: data.sessionId,
+        userId: data.userId,
+        isRevoked: false,
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!session || !session.id) {
+      return false;
+    }
+
+    await this.revokeSessionById(session.id, options);
+
+    return true;
   }
 
   public async revokeAllSessionsByUserId(

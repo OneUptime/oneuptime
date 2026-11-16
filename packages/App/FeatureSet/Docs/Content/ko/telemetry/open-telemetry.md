@@ -36,7 +36,7 @@ flowchart TB
 
 ## 시작하기 전에
 
-- 수집 키를 만들 수 있는 OneUptime 프로젝트. 프로젝트 소유자와 관리자, 그리고 Create Ingestion Key 권한이 있는 사람은 누구나 만들 수 있습니다.
+- 수집 키를 만들 수 있는 OneUptime 프로젝트. 프로젝트 소유자와 프로젝트 관리자, 그리고 Create Ingestion Key 권한이 있는 사람은 누구나 만들 수 있습니다.
 - OpenTelemetry SDK를 추가할 수 있는 애플리케이션 또는 OpenTelemetry Collector.
 - 애플리케이션이나 Collector에서 `oneuptime.com` 또는 자체 OneUptime 호스트로 나가는 HTTPS(포트 443).
 
@@ -410,7 +410,7 @@ OneUptime이 재시작하거나 업그레이드되는 동안에는 준비될 때
 | **활성화됨** | 끄면 키를 삭제하지 않고도 그 키로 보낸 데이터를 즉시 받지 않습니다. |
 | **만료 시각** | 이 날짜 이후에는 키가 거부됩니다. 비워 두면 만료되지 않습니다. |
 | **Requests Per Minute Limit** | 이 키를 쓰는 모든 클라이언트를 합쳐 분당 받아들이는 OTLP/HTTP 요청의 최대 수입니다. 비워 두면 서버 키는 제한이 없고, 브라우저 키는 6,000입니다. |
-| **Last Used At** | 이 키로 마지막으로 데이터를 받아들인 시각입니다. 안전하게 교체하거나 삭제할 수 있는 키를 찾을 때 사용합니다. |
+| **마지막 사용 시각** | 이 키로 마지막으로 데이터를 받아들인 시각입니다. 안전하게 교체하거나 삭제할 수 있는 키를 찾을 때 사용합니다. |
 
 키 페이지의 **비밀 키 재설정**은 시크릿을 교체합니다. 이전 시크릿으로 보내는 모든 애플리케이션과 Collector는 업데이트할 때까지 거부됩니다. 브라우저 키, 키를 안전하게 교체하는 방법, 각 거부의 의미는 [수집 키](/docs/telemetry/ingestion-keys)를 참고하세요.
 
@@ -472,6 +472,6 @@ SDK가 HTTP 엔드포인트나 `localhost`로 gRPC 내보내기를 하고 있을
 :::cards
 - [검색 구문](/docs/telemetry/search-syntax): 탐색기에서 로그, 트레이스, 메트릭, 예외를 필터링합니다.
 - [로그 파이프라인](/docs/telemetry/log-pipelines): 로그가 들어올 때 파싱하고 보강합니다.
-- [로그 모니터](/docs/monitor/logs-monitor): 일치하는 로그가 나타나면 알림을 보냅니다.
+- [로그 모니터](/docs/monitor/logs-monitor): 일치하는 로그가 나타나면 경고를 보냅니다.
 - [Host OpenTelemetry Collector](/docs/telemetry/host-otel-collector): Collector로 호스트 메트릭과 로그 파일을 수집합니다.
 :::

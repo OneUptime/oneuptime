@@ -38,6 +38,10 @@ import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/Adva
 import MonitorDestinationUtil, {
   ParsedMonitorDestination,
 } from "Common/Utils/Monitor/MonitorDestinationUtil";
+import {
+  ProbeFailureCause,
+  writeProbeFailureCause,
+} from "Common/Utils/Monitor/ProbeFailureCauses";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -1091,15 +1095,19 @@ describe("website and API checks", () => {
       const names: Array<string> = defaultCriteriaFor(
         probePage.monitorType,
       ).map((criteria: MonitorCriteriaInstance): string => {
-        return (criteria.data?.name || "").replace(SAMPLE_NAME, "(name)");
+        return (criteria.data?.name || "").replace(
+          SAMPLE_NAME,
+          "_monitor name_",
+        );
       });
 
       expect(names).toEqual([
-        "Check if (name) is offline",
-        "Check if (name) is online",
+        "Check if _monitor name_ is offline",
+        "Check if _monitor name_ is online",
       ]);
+      // Quoted, as every monitor page quotes what a new monitor is given (#8526).
       expect(englishPage(probePage)).toContain(
-        `_${names[0]}_ and _${names[1]}_`,
+        `"${names[0]}" and "${names[1]}"`,
       );
     },
   );
@@ -1183,10 +1191,21 @@ describe("ping and IP checks", () => {
     },
   );
 
+  /*
+   * The probe writes the failure through the shared failure causes
+   * (ProbeFailureCauses), so the Dashboard can word it in every language:
+   * the ping monitor names the cause and the host it could not resolve.
+   */
   it("the Ping page quotes the probe's failure when a name does not resolve", () => {
     expect(ping).toMatch(
-      new RegExp("This probe could not resolve \\$\\{hostAddress\\}"),
+      /writeProbeFailureCause\(ProbeFailureCause\.PingCouldNotResolve, \{\s*host: hostAddress,/,
     );
+    expect(
+      writeProbeFailureCause(ProbeFailureCause.PingCouldNotResolve, {
+        host: "db.internal",
+        output: "ping: unknown host",
+      }),
+    ).toBe("This probe could not resolve db.internal: ping: unknown host");
     expect(englishPage(PING)).toContain('"This probe could not resolve"');
   });
 

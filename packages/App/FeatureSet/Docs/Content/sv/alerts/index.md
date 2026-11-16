@@ -48,7 +48,7 @@ Utlös ett larm när ditt team bör titta innan någon utanför märker något, 
 - **En SLO:s förbrukningstakt.** En regel för förbrukningstakt kan skapa ett larm när en SLO förbrukar sin felbudget för snabbt. Se [Larm och incidenter för förbrukningstakt](/docs/slo/burn-rate-alerts).
 - **Nätverksplatser och säkerhetshändelser.** En nätverksplats som är inställd på att larma när den är ohälsosam öppnar ett larm när dess sammanfattning inte längre är i drift, och dina detekteringsregler för säkerhetshändelser öppnar också larm. Se [Nätverksplatser (hälsosammanfattning och upptid)](/docs/monitor/network-sites) och [Säkerhetshändelser (SIEM)](/docs/telemetry/security-events).
 - **Ett larmanrop.** `/oneuptime page` i Slack eller Microsoft Teams, överallt utom i en incidents eller ett larms egen kanal, öppnar ett larm med ditt meddelande som titel och larmar personerna du nämner. Larmblocken i ett arbetsflöde gör samma sak med titeln och meddelandet du ger dem. Se [Larma någon från Slack](/docs/workspace-connections/slack#larma-någon-från-slack) och [Paging](/docs/workflows/components#paging).
-- **API:et, Terraform och arbetsflöden.** Larm är en vanlig resurs: `/api/alert`, Terraform-resursen `oneuptime_alert` och steget **Create One Alert** i ett arbetsflöde.
+- **API:et, Terraform och arbetsflöden.** Larm är en vanlig resurs: `/api/alert`, Terraform-resursen `oneuptime_alert` och steget **Skapa Larm (en post)** i ett arbetsflöde.
 
 ## Var larm finns i instrumentpanelen
 
@@ -82,7 +82,7 @@ Fyll i **Titel** och välj en **Larmallvar**; båda krävs. Lägg till en **Besk
 
 ### Välj vad det påverkar och vem som larmas
 
-Klicka på **Nästa** för att komma till **Resurser och jour**. Välj den **Övervakning** det gäller och eventuella **Andra påverkade resurser**, till exempel värdar, nätverksenheter, Kubernetes-kluster eller tjänster. Under **Jourpolicy** väljer du de policyer som ska köras när larmet skapas.
+Klicka på **Nästa** för att komma till **Resurser och jour**. Välj den **Monitor** det gäller och eventuella **Andra påverkade resurser**, till exempel värdar, nätverksenheter, Kubernetes-kluster eller tjänster. Under **Jourpolicy** väljer du de policyer som ska köras när larmet skapas.
 
 ### Skapa det
 
@@ -104,7 +104,9 @@ I samma ögonblick som ett larm skapas går OneUptime igenom de här stegen, i d
 7. **Grupperingsregler lägger det i en episod**, när en av dem matchar. Se [Larmepisoder och grupperingsregler](/docs/alerts/episodes).
 8. **Påminnelser schemaläggs**, när en påminnelseregel matchar, och **OneUptime AI** utreder larmet när **Utred nya larm** är påslaget under **Larm → AI → Inställningar**, och åtgärdar det när **Åtgärda nya larm automatiskt** är påslaget. Se [AI SRE](/docs/ai/ai-sre).
 
-Ett bakgrundsjobb meddelar larmets ägare inom en minut, och arbetsflödesutlösaren **On Create Alert** startar alla arbetsflöden som bygger på den.
+Ett bakgrundsjobb meddelar larmets ägare ungefär en minut efter att det skapats, alla ägare det har då, och arbetsflödesutlösaren **Vid skapande: Larm** startar alla arbetsflöden som bygger på den.
+
+För att göra personer och team till larmets ägare redan när det skapas, så att den här aviseringen når dem och inte Projektägare, lämnar du dem med när det skapas: via API:t skickar du deras id:n i `miscDataProps`, som `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }`, med `POST /api/alert`; i ett arbetsflöde väljer du dem under **Ägaranvändare** och **Ägarteam** i **Skapa Larm (en post)**; via MCP skickar du `ownerUsers` och `ownerTeams` till `create_alert`. En begäran vars avsändare inte får lägga till de ägarna avvisas innan något sparas. Ägare som en separat begäran lägger till efter att larmet skapats får bara veta om det om de läggs till inom den minuten.
 
 ### Skapat redan bekräftat eller löst
 
@@ -142,15 +144,15 @@ Medan du arbetar med det skriver du ner det du lär dig som **Privata anteckning
 
 **Översikt**, **Utredning**, **Team** och **Anteckningar** är öppna; de andra avsnitten är hopfällda tills du klickar på dem.
 
-- **Översikt** — rubriken nämner larmets **Ägare**, team först, bredvid dess monitor och episod. Rutan **Skapad** visar när och av vad larmet skapades, två andra hur lång tid det tog att bekräfta och lösa det; hur länge det har pågått står först i rubriken. Kortet **Vad som hände** står överst på sidan — larmets beskrivning och dess **Rotorsak** — sedan kortet **OneUptime AI** med **Fråga OneUptime AI** längst ner, och **Larmflöde** registrerar allt som hände med larmet. När en monitor har skapat larmet nämner **Utvärderingsdetaljer** under rotorsaken filtren som matchade och vad vart och ett hittade, och **Visa detaljer** lägger till ett utdrag ur svaret och själva kontrollen. Se [Vad en incident eller ett larm behåller av kontrollen](/docs/monitor/criteria-and-statuses#vad-en-incident-eller-ett-larm-behåller-av-kontrollen). När en måttmonitor har skapat larmet visar dess telemetrikort de mätvärden som monitorn bevakade kring larmets start, med värdet som monitorn jämförde dem med ritat som en linje och larmets egna ögonblick markerade: välj ett annat tidsintervall, dra över ett diagram för att zooma in, eller byt och lägg till mätvärden direkt där, och dess andra flikar följer samma intervall. När en monitor av loggar, spår eller undantag har skapat det listar kortet det monitorns fråga hittade i fönstret den utvärderade: välj ett annat intervall kring larmet, eller ett eget, och alla flikar följer; dra över volymdiagrammet för att zooma in, och **Återställ** går tillbaka till det monitorn såg. Bredvid finns kortet **Berörda resurser**, kortet **Larmdetaljer** och larmets mätningar.
+- **Översikt** — rubriken nämner larmets **Ägare**, team först, bredvid dess monitor och episod. Rutan **Skapad** visar när och av vad larmet skapades, två andra hur lång tid det tog att bekräfta och lösa det; hur länge det har pågått står först i rubriken. Kortet **Vad som hände** står överst på sidan — larmets beskrivning och dess **Rotorsak** — sedan kortet **OneUptime AI** med **Fråga OneUptime AI** längst ner, och **Larmflöde** registrerar allt som hände med larmet. När en monitor har skapat larmet nämner **Utvärderingsdetaljer** under rotorsaken filtren som matchade och vad vart och ett hittade, och **Visa detaljer** lägger till ett utdrag ur svaret och själva kontrollen. Se [Vad en incident eller ett larm behåller av kontrollen](/docs/monitor/criteria-and-statuses#vad-en-incident-eller-ett-larm-behåller-av-kontrollen). När en mätvärdesmonitor har skapat larmet visar dess telemetrikort de mätvärden som monitorn bevakade kring larmets start, med värdet som monitorn jämförde dem med ritat som en linje och larmets egna ögonblick markerade: välj ett annat tidsintervall, dra över ett diagram för att zooma in, eller byt och lägg till mätvärden direkt där, och dess andra flikar följer samma intervall. När en monitor av loggar, spår eller undantag har skapat det listar kortet det monitorns fråga hittade i fönstret den utvärderade: välj ett annat intervall kring larmet, eller ett eget, och alla flikar följer; dra över volymdiagrammet för att zooma in, och **Återställ** går tillbaka till det monitorn såg. Bredvid finns kortet **Berörda resurser**, kortet **Larmdetaljer** och larmets mätningar.
 - **Tillståndstidslinje** — varje tillstånd larmet har varit i, när och hur länge. Se [Tillståndstidslinjen](/docs/alerts/states-and-severities#tillståndstidslinjen).
-- **Beskrivning**, **Rotorsak**, **Åtgärd** — tre Markdown-sidor. Sidan Rotorsak visar också mätvärdena bakom larmet, som översiktens telemetrikort gör, så att du kan läsa dem över vilket intervall som helst kring larmet medan du skriver ner varför det löstes ut. När larmet inte har sparat någon ögonblicksbild av en måttkontroll (ett som skapats för hand på en måttmonitor, till exempel), visar sidan den monitorns mätvärden så som monitorn läser dem nu, och säger det.
+- **Beskrivning**, **Rotorsak**, **Åtgärd** — tre Markdown-sidor. Sidan Rotorsak visar också mätvärdena bakom larmet, som översiktens telemetrikort gör, så att du kan läsa dem över vilket intervall som helst kring larmet medan du skriver ner varför det löstes ut. När larmet inte har sparat någon ögonblicksbild av en mätvärdeskontroll (ett som skapats för hand på en mätvärdesmonitor, till exempel), visar sidan den monitorns mätvärden så som monitorn läser dem nu, och säger det.
 - **Länkade incidenter** — incidenterna som larmet är en del av, med **Länka incident** och **Deklarera incident**.
 - **Inställningar** — **Vem kan se det här larmet** med reglaget **Privat larm**, och **Påminnelser** med **Skicka påminnelser**. Varje reglage sparar i samma ögonblick som du slår om det.
 
 ## Privata larm
 
-Ett privat larm syns bara för dess ägare, det vill säga ägaranvändarna och medlemmarna i dess ägarteam, och för projektets administratörer och ägare. Ingen annan i projektet kan öppna det.
+Ett privat larm syns bara för dess ägare, det vill säga ägaranvändarna och medlemmarna i dess ägarteam, och för Projektadministratörer och Projektägare. Ingen annan i projektet kan öppna det.
 
 Gör ett larm privat med **Privat larm** under **Fler fält** i formuläret för att skapa eller i en monitors kriterier, med **Larm → Regler → Sekretessregler**, eller senare på dess sida **Inställningar**, som frågar **Göra det här larmet privat?** innan larmet döljs. Är du ingen av de personerna förlorar du också själv åtkomsten.
 
@@ -159,7 +161,7 @@ En episod som ett privat larm öppnar är inte privat, så den visar aldrig larm
 ## Vem som får veta om ett larm
 
 - **Jouren.** Larmets jourpolicyer larmar sina personer, var och en på det sätt de har ställt in under **Användarinställningar → Så når man mig** på fliken **Larm**. Den som svarar på larmanropet bekräftar larmet, och larmningen upphör.
-- **Dess ägare.** Via e-post, om de inte har valt andra kanaler under **Användarinställningar → Aviseringsinställningar** på fliken **Larm**: **Larm skapat**, **Larmtillstånd ändrades** och **Påminnelse om larm** är påslagna som standard, och **Larmanteckning publicerad** och **Tillagd som ägare av larm** är avslagna tills någon slår på dem. Ett larm utan ägare meddelar i stället projektets ägare.
+- **Dess ägare.** Via e-post, om de inte har valt andra kanaler under **Användarinställningar → Aviseringsinställningar** på fliken **Larm**: **Larm skapat**, **Larmtillstånd ändrades** och **Påminnelse om larm** är påslagna som standard, och **Larmanteckning publicerad** och **Tillagd som ägare av larm** är avslagna tills någon slår på dem. Ett larm utan ägare meddelar i stället Projektägare. Om OneUptime stannar medan det skickar en avisering får de personer det ännu inte hade nått den när OneUptime är tillbaka, några minuter försenad, och ingen får den två gånger.
 - **Dina chattverktyg.** **Larm → Arbetsyta** innehåller Slack- och Microsoft Teams-reglerna som publicerar larm och episoder i kanaler. Se [Slack](/docs/workspace-connections/slack) och [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
 
 ## Felsökning
@@ -173,7 +175,7 @@ Ett kriterium håller ett öppet larm åt gången. Tills det larmet är löst l�
 :::
 
 :::details En kollega kan öppna ett larm som jag inte hittar
-Larmet är troligen privat. Be en projektadministratör att lägga till dig som ägare eller slå av **Privat larm** på larmets sida **Inställningar**.
+Larmet är troligen privat. Be en Projektadministratör att lägga till dig som ägare eller slå av **Privat larm** på larmets sida **Inställningar**.
 :::
 
 ## Nästa steg

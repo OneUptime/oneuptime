@@ -17,6 +17,9 @@ import MonitorSecretKeyCache, {
   MonitorSecretKeyKind,
 } from "Common/Server/Utils/Monitor/MonitorSecretKeyCache";
 import { redactMonitorSecret } from "Common/Server/Utils/Monitor/MonitorPayloadRedaction";
+import IncomingRequestSecretGate, {
+  IncomingRequestSecretWorkerDecision,
+} from "Common/Server/Utils/Monitor/IncomingRequestSecretGate";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorPauseState, {
   MONITOR_PAUSE_FLAGS_SELECT,
@@ -186,6 +189,31 @@ export async function processIncomingRequestFromQueue(
   }
 
   /*
+   * The project's incoming request secret requirement (issue #7526), decided
+   * again here on the policy as it is now: the endpoint may not have been
+   * able to place this request in its project, and a secret deleted while
+   * the job waited no longer counts (IncomingRequestSecretGate). A refused
+   * request ends here, before it counts as a heartbeat, is kept as the
+   * monitor's latest request or reaches its criteria. An accepted one goes
+   * on without the secret in it: X-OneUptime-Secret taken off, and a bearer
+   * token that is one of the project's secrets masked.
+   */
+  const secretDecision: IncomingRequestSecretWorkerDecision =
+    await IncomingRequestSecretGate.decideInWorker({
+      projectId: monitorOfKey.projectId,
+      monitorId: monitorOfKey.monitorId,
+      presentedSecretHashes: jobData.presentedSecretHashes,
+      requestHeaders: requestHeaders,
+    });
+
+  if (secretDecision.isRefused) {
+    logger.debug(
+      `Incoming request for monitor ${monitorOfKey.monitorId.toString()} refused: its project requires an incoming request secret (${secretDecision.verdict}).`,
+    );
+    return;
+  }
+
+  /*
    * The heartbeat is recorded at the time it ARRIVED, not the time this
    * worker got to it. Under a Telemetry backlog those are minutes apart, and
    * newer requests for this monitor may have arrived since this one;
@@ -229,7 +257,7 @@ export async function processIncomingRequestFromQueue(
    * read-only role can select ever contains a live ingest key.
    */
   const redactedRequestHeaders: Dictionary<string> = redactMonitorSecret(
-    requestHeaders,
+    secretDecision.requestHeaders,
     monitorSecretKeyAsString,
   );
 

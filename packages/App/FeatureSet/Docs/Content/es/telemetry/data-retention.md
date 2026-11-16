@@ -41,7 +41,7 @@ En detalle, OneUptime lee estos ajustes en este orden, y decide el primero que e
 
 ## Antes de empezar
 
-- **Un rol que modifique el proyecto.** Project Owner o Project Admin cambian la retención del proyecto. La retención de un servicio o recurso requiere el rol que cambia sus demás ajustes.
+- **Un rol que modifique el proyecto.** Propietario del proyecto o Administrador del proyecto cambian la retención del proyecto. La retención de un servicio o recurso requiere el rol que cambia sus demás ajustes.
 - **Para las anulaciones, la Edición Enterprise o el plan Scale.** Una instalación autoalojada necesita una licencia Enterprise, y un proyecto de OneUptime Cloud el plan Scale o superior. La retención predeterminada del proyecto existe en todas las ediciones y planes.
 
 ## Cambiar la retención del proyecto
@@ -64,14 +64,14 @@ Las anulaciones conservan más tiempo lo que necesita y menos el resto: los regi
 
 ### Para todo el proyecto
 
-Debajo del valor predeterminado, plegada en **Más ajustes**, la tarjeta **Retención por tipo de telemetría** fija días para cada tipo de telemetría. Haga clic en **Edit Overrides**, rellene los campos que necesite y deje vacíos los demás:
+Debajo del valor predeterminado, plegada en **Más ajustes**, la tarjeta **Retención por tipo de telemetría** fija días para cada tipo de telemetría. Haga clic en **Editar anulaciones**, rellene los campos que necesite y deje vacíos los demás:
 
 | Tipo | Campos |
 | --- | --- |
-| Registros | **Logs default (days)**, y un campo para cada gravedad de registro |
-| Trazas | **Traces default (days)**, y un campo para cada estado de span: Error, Correcto y Sin establecer |
-| Métricas | **Metrics default (days)** |
-| Perfiles | **Profiles default (days)** |
+| Registros | **Predeterminado de logs (días)**, y un campo para cada gravedad de registro |
+| Trazas | **Predeterminado de trazas (días)**, y un campo para cada estado de span: Error, Correcto y Sin establecer |
+| Métricas | **Predeterminado de métricas (días)** |
+| Perfiles | **Predeterminado de perfiles (días)** |
 
 Un campo vacío recurre al siguiente ajuste del orden de arriba, así que una gravedad sin días propios conserva sus registros según el valor predeterminado de los registros.
 

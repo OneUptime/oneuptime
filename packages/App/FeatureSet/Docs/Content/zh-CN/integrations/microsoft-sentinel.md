@@ -1,6 +1,6 @@
 # Microsoft Sentinel
 
-把 [Microsoft Sentinel](https://learn.microsoft.com/en-us/azure/sentinel/overview) 分析规则创建的事件（incident）导入 OneUptime 的安全事件。在那里，你可以把它们与日志、跟踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的事件呼叫值班人员。OneUptime 通过你创建的应用注册读取它们，不会更改 Azure 中的任何内容。
+把 [Microsoft Sentinel](https://learn.microsoft.com/en-us/azure/sentinel/overview) 分析规则创建的事件（incident）导入 OneUptime 的安全事件。在那里，你可以把它们与日志、追踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的事件呼叫值班人员。OneUptime 通过你创建的应用注册读取它们，不会更改 Azure 中的任何内容。
 
 :::cards
 - [设置连接](#设置连接): 一个应用注册、一个角色，以及连接的表单。
@@ -23,7 +23,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 
 ## 开始之前
 
-- 在 OneUptime 中拥有 Project Owner、Project Admin 或 Security Admin 角色。Security Member 和 Security Viewer 可以查看连接及其运行历史，但不能更改它们。
+- 在 OneUptime 中拥有项目所有者、项目管理员或安全管理员角色。安全成员和安全查看者可以查看连接及其运行历史，但不能更改它们。
 - 一个启用了 Microsoft Sentinel 的 Log Analytics 工作区，位于 Azure 公有云或 Azure Government (US) 中。
 - 在 Microsoft Entra ID 中创建应用注册和客户端密码的权限。
 - 在包含该工作区的资源组上分配角色的权限，例如 Owner 或 User Access Administrator。

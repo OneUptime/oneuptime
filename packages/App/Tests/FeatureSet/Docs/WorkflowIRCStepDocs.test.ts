@@ -11,6 +11,7 @@ import { WorkflowDocsPaths } from "Common/Types/Workflow/Documentation/Documenta
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { drawnStepName } from "./DocsWorkflowStepNames";
 
 /*
  * The IRC step's section of the workflow Components guide. The step's
@@ -99,6 +100,7 @@ describe("the IRC section of the Components guide", () => {
     }
   });
 
+  // The form titles each setting with its name, in the reader's words (#7511).
   test("names the settings as the form does, in every language", () => {
     for (const language of LOCALES) {
       const section: string = ircSection(read(language));
@@ -107,7 +109,7 @@ describe("the IRC section of the Components guide", () => {
         expect({
           language,
           name,
-          named: section.includes(`**${name}**`),
+          named: section.includes(`**${drawnStepName(language, name)}**`),
         }).toEqual({ language, name, named: true });
       }
 

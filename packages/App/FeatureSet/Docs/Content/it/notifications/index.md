@@ -45,7 +45,7 @@ Aprite le **Impostazioni utente**, a destra della barra sotto la barra superiore
 | --- | --- |
 | **Per iniziare** | **Elenco di configurazione**: cosa resta da configurare, nell'ordine che conta |
 | **Avvisi e notifiche** | **Metodi di notifica**, **Come contattarmi**, **Impostazioni notifiche** e **Preferenze e-mail**, che stabilisce quante e-mail producono i vostri aggiornamenti |
-| **Registri di reperibilità** | **Registri di reperibilità**: ogni volta che siete stati chiamati in questo progetto, e cosa è stato inviato |
+| **Log di reperibilità** | **Log di reperibilità**: ogni volta che siete stati chiamati in questo progetto, e cosa è stato inviato |
 | **Policy chiamate in entrata** | **Numeri di telefono in entrata**: il numero su cui vi chiama una policy di chiamate in entrata |
 | **Calendario** | **Feed calendario**: i vostri turni nella vostra app di calendario, e promemoria prima che inizino |
 | **Profilo** | **Campi personalizzati**: dati che il vostro progetto chiede ai suoi membri |
@@ -53,7 +53,7 @@ Aprite le **Impostazioni utente**, a destra della barra sotto la barra superiore
 
 **Per iniziare** e **Avvisi e notifiche** sono aperte; le altre sezioni partono chiuse, e una sezione si apre da sola quando siete su una delle sue pagine. **Area di lavoro** compare solo se il progetto ha collegato Slack, Microsoft Teams o Mattermost.
 
-Anche i proprietari e gli amministratori del progetto possono vedere la vostra configurazione: in **Utenti** aprono la vostra riga e la sua sezione **Reperibilità**, con **Prontezza**, **Metodi di notifica** e **Come contattarmi**. Lì possono aggiungere un metodo per voi, ma il codice va al metodo stesso, quindi solo voi potete verificarlo.
+Anche i Proprietari del progetto e gli Amministratori del progetto possono vedere la vostra configurazione: in **Utenti** aprono la vostra riga e la sua sezione **Reperibilità**, con **Prontezza**, **Metodi di notifica** e **Come contattarmi**. Lì possono aggiungere un metodo per voi, ma il codice va al metodo stesso, quindi solo voi potete verificarlo.
 
 ## Con cosa partite
 
@@ -95,7 +95,7 @@ Una chiamata può raggiungervi per un tipo e una gravità per cui non avete una 
 2. Se non ne avete nessuno, un solo metodo a pagamento, in questo ordine: SMS, una chiamata telefonica, WhatsApp, Telegram. È il primo che avete verificato, su un canale che il progetto ha attivato.
 3. Se non avete nemmeno questi, un webhook.
 
-Ricevete un'e-mail al riguardo, e così i proprietari della politica di reperibilità, o quelli del progetto se la politica non ne ha. Se non c'è nulla di verificato, la chiamata non può essere consegnata, e l'e-mail lo dice. Queste e-mail vengono trattenute finché continuano ad arrivare chiamate, così una tempesta di chiamate non diventa una tempesta di e-mail. Per aggiungere la regola mancante, vedete [Come contattarmi](/docs/notifications/on-call-rules#quando-una-gravità-non-ha-una-regola).
+Ricevete un'e-mail al riguardo, e così i proprietari della politica di reperibilità, o i Proprietari del progetto se la politica non ne ha. Se non c'è nulla di verificato, la chiamata non può essere consegnata, e l'e-mail lo dice. Queste e-mail vengono trattenute finché continuano ad arrivare chiamate, così una tempesta di chiamate non diventa una tempesta di e-mail. Per aggiungere la regola mancante, vedete [Come contattarmi](/docs/notifications/on-call-rules#quando-una-gravità-non-ha-una-regola).
 
 ## La lingua delle vostre chiamate
 
@@ -112,11 +112,11 @@ Cambiano le parole di OneUptime: oggetti, titoli, pulsanti e frasi, e i nomi con
 ## Risoluzione dei problemi
 
 :::details Ero di reperibilità, ma non mi è arrivato nulla
-Aprite **Impostazioni utente → Registri di reperibilità**. Nessuna riga per l'incidente significa che la sua politica di reperibilità non vi ha mai chiamato: controllate le sue regole di escalation e chi era di reperibilità. Per una riga con stato **Errore**, **Visualizza messaggio di stato** dice perché, per esempio un canale che il progetto ha disattivato. Controllate poi che i vostri metodi siano verificati e che **Your setup checklist** non abbia nulla in sospeso sotto **So we can reach you**.
+Aprite **Impostazioni utente → Log di reperibilità**. Nessuna riga per l'incidente significa che la sua politica di reperibilità non vi ha mai chiamato: controllate le sue regole di escalation e chi era di reperibilità. Per una riga con stato **Errore**, **Visualizza messaggio di stato** dice perché, per esempio un canale che il progetto ha disattivato. Controllate poi che i vostri metodi siano verificati e che **Your setup checklist** non abbia nulla in sospeso sotto **So we can reach you**.
 :::
 
 :::details Ricevo e-mail su elementi che non ho mai chiesto
-Siete proprietari dell'elemento, direttamente o tramite un team, oppure l'elemento non ha proprietari e voi siete proprietari del progetto. Disattivate l'evento in **Impostazioni utente → Impostazioni notifiche**, o riducete il volume in **Impostazioni utente → Preferenze e-mail**.
+Siete proprietari dell'elemento, direttamente o tramite un team, oppure l'elemento non ha proprietari e voi siete Proprietari del progetto. Disattivate l'evento in **Impostazioni utente → Impostazioni notifiche**, o riducete il volume in **Impostazioni utente → Preferenze e-mail**.
 :::
 
 :::details Le mie chiamate sono in inglese, ma la dashboard no

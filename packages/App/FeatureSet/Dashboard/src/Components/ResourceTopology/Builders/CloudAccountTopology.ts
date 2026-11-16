@@ -25,7 +25,15 @@ import {
   readCloudResourceReadings,
 } from "Common/Types/Cloud/CloudResourceHealth";
 import ObjectID from "Common/Types/ObjectID";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  getGlobalTranslator,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import {
+  formatDurationInUnit,
+  formatMilliseconds,
+} from "../../../Utils/Milliseconds";
 import PageMap from "../../../Utils/PageMap";
 import { CLOUD_RELATIONSHIP_WORDS } from "../../Cloud/CloudRelationshipWords";
 import {
@@ -203,23 +211,42 @@ export function formatCloudTopologyCount(value: number): string {
   );
 }
 
-// A time from seconds: "230 ms" under a second, "1.8 s", "12 min", "3.5 h".
-export function formatCloudTopologySeconds(seconds: number): string {
+/*
+ * A time from seconds: "230 ms" under a second, then "1.8 s", "12 min",
+ * "3.5 h" - each in the reader's words and digits ("۲۳۰ میلی‌ثانیه", "۱٫۸
+ * ثانیه"; issues #7418, #8348).
+ */
+export function formatCloudTopologySeconds(
+  seconds: number,
+  translator: Translator = getGlobalTranslator(),
+): string {
   const magnitude: number = Math.abs(seconds);
+  const milliseconds: number = seconds * 1000;
 
   if (magnitude < 1) {
-    return `${Math.round(seconds * 1000)} ms`;
+    return formatMilliseconds(translator, milliseconds, {
+      maximumFractionDigits: 0,
+    });
   }
 
   if (magnitude < 120) {
-    return `${Math.round(seconds * 10) / 10} s`;
+    return formatDurationInUnit(translator, seconds, "second", {
+      decimals: 1,
+      dropTrailingZeros: true,
+    });
   }
 
   if (magnitude < 2 * 3600) {
-    return `${Math.round(seconds / 60)} min`;
+    return formatDurationInUnit(translator, seconds / 60, "minute", {
+      decimals: 0,
+      dropTrailingZeros: true,
+    });
   }
 
-  return `${Math.round((seconds / 3600) * 10) / 10} h`;
+  return formatDurationInUnit(translator, seconds / 3600, "hour", {
+    decimals: 1,
+    dropTrailingZeros: true,
+  });
 }
 
 /*

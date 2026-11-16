@@ -1,3 +1,4 @@
+import { escapeRegExp } from "../RegExpEscape";
 import ProjectBalanceType from "../../Types/Billing/ProjectBalanceType";
 import Permission from "../../Types/Permission";
 import {
@@ -60,7 +61,7 @@ export const PROJECT_BALANCE_RECHARGE_PERMISSIONS: ReadonlyArray<Permission> = [
  * may switch a paid channel on, and not add to the balance it spends.
  */
 export const WHO_CAN_ADD_PROJECT_BALANCE: string =
-  "a project owner or someone with Manage Billing";
+  "a Project Owner or someone with Manage Billing";
 
 export type ProjectBalanceAutoRechargeColumn =
   | "enableAutoRechargeSmsOrCallBalance"
@@ -257,6 +258,64 @@ export const getProjectBalanceMessageNotSentReason: (data: {
 };
 
 /*
+ * What getProjectBalanceMessageNotSentReason said, read back from a line
+ * that is it, whole: the balance used up, or how much was left against
+ * what one message costs, as the line writes the amounts ("0.05 USD").
+ * Null for any other line. A test page's result words it in the reader's
+ * language (#7550).
+ */
+export interface ProjectBalanceNotSentReason {
+  isUsedUp: boolean;
+  balance?: string | undefined;
+  cost?: string | undefined;
+}
+
+export const readProjectBalanceMessageNotSentReason: (data: {
+  statusMessage: string | null | undefined;
+  channel: ProjectNotificationChannel;
+}) => ProjectBalanceNotSentReason | null = (data: {
+  statusMessage: string | null | undefined;
+  channel: ProjectNotificationChannel;
+}): ProjectBalanceNotSentReason | null => {
+  const message: string = (data.statusMessage || "").trim();
+  const whoCanAdd: string = getProjectBalanceWhoCanAddSentence(
+    ProjectBalanceType.SmsOrCall,
+  );
+
+  if (!message.endsWith(` ${whoCanAdd}`)) {
+    return null;
+  }
+
+  const shortfall: string = message
+    .slice(0, message.length - whoCanAdd.length - 1)
+    .trim();
+
+  if (shortfall === "This project's balance is used up.") {
+    return { isUsedUp: true };
+  }
+
+  const oneMessage: string | undefined = ONE_MESSAGE_WORDS[data.channel];
+
+  if (!oneMessage) {
+    return null;
+  }
+
+  const less: RegExpExecArray | null = new RegExp(
+    `^This project's balance \\(([^()]+)\\) is less than ${escapeRegExp(oneMessage)} costs \\(([^()]+)\\)\\.$`,
+  ).exec(shortfall);
+
+  if (!less) {
+    return null;
+  }
+
+  return {
+    isUsedUp: false,
+    balance: less[1]!.trim(),
+    cost: less[2]!.trim(),
+  };
+};
+
+/*
  * What an AI call is refused with once the project's AI credits are used up
  * (AIService.executeWithLogging), to whoever asked - Ask AI, a Slack or
  * Microsoft Teams question, a workflow, a runbook step.
@@ -290,4 +349,4 @@ export const PROJECT_AI_AUTO_RECHARGE_COULD_NOT_ADD_OWNER_SENTENCE: string = `Au
 
 // Why they get it, and how often - last.
 export const PROJECT_AI_CREDITS_USED_UP_OWNER_FREQUENCY_SENTENCE: string =
-  "Project owners get this email once each time the AI credits run out.";
+  "Project Owners get this email once each time the AI credits run out.";

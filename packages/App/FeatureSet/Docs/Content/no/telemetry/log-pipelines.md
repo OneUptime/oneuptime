@@ -46,8 +46,8 @@ flowchart TB
 
 ## Før du begynner
 
-- Logger som kommer inn i OneUptime, via [OpenTelemetry](/docs/telemetry/open-telemetry), [syslog](/docs/telemetry/syslog), [Fluentd](/docs/telemetry/fluentd) eller en probe.
-- Tillatelse til å endre pipelines. Prosjekteiere og administratorer har den; alle andre trenger tillatelsene **Create Log Pipeline** og **Create Log Pipeline Processor**.
+- Logger som kommer inn i OneUptime, via [OpenTelemetry](/docs/telemetry/open-telemetry), [syslog](/docs/telemetry/syslog), [Fluentd](/docs/telemetry/fluentd) eller en sonde.
+- Tillatelse til å endre pipelines. Prosjekteiere og Prosjektadministratorer har den; alle andre trenger tillatelsene **Create Log Pipeline** og **Create Log Pipeline Processor**.
 
 ## Opprette en pipeline
 
@@ -84,7 +84,7 @@ Verdiene for alvorlighetsgrad er `Fatal`, `Error`, `Warning`, `Information`, `De
 
 ## Key=Value Parser
 
-Brannmurer og annet nettverksutstyr logger hver hendelse som én linje med `key=value`-par. Hvilke felt en linje har, og i hvilken rekkefølge, avhenger av hendelsen, så ikke ett enkelt grok-mønster kan beskrive dem. Key=Value Parser trenger ikke noe: den går gjennom linjen og gjør hvert par den finner om til et loggattributt, uansett rekkefølge. Som attributter kan du søke og filtrere på dem, bruke dem i en [logg-overvåking](/docs/monitor/logs-monitor) og få ett varsel per tunnel, grensesnitt eller bruker med [Grupper etter](/docs/monitor/logs-monitor#varsler-per-gruppe-group-by).
+Brannmurer og annet nettverksutstyr logger hver hendelse som én linje med `key=value`-par. Hvilke felt en linje har, og i hvilken rekkefølge, avhenger av hendelsen, så ikke ett enkelt grok-mønster kan beskrive dem. Key=Value Parser trenger ikke noe: den går gjennom linjen og gjør hvert par den finner om til et loggattributt, uansett rekkefølge. Som attributter kan du søke og filtrere på dem, bruke dem i en [logg-monitor](/docs/monitor/logs-monitor) og få ett varsel per tunnel, grensesnitt eller bruker med [Grupper etter](/docs/monitor/logs-monitor#varsler-per-gruppe-group-by).
 
 ### Konfigurasjon
 
@@ -110,7 +110,7 @@ De to skilletegnene må være forskjellige, kan ikke inneholde hverandre og kan 
 
 ### Eksempel: Sophos XGS-brannmur
 
-OneUptime leser selv syslog fra Sophos og FortiGate som `sophos.*`- og `fortigate.*`-attributter (se [Nettverkshendelser](/docs/monitor/network-events)); dette eksempelet bygger det samme for hånd, slik du ville gjort for et format det ikke kjenner. Når en Sophos XGS-brannmur sender syslog til en [probe](/docs/monitor/network-device-monitor), lagres hver melding som en logg for nettverksenheten, med syslog-meldingen som tekst. Slik tolker du den:
+OneUptime leser selv syslog fra Sophos og FortiGate som `sophos.*`- og `fortigate.*`-attributter (se [Nettverkshendelser](/docs/monitor/network-events)); dette eksempelet bygger det samme for hånd, slik du ville gjort for et format det ikke kjenner. Når en Sophos XGS-brannmur sender syslog til en [sonde](/docs/monitor/network-device-monitor), lagres hver melding som en logg for nettverksenheten, med syslog-meldingen som tekst. Slik tolker du den:
 
 :::steps
 #### Opprett en pipeline for brannmuren
@@ -164,7 +164,7 @@ Med standardinnstillingene og et prefiks `fortigate` gir dette `fortigate.devnam
 
 ### Ett varsel per tunnel
 
-Med feltene tolket kan en [logg-overvåking](/docs/monitor/logs-monitor) telle feilene og utløse et eget varsel for hver tunnel: filtrer på `sophos.log_component` = `IPSec` med en tekst som inneholder `terminated`, og grupper etter `sophos.con_name`. Se [Varsler per gruppe](/docs/monitor/logs-monitor#varsler-per-gruppe-group-by).
+Med feltene tolket kan en [logg-monitor](/docs/monitor/logs-monitor) telle feilene og utløse et eget varsel for hver tunnel: filtrer på `sophos.log_component` = `IPSec` med en tekst som inneholder `terminated`, og grupper etter `sophos.con_name`. Se [Varsler per gruppe](/docs/monitor/logs-monitor#varsler-per-gruppe-group-by).
 
 ## Grok Parser
 
@@ -206,7 +206,7 @@ Vurderer en liste med regler i rekkefølge og lagrer navnet på den første rege
 ## Neste trinn
 
 :::cards
-- [Logg-overvåking](/docs/monitor/logs-monitor): Få varsel på attributtene pipelinene dine trekker ut.
+- [Logg-monitor](/docs/monitor/logs-monitor): Få varsel på attributtene pipelinene dine trekker ut.
 - [Opptaksregler for logger](/docs/telemetry/log-recording-rules): Gjøre tolkede loggfelt om til målinger.
 - [Syslog](/docs/telemetry/syslog): Sende syslog fra brannmurer og servere til OneUptime.
 - [Søkesyntaks](/docs/telemetry/search-syntax): Søke på de nye attributtene i loggutforskeren.

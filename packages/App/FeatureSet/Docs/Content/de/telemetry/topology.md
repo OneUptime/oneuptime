@@ -28,7 +28,7 @@ flowchart LR
 ## Bevor Sie beginnen
 
 - **Telemetrie, die ankommt.** Die Dienstkarte braucht Traces: siehe [OpenTelemetry](/docs/telemetry/open-telemetry). Die Infrastrukturansicht braucht einen Host oder einen Cluster, der meldet: siehe den [Kubernetes-Agent](/docs/telemetry/kubernetes-agent). Die Netzwerkansicht braucht Netzwerkgeräte: siehe [Netzwerkgeräte-Überwachung](/docs/monitor/network-device-monitor).
-- **Eine Rolle, die Telemetrie lesen darf.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member oder Telemetry Viewer, oder eine eigene Rolle mit der Berechtigung Read Inventory Item.
+- **Eine Rolle, die Telemetrie lesen darf.** Projektinhaber, Projektadministrator, Projektmitglied, Betrachter, Telemetrie-Administrator, Telemetrie-Mitglied oder Telemetrie-Betrachter, oder eine eigene Rolle mit der Berechtigung Read Inventory Item.
 
 ## Die Topologie öffnen
 
@@ -51,12 +51,12 @@ Jeder Dienst zeigt seinen Status, berechnet aus den Aufrufen, die er in den letz
 | Status | Wann |
 | --- | --- |
 | **Fehlerfrei** | Höchstens 1 % der empfangenen Aufrufe sind fehlgeschlagen. |
-| **Some errors** | Mehr als 1 % und weniger als 5 % sind fehlgeschlagen. |
-| **High error rate** | 5 % oder mehr sind fehlgeschlagen. |
-| **Entry point** | Er hat keine Aufrufe empfangen, aber selbst welche gemacht: ein Web-Frontend oder ein geplanter Job. |
-| **No calls observed** | Er hat weder Aufrufe gemacht noch empfangen. |
+| **Einige Fehler** | Mehr als 1 % und weniger als 5 % sind fehlgeschlagen. |
+| **Hohe Fehlerrate** | 5 % oder mehr sind fehlgeschlagen. |
+| **Einstiegspunkt** | Er hat keine Aufrufe empfangen, aber selbst welche gemacht: ein Web-Frontend oder ein geplanter Job. |
+| **Keine Aufrufe beobachtet** | Er hat weder Aufrufe gemacht noch empfangen. |
 
-Ein Dienst mit einem aktiven Vorfall oder einer aktiven Warnung zeigt stattdessen deren Anzahl, und wie ein Dienst mit **Some errors** oder einer **High error rate** zählt er als Dienst, der Aufmerksamkeit braucht.
+Ein Dienst mit einem aktiven Vorfall oder einer aktiven Warnung zeigt stattdessen deren Anzahl, und wie ein Dienst mit dem Status **Einige Fehler** oder **Hohe Fehlerrate** zählt er als Dienst, der Aufmerksamkeit braucht.
 
 :::steps
 ### Die Dienste finden, die Aufmerksamkeit brauchen

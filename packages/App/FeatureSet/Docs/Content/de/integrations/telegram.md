@@ -1,6 +1,6 @@
 # Telegram
 
-Senden Sie eine Nachricht an einen [Telegram](https://telegram.org)-Chat, eine Gruppe oder einen Kanal, wenn eine Warnung ausgelöst oder ein Vorfall eröffnet wird. Der Arbeitsablaufschritt **Send Message to Telegram** von OneUptime sendet sie als ein Bot, den Sie erstellen, und eine fertige Vorlage baut den Arbeitsablauf für Warnungen. Diese Integration ist **ausgehend**: Der Bot sendet Nachrichten und liest nicht, was im Chat geschrieben wird.
+Senden Sie eine Nachricht an einen [Telegram](https://telegram.org)-Chat, eine Gruppe oder einen Kanal, wenn eine Warnung ausgelöst oder ein Vorfall eröffnet wird. Der Arbeitsablaufschritt **Nachricht an Telegram senden** von OneUptime sendet sie als ein Bot, den Sie erstellen, und eine fertige Vorlage baut den Arbeitsablauf für Warnungen. Diese Integration ist **ausgehend**: Der Bot sendet Nachrichten und liest nicht, was im Chat geschrieben wird.
 
 :::cards
 - [So funktioniert es](#so-funktioniert-es): Was der Arbeitsablauf tut, wenn eine Warnung ausgelöst wird.
@@ -13,13 +13,13 @@ Senden Sie eine Nachricht an einen [Telegram](https://telegram.org)-Chat, eine G
 
 ```mermaid title="Von der Warnung zur Telegram-Nachricht"
 flowchart TB
-    fired["Warnung ausgelöst"] --> trigger["On Create Alert"]
-    trigger --> step["Send Message<br/>to Telegram"]
-    step -->|"Success"| chat["Nachricht in<br/>Ihrem Chat"]
-    step -->|"Error"| failed["Der Lauf schlägt<br/>fehl und sagt,<br/>warum"]
+    fired["Warnung ausgelöst"] --> trigger["Bei Erstellung:<br/>Warnung"]
+    trigger --> step["Nachricht an<br/>Telegram senden"]
+    step -->|"Erfolg"| chat["Nachricht in<br/>Ihrem Chat"]
+    step -->|"Fehler"| failed["Der Lauf schlägt<br/>fehl und sagt,<br/>warum"]
 ```
 
-Der Schritt sendet den **Message Text** als Ihr Bot über die Bot API von Telegram an den Chat. Er nimmt seinen Ausgang **Success**, wenn Telegram die Nachricht annimmt, und seinen Ausgang **Error**, mit dem Grund von Telegram, wenn Telegram sie ablehnt. Ist mit **Error** nichts verbunden, wie in der Vorlage, schlägt ein Lauf, der nicht senden konnte, fehl, und seine **Schritte** sagen, warum.
+Der Schritt sendet den **Nachrichtentext** als Ihr Bot über die Bot API von Telegram an den Chat. Er nimmt seinen Ausgang **Erfolg**, wenn Telegram die Nachricht annimmt, und seinen Ausgang **Fehler**, mit dem Grund von Telegram, wenn Telegram sie ablehnt. Ist mit **Fehler** nichts verbunden, wie in der Vorlage, schlägt ein Lauf, der nicht senden konnte, fehl, und seine **Schritte** sagen, warum.
 
 ## Bevor Sie beginnen
 
@@ -51,15 +51,15 @@ Beginnen Sie mit der Vorlage, die den ganzen Arbeitsablauf für Warnungen baut, 
 1. Öffnen Sie **Arbeitsabläufe** und klicken Sie auf **Arbeitsablauf erstellen**.
 2. Geben Sie `Telegram` in **Vorlagen durchsuchen…** ein, klicken Sie auf **Tell Telegram when an alert fires** und dann auf **Diese Vorlage verwenden**.
 3. Behalten Sie den Namen **Notify Telegram on new alert** oder ändern Sie ihn, und klicken Sie auf **Weiter**.
-4. Fügen Sie das Token in **Telegram Bot Token** und die ID in **Telegram Chat ID** ein, und klicken Sie auf **Arbeitsablauf erstellen**.
+4. Fügen Sie das Token in **Telegram-Bot-Token** und die ID in **Telegram Chat ID** ein, und klicken Sie auf **Arbeitsablauf erstellen**.
 
-Der Arbeitsablauf öffnet sich im **Editor** mit zwei Schritten: **On Create Alert** und **Send Message to Telegram**, der Nummer, Titel, Schweregrad und Status der Warnung sendet. Das Token wird als geheime Variable `telegramBotToken` des Arbeitsablaufs gespeichert, und die ID als `telegramChatId`.
+Der Arbeitsablauf öffnet sich im **Editor** mit zwei Schritten: **Bei Erstellung: Warnung** und **Nachricht an Telegram senden**, der Nummer, Titel, Schweregrad und Status der Warnung sendet. Das Token wird als geheime Variable `telegramBotToken` des Arbeitsablaufs gespeichert, und die ID als `telegramChatId`.
 @tab Von Grund auf
 1. Speichern Sie das Token als geheime globale Variable: Gehen Sie zu **Arbeitsabläufe → Globale Variablen**, klicken Sie auf **Arbeitsablaufvariable erstellen**, nennen Sie sie `TELEGRAM_BOT_TOKEN` und klicken Sie auf **Weiter**. Fügen Sie das Token in **Inhalt** ein, schalten Sie **Geheimnis** ein und klicken Sie auf **Arbeitsablaufvariable erstellen**.
 2. Gehen Sie zu **Arbeitsabläufe**, klicken Sie auf **Arbeitsablauf erstellen**, wählen Sie **Ohne Vorlage beginnen**, geben Sie dem Arbeitsablauf einen Namen und klicken Sie auf **Arbeitsablauf erstellen**.
-3. Klicken Sie im **Editor** auf **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **On Create Alert** unter **Beliebt**. Klicken Sie auf den Auslöser: Seine **Fields to pass on** beginnen mit **Titel**, also klicken Sie auf **Feld hinzufügen** und wählen Sie die weiteren Felder, die Ihre Nachricht zeigt, etwa **Warnungsnummer mit Präfix**.
-4. Klicken Sie auf **Komponente hinzufügen**, suchen Sie nach `telegram` und klicken Sie auf **Send Message to Telegram**. Verbinden Sie den Ausgang **Success** des Auslösers mit diesem Schritt.
-5. Klicken Sie auf den neuen Schritt. Klicken Sie in **Telegram Bot Token** auf **{ }** und wählen Sie `TELEGRAM_BOT_TOKEN` unter **Globale Variablen**. Geben Sie die ID des Chats in **Chat ID** ein, schreiben Sie die Nachricht in **Message Text** und fügen Sie die Felder der Warnung mit **{ }** ein.
+3. Klicken Sie im **Editor** auf **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **Bei Erstellung: Warnung** unter **Beliebt**. Klicken Sie auf den Auslöser: Seine **Weiterzugebende Felder** beginnen mit **Titel**, also klicken Sie auf **Feld hinzufügen** und wählen Sie die weiteren Felder, die Ihre Nachricht zeigt, etwa **Warnungsnummer mit Präfix**.
+4. Klicken Sie auf **Komponente hinzufügen**, suchen Sie nach `telegram` und klicken Sie auf **Nachricht an Telegram senden**. Verbinden Sie den Ausgang **Erfolg** des Auslösers mit diesem Schritt.
+5. Klicken Sie auf den neuen Schritt. Klicken Sie in **Telegram-Bot-Token** auf **{ }** und wählen Sie `TELEGRAM_BOT_TOKEN` unter **Globale Variablen**. Geben Sie die ID des Chats in **Chat-ID** ein, schreiben Sie die Nachricht in **Nachrichtentext** und fügen Sie die Felder der Warnung mit **{ }** ein.
 :::
 
 Eine Nachricht von Grund auf liest die Felder der Warnung mit Verweisen wie diesen:
@@ -73,22 +73,22 @@ Title: {{local.components.alert-on-create-1.returnValues.model.title}}
 
 Schalten Sie **Aktiviert** oben im **Editor** ein. Von nun an wird jede neue Warnung an den Chat gesendet.
 
-Um zu testen, ohne eine Warnung auszulösen, klicken Sie auf **Arbeitsablauf ausführen** und wählen unter **Warnung** eine vorhandene Warnung aus: Die neuesten sind aufgelistet, und wenn Sie ihre Nummer oder einen Teil ihres Titels eintippen, finden Sie eine andere. Klicken Sie auf **Arbeitsablauf manuell ausführen** und bestätigen Sie mit **Ausführen**. Das Panel **Arbeitsablauf-Ausführung** verfolgt den Lauf, und die Nachricht erscheint im Chat. Nimmt der Schritt stattdessen **Error**, schlägt der Lauf fehl, und der Eintrag des Schritts unter **Schritte** sagt, warum: siehe [Fehlerbehebung](#fehlerbehebung).
+Um zu testen, ohne eine Warnung auszulösen, klicken Sie auf **Arbeitsablauf ausführen** und wählen unter **Warnung** eine vorhandene Warnung aus: Die neuesten sind aufgelistet, und wenn Sie ihre Nummer oder einen Teil ihres Titels eintippen, finden Sie eine andere. Klicken Sie auf **Arbeitsablauf manuell ausführen** und bestätigen Sie mit **Ausführen**. Das Panel **Arbeitsablauf-Ausführung** verfolgt den Lauf, und die Nachricht erscheint im Chat. Nimmt der Schritt stattdessen **Fehler**, schlägt der Lauf fehl, und der Eintrag des Schritts unter **Schritte** sagt, warum: siehe [Fehlerbehebung](#fehlerbehebung).
 :::
 
 ## Tipps
 
 - **Reiner Text.** Der Schritt sendet den Text so, wie er getippt ist, ohne die Formatierung von Telegram, deshalb erscheinen `*` und `_` so, wie sie sind.
 - **Auf die Grenze von 4.096 Zeichen achten.** Telegram nimmt Nachrichten mit bis zu 4.096 Zeichen an. Eine längere wird gekürzt und endet mit "… (truncated — see OneUptime for the full text)", statt abgelehnt zu werden.
-- **Auch Vorfälle.** Bauen Sie denselben Arbeitsablauf auf **On Create Incident**, oder auf **On Update Incident** für Statusänderungen. Um nur manche Warnungen zu senden, setzen Sie einen Block **If / Else** vor den Schritt.
+- **Auch Vorfälle.** Bauen Sie denselben Arbeitsablauf auf **Bei Erstellung: Vorfall**, oder auf **Bei Aktualisierung: Vorfall** für Statusänderungen. Um nur manche Warnungen zu senden, setzen Sie einen Block **Wenn / Sonst** vor den Schritt.
 - **Die Form des Tokens wird geprüft.** Ein Token, das nicht wie `123456789:ABCdef…` aussieht, beendet den Lauf, bevor etwas gesendet wird, und das Token wird nie ins Protokoll geschrieben.
 
 ## Fehlerbehebung
 
-Nimmt der Schritt **Error**, schlägt der Lauf fehl, und der Eintrag des Schritts im Reiter **Schritte** des Laufs nennt den Grund von Telegram. Der Bot muss im Chat sein, prüfen Sie das also zuerst.
+Nimmt der Schritt **Fehler**, schlägt der Lauf fehl, und der Eintrag des Schritts im Reiter **Schritte** des Laufs nennt den Grund von Telegram. Der Bot muss im Chat sein, prüfen Sie das also zuerst.
 
 :::details Telegram antwortet "Bad Request: chat not found"
-Die **Chat ID** ist falsch, oder der Bot kann den Chat nicht sehen: Fügen Sie den Bot der Gruppe hinzu, machen Sie ihn zum Administrator des Kanals, oder bitten Sie die Person, einen Chat mit dem Bot zu beginnen. Die ID einer Gruppe beginnt mit `-`.
+Die **Chat-ID** ist falsch, oder der Bot kann den Chat nicht sehen: Fügen Sie den Bot der Gruppe hinzu, machen Sie ihn zum Administrator des Kanals, oder bitten Sie die Person, einen Chat mit dem Bot zu beginnen. Die ID einer Gruppe beginnt mit `-`.
 :::
 
 :::details Telegram antwortet "Forbidden: bot was blocked by the user" oder "bot is not a member"

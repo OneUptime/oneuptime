@@ -15,7 +15,7 @@ OneUptime 以兩種方式與 [GitHub](https://github.com) 配合使用。透過 
 flowchart TB
     app["GitHub App"] --> repos["匯入的儲存庫"]
     repos --> pr["來自 OneUptime<br/>AI 的修復<br/>pull request"]
-    declared["事件已宣佈"] --> workflow["工作流程：<br/>On Create Incident"]
+    declared["事件已宣佈"] --> workflow["工作流程：<br/>建立事件時"]
     workflow -->|"POST issues"| issue["GitHub issue"]
 ```
 
@@ -62,11 +62,11 @@ flowchart TB
 
 ### 新增觸發器
 
-點選虛線的 **選擇啟動此工作流程的方式** 區塊，然後選擇 **On Create Incident**。點選觸發器：它的 **Fields to pass on** 已經包含 **標題**，所以點選 **新增欄位** 並選擇 **描述** 和 **Incident Number With Prefix**。
+點選虛線的 **選擇啟動此工作流程的方式** 區塊，然後選擇 **建立事件時**。點選觸發器：它的 **要傳遞的欄位** 已經包含 **標題**，所以點選 **新增欄位** 並選擇 **描述** 和 **Incident Number With Prefix**。
 
 ### 開啟 issue
 
-點選 **新增元件**，新增一個 **API Post (JSON)** 區塊，然後把觸發器的 **Success** 點連接到它。把它的 **URL** 設為 `https://api.github.com/repos/your-org/your-repo/issues`，並換成你的儲存庫的擁有者和名稱。在 **更多欄位** 下，把它的 **Request Headers** 設為：
+點選 **新增元件**，新增一個 **API 呼叫 POST (JSON)** 區塊，然後把觸發器的 **成功** 點連接到它。把它的 **URL** 設為 `https://api.github.com/repos/your-org/your-repo/issues`，並換成你的儲存庫的擁有者和名稱。在 **更多欄位** 下，把它的 **請求標頭** 設為：
 
 ```json
 {
@@ -76,7 +76,7 @@ flowchart TB
 }
 ```
 
-把 **Request Body** 設為：
+把 **請求內文** 設為：
 
 ```json
 {
@@ -88,7 +88,7 @@ flowchart TB
 
 ### 測試，然後啟用
 
-點選 **執行工作流程**，在 **事件** 中選擇一個測試事件，然後執行它。**API Post (JSON)** 步驟會顯示一個包含新 issue 的 `201` 回應，其中帶有它的 `number` 和 `html_url`。然後在 **建構器** 頂部開啟 **已啟用**。
+點選 **執行工作流程**，在 **事件** 中選擇一個測試事件，然後執行它。**API 呼叫 POST (JSON)** 步驟會顯示一個包含新 issue 的 `201` 回應，其中帶有它的 `number` 和 `html_url`。然後在 **建構器** 頂部開啟 **已啟用**。
 :::
 
 事件解決後 issue 仍保持開啟，因為後續工作通常比事件持續得更久。如需與事件雙向保持同步的工單，請參閱 [Jira](/docs/integrations/jira)。
@@ -97,11 +97,11 @@ flowchart TB
 
 - **GitHub Enterprise Server。** 改為把請求傳送到你的伺服器：`https://your-github-host/api/v3/repos/your-org/your-repo/issues`。位於私有網路位址上的伺服器需要一個由管理員允許這樣做的自行託管 OneUptime：請參閱 [對外網路存取](/docs/workflows/configuration#對外網路存取)。
 - **指派它。** 在正文中新增 `"assignees": ["octocat"]` 或 `"milestone": 3`。當權杖無法推送到儲存庫時，GitHub 會悄無聲息地丟棄標籤、指派人和里程碑。
-- **只針對部分事件。** 在觸發器和 API 區塊之間放一個 **If / Else** 區塊，只在它的 **Yes** 一側開啟 issue，例如只針對某一種嚴重程度。
+- **只針對部分事件。** 在觸發器和 API 區塊之間放一個 **如果 / 否則** 區塊，只在它的 **是** 一側開啟 issue，例如只針對某一種嚴重程度。
 
 ## 疑難排解
 
-當 GitHub 拒絕請求時，**API Post (JSON)** 步驟會走 **Error**。執行中的 **Response Status** 和 **Response Body** 會說明原因。
+當 GitHub 拒絕請求時，**API 呼叫 POST (JSON)** 步驟會走 **錯誤**。執行中的 **回應狀態** 和 **回應內文** 會說明原因。
 
 :::details GitHub 傳回 401
 權杖錯誤、已過期或已被吊銷。請建立一個新權杖，並替換 `GITHUB_TOKEN` 的內容。

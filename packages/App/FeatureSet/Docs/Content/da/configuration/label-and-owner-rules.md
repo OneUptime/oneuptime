@@ -25,7 +25,7 @@ Etiketter og ejere er det, du filtrerer og grupperer ressourcer efter, de afgør
 
 ## Hvor du finder reglerne
 
-Hvert produkt med etiketter og ejere har begge slags under sine **Indstillinger** (for hændelser, alarmer, planlagt vedligeholdelse og Datasikkerhed under **Regler**): monitorer, hændelser og hændelsesepisoder, alarmer og alarmepisoder, vedligeholdelseshændelser, statussider, tjenester, værter, Kubernetes-klynger, Docker-værter, Docker Swarm-klynger, Podman-værter, Proxmox-klynger, OpenStack-skyer, VMware vCentre, Ceph-klynger, storage-arrays, databaser, datalagre, tabeller, køer, IoT-flåder, serverless-funktioner, cloud-ressourcer, RUM-applikationer, dashboards, vagtpolitikker, vagtplaner, politikker for indgående opkald, workflows, runbooks, netværksenheder og SLO'er.
+Hvert produkt med etiketter og ejere har begge slags under sine **Indstillinger** (for hændelser, alarmer, planlagt vedligeholdelse og Datasikkerhed under **Regler**): monitorer, hændelser og hændelsesepisoder, alarmer og alarmepisoder, vedligeholdelseshændelser, statussider, tjenester, værter, Kubernetes-klynger, Docker-værter, Docker Swarm-klynger, Podman-værter, Proxmox-klynger, OpenStack-skyer, VMware vCentre, Ceph-klynger, storage-arrays, databaser, datalagre, tabeller, køer, IoT-flåder, serverless-funktioner, cloud-ressourcer, RUM-applikationer, dashboards, vagtpolitikker, vagtplaner, politikker for indgående opkald, arbejdsgange, runbooks, netværksenheder og SLO'er.
 
 Etiketregler for monitorer ligger for eksempel under **Monitorer → Indstillinger → Etiketregler**, og etiketregler for hændelser under **Hændelser → Regler → Etiketregler**. **Indstillinger** og **Regler** er foldet sammen i sidemenuen fra start: klik på sektionens titel for at åbne den. Siderne for hændelser og alarmer har en fane **Hændelsesregler** (eller **Advarselsregler**) og en fane **Episoderegler**.
 
@@ -61,7 +61,7 @@ En ny regel skal tilføje noget: mindst én etiket (eller ejer) eller, i en rege
 
 ### Uanset hvordan reglen oprettes
 
-Det samme gælder for en regel, der oprettes via API'et, Terraform, et workflow eller en [import af etiketregler](/docs/configuration/label-rule-import-export): OneUptime afviser en ny regel, der ikke tilføjer noget, med én besked, der nævner de felter, der skal udfyldes. Beskederne er på engelsk på alle sprog.
+Det samme gælder for en regel, der oprettes via API'et, Terraform, en arbejdsgang eller en [import af etiketregler](/docs/configuration/label-rule-import-export): OneUptime afviser en ny regel, der ikke tilføjer noget, med én besked, der nævner de felter, der skal udfyldes. Beskederne er på engelsk på alle sprog.
 
 | Regel | Besked |
 | --- | --- |
@@ -80,24 +80,24 @@ Regler, du allerede har, røres ikke: se [Rediger en regel](#rediger-en-regel).
 
 Regler for hændelser, alarmer og planlagt vedligeholdelse kan også give videre, hvad de ressourcer, en begivenhed berører, bærer. Under **Etiketter at tilføje** (eller **Ejere**) indeholder den sammenfoldede sektion **Nedarv etiketter** (eller **Nedarv ejere**) seks kontakter:
 
-- **Nedarv etiketter fra overvågninger**: hver etiket på hændelsens monitorer sættes også på hændelsen. En alarm har én monitor, så i en alarmregel hedder kontakten **Nedarv etiketter fra overvågning** (og i en ejerregel for alarmer **Nedarv ejere fra overvågning**).
+- **Nedarv etiketter fra monitorer**: hver etiket på hændelsens monitorer sættes også på hændelsen. En alarm har én monitor, så i en alarmregel hedder kontakten **Nedarv etiketter fra monitor** (og i en ejerregel for alarmer **Nedarv ejere fra monitor**).
 - **Nedarv etiketter fra værter**, **Nedarv etiketter fra Kubernetes-klynger**, **Nedarv etiketter fra Docker-værter**, **Inherit Labels From Podman Hosts** og **Nedarv etiketter fra tjenester** gør det samme for de ressourcer.
 
-Ejerregler har de samme seks kontakter for ejere (**Nedarv ejere fra overvågninger** og så videre). Så længe ingen kontakt er slået til, fortæller den sammenfoldede sektion, hvad den bruges til; i en regel, der nedarver, åbner den af sig selv. Episoderegler har ingen nedarvningskontakter.
+Ejerregler har de samme seks kontakter for ejere (**Nedarv ejere fra monitorer** og så videre). Så længe ingen kontakt er slået til, fortæller den sammenfoldede sektion, hvad den bruges til; i en regel, der nedarver, åbner den af sig selv. Episoderegler har ingen nedarvningskontakter.
 
 En regel, der nedarver, kan lade **Etiketter at tilføje** (eller **Ejere**) være tom: den tilføjer det, den nedarver. Sådan en regel får navn efter det, den nedarver fra:
 
 | Kontakter slået til | Navn |
 | --- | --- |
-| **Nedarv etiketter fra overvågninger** | _Nedarv etiketter fra: monitorer_ |
-| **Nedarv etiketter fra overvågninger** og **Nedarv etiketter fra værter** | _Nedarv etiketter fra: monitorer, værter_ |
-| **Nedarv etiketter fra overvågning**, i en alarmregel | _Nedarv etiketter fra: overvågning_ |
+| **Nedarv etiketter fra monitorer** | _Nedarv etiketter fra: monitorer_ |
+| **Nedarv etiketter fra monitorer** og **Nedarv etiketter fra værter** | _Nedarv etiketter fra: monitorer, værter_ |
+| **Nedarv etiketter fra monitor**, i en alarmregel | _Nedarv etiketter fra: monitor_ |
 
 Navnet følger kontakterne, indtil du vælger en etiket (så får reglen navn efter sine etiketter) eller skriver et navn selv.
 
 ### Opretterens team
 
-En ejerregel for hændelser eller advarsler har én post mere, sidst i sin sektion **Nedarv ejere**: **Opretterens team**, en liste over teams. Når den person, der erklærer en matchende hændelse eller opretter en matchende advarsel, er medlem af et team på listen, bliver det team også ejer. Det er en liste og ikke alle personens teams, fordi folk som standard kommer i projektets team **Medlemmer**, og det hjælper ingen at gøre alle til ejere. En hændelse eller advarsel, som en monitor, et workflow, en formular eller en API-nøgle opretter, har ingen opretter og får ingen af disse teams. De får besked, som reglens **Underret ejere** siger, og en regel, der kun tilføjer dem, hedder _Tilføj opretterens team som ejer_. Gennem API'et er listen `creatorTeams`.
+En ejerregel for hændelser eller advarsler har én post mere, sidst i sin sektion **Nedarv ejere**: **Opretterens team**, en liste over teams. Når den person, der erklærer en matchende hændelse eller opretter en matchende advarsel, er medlem af et team på listen, bliver det team også ejer. Det er en liste og ikke alle personens teams, fordi folk som standard kommer i projektets team **Medlemmer**, og det hjælper ingen at gøre alle til ejere. En hændelse eller advarsel, som en monitor, en arbejdsgang, en formular eller en API-nøgle opretter, har ingen opretter og får ingen af disse teams. De får besked, som reglens **Underret ejere** siger, og en regel, der kun tilføjer dem, hedder _Tilføj opretterens team som ejer_. Gennem API'et er listen `creatorTeams`.
 
 Den person, der erklærer en hændelse eller opretter en advarsel, bliver én af dens ejere, uanset hvad reglerne siger, og oprettelsesformularerne nævner i deres opsummering hver ejerregel, der vil køre, og hvem den vil tilføje: se [Hvem der ejer den](/docs/incidents/declaring-incidents#hvem-der-ejer-den).
 

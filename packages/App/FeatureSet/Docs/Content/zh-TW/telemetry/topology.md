@@ -28,7 +28,7 @@ flowchart LR
 ## 開始之前
 
 - **正在到達的遙測。** 服務地圖需要追蹤：請參閱 [OpenTelemetry](/docs/telemetry/open-telemetry)。基礎設施檢視需要一台傳送資料的主機或一個叢集：請參閱 [Kubernetes 代理程式](/docs/telemetry/kubernetes-agent)。網路檢視需要網路設備：請參閱 [網路設備監控](/docs/monitor/network-device-monitor)。
-- **能夠讀取遙測的角色。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member 或 Telemetry Viewer，或者擁有 Read Inventory Item 權限的自訂角色。
+- **能夠讀取遙測的角色。** 專案擁有者、專案管理員、專案成員、檢視者、遙測管理員、遙測成員或遙測檢視者，或者擁有 Read Inventory Item 權限的自訂角色。
 
 ## 開啟拓撲
 
@@ -51,12 +51,12 @@ flowchart LR
 | 狀態 | 條件 |
 | --- | --- |
 | **健康** | 收到的呼叫中最多 1% 失敗。 |
-| **Some errors** | 超過 1% 且少於 5% 失敗。 |
-| **High error rate** | 5% 或更多失敗。 |
-| **Entry point** | 它沒有收到呼叫，但發出過呼叫：例如 Web 前端或排程工作。 |
-| **No calls observed** | 它既沒有發出也沒有收到呼叫。 |
+| **有一些錯誤** | 超過 1% 且少於 5% 失敗。 |
+| **錯誤率高** | 5% 或更多失敗。 |
+| **進入點** | 它沒有收到呼叫，但發出過呼叫：例如 Web 前端或排程工作。 |
+| **未觀測到呼叫** | 它既沒有發出也沒有收到呼叫。 |
 
-有進行中事件或警示的服務會改為顯示其數量，並且與處於 **Some errors** 或 **High error rate** 的服務一樣，算作需要注意。
+有進行中事件或警示的服務會改為顯示其數量，並且與處於 **有一些錯誤** 或 **錯誤率高** 狀態的服務一樣，算作需要注意。
 
 :::steps
 ### 找出需要注意的服務

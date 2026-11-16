@@ -11,7 +11,7 @@ Per creare una dashboard, apri **Prodotti → Dashboard** e fai clic su **Crea d
 
 ## Prima di iniziare
 
-I proprietari e gli amministratori del progetto possono creare e modificare tutte le dashboard. Tutti gli altri hanno bisogno di un'autorizzazione del team: `CreateDashboard` per creare dashboard ed `EditDashboard` per modificarle. I membri e i visualizzatori del progetto possono leggere le dashboard senza nessuna delle due. Chi non può modificare una dashboard apre comunque il suo menu **⋯**, dove **Modifica dashboard** è bloccato e indica l'autorizzazione necessaria.
+I Proprietari del progetto e gli Amministratori del progetto possono creare e modificare tutte le dashboard. Tutti gli altri hanno bisogno di un'autorizzazione del team: `CreateDashboard` per creare dashboard ed `EditDashboard` per modificarle. I Membri del progetto e i Visualizzatori del progetto possono leggere le dashboard senza nessuna delle due. Chi non può modificare una dashboard apre comunque il suo menu **⋯**, dove **Modifica dashboard** è bloccato e indica l'autorizzazione necessaria.
 
 ## Creare la dashboard
 

@@ -1,6 +1,6 @@
 # VMware-Überwachung
 
-Ein VMware-Monitor beobachtet ein vCenter - seine Rechenzentren, Cluster, ESXi-Hosts, virtuellen Maschinen, Datenspeicher, Ressourcenpools und vSAN - und meldet Ihnen, wenn ein Host ausgelastet ist, einer VM CPU oder Arbeitsspeicher fehlt, ein Datenspeicher vollläuft oder vSphere einen Alarm auslöst. Er liest die `vcenter.*`-Metriken, die der OneUptime VMware Agent sammelt oder eine Ihrer Probes ohne Agent sammelt.
+Ein VMware-Monitor beobachtet ein vCenter - seine Rechenzentren, Cluster, ESXi-Hosts, virtuellen Maschinen, Datenspeicher, Ressourcenpools und vSAN - und meldet Ihnen, wenn ein Host ausgelastet ist, einer VM CPU oder Arbeitsspeicher fehlt, ein Datenspeicher vollläuft oder vSphere einen Alarm auslöst. Er liest die `vcenter.*`-Metriken, die der OneUptime VMware Agent sammelt oder eine Ihrer Sonden ohne Agent sammelt.
 
 :::cards
 - [Den Monitor erstellen](#einen-vmware-monitor-erstellen): Sechs Schritte im Dashboard.
@@ -14,14 +14,14 @@ Ein VMware-Monitor beobachtet ein vCenter - seine Rechenzentren, Cluster, ESXi-H
 Die Metriken kommen aus der API von vCenter, gelesen mit einem Konto mit Lesezugriff, auf einem von zwei Wegen:
 
 - **Der VMware-Agent**, ein OpenTelemetry Collector mit seinem Receiver `vcenter`, den Sie auf einem Rechner betreiben, der vCenter erreicht. Siehe [VMware-Agent](/docs/telemetry/vmware).
-- **A probe**, ohne etwas zu installieren: Sie verbinden das vCenter in OneUptime und wählen die Probe, die es erreicht. Siehe [VMware ohne Agent](/docs/telemetry/vmware-agentless).
+- **A probe**, ohne etwas zu installieren: Sie verbinden das vCenter in OneUptime und wählen die Sonde, die es erreicht. Siehe [VMware ohne Agent](/docs/telemetry/vmware-agentless).
 
 Beide senden in jedem Erfassungsintervall (standardmäßig 2 Minuten) dieselben Serien, versehen mit dem Namen des vCenter, `vmware.vcenter.name`. Ein vCenter ist ein vSphere-Endpunkt: ein vCenter Server oder ein eigenständiger ESXi-Host. Ein VMware-Monitor ist an ein vCenter gebunden. Jede Minute führt er seine Abfrage über die Metriken dieses vCenter aus und vergleicht das Ergebnis mit seinen Kriterien.
 
 ```mermaid title="Von einem vCenter zu einem Vorfall"
 flowchart TB
     vcenter["vCenter Server oder ESXi-Host"] --> agent["VMware-Agent"]
-    vcenter --> probe["Ihre Probe"]
+    vcenter --> probe["Ihre Sonde"]
     agent -->|"vcenter-Metriken<br/>über OTLP"| oneuptime["OneUptime"]
     probe --> oneuptime
     oneuptime --> monitor["VMware-Monitor"]
@@ -112,7 +112,7 @@ Vorlagen lesen die letzten 5 Minuten, sofern die Tabelle nichts anderes sagt. Ei
 
 | Template | Kategorie | Schweregrad | Beobachtet | Löst aus, wenn | Erholt sich, wenn |
 | --- | --- | --- | --- | --- | --- |
-| vCenter Stopped Reporting | Verfügbarkeit | Kritisch | `vcenter.datacenter.cpu.limit`, Count über das gesamte vCenter, **letzte 10 Minuten** | Keine Daten im gesamten Fenster: Der Agent oder die Probe läuft nicht mehr, oder das vCenter antwortet nicht mehr | Daten treffen wieder ein |
+| vCenter Stopped Reporting | Verfügbarkeit | Kritisch | `vcenter.datacenter.cpu.limit`, Count über das gesamte vCenter, **letzte 10 Minuten** | Keine Daten im gesamten Fenster: Der Agent oder die Sonde läuft nicht mehr, oder das vCenter antwortet nicht mehr | Daten treffen wieder ein |
 | Host Not Responding | Host | Kritisch | `vcenter.host.memory.usage`, Max pro `resource.vcenter.host.name` | Bei 0, kein Arbeitsspeicher in Nutzung: vCenter hat den Kontakt zum Host verloren (er ist abgestürzt, hat Strom oder sein Verwaltungsnetz verloren oder wurde getrennt), oder er ist ausgeschaltet oder im Standby. Wo vSphere DPM Hosts in den Standby versetzt, verwenden Sie **Datacenter Hosts Not Responding**, das diese auslässt | Über 0 |
 | Host CPU Saturation | Host | Warnung | `vcenter.host.cpu.utilization`, Avg pro Host | Über 90 %: Jede VM auf dem Host konkurriert um Kerne und zeigt CPU-Ready-Zeit | Bei 81 % oder darunter |
 | Host Memory Saturation | Host | Warnung | `vcenter.host.memory.utilization`, Avg pro Host | Über 90 %: Der Host beginnt, Arbeitsspeicher durch Ballooning, Komprimierung und Swapping zurückzuholen | Bei 81 % oder darunter |
@@ -296,8 +296,8 @@ Ein Monitor, den Sie nicht aus einer Vorlage bauen, beginnt mit zwei Kriterien:
 
 | Reihenfolge | Kriterium | Trifft zu, wenn | Dann |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Die erste Abfrage hat im ganzen Zeitfenster keine Daten | Markiert den Monitor als **Offline** und meldet den Vorfall „_monitor name_ is offline“, der sich von selbst auflöst, wenn der Monitor sich erholt. |
-| 2 | Check if _monitor name_ is online | Die erste Abfrage hat Daten | Markiert den Monitor als **Betriebsbereit**. |
+| 1 | Prüfen, ob _Monitorname_ offline ist | Die erste Abfrage hat im ganzen Zeitfenster keine Daten | Markiert den Monitor als **Offline** und meldet den Vorfall „_Monitorname_ ist offline“, der sich von selbst auflöst, wenn der Monitor sich erholt. |
+| 2 | Prüfen, ob _Monitorname_ online ist | Die erste Abfrage hat Daten | Markiert den Monitor als **Betriebsbereit**. |
 
 > [!IMPORTANT]
 > Ein Wert von `0` sind Daten: Eine Metrik, die oft null ist, etwa Neustarts oder Fehler, setzt den Monitor nicht auf offline. Um bei einem Wert benachrichtigt zu werden, beginnen Sie mit einer Vorlage oder fügen Sie ein Kriterium mit einem Schwellenwert hinzu. Kommen gar keine Daten an und trifft kein Kriterium zu, behält der Monitor seinen Status, und offene Vorfälle bleiben offen: Stille ist keine Erholung. Zeit, in der OneUptime selbst keine Daten empfing, gilt nie als fehlende Daten: Eine Prüfung, deren Zeitfenster solche Zeit enthält, wartet stattdessen, wie [Wenn OneUptime keine Daten empfängt](/docs/monitor/when-oneuptime-is-not-receiving) erklärt.
@@ -368,7 +368,7 @@ vCenter wird einmal pro Erfassungsintervall gelesen, standardmäßig alle 2 Minu
 
 :::cards
 - [VMware-Agent](/docs/telemetry/vmware): Den Agenten installieren, der von vCenter sammelt.
-- [VMware ohne Agent](/docs/telemetry/vmware-agentless): Stattdessen eine Probe sammeln lassen.
+- [VMware ohne Agent](/docs/telemetry/vmware-agentless): Stattdessen eine Sonde sammeln lassen.
 - [Proxmox-Überwachung](/docs/monitor/proxmox-monitor): Dieselbe Art von Monitor für Proxmox VE.
 - [Vorfälle – Übersicht](/docs/incidents/index): Was passiert, nachdem ein Kriterium einen Vorfall gemeldet hat.
 :::

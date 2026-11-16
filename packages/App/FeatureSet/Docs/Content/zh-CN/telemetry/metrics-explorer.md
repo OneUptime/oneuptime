@@ -37,7 +37,7 @@ flowchart TB
 ## 开始之前
 
 - **正在到达的指标。** 通过 [OpenTelemetry](/docs/telemetry/open-telemetry) 发送，或者从代理发送，例如 [主机 OpenTelemetry Collector](/docs/telemetry/host-otel-collector) 或 [Kubernetes 代理](/docs/telemetry/kubernetes-agent)。
-- **可以读取遥测的角色。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member 或 Telemetry Viewer，或者拥有 Read Metrics 权限的自定义角色。它能读取哪些指标，参见 [遥测](/docs/permissions/index#遥测)。
+- **可以读取遥测的角色。** 项目所有者、项目管理员、项目成员、查看者、遥测管理员、遥测成员或遥测查看者，或者拥有 Read Metrics 权限的自定义角色。它能读取哪些指标，参见 [遥测](/docs/permissions/index#遥测)。
 
 ## 查找指标
 
@@ -56,11 +56,11 @@ flowchart TB
 
 ### 选择聚合方式
 
-在 **Aggregate by** 下，选择如何合并图表中每个点内的值：默认的 Avg、Sum、Min、Max、Count，或一个百分位数 P50、P75、P90、P95 或 P99。直方图指标（例如请求持续时间）的百分位数根据它的桶计算得出。
+在 **聚合方式** 下，选择如何合并图表中每个点内的值：默认的 Avg、Sum、Min、Max、Count，或一个百分位数 P50、P75、P90、P95 或 P99。直方图指标（例如请求持续时间）的百分位数根据它的桶计算得出。
 
 ### 过滤和分组
 
-打开 **Filters & grouping**。**Filter by attributes** 只保留属性匹配的数据点，例如某一个 `http.route`；**分组依据** 为你所选属性的每个值画一条线，例如每台主机一条线。
+打开 **过滤与分组**。**按属性过滤** 只保留属性匹配的数据点，例如某一个 `http.route`；**分组依据** 为你所选属性的每个值画一条线，例如每台主机一条线。
 
 ### 调整图表
 
@@ -93,7 +93,7 @@ flowchart TB
 | 按钮 | 作用 |
 | --- | --- |
 | **日志** | 以此时间范围和你的过滤条件打开 [日志浏览器](/docs/telemetry/logs-explorer)。 |
-| **追踪** | 以此时间范围和你的过滤条件打开 [跟踪浏览器](/docs/telemetry/traces-explorer)。 |
+| **追踪** | 以此时间范围和你的过滤条件打开 [追踪浏览器](/docs/telemetry/traces-explorer)。 |
 | **调查** | 打开一个侧面板，显示此时间范围内的日志、追踪和异常。 |
 | **事件** | 在图表上标出此时间范围内的事件和警报。 |
 | **Compare** | 在每个图表上用虚线画出上一个周期，让你看出发生了什么变化。 |

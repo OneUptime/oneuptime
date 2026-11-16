@@ -67,7 +67,7 @@ La fila aparece ahora como **Verificado**. ¿Cerraste el diálogo demasiado pron
 :::
 
 - Un código vale 15 minutos. Cinco intentos fallidos lo anulan, y necesitas uno nuevo.
-- **Send a new code**, o **Call me with a new code** para un número de llamadas, está en el diálogo. Puedes pedir uno un minuto después del anterior.
+- **Enviar un código nuevo**, o **Llamarme con un código nuevo** para un número de llamadas, está en el diálogo. Puedes pedir uno un minuto después del anterior.
 - Un número que verificaste para SMS también queda verificado para llamadas. Añadirlo en **Números de teléfono para notificaciones por llamada** no necesita código, y verificar un número para SMS también verifica el número para llamadas que añadiste para él.
 - Tu correo de inicio de sesión ya está ahí, verificado, desde el día en que te uniste al proyecto.
 
@@ -173,7 +173,7 @@ Un webhook no necesita verificación, así que añadirlo añade sus reglas al in
 
 **SMS**, **Llamadas telefónicas**, **WhatsApp** y **Telegram** empiezan desactivados en cada proyecto nuevo, porque cada mensaje cuesta dinero: en OneUptime Cloud se paga con el saldo del proyecto, y los SMS y las llamadas pasan en cambio por la cuenta de Twilio propia del proyecto cuando su cuenta predeterminada los envía. El correo, el push, Slack, Microsoft Teams, Mattermost y los webhooks siempre están activados.
 
-Mientras un canal está desactivado, nadie en el proyecto puede añadir un método en él: su tarjeta no tiene botón para añadir, y dice quién puede activarlo. Lo activa un propietario del proyecto, un **Administrador de facturación** o alguien con **Manage Billing**, en la tarjeta **Canales de notificación** de **Ajustes del proyecto → Notificaciones → Canales de notificación**. Un administrador del proyecto no puede. En un OneUptime autoalojado, los SMS y las llamadas necesitan además una cuenta de Twilio o una pasarela que gestiones tú, y Telegram un bot que conecta el administrador del servidor; consulta [Integración de Twilio](/docs/self-hosted/twilio-integration) y [Pasarela de SMS y llamadas](/docs/self-hosted/sms-and-call-gateway).
+Mientras un canal está desactivado, nadie en el proyecto puede añadir un método en él: su tarjeta no tiene botón para añadir, y dice quién puede activarlo. Lo activa un Propietario del proyecto, un **Administrador de facturación** o alguien con **Manage Billing**, en la tarjeta **Canales de notificación** de **Ajustes del proyecto → Notificaciones → Canales de notificación**. Un Administrador del proyecto no puede. En un OneUptime autoalojado, los SMS y las llamadas necesitan además una cuenta de Twilio o una pasarela que gestiones tú, y Telegram un bot que conecta el administrador del servidor; consulta [Integración de Twilio](/docs/self-hosted/twilio-integration) y [Pasarela de SMS y llamadas](/docs/self-hosted/sms-and-call-gateway).
 
 ## Elimina un método
 
@@ -186,7 +186,7 @@ Ese canal está desactivado en este proyecto. La tarjeta dice quién puede activ
 :::
 
 :::details El código nunca llegó
-Los correos pueden tardar unos minutos, y a veces acaban en spam; los SMS pueden tardar un minuto. Espera un minuto y luego haz clic en **Send a new code** en el diálogo. **Ajustes del proyecto → Notificaciones → Registros de notificación** muestra qué pasó con el mensaje.
+Los correos pueden tardar unos minutos, y a veces acaban en spam; los SMS pueden tardar un minuto. Espera un minuto y luego haz clic en **Enviar un código nuevo** en el diálogo. **Ajustes del proyecto → Notificaciones → Registros de notificación** muestra qué pasó con el mensaje.
 :::
 
 :::details Falla al añadir mi cuenta de Slack

@@ -7,7 +7,7 @@ import {
   TraceAttributeFilters,
   computeBucketSizeInMinutes,
   formatCount,
-  formatDurationMs,
+  formatDurationMsInLanguage,
   resolveTraceAttributeFilters,
 } from "./TraceChartData";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
@@ -42,7 +42,7 @@ export interface TraceTableRow {
   maxDurationMs: number;
 }
 
-export { formatCount, formatDurationMs };
+export { formatCount, formatDurationMsInLanguage };
 
 export interface BuildTraceTableRequestParams {
   arguments: TraceTableArguments;

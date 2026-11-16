@@ -48,7 +48,7 @@ Lösen Sie eine Warnung aus, wenn Ihr Team nachsehen sollte, bevor jemand außer
 - **Die Burn-Rate eines SLO.** Eine Burn-Rate-Regel kann eine Warnung erstellen, wenn ein SLO sein Fehlerbudget zu schnell verbraucht. Siehe [Burn-Rate-Warnungen und -Vorfälle](/docs/slo/burn-rate-alerts).
 - **Netzwerkstandorte und Sicherheitsereignisse.** Ein Netzwerkstandort, der bei schlechtem Zustand warnen soll, öffnet eine Warnung, sobald seine Zusammenfassung nicht mehr betriebsbereit ist, und auch Ihre Erkennungsregeln für Sicherheitsereignisse öffnen Warnungen. Siehe [Netzwerkstandorte (Integritätszusammenfassung & Verfügbarkeit)](/docs/monitor/network-sites) und [Sicherheitsereignisse (SIEM)](/docs/telemetry/security-events).
 - **Eine Alarmierung.** `/oneuptime page` in Slack oder Microsoft Teams, überall außer im eigenen Kanal eines Vorfalls oder einer Warnung, öffnet eine Warnung mit Ihrer Nachricht als Titel und alarmiert die Personen, die Sie nennen. Die Alarmierungsblöcke eines Workflows tun dasselbe mit dem Titel und der Nachricht, die Sie ihnen geben. Siehe [Jemanden aus Slack alarmieren](/docs/workspace-connections/slack#jemanden-aus-slack-alarmieren) und [Alarmierung](/docs/workflows/components#paging).
-- **Die API, Terraform und Workflows.** Warnungen sind eine gewöhnliche Ressource: `/api/alert`, die Terraform-Ressource `oneuptime_alert` und der Schritt **Create One Alert** eines Workflows.
+- **Die API, Terraform und Workflows.** Warnungen sind eine gewöhnliche Ressource: `/api/alert`, die Terraform-Ressource `oneuptime_alert` und der Schritt **Warnung erstellen (einzeln)** eines Workflows.
 
 ## Wo Warnungen im Dashboard zu finden sind
 
@@ -82,7 +82,7 @@ Füllen Sie den **Titel** aus und wählen Sie einen **Warnungsschweregrad**; bei
 
 ### Wählen, was sie betrifft und wer alarmiert wird
 
-Klicken Sie auf **Weiter**, um zu **Ressourcen & Bereitschaft** zu gelangen. Wählen Sie unter **Überwachung** den Monitor, um den es geht, und unter **Andere betroffene Ressourcen** alles Weitere, etwa Hosts, Netzwerkgeräte, Kubernetes-Cluster oder Dienste. Wählen Sie unter **Bereitschaftsrichtlinie** die Richtlinien, die beim Erstellen der Warnung laufen sollen.
+Klicken Sie auf **Weiter**, um zu **Ressourcen & Bereitschaft** zu gelangen. Wählen Sie unter **Monitor** den Monitor, um den es geht, und unter **Andere betroffene Ressourcen** alles Weitere, etwa Hosts, Netzwerkgeräte, Kubernetes-Cluster oder Dienste. Wählen Sie unter **Bereitschaftsrichtlinie** die Richtlinien, die beim Erstellen der Warnung laufen sollen.
 
 ### Sie erstellen
 
@@ -104,7 +104,9 @@ Sobald eine Warnung erstellt wird, arbeitet OneUptime diese Schritte in dieser R
 7. **Gruppierungsregeln fügen sie einer Episode hinzu**, wenn eine zutrifft. Siehe [Warnungsepisoden & Gruppierungsregeln](/docs/alerts/episodes).
 8. **Erinnerungen werden geplant**, wenn eine Erinnerungsregel zutrifft, und **OneUptime AI** untersucht die Warnung, wenn **Neue Warnungen untersuchen** unter **Warnungen → KI → Einstellungen** eingeschaltet ist, und behebt sie, wenn **Neue Warnungen automatisch beheben** eingeschaltet ist. Siehe [AI SRE](/docs/ai/ai-sre).
 
-Ein Hintergrundjob informiert die Eigentümer der Warnung innerhalb einer Minute, und der Workflow-Auslöser **On Create Alert** startet jeden Workflow, der darauf aufbaut.
+Ein Hintergrundjob informiert die Eigentümer der Warnung etwa eine Minute nach ihrer Erstellung, jeden Eigentümer, den sie bis dahin hat, und der Workflow-Auslöser **Bei Erstellung: Warnung** startet jeden Workflow, der darauf aufbaut.
+
+Um Personen und Teams schon beim Erstellen zu Eigentümern der Warnung zu machen, damit diese Benachrichtigung sie erreicht und nicht die Projektinhaber, übergeben Sie sie mit der Erstellung: über die API senden Sie ihre IDs in `miscDataProps`, als `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }`, mit `POST /api/alert`; in einem Workflow wählen Sie sie unter **Eigentümer-Benutzer** und **Eigentümer-Teams** von **Warnung erstellen (einzeln)**; über MCP geben Sie `ownerUsers` und `ownerTeams` an `create_alert`. Eine Anfrage, deren Aufrufer diese Eigentümer nicht hinzufügen darf, wird abgelehnt, bevor etwas gespeichert wird. Eigentümer, die eine eigene Anfrage nach der Erstellung hinzufügt, erfahren davon nur, wenn sie innerhalb dieser Minute hinzugefügt werden.
 
 ### Bereits bestätigt oder behoben erstellt
 
@@ -150,7 +152,7 @@ Während Sie daran arbeiten, halten Sie Erkenntnisse als **Private Notizen** fes
 
 ## Private Warnungen
 
-Eine private Warnung sehen nur ihre Eigentümer, also die Eigentümer-Benutzer und die Mitglieder ihrer Eigentümer-Teams, sowie die Admins und Eigentümer Ihres Projekts. Niemand sonst im Projekt kann sie öffnen.
+Eine private Warnung sehen nur ihre Eigentümer, also die Eigentümer-Benutzer und die Mitglieder ihrer Eigentümer-Teams, sowie die Projektadministratoren und Projektinhaber. Niemand sonst im Projekt kann sie öffnen.
 
 Machen Sie eine Warnung privat mit **Private Warnung** unter **Weitere Felder** im Erstellformular oder in den Kriterien eines Monitors, mit **Warnungen → Regeln → Datenschutzregeln** oder später auf ihrer Seite **Einstellungen**, die **Diese Warnung privat machen?** fragt, bevor sie die Warnung verbirgt. Gehören Sie zu keiner dieser Personen, verlieren auch Sie den Zugriff.
 
@@ -159,7 +161,7 @@ Eine Episode, die eine private Warnung öffnet, ist nicht privat und zeigt desha
 ## Wer von einer Warnung erfährt
 
 - **Die Bereitschaft.** Die Bereitschaftsrichtlinien der Warnung alarmieren ihre Personen, jede so, wie sie es unter **Benutzereinstellungen → Wie ich erreichbar bin** auf dem Tab **Warnungen** eingerichtet hat. Wer auf die Alarmierung antwortet, bestätigt die Warnung, und die Alarmierung endet.
-- **Ihre Eigentümer.** Per E-Mail, sofern sie unter **Benutzereinstellungen → Benachrichtigungseinstellungen** auf dem Tab **Warnungen** keine anderen Kanäle gewählt haben: **Warnung erstellt**, **Warnungsstatus geändert** und **Warnungserinnerung** sind standardmäßig eingeschaltet, **Warnungsnotiz veröffentlicht** und **Als Eigentümer der Warnung hinzugefügt** sind aus, bis jemand sie einschaltet. Eine Warnung ohne Eigentümer benachrichtigt stattdessen die Eigentümer des Projekts.
+- **Ihre Eigentümer.** Per E-Mail, sofern sie unter **Benutzereinstellungen → Benachrichtigungseinstellungen** auf dem Tab **Warnungen** keine anderen Kanäle gewählt haben: **Warnung erstellt**, **Warnungsstatus geändert** und **Warnungserinnerung** sind standardmäßig eingeschaltet, **Warnungsnotiz veröffentlicht** und **Als Eigentümer der Warnung hinzugefügt** sind aus, bis jemand sie einschaltet. Eine Warnung ohne Eigentümer benachrichtigt stattdessen die Projektinhaber. Hält OneUptime an, während es eine Benachrichtigung sendet, bekommen die Personen, zu denen es noch nicht gekommen war, sie, sobald OneUptime wieder läuft, ein paar Minuten später, und niemand bekommt sie zweimal.
 - **Ihre Chat-Werkzeuge.** **Warnungen → Arbeitsbereich** enthält die Slack- und Microsoft-Teams-Regeln, die Warnungen und Episoden in Kanäle posten. Siehe [Slack](/docs/workspace-connections/slack) und [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
 
 ## Fehlerbehebung
@@ -173,7 +175,7 @@ Ein Kriterium hält jeweils eine offene Warnung. Bis diese behoben ist, fügt de
 :::
 
 :::details Eine Kollegin kann eine Warnung öffnen, die ich nicht finde
-Die Warnung ist wahrscheinlich privat. Bitten Sie einen Projekt-Admin, Sie als Eigentümer hinzuzufügen oder **Private Warnung** auf der Seite **Einstellungen** der Warnung auszuschalten.
+Die Warnung ist wahrscheinlich privat. Bitten Sie einen Projektadministrator, Sie als Eigentümer hinzuzufügen oder **Private Warnung** auf der Seite **Einstellungen** der Warnung auszuschalten.
 :::
 
 ## Nächste Schritte

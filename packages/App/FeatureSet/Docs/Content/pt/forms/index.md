@@ -56,7 +56,7 @@ Os formulários começam com esses dois, e mais tipos de registro virão.
 ## Antes de começar
 
 - **Um plano que inclua formulários.** No OneUptime Cloud, os formulários exigem o plano **Growth** ou superior. Veja [Plano](#plano).
-- **Permissão para criar formulários.** **Create Form** pertence aos proprietários e administradores do projeto, e às funções a que você a der. Veja [Permissões](#permissões).
+- **Permissão para criar formulários.** **Create Form** pertence aos Proprietários do projeto e Administradores do projeto, e às funções a que você a der. Veja [Permissões](#permissões).
 - **Num formulário de incidentes, uma severidade.** Todo incidente precisa de uma: de uma pergunta, das configurações do formulário ou do modelo de incidente dele. Sem ela, todo envio é recusado. Veja [O que um envio cria](/docs/forms/on-submit#como-um-envio-se-torna-um-incidente).
 
 ## Criar seu primeiro formulário
@@ -127,22 +127,22 @@ Os envios são escritos pelo formulário, nunca à mão, e não podem ser editad
 
 ## Permissões
 
-Os formulários deixam pessoas de fora da sua equipe criar incidentes e eventos de manutenção no seu projeto, por isso são gerenciados pelos proprietários e administradores do projeto, e pelas funções a que você der as permissões **Form**. Elas ficam no grupo **Form** da [Referência de permissões](/docs/permissions/reference):
+Os formulários deixam pessoas de fora da sua equipe criar incidentes e eventos de manutenção no seu projeto, por isso são gerenciados pelos Proprietários do projeto e Administradores do projeto, e pelas funções a que você der as permissões **Form**. Elas ficam no grupo **Form** da [Referência de permissões](/docs/permissions/reference):
 
 | Permissão | O que permite | Quem tem por padrão |
 | --- | --- | --- |
-| **Create Form** | Criar formulários e duplicá-los. | Project Owner, Project Admin |
-| **Edit Form** | Mudar um formulário: as perguntas, a marca, os modelos, as configurações de Ao enviar, **Aceita envios**, o link e a **Lista de IPs permitidos**. | Project Owner, Project Admin |
-| **Delete Form** | Excluir um formulário e, com ele, os envios. | Project Owner, Project Admin |
-| **Read Form** | Ver os formulários, as perguntas, as configurações e os links. | Os acima, mais Project Member, Viewer e as funções de incidentes e de manutenção programada |
-| **Read Form Submission** | Ver os envios e as respostas. | Project Owner, Project Admin |
-| **Delete Form Submission** | Excluir envios. | Project Owner, Project Admin |
-| **Create Form Domain** | Adicionar um [domínio personalizado](/docs/forms/sharing-and-security#domínios-personalizados) a um formulário. | Project Owner, Project Admin e **Edit Form** |
-| **Edit Form Domain** | Verificar os domínios personalizados de um formulário, e pedir, reemitir ou trocar os seus certificados. | Project Owner, Project Admin e **Edit Form** |
-| **Delete Form Domain** | Remover os domínios personalizados de um formulário. | Project Owner, Project Admin e **Edit Form** |
+| **Create Form** | Criar formulários e duplicá-los. | Proprietário do projeto, Administrador do projeto |
+| **Edit Form** | Mudar um formulário: as perguntas, a marca, os modelos, as configurações de Ao enviar, **Aceita envios**, o link e a **Lista de IPs permitidos**. | Proprietário do projeto, Administrador do projeto |
+| **Delete Form** | Excluir um formulário e, com ele, os envios. | Proprietário do projeto, Administrador do projeto |
+| **Read Form** | Ver os formulários, as perguntas, as configurações e os links. | Os acima, mais Membro do projeto, Visualizador e as funções de incidentes e de manutenção programada |
+| **Read Form Submission** | Ver os envios e as respostas. | Proprietário do projeto, Administrador do projeto |
+| **Delete Form Submission** | Excluir envios. | Proprietário do projeto, Administrador do projeto |
+| **Create Form Domain** | Adicionar um [domínio personalizado](/docs/forms/sharing-and-security#domínios-personalizados) a um formulário. | Proprietário do projeto, Administrador do projeto e **Edit Form** |
+| **Edit Form Domain** | Verificar os domínios personalizados de um formulário, e pedir, reemitir ou trocar os seus certificados. | Proprietário do projeto, Administrador do projeto e **Edit Form** |
+| **Delete Form Domain** | Remover os domínios personalizados de um formulário. | Proprietário do projeto, Administrador do projeto e **Edit Form** |
 | **Read Form Domain** | Ver os domínios personalizados de um formulário, os seus registros DNS e em que ponto cada um está no caminho até o HTTPS. | Qualquer pessoa com **Read Form** |
 
-Os envios contêm o que desconhecidos digitaram (nomes, endereços de e-mail e respostas que talvez nunca cheguem ao registro), então só os proprietários e administradores do projeto os veem, a menos que você conceda **Read Form Submission**. Quem pode ler um formulário pode ver e compartilhar o link dele. Enviar um formulário não exige permissão nenhuma. Para saber como funções e permissões granulares se combinam, veja [Usuários, equipes e permissões](/docs/permissions/index).
+Os envios contêm o que desconhecidos digitaram (nomes, endereços de e-mail e respostas que talvez nunca cheguem ao registro), então só os Proprietários do projeto e Administradores do projeto os veem, a menos que você conceda **Read Form Submission**. Quem pode ler um formulário pode ver e compartilhar o link dele. Enviar um formulário não exige permissão nenhuma. Para saber como funções e permissões granulares se combinam, veja [Usuários, equipes e permissões](/docs/permissions/index).
 
 ## Plano
 
@@ -257,7 +257,7 @@ A resposta a uma pergunta de arquivos são os arquivos como foram guardados, cad
 
 ### Workflows
 
-Os formulários têm os componentes de workflow gerados: **On Create Form**, **On Update Form** e assim por diante. Para agir sobre o que um formulário criou, use **On Create Incident** ou **On Create Maintenance Event**.
+Os formulários têm os componentes de workflow gerados: **Ao criar: Formulário**, **Ao atualizar: Formulário** e assim por diante. Para agir sobre o que um formulário criou, use **Ao criar: Incidente** ou **Ao criar: Evento de manutenção**.
 
 ### Os endpoints próprios da página pública
 

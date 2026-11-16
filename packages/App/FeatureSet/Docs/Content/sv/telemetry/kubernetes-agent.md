@@ -798,7 +798,7 @@ kubectl logs -n oneuptime-agent -l component=ai-agent --tail=100
 - **Ett avslag som försvinner av sig självt** — en tidigare agentpodd som fortfarande rapporterar in (en podd som ersattes utan en ren avstängning), eller den gamla Runnern i klustret som fortfarande stängs av under en uppgradering. Agenten försöker igen efter den väntetid som servern anger.
 - **Ett avslag som kräver dig** — ett tomt eller för långt `clusterName`, eller ett projekt som har nått sin gräns för AI-agenter; loggen anger vad som ska ändras. Om en agent aldrig ansluter och dess logg säger `Another Kubernetes AI agent for cluster "<name>" is online` delar två installationer samma `clusterName` (AI-agentsidan varnar också för det): den som redan är ansluten behåller det så länge den körs, så ge varje kluster ett eget `clusterName` eller ta bort den extra releasen. En intagningsnyckel med ett **Fäst tjänstnamn** kan inte registrera agenten — ge chartet en nyckel utan.
 
-**Återställ agenten**, i menyn **⋯** bredvid agentens status på AI-agentsidan, får servern att glömma agentens nyckel när du bekräftar (en projektägare, en projektadministratör eller **Edit AI Rule** får göra det på ett kluster som de får redigera); podden ansluter igen av sig själv inom några minuter. Agentens beredskap beror inte på OneUptime, så en felkonfigurerad AI-agent får aldrig `helm upgrade --wait` att misslyckas — bara en podd som inte kan hämta sin image gör det.
+**Återställ agenten**, i menyn **⋯** bredvid agentens status på AI-agentsidan, får servern att glömma agentens nyckel när du bekräftar (en Projektägare, en Projektadministratör eller **Edit AI Rule** får göra det på ett kluster som de får redigera); podden ansluter igen av sig själv inom några minuter. Agentens beredskap beror inte på OneUptime, så en felkonfigurerad AI-agent får aldrig `helm upgrade --wait` att misslyckas — bara en podd som inte kan hämta sin image gör det.
 
 ## Uppgradera agenten
 
@@ -840,7 +840,7 @@ Dina `aiAccess`-inställningar förs över:
 - `aiAccess.image` och `aiAccess.resources` förs inte över: AI-agenten är en annan image, med egna `aiAgent.image` och `aiAgent.resources`.
 - I OneUptime behåller varje kluster sina AI-inställningar, med två ändringar som görs när servern uppgraderas: ett kluster vars Runner någon hade kopplat bort eller tagit bort (Runnern i klustret eller någon annan) startar med **Undersök med kubectl** och åtgärder avstängda (slå på dem igen på dess AI-agentsida), och **Automatiskt** eller **Hoppa över godkännande** på ett kluster vars projekt aldrig slog på **Enable AI Command Execution** blir **Be om godkännande** — den växeln brukade hålla tillbaka de åtgärderna, och åtgärder via AI-agenten behöver den inte längre.
 
-För att gå tillbaka använder du `helm rollback kubernetes-agent <revision> --namespace oneuptime-agent` (`helm history` listar revisionerna), inte `helm upgrade --version <older version>`: ett äldre charts schema avvisar de `aiAgent`-värden som lagrats på releasen. Inom en vecka efter uppgraderingen tar återställningen tillbaka Runnern i klustret, och den ansluter igen av sig själv när AI-agenten har stoppats. Efter det kan OneUptime ha tagit bort den gamla Runnern (klustrets **Feed** säger när). Den återställda Runnern ansluter då men används inte förrän du binder den till klustret igen med API:t eller Terraform (klustrets **AI Access Runner**; en projektägare, en projektadministratör eller **Edit AI Rule** får göra det), eller uppgraderar chartet igen.
+För att gå tillbaka använder du `helm rollback kubernetes-agent <revision> --namespace oneuptime-agent` (`helm history` listar revisionerna), inte `helm upgrade --version <older version>`: ett äldre charts schema avvisar de `aiAgent`-värden som lagrats på releasen. Inom en vecka efter uppgraderingen tar återställningen tillbaka Runnern i klustret, och den ansluter igen av sig själv när AI-agenten har stoppats. Efter det kan OneUptime ha tagit bort den gamla Runnern (klustrets **Feed** säger när). Den återställda Runnern ansluter då men används inte förrän du binder den till klustret igen med API:t eller Terraform (klustrets **AI Access Runner**; en Projektägare, en Projektadministratör eller **Edit AI Rule** får göra det), eller uppgraderar chartet igen.
 
 Kubernetes-AI-agenten har inget samband med den AI Agent som pensionerades i OneUptime 12.
 
@@ -990,7 +990,7 @@ Dessa är avstängda som standard eftersom de ökar belastningen. Slå bara på 
 | `kubeStateMetrics.enabled` | Mätvärden för CrashLoop, ImagePull och schemaläggningsorsaker (lägger till en kube-state-metrics-Deployment och en skrapning) |
 | `ebpf.features.networkInterZoneMetrics` | Fördubblar nätverksflödesserierna |
 | `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | Fler Prometheus-skrapjobb |
-| `cost.enabled` | Kostnader för arbetsbelastningar (levereras med OpenCost och en liten Prometheus; kostnadsrader per timme och en skrapning av mätvärden med en snäv tillåtelselista; måttligt intag, två poddar till) |
+| `cost.enabled` | Kostnader för arbetsbelastningar (levereras med OpenCost och en liten Prometheus; kostnadsrader per timme och en skrapning av mätvärden med en snäv tillåtelselista; mätvärdesligt intag, två poddar till) |
 
 ### Sampla spår i stället för att släppa dem
 

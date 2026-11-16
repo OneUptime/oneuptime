@@ -1,13 +1,8 @@
 import OneUptimeDate from "Common/Types/Date";
-import {
-  getNumberLocale,
-  withDateDisplayLanguage,
-} from "Common/Types/DateLanguage";
+import { withDateDisplayLanguage } from "Common/Types/DateLanguage";
+import { writeReaderDay } from "Common/UI/Utils/ReaderMoments";
 import { formatNameList } from "../AiAccess/AiAccessModes";
-import {
-  CREATED_IMPORT_RESULT,
-  getCreatedImportResultLabel,
-} from "../../Utils/ImportResultWords";
+import { CREATED_IMPORT_RESULT } from "../../Utils/ImportResultWords";
 import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import {
@@ -169,8 +164,9 @@ export const TOOL_IMPORT_ACTION_LABELS: Record<ToolImportAction, string> = {
 
 /*
  * The badge on an item in the report. "Created" is the import outcome's
- * own key (ImportResultWords), never the date column's "Created": draw
- * the badge with getToolImportOutcomeLabel.
+ * own key (ImportResultWords), never the date column's "Created"; the
+ * translator reads it "Created" in English (Common/Types/MeaningKeys).
+ * Draw the badge with getToolImportOutcomeLabel.
  */
 export const TOOL_IMPORT_OUTCOME_LABELS: Record<ToolImportOutcome, string> = {
   [ToolImportOutcome.Created]: CREATED_IMPORT_RESULT,
@@ -186,10 +182,6 @@ export function getToolImportOutcomeLabel(
   translator: Translator,
   outcome: ToolImportOutcome,
 ): string {
-  if (outcome === ToolImportOutcome.Created) {
-    return getCreatedImportResultLabel(translator);
-  }
-
   const label: string = TOOL_IMPORT_OUTCOME_LABELS[outcome];
 
   return translator.translateText(label) || label;
@@ -1003,11 +995,17 @@ export const TOOL_IMPORT_SERVER_MESSAGES: ReadonlyArray<string> = [
     "You are no longer a member of this project, so the import was stopped.",
   ),
   translationKey(
-    "You may not create anything an import brings over. Ask a project owner or admin to run the import.",
+    "You may not create anything an import brings over. Ask a Project Owner or Project Admin to run the import.",
   ),
 ];
 
-// A date the server sent (ISO 8601), written the reader's way.
+/*
+ * A date the server sent (ISO 8601) - when a layer of a tool's schedule
+ * starts or ends, an instant - written the reader's way: its day in the
+ * zone they picked, in `language` ("Dec 31, 2026", "31. Dez. 2026"). The
+ * browser wrote it in its own zone, so a layer that ended at 02:00 UTC on
+ * the 31st read "Dec 30" for a reader who picked UTC (issue #8231).
+ */
 export function formatToolImportDate(value: string, language: string): string {
   const time: number = Date.parse(value);
 
@@ -1016,14 +1014,9 @@ export function formatToolImportDate(value: string, language: string): string {
   }
 
   try {
-    return new Date(time).toLocaleDateString(
-      getNumberLocale(language || "en"),
-      {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      },
-    );
+    return withDateDisplayLanguage(language || "en", (): string => {
+      return writeReaderDay(new Date(time));
+    });
   } catch {
     return new Date(time).toISOString().slice(0, 10);
   }

@@ -1,6 +1,6 @@
 # Telegram
 
-Skicka ett meddelande till en [Telegram](https://telegram.org)-chatt, -grupp eller -kanal när ett larm utlöses eller en incident öppnas. OneUptimes arbetsflödessteg **Send Message to Telegram** skickar det som en bot som du själv skapar, och en färdig mall bygger arbetsflödet för larm. Den här integrationen är **utgående**: boten skickar meddelanden och läser inte det som sägs i chatten.
+Skicka ett meddelande till en [Telegram](https://telegram.org)-chatt, -grupp eller -kanal när ett larm utlöses eller en incident öppnas. OneUptimes arbetsflödessteg **Skicka meddelande till Telegram** skickar det som en bot som du själv skapar, och en färdig mall bygger arbetsflödet för larm. Den här integrationen är **utgående**: boten skickar meddelanden och läser inte det som sägs i chatten.
 
 :::cards
 - [Så fungerar det](#så-fungerar-det): Vad arbetsflödet gör när ett larm utlöses.
@@ -13,13 +13,13 @@ Skicka ett meddelande till en [Telegram](https://telegram.org)-chatt, -grupp ell
 
 ```mermaid title="Från larm till Telegram-meddelande"
 flowchart TB
-    fired["Larm utlöst"] --> trigger["On Create Alert"]
-    trigger --> step["Send Message<br/>to Telegram"]
-    step -->|"Success"| chat["Meddelande i<br/>din chatt"]
-    step -->|"Error"| failed["Körningen<br/>misslyckas och<br/>säger varför"]
+    fired["Larm utlöst"] --> trigger["Vid skapande: Larm"]
+    trigger --> step["Skicka meddelande<br/>till Telegram"]
+    step -->|"Framgång"| chat["Meddelande i<br/>din chatt"]
+    step -->|"Fel"| failed["Körningen<br/>misslyckas och<br/>säger varför"]
 ```
 
-Steget skickar **Message Text** till chatten som din bot via Telegrams Bot API. Det tar sin utgång **Success** när Telegram tar emot meddelandet, och sin utgång **Error**, med Telegrams skäl, när Telegram avvisar det. Är inget kopplat till **Error**, som i mallen, misslyckas en körning som inte kunde skicka, och dess **Steg** säger varför.
+Steget skickar **Meddelandetext** till chatten som din bot via Telegrams Bot API. Det tar sin utgång **Framgång** när Telegram tar emot meddelandet, och sin utgång **Fel**, med Telegrams skäl, när Telegram avvisar det. Är inget kopplat till **Fel**, som i mallen, misslyckas en körning som inte kunde skicka, och dess **Steg** säger varför.
 
 ## Innan du börjar
 
@@ -51,15 +51,15 @@ Börja från mallen, som bygger hela arbetsflödet för larm, eller från grunde
 1. Öppna **Arbetsflöden** och klicka på **Skapa arbetsflöde**.
 2. Skriv `Telegram` i **Sök mallar…**, klicka på **Tell Telegram when an alert fires** och klicka sedan på **Använd den här mallen**.
 3. Behåll namnet **Notify Telegram on new alert** eller ändra det, och klicka på **Nästa**.
-4. Klistra in token i **Telegram Bot Token** och ID:t i **Telegram Chat ID**, och klicka på **Skapa arbetsflöde**.
+4. Klistra in token i **Telegram-bottoken** och ID:t i **Telegram Chat ID**, och klicka på **Skapa arbetsflöde**.
 
-Arbetsflödet öppnas i **Byggare** med två steg: **On Create Alert** och **Send Message to Telegram**, som skickar larmets nummer, titel, allvarlighetsgrad och tillstånd. Token sparas som arbetsflödets hemliga variabel `telegramBotToken`, och ID:t som `telegramChatId`.
+Arbetsflödet öppnas i **Byggare** med två steg: **Vid skapande: Larm** och **Skicka meddelande till Telegram**, som skickar larmets nummer, titel, allvarlighetsgrad och tillstånd. Token sparas som arbetsflödets hemliga variabel `telegramBotToken`, och ID:t som `telegramChatId`.
 @tab Från grunden
 1. Spara token som en hemlig global variabel: gå till **Arbetsflöden → Globala variabler**, klicka på **Skapa Arbetsflödesvariabel**, ge den namnet `TELEGRAM_BOT_TOKEN` och klicka på **Nästa**. Klistra in token i **Innehåll**, slå på **Hemlighet** och klicka på **Skapa Arbetsflödesvariabel**.
 2. Gå till **Arbetsflöden**, klicka på **Skapa arbetsflöde**, välj **Börja från grunden**, ge arbetsflödet ett namn och klicka på **Skapa arbetsflöde**.
-3. Klicka på **Välj vad som startar det här arbetsflödet** i **Byggare** och välj **On Create Alert** under **Populära**. Klicka på utlösaren: dess **Fields to pass on** börjar med **Titel**, så klicka på **Lägg till fält** och välj de andra fält som ditt meddelande visar, till exempel **Alert Number With Prefix**.
-4. Klicka på **Lägg till komponent**, sök efter `telegram` och klicka på **Send Message to Telegram**. Anslut utlösarens utgång **Success** till det.
-5. Klicka på det nya steget. Klicka på **{ }** i **Telegram Bot Token** och välj `TELEGRAM_BOT_TOKEN` under **Global variables**. Ange chattens ID i **Chat ID**, skriv meddelandet i **Message Text** och infoga larmets fält med **{ }**.
+3. Klicka på **Välj vad som startar det här arbetsflödet** i **Byggare** och välj **Vid skapande: Larm** under **Populära**. Klicka på utlösaren: dess **Fält att skicka vidare** börjar med **Titel**, så klicka på **Lägg till fält** och välj de andra fält som ditt meddelande visar, till exempel **Alert Number With Prefix**.
+4. Klicka på **Lägg till komponent**, sök efter `telegram` och klicka på **Skicka meddelande till Telegram**. Anslut utlösarens utgång **Framgång** till det.
+5. Klicka på det nya steget. Klicka på **{ }** i **Telegram-bottoken** och välj `TELEGRAM_BOT_TOKEN` under **Global variables**. Ange chattens ID i **Chatt-ID**, skriv meddelandet i **Meddelandetext** och infoga larmets fält med **{ }**.
 :::
 
 Ett meddelande byggt från grunden läser larmets fält med referenser som dessa:
@@ -73,22 +73,22 @@ Title: {{local.components.alert-on-create-1.returnValues.model.title}}
 
 Slå på **Aktiverad** högst upp i **Byggare**. Från och med nu skickas varje nytt larm till chatten.
 
-För att testa utan att utlösa ett larm klickar du på **Kör arbetsflöde** och väljer ett larm du redan har under **Larm**: de senaste visas i listan, och genom att skriva dess nummer eller en del av dess titel hittar du ett annat. Klicka på **Kör arbetsflödet manuellt** och bekräfta med **Kör**. Panelen **Arbetsflödeskörning** följer körningen, och meddelandet dyker upp i chatten. Om steget i stället tar **Error** misslyckas körningen, och stegets post under **Steg** säger varför: se [Felsökning](#felsökning).
+För att testa utan att utlösa ett larm klickar du på **Kör arbetsflöde** och väljer ett larm du redan har under **Larm**: de senaste visas i listan, och genom att skriva dess nummer eller en del av dess titel hittar du ett annat. Klicka på **Kör arbetsflödet manuellt** och bekräfta med **Kör**. Panelen **Arbetsflödeskörning** följer körningen, och meddelandet dyker upp i chatten. Om steget i stället tar **Fel** misslyckas körningen, och stegets post under **Steg** säger varför: se [Felsökning](#felsökning).
 :::
 
 ## Tips
 
 - **Ren text.** Steget skickar texten som den är skriven, utan Telegrams formatering, så `*` och `_` visas som de är.
 - **Tänk på gränsen på 4 096 tecken.** Telegram tar emot meddelanden på upp till 4 096 tecken. Ett längre kortas av och slutar med "… (truncated — see OneUptime for the full text)" i stället för att avvisas.
-- **Även incidenter.** Bygg samma arbetsflöde på **On Create Incident**, eller på **On Update Incident** för tillståndsändringar. För att bara skicka vissa larm sätter du ett block **If / Else** före steget.
+- **Även incidenter.** Bygg samma arbetsflöde på **Vid skapande: Incident**, eller på **Vid uppdatering: Incident** för tillståndsändringar. För att bara skicka vissa larm sätter du ett block **Om / Annars** före steget.
 - **Tokens form kontrolleras.** En token som inte har formen `123456789:ABCdef…` stoppar körningen innan något skickas, och token skrivs aldrig till loggen.
 
 ## Felsökning
 
-När steget tar **Error** misslyckas körningen, och stegets post under körningens **Steg** ger Telegrams skäl. Boten måste vara med i chatten, så kontrollera det först.
+När steget tar **Fel** misslyckas körningen, och stegets post under körningens **Steg** ger Telegrams skäl. Boten måste vara med i chatten, så kontrollera det först.
 
 :::details Telegram svarar "Bad Request: chat not found"
-**Chat ID** är fel, eller så kan boten inte se chatten: lägg till boten i gruppen, gör den till administratör för kanalen, eller be personen att starta en chatt med boten. En grupps ID börjar med `-`.
+**Chatt-ID** är fel, eller så kan boten inte se chatten: lägg till boten i gruppen, gör den till administratör för kanalen, eller be personen att starta en chatt med boten. En grupps ID börjar med `-`.
 :::
 
 :::details Telegram svarar "Forbidden: bot was blocked by the user" eller "bot is not a member"

@@ -1,5 +1,6 @@
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
+import { translationKey } from "Common/Types/Translator";
 
 /*
  * The update the SCIM screens may send while the Enterprise license makes
@@ -36,8 +37,21 @@ export const MIN_SCIM_BEARER_TOKEN_LENGTH: number = 32;
  */
 export const SCIM_BEARER_TOKEN_BYTES: number = 32;
 
-export const SCIM_BEARER_TOKEN_UNAVAILABLE_MESSAGE: string =
-  "This browser cannot generate a secure bearer token. Please use a current browser and try again.";
+/*
+ * What the reset dialog says when a token cannot be made or is refused. The
+ * error dialog (ConfirmModal) looks its sentence up, so each is a key of
+ * the Dashboard's locales and reads in the reader's language (#8634). The
+ * second states MIN_SCIM_BEARER_TOKEN_LENGTH in its words, so a language
+ * words the number with its sentence; TightenOnlyUpdates.test holds the
+ * two together.
+ */
+export const SCIM_BEARER_TOKEN_UNAVAILABLE_MESSAGE: string = translationKey(
+  "This browser cannot generate a secure bearer token. Please use a current browser and try again.",
+);
+
+export const SCIM_BEARER_TOKEN_TOO_SHORT_MESSAGE: string = translationKey(
+  "A new bearer token must be at least 32 characters long.",
+);
 
 // The part of the Web Crypto API a token needs (injectable for tests).
 export interface RandomValuesSource {
@@ -83,9 +97,7 @@ export const buildRotateBearerTokenUpdate: (
     typeof bearerToken !== "string" ||
     bearerToken.trim().length < MIN_SCIM_BEARER_TOKEN_LENGTH
   ) {
-    throw new BadDataException(
-      `A new bearer token must be at least ${MIN_SCIM_BEARER_TOKEN_LENGTH} characters long.`,
-    );
+    throw new BadDataException(SCIM_BEARER_TOKEN_TOO_SHORT_MESSAGE);
   }
 
   return { bearerToken: bearerToken };

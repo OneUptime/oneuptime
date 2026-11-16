@@ -54,7 +54,7 @@ Klik op **Wijzigingen opslaan**. De kaart toont de notitie en de bijlagen. De st
 
 Elke wijziging van de notitie wordt vastgelegd in de feed van het incident, en gepost in het Slack- of Microsoft Teams-kanaal van het incident als het er een heeft. Zolang het postmortem niet is gepubliceerd, hoort geen abonnee van de statuspagina ervan.
 
-Een postmortem schrijven vereist de rol Project Owner, Project Admin, Project Member, Incident Admin of Incident Member, of een aangepaste rol met de machtiging Edit Incident. Wie het incident kan lezen, kan ook het postmortem lezen.
+Een postmortem schrijven vereist de rol Projecteigenaar, Projectbeheerder, Projectlid, Incidentbeheerder of Incidentlid, of een aangepaste rol met de machtiging Edit Incident. Wie het incident kan lezen, kan ook het postmortem lezen.
 
 ## Beginnen met een sjabloon of een AI-concept
 
@@ -72,7 +72,7 @@ Klik op **Generate with AI**. Het dialoogvenster **Postmortem maken met AI** bie
 
 Klik onderaan het dialoogvenster op **Generate with AI**. OneUptime AI leest het incident (de beschrijving, de oorzaak en de oplossing, de statustijdlijn, de openbare en privénotities, de berichten in het Slack- of Microsoft Teams-kanaal, en wat er in [de gesprekken](/docs/workspace-connections/video-calls#transcripties-van-gesprekken) is gezegd) en schrijft het postmortem in uw opzet. Daarna opent de editor met het resultaat.
 
-Genereren vereist dat AI voor het project is ingeschakeld, onder **Projectinstellingen → AI → AI-functies**, en een LLM-provider: zie [LLM-providers](/docs/ai/llm-provider). Het vereist ook de rol Project Owner of Project Admin, of een aangepaste rol met de machtiging Edit Incident: andere rollen kunnen het postmortem schrijven, maar niet genereren.
+Genereren vereist dat AI voor het project is ingeschakeld, onder **Projectinstellingen → AI → AI-functies**, en een LLM-provider: zie [LLM-providers](/docs/ai/llm-provider). Het vereist ook de rol Projecteigenaar of Projectbeheerder, of een aangepaste rol met de machtiging Edit Incident: andere rollen kunnen het postmortem schrijven, maar niet genereren.
 
 ### OneUptime AI het laten opstellen wanneer een incident is opgelost
 
@@ -92,7 +92,7 @@ Zonder regel krijgt elk opgelost incident een concept, in de standaardopzet van 
 - Zijn **LLM-provider**, onder **Meer velden**, is de provider waarmee OneUptime AI het concept schrijft en het sjabloon ervan kiest. Is er geen gekozen, dan is het de standaardprovider van het project, anders de globale. Het bericht van het concept in de feed noemt de provider die een regel koos, of de provider die in plaats daarvan werd gebruikt, en waarom. Zie [Welke LLM-provider een regel gebruikt](/docs/ai/ai-sre#welke-llm-provider-een-regel-gebruikt).
 - De eerste ingeschakelde regel die bij het incident past, beslist, vanaf de bovenkant van de lijst: sleep een regel om zijn plaats te veranderen. Een incident waar geen regel bij past, krijgt geen concept, en zolang de regels niet kunnen worden gelezen, krijgt geen enkel incident er een.
 - **Een postmortem opstellen wanneer een incident is opgelost** blijft de enige schakelaar die concepten uitzet. Regels beslissen alleen over de concepten die OneUptime AI uit zichzelf opstelt: **Generate with AI** biedt elke opzet aan, wat de regels ook zeggen.
-- Regels aanmaken, bewerken en herschikken vereist de rol Project Owner of Project Admin. In OneUptime Cloud vereisen sjablonen het Growth-abonnement: daaronder beslissen regels nog steeds welke incidenten een concept krijgen, en volgt elk concept de standaardopzet.
+- Regels aanmaken, bewerken en herschikken vereist de rol Projecteigenaar of Projectbeheerder. In OneUptime Cloud vereisen sjablonen het Growth-abonnement: daaronder beslissen regels nog steeds welke incidenten een concept krijgen, en volgt elk concept de standaardopzet.
 
 ## Het op uw statuspagina publiceren
 
@@ -158,7 +158,7 @@ Heeft uw proces een eigen stap, zoals een beoordeling, voeg er dan een status vo
 
 Waar een status staat, bepaalt waarvoor hij telt, getoond onder **Telt als**: boven **Concept** telt hij als **Niet gestart**, vanaf **Concept** omlaag als **Bezig**, vanaf **Voltooid** omlaag als **Klaar**, en dan staat het niet meer open. **Ter beoordeling**, daartussen, staat nog open; **Niet nodig**, onder **Voltooid**, niet.
 
-**Niet gestart**, **Concept** en **Voltooid** zijn ingebouwd, omdat OneUptime postmortems erin plaatst: u kunt ze een andere naam en kleur geven, maar niet verwijderen of archiveren, en ze houden hun volgorde. Archiveer een status die u niet meer gebruikt via het menu **⋯** van de rij: niemand kan er nog een postmortem naartoe verplaatsen, de postmortems erin blijven tot iemand ze verplaatst, en de lijst filtert er nog steeds op. **Gearchiveerde postmortem-statussen**, ingeklapt onder de tabel, toont ze, met **Uit het archief halen** om er een terug te halen. Statussen maken, bewerken en verwijderen vereist de rol Project Owner, Project Admin of Incident Admin, of een aangepaste rol met de bijbehorende machtiging voor postmortem-statussen.
+**Niet gestart**, **Concept** en **Voltooid** zijn ingebouwd, omdat OneUptime postmortems erin plaatst: u kunt ze een andere naam en kleur geven, maar niet verwijderen of archiveren, en ze houden hun volgorde. Archiveer een status die u niet meer gebruikt via het menu **⋯** van de rij: niemand kan er nog een postmortem naartoe verplaatsen, de postmortems erin blijven tot iemand ze verplaatst, en de lijst filtert er nog steeds op. **Gearchiveerde postmortem-statussen**, ingeklapt onder de tabel, toont ze, met **Uit het archief halen** om er een terug te halen. Statussen maken, bewerken en verwijderen vereist de rol Projecteigenaar, Projectbeheerder of Incidentbeheerder, of een aangepaste rol met de bijbehorende machtiging voor postmortem-statussen.
 
 ## Alle postmortems zien
 
@@ -209,13 +209,13 @@ De twee AI-acties vereisen dat AI voor het project is ingeschakeld, en een repos
 
 **Incidenten → Actiepunten** toont de actiepunten van alle postmortems in het hele project, met de eerstvolgende vervaldatum bovenaan, elk met het incident, de eigenaar, de vervaldatum en de status. Filter de lijst op **Status**, **Eigenaar** en **Vervaldatum**, en **Bekijken** op een rij opent de pagina **Postmortem** van het incident.
 
-Actiepunten lezen vereist hetzelfde als het incident lezen. Ze toevoegen, wijzigen en verwijderen vereist de rol Project Owner, Project Admin, Project Member, Incident Admin of Incident Member, of een aangepaste rol met de bijbehorende machtiging voor postmortem-actiepunten. De actiepunten van een privé-incident zijn, net als het incident zelf, alleen zichtbaar voor de gebruikers die eigenaar zijn, de leden van de teams die eigenaar zijn, projectbeheerders en projecteigenaren.
+Actiepunten lezen vereist hetzelfde als het incident lezen. Ze toevoegen, wijzigen en verwijderen vereist de rol Projecteigenaar, Projectbeheerder, Projectlid, Incidentbeheerder of Incidentlid, of een aangepaste rol met de bijbehorende machtiging voor postmortem-actiepunten. De actiepunten van een privé-incident zijn, net als het incident zelf, alleen zichtbaar voor de gebruikers die eigenaar zijn, de leden van de teams die eigenaar zijn, Projectbeheerders en Projecteigenaren.
 
 ## Postmortems van episodes
 
 Een incidentepisode heeft ook een pagina **Postmortem**, onder **Onderzoek**: één verslag voor elk incident in de episode. Klik op **Postmortem bewerken** om het te schrijven. **Sjabloon toepassen** en **Generate with AI** werken zoals bij een incident, en de AI leest de episode en de incidenten die erin zitten.
 
-Het postmortem van een episode is alleen de notitie: het heeft geen bijlagen, en geen statuspagina toont het. OneUptime AI stelt er geen uit zichzelf op wanneer een episode wordt opgelost. Genereren vereist de rol Project Owner of Project Admin, of een aangepaste rol met de machtiging Edit Incident Episode. Het heeft ook geen status, en de lijst met postmortems laat het weg.
+Het postmortem van een episode is alleen de notitie: het heeft geen bijlagen, en geen statuspagina toont het. OneUptime AI stelt er geen uit zichzelf op wanneer een episode wordt opgelost. Genereren vereist de rol Projecteigenaar of Projectbeheerder, of een aangepaste rol met de machtiging Edit Incident Episode. Het heeft ook geen status, en de lijst met postmortems laat het weg.
 
 Waarschuwingen en onderhoudsgebeurtenissen hebben geen postmortem.
 
@@ -242,7 +242,7 @@ Het project heeft nog geen postmortem-sjabloon, of uw rol kan ze niet lezen. Maa
 :::
 
 :::details Generate with AI meldt dat AI uit staat, of dat u de machtiging mist
-Zet AI aan onder **Projectinstellingen → AI → AI-functies**. Genereren vereist de rol Project Owner of Project Admin, of een aangepaste rol met de machtiging Edit Incident, ook voor iemand die het postmortem kan bewerken.
+Zet AI aan onder **Projectinstellingen → AI → AI-functies**. Genereren vereist de rol Projecteigenaar of Projectbeheerder, of een aangepaste rol met de machtiging Edit Incident, ook voor iemand die het postmortem kan bewerken.
 :::
 
 :::details Het postmortem staat niet op de statuspagina

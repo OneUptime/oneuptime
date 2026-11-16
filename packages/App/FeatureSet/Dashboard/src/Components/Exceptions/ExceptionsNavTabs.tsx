@@ -96,7 +96,7 @@ const ExceptionsNavTabs: FunctionComponent<Props> = (
     },
     {
       key: "overview",
-      label: "Insights",
+      label: "Insights (explorer analytics)",
       icon: IconProp.ChartBar,
       to: RouteUtil.populateRouteParams(
         RouteMap[PageMap.EXCEPTIONS_OVERVIEW] as Route,

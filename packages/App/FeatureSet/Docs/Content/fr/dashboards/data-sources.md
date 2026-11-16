@@ -24,7 +24,7 @@ flowchart TB
 ## Avant de commencer
 
 - **Une offre qui l'inclut.** Sur OneUptime Cloud, créer et modifier des sources de données nécessite l'offre **Growth**. La suppression fonctionne avec toutes les offres.
-- **Une autorisation pour les ajouter.** Les propriétaires et administrateurs du projet peuvent ajouter des sources de données ; les autres ont besoin de `CreateDataSource`, avec `EditDataSource` et `DeleteDataSource` pour les modifier et les supprimer. Toutes les personnes qui peuvent lire les sources de données du projet, membres et observateurs compris, voient les données de leurs widgets.
+- **Une autorisation pour les ajouter.** Les Propriétaires du projet et Administrateurs du projet peuvent ajouter des sources de données ; les autres ont besoin de `CreateDataSource`, avec `EditDataSource` et `DeleteDataSource` pour les modifier et les supprimer. Toutes les personnes qui peuvent lire les sources de données du projet, membres et observateurs compris, voient les données de leurs widgets.
 - **Un compte en lecture seule.** Les tableaux de bord ne font que lire. Connectez les bases de données avec un compte qui ne peut que lire, et les sources HTTP avec un jeton qui ne peut qu'interroger.
 - **Un accès réseau.** Le serveur d'API de OneUptime se connecte à votre système, il doit donc pouvoir l'atteindre : voir [Sécurité](#sécurité) pour les adresses refusées.
 
@@ -77,7 +77,7 @@ Modifiez un tableau de bord, cliquez sur **Ajouter un widget** et choisissez un 
 
 - Choisissez la **Source de données** et écrivez la **Requête**. L'éditeur nomme le langage de requête et montre un exemple pour le type.
 - Dans un graphique, **Ajouter une requête** superpose d'autres requêtes sur les mêmes axes, et **Légende (facultative)** nomme chaque série d'après ses étiquettes : `{{instance}} — errors` écrit l'étiquette `instance` de la série en tête.
-- Pour une valeur ou une jauge, **Reduce** ramène les points à un nombre : la dernière valeur (par défaut), la première, la moyenne, la somme, le minimum ou le maximum. **Unité** ajoute un suffixe, et met à l'échelle les unités connues : `Bytes` s'affiche 1.5 MB, `ms` 2.4 s.
+- Pour une valeur ou une jauge, **Réduire** ramène les points à un nombre : la dernière valeur (par défaut), la première, la moyenne, la somme, le minimum ou le maximum. **Unité** ajoute un suffixe, et met à l'échelle les unités connues : `Bytes` s'affiche 1.5 MB, `ms` 2.4 s.
 - Dans un tableau, toute requête en lecture seule fonctionne, et ses lignes s'affichent telles qu'elles reviennent.
 
 ## Écrire une requête

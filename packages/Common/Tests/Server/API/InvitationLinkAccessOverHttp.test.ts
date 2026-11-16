@@ -101,6 +101,7 @@ interface HttpResult {
 function postInvitationLink(
   port: number,
   body: JSONObject,
+  route: string = "/api/team-member/invitation-link",
 ): Promise<HttpResult> {
   return new Promise<HttpResult>(
     (resolve: (result: HttpResult) => void, reject: (e: Error) => void) => {
@@ -109,7 +110,7 @@ function postInvitationLink(
         {
           host: "127.0.0.1",
           port: port,
-          path: "/api/team-member/invitation-link",
+          path: route,
           method: "POST",
           headers: {
             "content-type": "application/json",
@@ -152,6 +153,9 @@ function postInvitationLink(
 let server: http.Server;
 let port: number;
 let getLink: SpyInstance<typeof InvitationLink.getForTeamMember>;
+let getNotSignedUp: SpyInstance<
+  typeof InvitationLink.getMembershipsNotSignedUp
+>;
 
 function sessionIs(answer: RequestSession): void {
   jest.spyOn(UserMiddleware, "readRequestSession").mockResolvedValue(answer);
@@ -186,8 +190,12 @@ beforeEach(() => {
   getLink = jest.spyOn(InvitationLink, "getForTeamMember").mockResolvedValue({
     link: REGISTRATION_LINK,
     isRegistered: false,
+    isAccepted: false,
     email: "pending@example.com",
   });
+  getNotSignedUp = jest
+    .spyOn(InvitationLink, "getMembershipsNotSignedUp")
+    .mockResolvedValue([TEAM_MEMBER_ID]);
 });
 
 afterEach(() => {
@@ -208,7 +216,7 @@ describe("POST /team-member/invitation-link is refused to anybody but a master a
       401,
     ],
     [
-      "a signed-in project owner who is not a master admin",
+      "a signed-in Project Owner who is not a master admin",
       { kind: "user", session: session(false) } as RequestSession,
       422,
     ],
@@ -239,6 +247,7 @@ describe("POST /team-member/invitation-link is refused to anybody but a master a
     expect(result.body).toEqual({
       link: REGISTRATION_LINK,
       isRegistered: false,
+      isAccepted: false,
       email: "pending@example.com",
     });
     expect(getLink).toHaveBeenCalledTimes(1);
@@ -254,5 +263,140 @@ describe("POST /team-member/invitation-link is refused to anybody but a master a
 
     expect(result.status).toBe(400);
     expect(getLink).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * WHO MAY ASK WHICH MEMBERS HAVE NOT SIGNED UP (#8191).
+ *
+ * The lists ask, for their accepted rows, whose person has no account yet,
+ * to offer that person's sign-up link. Whether somebody has signed up is
+ * about their account, so only a master admin - who is handed the link
+ * itself - may ask.
+ */
+const NOT_SIGNED_UP: string = "/api/team-member/not-signed-up";
+
+describe("POST /team-member/not-signed-up is refused to anybody but a master admin", () => {
+  test.each([
+    ["nobody signed in", { kind: "none" } as RequestSession, 401],
+    [
+      "a token that does not verify",
+      { kind: "invalid", error: new Error("bad token") } as RequestSession,
+      401,
+    ],
+    [
+      "a blocked master admin",
+      { kind: "blocked", session: session(true) } as RequestSession,
+      401,
+    ],
+    [
+      "a signed-in Project Owner who is not a master admin",
+      { kind: "user", session: session(false) } as RequestSession,
+      422,
+    ],
+  ])(
+    "%s: refused, and nothing is read",
+    async (_who: string, answer: RequestSession, status: number) => {
+      sessionIs(answer);
+
+      const result: HttpResult = await postInvitationLink(
+        port,
+        { teamMemberIds: [TEAM_MEMBER_ID.toString()] },
+        NOT_SIGNED_UP,
+      );
+
+      expect(result.status).toBe(status);
+      expect(getNotSignedUp).not.toHaveBeenCalled();
+      expect(result.raw).not.toContain(TEAM_MEMBER_ID.toString());
+    },
+  );
+
+  test("a master admin is told which of the memberships they named have not signed up", async () => {
+    sessionIs({ kind: "user", session: session(true) });
+
+    const other: string = "71680000-0000-4000-8000-0000000000a2";
+    const result: HttpResult = await postInvitationLink(
+      port,
+      { teamMemberIds: [TEAM_MEMBER_ID.toString(), other] },
+      NOT_SIGNED_UP,
+    );
+
+    expect(result.status).toBe(200);
+    expect(result.body).toEqual({
+      teamMemberIds: [TEAM_MEMBER_ID.toString()],
+    });
+    expect(
+      getNotSignedUp.mock.calls[0]![0].map((id: ObjectID): string => {
+        return id.toString();
+      }),
+    ).toEqual([TEAM_MEMBER_ID.toString(), other]);
+    // Never anything about a password.
+    expect(result.raw).not.toMatch(/password/i);
+  });
+
+  test("a membership named twice is asked about once", async () => {
+    sessionIs({ kind: "user", session: session(true) });
+
+    await postInvitationLink(
+      port,
+      {
+        teamMemberIds: [TEAM_MEMBER_ID.toString(), TEAM_MEMBER_ID.toString()],
+      },
+      NOT_SIGNED_UP,
+    );
+
+    expect(getNotSignedUp.mock.calls[0]![0]).toHaveLength(1);
+  });
+
+  test.each([
+    ["no list", {}],
+    ["a list that is not one", { teamMemberIds: "not-a-list" }],
+    ["an id that is not one", { teamMemberIds: ["not-an-id"] }],
+    ["a number for an id", { teamMemberIds: [7] }],
+  ] as Array<[string, JSONObject]>)(
+    "a master admin's request with %s reads nothing",
+    async (_what: string, body: JSONObject) => {
+      sessionIs({ kind: "user", session: session(true) });
+
+      const result: HttpResult = await postInvitationLink(
+        port,
+        body,
+        NOT_SIGNED_UP,
+      );
+
+      expect(result.status).toBe(400);
+      expect(getNotSignedUp).not.toHaveBeenCalled();
+    },
+  );
+
+  test("more than a list's page of memberships is refused", async () => {
+    sessionIs({ kind: "user", session: session(true) });
+
+    const result: HttpResult = await postInvitationLink(
+      port,
+      {
+        teamMemberIds: Array.from({ length: 101 }, (): string => {
+          return ObjectID.generate().toString();
+        }),
+      },
+      NOT_SIGNED_UP,
+    );
+
+    expect(result.status).toBe(400);
+    expect(getNotSignedUp).not.toHaveBeenCalled();
+  });
+
+  test("an empty list is no one to ask about", async () => {
+    sessionIs({ kind: "user", session: session(true) });
+    getNotSignedUp.mockResolvedValue([]);
+
+    const result: HttpResult = await postInvitationLink(
+      port,
+      { teamMemberIds: [] },
+      NOT_SIGNED_UP,
+    );
+
+    expect(result.status).toBe(200);
+    expect(result.body).toEqual({ teamMemberIds: [] });
   });
 });

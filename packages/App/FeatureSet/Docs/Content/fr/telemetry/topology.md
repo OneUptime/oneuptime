@@ -28,7 +28,7 @@ flowchart LR
 ## Avant de commencer
 
 - **De la télémétrie qui arrive.** La carte des services a besoin de traces : voir [OpenTelemetry](/docs/telemetry/open-telemetry). La vue de l'infrastructure a besoin d'un hôte ou d'un cluster qui remonte des données : voir l'[agent Kubernetes](/docs/telemetry/kubernetes-agent). La vue réseau a besoin d'équipements réseau : voir [Surveillance des équipements réseau](/docs/monitor/network-device-monitor).
-- **Un rôle qui lit la télémétrie.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member ou Telemetry Viewer, ou un rôle personnalisé avec la permission Read Inventory Item.
+- **Un rôle qui lit la télémétrie.** Propriétaire du projet, Administrateur du projet, Membre du projet, Lecteur, Administrateur de la télémétrie, Membre de la télémétrie ou Lecteur de la télémétrie, ou un rôle personnalisé avec la permission Read Inventory Item.
 
 ## Ouvrir la topologie
 
@@ -51,12 +51,12 @@ Chaque service affiche son statut, calculé à partir des appels qu'il a reçus 
 | Statut | Quand |
 | --- | --- |
 | **Sain** | Au plus 1 % des appels reçus ont échoué. |
-| **Some errors** | Plus de 1 % et moins de 5 % ont échoué. |
-| **High error rate** | 5 % ou plus ont échoué. |
-| **Entry point** | Il n'a reçu aucun appel, mais en a passé : un frontend web ou une tâche planifiée. |
-| **No calls observed** | Il n'a ni passé ni reçu d'appel. |
+| **Quelques erreurs** | Plus de 1 % et moins de 5 % ont échoué. |
+| **Taux d'erreur élevé** | 5 % ou plus ont échoué. |
+| **Point d'entrée** | Il n'a reçu aucun appel, mais en a passé : un frontend web ou une tâche planifiée. |
+| **Aucun appel observé** | Il n'a ni passé ni reçu d'appel. |
 
-Un service avec un incident ou une alerte actifs en affiche plutôt le nombre, et comme un service avec **Some errors** ou un **High error rate**, il compte comme demandant de l'attention.
+Un service avec un incident ou une alerte actifs en affiche plutôt le nombre, et comme un service à l'état **Quelques erreurs** ou **Taux d'erreur élevé**, il compte comme demandant de l'attention.
 
 :::steps
 ### Trouver les services qui demandent de l'attention

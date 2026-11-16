@@ -98,7 +98,8 @@ const fileResources: () => Resources = (): Resources => {
 
 /*
  * An instance with the options the Admin Dashboard's Utils/i18n.ts passes.
- * Its language detector is left out: the language is given here.
+ * Its language detector and lazy backend are left out: the language is
+ * given here, and its words as the backend would hand them over.
  */
 const createAdminInstance: (
   language: string,
@@ -117,6 +118,7 @@ const createAdminInstance: (
   await instance.init({
     lng: language,
     resources: bundles,
+    partialBundledLanguages: true,
     fallbackLng: ADMIN_DASHBOARD_ENGLISH,
     supportedLngs: [...ADMIN_DASHBOARD_CODES],
     load: "currentOnly",
@@ -320,11 +322,11 @@ describe("the marks change what they should, and nothing else", () => {
 
     expect(marked).toEqual(listed);
     expect(marked).toEqual({
-      da: ["{{count}} monitor", "{{count}} person"],
+      da: ["{{count}} monitor", "{{count}} node", "{{count}} person"],
       es: ["{{count}} monitor"],
       fr: ["{{count}} instance", "{{count}} minute"],
-      nl: ["{{count}} product", "{{count}} project"],
-      no: ["{{count}} monitor", "{{count}} person"],
+      nl: ["{{count}} node", "{{count}} product", "{{count}} project"],
+      no: ["{{count}} monitor", "{{count}} node", "{{count}} person"],
       pt: ["{{count}} monitor"],
       sv: ["{{count}} monitor", "{{count}} person"],
     });

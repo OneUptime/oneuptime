@@ -42,7 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% drifttid",
-    "uptimePercent": "{{percent}}% drifttid",
+    "uptimePercent": "{{percent}} drifttid",
     "operational": "Fungerar",
     "notMonitored": "Inte övervakad",
     "noResourcesInGroup": "Inga resurser har lagts till i den här gruppen.",
@@ -60,10 +60,9 @@
   },
   "eventItem": {
     "affectedResources": "Berörda resurser",
-    "stateChangedTo": "status ändrad till",
     "view": "Visa {{eventType}}",
     "updateTo": "Uppdatering för denna {{eventType}}",
-    "postedOn": "publicerad"
+    "postedOnDate": "publicerad {{date}}"
   },
   "monitorOverview": {
     "daysAgo": "för {{days}} dagar sedan",
@@ -85,7 +84,7 @@
     "declared": "Registrerad",
     "oneIncidentOnThisDay": "1 incident rapporterad den här dagen",
     "incidentsOnThisDay": "{{total}} incidenter rapporterade den här dagen",
-    "scheduledMaintenance": "Planerat underhåll",
+    "scheduledMaintenance": "Schemalagt underhåll",
     "dayLabelWithMaintenance": "{{label}}, {{maintenance}}",
     "oneMaintenanceEvent": "1 underhållshändelse",
     "maintenanceEvents": "{{total}} underhållshändelser",
@@ -138,7 +137,7 @@
   "scheduledEvents": {
     "title": "Schemalagt underhåll",
     "singular": "Underhållshändelse",
-    "scheduledMaintenance": "Planerat underhåll",
+    "scheduledMaintenance": "Schemalagt underhåll",
     "ongoing": "Pågående underhåll",
     "upcoming": "Kommande underhåll",
     "completed": "Slutfört underhåll",
@@ -150,8 +149,8 @@
     "notFound": "Ingen underhållshändelse hittades för den här statussidan.",
     "calendar": {
       "subscribe": "Prenumerera på kalender",
-      "subscribeTitle": "Prenumerera på planerat underhåll",
-      "subscribeDescription": "Få den här sidans planerade underhåll i din kalenderapp. Den håller sig själv uppdaterad.",
+      "subscribeTitle": "Prenumerera på schemalagt underhåll",
+      "subscribeDescription": "Få den här sidans schemalagda underhåll i din kalenderapp. Den håller sig själv uppdaterad.",
       "eventTitle": "Lägg till i kalender",
       "eventDescription": "Lägg till den här underhållshändelsen i din kalenderapp.",
       "addToCalendar": "Lägg till i kalender",
@@ -276,6 +275,7 @@
       "channelSlack": "Slack-arbetsyta",
       "channelMicrosoftTeams": "Microsoft Teams-arbetsyta",
       "channelWebhook": "Webhook",
+      "channelWithColon": "{{channel}}:",
       "addedByTeamWarning": "Den här prenumerationen lades till av teamet som driver den här statussidan. Om det är en delad adress, till exempel en e-postlista, slutar aviseringarna att komma till alla som tar emot dem när du avslutar, och teamet meddelas.",
       "confirmButton": "Avsluta prenumeration",
       "manageInstead": "Välj i stället vilka aviseringar du får",
@@ -473,5 +473,6 @@
     "warning": "Varning"
   },
   "No options available": "Inga tillgängliga alternativ",
-  "No matches found": "Inga träffar hittades"
+  "No matches found": "Inga träffar hittades",
+  "{{eventType}} state changed to {{state}}": "{{eventType}}: status ändrad till {{state}}"
 }

@@ -316,6 +316,41 @@ describe("ProductAnalyticsPerson", () => {
     ).toBeNull();
   });
 
+  /*
+   * #8196: a page is stored as the browser escapes it, and a person reads
+   * it as User Flows draws it: "/café", not "/caf%C3%A9".
+   */
+  it("draws a session's entry page as it reads, written left to right", async () => {
+    mockDetail(
+      detail({
+        sessions: [
+          session({ entryPage: "/caf%C3%A9/men%C3%BC" }),
+          session({
+            sessionId: SESSION_GONE,
+            entryPage: "/%D8%A7%D9%84%D8%B3%D9%84%D8%A9",
+          }),
+        ],
+      }),
+    );
+
+    renderAt(personPath(`u-${USER_KEY}`));
+
+    await waitFor(() => {
+      expect(sessionRows()).toHaveLength(2);
+    });
+
+    const [cafe, cart] = sessionRows() as [HTMLElement, HTMLElement];
+
+    expect(within(cafe).getByText("/café/menü")).toHaveAttribute(
+      "title",
+      "/café/menü",
+    );
+    expect(within(cafe).getByText("/café/menü")).toHaveAttribute("dir", "ltr");
+    expect(cafe).not.toHaveTextContent("%C3%A9");
+    expect(cart).toHaveTextContent("/السلة");
+    expect(cart).not.toHaveTextContent("%D8");
+  });
+
   it("each session: length, device, errors, and Watch only while the recording is kept", async () => {
     mockDetail(detail());
 
@@ -337,6 +372,7 @@ describe("ProductAnalyticsPerson", () => {
     expect(
       within(kept).getByText(
         OneUptimeDate.fromNow(new Date(Date.UTC(2026, 8, 2, 18, 0))),
+        { collapseWhitespace: false },
       ),
     ).toHaveAttribute("dateTime", "2026-09-02T18:00:00.000Z");
     /* The page it entered on, written left to right whole, and how many it saw. */
@@ -420,7 +456,9 @@ describe("ProductAnalyticsPerson", () => {
     const lastSeen: Date = new Date(Date.UTC(2026, 8, 2, 18, 0));
 
     expect(
-      within(facts).getByText(OneUptimeDate.fromNow(lastSeen)),
+      within(facts).getByText(OneUptimeDate.fromNow(lastSeen), {
+        collapseWhitespace: false,
+      }),
     ).toHaveAttribute(
       "title",
       OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(lastSeen),

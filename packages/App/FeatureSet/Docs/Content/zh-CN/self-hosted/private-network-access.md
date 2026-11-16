@@ -12,7 +12,7 @@ OneUptime 会拒绝向解析到私有、环回或链路本地范围的主机发�
 | --- | --- | --- |
 | 工作流、项目 Webhook、值班用户 Webhook | **API 服务器**的环境 | 拒绝私有地址 |
 | 数据源、LLM 提供商、SMTP 服务器、OIDC 发现及其他连接 | **API 服务器**的环境 | 允许私有地址 |
-| API、Website、External Status Page 和 Custom JavaScript Code **监视器** | **探测器**自身的环境 | 拒绝私有地址 |
+| API、Website、外部状态页 和 自定义 JavaScript 代码 **监视器** | **探测器**自身的环境 | 拒绝私有地址 |
 
 ```mermaid title="三个开关，各自负责一类连接"
 flowchart LR
@@ -30,7 +30,7 @@ flowchart LR
     Monitors -->|"默认关闭"| Private
 ```
 
-Ping、Port、SSL 证书、DNS、DNSSEC、SNMP / 网络设备、SQL 查询、数据库健康、Synthetic 和 Network Path 等网络原生监视器类型使用各自的传输方式。本页的设置管理的是会把任意响应内容返回给项目的 HTTP 传输，即 API、Website、External Status Page 和 Custom JavaScript Code 监视器。
+Ping、Port、SSL 证书、DNS、DNSSEC、SNMP / 网络设备、SQL 查询、数据库健康、Synthetic 和 Network Path 等网络原生监视器类型使用各自的传输方式。本页的设置管理的是会把任意响应内容返回给项目的 HTTP 传输，即 API、Website、外部状态页 和 自定义 JavaScript 代码 监视器。
 
 :::cards
 - [Webhook 和工作流](#webhook-和工作流): 允许 Webhook 向你的网络内发送请求。
@@ -144,7 +144,7 @@ outboundConnections:
 
 ## 探测器和监视器
 
-受影响的监视器类型有四种：**API**、**网站**、**External Status Page** 和 **Custom JavaScript Code**。在默认探测器上，它们可以访问公共的 HTTP(S) 目标，但会拒绝私有地址空间。API、Website 和 External Status Page 监视器会为每个连接验证并固定 DNS 结果，并重新验证每一次重定向；Custom JavaScript Code 在其沙箱桥接中应用同样的地址策略。
+受影响的监视器类型有四种：**API**、**网站**、**外部状态页** 和 **自定义 JavaScript 代码**。在默认探测器上，它们可以访问公共的 HTTP(S) 目标，但会拒绝私有地址空间。API、Website 和 外部状态页 监视器会为每个连接验证并固定 DNS 结果，并重新验证每一次重定向；自定义 JavaScript 代码 在其沙箱桥接中应用同样的地址策略。
 
 这个开关由 **探测器进程从它自己的环境中** 读取，而不是从 API 服务器的环境中读取，并且每个探测器都会读取它：Docker Compose 自带的探测器、Helm chart 部署的探测器，以及你自己运行的任何[自定义探测器](/docs/probe/custom-probe)。谁部署探测器，谁就控制它的环境，也是知道该探测器能看到哪个网络的一方：自定义探测器通常是另一台机器，往往由另一个人运行，而且它从不读取 API 服务器的配置。
 
@@ -187,8 +187,8 @@ probes:
 - _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it."_ — 运行该监视器的是私有（自定义）探测器，且它的开关是关闭的。注意，这一设置是在探测器上，而不是在 API 服务器上。
 - _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it (probes.<name>.allowPrivateNetworkMonitors in the Helm chart). This is a global probe, so that allows it for every project on this instance; otherwise, select a private probe deployed on that network."_ — 运行该监视器的是自带（全局）探测器，且它的开关是关闭的。如果实例上的每个项目都可以访问那个网络，请按上文所述为该探测器打开开关；否则，请在监视器上选择一个私有探测器。
 - _"...Global probes cannot monitor private network addresses. Deploy and select a private probe for this target."_ — 运行该监视器的是环境中有 `BILLING_ENABLED=true` 的全局探测器。在那里，自动注册的全局探测器无论开关如何设置都只访问公网；请在目标网络内部署一个私有探测器，并在监视器上选择它。
-- _"Monitor target host ... could not be reached."_ — 目标为**主机名**的 API、Website 或 External Status Page 监视器，在名称解析到被拒绝的地址时和 DNS 失败时都会报告这条消息，这样监视器就无法被用来探查存在哪些内部名称。随之显示的错误详情在两种情况下都会提到 `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS`，但不会说明属于哪种情况。如果该名称指向私有地址，请在探测器的启动日志中查看其私有网络策略；如果它是关闭的，解决办法与上面的消息相同。设置 `LOG_LEVEL=DEBUG` 后，探测器还会记录每个被拒绝名称的确切原因。
-- _"Request URL could not be reached."_ — **Custom JavaScript Code** 监视器也遵循同样的规则：请求**主机名**的脚本，在名称解析到被拒绝的地址时和 DNS 失败时都会收到这条消息。设置 `LOG_LEVEL=DEBUG` 后，探测器会记录确切原因。
+- _"Monitor target host ... could not be reached."_ — 目标为**主机名**的 API、Website 或 外部状态页 监视器，在名称解析到被拒绝的地址时和 DNS 失败时都会报告这条消息，这样监视器就无法被用来探查存在哪些内部名称。随之显示的错误详情在两种情况下都会提到 `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS`，但不会说明属于哪种情况。如果该名称指向私有地址，请在探测器的启动日志中查看其私有网络策略；如果它是关闭的，解决办法与上面的消息相同。设置 `LOG_LEVEL=DEBUG` 后，探测器还会记录每个被拒绝名称的确切原因。
+- _"Request URL could not be reached."_ — **自定义 JavaScript 代码** 监视器也遵循同样的规则：请求**主机名**的脚本，在名称解析到被拒绝的地址时和 DNS 失败时都会收到这条消息。设置 `LOG_LEVEL=DEBUG` 后，探测器会记录确切原因。
 - _"Webhook URL could not be reached."_ 或者，来自工作流的 _"Request URL could not be reached."_ — 实例以 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`（或 `BILLING_ENABLED=true`）运行，因此被拒绝的**主机名**不会得到解释：它要么解析到了被拒绝的地址，要么根本没有解析成功。设置 `LOG_LEVEL=DEBUG` 后，app 或 worker 会记录是哪一种情况以及地址。
 - _"...points to a private, loopback, or link-local address and is not allowed."_ — 目标位于禁止层级。对于 Webhook，如果确实需要，请在 `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` 中写明确切的主机或 CIDR。对于监视器，没有任何例外。
 - _"...hostname could not be resolved via DNS."_ — 容器无法解析该名称。请检查它是否与目标共享网络。

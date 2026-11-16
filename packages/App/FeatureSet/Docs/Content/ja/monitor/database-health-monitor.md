@@ -85,7 +85,7 @@ GRANT pg_monitor TO oneuptime_health;
 `pg_monitor` は組み込みロール（PostgreSQL 10 以降）で、統計ビューと監視ビューへの読み取りアクセスを付与します。テーブルへのアクセスは付与しません。
 
 > [!IMPORTANT]
-> **PostgreSQL で `pg_monitor` が省略できない理由。** このロールがないと `pg_stat_activity` は失敗せず、成功したうえで監視セッション自身の行だけを返します。実際には火を噴いているサーバーでも、接続数は `1`、ブロックされたセッションは `0`、レプリケーションの遅延は `0` のまま変わりません。そのためプローブは、それらのクエリを実行する**前に**、ログインが `pg_monitor`（または `pg_read_all_stats`）のメンバーか、スーパーユーザーであることを確認します。どれにも当たらない場合、プローブは Connections、Activity、Locks の各グループを利用不可として報告し、必要な `GRANT` を添えます。何も報告しないのが正直な答えであり、`1` を報告するのはそうではありません。
+> **PostgreSQL で `pg_monitor` が省略できない理由。** このロールがないと `pg_stat_activity` は失敗せず、成功したうえで監視セッション自身の行だけを返します。実際には火を噴いているサーバーでも、接続数は `1`、ブロックされたセッションは `0`、レプリケーションの遅延は `0` のまま変わりません。そのためプローブは、それらのクエリを実行する**前に**、ログインが `pg_monitor`（または `pg_read_all_stats`）のメンバーか、スーパーユーザーであることを確認します。どれにも当たらない場合、プローブは **接続**、**アクティビティ**、**ロックとブロッキング** の各グループを利用不可として報告し、必要な `GRANT` を添えます。何も報告しないのが正直な答えであり、`1` を報告するのはそうではありません。
 
 `pg_monitor` を使えないマネージドサービスでは、`pg_read_all_stats` が同じビューをカバーします。Amazon RDS では `GRANT rds_superuser` は不要で、`GRANT pg_monitor TO oneuptime_health;` は `rds_superuser` のメンバーとして実行できます。
 
@@ -102,7 +102,7 @@ GRANT SELECT ON mydb.* TO 'oneuptime_health'@'%';
 FLUSH PRIVILEGES;
 ```
 
-MySQL の `performance_schema` が有効（`performance_schema = ON`、5.6 以降の既定値）である必要があります。無効な場合は Connections、Throughput、Locks の各グループが利用不可として報告され、直すには権限ではなくサーバーの再起動が必要です。
+MySQL の `performance_schema` が有効（`performance_schema = ON`、5.6 以降の既定値）である必要があります。無効な場合は **接続**、**スループット**、**ロックとブロッキング** の各グループが利用不可として報告され、直すには権限ではなくサーバーの再起動が必要です。
 
 ### Microsoft SQL Server と Azure SQL Managed Instance
 
@@ -121,7 +121,7 @@ CREATE USER oneuptime_health FOR LOGIN oneuptime_health;
 ほかのデータベースから実行すると、`GRANT VIEW SERVER STATE` は Msg 4621「Permissions at the server scope can only be granted when the current database is master」で失敗します。
 
 > [!WARNING]
-> **テーブルの読み取り権限だけでは足りません。** データを読むことしかできないログイン（`db_datareader` などの「読み取りアクセス」ロール）は、接続はできてもデータベースサイズしか取得できません。SQL Server は、モニターが読むビューを `The user does not have permission to perform this action.`（Msg 297）で拒否します。その直前のメッセージが、拒否されたものを示します。サーバービュー（トランザクションログの領域と tempdb の空き領域を含む）なら Msg 300 `VIEW SERVER STATE`（2022 では `VIEW SERVER PERFORMANCE STATE`）、レプリケーションのビューなら Msg 262 `VIEW DATABASE STATE`（2022 では `VIEW DATABASE PERFORMANCE STATE`）です。モニターはオンラインのまま、Connections、Activity、Throughput、Locks、Storage、Replication の各グループに権限が足りないと報告し、その横に上の `GRANT` を表示します。`VIEW SERVER STATE` があればすべてカバーできます。
+> **テーブルの読み取り権限だけでは足りません。** データを読むことしかできないログイン（`db_datareader` などの「読み取りアクセス」ロール）は、接続はできてもデータベースサイズしか取得できません。SQL Server は、モニターが読むビューを `The user does not have permission to perform this action.`（Msg 297）で拒否します。その直前のメッセージが、拒否されたものを示します。サーバービュー（トランザクションログの領域と tempdb の空き領域を含む）なら Msg 300 `VIEW SERVER STATE`（2022 では `VIEW SERVER PERFORMANCE STATE`）、レプリケーションのビューなら Msg 262 `VIEW DATABASE STATE`（2022 では `VIEW DATABASE PERFORMANCE STATE`）です。モニターはオンラインのまま、**接続**、**アクティビティ**、**スループット**、**ロックとブロッキング**、**ストレージ**、**レプリケーション** の各グループに権限が足りないと報告し、その横に上の `GRANT` を表示します。`VIEW SERVER STATE` があればすべてカバーできます。
 >
 > 拒否しないビューが 2 つあります。権限がないと、`sys.dm_exec_sessions` と `sys.dm_exec_requests` は黙ってモニター自身のセッションだけを返します。モニターはこの 2 つを単独では読まず、必ず拒否するビューと一緒に読むので、権限の不足が「接続 1 件」として記録されることはありません。
 
@@ -151,9 +151,9 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 プローブは Azure SQL Database をバージョンではなく `SERVERPROPERTY('EngineEdition')` で識別します。Azure SQL Database は実際に何を実行していても `12.0.2000.8` を報告し、これは SQL Server 2014 と読めてしまうからです。そのためモニターの**エンジン**は `Azure SQL Database 12.0.2000.8` と表示され、権限の不足は `VIEW SERVER STATE` ではなく、必ず上の Azure 用ステートメントとして表示されます。
 
-- **Azure SQL Database ではレプリケーションを収集しません。** Azure SQL Database には `sys.dm_hadr_database_replica_states` がないため、Replication グループはそこでは毎回失敗として報告されるのではなく、スキップされます。Azure 独自のレプリカビュー（`sys.dm_database_replica_states`、`sys.dm_geo_replication_link_status`）はまだ読みません。
-- **接続はデータベース単位です。** `VIEW DATABASE STATE` の場合、Azure SQL Database は監視対象のデータベースのセッションしか見せないので、Connections は論理サーバーではなくそのデータベースを数えます。気にかけるデータベースはそれぞれ監視してください。
-- **エラスティックプールでは、TempDB Free Space はプールの値です。** プール内のデータベースは 1 つの tempdb を共有します。
+- **Azure SQL Database ではレプリケーションを収集しません。** Azure SQL Database には `sys.dm_hadr_database_replica_states` がないため、**レプリケーション** グループはそこでは毎回失敗として報告されるのではなく、スキップされます。Azure 独自のレプリカビュー（`sys.dm_database_replica_states`、`sys.dm_geo_replication_link_status`）はまだ読みません。
+- **接続はデータベース単位です。** `VIEW DATABASE STATE` の場合、Azure SQL Database は監視対象のデータベースのセッションしか見せないので、**接続** は論理サーバーではなくそのデータベースを数えます。気にかけるデータベースはそれぞれ監視してください。
+- **エラスティックプールでは、「TempDB の空き領域」はプールの値です。** プール内のデータベースは 1 つの tempdb を共有します。
 
 ## データベースヘルス モニターを作成する
 
@@ -221,17 +221,17 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 ## メトリクスグループ
 
-グループは、オンとオフを切り替える単位であり、権限の不足が報告される単位でもあります。グループがあるので、権限が 1 つ足りなくても失うのはモニター全体ではなく 1 グループだけで済みます。グループのステートメントは 1 つずつ実行されるので、グループが一部だけ収集されることがあり、その場合は `collectedGroups` と `unavailableGroups` の両方に現れます。よくあるのは、`VIEW SERVER STATE` のないログインでの SQL Server の Storage グループで、データベースサイズは収集されますが、ログ領域と tempdb の空き領域は収集されません。
+グループは、オンとオフを切り替える単位であり、権限の不足が報告される単位でもあります。グループがあるので、権限が 1 つ足りなくても失うのはモニター全体ではなく 1 グループだけで済みます。グループのステートメントは 1 つずつ実行されるので、グループが一部だけ収集されることがあり、その場合は `collectedGroups` と `unavailableGroups` の両方に現れます。よくあるのは、`VIEW SERVER STATE` のないログインでの SQL Server の **ストレージ** グループで、データベースサイズは収集されますが、ログ領域と tempdb の空き領域は収集されません。
 
 | グループ | 収集するもの | 必要なもの |
 |---|---|---|
-| Connections | 接続数、設定された上限、中断された接続、サーバーの稼働時間 | PostgreSQL: `pg_monitor`。MySQL: `performance_schema`。SQL Server: `VIEW SERVER STATE` |
-| Activity | 最も長く実行中のクエリ、最も長く開いているトランザクション、開いているトランザクション | PostgreSQL: `pg_monitor`。MySQL: `PROCESS`。SQL Server: `VIEW SERVER STATE` |
-| Throughput | トランザクション、クエリ、キャッシュヒット率、ディスクの読み取りと書き込み、I/O 時間 | PostgreSQL: `CONNECT` 以外は不要。MySQL: `performance_schema`。SQL Server: `VIEW SERVER STATE` |
-| Locks | ブロックされたセッション、ロック待ち、デッドロック、テーブルロック待ち | PostgreSQL: `pg_monitor`。MySQL: `performance_schema`。SQL Server: `VIEW SERVER STATE` |
-| Storage | データベースサイズ、一時ファイルへの書き出し、ログ領域、tempdb の空き領域 | PostgreSQL: `CONNECT` 以外は不要。MySQL: データベースへの `SELECT`。SQL Server: データベースサイズには不要、ログ領域と tempdb の空き領域には `VIEW SERVER STATE` |
-| Replication | 接続中のレプリカ、秒数とバイト数でのレプリケーションの遅延、非アクティブなスロット、リカバリー状態 | PostgreSQL: `pg_monitor`。MySQL: `REPLICATION CLIENT`。SQL Server: `VIEW SERVER STATE`。Azure SQL Database では収集しない |
-| Maintenance | トランザクション ID の周回までの余裕、デッドタプル、autovacuum が一度も処理していないテーブル、チェックポイント | PostgreSQL: `pg_monitor` |
+| 接続 | 接続数、設定された上限、中断された接続、サーバーの稼働時間 | PostgreSQL: `pg_monitor`。MySQL: `performance_schema`。SQL Server: `VIEW SERVER STATE` |
+| アクティビティ | 最も長く実行中のクエリ、最も長く開いているトランザクション、開いているトランザクション | PostgreSQL: `pg_monitor`。MySQL: `PROCESS`。SQL Server: `VIEW SERVER STATE` |
+| スループット | トランザクション、クエリ、キャッシュヒット率、ディスクの読み取りと書き込み、I/O 時間 | PostgreSQL: `CONNECT` 以外は不要。MySQL: `performance_schema`。SQL Server: `VIEW SERVER STATE` |
+| ロックとブロッキング | ブロックされたセッション、ロック待ち、デッドロック、テーブルロック待ち | PostgreSQL: `pg_monitor`。MySQL: `performance_schema`。SQL Server: `VIEW SERVER STATE` |
+| ストレージ | データベースサイズ、一時ファイルへの書き出し、ログ領域、tempdb の空き領域 | PostgreSQL: `CONNECT` 以外は不要。MySQL: データベースへの `SELECT`。SQL Server: データベースサイズには不要、ログ領域と tempdb の空き領域には `VIEW SERVER STATE` |
+| レプリケーション | 接続中のレプリカ、秒数とバイト数でのレプリケーションの遅延、非アクティブなスロット、リカバリー状態 | PostgreSQL: `pg_monitor`。MySQL: `REPLICATION CLIENT`。SQL Server: `VIEW SERVER STATE`。Azure SQL Database では収集しない |
+| メンテナンス | トランザクション ID の周回までの余裕、デッドタプル、autovacuum が一度も処理していないテーブル、チェックポイント | PostgreSQL: `pg_monitor` |
 
 Azure SQL Database では、この表で `VIEW SERVER STATE` とある箇所を `VIEW DATABASE STATE` と読み替えてください。Basic、S0、S1、エラスティックプールでは `##MS_ServerStateReader##` です。[Azure SQL Database](#azure-sql-database)を参照してください。
 
@@ -249,13 +249,13 @@ Azure SQL Database では、この表で `VIEW SERVER STATE` とある箇所を 
 | 失敗したもの | モニターのステータス | 表示される内容 |
 |---|---|---|
 | **接続**、またはプローブクエリ（誤った資格情報、接続拒否、TLS の失敗、接続のタイムアウト） | **オフライン** | `Database Is Online` が false になり、それに結び付けたインシデントとオンコールポリシーが発動します。 |
-| **グループ**（権限の不足、無効な `performance_schema`、ステートメントのタイムアウト） | **オンラインのまま** | そのグループが読めなかったメトリクスは 0 ではなく、**存在しません**。グラフの線は描かれず、それらの系列のしきい値は一致せず、そこからインシデントが起きることもありません。チェックは、グループ、理由、そして（あれば）実行すべき `GRANT` を示す収集の問題を 1 件記録します。これはモニターのサマリーに表示され、**Metric Groups Failed** に数えられます。 |
-| **エンジンがそもそもメトリクスを提供できない**（標準の MySQL にはデッドロックのカウンターがない。SQL Server は既定で接続の上限を無制限にしているので「使用率」に意味がない） | **オンラインのまま** | メトリクスは単に存在しません。これは収集の問題では**ありません**。Metric Groups Failed にも数えられず、直す必要もありません。[収集されるメトリクス](#収集されるメトリクス)の Engines 列を参照してください。 |
+| **グループ**（権限の不足、無効な `performance_schema`、ステートメントのタイムアウト） | **オンラインのまま** | そのグループが読めなかったメトリクスは 0 ではなく、**存在しません**。グラフの線は描かれず、それらの系列のしきい値は一致せず、そこからインシデントが起きることもありません。チェックは、グループ、理由、そして（あれば）実行すべき `GRANT` を示す収集の問題を 1 件記録します。これはモニターのサマリーに表示され、**失敗したメトリクスグループ** に数えられます。 |
+| **エンジンがそもそもメトリクスを提供できない**（標準の MySQL にはデッドロックのカウンターがない。SQL Server は既定で接続の上限を無制限にしているので「使用率」に意味がない） | **オンラインのまま** | メトリクスは単に存在しません。これは収集の問題では**ありません**。**失敗したメトリクスグループ** にも数えられず、直す必要もありません。[収集されるメトリクス](#収集されるメトリクス)の Engines 列を参照してください。 |
 
 存在しないものは、あくまで存在しません。測定していない値が `0` として報告されることはありません。でっち上げたゼロのグラフは、隙間よりも悪いからです。隙間なら目で見てわかります。
 
 > [!TIP]
-> 可視性が失われたことをアラートするには、`Database Collection Error` か **Metric Groups Failed** のしきい値を使います。どちらもインシデントではなくアラートにしてください。取り消された権限はチケットで扱う問題であり、呼び出すほどのものではありません。
+> 可視性が失われたことをアラートするには、`Database Collection Error` か **失敗したメトリクスグループ** のしきい値を使います。どちらもインシデントではなくアラートにしてください。取り消された権限はチケットで扱う問題であり、呼び出すほどのものではありません。
 
 ### "The user does not have permission to perform this action"
 
@@ -264,7 +264,7 @@ Azure SQL Database では、この表で `VIEW SERVER STATE` とある箇所を 
 - **SQL Server または Azure SQL Managed Instance**: `GRANT VIEW SERVER STATE TO oneuptime_health;` を `master` で実行します（モニターには `GRANT VIEW SERVER STATE TO [<monitoring_login>]; -- run in master` と表示されます）。
 - **Azure SQL Database**: `GRANT VIEW DATABASE STATE TO oneuptime_health;` を監視対象のデータベースで実行します。Basic、S0、S1、エラスティックプールでは、代わりに `##MS_ServerStateReader##` のメンバーにします。[Azure SQL Database](#azure-sql-database)を参照してください。
 
-その間もデータベースサイズは収集され続けます。Storage グループのうち、どのログインでも読めるメトリクスはこれだけだからです。
+その間もデータベースサイズは収集され続けます。**ストレージ** グループのうち、どのログインでも読めるメトリクスはこれだけだからです。
 
 ## 収集されるメトリクス
 
@@ -274,104 +274,104 @@ Azure SQL Database では、この表で `VIEW SERVER STATE` とある箇所を 
 
 | メトリクス | 系列 | Group | Engines |
 |---|---|---|---|
-| **Uptime** (s) | `oneuptime.monitor.database.uptime.seconds` | Connections | PostgreSQL, MySQL, SQL Server |
-| **Metric Groups Failed** | `oneuptime.monitor.database.metric.groups.failed` | Connections | PostgreSQL, MySQL, SQL Server |
+| **稼働時間** (s) | `oneuptime.monitor.database.uptime.seconds` | 接続 | PostgreSQL, MySQL, SQL Server |
+| **失敗したメトリクスグループ** | `oneuptime.monitor.database.metric.groups.failed` | 接続 | PostgreSQL, MySQL, SQL Server |
 
 ### 接続
 
 | メトリクス | 系列 | Group | Engines |
 |---|---|---|---|
-| **Connections** | `oneuptime.monitor.database.connections.total` | Connections | PostgreSQL, MySQL, SQL Server |
-| **Active Connections** | `oneuptime.monitor.database.connections.active` | Connections | PostgreSQL, MySQL, SQL Server |
-| **Maximum Connections** | `oneuptime.monitor.database.connections.max` | Connections | PostgreSQL, MySQL |
-| **Connections Used** (%) | `oneuptime.monitor.database.connections.used.percent` | Connections | PostgreSQL, MySQL |
-| **Idle In Transaction** | `oneuptime.monitor.database.connections.idle.in.transaction` | Connections | PostgreSQL |
-| **Aborted Connects** | `oneuptime.monitor.database.connections.aborted.total` | Connections | MySQL |
+| **接続** | `oneuptime.monitor.database.connections.total` | 接続 | PostgreSQL, MySQL, SQL Server |
+| **アクティブな接続** | `oneuptime.monitor.database.connections.active` | 接続 | PostgreSQL, MySQL, SQL Server |
+| **最大接続数** | `oneuptime.monitor.database.connections.max` | 接続 | PostgreSQL, MySQL |
+| **使用中の接続** (%) | `oneuptime.monitor.database.connections.used.percent` | 接続 | PostgreSQL, MySQL |
+| **トランザクション中のアイドル** | `oneuptime.monitor.database.connections.idle.in.transaction` | 接続 | PostgreSQL |
+| **中断された接続** | `oneuptime.monitor.database.connections.aborted.total` | 接続 | MySQL |
 
 ### スループット
 
 | メトリクス | 系列 | Group | Engines |
 |---|---|---|---|
-| **Transactions** | `oneuptime.monitor.database.transactions.total` | Throughput | PostgreSQL, SQL Server |
-| **Queries** | `oneuptime.monitor.database.queries.total` | Throughput | MySQL, SQL Server |
-| **Slow Queries** | `oneuptime.monitor.database.queries.slow.total` | Throughput | MySQL |
-| **Rollback Ratio** (%) | `oneuptime.monitor.database.rollback.percent` | Throughput | PostgreSQL |
-| **Longest Running Query** (s) | `oneuptime.monitor.database.query.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
-| **Longest Open Transaction** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
-| **Open Transactions** | `oneuptime.monitor.database.transaction.open.count` | Activity | MySQL |
+| **トランザクション** | `oneuptime.monitor.database.transactions.total` | スループット | PostgreSQL, SQL Server |
+| **クエリ** | `oneuptime.monitor.database.queries.total` | スループット | MySQL, SQL Server |
+| **遅いクエリ** | `oneuptime.monitor.database.queries.slow.total` | スループット | MySQL |
+| **ロールバック率** (%) | `oneuptime.monitor.database.rollback.percent` | スループット | PostgreSQL |
+| **最も長く実行中のクエリ** (s) | `oneuptime.monitor.database.query.longest.seconds` | アクティビティ | PostgreSQL, MySQL, SQL Server |
+| **最も長く開いているトランザクション** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | アクティビティ | PostgreSQL, MySQL, SQL Server |
+| **開いているトランザクション** | `oneuptime.monitor.database.transaction.open.count` | アクティビティ | MySQL |
 
 ### ロックとブロッキング
 
 | メトリクス | 系列 | Group | Engines |
 |---|---|---|---|
-| **Blocked Sessions** | `oneuptime.monitor.database.sessions.blocked` | Locks | PostgreSQL, MySQL, SQL Server |
-| **Lock Waits** | `oneuptime.monitor.database.locks.waiting` | Locks | PostgreSQL, MySQL, SQL Server |
-| **Deadlocks** | `oneuptime.monitor.database.deadlocks.total` | Locks | PostgreSQL, SQL Server |
-| **Table Lock Waits** | `oneuptime.monitor.database.table.locks.waited.total` | Locks | MySQL |
+| **ブロックされたセッション** | `oneuptime.monitor.database.sessions.blocked` | ロックとブロッキング | PostgreSQL, MySQL, SQL Server |
+| **ロック待機** | `oneuptime.monitor.database.locks.waiting` | ロックとブロッキング | PostgreSQL, MySQL, SQL Server |
+| **デッドロック** | `oneuptime.monitor.database.deadlocks.total` | ロックとブロッキング | PostgreSQL, SQL Server |
+| **テーブルロック待機** | `oneuptime.monitor.database.table.locks.waited.total` | ロックとブロッキング | MySQL |
 
-標準の MySQL にはデッドロックのカウンターが一切ないため、Deadlocks は PostgreSQL と SQL Server だけにあります。
+標準の MySQL にはデッドロックのカウンターが一切ないため、**デッドロック** は PostgreSQL と SQL Server だけにあります。
 
 ### キャッシュと I/O
 
 | メトリクス | 系列 | Group | Engines |
 |---|---|---|---|
-| **Cache Hit Ratio** (%) | `oneuptime.monitor.database.cache.hit.percent` | Throughput | PostgreSQL, MySQL, SQL Server |
-| **Disk Reads** | `oneuptime.monitor.database.disk.reads.total` | Throughput | PostgreSQL, MySQL, SQL Server |
-| **Disk Writes** | `oneuptime.monitor.database.disk.writes.total` | Throughput | MySQL, SQL Server |
-| **I/O Read Time** (ms) | `oneuptime.monitor.database.io.read.time.ms` | Throughput | PostgreSQL, SQL Server |
-| **I/O Write Time** (ms) | `oneuptime.monitor.database.io.write.time.ms` | Throughput | PostgreSQL, SQL Server |
-| **Page Life Expectancy** (s) | `oneuptime.monitor.database.page.life.expectancy.seconds` | Throughput | SQL Server |
-| **Memory Grants Pending** | `oneuptime.monitor.database.memory.grants.pending` | Throughput | SQL Server |
+| **キャッシュヒット率** (%) | `oneuptime.monitor.database.cache.hit.percent` | スループット | PostgreSQL, MySQL, SQL Server |
+| **ディスク読み取り** | `oneuptime.monitor.database.disk.reads.total` | スループット | PostgreSQL, MySQL, SQL Server |
+| **ディスク書き込み** | `oneuptime.monitor.database.disk.writes.total` | スループット | MySQL, SQL Server |
+| **I/O 読み取り時間** (ms) | `oneuptime.monitor.database.io.read.time.ms` | スループット | PostgreSQL, SQL Server |
+| **I/O 書き込み時間** (ms) | `oneuptime.monitor.database.io.write.time.ms` | スループット | PostgreSQL, SQL Server |
+| **ページの予測保持期間** (s) | `oneuptime.monitor.database.page.life.expectancy.seconds` | スループット | SQL Server |
+| **保留中のメモリ許可** | `oneuptime.monitor.database.memory.grants.pending` | スループット | SQL Server |
 
 PostgreSQL が I/O の読み取り時間と書き込み時間を測るのは、`track_io_timing` がオンのときだけです。既定ではオフで、その場合 PostgreSQL は両方を `0` と報告します。つまり PostgreSQL では、この 2 つの系列が平坦なゼロなら、たいていは「速い」ではなく「測っていない」という意味です。これはサーバーの設定であって、権限の問題ではありません。
 
-### 記憶域
+### ストレージ
 
 | メトリクス | 系列 | Group | Engines |
 |---|---|---|---|
-| **Database Size** (バイト) | `oneuptime.monitor.database.size.bytes` | Storage | PostgreSQL, MySQL, SQL Server |
-| **Temp Bytes Written** (バイト) | `oneuptime.monitor.database.temp.bytes.total` | Storage | PostgreSQL |
-| **Temp Disk Tables** | `oneuptime.monitor.database.temp.disk.tables.total` | Storage | MySQL |
-| **Log Space Used** (%) | `oneuptime.monitor.database.log.space.used.percent` | Storage | SQL Server |
-| **TempDB Free Space** (バイト) | `oneuptime.monitor.database.tempdb.free.bytes` | Storage | SQL Server |
+| **データベースサイズ** (バイト) | `oneuptime.monitor.database.size.bytes` | ストレージ | PostgreSQL, MySQL, SQL Server |
+| **書き込まれた一時バイト** (バイト) | `oneuptime.monitor.database.temp.bytes.total` | ストレージ | PostgreSQL |
+| **ディスク上の一時テーブル** | `oneuptime.monitor.database.temp.disk.tables.total` | ストレージ | MySQL |
+| **使用中のログ領域** (%) | `oneuptime.monitor.database.log.space.used.percent` | ストレージ | SQL Server |
+| **TempDB の空き領域** (バイト) | `oneuptime.monitor.database.tempdb.free.bytes` | ストレージ | SQL Server |
 
 ### レプリケーション
 
 | メトリクス | 系列 | Group | Engines |
 |---|---|---|---|
-| **Connected Replicas** | `oneuptime.monitor.database.replica.count` | Replication | PostgreSQL, SQL Server |
-| **Replication Lag** (s) | `oneuptime.monitor.database.replication.lag.seconds` | Replication | PostgreSQL, MySQL |
-| **Replication Lag (Bytes)** (バイト) | `oneuptime.monitor.database.replication.lag.bytes` | Replication | PostgreSQL, SQL Server |
-| **Is In Recovery** | `oneuptime.monitor.database.is.in.recovery` | Replication | PostgreSQL |
-| **Inactive Replication Slots** | `oneuptime.monitor.database.replication.slots.inactive` | Replication | PostgreSQL |
+| **接続中のレプリカ** | `oneuptime.monitor.database.replica.count` | レプリケーション | PostgreSQL, SQL Server |
+| **レプリケーション遅延** (s) | `oneuptime.monitor.database.replication.lag.seconds` | レプリケーション | PostgreSQL, MySQL |
+| **レプリケーション遅延 (バイト)** (バイト) | `oneuptime.monitor.database.replication.lag.bytes` | レプリケーション | PostgreSQL, SQL Server |
+| **リカバリー中** | `oneuptime.monitor.database.is.in.recovery` | レプリケーション | PostgreSQL |
+| **非アクティブなレプリケーションスロット** | `oneuptime.monitor.database.replication.slots.inactive` | レプリケーション | PostgreSQL |
 
 レプリケーションのメトリクスは、レプリケーションのリンクのうちモニターが接続している側から報告されます。接続中のレプリカと送信キューを見るにはプライマリーにモニターを向け、各スタンバイが実際にどれだけ遅れているかを見るにはスタンバイごとにモニターを向けます。
 
-秒数での遅延は、レプリカが大きく遅れていても、アイドル状態のプライマリーでは何も新しく書き込まれていないためゼロになります。**Replication Lag (Bytes)** にはこの死角がないので、両方をアラートしてください。
+秒数での遅延は、レプリカが大きく遅れていても、アイドル状態のプライマリーでは何も新しく書き込まれていないためゼロになります。**レプリケーション遅延 (バイト)** にはこの死角がないので、両方をアラートしてください。
 
 ### メンテナンス
 
 | メトリクス | 系列 | Group | Engines |
 |---|---|---|---|
-| **Transaction ID Used** (%) | `oneuptime.monitor.database.transaction.id.used.percent` | Maintenance | PostgreSQL |
-| **Dead Tuples** | `oneuptime.monitor.database.dead.tuples` | Maintenance | PostgreSQL |
-| **Tables Never Autovacuumed** | `oneuptime.monitor.database.tables.never.autovacuumed` | Maintenance | PostgreSQL |
-| **Requested Checkpoints** | `oneuptime.monitor.database.checkpoints.requested.total` | Maintenance | PostgreSQL |
-| **Timed Checkpoints** | `oneuptime.monitor.database.checkpoints.timed.total` | Maintenance | PostgreSQL |
+| **使用済みトランザクション ID** (%) | `oneuptime.monitor.database.transaction.id.used.percent` | メンテナンス | PostgreSQL |
+| **デッドタプル** | `oneuptime.monitor.database.dead.tuples` | メンテナンス | PostgreSQL |
+| **autovacuum が一度も実行されていないテーブル** | `oneuptime.monitor.database.tables.never.autovacuumed` | メンテナンス | PostgreSQL |
+| **要求されたチェックポイント** | `oneuptime.monitor.database.checkpoints.requested.total` | メンテナンス | PostgreSQL |
+| **定期チェックポイント** | `oneuptime.monitor.database.checkpoints.timed.total` | メンテナンス | PostgreSQL |
 
 > [!IMPORTANT]
-> **Transaction ID Used** は、作成するすべての PostgreSQL モニターで条件を設定する価値があります。この値が 100% に達すると PostgreSQL はすべての書き込みを拒否し、復旧にはデータベースを止めたうえでのシングルユーザーモードでの vacuum が必要になるのに、ほとんど誰も監視していません。崖のずっと手前でアラートしてください。80% なら、たいていのワークロードで何日もの余裕があります。
+> **使用済みトランザクション ID** は、作成するすべての PostgreSQL モニターで条件を設定する価値があります。この値が 100% に達すると PostgreSQL はすべての書き込みを拒否し、復旧にはデータベースを止めたうえでのシングルユーザーモードでの vacuum が必要になるのに、ほとんど誰も監視していません。崖のずっと手前でアラートしてください。80% なら、たいていのワークロードで何日もの余裕があります。
 
-`total` で終わるカウンターは、サーバーの起動時からの累積値です。レートを得るには 2 つの時点を比べます。単独の値はその値自身の履歴と比べてはじめて意味を持ち、サーバーが再起動するとゼロに戻ります（**Uptime** を見ればわかります）。
+`total` で終わるカウンターは、サーバーの起動時からの累積値です。レートを得るには 2 つの時点を比べます。単独の値はその値自身の履歴と比べてはじめて意味を持ち、サーバーが再起動するとゼロに戻ります（**稼働時間** を見ればわかります）。
 
-**Cache Hit Ratio** と **Rollback Ratio** は、サーバーの起動時からではなく、モニターの前回のチェックからカウンターが進んだ分をもとにチェックのたびに計算されるため、キャッシュがミスし始めるとすぐにわかります。プローブの起動後の最初のチェックと、サーバーの再起動後の最初のチェックには、どちらの値もありません。
+**キャッシュヒット率** と **ロールバック率** は、サーバーの起動時からではなく、モニターの前回のチェックからカウンターが進んだ分をもとにチェックのたびに計算されるため、キャッシュがミスし始めるとすぐにわかります。プローブの起動後の最初のチェックと、サーバーの再起動後の最初のチェックには、どちらの値もありません。
 
 ## 条件を設定する
 
 | フィルタータイプ | チェックする内容 |
 |---|---|
 | **データベースのオンライン状態** | データベースに到達でき、プローブクエリが成功したかどうか。モニター作成時に付いているオフラインの条件で、到達可能性を反映する唯一のチェックです。 |
-| **データベースのメトリクス** | メトリクスを選んで比較します: より大きい、より小さい、以上、以下、等しい、等しくない。メトリクスの選択肢には、選んだエンジンが提供できるメトリクスしか出ないので、ずっと満たされないままの条件を作ってしまうことはありません（例外が 1 つあり、Microsoft SQL Server 向けに出る Replication のメトリクスは Azure SQL Database では収集されません）。あるチェックでメトリクスが収集されなかった場合（グループが失敗した、またはエンジンがそのメトリクスを報告しない場合）、フィルターは一致せず、「false」としても一致しません。スキップされます。権限の問題で誰かが呼び出されることはありません。 |
+| **データベースのメトリクス** | メトリクスを選んで比較します: より大きい、より小さい、以上、以下、等しい、等しくない。メトリクスの選択肢には、選んだエンジンが提供できるメトリクスしか出ないので、ずっと満たされないままの条件を作ってしまうことはありません（例外が 1 つあり、Microsoft SQL Server 向けに出る **レプリケーション** のメトリクスは Azure SQL Database では収集されません）。あるチェックでメトリクスが収集されなかった場合（グループが失敗した、またはエンジンがそのメトリクスを報告しない場合）、フィルターは一致せず、「false」としても一致しません。スキップされます。権限の問題で誰かが呼び出されることはありません。 |
 | **データベースの収集エラー** | そのチェックの収集の問題のサマリーで、利用不可のグループごとに「グループ: メッセージ」が 1 つ入ります。可視性が失われたことに気づくには空でないときにアラートし、特定のグループを見張るには「含む」を使います。 |
 | **JavaScript 式** | 完全に制御できます。[JavaScript 式](/docs/monitor/javascript-expression)を参照してください。 |
 
@@ -409,14 +409,14 @@ PostgreSQL が I/O の読み取り時間と書き込み時間を測るのは、`
 | 順序 | 条件 | フィルター |
 |---|---|---|
 | 1 | **オフライン** | `Database Is Online` が `false`。 |
-| 2 | **機能低下** | `Database Metric` → Connections Used が `90` より大きい。単発のスパイクで呼び出されないよう、All Values で 5 分間評価します。 |
-| 3 | **機能低下** | `Database Metric` → Transaction ID Used が `80` より大きい。 |
-| 4 | **機能低下** | `Database Metric` → Blocked Sessions が `0` より大きい状態が 5 分間続く。 |
+| 2 | **機能低下** | `Database Metric` → **使用中の接続** が `90` より大きい。単発のスパイクで呼び出されないよう、All Values で 5 分間評価します。 |
+| 3 | **機能低下** | `Database Metric` → **使用済みトランザクション ID** が `80` より大きい。 |
+| 4 | **機能低下** | `Database Metric` → **ブロックされたセッション** が `0` より大きい状態が 5 分間続く。 |
 | 5 | **オンライン** | `Database Is Online` が `true`。 |
 
 条件は上から順に評価され、最初に一致したものが採用されるので、アラートの条件を先に、正常の条件を最後に並べます。
 
-オフラインの条件にはオンコールポリシーを結び付け、**Metric Groups Failed** や `Database Collection Error` に基づくものはオンコールポリシーを付けないアラートのままにします。
+オフラインの条件にはオンコールポリシーを結び付け、**失敗したメトリクスグループ** や `Database Collection Error` に基づくものはオンコールポリシーを付けないアラートのままにします。
 
 ## 考慮すべき点
 
@@ -433,19 +433,19 @@ PostgreSQL が I/O の読み取り時間と書き込み時間を測るのは、`
 オフラインとは、プローブが接続できなかったか、プローブクエリが失敗したという意味です。原因は、プローブからホストやポートに到達できない、ログインが拒否された、TLS が失敗した、接続がタイムアウトした、のいずれかです。エラーはモニターのサマリーに表示されます。プローブからデータベースに到達できることを確認し（OneUptime がホストするプローブには公開アドレスが必要です。そうでなければ[カスタムプローブ](/docs/probe/custom-probe)を使います）、ユーザー名とパスワード（またはそのモニターシークレット）を確認し、自己署名証明書なら **サーバー証明書を検証** をオフにします。その後、**モニターをテスト** をクリックしてもう一度確認します。
 :::
 
-:::details PostgreSQL で Connections、Activity、Locks がない
+:::details PostgreSQL で **接続**、**アクティビティ**、**ロックとブロッキング** がない
 ログインが `pg_monitor` にも `pg_read_all_stats` にも属しておらず、スーパーユーザーでもないため、プローブは誤った数値を記録する代わりにそれらのグループをスキップしています。[PostgreSQL](#postgresql)の説明どおりに `GRANT pg_monitor TO oneuptime_health;` を実行してください。
 :::
 
-:::details MySQL で Connections、Throughput、Locks がない
+:::details MySQL で **接続**、**スループット**、**ロックとブロッキング** がない
 ログインに `performance_schema` への `SELECT` がないか、サーバーで `performance_schema` が無効になっています。モニターのサマリーに MySQL のメッセージが表示されます。権限の不足なら、[MySQL](#mysql)のステートメントを実行してください。`performance_schema` が無効な場合は、サーバーの設定で `performance_schema = ON` にして再起動する必要があります。
 :::
 
-:::details PostgreSQL で I/O Read Time と I/O Write Time が常に 0
+:::details PostgreSQL で **I/O 読み取り時間** と **I/O 書き込み時間** が常に 0
 PostgreSQL がこれらを測るのは `track_io_timing` がオンのときだけで、既定ではオフです。実際の値を見るには、サーバーの設定か、マネージドサービスのパラメーターグループでオンにしてください。権限の不足ではありません。
 :::
 
-:::details Metric Groups Failed がチェックのたびに 0 を超える
+:::details **失敗したメトリクスグループ** がチェックのたびに 0 を超える
 どのチェックでも収集できないグループがあるため、同じ収集の問題が繰り返されています。モニターのサマリーには、グループ、理由、それを直す `GRANT` が表示されます。その権限を付与するか、付与できない場合は **その他の項目 → メトリクスグループ** でそのグループをオフにして、問題が繰り返されないようにします。
 :::
 

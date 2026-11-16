@@ -42,7 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% oppetid",
-    "uptimePercent": "{{percent}}% oppetid",
+    "uptimePercent": "{{percent}} oppetid",
     "operational": "I drift",
     "notMonitored": "Ikke overvåket",
     "noResourcesInGroup": "Ingen ressurser lagt til i denne gruppen.",
@@ -60,10 +60,9 @@
   },
   "eventItem": {
     "affectedResources": "Berørte ressurser",
-    "stateChangedTo": "status endret til",
     "view": "Vis {{eventType}}",
     "updateTo": "Oppdatering for denne {{eventType}}",
-    "postedOn": "publisert"
+    "postedOnDate": "publisert {{date}}"
   },
   "monitorOverview": {
     "daysAgo": "for {{days}} dager siden",
@@ -276,6 +275,7 @@
       "channelSlack": "Slack-arbeidsområde",
       "channelMicrosoftTeams": "Microsoft Teams-arbeidsområde",
       "channelWebhook": "Webhook",
+      "channelWithColon": "{{channel}}:",
       "addedByTeamWarning": "Dette abonnementet ble lagt til av teamet som driver denne statussiden. Hvis det er en delt adresse, for eksempel en e-postliste, stopper avslutning disse varslene for alle som mottar dem, og teamet blir varslet.",
       "confirmButton": "Avslutt abonnement",
       "manageInstead": "Velg heller hvilke varsler du mottar",
@@ -473,5 +473,6 @@
     "warning": "Advarsel"
   },
   "No options available": "Ingen tilgjengelige alternativer",
-  "No matches found": "Ingen treff"
+  "No matches found": "Ingen treff",
+  "{{eventType}} state changed to {{state}}": "{{eventType}}: status endret til {{state}}"
 }

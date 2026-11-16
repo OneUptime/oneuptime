@@ -53,7 +53,7 @@ Una dashboard pubblica:
 
 Tratta la condivisione di una dashboard come la pubblicazione di una pagina web. Ogni widget che contiene diventa leggibile da chiunque abbia il link. Guarda che cosa c'è sul canvas prima di condividerla.
 
-Ogni widget pubblica solo ciò che disegna, e solo per le risorse a cui è stato puntato. Un widget SLO, per esempio, pubblica i numeri principali di quello SLO ma mai la sua definizione: vedi [SLO](/docs/dashboards/widgets#slo). I widget con una **Data Source** esterna sono l'eccezione: vengono esclusi del tutto da una dashboard pubblica invece di essere resi, perché la loro configurazione è la query stessa. Alcuni altri widget non possono essere mostrati senza una sessione con accesso, e lo indicano al loro posto: [Su una dashboard pubblica](/docs/dashboards/widgets#su-una-dashboard-pubblica) li elenca. Pubblicano solo il loro titolo, mai le ricerche e i filtri con cui leggono i loro dati. Anche le variabili pubblicano solo ciò che mostrano i loro selettori: la query di una vecchia variabile di tipo query non viene mai pubblicata.
+Ogni widget pubblica solo ciò che disegna, e solo per le risorse a cui è stato puntato. Un widget SLO, per esempio, pubblica i numeri principali di quello SLO ma mai la sua definizione: vedi [SLO](/docs/dashboards/widgets#slo). I widget con un'**Origine dati** esterna sono l'eccezione: vengono esclusi del tutto da una dashboard pubblica invece di essere resi, perché la loro configurazione è la query stessa. Alcuni altri widget non possono essere mostrati senza una sessione con accesso, e lo indicano al loro posto: [Su una dashboard pubblica](/docs/dashboards/widgets#su-una-dashboard-pubblica) li elenca. Pubblicano solo il loro titolo, mai le ricerche e i filtri con cui leggono i loro dati. Anche le variabili pubblicano solo ciò che mostrano i loro selettori: la query di una vecchia variabile di tipo query non viene mai pubblicata.
 
 ## Condividere con una password
 
@@ -139,9 +139,9 @@ Su un'installazione self-hosted, i domini personalizzati delle dashboard si atti
 
 ### Chi può verificare e riemettere
 
-**Verifica ora**, l'ordine del certificato di un dominio e **Reissue SSL** modificano il dominio, quindi richiedono l'autorizzazione a modificarlo: **Edit Dashboard Domain**, o un ruolo che la includa (Project Owner, Project Admin, Project Member, Settings Admin o Settings Member).
+**Verifica ora**, l'ordine del certificato di un dominio e **Reissue SSL** modificano il dominio, quindi richiedono l'autorizzazione a modificarlo: **Edit Dashboard Domain**, o un ruolo che la includa (Proprietario del progetto, Amministratore del progetto, Membro del progetto, Amministratore delle impostazioni o Membro delle impostazioni).
 
-Chi può solo leggere il dominio, come un Viewer o un Settings Viewer, vede comunque la colonna **Stato** e il record da aggiungere in **Configurazione DNS**. Per loro **Verifica ora** e **Reissue SSL** sono bloccati, e indicano quale autorizzazione serve. OneUptime continua comunque a verificare ogni dominio e a ordinarne il certificato da solo.
+Chi può solo leggere il dominio, come un Visualizzatore o un Visualizzatore delle impostazioni, vede comunque la colonna **Stato** e il record da aggiungere in **Configurazione DNS**. Per loro **Verifica ora** e **Reissue SSL** sono bloccati, e indicano quale autorizzazione serve. OneUptime continua comunque a verificare ogni dominio e a ordinarne il certificato da solo.
 
 Lo stesso vale per le chiavi API. Una chiave che può solo leggere i domini delle dashboard non può chiamare `verify-cname`, `order-ssl` o `reissue-ssl` su `/dashboard-domain`. Dalle **Read Dashboard Domain** ed **Edit Dashboard Domain** se ne ha bisogno.
 
@@ -158,7 +158,7 @@ Nella pagina **Branding** della dashboard, puoi configurare:
 - **Tema**: chiaro, scuro o come è impostato il dispositivo di ogni visitatore; vedi [Tema](#tema).
 - **Favicon**: la piccola icona nella scheda del browser.
 
-Il logo, il logo per il tema scuro e la favicon sono file caricati nel progetto stesso della dashboard, e questo viene verificato ogni volta che ne viene salvato uno: dalla dashboard, dall'API, da Terraform o da un workflow. Un file caricato in un altro progetto viene rifiutato con le stesse parole che riceve un file che non esiste più: "The logo's file could not be found. Upload the logo again.", "The dark theme logo's file could not be found. Upload the dark theme logo again." oppure "The favicon's file could not be found. Upload the favicon again." La dashboard pubblica mostra solo immagini del proprio progetto.
+Il logo, il logo per il tema scuro e la favicon sono file caricati nel progetto stesso della dashboard, e questo viene verificato ogni volta che ne viene salvato uno: dalla dashboard, dall'API, da Terraform o da un flusso di lavoro. Un file caricato in un altro progetto viene rifiutato con le stesse parole che riceve un file che non esiste più: "The logo's file could not be found. Upload the logo again.", "The dark theme logo's file could not be found. Upload the dark theme logo again." oppure "The favicon's file could not be found. Upload the favicon again." La dashboard pubblica mostra solo immagini del proprio progetto.
 
 Il titolo e la descrizione della pagina compaiono anche in cima alla barra degli strumenti della dashboard per il tuo team, al posto del suo nome e della sua descrizione. I loghi, il tema e la favicon valgono solo per la dashboard pubblica.
 

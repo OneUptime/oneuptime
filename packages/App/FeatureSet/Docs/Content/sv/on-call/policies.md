@@ -52,7 +52,7 @@ En policy som flera regler lägger till körs en gång. En allvarlighetsgrad kö
 **Grundläggande** är öppet; de andra avsnitten börjar ihopfällda tills du klickar på dem.
 
 - **Översikt** visar **Detaljer för jourpolicy** och sedan **Policyn i korthet**: hur många nivåer och mottagare policyn har, hur lång tid det dröjer till dess sista nivå och hur ofta den upprepas. **Mottagarnas beredskap** säger om alla som den kan larma kan nås nu, och **Jourpolicyns flöde** visar vad som har ändrats: personer, team och scheman som lagts till eller tagits bort, åsidosättningar och överlämningar. Dess regler för Slack, Microsoft Teams och Mattermost publicerar dem i dina kanaler, en överlämning på en rad: se [Jourmeddelanden](/docs/workspace-connections/slack#jourmeddelanden).
-- **Ägare** är personerna och teamen som ansvarar för policyn. När en utlarmning från den inte hittar någon regel för någon, eller inte kan levereras, får de ett e-postmeddelande; en policy utan ägare skickar i stället e-post till projektets ägare.
+- **Ägare** är personerna och teamen som ansvarar för policyn. När en utlarmning från den inte hittar någon regel för någon, eller inte kan levereras, får de ett e-postmeddelande; en policy utan ägare skickar i stället e-post till Projektägare.
 - **Aviseringsloggar** visar varje meddelande som policyn har skickat, med en flik per kanal.
 - **Användaråsidosättningar** täcker upp för personer bara i den här policyn. Se [Användaråsidosättningar](/docs/on-call/user-overrides).
 - **Inställningar** har **Exportera Jourpolicy** och kortet som arkiverar policyn.
@@ -111,11 +111,11 @@ flowchart TB
 | Status | Vad den betyder |
 | --- | --- |
 | **Väntar** | En jourregel inställd på **Endast under arbetstid** låter körningen vänta tills arbetstiden börjar: den säger när larmningen börjar och larmar ingen fram till dess. Den avslutas utan larm om incidenten eller larmet bekräftas eller löses först. Den börjar larma genast om incidenten eller larmet ändras och nu matchar en jourregel som larmar direkt. |
-| **Schemalagd**, **Startade** | Körningen förbereds. En som fortfarande står här efter 5 minuter stoppas som **Fel**. |
-| **Utförs** | Körningen larmar. OneUptime för den ett steg vidare varje minut. |
+| **Schemalagd**, **Startade** | Körningen förbereds. En som fortfarande står här efter 5 minuter blev inte klar med att starta: den går vidare till **Utförs** och larmar därifrån starten stannade. En direkt utlarmning eller en testutlarmning som fortfarande står här stoppas som **Fel**. |
+| **Utförs** | Körningen larmar. OneUptime för den ett steg vidare varje minut. Ett steg som misslyckas en kort stund, till exempel för att databasen inte gick att nå, försöks igen en minut senare, sedan efter 2 och 4 minuter och därefter var 5:e minut. |
 | **Exekvering slutförd** | Någon bekräftade, incidenten eller larmet löstes, varje regel och upprepning användes, eller policyn arkiverades. |
 | **Exekvering slutförd - ingen aviserad** | Körningen gick igenom varje regel och larmade ingen: oftast ett schema där ingen har jour, eller en nivå utan mottagare. |
-| **Fel** | Körningen misslyckades. **Visa statusmeddelande** säger varför. |
+| **Fel** | Körningen misslyckades: ett steg misslyckades på ett sätt som ett nytt försök inte kan rätta, till exempel en borttagen eskaleringsregel, eller misslyckades 10 försök i rad under ungefär 37 minuter. **Visa statusmeddelande** säger varför. |
 
 Du hittar exekveringsloggar på tre ställen:
 

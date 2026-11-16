@@ -12,6 +12,8 @@ import FieldError from "Common/UI/Components/Forms/Fields/FieldError";
 import { InviteTeam } from "Common/UI/Utils/DefaultInviteTeam";
 import { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Team from "Common/Models/DatabaseModels/Team";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   MutableRefObject,
@@ -175,6 +177,7 @@ export interface ComponentProps {
 const ProjectScopedTeamsPicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [options, setOptions] = useState<Array<DropdownOption>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -272,13 +275,19 @@ const ProjectScopedTeamsPicker: FunctionComponent<ComponentProps> = (
     return (
       <p className="text-sm text-gray-500">
         {props.noProjectMessage ||
-          "Select a project first to choose its default teams."}
+          translator.translateText(
+            "Select a project first to choose its default teams.",
+          )}
       </p>
     );
   }
 
   if (isLoading) {
-    return <p className="text-sm text-gray-500">Loading teams...</p>;
+    return (
+      <p className="text-sm text-gray-500">
+        {translator.translateText("Loading teams...")}
+      </p>
+    );
   }
 
   // In the field's place, drawn as every field's error is (FieldError).
@@ -289,7 +298,7 @@ const ProjectScopedTeamsPicker: FunctionComponent<ComponentProps> = (
   if (options.length === 0) {
     return (
       <p className="text-sm text-gray-500">
-        This project has no teams to choose from.
+        {translator.translateText("This project has no teams to choose from.")}
       </p>
     );
   }

@@ -20,6 +20,7 @@ import {
   getReplayImageClipboardSupport,
 } from "./ReplayScreenshot";
 import { ReplayStageFit } from "./ReplayStage";
+import { writeReplayFigureInLanguage } from "./ReplayTimeFormat";
 
 /*
  * The paused stage's screenshot dock: "Copy image" and "Download", in the
@@ -166,11 +167,21 @@ export function getReplayScreenshotDockPositionClassName(
   }
 }
 
+/*
+ * "1440 × 900", in the digits `language` writes - "۱۴۴۰ × ۹۰۰" in Persian,
+ * as the stage's viewport chip writes its size (#8299) - and unchanged in a
+ * language that writes Latin digits, and with no language. Never grouped:
+ * a size in pixels is read as one figure, as the chip and the rail read it.
+ */
 export function formatReplayScreenshotSize(
   width: number,
   height: number,
+  language?: string | undefined,
 ): string {
-  return `${Math.round(width)} × ${Math.round(height)}`;
+  return writeReplayFigureInLanguage(
+    `${Math.round(width)} × ${Math.round(height)}`,
+    language,
+  );
 }
 
 export interface ReplayScreenshotActionsProps {
@@ -806,12 +817,16 @@ const ReplayScreenshotActions: FunctionComponent<
   const enterClass: string = isEntered
     ? "translate-y-0 opacity-100"
     : "translate-y-1 opacity-0";
-  // The PNG's size and format, or the file's name: values, as written.
+  /*
+   * The PNG's size, in the reader's digits, and its format; or the file's
+   * name, as written.
+   */
   const previewDetail: string = preview
     ? preview.action === "copy"
       ? `${formatReplayScreenshotSize(
           preview.pixelWidth,
           preview.pixelHeight,
+          translator.language,
         )} PNG`
       : preview.fileName
     : "";

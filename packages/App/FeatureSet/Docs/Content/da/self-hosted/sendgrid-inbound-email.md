@@ -2,7 +2,7 @@
 
 OneUptimes **Incoming Email Monitor** lader dig oprette og løse alarmer ud fra e-mails, der sendes til unikke, monitorspecifikke e-mailadresser. Det er nyttigt til at integrere ældre systemer, alarmeringsværktøjer eller enhver tjeneste, der kan sende e-mails.
 
-Den samme opsætning lader også workflows modtage e-mail: Et workflow med triggeren **Incoming Email** får sin egen adresse på det samme domæne, og hver e-mail til den starter workflowet. Se [Triggere](/docs/workflows/triggers#incoming-email).
+Den samme opsætning lader også arbejdsgange modtage e-mail: En arbejdsgang med triggeren **Indgående e-mail** får sin egen adresse på det samme domæne, og hver e-mail til den starter arbejdsgangen. Se [Triggere](/docs/workflows/triggers#incoming-email).
 
 Denne vejledning forklarer, hvordan du sætter SendGrid Inbound Parse op til at videresende indgående e-mails til din selvhostede OneUptime-instans. OneUptime Cloud har ikke brug for noget af det: Dér virker adresserne med det samme.
 
@@ -22,7 +22,7 @@ sequenceDiagram
     participant OneUptime as OneUptime
     Sender->>SendGrid: E-mail til<br/>monitorens<br/>adresse (din<br/>MX-post)
     SendGrid->>OneUptime: POST …/sendgrid/YOUR_SECRET
-    OneUptime->>OneUptime: Knyt adressen<br/>til en<br/>monitor eller<br/>et workflow
+    OneUptime->>OneUptime: Knyt adressen<br/>til en<br/>monitor eller<br/>en arbejdsgang
     OneUptime-->>SendGrid: 200 OK
 ```
 
@@ -60,7 +60,7 @@ Inbound Parse er adskilt fra afsendelse af udgående e-mail. For at modtage moni
 :::steps
 ### Vælg dit domæne til indgående e-mail
 
-Vælg et underdomæne, der kun bruges til at modtage e-mail til OneUptime, f.eks. `inbound.yourdomain.com`, `email.yourdomain.com` eller `monitor.yourdomain.com`. Det bruges kun til e-mail til OneUptime-monitorer og -workflows, så ingen af dine postkasser ligger på det.
+Vælg et underdomæne, der kun bruges til at modtage e-mail til OneUptime, f.eks. `inbound.yourdomain.com`, `email.yourdomain.com` eller `monitor.yourdomain.com`. Det bruges kun til e-mail til OneUptime-monitorer og -arbejdsgange, så ingen af dine postkasser ligger på det.
 
 ### Lad dets MX-post pege på SendGrid
 
@@ -118,11 +118,11 @@ inboundEmail:
 
 Anvend dem derefter: Kør `npm run start` på Docker Compose, hvilket genskaber containerne med de nye værdier, eller opgrader Helm-releasen på Kubernetes.
 
-### Opret en Incoming Email-monitor
+### Opret en Indgående e-mail-monitor
 
 [Opret en Incoming Email-monitor](/docs/monitor/incoming-email-monitor#opret-en-monitor-for-indgående-e-mail). Dens side **Oversigt** viser dens adresse, f.eks. `monitor-abc123def456@inbound.yourdomain.com`, og dens kriterier afgør, hvilke e-mails der opretter en alarm, og hvilke der løser den.
 
-Workflows bruger det samme domæne. Tilføj triggeren **Incoming Email** til et workflow, og klik på den: Dens adresse (`workflow-…@inbound.yourdomain.com`) står øverst i dens indstillinger. Indtil variablerne til indgående e-mail ovenfor er sat, siger triggeren, at serveren ikke er sat op til at modtage e-mail.
+Arbejdsgange bruger det samme domæne. Tilføj triggeren **Indgående e-mail** til en arbejdsgang, og klik på den: Dens adresse (`workflow-…@inbound.yourdomain.com`) står øverst i dens indstillinger. Indtil variablerne til indgående e-mail ovenfor er sat, siger triggeren, at serveren ikke er sat op til at modtage e-mail.
 
 ### Send en test-e-mail
 
@@ -137,7 +137,7 @@ Send en e-mail til monitorens adresse med et emne, der matcher dens kriterier. M
 | `INBOUND_EMAIL_DOMAIN` | `inboundEmail.domain` | Det underdomæne, der er sat op til indgående e-mail. Indgående e-mail er slået fra, indtil det er sat. | Ja | Tom |
 | `INBOUND_EMAIL_WEBHOOK_SECRET` | `inboundEmail.webhookSecret` | Hemmelighed, som det sidste segment af webhook-URL'en skal matche: `/incoming-email/sendgrid/YOUR_SECRET`. Hver e-mail afvises, så længe den er tom eller en pladsholder. | Ja | Tom |
 
-Hvad en Incoming Email-monitor kan matche på – emnet, afsenderen, brødteksten, modtageren og om en e-mail kom frem til tiden – står i [Tilgængelige filtertyper](/docs/monitor/incoming-email-monitor#tilgængelige-filtertyper).
+Hvad en Indgående e-mail-monitor kan matche på – emnet, afsenderen, brødteksten, modtageren og om en e-mail kom frem til tiden – står i [Tilgængelige filtertyper](/docs/monitor/incoming-email-monitor#tilgængelige-filtertyper).
 
 ## Fejlfinding
 
@@ -161,7 +161,7 @@ Hvad en Incoming Email-monitor kan matche på – emnet, afsenderen, brødtekste
 :::
 
 :::details Triggeren siger, at serveren ikke er sat op til at modtage e-mail
-`INBOUND_EMAIL_DOMAIN` er tom på serveren. Sæt den, anvend ændringen, og åbn workflowets trigger igen.
+`INBOUND_EMAIL_DOMAIN` er tom på serveren. Sæt den, anvend ændringen, og åbn arbejdsgangens trigger igen.
 :::
 
 ## Bedste sikkerhedspraksis
@@ -176,7 +176,7 @@ Hvad en Incoming Email-monitor kan matche på – emnet, afsenderen, brødtekste
 
 :::cards
 - [Incoming Email Monitor](/docs/monitor/incoming-email-monitor): Kriterier, adresseformater og eksempler.
-- [Workflow-triggere](/docs/workflows/triggers): Start et workflow fra en e-mail.
+- [Arbejdsgangstriggere](/docs/workflows/triggers): Start en arbejdsgang fra en e-mail.
 - [Adgang til privat netværk](/docs/self-hosted/private-network-access): Hvad din server må nå på dit eget netværk.
 - [Arkitektur](/docs/self-hosted/architecture): Hvor webhooken lander i en selvhostet installation.
 :::

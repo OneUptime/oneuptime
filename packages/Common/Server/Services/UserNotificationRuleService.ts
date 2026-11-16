@@ -157,6 +157,13 @@ import { DEFAULT_READER_LANGUAGE } from "../../Types/ReaderLanguage";
 import { Translator } from "../../Types/Translator";
 import { getServerTranslator } from "../Utils/ServerTranslation";
 import UserLanguage from "../Utils/Notification/UserLanguage";
+import OnCallRuleClaimsInFlight, {
+  OnCallRuleClaimInFlight,
+} from "../Utils/OnCall/OnCallRuleClaimsInFlight";
+import OnCallSendAttempt from "../Utils/OnCall/OnCallSendAttempt";
+import OnCallRunFailure, {
+  OnCallRunFailureKind,
+} from "../Utils/OnCall/OnCallRunFailure";
 import {
   OnCallPageAgainNotice,
   getOnCallAcknowledgementTimeoutInMinutes,
@@ -244,7 +251,16 @@ import EpisodeMemberEmailList, {
 } from "../Utils/Mail/EpisodeMemberEmailList";
 import OnCallTestPageDelivery from "../Utils/OnCall/OnCallTestPageDelivery";
 import { OnCallPageChannel } from "../../Types/OnCallDutyPolicy/OnCallPageChannel";
+import {
+  getOnCallCustomChannelSendFailedMessage,
+  getOnCallSendFailedMessage,
+  getOnCallWorkspaceSendFailedMessage,
+} from "../../Types/OnCallDutyPolicy/OnCallSendFailureLine";
 import { getOnCallTestPageNotVerifiedMessage } from "../../Types/OnCallDutyPolicy/OnCallTestPageLine";
+import {
+  ON_CALL_PAGE_RECORD_NOT_FOUND_MESSAGE,
+  OnCallPageRecordGoneException,
+} from "../../Types/OnCallDutyPolicy/OnCallPageRecordGone";
 
 // The record a page to a custom channel is about, with the words its push would carry.
 interface CustomChannelPagedRecord {
@@ -383,6 +399,12 @@ export interface FallbackNotificationResult {
    */
   notified: boolean;
   channelsUsed: Array<string>;
+  /*
+   * The fallback failed, for a reason a retry can outlast, before anything
+   * of it reached a sender, and its claim was given back: it can be tried
+   * again (issue #8469). What it failed with.
+   */
+  toTryAgainAfter?: unknown;
 }
 
 /*
@@ -786,19 +808,126 @@ export class Service extends ProjectReferencesService<Model> {
      * notify — double-paging the responder for one escalation (audit F7). The
      * previous read-check-then-blind-save was a non-atomic TOCTOU. If the claim
      * was already taken (or the log is gone), skip.
+     *
+     * A send that fails before anything of it reached a sender
+     * (OnCallSendAttempt) - a database error reading the rule, the
+     * incident, the project's Twilio settings, or writing the
+     * notification's row - gives its claim back, so the next tick sends the
+     * rule once. It used to keep it, and the rule - "call me after 10
+     * minutes" - was never sent at all (issue #8407). One that reached a
+     * sender keeps it: sending it again would page twice.
+     *
+     * The claim is kept in flight (OnCallRuleClaimsInFlight) from just
+     * before it is taken until its page is handed over or the claim is
+     * given back, so one whose give-back fails, or whose process stops
+     * before the send, is settled by the person's-log worker at the log's
+     * next try.
      */
+    const claim: OnCallRuleClaimInFlight = {
+      claimKey: UserOnCallLogService.getNotificationRuleClaimKey({
+        userNotificationRuleId: userNotificationRuleId,
+        repeatNumber: options.repeatNumber,
+      }),
+      ruleId: userNotificationRuleId.toString(),
+      claimedAt: OneUptimeDate.getCurrentDate(),
+      owed: false,
+    };
+
+    await OnCallRuleClaimsInFlight.keep(options.userNotificationLogId, claim);
+
     const claimedRuleExecution: boolean =
       await UserOnCallLogService.claimNotificationRuleExecution({
         userOnCallLogId: options.userNotificationLogId,
         userNotificationRuleId: userNotificationRuleId,
         repeatNumber: options.repeatNumber,
+        claimedAt: claim.claimedAt,
       });
 
     if (!claimedRuleExecution) {
       // already executed by this or a concurrent run.
+      await OnCallRuleClaimsInFlight.forget(options.userNotificationLogId);
       return;
     }
 
+    const attempt: OnCallSendAttempt = OnCallSendAttempt.begin();
+
+    try {
+      await attempt.run((): Promise<void> => {
+        return this.sendClaimedNotificationRule(
+          userNotificationRuleId,
+          options,
+        );
+      });
+    } catch (err) {
+      /*
+       * A record found gone, or data a retry cannot fix, ends the person's
+       * log (UserOnCallLog:ExecutePendingExecutions): there is no next try
+       * to send the rule on, and its claim stays.
+       */
+      const isTriedAgain: boolean =
+        !(err instanceof OnCallPageRecordGoneException) &&
+        OnCallRunFailure.classify(err) !== OnCallRunFailureKind.Permanent;
+
+      if (attempt.handedToASender || !isTriedAgain) {
+        await OnCallRuleClaimsInFlight.forget(options.userNotificationLogId);
+      } else {
+        await this.giveBackNotificationRuleClaim({
+          claim: claim,
+          logId: options.userNotificationLogId,
+        });
+      }
+
+      throw err;
+    }
+
+    await OnCallRuleClaimsInFlight.forget(options.userNotificationLogId);
+  }
+
+  /*
+   * A claimed rule's send failed before anything of it reached a sender
+   * (executeNotificationRuleItem): its claim is given back, and the next
+   * tick sends it. Kept in flight as owed first, so a give-back that fails
+   * too - the database is often still failing - is made by the worker at
+   * the log's next try. Never throws.
+   */
+  private async giveBackNotificationRuleClaim(data: {
+    claim: OnCallRuleClaimInFlight;
+    // The person's log the claim is on.
+    logId: ObjectID;
+  }): Promise<void> {
+    const logId: ObjectID = data.logId;
+
+    await OnCallRuleClaimsInFlight.keep(logId, { ...data.claim, owed: true });
+
+    try {
+      await UserOnCallLogService.releaseNotificationRuleClaim({
+        userOnCallLogId: logId,
+        claimKey: data.claim.claimKey,
+        claimedAt: data.claim.claimedAt,
+      });
+    } catch (err) {
+      logger.error(
+        `Notification rule ${data.claim.ruleId} sent nothing for on-call log ${logId.toString()}, and its claim could not be given back; the person's-log worker gives it back at the log's next try.`,
+      );
+      logger.error(err);
+      return;
+    }
+
+    await OnCallRuleClaimsInFlight.forget(logId);
+
+    logger.warn(
+      `Notification rule ${data.claim.ruleId} failed before it reached a sender for on-call log ${logId.toString()}; its claim is given back, and it is sent on the log's next try.`,
+    );
+  }
+
+  /*
+   * A rule this call claimed, sent: read with its methods, checked, and
+   * handed to the delivery half (executeNotificationRuleItem).
+   */
+  private async sendClaimedNotificationRule(
+    userNotificationRuleId: ObjectID,
+    options: ExecuteNotificationRuleOptions,
+  ): Promise<void> {
     // find notification rule item.
     const notificationRuleItem: Model | null = await this.findOneById({
       id: userNotificationRuleId!,
@@ -908,8 +1037,26 @@ export class Service extends ProjectReferencesService<Model> {
       },
     });
 
+    /*
+     * The rule was deleted after the page read it - its owner removed "SMS
+     * after 5 minutes" while they were being paged. There is nothing to
+     * send for it, and its claim stays taken, so no later tick tries it
+     * again; the next tick's read of the person's rules no longer finds it.
+     * It used to throw a BadDataException, which ends the person's whole
+     * log in Error (UserOnCallLog:ExecutePendingExecutions): every rule of
+     * theirs still due - the call after 10 minutes - was never run (issue
+     * #8168). Skipping it lets the others run.
+     */
     if (!notificationRuleItem) {
-      throw new BadDataException("Notification rule item not found.");
+      logger.info(
+        `Notification rule ${userNotificationRuleId.toString()} was deleted before it was sent for on-call log ${options.userNotificationLogId.toString()}; skipped, and the person's other rules still run.`,
+        {
+          projectId: options.projectId?.toString(),
+          userNotificationRuleId: userNotificationRuleId.toString(),
+        } as LogAttributes,
+      );
+
+      return;
     }
 
     /*
@@ -1155,6 +1302,28 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * The kind of record a page names for its event type - "incident" for an
+   * IncidentCreated page that names an incident, and so on - or null when it
+   * names none of that kind. deliverNotificationForRule reads only that one.
+   */
+  private getRecordKindNamedForEventType(
+    options: ExecuteNotificationRuleOptions,
+  ): string | null {
+    switch (options.userNotificationEventType) {
+      case UserNotificationEventType.IncidentCreated:
+        return options.triggeredByIncidentId ? "incident" : null;
+      case UserNotificationEventType.AlertCreated:
+        return options.triggeredByAlertId ? "alert" : null;
+      case UserNotificationEventType.AlertEpisodeCreated:
+        return options.triggeredByAlertEpisodeId ? "alert episode" : null;
+      case UserNotificationEventType.IncidentEpisodeCreated:
+        return options.triggeredByIncidentEpisodeId ? "incident episode" : null;
+      default:
+        return null;
+    }
+  }
+
+  /*
    * The delivery half of executeNotificationRuleItem: given a rule that is
    * already loaded with its method relations, decide what to send on which
    * channel and hand it to the senders.
@@ -1392,9 +1561,21 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     if (!incident && !alert && !alertEpisode && !incidentEpisode) {
-      throw new BadDataException(
-        "Incident, Alert, Alert Episode, or Incident Episode not found.",
-      );
+      /*
+       * The record the page names was deleted after the page read where it
+       * stands: the person's log ends saying so (OnCallPageRecordGone), as a
+       * log whose record the worker finds gone does, rather than in Error
+       * (issue #8168). A page that names no record of its event type is bad
+       * data, as it always was.
+       */
+      const namedRecordKind: string | null =
+        this.getRecordKindNamedForEventType(options);
+
+      if (namedRecordKind) {
+        throw new OnCallPageRecordGoneException(namedRecordKind);
+      }
+
+      throw new BadDataException(ON_CALL_PAGE_RECORD_NOT_FOUND_MESSAGE);
     }
 
     /*
@@ -1494,7 +1675,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error sending email.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.Email,
+              ),
             }),
           );
       }
@@ -1552,7 +1735,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error sending email.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.Email,
+              ),
             }),
           );
       }
@@ -1607,7 +1792,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error sending email.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.Email,
+              ),
             }),
           );
       }
@@ -1666,7 +1853,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error sending email.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.Email,
+              ),
             }),
           );
       }
@@ -1751,7 +1940,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error sending SMS.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.SMS,
+              ),
             }),
           );
       }
@@ -1810,7 +2001,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error sending SMS.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.SMS,
+              ),
             }),
           );
       }
@@ -1866,7 +2059,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error sending SMS.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.SMS,
+              ),
             }),
           );
       }
@@ -1925,7 +2120,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error sending SMS.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.SMS,
+              ),
             }),
           );
       }
@@ -2000,7 +2197,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error sending WhatsApp message.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.WhatsApp,
+              ),
             }),
           );
       }
@@ -2050,7 +2249,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error sending WhatsApp message.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.WhatsApp,
+              ),
             }),
           );
       }
@@ -2101,7 +2302,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error sending WhatsApp message.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.WhatsApp,
+              ),
             }),
           );
       }
@@ -2155,7 +2358,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error sending WhatsApp message.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.WhatsApp,
+              ),
             }),
           );
       }
@@ -2237,7 +2442,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error sending Telegram message.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.Telegram,
+              ),
             }),
           );
       }
@@ -2294,7 +2501,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error sending Telegram message.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.Telegram,
+              ),
             }),
           );
       }
@@ -2351,7 +2560,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error sending Telegram message.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.Telegram,
+              ),
             }),
           );
       }
@@ -2411,7 +2622,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error sending Telegram message.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.Telegram,
+              ),
             }),
           );
       }
@@ -2640,7 +2853,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error sending webhook.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.Webhook,
+              ),
             }),
           );
       };
@@ -2825,7 +3040,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error making call.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.Call,
+              ),
             }),
           );
       }
@@ -2882,7 +3099,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error making call.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.Call,
+              ),
             }),
           );
       }
@@ -2937,7 +3156,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error making call.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.Call,
+              ),
             }),
           );
       }
@@ -2995,7 +3216,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error making call.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.Call,
+              ),
             }),
           );
       }
@@ -3179,7 +3402,9 @@ export class Service extends ProjectReferencesService<Model> {
         ).catch(
           whenSendFails({
             userOnCallLogTimelineId: updatedLog.id!,
-            fallbackStatusMessage: "Error sending push notification.",
+            fallbackStatusMessage: getOnCallSendFailedMessage(
+              OnCallPageChannel.Push,
+            ),
           }),
         );
       }
@@ -3280,7 +3505,9 @@ export class Service extends ProjectReferencesService<Model> {
         ).catch(
           whenSendFails({
             userOnCallLogTimelineId: updatedLog.id!,
-            fallbackStatusMessage: "Error sending push notification.",
+            fallbackStatusMessage: getOnCallSendFailedMessage(
+              OnCallPageChannel.Push,
+            ),
           }),
         );
       }
@@ -3380,7 +3607,9 @@ export class Service extends ProjectReferencesService<Model> {
         ).catch(
           whenSendFails({
             userOnCallLogTimelineId: updatedLog.id!,
-            fallbackStatusMessage: "Error sending push notification.",
+            fallbackStatusMessage: getOnCallSendFailedMessage(
+              OnCallPageChannel.Push,
+            ),
           }),
         );
       }
@@ -3479,7 +3708,9 @@ export class Service extends ProjectReferencesService<Model> {
         ).catch(
           whenSendFails({
             userOnCallLogTimelineId: updatedLog.id!,
-            fallbackStatusMessage: "Error sending push notification.",
+            fallbackStatusMessage: getOnCallSendFailedMessage(
+              OnCallPageChannel.Push,
+            ),
           }),
         );
       }
@@ -3782,7 +4013,8 @@ export class Service extends ProjectReferencesService<Model> {
     }).catch(
       whenSendFails({
         userOnCallLogTimelineId: updatedLog.id!,
-        fallbackStatusMessage: `Error sending ${channelDisplayName} message.`,
+        fallbackStatusMessage:
+          getOnCallWorkspaceSendFailedMessage(channelDisplayName),
       }),
     );
 
@@ -3896,7 +4128,8 @@ export class Service extends ProjectReferencesService<Model> {
     }).catch(
       whenNotificationRequestFails({
         userOnCallLogTimelineId: updatedLog.id!,
-        fallbackStatusMessage: `Error sending to ${channelName}.`,
+        fallbackStatusMessage:
+          getOnCallCustomChannelSendFailedMessage(channelName),
       }),
     );
 
@@ -4327,14 +4560,34 @@ export class Service extends ProjectReferencesService<Model> {
      * Claim the log under the reserved fallback key before doing anything, so
      * two overlapping cron ticks cannot both fall back and double-page the same
      * responder for one escalation.
+     *
+     * As a rule's claim is (executeNotificationRuleItem, issue #8469): kept in
+     * flight while the fallback is on its way (OnCallRuleClaimsInFlight), and
+     * given back when it fails, for a reason a retry can outlast, before
+     * anything of it reached a sender (OnCallSendAttempt) - reading whether
+     * the person is a member, or their methods - so the fallback is tried
+     * again rather than lost. It has no rule of its own to look for rows of:
+     * any notification of the log since the claim is its own.
      */
+    const claim: OnCallRuleClaimInFlight = {
+      claimKey: FALLBACK_NOTIFICATION_CLAIM_KEY,
+      ruleId: "",
+      claimedAt: OneUptimeDate.getCurrentDate(),
+      owed: false,
+    };
+
+    await OnCallRuleClaimsInFlight.keep(options.userOnCallLogId, claim);
+
     const claimed: boolean =
       await UserOnCallLogService.claimNotificationExecution({
         userOnCallLogId: options.userOnCallLogId,
         claimKey: FALLBACK_NOTIFICATION_CLAIM_KEY,
+        claimedAt: claim.claimedAt,
       });
 
     if (!claimed) {
+      await OnCallRuleClaimsInFlight.forget(options.userOnCallLogId);
+
       /*
        * A concurrent run already fell back for this log; it owns everything
        * that happens next, including the log's final status. Reported as the
@@ -4349,6 +4602,51 @@ export class Service extends ProjectReferencesService<Model> {
       };
     }
 
+    const attempt: OnCallSendAttempt = OnCallSendAttempt.begin();
+    let result: FallbackNotificationResult;
+
+    try {
+      result = await attempt.run((): Promise<FallbackNotificationResult> => {
+        return this.sendClaimedFallbackNotification(options);
+      });
+    } catch (err) {
+      const isTriedAgain: boolean =
+        !(err instanceof OnCallPageRecordGoneException) &&
+        OnCallRunFailure.classify(err) !== OnCallRunFailureKind.Permanent;
+
+      if (attempt.handedToASender || !isTriedAgain) {
+        await OnCallRuleClaimsInFlight.forget(options.userOnCallLogId);
+        throw err;
+      }
+
+      await this.giveBackNotificationRuleClaim({
+        claim: claim,
+        logId: options.userOnCallLogId,
+      });
+
+      return {
+        outcome: FallbackNotificationOutcome.DeliveryFailed,
+        notified: false,
+        channelsUsed: [],
+        toTryAgainAfter: err,
+      };
+    }
+
+    await OnCallRuleClaimsInFlight.forget(options.userOnCallLogId);
+
+    return result;
+  }
+
+  /*
+   * The fallback, once claimed (executeFallbackNotification): the person
+   * still a member, their verified methods, and one delivery on each. A
+   * delivery that failed is logged and the next one tried; when none went
+   * out and one failed for a reason a retry can outlast, that failure is
+   * thrown, so the fallback is tried again rather than ended (issue #8469).
+   */
+  private async sendClaimedFallbackNotification(
+    options: ExecuteFallbackNotificationOptions,
+  ): Promise<FallbackNotificationResult> {
     /*
      * Nothing is delivered on a project's behalf to somebody who is not a
      * member of it (ProjectMembership), however the fallback was reached: a
@@ -4386,6 +4684,8 @@ export class Service extends ProjectReferencesService<Model> {
 
     const channelsUsed: Array<string> = [];
     let anAttemptFailed: boolean = false;
+    // The last delivery that threw, if one did.
+    let lastDeliveryError: unknown = null;
 
     /*
      * One delivery call per channel, never a loop inside one call: the timeline
@@ -4420,6 +4720,7 @@ export class Service extends ProjectReferencesService<Model> {
         }
       } catch (err) {
         anAttemptFailed = true;
+        lastDeliveryError = err;
 
         logger.error(
           `On-call fallback failed to deliver on ${fallbackRule.channelName} for user ${options.userId.toString()}.`,
@@ -4434,6 +4735,21 @@ export class Service extends ProjectReferencesService<Model> {
         notified: true,
         channelsUsed: channelsUsed,
       };
+    }
+
+    /*
+     * Not one channel carried a page, and one failed for a reason a retry
+     * can outlast - the database lost as it wrote the notification: the
+     * fallback is tried again (executeFallbackNotification gives its claim
+     * back when nothing reached a sender), rather than ended as failed.
+     */
+    if (
+      lastDeliveryError &&
+      !(lastDeliveryError instanceof OnCallPageRecordGoneException) &&
+      OnCallRunFailure.classify(lastDeliveryError) !==
+        OnCallRunFailureKind.Permanent
+    ) {
+      throw lastDeliveryError;
     }
 
     /*

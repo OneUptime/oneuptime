@@ -8,6 +8,8 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
+import { NO_BREAK_SPACE } from "../SuiteHelpers/NoBreakSpaces";
 
 /*
  * Adding a host in one command, and the collectors OneUptime manages on
@@ -1196,9 +1198,15 @@ test("a managed host: its collector's state, its config and the commands on the 
   // Nothing failed: nothing to try again.
   await expect(headerButton(collector, "Try again")).toHaveCount(0);
 
-  // When it last reported, in words, with the date and time on hover.
+  /*
+   * When it last reported, in words, with the date and time on hover. The
+   * number is held to its unit by a no-break space (#8456), which a
+   * pattern matches as written.
+   */
   const lastReport: Locator = page.getByTestId("host-collector-last-report");
-  await expect(lastReport).toHaveText(/^\d+ minutes? ago$/);
+  await expect(lastReport).toHaveText(
+    new RegExp(`^\\d+${NO_BREAK_SPACE}minutes? ago$`),
+  );
   expect(await lastReport.getAttribute("title")).toMatch(/\d/);
 
   // Where what it collects is changed: a link, from the sentence that says so.
@@ -1637,8 +1645,9 @@ test("in German, the Collector page and a config's versions are translated", asy
   await expect(page.getByTestId("host-collector-config-version")).toHaveText(
     "1, die letzte, die hier funktioniert hat",
   );
+  // Its number held to its unit, as in English (#8456).
   await expect(page.getByTestId("host-collector-last-report")).toHaveText(
-    /^vor \d+ Minuten?$/,
+    new RegExp(`^vor \\d+${NO_BREAK_SPACE}Minuten?$`),
   );
   await expect(
     card(page, "Collector")
@@ -1752,4 +1761,18 @@ test("in the dark theme", async ({ page }: { page: Page }) => {
     page.getByTestId("host-collector-default-hosts-windows"),
   ).toHaveText("1 host");
   await screenshot(page, "collector-configs-dark");
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German whole, parsed on every page load of every test. English is in the
+ * bundle now, and each other language a chunk of its own, loaded only by a
+ * page drawn in it (SuiteHelpers/FixtureLocales.js), built as the Dashboard
+ * ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de"],
+  address: (language: string): string => {
+    return language === "en" ? HOSTS : `${HOSTS}?lang=${language}`;
+  },
 });

@@ -21,6 +21,7 @@ import {
   SERVER_TEXT,
   ScheduledMaintenanceDocsPageEntry,
   TEMPLATES_AND_RECURRING,
+  WORKFLOW_COMPONENTS,
 } from "./ScheduledMaintenanceDocsPages";
 import {
   DocsHeading,
@@ -176,12 +177,17 @@ function isCodeSpan(span: string): boolean {
   return ONLY_CODE.test(span);
 }
 
-// Whether a list accounts for a bold English word on a page.
+/*
+ * Whether a list accounts for a bold English word on a page. A workflow
+ * component's title is one: each language names it as its builder draws
+ * it, which WorkflowStepNamesAsDrawnDocs holds.
+ */
 function accountedFor(page: string, span: string): boolean {
   return (
     isCodeSpan(span) ||
     listed(KEPT_AS_WRITTEN, page).includes(span) ||
-    listed(PROSE, page).includes(span)
+    listed(PROSE, page).includes(span) ||
+    WORKFLOW_COMPONENTS.includes(span)
   );
 }
 

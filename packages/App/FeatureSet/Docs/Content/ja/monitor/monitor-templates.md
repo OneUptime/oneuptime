@@ -27,7 +27,7 @@ flowchart TB
 
 ## 始める前に
 
-- **テンプレートを作成できるロール**: Project Owner、Project Admin、Project Member、Monitor Admin、Monitor Member のいずれか、または Create Monitor Template 権限を持つカスタムロール。テンプレートの変更には同じロール、または Edit Monitor Template 権限が必要です。
+- **テンプレートを作成できるロール**: プロジェクト所有者、プロジェクト管理者、プロジェクトメンバー、モニター管理者、モニターメンバーのいずれか、または Create Monitor Template 権限を持つカスタムロール。テンプレートの変更には同じロール、または Edit Monitor Template 権限が必要です。
 - **リンクされたモニターを更新する権限。** 同期はあなたとしてリンクされた各モニターに書き込み、あなたの権限が及ばないモニターはスキップします。
 
 ## テンプレートを作成する
@@ -148,7 +148,7 @@ flowchart TB
 | API のみ | `requestHeaders`, `requestType`, `requestBody` |
 | ウェブサイトと API | `doNotFollowRedirects`, `allowSelfSignedCertificates`, `tlsClientAuthentication`（クライアント証明書、鍵、パスフレーズをまとめて） |
 | ポート、NTP | `monitorDestinationPort` |
-| シンセティックモニター、Custom JavaScript Code | `customCode` |
+| シンセティックモニター、カスタム JavaScript コード | `customCode` |
 | シンセティックモニター | `browserTypes`, `screenSizeTypes`, `retryCountOnError` |
 | DNS | `dnsMonitor.queryName`, `dnsMonitor.recordType`, `dnsMonitor.resolver`（DNS サーバーとポートをまとめて）, `dnsMonitor.timeout`, `dnsMonitor.retries` |
 | ドメイン | `domainMonitor.domainName`, `domainMonitor.lookupMethod`, `domainMonitor.timeout`, `domainMonitor.retries` |
@@ -159,7 +159,7 @@ flowchart TB
 | ログ、セキュリティイベント、トレース、AI / LLM、メトリクス、例外、プロファイル | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor`（モニターの構成全体） |
 | プローブステータス | `probeStatusMonitor.probeIds` |
 
-インフラストラクチャのモニター（Kubernetes、Docker Container、ホスト、Podman Container、Proxmox、Docker Swarm、Ceph、ストレージアレイ、IoT デバイス）では、リソースセレクター、フィルター（ホストを除く）、メトリクスのクエリ、クエリの時間枠を保護できます。その名前は、その種類のテンプレートの **テンプレートの同期設定** に一覧表示されます。
+インフラストラクチャのモニター（Kubernetes、Docker コンテナ、ホスト、Podman コンテナ、Proxmox、Docker Swarm、Ceph、ストレージアレイ、IoT デバイス）では、リソースセレクター、フィルター（ホストを除く）、メトリクスのクエリ、クエリの時間枠を保護できます。その名前は、その種類のテンプレートの **テンプレートの同期設定** に一覧表示されます。
 :::
 
 ## トラブルシューティング

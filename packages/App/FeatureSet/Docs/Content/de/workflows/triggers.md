@@ -20,26 +20,26 @@ Um den Trigger hinzuzufügen, klicken Sie auf der Arbeitsfläche eines neuen Wor
 | Den Workflow per Klick ausführen möchten        | **Manuell**           |
 | Nach einem wiederkehrenden Zeitplan ausführen möchten | **Zeitplan**    |
 | Ein anderes System Daten senden lassen möchten  | **Webhook**           |
-| Mit einer E-Mail starten möchten                | **Incoming Email**    |
-| Auf Huntress-Vorfallsmeldungen reagieren möchten | **Huntress Incident Report** |
+| Mit einer E-Mail starten möchten                | **Eingehende E-Mail**    |
+| Auf Huntress-Vorfallsmeldungen reagieren möchten | **Huntress-Vorfallsbericht** |
 | Auf etwas in OneUptime reagieren möchten        | **OneUptime-Ereignis** |
 
-Ein Workflow kann nur einen Trigger haben. Brauchen Sie zwei Wege, dieselbe Automatisierung zu starten, bauen Sie die gemeinsame Logik in einen Workflow mit einem Trigger **Manuell** und starten ihn aus zwei schlanken "Hüllen"-Workflows mit einem **Execute Workflow**-Baustein.
+Ein Workflow kann nur einen Trigger haben. Brauchen Sie zwei Wege, dieselbe Automatisierung zu starten, bauen Sie die gemeinsame Logik in einen Workflow mit einem Trigger **Manuell** und starten ihn aus zwei schlanken "Hüllen"-Workflows mit einem **Anderen Arbeitsablauf ausführen**-Baustein.
 
 ## Manual
 
-Den Workflow bei Bedarf ausführen: Klicken Sie auf der Seite **Editor** auf **Arbeitsablauf ausführen**, füllen Sie das **JSON** des Triggers aus, klicken Sie auf **Arbeitsablauf manuell ausführen** und bestätigen Sie mit **Ausführen**. Ein anderer Workflow kann ihn ebenfalls starten, mit einem **Execute Workflow**-Baustein.
+Den Workflow bei Bedarf ausführen: Klicken Sie auf der Seite **Editor** auf **Arbeitsablauf ausführen**, füllen Sie das **JSON** des Triggers aus, klicken Sie auf **Arbeitsablauf manuell ausführen** und bestätigen Sie mit **Ausführen**. Ein anderer Workflow kann ihn ebenfalls starten, mit einem **Anderen Arbeitsablauf ausführen**-Baustein.
 
 Gut für: Ein-Klick-Automatisierungen, für die Sie eine Schaltfläche möchten, etwa "diesen Schlüssel rotieren" oder "eine Testwarnung senden", und für Logik, die Sie zwischen Workflows teilen.
 
 **Rückkehren**: **JSON** – womit die Ausführung gestartet wurde.
 
 - Aus **Arbeitsablauf ausführen** ist es das JSON, das Sie eingetippt haben. Um ein Feld daraus zu lesen, hängen Sie den Namen des Feldes an den Verweis an, wie in `{{local.components.manual-1.returnValues.value.name}}`.
-- Aus einem **Execute Workflow**-Baustein ist jeder Schlüssel seiner **Arguments** ein eigener Wert. Mit `{"customerId": "42"}` liest ein späterer Baustein `{{local.components.manual-1.returnValues.customerId}}`, wobei `manual-1` die ID des manuellen Triggers ist.
+- Aus einem **Anderen Arbeitsablauf ausführen**-Baustein ist jeder Schlüssel seiner **Argumente** ein eigener Wert. Mit `{"customerId": "42"}` liest ein späterer Baustein `{{local.components.manual-1.returnValues.customerId}}`, wobei `manual-1` die ID des manuellen Triggers ist.
 
 ## Schedule
 
-Den Workflow nach einem wiederkehrenden Zeitplan ausführen. Legen Sie unter **Schedule at** fest, wie oft: Wählen Sie einen der **Häufige Zeitpläne**, schreiben Sie einen **Benutzerdefinierter Cron**-Ausdruck oder wählen Sie eine **Variable**, die einen enthält. Unter dem Feld wird der Zeitplan in Worten ausgeschrieben, mit seinen **Nächste Ausführungen**.
+Den Workflow nach einem wiederkehrenden Zeitplan ausführen. Legen Sie unter **Planen um** fest, wie oft: Wählen Sie einen der **Häufige Zeitpläne**, schreiben Sie einen **Benutzerdefinierter Cron**-Ausdruck oder wählen Sie eine **Variable**, die einen enthält. Unter dem Feld wird der Zeitplan in Worten ausgeschrieben, mit seinen **Nächste Ausführungen**.
 
 Gut für: nächtliches Aufräumen, stündlichen Abgleich, Wochenberichte.
 
@@ -92,9 +92,9 @@ sequenceDiagram
 
 | Wert                     | Was er enthält                                                                                                       |
 | ------------------------ | -------------------------------------------------------------------------------------------------------------------- |
-| **Request Headers**      | Jeden Header der Anfrage, nach Namen in Kleinbuchstaben, etwa `content-type`.                                        |
-| **Request Query Params** | Die Abfrageparameter in der URL, nach Namen.                                                                         |
-| **Request Body**         | Den Body, den der Aufrufer gesendet hat. Ein JSON-Body, gesendet mit `Content-Type: application/json`, lässt sich Feld für Feld lesen. |
+| **Anfrage-Header**      | Jeden Header der Anfrage, nach Namen in Kleinbuchstaben, etwa `content-type`.                                        |
+| **Abfrageparameter der Anfrage** | Die Abfrageparameter in der URL, nach Namen.                                                                         |
+| **Anfragetext**         | Den Body, den der Aufrufer gesendet hat. Ein JSON-Body, gesendet mit `Content-Type: application/json`, lässt sich Feld für Feld lesen, ebenso JSON, das als reiner Text gesendet wird, wie Amazon SNS es sendet. |
 
 Lesen Sie ein Feld, indem Sie seinen Namen an den Verweis anhängen, wie in `{{local.components.webhook-1.returnValues.request-body.message}}`.
 
@@ -125,21 +125,21 @@ Jede E-Mail startet ihre eigene Ausführung. Eine E-Mail erreicht den Workflow, 
 
 | Wert            | Was er enthält                                                                                                   |
 | --------------- | ---------------------------------------------------------------------------------------------------------------- |
-| **From**        | Die Adresse des Absenders.                                                                                       |
-| **To**          | Alle, an die die E-Mail adressiert war, als eine Zeile, etwa `ops@example.com, oncall@example.com`.              |
+| **Von**        | Die Adresse des Absenders.                                                                                       |
+| **An**          | Alle, an die die E-Mail adressiert war, als eine Zeile, etwa `ops@example.com, oncall@example.com`.              |
 | **CC**          | Alle, die eine Kopie bekommen haben, als eine Zeile.                                                              |
-| **Subject**     | Die Betreffzeile.                                                                                                |
+| **Betreff**     | Die Betreffzeile.                                                                                                |
 | **Body**        | Den reinen Text der E-Mail.                                                                                      |
-| **HTML Body**   | Das HTML der E-Mail, sofern sie welches hat. Body und HTML Body werden jeweils bei 1 MB abgeschnitten.            |
-| **Headers**     | Jeden Header der E-Mail, nach seinem Namen in Kleinbuchstaben, etwa `message-id`.                                |
-| **Attachments** | Name, Typ und Größe jeder angehängten Datei. Die Dateien selbst werden nicht aufbewahrt.                         |
-| **Received At** | Wann OneUptime die E-Mail empfangen hat.                                                                         |
+| **HTML-Text**   | Das HTML der E-Mail, sofern sie welches hat. Body und HTML Body werden jeweils bei 1 MB abgeschnitten.            |
+| **Header**     | Jeden Header der E-Mail, nach seinem Namen in Kleinbuchstaben, etwa `message-id`.                                |
+| **Anhänge** | Name, Typ und Größe jeder angehängten Datei. Die Dateien selbst werden nicht aufbewahrt.                         |
+| **Empfangen am** | Wann OneUptime die E-Mail empfangen hat.                                                                         |
 
 Ist eine E-Mail eingetroffen, weiß die Werteauswahl in jedem Baustein nach dem Trigger, was darin war: Sie listet jeden Header und jeden Anhang der E-Mail mit seinem Inhalt auf, sodass Sie `headers.message-id` wählen können, statt einen Pfad zu tippen. Bis dahin sagt sie, dass noch keine E-Mail an der Adresse angekommen ist. Siehe [Werte aus früheren Bausteinen verwenden](/docs/workflows/authoring#werte-aus-früheren-bausteinen-verwenden).
 
 Um den Workflow auszuprobieren, ohne eine E-Mail zu senden, klicken Sie auf der Seite **Editor** auf **Arbeitsablauf ausführen** und füllen einen Absender, einen Betreff und einen Body aus. Die Werte, die Sie weglassen, kommen leer an.
 
-E-Mails starten den Workflow nur, solange er an ist. Eine E-Mail an einen Workflow, der aus ist, wird ignoriert, ebenso eine E-Mail an einen Workflow, dessen Trigger nicht mehr Incoming Email ist.
+E-Mails starten den Workflow nur, solange er an ist. Eine E-Mail an einen Workflow, der aus ist, wird ignoriert, ebenso eine E-Mail an einen Workflow, dessen Trigger nicht mehr Eingehende E-Mail ist.
 
 ### Die Adresse privat halten
 
@@ -148,7 +148,7 @@ Der Teil der Adresse vor dem `@` enthält den geheimen Schlüssel des Workflows,
 Gelangt die Adresse nach außen, klicken Sie an derselben Stelle auf **Adresse zurücksetzen**: Der Workflow bekommt eine neue Adresse, und E-Mails an die alte werden ab dann ignoriert; geben Sie die neue also allem, was dem Workflow E-Mails sendet. Nur Personen, die den Workflow bearbeiten dürfen, können seine Adresse sehen oder zurücksetzen – siehe [Sicherheit eingehender E-Mails](/docs/workflows/configuration#sicherheit-eingehender-e-mails).
 
 > [!WARNING]
-> Jeder kann einen beliebigen Absender in eine E-Mail schreiben, daher beweist **From** nicht, wer sie gesendet hat. Prüfen Sie etwas, das nur der echte Absender weiß, bevor ein Schritt etwas Wichtiges tut.
+> Jeder kann einen beliebigen Absender in eine E-Mail schreiben, daher beweist **Von** nicht, wer sie gesendet hat. Prüfen Sie etwas, das nur der echte Absender weiß, bevor ein Schritt etwas Wichtiges tut.
 
 > [!NOTE]
 > Auf einer selbst gehosteten Installation empfängt OneUptime E-Mails über einen Anbieter für eingehende E-Mails, den Ihr Administrator einrichtet – siehe [SendGrid Inbound Email](/docs/self-hosted/sendgrid-inbound-email). Bis dahin hat der Trigger keine Adresse, und seine Einstellungen sagen das.
@@ -159,7 +159,7 @@ OneUptime gibt dem Workflow eine eigene URL für Huntress, den Managed-Detection
 
 Gut für: für jede Huntress-Vorfallsmeldung einen Vorfall öffnen, die Bereitschaft alarmieren und der Meldung bis zu ihrem Abschluss folgen. Die Vorlage **Open an incident for each Huntress incident report** erledigt alle drei.
 
-Um Huntress zu verbinden, klicken Sie auf der Arbeitsfläche auf den Trigger **Huntress Incident Report**: Er zeigt die URL, die Sie Huntress geben, speichert das Signaturgeheimnis des Endpunkts und sagt, wann Huntress den Workflow zuletzt erreicht hat. Eine Anfrage, die nicht mit diesem Geheimnis signiert ist, startet nichts, die URL ist also kein Passwort. Unter [Huntress](/docs/integrations/huntress) finden Sie die Einrichtung in Huntress, die Werte, die der Trigger liefert, und seine Einstellungen.
+Um Huntress zu verbinden, klicken Sie auf der Arbeitsfläche auf den Trigger **Huntress-Vorfallsbericht**: Er zeigt die URL, die Sie Huntress geben, speichert das Signaturgeheimnis des Endpunkts und sagt, wann Huntress den Workflow zuletzt erreicht hat. Eine Anfrage, die nicht mit diesem Geheimnis signiert ist, startet nichts, die URL ist also kein Passwort. Unter [Huntress](/docs/integrations/huntress) finden Sie die Einrichtung in Huntress, die Werte, die der Trigger liefert, und seine Einstellungen.
 
 ## OneUptime-Ereignis-Trigger
 
@@ -172,7 +172,7 @@ Fast alles in OneUptime – Monitore, Vorfälle, Warnungen, Wartungsereignisse, 
 
 So bauen Sie "wenn X in OneUptime passiert, tue Y", ohne Dinge in einer Schleife prüfen zu müssen.
 
-**On Update** lässt sich mit **Fields to watch** auf einige Felder eingrenzen: Dann löst er nur aus, wenn eine Änderung eines davon ändert, auf welchen Wert auch immer – einen Schalter auszuschalten oder ein Feld zu leeren zählt. **On Create or Update** hat dieselben **Fields to watch**, nur für seine Änderungen: Jeder neue Datensatz löst ihn trotzdem aus.
+**On Update** lässt sich mit **Beobachtete Felder** auf einige Felder eingrenzen: Dann löst er nur aus, wenn eine Änderung eines davon ändert, auf welchen Wert auch immer – einen Schalter auszuschalten oder ein Feld zu leeren zählt. **On Create or Update** hat dieselben **Beobachtete Felder**, nur für seine Änderungen: Jeder neue Datensatz löst ihn trotzdem aus.
 
 ```mermaid title="Wann ein On-Update-Trigger auslöst"
 flowchart TB
@@ -185,11 +185,11 @@ flowchart TB
     field -->|"Nein"| nothing
 ```
 
-**On Create**, **On Update** und **On Create or Update** reichen den Datensatz an den nächsten Baustein weiter, mit den Feldern, die Sie unter **Fields to pass on** des Triggers wählen. Zum Beispiel reicht der Trigger **Incident → On Create** den neuen Vorfall weiter, sodass der nächste Baustein seinen Titel, seine Beschreibung, seinen Schweregrad oder jedes andere ausgewählte Feld lesen kann, etwa `{{local.components.incident-on-create-1.returnValues.model.title}}`. Ein Feld, das Sie nicht ausgewählt haben, kommt leer an. Ebenso ein Feld, in dem der Datensatz nichts hat, etwa der Monitor einer Warnung, die kein Monitor ausgelöst hat.
+**On Create**, **On Update** und **On Create or Update** reichen den Datensatz an den nächsten Baustein weiter, mit den Feldern, die Sie unter **Weiterzugebende Felder** des Triggers wählen. Zum Beispiel reicht der Trigger **Incident → On Create** den neuen Vorfall weiter, sodass der nächste Baustein seinen Titel, seine Beschreibung, seinen Schweregrad oder jedes andere ausgewählte Feld lesen kann, etwa `{{local.components.incident-on-create-1.returnValues.model.title}}`. Ein Feld, das Sie nicht ausgewählt haben, kommt leer an. Ebenso ein Feld, in dem der Datensatz nichts hat, etwa der Monitor einer Warnung, die kein Monitor ausgelöst hat.
 
-**On Create or Update** reicht außerdem **What Happened** weiter: `created`, wenn ein neuer Datensatz den Lauf gestartet hat, und `updated`, wenn es eine Änderung war, wie in `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. Um beides unterschiedlich zu behandeln, vergleichen Sie es in einem **If / Else**-Baustein oder nehmen mit **Switch / Case** für jedes einen eigenen Pfad.
+**On Create or Update** reicht außerdem **Was ist passiert** weiter: `created`, wenn ein neuer Datensatz den Lauf gestartet hat, und `updated`, wenn es eine Änderung war, wie in `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. Um beides unterschiedlich zu behandeln, vergleichen Sie es in einem **Wenn / Sonst**-Baustein oder nehmen mit **Auswahl / Fall** für jedes einen eigenen Pfad.
 
-Ein Speichern löst ihn einmal aus. Was OneUptime beim Erstellen eines Datensatzes noch ausfüllt, gehört zum Erstellen, daher löst ein neuer Datensatz ihn einmal aus, als `created`. Änderungen, die OneUptime später vornimmt, etwa das Verknüpfen des Slack-Kanals eines Vorfalls, sind Änderungen wie jede andere: Um sie auszulassen, nehmen Sie nur die Felder in **Fields to watch** auf, die Ihnen wichtig sind.
+Ein Speichern löst ihn einmal aus. Was OneUptime beim Erstellen eines Datensatzes noch ausfüllt, gehört zum Erstellen, daher löst ein neuer Datensatz ihn einmal aus, als `created`. Änderungen, die OneUptime später vornimmt, etwa das Verknüpfen des Slack-Kanals eines Vorfalls, sind Änderungen wie jede andere: Um sie auszulassen, nehmen Sie nur die Felder in **Beobachtete Felder** auf, die Ihnen wichtig sind.
 
 **On Delete** reicht nur die ID des gelöschten Datensatzes weiter: Der Datensatz ist weg, wenn der Workflow läuft, daher lassen sich seine anderen Felder nicht lesen.
 
@@ -201,7 +201,7 @@ Um einen Ereignis-Trigger zu testen, ohne auf das Ereignis zu warten, klicken Si
 | --------------------------------- | ---------------------------------------------------------------------------------------- |
 | **Vorfall**                       | Reagieren, wenn ein Vorfall gemeldet, geändert (bestätigt, behoben) oder gelöscht wird.  |
 | **Warnung**                       | Dieselben drei Ereignisse, für Warnungen.                                                |
-| **Überwachung**                   | Reagieren, wenn ein Monitor hinzugefügt, bearbeitet oder entfernt wird.                  |
+| **Monitor**                   | Reagieren, wenn ein Monitor hinzugefügt, bearbeitet oder entfernt wird.                  |
 | **Wartungsereignis**    | Ein Wartungsfenster automatisch ankündigen, wenn es eingeplant wird.                     |
 | **Statusseite Abonnent**          | Jemanden begrüßen, der eine Statusseite abonniert.                                       |
 | **Bereitschaftsrichtlinie**       | Änderungen an Richtlinien mit einem anderen Dienstplansystem abgleichen.                 |

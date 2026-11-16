@@ -115,7 +115,7 @@ UI는 상태 이름을 동적으로 읽기 때문에, 상태 이름을 바꾸면
 
 ## 순서는 표시 취향이 아니라 실제 제약입니다
 
-순서는 목록을 그릴 때만이 아니라 상태 변경을 기록할 때 강제됩니다. 인시던트, 알림, 인시던트 또는 알림 에피소드, 유지 관리 이벤트의 모든 상태 변경에는 누가 하든 하나의 규칙이 적용됩니다. 대시보드, Slack, Microsoft Teams, API, Terraform, 워크플로우, OneUptime 자체 중 어디에서 하든, 그리고 레코드의 상태 타임라인 행으로 보내든 현재 상태의 업데이트로 보내든 마찬가지입니다.
+순서는 목록을 그릴 때만이 아니라 상태 변경을 기록할 때 강제됩니다. 인시던트, 경고, 인시던트 또는 경고 에피소드, 유지 관리 이벤트의 모든 상태 변경에는 누가 하든 하나의 규칙이 적용됩니다. 대시보드, Slack, Microsoft Teams, API, Terraform, 워크플로우, OneUptime 자체 중 어디에서 하든, 그리고 레코드의 상태 타임라인 행으로 보내든 현재 상태의 업데이트로 보내든 마찬가지입니다.
 
 - **뒤로 가는 전환은 거부됩니다.** 순서상 현재 상태보다 앞에 있는 상태로 인시던트를 옮기면, 두 상태를 모두 지목하는 오류 "Incident cannot transition to Acknowledged state from Resolved state because Acknowledged is before Resolved in the order of incident states."로 실패합니다. 에피소드도 묶고 있는 인시던트와 똑같이 이 규칙을 따르며, 오류 메시지는 에피소드 자신의 것입니다("Episode cannot transition to …"). 따라서 해결된 에피소드는 더 앞의 상태로 되돌아가지 않으며, 에피소드를 통해 그 인시던트가 되돌아가지도 않습니다. 레코드를 뒤로 옮기게 될 업데이트는 아무것도 저장되기 전에 거부됩니다.
 - **현재 상태를 다시 고르는 것은 거부됩니다.** 인시던트를 이미 있는 상태로 설정하면 "Incident state cannot be same as previous state."로 실패합니다.
@@ -142,7 +142,7 @@ API와 Terraform에서 순서는 `order` 열입니다. 작은 번호가 먼저 �
 | **주요 인시던트**    | `2`     | `#fd625e` | Issues causing significant impact. Immediate response is usually required. We might have some workarounds that mitigate the impact on customers. Examples include an important sub-system failing. |
 | **경미한 인시던트**    | `3`     | `#ffbf53` | Issues with low impact, which can usually be handled within working hours. Most customers are unlikely to notice any problems. Examples include a slight drop in application performance. |
 
-심각도는 인시던트를 선언할 때 필수이고, 모니터 기준의 각 인시던트 명세에서도 필수이므로, 수동이든 자동이든 모든 인시던트는 심각도를 갖고 들어옵니다. 선언 흐름은 [인시던트 선언](/docs/incidents/declaring-incidents)을, 모니터에서 만들어지는 경로는 [인시던트 및 알림 템플릿](/docs/monitor/incident-alert-templating)을 참고하세요.
+심각도는 인시던트를 선언할 때 필수이고, 모니터 기준의 각 인시던트 명세에서도 필수이므로, 수동이든 자동이든 모든 인시던트는 심각도를 갖고 들어옵니다. 선언 흐름은 [인시던트 선언](/docs/incidents/declaring-incidents)을, 모니터에서 만들어지는 경로는 [인시던트 및 경고 템플릿](/docs/monitor/incident-alert-templating)을 참고하세요.
 
 ## 심각도 편집하기
 
@@ -198,7 +198,7 @@ API와 Terraform에서 순서는 `order` 열입니다. 작은 번호가 먼저 �
 - **인지까지 걸린 시간은 그 첫 이동까지입니다.** 인시던트 **개요**의 통계 타일, **Time to Acknowledge** 지표, **인시던트가 인지될 때**에 끝나는 측정, Slack과 Microsoft Teams 요약의 MTTA가 해당합니다. **식별됨**에서 바로 **Investigating**으로 옮긴 인시던트는 그때 인지된 것이고, 곧바로 해결된 인시던트는 해결될 때 인지된 것입니다.
 - **인지됨 필터**(예를 들어 대시보드의 인시던트 목록 위젯)는 인지 상태와 그 이후 상태에 있으면서 해결에 이르지 않은 인시던트를 보여 줍니다.
 
-알림과 에피소드도 알림 상태로 같은 규칙을 따릅니다.
+경고와 에피소드도 경고 상태로 같은 규칙을 따릅니다.
 
 ## 해결이 하는 일
 
@@ -267,7 +267,7 @@ flowchart TB
 
 **노트는 인시던트의 지금 상태를 알려 줍니다.** 노트가 유일한 메시지이므로, 상태 변경 메시지가 했을 것처럼 모든 채널에서 새 상태를 밝힙니다. 이메일 제목은 `[Resolved Incident] <title>`이 되고 세부 내용에는 상태 색상의 **Status** 행이 표시되며, SMS는 `Incident <title> on <status page> is Resolved.`라고 말하고, Slack과 Microsoft Teams 메시지에는 `**Status:** Resolved` 줄이 들어가며, 웹훅의 `IncidentNoteCreated` 페이로드에는 `data`에 `incidentState`가 들어갑니다. 따로 게시한 노트는 평소 메시지를 유지하며, 편집에 따른 업데이트 알림도 마찬가지입니다.
 
-**노트 게시에는 별도의 권한이 필요합니다.** 상태 변경과 공개 노트 게시는 별개의 권한입니다(사용자 지정 역할에서는 **Create Incident State Timeline**과 **Create Incident Status Page Note**. 기본 제공 인시던트 및 프로젝트 역할은 둘 다 가집니다). 상태 변경에는 인시던트를 편집할 권한이 필요하지 않습니다. [상태 변경](/docs/permissions/index#상태-변경)을 참고하세요. 인시던트의 상태는 바꿀 수 있지만 공개 노트는 게시할 수 없는 사람에게는 모달에서도 일괄 작업 **상태 변경**에서도 **공개 메모 추가**가 제공되지 않습니다. 그런 사람이 API로 노트와 함께 보낸 상태 변경은 상태가 바뀌지 않았다는 것과 그 이유를 알리는 메시지와 함께 통째로 거부되므로, 게시되지 않은 노트로 알린 것으로 변경이 기록되는 일은 없습니다. 노트를 빼면 변경이 통과합니다. 알림, 알림 에피소드, 인시던트 에피소드는 대신 상태 변경과 함께 비공개 노트를 제공하며(**비공개 메모 추가**), 같은 방식으로 동작합니다. 게시에는 노트 자체의 권한이 필요하고(사용자 지정 역할에서는 **Create Alert Internal Note**, **Create Alert Episode Internal Note**, **Create Incident Episode Internal Note**. 기본 제공 알림, 인시던트, 프로젝트 역할은 이를 가집니다), 그 권한이 없는 사람이 비공개 노트와 함께 보낸 상태 변경은 통째로 거부되어 상태가 바뀌지 않습니다.
+**노트 게시에는 별도의 권한이 필요합니다.** 상태 변경과 공개 노트 게시는 별개의 권한입니다(사용자 지정 역할에서는 **Create Incident State Timeline**과 **Create Incident Status Page Note**. 기본 제공 인시던트 및 프로젝트 역할은 둘 다 가집니다). 상태 변경에는 인시던트를 편집할 권한이 필요하지 않습니다. [상태 변경](/docs/permissions/index#상태-변경)을 참고하세요. 인시던트의 상태는 바꿀 수 있지만 공개 노트는 게시할 수 없는 사람에게는 모달에서도 일괄 작업 **상태 변경**에서도 **공개 메모 추가**가 제공되지 않습니다. 그런 사람이 API로 노트와 함께 보낸 상태 변경은 상태가 바뀌지 않았다는 것과 그 이유를 알리는 메시지와 함께 통째로 거부되므로, 게시되지 않은 노트로 알린 것으로 변경이 기록되는 일은 없습니다. 노트를 빼면 변경이 통과합니다. 경고, 경고 에피소드, 인시던트 에피소드는 대신 상태 변경과 함께 비공개 노트를 제공하며(**비공개 메모 추가**), 같은 방식으로 동작합니다. 게시에는 노트 자체의 권한이 필요하고(사용자 지정 역할에서는 **Create Alert Internal Note**, **Create Alert Episode Internal Note**, **Create Incident Episode Internal Note**. 기본 제공 경고, 인시던트, 프로젝트 역할은 이를 가집니다), 그 권한이 없는 사람이 비공개 노트와 함께 보낸 상태 변경은 통째로 거부되어 상태가 바뀌지 않습니다.
 
 **비공개 인시던트의 상태 변경에는 비공개 노트가 따릅니다.** 비공개 인시던트에는 공개 노트를 추가할 수 없으므로, 상태 변경 대화 상자는 **공개 메모 추가** 대신 **비공개 메모 추가**를 접어 두고, 구독자에 대해서는 묻지 않으며, 그 인시던트에 비공개 노트를 게시할 수 있는 사람에게 노트를 제공합니다. 일괄 작업 **상태 변경**은 옮기는 각 비공개 인시던트에 노트를 비공개 노트로 추가하고, 그에 대해 아무에게도 알리지 않습니다. 비공개 인시던트에 공개 노트를 담아 API로 보낸 상태 변경은 통째로 거부됩니다: "The state was not changed: it comes with a public note, and this incident is private, so public notes cannot be added to it. Post the note as a private note, or leave it out."
 
@@ -284,7 +284,7 @@ flowchart TB
 - **페이지가 인시던트가 닿는 범위에 있습니다.** 페이지가 인시던트의 모니터 중 하나를 나열하고, 인시던트가 일부 상태 페이지로 제한되었다면 그중 하나여야 합니다. **이 페이지로 제한된 인시던트만 표시**가 켜진 페이지에는 그 페이지로 제한된 인시던트만 표시됩니다. [대상별 상태 페이지](/docs/status-pages/one-status-page-per-audience)를 참고하세요.
 - **현재 상태가 해결 상태보다 위에 있습니다.** 이것이 인시던트를 활성 섹션에서 빼는 요소입니다. 상태 페이지 쿼리는 현재 상태가 해결 상태보다 위에 있는 인시던트를 가져오므로, 해결 상태와 그 이후의 모든 상태는 인시던트를 뺍니다. 무언가를 보관하거나 닫을 필요는 없습니다. 해결하면 인시던트는 기록으로 넘어갑니다.
 
-**비공개 인시던트는 절대 나타나지 않습니다.** **비공개 인시던트**를 켜면 위의 토글과 관계없이 인시던트가 모든 상태 페이지에서 숨겨지고, 소유자와 프로젝트 관리자 및 소유자로 제한됩니다. 생성, 상태 변경, 공개 노트, 포스트모템 중 어느 것도 상태 페이지 구독자에게 닿지 않습니다. 비공개인 동안에는 설명, 포스트모템, 사용자 정의 필드, 공개 노트의 이미지를 모두가 볼 수 있지는 않습니다. 공개 노트도 추가할 수 없습니다. [비공개 인시던트에는 비공개 노트만](/docs/incidents/notes-owners-and-feed#비공개-인시던트에는-비공개-노트만) 섹션을 참고하세요.
+**비공개 인시던트는 절대 나타나지 않습니다.** **비공개 인시던트**를 켜면 위의 토글과 관계없이 인시던트가 모든 상태 페이지에서 숨겨지고, 소유자와 프로젝트 관리자 및 프로젝트 소유자로 제한됩니다. 생성, 상태 변경, 공개 노트, 포스트모템 중 어느 것도 상태 페이지 구독자에게 닿지 않습니다. 비공개인 동안에는 설명, 포스트모템, 사용자 정의 필드, 공개 노트의 이미지를 모두가 볼 수 있지는 않습니다. 공개 노트도 추가할 수 없습니다. [비공개 인시던트에는 비공개 노트만](/docs/incidents/notes-owners-and-feed#비공개-인시던트에는-비공개-노트만) 섹션을 참고하세요.
 
 두 스위치는 맞물려 있으므로, 인시던트의 **설정** 페이지는 항상 상태 페이지가 실제로 하는 일을 보여 줍니다.
 

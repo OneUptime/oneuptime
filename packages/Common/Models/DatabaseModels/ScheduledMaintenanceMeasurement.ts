@@ -985,6 +985,35 @@ export default class ScheduledMaintenanceMeasurement extends BaseModel {
   @TableColumn({
     required: false,
     computed: true,
+    type: TableColumnType.ObjectID,
+    title: "Backfill Cursor ID",
+    description:
+      "The ID of the last maintenance event the backfill worked out, which orders the events created at the same moment.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public backfillCursorId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
+      Permission.ReadScheduledMaintenanceMeasurement,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    computed: true,
     type: TableColumnType.Date,
     title: "Backfill Completed At",
     description:

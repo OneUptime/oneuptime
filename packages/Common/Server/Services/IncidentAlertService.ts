@@ -1570,7 +1570,7 @@ export class Service extends ProjectReferencesService<Model> {
           error instanceof BadDataException
         ) {
           throw new BadDataException(
-            "You do not have permission to acknowledge one or more of these alerts. Declare the incident without acknowledging them, or ask a project admin for permission.",
+            "You do not have permission to acknowledge one or more of these alerts. Declare the incident without acknowledging them, or ask a Project Admin for permission.",
           );
         }
 

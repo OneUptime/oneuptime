@@ -41,7 +41,7 @@ En détail, OneUptime lit ces paramètres dans cet ordre, et le premier qui est 
 
 ## Avant de commencer
 
-- **Un rôle qui modifie le projet.** Project Owner ou Project Admin changent la rétention du projet. La rétention d'un service ou d'une ressource demande le rôle qui modifie ses autres paramètres.
+- **Un rôle qui modifie le projet.** Propriétaire du projet ou Administrateur du projet changent la rétention du projet. La rétention d'un service ou d'une ressource demande le rôle qui modifie ses autres paramètres.
 - **Pour les remplacements, l'Édition Enterprise ou le plan Scale.** Une installation auto-hébergée a besoin d'une licence Enterprise, et un projet OneUptime Cloud du plan Scale ou supérieur. La rétention par défaut du projet existe dans toutes les éditions et tous les plans.
 
 ## Changer la rétention du projet
@@ -64,14 +64,14 @@ Les remplacements gardent plus longtemps ce dont vous avez besoin et moins longt
 
 ### Pour tout le projet
 
-Sous le défaut, repliée sous **Plus de paramètres**, la carte **Rétention par type de télémétrie** fixe des jours pour chaque type de télémétrie. Cliquez sur **Edit Overrides**, remplissez les champs dont vous avez besoin, et laissez les autres vides :
+Sous le défaut, repliée sous **Plus de paramètres**, la carte **Rétention par type de télémétrie** fixe des jours pour chaque type de télémétrie. Cliquez sur **Modifier les remplacements**, remplissez les champs dont vous avez besoin, et laissez les autres vides :
 
 | Type | Champs |
 | --- | --- |
-| Journaux | **Logs default (days)**, et un champ pour chaque gravité de journal |
-| Traces | **Traces default (days)**, et un champ pour chaque statut de span : Erreur, Ok et Non défini |
-| Métriques | **Metrics default (days)** |
-| Profils | **Profiles default (days)** |
+| Journaux | **Valeur par défaut des journaux (jours)**, et un champ pour chaque gravité de journal |
+| Traces | **Valeur par défaut des traces (jours)**, et un champ pour chaque statut de span : Erreur, Ok et Non défini |
+| Métriques | **Valeur par défaut des métriques (jours)** |
+| Profils | **Valeur par défaut des profils (jours)** |
 
 Un champ laissé vide se rabat sur le paramètre suivant de l'ordre ci-dessus, donc une gravité sans jours à elle conserve ses journaux selon le défaut des journaux.
 

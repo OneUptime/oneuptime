@@ -139,7 +139,7 @@
     "text": [
       "1",
       "我们要检查什么？",
-      "OneUptime 每 5 分钟从多个位置检查一次。如果没有响应，或响应出错，就会创建事件。",
+      "OneUptime 每 5 分钟检查一次。当检查它的每个位置都发现它宕机（没有响应，或响应出错）时，就会创建事件。",
       "网站或 API 地址",
       "这是一个 API 端点",
       "开始检查",
@@ -154,7 +154,7 @@
       "link: 更多监视器类型"
     ],
     "width": 768,
-    "height": 278
+    "height": 298
   },
   "website-down-who": {
     "text": [
@@ -165,7 +165,7 @@
       "添加团队成员",
       "AL",
       "Ada Lovelace",
-      "这会创建值班策略“Default on-call policy”，在此项目中每出现一个新事件和警报，都会呼叫他们。",
+      "这会创建值班策略“默认值班策略”，在此项目中每出现一个新事件和警报，都会呼叫他们。",
       "保存并继续"
     ],
     "outline": [
@@ -197,15 +197,15 @@
       "检查时间",
       "每 5 分钟，来自 2 个位置。",
       "宕机时",
-      "如果没有响应，或响应出错，OneUptime 会创建一个事件（Critical Incident）。",
+      "如果没有响应，或响应出错，OneUptime 会创建一个事件（严重事件）。 状态变更需要两个已连接探测器都一致。",
       "会通知谁",
-      "值班策略“Default on-call policy”会在每个新事件和警报出现时呼叫 Ada Lovelace。 你是此监视器的所有者，所以它状态变化时你会收到电子邮件。",
+      "值班策略“默认值班策略”会在每个新事件和警报出现时呼叫 Ada Lovelace。 你是此监视器的所有者，所以它状态变化时你会收到电子邮件。",
       "已测试",
       "Ada Lovelace 在 14 秒 后通过电子邮件确认。",
       "下一步",
       "在状态页上显示",
       "通过 SMS 或电话接收呼叫",
-      "打开监控器",
+      "打开监视器",
       "检查其他地址"
     ],
     "outline": [
@@ -213,11 +213,11 @@
       "heading: 下一步",
       "link: 在状态页上显示",
       "link: 通过 SMS 或电话接收呼叫",
-      "link: 打开监控器",
+      "link: 打开监视器",
       "button: 检查其他地址"
     ],
     "width": 768,
-    "height": 471
+    "height": 491
   },
   "paging-reach-you": {
     "text": [
@@ -284,7 +284,7 @@
     "text": [
       "2",
       "还有谁值班？",
-      "这会创建值班策略“Default on-call policy”。在此项目中每出现一个新事件和警报，它都会先呼叫这些人。",
+      "这会创建值班策略“默认值班策略”。在此项目中每出现一个新事件和警报，它都会先呼叫这些人。",
       "首先呼叫",
       "添加团队成员",
       "AL",
@@ -343,13 +343,13 @@
       "button: 跳过测试"
     ],
     "width": 768,
-    "height": 178
+    "height": 158
   },
   "paging-summary": {
     "text": [
       "呼叫已设置",
       "呼叫对象",
-      "每个新事件或警报都会运行“Default on-call policy”，它会呼叫 Ada Lovelace (电子邮件, SMS, 电话)。",
+      "每个新事件或警报都会运行“默认值班策略”，它会呼叫 Ada Lovelace (电子邮件, SMS, 电话)。",
       "如果无人响应",
       "如果 30 分钟内无人确认，将呼叫 Grace Hopper。",
       "已测试",
@@ -386,7 +386,7 @@
       "清除",
       "已选择 1 / 1",
       "Acme website",
-      "Operational",
+      "运行正常",
       "页面创建后即公开：任何拥有链接的人都能看到您所选监视器的状态。",
       "创建状态页",
       "value: Acme Commerce 状态",
@@ -410,7 +410,7 @@
       "Acme Commerce 状态",
       "它显示",
       "Acme website",
-      "Operational",
+      "运行正常",
       "公开链接",
       "https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-000000000020",
       "这些监视器中任何一个出现事件时，会自动显示在这里，并向订阅者发送电子邮件。",
@@ -473,7 +473,7 @@
       "/",
       "/",
       "创建摄取密钥",
-      "这些密钥用于为您的项目接收遥测数据，如日志、跟踪和指标。",
+      "这些密钥用于为您的项目接收遥测数据，如日志、追踪和指标。",
       "选择所有项目",
       "名称",
       "类型",
@@ -519,7 +519,7 @@
     "outline": [
       "heading: 摄取密钥",
       "button: 摄取密钥",
-      "button: Open search",
+      "button: 打开搜索",
       "field text: 按名称、描述搜索摄取密钥…",
       "button: 创建摄取密钥",
       "button: 更多选项",
@@ -528,18 +528,18 @@
       "button: 类型",
       "button: 上次使用",
       "button: 描述",
-      "field checkbox: 选择 摄取密钥: Production collectors",
+      "field checkbox: 选择 摄取密钥：Production collectors",
       "button: 查看摄取密钥",
-      "button: 更多操作: 摄取密钥: Production collectors",
-      "field checkbox: 选择 摄取密钥: Storefront web",
+      "button: 摄取密钥：Production collectors 的更多操作",
+      "field checkbox: 选择 摄取密钥：Storefront web",
       "button: 查看摄取密钥",
-      "button: 更多操作: 摄取密钥: Storefront web",
-      "field checkbox: 选择 摄取密钥: Checkout beta",
+      "button: 摄取密钥：Storefront web 的更多操作",
+      "field checkbox: 选择 摄取密钥：Checkout beta",
       "button: 查看摄取密钥",
-      "button: 更多操作: 摄取密钥: Checkout beta",
-      "field checkbox: 选择 摄取密钥: Marketing site",
+      "button: 摄取密钥：Checkout beta 的更多操作",
+      "field checkbox: 选择 摄取密钥：Marketing site",
       "button: 查看摄取密钥",
-      "button: 更多操作: 摄取密钥: Marketing site",
+      "button: 摄取密钥：Marketing site 的更多操作",
       "field: 10 20 25 50 100",
       "button: 转到上一页",
       "button: 第 1 页",
@@ -607,7 +607,7 @@
       "SEV-2",
       "Checkout API p95 latency above 2s",
       "解决",
-      "已创建",
+      "Created",
       "已确认",
       "已解决",
       "已持续",

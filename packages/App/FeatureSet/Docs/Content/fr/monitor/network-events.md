@@ -219,7 +219,7 @@ Ajoutez un serveur syslog distant sur l'appareil : l'adresse IP de la sonde, por
 
 Chacune est un [moniteur de journaux](/docs/monitor/logs-monitor) qui compte l'événement sur les 5 dernières minutes, avec **Regrouper par attributs** réglé pour que chaque tunnel, passerelle ou interface ait sa propre alerte, et avec **Résolu par attributs** réglé sur l'événement qui dit que le problème est terminé. Une telle alerte reste ouverte jusqu'à ce que cet événement arrive pour le même appareil et le même tunnel, aussi longtemps que cela prenne ; voir [Résolu par un journal](/docs/monitor/logs-monitor#résolu-par-un-journal). OneUptime ne lit aucun événement disant qu'une température est revenue à la normale : une alerte de température reste donc ouverte jusqu'à ce que vous la résolviez.
 
-Depuis l'onglet **Événements** d'un appareil, les moniteurs ne surveillent que cet appareil. Pour tout autre événement, ouvrez-en un sur la page Événements et cliquez sur **Créer une alerte pour cet événement**. Pour envoyer une alerte quelque part, ou pour prévenir quelqu'un d'astreinte, ajoutez au moniteur une politique d'astreinte ou un workflow, comme pour tout autre moniteur.
+Depuis l'onglet **Événements** d'un appareil, les moniteurs ne surveillent que cet appareil. Pour tout autre événement, ouvrez-en un sur la page Événements et cliquez sur **Créer une alerte pour cet événement**. Pour envoyer une alerte quelque part, ou pour prévenir quelqu'un d'astreinte, ajoutez au moniteur une politique d'astreinte ou un flux de travail, comme pour tout autre moniteur.
 
 ## Adresses qui ne sont pas encore des appareils
 

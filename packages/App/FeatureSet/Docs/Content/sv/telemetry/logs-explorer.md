@@ -37,7 +37,7 @@ Utforskaren har fem flikar:
 ## Innan du börjar
 
 - **Loggar som kommer in.** Skicka dem med [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd) eller [Syslog](/docs/telemetry/syslog). Fliken **Installationsguide** visar konfigurationen för ditt språk eller din collector.
-- **En roll som får läsa telemetri.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member eller Telemetry Viewer, eller en anpassad roll med behörigheten Read Logs. Dess omfång avgör vems loggar du ser: se [Telemetri](/docs/permissions/index#telemetri).
+- **En roll som får läsa telemetri.** Projektägare, Projektadministratör, Projektmedlem, Tittare, Telemetriadministratör, Telemetrimedlem eller Telemetritittare, eller en anpassad roll med behörigheten Read Logs. Dess omfång avgör vems loggar du ser: se [Telemetri](/docs/permissions/index#telemetri).
 
 ## Hitta en loggrad
 
@@ -118,7 +118,7 @@ Klicka på **Lista** för att gå tillbaka till själva raderna.
 
 ## Öppna tillhörande spår och mätvärden
 
-Knapparna **Spår** och **Mätvärden** bredvid **Sparade vyer** öppnar [Spårutforskare](/docs/telemetry/traces-explorer) eller [Måttutforskare](/docs/telemetry/metrics-explorer) för samma tidsfönster, med så mycket av din filtrering som den utforskaren kan använda. Peka på en knapp för att se vad den inte kan ta med sig.
+Knapparna **Spår** och **Mätvärden** bredvid **Sparade vyer** öppnar [Spårutforskare](/docs/telemetry/traces-explorer) eller [Mätvärdesutforskare](/docs/telemetry/metrics-explorer) för samma tidsfönster, med så mycket av din filtrering som den utforskaren kan använda. Peka på en knapp för att se vad den inte kan ta med sig.
 
 ## Insikter i loggar
 

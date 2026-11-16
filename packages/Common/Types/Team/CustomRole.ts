@@ -36,7 +36,7 @@ export const CUSTOM_ROLE_NAME_REQUIRED_MESSAGE: string =
   "Give the role a name.";
 
 export const PROJECT_OWNER_NOT_IN_A_CUSTOM_ROLE_MESSAGE: string =
-  "Project Owner can't be part of a custom role. Add people to the Owners team to make them project owners.";
+  "Project Owner can't be part of a custom role. Add people to the Owners team to make them Project Owners.";
 
 export const LABELS_NEED_THE_LABELS_SCOPE_MESSAGE: string =
   "Labels limit a permission only with the scope Labels. Pick the scope Labels, or leave the labels out.";
@@ -146,6 +146,51 @@ export const getCustomRolePermissionProblem: (
   }
 
   return null;
+};
+
+// What is given a permission of its own: a team, or an API key.
+export enum PermissionHolder {
+  Team = "Team",
+  ApiKey = "ApiKey",
+}
+
+/*
+ * Why a team or an API key may not be given a permission as it is written
+ * (TeamPermissionService, ApiKeyPermissionService), in the words the server
+ * refuses it with - or null when it may. Only what the permission pickers
+ * offer may be given (PermissionHelper.isAssignableToTenant), allow or
+ * block, as a custom role holds only what a team may be given
+ * (getCustomRolePermissionProblem). The rest are OneUptime's own: Logged
+ * in User, User and Public, which it gives every signed-in person, every
+ * key and everyone where they apply, Customer Support, which is OneUptime
+ * staff's, the markers with no props, and the retired permissions, which
+ * grant nothing - or a value that is no permission at all.
+ */
+export const getTenantPermissionProblem: (data: {
+  permission: unknown;
+  holder: PermissionHolder;
+}) => string | null = (data: {
+  permission: unknown;
+  holder: PermissionHolder;
+}): string | null => {
+  if (PermissionHelper.isAssignableToTenant(data.permission)) {
+    return null;
+  }
+
+  if (typeof data.permission !== "string" || !data.permission.trim()) {
+    return "Pick a permission.";
+  }
+
+  const isTeam: boolean = data.holder === PermissionHolder.Team;
+  const pickOne: string = isTeam
+    ? "Pick one of the permissions Add Permission lists on the team's page."
+    : "Pick one of the permissions Add Permission lists on the API key's page.";
+
+  if (!(Object.values(Permission) as Array<string>).includes(data.permission)) {
+    return `OneUptime has no permission called ${data.permission}. ${pickOne}`;
+  }
+
+  return `${getPermissionTitleForSentence(data.permission)} can't be given to ${isTeam ? "a team" : "an API key"}. ${pickOne}`;
 };
 
 // Any run of white space inside a name.

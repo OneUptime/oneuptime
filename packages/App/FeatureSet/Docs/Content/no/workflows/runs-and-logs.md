@@ -47,13 +47,13 @@ stateDiagram-v2
 | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Planlagt**                        | Triggeren ble utløst, og kjøringen står i kø for en kjører. Vanligvis en brøkdel av et sekund. En kjøring som fortsatt er planlagt etter 5 minutter, mislykkes: ingenting plukket den opp.                                                                          |
 | **Kjører**                          | Arbeidsflyten er i gang.                                                                                                                                                                                                                                              |
-| **Venter**                          | Kjøringen står parkert ved en **Sleep**-blokk og fortsetter av seg selv. Den holder ingen worker mens den venter.                                                                                                                                                    |
+| **Venter**                          | Kjøringen står parkert ved en **Pause**-blokk og fortsetter av seg selv. Den holder ingen worker mens den venter.                                                                                                                                                    |
 | **Utført**                        | Kjøringen nådde slutten uten å mislykkes. Det er suksesstatusen: pillen sier **Utført**, ikke «Vellykket».                                                                                                                                                          |
-| **Feil**                            | En blokk stoppet kjøringen, eller mislyktes uten at noe var koblet til utgangen **Error**. Brukes også når en kjøring i kø aldri blir plukket opp, når gjenopptakelsen av en sovende kjøring går tapt, når et tidsplanuttrykk ikke kan løses opp, og når arbeidsflyten ble slått av eller arkivert mens kjøringen ventet ved en **Sleep**-blokk. |
+| **Feil**                            | En blokk stoppet kjøringen, eller mislyktes uten at noe var koblet til utgangen **Feil**. Brukes også når en kjøring i kø aldri blir plukket opp, når gjenopptakelsen av en sovende kjøring går tapt, når et tidsplanuttrykk ikke kan løses opp, og når arbeidsflyten ble slått av eller arkivert mens kjøringen ventet ved en **Pause**-blokk. |
 | **Tidsavbrudd**                     | Kjøringen tok lengre tid enn tillatt: 2 minutter som standard. Se [Hvor lenge en kjøring kan vare](/docs/workflows/configuration#hvor-lenge-en-kjøring-kan-vare).                                                                                                          |
 | **Utførelse overskred gjeldende abonnement** | Prosjektet har brukt opp arbeidsflytkjøringene sine for de siste 30 dagene, eller abonnementet er ubetalt. Kjøringen registreres, men utføres ikke. Bare OneUptime Cloud.                                                                                           |
 
-En blokk som tar utgangen **Error** — en API-blokk som fikk en 4xx, for eksempel — får bare kjøringen til å mislykkes når ingenting er koblet til **Error**. Er det koblet blokker dit, kjører de, og kjøringen kan likevel slutte som **Utført**. Er ingenting koblet dit, kjører resten av kjøringen videre, deretter slutter den som **Feil**, og den siste linjen i dens **Full Log** nevner blokken. Uansett tegnes selve trinnet i rødt, slik at du finner det.
+En blokk som tar utgangen **Feil** — en API-blokk som fikk en 4xx, for eksempel — får bare kjøringen til å mislykkes når ingenting er koblet til **Feil**. Er det koblet blokker dit, kjører de, og kjøringen kan likevel slutte som **Utført**. Er ingenting koblet dit, kjører resten av kjøringen videre, deretter slutter den som **Feil**, og den siste linjen i dens **Full Log** nevner blokken. Uansett tegnes selve trinnet i rødt, slik at du finner det.
 
 ## Les en kjøring
 
@@ -81,7 +81,7 @@ Noen kjøringer leses annerledes:
 - **En testkjøring.** En kjøring som noen startet med **Kjør arbeidsflyt** eller **Run just this step** mens arbeidsflyten var av, sier **Testkjøring** øverst, med hvem som startet den, og begge listene over kjøringer merker den som **Testkjøring** ved siden av statusen. Blokkene kjørte på ekte; bare triggeren til arbeidsflyten var satt på pause. Filtrer på **Testkjøring** for å vise bare testkjøringene, eller bare de andre.
 - **En test av ett trinn.** En kjøring som ble startet med **Run just this step**, sier **Only this step ran** øverst. Trinnene før det kjørte ikke, så verdier det leser fra dem, mangler (forvent en advarsel **Did not resolve** for dem), og trinnene etter det sier **(not run in this test)**. Bruk **Kjør arbeidsflyt** for å prøve hele veien.
 - **En kjøring som stoppet mellom trinn.** Stoppet kjøringen av en grunn som ikke noe trinn forklarer — den gikk tom for tid mellom to trinn, eller den mislyktes før det første trinnet —, slutter veien med **The run stopped here** og årsaken.
-- **En sovende kjøring.** En kjøring som venter ved en **Sleep**-blokk, slutter med **Sleeping** og tidspunktet den fortsetter av seg selv; trinnene etter Sleep sier **(not run yet)**.
+- **En sovende kjøring.** En kjøring som venter ved en **Pause**-blokk, slutter med **Sleeping** og tidspunktet den fortsetter av seg selv; trinnene etter Sleep sier **(not run yet)**.
 
 ID-en under tittelen til hvert trinn er nøyaktig det som skal stå i en `{{local.components.<id>.returnValues.…}}`-referanse, noe som gjør dette til den raskeste måten å få en referanse riktig på.
 
@@ -89,7 +89,7 @@ Verdiene som vises, er det blokken mottok etter at variablene ble fylt ut, og f�
 
 ### Fanen Full Log
 
-Den rå loggen linje for linje, slik kjøreren skrev den, inkludert alt blokkene logget selv, som verdien til en **Log**-blokk eller et skripts `console.log`. Bruk den når fanen Trinn ikke forklarer feilen.
+Den rå loggen linje for linje, slik kjøreren skrev den, inkludert alt blokkene logget selv, som verdien til en **Logg**-blokk eller et skripts `console.log`. Bruk den når fanen Trinn ikke forklarer feilen.
 
 ## Kopier og last ned en kjøring
 
@@ -110,7 +110,7 @@ En nedlasting inneholder ingenting du ikke allerede kunne lese i kjøringen. Hem
 
 :::details Arbeidsflyten min kjørte ikke
 1. Sørg for at arbeidsflyten er **Aktivert**: bryteren sitter øverst i **Bygger**, som sier det over lerretet når arbeidsflyten er slått av. Nye arbeidsflyter starter deaktivert, og mens en arbeidsflyt er av, starter ikke triggeren den: bare **Kjør arbeidsflyt** og **Run just this step** gjør det, som testkjøringer. Et webhook-kall til den får HTTP 400 med en melding om hvordan du slår den på.
-2. For en OneUptime-begivenhetstrigger bekrefter du at begivenheten faktisk skjedde: åpne posten, og sjekk historikken. En **On Update**-trigger med **Fields to watch** utløses bare når ett av de feltene endret seg.
+2. For en OneUptime-begivenhetstrigger bekrefter du at begivenheten faktisk skjedde: åpne posten, og sjekk historikken. En **On Update**-trigger med **Felt som overvåkes** utløses bare når ett av de feltene endret seg.
 3. For en webhook-trigger bekrefter du at det andre systemet sender til riktig URL. De fleste verktøy logger når de sender en webhook — sjekk der.
 4. For en tidsplantrigger bekrefter du at cron-uttrykket stemmer med tidspunktet du forventer. Tidsplaner kjører i UTC.
 
@@ -121,7 +121,7 @@ Vises kjøringen, med statusen **Utførelse overskred gjeldende abonnement**, ha
 En blokk som ikke kjører, er vanligvis et koblingsproblem. Åpne **Bygger**, og sjekk:
 
 - Er utgangen til den tidligere blokken koblet til inngangen til denne blokken?
-- Tok den tidligere blokken en annen utgang enn du forventet — **Error** i stedet for **Success**, eller **No** i stedet for **Yes**? Fanen **Trinn** sier hvilken utgang den tok, og hvor den førte, eller at ingenting er koblet til den.
+- Tok den tidligere blokken en annen utgang enn du forventet — **Feil** i stedet for **Suksess**, eller **Nei** i stedet for **Ja**? Fanen **Trinn** sier hvilken utgang den tok, og hvor den førte, eller at ingenting er koblet til den.
 :::
 
 :::details En verdi kom tom frem, eller som {{…}}-tekst

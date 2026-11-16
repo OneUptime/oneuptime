@@ -39,7 +39,7 @@ Une sonde qui a perdu sa propre connexion réseau ne rapporte aucun résultat, e
 
 ## Avant de commencer
 
-- **Un rôle qui peut créer des moniteurs** : Project Owner, Project Admin, Project Member, Monitor Admin ou Monitor Member, ou un rôle personnalisé avec l'autorisation Create Monitor.
+- **Un rôle qui peut créer des moniteurs** : Propriétaire du projet, Administrateur du projet, Membre du projet, Administrateur des moniteurs ou Membre des moniteurs, ou un rôle personnalisé avec l'autorisation Create Monitor.
 - **Une sonde qui peut joindre l'adresse**, avec l'ICMP autorisé sur le chemin. Les sondes par défaut de votre projet sont choisies pour chaque nouveau moniteur. Si un pare-feu la protège, autorisez les requêtes d'écho ICMP depuis les [adresses IP des sondes de OneUptime Cloud](/docs/configuration/ip-addresses). Une adresse privée a besoin d'une [sonde personnalisée](/docs/probe/custom-probe) sur ce réseau, et une adresse IPv6 d'une sonde avec une connectivité IPv6.
 
 ## Créer un moniteur IP
@@ -98,7 +98,7 @@ Avec deux filtres ou plus, **Condition de correspondance** décide si **Tous** d
 
 Un nouveau moniteur IP commence avec deux critères :
 
-- **Hors ligne** — l'adresse ne répond à aucune des requêtes d'écho, ou n'est pas joignable du tout, après chaque nouvelle tentative. Le moniteur est marqué **Hors ligne** et un incident appelé « _monitor name_ is offline » est créé. L'incident se résout de lui-même quand l'adresse répond de nouveau.
+- **Hors ligne** — l'adresse ne répond à aucune des requêtes d'écho, ou n'est pas joignable du tout, après chaque nouvelle tentative. Le moniteur est marqué **Hors ligne** et un incident appelé « _nom du moniteur_ est hors ligne » est créé. L'incident se résout de lui-même quand l'adresse répond de nouveau.
 - **En ligne** — l'adresse répond. Le moniteur est marqué **Opérationnel**.
 
 Les critères sont vérifiés de haut en bas, et le premier qui correspond décide de ce qui se passe. Quand aucun ne correspond, le moniteur affiche son état par défaut : **Opérationnel**, sauf si vous en choisissez un autre sous **Plus de champs**, sous les critères.

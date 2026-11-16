@@ -53,17 +53,17 @@ Os filtros de um monitor de status de sondas contam sondas:
 
 | Filtro | O que conta |
 | --- | --- |
-| **Disconnected Probes** | As sondas acompanhadas que estão desconectadas. |
-| **Connected Probes** | As sondas acompanhadas que estão conectadas. |
+| **Sondas desconectadas** | As sondas acompanhadas que estão desconectadas. |
+| **Sondas conectadas** | As sondas acompanhadas que estão conectadas. |
 
 Os dois são números inteiros, comparados com **Maior que**, **Menor que**, **Igual a** e as demais comparações. Um novo monitor começa com dois critérios:
 
 | Critério | Filtro | O que faz |
 | --- | --- | --- |
-| Check if a probe is disconnected | **Disconnected Probes** maior que `0` | Deixa o monitor offline e declara um incidente com o título `Probe disconnected: {{disconnectedProbeNames}}`, que se resolve sozinho. |
-| Check if every probe is connected | **Disconnected Probes** igual a `0` | Deixa o monitor operacional. |
+| Verificar se uma sonda está desconectada | **Sondas desconectadas** maior que `0` | Deixa o monitor offline e declara um incidente com o título "Sonda desconectada: {{disconnectedProbeNames}}", que se resolve sozinho. |
+| Verificar se todas as sondas estão conectadas | **Sondas desconectadas** igual a `0` | Deixa o monitor operacional. |
 
-**Connected Probes** serve para um monitor que acompanha várias sondas e pode perder uma: **Connected Probes** menor que `2` declara um incidente só quando restam menos de duas.
+O filtro **Sondas conectadas** serve para um monitor que acompanha várias sondas e pode perder uma: **Sondas conectadas** menor que `2` declara um incidente só quando restam menos de duas.
 
 ### Esperar mais antes de um incidente
 
@@ -89,7 +89,7 @@ Os modelos de incidente e de alerta de um monitor de status de sondas podem usar
 ## Solução de problemas
 
 :::details O monitor diz que está esperando dados
-Um novo monitor mostra a primeira avaliação em um ou dois minutos. Se ele não acompanha nenhuma sonda, mostra **Not set up** no lugar: escolha as sondas em **Critérios**.
+Um novo monitor mostra a primeira avaliação em um ou dois minutos. Se ele não acompanha nenhuma sonda, mostra **Não configurado** no lugar: escolha as sondas em **Critérios**.
 :::
 
 :::details Uma sonda caiu e nenhum incidente foi declarado

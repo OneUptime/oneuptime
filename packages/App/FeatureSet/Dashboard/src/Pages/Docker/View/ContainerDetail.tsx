@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { getUnnamedText } from "../../../Components/Dashboard/Components/DashboardWidgetFallbackWords";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
@@ -260,7 +261,7 @@ const DockerHostContainerDetail: FunctionComponent<
     DOCKER_CONTAINER_HOST_RUNTIME,
     modelId,
   );
-  const hostName: string = host.name || host.hostIdentifier || "—";
+  const hostName: string = host.name || host.hostIdentifier || getUnnamedText();
 
   const tabs: Array<Tab> = [
     {
@@ -299,6 +300,7 @@ const DockerHostContainerDetail: FunctionComponent<
             "Container Metrics: {{containerName}}",
             { containerName: containerName },
           )}
+          isTitleTranslated={true}
           description="CPU and memory usage for this container."
           queryConfigs={metricQueryConfigs}
         />

@@ -12,6 +12,7 @@ import ObjectID from "Common/Types/ObjectID";
 import ModelSwitchCard from "Common/UI/Components/ModelSwitch/ModelSwitchCard";
 import Page from "Common/UI/Components/Page/Page";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
+import { translationKey } from "Common/Types/Translator";
 import React, { FunctionComponent, ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -36,6 +37,7 @@ const SettingsPushNotifications: FunctionComponent = (): ReactElement => {
   return (
     <Page
       title={t("pages.settings.title")}
+      isTitleTranslated={true}
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),
@@ -65,7 +67,9 @@ const SettingsPushNotifications: FunctionComponent = (): ReactElement => {
         isInverted={true}
         modelAPI={AdminModelAPI}
         cardTitle="Push Notifications"
-        cardDescription="Notifications pushed to the OneUptime mobile app and to browsers, through Expo, the push relay and the browsers' push services."
+        cardDescription={translationKey(
+          "Notifications pushed to the OneUptime mobile app and to browsers, through Expo, the push relay and the browsers' push services.",
+        )}
         title="Send push notifications"
         getDescription={getPushNotificationsSwitchDescription}
         getConfirmation={getPushNotificationsSwitchConfirmation}

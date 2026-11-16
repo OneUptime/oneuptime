@@ -22,7 +22,6 @@ import OpenStackCheckStore, {
   OpenStackCheckKind,
   OpenStackCheckService,
 } from "../../../Server/Utils/OpenStack/OpenStackCheckStore";
-import OpenStackProbeCollectionStore from "../../../Server/Utils/OpenStack/OpenStackProbeCollectionStore";
 import {
   SET_ASIDE_FOR_MINUTES,
   SET_ASIDE_PER_CLAIM,
@@ -311,7 +310,7 @@ describePostgres(
            "collectionProbeId", "collectionIntervalInMinutes", "nextCollectionAt", "collectionSettingsVersion",
            "createdAt", "updatedAt", "version")
          VALUES ($1, $2, $3, $4, $5, 'https://keystone.example.com:5000', 'public',
-                 'applicationCredential', 'the-clouds', $6, true, $7, $8, 5, $9, 0, now(), now(), 1)`,
+                 'applicationCredential', 'the-clouds', $6, $7, false, $8, 5, $9, 0, now(), now(), 1)`,
         [
           id.toString(),
           (data.project || projectId).toString(),
@@ -319,8 +318,11 @@ describePostgres(
           `cloud-${count}-${id.toString().substring(0, 8)}`,
           OpenStackCollectionMethod.Probe,
           await Encryption.encrypt("the-clouds-secret"),
-          // Not claimable: archived.
-          !data.claimable,
+          /*
+           * Not claimable: no credential saved. Not archived, which no longer stops a cloud's
+           * collection (OneUptime issue #8324).
+           */
+          data.claimable,
           (data.probe || probeId).toString(),
           data.due,
         ],
@@ -658,15 +660,14 @@ describePostgres(
             return job.openStackCloudId;
           });
         },
-        // Unarchived: OpenStackCloudService's hook makes it due.
+        /*
+         * A credential saved, as OpenStackCloudConnection.afterWrite writes it: due at once, at
+         * the server's clock to the millisecond.
+         */
         makeClaimable: async (id: ObjectID): Promise<void> => {
           await database.query(
-            `UPDATE "${schema}"."OpenStackCloud" SET "isArchived" = false WHERE "_id" = $1`,
-            [id.toString()],
-          );
-          await OpenStackProbeCollectionStore.makeDueNow(
-            OpenStackCloudService,
-            [id],
+            `UPDATE "${schema}"."OpenStackCloud" SET "isCredentialSet" = true, "nextCollectionAt" = $2 WHERE "_id" = $1`,
+            [id.toString(), new Date()],
           );
         },
         service: OpenStackCloudService,
@@ -933,45 +934,6 @@ describePostgres(
         return setAside;
       }
 
-      test("an OpenStack cloud unarchived", async () => {
-        const cloud: ObjectID = await insertCloud({
-          claimable: true,
-          due: minutesFromNow(-10),
-        });
-        const setAside: QueryRunner = await setAsideInFlight(
-          "OpenStackCloud",
-          "nextCollectionAt",
-          cloud,
-        );
-
-        let isSettled: boolean = false;
-        const bringBack: Promise<void> =
-          OpenStackProbeCollectionStore.makeDueNow(OpenStackCloudService, [
-            cloud,
-          ]).then(() => {
-            isSettled = true;
-          });
-
-        // It waits for the set-aside...
-        await new Promise((resolve: (value: unknown) => void) => {
-          setTimeout(resolve, 300);
-        });
-        expect(isSettled).toBe(false);
-
-        await setAside.commitTransaction();
-        await setAside.release();
-        await bringBack;
-
-        // ...and wins: the set-aside committed first, and was written over.
-        expect(
-          (await readDue(
-            "OpenStackCloud",
-            "nextCollectionAt",
-            cloud,
-          ))!.getTime(),
-        ).toBeLessThanOrEqual(Date.now());
-      });
-
       test("a data store scanned again", async () => {
         const store: ObjectID = await insertStore({
           dueColumn: "nextContentScanAt",
@@ -1036,28 +998,139 @@ describePostgres(
           ))!.getTime(),
         ).toBeGreaterThan(Date.now());
       });
+    });
 
-      test("an unarchived cloud's checks, both kinds, by their cloud", async () => {
+    /*
+     * OneUptime issue #8324: the claim set an archived cloud aside, while its Archived page and
+     * its column said an archived cloud keeps collecting, as an archived vCenter does.
+     */
+    describe("archiving", () => {
+      test("an archived OpenStack cloud is still handed to its probe, and never set aside", async () => {
+        const cloud: ObjectID = await insertCloud({
+          claimable: true,
+          due: minutesFromNow(-10),
+        });
+
+        await database.query(
+          `UPDATE "${schema}"."OpenStackCloud" SET "isArchived" = true WHERE "_id" = $1`,
+          [cloud.toString()],
+        );
+
+        const jobs: Array<{ openStackCloudId: string }> =
+          await OpenStackCloudService.claimForCollection({
+            probeId: probeId,
+            runningOpenStackCloudIds: [],
+            limit: 10,
+          });
+
+        expect(
+          jobs.map((job: { openStackCloudId: string }): string => {
+            return job.openStackCloudId;
+          }),
+        ).toEqual([cloud.toString()]);
+
+        // Claimed for its interval, not set aside a quarter of an hour.
+        const due: Date | null = await readDue(
+          "OpenStackCloud",
+          "nextCollectionAt",
+          cloud,
+        );
+        expect(due!.getTime()).toBeLessThanOrEqual(
+          Date.now() + 5 * 60 * 1000 + 1000,
+        );
+      });
+
+      /*
+       * OneUptime issue #8449: and so are its checks. The checks' claim set an archived cloud's
+       * checks aside, the sweep after a lifecycle run among them.
+       */
+      async function archiveCloudOf(check: ObjectID): Promise<void> {
+        await database.query(
+          `UPDATE "${schema}"."OpenStackCloud" SET "isArchived" = true
+           WHERE "_id" = (SELECT "openStackCloudId" FROM "${schema}"."OpenStackCloudCheck" WHERE "_id" = $1)`,
+          [check.toString()],
+        );
+      }
+
+      test("an archived cloud's API checks are handed to its probe, and moved on by their interval only", async () => {
         const check: ObjectID = await insertCheck({
           kind: "api",
           claimable: true,
-          due: minutesFromNow(17),
+          due: minutesFromNow(-10),
         });
-        const cloud: Array<{ openStackCloudId: string }> = await database.query(
-          `SELECT "openStackCloudId" FROM "${schema}"."OpenStackCloudCheck" WHERE "_id" = $1`,
+
+        await archiveCloudOf(check);
+
+        expect(await claimChecks("api", 10)).toEqual([check.toString()]);
+
+        // Claimed for its one-minute interval, not set aside a quarter of an hour.
+        expect(
+          (await readDue(
+            "OpenStackCloudCheck",
+            "nextApiCheckAt",
+            check,
+          ))!.getTime(),
+        ).toBeLessThanOrEqual(Date.now() + 60 * 1000 + 1000);
+      });
+
+      test("an archived cloud's lifecycle check is handed out too", async () => {
+        const check: ObjectID = await insertCheck({
+          kind: "lifecycle",
+          claimable: true,
+          due: minutesFromNow(-10),
+        });
+
+        await archiveCloudOf(check);
+
+        expect(await claimChecks("lifecycle", 10)).toEqual([check.toString()]);
+        expect(
+          (await readDue(
+            "OpenStackCloudCheck",
+            "nextLifecycleCheckAt",
+            check,
+          ))!.getTime(),
+        ).toBeLessThanOrEqual(Date.now() + 30 * 60 * 1000 + 1000);
+      });
+
+      test("the sweep after a lifecycle check turned off runs on an archived cloud: what a run left is cleared up", async () => {
+        // Turned off with a run behind it: only the sweep is pending.
+        const check: ObjectID = await insertCheck({
+          kind: "lifecycle",
+          claimable: false,
+          due: minutesFromNow(-10),
+        });
+
+        await database.query(
+          `UPDATE "${schema}"."OpenStackCloudCheck" SET "isSweepPending" = true, "nextLifecycleCheckAt" = $2 WHERE "_id" = $1`,
+          [check.toString(), minutesFromNow(-10)],
+        );
+        await archiveCloudOf(check);
+
+        expect(await claimChecks("lifecycle", 10)).toEqual([check.toString()]);
+      });
+
+      test("a deleted cloud's checks still stop: deleting is not archiving", async () => {
+        const check: ObjectID = await insertCheck({
+          kind: "api",
+          claimable: true,
+          due: minutesFromNow(-10),
+        });
+
+        await database.query(
+          `UPDATE "${schema}"."OpenStackCloud" SET "deletedAt" = now(), "isArchived" = true
+           WHERE "_id" = (SELECT "openStackCloudId" FROM "${schema}"."OpenStackCloudCheck" WHERE "_id" = $1)`,
           [check.toString()],
         );
 
-        await OpenStackCheckStore.makeDueNow(OpenStackCloudService, {
-          ids: [new ObjectID(cloud[0]!.openStackCloudId)],
-          byCloud: true,
-        });
-
-        for (const column of ["nextApiCheckAt", "nextLifecycleCheckAt"]) {
-          expect(
-            (await readDue("OpenStackCloudCheck", column, check))!.getTime(),
-          ).toBeLessThanOrEqual(Date.now());
-        }
+        expect(await claimChecks("api", 10)).toEqual([]);
+        // Set aside a quarter of an hour, as any check nothing may run.
+        expect(
+          (await readDue(
+            "OpenStackCloudCheck",
+            "nextApiCheckAt",
+            check,
+          ))!.getTime(),
+        ).toBeGreaterThan(Date.now() + 5 * 60 * 1000);
       });
     });
 

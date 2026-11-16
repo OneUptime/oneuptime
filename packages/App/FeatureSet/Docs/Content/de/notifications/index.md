@@ -53,7 +53,7 @@ Sie sind mit Absicht getrennt. Jeden Kanal in den **Benachrichtigungseinstellung
 
 **Erste Schritte** und **Warnungen & Benachrichtigungen** sind geöffnet; die anderen Abschnitte starten eingeklappt, und ein Abschnitt öffnet sich von selbst, wenn Sie auf einer seiner Seiten sind. **Arbeitsbereich** erscheint nur, wenn das Projekt Slack, Microsoft Teams oder Mattermost verbunden hat.
 
-Projekteigentümer und Admins können Ihre Einrichtung ebenfalls ansehen: Unter **Benutzer** öffnen sie Ihre Zeile und deren Abschnitt **Bereitschaft**, mit **Einsatzbereitschaft**, **Benachrichtigungsmethoden** und **Wie ich erreichbar bin**. Sie können dort eine Methode für Sie hinzufügen, aber der Code geht an die Methode selbst, sodass nur Sie sie verifizieren können.
+Projektinhaber und Projektadministratoren können Ihre Einrichtung ebenfalls ansehen: Unter **Benutzer** öffnen sie Ihre Zeile und deren Abschnitt **Bereitschaft**, mit **Einsatzbereitschaft**, **Benachrichtigungsmethoden** und **Wie ich erreichbar bin**. Sie können dort eine Methode für Sie hinzufügen, aber der Code geht an die Methode selbst, sodass nur Sie sie verifizieren können.
 
 ## Womit Sie starten
 
@@ -95,7 +95,7 @@ Ein Alarm kann Sie für eine Art und einen Schweregrad erreichen, für die Sie k
 2. Wenn Sie keine davon haben, eine kostenpflichtige Methode, in dieser Reihenfolge: SMS, ein Telefonanruf, WhatsApp, Telegram. Es ist die erste, die Sie verifiziert haben, auf einem Kanal, den das Projekt eingeschaltet hat.
 3. Wenn Sie auch davon keine haben, ein Webhook.
 
-Sie erhalten darüber eine E-Mail, ebenso die Eigentümer der Bereitschaftsrichtlinie, oder die Eigentümer des Projekts, wenn die Richtlinie keine hat. Ist gar nichts verifiziert, kann der Alarm nicht zugestellt werden, und die E-Mail sagt stattdessen das. Diese E-Mails werden zurückgehalten, solange weitere Alarme eintreffen, sodass ein Sturm von Alarmen kein Sturm von E-Mails wird. Wie Sie die fehlende Regel hinzufügen, steht unter [Wie ich erreichbar bin](/docs/notifications/on-call-rules#wenn-ein-schweregrad-keine-regel-hat).
+Sie erhalten darüber eine E-Mail, ebenso die Eigentümer der Bereitschaftsrichtlinie, oder die Projektinhaber, wenn die Richtlinie keine hat. Ist gar nichts verifiziert, kann der Alarm nicht zugestellt werden, und die E-Mail sagt stattdessen das. Diese E-Mails werden zurückgehalten, solange weitere Alarme eintreffen, sodass ein Sturm von Alarmen kein Sturm von E-Mails wird. Wie Sie die fehlende Regel hinzufügen, steht unter [Wie ich erreichbar bin](/docs/notifications/on-call-rules#wenn-ein-schweregrad-keine-regel-hat).
 
 ## Die Sprache Ihrer Alarme
 
@@ -116,7 +116,7 @@ Was sich ändert, sind die Worte von OneUptime: Betreffzeilen, Überschriften, S
 :::
 
 :::details Ich bekomme E-Mails zu Datensätzen, nach denen ich nie gefragt habe
-Sie sind Eigentümer des Datensatzes, direkt oder über ein Team, oder der Datensatz hat keine Eigentümer und Sie sind ein Projekteigentümer. Schalten Sie das Ereignis unter **Benutzereinstellungen → Benachrichtigungseinstellungen** aus, oder verringern Sie die Menge unter **Benutzereinstellungen → E-Mail-Einstellungen**.
+Sie sind Eigentümer des Datensatzes, direkt oder über ein Team, oder der Datensatz hat keine Eigentümer und Sie sind ein Projektinhaber. Schalten Sie das Ereignis unter **Benutzereinstellungen → Benachrichtigungseinstellungen** aus, oder verringern Sie die Menge unter **Benutzereinstellungen → E-Mail-Einstellungen**.
 :::
 
 :::details Meine Alarme sind auf Englisch, das Dashboard aber nicht

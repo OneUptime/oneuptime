@@ -76,27 +76,15 @@ export const TELEMETRY_ADMIN_PAGES: ReadonlyArray<TelemetryAdminDocsPageEntry> =
  * a wording for them (TelemetryAdminDocsFacts holds that they are still not
  * keys of the Dashboard's English locale, and that the Dashboard draws
  * them).
+ *
+ * None is left. The service map's Entry point and No calls observed
+ * statuses are keys since #8260, and the Enterprise Edition's
+ * retention-by-type form (Edit Overrides, Logs default (days) and the
+ * others) since #8461: each language names them as its Dashboard draws
+ * them, as it does every other label.
  */
 export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
-  {
-    /*
-     * The statuses the service map draws that no locale has. Its Some
-     * errors and High error rate are keys since the queues' topology map
-     * draws them too (MessageQueueTopologyModel), so the service map's t()
-     * reads them from the locale, as every other Dashboard label is read.
-     * The page's first tab, Service Map, is a key since #6633's UI review,
-     * so each language names it as its Dashboard draws it.
-     */
-    [TOPOLOGY]: ["Entry point", "No calls observed"],
-    // The Enterprise Edition's retention-by-type form.
-    [DATA_RETENTION]: [
-      "Edit Overrides",
-      "Logs default (days)",
-      "Traces default (days)",
-      "Metrics default (days)",
-      "Profiles default (days)",
-    ],
-  };
+  {};
 
 /*
  * Bold labels of the Admin Dashboard, which has a locale of its own: a page
@@ -120,7 +108,7 @@ export const ADMIN_DASHBOARD_LABELS: Readonly<
 export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
   [INGESTION_KEYS]: [
     "The key decides the project.",
-    "Changes reach every server within a minute.",
+    "Changes reach every server within seconds.",
     "A Server key is a password.",
     "A role that manages ingestion keys.",
     "On OneUptime Cloud, a payment method.",

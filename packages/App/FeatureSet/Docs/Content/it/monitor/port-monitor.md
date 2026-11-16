@@ -31,7 +31,7 @@ Quando un controllo fallisce, la sonda traccia anche il percorso verso l'host e 
 
 ## Prima di iniziare
 
-- **Un ruolo che può creare monitor**: Project Owner, Project Admin, Project Member, Monitor Admin o Monitor Member, oppure un ruolo personalizzato con il permesso Create Monitor.
+- **Un ruolo che può creare monitor**: Proprietario del progetto, Amministratore del progetto, Membro del progetto, Amministratore dei monitor o Membro dei monitor, oppure un ruolo personalizzato con il permesso Create Monitor.
 - **Una sonda che raggiunga la porta.** Le sonde predefinite del vostro progetto vengono scelte per ogni nuovo monitor. Se un firewall protegge il servizio, consentite agli [indirizzi IP delle sonde di OneUptime Cloud](/docs/configuration/ip-addresses) di connettersi alla porta. Un servizio su una rete privata, come un database, ha bisogno di una [sonda personalizzata](/docs/probe/custom-probe) in quella rete.
 
 ## Creare un monitor porta
@@ -122,7 +122,7 @@ Con due o più filtri, **Condizione di corrispondenza** decide se devono corrisp
 
 Un nuovo monitor porta parte con due criteri:
 
-- **Offline** — la porta non accetta una connessione, dopo tutti i nuovi tentativi. Il monitor viene segnato **Offline** e viene creato un incidente chiamato «_monitor name_ is offline». L'incidente si risolve da solo quando la porta accetta di nuovo connessioni.
+- **Offline** — la porta non accetta una connessione, dopo tutti i nuovi tentativi. Il monitor viene segnato **Offline** e viene creato un incidente chiamato «_nome del monitor_ è offline». L'incidente si risolve da solo quando la porta accetta di nuovo connessioni.
 - **Online** — la porta accetta una connessione. Il monitor viene segnato **Operativo**.
 
 I criteri vengono controllati dall'alto verso il basso, e il primo che corrisponde decide cosa succede. Quando nessuno corrisponde, il monitor mostra il suo stato predefinito: **Operativo**, a meno che non ne scegliate un altro sotto **Altri campi**, sotto i criteri.
@@ -164,7 +164,7 @@ Scegliete una finestra più lunga dell'intervallo di monitoraggio, così che con
 ## Risoluzione dei problemi
 
 :::details Il servizio è attivo, ma il monitor lo dà offline
-La sonda non è riuscita ad aprire una connessione: un firewall la scarta, il servizio ascolta solo su un'interfaccia privata, oppure la porta è sbagliata. La causa principale dell'incidente, e **Registri di monitoraggio** sul monitor, mostrano l'errore, e **Percorso di rete al momento dell'errore** mostra fin dove è arrivato il percorso. Fate passare le sonde attraverso il firewall, oppure usate una [sonda personalizzata](/docs/probe/custom-probe) all'interno della rete.
+La sonda non è riuscita ad aprire una connessione: un firewall la scarta, il servizio ascolta solo su un'interfaccia privata, oppure la porta è sbagliata. La causa principale dell'incidente, e **Log di monitoraggio** sul monitor, mostrano l'errore, e **Percorso di rete al momento dell'errore** mostra fin dove è arrivato il percorso. Fate passare le sonde attraverso il firewall, oppure usate una [sonda personalizzata](/docs/probe/custom-probe) all'interno della rete.
 :::
 
 :::details Il tempo di risoluzione DNS è sempre vuoto

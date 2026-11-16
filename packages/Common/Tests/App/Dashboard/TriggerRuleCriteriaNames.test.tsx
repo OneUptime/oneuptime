@@ -37,6 +37,16 @@ import RunbookRulesTable, {
   getRunbookRuleCriteriaSubject,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Runbook/RunbookRulesTable";
 import RunbookRuleTriggerEntity from "../../../Types/Runbook/RunbookRuleTriggerEntity";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * A read the AI rules table makes that these tests leave unanswered: the
+ * project's LLM providers, for its rules' LLM Provider field
+ * (RuleLlmProviderField), which the criteria's names do not depend on.
+ * Refused at once, as the network refused it, and taken as a read the table
+ * could not make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/ai-chat/providers"]);
 
 interface CapturedField {
   field?: Record<string, unknown>;

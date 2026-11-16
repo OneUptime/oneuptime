@@ -85,9 +85,13 @@ import UserTwoFactorBackupCodeService from "Common/Server/Services/UserTwoFactor
 import TwoFactorBackupCode from "Common/Server/Utils/TwoFactorBackupCode";
 import TwoFactorBackupCodeNotification from "Common/Server/Utils/TwoFactorBackupCodeNotification";
 import UserSessionService, {
+  RevokeSessionOptions,
   SessionMetadata,
   SessionRenewalDecision,
 } from "Common/Server/Services/UserSessionService";
+import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
+import JSONWebTokenData from "Common/Types/JsonWebTokenData";
+import JsonWebTokenPurpose from "Common/Types/JsonWebTokenPurpose";
 import SessionEndedException from "Common/Types/Exception/SessionEndedException";
 import { SessionEndCause } from "Common/Types/UserSession/SessionEndCause";
 import {
@@ -100,11 +104,15 @@ import {
   LONGEST_INACTIVITY_FIELD,
   readReportedInactivityInSeconds,
   readReportedLongestInactivity,
+  readReportsActivityWhileInUse,
+  REPORTS_ACTIVITY_WHILE_IN_USE_FIELD,
   SessionEndReason,
 } from "Common/Types/UserSession/SessionLength";
 import CookieUtil from "Common/Server/Utils/Cookie";
 import { getSessionCookieFields } from "Common/Server/Utils/SessionCookieFields";
-import JSONWebToken from "Common/Server/Utils/JsonWebToken";
+import JSONWebToken, {
+  SessionToSignOut,
+} from "Common/Server/Utils/JsonWebToken";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -2432,6 +2440,13 @@ router.post(
         );
       }
 
+      /*
+       * Whether this browser renews while its person uses OneUptime, as
+       * this renewal says (issue #8188): kept with the session, so the
+       * sweep may record its idle timeout soon after it ran out - and never
+       * of a session whose last renewal did not say so (the mobile app, a
+       * tab of an earlier release), which is decided at its next renewal.
+       */
       const renewedSession: SessionMetadata | null =
         await UserSessionService.renewSessionWithNewRefreshToken({
           session,
@@ -2440,6 +2455,12 @@ router.post(
           ipAddress: getClientIp(req),
           userAgent: headerValueToString(req.headers["user-agent"]),
           ...extractDeviceInfo(req),
+          additionalInfo: {
+            [REPORTS_ACTIVITY_WHILE_IN_USE_FIELD]:
+              readReportsActivityWhileInUse(
+                renewalBody?.[REPORTS_ACTIVITY_WHILE_IN_USE_FIELD],
+              ),
+          },
         });
 
       // Ended while this request was on its way: it stays ended.
@@ -2495,12 +2516,99 @@ router.post(
         CookieUtil.getRefreshTokenFromExpressRequest(req) ||
         (req.body.refreshToken as string | undefined);
 
-      if (refreshToken) {
-        await UserSessionService.revokeSessionByRefreshToken(refreshToken, {
-          cause: SessionEndCause.SignedOut,
-          // Where they signed out from, for the audit log's entry.
-          requestOrigin: RequestOriginUtil.fromRequest(req),
-        });
+      const revokeOptions: RevokeSessionOptions = {
+        cause: SessionEndCause.SignedOut,
+        // Where they signed out from, for the audit log's entry.
+        requestOrigin: RequestOriginUtil.fromRequest(req),
+      };
+
+      let hasEndedSession: boolean = refreshToken
+        ? await UserSessionService.revokeSessionByRefreshToken(
+            refreshToken,
+            revokeOptions,
+          )
+        : false;
+
+      /*
+       * The refresh token matched no live session: the session it named
+       * may have been renewed by a request whose answer never reached the
+       * client - the server rotates the refresh token at every renewal and
+       * keeps only the new one - and would stay signed in on the server
+       * though its person signed out (issue #8592). The access token the
+       * client still holds names that session: its own signature says so,
+       * expired or not (DecodeOptions.acceptExpired, for this and nothing
+       * else), and only its user's live session is ended.
+       */
+      if (!hasEndedSession) {
+        const accessToken: string | undefined =
+          UserMiddleware.getAccessTokenFromExpressRequest(req);
+        let sessionOfAccessToken: SessionToSignOut | null = null;
+
+        if (accessToken) {
+          try {
+            /*
+             * Whose session it is and which, and nothing else: no claim of
+             * the token grants anything here - whether its person is a
+             * master admin is answered by readRequestSession alone
+             * (MasterAdminSessionClaimGuard).
+             */
+            const { userId, sessionId }: JSONWebTokenData = JSONWebToken.decode(
+              accessToken,
+              JsonWebTokenPurpose.UserSession,
+              { acceptExpired: true },
+            );
+
+            sessionOfAccessToken = sessionId ? { userId, sessionId } : null;
+          } catch {
+            // Not a session's token OneUptime signed: nothing to end.
+            sessionOfAccessToken = null;
+          }
+        }
+
+        if (sessionOfAccessToken) {
+          hasEndedSession = await UserSessionService.revokeLiveSessionOfUser(
+            {
+              userId: sessionOfAccessToken.userId,
+              sessionId: sessionOfAccessToken.sessionId,
+            },
+            revokeOptions,
+          );
+        }
+      }
+
+      /*
+       * Still nothing ended: a browser whose renewal's answer was lost, and
+       * whose access-token cookie has gone since - it lives fifteen
+       * minutes - sends no token that names its session (issue #8638). Its
+       * sign-out cookie still does (CookieUtil.setUserCookie): signed for
+       * that and nothing else, sent only to this route, and read from the
+       * cookie only. As above, only that live session of its own user is
+       * ended.
+       */
+      if (!hasEndedSession) {
+        const sessionSignOutToken: string | undefined =
+          CookieUtil.getSessionSignOutTokenFromExpressRequest(req);
+        let sessionToSignOut: SessionToSignOut | null = null;
+
+        if (sessionSignOutToken) {
+          try {
+            sessionToSignOut =
+              JSONWebToken.decodeSessionToSignOut(sessionSignOutToken);
+          } catch {
+            // Not a sign-out cookie OneUptime signed, or one that ran out.
+            sessionToSignOut = null;
+          }
+        }
+
+        if (sessionToSignOut) {
+          await UserSessionService.revokeLiveSessionOfUser(
+            {
+              userId: sessionToSignOut.userId,
+              sessionId: sessionToSignOut.sessionId,
+            },
+            revokeOptions,
+          );
+        }
       }
 
       CookieUtil.removeAllCookies(req, res);

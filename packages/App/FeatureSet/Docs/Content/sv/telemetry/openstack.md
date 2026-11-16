@@ -1,9 +1,9 @@
 # OpenStack-agent
 
-OneUptimes OpenStack-agent övervakar ett OpenStack-moln: dess tjänster och agenter, hypervisorer, instanser, nätverk, routrar, volymer, lagringspooler, avbilder och projekt, i varje region. Den läser molnets API:er med en autentiseringsuppgift som du väljer och skickar det den hittar till OneUptime, där molnet visas med sina regioner, hypervisorer och projekt. [OpenStack-monitorer](/docs/monitor/openstack-monitor) larmar om det som kommer in, och en [probe](/docs/telemetry/openstack-agentless) kan samla in från ett moln utan att något installeras.
+OneUptimes OpenStack-agent övervakar ett OpenStack-moln: dess tjänster och agenter, hypervisorer, instanser, nätverk, routrar, volymer, lagringspooler, avbilder och projekt, i varje region. Den läser molnets API:er med en autentiseringsuppgift som du väljer och skickar det den hittar till OneUptime, där molnet visas med sina regioner, hypervisorer och projekt. [OpenStack-monitorer](/docs/monitor/openstack-monitor) larmar om det som kommer in, och en [sond](/docs/telemetry/openstack-agentless) kan samla in från ett moln utan att något installeras.
 
 :::cards
-- [Probe eller agent?](/docs/telemetry/openstack-agentless#sond-eller-agent): Vilken du ska välja för ett moln som kan använda någondera.
+- [Sond eller agent?](/docs/telemetry/openstack-agentless#sond-eller-agent): Vilken du ska välja för ett moln som kan använda någondera.
 - [Välj hur mycket den ser](#välj-hur-mycket-agenten-ser): OpenStack har ingen global skrivskyddad roll, så det finns tre nivåer.
 - [Installera agenten](#installera-agenten): En autentiseringsuppgift, sedan installationsskriptet, Docker Compose eller helt utan Docker.
 - [Vad den kostar ditt moln](#vad-det-kostar-ditt-moln): Vad varje inställning läser och hur du ändrar den.
@@ -11,10 +11,10 @@ OneUptimes OpenStack-agent övervakar ett OpenStack-moln: dess tjänster och age
 - [Utgifter](#utgifter): Vem som använder vad, vad det blir till dina priser eller som CloudKitty prissatte det, och vad som kan återtas.
 - [Statussidor och att informera projekt](#statussidor-och-att-informera-projekt): En sida per region i ett enda steg, och att bara informera de projekt som ett fel når.
 - [Tjänstloggar](#tjänstloggar): Tolkade, med en begäran följd över tjänsterna.
-- [Livscykelhändelser](#livscykelhändelser): Instansåtgärder i flödet och i diagram, från notiser eller en probe.
+- [Livscykelhändelser](#livscykelhändelser): Instansåtgärder i flödet och i diagram, från notiser eller en sond.
 - [Vem gjorde vad](#vem-gjorde-vad): Granskningsspår till Säkerhetshändelser.
 - [Spåra en begäran](#spåra-begäranden-genom-kontrollplanet): En signerad begäran, följd över kontrollplanet.
-- [Kontrollera det utifrån](#kontrollera-molnet-utifrån): Om någon faktiskt kan starta en instans, från en probe utanför molnet.
+- [Kontrollera det utifrån](#kontrollera-molnet-utifrån): Om någon faktiskt kan starta en instans, från en sond utanför molnet.
 - [Utan internet](#utan-internet): Agentens fyra avbilder och hur du kopierar dem till ett eget register.
 - [Per driftsättningsverktyg](/docs/telemetry/openstack-deployment-tools): Kolla-Ansible, OpenStack-Ansible, OpenStack-Helm, Atmosphere, Sunbeam, Red Hat och Mirantis.
 - [Felsökning](#felsökning): Ett diagnostikskript och de vanliga problemen.
@@ -244,7 +244,7 @@ openstack application credential create oneuptime-agent --expiration 2027-11-01T
 
 Agenten ser det projektets rader från Cinder och Neutron och ingen infrastruktur. Tre saker att veta innan du väljer detta:
 
-- **Genom agenten visar den inga instanser alls.** Exportern ber Nova om alla projekts servrar, Nova nekar en vanlig reader, och den läsningen misslyckas helt. Bara en OneUptime-probe, som samlar in utan den här agenten, kan lista ett projekts instanser.
+- **Genom agenten visar den inga instanser alls.** Exportern ber Nova om alla projekts servrar, Nova nekar en vanlig reader, och den läsningen misslyckas helt. Bara en OneUptime-sond, som samlar in utan den här agenten, kan lista ett projekts instanser.
 - **Den kanske kan skriva.** På ett moln där Cinder har `enforce_new_defaults` avstängt kan en vanlig `reader` också skapa volymer i sitt projekt. På Epoxy, Flamingo och Gazpacho gjorde den det (`202`), och på Hibiscus nekades det (`403`), eftersom DevStack bara slår på `enforce_new_defaults` där. Cinders eget standardvärde är avstängt.
 - **Placement läses som att det inte svarar.** Varje anrop den gör nekas, och exportern rapporterar det på samma sätt som ett stoppat Placement: `openstack_placement_up 0`, på alla fem moln vi har registrerat. Sidorna kan se det utifrån vad mer som är stängt för den här autentiseringsuppgiften, och säger det. Mallen [Placement API Down](/docs/monitor/openstack-monitor#färdiga-larmmallar) kan inte det, så utelämna den på den här nivån.
 :::
@@ -517,8 +517,8 @@ Vad som kräver att någon agerar, på samma rader som [larmmallarna](/docs/moni
 Var och en av dessa registrerades på en riktig DevStack, och varje sida säger det där det spelar roll:
 
 - **Ironic visar ett projekt bara de noder det äger.** Placement svarar alla, så där det håller en nod som Ironic inte listade säger sidan att listan inte är hela molnets. Enligt Ironics standardpolicy läser bara en autentiseringsuppgift med systemomfång varje nod, eller en vars roll har `baremetal:node:list_all`.
-- **Exportern bär inte varför en nod felade.** Den har en underhållsorsak och inget `last_error`, och Ironic kan ändå tömma `last_error` inom ungefär en minut, med noden fortfarande felad: det gjorde det för en felad rensning och lämnade en felad driftsättnings. Så titta direkt med `openstack baremetal node show <node> -c last_error`, eller i conductorns logg. En [probe](/docs/telemetry/openstack-agentless) läser `last_error` och behåller det senaste den såg.
-- **Exportern har inga conductors.** Bara en probe läser dem, och Ironic nekar ett projekts autentiseringsuppgift listan om inte dess policy säger något annat (`baremetal:conductor:get`).
+- **Exportern bär inte varför en nod felade.** Den har en underhållsorsak och inget `last_error`, och Ironic kan ändå tömma `last_error` inom ungefär en minut, med noden fortfarande felad: det gjorde det för en felad rensning och lämnade en felad driftsättnings. Så titta direkt med `openstack baremetal node show <node> -c last_error`, eller i conductorns logg. En [sond](/docs/telemetry/openstack-agentless) läser `last_error` och behåller det senaste den såg.
+- **Exportern har inga conductors.** Bara en sond läser dem, och Ironic nekar ett projekts autentiseringsuppgift listan om inte dess policy säger något annat (`baremetal:conductor:get`).
 - **Ett stoppat Ironic läses likadant som inget Ironic.** På en fråga om ett som är stoppat svarar exportern med en tom 200, som den gör för ett moln som aldrig haft det. Så en sida säger bara att den inte har hört från Ironic, och att noderna är som de senast lästes. Den säger aldrig nere. Två veckor efter att resten av molnet senast rapporterade utan det försvinner de raderna, och de kommer tillbaka om det gör det.
 
 ## Kapacitet
@@ -529,19 +529,19 @@ Allt på den är allokering: vad som har utlovats, inte vad som är upptaget. En
 
 **Vad kapacitet är.** För varje resursleverantör och resursklass är kapaciteten `(total - reserved) x allocation_ratio`, och allokerat är det som Placement har utlovat. Det summeras per zon, aggregat, region och moln. En värd vars `nova-compute` ligger nere fortsätter rapportera sina senaste siffror, och en inaktiverad tar inte emot något nytt, så ingen av dem räknas som utrymme. Det de håller finns kvar, och en prognos räknar med det.
 
-**Bare metal.** En nod tar en instans helt, så ett moln med Ironic får en egen tabell, per resursklass: hur många noder, hur många som kan ta en instans, hur många som används och hur många som hålls tillbaka, eftersom Novas Ironic-drivrutin inte kan använda dem just nu. Det här är Placements egna siffror, så de gäller hela molnet även där Ironic bara visar ett projekt det som det äger, och de ingår inte i vCPU:erna och minnet ovan. En probe läser vilken klass en flavor ber om och räknar den mot dessa. Agentens exporter säger det inte, så på agenten räknas en bare metal-flavor som sina vCPU:er, sitt minne och sin disk, på värdar.
+**Bare metal.** En nod tar en instans helt, så ett moln med Ironic får en egen tabell, per resursklass: hur många noder, hur många som kan ta en instans, hur många som används och hur många som hålls tillbaka, eftersom Novas Ironic-drivrutin inte kan använda dem just nu. Det här är Placements egna siffror, så de gäller hela molnet även där Ironic bara visar ett projekt det som det äger, och de ingår inte i vCPU:erna och minnet ovan. En sond läser vilken klass en flavor ber om och räknar den mot dessa. Agentens exporter säger det inte, så på agenten räknas en bare metal-flavor som sina vCPU:er, sitt minne och sin disk, på värdar.
 
 **Hur många fler som ryms.** Varje flavor räknas värd för värd, eftersom en instans behöver allt den ber om på en värd. Bredvid antalet står vad det skulle vara om allt ledigt fanns på en värd, vilket är hur ett fullt moln skiljs från ett fragmenterat. En flavor som ingen värd skulle kunna hålla ens tom säger **För stor för varje värd**, och ingenting larmar någonsin om den. Antalen gäller en instans som startats från en avbild: en som startats från en volym ber inte om någon rotdisk.
 
 Sidan säger var varje antal kom från:
 
-| | Genom en probe | Genom agenten |
+| | Genom en sond | Genom agenten |
 | --- | --- | --- |
 | **Räknat från** | `GET /allocation_candidates`, vilket är det Novas schemaläggare frågar, som [StackHPC:s os-capacity](https://github.com/stackhpc/os-capacity) gör. Inventarier fylls i tills en flavors tur kommer | De Placement-serier som exportern redan skickar: `openstack_placement_resource_{total,reserved,allocation_ratio,usage}` |
 | **Ser egenskaper och kapslade leverantörer** | Ja. En flavors extra specs efterfrågas också, så `trait:` och `resources:` räknas | Nej: exporterns flavorserie har inga extra specs, så en flavor som behöver en egenskap räknar varje värd, och sidan säger det |
 | **En värds `max_unit`** | Placements eget | Antas vara värdens total, vilket är vad Nova sätter |
 
-En probe frågar försiktigt, eftersom detta är den enda läsning som får Placement att arbeta. Den frågar om en flavorform i taget, så flavors som ber om samma sak är en fråga, och högst 4 per insamling, i omgångar, oavsett hur många flavors det finns. Så ett moln med 40 flavors som samlas in varannan minut kostar 2 anrop i minuten och går ett varv på 20 minuter. Varje svar är begränsat till 1 000 värdar, vilket är Novas eget `max_placement_results`: en starts arbete. Ett antal från ett så långt svar är ett golv, och sidan säger **Minst**. Den frågar ingenting vid sin första insamling, ingenting när Placement har varit långsamt under den insamlingen, och på en timme ingenting efter att en autentiseringsuppgift nekats, eftersom antalet från inventarierna finns där ändå. En applikationsautentiseringsuppgift eller rollen `oneuptime_monitoring` kräver att `/allocation_candidates` tillåts: det finns i `access/application-credential-access-rules.json` och `access/policy/placement.yaml`.
+En sond frågar försiktigt, eftersom detta är den enda läsning som får Placement att arbeta. Den frågar om en flavorform i taget, så flavors som ber om samma sak är en fråga, och högst 4 per insamling, i omgångar, oavsett hur många flavors det finns. Så ett moln med 40 flavors som samlas in varannan minut kostar 2 anrop i minuten och går ett varv på 20 minuter. Varje svar är begränsat till 1 000 värdar, vilket är Novas eget `max_placement_results`: en starts arbete. Ett antal från ett så långt svar är ett golv, och sidan säger **Minst**. Den frågar ingenting vid sin första insamling, ingenting när Placement har varit långsamt under den insamlingen, och på en timme ingenting efter att en autentiseringsuppgift nekats, eftersom antalet från inventarierna finns där ändå. En applikationsautentiseringsuppgift eller rollen `oneuptime_monitoring` kräver att `/allocation_candidates` tillåts: det finns i `access/application-credential-access-rules.json` och `access/policy/placement.yaml`.
 
 **Bredvid vad värdarna verkligen använder.** Där [verklig användning](#verklig-användning) når OneUptime ställer sidan det förhållande du satt bredvid vad värdarna verkligen använder vid sin topp under en dag, och det förhållande där de skulle nå den 90-procentsgräns som **Hypervisor CPU Saturated** och **Hypervisor Memory Pressure** drar. Det är en rak linje från en dag av en arbetsbelastning, så den säger hur långt ett förhållande skulle kunna flyttas, inte att du bör flytta det. Den säger ingenting förrän över hälften av en zons värdar rapporterar.
 
@@ -558,7 +558,7 @@ nova-manage placement audit --verbose --delete
 
 **Larm.** **Flavor Can No Longer Be Placed**, **Capacity Forecast Under 14 Days** och **Reserved Headroom Gone** läser serier som OneUptime skriver från samma sammanfattning. De finns i [monitorns mallar](/docs/monitor/openstack-monitor#färdiga-larmmallar) och på molnets sida **Rekommendationer**.
 
-**Vad den kostar.** Ingenting på agenten. En probe lägger till anropen ovan. OneUptime skriver ungefär 2 serier för varje zons resursklass, externt nätverk och lagringspool, och en för varje flavor som folk kan be om, varannan minut, debiterade som vilket annat mätvärde som helst.
+**Vad den kostar.** Ingenting på agenten. En sond lägger till anropen ovan. OneUptime skriver ungefär 2 serier för varje zons resursklass, externt nätverk och lagringspool, och en för varje flavor som folk kan be om, varannan minut, debiterade som vilket annat mätvärde som helst.
 
 ## Utgifter
 
@@ -587,9 +587,9 @@ Ett pris på noll betyder inget pris, inte ett gratis moln. Det som saknar pris 
 
 ### CloudKitty
 
-Om molnet kör [CloudKitty](https://github.com/openstack/cloudkitty) ersätter det den har prissatt beräkningen, projekt för projekt, och sidan säger vilket den använde. En probe frågar en gång i timmen, för den här månaden och förra, och den frågar `GET /v2/summary`, eller `GET /v1/report/summary` på en CloudKitty som är för gammal för det. Det är högst två förfrågningar per 1 000 projekt i timmen, plus en förfrågan om dess version varje gång den läses.
+Om molnet kör [CloudKitty](https://github.com/openstack/cloudkitty) ersätter det den har prissatt beräkningen, projekt för projekt, och sidan säger vilket den använde. En sond frågar en gång i timmen, för den här månaden och förra, och den frågar `GET /v2/summary`, eller `GET /v1/report/summary` på en CloudKitty som är för gammal för det. Det är högst två förfrågningar per 1 000 projekt i timmen, plus en förfrågan om dess version varje gång den läses.
 
-- **Bara en [probe](/docs/telemetry/openstack-agentless) kan läsa den.** Agentens exporter har inga serier för CloudKitty, så ett moln anslutet via en agent beräknar, och säger det.
+- **Bara en [sond](/docs/telemetry/openstack-agentless) kan läsa den.** Agentens exporter har inga serier för CloudKitty, så ett moln anslutet via en agent beräknar, och säger det.
 - **Det den ser är det autentiseringsuppgiften får se.** CloudKittys egen policy visar en admins autentiseringsuppgift varje projekt, med åtkomstregler eller utan, och allt mindre bara dess eget. De projekt den inte prissätter fortsätter att räknas ut från dina priser.
 - **En CloudKitty per region summeras.** Var och en läses i sin egen takt, och ett projekts siffra är det de prissatte tillsammans. En CloudKitty som katalogen listar för flera regioner tillfrågas en gång.
 - **Dess siffror är den enda delen av detta som är telemetri.** De når OneUptime som `openstack_cloudkitty_rated`, en datapunkt per projekt och månad, en gång i timmen: 20 000 i timmen vid 10 000 projekt, vilket är nästan ingenting bredvid resten av ett moln i den storleken.
@@ -610,11 +610,11 @@ Molnets sida **Rekommendationer** listar vad som lämnats oanvänt, vad var och 
 | Hypervisorer som skulle kunna tömmas | 20 % eller mindre av dess vCPU:er och minne är allokerat, allt på den ryms på de andra värdarna i dess zon och aggregat, och zonen skulle fortfarande kunna förlora en värd efteråt | Hela värden | `openstack hypervisor list --long` |
 | Instanser som varit avstängda länge | Avstängd i 30 dagar | Deras vCPU:er, minne och lokala disk | `openstack server list --all-projects --status SHUTOFF --long` |
 | Volymer kopplade till ingenting | Tillgänglig i 30 dagar, kopplad till ingenting, och inte en av Cinders egna `image-<id>`-volymer, som kommandot också listar | Deras lagring | `openstack volume list --all-projects --status available --long` |
-| Gamla volymögonblicksbilder | Skapade för 90 dagar sedan. Endast probe | Deras lagring | `openstack volume snapshot list --all-projects --long` |
-| Avbilder som inget startats från | Privat eller delad, 30 dagar gammal, inte skyddad, och ingen instans eller volym kom från den. Endast probe | Deras lagring | `openstack image list --long` |
+| Gamla volymögonblicksbilder | Skapade för 90 dagar sedan. Endast sond | Deras lagring | `openstack volume snapshot list --all-projects --long` |
+| Avbilder som inget startats från | Privat eller delad, 30 dagar gammal, inte skyddad, och ingen instans eller volym kom från den. Endast sond | Deras lagring | `openstack image list --long` |
 | Flytande IP-adresser som ingen använder | Inte associerad i 7 dagar | En adress | `openstack floating ip list --status DOWN --long` |
 
-Inget som används namnges någonsin. Hur länge något har varit så kommer från molnets egen klocka där en probe rapporterar en. Genom en agent är det hur länge OneUptime har sett det så, så den dag du ansluter ett moln är ingenting gammalt än. En regel som inte kan vara säker säger det i stället för att gissa: agenten kan inte säga vilken avbild en instans startades från, så en avbild som används skulle se oanvänd ut, och den kan inte lista ögonblicksbilder, så de två reglerna väntar på en probe. En värd namnges efter vad som är allokerat snarare än hur upptagen den är, den namnges aldrig i en zon med en förlorad eller inaktiverad värd, och värdar tas tommast först så att allt som namnges kan göras. Den kan inte se egenskaper eller något annat en instans behöver av en värd.
+Inget som används namnges någonsin. Hur länge något har varit så kommer från molnets egen klocka där en sond rapporterar en. Genom en agent är det hur länge OneUptime har sett det så, så den dag du ansluter ett moln är ingenting gammalt än. En regel som inte kan vara säker säger det i stället för att gissa: agenten kan inte säga vilken avbild en instans startades från, så en avbild som används skulle se oanvänd ut, och den kan inte lista ögonblicksbilder, så de två reglerna väntar på en sond. En värd namnges efter vad som är allokerat snarare än hur upptagen den är, den namnges aldrig i en zon med en förlorad eller inaktiverad värd, och värdar tas tommast först så att allt som namnges kan göras. Den kan inte se egenskaper eller något annat en instans behöver av en värd.
 
 ### Vid varje storlek
 
@@ -740,7 +740,7 @@ En dels sprängradie är vad den drar med sig, till antal och per projekt:
 
 En dels sida visar den. Ett larm eller en incident på delen säger den i sin beskrivning, till exempel "3 instanser i 2 projekt", med deras namn.
 
-Exportern säger inte vilket nätverk en instans finns på, eller vilken pool som håller en volym, så ingetdera ritas för ett moln som agenten samlar in. Kartan säger det, och en lagringspools sprängradie säger att den inte kan avgöra det i stället för att svara ingen. En [probe](/docs/telemetry/openstack-agentless) säger båda. Kartan kopplar då en volym till sin pool, när Cinder behandlar dess autentiseringsuppgift som en admins, och en pools sprängradie räknar dess volymer och de instanser de är kopplade till. Den kopplar också en instans till varje nätverk den har en adress på. Nova namnger de nätverken bara med namn, och Neutron tillåter två med samma namn, så kartan letar efter ett i instansens projekt, sedan ett delat med det, sedan vilket som helst med det namnet, och ritar ingen koppling när två är lika sannolika. Det som fortfarande är okänt står kvar i kartans notis.
+Exportern säger inte vilket nätverk en instans finns på, eller vilken pool som håller en volym, så ingetdera ritas för ett moln som agenten samlar in. Kartan säger det, och en lagringspools sprängradie säger att den inte kan avgöra det i stället för att svara ingen. En [sond](/docs/telemetry/openstack-agentless) säger båda. Kartan kopplar då en volym till sin pool, när Cinder behandlar dess autentiseringsuppgift som en admins, och en pools sprängradie räknar dess volymer och de instanser de är kopplade till. Den kopplar också en instans till varje nätverk den har en adress på. Nova namnger de nätverken bara med namn, och Neutron tillåter två med samma namn, så kartan letar efter ett i instansens projekt, sedan ett delat med det, sedan vilket som helst med det namnet, och ritar ingen koppling när två är lika sannolika. Det som fortfarande är okänt står kvar i kartans notis.
 
 ## Statussidor och att informera projekt
 
@@ -823,7 +823,7 @@ Vad varje källa säger om en pool avgör hur den länkas:
 
 | Källa | Vad den säger | Vad som händer |
 | --- | --- | --- |
-| En [probe](/docs/telemetry/openstack-agentless) på nivån Full vy | Cinders RBD-drivrutin namnger Ceph-klustrets fsid och pool i `location_info` | Den länkas själv, när ett [Ceph-kluster](/docs/telemetry/ceph) här rapporterar det fsid. Ett Ceph-kluster rapporterar det bara med `ceph.cluster.fsid` satt i sin agents konfiguration |
+| En [sond](/docs/telemetry/openstack-agentless) på nivån Full vy | Cinders RBD-drivrutin namnger Ceph-klustrets fsid och pool i `location_info` | Den länkas själv, när ett [Ceph-kluster](/docs/telemetry/ceph) här rapporterar det fsid. Ett Ceph-kluster rapporterar det bara med `ceph.cluster.fsid` satt i sin agents konfiguration |
 | Agentens exporter | Poolens namn, dess backends namn och dess leverantör, som läser `Open Source` för både LVM och RBD | Ingenting säger att den finns på Ceph. En Ceph-pool med samma namn i exakt ett kluster erbjuds, för att någon ska bekräfta en gång på poolens sida, om inte en annan Cinder-pool också har det namnet. Utan en sådan matchning kan de välja ett kluster, eller säga att den inte finns på Ceph |
 
 När den väl är länkad säger poolens sida hur dess kluster läses, och `HEALTH_WARN` eller `HEALTH_ERR` visas i molnets **Kräver uppmärksamhet**. Ett förslag som ingen bekräftat väcker ingenting. Ett svar som någon gett kan ändras på poolens sida. Bara autentiseringsuppgiften för Full vy kan se pooler alls: se [Välj hur mycket agenten ser](#välj-hur-mycket-agenten-ser).
@@ -838,7 +838,7 @@ Ett moln med Heat får **Stacks** under **Orkestrering**, och ett med Magnum få
 
 Exportern säger mindre om de här tjänsterna än vad en läsning av deras API:er gör, och ingen av tjänsterna visar någon utom en admin hela molnet. Så varje sida säger vad ditt molns collector inte kan se.
 
-| Vad | Agent, Full vy | Probe, Full vy | Allt mindre |
+| Vad | Agent, Full vy | Sond, Full vy | Allt mindre |
 | --- | --- | --- | --- |
 | Varje projekts stackar och deras status | Ja | Ja | Högst det egna projektets, utan projekt på dem, och inget fel säger det |
 | Vems en stack är | Ja | Ja | Nej |
@@ -852,9 +852,9 @@ Exportern säger mindre om de här tjänsterna än vad en läsning av deras API:
 Två fel läses annorlunda, och båda är vad ett riktigt moln gör:
 
 - **En stoppad `heat-engine`** läses som **Orchestration API Down**, på vilken collector som helst. Heats API ber en motor om sina listor, så när ingen finns kvar kan det inte svara på dem, efter en minuts väntan på en RPC-timeout. En stack som en motor lämnade pågående kan förbli pågående efter att motorn kommit tillbaka, och läses som **Stack Stuck In Progress** när två timmar har gått.
-- **En stoppad `magnum-conductor`** visas ingenstans på ett moln som agenten samlar in, eftersom Magnums API fortsätter svara utan en och exportern inte läser conductors. Dess kluster slutar bara röra sig. En probe med en autentiseringsuppgift för Full vy läser dem, vilket är det enda sättet att se detta, eller kör `openstack coe service list`.
+- **En stoppad `magnum-conductor`** visas ingenstans på ett moln som agenten samlar in, eftersom Magnums API fortsätter svara utan en och exportern inte läser conductors. Dess kluster slutar bara röra sig. En sond med en autentiseringsuppgift för Full vy läser dem, vilket är det enda sättet att se detta, eller kör `openstack coe service list`.
 
-Vilka instanser och volymer en stack äger finns på ytterligare en läsning av den stacken, som agentens exporter inte gör. På ett moln som en probe samlar in listar en stacks sida dem, och en instans eller volyms sida och larm namnger stacken. En autentiseringsuppgift för Full vy får svar om varje projekts stackar. Allt mindre nekas ett annat projekts, och en stacks sida säger när ingenting har läst den. På ett moln som agenten samlar in, kör `openstack stack resource list`.
+Vilka instanser och volymer en stack äger finns på ytterligare en läsning av den stacken, som agentens exporter inte gör. På ett moln som en sond samlar in listar en stacks sida dem, och en instans eller volyms sida och larm namnger stacken. En autentiseringsuppgift för Full vy får svar om varje projekts stackar. Allt mindre nekas ett annat projekts, och en stacks sida säger när ingenting har läst den. På ett moln som agenten samlar in, kör `openstack stack resource list`.
 
 ### Ett kluster med Kubernetes-agenten på sig
 
@@ -876,7 +876,7 @@ Om en tjänst lämnar Keystones katalog försvinner dess rader ungefär 15 minut
 
 Om ditt moln kör Manila får ett moln **Shares** under **Lagring** av sig självt, och ett som inte gör det visar inga spår av det. Varje delning har sin status med Manilas eget ord, hur mycket utrymme den rymmer, sitt protokoll och vems den är, och en egen sida. En delning i ett feltillstånd når **Kräver uppmärksamhet** med namn, och det gör också en som fortfarande är på väg efter en timme: Manila har ingen egen timeout för en långsam backend, så en som hängt läses likadant som en som är långsam till dess. En delning som migreras eller säkerhetskopieras lämnas ifred, eftersom de varar så länge dess data tar att kopiera.
 
-| Vad | Agent, Full vy | Probe, Full vy | Allt mindre |
+| Vad | Agent, Full vy | Sond, Full vy | Allt mindre |
 | --- | --- | --- | --- |
 | Varje projekts delningar och deras status | Ja | Ja | Högst det egna projektets, och övervakningsrollen inga, och inget fel säger det |
 | Vilken backend som håller en delning, och om dess åtkomstregler gäller | Nej. Kör `openstack share show` | Ja | Nej |
@@ -884,7 +884,7 @@ Om ditt moln kör Manila får ett moln **Shares** under **Lagring** av sig själ
 | Hur mycket av en delning som används | Nej: bara dess backend vet | Nej | Nej |
 | `manila-share`, `manila-scheduler` och `manila-data` på **Tjänster** | Nej. Kör `openstack share service list` | Ja | Nej |
 
-Manilas API fortsätter svara utan sina andra tjänster, så på ett moln som agenten samlar in visas en stoppad `manila-share` ingenstans: dess delningar slutar bara ändras, och **Share Stuck** är det som till slut säger det. En probe med en autentiseringsuppgift för Full vy läser dem, och **Manila Service Down** säger det då. Manila säger `stopped` för en tjänst som stängts ned rent, och `down` bara för en som dog, när dess hjärtslag har blivit gammalt.
+Manilas API fortsätter svara utan sina andra tjänster, så på ett moln som agenten samlar in visas en stoppad `manila-share` ingenstans: dess delningar slutar bara ändras, och **Share Stuck** är det som till slut säger det. En sond med en autentiseringsuppgift för Full vy läser dem, och **Manila Service Down** säger det då. Manila säger `stopped` för en tjänst som stängts ned rent, och `down` bara för en som dog, när dess hjärtslag har blivit gammalt.
 
 Ett moln utan Manila kostar ingenting för det: exportern svarar med ingenting, och det ger ingen rad. Om Manila lämnar Keystones katalog försvinner dess rader ungefär 15 minuter efter att det börjar, som [Heats och Magnums gör](#heat-och-magnum).
 
@@ -898,8 +898,8 @@ En lastbalanserare i `ERROR`, en som fastnat i `PENDING_UPDATE` eller `PENDING_C
 | --- | --- | --- |
 | Varje projekts lastbalanserare och pooler, med båda statusarna | Ja | Högst det egna projektets, och övervakningsrollen inga |
 | Amphorae, deras roll, deras instans och deras certifikat | Ja | Nej: Octavia låter bara en admin lista dem |
-| Lyssnare och medlemmar | Nej: exportern har inga serier för dem. En [probe](/docs/telemetry/openstack-agentless) läser dem | En probe: det egna projektets |
-| Trafik: anslutningar, byte, förfrågningsfel | Nej: exportern har inga `stats_*`-serier, och Octavias API är den enda plats som säger det. En probe läser det och ritar takten mellan två läsningar | En probe: det egna projektets |
+| Lyssnare och medlemmar | Nej: exportern har inga serier för dem. En [sond](/docs/telemetry/openstack-agentless) läser dem | En sond: det egna projektets |
+| Trafik: anslutningar, byte, förfrågningsfel | Nej: exportern har inga `stats_*`-serier, och Octavias API är den enda plats som säger det. En sond läser det och ritar takten mellan två läsningar | En sond: det egna projektets |
 | Octavias egna workers på **Tjänster** | Nej: ingenting agenten läser listar dem | Nej |
 
 En pool vars medlemmar alla misslyckas med sin hälsokontroll är `ERROR` i driftstatus medan den och dess lastbalanserare förblir `ACTIVE` i provisionering, registrerat, så en sida som bara läste provisionering skulle inte visa något fel. En lastbalanserare i provisionering `ERROR` läses som driftstatus `OFFLINE`. OVN-leverantören rapporterar 0 för varje trafikräknare, vilket inte är ett fel.
@@ -912,7 +912,7 @@ Ett moln som kör Designate får **DNS-zoner** under **Nätverk** av sig självt
 
 En zon i `ERROR` når **Kräver uppmärksamhet** med namn, och det gör också en som är `PENDING` efter en halvtimme. Designates worker ger upp av sig själv långt innan dess, så det som förblir `PENDING` har inget som arbetar på det. En zons egna `SOA` och `NS` läses som `ERROR` med den, så det sägs en gång, av zonen.
 
-| Vad | Agent, Full vy | Probe, Full vy | Allt mindre |
+| Vad | Agent, Full vy | Sond, Full vy | Allt mindre |
 | --- | --- | --- | --- |
 | Varje projekts zoner och deras status | Ja | Ja | Ingenting: se nedan |
 | Recordsets som inte är `ACTIVE` | Ja | Ja, av upp till 50 zoner per insamling | Nej |
@@ -922,7 +922,7 @@ En zon i `ERROR` når **Kräver uppmärksamhet** med namn, och det gör också e
 
 Två saker läses annorlunda än för varje annan tjänst här, båda registrerade:
 
-- **Ett stoppat Designate-API säger ingenting alls.** Exportern läser dess versioner först, får inget svar och svarar med en tom `200`, precis som för ett moln utan Designate. Så ingenting från exportern kan skilja de två åt, och OneUptime låtsas inte kunna det. Ett moln som hade Designate läses som att det tystnat efter 20 minuter, på **Tjänster** och i **Kräver uppmärksamhet**. Dess rader försvinner efter två veckor av det, och kommer tillbaka om det gör det. Inget larm kan säga detta på ett moln som agenten samlar in. En probe läser Keystones katalog själv, så **DNS API Down** kan.
+- **Ett stoppat Designate-API säger ingenting alls.** Exportern läser dess versioner först, får inget svar och svarar med en tom `200`, precis som för ett moln utan Designate. Så ingenting från exportern kan skilja de två åt, och OneUptime låtsas inte kunna det. Ett moln som hade Designate läses som att det tystnat efter 20 minuter, på **Tjänster** och i **Kräver uppmärksamhet**. Dess rader försvinner efter två veckor av det, och kommer tillbaka om det gör det. Inget larm kan säga detta på ett moln som agenten samlar in. En sond läser Keystones katalog själv, så **DNS API Down** kan.
 - **`openstack_designate_up` som läser 0 betyder en nekning.** Exportern ber om varje projekts zoner, vilket bara en admin får. Så en autentiseringsuppgift som aldrig har läst dem får veta det, i stället för att Designate är nere, och erbjuds inte Designates larm.
 
 En stoppad `designate-worker` lämnar Designates API svarande och dess egen lista läsande `UP` en stund, eftersom den går efter ett hjärtslag. Ändringar tas emot och genomförs inte, och **DNS Zone Stuck Pending** är det som säger det.
@@ -931,14 +931,14 @@ En stoppad `designate-worker` lämnar Designates API svarande och dess egen list
 
 Ett moln som kör Trove får **Databaser** av sig självt, och ett som inte gör det visar inga spår av det. Varje databas har sin status med Troves eget ord, vad den kör, sin volym och vems den är, och en egen sida. En i ett feltillstånd når **Kräver uppmärksamhet** med namn, och det gör också en som fortfarande är på väg efter en timme, eller en över 85 % av sin volym.
 
-| Vad | Agent, Full vy | Probe, Full vy | Allt mindre |
+| Vad | Agent, Full vy | Sond, Full vy | Allt mindre |
 | --- | --- | --- | --- |
 | Varje projekts databaser och deras status | Ja | Ja | Ingenting alls: se nedan |
 | Hur full en körande databas volym är | Ja | Ja | Nej |
 | Varför en databas felade, och vad den gjorde | Nej. Kör `openstack database instance show` | Ja | Nej |
 | `trove-taskmanager` och `trove-conductor` | Nej: Trove har ingen lista över dem | Nej | Nej |
 
-Exportern läser Troves mgmt-API, som bara en admin får använda. Trove nekar allt mindre, och exportern läser en nekning på samma sätt som ett stoppat Trove: `openstack_trove_up` läses som 0 och inget mer sägs. Så en autentiseringsuppgift som aldrig en enda gång har läst Trove får veta det, i stället för att Trove är nere, och erbjuds inte Troves larm. En probe läser samma lista och skiljer de två åt: Trove svarade, så dess API läses som uppe, och anslutningstestet säger att det nekades. När den väl har läst Trove läses en 0 som nere, vilket också är hur en autentiseringsuppgift som sedan dess förlorat sin åtkomst läses.
+Exportern läser Troves mgmt-API, som bara en admin får använda. Trove nekar allt mindre, och exportern läser en nekning på samma sätt som ett stoppat Trove: `openstack_trove_up` läses som 0 och inget mer sägs. Så en autentiseringsuppgift som aldrig en enda gång har läst Trove får veta det, i stället för att Trove är nere, och erbjuds inte Troves larm. En sond läser samma lista och skiljer de två åt: Trove svarade, så dess API läses som uppe, och anslutningstestet säger att det nekades. När den väl har läst Trove läses en 0 som nere, vilket också är hur en autentiseringsuppgift som sedan dess förlorat sin åtkomst läses.
 
 En stoppad `trove-taskmanager` visas ingenstans, eftersom Troves listor svarar utan den och den inte har någon lista över workers: det den arbetade med slutar bara röra sig, och **Database Instance Stuck** är det som säger det. Trove ger upp på en gäst av sig självt långt före den timmen.
 
@@ -950,12 +950,12 @@ Ett moln som kör Gnocchi får sitt API på **Tjänster** av sig självt, och et
 
 Inga processorer når **Kräver uppmärksamhet**, och det gör också en eftersläpning över 10 000 mätningar. Gnocchis API fortsätter svara och ta emot mätningar med `gnocchi-metricd` stoppad, registrerat, så dess processorer är den enda plats som visar det. Ingenting går förlorat så länge det varar, men inget nyare kan läsas.
 
-| Vad | Agent, Full vy | Probe, Full vy | Allt mindre |
+| Vad | Agent, Full vy | Sond, Full vy | Allt mindre |
 | --- | --- | --- | --- |
 | Om dess API svarar | Ja | Ja | Ingenting: se nedan |
 | Hur många mätningar och mätvärden som väntar, och hur många processorer det har | Ja | Ja | Nej |
 
-Exportern läser Gnocchis status, som bara en admin får använda. Gnocchi nekar allt mindre, och exportern läser en nekning på samma sätt som ett stoppat Gnocchi: `openstack_gnocchi_up` läses som 0. Så en autentiseringsuppgift som aldrig en enda gång har läst Gnocchi får veta det, i stället för att Gnocchi är nere, och erbjuds inte dess larm. En probe skiljer de två åt: Gnocchi svarade, så dess API läses som uppe, och anslutningstestet säger att det nekades.
+Exportern läser Gnocchis status, som bara en admin får använda. Gnocchi nekar allt mindre, och exportern läser en nekning på samma sätt som ett stoppat Gnocchi: `openstack_gnocchi_up` läses som 0. Så en autentiseringsuppgift som aldrig en enda gång har läst Gnocchi får veta det, i stället för att Gnocchi är nere, och erbjuds inte dess larm. En sond skiljer de två åt: Gnocchi svarade, så dess API läses som uppe, och anslutningstestet säger att det nekades.
 
 **Gnocchi Backlog Growing** läser en linje genom de senaste två timmarna. En upptagen clouds eftersläpning läser aldrig 0, så en stor som sjunker är i sin ordning, och en som inte sjunker är det den säger. Våra testmoln nådde bara en eftersläpning på 10 mätningar, så dess linje har bara kontrollerats på påhittade tal.
 
@@ -963,28 +963,28 @@ Exportern läser Gnocchis status, som bara en admin får använda. Gnocchi nekar
 
 Ett moln som kör Swift får **Objektlagring** under **Lagring** av sig självt, och ett som inte gör det visar inga spår av det. Den listar containrarna i autentiseringsuppgiftens eget projekt, hur mycket var och en håller och hur många objekt, och var och en har en egen sida.
 
-| Vad | Agent, Full vy | Probe, Full vy | Probe, med `ResellerAdmin` | Allt mindre |
+| Vad | Agent, Full vy | Sond, Full vy | Sond, med `ResellerAdmin` | Allt mindre |
 | --- | --- | --- | --- | --- |
 | Den här autentiseringsuppgiftens eget projekts containrar, och hur mycket var och en håller | Ja, utan projekt | Ja | Ja | Ingenting: se nedan |
 | Om dess proxy svarar | Ja | Ja | Ja | Nej |
 | Ett annat projekts containrar | Nej | Nej | Ja, upp till 200 projekt per insamling | Nej |
 | En stoppad objekt-, container- eller kontoserver | Nej | Nej | Nej | Nej |
 
-Swift håller varje projekts konto borta från alla andra projekts autentiseringsuppgifter, registrerat, så utan `ResellerAdmin` är den här listan aldrig hela molnets. Exportern frågar bara efter sitt eget konto i båda fallen. En probe vars autentiseringsuppgift har den rollen läser varje projekts i tur och ordning, en läsning per konto, och säger vems varje container är.
+Swift håller varje projekts konto borta från alla andra projekts autentiseringsuppgifter, registrerat, så utan `ResellerAdmin` är den här listan aldrig hela molnets. Exportern frågar bara efter sitt eget konto i båda fallen. En sond vars autentiseringsuppgift har den rollen läser varje projekts i tur och ordning, en läsning per konto, och säger vems varje container är.
 
-En autentiseringsuppgift som Swift nekar läser `openstack_object_store_up` 0, precis som en stoppad proxy. Så en autentiseringsuppgift som aldrig en enda gång har läst Swift får veta det, i stället för att Swift är nere, och erbjuds inte dess larm. En probe skiljer de två åt: Swift svarade, så dess API läses som uppe, och anslutningstestet säger att det nekades. En applikationsautentiseringsuppgift med åtkomstregler behöver också `include_service_catalog = True` i `proxy-server.conf`.
+En autentiseringsuppgift som Swift nekar läser `openstack_object_store_up` 0, precis som en stoppad proxy. Så en autentiseringsuppgift som aldrig en enda gång har läst Swift får veta det, i stället för att Swift är nere, och erbjuds inte dess larm. En sond skiljer de två åt: Swift svarade, så dess API läses som uppe, och anslutningstestet säger att det nekades. En applikationsautentiseringsuppgift med åtkomstregler behöver också `include_service_catalog = True` i `proxy-server.conf`.
 
 En stoppad objektserver ändrar ingenting av det exportern säger, registrerat: Swifts listor kommer från dess konto- och containerservrar, och dess proxy fortsätter svara. Bara det varje lagringsserver säger via sin egen `/recon` säger det, och den finns inte i Keystones katalog.
 
-Så en probe läser den där du namnger dem: under **Vad den läser utöver standard** i kortet **Datainsamling**, lista varje lagringsservers `/recon`-port som `host:port`. Det tar 5 anrop per server vid varje insamling, och ingen autentiseringsuppgift skickas till dem. Du får då **Swift Storage Server Not Answering**, **Swift Rings Differ** och **Swift Replication Stale**, och vad de summerar till på Swifts egen sida. En inspelning hade bara en server att läsa, så ringar som skiljer sig har bara kontrollerats på påhittade tal. Det har också replikering som blivit inaktuell, vilken på ett testmoln blir klar med några minuters mellanrum.
+Så en sond läser den där du namnger dem: under **Vad den läser utöver standard** i kortet **Datainsamling**, lista varje lagringsservers `/recon`-port som `host:port`. Det tar 5 anrop per server vid varje insamling, och ingen autentiseringsuppgift skickas till dem. Du får då **Swift Storage Server Not Answering**, **Swift Rings Differ** och **Swift Replication Stale**, och vad de summerar till på Swifts egen sida. En inspelning hade bara en server att läsa, så ringar som skiljer sig har bara kontrollerats på påhittade tal. Det har också replikering som blivit inaktuell, vilken på ett testmoln blir klar med några minuters mellanrum.
 
 **Object Container Growth Forecast** läser en linje genom den senaste veckan för varje container, och ser en vecka framåt. Swift säger ingenting här om hur mycket utrymme ett moln har, så dess linje på 1 TiB är en att få veta om snarare än en där något går sönder. Ändra den så att den passar ditt moln. Inget testmoln håller en veckas tillväxt, så den har bara kontrollerats på påhittade tal.
 
 ## Barbican
 
-Exportern har ingen läsare för Barbican: att be den om `key-manager` ger en `400`, registrerat. Så ett moln som agenten samlar in visar inga spår av det, vare sig det kör det eller inte, och bara en [probe](/docs/telemetry/openstack-agentless) säger något.
+Exportern har ingen läsare för Barbican: att be den om `key-manager` ger en `400`, registrerat. Så ett moln som agenten samlar in visar inga spår av det, vare sig det kör det eller inte, och bara en [sond](/docs/telemetry/openstack-agentless) säger något.
 
-En probe läser Barbican där Keystones katalog namnger det, och sätter det på **Tjänster**: om dess API svarar, och hur många hemligheter, beställningar och containrar den här autentiseringsuppgiftens eget projekt håller. Barbican svarar om ett projekt i taget, även en admin, så de är aldrig molnets. OneUptime läser ingen hemlighet: en lista säger bara att en finns, och den ber om den enda rad som krävs för att få totalen.
+En sond läser Barbican där Keystones katalog namnger det, och sätter det på **Tjänster**: om dess API svarar, och hur många hemligheter, beställningar och containrar den här autentiseringsuppgiftens eget projekt håller. Barbican svarar om ett projekt i taget, även en admin, så de är aldrig molnets. OneUptime läser ingen hemlighet: en lista säger bara att en finns, och den ber om den enda rad som krävs för att få totalen.
 
 Barbican nekar en vanlig reader, och det läses som vad det är: dess API svarade, så det läses som uppe, och antalen säger ingenting.
 
@@ -1116,9 +1116,9 @@ Låt `notify_on_state_change` vara som den är. Den lägger bara till `instance.
 
 ### Utan notiser
 
-Ett moln vars konfiguration inte är din att ändra kan ändå ha misslyckade åtgärder. En [probe](/docs/telemetry/openstack-agentless) läser `os-instance-actions` för de instanser som ändrats sedan den senast tittade, och säger varje sak som den notis Nova skulle ha skickat, med den orsak Nova anger. Det kostar ett anrop per instans som ändrats, några få per insamling som mest, och ett tyst moln inga alls. Den förblir tyst när ett moln egna notiser kommer in, så ingenting sägs två gånger.
+Ett moln vars konfiguration inte är din att ändra kan ändå ha misslyckade åtgärder. En [sond](/docs/telemetry/openstack-agentless) läser `os-instance-actions` för de instanser som ändrats sedan den senast tittade, och säger varje sak som den notis Nova skulle ha skickat, med den orsak Nova anger. Det kostar ett anrop per instans som ändrats, några få per insamling som mest, och ett tyst moln inga alls. Den förblir tyst när ett moln egna notiser kommer in, så ingenting sägs två gånger.
 
-Nova behåller dessa bara per instans, och utan någon post tar en ändring inte upp något. En felad volymkoppling kan lämna sin instans som den var, så en probe kan inte se den. Notiser kan.
+Nova behåller dessa bara per instans, och utan någon post tar en ändring inte upp något. En felad volymkoppling kan lämna sin instans som den var, så en sond kan inte se den. Notiser kan.
 
 Nova kan också avskriva en byggning utan något på dess åtgärd: på våra testmoln lämnade en byggning som felade på sin beräkningsvärd åtgärden såsom fin och orsaken i instansens fel. Så den nyaste åtgärden för en instans i `ERROR` räknas som felad, med det felet som orsak.
 
@@ -1428,7 +1428,7 @@ Detta kördes på DevStack på 2026.2, från en riktig start till en körande On
 
 ## Kontrollera molnet utifrån
 
-Varje tjänst kan rapportera frisk medan ingen kan starta en instans, så det sannaste testet är att göra det användare gör, därifrån de är. En probe gör det utanför molnet, eftersom en kontroll inne i ett fallerat moln inte säger något. Kör dessa på [en egen probe](/docs/probe/custom-probe), någonstans som når molnets publika slutpunkter på samma sätt som dina användare. På OneUptime Cloud får delade prober aldrig OpenStack-autentiseringsuppgifter.
+Varje tjänst kan rapportera frisk medan ingen kan starta en instans, så det sannaste testet är att göra det användare gör, därifrån de är. En sond gör det utanför molnet, eftersom en kontroll inne i ett fallerat moln inte säger något. Kör dessa på [en egen sond](/docs/probe/custom-probe), någonstans som når molnets publika slutpunkter på samma sätt som dina användare. På OneUptime Cloud får delade sonder aldrig OpenStack-autentiseringsuppgifter.
 
 Båda finns på molnets sida **Kontroller**. [OpenStack-monitorns mallar](/docs/monitor/openstack-monitor#kontroller-utifrån) gör om det de hittar till incidenter.
 
@@ -1436,7 +1436,7 @@ Båda finns på molnets sida **Kontroller**. [OpenStack-monitorns mallar](/docs/
 
 Varje minut som standard, och skrivskyddade. Keystone utfärdar en token, varje tjänst i katalogen svarar på en autentiserad läsning av en rad, och varje slutpunkts certifikat läses för när det går ut. Det som katalogen namnger är det som frågas, så det finns ingen lista att underhålla.
 
-Ett moln som en probe redan samlar in behöver ett klick: **Slå på API-kontroller** använder samma probe, adress och autentiseringsuppgift. Ett moln som agenten samlar in har inget av det på en probe, så den ber om det. Vilken autentiseringsuppgift som helst som kan logga in duger, eftersom en tjänst som nekar den ändå har svarat.
+Ett moln som en sond redan samlar in behöver ett klick: **Slå på API-kontroller** använder samma sond, adress och autentiseringsuppgift. Ett moln som agenten samlar in har inget av det på en sond, så den ber om det. Vilken autentiseringsuppgift som helst som kan logga in duger, eftersom en tjänst som nekar den ändå har svarat.
 
 Det kostar en inloggning och en liten läsning per tjänst per region, varje minut, utan omförsök. En autentiseringsuppgift som Keystone nekar tillfrågas igen senare i stället för varje minut, eftersom att upprepa en är det som låser ett konto.
 
@@ -1519,16 +1519,18 @@ En applikationsautentiseringsuppgift är bättre än ett lösenord här, efterso
 
 #### Spåra en långsam start
 
-Spara din [OSProfiler](#spåra-begäranden-genom-kontrollplanet)-nyckel på sidan **Kontroller** så signeras varje stegs skrivningar, varje steg i ett eget spår, så en långsam start har ett spår som håller starten och inget annat. Väntetiderna signeras inte, eftersom en signerad begäran gör mer arbete i varje tjänst den korsar. Nyckeln är krypterad och skrivbar men inte läsbar, som autentiseringsuppgiften: den går till den här proben och in i varje signatur, och kommer inte tillbaka från någonstans.
+Spara din [OSProfiler](#spåra-begäranden-genom-kontrollplanet)-nyckel på sidan **Kontroller** så signeras varje stegs skrivningar, varje steg i ett eget spår, så en långsam start har ett spår som håller starten och inget annat. Väntetiderna signeras inte, eftersom en signerad begäran gör mer arbete i varje tjänst den korsar. Nyckeln är krypterad och skrivbar men inte läsbar, som autentiseringsuppgiften: den går till den här sonden och in i varje signatur, och kommer inte tillbaka från någonstans.
 
 #### Att slå av den
 
-Slå av kontrollen och inga fler körningar startar. Tills inget uppkallat efter den finns kvar kör proben städaren ensam, vilket är varför autentiseringsuppgiften behålls så länge. Sedan glömmer OneUptime autentiseringsuppgiften och nyckeln, och du kan ta bort projektet. Att ta bort molnet i OneUptime glömmer dem på en gång och städar inte upp något, så slå av kontrollen först och vänta tills sidan slutar säga att den städar upp. Om autentiseringsuppgiften är borta först, hitta det som finns kvar via namn:
+Slå av kontrollen och inga fler körningar startar. Tills inget uppkallat efter den finns kvar kör sonden städaren ensam, vilket är varför autentiseringsuppgiften behålls så länge. Sedan glömmer OneUptime autentiseringsuppgiften och nyckeln, och du kan ta bort projektet. Att ta bort molnet i OneUptime glömmer dem på en gång och städar inte upp något, så slå av kontrollen först och vänta tills sidan slutar säga att den städar upp. Om autentiseringsuppgiften är borta först, hitta det som finns kvar via namn:
 
 ```bash
 openstack server list --name '^oneuptime-check-'
 openstack volume list --name 'oneuptime-check-'
 ```
+
+Att arkivera molnet stänger inte av något av detta. Ett arkiverat moln är bara dolt i listorna: det samlas fortfarande in, och dess API-kontroller och livscykelkontrollen fortsätter att köras. Slå av en kontroll för att stoppa den.
 
 ## AI-agent
 
@@ -1641,7 +1643,7 @@ Molnets sida **AI-agent** erbjuder en körbok för vart och ett av dessa, att l�
 
 ### Åtgärder från ett arbetsflöde
 
-Ett arbetsflöde kan starta från ett OpenStack-larm och föreslå en åtgärd: steget **Propose an OpenStack fix** tar larmet eller incidenten, och kommandot. Det går genom samma policy, samma skrivomfång och samma läsning av vad en ändring rör som en åtgärd OneUptime AI föreslår, det behöver ingen AI-modell, och en människa godkänner det på larmet. Ett arbetsflöde kan inte göra ändringen självt eller godkänna det det föreslår, vilket läge molnets åtgärder än har. Mallen **Propose taking a failing OpenStack compute service out of scheduling** är ett ställe att börja på.
+Ett arbetsflöde kan starta från ett OpenStack-larm och föreslå en åtgärd: steget **Föreslå en OpenStack-åtgärd** tar larmet eller incidenten, och kommandot. Det går genom samma policy, samma skrivomfång och samma läsning av vad en ändring rör som en åtgärd OneUptime AI föreslår, det behöver ingen AI-modell, och en människa godkänner det på larmet. Ett arbetsflöde kan inte göra ändringen självt eller godkänna det det föreslår, vilket läge molnets åtgärder än har. Mallen **Propose taking a failing OpenStack compute service out of scheduling** är ett ställe att börja på.
 
 ## Kör som en systemd-tjänst
 
@@ -1779,7 +1781,7 @@ Neutron och Cinder svarar alla utom en admin med en `200` och bara dess eget pro
 :::
 
 :::details Inga instanser på nivå 3
-Exportern ber Nova om alla projekts servrar, Nova nekar en vanlig reader, och den läsningen misslyckas helt. Använd nivå 1 eller 2, eller en [probe](/docs/telemetry/openstack-agentless), som kan lista ett projekts instanser.
+Exportern ber Nova om alla projekts servrar, Nova nekar en vanlig reader, och den läsningen misslyckas helt. Använd nivå 1 eller 2, eller en [sond](/docs/telemetry/openstack-agentless), som kan lista ett projekts instanser.
 :::
 
 :::details En tjänsts data saknas
@@ -1799,13 +1801,13 @@ OneUptime läser oslo.logs egna format. Ett moln som ändrat `logging_context_fo
 :::
 
 :::details Flödet förblir tomt
-Varje tjänst behöver `driver = log` och en omstart, och Nova även `notification_format = versioned`: se [Slå på notiser](#slå-på-notiser). För att kontrollera en tjänst, grep:a dess logg efter `oslo.messaging.notification`. Om det inte finns något, titta på `default_log_levels`: en nivå över `INFO` för `oslo.messaging` tystar de flesta av dem. Ett moln vars konfiguration inte är din att ändra kan använda en [probe](#utan-notiser).
+Varje tjänst behöver `driver = log` och en omstart, och Nova även `notification_format = versioned`: se [Slå på notiser](#slå-på-notiser). För att kontrollera en tjänst, grep:a dess logg efter `oslo.messaging.notification`. Om det inte finns något, titta på `default_log_levels`: en nivå över `INFO` för `oslo.messaging` tystar de flesta av dem. Ett moln vars konfiguration inte är din att ändra kan använda en [sond](#utan-notiser).
 :::
 
 ## Nästa steg
 
 :::cards
 - [OpenStack-monitor](/docs/monitor/openstack-monitor): Larma på tjänster, hypervisorer, instanser, nätverk och lagringspooler.
-- [OpenStack utan agent](/docs/telemetry/openstack-agentless): Samla in ett moln från en probe, utan något att installera.
+- [OpenStack utan agent](/docs/telemetry/openstack-agentless): Samla in ett moln från en sond, utan något att installera.
 - [Värdens OpenTelemetry Collector](/docs/telemetry/host-otel-collector): Operativsystemnivåns vy över varje kontrollernod och hypervisor.
 :::

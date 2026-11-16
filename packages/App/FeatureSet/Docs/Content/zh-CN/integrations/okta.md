@@ -1,6 +1,6 @@
 # Okta 系统日志
 
-把 [Okta System Log](https://developer.okta.com/docs/reference/system-log-query/) 导入 OneUptime 的安全事件：登录、MFA 质询、账户和组的变更，以及 Okta 自己的威胁检测。在那里，你可以把它们与日志、跟踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的事件呼叫值班人员。OneUptime 使用你创建的 API 令牌读取它们，不会在 Okta 中更改任何内容。
+把 [Okta System Log](https://developer.okta.com/docs/reference/system-log-query/) 导入 OneUptime 的安全事件：登录、MFA 质询、账户和组的变更，以及 Okta 自己的威胁检测。在那里，你可以把它们与日志、追踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的事件呼叫值班人员。OneUptime 使用你创建的 API 令牌读取它们，不会在 Okta 中更改任何内容。
 
 :::cards
 - [设置连接](#设置连接): 一个 API 令牌，以及连接的表单。
@@ -23,7 +23,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 
 ## 开始之前
 
-- 在 OneUptime 中拥有 Project Owner、Project Admin 或 Security Admin 角色。Security Member 和 Security Viewer 可以查看连接及其运行历史，但不能更改它们。
+- 在 OneUptime 中拥有项目所有者、项目管理员或安全管理员角色。安全成员和安全查看者可以查看连接及其运行历史，但不能更改它们。
 - 一个能查看 System Log 的 Okta 管理员，用来创建令牌。令牌能做它的管理员能做的事，所以请使用 Read-only Administrator：它读取 System Log，不更改任何内容。只读管理员也能看到用户、组、应用和设置，所以请像保管密码一样保管令牌。
 - 最好为该管理员使用一个服务账户。当令牌的管理员被停用，或者令牌 30 天未被使用时，Okta 会停用该令牌。轮询每隔几分钟就会使用它，所以只要连接处于启用状态，令牌就一直在使用中。
 - 如果你的组织只接受来自某个网络区域的 API 调用，就需要一个包含 OneUptime 调用来源地址的区域：在 OneUptime Cloud 上是它的出站地址，在自托管安装中是你的应用和工作进程主机的公网地址。

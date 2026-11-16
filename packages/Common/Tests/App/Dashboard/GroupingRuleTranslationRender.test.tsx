@@ -179,7 +179,7 @@ describe("the grouping rule pages in German", () => {
         minutes: "",
         translate: translateGroupingRuleText,
       }),
-    ).toBe("Geben Sie eine ganze Zahl an Minuten zwischen 1 und 525600 ein.");
+    ).toBe("Geben Sie eine ganze Zahl an Minuten zwischen 1 und 525.600 ein.");
   });
 });
 

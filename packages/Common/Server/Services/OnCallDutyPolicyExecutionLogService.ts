@@ -25,6 +25,11 @@ import UserNotificationExecutionStatus from "../../Types/UserNotification/UserNo
 import QueryHelper from "../Types/Database/QueryHelper";
 import { ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE } from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunEnding";
 import OnCallDutyPolicyStatus from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
+import {
+  ON_CALL_RUN_EXECUTION_STARTED_MESSAGE,
+  ON_CALL_RUN_PAGING_STARTED_MESSAGE,
+  ON_CALL_RUN_SCHEDULED_MESSAGE,
+} from "../../Types/OnCallDutyPolicy/OnCallRunStart";
 import { OnCallPolicyAiHoldOutcome } from "../../Types/OnCallDutyPolicy/OnCallPolicyAiHold";
 import { toOnCallPersonPageMessage } from "../../Types/OnCallDutyPolicy/OnCallPersonPage";
 import { isOnCallObserverPage } from "../../Types/OnCallDutyPolicy/OnCallObserverPage";
@@ -61,7 +66,14 @@ import {
   getOnCallPolicyRunPagingDueAt,
   getOnCallPolicyRunWaitingMessage,
 } from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunWait";
-import { IsNull, UpdateResult } from "typeorm";
+import { IsNull, Not, UpdateResult } from "typeorm";
+import OnCallRunFailure, {
+  OnCallRunFailureKind,
+} from "../Utils/OnCall/OnCallRunFailure";
+import OnCallLevelsInFlight, {
+  OnCallLevelInFlight,
+  OnCallPageAgainInFlight,
+} from "../Utils/OnCall/OnCallLevelsInFlight";
 import FeedMarkdown, { MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 import logger, { LogAttributes } from "../Utils/Logger";
 import OnCallPolicyRunMessage from "../Utils/Workspace/LiveMessages/OnCallPolicyRunMessage";
@@ -168,6 +180,127 @@ export class Service extends ProjectReferencesService<Model> {
     return (result.affected || 0) > 0;
   }
 
+  /*
+   * GIVES BACK A CLAIM TO MOVE A RUN ON THAT PAGED NOBODY (issue #8167).
+   *
+   * A move on (OnCallEscalationAdvance) is claimed first, by moving the
+   * run's lastEscalationRuleExecutedAt to the moment of the claim - which
+   * also starts the wait of the rule the run is on afresh. A move that
+   * failed after its claim but before it started its next rule - before
+   * anybody was paged - would leave the run to wait that rule's whole wait
+   * again (half an hour, say) before it is tried again. So the claim is
+   * given back: the run's moment is put back as it was, and the worker's
+   * next tick tries the move again at once.
+   *
+   * Only while the run is as the claim left it: still executing, its moment
+   * still the claim's, on the same rule and the same pass. A run that
+   * started its next rule - some of whose people may be paged - began its
+   * policy again, ended, or that somebody else moved on keeps what it has,
+   * so nobody is paged twice. Never throws: a claim that cannot be given
+   * back is kept, and the run waits its rule's wait again, as it did.
+   */
+  @CaptureSpan()
+  public async giveBackEscalationAdvance(data: {
+    executionLogId: ObjectID;
+    // What the claim wrote.
+    claimedLastEscalationRuleExecutedAt: Date;
+    // What the claim found, and is put back.
+    previousLastEscalationRuleExecutedAt: Date | null;
+    // The rule the run was on, and its pass, when it was claimed.
+    lastExecutedEscalationRuleId: ObjectID | null;
+    onCallPolicyExecutionRepeatCount: number | null;
+    /*
+     * Throw what the database throws, rather than log it and say nothing
+     * was given back: for a caller that tries again later (issue #8410).
+     */
+    throwOnError?: boolean | undefined;
+    /*
+     * The rule the run is on reached nobody, and was claimed past at once
+     * (issue #8515): giving the claim back also clears the rule's wait, so
+     * the run moves on now rather than after it.
+     */
+    clearWait?: boolean | undefined;
+  }): Promise<boolean> {
+    try {
+      const current: Model | null = await this.findOneById({
+        id: data.executionLogId,
+        select: {
+          status: true,
+          lastEscalationRuleExecutedAt: true,
+          lastExecutedEscalationRuleId: true,
+          onCallPolicyExecutionRepeatCount: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      const isOnTheSameRuleAndPass: boolean = Boolean(
+        current &&
+          current.status === OnCallDutyPolicyStatus.Executing &&
+          (current.lastExecutedEscalationRuleId?.toString() || null) ===
+            (data.lastExecutedEscalationRuleId?.toString() || null) &&
+          (current.onCallPolicyExecutionRepeatCount ?? null) ===
+            (data.onCallPolicyExecutionRepeatCount ?? null),
+      );
+
+      const isAsClaimed: boolean = Boolean(
+        isOnTheSameRuleAndPass &&
+          current!.lastEscalationRuleExecutedAt &&
+          new Date(current!.lastEscalationRuleExecutedAt).getTime() ===
+            data.claimedLastEscalationRuleExecutedAt.getTime(),
+      );
+
+      /*
+       * A claim past a level that reached nobody whose process stopped
+       * before the claim itself was written (issue #8515): the run is as
+       * it was before it, waiting out the level's wait - which is cleared.
+       */
+      const isAsBeforeTheClaim: boolean = Boolean(
+        data.clearWait &&
+          isOnTheSameRuleAndPass &&
+          data.previousLastEscalationRuleExecutedAt &&
+          current!.lastEscalationRuleExecutedAt &&
+          new Date(current!.lastEscalationRuleExecutedAt).getTime() ===
+            data.previousLastEscalationRuleExecutedAt.getTime(),
+      );
+
+      if (!isAsClaimed && !isAsBeforeTheClaim) {
+        return false;
+      }
+
+      const result: UpdateResult = await this.getRepository().update(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        {
+          _id: data.executionLogId.toString(),
+          status: OnCallDutyPolicyStatus.Executing,
+          lastEscalationRuleExecutedAt: isAsClaimed
+            ? data.claimedLastEscalationRuleExecutedAt
+            : data.previousLastEscalationRuleExecutedAt,
+        } as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        {
+          lastEscalationRuleExecutedAt:
+            data.previousLastEscalationRuleExecutedAt,
+          ...(data.clearWait ? { executeNextEscalationRuleInMinutes: 0 } : {}),
+        } as any,
+      );
+
+      return (result.affected || 0) > 0;
+    } catch (err) {
+      if (data.throwOnError) {
+        throw err;
+      }
+
+      logger.error(
+        `Could not give back the claim to move on-call execution log ${data.executionLogId.toString()} on; it waits its rule's wait again before it is tried.`,
+      );
+      logger.error(err as Error);
+
+      return false;
+    }
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
@@ -247,7 +380,7 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     if (!createBy.data.statusMessage) {
-      createBy.data.statusMessage = "Scheduled.";
+      createBy.data.statusMessage = ON_CALL_RUN_SCHEDULED_MESSAGE;
     }
 
     /*
@@ -457,7 +590,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     log.projectId = data.projectId;
     log.status = OnCallDutyPolicyStatus.Scheduled;
-    log.statusMessage = "Scheduled.";
+    log.statusMessage = ON_CALL_RUN_SCHEDULED_MESSAGE;
 
     if (data.triggeredByIncidentId) {
       log.triggeredByIncidentId = data.triggeredByIncidentId;
@@ -506,7 +639,7 @@ export class Service extends ProjectReferencesService<Model> {
       id: executionLogId,
       data: {
         status: OnCallDutyPolicyStatus.Started,
-        statusMessage: "Paging started...",
+        statusMessage: ON_CALL_RUN_PAGING_STARTED_MESSAGE,
       },
       props: {
         isRoot: true,
@@ -611,7 +744,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     log.projectId = data.projectId;
     log.status = OnCallDutyPolicyStatus.Scheduled;
-    log.statusMessage = "Scheduled.";
+    log.statusMessage = ON_CALL_RUN_SCHEDULED_MESSAGE;
     log.userNotificationEventType = UserNotificationEventType.TestPage;
     log.testPageRecordKind = data.recordKind;
     log.testPageSeverityId = data.severityId;
@@ -630,7 +763,7 @@ export class Service extends ProjectReferencesService<Model> {
       id: executionLogId,
       data: {
         status: OnCallDutyPolicyStatus.Started,
-        statusMessage: "Paging started...",
+        statusMessage: ON_CALL_RUN_PAGING_STARTED_MESSAGE,
       },
       props: {
         isRoot: true,
@@ -725,7 +858,7 @@ export class Service extends ProjectReferencesService<Model> {
     log.projectId = data.projectId;
     log.onCallDutyPolicyId = data.onCallDutyPolicyId;
     log.status = OnCallDutyPolicyStatus.Scheduled;
-    log.statusMessage = "Scheduled.";
+    log.statusMessage = ON_CALL_RUN_SCHEDULED_MESSAGE;
     log.userNotificationEventType = UserNotificationEventType.TestPage;
     log.testPageRecordKind = data.recordKind;
     log.testPageSeverityId = data.severityId;
@@ -829,6 +962,11 @@ export class Service extends ProjectReferencesService<Model> {
      * Now without one.
      */
     dueAt?: Date | undefined;
+    /*
+     * Told once the page again's run is written: a page again whose run
+     * was never written gives its acknowledgement clock back (issue #8514).
+     */
+    onRunCreated?: ((runId: ObjectID) => void | Promise<void>) | undefined;
   }): Promise<ObjectID | null> {
     const log: Model = new Model();
 
@@ -836,7 +974,7 @@ export class Service extends ProjectReferencesService<Model> {
     log.onCallDutyPolicyId = data.onCallDutyPolicyId;
     log.userNotificationEventType = data.userNotificationEventType;
     log.status = OnCallDutyPolicyStatus.Scheduled;
-    log.statusMessage = "Scheduled.";
+    log.statusMessage = ON_CALL_RUN_SCHEDULED_MESSAGE;
     log.pageAgainNumber = data.pageAgainNumber;
 
     if (data.triggeredByIncidentId) {
@@ -864,10 +1002,39 @@ export class Service extends ProjectReferencesService<Model> {
 
     const runId: ObjectID = run.id!;
 
+    if (data.onRunCreated) {
+      await data.onRunCreated(runId);
+    }
+
     // Archived meanwhile: the run says it was not executed, as any run does.
     if (run.status === OnCallDutyPolicyStatus.Error) {
       return null;
     }
+
+    /*
+     * A page again starts when its timeout ran out (dueAt), or now
+     * without one (OnCallPageTiming).
+     */
+    const pageStart: OnCallPageStartMoment = OnCallPageTiming.startPage({
+      dueAt: data.dueAt,
+    });
+
+    /*
+     * Where it starts, and who it pages first, kept in flight until its
+     * rule is recorded (OnCallLevelsInFlight, issue #8514): a start that
+     * fails or stops before that is started by the policy-run worker, from
+     * the same rule, the person who acknowledged first, rather than ended
+     * in Error with nobody paged - the acknowledgement clock is stopped,
+     * and no later page again would come.
+     */
+    const startInFlight: OnCallLevelInFlight = this.getPageAgainStart({
+      startAtRuleId: data.startAtRuleId?.toString() || null,
+      acknowledgedByUserId: data.acknowledgedByUserId?.toString() || null,
+      minutes: data.minutes,
+      pageStart: pageStart,
+    });
+
+    await OnCallLevelsInFlight.keep(runId, startInFlight);
 
     try {
       const policyLink: MarkdownText | null = await this.getPolicyLink(run);
@@ -900,98 +1067,25 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     try {
-      const rule: OnCallDutyPolicyEscalationRule | null =
-        await this.getPageAgainRule({
+      await this.startPageAgainLevel({
+        ...data,
+        runId: runId,
+        pageStart: pageStart,
+        isHandedOver: false,
+      });
+    } catch (err) {
+      if (
+        await this.handPageAgainToEscalation({
+          runId: runId,
           projectId: data.projectId,
-          onCallDutyPolicyId: data.onCallDutyPolicyId,
-          startAtRuleId: data.startAtRuleId,
-        });
-
-      if (!rule) {
-        await this.updateOneById({
-          id: runId,
-          data: {
-            status: OnCallDutyPolicyStatus.Error,
-            statusMessage: ON_CALL_POLICY_HAS_NO_ESCALATION_RULES_MESSAGE,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
+          startInFlight: startInFlight,
+          dueAt: pageStart.startedAt,
+          error: err,
+        })
+      ) {
         return runId;
       }
 
-      await this.updateOneById({
-        id: runId,
-        data: {
-          status: OnCallDutyPolicyStatus.Started,
-          statusMessage: "Execution started...",
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      /*
-       * A page again starts when its timeout ran out (dueAt), or now
-       * without one (OnCallPageTiming).
-       */
-      const pageStart: OnCallPageStartMoment = OnCallPageTiming.startPage({
-        dueAt: data.dueAt,
-      });
-
-      const firstRuleOutcome: OnCallRuleExecutionOutcome =
-        await OnCallPageTiming.runInPageStart(
-          pageStart,
-          (): Promise<OnCallRuleExecutionOutcome> => {
-            return OnCallDutyPolicyEscalationRuleService.startRuleExecution(
-              rule.id!,
-              {
-                projectId: data.projectId,
-                triggeredByIncidentId: data.triggeredByIncidentId,
-                triggeredByAlertId: data.triggeredByAlertId,
-                triggeredByAlertEpisodeId: data.triggeredByAlertEpisodeId,
-                triggeredByIncidentEpisodeId: data.triggeredByIncidentEpisodeId,
-                userNotificationEventType: data.userNotificationEventType,
-                onCallPolicyExecutionLogId: runId,
-                onCallPolicyId: data.onCallDutyPolicyId,
-                alsoPageUserIds: data.acknowledgedByUserId
-                  ? [data.acknowledgedByUserId]
-                  : [],
-              },
-            );
-          },
-        );
-
-      await this.updateOneById({
-        id: runId,
-        data: {
-          status: OnCallDutyPolicyStatus.Executing,
-          statusMessage: getOnCallPageAgainStatusMessage({
-            pageAgainNumber: data.pageAgainNumber,
-            minutes: data.minutes,
-          }),
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      /*
-       * Nobody at the level it starts at could be paged - not even whoever
-       * acknowledged: the page again moves on now, as any run does from a
-       * level with nobody to wait for (OnCallEmptyLevel).
-       */
-      if (firstRuleOutcome?.movesOnAtOnce) {
-        await OnCallPageTiming.runInPageStart(
-          pageStart,
-          (): Promise<OnCallEscalationAdvanceResult | null> => {
-            return OnCallEscalationAdvance.moveOnAtOnce({ runId: runId });
-          },
-        );
-      }
-    } catch (err) {
       // The run says what went wrong rather than sitting at "started".
       await this.updateOneById({
         id: runId,
@@ -1006,10 +1100,363 @@ export class Service extends ProjectReferencesService<Model> {
         },
       });
 
+      await OnCallLevelsInFlight.forget(runId);
+
       throw err;
     }
 
     return runId;
+  }
+
+  /*
+   * A page again's rule, paged: the rule it starts at - the policy's
+   * first when that one is gone - the person who acknowledged first, then
+   * the run moves on if nobody could be paged (startPageAgain). The
+   * policy-run worker runs it too, for a page again handed over before its
+   * rule was recorded (startHandedOverPageAgain, issue #8514).
+   */
+  private async startPageAgainLevel(data: {
+    runId: ObjectID;
+    projectId: ObjectID;
+    onCallDutyPolicyId: ObjectID;
+    triggeredByIncidentId?: ObjectID | undefined;
+    triggeredByAlertId?: ObjectID | undefined;
+    triggeredByAlertEpisodeId?: ObjectID | undefined;
+    triggeredByIncidentEpisodeId?: ObjectID | undefined;
+    userNotificationEventType: UserNotificationEventType;
+    pageAgainNumber: number;
+    minutes: number;
+    startAtRuleId?: ObjectID | undefined;
+    acknowledgedByUserId?: ObjectID | undefined;
+    pageStart: OnCallPageStartMoment;
+    // Handed to its escalation already: Executing, not to be marked Started.
+    isHandedOver: boolean;
+  }): Promise<void> {
+    const runId: ObjectID = data.runId;
+    const pageStart: OnCallPageStartMoment = data.pageStart;
+
+    const rule: OnCallDutyPolicyEscalationRule | null =
+      await this.getPageAgainRule({
+        projectId: data.projectId,
+        onCallDutyPolicyId: data.onCallDutyPolicyId,
+        startAtRuleId: data.startAtRuleId,
+      });
+
+    if (!rule) {
+      await this.updateOneById({
+        id: runId,
+        data: {
+          status: OnCallDutyPolicyStatus.Error,
+          statusMessage: ON_CALL_POLICY_HAS_NO_ESCALATION_RULES_MESSAGE,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      await OnCallLevelsInFlight.forget(runId);
+      return;
+    }
+
+    // One handed over is Executing already, for the worker to read.
+    if (!data.isHandedOver) {
+      await this.updateOneById({
+        id: runId,
+        data: {
+          status: OnCallDutyPolicyStatus.Started,
+          statusMessage: ON_CALL_RUN_EXECUTION_STARTED_MESSAGE,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    const firstRuleOutcome: OnCallRuleExecutionOutcome =
+      await OnCallPageTiming.runInPageStart(
+        pageStart,
+        (): Promise<OnCallRuleExecutionOutcome> => {
+          return OnCallDutyPolicyEscalationRuleService.startRuleExecution(
+            rule.id!,
+            {
+              projectId: data.projectId,
+              triggeredByIncidentId: data.triggeredByIncidentId,
+              triggeredByAlertId: data.triggeredByAlertId,
+              triggeredByAlertEpisodeId: data.triggeredByAlertEpisodeId,
+              triggeredByIncidentEpisodeId: data.triggeredByIncidentEpisodeId,
+              userNotificationEventType: data.userNotificationEventType,
+              onCallPolicyExecutionLogId: runId,
+              onCallPolicyId: data.onCallDutyPolicyId,
+              alsoPageUserIds: data.acknowledgedByUserId
+                ? [data.acknowledgedByUserId]
+                : [],
+            },
+          );
+        },
+      );
+
+    await this.updateOneById({
+      id: runId,
+      data: {
+        status: OnCallDutyPolicyStatus.Executing,
+        statusMessage: getOnCallPageAgainStatusMessage({
+          pageAgainNumber: data.pageAgainNumber,
+          minutes: data.minutes,
+        }),
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    /*
+     * Nobody at the level it starts at could be paged - not even whoever
+     * acknowledged: the page again moves on now, as any run does from a
+     * level with nobody to wait for (OnCallEmptyLevel).
+     */
+    if (firstRuleOutcome?.movesOnAtOnce) {
+      await OnCallPageTiming.runInPageStart(
+        pageStart,
+        (): Promise<OnCallEscalationAdvanceResult | null> => {
+          return OnCallEscalationAdvance.moveOnAtOnce({ runId: runId });
+        },
+      );
+    }
+
+    await OnCallLevelsInFlight.forget(runId);
+  }
+
+  /*
+   * A page again whose start failed for a reason a retry can outlast is
+   * handed to its escalation rather than ended in Error (issues #8471,
+   * #8514): from its rule when its rule was recorded - the worker resumes
+   * its level, the person who acknowledged first - or, when it was not,
+   * with its start kept in flight, stopped, for the worker to start it
+   * from where it starts (startHandedOverPageAgain). Returns whether it was
+   * handed over.
+   */
+  private async handPageAgainToEscalation(data: {
+    runId: ObjectID;
+    projectId: ObjectID;
+    startInFlight: OnCallLevelInFlight;
+    dueAt: Date;
+    error: unknown;
+  }): Promise<boolean> {
+    if (
+      OnCallRunFailure.classify(data.error) === OnCallRunFailureKind.Permanent
+    ) {
+      return false;
+    }
+
+    let handedOver: boolean = await this.handStartedRunToEscalation({
+      executionLogId: data.runId,
+      dueAt: data.dueAt,
+      onlyFromItsRule: true,
+    });
+
+    if (!handedOver) {
+      await OnCallLevelsInFlight.keep(data.runId, {
+        ...data.startInFlight,
+        heartbeatAt: OneUptimeDate.getCurrentDate(),
+        stopped: true,
+      });
+
+      handedOver = await this.handStartedRunToEscalation({
+        executionLogId: data.runId,
+        dueAt: data.dueAt,
+        fromStatuses: [
+          OnCallDutyPolicyStatus.Started,
+          OnCallDutyPolicyStatus.Scheduled,
+        ],
+      });
+    }
+
+    if (handedOver) {
+      logger.error(
+        `On-call execution log ${data.runId.toString()}: its page again failed as it started; handed to its escalation, which pages what it did not.`,
+        { projectId: data.projectId.toString() } as LogAttributes,
+      );
+      logger.error(data.error as Error);
+    }
+
+    return handedOver;
+  }
+
+  /*
+   * STARTS A PAGE AGAIN HANDED OVER BEFORE ITS RULE WAS RECORDED
+   * (issue #8514), for the policy-run worker: its start failed or stopped,
+   * and its start was kept in flight (OnCallLevelsInFlight) - where it
+   * starts, who acknowledged, and when it was due. It is started as it
+   * would have been, the person who acknowledged first. Throws as paging
+   * does: the start stays in flight for the run's next try.
+   */
+  @CaptureSpan()
+  public async startHandedOverPageAgain(data: {
+    run: Model;
+    level: OnCallLevelInFlight;
+  }): Promise<void> {
+    const run: Model = data.run;
+    const pageAgain: OnCallPageAgainInFlight = data.level.pageAgain!;
+
+    await this.startPageAgainLevel({
+      runId: run.id!,
+      projectId: run.projectId!,
+      onCallDutyPolicyId: run.onCallDutyPolicyId!,
+      triggeredByIncidentId: run.triggeredByIncidentId,
+      triggeredByAlertId: run.triggeredByAlertId,
+      triggeredByAlertEpisodeId: run.triggeredByAlertEpisodeId,
+      triggeredByIncidentEpisodeId: run.triggeredByIncidentEpisodeId,
+      userNotificationEventType: run.userNotificationEventType!,
+      pageAgainNumber: Number(run.pageAgainNumber),
+      minutes: pageAgain.minutes,
+      startAtRuleId: pageAgain.startAtRuleId
+        ? new ObjectID(pageAgain.startAtRuleId)
+        : undefined,
+      acknowledgedByUserId: pageAgain.acknowledgedByUserId
+        ? new ObjectID(pageAgain.acknowledgedByUserId)
+        : undefined,
+      pageStart: data.level.pageStart
+        ? {
+            startedAt: data.level.pageStart.startedAt,
+            start: data.level.pageStart.start,
+          }
+        : OnCallPageTiming.startPage({}),
+      isHandedOver: true,
+    });
+  }
+
+  // A page again's start, as it is kept in flight until its rule is recorded (issue #8514).
+  private getPageAgainStart(data: {
+    startAtRuleId: string | null;
+    acknowledgedByUserId: string | null;
+    minutes: number;
+    pageStart: OnCallPageStartMoment;
+  }): OnCallLevelInFlight {
+    return {
+      ruleId: data.startAtRuleId || "",
+      startedAt: OneUptimeDate.getCurrentDate(),
+      heartbeatAt: OneUptimeDate.getCurrentDate(),
+      stopped: false,
+      ...(data.acknowledgedByUserId
+        ? { firstUserIds: [data.acknowledgedByUserId] }
+        : {}),
+      pageStart: {
+        startedAt: data.pageStart.startedAt,
+        start: data.pageStart.start,
+      },
+      pageAgain: {
+        startAtRuleId: data.startAtRuleId,
+        acknowledgedByUserId: data.acknowledgedByUserId,
+        minutes: data.minutes,
+      },
+    };
+  }
+
+  /*
+   * Keeps the start of a page again whose run was written, and whose
+   * process stopped before it kept its start (issue #8549): the page-again
+   * tick asks for this once the page again has been in flight a while
+   * (OnCallPageAgainClaimsInFlight). Only for a run still starting - no
+   * rule recorded, Scheduled or Started - with no start kept already: the
+   * stuck-run job then hands it to its escalation, and the policy-run
+   * worker starts it from where it starts, the person who acknowledged
+   * first (startHandedOverPageAgain). Throws as the database does, and
+   * when Redis did not take the start.
+   */
+  @CaptureSpan()
+  public async keepPageAgainStartIfMissing(data: {
+    runId: ObjectID;
+    startAtRuleId: string | null;
+    acknowledgedByUserId: string | null;
+    minutes: number;
+    dueAt: Date;
+  }): Promise<boolean> {
+    const run: Model | null = await this.findOneById({
+      id: data.runId,
+      select: {
+        status: true,
+        lastExecutedEscalationRuleId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (
+      !run ||
+      run.lastExecutedEscalationRuleId ||
+      (run.status !== OnCallDutyPolicyStatus.Scheduled &&
+        run.status !== OnCallDutyPolicyStatus.Started)
+    ) {
+      return false;
+    }
+
+    const kept: Map<string, OnCallLevelInFlight> =
+      await OnCallLevelsInFlight.read([data.runId]);
+
+    if (kept.has(data.runId.toString())) {
+      return false;
+    }
+
+    await OnCallLevelsInFlight.keep(data.runId, {
+      ...this.getPageAgainStart({
+        startAtRuleId: data.startAtRuleId,
+        acknowledgedByUserId: data.acknowledgedByUserId,
+        minutes: data.minutes,
+        pageStart: OnCallPageTiming.startPage({ dueAt: data.dueAt }),
+      }),
+      stopped: true,
+    });
+
+    // Kept only once Redis has it: else the page-again tick tries again at its next.
+    if (
+      !(await OnCallLevelsInFlight.read([data.runId])).has(
+        data.runId.toString(),
+      )
+    ) {
+      throw new Error(
+        `Could not keep the start of the page again of on-call execution log ${data.runId.toString()}.`,
+      );
+    }
+
+    return true;
+  }
+
+  /*
+   * Gives a run's acknowledgement clock back (issue #8514): its page
+   * again's run was never written, so the next tick pages again. Only
+   * while the clock is still stopped. Never throws, unless asked to: the
+   * page-again tick's settle (issue #8549) keeps its page again in flight
+   * for its next tick on a database error.
+   */
+  @CaptureSpan()
+  public async restartAcknowledgementTimeoutClock(data: {
+    executionLogId: ObjectID;
+    startedAt: Date;
+    throwOnError?: boolean | undefined;
+  }): Promise<boolean> {
+    try {
+      return await this.compareAndSetColumnsByIdWithoutHooks({
+        id: data.executionLogId,
+        data: {
+          acknowledgementTimeoutStartedAt: data.startedAt,
+        },
+        expectedData: {
+          acknowledgementTimeoutStartedAt: null,
+        },
+        skipUpdateDateColumn: true,
+      });
+    } catch (err) {
+      if (data.throwOnError) {
+        throw err;
+      }
+
+      logger.error(
+        `Could not give back the acknowledgement clock of on-call execution log ${data.executionLogId.toString()}; its page again is not tried again.`,
+      );
+      logger.error(err as Error);
+      return false;
+    }
   }
 
   /*
@@ -1341,7 +1788,45 @@ export class Service extends ProjectReferencesService<Model> {
       return createdItem;
     }
 
-    await this.startFirstEscalationRule(createdItem);
+    try {
+      await this.startFirstEscalationRule(createdItem);
+    } catch (err) {
+      /*
+       * The start failed - the database lost as it read the first rule, or
+       * as the rule paged (issue #8405). The run was left Started (or still
+       * Scheduled), which no tick of the worker reads: it was ended in
+       * Error five minutes later, having paged nobody, and its later rules
+       * were never paged either. It is handed to its escalation now, as a
+       * waiting run whose start fails is (startWaitingRun): the worker
+       * pages within a minute what the start did not, claimed, so nobody
+       * is paged twice, and tries a run that keeps failing a few times
+       * before it ends it, saying why (OnCallPolicyRunRetry). The page
+       * that created the run goes on: the run is paged from here.
+       *
+       * Not a test page (OnCallTestPage): a test of the policy's first
+       * level only must not walk on to its later levels, which its
+       * escalation would. Its start fails as it always did, and it is
+       * stopped as Error.
+       */
+      if (isOnCallTestPage(createdItem)) {
+        throw err;
+      }
+
+      logger.error(
+        `On-call execution log ${createdItem.id?.toString()}: its start failed; handing it to its escalation, which pages what the start did not.`,
+        { projectId: createdItem.projectId?.toString() } as LogAttributes,
+      );
+      logger.error(err as Error);
+
+      await this.handStartedRunToEscalation({
+        executionLogId: createdItem.id!,
+        dueAt: createdItem.createdAt || OneUptimeDate.getCurrentDate(),
+        fromStatuses: [
+          OnCallDutyPolicyStatus.Started,
+          OnCallDutyPolicyStatus.Scheduled,
+        ],
+      });
+    }
 
     return createdItem;
   }
@@ -1388,7 +1873,7 @@ export class Service extends ProjectReferencesService<Model> {
     const claimed: boolean = await this.claimWaitingRun({
       executionLogId: run.id!,
       status: OnCallDutyPolicyStatus.Started,
-      statusMessage: "Execution started...",
+      statusMessage: ON_CALL_RUN_EXECUTION_STARTED_MESSAGE,
       pagingStartsAt: data.now,
       pagingStartedEarlyReason: startedEarlyReason,
       aiHoldOutcome: data.aiHoldOutcome,
@@ -1435,15 +1920,135 @@ export class Service extends ProjectReferencesService<Model> {
      * worker got to it, as `run` was read before the claim moved the moment
      * - or now, for a run started before its moment (OnCallPageTiming).
      */
-    await this.startFirstEscalationRule(run, {
-      isStarted: true,
-      dueAt: getOnCallPolicyRunPagingDueAt({
-        pagingStartsAt: run.pagingStartsAt,
-        now: data.now,
-      }),
-    });
+    try {
+      await this.startFirstEscalationRule(run, {
+        isStarted: true,
+        dueAt: getOnCallPolicyRunPagingDueAt({
+          pagingStartsAt: run.pagingStartsAt,
+          now: data.now,
+        }),
+      });
+    } catch (err) {
+      /*
+       * The start failed after its claim: the run is Started, which no tick
+       * reads, and would be timed out having paged nobody. It is handed to
+       * its escalation, which pages what the start did not, and the failure
+       * goes on to the worker, which says what it means (issue #8167).
+       */
+      await this.handStartedRunToEscalation({
+        executionLogId: run.id!,
+        dueAt: getOnCallPolicyRunPagingDueAt({
+          pagingStartsAt: run.pagingStartsAt,
+          now: data.now,
+        }),
+      });
+
+      throw err;
+    }
 
     return true;
+  }
+
+  /*
+   * HANDS A RUN WHOSE START FAILED TO ITS ESCALATION (issue #8167).
+   *
+   * Starting a run that waited is claimed by moving it from Waiting to
+   * Started (claimWaitingRun). A start that then failed - the database lost
+   * as it read the first rule, or as the rule paged - left the run Started,
+   * which no tick of the worker reads: TimeoutStuckExecutions ended it in
+   * Error five minutes later, having paged nobody, and its later rules were
+   * never paged either. The run is handed to its escalation instead
+   * (Executing), and the worker's next tick pages what the start did not, in
+   * the one way a run moves on (OnCallEscalationAdvance), claimed, so nobody
+   * is paged twice:
+   *
+   *   - a start that did not get as far as its first rule (none recorded on
+   *     the run) paged nobody: its escalation starts from its first rule at
+   *     once, due when the run's page was (`dueAt`);
+   *   - a start whose first rule started - some of whose people may be
+   *     paged - goes on from that rule, to the next once its wait is over.
+   *
+   * Only a run still in one of `fromStatuses` - Started, unless said - is
+   * handed over: a run left Scheduled never got as far as its first rule
+   * (issue #8405). Never throws: a run that cannot be handed over stays
+   * where it was.
+   */
+  @CaptureSpan()
+  public async handStartedRunToEscalation(data: {
+    executionLogId: ObjectID;
+    // When the run's page was due.
+    dueAt: Date;
+    // The statuses the run may have been left in; Started when absent.
+    fromStatuses?: Array<OnCallDutyPolicyStatus> | undefined;
+    /*
+     * Only a run whose rule was recorded, which goes on from it: a page
+     * again starts at a rule of its own, not its policy's first.
+     */
+    onlyFromItsRule?: boolean | undefined;
+  }): Promise<boolean> {
+    try {
+      let handedOver: boolean = false;
+
+      for (const fromStatus of data.fromStatuses || [
+        OnCallDutyPolicyStatus.Started,
+      ]) {
+        if (!data.onlyFromItsRule) {
+          const fromFirstRule: UpdateResult = await this.getRepository().update(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            {
+              _id: data.executionLogId.toString(),
+              status: fromStatus,
+              lastExecutedEscalationRuleId: IsNull(),
+              lastEscalationRuleExecutedAt: IsNull(),
+            } as any,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            {
+              status: OnCallDutyPolicyStatus.Executing,
+              lastEscalationRuleExecutedAt: data.dueAt,
+              executeNextEscalationRuleInMinutes: 0,
+            } as any,
+          );
+
+          handedOver = (fromFirstRule.affected || 0) > 0;
+        }
+
+        if (!handedOver) {
+          const fromItsRule: UpdateResult = await this.getRepository().update(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            {
+              _id: data.executionLogId.toString(),
+              status: fromStatus,
+              ...(data.onlyFromItsRule
+                ? { lastExecutedEscalationRuleId: Not(IsNull()) }
+                : {}),
+            } as any,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            {
+              status: OnCallDutyPolicyStatus.Executing,
+            } as any,
+          );
+
+          handedOver = (fromItsRule.affected || 0) > 0;
+        }
+
+        if (handedOver) {
+          break;
+        }
+      }
+
+      if (handedOver) {
+        OnCallPolicyRunMessage.refresh(data.executionLogId);
+      }
+
+      return handedOver;
+    } catch (err) {
+      logger.error(
+        `Could not hand on-call execution log ${data.executionLogId.toString()} to its escalation after its start failed.`,
+      );
+      logger.error(err as Error);
+
+      return false;
+    }
   }
 
   /*
@@ -1590,7 +2195,7 @@ export class Service extends ProjectReferencesService<Model> {
         id: run.id!,
         data: {
           status: OnCallDutyPolicyStatus.Started,
-          statusMessage: "Execution started...",
+          statusMessage: ON_CALL_RUN_EXECUTION_STARTED_MESSAGE,
         },
         props: {
           isRoot: true,

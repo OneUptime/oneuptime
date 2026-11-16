@@ -17,9 +17,9 @@ flowchart TB
 
 :::tabs
 @tab OneUptime Cloud
-Push-varsler er gratis på alle planer. SMS og anrop betales fra prosjektets saldo, som starter på 0.00 USD, og når du legger til et telefonnummer, sendes det en SMS, så saldoen må først være over 1.00 USD. Når du legger til saldo, belastes prosjektets kort. Free-planen har plass til én person og én eskaleringsregel: bare du blir tilkalt, og tilkallingen gjentas i stedet for å gå videre til noen andre.
+Push-varslinger er gratis på alle planer. SMS og anrop betales fra prosjektets saldo, som starter på 0.00 USD, og når du legger til et telefonnummer, sendes det en SMS, så saldoen må først være over 1.00 USD. Når du legger til saldo, belastes prosjektets kort. Free-planen har plass til én person og én eskaleringsregel: bare du blir tilkalt, og tilkallingen gjentas i stedet for å gå videre til noen andre.
 @tab Selvdriftet
-Serveren din må kunne sende e-post, SMS og anrop. Hovedadministratoren setter dem opp på `/admin/setup`, med en test for hver, slik [Selv-hosting-veiledning](/docs/installation/self-hosting-guide) viser. Push-varsler når appen gjennom OneUptimes push-relé, uten noe å sette opp.
+Serveren din må kunne sende e-post, SMS og anrop. Hovedadministratoren setter dem opp på `/admin/setup`, med en test for hver, slik [Selv-hosting-veiledning](/docs/installation/self-hosting-guide) viser. Push-varslinger når appen gjennom OneUptimes push-relé, uten noe å sette opp.
 :::
 
 ## Trinn
@@ -33,7 +33,7 @@ På siden **Hjem** i prosjektet ditt klikker du på **Sett opp en vaktpolicy** i
 
 ### Last ned appen på telefonen din
 
-Installer OneUptime On-Call fra App Store eller Google Play, og logg inn: da registreres telefonen din for push-varsler. Tilbake i oppsettet klikker du på **Kontroller på nytt**: **Mobilapp eller nettleser** under **Hvordan skal vi nå deg?** viser nå telefonen din.
+Installer OneUptime On-Call fra App Store eller Google Play, og logg inn: da registreres telefonen din for push-varslinger. Tilbake i oppsettet klikker du på **Kontroller på nytt**: **Mobilapp eller nettleser** under **Hvordan skal vi nå deg?** viser nå telefonen din.
 
 ### Slå på SMS og anrop
 
@@ -51,7 +51,7 @@ Skriv inn mobilnummeret ditt med landskode i **Telefonnummeret ditt**, for eksem
 
 ![Steget «Hvem andre har vakt?», med «Lagre og fortsett» uthevet](screen:paging-who-else)
 
-Under **Hvem andre har vakt?** er du allerede med i **Tilkalles først**. Klikk på **Legg til teammedlemmer** for å tilkalle andre sammen med deg, og klikk deretter på **Lagre og fortsett**. I et prosjekt som ennå ikke har en vaktpolicy, opprettes `Default on-call policy`, som tilkaller dem ved hver nye hendelse og hvert nye varsel. I et prosjekt som har en, velger du den under **Vaktpolicy** og legger i stedet til personer under **Legg til i den første eskaleringsregelen**. Kan noen ikke nås ennå, blir steget stående på **Når et tilkall dem?**: klikk på **Send påminnelse om oppsett** for dem, og deretter på **Fortsett**.
+Under **Hvem andre har vakt?** er du allerede med i **Tilkalles først**. Klikk på **Legg til teammedlemmer** for å tilkalle andre sammen med deg, og klikk deretter på **Lagre og fortsett**. I et prosjekt som ennå ikke har en vaktpolicy, opprettes **Standard vaktpolicy**, som tilkaller dem ved hver nye hendelse og hvert nye varsel. I et prosjekt som har en, velger du den under **Vaktpolicy** og legger i stedet til personer under **Legg til i den første eskaleringsregelen**. Kan noen ikke nås ennå, blir steget stående på **Når et tilkall dem?**: klikk på **Send påminnelse om oppsett** for dem, og deretter på **Fortsett**.
 
 ### Bestem hva som skjer hvis ingen svarer
 
@@ -83,7 +83,7 @@ Tilkaller policyen noen andre, kan du også se eskaleringen: klikk på **Åpne v
 ## Hva som kan gå galt
 
 :::details Knappen Send meg en kode på SMS mangler
-SMS er slått av eller kan ikke sendes, og steget sier hvorfor. Bare en prosjekteier, eller noen som administrerer fakturering, ser **Slå på SMS og anrop**. På OneUptime Cloud skjuler en saldo på 1.00 USD eller mindre feltet. På en selvdriftet server som ikke kan sende SMS, ser hovedadministratoren **Sett opp SMS og anrop**, som åpner Admin Dashboard for å legge til Twilio, slik [Twilio-integrasjon](/docs/self-hosted/twilio-integration) viser.
+SMS er slått av eller kan ikke sendes, og steget sier hvorfor. Bare en Prosjekteier, eller noen som administrerer fakturering, ser **Slå på SMS og anrop**. På OneUptime Cloud skjuler en saldo på 1.00 USD eller mindre feltet. På en selvdriftet server som ikke kan sende SMS, ser hovedadministratoren **Sett opp SMS og anrop**, som åpner Admin Dashboard for å legge til Twilio, slik [Twilio-integrasjon](/docs/self-hosted/twilio-integration) viser.
 :::
 
 :::details Legg til saldo sier at ingen betalingsmetode ble funnet

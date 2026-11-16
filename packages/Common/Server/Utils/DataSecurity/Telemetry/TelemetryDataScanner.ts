@@ -322,8 +322,18 @@ const SPANS_OF_SERVICES: ReadonlySet<TelemetrySampleSource> = new Set([
   TelemetrySampleSource.AiConversations,
 ]);
 
+/*
+ * The owners - services, or RUM applications for session replays - whose
+ * telemetry of a kind is never read: their store's Scan Content switch is
+ * off (DataSecurityTelemetryScanRule). Ids in lower case.
+ */
+export type TelemetryOwnersNotScanned = ReadonlyMap<
+  DataStoreKind,
+  ReadonlySet<string>
+>;
+
 export const RESTRICTED_CONVERSATIONS_WARNING: string =
-  "Not read: this service holds a company AI tool's conversations, which only project owners and admins may read, and findings are read by everyone with access to Data Security.";
+  "Not read: this service holds a company AI tool's conversations, which only Project Owners and Project Admins may read, and findings are read by everyone with access to Data Security.";
 
 export interface TelemetryReadWindow {
   projectId: ObjectID;
@@ -952,6 +962,8 @@ interface ScanContext {
   maxOwners: number;
   bytesLeft: number;
   stores: Map<string, StoreSample>;
+  // Owners whose store of a kind turned content scanning off: never read.
+  ownersNotScanned: TelemetryOwnersNotScanned;
 }
 
 interface SourceRead {
@@ -1366,6 +1378,9 @@ async function sampleSource(
   restrictedServiceIds: ReadonlySet<string>,
 ): Promise<void> {
   const projectId: string = context.window.projectId.toString();
+  // Owners whose store of this kind turned content scanning off.
+  const notScanned: ReadonlySet<string> =
+    context.ownersNotScanned.get(source.kind) || new Set();
   let ownerRows: Array<JSONObject>;
 
   try {
@@ -1375,14 +1390,20 @@ async function sampleSource(
         ...context.window,
         source: source.source,
         /*
-         * Traces leave the restricted services out. Their AI calls are
-         * listed, ids and counts only, so their stores say they were not
-         * read.
+         * Every read leaves out the owners whose store turned content
+         * scanning off: they take no place among the owners read, and
+         * nothing of theirs is sampled. Traces leave the restricted
+         * services out too. Their AI calls are listed, ids and counts
+         * only, so their stores say they were not read.
          */
-        excludedOwnerIds:
-          source.source === TelemetrySampleSource.Traces
-            ? Array.from(restrictedServiceIds)
-            : [],
+        excludedOwnerIds: Array.from(
+          new Set([
+            ...notScanned,
+            ...(source.source === TelemetrySampleSource.Traces
+              ? Array.from(restrictedServiceIds)
+              : []),
+          ]),
+        ),
         limit: context.maxOwners,
       }),
     );
@@ -1399,7 +1420,8 @@ async function sampleSource(
   for (const row of ownerRows) {
     const ownerId: string = readText(row["ownerId"]);
 
-    if (!ownerId) {
+    // Never one whose store's scanning is off, even should the read list it.
+    if (!ownerId || notScanned.has(ownerId.toLowerCase())) {
       continue;
     }
 
@@ -1700,18 +1722,43 @@ function toResult(data: {
   };
 }
 
+// The owners left out, each id in lower case as the reads compare them.
+function lowerCaseOwners(
+  owners: TelemetryOwnersNotScanned | undefined,
+): TelemetryOwnersNotScanned {
+  const lowerCased: Map<DataStoreKind, ReadonlySet<string>> = new Map();
+
+  for (const [kind, ids] of owners ||
+    new Map<DataStoreKind, ReadonlySet<string>>()) {
+    lowerCased.set(
+      kind,
+      new Set(
+        Array.from(ids).map((id: string): string => {
+          return id.toLowerCase();
+        }),
+      ),
+    );
+  }
+
+  return lowerCased;
+}
+
 /*
  * A sample of every service's logs, traces, exceptions and AI
  * conversations, and of every RUM application's sessions, since `since`
  * (at most TELEMETRY_SCAN_MAX_WINDOW_IN_HOURS before now): one result per
  * store, classified. A read that fails is logged and named in the warnings
- * of the stores it was for; the scan goes on with the next.
+ * of the stores it was for; the scan goes on with the next. An owner whose
+ * store of a kind turned content scanning off (`ownersNotScanned`) is left
+ * out of that kind's every read, and has no result.
  */
 export async function scanProjectTelemetry(data: {
   projectId: ObjectID;
   sampleSize: number;
   since: Date;
   options: ContentScanOptions;
+  // Owners whose store of a kind turned content scanning off: never read.
+  ownersNotScanned?: TelemetryOwnersNotScanned | undefined;
 }): Promise<Array<TelemetryStoreScan>> {
   const until: Date = OneUptimeDate.getCurrentDate();
   const earliest: Date = OneUptimeDate.addRemoveHours(
@@ -1748,6 +1795,7 @@ export async function scanProjectTelemetry(data: {
     bytesLeft:
       limits.maxBytesTotal > 0 ? limits.maxBytesTotal : DEFAULT_BYTES_PER_SCAN,
     stores: new Map(),
+    ownersNotScanned: lowerCaseOwners(data.ownersNotScanned),
   };
 
   let restrictedServiceIds: ReadonlySet<string> | null;

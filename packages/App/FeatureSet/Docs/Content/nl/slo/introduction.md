@@ -1,17 +1,18 @@
 # SLO's – Overzicht
 
-Een service level objective (SLO) is een betrouwbaarheidsdoel voor wat u bewaakt, zoals "99,9% van de tijd beschikbaar over een voortschrijdende periode van 30 dagen". OneUptime meet elke SLO elke 5 minuten tegen zijn doel, zodat u in plaats van "werkt het nu?" kunt antwoorden op "zijn we betrouwbaar genoeg geweest, over een periode die voor onze gebruikers telt, en hoeveel ruimte voor fouten hebben we nog?". De [Woordenlijst](/docs/introduction/glossary#slo) zet SLO's naast de andere woorden die OneUptime gebruikt.
+Een service level objective (SLO) is een betrouwbaarheidsdoel voor wat u draait, zoals "99,9% van de tijd beschikbaar over een voortschrijdende periode van 30 dagen" of "99,9% van de checkout-aanvragen slaagt". OneUptime meet elke SLO elke 5 minuten tegen zijn doel, zodat u in plaats van "werkt het nu?" kunt antwoorden op "zijn we betrouwbaar genoeg geweest, over een periode die voor onze gebruikers telt, en hoeveel ruimte voor fouten hebben we nog?". De [Woordenlijst](/docs/introduction/glossary#slo) zet SLO's naast de andere woorden die OneUptime gebruikt.
 
 :::cards
-- [Een SLO aanmaken](#een-slo-aanmaken): Een naam en een doel. Al het andere begint met een standaardwaarde.
+- [Een SLO aanmaken](#een-slo-aanmaken): Wat hij meet, een naam en een doel. Al het andere begint met een standaardwaarde.
 - [Monitoren en monitorregels](/docs/slo/monitor-rules): Kies de monitoren die een SLO meet.
+- [SLO's voor aanvragen en latentie](/docs/slo/request-slos): Meet de aanvragen van services, uit hun traces.
 - [Foutbudgetten](/docs/slo/error-budget): Hoeveel downtime een doel toestaat en hoe het budget herstelt.
 - [Waarschuwingen en incidenten voor verbruikssnelheid](/docs/slo/burn-rate-alerts): Waarschuw uw team als het budget te snel opraakt.
 :::
 
 ## Zo werkt het
 
-Een SLO leest de statustijdlijnen van de monitoren die eraan gekoppeld zijn: dezelfde gegevens die uw statuspagina's tonen. Daaruit berekent OneUptime welk deel van het compliancevenster goede tijd was, hoeveel van het foutbudget over is en hoe snel het opraakt. Tijd waarin de bewaking van een monitor uit staat, telt niet mee: niets controleert de monitor dan, dus die tijd verbruikt geen foutbudget en telt ook niet als goede tijd.
+Een SLO meet een van twee dingen. Een SLO voor monitorbeschikbaarheid leest de statustijdlijnen van de monitoren die eraan gekoppeld zijn: dezelfde gegevens die uw statuspagina's tonen. Een SLO voor aanvragen telt de aanvragen die zijn services afhandelen, uit hun traces: zie [SLO's voor aanvragen en latentie](/docs/slo/request-slos). De rest van deze pagina beschrijft SLO's voor monitorbeschikbaarheid, en SLO's voor aanvragen werken op dezelfde manier, tenzij er iets anders staat. Daaruit berekent OneUptime welk deel van het compliancevenster goede tijd was, hoeveel van het foutbudget over is en hoe snel het opraakt. Tijd waarin de bewaking van een monitor uit staat, telt niet mee: niets controleert de monitor dan, dus die tijd verbruikt geen foutbudget en telt ook niet als goede tijd.
 
 ```mermaid title="Van monitorcontroles naar de status van een SLO"
 flowchart TB
@@ -30,25 +31,29 @@ De woorden die in heel OneUptime worden gebruikt, staan in de [Woordenlijst](/do
 
 | Begrip | Betekenis |
 | --- | --- |
-| **SLI** (service level indicator) | De meting: het percentage van het compliancevenster waarin de monitoren van de SLO beschikbaar waren. |
+| **SLI** (service level indicator) | De meting: het percentage van het compliancevenster waarin de monitoren van de SLO beschikbaar waren, of van de aanvragen van zijn services die goed waren. |
 | **SLO** (service level objective) | Een doel voor de SLI, bijvoorbeeld "minstens 99,9% over de laatste 30 dagen". |
-| **Foutbudget** | De downtime die het doel toestaat: `(100% − target) × window`. Bij 99,9% over 30 dagen is dat 43 minuten en 12 seconden. |
+| **Foutbudget** | De downtime die het doel toestaat: `(100% − target) × window`. Bij 99,9% over 30 dagen is dat 43 minuten en 12 seconden. Voor een SLO voor aanvragen zijn het de slechte aanvragen die het doel toestaat: één op elke 1.000 bij 99,9%. |
 | **Verbruikssnelheid** | Hoe snel het budget wordt uitgegeven, vergeleken met een gelijkmatig tempo. Bij een verbruikssnelheid van 1 is het budget precies aan het eind van het venster op. |
 
 Een foutbudget maakt betrouwbaarheid tot iets wat u kunt uitgeven. Is er veel over, release dan sneller en neem risico's; is er weinig over, rem dan af en investeer in stabiliteit. De SLO geeft dat gesprek een getal dat iedereen ziet.
 
 ## Een SLO aanmaken
 
-U hebt een rol nodig die SLO's mag aanmaken: Project Owner, Project Admin of een aangepaste rol met de machtiging Create Service Level Objective.
+U hebt een rol nodig die SLO's mag aanmaken: Projecteigenaar, Projectbeheerder of een aangepaste rol met de machtiging Create Service Level Objective.
 
 :::steps
 ### SLO's openen
 
-Open **SLOs** via het menu **Producten** in de bovenbalk. Het staat in de eerste groep, naast monitoren en incidenten. Klik op **Service Level Objective aanmaken**.
+Open **SLOs** via het menu **Producten** in de bovenbalk. Het staat in de eerste groep, naast monitoren en incidenten. Klik op **Serviceniveaudoelstelling aanmaken**.
+
+### Kiezen wat de SLO meet
+
+Laat onder **Wat het meet** de keuze **Beschikbaarheid van monitoren** staan om te meten welk deel van de tijd monitoren beschikbaar zijn. Kies **Succes van aanvragen** of **Latentie van aanvragen** om in plaats daarvan de aanvragen van services te meten, en kies hun **Services**: zie [SLO's voor aanvragen en latentie](/docs/slo/request-slos). Kies **Metriek** om de goede gebeurtenissen te tellen in een teller of een histogram dat uw services sturen: zie [SLO's op basis van een metriek](/docs/slo/request-slos#slos-op-basis-van-een-metriek). Klik op **Volgende**.
 
 ### Een naam en een doel geven
 
-Vul een **Naam** in, bijvoorbeeld "API Availability", en een **Doel (%)**: het deel van de tijd dat de monitoren beschikbaar moeten zijn. Het doel begint op `99.9`. Het moet groter zijn dan 0 en hoogstens 99,999, omdat een doel van 100% geen foutbudget overlaat om te volgen.
+Vul een **Naam** in, bijvoorbeeld "API Availability", en een **Doel (%)**: het deel van de tijd, of van de aanvragen, dat goed moet zijn. Het doel begint op `99.9`. Het moet groter zijn dan 0 en hoogstens 99,999, omdat een doel van 100% geen foutbudget overlaat om te volgen.
 
 ### De standaardwaarden onder Meer velden controleren
 
@@ -56,15 +61,15 @@ Vul een **Naam** in, bijvoorbeeld "API Availability", en een **Doel (%)**: het d
 
 ### De SLO opslaan
 
-Klik op **Service Level Objective aanmaken**. OneUptime opent de nieuwe SLO. Het **Overzicht** toont **Choose what this SLO measures**, omdat een nieuwe SLO nog geen monitoren heeft.
+Klik op **Serviceniveaudoelstelling aanmaken**. OneUptime opent de nieuwe SLO. Het **Overzicht** van een SLO voor monitorbeschikbaarheid toont **Choose what this SLO measures**, omdat hij nog geen monitoren heeft.
 
 ### Monitoren koppelen
 
-Klik op **Een monitorregel maken** om elke overeenkomende monitor te koppelen, nu en later, of op **Monitoren toevoegen** om ze met de hand te kiezen. Zie [Monitoren en monitorregels](/docs/slo/monitor-rules).
+Klik voor een SLO voor monitorbeschikbaarheid op **Een monitorregel maken** om elke overeenkomende monitor te koppelen, nu en later, of op **Monitoren toevoegen** om ze met de hand te kiezen. Zie [Monitoren en monitorregels](/docs/slo/monitor-rules).
 
 ### De eerste cijfers zien binnenkomen
 
-OneUptime evalueert ingeschakelde SLO's elke 5 minuten. De SLI, het foutbudget en de verbruiksgrafiek verschijnen na de eerste evaluatie die monitoren heeft om te meten.
+OneUptime evalueert ingeschakelde SLO's elke 5 minuten. De SLI, het foutbudget en de verbruiksgrafiek verschijnen na de eerste evaluatie die monitoren heeft om te meten, of aanvragen om te tellen.
 :::
 
 De velden onder **Meer velden**:
@@ -92,7 +97,8 @@ Alles wat bepaalt hoe de SLO meet, begint met een standaardwaarde die u later wi
 
 | Onderdeel | Wat het bepaalt |
 | --- | --- |
-| Monitoren | Waar de SLI vandaan komt. Koppel ze met de hand of met monitorregels: zie [Monitoren en monitorregels](/docs/slo/monitor-rules). |
+| Wat hij meet | **Beschikbaarheid van monitoren**, **Succes van aanvragen** of **Latentie van aanvragen**. |
+| Monitoren of services | Waar de SLI vandaan komt: monitoren, met de hand of met monitorregels gekoppeld (zie [Monitoren en monitorregels](/docs/slo/monitor-rules)), of de services waarvan een SLO voor aanvragen de aanvragen telt. |
 | Doel | Het deel goede tijd dat de SLO belooft, groter dan 0 en hoogstens 99,999. |
 | Compliancevenster | De periode waarover de SLI en het budget worden gemeten: een voortschrijdend venster van 1 tot 366 dagen, of een kalendermaand. |
 | Risicodrempel | Het deel van het resterende budget waarbij de SLO naar **Risico** gaat. |
@@ -133,14 +139,14 @@ OneUptime geeft elke geëvalueerde SLO een status:
 | **Gezond** | Er is meer budget over dan de risicodrempel. |
 | **Risico** | Het resterende budget is gedaald tot de risicodrempel of lager: standaard 20%. |
 | **Budget uitgeput** | Het budget is helemaal op, of overschreden. |
-| **Verkeerd geconfigureerd** | De SLO kan niet worden gemeten: hij heeft geen monitoren, zijn monitoren bestaan niet meer of hebben in zijn venster nog geen status geregistreerd, of zijn doel valt buiten het bereik. |
+| **Verkeerd geconfigureerd** | De SLO kan niet worden gemeten: hij heeft geen monitoren, zijn monitoren bestaan niet meer of hebben in zijn venster nog geen status geregistreerd, of zijn doel valt buiten het bereik. Een SLO voor aanvragen is verkeerd geconfigureerd zonder services, zonder latentiedrempel, of zolang zijn services in zijn venster nog geen aanvraag hebben afgehandeld. |
 | **Gepauzeerd** | Alle monitoren die hij meet, zijn gearchiveerd of hebben actieve bewaking uitgeschakeld, met de hand, door een handmatig incident of door gepland onderhoud. Hij gaat vanzelf verder zodra een van die monitoren weer wordt bewaakt. |
 
 Een uitgeschakelde of gearchiveerde SLO wordt niet geëvalueerd, dus zijn status blijft zoals hij was; de SLO-lijst toont in plaats daarvan een badge **Uitgeschakeld** of **Gearchiveerd**. De eigenaren van een SLO krijgen een melding als de status verandert in **Risico** of **Budget uitgeput**: zie [Foutbudgetten](/docs/slo/error-budget).
 
 ## De SLO-lijst
 
-De pagina **SLOs** toont elke niet-gearchiveerde SLO, met status, SLI, resterend budget, verbruikssnelheid, doel, venster, monitoren, labels en eigenaren.
+De pagina **SLOs** toont elke niet-gearchiveerde SLO, met status, SLI, resterend budget, verbruikssnelheid, doel, venster, monitoren, labels en eigenaren. De kolom **Wat het meet** toont bij een aanvraag-SLO de services waar hij bij een uptime-SLO de monitoren toont, en het filter **Services** vindt de SLO's die een service meten.
 
 - De tegels boven de lijst tellen SLO's per status: **Gezond**, **Risico**, **Budget uitgeput**, **Verkeerd geconfigureerd**, **Gepauzeerd** en **Uitgeschakeld**. Ze verschijnen zodra er een SLO is die niet gearchiveerd is. Klik op een tegel om alleen die SLO's te zien, en nog eens om alle te zien.
 - Selecteer SLO's om in één keer labels en eigenaren toe te voegen of te verwijderen, ze in of uit te schakelen, ze de [aanbevolen regels voor verbruikssnelheid](/docs/slo/burn-rate-alerts#ze-aan-veel-slos-tegelijk-toevoegen) te geven die ze missen, ze te archiveren of ze te verwijderen.
@@ -158,12 +164,12 @@ Open een SLO om zijn pagina's in het zijmenu te zien:
 | **Incidenten** | De incidenten die zijn regels voor verbruikssnelheid en zijn foutbudgetbeleid hebben gemeld. De badge telt de open incidenten. |
 | **Waarschuwingen** | De waarschuwingen die zijn regels voor verbruikssnelheid en zijn foutbudgetbeleid hebben gegeven. De badge telt de open waarschuwingen. |
 | **Feed** | Wat er met de SLO is gebeurd, als tijdlijn. Zie [SLO-feed en auditlogboeken](/docs/slo/feed-and-audit-logs). |
-| **Monitoren** | De monitoren die hij meet, en of elke monitor door een persoon of een regel is gekoppeld. |
-| **Monitorregels** | De regels die overeenkomende monitoren koppelen. |
+| **Monitoren** | De monitoren die hij meet, en of elke monitor door een persoon of een regel is gekoppeld. Alleen SLO's voor monitorbeschikbaarheid. |
+| **Monitorregels** | De regels die overeenkomende monitoren koppelen. Alleen SLO's voor monitorbeschikbaarheid. |
 | **Verbruikssnelheidsregels** | De regels die waarschuwingen geven en incidenten melden als het budget te snel opraakt. |
 | **Foutbudgetbeleid** | Wat het team heeft afgesproken te doen terwijl het foutbudget opraakt, en de waarschuwingen en incidenten die elk niveau van het beleid geeft. Zie [Foutbudgetbeleid](/docs/slo/error-budget-policy). |
 | **Eigenaren** | De gebruikers en teams die over zijn statuswijzigingen horen. |
-| **Instellingen** | Het doel, de complianceperiode, de downtimeberekening, de evaluatieschakelaar en de archiefkaart. |
+| **Instellingen** | Wat hij meet, het doel, de complianceperiode, de downtimeberekening, de evaluatieschakelaar en de archiefkaart. |
 | **Auditlogboeken** | Wie de SLO, zijn regels en zijn eigenaren heeft gewijzigd, en wanneer. |
 | **SLO verwijderen** | Verwijdert de SLO definitief en lost de open waarschuwingen en incidenten voor verbruikssnelheid op. |
 
@@ -175,10 +181,10 @@ Als iets een SLO verhindert te meten, zegt een banner bovenaan elk van zijn pagi
 
 Het **Overzicht** beantwoordt "zitten we binnen het budget?", van boven naar beneden:
 
-- **De samenvatting**: de status, een zin over wat die betekent en de beschrijving. Ernaast staan **Vernieuwen** en wanneer de SLO voor het laatst is geëvalueerd. Daaronder staan het doel, het **Nalevingsvenster** (met een vulindicator zolang een jong voortschrijdend venster zich vult: zie [Jonge SLO's en de vulindicator van het venster](#jonge-slos-en-de-vulindicator-van-het-venster)), het aantal monitoren en de eigenaren, met **Eigenaren toevoegen** om er daar meteen een toe te voegen.
+- **De samenvatting**: de status, een zin over wat die betekent en de beschrijving. Ernaast staan **Vernieuwen** en wanneer de SLO voor het laatst is geëvalueerd. Daaronder staan het doel, het **Nalevingsvenster** (met een vulindicator zolang een jong voortschrijdend venster zich vult: zie [Jonge SLO's en de vulindicator van het venster](#jonge-slos-en-de-vulindicator-van-het-venster)), het aantal monitoren (of de services van een SLO voor aanvragen) en de eigenaren, met **Eigenaren toevoegen** om er daar meteen een toe te voegen.
 - **De kerncijfers**:
   - **SLI**: het deel goede tijd in het venster, en hoeveel het boven of onder het doel zit.
-  - **Foutbudget over**: een percentage, een duur zoals "12 min, 30 sec over van 43 min, 12 sec" en een balk met een markering op de risicodrempel. Als het budget is overschreden, toont het **Budget overschreden** en met hoeveel.
+  - **Foutbudget over**: een percentage, een duur zoals "12 min, 30 sec over van 43 min, 12 sec" (voor een SLO voor aanvragen een aantal slechte aanvragen) en een balk met een markering op de risicodrempel. Als het budget is overschreden, toont het **Budget overschreden** en met hoeveel.
   - **Verbruikssnelheid**: hoe snel het budget wordt uitgegeven over de laatste 60 minuten, de periode die de standaardregel voor snel verbruik gebruikt. Wordt oranje boven 1× en rood, met **Regeldrempel bereikt**, bij de laagste drempel van de ingeschakelde regels voor verbruikssnelheid van de SLO die 6 uur of minder terugkijken. Een uur zegt weinig over een regel die dagen terugkijkt, zoals **Slow leak**, dus wordt ze niet met zo'n regel vergeleken.
   - **Resterende looptijd van budget**: hoelang het budget in dit tempo meegaat. Zie [Foutbudgetten](/docs/slo/error-budget#looptijd-van-het-budget).
 - **Burn-down van foutbudget**: het resterende budget over het huidige venster. Zie [Foutbudgetten](/docs/slo/error-budget#verbranding-van-het-foutbudget).
@@ -195,13 +201,14 @@ De pagina **Instellingen** brengt samen hoe een SLO meet, één kaart per onderd
 
 | Kaart | Wat u wijzigt | Goed om te weten |
 | --- | --- | --- |
+| **Wat het meet** | **Wat het meet**, **Services**, **Latentiedrempel (ms)**, **Aanvraagfilter** en **Metriek**, met **Bewerken wat het meet**. | Een SLO voor aanvragen telt zijn aanvragen na een wijziging opnieuw vanaf het begin. |
 | **Doelstelling** | **Doel (%)** en **Risicodrempel (%)**, met **Doelstelling bewerken**. | Toont de downtime die het doel toestaat, bijvoorbeeld "43 min, 12 sec downtime per venster van 30 dagen". |
 | **Nalevingsperiode** | **Type venster**, **Venster (dagen)** en **Tijdzone**, met **Periode bewerken**. | Regels voor verbruikssnelheid houden hun drempels als het venster verandert, dus controleer ze daarna. |
-| **Downtimeberekening** | **Modus voor meerdere monitoren** en **Downtime-monitorstatussen**, met **Downtimeberekening bewerken**. | Zonder statussen tellen alle niet-operationele statussen, ook statussen die later worden toegevoegd. |
+| **Downtimeberekening** | **Modus voor meerdere monitoren** en **Downtime-monitorstatussen**, met **Downtimeberekening bewerken**. | Alleen SLO's voor monitorbeschikbaarheid. Zonder statussen tellen alle niet-operationele statussen, ook statussen die later worden toegevoegd. |
 | **Evaluatie** | De schakelaar **Dit SLO evalueren**, die opslaat zodra u hem omzet. | Uitzetten vraagt om bevestiging, omdat het ook de open waarschuwingen en incidenten voor verbruikssnelheid van de SLO oplost. |
 | **SLO archiveren** | **Archiveren** of **Uit het archief halen**. | Zie [Een SLO archiveren](#een-slo-archiveren). |
 
-Na een wijziging van het doel, de periode of de downtimeberekening evalueert OneUptime de SLO opnieuw bij de volgende uitvoering.
+Na een wijziging van wat hij meet, het doel, de periode of de downtimeberekening evalueert OneUptime de SLO opnieuw bij de volgende uitvoering.
 
 ## Een SLO archiveren
 
@@ -240,7 +247,7 @@ Het zijmenu van een monitor heeft ook een pagina **SLOs**: de SLO's die die moni
 
 Een SLO met een voortschrijdend venster die jonger is dan zijn venster, wordt gemeten over de gegevens die er tot nu toe zijn: een SLO van 30 dagen die gisteren is aangemaakt, heeft één dag aan gegevens. Zijn foutbudget begint klein en groeit naarmate het venster zich vult, dus zijn eerste cijfers schommelen meer dan later.
 
-Zolang dat zo is, zegt het **Overzicht** het: de samenvatting toont een indicator **Venster 23% gevuld** (**Venster minder dan 1% gevuld** op de eerste dag), en de tegel **Foutbudget over** herhaalt het onder zijn getal. Beide verdwijnen als het venster vol is. SLO's met een kalendermaand tonen ze nooit, omdat hun budget vanaf de eerste dag de hele maand dekt, en SLO's in de modus **Gemiddelde monitorseconden** ook niet, omdat hun budget over de monitoren heen wordt geteld.
+Zolang dat zo is, zegt het **Overzicht** het: de samenvatting toont een indicator **Venster 23% gevuld** (**Venster minder dan 1% gevuld** op de eerste dag), en de tegel **Foutbudget over** herhaalt het onder zijn getal. Beide verdwijnen als het venster vol is. SLO's met een kalendermaand tonen ze nooit, omdat hun budget vanaf de eerste dag de hele maand dekt, en SLO's in de modus **Gemiddelde monitorseconden** ook niet, omdat hun budget over de monitoren heen wordt geteld. Een SLO voor aanvragen toont ze zolang OneUptime de oudere aanvragen van zijn services nog telt: zie [SLO's voor aanvragen en latentie](/docs/slo/request-slos#hoe-aanvragen-worden-geteld).
 
 ## Problemen oplossen
 
@@ -249,18 +256,23 @@ Een banner bovenaan de pagina's van de SLO zegt wat hem verhindert te meten:
 | Banner | Wat het betekent | Wat te doen |
 | --- | --- | --- |
 | **Geen monitoren gekoppeld** | De SLO heeft geen monitoren, dus er valt niets te meten. | Koppel monitoren of maak een monitorregel. |
-| **Waiting for SLO evaluation** | Er zijn monitoren gekoppeld, maar de laatste evaluatie had geen statusgegevens van ze. | Controleer of de monitoren worden gecontroleerd. De cijfers verschijnen na de volgende evaluatie met gegevens. |
-| **Measurement is paused** | Alle monitoren die hij meet, zijn gearchiveerd of hebben actieve bewaking uitgeschakeld. | Zet de bewaking van minstens één monitor weer aan, of wacht tot het onderhoud voorbij is. |
-| **The target is out of range** | Het doel is niet groter dan 0 en kleiner dan 100. | Stel een doel zoals 99,9 in onder **Instellingen** → **Doelstelling**. |
-| **This SLO is disabled** | De evaluatie staat uit. | Klik op **Evaluatie aanzetten**. |
-| **This SLO is archived** | De SLO is gearchiveerd. | Haal hem uit het archief onder **Instellingen**. |
+| **Wachten op de SLO-evaluatie** | Er zijn monitoren gekoppeld, maar de laatste evaluatie had geen statusgegevens van ze. | Controleer of de monitoren worden gecontroleerd. De cijfers verschijnen na de volgende evaluatie met gegevens. |
+| **De meting is gepauzeerd** | Alle monitoren die hij meet, zijn gearchiveerd of hebben actieve bewaking uitgeschakeld. | Zet de bewaking van minstens één monitor weer aan, of wacht tot het onderhoud voorbij is. |
+| **Het doel valt buiten het bereik** | Het doel is niet groter dan 0 en kleiner dan 100. | Stel een doel zoals 99,9 in onder **Instellingen** → **Doelstelling**. |
+| **Deze SLO is uitgeschakeld** | De evaluatie staat uit. | Klik op **Evaluatie aanzetten**. |
+| **Deze SLO is gearchiveerd** | De SLO is gearchiveerd. | Haal hem uit het archief onder **Instellingen**. |
 | **Nog niet geëvalueerd** | De SLO is net aangemaakt. | Wacht op de eerste evaluatie, hooguit een paar minuten. |
+| **Geen services gekozen** | Een SLO voor aanvragen heeft geen services, dus er zijn geen aanvragen om te tellen. | Kies zijn services onder **Instellingen** → **Wat het meet**. |
+| **Geen latentiedrempel** | Een SLO voor latentie van aanvragen heeft geen drempel, dus geen enkele aanvraag kan als snel genoeg tellen. | Stel de **Latentiedrempel (ms)** in onder **Instellingen** → **Wat het meet**. |
+| **Wachten op aanvragen** | Geen van de services van een SLO voor aanvragen heeft in zijn venster al een aanvraag afgehandeld. | Controleer of de services traces naar OneUptime sturen. De cijfers verschijnen na de volgende evaluatie die een aanvraag telt. |
+| **Geen metriek om te tellen** | Een SLO voor een metriek heeft geen metriek die hij kan tellen: er is geen metriek gekozen, of er is niet ingesteld hoe zijn goede gebeurtenissen van de andere worden onderscheiden. | Kies de metriek, en de voorwaarde of waarde voor zijn goede gebeurtenissen, onder **Instellingen** → **Wat het meet**. |
+| **Wachten op de metriek** | Geen van de services van een SLO voor een metriek heeft in zijn venster al een gebeurtenis van zijn metriek gestuurd. | Controleer of de services de metriek naar OneUptime sturen, onder de naam die de SLO telt. De cijfers verschijnen na de volgende evaluatie die een gebeurtenis telt. |
 
 ## Volgende stappen
 
 :::cards
 - [Monitoren en monitorregels](/docs/slo/monitor-rules): Koppel monitoren met de hand of met regels.
+- [SLO's voor aanvragen en latentie](/docs/slo/request-slos): Meet de aanvragen van een service uit zijn traces.
 - [Foutbudgetten](/docs/slo/error-budget): De budgetberekening, de looptijd en hoe het budget terugkomt.
-- [Waarschuwingen en incidenten voor verbruikssnelheid](/docs/slo/burn-rate-alerts): Waarschuw uw dienstdoende team als het budget te snel opraakt.
-- [SLO-metrics en -dashboards](/docs/slo/metrics): Zet SLO's in grafieken en bouw een SLO-dashboard.
+- [Releasecontroles](/docs/slo/release-checks): Draai een release terug die het foutbudget opbrandt.
 :::

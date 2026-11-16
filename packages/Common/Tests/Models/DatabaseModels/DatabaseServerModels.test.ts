@@ -1383,7 +1383,7 @@ describe("Databases (DatabaseServer) models", () => {
         "workloadIdentifier",
         "otelCollectorStatus",
       ])(
-        "an update of %s is refused even for a project owner",
+        "an update of %s is refused even for a Project Owner",
         (column: string) => {
           const data: DatabaseServer = new DatabaseServer();
           (data as unknown as Record<string, unknown>)[column] = "x";
@@ -1702,7 +1702,7 @@ describe("Databases (DatabaseServer) models", () => {
       );
     });
 
-    test("an endpoint cannot be rewritten in place, even by a project owner", () => {
+    test("an endpoint cannot be rewritten in place, even by a Project Owner", () => {
       const data: DatabaseServerEndpoint = new DatabaseServerEndpoint();
       data.endpoint = "somewhere-else:5432";
 
@@ -2144,7 +2144,14 @@ describe("Databases (DatabaseServer) models", () => {
           PERMISSION_PROPS_BY_NAME.get(name);
 
         expect(props).toBeDefined();
-        expect(props!.isAssignableToTenant).toBe(true);
+        /*
+         * Offered to a custom role, but Edit Database Feed: a feed's entries
+         * are never edited, so it is retired (#8275) and grants nothing.
+         */
+        expect({ name, offered: props!.isAssignableToTenant }).toEqual({
+          name,
+          offered: name !== "EditDatabaseServerFeed",
+        });
         expect(props!.isRolePermission).toBe(false);
         expect(props!.group).toBe("Telemetry");
         expect(props!.title).toContain("Database");

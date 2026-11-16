@@ -108,7 +108,7 @@ För snävare behörigheter kan du ge användaren `SELECT` på bara de tabeller 
 :::steps
 ### Starta en ny monitor
 
-Gå till **Monitorer** och klicka på **Skapa monitor**. Under **Monitortyp** klickar du på **Fler monitortyper** och väljer **SQL Query** under **Databasövervakning**, eller skriver `query` i sökrutan. Ange ett **Namn** och klicka sedan på **Nästa**.
+Gå till **Monitorer** och klicka på **Skapa monitor**. Under **Monitortyp** klickar du på **Fler monitortyper** och väljer **SQL-fråga** under **Databasövervakning**, eller skriver `query` i sökrutan. Ange ett **Namn** och klicka sedan på **Nästa**.
 
 ### Ange anslutningsuppgifterna
 
@@ -116,7 +116,7 @@ Välj **Database Type** — porten byts till den motorns standard — och fyll s
 
 ### Ange frågan
 
-Skriv en enda skrivskyddad sats i **SQL Query** (se [Skriv frågan](#skriv-frågan)).
+Skriv en enda skrivskyddad sats i **SQL-fråga** (se [Skriv frågan](#skriv-frågan)).
 
 ### Testa den
 
@@ -142,7 +142,7 @@ Välj de **Sonder** som når databasen och ett **Övervakningsintervall**, och k
 | **Autentisering** | Bara Microsoft SQL Server: **Användarnamn och lösenord**, standardvalet, eller **Windows Integrated Authentication**, som loggar in med kontot som sonden körs som. Se [Integrerad Windows-autentisering](#integrerad-windows-autentisering). |
 | **Användarnamn** | En skrivskyddad databasanvändare med minsta möjliga behörighet. |
 | **Lösenord** | Databasens lösenord. Vi rekommenderar starkt att du hänvisar till en [övervakningshemlighet](/docs/monitor/monitor-secrets) med `{{monitorSecrets.name}}` i stället för att skriva lösenordet som vanlig text (se [Använd en övervakningshemlighet för lösenordet](#använd-en-övervakningshemlighet-för-lösenordet)). |
-| **SQL Query** | Den skrivskyddade frågan som ska köras (se [Skriv frågan](#skriv-frågan)). |
+| **SQL-fråga** | Den skrivskyddade frågan som ska köras (se [Skriv frågan](#skriv-frågan)). |
 | **Use SSL/TLS** | Aktivera för att ansluta över TLS. När det är aktiverat kan du stänga av **Verify server certificate** om databasen använder ett självsignerat certifikat. |
 
 ### Fler fält
@@ -151,7 +151,7 @@ Välj de **Sonder** som når databasen och ett **Övervakningsintervall**, och k
 |---|---|---|---|
 | **Connection Timeout (ms)** | `10000` | `30000` | Hur länge det väntas på att en anslutning upprättas. |
 | **Statement Timeout (ms)** | `15000` | `60000` | Den hårda gränsen för hur länge frågan får köras. |
-| **Max Rows** | `100` | `1000` | Den övre gränsen för hur många rader som läses tillbaka från databasen. |
+| **Max antal rader** | `100` | `1000` | Den övre gränsen för hur många rader som läses tillbaka från databasen. |
 
 Ett värde över maximum sänks till maximum.
 
@@ -216,7 +216,7 @@ För att databasens lösenord aldrig ska lagras som vanlig text på monitorn ska
 3. Skriv `{{monitorSecrets.dbPassword}}` i monitorns fält **Lösenord**.
 :::
 
-OneUptime löser upp hemligheten på servern innan konfigurationen lämnas över till sonden. OneUptime skapar aldrig de här hemligheterna åt dig — det är ditt val att hänvisa till en. Fälten **Användarnamn**, **Värd**, **Databasnamn** och **SQL Query** tar också emot hänvisningar till hemligheter; **Port** gör det inte.
+OneUptime löser upp hemligheten på servern innan konfigurationen lämnas över till sonden. OneUptime skapar aldrig de här hemligheterna åt dig — det är ditt val att hänvisa till en. Fälten **Användarnamn**, **Värd**, **Databasnamn** och **SQL-fråga** tar också emot hänvisningar till hemligheter; **Port** gör det inte.
 
 ## Ställ in kriterier
 
@@ -231,7 +231,7 @@ Lägg till kriterier för att avgöra när monitorn anses vara online, försämr
 | **SQL-frågefel** | Frågans felmeddelande. Larma när det är (eller inte är) tomt, eller matchar en viss sträng. |
 | **JavaScript-uttryck** | Utvärdera ett eget JavaScript-uttryck över `rowCount`, `scalarValue`, `firstRow`, `executionTimeInMs`, `queryError` och `isOnline`. Se [JavaScript-uttryck](/docs/monitor/javascript-expression#monitorer-för-sql-frågor). |
 
-Numeriska tröskelvärden är heltal: skriv `10`, inte `10.5`. SQL Query-filter kan inte utvärderas över en tidsperiod; varje kontroll står för sig själv.
+Numeriska tröskelvärden är heltal: skriv `10`, inte `10.5`. SQL-fråga-filter kan inte utvärderas över en tidsperiod; varje kontroll står för sig själv.
 
 En ny SQL-frågemonitor börjar med två kriterier: **SQL är online** är falskt — monitorn blir offline och deklarerar en incident som löser sig själv — och **SQL är online** är sant, vilket markerar den som online. **Lägg till kriterier** lägger till ett längst ned; dra det ovanför online-kriteriet, eftersom kriterierna kontrolleras uppifrån och det första som matchar avgör.
 
@@ -283,5 +283,5 @@ Sonden behöver en Microsoft ODBC Driver for SQL Server och en identitet som din
 - [Övervakning av databashälsa](/docs/monitor/database-health-monitor): Håll koll på anslutningar, lås och replikering utan att skriva SQL.
 - [Övervakningshemligheter](/docs/monitor/monitor-secrets): Håll databasens lösenord krypterat.
 - [JavaScript-uttryck](/docs/monitor/javascript-expression): Skriv kriterier som kombinerar flera värden.
-- [Anpassade probes](/docs/probe/custom-probe): Kör kontroller inifrån ditt nätverk.
+- [Anpassade sonder](/docs/probe/custom-probe): Kör kontroller inifrån ditt nätverk.
 :::

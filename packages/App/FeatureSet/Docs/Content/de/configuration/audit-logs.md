@@ -32,7 +32,7 @@ flowchart TB
 
 - **In OneUptime Cloud, der Enterprise-Tarif.** In anderen Tarifen zeigen die Seiten des Audit-Protokolls, was die Funktion tut und wie Sie sie bekommen.
 - **Beim Selbsthosten, die Enterprise Edition**, mit einer Lizenz, die Audit-Protokolle enthält. Siehe [Enterprise Edition](/docs/self-hosted/enterprise).
-- **Eine Rolle, die das Audit-Protokoll lesen darf.** Project Owner, Project Admin, Settings Admin oder die Berechtigung **Read Audit Log**. Das Einschalten der Audit-Protokollierung und das Ändern ihrer Einstellungen erfordern einen Project Owner, einen Project Admin oder die Berechtigung, das Projekt zu bearbeiten.
+- **Eine Rolle, die das Audit-Protokoll lesen darf.** Projektinhaber, Projektadministrator, Einstellungs-Administrator oder die Berechtigung **Read Audit Log**. Das Einschalten der Audit-Protokollierung und das Ändern ihrer Einstellungen erfordern einen Projektinhaber, einen Projektadministrator oder die Berechtigung, das Projekt zu bearbeiten.
 
 ## Audit-Protokollierung einschalten
 
@@ -43,7 +43,7 @@ Gehen Sie zu **Projekteinstellungen → Audit-Protokolle → Einstellungen**. **
 
 ### Die Einstellungen bearbeiten
 
-Klicken Sie auf **Edit Audit Log Settings**.
+Klicken Sie auf **Audit-Protokoll-Einstellungen bearbeiten**.
 
 ### Sie einschalten
 
@@ -120,7 +120,7 @@ Jedes Mal, wenn sich ein Mitglied des Projekts bei OneUptime anmeldet, erfasst d
 
 Die **Ressource** eines Eintrags ist die Sitzung, benannt nach dem Gerät, von dem aus sie angemeldet wurde, etwa `Chrome 130 on macOS`. Sein **Akteur** ist die Person, der die Sitzung gehört, sodass ein Filter nach **Benutzer-E-Mail** jede ihrer Anmeldungen und Sitzungen findet. Seine Details nennen, wie sich die Person angemeldet hat und mit welchem zweiten Faktor, die IP-Adresse und den Standort, und bei einer beendeten Sitzung, wann sie angemeldet wurde, wann sie zuletzt genutzt wurde und wann sie abgelaufen ist. Der eigene SSO-Anbieter eines Projekts wird nur im Audit-Protokoll dieses Projekts genannt.
 
-Anmeldungen und Sitzungen werden erfasst, ob das Projekt Systemereignisse speichert oder nicht. Eine Sitzungsdauer oder 30 Tage ohne Nutzung werden innerhalb weniger Minuten nach ihrem Ablauf erfasst. Eine Inaktivitätsdauer wird erfasst, sobald der Browser der Person oder die mobile App OneUptime das nächste Mal erreicht: aus einem offen gelassenen Tab oder wenn die Person OneUptime wieder öffnet.
+Anmeldungen und Sitzungen werden erfasst, ob das Projekt Systemereignisse speichert oder nicht. Eine Sitzungsdauer oder 30 Tage ohne Nutzung werden innerhalb weniger Minuten nach ihrem Ablauf erfasst. Eine Inaktivitätsdauer im Browser oder in einer Version der mobilen App neuer als 1.6.0 wird innerhalb von 35 Minuten nach ihrem Ablauf erfasst, ob die Person zurückkommt oder nicht. In Version 1.6.0 und älter der mobilen App wird sie erfasst, sobald die App OneUptime das nächste Mal erreicht.
 
 ## Wie lange Einträge bleiben
 

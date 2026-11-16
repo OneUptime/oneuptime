@@ -1,7 +1,7 @@
 import { formatReaderFigure } from "Common/Types/DateLanguage";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import {
   BytesReading,
-  formatBytes,
   getBytesReading,
 } from "../../../Components/TelemetryResource/telemetryFormat";
 
@@ -22,9 +22,10 @@ import {
  * apart in its sentence (SentenceOptions' setsValuesApart): otherwise the
  * line puts its unit first ("TiB ۶٫۰").
  *
- * A chart's axis and tooltip keep Latin digits, as every chart in the
- * product does (formatOpenStackChartBytes): changing only OpenStack's would
- * mix the two on one page.
+ * A chart's axis and tooltip write a size as the tiles beside it do
+ * (formatOpenStackChartBytes): every chart's value axis is in the reader's
+ * digits now, as its time axis always was (#8349,
+ * Docs/ux/README.md#numbers-dates-and-plurals).
  *
  * React-free, so the node tests and the capacity view share these.
  */
@@ -34,13 +35,16 @@ export interface OpenStackFigureOptions {
   language?: string | undefined;
 }
 
-// "۶٫۰ TiB", "480 GiB": a size in the reader's digits, in formatBytes' unit.
+/*
+ * "۶٫۰ TiB", "480 GiB": a size in the reader's digits, in formatBytes' unit,
+ * held to it by a no-break space (#8457).
+ */
 export function formatOpenStackBytes(
   bytes: number,
   options?: OpenStackFigureOptions,
 ): string {
   if (!Number.isFinite(bytes)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
   const reading: BytesReading = getBytesReading(bytes);
@@ -48,12 +52,19 @@ export function formatOpenStackBytes(
   return `${formatReaderFigure(reading.value, {
     decimals: reading.decimals,
     language: options?.language,
-  })} ${reading.unit}`;
+  })}\u00A0${reading.unit}`;
 }
 
-// A chart's axis and tooltip: Latin digits, as every chart writes them.
-export function formatOpenStackChartBytes(bytes: number): string {
-  return formatBytes(bytes);
+/*
+ * A size on a chart's value axis and in its tooltip: as the tiles beside
+ * it write it, in the reader's digits ("۶٫۰ TiB", "6,0 TiB"), English
+ * exactly as formatBytes writes it (#8349).
+ */
+export function formatOpenStackChartBytes(
+  bytes: number,
+  options?: OpenStackFigureOptions,
+): string {
+  return formatOpenStackBytes(bytes, options);
 }
 
 // "۲۰", "۱٫۵": a whole count as it is, one with a fraction to one decimal.

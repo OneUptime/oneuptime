@@ -3,14 +3,17 @@ name: Docs Screenshots
 # Every shot of packages/App/FeatureSet/Docs/Screens/DocsScreenList.ts is
 # drawn again from the offline fixtures, in every docs language, and its
 # words, outline and size are compared with the fingerprint kept when its
-# picture was drawn (packages/E2E/DocsScreens/README.md). One issue,
-# "Docs screenshots are out of date", lists the shots whose page changed;
-# it is rewritten on every run that finds one, and closed once every shot is
-# current again. `cd packages/E2E && npm run docs-screens` draws them again.
+# picture was drawn (packages/E2E/DocsScreens/README.md).
 #
-# Never on a pull request, and it never fails for a stale shot: the issue is
-# the report. Every night, when the shots or their list change on main, and
-# by hand.
+# A stale shot, or one that could not be drawn, fails the check (#7510):
+# `cd packages/E2E && npm run docs-screens` draws them again. On main, one
+# issue, "Docs screenshots are out of date", lists them as well; it is
+# rewritten on every run that finds one, and closed once every shot is
+# current again.
+#
+# Never on a pull request. Every night, when the shots, their list or this
+# check change on main, by hand, and in every release run: release.yml calls
+# this as a gate, and nothing of the release is published until it passes.
 
 on:
   schedule:
@@ -21,14 +24,31 @@ on:
       - "packages/App/FeatureSet/Docs/Screens/**"
       - "packages/App/FeatureSet/Docs/Static/images/screens/**"
       - "packages/E2E/DocsScreens/**"
+      - "packages/E2E/playwright.docs-screens.config.ts"
+      - ".github/workflows/docs-screens.yml"
   workflow_dispatch:
+  # release.yml calls this as a gate of push-release-tags. Nothing below may
+  # rely on push- or schedule-only context.
+  workflow_call:
+    inputs:
+      # The calling release run's id, for the concurrency group below.
+      release_run_id:
+        type: string
+        required: false
 
 permissions:
   contents: read
 
-# One check at a time: a newer run of main replaces an older one.
+# One check at a time: a newer run of main replaces an older one. A release
+# run's check is its own. A called workflow reads the caller's github.ref, so
+# without release_run_id every release run would share one group, and a newer
+# release run, or a re-run of an older one, would cancel the check of the
+# release in flight (as terraform-provider-e2e.yml explains). The group names
+# this workflow, not github.workflow, which in a call is release.yml's name:
+# the other gates release.yml calls are in groups of that name and the same
+# run id, and would cancel this one, or be cancelled by it.
 concurrency:
-  group: docs-screens
+  group: docs-screens-${{ inputs.release_run_id || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -44,6 +64,11 @@ jobs:
     defaults:
       run:
         shell: bash -e {0}
+    outputs:
+      # "true" once the check has drawn the shots and written what it found,
+      # whether it passed or failed for a stale shot; the report job keeps the
+      # issue from it.
+      checked: ${{ steps.found.outputs.checked }}
     steps:
       - uses: actions/checkout@v4
       # The fixtures draw the Community Edition, as the offline suites do.
@@ -71,13 +96,25 @@ jobs:
           # Skip the preinstall hook that downloads every browser: the
           # image has them.
           args: --ignore-scripts
-      # Nineteen shots in seventeen languages: about twenty minutes.
+      # Twenty shots in seventeen languages: about ten minutes. Fails when a
+      # shot is stale or could not be drawn, once every language has written
+      # what it found.
       - name: Draw and compare every shot
         working-directory: packages/E2E
         timeout-minutes: 45
         env:
           DOCS_SCREENS_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: npm run docs-screens:check
+      # Whether there is a check to report: none when the shots could not be
+      # drawn at all (an install failed, a fixture did not start).
+      - name: Say whether the check got as far as a verdict
+        id: found
+        if: ${{ !cancelled() }}
+        timeout-minutes: 1
+        run: |
+          if [ -f output/playwright/docs-screens/check.json ]; then
+            echo "checked=true" >> "$GITHUB_OUTPUT"
+          fi
       - name: Keep what the check found
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
@@ -91,10 +128,13 @@ jobs:
           retention-days: 14
 
   # On the runner, which has gh: the only job that may write, and only issues.
+  # After the check, whether it passed or failed for a stale shot: the issue
+  # says which shots are stale. On main only: a release run's check is a gate,
+  # not the report.
   report:
     name: Open, update or close the staleness issue
     needs: check
-    if: ${{ github.ref == 'refs/heads/main' }}
+    if: ${{ !cancelled() && github.ref == 'refs/heads/main' && needs.check.outputs.checked == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

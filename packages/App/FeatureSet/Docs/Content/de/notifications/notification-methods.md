@@ -67,7 +67,7 @@ Die Zeile ist jetzt als **Verifiziert** markiert. Den Dialog zu früh geschlosse
 :::
 
 - Ein Code gilt 15 Minuten. Fünf falsche Versuche machen ihn ungültig, und Sie brauchen einen neuen.
-- **Send a new code**, oder **Call me with a new code** für eine Anrufnummer, ist im Dialog. Sie können einen neuen eine Minute nach dem letzten anfordern.
+- **Neuen Code senden**, oder **Mich mit neuem Code anrufen** für eine Anrufnummer, ist im Dialog. Sie können einen neuen eine Minute nach dem letzten anfordern.
 - Eine Nummer, die Sie für SMS verifiziert haben, ist auch für Anrufe verifiziert. Sie unter **Telefonnummern für Anrufbenachrichtigungen** hinzuzufügen braucht keinen Code, und eine SMS-Nummer zu verifizieren verifiziert auch die Anrufnummer, die Sie dafür hinzugefügt haben.
 - Ihre Anmelde-E-Mail ist bereits da, verifiziert, seit dem Tag, an dem Sie dem Projekt beigetreten sind.
 
@@ -173,7 +173,7 @@ Ein Webhook braucht keine Verifizierung, daher fügt das Hinzufügen sofort sein
 
 **SMS**, **Telefonanrufe**, **WhatsApp** und **Telegram** sind in jedem neuen Projekt ausgeschaltet, weil jede Nachricht Geld kostet: In OneUptime Cloud wird sie vom Guthaben des Projekts bezahlt, und SMS und Anrufe laufen stattdessen über das eigene Twilio-Konto des Projekts, wenn sein Standardkonto sie sendet. E-Mail, Push, Slack, Microsoft Teams, Mattermost und Webhooks sind immer eingeschaltet.
 
-Solange ein Kanal ausgeschaltet ist, kann niemand im Projekt eine Methode darauf hinzufügen: Seine Karte hat keine Schaltfläche zum Hinzufügen und sagt, wer ihn einschalten kann. Ein Projekteigentümer, ein **Abrechnungs-Administrator** oder jemand mit **Manage Billing** schaltet ihn ein, in der Karte **Benachrichtigungskanäle** unter **Projekteinstellungen → Benachrichtigungen → Benachrichtigungskanäle**. Ein Projekt-Admin kann das nicht. In einem selbst gehosteten OneUptime brauchen SMS und Anrufe außerdem ein Twilio-Konto oder ein Gateway, das Sie selbst betreiben, und Telegram einen Bot, den der Admin des Servers verbindet; siehe [Twilio-Integration](/docs/self-hosted/twilio-integration) und [SMS- und Anruf-Gateway](/docs/self-hosted/sms-and-call-gateway).
+Solange ein Kanal ausgeschaltet ist, kann niemand im Projekt eine Methode darauf hinzufügen: Seine Karte hat keine Schaltfläche zum Hinzufügen und sagt, wer ihn einschalten kann. Ein Projektinhaber, ein **Abrechnungs-Administrator** oder jemand mit **Manage Billing** schaltet ihn ein, in der Karte **Benachrichtigungskanäle** unter **Projekteinstellungen → Benachrichtigungen → Benachrichtigungskanäle**. Ein Projektadministrator kann das nicht. In einem selbst gehosteten OneUptime brauchen SMS und Anrufe außerdem ein Twilio-Konto oder ein Gateway, das Sie selbst betreiben, und Telegram einen Bot, den der Admin des Servers verbindet; siehe [Twilio-Integration](/docs/self-hosted/twilio-integration) und [SMS- und Anruf-Gateway](/docs/self-hosted/sms-and-call-gateway).
 
 ## Eine Methode löschen
 
@@ -186,7 +186,7 @@ Dieser Kanal ist in diesem Projekt ausgeschaltet. Die Karte sagt, wer ihn einsch
 :::
 
 :::details Der Code ist nie angekommen
-E-Mails können einige Minuten dauern und landen manchmal im Spam; SMS können eine Minute dauern. Warten Sie eine Minute und klicken Sie dann im Dialog auf **Send a new code**. **Projekteinstellungen → Benachrichtigungen → Benachrichtigungsprotokolle** zeigt, was mit der Nachricht passiert ist.
+E-Mails können einige Minuten dauern und landen manchmal im Spam; SMS können eine Minute dauern. Warten Sie eine Minute und klicken Sie dann im Dialog auf **Neuen Code senden**. **Projekteinstellungen → Benachrichtigungen → Benachrichtigungsprotokolle** zeigt, was mit der Nachricht passiert ist.
 :::
 
 :::details Mein Slack-Konto lässt sich nicht hinzufügen

@@ -32,7 +32,7 @@ Internationalisierte Domainnamen werden in beiden Formen angenommen: `münchen.d
 
 ## Bevor Sie beginnen
 
-- **Eine Rolle, die Monitore erstellen darf**: Project Owner, Project Admin, Project Member, Monitor Admin oder Monitor Member oder eine benutzerdefinierte Rolle mit der Berechtigung Create Monitor.
+- **Eine Rolle, die Monitore erstellen darf**: Projektinhaber, Projektadministrator, Projektmitglied, Monitor-Administrator oder Monitor-Mitglied oder eine benutzerdefinierte Rolle mit der Berechtigung Create Monitor.
 - **Ausgehender Zugriff von der Sonde** auf die Registries. Die Standardsonden Ihres Projekts werden für jeden neuen Monitor ausgewählt; eine [benutzerdefinierte Sonde](/docs/probe/custom-probe) muss Folgendes erreichen:
 
 | Ziel | Protokoll | Verwendet für |
@@ -122,8 +122,8 @@ Bei zwei oder mehr Filtern entscheidet **Abgleichsbedingung**, ob **Alle** zutre
 
 Ein neuer Domain-Monitor beginnt mit drei Kriterien, sodass er Sie ohne jede Einrichtung warnt, bevor eine Registrierung abläuft:
 
-1. **Domainprüfung fehlgeschlagen** — die Registrierung ist abgelaufen, oder ihre Registrierungsdaten konnten nicht gelesen werden. Der Monitor wird als **Offline** markiert und ein Vorfall namens „_monitor name_ domain check failed“ wird erstellt. Der Vorfall löst sich von selbst auf, sobald die Registrierung wieder gelesen wird und aktuell ist.
-2. **Domain läuft bald ab** — die Registrierung ist nicht abgelaufen, läuft aber in 30 Tagen oder früher ab. Eine **Warnung** namens „_monitor name_ domain expires soon“ wird erstellt.
+1. **Domainprüfung fehlgeschlagen** — die Registrierung ist abgelaufen, oder ihre Registrierungsdaten konnten nicht gelesen werden. Der Monitor wird als **Offline** markiert und ein Vorfall namens „Domainprüfung von _Monitorname_ fehlgeschlagen“ wird erstellt. Der Vorfall löst sich von selbst auf, sobald die Registrierung wieder gelesen wird und aktuell ist.
+2. **Domain läuft bald ab** — die Registrierung ist nicht abgelaufen, läuft aber in 30 Tagen oder früher ab. Eine **Warnung** namens „Domain _Monitorname_ läuft bald ab“ wird erstellt.
 3. **Domain ist nicht abgelaufen** — der Monitor wird als **Betriebsbereit** markiert.
 
 Die Warnung „läuft bald ab“ ist eine Warnung, kein Vorfall: Sie erscheint nicht auf Ihren Statusseiten, sie alarmiert niemanden, solange Sie ihr keine Bereitschaftsrichtlinie hinzufügen, und sie ändert den Status des Monitors nicht. Sie verwendet den zweiten Warnungsschweregrad Ihres Projekts, bei einem neuen Projekt **Niedrig**. Sobald die Verlängerung im Registrierungseintrag erscheint, löst sich die Warnung von selbst auf. Eine Registry, die kein Ablaufdatum veröffentlicht, gibt der Warnung nichts in die Hand, daher bleibt sie still.

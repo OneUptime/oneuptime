@@ -23,7 +23,7 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 
 ## 사전 요건
 
-- OneUptime에서 Project Owner, Project Admin 또는 Security Admin 역할. Security Member와 Security Viewer는 연결과 그 실행 기록을 볼 수 있지만 변경할 수는 없습니다.
+- OneUptime에서 프로젝트 소유자, 프로젝트 관리자 또는 보안 관리자 역할. 보안 구성원과 보안 뷰어는 연결과 그 실행 기록을 볼 수 있지만 변경할 수는 없습니다.
 - 연결하는 리전에서 Security Hub가 활성화된 AWS 계정. Security Hub는 리전 단위입니다. 하나의 연결은 한 계정이 한 리전에 가진 검색 결과를 읽습니다.
 - 모든 계정과 리전의 검색 결과를 하나의 연결로 읽으려면, [리전 간 집계](https://docs.aws.amazon.com/securityhub/latest/userguide/finding-aggregation.html)를 켠 홈 리전에서 Security Hub 위임 관리자 계정을 사용합니다. 홈 리전은 **Security Hub → Settings → Regions**에 나옵니다.
 - OneUptime 앱과 워커에서 `securityhub.<region>.amazonaws.com`(중국에서는 `securityhub.<region>.amazonaws.com.cn`)으로 나가는 아웃바운드 HTTPS와, 그 호스트의 정확한 시계. AWS는 5분 넘게 어긋나게 서명된 요청을 거부합니다.
@@ -208,15 +208,15 @@ AWS가 요청을 거부했습니다. 메시지에는 AWS의 오류 코드가 인
 
 - **검색.** 보안 이벤트 탐색기에서 다른 모든 소스와 나란히, 심각도, 상태, 규칙, 계정, 리소스 또는 어떤 observable로든 검색 결과를 필터링합니다.
 - **상관 분석.** 모든 검색 결과의 사용자, 인스턴스, IP, 리소스 ARN, 계정 ID는 observable로 색인되므로, 한 번의 검색으로 그것들을 언급하는 모든 것을 찾을 수 있습니다.
-- **탐지 규칙.** 보안 이벤트에 대해 일정에 따라 실행되며, 온콜을 호출하는 알림을 여는 Sigma 규칙.
-- **모니터.** 보안 이벤트 모니터는 새로운 심각한 GuardDuty 검색 결과나 실패한 제어 같은 일치하는 이벤트를 세고, 임곗값을 넘으면 인시던트나 알림을 엽니다.
+- **탐지 규칙.** 보안 이벤트에 대해 일정에 따라 실행되며, 온콜을 호출하는 경고를 여는 Sigma 규칙.
+- **모니터.** 보안 이벤트 모니터는 새로운 심각한 GuardDuty 검색 결과나 실패한 제어 같은 일치하는 이벤트를 세고, 임곗값을 넘으면 인시던트나 경고를 엽니다.
 
 보안 이벤트는 나머지 텔레메트리처럼 수집된 GB 단위로 청구됩니다. [요금](https://oneuptime.com/pricing)을 참고하세요.
 
 ## 다음 단계
 
 :::cards
-- [보안 이벤트](/docs/telemetry/security-events): 가져온 내용을 검색하고, 상관 분석하고, 알림을 받습니다.
+- [보안 이벤트](/docs/telemetry/security-events): 가져온 내용을 검색하고, 상관 분석하고, 경고를 받습니다.
 - [Okta System Log](/docs/integrations/okta): ID 공급자의 로그인도 가져옵니다.
 - [역할](/docs/permissions/reference#역할): Security 역할이 보고 바꿀 수 있는 것.
 - [통합 개요](/docs/integrations/index): 연결할 수 있는 다른 도구.

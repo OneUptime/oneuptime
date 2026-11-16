@@ -1,0 +1,14 @@
+{
+  "why": "White-labelling lives in ee/ and is advertised nowhere: an installation learns of it only from a license that has it (ee/Tests/Server/WhiteLabel/WhiteLabelStaysInEnterprise.test.ts). Every frontend's locales ship to every installation, so the Enterprise pages' texts that name it are in no locale, and the pages draw them in English. The Admin Dashboard's locale and unseen-text suites read this list when ee/ is checked out, so core names none of them.",
+  "texts": [
+    "White Label",
+    "White-label",
+    "Can be white-labelled",
+    "Lets the customer replace the OneUptime name and logo in Admin Dashboard > Settings > White Label once their next signed license token arrives."
+  ],
+  "notAPersonsWords": {
+    "ee/AdminDashboard/WhiteLabel/WhiteLabelProductNameCard.tsx": {
+      "White Label Product Name": "a form's analytics name (formProps.name)"
+    }
+  }
+}

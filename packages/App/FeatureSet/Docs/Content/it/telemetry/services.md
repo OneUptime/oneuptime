@@ -43,7 +43,7 @@ Ogni volta che arriva telemetria, **Visto l'ultima volta** del servizio avanza e
 ## Prima di iniziare
 
 - **Telemetria in arrivo** con un `service.name`. Vedere [OpenTelemetry](/docs/telemetry/open-telemetry): `OTEL_SERVICE_NAME` lo imposta.
-- **Un ruolo che può leggere i servizi.** Project Owner, Project Admin, Project Member, Viewer, Settings Admin, Settings Member o Settings Viewer, oppure un ruolo personalizzato con il permesso Read Service. Creare, modificare ed eliminare i servizi richiede Project Owner, Project Admin, Project Member, Settings Admin o Settings Member, oppure i permessi corrispondenti sui servizi.
+- **Un ruolo che può leggere i servizi.** Proprietario del progetto, Amministratore del progetto, Membro del progetto, Visualizzatore, Amministratore delle impostazioni, Membro delle impostazioni o Visualizzatore delle impostazioni, oppure un ruolo personalizzato con il permesso Read Service. Creare, modificare ed eliminare i servizi richiede Proprietario del progetto, Amministratore del progetto, Membro del progetto, Amministratore delle impostazioni o Membro delle impostazioni, oppure i permessi corrispondenti sui servizi.
 
 ## Trovare un servizio
 
@@ -61,11 +61,11 @@ Il menu laterale di un servizio ha cinque sezioni:
 
 | Sezione | Pagine |
 | --- | --- |
-| **Base** | **Panoramica**: richieste, tasso di errore e latenza p95 dai suoi span, grafici e dettagli. **Raccomandazioni**: monitor pronti all'uso per il servizio, scelti in base al suo linguaggio. **Proprietari**: le persone e i team che ne sono responsabili. **Feed**: tutto ciò che gli è successo, da come è stato creato a ogni modifica successiva. |
-| **Telemetria** | I suoi **Registri**, **Tracce**, **Metriche**, **Profili**, **Eccezioni** e **Source map**, già filtrati su questo servizio. |
+| **Base** | **Panoramica**: richieste, tasso di errore e latenza p95 dai suoi span, grafici e dettagli. **Raccomandazioni**: monitor pronti all'uso per il servizio, scelti in base al suo linguaggio. **SLOs**: gli SLO che misurano le sue richieste, dove puoi crearne uno che misura già il servizio. **Proprietari**: le persone e i team che ne sono responsabili. **Feed**: tutto ciò che gli è successo, da come è stato creato a ogni modifica successiva. |
+| **Telemetria** | I suoi **Log**, **Tracce**, **Metriche**, **Profili**, **Eccezioni** e **Source map**, già filtrati su questo servizio. |
 | **Attività** | Gli **Incidenti**, gli **Avvisi** e gli eventi di **Manutenzione programmata** che lo riguardano. |
 | **Sviluppatori** | **Terraform**, **API**, **CLI** e **Assistenti IA**: il servizio gestito dal codice. All'inizio è chiusa. |
-| **Avanzato** | **Impostazioni**, **Registri di audit** ed **Elimina servizio**. **Avanzato** è inizialmente compresso: espandetelo prima. |
+| **Avanzato** | **Impostazioni**, **Log di audit** ed **Elimina servizio**. **Avanzato** è inizialmente compresso: espandetelo prima. |
 
 Accanto al suo nome, la **Panoramica** di un servizio indica se la sua telemetria arriva: **Riceve dati** finché negli ultimi 30 minuti è arrivato qualcosa, **Nessun dato recente** quando non arriva più nulla e **In attesa di dati** prima della sua prima telemetria. Un servizio che invia span solo mentre gestisce le richieste mostra **Nessun dato recente** ogni volta che nessuno lo chiama, quindi questo da solo non è un guasto.
 

@@ -136,10 +136,11 @@ export const CHAT_STEP_PAGES: ReadonlyArray<string> = [DISCORD, TELEGRAM];
 /*
  * What a workflow step defines itself, named on the page: a step's title,
  * its settings, its outputs and the values it returns, and the comparisons
- * an If / Else block offers. The canvas draws them as the step names them,
- * and the workflow pages keep them in English in every language
- * (WorkflowDocsTranslations), so these pages do too. The facts suite holds
- * each to the step catalog.
+ * an If / Else block offers. The facts suite holds each to the step
+ * catalog. The builder looks each up in the Dashboard's locale, so a
+ * translation names the ones a locale has a word for as its Dashboard
+ * draws them (#7511, isStepNameOnPage): every step's title since #8359, a
+ * record step's as the sentence it was built from (#8708).
  */
 const OUTBOUND_STEPS: ReadonlyArray<string> = [
   "On Create Incident",
@@ -376,7 +377,11 @@ export const TEMPLATE_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Create an alert for each Zabbix problem",
     // What the create wizard asks who to page by.
     "Who to page for High and Disaster problems",
-    "Zabbix URL",
+    /*
+     * Zabbix URL is not among them: the wizard's field label looks it up,
+     * and it is the Update Zabbix Problem step's setting too, worded in
+     * every language since #8359.
+     */
     "Zabbix API Token",
     "Acknowledge or close the Zabbix problem with the incident",
     "Copy incident private notes to the Zabbix problem",
@@ -486,6 +491,8 @@ export const OTHER_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Allow manual close",
     "Problem update",
     "Update operations",
+    // The media type's Type, as Zabbix names it (DocsWorkflowStepNames).
+    "Webhook",
   ],
   [PAGERDUTY]: [
     "Integrations",
@@ -602,6 +609,11 @@ export const OTHER_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Alerting → Notification policies",
     "Max Alerts",
     "Test",
+    /*
+     * The contact point's integration, as Grafana names it: the first
+     * Webhook on the page (the others are OneUptime's trigger, drawn).
+     */
+    "Webhook",
   ],
   // Datadog's monitor states, and the fields of its Webhooks integration.
   [DATADOG]: [
@@ -628,6 +640,8 @@ export const OTHER_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Closed",
     "Activate workflow",
     "Send test notification",
+    // The destination's type, as New Relic names it (DocsWorkflowStepNames).
+    "Webhook",
   ],
   // A SOAR playbook's HTTP request action, Google Cloud and SecOps.
   [GOOGLE_SECOPS]: [

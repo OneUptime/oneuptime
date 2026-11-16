@@ -478,8 +478,11 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     "(module) DataStore": Why.Bookkeeping,
   },
   "packages/Common/Server/Utils/DataSecurity/DataSecurityRunner.ts": {
-    "DataSecurityRunner.claimDueStores DataStore": Why.Bookkeeping,
     "DataSecurityRunner.markScrubbed DataStoreFinding": Why.Bookkeeping,
+  },
+  // The workers' content-scan claim holds the stores it hands out (#8325).
+  "packages/Common/Server/Utils/DataSecurity/DataSecurityWorkerClaim.ts": {
+    "(module) DataStore": Why.Bookkeeping,
   },
   "packages/Common/Server/Utils/Database/ListOrderMaintainer.ts": {
     "ListOrderMaintainer.writeChanges *": Why.Derived,
@@ -494,6 +497,14 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     // A postmortem's action item is done as its pull request merges; the incident's feed says so (#6801).
     "PostmortemActionItemCodeTasks.onPullRequestMerged IncidentPostmortemActionItem":
       Why.Automation,
+  },
+  /*
+   * When an Incoming Request monitor last got a request with, and without, a
+   * valid incoming request secret (#8498): what its senders sent, stamped as
+   * it arrives, at most every five minutes.
+   */
+  "packages/Common/Server/Utils/Monitor/IncomingRequestSecretActivity.ts": {
+    "IncomingRequestSecretActivity.record Monitor": Why.Reported,
   },
   "packages/Common/Server/Utils/Monitor/MonitorResource.ts": {
     "MonitorResourceUtil.monitorResource Monitor": Why.Reported,

@@ -1,6 +1,6 @@
 # Microsoft Dynamics 365
 
-Gardez les dossiers (cases) [Microsoft Dynamics 365](https://www.microsoft.com/dynamics-365) en phase avec vos incidents et alertes OneUptime, dans les deux sens. Des modèles de workflow prêts à l'emploi ouvrent un dossier pour chaque incident ou alerte, le ferment quand l'enregistrement est résolu et y copient les notes. D'autres déclarent des incidents à partir de nouveaux dossiers et rapportent les résolutions et les notes. Il n'y a pas de plugin : les workflows appellent l'API Web de Dataverse, et Dynamics 365 appelle leurs URL de webhook.
+Gardez les dossiers (cases) [Microsoft Dynamics 365](https://www.microsoft.com/dynamics-365) en phase avec vos incidents et alertes OneUptime, dans les deux sens. Des modèles de flux de travail prêts à l'emploi ouvrent un dossier pour chaque incident ou alerte, le ferment quand l'enregistrement est résolu et y copient les notes. D'autres déclarent des incidents à partir de nouveaux dossiers et rapportent les résolutions et les notes. Il n'y a pas de plugin : les flux de travail appellent l'API Web de Dataverse, et Dynamics 365 appelle leurs URL de webhook.
 
 :::cards
 - [Préparer Dynamics 365](#préparer-dynamics-365): Un enregistrement d'application, un utilisateur d'application et une colonne de lien.
@@ -13,27 +13,27 @@ Gardez les dossiers (cases) [Microsoft Dynamics 365](https://www.microsoft.com/d
 
 ```mermaid title="Deux sens, liés par une colonne du dossier"
 flowchart TB
-    record["Incident ou alerte"] -->|"déclaré, résolu,<br/>annoté"| out["Workflows vers<br/>Dynamics 365"]
+    record["Incident ou alerte"] -->|"déclaré, résolu,<br/>annoté"| out["Flux de travail vers<br/>Dynamics 365"]
     out -->|"API Web, connectée<br/>via Entra ID"| case["Dossier Dynamics 365,<br/>avec une colonne de lien"]
     case -->|"créé, résolu,<br/>annoté"| flow["Flux Power Automate<br/>ou webhook Dataverse"]
-    flow --> back["Workflows depuis<br/>Dynamics 365"]
+    flow --> back["Flux de travail depuis<br/>Dynamics 365"]
     back -->|"déclarer, résoudre,<br/>ajouter des notes"| record
 ```
 
-Chaque modèle est un petit workflow, vous ne prenez donc que les sens qui vous intéressent, pour les incidents, les alertes ou les deux. Les modèles de OneUptime vers Dynamics 365 appellent l'API Web de Dataverse, connectés en tant qu'application via Microsoft Entra ID. Les modèles de Dynamics 365 vers OneUptime démarrent quand un flux Power Automate ou un webhook Dataverse les appelle. Une colonne de texte que vous ajoutez à la table Case lie chaque dossier à son enregistrement.
+Chaque modèle est un petit flux de travail, vous ne prenez donc que les sens qui vous intéressent, pour les incidents, les alertes ou les deux. Les modèles de OneUptime vers Dynamics 365 appellent l'API Web de Dataverse, connectés en tant qu'application via Microsoft Entra ID. Les modèles de Dynamics 365 vers OneUptime démarrent quand un flux Power Automate ou un webhook Dataverse les appelle. Une colonne de texte que vous ajoutez à la table Case lie chaque dossier à son enregistrement.
 
 ## Avant de commencer
 
 - Un environnement Dynamics 365 avec la table **Case**. Les dossiers viennent de Dynamics 365 Customer Service : un environnement Dataverse qui ne l'a pas n'a pas de table `incident` où écrire.
 - Le droit d'inscrire une application dans **Microsoft Entra ID**, et de créer un utilisateur d'application dans l'environnement. Ce sont souvent deux administrateurs différents.
-- Dans OneUptime, le droit de créer des workflows. Sur OneUptime Cloud, les workflows nécessitent l'offre **Growth** ou supérieure.
+- Dans OneUptime, le droit de créer des flux de travail. Sur OneUptime Cloud, les flux de travail nécessitent l'offre **Growth** ou supérieure.
 
 > [!NOTE]
 > Cette page utilise les noms de Dataverse, pas les libellés des formulaires de Dynamics. Un dossier est la table `incident`, sa collection dans une URL est `incidents`, sa clé est `incidentid` et sa colonne de titre est `title`. Le numéro de dossier que vous voyez est `ticketnumber`.
 
 ## Préparer Dynamics 365
 
-Les modèles comme un workflow que vous construisez vous-même en ont besoin. OneUptime se connecte en tant qu'application, pas en tant que personne, avec le flux OAuth 2.0 des identifiants client.
+Les modèles comme un flux de travail que vous construisez vous-même en ont besoin. OneUptime se connecte en tant qu'application, pas en tant que personne, avec le flux OAuth 2.0 des identifiants client.
 
 :::steps
 ### Inscrire une application dans Microsoft Entra ID
@@ -104,7 +104,7 @@ Les modèles pour les alertes font les mêmes travaux pour les alertes. Il y en 
 
 Aucun des modèles de OneUptime vers Dynamics 365 n'envoie à Dynamics 365 un incident marqué **Incident privé**, ni une alerte marquée **Alerte privée** : ni l'enregistrement, ni son état, ni ses notes, sauf si vous l'activez. Voir [Changer ce que fait un modèle](#changer-ce-que-fait-un-modèle).
 
-**Les moniteurs lèvent des alertes d'eux-mêmes, et parfois beaucoup.** **Create a Dynamics 365 case when an alert is created** ouvre un dossier pour chacune. Sauf si chaque alerte mérite un dossier, placez un bloc **If / Else** entre le déclencheur et le reste du workflow, par exemple sur `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, et ne reliez que son côté **Yes** à la suite.
+**Les moniteurs lèvent des alertes d'eux-mêmes, et parfois beaucoup.** **Create a Dynamics 365 case when an alert is created** ouvre un dossier pour chacune. Sauf si chaque alerte mérite un dossier, placez un bloc **Si / Sinon** entre le déclencheur et le reste du flux de travail, par exemple sur `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, et ne reliez que son côté **Oui** à la suite.
 
 ### Ce que demandent les modèles
 
@@ -118,29 +118,29 @@ L'étape **Configurer** de l'assistant de création demande jusqu'à sept valeur
 - **Customer for New Cases** — seuls les deux modèles qui créent un dossier le demandent. Chaque dossier a besoin d'un client, et un incident OneUptime n'en a pas, donc les nouveaux dossiers sont tous ouverts au nom d'un seul : collez l'ID d'un compte, ou `contacts(<id>)` pour un contact. Ouvrez l'enregistrement dans Dynamics 365 : son ID est la partie qui suit `id=` dans l'adresse.
 - **OneUptime URL** — seuls les deux modèles qui créent un dossier la demandent : l'adresse à laquelle vous ouvrez OneUptime, par exemple `https://oneuptime.com`. La description du dossier renvoie avec elle vers l'incident ou l'alerte.
 
-**Comment les modèles se connectent.** L'assistant enregistre le locataire, l'ID client et le secret dans une seule [variable OAuth 2.0](/docs/workflows/variables#variables-oauth-20-des-jetons-qui-se-renouvellent-seuls), `dynamicsAccessToken`, sous **Variables de flux de travail** du workflow : Client Credentials, l'URL de jeton `https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token`, la portée `<environment URL>/.default`, et le secret client, envoyé dans le corps de la requête et stocké chiffré. Chaque appel à Dynamics 365 envoie `Authorization: Bearer {{local.variables.dynamicsAccessToken}}`. OneUptime récupère le jeton la première fois qu'une étape en a besoin, en récupère un nouveau avant qu'il n'expire, et le remplace par `[REDACTED]` dans les journaux d'exécution et les traces des étapes.
+**Comment les modèles se connectent.** L'assistant enregistre le locataire, l'ID client et le secret dans une seule [variable OAuth 2.0](/docs/workflows/variables#variables-oauth-20-des-jetons-qui-se-renouvellent-seuls), `dynamicsAccessToken`, sous **Variables de flux de travail** du flux de travail : Client Credentials, l'URL de jeton `https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token`, la portée `<environment URL>/.default`, et le secret client, envoyé dans le corps de la requête et stocké chiffré. Chaque appel à Dynamics 365 envoie `Authorization: Bearer {{local.variables.dynamicsAccessToken}}`. OneUptime récupère le jeton la première fois qu'une étape en a besoin, en récupère un nouveau avant qu'il n'expire, et le remplace par `[REDACTED]` dans les journaux d'exécution et les traces des étapes.
 
 Pour vérifier la connexion avant toute exécution, ouvrez **Variables de flux de travail**, cliquez sur **Voir** sur `dynamicsAccessToken`, puis sur **Actualiser maintenant**. **Jeton d'accès récupéré** signifie que l'inscription d'application est correcte. Sinon, l'erreur de Microsoft Entra ID nomme ce qui ne va pas, par exemple `AADSTS7000215: Invalid client secret provided`.
 
-Chaque workflow garde sa propre copie. Quand vous remplacez le secret client, ouvrez `dynamicsAccessToken` dans chaque workflow Dynamics 365 et utilisez **Mettre à jour les identifiants**.
+Chaque flux de travail garde sa propre copie. Quand vous remplacez le secret client, ouvrez `dynamicsAccessToken` dans chaque flux de travail Dynamics 365 et utilisez **Mettre à jour les identifiants**.
 
-### Créer les workflows
+### Créer les flux de travail
 
 :::steps
 1. Ouvrez **Flux de travail → Créer un flux de travail**. Sous **Ou partir d'un modèle**, choisissez **Dynamics 365** dans la liste des catégories, ou tapez `Dynamics` dans **Rechercher des modèles…**, et cliquez sur le modèle voulu. Il s'ouvre et montre ce qu'il fait et les paramètres qu'il demandera. Cliquez sur **Utiliser ce modèle**.
 2. **Nom** est rempli à partir du modèle. Changez-le si vous le souhaitez.
 3. **Configurer** demande les valeurs ci-dessus.
-4. Cliquez sur **Créer un flux de travail**. Chaque workflow est créé désactivé : activez **Activé** en haut de son **Constructeur**.
+4. Cliquez sur **Créer un flux de travail**. Chaque flux de travail est créé désactivé : activez **Activé** en haut de son **Constructeur**.
 :::
 
-Commencez par **Create a Dynamics 365 case when an incident is declared**, ou par **Create a Dynamics 365 case when an alert is created** pour les alertes : chaque autre modèle de OneUptime vers Dynamics 365 du même genre retrouve le dossier grâce au lien que celui-ci écrit. Activez-le, déclarez un incident de test ou créez une alerte de test, et ouvrez **Journaux → Exécutions** du workflow. L'exécution devrait se terminer avec **Exécuté**, et le **Response Body** de sa dernière étape, `create-case-1`, contient le `ticketnumber` du nouveau dossier, comme `CAS-01001-X1Y2Z3`.
+Commencez par **Create a Dynamics 365 case when an incident is declared**, ou par **Create a Dynamics 365 case when an alert is created** pour les alertes : chaque autre modèle de OneUptime vers Dynamics 365 du même genre retrouve le dossier grâce au lien que celui-ci écrit. Activez-le, déclarez un incident de test ou créez une alerte de test, et ouvrez **Journaux → Exécutions** du flux de travail. L'exécution devrait se terminer avec **Exécuté**, et le **Corps de la réponse** de sa dernière étape, `create-case-1`, contient le `ticketnumber` du nouveau dossier, comme `CAS-01001-X1Y2Z3`.
 
 ### Connecter les modèles de Dynamics 365 vers OneUptime
 
 Les modèles de Dynamics 365 vers OneUptime, trois pour les incidents et trois pour les alertes, partent d'un [déclencheur Webhook](/docs/workflows/triggers#webhook), il faut donc indiquer à Dynamics 365 où envoyer ses événements. Procédez dans cet ordre :
 
-1. Créez le workflow et **activez-le d'abord**. Un workflow désactivé refuse les livraisons, et elles ne sont pas mises en file d'attente.
-2. Ouvrez le **Constructeur** du workflow, cliquez sur le bloc déclencheur **Webhook** (`webhook-1`), puis sur **Copier l'URL** en haut de ses paramètres. L'URL ressemble à ceci :
+1. Créez le flux de travail et **activez-le d'abord**. Un flux de travail désactivé refuse les livraisons, et elles ne sont pas mises en file d'attente.
+2. Ouvrez le **Constructeur** du flux de travail, cliquez sur le bloc déclencheur **Webhook** (`webhook-1`), puis sur **Copier l'URL** en haut de ses paramètres. L'URL ressemble à ceci :
 
    ```text
    https://<your OneUptime host>/workflow/trigger/<webhook secret key>
@@ -152,7 +152,7 @@ Chaque modèle a seulement besoin de savoir quelle ligne a changé. Il relit cet
 
 :::tabs
 @tab Power Automate flow
-Dans [Power Automate](https://make.powerautomate.com), créez un **Automated cloud flow** avec le déclencheur **Microsoft Dataverse** **When a row is added, modified or deleted**, réglé comme ci-dessous, avec **Scope** sur **Organization**. Ajoutez l'action intégrée **HTTP** : **Method** `POST`, **URI** l'URL du workflow, un en-tête `Content-Type: application/json` et le corps ci-dessous, avec l'ID de la ligne choisi dans le contenu dynamique du déclencheur.
+Dans [Power Automate](https://make.powerautomate.com), créez un **Automated cloud flow** avec le déclencheur **Microsoft Dataverse** **When a row is added, modified or deleted**, réglé comme ci-dessous, avec **Scope** sur **Organization**. Ajoutez l'action intégrée **HTTP** : **Method** `POST`, **URI** l'URL du flux de travail, un en-tête `Content-Type: application/json` et le corps ci-dessous, avec l'ID de la ligne choisi dans le contenu dynamique du déclencheur.
 
 | Modèle | Change type | Table name | Select columns | Body |
 | --- | --- | --- | --- | --- |
@@ -175,8 +175,8 @@ Résoudre un dossier déclenche le message **Close**, pas **Update**, c'est pour
 
 Avant de vous fier à l'un ou à l'autre :
 
-- **Toute personne qui a l'URL peut déclencher le workflow.** Comme les modèles relisent chaque ligne dans Dynamics 365, une requête ne peut leur faire regarder qu'un vrai dossier ou une vraie note. Elle peut quand même faire agir les modèles de création sur un dossier qui n'est pas encore lié. Ne gardez l'URL que dans le flux ou le webhook. Si elle fuite, cliquez sur le déclencheur **Webhook** dans le **Constructeur** du workflow, cliquez sur **Réinitialiser l'URL** et collez la nouvelle URL dans le flux ou le webhook. L'ancienne URL cesse aussitôt de fonctionner.
-- **Chaque événement est une exécution**, y compris ceux qu'un modèle ignore. Sur OneUptime Cloud, chacun compte dans les exécutions de workflow de votre offre, et filtrer dans le flux limite ce nombre. Voir [Limites de l'offre](/docs/workflows/configuration#limites-du-forfait).
+- **Toute personne qui a l'URL peut déclencher le flux de travail.** Comme les modèles relisent chaque ligne dans Dynamics 365, une requête ne peut leur faire regarder qu'un vrai dossier ou une vraie note. Elle peut quand même faire agir les modèles de création sur un dossier qui n'est pas encore lié. Ne gardez l'URL que dans le flux ou le webhook. Si elle fuite, cliquez sur le déclencheur **Webhook** dans le **Constructeur** du flux de travail, cliquez sur **Réinitialiser l'URL** et collez la nouvelle URL dans le flux ou le webhook. L'ancienne URL cesse aussitôt de fonctionner.
+- **Chaque événement est une exécution**, y compris ceux qu'un modèle ignore. Sur OneUptime Cloud, chacun compte dans les exécutions de flux de travail de votre offre, et filtrer dans le flux limite ce nombre. Voir [Limites de l'offre](/docs/workflows/configuration#limites-du-forfait).
 - **Vous utilisez les deux modèles qui créent un enregistrement à partir d'un dossier ?** **Declare an incident when a Dynamics 365 case is created** et **Create an alert when a Dynamics 365 case is created** agissent tous deux sur chaque dossier qu'on leur envoie. Chacun vérifie d'abord la colonne de lien, mais deux livraisons pour un même nouveau dossier arrivent ensemble, donc le dossier peut se retrouver avec un incident et une alerte. Envoyez-leur des dossiers différents, par type de dossier par exemple.
 
 ### Vérifier que cela fonctionne
@@ -184,7 +184,7 @@ Avant de vous fier à l'un ou à l'autre :
 Les **Étapes** de chaque exécution disent ce qu'a fait le modèle : ouvrez donc l'exécution dans **Journaux → Exécutions** et regardez comment elle s'est terminée :
 
 - **Exécuté** : il a fait son travail, et sa dernière étape nomme le dossier, l'incident ou l'alerte.
-- **Exécuté**, avec son étape **Check With JavaScript** sur **No** : il a ignoré l'événement exprès, et l'étape dit pourquoi : le dossier n'est lié à aucun enregistrement de ce genre, la note vient de l'autre côté, l'enregistrement est privé, ou le nouvel état ne ferme pas le dossier.
+- **Exécuté**, avec son étape **Vérifier avec JavaScript** sur **Non** : il a ignoré l'événement exprès, et l'étape dit pourquoi : le dossier n'est lié à aucun enregistrement de ce genre, la note vient de l'autre côté, l'enregistrement est privé, ou le nouvel état ne ferme pas le dossier.
 - **Erreur** : une étape a échoué, et son entrée dans **Étapes** dit pourquoi. Pour un appel à Dynamics 365, elle inclut la réponse de Dynamics 365.
 - **Erreur** à `link-case-1` : un modèle qui crée un enregistrement à partir d'un dossier l'a créé, mais Dynamics 365 n'a pas accepté le lien, donc les autres modèles ne peuvent pas encore le trouver. Saisissez le lien à la main dans la colonne du dossier.
 
@@ -221,7 +221,7 @@ Gardez les marqueurs quand vous modifiez les modèles. Ce sont les constantes `F
 
 ### Changer ce que fait un modèle
 
-Ouvrez le **Constructeur** du workflow et cliquez sur le bloc à changer. Les réglages que vous voudrez le plus probablement changer sont des constantes en haut d'un script, le **JavaScript Code** d'un bloc **Check With JavaScript**, juste sous le bloc d'aide commun. Les versions pour les incidents et pour les alertes gardent les mêmes constantes dans les mêmes blocs.
+Ouvrez le **Constructeur** du flux de travail et cliquez sur le bloc à changer. Les réglages que vous voudrez le plus probablement changer sont des constantes en haut d'un script, le **Code JavaScript** d'un bloc **Vérifier avec JavaScript**, juste sous le bloc d'aide commun. Les versions pour les incidents et pour les alertes gardent les mêmes constantes dans les mêmes blocs.
 
 | Constante | Modèle, et bloc | Ce qu'elle règle |
 | --- | --- | --- |
@@ -244,7 +244,7 @@ Les noms d'état et de statut utilisés comme clés doivent être écrits exacte
 - **Le cloud commercial de Microsoft.** L'URL de jeton est `login.microsoftonline.com`. Pour les clouds US Government (GCC High, DoD) ou Chine, ouvrez `dynamicsAccessToken`, utilisez **Modifier les paramètres** et remplacez l'URL de jeton par l'hôte de connexion de votre cloud, par exemple `login.microsoftonline.us`.
 - **Dynamics 365 peut refuser de résoudre un dossier.** Vos paramètres Customer Service peuvent empêcher de résoudre un dossier tant qu'il a des activités ouvertes ou des dossiers enfants ouverts, et une règle métier ou un plug-in peut aussi le refuser. L'exécution échoue à `close-case-1`, avec la raison donnée par Dynamics 365, et le dossier reste tel quel.
 - **Enregistrements et dossiers ne reculent jamais.** Rouvrir un dossier ne change rien dans OneUptime, et un enregistrement résolu n'est jamais rouvert. Un dossier déjà résolu ou annulé n'est jamais rouvert pour être fermé de nouveau.
-- **Notes et descriptions sont du texte brut.** Une note écrite dans l'éditeur de texte enrichi de Dynamics 365 arrive dans OneUptime sous la forme du texte qu'il affiche, tout comme une description de dossier écrite dans l'éditeur ou tirée d'un e-mail : les paragraphes et les sauts de ligne restent, tandis que la mise en forme, les images et les styles propres à l'e-mail disparaissent. Une note OneUptime arrive dans Dynamics 365 avec ses caractères bruts, Markdown compris. Le texte venu de Dynamics 365 — le titre et la description d'un dossier, une note, les noms des statuts, priorités, clients et personnes — se lit exactement comme il a été écrit : une image, un lien, du HTML, un diagramme ou une mention de chat comme `<!channel>` qui y sont tapés s'affichent comme leurs caractères et ne font rien, car un gluon de mots invisible suit le caractère qui les ouvrirait. Une copie du texte garde ce gluon. Un workflow garde les scripts avec lesquels il a été créé, donc un workflow créé à partir d'une ancienne version d'un modèle écrit le texte comme le faisait cette version : recréez-le à partir de son modèle pour obtenir ce comportement. Les pièces jointes restent dans Dynamics 365 ; la note dans OneUptime nomme le fichier.
+- **Notes et descriptions sont du texte brut.** Une note écrite dans l'éditeur de texte enrichi de Dynamics 365 arrive dans OneUptime sous la forme du texte qu'il affiche, tout comme une description de dossier écrite dans l'éditeur ou tirée d'un e-mail : les paragraphes et les sauts de ligne restent, tandis que la mise en forme, les images et les styles propres à l'e-mail disparaissent. Une note OneUptime arrive dans Dynamics 365 avec ses caractères bruts, Markdown compris. Le texte venu de Dynamics 365 — le titre et la description d'un dossier, une note, les noms des statuts, priorités, clients et personnes — se lit exactement comme il a été écrit : une image, un lien, du HTML, un diagramme ou une mention de chat comme `<!channel>` qui y sont tapés s'affichent comme leurs caractères et ne font rien, car un gluon de mots invisible suit le caractère qui les ouvrirait. Une copie du texte garde ce gluon. Un flux de travail garde les scripts avec lesquels il a été créé, donc un flux de travail créé à partir d'une ancienne version d'un modèle écrit le texte comme le faisait cette version : recréez-le à partir de son modèle pour obtenir ce comportement. Les pièces jointes restent dans Dynamics 365 ; la note dans OneUptime nomme le fichier.
 - **Les notes modifiées ne sont pas copiées**, seulement les nouvelles, sauf si vous ajoutez `'Update'` à `MESSAGES`.
 - **Les incidents et alertes privés restent dans OneUptime**, mais les modèles de Dynamics 365 vers OneUptime ne vérifient pas : les notes et changements de statut d'un dossier lié atteignent toujours un enregistrement privé.
 - **Chaque dossier reçoit un enregistrement.** Sauf si vous filtrez le flux ou réglez `ONLY_PRIORITIES`, les modèles qui créent un enregistrement à partir d'un dossier créent un incident ou une alerte pour chaque nouveau dossier qu'on leur envoie. Dans un service client chargé, cela fait beaucoup.
@@ -256,7 +256,7 @@ Les modèles couvrent les cas courants. Pour construire un sens vous-même, cett
 
 ### Se connecter avec une variable OAuth 2.0
 
-Créez le jeton une fois, pour tous les workflows, sous forme de [variable OAuth 2.0](/docs/workflows/variables#variables-oauth-20-des-jetons-qui-se-renouvellent-seuls) :
+Créez le jeton une fois, pour tous les flux de travail, sous forme de [variable OAuth 2.0](/docs/workflows/variables#variables-oauth-20-des-jetons-qui-se-renouvellent-seuls) :
 
 1. Allez dans **Flux de travail → Variables globales**, ouvrez le menu **Plus** (**⋯**) à côté de **Créer : Variable de flux de travail** et choisissez **Créer une variable OAuth 2.0**. Nommez-la `DYNAMICS_TOKEN`.
 2. Sur **Fournisseur**, choisissez **Microsoft Entra ID**, remplacez `{tenant-id}` dans l'**URL du jeton** par votre Directory (tenant) ID, et choisissez **Client Credentials**.
@@ -269,9 +269,9 @@ La portée doit être l'URL de votre environnement suivie de `/.default`. Une UR
 ### Ouvrir un dossier pour chaque incident
 
 :::steps
-1. Créez à partir de zéro un workflow nommé `Incidents to Dynamics 365`. Cliquez sur le bloc en pointillés et ajoutez le déclencheur **On Create Incident**. Ses **Fields to pass on** commencent par **Titre** : cliquez sur **Ajouter un champ** et choisissez **Description** et **Numéro d'incident**. L'ID est toujours transmis.
-2. Cliquez sur **Ajouter un composant**, ajoutez un bloc **API Post (JSON)** et reliez-y le point **Success** du déclencheur. Réglez son **Identifiant** sur `create-case`, et son **URL** sur `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`.
-3. Sous **Plus de champs**, réglez ses **Request Headers** sur :
+1. Créez à partir de zéro un flux de travail nommé `Incidents to Dynamics 365`. Cliquez sur le bloc en pointillés et ajoutez le déclencheur **À la création : Incident**. Ses **Champs à transmettre** commencent par **Titre** : cliquez sur **Ajouter un champ** et choisissez **Description** et **Numéro d'incident**. L'ID est toujours transmis.
+2. Cliquez sur **Ajouter un composant**, ajoutez un bloc **Appel d'API POST (JSON)** et reliez-y le point **Succès** du déclencheur. Réglez son **Identifiant** sur `create-case`, et son **URL** sur `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`.
+3. Sous **Plus de champs**, réglez ses **En-têtes de la requête** sur :
 
    ```json
    {
@@ -284,7 +284,7 @@ La portée doit être l'URL de votre environnement suivie de `/.default`. Une UR
    }
    ```
 
-4. Réglez son **Request Body** sur le dossier, avec le GUID du compte auquel vos dossiers appartiennent :
+4. Réglez son **Corps de la requête** sur le dossier, avec le GUID du compte auquel vos dossiers appartiennent :
 
    ```json
    {
@@ -302,11 +302,11 @@ La portée doit être l'URL de votre environnement suivie de `/.default`. Une UR
 
 Chaque dossier a besoin d'un client, donc `customerid` est obligatoire. Il peut désigner un compte ou un contact, c'est pourquoi vous écrivez `customerid_account@odata.bind` ou `customerid_contact@odata.bind`, exactement ainsi. `Prefer: return=representation` fait répondre `201` avec le dossier lui-même, pour que le bloc suivant puisse lire `{{local.components.create-case.returnValues.response-body.incidentid}}`. Sans cet en-tête, Dynamics 365 répond `204` sans corps.
 
-`new_oneuptimelink` est la colonne de lien de [Préparer Dynamics 365](#préparer-dynamics-365), qui contient la même valeur que celle qu'écrivent les modèles, pour que vos workflows et les modèles retrouvent les dossiers les uns des autres. Utilisez le nom logique de votre colonne.
+`new_oneuptimelink` est la colonne de lien de [Préparer Dynamics 365](#préparer-dynamics-365), qui contient la même valeur que celle qu'écrivent les modèles, pour que vos flux de travail et les modèles retrouvent les dossiers les uns des autres. Utilisez le nom logique de votre colonne.
 
 ### Faire correspondre priorité et statut
 
-Dynamics 365 livre `severitycode` avec une seule option, réglez donc plutôt `prioritycode`, et créez une branche sur la gravité de l'incident avec un bloc **If / Else** pour avoir une priorité par gravité. Envoyez ces colonnes sous forme de nombres :
+Dynamics 365 livre `severitycode` avec une seule option, réglez donc plutôt `prioritycode`, et créez une branche sur la gravité de l'incident avec un bloc **Si / Sinon** pour avoir une priorité par gravité. Envoyez ces colonnes sous forme de nombres :
 
 | Colonne | Valeurs |
 | --- | --- |
@@ -320,18 +320,18 @@ Dynamics 365 livre `severitycode` avec une seule option, réglez donc plutôt `p
 
 ### Résoudre le dossier quand l'incident est résolu
 
-Construisez cela dans un second workflow, pour qu'un échec ici n'empêche jamais l'ouverture des dossiers.
+Construisez cela dans un second flux de travail, pour qu'un échec ici n'empêche jamais l'ouverture des dossiers.
 
 :::steps
-1. Créez un workflow nommé `Close Dynamics 365 cases`, avec le déclencheur **On Update Incident**. Dans **Fields to watch**, cliquez sur **Ajouter un champ** et choisissez **État actuel de l'incident**. Dans **Fields to pass on**, cliquez sur **Ajouter un champ**, ouvrez **État actuel de l'incident** et choisissez **Est un état de résolution**.
-2. Ajoutez un bloc **If / Else** : **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Comparison** **is true**.
-3. Après son côté **Yes**, ajoutez un bloc **API Get (JSON)** avec l'**Identifiant** `find-case`, les mêmes en-têtes sans `Prefer`, et cette **URL** :
+1. Créez un flux de travail nommé `Close Dynamics 365 cases`, avec le déclencheur **À la mise à jour : Incident**. Dans **Champs à surveiller**, cliquez sur **Ajouter un champ** et choisissez **État actuel de l'incident**. Dans **Champs à transmettre**, cliquez sur **Ajouter un champ**, ouvrez **État actuel de l'incident** et choisissez **Est un état de résolution**.
+2. Ajoutez un bloc **Si / Sinon** : **Valeur à vérifier** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Comparaison** **est vrai**.
+3. Après son côté **Oui**, ajoutez un bloc **Appel d'API GET (JSON)** avec l'**Identifiant** `find-case`, les mêmes en-têtes sans `Prefer`, et cette **URL** :
 
    ```text
    https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid&$filter=new_oneuptimelink%20eq%20'oneuptime-incident-{{local.components.incident-on-update-1.returnValues.model._id}}'
    ```
 
-4. Ajoutez après lui un bloc **API Post (JSON)** vers `https://yourorg.crm.dynamics.com/api/data/v9.2/CloseIncident`, avec les mêmes en-têtes et ce corps :
+4. Ajoutez après lui un bloc **Appel d'API POST (JSON)** vers `https://yourorg.crm.dynamics.com/api/data/v9.2/CloseIncident`, avec les mêmes en-têtes et ce corps :
 
    ```json
    {
@@ -347,23 +347,23 @@ Construisez cela dans un second workflow, pour qu'un échec ici n'empêche jamai
 
 L'URL est envoyée exactement comme elle est écrite, donc les espaces de `$filter` sont écrits `%20`. Une requête répond avec une liste `value`, et `value[0]` est son premier dossier. `Status` est un `statuscode` de l'état Resolved : `5` correspond à Problem Solved.
 
-Utilisez `CloseIncident` pour résoudre, plutôt qu'un `PATCH` de `statecode` : il enregistre la Case Resolution qu'un dossier résolu est censé avoir, et un `PATCH` est refusé là où un administrateur a configuré des transitions de statut. Pour tout le reste, comme une priorité ou un titre, envoyez un bloc **API Patch (JSON)** vers `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents(<the case id>)` avec un en-tête `If-Match: *`, qui l'empêche de créer un nouveau dossier, et seulement les colonnes que vous changez.
+Utilisez `CloseIncident` pour résoudre, plutôt qu'un `PATCH` de `statecode` : il enregistre la Case Resolution qu'un dossier résolu est censé avoir, et un `PATCH` est refusé là où un administrateur a configuré des transitions de statut. Pour tout le reste, comme une priorité ou un titre, envoyez un bloc **Appel d'API PATCH (JSON)** vers `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents(<the case id>)` avec un en-tête `If-Match: *`, qui l'empêche de créer un nouveau dossier, et seulement les colonnes que vous changez.
 
 ### Recevoir les changements de Dynamics 365
 
-Construisez d'abord le workflow qui reçoit :
+Construisez d'abord le flux de travail qui reçoit :
 
-1. Créez un workflow nommé `Dynamics 365 to OneUptime`, avec le déclencheur **Webhook**.
-2. Ouvrez le **Constructeur** du workflow, cliquez sur le déclencheur **Webhook**, puis sur **Copier l'URL** en haut de ses paramètres. L'URL ressemble à ceci :
+1. Créez un flux de travail nommé `Dynamics 365 to OneUptime`, avec le déclencheur **Webhook**.
+2. Ouvrez le **Constructeur** du flux de travail, cliquez sur le déclencheur **Webhook**, puis sur **Copier l'URL** en haut de ses paramètres. L'URL ressemble à ceci :
 
    ```text
    https://oneuptime.com/workflow/trigger/<webhook secret key>
    ```
 
-   Sur une installation autogérée, l'URL porte votre propre hôte. Traitez l'URL comme un mot de passe : quiconque l'a peut démarrer le workflow. Si elle fuite, cliquez sur **Réinitialiser l'URL** au même endroit, et l'ancienne URL cesse aussitôt de fonctionner.
+   Sur une installation autogérée, l'URL porte votre propre hôte. Traitez l'URL comme un mot de passe : quiconque l'a peut démarrer le flux de travail. Si elle fuite, cliquez sur **Réinitialiser l'URL** au même endroit, et l'ancienne URL cesse aussitôt de fonctionner.
 
-3. Ajoutez un bloc **If / Else** qui vérifie un secret partagé avant toute autre chose : **Value to check** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Comparison** **is equal to**, **Compare with** une valeur que vous inventez, gardée dans une variable globale secrète.
-4. Après son côté **Yes**, ajoutez un bloc **Update One Incident**. Réglez sa **Query** sur `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, et son **Data (JSON Object)** sur le changement, par exemple un nouveau `currentIncidentStateId`. Un bloc **Find One Incident State** avec la requête `{"name": "Resolved"}` vous donne cet ID avec `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
+3. Ajoutez un bloc **Si / Sinon** qui vérifie un secret partagé avant toute autre chose : **Valeur à vérifier** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Comparaison** **est égal à**, **Comparer avec** une valeur que vous inventez, gardée dans une variable globale secrète.
+4. Après son côté **Oui**, ajoutez un bloc **Mettre à jour : Incident (un seul)**. Réglez sa **Requête** sur `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, et son **Données (objet JSON)** sur le changement, par exemple un nouveau `currentIncidentStateId`. Un bloc **Trouver : État de l'incident (un seul)** avec la requête `{"name": "Resolved"}` vous donne cet ID avec `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
 
 Activez-le, puis faites-le appeler par Dynamics 365 :
 
@@ -371,14 +371,14 @@ Activez-le, puis faites-le appeler par Dynamics 365 :
 @tab Power Automate flow
 1. Dans [Power Automate](https://make.powerautomate.com), créez un **Automated cloud flow** avec le déclencheur **Microsoft Dataverse** **When a row is added, modified or deleted** : **Change type** `Modified`, **Table name** `Cases`, **Scope** `Organization` et **Select columns** `statecode,statuscode`, pour qu'il ne se déclenche que sur les changements de statut.
 2. Ajoutez **Get a row by ID** sur `Cases`, avec l'ID de la ligne venu du déclencheur : une mise à jour ne porte que les colonnes qui ont changé.
-3. Ajoutez l'action intégrée **HTTP** : **Method** `POST`, **URI** l'URL du workflow, les en-têtes `Content-Type: application/json` et `X-OneUptime-Secret: <your secret>`, et un corps construit à partir de la ligne : `oneuptimeIncidentId` est la colonne de lien sans `oneuptime-incident-`, par exemple `replace(<link column>, 'oneuptime-incident-', '')`, à côté de `ticketnumber` et `statecode`.
+3. Ajoutez l'action intégrée **HTTP** : **Method** `POST`, **URI** l'URL du flux de travail, les en-têtes `Content-Type: application/json` et `X-OneUptime-Secret: <your secret>`, et un corps construit à partir de la ligne : `oneuptimeIncidentId` est la colonne de lien sans `oneuptime-incident-`, par exemple `replace(<link column>, 'oneuptime-incident-', '')`, à côté de `ticketnumber` et `statecode`.
 4. Enregistrez le flux et activez-le.
 
 Le connecteur Microsoft Dataverse est premium : le propriétaire du flux a besoin de la licence, et le flux s'arrête si elle expire. La livraison prend en général quelques secondes.
 @tab Dataverse webhook
-1. Enregistrez l'URL du workflow avec le [Plug-in Registration Tool](https://learn.microsoft.com/en-us/power-apps/developer/data-platform/register-web-hook) : **Register New WebHook**, avec l'authentification **HttpHeader** et l'en-tête `X-OneUptime-Secret`.
+1. Enregistrez l'URL du flux de travail avec le [Plug-in Registration Tool](https://learn.microsoft.com/en-us/power-apps/developer/data-platform/register-web-hook) : **Register New WebHook**, avec l'authentification **HttpHeader** et l'en-tête `X-OneUptime-Secret`.
 2. Enregistrez une étape pour le message **Update** sur `incident`, avec **Filtering Attributes** limité aux colonnes dont vous avez besoin, **PostOperation** et **Asynchronous**.
-3. Dans le workflow, lisez la charge utile : c'est le contexte d'exécution du plug-in, dans lequel `InputParameters` est une liste de paires `{key, value}` et la ligne modifiée se trouve sous `Target`. Un bloc **Run Custom JavaScript** est le moyen le plus simple de la lire.
+3. Dans le flux de travail, lisez la charge utile : c'est le contexte d'exécution du plug-in, dans lequel `InputParameters` est une liste de paires `{key, value}` et la ligne modifiée se trouve sous `Target`. Un bloc **Exécuter du JavaScript personnalisé** est le moyen le plus simple de la lire.
 
 Dataverse n'appelle que les ports 80 et 443, attend une réponse 60 secondes, et retente une fois, seulement sur `502`, `503` et `504`. Une mise à jour ne porte que les colonnes qui ont changé, enregistrez donc une post-image pour les autres.
 :::
@@ -389,13 +389,13 @@ Les alertes fonctionnent de la même façon. Changez le type d'enregistrement, e
 
 | Incident | Alerte |
 | --- | --- |
-| **On Create Incident** (`incident-on-create-1`) | **On Create Alert** (`alert-on-create-1`) |
-| **On Update Incident** (`incident-on-update-1`) | **On Update Alert** (`alert-on-update-1`) |
+| **À la création : Incident** (`incident-on-create-1`) | **À la création : Alerte** (`alert-on-create-1`) |
+| **À la mise à jour : Incident** (`incident-on-update-1`) | **À la mise à jour : Alerte** (`alert-on-update-1`) |
 | `incidentNumber`, `currentIncidentState`, `incidentSeverity` | `alertNumber`, `currentAlertState`, `alertSeverity` |
-| **Find One Incident State** | **Find One Alert State** |
-| **Update One Incident** | **Update One Alert** |
+| **Trouver : État de l'incident (un seul)** | **Trouver : État de l'alerte (un seul)** |
+| **Mettre à jour : Incident (un seul)** | **Mettre à jour : Alerte (un seul)** |
 
-Un workflow a exactement un déclencheur, donc les incidents et les alertes ont chacun besoin de leur workflow. Pour faire le même travail Dynamics 365 pour les deux, construisez-le une fois dans un workflow avec un déclencheur **Manual**, et démarrez-le depuis les deux avec un bloc **Execute Workflow**.
+Un flux de travail a exactement un déclencheur, donc les incidents et les alertes ont chacun besoin de leur flux de travail. Pour faire le même travail Dynamics 365 pour les deux, construisez-le une fois dans un flux de travail avec un déclencheur **Manuel**, et démarrez-le depuis les deux avec un bloc **Exécuter un autre flux de travail**.
 
 ## Dépannage
 
@@ -430,22 +430,22 @@ Une règle de détection des doublons a trouvé une correspondance. Restreignez 
 :::
 
 :::details 429 Too Many Requests
-Les limites de protection du service de Dataverse permettent environ 6 000 requêtes, et 20 minutes de temps d'exécution, par utilisateur sur toute période de cinq minutes. La réponse porte `Retry-After`, en secondes. Placez un bloc **Sleep** dans un workflow qui envoie des rafales, ou déplacez le travail dans un workflow planifié.
+Les limites de protection du service de Dataverse permettent environ 6 000 requêtes, et 20 minutes de temps d'exécution, par utilisateur sur toute période de cinq minutes. La réponse porte `Retry-After`, en secondes. Placez un bloc **Pause** dans un flux de travail qui envoie des rafales, ou déplacez le travail dans un flux de travail planifié.
 :::
 
 :::details Rien n'arrive dans OneUptime
 Envoyez vous-même une requête à l'URL du webhook avec `curl`, et cherchez-la dans **Journaux → Exécutions**. Si la vôtre arrive et pas celle de Dynamics 365, cherchez en amont : l'historique d'exécution du flux lui-même, ou les System Jobs en échec d'un webhook Dataverse.
 :::
 
-:::details Le workflow s'exécute, mais l'incident ne change pas
-Un bloc **Update One Incident** indique `Items Updated: 0` quand sa requête n'a rien trouvé, et c'est un succès, pas une erreur. Vérifiez que l'ID de la requête est bien celui de l'incident OneUptime, et que vous interrogez `_id`.
+:::details Le flux de travail s'exécute, mais l'incident ne change pas
+Un bloc **Mettre à jour : Incident (un seul)** indique `Items Updated: 0` quand sa requête n'a rien trouvé, et c'est un succès, pas une erreur. Vérifiez que l'ID de la requête est bien celui de l'incident OneUptime, et que vous interrogez `_id`.
 :::
 
 ## Étapes suivantes
 
 :::cards
 - [Jira](/docs/integrations/jira): La même synchronisation bidirectionnelle pour les tickets Jira.
-- [Variables de workflow](/docs/workflows/variables#variables-oauth-20-des-jetons-qui-se-renouvellent-seuls): Les variables OAuth 2.0, et les jetons qu'elles gardent à jour.
-- [Configuration et sécurité des workflows](/docs/workflows/configuration): La sécurité des webhooks, l'accès réseau sortant et les limites de l'offre.
+- [Variables de flux de travail](/docs/workflows/variables#variables-oauth-20-des-jetons-qui-se-renouvellent-seuls): Les variables OAuth 2.0, et les jetons qu'elles gardent à jour.
+- [Configuration et sécurité des flux de travail](/docs/workflows/configuration): La sécurité des webhooks, l'accès réseau sortant et les limites de l'offre.
 - [Adresses IP](/docs/configuration/ip-addresses): Les adresses sortantes de OneUptime, si Dynamics 365 se trouve derrière une liste d'autorisation.
 :::

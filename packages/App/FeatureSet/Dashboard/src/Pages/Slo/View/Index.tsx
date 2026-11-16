@@ -16,6 +16,7 @@ import useSloOverviewData, {
 } from "../../../Components/Slo/useSloOverviewData";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import Service from "Common/Models/DatabaseModels/Service";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
 import ServiceLevelObjectiveErrorBudgetPolicyTier from "Common/Models/DatabaseModels/ServiceLevelObjectiveErrorBudgetPolicyTier";
@@ -29,6 +30,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import { getLowestBurnRateThreshold } from "Common/Utils/Slo/SloProjection";
 import { isComparedWithCurrentBurnRate } from "Common/Utils/Slo/SloEvaluation";
+import { isEventSliType } from "Common/Utils/Slo/SloRequestSli";
 import React, {
   Fragment,
   FunctionComponent,
@@ -156,11 +158,22 @@ const SloView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     );
 
   /*
+   * A request SLO measures its services' requests, never monitors: it
+   * chose its services when it was created, and its notice banner says so
+   * if it has none.
+   */
+  const isRequestSlo: boolean = isEventSliType(slo.sliType);
+
+  const serviceCount: number = (
+    (slo.services as Array<Service> | undefined) || []
+  ).length;
+
+  /*
    * Only when both are KNOWN to be zero: a failed rule count must not turn a
    * working SLO's overview into onboarding.
    */
   const isGettingStarted: boolean =
-    monitorIds.length === 0 && data.monitorRuleCount === 0;
+    !isRequestSlo && monitorIds.length === 0 && data.monitorRuleCount === 0;
 
   /*
    * A new SLO's "no monitors attached" notice IS the getting-started card; a
@@ -180,6 +193,7 @@ const SloView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           sloId={modelId}
           slo={slo}
           monitorCount={monitorIds.length}
+          serviceCount={serviceCount}
           owners={data.owners}
           isLoadingOwners={data.isLoadingOwners}
           isRefreshing={data.isRefreshing}

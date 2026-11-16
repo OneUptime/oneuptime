@@ -22,7 +22,7 @@ Hver vej normaliserer det, der kommer ind, til [OCSF](https://schema.ocsf.io/), 
 
 ## Før du går i gang
 
-- Til den administrerede connector i OneUptime rollen Project Owner, Project Admin eller Security Admin. Security Member og Security Viewer kan læse forbindelser, men ikke oprette dem.
+- Til den administrerede connector i OneUptime rollen Projektejer, Projektadministrator eller Sikkerhedsadministrator. Sikkerhedsmedlem og Sikkerhedsseer kan læse forbindelser, men ikke oprette dem.
 - Til webhooken og UDM-videresendelsen en indtagelsesnøgle: åbn **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler**, og klik på **Opret ingestion-nøgle**.
 - Til den administrerede connector retten til at oprette en Google Cloud-tjenestekonto i det projekt, din SecOps-instans er bundet til.
 
@@ -173,7 +173,7 @@ Hver anmodning i en test har en frist på 20 sekunder. Test rører hverken pollm
 
 ## Forhåndsvis, kør og importér efter behov
 
-Åbn **Diagnosticering** på en forbindelse for at se de seneste kørsler og betjene connectoren. Projektejere, projektadministratorer og sikkerhedsadministratorer kan starte handlinger. Sikkerhedsmedlemmer og -seere kan læse historikken.
+Åbn **Diagnosticering** på en forbindelse for at se de seneste kørsler og betjene connectoren. Projektejere, Projektadministratorer og Sikkerhedsadministratorer kan starte handlinger. Sikkerhedsmedlemmer og -seere kan læse historikken.
 
 - **Kør nu** sætter straks en poll i kø, med den normale markør og indtagelsesvej, også når planlagt polling er deaktiveret. Tilstandene i kø og kører forbliver synlige, mens workeren udfører anmodningen. Hvis en kørsel bliver stående i kø, så tjek, at workers behandler Worker-køen; kontrollen **Background workers** i Test forbindelse siger, om nogen proces gør det.
 - **Forhåndsvis detektioner** læser et valgt tidsinterval uden at importere eller ændre markøren. Brug den seneste time, 24 timer, 7 dage eller et brugerdefineret interval på op til 7 dage. Intervallet svarer til SecOps' advarselsvisning, som læser efter registreringstidspunkt, og de to søgegennemgange læser både registreringer, der er oprettet i det, og registreringer, hvis registreringstidspunkt falder i det, så en forhåndsvisning af i går også viser registreringer, der er oprettet i går om ældre begivenheder. Forhåndsvisningen viser registreringstidspunkt og oprettelsestid hver for sig. Resultaterne følger forbindelsens gemte valg **Data, der skal importeres**.
@@ -201,7 +201,7 @@ Gå disse punkter igennem i rækkefølge. Hvert kan skelnes fra det næste i **D
 2. **Reglernes kørselshyppighed og registreringsforsinkelse.** Registreringer oprettes, når reglen kører, og det kan være op til en time eller en dag efter de begivenheder, de beskriver. Connectoren poller efter oprettelsestid, så de kommer med den første poll, efter at Google har oprettet dem, ikke på deres registreringstidspunkt. En regel, du lige har aktiveret, har endnu ikke oprettet noget, og en stille lejer har intet at oprette. Tilgængelighedskontrollen rapporterer, hvor mange registreringer der blev oprettet inden for de seneste 24 timer og 7 dage; nul med og uden **Detektioner** betyder, at Google endnu intet har, som OneUptime kan importere.
 3. **Læs den seneste kørsels tal.** I Diagnostics er **Returneret af Google SecOps** med nul i **Importeret i OneUptime** og et tilsvarende tal i **Allerede importeret** connectoren, der virker som tilsigtet: de registreringer blev importeret af en tidligere poll. **Afvist**-poster er objekter, som Google returnerede, og som slet ikke er registreringer.
 4. **Poller noget overhovedet?** Last Polled med `Never` og en tom Last Error betyder, at ingen poll er blevet færdig for denne forbindelse. Test forbindelse rapporterer **Background workers** (processer, der forbruger Worker-køen), **Poll scheduler** (registreringen af planlæggeren med et minuts takt) og **Planlagt hentning** (denne forbindelses egen tidsplan, herunder en forsinket poll eller en kørsel, der sidder fast i kø). Se punktet om fejlfinding nedenfor for de udrulningsindstillinger, der forårsager det.
-5. **Kig det rigtige sted.** Begivenheder gemmes under deres registreringstidspunkt, som kan ligge timer eller dage før det tidspunkt, de blev oprettet og importeret, så et filter på "seneste time" i Security Events skjuler en registrering om i går, der blev importeret for et minut siden. Brug **Vis hændelser i dette tidsrum** på en kørsel i Diagnostics: den åbner begivenhedstidsintervallet for de registreringer, den kørsel returnerede.
+5. **Kig det rigtige sted.** Begivenheder gemmes under deres registreringstidspunkt, som kan ligge timer eller dage før det tidspunkt, de blev oprettet og importeret, så et filter på "seneste time" i Sikkerhedshændelser skjuler en registrering om i går, der blev importeret for et minut siden. Brug **Vis hændelser i dette tidsrum** på en kørsel i Diagnostics: den åbner begivenhedstidsintervallet for de registreringer, den kørsel returnerede.
 
 ## Sådan fastsættes alvorligheden
 

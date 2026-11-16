@@ -43,7 +43,7 @@ flowchart TB
 
 ## Antes de empezar
 
-- **Un rol que pueda configurarla.** Los roles Project Owner, Project Admin y Security Admin cambian los ajustes de Seguridad de datos. Los Security Member gestionan problemas y escanean almacenes, y los Security Viewer leen lo que encontró. Los demás roles no ven nada de ella salvo que su equipo reciba sus permisos: qué buckets contienen números de tarjeta es justo lo que quiere saber un atacante. Consulta [Roles](/docs/permissions/reference#roles).
+- **Un rol que pueda configurarla.** Los roles Propietario del proyecto, Administrador del proyecto y Administrador de seguridad cambian los ajustes de Seguridad de datos. Los Miembros de seguridad gestionan problemas y escanean almacenes, y los Visores de seguridad leen lo que encontró. Los demás roles no ven nada de ella salvo que su equipo reciba sus permisos: qué buckets contienen números de tarjeta es justo lo que quiere saber un atacante. Consulta [Roles](/docs/permissions/reference#roles).
 - **Una cuenta en la nube que leer, o una base de datos.** Seguridad de datos lee una cuenta en la nube mediante una [conexión a la nube](/docs/telemetry/cloud-accounts), y una base de datos que gestionas mediante una cadena de conexión de solo lectura. La telemetría no necesita nada: se escanea cada hora.
 
 ## Inicio rápido
@@ -69,7 +69,7 @@ Abre **Seguridad de datos**. Los almacenes aparecen en **Almacenes de datos** a 
 | AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System, Amazon Athena | AWS S3 Bucket |
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
-| Bases de datos que gestionas | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL |
+| Bases de datos que gestionas | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
 | OneUptime | Registros, Trazas, Excepciones, Reproducciones de sesiones, Conversaciones de IA | Registros, Trazas, Excepciones, Reproducciones de sesiones, Conversaciones de IA |
 
 Cada almacén recibe las comprobaciones que se aplican a su tipo. Un almacén cuyo contenido no se puede muestrear se comprueba igualmente: un bucket público o una base de datos sin cifrar es un problema, contenga lo que contenga.

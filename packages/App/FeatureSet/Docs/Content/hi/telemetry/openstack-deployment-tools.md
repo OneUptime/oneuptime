@@ -41,11 +41,11 @@ Alertmanager वाला कोई भी टूल आज ही घटना�
 :::steps
 ### मॉनिटर बनाएँ
 
-[Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#मॉनिटर-से-अलर्ट-पाएं) जैसा कहता है वैसा Incoming Request मॉनिटर बनाएँ, और उसका **Heartbeat URL** कॉपी करें। नीचे हर टूल के रिसीवर में वही `<secret key>` वाला पता है।
+[Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#मॉनिटर-से-अलर्ट-पाएं) जैसा कहता है वैसा इनकमिंग अनुरोध मॉनिटर बनाएँ, और उसका **Heartbeat URL** कॉपी करें। नीचे हर टूल के रिसीवर में वही `<secret key>` वाला पता है।
 
 ### इसे क्लाउड पर रखें
 
-मॉनिटर के **अवलोकन → लिंक किए गए संसाधन** में OpenStack क्लाउड जोड़ें। फिर हर घटना उस क्लाउड के **घटनाएं** पेज पर होती है: Incoming Request मॉनिटर की अपनी सेटिंग में कोई क्लाउड नहीं होता, इसलिए हर क्लाउड के Alertmanager को अपना मॉनिटर चाहिए। क्लाउड उस सूची में तब दिखता है जब उसका पहला डेटा पहुँच जाता है, इसलिए यह नीचे के चरणों के बाद करें, या पहले **OpenStack → सभी क्लाउड** में क्लाउड जोड़ें।
+मॉनिटर के **अवलोकन → लिंक किए गए संसाधन** में OpenStack क्लाउड जोड़ें। फिर हर घटना उस क्लाउड के **घटनाएं** पेज पर होती है: इनकमिंग अनुरोध मॉनिटर की अपनी सेटिंग में कोई क्लाउड नहीं होता, इसलिए हर क्लाउड के Alertmanager को अपना मॉनिटर चाहिए। क्लाउड उस सूची में तब दिखता है जब उसका पहला डेटा पहुँच जाता है, इसलिए यह नीचे के चरणों के बाद करें, या पहले **OpenStack → सभी क्लाउड** में क्लाउड जोड़ें।
 :::
 
 Alertmanager को, उस संस्करण पर जो Kolla-Ansible पिन करता है, ठीक इसी रूप में पोस्ट करते हुए रिकॉर्ड किया गया, और उसने जो पोस्ट किया उसने चलते हुए OneUptime पर एक घटना खोली, जिसे उसकी अपनी `resolved` स्थिति ने हल किया।
@@ -84,8 +84,8 @@ kolla-ansible reconfigure -i <inventory> --tags prometheus
 
 `source /etc/kolla/admin-openrc.sh` से admin के रूप में लॉगिन करें, जिसे `kolla-ansible post-deploy` लिखता है।
 
-- **Full view** को एक बदलाव चाहिए, Cinder में। Kolla-Ansible के टेम्पलेट Nova, Neutron, Glance और Placement पर `[keystone_authtoken]` के नीचे पहले से `service_type` सेट करते हैं, लेकिन उसका Cinder `volume` कहता है और उसका कैटलॉग `block-storage`, और जब दोनों मेल न खाएं तो keystonemiddleware एक्सेस नियमों से सीमित क्रेडेंशियल को `401` से अस्वीकार कर देता है। `/etc/kolla/config/cinder.conf` में `[keystone_authtoken]` के नीचे `service_type = block-storage` जोड़ें, फिर `kolla-ansible reconfigure -i <inventory> --tags cinder` चलाएं।
-- **Infrastructure only** अपने ओवरराइड `/etc/kolla/config/nova/policy.yaml` पर लेता है, और `neutron`, `keystone` और `placement` के लिए भी वैसे ही, वहाँ पहले से जो है उसके साथ मर्ज करके। उन्हें `kolla-ansible reconfigure -i <inventory> --tags nova,neutron,keystone,placement` से लागू करें।
+- **पूर्ण दृश्य** को एक बदलाव चाहिए, Cinder में। Kolla-Ansible के टेम्पलेट Nova, Neutron, Glance और Placement पर `[keystone_authtoken]` के नीचे पहले से `service_type` सेट करते हैं, लेकिन उसका Cinder `volume` कहता है और उसका कैटलॉग `block-storage`, और जब दोनों मेल न खाएं तो keystonemiddleware एक्सेस नियमों से सीमित क्रेडेंशियल को `401` से अस्वीकार कर देता है। `/etc/kolla/config/cinder.conf` में `[keystone_authtoken]` के नीचे `service_type = block-storage` जोड़ें, फिर `kolla-ansible reconfigure -i <inventory> --tags cinder` चलाएं।
+- **केवल इन्फ्रास्ट्रक्चर** अपने ओवरराइड `/etc/kolla/config/nova/policy.yaml` पर लेता है, और `neutron`, `keystone` और `placement` के लिए भी वैसे ही, वहाँ पहले से जो है उसके साथ मर्ज करके। उन्हें `kolla-ansible reconfigure -i <inventory> --tags nova,neutron,keystone,placement` से लागू करें।
 
 ### Kolla-Ansible का क्लाउड जिन पर टिका है उन पर नज़र रखें
 
@@ -161,8 +161,8 @@ OpenStack-Ansible अपनी सेवाओं के लॉग journald म�
 
 यूटिलिटी कंटेनर से admin के रूप में लॉगिन करें: `lxc-attach -n $(lxc-ls -1 | grep utility | head -n 1)`, फिर `. ~/openrc`। उसमें `curl` नहीं है, जिसे नीचे के कमांड इस्तेमाल करते हैं, इसलिए पहले वहाँ `apt-get install -y curl` चलाएँ।
 
-- **Full view** को एक बदलाव चाहिए, Cinder में। OpenStack-Ansible की भूमिकाएँ `[keystone_authtoken]` के नीचे पहले से `service_type` सेट करती हैं, लेकिन उसका Cinder `volumev3` कहता है और उसका कैटलॉग `block-storage`, और जब दोनों मेल न खाएं तो keystonemiddleware एक्सेस नियमों से सीमित क्रेडेंशियल को `401` से अस्वीकार कर देता है। `/etc/openstack_deploy/user_variables.yml` में `cinder_cinder_conf_overrides` के अंदर `keystone_authtoken` के नीचे `service_type: block-storage` सेट करें, फिर `openstack-ansible openstack.osa.cinder --tags cinder-config` चलाएं।
-- **Infrastructure only** अपने ओवरराइड `/etc/openstack_deploy/user_variables.yml` में `nova_policy_overrides`, `neutron_policy_overrides`, `keystone_policy_overrides` और `placement_policy_overrides` के रूप में लेता है। हर एक को उसके अपने प्लेबुक और टैग से लागू करें, जैसे `openstack-ansible openstack.osa.nova --tags nova-policy-override`। बाद में किसी को हटाने पर फ़ाइल हट जाने के बजाय खाली रह जाती है, इसलिए कुछ विफल नहीं होता।
+- **पूर्ण दृश्य** को एक बदलाव चाहिए, Cinder में। OpenStack-Ansible की भूमिकाएँ `[keystone_authtoken]` के नीचे पहले से `service_type` सेट करती हैं, लेकिन उसका Cinder `volumev3` कहता है और उसका कैटलॉग `block-storage`, और जब दोनों मेल न खाएं तो keystonemiddleware एक्सेस नियमों से सीमित क्रेडेंशियल को `401` से अस्वीकार कर देता है। `/etc/openstack_deploy/user_variables.yml` में `cinder_cinder_conf_overrides` के अंदर `keystone_authtoken` के नीचे `service_type: block-storage` सेट करें, फिर `openstack-ansible openstack.osa.cinder --tags cinder-config` चलाएं।
+- **केवल इन्फ्रास्ट्रक्चर** अपने ओवरराइड `/etc/openstack_deploy/user_variables.yml` में `nova_policy_overrides`, `neutron_policy_overrides`, `keystone_policy_overrides` और `placement_policy_overrides` के रूप में लेता है। हर एक को उसके अपने प्लेबुक और टैग से लागू करें, जैसे `openstack-ansible openstack.osa.nova --tags nova-policy-override`। बाद में किसी को हटाने पर फ़ाइल हट जाने के बजाय खाली रह जाती है, इसलिए कुछ विफल नहीं होता।
 
 ### OpenStack-Ansible का क्लाउड जिन पर टिका है उन पर नज़र रखें
 

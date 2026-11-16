@@ -36,7 +36,7 @@ flowchart TB
 
 ## Voordat je begint
 
-- Een OneUptime-project waarin je ingestiesleutels mag maken: projecteigenaren en -beheerders mogen dat, en ook iedereen met de machtiging Create Ingestion Key.
+- Een OneUptime-project waarin je ingestiesleutels mag maken: Projecteigenaren en Projectbeheerders mogen dat, en ook iedereen met de machtiging Create Ingestion Key.
 - Een applicatie waaraan je een OpenTelemetry-SDK kunt toevoegen, of een OpenTelemetry Collector.
 - Uitgaand HTTPS (poort 443) van je applicatie of collector naar `oneuptime.com`, of naar je eigen OneUptime-host.
 
@@ -410,7 +410,7 @@ De pagina van elke sleutel, onder **Projectinstellingen → Telemetrie & APM →
 | **Ingeschakeld** | Zet dit uit om met de sleutel gestuurde gegevens meteen niet meer te accepteren, zonder hem te verwijderen. |
 | **Verloopt om** | Na deze datum wordt de sleutel geweigerd. Leeg betekent dat hij nooit verloopt. |
 | **Requests Per Minute Limit** | Het maximale aantal OTLP/HTTP-verzoeken per minuut dat met de sleutel wordt geaccepteerd, over alle clients die hem gebruiken. Leeg betekent geen limiet bij een serversleutel, en 6.000 bij een browsersleutel. |
-| **Last Used At** | Wanneer voor het laatst gegevens met de sleutel zijn geaccepteerd. Gebruik dit om sleutels te vinden die je veilig kunt roteren of verwijderen. |
+| **Laatst gebruikt op** | Wanneer voor het laatst gegevens met de sleutel zijn geaccepteerd. Gebruik dit om sleutels te vinden die je veilig kunt roteren of verwijderen. |
 
 **Geheime sleutel opnieuw instellen** op de pagina van de sleutel vervangt het geheim. Elke applicatie en collector die met het oude stuurt, wordt geweigerd tot je hem bijwerkt. Voor browsersleutels, het veilig vervangen van een sleutel en wat elke weigering betekent, zie [Ingestiesleutels](/docs/telemetry/ingestion-keys).
 

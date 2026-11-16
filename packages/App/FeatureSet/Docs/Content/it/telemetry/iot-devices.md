@@ -177,9 +177,9 @@ OneUptime ha un proprio endpoint MQTT, quindi i dispositivi che parlano MQTT vi 
 - **Con la chiave di acquisizione**: inviala come password MQTT. Il nome utente viene ignorato; se il tuo client ha solo un campo per il nome utente, metti lì la chiave. È adatto a un gateway che pubblica per molti dispositivi.
 - **Con credenziali per dispositivo**: consigliato per i dispositivi che si connettono direttamente. Apri la pagina **Registro dei dispositivi** della flotta e registra il dispositivo, con il **Device ID** che usa come `device.id`. Il **MQTT Username** del dispositivo è il suo nome utente e la sua **MQTT Password (Secret)** la sua password.
 
-Le credenziali di un dispositivo possono pubblicare solo sotto i suoi topic `oneuptime/<fleet>/<device>/`. Puoi revocare un dispositivo senza toccare il resto della flotta: disattiva il suo interruttore **Abilitato**, oppure eliminalo, e un dispositivo connesso viene disconnesso entro circa un minuto. Un dispositivo registrato che smette di inviare dati resta nell'inventario come offline, e il modello di avviso Device Offline scatta per esso, anche se si spegne senza un Last Will.
+Le credenziali di un dispositivo possono pubblicare solo sotto i suoi topic `oneuptime/<fleet>/<device>/`. Puoi revocare un dispositivo senza toccare il resto della flotta: disattiva il suo interruttore **Abilitato**, oppure eliminalo, e un dispositivo connesso viene disconnesso entro pochi secondi. Un dispositivo registrato che smette di inviare dati resta nell'inventario come offline, e il modello di avviso Device Offline scatta per esso, anche se si spegne senza un Last Will.
 
-OneUptime rifiuta le credenziali errate al CONNECT con il codice di ritorno 4 (nome utente o password errati), quindi un dispositivo configurato male fallisce in modo evidente. Le chiavi del browser vengono rifiutate tramite MQTT.
+OneUptime rifiuta le credenziali errate al CONNECT con il codice di ritorno 4 (nome utente o password errati), quindi un dispositivo configurato male fallisce in modo evidente. Le chiavi del browser vengono rifiutate tramite MQTT. Un client che si è connesso con la chiave di acquisizione viene disconnesso entro pochi secondi quando la chiave viene disattivata, scade, ne viene reimpostato il segreto o viene eliminata, e viene rifiutato quando si riconnette.
 
 ### Topic e payload
 
@@ -276,7 +276,7 @@ OneUptime riconosce questi nomi di metriche `iot_*`. Invia solo quelli che hanno
 
 | Nome della metrica | Significato |
 | --- | --- |
-| `iot_device_up` | Disponibilità: `1` significa attivo e raggiungibile, `0` non attivo. La legge il monitor IoT Device. |
+| `iot_device_up` | Disponibilità: `1` significa attivo e raggiungibile, `0` non attivo. La legge il monitor Dispositivo IoT. |
 | `iot_device_info` | Solo identità. Porta `device.id`, la classe, il tipo e il firmware, così un dispositivo compare nell'inventario prima di riportare letture. |
 | `iot_battery_percent` | Carica della batteria, da `0` a `100` (%). |
 | `iot_signal_strength_dbm` | Intensità del segnale wireless in dBm, come l'RSSI Wi-Fi, LoRa o cellulare. |

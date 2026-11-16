@@ -41,7 +41,7 @@ SCIM と [SSO](/docs/identity/sso) は独立しています。SCIM はプロジ�
 
 ### プロジェクトの SCIM の設定
 
-プロジェクトの SCIM 接続を追加または変更したり、そのベアラートークンを表示またはリセットしたりできるのは、プロジェクトのオーナーだけです。SCIM を通じて、アイデンティティプロバイダーはプロジェクト内のどのチームにも人を追加できるためです。
+プロジェクトの SCIM 接続を追加または変更したり、そのベアラートークンを表示またはリセットしたりできるのは、プロジェクト所有者だけです。SCIM を通じて、アイデンティティプロバイダーはプロジェクト内のどのチームにも人を追加できるためです。
 :::steps
 1. **プロジェクト設定に移動する**
 
@@ -52,12 +52,12 @@ SCIM と [SSO](/docs/identity/sso) は独立しています。SCIM はプロジ�
 
    - **名前** を入力します。**デフォルトのチーム** にはプロジェクトのメンバーチームが最初から入っています。新しいユーザーはこれらのチームに追加されます
    - **その他の項目** では、**ユーザーの自動プロビジョニング**（IdP で割り当てられたユーザーを追加する）と **ユーザーの自動デプロビジョニング**（IdP で割り当てを解除されたユーザーを削除する）がオンで、**プッシュグループを有効化** がオフになっています。必要に応じてそこで変更してください
-   - 保存します。IdP の設定に使う **SCIM Base URL** と **Bearer Token** を表示するダイアログがすぐに開きます
+   - 保存します。IdP の設定に使う **SCIM ベース URL** と **Bearer トークン** を表示するダイアログがすぐに開きます
 
 3. **アイデンティティプロバイダーを構成する**
 
-   - ダイアログの **SCIM Base URL** を使います。OneUptime Cloud では `https://oneuptime.com/identity/scim/v2/<scim-id>` です。セルフホスト環境では、そのインストール自身のホストが表示されます
-   - ダイアログの **Bearer Token** を使って、ベアラートークン認証を設定します。アイデンティティプロバイダーが代わりに OAuth 2.0 クライアント資格情報を求める場合は、同じダイアログの [OAuth 2.0 クライアント資格情報](#oauth-20-クライアント資格情報) を使います
+   - ダイアログの **SCIM ベース URL** を使います。OneUptime Cloud では `https://oneuptime.com/identity/scim/v2/<scim-id>` です。セルフホスト環境では、そのインストール自身のホストが表示されます
+   - ダイアログの **Bearer トークン** を使って、ベアラートークン認証を設定します。アイデンティティプロバイダーが代わりに OAuth 2.0 クライアント資格情報を求める場合は、同じダイアログの [OAuth 2.0 クライアント資格情報](#oauth-20-クライアント資格情報) を使います
    - ユーザー属性をマッピングします（メールアドレスは必須です）。Microsoft Entra ID と Okta の詳細は [アイデンティティプロバイダーを接続する](#アイデンティティプロバイダーを接続する) にあります
 :::
 
@@ -80,15 +80,15 @@ sequenceDiagram
 
 ### OAuth 2.0 クライアント資格情報
 
-ベアラートークンを保持せず、代わりに OAuth 2.0 クライアント資格情報を求めるアイデンティティプロバイダーもあります。プロジェクトとステータスページのどの接続にも、**SCIM Base URL** と同じダイアログの **OAuth 2.0 Client Credentials** の下にクライアント資格情報があります。
+ベアラートークンを保持せず、代わりに OAuth 2.0 クライアント資格情報を求めるアイデンティティプロバイダーもあります。プロジェクトとステータスページのどの接続にも、**SCIM ベース URL** と同じダイアログの **OAuth 2.0 クライアント認証情報** の下にクライアント資格情報があります。
 
-- **Token Endpoint**: アイデンティティプロバイダーがアクセストークンを取得する場所です。すべての接続で同じで、OneUptime Cloud では `https://oneuptime.com/identity/scim/oauth/token` です。
-- **Client ID**: 接続の ID です。
-- **Client Secret**: **Make Client Secret** をクリックし、シークレットをすぐにコピーしてください。OneUptime はそのハッシュしか保存しないため、もう一度表示することはできません。有効期間は 1 年です。
+- **トークンエンドポイント**: アイデンティティプロバイダーがアクセストークンを取得する場所です。すべての接続で同じで、OneUptime Cloud では `https://oneuptime.com/identity/scim/oauth/token` です。
+- **クライアント ID**: 接続の ID です。
+- **クライアントシークレット**: **クライアントシークレットを作成** をクリックし、シークレットをすぐにコピーしてください。OneUptime はそのハッシュしか保存しないため、もう一度表示することはできません。有効期間は 1 年です。
 
 アイデンティティプロバイダーはクライアント ID とシークレットをトークンエンドポイントに送り、1 時間有効なアクセストークンを受け取ります。接続のベアラートークンも、これと並行して引き続き使えます。
 
-シークレットを置き換えるには、**Make New Client Secret** をクリックします。それまでのシークレットは、期限が切れるか **Delete Previous Secret** をクリックするまで使えるので、プロビジョニングを途切れさせずにアイデンティティプロバイダーに新しいシークレットを設定できます。アイデンティティプロバイダーが新しいシークレットを使うようになったら、古いシークレットを削除してください。シークレットの期限が切れるか削除されると、そのシークレットで発行されたアクセストークンはすぐに使えなくなります。接続のシークレットを作成・削除できるのは、その接続のベアラートークンを変更できる人です。プロジェクトではプロジェクトのオーナー、ステータスページではそのシングルサインオンを編集できる人です。
+シークレットを置き換えるには、**新しいクライアントシークレットを作成** をクリックします。それまでのシークレットは、期限が切れるか **以前のシークレットを削除** をクリックするまで使えるので、プロビジョニングを途切れさせずにアイデンティティプロバイダーに新しいシークレットを設定できます。アイデンティティプロバイダーが新しいシークレットを使うようになったら、古いシークレットを削除してください。シークレットの期限が切れるか削除されると、そのシークレットで発行されたアクセストークンはすぐに使えなくなります。接続のシークレットを作成・削除できるのは、その接続のベアラートークンを変更できる人です。プロジェクトではプロジェクト所有者、ステータスページではそのシングルサインオンを編集できる人です。
 
 ## ステータスページの SCIM
 
@@ -105,11 +105,11 @@ sequenceDiagram
 2. **SCIM の設定を構成する**
 
    - **名前** を入力します。**その他の項目** では、**ユーザーの自動プロビジョニング**（IdP で割り当てられたプライベートユーザーを追加する）と **ユーザーの自動デプロビジョニング**（IdP で割り当てを解除されたプライベートユーザーを削除する）がオンになっています。必要に応じてそこで変更してください
-   - 保存します。IdP の設定に使う **SCIM Base URL** と **Bearer Token** を表示するダイアログがすぐに開きます
+   - 保存します。IdP の設定に使う **SCIM ベース URL** と **Bearer トークン** を表示するダイアログがすぐに開きます
 
 3. **アイデンティティプロバイダーを構成する**
 
-   - ダイアログの **SCIM Base URL** を使います。OneUptime Cloud では `https://oneuptime.com/identity/status-page-scim/v2/<scim-id>` です
+   - ダイアログの **SCIM ベース URL** を使います。OneUptime Cloud では `https://oneuptime.com/identity/status-page-scim/v2/<scim-id>` です
    - 表示されたトークンを使ってベアラートークン認証を設定するか、同じダイアログの [OAuth 2.0 クライアント資格情報](#oauth-20-クライアント資格情報) を使います
    - ユーザー属性をマッピングします（メールアドレスは必須です）
 :::
@@ -159,7 +159,7 @@ Microsoft Entra アプリケーション ギャラリーの OneUptime アプリ�
    - **ユーザーの自動プロビジョニング** と **ユーザーの自動デプロビジョニング**: オンで、**その他の項目** の中にあります
    - **プッシュグループを有効化**: **その他の項目** の中にあります。Entra ID のグループでチームのメンバー構成を管理する場合はオンにします
 6. 設定を保存します
-7. 開いたダイアログから **SCIM Base URL** と **Bearer Token** をコピーします。Entra ID で必要になります
+7. 開いたダイアログから **SCIM ベース URL** と **Bearer トークン** をコピーします。Entra ID で必要になります
 
 #### Entra ID でエンタープライズアプリケーションを作成する
 
@@ -173,7 +173,7 @@ Microsoft Entra アプリケーション ギャラリーの OneUptime アプリ�
 
 1. OneUptime のエンタープライズアプリケーションで **Provisioning** に移動し、**Get started** をクリックします
 2. **Provisioning Mode** を **Automatic** に設定します
-3. **Admin Credentials** で、**Tenant URL** を OneUptime の **SCIM Base URL**（例: `https://oneuptime.com/identity/scim/v2/<scim-id>`）に、**Secret Token** を **Bearer Token** に設定します
+3. **Admin Credentials** で、**Tenant URL** を OneUptime の **SCIM ベース URL**（例: `https://oneuptime.com/identity/scim/v2/<scim-id>`）に、**Secret Token** を **Bearer トークン** に設定します
 4. **Test Connection** をクリックして設定を確認し、**Save** をクリックします
 
 #### Entra ID でユーザー属性をマッピングする
@@ -237,7 +237,7 @@ OneUptime Cloud では、Okta Integration Network に OneUptime が掲載され�
    - **ユーザーの自動プロビジョニング** と **ユーザーの自動デプロビジョニング**: オンで、**その他の項目** の中にあります
    - **プッシュグループを有効化**: **その他の項目** の中にあります。Okta のグループでチームのメンバー構成を管理する場合はオンにします
 6. 設定を保存します
-7. 開いたダイアログから **SCIM Base URL** と **Bearer Token** をコピーします。Okta で必要になります
+7. 開いたダイアログから **SCIM ベース URL** と **Bearer トークン** をコピーします。Okta で必要になります
 
 #### Okta アプリケーションを作成するか開く
 
@@ -249,18 +249,18 @@ Okta Admin Console で **Applications** > **Applications** に移動します。
 #### Okta で SCIM プロビジョニングをオンにする
 
 1. OneUptime アプリケーションの **General** タブに移動します
-2. **App Settings** セクションで **Edit** をクリックします。Okta Integration Network から追加したアプリケーションでは、**OneUptime SCIM Connection ID** に **SCIM Base URL** の最後の部分である `<scim-id>` を設定します。独自に作成したアプリケーションでは、**Provisioning** で **SCIM** を選びます。**Save** をクリックします
+2. **App Settings** セクションで **Edit** をクリックします。Okta Integration Network から追加したアプリケーションでは、**OneUptime SCIM Connection ID** に **SCIM ベース URL** の最後の部分である `<scim-id>` を設定します。独自に作成したアプリケーションでは、**Provisioning** で **SCIM** を選びます。**Save** をクリックします
 3. アプリケーションに **Provisioning** タブが表示されるようになります
 
 #### Okta を OneUptime に接続する
 
 1. **Provisioning** タブで **Integration**、続いて **Configure API Integration** をクリックし、**Enable API integration** にチェックを入れます
-2. Okta Integration Network から追加したアプリケーションでは、OneUptime の **Bearer Token** を **API Token** として入力します。独自に作成したアプリケーションでは、次のように設定します。
-   - **SCIM connector base URL**: OneUptime の **SCIM Base URL**（例: `https://oneuptime.com/identity/scim/v2/<scim-id>`）
+2. Okta Integration Network から追加したアプリケーションでは、OneUptime の **Bearer トークン** を **API Token** として入力します。独自に作成したアプリケーションでは、次のように設定します。
+   - **SCIM connector base URL**: OneUptime の **SCIM ベース URL**（例: `https://oneuptime.com/identity/scim/v2/<scim-id>`）
    - **Unique identifier field for users**: `userName`
    - **Supported provisioning actions**: Import New Users and Profile Updates、Push New Users、Push Profile Updates、グループベースのプロビジョニングを使う場合は Push Groups
    - **Authentication Mode**: **HTTP Header**
-   - **Authorization**: OneUptime の **Bearer Token**。OneUptime は `Authorization: Bearer <token>` ヘッダーを想定しています。Okta のフィールドの前にすでに Bearer という語が表示されている場合は、トークンだけを入力してください
+   - **Authorization**: OneUptime の **Bearer トークン**。OneUptime は `Authorization: Bearer <token>` ヘッダーを想定しています。Okta のフィールドの前にすでに Bearer という語が表示されている場合は、トークンだけを入力してください
 3. **Test API Credentials** をクリックして接続を確認し、**Save** をクリックします
 
 #### Okta がプロビジョニングする内容を選ぶ
@@ -305,14 +305,14 @@ OneUptime の SCIM 実装は SCIM v2.0 仕様に従っており、準拠した�
 
 | 設定 | 値 |
 | --- | --- |
-| SCIM Base URL | OneUptime の **SCIM Base URL**: プロジェクトでは `https://oneuptime.com/identity/scim/v2/<scim-id>`、ステータスページでは `https://oneuptime.com/identity/status-page-scim/v2/<scim-id>` |
+| SCIM Base URL | OneUptime の **SCIM ベース URL**: プロジェクトでは `https://oneuptime.com/identity/scim/v2/<scim-id>`、ステータスページでは `https://oneuptime.com/identity/status-page-scim/v2/<scim-id>` |
 | 認証 | HTTP ベアラートークン、または [OAuth 2.0 クライアント資格情報](#oauth-20-クライアント資格情報) |
 | 一意のユーザー識別子 | `userName`（有効なメールアドレスである必要があります） |
 | 操作 | プロジェクトの SCIM とステータスページの SCIM での Users に対する GET、POST、PUT、PATCH、DELETE。Groups はプロジェクトの SCIM でのみサポートされます。 |
 
 ## SCIM API リファレンス
 
-パスは、接続の **SCIM Base URL** からの相対パスです。
+パスは、接続の **SCIM ベース URL** からの相対パスです。
 
 | エンドポイント           | メソッド                | 説明                                                   |
 | ------------------------ | ----------------------- | ------------------------------------------------------ |
@@ -394,14 +394,14 @@ OneUptime Cloud で SCIM プロビジョニングが完全に動作するのは�
 
 何も削除されません。**Scale** にアップグレードすれば、接続はそのまま、同じベアラートークンで再び完全に動作し、アイデンティティプロバイダーで設定し直す必要もありません。プランの変更は 1 分以内に反映されます。アイデンティティプロバイダーは自分のスケジュールで呼び出しを続けます。Okta は拒否をプロビジョニングのエラーの中に表示し、Entra ID はプロビジョニングのログに表示するほか、失敗し続けるジョブを検疫状態にすることがあり、その場合は削除も含めて同期が 1 日に 1 回程度まで遅くなります。アップグレード後はそこでプロビジョニングを再開し、その間に追加された人がプロビジョニングされるようにしてください。
 
-**Scale** 未満では、**プロジェクト設定** > **セキュリティ** > **SCIM** とステータスページの **SCIM** ページに、プランのアップグレード案内の下に接続（**まだ設定されている SCIM 接続**）が表示され、人を削除するだけであることが示されます。接続を取り除くには削除してください。接続の追加、変更、ベアラートークンの置き換えには **Scale** が必要です。一覧にベアラートークンは表示されず、トークンを読み取れるのはどのプランでもプロジェクトのオーナーだけです。
+**Scale** 未満では、**プロジェクト設定** > **セキュリティ** > **SCIM** とステータスページの **SCIM** ページに、プランのアップグレード案内の下に接続（**まだ設定されている SCIM 接続**）が表示され、人を削除するだけであることが示されます。接続を取り除くには削除してください。接続の追加、変更、ベアラートークンの置き換えには **Scale** が必要です。一覧にベアラートークンは表示されず、トークンを読み取れるのはどのプランでもプロジェクト所有者だけです。
 
 ## トラブルシューティング
 
 まず、**プロジェクト設定** > **セキュリティ** > **SCIM**（またはステータスページの **SCIM** ページ）の **ログ** タブを確認してください。アイデンティティプロバイダーが送った SCIM リクエストがステータスとともに一覧表示され、**詳細を表示** でリクエストと OneUptime の応答を確認できます。
 
 :::details Entra ID: Test Connection が失敗する
-**Tenant URL** が OneUptime に表示される **SCIM Base URL** と完全に一致し、**Secret Token** が現在の **Bearer Token** であることを確認してください。**ベアラートークンをリセット** の後は、古いトークンは使えなくなります。
+**Tenant URL** が OneUptime に表示される **SCIM ベース URL** と完全に一致し、**Secret Token** が現在の **Bearer トークン** であることを確認してください。**ベアラートークンをリセット** の後は、古いトークンは使えなくなります。
 :::
 
 :::details Okta: API 認証情報のテストが失敗する、またはリクエストが 401 Unauthorized になる

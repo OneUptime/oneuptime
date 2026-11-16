@@ -155,7 +155,7 @@ OneUptime 会把号码的语音 webhook 设为 `https://<your host>/notification
 :::steps
 1. 打开 **用户设置** > **来电策略** > **来电号码** 。 **来电策略** 是侧边菜单中的一个分组，初始为折叠状态。
 2. 在 **电话号码用于来电路由** 卡片中点击 **添加电话号码用于来电路由** ，输入带国家代码的号码，例如 `+15551234567` 。
-3. 在 **验证码** 中输入 OneUptime 通过短信发送到该号码的 6 位验证码，然后点击 **验证** 。 **Send a new code** 会再发送一个。
+3. 在 **验证码** 中输入 OneUptime 通过短信发送到该号码的 6 位验证码，然后点击 **验证** 。 **发送新验证码** 会再发送一个。
 :::
 
 每个人在每个项目中只能有一个已验证的号码。要更换号码，请先删除旧号码。这些号码独立于值班呼叫使用的 **通知方式** 中的电话号码。请参阅 [通知方式](/docs/notifications/notification-methods)。
@@ -208,15 +208,15 @@ Twilio 用文字转语音朗读这些消息，因此请按您希望听到的样�
 
 来电通话日志可用作工作流触发器：
 
-- **On Create Incoming Call Log** 在来电到达时运行。
-- **On Update Incoming Call Log** 随着通话进行而运行。设置 **Ended At** 的那次更新就是通话结束。
+- **创建Incoming Call 日志时** 在来电到达时运行。
+- **更新Incoming Call 日志时** 随着通话进行而运行。设置 **Ended At** 的那次更新就是通话结束。
 
 只处理未接来电时，例如把它们发布到 Slack 或 Microsoft Teams，或创建工单：
 
 :::steps
-1. 添加 **On Update Incoming Call Log** 触发器。将 **Fields to watch** 设为 **Ended At** ，并选择要使用的字段，例如 **Status** 、 **Caller Phone Number** 和 **Routing Phone Number** 。
-2. 添加一个 **If / Else** 步骤。用比较 **不等于** 和 `Completed` 检查触发器的 **Status** 。
-3. 把您的步骤连接到 **Yes** 端口。
+1. 添加 **更新Incoming Call 日志时** 触发器。将 **要关注的字段** 设为 **Ended At** ，并选择要使用的字段，例如 **Status** 、 **Caller Phone Number** 和 **Routing Phone Number** 。
+2. 添加一个 **如果 / 否则** 步骤。用比较 **不等于** 和 `Completed` 检查触发器的 **Status** 。
+3. 把您的步骤连接到 **是** 端口。
 :::
 
 工作流可以用 **Find One** 和 **Find Many** 读取通话日志，但不能创建或修改它们。
@@ -275,7 +275,7 @@ Twilio 用文字转语音朗读这些消息，因此请按您希望听到的样�
 :::
 
 :::details 工程师号码的验证码没有收到
-项目必须开启短信。在 OneUptime Cloud 上，没有自己默认 Twilio 配置的项目用其余额支付短信费用，余额必须高于 1 USD。验证码可能需要一分钟才能送达；点击 **Send a new code** 再发送一个， **项目设置** > **通知** > **通知日志** 会显示它的处理情况。
+项目必须开启短信。在 OneUptime Cloud 上，没有自己默认 Twilio 配置的项目用其余额支付短信费用，余额必须高于 1 USD。验证码可能需要一分钟才能送达；点击 **发送新验证码** 再发送一个， **项目设置** > **通知** > **通知日志** 会显示它的处理情况。
 :::
 
 ## 后续步骤

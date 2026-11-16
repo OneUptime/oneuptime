@@ -379,20 +379,20 @@ describe("how the hero says how long the host has been up", () => {
   );
 
   test("German writes its own units", () => {
-    expect(formatHostUptime(41 * DAY_SECONDS + 1, "de")).toBe("41 Tg.");
+    expect(formatHostUptime(41 * DAY_SECONDS + 1, "de")).toBe("41\u00A0Tg.");
     expect(formatHostUptime(41 * DAY_SECONDS + 3 * HOUR_SECONDS, "de")).toBe(
-      "41 Tg., 3 Std.",
+      "41\u00A0Tg., 3\u00A0Std.",
     );
-    expect(formatHostUptime(3 * HOUR_SECONDS + 5, "de")).toBe("3 Std.");
-    expect(formatHostUptime(59, "de")).toBe("59 Sek.");
+    expect(formatHostUptime(3 * HOUR_SECONDS + 5, "de")).toBe("3\u00A0Std.");
+    expect(formatHostUptime(59, "de")).toBe("59\u00A0Sek.");
   });
 
   test("Persian writes Persian digits and its own units, and no Latin digit", () => {
     const cases: Array<[number, string]> = [
-      [41 * DAY_SECONDS + 1, "۴۱ روز"],
-      [41 * DAY_SECONDS + 3 * HOUR_SECONDS, "۴۱ روز ۳ ساعت"],
-      [3 * HOUR_SECONDS + 5, "۳ ساعت"],
-      [59, "۵۹ ثانیه"],
+      [41 * DAY_SECONDS + 1, "۴۱\u00A0روز"],
+      [41 * DAY_SECONDS + 3 * HOUR_SECONDS, "۴۱\u00A0روز ۳\u00A0ساعت"],
+      [3 * HOUR_SECONDS + 5, "۳\u00A0ساعت"],
+      [59, "۵۹\u00A0ثانیه"],
     ];
 
     for (const [seconds, text] of cases) {
@@ -416,21 +416,21 @@ describe("how the hero says how long the host has been up", () => {
 
 describe("sizes", () => {
   test("1024-based, one decimal under 10", () => {
-    expect(formatHostBytes(16 * GIB)).toBe("16 GiB");
-    expect(formatHostBytes(8 * GIB)).toBe("8.0 GiB");
-    expect(formatHostBytes(512)).toBe("512 B");
+    expect(formatHostBytes(16 * GIB)).toBe("16\u00A0GiB");
+    expect(formatHostBytes(8 * GIB)).toBe("8.0\u00A0GiB");
+    expect(formatHostBytes(512)).toBe("512\u00A0B");
     expect(formatHostBytes(null)).toBe("—");
     expect(formatHostBytes(Number.NaN)).toBe("—");
   });
 
   // A count of bytes is whole (issue #7417): never "0.0 B" or "5.0 B".
   test("plain bytes are whole, from zero to just under a KiB", () => {
-    expect(formatHostBytes(0)).toBe("0 B");
-    expect(formatHostBytes(5)).toBe("5 B");
-    expect(formatHostBytes(9)).toBe("9 B");
-    expect(formatHostBytes(1023)).toBe("1023 B");
+    expect(formatHostBytes(0)).toBe("0\u00A0B");
+    expect(formatHostBytes(5)).toBe("5\u00A0B");
+    expect(formatHostBytes(9)).toBe("9\u00A0B");
+    expect(formatHostBytes(1023)).toBe("1023\u00A0B");
     // From a KiB up, one decimal under ten as before.
-    expect(formatHostBytes(1024)).toBe("1.0 KiB");
-    expect(formatHostBytes(1536)).toBe("1.5 KiB");
+    expect(formatHostBytes(1024)).toBe("1.0\u00A0KiB");
+    expect(formatHostBytes(1536)).toBe("1.5\u00A0KiB");
   });
 });

@@ -852,10 +852,10 @@ describe("the Company AI Tools page", () => {
     expect(form).toContain('title: "Who can read conversations",');
     expect(form).toContain("defaultValue: LlmConversationReaders.Admins,");
     // Two answers in view, as radio buttons.
-    expect(form).toContain('title: "Project owners and admins",');
+    expect(form).toContain('title: "Project Owners and Project Admins",');
     expect(form).toContain('title: "Everyone who can read AI calls",');
     expect(readers[1]).toContain(
-      "**Project owners and admins**, the default: nobody else in the project sees these conversations",
+      "**Project Owners and Project Admins**, the default: nobody else in the project sees these conversations",
     );
     expect(readers[1]).toContain("**Everyone who can read AI calls**");
 
@@ -917,7 +917,7 @@ describe("the other AI pages", () => {
       "A budget whose **Count spend from** is **Provider accounts** counts what your connected accounts were billed instead",
     );
     expect(page).toContain(
-      "The conversations of a company AI tool are the exception: only project owners and admins can read them",
+      "The conversations of a company AI tool are the exception: only Project Owners and Project Admins can read them",
     );
   });
 

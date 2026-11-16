@@ -1,4 +1,5 @@
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
+import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -60,7 +61,8 @@ interface StatTileProps {
   testId: string;
   label: string;
   icon: IconProp;
-  value: ReactNode;
+  // No reading is no value: the tile draws the figure's quiet dash (#8264).
+  value?: ReactNode | undefined;
   hint: ReactNode;
   isWarning?: boolean | undefined;
 }
@@ -85,7 +87,7 @@ const StatTile: FunctionComponent<StatTileProps> = (
         </div>
       </dt>
       <dd className="mt-1 flex min-h-[2rem] items-center text-2xl font-semibold tracking-tight tabular-nums text-gray-900">
-        {props.value}
+        {getFigure(props.value)}
       </dd>
       {/*
        * A flex row rather than a clipped block, so the worst-class button
@@ -186,9 +188,7 @@ export const CorrelateResultStats: FunctionComponent<
             <SecurityEventSeverityPill
               severityName={worstClass.worstSeverity}
             />
-          ) : (
-            <span className="text-base">—</span>
-          )
+          ) : undefined
         }
         hint={
           worstClass ? (

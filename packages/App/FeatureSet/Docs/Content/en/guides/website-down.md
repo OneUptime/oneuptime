@@ -42,7 +42,7 @@ Under **What should we check?**, type the address in **Website or API address**.
 
 Under **Who should be told?**, what you see depends on the project:
 
-- With no on-call policy or on-call rule yet, you are already in **Who is paged**. Click **Add teammates** to add people who are already in the project, then click **Save and continue**. This creates `Default on-call policy`, which pages them for every new incident and alert in the project.
+- With no on-call policy or on-call rule yet, you are already in **Who is paged**. Click **Add teammates** to add people who are already in the project, then click **Save and continue**. This creates **Default on-call policy**, which pages them for every new incident and alert in the project.
 - With an on-call policy or rule, the project's own rules decide who is paged: click **Continue**.
 - As a member, who may not set up paging, you are told you will be emailed as the monitor's owner: click **Continue**.
 

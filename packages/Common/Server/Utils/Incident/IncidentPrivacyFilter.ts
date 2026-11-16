@@ -8,7 +8,7 @@ import {
 import { Raw } from "typeorm";
 
 /*
- * Project owners and admins, plus root/master-admin contexts, see all
+ * Project Owners and Project Admins, plus root/master-admin contexts, see all
  * private incidents. Other users only see private incidents they own
  * (directly via IncidentOwnerUser, or transitively through IncidentOwnerTeam
  * + TeamMember).

@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import Link from "Common/UI/Components/Link/Link";
@@ -68,7 +69,7 @@ export interface ComponentProps {
 
 function formatPercent(value: number | null): string {
   return value === null || !Number.isFinite(value)
-    ? "—"
+    ? EMPTY_VALUE_MARK
     : `${value.toFixed(1)}%`;
 }
 
@@ -83,7 +84,7 @@ function formatBytes(bytes: number): string {
     value /= 1024;
     index++;
   }
-  return `${value.toFixed(value >= 100 || index === 0 ? 0 : 1)} ${units[index]}`;
+  return `${value.toFixed(value >= 100 || index === 0 ? 0 : 1)}\u00A0${units[index]}`;
 }
 
 const ContainerHostContainerOverview: FunctionComponent<ComponentProps> = (
@@ -288,7 +289,9 @@ const ContainerHostContainerOverview: FunctionComponent<ComponentProps> = (
             title="Restarts"
             icon={IconProp.Refresh}
             iconColor="amber"
-            value={restarts === null ? "—" : translator.formatNumber(restarts)}
+            value={
+              restarts === null ? undefined : translator.formatNumber(restarts)
+            }
             /*
              * The window the count is of, whatever the count: the hero and
              * Needs attention already say when it is a restart loop.
@@ -311,7 +314,7 @@ const ContainerHostContainerOverview: FunctionComponent<ComponentProps> = (
                     now: props.readAt,
                     language: translator.language,
                   })
-                : "—"
+                : undefined
             }
             sublabel={
               container.startedAt

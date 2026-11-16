@@ -1,19 +1,19 @@
-# Proxmox-overvåking
+# Proxmox-monitor
 
-En Proxmox-monitor overvåker én Proxmox VE-klynge – nodene, VM-ene og LXC-containerne, lagringen, HA-tilstanden, dekningen av sikkerhetskopijobber og lagringsreplikeringen – og sier fra når en node blir frakoblet, en gjest stopper eller lagringen fylles opp. Den leser metrikkene `pve_*` som OneUptimes Proxmox-agent samler inn, så ingenting undersøkes utenfra.
+En Proxmox-monitor overvåker én Proxmox VE-klynge – nodene, VM-ene og LXC-containerne, lagringen, HA-tilstanden, dekningen av sikkerhetskopijobber og lagringsreplikeringen – og sier fra når en node blir frakoblet, en gjest stopper eller lagringen fylles opp. Den leser målingene `pve_*` som OneUptimes Proxmox-agent samler inn, så ingenting undersøkes utenfra.
 
 :::cards
 - [Opprett monitoren](#opprett-en-proxmox-monitor): Seks trinn i dashbordet.
 - [Maler](#ferdige-varslingsmaler): Femten ferdige varsler, én hendelse per node, gjest eller volum, og to på notifikasjonene fra Proxmox VE selv.
 - [Ressursidentitet](#ressursidentitet): Slik treffer du én node, gjest eller ett lagringsvolum.
-- [Metrikker](#innsamlede-metrikker): Hver serie `pve_*` monitoren kan varsle på.
+- [Målinger](#innsamlede-målinger): Hver serie `pve_*` monitoren kan varsle på.
 :::
 
 ## Slik fungerer det
 
-OneUptimes Proxmox-agent kjører på en maskin som kan nå Proxmox VE-API-et. Hvert 30. sekund henter den data fra klyngeinnsamlerne i prometheus-pve-exporter én gang og fra nodeinnsamlerne én gang for hver node, merker hver serie med ressursen den beskriver, og sender metrikkene til OneUptime over OTLP, stemplet med klyngens navn, `proxmox.cluster.name`. De første dataene registrerer klyngen. Proxmox VE 9 og nyere kan i stedet pushe metrikker selv, uten å installere noe; se [det innebygde pushet](#det-innebygde-pushet-i-proxmox-ve).
+OneUptimes Proxmox-agent kjører på en maskin som kan nå Proxmox VE-API-et. Hvert 30. sekund henter den data fra klyngeinnsamlerne i prometheus-pve-exporter én gang og fra nodeinnsamlerne én gang for hver node, merker hver serie med ressursen den beskriver, og sender målingene til OneUptime over OTLP, stemplet med klyngens navn, `proxmox.cluster.name`. De første dataene registrerer klyngen. Proxmox VE 9 og nyere kan i stedet pushe målinger selv, uten å installere noe; se [det innebygde pushet](#det-innebygde-pushet-i-proxmox-ve).
 
-En Proxmox-monitor er knyttet til én klynge. Hvert minutt kjører den spørringen sin over klyngens metrikker og sammenligner resultatet med kriteriene sine.
+En Proxmox-monitor er knyttet til én klynge. Hvert minutt kjører den spørringen sin over klyngens målinger og sammenligner resultatet med kriteriene sine.
 
 ```mermaid title="Fra en Proxmox-klynge til en hendelse"
 flowchart TB
@@ -21,7 +21,7 @@ flowchart TB
         direction LR
         pve["Proxmox VE-API"] --> agent["OneUptimes<br/>Proxmox-agent"]
     end
-    agent -->|"pve-metrikker<br/>over OTLP"| oneuptime["OneUptime"]
+    agent -->|"pve-målinger<br/>over OTLP"| oneuptime["OneUptime"]
     native["Innebygd push i<br/>Proxmox VE 9"] -.->|"alternativ"| oneuptime
     oneuptime -->|"første data"| registered["Klynge registrert"]
     oneuptime --> monitor["Proxmox-monitor"]
@@ -54,13 +54,13 @@ Velg klyngen i **Proxmox-klynge** under **Proxmox Monitor Configuration**. Hver 
 
 En ny monitor starter med **Cluster Stopped Reporting** under **Hva det skal varsles om**. Slik overvåker du noe annet:
 
-- **Endre** – velg en annen [mal](#ferdige-varslingsmaler). Den angir metrikkene, filtrene, aggregeringen, tidsintervallet og tersklene, og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
-- **Custom Metric** (under **Flere felt**) – velg én metrikk i **Proxmox Metric**, og angi deretter **Aggregering** og **Tidsintervall**. [Filtrene](#monitorinnstillinger) snevrer den inn til én type ressurs eller til én ressurs.
+- **Endre** – velg en annen [mal](#ferdige-varslingsmaler). Den angir målingene, filtrene, aggregeringen, tidsintervallet og tersklene, og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
+- **Custom Metric** (under **Flere felt**) – velg én måling i **Proxmox Metric**, og angi deretter **Aggregering** og **Tidsintervall**. [Filtrene](#monitorinnstillinger) snevrer den inn til én type ressurs eller til én ressurs.
 - **Avansert** (under **Flere felt**) – bygg spørringer og formler selv under **Velg målinger**, for eksempel en minneprosent fra `pve_memory_usage_bytes / pve_memory_size_bytes`. Bruk **Grupper etter** `id` for å vurdere hver ressurs for seg.
 
 ### Kontroller kriteriene
 
-Åpne hvert kriterium under **Kriterier** og kontroller **Måling**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller inn disse. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare merker at metrikken ikke sender data, så angi din egen terskel.
+Åpne hvert kriterium under **Kriterier** og kontroller **Måling**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller inn disse. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare merker at målingen ikke sender data, så angi din egen terskel.
 
 ### Opprett monitoren
 
@@ -79,10 +79,10 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 | **PVE ID** | Custom Metric, Avansert | Valgfritt. Nøyaktig samsvar med `pve.id`: et nodenavn (`pve1`), en VMID (`100`) eller `<node>/<storage>` (`pve1/local`). Kombiner det med et omfang for å treffe én ressurs. |
 | **Nodenavn** | Custom Metric, Avansert | Valgfritt. Bare en nodes egne serier (`pve.scope = node` og `pve.id`). Det kan ikke velge gjestene eller lagringen på den noden. |
 | **Guest ID** | Custom Metric, Avansert | Valgfritt. Nøyaktig samsvar med den rå etiketten `id`, for eksempel `qemu/100` eller `lxc/101`. Når den er angitt, ignoreres de andre filtrene. |
-| **Proxmox Metric** | Custom Metric | Én metrikk fra [katalogen](#innsamlede-metrikker). |
-| **Aggregering** | Custom Metric | Hvordan målinger kombineres: **Gjennomsnitt**, **Maksimum**, **Minimum**, **Sum** eller **Antall**. Starter på metrikkens vanlige aggregering. |
+| **Proxmox Metric** | Custom Metric | Én måling fra [katalogen](#innsamlede-målinger). |
+| **Aggregering** | Custom Metric | Hvordan målinger kombineres: **Gjennomsnitt**, **Maksimum**, **Minimum**, **Sum** eller **Antall**. Starter på målingens vanlige aggregering. |
 | **Tidsintervall** | Alle | Det glidende vinduet spørringen leser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter på **Past 1 Minute**; maler angir sitt eget. |
-| **Velg målinger** | Avansert | Spørringsbyggeren: **Måling**, **Aggregate by**, **Filter by attributes**, **Grupper etter**, pluss **Legg til måling** og **Legg til formel** for å kombinere spørringer. |
+| **Velg målinger** | Avansert | Spørringsbyggeren: **Måling**, **Aggreger etter**, **Filtrer etter attributter**, **Grupper etter**, pluss **Legg til måling** og **Legg til formel** for å kombinere spørringer. |
 
 ## Ressursidentitet
 
@@ -152,24 +152,24 @@ To varsler til leser notifikasjonene fra Proxmox VE selv, som klyngen sender som
 
 | Mal | Alvorlighetsgrad | Overvåker | Utløses når | Gjenoppretter når |
 | --- | --- | --- | --- | --- |
-| Backup Job Failed | Advarsel | Notifikasjonslogger med `pve.notification.type = vzdump` og `pve.notification.severity = error`, per node og jobb, siste 60 minutter | En sikkerhetskopijobb melder en feil | Neste kjøring av samme jobb lykkes |
+| Backup Job Failed | Advarsling | Notifikasjonslogger med `pve.notification.type = vzdump` og `pve.notification.severity = error`, per node og jobb, siste 60 minutter | En sikkerhetskopijobb melder en feil | Neste kjøring av samme jobb lykkes |
 | Node Fenced | Kritisk | Notifikasjonslogger med `pve.notification.type = fencing`, per node, siste 30 minutter | Proxmox VE isolerer en node (fencing) | Den noden isoleres ikke igjen på 30 minutter |
 
 Hver node og hver sikkerhetskopijobb får sin egen hendelse og sitt eget varsel. Varselet for en mislykket sikkerhetskopijobb forblir åpent til en senere kjøring av samme jobb lykkes, uansett hvor lang tid det tar.
 
 ### Det innebygde pushet i Proxmox VE
 
-Proxmox VE 9 og nyere kan pushe metrikker gjennom den innebygde OpenTelemetry-metrikkserveren, uten å installere noe – se [veiledningen for Proxmox-agenten](/docs/telemetry/proxmox). OneUptime gjør pushet om til de samme seriene `pve_*`, så katalogen og malene for CPU, minne og lagring virker med det.
+Proxmox VE 9 og nyere kan pushe målinger gjennom den innebygde OpenTelemetry-målingsserveren, uten å installere noe – se [veiledningen for Proxmox-agenten](/docs/telemetry/proxmox). OneUptime gjør pushet om til de samme seriene `pve_*`, så katalogen og malene for CPU, minne og lagring virker med det.
 
 **Node Offline** og **Cluster Quorum at Risk** virker også: hver node pusher bare sin egen status, så en node som slutter å rapportere, meldes nede (`pve_up` = 0) av nodene som fortsatt lever – se [Når en node slutter å rapportere](/docs/telemetry/proxmox#når-en-node-slutter-å-rapportere). **Guest Down**, **HA Resource in Error State**, **Guest Not Backed Up**, **Backup Running Too Long** og **Replication Failing** trenger data som bare agenten samler inn. De to [varslene på notifikasjoner](#varsler-på-notifikasjonene-fra-proxmox-ve) virker også med det: Proxmox VE sender notifikasjonene sine selv.
 
-## Innsamlede metrikker
+## Innsamlede målinger
 
 Agenten henter data fra prometheus-pve-exporter hvert 30. sekund: klyngeinnsamlerne én gang, på `PVE_HOST`, og nodeinnsamlerne én gang for hver node i `PVE_NODES`, fordi de bare leser noden exporteren spør. Nodeinnsamlerne er `config` (start ved oppstart) og `replication`; exporterens innsamlere `backup-info` (klynge) og `replication` er begge på som standard.
 
 ### Tilgjengelighet
 
-| Metrikk | Enhet | Beskrivelse |
+| Måling | Enhet | Beskrivelse |
 | --- | --- | --- |
 | `pve_up` | — | 1 når noden, gjesten eller lagringen er oppe, ellers 0. For `cluster/<name>` 1 mens klyngen har quorum. |
 | `pve_uptime_seconds` | sekunder | Oppetid for noden eller gjesten. |
@@ -177,7 +177,7 @@ Agenten henter data fra prometheus-pve-exporter hvert 30. sekund: klyngeinnsamle
 
 ### Node
 
-| Metrikk | Enhet | Beskrivelse |
+| Måling | Enhet | Beskrivelse |
 | --- | --- | --- |
 | `pve_node_info` | antall | Nodemetadata, alltid 1 mens noden rapporterer. En sum legger sammen hver skraping i et minutt, så den teller ikke noder. |
 | `pve_cpu_usage_ratio` | forhold | CPU i bruk som et forhold på 0–1 av tilgjengelig CPU. |
@@ -189,7 +189,7 @@ CPU- og minneseriene rapporteres også for hver gjest, på id-ene `qemu/*` og `l
 
 ### Gjest
 
-| Metrikk | Enhet | Beskrivelse |
+| Måling | Enhet | Beskrivelse |
 | --- | --- | --- |
 | `pve_guest_info` | antall | Gjestemetadata (navn, node, type `qemu` eller `lxc`) i etiketter. Alltid 1. |
 | `pve_network_receive_bytes` | byte | Byte mottatt av gjesten. En teller over hele levetiden. |
@@ -199,9 +199,9 @@ CPU- og minneseriene rapporteres også for hver gjest, på id-ene `qemu/*` og `l
 | `pve_onboot_status` | antall | 1 når gjesten starter ved nodens oppstart. En stoppet gjest med denne innstillingen er som regel uplanlagt nedetid. |
 | `pve_lock_state` | — | Låsen Proxmox VE holder på en gjest mens en oppgave endrer den, én serie per lås (`backup`, `migrate`, `snapshot`, …), 1 på den som holdes. Filtrer på etiketten `state`. |
 
-### Lager
+### Lagring
 
-| Metrikk | Enhet | Beskrivelse |
+| Måling | Enhet | Beskrivelse |
 | --- | --- | --- |
 | `pve_disk_usage_bytes` | byte | Brukte byte på disken eller lagringen. For en QEMU-gjest viser den 0 med mindre QEMU-gjesteagenten er installert. |
 | `pve_disk_size_bytes` | byte | Total størrelse på disken eller lagringen. |
@@ -210,7 +210,7 @@ CPU- og minneseriene rapporteres også for hver gjest, på id-ene `qemu/*` og `l
 
 ### HA
 
-| Metrikk | Enhet | Beskrivelse |
+| Måling | Enhet | Beskrivelse |
 | --- | --- | --- |
 | `pve_ha_state` | — | Én serie per HA-tilstand (`started`, `stopped`, `error`, …) for hver HA-ressurs, 1 på gjeldende tilstand. Filtrer på etiketten `state` for å varsle på en tilstand. |
 
@@ -218,7 +218,7 @@ CPU- og minneseriene rapporteres også for hver gjest, på id-ene `qemu/*` og `l
 
 Fra exporterens innsamler `backup-info` på klyngenivå. De rapporterer bare dekning av sikkerhetskopi-**jobber**:
 
-| Metrikk | Enhet | Beskrivelse |
+| Måling | Enhet | Beskrivelse |
 | --- | --- | --- |
 | `pve_not_backed_up_total` | antall | Gjester som ikke er med i noen sikkerhetskopijobb. Én klyngeomfattende serie, `id` `cluster/<name>`, som også rapporteres ved 0. |
 | `pve_not_backed_up_info` | antall | Én serie per udekket gjest, alltid 1, merket med gjestens `id`. Den forsvinner så snart gjesten blir med i en sikkerhetskopijobb. |
@@ -227,7 +227,7 @@ Fra exporterens innsamler `backup-info` på klyngenivå. De rapporterer bare dek
 
 Fra exporterens innsamler `replication` på nodenivå, lest fra hver node i `PVE_NODES`. Seriene finnes bare når klyngen har replikeringsjobber, og bærer jobb-id-en i `id`:
 
-| Metrikk | Enhet | Beskrivelse |
+| Måling | Enhet | Beskrivelse |
 | --- | --- | --- |
 | `pve_replication_failed_syncs` | antall | Mislykkede synkroniseringsforsøk på rad. Over 0 betyr at replikaen er i ferd med å bli foreldet. |
 | `pve_replication_duration_seconds` | sekunder | Hvor lang tid den siste synkroniseringen tok. |
@@ -238,19 +238,19 @@ Fra exporterens innsamler `replication` på nodenivå, lest fra hver node i `PVE
 
 ## Overvåkingskriterier
 
-Et kriterium sammenligner en av monitorens spørringer eller formler med en terskel. Kriteriene til en Proxmox-monitor har ingen **Filtertype**: hver regel kontrollerer metrikkverdien, med disse feltene.
+Et kriterium sammenligner en av monitorens spørringer eller formler med en terskel. Kriteriene til en Proxmox-monitor har ingen **Filtertype**: hver regel kontrollerer målingsverdien, med disse feltene.
 
 | Felt | Hva det gjør |
 | --- | --- |
 | **Måling** | Spørringen eller formelen som kontrolleres, etter variabelnavnet. |
 | **Aggregering** | Hvordan verdiene i vinduet blir til ett svar: **Gjennomsnitt**, **Sum**, **Maksimumsverdi**, **Minimumsverdi**, **Alle verdier** (hver verdi må samsvare, i hele vinduet) eller **Minst én verdi** (én er nok). |
-| **Betingelse** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** eller **Lik** – eller en avviksbetingelse: **Unormalt høy**, **Unormalt lav** eller **Avvikende**. **Ingen data** stemmer når spørringen ikke ga noe i vinduet, og **Har data** når den ga noe. **Ventes å stige over** og **Ventes å falle under** treffer når metrikkens trend i vinduet er forbi terskelen ved slutten av **Tidshorisont**. |
-| **Terskel** | Verdien det sammenlignes med. En liste over enheter står ved siden av når metrikken har en enhet. Vises ikke for avviksbetingelser. |
+| **Betingelse** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** eller **Lik** – eller en avviksbetingelse: **Unormalt høy**, **Unormalt lav** eller **Avvikende**. **Ingen data** stemmer når spørringen ikke ga noe i vinduet, og **Har data** når den ga noe. **Ventes å stige over** og **Ventes å falle under** treffer når målingens trend i vinduet er forbi terskelen ved slutten av **Tidshorisont**. |
+| **Terskel** | Verdien det sammenlignes med. En liste over enheter står ved siden av når målingen har en enhet. Vises ikke for avviksbetingelser. |
 | **Følsomhet** | Bare avviksbetingelser. **Lav** (4σ), **Middels** (3σ, standard) eller **Høy** (2σ). |
 | **Grunnlinjevindu** | Bare avviksbetingelser. 14 dager (standard), 28, 60 eller 90 dager med historikk. |
 | **Hvis ingen data** | Under **Flere felt**. Hva som skjer når vinduet ikke har noen målinger: **Ignore** (standard), **Treat As Zero** eller **Utløser**. |
 
-Avviksbetingelser sammenligner hver verdi med samme time i uken i grunnlinjen. De blir værende i en «Learning»-tilstand og gir ingenting før grunnlinjevinduet inneholder nok historikk. Denne monitoren filtrerer spørringene sine etter attributter, så hver spørring, og hver serie i en gruppert spørring, sammenlignes med sin egen historikk, så langt tilbake som metrikkene dine beholdes. Er det under to uker, blir en sum, en telling eller en spørring på et histogram værende i den tilstanden for alltid, og alt annet sammenlignes med alle seriene til metrikken. En persentil av et histogram blir alltid værende i den tilstanden.
+Avviksbetingelser sammenligner hver verdi med samme time i uken i grunnlinjen. De blir værende i en «Learning»-tilstand og gir ingenting før grunnlinjevinduet inneholder nok historikk. Denne monitoren filtrerer spørringene sine etter attributter, så hver spørring, og hver serie i en gruppert spørring, sammenlignes med sin egen historikk, så langt tilbake som målingene dine beholdes. Er det under to uker, blir en sum, en telling eller en spørring på et histogram værende i den tilstanden for alltid, og alt annet sammenlignes med alle seriene til målingen. En persentil av et histogram blir alltid værende i den tilstanden.
 
 Hvert kriterium sier også hva som skal skje når det samsvarer: endre monitorstatusen, opprette et varsel eller erklære en hendelse. Kriterier kontrolleres ovenfra og ned, og det første som samsvarer, avgjør.
 
@@ -260,11 +260,11 @@ En monitor du ikke bygger fra en mal, starter med to kriterier:
 
 | Rekkefølge | Kriterium | Samsvarer når | Deretter |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Den første spørringen har ingen data i hele vinduet | Markerer monitoren som **Frakoblet** og erklærer hendelsen «_monitor name_ is offline», som løser seg selv når monitoren kommer seg. |
-| 2 | Check if _monitor name_ is online | Den første spørringen har data | Markerer monitoren som **I drift**. |
+| 1 | Sjekk om _monitornavn_ er frakoblet | Den første spørringen har ingen data i hele vinduet | Markerer monitoren som **Frakoblet** og erklærer hendelsen «_monitornavn_ er frakoblet», som løser seg selv når monitoren kommer seg. |
+| 2 | Sjekk om _monitornavn_ er tilkoblet | Den første spørringen har data | Markerer monitoren som **I drift**. |
 
 > [!IMPORTANT]
-> En verdi på `0` er data, så en metrikk som ofte er null, som omstarter eller feil, gjør ikke monitoren frakoblet. For å få varsel om en verdi, start fra en mal eller legg til et kriterium med en terskel. Når ingen data kommer i det hele tatt og ingen kriterier passer, beholder monitoren statusen sin, og åpne hendelser forblir åpne: stillhet er ikke bedring. Tid da OneUptime selv ikke mottok data, regnes aldri som manglende data: en sjekk der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
+> En verdi på `0` er data, så en måling som ofte er null, som omstarter eller feil, gjør ikke monitoren frakoblet. For å få varsel om en verdi, start fra en mal eller legg til et kriterium med en terskel. Når ingen data kommer i det hele tatt og ingen kriterier passer, beholder monitoren statusen sin, og åpne hendelser forblir åpne: stillhet er ikke bedring. Tid da OneUptime selv ikke mottok data, regnes aldri som manglende data: en sjekk der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
 ## Feilsøking
 
@@ -272,7 +272,7 @@ En monitor du ikke bygger fra en mal, starter med to kriterier:
 Klynger registrerer seg selv fra agentens data. Kontroller at agenten kjører og sender data (se [veiledningen for Proxmox-agenten](/docs/telemetry/proxmox)), og at `PROXMOX_CLUSTER_NAME` er angitt.
 :::
 
-:::details Gjestemetrikker mangler
+:::details Gjestemålinger mangler
 Gjesteserier kommer fra exporterens klyngeinnsamler, som den medfølgende konfigurasjonen slår på med innsamlingsparameteren `cluster=1`. Hvis du har endret innsamlerkonfigurasjonen, gjenoppretter du den.
 :::
 
@@ -284,7 +284,7 @@ Malen tar gjennomsnittet av `pve_cpu_usage_ratio` per `id`, så hver node kontro
 Med det innebygde pushet i Proxmox VE ser en node som er tatt ut av klyngen, lik ut som en som har gått ned: den sluttet å rapportere, så nodene som fortsatt lever, fortsetter å melde den nede. Åpne nodens side og klikk på **Fjern node** – noden forsvinner, og varselet løses. Ellers forblir den frakoblet i opptil 7 dager. Agenten har ikke dette problemet: den spør klyngen, som ikke lenger viser noden.
 :::
 
-:::details Sikkerhetskopi- eller replikeringsmetrikker mangler
+:::details Sikkerhetskopi- eller replikeringsmålinger mangler
 `pve_not_backed_up_*` kommer fra exporterens innsamler `backup-info` og `pve_replication_*` fra innsamleren `replication`. Begge er på som standard og dekkes av den medfølgende konfigurasjonen: `cluster=1` én gang, og `node=1` for hver node i `PVE_NODES`. En node som mangler i `PVE_NODES`, sender ingen replikeringsjobber, og gjestene dens ingen flagg for start ved oppstart, så **Guest Down** utløses aldri for dem. Hvis du kjører din egen exporter, kontrollerer du at du ikke har slått dem av. `pve_replication_*` finnes bare når klyngen har jobber for lagringsreplikering.
 :::
 
@@ -296,7 +296,7 @@ Serier for nettverks- og disk-I/O er tellere over hele levetiden, og kriterier s
 
 :::cards
 - [Proxmox-agent](/docs/telemetry/proxmox): Installer agenten, eller sett opp det innebygde pushet.
-- [Ceph-overvåking](/docs/monitor/ceph-monitor): Overvåk Ceph-lagringen bak en Proxmox-klynge.
-- [VMware-overvåking](/docs/monitor/vmware-monitor): Samme type monitor for vSphere.
+- [Ceph-monitor](/docs/monitor/ceph-monitor): Overvåk Ceph-lagringen bak en Proxmox-klynge.
+- [VMware-monitor](/docs/monitor/vmware-monitor): Samme type monitor for vSphere.
 - [Hendelser – Oversikt](/docs/incidents/index): Hva som skjer etter at et kriterium har erklært en hendelse.
 :::

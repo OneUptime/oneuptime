@@ -71,6 +71,7 @@ import {
   OnCallTestPageDelivery,
   OnCallTestPageDeliveryStatus,
   OnCallTestPageKind,
+  OnCallTestPageLine,
   OnCallTestPageLineCode,
   OnCallTestPageRecordKind,
   OnCallTestPageResult,
@@ -78,12 +79,21 @@ import {
   OnCallTestPageStep,
   OnCallTestPageStepStatus,
 } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
-import { getOnCallTestPageNotVerifiedMessage } from "../../../Types/OnCallDutyPolicy/OnCallTestPageLine";
+import {
+  getOnCallTestPageNotVerifiedMessage,
+  readOnCallTestPageDeliveryLine,
+} from "../../../Types/OnCallDutyPolicy/OnCallTestPageLine";
+
+import {
+  DrawnLine,
+  drawLine,
+  isDrawnAsWritten,
+} from "../../Helpers/BidiLayout";
 import {
   getProjectNotificationChannelOffMessage,
   ProjectNotificationChannel,
 } from "../../../Utils/Project/NotificationChannels";
-import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 import { CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME } from "../../../UI/Utils/LineDirection";
 
 const LOCALES_DIR: string = path.resolve(
@@ -124,7 +134,7 @@ function worded(
 const SMS_NOT_VERIFIED_KEY: string =
   "This SMS method is not verified, so the test can't use it.";
 const CALLS_OFF_KEY: string =
-  "Phone calls are off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notifications → Notification Channels.";
+  "Phone calls are off in this project. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notifications → Notification Channels.";
 const NOT_A_MEMBER_KEY: string = "{{name}} is not a member of this project.";
 const NO_VERIFIED_METHOD_KEY: string =
   "{{name}} has no verified notification method.";
@@ -599,4 +609,319 @@ describe("the result keeps its parts where tests and pages find them", () => {
       within(result).getByTestId("test-page-delivery-address"),
     ).toHaveTextContent("+15550100");
   });
+});
+
+/*
+ * ISSUE #7550: ONEUPTIME'S OWN FAILURE LINES, IN THE READER'S WORDS.
+ *
+ * The Notification service refusing a request or answering with an error,
+ * a request that never reached it, a send that failed with no words of its
+ * own, a balance too low and a chat workspace that is not connected are
+ * OneUptime's sentences, not a provider's - and they reached a German, a
+ * Persian or an Arabic reader in English, because no code stood for them.
+ * The server now reads each back into a code with its values (the real
+ * reader is used here, on the English a row holds today), and the
+ * Dashboard words it. The service's own words after a refusal are not
+ * OneUptime's: they go into the sentence as written, set apart, so on an
+ * Arabic or Persian page they read left to right, their full stop at
+ * their end.
+ */
+const SERVICE_WORDS: string = "Email ana@ is not in valid format.";
+
+interface OwnLine {
+  // What the row of the person's on-call timeline holds, as written today.
+  english: string;
+  channel: OnCallPageChannel;
+  // The Dashboard's sentence(s) for it, and the values each names.
+  keys: Array<string>;
+  values?: Record<string, string> | undefined;
+  // Values the sentence holds as written: set apart on a page read from the right.
+  writtenValues?: Array<string> | undefined;
+}
+
+const WHO_CAN_ADD_BALANCE_KEY: string =
+  "A Project Owner or someone with Manage Billing can add balance in Project Settings → Notifications → Notification Channels.";
+
+const OWN_LINES: Record<string, OwnLine> = {
+  refusedWithWords: {
+    english: `The Notification service refused to send this (HTTP 400): ${SERVICE_WORDS}`,
+    channel: OnCallPageChannel.Email,
+    keys: [
+      "The Notification service refused to send this (HTTP {{statusCode}}): {{words}}",
+    ],
+    values: { statusCode: "400", words: SERVICE_WORDS },
+    writtenValues: [SERVICE_WORDS],
+  },
+  refused: {
+    english: "The Notification service refused to send this (HTTP 422).",
+    channel: OnCallPageChannel.Webhook,
+    keys: [
+      "The Notification service refused to send this (HTTP {{statusCode}}).",
+    ],
+    values: { statusCode: "422" },
+  },
+  answerFailed: {
+    english:
+      "The Notification service answered with an error (HTTP 500), so this may not have been sent: Server Error.",
+    channel: OnCallPageChannel.SMS,
+    keys: [
+      "The Notification service answered with an error (HTTP {{statusCode}}), so this may not have been sent: {{words}}",
+    ],
+    values: { statusCode: "500", words: "Server Error." },
+    writtenValues: ["Server Error."],
+  },
+  answerFailedNoStatus: {
+    english:
+      "The Notification service answered with an error, so this may not have been sent.",
+    channel: OnCallPageChannel.Call,
+    keys: [
+      "The Notification service answered with an error, so this may not have been sent.",
+    ],
+  },
+  notReached: {
+    english:
+      "Could not reach the Notification service to send this (ECONNREFUSED).",
+    channel: OnCallPageChannel.WhatsApp,
+    keys: [
+      "Could not reach the Notification service to send this ({{reason}}).",
+    ],
+    values: { reason: "ECONNREFUSED" },
+  },
+  sendFailedSms: {
+    english: "Error sending SMS.",
+    channel: OnCallPageChannel.SMS,
+    keys: ["Error sending SMS."],
+  },
+  sendFailedPush: {
+    english: "Error sending push notification.",
+    channel: OnCallPageChannel.Push,
+    keys: ["Error sending push notification."],
+  },
+  sendFailedTeams: {
+    english: "Error sending Microsoft Teams message.",
+    channel: OnCallPageChannel.MicrosoftTeams,
+    keys: ["Error sending Microsoft Teams message."],
+  },
+  sendFailedCustomChannel: {
+    english: "Error sending to Ops bridge.",
+    channel: OnCallPageChannel.CustomChannel,
+    keys: ["Error sending to {{name}}."],
+    values: { name: "Ops bridge" },
+    writtenValues: ["Ops bridge"],
+  },
+  balanceUsedUp: {
+    english:
+      "This project's balance is used up. A Project Owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
+    channel: OnCallPageChannel.SMS,
+    keys: ["This project's balance is used up.", WHO_CAN_ADD_BALANCE_KEY],
+  },
+  balanceLessThanCost: {
+    english:
+      "This project's balance (0.05 USD) is less than this call costs (0.35 USD). A Project Owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
+    channel: OnCallPageChannel.Call,
+    keys: [
+      "This project's balance ({{balance}}) is less than this call costs ({{cost}}).",
+      WHO_CAN_ADD_BALANCE_KEY,
+    ],
+    values: { balance: "0.05 USD", cost: "0.35 USD" },
+  },
+  workspaceProjectNotConnected: {
+    english:
+      "This project is not connected to Slack. Please go to Project Settings and connect the account.",
+    channel: OnCallPageChannel.Slack,
+    keys: [
+      "This project is not connected to {{workspace}}, so nothing was sent there. A Project Admin can connect it in Project Settings → Workspace → {{workspace}}.",
+    ],
+    values: { workspace: "Slack" },
+  },
+  workspaceAccountNotConnected: {
+    english:
+      "This account is not connected to Microsoft Teams. Please go to User Settings and connect the account.",
+    channel: OnCallPageChannel.MicrosoftTeams,
+    keys: [
+      "This {{workspace}} account is not connected to OneUptime in this project, so nothing was sent to it. Its owner can connect it in User Settings → Workspace → {{workspace}}.",
+    ],
+    values: { workspace: "Microsoft Teams" },
+  },
+};
+
+const OWN_LINE_NAMES: Array<string> = Object.keys(OWN_LINES);
+
+// A test whose one person got one message of each of OneUptime's own lines.
+function ownLinesResult(withCodes: boolean): OnCallTestPageResult {
+  const deliveries: Array<OnCallTestPageDelivery> = OWN_LINE_NAMES.map(
+    (name: string): OnCallTestPageDelivery => {
+      const line: OwnLine = OWN_LINES[name]!;
+      const code: OnCallTestPageLine | null = readOnCallTestPageDeliveryLine({
+        statusMessage: line.english,
+        channel: line.channel,
+      });
+
+      // The server's reader knows every one of them.
+      expect([name, code !== null]).toEqual([name, true]);
+
+      return delivery({
+        id: name,
+        channel: line.channel,
+        statusMessage: line.english,
+        ...(withCodes && code ? { statusMessageCode: code } : {}),
+      });
+    },
+  );
+
+  return {
+    ...endedResult(withCodes),
+    steps: [
+      {
+        id: "line-dee",
+        userName: "Dee Park",
+        status: OnCallTestPageStepStatus.Failed,
+        statusMessage: "",
+        deliveries: deliveries,
+      },
+    ],
+  };
+}
+
+// The line of OneUptime's own `name`, as the result draws it.
+function ownLine(name: string): HTMLElement {
+  return lineOf(
+    screen.getAllByTestId("test-page-delivery")[OWN_LINE_NAMES.indexOf(name)]!,
+  );
+}
+
+// The reader's words for `name`: each sentence filled, joined as drawn.
+function ownLineWords(language: string, name: string): string {
+  const line: OwnLine = OWN_LINES[name]!;
+
+  return line.keys
+    .map((key: string): string => {
+      let sentence: string = worded(language, key);
+
+      // Every place a value goes: a workspace is named twice.
+      for (const [value, text] of Object.entries(line.values || {})) {
+        sentence = sentence.split(`{{${value}}}`).join(text);
+      }
+
+      return sentence;
+    })
+    .join(" ");
+}
+
+describe.each(["en", "de", "fa", "ar"])(
+  "a %s reader reads OneUptime's own failure lines in their words (#7550)",
+  (language: string) => {
+    test.each(OWN_LINE_NAMES)("%s", async (name: string) => {
+      await renderIn(language, ownLinesResult(true));
+
+      expect(textOf(ownLine(name))).toBe(ownLineWords(language, name));
+    });
+
+    if (language !== "en") {
+      test("none of them reads OneUptime's English", async () => {
+        await renderIn(language, ownLinesResult(true));
+
+        for (const name of OWN_LINE_NAMES) {
+          const text: string = textOf(ownLine(name));
+
+          for (const english of [
+            OWN_LINES[name]!.english,
+            "Notification service",
+            "refused to send",
+            "may not have been sent",
+            "Could not reach",
+            "Error sending",
+            "Error making",
+            "This project's balance",
+            "is not connected to",
+            "Please go to",
+          ]) {
+            expect([name, english, text.includes(english)]).toEqual([
+              name,
+              english,
+              false,
+            ]);
+          }
+        }
+      });
+
+      test("the service's own words, and a channel's name, stay as written", async () => {
+        await renderIn(language, ownLinesResult(true));
+
+        for (const name of OWN_LINE_NAMES) {
+          for (const value of OWN_LINES[name]!.writtenValues || []) {
+            expect([name, textOf(ownLine(name)).includes(value)]).toEqual([
+              name,
+              true,
+            ]);
+          }
+        }
+      });
+    }
+  },
+);
+
+describe.each(["fa", "ar"])(
+  "on a %s page, OneUptime's own failure lines read right to left, the service's words set apart (#7550)",
+  (language: string) => {
+    test("each is a line of the page's own: no direction of its own", async () => {
+      await renderIn(language, ownLinesResult(true));
+
+      for (const name of OWN_LINE_NAMES) {
+        expect([name, ownLine(name).getAttribute("dir")]).toEqual([name, null]);
+        expect(ownLine(name).className).not.toContain(
+          CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+        );
+      }
+    });
+
+    test("the service's words and a channel's name are each set apart, and drawn left to right as written: the full stop at their end", async () => {
+      await renderIn(language, ownLinesResult(true));
+
+      for (const name of OWN_LINE_NAMES) {
+        const text: string = ownLine(name).textContent || "";
+
+        for (const value of OWN_LINES[name]!.writtenValues || []) {
+          const set: string = isolated(value);
+          const at: number = text.indexOf(set);
+
+          expect([name, value, at >= 0]).toEqual([name, value, true]);
+
+          const drawn: DrawnLine = drawLine(text, "rtl");
+
+          expect([
+            name,
+            value,
+            isDrawnAsWritten(drawn, at + 1, at + 1 + value.length),
+          ]).toEqual([name, value, true]);
+        }
+      }
+    });
+  },
+);
+
+describe("a result from a server that sends no codes for them reads as the server wrote it", () => {
+  test("in English, each line word for word, drawn as it always was", async () => {
+    await renderIn("en", ownLinesResult(false));
+
+    for (const name of OWN_LINE_NAMES) {
+      expect(ownLine(name).textContent).toBe(OWN_LINES[name]!.english);
+      expect(ownLine(name)).not.toHaveAttribute("dir");
+    }
+  });
+
+  test.each(["fa", "ar"])(
+    "in %s, each English line is a line of its own that reads left to right",
+    async (language: string) => {
+      await renderIn(language, ownLinesResult(false));
+
+      for (const name of OWN_LINE_NAMES) {
+        expect([name, ownLine(name).getAttribute("dir")]).toEqual([
+          name,
+          "ltr",
+        ]);
+        expect(ownLine(name).textContent).toBe(OWN_LINES[name]!.english);
+      }
+    },
+  );
 });

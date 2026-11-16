@@ -335,7 +335,7 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
             <Checkbox
               value={criteriaAlert.isPrivate === true}
               title="Private Alert"
-              description="When enabled, only the alert's owner users and members of its owner teams (plus project admins and owners) can view this alert."
+              description="When enabled, only the alert's owner users and members of its owner teams (plus Project Admins and Project Owners) can view this alert."
               onChange={(value: boolean) => {
                 updateField("isPrivate", value);
               }}

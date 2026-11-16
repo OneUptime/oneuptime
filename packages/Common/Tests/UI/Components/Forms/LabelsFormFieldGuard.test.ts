@@ -957,22 +957,39 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
     LABELS_ONLY,
   ),
   /*
-   * SLO create is one page: the name and the target, and everything that
-   * starts from a default folded with the labels (SloFormFields.ts).
+   * SLO create asks what the SLO measures first (the SLI type, and for a
+   * request SLO its services and for a latency one its threshold), then the
+   * name and the target, with everything that starts from a default folded
+   * with the labels (SloFormFields.ts).
    */
-  onePage(
-    `${DASHBOARD}/Pages/Slo/Slos.tsx`,
-    "ModelTable: SLOs",
-    ["name", "targetPercentage"],
-    [
-      "description",
-      "atRiskThresholdPercentage",
-      "windowType",
-      "windowDays",
-      "timezone",
-      "labels",
-    ],
-  ),
+  {
+    file: `${DASHBOARD}/Pages/Slo/Slos.tsx`,
+    label: "ModelTable: SLOs",
+    // A Metric SLO's metric has a step of its own (#8445).
+    steps: ["measures", "metric", "objective"],
+    rows: {
+      measures: {
+        open: [
+          "sliType",
+          "services",
+          "latencyThresholdInMilliseconds",
+          "requestFilter",
+        ],
+        folded: [],
+      },
+      objective: {
+        open: ["name", "targetPercentage"],
+        folded: [
+          "description",
+          "atRiskThresholdPercentage",
+          "windowType",
+          "windowDays",
+          "timezone",
+          "labels",
+        ],
+      },
+    },
+  },
   {
     /*
      * A device's details are edited in one place, here: the site and the

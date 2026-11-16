@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { formatReaderFigure } from "Common/Types/DateLanguage";
 import Host from "Common/Models/DatabaseModels/Host";
 import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
 import Route from "Common/Types/API/Route";
@@ -99,7 +100,8 @@ const LOST_NOTICE: string = translationKey(
 const NOT_REPORTED: string = translationKey("Not reported");
 
 function formatPercentage(value: number): string {
-  return `${value.toFixed(1)}%`;
+  // In the reader's digits and percent sign, on a chart as on a tile (#8349).
+  return formatReaderFigure(value, { decimals: 1, isPercent: true });
 }
 
 function formatLine(line: OpenStackAllocationLine, value: number): string {
@@ -214,7 +216,7 @@ const HypervisorOverview: FunctionComponent<{
     return {
       value:
         line.percent === null
-          ? "—"
+          ? undefined
           : formatOpenStackPercent(line.percent, {
               language: translator.language,
             }),
@@ -398,7 +400,7 @@ const HypervisorOverview: FunctionComponent<{
           iconColor="sky"
           value={
             row.instanceCount === null || row.instanceCount === undefined
-              ? "—"
+              ? undefined
               : translator.formatNumber(row.instanceCount)
           }
           sublabel={
@@ -423,7 +425,7 @@ const HypervisorOverview: FunctionComponent<{
             iconColor="blue"
             value={
               host.data.usage.cpuPercent === null
-                ? "—"
+                ? undefined
                 : `${Math.round(host.data.usage.cpuPercent)}%`
             }
             sublabel={
@@ -440,7 +442,7 @@ const HypervisorOverview: FunctionComponent<{
             iconColor="violet"
             value={
               host.data.usage.memoryPercent === null
-                ? "—"
+                ? undefined
                 : `${Math.round(host.data.usage.memoryPercent)}%`
             }
             sublabel={

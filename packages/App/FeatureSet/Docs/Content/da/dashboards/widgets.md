@@ -22,7 +22,7 @@ Start med det spørgsmål, flisen skal besvare:
 | Hvad er ét bestemt tal lige nu? | **Værdi**, eller **Måler** når det har et kendt interval |
 | Hvilke værter, tjenester eller endpoints skiller sig ud? | **Tabel** eller **Sportabel** |
 | Hvad sker der lige nu? | **Logstrøm**, **Sporliste**, **Hændelsesliste** eller **Advarselsliste** |
-| Er alle vores sites oppe? | **Overvågningsliste** |
+| Er alle vores sites oppe? | **Monitorliste** |
 | Holder vi den pålidelighed, vi har lovet? | **SLO** eller **SLO-liste** |
 | Kommer folk igennem et forløb, og kommer de tilbage? | **Tragt** eller **Fastholdelse af brugere** |
 | Hvilken tilstand er vores klynger og værter i? | En widget fra gruppen Infrastruktur |
@@ -49,13 +49,13 @@ Disse fire widgets læser en metrikforespørgsel, bygget som metrikudforskeren b
 
 ### Diagram
 
-En tidsserie med en eller flere metrikforespørgsler over dashboardets tidsinterval. **Chart Type** tegner den som et linje-, søjle-, areal-, stablet areal- eller cirkeldiagram. **Additional Queries** lægger flere metrikker på de samme akser, og **Formulas** kombinerer dem med `+`, `-`, `*`, `/`, `%`, `^` og parenteser, som i `(1 - a) * 100`. Hver forespørgsels visningsindstillinger tilføjer en forklaring og en enhed, en farve, advarsels- og kritiske linjer og en rate pr. sekund for tællere, der kun vokser.
+En tidsserie med en eller flere metrikforespørgsler over dashboardets tidsinterval. **Diagramtype** tegner den som et linje-, søjle-, areal-, stablet areal- eller cirkeldiagram. **Yderligere forespørgsler** lægger flere metrikker på de samme akser, og **Formler** kombinerer dem med `+`, `-`, `*`, `/`, `%`, `^` og parenteser, som i `(1 - a) * 100`. Hver forespørgsels visningsindstillinger tilføjer en forklaring og en enhed, en farve, advarsels- og kritiske linjer og en rate pr. sekund for tællere, der kun vokser.
 
 Brug den, når linjens form fortæller historien: latenstid, fejl, gennemløb eller køens længde.
 
 ### Værdi
 
-Ét stort tal med en sparkline: forespørgslens værdi over hele tidsintervallet, lagt sammen for en sum eller en optælling, den højeste for et maksimum, den laveste for et minimum og ellers gennemsnittet. En pil sammenligner anden halvdel af intervallet med første, hver halvdel beregnet på samme måde, farvet efter **Trend Direction**: om en højere værdi er bedre eller dårligere, eller udledt af metrikkens navn. Peg på pilen for at se begge halvdeles værdier, og på sparklinen for at aflæse et punkts værdi og tidspunkt. **Advarselstærskel** gør baggrunden gul og **Kritisk tærskel** rød, når værdien når dem.
+Ét stort tal med en sparkline: forespørgslens værdi over hele tidsintervallet, lagt sammen for en sum eller en optælling, den højeste for et maksimum, den laveste for et minimum og ellers gennemsnittet. En pil sammenligner anden halvdel af intervallet med første, hver halvdel beregnet på samme måde, farvet efter **Trendretning**: om en højere værdi er bedre eller dårligere, eller udledt af metrikkens navn. Peg på pilen for at se begge halvdeles værdier, og på sparklinen for at aflæse et punkts værdi og tidspunkt. **Advarselstærskel** gør baggrunden gul og **Kritisk tærskel** rød, når værdien når dem.
 
 Brug den, når ét tal besvarer spørgsmålet: fejlraten, P95-latenstiden eller antal anmodninger håndteret i dag.
 
@@ -67,7 +67,7 @@ Brug den, når værdien lever i et kendt interval: CPU- eller diskforbrug i proc
 
 ### Tabel
 
-Metrikværdier som rækker. **Group By Attributes** giver én række pr. værdi, for eksempel én pr. `host.name`; uden den er hver række et tidsrum. **Metrics & Columns** angiver kolonnerne: metrikker og formler over dem, som tilgængelighed i procent. Når du grupperer, gør **Reduce across time** hver rækkes serie til én værdi: den seneste værdi, gennemsnittet, summen, minimum eller maksimum.
+Metrikværdier som rækker. **Gruppér efter attributter** giver én række pr. værdi, for eksempel én pr. `host.name`; uden den er hver række et tidsrum. **Metrikker og kolonner** angiver kolonnerne: metrikker og formler over dem, som tilgængelighed i procent. Når du grupperer, gør **Saml over tid** hver rækkes serie til én værdi: den seneste værdi, gennemsnittet, summen, minimum eller maksimum.
 
 Slå **Farv efter tærskler** til i en kolonne for at farve dens værdier: En værdi, der når **Advarselstærskel**, bliver ravgul med en trekant, og en, der når **Kritisk tærskel**, bliver rød og fed med en cirkel. En procentkolonne starter ved 80 og 90. For en kolonne, hvor lave værdier er problemet, som ledig diskplads, skal du vælge **Lavere er værre** under **Retning**.
 
@@ -120,11 +120,11 @@ Widgetten genindlæses, hver gang dashboardet opdateres, så en widget, der hent
 
 #### Tilladelser
 
-**Run JavaScript** (slået til som standard) kører dit script. Slå den fra for kun at gengive markup og typografier: scriptet udelades så helt fra widgetten i stedet for blot at blive blokeret.
+**Kør JavaScript** (slået til som standard) kører dit script. Slå den fra for kun at gengive markup og typografier: scriptet udelades så helt fra widgetten i stedet for blot at blive blokeret.
 
-**Open links in a new tab** (slået til som standard) lader links og `window.open` åbne en browserfane. Links åbner altid i en ny fane; widgetten kan aldrig få selve dashboardet til at navigere.
+**Åbn links i en ny fane** (slået til som standard) lader links og `window.open` åbne en browserfane. Links åbner altid i en ny fane; widgetten kan aldrig få selve dashboardet til at navigere.
 
-**Allow forms to submit** (slået fra som standard) lader en `<form>` inde i widgetten blive sendt.
+**Tillad indsendelse af formularer** (slået fra som standard) lader en `<form>` inde i widgetten blive sendt.
 
 Den, der kan redigere dashboardet, bestemmer, hvad denne widget kører, og alle, der ser dashboardet, kører det: på et offentligt dashboard gælder det også anonyme besøgende. Behandl redigeringsadgang til et dashboard med en HTML-widget, som du ville behandle adgang til enhver anden kode, du udgiver.
 
@@ -142,13 +142,13 @@ Den, der kan redigere dashboardet, bestemmer, hvad denne widget kører, og alle,
 
 Trace-widgets tæller kun rod-spans, som trace-udforskeren gør, medmindre du medtager underordnede spans i deres indstillinger. Et almindeligt mønster er et latenstidsdiagram øverst med en liste over langsomme traces nedenunder.
 
-## Hændelser, advarsler og overvågninger
+## Hændelser, advarsler og monitorer
 
 | Widget | Hvad den viser | Filtre |
 | --- | --- | --- |
-| **Hændelsesliste** | Hændelser med deres tilstand og alvorlighed. | Uløste, kvitterede eller løste; alvorlighed, tilstand, overvågninger og etiketter. |
-| **Advarselsliste** | Advarsler med deres tilstand og alvorlighed. | Uløste, kvitterede eller løste; alvorlighed, tilstand, overvågninger og etiketter. |
-| **Overvågningsliste** | Overvågninger med deres aktuelle status. | I drift eller ej, status, overvågningstype og etiketter, eller en **Etiketvariabel**, som seerne vælger i værktøjslinjen. |
+| **Hændelsesliste** | Hændelser med deres tilstand og alvorlighed. | Uløste, bekræftede eller løste; alvorlighed, tilstand, monitorer og etiketter. |
+| **Advarselsliste** | Advarsler med deres tilstand og alvorlighed. | Uløste, bekræftede eller løste; alvorlighed, tilstand, monitorer og etiketter. |
+| **Monitorliste** | Monitorer med deres aktuelle status. | I drift eller ej, status, monitortype og etiketter, eller en **Etiketvariabel**, som seerne vælger i værktøjslinjen. |
 
 Som de fleste listewidgets kan disse tre tegne en honeycomb af celler farvet efter status i stedet for en tabel: vælg det under **Visningstilstand**. De viser den aktuelle tilstand, uanset dashboardets tidsinterval.
 
@@ -160,12 +160,12 @@ Som de fleste listewidgets kan disse tre tegne en honeycomb af celler farvet eft
 
 **Indstillinger**: hvilket SLO, eller det SLO, der er valgt i en dashboard-variabel; hvilket af dets tre tal (SLI, Error Budget Remaining eller Burn Rate); visning som Tile eller Diagram; og en valgfri titel.
 
-- **Tile** viser det aktuelle tal, plus en anden linje, hvor der er en: målet under SLI, de resterende minutter under fejlbudgettet. En statusmærkat farver det hele.
+- **Felt** viser det aktuelle tal, plus en anden linje, hvor der er en: målet under SLI, de resterende minutter under fejlbudgettet. En statusmærkat farver det hele.
 - **Diagram** tegner det samme tal over dashboardets tidsinterval, med målet markeret som en stiplet linje på SLI-serien. Historikken skrives med få minutters mellemrum af evalueringsworkeren, så et helt nyt SLO vises som et tomt diagram, indtil det er blevet evalueret første gang.
 
 Brug den, når dashboardet besvarer "holder vi det, vi har lovet?" snarere end "hvad sker der lige nu?".
 
-SLO-widgetten virker på [offentlige dashboards](/docs/dashboards/sharing). Det, der offentliggøres, er SLO'ets nøgletal (navn, mål, aktuel SLI, resterende fejlbudget, burn rate og status), uanset hvilket af dem widgetten tegner. Definitionen forbliver privat: de overvågninger, det holder øje med, dets etiketter, beskrivelse, forespørgsel og evalueringsplan sendes aldrig til en offentlig seer. En Tile-widget offentliggør kun disse aktuelle tal; en Diagram-widget offentliggør også historikken for den ene serie, den tegner, og intet andet.
+SLO-widgetten virker på [offentlige dashboards](/docs/dashboards/sharing). Det, der offentliggøres, er SLO'ets nøgletal (navn, mål, aktuel SLI, resterende fejlbudget, burn rate og status), uanset hvilket af dem widgetten tegner. Definitionen forbliver privat: de monitorer, det holder øje med, dets etiketter, beskrivelse, forespørgsel og evalueringsplan sendes aldrig til en offentlig seer. En Tile-widget offentliggør kun disse aktuelle tal; en Diagram-widget offentliggør også historikken for den ene serie, den tegner, og intet andet.
 
 ### SLO List
 
@@ -194,13 +194,13 @@ Hver af disse widgets viser de ressourcer, en agent eller en collector rapporter
 | **Proxmox** | **Noder**, **Gæster** | Proxmox-agenten |
 | **VMware** | **Værter**, **Virtuelle maskiner** | VMware-agenten, eller et vCenter, du forbinder |
 | **Ceph** | **OSD'er**, som en væg farvet efter tilstand, og **Pools** | Ceph-agenten |
-| **Lagerarrays** | **Diskenheder**, og **Hardware** som en væg farvet efter status | Storage Array-agenten |
+| **Lagerarrays** | **Diskenheder**, og **Hardware** som en væg farvet efter status | Lagerarray-agenten |
 
 Brug dem til én side, der blander tilstanden af din infrastruktur med telemetrien fra de arbejdsbelastninger, der kører på den.
 
 ### Network Map
 
-Dine netværkssites tegnet på verdenskortet, hvert fastgjort på sin egen breddegrad og længdegrad og farvet efter den overvågningsstatus, der er samlet på det. Sites tæt på hinanden deler en markør med antallet skrevet indeni; en markør, der står for præcis ét site, åbner det site, når du klikker på den.
+Dine netværkssites tegnet på verdenskortet, hvert fastgjort på sin egen breddegrad og længdegrad og farvet efter den monitorstatus, der er samlet på det. Sites tæt på hinanden deler en markør med antallet skrevet indeni; en markør, der står for præcis ét site, åbner det site, når du klikker på den.
 
 Kortet indrammer sig selv om de sites, det har tegnet: et netværk inden for ét land fylder rammen med det land, og ét spredt over flere kontinenter åbner på hele verden. Der er ingen knapper til at zoome eller panorere: en dashboardflise er et billede, og siden Network Map under Network er der, hvor du går hierarkiet igennem.
 

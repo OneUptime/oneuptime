@@ -3,7 +3,7 @@
 Send advarsler fra [Prometheus Alertmanager](https://prometheus.io/docs/alerting/latest/alertmanager/) til OneUptime, så hver advarsel, der udløses, bliver en hændelse, der kalder dit vagthold op og løses, når advarslen er kommet sig. Alertmanager poster sine notifikationer til en webhook-modtager, så der er intet at installere på nogen af siderne.
 
 :::cards
-- [Vælg, hvordan OneUptime modtager advarsler](#vælg-hvordan-oneuptime-modtager-advarsler): En monitor for indgående anmodninger eller dit eget workflow.
+- [Vælg, hvordan OneUptime modtager advarsler](#vælg-hvordan-oneuptime-modtager-advarsler): En monitor for indgående anmodninger eller din egen arbejdsgang.
 - [Modtag advarsler med en monitor](#modtag-advarsler-med-en-monitor): Én hændelse pr. advarsel, løst ved genopretning.
 - [Konfigurer Alertmanager](#konfigurer-alertmanager): En webhook-modtager og den rute, der bruger den.
 - [Fejlfinding](#fejlfinding): Når advarsler ikke kommer frem, eller hændelser bliver ved med at være åbne.
@@ -25,7 +25,7 @@ Prometheus evaluerer dine advarselsregler og sender de advarsler, der udløses, 
 ## Før du går i gang
 
 - En Alertmanager, hvis `alertmanager.yml` du kan redigere, og som kan nå din OneUptime over HTTPS.
-- I OneUptime retten til at oprette monitorer, eller workflows, hvis du vælger den vej.
+- I OneUptime retten til at oprette monitorer, eller arbejdsgange, hvis du vælger den vej.
 
 ## Vælg, hvordan OneUptime modtager advarsler
 
@@ -34,7 +34,7 @@ Sæt OneUptime op først: det giver dig den URL, Alertmanager sender til.
 | Vej | Brug den, når |
 | --- | --- |
 | En monitor for indgående anmodninger (anbefalet) | Du vil have, at hver advarsel bliver en hændelse, der kalder vagten op og løses, når advarslen er kommet sig. Der er intet at bygge. |
-| Et workflow med en Webhook-trigger | Du har brug for din egen logik: filtrere advarsler, omforme dem eller kalde andre systemer først. Et workflow åbner én hændelse pr. notifikation, ikke pr. advarsel, og løser den ikke ved genopretning. |
+| En arbejdsgang med en Webhook-trigger | Du har brug for din egen logik: filtrere advarsler, omforme dem eller kalde andre systemer først. En arbejdsgang åbner én hændelse pr. notifikation, ikke pr. advarsel, og løser den ikke ved genopretning. |
 
 Begge får den samme JSON fra den samme modtager, så du kan begynde med den ene og skifte senere ved at ændre én URL i `alertmanager.yml`.
 
@@ -178,14 +178,14 @@ amtool alert add test_alert severity=warning \
   --alertmanager.url=http://localhost:9093
 ```
 
-## Modtag advarsler med et workflow
+## Modtag advarsler med en arbejdsgang
 
-Brug et [workflow](/docs/workflows/index), når du har brug for dine egne trin mellem Alertmanager og hændelsen.
+Brug et [arbejdsgang](/docs/workflows/index), når du har brug for dine egne trin mellem Alertmanager og hændelsen.
 
 :::steps
-### Opret workflowet
+### Opret arbejdsgangen
 
-Gå til **Arbejdsgange**, klik på **Opret arbejdsgang** og derefter på **Start fra bunden**. Kald det `Alertmanager alerts`, og klik på **Opret arbejdsgang**.
+Gå til **Arbejdsgange**, klik på **Opret arbejdsgang** og derefter på **Start fra bunden**. Kald den `Alertmanager alerts`, og klik på **Opret arbejdsgang**.
 
 ### Tilføj Webhook-triggeren
 
@@ -193,11 +193,11 @@ Klik på den stiplede blok **Vælg, hvad der starter denne arbejdsgang**, og væ
 
 ### Kontrollér, at notifikationen er udløst
 
-Klik på **Tilføj komponent**, tilføj en blok **If / Else**, og forbind triggerens punkt **Out** med den. Sæt **Value to check** til `{{local.components.webhook-1.returnValues.request-body.status}}`, **Comparison** til **is equal to** og **Compare with** til `firing`.
+Klik på **Tilføj komponent**, tilføj en blok **Hvis / Ellers**, og forbind triggerens punkt **Ud** med den. Sæt **Værdi, der skal tjekkes** til `{{local.components.webhook-1.returnValues.request-body.status}}`, **Sammenligning** til **er lig med** og **Sammenlign med** til `firing`.
 
 ### Erklær hændelsen
 
-Tilføj en blok **Create One Incident**, og forbind siden **Yes** af blokken **If / Else** med den. Vælg under **Incident Template** en skabelon, der sætter alvorligheden og de vagtpolitikker, der skal kaldes op (se [Hændelsesskabeloner](/docs/incidents/settings#hændelsesskabeloner)). Angiv under **JSON Object**, hvad der kommer fra Alertmanager:
+Tilføj en blok **Opret Hændelse (én post)**, og forbind siden **Ja** af blokken **Hvis / Ellers** med den. Vælg under **Hændelsesskabelon** en skabelon, der sætter alvorligheden og de vagtpolitikker, der skal kaldes op (se [Hændelsesskabeloner](/docs/incidents/settings#hændelsesskabeloner)). Angiv under **JSON-objekt**, hvad der kommer fra Alertmanager:
 
 ```json
 {
@@ -206,14 +206,14 @@ Tilføj en blok **Create One Incident**, og forbind siden **Yes** af blokken **I
 }
 ```
 
-Uden en skabelon skal **JSON Object** også indeholde `incidentSeverityId`, ID'et på en af projektets hændelsesalvorligheder.
+Uden en skabelon skal **JSON-objekt** også indeholde `incidentSeverityId`, ID'et på en af projektets hændelsesalvorligheder.
 
-### Slå workflowet til
+### Slå arbejdsgangen til
 
-Slå **Aktiveret** til øverst i **Bygger**. Et workflow, der er slået fra, svarer Alertmanager med `400`.
+Slå **Aktiveret** til øverst i **Bygger**. En arbejdsgang, der er slået fra, svarer Alertmanager med `400`.
 :::
 
-En kørsel håndterer én notifikation, så den erklærer én hændelse, uanset hvor mange advarsler notifikationen indeholder. En notifikation, der er `resolved`, tager siden **No** af blokken **If / Else**, hvor intet er forbundet, så kørslen slutter der. Brug monitoren til én hændelse pr. advarsel, der løses ved genopretning.
+En kørsel håndterer én notifikation, så den erklærer én hændelse, uanset hvor mange advarsler notifikationen indeholder. En notifikation, der er `resolved`, tager siden **Nej** af blokken **Hvis / Ellers**, hvor intet er forbundet, så kørslen slutter der. Brug monitoren til én hændelse pr. advarsel, der løses ved genopretning.
 
 ## Overvåg selve Alertmanager
 
@@ -258,7 +258,7 @@ Når watchdog-advarslen ikke er kommet i ti minutter, går watchdog-monitoren of
 :::details Intet kommer frem til OneUptime
 - Tjek Alertmanagers log for fejl ved levering til modtageren.
 - Monitoren svarer `200` med det samme, før den kontrollerer noget, også ved en forkert hemmelig nøgle. Tjek monitorens tidslinje for at se, om notifikationer kommer frem.
-- Et workflow, der er slået fra, svarer `400`. Slå **Aktiveret** til øverst i dets **Bygger**.
+- En arbejdsgang, der er slået fra, svarer `400`. Slå **Aktiveret** til øverst i dens **Bygger**.
 :::
 
 :::details Hændelser oprettes, men løses aldrig
@@ -291,7 +291,7 @@ Når en nyere anmodning når en monitor, før en tidligere er evalueret, evaluer
 
 ## Sikkerhed
 
-- **Behandl URL'en som en adgangskode.** Alle, der har den, kan åbne hændelser. Hvis den slipper ud, så nulstil den: **Nulstil hemmelig nøgle for indgående anmodning** på monitorens side **Indstillinger**, eller **Nulstil URL** i workflowets **Webhook**-trigger. Opdater derefter modtagerens `url` i `alertmanager.yml`.
+- **Behandl URL'en som en adgangskode.** Alle, der har den, kan åbne hændelser. Hvis den slipper ud, så nulstil den: **Nulstil hemmelig nøgle for indgående anmodning** på monitorens side **Indstillinger**, eller **Nulstil URL** i arbejdsgangens **Webhook**-trigger. Opdater derefter modtagerens `url` i `alertmanager.yml`.
 - **Selvhostet?** Lad Alertmanager nå din OneUptime over HTTPS gennem din firewall.
 
 ## Næste trin

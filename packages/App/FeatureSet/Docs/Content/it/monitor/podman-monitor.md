@@ -42,9 +42,9 @@ flowchart TB
 
 Andate in **Monitor** e fate clic su **Crea monitor**.
 
-### Scegliere Podman Container
+### Scegliere Container Podman
 
-In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **Podman Container** in **Infrastruttura**, oppure digitate `podman` nella casella di ricerca. Inserite un **Nome** – viene usato nei titoli di incidenti e avvisi – e fate clic su **Avanti**.
+In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **Container Podman** in **Infrastruttura**, oppure digitate `podman` nella casella di ricerca. Inserite un **Nome** – viene usato nei titoli di incidenti e avvisi – e fate clic su **Avanti**.
 
 ### Scegliere l'host
 
@@ -80,7 +80,7 @@ Fate clic su **Crea monitor**. OneUptime apre la pagina del monitor e lo valuta 
 | **Immagine del container** | Custom Metric, Avanzato | Facoltativo. Corrispondenza esatta su `resource.container.image.name`, per esempio `nginx:latest`. |
 | **Aggregazione** | Custom Metric | Come vengono combinati i campioni: **Media**, **Massimo**, **Minimo**, **Somma** o **Conteggio**. Parte dall'aggregazione abituale della metrica. |
 | **Intervallo di tempo** | Tutte | La finestra mobile che la query legge, da **Past 1 Minute** a **Past 365 Days**. Un nuovo monitor parte da **Past 1 Minute**; i modelli impostano la propria. |
-| **Seleziona metriche** | Avanzato | Il costruttore di query: **Metrica**, **Aggregate by**, **Filter by attributes**, **Raggruppa per**, più **Aggiungi metrica** e **Aggiungi formula** per combinare le query. |
+| **Seleziona metriche** | Avanzato | Il costruttore di query: **Metrica**, **Aggrega per**, **Filtra per attributi**, **Raggruppa per**, più **Aggiungi metrica** e **Aggiungi formula** per combinare le query. |
 
 ## Modelli di avviso pronti
 
@@ -183,8 +183,8 @@ Un monitor che non create da un modello parte con due criteri:
 
 | Ordine | Criterio | Corrisponde quando | Poi |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | La prima query non ha dati per l'intera finestra | Segna il monitor come **Offline** e dichiara l'incidente «_monitor name_ is offline», che si risolve da solo quando il monitor si riprende. |
-| 2 | Check if _monitor name_ is online | La prima query ha dati | Segna il monitor come **Operativo**. |
+| 1 | Verifica se _nome del monitor_ è offline | La prima query non ha dati per l'intera finestra | Segna il monitor come **Offline** e dichiara l'incidente «_nome del monitor_ è offline», che si risolve da solo quando il monitor si riprende. |
+| 2 | Verifica se _nome del monitor_ è online | La prima query ha dati | Segna il monitor come **Operativo**. |
 
 > [!IMPORTANT]
 > Un valore di `0` è un dato: una metrica che spesso vale zero, come i riavvii o gli errori, non porta il monitor offline. Per ricevere un avviso su un valore, parti da un modello o aggiungi un criterio con una soglia. Quando non arriva alcun dato e nessun criterio corrisponde, il monitor mantiene il suo stato e gli incidenti aperti restano aperti: il silenzio non è un ripristino. Il tempo in cui OneUptime stesso non riceveva dati non conta mai come assenza di dati: un controllo la cui finestra lo contiene attende, come spiega [Quando OneUptime non riceve dati](/docs/monitor/when-oneuptime-is-not-receiving).
@@ -203,7 +203,7 @@ L'agente segue anche il file `ctr.log` di ogni container e invia ogni riga come 
 | `body` | La riga scritta dal container. Le righe che iniziano con uno spazio o una parentesi chiusa, come le righe di uno stack trace, vengono unite alla riga precedente. |
 | `time` | Il timestamp di Podman per la riga. |
 
-I log compaiono nella pagina **Registri** dell'host e nella pagina di ogni container.
+I log compaiono nella pagina **Log** dell'host e nella pagina di ogni container.
 
 ### Requisito del driver di log
 
@@ -215,7 +215,7 @@ L'agente legge i file scritti dal driver di log `k8s-file` di Podman, in `/var/l
 | `journald` | Niente: i log sono nel journal di systemd. |
 | `none` | Niente: i log vengono scartati. |
 
-Le metriche non dipendono dal driver di log: un host i cui container usano `journald` comunica comunque le metriche, solo la sua pagina **Registri** resta vuota.
+Le metriche non dipendono dal driver di log: un host i cui container usano `journald` comunica comunque le metriche, solo la sua pagina **Log** resta vuota.
 
 Verificate il driver di un container, e quello predefinito di Podman:
 
@@ -275,7 +275,7 @@ Poi rimuovete e ricreate ogni container.
 Gli host si registrano da soli a partire dai dati dell'agente. Verificate che il container dell'agente sia in esecuzione, che il socket API di Podman sia abilitato e che l'host compaia in **Prodotti → Infrastruttura → Podman → Tutti gli host**. La [guida all'agente Podman](/docs/telemetry/podman-host) contiene i controlli da eseguire sull'host.
 :::
 
-:::details Le metriche arrivano ma la pagina Registri è vuota
+:::details Le metriche arrivano ma la pagina Log è vuota
 Quasi certamente i container usano `journald`. Passate a `k8s-file` quelli di cui volete i log (vedete [Requisito del driver di log](#requisito-del-driver-di-log)) e ricreateli.
 :::
 

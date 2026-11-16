@@ -127,9 +127,14 @@ const NetworkEventAlertsModal: FunctionComponent<ComponentProps> = (
               { device: deviceName },
             )
           : props.device
-            ? "Get told when something happens on this device"
-            : "Get told when something happens on your network"
+            ? (translator.translateText(
+                "Get told when something happens on this device",
+              ) as string)
+            : (translator.translateText(
+                "Get told when something happens on your network",
+              ) as string)
       }
+      isTitleTranslated={true}
       description={
         props.device
           ? "Pick an alert to start from. It watches this device only, and you can change anything before you save it."

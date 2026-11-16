@@ -453,13 +453,14 @@ describe("Storage Array root cause: the affected resources list", () => {
       }),
     });
 
+    // Each figure held to its unit by a no-break space (#8457).
     expect(text).toContain(
       [
         "**Affected Resources** (2 total)",
         "",
-        "1. **Drive** `CH0.BAY9` — **3.84 TB**",
+        "1. **Drive** `CH0.BAY9` — **3.84\u00A0TB**",
         "   - Component Type: `SSD`",
-        "2. **Drive** `CH0.BAY3` — **1 TB**",
+        "2. **Drive** `CH0.BAY3` — **1\u00A0TB**",
         "   - Component Type: `SSD`",
       ].join("\n"),
     );
@@ -518,7 +519,7 @@ describe("Storage Array root cause: the affected resources list", () => {
           ],
         }),
       }),
-    ).toContain("1. **Host** `esx-01` — **7.2 ms**");
+    ).toContain("1. **Host** `esx-01` — **7.2\u00A0ms**");
   });
 
   test("a `name` row is titled by the object the metric's family names", () => {
@@ -628,7 +629,7 @@ describe("Storage Array root cause: the affected resources list", () => {
     });
 
     expect(text).toContain("`vol-enc-01`");
-    expect(text.split(WORD_JOINER).join("")).toContain("7 \\<!here>");
+    expect(text.split(WORD_JOINER).join("")).toContain("7\u00A0\\<!here>");
     expect(text).not.toMatch(/(^|[^\\])<[A-Za-z!@#/]/m);
     expect(SlackUtil.convertMarkdownToSlackRichText(text)).not.toMatch(
       /<[!@#][A-Za-z]/,

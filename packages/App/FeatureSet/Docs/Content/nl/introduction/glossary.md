@@ -224,7 +224,7 @@ Zie [Topologie](/docs/telemetry/topology).
 
 Een betrouwbaarheidsdoel voor wat u bewaakt, zoals 99,9% van de tijd beschikbaar over 30 dagen. OneUptime meet elke SLO elke 5 minuten aan de hand van zijn monitoren.
 
-Ook wel: **Service Level Objective**. Zie [SLO's – Overzicht](/docs/slo/introduction).
+Ook wel: **Serviceniveaudoelstelling**. Zie [SLO's – Overzicht](/docs/slo/introduction).
 
 ### Foutbudget
 
@@ -436,7 +436,7 @@ Zie [Kernbegrippen](/docs/introduction/core-concepts#de-soorten-regels).
 
 ### Rol
 
-Vier verschillende dingen: de machtigingen die een team verleent, zoals Project Owner of Project Admin; een **Aangepaste rol** die u uit machtigingen samenstelt; een **Incidentrol**, de rol die iemand in één incident speelt; en een **Network Device Role**, wat een apparaat op uw netwerk doet.
+Vier verschillende dingen: de machtigingen die een team verleent, zoals Projecteigenaar of Projectbeheerder; een **Aangepaste rol** die u uit machtigingen samenstelt; een **Incidentrol**, de rol die iemand in één incident speelt; en een **Network Device Role**, wat een apparaat op uw netwerk doet.
 
 Zie [Gebruikers, teams en machtigingen](/docs/permissions/index).
 

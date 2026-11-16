@@ -1,3 +1,4 @@
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 /*
  * Numbers on a topology's cards and in its sentences, written the same way
  * for every product: whole percents on a card ("45%"), one decimal where a
@@ -20,7 +21,7 @@ export function formatTopologyPercent(
   decimals: number = 0,
 ): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
   return `${value.toFixed(decimals)}%`;
@@ -30,11 +31,11 @@ const BYTE_UNITS: Array<string> = ["KiB", "MiB", "GiB", "TiB", "PiB"];
 
 export function formatTopologyBytes(bytes: number | null | undefined): string {
   if (bytes === null || bytes === undefined || !Number.isFinite(bytes)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
   if (Math.abs(bytes) < 1024) {
-    return `${Math.round(bytes)} B`;
+    return `${Math.round(bytes)}\u00A0B`;
   }
 
   let value: number = bytes / 1024;
@@ -45,7 +46,7 @@ export function formatTopologyBytes(bytes: number | null | undefined): string {
     unit++;
   }
 
-  return `${value.toFixed(Math.abs(value) >= 100 ? 0 : 1)} ${BYTE_UNITS[unit]}`;
+  return `${value.toFixed(Math.abs(value) >= 100 ? 0 : 1)}\u00A0${BYTE_UNITS[unit]}`;
 }
 
 export const MIDDLE_ELLIPSIS: string = "\u2026";

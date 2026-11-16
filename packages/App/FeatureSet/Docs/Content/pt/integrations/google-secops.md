@@ -22,7 +22,7 @@ Cada caminho normaliza o que chega para [OCSF](https://schema.ocsf.io/), o Open 
 
 ## Antes de começar
 
-- Para o conector gerenciado, no OneUptime, a função Project Owner, Project Admin ou Security Admin. As funções Security Member e Security Viewer podem ler as conexões, mas não criá-las.
+- Para o conector gerenciado, no OneUptime, a função Proprietário do projeto, Administrador do projeto ou Administrador de segurança. As funções Membro de segurança e Visualizador de segurança podem ler as conexões, mas não criá-las.
 - Para o webhook e o encaminhamento de UDM, uma chave de ingestão: abra **Configurações do projeto → Telemetria e APM → Chaves de ingestão** e clique em **Criar chave de ingestão**.
 - Para o conector gerenciado, permissão para criar uma conta de serviço do Google Cloud no projeto ao qual a sua instância do SecOps está vinculada.
 
@@ -173,7 +173,7 @@ Cada requisição de um teste tem um prazo de 20 segundos. Os testes não mexem 
 
 ## Pré-visualizar, executar e importar sob demanda
 
-Abra **Diagnóstico** em uma conexão para ver as execuções recentes e operar o conector. Os proprietários do projeto, os administradores do projeto e os administradores de segurança podem iniciar operações. Os membros e leitores de segurança podem ler o histórico.
+Abra **Diagnóstico** em uma conexão para ver as execuções recentes e operar o conector. Os Proprietários do projeto, os Administradores do projeto e os Administradores de segurança podem iniciar operações. Os membros e leitores de segurança podem ler o histórico.
 
 - **Executar agora** enfileira uma consulta na hora, usando o cursor e o caminho de ingestão normais, mesmo quando a consulta agendada está desabilitada. Os estados na fila e em execução continuam visíveis enquanto o worker executa a requisição. Se uma execução continuar na fila, verifique que há workers processando a fila Worker; a verificação **Background workers** do Testar conexão diz se algum processo está fazendo isso.
 - **Prévia de detecções** lê um intervalo de tempo escolhido sem importar nem mudar o cursor. Use a última hora, 24 horas, 7 dias ou um intervalo personalizado de até 7 dias. O intervalo corresponde à visão de alertas do SecOps, que lê por horário de detecção, e as duas passadas de pesquisa leem as detecções criadas nele além das detecções cujo horário de detecção cai nele, então pré-visualizar ontem mostra também detecções criadas ontem sobre eventos mais antigos. A pré-visualização mostra o horário de detecção e o horário de criação separadamente. Os resultados seguem a seleção **Dados a importar** salva da conexão.
@@ -201,7 +201,7 @@ Siga estes pontos em ordem. Cada um se distingue do seguinte em **Diagnóstico**
 2. **Frequência de execução das regras e latência de detecção.** As detecções são criadas quando a regra roda, o que pode ser até uma hora ou um dia depois dos eventos que elas descrevem. O conector consulta por horário de criação, então elas chegam na primeira consulta depois que o Google as cria, não no horário de detecção delas. Uma regra que você acabou de habilitar ainda não criou nada, e um locatário tranquilo não tem nada a criar. A verificação de disponibilidade informa quantas detecções foram criadas nas últimas 24 horas e nos últimos 7 dias; zero com e sem **Detecções** significa que o Google ainda não tem nada para o OneUptime importar.
 3. **Leia as contagens da última execução.** Em Diagnostics, **Retornados por Google SecOps** com zero em **Importados para o OneUptime** e uma contagem **Já importados** correspondente é o conector funcionando como projetado: essas detecções foram importadas por uma consulta anterior. Os registros **Rejeitado** são objetos que o Google devolveu e que nem são detecções.
 4. **Alguma consulta está rodando?** Last Polled mostrando `Never` com um Last Error vazio significa que nenhuma consulta terminou para essa conexão. Testar conexão informa **Background workers** (os processos que consomem a fila Worker), **Poll scheduler** (o registro do agendador de cada minuto) e **Consulta agendada** (a programação própria dessa conexão, inclusive uma consulta atrasada ou uma execução presa na fila). Veja a entrada de solução de problemas abaixo para as configurações de deployment que causam isso.
-5. **Procure no lugar certo.** Os eventos são salvos pelo horário de detecção, que pode ser horas ou dias antes do momento em que foram criados e importados, então um filtro de "última hora" em Security Events esconde uma detecção importada há um minuto sobre algo de ontem. Use **Ver eventos neste período** em uma execução em Diagnostics: ele abre o intervalo de tempo de evento das detecções que essa execução devolveu.
+5. **Procure no lugar certo.** Os eventos são salvos pelo horário de detecção, que pode ser horas ou dias antes do momento em que foram criados e importados, então um filtro de "última hora" em Eventos de segurança esconde uma detecção importada há um minuto sobre algo de ontem. Use **Ver eventos neste período** em uma execução em Diagnostics: ele abre o intervalo de tempo de evento das detecções que essa execução devolveu.
 
 ## Como a gravidade é definida
 

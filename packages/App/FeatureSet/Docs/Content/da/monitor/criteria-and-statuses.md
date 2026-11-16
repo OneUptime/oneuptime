@@ -11,7 +11,7 @@ En monitors kriterier afgør, hvad hver kontrol betyder: om monitoren er oppe el
 
 ## Sådan afgør kriterierne
 
-Hver gang en monitor kontrolleres, vurderer dens kriterier resultatet fra toppen af listen og nedad. Det første kriterium, hvis filtre matcher, afgør, hvad der sker, og kriterierne under det bliver ikke set på ved den kontrol. Matcher intet, går monitoren til sin **Standardstatus for overvågning**.
+Hver gang en monitor kontrolleres, vurderer dens kriterier resultatet fra toppen af listen og nedad. Det første kriterium, hvis filtre matcher, afgør, hvad der sker, og kriterierne under det bliver ikke set på ved den kontrol. Matcher intet, går monitoren til sin **Standardstatus for monitor**.
 
 ```mermaid title="Sådan vurderes hver kontrol"
 flowchart TB
@@ -27,7 +27,7 @@ flowchart TB
 
 Rækkefølgen er en del af reglen. En ny monitor viser sine kriterier fra det værste tilfælde: offline, så en advarsel, hvor dens type har en (et certifikat eller et domæne, der snart udløber), så online. Et bredt sundt kriterium, som **Er online** sat til **Sand**, matcher næsten alle kontroller, så det kommer sidst: over de andre ville det matche først hver gang, og de andre ville aldrig handle.
 
-Et kriterium, der matcher, men ikke ændrer nogen status, afgør stadig kontrollen: monitoren beholder sin status, og kriterierne under det venter på næste kontrol. **Standardstatus for overvågning** gælder kun, når intet kriterium matcher. For en ny monitor er den **I drift**; skift den under **Flere felter** under kriterierne.
+Et kriterium, der matcher, men ikke ændrer nogen status, afgør stadig kontrollen: monitoren beholder sin status, og kriterierne under det venter på næste kontrol. **Standardstatus for monitor** gælder kun, når intet kriterium matcher. For en ny monitor er den **I drift**; skift den under **Flere felter** under kriterierne.
 
 > [!NOTE]
 > En monitor, der åbner en hændelse eller en advarsel pr. vært, container, disk eller interface, vurderer alle kriterier ved hver kontrol, så to værter kan matche to forskellige kriterier på samme tid. Det er en monitor, hvis forespørgsel har en **Gruppér efter**, som en metrik- eller logmonitor, eller et kriterium, der angiver `*` for hver disk eller hvert interface. En monitor for indgående anmodninger, der grupperer hændelser efter et payload-felt, stopper stadig ved det første match.
@@ -57,7 +57,7 @@ Hver handling er en kontakt under **Handlinger**:
 
 | Kontakt | Hvad den gør |
 | --- | --- |
-| **Når filtre matcher, ændres overvågningsstatus.** | Flytter monitoren til den status, der er valgt i **Skift overvågningsstatus til**. |
+| **Når filtre matcher, ændres monitorstatus.** | Flytter monitoren til den status, der er valgt i **Skift monitorstatus til**. |
 | **Når filtre matcher, oprettes en advarsel.** | Opretter de advarsler, der er sat op under **Opret advarsel**. En advarsel giver dit team besked og vises aldrig på en statusside. |
 | **Når filtre matcher, erklæres en hændelse.** | Erklærer de hændelser, der er sat op under **Opret hændelse**. Dine statussider kan vise dem. |
 
@@ -127,7 +127,7 @@ Klik på **Gem ændringer**. Den næste kontrol vurderes efter de nye kriterier.
 
 ### Test monitoren
 
-På en monitor, som sonder kontrollerer, klikker du på **Test monitor** på kortet, vælger en sonde under **Vælg sonde** og klikker på **Kør test**. **Overvågningstestresultat** viser, hvad kontrollen fandt.
+På en monitor, som sonder kontrollerer, klikker du på **Test monitor** på kortet, vælger en sonde under **Vælg sonde** og klikker på **Kør test**. **Monitortestresultat** viser, hvad kontrollen fandt.
 :::
 
 En manuel monitor har ingen kriterier: du sætter selv dens status. Se [Opdatering af status](/docs/monitor/manual-monitor#opdater-status).
@@ -138,7 +138,7 @@ En monitor er altid i en af dit projekts statusser. Et nyt projekt har tre, fra 
 
 | Status | Plads | Farve | Hvad OneUptime gør med den |
 | --- | --- | --- | --- |
-| **I drift** | 1 | Grøn | Nye monitorer starter i den, og den er en ny monitors **Standardstatus for overvågning**. Indbygget. |
+| **I drift** | 1 | Grøn | Nye monitorer starter i den, og den er en ny monitors **Standardstatus for monitor**. Indbygget. |
 | **Forringet** | 2 | Gul | Intet af sig selv: et af dine kriterier flytter en monitor hertil. |
 | **Offline** | 3 | Rød | En ny monitors offline-kriterium flytter den hertil, og OneUptime behandler en monitor i denne status som nede. Indbygget. |
 
@@ -161,7 +161,7 @@ En status, du tilføjer senere, kommer ikke med på listen **Tæller som nedetid
 :::steps
 ### Åbn Monitorstatus
 
-Gå til **Overvågninger → Indstillinger → Monitorstatus**. **Indstillinger** er foldet sammen i sidemenuen: fold den ud først. Kortet **Monitorstatusser** viser statusserne fra den sundeste til den værste.
+Gå til **Monitorer → Indstillinger → Monitorstatus**. **Indstillinger** er foldet sammen i sidemenuen: fold den ud først. Kortet **Monitorstatusser** viser statusserne fra den sundeste til den værste.
 
 ### Opret statussen
 
@@ -173,16 +173,16 @@ Træk statussen i dens håndtag. En status længere nede på listen regnes som v
 
 ### Brug den i et kriterium
 
-En status gør intet, før et kriterium flytter monitorer ind i den. Vælg den i **Skift overvågningsstatus til** på det kriterium, der skal sætte den.
+En status gør intet, før et kriterium flytter monitorer ind i den. Vælg den i **Skift monitorstatus til** på det kriterium, der skal sætte den.
 :::
 
-Den driftsklare status og offline-statussen er markeret som **Indbygget**: du kan omdøbe dem og ændre deres farve, men ikke slette dem. På OneUptime Cloud kræver det Growth-planen at oprette eller ændre en status. At administrere statusser kræver rollen Project Owner, Project Admin eller Monitor Admin, eller en brugerdefineret rolle med den tilsvarende tilladelse til monitorstatusser.
+Den driftsklare status og offline-statussen er markeret som **Indbygget**: du kan omdøbe dem og ændre deres farve, men ikke slette dem. På OneUptime Cloud kræver det Growth-planen at oprette eller ændre en status. At administrere statusser kræver rollen Projektejer, Projektadministrator eller Monitoradministrator, eller en brugerdefineret rolle med den tilsvarende tilladelse til monitorstatusser.
 
 ### Statustidslinjen
 
 Hver statusændring gemmes på monitorens **Statustidslinje**: hvornår den startede, hvor længe den varede, og **Vis årsag** for det kriterium, der satte den. **Opret Statusbegivenhed for monitor** tilføjer en status manuelt. På en monitor, som sonder kontrollerer, sætter den næste kontrol, der matcher et kriterium med en status, den status igen.
 
-En statusændring giver kun monitorens ejere besked, hvis de har slået **Overvågningsstatus ændret** til i deres notifikationsindstillinger: den er slået fra fra start. En monitor, der går tilbage til sin **Standardstatus for overvågning**, fordi intet kriterium matchede, giver ingen besked. Se [Hvad der er slået til for et nyt medlem](/docs/notifications/notification-settings#hvad-der-er-slået-til-for-et-nyt-medlem).
+En statusændring giver kun monitorens ejere besked, hvis de har slået **Monitorstatus ændret** til i deres notifikationsindstillinger: den er slået fra fra start. En monitor, der går tilbage til sin **Standardstatus for monitor**, fordi intet kriterium matchede, giver ingen besked. Se [Hvad der er slået til for et nyt medlem](/docs/notifications/notification-settings#hvad-der-er-slået-til-for-et-nyt-medlem).
 
 ## Arkiver en monitorstatus
 
@@ -196,7 +196,7 @@ Arkiver en status, som dit team ikke længere skal bruge, i stedet for at slette
 ## Fejlfinding
 
 :::details Webstedet er nede, men monitoren bliver ved med at være I drift
-Et kriterium højere oppe på listen matchede først. Åbn **Konfiguration → Kriterier**, og tjek rækkefølgen: det sunde kriterium kommer sidst. Tjek også, at offline-kriteriet har **Aktivér disse kriterier** slået til, og at dets handling **Når filtre matcher, ændres overvågningsstatus.** er slået til med en valgt status.
+Et kriterium højere oppe på listen matchede først. Åbn **Konfiguration → Kriterier**, og tjek rækkefølgen: det sunde kriterium kommer sidst. Tjek også, at offline-kriteriet har **Aktivér disse kriterier** slået til, og at dets handling **Når filtre matcher, ændres monitorstatus.** er slået til med en valgt status.
 :::
 
 :::details Der blev ikke åbnet nogen hændelse, da monitoren gik ned

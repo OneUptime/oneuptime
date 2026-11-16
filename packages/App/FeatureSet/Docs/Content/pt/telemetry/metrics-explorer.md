@@ -37,7 +37,7 @@ O explorador tem seis abas:
 ## Antes de começar
 
 - **Métricas chegando.** Envie-as com [OpenTelemetry](/docs/telemetry/open-telemetry), ou de um agente como o [coletor OpenTelemetry para hosts](/docs/telemetry/host-otel-collector) ou o [agente Kubernetes](/docs/telemetry/kubernetes-agent).
-- **Uma função que possa ler telemetria.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member ou Telemetry Viewer, ou uma função personalizada com a permissão Read Metrics. Veja [Telemetria](/docs/permissions/index#telemetria) para saber quais métricas ela lê.
+- **Uma função que possa ler telemetria.** Proprietário do projeto, Administrador do projeto, Membro do projeto, Visualizador, Administrador de telemetria, Membro de telemetria ou Visualizador de telemetria, ou uma função personalizada com a permissão Read Metrics. Veja [Telemetria](/docs/permissions/index#telemetria) para saber quais métricas ela lê.
 
 ## Encontrar uma métrica
 
@@ -56,11 +56,11 @@ Clique na métrica no **Visualizador**. O explorador abre com uma consulta, `a`,
 
 ### Escolher como agregá-la
 
-Em **Aggregate by**, escolha como os valores de cada ponto do gráfico são combinados: Avg, que é o padrão, Sum, Min, Max, Count, ou um percentil, P50, P75, P90, P95 ou P99. O percentil de uma métrica de histograma, como a duração de uma requisição, é calculado a partir dos buckets dela.
+Em **Agregar por**, escolha como os valores de cada ponto do gráfico são combinados: Avg, que é o padrão, Sum, Min, Max, Count, ou um percentil, P50, P75, P90, P95 ou P99. O percentil de uma métrica de histograma, como a duração de uma requisição, é calculado a partir dos buckets dela.
 
 ### Filtrá-la e agrupá-la
 
-Abra **Filters & grouping**. **Filter by attributes** mantém os pontos de dados cujos atributos correspondem, como uma `http.route` específica, e **Agrupar por** desenha uma linha por valor dos atributos que você escolher, como uma linha por host.
+Abra **Filtros e agrupamento**. **Filtrar por atributos** mantém os pontos de dados cujos atributos correspondem, como uma `http.route` específica, e **Agrupar por** desenha uma linha por valor dos atributos que você escolher, como uma linha por host.
 
 ### Ajustar o gráfico
 

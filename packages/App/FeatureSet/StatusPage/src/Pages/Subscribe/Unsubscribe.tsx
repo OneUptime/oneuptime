@@ -258,13 +258,19 @@ const UnsubscribePage: FunctionComponent<ComponentProps> = (
         className="mt-4 text-sm text-gray-700 break-words"
         data-testid="unsubscribe-contact"
       >
-        {label}
+        {/*
+         * The channel with its own colon, as the reader's language writes
+         * it ("Adresse e-mail :", "电子邮件地址："), then the address. The
+         * colon was English's, written beside the translated channel (#8483).
+         */}
         {details.contact ? (
           <>
-            {": "}
+            {t("subscribe.unsubscribe.channelWithColon", { channel: label })}{" "}
             <span className="font-medium text-gray-900">{details.contact}</span>
           </>
-        ) : null}
+        ) : (
+          label
+        )}
       </p>
     );
   };
@@ -326,6 +332,7 @@ const UnsubscribePage: FunctionComponent<ComponentProps> = (
             <div className="mt-6">
               <Button
                 title={t("subscribe.unsubscribe.confirmButton")}
+                isTitleTranslated={true}
                 buttonStyle={ButtonStyleType.DANGER}
                 isLoading={isSubmitting}
                 disabled={isSubmitting}

@@ -6,7 +6,7 @@ Mens noen er borte, sender en brukeroverstyring tilkallingene som ville nådd de
 - [Slik endrer en overstyring en tilkalling](#slik-endrer-en-overstyring-en-tilkalling): Hvem som tilkalles i stedet, og når.
 - [Legg til en overstyring](#legg-til-en-overstyring): Hvem som er borte, hvem som dekker, fra når og til når.
 - [Rediger en overstyring](#rediger-en-overstyring): Endre hvem som dekker, eller når den starter og slutter.
-- [Alle retningslinjer, eller én](#alle-retningslinjer-eller-én): Hvor du legger til en overstyring, og hvilken som vinner.
+- [Alle policyer, eller én](#alle-policyer-eller-én): Hvor du legger til en overstyring, og hvilken som vinner.
 - [Andre måter å legge til en på](#andre-måter-å-legge-til-en-på): Fra en vaktplan og fra de kommende vaktene dine.
 :::
 
@@ -24,7 +24,7 @@ flowchart TB
 Mens en overstyring gjelder, fra start til slutt:
 
 - Står det noen under **Hvem dekker?**, får den personen alle tilkallingene til personen som er borte, fra hver vaktplan, hvert team og hver regel overstyringen gjelder for. Tilkallingen når dem gjennom deres egne personlige vaktregler.
-- Er det ingen som dekker, hoppes personen over. I en vaktplan går hver av vaktene deres til neste person i rotasjonen som ikke er borte; er alle i et lag borte, tar lagene under over. En regel som nevner dem direkte, eller gjennom et team, tilkaller dem ikke, og kjøringen av retningslinjen viser at de er borte, og til når.
+- Er det ingen som dekker, hoppes personen over. I en vaktplan går hver av vaktene deres til neste person i rotasjonen som ikke er borte; er alle i et lag borte, tar lagene under over. En regel som nevner dem direkte, eller gjennom et team, tilkaller dem ikke, og kjøringen av policyen viser at de er borte, og til når.
 - Overstyringer kjedes ikke. Er personen som dekker, også borte, er det fortsatt de som tilkalles for personen de dekker for.
 
 Når overstyringen slutter, er tilkallingene deres igjen. **Tidslinje for vaktplaner**, lagene i en vaktplan og kalenderfeedene viser alle hvem som har hver dekket vakt.
@@ -34,7 +34,7 @@ Når overstyringen slutter, er tilkallingene deres igjen. **Tidslinje for vaktpl
 :::steps
 ### Åpne overstyringene
 
-Gå til **Vakt → Avansert → Brukeroverstyringer** for å dekke for noen i alle vaktretningslinjer, eller til en retningslinjes egen side **Brukeroverstyringer**, under **Avansert**, for å dekke for dem bare i den retningslinjen. Klikk på **Legg til Brukeroverstyring**.
+Gå til **Vakt → Avansert → Brukeroverstyringer** for å dekke for noen i alle vaktpolicyer, eller til en policys egen side **Brukeroverstyringer**, under **Avansert**, for å dekke for dem bare i den policyen. Klikk på **Legg til Brukeroverstyring**.
 
 ### Si hvem som er borte
 
@@ -61,16 +61,16 @@ Klikk på **Rediger** i raden til en overstyring, på en av de to sidene **Bruke
 
 En overstyring som er avsluttet, kan ikke lenger endres: **Rediger** for den er låst og sier hvorfor.
 
-## Alle retningslinjer, eller én
+## Alle policyer, eller én
 
 | Lagt til under | Kort | Gjelder for |
 | --- | --- | --- |
-| **Vakt → Avansert → Brukeroverstyringer** | **Globale brukeroverstyringer** | Alle vaktretningslinjer i prosjektet |
-| **Brukeroverstyringer** for en retningslinje | **Brukeroverstyringer for vaktretningslinjen** | Bare den retningslinjen |
+| **Vakt → Avansert → Brukeroverstyringer** | **Globale brukeroverstyringer** | Alle vaktpolicyer i prosjektet |
+| **Brukeroverstyringer** for en policy | **Brukeroverstyringer for vaktpolicyen** | Bare den policyen |
 
-To overstyringer for samme person kan ikke overlappe på samme retningslinje, heller ikke når begge er globale. Skjemaet sier det så snart tidspunktene er valgt, med **Rediger den overstyringen** for å endre den andre i stedet. Den ene kan slutte når den neste starter.
+To overstyringer for samme person kan ikke overlappe på samme policy, heller ikke når begge er globale. Skjemaet sier det så snart tidspunktene er valgt, med **Rediger den overstyringen** for å endre den andre i stedet. Den ene kan slutte når den neste starter.
 
-En retningslinjes egen overstyring kan overlappe en global for samme person: på den retningslinjen brukes dens egen mens begge gjelder, og skjemaet sier det. En tilkalling uten retningslinje, fra en arbeidsflyt eller fra chat, følger bare de globale overstyringene.
+En policys egen overstyring kan overlappe en global for samme person: på den policyen brukes dens egen mens begge gjelder, og skjemaet sier det. En tilkalling uten policy, fra en arbeidsflyt eller fra chat, følger bare de globale overstyringene.
 
 Overstyringer som allerede overlappet før denne regelen, blir som de er. Begge er merket med **Overlapper**, som sier hvilken som brukes: en som nevner hvem som dekker, foran en overhopping, deretter den som starter først, deretter den som ble lagt til først.
 
@@ -85,7 +85,7 @@ Når noen forlater prosjektet, slettes hver overstyring som nevner dem og ikke h
 
 **Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Vaktadministrator** og **Vaktmedlem** kan legge til, redigere og slette overstyringer; **Leser** og **Vaktleser** kan se dem. I en egendefinert rolle heter tillatelsene **Create On-Call Policy User Override**, **Edit On-Call Policy User Override**, **Delete On-Call Policy User Override** og **Read On-Call Policy User Override**. På **Tidslinje for vaktplaner** ser bare folk som kan lese overstyringer, hvem sin vakt som dekkes.
 
-En overstyring på en retningslinje følger retningslinjens omfang. Gi et team **Vaktmedlem** begrenset til retningslinjene det eier, eller til etiketten sin, så legger medlemmene til, redigerer og sletter overstyringer bare på de retningslinjene. En global overstyring gjelder for alle retningslinjer, også et annet teams, så å legge til, redigere eller slette en krever tillatelsen for overstyringer over hele prosjektet. Med en smalere tillatelse er **Legg til Brukeroverstyring**, **Rediger** og **Slett** under **Vakt → Avansert → Brukeroverstyringer** låst og sier hvorfor. **Hopp over til…** i lagene til en vaktplan og **Finn avløser** på de kommende vaktene dine, som legger til globale overstyringer, tilbyr i stedet retningslinjene du kan legge til overstyringer på, med én overstyring per retningslinje, og det samme gjør avløsningen i mobilappen; der du ikke kan på noen av dem, er de låst og sier hvorfor. Teamet legger til overstyringene sine på hver retningslinjes egen side **Brukeroverstyringer**. Det samme gjelder for API-et: en overstyring uten `onCallDutyPolicyId` avvises for en tillatelse begrenset til etiketter eller til eide retningslinjer.
+En overstyring på en policy følger policyens omfang. Gi et team **Vaktmedlem** begrenset til policyene det eier, eller til etiketten sin, så legger medlemmene til, redigerer og sletter overstyringer bare på de policyene. En global overstyring gjelder for alle policyer, også et annet teams, så å legge til, redigere eller slette en krever tillatelsen for overstyringer over hele prosjektet. Med en smalere tillatelse er **Legg til Brukeroverstyring**, **Rediger** og **Slett** under **Vakt → Avansert → Brukeroverstyringer** låst og sier hvorfor. **Hopp over til…** i lagene til en vaktplan og **Finn avløser** på de kommende vaktene dine, som legger til globale overstyringer, tilbyr i stedet policyene du kan legge til overstyringer på, med én overstyring per policy, og det samme gjør avløsningen i mobilappen; der du ikke kan på noen av dem, er de låst og sier hvorfor. Teamet legger til overstyringene sine på hver policys egen side **Brukeroverstyringer**. Det samme gjelder for API-et: en overstyring uten `onCallDutyPolicyId` avvises for en tillatelse begrenset til etiketter eller til eide policyer.
 
 I OneUptime Cloud krever brukeroverstyringer abonnementet **Growth**.
 
@@ -98,7 +98,7 @@ Brukeroverstyringer er ressursen `/api/on-call-duty-policy-user-override`:
 | `overrideUserId` | Personen som er borte. Påkrevd. |
 | `routeAlertsToUserId` | Personen som dekker. Utelat det for å hoppe over personen i stedet. |
 | `startsAt`, `endsAt` | Når overstyringen starter og slutter. Begge er påkrevd, og slutten kommer etter starten. |
-| `onCallDutyPolicyId` | Retningslinjen den gjelder for. Utelat det for en global overstyring. |
+| `onCallDutyPolicyId` | Policyen den gjelder for. Utelat det for en global overstyring. |
 
 ```bash
 curl -X POST https://oneuptime.com/api/on-call-duty-policy-user-override \
@@ -115,26 +115,26 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-user-override \
   }'
 ```
 
-En overstyring der personen som er borte og personen som dekker er den samme, avvises, og det samme gjør en som slutter før den starter. Det samme gjør en som overlapper en annen overstyring for samme person på samme retningslinje, eller når begge er globale: avvisningen nevner den den overlapper.
+En overstyring der personen som er borte og personen som dekker er den samme, avvises, og det samme gjør en som slutter før den starter. Det samme gjør en som overlapper en annen overstyring for samme person på samme policy, eller når begge er globale: avvisningen nevner den den overlapper.
 
 For å endre en overstyring sender du `PUT /api/on-call-duty-policy-user-override/<override-id>` med feltene som skal endres, i `data`: `routeAlertsToUserId` (`null` for å hoppe over personen i stedet), `startsAt` og `endsAt`. `overrideUserId` og `onCallDutyPolicyId` kan ikke endres. En overstyring som er avsluttet, kan ikke endres, heller ikke starten på en som har startet, og et tidspunkt som endres, kan ikke flyttes til fortiden.
 
 ## Feilsøking
 
 :::details Personen på ferie ble likevel tilkalt
-Sjekk hvor overstyringen ble lagt til. En på en retningslinjes side **Brukeroverstyringer** dekker bare den retningslinjen, og andre retningslinjer tilkaller dem fortsatt: legg den til under **Vakt → Avansert → Brukeroverstyringer** for å dekke alle retningslinjer. Sjekk også **Starter** og **Slutter**: tidene vises i din tidssone.
+Sjekk hvor overstyringen ble lagt til. En på en policys side **Brukeroverstyringer** dekker bare den policyen, og andre policyer tilkaller dem fortsatt: legg den til under **Vakt → Avansert → Brukeroverstyringer** for å dekke alle policyer. Sjekk også **Starter** og **Slutter**: tidene vises i din tidssone.
 :::
 
 :::details Personen som dekker, ble heller ikke tilkalt
-De nås gjennom sine egne personlige vaktregler og verifiserte metoder. Slå dem opp under **Vakt → Beredskap**, og sjekk kjøringen i **Utførelseslogger** for retningslinjen.
+De nås gjennom sine egne personlige vaktregler og verifiserte metoder. Slå dem opp under **Vakt → Beredskap**, og sjekk kjøringen i **Utførelseslogger** for policyen.
 :::
 
 :::details Jeg kan ikke legge til en overstyring
-Det krever en av rollene over, og i OneUptime Cloud abonnementet **Growth**. En global overstyring krever rollen over hele prosjektet: er teamets rolle begrenset til egne retningslinjer eller til noen etiketter, legger du til overstyringen på retningslinjens egen side **Brukeroverstyringer**. **Hopp over til…**, **Finn avløser** og mobilappen tilbyr da bare retningslinjene du kan legge til overstyringer på, og er låst der du ikke kan på noen av dem.
+Det krever en av rollene over, og i OneUptime Cloud abonnementet **Growth**. En global overstyring krever rollen over hele prosjektet: er teamets rolle begrenset til egne policyer eller til noen etiketter, legger du til overstyringen på policyens egen side **Brukeroverstyringer**. **Hopp over til…**, **Finn avløser** og mobilappen tilbyr da bare policyene du kan legge til overstyringer på, og er låst der du ikke kan på noen av dem.
 :::
 
 :::details En overstyring kan ikke lagres fordi den overlapper en annen
-Personen har allerede en overstyring på noen av de tidspunktene: på samme retningslinje, eller en global når denne også er global. Klikk på **Rediger den overstyringen** under **Slutter** for å endre den i stedet, eller velg tidspunkter som ikke overlapper den.
+Personen har allerede en overstyring på noen av de tidspunktene: på samme policy, eller en global når denne også er global. Klikk på **Rediger den overstyringen** under **Slutter** for å endre den i stedet, eller velg tidspunkter som ikke overlapper den.
 :::
 
 ## Neste steg

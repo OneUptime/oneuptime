@@ -1,6 +1,7 @@
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import { getNumberLocale } from "Common/Types/DateLanguage";
 import { formatDurationCompactInLanguage } from "Common/Utils/Slo/SloDuration";
+import { getPathText } from "Common/Utils/Rum/PathText";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
 import {
   DEFAULT_PRODUCT_ANALYTICS_TIME_ZONE,
@@ -77,9 +78,10 @@ export const NOT_REPORTED: string = translationKey("Not reported");
 
 /*
  * A breakdown value as the reader reads it: a device type in their
- * language, a country by its name in their language (Intl), anything else -
- * a browser, a version, a page - as the recorder wrote it. A session that
- * reported nothing reads "Not reported", never a blank row.
+ * language, a country by its name in their language (Intl), a page as User
+ * Flows draws it ("/café", not "/caf%C3%A9": PathText.getPathText, #8196),
+ * anything else - a browser, a version - as the recorder wrote it. A
+ * session that reported nothing reads "Not reported", never a blank row.
  */
 export function describeProductAnalyticsValue(data: {
   dimension: ProductAnalyticsDimension;
@@ -98,6 +100,13 @@ export function describeProductAnalyticsValue(data: {
 
   if (data.dimension === ProductAnalyticsDimension.Country) {
     return describeProductAnalyticsCountry(value, data.translator.language);
+  }
+
+  if (
+    data.dimension === ProductAnalyticsDimension.EntryPage ||
+    data.dimension === ProductAnalyticsDimension.Page
+  ) {
+    return getPathText(value);
   }
 
   return value;

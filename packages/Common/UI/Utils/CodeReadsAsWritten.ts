@@ -65,9 +65,9 @@ const getRules: () => CodeInSentenceRules | null =
   };
 
 /*
- * For a frontend that bundles every language's words - the Admin
- * Dashboard, a public dashboard: the rules, bundled with them and there
- * from the first sentence it translates.
+ * For a frontend that bundles every language's words - a public
+ * dashboard: the rules, bundled with them and there from the first
+ * sentence it translates.
  */
 export const setCodeApartWith: (rules: CodeInSentenceRules) => void = (
   rules: CodeInSentenceRules,
@@ -104,12 +104,12 @@ const isReadFromTheRight: (language: string) => boolean = (
 
 /*
  * For a frontend that fetches a language's words when it is chosen - the
- * Dashboard, the sign-in pages, a status page: settles once `language`'s
- * sentences can be set apart, at once for a language read from the left,
- * which never loads the rules. Its locale backend waits for this beside an
- * Arabic or Persian locale file. It never fails: words whose rules cannot
- * be fetched still go out, as they are written, and the next sentence
- * asks for the rules again (LazyLibrary).
+ * Dashboard, the Admin Dashboard, the sign-in pages, a status page:
+ * settles once `language`'s sentences can be set apart, at once for a
+ * language read from the left, which never loads the rules. Its locale
+ * backend waits for this beside an Arabic or Persian locale file. It never
+ * fails: words whose rules cannot be fetched still go out, as they are
+ * written, and the next sentence asks for the rules again (LazyLibrary).
  */
 export const whenCodeCanBeSetApart: (
   language: string | null | undefined,

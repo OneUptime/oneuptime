@@ -48,7 +48,7 @@ Utløs et varsel når teamet ditt bør se på noe før noen utenfor merker det, 
 - **Forbruksraten til en SLO.** En forbruksrateregel kan opprette et varsel når en SLO bruker feilbudsjettet sitt for raskt. Se [Forbruksratevarsler og -hendelser](/docs/slo/burn-rate-alerts).
 - **Nettverkslokasjoner og sikkerhetshendelser.** En nettverkslokasjon som er satt til å varsle når den er usunn, åpner et varsel når den samlede helsestatusen ikke lenger er operativ, og deteksjonsreglene dine for sikkerhetshendelser åpner også varsler. Se [Nettverkslokasjoner (samlet helsestatus og oppetid)](/docs/monitor/network-sites) og [Sikkerhetshendelser (SIEM)](/docs/telemetry/security-events).
 - **En tilkalling.** `/oneuptime page` i Slack eller Microsoft Teams, overalt unntatt i en hendelses eller et varsels egen kanal, åpner et varsel med meldingen din som tittel og tilkaller personene du nevner. Tilkallingsblokkene i en arbeidsflyt gjør det samme med tittelen og meldingen du gir dem. Se [Tilkall noen fra Slack](/docs/workspace-connections/slack#tilkall-noen-fra-slack) og [Paging](/docs/workflows/components#paging).
-- **API-et, Terraform og arbeidsflyter.** Varsler er en vanlig ressurs: `/api/alert`, Terraform-ressursen `oneuptime_alert` og trinnet **Create One Alert** i en arbeidsflyt.
+- **API-et, Terraform og arbeidsflyter.** Varsler er en vanlig ressurs: `/api/alert`, Terraform-ressursen `oneuptime_alert` og trinnet **Opprett Varsel (én post)** i en arbeidsflyt.
 
 ## Hvor varsler finnes i dashbordet
 
@@ -82,7 +82,7 @@ Fyll ut **Tittel**, og velg en **Varselsalvor**; begge er påkrevd. Legg til en 
 
 ### Velg hva det berører, og hvem som tilkalles
 
-Klikk på **Neste** for å komme til **Ressurser og vakt**. Velg **Overvåking** det gjelder, og eventuelle **Andre berørte ressurser**, som verter, nettverksenheter, Kubernetes-klynger eller tjenester. Under **Vaktpolicy** velger du policyene som skal kjøre når varselet opprettes.
+Klikk på **Neste** for å komme til **Ressurser og vakt**. Velg **Monitor** det gjelder, og eventuelle **Andre berørte ressurser**, som verter, nettverksenheter, Kubernetes-klynger eller tjenester. Under **Vaktpolicy** velger du policyene som skal kjøre når varselet opprettes.
 
 ### Opprett det
 
@@ -104,7 +104,9 @@ I det øyeblikket et varsel opprettes, går OneUptime gjennom disse trinnene, i 
 7. **Grupperingsregler legger det i en episode**, når en av dem samsvarer. Se [Varselepisoder og grupperingsregler](/docs/alerts/episodes).
 8. **Påminnelser planlegges**, når en påminnelsesregel samsvarer, og **OneUptime AI** undersøker varselet når **Undersøk nye varsler** er slått på under **Varsler → KI → Innstillinger**, og retter det når **Rett nye varsler automatisk** er slått på. Se [AI SRE](/docs/ai/ai-sre).
 
-En bakgrunnsjobb gir varselets eiere beskjed innen ett minutt, og arbeidsflytutløseren **On Create Alert** starter alle arbeidsflyter som bygger på den.
+En bakgrunnsjobb gir varselets eiere beskjed omtrent ett minutt etter at det er opprettet, alle eierne det har da, og arbeidsflytutløseren **Ved oppretting: Varsel** starter alle arbeidsflyter som bygger på den.
+
+For å gjøre personer og team til varselets eiere idet det opprettes, slik at denne beskjeden når dem og ikke Prosjekteiere, gir du dem med opprettelsen: over API-et sender du id-ene deres i `miscDataProps`, som `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }`, med `POST /api/alert`; i en arbeidsflyt velger du dem under **Eierbrukere** og **Eierteam** i **Opprett Varsel (én post)**; over MCP gir du `ownerUsers` og `ownerTeams` til `create_alert`. En forespørsel der avsenderen ikke kan legge til de eierne, avvises før noe lagres. Eiere som en egen forespørsel legger til etter opprettelsen, får bare høre om det hvis de er lagt til innen det minuttet.
 
 ### Opprettet allerede bekreftet eller løst
 
@@ -126,7 +128,7 @@ Reglene, eierne, feeden og den første tilstanden skjer likevel i begge tilfelle
 
 Et bytte til en annen tilstand ber deg bekrefte, med et valgfritt privat notat sammenfoldet under **Legg til et privat notat**. Hva hver tilstand gjør, står på [Varseltilstander og alvorlighetsgrader](/docs/alerts/states-and-severities).
 
-Mens du jobber med det, skriver du ned det du lærer som **Private notater**, fyller ut sidene **Rotårsak** og **Utbedring** og legger til **Eiere**. Menyen **Handlinger** i **Varselsfeed** kjører også en runbook med **Kjør runbook**, eller tilkaller flere personer med **Kjør vakttjenesteretningslinje**.
+Mens du jobber med det, skriver du ned det du lærer som **Private notater**, fyller ut sidene **Rotårsak** og **Utbedring** og legger til **Eiere**. Menyen **Handlinger** i **Varselsfeed** kjører også en runbook med **Kjør runbook**, eller tilkaller flere personer med **Kjør vaktpolicy**.
 
 ## Hva hver side av et varsel viser
 
@@ -135,7 +137,7 @@ Mens du jobber med det, skriver du ned det du lærer som **Private notater**, fy
 | **Oversikt** | **Oversikt** og **Tilstandstidslinje** |
 | **Undersøkelse** | **Beskrivelse**, **Rotårsak**, **Utbedring**, **Runbooks**, **Tilknyttede hendelser** |
 | **Team** | **Vaktutførelser** og **Eiere**: hvem som ble tilkalt for varselet, og hvem som eier det |
-| **Varsler**           | **Varsellogger** og **AI-logger**: hver melding som er sendt om varselet, og alt AI har gjort for det      |
+| **Varslinger**           | **Varslingslogger** og **AI-logger**: hver melding som er sendt om varselet, og alt AI har gjort for det      |
 | **Notater**    | **Private notater**                                                                                         |
 | **Utvikler**         | **Terraform**, **API**, **CLI** og **AI-assistenter**: varselet styrt fra kode                              |
 | **Avansert** | **Egendefinerte felt**, **Innstillinger**, **Revisjonslogger**, **Slett varsel** |
@@ -150,7 +152,7 @@ Mens du jobber med det, skriver du ned det du lærer som **Private notater**, fy
 
 ## Private varsler
 
-Et privat varsel ses bare av eierne, det vil si eierbrukerne og medlemmene av eierteamene, og av prosjektets administratorer og eiere. Ingen andre i prosjektet kan åpne det.
+Et privat varsel ses bare av eierne, det vil si eierbrukerne og medlemmene av eierteamene, og av Prosjektadministratorer og Prosjekteiere. Ingen andre i prosjektet kan åpne det.
 
 Gjør et varsel privat med **Privat varsel** under **Flere felt** i opprettelsesskjemaet eller i kriteriene til en monitor, med **Varsler → Regler → Personvernregler**, eller senere på siden **Innstillinger**, som spør **Gjøre dette varselet privat?** før varselet skjules. Er du ikke en av disse personene, mister du også selv tilgangen.
 
@@ -159,7 +161,7 @@ En episode som et privat varsel åpner, er ikke privat, så den viser aldri vars
 ## Hvem som får vite om et varsel
 
 - **Vakten.** Varselets vaktpolicyer tilkaller personene sine, hver på den måten de har satt det opp under **Brukerinnstillinger → Slik når man meg** på fanen **Varsler**. Den som svarer på tilkallingen, bekrefter varselet, og tilkallingen stopper.
-- **Eierne.** På e-post, med mindre de har valgt andre kanaler under **Brukerinnstillinger → Varselinnstillinger** på fanen **Varsler**: **Varsel opprettet**, **Varseltilstand endret** og **Påminnelse om varsel** er slått på som standard, og **Varselnotat publisert** og **Lagt til som varseleier** er slått av til noen slår dem på. Et varsel uten eiere gir i stedet prosjektets eiere beskjed.
+- **Eierne.** På e-post, med mindre de har valgt andre kanaler under **Brukerinnstillinger → Varslingsinnstillinger** på fanen **Varsler**: **Varsel opprettet**, **Varseltilstand endret** og **Påminnelse om varsel** er slått på som standard, og **Varselnotat publisert** og **Lagt til som varseleier** er slått av til noen slår dem på. Et varsel uten eiere gir i stedet Prosjekteiere beskjed. Stopper OneUptime mens den sender et varsel, får personene den ennå ikke hadde nådd, det når OneUptime er tilbake, noen minutter forsinket, og ingen får det to ganger.
 - **Chatverktøyene dine.** **Varsler → Arbeidsområde** inneholder Slack- og Microsoft Teams-reglene som legger ut varsler og episoder i kanaler. Se [Slack](/docs/workspace-connections/slack) og [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
 
 ## Feilsøking
@@ -173,7 +175,7 @@ Et kriterium holder ett åpent varsel om gangen. Til det varselet er løst, legg
 :::
 
 :::details En kollega kan åpne et varsel som jeg ikke finner
-Varselet er sannsynligvis privat. Be en prosjektadministrator om å legge deg til som eier eller slå av **Privat varsel** på varselets side **Innstillinger**.
+Varselet er sannsynligvis privat. Be en Prosjektadministrator om å legge deg til som eier eller slå av **Privat varsel** på varselets side **Innstillinger**.
 :::
 
 ## Neste steg

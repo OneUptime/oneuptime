@@ -1542,7 +1542,8 @@ describe("Slo:EvaluateSlos worker", () => {
       expect(monitorService.findBy).not.toHaveBeenCalled();
     });
 
-    test("a Metric SLI is Misconfigured (Phase 2) rather than evaluated as uptime", async () => {
+    // Measured from its metric now (#8445): with none to read, never as uptime.
+    test("a Metric SLI with no services or metric is Misconfigured rather than evaluated as uptime", async () => {
       sloService.getDueSlos.mockResolvedValue([
         makeSlo({ sliType: SliType.Metric }),
       ]);
@@ -2509,7 +2510,7 @@ describe("Slo:EvaluateSlos worker", () => {
       expect(notificationService.sendUserNotification).not.toHaveBeenCalled();
     });
 
-    test("with no SLO owners and no project owners nothing is sent and no stamp is written", async () => {
+    test("with no SLO owners and no Project Owners nothing is sent and no stamp is written", async () => {
       sloService.getDueSlos.mockResolvedValue([makeSlo()]);
       stubAtRisk();
       sloService.findOwners.mockResolvedValue([]);
@@ -2526,7 +2527,7 @@ describe("Slo:EvaluateSlos worker", () => {
       ).toHaveLength(0);
     });
 
-    test("project owners are notified when the SLO itself has none", async () => {
+    test("Project Owners are notified when the SLO itself has none", async () => {
       sloService.getDueSlos.mockResolvedValue([makeSlo()]);
       stubAtRisk();
       sloService.findOwners.mockResolvedValue([]);
@@ -3692,6 +3693,93 @@ describe("Slo:EvaluateSlos worker", () => {
       // and still nothing is DECLARED on ten minutes of data.
       expect(incidentService.create).not.toHaveBeenCalled();
       expect(incidentService.findOneBy).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * What a workflow following a burn rate rule hears (#8447). The SLOs
+   * workflow templates that turn a feature flag off start on the rule's On
+   * Update, with Last Alert Created At and Last Incident Declared At in
+   * Fields to watch. So the worker stamps a fire in an update of the rule
+   * itself, the hooked path a workflow hears, and a resolve or a quiet tick
+   * leaves both stamps as they are.
+   */
+  describe("burn rate rules: the stamps a workflow follows", () => {
+    const FIRE_STAMPS: Array<string> = [
+      "lastAlertCreatedAt",
+      "lastIncidentCreatedAt",
+    ];
+
+    function payloadsStampingAFire(): Array<Record<string, unknown>> {
+      return ruleUpdatePayloads().filter(
+        (payload: Record<string, unknown>): boolean => {
+          return FIRE_STAMPS.some((column: string): boolean => {
+            return column in payload;
+          });
+        },
+      );
+    }
+
+    test("a fire stamps Last Alert Created At once, in an update of the rule", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      burnRuleService.findBy.mockResolvedValue([makeRule()]);
+      stubFiringBurn();
+
+      await runWorkerTick();
+
+      expect(burnRuleService.updateOneById).toHaveBeenCalledTimes(1);
+
+      const update: UpdateCallArgs = burnRuleService.updateOneById.mock
+        .calls[0]![0] as UpdateCallArgs;
+
+      expect(update.id.toString()).toBe(RULE_ID.toString());
+      expect(update.data).toEqual({ lastAlertCreatedAt: NOW });
+    });
+
+    test("a fire that also declares an incident stamps Last Incident Declared At in the same update", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      burnRuleService.findBy.mockResolvedValue([
+        makeRule({ shouldCreateIncident: true }),
+      ]);
+      stubFiringBurn();
+
+      await runWorkerTick();
+
+      expect(payloadsStampingAFire()).toEqual([
+        { lastAlertCreatedAt: NOW, lastIncidentCreatedAt: NOW },
+      ]);
+    });
+
+    test("a resolve stamps only its own columns, so a workflow watching the fire does not run", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      burnRuleService.findBy.mockResolvedValue([
+        makeRule({
+          shouldCreateIncident: true,
+          lastAlertCreatedAt: hoursAgo(4),
+          lastIncidentCreatedAt: hoursAgo(4),
+        }),
+      ]);
+      stubRecoveredBurn();
+
+      await runWorkerTick();
+
+      expect(ruleUpdatePayloads()).toEqual([
+        { lastAlertResolvedAt: NOW, lastIncidentResolvedAt: NOW },
+      ]);
+      expect(payloadsStampingAFire()).toEqual([]);
+    });
+
+    test("a rule still firing on the next tick is not stamped again", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      burnRuleService.findBy.mockResolvedValue([
+        makeRule({ lastAlertCreatedAt: hoursAgo(1) }),
+      ]);
+      stubFiringBurn();
+
+      await runWorkerTick();
+
+      expect(alertService.create).not.toHaveBeenCalled();
+      expect(payloadsStampingAFire()).toEqual([]);
     });
   });
 
@@ -5018,7 +5106,7 @@ describe("Slo:EvaluateSlos worker", () => {
 
       // The burn numbers are SLO data every reader of the SLO already has.
       expect(details).toContain(
-        "- **Visibility:** Private - only its owners and project admins can see this alert.",
+        "- **Visibility:** Private - only its owners and Project Admins can see this alert.",
       );
       expect(details).toContain("- **Threshold:** 14.4x");
       expect(items[0]!.postedAt?.getTime()).toBe(NOW.getTime());
@@ -6202,12 +6290,21 @@ describe("Slo:EvaluateSlos worker", () => {
           reason: "No monitors are attached to this SLO",
         },
         {
+          label: "an SLI type OneUptime does not measure",
+          slo: (): ServiceLevelObjective => {
+            return makeSlo({ sliType: "Availability" as SliType });
+          },
+          arrange: (): void => {},
+          reason: "SLI type is not one OneUptime measures",
+        },
+        // Measured from its metric (#8445): this one has no services to read it from.
+        {
           label: "a Metric SLI",
           slo: (): ServiceLevelObjective => {
             return makeSlo({ sliType: SliType.Metric });
           },
           arrange: (): void => {},
-          reason: "SLI type is not Monitor Uptime",
+          reason: "so there is no metric to measure",
         },
         {
           label: "monitors whose rows no longer exist",
@@ -6590,8 +6687,9 @@ describe("Slo:EvaluateSlos worker", () => {
 
     /*
      * Time-based SLIs have no sample count - every second of the window is a
-     * sample - so the worker does not read the column at all, and a Slow
-     * leak rule someone gave one fires on the same burn.
+     * sample - so a Slow leak rule someone gave one fires on the same burn.
+     * The worker reads the column for request SLIs, whose requests are their
+     * samples, and a Monitor Uptime SLO's burn windows ignore it.
      */
     test("a minimum sample count does not hold back a time-based SLI's slow leak", async () => {
       burnRuleService.findBy.mockResolvedValue(
@@ -6611,7 +6709,7 @@ describe("Slo:EvaluateSlos worker", () => {
         }
       ).select;
 
-      expect(select["minimumSampleCount"]).toBeUndefined();
+      expect(select["minimumSampleCount"]).toBe(true);
       expect(select["refireSuppressionMinutes"]).toBe(true);
     });
 

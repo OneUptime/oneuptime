@@ -25,7 +25,7 @@ La sonde qui exécute la vérification reçoit la valeur, donc un moniteur qui u
 ## Avant de commencer
 
 - **Le forfait Growth ou supérieur**, sur OneUptime Cloud. Les installations auto-hébergées n'ont pas de forfaits.
-- **Un rôle qui peut gérer les secrets** : Project Owner, Project Admin, ou un rôle personnalisé avec l'autorisation Create Monitor Secret.
+- **Un rôle qui peut gérer les secrets** : Propriétaire du projet, Administrateur du projet, ou un rôle personnalisé avec l'autorisation Create Monitor Secret.
 
 ## Travailler avec les secrets
 
@@ -69,16 +69,16 @@ Ces types de moniteurs et ces champs acceptent les secrets :
 | --- | --- |
 | API | L'URL, les en-têtes et le corps de la requête, et le certificat client, la clé privée et la phrase secrète (mTLS) |
 | Site web | L'URL, et le certificat client, la clé privée et la phrase secrète (mTLS) |
-| Ping, IP, Port, NTP, SSL Certificate | L'hôte ou l'URL à vérifier |
+| Ping, IP, Port, NTP, Certificat SSL | L'hôte ou l'URL à vérifier |
 | DNS | Le nom de domaine et le serveur DNS |
 | DNSSEC, Domaine | Le nom de domaine |
-| SQL Query | L'hôte, le nom de la base de données, le nom d'utilisateur, le mot de passe et la requête |
+| Requête SQL | L'hôte, le nom de la base de données, le nom d'utilisateur, le mot de passe et la requête |
 | Santé de la base de données | L'hôte, le nom de la base de données, le nom d'utilisateur et le mot de passe |
 | Page de statut externe | L'URL de la page de statut |
-| Synthetic Monitor, Custom JavaScript Code | Le script |
+| Moniteur synthétique, Code JavaScript personnalisé | Le script |
 | Équipement réseau | La chaîne de communauté SNMP, et les clés d'authentification et de confidentialité SNMPv3 |
 
-Les secrets sont remplis avant l'exécution du script d'un moniteur Synthetic Monitor ou Custom JavaScript Code, donc une référence comme `{{monitorSecrets.ApiKey}}` dans le script vaut la valeur déchiffrée au moment de l'exécution.
+Les secrets sont remplis avant l'exécution du script d'un moniteur Moniteur synthétique ou Code JavaScript personnalisé, donc une référence comme `{{monitorSecrets.ApiKey}}` dans le script vaut la valeur déchiffrée au moment de l'exécution.
 
 Si un moniteur fait référence à un secret qu'il ne peut pas utiliser, la référence reste telle quelle et n'est pas remplacée par la valeur.
 

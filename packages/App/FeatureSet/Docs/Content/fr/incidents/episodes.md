@@ -37,7 +37,7 @@ Dans **Incidents des membres**, **Supprimer** sur une ligne, ou sur les lignes s
 
 ## Un seul épisode par incident
 
-Un incident peut faire partie de plusieurs épisodes à la fois. Pour que chaque incident fasse partie d'un seul épisode au plus, activez **Un incident ne peut faire partie que d'un seul épisode** dans **Incidents → Paramètres → Appartenance aux épisodes**. Pour les alertes, l'interrupteur s'appelle **Une alerte ne peut faire partie que d'un seul épisode**, dans **Alertes → Paramètres → Appartenance aux épisodes**. Les deux sont désactivés tant que vous ne les activez pas, et seuls les Project Owners et les Project Admins peuvent les changer.
+Un incident peut faire partie de plusieurs épisodes à la fois. Pour que chaque incident fasse partie d'un seul épisode au plus, activez **Un incident ne peut faire partie que d'un seul épisode** dans **Incidents → Paramètres → Appartenance aux épisodes**. Pour les alertes, l'interrupteur s'appelle **Une alerte ne peut faire partie que d'un seul épisode**, dans **Alertes → Paramètres → Appartenance aux épisodes**. Les deux sont désactivés tant que vous ne les activez pas, et seuls les Propriétaires du projet et les Administrateurs du projet peuvent les changer.
 
 Tant qu'il est activé, un incident qui fait partie d'un épisode n'est ajouté à aucun autre :
 
@@ -45,13 +45,13 @@ Tant qu'il est activé, un incident qui fait partie d'un épisode n'est ajouté 
 - **Ajouter à un épisode existant** indique combien des incidents sélectionnés font partie d'un autre épisode, et n'ajoute que les autres. Quand tous font déjà partie d'un épisode, la boîte de dialogue indique qu'il n'y a rien à ajouter.
 - **Ajouter à un nouvel épisode** laisse de côté les incidents sélectionnés qui font déjà partie d'un épisode, et indique combien. Quand c'est le cas de tous, elle indique qu'il n'y a rien à ajouter.
 - Les **Règles de regroupement** laissent un incident qui fait déjà partie d'un épisode là où il est.
-- **L'API, les workflows et Terraform** suivent la même règle : l'ajout d'un incident qui fait partie d'un autre épisode est refusé, avec la raison.
+- **L'API, les flux de travail et Terraform** suivent la même règle : l'ajout d'un incident qui fait partie d'un autre épisode est refusé, avec la raison.
 
 L'activer ne retire aucun incident d'un épisode : un incident qui fait déjà partie de plusieurs y reste. Pour déplacer un incident, retirez-le avec **Supprimer** sur la page **Incidents des membres** de son épisode, puis ajoutez-le à l'autre épisode.
 
 ## Qui peut ajouter
 
-Ajouter demande la permission d'ajouter des incidents à un épisode, que possèdent les rôles Project Owner, Project Admin, Project Member, Incident Admin et Incident Member, ainsi qu'un rôle personnalisé avec Create Incident Episode Member. Vous ne pouvez ajouter que des incidents que vous voyez : un incident privé ne peut être ajouté que par ses propriétaires et par les propriétaires et administrateurs du projet. Ajouter à un nouvel épisode demande aussi la permission de créer un épisode. Quand vous ne pouvez pas utiliser une action, elle est verrouillée, et son info-bulle nomme la permission qui manque.
+Ajouter demande la permission d'ajouter des incidents à un épisode, que possèdent les rôles Propriétaire du projet, Administrateur du projet, Membre du projet, Administrateur des incidents et Membre des incidents, ainsi qu'un rôle personnalisé avec Create Incident Episode Member. Vous ne pouvez ajouter que des incidents que vous voyez : un incident privé ne peut être ajouté que par ses propriétaires et par les Propriétaires du projet et Administrateurs du projet. Ajouter à un nouvel épisode demande aussi la permission de créer un épisode. Quand vous ne pouvez pas utiliser une action, elle est verrouillée, et son info-bulle nomme la permission qui manque.
 
 ## Avec l'API
 

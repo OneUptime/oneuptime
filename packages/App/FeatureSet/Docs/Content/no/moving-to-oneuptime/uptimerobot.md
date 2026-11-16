@@ -25,7 +25,7 @@ flowchart TB
 
 ## Før du begynner
 
-- **Et OneUptime-prosjekt og retten til å opprette det du overfører.** Prosjekteiere og prosjektadministratorer kan overføre alt. Andre roller kan også kjøre en import og overføre de typene poster de kan opprette. Resten vises som ikke overført, med årsaken.
+- **Et OneUptime-prosjekt og retten til å opprette det du overfører.** Prosjekteiere og Prosjektadministratorer kan overføre alt. Andre roller kan også kjøre en import og overføre de typene poster de kan opprette. Resten vises som ikke overført, med årsaken.
 - **En UptimeRobot-API-nøkkel.** Read-only API key holder: Importen skriver aldri til UptimeRobot. Main API key fungerer også, men en nøkkel for én monitor leser bare den monitoren.
 - **En betalingsmåte, i OneUptime Cloud.** Monitorer som utfører kontroller, faktureres etter bruk, også på Free-abonnementet, så legg til en under **Prosjektinnstillinger** > **Fakturering og fakturaer** > **Fakturering** før du importerer. Uten en vises de monitorene som ikke overført.
 
@@ -82,7 +82,7 @@ Hver monitor kontrolleres fra prosjektets sonder, akkurat som en du oppretter se
 
 I OneUptime Cloud trenger monitorer som utfører kontroller, en betalingsmåte, og det abonnementet ditt ikke har plass til, vises som ikke overført, med det det trenger.
 
-En forhåndsvisning lagres i én dag. Bare personen som leste kontoen, kan krysse av og starte importen. Prosjekteiere og prosjektadministratorer ser fremdriften og rapporten for hver import.
+En forhåndsvisning lagres i én dag. Bare personen som leste kontoen, kan krysse av og starte importen. Prosjekteiere og Prosjektadministratorer ser fremdriften og rapporten for hver import.
 
 ## Fullfør byttet
 
@@ -91,7 +91,7 @@ En forhåndsvisning lagres i én dag. Bare personen som leste kontoen, kan kryss
 Åpne hver av dem under **Monitorer** og sjekk de første resultatene. En heartbeat-monitor har en ny adresse: Pek jobben som kaller den, dit.
 
 ### Velg hvem som får beskjed
-Legg til eiere på monitorene dine, eller en vaktretningslinje under **Vakt** > **Vaktretningslinjer** på hendelsene de åpner, slik at de riktige personene får vite det når noe går ned.
+Legg til eiere på monitorene dine, eller en vaktpolicy under **Vakt** > **Vaktpolicyer** på hendelsene de åpner, slik at de riktige personene får vite det når noe går ned.
 
 ### Pek adressen til statussiden din mot OneUptime
 Åpne siden under **Statussider**, legg til domenet ditt under **Egendefinerte domener**, og endre deretter DNS-oppføringen. Da kommer besøkende og abonnenter til den nye siden.
@@ -117,7 +117,7 @@ Ved hvert står det hvorfor: et navn prosjektet allerede har, noe en tidligere i
 ## Neste trinn
 
 :::cards
-- [Nettsted-overvåking](/docs/monitor/website-monitor): Hva en nettstedmonitor kontrollerer, og hvordan.
-- [Innkommende forespørsel-overvåking](/docs/monitor/incoming-request-monitor): Hvordan en heartbeat fungerer i OneUptime.
+- [Nettsted-monitor](/docs/monitor/website-monitor): Hva en nettstedmonitor kontrollerer, og hvordan.
+- [Innkommende forespørsel-monitor](/docs/monitor/incoming-request-monitor): Hvordan en heartbeat fungerer i OneUptime.
 - [Bytt fra Pingdom](/docs/moving-to-oneuptime/pingdom): Hent kontrollene dine over fra Pingdom.
 :::

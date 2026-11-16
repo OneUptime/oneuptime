@@ -16,7 +16,7 @@ Questa pagina riguarda i server a cui si collega OneUptime AI. Per collegare inv
 - **OneUptime AI è attivo** per il progetto, con un provider LLM che può usare: vedi [Provider LLM](/docs/ai/llm-provider).
 - **L'indirizzo MCP del server.** Funzionano sia Streamable HTTP sia il vecchio HTTP con SSE: OneUptime capisce quale parla il server quando si collega.
 - **Come OneUptime vi accede:** un token API, intestazioni specifiche del server o credenziali client OAuth del tuo provider di identità.
-- **Un Project Owner o un Project Admin** aggiunge, modifica, testa e rimuove i server; i Project Members e i Viewers possono vederli. Su OneUptime Cloud, aggiungere un server richiede il piano Growth o superiore.
+- **Un Project Owner o un Project Admin** aggiunge, modifica, testa e rimuove i server; i Membri del progetto e i Visualizzatori possono vederli. Su OneUptime Cloud, aggiungere un server richiede il piano Growth o superiore.
 
 ## Aggiungere un server
 
@@ -93,7 +93,7 @@ Quando corrispondono più regole che indagano, OneUptime AI può usare ogni serv
 - **Ciò che un server restituisce sono dati, mai istruzioni.** OneUptime AI legge le descrizioni e le risposte dei suoi strumenti come testo proveniente da fuori OneUptime: non cambiano mai una regola, un'approvazione o ciò che OneUptime AI può fare.
 - **L'indirizzo viene controllato a ogni connessione.** OneUptime non si collega mai al proprio indirizzo né a un indirizzo link-local. Su OneUptime Cloud rifiuta anche gli indirizzi di rete privata: usa l'indirizzo pubblico del server. Un OneUptime self-hosted raggiunge gli indirizzi privati a meno che sia impostato `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`. Non segue i reindirizzamenti.
 - **Limiti.** Un progetto ha al massimo 20 server, e OneUptime legge al massimo 200 strumenti di ciascuno. La connessione scade dopo 20 secondi, l'elenco degli strumenti dopo 30 e una chiamata a uno strumento dopo 60. Una risposta più grande di 2 MB viene rifiutata. Le chiamate di un'esecuzione ai server MCP contano nei limiti per esecuzione del progetto, quando li imposta.
-- **Ogni chiamata viene registrata.** Ogni chiamata è un passaggio dell'esecuzione, visibile nella sua attività, e ogni modifica fatta da una correzione è nel passaggio **Rimedio** con ciò che il server ha risposto. Le chiamate al modello che ci sono dietro sono in **Impostazioni del progetto → IA → Registri IA**.
+- **Ogni chiamata viene registrata.** Ogni chiamata è un passaggio dell'esecuzione, visibile nella sua attività, e ogni modifica fatta da una correzione è nel passaggio **Rimedio** con ciò che il server ha risposto. Le chiamate al modello che ci sono dietro sono in **Impostazioni del progetto → IA → Log IA**.
 
 ## Risoluzione dei problemi
 

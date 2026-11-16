@@ -1,6 +1,6 @@
 # Sikkerhedssager og playbooks (SOAR)
 
-Security Events gør det, som dine detektionsregler, din trusselsintelligens og dine forbundne sikkerhedsprodukter finder, til sager: én sag for hver ting, der er værd at undersøge, med alle detektioner om den samme bruger, vært eller adresse samlet i den. Analytikere behandler sagerne i en kø, og playbooks reagerer på dem, af sig selv eller med et klik.
+Sikkerhedshændelser gør det, som dine detektionsregler, din trusselsintelligens og dine forbundne sikkerhedsprodukter finder, til sager: én sag for hver ting, der er værd at undersøge, med alle detektioner om den samme bruger, vært eller adresse samlet i den. Analytikere behandler sagerne i en kø, og playbooks reagerer på dem, af sig selv eller med et klik.
 
 :::cards
 - [Hvor sager kommer fra](#hvor-sager-kommer-fra): Detektionsregler, trusselsintelligens, forbundne produkter, entitetsrisiko og personer.
@@ -33,13 +33,13 @@ flowchart TB
 
 ## Før du begynder
 
-Sager og playbooks følger de tre Security-roller. Project Owner og Project Admin kan alt.
+Sager og playbooks følger de tre Security-roller. Projektejer og Projektadministrator kan alt.
 
 | Rolle | Hvad den kan |
 | --- | --- |
-| Security Admin | Alt, også at slette sager, fjerne beviser og sætte playbooks op |
-| Security Member | Åbne, tildele, ændre og lukke sager, skrive noter, arbejde med opgaver, tilføje beviser, køre playbooks og godkende eller afvise deres trin |
-| Security Viewer | Læse sager, detektioner, noter, opgaver, beviser, playbooks og deres kørsler |
+| Sikkerhedsadministrator | Alt, også at slette sager, fjerne beviser og sætte playbooks op |
+| Sikkerhedsmedlem | Åbne, tildele, ændre og lukke sager, skrive noter, arbejde med opgaver, tilføje beviser, køre playbooks og godkende eller afvise deres trin |
+| Sikkerhedsseer | Læse sager, detektioner, noter, opgaver, beviser, playbooks og deres kørsler |
 
 Hver af disse rettigheder kan også tildeles for sig, fra at oprette en sag til at godkende en playbooks trin; se [Tilladelsesreference](/docs/permissions/reference).
 
@@ -105,7 +105,7 @@ Hver side beholder sagens sidehoved øverst: nummer, prioritet, status og titel,
 - **Detektioner**: det, der blev udløst og åbnede sagen eller blev føjet til den, hvor ofte, og den seneste matchende begivenhed.
 - **Entiteter**: de brugere, værter og adresser, sagen handler om, med deres aktivitet på tværs af alle dine sikkerhedsbegivenheder de seneste 7 dage. Hver af dem åbnes i **Korrelér**.
 - **Forbundne signaler**: de værter, klynger, tjenester og medlemmer, sagen nævner, som OneUptime kender dem, og hvad der skete på hver af dem omkring sagens detektioner: deres protokoller, spor og metrikker, hvad der er åbent på dem, og hvad der ændrede sig. Se [Forbundne signaler](/docs/telemetry/security-connected-signals).
-- **Beviser**: de filer, links og sikkerhedsbegivenheder, der gemmes på sagen, hver med hvem der tilføjede den og hvornår. Med **Tilføj fil** uploader du en fil på op til 10 MB, og SHA-256 for det uploadede registreres, så den, der senere downloader den, kan kontrollere, at det er det, der blev gemt; med **Tilføj link** henviser du til beviser, der opbevares et andet sted. Kun en Security Admin kan fjerne et bevis, og sagens **Tidslinje** viser, hvad der blev tilføjet og fjernet. En sikkerhedsbegivenhed gemmes her, som den var, med **Føj til sag** under **Begivenheder** eller på en [hunts](/docs/telemetry/security-events#hunts) side, og **Vis begivenhed** åbner den. Et playbooks trin **Preserve the evidence** gemmer også her begivenhederne bag sagens detektioner.
+- **Beviser**: de filer, links og sikkerhedsbegivenheder, der gemmes på sagen, hver med hvem der tilføjede den og hvornår. Med **Tilføj fil** uploader du en fil på op til 10 MB, og SHA-256 for det uploadede registreres, så den, der senere downloader den, kan kontrollere, at det er det, der blev gemt; med **Tilføj link** henviser du til beviser, der opbevares et andet sted. Kun en Sikkerhedsadministrator kan fjerne et bevis, og sagens **Tidslinje** viser, hvad der blev tilføjet og fjernet. En sikkerhedsbegivenhed gemmes her, som den var, med **Føj til sag** under **Begivenheder** eller på en [hunts](/docs/telemetry/security-events#hunts) side, og **Vis begivenhed** åbner den. Et playbooks trin **Preserve the evidence** gemmer også her begivenhederne bag sagens detektioner.
 - **Opgaver**: hvad der skal gøres i sagen, hvem der gør det, og om det er gjort. Tilføj en opgave som en linje, giv den til nogen, og sæt flueben ved den, når den er udført. Den, opgaven gives til, får besked, medmindre vedkommende selv tog den, og menuen viser ved siden af **Opgaver**, hvor mange opgaver der er åbne. Et playbooks trin **Tilføj opgaver** tilføjer også opgaver og udelader dem, sagen allerede har.
 - **Playbooks**: hvad hver playbook gjorde på sagen, trin for trin, og de trin, der venter på godkendelse. Mens kørsler venter, viser menuen, hvor mange de er, ved siden af **Playbooks**.
 - **Private noter**: hvad teamet skrev om sagen. Editorens menu **Skabeloner** sætter en af projektets noteskabeloner ind i en note.
@@ -195,7 +195,7 @@ Tre indstillinger mere gør sagerne til dit projekts egne, under **Produkter →
 - **Noteskabeloner**: færdig tekst til de noter, dit team skriver sag efter sag, f.eks. en tjekliste til inddæmning eller en overdragelse til næste vagt. På en sags **Private noter** sætter editorens menu **Skabeloner** en ind i noten, så du kan redigere den, før den slås op, og **Administrer skabeloner** åbner listen.
 - **Nummerering**: teksten foran sagsnumrene, `CASE-` i `CASE-42`, medmindre du vælger din egen, og det nummer, den næste sag får. Skifter du fra et andet værktøj? Start efter dets sidste sagsnummer, så et nummer aldrig betyder to sager. Et nyt præfiks eller en ny start gælder kun nye sager, og en start skal være højere end det højeste nummer, der er brugt indtil nu.
 
-En Security Admin administrerer de brugerdefinerede felter og noteskabelonerne, og en Security Member udfylder en sags felter; på OneUptime Cloud kræver de Growth-abonnementet eller højere. Nummereringen sættes af en Project Owner eller Project Admin, ligesom for hændelser og advarsler.
+En Sikkerhedsadministrator administrerer de brugerdefinerede felter og noteskabelonerne, og et Sikkerhedsmedlem udfylder en sags felter; på OneUptime Cloud kræver de Growth-abonnementet eller højere. Nummereringen sættes af en Projektejer eller Projektadministrator, ligesom for hændelser og advarsler.
 
 ## Notifikationer
 
@@ -209,7 +209,7 @@ OneUptime giver folk besked om fem ting på en sag. Ingen behøver at sætte nog
 | Responsmål for sikkerhedssag | De personer, der er på sagen: den person, sagen er tildelt, og medlemmerne af dens team. Er ingen på den, de personer, der får besked om nye sager med dens prioritet | E-mail og push |
 | Opgave i sikkerhedssag tildelt mig | Den person, en opgave på sagen gives til, medmindre vedkommende selv tog den | E-mail og push |
 
-- Kun personer, der kan se sagen, får besked om den: Project Owners, Project Admins og rollerne Security Admin, Security Member og Security Viewer. En rolle, der er begrænset til bestemte etiketter, får kun besked om sagerne med de etiketter.
+- Kun personer, der kan se sagen, får besked om den: Projektejere, Projektadministratorer og rollerne Sikkerhedsadministrator, Sikkerhedsmedlem og Sikkerhedsseer. En rolle, der er begrænset til bestemte etiketter, får kun besked om sagerne med de etiketter.
 - Ingen får besked om det, de selv gjorde: den, der åbner en sag manuelt, tildeler den eller starter en kørsel, får ingen notifikation om det.
 - Hver person hører om en sag én gang. En sag, der åbnes på Medium og senere stiger til Kritisk, når ved stigningen frem til dem, der har valgt High eller Kritisk, og ikke igen til dem, der har valgt Medium, for de hørte om den, da den blev åbnet.
 - Testangrebet fra **Send et testangreb** åbner en sag, der ikke giver nogen besked.
@@ -303,14 +303,14 @@ En deaktiveret playbook kører hverken af sig selv eller manuelt.
 | Contain | Bloker offentlig adgang til datalagre | Blokerer offentlig adgang til hver bucket eller storage account, sagen handler om, gennem dens cloudforbindelse |
 | Contain | Tilbagekald deling af datalager | Stopper delingen uden for jeres konti af snapshots af hver database, sagen handler om, gennem dens cloudforbindelse |
 | Automate | Send a webhook | Sender sagen som JSON til en URL |
-| Automate | Run a workflow | Starter et OneUptime-workflow med sagen som input |
+| Automate | Run a workflow | Starter en OneUptime-arbejdsgang med sagen som input |
 | Automate | Run a runbook | Starter en af dine OneUptime-runbooks med sagen som input |
 | Automate | Fix the code with AI | Beder OneUptime AI om en pull request, der retter de undtagelser, sagens anmodninger udløste |
 | Flow control | Stop kørslen | Afslutter kørslen der som udført: trinnene efter det kører ikke |
 
 En playbook har højst 25 trin. De kører i rækkefølge, hvert trin, når det foregående er færdigt. Hvert trin kan også:
 
-- **Kræver godkendelse**: stoppe kørslen før trinnet, indtil nogen godkender det på sagen. De otte trin, der lukker nogen ude, stopper altid kørslen, medmindre en Security Admin slår det fra. **Run a runbook**, **Post a status page announcement** og de to datalagertrin starter med godkendelse slået til, fordi de kører kommandoer på jeres systemer, taler til jeres kunder eller ændrer en clouds indstillinger; den, der tilføjer trinnet, kan slå det fra.
+- **Kræver godkendelse**: stoppe kørslen før trinnet, indtil nogen godkender det på sagen. De otte trin, der lukker nogen ude, stopper altid kørslen, medmindre en Sikkerhedsadministrator slår det fra. **Run a runbook**, **Post a status page announcement** og de to datalagertrin starter med godkendelse slået til, fordi de kører kommandoer på jeres systemer, taler til jeres kunder eller ændrer en clouds indstillinger; den, der tilføjer trinnet, kan slå det fra.
 - **Kør dette trin**: **Altid**, eller kun efter resultater af tidligere trin, f.eks. at **Tjek entiteter mod trusselsinformation** finder en kendt ondsindet entitet; se [Forgren efter et trins resultat](#forgren-efter-et-trins-resultat).
 - **Fortsæt, hvis det mislykkes**: køre det næste trin, selv om dette mislykkes. Er den slået fra, stopper et mislykket trin kørslen. Den findes under **Flere felter** sammen med **Kør dette trin**.
 
@@ -365,11 +365,11 @@ De to datalagertrin handler på de datalagre, sagen handler om, højst 10: dem f
 
 #### Beskyttede entiteter
 
-**Beskyttede entiteter**, under **Playbooks** i menuen, viser de brugere og værter, som ingen playbook inddæmmer, f.eks. nødadgangskonti, domænecontrollere og VPN-gateways. En værdi matcher uden forskel på store og små bogstaver, og `*` står for en vilkårlig række tegn: `svc-*` beskytter alle tjenestekonti. Et trin melder en beskyttet bruger eller vært som beskyttet og lader den være i fred. Security Admins vedligeholder listen.
+**Beskyttede entiteter**, under **Playbooks** i menuen, viser de brugere og værter, som ingen playbook inddæmmer, f.eks. nødadgangskonti, domænecontrollere og VPN-gateways. En værdi matcher uden forskel på store og små bogstaver, og `*` står for en vilkårlig række tegn: `svc-*` beskytter alle tjenestekonti. Et trin melder en beskyttet bruger eller vært som beskyttet og lader den være i fred. Sikkerhedsadministratorer vedligeholder listen.
 
 #### Godkendelse
 
-De otte trin, der lukker nogen ude, venter på godkendelse. Kun en Security Admin kan slå **Kræver godkendelse** fra for et af dem, og OneUptime registrerer, hvem der gjorde det. Godkendelsen viser under **Handl på** de brugere eller værter, trinnet ville handle på, alle markeret: fjern markeringen ved dem, det skal lade være i fred. Beskyttede brugere og værter tilbydes ikke. Den, der startede en kørsel, kan ikke godkende dens trin: det gør en anden, men vedkommende kan stadig afvise det.
+De otte trin, der lukker nogen ude, venter på godkendelse. Kun en Sikkerhedsadministrator kan slå **Kræver godkendelse** fra for et af dem, og OneUptime registrerer, hvem der gjorde det. Godkendelsen viser under **Handl på** de brugere eller værter, trinnet ville handle på, alle markeret: fjern markeringen ved dem, det skal lade være i fred. Beskyttede brugere og værter tilbydes ikke. Den, der startede en kørsel, kan ikke godkende dens trin: det gør en anden, men vedkommende kan stadig afvise det.
 
 #### Fortryd
 
@@ -428,7 +428,7 @@ Over dem viser et bånd, hvordan sikkerhed er sat op: dens kilder, detektioner, 
 
 ## Automatisér
 
-- **Arbejdsgange**: en sag eller en note kan starte et workflow, når den oprettes, opdateres eller slettes. Et trin **Kør en arbejdsgang** starter et workflow, hvis trigger er en webhook.
+- **Arbejdsgange**: en sag eller en note kan starte en arbejdsgang, når den oprettes, opdateres eller slettes. Et trin **Kør en arbejdsgang** starter en arbejdsgang, hvis trigger er en webhook.
 - **API**: sager, noter, opgaver, beviser, detektioner, playbooks, kørsler, beskyttede entiteter samt sagsprioriteter og sagsstatusser har det samme REST API som resten af OneUptime, under `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` og `/security-case-status`. Se [API-reference](/docs/api-reference/api-reference).
 - AI-agenter: MCP-serveren har værktøjer til sager, noter, opgaver, beviser, detektioner, playbooks samt sagsprioriteter og sagsstatusser. Se [MCP-server](/docs/ai/mcp-server).
 - Terraform: ressourcerne `oneuptime_security_case_priority` og `oneuptime_security_case_status` holder et projekts prioriteter og statusser som kode.
@@ -440,7 +440,7 @@ Tjek **Åbn en sag ved match** i regelens trin **Ved match**. En detektion om en
 :::
 
 :::details Ingen fik besked om en sag
-Se sagens **Tidslinje**, som viser, hvem der fik en notifikation. En notifikation om **Ny sikkerhedssag** går til de personer, hvis valgte prioritet sagen når, så en sag med Medium giver ikke besked til nogen, der har beholdt standarden, **Høj og højere**. Tjek, at de personer, der burde få besked, kan se sikkerhedssager (en Security-rolle, Project Owner eller Project Admin), og at notifikationen er slået til for dem under **Brugerindstillinger → Notifikationsindstillinger → Sikkerhed**.
+Se sagens **Tidslinje**, som viser, hvem der fik en notifikation. En notifikation om **Ny sikkerhedssag** går til de personer, hvis valgte prioritet sagen når, så en sag med Medium giver ikke besked til nogen, der har beholdt standarden, **Høj og højere**. Tjek, at de personer, der burde få besked, kan se sikkerhedssager (en Security-rolle, Projektejer eller Projektadministrator), og at notifikationen er slået til for dem under **Brugerindstillinger → Notifikationsindstillinger → Sikkerhed**.
 :::
 
 :::details En sag viser ingen frist

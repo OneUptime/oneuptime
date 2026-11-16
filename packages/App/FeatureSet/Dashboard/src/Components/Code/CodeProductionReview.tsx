@@ -20,6 +20,7 @@ import {
   splitPointText,
 } from "./CodeProductionReviewCopy";
 import CodeMetaList from "./CodeMetaList";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import CodeTimeAgo from "./CodeTimeAgo";
 import PageMap from "../../Utils/PageMap";
 import { buildProfilesRoute } from "../../Utils/ProfilesUrlState";
@@ -376,11 +377,11 @@ const ProductionReviewStaging: FunctionComponent<{
                     {
                       staging:
                         check.staging === null
-                          ? "-"
+                          ? EMPTY_VALUE_MARK
                           : translator.formatNumber(check.staging),
                       production:
                         check.production === null
-                          ? "-"
+                          ? EMPTY_VALUE_MARK
                           : translator.formatNumber(check.production),
                     },
                   )}

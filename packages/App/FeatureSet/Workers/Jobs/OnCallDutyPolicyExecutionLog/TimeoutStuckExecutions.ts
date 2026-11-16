@@ -5,15 +5,36 @@ import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import { IsDevelopment } from "Common/Server/EnvironmentConfig";
 import OnCallDutyPolicyExecutionLogService from "Common/Server/Services/OnCallDutyPolicyExecutionLogService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import logger from "Common/Server/Utils/Logger";
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import {
   ON_CALL_DIRECT_PAGE_NEVER_STARTED_MESSAGE,
   ON_CALL_DIRECT_PAGE_TIMED_OUT_MESSAGE,
   isOnCallDirectPage,
 } from "Common/Types/OnCallDutyPolicy/OnCallDirectPage";
+import { isOnCallTestPage } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
+import OnCallAcknowledgementTimeout from "Common/Server/Utils/OnCall/OnCallAcknowledgementTimeout";
+import OnCallPageAgainClaimsInFlight, {
+  OnCallPageAgainClaim,
+} from "Common/Server/Utils/OnCall/OnCallPageAgainClaimsInFlight";
+import {
+  ON_CALL_POLICY_RUN_NEVER_STARTED_MESSAGE,
+  ON_CALL_POLICY_RUN_TIMED_OUT_MESSAGE,
+} from "Common/Types/OnCallDutyPolicy/OnCallRunStart";
+
+/*
+ * What a run that cannot be handed over ends with, as it always did: kept
+ * with the lines a run starts with (OnCallRunStart), where the on-call logs
+ * read them back to word them in the reader's language (#8434).
+ */
+export {
+  ON_CALL_POLICY_RUN_NEVER_STARTED_MESSAGE,
+  ON_CALL_POLICY_RUN_TIMED_OUT_MESSAGE,
+};
 
 /**
- * Jobs move from Started to Executing in seconds. If it takes more than 5 minutes, it's stuck. So, mark them as error
+ * Runs move from Scheduled to Started to Executing in seconds. One still
+ * Scheduled or Started after 5 minutes did not finish starting.
  */
 
 RunCron(
@@ -29,7 +50,7 @@ RunCron(
     /*
      * A log sits in "Started" only for the brief moment between creation and the
      * first rule beginning to execute. If it is still "Started" after 5 minutes
-     * it is genuinely stuck, so we time it out.
+     * it is genuinely stuck.
      *
      * We deliberately DO NOT time out "Executing" logs on wall-clock alone. An
      * Executing log is a live, in-progress escalation: ExecutePendingExecutions
@@ -52,6 +73,8 @@ RunCron(
           // Whether it is a policy's run or a direct page, for what it is told.
           onCallDutyPolicyId: true,
           pagingStartsAt: true,
+          // Whether it is a test page, which is not handed over.
+          userNotificationEventType: true,
         },
         props: {
           isRoot: true,
@@ -78,10 +101,9 @@ RunCron(
      * after the row is committed but before the status flips, the log stays
      * "Scheduled" forever: ExecutePendingExecutions only processes "Executing"
      * and the reaper above only covers "Started", so the escalation would never
-     * run and no error would ever surface (audit F14). Time these out too so the
-     * stuck state becomes a visible Error instead of silently swallowing the
-     * page. Once a healthy log leaves Scheduled within seconds it drops out of
-     * this set, so the 5-minute cutoff only ever catches genuinely stuck rows.
+     * run and no error would ever surface (audit F14). Once a healthy log
+     * leaves Scheduled within seconds it drops out of this set, so the
+     * 5-minute cutoff only ever catches genuinely stuck rows.
      */
     const scheduledStuckExecutions: Array<OnCallDutyPolicyExecutionLog> =
       await OnCallDutyPolicyExecutionLogService.findAllBy({
@@ -93,43 +115,167 @@ RunCron(
           _id: true,
           createdAt: true,
           onCallDutyPolicyId: true,
+          userNotificationEventType: true,
         },
         props: {
           isRoot: true,
         },
       });
 
+    /*
+     * The pages again in flight (issues #8549, #8590): a page again whose
+     * process stopped once its run was written, with the workers then down
+     * past five minutes, can be read here before the page-again tick
+     * settles it. Read only when a run is stuck.
+     */
+    const pagesAgainInFlight: Map<string, OnCallPageAgainClaim> =
+      stuckExecutions.length + scheduledStuckExecutions.length > 0
+        ? await OnCallPageAgainClaimsInFlight.readAll()
+        : new Map();
+
     for (const executionLog of stuckExecutions) {
-      await OnCallDutyPolicyExecutionLogService.updateOneById({
-        id: executionLog.id!,
-        data: {
-          status: OnCallDutyPolicyStatus.Error,
-          statusMessage: isOnCallDirectPage(executionLog)
-            ? ON_CALL_DIRECT_PAGE_TIMED_OUT_MESSAGE
-            : "Policy Execution timed out.",
-        },
-        props: {
-          isRoot: true,
-        },
+      await settleStuckRun({
+        run: executionLog,
+        status: OnCallDutyPolicyStatus.Started,
+        statusMessage: isOnCallDirectPage(executionLog)
+          ? ON_CALL_DIRECT_PAGE_TIMED_OUT_MESSAGE
+          : ON_CALL_POLICY_RUN_TIMED_OUT_MESSAGE,
+        pagesAgainInFlight: pagesAgainInFlight,
       });
     }
 
     for (const executionLog of scheduledStuckExecutions) {
-      await OnCallDutyPolicyExecutionLogService.updateOneById({
-        id: executionLog.id!,
-        data: {
-          status: OnCallDutyPolicyStatus.Error,
-          statusMessage: isOnCallDirectPage(executionLog)
-            ? ON_CALL_DIRECT_PAGE_NEVER_STARTED_MESSAGE
-            : "Policy Execution never started (stuck in Scheduled) and was timed out.",
-        },
-        props: {
-          isRoot: true,
-        },
+      await settleStuckRun({
+        run: executionLog,
+        status: OnCallDutyPolicyStatus.Scheduled,
+        statusMessage: isOnCallDirectPage(executionLog)
+          ? ON_CALL_DIRECT_PAGE_NEVER_STARTED_MESSAGE
+          : ON_CALL_POLICY_RUN_NEVER_STARTED_MESSAGE,
+        pagesAgainInFlight: pagesAgainInFlight,
       });
     }
   },
 );
+
+/*
+ * Keeps the start of a stuck page again whose process stopped before it
+ * kept it (issue #8549), from its page again in flight, before it is
+ * handed over: its escalation then starts it from the rule it starts at,
+ * the person who acknowledged first - not from the policy's first level.
+ * Only the run's own start is written; the page again in flight is left
+ * to the page-again tick, which forgets it. One that cannot be kept is
+ * handed over all the same, as any stuck run is.
+ */
+async function keepPageAgainStart(data: {
+  run: OnCallDutyPolicyExecutionLog;
+  pageAgain: OnCallPageAgainClaim;
+}): Promise<void> {
+  try {
+    const isKept: boolean =
+      await OnCallDutyPolicyExecutionLogService.keepPageAgainStartIfMissing({
+        runId: data.run.id!,
+        startAtRuleId: data.pageAgain.startAtRuleId,
+        acknowledgedByUserId: data.pageAgain.acknowledgedByUserId,
+        minutes: data.pageAgain.minutes,
+        dueAt: data.pageAgain.dueAt,
+      });
+
+    if (isKept) {
+      logger.warn(
+        `On-call execution log ${data.run.id?.toString()}: its page again's process stopped before it kept its start; kept now, before it is handed over.`,
+      );
+    }
+  } catch (err) {
+    logger.error(
+      `Could not keep the start of the page again of on-call execution log ${data.run.id?.toString()}; handed over from its policy's first level.`,
+    );
+    logger.error(err as Error);
+  }
+}
+
+/*
+ * A run that did not finish starting (issue #8405).
+ *
+ * A policy's run is handed to its escalation (Executing): its start was
+ * cut short - the process stopped as it started, a database error the
+ * create hook could not hand over - and it used to be ended in Error here,
+ * having paged nobody, with none of its later rules paged either. Its
+ * escalation pages what the start did not: from its first rule at once,
+ * due when its page was, when no rule was recorded on it, or on from the
+ * rule recorded, the way every run moves on (OnCallEscalationAdvance) -
+ * claimed, so nobody is paged twice. The worker checks first that its
+ * record still needs somebody, and ends a run that keeps failing, saying
+ * why (OnCallPolicyRunRetry).
+ *
+ * A direct page has no escalation to hand it to, and a test page of a
+ * policy's first level must not walk on to its later levels: each is
+ * ended in Error, as it always was. So is a run that cannot be handed
+ * over: one that moved on since it was read is left as it is.
+ */
+async function settleStuckRun(data: {
+  run: OnCallDutyPolicyExecutionLog;
+  status: OnCallDutyPolicyStatus;
+  statusMessage: string;
+  // Every page again in flight: one of them may be this run's, whose start was never kept (issues #8549, #8590).
+  pagesAgainInFlight: Map<string, OnCallPageAgainClaim>;
+}): Promise<void> {
+  const run: OnCallDutyPolicyExecutionLog = data.run;
+
+  if (!isOnCallDirectPage(run) && !isOnCallTestPage(run)) {
+    const pageAgain: OnCallPageAgainClaim | null =
+      data.pagesAgainInFlight.size > 0
+        ? await OnCallAcknowledgementTimeout.findPageAgainInFlightOfRun({
+            runId: run.id!,
+            pagesAgainInFlight: data.pagesAgainInFlight,
+          })
+        : null;
+
+    if (pageAgain) {
+      await keepPageAgainStart({ run: run, pageAgain: pageAgain });
+    }
+
+    const handedOver: boolean =
+      await OnCallDutyPolicyExecutionLogService.handStartedRunToEscalation({
+        executionLogId: run.id!,
+        dueAt: getPagingDueAt(run),
+        fromStatuses: [data.status],
+      });
+
+    if (handedOver) {
+      logger.warn(
+        `On-call execution log ${run.id?.toString()} was still ${data.status} five minutes after it started; handed to its escalation, which pages what its start did not.`,
+      );
+    }
+
+    return;
+  }
+
+  await OnCallDutyPolicyExecutionLogService.updateOneById({
+    id: run.id!,
+    data: {
+      status: OnCallDutyPolicyStatus.Error,
+      statusMessage: data.statusMessage,
+    },
+    props: {
+      isRoot: true,
+    },
+  });
+}
+
+// When a stuck run's page was due: when its paging started, or when it was created.
+function getPagingDueAt(run: OnCallDutyPolicyExecutionLog): Date {
+  const pagingStartsAt: Date | null = run.pagingStartsAt
+    ? OneUptimeDate.fromString(run.pagingStartsAt)
+    : null;
+
+  if (pagingStartsAt && !isNaN(pagingStartsAt.getTime())) {
+    return pagingStartsAt;
+  }
+
+  return run.createdAt
+    ? OneUptimeDate.fromString(run.createdAt)
+    : OneUptimeDate.getCurrentDate();
+}
 
 /*
  * Whether a run in Started began starting before `before`: when it was

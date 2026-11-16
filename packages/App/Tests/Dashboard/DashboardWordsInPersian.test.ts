@@ -15,7 +15,7 @@ import {
   dashboardTranslator,
   isWordedInDashboardLocale,
 } from "Common/Tests/Helpers/DashboardLocales";
-import { Translator } from "Common/Types/Translator";
+import { createTranslator, Translator } from "Common/Types/Translator";
 import {
   CLOUD_RESOURCE_TYPES,
   CloudResourceTypeDescriptor,
@@ -32,12 +32,15 @@ import { isEnglishCopy } from "../../FeatureSet/Docs/Utils/Translations";
  * their English: whole pages - archives, label and owner rules, setup
  * guides, billing, a user's on-call methods, monitor step summaries, AI
  * insights, the telemetry tables' columns - read in English under a menu and
- * headings in Persian. Every string the Dashboard draws - its own pages and
- * components, Common's components, the models' field names and the catalogs
- * npm run i18n:extract reads - now reads in Persian, or stays as written on
- * purpose: a name, a code or an example, on a same-as-English list. The sentences with code that
- * #6733 translates, and the authenticator apps help it names, are left to
- * it.
+ * headings in Persian. Every string of the Persian file now reads in
+ * Persian, or stays as written on purpose: a name, a code or an example, on
+ * a same-as-English list. That is every string the Dashboard draws - its own
+ * pages and components, Common's components, the models' field names and
+ * the catalogs npm run i18n:extract reads - with the sentences with code
+ * #6733 named and its authenticator apps help, and the old keys no source
+ * draws any more (#7286), which a page can still draw through a prop the
+ * extractor does not read, such as a tab's name. Nothing is left to count:
+ * a string that arrives in English, or is set back to it, fails here.
  *
  * The whole Persian file is held to what a translation must keep from its
  * English - every placeholder, tag and `code`, every number, the spaces at
@@ -244,22 +247,29 @@ function endsAsEnglishDoes(english: string, persian: string): boolean {
 const SPLIT_AT_LATIN_COMMAS: ReadonlyArray<string> = ["Incidents, General"];
 
 /*
- * #6733 TRANSLATES THESE: every sentence with code the page sets apart (its
+ * #6733 NAMED THESE: every sentence with code the page sets apart (its
  * Arabic changes when the code is set apart), and the authenticator apps
- * help, by the issue's own list.
+ * help. They were the last strings the Dashboard drew in English in
+ * Persian, and read in Persian now, their code as English writes it.
  */
 const AUTHENTICATOR_HELP: string =
   "Get a one-time code from an app such as 1Password, Google Authenticator, or Microsoft Authenticator.";
 
-function isLeftToIssue6733(key: string): boolean {
-  if (key === AUTHENTICATOR_HELP) {
-    return true;
-  }
-
+function hasCodeThePageSetsApart(key: string): boolean {
   const arabic: string | undefined = ARABIC.get(key);
 
   return (
     arabic !== undefined && setCodeApartInSentence(arabic, "ar") !== arabic
+  );
+}
+
+// Whether Persian words `key` its own way, or keeps its English on purpose.
+function isWordedInPersian(key: string): boolean {
+  const english: string | undefined = ENGLISH.get(key);
+
+  return (
+    english !== undefined &&
+    (PERSIAN.get(key) !== english || isKeptAsWritten(english))
   );
 }
 
@@ -310,7 +320,7 @@ describe("what the Dashboard draws, in Persian", () => {
 
   test("every string they draw reads in Persian, or stays as written on purpose", () => {
     const english: Array<string> = PAGE_KEYS.filter((key: string): boolean => {
-      return !isWordedInDashboardLocale(key, "fa") && !isLeftToIssue6733(key);
+      return !isWordedInDashboardLocale(key, "fa");
     });
 
     expect(english).toEqual([]);
@@ -335,35 +345,337 @@ describe("what the Dashboard draws, in Persian", () => {
     expect(english).toEqual([]);
   });
 
-  test("what is left in English is only #6733's: sentences with code, and the authenticator help", () => {
-    const left: Array<string> = PAGE_KEYS.filter((key: string): boolean => {
-      return !isWordedInDashboardLocale(key, "fa");
-    });
-
-    for (const key of left) {
-      expect({ key, issue6733: isLeftToIssue6733(key) }).toEqual({
-        key,
-        issue6733: true,
-      });
-    }
-
-    // #6733 counts 74 sentences with code, and the authenticator help.
-    expect(left.length).toBeLessThanOrEqual(75);
-  });
-
-  test("the #6733 check finds code the page sets apart, and nothing in a plain sentence (control)", () => {
-    expect(isLeftToIssue6733(AUTHENTICATOR_HELP)).toBe(true);
-    expect(isLeftToIssue6733("Team Audit Logs")).toBe(false);
-    expect(isLeftToIssue6733("Add notification method")).toBe(false);
-
-    const withCode: Array<string> = Array.from(ARABIC.keys()).filter(
-      (key: string): boolean => {
-        return isLeftToIssue6733(key) && key !== AUTHENTICATOR_HELP;
-      },
+  test("#6733's sentences with code read in Persian, each keeping its English's code", () => {
+    const withCode: Array<string> = Array.from(ENGLISH.keys()).filter(
+      hasCodeThePageSetsApart,
     );
 
     // Arabic sets code apart in hundreds of sentences (#6733 counts 378).
     expect(withCode.length).toBeGreaterThan(300);
+    expect(
+      withCode.filter((key: string): boolean => {
+        return !isWordedInPersian(key);
+      }),
+    ).toEqual([]);
+    expect(
+      withCode.filter((key: string): boolean => {
+        return (
+          tokensOf(PERSIAN.get(key) as string, CODE_SPAN).join("|") !==
+          tokensOf(ENGLISH.get(key) as string, CODE_SPAN).join("|")
+        );
+      }),
+    ).toEqual([]);
+  });
+
+  test("the authenticator apps help #6733 named reads in Persian, the apps by their names", () => {
+    expect(PERSIAN.get(AUTHENTICATOR_HELP)).toBe(
+      "یک کد یک‌بارمصرف از برنامه‌ای مانند 1Password، Google Authenticator یا Microsoft Authenticator بگیرید.",
+    );
+  });
+
+  test("the code check finds code the page sets apart, and nothing in a plain sentence (control)", () => {
+    expect(
+      hasCodeThePageSetsApart(
+        "Create a .env file next to the downloaded files, then start the agent.",
+      ),
+    ).toBe(true);
+    expect(hasCodeThePageSetsApart("Team Audit Logs")).toBe(false);
+    expect(hasCodeThePageSetsApart("Add notification method")).toBe(false);
+    // The authenticator help names apps, and has no code.
+    expect(hasCodeThePageSetsApart(AUTHENTICATOR_HELP)).toBe(false);
+  });
+});
+
+/*
+ * NOTHING IN THE PERSIAN FILE IS LEFT IN ENGLISH (#7089).
+ *
+ * Not only what a source draws: every text of fa.json, the old keys no
+ * source draws any more included (#7286). npm run i18n:check counts them,
+ * and a page can draw one through a prop the extractor does not read (the
+ * profile page's Top functions tab, Tab.tsx). A text whose English is a
+ * name, a code or an example stays as written on a same-as-English list;
+ * every other text reads in Persian, so a key that arrives in English, or
+ * a text set back to it, fails here.
+ */
+describe("the whole Persian file, old keys included", () => {
+  // The keys of `persian` still their English, and not kept as written on purpose.
+  const stillEnglish: (
+    persian: ReadonlyMap<string, string>,
+  ) => Array<string> = (
+    persian: ReadonlyMap<string, string>,
+  ): Array<string> => {
+    return Array.from(ENGLISH)
+      .filter(([key, english]: [string, string]): boolean => {
+        return persian.get(key) === english && !isKeptAsWritten(english);
+      })
+      .map(([key]: [string, string]): string => {
+        return key.split(PATH_JOINER).join(".");
+      });
+  };
+
+  test("no text is still its English, unless it is kept as written on purpose", () => {
+    expect(stillEnglish(PERSIAN)).toEqual([]);
+  });
+
+  test("the old keys no page draws any more read in Persian too", () => {
+    const drawn: Set<string> = new Set<string>([
+      ...PAGE_KEYS,
+      ...NESTED_KEYS.map((entry: NestedEnglishEntry): string => {
+        return entry.path.join(PATH_JOINER);
+      }),
+    ]);
+    const old: Array<string> = Array.from(ENGLISH.keys()).filter(
+      (key: string): boolean => {
+        return !drawn.has(key);
+      },
+    );
+
+    /*
+     * #7286 counted 1,347 of them, most still English in Persian then. Their
+     * number only falls as old keys are pruned, so it is not held here.
+     */
+    expect(
+      old.filter((key: string): boolean => {
+        return !isWordedInPersian(key);
+      }),
+    ).toEqual([]);
+  });
+
+  test("the profile page's Top functions tab, which Tab.tsx translates as it draws it, reads in Persian", () => {
+    expect(PERSIAN.get("Top functions")).toBe("توابع برتر");
+  });
+
+  test("Persian's baseline counts no string untranslated", () => {
+    const progress: { baseline: { keys: number; untranslated: number } } =
+      readJson<{ baseline: { keys: number; untranslated: number } }>(
+        path.join(DASHBOARD, "i18n/Progress/fa.json"),
+      );
+
+    expect(progress.baseline.untranslated).toBe(0);
+    expect(progress.baseline.keys).toBeGreaterThan(50000);
+  });
+
+  test("the check finds a text set back to English, a key left English, and leaves a kept name alone (control)", () => {
+    const setBack: Map<string, string> = new Map<string, string>(PERSIAN);
+
+    // A page's title, and an old key no page draws.
+    setBack.set("Team Audit Logs", "Team Audit Logs");
+    setBack.set("Fix Tasks", "Fix Tasks");
+    // A name Persian keeps on purpose.
+    setBack.set("App Store", "App Store");
+
+    expect(stillEnglish(setBack).sort()).toEqual(
+      ["Fix Tasks", "Team Audit Logs"].sort(),
+    );
+    expect(PERSIAN_KEPT).toContain("App Store");
+  });
+});
+
+/*
+ * PLURALS, IN PERSIAN.
+ *
+ * English holds a count-dependent sentence as a pair: the general form
+ * under its key, the "one" form under "<key>_one". Persian reads its one
+ * form at 0 and 1 (Intl.PluralRules), and its general form at every other
+ * count - most often the same words, since a Persian noun after a number
+ * stays singular. Both forms of every pair read in Persian, each with the
+ * placeholders of its own English form, and a count is written in Persian
+ * digits whichever form it picks.
+ */
+describe("plurals, in Persian", () => {
+  const PLURALS: Array<string> = Array.from(ENGLISH.keys()).filter(
+    (key: string): boolean => {
+      return !key.includes(PATH_JOINER) && ENGLISH.has(`${key}_one`);
+    },
+  );
+  const FORMS: Array<string> = PLURALS.flatMap((key: string): Array<string> => {
+    return [key, `${key}_one`];
+  });
+
+  // A plural's template, as a page hands it to translatePlural.
+  const templateOf: (other: string) => { one: string; other: string } = (
+    other: string,
+  ): { one: string; other: string } => {
+    return { one: ENGLISH.get(`${other}_one`) as string, other };
+  };
+
+  // A value for each placeholder of `template` but the count: a name a page fills in.
+  const valuesOf: (template: {
+    one: string;
+    other: string;
+  }) => Record<string, string> = (template: {
+    one: string;
+    other: string;
+  }): Record<string, string> => {
+    const values: Record<string, string> = {};
+
+    for (const placeholder of tokensOf(
+      `${template.one} ${template.other}`,
+      PLACEHOLDER,
+    )) {
+      const name: string = placeholder.slice(2, -2).trim();
+
+      if (name !== "count") {
+        values[name] = "Ozone";
+      }
+    }
+
+    return values;
+  };
+
+  test("Persian has both forms of every plural English has: well over a thousand", () => {
+    expect(PLURALS.length).toBeGreaterThan(1000);
+    expect(
+      FORMS.filter((key: string): boolean => {
+        return !PERSIAN.has(key);
+      }),
+    ).toEqual([]);
+  });
+
+  test("each form keeps exactly the placeholders of its own English form", () => {
+    expect(
+      FORMS.filter((key: string): boolean => {
+        return (
+          tokensOf(PERSIAN.get(key) as string, PLACEHOLDER).join("|") !==
+          tokensOf(ENGLISH.get(key) as string, PLACEHOLDER).join("|")
+        );
+      }),
+    ).toEqual([]);
+  });
+
+  test("both forms of every plural read in Persian", () => {
+    expect(
+      FORMS.filter((key: string): boolean => {
+        return !isWordedInPersian(key);
+      }),
+    ).toEqual([]);
+  });
+
+  test("Persian reads its one form at 0 and 1, and its general form at every other count", () => {
+    const rules: Intl.PluralRules = new Intl.PluralRules("fa");
+
+    expect(
+      [0, 1, 2, 7, 21, 101].map((count: number): string => {
+        return rules.select(count);
+      }),
+    ).toEqual(["one", "one", "other", "other", "other", "other"]);
+  });
+
+  const PERSIAN_READER: Translator = dashboardTranslator("fa");
+  const ENGLISH_READER: Translator = dashboardTranslator("en");
+  const PERSIAN_PLURAL_RULES: Intl.PluralRules = new Intl.PluralRules("fa");
+
+  /*
+   * What is wrong with how `reader` draws `template` at `count`, if anything:
+   * it draws the English sentence (with the count in Persian digits, as a
+   * plural left in English is drawn for a Persian reader) where the form the
+   * count picks is not kept as written on purpose ("{{count}} OID" reads
+   * "۱ OID"), or its general form loses the count, in Persian digits.
+   */
+  const pluralProblem: (
+    reader: Translator,
+    template: { one: string; other: string },
+    count: number,
+  ) => string | null = (
+    reader: Translator,
+    template: { one: string; other: string },
+    count: number,
+  ): string | null => {
+    const values: Record<string, string> = valuesOf(template);
+    const digits: string = PERSIAN_READER.formatNumber(count);
+    const drawn: string = reader.translatePlural(template, count, values);
+    const form: string =
+      PERSIAN_PLURAL_RULES.select(count) === "one"
+        ? template.one
+        : template.other;
+
+    if (
+      !isKeptAsWritten(form) &&
+      drawn ===
+        ENGLISH_READER.translatePlural(template, count, {
+          ...values,
+          count: digits,
+        })
+    ) {
+      return `${template.other} at ${count}: English`;
+    }
+
+    if (
+      count > 1 &&
+      template.other.includes("{{count}}") &&
+      !drawn.includes(digits)
+    ) {
+      return `${template.other} at ${count}: ${drawn}`;
+    }
+
+    return null;
+  };
+
+  test("every plural reads in Persian at every count, its count in Persian digits", () => {
+    const wrong: Array<string> = [];
+    let checked: number = 0;
+
+    for (const other of PLURALS) {
+      const template: { one: string; other: string } = templateOf(other);
+
+      if (isKeptAsWritten(template.one) && isKeptAsWritten(template.other)) {
+        continue;
+      }
+
+      checked++;
+
+      for (const count of [0, 1, 7, 21]) {
+        const problem: string | null = pluralProblem(
+          PERSIAN_READER,
+          template,
+          count,
+        );
+
+        if (problem) {
+          wrong.push(problem);
+        }
+      }
+    }
+
+    expect(checked).toBeGreaterThan(1000);
+    expect(wrong).toEqual([]);
+  });
+
+  test("the count check finds a plural left in English, and leaves a Persian one alone (control)", () => {
+    const widgets: { one: string; other: string } = {
+      one: "{{count}} widget",
+      other: "{{count}} widgets",
+    };
+    // A Persian file that left the plural in English.
+    const leftInEnglish: Translator = createTranslator(
+      (text: string): string | undefined => {
+        return text === widgets.other ? widgets.other : undefined;
+      },
+      "fa",
+    );
+
+    // Drawn for a Persian reader, a plural left in English is English, counted in Persian digits.
+    expect(leftInEnglish.translatePlural(widgets, 7)).toBe("۷ widgets");
+    expect(pluralProblem(leftInEnglish, widgets, 7)).toBe(
+      "{{count}} widgets at 7: English",
+    );
+    expect(pluralProblem(leftInEnglish, widgets, 1)).toBe(
+      "{{count}} widgets at 1: English",
+    );
+    expect(
+      pluralProblem(PERSIAN_READER, templateOf("{{count}} investigations"), 7),
+    ).toBe(null);
+    // A one form Persian words as English does on purpose: "۱ OID".
+    expect(PERSIAN_KEPT).toContain("{{count}} OID");
+    expect(
+      PERSIAN_READER.translatePlural(templateOf("{{count}} OIDs"), 1),
+    ).toBe("۱ OID");
+    expect(pluralProblem(PERSIAN_READER, templateOf("{{count}} OIDs"), 1)).toBe(
+      null,
+    );
+    expect(
+      PERSIAN_READER.translatePlural(templateOf("{{count}} investigations"), 7),
+    ).toBe("۷ بررسی");
   });
 });
 
@@ -720,7 +1032,8 @@ describe("the titles every resource repeats, worded alike", () => {
  * an HTTP monitor's form read "وقفه درخواست", the same field's row on the
  * Template sync settings card "مهلت درخواست" - and وقفه is a pause, not a
  * time limit. Every text whose English says timeout now says مهلت, and وقفه
- * is left only where its English means a pause, for the reason listed.
+ * is left only where its English means a pause, or a break in what a
+ * processor runs (an interrupt), for the reason listed.
  */
 describe("a timeout is مهلت, never وقفه", () => {
   const DEADLINE: string = "مهلت";
@@ -730,11 +1043,15 @@ describe("a timeout is مهلت, never وقفه", () => {
   // The noun: a setting, a label, the timeouts a probe counts.
   const SAYS_A_TIMEOUT: RegExp = /\btime-?outs?\b/i;
 
-  // Where Persian keeps وقفه, because the English means a pause.
+  // Where Persian keeps وقفه, because the English means a pause or an interrupt.
   const PAUSES: ReadonlyArray<{ english: RegExp; why: string }> = [
     {
       english: /\bcool-?down\b/i,
       why: "the AI re-investigation cooldown is a wait before an alert or incident on the same monitor is investigated again: a pause",
+    },
+    {
+      english: /\b(?:un)?interrupt(?:s|ible)?\b/i,
+      why: "a processor's interrupts, and the processes the kernel will not interrupt that a load average counts: Persian computing calls an interrupt وقفه (وقفه‌ناپذیر, uninterruptible), a break in what the processor runs, never a time limit",
     },
   ];
 
@@ -787,7 +1104,7 @@ describe("a timeout is مهلت, never وقفه", () => {
     ).toEqual([]);
   });
 
-  test("وقفه is left only where the English means a pause", () => {
+  test("وقفه is left only where the English means a pause or an interrupt", () => {
     const pauses: Array<[string, string, string]> = WORDED.filter(
       ([, , persian]: [string, string, string]): boolean => {
         return persian.includes(PAUSE);
@@ -953,6 +1270,10 @@ describe("a cloud's zones and recordsets, in Persian words", () => {
     {
       english: /\btimes without a zone\b/i,
       why: "a time's zone is its time zone: منطقه زمانی",
+    },
+    {
+      english: /\bin this zone\b/i,
+      why: "the on-call layer's time zone picker said everything below it is in this zone, its time zone: منطقه زمانی",
     },
   ];
 

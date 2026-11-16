@@ -28,7 +28,7 @@ flowchart LR
 ## Antes de empezar
 
 - **Telemetría que llega.** El mapa de servicios necesita trazas: consulte [OpenTelemetry](/docs/telemetry/open-telemetry). La vista de infraestructura necesita un host o un clúster que envíe datos: consulte el [agente de Kubernetes](/docs/telemetry/kubernetes-agent). La vista de red necesita dispositivos de red: consulte [Monitor de dispositivos de red](/docs/monitor/network-device-monitor).
-- **Un rol que lea la telemetría.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member o Telemetry Viewer, o un rol personalizado con el permiso Read Inventory Item.
+- **Un rol que lea la telemetría.** Propietario del proyecto, Administrador del proyecto, Miembro del proyecto, Visor, Administrador de telemetría, Miembro de telemetría o Visor de telemetría, o un rol personalizado con el permiso Read Inventory Item.
 
 ## Abrir la topología
 
@@ -51,12 +51,12 @@ Cada servicio muestra su estado, calculado a partir de las llamadas que recibió
 | Estado | Cuándo |
 | --- | --- |
 | **En buen estado** | Falló como máximo el 1 % de las llamadas que recibió. |
-| **Some errors** | Falló más del 1 % y menos del 5 %. |
-| **High error rate** | Falló el 5 % o más. |
-| **Entry point** | No recibió llamadas, pero hizo algunas: un frontend web o una tarea programada. |
-| **No calls observed** | No hizo ni recibió ninguna llamada. |
+| **Algunos errores** | Falló más del 1 % y menos del 5 %. |
+| **Tasa de errores alta** | Falló el 5 % o más. |
+| **Punto de entrada** | No recibió llamadas, pero hizo algunas: un frontend web o una tarea programada. |
+| **No se observaron llamadas** | No hizo ni recibió ninguna llamada. |
 
-Un servicio con un incidente o una alerta activos muestra cuántos tiene, y, como un servicio con **Some errors** o con **High error rate**, cuenta como que requiere atención.
+Un servicio con un incidente o una alerta activos muestra cuántos tiene, y, como un servicio con el estado **Algunos errores** o **Tasa de errores alta**, cuenta como que requiere atención.
 
 :::steps
 ### Encontrar los servicios que requieren atención

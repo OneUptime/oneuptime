@@ -127,6 +127,56 @@ export interface SourceRoot {
  */
 export const SOURCE_ROOTS: Array<SourceRoot> = [
   { directory: "packages/App/FeatureSet/Dashboard/src", kind: "ui" },
+  /*
+   * The audit log's screens are Enterprise code, which the Dashboard draws
+   * through its plugins: the table on every resource page, its changes
+   * dialog and Settings > Audit Logs (#8291, #8319). They hold their words
+   * in the Dashboard's locales, so the extractor reads them as it reads the
+   * Dashboard's own. The rest of ee/Dashboard is not read yet: each screen
+   * comes in as its words are routed through the translator.
+   */
+  { directory: "ee/Dashboard/AuditLogs", kind: "ui" },
+  /*
+   * Teams > Compliance, the SCIM pages and their logs, the telemetry
+   * retention overrides, and the notice an Enterprise setting's screen
+   * shows when the license lapses: Enterprise screens whose every word goes
+   * through the reader's Translator since #8296 and #8461. Before, none was
+   * read here, so about 116 of their words were in no locale and every
+   * reader got them in English.
+   */
+  { directory: "ee/Dashboard/TeamCompliance", kind: "ui" },
+  { directory: "ee/Dashboard/Identity", kind: "ui" },
+  { directory: "ee/Dashboard/TelemetryRetention", kind: "ui" },
+  { directory: "ee/Dashboard/EnterpriseSettings", kind: "ui" },
+  /*
+   * The team compliance rules' catalog: each rule kind's and channel's
+   * name, what each kind checks, and the sentence a rule reads as on the
+   * Compliance page. Only the words the file marks are read: the server
+   * evaluates rules with the same file and keeps its own English.
+   */
+  { directory: "packages/Common/Types/Team/ComplianceRule.ts", kind: "keys" },
+  /*
+   * What the compliance page says is wrong with a rule, and why a member
+   * fails one: the server sends what it found, and the page words it here
+   * (#8632). Only the words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/Team/TeamComplianceFindings.ts",
+    kind: "keys",
+  },
+  /*
+   * The rest of the Enterprise screens the Dashboard draws (#8634): custom
+   * roles, the audit log export, the IP allowlists, the license pages, and
+   * the status pages' access controls and branding. Every word they draw
+   * goes through the reader's Translator, so each new one reaches the
+   * locales the way the Dashboard's own do.
+   */
+  { directory: "ee/Dashboard/CustomRoles", kind: "ui" },
+  { directory: "ee/Dashboard/AuditLogExport", kind: "ui" },
+  { directory: "ee/Dashboard/IpAllowlists", kind: "ui" },
+  { directory: "ee/Dashboard/License", kind: "ui" },
+  { directory: "ee/Dashboard/StatusPageAccessControls", kind: "ui" },
+  { directory: "ee/Dashboard/StatusPageBranding", kind: "ui" },
   { directory: "packages/Common/UI", kind: "ui" },
   { directory: "packages/Common/Models/DatabaseModels", kind: "models" },
   { directory: "packages/Common/Models/AnalyticsModels", kind: "models" },
@@ -159,10 +209,43 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   { directory: "packages/Common/Utils/Monitor", kind: "ui" },
   /*
+   * What a monitor's Incident Metrics and Alert Metrics charts, and an
+   * SLO's, draw: each chart's title, its legend and what it shows (#8282).
+   * Only the words the files mark are read: the metric names and units
+   * they also hold are stored as written.
+   */
+  {
+    directory: "packages/Common/Utils/Incident/IncidentMetricType.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Utils/Alerts/AlertMetricType.ts",
+    kind: "keys",
+  },
+  { directory: "packages/Common/Utils/Slo/SloMetricType.ts", kind: "keys" },
+  /*
+   * What the server stores as each monitor series' description, which the
+   * metrics list words under the series' name (#8356).
+   */
+  {
+    directory: "packages/Common/Server/Utils/Monitor/MonitorMetricUtil.ts",
+    kind: "keys",
+  },
+  /*
    * A duration in milliseconds in the reader's language ("{{value}} ms"):
    * the Dashboard's views and the overview's hero write it with one helper.
    */
   { directory: "packages/Common/Utils/Milliseconds.ts", kind: "ui" },
+  /*
+   * Every dashboard widget's settings: each setting's and section's name,
+   * what it does, its placeholder and its options, which the widget
+   * settings form looks up as it draws them. They were never extracted, so
+   * every widget's form read English in every language - the Incident
+   * List's Lifecycle State filter "Unresolved (open)" (#8164), a Chart's
+   * "Chart Type" and "Stacked Area Chart" (#8479). A setting's name is a
+   * word by its type (ComponentArgument, PROPS_IN_LISTS).
+   */
+  { directory: "packages/Common/Utils/Dashboard/Components", kind: "ui" },
   /*
    * The monitor types' cards in Create Monitor's picker: each type's title
    * and what it alerts on, and the categories More lists them under.
@@ -186,6 +269,21 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   {
     directory: "packages/Common/Utils/GuidedSetup/StatusPageRecords.ts",
+    kind: "keys",
+  },
+  /*
+   * The name a project's first on-call policy starts with, and the names
+   * and descriptions of the two on-call rules made with it, in the
+   * language of the person they are made for - the guided setups', Create
+   * On-Call Policy's and Ask AI's alike (#7995). Only the sentences the
+   * files mark are read.
+   */
+  {
+    directory: "packages/Common/Utils/GuidedSetup/OnCallPolicyRecords.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/OnCallDutyPolicy/EveryNewEventRules.ts",
     kind: "keys",
   },
   /*
@@ -309,8 +407,45 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Types/AuditLog/AuditLogActionLabel.ts",
     kind: "keys",
   },
+  /*
+   * What the audit log's changes dialog calls each field of a session entry
+   * ("Signed in with", "Timed out at"), in the reader's language (#8291).
+   * Only the labels the file marks are read: the stored values are not.
+   */
+  {
+    directory: "packages/Common/Types/AuditLog/AuditLogSessionEvent.ts",
+    kind: "keys",
+  },
   {
     directory: "packages/Common/Types/Workflow/WorkflowStatus.ts",
+    kind: "keys",
+  },
+  /*
+   * The workflow builder's step catalogue (#8359): each step's title and
+   * what it does, each setting's name, help and choices, each output's
+   * name and help, each returned value's name and what it holds, and the
+   * Add Component panel's groups. The canvas, the settings panel, the
+   * value picker and the run log look each one up as they draw it. Only
+   * the words the files mark are read: ids, the references a workflow
+   * stores ({{local.components...}}), example values and a Switch / Case's
+   * cases (people name them) stay as written. A record step's words are
+   * sentences with its model's name in them ("Find One {{itemName}}",
+   * #8642), read as the sentence they were built from (ComposedWords).
+   */
+  { directory: "packages/Common/Types/Workflow/Components", kind: "keys" },
+  { directory: "packages/Common/Types/Workflow/Components.ts", kind: "keys" },
+  // The Affected Resources setting the incident and alert steps share.
+  {
+    directory: "packages/Common/Types/Workflow/AffectedResourcesSetting.ts",
+    kind: "keys",
+  },
+  // Create One Incident's template, and the owners Create One Incident and Alert take.
+  {
+    directory: "packages/Common/Types/Workflow/CreateFromTemplate.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Workflow/OwnersOnCreateSetting.ts",
     kind: "keys",
   },
   /*
@@ -488,6 +623,25 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * The banner at the top of an SLO's pages: each notice's title, its
+   * sentence of what to do and its link (#8446). The banner looks them up;
+   * the worker's statuses they are read from stay as written.
+   */
+  {
+    directory: "packages/Common/Utils/Slo/SloHealth.ts",
+    kind: "keys",
+  },
+  // What the SLO forms say of a request filter they cannot read (#8444).
+  {
+    directory: "packages/Common/Utils/Slo/SloRequestFilter.ts",
+    kind: "keys",
+  },
+  // What the SLO forms say of a Metric SLO's metric they cannot count (#8445).
+  {
+    directory: "packages/Common/Utils/Slo/SloMetricSli.ts",
+    kind: "keys",
+  },
+  /*
    * A serverless function's status - Receiving data, No recent
    * invocations, Waiting for data - and a service's - Receiving data, No
    * recent data, Waiting for data - and what each means: the Serverless
@@ -652,8 +806,9 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    * titles add, "Buffer pool size (pages)"), and the storage array, Proxmox,
    * OpenStack and Ceph metric pickers and Metrics tabs. The database and
    * queue catalogs mark their descriptions too, which the (i) beside those
-   * tiles and charts says. Only the text the files mark is read: metric
-   * names and attribute keys stay as written.
+   * tiles and charts says, and so do the monitor catalogs (below). Only the
+   * text the files mark is read: metric names and attribute keys stay as
+   * written.
    */
   {
     directory:
@@ -679,6 +834,48 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   },
   {
     directory: "packages/Common/Types/Monitor/CephMetricCatalog.ts",
+    kind: "keys",
+  },
+  /*
+   * What each monitor metric is (#8014): the line under every metric picker
+   * of a monitor's form, a Database Health criteria's line, a Database
+   * monitor's charts and the metric it stores, and the words under each of
+   * the Database catalog's groups. Every monitor metric catalog marks its
+   * descriptions - the four above and these eight. These mark nothing else:
+   * their metric names are no keys yet (#8353, #8354), and the attribute
+   * names, values and units a description gives stay as written in every
+   * language (MonitorMetricDescriptionsInLocales).
+   */
+  {
+    directory: "packages/Common/Types/Monitor/DatabaseMetricCatalog.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Monitor/DockerMetricCatalog.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Monitor/DockerSwarmMetricCatalog.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Monitor/HostMetricCatalog.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Monitor/IotMetricCatalog.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Monitor/KubernetesMetricCatalog.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Monitor/PodmanMetricCatalog.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Monitor/VMwareMetricCatalog.ts",
     kind: "keys",
   },
   /*
@@ -757,6 +954,17 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   {
     directory:
       "packages/Common/Types/DataObservability/DataCheckSuggestions.ts",
+    kind: "keys",
+  },
+  /*
+   * Why a data alert most likely happened (its Why This Happened card,
+   * #8343): each likely cause's title the server words, as a whole sentence
+   * with the names and counts it gives as values, for the Dashboard to word
+   * in the reader's language. Only the words the file marks are read.
+   */
+  {
+    directory:
+      "packages/Common/Types/DataObservability/DataAlertCauseTitles.ts",
     kind: "keys",
   },
 ];
@@ -887,9 +1095,32 @@ const HTML_TEXT_ATTRIBUTES: ReadonlySet<string> = new Set<string>([
  * Object properties that are copy only inside a particular list: a tab's
  * "name" is its label (Tab translates it), while "name" elsewhere is usually
  * an identifier.
+ *
+ * A tab is known where it is written, by its list's name or its type: an
+ * item of `tabs={[...]}` or `tabs: [...]`, of an array declared as the
+ * item's type (`const tabs: Array<Tab> = [...]`), an object pushed onto one
+ * (`tabs.push({...})`), declared as one (`const tab: Tab = {...}`) or
+ * returned by a function that returns one (`(...): Tab => ({...})`). Only
+ * the list's name was read, so a page that built its tabs in a variable -
+ * most do - had them looked up but never extracted: "Diff vs. baseline"
+ * and "Env Vars" read English in every language (#8367).
  */
-const PROPS_IN_LISTS: ReadonlyArray<{ list: string; prop: string }> = [
-  { list: "tabs", prop: "name" },
+export const PROPS_IN_LISTS: ReadonlyArray<{
+  list?: string | undefined;
+  itemType: string;
+  prop: string;
+}> = [
+  { list: "tabs", itemType: "Tab", prop: "name" },
+  /*
+   * A dashboard widget's setting and the section it is in: their name is
+   * the field's and the fold's title in the widget settings form, known by
+   * the type its list or its object is declared as
+   * (`const componentArguments: Array<ComponentArgument<T>> = []`, `const
+   * DisplaySection: ComponentArgumentSection = {...}`), or a function that
+   * returns one (getViewModeArgument), #8479.
+   */
+  { itemType: "ComponentArgument", prop: "name" },
+  { itemType: "ComponentArgumentSection", prop: "name" },
 ];
 
 // Element text inside these is code or a key name, not copy.
@@ -1489,39 +1720,226 @@ const getMeaningfulChildren: (
   });
 };
 
-// A property assignment inside an object that is an item of `tabs: [...]`.
-const isPropInList: (node: ts.PropertyAssignment, prop: string) => boolean = (
-  node: ts.PropertyAssignment,
-  prop: string,
-): boolean => {
-  const object: ts.Node = node.parent;
-  const list: ts.Node | undefined = object?.parent;
-
-  if (!list || !ts.isArrayLiteralExpression(list)) {
-    return false;
+// The type a declaration names: "Tab" for `Tab`, `Array<Tab>`, `Tab[]`, `ReadonlyArray<Tab>`.
+const getNamedItemType: (
+  type: ts.TypeNode | undefined,
+) => { name: string; isList: boolean } | undefined = (
+  type: ts.TypeNode | undefined,
+): { name: string; isList: boolean } | undefined => {
+  if (!type) {
+    return undefined;
   }
 
-  let holder: ts.Node | undefined = list.parent;
+  if (ts.isArrayTypeNode(type)) {
+    const item: { name: string; isList: boolean } | undefined =
+      getNamedItemType(type.elementType);
+
+    return item && !item.isList ? { name: item.name, isList: true } : undefined;
+  }
+
+  if (ts.isTypeReferenceNode(type) && ts.isIdentifier(type.typeName)) {
+    const name: string = type.typeName.text;
+    const argument: ts.TypeNode | undefined = type.typeArguments?.[0];
+
+    if ((name === "Array" || name === "ReadonlyArray") && argument) {
+      const item: { name: string; isList: boolean } | undefined =
+        getNamedItemType(argument);
+
+      return item && !item.isList
+        ? { name: item.name, isList: true }
+        : undefined;
+    }
+
+    return { name, isList: false };
+  }
+
+  return undefined;
+};
+
+// The declared type of the variable a name reads, from the nearest declaration in its file.
+const getDeclaredTypeOf: (
+  identifier: ts.Identifier,
+) => { name: string; isList: boolean } | undefined = (
+  identifier: ts.Identifier,
+): { name: string; isList: boolean } | undefined => {
+  let found: { name: string; isList: boolean } | undefined = undefined;
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (found) {
+      return;
+    }
+
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.name.text === identifier.text
+    ) {
+      found = getNamedItemType(node.type);
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(identifier.getSourceFile());
+
+  return found;
+};
+
+/*
+ * What an object literal is written as, where its code says so: an item of
+ * a list (by the list's name or its declared item type), or one item (by
+ * its declared type, or a function's return type).
+ */
+const getObjectHolder: (object: ts.Node) => {
+  listName?: string | undefined;
+  itemType?: string | undefined;
+} = (
+  object: ts.Node,
+): { listName?: string | undefined; itemType?: string | undefined } => {
+  let parent: ts.Node | undefined = object.parent;
+
+  while (
+    parent &&
+    (ts.isParenthesizedExpression(parent) ||
+      ts.isAsExpression(parent) ||
+      ts.isSatisfiesExpression(parent))
+  ) {
+    parent = parent.parent;
+  }
+
+  if (!parent) {
+    return {};
+  }
+
+  // One item: `const tab: Tab = {...}`, `return {...}` or `=> ({...})` of a function typed `: Tab`.
+  if (ts.isVariableDeclaration(parent)) {
+    const type: { name: string; isList: boolean } | undefined =
+      getNamedItemType(parent.type);
+
+    return type && !type.isList ? { itemType: type.name } : {};
+  }
+
+  const returnedBy: ts.Node | undefined = ts.isReturnStatement(parent)
+    ? ts.findAncestor(parent, ts.isFunctionLike)
+    : ts.isArrowFunction(parent)
+      ? parent
+      : undefined;
+
+  if (returnedBy && ts.isFunctionLike(returnedBy)) {
+    const type: { name: string; isList: boolean } | undefined =
+      getNamedItemType(returnedBy.type);
+
+    return type && !type.isList ? { itemType: type.name } : {};
+  }
+
+  // Pushed onto a list: `tabs.push({...})`.
+  if (
+    ts.isCallExpression(parent) &&
+    ts.isPropertyAccessExpression(parent.expression) &&
+    parent.expression.name.text === "push" &&
+    ts.isIdentifier(parent.expression.expression)
+  ) {
+    const receiver: ts.Identifier = parent.expression.expression;
+    const type: { name: string; isList: boolean } | undefined =
+      getDeclaredTypeOf(receiver);
+
+    return {
+      listName: receiver.text,
+      itemType: type && type.isList ? type.name : undefined,
+    };
+  }
+
+  if (!ts.isArrayLiteralExpression(parent)) {
+    return {};
+  }
+
+  let holder: ts.Node | undefined = parent.parent;
+
+  while (
+    holder &&
+    (ts.isParenthesizedExpression(holder) ||
+      ts.isAsExpression(holder) ||
+      ts.isSatisfiesExpression(holder))
+  ) {
+    holder = holder.parent;
+  }
 
   if (holder && ts.isJsxExpression(holder)) {
     holder = holder.parent;
   }
 
   if (!holder) {
+    return {};
+  }
+
+  if (ts.isPropertyAssignment(holder)) {
+    return { listName: getPropertyName(holder.name) };
+  }
+
+  if (ts.isJsxAttribute(holder)) {
+    return { listName: getJsxAttributeName(holder) };
+  }
+
+  if (ts.isVariableDeclaration(holder) && ts.isIdentifier(holder.name)) {
+    const type: { name: string; isList: boolean } | undefined =
+      getNamedItemType(holder.type);
+
+    return {
+      listName: holder.name.text,
+      itemType: type && type.isList ? type.name : undefined,
+    };
+  }
+
+  /*
+   * A list a function returns: `(): Array<ComponentArgument<T>> => { return
+   * [{...}] }`, as the type it returns a list of (#8479).
+   */
+  const listReturnedBy: ts.Node | undefined = ts.isReturnStatement(holder)
+    ? ts.findAncestor(holder, ts.isFunctionLike)
+    : ts.isArrowFunction(holder)
+      ? holder
+      : undefined;
+
+  if (listReturnedBy && ts.isFunctionLike(listReturnedBy)) {
+    const type: { name: string; isList: boolean } | undefined =
+      getNamedItemType(listReturnedBy.type);
+
+    return type && type.isList ? { itemType: type.name } : {};
+  }
+
+  return {};
+};
+
+/*
+ * A property assignment inside an object that is an item of `tabs: [...]`,
+ * or written as one of the list's items wherever it is (PROPS_IN_LISTS).
+ */
+export const isPropInList: (
+  node: ts.PropertyAssignment,
+  prop: string,
+) => boolean = (node: ts.PropertyAssignment, prop: string): boolean => {
+  const object: ts.Node = node.parent;
+
+  if (!object || !ts.isObjectLiteralExpression(object)) {
     return false;
   }
 
-  let holderName: string | undefined = undefined;
-
-  if (ts.isPropertyAssignment(holder)) {
-    holderName = getPropertyName(holder.name);
-  } else if (ts.isJsxAttribute(holder)) {
-    holderName = getJsxAttributeName(holder);
-  }
+  const holder: {
+    listName?: string | undefined;
+    itemType?: string | undefined;
+  } = getObjectHolder(object);
 
   return PROPS_IN_LISTS.some(
-    (rule: { list: string; prop: string }): boolean => {
-      return rule.prop === prop && rule.list === holderName;
+    (rule: {
+      list?: string | undefined;
+      itemType: string;
+      prop: string;
+    }): boolean => {
+      return (
+        rule.prop === prop &&
+        ((rule.list !== undefined && rule.list === holder.listName) ||
+          rule.itemType === holder.itemType)
+      );
     },
   );
 };

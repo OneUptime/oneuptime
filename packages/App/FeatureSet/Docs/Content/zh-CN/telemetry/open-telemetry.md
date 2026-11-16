@@ -36,7 +36,7 @@ flowchart TB
 
 ## 开始之前
 
-- 一个你可以在其中创建摄取密钥的 OneUptime 项目：项目所有者和管理员可以创建，拥有 Create Ingestion Key 权限的任何人也可以。
+- 一个你可以在其中创建摄取密钥的 OneUptime 项目：项目所有者和项目管理员可以创建，拥有 Create Ingestion Key 权限的任何人也可以。
 - 一个可以添加 OpenTelemetry SDK 的应用，或者一个 OpenTelemetry Collector。
 - 从应用或 Collector 到 `oneuptime.com`（或你自己的 OneUptime 主机）的出站 HTTPS（端口 443）。
 
@@ -410,7 +410,7 @@ OneUptime 重启或升级期间，会以 `503` 和 `Retry-After: 5` 响应导出
 | **已启用** | 关闭后会立即停止接受用此密钥发送的数据，而无需删除密钥。 |
 | **过期时间** | 超过此日期后密钥会被拒绝。留空表示永不过期。 |
 | **Requests Per Minute Limit** | 使用此密钥的所有客户端合计，每分钟可被接受的 OTLP/HTTP 请求数上限。留空时，服务器密钥不限，浏览器密钥为 6,000。 |
-| **Last Used At** | 最近一次用此密钥接受数据的时间。可用来找出可以安全轮换或删除的密钥。 |
+| **上次使用时间** | 最近一次用此密钥接受数据的时间。可用来找出可以安全轮换或删除的密钥。 |
 
 密钥页面上的 **重置密钥** 会替换密钥值。所有仍在使用旧密钥发送的应用和 Collector 都会被拒绝，直到你更新它们。关于浏览器密钥、如何安全轮换密钥以及每种拒绝的含义，请参阅 [摄取密钥](/docs/telemetry/ingestion-keys)。
 
@@ -431,9 +431,9 @@ OneUptime 会在你的 **日志** 中查找异常，并把它们汇入追踪错�
 | 检测方式 | 适用的日志 | 工作方式 |
 | --- | --- | --- |
 | **异常属性**（推荐） | 任意日志 | 带有 OpenTelemetry `exception.type`、`exception.message` 或 `exception.stacktrace` 属性的日志记录会直接变成异常。大多数日志集成在你记录异常时都会设置这些属性：Logback 和 Log4j appender、Serilog、Python 日志插桩。这种方式精确，并适用于任何语言。 |
-| **正文中的堆栈跟踪** | 不带追踪 ID 和 span ID 的错误级和致命级日志 | OneUptime 会在正文的前 16 KB 中查找 JavaScript、Python、Java、Go、Ruby、C#/.NET 或 PHP 堆栈跟踪，并从中提取类型、消息和帧。在 span 内写入的日志会被跳过，因为该 span 本身会上报异常。 |
+| **正文中的堆栈跟踪** | 不带追踪 ID 和 span ID 的错误级和致命级日志 | OneUptime 会在正文的前 16 KB 中查找 JavaScript、Python、Java、Go、Ruby、C#/.NET 或 PHP 堆栈追踪，并从中提取类型、消息和帧。在 span 内写入的日志会被跳过，因为该 span 本身会上报异常。 |
 
-正文扫描适用于 Collector 读取的纯文本日志，例如原始 stdout、journald 或 syslog。多行堆栈跟踪必须作为一条日志记录到达，因此请在 Collector 中启用多行合并，参见 [Host OpenTelemetry Collector](/docs/telemetry/host-otel-collector) 指南。
+正文扫描适用于 Collector 读取的纯文本日志，例如原始 stdout、journald 或 syslog。多行堆栈追踪必须作为一条日志记录到达，因此请在 Collector 中启用多行合并，参见 [Host OpenTelemetry Collector](/docs/telemetry/host-otel-collector) 指南。
 
 检测默认开启。在自托管安装中，在 `app` 服务上设置 `TELEMETRY_LOG_EXCEPTION_EXTRACTION_ENABLED=false` 即可关闭；如果你运行了 Helm chart 的专用 worker，也要在 `worker` 上设置。
 

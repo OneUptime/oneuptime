@@ -41,7 +41,7 @@ Om dina tjänster redan kan nå `https://oneuptime.com` (eller din självhostade
 
 ## Innan du börjar
 
-- **En anpassad sond som körs.** Dess **Status** visar **Ansluten**. Se [Anpassade probes](/docs/probe/custom-probe) för att installera en.
+- **En anpassad sond som körs.** Dess **Status** visar **Ansluten**. Se [Anpassade sonder](/docs/probe/custom-probe) för att installera en.
 - **En monitor för inkommande förfrågningar.** Dess heartbeat-URL innehåller den hemliga nyckel som din tjänst skickar: se [Övervakning av inkommande förfrågningar](/docs/monitor/incoming-request-monitor).
 - **En port på sondens värd som dina tjänster kan nå.** Exemplen använder `3875`.
 
@@ -163,7 +163,7 @@ curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
 | Svaret | `200` med ett tomt JSON-objekt (`{}`), skickat innan förfrågan skickas vidare. Som hos OneUptime skickas det vad som än händer sedan: även en felaktig hemlig nyckel får det. |
 | Metoder | `POST` skickas vidare som `POST`. `GET`, och `HEAD`, skickas vidare som `GET`. Andra metoder får `404` från sonden. |
 | Huvuden | Alla utom hop-by-hop-huvudena (`Host`, `Connection`, `Content-Length`, `Transfer-Encoding`, `Keep-Alive`, `Proxy-Authenticate`, `Proxy-Authorization`, `TE`, `Trailer`, `Upgrade`) och `Content-Encoding`, eftersom sonden vidarebefordrar bodyn okomprimerad. Sonden lägger till `OneUptime-Probe-Id`. |
-| Body | JSON- och formulär-body på upp till 50 MB, som när du skickar direkt till OneUptime. Precis som där når varje annan body monitorn tom. |
+| Body | JSON- och formulär-body på upp till 50 MB, och JSON i ren text (så skickar Amazon SNS den), som när du skickar direkt till OneUptime. Precis som där når varje annan body monitorn tom. |
 | Nya försök | När en vidarebefordran misslyckas försöker sonden igen upp till `PROBE_INGRESS_FORWARD_RETRY_LIMIT` gånger och väntar 2 s, sedan 4 s, sedan 8 s, och aldrig mer än 15 s. Sedan loggar den felet och släpper förfrågan. |
 | Proxyer | Vidarebefordran går via sondens proxy när `HTTP_PROXY_URL` eller `HTTPS_PROXY_URL` är satt. |
 | Vart den går | `ONEUPTIME_URL` följt av `/incoming-request-ingest/incoming-request/<secret-key>`. |
@@ -176,7 +176,7 @@ curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
 | `PROBE_INGRESS_FORWARD_TIMEOUT_MS` | `10000` | Hur lång tid varje vidarebefordran till OneUptime får ta, i millisekunder. Ett värde under `1000` faller tillbaka till standardvärdet. |
 | `PROBE_INGRESS_FORWARD_RETRY_LIMIT` | `3` | Hur många gånger en misslyckad vidarebefordran görs om. `0` stänger av nya försök. |
 
-Sondens vanliga variabler (`PROBE_KEY`, `PROBE_ID`, `ONEUPTIME_URL` och proxyvariablerna) gäller alla: se [Anpassade probes](/docs/probe/custom-probe) för hela listan.
+Sondens vanliga variabler (`PROBE_KEY`, `PROBE_ID`, `ONEUPTIME_URL` och proxyvariablerna) gäller alla: se [Anpassade sonder](/docs/probe/custom-probe) för hela listan.
 
 ## Säkerhetsöverväganden
 
@@ -192,7 +192,7 @@ Sondens vanliga variabler (`PROBE_KEY`, `PROBE_ID`, `ONEUPTIME_URL` och proxyvar
 :::
 
 :::details Sonden loggar `Probe ingress: failed to forward to <url> after N attempts`
-Sonden kunde inte nå OneUptime, inte ens efter sina nya försök. Kontrollera sondens utgående anslutning, dess proxyinställningar och värdet på `ONEUPTIME_URL`. Visar sonden också **Frånkopplad**, se [Anpassade probes](/docs/probe/custom-probe) för att hitta var dess förfrågningar fastnar.
+Sonden kunde inte nå OneUptime, inte ens efter sina nya försök. Kontrollera sondens utgående anslutning, dess proxyinställningar och värdet på `ONEUPTIME_URL`. Visar sonden också **Frånkopplad**, se [Anpassade sonder](/docs/probe/custom-probe) för att hitta var dess förfrågningar fastnar.
 :::
 
 :::details Sonden loggar `Probe ingress: probe ID not available, forwarding without it`
@@ -211,5 +211,5 @@ Förfrågan nådde aldrig sonden. Kontrollera att tjänsten kan nå sondens vär
 
 :::cards
 - [Övervakning av inkommande förfrågningar](/docs/monitor/incoming-request-monitor): Bestäm vad som räknas som ett friskt heartbeat.
-- [Anpassade probes](/docs/probe/custom-probe): Installera sonden, och se varje inställning den läser.
+- [Anpassade sonder](/docs/probe/custom-probe): Installera sonden, och se varje inställning den läser.
 :::

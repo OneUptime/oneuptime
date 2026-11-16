@@ -43,7 +43,7 @@ flowchart TB
 
 ## Før du begynner
 
-- **En rolle som kan sette det opp.** Project Owner, Project Admin og Security Admin endrer innstillingene for Datasikkerhet. Security Member behandler problemer og skanner datalagre, og Security Viewer leser det den har funnet. Andre roller ser ingenting av det med mindre teamet deres får tillatelsene for det: hvilke bucketer som inneholder kortnumre, er nøyaktig det en angriper vil vite. Se [Roller](/docs/permissions/reference#roller).
+- **En rolle som kan sette det opp.** Prosjekteier, Prosjektadministrator og Sikkerhetsadministrator endrer innstillingene for Datasikkerhet. Sikkerhetsmedlem behandler problemer og skanner datalagre, og Sikkerhetsleser leser det den har funnet. Andre roller ser ingenting av det med mindre teamet deres får tillatelsene for det: hvilke bucketer som inneholder kortnumre, er nøyaktig det en angriper vil vite. Se [Roller](/docs/permissions/reference#roller).
 - **En skykonto å lese, eller en database.** Datasikkerhet leser en skykonto gjennom en [skytilkobling](/docs/telemetry/cloud-accounts), og en database du drifter selv gjennom en skrivebeskyttet tilkoblingsstreng. Telemetri trenger ingenting: den skannes hver time.
 
 ## Kom i gang
@@ -69,7 +69,7 @@ Under **Flere felt** setter du **Datasikkerhet** til **Bare konfigurasjon** for 
 | AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System, Amazon Athena | AWS S3 Bucket |
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
-| Databaser du drifter selv | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL |
+| Databaser du drifter selv | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
 | OneUptime | Logger, traser, unntak, øktavspillinger, AI-samtaler | Logger, traser, unntak, øktavspillinger, AI-samtaler |
 
 Hvert datalager får kontrollene som gjelder for typen. Et datalager der innholdet ikke kan prøvetas, kontrolleres likevel: en offentlig bucket eller en ukryptert database er et problem uansett hva den inneholder.

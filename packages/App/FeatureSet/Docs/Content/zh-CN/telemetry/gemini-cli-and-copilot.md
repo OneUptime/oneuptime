@@ -3,7 +3,7 @@
 Gemini CLI 和 GitHub Copilot 都能自己导出 OpenTelemetry：把它们指向 OneUptime，它们的模型调用、token、成本和工具调用就会到达 [AI / LLM](/docs/telemetry/ai-llm-observability)，与你自己应用的 AI 调用放在一起。两者在成本分摊最关心的一点上不同：Gemini CLI 在每条记录上都指明是谁，而 Copilot 谁也不指明，所以你需要自己为每位开发者署名。
 
 :::cards
-- [Gemini CLI](#设置-gemini-cli): 打开带跟踪的遥测，并直接发送到 OneUptime。
+- [Gemini CLI](#设置-gemini-cli): 打开带追踪的遥测，并直接发送到 OneUptime。
 - [GitHub Copilot](#设置-github-copilot): 从 VS Code 或 Copilot CLI 导出。
 - [为每位开发者署名](#为每位开发者署名): Copilot 没有提供的身份。
 - [故障排除](#故障排除): 没有数据到达时要检查什么。
@@ -22,7 +22,7 @@ flowchart TB
 
 | | Gemini CLI | GitHub Copilot |
 | --- | --- | --- |
-| 发送 | 跟踪、指标和日志 | 跟踪、指标和事件，仅来自其代理功能 |
+| 发送 | 追踪、指标和日志 | 追踪、指标和事件，仅来自其代理功能 |
 | 指明是谁 | 登录时为 `user.email` | 无：由你设置 `enduser.id` 和 `user.email` |
 | 提示词文本 | 发送，除非你关闭 `logPrompts` | 不发送，除非你打开 `captureContent` |
 | 默认发送到 | `http://localhost:4317`，通过 gRPC | `http://localhost:4318`，通过 HTTP |
@@ -35,7 +35,7 @@ flowchart TB
 
 ## 设置 Gemini CLI
 
-Gemini CLI 会发送跟踪、指标和日志事件，并在有人登录时在每条记录上加上 `user.email`。OneUptime 把 `user.email` 读作员工，所以无需映射表、也无需逐台机器设置，就能看到每个人的支出。
+Gemini CLI 会发送追踪、指标和日志事件，并在有人登录时在每条记录上加上 `user.email`。OneUptime 把 `user.email` 读作员工，所以无需映射表、也无需逐台机器设置，就能看到每个人的支出。
 
 :::steps
 ### 打开遥测
@@ -70,11 +70,11 @@ Gemini CLI 在启动时读取设置，所以请重新启动它并运行一个提
 这个块中有三项设置比其他的更重要：
 
 - `otlpProtocol: "http"`。除非另行指定，Gemini CLI 使用 gRPC。通过 HTTP 时，它会自己在基础 URL 后加上 `/v1/traces`、`/v1/metrics` 和 `/v1/logs`。OneUptime 也在 443 端口接受 gRPC（参见 [基于 gRPC 的 OTLP](/docs/telemetry/open-telemetry#基于-grpc-的-otlp)），但 HTTP 更简单。
-- `traces: true`。它默认关闭，没有它，Gemini CLI 的 span 既不带模型也不带 token 计数，就无法计价。Gemini CLI 也不发送成本指标：要看到它的调用花了多少钱，请打开跟踪。
+- `traces: true`。它默认关闭，没有它，Gemini CLI 的 span 既不带模型也不带 token 计数，就无法计价。Gemini CLI 也不发送成本指标：要看到它的调用花了多少钱，请打开追踪。
 - `logPrompts: false`。请阅读下面的警告。
 
 > [!WARNING]
-> `logPrompts` 默认为 `true`，所以一打开遥测，就会发送工程师输入的文本：其中常常有源代码、客户数据和粘贴进来的凭据。请在打开遥测的同一次修改中把它设为 `false`。如果你需要提示词来调试，请有意识地作出决定，并用 **跟踪 → 设置** 下的清理规则遮盖必须遮盖的内容。
+> `logPrompts` 默认为 `true`，所以一打开遥测，就会发送工程师输入的文本：其中常常有源代码、客户数据和粘贴进来的凭据。请在打开遥测的同一次修改中把它设为 `false`。如果你需要提示词来调试，请有意识地作出决定，并用 **追踪 → 设置** 下的清理规则遮盖必须遮盖的内容。
 
 ### 面向大量机器的设置
 
@@ -149,7 +149,7 @@ service:
 | `gemini_cli.session.count` | 启动的会话 |
 | `gemini_cli.lines.changed` | 代理修改的行数 |
 
-它的日志事件包括 `gemini_cli.user_prompt`、`gemini_cli.api_request`、`gemini_cli.api_response`、`gemini_cli.api_error`、`gemini_cli.tool_call` 和 `gemini_cli.file_operation`。每条记录都带有 `session.id`、`installation.id`、`active_approval_mode`，有人登录时还带有 `user.email`。OneUptime 把 `session.id` 读作对话 ID，所以无论一个 Gemini CLI 会话用了多少条跟踪，它都会在 **对话** 下显示为一段对话。
+它的日志事件包括 `gemini_cli.user_prompt`、`gemini_cli.api_request`、`gemini_cli.api_response`、`gemini_cli.api_error`、`gemini_cli.tool_call` 和 `gemini_cli.file_operation`。每条记录都带有 `session.id`、`installation.id`、`active_approval_mode`，有人登录时还带有 `user.email`。OneUptime 把 `session.id` 读作对话 ID，所以无论一个 Gemini CLI 会话用了多少条追踪，它都会在 **对话** 下显示为一段对话。
 
 这些指标是普通的 OpenTelemetry 指标：你可以把其中任何一个绘制到仪表板上，或用 [指标监控](/docs/monitor/metrics-monitor) 针对它发出警报。
 

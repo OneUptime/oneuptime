@@ -13,9 +13,9 @@ OneUptime 인시던트마다 [ServiceNow](https://www.servicenow.com) 인시던�
 
 ```mermaid title="워크플로 두 개, ServiceNow 인시던트 하나"
 flowchart TB
-    declared["인시던트 선언"] --> create["워크플로 1:<br/>On Create Incident"]
+    declared["인시던트 선언"] --> create["워크플로 1:<br/>인시던트 생성 시"]
     create -->|"POST incident"| sn["ServiceNow 인시던트"]
-    resolved["인시던트 해결"] --> update["워크플로 2:<br/>On Update Incident"]
+    resolved["인시던트 해결"] --> update["워크플로 2:<br/>인시던트 업데이트 시"]
     update --> find["correlation_id로<br/>레코드 찾기"]
     find -->|"PATCH state 6"| sn
 ```
@@ -54,11 +54,11 @@ Table API는 Basic 인증, 즉 사용자의 이름과 비밀번호를 함께 인
 
 ### 트리거 추가하기
 
-점선으로 된 **이 워크플로를 시작할 항목 선택** 블록을 클릭하고 **On Create Incident**를 고릅니다. 트리거를 클릭합니다. **Fields to pass on**에는 **제목**이 이미 들어 있으므로, **필드 추가**를 클릭하고 **설명**을 고릅니다.
+점선으로 된 **이 워크플로를 시작할 항목 선택** 블록을 클릭하고 **인시던트 생성 시**를 고릅니다. 트리거를 클릭합니다. **넘겨줄 필드**에는 **제목**이 이미 들어 있으므로, **필드 추가**를 클릭하고 **설명**을 고릅니다.
 
 ### 레코드 만들기
 
-**구성 요소 추가**를 클릭하고 **API Post (JSON)** 블록을 추가한 다음, 트리거의 **Success** 점을 이 블록에 연결합니다. **URL**을 `https://your-instance.service-now.com/api/now/table/incident`로 설정합니다. **추가 필드**에서 **Request Headers**를 다음으로 설정합니다:
+**구성 요소 추가**를 클릭하고 **API 호출 POST (JSON)** 블록을 추가한 다음, 트리거의 **성공** 점을 이 블록에 연결합니다. **URL**을 `https://your-instance.service-now.com/api/now/table/incident`로 설정합니다. **추가 필드**에서 **요청 헤더**를 다음으로 설정합니다:
 
 ```json
 {
@@ -67,7 +67,7 @@ Table API는 Basic 인증, 즉 사용자의 이름과 비밀번호를 함께 인
 }
 ```
 
-**Request Body**는 다음과 같습니다:
+**요청 본문**은 다음과 같습니다:
 
 ```json
 {
@@ -81,7 +81,7 @@ Table API는 Basic 인증, 즉 사용자의 이름과 비밀번호를 함께 인
 
 ### 테스트한 다음 켜기
 
-**워크플로 실행**을 클릭하고 **인시던트**에서 테스트 인시던트를 고른 다음 실행합니다. **API Post (JSON)** 단계에 새 레코드와 그 `sys_id`, `INC0012345` 같은 `number`가 담긴 `201` 응답이 표시됩니다. 그런 다음 **빌더** 상단에서 **활성화됨**을 켭니다.
+**워크플로 실행**을 클릭하고 **인시던트**에서 테스트 인시던트를 고른 다음 실행합니다. **API 호출 POST (JSON)** 단계에 새 레코드와 그 `sys_id`, `INC0012345` 같은 `number`가 담긴 `201` 응답이 표시됩니다. 그런 다음 **빌더** 상단에서 **활성화됨**을 켭니다.
 :::
 
 `urgency`와 `impact`는 높음에 `1`, 중간에 `2`, 낮음에 `3`을 받으며, ServiceNow는 이 둘로 우선순위를 계산합니다. `incident` 테이블의 다른 열도 열 이름으로 본문에 넣을 수 있습니다.
@@ -91,9 +91,9 @@ Table API는 Basic 인증, 즉 사용자의 이름과 비밀번호를 함께 인
 워크플로에는 트리거가 하나뿐이므로, 해결에는 인시던트 상태가 바뀔 때 시작되는 두 번째 워크플로가 필요합니다.
 
 :::steps
-### On Update Incident 트리거 추가하기
+### "인시던트 업데이트 시" 트리거 추가하기
 
-`Resolve ServiceNow incidents`라는 워크플로를 만들고 트리거로 **On Update Incident**를 고릅니다. **Fields to watch**에서 **필드 추가**를 클릭하고 **Current Incident State**를 골라 상태가 바뀔 때만 실행되게 합니다. **Fields to pass on**에서 새 상태가 해결된 상태인지 요청합니다. **필드 추가**를 클릭하고 **Current Incident State**를 연 다음 **Is Resolved State**를 고릅니다. 또는 **JSON으로 편집**을 클릭하고 JSON을 다음으로 바꿉니다:
+`Resolve ServiceNow incidents`라는 워크플로를 만들고 트리거로 **인시던트 업데이트 시**를 고릅니다. **지켜볼 필드**에서 **필드 추가**를 클릭하고 **Current Incident State**를 골라 상태가 바뀔 때만 실행되게 합니다. **넘겨줄 필드**에서 새 상태가 해결된 상태인지 요청합니다. **필드 추가**를 클릭하고 **Current Incident State**를 연 다음 **Is Resolved State**를 고릅니다. 또는 **JSON으로 편집**을 클릭하고 JSON을 다음으로 바꿉니다:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -101,11 +101,11 @@ Table API는 Basic 인증, 즉 사용자의 이름과 비밀번호를 함께 인
 
 ### 인시던트가 해결되었는지 확인하기
 
-트리거 뒤에 **If / Else** 블록을 추가합니다. **Value to check**를 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`로, **Comparison**을 **is true**로 설정합니다.
+트리거 뒤에 **조건 분기** 블록을 추가합니다. **확인할 값**을 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`로, **비교**를 **참임**으로 설정합니다.
 
 ### 레코드 찾기
 
-**Yes** 쪽 뒤에 같은 **Request Headers**와 다음 **URL**을 가진 **API Get (JSON)** 블록을 추가합니다:
+**예** 쪽 뒤에 같은 **요청 헤더**와 다음 **URL**을 가진 **API 호출 GET (JSON)** 블록을 추가합니다:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}&sysparm_fields=sys_id&sysparm_limit=1
@@ -113,13 +113,13 @@ https://your-instance.service-now.com/api/now/table/incident?sysparm_query=corre
 
 ### 레코드 해결하기
 
-찾기 블록의 **Success** 뒤에 같은 **Request Headers**와 다음 **URL**을 가진 **API Patch (JSON)** 블록을 추가합니다:
+찾기 블록의 **성공** 뒤에 같은 **요청 헤더**와 다음 **URL**을 가진 **API 호출 PATCH (JSON)** 블록을 추가합니다:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident/{{local.components.api-get-1.returnValues.response-body.result[0].sys_id}}
 ```
 
-**Request Body**를 다음으로 설정합니다:
+**요청 본문**을 다음으로 설정합니다:
 
 ```json
 {

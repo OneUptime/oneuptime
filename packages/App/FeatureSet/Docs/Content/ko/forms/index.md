@@ -56,7 +56,7 @@ flowchart TB
 ## 시작하기 전에
 
 - **양식이 포함된 요금제.** OneUptime Cloud에서 양식을 쓰려면 **Growth** 이상의 요금제가 필요합니다. [요금제](#요금제) 를 참조하세요.
-- **양식을 만들 권한.** **Create Form** 은 프로젝트 소유자와 관리자, 그리고 이 권한을 준 역할에 있습니다. [권한](#권한) 을 참조하세요.
+- **양식을 만들 권한.** **Create Form** 은 프로젝트 소유자와 프로젝트 관리자, 그리고 이 권한을 준 역할에 있습니다. [권한](#권한) 을 참조하세요.
 - **인시던트 양식이라면 심각도.** 모든 인시던트에는 심각도가 필요합니다. 질문, 양식의 설정 또는 인시던트 템플릿에서 정해집니다. 심각도가 없으면 모든 제출이 거부됩니다. [제출로 만들어지는 항목](/docs/forms/on-submit#제출이-인시던트가-되는-과정) 을 참조하세요.
 
 ## 첫 양식 만들기
@@ -127,22 +127,22 @@ flowchart TB
 
 ## 권한
 
-양식을 쓰면 팀 밖의 사람이 프로젝트에 인시던트와 유지 관리 이벤트를 만들 수 있으므로, 양식은 프로젝트 소유자와 관리자, 그리고 **Form** 권한을 준 역할이 관리합니다. 이 권한들은 [권한 레퍼런스](/docs/permissions/reference) 의 **Form** 그룹에 있습니다.
+양식을 쓰면 팀 밖의 사람이 프로젝트에 인시던트와 유지 관리 이벤트를 만들 수 있으므로, 양식은 프로젝트 소유자와 프로젝트 관리자, 그리고 **Form** 권한을 준 역할이 관리합니다. 이 권한들은 [권한 레퍼런스](/docs/permissions/reference) 의 **Form** 그룹에 있습니다.
 
 | 권한 | 허용하는 것 | 기본으로 가진 역할 |
 | --- | --- | --- |
-| **Create Form** | 양식 만들기와 복제. | Project Owner, Project Admin |
-| **Edit Form** | 양식 변경: 질문, 브랜딩, 템플릿, 제출 시 설정, **제출 받기**, 링크, **IP 허용 목록**. | Project Owner, Project Admin |
-| **Delete Form** | 양식 삭제 (제출 내역도 함께 삭제됩니다). | Project Owner, Project Admin |
-| **Read Form** | 양식과 그 질문, 설정, 링크 보기. | 위의 역할과 Project Member, Viewer, 인시던트 및 예정된 유지 관리 역할 |
-| **Read Form Submission** | 제출과 그 답변 보기. | Project Owner, Project Admin |
-| **Delete Form Submission** | 제출 삭제. | Project Owner, Project Admin |
-| **Create Form Domain** | 양식에 [사용자 정의 도메인](/docs/forms/sharing-and-security#사용자-정의-도메인) 추가. | Project Owner, Project Admin, **Edit Form** |
-| **Edit Form Domain** | 양식의 사용자 정의 도메인 확인, 그리고 인증서 주문, 재발급 또는 변경. | Project Owner, Project Admin, **Edit Form** |
-| **Delete Form Domain** | 양식의 사용자 정의 도메인 제거. | Project Owner, Project Admin, **Edit Form** |
+| **Create Form** | 양식 만들기와 복제. | 프로젝트 소유자, 프로젝트 관리자 |
+| **Edit Form** | 양식 변경: 질문, 브랜딩, 템플릿, 제출 시 설정, **제출 받기**, 링크, **IP 허용 목록**. | 프로젝트 소유자, 프로젝트 관리자 |
+| **Delete Form** | 양식 삭제 (제출 내역도 함께 삭제됩니다). | 프로젝트 소유자, 프로젝트 관리자 |
+| **Read Form** | 양식과 그 질문, 설정, 링크 보기. | 위의 역할과 프로젝트 구성원, 뷰어, 인시던트 및 예정된 유지 관리 역할 |
+| **Read Form Submission** | 제출과 그 답변 보기. | 프로젝트 소유자, 프로젝트 관리자 |
+| **Delete Form Submission** | 제출 삭제. | 프로젝트 소유자, 프로젝트 관리자 |
+| **Create Form Domain** | 양식에 [사용자 정의 도메인](/docs/forms/sharing-and-security#사용자-정의-도메인) 추가. | 프로젝트 소유자, 프로젝트 관리자, **Edit Form** |
+| **Edit Form Domain** | 양식의 사용자 정의 도메인 확인, 그리고 인증서 주문, 재발급 또는 변경. | 프로젝트 소유자, 프로젝트 관리자, **Edit Form** |
+| **Delete Form Domain** | 양식의 사용자 정의 도메인 제거. | 프로젝트 소유자, 프로젝트 관리자, **Edit Form** |
 | **Read Form Domain** | 양식의 사용자 정의 도메인, 그 DNS 레코드, 각 도메인이 HTTPS까지 어느 단계에 있는지 보기. | **Read Form** 이 있는 모든 사람 |
 
-제출에는 모르는 사람이 입력한 내용 (이름, 이메일 주소, 레코드에 들어가지 않을 수도 있는 답변) 이 담겨 있으므로, **Read Form Submission** 을 부여하지 않으면 프로젝트 소유자와 관리자만 볼 수 있습니다. 양식을 볼 수 있는 사람은 누구나 그 링크를 보고 공유할 수 있습니다. 양식을 제출하는 데에는 아무 권한도 필요 없습니다. 역할과 세분화된 권한이 어떻게 결합되는지는 [사용자, 팀 및 권한](/docs/permissions/index) 을 참조하세요.
+제출에는 모르는 사람이 입력한 내용 (이름, 이메일 주소, 레코드에 들어가지 않을 수도 있는 답변) 이 담겨 있으므로, **Read Form Submission** 을 부여하지 않으면 프로젝트 소유자와 프로젝트 관리자만 볼 수 있습니다. 양식을 볼 수 있는 사람은 누구나 그 링크를 보고 공유할 수 있습니다. 양식을 제출하는 데에는 아무 권한도 필요 없습니다. 역할과 세분화된 권한이 어떻게 결합되는지는 [사용자, 팀 및 권한](/docs/permissions/index) 을 참조하세요.
 
 ## 요금제
 
@@ -257,7 +257,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
 
 ### 워크플로
 
-양식에는 자동 생성된 워크플로 구성 요소 (**On Create Form**, **On Update Form** 등) 가 있습니다. 양식이 만든 항목에 작업하려면 **On Create Incident** 또는 **On Create Maintenance Event** 를 사용하세요.
+양식에는 자동 생성된 워크플로 구성 요소 (**양식 생성 시**, **양식 업데이트 시** 등) 가 있습니다. 양식이 만든 항목에 작업하려면 **인시던트 생성 시** 또는 **유지 관리 이벤트 생성 시** 를 사용하세요.
 
 ### 공개 페이지 전용 엔드포인트
 

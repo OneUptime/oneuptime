@@ -22,6 +22,7 @@ import {
   YAxis,
 } from "recharts";
 import API from "Common/UI/Utils/API/API";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import URL from "Common/Types/API/URL";
@@ -71,6 +72,14 @@ import {
   useChartTimeRangeZoom,
 } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import { getReaderNumberLocale } from "Common/Types/DateLanguage";
+import {
+  formatCount as formatTraceChartCount,
+  formatDurationMsInLanguage,
+} from "../Dashboard/Components/TraceChartData";
+import {
+  getChartRowValues,
+  getYAxisWidthForValuesInPx,
+} from "Common/UI/Components/Charts/Utils/YAxisWidth";
 import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 type AnalyticsChartType = "timeseries" | "toplist" | "table";
@@ -214,31 +223,19 @@ function isDurationMetric(metric: string): boolean {
   return metric !== "count" && metric !== "errorCount";
 }
 
-export function formatDurationMs(ms: number): string {
-  if (!isFinite(ms)) {
-    return "-";
-  }
-  if (ms < 1) {
-    return `${Math.round(ms * 1000)} µs`;
-  }
-  if (ms < 1000) {
-    return `${ms < 10 ? ms.toFixed(1) : Math.round(ms)} ms`;
-  }
-  if (ms < 60000) {
-    return `${(ms / 1000).toFixed(2)} s`;
-  }
-  return `${(ms / 60000).toFixed(1)} min`;
-}
+/*
+ * A duration as the trace widgets write it (TraceChartData), in the
+ * reader's words on the chart's value axis, in its tooltip, its top list
+ * and its table alike (issues #7418, #8349).
+ */
+export { formatDurationMsInLanguage };
 
-function formatCount(value: number): string {
-  if (value >= 1000000) {
-    return `${(value / 1000000).toFixed(1)}M`;
-  }
-  if (value >= 1000) {
-    return `${(value / 1000).toFixed(value >= 10000 ? 0 : 1)}K`;
-  }
-  return Math.round(value).toLocaleString(getReaderNumberLocale());
-}
+/*
+ * A count on the value axis, as the trace widgets write it: "1.5K" in the
+ * page's digits and decimal sign ("1,5K", "۱٫۵K"), as the tooltip beside it
+ * writes its counts (TraceChartData's formatCount).
+ */
+const formatCount: (value: number) => string = formatTraceChartCount;
 
 function computeDefaultBucketSize(startTime: Date, endTime: Date): number {
   const diffMinutes: number =
@@ -271,6 +268,8 @@ interface AnalyticsTooltipProps {
 const AnalyticsTooltip: FunctionComponent<AnalyticsTooltipProps> = (
   props: AnalyticsTooltipProps,
 ): ReactElement | null => {
+  const translator: Translator = useTranslator();
+
   if (!props.active || !props.payload || props.payload.length === 0) {
     return null;
   }
@@ -298,9 +297,12 @@ const AnalyticsTooltip: FunctionComponent<AnalyticsTooltipProps> = (
                   </span>
                 </div>
                 <span className="font-mono text-xs font-semibold tabular-nums text-gray-800">
-                  {props.isDuration
-                    ? formatDurationMs(entry.value)
-                    : entry.value.toLocaleString(getReaderNumberLocale())}
+                  {getValueOrQuietDash(
+                    props.isDuration
+                      ? formatDurationMsInLanguage(entry.value, translator)
+                      : entry.value.toLocaleString(getReaderNumberLocale()),
+                    { isSmall: true },
+                  )}
                 </span>
               </div>
             );
@@ -973,9 +975,29 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
     );
   };
 
-  const yAxisFormatter: (value: number) => string = isDuration
-    ? formatDurationMs
-    : formatCount;
+  /*
+   * The value axis writes a figure as the tooltip and the top list beside
+   * it do, in the reader's language ("۴۲ میلی‌ثانیه", "1,5K"), and is as wide
+   * as its widest tick at its 11 px, never narrower than it was (#8349).
+   */
+  const yAxisFormatter: (value: number) => string = useMemo(() => {
+    return isDuration
+      ? (value: number): string => {
+          return formatDurationMsInLanguage(value, translator);
+        }
+      : formatCount;
+  }, [isDuration, translator.language]);
+
+  const yAxisWidth: number = useMemo(() => {
+    return getYAxisWidthForValuesInPx({
+      values: getChartRowValues(pivotedData, seriesKeys, {
+        isStacked: !isDuration,
+      }),
+      formatter: yAxisFormatter,
+      minWidthInPx: 64,
+      tickFontSizeInPx: 11,
+    });
+  }, [pivotedData, seriesKeys, isDuration, yAxisFormatter]);
 
   const renderTimeseries: () => ReactElement = (): ReactElement => {
     if (pivotedData.length === 0) {
@@ -1032,7 +1054,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
           tick={{ fontSize: 11, fill: "var(--ou-chart-tick, #94a3b8)" }}
           axisLine={false}
           tickLine={false}
-          width={64}
+          width={yAxisWidth}
           allowDecimals={isDuration}
           tickFormatter={yAxisFormatter}
         />
@@ -1243,9 +1265,14 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                 </div>
                 <div className="flex flex-shrink-0 items-center gap-3">
                   <span className="font-mono text-sm font-semibold tabular-nums text-gray-800">
-                    {isDuration
-                      ? formatDurationMs(item.metricValue)
-                      : translator.formatNumber(item.metricValue)}
+                    {getValueOrQuietDash(
+                      isDuration
+                        ? formatDurationMsInLanguage(
+                            item.metricValue,
+                            translator,
+                          )
+                        : translator.formatNumber(item.metricValue),
+                    )}
                   </span>
                   {isDuration && (
                     <span className="w-20 text-right font-mono text-[11px] tabular-nums text-gray-400">
@@ -1368,25 +1395,62 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                       {row.errorCount.toLocaleString(getReaderNumberLocale())}
                     </td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-sm tabular-nums text-gray-700">
-                      {formatDurationMs(row.avgDurationMs)}
+                      {getValueOrQuietDash(
+                        formatDurationMsInLanguage(
+                          row.avgDurationMs,
+                          translator,
+                        ),
+                      )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-sm tabular-nums text-gray-700">
-                      {formatDurationMs(row.p50DurationMs)}
+                      {getValueOrQuietDash(
+                        formatDurationMsInLanguage(
+                          row.p50DurationMs,
+                          translator,
+                        ),
+                      )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-sm tabular-nums text-gray-700">
-                      {formatDurationMs(row.p90DurationMs)}
+                      {getValueOrQuietDash(
+                        formatDurationMsInLanguage(
+                          row.p90DurationMs,
+                          translator,
+                        ),
+                      )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-sm tabular-nums text-gray-700">
-                      {formatDurationMs(row.p95DurationMs)}
+                      {getValueOrQuietDash(
+                        formatDurationMsInLanguage(
+                          row.p95DurationMs,
+                          translator,
+                        ),
+                      )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-sm tabular-nums text-gray-700">
-                      {formatDurationMs(row.p99DurationMs)}
+                      {getValueOrQuietDash(
+                        formatDurationMsInLanguage(
+                          row.p99DurationMs,
+                          translator,
+                        ),
+                      )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-xs tabular-nums text-gray-500">
-                      {formatDurationMs(row.minDurationMs)}
+                      {getValueOrQuietDash(
+                        formatDurationMsInLanguage(
+                          row.minDurationMs,
+                          translator,
+                        ),
+                        { isSmall: true },
+                      )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-xs tabular-nums text-gray-500">
-                      {formatDurationMs(row.maxDurationMs)}
+                      {getValueOrQuietDash(
+                        formatDurationMsInLanguage(
+                          row.maxDurationMs,
+                          translator,
+                        ),
+                        { isSmall: true },
+                      )}
                     </td>
                   </tr>
                 );

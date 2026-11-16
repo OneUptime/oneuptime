@@ -6,11 +6,21 @@ import {
   MessageQueueTopologyService,
 } from "Common/Types/MessageQueue/MessageQueueTopology";
 import { getMessagingSystemDisplayName } from "Common/Types/MessageQueue/MessagingSystem";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
+import {
+  DEFAULT_LANGUAGE,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
+import {
+  formatReaderFigure,
+  writeFigureInLanguage,
+} from "Common/Types/DateLanguage";
 import computeLayeredLayout, {
   LayoutPoint,
 } from "../../../Utils/LayeredGraphLayout";
 import {
+  CALL_RATE_PER_MINUTE,
   SERVICE_MAP_TOLERATED_ERROR_RATE,
   TrafficHealth,
   healthForErrorRate,
@@ -251,7 +261,7 @@ function brokerGroupLabel(
   queue: Pick<MessageQueueTopologyQueue, "messagingSystem" | "brokerScope">,
 ): string {
   const system: string =
-    getMessagingSystemDisplayName(queue.messagingSystem) || "—";
+    getMessagingSystemDisplayName(queue.messagingSystem) || EMPTY_VALUE_MARK;
   const scope: string = (queue.brokerScope || "").trim();
   return scope ? `${system} · ${scope}` : system;
 }
@@ -267,7 +277,7 @@ export function getMessageQueueTopologyQueueLabel(
     (queue.name || "").trim() ||
     (queue.destinationName || "").trim() ||
     getMessagingSystemDisplayName(queue.messagingSystem) ||
-    "—"
+    EMPTY_VALUE_MARK
   );
 }
 
@@ -407,7 +417,8 @@ export function buildMessageQueueTopologyModel(
       groupLabels.set(key, {
         label: brokerGroupLabel(queue),
         systemLabel:
-          getMessagingSystemDisplayName(queue.messagingSystem) || "—",
+          getMessagingSystemDisplayName(queue.messagingSystem) ||
+          EMPTY_VALUE_MARK,
       });
     }
     groupCounts.set(key, (groupCounts.get(key) || 0) + 1);
@@ -549,7 +560,7 @@ export function buildMessageQueueTopologyModel(
       getMessageQueueTopologyQueueStatus(queue);
     const health: TrafficHealth = healthOf(queue.spans, queue.errors);
     const systemLabel: string =
-      getMessagingSystemDisplayName(queue.messagingSystem) || "—";
+      getMessagingSystemDisplayName(queue.messagingSystem) || EMPTY_VALUE_MARK;
     const brokerLabel: string =
       (queue.brokerScope || "").trim() || (queue.brokerAddress || "").trim();
     const groupKey: string = getMessageQueueTopologyGroupKey(queue);
@@ -1072,6 +1083,22 @@ export function layoutMessageQueueTopology(options: {
 
 // ---- numbers ------------------------------------------------------------------------
 
+/*
+ * A RATE OF MESSAGES AND A SHARE OF FAILURES, IN THE READER'S LANGUAGE
+ * (#8259).
+ *
+ * The queue map's cards, its edges and its drawer wrote "1.0/s", "600/min"
+ * and "2.5%" in Latin digits with an English unit beside the card's
+ * Persian or German words. Handed the reader's translator, each is written
+ * as the service map writes its own (TopologyMeta's formatCallRate): the
+ * figure in the reader's digits and decimal sign, its scale letter kept
+ * ("۱٫۲k"), the unit a sentence of the locale ("{{rate}}/s",
+ * "{{rate}}/min": "۶۰۰/دقیقه", "600/Min."), and a share with the
+ * language's percent sign ("2,5 %", "۲٫۵٪"). English reads exactly as it
+ * always did, and so does every caller that hands no translator.
+ */
+export const MESSAGE_RATE_PER_SECOND: string = translationKey("{{rate}}/s");
+
 /**
  * Messages per unit of time over the range, the unit chosen so the number
  * reads: per second from one a second ("12/s", "1.2k/s"), else per minute
@@ -1080,59 +1107,94 @@ export function layoutMessageQueueTopology(options: {
 export function formatMessageQueueTopologyRate(
   messages: number,
   windowSeconds: number,
+  translator?: Translator | undefined,
 ): string {
   if (!(messages > 0) || !(windowSeconds > 0)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   const perSecond: number = messages / windowSeconds;
+  const write: (figure: string, template: string) => string = (
+    figure: string,
+    template: string,
+  ): string => {
+    if (!translator) {
+      return `${figure}${template === MESSAGE_RATE_PER_SECOND ? "/s" : "/min"}`;
+    }
+    const lessThan: boolean = figure.startsWith("<");
+    const number: string = writeFigureInLanguage(
+      lessThan ? figure.slice(1) : figure,
+      translator.language,
+    );
+    return translator.translateTemplate(template, {
+      rate: lessThan ? `<${number}` : number,
+    });
+  };
   if (perSecond >= 1) {
     if (perSecond >= 1000000) {
-      return `${(perSecond / 1000000).toFixed(1)}M/s`;
+      return write(
+        `${(perSecond / 1000000).toFixed(1)}M`,
+        MESSAGE_RATE_PER_SECOND,
+      );
     }
     if (perSecond >= 1000) {
-      return `${(perSecond / 1000).toFixed(1)}k/s`;
+      return write(
+        `${(perSecond / 1000).toFixed(1)}k`,
+        MESSAGE_RATE_PER_SECOND,
+      );
     }
-    return perSecond >= 10
-      ? `${Math.round(perSecond)}/s`
-      : `${perSecond.toFixed(1)}/s`;
+    return write(
+      perSecond >= 10 ? `${Math.round(perSecond)}` : perSecond.toFixed(1),
+      MESSAGE_RATE_PER_SECOND,
+    );
   }
   const perMinute: number = perSecond * 60;
   if (perMinute >= 10) {
-    return `${Math.round(perMinute)}/min`;
+    return write(`${Math.round(perMinute)}`, CALL_RATE_PER_MINUTE);
   }
   if (perMinute >= 0.1) {
-    return `${perMinute.toFixed(1)}/min`;
+    return write(perMinute.toFixed(1), CALL_RATE_PER_MINUTE);
   }
-  return "<0.1/min";
+  return write("<0.1", CALL_RATE_PER_MINUTE);
 }
 
-/** A share of failures in percent: "0%", "<0.1%", "2.5%"; "—" for none. */
+/*
+ * A share of failures in percent: "0%", "<0.1%", "2.5%"; "—" for none. In
+ * the reader's digits and percent sign when handed their translator.
+ */
 export function formatMessageQueueTopologyPercent(
   percent: number | null,
+  translator?: Translator | undefined,
 ): string {
   if (percent === null || !Number.isFinite(percent) || percent < 0) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
+  const language: string = translator ? translator.language : DEFAULT_LANGUAGE;
   const held: number = Math.min(percent, 100);
   if (held === 0) {
-    return "0%";
+    return formatReaderFigure(0, { decimals: 0, isPercent: true, language });
   }
   if (held < 0.1) {
-    return "<0.1%";
+    return `<${formatReaderFigure(0.1, {
+      decimals: 1,
+      isPercent: true,
+      language,
+    })}`;
   }
-  return `${held.toFixed(1)}%`;
+  return formatReaderFigure(held, { decimals: 1, isPercent: true, language });
 }
 
 /** A share of failed spans or messages: "—" when nothing happened. */
 export function formatMessageQueueTopologyErrorRate(
   total: number,
   errors: number,
+  translator?: Translator | undefined,
 ): string {
   if (!(total > 0)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return formatMessageQueueTopologyPercent(
     (Math.min(errors, total) / total) * 100,
+    translator,
   );
 }
 

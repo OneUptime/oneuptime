@@ -348,19 +348,19 @@ describe("buildUsageMeter in the reader's language", () => {
 
     expect(meter).toEqual({
       kind: "limited",
-      usedCopy: "2,5 GB",
-      limitCopy: "10 GB",
+      usedCopy: "2,5\u00A0GB",
+      limitCopy: "10\u00A0GB",
       percent: 25,
       tone: "ok",
     });
     expect(buildUsageMeter(2.5 * GB, null, marking)).toEqual({
       kind: "unlimited",
-      usedCopy: "2,5 GB",
+      usedCopy: "2,5\u00A0GB",
     });
     expect(buildUsageMeter(2.5 * GB, 10 * GB)).toEqual({
       kind: "limited",
-      usedCopy: "2.5 GB",
-      limitCopy: "10 GB",
+      usedCopy: "2.5\u00A0GB",
+      limitCopy: "10\u00A0GB",
       percent: 25,
       tone: "ok",
     });

@@ -43,7 +43,7 @@ flowchart TB
 
 ## Antes de começar
 
-- **Uma função que possa configurá-la.** As funções Project Owner, Project Admin e Security Admin alteram as configurações da Segurança de dados. A função Security Member trata problemas e varre repositórios, e a função Security Viewer lê o que ela encontrou. As outras funções não veem nada disso, a menos que a equipe delas receba as permissões: quais buckets guardam números de cartão é exatamente o que um invasor quer saber. Veja [Funções](/docs/permissions/reference#funções).
+- **Uma função que possa configurá-la.** As funções Proprietário do projeto, Administrador do projeto e Administrador de segurança alteram as configurações da Segurança de dados. A função Membro de segurança trata problemas e varre repositórios, e a função Visualizador de segurança lê o que ela encontrou. As outras funções não veem nada disso, a menos que a equipe delas receba as permissões: quais buckets guardam números de cartão é exatamente o que um invasor quer saber. Veja [Funções](/docs/permissions/reference#funções).
 - **Uma conta de nuvem para ler, ou um banco de dados.** A Segurança de dados lê uma conta de nuvem por meio de uma [conexão de nuvem](/docs/telemetry/cloud-accounts), e um banco de dados que você executa por meio de uma string de conexão somente leitura. A telemetria não precisa de nada: ela é varrida a cada hora.
 
 ## Início rápido
@@ -69,7 +69,7 @@ Abra **Segurança de dados**. Os repositórios aparecem em **Repositórios de da
 | AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System, Amazon Athena | AWS S3 Bucket |
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
-| Bancos de dados que você executa | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL |
+| Bancos de dados que você executa | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
 | OneUptime | Logs, traces, exceções, replays de sessão, conversas de IA | Logs, traces, exceções, replays de sessão, conversas de IA |
 
 Cada repositório recebe as verificações que se aplicam ao seu tipo. Um repositório cujo conteúdo não pode ser amostrado continua sendo verificado: um bucket público ou um banco de dados sem criptografia é um problema, seja o que for que ele contenha.

@@ -83,6 +83,11 @@ import { IncomingRequestIngestJobData } from "../../FeatureSet/Telemetry/Service
 import { isNonActionableIngestError } from "../../FeatureSet/Telemetry/Utils/NonActionableIngestError";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
+import {
+  PROBE_REPORTS_ONLY_ITS_OWN_RESULTS_MESSAGE,
+  REPORTING_PROBE_NOT_KNOWN_MESSAGE,
+} from "Common/Server/Utils/Probe/ProbeReportIdentity";
+import { MONITOR_TEST_NOT_HANDED_TO_PROBE_MESSAGE } from "Common/Server/Services/MonitorTestService";
 
 const INCOMING_REQUEST: IncomingRequestIngestJobData = {
   secretKey: "2d229271-17c4-4b4f-9a3b-3c6ff1a1a2ee",
@@ -167,10 +172,15 @@ describe("ProcessTelemetry worker — Incoming Request jobs", () => {
 
 describe("isNonActionableIngestError", () => {
   /*
-   * An unknown monitor, and every refusal MonitorResource gives for a monitor
+   * An unknown monitor, every refusal MonitorResource gives for a monitor
    * that is not being monitored: archived, disabled, or paused while a
    * manually created incident is unresolved or a maintenance event it is
-   * attached to has not ended.
+   * attached to has not ended - and a probe's result for a monitor that probe
+   * does not check (issue #8161), which every retry is refused the same way;
+   * a probe's result that names another probe, or a job that names no
+   * probe (issue #8424), which no retry changes either; and a monitor test
+   * result for a test the probe was not handed, or that is gone (issue
+   * #8539).
    */
   test.each([
     ExceptionMessages.MonitorNotFound,
@@ -178,6 +188,11 @@ describe("isNonActionableIngestError", () => {
     ExceptionMessages.MonitorArchived,
     ExceptionMessages.MonitorDisabledBecauseOfManualIncident,
     ExceptionMessages.MonitorDisabledBecauseOfScheduledMaintenanceEvent,
+    ExceptionMessages.ProbeNotAssignedToMonitor,
+    PROBE_REPORTS_ONLY_ITS_OWN_RESULTS_MESSAGE,
+    REPORTING_PROBE_NOT_KNOWN_MESSAGE,
+    ExceptionMessages.MonitorTestNotHandedToProbe,
+    MONITOR_TEST_NOT_HANDED_TO_PROBE_MESSAGE,
   ])("is true for a BadDataException '%s'", (message: string) => {
     expect(isNonActionableIngestError(new BadDataException(message))).toBe(
       true,
@@ -199,6 +214,10 @@ describe("isNonActionableIngestError", () => {
   test.each([
     ExceptionMessages.MonitorDisabledBecauseOfManualIncident,
     ExceptionMessages.MonitorDisabledBecauseOfScheduledMaintenanceEvent,
+    ExceptionMessages.ProbeNotAssignedToMonitor,
+    PROBE_REPORTS_ONLY_ITS_OWN_RESULTS_MESSAGE,
+    REPORTING_PROBE_NOT_KNOWN_MESSAGE,
+    ExceptionMessages.MonitorTestNotHandedToProbe,
   ])(
     "is false for another kind of error with a paused monitor's refusal '%s'",
     (message: string) => {
@@ -215,6 +234,22 @@ describe("isNonActionableIngestError", () => {
     `${ExceptionMessages.MonitorDisabledBecauseOfScheduledMaintenanceEvent} `,
     ExceptionMessages.MonitorDisabledBecauseOfManualIncident.toLowerCase(),
     "Monitor does not have a projectId",
+    // Only the refusals ProbeReportIdentity gives, word for word.
+    "A probe reports only its own results",
+    "A probe can only report its own results.",
+    `${PROBE_REPORTS_ONLY_ITS_OWN_RESULTS_MESSAGE} `,
+    PROBE_REPORTS_ONLY_ITS_OWN_RESULTS_MESSAGE.toLowerCase(),
+    "This probe result does not say which probe sent it",
+    REPORTING_PROBE_NOT_KNOWN_MESSAGE.toUpperCase(),
+    // Only the monitor test refusal MonitorTestService gives, word for word.
+    "This monitor test was not handed to this probe",
+    ExceptionMessages.MonitorTestNotHandedToProbe.toLowerCase(),
+    `${ExceptionMessages.MonitorTestNotHandedToProbe} `,
+    "TestId not found",
+    // Other refusals of a probe's report are still retried.
+    "Probe ID not found on SNMP trap request",
+    `${ExceptionMessages.ProbeNotAssignedToMonitor}.`,
+    ExceptionMessages.ProbeNotAssignedToMonitor.toUpperCase(),
   ])(
     "is false for a BadDataException that is not one of them: '%s'",
     (message: string) => {

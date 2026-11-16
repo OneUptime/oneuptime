@@ -25,7 +25,7 @@ flowchart TB
 ```
 
 - **Nøglen bestemmer projektet.** Du sender aldrig et projekt-ID: data, der sendes med en nøgle, havner i det projekt, nøglen tilhører.
-- **Ændringer når ud til alle servere inden for et minut.** At slå en nøgle fra, nulstille dens hemmelighed eller ændre dens origins, udløb eller grænse træder i kraft inden for cirka et minut.
+- **Ændringer når ud til alle servere inden for få sekunder.** At slå en nøgle fra, nulstille dens hemmelighed eller ændre dens origins, udløb eller grænse træder i kraft på alle servere inden for få sekunder.
 - **En nøgle kan have sine egne budgetter.** Et dagligt budget og en hastighed pr. sekund for hvert signal, inden for dens projekts: se [Indtagelsesbudgetter](/docs/telemetry/ingestion-budgets).
 - **En servernøgle er en adgangskode.** Alle, der har den, kan sende telemetri til dit projekt. Opbevar den i dine serveres hemmeligheder, aldrig i versionsstyring eller på en webside.
 
@@ -45,7 +45,7 @@ Alle andre steder afviser OneUptime en browsernøgle, for eksempel over gRPC og 
 
 ## Før du begynder
 
-- **En rolle, der administrerer indtagelsesnøgler.** Project Owner eller Project Admin, eller en brugerdefineret rolle med tilladelsen Create Ingestion Key. Telemetry-rollerne omfatter ikke indtagelsesnøgler.
+- **En rolle, der administrerer indtagelsesnøgler.** Projektejer eller Projektadministrator, eller en brugerdefineret rolle med tilladelsen Create Ingestion Key. Telemetry-rollerne omfatter ikke indtagelsesnøgler.
 - **På OneUptime Cloud, en betalingsmetode.** Telemetri faktureres efter forbrug, så et projekt på Free-abonnementet skal have en betalingsmetode, før det kan oprette en nøgle. Oprettelsesdialogen slutter så med et trin **Fakturering**, der viser priserne.
 
 ## Opret en indtagelsesnøgle
@@ -108,7 +108,7 @@ En origin er et skema, en vært og en valgfri port: `https://app.example.com` d�
 
 ## Udskift, slå fra eller slet en nøgle
 
-En nøgles side viser dens **Status**, dens **Hemmelig nøgle** bag **Klik for at vise** og dens **Last Used At**: sidste gang OneUptime accepterede data, der blev sendt med den.
+En nøgles side viser dens **Status**, dens **Hemmelig nøgle** bag **Klik for at vise** og dens **Senest brugt den**: sidste gang OneUptime accepterede data, der blev sendt med den.
 
 | For at | Gør dette | Hvad afsendere ser |
 | --- | --- | --- |
@@ -116,7 +116,7 @@ En nøgles side viser dens **Status**, dens **Hemmelig nøgle** bag **Klik for a
 | Erstatte en lækket hemmelighed | Klik på **Nulstil hemmelig nøgle**, og bekræft. Nøglen beholder sine indstillinger og får en ny hemmelighed. | `401`, indtil de sender den nye hemmelighed |
 | Stoppe en nøgle for altid | Klik på **Slet Indtagelsesnøgle** nederst på dens side. | `401` |
 
-For at skifte en hemmelighed uden at miste data skal du oprette en ny nøgle, flytte dine afsendere over til den og slette den gamle nøgle, når dens **Last Used At** holder op med at ændre sig. **Last Used At** opdateres hvert par minutter, ikke ved hver anmodning.
+For at skifte en hemmelighed uden at miste data skal du oprette en ny nøgle, flytte dine afsendere over til den og slette den gamle nøgle, når dens **Senest brugt den** holder op med at ændre sig. **Senest brugt den** opdateres hvert par minutter, ikke ved hver anmodning.
 
 ## Fejlfinding
 
@@ -139,8 +139,8 @@ Nøglens side tæller også med: **Afvist telemetri** viser, hvad der er afvist 
 
 For de andre svar, en OTLP-eksportør kan få, se [Svar](/docs/telemetry/open-telemetry#svar).
 
-:::details Der kommer stadig data et minut efter, at jeg slog nøglen fra
-Hver OneUptime-server husker, hvad den ved om en nøgle, i op til et minut, så en ændring når ud til dem alle inden for cirka et minut. Anmodninger derefter afvises.
+:::details Der kommer stadig data, efter at jeg slog nøglen fra
+Hver OneUptime-server ser efter ændringer af en nøgle mindst én gang i sekundet, så en ændring når ud til dem alle inden for få sekunder, og anmodninger derefter afvises. Mens en server ikke kan nå OneUptimes cache, kan den gå ud fra det, den vidste om nøglen, i op til et minut. En MQTT-klient, der har forbundet med nøglen, afbrydes inden for få sekunder.
 :::
 
 :::details En browsernøgle virker på min bærbare, men ikke i produktion

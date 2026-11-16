@@ -60,14 +60,14 @@ Start med **Declare an incident for each Zabbix problem**, eller **Create an ale
 
 ### Hva malene ber om
 
-- **Zabbix URL**: adressen du åpner Zabbix på, for eksempel `https://zabbix.example.com`, eller `https://example.com/zabbix` når Zabbix kjører under en sti. Lenker til et problem går dit, og malene som kaller Zabbix, sender forespørslene sine til `api_jsonrpc.php` der. Feltet avviser adressen til en side i Zabbix.
+- **Zabbix-URL**: adressen du åpner Zabbix på, for eksempel `https://zabbix.example.com`, eller `https://example.com/zabbix` når Zabbix kjører under en sti. Lenker til et problem går dit, og malene som kaller Zabbix, sender forespørslene sine til `api_jsonrpc.php` der. Feltet avviser adressen til en side i Zabbix.
 - **Zabbix API Token**: et API-token for Zabbix-brukeren arbeidsflyten handler som. [Opprett API-tokenet](#opprett-api-tokenet) viser hvordan. Det lagres som en hemmelig variabel og sendes bare til Zabbix: i headeren `Authorization`, eller i forespørselens brødtekst på Zabbix 6.0.
 
 ### Motta problemer med malen
 
 :::steps
 1. Gå til **Arbeidsflyter**, og klikk på **Opprett arbeidsflyt**. Under **Eller start fra en mal** velger du **Zabbix** i kategorilisten, klikker på **Declare an incident for each Zabbix problem** og klikker på **Bruk denne malen**.
-2. Fyll inn **Zabbix URL**. Under **Who to page for High and Disaster problems** velger du vaktpolicyene som skal tilkalles, eller ingen for ikke å tilkalle noen, og klikker på **Opprett arbeidsflyt**. Arbeidsflyten åpnes i **Bygger**, slått av.
+2. Fyll inn **Zabbix-URL**. Under **Who to page for High and Disaster problems** velger du vaktpolicyene som skal tilkalles, eller ingen for ikke å tilkalle noen, og klikker på **Opprett arbeidsflyt**. Arbeidsflyten åpnes i **Bygger**, slått av.
 3. Klikk på triggeren **Webhook**, deretter på **Kopier URL**, og ta vare på URL-en til Zabbix.
 4. Slå på **Aktivert** øverst i **Bygger**. En arbeidsflyt som er slått av, svarer Zabbix med `400`.
 :::
@@ -76,15 +76,15 @@ Deretter [konfigurerer du Zabbix](#konfigurer-zabbix) til å sende problemene si
 
 ### Hva arbeidsflyten gjør
 
-Etter triggeren **Webhook** leser steget **Check With JavaScript** `read-event-1` den `event` medietypen sender, og **Incident From Another Tool**, eller **Alert From Another Tool** i varselmalen, gjør det den betyr, ut fra problemets hendelses-ID:
+Etter triggeren **Webhook** leser steget **Sjekk med JavaScript** `read-event-1` den `event` medietypen sender, og **Hendelse fra et annet verktøy**, eller **Varsel fra et annet verktøy** i varselmalen, gjør det den betyr, ut fra problemets hendelses-ID:
 
 | Event | Hva arbeidsflyten gjør |
 | --- | --- |
-| `problem` | Erklærer en hendelse med tittelen `Zabbix: <problem> on <host>`, med alvorlighetsgraden Zabbix-alvorlighetsgraden tilsvarer, holdt unna statussidene dine. Beskrivelsen lenker til problemet i Zabbix og viser verten, alvorlighetsgraden, når det startet, driftsdataene og taggene. For et problem med High eller Disaster varsler den vaktretningslinjen du valgte. Et problem Zabbix sender på nytt, med samme hendelses-ID, oppretter ingen ny hendelse. |
+| `problem` | Erklærer en hendelse med tittelen `Zabbix: <problem> on <host>`, med alvorlighetsgraden Zabbix-alvorlighetsgraden tilsvarer, holdt unna statussidene dine. Beskrivelsen lenker til problemet i Zabbix og viser verten, alvorlighetsgraden, når det startet, driftsdataene og taggene. For et problem med High eller Disaster varsler den vaktpolicyen du valgte. Et problem Zabbix sender på nytt, med samme hendelses-ID, oppretter ingen ny hendelse. |
 | `recovery` | Løser problemets hendelse, med mindre den allerede er løst. Hvorfor står på tidslinjen. |
 | `update` | Legger til det som ble gjort i Zabbix som et privat notat på hendelsen: hvem som gjorde det, hva de gjorde og hva de skrev. Når oppdateringen bekreftet problemet, bekrefter den også hendelsen, slik at vakten slutter å eskalere den. |
 
-Alt annet, for eksempel en forespørsel fra et annet verktøy, blir stående: `read-event-1` tar **No**, og kjøringens **Trinn** sier hvorfor. Et steg som feiler, får kjøringen til å mislykkes, og oppføringen under **Trinn** sier hvorfor.
+Alt annet, for eksempel en forespørsel fra et annet verktøy, blir stående: `read-event-1` tar **Nei**, og kjøringens **Trinn** sier hvorfor. Et steg som feiler, får kjøringen til å mislykkes, og oppføringen under **Trinn** sier hvorfor.
 
 ### Alvorlighetsgrader
 
@@ -102,13 +102,13 @@ I et nytt prosjekt knytter malen Zabbix sine seks alvorlighetsgrader til disse a
 Med egne alvorlighetsgrader går Disaster og High til den mest alvorlige, Average og Warning til den midterste, og Information og Not classified til den minst alvorlige. Zabbix nummererer alvorlighetsgradene sine fra 0 (Not classified) til 5 (Disaster), og malen leser nummeret, så å gi nytt navn til en alvorlighetsgrad i Zabbix endrer ingenting.
 
 - For å knytte en alvorlighetsgrad til en av dine etter navn, rediger `SEVERITY_BY_NAME` i steget `read-event-1`, for eksempel `{ 2: 'Minor Incident' }` for Warning.
-- For å varsle også for Average-problemer, sett **Compare with** i steget `if-page-1` **If / Else** til `3`.
+- For å varsle også for Average-problemer, sett **Sammenlign med** i steget `if-page-1` **Hvis / Ellers** til `3`.
 
 ### Send bekreftelser og notater tilbake til Zabbix
 
 :::steps
 1. [Opprett API-tokenet](#opprett-api-tokenet).
-2. Opprett en arbeidsflyt fra **Acknowledge or close the Zabbix problem with the incident**. Fyll inn **Zabbix URL** og **Zabbix API Token**, klikk på **Opprett arbeidsflyt**, og slå på **Aktivert**.
+2. Opprett en arbeidsflyt fra **Acknowledge or close the Zabbix problem with the incident**. Fyll inn **Zabbix-URL** og **Zabbix API Token**, klikk på **Opprett arbeidsflyt**, og slå på **Aktivert**.
 3. Hvis du også vil ha notatene i Zabbix, gjør det samme med **Copy incident private notes to the Zabbix problem**.
 :::
 
@@ -126,7 +126,7 @@ Tilstandsmalen spør først Zabbix om problemet, så et problem Zabbix allerede 
 
 ### På Zabbix 6.0
 
-Zabbix 6.0 leser API-tokenet fra forespørselens brødtekst, ikke fra headeren `Authorization`. I steget **Update Zabbix Problem** i hver mal som kaller Zabbix, slår du på **Zabbix 6.0** under **Flere felt**. Zabbix 7.2 og nyere avviser et token i brødteksten, så slå det av igjen når du oppgraderer.
+Zabbix 6.0 leser API-tokenet fra forespørselens brødtekst, ikke fra headeren `Authorization`. I steget **Oppdater Zabbix-problem** i hver mal som kaller Zabbix, slår du på **Zabbix 6.0** under **Flere felt**. Zabbix 7.2 og nyere avviser et token i brødteksten, så slå det av igjen når du oppgraderer.
 
 ## Motta problemer med en monitor
 
@@ -143,7 +143,7 @@ I trinnet **Kriterier** åpner du det første kriteriet, det som markerer monito
 
 - **Hendelsestittel**: `Zabbix: {{requestBody.name}} on {{requestBody.host}}`.
 - **Alvorlighetsgrad**: alvorlighetsgraden Zabbix-problemer skal ha.
-- **Vaktretningslinjer**, under **Vakt**: retningslinjene som skal varsles.
+- **Vaktpolicyer**, under **Vakt**: policyene som skal varsles.
 - **Løs hendelse automatisk**, under **Flere felt**: la den være på, slik den starter. Uten den ignoreres gjenopprettinger, og hendelser blir stående åpne.
 
 ### Opprett én hendelse per problem
@@ -344,7 +344,7 @@ Handlingen har sannsynligvis to operasjoner som sender til den samme brukeren, f
 ## Sikkerhet
 
 - **Behandle URL-en som et passord.** Alle som har den, kan opprette hendelser. Hvis den lekker, tilbakestiller du den: **Tilbakestill URL** i arbeidsflytens **Webhook**-trigger, eller **Tilbakestill hemmelig nøkkel for innkommende forespørsel** på monitorens side **Innstillinger**. Oppdater deretter **Send to** i Zabbix-brukerens medie.
-- **Lenker går til din Zabbix.** Malen lenker et problem på nettstedet som **Zabbix URL** navngir, uansett hva en forespørsel sier, og skriver det Zabbix sendte, som tekst.
+- **Lenker går til din Zabbix.** Malen lenker et problem på nettstedet som **Zabbix-URL** navngir, uansett hva en forespørsel sier, og skriver det Zabbix sendte, som tekst.
 - **Begrens API-tokenet til det arbeidsflyten gjør.** Det er en hemmelig variabel, skjult i kjøringslogger og sendt bare til Zabbix, i headeren `Authorization` med mindre **Zabbix 6.0** er slått på. Gi brukeren en rolle med ikke mer enn handlingene over, og slett tokenet i **Users → API tokens** hvis det lekker.
 - **Send bare det som trenger en hendelse.** Bruk handlingens betingelser, eller alvorlighetsgradene i brukerens medie, til å holde problemer med lav alvorlighetsgrad i Zabbix.
 - **Selvhostet?** La Zabbix-serveren din nå OneUptime-installasjonen din via HTTPS gjennom brannmuren. For å kalle en Zabbix på et privat nettverk trenger arbeidsflyten [utgående nettverkstilgang](/docs/workflows/configuration#utgående-nettverkstilgang).
@@ -353,7 +353,7 @@ Handlingen har sannsynligvis to operasjoner som sender til den samme brukeren, f
 
 :::cards
 - [Arbeidsflytmaler](/docs/workflows/authoring): Opprett en arbeidsflyt fra en mal, og endre den i Bygger.
-- [Innkommende forespørsel-overvåking](/docs/monitor/incoming-request-monitor): Alle innstillingene for monitoren som mottar Zabbix-problemer.
-- [Eskaleringsregler](/docs/on-call/escalation-rules): Bestem hvem en vaktretningslinje varsler, og når.
+- [Innkommende forespørsel-monitor](/docs/monitor/incoming-request-monitor): Alle innstillingene for monitoren som mottar Zabbix-problemer.
+- [Eskaleringsregler](/docs/on-call/escalation-rules): Bestem hvem en vaktpolicy varsler, og når.
 - [Oversikt over integrasjoner](/docs/integrations/index): De andre verktøyene du kan koble til.
 :::

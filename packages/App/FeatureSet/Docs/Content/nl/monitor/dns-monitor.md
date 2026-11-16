@@ -28,7 +28,7 @@ Een sonde die haar eigen netwerkverbinding kwijt is, meldt geen resultaat en kan
 
 ## Voordat u begint
 
-- **Een rol die monitoren mag maken**: Project Owner, Project Admin, Project Member, Monitor Admin of Monitor Member, of een aangepaste rol met de machtiging Create Monitor.
+- **Een rol die monitoren mag maken**: Projecteigenaar, Projectbeheerder, Projectlid, Monitorbeheerder of Monitorlid, of een aangepaste rol met de machtiging Create Monitor.
 - **Een sonde die de DNS-server kan bereiken.** De standaardsondes van uw project worden voor elke nieuwe monitor gekozen. Om een DNS-server in een privénetwerk op te vragen, zoals een interne resolver, gebruikt u een [aangepaste sonde](/docs/probe/custom-probe) in dat netwerk.
 
 ## Een DNS-monitor maken
@@ -111,7 +111,7 @@ Met twee of meer filters bepaalt **Overeenkomstvoorwaarde** of **Alle** filters 
 
 Een nieuwe DNS-monitor begint met twee criteria:
 
-- **Offline** — de naam wordt na alle nieuwe pogingen niet omgezet, of heeft geen record van het type. De monitor wordt als **Offline** gemarkeerd en er wordt een incident met de naam "_monitor name_ is offline" gemaakt. Het incident lost zichzelf op wanneer de naam weer wordt omgezet.
+- **Offline** — de naam wordt na alle nieuwe pogingen niet omgezet, of heeft geen record van het type. De monitor wordt als **Offline** gemarkeerd en er wordt een incident met de naam "_monitornaam_ is offline" gemaakt. Het incident lost zichzelf op wanneer de naam weer wordt omgezet.
 - **Bereikbaar** — de naam wordt omgezet. De monitor wordt als **Operationeel** gemarkeerd.
 
 Criteria worden van boven naar beneden gecontroleerd, en het eerste dat overeenkomt bepaalt wat er gebeurt. Komt er geen overeen, dan toont de monitor zijn standaardstatus: **Operationeel**, tenzij u onder **Meer velden**, onder de criteria, een andere kiest.

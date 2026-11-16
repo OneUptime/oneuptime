@@ -42,7 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% времени работы",
-    "uptimePercent": "Время работы: {{percent}}%",
+    "uptimePercent": "Время работы: {{percent}}",
     "operational": "Работает",
     "notMonitored": "Не отслеживается",
     "noResourcesInGroup": "В эту группу не добавлены ресурсы.",
@@ -60,10 +60,9 @@
   },
   "eventItem": {
     "affectedResources": "Затронутые ресурсы",
-    "stateChangedTo": "статус изменён на",
     "view": "Открыть {{eventType}}",
     "updateTo": "Обновление этого: {{eventType}}",
-    "postedOn": "опубликовано"
+    "postedOnDate": "опубликовано {{date}}"
   },
   "monitorOverview": {
     "daysAgo": "{{days}} дней назад",
@@ -85,7 +84,7 @@
     "declared": "Зарегистрирован",
     "oneIncidentOnThisDay": "В этот день зафиксирован 1 инцидент",
     "incidentsOnThisDay": "В этот день зафиксировано инцидентов: {{total}}",
-    "scheduledMaintenance": "Запланированное обслуживание",
+    "scheduledMaintenance": "Плановое обслуживание",
     "dayLabelWithMaintenance": "{{label}}, {{maintenance}}",
     "oneMaintenanceEvent": "1 событие обслуживания",
     "maintenanceEvents": "событий обслуживания: {{total}}",
@@ -138,7 +137,7 @@
   "scheduledEvents": {
     "title": "Плановое обслуживание",
     "singular": "Событие обслуживания",
-    "scheduledMaintenance": "Запланированное обслуживание",
+    "scheduledMaintenance": "Плановое обслуживание",
     "ongoing": "Текущее обслуживание",
     "upcoming": "Предстоящее обслуживание",
     "completed": "Завершённое обслуживание",
@@ -150,8 +149,8 @@
     "notFound": "Событие обслуживания на этой странице статуса не найдено.",
     "calendar": {
       "subscribe": "Подписаться на календарь",
-      "subscribeTitle": "Подписка на плановые работы",
-      "subscribeDescription": "Получайте плановые работы этой страницы в приложении календаря. Он обновляется сам.",
+      "subscribeTitle": "Подписка на плановое обслуживание",
+      "subscribeDescription": "Получайте плановое обслуживание этой страницы в приложении календаря. Он обновляется сам.",
       "eventTitle": "Добавить в календарь",
       "eventDescription": "Добавьте это событие обслуживания в приложение календаря.",
       "addToCalendar": "Добавить в календарь",
@@ -276,6 +275,7 @@
       "channelSlack": "Рабочее пространство Slack",
       "channelMicrosoftTeams": "Рабочее пространство Microsoft Teams",
       "channelWebhook": "Вебхук",
+      "channelWithColon": "{{channel}}:",
       "addedByTeamWarning": "Эту подписку добавила команда, которая ведёт эту страницу статуса. Если это общий адрес, например список рассылки, после отписки эти уведомления перестанут получать все, кто их получает, а команда будет об этом уведомлена.",
       "confirmButton": "Отписаться",
       "manageInstead": "Вместо этого выбрать, какие уведомления получать",
@@ -473,5 +473,6 @@
     "warning": "Предупреждение"
   },
   "No options available": "Нет доступных вариантов",
-  "No matches found": "Совпадений не найдено"
+  "No matches found": "Совпадений не найдено",
+  "{{eventType}} state changed to {{state}}": "{{eventType}}: статус изменён на {{state}}"
 }

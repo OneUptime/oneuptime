@@ -137,6 +137,17 @@ const EXPECTED_DUE_SLO_SELECT_KEYS: Array<string> = [
   "multiMonitorMode",
   "monitors",
   "downtimeMonitorStatuses",
+  // What a request SLO counts, its numbers in requests, and its cursors.
+  "services",
+  "latencyThresholdInMilliseconds",
+  // Which of the services' requests count (#8444).
+  "requestFilter",
+  "goodEventCount",
+  "totalEventCount",
+  "errorBudgetTotalEvents",
+  "errorBudgetRemainingEvents",
+  "firstAccumulatedBucketStartAt",
+  "eventAccumulationFingerprint",
   "metricQueryConfig",
   "targetPercentage",
   "windowType",

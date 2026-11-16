@@ -217,7 +217,7 @@ statusPage:
 
 도메인의 전체 이름은 추가할 때 고정되므로, **편집**으로는 인증서만 바꿀 수 있습니다. 다른 주소를 쓰려면 그 주소를 추가하고 이전 도메인을 삭제하세요. 대시보드나 양식이 이미 사용하는 이름은 어느 프로젝트의 것이든 거부됩니다. 한 도메인은 상태 페이지, 대시보드, 양식 중 하나만 표시합니다.
 
-프로젝트에 도메인을 추가하려면 프로젝트 도메인을 만들 권한(**Create Domain**, 또는 Project Owner나 Project Admin)이 필요하고, 도메인을 인증하려면 **Edit Domain**이 필요합니다. 권한이 없으면 누가 할 수 있는지 대화 상자가 알려 줍니다.
+프로젝트에 도메인을 추가하려면 프로젝트 도메인을 만들 권한(**Create Domain**, 또는 프로젝트 소유자나 프로젝트 관리자)이 필요하고, 도메인을 인증하려면 **Edit Domain**이 필요합니다. 권한이 없으면 누가 할 수 있는지 대화 상자가 알려 줍니다.
 
 ### DNS 설정과 인증
 
@@ -301,9 +301,9 @@ Let's Encrypt 계정 키 `LETS_ENCRYPT_ACCOUNT_KEY`(Helm 차트에서는 `letsEn
 
 ### 확인과 재발급을 할 수 있는 사람
 
-**지금 확인**, 도메인 인증서 주문, **Reissue SSL**은 도메인을 바꾸므로 도메인 편집 권한이 필요합니다. **Edit Status Page Domain**이나 그 권한을 포함하는 역할(Project Owner, Project Admin, Project Member, Status Page Admin, Status Page Member)입니다.
+**지금 확인**, 도메인 인증서 주문, **Reissue SSL**은 도메인을 바꾸므로 도메인 편집 권한이 필요합니다. **Edit Status Page Domain**이나 그 권한을 포함하는 역할(프로젝트 소유자, 프로젝트 관리자, 프로젝트 구성원, 상태 페이지 관리자, 상태 페이지 구성원)입니다.
 
-Viewer나 Status Page Viewer처럼 도메인을 읽기만 할 수 있는 사람도 **상태** 열과 **DNS 설정**의 추가할 레코드는 볼 수 있습니다. 그런 사람에게는 **지금 확인**과 **Reissue SSL**이 잠겨 있으며, 필요한 권한이 표시됩니다. 어느 경우든 OneUptime은 모든 도메인을 계속 확인하고 인증서를 스스로 주문합니다.
+뷰어나 상태 페이지 뷰어처럼 도메인을 읽기만 할 수 있는 사람도 **상태** 열과 **DNS 설정**의 추가할 레코드는 볼 수 있습니다. 그런 사람에게는 **지금 확인**과 **Reissue SSL**이 잠겨 있으며, 필요한 권한이 표시됩니다. 어느 경우든 OneUptime은 모든 도메인을 계속 확인하고 인증서를 스스로 주문합니다.
 
 API 키도 마찬가지입니다. 상태 페이지 도메인을 읽기만 할 수 있는 키는 `/status-page-domain`의 `verify-cname`, `check-dns`, `order-ssl`, `reissue-ssl`을 호출할 수 없습니다. 필요하다면 **Read Status Page Domain**과 **Edit Status Page Domain**을 부여하세요. 레코드를 찾지 못하면 `verify-cname`은 **DNS 설정**이 보여 주는 것과 같은 말로 무엇을 조회했고 무엇이 돌아왔는지 알리며 거부합니다. `check-dns`는 어느 경우든 조회한 모든 레코드에 대해 답합니다.
 

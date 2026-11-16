@@ -1,6 +1,6 @@
 # Microsoft Defender XDR
 
-把每个 [Microsoft Defender XDR](https://learn.microsoft.com/en-us/defender-xdr/) 工作负载（终结点、身份、电子邮件和云应用）的警报导入 OneUptime 的安全事件。在那里，你可以把它们与日志、跟踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的警报呼叫值班人员。OneUptime 通过你创建的应用注册，经由 Microsoft Graph 安全 API 读取它们：不需要代理、playbook 或 Sentinel 工作区。
+把每个 [Microsoft Defender XDR](https://learn.microsoft.com/en-us/defender-xdr/) 工作负载（终结点、身份、电子邮件和云应用）的警报导入 OneUptime 的安全事件。在那里，你可以把它们与日志、追踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的警报呼叫值班人员。OneUptime 通过你创建的应用注册，经由 Microsoft Graph 安全 API 读取它们：不需要代理、playbook 或 Sentinel 工作区。
 
 :::cards
 - [设置连接](#设置连接): 一个应用注册、一项权限，以及连接的表单。
@@ -23,7 +23,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 
 ## 开始之前
 
-- 在 OneUptime 中拥有 Project Owner、Project Admin 或 Security Admin 角色。Security Member 和 Security Viewer 可以查看连接及其运行历史，但不能更改它们。
+- 在 OneUptime 中拥有项目所有者、项目管理员或安全管理员角色。安全成员和安全查看者可以查看连接及其运行历史，但不能更改它们。
 - 一个拥有 Microsoft Defender XDR 许可证的 Microsoft Entra 租户：任何已加入 Microsoft Defender 门户的 Defender 工作负载都可以，例如 Defender for Endpoint、for Identity、for Office 365 或 for Cloud Apps。
 - 一个可以注册应用程序的 Entra 角色，例如 Application Administrator，以及一位能授予管理员同意的 Global Administrator 或 Privileged Role Administrator。
 - 从 OneUptime 应用和工作进程到 `login.microsoftonline.com` 和 `graph.microsoft.com` 的出站 HTTPS；对于 Azure Government，则是到 `login.microsoftonline.us` 和 `graph.microsoft.us`。

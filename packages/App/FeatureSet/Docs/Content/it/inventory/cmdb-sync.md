@@ -116,7 +116,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list' \
   }'
 ```
 
-I `descriptiveAttributes` di ogni dispositivo di rete portano il suo hostname, indirizzo IP, numero di serie, indirizzo MAC, marca, modello, firmware, sistema operativo, ruolo, sito e posizione: vedi [Attributi di asset dei dispositivi di rete](#attributi-di-asset-dei-dispositivi-di-rete) più sotto. Il resto di ciò che sa il poller, come interfacce e vicini, si trova sul record Network Device stesso: segui `resourceId` fino a `/api/network-device/:id/get-item`, oppure recupera direttamente `/api/network-device/get-list`.
+I `descriptiveAttributes` di ogni dispositivo di rete portano il suo hostname, indirizzo IP, numero di serie, indirizzo MAC, marca, modello, firmware, sistema operativo, ruolo, sito e posizione: vedi [Attributi di asset dei dispositivi di rete](#attributi-di-asset-dei-dispositivi-di-rete) più sotto. Il resto di ciò che sa il poller, come interfacce e vicini, si trova sul record Dispositivo di rete stesso: segui `resourceId` fino a `/api/network-device/:id/get-item`, oppure recupera direttamente `/api/network-device/get-list`.
 
 ### In CSV
 
@@ -184,7 +184,7 @@ Gli attributi si aggiungono e non si svuotano mai: uno che smette di essere segn
 
 ## Attributi di asset dei dispositivi di rete
 
-Un dispositivo di rete (`entityType: network.device`) viene replicato dal suo record Network Device, e i suoi `descriptiveAttributes` usano le stesse chiavi che un host usa per gli stessi dati, quindi una colonna del CMDB contiene il numero di serie che la riga sia un server o uno switch:
+Un dispositivo di rete (`entityType: network.device`) viene replicato dal suo record Dispositivo di rete, e i suoi `descriptiveAttributes` usano le stesse chiavi che un host usa per gli stessi dati, quindi una colonna del CMDB contiene il numero di serie che la riga sia un server o uno switch:
 
 | Campo | Chiave | Da dove viene |
 | --- | --- | --- |
@@ -212,7 +212,7 @@ Un valore salvato sul dispositivo, digitato o impostato tramite l'API, non viene
 
 L'hostname non è mai l'indirizzo IP. Un dispositivo che solo il suo indirizzo nomina ha `host.ip` e nessun `host.name`. Quando il suo walk SNMP segnala un nome di sistema, `host.name` arriva al passaggio successivo.
 
-Questi valori vengono copiati dal record Network Device ogni quindici minuti, e **sostituiscono** i valori precedenti invece di aggiungersi, quindi un valore cancellato sul dispositivo (un indirizzo MAC rimosso, per esempio) lascia anche l'elemento dell'inventario.
+Questi valori vengono copiati dal record Dispositivo di rete ogni quindici minuti, e **sostituiscono** i valori precedenti invece di aggiungersi, quindi un valore cancellato sul dispositivo (un indirizzo MAC rimosso, per esempio) lascia anche l'elemento dell'inventario.
 
 Non esiste una versione di *aggiornamento disponibile*: SNMP non ha un oggetto standard per questo, quindi OneUptime registra la versione in esecuzione sul dispositivo.
 

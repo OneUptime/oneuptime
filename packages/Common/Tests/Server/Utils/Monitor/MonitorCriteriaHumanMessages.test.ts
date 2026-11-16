@@ -504,7 +504,7 @@ describe("human-readable metric messages across monitor evaluation", () => {
     expect(
       await MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet(inputs),
     ).toBe(
-      "Request duration was 2.5 sec in all 2 readings, above the 2 sec threshold.",
+      "Request duration was 2.5\u00A0sec in all 2 readings, above the 2\u00A0sec threshold.",
     );
     expect(inputs.criteriaFilter.metricCriteriaContext).toMatchObject({
       metricName: "http.server.request.duration",

@@ -22,7 +22,7 @@ flowchart TB
     Provider --> Phone
 ```
 
-Gatewayen tar plassen til serverens egen Twilio-konto for alt som ellers ville gått gjennom den: vakttilkallinger, varsler, verifiseringskoder og SMS til abonnenter på statussider. Prosjekter som legger til sin egen Twilio-konfigurasjon på kortet **Twilio-konfigurasjon** under **Prosjektinnstillinger > Varsler > Varslingskanaler**, sender fortsatt gjennom den konfigurasjonen. Hvert prosjekts brytere for SMS og anrop, og saldoen der fakturering er slått på, kontrolleres som for Twilio.
+Gatewayen tar plassen til serverens egen Twilio-konto for alt som ellers ville gått gjennom den: vakttilkallinger, varslinger, verifiseringskoder og SMS til abonnenter på statussider. Prosjekter som legger til sin egen Twilio-konfigurasjon på kortet **Twilio-konfigurasjon** under **Prosjektinnstillinger > Varslinger > Varslingskanaler**, sender fortsatt gjennom den konfigurasjonen. Hvert prosjekts brytere for SMS og anrop, og saldoen der fakturering er slått på, kontrolleres som for Twilio.
 
 ## Sett opp gatewayen
 
@@ -122,8 +122,8 @@ SMS- eller anropsloggen, og for en vakttilkalling personens vaktlogg, sier `Sent
 
 :::cards
 - [Egendefinerte varslingskanaler](/docs/self-hosted/custom-notification-channels): Tilkall folk gjennom din egen app.
-- [Push-varsler](/docs/self-hosted/push-notifications): Slå av push for hele serveren.
+- [Push-varslinger](/docs/self-hosted/push-notifications): Slå av push for hele serveren.
 - [Twilio-integrasjon](/docs/self-hosted/twilio-integration): Send gjennom Twilio i stedet.
 - [Tilgang til privat nettverk](/docs/self-hosted/private-network-access): Hva serveren din kan nå på ditt eget nettverk.
-- [Metrikker for varslingslevering](/docs/self-hosted/notification-delivery-metrics): Tell meldingene gatewayen din tar imot og avviser.
+- [Målinger for varslingslevering](/docs/self-hosted/notification-delivery-metrics): Tell meldingene gatewayen din tar imot og avviser.
 :::

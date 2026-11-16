@@ -134,6 +134,6 @@ describe("MeasurementUnit", () => {
         }),
         MeasurementUnit.Hours,
       ),
-    ).toBe("2 Hours");
+    ).toBe("2\u00A0hours");
   });
 });

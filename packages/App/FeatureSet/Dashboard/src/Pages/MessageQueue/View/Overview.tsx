@@ -96,7 +96,7 @@ import {
   MESSAGE_QUEUE_INSTRUMENTING_DOCS_ANCHOR,
   MessageQueueLivenessStatus,
   formatMessageQueueCount,
-  formatMessageQueueDurationMs,
+  formatMessageQueueDurationMsInLanguage,
   formatMessageQueueErrorRate,
   getMessageQueueDocsRoute,
   getMessageQueueLivenessDescription,
@@ -760,8 +760,11 @@ const MessageQueueOverview: FunctionComponent<
               },
               m.total,
               {
-                rate: formatMessageQueueErrorRate(m.errorRatePercent),
-                count: formatMessageQueueCount(m.total),
+                rate: formatMessageQueueErrorRate(
+                  m.errorRatePercent,
+                  translator,
+                ),
+                count: formatMessageQueueCount(m.total, translator),
               },
             )
           : undefined,
@@ -781,7 +784,10 @@ const MessageQueueOverview: FunctionComponent<
     },
     {
       title: "p95 processing time",
-      value: formatMessageQueueDurationMs(m.p95ProcessingMs),
+      value: formatMessageQueueDurationMsInLanguage(
+        m.p95ProcessingMs,
+        translator,
+      ),
       // No broker measures it: say what gives it rather than a dash.
       valueNote: needsConsumerTraces
         ? MESSAGE_QUEUE_NEEDS_CONSUMER_TRACES
@@ -847,7 +853,7 @@ const MessageQueueOverview: FunctionComponent<
         syncId={`message-queue-${modelId.toString()}`}
         yLegend="ms"
         yFormatter={(value: number): string => {
-          return formatMessageQueueDurationMs(value);
+          return formatMessageQueueDurationMsInLanguage(value, translator);
         }}
         loading={telemetryLoading && m.p95ProcessingSeries.length === 0}
         emptyMessage={

@@ -23,7 +23,7 @@ flowchart TB
 
 ## शुरू करने से पहले
 
-- OneUptime में Project Owner, Project Admin या Security Admin रोल। Security Member और Security Viewer कनेक्शन और उनका रन इतिहास देख सकते हैं, पर उन्हें बदल नहीं सकते।
+- OneUptime में प्रोजेक्ट स्वामी, प्रोजेक्ट एडमिन या सुरक्षा एडमिन रोल। सुरक्षा सदस्य और सुरक्षा दर्शक कनेक्शन और उनका रन इतिहास देख सकते हैं, पर उन्हें बदल नहीं सकते।
 - Microsoft Defender XDR लाइसेंस वाला एक Microsoft Entra टेनेंट: Microsoft Defender पोर्टल पर ऑनबोर्ड किया गया कोई भी Defender वर्कलोड, जैसे Defender for Endpoint, for Identity, for Office 365 या for Cloud Apps।
 - ऐप्लिकेशन रजिस्टर कर सकने वाला कोई Entra रोल, जैसे Application Administrator, और एडमिन सहमति देने के लिए एक Global Administrator या Privileged Role Administrator।
 - OneUptime ऐप और वर्कर से `login.microsoftonline.com` और `graph.microsoft.com` तक आउटबाउंड HTTPS, या Azure Government के लिए `login.microsoftonline.us` और `graph.microsoft.us` तक।
@@ -140,7 +140,7 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 | **Authenticate with Microsoft Entra** | Microsoft Entra ID आपके चुने क्लाउड में Microsoft Graph के लिए टोकन जारी करता है। यह गलत या एक्सपायर सीक्रेट, गलत टेनेंट या क्लाइंट ID, या गलत क्लाउड पर विफल होती है। |
 | **Read alerts from Microsoft Graph** | पिछले 24 घंटों में बना एक अलर्ट पढ़ा जा सकता है (`$top=1`)। यहां `403` का मतलब है `SecurityAlert.Read.All` अनुमति नहीं है, एडमिन सहमति नहीं है, या टेनेंट में Defender XDR नहीं है। |
 | **Alerts available to import** | पिछले 24 घंटों और पिछले 7 दिनों में कितने अलर्ट बने, हर एक के लिए 100 का एक पेज, इसलिए `100+` का मतलब है और ज़्यादा। 7 दिनों में एक भी न होना विफलता नहीं, चेतावनी है। |
-| **Background workers**, **Poll scheduler**, **Security event storage** | OneUptime का अपना हिस्सा: कोई प्रोसेस Worker कतार के जॉब लेता है, पोल जॉब हर मिनट चलता है, और सुरक्षा इवेंट का स्टोर जवाब देता है। |
+| **Background workers**, **Poll scheduler**, **Security event storage** | OneUptime का अपना हिस्सा: कोई प्रोसेस Worker क्यू के जॉब लेता है, पोल जॉब हर मिनट चलता है, और सुरक्षा इवेंट का स्टोर जवाब देता है। |
 | **शेड्यूल की गई पोलिंग** | सहेजे गए कनेक्शन के लिए: पोलिंग चालू है, कोई रन वर्कर के इंतज़ार में अटका नहीं है, और पोल समय पर चलते हैं। |
 
 टेस्ट के हर अनुरोध की समय सीमा 20 सेकंड है। टेस्ट कभी कुछ आयात नहीं करता और न कर्सर हिलाता है, और हर विफल जांच बताती है कि क्या बदलना है।

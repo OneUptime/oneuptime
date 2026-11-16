@@ -232,6 +232,19 @@ const alternativeTerms: (word: DocsQueryWord) => Array<string> = (
   });
 };
 
+// The pages a search found, each once, in the order found.
+const pagesOf: (answer: DocsSearchAnswer) => Array<string> = (
+  answer: DocsSearchAnswer,
+): Array<string> => {
+  return Array.from(
+    new Set<string>(
+      urls(answer).map((url: string): string => {
+        return url.split("#")[0]!;
+      }),
+    ),
+  );
+};
+
 const typedWords: (
   index: AIDocsLanguageIndex,
   query: string,
@@ -452,6 +465,177 @@ describe("reading what was typed", () => {
   });
 });
 
+/*
+ * Every docs language, as Ask AI reads it (#7875): the question's own
+ * words left out, word forms read without their endings, and a compound
+ * found by the words it is made of.
+ */
+describe("reading what was typed, in every docs language", () => {
+  it("cuts a Chinese question's own words out of what was typed", () => {
+    const index: AIDocsLanguageIndex = makeDocsIndex(
+      [
+        {
+          page: "monitor/website-monitor",
+          title: "网站监控",
+          summary: "网站监控检查网页是否响应。",
+        },
+        {
+          page: "notifications/on-call-rules",
+          title: "如何联系我",
+          summary: "通知规则决定在什么时候用什么方式联系您。",
+        },
+      ],
+      "zh-CN",
+    );
+
+    expect(typedWords(index, "如何监控我的网站？")).toEqual(["监控", "网站"]);
+    expect(urls(DocsSearch.rank(index, "如何监控我的网站？"))[0]).toBe(
+      "/docs/zh-CN/monitor/website-monitor",
+    );
+    // Typed with nothing else, they are read: "如何" finds the page named with it.
+    expect(typedWords(index, "如何")).toEqual(["如何"]);
+    expect(urls(DocsSearch.rank(index, "如何联系我"))[0]).toBe(
+      "/docs/zh-CN/notifications/on-call-rules",
+    );
+  });
+
+  it("reads a word in its index's language: Norwegian 'nettstedet' is the name's 'Nettsted'", () => {
+    const index: AIDocsLanguageIndex = makeDocsIndex(
+      [
+        {
+          page: "monitor/website-monitor",
+          title: "Nettsted-overvåking",
+          summary: "En nettstedsmonitor sjekker at en nettside svarer.",
+        },
+        {
+          page: "guides/website-down",
+          title: "Få beskjed når nettstedet ditt går ned",
+          summary: "Følg guiden for å bli varslet.",
+        },
+        {
+          page: "status-pages/index",
+          title: "Statussider",
+          summary: "Fortell kundene hva som skjer.",
+        },
+      ],
+      "no",
+    );
+
+    expect(
+      typedWords(index, "Hvordan overvåker jeg nettstedet mitt? "),
+    ).toEqual(["overvåker", "nettstedet"]);
+    expect(
+      urls(
+        DocsSearch.rank(index, "Hvordan overvåker jeg nettstedet mitt? "),
+      )[0],
+    ).toBe("/docs/no/monitor/website-monitor");
+  });
+
+  it("finds two typed words in the one word they make, in Swedish", () => {
+    const index: AIDocsLanguageIndex = makeDocsIndex(
+      [
+        {
+          page: "monitor/website-monitor",
+          title: "Webbplatsövervakning",
+          summary: "En monitor kontrollerar att en webbsida svarar.",
+        },
+        {
+          page: "guides/website-down",
+          title: "Få veta när din webbplats går ner",
+          summary: "Följ guiden.",
+        },
+        {
+          page: "monitor/index",
+          title: "Övervakning",
+          summary: "Monitorer kontrollerar att saker fungerar.",
+        },
+      ],
+      "sv",
+    );
+    const answer: DocsSearchAnswer = DocsSearch.rank(
+      index,
+      "övervaka webbplats ",
+    );
+
+    expect(urls(answer)[0]).toBe("/docs/sv/monitor/website-monitor");
+    expect(
+      alternativeTerms(DocsSearch.readQuery(index, "övervaka webbplats ")[0]!),
+    ).toContain("webbplatsovervak");
+  });
+
+  it("opens the page whose name was typed, word for word, before one whose name says it and more", () => {
+    const index: AIDocsLanguageIndex = makeDocsIndex(
+      [
+        {
+          page: "monitor/profiles-monitor",
+          title: "Монитор профилей",
+          summary: "Монитор профилей следит за профилями и профилем.",
+        },
+        {
+          page: "telemetry/profiles",
+          title: "Профили",
+          summary: "Профили показывают, где тратится время.",
+        },
+      ],
+      "ru",
+    );
+
+    // Both names hold "профил", read without its ending.
+    expect(
+      alternativeTerms(DocsSearch.readQuery(index, "Профили ")[0]!),
+    ).toEqual(["профил"]);
+    expect(urls(DocsSearch.rank(index, "Профили "))[0]).toBe(
+      "/docs/ru/telemetry/profiles",
+    );
+    expect(urls(DocsSearch.rank(index, "Монитор профилей "))[0]).toBe(
+      "/docs/ru/monitor/profiles-monitor",
+    );
+  });
+
+  it("reads a phrase a section says word for word whole, its question words too", () => {
+    const index: AIDocsLanguageIndex = makeDocsIndex(
+      [
+        {
+          page: "probe/custom-probe",
+          title: "Sonde personnalisée",
+          summary: "Une sonde dans votre réseau.",
+          sections: [
+            {
+              title: "Ce sur quoi la sonde écoute",
+              text: "Elle écoute sur le réseau de l'hôte ou si le conteneur le permet.",
+            },
+            {
+              title: "Le réseau de l'hôte",
+              text: "Le réseau et l'hôte de la sonde.",
+            },
+          ],
+        },
+      ],
+      "fr",
+    );
+
+    expect(
+      DocsSearch.isPhraseOfTheDocs(index, "le réseau de l'hôte ou si "),
+    ).toBe(true);
+    expect(typedWords(index, "le réseau de l'hôte ou si ")).toEqual(
+      expect.arrayContaining(["le", "de", "ou", "si"]),
+    );
+    expect(urls(DocsSearch.rank(index, "le réseau de l'hôte ou si "))[0]).toBe(
+      "/docs/fr/probe/custom-probe#ce-sur-quoi-la-sonde-écoute",
+    );
+    // A question no section says is read without its question words.
+    expect(
+      DocsSearch.isPhraseOfTheDocs(index, "Comment écoute la sonde ?"),
+    ).toBe(false);
+    expect(typedWords(index, "Comment écoute la sonde ?")).toEqual([
+      "écoute",
+      "sonde",
+    ]);
+    // Fewer than three words is not a phrase.
+    expect(DocsSearch.isPhraseOfTheDocs(index, "le réseau")).toBe(false);
+  });
+});
+
 describe("ranking", () => {
   it("needs every word typed: a section that holds them all beats a page that holds one", () => {
     // Four other pages say Kubernetes; only the agent's page says Helm too.
@@ -531,6 +715,472 @@ describe("ranking", () => {
     expect(
       DocsSearch.rank(INDEX, "a", 1000).results.length,
     ).toBeLessThanOrEqual(DOCS_SEARCH_MAX_LIMIT);
+  });
+});
+
+/*
+ * A question's verb is often a word the page that answers it never says
+ * (#8334): Website Monitor's Russian page says "мониторинг" and "сайт",
+ * not "отслеживать" (track). Every typed word had to be in a result, so
+ * "Как отслеживать мой сайт?" found the pages that say both in passing,
+ * and never Website Monitor. A question now also gets the pages named
+ * for half its words or more, beside the results that hold all of them.
+ * Keywords still need every word.
+ */
+const RUSSIAN_PAGES: Array<MadePage> = [
+  {
+    page: "monitor/website-monitor",
+    title: "Мониторинг веб-сайта",
+    summary: "Монитор веб-сайта проверяет, что сайт отвечает.",
+  },
+  {
+    page: "introduction/getting-started",
+    title: "Начало работы",
+    summary: "С чего начать в первый же день.",
+    sections: [
+      {
+        title: "Первые шаги",
+        text: "Начните отслеживать сайт и сервер.",
+      },
+    ],
+  },
+  {
+    page: "monitor/create-monitor",
+    title: "Создание монитора",
+    summary: "Монитор проверяет то, что вам важно.",
+    sections: [
+      {
+        title: "Что проверить",
+        text: "Монитор помогает отслеживать сайт, сервер или API.",
+      },
+    ],
+  },
+  {
+    page: "telemetry/exceptions",
+    title: "Исключения",
+    summary: "Исключения в коде видны рядом с логами.",
+  },
+];
+
+// The Spanish on-call schedules, named for "programación" and "guardia", not for "configurar".
+const SPANISH_PAGES: Array<MadePage> = [
+  {
+    page: "on-call/schedules",
+    title: "Programaciones de guardia",
+    summary: "Una programación de guardia dice quién está de guardia y cuándo.",
+  },
+  {
+    page: "introduction/getting-started",
+    title: "Primeros pasos",
+    summary:
+      "Configure la guardia: una política, una programación y quién responde.",
+  },
+  {
+    page: "incidents/settings",
+    title: "Ajustes de incidentes",
+    summary: "Configurar la guardia de un incidente según su programación.",
+  },
+  {
+    page: "monitor/website-monitor",
+    title: "Monitor de sitio web",
+    summary: "Un monitor comprueba que un sitio web responde.",
+  },
+];
+
+const CHINESE_PAGES: Array<MadePage> = [
+  {
+    page: "on-call/schedules",
+    title: "值班计划",
+    summary: "值班计划决定谁在什么时候值班。",
+  },
+  {
+    page: "on-call/index",
+    title: "值班概览",
+    summary: "设置值班：先设置策略，再设置计划。",
+  },
+  {
+    page: "introduction/quickstart",
+    title: "快速开始",
+    summary: "设置监视器，设置值班，设置计划。",
+  },
+];
+
+describe("a question (#8334)", () => {
+  it("is what has a question mark or a word its language asks with, not keywords", () => {
+    const russian: AIDocsLanguageIndex = makeDocsIndex(RUSSIAN_PAGES, "ru");
+    const german: AIDocsLanguageIndex = makeDocsIndex(GERMAN_PAGES, "de");
+    const spanish: AIDocsLanguageIndex = makeDocsIndex(SPANISH_PAGES, "es");
+    const chinese: AIDocsLanguageIndex = makeDocsIndex(CHINESE_PAGES, "zh-CN");
+
+    // A question mark, wherever it stands, and Spanish's opening one.
+    expect(DocsSearch.isQuestion(russian, "Как отслеживать мой сайт?")).toBe(
+      true,
+    );
+    expect(DocsSearch.isQuestion(russian, "отслеживать сайт?")).toBe(true);
+    expect(DocsSearch.isQuestion(spanish, "¿configurar guardia")).toBe(true);
+    expect(DocsSearch.isQuestion(chinese, "设置值班计划？")).toBe(true);
+    // A word it asks with, without a question mark.
+    expect(DocsSearch.isQuestion(russian, "как отслеживать сайт")).toBe(true);
+    expect(DocsSearch.isQuestion(russian, "отслеживать мой сайт")).toBe(true);
+    expect(
+      DocsSearch.isQuestion(german, "Wie überwache ich meine Website"),
+    ).toBe(true);
+    expect(DocsSearch.isQuestion(INDEX, "how do I install the agent")).toBe(
+      true,
+    );
+    // Written without spaces: found wherever it stands.
+    expect(DocsSearch.isQuestion(chinese, "如何设置值班计划")).toBe(true);
+    // Keywords, articles and prepositions too, are not a question.
+    expect(DocsSearch.isQuestion(russian, "отслеживать сайт")).toBe(false);
+    expect(DocsSearch.isQuestion(german, "Website überwachen")).toBe(false);
+    expect(DocsSearch.isQuestion(INDEX, "kubernetes helm")).toBe(false);
+    expect(DocsSearch.isQuestion(INDEX, "create a monitor for the site")).toBe(
+      false,
+    );
+    expect(DocsSearch.isQuestion(INDEX, "disk i/o latency")).toBe(false);
+    expect(DocsSearch.isQuestion(chinese, "设置值班计划")).toBe(false);
+    // Another language's question words are words: German "wie" in the English docs.
+    expect(DocsSearch.isQuestion(INDEX, "Wie ich erreichbar bin")).toBe(false);
+  });
+
+  it("is not a phrase the docs say word for word, though it has a word that asks", () => {
+    // Website Monitor's Criteria section says it, "when" and all.
+    expect(DocsSearch.isQuestion(INDEX, "when the site counts as down ")).toBe(
+      false,
+    );
+    expect(
+      urls(DocsSearch.rank(INDEX, "when the site counts as down "))[0],
+    ).toBe("/docs/en/monitor/website-monitor#criteria");
+  });
+
+  it("finds the page named for what it asks about, though the page never says its verb", () => {
+    const russian: AIDocsLanguageIndex = makeDocsIndex(RUSSIAN_PAGES, "ru");
+
+    // "отслеживать" (track) is on the two pages that say "сайт" in passing, not on Website Monitor.
+    expect(typedWords(russian, "Как отслеживать мой сайт?")).toEqual([
+      "отслеживать",
+      "сайт",
+    ]);
+    expect(urls(DocsSearch.rank(russian, "Как отслеживать мой сайт?"))[0]).toBe(
+      "/docs/ru/monitor/website-monitor",
+    );
+    // The pages that hold every word are still offered, after it.
+    expect(
+      pagesOf(DocsSearch.rank(russian, "Как отслеживать мой сайт?")),
+    ).toEqual([
+      "/docs/ru/monitor/website-monitor",
+      "/docs/ru/introduction/getting-started",
+      "/docs/ru/monitor/create-monitor",
+    ]);
+    // Without its question mark, "как" and "мой" ask it.
+    expect(urls(DocsSearch.rank(russian, "как отслеживать мой сайт "))[0]).toBe(
+      "/docs/ru/monitor/website-monitor",
+    );
+  });
+
+  it("finds it in other languages too: Spanish and Chinese on-call schedules", () => {
+    const spanish: AIDocsLanguageIndex = makeDocsIndex(SPANISH_PAGES, "es");
+    const chinese: AIDocsLanguageIndex = makeDocsIndex(CHINESE_PAGES, "zh-CN");
+
+    // "configuro" is on the pages that say "configure" and "configurar"; the schedules' page says neither.
+    expect(
+      urls(
+        DocsSearch.rank(
+          spanish,
+          "¿Cómo configuro una programación de guardia?",
+        ),
+      )[0],
+    ).toBe("/docs/es/on-call/schedules");
+    // "设置" (set up) is on every page but the one named "值班计划".
+    expect(urls(DocsSearch.rank(chinese, "如何设置值班计划？"))[0]).toBe(
+      "/docs/zh-CN/on-call/schedules",
+    );
+  });
+
+  it("keeps keywords as strict as before: every word typed, in every result", () => {
+    const russian: AIDocsLanguageIndex = makeDocsIndex(RUSSIAN_PAGES, "ru");
+    const spanish: AIDocsLanguageIndex = makeDocsIndex(SPANISH_PAGES, "es");
+
+    // The same words, typed as keywords: only the pages that hold both.
+    expect(
+      pagesOf(DocsSearch.rank(russian, "отслеживать сайт ")).sort(),
+    ).toEqual([
+      "/docs/ru/introduction/getting-started",
+      "/docs/ru/monitor/create-monitor",
+    ]);
+    expect(
+      pagesOf(DocsSearch.rank(spanish, "configurar programación guardia ")),
+    ).not.toContain("/docs/es/on-call/schedules");
+    // English keywords, as the ranking tests above hold them.
+    for (const url of urls(DocsSearch.rank(INDEX, "kubernetes helm "))) {
+      expect(url).toMatch(/^\/docs\/en\/telemetry\/kubernetes-agent/);
+    }
+  });
+
+  it("offers, when nothing holds every word, the results with most of them, as keywords get", () => {
+    const chinese: AIDocsLanguageIndex = makeDocsIndex(CHINESE_PAGES, "zh-CN");
+
+    // No page says "班计" and "设置" both: keywords get the pages with most of the pairs, as before.
+    expect(pagesOf(DocsSearch.rank(chinese, "设置值班计划")).sort()).toEqual([
+      "/docs/zh-CN/introduction/quickstart",
+      "/docs/zh-CN/on-call/index",
+      "/docs/zh-CN/on-call/schedules",
+    ]);
+    // Asked, the page named for most of them comes first.
+    expect(urls(DocsSearch.rank(chinese, "如何设置值班计划？"))[0]).toBe(
+      "/docs/zh-CN/on-call/schedules",
+    );
+  });
+
+  it("offers a page named for fewer than half its words to nobody", () => {
+    const russian: AIDocsLanguageIndex = makeDocsIndex(RUSSIAN_PAGES, "ru");
+
+    // "Исключения" is named for one word in three, and says neither "отслеживать" nor "сайт".
+    expect(
+      pagesOf(DocsSearch.rank(russian, "Как отслеживать сайт и исключения?")),
+    ).not.toContain("/docs/ru/telemetry/exceptions");
+  });
+
+  it("lifts a page that holds part of it by its name, never one that only says part of it", () => {
+    const index: AIDocsLanguageIndex = makeDocsIndex(
+      [
+        {
+          page: "monitor/website-monitor",
+          title: "Website Monitor",
+          summary: "Checks that a website answers.",
+        },
+        {
+          page: "guides/website-down",
+          title: "Know When Your Site Is Down",
+          summary: "Track the website and get told when it is down.",
+        },
+        {
+          page: "telemetry/logs",
+          title: "Logs",
+          summary: "Logs from the website, the server and the browser.",
+          sections: [
+            {
+              title: "Browser logs",
+              text: "Logs from a website's visitors.",
+            },
+          ],
+        },
+      ],
+      "en",
+    );
+
+    /*
+     * Named for the website, it is offered beside the page that says both
+     * words; Logs, which says "website" in its text only, is not.
+     */
+    expect(
+      pagesOf(DocsSearch.rank(index, "How do I track my website?")).sort(),
+    ).toEqual([
+      "/docs/en/guides/website-down",
+      "/docs/en/monitor/website-monitor",
+    ]);
+    // Typed as keywords, only the page that says both.
+    expect(pagesOf(DocsSearch.rank(index, "track website "))).toEqual([
+      "/docs/en/guides/website-down",
+    ]);
+  });
+
+  it("reads one word as before: a question of one word holds it or nothing", () => {
+    const russian: AIDocsLanguageIndex = makeDocsIndex(RUSSIAN_PAGES, "ru");
+
+    expect(DocsSearch.rank(russian, "Как отслеживать?").results).toEqual(
+      DocsSearch.rank(russian, "отслеживать").results,
+    );
+    expect(
+      pagesOf(DocsSearch.rank(russian, "Как отслеживать?")).sort(),
+    ).toEqual([
+      "/docs/ru/introduction/getting-started",
+      "/docs/ru/monitor/create-monitor",
+    ]);
+  });
+});
+
+/*
+ * A question answered by a section of a page named for something else
+ * (#8698): two-factor authentication is a step of Your Account, "Slå på
+ * tofaktorautentisering", and "Hvordan slår jeg på
+ * tofaktorautentisering?" asks it with "slår" (present), which the
+ * heading's "slå" is not. Where no page is named for the question, a
+ * section whose own heading holds half its words or more goes beside the
+ * results that hold all of them.
+ */
+const NORWEGIAN_ACCOUNT_PAGES: Array<MadePage> = [
+  {
+    page: "introduction/your-account",
+    title: "Kontoen din",
+    summary: "Profilen din, og hvordan du logger inn trygt.",
+    sections: [
+      {
+        title: "Slå på tofaktorautentisering",
+        text: "Legg først til et andre steg, og slå det deretter på.",
+      },
+      {
+        title: "Endre passordet ditt",
+        text: "Velg et nytt passord for kontoen.",
+      },
+    ],
+  },
+  {
+    page: "mobile-desktop-apps/android-installation",
+    title: "Installasjon på Android",
+    summary: "Last ned appen og logg inn.",
+    sections: [
+      {
+        title: "Logg inn i appen",
+        text: "Slår du på tofaktorautentisering, ber appen om en kode.",
+      },
+    ],
+  },
+  {
+    page: "self-hosted/enterprise",
+    title: "Enterprise",
+    summary:
+      "En administrator som slår den på, kan kreve tofaktorautentisering.",
+  },
+];
+
+const ACCOUNT_STEP: string = "/docs/no/introduction/your-account#";
+
+describe("a question answered by a section (#8698)", () => {
+  const norwegian: AIDocsLanguageIndex = makeDocsIndex(
+    NORWEGIAN_ACCOUNT_PAGES,
+    "no",
+  );
+
+  it("finds the section whose heading names what it asks, on a page named for something else", () => {
+    const found: Array<string> = urls(
+      DocsSearch.rank(norwegian, "Hvordan slår jeg på tofaktorautentisering?"),
+    );
+
+    expect(
+      found.filter((url: string): boolean => {
+        return url.startsWith(ACCOUNT_STEP);
+      }),
+    ).toEqual([`${ACCOUNT_STEP}slå-på-tofaktorautentisering`]);
+    // Beside the results that hold every word.
+    expect(found).toEqual(
+      expect.arrayContaining([
+        "/docs/no/self-hosted/enterprise",
+        "/docs/no/mobile-desktop-apps/android-installation#logg-inn-i-appen",
+      ]),
+    );
+  });
+
+  it("leaves it out of keywords, which still need every word", () => {
+    expect(
+      urls(DocsSearch.rank(norwegian, "slår tofaktorautentisering ")).filter(
+        (url: string): boolean => {
+          return url.startsWith(ACCOUNT_STEP);
+        },
+      ),
+    ).toEqual([]);
+  });
+
+  it("leaves it out where a page is named for the question: the page answers it", () => {
+    const withPage: AIDocsLanguageIndex = makeDocsIndex(
+      [
+        ...NORWEGIAN_ACCOUNT_PAGES,
+        {
+          page: "security/two-factor",
+          title: "Tofaktorautentisering",
+          summary: "Et andre steg når du logger inn.",
+        },
+      ],
+      "no",
+    );
+    const found: Array<string> = urls(
+      DocsSearch.rank(withPage, "Hvordan slår jeg på tofaktorautentisering?"),
+    );
+
+    expect(found).toContain("/docs/no/security/two-factor");
+    expect(
+      found.filter((url: string): boolean => {
+        return url.startsWith(ACCOUNT_STEP);
+      }),
+    ).toEqual([]);
+  });
+
+  it("leaves out a section whose heading holds fewer than half the question's words", () => {
+    // "appen" (the app) is a third word, which the heading does not hold: one in three.
+    const found: Array<string> = urls(
+      DocsSearch.rank(
+        norwegian,
+        "Hvordan slår jeg på tofaktorautentisering i appen?",
+      ),
+    );
+
+    expect(
+      found.filter((url: string): boolean => {
+        return url.startsWith(ACCOUNT_STEP);
+      }),
+    ).toEqual([]);
+    expect(found[0]).toBe(
+      "/docs/no/mobile-desktop-apps/android-installation#logg-inn-i-appen",
+    );
+  });
+});
+
+/*
+ * A Dutch verb's first part, written after it ("Hoe zet ik ... aan?"), is
+ * read joined to the verb and never alone (#8698): as a word of its own,
+ * "aan" made the step "Tweestapsverificatie inschakelen" hold one of the
+ * question's three words.
+ */
+describe("a Dutch verb written in two parts", () => {
+  const dutch: AIDocsLanguageIndex = makeDocsIndex(
+    [
+      {
+        page: "introduction/your-account",
+        title: "Uw account",
+        summary: "Uw profiel en hoe u veilig inlogt.",
+        sections: [
+          {
+            title: "Tweestapsverificatie inschakelen",
+            text: "Voeg eerst een tweede stap toe en zet hem daarna aan.",
+          },
+        ],
+      },
+      {
+        page: "permissions/inviting-people",
+        title: "Mensen uitnodigen",
+        summary: "Nodig een collega uit voor je project.",
+      },
+    ],
+    "nl",
+  );
+
+  it("does not look for the part alone, and reads it joined where the docs hold the verb", () => {
+    expect(typedWords(dutch, "Hoe zet ik tweestapsverificatie aan?")).toEqual([
+      "zet",
+      "tweestapsverificatie",
+    ]);
+    // "nodig" holds "uitnodig" (uitnodigen) as a way of being found.
+    const words: Array<DocsQueryWord> = DocsSearch.readQuery(
+      dutch,
+      "Hoe nodig ik een collega uit? ",
+    );
+
+    expect(
+      words.map((word: DocsQueryWord): string => {
+        return word.typed;
+      }),
+    ).toEqual(["nodig", "collega"]);
+    expect(alternativeTerms(words[0]!)).toContain("uitnodig");
+    // Typed alone, it is a word.
+    expect(typedWords(dutch, "uit")).toEqual(["uit"]);
+  });
+
+  it("finds the step a question asks with the verb's other part written apart", () => {
+    expect(
+      urls(DocsSearch.rank(dutch, "Hoe zet ik tweestapsverificatie aan?")),
+    ).toContain(
+      "/docs/nl/introduction/your-account#tweestapsverificatie-inschakelen",
+    );
   });
 });
 

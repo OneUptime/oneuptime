@@ -300,7 +300,7 @@ På fanen **Budsjetter** klikker du på **Opprett LLM Cost Budget**. Gi det et n
 
 ### Varsle på det
 
-Opprett en [metrikk-overvåking](/docs/monitor/metrics-monitor) på `oneuptime.llm.budget.percent.used`, filtrert på `oneuptime.llm.budget.id` (navnet endres når du gir budsjettet nytt navn). Legg til et kriterium `>= 80` som utløser en advarsel, og ett `>= 100` som utløser et kritisk varsel.
+Opprett en [målingsmonitor](/docs/monitor/metrics-monitor) på `oneuptime.llm.budget.percent.used`, filtrert på `oneuptime.llm.budget.id` (navnet endres når du gir budsjettet nytt navn). Legg til et kriterium `>= 80` som utløser en advarsel, og ett `>= 100` som utløser et kritisk varsel.
 
 ### Utvid vinduet
 
@@ -311,7 +311,7 @@ Et budsjettvarsel kan også kjøre en arbeidsflyt som stopper en løpsk agent: s
 
 ## Dashboards og varsler på målinger
 
-GenAI-målinger som `gen_ai.client.token.usage` og `gen_ai.client.operation.duration` kommer inn som vanlige OpenTelemetry-målinger. Vis dem i et [dashboard](/docs/dashboards/index), eller varsle på dem med en [metrikk-overvåking](/docs/monitor/metrics-monitor), for eksempel når p95 for `gen_ai.client.operation.duration` krysser en terskel, gruppert etter modell.
+GenAI-målinger som `gen_ai.client.token.usage` og `gen_ai.client.operation.duration` kommer inn som vanlige OpenTelemetry-målinger. Vis dem i et [dashboard](/docs/dashboards/index), eller varsle på dem med en [målingsmonitor](/docs/monitor/metrics-monitor), for eksempel når p95 for `gen_ai.client.operation.duration` krysser en terskel, gruppert etter modell.
 
 ## Personvern og maskering
 
@@ -321,7 +321,7 @@ Prompter og svar sendt som logghendelser lagres som logger, så det er loggenes 
 
 Uansett leser en regel hver tekst i en liste eller en strukturert verdi, som meldinger en instrumentering sender som en liste i stedet for som JSON-tekst, og beholder verdiens form: en e-postadresse i en prompt maskeres uansett hvor den står. Se [Rens sensitive data](/docs/telemetry/drop-filters-and-scrub-rules#rens-sensitive-data).
 
-Samtaler leses med samme tillatelse som traces: den som kan lese prosjektets traces, kan lese samtalene, og ingen andre. Samtalene fra et av virksomhetens AI-verktøy er unntaket: bare prosjektets eiere og administratorer kan lese dem, med mindre tilkoblingen sier noe annet ([Virksomhetens AI-verktøy](/docs/telemetry/ai-company-tools#personvern)).
+Samtaler leses med samme tillatelse som traces: den som kan lese prosjektets traces, kan lese samtalene, og ingen andre. Samtalene fra et av virksomhetens AI-verktøy er unntaket: bare Prosjekteiere og Prosjektadministratorer kan lese dem, med mindre tilkoblingen sier noe annet ([Virksomhetens AI-verktøy](/docs/telemetry/ai-company-tools#personvern)).
 
 ## Attributter OneUptime leser
 

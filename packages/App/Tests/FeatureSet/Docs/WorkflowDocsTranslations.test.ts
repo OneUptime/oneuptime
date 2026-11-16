@@ -1,10 +1,4 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
-import ComponentMetadata, {
-  Argument,
-  Port,
-  ReturnValue,
-} from "Common/Types/Workflow/Component";
-import Components from "Common/Types/Workflow/Components";
 import { WorkflowDocsPaths } from "Common/Types/Workflow/Documentation/DocumentationLinks";
 import { WORKFLOW_ARCHIVED_BEFORE_RUN_MESSAGE } from "Common/Types/Workflow/WorkflowArchive";
 import { WORKFLOW_TURNED_OFF_MESSAGE } from "Common/Types/Workflow/WorkflowEnabled";
@@ -18,6 +12,7 @@ import {
 import {
   dashboardLocale,
   drawnActionLabel,
+  drawnLabelOnPage,
   isActionLabel,
 } from "./DocsDashboardLabels";
 import {
@@ -36,6 +31,11 @@ import {
 import { describe, expect, it } from "@jest/globals";
 import { isPermissionTitleKeptInEnglish } from "./DocsRoleNames";
 import { pathWithArrows } from "./DocsPageShape";
+import {
+  WORKFLOW_STEP_NAMES,
+  drawnStepName,
+  isLookedUp,
+} from "./DocsWorkflowStepNames";
 
 /*
  * The seven Workflows pages - the overview, authoring, triggers, components,
@@ -48,13 +48,16 @@ import { pathWithArrows } from "./DocsPageShape";
  * also fills the "Duplicate", "Export", "Edit" and "Delete {{itemName}}"
  * buttons a model's pages draw).
  *
- * Three kinds of name stay in English, and are held to that here
+ * What a step defines itself - its outputs, settings, choices and the
+ * values it returns (Success, Message Text, Request Body...) - is named as
+ * the language's builder draws it too (#7511): the canvas, the settings
+ * form and panel, the value picker and the run log look each up in the
+ * Dashboard's locale (DocsWorkflowStepNames, which WorkflowStepNamesAsDrawnDocs
+ * holds every workflow page to), so a step's name is checked here like any
+ * other label, and is English only where the locale has no word for it.
+ *
+ * Two kinds of name stay in English, and are held to that here
  * (KEPT_IN_ENGLISH):
- *   - what a step defines itself: its settings, its outputs and the values
- *     it returns (Request Body, Success, Message Text...). The canvas draws
- *     outputs and returned values as the step names them, and the docs name
- *     a step's settings the same way, as the IRC integration page and the
- *     incident pages (Incident Template) do;
  *   - role and permission names, as the team permission picker lists them;
  *   - plan names.
  * The bold words that are prose rather than a control (PROSE) are listed
@@ -91,174 +94,24 @@ const PAGE_NAMES: Array<string> = PAGES.map((entry: WorkflowPage): string => {
   return entry.page;
 });
 
-// A step's outputs, as the canvas draws them under the block.
-const OUTPUTS: Array<string> = ["Success", "Error", "Yes", "No", "Out"];
-
 const PLANS: Array<string> = ["Growth"];
 
 /*
  * Bold names the translations keep in English, on purpose, by page. Each is
- * a step's own setting, output or returned value, a role or permission
- * name, or a plan name ("the lists this test keeps" checks which).
+ * a role or permission name, or a plan name ("the lists this test keeps"
+ * checks which). A step's own names are not among them: they are named as
+ * drawn (#7511).
  */
 const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
-  "workflows/index": [
-    ...OUTPUTS.filter((name: string): boolean => {
-      return name !== "Out";
-    }),
-    // The API Post (JSON) and Log blocks' settings in the example.
-    "URL",
-    "Request Body",
-    "Value",
-    ...PLANS,
-  ],
-  "workflows/authoring": [
-    "Success",
-    "Error",
-    // The Log block's setting and a Webhook's value.
-    "Value",
-    "Request Body",
-  ],
-  "workflows/triggers": [
-    // What the Webhook and Incoming Email triggers return.
-    "Request Headers",
-    "Request Body",
-    "From",
-    "To",
-    "Subject",
-    "Body",
-    "Attachments",
-  ],
-  "workflows/components": [
-    ...OUTPUTS,
-    // API.
-    "URL",
-    "Request Body",
-    "Request Headers",
-    "Response Headers",
-    "Response Body",
-    // Generate Text with AI.
-    "Prompt",
-    "Context",
-    "Temperature",
-    "Response",
-    "Provider",
-    "Model",
-    "Total Tokens",
-    "Completion Tokens",
-    // The chat steps.
-    "Slack Incoming Webhook URL",
-    "Message Text",
-    "Telegram Bot Token",
-    "Channel",
-    "Port",
-    "Username",
-    /*
-     * Send Email. Email Body is a Dashboard label too since 31eadaee92e
-     * (the Incoming Email monitor's check): here it is the step's setting.
-     */
-    "From Email",
-    "To Email",
-    "Subject",
-    "Email Body",
-    "SMTP Port",
-    "SMTP Username",
-    "SMTP Password",
-    // Run Custom JavaScript and the JSON steps.
-    "JavaScript Code",
-    "Value",
-    "JSON",
-    "Text",
-    /*
-     * If / Else's Value to check, Comparison and Compare with are not here:
-     * its editor draws them in the reader's language (ConditionModel), so a
-     * translation names them as its Dashboard does.
-     */
-    // Switch / Case: its setting, and the output taken when no case matches.
-    "Cases",
-    "Default",
-    // Sleep.
-    "Days",
-    "Hours",
-    "Minutes",
-    "Seconds",
-    // Execute Workflow: its setting, and the trigger it needs.
-    "Workflow",
-    "Manual",
-    // The Page steps: their settings and the sentence they return.
-    "Users",
-    "Teams",
-    "On-Call Schedules",
-    "On-Call Policies",
-    "Title",
-    "Message",
-    "Incident ID",
-    "Alert ID",
-    /*
-     * Page As itself, which Persian's Dashboard words: the Paging section
-     * names it as the step does (WorkflowPageStepDocs).
-     */
-    "Page As",
-    // Page As's choices, Dashboard labels too: the Builder names them in English.
-    "Responders",
-    "Observers",
-    "Severity",
-    "Summary",
-    // The record steps.
-    "Incident Template",
-    "Query",
-    "Skip",
-    // API Get By ID's setting, and what Check With JavaScript returns.
-    "ID",
-    "Reason",
-    // Incident and Alert From Another Tool: their settings and outputs.
-    "What Happened",
-    "Description",
-    "Note",
-    "Custom Fields",
-    "Labels",
-    "Opened",
-    "Created",
-    "Updated",
-    "Unchanged",
-    // Update Zabbix Problem's settings.
-    "API Token",
-    "Event ID",
-  ],
+  "workflows/index": [...PLANS],
   "workflows/variables": [
-    // Settings and outputs of the blocks in the examples.
-    "Query",
-    "Request Body",
-    "Message Text",
-    "URL",
-    "Yes",
-    "Success",
-    "Error",
     // A permission's name.
     "Edit Workflow Variables",
-  ],
-  "workflows/runs-and-logs": [
-    // Outputs a step took, and the Log block.
-    "Success",
-    "Error",
-    "Yes",
-    "No",
-    "Log",
   ],
   "workflows/configuration": [
     // Role and permission names, as the permission picker lists them.
     "Edit Workflow",
     "Delete Workflow",
-    // Generate Text with AI's settings and value, and the Incoming Email trigger's values.
-    "Prompt",
-    "Context",
-    "Temperature",
-    "Response",
-    "From",
-    "To",
-    // Create One Incident's setting, and the outputs a refused step takes.
-    "Incident Template",
-    "Error",
   ],
 };
 
@@ -363,57 +216,6 @@ function checkedLabels(page: string): Array<string> {
   });
 }
 
-// Everything a built-in step defines: its title, settings, outputs and values.
-function stepDefinedNames(): Set<string> {
-  const names: Set<string> = new Set<string>();
-
-  for (const component of Components as Array<ComponentMetadata>) {
-    names.add(component.title);
-
-    for (const argument of component.arguments as Array<Argument>) {
-      names.add(argument.name);
-
-      // A Choice setting's choices are the step's too: Page As's Responders.
-      for (const choice of argument.choices || []) {
-        names.add(choice.label);
-      }
-    }
-
-    for (const argument of (component.runWorkflowManuallyArguments ||
-      []) as Array<Argument>) {
-      names.add(argument.name);
-    }
-
-    for (const port of [
-      ...component.inPorts,
-      ...component.outPorts,
-    ] as Array<Port>) {
-      names.add(port.title);
-    }
-
-    for (const returnValue of component.returnValues as Array<ReturnValue>) {
-      names.add(returnValue.name);
-    }
-  }
-
-  // What every record step names its settings (Types/Workflow/Components/BaseModel).
-  for (const name of [
-    "Query",
-    "Fields to pass on",
-    "Skip",
-    "Limit",
-    "JSON Object",
-    "JSON Array",
-    "Data (JSON Object)",
-    "Fields to watch",
-    "Incident Template",
-  ]) {
-    names.add(name);
-  }
-
-  return names;
-}
-
 describe("the lists this test keeps", () => {
   it("name only bold Dashboard labels the English page has", () => {
     for (const [lists, kind] of [
@@ -437,21 +239,61 @@ describe("the lists this test keeps", () => {
     }
   });
 
-  it("keep in English only what a step defines, a role or permission, or a plan", () => {
-    const steps: Set<string> = stepDefinedNames();
-
+  it("keep in English only a role or permission, or a plan", () => {
     for (const page of Object.keys(KEPT_IN_ENGLISH)) {
       for (const name of KEPT_IN_ENGLISH[page] as Array<string>) {
         expect({
           page,
           name,
-          why:
-            steps.has(name) ||
-            isPermissionTitleKeptInEnglish(name) ||
-            PLANS.includes(name),
+          why: isPermissionTitleKeptInEnglish(name) || PLANS.includes(name),
         }).toEqual({ page, name, why: true });
       }
     }
+  });
+
+  it("keep no name a step defines, which the builder draws in the reader's words (#7511)", () => {
+    for (const page of Object.keys(KEPT_IN_ENGLISH)) {
+      for (const name of KEPT_IN_ENGLISH[page] as Array<string>) {
+        expect({
+          page,
+          name,
+          isStepName: WORKFLOW_STEP_NAMES.has(name) && isLookedUp(name),
+        }).toEqual({ page, name, isStepName: false });
+      }
+    }
+  });
+
+  it("check a step's outputs, settings and values on the pages that name them", () => {
+    const checked: Array<string> = PAGE_NAMES.flatMap(
+      (page: string): Array<string> => {
+        return checkedLabels(page);
+      },
+    );
+
+    for (const name of [
+      "Success",
+      "Error",
+      "Yes",
+      "No",
+      "Out",
+      "Default",
+      "Request Body",
+      "Response Body",
+      "Message Text",
+      "Channel",
+      "Port",
+      "Incident Template",
+      "Responders",
+    ]) {
+      expect({ name, checked: checked.includes(name) }).toEqual({
+        name,
+        checked: true,
+      });
+    }
+
+    // German's canvas says Erfolg for Success, and the page does too.
+    expect(drawnStepName("de", "Success")).toBe("Erfolg");
+    expect(drawnActionLabel("de", "Success")).toBe("Erfolg");
   });
 
   it("find plenty to check on every page", () => {
@@ -577,11 +419,11 @@ describe.each(LANGUAGES)("%s workflow pages", (language: string) => {
       const missing: Array<string> = checkedLabels(entry.page)
         .filter((label: string): boolean => {
           return !translated.includes(
-            `**${drawnActionLabel(language, label)}**`,
+            `**${drawnLabelOnPage(language, entry.page, label)}**`,
           );
         })
         .map((label: string): string => {
-          return `${label} -> ${drawnActionLabel(language, label)}`;
+          return `${label} -> ${drawnLabelOnPage(language, entry.page, label)}`;
         });
 
       expect(missing).toEqual([]);
@@ -605,7 +447,7 @@ describe.each(LANGUAGES)("%s workflow pages", (language: string) => {
       expect(missing).toEqual([]);
     });
 
-    it("keeps in English the names a step, a role or a plan has", () => {
+    it("keeps in English the names a role or a plan has", () => {
       const translated: string = readPage(language, entry.page);
 
       for (const name of KEPT_IN_ENGLISH[entry.page] || []) {
@@ -664,9 +506,16 @@ describe("the label helpers, on these pages' buttons", () => {
   });
 
   it("leave text no template draws in English", () => {
-    expect(isActionLabel("Send Message to Teams")).toBe(false);
+    // A record step's title is built from its model's name, and has no key yet.
+    expect(isActionLabel("On Create Incident")).toBe(false);
+    expect(drawnActionLabel("de", "On Create Incident")).toBe(
+      "On Create Incident",
+    );
+  });
+
+  it("read a built-in step's title as the Builder draws it (#8359)", () => {
     expect(drawnActionLabel("de", "Send Message to Teams")).toBe(
-      "Send Message to Teams",
+      "Nachricht an Teams senden",
     );
   });
 

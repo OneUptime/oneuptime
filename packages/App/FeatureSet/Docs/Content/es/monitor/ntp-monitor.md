@@ -33,7 +33,7 @@ A un servidor que responde no se le vuelve a preguntar, aunque responda sin una 
 
 ## Antes de empezar
 
-- **Un rol que pueda crear monitores**: Project Owner, Project Admin, Project Member, Monitor Admin o Monitor Member, o un rol personalizado con el permiso Create Monitor.
+- **Un rol que pueda crear monitores**: Propietario del proyecto, Administrador del proyecto, Miembro del proyecto, Administrador de monitores o Miembro de monitores, o un rol personalizado con el permiso Create Monitor.
 - **Una sonda que llegue al puerto UDP 123 del servidor.** Cualquier sonda puede comprobar un servidor de hora público. Para un servidor en una red privada, usa una [sonda personalizada](/docs/probe/custom-probe) dentro de esa red. Un cortafuegos delante del servidor tiene que dejar pasar UDP, no solo TCP, desde las [direcciones IP de las sondas de OneUptime Cloud](/docs/configuration/ip-addresses) o desde tu sonda personalizada.
 
 ## Crear un monitor NTP
@@ -112,7 +112,7 @@ Con dos o más filtros, **Condición de coincidencia** decide si deben coincidir
 
 Un monitor NTP nuevo empieza con dos criterios:
 
-- **Sin conexión** — el servidor no responde, no está sincronizado o su reloj está a `1000` ms o más del de la sonda. El monitor se marca como **Sin conexión** y se crea un incidente llamado "_nombre del monitor_ is not serving good time". Se resuelve solo cuando el servidor vuelve a dar una hora fiable.
+- **Sin conexión** — el servidor no responde, no está sincronizado o su reloj está a `1000` ms o más del de la sonda. El monitor se marca como **Sin conexión** y se crea un incidente llamado "_nombre del monitor_ no proporciona una hora fiable". Se resuelve solo cuando el servidor vuelve a dar una hora fiable.
 - **En línea** — el servidor responde, está sincronizado y su reloj está a menos de `1000` ms del de la sonda. El monitor se marca como **Operativo**.
 
 Los criterios se comprueban de arriba abajo, y el primero que coincide decide lo que pasa. Un servidor que responde con la hora equivocada se trata a propósito como caído: cada cliente que lo sigue tomaría también esa hora.

@@ -1,4 +1,6 @@
 import EventStatBar from "../EventView/EventStatBar";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
+import EmptyFigure from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import EventStatTile from "../EventView/EventStatTile";
 import SloBudgetBar, { SLO_BUDGET_TIER_TEXT_CLASS } from "./SloBudgetBar";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
@@ -42,6 +44,12 @@ import {
   getSloBudgetRunwayTextInLanguage,
   SloBudgetRunwayText,
 } from "./SloOverviewTextInLanguage";
+import {
+  getRequestBudgetRemainingOfTotalInLanguage,
+  getRequestBudgetRemainingSecondsEquivalent,
+  getRequestWindowFill,
+} from "./SloRequestTextInLanguage";
+import { isEventSliType } from "Common/Utils/Slo/SloRequestSli";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -57,8 +65,6 @@ export interface ComponentProps {
   now: Date;
   className?: string | undefined;
 }
-
-const EM_DASH: string = "—";
 
 /*
  * The tiles' notes are drawn and nothing else, so each value in them (a
@@ -141,13 +147,30 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
     atRiskThresholdPercentage: slo.atRiskThresholdPercentage,
   });
 
-  const windowFill: SloRollingWindowFill | null = getRollingWindowFill({
+  /*
+   * A request SLO's budget is counted in requests, and its window fills as
+   * OneUptime counts its services' older requests (SloRequestTextInLanguage).
+   */
+  const isRequestSlo: boolean = isEventSliType(slo.sliType);
+
+  const requestCounting: Parameters<typeof getRequestWindowFill>[0] = {
+    sliType: slo.sliType,
     windowType: slo.windowType,
     windowDays: slo.windowDays,
-    targetPercentage: slo.targetPercentage,
-    errorBudgetTotalSeconds: slo.errorBudgetTotalSeconds,
-    multiMonitorMode: slo.multiMonitorMode,
-  });
+    timezone: slo.timezone,
+    firstAccumulatedBucketStartAt: slo.firstAccumulatedBucketStartAt,
+    lastAccumulatedBucketEndAt: slo.lastAccumulatedBucketEndAt,
+  };
+
+  const windowFill: SloRollingWindowFill | null = isRequestSlo
+    ? getRequestWindowFill(requestCounting)
+    : getRollingWindowFill({
+        windowType: slo.windowType,
+        windowDays: slo.windowDays,
+        targetPercentage: slo.targetPercentage,
+        errorBudgetTotalSeconds: slo.errorBudgetTotalSeconds,
+        multiMonitorMode: slo.multiMonitorMode,
+      });
 
   let budgetFallbackText: string = translator.translateTemplate(
     SLO_NOT_EVALUATED_TEXT,
@@ -172,15 +195,28 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
     }
   }
 
-  const budgetDurationText: string =
-    getErrorBudgetRemainingOfTotalInLanguage(
-      {
-        remainingSeconds: slo.errorBudgetRemainingSeconds,
-        totalSeconds: slo.errorBudgetTotalSeconds,
-      },
-      translator,
-      NOTE_OPTIONS,
-    ) ?? budgetFallbackText;
+  const requestBudgetText: string | null = isRequestSlo
+    ? getRequestBudgetRemainingOfTotalInLanguage(
+        {
+          sliType: slo.sliType,
+          remainingEvents: slo.errorBudgetRemainingEvents,
+          totalEvents: slo.errorBudgetTotalEvents,
+        },
+        translator,
+        NOTE_OPTIONS,
+      )
+    : null;
+
+  const budgetDurationText: string = isRequestSlo
+    ? requestBudgetText ?? translator.translateTemplate(SLO_NOT_EVALUATED_TEXT)
+    : getErrorBudgetRemainingOfTotalInLanguage(
+        {
+          remainingSeconds: slo.errorBudgetRemainingSeconds,
+          totalSeconds: slo.errorBudgetTotalSeconds,
+        },
+        translator,
+        NOTE_OPTIONS,
+      ) ?? budgetFallbackText;
 
   /*
    * A young rolling window's budget is still growing, which is why its
@@ -250,26 +286,47 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
 
   // ---- Runway ----------------------------------------------------------------
 
+  /*
+   * A request SLO's runway is projected from the share of its budget left
+   * over the time its counts cover, as if that share were time - which it
+   * is at steady traffic (getRequestBudgetRemainingSecondsEquivalent).
+   */
+  const runwayRemainingSeconds: number | undefined | null = isRequestSlo
+    ? getRequestBudgetRemainingSecondsEquivalent({
+        ...requestCounting,
+        targetPercentage: slo.targetPercentage,
+        errorBudgetRemainingPercentage: slo.errorBudgetRemainingPercentage,
+      })
+    : slo.errorBudgetRemainingSeconds;
+
   const runway: SloBudgetRunway = getSloBudgetRunway({
     windowType: slo.windowType,
     windowDays: slo.windowDays,
     timezone: slo.timezone,
     targetPercentage: slo.targetPercentage,
-    multiMonitorMode: slo.multiMonitorMode,
-    errorBudgetRemainingSeconds: slo.errorBudgetRemainingSeconds,
+    multiMonitorMode: isRequestSlo ? undefined : slo.multiMonitorMode,
+    errorBudgetRemainingSeconds: runwayRemainingSeconds,
     currentBurnRate: slo.currentBurnRate,
     now: props.now,
   });
 
-  const runwayText: SloBudgetRunwayText = getSloBudgetRunwayTextInLanguage(
+  const timeRunwayText: SloBudgetRunwayText = getSloBudgetRunwayTextInLanguage(
     {
       runway: runway,
-      errorBudgetRemainingSeconds: slo.errorBudgetRemainingSeconds,
+      errorBudgetRemainingSeconds: runwayRemainingSeconds,
       windowDays: slo.windowDays,
     },
     translator,
     NOTE_OPTIONS,
   );
+
+  // An overspent request budget says by how many requests, never a duration.
+  const runwayText: SloBudgetRunwayText =
+    isRequestSlo &&
+    runway.kind === SloBudgetRunwayKind.Overspent &&
+    requestBudgetText
+      ? { ...timeRunwayText, description: requestBudgetText }
+      : timeRunwayText;
 
   const isRunwayPlaceholder: boolean =
     runway.kind === SloBudgetRunwayKind.NotEvaluated ||
@@ -284,9 +341,7 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
           label="SLI"
           icon={IconProp.Activity}
           value={
-            sliText === null ? (
-              <span className="text-gray-400">{EM_DASH}</span>
-            ) : (
+            sliText === null ? undefined : (
               <span
                 className={isBelowTarget ? "text-red-700" : "text-gray-900"}
               >
@@ -305,7 +360,7 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
           value={
             <div>
               <span className={SLO_BUDGET_TIER_TEXT_CLASS[budgetTier]}>
-                {budgetText ?? EM_DASH}
+                {budgetText ?? <EmptyFigure />}
               </span>
               <SloBudgetBar
                 className="mb-1 mt-2"
@@ -325,9 +380,7 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
           label="Burn rate"
           icon={IconProp.Fire}
           value={
-            burnRateText === null ? (
-              <span className="text-gray-400">{EM_DASH}</span>
-            ) : (
+            burnRateText === null ? undefined : (
               <span className="inline-flex flex-wrap items-center gap-2">
                 <span className={burnRateClassName}>{burnRateText}</span>
                 {isAtOrAboveRuleThreshold ? (
@@ -366,15 +419,15 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
           label="Budget runway"
           icon={IconProp.Clock}
           value={
-            <span
-              className={
-                isRunwayPlaceholder
-                  ? "text-gray-400"
-                  : RUNWAY_TONE_TEXT_CLASS[runway.tone]
-              }
-            >
-              {runwayText.value}
-            </span>
+            /*
+             * A runway not worked out is the figure's quiet dash, read out
+             * as "Not set", as the strip's other tiles draw theirs (#8262).
+             */
+            isRunwayPlaceholder ? undefined : (
+              <span className={RUNWAY_TONE_TEXT_CLASS[runway.tone]}>
+                {getValueOrQuietDash(runwayText.value)}
+              </span>
+            )
           }
           description={runwayText.description}
         />

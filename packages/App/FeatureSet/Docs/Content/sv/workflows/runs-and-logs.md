@@ -47,13 +47,13 @@ stateDiagram-v2
 | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Schemalagd**                      | Utlösaren aktiverades och körningen står i kö för körmotorn. Vanligtvis en bråkdel av en sekund. En körning som fortfarande är schemalagd efter 5 minuter misslyckas: inget plockade upp den.                                                                       |
 | **Körs**                            | Arbetsflödet pågår.                                                                                                                                                                                                                                                   |
-| **Väntar**                          | Körningen står parkerad vid ett **Sleep**-block och fortsätter av sig själv. Den håller ingen worker medan den väntar.                                                                                                                                              |
+| **Väntar**                          | Körningen står parkerad vid ett **Paus**-block och fortsätter av sig själv. Den håller ingen worker medan den väntar.                                                                                                                                              |
 | **Utförd**                        | Körningen nådde slutet utan att misslyckas. Det är det lyckade läget: etiketten säger **Utförd**, inte ”Lyckades”.                                                                                                                                                 |
-| **Fel**                             | Ett block stoppade körningen, eller misslyckades utan att något var kopplat till dess utgång **Error**. Används också när en köad körning aldrig plockas upp, när återupptagningen av en sovande körning går förlorad, när ett schemauttryck inte kan lösas upp och när arbetsflödet stängdes av eller arkiverades medan körningen väntade vid ett **Sleep**-block. |
+| **Fel**                             | Ett block stoppade körningen, eller misslyckades utan att något var kopplat till dess utgång **Fel**. Används också när en köad körning aldrig plockas upp, när återupptagningen av en sovande körning går förlorad, när ett schemauttryck inte kan lösas upp och när arbetsflödet stängdes av eller arkiverades medan körningen väntade vid ett **Paus**-block. |
 | **Tidsgränsen överskreds**          | Körningen tog längre tid än tillåtet: 2 minuter som standard. Se [Hur länge en körning får ta](/docs/workflows/configuration#hur-länge-en-körning-får-ta).                                                                                                              |
 | **Exekvering överskred aktuell plan** | Projektet har förbrukat sina arbetsflödeskörningar för de senaste 30 dagarna, eller så är abonnemanget obetalt. Körningen registreras men utförs inte. Endast OneUptime Cloud.                                                                                      |
 
-Ett block som tar sin utgång **Error** — ett API-block som fick ett 4xx-svar, till exempel — får bara körningen att misslyckas när inget är kopplat till **Error**. Är block kopplade dit körs de, och körningen kan ändå sluta som **Utförd**. Är inget kopplat körs resten av körningen vidare, sedan slutar den som **Fel**, och den sista raden i dess **Full Log** nämner blocket. Hur som helst ritas själva steget i rött, så att du hittar det.
+Ett block som tar sin utgång **Fel** — ett API-block som fick ett 4xx-svar, till exempel — får bara körningen att misslyckas när inget är kopplat till **Fel**. Är block kopplade dit körs de, och körningen kan ändå sluta som **Utförd**. Är inget kopplat körs resten av körningen vidare, sedan slutar den som **Fel**, och den sista raden i dess **Full Log** nämner blocket. Hur som helst ritas själva steget i rött, så att du hittar det.
 
 ## Läs en körning
 
@@ -81,7 +81,7 @@ Några körningar läses annorlunda:
 - **En testkörning.** En körning som någon startade med **Kör arbetsflöde** eller **Run just this step** medan arbetsflödet var avstängt säger **Testkörning** högst upp, med vem som startade den, och båda listorna över körningar markerar den som **Testkörning** bredvid dess status. Dess block kördes på riktigt; bara arbetsflödets utlösare var pausad. Filtrera på **Testkörning** för att bara visa testkörningarna, eller bara de andra.
 - **Ett test av ett steg.** En körning som startades med **Run just this step** säger **Only this step ran** högst upp. Stegen före det kördes inte, så värden som det läser från dem saknas (räkna med en varning **Did not resolve** för dem), och stegen efter det säger **(not run in this test)**. Använd **Kör arbetsflöde** för att prova hela vägen.
 - **En körning som stoppades mellan steg.** Om körningen stoppades av en orsak som inget steg förklarar — den fick slut på tid mellan två steg, eller misslyckades före sitt första steg — slutar vägen med **The run stopped here** och orsaken.
-- **En sovande körning.** En körning som väntar vid ett **Sleep**-block slutar med **Sleeping** och tidpunkten då den fortsätter av sig själv; stegen efter Sleep säger **(not run yet)**.
+- **En sovande körning.** En körning som väntar vid ett **Paus**-block slutar med **Sleeping** och tidpunkten då den fortsätter av sig själv; stegen efter Sleep säger **(not run yet)**.
 
 ID:t under varje stegs titel är exakt det som ska stå i en `{{local.components.<id>.returnValues.…}}`-referens, vilket gör det här till det snabbaste sättet att få en referens rätt.
 
@@ -89,7 +89,7 @@ Värdena som visas är det blocket tog emot, efter att variablerna fyllts i och 
 
 ### Fliken Full Log
 
-Den råa loggen rad för rad som körmotorn skrev den, inklusive allt blocken loggade själva, som ett **Log**-blocks värde eller ett skripts `console.log`. Använd den när fliken Steg inte förklarar felet.
+Den råa loggen rad för rad som körmotorn skrev den, inklusive allt blocken loggade själva, som ett **Logg**-blocks värde eller ett skripts `console.log`. Använd den när fliken Steg inte förklarar felet.
 
 ## Kopiera och ladda ner en körning
 
@@ -110,7 +110,7 @@ En nedladdning innehåller inget som du inte redan kunde läsa i körningen. Hem
 
 :::details Mitt arbetsflöde kördes inte
 1. Se till att arbetsflödet är **Aktiverad**: brytaren sitter högst upp i dess **Byggare**, som säger det ovanför arbetsytan när arbetsflödet är avstängt. Nya arbetsflöden börjar inaktiverade, och medan ett arbetsflöde är avstängt startar dess utlösare det inte: bara **Kör arbetsflöde** och **Run just this step** gör det, som testkörningar. Ett webhook-anrop till det får HTTP 400 med ett meddelande om hur du slår på det.
-2. För en utlösare för OneUptime-händelser bekräftar du att händelsen faktiskt inträffade: öppna posten och kontrollera dess historik. En **On Update**-utlösare med **Fields to watch** aktiveras bara när något av de fälten ändrades.
+2. För en utlösare för OneUptime-händelser bekräftar du att händelsen faktiskt inträffade: öppna posten och kontrollera dess historik. En **On Update**-utlösare med **Fält att bevaka** aktiveras bara när något av de fälten ändrades.
 3. För en webhook-utlösare bekräftar du att det andra systemet skickar till rätt URL. De flesta verktyg loggar när de skickar en webhook — kontrollera där.
 4. För en schemautlösare bekräftar du att cron-uttrycket stämmer med tiden du förväntar dig. Scheman körs i UTC.
 
@@ -121,7 +121,7 @@ Om körningen syns, med statusen **Exekvering överskred aktuell plan**, har pro
 Ett block som inte körs är oftast ett kopplingsproblem. Öppna **Byggare** och kontrollera:
 
 - Är det tidigare blockets utgång kopplad till det här blockets ingång?
-- Tog det tidigare blocket en annan utgång än du förväntade dig — **Error** i stället för **Success**, eller **No** i stället för **Yes**? Fliken **Steg** säger vilken utgång det tog och vart den ledde, eller att inget är kopplat till den.
+- Tog det tidigare blocket en annan utgång än du förväntade dig — **Fel** i stället för **Framgång**, eller **Nej** i stället för **Ja**? Fliken **Steg** säger vilken utgång det tog och vart den ledde, eller att inget är kopplat till den.
 :::
 
 :::details Ett värde kom fram tomt, eller som {{…}}-text

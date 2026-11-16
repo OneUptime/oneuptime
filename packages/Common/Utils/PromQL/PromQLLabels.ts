@@ -4,8 +4,7 @@ import {
   PromQLMatchType,
 } from "./PromQLAst";
 import PromQLError, { PromQLErrorType } from "./PromQLError";
-import { compilePromQLRegex } from "./PromQLRegex";
-import LinearRegExp from "../LinearRegExp/LinearRegExp";
+import { CompiledPromQLRegex, compilePromQLRegex } from "./PromQLRegex";
 import { PatternWorkLimitError } from "../LinearRegExp/PatternProblem";
 import { copyOwnValues, writeOwnValue } from "../LookupTable";
 
@@ -16,8 +15,8 @@ import { copyOwnValues, writeOwnValue } from "../LookupTable";
  *
  * Labels are named by whoever wrote them - an exporter, an OTLP attribute,
  * a query's label_replace - and one named __proto__ is a label like any
- * other. A spread or an assignment drops it (this code's ES2017 target
- * compiles a spread to Object.assign), so a label set is copied with
+ * other. An assignment drops it, and so did a spread compiled for a target
+ * below ES2018 (to Object.assign), so a label set is copied with
  * copyOwnValues and a label is written with writeOwnValue, and read with
  * promQLLabelValue.
  */
@@ -109,16 +108,16 @@ export type PromQLLabelsTest = (labels: PromQLLabels) => boolean;
  * answer without it: it is refused, with a sentence that names the pattern.
  */
 const testMatcherPattern: (
-  regex: LinearRegExp,
+  compiled: CompiledPromQLRegex,
   matcher: PromQLLabelMatcher,
   value: string,
 ) => boolean = (
-  regex: LinearRegExp,
+  compiled: CompiledPromQLRegex,
   matcher: PromQLLabelMatcher,
   value: string,
 ): boolean => {
   try {
-    return regex.test(value);
+    return compiled.test(value);
   } catch (error: unknown) {
     if (error instanceof PatternWorkLimitError) {
       throw new PromQLError(
@@ -146,13 +145,13 @@ const compilePromQLMatcher: (
       };
     case PromQLMatchType.RegexMatch:
     case PromQLMatchType.RegexNoMatch: {
-      const regex: LinearRegExp = compilePromQLRegex(matcher.value).regex;
+      const compiled: CompiledPromQLRegex = compilePromQLRegex(matcher.value);
       const wanted: boolean = matcher.type === PromQLMatchType.RegexMatch;
 
       return (labels: PromQLLabels): boolean => {
         return (
           testMatcherPattern(
-            regex,
+            compiled,
             matcher,
             promQLLabelValue(labels, matcher.name),
           ) === wanted

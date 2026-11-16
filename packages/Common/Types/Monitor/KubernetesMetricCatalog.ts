@@ -3,6 +3,7 @@ import {
   KubernetesWorkloadKind,
 } from "./MonitorStepKubernetesMonitor";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
+import { translationKey } from "../Translator";
 
 export type KubernetesMetricCategory =
   | "Pod"
@@ -36,9 +37,10 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   // Pod Metrics
   {
     id: "pod-cpu-utilization",
-    friendlyName: "Pod CPU Usage",
-    description:
+    friendlyName: translationKey("Pod CPU Usage"),
+    description: translationKey(
       "CPU cores in use by the pod. kubeletstats reports this as a cores gauge despite the .utilization name - 0.18 means 0.18 of a core, not 18%. For a percentage, divide by the container CPU limit (k8s.container.cpu_limit) or the node allocatable CPU (k8s.node.allocatable_cpu).",
+    ),
     metricName: "k8s.pod.cpu.utilization",
     category: "Pod",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -47,8 +49,8 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   },
   {
     id: "pod-memory-usage",
-    friendlyName: "Pod Memory Usage",
-    description: "Memory usage in bytes for pods",
+    friendlyName: translationKey("Pod Memory Usage"),
+    description: translationKey("Memory usage in bytes for pods"),
     metricName: "k8s.pod.memory.usage",
     category: "Pod",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -57,9 +59,10 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   },
   {
     id: "pod-phase",
-    friendlyName: "Pod Phase (Code)",
-    description:
+    friendlyName: translationKey("Pod Phase (Code)"),
+    description: translationKey(
       "The pod's phase as a numeric code (1 = Pending, 2 = Running, 3 = Succeeded, 4 = Failed, 5 = Unknown). This is a categorical value, not a quantity, so it must never be summed: the gauge re-emits on every scrape and a Sum totals (pods x scrapes). Use Max to catch the worst phase seen, or Min with 'equal to 1' to catch a stuck Pending pod. For a cluster-wide count of pods in a phase, filter by phase and count series instead.",
+    ),
     metricName: "k8s.pod.phase",
     category: "Pod",
     defaultAggregation: MetricsAggregationType.Max,
@@ -68,8 +71,8 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   },
   {
     id: "pod-filesystem-usage",
-    friendlyName: "Pod Filesystem Usage",
-    description: "Filesystem usage in bytes for pods",
+    friendlyName: translationKey("Pod Filesystem Usage"),
+    description: translationKey("Filesystem usage in bytes for pods"),
     metricName: "k8s.pod.filesystem.usage",
     category: "Pod",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -78,9 +81,10 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   },
   {
     id: "pod-memory-limit-utilization",
-    friendlyName: "Pod Memory Limit Utilization",
-    description:
+    friendlyName: translationKey("Pod Memory Limit Utilization"),
+    description: translationKey(
       "The pod's memory usage divided by its memory limit, as a ratio (0 to 1) - 0.93 means 93% of the limit, and it is shown as a percentage. kubeletstats divides by the SUM of the pod's container limits, so a pod with a sidecar is measured against its whole budget, and emits nothing for a pod where any container has no memory limit. The kubelet's memory figure includes reclaimable page cache, so a value near 1 means approaching the limit, not necessarily about to be OOMKilled.",
+    ),
     metricName: "k8s.pod.memory_limit_utilization",
     category: "Pod",
     defaultAggregation: MetricsAggregationType.Max,
@@ -89,9 +93,10 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   },
   {
     id: "pod-cpu-limit-utilization",
-    friendlyName: "Pod CPU Limit Utilization",
-    description:
+    friendlyName: translationKey("Pod CPU Limit Utilization"),
+    description: translationKey(
       "The pod's CPU usage divided by its CPU limit, as a ratio (0 to 1) - 0.93 means 93% of the limit, and it is shown as a percentage. kubeletstats divides by the SUM of the pod's container limits and emits nothing for a pod where any container has no CPU limit. Near 1 the kernel's CFS quota is throttling the pod: it gets slower rather than failing.",
+    ),
     metricName: "k8s.pod.cpu_limit_utilization",
     category: "Pod",
     defaultAggregation: MetricsAggregationType.Max,
@@ -100,9 +105,12 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   },
   {
     id: "pod-network-io",
-    friendlyName: "Pod Network I/O (Cumulative, Both Directions)",
-    description:
+    friendlyName: translationKey(
+      "Pod Network I/O (Cumulative, Both Directions)",
+    ),
+    description: translationKey(
       "Cumulative network bytes for pods. kubeletstats emits one series per (pod, interface, direction) with a `direction` datapoint attribute of receive|transmit, and this entry filters none of them - the value covers BOTH directions. It is a monotonically increasing counter, not a rate, so it is a poor alerting target; for throughput, chart it on the cluster page, which deltas it client-side.",
+    ),
     metricName: "k8s.pod.network.io",
     category: "Pod",
     defaultAggregation: MetricsAggregationType.Max,
@@ -113,9 +121,10 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   // Node Metrics
   {
     id: "node-cpu-utilization",
-    friendlyName: "Node CPU Usage",
-    description:
+    friendlyName: translationKey("Node CPU Usage"),
+    description: translationKey(
       "CPU cores in use by the node. kubeletstats reports this as a cores gauge despite the .utilization name - 1.4 means 1.4 cores, not 1.4%. For a percentage, divide by the node allocatable CPU (k8s.node.allocatable_cpu).",
+    ),
     metricName: "k8s.node.cpu.utilization",
     category: "Node",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -124,9 +133,10 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   },
   {
     id: "node-allocatable-cpu",
-    friendlyName: "Node Allocatable CPU",
-    description:
+    friendlyName: translationKey("Node Allocatable CPU"),
+    description: translationKey(
       "CPU cores on the node that pods can be scheduled against: the node's capacity minus what the kubelet reserves for the operating system and Kubernetes daemons (system-reserved, kube-reserved). Reported by the k8s_cluster receiver. The scheduler never places pods whose CPU requests add up past it, so it is the right denominator for a node CPU percentage - usage or summed container requests divided by this.",
+    ),
     metricName: "k8s.node.allocatable_cpu",
     category: "Node",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -135,9 +145,10 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   },
   {
     id: "node-memory-usage",
-    friendlyName: "Node Memory Usage",
-    description:
+    friendlyName: translationKey("Node Memory Usage"),
+    description: translationKey(
       "Memory usage in bytes for nodes, page cache included. For memory pressure, use Node Memory Working Set.",
+    ),
     metricName: "k8s.node.memory.usage",
     category: "Node",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -146,9 +157,10 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   },
   {
     id: "node-memory-working-set",
-    friendlyName: "Node Memory Working Set",
-    description:
+    friendlyName: translationKey("Node Memory Working Set"),
+    description: translationKey(
       "Memory in use on the node, in bytes, without the page cache the kernel can reclaim: the figure the kubelet evicts pods on, and the one kubectl top node prints. Divide by Node Allocatable Memory for a percentage.",
+    ),
     metricName: "k8s.node.memory.working_set",
     category: "Node",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -157,8 +169,8 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   },
   {
     id: "node-filesystem-usage",
-    friendlyName: "Node Filesystem Usage",
-    description: "Filesystem usage in bytes for nodes",
+    friendlyName: translationKey("Node Filesystem Usage"),
+    description: translationKey("Filesystem usage in bytes for nodes"),
     metricName: "k8s.node.filesystem.usage",
     category: "Node",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -167,9 +179,10 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   },
   {
     id: "node-allocatable-memory",
-    friendlyName: "Node Allocatable Memory",
-    description:
+    friendlyName: translationKey("Node Allocatable Memory"),
+    description: translationKey(
       "Memory in bytes on the node that pods can use: the node's capacity minus what the kubelet reserves for the operating system and Kubernetes daemons (system-reserved, kube-reserved) and the hard eviction threshold. Reported by the k8s_cluster receiver. The scheduler never places pods whose memory requests add up past it, so it - not the node's physical RAM - is the denominator for a meaningful node memory percentage.",
+    ),
     metricName: "k8s.node.allocatable_memory",
     category: "Node",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -178,9 +191,10 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   },
   {
     id: "node-condition-ready",
-    friendlyName: "Node Ready Condition",
-    description:
+    friendlyName: translationKey("Node Ready Condition"),
+    description: translationKey(
       "The node's Ready condition: 1 = Ready, 0 = NotReady, -1 = Unknown (the kubelet stopped reporting, as a node that went down does). Alert on 'less than 1' to catch both.",
+    ),
     metricName: "k8s.node.condition_ready",
     category: "Node",
     defaultAggregation: MetricsAggregationType.Min,
@@ -194,9 +208,10 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
    */
   {
     id: "node-condition-memory-pressure",
-    friendlyName: "Node Memory Pressure Condition",
-    description:
+    friendlyName: translationKey("Node Memory Pressure Condition"),
+    description: translationKey(
       "The node's MemoryPressure condition: 1 = True (the kubelet is short of memory and evicts pods), 0 = False, -1 = Unknown (the kubelet stopped reporting).",
+    ),
     metricName: "k8s.node.condition_memory_pressure",
     category: "Node",
     defaultAggregation: MetricsAggregationType.Max,
@@ -205,9 +220,10 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   },
   {
     id: "node-condition-disk-pressure",
-    friendlyName: "Node Disk Pressure Condition",
-    description:
+    friendlyName: translationKey("Node Disk Pressure Condition"),
+    description: translationKey(
       "The node's DiskPressure condition: 1 = True (the kubelet is short of disk space and evicts pods), 0 = False, -1 = Unknown (the kubelet stopped reporting).",
+    ),
     metricName: "k8s.node.condition_disk_pressure",
     category: "Node",
     defaultAggregation: MetricsAggregationType.Max,
@@ -216,9 +232,10 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   },
   {
     id: "node-condition-pid-pressure",
-    friendlyName: "Node PID Pressure Condition",
-    description:
+    friendlyName: translationKey("Node PID Pressure Condition"),
+    description: translationKey(
       "The node's PIDPressure condition: 1 = True (the kubelet is short of process IDs and evicts pods), 0 = False, -1 = Unknown (the kubelet stopped reporting).",
+    ),
     metricName: "k8s.node.condition_pid_pressure",
     category: "Node",
     defaultAggregation: MetricsAggregationType.Max,
@@ -227,9 +244,10 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   },
   {
     id: "node-filesystem-available",
-    friendlyName: "Node Filesystem Available",
-    description:
+    friendlyName: translationKey("Node Filesystem Available"),
+    description: translationKey(
       "Free filesystem bytes remaining on the node. Falling is bad, so alert with a 'less than' threshold, not 'greater than'. For consumption instead, use Node Filesystem Usage.",
+    ),
     metricName: "k8s.node.filesystem.available",
     category: "Node",
     defaultAggregation: MetricsAggregationType.Min,
@@ -240,8 +258,8 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   // Container Metrics
   {
     id: "container-restarts",
-    friendlyName: "Container Restarts",
-    description: "Number of times a container has restarted",
+    friendlyName: translationKey("Container Restarts"),
+    description: translationKey("Number of times a container has restarted"),
     metricName: "k8s.container.restarts",
     category: "Container",
     defaultAggregation: MetricsAggregationType.Max,
@@ -264,9 +282,10 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
    */
   {
     id: "container-restarts-increase",
-    friendlyName: "Container Restarts (Increase)",
-    description:
+    friendlyName: translationKey("Container Restarts (Increase)"),
+    description: translationKey(
       "Restarts since the agent's previous sample of the container. Their sum over a window is the restarts in it. Carries its pod's workload names, so it can be scoped to a workload.",
+    ),
     metricName: "k8s.container.restarts.increase",
     category: "Container",
     defaultAggregation: MetricsAggregationType.Sum,
@@ -275,8 +294,8 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   },
   {
     id: "container-cpu-limit",
-    friendlyName: "Container CPU Limit",
-    description: "CPU limit set for containers",
+    friendlyName: translationKey("Container CPU Limit"),
+    description: translationKey("CPU limit set for containers"),
     metricName: "k8s.container.cpu_limit",
     category: "Container",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -285,8 +304,8 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   },
   {
     id: "container-cpu-request",
-    friendlyName: "Container CPU Request",
-    description: "CPU request set for containers",
+    friendlyName: translationKey("Container CPU Request"),
+    description: translationKey("CPU request set for containers"),
     metricName: "k8s.container.cpu_request",
     category: "Container",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -295,8 +314,8 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   },
   {
     id: "container-memory-limit",
-    friendlyName: "Container Memory Limit",
-    description: "Memory limit set for containers",
+    friendlyName: translationKey("Container Memory Limit"),
+    description: translationKey("Memory limit set for containers"),
     metricName: "k8s.container.memory_limit",
     category: "Container",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -305,8 +324,8 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   },
   {
     id: "container-memory-request",
-    friendlyName: "Container Memory Request",
-    description: "Memory request set for containers",
+    friendlyName: translationKey("Container Memory Request"),
+    description: translationKey("Memory request set for containers"),
     metricName: "k8s.container.memory_request",
     category: "Container",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -315,8 +334,8 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   },
   {
     id: "container-ready",
-    friendlyName: "Container Ready",
-    description: "Whether the container is in Ready state",
+    friendlyName: translationKey("Container Ready"),
+    description: translationKey("Whether the container is in Ready state"),
     metricName: "k8s.container.ready",
     category: "Container",
     defaultAggregation: MetricsAggregationType.Min,
@@ -336,9 +355,10 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
    */
   {
     id: "deployment-available-replicas",
-    friendlyName: "Deployment Available Replicas",
-    description:
+    friendlyName: translationKey("Deployment Available Replicas"),
+    description: translationKey(
       "Number of pods targeted by the deployment that have been ready for at least minReadySeconds",
+    ),
     metricName: "k8s.deployment.available",
     category: "Workload",
     defaultAggregation: MetricsAggregationType.Min,
@@ -348,8 +368,10 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   },
   {
     id: "deployment-desired-replicas",
-    friendlyName: "Deployment Desired Replicas",
-    description: "Number of desired replicas (spec.replicas) in a deployment",
+    friendlyName: translationKey("Deployment Desired Replicas"),
+    description: translationKey(
+      "Number of desired replicas (spec.replicas) in a deployment",
+    ),
     metricName: "k8s.deployment.desired",
     category: "Workload",
     defaultAggregation: MetricsAggregationType.Max,
@@ -359,9 +381,10 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   },
   {
     id: "daemonset-desired-nodes",
-    friendlyName: "DaemonSet Desired Nodes",
-    description:
+    friendlyName: translationKey("DaemonSet Desired Nodes"),
+    description: translationKey(
       "Number of nodes that should be running the daemon pod (status.desiredNumberScheduled)",
+    ),
     metricName: "k8s.daemonset.desired_scheduled_nodes",
     category: "Workload",
     defaultAggregation: MetricsAggregationType.Max,
@@ -371,9 +394,10 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   },
   {
     id: "daemonset-misscheduled-nodes",
-    friendlyName: "DaemonSet Misscheduled Nodes",
-    description:
+    friendlyName: translationKey("DaemonSet Misscheduled Nodes"),
+    description: translationKey(
       "Number of nodes running a daemon pod that should not be running one",
+    ),
     metricName: "k8s.daemonset.misscheduled_nodes",
     category: "Workload",
     defaultAggregation: MetricsAggregationType.Max,
@@ -383,8 +407,8 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   },
   {
     id: "daemonset-ready-nodes",
-    friendlyName: "DaemonSet Ready Nodes",
-    description: "Number of nodes with a ready daemon pod",
+    friendlyName: translationKey("DaemonSet Ready Nodes"),
+    description: translationKey("Number of nodes with a ready daemon pod"),
     metricName: "k8s.daemonset.ready_nodes",
     category: "Workload",
     defaultAggregation: MetricsAggregationType.Min,
@@ -394,8 +418,10 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   },
   {
     id: "statefulset-desired-replicas",
-    friendlyName: "StatefulSet Desired Replicas",
-    description: "Number of desired pods (spec.replicas) in a StatefulSet",
+    friendlyName: translationKey("StatefulSet Desired Replicas"),
+    description: translationKey(
+      "Number of desired pods (spec.replicas) in a StatefulSet",
+    ),
     metricName: "k8s.statefulset.desired_pods",
     category: "Workload",
     defaultAggregation: MetricsAggregationType.Max,
@@ -405,8 +431,10 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   },
   {
     id: "statefulset-ready-replicas",
-    friendlyName: "StatefulSet Ready Replicas",
-    description: "Number of pods created by a StatefulSet that are Ready",
+    friendlyName: translationKey("StatefulSet Ready Replicas"),
+    description: translationKey(
+      "Number of pods created by a StatefulSet that are Ready",
+    ),
     metricName: "k8s.statefulset.ready_pods",
     category: "Workload",
     defaultAggregation: MetricsAggregationType.Min,
@@ -416,8 +444,8 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   },
   {
     id: "job-failed-pods",
-    friendlyName: "Job Failed Pods",
-    description: "Number of failed pods in a Job",
+    friendlyName: translationKey("Job Failed Pods"),
+    description: translationKey("Number of failed pods in a Job"),
     metricName: "k8s.job.failed_pods",
     category: "Workload",
     defaultAggregation: MetricsAggregationType.Max,
@@ -439,9 +467,10 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
    */
   {
     id: "job-failed-pods-increase",
-    friendlyName: "Job Failed Pods (Increase)",
-    description:
+    friendlyName: translationKey("Job Failed Pods (Increase)"),
+    description: translationKey(
       "Pods of the Job that failed since the agent's previous sample of it. Their sum over a window is the failures in it. Carries the Job's name and namespace, so it can be scoped to a Job.",
+    ),
     metricName: "k8s.job.failed_pods.increase",
     category: "Workload",
     defaultAggregation: MetricsAggregationType.Sum,
@@ -451,8 +480,8 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   },
   {
     id: "job-successful-pods",
-    friendlyName: "Job Successful Pods",
-    description: "Number of successful pods in a Job",
+    friendlyName: translationKey("Job Successful Pods"),
+    description: translationKey("Number of successful pods in a Job"),
     metricName: "k8s.job.successful_pods",
     category: "Workload",
     defaultAggregation: MetricsAggregationType.Max,
@@ -467,8 +496,10 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
    */
   {
     id: "hpa-current-replicas",
-    friendlyName: "HPA Current Replicas",
-    description: "Current number of replicas managed by the HPA",
+    friendlyName: translationKey("HPA Current Replicas"),
+    description: translationKey(
+      "Current number of replicas managed by the HPA",
+    ),
     metricName: "k8s.hpa.current_replicas",
     category: "HPA",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -478,8 +509,10 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   },
   {
     id: "hpa-desired-replicas",
-    friendlyName: "HPA Desired Replicas",
-    description: "Desired number of replicas as determined by the HPA",
+    friendlyName: translationKey("HPA Desired Replicas"),
+    description: translationKey(
+      "Desired number of replicas as determined by the HPA",
+    ),
     metricName: "k8s.hpa.desired_replicas",
     category: "HPA",
     defaultAggregation: MetricsAggregationType.Max,
@@ -489,8 +522,10 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   },
   {
     id: "hpa-max-replicas",
-    friendlyName: "HPA Max Replicas",
-    description: "Maximum number of replicas the HPA can scale to",
+    friendlyName: translationKey("HPA Max Replicas"),
+    description: translationKey(
+      "Maximum number of replicas the HPA can scale to",
+    ),
     metricName: "k8s.hpa.max_replicas",
     category: "HPA",
     defaultAggregation: MetricsAggregationType.Max,
@@ -500,8 +535,8 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   },
   {
     id: "hpa-min-replicas",
-    friendlyName: "HPA Min Replicas",
-    description: "Minimum number of replicas the HPA maintains",
+    friendlyName: translationKey("HPA Min Replicas"),
+    description: translationKey("Minimum number of replicas the HPA maintains"),
     metricName: "k8s.hpa.min_replicas",
     category: "HPA",
     defaultAggregation: MetricsAggregationType.Min,
@@ -521,9 +556,10 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
    */
   {
     id: "etcd-has-leader",
-    friendlyName: "etcd Has Leader",
-    description:
+    friendlyName: translationKey("etcd Has Leader"),
+    description: translationKey(
       "Whether the etcd member sees an elected leader (1 = has a leader, 0 = no leader). A flag, not a count: without a leader etcd cannot commit writes, so the API server cannot persist any change. Min over the window catches a single leaderless sample.",
+    ),
     metricName: "etcd_server_has_leader",
     category: "ControlPlane",
     defaultAggregation: MetricsAggregationType.Min,
@@ -532,9 +568,10 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   },
   {
     id: "apiserver-inflight-requests",
-    friendlyName: "API Server In-Flight Requests",
-    description:
+    friendlyName: translationKey("API Server In-Flight Requests"),
+    description: translationKey(
       "Requests the Kubernetes API server is processing right now, one series per request_kind (mutating / readOnly). The server admits a bounded number at once (--max-requests-inflight, default 400; --max-mutating-requests-inflight, default 200) and rejects the rest with HTTP 429, so a value held at its limit means clients are being throttled.",
+    ),
     metricName: "apiserver_current_inflight_requests",
     category: "ControlPlane",
     defaultAggregation: MetricsAggregationType.Max,
@@ -543,9 +580,10 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
   },
   {
     id: "scheduler-pending-pods",
-    friendlyName: "Scheduler Pending Pods",
-    description:
+    friendlyName: translationKey("Scheduler Pending Pods"),
+    description: translationKey(
       "Pods waiting in the kube-scheduler's queues, one series per queue (active, backoff, unschedulable, and gated on newer versions). A count that stays above zero means pods the scheduler cannot place - usually not enough allocatable CPU or memory, or taints, affinity or volume constraints no node satisfies.",
+    ),
     metricName: "scheduler_pending_pods",
     category: "ControlPlane",
     defaultAggregation: MetricsAggregationType.Max,
@@ -586,13 +624,22 @@ export function getAllKubernetesMetricCategories(): Array<KubernetesMetricCatego
   return ["Pod", "Node", "Container", "Workload", "HPA", "ControlPlane"];
 }
 
-/**
- * How a category is titled in a picker. The category values are
- * identifiers ("ControlPlane" matches the alert templates' category), not
- * prose.
+/*
+ * Each group's heading in the metric picker, a key: a category is an
+ * identifier the catalog's metrics name, so the picker looks its heading up
+ * here, once (#8353).
  */
+const categoryLabels: Record<KubernetesMetricCategory, string> = {
+  Pod: translationKey("Pod"),
+  Node: translationKey("Node"),
+  Container: translationKey("Container"),
+  Workload: translationKey("Workload"),
+  HPA: translationKey("HPA"),
+  ControlPlane: translationKey("Control Plane"),
+};
+
 export function getKubernetesMetricCategoryLabel(
   category: KubernetesMetricCategory,
 ): string {
-  return category === "ControlPlane" ? "Control Plane" : category;
+  return categoryLabels[category] || category;
 }

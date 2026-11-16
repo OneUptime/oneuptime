@@ -53,7 +53,7 @@ Een openbaar dashboard:
 
 Behandel het delen van een dashboard als het publiceren van een webpagina. Elke widget erop wordt leesbaar voor iedereen met de link. Kijk wat er op het canvas staat voordat je het deelt.
 
-Elke widget publiceert alleen wat hij tekent, en alleen voor de resources waarop hij is ingesteld. Een SLO-widget publiceert bijvoorbeeld de kerncijfers van die SLO, maar nooit de definitie: zie [SLO](/docs/dashboards/widgets#slo). Widgets met een externe **Data Source** zijn de uitzondering: die worden helemaal uit een openbaar dashboard weggelaten in plaats van weergegeven, omdat hun configuratie de query zelf is. Nog een paar widgets kunnen niet worden weergegeven zonder aangemelde sessie, en melden dat op hun plek: [Op een openbaar dashboard](/docs/dashboards/widgets#op-een-openbaar-dashboard) noemt ze. Ze publiceren alleen hun titel, nooit de zoekopdrachten en filters waarmee ze hun gegevens lezen. Ook variabelen publiceren alleen wat hun keuzelijsten tonen: de query van een oude queryvariabele wordt nooit gepubliceerd.
+Elke widget publiceert alleen wat hij tekent, en alleen voor de resources waarop hij is ingesteld. Een SLO-widget publiceert bijvoorbeeld de kerncijfers van die SLO, maar nooit de definitie: zie [SLO](/docs/dashboards/widgets#slo). Widgets met een externe **Gegevensbron** zijn de uitzondering: die worden helemaal uit een openbaar dashboard weggelaten in plaats van weergegeven, omdat hun configuratie de query zelf is. Nog een paar widgets kunnen niet worden weergegeven zonder aangemelde sessie, en melden dat op hun plek: [Op een openbaar dashboard](/docs/dashboards/widgets#op-een-openbaar-dashboard) noemt ze. Ze publiceren alleen hun titel, nooit de zoekopdrachten en filters waarmee ze hun gegevens lezen. Ook variabelen publiceren alleen wat hun keuzelijsten tonen: de query van een oude queryvariabele wordt nooit gepubliceerd.
 
 ## Delen met een wachtwoord
 
@@ -139,9 +139,9 @@ Op een zelfgehoste installatie worden aangepaste domeinen voor dashboards ingesc
 
 ### Wie mag controleren en opnieuw uitgeven
 
-**Nu controleren**, het bestellen van het certificaat van een domein en **Reissue SSL** wijzigen het domein, dus ze vereisen de machtiging om het te bewerken: **Edit Dashboard Domain**, of een rol die die machtiging bevat (Project Owner, Project Admin, Project Member, Settings Admin of Settings Member).
+**Nu controleren**, het bestellen van het certificaat van een domein en **Reissue SSL** wijzigen het domein, dus ze vereisen de machtiging om het te bewerken: **Edit Dashboard Domain**, of een rol die die machtiging bevat (Projecteigenaar, Projectbeheerder, Projectlid, Instellingenbeheerder of Instellingenlid).
 
-Wie het domein alleen mag lezen, zoals een Viewer of een Settings Viewer, ziet nog steeds de kolom **Status** en het toe te voegen record in **DNS-instelling**. Voor hen zijn **Nu controleren** en **Reissue SSL** vergrendeld, en zeggen ze welke machtiging nodig is. OneUptime blijft hoe dan ook zelf elk domein controleren en het certificaat ervan bestellen.
+Wie het domein alleen mag lezen, zoals een Kijker of een Instellingenkijker, ziet nog steeds de kolom **Status** en het toe te voegen record in **DNS-instelling**. Voor hen zijn **Nu controleren** en **Reissue SSL** vergrendeld, en zeggen ze welke machtiging nodig is. OneUptime blijft hoe dan ook zelf elk domein controleren en het certificaat ervan bestellen.
 
 Hetzelfde geldt voor API-sleutels. Een sleutel die alleen dashboarddomeinen mag lezen, kan `verify-cname`, `order-ssl` of `reissue-ssl` op `/dashboard-domain` niet aanroepen. Geef hem **Read Dashboard Domain** en **Edit Dashboard Domain** als hij dat nodig heeft.
 

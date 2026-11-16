@@ -996,6 +996,35 @@ export default class IncidentMeasurement extends BaseModel {
   @TableColumn({
     required: false,
     computed: true,
+    type: TableColumnType.ObjectID,
+    title: "Backfill Cursor ID",
+    description:
+      "The ID of the last incident the backfill worked out, which orders the incidents created at the same moment.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public backfillCursorId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadIncidentMeasurement,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    computed: true,
     type: TableColumnType.Date,
     title: "Backfill Completed At",
     description:

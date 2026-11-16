@@ -36,7 +36,7 @@ flowchart TB
 
 ## 開始之前
 
-- **可以建立監測器的角色**：Project Owner、Project Admin、Project Member、Monitor Admin 或 Monitor Member，或者擁有 Create Monitor 權限的自訂角色。
+- **可以建立監測器的角色**：專案擁有者、專案管理員、專案成員、監測器管理員或監測器成員，或者擁有 Create Monitor 權限的自訂角色。
 - **能夠連到該網站的探測器。** 每個新的監測器都會選取您專案的預設探測器。如果網站前面有防火牆，請允許 [OneUptime Cloud 探測器 IP 位址](/docs/configuration/ip-addresses)。私有網路中的網站需要在該網路內執行、並獲准連到私有位址的 [自訂探測器](/docs/probe/custom-probe)：請參閱 [私有網路存取](/docs/self-hosted/private-network-access)。
 
 ## 建立網站監測器
@@ -167,7 +167,7 @@ curl --cert client.crt --key client.key https://example.com/health
 - **離線** — 網站沒有回應，或回傳 `400` 以上（或低於 `200`）的狀態碼。監測器會被標記為 **離線** 並建立事件。網站恢復後，事件會自行解決。
 - **上線** — 網站回傳任何 `2xx` 或 `3xx` 狀態碼，例如 `200`、`204` 或 `301`。監測器會被標記為 **運作中**。
 
-在條件清單中，它們以監測器命名：_Check if (name) is offline_ 和 _Check if (name) is online_。
+在條件清單中，它們以監測器命名：「檢查 _監測器名稱_ 是否離線」 和 「檢查 _監測器名稱_ 是否在線」。
 
 因此，回傳 `204 No Content` 的頁面，或者在開啟 **不要跟隨重新導向** 時監測的重新導向，都算是正常。如果對您來說只有一個狀態碼代表健康，請在監測器的 **設定 → 條件** 頁面上修改這兩個條件：例如上線條件中使用 **回應狀態碼** / **等於** / `200`，離線條件中使用 **不等於** / `200`，取代各自原有的兩個狀態碼篩選器。
 

@@ -52,7 +52,14 @@ import {
   allowsPathInto,
   typeLabelForInputType,
 } from "./ValueSuggestion";
-import { translationKey } from "../../../Utils/TranslateTemplate";
+import {
+  translatableTerm,
+  TemplateValue,
+  translationKey,
+  Translator,
+} from "../../../Utils/TranslateTemplate";
+import { isOutPortFromSettings } from "../../../../Types/Workflow/ComponentOutPorts";
+import { returnValueName, wholeReturnValueLabel } from "../ReturnValueNames";
 
 export { selectedColumnIds };
 
@@ -108,6 +115,14 @@ export const StepValueCopy: {
 export interface BuildStepValueGroupsOptions {
   /** Loads a model's columns, so a record can be opened to its fields. */
   loadRecordColumns?: LoadRecordColumnsFunction | undefined;
+}
+
+/*
+ * What the items are built with: the options, and the reader's translator
+ * from the context, which names a step's values.
+ */
+interface StepValueBuild extends BuildStepValueGroupsOptions {
+  translator?: Translator | undefined;
 }
 
 type RecordFieldSuggestionsFunction = (data: {
@@ -232,11 +247,21 @@ type EmptyHereNoteFunction = (
   component: NodeDataProp,
 ) => ValueSuggestionSentence;
 
+/*
+ * A step named in a sentence: its catalogue name, which the sentence words
+ * in the reader's language as the canvas does, or its id when it has none.
+ */
+export const stepInSentence: (step: NodeDataProp) => TemplateValue = (
+  step: NodeDataProp,
+): TemplateValue => {
+  return step.metadata?.title ? translatableTerm(step.metadata.title) : step.id;
+};
+
 // Why a record's other fields are empty here, and what makes them not.
 const emptyHereNote: EmptyHereNoteFunction = (
   component: NodeDataProp,
 ): ValueSuggestionSentence => {
-  const step: string = component.metadata?.title || component.id;
+  const step: TemplateValue = stepInSentence(component);
 
   if ((component.metadataId || "").endsWith("-on-delete")) {
     return {
@@ -247,20 +272,20 @@ const emptyHereNote: EmptyHereNoteFunction = (
 
   return {
     template: StepValueCopy.notPassedOn,
-    values: { step: step, setting: SELECT_FIELDS_NAME },
+    values: { step: step, setting: translatableTerm(SELECT_FIELDS_NAME) },
   };
 };
 
 type DrillInForFunction = (data: {
   component: NodeDataProp;
   returnValue: ReturnValue;
-  options: BuildStepValueGroupsOptions;
+  options: StepValueBuild;
 }) => ValueDrillIn | undefined;
 
 const drillInFor: DrillInForFunction = (data: {
   component: NodeDataProp;
   returnValue: ReturnValue;
-  options: BuildStepValueGroupsOptions;
+  options: StepValueBuild;
 }): ValueDrillIn | undefined => {
   const type: ComponentInputType = data.returnValue.type;
 
@@ -276,7 +301,10 @@ const drillInFor: DrillInForFunction = (data: {
     type === ComponentInputType.BaseModel && Boolean(tableName);
 
   const drillIn: ValueDrillIn = {
-    wholeValueLabel: `The whole ${data.returnValue.name}`,
+    wholeValueLabel: wholeReturnValueLabel(
+      data.returnValue,
+      data.options.translator,
+    ),
     allowsPath: true,
     pathPlaceholder:
       type === ComponentInputType.StringDictionary
@@ -312,16 +340,30 @@ type SometimesReasonFunction = (
   before: SometimesBefore,
 ) => ValueSuggestionSentence;
 
-// "Runs only when If / Else takes Yes, so its values can be empty here."
+/*
+ * "Runs only when If / Else takes Yes, so its values can be empty here."
+ * The step and its output in the reader's words, as the canvas draws them,
+ * except a Switch / Case's case, which keeps the name the person gave it.
+ */
 const sometimesReason: SometimesReasonFunction = (
   before: SometimesBefore,
 ): ValueSuggestionSentence => {
   if (before.portTitle) {
+    const isNamedByThePerson: boolean = Boolean(
+      before.portId &&
+        isOutPortFromSettings({
+          metadata: before.branchStep.metadata,
+          portId: before.portId,
+        }),
+    );
+
     return {
       template: StepValueCopy.sometimesWhen,
       values: {
-        step: before.branchStep.metadata?.title || before.branchStep.id,
-        output: before.portTitle,
+        step: stepInSentence(before.branchStep),
+        output: isNamedByThePerson
+          ? before.portTitle
+          : translatableTerm(before.portTitle),
       },
     };
   }
@@ -337,20 +379,21 @@ const UNAVAILABLE_REASONS: Record<UnavailableReason, string> = {
 
 type StepItemsFunction = (data: {
   step: NodeDataProp;
-  options: BuildStepValueGroupsOptions;
+  options: StepValueBuild;
   isUnavailable: boolean;
 }) => Array<ValueSuggestion>;
 
 const stepItems: StepItemsFunction = (data: {
   step: NodeDataProp;
-  options: BuildStepValueGroupsOptions;
+  options: StepValueBuild;
   isUnavailable: boolean;
 }): Array<ValueSuggestion> => {
   return (data.step.metadata.returnValues || []).map(
     (returnValue: ReturnValue): ValueSuggestion => {
       const item: ValueSuggestion = {
         reference: componentReturnValueReference(data.step.id, returnValue.id),
-        label: returnValue.name || returnValue.id,
+        // In the reader's words, as its step's settings panel names it.
+        label: returnValueName(returnValue, data.options.translator),
         description: returnValue.description,
         typeLabel: typeLabelForInputType(returnValue.type),
       };
@@ -400,6 +443,11 @@ export const buildStepValueGroups: BuildStepValueGroupsFunction = (
     hasValues,
   );
 
+  const build: StepValueBuild = {
+    ...options,
+    translator: context.translator,
+  };
+
   const groups: Array<ValueSuggestionGroup> = steps.map(
     (step: NodeDataProp, index: number): ValueSuggestionGroup => {
       const group: ValueSuggestionGroup = {
@@ -415,7 +463,7 @@ export const buildStepValueGroups: BuildStepValueGroupsFunction = (
         order: index,
         items: stepItems({
           step: step,
-          options: options,
+          options: build,
           isUnavailable: false,
         }),
       };
@@ -450,7 +498,7 @@ export const buildStepValueGroups: BuildStepValueGroupsFunction = (
       order: UNAVAILABLE_GROUP_ORDER + index,
       items: stepItems({
         step: entry.step,
-        options: options,
+        options: build,
         isUnavailable: true,
       }),
       availability: {

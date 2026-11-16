@@ -42,7 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% di disponibilità",
-    "uptimePercent": "{{percent}}% di disponibilità",
+    "uptimePercent": "{{percent}} di disponibilità",
     "operational": "Operativo",
     "notMonitored": "Non monitorato",
     "noResourcesInGroup": "Nessuna risorsa aggiunta a questo gruppo.",
@@ -60,10 +60,9 @@
   },
   "eventItem": {
     "affectedResources": "Risorse interessate",
-    "stateChangedTo": "stato cambiato in",
     "view": "Visualizza {{eventType}}",
     "updateTo": "Aggiornamento di questo {{eventType}}",
-    "postedOn": "pubblicato il"
+    "postedOnDate": "pubblicato il {{date}}"
   },
   "monitorOverview": {
     "daysAgo": "{{days}} giorni fa",
@@ -85,7 +84,7 @@
     "declared": "Dichiarato",
     "oneIncidentOnThisDay": "1 incidente segnalato in questo giorno",
     "incidentsOnThisDay": "{{total}} incidenti segnalati in questo giorno",
-    "scheduledMaintenance": "Manutenzione pianificata",
+    "scheduledMaintenance": "Manutenzione programmata",
     "dayLabelWithMaintenance": "{{label}}, {{maintenance}}",
     "oneMaintenanceEvent": "1 evento di manutenzione",
     "maintenanceEvents": "{{total}} eventi di manutenzione",
@@ -138,7 +137,7 @@
   "scheduledEvents": {
     "title": "Manutenzione programmata",
     "singular": "Evento di manutenzione",
-    "scheduledMaintenance": "Manutenzione pianificata",
+    "scheduledMaintenance": "Manutenzione programmata",
     "ongoing": "Manutenzione in corso",
     "upcoming": "Manutenzione in arrivo",
     "completed": "Manutenzione completata",
@@ -276,6 +275,7 @@
       "channelSlack": "Workspace Slack",
       "channelMicrosoftTeams": "Workspace Microsoft Teams",
       "channelWebhook": "Webhook",
+      "channelWithColon": "{{channel}}:",
       "addedByTeamWarning": "Questa iscrizione è stata aggiunta dal team che gestisce questa pagina di stato. Se si tratta di un indirizzo condiviso, come una mailing list, annullandola queste notifiche non arriveranno più a nessuno di chi le riceve, e il team ne sarà informato.",
       "confirmButton": "Annulla iscrizione",
       "manageInstead": "Scegli invece quali notifiche ricevere",
@@ -473,5 +473,6 @@
     "warning": "Avviso"
   },
   "No options available": "Nessuna opzione disponibile",
-  "No matches found": "Nessuna corrispondenza trovata"
+  "No matches found": "Nessuna corrispondenza trovata",
+  "{{eventType}} state changed to {{state}}": "{{eventType}}: stato cambiato in {{state}}"
 }

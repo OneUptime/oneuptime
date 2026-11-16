@@ -8,6 +8,7 @@ import {
 import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import fs from "fs/promises";
 import path from "path";
+import { withSpacesShown, withUnit } from "../SuiteHelpers/NoBreakSpaces";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
@@ -517,6 +518,13 @@ async function factValue(page: Page, label: string): Promise<string> {
   return pair ? pair.value : "";
 }
 
+/*
+ * Each stat tile as it is drawn: its label, figure and description, without
+ * the words only a screen reader reads (.sr-only). A figure the monitor has
+ * no reading for is EmptyFigure (#8647): a quiet dash on screen, "Not set"
+ * out loud. Read whole, its textContent was "—Not set", which no one sees or
+ * hears (#8735); statFigureWords reads what is heard.
+ */
 async function statCells(page: Page): Promise<Array<StatCell>> {
   return statBar(page)
     .locator(":scope > div")
@@ -524,7 +532,11 @@ async function statCells(page: Page): Promise<Array<StatCell>> {
       return cells.map((cell: Element): StatCell => {
         const parts: Array<string> = Array.from(cell.children).map(
           (child: Element): string => {
-            return (child.textContent || "").trim();
+            const drawn: Element = child.cloneNode(true) as Element;
+            drawn.querySelectorAll(".sr-only").forEach((words: Element) => {
+              words.remove();
+            });
+            return (drawn.textContent || "").trim();
           },
         );
         const result: StatCell = {
@@ -535,6 +547,40 @@ async function statCells(page: Page): Promise<Array<StatCell>> {
           result.description = parts[2];
         }
         return result;
+      });
+    });
+}
+
+// What a screen reader hears of a stat tile's figure, and whether it is EmptyFigure.
+interface StatFigureWords {
+  heard: string;
+  isEmptyFigure: boolean;
+}
+
+/*
+ * Each stat tile's figure as a screen reader reads it: its text without
+ * what is hidden from one (aria-hidden), the quiet dash among it.
+ */
+async function statFigureWords(page: Page): Promise<Array<StatFigureWords>> {
+  return statBar(page)
+    .locator(":scope > div")
+    .evaluateAll((cells: Array<Element>): Array<StatFigureWords> => {
+      return cells.map((cell: Element): StatFigureWords => {
+        const figure: Element | undefined = cell.children[1];
+        if (!figure) {
+          return { heard: "", isEmptyFigure: false };
+        }
+        const heard: Element = figure.cloneNode(true) as Element;
+        heard
+          .querySelectorAll('[aria-hidden="true"]')
+          .forEach((hidden: Element) => {
+            hidden.remove();
+          });
+        return {
+          heard: (heard.textContent || "").trim(),
+          isEmptyFigure:
+            figure.querySelector('[data-testid="empty-figure"]') !== null,
+        };
       });
     });
 }
@@ -671,12 +717,21 @@ async function skeletonWasSeen(page: Page): Promise<boolean> {
  * ---------------------------------------------------------------------------
  */
 
+/*
+ * How long the monitor has been Operational, by its two largest units: each
+ * number held to its unit by a no-break space (#8669), which a pattern
+ * matches as written.
+ */
+const OPERATIONAL_FOR: RegExp = new RegExp(
+  `^Operational for ${withUnit(3, "days")}, ${withUnit(4, "hours")}`,
+);
+
 test.describe("probe checks", () => {
   test("api operational desktop", async ({ page }: { page: Page }) => {
     await openReady(page);
     await expectSettled(page);
 
-    await expect(headline(page)).toHaveText(/^Operational for 3 days, 4 hours/);
+    await expect(headline(page)).toHaveText(OPERATIONAL_FOR);
     await expect(page.getByTestId("monitor-overview-badge")).toHaveText(
       "Operational",
     );
@@ -690,8 +745,14 @@ test.describe("probe checks", () => {
       "Probes",
       "Owners",
     ]);
-    expect(await factValue(page, "Latest result")).toBe(
-      "Up · 182 ms · HTTP 200from Frankfurt (eu-central-1)",
+    /*
+     * Read as a string, so the space is held: the response time keeps its
+     * unit on its line (#8302), as the product writes it (#8689).
+     */
+    expect(withSpacesShown(await factValue(page, "Latest result"))).toBe(
+      withSpacesShown(
+        `Up · ${withUnit(182, "ms")} · HTTP 200from Frankfurt (eu-central-1)`,
+      ),
     );
     expect(await factValue(page, "Probes")).toBe("3 of 3 reporting");
 
@@ -816,7 +877,8 @@ test.describe("probe checks", () => {
     await expect(created.getByTestId("detail-created-at-label")).toHaveText(
       "Created",
     );
-    await expect(createdValue).toHaveText("Mar 02 2026, 09:30 AM GMT");
+    // In the browser's zone, UTC, named as it is (#8475).
+    await expect(createdValue).toHaveText("Mar 02 2026, 09:30 AM UTC");
     await expect(createdValue).toHaveAttribute(
       "datetime",
       "2026-03-02T09:30:00.000Z",
@@ -850,7 +912,7 @@ test.describe("probe checks", () => {
     // The time to the second, on hover.
     await createdValue.hover();
     await expect(page.getByRole("tooltip")).toHaveText(
-      "Mar 02 2026, 09:30:00 AM GMT",
+      "Mar 02 2026, 09:30:00 AM UTC",
     );
   });
 
@@ -870,7 +932,11 @@ test.describe("probe checks", () => {
     await expect(headline(page)).toHaveText("Offline for 12 minutes");
 
     const latest: string = await factValue(page, "Latest result");
-    expect(latest.startsWith("Down · 94 ms · HTTP 503")).toBe(true);
+    expect(withSpacesShown(latest)).toMatch(
+      new RegExp(
+        `^${escapeRegExp(withSpacesShown(`Down · ${withUnit(94, "ms")} · HTTP 503`))}`,
+      ),
+    );
     expect(latest).toContain(
       "HTTP 503 Service Unavailable: upstream connect error before headers.",
     );
@@ -1197,8 +1263,8 @@ test.describe("probe checks", () => {
     await expect(page.getByTestId("monitor-overview-icon")).toHaveClass(
       /bg-amber-50/,
     );
-    expect(await factValue(page, "Latest result")).toContain(
-      "Up · 2,410 ms · HTTP 200",
+    expect(withSpacesShown(await factValue(page, "Latest result"))).toContain(
+      withSpacesShown(`Up · ${withUnit("2,410", "ms")} · HTTP 200`),
     );
   });
 
@@ -1235,7 +1301,7 @@ test.describe("probe checks", () => {
     await expect(page.getByTestId("monitor-overview-badge")).toHaveText(
       "Operational",
     );
-    await expect(headline(page)).toHaveText(/^Operational for 3 days, 4 hours/);
+    await expect(headline(page)).toHaveText(OPERATIONAL_FOR);
     await expect(
       page.getByTestId("monitor-overview-secondary-badge"),
     ).toHaveCount(0);
@@ -1768,6 +1834,12 @@ test.describe("roles", () => {
         "—|No access to status history",
         "—|No access to status history",
       ]);
+    // Each dash is the quiet one, heard as "Not set" (#8735).
+    expect((await statFigureWords(page)).slice(0, 3)).toEqual([
+      { heard: "Not set", isEmptyFigure: true },
+      { heard: "Not set", isEmptyFigure: true },
+      { heard: "Not set", isEmptyFigure: true },
+    ]);
     const history: Locator = card(page, "Uptime history");
     await expect(history.getByTestId("monitor-uptime-forbidden")).toContainText(
       "Uptime history is hidden",
@@ -1817,11 +1889,21 @@ test.describe("failures", () => {
       value: "—",
       description: "Uptime is unavailable",
     });
+    // The quiet dash, heard as "Not set" (#8735).
+    expect((await statFigureWords(page))[0]).toEqual({
+      heard: "Not set",
+      isEmptyFigure: true,
+    });
 
     await history.getByRole("button", { name: "Try again" }).click();
     await expect(uptimeBars(page)).toHaveCount(90);
     await expect(error).toHaveCount(0);
     expect((await statCells(page))[0]?.value).toBe("100%");
+    // A figure is heard as it is drawn.
+    expect((await statFigureWords(page))[0]).toEqual({
+      heard: "100%",
+      isEmptyFigure: false,
+    });
     expect(await apiRequestsTo(page, "/monitor/uptime-summary/")).toHaveLength(
       2,
     );
@@ -1912,9 +1994,13 @@ test.describe("failures", () => {
  * ---------------------------------------------------------------------------
  */
 
-// The database upgrade's window, 08:00 to 10:00 UTC two days ago.
+/*
+ * The database upgrade's window, 08:00 to 10:00 UTC two days ago, on the
+ * reader's clock: the browser runs in UTC, which the Dashboard names UTC
+ * (#8475; moment's guess, Africa/Abidjan, read GMT until then).
+ */
 const MAINTENANCE_WINDOW_TEXT: RegExp =
-  /^Sep 19, (08:00|8:00 AM) – (10:00|10:00 AM) (UTC|GMT)$/;
+  /^Sep 19, (08:00|8:00 AM) – (10:00|10:00 AM) UTC$/;
 
 // The list reads of scheduled maintenance, and of its states.
 const SCHEDULED_MAINTENANCE_LIST: RegExp = /^ScheduledMaintenance$/;
@@ -2034,7 +2120,7 @@ test.describe("scheduled maintenance on the uptime strip", () => {
     await expect(dialog).toContainText(
       "No incidents were reported on this day.",
     );
-    // On the reader's clock: the browser runs in UTC, which moment names GMT.
+    // On the reader's clock: the browser runs in UTC, named UTC.
     await expect(
       dialog.getByTestId("uptime-day-maintenance-window"),
     ).toHaveText(MAINTENANCE_WINDOW_TEXT);
@@ -2233,12 +2319,13 @@ test.describe("refresh and polling", () => {
     );
     /*
      * The zone every other time on the Dashboard is shown in (f46caf43d95):
-     * User Settings', else the browser's as moment-timezone guesses it. It
-     * reads the browser's own name only when that is longer than three
-     * letters, so this browser's UTC is guessed from its clock as
-     * Africa/Abidjan, which keeps UTC all year: the bars cut the same days.
+     * User Settings', else the browser's. moment-timezone reads the
+     * browser's own name only when it is longer than three letters, so it
+     * guessed this browser's UTC from its clock as Africa/Abidjan; the
+     * Dashboard takes the browser's own "UTC" where the guess keeps its
+     * clock (#8475), and the page sends that.
      */
-    expect(summaryUrl.searchParams.get("timezone")).toBe("Africa/Abidjan");
+    expect(summaryUrl.searchParams.get("timezone")).toBe("UTC");
 
     // The monitor's own probe rows, not every probe in the project.
     const probeRead: RecordedModelRequest | undefined = (

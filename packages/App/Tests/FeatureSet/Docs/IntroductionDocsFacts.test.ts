@@ -746,6 +746,12 @@ describe("Quickstart", () => {
         plainPageName("STATUS_PAGES"),
         // The monitor's status when the site is down (a new project's seed).
         seeded("downStatus"),
+        /*
+         * The policy the website setup makes, which its note names
+         * ("This makes the on-call policy "{{policy}}"") and the on-call
+         * setup's On-call policy dropdown then shows (#8329).
+         */
+        GUIDED_SETUP_POLICY_NAME,
       ]);
       const onCallSetup: string = fs.readFileSync(
         routedGuidedSetup("ON_CALL_DUTY_GUIDED_SETUP").setupFile,
@@ -986,10 +992,10 @@ describe("Quickstart", () => {
       setupWord(QUICKSTART_SETUP_COPIES.website, "whoCreateHelp"),
     ).toContain("It starts with you, by email.");
     expect(QUICKSTART).toContain(
-      `Click **Save and continue**: this makes \`${GUIDED_SETUP_POLICY_NAME}\`, which pages you for every new incident and alert in the project, by email to start with.`,
+      `Click **Save and continue**: this makes **${GUIDED_SETUP_POLICY_NAME}**, which pages you for every new incident and alert in the project, by email to start with.`,
     );
     expect(QUICKSTART).toContain(
-      `The website setup already made \`${GUIDED_SETUP_POLICY_NAME}\`, which pages you by email for every new incident and alert`,
+      `The website setup already made **${GUIDED_SETUP_POLICY_NAME}**, which pages you by email for every new incident and alert`,
     );
   });
 
@@ -1013,7 +1019,7 @@ describe("Quickstart", () => {
       "Add to the first escalation rule",
     );
     expect(QUICKSTART).toContain(
-      `keep \`${GUIDED_SETUP_POLICY_NAME}\` under **On-call policy**. To page teammates with you, add them under **Add to the first escalation rule**. Click **Save and continue**.`,
+      `keep **${GUIDED_SETUP_POLICY_NAME}** under **On-call policy**. To page teammates with you, add them under **Add to the first escalation rule**. Click **Save and continue**.`,
     );
   });
 
@@ -1204,14 +1210,14 @@ describe("Quickstart", () => {
       "Notification Channels",
     );
     expect(ProjectNotificationChannelsCopy.whoCanChange).toContain(
-      "A project owner, a Billing Admin or someone with Manage Billing",
+      "A Project Owner, a Billing Admin or someone with Manage Billing",
     );
     expect(
       menuSection(dashboard("Pages/Settings/SideMenu.tsx"), "Notifications")
         .items,
     ).toContain("Notification Channels");
     expect(QUICKSTART).toContain(
-      "SMS and phone calls are off in a new project. A project owner, a Billing Admin or someone with Manage Billing turns them on in the **Notification Channels** card, under **Project Settings → Notifications → Notification Channels**.",
+      "SMS and phone calls are off in a new project. A Project Owner, a Billing Admin or someone with Manage Billing turns them on in the **Notification Channels** card, under **Project Settings → Notifications → Notification Channels**.",
     );
   });
 

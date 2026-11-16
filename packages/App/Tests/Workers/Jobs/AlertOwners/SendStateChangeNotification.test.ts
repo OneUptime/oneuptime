@@ -174,6 +174,11 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import UserService from "Common/Server/Services/UserService";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import { OwnerNotificationDeliveryStatus } from "Common/Types/Notification/OwnerNotificationDelivery";
+import {
+  InMemoryOwnerNotificationDeliveries,
+  useInMemoryOwnerNotificationDeliveries,
+} from "Common/Tests/Helpers/InMemoryOwnerNotificationDeliveries";
 
 // Imported for its side effect: RunCron (mocked above) records the handler.
 import "../../../../FeatureSet/Workers/Jobs/AlertOwners/SendStateChangeNotification";
@@ -407,12 +412,20 @@ async function runWorkerTick(): Promise<void> {
 }
 
 describe("AlertOwner:SendStateChangeEmail worker", () => {
+  let deliveries: InMemoryOwnerNotificationDeliveries;
+
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    /*
+     * Whom each record tells is written down before it is taken, and each
+     * owner told through it (OwnerNotificationDeliveries, #8199).
+     */
+    deliveries = useInMemoryOwnerNotificationDeliveries();
 
     jest
       .spyOn(OneUptimeDate, "getDateAsFormattedHTMLInMultipleTimezones")
@@ -625,7 +638,7 @@ describe("AlertOwner:SendStateChangeEmail worker", () => {
          */
         stateChangeRootCause: "",
         preheader:
-          "Acknowledged \u00b7 web-server-1 \u00b7 Was Identified for 2 hours",
+          "Acknowledged \u00b7 web-server-1 \u00b7 Was Identified for 2\u00A0hours",
         stateChangedAt: `formatted:${STATE_CHANGED_AT.toISOString()}:${timezones}`,
         alertSeverity: "Critical",
         alertViewLink: ALERT_LINK,
@@ -735,20 +748,27 @@ describe("AlertOwner:SendStateChangeEmail worker", () => {
     expect(feedService.createAlertFeedItem).toHaveBeenCalledTimes(1);
   });
 
-  test("a missing severity relation still throws after the mark-notified write - never silently downgraded", async () => {
+  test("a missing severity relation still fails after the mark-notified write - never silently downgraded - and costs only that owner's notification", async () => {
     timelineService.findAllBy.mockResolvedValue([
       makeTimeline({ id: TIMELINE_1_ID, alertId: ALERT_1_ID }),
     ]);
     stubAlerts([makeAlert({ id: ALERT_1_ID, description: "no severity row" })]);
     alertService.findOwners.mockResolvedValue([makeUser(USER_1_ID)]);
 
-    await expect(runWorkerTick()).rejects.toThrow(TypeError);
+    /*
+     * The TypeError no longer stops the run (#8199): it is that owner's
+     * notification that fails, recorded so, and never sent again.
+     */
+    await expect(runWorkerTick()).resolves.toBeUndefined();
 
     // Same as the old flow: the row was already marked notified...
     expect(timelineService.updateOneById).toHaveBeenCalledTimes(1);
 
     // ...and no notification went out.
     expect(notificationService.sendUserNotification).not.toHaveBeenCalled();
+    expect(deliveries.statusesOf(TIMELINE_1_ID)).toEqual({
+      [USER_1_ID.toString()]: OwnerNotificationDeliveryStatus.Failed,
+    });
   });
 
   test("a row with no owners at all is marked notified and skipped without converting markdown", async () => {
@@ -804,7 +824,7 @@ describe("AlertOwner:SendStateChangeEmail worker", () => {
     expect(feedService.createAlertFeedItem).toHaveBeenCalledWith(
       expect.objectContaining({
         feedInfoInMarkdown:
-          "The project's owners were notified that this alert is now **Acknowledged**, as it has no owners yet.",
+          "The Project Owners were notified that this alert is now **Acknowledged**, as it has no owners yet.",
       }),
     );
   });

@@ -1,4 +1,4 @@
-# SQL-spørring-overvåking
+# SQL-spørring-monitor
 
 SQL-spørring-monitoren kjører en skrivebeskyttet SQL-spørring etter en tidsplan fra en sonde og varsler på resultatet — antall returnerte rader, en skalarverdi, hvor lang tid spørringen tok, eller en spørringsfeil. Den er laget for bruksområdet "kjør en spørring og åpne en hendelse", for eksempel å varsle når antall kansellerte bestillinger de siste fem minuttene skyter i været, når en kø-tabell blir for stor, eller når en kritisk rad forsvinner.
 
@@ -49,7 +49,7 @@ Hele resultatsettet sendes aldri til OneUptime, så kundedata kopieres ikke over
 
 MySQL-kompatible og PostgreSQL-kompatible motorer som snakker samme wire-protokoll og SQL-dialekt, fungerer som regel også, men bare de tre motorene ovenfor er offisielt testet.
 
-Når verten og porten monitoren kobler seg til, er ett av endepunktene til en database på siden [Databaser](/docs/telemetry/databases), vises varslene og hendelsene den gir, også på siden til den databasen (se [Varsler på en database](/docs/telemetry/databases#varsler-for-en-database)). En vert som er oppgitt som en henvisning til en overvåkingshemmelighet, blir ikke koblet.
+Når verten og porten monitoren kobler seg til, er ett av endepunktene til en database på siden [Databaser](/docs/telemetry/databases), vises varslene og hendelsene den gir, også på siden til den databasen (se [Varsler på en database](/docs/telemetry/databases#varsler-for-en-database)). En vert som er oppgitt som en henvisning til en monitorhemmelighet, blir ikke koblet.
 
 ## Sikkerhetsmodell
 
@@ -108,15 +108,15 @@ For strammere rettigheter kan du gi brukeren `SELECT` på bare tabellene spørri
 :::steps
 ### Start en ny monitor
 
-Gå til **Monitorer**, og klikk på **Opprett monitor**. Under **Monitortype** klikker du på **Flere monitortyper** og velger **SQL Query** under **Databaseovervåking**, eller skriver `query` i søkefeltet. Skriv inn et **Navn**, og klikk deretter på **Neste**.
+Gå til **Monitorer**, og klikk på **Opprett monitor**. Under **Monitortype** klikker du på **Flere monitortyper** og velger **SQL-spørring** under **Databaseovervåking**, eller skriver `query` i søkefeltet. Skriv inn et **Navn**, og klikk deretter på **Neste**.
 
 ### Skriv inn tilkoblingsdetaljene
 
-Velg **Database Type** — porten endres til standarden for den motoren — og fyll deretter inn verten, databasenavnet og påloggingsinformasjonen til den skrivebeskyttede brukeren. Henvis til passordet som en [overvåkingshemmelighet](#bruk-en-overvåkingshemmelighet-for-passordet) i stedet for å skrive det inn. Hvert felt er beskrevet under [Konfigurasjon](#konfigurasjon).
+Velg **Database Type** — porten endres til standarden for den motoren — og fyll deretter inn verten, databasenavnet og påloggingsinformasjonen til den skrivebeskyttede brukeren. Henvis til passordet som en [monitorhemmelighet](#bruk-en-monitorhemmelighet-for-passordet) i stedet for å skrive det inn. Hvert felt er beskrevet under [Konfigurasjon](#konfigurasjon).
 
 ### Skriv inn spørringen
 
-Skriv én skrivebeskyttet setning i **SQL Query** (se [Skriv spørringen](#skriv-spørringen)).
+Skriv én skrivebeskyttet setning i **SQL-spørring** (se [Skriv spørringen](#skriv-spørringen)).
 
 ### Test den
 
@@ -141,8 +141,8 @@ Velg **Sonder** som når databasen, og et **Overvåkingsintervall**, og klikk de
 | **Databasenavn** | Databasen spørringen skal kjøres mot. |
 | **Autentisering** | Bare Microsoft SQL Server: **Brukernavn og passord**, standardvalget, eller **Windows Integrated Authentication**, som logger på med kontoen sonden kjører som. Se [Integrert Windows-autentisering](#integrert-windows-autentisering). |
 | **Brukernavn** | En skrivebeskyttet databasebruker med minst mulig rettigheter. |
-| **Passord** | Databasepassordet. Vi anbefaler sterkt å henvise til en [overvåkingshemmelighet](/docs/monitor/monitor-secrets) med `{{monitorSecrets.name}}` i stedet for å skrive passordet inn som ren tekst (se [Bruk en overvåkingshemmelighet for passordet](#bruk-en-overvåkingshemmelighet-for-passordet)). |
-| **SQL Query** | Den skrivebeskyttede spørringen som skal kjøres (se [Skriv spørringen](#skriv-spørringen)). |
+| **Passord** | Databasepassordet. Vi anbefaler sterkt å henvise til en [monitorhemmelighet](/docs/monitor/monitor-secrets) med `{{monitorSecrets.name}}` i stedet for å skrive passordet inn som ren tekst (se [Bruk en monitorhemmelighet for passordet](#bruk-en-monitorhemmelighet-for-passordet)). |
+| **SQL-spørring** | Den skrivebeskyttede spørringen som skal kjøres (se [Skriv spørringen](#skriv-spørringen)). |
 | **Use SSL/TLS** | Slå på for å koble til over TLS. Når det er slått på, kan du slå av **Verify server certificate** hvis databasen bruker et selvsignert sertifikat. |
 
 ### Flere felt
@@ -151,7 +151,7 @@ Velg **Sonder** som når databasen, og et **Overvåkingsintervall**, og klikk de
 |---|---|---|---|
 | **Connection Timeout (ms)** | `10000` | `30000` | Hvor lenge det ventes på å opprette en tilkobling. |
 | **Statement Timeout (ms)** | `15000` | `60000` | Den harde grensen for hvor lenge spørringen kan kjøre. |
-| **Max Rows** | `100` | `1000` | Den øvre grensen for hvor mange rader som leses tilbake fra databasen. |
+| **Maks. rader** | `100` | `1000` | Den øvre grensen for hvor mange rader som leses tilbake fra databasen. |
 
 En verdi over maksimum senkes til maksimum.
 
@@ -206,17 +206,17 @@ WHERE status = 'CANCELLED'
 > [!TIP]
 > For en spørring av typen `COUNT(*)` er antallet tilgjengelig både som **Antall rader** (som er `1`, fordi én rad returneres) og som **Skalarverdi** (selve antallet, fra den første kolonnen). For å varsle på "hvor mange" sammenligner du med **Skalarverdi**.
 
-## Bruk en overvåkingshemmelighet for passordet
+## Bruk en monitorhemmelighet for passordet
 
-For at databasepassordet aldri skal lagres som ren tekst på monitoren, oppretter du en [overvåkingshemmelighet](/docs/monitor/monitor-secrets) og henviser til den fra feltet Passord:
+For at databasepassordet aldri skal lagres som ren tekst på monitoren, oppretter du en [monitorhemmelighet](/docs/monitor/monitor-secrets) og henviser til den fra feltet Passord:
 
 :::steps
-1. Gå til **Monitorer → Innstillinger → Hemmeligheter**, og opprett en overvåkingshemmelighet.
+1. Gå til **Monitorer → Innstillinger → Hemmeligheter**, og opprett en monitorhemmelighet.
 2. Gi den et navn (for eksempel `dbPassword`), og gi denne monitoren tilgang til den.
 3. Skriv `{{monitorSecrets.dbPassword}}` i monitorens felt **Passord**.
 :::
 
-OneUptime løser opp hemmeligheten på serveren før konfigurasjonen gis videre til sonden. OneUptime oppretter aldri disse hemmelighetene for deg — det er ditt valg å henvise til en. Feltene **Brukernavn**, **Vert**, **Databasenavn** og **SQL Query** godtar også henvisninger til hemmeligheter; **Port** gjør ikke det.
+OneUptime løser opp hemmeligheten på serveren før konfigurasjonen gis videre til sonden. OneUptime oppretter aldri disse hemmelighetene for deg — det er ditt valg å henvise til en. Feltene **Brukernavn**, **Vert**, **Databasenavn** og **SQL-spørring** godtar også henvisninger til hemmeligheter; **Port** gjør ikke det.
 
 ## Sett opp kriterier
 
@@ -231,7 +231,7 @@ Legg til kriterier for å avgjøre når monitoren regnes som online, redusert el
 | **SQL-spørringsfeil** | Feilmeldingen fra spørringen. Varsle når den er (eller ikke er) tom, eller samsvarer med en bestemt streng. |
 | **JavaScript-uttrykk** | Evaluer et egendefinert JavaScript-uttrykk over `rowCount`, `scalarValue`, `firstRow`, `executionTimeInMs`, `queryError` og `isOnline`. Se [JavaScript-uttrykk](/docs/monitor/javascript-expression#monitorer-for-sql-spørringer). |
 
-Numeriske terskler er heltall: skriv `10`, ikke `10.5`. SQL Query-filtre kan ikke evalueres over en tidsperiode; hver kontroll står for seg selv.
+Numeriske terskler er heltall: skriv `10`, ikke `10.5`. SQL-spørring-filtre kan ikke evalueres over en tidsperiode; hver kontroll står for seg selv.
 
 En ny SQL-spørring-monitor starter med to kriterier: **SQL er tilkoblet** er usann — monitoren blir frakoblet og erklærer en hendelse som løser seg selv — og **SQL er tilkoblet** er sann, som markerer den som online. **Legg til kriterier** legger til ett nederst; dra det over online-kriteriet, fordi kriteriene sjekkes ovenfra, og det første som samsvarer, avgjør.
 
@@ -252,7 +252,7 @@ Knytt en vaktpolicy til kriteriet slik at de riktige personene blir tilkalt. En 
 - Bare antall rader, den første cellen (skalar) og den første raden rapporteres — utform spørringen slik at verdien du vil varsle på, er den første kolonnen.
 - Hvis resultatet avkortes fordi det overskred Max Rows, viser kontrollsammendraget **Rader avkortet**: "Ja (resultatet er begrenset)". Øk Max Rows bare hvis du trenger det; større resultatsett koster mer minne på sonden.
 - Skriving og DDL avvises alltid. Hvis du må teste en skrivevei, er det ikke det denne monitoren er til.
-- Foretrekk en overvåkingshemmelighet fremfor et passord i ren tekst, slik at påloggingsinformasjonen forblir kryptert når den er lagret.
+- Foretrekk en monitorhemmelighet fremfor et passord i ren tekst, slik at påloggingsinformasjonen forblir kryptert når den er lagret.
 - En kontroll der spørringen mislykkes, prøves igjen et sekund senere, opptil tre ganger til, før den rapporterer feilen, slik at et kort tilkoblingsbrudd ikke gjør monitoren frakoblet. På en selvhostet sonde bestemmer `PROBE_MONITOR_RETRY_LIMIT` hvor mange ganger.
 
 ## Feilsøking
@@ -280,8 +280,8 @@ Sonden trenger en Microsoft ODBC Driver for SQL Server og en identitet som domen
 ## Neste trinn
 
 :::cards
-- [Databasehelse-overvåking](/docs/monitor/database-health-monitor): Følg med på tilkoblinger, låser og replikering uten å skrive SQL.
-- [Overvåkingshemmeligheter](/docs/monitor/monitor-secrets): Hold databasepassordet kryptert.
+- [Databasehelse-monitor](/docs/monitor/database-health-monitor): Følg med på tilkoblinger, låser og replikering uten å skrive SQL.
+- [Monitorhemmeligheter](/docs/monitor/monitor-secrets): Hold databasepassordet kryptert.
 - [JavaScript-uttrykk](/docs/monitor/javascript-expression): Skriv kriterier som kombinerer flere verdier.
-- [Egendefinerte probes](/docs/probe/custom-probe): Kjør kontroller fra innsiden av nettverket ditt.
+- [Egendefinerte sonder](/docs/probe/custom-probe): Kjør kontroller fra innsiden av nettverket ditt.
 :::

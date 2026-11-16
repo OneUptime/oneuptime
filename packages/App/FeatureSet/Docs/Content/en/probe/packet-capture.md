@@ -38,7 +38,7 @@ sequenceDiagram
 
 - **One of your project's own probes.** Global probes carry other projects' traffic, so they never capture. To install a probe of your own, see [Custom Probes](/docs/probe/custom-probe).
 - **A probe from this release or later.** Older probes don't report what they can capture on.
-- **The right permissions.** Starting and stopping a capture takes **Start Packet Capture**, and downloading a file takes **Download Packet Capture**. Project owners and admins have both. See [Permissions](#permissions).
+- **The right permissions.** Starting and stopping a capture takes **Start Packet Capture**, and downloading a file takes **Download Packet Capture**. Project Owners and Project Admins have both. See [Permissions](#permissions).
 - **A mirrored port, for traffic that doesn't reach the probe.** A probe sees only the traffic on its own host's interfaces. To capture traffic between other devices, mirror their switch port (SPAN) to a spare interface of the probe's host.
 
 ## Turn on packet capture

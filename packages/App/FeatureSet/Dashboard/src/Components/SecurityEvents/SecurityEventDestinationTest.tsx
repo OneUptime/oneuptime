@@ -224,6 +224,7 @@ export const SecurityEventDestinationTestModal: FunctionComponent<{
       title={translator.translateTemplate("Send a test event: {{name}}", {
         name: props.destinationName,
       })}
+      isTitleTranslated={true}
       description="One event marked as a test, sent with the saved settings. It shows in your SIEM within a few minutes."
       modalWidth={ModalWidth.Medium}
       onClose={props.onClose}

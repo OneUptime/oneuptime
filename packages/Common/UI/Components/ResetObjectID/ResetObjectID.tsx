@@ -8,7 +8,10 @@ import PermissionGate, {
 import Card from "../Card/Card";
 import ConfirmModal from "../Modal/ConfirmModal";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
+import {
+  getColumnTitleKey,
+  TableColumnMetadata,
+} from "../../../Types/Database/TableColumn";
 import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
@@ -99,8 +102,9 @@ const ResetObjectID: <TBaseModel extends BaseModel>(
   const tableColumn: TableColumnMetadata | undefined = props.fieldName
     ? model.getTableColumnMetadata(props.fieldName as string)
     : undefined;
+  // Looked up by its key: a title that names its meaning reads as the reader's word.
   const tableColumnName: string =
-    tableColumn?.title || (props.fieldName as string);
+    getColumnTitleKey(tableColumn) || (props.fieldName as string);
   const translator: Translator = useTranslator();
 
   /* Resetting the id writes to the record, so it is an update. */
@@ -144,11 +148,14 @@ const ResetObjectID: <TBaseModel extends BaseModel>(
             })
           }
           title={
-            props.confirmTitle ||
-            translator.translateTemplate("Reset {{columnName}}", {
-              columnName: translatableTerm(tableColumnName),
-            })
+            props.confirmTitle
+              ? translator.translateText(props.confirmTitle) ||
+                props.confirmTitle
+              : translator.translateTemplate("Reset {{columnName}}", {
+                  columnName: translatableTerm(tableColumnName),
+                })
           }
+          isTitleTranslated={true}
           onSubmit={async () => {
             await resetKey();
           }}
@@ -191,12 +198,14 @@ const ResetObjectID: <TBaseModel extends BaseModel>(
             )
           }
           title={
-            props.resultTitle ||
-            translateNamedAction(translator, {
-              template: "New {{itemName}}",
-              itemName: tableColumnName,
-            })
+            props.resultTitle
+              ? translator.translateText(props.resultTitle) || props.resultTitle
+              : translateNamedAction(translator, {
+                  template: "New {{itemName}}",
+                  itemName: tableColumnName,
+                })
           }
+          isTitleTranslated={true}
           onSubmit={() => {
             if (props.onUpdateComplete && newId) {
               props.onUpdateComplete(newId);

@@ -160,8 +160,16 @@ export interface ReplayToolButtonProps {
    * The visible label. Omitted for icon-only buttons, which then MUST
    * supply title or ariaLabel - an icon button with no accessible name
    * is the single most common a11y defect in a toolbar.
+   *
+   * The label, the title and the tooltip are English, looked up here -
+   * unless is<Prop>Translated says the page put one in the reader's words
+   * already (a count's plural, a sentence around a value): drawn as given
+   * then, never looked up again (#8423). Looked up again, a translation
+   * that is itself an English key reads as another word, as the Spanish
+   * "Red" (Network) read "Rojo".
    */
   label?: string | undefined;
+  isLabelTranslated?: boolean | undefined;
   icon?: IconProp | undefined;
   /* Drawn after the label rather than before it (the "10s >" button). */
   trailingIcon?: IconProp | undefined;
@@ -178,7 +186,9 @@ export interface ReplayToolButtonProps {
    */
   collapseLabelOnSmallScreens?: boolean | undefined;
   title?: string | undefined;
+  isTitleTranslated?: boolean | undefined;
   tooltip?: string | undefined;
+  isTooltipTranslated?: boolean | undefined;
   ariaLabel?: string | undefined;
   /*
    * The aria label is in the reader's words already: a sentence the page
@@ -243,12 +253,15 @@ export const ReplayToolButton: React.ForwardRefExoticComponent<
     ref: React.ForwardedRef<HTMLButtonElement>,
   ): ReactElement => {
     const { translateString } = useTranslateValue();
-    const translatedLabel: string | undefined =
-      translateString(props.label) ?? props.label;
-    const translatedTitle: string | undefined =
-      translateString(props.title) ?? props.title;
-    const translatedTooltip: string | undefined =
-      translateString(props.tooltip) ?? props.tooltip;
+    const translatedLabel: string | undefined = props.isLabelTranslated
+      ? props.label
+      : translateString(props.label) ?? props.label;
+    const translatedTitle: string | undefined = props.isTitleTranslated
+      ? props.title
+      : translateString(props.title) ?? props.title;
+    const translatedTooltip: string | undefined = props.isTooltipTranslated
+      ? props.tooltip
+      : translateString(props.tooltip) ?? props.tooltip;
     const translatedAriaLabel: string | undefined = props.isAriaLabelTranslated
       ? props.ariaLabel
       : translateString(props.ariaLabel) ?? props.ariaLabel;
@@ -358,7 +371,7 @@ export const ReplayToolButton: React.ForwardRefExoticComponent<
         translatedAriaLabel || translatedLabel || translatedTitle;
 
       return (
-        <Tooltip text={translatedTooltip}>
+        <Tooltip text={translatedTooltip} isTextTranslated={true}>
           <span
             role="group"
             aria-label={wrapperAccessibleName}
@@ -376,7 +389,11 @@ export const ReplayToolButton: React.ForwardRefExoticComponent<
       );
     }
 
-    return <Tooltip text={translatedTooltip}>{button}</Tooltip>;
+    return (
+      <Tooltip text={translatedTooltip} isTextTranslated={true}>
+        {button}
+      </Tooltip>
+    );
   },
 );
 

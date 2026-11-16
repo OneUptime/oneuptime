@@ -28,7 +28,11 @@ import UserCall from "../../../Models/DatabaseModels/UserCall";
 import UserSMS from "../../../Models/DatabaseModels/UserSMS";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import ObjectID from "../../../Types/ObjectID";
-import { PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY } from "../../../Types/OnCallDutyPolicy/EveryNewEventRules";
+import {
+  EVERY_NEW_EVENT_RULES_LANGUAGE_KEY,
+  PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY,
+} from "../../../Types/OnCallDutyPolicy/EveryNewEventRules";
+import { dashboardTranslator } from "../../Helpers/DashboardLocales";
 import { MODEL_SWITCH_SAVED_EVENT } from "../../../UI/Components/ModelSwitch/ModelSwitchEvents";
 import { BILLING_ENABLED } from "../../../UI/Config";
 import API from "../../../UI/Utils/API/API";
@@ -239,6 +243,7 @@ describe("the policy it makes", () => {
         userIds: [USER_ID],
         teamIds: ["team-platform"],
         addRules: true,
+        translator: dashboardTranslator("en"),
       }),
     ).resolves.toBe(POLICY_ID);
 
@@ -254,14 +259,45 @@ describe("the policy it makes", () => {
       users: [USER_ID],
       teams: ["team-platform"],
       [PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY]: true,
+      // The server words the two rules in the reader's language (#7995).
+      [EVERY_NEW_EVENT_RULES_LANGUAGE_KEY]: "en",
     });
   });
+
+  test.each(["de", "ar", "fa", "ja"])(
+    "read in %s, the policy is named in the reader's language, and its rules are asked for in it (#7995)",
+    async (language: string) => {
+      await OnCallSetupApi.createPolicy({
+        userIds: [USER_ID],
+        teamIds: [],
+        addRules: true,
+        translator: dashboardTranslator(language),
+      });
+
+      const args: Record<string, unknown> = callsFor(
+        createSpy,
+        OnCallDutyPolicy,
+      )[0]!;
+      const name: string | undefined = (args["model"] as OnCallDutyPolicy).name;
+
+      expect(name).toBe(
+        dashboardTranslator(language).translateText("Default on-call policy"),
+      );
+      expect(name).not.toBe("Default on-call policy");
+      expect(
+        (args["miscDataProps"] as Record<string, unknown>)[
+          EVERY_NEW_EVENT_RULES_LANGUAGE_KEY
+        ],
+      ).toBe(language);
+    },
+  );
 
   test("asks for the catch-all rules only from someone who may add them", async () => {
     await OnCallSetupApi.createPolicy({
       userIds: [USER_ID],
       teamIds: [],
       addRules: false,
+      translator: dashboardTranslator("en"),
     });
 
     expect(callsFor(createSpy, OnCallDutyPolicy)[0]!["miscDataProps"]).toEqual({
@@ -278,6 +314,7 @@ describe("the policy it makes", () => {
         userIds: [],
         teamIds: [],
         addRules: false,
+        translator: dashboardTranslator("en"),
       }),
     ).rejects.toThrow("can't be shown");
   });
@@ -312,6 +349,7 @@ describe("a policy, read back", () => {
       repeatTimes: 2,
       incidentRuleCount: 1,
       alertRuleCount: 0,
+      isArchived: false,
     });
   });
 
@@ -343,6 +381,73 @@ describe("a policy, read back", () => {
     seedPolicy({ policy: null });
 
     await expect(OnCallSetupApi.loadPolicy(POLICY_ID)).resolves.toBeNull();
+  });
+
+  /*
+   * An archived policy pages no one (#8432): the setup must tell it from
+   * one in service, so the read asks for isArchived, and says it.
+   */
+  describe("archived since (#8432)", () => {
+    test("the read asks whether it is archived", async () => {
+      await OnCallSetupApi.loadPolicy(POLICY_ID);
+
+      const select: Record<string, unknown> = (
+        getItemSpy.mock.calls[0]![0] as unknown as {
+          select: Record<string, unknown>;
+        }
+      ).select;
+
+      expect(select).toEqual(expect.objectContaining({ isArchived: true }));
+      expect(select).toEqual(
+        expect.objectContaining({ _id: true, name: true }),
+      );
+    });
+
+    test("an archived policy reads as archived - there, not gone - with what it holds", async () => {
+      seedPolicy({
+        policy: model(OnCallDutyPolicy, {
+          _id: POLICY_ID,
+          name: "Old rota",
+          isArchived: true,
+        }),
+      });
+
+      const policy: OnCallPolicyRecord | null =
+        await OnCallSetupApi.loadPolicy(POLICY_ID);
+
+      expect(policy).not.toBeNull();
+      expect(policy!.isArchived).toBe(true);
+      expect(policy!.name).toBe("Old rota");
+      expect(
+        policy!.levels.map((level: { id: string }) => {
+          return level.id;
+        }),
+      ).toEqual([LEVEL_1, LEVEL_2]);
+    });
+
+    test("in service, it reads as not archived", async () => {
+      seedPolicy({
+        policy: model(OnCallDutyPolicy, {
+          _id: POLICY_ID,
+          name: "Ops",
+          isArchived: false,
+        }),
+      });
+
+      expect((await OnCallSetupApi.loadPolicy(POLICY_ID))!.isArchived).toBe(
+        false,
+      );
+    });
+
+    test("read with no archived flag at all, it is in service, never undefined", async () => {
+      seedPolicy({
+        policy: model(OnCallDutyPolicy, { _id: POLICY_ID, name: "Ops" }),
+      });
+
+      expect((await OnCallSetupApi.loadPolicy(POLICY_ID))!.isArchived).toBe(
+        false,
+      );
+    });
   });
 });
 
@@ -400,6 +505,7 @@ describe("the on-call rules that run a policy", () => {
       policyName: "Ops",
       incident: false,
       alert: true,
+      translator: dashboardTranslator("en"),
     });
 
     expect(callsFor(createSpy, IncidentOnCallRule)).toEqual([]);
@@ -424,6 +530,7 @@ describe("the on-call rules that run a policy", () => {
       policyName: "Ops",
       incident: true,
       alert: true,
+      translator: dashboardTranslator("en"),
     });
 
     expect(
@@ -435,6 +542,47 @@ describe("the on-call rules that run a policy", () => {
     ).toBe("Page Ops for every incident");
     expect(callsFor(createSpy, AlertOnCallRule)).toHaveLength(1);
   });
+
+  test.each(["de", "ar", "fa", "ja"])(
+    "read in %s, are named and described in the reader's language, the policy's own name kept as written (#7995)",
+    async (language: string) => {
+      await OnCallSetupApi.addEveryNewEventRules({
+        policyId: POLICY_ID,
+        policyName: "Ops",
+        incident: true,
+        alert: true,
+        translator: dashboardTranslator(language),
+      });
+
+      const incident: IncidentOnCallRule = callsFor(
+        createSpy,
+        IncidentOnCallRule,
+      )[0]!["model"] as IncidentOnCallRule;
+      const alert: AlertOnCallRule = callsFor(createSpy, AlertOnCallRule)[0]![
+        "model"
+      ] as AlertOnCallRule;
+
+      expect(incident.name).toBe(
+        dashboardTranslator(language).translateTemplate(
+          "Page {{policy}} for every incident",
+          { policy: "Ops" },
+        ),
+      );
+      expect(alert.name).toBe(
+        dashboardTranslator(language).translateTemplate(
+          "Page {{policy}} for every alert",
+          { policy: "Ops" },
+        ),
+      );
+
+      for (const rule of [incident, alert]) {
+        expect(rule.name).toContain("Ops");
+        expect(rule.name).not.toContain("for every");
+        expect(rule.description).toBeTruthy();
+        expect(rule.description).not.toContain("Added when the policy");
+      }
+    },
+  );
 });
 
 describe("what happens if nobody answers", () => {
@@ -610,7 +758,7 @@ describe("the phone", () => {
       const postSpy: LooseSpy = jest.spyOn(API, "post") as unknown as LooseSpy;
 
       await expect(OnCallSetupApi.rechargeBalance(20)).rejects.toThrow(
-        "A project owner or someone with Manage Billing can add balance in Project Settings → Notifications → Notification Channels.",
+        "A Project Owner or someone with Manage Billing can add balance in Project Settings → Notifications → Notification Channels.",
       );
       expect(postSpy).not.toHaveBeenCalled();
     },
@@ -753,5 +901,121 @@ describe("whether a page reaches people", () => {
     expect(
       String((apiGetSpy.mock.calls[0]![0] as unknown as { url: unknown }).url),
     ).toContain(`/on-call-readiness/policy/${POLICY_ID}`);
+  });
+});
+
+/*
+ * THE POLICIES IT OFFERS ARE THE ONES IN SERVICE (#8234). An archived
+ * policy pages no one - incidents and alerts that use it skip it - and the
+ * On-Call Policies list hides it. The setup offered it all the same, and a
+ * project whose only policy was archived was told it already had one, so
+ * the setup never made a policy that pages anyone. The fake server below
+ * answers a list as the real one does: only the records its query matches.
+ */
+describe("the project's policies to set up (#8234)", () => {
+  const LIVE_ID: string = "60000000-0000-4000-8000-000000000011";
+  const ARCHIVED_ID: string = "60000000-0000-4000-8000-000000000012";
+  const OTHER_ARCHIVED_ID: string = "60000000-0000-4000-8000-000000000013";
+
+  // What the project holds, as the database would hand it back.
+  const serve: (
+    policies: Array<{ _id: string; name: string; isArchived: boolean }>,
+  ) => void = (
+    policies: Array<{ _id: string; name: string; isArchived: boolean }>,
+  ): void => {
+    jest.spyOn(PermissionGate, "check").mockReturnValue({ isAllowed: true });
+
+    getListSpy.mockImplementation((async (args: {
+      modelType: { new (): unknown };
+      query: Record<string, unknown>;
+    }) => {
+      if (args.modelType !== OnCallDutyPolicy) {
+        return list([]);
+      }
+
+      return list(
+        policies
+          .filter((policy: Record<string, unknown>): boolean => {
+            return Object.entries(args.query).every(
+              ([column, value]: [string, unknown]): boolean => {
+                return policy[column] === value;
+              },
+            );
+          })
+          .map((policy: Record<string, unknown>): OnCallDutyPolicy => {
+            return model(OnCallDutyPolicy, policy);
+          }),
+      );
+    }) as unknown as (...args: Array<never>) => Promise<unknown>);
+  };
+
+  const offeredIds: () => Promise<Array<string>> = async (): Promise<
+    Array<string>
+  > => {
+    return (await OnCallSetupApi.loadPolicyChoices()).policies.map(
+      (policy: { id: string }): string => {
+        return policy.id;
+      },
+    );
+  };
+
+  test("the list is asked for as the On-Call Policies list asks: archived ones left out", async () => {
+    serve([]);
+    await OnCallSetupApi.loadPolicyChoices();
+
+    const calls: Array<Record<string, unknown>> = callsFor(
+      getListSpy,
+      OnCallDutyPolicy,
+    );
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!["query"]).toEqual({ isArchived: false });
+  });
+
+  test("a project whose only policy is archived has none to offer, so the setup makes one", async () => {
+    serve([{ _id: ARCHIVED_ID, name: "Old rota", isArchived: true }]);
+
+    expect(await offeredIds()).toEqual([]);
+  });
+
+  test("every policy archived: none offered, however many there are", async () => {
+    serve([
+      { _id: ARCHIVED_ID, name: "Old rota", isArchived: true },
+      { _id: OTHER_ARCHIVED_ID, name: "Older rota", isArchived: true },
+    ]);
+
+    expect(await offeredIds()).toEqual([]);
+  });
+
+  test("an archived policy beside one in service: only the one in service is offered", async () => {
+    serve([
+      { _id: ARCHIVED_ID, name: "Old rota", isArchived: true },
+      { _id: LIVE_ID, name: "Payments", isArchived: false },
+    ]);
+
+    expect(await offeredIds()).toEqual([LIVE_ID]);
+    expect((await OnCallSetupApi.loadPolicyChoices()).policies).toEqual([
+      { id: LIVE_ID, name: "Payments" },
+    ]);
+  });
+
+  test("policies in service are all offered, by name", async () => {
+    serve([
+      { _id: LIVE_ID, name: "Payments", isArchived: false },
+      { _id: POLICY_ID, name: "Default on-call policy", isArchived: false },
+    ]);
+
+    expect((await offeredIds()).sort()).toEqual([LIVE_ID, POLICY_ID].sort());
+  });
+
+  test("what the person may do is read whatever the project holds", async () => {
+    serve([{ _id: ARCHIVED_ID, name: "Old rota", isArchived: true }]);
+
+    expect(await OnCallSetupApi.loadPolicyChoices()).toEqual({
+      policies: [],
+      mayCreatePolicy: true,
+      mayAddRules: true,
+      mayEditLevels: true,
+    });
   });
 });

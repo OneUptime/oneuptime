@@ -39,7 +39,9 @@ import {
 import { RUM_USER_FLOW_METRIC_DESCRIPTIONS } from "../MetricDescriptions/RumMetricDescriptions";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * The map's companions, under one tab strip:
@@ -479,7 +481,12 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
                         </div>
                       </td>
                       <td className={CELL}>
-                        {formatUserFlowDuration(path.avgDurationMs)}
+                        {getValueOrQuietDash(
+                          formatUserFlowDuration(
+                            path.avgDurationMs,
+                            translator,
+                          ),
+                        )}
                       </td>
                       <td className={CELL}>
                         {path.errorSessions > 0 ? (

@@ -151,12 +151,12 @@ De sædvanlige tilladelser afgør stadig, hvem der må hvad, præcis som på abo
 
 I OneUptime Cloud virker et projekts API-nøgler kun, mens projektet er på **Growth** eller derover, og dets SCIM-forbindelser - projektets egne og dets statussiders - virker kun fuldt ud, mens det er på **Scale** eller derover. Når projektet kommer under det abonnement:
 
-- Hver forespørgsel, der laves med en af projektets API-nøgler, afvises med `402 Payment Required`, uanset hvad den beder om: REST API'et og alt, der kalder det med en API-nøgle - Terraform, `oneuptime`-CLI'en, MCP-klienter, der er forbundet med en API-nøgle, workflows, der sender en i en forespørgselsheader, og dine egne scripts. Beskeden nævner abonnementet: `API keys need the Growth plan. This project's plan does not include them, so its API keys stopped working. The keys are kept: upgrade the project to Growth in Project Settings > Billing and Invoices > Billing and they work again.`
+- Hver forespørgsel, der laves med en af projektets API-nøgler, afvises med `402 Payment Required`, uanset hvad den beder om: REST API'et og alt, der kalder det med en API-nøgle - Terraform, `oneuptime`-CLI'en, MCP-klienter, der er forbundet med en API-nøgle, arbejdsgange, der sender en i en forespørgselsheader, og dine egne scripts. Beskeden nævner abonnementet: `API keys need the Growth plan. This project's plan does not include them, so its API keys stopped working. The keys are kept: upgrade the project to Growth in Project Settings > Billing and Invoices > Billing and they work again.`
 - Dets SCIM-forbindelser fjerner kun personer. At deaktivere og slette personer og fjerne dem fra grupper virker stadig, så alle, der rejser, stadig mister deres adgang; hver SCIM-forespørgsel, der ville tilføje eller ændre personer eller grupper, afvises med `402` i SCIM-fejlformatet, så din identitetsudbyder viser hvorfor ([SCIM under abonnementet Scale](/docs/identity/scim#under-planen-scale)).
 
 Intet slettes eller slås fra. Nøglerne og forbindelserne bevares, og de virker fuldt ud igen, som de er, så snart projektet er tilbage på abonnementet: ingen nye nøgler at lave, intet at sætte op igen i din identitetsudbyder. En abonnementsændring træder i kraft inden for et minut.
 
-Under **Growth** viser **Projektindstillinger** > **Avanceret** > **API-nøgler** de nøgler, projektet stadig har, og siger, at de er stoppet, så enhver af dem kan slettes (tilbagekaldes) på alle abonnementer. At oprette eller ændre nøgler kræver **Growth**. **Projektindstillinger** > **Fakturering og fakturaer** > **Fakturering** angiver, hvor mange API-nøgler et lavere abonnement stopper, og hvor mange SCIM-forbindelser det begrænser, på hvert abonnement, du kan vælge, og hvad projektets abonnement har stoppet; projektets ejere får en e-mail, når en abonnementsændring stopper dem. Ejerne af projekter, der allerede lå under disse abonnementer, da dette begyndte, får én e-mail, der siger, hvad der er stoppet, og hvordan det slås til igen.
+Under **Growth** viser **Projektindstillinger** > **Avanceret** > **API-nøgler** de nøgler, projektet stadig har, og siger, at de er stoppet, så enhver af dem kan slettes (tilbagekaldes) på alle abonnementer. At oprette eller ændre nøgler kræver **Growth**. **Projektindstillinger** > **Fakturering og fakturaer** > **Fakturering** angiver, hvor mange API-nøgler et lavere abonnement stopper, og hvor mange SCIM-forbindelser det begrænser, på hvert abonnement, du kan vælge, og hvad projektets abonnement har stoppet; Projektejere får en e-mail, når en abonnementsændring stopper dem. Ejerne af projekter, der allerede lå under disse abonnementer, da dette begyndte, får én e-mail, der siger, hvad der er stoppet, og hvordan det slås til igen.
 
 Kun et projekts API-nøgler og SCIM-forbindelser berøres. Personer berøres ikke: at logge ind på dashboardet og MCP-klienter, der er forbundet ved at logge ind, virker som før. Indtagelsesnøgler til telemetri, sondenøgler og agentnøgler er ikke API-nøgler og bliver ved med at virke. Selvhostede installationer har ingen abonnementer, så for dem ændres intet.
 
@@ -168,7 +168,7 @@ Forespørgsler, der læser, ændrer eller sletter én ressource, nævner den ved
 
 ### Poster, som en forespørgsel nævner
 
-Mange ressourcer nævner andre poster: en monitor sine etiketter og sonder, en abonnent på en statusside sin statusside, en netværksenhed sit site, et medlem af en hændelse hændelsen og rollen. Hver regel nedenfor gælder ens for API'et, Terraform og workflows:
+Mange ressourcer nævner andre poster: en monitor sine etiketter og sonder, en abonnent på en statusside sin statusside, en netværksenhed sit site, et medlem af en hændelse hændelsen og rollen. Hver regel nedenfor gælder ens for API'et, Terraform og arbejdsgange:
 
 | Når en forespørgsel | skal den | Ellers |
 | --- | --- | --- |
@@ -182,7 +182,7 @@ Mange ressourcer nævner andre poster: en monitor sine etiketter og sonder, en a
 
 #### Hvert ID skal høre til dit projekt
 
-Hvert ID, du sender for en post, som en ressource nævner, skal være en post i dit projekt — dashboardets vælgere tilbyder intet andet — og forespørgsler fra Terraform og workflows holdes til det samme. Et ID for en post i et andet projekt og et ID, der ikke findes, afvises ens, med en `400`, der nævner feltet og ID'et:
+Hvert ID, du sender for en post, som en ressource nævner, skal være en post i dit projekt — dashboardets vælgere tilbyder intet andet — og forespørgsler fra Terraform og arbejdsgange holdes til det samme. Et ID for en post i et andet projekt og et ID, der ikke findes, afvises ens, med en `400`, der nævner feltet og ID'et:
 
 ```text
 This network device references records that are not in this project: Network Site "…". Please pick values from this project and try again.
@@ -192,7 +192,7 @@ Personer kontrolleres ud fra medlemskab: en, der ikke er medlem af projektet, af
 
 #### Poster, der læses via en anden
 
-En post, der læses via en anden - en hændelses eller en advarsels noter og tilstandstidslinje, en statussides meddelelser, domæner og grupper - skal også nævne en, du må læse, efter den regel, en læsning af den følger: en hændelse uden for de etiketter eller ejere, din tilladelse til at læse hændelser når, med en etiket, som en blokering af læsning af hændelser fjerner, eller markeret som privat, uden at du er blandt dens ejere, direkte eller via et team (projektejere og -administratorer ser hver privat hændelse, advarsel og episode), afvises med samme `400`, og intet skrives. Hver statusside, en meddelelse nævner, skal være en, du må læse, og en nøgle, hvis tilladelse til at læse statussider kun når nogle af dem, skal nævne mindst én. En tilladelse til at oprette en sådan post kræver en til at læse den post, den oprettes under; uden den afvises oprettelsen med en `422`, der nævner de tilladelser, der ville lade den komme igennem:
+En post, der læses via en anden - en hændelses eller en advarsels noter og tilstandstidslinje, en statussides meddelelser, domæner og grupper - skal også nævne en, du må læse, efter den regel, en læsning af den følger: en hændelse uden for de etiketter eller ejere, din tilladelse til at læse hændelser når, med en etiket, som en blokering af læsning af hændelser fjerner, eller markeret som privat, uden at du er blandt dens ejere, direkte eller via et team (Projektejere og Projektadministratorer ser hver privat hændelse, advarsel og episode), afvises med samme `400`, og intet skrives. Hver statusside, en meddelelse nævner, skal være en, du må læse, og en nøgle, hvis tilladelse til at læse statussider kun når nogle af dem, skal nævne mindst én. En tilladelse til at oprette en sådan post kræver en til at læse den post, den oprettes under; uden den afvises oprettelsen med en `422`, der nævner de tilladelser, der ville lade den komme igennem:
 
 ```text
 You do not have permissions to create Incident Internal Note. It is read through its Incident, and you need one of these permissions to read Incidents: …
@@ -246,13 +246,13 @@ Begge navne kontrolleres på samme måde. Reglerne for den post, du nævner, gæ
 
 ### Kontakter
 
-Et felt, der er til eller fra - `isEnabled`, `isVisibleOnStatusPage`, `isArchived` og ethvert andet `true`- eller `false`-felt - tager `true` eller `false`. Tekst og tal, som databasen læser som en af dem, tages som den værdi, på samme måde for API'et, Terraform og workflows: `"true"`, `"yes"`, `"on"`, `"1"` og `1` er `true`, og `"false"`, `"no"`, `"off"`, `"0"` og `0` er `false`, uanset store og små bogstaver. Alt, hvad OneUptime gør med posten, behandler den også som den værdi: en vedligeholdelseshændelse, der sendes med `"isVisibleOnStatusPage": "true"`, viser sine billeder på statussiden, og `"isEnabled": "false"` slår en ressource fra under dens abonnement, ligesom `false` gør. Enhver anden værdi, som `"maybe"`, `""` eller `2`, afvises med en `400`, der nævner feltet:
+Et felt, der er til eller fra - `isEnabled`, `isVisibleOnStatusPage`, `isArchived` og ethvert andet `true`- eller `false`-felt - tager `true` eller `false`. Tekst og tal, som databasen læser som en af dem, tages som den værdi, på samme måde for API'et, Terraform og arbejdsgange: `"true"`, `"yes"`, `"on"`, `"1"` og `1` er `true`, og `"false"`, `"no"`, `"off"`, `"0"` og `0` er `false`, uanset store og små bogstaver. Alt, hvad OneUptime gør med posten, behandler den også som den værdi: en vedligeholdelseshændelse, der sendes med `"isVisibleOnStatusPage": "true"`, viser sine billeder på statussiden, og `"isEnabled": "false"` slår en ressource fra under dens abonnement, ligesom `false` gør. Enhver anden værdi, som `"maybe"`, `""` eller `2`, afvises med en `400`, der nævner feltet:
 
 ```text
 isVisibleOnStatusPage must be true or false.
 ```
 
-En opdatering, der skriver en posts værdier, som de allerede er, ændrer intet: den starter ikke postens **On Update**-workflows, sender ikke liveopdateringer og tilføjer ikke en post i auditloggen. `false` skrevet over `false` tæller som den samme værdi, og det samme gør `"false"` skrevet over `false`, et tal skrevet som tekst, et tidspunkt skrevet som samme øjeblik i et andet format og etiketter skrevet som de samme etiketter i vilkårlig rækkefølge. Når en opdatering ændrer nogle værdier og skriver andre tilbage, som de er, viser dens auditlogpost kun de værdier, der ændrede sig, og et workflows **Fields to watch** hører kun dem.
+En opdatering, der skriver en posts værdier, som de allerede er, ændrer intet: den starter ikke postens **On Update**-arbejdsgange, sender ikke liveopdateringer og tilføjer ikke en post i auditloggen. `false` skrevet over `false` tæller som den samme værdi, og det samme gør `"false"` skrevet over `false`, et tal skrevet som tekst, et tidspunkt skrevet som samme øjeblik i et andet format og etiketter skrevet som de samme etiketter i vilkårlig rækkefølge. Når en opdatering ændrer nogle værdier og skriver andre tilbage, som de er, viser dens auditlogpost kun de værdier, der ændrede sig, og en arbejdsgangs **Felter, der holdes øje med** hører kun dem.
 
 ### Hvor et projekt blev købt
 
@@ -264,7 +264,7 @@ User is not allowed to create on resellerId column of Project. No permission all
 
 ### Hvem der oprettede en post
 
-OneUptime registrerer, hvem der oprettede en post — og hvem der arkiverede den, løste den, kvitterede for den eller udløste den — ud fra selve forespørgslen: den person, der er logget ind, eller ingen, når forespørgslen kommer med en API-nøgle eller fra et workflow. Disse felter (`createdByUserId` og de andre felter, der ender på `ByUserId`, med deres relationer som `createdByUser`) er skrivebeskyttede, og det samme er tidspunktet, hvor en post blev arkiveret eller løst (`archivedAt`, `markedAsResolvedAt`, `markedAsArchivedAt`): at slå `isArchived` eller `isResolved` til registrerer, hvem der gjorde det og hvornår, og at slå det fra rydder begge. At sende en kontakt, som den allerede står, beholder, hvem der slog den om, og hvornår.
+OneUptime registrerer, hvem der oprettede en post — og hvem der arkiverede den, løste den, kvitterede for den eller udløste den — ud fra selve forespørgslen: den person, der er logget ind, eller ingen, når forespørgslen kommer med en API-nøgle eller fra en arbejdsgang. Disse felter (`createdByUserId` og de andre felter, der ender på `ByUserId`, med deres relationer som `createdByUser`) er skrivebeskyttede, og det samme er tidspunktet, hvor en post blev arkiveret eller løst (`archivedAt`, `markedAsResolvedAt`, `markedAsArchivedAt`): at slå `isArchived` eller `isResolved` til registrerer, hvem der gjorde det og hvornår, og at slå det fra rydder begge. At sende en kontakt, som den allerede står, beholder, hvem der slog den om, og hvornår.
 
 API-referencen markerer disse felter som skrivebeskyttede. En værdi, en forespørgsel sender for et af dem ved siden af andre ændringer, ignoreres, så resten af ændringen går igennem; en opdatering, der ikke sender andet, afvises med en besked, der nævner felterne. Poster, som OneUptime selv opretter på vegne af nogen — en note, der er sendt fra Slack eller Microsoft Teams, en konto, der er oprettet via en invitation — nævner den person.
 
@@ -286,7 +286,7 @@ En tilstand, der er sat ved en fejl, rettes ved at slette dens række fra posten
 
 ### Den episode, en hændelse eller advarsel er i
 
-En hændelses `incidentEpisodeId` og en advarsels `alertEpisodeId` — og deres relationer `incidentEpisode` og `alertEpisode` — nævner den seneste episode, den blev tilføjet til og stadig er medlem af, eller intet. De er skrivebeskyttede: OneUptime sætter dem ud fra episodens medlemmer. For at sætte en hændelse ind i en episode opretter du et Incident Episode Member (`POST /api/incident-episode-member` med `incidentEpisodeId` og `incidentId`); for at tage den ud sletter du det medlem, og hændelsen nævner så den seneste episode, den stadig er i, eller ingen. Advarsler virker på samme måde via Alert Episode Members (`/api/alert-episode-member`, med `alertEpisodeId` og `alertId`). Grupperingsregler tilføjer hændelser og advarsler til episoder på samme måde. En oprettelse eller opdatering af en hændelse eller advarsel, der sender dens episode, afvises, uanset hvem der sender den — API'et, Terraform, MCP-værktøjerne eller et workflow. I Terraform kan `incident_episode_id` og `alert_episode_id` læses, men ikke sættes; ressourcerne `oneuptime_incident_episode_member` og `oneuptime_alert_episode_member` styrer medlemskabet.
+En hændelses `incidentEpisodeId` og en advarsels `alertEpisodeId` — og deres relationer `incidentEpisode` og `alertEpisode` — nævner den seneste episode, den blev tilføjet til og stadig er medlem af, eller intet. De er skrivebeskyttede: OneUptime sætter dem ud fra episodens medlemmer. For at sætte en hændelse ind i en episode opretter du et Incident Episode Member (`POST /api/incident-episode-member` med `incidentEpisodeId` og `incidentId`); for at tage den ud sletter du det medlem, og hændelsen nævner så den seneste episode, den stadig er i, eller ingen. Advarsler virker på samme måde via Alert Episode Members (`/api/alert-episode-member`, med `alertEpisodeId` og `alertId`). Grupperingsregler tilføjer hændelser og advarsler til episoder på samme måde. En oprettelse eller opdatering af en hændelse eller advarsel, der sender dens episode, afvises, uanset hvem der sender den — API'et, Terraform, MCP-værktøjerne eller en arbejdsgang. I Terraform kan `incident_episode_id` og `alert_episode_id` læses, men ikke sættes; ressourcerne `oneuptime_incident_episode_member` og `oneuptime_alert_episode_member` styrer medlemskabet.
 
 ## Hvad en forespørgsel kan nå
 
@@ -308,7 +308,7 @@ Incident not found.
 You do not have permission to update this incident.
 ```
 
-En sletning, der ikke nåede noget, svarede tidligere `200`. Opdateringer og sletninger via forespørgsel, som et workflows opdaterings- og sletningstrin, svarer med, hvor mange poster de ændrede, `0` når de ikke nåede nogen. Terraform læser en `404` ved `terraform destroy` som en ressource, der allerede er væk.
+En sletning, der ikke nåede noget, svarede tidligere `200`. Opdateringer og sletninger via forespørgsel, som en arbejdsgangs opdaterings- og sletningstrin, svarer med, hvor mange poster de ændrede, `0` når de ikke nåede nogen. Terraform læser en `404` ved `terraform destroy` som en ressource, der allerede er væk.
 
 Telemetri følger samme regel. En sletning af logs, traces, metrikker, undtagelser, profiler eller sessionsoptagelser når rækkerne for de ressourcer - tjenester, værter, klynger og lignende -, hvis telemetri du både må læse og slette, og foretages ét projekt ad gangen: en forespørgsel på tværs af alle dine projekter afvises. En sletning af én række ud fra dens ID, der intet når, svarer `404` eller `422` som ovenfor.
 

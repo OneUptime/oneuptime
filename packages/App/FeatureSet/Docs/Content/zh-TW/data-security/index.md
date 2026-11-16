@@ -43,7 +43,7 @@ flowchart TB
 
 ## 開始之前
 
-- **能設定它的角色。** Project Owner、Project Admin 和 Security Admin 可以變更資料安全的設定。Security Member 可以處理問題和掃描資料儲存區，Security Viewer 可以讀取它找到的內容。除非其團隊被授予相應的權限，否則其他角色什麼也看不到：哪些儲存貯體保存了卡號，正是攻擊者想知道的事。請參閱 [角色](/docs/permissions/reference#角色)。
+- **能設定它的角色。** 專案擁有者、專案管理員和安全性管理員可以變更資料安全的設定。安全性成員可以處理問題和掃描資料儲存區，安全性檢視者可以讀取它找到的內容。除非其團隊被授予相應的權限，否則其他角色什麼也看不到：哪些儲存貯體保存了卡號，正是攻擊者想知道的事。請參閱 [角色](/docs/permissions/reference#角色)。
 - **一個要讀取的雲端帳戶，或一個資料庫。** 資料安全透過 [雲端連線](/docs/telemetry/cloud-accounts) 讀取雲端帳戶，並透過唯讀連線字串讀取你自行執行的資料庫。遙測不需要任何設定：它每小時掃描一次。
 
 ## 快速入門
@@ -69,7 +69,7 @@ flowchart TB
 | AWS | AWS S3 Bucket、AWS RDS Instance、AWS Aurora Cluster、AWS RDS Snapshot、AWS DynamoDB Table、AWS Redshift Cluster、AWS DocumentDB Cluster、AWS OpenSearch Domain、AWS ElastiCache Cluster、AWS EFS File System、Amazon Athena | AWS S3 Bucket |
 | Azure | Azure Storage Account、Azure SQL Database、Azure Cosmos DB Account、Azure PostgreSQL Server、Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket、Google Cloud SQL Instance、Google BigQuery Dataset、Google Firestore Database、Google Spanner Instance、Google Bigtable Instance | Google Cloud Storage Bucket、Google BigQuery Dataset |
-| 你自行執行的資料庫 | PostgreSQL、MySQL、MongoDB、SQL Server、Oracle、Redis、Elasticsearch、Snowflake、ClickHouse、Databricks、Microsoft Dataverse | PostgreSQL、MySQL |
+| 你自行執行的資料庫 | PostgreSQL、MySQL、MongoDB、SQL Server、Oracle、Redis、Elasticsearch、Snowflake、ClickHouse、Databricks、Microsoft Dataverse | PostgreSQL、MySQL、SQL Server |
 | OneUptime | 日誌、追蹤、例外、工作階段重播、AI 對話 | 日誌、追蹤、例外、工作階段重播、AI 對話 |
 
 每個資料儲存區都會執行適用於其種類的檢查。無法對內容取樣的資料儲存區仍會接受檢查：公開的儲存貯體或未加密的資料庫，無論其中保存什麼，都是缺失。

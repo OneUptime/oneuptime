@@ -23,7 +23,7 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 
 ## 開始之前
 
-- 在 OneUptime 中擁有 Project Owner、Project Admin 或 Security Admin 角色。Security Member 和 Security Viewer 可以檢視連線及其執行歷史，但不能更改它們。
+- 在 OneUptime 中擁有專案擁有者、專案管理員或安全性管理員角色。安全性成員和安全性檢視者可以檢視連線及其執行歷史，但不能更改它們。
 - 一個擁有 Microsoft Defender XDR 授權的 Microsoft Entra 租用戶：任何已加入 Microsoft Defender 入口網站的 Defender 工作負載都可以，例如 Defender for Endpoint、for Identity、for Office 365 或 for Cloud Apps。
 - 一個可以註冊應用程式的 Entra 角色，例如 Application Administrator，以及一位能授予管理員同意的 Global Administrator 或 Privileged Role Administrator。
 - 從 OneUptime 應用程式和工作程序到 `login.microsoftonline.com` 和 `graph.microsoft.com` 的傳出 HTTPS；對於 Azure Government，則是到 `login.microsoftonline.us` 和 `graph.microsoft.us`。

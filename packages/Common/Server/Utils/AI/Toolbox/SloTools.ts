@@ -51,6 +51,7 @@ import {
   AI_READ_RECORD_TABLE_CELLS,
   AI_READ_RECORD_TABLE_LINES,
   AI_READ_RECORD_TABLE_TITLES,
+  AI_TOOL_CITATIONS,
 } from "../../../../Types/AI/AIReadTableWords";
 import { citationSentence, countFigure } from "./ReadTableWords";
 import {
@@ -58,6 +59,12 @@ import {
   SloRecommendedBurnRateRule,
   getMissingSloRecommendedBurnRateRules,
 } from "../../../../Utils/Slo/SloRecommendedBurnRateRules";
+import {
+  formatRequestCount,
+  getBadRequestKind,
+  isEventSliType,
+} from "../../../../Utils/Slo/SloRequestSli";
+import SliType from "../../../../Types/ServiceLevelObjective/SliType";
 
 /*
  * Derived from the model ACL so the tool gate can never drift from RBAC.
@@ -104,6 +111,59 @@ function joinNames(items: Array<{ name?: string }> | undefined): string {
       return value.length > 0;
     })
     .join(", ");
+}
+
+// A count from a decimal column, which can arrive as text; undefined if none.
+function toCount(
+  value: number | string | undefined | null,
+): number | undefined {
+  if (value === undefined || value === null || value === "") {
+    return undefined;
+  }
+
+  const parsed: number = typeof value === "number" ? value : Number(value);
+
+  return Number.isFinite(parsed) ? Math.round(parsed) : undefined;
+}
+
+/*
+ * A request SLO's budget in words the assistant can repeat (#8441): "120 of
+ * 1,000 failed requests left", "50 slow requests over budget". Empty
+ * before the first evaluation.
+ */
+export function formatRequestBudgetForAssistant(data: {
+  sliType: SliType | string | undefined | null;
+  remaining: number | string | undefined | null;
+  total: number | string | undefined | null;
+}): string {
+  const remaining: number | undefined = toCount(data.remaining);
+
+  if (remaining === undefined) {
+    return "";
+  }
+
+  // A Metric SLO's events are whatever its metric counts (#8445).
+  const isMetric: boolean = data.sliType === SliType.Metric;
+  const kind: string = isMetric ? "bad" : getBadRequestKind(data.sliType);
+  const nounOf: (count: string) => string = (count: string): string => {
+    if (isMetric) {
+      return count === "1" ? "event" : "events";
+    }
+
+    return count === "1" ? "request" : "requests";
+  };
+
+  if (remaining < 0) {
+    const over: string = formatRequestCount(remaining);
+
+    return `${over} ${kind} ${nounOf(over)} over budget`;
+  }
+
+  const total: string = formatRequestCount(toCount(data.total) ?? 0);
+
+  return `${formatRequestCount(remaining)} of ${total} ${kind} ${nounOf(
+    total,
+  )} left`;
 }
 
 /*
@@ -418,6 +478,18 @@ export const QuerySlosTool: ObservabilityTool = {
             errorBudgetRemainingPercentage: true,
             errorBudgetRemainingSeconds: true,
             errorBudgetTotalSeconds: true,
+            // A request SLO's budget, counted in requests (#8441).
+            errorBudgetRemainingEvents: true,
+            errorBudgetTotalEvents: true,
+            goodEventCount: true,
+            totalEventCount: true,
+            latencyThresholdInMilliseconds: true,
+            // Which of the services' requests it counts (#8444).
+            requestFilter: true,
+            services: {
+              _id: true,
+              name: true,
+            },
             currentBurnRate: true,
             currentErrorBudgetPolicyTierId: true,
             currentErrorBudgetPolicyTierName: true,
@@ -462,6 +534,39 @@ export const QuerySlosTool: ObservabilityTool = {
           errorBudgetRemainingPercentage: slo.errorBudgetRemainingPercentage,
           errorBudgetRemainingSeconds: slo.errorBudgetRemainingSeconds,
           errorBudgetTotalSeconds: slo.errorBudgetTotalSeconds,
+          /*
+           * A request SLO (Request Success, Request Latency) measures its
+           * services' requests: its budget is bad requests, not seconds, so
+           * the assistant says "120 of 1,000 failed requests left" rather
+           * than an empty duration.
+           */
+          ...(isEventSliType(slo.sliType)
+            ? {
+                services: joinNames(slo.services) || undefined,
+                // Request SLOs only: a Metric SLO says what it counts in metricQueryConfig.
+                latencyThresholdInMilliseconds:
+                  slo.sliType === SliType.Metric
+                    ? undefined
+                    : slo.latencyThresholdInMilliseconds ?? undefined,
+                // Empty: every request of its services counts.
+                requestFilter:
+                  slo.sliType === SliType.Metric
+                    ? undefined
+                    : slo.requestFilter || undefined,
+                goodRequestCount: toCount(slo.goodEventCount),
+                totalRequestCount: toCount(slo.totalEventCount),
+                errorBudgetRemainingRequests: toCount(
+                  slo.errorBudgetRemainingEvents,
+                ),
+                errorBudgetTotalRequests: toCount(slo.errorBudgetTotalEvents),
+                errorBudgetRemaining:
+                  formatRequestBudgetForAssistant({
+                    sliType: slo.sliType,
+                    remaining: slo.errorBudgetRemainingEvents,
+                    total: slo.errorBudgetTotalEvents,
+                  }) || undefined,
+              }
+            : {}),
           currentBurnRate: slo.currentBurnRate,
           currentErrorBudgetPolicyTier:
             slo.currentErrorBudgetPolicyTierName || undefined,
@@ -887,7 +992,8 @@ export const QuerySlosTool: ObservabilityTool = {
             SloStatus,
           ).join(", ")}.`,
           rowCount: 0,
-          citationLabel: "SLOs (invalid status filter)",
+          // In the reader's language (issue #8311).
+          ...citationSentence(AI_TOOL_CITATIONS.slosInvalidStatus),
           redactionCount: 0,
           isTruncated: false,
         };

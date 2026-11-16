@@ -37,7 +37,7 @@ flowchart TB
 ## 시작하기 전에
 
 - **도착하는 메트릭.** [OpenTelemetry](/docs/telemetry/open-telemetry)로 보내거나, [호스트용 OpenTelemetry Collector](/docs/telemetry/host-otel-collector)나 [Kubernetes 에이전트](/docs/telemetry/kubernetes-agent) 같은 에이전트에서 보냅니다.
-- **텔레메트리를 읽을 수 있는 역할.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member, Telemetry Viewer 중 하나이거나 Read Metrics 권한이 있는 사용자 지정 역할입니다. 역할이 어떤 메트릭을 읽는지는 [텔레메트리](/docs/permissions/index#텔레메트리)를 참고하세요.
+- **텔레메트리를 읽을 수 있는 역할.** 프로젝트 소유자, 프로젝트 관리자, 프로젝트 구성원, 뷰어, 텔레메트리 관리자, 텔레메트리 구성원, 텔레메트리 뷰어 중 하나이거나 Read Metrics 권한이 있는 사용자 지정 역할입니다. 역할이 어떤 메트릭을 읽는지는 [텔레메트리](/docs/permissions/index#텔레메트리)를 참고하세요.
 
 ## 메트릭 찾기
 
@@ -56,11 +56,11 @@ flowchart TB
 
 ### 집계 방법 고르기
 
-**Aggregate by**에서 차트의 각 지점에 있는 값을 어떻게 합칠지 고릅니다. 기본값인 Avg, Sum, Min, Max, Count, 또는 백분위수 P50, P75, P90, P95, P99입니다. 요청 소요 시간 같은 히스토그램 메트릭의 백분위수는 버킷에서 계산합니다.
+**집계 기준**에서 차트의 각 지점에 있는 값을 어떻게 합칠지 고릅니다. 기본값인 Avg, Sum, Min, Max, Count, 또는 백분위수 P50, P75, P90, P95, P99입니다. 요청 소요 시간 같은 히스토그램 메트릭의 백분위수는 버킷에서 계산합니다.
 
 ### 필터링과 그룹화
 
-**Filters & grouping**을 엽니다. **Filter by attributes**는 특정 `http.route`처럼 속성이 맞는 데이터 포인트만 남기고, **그룹화 기준**은 고른 속성의 값마다 선을 하나씩 그립니다. 예를 들어 호스트마다 선 하나입니다.
+**필터 및 그룹화**를 엽니다. **속성으로 필터링**은 특정 `http.route`처럼 속성이 맞는 데이터 포인트만 남기고, **그룹화 기준**은 고른 속성의 값마다 선을 하나씩 그립니다. 예를 들어 호스트마다 선 하나입니다.
 
 ### 차트 조정
 
@@ -95,7 +95,7 @@ flowchart TB
 | **로그** | 이 시간 범위와 필터로 [로그 탐색기](/docs/telemetry/logs-explorer)를 엽니다. |
 | **트레이스** | 이 시간 범위와 필터로 [트레이스 탐색기](/docs/telemetry/traces-explorer)를 엽니다. |
 | **조사** | 이 시간 범위의 로그, 트레이스, 예외를 보여 주는 사이드 패널을 엽니다. |
-| **이벤트** | 이 시간 범위의 인시던트와 알림을 차트에 표시합니다. |
+| **이벤트** | 이 시간 범위의 인시던트와 경고를 차트에 표시합니다. |
 | **Compare** | 각 차트에 이전 기간을 점선으로 그려, 무엇이 바뀌었는지 볼 수 있게 합니다. |
 
 차트를 드래그하면 그 순간을 확대하고, 두 번 클릭하면 다시 축소합니다. [시간 범위 확대](/docs/telemetry/charts-and-time-ranges)를 참고하세요.
@@ -209,7 +209,7 @@ service:
 ## 다음 단계
 
 :::cards
-- [메트릭 모니터](/docs/monitor/metrics-monitor): 메트릭이 임곗값을 넘으면 알림을 받습니다.
+- [메트릭 모니터](/docs/monitor/metrics-monitor): 메트릭이 임곗값을 넘으면 경고를 받습니다.
 - [대시보드 작성](/docs/dashboards/authoring): 차트를 나란히 놓습니다.
 - [검색 구문](/docs/telemetry/search-syntax): 검색 상자가 이해하는 모든 필터.
 :::

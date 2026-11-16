@@ -11,6 +11,7 @@ import {
 import {
   FirstOnCallPolicyCreate,
   buildFirstOnCallPolicy,
+  countRulesRunningPolicyInService,
 } from "Common/Utils/GuidedSetup/OnCallPolicyRecords";
 import {
   WEBSITE_MONITOR_SEEDS_MISSING,
@@ -84,6 +85,11 @@ export interface WebsiteDownPolicyRecord {
   name: string;
   // Who its escalation rules page: people's and teams' names.
   responders: Array<string>;
+  /*
+   * Archived since the run made it - in another tab, or by a teammate: it
+   * pages no one, so the run forgets it (#8432). Unset is in service.
+   */
+  isArchived?: boolean | undefined;
 }
 
 export const mayCreateMonitor: () => boolean = (): boolean => {
@@ -330,7 +336,17 @@ export default class WebsiteDownApi {
     };
   }
 
-  // What decides who is told: the project's policies and rules, and permissions.
+  /*
+   * What decides who is told: the project's policies and rules, and
+   * permissions. Only policies in service are counted: an archived one
+   * pages no one, so a project whose only policies are archived is one with
+   * no policy yet, and the setup makes one (#8234), as the monitor's "When
+   * this goes down" and Setup Health count them. So are the on-call rules:
+   * one counts only when it runs a policy in service. A rule whose only
+   * policies are archived pages no one either, and counted, the setup told
+   * such a project its own policies and rules decide, and made nothing
+   * (#8433). The rules are read with their policies, one list each.
+   */
   public static async loadWhoIsToldFacts(): Promise<WhoIsToldFacts> {
     const permissions: Omit<
       WhoIsToldFacts,
@@ -348,27 +364,48 @@ export default class WebsiteDownApi {
     };
 
     try {
-      const [policyCount, incidentRuleCount, alertRuleCount]: Array<number> =
-        await Promise.all([
-          ModelAPI.count<OnCallDutyPolicy>({
-            modelType: OnCallDutyPolicy,
-            query: {},
-          }),
-          ModelAPI.count<IncidentOnCallRule>({
-            modelType: IncidentOnCallRule,
-            query: {},
-          }),
-          ModelAPI.count<AlertOnCallRule>({
-            modelType: AlertOnCallRule,
-            query: {},
-          }),
-        ]);
+      const [policyCount, incidentRules, alertRules]: [
+        number,
+        ListResult<IncidentOnCallRule>,
+        ListResult<AlertOnCallRule>,
+      ] = await Promise.all([
+        ModelAPI.count<OnCallDutyPolicy>({
+          modelType: OnCallDutyPolicy,
+          query: { isArchived: false },
+        }),
+        ModelAPI.getList<IncidentOnCallRule>({
+          modelType: IncidentOnCallRule,
+          query: {},
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            _id: true,
+            onCallDutyPolicies: { _id: true, isArchived: true },
+          },
+          sort: {},
+        }),
+        ModelAPI.getList<AlertOnCallRule>({
+          modelType: AlertOnCallRule,
+          query: {},
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            _id: true,
+            onCallDutyPolicies: { _id: true, isArchived: true },
+          },
+          sort: {},
+        }),
+      ]);
 
       return {
         ...permissions,
         policyCount: policyCount ?? null,
-        incidentRuleCount: incidentRuleCount ?? null,
-        alertRuleCount: alertRuleCount ?? null,
+        incidentRuleCount: incidentRules?.data
+          ? countRulesRunningPolicyInService(incidentRules.data)
+          : null,
+        alertRuleCount: alertRules?.data
+          ? countRulesRunningPolicyInService(alertRules.data)
+          : null,
       };
     } catch {
       // Unknown counts make nothing: the person is told as the monitor's owner.
@@ -384,16 +421,20 @@ export default class WebsiteDownApi {
   /*
    * The project's first on-call policy, paging the people and teams picked
    * first, with an incident and an alert on-call rule that run it for every
-   * new incident and alert (OnCallDutyPolicyService.create).
+   * new incident and alert (OnCallDutyPolicyService.create) - named, and
+   * its rules too, in the language of the person setting it up (#7995).
    */
   public static async createPolicy(data: {
     userIds: Array<string>;
     teamIds: Array<string>;
+    translator: Translator;
   }): Promise<string> {
     // Built as Ask AI's set_up_paging builds it (Common).
     const create: FirstOnCallPolicyCreate = buildFirstOnCallPolicy({
       userIds: data.userIds,
       teamIds: data.teamIds,
+      translator: data.translator,
+      language: data.translator.language,
     });
 
     const response: HTTPResponse<OnCallDutyPolicy> =
@@ -412,7 +453,10 @@ export default class WebsiteDownApi {
     return id;
   }
 
-  // The run's policy and who it pages, or null when it is gone.
+  /*
+   * The run's policy, who it pages and whether it is archived - there, but
+   * paging no one (#8432) - or null when it is gone.
+   */
   public static async loadPolicy(
     id: string,
   ): Promise<WebsiteDownPolicyRecord | null> {
@@ -420,7 +464,7 @@ export default class WebsiteDownApi {
       await ModelAPI.getItem<OnCallDutyPolicy>({
         modelType: OnCallDutyPolicy,
         id: new ObjectID(id),
-        select: { _id: true, name: true },
+        select: { _id: true, name: true, isArchived: true },
       });
 
     if (!policy?.id) {
@@ -476,6 +520,7 @@ export default class WebsiteDownApi {
       id: policy.id.toString(),
       name: policy.name || WEBSITE_DOWN_POLICY_NAME,
       responders: responders,
+      isArchived: Boolean(policy.isArchived),
     };
   }
 

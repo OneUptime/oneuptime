@@ -1,6 +1,6 @@
 # Bytt fra PagerDuty
 
-**Importer fra et annet verktøy** henter PagerDuty-oppsettet ditt over til OneUptime på noen minutter. Med en skrivebeskyttet PagerDuty-API-nøkkel leser OneUptime brukerne, teamene, vaktplanene, eskaleringsretningslinjene og tjenestene dine, viser deg hva det fant, og oppretter det du krysser av for. Ingenting endres i PagerDuty.
+**Importer fra et annet verktøy** henter PagerDuty-oppsettet ditt over til OneUptime på noen minutter. Med en skrivebeskyttet PagerDuty-API-nøkkel leser OneUptime brukerne, teamene, vaktplanene, eskaleringspolicyene og tjenestene dine, viser deg hva det fant, og oppretter det du krysser av for. Ingenting endres i PagerDuty.
 
 :::cards
 - [Importer kontoen din](#importer-pagerduty-kontoen-din): Opprett en nøkkel, les kontoen din og kryss av for det som skal overføres.
@@ -25,7 +25,7 @@ flowchart TB
 
 ## Før du begynner
 
-- **Et OneUptime-prosjekt og retten til å opprette det du overfører.** Prosjekteiere og prosjektadministratorer kan overføre alt. Andre roller kan også kjøre en import og overføre de typene poster de kan opprette. Resten vises som ikke overført, med årsaken.
+- **Et OneUptime-prosjekt og retten til å opprette det du overfører.** Prosjekteiere og Prosjektadministratorer kan overføre alt. Andre roller kan også kjøre en import og overføre de typene poster de kan opprette. Resten vises som ikke overført, med årsaken.
 - **En skrivebeskyttet REST-API-nøkkel fra PagerDuty.** Administratorer og kontoeiere i PagerDuty kan opprette en. Importen skriver aldri til PagerDuty, så nøkkelen trenger bare lesetilgang.
 - **PagerDuty-regionen din.** Hvis du logger inn på en adresse som slutter på `eu.pagerduty.com`, ligger kontoen din i Europa. Ellers ligger den i USA.
 
@@ -42,7 +42,7 @@ Gå til **Prosjektinnstillinger** > **Avansert** > **Importer fra et annet verkt
 Under **Hvor er PagerDuty-kontoen din?** velger du **USA** eller **Europa**. Lim inn nøkkelen i **PagerDuty-API-nøkkel** og velg **Les PagerDuty-kontoen min**. En stor konto tar noen minutter, og du kan forlate siden mens den leses.
 
 ### Kryss av for det som skal overføres
-Forhåndsvisningen viser hva som ble funnet, med én del per type. Alt som ville blitt opprettet, er avkrysset fra start, unntatt tjenester som er slått av i PagerDuty, og personer som ikke er i noe team, noen vaktplan eller eskaleringsretningslinje. Under hvert element forteller OneUptime hva som ikke overføres akkurat som det var. Når et avkrysset element bruker noe du ikke har krysset av for, sier det fra, og **Kryss av for dem også** krysser det av.
+Forhåndsvisningen viser hva som ble funnet, med én del per type. Alt som ville blitt opprettet, er avkrysset fra start, unntatt tjenester som er slått av i PagerDuty, og personer som ikke er i noe team, noen vaktplan eller eskaleringspolicy. Under hvert element forteller OneUptime hva som ikke overføres akkurat som det var. Når et avkrysset element bruker noe du ikke har krysset av for, sier det fra, og **Kryss av for dem også** krysser det av.
 
 ### Start importen
 Hvis personer skal inviteres, velger du under **Inviter nye personer til** teamet de blir med i. Velg deretter **Start import**. Importen kjører i bakgrunnen: Du kan forlate siden, og rapporten venter på deg der.
@@ -57,7 +57,7 @@ Rapporten teller hva som ble opprettet, invitert og ikke overført, og viser hve
 | Brukere | Prosjektmedlemmer | Kobles på e-postadresse. Alle som ikke er i prosjektet ennå, inviteres til teamet du velger. |
 | Team | Team | Opprettes med medlemmene sine. Et team som prosjektet allerede har navnet på, brukes som det er, og medlemmene røres ikke. |
 | Vaktplaner | Vaktplaner | Hvert lag blir et lag med de samme personene, samme start, samme vaktlengde og de samme begrensningene, i vaktplanens tidssone, eid av vaktplanens team. Lagene beholder rekkefølgen, så et høyere lag går fortsatt foran lagene under. |
-| Eskaleringsretningslinjer | Vaktretningslinjer | Hver eskaleringsregel blir en eskaleringsregel som varsler de samme vaktplanene og brukerne og eskalerer etter den samme forsinkelsen. Retningslinjens gjentakelser blir vaktretningslinjens gjentakelser. |
+| Eskaleringspolicyer | Vaktpolicyer | Hver eskaleringsregel blir en eskaleringsregel som varsler de samme vaktplanene og brukerne og eskalerer etter den samme forsinkelsen. Policyens gjentakelser blir vaktpolicyens gjentakelser. |
 | Tjenester | Tjenester | Opprettes i tjenestekatalogen, eid av teamet sitt. En tjeneste som er slått av i PagerDuty, er ikke avkrysset fra start. |
 
 En PagerDuty-vaktplan forblir én OneUptime-vaktplan: Lagene går foran hverandre slik de gjør i PagerDuty. Et lag der vaktene ikke varer et helt antall timer, overføres med vakter avrundet til timen, og forhåndsvisningen sier det.
@@ -73,11 +73,11 @@ En PagerDuty-vaktplan forblir én OneUptime-vaktplan: Lagene går foran hverandr
 
 ## Grenser
 
-Én import oppretter høyst 2 000 poster: høyst 500 personer, 200 team, 200 vaktplaner, 200 vaktretningslinjer og 500 tjenester. Alt over en grense vises som ikke overført. Kjør importen på nytt for å overføre resten.
+Én import oppretter høyst 2 000 poster: høyst 500 personer, 200 team, 200 vaktplaner, 200 vaktpolicyer og 500 tjenester. Alt over en grense vises som ikke overført. Kjør importen på nytt for å overføre resten.
 
 I OneUptime Cloud vises poster som abonnementet ditt ikke inkluderer, som ikke overført, med abonnementet de trenger.
 
-En forhåndsvisning lagres i én dag. Bare personen som leste kontoen, kan krysse av og starte importen. Prosjekteiere og prosjektadministratorer ser fremdriften og rapporten for hver import.
+En forhåndsvisning lagres i én dag. Bare personen som leste kontoen, kan krysse av og starte importen. Prosjekteiere og Prosjektadministratorer ser fremdriften og rapporten for hver import.
 
 ## Fullfør byttet
 
@@ -95,7 +95,7 @@ Hvis teamet ditt omtaler hendelser med nummer, la numrene i OneUptime starte ett
 Pek monitorene dine og verktøyene som utløser varsler, mot OneUptime, og varsle deg selv én gang for å teste det.
 
 ### Slå av varsling i PagerDuty
-Når OneUptime varsler de riktige personene, slår du av varslene i PagerDuty, så ingen varsles to ganger.
+Når OneUptime varsler de riktige personene, slår du av varslingene i PagerDuty, så ingen varsles to ganger.
 :::
 
 ## Feilsøking
@@ -116,6 +116,6 @@ Ved hvert står det hvorfor: et navn prosjektet allerede har, noe en tidligere i
 
 :::cards
 - [Vaktplaner](/docs/on-call/schedules): Lag, begrensninger og overleveringer.
-- [Eskaleringsregler](/docs/on-call/escalation-rules): Hvordan vaktretningslinjer varsler personer.
+- [Eskaleringsregler](/docs/on-call/escalation-rules): Hvordan vaktpolicyer varsler personer.
 - [Bytt fra Opsgenie](/docs/moving-to-oneuptime/opsgenie): Hent et team over fra Opsgenie.
 :::

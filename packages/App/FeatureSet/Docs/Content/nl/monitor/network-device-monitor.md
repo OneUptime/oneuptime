@@ -256,14 +256,14 @@ Een [netwerklocatie](/docs/monitor/network-sites#monitoringstandaarden) heeft tw
 
 ## De override met gekoppelde monitor
 
-Sommige apparatuur kan geen sonde bereiken of zinvol pingen: een apparaat achter een NAT, een appliance waarvan de gezondheid beter met een HTTP-controle te beoordelen is, een dienst waarvan het echte signaal een poortcontrole is. Daarvoor heeft **Instellingen bewerken** op de pagina **Instellingen** van het apparaat een **Monitoring Method**:
+Sommige apparatuur kan geen sonde bereiken of zinvol pingen: een apparaat achter een NAT, een appliance waarvan de gezondheid beter met een HTTP-controle te beoordelen is, een dienst waarvan het echte signaal een poortcontrole is. Daarvoor heeft **Instellingen bewerken** op de pagina **Instellingen** van het apparaat een **Bewakingsmethode**:
 
 | Methode | Wat het betekent |
 | --- | --- |
 | **Sonde** | De standaard. Gepingd door de toegewezen sonde volgens haar schema, en via SNMP gewalkt als het inloggegevens heeft. |
-| **Bound monitor** | De status van een bestaande monitor is de status van dit apparaat. |
+| **Gekoppelde monitor** | De status van een bestaande monitor is de status van dit apparaat. |
 
-Een apparaat op **Bound monitor** zetten, stopt het pollen ervan. De sonde, het interval en de pollschakelaar verdwijnen van de kaart **Polling & Data Collection**, de oude pollresultaten van het apparaat worden gewist, en de status komt van de monitor die je koppelt. Er een koppelen is optioneel: tot je dat doet, toont het apparaat **In behandeling**, gemarkeerd met **Geen monitor**.
+Een apparaat op **Gekoppelde monitor** zetten, stopt het pollen ervan. De sonde, het interval en de pollschakelaar verdwijnen van de kaart **Polling & Data Collection**, de oude pollresultaten van het apparaat worden gewist, en de status komt van de monitor die je koppelt. Er een koppelen is optioneel: tot je dat doet, toont het apparaat **In behandeling**, gemarkeerd met **Geen monitor**.
 
 Terugzetten naar **Sonde** herstelt het pollen en vraagt om een sonde. Een monitor die gekoppeld was, blijft gekoppeld en blijft waarschuwen; hij bepaalt alleen niet langer de status van het apparaat.
 
@@ -655,13 +655,13 @@ Een ontdekte host krijgt de eerste van deze namen die hij heeft:
 3. Zijn reverse-DNS-naam, het PTR-record dat de sonde na de scan opzoekt.
 4. Zijn IP-adres.
 
-De eigen namen van het apparaat komen eerst omdat het de namen zijn die zijn eigenaren gebruiken: een Windows-host die `WB0024KDS03` heet, houdt die naam ook als zijn reverse-zone hem `wb-0024-kds03.wbhq.com` noemt. De reverse-DNS-naam blijft ook bewaard: **Resultaten bekijken** toont hem naast het adres, en het apparaat bewaart hem als zijn **DNS Name**. NetBIOS kort een computernaam in tot 15 tekens, dus een NetBIOS-naam die het begin is van een langere reverse-DNS-naam (`WB-0024-KITCHEN` voor `wb-0024-kitchen-display-03.wbhq.com`) wijkt voor de reverse-DNS-naam.
+De eigen namen van het apparaat komen eerst omdat het de namen zijn die zijn eigenaren gebruiken: een Windows-host die `WB0024KDS03` heet, houdt die naam ook als zijn reverse-zone hem `wb-0024-kds03.wbhq.com` noemt. De reverse-DNS-naam blijft ook bewaard: **Resultaten bekijken** toont hem naast het adres, en het apparaat bewaart hem als zijn **DNS-naam**. NetBIOS kort een computernaam in tot 15 tekens, dus een NetBIOS-naam die het begin is van een langere reverse-DNS-naam (`WB-0024-KITCHEN` voor `wb-0024-kitchen-display-03.wbhq.com`) wijkt voor de reverse-DNS-naam.
 
 **Resultaten bekijken** toont de naam die een apparaat krijgt, en het krijgt dezelfde naam of je het daar importeert of een [auto-importregel](#automatisch-importeren-met-auto-importregels) dat doet. De hostnaam van het apparaat is altijd zijn IP-adres. Zolang de naam van een apparaat nog de naam is die discovery het gaf, toont het overzicht waar de naam vandaan kwam als **Naambron**.
 
 **Apparaten een naam geven op basis van de korte hostnaam** kort een volledig gekwalificeerde naam in tot zijn eerste label: `core-sw-01.corp.example.com` wordt geïmporteerd als `core-sw-01`. Het geldt voor een reverse-DNS-naam en voor een `sysName` die een volledig gekwalificeerde hostnaam is; al het andere (`Core Switch`, `ubuntu-22.04`, een IP-adres) blijft zoals het is. Het verandert alleen hoe apparaten heten, dus er is geen nieuwe scan nodig: **Resultaten bekijken** en auto-importregels gebruiken het de volgende keer dat ze een host een naam geven, en al geïmporteerde apparaten houden hun naam.
 
-Een apparaat dat is geïmporteerd van een host met een reverse-DNS-naam, bewaart de volledige naam als zijn **DNS Name**, of de scan nu korte namen gebruikt of niet. Die wordt getoond op het overzicht van het apparaat, de zoekfunctie van de lijst **Apparaten** vindt hem, en locatietoewijzingsregels toetsen hostnaampatronen eraan, zodat een regel `*.store-0660.corp.example.com` een apparaat waarvan de naam zijn domein kwijt is, blijft plaatsen. Een NetBIOS-naam wordt nooit als DNS Name opgeslagen: de host meldt hem over zichzelf, en het is geen DNS-record.
+Een apparaat dat is geïmporteerd van een host met een reverse-DNS-naam, bewaart de volledige naam als zijn **DNS-naam**, of de scan nu korte namen gebruikt of niet. Die wordt getoond op het overzicht van het apparaat, de zoekfunctie van de lijst **Apparaten** vindt hem, en locatietoewijzingsregels toetsen hostnaampatronen eraan, zodat een regel `*.store-0660.corp.example.com` een apparaat waarvan de naam zijn domein kwijt is, blijft plaatsen. Een NetBIOS-naam wordt nooit als DNS Name opgeslagen: de host meldt hem over zichzelf, en het is geen DNS-record.
 
 > [!WARNING]
 > Label- en eigenaarsregels toetsen aan de naam van het apparaat. Een patroon dat voor DNS-namen (`*.wbhq.com`) of volledige namen (`*.corp.example.com`) is geschreven, past niet op een apparaat dat naar zijn eigen naam of zijn korte naam heet. Locatietoewijzingsregels proberen ook de DNS Name, dus die blijven passen.
@@ -795,7 +795,7 @@ Zolang er nog geen beleid is, biedt de pagina **Create the recommended policy** 
 
 ### Eén apparaat tegelijk
 
-Open de pagina van het apparaat en klik op **Monitor maken** op de kaart **Monitors alerting on this device**. Het monitorformulier opent met het type Network Device en het apparaat gekozen, en het [aanbevolen waarschuwingspakket](#aanbevolen-waarschuwingspakket) ingevuld: bekijk het, stel ernstniveaus en dienstroosterbeleid in, en sla op.
+Open de pagina van het apparaat en klik op **Monitor maken** op de kaart **Monitors alerting on this device**. Het monitorformulier opent met het type Netwerkapparaat en het apparaat gekozen, en het [aanbevolen waarschuwingspakket](#aanbevolen-waarschuwingspakket) ingevuld: bekijk het, stel ernstniveaus en dienstroosterbeleid in, en sla op.
 
 De meeste switches, routers, firewalls en printers bieden op hun eigen adres ook een webinterface. **Webinterface monitoren**, op dezelfde kaart, opent daarvoor een **Website**-monitor: `https://` op het adres van het apparaat, met **Zelfondertekende certificaten toestaan** aan, omdat de webinterface van een apparaat er bijna altijd een heeft, gecontroleerd vanaf de eigen sonde van het apparaat en genoemd naar het apparaat. Pas de URL aan als de interface antwoordt via `http`, op een andere poort of onder een pad, en sla daarna op. De kaart toont de monitor zolang zijn naam de naam van het apparaat bevat en zijn URL op het adres van het apparaat ligt; de status van het apparaat verandert er niet door.
 
@@ -1014,13 +1014,13 @@ Selecteer apparaten, of elk apparaat dat bij de zoekopdracht past, en dan:
 
 De eigen knoppen van een rij doen hetzelfde voor één apparaat. Op de kaart staat het IP-adres van een knooppunt onder zijn naam, en de zoekfunctie vindt een knooppunt ook op zijn IP-adres of MAC-adres, hoe een switch het ook schreef. Klik op de kaart op een gedetecteerd apparaat en het paneel biedt **Toevoegen aan bewaking**, dat het op dezelfde manier toevoegt, naast **Verbergen op kaart**.
 
-Een apparaat dat 30 dagen niet is gezien, wordt uit de lijst en van de kaart verwijderd, tenzij het wordt bewaakt, geclassificeerd is of door iemand is toegevoegd of gewijzigd. De regel onder de lijst zegt hoelang apparaten blijven; projecteigenaren en projectbeheerders wijzigen dat onder **Meer instellingen → Niet-geziene apparaten → Verwijderen na**: 7, 14, 30, 60, 90, 180 of 365 dagen, of **Nooit**. De lijst wordt elk uur gecontroleerd, en niets wat een switch of controller zag, wordt verwijderd zolang die niets meldt. Een verwijderd apparaat dat weer wordt gezien, komt terug als nieuw en staat op de kaart, ook als het eerder verborgen was.
+Een apparaat dat 30 dagen niet is gezien, wordt uit de lijst en van de kaart verwijderd, tenzij het wordt bewaakt, geclassificeerd is of door iemand is toegevoegd of gewijzigd. De regel onder de lijst zegt hoelang apparaten blijven; Projecteigenaren en Projectbeheerders wijzigen dat onder **Meer instellingen → Niet-geziene apparaten → Verwijderen na**: 7, 14, 30, 60, 90, 180 of 365 dagen, of **Nooit**. De lijst wordt elk uur gecontroleerd, en niets wat een switch of controller zag, wordt verwijderd zolang die niets meldt. Een verwijderd apparaat dat weer wordt gezien, komt terug als nieuw en staat op de kaart, ook als het eerder verborgen was.
 
 ### De indeling kiezen waarmee de kaart opent
 
 **Map options → Arrange the map** deelt de kaart in als **Automatisch**, **By network layer**, **Concentric**, **Hub and spoke** of **Parent and child**. De kaart opent met de indeling die als **Standaard** is gemarkeerd: **Automatisch** voor alle apparaten en **By network layer** voor een locatie, tenzij je project een indeling voor iedereen heeft gekozen. Iedereen kan tijdens het bekijken van indeling wisselen; de volgende keer opent de kaart weer met de standaard.
 
-Projecteigenaren en projectbeheerders kiezen de standaard: wissel naar een indeling en selecteer **Make default for everyone**. Daarna opent elke weergave van de apparaatkaart ermee: **Apparaattopologie**, een locatie op de **Kaart**, en het tabblad **Netwerk** van **Topologie**. Op de standaardindeling zet **Clear default** elke kaart terug op haar eigen standaard. Versleepte posities worden per indeling in je browser opgeslagen, zodat de kaart opent met de schikking die je in die indeling hebt gemaakt.
+Projecteigenaren en Projectbeheerders kiezen de standaard: wissel naar een indeling en selecteer **Make default for everyone**. Daarna opent elke weergave van de apparaatkaart ermee: **Apparaattopologie**, een locatie op de **Kaart**, en het tabblad **Netwerk** van **Topologie**. Op de standaardindeling zet **Clear default** elke kaart terug op haar eigen standaard. Versleepte posities worden per indeling in je browser opgeslagen, zodat de kaart opent met de schikking die je in die indeling hebt gemaakt.
 
 ### Je weg vinden in een groot netwerk
 
@@ -1055,7 +1055,7 @@ Klikken op een beheerd apparaat op de kaart opent zijn zijpaneel, en de sectie *
 - **Ping** stuurt vijf ICMP-echoverzoeken naar het apparaat en meldt of het antwoordde, de minimale, gemiddelde en maximale rondetijd, de jitter en het pakketverlies. Een apparaat dat op een deel ervan antwoordt, wordt als bereikbaar gemeld, met pakketverlies.
 - **Traceroute** meldt het pad van de sonde naar het apparaat hop voor hop — het hopnummer, de host die antwoordde en zijn rondetijd —, met hops zonder antwoord gemarkeerd als `* * *` en, als de route het apparaat niet bereikte, de hop waarop ze brak.
 
-Beide draaien vanaf de toegewezen sonde van het apparaat, niet vanaf de OneUptime-server, dus het antwoord is het zicht vanaf de plek waar het apparaat echt gemonitord wordt. De sonde pakt het verzoek binnen ongeveer tien seconden op en het resultaat verschijnt zodra ze terugmeldt. Als de sonde na twee minuten niet heeft geantwoord, zegt het paneel dat en stelt het voor te controleren of de sonde online is en een versie draait die diagnostiek ondersteunt. Een apparaat zonder sonde toont in plaats van de knoppen een notitie die naar zijn pagina **Instellingen** verwijst. Een diagnose uitvoeren vereist het recht **Create Network Device Diagnostic**, dat projectleden hebben; zonder dat recht zijn de knoppen verborgen, maar wordt de rondetijdgrafiek nog steeds getoond.
+Beide draaien vanaf de toegewezen sonde van het apparaat, niet vanaf de OneUptime-server, dus het antwoord is het zicht vanaf de plek waar het apparaat echt gemonitord wordt. De sonde pakt het verzoek binnen ongeveer tien seconden op en het resultaat verschijnt zodra ze terugmeldt. Als de sonde na twee minuten niet heeft geantwoord, zegt het paneel dat en stelt het voor te controleren of de sonde online is en een versie draait die diagnostiek ondersteunt. Een apparaat zonder sonde toont in plaats van de knoppen een notitie die naar zijn pagina **Instellingen** verwijst. Een diagnose uitvoeren vereist het recht **Create Network Device Diagnostic**, dat Projectleden hebben; zonder dat recht zijn de knoppen verborgen, maar wordt de rondetijdgrafiek nog steeds getoond.
 
 Resultaten worden twee dagen bewaard en daarna verwijderd. Dezelfde hulpmiddelen staan op het overzicht van het apparaat, op de kaart **Connectivity tools**, voor als je bij het apparaat uitkomt in plaats van bij de kaart.
 

@@ -1,4 +1,5 @@
 import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import {
   composedValue,
   createTranslator,
@@ -197,6 +198,8 @@ export const SLO_OVERVIEW_FIXED_TEXTS: ReadonlyArray<string> = [
   // getSliTypeText
   translationKey("Metric"),
   translationKey("Monitor uptime"),
+  translationKey("Request success"),
+  translationKey("Request latency"),
   // getSloDowntimeStatusesText([])
   translationKey("Every non-operational status"),
   // getSloBudgetRemainingText
@@ -278,8 +281,6 @@ export const getSloAllowedDowntimeTextInLanguage: (
     { duration: duration },
   );
 };
-
-const EM_DASH: string = "—";
 
 /*
  * A share of the error budget as a duration in a sentence: "12m 30s", and
@@ -524,14 +525,14 @@ export const getSloBudgetRunwayTextInLanguage: (
   switch (runway.kind) {
     case SloBudgetRunwayKind.NotEvaluated:
       return {
-        value: EM_DASH,
+        value: EMPTY_VALUE_MARK,
         description:
           translator.translateText(SLO_NOT_EVALUATED_TEXT) ||
           SLO_NOT_EVALUATED_TEXT,
       };
     case SloBudgetRunwayKind.NotProjected:
       return {
-        value: EM_DASH,
+        value: EMPTY_VALUE_MARK,
         description:
           translator.translateText(runway.description) || runway.description,
       };

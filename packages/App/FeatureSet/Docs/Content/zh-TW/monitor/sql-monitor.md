@@ -108,7 +108,7 @@ ALTER ROLE db_datareader ADD MEMBER oneuptime_ro;
 :::steps
 ### 開始一個新的監測器
 
-前往 **監測器**，點選 **建立監測器**。在 **監測器類型** 下點選 **更多監測器類型**，然後在 **資料庫監控** 下選擇 **SQL Query**，或在搜尋方塊中輸入 `query`。輸入 **名稱**，然後點選 **下一步**。
+前往 **監測器**，點選 **建立監測器**。在 **監測器類型** 下點選 **更多監測器類型**，然後在 **資料庫監控** 下選擇 **SQL 查詢**，或在搜尋方塊中輸入 `query`。輸入 **名稱**，然後點選 **下一步**。
 
 ### 輸入連線資訊
 
@@ -116,7 +116,7 @@ ALTER ROLE db_datareader ADD MEMBER oneuptime_ro;
 
 ### 輸入查詢
 
-在 **SQL Query** 中輸入一條唯讀陳述式（請參閱[撰寫查詢](#撰寫查詢)）。
+在 **SQL 查詢** 中輸入一條唯讀陳述式（請參閱[撰寫查詢](#撰寫查詢)）。
 
 ### 測試
 
@@ -142,7 +142,7 @@ ALTER ROLE db_datareader ADD MEMBER oneuptime_ro;
 | **驗證** | 僅限 Microsoft SQL Server：預設的 **使用者名稱與密碼**，或以執行探測器的帳戶登入的 **Windows Integrated Authentication**。請參閱 [Windows 整合式驗證](#windows-整合式驗證)。 |
 | **使用者名稱** | 唯讀的最小權限資料庫使用者。 |
 | **密碼** | 資料庫密碼。我們強烈建議以 `{{monitorSecrets.name}}` 參照一個 [監控密鑰](/docs/monitor/monitor-secrets)，而不是以純文字輸入密碼（請參閱[為密碼使用監控密鑰](#為密碼使用監控密鑰)）。 |
-| **SQL Query** | 要執行的唯讀查詢（請參閱[撰寫查詢](#撰寫查詢)）。 |
+| **SQL 查詢** | 要執行的唯讀查詢（請參閱[撰寫查詢](#撰寫查詢)）。 |
 | **Use SSL/TLS** | 啟用後透過 TLS 連線。啟用後，如果資料庫使用自我簽署的憑證，你可以關閉 **Verify server certificate**。 |
 
 ### 更多欄位
@@ -151,7 +151,7 @@ ALTER ROLE db_datareader ADD MEMBER oneuptime_ro;
 |---|---|---|---|
 | **Connection Timeout (ms)** | `10000` | `30000` | 等待建立連線的時間。 |
 | **Statement Timeout (ms)** | `15000` | `60000` | 查詢可執行時間的硬性上限。 |
-| **Max Rows** | `100` | `1000` | 從資料庫讀回的資料列數上限。 |
+| **最大列數** | `100` | `1000` | 從資料庫讀回的資料列數上限。 |
 
 超過最大值的值會被降為最大值。
 
@@ -216,7 +216,7 @@ WHERE status = 'CANCELLED'
 3. 在監測器的 **密碼** 欄位中輸入 `{{monitorSecrets.dbPassword}}`。
 :::
 
-OneUptime 會在把設定交給探測器之前，於伺服器端解析密鑰。OneUptime 永遠不會替你建立這些密鑰：要不要參照由你決定。**使用者名稱**、**主機**、**資料庫名稱** 和 **SQL Query** 欄位也接受密鑰參照；**連接埠** 則不接受。
+OneUptime 會在把設定交給探測器之前，於伺服器端解析密鑰。OneUptime 永遠不會替你建立這些密鑰：要不要參照由你決定。**使用者名稱**、**主機**、**資料庫名稱** 和 **SQL 查詢** 欄位也接受密鑰參照；**連接埠** 則不接受。
 
 ## 設定條件
 
@@ -231,7 +231,7 @@ OneUptime 會在把設定交給探測器之前，於伺服器端解析密鑰。O
 | **SQL 查詢錯誤** | 查詢的錯誤訊息。在它為空（或不為空），或符合特定字串時發出警示。 |
 | **JavaScript 運算式** | 對 `rowCount`、`scalarValue`、`firstRow`、`executionTimeInMs`、`queryError` 和 `isOnline` 求值一個自訂 JavaScript 運算式。請參閱 [JavaScript 運算式](/docs/monitor/javascript-expression#sql-查詢監測器)。 |
 
-數值門檻是整數：寫 `10`，不要寫 `10.5`。SQL Query 篩選器無法在一段時間內求值；每次檢查都各自獨立判斷。
+數值門檻是整數：寫 `10`，不要寫 `10.5`。SQL 查詢 篩選器無法在一段時間內求值；每次檢查都各自獨立判斷。
 
 新的 SQL 查詢監測器一開始有兩個條件：**SQL 是否在線** 為 false 時，監測器離線並宣告一個會自動解決的事件；**SQL 是否在線** 為 true 時，將它標示為上線。**新增條件準則** 會在底部加入一個條件；請把它拖到上線條件之上，因為條件是由上往下檢查，第一個符合的條件說了算。
 

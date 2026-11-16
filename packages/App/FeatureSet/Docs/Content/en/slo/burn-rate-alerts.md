@@ -132,7 +132,7 @@ On **Rule**, enter a **Name**, such as "Fast burn". A new rule is on; to stop it
 
 ### Set the burn window
 
-On **Burn Window**, set the **Burn Rate Threshold** (for example `14.4`), the **Long Window (Minutes)** and **Short Window (Minutes)**, and optionally the **Re-fire Suppression (Minutes)**.
+On **Burn Window**, set the **Burn Rate Threshold** (for example `14.4`), the **Long Window (Minutes)** and **Short Window (Minutes)**, and optionally the **Re-fire Suppression (Minutes)**. A request SLO's rule also takes **Minimum Requests**, for example `100`: the rule skips a long window that holds fewer requests than that. A Metric SLO's rule takes **Minimum Events** the same way, in its metric's events.
 
 ### Choose what it declares
 
@@ -151,10 +151,12 @@ OneUptime checks a rule's numbers when you save it:
 | **Short Window (Minutes)** | Greater than 0. |
 | **Long Window (Minutes)** | Longer than the short window. |
 | **Re-fire Suppression (Minutes)** | 0 or more. Empty means the length of the long window. |
+| **Minimum Requests** | A whole number, 0 or more. Empty means no minimum. |
+| **Minimum Events** | A whole number, 0 or more. Empty means no minimum. |
 
 Every answer to **When it fires** opens something. The API refuses a rule that would create no alert and declare no incident, because it would be checked at every evaluation and never declare anything.
 
-The rules table shows, for each rule, its threshold, its windows and suppression, what it declares (and whether the alert or incident is resolved only by hand, or private), its severities, on-call policies, owners and labels.
+The rules table shows, for each rule, its threshold, its windows and suppression, what it declares (and whether the alert or incident is resolved only by hand, or private), its severities, on-call policies, owners and labels. For a request SLO, it also says each rule's minimum under its windows.
 
 > [!TIP]
 > A good start: keep the three default rules, send the fast-burn rule to your paging on-call policy at a high severity, let the slow-burn rule raise a lower-severity alert for working hours, and leave the slow-leak rule as a ticket for the owning team. If your team runs everything through incidents, pick **Declare an incident** for the fast-burn rule, or **Both** to get an alert as well.
@@ -212,8 +214,8 @@ To write your own, use template variables in the title, the description and the 
 | `{{targetPercentage}}` | The SLO's target, as a percentage. | `99.9` |
 | `{{currentSliPercentage}}` | The SLI measured over the SLO's compliance window, as a percentage. | `99.87` |
 | `{{errorBudgetRemainingPercentage}}` | Share of the error budget still left, as a percentage. Negative once the budget is overspent. | `42.5` |
-| `{{errorBudgetRemaining}}` | Error budget still left, as a duration. Starts with a minus sign once the budget is overspent. | `18m 22s` |
-| `{{errorBudgetRemainingMinutes}}` | Error budget still left, in minutes. | `18.37` |
+| `{{errorBudgetRemaining}}` | Error budget still left, as a duration, or as the failed or slow requests it still allows for a request SLO. Starts with a minus sign once the budget is overspent. | `18m 22s` |
+| `{{errorBudgetRemainingMinutes}}` | Error budget still left, in minutes. Empty for a request SLO, whose budget is counted in requests. | `18.37` |
 | `{{windowDescription}}` | The SLO's compliance window, in words. | `rolling 30-day window` |
 | `{{policyTier}}` | Name of the error budget policy tier the SLO is in after this evaluation. "None" when it is in no tier. | `Reliability first` |
 | `{{policyTierThresholdPercentage}}` | Budget-left threshold of that tier, as a percentage. Empty when the SLO is in no tier. | `25` |
@@ -235,7 +237,7 @@ For example, the title `{{ruleName}}: {{sloName}} is burning {{longWindowBurnRat
 - **Add SLO Owners as Owners** also adds the SLO's owners, its owner users and the members of its owner teams, to everything the rule creates. SLO owners already hear about the SLO's own status changes, so this can notify them twice. It is off by default.
 - Each owner is added once: a user who already owns the alert or incident, for example through the project's owner rules, or who is in an owner team being added, is not added again.
 - **Alert Labels** and **Incident Labels** are added to the alert or incident, so filters, owner rules and workspace notification rules can match it.
-- A private alert or incident is visible only to its owners, project admins and project owners.
+- A private alert or incident is visible only to its owners, Project Admins and Project Owners.
 
 Labels, owner teams and on-call policies must belong to the SLO's project.
 
@@ -276,7 +278,7 @@ Burn rate rules stay quiet while any of the SLO's monitors is in an ongoing main
 :::
 
 :::details Is there a minimum sample count?
-Not for SLOs measured from monitor uptime. Uptime is measured in seconds, so every second in the window is a sample and there is no low-traffic case to guard against. A minimum sample count matters only for SLIs based on events, which are not available yet.
+Not for SLOs measured from monitor uptime. Uptime is measured in seconds, so every second in the window is a sample and there is no low-traffic case to guard against. A request SLO's rule has one: set its **Minimum Requests**, and the rule skips a long window with fewer requests than that, so a quiet hour with one failed request out of five pages no one.
 :::
 
 ## Next steps

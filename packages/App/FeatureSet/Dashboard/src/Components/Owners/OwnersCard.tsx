@@ -605,7 +605,7 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
             </div>
             <div ref={popup.anchorRef} className="mt-4 inline-block">
               {lockReason ? (
-                <Tooltip text={lockReason}>
+                <Tooltip text={lockReason} isTextTranslated={true}>
                   {/*
                    * Locked: still on screen, saying why. A disabled button
                    * takes no pointer or focus, so the wrapper carries the
@@ -678,7 +678,7 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
               })}
               <div ref={popup.anchorRef} className="relative">
                 {lockReason ? (
-                  <Tooltip text={lockReason}>
+                  <Tooltip text={lockReason} isTextTranslated={true}>
                     <span
                       tabIndex={0}
                       data-testid="owners-add-locked"
@@ -700,7 +700,7 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
                     </span>
                   </Tooltip>
                 ) : (
-                  <Tooltip text={addOwnerText}>
+                  <Tooltip text={addOwnerText} isTextTranslated={true}>
                     <button
                       type="button"
                       data-testid="owners-add-circle"

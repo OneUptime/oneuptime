@@ -49,13 +49,13 @@ Deze vier widgets lezen een metrics-query, opgebouwd zoals de metrics-verkenner 
 
 ### Grafiek
 
-Een tijdreeks van een of meer metrics-query's over het tijdsbereik van het dashboard. **Chart Type** tekent haar als lijn-, staaf-, vlak-, gestapelde vlak- of cirkeldiagram. **Additional Queries** legt meer metrics op dezelfde assen, en **Formulas** combineert ze met `+`, `-`, `*`, `/`, `%`, `^` en haakjes, zoals in `(1 - a) * 100`. De weergave-instellingen van elke query voegen een legenda en een eenheid toe, een kleur, waarschuwings- en kritieke lijnen, en een snelheid per seconde voor tellers die alleen maar groeien.
+Een tijdreeks van een of meer metrics-query's over het tijdsbereik van het dashboard. **Grafiektype** tekent haar als lijn-, staaf-, vlak-, gestapelde vlak- of cirkeldiagram. **Extra query's** legt meer metrics op dezelfde assen, en **Formules** combineert ze met `+`, `-`, `*`, `/`, `%`, `^` en haakjes, zoals in `(1 - a) * 100`. De weergave-instellingen van elke query voegen een legenda en een eenheid toe, een kleur, waarschuwings- en kritieke lijnen, en een snelheid per seconde voor tellers die alleen maar groeien.
 
 Gebruik hem als de vorm van de lijn het verhaal vertelt: latentie, fouten, doorvoer of de lengte van een wachtrij.
 
 ### Waarde
 
-Eén groot getal met een sparkline: de waarde van de query over het hele tijdsbereik, opgeteld voor een som of een telling, de hoogste voor een maximum, de laagste voor een minimum, en anders het gemiddelde. Een pijl vergelijkt de tweede helft van het bereik met de eerste, elke helft op dezelfde manier berekend, gekleurd volgens **Trend Direction**: of een hogere waarde beter of slechter is, of afgeleid uit de naam van de metric. Wijs de pijl aan om de waarde van beide helften te zien, en de sparkline om de waarde en het tijdstip van elk punt af te lezen. **Waarschuwingsdrempel** maakt de achtergrond geel en **Kritieke drempel** rood zodra de waarde ze bereikt.
+Eén groot getal met een sparkline: de waarde van de query over het hele tijdsbereik, opgeteld voor een som of een telling, de hoogste voor een maximum, de laagste voor een minimum, en anders het gemiddelde. Een pijl vergelijkt de tweede helft van het bereik met de eerste, elke helft op dezelfde manier berekend, gekleurd volgens **Trendrichting**: of een hogere waarde beter of slechter is, of afgeleid uit de naam van de metric. Wijs de pijl aan om de waarde van beide helften te zien, en de sparkline om de waarde en het tijdstip van elk punt af te lezen. **Waarschuwingsdrempel** maakt de achtergrond geel en **Kritieke drempel** rood zodra de waarde ze bereikt.
 
 Gebruik hem als één getal de vraag beantwoordt: het foutpercentage, de P95-latentie, of het aantal verzoeken dat vandaag is afgehandeld.
 
@@ -67,7 +67,7 @@ Gebruik hem als de waarde binnen een bekend bereik valt: CPU- of schijfgebruik i
 
 ### Tabel
 
-Metric-waarden als rijen. **Group By Attributes** geeft één rij per waarde, zoals één per `host.name`; zonder groepering is elke rij een tijdsblok. **Metrics & Columns** bepaalt de kolommen: metrics, en formules daarover, zoals beschikbaarheid in procenten. Als je groepeert, maakt **Reduce across time** van de reeks van elke rij één waarde: de laatste waarde, het gemiddelde, de som, het minimum of het maximum.
+Metric-waarden als rijen. **Groeperen op attributen** geeft één rij per waarde, zoals één per `host.name`; zonder groepering is elke rij een tijdsblok. **Metrieken en kolommen** bepaalt de kolommen: metrics, en formules daarover, zoals beschikbaarheid in procenten. Als je groepeert, maakt **Samenvatten over de tijd** van de reeks van elke rij één waarde: de laatste waarde, het gemiddelde, de som, het minimum of het maximum.
 
 Zet **Kleuren op drempels** aan in een kolom om de waarden te kleuren: een waarde die de **Waarschuwingsdrempel** bereikt, wordt amber, met een driehoek, en een waarde die de **Kritieke drempel** bereikt, wordt rood en vet, met een cirkel. Een procentkolom begint bij 80 en 90. Kies voor een kolom waarin lage waarden het probleem zijn, zoals vrije schijfruimte, **Lager is slechter** onder **Richting**.
 
@@ -120,11 +120,11 @@ De widget laadt opnieuw telkens als het dashboard vernieuwt, dus een widget die 
 
 #### Machtigingen
 
-**Run JavaScript** (standaard aan) voert je script uit. Zet het uit om alleen opmaak en stijlen weer te geven: het script wordt dan helemaal uit de widget weggelaten, in plaats van alleen geblokkeerd.
+**JavaScript uitvoeren** (standaard aan) voert je script uit. Zet het uit om alleen opmaak en stijlen weer te geven: het script wordt dan helemaal uit de widget weggelaten, in plaats van alleen geblokkeerd.
 
-**Open links in a new tab** (standaard aan) laat links en `window.open` een browsertabblad openen. Links openen altijd in een nieuw tabblad; de widget kan het dashboard zelf nooit laten navigeren.
+**Links in een nieuw tabblad openen** (standaard aan) laat links en `window.open` een browsertabblad openen. Links openen altijd in een nieuw tabblad; de widget kan het dashboard zelf nooit laten navigeren.
 
-**Allow forms to submit** (standaard uit) laat een `<form>` in de widget verzenden.
+**Formulieren laten versturen** (standaard uit) laat een `<form>` in de widget verzenden.
 
 Wie het dashboard kan bewerken, bepaalt wat deze widget uitvoert, en iedereen die het dashboard bekijkt, voert het uit: op een openbaar dashboard horen daar anonieme bezoekers bij. Behandel bewerktoegang tot een dashboard met een HTML-widget zoals je toegang tot elke andere code die je uitbrengt zou behandelen.
 
@@ -146,8 +146,8 @@ De tracewidgets tellen alleen rootspans, net als de trace-verkenner, tenzij je o
 
 | Widget | Wat hij toont | Filters |
 | --- | --- | --- |
-| **Incidentenlijst** | Incidenten met hun toestand en ernst. | Onopgelost, bevestigd of opgelost; ernst, toestand, monitors en labels. |
-| **Waarschuwingslijst** | Waarschuwingen met hun toestand en ernst. | Onopgelost, bevestigd of opgelost; ernst, toestand, monitors en labels. |
+| **Incidentenlijst** | Incidenten met hun toestand en ernst. | Niet opgelost, bevestigd of opgelost; ernst, toestand, monitors en labels. |
+| **Waarschuwingslijst** | Waarschuwingen met hun toestand en ernst. | Niet opgelost, bevestigd of opgelost; ernst, toestand, monitors en labels. |
 | **Monitorlijst** | Monitors met hun huidige status. | Operationeel of niet, status, monitortype en labels, of een **Labelvariabele** die kijkers in de werkbalk kiezen. |
 
 Net als de meeste lijstwidgets kunnen deze drie een honingraat tekenen van cellen gekleurd naar status in plaats van een tabel: kies dat onder **Weergavemodus**. Ze tonen de huidige toestand, wat het tijdsbereik van het dashboard ook is.
@@ -160,7 +160,7 @@ Eén serviceniveaudoelstelling (SLO), getekend als één getal of als een lijn i
 
 **Instellingen**: welke SLO, of de SLO die in een dashboardvariabele is gekozen; welke van de drie getallen (SLI, Error Budget Remaining of Burn Rate); weergave als Tile of als Grafiek; en een optionele titel.
 
-- **Tile** toont het huidige getal, plus een tweede regel als die er is: het doel onder de SLI, de resterende minuten onder het error budget. Een statuslabel kleurt het geheel.
+- **Tegel** toont het huidige getal, plus een tweede regel als die er is: het doel onder de SLI, de resterende minuten onder het error budget. Een statuslabel kleurt het geheel.
 - **Grafiek** tekent hetzelfde getal over het tijdsbereik van het dashboard, met het doel als stippellijn op de SLI-reeks. De geschiedenis wordt om de paar minuten weggeschreven door de evaluatieworker, dus een gloednieuwe SLO toont een lege grafiek totdat hij voor het eerst is geëvalueerd.
 
 Gebruik hem als het dashboard antwoord geeft op "halen we wat we hebben beloofd?" in plaats van op "wat gebeurt er nu?".
@@ -194,7 +194,7 @@ Elk van deze widgets toont de resources die een agent of een collector aan OneUp
 | **Proxmox** | **Knooppunten**, **Gasten** | De Proxmox-agent |
 | **VMware** | **Hosts**, **Virtuele machines** | De VMware-agent, of een vCenter die je koppelt |
 | **Ceph** | **OSD's**, als muur gekleurd naar toestand, en **Pools** | De Ceph-agent |
-| **Opslagarrays** | **Volumes**, en **Hardware** als muur gekleurd naar status | De Storage Array-agent |
+| **Opslagarrays** | **Volumes**, en **Hardware** als muur gekleurd naar status | De Opslagarray-agent |
 
 Gebruik ze voor één pagina die de toestand van je infrastructuur combineert met de telemetrie van de workloads die erop draaien.
 

@@ -45,6 +45,85 @@ export type TableWidgetHeading =
     };
 
 /*
+ * What any other widget says over itself - a chart, a list of incidents,
+ * alerts or exceptions, a trace waterfall, stat cards - as a table does:
+ * its title and line as words, which the chat says in the reader's
+ * language (issue #8312). It has no cells: a chart's series and a list's
+ * items are data.
+ */
+export type WidgetHeading =
+  | {
+      title: string;
+      description?: string | undefined;
+      words?: undefined;
+    }
+  | {
+      words: Omit<AIActionTableWords, "cells">;
+      title?: undefined;
+      // A line that is data, for words with no line of their own.
+      description?: string | undefined;
+    };
+
+/*
+ * A heading's English - what the widget stores, the exports print and the
+ * model reads - and its words, for data.tableWords: the words' English
+ * when it has them, so the two never say different things.
+ */
+function readHeading(heading: WidgetHeading): {
+  title: string;
+  description?: string | undefined;
+  tableWords?: AIActionTableWords | undefined;
+} {
+  if (!heading.words) {
+    return { title: heading.title, description: heading.description };
+  }
+
+  const words: AIActionTableWords = {
+    title: heading.words.title,
+    ...(heading.words.description
+      ? { description: heading.words.description }
+      : {}),
+  };
+  const english: { title: string; description?: string | undefined } =
+    describeAIActionTableWords(words);
+
+  return {
+    title: english.title,
+    description: words.description ? english.description : heading.description,
+    tableWords: words,
+  };
+}
+
+/*
+ * A widget's title, line and words, set on it: the words only when there
+ * are some, so a widget built from English is stored as it always was.
+ */
+function withHeading(
+  heading: WidgetHeading,
+  widget: {
+    type: AIChatWidgetType;
+    data: AIChatWidget["data"];
+  },
+): AIChatWidget {
+  const read: {
+    title: string;
+    description?: string | undefined;
+    tableWords?: AIActionTableWords | undefined;
+  } = readHeading(heading);
+
+  return {
+    id: "",
+    type: widget.type,
+    title: read.title,
+    description: read.description,
+    data: {
+      ...widget.data,
+      ...(read.tableWords ? { tableWords: read.tableWords } : {}),
+    },
+  };
+}
+
+/*
  * Builds the inline widgets a tool attaches to its result. Widgets are built
  * from the RAW rows a tool fetched (not the redacted LLM payload) and rendered
  * back to the same user who already has RBAC access to the data.
@@ -116,43 +195,51 @@ export default class WidgetBuilder {
     };
   }
 
-  public static timeSeries(params: {
-    title: string;
-    description?: string | undefined;
-    series: Array<AIChatWidgetSeries>;
-    unit?: string | undefined;
-    valueLabel?: string | undefined;
-    link?: AIChatCitationTarget | undefined;
-  }): AIChatWidget {
-    return {
-      id: "",
+  /*
+   * A chart, a list and a trace waterfall say their title and line as a
+   * table does (issue #8312): as words, stored in English beside them. A
+   * series' name and a list's items are data, as given.
+   */
+  public static timeSeries(
+    params: WidgetHeading & {
+      series: Array<AIChatWidgetSeries>;
+      unit?: string | undefined;
+      valueLabel?: string | undefined;
+      link?: AIChatCitationTarget | undefined;
+      /*
+       * The zone the buckets are days of, when they are days (or weeks,
+       * months, years): AggregationIntervalUtil.getCalendarBucketTimezone of
+       * the read. The chart draws them on those days (issue #8206).
+       */
+      bucketTimezone?: string | undefined;
+    },
+  ): AIChatWidget {
+    return withHeading(params, {
       type: AIChatWidgetType.TimeSeriesChart,
-      title: params.title,
-      description: params.description,
       data: {
         series: params.series,
         xIsTime: true,
         unit: params.unit,
         valueLabel: params.valueLabel,
         link: params.link,
+        ...(params.bucketTimezone
+          ? { bucketTimezone: params.bucketTimezone }
+          : {}),
       },
-    };
+    });
   }
 
-  public static bars(params: {
-    title: string;
-    description?: string | undefined;
-    series: Array<AIChatWidgetSeries>;
-    stacked?: boolean | undefined;
-    xIsTime?: boolean | undefined;
-    unit?: string | undefined;
-    link?: AIChatCitationTarget | undefined;
-  }): AIChatWidget {
-    return {
-      id: "",
+  public static bars(
+    params: WidgetHeading & {
+      series: Array<AIChatWidgetSeries>;
+      stacked?: boolean | undefined;
+      xIsTime?: boolean | undefined;
+      unit?: string | undefined;
+      link?: AIChatCitationTarget | undefined;
+    },
+  ): AIChatWidget {
+    return withHeading(params, {
       type: AIChatWidgetType.BarChart,
-      title: params.title,
-      description: params.description,
       data: {
         series: params.series,
         stacked: params.stacked ?? false,
@@ -160,72 +247,60 @@ export default class WidgetBuilder {
         unit: params.unit,
         link: params.link,
       },
-    };
+    });
   }
 
-  public static traceWaterfall(params: {
-    title: string;
-    description?: string | undefined;
-    spans: Array<AIChatWidgetSpan>;
-    totalDurationMs: number;
-    link?: AIChatCitationTarget | undefined;
-  }): AIChatWidget {
-    return {
-      id: "",
+  public static traceWaterfall(
+    params: WidgetHeading & {
+      spans: Array<AIChatWidgetSpan>;
+      totalDurationMs: number;
+      link?: AIChatCitationTarget | undefined;
+    },
+  ): AIChatWidget {
+    return withHeading(params, {
       type: AIChatWidgetType.TraceWaterfall,
-      title: params.title,
-      description: params.description,
       data: {
         spans: params.spans,
         totalDurationMs: params.totalDurationMs,
         link: params.link,
       },
-    };
+    });
   }
 
-  public static incidentList(params: {
-    title: string;
-    description?: string | undefined;
-    items: Array<JSONObject>;
-    link?: AIChatCitationTarget | undefined;
-  }): AIChatWidget {
-    return {
-      id: "",
+  public static incidentList(
+    params: WidgetHeading & {
+      items: Array<JSONObject>;
+      link?: AIChatCitationTarget | undefined;
+    },
+  ): AIChatWidget {
+    return withHeading(params, {
       type: AIChatWidgetType.IncidentList,
-      title: params.title,
-      description: params.description,
       data: { items: params.items, link: params.link },
-    };
+    });
   }
 
-  public static alertList(params: {
-    title: string;
-    description?: string | undefined;
-    items: Array<JSONObject>;
-    link?: AIChatCitationTarget | undefined;
-  }): AIChatWidget {
-    return {
-      id: "",
+  public static alertList(
+    params: WidgetHeading & {
+      items: Array<JSONObject>;
+      link?: AIChatCitationTarget | undefined;
+    },
+  ): AIChatWidget {
+    return withHeading(params, {
       type: AIChatWidgetType.AlertList,
-      title: params.title,
-      description: params.description,
       data: { items: params.items, link: params.link },
-    };
+    });
   }
 
-  public static exceptionList(params: {
-    title: string;
-    description?: string | undefined;
-    items: Array<JSONObject>;
-    link?: AIChatCitationTarget | undefined;
-  }): AIChatWidget {
-    return {
-      id: "",
+  public static exceptionList(
+    params: WidgetHeading & {
+      items: Array<JSONObject>;
+      link?: AIChatCitationTarget | undefined;
+    },
+  ): AIChatWidget {
+    return withHeading(params, {
       type: AIChatWidgetType.ExceptionList,
-      title: params.title,
-      description: params.description,
       data: { items: params.items, link: params.link },
-    };
+    });
   }
 
   /*
@@ -361,17 +436,14 @@ export default class WidgetBuilder {
     });
   }
 
-  public static stats(params: {
-    title: string;
-    description?: string | undefined;
-    stats: Array<AIChatWidgetStat>;
-  }): AIChatWidget {
-    return {
-      id: "",
+  public static stats(
+    params: WidgetHeading & {
+      stats: Array<AIChatWidgetStat>;
+    },
+  ): AIChatWidget {
+    return withHeading(params, {
       type: AIChatWidgetType.StatCards,
-      title: params.title,
-      description: params.description,
       data: { stats: params.stats },
-    };
+    });
   }
 }

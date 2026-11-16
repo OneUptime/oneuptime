@@ -346,6 +346,14 @@ import {
   expectReadableDescriptionRecord,
   expectTitleExplained,
 } from "./MetricDescriptionRules";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/resource-ai-access/status"]);
 
 const PAGE_PROPS: PageComponentProps = {} as PageComponentProps;
 
@@ -1285,8 +1293,8 @@ describe("Ceph cluster overview", () => {
 
     // The 5000 GiB, 99.98%-full pool stopped reporting 20 minutes ago.
     expect(rowsOf("Largest Pools")).toEqual([
-      "rbd300 GiB",
-      "cephfs_data100 GiB",
+      "rbd300\u00A0GiB",
+      "cephfs_data100\u00A0GiB",
     ]);
     expect(rowsOf("Fullest Pools")).toEqual(["cephfs_data50.0%", "rbd30.0%"]);
     expect(screen.queryByText("stale-archive")).not.toBeInTheDocument();
@@ -1532,7 +1540,7 @@ describe("OSD list", () => {
     expect(
       within(fresh).getByText("500 GiB / 2.0 TiB (25.0%)"),
     ).toBeInTheDocument();
-    expect(within(fresh).getByText("12 / 13 ms")).toBeInTheDocument();
+    expect(within(fresh).getByText("12 ms / 13 ms")).toBeInTheDocument();
   });
 });
 

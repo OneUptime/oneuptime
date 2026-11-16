@@ -1,5 +1,6 @@
 import { Locator, Page } from "@playwright/test";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { withUnit } from "../SuiteHelpers/NoBreakSpaces";
 import {
   CLOUD_PATH,
   FixtureRecord,
@@ -1309,7 +1310,12 @@ test.describe("at every width, dark, in German and in Persian", () => {
         sizes.map((size: { text: string }): string => {
           return size.text;
         }),
-      ).toEqual(["۶٫۰ TiB", "۲٫۰ TiB", "۵۰۰ GiB", "۲۰ GiB"]);
+      ).toEqual([
+        withUnit("۶٫۰", "TiB"),
+        withUnit("۲٫۰", "TiB"),
+        withUnit("۵۰۰", "GiB"),
+        withUnit("۲۰", "GiB"),
+      ]);
 
       // The tiles' "used of total", each size its own way in a Persian sentence.
       for (const title of ["Memory allocated", "Storage used"]) {

@@ -35,7 +35,7 @@ flowchart TB
 ## Før du går i gang
 
 - **OneUptime Cloud.** Afsnittet **Fakturering og fakturaer** i **Projektindstillinger** findes kun i OneUptime Cloud og er foldet sammen fra start: klik på titlen for at åbne det.
-- **En rolle, der må læse faktureringen.** Project Owners, folk med **Manage Billing** og de tre faktureringsroller læser alle faktureringssider. Se [Hvem må hvad](#hvem-må-hvad).
+- **En rolle, der må læse faktureringen.** Projektejere, folk med **Manage Billing** og de tre faktureringsroller læser alle faktureringssider. Se [Hvem må hvad](#hvem-må-hvad).
 
 ## Din plan og dine pladser
 
@@ -138,19 +138,19 @@ Klik på **Genoplad saldo** på sidens kort **Aktuel saldo**. Indtast et beløb 
 Klik på **Rediger Automatisk genopfyldning** på kortet **Automatisk genopfyldning**, og slå **Aktivér automatisk genopfyldning** til. Den er slået fra fra start. Når den er slået til, lægger OneUptime $20 til, hver gang saldoen falder til $10, eller de beløb, du vælger.
 :::
 
-Når en saldo ikke kan betale, sendes beskeden ikke, eller OneUptime AI stopper, og projektets ejere får en e-mail. Se [Når en tilkaldelse ikke sendes](/docs/on-call/escalation-rules#når-et-tilkald-ikke-sendes) og [Når AI-kreditterne slipper op](/docs/ai/ai-sre#når-ai-kreditterne-slipper-op).
+Når en saldo ikke kan betale, sendes beskeden ikke, eller OneUptime AI stopper, og Projektejere får en e-mail. Se [Når en tilkaldelse ikke sendes](/docs/on-call/escalation-rules#når-et-tilkald-ikke-sendes) og [Når AI-kreditterne slipper op](/docs/ai/ai-sre#når-ai-kreditterne-slipper-op).
 
 ## Hvem må hvad
 
 | For at | Kræver det |
 | --- | --- |
-| Læse faktureringssiderne: planen, fakturaer, forbrug, saldi og betalingsmetoder | Project Owner, **Manage Billing**, **Faktureringsadministrator**, **Faktureringsmedlem** eller **Faktureringsseer** |
-| Downloade en faktura | Project Owner, Project Admin, **Manage Billing**, **Read Invoices**, **Faktureringsadministrator** eller **Faktureringsmedlem** |
-| Ændre faktureringsadressen og faktura-e-mailen | Project Owner, **Manage Billing**, **Faktureringsadministrator** eller **Faktureringsmedlem** |
-| Slå SMS, opkald, WhatsApp eller Telegram til eller fra | Project Owner, **Manage Billing** eller **Faktureringsadministrator** |
-| Tilføje en betalingsmetode | Project Owner, **Manage Billing** eller **Create Payment Method** |
-| Betale en faktura | Project Owner, **Manage Billing** eller **Edit Invoices** |
-| Skifte plan, genoplade en saldo eller ændre automatisk genopfyldning | Project Owner eller **Manage Billing** |
+| Læse faktureringssiderne: planen, fakturaer, forbrug, saldi og betalingsmetoder | Projektejer, **Manage Billing**, **Faktureringsadministrator**, **Faktureringsmedlem** eller **Faktureringsseer** |
+| Downloade en faktura | Projektejer, Projektadministrator, **Manage Billing**, **Read Invoices**, **Faktureringsadministrator** eller **Faktureringsmedlem** |
+| Ændre faktureringsadressen og faktura-e-mailen | Projektejer, **Manage Billing**, **Faktureringsadministrator** eller **Faktureringsmedlem** |
+| Slå SMS, opkald, WhatsApp eller Telegram til eller fra | Projektejer, **Manage Billing** eller **Faktureringsadministrator** |
+| Tilføje en betalingsmetode | Projektejer, **Manage Billing** eller **Create Payment Method** |
+| Betale en faktura | Projektejer, **Manage Billing** eller **Edit Invoices** |
+| Skifte plan, genoplade en saldo eller ændre automatisk genopfyldning | Projektejer eller **Manage Billing** |
 
 En knap, du ikke må bruge, vises låst og siger, hvem der må. Se [Brugere, teams og tilladelser](/docs/permissions/index#teams) for faktureringsrollerne.
 

@@ -89,7 +89,7 @@ Klik op **Monitor maken**. OneUptime opent de pagina van de monitor en evalueert
 | **Ceph Metric** | Custom Metric | Eén metric uit de [catalogus](#verzamelde-metrics). |
 | **Aggregatie** | Custom Metric | Hoe meetwaarden worden gecombineerd: **Gemiddelde**, **Maximum** of **Minimum**. Begint bij de gebruikelijke aggregatie van de metric. Een som of een telling zou elke scrape in een minuut optellen, dus die blijven over voor **Geavanceerd**. |
 | **Tijdsbereik** | Alle | Het voortschuivende venster dat de query leest, van **Past 1 Minute** tot **Past 365 Days**. Een nieuwe monitor begint bij **Past 1 Minute**; sjablonen stellen hun eigen waarde in. |
-| **Selecteer metrieken** | Geavanceerd | De querybouwer: **Metriek**, **Aggregate by**, **Filter by attributes**, **Groeperen op**, plus **Metriek toevoegen** en **Formule toevoegen** om query's te combineren. |
+| **Selecteer metrieken** | Geavanceerd | De querybouwer: **Metriek**, **Aggregeren op**, **Filteren op attributen**, **Groeperen op**, plus **Metriek toevoegen** en **Formule toevoegen** om query's te combineren. |
 
 Gegevensreeksen van pools dragen alleen het label `pool_id`: de naam van de pool bestaat alleen in `ceph_pool_metadata`. Filter en groepeer poolreeksen op `pool_id`, en zoek de naam op in `ceph_pool_metadata` als je die nodig hebt.
 
@@ -244,8 +244,8 @@ Een monitor die je niet vanuit een sjabloon bouwt, begint met twee criteria:
 
 | Volgorde | Criterium | Komt overeen als | Dan |
 | --- | --- | --- | --- |
-| 1 | Check if _monitornaam_ is offline | De eerste query heeft in het hele venster geen gegevens | Zet de monitor op **Offline** en meldt het incident "_monitornaam_ is offline", dat zichzelf oplost wanneer de monitor herstelt. |
-| 2 | Check if _monitornaam_ is online | De eerste query heeft gegevens | Zet de monitor op **Operationeel**. |
+| 1 | Controleer of _monitornaam_ offline is | De eerste query heeft in het hele venster geen gegevens | Zet de monitor op **Offline** en meldt het incident "_monitornaam_ is offline", dat zichzelf oplost wanneer de monitor herstelt. |
+| 2 | Controleer of _monitornaam_ online is | De eerste query heeft gegevens | Zet de monitor op **Operationeel**. |
 
 > [!IMPORTANT]
 > Een waarde van `0` is ook data: een metric die vaak nul is, zoals herstarts of fouten, zet de monitor niet offline. Wilt u een melding bij een waarde, begin dan met een sjabloon of voeg een criterium met een drempel toe. Komt er helemaal geen data binnen en past geen enkel criterium, dan houdt de monitor zijn status en blijven open incidenten open: stilte is geen herstel. Tijd waarin OneUptime zelf geen data ontving, telt nooit als geen data: een controle waarvan het venster zulke tijd bevat, wacht in plaats daarvan, zoals [Als OneUptime geen gegevens ontvangt](/docs/monitor/when-oneuptime-is-not-receiving) uitlegt.

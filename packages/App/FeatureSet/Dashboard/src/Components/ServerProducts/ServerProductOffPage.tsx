@@ -132,7 +132,13 @@ const ServerProductOffPage: FunctionComponent<ComponentProps> = (
 
   return (
     <Page
+      /*
+       * The product's name as the menu says it, in the reader's words
+       * already: drawn as given, or Spanish "Red" (Network) is headed
+       * "Rojo" (#8224). The catalog's English name is looked up once.
+       */
       title={pageTitle.title}
+      isTitleTranslated={pageTitle.isTranslated}
       /*
        * The trail's words, looked up once (#8075): "Project" in English
        * for the trail to look up, and the product's name as the menu says
@@ -176,6 +182,7 @@ const ServerProductOffPage: FunctionComponent<ComponentProps> = (
                     title={translator.translateText(
                       ServerProductOffCopy.openSettings,
                     )}
+                    isTitleTranslated={true}
                     buttonStyle={ButtonStyleType.PRIMARY}
                     icon={IconProp.Settings}
                     dataTestId={SERVER_PRODUCT_OFF_OPEN_SETTINGS_TEST_ID}
@@ -192,6 +199,7 @@ const ServerProductOffPage: FunctionComponent<ComponentProps> = (
                 )}
                 <Button
                   title={translator.translateText(ServerProductOffCopy.goHome)}
+                  isTitleTranslated={true}
                   buttonStyle={ButtonStyleType.NORMAL}
                   dataTestId={SERVER_PRODUCT_OFF_GO_HOME_TEST_ID}
                   onClick={() => {

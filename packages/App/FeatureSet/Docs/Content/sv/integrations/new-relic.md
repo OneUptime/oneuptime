@@ -43,7 +43,7 @@ Sedan [konfigurerar du New Relic](#konfigurera-new-relic) att skicka sina ärend
 
 ### Vad arbetsflödet gör
 
-Efter utlösaren **Webhook** läser steget **Check With JavaScript** `read-event-1` den `state` som New Relic skickar, och **Incident From Another Tool**, eller **Alert From Another Tool** i larmmallen, gör det den betyder, utifrån ärendets ID. Incidenten behåller ID:t i sitt anpassade fält `newRelicIssueId`.
+Efter utlösaren **Webhook** läser steget **Kontrollera med JavaScript** `read-event-1` den `state` som New Relic skickar, och **Incident från ett annat verktyg**, eller **Larm från ett annat verktyg** i larmmallen, gör det den betyder, utifrån ärendets ID. Incidenten behåller ID:t i sitt anpassade fält `newRelicIssueId`.
 
 | Vad New Relic skickar | Vad arbetsflödet gör |
 | --- | --- |
@@ -51,7 +51,7 @@ Efter utlösaren **Webhook** läser steget **Check With JavaScript** `read-event
 | `state` är `ACTIVATED` och `isAcknowledged` är `true` | Bekräftar ärendets incident, vilket stoppar jourens eskalering. Varför står på dess tidslinje. |
 | `state` är `CLOSED` | Löser ärendets incident, om den inte redan är löst. Varför står på dess tidslinje. |
 
-En bekräftelse eller en stängning för ett ärende utan incident ändrar ingenting. Allt annat, till exempel en begäran från ett annat verktyg, lämnas orört: `read-event-1` tar **No**, och körningens **Steg** säger varför. Inget går tillbaka till New Relic: det stänger sina egna ärenden när signalen återhämtar sig, och det är det som löser incidenten.
+En bekräftelse eller en stängning för ett ärende utan incident ändrar ingenting. Allt annat, till exempel en begäran från ett annat verktyg, lämnas orört: `read-event-1` tar **Nej**, och körningens **Steg** säger varför. Inget går tillbaka till New Relic: det stänger sina egna ärenden när signalen återhämtar sig, och det är det som löser incidenten.
 
 ### Prioriteter och larmning
 
@@ -162,7 +162,7 @@ Testa sedan från New Relic: öppna arbetsflödets webhook-meddelande och klicka
 :::
 
 :::details Arbetsflödet körs, men öppnar ingenting
-Öppna körningen i **Loggar → Körningar**. Posten `read-event-1` under dess **Steg** säger varför den tog **No**.
+Öppna körningen i **Loggar → Körningar**. Posten `read-event-1` under dess **Steg** säger varför den tog **Nej**.
 
 - `New Relic named no issue ID`: behåll raden `"id": {{ json issueId }},` i nyttolasten.
 - `is in no state`: behåll raden `"state": {{ json state }},` i nyttolasten.

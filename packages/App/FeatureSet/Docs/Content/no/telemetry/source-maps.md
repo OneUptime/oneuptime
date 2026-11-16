@@ -136,7 +136,7 @@ Source maps oppbevares i 90 dager etter opplasting og slettes deretter automatis
 ## Sikkerhet
 
 - Maps lastes opp via et autentisert endepunkt og lagres i OneUptime-prosjektet ditt: de hentes aldri fra nettstedet ditt, så skjulte source maps forblir skjulte.
-- Det rå innholdet i en map (som inneholder den opprinnelige kildekoden din når den er bygget med `sourcesContent`) kan bare leses tilbake av prosjekteiere og administratorer og av alle med tillatelsen **Read Telemetry Source Map**. Andre teammedlemmer ser bare de oppløste rammene og de få kodelinjene rundt hvert krasjsted for unntak de allerede har tilgang til.
+- Det rå innholdet i en map (som inneholder den opprinnelige kildekoden din når den er bygget med `sourcesContent`) kan bare leses tilbake av Prosjekteiere og Prosjektadministratorer og av alle med tillatelsen **Read Telemetry Source Map**. Andre teammedlemmer ser bare de oppløste rammene og de få kodelinjene rundt hvert krasjsted for unntak de allerede har tilgang til.
 - Sletting av en tjeneste sletter source maps for den.
 
 ## Feilsøking
@@ -153,6 +153,6 @@ En enkelt map kan være opptil 50 MB, og hele forespørselen også. Last opp sto
 
 :::cards
 - [Nettleseroppsett](/docs/rum/browser-setup): Send nettleserspor og -unntak med OpenTelemetry-web-SDK-et.
-- [Unntak-overvåking](/docs/monitor/exceptions-monitor): Få varsel når nye unntak dukker opp.
+- [Unntak-monitor](/docs/monitor/exceptions-monitor): Få varsel når nye unntak dukker opp.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Endepunkter, nøkler og grenser for all telemetri.
 :::

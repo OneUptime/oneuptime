@@ -3,7 +3,7 @@
 Un moniteur vérifie quelque chose que vous exploitez, comme un site web, une API, un hôte ou un cluster Kubernetes, et vous prévient quand cela cesse de fonctionner. **Créer un moniteur** demande d'abord quoi surveiller, puis quoi vérifier, puis à quelle fréquence. Tout, sauf le type, le nom et ce qu'il faut vérifier, commence avec des valeurs par défaut qui conviennent à la plupart des moniteurs.
 
 > [!NOTE]
-> Pour créer un moniteur, il vous faut le rôle Project Owner, Project Admin, Project Member, Monitor Admin ou Monitor Member, ou un rôle personnalisé avec l'autorisation Create Monitor.
+> Pour créer un moniteur, il vous faut le rôle Propriétaire du projet, Administrateur du projet, Membre du projet, Administrateur des moniteurs ou Membre des moniteurs, ou un rôle personnalisé avec l'autorisation Create Monitor.
 
 ## Informations sur le moniteur
 
@@ -76,7 +76,7 @@ Les incidents et les alertes réglés pour se résoudre automatiquement, comme c
 
 ## Sondes et intervalle
 
-Les moniteurs que des sondes vérifient se terminent par cette étape : Site web, API, Ping, IP, Port, Certificat SSL, DNS, DNSSEC, NTP, Domaine, SQL Query, Santé de la base de données, Synthetic Monitor, Custom JavaScript Code et Page de statut externe. Les **Sondes** sont les machines qui exécutent les vérifications, et les sondes par défaut de votre projet sont déjà sélectionnées. L'**Intervalle de surveillance** commence à **Toutes les 5 minutes**.
+Les moniteurs que des sondes vérifient se terminent par cette étape : Site web, API, Ping, IP, Port, Certificat SSL, DNS, DNSSEC, NTP, Domaine, Requête SQL, Santé de la base de données, Moniteur synthétique, Code JavaScript personnalisé et Page de statut externe. Les **Sondes** sont les machines qui exécutent les vérifications, et les sondes par défaut de votre projet sont déjà sélectionnées. L'**Intervalle de surveillance** commence à **Toutes les 5 minutes**.
 
 :::steps
 ### Choisir les sondes
@@ -85,7 +85,7 @@ Gardez les **Sondes** sélectionnées ou choisissez-en d'autres. Un moniteur san
 
 ### Choisir la fréquence des vérifications
 
-Choisissez un **Intervalle de surveillance**, de **Chaque minute** à **Chaque semaine**. Les moniteurs Synthetic Monitor, Custom JavaScript Code et Certificat SSL se voient proposer des intervalles de 5 minutes ou plus.
+Choisissez un **Intervalle de surveillance**, de **Chaque minute** à **Chaque semaine**. Les moniteurs Moniteur synthétique, Code JavaScript personnalisé et Certificat SSL se voient proposer des intervalles de 5 minutes ou plus.
 
 ### Créer le moniteur
 

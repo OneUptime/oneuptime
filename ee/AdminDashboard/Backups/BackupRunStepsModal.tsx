@@ -257,6 +257,7 @@ const BackupRunStepsModal: FunctionComponent<ComponentProps> = (
           : BackupsCopy.stepsTitleBackup,
         { time: timeText },
       )}
+      isTitleTranslated={true}
       // A list of steps reads best in a column of its own width.
       modalWidth={ModalWidth.Medium}
       onClose={props.onClose}

@@ -1,6 +1,9 @@
 import EntityRelationshipType from "Common/Types/Telemetry/EntityRelationshipType";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import EntityType from "Common/Types/Telemetry/EntityType";
 import {
+  createTranslator,
+  DEFAULT_LANGUAGE,
   PluralTemplate,
   Translator,
   translationKey,
@@ -9,6 +12,13 @@ import {
   formatReaderFigure,
   isEnglishDateLanguage,
 } from "Common/Types/DateLanguage";
+import {
+  formatDurationInUnit,
+  formatMilliseconds,
+} from "../../Utils/Milliseconds";
+
+// English: a caller with no translator.
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
 
 /*
  * Shared presentation metadata for the topology views: raw enum values
@@ -308,7 +318,7 @@ export function formatErrorRate(
   translator?: Translator | undefined,
 ): string {
   if (!callCount || callCount <= 0) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   const percent: number = ((errorCount || 0) / callCount) * 100;
   // Without a translator, as English writes it whatever the page's language.
@@ -334,12 +344,28 @@ export function edgeWidthForCalls(callCount: number | undefined): number {
   return Math.min(6, 1.5 + Math.log10(callCount + 1) * 1.2);
 }
 
-export function formatDurationMs(avgDurationMs: number | undefined): string {
+/*
+ * A call's average duration: "1.25s" from a second up, and under it the
+ * reader's milliseconds ("42 ms", "۴۲ میلی‌ثانیه"; issue #7418) - from a
+ * second up their seconds too ("1,25 Sek.", "۱٫۲۵ ثانیه"). On a card, in a
+ * drawer and on the edge's latency chart alike, whose value axis writes a
+ * figure as the drawer beside it does (#8349). Without a translator it
+ * writes English.
+ */
+export function formatDurationMs(
+  avgDurationMs: number | undefined,
+  translator: Translator = ENGLISH,
+): string {
   if (avgDurationMs === undefined || avgDurationMs === null) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (avgDurationMs >= 1000) {
-    return `${(avgDurationMs / 1000).toFixed(2)}s`;
+    return formatDurationInUnit(translator, avgDurationMs / 1000, "second", {
+      decimals: 2,
+      english: `${(avgDurationMs / 1000).toFixed(2)}s`,
+    });
   }
-  return `${Math.round(avgDurationMs)}ms`;
+  return formatMilliseconds(translator, avgDurationMs, {
+    maximumFractionDigits: 0,
+  });
 }

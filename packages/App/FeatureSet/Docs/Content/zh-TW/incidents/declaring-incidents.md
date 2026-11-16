@@ -227,9 +227,9 @@ curl -X POST https://oneuptime.com/api/incident \
 | `statusPages`            | 否     | 要將事件限定到的狀態頁面 ID，必須都來自同一個專案。省略時會觸及列出該事件監測器的每個狀態頁面。`isScopedToStatusPages` 由它推算得出，為該欄位傳送的值會被忽略。請參閱 [每個受眾一個狀態頁](/docs/status-pages/one-status-page-per-audience)。 |
 | `customFields`           | 否     | 事件的自訂欄位值，以各欄位的名稱為鍵。你傳送的每個值都必須符合其欄位——**數字** 欄位要用數字，**下拉式選單（單選）** 要用其中一個選項——否則請求會以指明該欄位的 `400` 錯誤被拒絕。這裡不檢查 **建立時必填**。請參閱 [透過 API 設定自訂欄位值](/docs/incidents/settings#透過-api-設定自訂欄位值)。 |
 
-要在宣告事件時新增擁有者，請在 `miscDataProps` 中以 `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }` 的形式傳送他們的 ID。如果呼叫方無權新增這些擁有者，要求會在儲存任何內容之前遭到拒絕；否則，事件一建立就會新增他們，且不傳送「你已被新增」通知。API 金鑰不是人：它不會成為擁有者，也沒有任何擁有者規則會為它新增建立者的團隊。要查詢哪些擁有者規則會執行，請將表單所持有的事件——`title`、`description`、`severityId`、`labelIds`、`monitorIds` 以及其他資源的 ID——傳送到 `POST /api/incident/owner-rule-preview`：回應會列出每條會新增某人的規則，以及它所新增對象的 ID。對於警示，則是 `POST /api/alert/owner-rule-preview`。
+要在宣告事件時新增擁有者，請在 `miscDataProps` 中以 `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }` 的形式傳送他們的 ID。如果呼叫方無權新增這些擁有者，要求會在儲存任何內容之前遭到拒絕；否則，事件一建立就會新增他們，且不傳送「你已被新增」通知。API 金鑰不是人：它不會成為擁有者，也沒有任何擁有者規則會為它新增建立者的團隊。要查詢哪些擁有者規則會執行，請將表單所持有的事件——`title`、`description`、`severityId`、`labelIds`、`monitorIds` 以及其他資源的 ID——傳送到 `POST /api/incident/owner-rule-preview`：回應會列出每條會新增某人的規則，以及它所新增對象的 ID。對於警示，則是 `POST /api/alert/owner-rule-preview`。工作流程的 **建立單個事件** 步驟在 **擁有者使用者** 和 **擁有者團隊** 下接收他們，MCP 伺服器的 `create_incident` 工具則以 `ownerUsers` 和 `ownerTeams` 接收。隨宣告一起交出的擁有者會收到事件已宣告的通知；一分鐘以後由單獨要求新增的擁有者只會收到自己被新增的通知。
 
-API 金鑰不能從範本宣告：傳送 `createdIncidentTemplateId` 的請求會被拒絕。這一欄由 OneUptime 自己設定，用於透過 [表單](/docs/forms/on-submit) 回報的事件，以及工作流程的 **Create One Incident** 步驟——它會根據其 **Incident Template** 設定中選擇的範本進行宣告（請參閱 [工作流程元件](/docs/workflows/components)）。要透過 API 從範本宣告，請從 `/api/incident-templates` 讀取範本，並在請求中傳送它的值。
+API 金鑰不能從範本宣告：傳送 `createdIncidentTemplateId` 的請求會被拒絕。這一欄由 OneUptime 自己設定，用於透過 [表單](/docs/forms/on-submit) 回報的事件，以及工作流程的 **建立單個事件** 步驟——它會根據其 **事件範本** 設定中選擇的範本進行宣告（請參閱 [工作流程元件](/docs/workflows/components)）。要透過 API 從範本宣告，請從 `/api/incident-templates` 讀取範本，並在請求中傳送它的值。
 
 相關端點有 `/api/incident-state`、`/api/incident-severity` 和 `/api/incident-state-timeline`。產生的 [API 參考](/reference) 列出了每個端點確切的請求和回應結構，包括監測器等關聯欄位的表示方式。
 
@@ -270,7 +270,7 @@ flowchart TB
 依序：
 
 1. **伺服器補齊空缺。** `declaredAt` 預設為現在，目前狀態預設為專案中帶有 `isCreatedState` 的狀態，事件編號和帶前綴的編號從專案計數器指派。
-2. **套用範本**，當表單或工作流程的 **Create One Incident** 步驟從範本宣告事件時（`createdIncidentTemplateId`）——只填寫呼叫端未定義的欄位；呼叫端指定的狀態優先於範本的狀態。儀表板則是在傳送請求之前，在表單中套用範本。
+2. **套用範本**，當表單或工作流程的 **建立單個事件** 步驟從範本宣告事件時（`createdIncidentTemplateId`）——只填寫呼叫端未定義的欄位；呼叫端指定的狀態優先於範本的狀態。儀表板則是在傳送請求之前，在表單中套用範本。
 3. **執行隱私規則**，當相符的規則如此指定時，把事件標記為私人。這是第一個執行的規則引擎，所以之後的一切都會看到正確的隱私設定。
 4. **執行擁有者規則**，新增相符規則所指定的擁有者使用者和團隊。在 **建立者的團隊** 下列出團隊的規則，還會新增宣告該事件之人所屬的那些團隊。
 5. **執行標籤規則**，新增與事件相符的標籤。
@@ -278,7 +278,7 @@ flowchart TB
 7. **執行 Runbook 規則**，附加並啟動相符的 Runbook。請參閱 [Runbook 概觀](/docs/runbooks/index)。
 8. **執行待命策略。** 事件上的每個策略——在精靈中選擇的、從範本繼承的或由規則新增的——都會以事件類型 `IncidentCreated` 平行執行。一個策略失敗不會阻止其他策略。已封存的策略不會呼叫任何人：它在事件上的執行記錄會說明，由於策略已封存，所以沒有執行。宣告時即已確認或已解決的事件不會執行其中任何一個；請參閱下文的 [宣告時即已確認或已解決](#宣告時即已確認或已解決)。
 9. **訂閱者通知排入佇列**，前提是 **通知狀態頁面訂閱者** 保持開啟，且事件在狀態頁面上可見。傳送由背景工作處理，而不是隨你的請求同步進行，並傳往事件所觸及的狀態頁面：列出其監測器的頁面，經 **僅限這些狀態頁面** 縮小範圍；如果事件未被限定，還會去掉那些只顯示限定到自身之事件的頁面。已封存的狀態頁面不傳送任何內容。進度顯示在事件 **概覽** 上的 **訂閱者通知狀態** 中：每個狀態頁面上傳送了什麼、失敗了什麼，以及完成後的 **重試** 或 **重新傳送**。請參閱 [訂閱者與公告](/docs/status-pages/subscribers#檢查傳送了什麼)。
-10. **觸發工作流程。** **On Create Incident** 觸發器會啟動以它建構的任何工作流程。請參閱 [工作流程概觀](/docs/workflows/index)。
+10. **觸發工作流程。** **建立事件時** 觸發器會啟動以它建構的任何工作流程。請參閱 [工作流程概觀](/docs/workflows/index)。
 
 從這時起，事件就處於進行中：它計入事件側邊選單中的 **進行中事件** 徽章（位於已解決狀態之上的任何狀態都算作進行中），它會出現在帶有其某個監測器的狀態頁面上（如果你做了限定，則只出現在所選頁面上），它的 **狀態時間軸** 開始記錄。
 

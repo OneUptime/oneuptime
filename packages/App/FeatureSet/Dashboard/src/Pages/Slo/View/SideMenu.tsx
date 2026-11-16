@@ -27,17 +27,26 @@ import React, {
   useState,
 } from "react";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
+import SliType from "Common/Types/ServiceLevelObjective/SliType";
+import { isEventSliType } from "Common/Utils/Slo/SloRequestSli";
 import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
 import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ComponentProps {
   modelId: ObjectID;
+  /*
+   * What the SLO measures, once the layout has read it. A request SLO
+   * measures its services' requests, so it has no Monitors or Monitor Rules
+   * pages to offer; until the type is known, every page is listed.
+   */
+  sliType?: SliType | null | undefined;
 }
 
 const SloViewSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+  const measuresRequests: boolean = isEventSliType(props.sliType);
 
   /*
    * The Alerts and Incidents badges count what is still OPEN, which takes the
@@ -185,30 +194,38 @@ const SloViewSideMenu: FunctionComponent<ComponentProps> = (
        * their titles until opened, and each opens by itself on its own
        * pages (SideMenuSectionState.ts).
        */}
-      <SideMenuSection title="Configuration">
-        <SideMenuItem
-          link={{
-            title: "Monitors",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SLO_VIEW_MONITORS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.AltGlobe}
-        />
-      </SideMenuSection>
+      {measuresRequests ? (
+        <></>
+      ) : (
+        <SideMenuSection title="Configuration">
+          <SideMenuItem
+            link={{
+              title: "Monitors",
+              to: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.SLO_VIEW_MONITORS] as Route,
+                { modelId: props.modelId },
+              ),
+            }}
+            icon={IconProp.AltGlobe}
+          />
+        </SideMenuSection>
+      )}
 
       <SideMenuSection title="Rules">
-        <SideMenuItem
-          link={{
-            title: "Monitor Rules",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SLO_VIEW_MONITOR_RULES] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Filter}
-        />
+        {measuresRequests ? (
+          <></>
+        ) : (
+          <SideMenuItem
+            link={{
+              title: "Monitor Rules",
+              to: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.SLO_VIEW_MONITOR_RULES] as Route,
+                { modelId: props.modelId },
+              ),
+            }}
+            icon={IconProp.Filter}
+          />
+        )}
         <SideMenuItem
           link={{
             title: "Burn Rate Rules",

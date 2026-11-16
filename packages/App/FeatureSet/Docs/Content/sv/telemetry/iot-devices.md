@@ -177,9 +177,9 @@ OneUptime har en egen MQTT-slutpunkt, så enheter som talar MQTT publicerar avl�
 - **Med intagningsnyckeln**: skicka den som MQTT-lösenord. Användarnamnet ignoreras; om din klient bara har ett fält för användarnamn lägger du nyckeln där. Det passar en gateway som publicerar för många enheter.
 - **Med inloggningsuppgifter per enhet**: rekommenderas för enheter som ansluter direkt. Öppna flottans sida **Enhetsregister** och registrera enheten, med det **Device ID** som den använder som `device.id`. Enhetens **MQTT Username** är dess användarnamn och dess **MQTT Password (Secret)** dess lösenord.
 
-En enhets inloggningsuppgifter kan bara publicera under dess egna `oneuptime/<fleet>/<device>/`-ämnen. Du kan återkalla en enhet utan att röra resten av flottan: stäng av dess reglage **Aktiverad**, eller ta bort den, så kopplas en ansluten enhet bort inom ungefär en minut. En registrerad enhet som tystnar finns kvar i inventariet som offline, och larmmallen Device Offline utlöses för den, även om den dör utan en Last Will.
+En enhets inloggningsuppgifter kan bara publicera under dess egna `oneuptime/<fleet>/<device>/`-ämnen. Du kan återkalla en enhet utan att röra resten av flottan: stäng av dess reglage **Aktiverad**, eller ta bort den, så kopplas en ansluten enhet bort inom några sekunder. En registrerad enhet som tystnar finns kvar i inventariet som offline, och larmmallen Device Offline utlöses för den, även om den dör utan en Last Will.
 
-OneUptime nekar felaktiga inloggningsuppgifter vid CONNECT med returkod 4 (felaktigt användarnamn eller lösenord), så en felkonfigurerad enhet misslyckas tydligt. Webbläsarnycklar nekas över MQTT.
+OneUptime nekar felaktiga inloggningsuppgifter vid CONNECT med returkod 4 (felaktigt användarnamn eller lösenord), så en felkonfigurerad enhet misslyckas tydligt. Webbläsarnycklar nekas över MQTT. En klient som anslöt med intagningsnyckeln kopplas bort inom några sekunder när nyckeln stängs av, går ut, får sin hemlighet återställd eller tas bort, och nekas när den ansluter igen.
 
 ### Ämnen och nyttolaster
 
@@ -276,7 +276,7 @@ OneUptime känner igen dessa `iot_*`-mätvärdesnamn. Skicka bara de som är men
 
 | Mätvärdesnamn | Betydelse |
 | --- | --- |
-| `iot_device_up` | Tillgänglighet: `1` är uppe och nåbar, `0` är nere. IoT Device-monitorn läser det. |
+| `iot_device_up` | Tillgänglighet: `1` är uppe och nåbar, `0` är nere. IoT-enhet-monitorn läser det. |
 | `iot_device_info` | Bara identitet. Det har `device.id`, klassen, typen och firmwaren, så att en enhet visas i inventariet innan den rapporterar avläsningar. |
 | `iot_battery_percent` | Batteriladdning, `0` till `100` (%). |
 | `iot_signal_strength_dbm` | Trådlös signalstyrka i dBm, till exempel RSSI för Wi-Fi, LoRa eller mobilnät. |

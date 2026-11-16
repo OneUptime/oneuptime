@@ -1,4 +1,5 @@
 import { JSONObject } from "Common/Types/JSON";
+import { logSeverityNumberFromText } from "Common/Types/Log/LogSeverity";
 
 /*
  * THE OTLP JSON EVERY COMPATIBLE ENDPOINT WRITES.
@@ -52,43 +53,63 @@ export const OTLP_SEVERITY_FATAL: OtlpSeverity = { number: 21, text: "FATAL" };
 export const OTLP_SEVERITY_UNSPECIFIED: OtlpSeverity = { number: 0, text: "" };
 
 /*
- * The level words the tools write, as OpenTelemetry severities: the
- * syslog names (Splunk, Loki and Datadog all use them), the short forms
- * loggers write, and Datadog's "ok" / "success" for a passing check.
- * Matched in lower case, after trimming.
+ * Every OpenTelemetry severity, by its number, as OTLP writes its text:
+ * TRACE ... FATAL4 (Logs Data Model: Displaying Severity). The constants
+ * above stand for their numbers, so a caller that compares with one (as
+ * LokiPush does with OTLP_SEVERITY_UNSPECIFIED) still finds it.
  */
-const SEVERITY_BY_WORD: ReadonlyMap<string, OtlpSeverity> = new Map<
-  string,
-  OtlpSeverity
->([
-  ["trace", OTLP_SEVERITY_TRACE],
-  ["trc", OTLP_SEVERITY_TRACE],
-  ["verbose", OTLP_SEVERITY_TRACE],
-  ["debug", OTLP_SEVERITY_DEBUG],
-  ["dbg", OTLP_SEVERITY_DEBUG],
-  ["info", OTLP_SEVERITY_INFO],
-  ["inf", OTLP_SEVERITY_INFO],
-  ["information", OTLP_SEVERITY_INFO],
-  ["informational", OTLP_SEVERITY_INFO],
-  ["log", OTLP_SEVERITY_INFO],
-  ["ok", OTLP_SEVERITY_INFO],
-  ["success", OTLP_SEVERITY_INFO],
-  ["notice", OTLP_SEVERITY_INFO2],
-  ["warn", OTLP_SEVERITY_WARN],
-  ["warning", OTLP_SEVERITY_WARN],
-  ["wrn", OTLP_SEVERITY_WARN],
-  ["error", OTLP_SEVERITY_ERROR],
-  ["err", OTLP_SEVERITY_ERROR],
-  ["eror", OTLP_SEVERITY_ERROR],
-  ["critical", OTLP_SEVERITY_ERROR2],
-  ["crit", OTLP_SEVERITY_ERROR2],
-  ["alert", OTLP_SEVERITY_ERROR3],
-  ["fatal", OTLP_SEVERITY_FATAL],
-  ["ftl", OTLP_SEVERITY_FATAL],
-  ["panic", OTLP_SEVERITY_FATAL],
-  ["emerg", OTLP_SEVERITY_FATAL],
-  ["emergency", OTLP_SEVERITY_FATAL],
-]);
+const NAMED_OTLP_SEVERITIES: ReadonlyArray<OtlpSeverity> = [
+  OTLP_SEVERITY_TRACE,
+  OTLP_SEVERITY_DEBUG,
+  OTLP_SEVERITY_INFO,
+  OTLP_SEVERITY_INFO2,
+  OTLP_SEVERITY_WARN,
+  OTLP_SEVERITY_ERROR,
+  OTLP_SEVERITY_ERROR2,
+  OTLP_SEVERITY_ERROR3,
+  OTLP_SEVERITY_FATAL,
+];
+
+const OTLP_SEVERITY_BY_NUMBER: ReadonlyArray<OtlpSeverity> = [
+  OTLP_SEVERITY_UNSPECIFIED,
+  ...["TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"].flatMap(
+    (name: string, level: number): Array<OtlpSeverity> => {
+      return [0, 1, 2, 3].map((step: number): OtlpSeverity => {
+        const severityNumber: number = level * 4 + step + 1;
+
+        return (
+          NAMED_OTLP_SEVERITIES.find((named: OtlpSeverity): boolean => {
+            return named.number === severityNumber;
+          }) || {
+            number: severityNumber,
+            text: step === 0 ? name : `${name}${step + 1}`,
+          }
+        );
+      });
+    },
+  ),
+];
+
+/*
+ * The level words the tools write, as OpenTelemetry severities: the one
+ * table of level words every log ingest reads (LOG_SEVERITY_NUMBER_BY_TEXT,
+ * issue #8536) - the spec's names and numbered steps, syslog's names
+ * (Splunk, Loki and Datadog all use them), the short forms loggers write
+ * (Serilog's INF and FTL, log15's EROR) and the rest of Appendix B - so a
+ * line is stored the same way whether Loki, Splunk HEC, Datadog, Sentry,
+ * Fluent Bit or an OTLP exporter sent it.
+ *
+ * And the few words these tools write that are no logger's level, so the
+ * table every ingest reads does not know them: Datadog's "ok" and
+ * "success" for a passing check, and Sentry's "log". A Map, matched in
+ * lower case after trimming.
+ */
+const COMPATIBLE_ONLY_SEVERITY_BY_WORD: ReadonlyMap<string, OtlpSeverity> =
+  new Map<string, OtlpSeverity>([
+    ["log", OTLP_SEVERITY_INFO],
+    ["ok", OTLP_SEVERITY_INFO],
+    ["success", OTLP_SEVERITY_INFO],
+  ]);
 
 // A value's own JSON, at most this deep, before it is kept as one string.
 const MAX_FLATTEN_DEPTH: number = 8;
@@ -321,16 +342,40 @@ export default class OtlpJson {
     return OtlpJson.millisecondsToUnixNano(nowInMs ?? Date.now());
   }
 
-  // A level word as an OpenTelemetry severity; UNSPECIFIED when unknown.
+  /*
+   * A level word as an OpenTelemetry severity, as every log ingest reads
+   * one (LOG_SEVERITY_NUMBER_BY_TEXT), or one of the words only these
+   * tools write (COMPATIBLE_ONLY_SEVERITY_BY_WORD); UNSPECIFIED - the
+   * constant itself - when unknown.
+   */
   public static severityFromWord(word: unknown): OtlpSeverity {
     if (typeof word !== "string") {
       return OTLP_SEVERITY_UNSPECIFIED;
     }
 
+    const severityNumber: number = logSeverityNumberFromText(word);
+
+    if (severityNumber > 0) {
+      return OtlpJson.severityFromNumber(severityNumber);
+    }
+
     return (
-      SEVERITY_BY_WORD.get(word.trim().toLowerCase()) ||
+      COMPATIBLE_ONLY_SEVERITY_BY_WORD.get(word.trim().toLowerCase()) ||
       OTLP_SEVERITY_UNSPECIFIED
     );
+  }
+
+  // An OpenTelemetry SeverityNumber (1 ... 24) as a severity; UNSPECIFIED else.
+  public static severityFromNumber(severityNumber: number): OtlpSeverity {
+    if (
+      !Number.isInteger(severityNumber) ||
+      severityNumber < 0 ||
+      severityNumber >= OTLP_SEVERITY_BY_NUMBER.length
+    ) {
+      return OTLP_SEVERITY_UNSPECIFIED;
+    }
+
+    return OTLP_SEVERITY_BY_NUMBER[severityNumber]!;
   }
 
   /*

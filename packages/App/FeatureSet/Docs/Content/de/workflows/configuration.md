@@ -5,13 +5,13 @@ Was Sie wissen sollten, bevor Sie einen Workflow auf echten Betrieb loslassen: w
 :::cards
 - [Live gehen](#einen-workflow-ein-oder-ausschalten): Mit Arbeitsablauf ausführen testen, solange er aus ist, dann einschalten.
 - [Berechtigungen](#berechtigungen): Die Workflow-Rollen und die einzelnen Berechtigungen dahinter.
-- [Was Schritte tun dürfen](#was-workflow-schritte-dürfen): Schritte handeln als Project Admin des Projekts des Workflows.
+- [Was Schritte tun dürfen](#was-workflow-schritte-dürfen): Schritte handeln als Projektadministrator des Projekts des Workflows.
 - [Grenzen](#plan-grenzen): Ausführungen pro Plan, Laufzeit und Aufrufe zwischen Workflows.
 :::
 
 ## Einen Workflow ein- oder ausschalten
 
-Jeder Workflow hat einen Schalter **Aktiviert** oben in seinem **Editor** und auf seiner Seite **Übersicht**. Ist er aus, ist sein Trigger pausiert – Webhook-Aufrufe, eingehende E-Mails, geplante Zeiten, OneUptime-Ereignisse und die **Execute Workflow**-Schritte anderer Workflows starten ihn nicht. **Arbeitsablauf ausführen** und **Nur diesen Schritt ausführen** schon: Eine Ausführung, die Sie selbst starten, während der Workflow aus ist, ist ein **Testlauf**. Neue Workflows beginnen deaktiviert.
+Jeder Workflow hat einen Schalter **Aktiviert** oben in seinem **Editor** und auf seiner Seite **Übersicht**. Ist er aus, ist sein Trigger pausiert – Webhook-Aufrufe, eingehende E-Mails, geplante Zeiten, OneUptime-Ereignisse und die **Anderen Arbeitsablauf ausführen**-Schritte anderer Workflows starten ihn nicht. **Arbeitsablauf ausführen** und **Nur diesen Schritt ausführen** schon: Eine Ausführung, die Sie selbst starten, während der Workflow aus ist, ist ein **Testlauf**. Neue Workflows beginnen deaktiviert.
 
 Verwenden Sie diesen Schalter als Ihr "startklar"-Tor:
 
@@ -22,14 +22,14 @@ Verwenden Sie diesen Schalter als Ihr "startklar"-Tor:
 4. Schalten Sie **Aktiviert** ein, wenn er bereit ist: Von da an löst sein Trigger bei echten Ereignissen aus.
 :::
 
-Einen Workflow auszuschalten hält seinen Trigger davon ab, neue Ausführungen zu starten. Eine laufende Ausführung wird zu Ende geführt, aber eine Ausführung, die sein Trigger gestartet hat und die an einem **Sleep**-Baustein wartet, wird beim Aufwachen abgebrochen. Testläufe laufen weiter. Um mehrere auf einmal ein- oder auszuschalten, wählen Sie sie in der Liste **Arbeitsabläufe** aus und wählen **Aktivieren** oder **Deaktivieren** unter **Massenaktionen**.
+Einen Workflow auszuschalten hält seinen Trigger davon ab, neue Ausführungen zu starten. Eine laufende Ausführung wird zu Ende geführt, aber eine Ausführung, die sein Trigger gestartet hat und die an einem **Pause**-Baustein wartet, wird beim Aufwachen abgebrochen. Testläufe laufen weiter. Um mehrere auf einmal ein- oder auszuschalten, wählen Sie sie in der Liste **Arbeitsabläufe** aus und wählen **Aktivieren** oder **Deaktivieren** unter **Massenaktionen**.
 
 ## Einen Workflow archivieren
 
 Archivieren Sie einen Workflow, den Sie nicht mehr brauchen, aber behalten möchten. Ein archivierter Workflow:
 
-- **Läuft nie**, durch keinen Trigger. Manuelle Ausführungen und **Nur diesen Schritt ausführen**, Webhook-Aufrufe, Zeitpläne, OneUptime-Ereignisse, eingehende E-Mails und die **Execute Workflow**-Schritte anderer Workflows werden alle abgelehnt. Ein Webhook-Aufruf an einen archivierten Workflow bekommt einen Fehler, der sagt, dass der Workflow archiviert ist.
-- **Stoppt wartende Ausführungen.** Eine Ausführung, die in einem **Sleep**-Schritt schläft, wird beim Aufwachen abgebrochen, und eine eingereihte Ausführung, die noch nicht begonnen hatte, endet mit "Workflow was archived before this run started, so it did not run."
+- **Läuft nie**, durch keinen Trigger. Manuelle Ausführungen und **Nur diesen Schritt ausführen**, Webhook-Aufrufe, Zeitpläne, OneUptime-Ereignisse, eingehende E-Mails und die **Anderen Arbeitsablauf ausführen**-Schritte anderer Workflows werden alle abgelehnt. Ein Webhook-Aufruf an einen archivierten Workflow bekommt einen Fehler, der sagt, dass der Workflow archiviert ist.
+- **Stoppt wartende Ausführungen.** Eine Ausführung, die in einem **Pause**-Schritt schläft, wird beim Aufwachen abgebrochen, und eine eingereihte Ausführung, die noch nicht begonnen hatte, endet mit "Workflow was archived before this run started, so it did not run."
 - **Verlässt die Liste der Workflows.** Sie finden ihn unter **Arbeitsabläufe → Erweitert → Archiviert**.
 - **Behält alles.** Seine Schritte, Variablen, Eigentümer, Beschriftungen und sein Ausführungsverlauf bleiben, wie sie waren.
 
@@ -96,7 +96,7 @@ Webhook-Trigger geben Ihnen eine eindeutige URL. Jeder, der die URL kennt, kann 
 - Behandeln Sie die URL wie ein Passwort. Teilen Sie sie nicht öffentlich und committen Sie sie nicht in ein öffentliches Repository. Der Webhook-Trigger verbirgt den geheimen Schlüssel der URL, bis Sie auf **Anzeigen** klicken, und **URL kopieren** kopiert die URL, ohne sie anzuzeigen.
 - Gelangt die URL nach außen, klicken Sie im **Editor** auf den Webhook-Trigger und auf **URL zurücksetzen**. Der Workflow bekommt eine neue URL, und die alte hört sofort auf zu funktionieren.
 - Sagt der Trigger, dass seine URL auf die ID des Workflows endet, setzen Sie sie zurück. Workflows, die angelegt wurden, bevor Webhook-URLs einen eigenen geheimen Schlüssel hatten, verwenden stattdessen die ID des Workflows, und die kann jeder sehen, der den Workflow öffnen kann.
-- Bei sensiblen Workflows bitten Sie das aufrufende System, ein gemeinsames Token als Header zu senden (etwa `X-Webhook-Token`), und prüfen Sie es mit einem **If / Else**-Baustein, bevor etwas Wichtiges passiert. Speichern Sie das erwartete Token als geheime Variable.
+- Bei sensiblen Workflows bitten Sie das aufrufende System, ein gemeinsames Token als Header zu senden (etwa `X-Webhook-Token`), und prüfen Sie es mit einem **Wenn / Sonst**-Baustein, bevor etwas Wichtiges passiert. Speichern Sie das erwartete Token als geheime Variable.
 - Bei sehr sensiblen Workflows ziehen Sie einen OneUptime-Ereignis-Trigger und einen manuellen Importschritt einem öffentlichen Webhook vor.
 
 Nur Personen, die den Workflow bearbeiten dürfen – **Projektinhaber**, **Projektadministrator**, **Arbeitsablauf-Administrator** oder **Edit Workflow** –, können seine Webhook-URL sehen oder zurücksetzen. Jeder mit der URL kann den Workflow von überall starten, ohne sich anzumelden, daher sehen alle anderen einen Hinweis, wen sie fragen sollen. Das schließt einen **Arbeitsablauf-Mitglied** ein, der den Workflow aus dem **Editor** von Hand ausführt.
@@ -107,8 +107,8 @@ Der Incoming-Email-Trigger gibt dem Workflow eine eigene Adresse, und jeder, der
 
 - Veröffentlichen Sie sie nicht und legen Sie sie nicht in ein öffentliches Repository. Der Trigger verbirgt den Schlüssel, bis Sie auf **Anzeigen** klicken, und **Adresse kopieren** kopiert die Adresse, ohne sie anzuzeigen.
 - Gelangt die Adresse nach außen, klicken Sie im **Editor** auf den Incoming-Email-Trigger und auf **Adresse zurücksetzen**. Der Workflow bekommt eine neue Adresse, und E-Mails an die alte werden ab dann ignoriert.
-- Jeder kann einen beliebigen Absender in eine E-Mail schreiben, daher beweist **From** nicht, wer sie gesendet hat. Bevor ein Workflow etwas Wichtiges tut, prüfen Sie mit einem **If / Else**-Baustein etwas, das nur der echte Absender weiß – ein Token im Betreff oder in einem Header. Speichern Sie das erwartete Token als geheime Variable.
-- Der Schlüssel ist in allem, was die Ausführung empfängt, verborgen – **To**, **CC**, den Headern und den Bodys –, weil das Protokoll der Ausführung für jeden sichtbar ist, der die Ausführungen des Workflows lesen kann.
+- Jeder kann einen beliebigen Absender in eine E-Mail schreiben, daher beweist **Von** nicht, wer sie gesendet hat. Bevor ein Workflow etwas Wichtiges tut, prüfen Sie mit einem **Wenn / Sonst**-Baustein etwas, das nur der echte Absender weiß – ein Token im Betreff oder in einem Header. Speichern Sie das erwartete Token als geheime Variable.
+- Der Schlüssel ist in allem, was die Ausführung empfängt, verborgen – **An**, **CC**, den Headern und den Bodys –, weil das Protokoll der Ausführung für jeden sichtbar ist, der die Ausführungen des Workflows lesen kann.
 
 Nur Personen, die den Workflow bearbeiten dürfen – **Projektinhaber**, **Projektadministrator**, **Arbeitsablauf-Administrator** oder **Edit Workflow** –, können seine Adresse sehen oder zurücksetzen. Alle anderen sehen einen Hinweis, wen sie fragen sollen.
 
@@ -120,44 +120,44 @@ Welche Adressen ein Baustein erreichen darf, hängt vom Baustein ab:
 
 | Bausteine                                                  | Loopback, Link-Local, Cloud-Metadaten                                  | Private Netzwerkadressen                                                                                                              |
 | ---------------------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| **API**- und **Mattermost**-Bausteine sowie Anfragen von **Run Custom JavaScript** | Abgelehnt, es sei denn, der genaue Host steht in `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` | Abgelehnt, es sei denn, ein Administrator einer selbst gehosteten Installation erlaubt sie mit `ALLOW_PRIVATE_NETWORK_WEBHOOKS` oder `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
-| **Send Email**, **IRC** und Token-URLs von OAuth 2.0       | Abgelehnt                                                              | In OneUptime Cloud abgelehnt. Auf einer selbst gehosteten Installation erlaubt, es sei denn, `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` ist `true` |
+| **API**- und **Mattermost**-Bausteine sowie Anfragen von **Eigenes JavaScript ausführen** | Abgelehnt, es sei denn, der genaue Host steht in `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` | Abgelehnt, es sei denn, ein Administrator einer selbst gehosteten Installation erlaubt sie mit `ALLOW_PRIVATE_NETWORK_WEBHOOKS` oder `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
+| **E-Mail senden**, **IRC** und Token-URLs von OAuth 2.0       | Abgelehnt                                                              | In OneUptime Cloud abgelehnt. Auf einer selbst gehosteten Installation erlaubt, es sei denn, `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` ist `true` |
 | Slack, Microsoft Teams, Discord und Telegram               | Abgelehnt                                                              | Abgelehnt: Jeder sendet nur an die Adressen seines eigenen Dienstes                                                                    |
 
 Wie ein Administrator einer selbst gehosteten Installation diese öffnet, steht unter [Zugriff auf private Netzwerke](/docs/self-hosted/private-network-access).
 
 ## KI-Komponenten
 
-**Generate Text with AI** sendet eine Anfrage an ein LLM: den Standard-LLM-Anbieter des Projekts oder den globalen Anbieter der Installation, wenn das Projekt keinen hat. Richten Sie Anbieter unter **Projekteinstellungen → KI → LLM-Anbieter** ein, und tragen Sie nie den API-Schlüssel eines Anbieters oder einen eigenen Endpunkt in einen Workflow ein.
+**Text mit KI erzeugen** sendet eine Anfrage an ein LLM: den Standard-LLM-Anbieter des Projekts oder den globalen Anbieter der Installation, wenn das Projekt keinen hat. Richten Sie Anbieter unter **Projekteinstellungen → KI → LLM-Anbieter** ein, und tragen Sie nie den API-Schlüssel eines Anbieters oder einen eigenen Endpunkt in einen Workflow ein.
 
 Was der Anbieter erhält und was das Modell damit tun kann:
 
-- **Nur, was Sie in den Baustein schreiben.** OneUptime sendet eine feste Sicherheitsanweisung und danach **System Instructions**, **Prompt** und **Context** des Bausteins, mit eingesetzten Verweisen. **Context** kommt zuletzt, nach einer Markierung, und die Sicherheitsanweisung sagt dem Modell, dass alles nach der Markierung nicht vertrauenswürdige Daten sind, auch Text, der wie Anweisungen aussieht.
+- **Nur, was Sie in den Baustein schreiben.** OneUptime sendet eine feste Sicherheitsanweisung und danach **Systemanweisungen**, **Prompt** und **Kontext** des Bausteins, mit eingesetzten Verweisen. **Kontext** kommt zuletzt, nach einer Markierung, und die Sicherheitsanweisung sagt dem Modell, dass alles nach der Markierung nicht vertrauenswürdige Daten sind, auch Text, der wie Anweisungen aussieht.
 - **Sonst nichts.** Die Daten des Triggers, der Verlauf des Workflows, die Ausgaben anderer Bausteine, Projektdatensätze, Telemetrie und Geheimnisse werden nie angehängt. Sie verlassen OneUptime nur, wenn Sie in einer dieser drei Einstellungen auf sie verweisen.
 - **Text, keine Tools.** Das Modell kann OneUptime nicht abfragen, keine HTTP-Anfragen stellen und keine Daten ändern. Zusätzliche Parameter eines Anbieters lassen nur eine Positivliste reiner Generierungsfelder durch: Sie können die Nachrichten nicht ersetzen, keine Tools, Websuche oder anderen Datenquellen hinzufügen, nichts außer Text und nicht mehrere Antworten anfordern, nicht streamen, die Anfrage nicht beim Anbieter aufbewahren lassen und die Ausgabegrenze des Bausteins nicht anheben. Felder, die OneUptime nicht kennt, werden verworfen.
 - **Das Modell wählt Ihr Administrator.** Muss die Generierung offline bleiben, wählen Sie ein Modell, das beim Anbieter nichts von selbst abruft.
 
 Was protokolliert wird:
 
-- Das Protokoll der Ausführung verbirgt **System Instructions**, **Prompt**, **Context** und **Response** des Bausteins. Spätere Bausteine können sie während der Ausführung trotzdem verwenden, und ein Baustein, in den Sie einen davon einsetzen, protokolliert ihn nach seinen eigenen Regeln: Wer einen einsetzt, entscheidet sich, ihn dort zu zeigen.
-- Anbieter, Modell, Token-Zahlen, **LLM Log ID** und eine sichere Fehlermeldung bleiben für Betrieb und Abrechnung sichtbar. Der rohe Fehlertext eines Anbieters bleibt aus jedem Protokoll heraus, weil ein Anbieter darin die Anfrage wiederholen kann.
+- Das Protokoll der Ausführung verbirgt **Systemanweisungen**, **Prompt**, **Kontext** und **Antwort** des Bausteins. Spätere Bausteine können sie während der Ausführung trotzdem verwenden, und ein Baustein, in den Sie einen davon einsetzen, protokolliert ihn nach seinen eigenen Regeln: Wer einen einsetzt, entscheidet sich, ihn dort zu zeigen.
+- Anbieter, Modell, Token-Zahlen, **LLM-Protokoll-ID** und eine sichere Fehlermeldung bleiben für Betrieb und Abrechnung sichtbar. Der rohe Fehlertext eines Anbieters bleibt aus jedem Protokoll heraus, weil ein Anbieter darin die Anfrage wiederholen kann.
 - Jeder Aufruf steht unter **Projekteinstellungen → KI → KI-Protokolle**, mit Anbieter, Modell, Status, Token, Kosten und Abrechnung, aber ohne Prompt, Antwort und rohen Fehler.
 
 Was der Baustein braucht und was er kostet:
 
 - **KI aktivieren** muss eingeschaltet sein, unter **Projekteinstellungen → KI → KI-Funktionen**. In OneUptime Cloud braucht das Projekt außerdem den Plan Growth oder höher und ein bezahltes Abonnement. Selbst gehostete Installationen ohne Abrechnung haben keine Plan-Sperre.
 - Aufrufe über einen kostenpflichtigen globalen Anbieter verbrauchen das KI-Guthaben des Projekts.
-- Jeder Aufruf zählt zu den [eigenen täglichen KI-Grenzen des Projekts](/docs/ai/ai-sre#die-eigenen-täglichen-limits-des-projekts), wenn ein Projektinhaber sie festlegt. Ist eine Grenze erreicht, nimmt der Baustein bis Mitternacht UTC **Error**, ohne das Modell anzufragen.
+- Jeder Aufruf zählt zu den [eigenen täglichen KI-Grenzen des Projekts](/docs/ai/ai-sre#die-eigenen-täglichen-limits-des-projekts), wenn ein Projektinhaber sie festlegt. Ist eine Grenze erreicht, nimmt der Baustein bis Mitternacht UTC **Fehler**, ohne das Modell anzufragen.
 
 | Grenze                                                         | Wert                                                                                       |
 | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| **System Instructions**, **Prompt** und **Context** zusammen   | 50.000 Zeichen                                                                             |
-| **Temperature**                                                | Von `0` bis `1`                                                                            |
-| **Maximum Output Tokens**                                      | Von `1` bis `4096`, standardmäßig `1024`                                                   |
+| **Systemanweisungen**, **Prompt** und **Kontext** zusammen   | 50.000 Zeichen                                                                             |
+| **Temperatur**                                                | Von `0` bis `1`                                                                            |
+| **Maximale Ausgabe-Tokens**                                      | Von `1` bis `4096`, standardmäßig `1024`                                                   |
 | Eine Anfrage                                                   | Ein Versuch, höchstens 60 Sekunden                                                         |
-| Gleichzeitige Aufrufe                                          | 3 pro Projekt. Weitere nehmen **Error**, und eine spätere Ausführung kann es erneut versuchen. |
+| Gleichzeitige Aufrufe                                          | 3 pro Projekt. Weitere nehmen **Fehler**, und eine spätere Ausführung kann es erneut versuchen. |
 
-Validierungs-, Konfigurations-, Zugriffs-, Grenz-, Guthaben-, Gleichzeitigkeits-, Anbieter- und Zeitüberschreitungsfehler nehmen alle den Pfad **Error**, mit dem Grund in **Error**. Verbinden Sie diesen Pfad, bevor der Workflow live geht.
+Validierungs-, Konfigurations-, Zugriffs-, Grenz-, Guthaben-, Gleichzeitigkeits-, Anbieter- und Zeitüberschreitungsfehler nehmen alle den Pfad **Fehler**, mit dem Grund in **Fehler**. Verbinden Sie diesen Pfad, bevor der Workflow live geht.
 
 > [!WARNING]
 > Jeder Wert, auf den Sie verweisen, sind Daten, die Sie an den Anbieter senden. Setzen Sie keine geheime Variable in den Prompt oder den Kontext, es sei denn, der Anbieter ist für ihren Empfang freigegeben. Ein selbst gehosteter lokaler Anbieter wie Ollama hält Anfragen in Ihrer eigenen Infrastruktur; ein gehosteter Anbieter erhält sie zu seinen eigenen Datenverarbeitungsbedingungen.
@@ -170,7 +170,7 @@ Workflows beachten die rollenbasierte Zugriffskontrolle Ihres Projekts. Die drei
 - **Arbeitsablauf-Mitglied** – nutzt sie: öffnet Workflows und ihre Ausführungen und führt einen Workflow mit **Arbeitsablauf ausführen** von Hand aus. Ein Mitglied kann keinen Workflow anlegen, ändern oder löschen und keinen seiner Schritte einzeln ausführen. Der **Editor** zeigt ihnen einen Workflow so, wie er ist, markiert mit **Nur ansehen**: Ein Schritt öffnet sich zum Lesen, und nichts, was sie dort tun, wird gespeichert.
 - **Arbeitsablauf-Betrachter** – liest Workflows und ihre Ausführungen.
 
-**Projektinhaber** und **Projektadministrator** können alles, was ein Workflow Admin kann. **Projektmitglied** kann Workflows anlegen und löschen, aber nicht ändern oder ausführen.
+**Projektinhaber** und **Projektadministrator** können alles, was ein Arbeitsablauf-Administrator kann. **Projektmitglied** kann Workflows anlegen und löschen, aber nicht ändern oder ausführen.
 
 Die einzelnen Berechtigungen, für ein Team oder einen API-Schlüssel, die genau eine Sache brauchen:
 
@@ -185,22 +185,22 @@ Geben Sie den Personen, die Automatisierungen bauen, **Arbeitsablauf-Administrat
 
 ## Was Workflow-Schritte dürfen
 
-Die Schritte, die OneUptime-Datensätze lesen und ändern – die Find-, Create-, Update- und Delete-Komponenten sowie die Trigger On Create, On Update, On Create or Update und On Delete –, handeln als **Projektadministrator** des Projekts des Workflows. Wer den Workflow auch gebaut hat, ein Schritt unterliegt denselben Prüfungen wie ein Project Admin im Dashboard und in der API:
+Die Schritte, die OneUptime-Datensätze lesen und ändern – die Find-, Create-, Update- und Delete-Komponenten sowie die Trigger On Create, On Update, On Create or Update und On Delete –, handeln als **Projektadministrator** des Projekts des Workflows. Wer den Workflow auch gebaut hat, ein Schritt unterliegt denselben Prüfungen wie ein Projektadministrator im Dashboard und in der API:
 
 - **Nur das eigene Projekt des Workflows.** Ein Schritt liest und schreibt die Datensätze des Projekts, zu dem der Workflow gehört, und keines anderen, und ein Update verschiebt nie einen Datensatz in ein anderes Projekt.
-- **Nur, was ein Project Admin darf.** Ein Schritt kann nichts tun, was nur **Projektinhaber** oder Berechtigungen für Abrechnung oder Projektlöschung erlauben, und er kann nicht lesen, wer eine Probe oder einen KI-Agenten angelegt hat; das sehen nur Projekteigentümer.
-- **Nicht, wer Zugriff hat.** Ein Schritt legt keine Teams, Teammitglieder, Team-Berechtigungen, benutzerdefinierten Rollen oder API-Schlüssel-Berechtigungen an, ändert und löscht sie nicht, auch wenn ein Project Admin das darf. Wer einen Workflow baut, entscheidet, was seine Schritte tun, und das kann ein **Projektmitglied** sein; ein Schritt, der es könnte, gäbe ihm also Zugriff, den er nicht bekommen hat, etwa **Projektadministrator**. Der Schritt wird abgelehnt, und das Protokoll der Ausführung sagt, dass eine Person, die die Teams und API-Schlüssel des Projekts verwaltet, die Änderung vornehmen muss. Trigger und Find-Schritte auf diesen Datensätzen funktionieren weiterhin.
-- **Nicht das Lesen von Einstellungen mit Zugangsdaten.** Ein Project Admin darf SMTP-Server, Anruf- und SMS-Anbieter, SNMP-Zugangsdaten, Videoanruf-Verbindungen und API-Schlüssel lesen, aber einem Schritt wird das nie geliehen, wer auch immer den Workflow gebaut oder gespeichert hat. Ein Schritt kann keine dieser Einstellungen nennen, etwa den SMTP-Server, über den eine Statusseite E-Mails sendet, oder den API-Schlüssel, dem eine Berechtigung erteilt wird. Der Schritt wird abgelehnt, und sein Ausführungsprotokoll sagt, dass eine Person, die sie lesen darf (die Leseberechtigung dieser Art von Einstellung oder ein Project Owner oder Project Admin), die Änderung vornehmen muss. Ein Schritt, der die Einstellung behält, die ein Datensatz bereits nennt, oder sie leert, wird nicht abgelehnt.
+- **Nur, was ein Project Admin darf.** Ein Schritt kann nichts tun, was nur **Projektinhaber** oder Berechtigungen für Abrechnung oder Projektlöschung erlauben, und er kann nicht lesen, wer eine Sonde oder einen KI-Agenten angelegt hat; das sehen nur Projektinhaber.
+- **Nicht, wer Zugriff hat.** Ein Schritt legt keine Teams, Teammitglieder, Team-Berechtigungen, benutzerdefinierten Rollen oder API-Schlüssel-Berechtigungen an, ändert und löscht sie nicht, auch wenn ein Projektadministrator das darf. Wer einen Workflow baut, entscheidet, was seine Schritte tun, und das kann ein **Projektmitglied** sein; ein Schritt, der es könnte, gäbe ihm also Zugriff, den er nicht bekommen hat, etwa **Projektadministrator**. Der Schritt wird abgelehnt, und das Protokoll der Ausführung sagt, dass eine Person, die die Teams und API-Schlüssel des Projekts verwaltet, die Änderung vornehmen muss. Trigger und Find-Schritte auf diesen Datensätzen funktionieren weiterhin.
+- **Nicht das Lesen von Einstellungen mit Zugangsdaten.** Ein Projektadministrator darf SMTP-Server, Anruf- und SMS-Anbieter, SNMP-Zugangsdaten, Videoanruf-Verbindungen und API-Schlüssel lesen, aber einem Schritt wird das nie geliehen, wer auch immer den Workflow gebaut oder gespeichert hat. Ein Schritt kann keine dieser Einstellungen nennen, etwa den SMTP-Server, über den eine Statusseite E-Mails sendet, oder den API-Schlüssel, dem eine Berechtigung erteilt wird. Der Schritt wird abgelehnt, und sein Ausführungsprotokoll sagt, dass eine Person, die sie lesen darf (die Leseberechtigung dieser Art von Einstellung oder ein Projektinhaber oder Projektadministrator), die Änderung vornehmen muss. Ein Schritt, der die Einstellung behält, die ein Datensatz bereits nennt, oder sie leert, wird nicht abgelehnt.
 - **Nur, was Ihr Plan enthält.** In OneUptime Cloud wird ein Schritt, der etwas anlegt oder ändert, das Ihr Plan nicht enthält, mit dem Plan abgelehnt, den er braucht, genau wie das Dashboard. Selbst gehostete Installationen ohne Abrechnung haben keine Plan-Grenzen.
 - **Nichts, was OneUptime für sich behält.** Diese werden allen verweigert, Workflows eingeschlossen:
   - einen Feed-Eintrag bearbeiten oder löschen (Feeds von Vorfällen, Warnungen, Episoden, Monitoren, Bereitschaftsrichtlinien und geplanten Wartungen);
   - ein Benachrichtigungsprotokoll schreiben (Protokolle von SMS, Anrufen, E-Mails, WhatsApp, Telegram, Push, Webhooks und Arbeitsbereich-Nachrichten);
   - Werte, die OneUptime setzt, während Dinge geschehen: ob der CNAME einer benutzerdefinierten Domain bestätigt ist, die Schutzschalter eines Teams (**Is Team Editable**, **Is Team Deleteable**, **Is Permissions Editable**, **Should Have At Least One Member**), welche Vorfallrolle die primäre ist und ob sie gelöscht werden kann, ob ein Eigentümer oder Mitglied benachrichtigt wurde, Erinnerungszeiten und -zähler, wer in einem Dienstplan jetzt und als Nächstes Bereitschaft hat, der Fortschritt eines Bereitschaftslaufs, die aktuelle Burn Rate und das Fehlerbudget eines SLO, ein Monitor, der von einem Vorfall oder einem Wartungsereignis pausiert wurde, das Token zum Zurücksetzen des Passworts und die letzte Anmeldung eines privaten Benutzers einer Statusseite, die Angaben, die ein Dienst über sich selbst meldet (Version, Laufzeit, Cloud), und der letzte Lauf einer Erkennungsregel oder eines Bedrohungsfeeds;
-  - einen Vorfall aus einer Vorlage melden, indem `createdIncidentTemplateId` an **Create One Incident** gesendet wird – wählen Sie die Vorlage stattdessen in der Einstellung **Incident Template** des Schritts: Der Schritt meldet den Vorfall dann daraus, als Project Admin, und hält die Vorlage fest;
+  - einen Vorfall aus einer Vorlage melden, indem `createdIncidentTemplateId` an **Vorfall erstellen (einzeln)** gesendet wird – wählen Sie die Vorlage stattdessen in der Einstellung **Vorfallsvorlage** des Schritts: Der Schritt meldet den Vorfall dann daraus, als Projektadministrator, und hält die Vorlage fest;
   - nach dem Anlegen ändern, zu welchem Datensatz ein Datensatz gehört, etwa für welchen Monitor eine Eigentümerzeile gilt oder an welchem Vorfall eine Notiz hängt.
 - **Als keine Person.** Ein Datensatz, den ein Workflow anlegt, nennt keinen Ersteller, und das Audit-Protokoll nennt den Workflow, mit seinem damaligen Namen, als den, der die Änderung gemacht hat.
 
-Lehnt eine Prüfung einen Schritt ab, nimmt der Schritt seinen Ausgang **Error**, ohne die abgelehnte Änderung zu machen, und das Protokoll der Ausführung nennt den Schritt und den Grund in klaren Worten, zum Beispiel *"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Lesen Sie es unter den [Ausführungen](/docs/workflows/runs-and-logs) des Workflows. Ein Schritt vom Typ Create Many legt seine Datensätze einzeln an und stoppt beim ersten abgelehnten: Die Datensätze, die er davor angelegt hat, bleiben erhalten.
+Lehnt eine Prüfung einen Schritt ab, nimmt der Schritt seinen Ausgang **Fehler**, ohne die abgelehnte Änderung zu machen, und das Protokoll der Ausführung nennt den Schritt und den Grund in klaren Worten, zum Beispiel *"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Lesen Sie es unter den [Ausführungen](/docs/workflows/runs-and-logs) des Workflows. Ein Schritt vom Typ Create Many legt seine Datensätze einzeln an und stoppt beim ersten abgelehnten: Die Datensätze, die er davor angelegt hat, bleiben erhalten.
 
 Schritte, die mit anderen Systemen sprechen – API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, Custom Code und Generate Text with AI –, lesen oder ändern keine OneUptime-Datensätze, daher ändert all das an ihnen nichts.
 
@@ -220,24 +220,24 @@ Das Fenster rollt: Jede Ausführung, die das Projekt aufzeichnet, von Hand oder 
 
 | Grenze                          | Standard           | Einstellung beim Selbsthosten   |
 | ------------------------------- | ------------------ | ------------------------------- |
-| Eine Ausführung, ab ihrem Start oder ab dem Aufwachen nach einem **Sleep** | 2 Minuten | `WORKFLOW_TIMEOUT_IN_MS` |
-| Ein **Run Custom JavaScript**-Baustein | 5 Sekunden  | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
-| Ein **Sleep**-Baustein          | höchstens 30 Tage  | —                               |
+| Eine Ausführung, ab ihrem Start oder ab dem Aufwachen nach einem **Pause** | 2 Minuten | `WORKFLOW_TIMEOUT_IN_MS` |
+| Ein **Eigenes JavaScript ausführen**-Baustein | 5 Sekunden  | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
+| Ein **Pause**-Baustein          | höchstens 30 Tage  | —                               |
 
-Der Runner prüft die Frist vor und nach jedem Baustein und markiert eine überfällige Ausführung als **Zeitüberschreitung**, sobald er wieder die Kontrolle hat. Er kann einen Baustein nicht mittendrin unterbrechen, daher haben Bausteine, die auf das Netz warten, eigene Zeitgrenzen: Eine Anfrage von Generate Text with AI gibt nach höchstens 60 Sekunden auf, eine OAuth-2.0-Token-Anfrage nach 20. Das Warten an einem **Sleep**-Baustein zählt nicht zur Zeit einer Ausführung: Die Ausführung wird beiseitegelegt und bekommt beim Aufwachen frische 2 Minuten.
+Der Runner prüft die Frist vor und nach jedem Baustein und markiert eine überfällige Ausführung als **Zeitüberschreitung**, sobald er wieder die Kontrolle hat. Er kann einen Baustein nicht mittendrin unterbrechen, daher haben Bausteine, die auf das Netz warten, eigene Zeitgrenzen: Eine Anfrage von Generate Text with AI gibt nach höchstens 60 Sekunden auf, eine OAuth-2.0-Token-Anfrage nach 20. Das Warten an einem **Pause**-Baustein zählt nicht zur Zeit einer Ausführung: Die Ausführung wird beiseitegelegt und bekommt beim Aufwachen frische 2 Minuten.
 
 ## Grenze beim Aufrufen anderer Workflows
 
-Mit der Komponente **Execute Workflow** startet ein Workflow einen anderen. Um Schleifen zu verhindern, in denen Workflow A B startet, der wieder A startet, wird eine Kette von Workflows, die einander starten, abgelehnt, wenn sie zu einem Workflow zurückführen würde, der schon in ihr ist, oder tiefer als 10 Workflows ginge. Der **Execute Workflow**-Baustein nimmt dann seinen Ausgang **Error**, und der Fehler zeigt die Kette.
+Mit der Komponente **Anderen Arbeitsablauf ausführen** startet ein Workflow einen anderen. Um Schleifen zu verhindern, in denen Workflow A B startet, der wieder A startet, wird eine Kette von Workflows, die einander starten, abgelehnt, wenn sie zu einem Workflow zurückführen würde, der schon in ihr ist, oder tiefer als 10 Workflows ginge. Der **Anderen Arbeitsablauf ausführen**-Baustein nimmt dann seinen Ausgang **Fehler**, und der Fehler zeigt die Kette.
 
-Brauchen Sie wirklich eine lange Kette (etwa einen Job, der pro Ausführung ein Element verarbeitet), ist es meist einfacher, mit **Run Custom JavaScript** innerhalb eines einzigen Workflows zu iterieren.
+Brauchen Sie wirklich eine lange Kette (etwa einen Job, der pro Ausführung ein Element verarbeitet), ist es meist einfacher, mit **Eigenes JavaScript ausführen** innerhalb eines einzigen Workflows zu iterieren.
 
 ## Wann Workflows nicht das richtige Werkzeug sind
 
 Ein paar Fälle, in denen Sie zu etwas anderem greifen sollten:
 
 - **Schwere Berechnungen oder große Datenmengen** – Workflows sind für leichte Verbindungsarbeit gedacht, nicht für Zahlenkolonnen. Lassen Sie schwere Arbeit in Ihrer eigenen Infrastruktur laufen und einen Workflow sie anstoßen.
-- **Lang laufende aktive Berechnungen** – eine Ausführung hat standardmäßig 2 Minuten. Für eine passive Verzögerung wie "tu A, warte zwei Stunden, tu B" verwenden Sie die Komponente **Sleep**; sie legt die Ausführung beiseite und setzt sie später fort, ohne einen Worker zu belegen.
+- **Lang laufende aktive Berechnungen** – eine Ausführung hat standardmäßig 2 Minuten. Für eine passive Verzögerung wie "tu A, warte zwei Stunden, tu B" verwenden Sie die Komponente **Pause**; sie legt die Ausführung beiseite und setzt sie später fort, ohne einen Worker zu belegen.
 - **Schrittweise Reaktion auf Vorfälle mit Menschen in der Schleife** – dafür sind [Runbooks](/docs/runbooks/index) da. Workflows sind für unbeaufsichtigte Automatisierung.
 
 ## Nächste Schritte

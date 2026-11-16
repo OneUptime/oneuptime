@@ -25,7 +25,7 @@ flowchart TB
 
 ## Før du begynner
 
-- **Et OneUptime-prosjekt og retten til å opprette det du overfører.** Prosjekteiere og prosjektadministratorer kan overføre alt. Andre roller kan også kjøre en import og overføre de typene poster de kan opprette. Resten vises som ikke overført, med årsaken.
+- **Et OneUptime-prosjekt og retten til å opprette det du overfører.** Prosjekteiere og Prosjektadministratorer kan overføre alt. Andre roller kan også kjøre en import og overføre de typene poster de kan opprette. Resten vises som ikke overført, med årsaken.
 - **En incident.io-API-nøkkel som bare kan se data.** Importen skriver aldri til incident.io, så nøkkelen trenger ingen tillatelse til å opprette, redigere eller administrere noe.
 
 ## Importer incident.io-kontoen din
@@ -56,14 +56,14 @@ Rapporten teller hva som ble opprettet, invitert og ikke overført, og viser hve
 | Brukere | Prosjektmedlemmer | Kobles på e-postadresse. Alle som ikke er i prosjektet ennå, inviteres til teamet du velger. Deaktiverte brukere overføres ikke. |
 | Team | Team | Opprettes med medlemmene sine. Et team som prosjektet allerede har navnet på, brukes som det er, og medlemmene røres ikke. |
 | Vaktplaner | Vaktplaner | Hver rotasjon blir et lag med de samme personene, samme start, samme vaktlengde og samme arbeidstid, i vaktplanens tidssone. Versjonen av rotasjonen som gjelder nå, er den som overføres. |
-| Eskaleringsbaner | Vaktretningslinjer | Hvert nivå blir en eskaleringsregel som varsler de samme vaktplanene, brukerne og teamene etter samme ventetid. En gjentakelse blir retningslinjens gjentakelser, og fra en forgrening overføres den første banen. |
+| Eskaleringsbaner | Vaktpolicyer | Hvert nivå blir en eskaleringsregel som varsler de samme vaktplanene, brukerne og teamene etter samme ventetid. En gjentakelse blir policyens gjentakelser, og fra en forgrening overføres den første banen. |
 | Katalogtjenester | Tjenester | Oppføringene i katalogtypene dine i tjenestekategorien, opprettet i tjenestekatalogen. Arkiverte oppføringer utelates. |
 | Alvorlighetsgrader | Hendelsesalvorligheter | Opprettes i incident.ios rekkefølge, den mest alvorlige først. En alvorlighetsgrad som prosjektet allerede har navnet på, brukes som den er. |
 | Statuser | Hendelsestilstander | En triagestatus tilsvarer tilstanden OneUptime starter hendelser i, og en lukket status tilstanden der hendelser er løst. Aktive og pausede statuser opprettes mellom Bekreftet og Løst. |
 | Hendelsesroller | Hendelsesroller | Den ledende rollen tilsvarer OneUptimes hendelsesleder, og de andre rollene opprettes. OneUptime registrerer hvem som meldte hver hendelse, så rapportørrollen trengs ikke. |
 | Egendefinerte felt | Egendefinerte hendelsesfelt | Felt med ett valg blir nedtrekkslister, felt med flere valg nedtrekkslister med flervalg, tekst- og lenkefelt tekst og numeriske felt tall, med alternativene sine. |
 
-En rotasjon med flere personer på vakt samtidig blir én OneUptime-vaktplan per person på vakt, fordi en OneUptime-vaktplan har én person på vakt om gangen. Hver vaktretningslinje som varslet vaktplanen, varsler alle.
+En rotasjon med flere personer på vakt samtidig blir én OneUptime-vaktplan per person på vakt, fordi en OneUptime-vaktplan har én person på vakt om gangen. Hver vaktpolicy som varslet vaktplanen, varsler alle.
 
 ## Hva som ikke overføres
 
@@ -75,11 +75,11 @@ En rotasjon med flere personer på vakt samtidig blir én OneUptime-vaktplan per
 
 ## Grenser
 
-Én import oppretter høyst 2 000 poster: høyst 500 personer, 200 team, 200 vaktplaner, 200 vaktretningslinjer, 500 tjenester, 100 egendefinerte hendelsesfelt og 25 av hver av hendelsesalvorligheter, hendelsestilstander og hendelsesroller. Alt over en grense vises som ikke overført. Kjør importen på nytt for å overføre resten.
+Én import oppretter høyst 2 000 poster: høyst 500 personer, 200 team, 200 vaktplaner, 200 vaktpolicyer, 500 tjenester, 100 egendefinerte hendelsesfelt og 25 av hver av hendelsesalvorligheter, hendelsestilstander og hendelsesroller. Alt over en grense vises som ikke overført. Kjør importen på nytt for å overføre resten.
 
 I OneUptime Cloud vises poster som abonnementet ditt ikke inkluderer, som ikke overført, med abonnementet de trenger.
 
-En forhåndsvisning lagres i én dag. Bare personen som leste kontoen, kan krysse av og starte importen. Prosjekteiere og prosjektadministratorer ser fremdriften og rapporten for hver import.
+En forhåndsvisning lagres i én dag. Bare personen som leste kontoen, kan krysse av og starte importen. Prosjekteiere og Prosjektadministratorer ser fremdriften og rapporten for hver import.
 
 ## Fullfør byttet
 
@@ -97,7 +97,7 @@ Hvis teamet ditt omtaler hendelser med nummer, la numrene i OneUptime starte ett
 Pek monitorene dine og verktøyene som utløser varsler, mot OneUptime, og varsle deg selv én gang for å teste det.
 
 ### Slå av varsling i incident.io
-Når OneUptime varsler de riktige personene, slår du av varslene i incident.io, så ingen varsles to ganger.
+Når OneUptime varsler de riktige personene, slår du av varslingene i incident.io, så ingen varsles to ganger.
 :::
 
 ## Feilsøking

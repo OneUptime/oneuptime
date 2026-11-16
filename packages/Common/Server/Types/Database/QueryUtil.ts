@@ -22,6 +22,7 @@ import NotEqual from "../../../Types/BaseDatabase/NotEqual";
 import NotNull from "../../../Types/BaseDatabase/NotNull";
 import Search from "../../../Types/BaseDatabase/Search";
 import MultiSearch from "../../../Types/BaseDatabase/MultiSearch";
+import QueryOperator from "../../../Types/BaseDatabase/QueryOperator";
 import OwnedBy, {
   OWNED_BY_QUERY_KEY,
 } from "../../../Types/BaseDatabase/OwnedBy";
@@ -34,7 +35,7 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import Typeof from "../../../Types/Typeof";
 import { And, DataSource } from "typeorm";
 import { FindOperator } from "typeorm/find-options/FindOperator";
-import { CompareType } from "../../../Types/Database/CompareBase";
+import CompareBase, { CompareType } from "../../../Types/Database/CompareBase";
 import LessThanOrNull from "../../../Types/BaseDatabase/LessThanOrNull";
 import GreaterThanOrNull from "../../../Types/BaseDatabase/GreaterThanOrNull";
 import EqualTo from "../../../Types/BaseDatabase/EqualTo";
@@ -48,6 +49,43 @@ import { EntityMetadata } from "typeorm/metadata/EntityMetadata";
  * (PostgresQuerySpans).
  */
 export default class QueryUtil {
+  /*
+   * What a comparison binds for Postgres (#8200). A Date is bound as the
+   * instant it is: ISO 8601 in UTC, to the millisecond, which a timestamptz
+   * column reads exactly whatever the zone of the process or the session.
+   *
+   * The operators' toString() is their text for people, not for the
+   * database. LessThan, GreaterThan and their kin write a Date as its day
+   * alone ("2026-11-15", in the process's zone), so a check on the server
+   * for "updated over 20 minutes ago" asked Postgres for "updated before
+   * today" and was off by up to a day. EqualTo and NotEqual write it as
+   * "Sun Nov 15 2026 10:00:00 GMT+0000 (Coordinated Universal Time)", which
+   * Postgres refuses.
+   *
+   * Anything else is bound as before. A query from the browser arrives with
+   * its instants already ISO text (JSON has no dates), which toString()
+   * hands back whole; a number, an id or a day written as text
+   * ("2026-11-15") is still that text.
+   */
+  private static getComparedValue(
+    key: string,
+    operator: CompareBase<CompareType>,
+  ): string {
+    const value: CompareType = operator.value;
+
+    if (value instanceof Date) {
+      if (isNaN(value.getTime())) {
+        throw new BadDataException(
+          `The filter on ${key} compares it with a date that is not valid.`,
+        );
+      }
+
+      return value.toISOString();
+    }
+
+    return operator.toString();
+  }
+
   /*
    * A relation filtered by ids - a plain id (`incident: "<id>"`) or several
    * in Includes (`incident: new Includes([...])`) - is a filter on the
@@ -73,34 +111,193 @@ export default class QueryUtil {
       return;
     }
 
-    // The key's own filter as this serializes it, whether reached yet or not.
-    const keyFilter: unknown = (
-      QueryUtil.serializeQuery(modelType, {
-        [keyColumn]: existing,
+    record[keyColumn] = QueryUtil.getBothFilters({
+      modelType: modelType,
+      column: keyColumn,
+      existing: existing,
+      added: relationIds,
+      addedFrom: relation,
+    });
+  }
+
+  /*
+   * Two filters on one column, as one condition that holds where both do:
+   * the column's own filter, serialized as serializeQuery serializes it
+   * whether reached yet or not, and a condition written onto the column from
+   * another key (`addedFrom`) - a relation's ids onto the relation's key, an
+   * operator nested under a relation onto the related record's key or _id
+   * (serializeRelationFilter). Never the one in place of the other.
+   */
+  private static getBothFilters<TBaseModel extends BaseModel>(data: {
+    modelType: { new (): TBaseModel };
+    column: string;
+    existing: unknown;
+    added: unknown;
+    addedFrom: string;
+  }): FindOperator<any> {
+    const existingFilter: unknown = (
+      QueryUtil.serializeQuery(data.modelType, {
+        [data.column]: data.existing,
       } as Query<TBaseModel>) as Record<string, unknown>
-    )[keyColumn];
+    )[data.column];
 
-    const relationFilter: FindOperator<any> =
-      relationIds instanceof FindOperator
-        ? relationIds
-        : (QueryHelper.equalTo(relationIds) as FindOperator<any>);
+    const addedFilter: FindOperator<any> | null =
+      data.added instanceof FindOperator
+        ? data.added
+        : typeof data.added === Typeof.String
+          ? (QueryHelper.equalTo(data.added as string) as FindOperator<any>)
+          : null;
 
-    if (typeof keyFilter === Typeof.String) {
-      record[keyColumn] = And(
-        QueryHelper.equalTo(keyFilter as string) as FindOperator<any>,
-        relationFilter,
+    if (addedFilter && typeof existingFilter === Typeof.String) {
+      return And(
+        QueryHelper.equalTo(existingFilter as string) as FindOperator<any>,
+        addedFilter,
       );
-      return;
     }
 
-    if (keyFilter instanceof FindOperator) {
-      record[keyColumn] = And(keyFilter, relationFilter);
-      return;
+    if (addedFilter && existingFilter instanceof FindOperator) {
+      return And(existingFilter, addedFilter);
     }
 
     throw new BadDataException(
-      `Cannot combine the filter on ${relation} with the filter on ${keyColumn}.`,
+      `Cannot combine the filter on ${data.addedFrom} with the filter on ${data.column}.`,
     );
+  }
+
+  /*
+   * A FILTER ON A RELATED RECORD'S OWN COLUMNS, nested under the relation -
+   * `{ monitor: { createdAt: new LessThan(date) } }` on an incident - is a
+   * query of the related model: each of OneUptime's operators in it is
+   * written as a query of that model writes it (#8378).
+   *
+   * serializeQuery used to visit a query's own keys only, and under a
+   * relation turned only the text searches (Search, StartsWith...) into SQL.
+   * Every other operator reached TypeORM as the class itself, which TypeORM
+   * does not know: it bound the object, as its JSON, so a date was compared
+   * with '{"_type":"LessThan",...}' and Postgres refused the read, and a
+   * text compared with that JSON matched nothing, with no error. Now a
+   * comparison, a range, a list, a null check or a search under a relation
+   * says what it says at the top of a query: a Date bound as the instant it
+   * is (getComparedValue), ids checked as uuids (UUIDColumnFilter), a
+   * relation of the related record filtered by ids written onto its key.
+   * The same goes for a filter a level deeper, under the related record's
+   * own relation, and under a many-to-many relation.
+   *
+   * A filter on a JSON column of the related record - its custom fields,
+   * `{ incident: { customFields: { Team: "Payments" } } }` - is written as
+   * at the top of a query too (#8466): a containment check per key, an
+   * operator under a key (Includes...) as the checks it stands for, a null
+   * check on the whole column. Handed to TypeORM as it was given, the plain
+   * object was compared TypeORM's own way rather than as a filter on the
+   * keys it names, and an operator under a key was bound as its JSON and
+   * matched nothing.
+   *
+   * Only these are rewritten: the operators, the values on a JSON column,
+   * and the relation filters nested further in. Every other value - an id, a
+   * plain value, a list, one of TypeORM's own operators - stays exactly as
+   * it was given: the filters the permission checks put under a relation
+   * (the labels a member may read, @CanAccessIfCanReadOn: always the Label
+   * relation, never a JSON column) are unchanged. An operator that reaches beyond
+   * the column it is keyed on is refused: a MultiSearch names columns of its
+   * own and an OwnedBy the owner tables, which the read check of a filter
+   * under a relation (QueryPermission.checkRelationFilterPermission, by key)
+   * does not hold them to. Written, either would let a filter read columns
+   * the caller may not; handed on, it matched nothing, with no error.
+   *
+   * An operator the related model writes onto another of its keys - the ids
+   * of the related record's relation onto that relation's key, a
+   * many-to-many check onto _id - is added to what the filter holds on that
+   * key: both hold (getBothFilters).
+   */
+  private static serializeRelationFilter<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    filter: Record<string, unknown>,
+  ): void {
+    const model: BaseModel = new modelType();
+    const rewritten: Record<string, unknown> = {};
+
+    for (const key of Object.keys(filter)) {
+      const value: unknown = filter[key];
+
+      if (value instanceof MultiSearch || value instanceof OwnedBy) {
+        throw new BadDataException(
+          `The filter on ${key} of a related ${model.singularName || "record"} ${
+            value instanceof MultiSearch
+              ? "searches several fields at once"
+              : "is by owners"
+          }, which a filter on a related record cannot do. Filter the related records with a query of their own.`,
+        );
+      }
+
+      const column: TableColumnMetadata | undefined =
+        model.getTableColumnMetadata(key);
+
+      if (!column) {
+        continue;
+      }
+
+      if (
+        value instanceof QueryOperator ||
+        QueryUtil.isRelationFilter(column, value) ||
+        // A filter on a JSON column - the custom fields - whatever its shape (#8466).
+        (column.type === TableColumnType.JSON && value !== undefined)
+      ) {
+        rewritten[key] = value;
+      }
+    }
+
+    const rewrittenKeys: Array<string> = Object.keys(rewritten);
+
+    if (rewrittenKeys.length === 0) {
+      return;
+    }
+
+    for (const key of rewrittenKeys) {
+      delete filter[key];
+    }
+
+    const serialized: Record<string, unknown> = QueryUtil.serializeQuery(
+      modelType,
+      rewritten as Query<TBaseModel>,
+    ) as Record<string, unknown>;
+
+    for (const [key, value] of Object.entries(serialized)) {
+      filter[key] =
+        filter[key] === undefined
+          ? value
+          : QueryUtil.getBothFilters({
+              modelType: modelType,
+              column: key,
+              existing: filter[key],
+              added: value,
+              addedFrom: rewrittenKeys.join(", "),
+            });
+    }
+  }
+
+  /*
+   * A filter on a related record's own columns: a plain object under a
+   * relation (one record or many), never a list of ids, an id or an
+   * operator.
+   */
+  private static isRelationFilter(
+    column: TableColumnMetadata,
+    value: unknown,
+  ): value is Record<string, unknown> {
+    if (
+      !column.modelType ||
+      (column.type !== TableColumnType.Entity &&
+        column.type !== TableColumnType.EntityArray) ||
+      !value ||
+      typeof value !== Typeof.Object ||
+      Array.isArray(value)
+    ) {
+      return false;
+    }
+
+    const prototype: unknown = Object.getPrototypeOf(value);
+
+    return prototype === Object.prototype || prototype === null;
   }
 
   public static serializeQuery<TBaseModel extends BaseModel>(
@@ -315,7 +512,7 @@ export default class QueryUtil {
         tableColumnMetadata
       ) {
         query[key] = QueryHelper.equalToOrNull(
-          query[key] as any,
+          QueryUtil.getComparedValue(key, query[key] as EqualToOrNull<any>),
         ) as FindOperator<any> as any;
       } else if (
         query[key] &&
@@ -323,7 +520,7 @@ export default class QueryUtil {
         tableColumnMetadata
       ) {
         query[key] = QueryHelper.equalTo(
-          query[key] as any,
+          QueryUtil.getComparedValue(key, query[key] as EqualTo<any>),
         ) as FindOperator<any> as any;
       } else if (
         query[key] &&
@@ -339,7 +536,7 @@ export default class QueryUtil {
         tableColumnMetadata
       ) {
         query[key] = QueryHelper.notEquals(
-          query[key] as any,
+          QueryUtil.getComparedValue(key, query[key] as NotEqual<any>),
         ) as FindOperator<any> as any;
       } else if (
         query[key] &&
@@ -420,7 +617,10 @@ export default class QueryUtil {
         tableColumnMetadata
       ) {
         query[key] = QueryHelper.lessThan(
-          (query[key] as LessThan<CompareType>).toString() as any,
+          QueryUtil.getComparedValue(
+            key,
+            query[key] as LessThan<CompareType>,
+          ) as any,
         ) as any;
       } else if (
         query[key] &&
@@ -477,7 +677,10 @@ export default class QueryUtil {
         tableColumnMetadata
       ) {
         query[key] = QueryHelper.greaterThan(
-          (query[key] as GreaterThan<CompareType>).toString() as any,
+          QueryUtil.getComparedValue(
+            key,
+            query[key] as GreaterThan<CompareType>,
+          ) as any,
         ) as any;
       } else if (
         query[key] &&
@@ -647,7 +850,10 @@ export default class QueryUtil {
         tableColumnMetadata
       ) {
         query[key] = QueryHelper.greaterThanEqualTo(
-          (query[key] as GreaterThanOrEqual<CompareType>).toString() as any,
+          QueryUtil.getComparedValue(
+            key,
+            query[key] as GreaterThanOrEqual<CompareType>,
+          ) as any,
         ) as any;
       } else if (
         query[key] &&
@@ -655,7 +861,10 @@ export default class QueryUtil {
         tableColumnMetadata
       ) {
         query[key] = QueryHelper.lessThanEqualTo(
-          (query[key] as LessThanOrEqual<CompareType>).toString() as any,
+          QueryUtil.getComparedValue(
+            key,
+            query[key] as LessThanOrEqual<CompareType>,
+          ) as any,
         ) as any;
       } else if (
         query[key] &&
@@ -663,7 +872,10 @@ export default class QueryUtil {
         tableColumnMetadata
       ) {
         query[key] = QueryHelper.lessThanOrNull(
-          (query[key] as LessThanOrNull<CompareType>).toString() as any,
+          QueryUtil.getComparedValue(
+            key,
+            query[key] as LessThanOrNull<CompareType>,
+          ) as any,
         ) as any;
       } else if (
         query[key] &&
@@ -671,7 +883,10 @@ export default class QueryUtil {
         tableColumnMetadata
       ) {
         query[key] = QueryHelper.greaterThanOrNull(
-          (query[key] as LessThanOrNull<CompareType>).toString() as any,
+          QueryUtil.getComparedValue(
+            key,
+            query[key] as GreaterThanOrNull<CompareType>,
+          ) as any,
         ) as any;
       } else if (
         query[key] &&
@@ -724,68 +939,25 @@ export default class QueryUtil {
       }
 
       /*
-       * Text-search operator nested under a single-Entity relation, e.g.
-       * { user: { name: new Search("foo") } }. serializeQuery otherwise only
-       * visits top-level keys, so the nested operator reaches TypeORM as a raw
-       * class instance and silently degrades to an exact equality
-       * (`user.name = 'foo'` instead of `user.name ILIKE '%foo%'`) — which is
-       * why the Owner / user picker "search" appeared to do nothing once a
-       * project had more than a page of members.
-       *
-       * We deliberately touch ONLY the ILIKE-family leaf operators here and
-       * leave every other nested value (arrays, ids, plain equality, other
-       * operators) exactly as it was, so existing nested relation filters (the
-       * access-control label filters built by @CanAccessIfCanReadOn, etc.)
-       * serialize unchanged.
+       * A filter on the related record's own columns, nested under the
+       * relation: its operators written as a query of the related model
+       * writes them (serializeRelationFilter, #8378). Rewritten on a copy:
+       * the caller's filter stays as it was given.
        */
       if (
         tableColumnMetadata &&
-        tableColumnMetadata.modelType &&
-        tableColumnMetadata.type === TableColumnType.Entity &&
-        query[key] &&
-        typeof query[key] === Typeof.Object &&
-        !Array.isArray(query[key]) &&
-        (Object.getPrototypeOf(query[key]) === Object.prototype ||
-          Object.getPrototypeOf(query[key]) === null)
+        QueryUtil.isRelationFilter(tableColumnMetadata, query[key])
       ) {
-        const relationModel: BaseModel = new tableColumnMetadata.modelType();
-        const relationQuery: Record<string, any> = query[key] as Record<
-          string,
-          any
-        >;
-        for (const relationKey in relationQuery) {
-          const relationColumnMetadata: TableColumnMetadata =
-            relationModel.getTableColumnMetadata(relationKey);
-          if (!relationColumnMetadata) {
-            continue;
-          }
-          const nestedValue: any = relationQuery[relationKey];
-          if (nestedValue instanceof Search) {
-            relationQuery[relationKey] = QueryHelper.search(
-              (nestedValue as Search<string>).toString(),
-            ) as any;
-          } else if (nestedValue instanceof StartsWith) {
-            relationQuery[relationKey] = QueryHelper.startsWith(
-              (nestedValue as StartsWith<string>).toString(),
-            ) as any;
-          } else if (nestedValue instanceof EndsWith) {
-            relationQuery[relationKey] = QueryHelper.endsWith(
-              (nestedValue as EndsWith<string>).toString(),
-            ) as any;
-          } else if (nestedValue instanceof NotContains) {
-            relationQuery[relationKey] = QueryHelper.notContains(
-              (nestedValue as NotContains<string>).toString(),
-            ) as any;
-          } else if (nestedValue instanceof Wildcard) {
-            relationQuery[relationKey] = QueryHelper.wildcard(
-              (nestedValue as Wildcard<string>).toString(),
-            ) as any;
-          } else if (nestedValue instanceof NotWildcard) {
-            relationQuery[relationKey] = QueryHelper.notWildcard(
-              (nestedValue as NotWildcard<string>).toString(),
-            ) as any;
-          }
-        }
+        const relationFilter: Record<string, unknown> = {
+          ...(query[key] as Record<string, unknown>),
+        };
+
+        QueryUtil.serializeRelationFilter(
+          tableColumnMetadata.modelType!,
+          relationFilter,
+        );
+
+        query[key] = relationFilter as any;
       }
     }
 

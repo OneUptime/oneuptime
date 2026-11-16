@@ -17,7 +17,7 @@ Elke workflow heeft drie onderdelen:
 2. **Componenten** — wat de workflow doet: een bericht sturen, een API aanroepen, een voorwaarde controleren, een OneUptime-record aanmaken of bijwerken.
 3. **Verbindingen** — de lijnen die je van het ene blok naar het volgende trekt. Ze bepalen wat na wat draait.
 
-Als de trigger afgaat, start OneUptime een **uitvoering**. Elk blok eindigt door een van zijn uitgangen te nemen, zoals **Success** of **Error**, **Yes** of **No**, en alleen de blokken die op die uitgang zijn aangesloten draaien daarna. Is er geen blok aangesloten op de uitgang die een blok nam, dan eindigt dat pad. De uitvoering wordt opgeslagen met haar status, het pad dat ze volgde en wat elk blok ontving en teruggaf.
+Als de trigger afgaat, start OneUptime een **uitvoering**. Elk blok eindigt door een van zijn uitgangen te nemen, zoals **Succes** of **Fout**, **Ja** of **Nee**, en alleen de blokken die op die uitgang zijn aangesloten draaien daarna. Is er geen blok aangesloten op de uitgang die een blok nam, dan eindigt dat pad. De uitvoering wordt opgeslagen met haar status, het pad dat ze volgde en wat elk blok ontving en teruggaf.
 
 ```mermaid title="Wat er gebeurt als een workflow draait"
 flowchart TB
@@ -36,7 +36,7 @@ flowchart TB
     wired -->|"Nee"| saved["Uitvoering opgeslagen met stappen en logboek"]
 ```
 
-Je bouwt dit allemaal visueel, op een canvas. De meeste workflows hebben helemaal geen code nodig; als er toch code nodig is, draait een **Run Custom JavaScript**-blok een paar regels JavaScript.
+Je bouwt dit allemaal visueel, op een canvas. De meeste workflows hebben helemaal geen code nodig; als er toch code nodig is, draait een **Eigen JavaScript uitvoeren**-blok een paar regels JavaScript.
 
 ## Wat je met workflows kunt doen
 
@@ -44,7 +44,7 @@ Je bouwt dit allemaal visueel, op een canvas. De meeste workflows hebben helemaa
 - **Reageren op wat er in OneUptime gebeurt** — als er een incident wordt aangemaakt, het juiste kanaal informeren en automatisch een ticket openen.
 - **Taken volgens een schema uitvoeren** — elke vijf minuten, elke nacht, elke maandagochtend.
 - **Gegevens van buitenaf ontvangen** — andere systemen een workflow laten starten door de URL ervan aan te roepen of naar het adres ervan te mailen.
-- **Veelgebruikte automatisering hergebruiken** — één keer bouwen en vanuit elke andere workflow starten met een **Execute Workflow**-blok.
+- **Veelgebruikte automatisering hergebruiken** — één keer bouwen en vanuit elke andere workflow starten met een **Andere workflow uitvoeren**-blok.
 
 ## Belangrijke begrippen
 
@@ -55,7 +55,7 @@ De woorden die in heel OneUptime worden gebruikt, staan in de [Woordenlijst](/do
 | **Workflow**           | De hele automatisering: een naam, een canvas met blokken en een schakelaar om haar aan of uit te zetten.            |
 | **Trigger**            | Het eerste blok. Het bepaalt wanneer de workflow draait. Elke workflow heeft er precies één.                       |
 | **Component**          | Elk ander blok: het stuurt een bericht, doet een verzoek, controleert een voorwaarde of wijzigt een record.        |
-| **Uitgang**            | Een punt onderaan een blok, zoals **Success** of **Error**. Lijnen vanuit dat punt leiden naar de volgende blokken. |
+| **Uitgang**            | Een punt onderaan een blok, zoals **Succes** of **Fout**. Lijnen vanuit dat punt leiden naar de volgende blokken. |
 | **Uitvoering**         | Eén keer dat de workflow draait, opgeslagen met status, tijdstempels en wat elk blok deed.                         |
 | **Globale variabele**  | Een waarde, zoals een API-sleutel, die je één keer opslaat en in elke workflow van het project gebruikt.           |
 
@@ -107,13 +107,13 @@ Deze workflow stuurt een JSON-samenvatting van elk nieuw incident naar een URL v
 
 ```mermaid title="Het voltooide voorbeeld"
 flowchart TB
-    trigger["On Create Incident"] -->|"Success"| post["API Post (JSON)"]
-    post -->|"Error"| log["Log"]
-    post -->|"Success"| done["De uitvoering eindigt"]
+    trigger["Bij aanmaken: Incident"] -->|"Succes"| post["API-aanroep POST (JSON)"]
+    post -->|"Fout"| log["Logboek"]
+    post -->|"Succes"| done["De uitvoering eindigt"]
 ```
 
 > [!TIP]
-> Het sjabloon **Forward new incidents to another system** bouwt deze workflow voor je, zonder het Log-blok: zonder iets op **Error** laat een verzoek dat mislukt de uitvoering mislukken, en de **Stappen** van de uitvoering zeggen waarom. Je vindt het onder **Incidenten** als je een workflow maakt.
+> Het sjabloon **Forward new incidents to another system** bouwt deze workflow voor je, zonder het Log-blok: zonder iets op **Fout** laat een verzoek dat mislukt de uitvoering mislukken, en de **Stappen** van de uitvoering zeggen waarom. Je vindt het onder **Incidenten** als je een workflow maakt.
 
 :::steps
 ### De workflow maken
@@ -124,23 +124,23 @@ De nieuwe workflow opent in de **Bouwer**, uitgeschakeld.
 
 ### De trigger toevoegen
 
-Klik op het gestippelde blok **Kies wat deze workflow start** en klik daarna op **On Create Incident** onder **Populair** in het paneel **Trigger toevoegen**.
+Klik op het gestippelde blok **Kies wat deze workflow start** en klik daarna op **Bij aanmaken: Incident** onder **Populair** in het paneel **Trigger toevoegen**.
 
 De trigger neemt de plaats van het gestippelde blok in. De ID erop, `incident-on-create-1`, is hoe latere blokken ernaar verwijzen.
 
 ### De velden van het incident kiezen
 
-Klik op de trigger. **Fields to pass on** begint met de titel: klik op **Veld toevoegen**, vink de beschrijving aan en elk ander veld dat het verzoek moet meesturen, en klik op **Opslaan**.
+Klik op de trigger. **Velden om door te geven** begint met de titel: klik op **Veld toevoegen**, vink de beschrijving aan en elk ander veld dat het verzoek moet meesturen, en klik op **Opslaan**.
 
 De trigger geeft het nieuwe incident met deze velden door. Een veld dat je niet selecteert, komt leeg aan.
 
 ### Het API-blok toevoegen
 
-Klik op **Component toevoegen** en daarna op **API Post (JSON)** onder **Populair**. Sleep van het punt **Success** van de trigger naar beneden naar het bovenste punt van het nieuwe blok.
+Klik op **Component toevoegen** en daarna op **API-aanroep POST (JSON)** onder **Populair**. Sleep van het punt **Succes** van de trigger naar beneden naar het bovenste punt van het nieuwe blok.
 
 ### Het verzoek invullen
 
-Klik op het API-blok, waarop **Click to set up** staat. Zet je endpoint in **URL**. Schrijf in **Request Body** de JSON die verstuurd moet worden, gebruik **{ }** om de velden van het incident in te voegen waar je ze nodig hebt, en klik op **Opslaan**.
+Klik op het API-blok, waarop **Click to set up** staat. Zet je endpoint in **URL**. Schrijf in **Verzoeklichaam** de JSON die verstuurd moet worden, gebruik **{ }** om de velden van het incident in te voegen waar je ze nodig hebt, en klik op **Opslaan**.
 
 ```json title="Request Body"
 {
@@ -154,7 +154,7 @@ Elke `{{…}}`-verwijzing wordt vervangen door de waarde van het incident als de
 
 ### Fouten opvangen
 
-Klik op **Component toevoegen** en daarna op **Logboek**. Sluit het punt **Error** van het API-blok erop aan en stel de **Value** van het Log-blok in op `Could not send the incident: {{local.components.api-post-1.returnValues.error}}`.
+Klik op **Component toevoegen** en daarna op **Logboek**. Sluit het punt **Fout** van het API-blok erop aan en stel de **Waarde** van het Log-blok in op `Could not send the incident: {{local.components.api-post-1.returnValues.error}}`.
 
 Een verzoek dat mislukt — een onbereikbare URL of een antwoord dat geen 2xx is — volgt nu dit pad, en het logboek van de uitvoering zegt waarom.
 
@@ -162,7 +162,7 @@ Een verzoek dat mislukt — een onbereikbare URL of een antwoord dat geen 2xx is
 
 Klik op **Workflow uitvoeren** en kies onder **Incident** een incident in dit project: de meest recente staan in de lijst, en door het nummer of een deel van de titel te typen vind je een ander. Klik op **Workflow handmatig uitvoeren** en bevestig met **Uitvoeren**. De workflow staat nog uit, dus dit is een **Testrun**, en het verzoek wordt echt verstuurd.
 
-Er opent een paneel **Workflow-uitvoering** dat de uitvoering volgt. Open de stap **API Post (JSON)** om de body te zien die is verstuurd en het antwoord dat terugkwam.
+Er opent een paneel **Workflow-uitvoering** dat de uitvoering volgt. Open de stap **API-aanroep POST (JSON)** om de body te zien die is verstuurd en het antwoord dat terugkwam.
 
 ### Inschakelen
 

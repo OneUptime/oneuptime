@@ -2,7 +2,7 @@
 
 La telemetría contiene todo lo que escribe tu código: una dirección de correo electrónico en una línea de registro, un número de tarjeta en un atributo de span, un token en una traza de pila, la pregunta de un cliente en un prompt. Seguridad de datos trata los registros, las trazas, las excepciones y las conversaciones de IA de cada servicio, y las sesiones de cada aplicación RUM, como almacenes de datos propios. Los muestrea cada hora, encuentra datos sensibles en ellos igual que en un bucket, y **Depurar** convierte un hallazgo en una regla de depuración que enmascara esos datos en la ingesta a partir de entonces.
 
-No hay nada que configurar: la telemetría de cada servicio se escanea cada hora, salvo que **Escanear telemetría** esté desactivado en los ajustes del proyecto.
+No hay nada que configurar: la telemetría de cada servicio se escanea cada hora, salvo que **Escanear telemetría** esté desactivado en los ajustes del proyecto. Para dejar fuera los registros, las trazas u otra de las señales de un servicio, desactiva **Escanear contenido** en los **Ajustes** de ese almacén: desde el siguiente escaneo, no se lee nada de ello.
 
 :::cards
 - [Qué se lee](#qué-se-lee): Los atributos, cuerpos, mensajes y prompts de cada señal.
@@ -45,7 +45,7 @@ La grabación de una reproducción de sesión contiene el texto de las páginas 
 
 El prompt de una llamada de IA lleva todo el chat anterior al mensaje más reciente de la persona, así que se leen hasta 16.384 caracteres de cada valor de una llamada de IA. Cuando las conversaciones de IA contienen datos sensibles, ocurren dos cosas más: el proveedor de IA al que fueron las llamadas pasa a ser un flujo de esos datos, y [Se están enviando datos sensibles a un proveedor de IA](/docs/data-security/checks-and-issues#ia) falla en el almacén.
 
-Las conversaciones de una [herramienta de IA de la empresa](/docs/telemetry/ai-company-tools) se dejan fuera. Solo los roles Project Owner y Project Admin pueden leerlas, y un hallazgo aparece donde lo ve todo el que lee Seguridad de datos, así que los spans de esos servicios nunca se leen, y sus conversaciones de IA figuran como no leídas.
+Las conversaciones de una [herramienta de IA de la empresa](/docs/telemetry/ai-company-tools) se dejan fuera. Solo los roles Propietario del proyecto y Administrador del proyecto pueden leerlas, y un hallazgo aparece donde lo ve todo el que lee Seguridad de datos, así que los spans de esos servicios nunca se leen, y sus conversaciones de IA figuran como no leídas.
 
 ## Cómo muestrea un escaneo
 
@@ -101,7 +101,7 @@ Algunos hallazgos no se pueden depurar con una regla, y **Depurar** dice por qu�
 - Uno de tus propios tipos de datos: añade tú mismo una regla de depuración personalizada con su patrón.
 - Los propios detalles de una sesión (`sessions.*`): la ingesta de reproducciones de sesiones no ejecuta reglas de depuración.
 
-**Depurar** crea la regla en tu nombre, con tus propios permisos: pueden pulsarlo los roles Project Owner y Project Admin, y también un equipo que pueda crear reglas de depuración de registros, y reglas de depuración de trazas para los spans, las excepciones y las llamadas de IA.
+**Depurar** crea la regla en tu nombre, con tus propios permisos: pueden pulsarlo los roles Propietario del proyecto y Administrador del proyecto, y también un equipo que pueda crear reglas de depuración de registros, y reglas de depuración de trazas para los spans, las excepciones y las llamadas de IA.
 
 ## Qué cuenta como depurado
 

@@ -50,12 +50,15 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import {
-  EVERY_NEW_ALERT_RULE_DESCRIPTION,
-  EVERY_NEW_INCIDENT_RULE_DESCRIPTION,
+  EVERY_NEW_EVENT_RULES_LANGUAGE_KEY,
   PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY,
+  getEveryNewAlertRuleDescription,
   getEveryNewAlertRuleName,
+  getEveryNewIncidentRuleDescription,
   getEveryNewIncidentRuleName,
 } from "Common/Types/OnCallDutyPolicy/EveryNewEventRules";
+import { getFirstOnCallPolicyName } from "Common/Utils/GuidedSetup/OnCallPolicyRecords";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { DEFAULT_ESCALATE_AFTER_IN_MINUTES } from "Common/Types/OnCallDutyPolicy/EscalationRuleDefaults";
 import { getOnCallPolicyRepeatsAllowed } from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyRepeat";
 import Phone from "Common/Types/Phone";
@@ -403,12 +406,18 @@ export default class OnCallSetupApi {
     };
   }
 
-  // The project's policies, and whether this person may make or change one.
+  /*
+   * The project's policies in service, and whether this person may make or
+   * change one. An archived policy pages no one, so it is never offered,
+   * and a project whose only policies are archived has none to set up: the
+   * setup makes one that pages people (#8234). Pinned as the On-Call
+   * Policies list pins it, so the setup offers what the list shows.
+   */
   public static async loadPolicyChoices(): Promise<PolicyChoiceFacts> {
     const policies: ListResult<OnCallDutyPolicy> =
       await ModelAPI.getList<OnCallDutyPolicy>({
         modelType: OnCallDutyPolicy,
-        query: {},
+        query: { isArchived: false },
         limit: LIMIT_PER_PROJECT,
         skip: 0,
         select: { _id: true, name: true },
@@ -449,15 +458,18 @@ export default class OnCallSetupApi {
   /*
    * A new policy paging the people and teams picked first (its Level 1,
    * FirstResponders), with the two on-call rules that run it for every new
-   * incident and alert when this person may add them (EveryNewEventRules).
+   * incident and alert when this person may add them (EveryNewEventRules) -
+   * named, and its rules too, in the language of the person setting it up
+   * (#7995).
    */
   public static async createPolicy(data: {
     userIds: Array<string>;
     teamIds: Array<string>;
     addRules: boolean;
+    translator: Translator;
   }): Promise<string> {
     const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
-    policy.name = ON_CALL_POLICY_NAME;
+    policy.name = getFirstOnCallPolicyName(data.translator);
 
     const miscDataProps: JSONObject = {
       users: data.userIds,
@@ -466,6 +478,8 @@ export default class OnCallSetupApi {
 
     if (data.addRules) {
       miscDataProps[PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY] = true;
+      miscDataProps[EVERY_NEW_EVENT_RULES_LANGUAGE_KEY] =
+        data.translator.language;
     }
 
     const id: string = createdId(
@@ -485,8 +499,9 @@ export default class OnCallSetupApi {
 
   /*
    * A policy as the setup shows it: its escalation rules in order, who each
-   * pages, how often it repeats, and how many enabled on-call rules run it.
-   * Null when it is gone.
+   * pages, how often it repeats, how many enabled on-call rules run it, and
+   * whether it is archived - there, but paging no one (#8432). Null when it
+   * is gone.
    */
   public static async loadPolicy(
     id: string,
@@ -502,6 +517,7 @@ export default class OnCallSetupApi {
           name: true,
           repeatPolicyIfNoOneAcknowledges: true,
           repeatPolicyIfNoOneAcknowledgesNoOfTimes: true,
+          isArchived: true,
         },
       });
 
@@ -671,6 +687,7 @@ export default class OnCallSetupApi {
       repeatTimes: getOnCallPolicyRepeatsAllowed(policy),
       incidentRuleCount: incidentRules.data.filter(namesPolicy).length,
       alertRuleCount: alertRules.data.filter(namesPolicy).length,
+      isArchived: Boolean(policy.isArchived),
     };
   }
 
@@ -737,13 +754,15 @@ export default class OnCallSetupApi {
   /*
    * The on-call rules that run a policy for every new incident and alert,
    * for the kinds no enabled rule runs it for yet - as Create On-Call Policy
-   * adds them for a project's first policy (EveryNewEventRules).
+   * adds them for a project's first policy (EveryNewEventRules) - named and
+   * described in the language of the person adding them (#7995).
    */
   public static async addEveryNewEventRules(data: {
     policyId: string;
     policyName: string;
     incident: boolean;
     alert: boolean;
+    translator: Translator;
   }): Promise<void> {
     const projectId: ObjectID = currentProjectId();
     const named: OnCallDutyPolicy = new OnCallDutyPolicy();
@@ -752,8 +771,8 @@ export default class OnCallSetupApi {
     if (data.incident) {
       const rule: IncidentOnCallRule = new IncidentOnCallRule();
       rule.projectId = projectId;
-      rule.name = getEveryNewIncidentRuleName(data.policyName);
-      rule.description = EVERY_NEW_INCIDENT_RULE_DESCRIPTION;
+      rule.name = getEveryNewIncidentRuleName(data.policyName, data.translator);
+      rule.description = getEveryNewIncidentRuleDescription(data.translator);
       rule.isEnabled = true;
       rule.onCallDutyPolicies = [named];
 
@@ -766,8 +785,8 @@ export default class OnCallSetupApi {
     if (data.alert) {
       const rule: AlertOnCallRule = new AlertOnCallRule();
       rule.projectId = projectId;
-      rule.name = getEveryNewAlertRuleName(data.policyName);
-      rule.description = EVERY_NEW_ALERT_RULE_DESCRIPTION;
+      rule.name = getEveryNewAlertRuleName(data.policyName, data.translator);
+      rule.description = getEveryNewAlertRuleDescription(data.translator);
       rule.isEnabled = true;
       rule.onCallDutyPolicies = [named];
 

@@ -3,7 +3,7 @@
 Een monitor controleert iets wat u beheert, zoals een website, een API, een host of een Kubernetes-cluster, en laat het u weten wanneer het niet meer werkt. **Monitor maken** vraagt eerst wat u wilt bewaken, dan wat er gecontroleerd wordt en daarna hoe vaak. Alles behalve het type, de naam en wat er gecontroleerd wordt, begint met standaardwaarden die bij de meeste monitoren passen.
 
 > [!NOTE]
-> Om een monitor te maken hebt u de rol Project Owner, Project Admin, Project Member, Monitor Admin of Monitor Member nodig, of een aangepaste rol met de machtiging Create Monitor.
+> Om een monitor te maken hebt u de rol Projecteigenaar, Projectbeheerder, Projectlid, Monitorbeheerder of Monitorlid nodig, of een aangepaste rol met de machtiging Create Monitor.
 
 ## Monitorinfo
 
@@ -76,7 +76,7 @@ Incidenten en waarschuwingen die automatisch worden opgelost, zoals die van de s
 
 ## Sondes en interval
 
-Monitoren die sondes controleren eindigen met deze stap: Website, API, Ping, IP, Poort, SSL-certificaat, DNS, DNSSEC, NTP, Domein, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code en External Status Page. **Sondes** zijn de machines die de controles uitvoeren, en de standaardsondes van uw project zijn al geselecteerd. Het **Bewakingsinterval** begint bij **Elke 5 minuten**.
+Monitoren die sondes controleren eindigen met deze stap: Website, API, Ping, IP, Poort, SSL-certificaat, DNS, DNSSEC, NTP, Domein, SQL-query, Databasegezondheid, Synthetische monitor, Aangepaste JavaScript-code en Externe statuspagina. **Sondes** zijn de machines die de controles uitvoeren, en de standaardsondes van uw project zijn al geselecteerd. Het **Bewakingsinterval** begint bij **Elke 5 minuten**.
 
 :::steps
 ### De sondes kiezen
@@ -85,7 +85,7 @@ Houd de geselecteerde **Sondes** of kies andere. Een monitor zonder sondes wordt
 
 ### Kiezen hoe vaak er gecontroleerd wordt
 
-Kies een **Bewakingsinterval**, van **Elke minuut** tot **Elke week**. Monitoren van het type Synthetic Monitor, Custom JavaScript Code en SSL-certificaat krijgen intervallen van 5 minuten of langer aangeboden.
+Kies een **Bewakingsinterval**, van **Elke minuut** tot **Elke week**. Monitoren van het type Synthetische monitor, Aangepaste JavaScript-code en SSL-certificaat krijgen intervallen van 5 minuten of langer aangeboden.
 
 ### De monitor maken
 

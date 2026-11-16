@@ -1,9 +1,9 @@
-# Workflow-triggere
+# Arbejdsgangstriggere
 
-En trigger er den første blok i et workflow — den afgør, hvornår workflowet kører. Hvert workflow har præcis én trigger. Du vælger mellem seks typer.
+En trigger er den første blok i en arbejdsgang — den afgør, hvornår arbejdsgangen kører. Hver arbejdsgang har præcis én trigger. Du vælger mellem seks typer.
 
 :::cards
-- [Manuel](#manual): Start workflowet fra Bygger eller fra et andet workflow.
+- [Manuel](#manual): Start arbejdsgangen fra Bygger eller fra en anden arbejdsgang.
 - [Tidsplan](#schedule): Kør det efter en tilbagevendende tidsplan, skrevet som et cron-udtryk.
 - [Webhook](#webhook): Lad et andet system starte det ved at kalde en URL.
 - [Indgående e-mail](#incoming-email): Start det med hver e-mail, der sendes til dets egen adresse.
@@ -11,35 +11,35 @@ En trigger er den første blok i et workflow — den afgør, hvornår workflowet
 - [OneUptime-begivenhedstriggere](#oneuptime-begivenhedstriggere): Reager, når en post oprettes, opdateres eller slettes.
 :::
 
-For at tilføje triggeren klikker du på den stiplede blok **Vælg, hvad der starter denne arbejdsgang** på et nyt workflows lærred. For at ændre den sletter du triggerblokken, og den stiplede blok kommer tilbage. Se [Opret et workflow](/docs/workflows/authoring#tilføj-blokke).
+For at tilføje triggeren klikker du på den stiplede blok **Vælg, hvad der starter denne arbejdsgang** på en ny arbejdsgangs lærred. For at ændre den sletter du triggerblokken, og den stiplede blok kommer tilbage. Se [Opret en arbejdsgang](/docs/workflows/authoring#tilføj-blokke).
 
 ## Hvilken trigger skal jeg bruge?
 
 | Hvis du vil…                                   | Vælg                        |
 | ---------------------------------------------- | --------------------------- |
-| Klikke på en knap for at køre workflowet       | **Manuel**                  |
+| Klikke på en knap for at køre arbejdsgangen       | **Manuel**                  |
 | Køre efter en tilbagevendende tidsplan         | **Tidsplan**                |
 | Lade et andet system sende data ind            | **Webhook**                 |
-| Starte ud fra en e-mail                        | **Incoming Email**          |
-| Handle på hændelsesrapporter fra Huntress      | **Huntress Incident Report** |
+| Starte ud fra en e-mail                        | **Indgående e-mail**          |
+| Handle på hændelsesrapporter fra Huntress      | **Huntress-hændelsesrapport** |
 | Reagere på noget i OneUptime                   | **OneUptime-begivenhed**    |
 
-Et workflow kan kun have én trigger. Har du brug for to måder at starte den samme automatik på, så byg den fælles logik i et workflow med en **Manuel**-trigger, og start den fra to tynde «indpaknings»-workflows med en **Execute Workflow**-blok.
+En arbejdsgang kan kun have én trigger. Har du brug for to måder at starte den samme automatik på, så byg den fælles logik i en arbejdsgang med en **Manuel**-trigger, og start den fra to tynde «indpaknings»-arbejdsgange med en **Kør en anden arbejdsgang**-blok.
 
 ## Manual
 
-Kør workflowet, når du vil: klik på **Kør arbejdsgang** på siden **Bygger**, udfyld triggerens **JSON**, klik på **Kør arbejdsgang manuelt**, og bekræft med **Kør**. Et andet workflow kan også starte det med en **Execute Workflow**-blok.
+Kør arbejdsgangen, når du vil: klik på **Kør arbejdsgang** på siden **Bygger**, udfyld triggerens **JSON**, klik på **Kør arbejdsgang manuelt**, og bekræft med **Kør**. En anden arbejdsgang kan også starte den med en **Kør en anden arbejdsgang**-blok.
 
-God til: automatik med ét klik, som du vil have en knap til, som «udskift denne nøgle» eller «send en testadvarsel», og logik, du deler mellem workflows.
+God til: automatik med ét klik, som du vil have en knap til, som «udskift denne nøgle» eller «send en testadvarsel», og logik, du deler mellem arbejdsgange.
 
 **Returns**: **JSON** — det, kørslen blev startet med.
 
 - Fra **Kør arbejdsgang** er det den JSON, du skrev. For at læse et felt i den tilføjer du feltets navn til referencen, som i `{{local.components.manual-1.returnValues.value.name}}`.
-- Fra en **Execute Workflow**-blok er hver nøgle i blokkens **Arguments** en værdi for sig. Med `{"customerId": "42"}` læser en senere blok `{{local.components.manual-1.returnValues.customerId}}`, hvor `manual-1` er Manual-triggerens ID.
+- Fra en **Kør en anden arbejdsgang**-blok er hver nøgle i blokkens **Argumenter** en værdi for sig. Med `{"customerId": "42"}` læser en senere blok `{{local.components.manual-1.returnValues.customerId}}`, hvor `manual-1` er Manual-triggerens ID.
 
 ## Schedule
 
-Kør workflowet efter en tilbagevendende tidsplan. Angiv hvor ofte i **Schedule at**: vælg en af **Common schedules**, skriv et **Custom cron**-udtryk, eller vælg en **Variabel**, der indeholder et. Under feltet beskrives tidsplanen med ord sammen med de **Næste kørsler**.
+Kør arbejdsgangen efter en tilbagevendende tidsplan. Angiv hvor ofte i **Planlæg kl.**: vælg en af **Common schedules**, skriv et **Custom cron**-udtryk, eller vælg en **Variabel**, der indeholder et. Under feltet beskrives tidsplanen med ord sammen med de **Næste kørsler**.
 
 God til: oprydning om natten, synkronisering hver time, ugentlige rapporter.
 
@@ -53,13 +53,13 @@ Tider er i UTC, så regn om fra din egen tidszone, når du vælger timen. De fem
 | `0 9 * * 1-5` | Hver hverdag kl. 9:00 UTC.             |
 | `0 9 * * 1`   | Hver mandag kl. 9:00 UTC.              |
 
-Intet planlægges, mens workflowet er slået fra. En tidsplan med **Variabel** læser en workflow- eller global variabel, som `{{local.variables.schedule}}`. Bliver den ikke til et gyldigt cron-udtryk, planlægges workflowet ikke, og en mislykket kørsel i dets liste over kørsler siger hvorfor.
+Intet planlægges, mens arbejdsgangen er slået fra. En tidsplan med **Variabel** læser en arbejdsgangs eller global variabel, som `{{local.variables.schedule}}`. Bliver den ikke til et gyldigt cron-udtryk, planlægges arbejdsgangen ikke, og en mislykket kørsel i dens liste over kørsler siger hvorfor.
 
-For at teste workflowet uden at vente på tidsplanen klikker du på **Kør arbejdsgang** i **Bygger**: det starter en kørsel med det samme.
+For at teste arbejdsgangen uden at vente på tidsplanen klikker du på **Kør arbejdsgang** i **Bygger**: det starter en kørsel med det samme.
 
 ## Webhook
 
-OneUptime giver workflowet sin egen URL. Alt, der kalder URL'en, starter workflowet og sender forespørgslens headere, forespørgselsparametre og body med.
+OneUptime giver arbejdsgangen sin egen URL. Alt, der kalder URL'en, starter arbejdsgangen og sender forespørgslens headere, forespørgselsparametre og body med.
 
 God til: at tage imod data i OneUptime fra et andet værktøj — CI/CD-callbacks, advarsler fra anden overvågning, tilmeldinger i dit CRM.
 
@@ -71,19 +71,19 @@ curl -X POST "https://oneuptime.example.com/workflow/trigger/<secret key>" \
   -d '{"message": "Hello"}'
 ```
 
-URL'en accepterer både `GET` og `POST`. Kalderen får en hurtig kvittering, `{"status": "Scheduled"}` — selve workflowet kører i baggrunden, så kalderen ser aldrig, hvad det gør. Et kald til et workflow, der er slået fra eller arkiveret, afvises med HTTP 400 og årsagen.
+URL'en accepterer både `GET` og `POST`. Kalderen får en hurtig kvittering, `{"status": "Scheduled"}` — selve arbejdsgangen kører i baggrunden, så kalderen ser aldrig, hvad den gør. Et kald til en arbejdsgang, der er slået fra eller arkiveret, afvises med HTTP 400 og årsagen.
 
 ```mermaid title="Hvad der sker, når noget kalder webhook-URL'en"
 sequenceDiagram
     participant Caller as Dit værktøj
     participant OneUptime
-    participant Runner as Workflow-afvikler
+    participant Runner as Arbejdsgangsafvikler
     Caller->>OneUptime: GET eller POST<br/>til webhook-URL'en
-    alt Workflowet er slået til
+    alt Arbejdsgangen er slået til
         OneUptime-->>Caller: 200, status Scheduled
         OneUptime->>Runner: Sætter en kørsel<br/>i kø med headere,<br/>forespørgsel og body
         Runner->>Runner: Kører blokkene<br/>efter triggeren
-    else Workflowet er slået<br/>fra eller arkiveret
+    else Arbejdsgangen er slået<br/>fra eller arkiveret
         OneUptime-->>Caller: 400 med årsagen
     end
 ```
@@ -92,106 +92,106 @@ sequenceDiagram
 
 | Værdi                    | Hvad den indeholder                                                                                                   |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------- |
-| **Request Headers**      | Hver header i forespørgslen, ved navn med små bogstaver, som `content-type`.                                          |
-| **Request Query Params** | Forespørgselsparametrene i URL'en, ved navn.                                                                          |
-| **Request Body**         | Den body, kalderen sendte. En JSON-body, sendt med `Content-Type: application/json`, kan læses felt for felt.         |
+| **Anmodningsheadere**      | Hver header i forespørgslen, ved navn med små bogstaver, som `content-type`.                                          |
+| **Forespørgselsparametre i anmodningen** | Forespørgselsparametrene i URL'en, ved navn.                                                                          |
+| **Anmodningsbrødtekst**         | Den body, kalderen sendte. En JSON-body, sendt med `Content-Type: application/json`, kan læses felt for felt, og det kan JSON sendt som ren tekst også, som Amazon SNS sender den. |
 
 Læs et enkelt felt ved at tilføje dets navn til referencen, som i `{{local.components.webhook-1.returnValues.request-body.message}}`.
 
 Når en forespørgsel er kommet, ved værdivælgeren i hver blok efter triggeren, hvad der var i den: den viser bodyens felter, headerne og forespørgselsparametrene, hver med sit indhold, så du kan vælge `incident.title` i stedet for at skrive en sti. Indtil da siger den, at ingen forespørgsel er kommet, og tilbyder **Kopiér testanmodning**, en `curl`-kommando til URL'en; felterne dukker op, så snart den kørsel, forespørgslen starter, er færdig. Se [Brug værdier fra tidligere blokke](/docs/workflows/authoring#brug-værdier-fra-tidligere-blokke).
 
-For at teste workflowet uden det andet værktøj klikker du på **Kør arbejdsgang** i **Bygger** og indtaster headere, forespørgselsparametre og en body.
+For at teste arbejdsgangen uden det andet værktøj klikker du på **Kør arbejdsgang** i **Bygger** og indtaster headere, forespørgselsparametre og en body.
 
 ### Hold URL'en privat
 
-Den sidste del af URL'en er workflowets hemmelige nøgle, og alle, der har URL'en, kan starte workflowet. Derfor er nøglen skjult, indtil du klikker på **Vis**, og **Kopiér URL** kopierer hele URL'en uden at vise den.
+Den sidste del af URL'en er arbejdsgangens hemmelige nøgle, og alle, der har URL'en, kan starte arbejdsgangen. Derfor er nøglen skjult, indtil du klikker på **Vis**, og **Kopiér URL** kopierer hele URL'en uden at vise den.
 
-Lækker URL'en, så klik på **Nulstil URL** samme sted: workflowet får en ny URL, og den gamle holder op med at virke med det samme, så opdater alt, der kalder den. Kun personer, der må redigere workflowet, kan se eller nulstille dets URL — se [Webhook-sikkerhed](/docs/workflows/configuration#webhook-sikkerhed).
+Lækker URL'en, så klik på **Nulstil URL** samme sted: arbejdsgangen får en ny URL, og den gamle holder op med at virke med det samme, så opdater alt, der kalder den. Kun personer, der må redigere arbejdsgangen, kan se eller nulstille dens URL — se [Webhook-sikkerhed](/docs/workflows/configuration#webhook-sikkerhed).
 
 > [!WARNING]
-> Behandl URL'en som en adgangskode. Alle, der har den, kan starte dit workflow uden at logge ind.
+> Behandl URL'en som en adgangskode. Alle, der har den, kan starte din arbejdsgang uden at logge ind.
 
 ## Incoming Email
 
-OneUptime giver workflowet sin egen e-mailadresse. Hver e-mail, der sendes til den adresse, starter workflowet og sender e-mailen med: hvem der sendte den, hvem den var til, emnet, teksten og HTML'en, headerne og navnene på eventuelle vedhæftede filer.
+OneUptime giver arbejdsgangen sin egen e-mailadresse. Hver e-mail, der sendes til den adresse, starter arbejdsgangen og sender e-mailen med: hvem der sendte den, hvem den var til, emnet, teksten og HTML'en, headerne og navnene på eventuelle vedhæftede filer.
 
 God til: at handle på e-mails fra systemer, der ikke kan kalde en webhook — advarsler fra ældre overvågningsværktøjer, en leverandørs statusmeddelelser, den rapport, et natligt job mailer ud.
 
-For at få adressen klikker du på Incoming Email-triggeren på lærredet. Adressen står øverst i dens indstillinger, med en knap **Kopiér adresse**. Giv den til det, der skal starte workflowet: et værktøj, der kun kan sende e-mail, en leverandørs notifikationsindstillinger eller en videresendelsesregel i din egen postkasse.
+For at få adressen klikker du på Indgående e-mail-triggeren på lærredet. Adressen står øverst i dens indstillinger, med en knap **Kopiér adresse**. Giv den til det, der skal starte arbejdsgangen: et værktøj, der kun kan sende e-mail, en leverandørs notifikationsindstillinger eller en videresendelsesregel i din egen postkasse.
 
-Hver e-mail starter sin egen kørsel. E-mailen når workflowet, uanset om adressen står i Til eller Cc, er en bcc eller nås gennem en videresendelsesregel. En e-mail, der nævner adressen to gange, starter én kørsel.
+Hver e-mail starter sin egen kørsel. E-mailen når arbejdsgangen, uanset om adressen står i Til eller Cc, er en bcc eller nås gennem en videresendelsesregel. En e-mail, der nævner adressen to gange, starter én kørsel.
 
 **Returns**:
 
 | Værdi           | Hvad den indeholder                                                                                     |
 | --------------- | ------------------------------------------------------------------------------------------------------- |
-| **From**        | Afsenderens adresse.                                                                                    |
-| **To**          | Alle, e-mailen var adresseret til, på én linje, som `ops@example.com, oncall@example.com`.              |
+| **Fra**        | Afsenderens adresse.                                                                                    |
+| **Til**          | Alle, e-mailen var adresseret til, på én linje, som `ops@example.com, oncall@example.com`.              |
 | **CC**          | Alle, e-mailen blev sendt som kopi til, på én linje.                                                    |
-| **Subject**     | Emnelinjen.                                                                                             |
-| **Body**        | E-mailens almindelige tekst.                                                                            |
-| **HTML Body**   | E-mailens HTML, når den har noget. Body og HTML Body afkortes hver ved 1 MB.                            |
-| **Headers**     | Hver header i e-mailen, ved navn med små bogstaver, som `message-id`.                                   |
-| **Attachments** | Navn, type og størrelse på hver vedhæftet fil. Selve filerne gemmes ikke.                               |
-| **Received At** | Hvornår OneUptime modtog e-mailen.                                                                      |
+| **Emne**     | Emnelinjen.                                                                                             |
+| **Brødtekst**        | E-mailens almindelige tekst.                                                                            |
+| **HTML-brødtekst**   | E-mailens HTML, når den har noget. Body og HTML Body afkortes hver ved 1 MB.                            |
+| **Headere**     | Hver header i e-mailen, ved navn med små bogstaver, som `message-id`.                                   |
+| **Vedhæftninger** | Navn, type og størrelse på hver vedhæftet fil. Selve filerne gemmes ikke.                               |
+| **Modtaget** | Hvornår OneUptime modtog e-mailen.                                                                      |
 
 Når en e-mail er kommet, ved værdivælgeren i hver blok efter triggeren, hvad der var i den: den viser hver header og hver vedhæftet fil, e-mailen havde, med deres indhold, så du kan vælge `headers.message-id` i stedet for at skrive en sti. Indtil da siger den, at ingen e-mail endnu er nået frem til adressen. Se [Brug værdier fra tidligere blokke](/docs/workflows/authoring#brug-værdier-fra-tidligere-blokke).
 
-For at prøve workflowet uden at sende en e-mail klikker du på **Kør arbejdsgang** på siden **Bygger** og udfylder en afsender, et emne og en body. De værdier, du udelader, kommer tomme frem.
+For at prøve arbejdsgangen uden at sende en e-mail klikker du på **Kør arbejdsgang** på siden **Bygger** og udfylder en afsender, et emne og en body. De værdier, du udelader, kommer tomme frem.
 
-E-mail starter kun workflowet, mens det er slået til. E-mail til et workflow, der er slået fra, ignoreres, og det samme gør e-mail til et workflow, hvis trigger ikke længere er Incoming Email.
+E-mail starter kun arbejdsgangen, mens den er slået til. E-mail til en arbejdsgang, der er slået fra, ignoreres, og det samme gør e-mail til en arbejdsgang, hvis trigger ikke længere er Incoming Email.
 
 ### Hold adressen privat
 
-Den del af adressen, der står før `@`, indeholder workflowets hemmelige nøgle, og alle, der har adressen, kan starte workflowet. Derfor er nøglen skjult, indtil du klikker på **Vis**, og **Kopiér adresse** kopierer hele adressen uden at vise den.
+Den del af adressen, der står før `@`, indeholder arbejdsgangens hemmelige nøgle, og alle, der har adressen, kan starte arbejdsgangen. Derfor er nøglen skjult, indtil du klikker på **Vis**, og **Kopiér adresse** kopierer hele adressen uden at vise den.
 
-Lækker adressen, så klik på **Nulstil adresse** samme sted: workflowet får en ny adresse, og e-mail til den gamle ignoreres fra da af, så giv den nye til alt, der mailer workflowet. Kun personer, der må redigere workflowet, kan se eller nulstille dets adresse — se [Sikkerhed for indgående e-mail](/docs/workflows/configuration#sikkerhed-for-indgående-e-mail).
+Lækker adressen, så klik på **Nulstil adresse** samme sted: arbejdsgangen får en ny adresse, og e-mail til den gamle ignoreres fra da af, så giv den nye til alt, der mailer arbejdsgangen. Kun personer, der må redigere arbejdsgangen, kan se eller nulstille dens adresse — se [Sikkerhed for indgående e-mail](/docs/workflows/configuration#sikkerhed-for-indgående-e-mail).
 
 > [!WARNING]
-> Alle kan sætte en hvilken som helst afsender på en e-mail, så **From** er intet bevis for, hvem der sendte den. Tjek noget, som kun den rigtige afsender ved, før et trin gør noget vigtigt.
+> Alle kan sætte en hvilken som helst afsender på en e-mail, så **Fra** er intet bevis for, hvem der sendte den. Tjek noget, som kun den rigtige afsender ved, før et trin gør noget vigtigt.
 
 > [!NOTE]
 > På en selvhostet installation modtager OneUptime e-mail gennem en udbyder af indgående e-mail, som din administrator konfigurerer — se [SendGrid Inbound Email](/docs/self-hosted/sendgrid-inbound-email). Indtil da har triggeren ingen adresse, og dens indstillinger siger det.
 
 ## Huntress
 
-OneUptime giver workflowet sin egen URL til Huntress, tjenesten til managed detection and response. Huntress sender hver begivenhed om en hændelsesrapport dertil, signeret med endpointets signeringshemmelighed, og hver begivenhed starter workflowet én gang: når dens SOC sender en rapport, når nogen kommenterer den, og når den lukkes.
+OneUptime giver arbejdsgangen sin egen URL til Huntress, tjenesten til managed detection and response. Huntress sender hver begivenhed om en hændelsesrapport dertil, signeret med endpointets signeringshemmelighed, og hver begivenhed starter arbejdsgangen én gang: når dens SOC sender en rapport, når nogen kommenterer den, og når den lukkes.
 
 God til: at åbne en hændelse for hver hændelsesrapport fra Huntress, tilkalde vagten og følge rapporten, til den lukkes. Skabelonen **Open an incident for each Huntress incident report** gør alle tre.
 
-For at forbinde Huntress klikker du på triggeren **Huntress Incident Report** på lærredet: den viser den URL, du giver Huntress, gemmer endpointets signeringshemmelighed og fortæller, hvornår Huntress sidst nåede workflowet. En anmodning, der ikke er signeret med den hemmelighed, starter intet, så URL'en er ikke en adgangskode. Se [Huntress](/docs/integrations/huntress) for opsætningen i Huntress, de værdier, triggeren returnerer, og dens indstillinger.
+For at forbinde Huntress klikker du på triggeren **Huntress-hændelsesrapport** på lærredet: den viser den URL, du giver Huntress, gemmer endpointets signeringshemmelighed og fortæller, hvornår Huntress sidst nåede arbejdsgangen. En anmodning, der ikke er signeret med den hemmelighed, starter intet, så URL'en er ikke en adgangskode. Se [Huntress](/docs/integrations/huntress) for opsætningen i Huntress, de værdier, triggeren returnerer, og dens indstillinger.
 
 ## OneUptime-begivenhedstriggere
 
-Næsten alt i OneUptime — monitorer, hændelser, advarsler, vedligeholdelseshændelser, statussider, vagtpolitikker, teams — kan starte et workflow. Hver tilbyder op til fire triggere:
+Næsten alt i OneUptime — monitorer, hændelser, advarsler, vedligeholdelseshændelser, statussider, vagtpolitikker, teams — kan starte en arbejdsgang. Hver tilbyder op til fire triggere:
 
 - **On Create** — udløses, når en ny tilføjes.
 - **On Update** — udløses, når en ændres. At gemme en post med de værdier, den allerede har, som en formular gemt uden ændringer eller en kontakt sendt, som den allerede står, er ikke en ændring og udløser den ikke.
-- **On Create or Update** — udløses i begge tilfælde: én gang, når en ny tilføjes, og én gang, hver gang en ændres. Ét workflow behandler så en ny og en ændret post ens, for eksempel for at holde en kopi i et andet system opdateret.
+- **On Create or Update** — udløses i begge tilfælde: én gang, når en ny tilføjes, og én gang, hver gang en ændres. én arbejdsgang behandler så en ny og en ændret post ens, for eksempel for at holde en kopi i et andet system opdateret.
 - **On Delete** — udløses, når en slettes.
 
 Sådan bygger du «når X sker i OneUptime, så gør Y» uden at skulle tjekke ting i en løkke.
 
-**On Update** kan begrænses til nogle felter med **Fields to watch**: så udløses den kun, når en opdatering ændrer et af dem, til en hvilken som helst værdi — at slå en kontakt fra eller rydde et felt tæller med. **On Create or Update** har de samme **Fields to watch**, kun for sine opdateringer: hver ny post udløser den stadig.
+**On Update** kan begrænses til nogle felter med **Felter, der holdes øje med**: så udløses den kun, når en opdatering ændrer et af dem, til en hvilken som helst værdi — at slå en kontakt fra eller rydde et felt tæller med. **On Create or Update** har de samme **Felter, der holdes øje med**, kun for sine opdateringer: hver ny post udløser den stadig.
 
 ```mermaid title="Hvornår en On Update-trigger udløses"
 flowchart TB
     save["En post gemmes"] --> changed{"Blev en værdi ændret?"}
     changed -->|"Nej"| nothing["Intet udløses"]
     changed -->|"Ja"| listen{"Er Fields to watch angivet?"}
-    listen -->|"Nej"| fires["Workflowet kører"]
+    listen -->|"Nej"| fires["Arbejdsgangen kører"]
     listen -->|"Ja"| field{"Blev et af dens felter ændret?"}
     field -->|"Ja"| fires
     field -->|"Nej"| nothing
 ```
 
-**On Create**, **On Update** og **On Create or Update** sender posten videre til den næste blok, med de felter, du vælger i triggerens **Fields to pass on**. For eksempel sender triggeren **Incident → On Create** den nye hændelse videre, så den næste blok kan læse dens titel, beskrivelse, alvorlighed eller ethvert andet felt, du har valgt, som `{{local.components.incident-on-create-1.returnValues.model.title}}`. Et felt, du ikke valgte, kommer tomt frem. Det samme gælder et felt, posten ikke har noget i, som monitoren på en advarsel, ingen monitor har udløst.
+**On Create**, **On Update** og **On Create or Update** sender posten videre til den næste blok, med de felter, du vælger i triggerens **Felter, der sendes videre**. For eksempel sender triggeren **Incident → On Create** den nye hændelse videre, så den næste blok kan læse dens titel, beskrivelse, alvorlighed eller ethvert andet felt, du har valgt, som `{{local.components.incident-on-create-1.returnValues.model.title}}`. Et felt, du ikke valgte, kommer tomt frem. Det samme gælder et felt, posten ikke har noget i, som monitoren på en advarsel, ingen monitor har udløst.
 
-**On Create or Update** sender også **What Happened** videre: `created`, når en ny post startede kørslen, og `updated`, når en ændring gjorde, som i `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. For at behandle de to forskelligt sammenligner du det i en **If / Else**-blok eller tager en vej for hver med **Switch / Case**.
+**On Create or Update** sender også **Hvad der skete** videre: `created`, når en ny post startede kørslen, og `updated`, når en ændring gjorde, som i `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. For at behandle de to forskelligt sammenligner du det i en **Hvis / Ellers**-blok eller tager en vej for hver med **Valg / Sag**.
 
-Én gemning udløser den én gang. Det, OneUptime udfylder, mens den opretter en post, hører med til oprettelsen, så en ny post udløser den én gang, som `created`. Ændringer, OneUptime laver senere, som at knytte en hændelses Slack-kanal til, er opdateringer som alle andre: for at holde dem ude skal du kun føje de felter, du interesserer dig for, til **Fields to watch**.
+Én gemning udløser den én gang. Det, OneUptime udfylder, mens den opretter en post, hører med til oprettelsen, så en ny post udløser den én gang, som `created`. Ændringer, OneUptime laver senere, som at knytte en hændelses Slack-kanal til, er opdateringer som alle andre: for at holde dem ude skal du kun føje de felter, du interesserer dig for, til **Felter, der holdes øje med**.
 
-**On Delete** sender kun den slettede posts ID videre: posten er væk, når workflowet kører, så dens andre felter kan ikke læses.
+**On Delete** sender kun den slettede posts ID videre: posten er væk, når arbejdsgangen kører, så dens andre felter kan ikke læses.
 
 For at teste en begivenhedstrigger uden at vente på begivenheden klikker du på **Kør arbejdsgang** i **Bygger** og vælger en eksisterende post: de seneste er vist, og når du skriver en posts nummer eller en del af dens navn, finder du en anden. Kørslen læser den post med de felter, du valgte, som om begivenheden lige var sket for den; selve posten bliver hverken ændret eller slettet. For **On Create or Update** vælger du under **Hvad der skete**, om kørslen gælder oprettelsen eller opdateringen af posten.
 
@@ -201,7 +201,7 @@ For at teste en begivenhedstrigger uden at vente på begivenheden klikker du på
 | ----------------------------------------- | ----------------------------------------------------------------------------------------- |
 | **Hændelse**                              | Reagere, når en hændelse erklæres, opdateres (kvitteret, løst) eller slettes.             |
 | **Advarsel**                              | De samme tre begivenheder, for advarsler.                                                 |
-| **Overvågning**                           | Reagere, når en monitor tilføjes, redigeres eller fjernes.                                |
+| **Monitor**                           | Reagere, når en monitor tilføjes, redigeres eller fjernes.                                |
 | **Vedligeholdelseshændelse**   | Annoncere et vedligeholdelsesvindue automatisk, når det planlægges.                       |
 | **Statussideabonnent**                   | Byde en person velkommen, der abonnerer på en statusside.                                 |
 | **Vagtpolitik**                           | Synkronisere ændringer i politikken med et andet vagtplansystem.                          |

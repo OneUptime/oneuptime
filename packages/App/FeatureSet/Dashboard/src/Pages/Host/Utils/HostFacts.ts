@@ -1,4 +1,5 @@
 import { formatReaderFigure } from "Common/Types/DateLanguage";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import { formatDurationCompactInLanguage } from "Common/Utils/Slo/SloDuration";
 import {
   HOST_DISK_FULL_PERCENT,
@@ -223,7 +224,7 @@ export function formatHostUptime(
  */
 export function formatHostBytes(bytes: number | null | undefined): string {
   if (bytes === null || bytes === undefined || !Number.isFinite(bytes)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   const units: Array<string> = ["B", "KiB", "MiB", "GiB", "TiB", "PiB"];
   let value: number = bytes;
@@ -235,5 +236,5 @@ export function formatHostBytes(bytes: number | null | undefined): string {
   // The number in the reader's digits, the unit as written: "۱۶ GiB".
   return `${formatReaderFigure(value, {
     decimals: index > 0 && value < 10 ? 1 : 0,
-  })} ${units[index]}`;
+  })}\u00A0${units[index]}`;
 }

@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import useResizableColumns, {
   ResizableColumns,
 } from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
@@ -198,18 +199,20 @@ const WebVitalRouteBreakdownCard: FunctionComponent<
                   >
                     <span
                       dir={getLineDirection(
-                        formatVital(rated),
+                        formatVital(rated, translator),
                         translator.language,
                       )}
                     >
-                      {formatVital(rated)}
+                      {getValueOrQuietDash(formatVital(rated, translator))}
                     </span>
                   </td>
                   <td className="whitespace-nowrap py-2 text-end">
                     <span
                       className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${classes.chip}`}
                     >
-                      {ratingLabel(rated)}
+                      {getValueOrQuietDash(ratingLabel(rated), {
+                        isSmall: true,
+                      })}
                     </span>
                   </td>
                 </tr>

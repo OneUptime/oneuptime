@@ -1,6 +1,6 @@
 # CrowdStrike Falcon
 
-把 [CrowdStrike Falcon](https://www.crowdstrike.com/platform/) 警报（来自终结点、身份和云检测）导入 OneUptime 的安全事件。在那里，你可以把它们与日志、跟踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的警报呼叫值班人员。OneUptime 通过你创建的 API 客户端，经由 Falcon Alerts API 读取它们，从不向 Falcon 写入任何内容。
+把 [CrowdStrike Falcon](https://www.crowdstrike.com/platform/) 警报（来自终结点、身份和云检测）导入 OneUptime 的安全事件。在那里，你可以把它们与日志、追踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的警报呼叫值班人员。OneUptime 通过你创建的 API 客户端，经由 Falcon Alerts API 读取它们，从不向 Falcon 写入任何内容。
 
 :::cards
 - [设置连接](#设置连接): 一个只有一个范围的 API 客户端，以及连接的表单。
@@ -23,7 +23,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 
 ## 开始之前
 
-- 在 OneUptime 中拥有 Project Owner、Project Admin 或 Security Admin 角色。Security Member 和 Security Viewer 可以查看连接及其运行历史，但不能更改它们。
+- 在 OneUptime 中拥有项目所有者、项目管理员或安全管理员角色。安全成员和安全查看者可以查看连接及其运行历史，但不能更改它们。
 - 一个 Falcon 客户 ID（CID），以及一个能管理 API 客户端的 Falcon 控制台用户：Falcon Administrator 角色，或拥有 API clients and keys 权限的自定义角色。
 - 从 OneUptime 应用和工作进程到你的 Falcon 云 API 主机的出站 HTTPS，主机列在下面的 **Falcon 云** 中。
 

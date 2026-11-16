@@ -702,6 +702,248 @@ export const RESULT_ENDED_UNANSWERED: PluralTemplate = {
 };
 
 /*
+ * WHY A MESSAGE WAS NOT SENT, IN ONEUPTIME'S OWN WORDS (#7550,
+ * Types/OnCallDutyPolicy/OnCallSendFailureLine). The Notification service's
+ * own words after a refusal, an HTTP status and a socket's code are not
+ * OneUptime's: they go into the sentence as written, set apart, so they
+ * read left to right in an Arabic or Persian one.
+ */
+
+// A send that failed, and whose error said nothing more.
+export const SEND_FAILED_SENTENCES: Readonly<
+  Record<Exclude<OnCallPageChannel, OnCallPageChannel.CustomChannel>, string>
+> = {
+  [OnCallPageChannel.Email]: translationKey("Error sending email."),
+  [OnCallPageChannel.SMS]: translationKey("Error sending SMS."),
+  [OnCallPageChannel.WhatsApp]: translationKey(
+    "Error sending WhatsApp message.",
+  ),
+  [OnCallPageChannel.Telegram]: translationKey(
+    "Error sending Telegram message.",
+  ),
+  [OnCallPageChannel.Webhook]: translationKey("Error sending webhook."),
+  [OnCallPageChannel.Call]: translationKey("Error making call."),
+  [OnCallPageChannel.Push]: translationKey("Error sending push notification."),
+  [OnCallPageChannel.Slack]: translationKey("Error sending Slack message."),
+  [OnCallPageChannel.MicrosoftTeams]: translationKey(
+    "Error sending Microsoft Teams message.",
+  ),
+  [OnCallPageChannel.Mattermost]: translationKey(
+    "Error sending Mattermost message.",
+  ),
+};
+
+// A custom channel's: by its name, or with none.
+export const CUSTOM_CHANNEL_SEND_FAILED_SENTENCE: string = translationKey(
+  "Error sending to {{name}}.",
+);
+export const UNNAMED_CUSTOM_CHANNEL_SEND_FAILED_SENTENCE: string =
+  translationKey("Error sending to the custom channel.");
+
+export const NOTIFICATION_SERVICE_SENTENCES: Readonly<{
+  refusedWithWords: string;
+  refused: string;
+  answerFailedWithStatusAndWords: string;
+  answerFailedWithStatus: string;
+  answerFailedWithWords: string;
+  answerFailed: string;
+  notReached: string;
+}> = {
+  refusedWithWords: translationKey(
+    "The Notification service refused to send this (HTTP {{statusCode}}): {{words}}",
+  ),
+  refused: translationKey(
+    "The Notification service refused to send this (HTTP {{statusCode}}).",
+  ),
+  answerFailedWithStatusAndWords: translationKey(
+    "The Notification service answered with an error (HTTP {{statusCode}}), so this may not have been sent: {{words}}",
+  ),
+  answerFailedWithStatus: translationKey(
+    "The Notification service answered with an error (HTTP {{statusCode}}), so this may not have been sent.",
+  ),
+  answerFailedWithWords: translationKey(
+    "The Notification service answered with an error, so this may not have been sent: {{words}}",
+  ),
+  answerFailed: translationKey(
+    "The Notification service answered with an error, so this may not have been sent.",
+  ),
+  notReached: translationKey(
+    "Could not reach the Notification service to send this ({{reason}}).",
+  ),
+};
+
+/*
+ * The project's balance could not pay for a message: used up, or less
+ * than one message on its channel costs - then who can add balance, and
+ * where, the sentence the on-call setup says too.
+ */
+export const BALANCE_USED_UP_SENTENCE: string = translationKey(
+  "This project's balance is used up.",
+);
+
+export const BALANCE_LESS_THAN_COST_SENTENCES: Readonly<
+  Partial<Record<OnCallPageChannel, string>>
+> = {
+  [OnCallPageChannel.SMS]: translationKey(
+    "This project's balance ({{balance}}) is less than this SMS costs ({{cost}}).",
+  ),
+  [OnCallPageChannel.Call]: translationKey(
+    "This project's balance ({{balance}}) is less than this call costs ({{cost}}).",
+  ),
+  [OnCallPageChannel.WhatsApp]: translationKey(
+    "This project's balance ({{balance}}) is less than this WhatsApp message costs ({{cost}}).",
+  ),
+  [OnCallPageChannel.Telegram]: translationKey(
+    "This project's balance ({{balance}}) is less than this Telegram message costs ({{cost}}).",
+  ),
+};
+
+export const WHO_CAN_ADD_BALANCE_SENTENCE: string = translationKey(
+  "A Project Owner or someone with Manage Billing can add balance in Project Settings → Notifications → Notification Channels.",
+);
+
+/*
+ * A chat workspace that is not connected: the project's connection to it,
+ * or the person's own account - by the workspace's name, as written.
+ */
+export const WORKSPACE_NOT_CONNECTED_SENTENCES: Readonly<{
+  project: string;
+  account: string;
+}> = {
+  project: translationKey(
+    "This project is not connected to {{workspace}}, so nothing was sent there. A Project Admin can connect it in Project Settings → Workspace → {{workspace}}.",
+  ),
+  account: translationKey(
+    "This {{workspace}} account is not connected to OneUptime in this project, so nothing was sent to it. Its owner can connect it in User Settings → Workspace → {{workspace}}.",
+  ),
+};
+
+// The values a line sets apart in its sentence: written as they came.
+const SET_APART: { setsValuesApart: boolean } = { setsValuesApart: true };
+
+function getSendFailedSentence(
+  translator: Translator,
+  line: OnCallTestPageLine,
+): string | null {
+  if (!line.channel) {
+    return null;
+  }
+
+  if (line.channel === OnCallPageChannel.CustomChannel) {
+    return line.name
+      ? translator.translateTemplate(
+          CUSTOM_CHANNEL_SEND_FAILED_SENTENCE,
+          { name: line.name },
+          SET_APART,
+        )
+      : translator.translateTemplate(
+          UNNAMED_CUSTOM_CHANNEL_SEND_FAILED_SENTENCE,
+        );
+  }
+
+  const sentence: string | undefined = SEND_FAILED_SENTENCES[line.channel];
+
+  return sentence ? translator.translateTemplate(sentence) : null;
+}
+
+function getNotificationServiceSentence(
+  translator: Translator,
+  line: OnCallTestPageLine,
+): string | null {
+  // An HTTP status is a code, drawn as written in every language.
+  const statusCode: string | null =
+    typeof line.statusCode === "number" ? String(line.statusCode) : null;
+  const words: string | null = line.words || null;
+
+  if (line.code === OnCallTestPageLineCode.NotificationServiceRefused) {
+    if (statusCode === null) {
+      return null;
+    }
+
+    return words
+      ? translator.translateTemplate(
+          NOTIFICATION_SERVICE_SENTENCES.refusedWithWords,
+          { statusCode: statusCode, words: words },
+          SET_APART,
+        )
+      : translator.translateTemplate(
+          NOTIFICATION_SERVICE_SENTENCES.refused,
+          { statusCode: statusCode },
+          SET_APART,
+        );
+  }
+
+  if (statusCode !== null) {
+    return words
+      ? translator.translateTemplate(
+          NOTIFICATION_SERVICE_SENTENCES.answerFailedWithStatusAndWords,
+          { statusCode: statusCode, words: words },
+          SET_APART,
+        )
+      : translator.translateTemplate(
+          NOTIFICATION_SERVICE_SENTENCES.answerFailedWithStatus,
+          { statusCode: statusCode },
+          SET_APART,
+        );
+  }
+
+  return words
+    ? translator.translateTemplate(
+        NOTIFICATION_SERVICE_SENTENCES.answerFailedWithWords,
+        { words: words },
+        SET_APART,
+      )
+    : translator.translateTemplate(NOTIFICATION_SERVICE_SENTENCES.answerFailed);
+}
+
+function getBalanceTooLowSentence(
+  translator: Translator,
+  line: OnCallTestPageLine,
+): string | null {
+  let shortfall: string | null = null;
+
+  if (!line.balance && !line.cost) {
+    shortfall = translator.translateTemplate(BALANCE_USED_UP_SENTENCE);
+  } else {
+    const sentence: string | undefined = line.channel
+      ? BALANCE_LESS_THAN_COST_SENTENCES[line.channel]
+      : undefined;
+
+    shortfall =
+      sentence && line.balance && line.cost
+        ? translator.translateTemplate(
+            sentence,
+            { balance: line.balance, cost: line.cost },
+            SET_APART,
+          )
+        : null;
+  }
+
+  if (shortfall === null) {
+    return null;
+  }
+
+  return `${shortfall} ${translator.translateTemplate(WHO_CAN_ADD_BALANCE_SENTENCE)}`;
+}
+
+function getWorkspaceNotConnectedSentence(
+  translator: Translator,
+  line: OnCallTestPageLine,
+): string | null {
+  if (!line.channel) {
+    return null;
+  }
+
+  return translator.translateTemplate(
+    line.isProjectConnection
+      ? WORKSPACE_NOT_CONNECTED_SENTENCES.project
+      : WORKSPACE_NOT_CONNECTED_SENTENCES.account,
+    { workspace: line.channel },
+    SET_APART,
+  );
+}
+
+/*
  * One line of the result, in the reader's words: from its code and the
  * values it names. Null when there is no code, the Dashboard does not know
  * it, or a value its sentence names is missing - the line is then shown as
@@ -740,6 +982,23 @@ export function getResultLineSentence(
           ? RESULT_LINE_SENTENCES.pushAppNoLongerReceives
           : RESULT_LINE_SENTENCES.pushBrowserNoLongerReceives,
       );
+    case OnCallTestPageLineCode.NotificationServiceRefused:
+    case OnCallTestPageLineCode.NotificationServiceAnswerFailed:
+      return getNotificationServiceSentence(translator, line);
+    case OnCallTestPageLineCode.NotificationServiceNotReached:
+      return line.reason
+        ? translator.translateTemplate(
+            NOTIFICATION_SERVICE_SENTENCES.notReached,
+            { reason: line.reason },
+            SET_APART,
+          )
+        : null;
+    case OnCallTestPageLineCode.SendFailed:
+      return getSendFailedSentence(translator, line);
+    case OnCallTestPageLineCode.ProjectBalanceTooLow:
+      return getBalanceTooLowSentence(translator, line);
+    case OnCallTestPageLineCode.WorkspaceNotConnected:
+      return getWorkspaceNotConnectedSentence(translator, line);
     case OnCallTestPageLineCode.OptedOut:
       return translator.translateTemplate(
         WARNING_SENTENCES[OnCallTestPageWarningCode.OptedOut],

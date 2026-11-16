@@ -1,6 +1,6 @@
 # Global SSO
 
-Med global SSO opsætter en OneUptime-**instansadministrator** (master-admin) **én gang**, på instansniveau, en SAML 2.0- eller OpenID Connect-identitetsudbyder (OIDC) og forbinder den med ethvert projekt på serveren. I stedet for at hver projektejer opsætter sin egen identitetsudbyder, opsætter en master-admin én, der betjener hele instansen.
+Med global SSO opsætter en OneUptime-**instansadministrator** (master-admin) **én gang**, på instansniveau, en SAML 2.0- eller OpenID Connect-identitetsudbyder (OIDC) og forbinder den med ethvert projekt på serveren. I stedet for at hver Projektejer opsætter sin egen identitetsudbyder, opsætter en master-admin én, der betjener hele instansen.
 
 > [!NOTE]
 > Global SSO, herunder den instansdækkende kontakt "Require SSO for Login", er en del af alle OneUptime-udgaver: alle selvhostede instanser har det, også Community Edition, og det kræver ingen licens. Det hører til instansadministrationen og gælder derfor ikke for OneUptime Cloud. Se [Enterprise Edition](/docs/self-hosted/enterprise) for, hvad hver udgave indeholder.
@@ -16,7 +16,7 @@ Med global SSO opsætter en OneUptime-**instansadministrator** (master-admin) **
 
 |                    | Projekt-SSO                                       | Global SSO                                          |
 | ------------------ | ------------------------------------------------- | --------------------------------------------------- |
-| Opsættes af        | Projektejer/-administrator (Projektindstillinger) | Instansens master-admin (Admin Dashboard)           |
+| Opsættes af        | Projektejer eller Projektadministrator (Projektindstillinger) | Instansens master-admin (Admin Dashboard)           |
 | Omfang             | Ét enkelt projekt                                 | Hele instansen, kan forbindes med ethvert projekt   |
 | Resultat af login  | Adgang til det ene projekt                        | Adgang til alle projekter, brugeren kan nå          |
 
@@ -44,20 +44,20 @@ Log ind som master-admin, og åbn Admin Dashboard med **Admin-indstillinger** i 
 
 :::tabs
 @tab SAML
-På udbyderens side viser kortet **Identity Provider URLs** **ACS URL (Assertion Consumer Service / Reply URL)** og **Issuer (Entity ID)**. Indsæt begge i din identitetsudbyder (Okta, Microsoft Entra ID, OneLogin, JumpCloud og andre).
+På udbyderens side viser kortet **Identitetsudbyderens URL'er** **ACS URL (Assertion Consumer Service / Reply URL)** og **Issuer (Entity ID)**. Indsæt begge i din identitetsudbyder (Okta, Microsoft Entra ID, OneLogin, JumpCloud og andre).
 @tab OpenID Connect
-På udbyderens side viser kortet **Identity Provider URL** **Redirect URI (Callback URL)**. Tilføj den til din identitetsudbyders tilladte redirect-URI'er.
+På udbyderens side viser kortet **Identitetsudbyderens URL** **Redirect URI (Callback URL)**. Tilføj den til din identitetsudbyders tilladte redirect-URI'er.
 :::
 
 ### Slå udbyderen til
 
-En ny udbyder starter slået fra. Klik på **Edit Configuration** på udbyderens side, og slå **Aktiveret** til.
+En ny udbyder starter slået fra. Klik på **Rediger konfiguration** på udbyderens side, og slå **Aktiveret** til.
 
 At slå en global udbyder til føjer den kun til loginsidens single sign-on-muligheder — den gennemtvinger aldrig SSO og udelukker ingen, så den er sikker at slå til, teste og slå fra igen, hvis det er nødvendigt. Så længe hele instansen kræver SSO, tilbyder loginsiden dog kun de udbydere, der er slået til: test en udbyder, før du kræver SSO.
 
 ### Test udbyderen
 
-Brug linket i kortet **Test this SSO provider** (**Test this OIDC provider** for OpenID Connect) til at gennemføre et komplet login via din identitetsudbyder. **Test login** i udbyderens række på **Single sign-on** starter det samme login i en ny fane. Du behøver ikke tilknytte projekter først: testen logger dig ind i de projekter, du allerede er med i. Udbyderen skal være slået til, for at linket virker.
+Brug linket i kortet **Test denne SSO-udbyder** (**Test denne OIDC-udbyder** for OpenID Connect) til at gennemføre et komplet login via din identitetsudbyder. **Test login** i udbyderens række på **Single sign-on** starter det samme login i en ny fane. Du behøver ikke tilknytte projekter først: testen logger dig ind i de projekter, du allerede er med i. Udbyderen skal være slået til, for at linket virker.
 :::
 
 ## Sådan logger brugere ind
@@ -78,7 +78,7 @@ flowchart TB
 
 - **Ingen projekter tilknyttet (alle projekter / invitation først):** Brugere kan logge ind med udbyderen og nå **ethvert projekt, de allerede er medlem af**. Nye brugere oprettes **ikke** automatisk — en bruger skal først inviteres til et projekt. Brug det til virksomhedsdækkende SSO, hvor medlemskaber styres andetsteds.
 
-- **Projekter tilknyttet (automatisk klargøring):** Åbn udbyderen og brug tabellen **Attached Projects** til at tilknytte et eller flere projekter, hver med et sæt standardteams. Brugere, der logger ind, **klargøres automatisk** i disse projekter og tilføjes til standardteamene ved første login. Et projekt, du tilknytter, starter med sit medlemsteam; vælg andre teams, hvis nye brugere skal starte med en anden adgang. Tilføj ét projekt + teams ad gangen for at opbygge listen; for at ændre en tilknytning skal du slette den og tilføje den igen.
+- **Projekter tilknyttet (automatisk klargøring):** Åbn udbyderen og brug tabellen **Tilknyttede projekter** til at tilknytte et eller flere projekter, hver med et sæt standardteams. Brugere, der logger ind, **klargøres automatisk** i disse projekter og tilføjes til standardteamene ved første login. Et projekt, du tilknytter, starter med sit medlemsteam; vælg andre teams, hvis nye brugere skal starte med en anden adgang. Tilføj ét projekt + teams ad gangen for at opbygge listen; for at ændre en tilknytning skal du slette den og tilføje den igen.
 
 En person, der allerede er medlem af et tilknyttet projekt, beholder sine teams der.
 

@@ -1,4 +1,5 @@
 import SessionReplayTriggerReason from "Common/Types/Rum/SessionReplayTriggerReason";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import { SESSION_REPLAY_FLUSH_INTERVAL_MS } from "Common/Types/Rum/SessionReplay";
 import {
   createTranslator,
@@ -6,6 +7,9 @@ import {
   translationKey,
   Translator,
 } from "Common/Types/Translator";
+import { isEnglishDateLanguage } from "Common/Types/DateLanguage";
+import { formatCompactDuration } from "Common/Utils/Milliseconds";
+import { formatDurationCompactInLanguage } from "Common/Utils/Slo/SloDuration";
 
 /*
  * Can this session be watched, and what does the viewer need to know
@@ -393,26 +397,47 @@ export function getSessionReplayPlayability(
  * sessions may run up to SESSION_REPLAY_MAX_SESSION_MS, and "90m 00s" is
  * harder to scan than "1h 30m". Zero or unknown is a dash, never "0s" - a
  * provisional header has not measured anything yet.
+ *
+ * In the reader's language (#8455) a session's length reads as the replay
+ * card and the player write one (formatDurationCompactInLanguage: "12 Min.,
+ * 5 Sek.", "۱۲ دقیقه و ۵ ثانیه"), so a list's row and the card it opens
+ * say the same; English exactly as above. The lists pass their translator.
  */
-export function formatSessionDuration(durationMs: number): string {
+export function formatSessionDuration(
+  durationMs: number,
+  translator: Translator = ENGLISH,
+): string {
   if (!Number.isFinite(durationMs) || durationMs <= 0) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
   const totalSeconds: number = Math.round(durationMs / 1000);
+
+  if (!isEnglishDateLanguage(translator.language)) {
+    return formatDurationCompactInLanguage(totalSeconds, translator.language);
+  }
+
   const hours: number = Math.floor(totalSeconds / 3600);
   const minutes: number = Math.floor((totalSeconds % 3600) / 60);
   const seconds: number = totalSeconds % 60;
 
   if (hours > 0) {
-    return `${hours}h ${String(minutes).padStart(2, "0")}m`;
+    return formatCompactDuration(
+      translator,
+      { hours, minutes },
+      { padsAfterTheFirst: true },
+    );
   }
 
   if (minutes === 0) {
-    return `${seconds}s`;
+    return formatCompactDuration(translator, { seconds });
   }
 
-  return `${minutes}m ${String(seconds).padStart(2, "0")}s`;
+  return formatCompactDuration(
+    translator,
+    { minutes, seconds },
+    { padsAfterTheFirst: true },
+  );
 }
 
 /*

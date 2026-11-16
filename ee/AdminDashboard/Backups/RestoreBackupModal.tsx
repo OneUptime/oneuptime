@@ -1,4 +1,5 @@
 import { BackupsCopy, RESTORE_ISSUE_COPY } from "./BackupsCopy";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import BackupsApi, { RestoreIssue, RestorePreview } from "./BackupsApi";
 import {
   describeBackupCounts,
@@ -353,6 +354,7 @@ const RestoreBackupModal: FunctionComponent<ComponentProps> = (
       title={translator.translateTemplate(BackupsCopy.restoreTitle, {
         time: backupTime,
       })}
+      isTitleTranslated={true}
       // What a restore replaces, unless this one cannot happen at all.
       description={
         cannotRestoreAtAll ? undefined : BackupsCopy.restoreDescription
@@ -452,7 +454,7 @@ const RestoreBackupModal: FunctionComponent<ComponentProps> = (
                               clickhouseSize,
                               translator.language,
                             )
-                          : "—",
+                          : EMPTY_VALUE_MARK,
                     },
                   ),
                 ]}

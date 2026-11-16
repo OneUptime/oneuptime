@@ -23,7 +23,7 @@ A cada minuto, o OneUptime consulta cada conexão habilitada cujo intervalo de c
 
 ## Antes de começar
 
-- No OneUptime, a função Project Owner, Project Admin ou Security Admin. As funções Security Member e Security Viewer veem as conexões e o histórico de execuções delas, mas não podem alterá-las.
+- No OneUptime, a função Proprietário do projeto, Administrador do projeto ou Administrador de segurança. As funções Membro de segurança e Visualizador de segurança veem as conexões e o histórico de execuções delas, mas não podem alterá-las.
 - Para os logins e as detecções de risco, o Microsoft Entra ID P1 ou P2, que o Microsoft 365 E3, E5 e Business Premium incluem: o Microsoft Graph só os entrega a esses locatários, e o P2 dá os detalhes de cada detecção de risco. As mudanças de diretório são lidas em qualquer locatário.
 - Uma função do Entra que possa registrar aplicativos, como Administrador de Aplicativos, e um Administrador Global ou um Administrador de Funções com Privilégios para conceder o consentimento do administrador.
 - Para o log de auditoria do Microsoft 365, a auditoria ativada no locatário, como ela vem por padrão: no [portal do Microsoft Purview](https://purview.microsoft.com), **Audit** não deve oferecer **Start recording user and admin activity**.

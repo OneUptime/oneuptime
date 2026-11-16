@@ -89,6 +89,10 @@ import RangeStartAndEndDateTime, {
 import TimeRange from "Common/Types/Time/TimeRange";
 import ValueFormatter from "Common/Utils/ValueFormatter";
 import {
+  formatReaderFigure,
+  getDateDisplayLanguage,
+} from "Common/Types/DateLanguage";
+import {
   computeCounterRate,
   makeSeriesKeyFromAttributes,
   CounterRatePoint,
@@ -133,8 +137,16 @@ import useResizableColumns, {
 import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
 import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import { toLabelTerm, Translator } from "Common/UI/Utils/TranslateTemplate";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
-import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
+import {
+  formatCompactDuration,
+  formatCompactDurationAgo,
+} from "../../../Utils/Milliseconds";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
+import EmptyValue, {
+  EMPTY_VALUE_MARK,
+} from "Common/UI/Components/Detail/EmptyValue";
 
 interface GoldenStats {
   cpuPercent: number | null;
@@ -202,7 +214,7 @@ const formatPercent: (value: number | null) => string = (
   value: number | null,
 ): string => {
   if (value === null || !isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return `${value.toFixed(1)}%`;
 };
@@ -1798,7 +1810,9 @@ const ProxmoxClusterOverview: FunctionComponent<
           icon={IconProp.Heartbeat}
           iconColor="emerald"
           value={
-            nodeAvailabilityPct === null ? "—" : `${nodesOnline}/${nodesTotal}`
+            nodeAvailabilityPct === null
+              ? undefined
+              : `${nodesOnline}/${nodesTotal}`
           }
           sublabel={nodesSublabel}
           percent={nodeAvailabilityPct}
@@ -1863,13 +1877,15 @@ const ProxmoxClusterOverview: FunctionComponent<
           value={
             inventory && guestsTotal > 0
               ? `${guestsRunning}/${guestsTotal}`
-              : "—"
+              : undefined
           }
           sublabel={
             netTotal === null
               ? tx("running")
               : translator.translateTemplate("running · net {{throughput}}", {
-                  throughput: ValueFormatter.formatValue(netTotal, "By/s"),
+                  throughput: ValueFormatter.formatValue(netTotal, "By/s", {
+                    language: getDateDisplayLanguage(),
+                  }),
                 })
           }
           percent={inventory ? guestsRunningPct : null}
@@ -1947,7 +1963,10 @@ const ProxmoxClusterOverview: FunctionComponent<
         min: 0,
         max: 100,
         formatter: (value: number): string => {
-          return `${Math.round(value)}%`;
+          return formatReaderFigure(Math.round(value), {
+            decimals: 0,
+            isPercent: true,
+          });
         },
         precision: YAxisPrecision.NoDecimals,
       },
@@ -1983,7 +2002,9 @@ const ProxmoxClusterOverview: FunctionComponent<
         max: "auto",
         precision: YAxisPrecision.NoDecimals,
         formatter: (value: number): string => {
-          return ValueFormatter.formatValue(value, "By");
+          return ValueFormatter.formatValue(value, "By", {
+            language: getDateDisplayLanguage(),
+          });
         },
       },
     };
@@ -1996,7 +2017,9 @@ const ProxmoxClusterOverview: FunctionComponent<
         max: "auto",
         precision: YAxisPrecision.NoDecimals,
         formatter: (value: number): string => {
-          return ValueFormatter.formatValue(value, "By/s");
+          return ValueFormatter.formatValue(value, "By/s", {
+            language: getDateDisplayLanguage(),
+          });
         },
       },
     };
@@ -2073,33 +2096,45 @@ const ProxmoxClusterOverview: FunctionComponent<
 
     const nowSeconds: number = Date.now() / 1000;
 
+    // "4.2s", "3m 12s": in the reader's short units and digits (#8455).
     const formatDuration: (seconds: number | null) => string = (
       seconds: number | null,
     ): string => {
       if (seconds === null || !Number.isFinite(seconds) || seconds < 0) {
-        return "—";
+        return EMPTY_VALUE_MARK;
       }
       if (seconds < 60) {
-        return `${seconds.toFixed(seconds < 10 ? 1 : 0)}s`;
+        return formatCompactDuration(
+          translator,
+          { seconds },
+          { decimals: seconds < 10 ? 1 : 0 },
+        );
       }
       const minutes: number = Math.floor(seconds / 60);
       const rest: number = Math.round(seconds % 60);
-      return `${minutes}m ${rest}s`;
+      return formatCompactDuration(translator, { minutes, seconds: rest });
     };
 
+    // "5m ago", "3h ago", "2d ago": in the reader's language (#8455).
     const formatAge: (ageSeconds: number) => string = (
       ageSeconds: number,
     ): string => {
       if (ageSeconds < 60) {
-        return "just now";
+        return translator.translateText("just now") || "just now";
       }
       if (ageSeconds < 60 * 60) {
-        return `${Math.floor(ageSeconds / 60)}m ago`;
+        return formatCompactDurationAgo(translator, {
+          minutes: Math.floor(ageSeconds / 60),
+        });
       }
       if (ageSeconds < 24 * 60 * 60) {
-        return `${Math.floor(ageSeconds / (60 * 60))}h ago`;
+        return formatCompactDurationAgo(translator, {
+          hours: Math.floor(ageSeconds / (60 * 60)),
+        });
       }
-      return `${Math.floor(ageSeconds / (24 * 60 * 60))}d ago`;
+      return formatCompactDurationAgo(translator, {
+        days: Math.floor(ageSeconds / (24 * 60 * 60)),
+      });
     };
 
     return (
@@ -2200,7 +2235,7 @@ const ProxmoxClusterOverview: FunctionComponent<
                       )}
                     </td>
                     <td className="px-4 py-2.5 text-sm text-gray-700">
-                      {formatDuration(job.durationSeconds)}
+                      {getValueOrQuietDash(formatDuration(job.durationSeconds))}
                     </td>
                     <td className={`px-4 py-2.5 text-sm ${failedClass}`}>
                       {failed === null ? <TableEmptyValue /> : failed}

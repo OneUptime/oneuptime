@@ -27,6 +27,7 @@ import OnCallEscalationAdvance, {
   OnCallEscalationAdvanceResult,
 } from "../../../../Server/Utils/OnCall/OnCallEscalationAdvance";
 import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
+import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import OnCallDutyExecutionLogTimelineStatus from "../../../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import {
@@ -877,12 +878,74 @@ describe("moving on at once from the rule a run starts with", () => {
     expect(startSpy).not.toHaveBeenCalled();
   });
 
-  test("a move that fails ends the run with an error that says why - and never throws", async () => {
+  /*
+   * A move that fails for a reason a retry can outlast - the database, the
+   * network, or something not recognised - leaves the run paging, its
+   * empty rule's wait cut to nothing, so the worker moves it on at its next
+   * tick (issue #8167). It used to end the run in Error, and none of its
+   * later rules was ever paged.
+   */
+  test("REGRESSION: a move that fails for a moment leaves the run paging, its rule's wait cut to nothing - and never throws", async () => {
+    jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "findOneById")
+      .mockResolvedValue(storedRun() as never);
+    startSpy.mockImplementation((async () => {
+      throw Object.assign(new Error("Connection terminated unexpectedly"), {
+        code: "ECONNRESET",
+      });
+    }) as never);
+
+    expect(
+      await OnCallEscalationAdvance.moveOnAtOnce({ runId: RUN }),
+    ).toBeNull();
+
+    expect(updateSpy).toHaveBeenLastCalledWith({
+      id: RUN,
+      data: {
+        executeNextEscalationRuleInMinutes: 0,
+      },
+      props: { isRoot: true },
+    });
+    expect(
+      updateSpy.mock.calls.some((call: Array<unknown>) => {
+        return (
+          (call[0] as { data: { status?: string } }).data.status ===
+          OnCallDutyPolicyStatus.Error
+        );
+      }),
+    ).toBe(false);
+    expect(errors.join("\n")).toContain(
+      "on at once from a rule that paged nobody",
+    );
+  });
+
+  test("a move that fails for a reason not recognised is left to the worker's bounded tries too", async () => {
     jest
       .spyOn(OnCallDutyPolicyExecutionLogService, "findOneById")
       .mockResolvedValue(storedRun() as never);
     startSpy.mockImplementation((async () => {
       throw new Error("The SMS provider is down.");
+    }) as never);
+
+    await OnCallEscalationAdvance.moveOnAtOnce({ runId: RUN });
+
+    expect(updateSpy).toHaveBeenLastCalledWith({
+      id: RUN,
+      data: {
+        executeNextEscalationRuleInMinutes: 0,
+      },
+      props: { isRoot: true },
+    });
+  });
+
+  test("a move that fails for a reason a retry cannot fix ends the run with an error that says why - and never throws", async () => {
+    jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "findOneById")
+      .mockResolvedValue(storedRun() as never);
+    startSpy.mockImplementation((async () => {
+      throw new BadDataException(
+        "The escalation rule 2 no longer exists. It may have been deleted.",
+      );
     }) as never);
 
     expect(
@@ -893,20 +956,18 @@ describe("moving on at once from the rule a run starts with", () => {
       id: RUN,
       data: {
         status: OnCallDutyPolicyStatus.Error,
-        statusMessage: "The SMS provider is down.",
+        statusMessage:
+          "The escalation rule 2 no longer exists. It may have been deleted.",
       },
       props: { isRoot: true },
     });
-    expect(errors.join("\n")).toContain(
-      "on at once from a rule that paged nobody",
-    );
   });
 
   test("an error with no words of its own ends the run in the worker's words", async () => {
     jest
       .spyOn(OnCallDutyPolicyExecutionLogService, "findOneById")
       .mockImplementation((async () => {
-        throw new Error("");
+        throw new BadDataException("");
       }) as never);
 
     await OnCallEscalationAdvance.moveOnAtOnce({ runId: RUN });
@@ -1234,13 +1295,19 @@ describe("what a move on pages, timed from when it was due", () => {
       },
     );
 
-    expect(setString).not.toHaveBeenCalled();
+    // Its due moments; the move itself is kept in flight beside them (issue #8410).
+    const dueMoments: () => Array<unknown> = (): Array<unknown> => {
+      return setString.mock.calls.filter((call: Array<unknown>): boolean => {
+        return call[0] === OnCallSendLag.CACHE_NAMESPACE;
+      });
+    };
+
+    expect(dueMoments()).toHaveLength(0);
 
     // The same move on outside a page's start keeps one.
     await OnCallEscalationAdvance.advance({ run: runOn(1), now: NOW });
 
-    expect(setString).toHaveBeenCalledTimes(1);
-    expect(setString.mock.calls[0]![0]).toBe(OnCallSendLag.CACHE_NAMESPACE);
+    expect(dueMoments()).toHaveLength(1);
   });
 });
 
@@ -1285,5 +1352,116 @@ describe("when a move on was due (getDueAt)", () => {
     expect(
       OnCallEscalationAdvance.getDueAt({ dueAt: new Date(NaN), now: NOW }),
     ).toEqual(NOW);
+  });
+});
+
+/*
+ * A MOVE THAT FAILED AFTER ITS CLAIM GIVES THE CLAIM BACK (issue #8167).
+ *
+ * The claim starts the wait of the rule the run is on afresh: a move that
+ * then failed before it started its next rule would leave the run to wait
+ * that rule's whole wait again. The claim is given back, as the run was
+ * read, and the failure goes on to the worker; the service gives it back
+ * only while nobody was paged (giveBackEscalationAdvance).
+ */
+describe("a move that fails after its claim", () => {
+  let giveBackSpy: SpyInstance<
+    typeof OnCallDutyPolicyExecutionLogService.giveBackEscalationAdvance
+  >;
+
+  beforeEach(() => {
+    giveBackSpy = jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "giveBackEscalationAdvance")
+      .mockResolvedValue(true);
+  });
+
+  test("gives the claim back, as the run was read, and throws on", async () => {
+    const run: OnCallDutyPolicyExecutionLog = runOn(1, { pass: 2 });
+    run.lastExecutedEscalationRuleId = rules[0]!.id!;
+    const failure: Error = new Error("Connection terminated unexpectedly");
+    jest
+      .spyOn(OnCallDutyPolicyEscalationRuleService, "findOneBy")
+      .mockRejectedValue(failure as never);
+
+    await expect(advance(run)).rejects.toBe(failure);
+
+    expect(giveBackSpy).toHaveBeenCalledTimes(1);
+    expect(giveBackSpy.mock.calls[0]![0]).toEqual({
+      executionLogId: RUN,
+      claimedLastEscalationRuleExecutedAt: NOW,
+      previousLastEscalationRuleExecutedAt: STARTED,
+      lastExecutedEscalationRuleId: rules[0]!.id!,
+      onCallPolicyExecutionRepeatCount: 2,
+      // A give-back the database fails is left in flight for the worker (issue #8410).
+      throwOnError: true,
+      // A claim past no empty level leaves the wait of the rule as it is (issue #8515).
+      clearWait: false,
+    });
+  });
+
+  test("a run read before its first rule - no moment of its own - has none put back", async () => {
+    const run: OnCallDutyPolicyExecutionLog = runOn(0);
+    run.lastEscalationRuleExecutedAt = undefined as unknown as Date;
+    startSpy.mockRejectedValue(new Error("Connection is closed.") as never);
+
+    await expect(advance(run)).rejects.toThrow("Connection is closed.");
+
+    expect(giveBackSpy.mock.calls[0]![0]).toMatchObject({
+      previousLastEscalationRuleExecutedAt: null,
+      lastExecutedEscalationRuleId: null,
+    });
+  });
+
+  test("gives back the time the claim wrote: a moment past the one read, when the clock had not moved on", async () => {
+    const run: OnCallDutyPolicyExecutionLog = runOn(1);
+    run.lastEscalationRuleExecutedAt = NOW;
+    startSpy.mockRejectedValue(new Error("reset") as never);
+
+    await expect(advance(run)).rejects.toThrow("reset");
+
+    expect(
+      giveBackSpy.mock.calls[0]![0].claimedLastEscalationRuleExecutedAt,
+    ).toEqual(new Date(NOW.getTime() + 1));
+    expect(claimSpy.mock.calls[0]![0].newLastEscalationRuleExecutedAt).toEqual(
+      new Date(NOW.getTime() + 1),
+    );
+  });
+
+  test("a level picked by the person escalating keeps its claim: theirs to pick again", async () => {
+    startSpy.mockRejectedValue(new Error("reset") as never);
+
+    await expect(
+      OnCallEscalationAdvance.advance({
+        run: runOn(1),
+        now: NOW,
+        toRuleId: rules[2]!.id!,
+      }),
+    ).rejects.toThrow("reset");
+
+    expect(giveBackSpy).not.toHaveBeenCalled();
+  });
+
+  test("a claim it lost is nobody's to give back", async () => {
+    claimSpy.mockResolvedValue(false);
+    startSpy.mockRejectedValue(new Error("reset") as never);
+
+    const result: OnCallEscalationAdvanceResult = await advance(runOn(1));
+
+    expect(result.kind).toBe(OnCallEscalationAdvanceKind.NotClaimed);
+    expect(giveBackSpy).not.toHaveBeenCalled();
+  });
+
+  test("a claim that failed is nothing to give back: the failure goes on as it was", async () => {
+    claimSpy.mockRejectedValue(new Error("Connection is closed.") as never);
+
+    await expect(advance(runOn(1))).rejects.toThrow("Connection is closed.");
+
+    expect(giveBackSpy).not.toHaveBeenCalled();
+  });
+
+  test("a move that goes through gives nothing back", async () => {
+    await advance(runOn(1));
+
+    expect(giveBackSpy).not.toHaveBeenCalled();
   });
 });

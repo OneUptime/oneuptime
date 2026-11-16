@@ -25,6 +25,8 @@ export interface ComponentProps {
   value?: string | undefined;
   onChange: (value: string | undefined) => void;
   modalTitle: string;
+  // The modalTitle is in the reader's words already, drawn as given (Modal's isTitleTranslated).
+  isModalTitleTranslated?: boolean | undefined;
   modalDescription?: string | undefined;
   // Text on the modal's confirm button (e.g. "Save timezone", "Apply").
   submitButtonText?: string | undefined;
@@ -102,6 +104,7 @@ const TimezoneSelectButton: FunctionComponent<ComponentProps> = (
       {isModalOpen && (
         <Modal
           title={props.modalTitle}
+          isTitleTranslated={props.isModalTitleTranslated}
           description={props.modalDescription}
           modalWidth={ModalWidth.Normal}
           submitButtonText={props.submitButtonText || "Save"}

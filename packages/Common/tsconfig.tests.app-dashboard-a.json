@@ -1,0 +1,38 @@
+{
+  /*
+   * A part of tsconfig.tests.json that `npm run compile-tests`
+   * (Scripts/compile-tests.js) type-checks on its own: the tests in
+   * Tests/App/Dashboard whose names start with A, and the frontend
+   * sources they import. The other letters are in
+   * tsconfig.tests.app-dashboard-b-c.json,
+   * tsconfig.tests.app-dashboard-d.json,
+   * tsconfig.tests.app-dashboard-e-h.json,
+   * tsconfig.tests.app-dashboard-i-l.json,
+   * tsconfig.tests.app-dashboard-m.json,
+   * tsconfig.tests.app-dashboard-n-o.json,
+   * tsconfig.tests.app-dashboard-p.json,
+   * tsconfig.tests.app-dashboard-q-r.json,
+   * tsconfig.tests.app-dashboard-s.json and
+   * tsconfig.tests.app-dashboard-t-z.json,
+   * and every other Tests/App test is in tsconfig.tests.app-rest.json, which
+   * leaves out all eleven. Tests/App/Dashboard is one directory of some 2,600
+   * tests, so the lines are drawn by name; TypeScript's globs know * and ?,
+   * not ranges, so each letter is listed. Why the program is checked in
+   * parts, and how much of its heap each part used when the lines were
+   * drawn: Scripts/compile-tests.js.
+   *
+   * Everything but "include" is inherited, so these tests are held to exactly
+   * the rules of the whole program.
+   */
+  "extends": "./tsconfig.tests.json",
+  "include": [
+    "Tests/App/Dashboard/A*.ts",
+    "Tests/App/Dashboard/A*.tsx",
+    // jest runs it before every test file (setupFilesAfterEnv), so the
+    // global types it brings in belong to every part, not only to the one
+    // whose include happens to match it.
+    "Tests/jest.setup.ts",
+    "Typings/**/*.d.ts",
+    "UI/index.d.ts"
+  ]
+}

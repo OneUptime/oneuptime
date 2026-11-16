@@ -1,4 +1,4 @@
-# Innkommende e-post-overvåking
+# Innkommende e-post-monitor
 
 En monitor for innkommende e-post gir deg en e-postadresse som hører til én monitor. Alt som kan sende e-post — en sikkerhetskopieringsjobb, et eldre system, varslingen til en skyleverandør — sender resultatene sine dit, og OneUptime sjekker hver e-post mot kriteriene dine for å markere monitoren som nede, åpne en hendelse eller opprette et varsel, og for å løse dem når klarsignalet kommer.
 
@@ -37,9 +37,9 @@ sequenceDiagram
 
 Gå til **Monitorer**, og klikk på **Opprett monitor**.
 
-### Velg Incoming Email
+### Velg Innkommende e-post
 
-Under **Monitortype** klikker du på **Flere monitortyper** og velger **Incoming Email** under **Innkommende overvåking**, eller skriver `email` i søkefeltet. Skriv inn et **Navn**, og klikk deretter på **Neste**.
+Under **Monitortype** klikker du på **Flere monitortyper** og velger **Innkommende e-post** under **Innkommende overvåking**, eller skriver `email` i søkefeltet. Skriv inn et **Navn**, og klikk deretter på **Neste**.
 
 ### Gå gjennom kriteriene
 
@@ -51,7 +51,7 @@ Klikk på **Opprett monitor**. Monitoren åpnes på siden **Oversikt**, der kort
 
 ### Send e-post til adressen
 
-Konfigurer systemet ditt til å sende varslene sine til adressen. Hvis avsenderen ber deg bekrefte adressen først, se [Bekreft adressen hos avsenderen](#bekreft-adressen-hos-avsenderen).
+Konfigurer systemet ditt til å sende varslingene sine til adressen. Hvis avsenderen ber deg bekrefte adressen først, se [Bekreft adressen hos avsenderen](#bekreft-adressen-hos-avsenderen).
 :::
 
 > [!NOTE]
@@ -117,7 +117,7 @@ Fullfør bekreftelsen slik e-posten forteller deg.
 Har det kommet en annen e-post siden, viser kortet ikke lenger bekreftelses-e-posten. Åpne **Overvåkingslogger**, finn bekreftelses-e-posten ut fra emnet i kolonnen **E-post**, og klikk på **Vis sammendrag** på den raden.
 
 > [!IMPORTANT]
-> **Kriteriene dine ser den også.** Bekreftelses-e-posten evalueres som enhver annen e-post. En formulering som "if you received this in error" samsvarer med standardkriteriet `error` og markerer monitoren som frakoblet. For å unngå det slår du av **Sjekk denne overvåkeren** i kortet **Overvåking** på monitorens side **Innstillinger** mens du bekrefter (du blir bedt om å bekrefte). En monitor med overvåking slått av lagrer fortsatt e-posten, og kortet **Monitor-sammendrag** viser den fortsatt. Den evaluerer likevel ingenting, så e-posten får ingen rad i **Overvåkingslogger**: les den før en annen e-post kommer. Når du er ferdig, trykker du på **Slå på overvåking** i banneret øverst på monitorens sider, eller slår bryteren på igjen.
+> **Kriteriene dine ser den også.** Bekreftelses-e-posten evalueres som enhver annen e-post. En formulering som "if you received this in error" samsvarer med standardkriteriet `error` og markerer monitoren som frakoblet. For å unngå det slår du av **Sjekk denne monitoren** i kortet **Overvåking** på monitorens side **Innstillinger** mens du bekrefter (du blir bedt om å bekrefte). En monitor med overvåking slått av lagrer fortsatt e-posten, og kortet **Monitor-sammendrag** viser den fortsatt. Den evaluerer likevel ingenting, så e-posten får ingen rad i **Overvåkingslogger**: les den før en annen e-post kommer. Når du er ferdig, trykker du på **Slå på overvåking** i banneret øverst på monitorens sider, eller slår bryteren på igjen.
 
 **Bekreftelsen hører til adressen.** Hvis du [tilbakestiller eller tilpasser adressen](#tilbakestill-eller-tilpass-e-postadressen), ser tjenesten en ny mottaker, og du må bekrefte på nytt.
 
@@ -126,7 +126,7 @@ Har det kommet en annen e-post siden, viser kortet ikke lenger bekreftelses-e-po
 Siden juli 2026 har Azure gradvis innført et krav om at hver ny mottaker av typen **Email** i en handlingsgruppe bekreftes med en engangskode. Før det er gjort, sender handlingsgruppen verken varsler eller testvarsler til den adressen.
 
 :::steps
-1. Legg til et varsel av typen **Email** med monitorens adresse i handlingsgruppen, og lagre handlingsgruppen. Azure sender bekreftelses-e-posten fra en Microsoft-adresse som `azure-noreply@microsoft.com`.
+1. Legg til en varsling av typen **Email** med monitorens adresse i handlingsgruppen, og lagre handlingsgruppen. Azure sender bekreftelses-e-posten fra en Microsoft-adresse som `azure-noreply@microsoft.com`.
 2. Les den på monitoren som beskrevet ovenfor, og følg instruksjonene i den innen 30 minutter etter at du lagret handlingsgruppen. Hvis engangskoden utløper, åpner du handlingsgruppen og velger **Resend**.
 3. Åpne handlingsgruppen, og velg **Test** for å sende et testvarsel. Det kommer til monitoren som et ekte varsel, så det viser også om kriteriene dine samsvarer med e-postene fra Azure.
 :::
@@ -275,7 +275,7 @@ For mer kontroll, som en alvorlighetsgrad lest fra emnet eller et team valgt ett
 | Integrasjon med eldre systemer | Gjør varsler som eldre systemer bare sender på e-post, om til hendelser i OneUptime, og løser dem når klarsignalet kommer. |
 | Tjenester fra tredjeparter | Mottar varsler fra skyleverandører (AWS, GCP, Azure), sikkerhetsskannere, verktøy for sikkerhetskopiering og advarsler om sertifikater som utløper. |
 | Planlagte jobber | Varsler når en e-post om at en jobb er ferdig, er forsinket, eller når en jobb sender en e-post om en feil. |
-| Samling av varsler | Samler e-postvarsler fra Nagios, Zabbix eller andre verktøy, slik at OneUptime er det ene stedet du håndterer dem. |
+| Samling av varslinger | Samler e-postvarslinger fra Nagios, Zabbix eller andre verktøy, slik at OneUptime er det ene stedet du håndterer dem. |
 | Melde hendelser på e-post | Åpner en hendelse for hver e-post folk sender til adressen, og tar vare på svarene som notater på den. |
 
 ## Malvariabler
@@ -310,7 +310,7 @@ Klikk på **Vis flere detaljer** for å se resten:
 
 ### Tidligere e-poster
 
-Kortet viser bare den nyeste e-posten. Hver e-post monitoren evaluerer, skrives også til **Overvåkingslogger**: kolonnen **E-post** viser emnet og avsenderen, og **Vis sammendrag** på raden viser hele e-posten på samme måte som kortet. En monitor med overvåking slått av evaluerer ingenting, så e-postene den mottar, får ingen rader. Hvis et av kriteriene dine sjekker **E-post mottatt**, skriver monitoren også en rad hver gang den ser etter manglende e-post. Kolonnen **E-post** sier "Scheduled check" på de radene, og **Vis sammendrag** der viser den nyeste e-posten på tidspunktet for kontrollen, eller "No email yet" hvis ingen hadde kommet. Overvåkingslogger beholdes i én dag som standard. På en selvhostet server kan en administrator endre det med **Loggoppbevaring for overvåking (dager)** i innstillingene i Admin Dashboard.
+Kortet viser bare den nyeste e-posten. Hver e-post monitoren evaluerer, skrives også til **Overvåkingslogger**: kolonnen **E-post** viser emnet og avsenderen, og **Vis sammendrag** på raden viser hele e-posten på samme måte som kortet. En monitor med overvåking slått av evaluerer ingenting, så e-postene den mottar, får ingen rader. Hvis et av kriteriene dine sjekker **E-post mottatt**, skriver monitoren også en rad hver gang den ser etter manglende e-post. Kolonnen **E-post** sier "Scheduled check" på de radene, og **Vis sammendrag** der viser den nyeste e-posten på tidspunktet for kontrollen, eller "No email yet" hvis ingen hadde kommet. Overvåkingslogger beholdes i én dag som standard. På en selvhostet server kan en administrator endre det med **Loggoppbevaring for monitorer (dager)** i innstillingene i Admin Dashboard.
 
 ## Selvhostet oppsett
 
@@ -356,6 +356,6 @@ Inntil det er satt opp, sier monitorens adressekort at innkommende e-post ikke e
 
 :::cards
 - [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating): Sett emnet og innholdet i e-posten inn i varsler.
-- [Innkommende forespørsel-overvåking](/docs/monitor/incoming-request-monitor): Motta heartbeats og webhooks over HTTP i stedet.
+- [Innkommende forespørsel-monitor](/docs/monitor/incoming-request-monitor): Motta heartbeats og webhooks over HTTP i stedet.
 - [SendGrid innkommende e-post](/docs/self-hosted/sendgrid-inbound-email): Sett opp innkommende e-post på en selvhostet server.
 :::

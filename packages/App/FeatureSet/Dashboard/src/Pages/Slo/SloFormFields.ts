@@ -1,6 +1,17 @@
+import Service from "Common/Models/DatabaseModels/Service";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import getLabelsFormField from "../../Utils/Form/LabelsFormField";
+import SliType from "Common/Types/ServiceLevelObjective/SliType";
 import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
+import {
+  isEventSliType,
+  isRequestSliType,
+} from "Common/Utils/Slo/SloRequestSli";
+import { getSloMetricFields, isMetricForm } from "./SloMetricQueryFields";
+import {
+  ParsedSloRequestFilter,
+  parseSloRequestFilter,
+} from "Common/Utils/Slo/SloRequestFilter";
 import {
   DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE,
   DEFAULT_ROLLING_WINDOW_DAYS,
@@ -10,6 +21,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
+import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import type { RadioButton } from "Common/UI/Components/RadioButtons/GroupRadioButtons";
 import TimezoneUtil from "Common/UI/Utils/Timezone";
 import {
@@ -50,11 +62,8 @@ import {
  * for word as before.
  */
 export const SLO_TARGET_HELP_TEMPLATE: string = translationKey(
-  "The share of time its monitors must be up. Over {{days}} days, {{target}} allows {{minutes}} minutes of downtime and {{stricterTarget}} about {{stricterMinutes}}.",
+  "The share of time, or of requests, that must be good. Over {{days}} days, {{target}} allows {{minutes}} minutes of downtime, or 1 bad request in {{requests}}.",
 );
-
-// The help's second example: one more nine.
-export const SLO_TARGET_HELP_STRICTER_TARGET_PERCENTAGE: number = 99.99;
 
 const MINUTES_PER_DAY: number = 24 * 60;
 
@@ -113,21 +122,13 @@ export const getSloTargetHelpText: GetSloTargetHelpTextFunction = (
         0,
         reader,
       ) ?? "",
-    stricterTarget:
-      formatSloPercent(
-        SLO_TARGET_HELP_STRICTER_TARGET_PERCENTAGE,
-        SLI_DECIMALS,
-        reader,
-      ) ?? `${SLO_TARGET_HELP_STRICTER_TARGET_PERCENTAGE}%`,
-    stricterMinutes:
-      formatSloNumber(
-        getAllowedDowntimeMinutes({
-          targetPercentage: SLO_TARGET_HELP_STRICTER_TARGET_PERCENTAGE,
-          windowDays: days,
-        }),
-        0,
-        reader,
-      ) ?? "",
+    /*
+     * 99.9% of requests good: 1 bad one in 1,000. A count of requests, so
+     * grouped as the budget tile's counts are, in English too ("1,000").
+     */
+    requests: reader.formatNumber(
+      Math.round(100 / (100 - SLO_SUGGESTED_TARGET_PERCENTAGE)),
+    ),
   };
 
   return reader.translateTemplate(
@@ -144,6 +145,8 @@ export const getSloTargetHelpText: GetSloTargetHelpTextFunction = (
  */
 export const SLO_MAX_TARGET_PERCENTAGE: number = 99.999;
 export const SLO_MAX_WINDOW_DAYS: number = 366;
+// An hour, as ServiceLevelObjectiveService holds it.
+export const SLO_MAX_LATENCY_THRESHOLD_IN_MILLISECONDS: number = 3600000;
 
 /*
  * What each check says, one sentence with its limits as values, so a German
@@ -156,6 +159,7 @@ export const SLO_FORM_ERRORS: {
   atRiskThresholdWhole: string;
   windowDaysRange: string;
   windowDaysWhole: string;
+  latencyThresholdRange: string;
 } = {
   target: translationKey(
     "Target must be greater than {{min}} and at most {{max}}.",
@@ -170,6 +174,9 @@ export const SLO_FORM_ERRORS: {
     "Window must be between {{min}} and {{max}} days.",
   ),
   windowDaysWhole: translationKey("Window must be a whole number of days."),
+  latencyThresholdRange: translationKey(
+    "Latency threshold must be a whole number of milliseconds from {{min}} to {{max}}.",
+  ),
 };
 
 type RangeErrorFunction = (
@@ -233,6 +240,8 @@ export const SLO_SUGGESTED_TARGET_PERCENTAGE: number = 99.9;
  * and a stray key here would only suggest the form still decides them.
  */
 export const SLO_CREATE_INITIAL_VALUES: FormValues<ServiceLevelObjective> = {
+  // What most SLOs measure, as before request SLIs: the first answer.
+  sliType: SliType.MonitorUptime,
   targetPercentage: SLO_SUGGESTED_TARGET_PERCENTAGE,
   windowType: SloWindowType.Rolling,
   windowDays: DEFAULT_ROLLING_WINDOW_DAYS,
@@ -432,6 +441,75 @@ export const getSloWindowTypeChoices: GetSloWindowTypeChoicesFunction =
   };
 
 /*
+ * What an SLO measures, each answer with one line that says where its
+ * numbers come from. Monitor uptime - what most SLOs measure, and a new
+ * SLO's default - comes first; a metric, the newest (#8445), last.
+ */
+export const SLO_SLI_TYPE_CHOICES: ReadonlyArray<SliType> = [
+  SliType.MonitorUptime,
+  SliType.RequestSuccess,
+  SliType.RequestLatency,
+  SliType.Metric,
+];
+
+export const SLO_SLI_TYPE_NAMES: Record<string, string> = {
+  [SliType.MonitorUptime]: translationKey("Monitor uptime"),
+  [SliType.RequestSuccess]: translationKey("Request success"),
+  [SliType.RequestLatency]: translationKey("Request latency"),
+  [SliType.Metric]: translationKey("Metric"),
+};
+
+export const SLO_SLI_TYPE_CHOICE_DESCRIPTIONS: Record<string, string> = {
+  [SliType.MonitorUptime]: translationKey(
+    "The share of time your monitors are up, from their checks.",
+  ),
+  [SliType.RequestSuccess]: translationKey(
+    "The share of your services' requests that do not fail, from their traces.",
+  ),
+  [SliType.RequestLatency]: translationKey(
+    "The share of your services' requests served fast enough, from their traces.",
+  ),
+  [SliType.Metric]: translationKey(
+    "The share of good events in a counter or a histogram your services send.",
+  ),
+};
+
+export type GetSloSliTypeChoicesFunction = () => Array<RadioButton>;
+
+export const getSloSliTypeChoices: GetSloSliTypeChoicesFunction =
+  (): Array<RadioButton> => {
+    return SLO_SLI_TYPE_CHOICES.map((sliType: SliType): RadioButton => {
+      return {
+        title: SLO_SLI_TYPE_NAMES[sliType]!,
+        value: sliType,
+        description: SLO_SLI_TYPE_CHOICE_DESCRIPTIONS[sliType]!,
+      };
+    });
+  };
+
+/*
+ * The create form's two steps: what the SLO measures - an answer, and for a
+ * request SLO its services and threshold - then the objective: its name,
+ * its target and the folded defaults.
+ */
+export const SLO_CREATE_FORM_STEPS: Array<FormStep<ServiceLevelObjective>> = [
+  {
+    id: "measures",
+    title: "What It Measures",
+  },
+  // A Metric SLO's metric (#8445): which one, and which of its events are good.
+  {
+    id: "metric",
+    title: "Metric",
+    showIf: isMetricForm,
+  },
+  {
+    id: "objective",
+    title: "Objective",
+  },
+];
+
+/*
  * Client-side mirrors of ServiceLevelObjectiveService.validateTargetPercentage
  * and validateAtRiskThresholdPercentage. Without them the only feedback on a
  * bad number was a failed round-trip rendering the raw server exception, and
@@ -521,6 +599,90 @@ export const validateWindowDays: ValidateWindowDaysFunction = (
   return null;
 };
 
+export type ValidateLatencyThresholdFunction = (
+  value: FormValues<ServiceLevelObjective>,
+) => string | null;
+
+// The mirror of ServiceLevelObjectiveService.validateLatencyThresholdInMilliseconds.
+export const validateLatencyThreshold: ValidateLatencyThresholdFunction = (
+  value: FormValues<ServiceLevelObjective>,
+): string | null => {
+  const threshold: number = Number(value.latencyThresholdInMilliseconds);
+
+  if (
+    !Number.isInteger(threshold) ||
+    threshold < 1 ||
+    threshold > SLO_MAX_LATENCY_THRESHOLD_IN_MILLISECONDS
+  ) {
+    const reader: Translator = getGlobalTranslator();
+
+    // A count of milliseconds, grouped so the hour reads "3,600,000".
+    return reader.translateTemplate(SLO_FORM_ERRORS.latencyThresholdRange, {
+      min: reader.formatNumber(1),
+      max: reader.formatNumber(SLO_MAX_LATENCY_THRESHOLD_IN_MILLISECONDS),
+    });
+  }
+
+  return null;
+};
+
+export type ValidateRequestFilterFunction = (
+  value: FormValues<ServiceLevelObjective>,
+) => string | null;
+
+/*
+ * The mirror of ServiceLevelObjectiveService.validateRequestFilter, in the
+ * reader's language: a traces search the counting can read (#8444).
+ */
+export const validateRequestFilter: ValidateRequestFilterFunction = (
+  value: FormValues<ServiceLevelObjective>,
+): string | null => {
+  const parsed: ParsedSloRequestFilter = parseSloRequestFilter(
+    value.requestFilter as string | undefined | null,
+  );
+
+  if (!parsed.error) {
+    return null;
+  }
+
+  const reader: Translator = getGlobalTranslator();
+  const values: Record<string, string> = {};
+
+  for (const [name, figure] of Object.entries(parsed.error.values)) {
+    values[name] =
+      typeof figure === "number" ? reader.formatNumber(figure) : figure;
+  }
+
+  return reader.translateTemplate(parsed.error.template, values, {
+    setsValuesApart: true,
+  });
+};
+
+type IsRequestFormFunction = (
+  item: FormValues<ServiceLevelObjective>,
+) => boolean;
+
+// The form is for a request SLO: its request filter is asked.
+const isRequestForm: IsRequestFormFunction = (
+  item: FormValues<ServiceLevelObjective>,
+): boolean => {
+  return isRequestSliType(item.sliType as SliType | undefined);
+};
+
+// The form is for an SLO counted in events: its services are asked.
+const isEventForm: IsRequestFormFunction = (
+  item: FormValues<ServiceLevelObjective>,
+): boolean => {
+  return isEventSliType(item.sliType as SliType | undefined);
+};
+
+// The form is for a Request Latency SLO: its threshold is asked too.
+const isLatencyForm: IsRequestFormFunction = (
+  item: FormValues<ServiceLevelObjective>,
+): boolean => {
+  return item.sliType === SliType.RequestLatency;
+};
+
 /*
  * The create form's fields. Settings and the Overview's details card take
  * their fields from this list (see pickSloFormFields) rather than declaring
@@ -545,6 +707,78 @@ export const getSloFormFields: GetSloFormFieldsFunction = (): Array<
     });
 
   return [
+    /*
+     * The first step: what the SLO measures - an answer, and for a request
+     * SLO its services and for a latency one its threshold. They show only
+     * for the answers that use them, and are required there: a request SLO
+     * with no services, or a latency SLO with no threshold, measures
+     * nothing. Settings edits the same three (What It Measures).
+     */
+    {
+      field: {
+        sliType: true,
+      },
+      title: "What It Measures",
+      fieldType: FormFieldSchemaType.RadioButton,
+      radioButtonOptions: getSloSliTypeChoices(),
+      required: true,
+      // Each answer says where its numbers come from.
+      hideColumnDescription: true,
+      dataTestId: "slo-sli-type",
+      stepId: "measures",
+    },
+    {
+      field: {
+        services: true,
+      },
+      title: "Services",
+      description:
+        "The services it measures: the requests that enter them, from their traces, or the metric they send.",
+      fieldType: FormFieldSchemaType.MultiSelectDropdown,
+      dropdownModal: {
+        type: Service,
+        labelField: "name",
+        valueField: "_id",
+      },
+      required: isEventForm,
+      placeholder: "Select services",
+      showIf: isEventForm,
+      stepId: "measures",
+    },
+    {
+      field: {
+        latencyThresholdInMilliseconds: true,
+      },
+      title: "Latency Threshold (ms)",
+      description:
+        "A request served in this many milliseconds or less counts as fast enough.",
+      fieldType: FormFieldSchemaType.Number,
+      required: isLatencyForm,
+      placeholder: "300",
+      customValidation: validateLatencyThreshold,
+      showIf: isLatencyForm,
+      stepId: "measures",
+    },
+    /*
+     * Which of the services' requests count (#8444): optional, a traces
+     * search in the Traces explorer's own syntax. Empty counts them all.
+     */
+    {
+      field: {
+        requestFilter: true,
+      },
+      title: "Request Filter",
+      description:
+        "Count only the requests that match this traces search of span attributes and names, such as -@http.route:/health. Empty counts every request.",
+      fieldType: FormFieldSchemaType.Text,
+      required: false,
+      placeholder: "@http.route:/checkout* -@http.route:/health",
+      customValidation: validateRequestFilter,
+      showIf: isRequestForm,
+      stepId: "measures",
+    },
+    // A Metric SLO's metric, on a step of its own (#8445).
+    ...getSloMetricFields({ stepId: "metric" }),
     {
       field: {
         name: true,
@@ -553,6 +787,7 @@ export const getSloFormFields: GetSloFormFieldsFunction = (): Array<
       fieldType: FormFieldSchemaType.Text,
       required: true,
       placeholder: "API Availability",
+      stepId: "objective",
     },
     {
       field: {
@@ -565,6 +800,7 @@ export const getSloFormFields: GetSloFormFieldsFunction = (): Array<
       required: true,
       placeholder: "99.9",
       customValidation: validateTargetPercentage,
+      stepId: "objective",
     },
     {
       field: {
@@ -575,6 +811,7 @@ export const getSloFormFields: GetSloFormFieldsFunction = (): Array<
       required: false,
       placeholder: "99.9% availability for the public API",
       collapsibleSection: advancedSection,
+      stepId: "objective",
     },
     {
       field: {
@@ -595,6 +832,7 @@ export const getSloFormFields: GetSloFormFieldsFunction = (): Array<
       placeholder: "20",
       customValidation: validateAtRiskThreshold,
       collapsibleSection: advancedSection,
+      stepId: "objective",
     },
     {
       field: {
@@ -608,6 +846,7 @@ export const getSloFormFields: GetSloFormFieldsFunction = (): Array<
       hideColumnDescription: true,
       dataTestId: "slo-window-type",
       collapsibleSection: advancedSection,
+      stepId: "objective",
       /*
        * Switching to Calendar Month hides Window (Days), and hidden fields
        * are skipped by validation — so a box the user had cleared would
@@ -661,6 +900,7 @@ export const getSloFormFields: GetSloFormFieldsFunction = (): Array<
       placeholder: "30",
       customValidation: validateWindowDays,
       collapsibleSection: advancedSection,
+      stepId: "objective",
       showIf: (item: FormValues<ServiceLevelObjective>): boolean => {
         return item.windowType !== SloWindowType.CalendarMonth;
       },
@@ -677,6 +917,7 @@ export const getSloFormFields: GetSloFormFieldsFunction = (): Array<
       required: false,
       placeholder: "UTC",
       collapsibleSection: advancedSection,
+      stepId: "objective",
       showIf: (item: FormValues<ServiceLevelObjective>): boolean => {
         return item.windowType === SloWindowType.CalendarMonth;
       },
@@ -684,6 +925,7 @@ export const getSloFormFields: GetSloFormFieldsFunction = (): Array<
     // Last in the section, as on every form (LabelsFormFieldGuard).
     getLabelsFormField<ServiceLevelObjective>({
       collapsibleSection: advancedSection,
+      stepId: "objective",
     }),
   ];
 };
@@ -723,6 +965,12 @@ export const pickSloFormFields: PickSloFormFieldsFunction = (
 
     if (column === "labels") {
       pickedFields.push(getLabelsFormField<ServiceLevelObjective>());
+      continue;
+    }
+
+    // The metric's column and every question that edits a part of it.
+    if (column === "metricQueryConfig") {
+      pickedFields.push(...getSloMetricFields());
       continue;
     }
 

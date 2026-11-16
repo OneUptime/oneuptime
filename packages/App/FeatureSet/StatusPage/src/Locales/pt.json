@@ -42,7 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% de disponibilidade",
-    "uptimePercent": "{{percent}}% de disponibilidade",
+    "uptimePercent": "{{percent}} de disponibilidade",
     "operational": "Operacional",
     "notMonitored": "Não monitorado",
     "noResourcesInGroup": "Nenhum recurso adicionado a este grupo.",
@@ -60,10 +60,9 @@
   },
   "eventItem": {
     "affectedResources": "Recursos afetados",
-    "stateChangedTo": "estado alterado para",
     "view": "Ver {{eventType}}",
     "updateTo": "Atualização deste {{eventType}}",
-    "postedOn": "publicado em"
+    "postedOnDate": "publicado em {{date}}"
   },
   "monitorOverview": {
     "daysAgo": "há {{days}} dias",
@@ -85,7 +84,7 @@
     "declared": "Declarado",
     "oneIncidentOnThisDay": "1 incidente relatado neste dia",
     "incidentsOnThisDay": "{{total}} incidentes relatados neste dia",
-    "scheduledMaintenance": "Manutenção agendada",
+    "scheduledMaintenance": "Manutenção programada",
     "dayLabelWithMaintenance": "{{label}}, {{maintenance}}",
     "oneMaintenanceEvent": "1 evento de manutenção",
     "maintenanceEvents": "{{total}} eventos de manutenção",
@@ -138,7 +137,7 @@
   "scheduledEvents": {
     "title": "Manutenção programada",
     "singular": "Evento de manutenção",
-    "scheduledMaintenance": "Manutenção agendada",
+    "scheduledMaintenance": "Manutenção programada",
     "ongoing": "Manutenção em andamento",
     "upcoming": "Próxima manutenção",
     "completed": "Manutenção concluída",
@@ -150,8 +149,8 @@
     "notFound": "Nenhum evento de manutenção encontrado para esta página de status.",
     "calendar": {
       "subscribe": "Subscrever o calendário",
-      "subscribeTitle": "Subscrever a manutenção agendada",
-      "subscribeDescription": "Receba a manutenção agendada desta página na sua aplicação de calendário. Mantém-se atualizada sozinha.",
+      "subscribeTitle": "Subscrever a manutenção programada",
+      "subscribeDescription": "Receba a manutenção programada desta página na sua aplicação de calendário. Mantém-se atualizada sozinha.",
       "eventTitle": "Adicionar ao calendário",
       "eventDescription": "Adicione este evento de manutenção à sua aplicação de calendário.",
       "addToCalendar": "Adicionar ao calendário",
@@ -276,6 +275,7 @@
       "channelSlack": "Workspace do Slack",
       "channelMicrosoftTeams": "Workspace do Microsoft Teams",
       "channelWebhook": "Webhook",
+      "channelWithColon": "{{channel}}:",
       "addedByTeamWarning": "Esta inscrição foi adicionada pela equipe que administra esta página de status. Se for um endereço compartilhado, como uma lista de e-mails, cancelar a inscrição interrompe estas notificações para todos que as recebem, e a equipe será avisada.",
       "confirmButton": "Cancelar inscrição",
       "manageInstead": "Em vez disso, escolher quais notificações você recebe",
@@ -473,5 +473,6 @@
     "warning": "Aviso"
   },
   "No options available": "Nenhuma opção disponível",
-  "No matches found": "Nenhuma correspondência encontrada"
+  "No matches found": "Nenhuma correspondência encontrada",
+  "{{eventType}} state changed to {{state}}": "{{eventType}}: estado alterado para {{state}}"
 }

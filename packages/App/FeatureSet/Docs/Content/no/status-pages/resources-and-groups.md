@@ -65,7 +65,7 @@ Dialogen **Add a monitor to {group}** åpnes. Den består av én side.
 
 ### Velg monitoren
 
-Velg den i **Overvåking** (plassholder **Velg overvåking**). **Visningsnavn**, teksten besøkende leser, fylles ut med monitorens navn og følger med når du velger en annen monitor, til du skriver et eget navn. Det lagres atskilt fra monitorens eget navn, så å endre det her endrer ingenting i overvåkingen.
+Velg den i **Monitor** (plassholder **Velg monitor**). **Visningsnavn**, teksten besøkende leser, fylles ut med monitorens navn og følger med når du velger en annen monitor, til du skriver et eget navn. Det lagres atskilt fra monitorens eget navn, så å endre det her endrer ingenting i overvåkingen.
 
 ### Angi visningsalternativene, hvis du vil
 
@@ -79,7 +79,7 @@ Klikk på **Legg til monitor**. Raden vises i gruppen og på statussiden.
 I en rutenettgruppe ber dialogen også om raden og kolonnen monitoren skal stå i, over **Flere felt**; se [Listeoppsett eller rutenettoppsett](#listeoppsett-eller-rutenettoppsett).
 
 > [!TIP]
-> For å vise flere sjekker som én rad legger du til en [monitorgruppe](/docs/monitor/monitor-groups). Med bryteren **Monitorgrupper** slått på (**Prosjektinnstillinger** > **Avansert** > **Funksjonsflagg**, som lagres så snart du slår den om) står det en lenke under nedtrekkslisten: **Legg heller til en monitorgruppe.** Klikk på den, så blir **Overvåking** til **Monitorgruppe** (**Velg overvåkingsgruppe**); **Legg heller til en monitor.** bytter tilbake.
+> For å vise flere sjekker som én rad legger du til en [monitorgruppe](/docs/monitor/monitor-groups). Med bryteren **Monitorgrupper** slått på (**Prosjektinnstillinger** > **Avansert** > **Funksjonsflagg**, som lagres så snart du slår den om) står det en lenke under nedtrekkslisten: **Legg heller til en monitorgruppe.** Klikk på den, så blir **Monitor** til **Monitorgruppe** (**Velg monitorgruppe**); **Legg heller til en monitor.** bytter tilbake.
 
 ### Legg til flere på én gang
 
@@ -121,7 +121,7 @@ Grupper har sine egne utgaver av disse bryterne (se nedenfor), så en gruppe kan
 
 Fargene på historikkdiagrammets søyler angis under **Flere innstillinger** på siden **Merkevare**, og hvilke monitorstatuser som teller som «nede» under **Teller som nedetid** på kortet **Hva statussiden din viser** under **Avanserte innstillinger**; begge deler er beskrevet i [Statusside – merkevare og domener](/docs/status-pages/branding-and-domains).
 
-Hver søyle er én dag. Pek på en søyle, eller klikk på den (trykk på den på en telefon, eller trykk Enter med tastaturet), for å lese dagen: oppetiden, hvor lenge hver status varte, hendelsene som ble erklært den dagen, og det planlagte vedlikeholdet som foregikk på den, hver med en lenke til sin egen side. En dag med planlagt vedlikehold har et blått bånd øverst på søylen, og mens et planlagt vedlikehold pågår, står det «Under vedlikehold» ved navnet på hver ressurs for monitorene det gjelder. Vedlikehold endrer verken fargen på en søyle eller oppetiden, som kommer fra monitorens statuser: for å holde planlagt arbeid utenfor oppetiden velger du en **Endre overvåkingsstatus til** for vedlikeholdet som ikke er en av sidens statuser under **Teller som nedetid**. Se [Hva en hendelse påvirker](/docs/scheduled-maintenance/index#hva-en-hendelse-påvirker).
+Hver søyle er én dag. Pek på en søyle, eller klikk på den (trykk på den på en telefon, eller trykk Enter med tastaturet), for å lese dagen: oppetiden, hvor lenge hver status varte, hendelsene som ble erklært den dagen, og det planlagte vedlikeholdet som foregikk på den, hver med en lenke til sin egen side. En dag med planlagt vedlikehold har et blått bånd øverst på søylen, og mens et planlagt vedlikehold pågår, står det «Under vedlikehold» ved navnet på hver ressurs for monitorene det gjelder. Vedlikehold endrer verken fargen på en søyle eller oppetiden, som kommer fra monitorens statuser: for å holde planlagt arbeid utenfor oppetiden velger du en **Endre monitorstatus til** for vedlikeholdet som ikke er en av sidens statuser under **Teller som nedetid**. Se [Hva en hendelse påvirker](/docs/scheduled-maintenance/index#hva-en-hendelse-påvirker).
 
 Hver søyle er en dag i leserens egen tidssone, den samme som siden viser alle andre tidspunkter i, så den siste søylen er leserens i dag. Søylen til en monitorgruppe viser hvor lenge gruppen selv var i hver status den dagen: i hvert øyeblikk har gruppen den verste statusen blant monitorene sine, så statusene for en dag summerer seg til tiden da minst én av monitorene ble sjekket, og aldri til mer enn dagen.
 
@@ -223,7 +223,7 @@ En monitorregel legger til monitorer på siden for deg: beskriv monitorene én g
 
 ### Angi hvilke monitorer den samsvarer med
 
-Under **Treff** legger du til minst én betingelse på **Overvåkingsetiketter** (en monitor med en hvilken som helst av dem samsvarer), **Overvåkingsnavn** eller **Overvåkingsbeskrivelse**. Med to betingelser eller flere velger du om en monitor må oppfylle alle eller bare én. De to mønstrene godtar et regulært uttrykk uten forskjell på store og små bokstaver (`^api-.*`) eller et jokertegn `*` (`*checkout*`); `.*` samsvarer med alle monitorer.
+Under **Treff** legger du til minst én betingelse på **Monitoretiketter** (en monitor med en hvilken som helst av dem samsvarer), **Monitornavn** eller **Monitorbeskrivelse**. Med to betingelser eller flere velger du om en monitor må oppfylle alle eller bare én. De to mønstrene godtar et regulært uttrykk uten forskjell på store og små bokstaver (`^api-.*`) eller et jokertegn `*` (`*checkout*`); `.*` samsvarer med alle monitorer.
 
 ### Velg gruppen
 

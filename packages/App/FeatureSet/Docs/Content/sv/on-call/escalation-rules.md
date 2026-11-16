@@ -92,7 +92,7 @@ För att upprepa en policy klickar du på **Redigera** på kortet **Upprepningsp
 
 ### Så nås varje person
 
-Varje person som en nivå larmar nås på det sätt som personens egna jourregler säger: **Användarinställningar** > **Så når man mig**, med en flik för incidenter, incidentepisoder, larm och larmepisoder, och ett kort per allvarlighetsgrad som visar vilken aviseringsmetod som prövas och efter hur lång tid. En projektadministratör kan se och ändra en medlems regler under **Användare** > medlemmen > **Så når man mig**. Se [Så når man mig](/docs/notifications/on-call-rules).
+Varje person som en nivå larmar nås på det sätt som personens egna jourregler säger: **Användarinställningar** > **Så når man mig**, med en flik för incidenter, incidentepisoder, larm och larmepisoder, och ett kort per allvarlighetsgrad som visar vilken aviseringsmetod som prövas och efter hur lång tid. En Projektadministratör kan se och ändra en medlems regler under **Användare** > medlemmen > **Så når man mig**. Se [Så når man mig](/docs/notifications/on-call-rules).
 
 ```mermaid title="Vem en nivå larmar och hur varje person nås"
 flowchart TB
@@ -165,7 +165,7 @@ Ett larm som inte skickas säger varför i personens **Jourloggar** (Användarin
 - projektets saldo kunde inte betala för det, och vem som kan fylla på saldot;
 - kanalen är avstängd i projektet, och vem som kan slå på den.
 
-Projektets ägare får ett e-postmeddelande om det en gång, tills saldot har fyllts på eller kanalen är på igen.
+Projektägarna får ett e-postmeddelande om det en gång, tills saldot har fyllts på eller kanalen är på igen.
 
 Ett larm som inte nådde OneUptimes aviseringstjänst säger `Could not reach the Notification service to send this (ECONNREFUSED).`, med nätverksfelets kod inom parentesen. Ett larm vars sändning aldrig blev klar, till exempel för att en server startade om under sändningen, säger `Sending did not finish within 15 minutes, so this notification may not have been sent.` Blir sändningen klar ändå ersätter resultatet det meddelandet.
 
@@ -176,7 +176,7 @@ På OneUptime Cloud betalas varje SMS, samtal, WhatsApp- och Telegram-meddelande
 - Larmen fortsätter att gå ut på det saldo som finns kvar medan automatisk påfyllning inte kan debitera kortet.
 
 > [!IMPORTANT]
-> SMS, telefonsamtal, WhatsApp och Telegram är avstängda i ett nytt projekt: på OneUptime Cloud betalas varje meddelande från projektets saldo, och en egen installation behöver först ett Twilio-konto, en SMS- och samtalsgateway eller en Telegram-bot. Så länge en kanal är avstängd kan ingen i projektet lägga till en metod på den. Bara en projektägare, en **Faktureringsadministratör** eller någon med behörigheten **Manage Billing** kan slå på en, i kortet **Aviseringskanaler** på **Projektinställningar > Aviseringar > Aviseringskanaler** — en projektadministratör kan inte. Alla andra får veta exakt vem som kan, överallt där en kanal är avstängd: ovanför sin egen lista med metoder på den, i sin checklista för att komma igång och i meddelandet de får när något behöver den.
+> SMS, telefonsamtal, WhatsApp och Telegram är avstängda i ett nytt projekt: på OneUptime Cloud betalas varje meddelande från projektets saldo, och en egen installation behöver först ett Twilio-konto, en SMS- och samtalsgateway eller en Telegram-bot. Så länge en kanal är avstängd kan ingen i projektet lägga till en metod på den. Bara en Projektägare, en **Faktureringsadministratör** eller någon med behörigheten **Manage Billing** kan slå på en, i kortet **Aviseringskanaler** på **Projektinställningar > Aviseringar > Aviseringskanaler** — en Projektadministratör kan inte. Alla andra får veta exakt vem som kan, överallt där en kanal är avstängd: ovanför sin egen lista med metoder på den, i sin checklista för att komma igång och i meddelandet de får när något behöver den.
 
 ## Eskalera till nästa person i rotationen
 

@@ -1,6 +1,6 @@
 # Microsoft Dynamics 365
 
-[Microsoft Dynamics 365](https://www.microsoft.com/dynamics-365) 사례를 OneUptime 인시던트 및 알림과 양방향으로 맞춰 둡니다. 미리 만들어진 워크플로 템플릿이 인시던트나 알림마다 사례를 열고, 레코드가 해결되면 사례를 종결하며, 노트를 사례에 복사합니다. 다른 템플릿은 새 사례에서 인시던트를 선언하고 해결 내용과 메모를 다시 가져옵니다. 플러그인은 없습니다. 워크플로가 Dataverse Web API를 호출하고, Dynamics 365가 워크플로의 웹훅 URL을 호출합니다.
+[Microsoft Dynamics 365](https://www.microsoft.com/dynamics-365) 사례를 OneUptime 인시던트 및 경고와 양방향으로 맞춰 둡니다. 미리 만들어진 워크플로 템플릿이 인시던트나 경고마다 사례를 열고, 레코드가 해결되면 사례를 종결하며, 노트를 사례에 복사합니다. 다른 템플릿은 새 사례에서 인시던트를 선언하고 해결 내용과 메모를 다시 가져옵니다. 플러그인은 없습니다. 워크플로가 Dataverse Web API를 호출하고, Dynamics 365가 워크플로의 웹훅 URL을 호출합니다.
 
 :::cards
 - [Dynamics 365 준비하기](#dynamics-365-준비하기): 앱 등록, 애플리케이션 사용자, 링크 열.
@@ -13,14 +13,14 @@
 
 ```mermaid title="사례의 열로 연결된 두 방향"
 flowchart TB
-    record["인시던트 또는 알림"] -->|"선언, 해결,<br/>노트 추가"| out["Dynamics 365로<br/>보내는 워크플로"]
+    record["인시던트 또는 경고"] -->|"선언, 해결,<br/>노트 추가"| out["Dynamics 365로<br/>보내는 워크플로"]
     out -->|"Web API,<br/>Entra ID로 로그인"| case["Dynamics 365 사례,<br/>링크 열 포함"]
     case -->|"생성, 해결,<br/>메모 추가"| flow["Power Automate 흐름<br/>또는 Dataverse 웹훅"]
     flow --> back["Dynamics 365에서<br/>받는 워크플로"]
     back -->|"선언, 해결,<br/>노트 추가"| record
 ```
 
-각 템플릿은 작은 워크플로이므로, 인시던트, 알림 또는 둘 다에 대해 원하는 방향만 골라 쓰면 됩니다. OneUptime → Dynamics 365 템플릿은 Microsoft Entra ID를 통해 애플리케이션으로 로그인해 Dataverse Web API를 호출합니다. Dynamics 365 → OneUptime 템플릿은 Power Automate 흐름이나 Dataverse 웹훅이 호출하면 시작됩니다. Case 테이블에 추가하는 텍스트 열이 각 사례를 해당 레코드에 연결합니다.
+각 템플릿은 작은 워크플로이므로, 인시던트, 경고 또는 둘 다에 대해 원하는 방향만 골라 쓰면 됩니다. OneUptime → Dynamics 365 템플릿은 Microsoft Entra ID를 통해 애플리케이션으로 로그인해 Dataverse Web API를 호출합니다. Dynamics 365 → OneUptime 템플릿은 Power Automate 흐름이나 Dataverse 웹훅이 호출하면 시작됩니다. Case 테이블에 추가하는 텍스트 열이 각 사례를 해당 레코드에 연결합니다.
 
 ## 사전 요건
 
@@ -71,7 +71,7 @@ Dataverse에는 Jira의 레이블 같은 것이 없으므로, 사례와 OneUptim
 
 ## 템플릿에서 시작하기
 
-**워크플로 만들기** 대화 상자에는 카테고리 목록의 **Dynamics 365** 아래에 Dynamics 365 템플릿 13개가 있습니다. 인시던트용 7개, 이어서 알림용 6개가 각자의 제목 아래에 있습니다. 모두 링크 열을 공유하므로 어떤 조합이든 함께 작동합니다.
+**워크플로 만들기** 대화 상자에는 카테고리 목록의 **Dynamics 365** 아래에 Dynamics 365 템플릿 13개가 있습니다. 인시던트용 7개, 이어서 경고용 6개가 각자의 제목 아래에 있습니다. 모두 링크 열을 공유하므로 어떤 조합이든 함께 작동합니다.
 
 ### 인시던트용 템플릿
 
@@ -87,24 +87,24 @@ Dataverse에는 Jira의 레이블 같은 것이 없으므로, 사례와 OneUptim
 | Resolve the incident when its Dynamics 365 case is resolved | 연결된 사례가 해결되면 인시던트를 해결합니다. | Dynamics 365 설정 다섯 가지, 그리고 사례 상태 변경용 흐름 또는 웹훅 |
 | Add Dynamics 365 case notes to the incident as private notes | 상담원이 연결된 사례에 추가하는 각 메모를 인시던트에 비공개 노트로 복사합니다. | Dynamics 365 설정 다섯 가지, 그리고 새 메모용 흐름 또는 웹훅 |
 
-### 알림용 템플릿
+### 경고용 템플릿
 
-알림용 템플릿은 알림에 대해 같은 일을 합니다. 알림에는 공개 노트가 없으므로 하나가 적고, 알림은 상태 페이지에 나타나지 않으므로 **Create an alert when a Dynamics 365 case is created**는 상태 페이지 설정을 쓰지 않습니다.
+경고용 템플릿은 경고에 대해 같은 일을 합니다. 경고에는 공개 노트가 없으므로 하나가 적고, 경고는 상태 페이지에 나타나지 않으므로 **Create an alert when a Dynamics 365 case is created**는 상태 페이지 설정을 쓰지 않습니다.
 
 | 템플릿 | 하는 일 | 묻는 내용 |
 | --- | --- | --- |
 | **OneUptime → Dynamics 365** | | |
-| Create a Dynamics 365 case when an alert is created | 모니터가 발생시키는 모든 알림을 포함해 새 알림마다 사례를 엽니다. Dynamics 365에서 만들어진 알림과 비공개 알림은 건너뜁니다. | Dynamics 365 설정 다섯 가지, 새 사례의 고객, OneUptime URL |
-| Resolve the Dynamics 365 case when the alert is resolved | 알림이 해결되면 연결된 사례를 **Problem Solved**로 종결합니다. | Dynamics 365 설정 다섯 가지 |
+| Create a Dynamics 365 case when an alert is created | 모니터가 발생시키는 모든 경고를 포함해 새 경고마다 사례를 엽니다. Dynamics 365에서 만들어진 경고와 비공개 경고는 건너뜁니다. | Dynamics 365 설정 다섯 가지, 새 사례의 고객, OneUptime URL |
+| Resolve the Dynamics 365 case when the alert is resolved | 경고가 해결되면 연결된 사례를 **Problem Solved**로 종결합니다. | Dynamics 365 설정 다섯 가지 |
 | Copy alert private notes to the Dynamics 365 case | 새 비공개 노트를 각각 연결된 사례에 메모로 추가합니다. | Dynamics 365 설정 다섯 가지 |
 | **Dynamics 365 → OneUptime** | | |
-| Create an alert when a Dynamics 365 case is created | 새 사례마다 사례의 우선순위에 따라 고른 심각도로 알림을 만든 다음, 사례의 링크 열에 알림 ID를 씁니다. | Dynamics 365 설정 다섯 가지, 그리고 새 사례용 흐름 또는 웹훅 |
-| Resolve the alert when its Dynamics 365 case is resolved | 연결된 사례가 해결되면 알림을 해결합니다. | Dynamics 365 설정 다섯 가지, 그리고 사례 상태 변경용 흐름 또는 웹훅 |
-| Add Dynamics 365 case notes to the alert as private notes | 상담원이 연결된 사례에 추가하는 각 메모를 알림에 비공개 노트로 복사합니다. | Dynamics 365 설정 다섯 가지, 그리고 새 메모용 흐름 또는 웹훅 |
+| Create an alert when a Dynamics 365 case is created | 새 사례마다 사례의 우선순위에 따라 고른 심각도로 경고를 만든 다음, 사례의 링크 열에 경고 ID를 씁니다. | Dynamics 365 설정 다섯 가지, 그리고 새 사례용 흐름 또는 웹훅 |
+| Resolve the alert when its Dynamics 365 case is resolved | 연결된 사례가 해결되면 경고를 해결합니다. | Dynamics 365 설정 다섯 가지, 그리고 사례 상태 변경용 흐름 또는 웹훅 |
+| Add Dynamics 365 case notes to the alert as private notes | 상담원이 연결된 사례에 추가하는 각 메모를 경고에 비공개 노트로 복사합니다. | Dynamics 365 설정 다섯 가지, 그리고 새 메모용 흐름 또는 웹훅 |
 
-OneUptime → Dynamics 365 템플릿은 직접 켜지 않는 한 **비공개 인시던트**로 표시된 인시던트나 **비공개 경고**로 표시된 알림을 Dynamics 365에 보내지 않습니다. 레코드도, 그 상태도, 노트도 보내지 않습니다. [템플릿이 하는 일 바꾸기](#템플릿이-하는-일-바꾸기)를 참고하세요.
+OneUptime → Dynamics 365 템플릿은 직접 켜지 않는 한 **비공개 인시던트**로 표시된 인시던트나 **비공개 경고**로 표시된 경고를 Dynamics 365에 보내지 않습니다. 레코드도, 그 상태도, 노트도 보내지 않습니다. [템플릿이 하는 일 바꾸기](#템플릿이-하는-일-바꾸기)를 참고하세요.
 
-**모니터는 스스로 알림을 발생시키며, 아주 많이 발생시킬 수도 있습니다.** **Create a Dynamics 365 case when an alert is created**는 그 하나하나에 사례를 엽니다. 모든 알림에 사례가 필요한 것이 아니라면, 트리거와 워크플로의 나머지 사이에 예를 들어 `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`을 확인하는 **If / Else** 블록을 두고, 그 **Yes** 쪽만 다음 블록에 연결하세요.
+**모니터는 스스로 경고를 발생시키며, 아주 많이 발생시킬 수도 있습니다.** **Create a Dynamics 365 case when an alert is created**는 그 하나하나에 사례를 엽니다. 모든 경고에 사례가 필요한 것이 아니라면, 트리거와 워크플로의 나머지 사이에 예를 들어 `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`을 확인하는 **조건 분기** 블록을 두고, 그 **예** 쪽만 다음 블록에 연결하세요.
 
 ### 템플릿이 묻는 내용
 
@@ -116,7 +116,7 @@ OneUptime → Dynamics 365 템플릿은 직접 켜지 않는 한 **비공개 인
 - **Client Secret Value** — **Certificates & secrets**에 있는 클라이언트 시크릿의 **Value**입니다. GUID인 **Secret ID**가 아닙니다. 마법사는 여기에 넣은 GUID를 거부합니다.
 - **Case Link Column** — `new_oneuptimelink` 같은 링크 열의 논리적 이름.
 - **Customer for New Cases** — 사례를 만드는 두 템플릿만 묻습니다. 모든 사례에는 고객이 필요한데 OneUptime 인시던트에는 고객이 없으므로, 새 사례는 모두 한 고객에 대해 등록됩니다. 거래처의 ID를 붙여 넣거나, 연락처라면 `contacts(<id>)`를 붙여 넣으세요. Dynamics 365에서 레코드를 열면 주소에서 `id=` 뒤의 부분이 ID입니다.
-- **OneUptime URL** — 사례를 만드는 두 템플릿만 묻습니다. `https://oneuptime.com`처럼 OneUptime을 여는 주소입니다. 사례의 설명은 이 주소로 인시던트나 알림에 다시 연결됩니다.
+- **OneUptime URL** — 사례를 만드는 두 템플릿만 묻습니다. `https://oneuptime.com`처럼 OneUptime을 여는 주소입니다. 사례의 설명은 이 주소로 인시던트나 경고에 다시 연결됩니다.
 
 **템플릿이 로그인하는 방식.** 마법사는 테넌트, 클라이언트 ID, 시크릿을 워크플로의 **워크플로 변수** 아래에 있는 [OAuth 2.0 변수](/docs/workflows/variables#oauth-20-변수스스로-갱신되는-토큰) 하나, `dynamicsAccessToken`에 저장합니다. 그 내용은 Client Credentials, 토큰 URL `https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token`, 범위 `<environment URL>/.default`, 그리고 요청 본문으로 전송되고 암호화되어 저장되는 클라이언트 시크릿입니다. Dynamics 365에 대한 모든 호출은 `Authorization: Bearer {{local.variables.dynamicsAccessToken}}`을 보냅니다. OneUptime은 단계가 처음 토큰을 필요로 할 때 토큰을 가져오고, 만료되기 전에 새 토큰을 가져오며, 실행 로그와 단계 추적에서는 토큰을 `[REDACTED]`로 바꿉니다.
 
@@ -133,14 +133,14 @@ OneUptime → Dynamics 365 템플릿은 직접 켜지 않는 한 **비공개 인
 4. **워크플로 생성**을 클릭합니다. 모든 워크플로는 꺼진 상태로 만들어집니다. **빌더** 상단에서 **활성화됨**을 켜세요.
 :::
 
-**Create a Dynamics 365 case when an incident is declared**(알림이라면 **Create a Dynamics 365 case when an alert is created**)로 시작하세요. 같은 종류의 다른 OneUptime → Dynamics 365 템플릿은 모두 이 템플릿이 쓰는 링크로 사례를 찾습니다. 템플릿을 켜고, 테스트 인시던트를 선언하거나 테스트 알림을 만든 다음, 워크플로의 **로그 → 실행 기록**을 엽니다. 실행은 **실행됨**으로 끝나야 하며, 마지막 단계 `create-case-1`의 **Response Body**에 `CAS-01001-X1Y2Z3` 같은 새 사례의 `ticketnumber`가 들어 있습니다.
+**Create a Dynamics 365 case when an incident is declared**(경고가라면 **Create a Dynamics 365 case when an alert is created**)로 시작하세요. 같은 종류의 다른 OneUptime → Dynamics 365 템플릿은 모두 이 템플릿이 쓰는 링크로 사례를 찾습니다. 템플릿을 켜고, 테스트 인시던트를 선언하거나 테스트 경고를 만든 다음, 워크플로의 **로그 → 실행 기록**을 엽니다. 실행은 **실행됨**으로 끝나야 하며, 마지막 단계 `create-case-1`의 **응답 본문**에 `CAS-01001-X1Y2Z3` 같은 새 사례의 `ticketnumber`가 들어 있습니다.
 
 ### Dynamics 365 → OneUptime 템플릿 연결하기
 
-Dynamics 365 → OneUptime 템플릿(인시던트용 3개, 알림용 3개)은 [Webhook 트리거](/docs/workflows/triggers#webhook)에서 시작하므로, Dynamics 365에 이벤트를 보낼 곳을 알려 줘야 합니다. 다음 순서로 진행하세요:
+Dynamics 365 → OneUptime 템플릿(인시던트용 3개, 경고용 3개)은 [Webhook 트리거](/docs/workflows/triggers#webhook)에서 시작하므로, Dynamics 365에 이벤트를 보낼 곳을 알려 줘야 합니다. 다음 순서로 진행하세요:
 
 1. 워크플로를 만들고 **먼저 켜세요**. 꺼진 워크플로는 전송을 거부하며, 전송은 대기열에 들어가지 않습니다.
-2. 워크플로의 **빌더**를 열고 **Webhook** 트리거 블록(`webhook-1`)을 클릭한 다음, 설정 상단의 **URL 복사**를 클릭합니다. URL은 다음과 같습니다:
+2. 워크플로의 **빌더**를 열고 **웹훅** 트리거 블록(`webhook-1`)을 클릭한 다음, 설정 상단의 **URL 복사**를 클릭합니다. URL은 다음과 같습니다:
 
    ```text
    https://<your OneUptime host>/workflow/trigger/<webhook secret key>
@@ -156,9 +156,9 @@ Dynamics 365 → OneUptime 템플릿(인시던트용 3개, 알림용 3개)은 [W
 
 | 템플릿 | Change type | Table name | Select columns | Body |
 | --- | --- | --- | --- | --- |
-| 사례가 만들어지면 인시던트 선언 / 알림 만들기 | Added | Cases | | `{"PrimaryEntityId": "<Case>"}` |
-| 사례가 해결되면 인시던트 / 알림 해결 | Modified | Cases | `statecode,statuscode` | `{"PrimaryEntityId": "<Case>"}` |
-| 사례 메모를 인시던트 / 알림에 비공개 노트로 추가 | Added | Notes | | `{"PrimaryEntityId": "<Note>"}` |
+| 사례가 만들어지면 인시던트 선언 / 경고 만들기 | Added | Cases | | `{"PrimaryEntityId": "<Case>"}` |
+| 사례가 해결되면 인시던트 / 경고 해결 | Modified | Cases | `statecode,statuscode` | `{"PrimaryEntityId": "<Case>"}` |
+| 사례 메모를 인시던트 / 경고에 비공개 노트로 추가 | Added | Notes | | `{"PrimaryEntityId": "<Note>"}` |
 
 일부 사례만 보내려면 트리거의 **Filter rows**를 사용하세요. 예를 들어 High 우선순위 사례라면 `prioritycode eq 1`입니다. 본문은 Dataverse 웹후크처럼 행을 `PrimaryEntityId`로 지정합니다. 템플릿은 행 자체를 Dynamics 365에서 다시 읽습니다.
 @tab Dataverse webhook
@@ -166,25 +166,25 @@ Dynamics 365 → OneUptime 템플릿(인시던트용 3개, 알림용 3개)은 [W
 
 | 템플릿 | Message | Primary Entity | Filtering Attributes |
 | --- | --- | --- | --- |
-| 사례가 만들어지면 인시던트 선언 / 알림 만들기 | `Create` | `incident` | |
-| 사례가 해결되면 인시던트 / 알림 해결 | `Close`, 그리고 다른 사람의 상태 변경용 `Update` | `incident` | `statecode, statuscode` (Update) |
-| 사례 메모를 인시던트 / 알림에 비공개 노트로 추가 | `Create` | `annotation` | |
+| 사례가 만들어지면 인시던트 선언 / 경고 만들기 | `Create` | `incident` | |
+| 사례가 해결되면 인시던트 / 경고 해결 | `Close`, 그리고 다른 사람의 상태 변경용 `Update` | `incident` | `statecode, statuscode` (Update) |
+| 사례 메모를 인시던트 / 경고에 비공개 노트로 추가 | `Create` | `annotation` | |
 
 사례를 해결하면 **Update**가 아니라 **Close** 메시지가 발생하므로 그 템플릿에는 둘 다 필요합니다. 웹훅은 플러그인 실행 컨텍스트를 게시하는데, 행은 그 `PrimaryEntityId`에, **Close**라면 그 `IncidentResolution`에 나오며 템플릿은 거기에서 행을 읽습니다. Dataverse 웹훅은 포트 80과 443만 호출하며 자체 행 필터가 없습니다. `ONLY_PRIORITIES`로 좁히지 않는 한 모든 새 사례가 만들기 템플릿에 도달합니다.
 :::
 
 어느 쪽이든 의존하기 전에:
 
-- **URL을 가진 사람은 누구나 워크플로를 시작할 수 있습니다.** 템플릿은 모든 행을 Dynamics 365에서 다시 읽으므로, 요청으로 할 수 있는 일은 템플릿이 실제 사례나 메모를 보게 하는 것뿐입니다. 그래도 아직 연결되지 않은 사례에 대해 만들기 템플릿을 작동시킬 수는 있습니다. URL은 흐름이나 웹훅 안에만 두세요. 유출되면 워크플로의 **빌더**에서 **Webhook** 트리거를 클릭하고 **URL 재설정**을 클릭한 다음, 새 URL을 흐름이나 웹훅에 붙여 넣으세요. 이전 URL은 즉시 작동을 멈춥니다.
+- **URL을 가진 사람은 누구나 워크플로를 시작할 수 있습니다.** 템플릿은 모든 행을 Dynamics 365에서 다시 읽으므로, 요청으로 할 수 있는 일은 템플릿이 실제 사례나 메모를 보게 하는 것뿐입니다. 그래도 아직 연결되지 않은 사례에 대해 만들기 템플릿을 작동시킬 수는 있습니다. URL은 흐름이나 웹훅 안에만 두세요. 유출되면 워크플로의 **빌더**에서 **웹훅** 트리거를 클릭하고 **URL 재설정**을 클릭한 다음, 새 URL을 흐름이나 웹훅에 붙여 넣으세요. 이전 URL은 즉시 작동을 멈춥니다.
 - **모든 이벤트가 하나의 실행입니다**. 템플릿이 건너뛰는 이벤트도 포함됩니다. OneUptime Cloud에서는 각 실행이 요금제의 워크플로 실행 수에 포함되며, 흐름에서 필터링하면 그 수를 줄일 수 있습니다. [요금제 한도](/docs/workflows/configuration#플랜-한도)를 참고하세요.
-- **사례에서 레코드를 만드는 두 템플릿을 모두 쓰나요?** **Declare an incident when a Dynamics 365 case is created**와 **Create an alert when a Dynamics 365 case is created**는 둘 다 전달받은 모든 사례에 작동합니다. 둘 다 먼저 링크 열을 확인하지만, 새 사례 하나에 대한 두 전송이 동시에 도착하므로 사례에 인시던트와 알림이 모두 생길 수 있습니다. 예를 들어 사례 유형으로 나눠 두 템플릿에 서로 다른 사례를 보내세요.
+- **사례에서 레코드를 만드는 두 템플릿을 모두 쓰나요?** **Declare an incident when a Dynamics 365 case is created**와 **Create an alert when a Dynamics 365 case is created**는 둘 다 전달받은 모든 사례에 작동합니다. 둘 다 먼저 링크 열을 확인하지만, 새 사례 하나에 대한 두 전송이 동시에 도착하므로 사례에 인시던트와 경고가 모두 생길 수 있습니다. 예를 들어 사례 유형으로 나눠 두 템플릿에 서로 다른 사례를 보내세요.
 
 ### 작동하는지 확인하기
 
 각 실행의 **단계**에 템플릿이 한 일이 나오므로, **로그 → 실행 기록**에서 실행을 열고 어떻게 끝났는지 보세요:
 
-- **실행됨**: 할 일을 마쳤고, 마지막 단계에 사례, 인시던트 또는 알림이 나옵니다.
-- **실행됨**이고 **Check With JavaScript** 단계가 **No**로 감: 일부러 이벤트를 건너뛰었고, 그 단계가 이유를 알려 줍니다. 사례가 이 종류의 레코드에 연결되지 않았거나, 메모가 반대편에서 왔거나, 레코드가 비공개이거나, 새 상태가 사례를 종결하지 않는 경우입니다.
+- **실행됨**: 할 일을 마쳤고, 마지막 단계에 사례, 인시던트 또는 경고가 나옵니다.
+- **실행됨**이고 **JavaScript로 확인** 단계가 **아니오**로 감: 일부러 이벤트를 건너뛰었고, 그 단계가 이유를 알려 줍니다. 사례가 이 종류의 레코드에 연결되지 않았거나, 메모가 반대편에서 왔거나, 레코드가 비공개이거나, 새 상태가 사례를 종결하지 않는 경우입니다.
 - **오류**: 단계가 실패했고, **단계**에 있는 그 항목에 이유가 나옵니다. Dynamics 365 호출이라면 Dynamics 365의 응답도 포함됩니다.
 - `link-case-1`에서 **오류**: 사례에서 레코드를 만드는 템플릿이 레코드를 만들었지만 Dynamics 365가 링크를 받지 않아 다른 템플릿이 아직 찾을 수 없습니다. 사례의 열에 링크를 직접 입력하세요.
 
@@ -194,11 +194,11 @@ Dynamics 365 → OneUptime 템플릿(인시던트용 3개, 알림용 3개)은 [W
 
 ### 양쪽이 연결된 상태를 유지하는 방식
 
-연결은 사례가 보관합니다. 인시던트에 속한 사례의 링크 열에는 `oneuptime-incident-<incident id>`가, 알림에 속한 사례에는 `oneuptime-alert-<alert id>`가 들어 있습니다. ID는 대시보드에서 레코드 주소의 마지막 부분입니다.
+연결은 사례가 보관합니다. 인시던트에 속한 사례의 링크 열에는 `oneuptime-incident-<incident id>`가, 경고에 속한 사례에는 `oneuptime-alert-<alert id>`가 들어 있습니다. ID는 대시보드에서 레코드 주소의 마지막 부분입니다.
 
 사례를 만드는 템플릿은 사례를 열 때 이 값을 쓰고, 사례에서 레코드를 만드는 템플릿은 레코드가 생기는 즉시 씁니다. 다른 모든 템플릿은 이 값으로 반대편을 찾습니다. OneUptime → Dynamics 365 템플릿은 링크로 사례를 찾고, Dynamics 365 → OneUptime 템플릿은 사례에서 레코드의 ID를 읽습니다. 직접 연 사례를 연결하려면 레코드에 아직 사례가 없을 때만 그 링크 열에 값을 직접 입력하세요.
 
-**사례는 인시던트나 알림 중 하나에만 연결되며, 둘 다에 연결되지 않습니다.** 열 하나가 두 종류를 모두 담습니다. 인시던트용 템플릿은 알림에 연결된 사례를 무시하고 그 반대도 마찬가지이며, 사례에서 레코드를 만드는 템플릿은 링크 열에 무엇이든 들어 있는 사례는 건드리지 않습니다.
+**사례는 인시던트나 경고 중 하나에만 연결되며, 둘 다에 연결되지 않습니다.** 열 하나가 두 종류를 모두 담습니다. 인시던트용 템플릿은 경고에 연결된 사례를 무시하고 그 반대도 마찬가지이며, 사례에서 레코드를 만드는 템플릿은 링크 열에 무엇이든 들어 있는 사례는 건드리지 않습니다.
 
 **레코드에는 사례가 하나만 있습니다.** 사례에 쓰는 템플릿은 레코드의 링크를 가진 사례가 정확히 하나일 때만 작동합니다. 링크가 두 번째 사례에 복사되면 템플릿은 멈추고, 각 실행은 두 사례를 모두 알려 주는 건너뛰기로 끝납니다:
 
@@ -206,7 +206,7 @@ Dynamics 365 → OneUptime 템플릿(인시던트용 3개, 알림용 3개)은 [W
 More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-01001-X1Y2Z3, CAS-01002-K4L5M6). Clear it on every case except the one opened for the incident.
 ```
 
-사례에서 만들어진 인시던트와 알림은 만들 때 기록되는 `customFields.dynamicsCaseId`와 `customFields.dynamicsCaseNumber`에 사례의 ID와 번호도 보관합니다. 사례를 만드는 템플릿은 이것으로 레코드에 이미 사례가 있음을 압니다.
+사례에서 만들어진 인시던트와 경고는 만들 때 기록되는 `customFields.dynamicsCaseId`와 `customFields.dynamicsCaseNumber`에 사례의 ID와 번호도 보관합니다. 사례를 만드는 템플릿은 이것으로 레코드에 이미 사례가 있음을 압니다.
 
 ### 템플릿이 루프를 피하는 방식
 
@@ -221,7 +221,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 
 ### 템플릿이 하는 일 바꾸기
 
-워크플로의 **빌더**를 열고 바꾸려는 블록을 클릭하세요. 가장 바꾸고 싶을 만한 설정은 스크립트 맨 위 근처의 상수로, **Check With JavaScript** 블록의 **JavaScript Code**에서 공유 도우미 블록 바로 아래에 있습니다. 템플릿의 인시던트용과 알림용 버전은 같은 블록에 같은 상수를 둡니다.
+워크플로의 **빌더**를 열고 바꾸려는 블록을 클릭하세요. 가장 바꾸고 싶을 만한 설정은 스크립트 맨 위 근처의 상수로, **JavaScript로 확인** 블록의 **JavaScript 코드**에서 공유 도우미 블록 바로 아래에 있습니다. 템플릿의 인시던트용과 경고용 버전은 같은 블록에 같은 상수를 둡니다.
 
 | 상수 | 템플릿과 블록 | 제어하는 내용 |
 | --- | --- | --- |
@@ -231,7 +231,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 | `MAX_TITLE_LENGTH`, `MAX_DESCRIPTION_LENGTH` | Create a Dynamics 365 case — `prepare-case-1` | Case 테이블 자체의 한도인 200자와 2000자. 아무리 많이 잘려도 설명에는 OneUptime으로 돌아가는 링크가 남습니다. Case 테이블이 더 많이 허용한다면 값을 올리세요. |
 | `RESOLVED_CASE_STATUS` | Resolve the Dynamics 365 case — `plan-case-1` | 해결된 레코드가 사례를 종결할 때 쓰는 상태: `5`는 Problem Solved, `1000`은 Information Provided입니다. |
 | `STATE_TO_CASE_STATUS` | Resolve the Dynamics 365 case — `plan-case-1` | 직접 만든 해결 상태에서, 상태 이름으로, 다른 해결 상태로 사례를 종결합니다. `{ Closed: 1000 }`은 Information Provided로 종결합니다. 레코드가 해결될 때만 사례가 바뀌며, Researching 같은 활성 상태는 설정되지 않습니다. |
-| `PRIORITY_RANK` | Create from a Dynamics 365 case — `prepare-incident-1`, `prepare-alert-1` | 사례 우선순위(`1` High, `2` Normal, `3` Low)를 `0`(가장 높은 심각도), `1` 또는 `2`(가장 낮은 심각도)에 매핑합니다. 목록에 없는 우선순위는 가운데에 놓입니다. 새 프로젝트에 있는 두 가지 알림 심각도에서는 `2: 1`을 `2: 0`으로 바꾸지 않는 한 Normal이 Low가 됩니다. |
+| `PRIORITY_RANK` | Create from a Dynamics 365 case — `prepare-incident-1`, `prepare-alert-1` | 사례 우선순위(`1` High, `2` Normal, `3` Low)를 `0`(가장 높은 심각도), `1` 또는 `2`(가장 낮은 심각도)에 매핑합니다. 목록에 없는 우선순위는 가운데에 놓입니다. 새 프로젝트에 있는 두 가지 경고 심각도에서는 `2: 1`을 `2: 0`으로 바꾸지 않는 한 Normal이 Low가 됩니다. |
 | `ONLY_PRIORITIES` | Create from a Dynamics 365 case — `prepare-incident-1`, `prepare-alert-1` | 비어 있으면 흐름이나 웹훅이 보내는 모든 사례를 받습니다. `[1]`은 High 우선순위 사례에만 레코드를 만듭니다. |
 | `CASE_STATUS_TO_STATE`, `CASE_STATE_TO_STATE_FLAG` | Resolve when the Dynamics 365 case is resolved — `decide-state-1` | `{ Researching: 'Acknowledged' }`처럼 사례의 상태 설명을 이름으로 OneUptime 상태에 매핑합니다. 목록에 없으면 사례의 상태가 결정합니다. Resolved는 레코드를 해결합니다. 사례가 취소될 때도 해결하려면 `2: 'isResolvedState'`를 추가하세요. |
 | `MESSAGES` | 모든 Dynamics 365 → OneUptime 템플릿 — `read-event-1`, 또는 `prepare-incident-1`과 `prepare-alert-1` | 템플릿이 반응하는 이벤트. 편집된 메모도 복사하려면 메모 템플릿의 목록에 `'Update'`를 추가하세요. 각 편집은 새 노트가 됩니다. |
@@ -246,13 +246,13 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 - **레코드와 사례는 뒤로 가지 않습니다.** 사례를 다시 열어도 OneUptime에서는 아무것도 바뀌지 않으며, 해결된 레코드는 다시 열리지 않습니다. 이미 해결되었거나 취소된 사례를 다시 종결하려고 다시 여는 일도 없습니다.
 - **메모와 설명은 일반 텍스트입니다.** Dynamics 365의 서식 있는 텍스트 편집기에서 쓴 메모는 화면에 보이는 텍스트로 OneUptime에 도착하며, 편집기에서 쓰거나 이메일에서 가져온 사례 설명도 마찬가지입니다. 단락과 줄바꿈은 남고, 서식, 이미지, 이메일 자체의 스타일은 사라집니다. OneUptime 노트는 Markdown까지 원래 문자 그대로 Dynamics 365에 도착합니다. Dynamics 365에서 온 텍스트(사례의 제목과 설명, 메모, 상태, 우선순위, 고객, 사람의 이름)는 쓰인 그대로 읽힙니다. 그 안에 입력한 이미지, 링크, HTML, 다이어그램, `<!channel>` 같은 채팅 멘션은 이를 시작하는 문자 뒤에 보이지 않는 word joiner가 들어가므로 문자로만 표시되고 아무 동작도 하지 않습니다. 텍스트를 복사해도 word joiner는 남습니다. 워크플로는 만들 때의 스크립트를 유지하므로, 이전 버전의 템플릿으로 만든 워크플로는 그 버전 방식대로 텍스트를 씁니다. 이 동작을 원하면 템플릿에서 다시 만드세요. 첨부 파일은 Dynamics 365에 남고, OneUptime의 노트에는 파일 이름이 표시됩니다.
 - **편집된 메모는 복사되지 않습니다**. `'Update'`를 `MESSAGES`에 추가하지 않는 한 새 메모만 복사됩니다.
-- **비공개 인시던트와 알림은 OneUptime에 머뭅니다**. 하지만 Dynamics 365 → OneUptime 템플릿은 이를 확인하지 않으므로, 연결된 사례의 메모와 상태 변경은 비공개 레코드에도 계속 도달합니다.
-- **모든 사례에 레코드가 생깁니다.** 흐름을 필터링하거나 `ONLY_PRIORITIES`를 설정하지 않으면, 사례에서 레코드를 만드는 템플릿은 전달받은 모든 새 사례에 인시던트나 알림을 만듭니다. 바쁜 고객 서비스 환경에서는 아주 많은 양입니다.
+- **비공개 인시던트와 경고는 OneUptime에 머뭅니다**. 하지만 Dynamics 365 → OneUptime 템플릿은 이를 확인하지 않으므로, 연결된 사례의 메모와 상태 변경은 비공개 레코드에도 계속 도달합니다.
+- **모든 사례에 레코드가 생깁니다.** 흐름을 필터링하거나 `ONLY_PRIORITIES`를 설정하지 않으면, 사례에서 레코드를 만드는 템플릿은 전달받은 모든 새 사례에 인시던트나 경고를 만듭니다. 바쁜 고객 서비스 환경에서는 아주 많은 양입니다.
 - **같은 이벤트가 두 번 올 수 있습니다.** Dataverse 웹훅은 OneUptime이 `502`, `503` 또는 `504`로 응답하면 한 번 다시 시도합니다. 첫 실행이 사례를 연결한 뒤에 도착한 재시도 **Create**는 무시됩니다. 첫 실행이 아직 진행 중일 때 도착한 재시도는 두 번째 레코드를 만들 수 있습니다.
 
 ## 직접 만들기
 
-템플릿은 흔한 경우를 다룹니다. 한 방향을 직접 만들려면, 이 섹션에서 [Dynamics 365 준비하기](#dynamics-365-준비하기)를 마친 뒤 인시던트용으로 두 방향을 모두 직접 만듭니다. 알림에 적용하는 방법은 [알림에도 똑같이 하기](#알림에도-똑같이-하기)에 있습니다.
+템플릿은 흔한 경우를 다룹니다. 한 방향을 직접 만들려면, 이 섹션에서 [Dynamics 365 준비하기](#dynamics-365-준비하기)를 마친 뒤 인시던트용으로 두 방향을 모두 직접 만듭니다. 경고에 적용하는 방법은 [경고에도 똑같이 하기](#경고에도-똑같이-하기)에 있습니다.
 
 ### OAuth 2.0 변수로 로그인하기
 
@@ -269,9 +269,9 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 ### 인시던트마다 사례 열기
 
 :::steps
-1. `Incidents to Dynamics 365`라는 워크플로를 처음부터 만듭니다. 점선 블록을 클릭하고 **On Create Incident** 트리거를 추가합니다. 그 **Fields to pass on**에는 **제목**이 이미 들어 있습니다. **필드 추가**를 클릭하고 **설명**과 **인시던트 번호**를 고릅니다. ID는 항상 전달됩니다.
-2. **구성 요소 추가**를 클릭하고 **API Post (JSON)** 블록을 추가한 다음, 트리거의 **Success** 점을 이 블록에 연결합니다. **Identifier**를 `create-case`로, **URL**을 `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`로 설정합니다.
-3. **추가 필드**에서 **Request Headers**를 다음으로 설정합니다:
+1. `Incidents to Dynamics 365`라는 워크플로를 처음부터 만듭니다. 점선 블록을 클릭하고 **인시던트 생성 시** 트리거를 추가합니다. 그 **넘겨줄 필드**에는 **제목**이 이미 들어 있습니다. **필드 추가**를 클릭하고 **설명**과 **인시던트 번호**를 고릅니다. ID는 항상 전달됩니다.
+2. **구성 요소 추가**를 클릭하고 **API 호출 POST (JSON)** 블록을 추가한 다음, 트리거의 **성공** 점을 이 블록에 연결합니다. **Identifier**를 `create-case`로, **URL**을 `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`로 설정합니다.
+3. **추가 필드**에서 **요청 헤더**를 다음으로 설정합니다:
 
    ```json
    {
@@ -284,7 +284,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
    }
    ```
 
-4. **Request Body**를 사례로 설정하고, 사례가 속할 거래처의 GUID를 넣습니다:
+4. **요청 본문**을 사례로 설정하고, 사례가 속할 거래처의 GUID를 넣습니다:
 
    ```json
    {
@@ -306,7 +306,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 
 ### 우선순위와 상태 매핑하기
 
-Dynamics 365의 `severitycode`에는 옵션이 하나뿐이므로 대신 `prioritycode`를 설정하고, 심각도마다 우선순위를 주려면 **If / Else** 블록으로 인시던트의 심각도에 따라 분기하세요. 이 열들은 숫자로 보냅니다:
+Dynamics 365의 `severitycode`에는 옵션이 하나뿐이므로 대신 `prioritycode`를 설정하고, 심각도마다 우선순위를 주려면 **조건 분기** 블록으로 인시던트의 심각도에 따라 분기하세요. 이 열들은 숫자로 보냅니다:
 
 | 열 | 값 |
 | --- | --- |
@@ -323,15 +323,15 @@ Dynamics 365의 `severitycode`에는 옵션이 하나뿐이므로 대신 `priori
 이것은 두 번째 워크플로로 만들어, 여기서의 실패가 사례 열기를 막지 않게 하세요.
 
 :::steps
-1. **On Update Incident** 트리거가 있는 `Close Dynamics 365 cases`라는 워크플로를 만듭니다. **Fields to watch**에서 **필드 추가**를 클릭하고 **Current Incident State**를 고릅니다. **Fields to pass on**에서 **필드 추가**를 클릭하고 **Current Incident State**를 연 다음 **Is Resolved State**를 고릅니다.
-2. **If / Else** 블록을 추가합니다: **Value to check**는 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Comparison**은 **is true**입니다.
-3. 그 **Yes** 쪽 뒤에 **Identifier**가 `find-case`이고, `Prefer`를 뺀 같은 헤더와 다음 **URL**을 가진 **API Get (JSON)** 블록을 추가합니다:
+1. **인시던트 업데이트 시** 트리거가 있는 `Close Dynamics 365 cases`라는 워크플로를 만듭니다. **지켜볼 필드**에서 **필드 추가**를 클릭하고 **Current Incident State**를 고릅니다. **넘겨줄 필드**에서 **필드 추가**를 클릭하고 **Current Incident State**를 연 다음 **Is Resolved State**를 고릅니다.
+2. **조건 분기** 블록을 추가합니다: **확인할 값**은 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **비교**는 **참임**입니다.
+3. 그 **예** 쪽 뒤에 **Identifier**가 `find-case`이고, `Prefer`를 뺀 같은 헤더와 다음 **URL**을 가진 **API 호출 GET (JSON)** 블록을 추가합니다:
 
    ```text
    https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid&$filter=new_oneuptimelink%20eq%20'oneuptime-incident-{{local.components.incident-on-update-1.returnValues.model._id}}'
    ```
 
-4. 그 뒤에 같은 헤더와 다음 본문으로 `https://yourorg.crm.dynamics.com/api/data/v9.2/CloseIncident`에 보내는 **API Post (JSON)** 블록을 추가합니다:
+4. 그 뒤에 같은 헤더와 다음 본문으로 `https://yourorg.crm.dynamics.com/api/data/v9.2/CloseIncident`에 보내는 **API 호출 POST (JSON)** 블록을 추가합니다:
 
    ```json
    {
@@ -347,14 +347,14 @@ Dynamics 365의 `severitycode`에는 옵션이 하나뿐이므로 대신 `priori
 
 URL은 쓰인 그대로 전송되므로 `$filter`의 공백은 `%20`으로 씁니다. 쿼리는 `value` 목록으로 응답하며, `value[0]`이 첫 번째 사례입니다. `Status`는 Resolved 상태의 `statuscode`이며, `5`는 Problem Solved입니다.
 
-해결에는 `CloseIncident`를 사용하고, `PATCH`로 `statecode`를 바꾸지 마세요. 이 작업은 해결된 사례에 있어야 하는 Case Resolution을 기록하며, 관리자가 상태 전환을 구성한 곳에서는 `PATCH`가 거부됩니다. 우선순위나 제목처럼 그 밖의 것은 `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents(<the case id>)`에 **API Patch (JSON)** 블록으로 보내되, 새 사례를 만들지 않게 하는 `If-Match: *` 헤더와 바꾸는 열만 담으세요.
+해결에는 `CloseIncident`를 사용하고, `PATCH`로 `statecode`를 바꾸지 마세요. 이 작업은 해결된 사례에 있어야 하는 Case Resolution을 기록하며, 관리자가 상태 전환을 구성한 곳에서는 `PATCH`가 거부됩니다. 우선순위나 제목처럼 그 밖의 것은 `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents(<the case id>)`에 **API 호출 PATCH (JSON)** 블록으로 보내되, 새 사례를 만들지 않게 하는 `If-Match: *` 헤더와 바꾸는 열만 담으세요.
 
 ### Dynamics 365에서 변경 사항 받기
 
 먼저 받는 쪽 워크플로를 만듭니다:
 
-1. **Webhook** 트리거가 있는 `Dynamics 365 to OneUptime`이라는 워크플로를 만듭니다.
-2. 워크플로의 **빌더**를 열고 **Webhook** 트리거를 클릭한 다음, 설정 상단의 **URL 복사**를 클릭합니다. URL은 다음과 같습니다:
+1. **웹훅** 트리거가 있는 `Dynamics 365 to OneUptime`이라는 워크플로를 만듭니다.
+2. 워크플로의 **빌더**를 열고 **웹훅** 트리거를 클릭한 다음, 설정 상단의 **URL 복사**를 클릭합니다. URL은 다음과 같습니다:
 
    ```text
    https://oneuptime.com/workflow/trigger/<webhook secret key>
@@ -362,8 +362,8 @@ URL은 쓰인 그대로 전송되므로 `$filter`의 공백은 `%20`으로 씁�
 
    자체 호스팅 설치에서는 URL에 자체 호스트가 들어갑니다. URL을 비밀번호처럼 다루세요. URL을 가진 사람은 누구나 워크플로를 시작할 수 있습니다. 유출되면 같은 곳에서 **URL 재설정**을 클릭하세요. 이전 URL은 즉시 작동을 멈춥니다.
 
-3. 무엇보다 먼저 공유 시크릿을 확인하는 **If / Else** 블록을 추가합니다: **Value to check**는 `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Comparison**은 **is equal to**, **Compare with**는 직접 정해 시크릿 전역 변수에 보관한 값입니다.
-4. 그 **Yes** 쪽 뒤에 **Update One Incident** 블록을 추가합니다. **Query**를 `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`로, **Data (JSON Object)** 필드를 새 `currentIncidentStateId` 같은 변경 내용으로 설정합니다. 쿼리 `{"name": "Resolved"}`가 있는 **Find One Incident State** 블록이 그 ID를 `{{local.components.incident-state-find-one-1.returnValues.model._id}}`로 제공합니다.
+3. 무엇보다 먼저 공유 시크릿을 확인하는 **조건 분기** 블록을 추가합니다: **확인할 값**은 `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **비교**는 **같음**, **비교 대상**은 직접 정해 시크릿 전역 변수에 보관한 값입니다.
+4. 그 **예** 쪽 뒤에 **인시던트 1개 업데이트** 블록을 추가합니다. **쿼리**를 `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`로, **데이터(JSON 객체)** 필드를 새 `currentIncidentStateId` 같은 변경 내용으로 설정합니다. 쿼리 `{"name": "Resolved"}`가 있는 **인시던트 상태 1개 찾기** 블록이 그 ID를 `{{local.components.incident-state-find-one-1.returnValues.model._id}}`로 제공합니다.
 
 워크플로를 켠 다음 Dynamics 365가 이를 호출하게 하세요:
 
@@ -378,24 +378,24 @@ Microsoft Dataverse 커넥터는 프리미엄 커넥터입니다. 흐름의 소�
 @tab Dataverse webhook
 1. [Plug-in Registration Tool](https://learn.microsoft.com/en-us/power-apps/developer/data-platform/register-web-hook)로 워크플로의 URL을 등록합니다. **HttpHeader** 인증과 헤더 `X-OneUptime-Secret`으로 **Register New WebHook**을 합니다.
 2. `incident`의 **Update** 메시지에 대한 단계를 등록합니다. **Filtering Attributes**는 필요한 열로 제한하고, **PostOperation**과 **Asynchronous**를 사용합니다.
-3. 워크플로에서 페이로드를 읽습니다. 페이로드는 플러그인 실행 컨텍스트이며, 그 안의 `InputParameters`는 `{key, value}` 쌍의 목록이고 바뀐 행은 `Target` 아래에 있습니다. 읽는 데는 **Run Custom JavaScript** 블록이 가장 쉽습니다.
+3. 워크플로에서 페이로드를 읽습니다. 페이로드는 플러그인 실행 컨텍스트이며, 그 안의 `InputParameters`는 `{key, value}` 쌍의 목록이고 바뀐 행은 `Target` 아래에 있습니다. 읽는 데는 **사용자 지정 JavaScript 실행** 블록이 가장 쉽습니다.
 
 Dataverse는 포트 80과 443만 호출하고, 응답을 60초 동안 기다리며, `502`, `503`, `504`일 때만 한 번 다시 시도합니다. 업데이트에는 바뀐 열만 들어 있으므로, 나머지 열이 필요하면 사후 이미지(post image)를 등록하세요.
 :::
 
-### 알림에도 똑같이 하기
+### 경고에도 똑같이 하기
 
-알림도 같은 방식으로 작동합니다. 레코드 유형만 바꾸면 나머지는 그대로입니다:
+경고도 같은 방식으로 작동합니다. 레코드 유형만 바꾸면 나머지는 그대로입니다:
 
-| 인시던트 | 알림 |
+| 인시던트 | 경고 |
 | --- | --- |
-| **On Create Incident** (`incident-on-create-1`) | **On Create Alert** (`alert-on-create-1`) |
-| **On Update Incident** (`incident-on-update-1`) | **On Update Alert** (`alert-on-update-1`) |
+| **인시던트 생성 시** (`incident-on-create-1`) | **경고 생성 시** (`alert-on-create-1`) |
+| **인시던트 업데이트 시** (`incident-on-update-1`) | **경고 업데이트 시** (`alert-on-update-1`) |
 | `incidentNumber`, `currentIncidentState`, `incidentSeverity` | `alertNumber`, `currentAlertState`, `alertSeverity` |
-| **Find One Incident State** | **Find One Alert State** |
-| **Update One Incident** | **Update One Alert** |
+| **인시던트 상태 1개 찾기** | **경고 상태 1개 찾기** |
+| **인시던트 1개 업데이트** | **경고 1개 업데이트** |
 
-워크플로에는 트리거가 정확히 하나이므로 인시던트와 알림에는 각각 워크플로가 필요합니다. 둘 다에 같은 Dynamics 365 작업을 하려면 **Manual** 트리거가 있는 워크플로에 한 번만 만들고, 둘 다에서 **Execute Workflow** 블록으로 시작하세요.
+워크플로에는 트리거가 정확히 하나이므로 인시던트와 경고에는 각각 워크플로가 필요합니다. 둘 다에 같은 Dynamics 365 작업을 하려면 **수동** 트리거가 있는 워크플로에 한 번만 만들고, 둘 다에서 **다른 워크플로 실행** 블록으로 시작하세요.
 
 ## 문제 해결
 
@@ -430,7 +430,7 @@ Dataverse는 포트 80과 443만 호출하고, 응답을 60초 동안 기다리�
 :::
 
 :::details 429 Too Many Requests
-Dataverse의 서비스 보호 한도는 임의의 5분 동안 사용자당 약 6,000개의 요청과 20분의 실행 시간을 허용합니다. 응답에는 초 단위의 `Retry-After`가 있습니다. 요청이 몰리는 워크플로에는 **Sleep** 블록을 두거나, 작업을 예약된 워크플로로 옮기세요.
+Dataverse의 서비스 보호 한도는 임의의 5분 동안 사용자당 약 6,000개의 요청과 20분의 실행 시간을 허용합니다. 응답에는 초 단위의 `Retry-After`가 있습니다. 요청이 몰리는 워크플로에는 **대기** 블록을 두거나, 작업을 예약된 워크플로로 옮기세요.
 :::
 
 :::details OneUptime에 아무것도 도착하지 않음
@@ -438,7 +438,7 @@ Dataverse의 서비스 보호 한도는 임의의 5분 동안 사용자당 약 6
 :::
 
 :::details 워크플로는 실행되는데 인시던트가 바뀌지 않음
-**Update One Incident** 블록은 쿼리에 일치하는 것이 없으면 `Items Updated: 0`을 보고하며, 이는 오류가 아니라 성공입니다. 요청의 ID가 정말 OneUptime 인시던트의 ID인지, `_id`로 쿼리하는지 확인하세요.
+**인시던트 1개 업데이트** 블록은 쿼리에 일치하는 것이 없으면 `Items Updated: 0`을 보고하며, 이는 오류가 아니라 성공입니다. 요청의 ID가 정말 OneUptime 인시던트의 ID인지, `_id`로 쿼리하는지 확인하세요.
 :::
 
 ## 다음 단계

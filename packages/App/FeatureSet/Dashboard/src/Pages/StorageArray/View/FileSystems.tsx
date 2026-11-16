@@ -23,7 +23,9 @@ import StorageArrayResourceUtils, {
   getFileSystemProvisionedBytes,
 } from "../Utils/StorageArrayResourceUtils";
 import { STORAGE_ARRAY_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/StorageArrayMetricDescriptions";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * FlashBlade file systems (kind=FileSystem), from
@@ -137,7 +139,9 @@ const StorageArrayFileSystems: FunctionComponent<
             }
             return (
               <span className="text-sm text-gray-700">
-                {StorageArrayResourceUtils.formatBytes(provisioned)}
+                {getValueOrQuietDash(
+                  StorageArrayResourceUtils.formatBytes(provisioned),
+                )}
               </span>
             );
           },

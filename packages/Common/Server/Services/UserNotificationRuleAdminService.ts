@@ -1169,10 +1169,10 @@ export class UserNotificationRuleAdminService extends BaseService {
      * something the reader can act on; an address is.
      */
     const actorDescription: string = actor
-      ? `${actor.name?.toString() || "A project administrator"} (${
+      ? `${actor.name?.toString() || "A Project Admin"} (${
           actor.email?.toString() || data.actorUserId.toString()
         })`
-      : `A project administrator (${data.actorUserId.toString()})`;
+      : `A Project Admin (${data.actorUserId.toString()})`;
 
     let projectName: string = "your project";
 
@@ -1224,8 +1224,8 @@ export class UserNotificationRuleAdminService extends BaseService {
 
     const consequence: string =
       data.action === AuditLogAction.Delete
-        ? `Your notification rules decide how ${productName} reaches you when you are paged. With them removed you may no longer be notified when you are on call, so add new rules if this was not what you expected, and tell your project owners.`
-        : `Your notification rules decide how ${productName} reaches you when you are paged. If you were not expecting this change, review your rules now and tell your project owners.`;
+        ? `Your notification rules decide how ${productName} reaches you when you are paged. With them removed you may no longer be notified when you are on call, so add new rules if this was not what you expected, and tell your Project Owners.`
+        : `Your notification rules decide how ${productName} reaches you when you are paged. If you were not expecting this change, review your rules now and tell your Project Owners.`;
 
     const message: string = `${this.escapeHtml(actorDescription)} ${verb} your on-call notification rules in ${this.escapeHtml(
       projectName,

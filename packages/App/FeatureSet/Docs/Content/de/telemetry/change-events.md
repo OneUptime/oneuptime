@@ -35,7 +35,7 @@ Dafür müssen Sie nichts senden. OneUptime zeichnet diese Änderungen anhand de
 | Ein Runbook | Ein Runbook, das OneUptime ausgeführt hat, wird abgeschlossen, schlägt fehl oder wird nach seinem Start abgebrochen | `runbook` |
 | Eine Cloud-Änderung | Das Aktivitätsprotokoll eines verbundenen Cloud-Kontos zeichnet eine Änderung auf: AWS CloudTrail, das Azure-Aktivitätsprotokoll oder das Audit-Log Admin Activity von Google Cloud | `cloud` |
 | Ein Ereignis des Anbieters | Der Cloud-Anbieter veröffentlicht ein Integritätsereignis zum Konto: AWS Health, Azure Service Health oder Resource Health oder Google Cloud Service Health | `cloud-health` |
-| Eine OpenStack-Änderung | Die eigenen Benachrichtigungen einer OpenStack-Cloud sagen, was mit einem ihrer Teile geschah, oder die Abfrage von Nova durch eine Probe: siehe [Lebenszyklus-Ereignisse](/docs/telemetry/openstack#lebenszyklusereignisse) | `openstack` |
+| Eine OpenStack-Änderung | Die eigenen Benachrichtigungen einer OpenStack-Cloud sagen, was mit einem ihrer Teile geschah, oder die Abfrage von Nova durch eine Sonde: siehe [Lebenszyklus-Ereignisse](/docs/telemetry/openstack#lebenszyklusereignisse) | `openstack` |
 
 - **Die erste Version, die ein Dienst meldet, ist seine Ausgangsbasis, kein Deploy.** Ein Dienst, der seit Monaten läuft, wird nicht in dem Moment deployt, in dem OneUptime seine Telemetrie zu empfangen beginnt.
 - **Ein Rollback auf eine Version, die in den letzten 30 Tagen gesehen wurde, wird nicht aufgezeichnet,** weil diese Version nicht neu ist. Ein Rollback, den OneUptime AI ausführt, wird als Korrektur aufgezeichnet.

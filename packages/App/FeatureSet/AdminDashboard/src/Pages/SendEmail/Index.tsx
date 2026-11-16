@@ -64,6 +64,7 @@ const SendEmail: FunctionComponent = (): ReactElement => {
   return (
     <Page
       title={t("pages.sendEmail.title")}
+      isTitleTranslated={true}
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),
@@ -261,6 +262,7 @@ const SendEmail: FunctionComponent = (): ReactElement => {
       {showConfirmModal ? (
         <ConfirmModal
           title={t("pages.sendEmail.confirmTitle")}
+          isTitleTranslated={true}
           description={t("pages.sendEmail.confirmDescription")}
           submitButtonText={t("pages.sendEmail.confirmButton")}
           onSubmit={async () => {

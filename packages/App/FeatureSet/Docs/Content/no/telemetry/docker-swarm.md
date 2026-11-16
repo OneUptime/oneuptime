@@ -1,10 +1,10 @@
 # Docker Swarm-agent
 
-OneUptimes Docker Swarm-agent overvåker en Docker Swarm-klynge: nodene, tjenestene, oppgavene, stackene, overlay-nettverkene, secrets, configs og volumene, pluss metrikkene og loggene til hver container. Du kjører den med Docker Compose på en manager-node i swarmen, og klyngen vises i OneUptime med alt dette. [Docker Swarm-overvåkere](/docs/monitor/docker-swarm-monitor) varsler ut fra det som kommer inn.
+OneUptimes Docker Swarm-agent overvåker en Docker Swarm-klynge: nodene, tjenestene, oppgavene, stackene, overlay-nettverkene, secrets, configs og volumene, pluss målingene og loggene til hver container. Du kjører den med Docker Compose på en manager-node i swarmen, og klyngen vises i OneUptime med alt dette. [Docker Swarm-monitorer](/docs/monitor/docker-swarm-monitor) varsler ut fra det som kommer inn.
 
 :::cards
 - [Installer agenten](#installer-agenten): Installasjonsskriptet eller Docker Compose, på en manager-node.
-- [Hva agenten samler inn](#hva-agenten-samler-inn): Inventaret, klyngens tellinger, og containermetrikker og -logger.
+- [Hva agenten samler inn](#hva-agenten-samler-inn): Inventaret, klyngens tellinger, og containermålinger og -logger.
 - [AI-agent](#ai-agent): La OneUptime AI lese swarmen mens den undersøker.
 - [Feilsøking](#feilsøking): Et diagnoseskript, og de vanlige problemene.
 :::
@@ -13,8 +13,8 @@ OneUptimes Docker Swarm-agent overvåker en Docker Swarm-klynge: nodene, tjenest
 
 Agenten er tre containere, alle definert i én `docker-compose.yml`:
 
-1. **Collector**: en OpenTelemetry Collector som leser `docker_stats` for metrikkene til hver container, følger containernes loggfiler og følger filen med inventar-snapshotet. Den stempler alt med navnet på klyngen din (`docker.swarm.cluster.name`), og metrikkene til hver oppgave med oppgavens tjeneste og node, og sender det til OneUptime over OTLP.
-2. **Inventar-poller**: en liten sidecar med `curl` og `jq` som hvert 5. minutt går gjennom API-et til swarm-manageren (`/nodes`, `/services`, `/tasks`, `/networks`, `/secrets`, `/configs`, `/volumes`) og finner stackene ut fra tjenesteetiketten `com.docker.stack.namespace`. Den skriver én JSON-linje per objekt, som collectoren videresender. Hvert minutt leser den også om hver node er klar, og hvor mange replikaer hver tjeneste vil ha og kjører, og skriver det som metrikker (fra versjon 0.161.3 av agentens filer).
+1. **Collector**: en OpenTelemetry Collector som leser `docker_stats` for målingene til hver container, følger containernes loggfiler og følger filen med inventar-snapshotet. Den stempler alt med navnet på klyngen din (`docker.swarm.cluster.name`), og målingene til hver oppgave med oppgavens tjeneste og node, og sender det til OneUptime over OTLP.
+2. **Inventar-poller**: en liten sidecar med `curl` og `jq` som hvert 5. minutt går gjennom API-et til swarm-manageren (`/nodes`, `/services`, `/tasks`, `/networks`, `/secrets`, `/configs`, `/volumes`) og finner stackene ut fra tjenesteetiketten `com.docker.stack.namespace`. Den skriver én JSON-linje per objekt, som collectoren videresender. Hvert minutt leser den også om hver node er klar, og hvor mange replikaer hver tjeneste vil ha og kjører, og skriver det som målinger (fra versjon 0.161.3 av agentens filer).
 3. **AI-agent**: `oneuptime-docker-swarm-ai-agent`, som kjører `docker`-kommandoene OneUptime AI ber om mens den undersøker en hendelse eller et varsel på denne klyngen. Den er skrivebeskyttet med mindre du tillater rettinger (se [AI-agent](#ai-agent)).
 
 ```mermaid title="Tre containere på en manager-node"
@@ -40,7 +40,7 @@ Klyngen registrerer seg med de første dataene sine, under klyngenavnet du konfi
 
 ### Hvor du kjører agenten
 
-Kjør den på en manager-node. Collectoren rapporterer containerne på noden den kjører på, så for containermetrikker fra alle noder må du kjøre collectoren på hver node, alle med samme `DOCKER_SWARM_CLUSTER_NAME`; inventar-polleren og AI-agenten trenger bare å kjøre på én manager. `install.sh` utelater AI-agenten på en node som ikke er manager (og fjerner en den installerte der tidligere). En AI-agent som likevel startes på en worker, registrerer seg aldri for klyngen: den venter til noden er manager, så den kan ikke fortrenge managerens AI-agent. Ruller du ut agenten som en swarm-stack i stedet for med Compose? Hold inventar-polleren og AI-agenten på managere med begrensningen `node.role == manager`.
+Kjør den på en manager-node. Collectoren rapporterer containerne på noden den kjører på, så for containermålinger fra alle noder må du kjøre collectoren på hver node, alle med samme `DOCKER_SWARM_CLUSTER_NAME`; inventar-polleren og AI-agenten trenger bare å kjøre på én manager. `install.sh` utelater AI-agenten på en node som ikke er manager (og fjerner en den installerte der tidligere). En AI-agent som likevel startes på en worker, registrerer seg aldri for klyngen: den venter til noden er manager, så den kan ikke fortrenge managerens AI-agent. Ruller du ut agenten som en swarm-stack i stedet for med Compose? Hold inventar-polleren og AI-agenten på managere med begrensningen `node.role == manager`.
 
 ## Installer agenten
 
@@ -77,7 +77,7 @@ ONEUPTIME_SERVICE_TOKEN=your-telemetry-ingestion-key
 DOCKER_SWARM_CLUSTER_NAME=my-swarm
 ```
 
-Legg til nodens navn i den. Collectoren stempler det på nodens containermetrikker:
+Legg til nodens navn i den. Collectoren stempler det på nodens containermålinger:
 
 ```bash
 echo "DOCKER_SWARM_NODE_NAME=$(docker info --format '{{.Name}}')" >> .env
@@ -113,7 +113,7 @@ Installasjonsskriptet skriver de fire første til `/opt/oneuptime-docker-swarm-a
 | `ONEUPTIME_URL` | Ja | OneUptime-URL-en din, for eksempel `https://oneuptime.com` eller den selvhostede instansen din. Bruk `http://` og porten hvis instansen bare bruker HTTP. |
 | `ONEUPTIME_SERVICE_TOKEN` | Ja | Inntaksnøkkelen fra **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler**. |
 | `DOCKER_SWARM_CLUSTER_NAME` | Nei | Klyngens navn i OneUptime, og nøkkelen som dataene fra hver node samles under: stemplet på alt som ressursattributtet `docker.swarm.cluster.name`. Hold det stabilt: å endre det senere registrerer en ny klynge. Standard er `docker-swarm`. |
-| `DOCKER_SWARM_NODE_NAME` | Nei | Nodens navn, stemplet på metrikkene og loggene til containerne dens som ressursattributtet `docker.swarm.node.name`, som en [Docker Swarm-overvåker](/docs/monitor/docker-swarm-monitor#monitorinnstillinger) filtrerer på. Installasjonsskriptet setter det til nodens vertsnavn, slik `docker node ls` viser det. Tom: ingen nodenavn stemples. |
+| `DOCKER_SWARM_NODE_NAME` | Nei | Nodens navn, stemplet på målingene og loggene til containerne dens som ressursattributtet `docker.swarm.node.name`, som en [Docker Swarm-overvåker](/docs/monitor/docker-swarm-monitor#monitorinnstillinger) filtrerer på. Installasjonsskriptet setter det til nodens vertsnavn, slik `docker node ls` viser det. Tom: ingen nodenavn stemples. |
 | `DOCKER_INVENTORY_INTERVAL_SECONDS` | Nei | Hvor ofte inventar-polleren tar et snapshot, i sekunder. Standard er `300`. |
 | `DOCKER_API_VERSION` | Nei | Docker Engine-API-versjonen collectoren og inventar-polleren snakker. Tom som standard: de bruker daemonens egen, så enhver Docker Engine fra 20.10 og nyere fungerer. Sett den bare for å feste en versjon (se [Feilsøking](#feilsøking)). AI-agenten forhandler den med mindre du angir en. |
 
@@ -125,11 +125,11 @@ AI-agentens egne innstillinger står under [AI-agent](#ai-agent).
 | --- | --- | --- |
 | Nodene, tjenestene, oppgavene, stackene, nettverkene, secrets, configs og volumene | Inventar-polleren, fra API-et til swarm-manageren | Klyngens lister og detaljsider |
 | Klyngetellinger (klare noder, kjørende oppgaver, tjenester, stacker, …) | Det samme snapshotet | Tellebrikkene i oversikten og merkene i sidemenyen |
-| Om hver node er klar, og replikaene til hver tjeneste, hvert minutt | Inventar-polleren, som metrikkene `docker.swarm.node.ready`, `docker.swarm.service.replicas.desired` og `docker.swarm.service.replicas.running` | Varslene Node Not Ready og Service Replicas Mismatch, og siden **Målinger** |
+| Om hver node er klar, og replikaene til hver tjeneste, hvert minutt | Inventar-polleren, som målingene `docker.swarm.node.ready`, `docker.swarm.service.replicas.desired` og `docker.swarm.service.replicas.running` | Varslene Node Not Ready og Service Replicas Mismatch, og siden **Målinger** |
 | Containerens CPU, minne, antall prosesser og oppetid | Mottakeren `docker_stats` | Siden **Målinger** |
 | Containerens stdout- og stderr-logger | Mottakeren `filelog` | Siden **Logger** |
 
-Metrikkene til hver oppgave bærer containerens identitet, som mottakeren `docker_stats` legger til (`container.name`, `container.image.name`, `container.id` og `container.runtime=docker`), tjenesten og nodens ID, som collectoren kopierer fra etikettene Swarm setter på oppgaven (`docker.swarm.service.name` og `docker.swarm.node.id`), og nodens navn fra `DOCKER_SWARM_NODE_NAME` (`docker.swarm.node.name`). [Docker Swarm-overvåkere](/docs/monitor/docker-swarm-monitor#monitorinnstillinger) filtrerer på dem.
+Målingene til hver oppgave bærer containerens identitet, som mottakeren `docker_stats` legger til (`container.name`, `container.image.name`, `container.id` og `container.runtime=docker`), tjenesten og nodens ID, som collectoren kopierer fra etikettene Swarm setter på oppgaven (`docker.swarm.service.name` og `docker.swarm.node.id`), og nodens navn fra `DOCKER_SWARM_NODE_NAME` (`docker.swarm.node.name`). [Docker Swarm-monitorer](/docs/monitor/docker-swarm-monitor#monitorinnstillinger) filtrerer på dem.
 
 ### Slik skiller den seg fra Docker-agenten
 
@@ -216,7 +216,7 @@ Hva den kan kjøre, hvordan rettinger fungerer og hvordan du feilsøker den: [In
 ## Feilsøking
 
 :::details Kjør diagnoseskriptet først
-Agenten leveres med et skript, [`troubleshoot.sh`](https://oneuptime.com/install/docker-swarm-agent/troubleshoot.sh), som sjekker hele kjeden: containerne, at inventar-polleren kjører på en manager (`docker node ls`), snapshot-filen, klyngenavnet som er stemplet på alt, tokenets form, collectorens egne metrikker, og om OneUptime godtar inntaksnøkkelen. Den siste sjekken betyr mest. OneUptime avviser en dårlig nøkkel med `401` (`422` for en deaktivert nøkkel eller en nettlesernøkkel), og collectoren logger det som én `Exporting failed`-linje per batch, som er lett å overse. Skriptet spør `GET <url>/otlp/v1/validate` for et direkte `200` (gyldig) eller `401` (ugyldig). Kjør det på manager-noden:
+Agenten leveres med et skript, [`troubleshoot.sh`](https://oneuptime.com/install/docker-swarm-agent/troubleshoot.sh), som sjekker hele kjeden: containerne, at inventar-polleren kjører på en manager (`docker node ls`), snapshot-filen, klyngenavnet som er stemplet på alt, tokenets form, collectorens egne målinger, og om OneUptime godtar inntaksnøkkelen. Den siste sjekken betyr mest. OneUptime avviser en dårlig nøkkel med `401` (`422` for en deaktivert nøkkel eller en nettlesernøkkel), og collectoren logger det som én `Exporting failed`-linje per batch, som er lett å overse. Skriptet spør `GET <url>/otlp/v1/validate` for et direkte `200` (gyldig) eller `401` (ugyldig). Kjør det på manager-noden:
 
 ```bash
 curl -fsSL https://oneuptime.com/install/docker-swarm-agent/troubleshoot.sh -o troubleshoot.sh
@@ -271,7 +271,7 @@ Agentfiler eldre enn versjon 0.161.3 startet hvert snapshot med de samme bytene,
 ## Neste trinn
 
 :::cards
-- [Docker Swarm-overvåking](/docs/monitor/docker-swarm-monitor): Varsle om noder, tjenester, oppgaver og containere.
+- [Docker Swarm-monitor](/docs/monitor/docker-swarm-monitor): Varsle om noder, tjenester, oppgaver og containere.
 - [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents): Hva Docker Swarm-AI-agenten kan kjøre, og hvordan rettinger fungerer.
 - [Docker-agent](/docs/telemetry/docker-host): Overvåk heller én enkelt Docker-vert.
 :::

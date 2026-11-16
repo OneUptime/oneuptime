@@ -38,7 +38,7 @@ sequenceDiagram
 
 - **プロジェクト専用のプローブ。** グローバルプローブは他のプロジェクトのトラフィックも扱うため、キャプチャは行いません。専用のプローブのインストール方法は [カスタム プローブ](/docs/probe/custom-probe) を参照してください。
 - **このリリース以降のプローブ。** 古いプローブは、どこでキャプチャできるかを報告しません。
-- **適切な権限。** キャプチャの開始と停止には **Start Packet Capture**、ファイルのダウンロードには **Download Packet Capture** が必要です。プロジェクトのオーナーと管理者は両方を持っています。[権限](#権限) を参照してください。
+- **適切な権限。** キャプチャの開始と停止には **Start Packet Capture**、ファイルのダウンロードには **Download Packet Capture** が必要です。プロジェクト所有者とプロジェクト管理者は両方を持っています。[権限](#権限) を参照してください。
 - **プローブに届かないトラフィックにはミラーポート。** プローブが見えるのは、自身のホストのインターフェース上のトラフィックだけです。他の機器間のトラフィックをキャプチャするには、それらのスイッチポートを (SPAN で) プローブのホストの空きインターフェースにミラーリングします。
 
 ## パケットキャプチャをオンにする
@@ -188,10 +188,10 @@ spec:
 
 | 権限 | できること | デフォルトで持っているロール |
 | --- | --- | --- |
-| **Start Packet Capture** | キャプチャの開始と停止 | Project Owner, Project Admin |
-| **Download Packet Capture** | キャプチャファイルのダウンロード | Project Owner, Project Admin |
-| **Delete Packet Capture** | キャプチャとそのファイルの削除 | Project Owner, Project Admin |
-| **Read Packet Capture** | キャプチャの閲覧: いつ、どのプローブで、どのフィルターで実行されたか | Project Owner, Project Admin, Project Member, Viewer |
+| **Start Packet Capture** | キャプチャの開始と停止 | プロジェクト所有者、プロジェクト管理者 |
+| **Download Packet Capture** | キャプチャファイルのダウンロード | プロジェクト所有者、プロジェクト管理者 |
+| **Delete Packet Capture** | キャプチャとそのファイルの削除 | プロジェクト所有者、プロジェクト管理者 |
+| **Read Packet Capture** | キャプチャの閲覧: いつ、どのプローブで、どのフィルターで実行されたか | プロジェクト所有者、プロジェクト管理者、プロジェクトメンバー、閲覧者 |
 
 チームに **Start Packet Capture** または **Download Packet Capture** を付与するには、**設定 → チーム** でチームを開き、その **権限** ページで権限を追加します。[権限](/docs/permissions/index) を参照してください。
 

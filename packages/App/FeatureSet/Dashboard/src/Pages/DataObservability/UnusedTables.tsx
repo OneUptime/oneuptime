@@ -26,7 +26,9 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * The tables nobody has read for 90 days, biggest first: what they hold,
@@ -125,7 +127,7 @@ const DataObservabilityUnusedTablesPage: FunctionComponent<
       columns={[
         {
           field: { assetKey: true },
-          title: "Table",
+          title: "Table (database object)",
           type: FieldType.Element,
           wrapContent: true,
           getExportValue: (asset: DataAsset): string => {
@@ -154,7 +156,7 @@ const DataObservabilityUnusedTablesPage: FunctionComponent<
           getElement: (asset: DataAsset): ReactElement => {
             return (
               <span className="whitespace-nowrap text-sm font-medium text-gray-900">
-                {formatSize(asset.sizeInBytes)}
+                {getValueOrQuietDash(formatSize(asset.sizeInBytes))}
               </span>
             );
           },
@@ -169,7 +171,9 @@ const DataObservabilityUnusedTablesPage: FunctionComponent<
           getElement: (asset: DataAsset): ReactElement => {
             return (
               <span className="whitespace-nowrap text-sm text-gray-700">
-                {formatRowCount(translator, asset.rowCount)}
+                {getValueOrQuietDash(
+                  formatRowCount(translator, asset.rowCount),
+                )}
               </span>
             );
           },

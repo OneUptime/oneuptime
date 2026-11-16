@@ -1,10 +1,10 @@
-# Feed e registri di audit degli SLO
+# Feed e log di audit degli SLO
 
-Uno SLO tiene due registrazioni della sua storia, e rispondono a domande diverse. Il **Feed** risponde a «cosa è successo a questo SLO?», scritto per le persone che se ne occupano. I **Registri di audit** rispondono a «chi ha cambiato cosa, esattamente?», campo per campo, per revisioni e conformità.
+Uno SLO tiene due registrazioni della sua storia, e rispondono a domande diverse. Il **Feed** risponde a «cosa è successo a questo SLO?», scritto per le persone che se ne occupano. I **Log di audit** rispondono a «chi ha cambiato cosa, esattamente?», campo per campo, per revisioni e conformità.
 
-## Feed o registri di audit?
+## Feed o log di audit?
 
-| | **Feed** | **Registri di audit** |
+| | **Feed** | **Log di audit** |
 | --- | --- | --- |
 | Risponde a | Cosa è successo allo SLO | Chi ha cambiato cosa, e quando |
 | Registra | Cambi di stato, cambi di livello della policy del budget di errore, gli avvisi e gli incidenti delle regole del tasso di consumo e dei livelli, e modifiche allo SLO, alle sue regole, ai monitor e ai proprietari | Ogni modifica fatta dalle persone allo SLO, alle sue regole del tasso di consumo, alle regole dei monitor, ai livelli della policy del budget di errore e ai proprietari, con il valore vecchio e quello nuovo |
@@ -54,9 +54,9 @@ Alcuni dettagli:
 - Per un avviso o un incidente privato, l'elemento omette titolo, numero e link, perché chiunque possa leggere lo SLO può leggerne il feed. Dice comunque che è stato creato un record privato, e mostra i tassi di consumo che l'hanno fatto scattare.
 - Nessuno può modificare o eliminare gli elementi del feed. Su OneUptime Cloud, gli elementi più vecchi di tre anni vengono rimossi.
 
-## Registri di audit
+## Log di audit
 
-La pagina **Registri di audit** dello SLO elenca le modifiche fatte a:
+La pagina **Log di audit** dello SLO elenca le modifiche fatte a:
 
 - lo SLO stesso: i suoi dettagli, le impostazioni, le etichette, i monitor e l'archiviazione;
 - le sue regole del tasso di consumo;
@@ -71,27 +71,27 @@ Restano fuori due cose:
 - **I risultati delle valutazioni.** SLI, budget di errore, tasso di consumo, stato e orari di valutazione cambiano ogni pochi minuti. La loro cronologia si trova nella **Panoramica**, nella pagina **Metriche** e nel **Feed**. Il livello della policy del budget di errore in cui si trova lo SLO, e se le sue distribuzioni sono consentite, fanno eccezione: una modifica di uno dei due viene registrata come una modifica fatta da OneUptime stesso.
 - **Le modifiche che OneUptime fa da solo**, come una regola dei monitor che collega o scollega un monitor, a meno che **Memorizza eventi di sistema** non sia attivo per il progetto. Il **Feed** registra comunque i collegamenti e gli scollegamenti dei monitor.
 
-### Attivare i registri di audit
+### Attivare i log di audit
 
-I registri di audit sono una funzione Enterprise: richiedono il piano **Enterprise** su OneUptime Cloud, o la Enterprise Edition su un'installazione self-hosted. Negli altri piani, la pagina **Registri di audit** dello SLO spiega come ottenerla. Su un'installazione self-hosted, la registrazione di audit smette di registrare senza una licenza valida (dopo la prova di 14 giorni, o 30 giorni dopo la scadenza di una licenza), e riprende appena una licenza viene attivata (vedi [When a license expires or is missing](/docs/self-hosted/enterprise#quando-una-licenza-scade-o-manca)). Le pagine **Registri di audit** indicano quando non sta registrando.
+I log di audit sono una funzione Enterprise: richiedono il piano **Enterprise** su OneUptime Cloud, o la Enterprise Edition su un'installazione self-hosted. Negli altri piani, la pagina **Log di audit** dello SLO spiega come ottenerla. Su un'installazione self-hosted, la registrazione di audit smette di registrare senza una licenza valida (dopo la prova di 14 giorni, o 30 giorni dopo la scadenza di una licenza), e riprende appena una licenza viene attivata (vedi [When a license expires or is missing](/docs/self-hosted/enterprise#quando-una-licenza-scade-o-manca)). Le pagine **Log di audit** indicano quando non sta registrando.
 
-I registri di audit sono anche disattivati per impostazione predefinita in ogni progetto. Per attivarli:
+I log di audit sono anche disattivati per impostazione predefinita in ogni progetto. Per attivarli:
 
 :::steps
-### Aprire le impostazioni dei registri di audit
+### Aprire le impostazioni dei log di audit
 
-Vai a **Impostazioni del progetto**, apri **Registri di audit** nel menu laterale e fai clic su **Impostazioni**.
+Vai a **Impostazioni del progetto**, apri **Log di audit** nel menu laterale e fai clic su **Impostazioni**.
 
 ### Modificare le impostazioni
 
-Fai clic su **Edit Audit Log Settings** e attiva **Abilita log di controllo**.
+Fai clic su **Modifica le impostazioni dei log di audit** e attiva **Abilita log di controllo**.
 
 ### Scegliere cosa conservare
 
 Imposta **Conservazione (giorni)**, da 7 (il valore predefinito) a 180, e attiva **Memorizza eventi di sistema** per registrare anche le modifiche che OneUptime fa da solo. Salva. La modifica si applica in circa un minuto.
 :::
 
-Mentre la registrazione di audit è disattivata, la pagina **Registri di audit** dello SLO mostra **Audit logging is off**, con un link per attivarla. Le voci registrate prima della disattivazione restano visibili. Il registro di audit completo del progetto, per ogni risorsa, si trova in **Impostazioni del progetto** → **Registri di audit** → **Registri di audit**.
+Mentre la registrazione di audit è disattivata, la pagina **Log di audit** dello SLO mostra **Registrazione di audit disattivata**, con un link per attivarla. Le voci registrate prima della disattivazione restano visibili. Il log di audit completo del progetto, per ogni risorsa, si trova in **Impostazioni del progetto** → **Log di audit** → **Log di audit**.
 
 ## Passi successivi
 

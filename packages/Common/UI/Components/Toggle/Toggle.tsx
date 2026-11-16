@@ -43,7 +43,16 @@ export interface ComponentProps {
   description?: string | ReactElement | undefined;
   error?: string | undefined;
   dataTestId?: string | undefined;
+  // In English, looked up here - unless isTooltipTranslated says.
   tooltip?: string | undefined;
+  /*
+   * The tooltip is in the reader's words already: why the switch is locked,
+   * as a permission check words it, or a sentence the page built around a
+   * value. Drawn as given, never looked up again (#8423): looked up again, a
+   * translation that is itself an English key reads as another word, as
+   * the Spanish "Red" (Network) read "Rojo".
+   */
+  isTooltipTranslated?: boolean | undefined;
   ariaLabelledby?: string | undefined;
   /*
    * The name of a switch with no title beside it - in a table row, or as the
@@ -281,7 +290,9 @@ const Toggle: FunctionComponent<ComponentProps> = (
    */
   const title: TranslatableValue = translateValue(props.title);
   const description: TranslatableValue = translateValue(props.description);
-  const tooltip: string | undefined = translateString(props.tooltip);
+  const tooltip: string | undefined = props.isTooltipTranslated
+    ? props.tooltip
+    : translateString(props.tooltip);
   const ariaLabel: string | undefined = props.isAriaLabelTranslated
     ? props.ariaLabel
     : translateString(props.ariaLabel);
@@ -438,6 +449,7 @@ const Toggle: FunctionComponent<ComponentProps> = (
                    */
                   <Tooltip
                     text={tooltip}
+                    isTextTranslated={true}
                     isShownOnPress={true}
                     isTriggerAlreadyDescribed={true}
                   >

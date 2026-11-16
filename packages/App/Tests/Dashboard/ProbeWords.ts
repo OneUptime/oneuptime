@@ -24,9 +24,10 @@ import { KeptPhrase } from "./OneNamePerThing";
  *   - others: the words the language no longer says for a probe;
  *   - keptPhrases: phrases whose other word names something that is not a
  *     OneUptime probe (a cloud's startup or health probe, the eBPF probe
- *     OBI attaches to a system call) or names an option the Dashboard
- *     draws in English, each with why. They are taken out of a text before
- *     it is read;
+ *     OBI attaches to a system call), each with why. They are taken out of
+ *     a text before it is read. A network device's Monitoring method
+ *     options are drawn in every language's words since #8308, so the
+ *     sentences that name them ("Skift til Sonde ovenfor") need none;
  *   - explorer: a word the language says for an explorer, which a block
  *     may say only where its English says explorer (Persian کاوشگر).
  *
@@ -59,10 +60,8 @@ const EBPF_PROBE: string =
 const HEALTH_PROBES: string =
   "an Azure load balancer's health probes, which a cloud resource's health reason names: the cloud's checks, not OneUptime probes";
 
-const PROBE_OPTION: string =
-  "the network device's Probe option, which the Dashboard draws in English in this language (Probe — pinged by the assigned probe ...), named as drawn";
-
-export const PROBE_WORDS: Readonly<Record<string, ProbeWords>> = {
+// The five languages PR #8305 held to their Dashboard's word first.
+const FIRST_PROBE_WORDS: Readonly<Record<string, ProbeWords>> = {
   fa: {
     others: /پروب|(?<![\p{L}\p{N}_-])probes?(?![\p{L}\p{N}_-])/iu,
     keptPhrases: [
@@ -93,10 +92,6 @@ export const PROBE_WORDS: Readonly<Record<string, ProbeWords>> = {
       { phrase: /opstartsprobe\p{L}*/iu, why: STARTUP_PROBE },
       { phrase: /sætter OBI en probe/u, why: EBPF_PROBE },
       { phrase: /sundhedsprober/iu, why: HEALTH_PROBES },
-      {
-        phrase: /Skift til Probe ovenfor|Probe er det normale valg/u,
-        why: PROBE_OPTION,
-      },
     ],
   },
   nl: {
@@ -110,12 +105,96 @@ export const PROBE_WORDS: Readonly<Record<string, ProbeWords>> = {
         phrase: /datastore-probes/iu,
         why: "the master admin API's checks of each datastore, which its example response names: not OneUptime probes",
       },
+    ],
+  },
+};
+
+// The English word as a word of its own, for the languages whose own word is another script's.
+const ENGLISH_PROBE_WORD: RegExp =
+  /(?<![\p{L}\p{N}_-])probes?(?![\p{L}\p{N}_-])/iu;
+
+const PROBES_OF_A_SCANNER: string =
+  "a network scanner's probes, the requests a security case counts: not OneUptime probes";
+
+/*
+ * The other eleven docs languages (#8306). German, Norwegian and Swedish
+ * keep the article (die Sonde, en sonde, en sond); Italian and Portuguese
+ * already said "la probe", "uma probe"; Russian said проба (feminine) beside
+ * its Dashboard's зонд (masculine), and the sentences agree with зонд now.
+ * German keeps its own Probe for a sample or a trial (Stichprobe, Probelauf).
+ */
+const MORE_PROBE_WORDS: Readonly<Record<string, ProbeWords>> = {
+  de: {
+    others: /(?<!stich|profil)probe(?!lauf|läuf|fahrt)/iu,
+    keptPhrases: [
+      { phrase: /Startup-Probe\p{L}*/u, why: STARTUP_PROBE },
+      { phrase: /hängt OBI eine Probe/u, why: EBPF_PROBE },
+    ],
+  },
+  no: {
+    others: /probe/iu,
+    keptPhrases: [
+      { phrase: /oppstartsprobe\p{L}*/iu, why: STARTUP_PROBE },
+      { phrase: /fester OBI en probe/u, why: EBPF_PROBE },
+      { phrase: /helseprober/iu, why: HEALTH_PROBES },
+    ],
+  },
+  sv: {
+    // The English word and the Swedish docs' own prob, but problem and probera (to try on).
+    others: /prob(?!lem|ab|era)/iu,
+    keptPhrases: [
+      { phrase: /startprob\p{L}*/iu, why: STARTUP_PROBE },
+      { phrase: /fäster OBI en probe/u, why: EBPF_PROBE },
+    ],
+  },
+  it: {
+    others: /probe/iu,
+    keptPhrases: [{ phrase: /probe di avvio/iu, why: STARTUP_PROBE }],
+  },
+  pt: {
+    others: /probe/iu,
+    keptPhrases: [],
+  },
+  ru: {
+    // The English word, and проба in every case, but пробел (a space), пробный (a trial) and the rest.
+    others: /probe|(?<!\p{L})проб(?:а|ы|е|у|ой|ам|ами|ах)?(?!\p{L})/iu,
+    keptPhrases: [
+      { phrase: /проб\p{L}* работоспособности/iu, why: HEALTH_PROBES },
+      { phrase: /проб\p{L}* запуска/iu, why: STARTUP_PROBE },
       {
-        phrase: /naar Probe om|Probe is de normale keuze/u,
-        why: PROBE_OPTION,
+        phrase: /проб\p{L}* (?:одного )?сканер\p{L}*/iu,
+        why: PROBES_OF_A_SCANNER,
+      },
+      {
+        phrase: /Если это была проба/u,
+        why: "a trial run of a Terraform configuration: проба is Russian for a trial, not a OneUptime probe",
       },
     ],
   },
+  fr: {
+    others: /probe/iu,
+    keptPhrases: [],
+  },
+  es: { others: /probe/iu, keptPhrases: [] },
+  ko: { others: ENGLISH_PROBE_WORD, keptPhrases: [] },
+  ja: {
+    others: ENGLISH_PROBE_WORD,
+    keptPhrases: [
+      {
+        phrase: /This probe could not/u,
+        why: "the check's own message, which the product writes in English and the page quotes as written",
+      },
+    ],
+  },
+  hi: {
+    others: ENGLISH_PROBE_WORD,
+    keptPhrases: [],
+  },
+};
+
+export const PROBE_WORDS: Readonly<Record<string, ProbeWords>> = {
+  ...FIRST_PROBE_WORDS,
+  ...MORE_PROBE_WORDS,
 };
 
 export const PROBE_LANGUAGES: ReadonlyArray<string> = Object.keys(PROBE_WORDS);

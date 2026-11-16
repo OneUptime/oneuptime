@@ -28,6 +28,14 @@
  *                                                layout (its side menu and
  *                                                breadcrumbs), full width as
  *                                                the Dashboard draws it
+ *   /dashboard/<project>/data-observability/checks
+ *                                                Data Observability's Checks
+ *                                                list, and its dbt Tests,
+ *                                                in the real Data
+ *                                                Observability layout
+ *   /dashboard/<project>/data-observability/reconciliations
+ *                                                its Reconciliations list,
+ *                                                in the same layout
  *   /dashboard/<project>/card-headers           every card header shape
  *                                                (CardHeaders.js): a table's
  *                                                toolbar header, the default
@@ -116,6 +124,9 @@ import TeamsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Teams/Index";
 import DeviceRolesPage from "../../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/Settings/DeviceRoles";
 import RunbooksLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Layout";
 import RunbooksPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Runbooks";
+import DataObservabilityLayout from "../../../App/FeatureSet/Dashboard/src/Pages/DataObservability/Layout";
+import DataObservabilityChecksPage from "../../../App/FeatureSet/Dashboard/src/Pages/DataObservability/Checks";
+import DataObservabilityReconciliationsPage from "../../../App/FeatureSet/Dashboard/src/Pages/DataObservability/Reconciliations";
 import CardHeadersPage from "./CardHeaders";
 import SnmpInterfacesView from "../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/SnmpInterfacesView";
 import WebVitalRouteBreakdownCard from "../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/WebVitalRouteBreakdownCard";
@@ -150,6 +161,21 @@ import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import Service from "Common/Models/DatabaseModels/Service";
 import NetworkDeviceRole from "Common/Models/DatabaseModels/NetworkDeviceRole";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
+import DataCheck from "Common/Models/DatabaseModels/DataCheck";
+import DataReconciliation from "Common/Models/DatabaseModels/DataReconciliation";
+import DataAsset from "Common/Models/DatabaseModels/DataAsset";
+import {
+  DataCheckAlertCondition,
+  DataCheckRunStatus,
+  DataCheckType,
+} from "Common/Types/DataObservability/DataCheckType";
+import {
+  DataReconciliationMeasure,
+  DataReconciliationStatus,
+  DataReconciliationToleranceType,
+} from "Common/Types/DataObservability/DataReconciliation";
+import { DataCheckHealth } from "Common/Types/DataObservability/DataObservabilityAttention";
+import { DATA_OBSERVABILITY_API_ROUTES } from "Common/Types/DataObservability/DataObservabilityApiTypes";
 import Color from "Common/Types/Color";
 import Email from "Common/Types/Email";
 import Name from "Common/Types/Name";
@@ -172,9 +198,8 @@ import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBa
 import Realtime from "Common/UI/Utils/Realtime";
 import UserUtil from "Common/UI/Utils/User";
 import PermissionUtil from "Common/UI/Utils/Permission";
-import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
-import JA from "../../../App/FeatureSet/Dashboard/src/Locales/ja.json";
-import FA from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
+import EN from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
+import { localeResources } from "../../SuiteHelpers/FixtureLocales";
 
 const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
 const USER_ID = "80000000-0000-4000-8000-000000000001";
@@ -979,6 +1004,170 @@ const RUNBOOKS = isEmpty
         : []),
     ];
 
+// ---------------------------------------------------- data observability
+
+/*
+ * Data Observability's Checks and Reconciliations lists (#7534, #8345): at
+ * 1280px beside the side menu the German Checks list ran past its card and
+ * the Reconciliations list in English and German, Run Now covering the
+ * columns before it. The checks alert when a value is unusually high, when
+ * it is unusually low, or not at all, and one's alert is open; the
+ * reconciliations are in step, drifted, and one whose side could not run,
+ * between tables named the way a warehouse names them.
+ */
+function dataAsset(index, assetKey) {
+  const record = withProject(new DataAsset());
+  record._id = uuid("73000000", index);
+  record.assetKey = assetKey;
+  record.name = assetKey.split(".").pop();
+  return record;
+}
+
+const ORDERS_TABLE = dataAsset(1, "analytics_prod.marts.fct_orders_daily");
+const APP_ORDERS_TABLE = dataAsset(2, "app_production.public.orders");
+const CUSTOMERS_TABLE = dataAsset(3, "analytics_prod.marts.dim_customers");
+
+function dataCheck(index, data) {
+  const record = withProject(new DataCheck());
+  record._id = uuid("74000000", index);
+  record.name = data.name;
+  record.checkType = data.checkType || DataCheckType.NullPercent;
+  record.columnName = data.columnName;
+  record.segmentColumn = data.segmentColumn;
+  record.dataAssetId = new ObjectID(data.table._id);
+  record.isEnabled = true;
+  record.isManagedByFile = false;
+  record.lastRunStatus = data.lastRunStatus || DataCheckRunStatus.Ran;
+  record.lastRunAt = new Date("2026-10-16T05:30:00.000Z");
+  record.lastValue = data.lastValue;
+  record.alertCondition = data.alertCondition || null;
+  record.alertThreshold = null;
+  return record;
+}
+
+const DATA_CHECKS = isEmpty
+  ? []
+  : [
+      dataCheck(1, {
+        name: "customer_id is filled in as usual",
+        columnName: "customer_id",
+        table: ORDERS_TABLE,
+        lastValue: 0.42,
+        alertCondition: DataCheckAlertCondition.UnusuallyHigh,
+      }),
+      dataCheck(2, {
+        name: "Rows per tenant",
+        checkType: DataCheckType.RowCount,
+        segmentColumn: "tenant_id",
+        table: ORDERS_TABLE,
+        lastValue: 18234,
+        alertCondition: DataCheckAlertCondition.UnusuallyLow,
+      }),
+      dataCheck(3, {
+        name: "status takes its usual values",
+        checkType: DataCheckType.DistinctCount,
+        columnName: "status",
+        table: ORDERS_TABLE,
+        lastValue: 6,
+      }),
+      dataCheck(4, {
+        name: "email looks like an email address",
+        checkType: DataCheckType.FormatMismatchPercent,
+        columnName: "email",
+        table: CUSTOMERS_TABLE,
+        lastValue: 3.75,
+        alertCondition: DataCheckAlertCondition.UnusuallyHigh,
+      }),
+    ];
+
+/*
+ * What Data Observability's check health route answers for each check
+ * (DataObservabilityApi.getCheckHealth): the email check's alert is open.
+ */
+const DATA_CHECK_HEALTH = {
+  [DATA_CHECKS[0] ? String(DATA_CHECKS[0]._id) : "none-1"]: {
+    health: DataCheckHealth.Passing,
+    alert: null,
+  },
+  [DATA_CHECKS[1] ? String(DATA_CHECKS[1]._id) : "none-2"]: {
+    health: DataCheckHealth.Passing,
+    alert: null,
+  },
+  [DATA_CHECKS[2] ? String(DATA_CHECKS[2]._id) : "none-3"]: {
+    health: DataCheckHealth.NoAlert,
+    alert: null,
+  },
+  [DATA_CHECKS[3] ? String(DATA_CHECKS[3]._id) : "none-4"]: {
+    health: DataCheckHealth.Failing,
+    alert: {
+      alertId: uuid("75000000", 1),
+      number: "ALT-128",
+      title: "email looks like an email address is unusually high",
+    },
+  },
+};
+
+function reconciliation(index, data) {
+  const record = withProject(new DataReconciliation());
+  record._id = uuid("76000000", index);
+  record.name = data.name;
+  record.sourceMeasure = data.measure || DataReconciliationMeasure.RowCount;
+  record.targetMeasure = data.measure || DataReconciliationMeasure.RowCount;
+  record.toleranceType = DataReconciliationToleranceType.Percent;
+  record.tolerance = 0.5;
+  record.intervalInMinutes = 60;
+  record.isEnabled = true;
+  record.sourceDataAsset = data.source;
+  record.sourceDataAssetId = new ObjectID(data.source._id);
+  record.targetDataAsset = data.target;
+  record.targetDataAssetId = new ObjectID(data.target._id);
+  record.sourceValue = data.sourceValue;
+  record.targetValue = data.targetValue;
+  record.difference =
+    data.targetValue === undefined
+      ? undefined
+      : data.targetValue - data.sourceValue;
+  record.differencePercent =
+    data.targetValue === undefined
+      ? undefined
+      : ((data.targetValue - data.sourceValue) / data.sourceValue) * 100;
+  record.status = data.status;
+  record.statusMessage = data.statusMessage;
+  record.comparedAt = new Date("2026-10-16T05:30:00.000Z");
+  return record;
+}
+
+const DATA_RECONCILIATIONS = isEmpty
+  ? []
+  : [
+      reconciliation(1, {
+        name: "Orders: app and warehouse",
+        source: APP_ORDERS_TABLE,
+        target: ORDERS_TABLE,
+        sourceValue: 1204873,
+        targetValue: 1204873,
+        status: DataReconciliationStatus.InStep,
+      }),
+      reconciliation(2, {
+        name: "Orders after the migration",
+        source: APP_ORDERS_TABLE,
+        target: ORDERS_TABLE,
+        sourceValue: 1204873,
+        targetValue: 1198410,
+        status: DataReconciliationStatus.Drifted,
+      }),
+      reconciliation(3, {
+        name: "Revenue: billing and finance",
+        measure: DataReconciliationMeasure.Sum,
+        source: APP_ORDERS_TABLE,
+        target: CUSTOMERS_TABLE,
+        sourceValue: 98234511.25,
+        status: DataReconciliationStatus.Failed,
+        statusMessage:
+          'column "amount_cents" does not exist in analytics_prod.marts.dim_customers',
+      }),
+    ];
+
 // ------------------------------------------------------------ the project
 
 /*
@@ -1065,6 +1254,9 @@ const RECORDS = {
   Runbook: RUNBOOKS,
   RunbookOwnerUser: [],
   RunbookOwnerTeam: [],
+  DataCheck: DATA_CHECKS,
+  DataReconciliation: DATA_RECONCILIATIONS,
+  DataAsset: [ORDERS_TABLE, APP_ORDERS_TABLE, CUSTOMERS_TABLE],
 };
 
 /*
@@ -1544,6 +1736,20 @@ API.get = async (options) => {
 };
 
 API.post = async (options) => {
+  const address = options && options.url ? options.url.toString() : "";
+
+  // Whether each check of the page passes now (DataObservabilityApi.getCheckHealth).
+  if (address.endsWith(DATA_OBSERVABILITY_API_ROUTES.checkHealth)) {
+    const asked = (options.data && options.data.dataCheckIds) || [];
+    const checks = {};
+    for (const id of asked) {
+      if (DATA_CHECK_HEALTH[id]) {
+        checks[id] = DATA_CHECK_HEALTH[id];
+      }
+    }
+    return { data: { checks } };
+  }
+
   window.__fixture.unmodelled.push(
     `API.post ${options && options.url ? options.url.toString() : ""}`,
   );
@@ -2072,15 +2278,33 @@ ModelAPI.getList = async (options) => {
  * i18next reads in a key (the "." and ":" of a sentence) are turned off, as
  * the Dashboard's own setup does.
  */
+/*
+ * English, the fallback, is in the bundle; German, Japanese and Persian are
+ * each a chunk of its own, loaded only by a page drawn in that language, as
+ * the Dashboard loads a locale (src/Utils/I18nLocaleLoader.ts), and built as
+ * the Dashboard ships them (server.js, SuiteHelpers/FixtureLocalesBuild.js).
+ * Imported whole, they were parsed on every page load of every test (#8366).
+ */
+const LOCALE_LOADERS = {
+  de: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/de.json");
+  },
+  ja: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/ja.json");
+  },
+  fa: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/fa.json");
+  },
+};
+
 await i18next.use(initReactI18next).init({
   lng: language,
-  fallbackLng: language,
-  resources: {
-    en: { translation: {} },
-    de: { translation: DE },
-    ja: { translation: JA },
-    fa: { translation: FA },
-  },
+  fallbackLng: "en",
+  resources: await localeResources({
+    language: language,
+    english: EN,
+    loaders: LOCALE_LOADERS,
+  }),
   interpolation: { escapeValue: false },
   keySeparator: false,
   nsSeparator: false,
@@ -2220,6 +2444,19 @@ createRoot(document.getElementById("root")).render(
         path={`${BASE}/runbooks/:modelId`}
         element={<Shell page={() => <p>Runbook</p>} trail="Runbook" />}
       />
+      <PageRoute
+        path={`${BASE}/data-observability`}
+        element={<LayoutShell layout={DataObservabilityLayout} />}
+      >
+        <PageRoute
+          path="checks"
+          element={<InLayout page={DataObservabilityChecksPage} />}
+        />
+        <PageRoute
+          path="reconciliations"
+          element={<InLayout page={DataObservabilityReconciliationsPage} />}
+        />
+      </PageRoute>
       <PageRoute
         path={`${BASE}/card-headers`}
         element={<Shell page={CardHeadersPage} trail="Card headers" />}

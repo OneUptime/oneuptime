@@ -6,6 +6,7 @@ import IncidentEpisodeMember from "../../../Models/DatabaseModels/IncidentEpisod
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
 import AlertEpisodeMemberService from "../../../Server/Services/AlertEpisodeMemberService";
 import AlertService from "../../../Server/Services/AlertService";
+import DatabaseService from "../../../Server/Services/DatabaseService";
 import IncidentEpisodeMemberService from "../../../Server/Services/IncidentEpisodeMemberService";
 import IncidentService from "../../../Server/Services/IncidentService";
 import {
@@ -131,7 +132,7 @@ function apiKeyProps(
 // Everyone who writes in a project.
 const CALLERS: Array<Caller> = [
   {
-    caller: "a project admin",
+    caller: "a Project Admin",
     props: (_kind: Kind, projectId: ObjectID) => {
       return {
         tenantId: projectId,
@@ -198,6 +199,11 @@ describePostgres(
       jest
         .spyOn(PostgresAppInstance, "getDataSource")
         .mockReturnValue(database);
+
+      // Workflows run elsewhere.
+      jest
+        .spyOn(DatabaseService.prototype, "onTriggerWorkflow")
+        .mockResolvedValue(undefined as never);
     });
 
     afterAll(async () => {

@@ -32,7 +32,7 @@ En gruppe personer i et projekt, hvis tilladelser afgør, hvad medlemmerne må. 
 
 Se [Brugere, teams og tilladelser](/docs/permissions/index).
 
-### Overvågning
+### Monitor
 
 Tjekker én ting, du kører, for eksempel et websted, et API, en server eller en Kubernetes-klynge, og afgør, om den virker. Når dens kriterier passer, ændrer den sin status og kan erklære en hændelse eller oprette en advarsel.
 
@@ -224,7 +224,7 @@ Se [Topologi](/docs/telemetry/topology).
 
 Et pålidelighedsmål for det, du overvåger, for eksempel tilgængelig 99,9 % af tiden over 30 dage. OneUptime måler hvert SLO mod dets monitorer hvert 5. minut.
 
-Også kaldet: **Service Level Objective**. Se [SLO'er – Oversigt](/docs/slo/introduction).
+Også kaldet: **Serviceniveaumål**. Se [SLO'er – Oversigt](/docs/slo/introduction).
 
 ### Fejlbudget
 
@@ -294,7 +294,7 @@ Se [Protokoludforsker](/docs/telemetry/logs-explorer).
 
 De tal, dine tjenester og din infrastruktur rapporterer over tid, for eksempel antal anmodninger, latens, CPU og kødybde.
 
-Se [Måleudforsker](/docs/telemetry/metrics-explorer).
+Se [Metrikudforsker](/docs/telemetry/metrics-explorer).
 
 ### Spor
 
@@ -344,7 +344,7 @@ Se [Deling & offentlige dashboards](/docs/dashboards/sharing).
 
 En automatisering uden kode: blokke på et lærred, der kører, når deres trigger udløses, for eksempel en besked i Slack, når en hændelse erklæres, eller et kald til et andet værktøj.
 
-Se [Workflows – Oversigt](/docs/workflows/index).
+Se [Arbejdsgange – Oversigt](/docs/workflows/index).
 
 ### Runbook
 
@@ -436,7 +436,7 @@ Se [Grundbegreber](/docs/introduction/core-concepts#regeltyperne).
 
 ### Rolle
 
-Fire forskellige ting: de tilladelser, et team giver, for eksempel Project Owner eller Project Admin; en **Brugerdefineret rolle**, du sætter sammen af tilladelser; en **Hændelsesrolle**, den rolle, nogen har i én hændelse; og en **Network Device Role**, hvad en enhed på dit netværk gør.
+Fire forskellige ting: de tilladelser, et team giver, for eksempel Projektejer eller Projektadministrator; en **Brugerdefineret rolle**, du sætter sammen af tilladelser; en **Hændelsesrolle**, den rolle, nogen har i én hændelse; og en **Network Device Role**, hvad en enhed på dit netværk gør.
 
 Se [Brugere, teams og tilladelser](/docs/permissions/index).
 

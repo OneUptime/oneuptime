@@ -953,7 +953,7 @@ describe("RUM overview: every tile and chart explains itself", () => {
     const text: string = await tooltipTextOf(lcp);
 
     expect(text).toContain(WebVitalDefinitions[0]!.description);
-    expect(text).toContain("Good below 2.5 s; poor at 4 s or more.");
+    expect(text).toContain("Good below 2.5\u00A0s; poor at 4\u00A0s or more.");
 
     for (const d of WebVitalDefinitions) {
       expect(
@@ -1403,9 +1403,9 @@ describe("RUM overview: INP by route", () => {
         return row.textContent || "";
       }),
     ).toEqual([
-      "/products/:id620 msPoor",
-      "/cart240 msNeeds work",
-      "/90 msGood",
+      "/products/:id620\u00A0msPoor",
+      "/cart240\u00A0msNeeds work",
+      "/90\u00A0msGood",
     ]);
     expect(screen.getByText("(app.route)")).toBeInTheDocument();
     expect(screen.getByText(/The 3 slowest of 12/)).toBeInTheDocument();

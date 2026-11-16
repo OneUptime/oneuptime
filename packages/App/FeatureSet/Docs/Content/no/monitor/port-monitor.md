@@ -1,4 +1,4 @@
-# Port-overvåking
+# Port-monitor
 
 En port-monitor sjekker at en vert godtar TCP-tilkoblinger på en port, og måler hvor lang tid tilkoblingen tar. Bruk den for tjenester som ikke snakker HTTP, eller der du ikke vil sjekke HTTP: databaser, e-postservere, SSH, meldingsmeglere og lignende.
 
@@ -31,7 +31,7 @@ Når en sjekk feiler, sporer sonden også ruten til verten og slår opp navnet, 
 
 ## Før du starter
 
-- **En rolle som kan opprette monitorer**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member, eller en egendefinert rolle med tillatelsen Create Monitor.
+- **En rolle som kan opprette monitorer**: Prosjekteier, Prosjektadministrator, Prosjektmedlem, Monitoradministrator eller Monitormedlem, eller en egendefinert rolle med tillatelsen Create Monitor.
 - **En sonde som når porten.** Prosjektets standardsonder velges for hver nye monitor. Står det en brannmur foran tjenesten, tillater du [OneUptime Clouds sonde-IP-adresser](/docs/configuration/ip-addresses) å koble til porten. En tjeneste på et privat nettverk, som en database, trenger en [egendefinert sonde](/docs/probe/custom-probe) i det nettverket.
 
 ## Opprett en port-monitor
@@ -51,7 +51,7 @@ Angi under **Vertsnavn eller IP-adresse** verten porten ligger på, som `db.exam
 
 ### Test den
 
-Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av overvåkingstest** viser om tilkoblingen åpnet seg, og hvor lang tid hver del tok.
+Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av monitortest** viser om tilkoblingen åpnet seg, og hvor lang tid hver del tok.
 
 ### Gå gjennom kriteriene
 
@@ -122,7 +122,7 @@ Med to eller flere filtre avgjør **Samsvarsbetingelse** om **Alle** må samsvar
 
 En ny port-monitor starter med to kriterier:
 
-- **Frakoblet** — porten godtar ikke en tilkobling etter alle nye forsøk. Monitoren merkes som **Frakoblet**, og en hendelse kalt "_monitor name_ is offline" opprettes. Hendelsen løser seg selv når porten godtar tilkoblinger igjen.
+- **Frakoblet** — porten godtar ikke en tilkobling etter alle nye forsøk. Monitoren merkes som **Frakoblet**, og en hendelse kalt "_monitornavn_ er frakoblet" opprettes. Hendelsen løser seg selv når porten godtar tilkoblinger igjen.
 - **Oppe** — porten godtar en tilkobling. Monitoren merkes som **I drift**.
 
 Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva som skjer. Når ingen samsvarer, viser monitoren standardstatusen sin: **I drift**, med mindre du velger en annen under **Flere felt** under kriteriene.
@@ -178,8 +178,8 @@ Port-monitorer åpner bare TCP-tilkoblinger. For en DNS-server bruker du en [DNS
 ## Neste steg
 
 :::cards
-- [Ping-overvåking](/docs/monitor/ping-monitor): Sjekk at selve verten kan nås.
-- [SSL-sertifikat-overvåking](/docs/monitor/ssl-certificate-monitor): Sjekk sertifikatet på en TLS-port.
-- [Databasehelse-overvåking](/docs/monitor/database-health-monitor): Gå videre enn en åpen port, og følg med på en databases helse.
-- [Egendefinerte probes](/docs/probe/custom-probe): Sjekk porter på ditt eget nettverk.
+- [Ping-monitor](/docs/monitor/ping-monitor): Sjekk at selve verten kan nås.
+- [SSL-sertifikat-monitor](/docs/monitor/ssl-certificate-monitor): Sjekk sertifikatet på en TLS-port.
+- [Databasehelse-monitor](/docs/monitor/database-health-monitor): Gå videre enn en åpen port, og følg med på en databases helse.
+- [Egendefinerte sonder](/docs/probe/custom-probe): Sjekk porter på ditt eget nettverk.
 :::

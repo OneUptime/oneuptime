@@ -4,7 +4,7 @@ Send [New Relic](https://newrelic.com)-sager til OneUptime, så hver sag bliver 
 
 :::cards
 - [Start med skabelonen](#start-med-skabelonen): Vælg, hvem der skal kaldes op, kopiér URL'en, og se, hvad hver sag gør.
-- [Konfigurer New Relic](#konfigurer-new-relic): En webhook-destination og det workflow, der underretter den.
+- [Konfigurer New Relic](#konfigurer-new-relic): En webhook-destination og det New Relic-workflow, der underretter den.
 - [Test det](#test-det): Send en sag selv, og derefter en fra New Relic.
 - [Fejlfinding](#fejlfinding): Når sager ikke kommer frem, eller hændelser bliver ved med at være åbne.
 :::
@@ -13,7 +13,7 @@ Send [New Relic](https://newrelic.com)-sager til OneUptime, så hver sag bliver 
 
 ```mermaid title="Fra en New Relic-sag til en hændelse"
 flowchart TB
-    issue["New Relic-sag<br/>skifter tilstand"] --> filter["Et workflows filter<br/>lader den igennem"]
+    issue["New Relic-sag<br/>skifter tilstand"] --> filter["Filteret i et<br/>New Relic-workflow<br/>lader den igennem"]
     filter --> post["Dens webhook poster<br/>payloaden"]
     post --> state{"state"}
     state -->|"ACTIVATED"| open["Hændelse åbnet,<br/>vagten kaldt op"]
@@ -25,8 +25,8 @@ Et New Relic-workflow vælger de sager, der skal sendes, med sit filter, og unde
 
 ## Før du går i gang
 
-- En New Relic-konto, hvor du kan oprette destinationer og workflows.
-- I OneUptime retten til at oprette workflows. I OneUptime Cloud kræver workflows planen **Growth** eller højere.
+- En New Relic-konto, hvor du kan oprette destinationer og New Relic-workflows.
+- I OneUptime retten til at oprette arbejdsgange. I OneUptime Cloud kræver arbejdsgange planen **Growth** eller højere.
 
 ## Start med skabelonen
 
@@ -34,24 +34,24 @@ Sæt OneUptime op først: det giver dig den URL, New Relic sender til. Dialogen 
 
 :::steps
 1. Gå til **Arbejdsgange**, og klik på **Opret arbejdsgang**. Under **Eller start fra en skabelon** vælger du **New Relic** i kategorilisten, klikker på **Declare an incident for each New Relic issue** eller **Create an alert for each New Relic issue** og klikker på **Brug denne skabelon**.
-2. Under **Who to page for new New Relic issues** vælger du de vagtpolitikker, der skal tilkaldes, eller ingen for ikke at tilkalde nogen, og klikker på **Opret arbejdsgang**. Workflowet åbner i **Bygger**, slået fra.
+2. Under **Who to page for new New Relic issues** vælger du de vagtpolitikker, der skal tilkaldes, eller ingen for ikke at tilkalde nogen, og klikker på **Opret arbejdsgang**. Arbejdsgangen åbner i **Bygger**, slået fra.
 3. Klik på triggeren **Webhook**, derefter på **Kopiér URL**, og gem URL'en til New Relic.
-4. Slå **Aktiveret** til øverst i **Bygger**. Et workflow, der er slået fra, svarer New Relic med `400`.
+4. Slå **Aktiveret** til øverst i **Bygger**. En arbejdsgang, der er slået fra, svarer New Relic med `400`.
 :::
 
-Derefter [konfigurerer du New Relic](#konfigurer-new-relic) til at sende sine sager til den URL. Workflowets trin `read-event-1` åbner med den samme opsætning, til når du vender tilbage til det i **Bygger**.
+Derefter [konfigurerer du New Relic](#konfigurer-new-relic) til at sende sine sager til den URL. Arbejdsgangens trin `read-event-1` åbner med den samme opsætning, til når du vender tilbage til det i **Bygger**.
 
-### Hvad workflowet gør
+### Hvad arbejdsgangen gør
 
-Efter triggeren **Webhook** læser trinnet **Check With JavaScript** `read-event-1` den `state`, New Relic sender, og **Incident From Another Tool**, eller **Alert From Another Tool** i advarselsskabelonen, gør det, den betyder, ud fra sagens ID. Hændelsen gemmer ID'et i sit brugerdefinerede felt `newRelicIssueId`.
+Efter triggeren **Webhook** læser trinnet **Tjek med JavaScript** `read-event-1` den `state`, New Relic sender, og **Hændelse fra et andet værktøj**, eller **Advarsel fra et andet værktøj** i advarselsskabelonen, gør det, den betyder, ud fra sagens ID. Hændelsen gemmer ID'et i sit brugerdefinerede felt `newRelicIssueId`.
 
-| Hvad New Relic sender | Hvad workflowet gør |
+| Hvad New Relic sender | Hvad arbejdsgangen gør |
 | --- | --- |
 | `state` er `ACTIVATED` eller `CREATED` | Erklærer en hændelse med titlen `New Relic: <issue>`, med den alvorlighed, sagens prioritet svarer til, holdt uden for dine statussider. Dens beskrivelse linker til sagen i New Relic og viser prioriteten, entiteterne, politikkerne og betingelserne. Den kalder de vagtpolitikker op, du valgte. Den samme sag igen, f.eks. når New Relic hæver den til CRITICAL, opretter ingen ny hændelse og kalder ingen op igen. |
 | `state` er `ACTIVATED`, og `isAcknowledged` er `true` | Bekræfter sagens hændelse, så vagten holder op med at eskalere den. Hvorfor står på dens tidslinje. |
 | `state` er `CLOSED` | Løser sagens hændelse, medmindre den allerede er løst. Hvorfor står på dens tidslinje. |
 
-En bekræftelse eller en lukning for en sag uden hændelse ændrer intet. Alt andet, f.eks. en anmodning fra et andet værktøj, bliver ladt være: `read-event-1` tager **No**, og kørslens **Trin** siger hvorfor. Intet går tilbage til New Relic: det lukker selv sine sager, når signalet kommer sig, og det er det, der løser hændelsen.
+En bekræftelse eller en lukning for en sag uden hændelse ændrer intet. Alt andet, f.eks. en anmodning fra et andet værktøj, bliver ladt være: `read-event-1` tager **Nej**, og kørslens **Trin** siger hvorfor. Intet går tilbage til New Relic: det lukker selv sine sager, når signalet kommer sig, og det er det, der løser hændelsen.
 
 ### Prioriteter og opkald
 
@@ -75,13 +75,13 @@ For at knytte en prioritet til en af dine efter navn skal du redigere `SEVERITY_
 
 I New Relic går du til **Alerts → Destinations** og tilføjer en destination af typen **Webhook**. Sæt **Webhook name** til `OneUptime` og **Endpoint URL** til den URL, du kopierede fra OneUptime, og gem den. Lad **Use authorization** være slået fra: URL'en er den eneste legitimation.
 
-### Tilføj workflowet
+### Tilføj New Relic-workflowet
 
 Gå til **Alerts → Workflows**, og klik på **Add a workflow**. Kald det `OneUptime`. Dets filter afgør, hvilke sager der når OneUptime, f.eks. kun CRITICAL-sager eller ét teams.
 
 ### Underret destinationen
 
-Føj den **Webhook**-destination, du lavede, til workflowet. Behold den payload, New Relic udfylder, og tilføj en linje for `isAcknowledged` efter `state`, så hændelsen bekræftes sammen med sin sag:
+Føj den **Webhook**-destination, du lavede, til New Relic-workflowet. Behold den payload, New Relic udfylder, og tilføj en linje for `isAcknowledged` efter `state`, så hændelsen bekræftes sammen med sin sag:
 
 ```json
 {
@@ -110,12 +110,12 @@ Linjen, der skal tilføjes, er `"isAcknowledged": {{ json isAcknowledged }},`. K
 
 Klik på de tre prikker på destinationen, og vælg **Notify when**. Behold **Activated**, **Acknowledged** og **Closed** slået til.
 
-### Aktivér workflowet
+### Aktivér New Relic-workflowet
 
 Klik på **Activate workflow**.
 :::
 
-OneUptime-workflowet læser disse felter i payloaden og lader de andre være:
+OneUptime-arbejdsgangen læser disse felter i payloaden og lader de andre være:
 
 | Felt | Hvad New Relic sætter i det |
 | --- | --- |
@@ -151,18 +151,18 @@ curl -X POST "<url>" \
 
 En hændelse åbnes med titlen `New Relic: High CPU on checkout-service`, og de vagtpolitikker, du valgte, kaldes op. Send den samme anmodning med `isAcknowledged` sat til `true`, og hændelsen bekræftes. Send den med `state` sat til `CLOSED`, og hændelsen løses.
 
-Test derefter fra New Relic: åbn workflowets webhook-besked, og klik på **Send test notification**. For at se, at den kom frem, åbn OneUptime-workflowets **Protokoller → Kørsler**.
+Test derefter fra New Relic: åbn New Relic-workflowets webhook-besked, og klik på **Send test notification**. For at se, at den kom frem, åbn OneUptime-arbejdsgangens **Protokoller → Kørsler**.
 
 ## Fejlfinding
 
 :::details Intet kommer frem til OneUptime
 - Kontrollér, at workflowet i New Relic er aktivt, og at dets filter lader sagen igennem.
 - Kontrollér, at destinationens **Endpoint URL** er URL'en for triggeren **Webhook**.
-- Et workflow, der er slået fra, svarer `400`. Slå **Aktiveret** til øverst i dets **Bygger**.
+- En arbejdsgang, der er slået fra, svarer `400`. Slå **Aktiveret** til øverst i dens **Bygger**.
 :::
 
-:::details Workflowet kører, men åbner intet
-Åbn kørslen i **Protokoller → Kørsler**. Posten `read-event-1` under **Trin** siger, hvorfor den tog **No**.
+:::details Arbejdsgangen kører, men åbner intet
+Åbn kørslen i **Protokoller → Kørsler**. Posten `read-event-1` under **Trin** siger, hvorfor den tog **Nej**.
 
 - `New Relic named no issue ID`: behold linjen `"id": {{ json issueId }},` i payloaden.
 - `is in no state`: behold linjen `"state": {{ json state }},` i payloaden.
@@ -184,19 +184,19 @@ Hver ny sag, der når OneUptime, kalder op. Indsnævr filteret for workflowet i 
 
 :::details Vagten bliver ikke kaldt op
 - En notifikation for en sag, der har sin hændelse, kalder ingen op igen, så en forhøjelse til CRITICAL kalder ingen op.
-- Hvis ingen er valgt i dialogen **Opret en arbejdsgang**, har workflowet intet trin, der kalder op.
+- Hvis ingen er valgt i dialogen **Opret en arbejdsgang**, har arbejdsgangen intet trin, der kalder op.
 :::
 
 ## Sikkerhed
 
-- **Behandl URL'en som en adgangskode.** Alle, der har den, kan åbne hændelser. Hvis den slipper ud, så klik på **Nulstil URL** i workflowets **Webhook**-trigger. Opdater derefter destinationens **Endpoint URL** i New Relic.
+- **Behandl URL'en som en adgangskode.** Alle, der har den, kan åbne hændelser. Hvis den slipper ud, så klik på **Nulstil URL** i arbejdsgangens **Webhook**-trigger. Opdater derefter destinationens **Endpoint URL** i New Relic.
 - **Links går til New Relic.** Skabelonen linker kun en sag på et New Relic-websted, uanset hvad en anmodning siger, og skriver det, New Relic sendte, som tekst.
 - **Selvhostet?** New Relic sender webhooks fra internettet, så din OneUptime skal kunne nås derfra over HTTPS.
 
 ## Næste trin
 
 :::cards
-- [Workflow-skabeloner](/docs/workflows/authoring): Opret et workflow fra en skabelon, og ændr det i Bygger.
+- [Arbejdsgangsskabeloner](/docs/workflows/authoring): Opret en arbejdsgang fra en skabelon, og ændr den i Bygger.
 - [Datadog](/docs/integrations/datadog): Den samme skabelon, til Datadog-monitorer.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Bestem, hvem en vagtpolitik kalder op, og hvornår.
 - [Oversigt over integrationer](/docs/integrations/index): De andre værktøjer, du kan forbinde.

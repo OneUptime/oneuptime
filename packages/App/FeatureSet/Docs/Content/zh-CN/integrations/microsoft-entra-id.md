@@ -1,6 +1,6 @@
 # Microsoft Entra ID
 
-把 [Microsoft Entra ID](https://learn.microsoft.com/en-us/entra/identity/) 的登录、目录更改和风险检测导入 OneUptime 的安全事件；如果你愿意，还可以导入应用在后台进行的登录，以及 [Microsoft 365 审计日志](https://learn.microsoft.com/en-us/purview/audit-log-activities) 中 Exchange、SharePoint、OneDrive 和 Teams 的活动。在那里，你可以把它们与日志、跟踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的内容呼叫值班人员。OneUptime 通过你创建的应用注册读取它们，不会更改你租户中的任何内容。
+把 [Microsoft Entra ID](https://learn.microsoft.com/en-us/entra/identity/) 的登录、目录更改和风险检测导入 OneUptime 的安全事件；如果你愿意，还可以导入应用在后台进行的登录，以及 [Microsoft 365 审计日志](https://learn.microsoft.com/en-us/purview/audit-log-activities) 中 Exchange、SharePoint、OneDrive 和 Teams 的活动。在那里，你可以把它们与日志、追踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的内容呼叫值班人员。OneUptime 通过你创建的应用注册读取它们，不会更改你租户中的任何内容。
 
 :::cards
 - [设置连接](#设置连接): 一个应用注册、它的权限，以及连接的表单。
@@ -23,7 +23,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 
 ## 开始之前
 
-- 在 OneUptime 中拥有 Project Owner、Project Admin 或 Security Admin 角色。Security Member 和 Security Viewer 可以查看连接及其运行历史，但不能更改它们。
+- 在 OneUptime 中拥有项目所有者、项目管理员或安全管理员角色。安全成员和安全查看者可以查看连接及其运行历史，但不能更改它们。
 - 对于登录和风险检测：Microsoft Entra ID P1 或 P2，Microsoft 365 E3、E5 和 Business Premium 都包含它们：Microsoft Graph 只向这类租户提供这些数据，P2 还会提供每个风险检测的详细信息。目录更改在任何租户中都能读取。
 - 一个可以注册应用程序的 Entra 角色，例如 Application Administrator，以及一位能授予管理员同意的 Global Administrator 或 Privileged Role Administrator。
 - 对于 Microsoft 365 审计日志：租户已开启审计，默认即为开启：在 [Microsoft Purview 门户](https://purview.microsoft.com) 中，**Audit** 不应显示 **Start recording user and admin activity**。

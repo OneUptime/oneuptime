@@ -12,7 +12,9 @@ import {
   getRulePassRate,
   getRulePassRateText,
   getRuleSentence,
+  getRuleWarningTexts,
   getRuleTitle,
+  getSeverityList,
   hasNoChannelToCheck,
   hasNoSeveritiesLeft,
   hasServerId,
@@ -42,7 +44,11 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Toggle from "Common/UI/Components/Toggle/Toggle";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import API from "Common/UI/Utils/API/API";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { PluralTemplate, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translateRecordName } from "Common/Utils/DefaultRecordNames";
 import React, {
   FunctionComponent,
   MutableRefObject,
@@ -121,9 +127,26 @@ const NEUTRAL_CHIP_CLASS_NAME: string =
 const WARNING_CHIP_CLASS_NAME: string =
   "inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-200";
 
+// The members a rule's pass rate can narrow the list to.
+const SHOW_WHO_FAILS: PluralTemplate = {
+  one: "Show the {{count}} who fails it",
+  other: "Show the {{count}} who fail it",
+};
+
+/*
+ * A rule's warnings, counted on its chip when there are several (a single
+ * one is "Warning"). The "one" form is still a count's: Russian draws 21
+ * with it.
+ */
+const WARNINGS: PluralTemplate = {
+  one: "{{count}} warning",
+  other: "{{count}} warnings",
+};
+
 const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [formState, setFormState] = useState<RuleFormState | null>(null);
 
   const [ruleToDelete, setRuleToDelete] =
@@ -214,7 +237,12 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
       setToggleErrors((current: Record<string, string>) => {
         return {
           ...current,
-          [settingId]: `Could not ${enabled ? "turn on" : "pause"} this rule. ${API.getFriendlyMessage(err)}`,
+          [settingId]: translator.translateTemplate(
+            enabled
+              ? "Could not turn on this rule. {{error}}"
+              : "Could not pause this rule. {{error}}",
+            { error: errorInSentence(API.getFriendlyMessage(err)) },
+          ),
         };
       });
       setPendingEnabled((current: Record<string, boolean>) => {
@@ -314,9 +342,19 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
     }
   };
 
+  /*
+   * A severity by its list (#8296): a new project's "Critical Incident" in
+   * the reader's words, as every other screen says it, a severity the
+   * project named itself as written, one that arrived without a name as
+   * its id.
+   */
   const getSeverityChip: (
+    rule: TeamComplianceRuleJSON,
     severity: TeamComplianceSeverityJSON,
-  ) => ReactElement = (severity: TeamComplianceSeverityJSON): ReactElement => {
+  ) => ReactElement = (
+    rule: TeamComplianceRuleJSON,
+    severity: TeamComplianceSeverityJSON,
+  ): ReactElement => {
     return (
       <li
         key={severity.id}
@@ -330,7 +368,11 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
             severity.color ? { backgroundColor: severity.color } : undefined
           }
         />
-        {severity.name || severity.id}
+        {translateRecordName(
+          translator,
+          getSeverityList(rule),
+          severity.name,
+        ) || severity.id}
       </li>
     );
   };
@@ -352,7 +394,7 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
           className={NEUTRAL_CHIP_CLASS_NAME}
         >
           <Icon icon={IconProp.BellRinging} className="h-3 w-3 text-gray-400" />
-          {getChannelLabel(undefined)}
+          {getChannelLabel(undefined, translator)}
         </li>
       );
     }
@@ -371,7 +413,7 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
                   icon={CHANNEL_ICONS[channel]}
                   className="h-3 w-3 text-gray-400"
                 />
-                {getChannelLabel(channel)}
+                {getChannelLabel(channel, translator)}
               </li>
             );
           },
@@ -391,8 +433,11 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
     const showsEverySeverity: boolean =
       rule.appliesToAllSeverities || rule.severities.length === 0;
 
-    let severityChips: ReactElement | Array<ReactElement> =
-      rule.severities.map(getSeverityChip);
+    let severityChips: ReactElement | Array<ReactElement> = rule.severities.map(
+      (severity: TeamComplianceSeverityJSON): ReactElement => {
+        return getSeverityChip(rule, severity);
+      },
+    );
 
     if (hasNoSeveritiesLeft(rule)) {
       /*
@@ -405,7 +450,7 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
           className={WARNING_CHIP_CLASS_NAME}
         >
           <Icon icon={IconProp.Alert} className="h-3 w-3 text-amber-500" />
-          {NO_SEVERITIES_LEFT_LABEL}
+          {translator.translateText(NO_SEVERITIES_LEFT_LABEL)}
         </li>
       );
     } else if (showsEverySeverity) {
@@ -415,8 +460,11 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
           className={NEUTRAL_CHIP_CLASS_NAME}
         >
           <Icon icon={IconProp.Squares} className="h-3 w-3 text-gray-400" />
-          {getAllSeveritiesLabel(
-            rule.severityKind || ComplianceRule.getSeverityKind(rule.ruleType),
+          {translator.translateText(
+            getAllSeveritiesLabel(
+              rule.severityKind ||
+                ComplianceRule.getSeverityKind(rule.ruleType),
+            ),
           )}
         </li>
       );
@@ -424,7 +472,7 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
 
     return (
       <ul
-        aria-label="Rule scope"
+        aria-label={translator.translateText("Rule scope")}
         data-testid="compliance-rule-scope"
         className="mt-2.5 flex flex-wrap items-center gap-1.5"
       >
@@ -462,7 +510,7 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
           data-testid="compliance-rule-pass-rate"
           className="text-xs text-gray-500"
         >
-          Not checked
+          {translator.translateText("Not checked")}
         </p>
       );
     }
@@ -473,7 +521,7 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
           data-testid="compliance-rule-pass-rate"
           className="text-xs text-gray-500"
         >
-          Paused - not checked
+          {translator.translateText("Paused - not checked")}
         </p>
       );
     }
@@ -484,7 +532,7 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
           data-testid="compliance-rule-pass-rate"
           className="text-xs text-gray-500"
         >
-          Not checked yet
+          {translator.translateText("Not checked yet")}
         </p>
       );
     }
@@ -497,21 +545,21 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
           data-testid="compliance-rule-pass-rate"
           className="text-xs text-gray-500"
         >
-          No members to check
+          {translator.translateText("No members to check")}
         </p>
       );
     }
 
     const isShowingFailing: boolean = props.failingRuleId === rule.settingId;
-    const text: RulePassRateText = getRulePassRateText(rate);
+    const text: RulePassRateText = getRulePassRateText(rate, translator);
 
     return (
       <div data-testid="compliance-rule-pass-rate" className="w-full sm:w-40">
-        <div className="flex items-baseline gap-1 text-xs">
-          <span className="font-semibold tabular-nums text-gray-900">
-            {text.count}
-          </span>{" "}
-          <span className="text-gray-500">{text.caption}</span>
+        <div
+          data-testid="compliance-rule-pass-rate-text"
+          className="text-xs font-medium tabular-nums text-gray-700"
+        >
+          {text.text}
         </div>
         <div
           role="img"
@@ -547,10 +595,8 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
             className="mt-1.5 inline-flex items-center gap-1 rounded text-xs font-medium text-red-700 underline-offset-4 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           >
             {isShowingFailing
-              ? "Showing who fails it"
-              : `Show the ${rate.failing} who ${
-                  rate.failing === 1 ? "fails" : "fail"
-                } it`}
+              ? translator.translateText("Showing who fails it")
+              : translator.translatePlural(SHOW_WHO_FAILS, rate.failing)}
             <Icon icon={IconProp.ChevronRight} className="h-3 w-3" />
           </button>
         ) : (
@@ -584,7 +630,7 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
           data-testid={`compliance-rule-read-only-${rule.settingId}`}
           className="text-xs text-gray-500"
         >
-          Refresh the page to change this rule
+          {translator.translateText("Refresh the page to change this rule")}
         </p>
       );
     }
@@ -610,7 +656,11 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
           title="Choose severities"
           buttonStyle={ButtonStyleType.NORMAL}
           buttonSize={ButtonSize.Small}
-          ariaLabel={`Choose severities for ${label}`}
+          ariaLabel={translator.translateTemplate(
+            "Choose severities for {{rule}}",
+            { rule: label },
+          )}
+          isAriaLabelTranslated={true}
           dataTestId={`compliance-rule-choose-severities-${rule.settingId}`}
           onClick={openEditForm}
         />
@@ -622,7 +672,9 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
           aria-busy={isSaving}
         >
           <span id={toggleLabelId} className="sr-only">
-            {`Check members against ${label}`}
+            {translator.translateTemplate("Check members against {{rule}}", {
+              rule: label,
+            })}
           </span>
           {/*
            * initialValue as well as value: Toggle only mirrors `value`
@@ -663,7 +715,10 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
             icon={IconProp.Edit}
             buttonStyle={ButtonStyleType.ICON}
             buttonSize={ButtonSize.Small}
-            ariaLabel={`Edit ${label}`}
+            ariaLabel={translator.translateTemplate("Edit {{name}}", {
+              name: label,
+            })}
+            isAriaLabelTranslated={true}
             tooltip="Edit rule"
             dataTestId={`compliance-rule-edit-${rule.settingId}`}
             onClick={openEditForm}
@@ -676,7 +731,10 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
             icon={IconProp.Trash}
             buttonStyle={ButtonStyleType.ICON}
             buttonSize={ButtonSize.Small}
-            ariaLabel={`Delete ${label}`}
+            ariaLabel={translator.translateTemplate("Delete {{name}}", {
+              name: label,
+            })}
+            isAriaLabelTranslated={true}
             tooltip="Delete rule"
             dataTestId={`compliance-rule-delete-${rule.settingId}`}
             onClick={() => {
@@ -694,8 +752,8 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
   const getRuleRow: (rule: TeamComplianceRuleJSON) => ReactElement = (
     rule: TeamComplianceRuleJSON,
   ): ReactElement => {
-    const title: string = getRuleTitle(rule);
-    const label: string = getRuleLabel(rule);
+    const title: string = getRuleTitle(rule, translator);
+    const label: string = getRuleLabel(rule, translator);
     const shown: ShownToggle = getShownToggle(rule);
     /*
      * A rule with no severities left says why on the row, in full: nobody
@@ -703,6 +761,8 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
      * explanation, so it is not repeated behind a "Warning" chip as well.
      */
     const noSeveritiesLeft: boolean = hasNoSeveritiesLeft(rule);
+    // What is wrong with the rule, in the reader's words (#8632).
+    const warningTexts: Array<string> = getRuleWarningTexts(rule, translator);
     /*
      * Active as the switch shows it: known, with severities and a channel to
      * check, and on (or being turned on).
@@ -762,24 +822,34 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
                       icon={IconProp.PauseCircle}
                       className="h-3 w-3 text-gray-400"
                     />
-                    Paused
+                    {translator.translateText("Paused")}
                   </span>
                 )}
-                {rule.warnings.length > 0 && !noSeveritiesLeft ? (
-                  <Tooltip text={rule.warnings.join(" ")}>
+                {warningTexts.length > 0 && !noSeveritiesLeft ? (
+                  <Tooltip
+                    text={warningTexts.join(" ")}
+                    // Worded already, from what the server found (#8632).
+                    isTextTranslated={true}
+                  >
                     <span
                       tabIndex={0}
                       data-testid="compliance-rule-warning-chip"
-                      aria-label={`Warning: ${rule.warnings.join(" ")}`}
+                      aria-label={translator.translateTemplate(
+                        "Warning: {{warnings}}",
+                        { warnings: warningTexts.join(" ") },
+                      )}
                       className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                     >
                       <Icon
                         icon={IconProp.Alert}
                         className="h-3 w-3 text-amber-500"
                       />
-                      {rule.warnings.length === 1
-                        ? "Warning"
-                        : `${rule.warnings.length} warnings`}
+                      {warningTexts.length === 1
+                        ? translator.translateText("Warning")
+                        : translator.translatePlural(
+                            WARNINGS,
+                            warningTexts.length,
+                          )}
                     </span>
                   </Tooltip>
                 ) : (
@@ -790,7 +860,7 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
                 data-testid="compliance-rule-sentence"
                 className="mt-0.5 text-sm leading-relaxed text-gray-600"
               >
-                {getRuleSentence(rule)}
+                {getRuleSentence(rule, translator)}
               </p>
               {getScopeChips(rule)}
               {noSeveritiesLeft ? (
@@ -804,7 +874,8 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
                     className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-amber-500"
                   />
                   <span>
-                    {rule.warnings.join(" ") || NO_SEVERITIES_LEFT_WARNING}
+                    {warningTexts.join(" ") ||
+                      translator.translateText(NO_SEVERITIES_LEFT_WARNING)}
                   </span>
                 </div>
               ) : (
@@ -827,9 +898,11 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
                   data-testid={`compliance-rule-refresh-note-${rule.settingId}`}
                   className="mt-2 text-xs text-amber-700"
                 >
-                  {`${
-                    shown.enabled ? "Turned on" : "Paused"
-                  }. The results could not be refreshed, so the counts on this page are from before this change.`}
+                  {translator.translateText(
+                    shown.enabled
+                      ? "Turned on. The results could not be refreshed, so the counts on this page are from before this change."
+                      : "Paused. The results could not be refreshed, so the counts on this page are from before this change.",
+                  )}
                 </p>
               ) : (
                 <></>
@@ -860,7 +933,7 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
             description={
               canCreate
                 ? "A rule says what everyone on this team must set up, like a phone call for critical incidents. Start from a recommendation below or build your own."
-                : "A rule says what everyone on this team must set up. Ask a project admin to add one."
+                : "A rule says what everyone on this team must set up. Ask a Project Admin to add one."
             }
             footer={
               canCreate ? (
@@ -919,7 +992,7 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
             getEmptyState()
           ) : (
             <ul
-              aria-label="Compliance rules"
+              aria-label={translator.translateText("Compliance rules")}
               className="divide-y divide-gray-100"
             >
               {props.rules.map(getRuleRow)}
@@ -957,10 +1030,19 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
       {ruleToDelete ? (
         <ConfirmModal
           title="Delete this rule?"
+          /*
+           * A sentence with the rule's name in it, worded here: handed over
+           * as an element, so the dialog draws it as given.
+           */
           description={
-            hasNoSeveritiesLeft(ruleToDelete)
-              ? `"${getRuleLabel(ruleToDelete)}" is removed from this team. This cannot be undone - to keep it, edit it to choose new severities instead.`
-              : `"${getRuleLabel(ruleToDelete)}" stops being checked for everyone on this team. This cannot be undone - to stop checking it for a while, pause it instead.`
+            <>
+              {translator.translateTemplate(
+                hasNoSeveritiesLeft(ruleToDelete)
+                  ? '"{{rule}}" is removed from this team. This cannot be undone - to keep it, edit it to choose new severities instead.'
+                  : '"{{rule}}" stops being checked for everyone on this team. This cannot be undone - to stop checking it for a while, pause it instead.',
+                { rule: getRuleLabel(ruleToDelete, translator) },
+              )}
+            </>
           }
           submitButtonText="Delete rule"
           submitButtonType={ButtonStyleType.DANGER}

@@ -193,11 +193,11 @@ Klik op het gestippelde blok **Kies wat deze workflow start** en kies **Webhook*
 
 ### Controleren dat de melding afgaat
 
-Klik op **Component toevoegen**, voeg een blok **If / Else** toe en verbind de punt **Out** van de trigger ermee. Zet **Value to check** op `{{local.components.webhook-1.returnValues.request-body.status}}`, **Comparison** op **is equal to** en **Compare with** op `firing`.
+Klik op **Component toevoegen**, voeg een blok **Als / Anders** toe en verbind de punt **Uitgaand** van de trigger ermee. Zet **Te controleren waarde** op `{{local.components.webhook-1.returnValues.request-body.status}}`, **Vergelijking** op **is gelijk aan** en **Vergelijken met** op `firing`.
 
 ### Het incident declareren
 
-Voeg een blok **Create One Incident** toe en verbind de kant **Yes** van het blok **If / Else** ermee. Kies onder **Incident Template** een sjabloon dat de ernst en het bereikbaarheidsbeleid instelt dat moet worden opgeroepen (zie [Incidentsjablonen](/docs/incidents/settings#incidentsjablonen)). Stel onder **JSON Object** in wat van Alertmanager komt:
+Voeg een blok **Incident aanmaken (één record)** toe en verbind de kant **Ja** van het blok **Als / Anders** ermee. Kies onder **Incidentsjabloon** een sjabloon dat de ernst en het bereikbaarheidsbeleid instelt dat moet worden opgeroepen (zie [Incidentsjablonen](/docs/incidents/settings#incidentsjablonen)). Stel onder **JSON-object** in wat van Alertmanager komt:
 
 ```json
 {
@@ -206,14 +206,14 @@ Voeg een blok **Create One Incident** toe en verbind de kant **Yes** van het blo
 }
 ```
 
-Zonder sjabloon moet **JSON Object** ook `incidentSeverityId` bevatten, de ID van een van de incidenternstniveaus van het project.
+Zonder sjabloon moet **JSON-object** ook `incidentSeverityId` bevatten, de ID van een van de incidenternstniveaus van het project.
 
 ### De workflow inschakelen
 
 Zet **Ingeschakeld** aan bovenaan de **Bouwer**. Een uitgeschakelde workflow antwoordt Alertmanager met `400`.
 :::
 
-Eén run verwerkt één melding, dus hij declareert één incident, hoeveel waarschuwingen de melding ook bevat. Een melding die `resolved` is, neemt de kant **No** van het blok **If / Else**, waar niets is verbonden, dus daar stopt de run. Gebruik de monitor voor één incident per waarschuwing dat bij herstel wordt opgelost.
+Eén run verwerkt één melding, dus hij declareert één incident, hoeveel waarschuwingen de melding ook bevat. Een melding die `resolved` is, neemt de kant **Nee** van het blok **Als / Anders**, waar niets is verbonden, dus daar stopt de run. Gebruik de monitor voor één incident per waarschuwing dat bij herstel wordt opgelost.
 
 ## Alertmanager zelf bewaken
 

@@ -47,6 +47,17 @@ import {
   SloRollingWindowFill,
 } from "Common/Utils/Slo/SloProjection";
 import { formatSloPercent } from "Common/Utils/Slo/SloWidgetFormat";
+import {
+  isEventSliType,
+  isRequestSliType,
+} from "Common/Utils/Slo/SloRequestSli";
+import SliType from "Common/Types/ServiceLevelObjective/SliType";
+import { formatMilliseconds } from "Common/Utils/Milliseconds";
+import {
+  getRequestWindowFill,
+  getSloServiceCountInLanguage,
+} from "./SloRequestTextInLanguage";
+import { normalizeSloMetricQueryConfig } from "Common/Utils/Slo/SloMetricSli";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
@@ -54,6 +65,8 @@ export interface ComponentProps {
   sloId: ObjectID;
   slo: ServiceLevelObjective;
   monitorCount: number;
+  // A request SLO's services, which it measures instead of monitors.
+  serviceCount?: number | undefined;
   owners: Array<ResourceOwnerEntry> | undefined;
   isLoadingOwners: boolean;
   isRefreshing: boolean;
@@ -136,24 +149,66 @@ const SloOverviewHero: FunctionComponent<ComponentProps> = (
     ? OneUptimeDate.fromString(slo.lastEvaluatedAt)
     : null;
 
+  /*
+   * A request SLO measures its services' requests: its chip counts and
+   * links its services, its window fill is how far back its requests are
+   * counted, and a latency SLO's target says how fast is fast enough.
+   */
+  // Counted in events: from its services' traces, or their metric (#8445).
+  const isRequestSlo: boolean = isEventSliType(slo.sliType);
+  const isMetricSlo: boolean = slo.sliType === SliType.Metric;
+  const serviceCount: number = props.serviceCount || 0;
+  // Spans only: a Metric SLO says which metric it counts instead.
+  const requestFilter: string | null = isRequestSliType(slo.sliType)
+    ? (slo.requestFilter || "").trim() || null
+    : null;
+  const metricName: string | null = isMetricSlo
+    ? normalizeSloMetricQueryConfig(slo.metricQueryConfig)?.metricName || null
+    : null;
+
   const headline: string = getSloHeadlineInLanguage(
     {
       isEnabled: slo.isEnabled,
       isArchived: slo.isArchived,
       sloStatus: slo.sloStatus,
       lastEvaluatedAt: slo.lastEvaluatedAt,
-      monitorCount: props.monitorCount,
+      // What the SLO measures: a request SLO waits for nothing to attach.
+      monitorCount: isRequestSlo ? serviceCount : props.monitorCount,
     },
     translator,
   );
 
-  const windowFill: SloRollingWindowFill | null = getRollingWindowFill({
-    windowType: slo.windowType,
-    windowDays: slo.windowDays,
-    targetPercentage: slo.targetPercentage,
-    errorBudgetTotalSeconds: slo.errorBudgetTotalSeconds,
-    multiMonitorMode: slo.multiMonitorMode,
-  });
+  const windowFill: SloRollingWindowFill | null = isRequestSlo
+    ? getRequestWindowFill({
+        sliType: slo.sliType,
+        windowType: slo.windowType,
+        windowDays: slo.windowDays,
+        timezone: slo.timezone,
+        firstAccumulatedBucketStartAt: slo.firstAccumulatedBucketStartAt,
+        lastAccumulatedBucketEndAt: slo.lastAccumulatedBucketEndAt,
+      })
+    : getRollingWindowFill({
+        windowType: slo.windowType,
+        windowDays: slo.windowDays,
+        targetPercentage: slo.targetPercentage,
+        errorBudgetTotalSeconds: slo.errorBudgetTotalSeconds,
+        multiMonitorMode: slo.multiMonitorMode,
+      });
+
+  const latencyThresholdText: string | null =
+    slo.sliType === SliType.RequestLatency &&
+    typeof slo.latencyThresholdInMilliseconds === "number"
+      ? translator.translateTemplate(
+          "Within {{threshold}}",
+          {
+            threshold: formatMilliseconds(
+              translator,
+              slo.latencyThresholdInMilliseconds,
+            ),
+          },
+          { setsValuesApart: true },
+        )
+      : null;
 
   // Archived and disabled objectives must not show a stale health verdict.
   const statusText: string = slo.isArchived
@@ -171,6 +226,12 @@ const SloOverviewHero: FunctionComponent<ComponentProps> = (
 
   const monitorsRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.SLO_VIEW_MONITORS] as Route,
+    { modelId: props.sloId },
+  );
+
+  // A request SLO's services are chosen in Settings, What It Measures.
+  const settingsRoute: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.SLO_VIEW_SETTINGS] as Route,
     { modelId: props.sloId },
   );
 
@@ -338,6 +399,14 @@ const SloOverviewHero: FunctionComponent<ComponentProps> = (
             {formatSloPercent(slo.targetPercentage, undefined, translator) ||
               translator.translateText("Not set")}
           </dd>
+          {latencyThresholdText ? (
+            <dd
+              data-testid="slo-overview-chip-latency-threshold"
+              className="mt-0.5 text-xs text-gray-500"
+            >
+              {latencyThresholdText}
+            </dd>
+          ) : null}
         </div>
         <div className="min-w-0" data-testid="slo-overview-chip-window">
           <dt className="text-xs font-medium text-gray-500">
@@ -357,9 +426,19 @@ const SloOverviewHero: FunctionComponent<ComponentProps> = (
             {windowFill && windowFill.isNotYetFull ? (
               <span
                 data-testid="slo-overview-chip-window-fill"
-                title={translator.translateTemplate(
-                  "This SLO is younger than its compliance window, so it is measured over the data that exists so far and its error budget is still growing. Expect the numbers to steady as the window fills.",
-                )}
+                title={
+                  isMetricSlo
+                    ? translator.translateTemplate(
+                        "OneUptime is still counting the older events of this SLO's metric, so its numbers cover part of its compliance window so far. Expect them to steady as the window fills.",
+                      )
+                    : isRequestSlo
+                      ? translator.translateTemplate(
+                          "OneUptime is still counting the older requests of this SLO's services, so its numbers cover part of its compliance window so far. Expect them to steady as the window fills.",
+                        )
+                      : translator.translateTemplate(
+                          "This SLO is younger than its compliance window, so it is measured over the data that exists so far and its error budget is still growing. Expect the numbers to steady as the window fills.",
+                        )
+                }
               >
                 <StatusBadge
                   text={getRollingWindowFillTextInLanguage(
@@ -372,29 +451,96 @@ const SloOverviewHero: FunctionComponent<ComponentProps> = (
             ) : null}
           </dd>
         </div>
-        <div className="min-w-0" data-testid="slo-overview-chip-monitors">
-          <dt className="text-xs font-medium text-gray-500">
-            {translator.translateText("Monitors")}
-          </dt>
-          <dd className="mt-1">
-            <Link
-              to={monitorsRoute}
-              className="inline-flex items-center gap-1 rounded text-sm font-medium text-gray-900 hover:text-indigo-600 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-            >
-              {props.monitorCount === 0 ? (
-                <span className="text-yellow-700">
-                  {getSloMonitorCountInLanguage(props.monitorCount, translator)}
-                </span>
-              ) : (
-                getSloMonitorCountInLanguage(props.monitorCount, translator)
-              )}
-              <Icon
-                icon={IconProp.ChevronRight}
-                className="h-4 w-4 flex-shrink-0 text-gray-400"
-              />
-            </Link>
-          </dd>
-        </div>
+        {isRequestSlo ? (
+          <div className="min-w-0" data-testid="slo-overview-chip-services">
+            <dt className="text-xs font-medium text-gray-500">
+              {translator.translateText("Services")}
+            </dt>
+            <dd className="mt-1">
+              <Link
+                to={settingsRoute}
+                className="inline-flex items-center gap-1 rounded text-sm font-medium text-gray-900 hover:text-indigo-600 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              >
+                {serviceCount === 0 ? (
+                  <span className="text-yellow-700">
+                    {getSloServiceCountInLanguage(serviceCount, translator)}
+                  </span>
+                ) : (
+                  getSloServiceCountInLanguage(serviceCount, translator)
+                )}
+                <Icon
+                  icon={IconProp.ChevronRight}
+                  className="h-4 w-4 flex-shrink-0 text-gray-400"
+                />
+              </Link>
+            </dd>
+            {/*
+             * Only some of their requests count (#8444): says so, with the
+             * search, so the numbers above read for what they count.
+             */}
+            {requestFilter ? (
+              <dd
+                className="mt-0.5 truncate text-xs text-gray-500"
+                data-testid="slo-overview-chip-request-filter"
+                title={requestFilter}
+              >
+                {translator.translateTemplate(
+                  "Matching {{filter}}",
+                  { filter: requestFilter },
+                  { setsValuesApart: true },
+                )}
+              </dd>
+            ) : (
+              <></>
+            )}
+            {/*
+             * A Metric SLO counts one of their metrics (#8445): which one,
+             * so the numbers above read for what they count.
+             */}
+            {metricName ? (
+              <dd
+                className="mt-0.5 truncate text-xs text-gray-500"
+                data-testid="slo-overview-chip-metric"
+                title={metricName}
+              >
+                {translator.translateTemplate(
+                  "From {{metric}}",
+                  { metric: metricName },
+                  { setsValuesApart: true },
+                )}
+              </dd>
+            ) : (
+              <></>
+            )}
+          </div>
+        ) : (
+          <div className="min-w-0" data-testid="slo-overview-chip-monitors">
+            <dt className="text-xs font-medium text-gray-500">
+              {translator.translateText("Monitors")}
+            </dt>
+            <dd className="mt-1">
+              <Link
+                to={monitorsRoute}
+                className="inline-flex items-center gap-1 rounded text-sm font-medium text-gray-900 hover:text-indigo-600 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              >
+                {props.monitorCount === 0 ? (
+                  <span className="text-yellow-700">
+                    {getSloMonitorCountInLanguage(
+                      props.monitorCount,
+                      translator,
+                    )}
+                  </span>
+                ) : (
+                  getSloMonitorCountInLanguage(props.monitorCount, translator)
+                )}
+                <Icon
+                  icon={IconProp.ChevronRight}
+                  className="h-4 w-4 flex-shrink-0 text-gray-400"
+                />
+              </Link>
+            </dd>
+          </div>
+        )}
         <div className="min-w-0" data-testid="slo-overview-owners">
           <dt className="text-xs font-medium text-gray-500">
             {translator.translateText("Owners")}

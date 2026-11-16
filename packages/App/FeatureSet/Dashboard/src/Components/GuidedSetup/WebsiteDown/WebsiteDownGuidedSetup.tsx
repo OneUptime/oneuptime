@@ -9,7 +9,6 @@ import WebsiteDownApi, {
 import {
   FirstCheckSentence,
   WEBSITE_DOWN_COPY,
-  WEBSITE_DOWN_POLICY_NAME,
   WEBSITE_DOWN_SETUP,
   WEBSITE_DOWN_SETUP_GUIDE_DOCS_PATH,
   WebsiteAddress,
@@ -75,6 +74,12 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import UserUtil from "Common/UI/Utils/User";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import MonitorCheckScheduleUtil from "Common/Utils/Monitor/MonitorCheckScheduleUtil";
+import {
+  getFirstOnCallPolicyName,
+  getSetupPolicyGone,
+  isSetupPolicyInService,
+  SetupPolicyGone,
+} from "Common/Utils/GuidedSetup/OnCallPolicyRecords";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -183,6 +188,12 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
   // Save and continue found a policy made meanwhile elsewhere (#7059).
   const [isPolicyMadeElsewhere, setIsPolicyMadeElsewhere] =
     useState<boolean>(false);
+  /*
+   * The policy this run made was deleted (#8235) or archived (#8432) - in
+   * another tab, or by a teammate - so "Who should be told?" is open
+   * again, and says which.
+   */
+  const [policyGone, setPolicyGone] = useState<SetupPolicyGone | null>(null);
 
   // Step 3.
   const [showNotReceivedHelp, setShowNotReceivedHelp] =
@@ -237,16 +248,20 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
       let loadedMonitor: WebsiteDownMonitorRecord | null = null;
       let loadedPolicy: WebsiteDownPolicyRecord | null = null;
       let loadedResult: OnCallTestPageResult | null = null;
+      let runPolicyGone: SetupPolicyGone | null = null;
 
       const monitorId: string | boolean | undefined =
         stored[WebsiteDownRunValue.MonitorId];
 
+      /*
+       * A read that fails is the page's error, as the project's other reads
+       * are: the run is never forgotten, nor its monitor or policy taken for
+       * gone, because the server could not be reached (#8235). A record
+       * that is gone, or that this person may no longer read, reads as
+       * null.
+       */
       if (typeof monitorId === "string") {
-        loadedMonitor = await WebsiteDownApi.loadMonitor(monitorId).catch(
-          () => {
-            return null;
-          },
-        );
+        loadedMonitor = await WebsiteDownApi.loadMonitor(monitorId);
 
         if (!loadedMonitor) {
           // The monitor is gone: this run starts again.
@@ -259,12 +274,16 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
         nextRun[WebsiteDownRunValue.PolicyId];
 
       if (loadedMonitor && typeof policyId === "string") {
-        loadedPolicy = await WebsiteDownApi.loadPolicy(policyId).catch(() => {
-          return null;
-        });
+        loadedPolicy = await WebsiteDownApi.loadPolicy(policyId);
+        runPolicyGone = getSetupPolicyGone(loadedPolicy);
 
-        if (!loadedPolicy) {
+        if (runPolicyGone) {
+          /*
+           * The policy is gone, or archived and paging no one (#8432): who
+           * is told is set up again, saying why.
+           */
           nextRun = store.save({ [WebsiteDownRunValue.PolicyId]: null });
+          loadedPolicy = null;
         }
       }
 
@@ -304,6 +323,7 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
       setNeedsPayment(loadedNeedsPayment);
       setMonitor(loadedMonitor);
       setPolicy(loadedPolicy);
+      setPolicyGone(runPolicyGone);
       setTestResult(loadedResult);
       setWhoFacts(loadedWhoFacts);
       setOpenStepKey(
@@ -781,11 +801,87 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
   const pickedUserIds: Array<string> = people[PeoplePickerKind.User] || [];
   const pickedTeamIds: Array<string> = people[PeoplePickerKind.Team] || [];
 
+  /*
+   * THE RUN'S POLICY WAS DELETED OR ARCHIVED - in another tab, or by a
+   * teammate - while this page was open (#8235, #8432). Its done line and
+   * the summary said '"Default on-call policy" pages Ana Lopez.' of a
+   * policy that pages nobody, and only a reload noticed: an archived policy
+   * is still there, but incidents and alerts that use it skip it. The run
+   * forgets it, as the page does when it opens on a policy that is gone;
+   * the project's policies are counted again (or, uncountable, the counts
+   * read before stand: they were read before the run made its policy), and
+   * "Who should be told?" opens on what decides who is told now, saying
+   * why first. `policyAsRead` is the policy as just read: null when
+   * deleted.
+   */
+  const forgetGonePolicy: (
+    policyAsRead: WebsiteDownPolicyRecord | null,
+  ) => Promise<void> = async (
+    policyAsRead: WebsiteDownPolicyRecord | null,
+  ): Promise<void> => {
+    const latestFacts: WhoIsToldFacts =
+      await WebsiteDownApi.loadWhoIsToldFacts();
+
+    setRun(store.save({ [WebsiteDownRunValue.PolicyId]: null }));
+    setPolicy(null);
+    setWhoFacts(
+      areWhoIsToldCountsKnown(latestFacts) || !whoFacts
+        ? latestFacts
+        : whoFacts,
+    );
+    setIsPolicyMadeElsewhere(false);
+    setPolicyGone(getSetupPolicyGone(policyAsRead) || SetupPolicyGone.Deleted);
+    setOpenStepKey(WebsiteDownStep.WhoIsTold);
+  };
+
+  /*
+   * The run's policy read again just before a step that says it pages
+   * people moves on: Continue on "Who should be told?", and the test
+   * step's Continue and Skip, which open the summary (#8235). The test
+   * goes to the person setting this up, not to the policy, so it never
+   * notices the policy is gone. Gone or archived (#8432): forgotten, and
+   * step 2 opens again; null. Unreadable: the step says why and stays;
+   * null. Read: the policy as it is now - who it pages may have changed
+   * too.
+   */
+  const readRunPolicyAgain: (
+    policyId: string,
+  ) => Promise<WebsiteDownPolicyRecord | null> = async (
+    policyId: string,
+  ): Promise<WebsiteDownPolicyRecord | null> => {
+    let latest: WebsiteDownPolicyRecord | null = null;
+
+    try {
+      latest = await WebsiteDownApi.loadPolicy(policyId);
+    } catch (err) {
+      setSaveError(API.getFriendlyMessage(err));
+      return null;
+    }
+
+    if (!isSetupPolicyInService(latest)) {
+      await forgetGonePolicy(latest);
+      return null;
+    }
+
+    setPolicy(latest);
+    return latest;
+  };
+
   const saveWhoIsTold: () => Promise<void> = async (): Promise<void> => {
     setSaveError("");
 
     if (mode !== WhoIsToldMode.CreatePolicy || policy) {
-      if (!policy) {
+      if (policy) {
+        setIsSaving(true);
+        const latest: WebsiteDownPolicyRecord | null = await readRunPolicyAgain(
+          policy.id,
+        );
+        setIsSaving(false);
+
+        if (!latest) {
+          return;
+        }
+      } else {
         saveRun({ [WebsiteDownRunValue.WhoIsToldConfirmed]: true });
       }
       openNextStep(WebsiteDownStep.WhoIsTold);
@@ -829,15 +925,18 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
         return;
       }
 
+      // Named in the reader's language, and its two rules too (#7995).
       const policyId: string = await WebsiteDownApi.createPolicy({
         userIds: pickedUserIds,
         teamIds: pickedTeamIds,
+        translator: translator,
       });
       saveRun({ [WebsiteDownRunValue.PolicyId]: policyId });
+      setPolicyGone(null);
       setPolicy(
         (await WebsiteDownApi.loadPolicy(policyId)) || {
           id: policyId,
-          name: WEBSITE_DOWN_POLICY_NAME,
+          name: getFirstOnCallPolicyName(translator),
           responders: [],
         },
       );
@@ -870,15 +969,88 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
     isMonitorOwner: isOwner,
   });
 
+  /*
+   * Why the step is open again with no policy of the run's: the one it made
+   * was deleted (#8235), or archived and pages no one (#8432) - each said
+   * in a sentence of its own. Said first, in the step's polite live region.
+   */
+  const policyGoneLine: ReactElement =
+    policyGone && !policy ? (
+      <p
+        className="text-sm text-gray-700"
+        data-testid={
+          policyGone === SetupPolicyGone.Archived
+            ? "guided-setup-policy-archived"
+            : "guided-setup-policy-deleted"
+        }
+      >
+        {translator.translateText(
+          policyGone === SetupPolicyGone.Archived
+            ? WEBSITE_DOWN_COPY.policyArchived
+            : WEBSITE_DOWN_COPY.policyDeleted,
+        )}
+      </p>
+    ) : (
+      <></>
+    );
+
   const whoContent: ReactElement = (
     <div className="space-y-4">
-      {policy ? (
-        <p className="text-sm text-gray-700">{whoDoneLine}</p>
-      ) : mode === WhoIsToldMode.CreatePolicy ? (
-        <>
+      {/*
+       * What decides who is told, and why that changed, said first: a
+       * polite live region that is on the page whichever way the step
+       * stands, so a screen reader hears why Continue led back here rather
+       * than nothing at all (#8235). The picker and the buttons are not in
+       * it.
+       */}
+      <div
+        className="space-y-4"
+        aria-live="polite"
+        data-testid="guided-setup-who-region"
+      >
+        {policyGoneLine}
+        {policy ? (
+          <p
+            className="text-sm text-gray-700"
+            data-testid="guided-setup-who-done-line"
+          >
+            {whoDoneLine}
+          </p>
+        ) : mode === WhoIsToldMode.CreatePolicy ? (
           <p className="text-sm text-gray-500">
             {translator.translateText(WEBSITE_DOWN_COPY.whoCreateHelp)}
           </p>
+        ) : (
+          <>
+            {isPolicyMadeElsewhere && mode === WhoIsToldMode.ExistingPolicy ? (
+              <p
+                className="text-sm text-gray-500"
+                data-testid="guided-setup-policy-made-elsewhere"
+              >
+                {translator.translateText(
+                  WEBSITE_DOWN_COPY.policyMadeElsewhere,
+                )}
+              </p>
+            ) : (
+              <></>
+            )}
+            {whoHelp ? (
+              <p
+                className="text-sm text-gray-700"
+                data-testid="guided-setup-who-help"
+              >
+                {translator.translateText(whoHelp)}
+              </p>
+            ) : (
+              <></>
+            )}
+          </>
+        )}
+      </div>
+      {policy ? (
+        <></>
+      ) : mode === WhoIsToldMode.CreatePolicy ? (
+        <>
           <div>
             <p
               id="guided-setup-people-label"
@@ -903,33 +1075,14 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
             {translator.translateTemplate(
               WEBSITE_DOWN_COPY.whoCreatePolicyNote,
               {
-                policy: WEBSITE_DOWN_POLICY_NAME,
+                // The name it will be made with, in the reader's language.
+                policy: getFirstOnCallPolicyName(translator),
               },
             )}
           </p>
         </>
       ) : (
         <>
-          {isPolicyMadeElsewhere && mode === WhoIsToldMode.ExistingPolicy ? (
-            <p
-              className="text-sm text-gray-500"
-              data-testid="guided-setup-policy-made-elsewhere"
-            >
-              {translator.translateText(WEBSITE_DOWN_COPY.policyMadeElsewhere)}
-            </p>
-          ) : (
-            <></>
-          )}
-          {whoHelp ? (
-            <p
-              className="text-sm text-gray-700"
-              data-testid="guided-setup-who-help"
-            >
-              {translator.translateText(whoHelp)}
-            </p>
-          ) : (
-            <></>
-          )}
           {mode === WhoIsToldMode.ExistingPolicy ? (
             <AppLink
               to={routeOf(PageMap.INCIDENTS_SETTINGS_ON_CALL_RULES)}
@@ -981,14 +1134,43 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
   const isAcknowledged: boolean =
     testResult?.status === OnCallTestPageStatus.Acknowledged;
 
+  /*
+   * Continue and Skip open the summary, which says who the run's policy
+   * pages: it is read again first (#8235). Gone, there is nothing true to
+   * sum up, and "Who should be told?" opens again instead; unreadable, the
+   * step says why and stays.
+   */
+  const finishTestStep: (skipped: boolean) => Promise<void> = async (
+    skipped: boolean,
+  ): Promise<void> => {
+    setSaveError("");
+
+    if (policy) {
+      setIsSaving(true);
+      const latest: WebsiteDownPolicyRecord | null = await readRunPolicyAgain(
+        policy.id,
+      );
+      setIsSaving(false);
+
+      if (!latest) {
+        return;
+      }
+    }
+
+    if (skipped) {
+      saveRun({ [WebsiteDownRunValue.TestSkipped]: true });
+    }
+
+    setOpenStepKey(null);
+  };
+
   const skipTest: ReactElement = (
     <Button
       title={WEBSITE_DOWN_COPY.testSkip}
       buttonStyle={ButtonStyleType.LINK}
       dataTestId="guided-setup-skip-test"
       onClick={() => {
-        saveRun({ [WebsiteDownRunValue.TestSkipped]: true });
-        setOpenStepKey(null);
+        void finishTestStep(true);
       }}
     />
   );
@@ -1006,14 +1188,22 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
         </p>
       )}
       {executionLogId ? <></> : emailWarning}
+      {saveError ? (
+        <p role="alert" className="text-sm text-red-600">
+          <ErrorInSentence message={saveError} showWhereToLook={true} />
+        </p>
+      ) : (
+        <></>
+      )}
       {isAcknowledged ? (
         <div className={ACTIONS_CLASS_NAME}>
           <Button
             title={WEBSITE_DOWN_COPY.continueButton}
             buttonStyle={ButtonStyleType.PRIMARY}
+            isLoading={isSaving}
             dataTestId="guided-setup-test-continue"
             onClick={() => {
-              setOpenStepKey(null);
+              void finishTestStep(false);
             }}
           />
         </div>
@@ -1199,6 +1389,7 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
             setIsApi(false);
             setIsExistingMonitor(false);
             setIsPolicyMadeElsewhere(false);
+            setPolicyGone(null);
             setShowNotReceivedHelp(false);
             setIsOwner(null);
             setOpenStepKey(WebsiteDownStep.Check);

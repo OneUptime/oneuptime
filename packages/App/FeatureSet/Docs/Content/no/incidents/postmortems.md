@@ -54,7 +54,7 @@ Klikk på **Lagre endringer**. Kortet viser notatet og vedleggene. Etteranalysen
 
 Hver endring av notatet registreres i hendelsens feed og postes i hendelsens Slack- eller Microsoft Teams-kanal hvis den har en. Så lenge etteranalysen ikke er publisert, får ingen abonnent på statussiden høre om den.
 
-Å skrive en etteranalyse krever rollen Project Owner, Project Admin, Project Member, Incident Admin eller Incident Member, eller en egendefinert rolle med tillatelsen Edit Incident. Alle som kan lese hendelsen, kan lese etteranalysen.
+Å skrive en etteranalyse krever rollen Prosjekteier, Prosjektadministrator, Prosjektmedlem, Hendelsesadministrator eller Hendelsesmedlem, eller en egendefinert rolle med tillatelsen Edit Incident. Alle som kan lese hendelsen, kan lese etteranalysen.
 
 ## Start fra en mal eller et KI-utkast
 
@@ -72,7 +72,7 @@ Klikk på **Generate with AI**. Dialogen **Lag etteranalyse med AI** tilbyr en d
 
 Klikk på **Generate with AI** nederst i dialogen. OneUptime AI leser hendelsen (beskrivelsen, rotårsaken og utbedringen, statustidslinjen, de offentlige og private notatene, meldingene i hendelsens Slack- eller Microsoft Teams-kanal og det som ble sagt i [samtalene](/docs/workspace-connections/video-calls#transkripsjoner-av-samtaler)) og skriver etteranalysen etter disposisjonen din. Deretter åpnes editoren med resultatet.
 
-Å generere krever at KI er slått på for prosjektet, under **Prosjektinnstillinger → KI → AI-funksjoner**, og en LLM-leverandør: se [LLM-leverandører](/docs/ai/llm-provider). Det krever også rollen Project Owner eller Project Admin, eller en egendefinert rolle med tillatelsen Edit Incident: andre roller kan skrive etteranalysen, men ikke generere den.
+Å generere krever at KI er slått på for prosjektet, under **Prosjektinnstillinger → KI → AI-funksjoner**, og en LLM-leverandør: se [LLM-leverandører](/docs/ai/llm-provider). Det krever også rollen Prosjekteier eller Prosjektadministrator, eller en egendefinert rolle med tillatelsen Edit Incident: andre roller kan skrive etteranalysen, men ikke generere den.
 
 ### La OneUptime AI skrive et utkast når en hendelse løses
 
@@ -92,7 +92,7 @@ Uten regler får hver løste hendelse et utkast i standardoppsettet til OneUptim
 - Dens **LLM-leverandør**, under **Flere felt**, er leverandøren OneUptime AI skriver utkastet og velger malen med. Med ingen valgt er det prosjektets standardleverandør, ellers den globale. Utkastets innlegg i feeden nevner leverandøren en regel valgte, eller den som ble brukt i stedet, og hvorfor. Se [Hvilken LLM-leverandør en regel bruker](/docs/ai/ai-sre#hvilken-llm-leverandør-en-regel-bruker).
 - Den første aktiverte regelen som samsvarer med hendelsen, avgjør, regnet fra toppen av listen: dra en regel for å flytte den. En hendelse som ingen regel samsvarer med, får ikke noe utkast, og det får ingen hendelse så lenge reglene ikke kan leses.
 - **Skriv utkast til etteranalyse når en hendelse er løst** er fortsatt den eneste bryteren som slår av utkast. Regler avgjør bare utkastene OneUptime AI skriver på egen hånd: **Generate with AI** tilbyr alle oppsett, uansett hva reglene sier.
-- Å opprette, redigere og omordne regler krever rollen Project Owner eller Project Admin. På OneUptime Cloud krever maler Growth-planen: under den avgjør reglene fortsatt hvilke hendelser som får et utkast, og hvert utkast følger standardoppsettet.
+- Å opprette, redigere og omordne regler krever rollen Prosjekteier eller Prosjektadministrator. På OneUptime Cloud krever maler Growth-planen: under den avgjør reglene fortsatt hvilke hendelser som får et utkast, og hvert utkast følger standardoppsettet.
 
 ## Publiser den på statussiden din
 
@@ -113,7 +113,7 @@ Slå av **Varsle abonnenter** for å publisere uten å varsle abonnenter. Endre 
 
 ### Publiser
 
-Klikk på **Lagre endringer**. Kortet viser nå **Etteranalyse synlig på statussiden?**, **Varsle abonnenter**, **Abonnentvarselsstatus** og **Etteranalyse publisert**.
+Klikk på **Lagre endringer**. Kortet viser nå **Etteranalyse synlig på statussiden?**, **Varsle abonnenter**, **Abonnentvarslingsstatus** og **Etteranalyse publisert**.
 :::
 
 Dette avgjør om kundene ser den og hører om den:
@@ -121,9 +121,9 @@ Dette avgjør om kundene ser den og hører om den:
 - **Hendelsen må vises på statussiden.** En statusside viser en etteranalyse bare på en hendelse den viser: **Synlig på statussiden** slått på, og hendelsen ikke privat.
 - **Notatet må si noe.** En etteranalyse som publiseres med et tomt notat, vises ikke, og ingen får beskjed.
 - **Abonnentene får beskjed én gang**, første gang statussiden viser etteranalysen. Å lagre den igjen, eller redigere den mens den er publisert, oppdaterer siden uten å varsle noen. Å ta den bort og publisere den igjen varsler dem igjen. En etteranalyse som publiseres mens hendelsen er skjult, sendes når hendelsen gjøres synlig.
-- **Varsle abonnenter leses når varselet sendes.** Å slå den på etter at etteranalysen er publisert, sender ingenting.
+- **Varsle abonnenter leses når varslingen sendes.** Å slå den på etter at etteranalysen er publisert, sender ingenting.
 
-**Abonnentvarselsstatus** viser om varselet er sendt, og tilbyr **Prøv på nytt** når det mislyktes. Se [Etteranalysen](/docs/status-pages/subscribers#etteranalysen) for hvert tilfelle, og [Prøv på nytt og send på nytt](/docs/status-pages/subscribers#prøv-på-nytt-og-send-på-nytt).
+**Abonnentvarslingsstatus** viser om varslingen er sendt, og tilbyr **Prøv på nytt** når det mislyktes. Se [Etteranalysen](/docs/status-pages/subscribers#etteranalysen) for hvert tilfelle, og [Prøv på nytt og send på nytt](/docs/status-pages/subscribers#prøv-på-nytt-og-send-på-nytt).
 
 **Etteranalyse publisert** er også tidspunktet da etteranalysen regnes som publisert for målingen **Tid til etteranalyse**: se [Ferdige målinger](/docs/incidents/settings#ferdige-målinger).
 
@@ -158,7 +158,7 @@ Har prosessen din et eget trinn, for eksempel en gjennomgang, legger du til en s
 
 Hvor en status står, avgjør hva den teller som, vist under **Teller som**: over **Utkast** som **Ikke startet**, fra **Utkast** og nedover som **Pågår**, fra **Fullført** og nedover som **Ferdig**, og da mangler den ikke lenger. **Til gjennomgang**, mellom dem, mangler fortsatt; **Ikke nødvendig**, under **Fullført**, gjør ikke det.
 
-**Ikke startet**, **Utkast** og **Fullført** er innebygde, fordi OneUptime flytter etteranalyser til dem: du kan gi dem nytt navn og ny farge, men ikke slette eller arkivere dem, og de beholder rekkefølgen. Arkiver en status du ikke bruker lenger, fra menyen **⋯** i raden: ingen kan flytte en etteranalyse dit igjen, etteranalysene i den blir der til noen flytter dem, og listen filtrerer fortsatt etter den. **Arkiverte etteranalysestatuser**, slått sammen under tabellen, viser dem, med **Fjern fra arkivet** for å hente en tilbake. Å opprette, redigere og slette statuser krever rollen Project Owner, Project Admin eller Incident Admin, eller en egendefinert rolle med den tilsvarende tillatelsen for statuser for etteranalyse.
+**Ikke startet**, **Utkast** og **Fullført** er innebygde, fordi OneUptime flytter etteranalyser til dem: du kan gi dem nytt navn og ny farge, men ikke slette eller arkivere dem, og de beholder rekkefølgen. Arkiver en status du ikke bruker lenger, fra menyen **⋯** i raden: ingen kan flytte en etteranalyse dit igjen, etteranalysene i den blir der til noen flytter dem, og listen filtrerer fortsatt etter den. **Arkiverte etteranalysestatuser**, slått sammen under tabellen, viser dem, med **Fjern fra arkivet** for å hente en tilbake. Å opprette, redigere og slette statuser krever rollen Prosjekteier, Prosjektadministrator eller Hendelsesadministrator, eller en egendefinert rolle med den tilsvarende tillatelsen for statuser for etteranalyse.
 
 ## Se alle etteranalyser
 
@@ -209,13 +209,13 @@ De to KI-handlingene krever at KI er slått på for prosjektet, og et kodelager 
 
 **Hendelser → Handlingspunkter** viser handlingspunktene fra alle etteranalyser i prosjektet, med den nærmeste fristen først, hver med hendelse, eier, frist og status. Filtrer listen etter **Status**, **Eier** og **Frist**, og **Vis** i en rad åpner hendelsens side **Etteranalyse**.
 
-Å lese handlingspunkter krever det samme som å lese hendelsen. Å legge dem til, endre dem og slette dem krever rollen Project Owner, Project Admin, Project Member, Incident Admin eller Incident Member, eller en egendefinert rolle med den tilsvarende tillatelsen for handlingspunkter i etteranalyser. Handlingspunktene til en privat hendelse er, som hendelsen selv, bare synlige for brukerne som eier den, medlemmene av teamene som eier den, prosjektadministratorer og prosjekteiere.
+Å lese handlingspunkter krever det samme som å lese hendelsen. Å legge dem til, endre dem og slette dem krever rollen Prosjekteier, Prosjektadministrator, Prosjektmedlem, Hendelsesadministrator eller Hendelsesmedlem, eller en egendefinert rolle med den tilsvarende tillatelsen for handlingspunkter i etteranalyser. Handlingspunktene til en privat hendelse er, som hendelsen selv, bare synlige for brukerne som eier den, medlemmene av teamene som eier den, Prosjektadministratorer og Prosjekteiere.
 
 ## Etteranalyser for episoder
 
 En hendelsesepisode har også en side **Etteranalyse**, under **Undersøkelse**: én gjennomgang for alle hendelsene i episoden. Klikk på **Rediger evaluering** for å skrive den. **Bruk mal** og **Generate with AI** fungerer som på en hendelse, og KI leser episoden og medlemshendelsene.
 
-En episodes etteranalyse er bare notatet: den har ingen vedlegg, og ingen statusside viser den. OneUptime AI skriver ikke et utkast av seg selv når en episode løses. Å generere en krever rollen Project Owner eller Project Admin, eller en egendefinert rolle med tillatelsen Edit Incident Episode. Den har heller ingen status, og listen over etteranalyser utelater den.
+En episodes etteranalyse er bare notatet: den har ingen vedlegg, og ingen statusside viser den. OneUptime AI skriver ikke et utkast av seg selv når en episode løses. Å generere en krever rollen Prosjekteier eller Prosjektadministrator, eller en egendefinert rolle med tillatelsen Edit Incident Episode. Den har heller ingen status, og listen over etteranalyser utelater den.
 
 Varsler og vedlikeholdshendelser har ingen etteranalyse.
 
@@ -242,7 +242,7 @@ Prosjektet har ennå ingen mal for etteranalyse, eller rollen din kan ikke lese 
 :::
 
 :::details Generate with AI sier at KI er slått av, eller at du mangler tillatelse
-Slå på KI under **Prosjektinnstillinger → KI → AI-funksjoner**. Å generere krever rollen Project Owner eller Project Admin, eller en egendefinert rolle med tillatelsen Edit Incident, også for den som kan redigere etteranalysen.
+Slå på KI under **Prosjektinnstillinger → KI → AI-funksjoner**. Å generere krever rollen Prosjekteier eller Prosjektadministrator, eller en egendefinert rolle med tillatelsen Edit Incident, også for den som kan redigere etteranalysen.
 :::
 
 :::details Etteranalysen vises ikke på statussiden
@@ -250,7 +250,7 @@ Sjekk tre ting: **Publiser på statussiden** er slått på, notatet er ikke tomt
 :::
 
 :::details Abonnentene fikk ikke beskjed om etteranalysen
-**Varsle abonnenter** var slått av ved publiseringen, eller hendelsen er skjult: da sendes den så snart hendelsen gjøres synlig. **Abonnentvarselsstatus** på kortet forteller hvilken det var.
+**Varsle abonnenter** var slått av ved publiseringen, eller hendelsen er skjult: da sendes den så snart hendelsen gjøres synlig. **Abonnentvarslingsstatus** på kortet forteller hvilken det var.
 :::
 
 :::details Det kom ikke noe KI-utkast da hendelsen ble løst

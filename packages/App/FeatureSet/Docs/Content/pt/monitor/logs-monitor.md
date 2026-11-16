@@ -85,12 +85,14 @@ Cada log é armazenado com uma de sete severidades. Para logs do OpenTelemetry, 
 | Severidade | Números de severidade do OpenTelemetry |
 | --- | --- |
 | **Traço** | 1–4 |
-| **Debug** | 5–8 |
-| **Information** | 9–12 |
+| **Depuração** | 5–8 |
+| **Informação** | 9–12 |
 | **Aviso** | 13–16 |
 | **Erro** | 17–20 |
 | **Fatal** | 21–24 |
 | **Não especificado** | Qualquer outro |
+
+Um log sem número de severidade recebe a severidade do seu texto de severidade, em maiúsculas ou minúsculas: `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` e `FATAL`, seus níveis numerados como `WARN2` e grafias como `warning`, `notice`, `critical` e `emerg`. Qualquer outro texto deixa a severidade não especificada.
 
 ## Como ele é avaliado
 

@@ -33,7 +33,7 @@ En server som svarar tillfrågas inte igen, inte ens när den svarar utan tillf�
 
 ## Innan du börjar
 
-- **En roll som kan skapa monitorer**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member, eller en anpassad roll med behörigheten Create Monitor.
+- **En roll som kan skapa monitorer**: Projektägare, Projektadministratör, Projektmedlem, Monitoradministratör eller Monitormedlem, eller en anpassad roll med behörigheten Create Monitor.
 - **En sond som når UDP-port 123 på servern.** Alla sonder kan kontrollera en publik tidsserver. För en server i ett privat nätverk använder du en [anpassad sond](/docs/probe/custom-probe) inne i det nätverket. En brandvägg framför servern måste släppa igenom UDP, inte bara TCP, från [OneUptime Clouds sond-IP-adresser](/docs/configuration/ip-addresses) eller från din anpassade sond.
 
 ## Skapa en NTP-monitor
@@ -112,7 +112,7 @@ Med två eller flera filter avgör **Matchningsvillkor** om **Alla** måste matc
 
 En ny NTP-monitor börjar med två kriterier:
 
-- **Offline** — servern svarar inte, är inte synkroniserad, eller dess klocka ligger `1000` ms eller mer från sondens. Monitorn markeras som **Offline** och en incident med namnet "_monitornamn_ is not serving good time" skapas. Den löser sig själv när servern åter levererar tillförlitlig tid.
+- **Offline** — servern svarar inte, är inte synkroniserad, eller dess klocka ligger `1000` ms eller mer från sondens. Monitorn markeras som **Offline** och en incident med namnet "_monitornamn_ levererar inte rätt tid" skapas. Den löser sig själv när servern åter levererar tillförlitlig tid.
 - **Online** — servern svarar, är synkroniserad och dess klocka ligger inom `1000` ms från sondens. Monitorn markeras som **Fungerar**.
 
 Kriterierna kontrolleras uppifrån och ned, och det första som matchar avgör vad som händer. En server som svarar med fel tid behandlas avsiktligt som nere: varje klient som följer den skulle också ta den tiden.
@@ -157,6 +157,6 @@ Sonden ligger långt från servern, eller vägen är långsammare åt ena hålle
 :::cards
 - [Ping-övervakning](/docs/monitor/ping-monitor): Kontrollera att själva värden kan nås.
 - [Portövervakning](/docs/monitor/port-monitor): Kontrollera TCP-tjänsterna på samma värd.
-- [Anpassade probes](/docs/probe/custom-probe): Kontrollera tidsservrar i ditt eget nätverk.
+- [Anpassade sonder](/docs/probe/custom-probe): Kontrollera tidsservrar i ditt eget nätverk.
 - [Incident- och larmmallar](/docs/monitor/incident-alert-templating): Lägg stratum och avvikelse i en incidents titel.
 :::

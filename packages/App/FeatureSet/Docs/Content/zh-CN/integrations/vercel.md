@@ -205,7 +205,7 @@ OneUptime 需要一个经 Vercel 验证的电子邮件地址，而使用该地�
 ## 后续步骤
 
 :::cards
-- [跟踪浏览器](/docs/telemetry/traces-explorer): 找到一个慢请求及其 span。
+- [追踪浏览器](/docs/telemetry/traces-explorer): 找到一个慢请求及其 span。
 - [日志浏览器](/docs/telemetry/logs-explorer): 搜索你的 Vercel 日志。
 - [状态页面](/docs/status-pages/index): 为资源的状态页面应用你的品牌，并添加订阅者。
 - [摄取密钥](/docs/telemetry/ingestion-keys): 轮换或停用资源的密钥。

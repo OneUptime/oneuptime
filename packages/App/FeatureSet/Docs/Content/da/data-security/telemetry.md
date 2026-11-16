@@ -2,7 +2,7 @@
 
 Telemetri indeholder alt, hvad din kode skriver: en e-mailadresse i en loglinje, et kortnummer i en span-attribut, et token i en stack trace, en kundes spørgsmål i en prompt. Datasikkerhed behandler hver tjenestes logs, traces, undtagelser og AI-samtaler og hver RUM-applikations sessioner som datalagre for sig. Den tager prøver af dem hver time, finder følsomme data i dem, ligesom den gør i en bucket, og **Rens** gør et fund til en rensningsregel, der fra da af maskerer de data ved indtagelse.
 
-Der er intet at sætte op: hver tjenestes telemetri scannes hver time, medmindre **Scan telemetri** er slået fra i projektets indstillinger.
+Der er intet at sætte op: hver tjenestes telemetri scannes hver time, medmindre **Scan telemetri** er slået fra i projektets indstillinger. Vil du udelade én tjenestes logs, spor eller et andet af dens signaler, så slå **Scan indhold** fra i det datalagers **Indstillinger**: fra næste scanning læses intet af det.
 
 :::cards
 - [Hvad der læses](#hvad-der-læses): Attributterne, brødteksterne, beskederne og prompterne i hvert signal.
@@ -45,7 +45,7 @@ En sessionsafspilnings optagelse indeholder teksten på de sider, folk så. Det 
 
 Et AI-kalds prompt rummer hele chatten før personens nyeste besked, så op til 16.384 tegn af hver værdi i et AI-kald læses. Når AI-samtaler indeholder følsomme data, følger to ting mere: den AI-udbyder, kaldene gik til, er en datastrøm for de data, og [Følsomme data sendes til en AI-udbyder](/docs/data-security/checks-and-issues#ai) fejler på datalageret.
 
-Samtalerne fra et [AI-værktøj i virksomheden](/docs/telemetry/ai-company-tools) udelades. Kun Project Owners og Project Admins må læse dem, og et fund havner der, hvor alle, der læser Datasikkerhed, læser det, så de tjenesters spans læses aldrig, og deres AI-samtaler rapporteres som ikke læst.
+Samtalerne fra et [AI-værktøj i virksomheden](/docs/telemetry/ai-company-tools) udelades. Kun Projektejere og Projektadministratorer må læse dem, og et fund havner der, hvor alle, der læser Datasikkerhed, læser det, så de tjenesters spans læses aldrig, og deres AI-samtaler rapporteres som ikke læst.
 
 ## Sådan tager en scanning prøver
 
@@ -101,7 +101,7 @@ Nogle fund kan ikke renses af en regel, og **Rens** siger hvorfor:
 - En af dine egne datatyper: tilføj selv en brugerdefineret rensningsregel med dens mønster.
 - En sessions egne detaljer (`sessions.*`): indtagelse af sessionsafspilninger kører ingen rensningsregler.
 
-**Rens** opretter reglen som dig, med dine egne tilladelser: Project Owners og Project Admins kan trykke på den, og det kan et team også, der må oprette logrensningsregler og trace-rensningsregler for spans, undtagelser og AI-kald.
+**Rens** opretter reglen som dig, med dine egne tilladelser: Projektejere og Projektadministratorer kan trykke på den, og det kan et team også, der må oprette logrensningsregler og trace-rensningsregler for spans, undtagelser og AI-kald.
 
 ## Hvad der tæller som renset
 

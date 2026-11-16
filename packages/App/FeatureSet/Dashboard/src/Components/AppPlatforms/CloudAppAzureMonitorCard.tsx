@@ -30,7 +30,7 @@ import {
 import {
   formatBytes,
   formatCompact,
-  formatDurationMs,
+  formatDurationMsInLanguage,
   formatPercent,
 } from "../TelemetryResource/telemetryFormat";
 import { CLOUD_APP_AZURE_MONITOR_DESCRIPTIONS } from "../MetricDescriptions/CloudMetricDescriptions";
@@ -198,7 +198,7 @@ const CloudAppAzureMonitorCard: FunctionComponent<ComponentProps> = (
   const tiles: Array<ResourceOverviewTile> = [
     {
       title: "Requests",
-      value: formatCompact(summary ? summary.requests : null),
+      value: formatCompact(summary ? summary.requests : null, translator),
       icon: IconProp.Workflow,
       iconColor: "sky",
       loading: isLoading,
@@ -207,14 +207,17 @@ const CloudAppAzureMonitorCard: FunctionComponent<ComponentProps> = (
     },
     {
       title: "Server errors",
-      value: formatPercent(summary ? summary.serverErrorRatePercent : null),
+      value: formatPercent(
+        summary ? summary.serverErrorRatePercent : null,
+        translator,
+      ),
       icon: IconProp.Alert,
       iconColor: "rose",
       loading: isLoading,
       sublabel:
         summary && summary.serverErrors !== null
           ? translator.translateTemplate("{{errors}} errored", {
-              errors: formatCompact(summary.serverErrors),
+              errors: formatCompact(summary.serverErrors, translator),
             })
           : undefined,
       percent: summary ? summary.serverErrorRatePercent : null,
@@ -224,7 +227,10 @@ const CloudAppAzureMonitorCard: FunctionComponent<ComponentProps> = (
     },
     {
       title: "Response time",
-      value: formatDurationMs(summary ? summary.responseTimeMs : null),
+      value: formatDurationMsInLanguage(
+        summary ? summary.responseTimeMs : null,
+        translator,
+      ),
       icon: IconProp.Clock,
       iconColor: "emerald",
       loading: isLoading,
@@ -236,6 +242,7 @@ const CloudAppAzureMonitorCard: FunctionComponent<ComponentProps> = (
       value: formatAppServiceCpuTime(
         summary ? summary.cpuTimeSeconds : null,
         translator.language,
+        translator,
       ),
       icon: IconProp.ChartBar,
       iconColor: "blue",
@@ -245,7 +252,7 @@ const CloudAppAzureMonitorCard: FunctionComponent<ComponentProps> = (
     },
     {
       title: "Memory",
-      value: formatBytes(summary ? summary.memoryBytes : null),
+      value: formatBytes(summary ? summary.memoryBytes : null, translator),
       icon: IconProp.SquareStack,
       iconColor: "violet",
       loading: isLoading,
@@ -351,7 +358,7 @@ const CloudAppAzureMonitorCard: FunctionComponent<ComponentProps> = (
           windowEnd={props.end}
           syncId={props.syncId}
           yFormatter={(value: number): string => {
-            return formatDurationMs(value);
+            return formatDurationMsInLanguage(value, translator);
           }}
           loading={chartsLoading}
           description={CLOUD_APP_AZURE_MONITOR_DESCRIPTIONS.responseTimeChart}

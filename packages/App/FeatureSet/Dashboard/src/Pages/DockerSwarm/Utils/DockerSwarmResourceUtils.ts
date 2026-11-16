@@ -1,4 +1,5 @@
 import DockerSwarmResourceModel from "Common/Models/DatabaseModels/DockerSwarmResource";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
@@ -55,10 +56,10 @@ export function keyForDockerSwarmCluster(
 
 export function formatBytes(bytes: number | null | undefined): string {
   if (bytes === null || bytes === undefined || !Number.isFinite(bytes)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (bytes < 1024) {
-    return `${Math.round(bytes)} B`;
+    return `${Math.round(bytes)}\u00A0B`;
   }
   const units: Array<string> = ["KiB", "MiB", "GiB", "TiB", "PiB"];
   let value: number = bytes / 1024;
@@ -67,12 +68,12 @@ export function formatBytes(bytes: number | null | undefined): string {
     value /= 1024;
     idx++;
   }
-  return `${value.toFixed(value >= 100 ? 0 : 1)} ${units[idx]}`;
+  return `${value.toFixed(value >= 100 ? 0 : 1)}\u00A0${units[idx]}`;
 }
 
 export function formatPercent(value: number | null | undefined): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return `${value.toFixed(1)}%`;
 }
@@ -172,7 +173,7 @@ export function formatReplicas(row: DockerSwarmResourceModel): string {
       ? Number(row.desiredReplicas)
       : null;
   if (running === null && desired === null) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (desired === null) {
     return `${running ?? 0}`;

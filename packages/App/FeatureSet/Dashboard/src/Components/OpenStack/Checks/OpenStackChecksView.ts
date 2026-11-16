@@ -25,6 +25,15 @@ import {
   OPENSTACK_CERTIFICATE_EXPIRY_WARNING_DAYS,
   OPENSTACK_INSTANCE_BOOT_SLOW_SECONDS,
 } from "Common/Types/OpenStack/OpenStackHealthRules";
+import {
+  getGlobalTranslator,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import {
+  formatCompactDuration,
+  formatDurationInUnit,
+  formatMilliseconds,
+} from "../../../Utils/Milliseconds";
 
 /*
  * What a cloud's Checks page says, worked out apart from how it is drawn, so that every sentence
@@ -94,23 +103,38 @@ export function isOpenStackCheckConnectionNeeded(data: {
   );
 }
 
-export function getOpenStackCheckDurationText(durationInMs: number): string {
+export function getOpenStackCheckDurationText(
+  durationInMs: number,
+  translator: Translator = getGlobalTranslator(),
+): string {
   const safe: number = Number.isFinite(durationInMs)
     ? Math.max(0, durationInMs)
     : 0;
 
   if (safe < 1000) {
-    return `${Math.round(safe)} ms`;
+    // "412 ms", "۴۱۲ میلی‌ثانیه" (issue #7418).
+    return formatMilliseconds(translator, safe, { maximumFractionDigits: 0 });
   }
 
   if (safe < 60_000) {
-    return `${(safe / 1000).toFixed(1)} s`;
+    // "1.5 s", "۱٫۵ ثانیه" (issue #8348).
+    return formatDurationInUnit(translator, safe / 1000, "second", {
+      decimals: 1,
+    });
   }
 
   const minutes: number = Math.floor(safe / 60_000);
   const seconds: number = Math.round((safe - minutes * 60_000) / 1000);
+  const roundsUp: boolean = seconds === 60;
 
-  return seconds === 60 ? `${minutes + 1}m 0s` : `${minutes}m ${seconds}s`;
+  /*
+   * "4m 12s", "۴ دقیقه ۱۲ ثانیه": the Dashboard's compact minutes and
+   * seconds, in the reader's units and digits (#8455).
+   */
+  return formatCompactDuration(translator, {
+    minutes: roundsUp ? minutes + 1 : minutes,
+    seconds: roundsUp ? 0 : seconds,
+  });
 }
 
 // Who said what. What a service wrote is kept as it is: this is drawn as text and nothing else.

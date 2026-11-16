@@ -53,7 +53,7 @@ Open **Gebruikersinstellingen**, rechts in de balk onder de bovenste balk. Het z
 
 **Aan de slag** en **Waarschuwingen & meldingen** zijn open; de andere secties beginnen ingeklapt, en een sectie gaat vanzelf open wanneer je op een van haar pagina's bent. **Werkruimte** verschijnt alleen als het project Slack, Microsoft Teams of Mattermost heeft gekoppeld.
 
-Projecteigenaren en -beheerders kunnen je instellingen ook bekijken: onder **Gebruikers** openen ze jouw rij en de sectie **Bereikbaarheid** daarvan, met **Gereedheid**, **Meldingsmethoden** en **Hoe ik bereikbaar ben**. Ze kunnen daar een methode voor je toevoegen, maar de code gaat naar de methode zelf, dus alleen jij kunt hem verifiëren.
+Projecteigenaren en Projectbeheerders kunnen je instellingen ook bekijken: onder **Gebruikers** openen ze jouw rij en de sectie **Bereikbaarheid** daarvan, met **Gereedheid**, **Meldingsmethoden** en **Hoe ik bereikbaar ben**. Ze kunnen daar een methode voor je toevoegen, maar de code gaat naar de methode zelf, dus alleen jij kunt hem verifiëren.
 
 ## Waarmee je begint
 
@@ -95,7 +95,7 @@ Een oproep kan je bereiken voor een soort en een ernst waarvoor je geen regel he
 2. Heb je die niet, dan één betaalde methode, in deze volgorde: sms, een telefoongesprek, WhatsApp, Telegram. Het is de eerste die je hebt geverifieerd, op een kanaal dat het project heeft aangezet.
 3. Heb je die ook niet, dan een webhook.
 
-Je krijgt daarover een e-mail, en de eigenaren van het bereikbaarheidsbeleid ook, of die van het project als het beleid er geen heeft. Is er helemaal niets geverifieerd, dan kan de oproep niet worden afgeleverd, en zegt de e-mail dat. Deze e-mails worden tegengehouden zolang er oproepen blijven komen, zodat een storm van oproepen geen storm van e-mails wordt. Hoe je de ontbrekende regel toevoegt, staat bij [Hoe ik bereikbaar ben](/docs/notifications/on-call-rules#als-een-ernst-geen-regel-heeft).
+Je krijgt daarover een e-mail, en de eigenaren van het bereikbaarheidsbeleid ook, of de Projecteigenaren als het beleid er geen heeft. Is er helemaal niets geverifieerd, dan kan de oproep niet worden afgeleverd, en zegt de e-mail dat. Deze e-mails worden tegengehouden zolang er oproepen blijven komen, zodat een storm van oproepen geen storm van e-mails wordt. Hoe je de ontbrekende regel toevoegt, staat bij [Hoe ik bereikbaar ben](/docs/notifications/on-call-rules#als-een-ernst-geen-regel-heeft).
 
 ## De taal van je oproepen
 
@@ -116,7 +116,7 @@ Open **Gebruikersinstellingen → Bereikbaarheidslogboeken**. Geen rij voor het 
 :::
 
 :::details Ik krijg e-mails over items waar ik nooit om heb gevraagd
-Je bent eigenaar van het item, direct of via een team, of het item heeft geen eigenaren en jij bent projecteigenaar. Zet de gebeurtenis uit onder **Gebruikersinstellingen → Meldingsinstellingen**, of beperk de hoeveelheid onder **Gebruikersinstellingen → E-mailvoorkeuren**.
+Je bent eigenaar van het item, direct of via een team, of het item heeft geen eigenaren en jij bent Projecteigenaar. Zet de gebeurtenis uit onder **Gebruikersinstellingen → Meldingsinstellingen**, of beperk de hoeveelheid onder **Gebruikersinstellingen → E-mailvoorkeuren**.
 :::
 
 :::details Mijn oproepen zijn in het Engels, maar het dashboard niet

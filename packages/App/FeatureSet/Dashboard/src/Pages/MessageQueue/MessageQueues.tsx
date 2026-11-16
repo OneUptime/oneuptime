@@ -80,7 +80,9 @@ import {
   validateMessageQueueNamespace,
   validateMessageQueueOtherSystem,
 } from "./Utils/MessageQueuePresentation";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Width caps for the two cells whose text can be long: a queue name is a
@@ -569,7 +571,9 @@ const MessageQueues: FunctionComponent<
             getElement: (item: MessageQueue): ReactElement => {
               return (
                 <span className="text-sm text-gray-700">
-                  {getMessageQueueSystemLabel(item.messagingSystem)}
+                  {getValueOrQuietDash(
+                    getMessageQueueSystemLabel(item.messagingSystem),
+                  )}
                 </span>
               );
             },
@@ -600,7 +604,7 @@ const MessageQueues: FunctionComponent<
                   title={broker.title}
                   data-testid="message-queue-broker"
                 >
-                  {broker.text}
+                  {getValueOrQuietDash(broker.text)}
                 </span>
               );
             },
@@ -645,7 +649,7 @@ const MessageQueues: FunctionComponent<
                   title={lastSeen.title || undefined}
                   data-testid="message-queue-last-seen"
                 >
-                  {lastSeen.text}
+                  {getValueOrQuietDash(lastSeen.text)}
                 </span>
               );
             },

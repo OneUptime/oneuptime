@@ -53,17 +53,17 @@ Los filtros de un monitor de estado de sondas cuentan sondas:
 
 | Filtro | Qué cuenta |
 | --- | --- |
-| **Disconnected Probes** | Las sondas vigiladas que están desconectadas. |
-| **Connected Probes** | Las sondas vigiladas que están conectadas. |
+| **Sondas desconectadas** | Las sondas vigiladas que están desconectadas. |
+| **Sondas conectadas** | Las sondas vigiladas que están conectadas. |
 
 Ambos son números enteros y se comparan con **Mayor que**, **Menor que**, **Igual a** y las demás comparaciones. Un monitor nuevo empieza con dos criterios:
 
 | Criterio | Filtro | Qué hace |
 | --- | --- | --- |
-| Check if a probe is disconnected | **Disconnected Probes** mayor que `0` | Pone el monitor fuera de línea y declara un incidente titulado `Probe disconnected: {{disconnectedProbeNames}}`, que se resuelve solo. |
-| Check if every probe is connected | **Disconnected Probes** igual a `0` | Pone el monitor en estado operativo. |
+| Comprobar si una sonda está desconectada | **Sondas desconectadas** mayor que `0` | Pone el monitor fuera de línea y declara un incidente titulado «Sonda desconectada: {{disconnectedProbeNames}}», que se resuelve solo. |
+| Comprobar si todas las sondas están conectadas | **Sondas desconectadas** igual a `0` | Pone el monitor en estado operativo. |
 
-**Connected Probes** sirve para un monitor que vigila varias sondas y puede perder una: **Connected Probes** menor que `2` declara un incidente solo cuando quedan menos de dos.
+El filtro **Sondas conectadas** sirve para un monitor que vigila varias sondas y puede perder una: **Sondas conectadas** menor que `2` declara un incidente solo cuando quedan menos de dos.
 
 ### Esperar más antes de un incidente
 

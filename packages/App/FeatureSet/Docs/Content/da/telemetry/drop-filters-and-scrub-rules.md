@@ -31,7 +31,7 @@ Drop-filtre og scrub-regler for protokoller gælder lige så vel for protokoller
 ## Før du begynder
 
 - **Protokoller eller spans, der ankommer.** Se [OpenTelemetry](/docs/telemetry/open-telemetry).
-- **En rolle, der ændrer telemetriindstillinger.** Project Owner eller Project Admin, eller en brugerdefineret rolle med tilladelsen til det, du ændrer, såsom Create Log Drop Filter eller Create Trace Scrub Rule. Telemetry-rollerne kan se filtre og regler, men ikke ændre dem.
+- **En rolle, der ændrer telemetriindstillinger.** Projektejer eller Projektadministrator, eller en brugerdefineret rolle med tilladelsen til det, du ændrer, såsom Create Log Drop Filter eller Create Trace Scrub Rule. Telemetry-rollerne kan se filtre og regler, men ikke ændre dem.
 
 ## Kassér poster, eller tag stikprøver
 

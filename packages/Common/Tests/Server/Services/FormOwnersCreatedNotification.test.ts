@@ -104,6 +104,7 @@ import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedExcept
 import OwnerRuleAssignment from "../../../Server/Utils/Rules/OwnerRuleAssignment";
 
 import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
+import { useInMemoryOwnerNotificationDeliveries } from "../../Helpers/InMemoryOwnerNotificationDeliveries";
 type OnBeforeCreate = (
   createBy: CreateBy<Incident>,
 ) => Promise<OnCreate<Incident>>;
@@ -208,6 +209,11 @@ function submit(): Promise<PublicFormSubmissionResult> {
 }
 
 beforeEach(() => {
+  /*
+   * Whom the Created job tells is written down before it takes the record,
+   * and each owner told through it (OwnerNotificationDeliveries, #8199).
+   */
+  useInMemoryOwnerNotificationDeliveries();
   isOwnerNotified = new Map<string, boolean>();
   heldSince = new Map<string, Date | null>();
   ownerUserIds = [];
