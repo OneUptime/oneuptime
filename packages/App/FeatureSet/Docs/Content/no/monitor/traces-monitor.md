@@ -127,7 +127,7 @@ En trasemonitor som er opprettet via API-et eller Terraform uten kriterier, star
 
 | Kriterium | Filter | Virkning |
 | --- | --- | --- |
-| Check if … is offline | **Antall spans** **Lik** `0` | Setter monitoren som frakoblet og erklærer en hendelse som løses automatisk |
+| Check if … is offline | **Antall spans** **Lik** `0` | Setter monitoren som offline og erklærer en hendelse som løses automatisk |
 | Check if … is online | **Antall spans** **Større enn** `0` | Setter monitoren som tilkoblet |
 
 ## Gjennomgått eksempel: mislykkede checkout-forespørsler

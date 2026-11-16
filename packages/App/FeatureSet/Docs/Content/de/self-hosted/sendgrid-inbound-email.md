@@ -1,6 +1,6 @@
 # SendGrid Inbound E-Mail
 
-Mit dem **Incoming Email Monitor** von OneUptime können Sie Alarme anhand von E-Mails erstellen und auflösen, die an eindeutige, monitorspezifische E-Mail-Adressen gesendet werden. Das ist nützlich für die Anbindung von Altsystemen, Alarmierungswerkzeugen oder jedem Dienst, der E-Mails senden kann.
+Mit dem **Incoming Email Monitor** von OneUptime können Sie Warnungen anhand von E-Mails erstellen und auflösen, die an eindeutige, monitorspezifische E-Mail-Adressen gesendet werden. Das ist nützlich für die Anbindung von Altsystemen, Alarmierungswerkzeugen oder jedem Dienst, der E-Mails senden kann.
 
 Dieselbe Einrichtung lässt auch Workflows E-Mails empfangen: Ein Workflow mit dem Trigger **Eingehende E-Mail** erhält eine eigene Adresse auf derselben Domain, und jede E-Mail an diese Adresse startet den Workflow. Siehe [Trigger](/docs/workflows/triggers#incoming-email).
 
@@ -29,7 +29,7 @@ sequenceDiagram
 1. Sie erstellen in OneUptime einen **Incoming Email Monitor**
 2. OneUptime erzeugt für diesen Monitor eine eindeutige E-Mail-Adresse (z. B. `monitor-abc123@inbound.yourdomain.com`)
 3. Wird eine E-Mail an diese Adresse gesendet, empfängt SendGrid sie und leitet sie per Webhook an OneUptime weiter
-4. OneUptime prüft die E-Mail anhand Ihrer konfigurierten Kriterien, um Alarme zu erstellen oder aufzulösen
+4. OneUptime prüft die E-Mail anhand Ihrer konfigurierten Kriterien, um Warnungen zu erstellen oder aufzulösen
 
 ## Voraussetzungen
 
@@ -120,13 +120,13 @@ Wenden Sie sie dann an: Führen Sie unter Docker Compose `npm run start` aus, wa
 
 ### Einen Incoming-Email-Monitor erstellen
 
-[Erstellen Sie einen Incoming-Email-Monitor](/docs/monitor/incoming-email-monitor#einen-monitor-für-eingehende-e-mails-erstellen). Seine Seite **Übersicht** zeigt seine Adresse, etwa `monitor-abc123def456@inbound.yourdomain.com`, und seine Kriterien entscheiden, welche E-Mails einen Alarm erstellen und welche ihn auflösen.
+[Erstellen Sie einen Incoming-Email-Monitor](/docs/monitor/incoming-email-monitor#einen-monitor-für-eingehende-e-mails-erstellen). Seine Seite **Übersicht** zeigt seine Adresse, etwa `monitor-abc123def456@inbound.yourdomain.com`, und seine Kriterien entscheiden, welche E-Mails eine Warnung erstellen und welche ihn auflösen.
 
 Workflows nutzen dieselbe Domain. Fügen Sie einem Workflow den Trigger **Eingehende E-Mail** hinzu und klicken Sie darauf: Seine Adresse (`workflow-…@inbound.yourdomain.com`) steht oben in seinen Einstellungen. Solange die Inbound-E-Mail-Variablen oben nicht gesetzt sind, meldet der Trigger, dass der Server nicht für den E-Mail-Empfang eingerichtet ist.
 
 ### Eine Test-E-Mail senden
 
-Senden Sie eine E-Mail an die Adresse des Monitors, mit einem Betreff, der zu seinen Kriterien passt. Die Zusammenfassung des Monitors zeigt die E-Mail, und ein Alarm wird erstellt, wenn die Kriterien zutreffen.
+Senden Sie eine E-Mail an die Adresse des Monitors, mit einem Betreff, der zu seinen Kriterien passt. Die Zusammenfassung des Monitors zeigt die E-Mail, und eine Warnung wird erstellt, wenn die Kriterien zutreffen.
 :::
 
 ## Referenz der Umgebungsvariablen
@@ -154,8 +154,8 @@ Worauf ein Incoming-Email-Monitor prüfen kann – den Betreff, den Absender, de
 4. **Das Webhook-Secret prüfen:** Die Destination URL muss mit dem Wert von `INBOUND_EMAIL_WEBHOOK_SECRET` enden. Solange die Variable leer oder ein Platzhalter ist, wird jede E-Mail mit `503` abgelehnt, und das Log des Dienstes `app` sagt es beim Start; eine E-Mail an eine URL, die mit etwas anderem endet, wird mit `403` abgelehnt.
 :::
 
-:::details Der Monitor erstellt keine Alarme
-1. **Die Kriterien prüfen:** Prüfen Sie, ob Ihre Kriterien zum Erstellen von Alarmen zum Inhalt der E-Mail passen, und testen Sie zuerst mit exakten Zeichenfolgen, bevor Sie Muster verwenden.
+:::details Der Monitor erstellt keine Warnungen
+1. **Die Kriterien prüfen:** Prüfen Sie, ob Ihre Kriterien zum Erstellen von Warnungen zum Inhalt der E-Mail passen, und testen Sie zuerst mit exakten Zeichenfolgen, bevor Sie Muster verwenden.
 2. **Den Monitor prüfen:** Stellen Sie sicher, dass er nicht deaktiviert ist und dass sein Typ Eingehende E-Mail ist.
 3. **Die Zusammenfassung des Monitors ansehen:** Prüfen Sie, ob die E-Mail empfangen und verarbeitet wurde, und lesen Sie in den Auswertungslogs nach, wie die Kriterien zugetroffen haben.
 :::

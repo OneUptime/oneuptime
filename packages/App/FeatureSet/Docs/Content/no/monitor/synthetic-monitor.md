@@ -64,7 +64,7 @@ Klikk på **Test monitor** for å kjøre skriptet én gang fra en sonde, og sjek
 
 ### Gå gjennom kriteriene
 
-Monitoren starter med to kriterier: den er frakoblet og erklærer en hendelse når en kjøring mislykkes, og online når ingen gjør det. Endre dem, eller legg til dine egne — se [Kriterier](#kriterier) — og klikk deretter på **Neste**.
+Monitoren starter med to kriterier: den er offline og erklærer en hendelse når en kjøring mislykkes, og online når ingen gjør det. Endre dem, eller legg til dine egne — se [Kriterier](#kriterier) — og klikk deretter på **Neste**.
 
 ### Velg sonder, og opprett
 

@@ -34,7 +34,7 @@ flowchart LR
 | Collector del cluster | Deployment | Metriche del cluster, eventi Kubernetes e le specifiche complete di pod, nodi e workload, dall'API di Kubernetes. | Sì |
 | Collector di nodo | DaemonSet | Log dei pod da `/var/log/pods`, metriche di kubelet e cAdvisor, e le metriche del sistema operativo del nodo. | Sì |
 | Instrumentazione eBPF (OBI) | DaemonSet | Tracce HTTP, gRPC, SQL e Redis e metriche delle richieste di ogni pod, e la mappa dei servizi. | Sì |
-| Agente AI di Kubernetes | Deployment | Consente a OneUptime AI di eseguire `kubectl` in sola lettura mentre indaga su un incidente o un avviso di questo cluster. | Sì |
+| Agente IA di Kubernetes | Deployment | Consente a OneUptime AI di eseguire `kubectl` in sola lettura mentre indaga su un incidente o un avviso di questo cluster. | Sì |
 | Lettore di log | Deployment | Log dei pod tramite l'API di Kubernetes, dove il collector di nodo non può leggerli. | Con i preset `gke-autopilot`, `eks-fargate` e `openshift-restricted` |
 | Profiler eBPF | DaemonSet | Flame graph continui della CPU di ogni processo. | No |
 | kube-state-metrics | Deployment | Fasi dei pod, motivi di attesa dei container e quote di risorse. | No |
@@ -386,7 +386,7 @@ La profilazione richiede **Linux 5.10** o successivo, e un pod privilegiato con 
 | `ebpf.enabled` | `true` | Tracce eBPF e metriche delle richieste. Vedi [Tracce applicative con eBPF](#tracce-applicative-con-ebpf). |
 | `profiling.enabled` | `false` | Flame graph della CPU. Vedi [Profilazione continua della CPU](#profilazione-continua-della-cpu). |
 | `kubeStateMetrics.enabled` | `false` | Lo stato del cluster da kube-state-metrics. |
-| `aiAgent.enabled` | `true` | L'agente AI di Kubernetes. Vedi [Agente AI di Kubernetes](/docs/telemetry/kubernetes-agent#agente-ia-kubernetes) per cosa può fare. |
+| `aiAgent.enabled` | `true` | L'agente IA di Kubernetes. Vedi [Agente IA di Kubernetes](/docs/telemetry/kubernetes-agent#agente-ia-kubernetes) per cosa può fare. |
 
 Il [`values.yaml`](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/kubernetes-agent/values.yaml) del chart elenca e spiega ogni opzione, e [Agent Kubernetes](/docs/telemetry/kubernetes-agent) tratta filtraggio, campionamento e come contenere il volume dei dati.
 
@@ -501,7 +501,7 @@ Aumentare `logs.api.replicas` aggiunge lettori, ma ognuno legge ogni namespace c
 
 :::cards
 - [Monitor Kubernetes](/docs/monitor/kubernetes-monitor): Generare avvisi su ciò che l'agente invia.
-- [Agent Kubernetes](/docs/telemetry/kubernetes-agent): Filtraggio, campionamento, l'agente AI e come contenere il volume dei dati.
+- [Agent Kubernetes](/docs/telemetry/kubernetes-agent): Filtraggio, campionamento, l'agente IA e come contenere il volume dei dati.
 - [Osservabilità dei costi di Kubernetes](/docs/telemetry/kubernetes-cost): Vedere quanto costa ogni workload.
 - [Monitor tracce](/docs/monitor/traces-monitor): Generare avvisi sulle tracce che eBPF cattura.
 :::

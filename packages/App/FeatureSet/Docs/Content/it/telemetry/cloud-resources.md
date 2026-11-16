@@ -642,7 +642,7 @@ Un namespace di Service Bus riporta le sue metriche una volta per coda e topic, 
 
 ## Inventario e regole
 
-- **Inventario:** le risorse cloud sono elencate nell'[Inventario](/docs/inventory/overview) come elementi di tipo **Risorsa cloud**, con l'ID del provider come `cloud.resource.id` e il tipo come `cloud.resource.type`. Anche gli strumenti delle risorse dell'agente AI le elencano.
+- **Inventario:** le risorse cloud sono elencate nell'[Inventario](/docs/inventory/overview) come elementi di tipo **Risorsa cloud**, con l'ID del provider come `cloud.resource.id` e il tipo come `cloud.resource.type`. Anche gli strumenti delle risorse dell'agente IA le elencano.
 - **Regole:** **Cloud → Impostazioni → Regole etichette** e **Regole del proprietario** si applicano a esse. Piattaforme applicative ha le sue per gli ambienti cloud, e una regola creata prima che i due venissero separati vale per entrambi.
 
 ## Risoluzione dei problemi

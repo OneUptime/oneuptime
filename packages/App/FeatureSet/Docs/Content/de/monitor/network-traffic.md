@@ -282,7 +282,7 @@ Das Nachschlagen hält die Flows nie auf. Die aktivsten Adressen werden zuerst n
 
 ## Was nicht enthalten ist
 
-- **Alarme auf Flows.** Es gibt noch keinen Flow-basierten Monitor. Um bei einer ausgelasteten Leitung zu alarmieren, verwenden Sie die Alarme zur Schnittstellenauslastung des [Netzwerkgeräte-Monitors](/docs/monitor/network-device-monitor), die SNMP lesen.
+- **Warnungen auf Flows.** Es gibt noch keinen Flow-basierten Monitor. Um bei einer ausgelasteten Leitung zu alarmieren, verwenden Sie die Warnungen zur Schnittstellenauslastung des [Netzwerkgeräte-Monitors](/docs/monitor/network-device-monitor), die SNMP lesen.
 - **Anwendungsnamen über den Port hinaus.** Es gibt keine Deep Packet Inspection, und Cisco-NBAR-Anwendungsnamen werden nicht gelesen.
 - **Verbindungen und Pakete aus der Meraki-Dashboard-API.** Sie sagt, was jedes Netzwerk erreicht hat, nicht, welcher Client damit gesprochen hat, und sie zählt auf einem Uplink weder Pakete noch Fehler: Senden Sie zusätzlich NetFlow von den MX-Appliances, um sie zu sehen.
 - **Anomalieerkennung** im Verkehr.

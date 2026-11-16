@@ -1,6 +1,6 @@
 # Twilio 集成
 
-自托管的 OneUptime 通过您自己的 Twilio 账户发送短信和语音告警，费用由您直接支付给 Twilio。Twilio 凭据保存在 OneUptime 的仪表板中，可以只用于一个项目，也可以用于整个安装。从代码部署的安装也可以改为通过环境变量设置整个安装的账户，由 Helm Chart 和 Docker Compose 传入：请参阅[通过环境变量设置整个安装的账户](#通过环境变量设置整个安装的账户)。
+自托管的 OneUptime 通过您自己的 Twilio 账户发送短信和语音警报，费用由您直接支付给 Twilio。Twilio 凭据保存在 OneUptime 的仪表板中，可以只用于一个项目，也可以用于整个安装。从代码部署的安装也可以改为通过环境变量设置整个安装的账户，由 Helm Chart 和 Docker Compose 传入：请参阅[通过环境变量设置整个安装的账户](#通过环境变量设置整个安装的账户)。
 
 > [!NOTE]
 > 一次旧的迁移曾导入 `TWILIO_ACCOUNT_SID`、`TWILIO_AUTH_TOKEN` 和 `TWILIO_PHONE_NUMBER`；修改这些变量并不能更新现有安装的凭据。下文的 `GLOBAL_TWILIO_` 变量可以。
@@ -25,7 +25,7 @@
 
 ### 检查账户限制
 
-检查账户余额、目的地国家权限以及适用的发送方注册要求。试用账户在接收方、地区等方面有限制，可能导致 OneUptime 的真实告警无法送达；测试前请阅读 [Twilio 关于账户和试用的文档](https://www.twilio.com/docs/usage/tutorials/how-to-use-your-free-trial-account)。生产环境请使用已升级的账户。
+检查账户余额、目的地国家权限以及适用的发送方注册要求。试用账户在接收方、地区等方面有限制，可能导致 OneUptime 的真实警报无法送达；测试前请阅读 [Twilio 关于账户和试用的文档](https://www.twilio.com/docs/usage/tutorials/how-to-use-your-free-trial-account)。生产环境请使用已升级的账户。
 :::
 
 ## 2. 在 OneUptime 中保存凭据
@@ -172,7 +172,7 @@ sequenceDiagram
 | 提交短信 | 否。不过投递状态更新需要回调。 |
 | 简单的测试语音电话 | 否。OneUptime 在出站 API 请求中附带语音指令。 |
 | 了解值班电话是否被接听 | 是。Twilio 会报告每通电话的结束方式，事件的 Feed 因此能写出有人未接听。没有它，电话也会照常拨出。 |
-| 按 1 确认值班告警 | 是。Twilio 把按键输入提交给 OneUptime。 |
+| 按 1 确认值班警报 | 是。Twilio 把按键输入提交给 OneUptime。 |
 | 来电策略 | 是。Twilio 请求通话指令并报告拨号结果。 |
 
 以下是经过 OneUptime Nginx 网关的外部路径。占位符因通知而异：
@@ -215,7 +215,7 @@ Twilio 普通 webhook 的来源地址会变化，因此不要把 SIP 或媒体 I
 :::steps
 1. 在公司网络和 VPN 之外，确认回调主机名解析到公共网关并提供有效的 TLS 证书。浏览器发起的 GET 无法测试这些 POST 回调。
 2. 在项目的 Twilio 配置上使用 **发送测试短信** 和 **发送测试呼叫**，并在目标电话上确认收到。两者都需要添加 Twilio 配置的权限：**项目所有者**、**项目管理员**，或自定义角色中的 **Create Call and SMS** 和 **Read Call and SMS**。
-3. 为用户配置已验证的短信或电话联系方式和通知规则，然后触发一次受控的值班告警。按 1，并在 OneUptime 中确认已被确认。如果您使用来电策略，请拨打配置的号码，并检查其路由和通话日志。
+3. 为用户配置已验证的短信或电话联系方式和通知规则，然后触发一次受控的值班警报。按 1，并在 OneUptime 中确认已被确认。如果您使用来电策略，请拨打配置的号码，并检查其路由和通话日志。
 4. 在 OneUptime 和 Twilio 的消息日志中确认短信的投递状态。发送被接受并不代表已送达；[Twilio 会通过回调报告之后的状态变化](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status)。
 :::
 

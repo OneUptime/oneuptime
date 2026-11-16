@@ -50,7 +50,7 @@ Hver melding OneUptime kjenner igjen, lagres med ett av disse navnene i `event.n
 | Port slått av av svitsjen | `interface.error_disabled` | Problem | `network.interface.name` |
 | Enhet startet på nytt | `device.reboot` | Problem | - |
 | Konfigurasjon endret | `device.config_change` | Til orientering | `user.name` |
-| Enhet frakoblet | `device.offline` | Problem | - |
+| Enhet offline | `device.offline` | Problem | - |
 | Enhet tilkoblet | `device.online` | Gjenoppretting | - |
 | Failover | `ha.failover` | Problem | `ha.role` |
 | Tilstand for høy tilgjengelighet endret | `ha.state_change` | Til orientering | `ha.role` |

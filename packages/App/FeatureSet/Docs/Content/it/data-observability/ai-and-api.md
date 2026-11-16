@@ -10,7 +10,7 @@ OneUptime AI conosce i tuoi dati: indaga su un avviso sui dati partendo da chi s
 - **Un controllo da una frase.** Nella scheda **Controlli** di una tabella, **Scrivi un controllo da una frase** trasforma una regola in un controllo SQL personalizzato nel SQL del tuo motore. Vedi [Controlli e riconciliazioni](/docs/data-observability/checks).
 
 - **Deriva lenta.** Le righe di una tabella, o il valore di un controllo, che si spostano di un quinto o più in una settimana, troppo lentamente per qualsiasi avviso, arrivano in Insight IA come un punto da guardare. Non chiama nessuno.
-- **Dati obsoleti dietro le app AI.** Un servizio che chiama un modello e legge anche una tabella è il consumatore AI di quella tabella. Quando una tabella di questo tipo va in ritardo, la pagina **Conversazioni** del prodotto AI lo dice: un'app che risponde con dati vecchi non mostra nulla di sbagliato nei propri trace.
+- **Dati obsoleti dietro le app IA.** Un servizio che chiama un modello e legge anche una tabella è il consumatore IA di quella tabella. Quando una tabella di questo tipo va in ritardo, la pagina **Conversazioni** del prodotto IA lo dice: un'app che risponde con dati vecchi non mostra nulla di sbagliato nei propri trace.
 
 Ognuna di queste funzioni richiede che OneUptime AI sia attivo per il progetto, e agisce con le autorizzazioni della persona che chiede.
 

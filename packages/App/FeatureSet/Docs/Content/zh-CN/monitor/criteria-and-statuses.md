@@ -61,7 +61,7 @@ flowchart TB
 | **当过滤器匹配时，创建警报。** | 创建在 **创建警报** 下设置的警报。警报只通知您的团队，从不显示在状态页上。 |
 | **当过滤器匹配时，声明事件。** | 声明在 **创建事件** 下设置的事件。您的状态页可以显示它们。 |
 
-事件或警报需要填写标题、**严重程度**，以及折叠起来的描述、所有者、标签和值班策略。标题和描述可以包含检查中的值，例如 `{{monitorName}}`：请参阅 [事件与告警模板](/docs/monitor/incident-alert-templating)。要在条件匹配时呼叫某人，请在 **值班** 下选择一个策略：请参阅 [值班策略](/docs/on-call/policies)。
+事件或警报需要填写标题、**严重程度**，以及折叠起来的描述、所有者、标签和值班策略。标题和描述可以包含检查中的值，例如 `{{monitorName}}`：请参阅 [事件与警报模板](/docs/monitor/incident-alert-templating)。要在条件匹配时呼叫某人，请在 **值班** 下选择一个策略：请参阅 [值班策略](/docs/on-call/policies)。
 
 ### 设置
 
@@ -215,7 +215,7 @@ flowchart TB
 
 :::cards
 - [创建监视器](/docs/monitor/create-monitor): 新监视器的三个步骤。
-- [事件与告警模板](/docs/monitor/incident-alert-templating): 把检查中的值放进标题和描述。
+- [事件与警报模板](/docs/monitor/incident-alert-templating): 把检查中的值放进标题和描述。
 - [监视器组](/docs/monitor/monitor-groups): 将多个监视器汇总为一个状态。
 - [事件概览](/docs/incidents/index): 条件声明事件之后会发生什么。
 :::

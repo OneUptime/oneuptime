@@ -45,13 +45,13 @@ const TRANSLATION: SetupGuideTranslation = {
   "- **Every node's address** — each node's own address, comma-separated, never a virtual IP. With the token, the script offers the cluster's own list: press Enter to take it. The agent also reads the cluster from these when the first node is down.":
     "- **Indirizzo di ogni nodo**: l'indirizzo proprio di ogni nodo, separati da virgole, mai un IP virtuale. Con il token, lo script propone l'elenco del cluster stesso: premi Invio per accettarlo. L'agente legge il cluster da questi nodi anche quando il primo non è attivo.",
   "- **OneUptime AI agent** — whether it may apply fixes; answer **N** to keep it read-only.":
-    "- **Agente AI di OneUptime**: se può applicare correzioni; rispondi **N** per mantenerlo in sola lettura.",
+    "- **Agente IA di OneUptime**: se può applicare correzioni; rispondi **N** per mantenerlo in sola lettura.",
   "It installs to `/opt/oneuptime-proxmox-agent`, writes a `0600` `.env` file and starts everything with Docker Compose. Running the script again reuses everything in that `.env` instead of asking again, so it is also how you upgrade.":
     "Si installa in `/opt/oneuptime-proxmox-agent`, scrive un file `.env` con permessi `0600` e avvia tutto con Docker Compose. Eseguire di nuovo lo script riusa tutto ciò che c'è in quel `.env` invece di chiedere di nuovo, quindi è anche il modo per aggiornare.",
   "`docker compose ps` lists the collector (`oneuptime-proxmox-agent`), the node failover (`oneuptime-pve-api-failover`), the bundled exporter (`oneuptime-pve-exporter`, unless you use your own) and the OneUptime AI agent (`oneuptime-proxmox-ai-agent`). In the collector's logs, look for `Everything is ready. Begin running and processing data.` The cluster then appears automatically in the **Proxmox** section.":
     "`docker compose ps` elenca il collector (`oneuptime-proxmox-agent`), il failover tra nodi (`oneuptime-pve-api-failover`), l'exporter incluso (`oneuptime-pve-exporter`, a meno che non usi il tuo) e l'agente IA di OneUptime (`oneuptime-proxmox-ai-agent`). Nei log del collector, cerca `Everything is ready. Begin running and processing data.` Il cluster compare poi automaticamente nella sezione **Proxmox**.",
   "**OneUptime AI agent (on by default, read-only).** AI investigations are on: it lets OneUptime AI investigate incidents and alerts on this cluster with read-only `pvesh` requests, and changes nothing unless you allow fixes — see **OneUptime AI agent** under Advanced.":
-    "**Agente IA di OneUptime (attivo per impostazione predefinita, in sola lettura).** Le indagini IA sono attive: permette a OneUptime AI di indagare su incidenti e avvisi di questo cluster con richieste `pvesh` in sola lettura, e non cambia nulla finché non consenti le correzioni; vedi **Agente AI di OneUptime** in Avanzato.",
+    "**Agente IA di OneUptime (attivo per impostazione predefinita, in sola lettura).** Le indagini IA sono attive: permette a OneUptime AI di indagare su incidenti e avvisi di questo cluster con richieste `pvesh` in sola lettura, e non cambia nulla finché non consenti le correzioni; vedi **Agente IA di OneUptime** in Avanzato.",
   "Needs Proxmox VE 8.3 or later. Pick an ingestion key in step 1 to show the two commands: they carry the key, which Proxmox VE keeps in the webhook target they add.":
     "Richiede Proxmox VE 8.3 o successivo. Scegli una chiave di ingestione nel passaggio 1 per mostrare i due comandi: contengono la chiave, che Proxmox VE conserva nella destinazione webhook che aggiungono.",
   "Each guest's page then shows its last backup, and the cluster's **Recommendations** offer the **Backup Job Failed** and **Node Fenced** alerts.":
@@ -81,7 +81,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "| `COMPOSE_PROFILES` | No | Set to `pve-exporter` to start the bundled exporter container |":
     "| `COMPOSE_PROFILES` | No | Impostalo su `pve-exporter` per avviare il container dell'exporter incluso |",
   "The OneUptime AI agent's own settings are under **OneUptime AI agent**.":
-    "Le impostazioni proprie dell'agente IA di OneUptime sono in **Agente AI di OneUptime**.",
+    "Le impostazioni proprie dell'agente IA di OneUptime sono in **Agente IA di OneUptime**.",
   "When the install script asks **Run the bundled prometheus-pve-exporter?**, answer **n** and give your exporter's address (`host:port`, no scheme).":
     "Quando lo script di installazione chiede **Run the bundled prometheus-pve-exporter?**, rispondi **n** e indica l'indirizzo del tuo exporter (`host:port`, senza schema).",
   "Use an address the agent's container can reach — the host's LAN IP or DNS name: `localhost` inside the container is the container itself. Keep `PVE_API_TOKEN_ID` and `PVE_API_TOKEN_SECRET` in `.env` if you use the OneUptime AI agent, which reads the API with that token.":

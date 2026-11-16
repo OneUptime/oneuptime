@@ -1,6 +1,6 @@
 # Slack-Integration
 
-Verbinden Sie Ihr selbst gehostetes OneUptime mit Slack. Sie erstellen eine Slack-App aus dem Manifest, das Ihr Server erzeugt, geben OneUptime die Zugangsdaten der App und verbinden jedes Projekt mit einem Arbeitsbereich. OneUptime veröffentlicht dann Vorfälle, Alarme und geplante Wartungen in Ihren Kanälen, und Ihr Team bearbeitet sie direkt in Slack.
+Verbinden Sie Ihr selbst gehostetes OneUptime mit Slack. Sie erstellen eine Slack-App aus dem Manifest, das Ihr Server erzeugt, geben OneUptime die Zugangsdaten der App und verbinden jedes Projekt mit einem Arbeitsbereich. OneUptime veröffentlicht dann Vorfälle, Warnungen und geplante Wartungen in Ihren Kanälen, und Ihr Team bearbeitet sie direkt in Slack.
 
 Diese Seite richtet sich an alle, die den OneUptime-Server betreiben. Sobald Slack verbunden ist, werden Benachrichtigungsregeln pro Projekt eingerichtet: siehe [Slack](/docs/workspace-connections/slack).
 
@@ -152,7 +152,7 @@ Das Manifest richtet diese Funktionen ein. Jede erreicht Ihren Server über die 
 
 ### Bilder in Nachrichten
 
-Beschreibungen von Vorfällen und Alarmen können Screenshots enthalten, zum Beispiel den eines synthetischen Monitors (siehe [Einen Screenshot zeigen](/docs/monitor/incident-alert-templating#einen-screenshot-zeigen)). OneUptime zeigt sie in Slack-Nachrichten, indem es jeden als private Datei in Ihren Arbeitsbereich hochlädt; dafür braucht es den Bot-Scope `files:write`. Das erzeugte Manifest enthält ihn.
+Beschreibungen von Vorfällen und Warnungen können Screenshots enthalten, zum Beispiel den eines synthetischen Monitors (siehe [Einen Screenshot zeigen](/docs/monitor/incident-alert-templating#einen-screenshot-zeigen)). OneUptime zeigt sie in Slack-Nachrichten, indem es jeden als private Datei in Ihren Arbeitsbereich hochlädt; dafür braucht es den Bot-Scope `files:write`. Das erzeugte Manifest enthält ihn.
 
 Wenn Sie Ihre Slack-App aus einem älteren Manifest erstellt haben, fügen Sie `files:write` unter **OAuth & Permissions > Bot Token Scopes** hinzu (oder aktualisieren Sie die App aus dem aktuellen Manifest). Wählen Sie dann unter **Projekteinstellungen > Arbeitsbereich > Slack** erneut **Mit Slack verbinden**, damit der neue Scope gewährt wird. Bis dahin wird jeder Screenshot als sein Alternativtext angezeigt.
 

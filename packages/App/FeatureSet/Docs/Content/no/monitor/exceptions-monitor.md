@@ -146,7 +146,7 @@ En unntaksmonitor som er opprettet via API-et eller Terraform uten kriterier, st
 
 | Kriterium | Filter | Virkning |
 | --- | --- | --- |
-| Check if … has exceptions | **Antall unntak** **Større enn** `0` | Setter monitoren som frakoblet og erklærer en hendelse som løses automatisk |
+| Check if … has exceptions | **Antall unntak** **Større enn** `0` | Setter monitoren som offline og erklærer en hendelse som løses automatisk |
 | Check if … has no exceptions | **Antall unntak** **Lik** `0` | Setter monitoren som tilkoblet |
 
 ## Nye, tilbakevendte og stigende unntak
@@ -188,7 +188,7 @@ Du vil ha en hendelse hver gang API-et kaster et unntak i produksjon, og ingenti
 | `TimeoutError` × 2 | ingen | Aktivt | Nei: intet miljø |
 | `NullReferenceException` × 4 | `production` | Løst etter at de oppsto | Nei: løst |
 
-**Antall unntak** er 3, så **Mer enn** `0` samsvarer: monitoren blir frakoblet, og en hendelse erklæres. Når det har gått fem minutter uten noe aktivt produksjonsunntak, slutter regelen å samsvare, monitoren går tilbake til standardstatusen sin, og hendelsen løser seg selv.
+**Antall unntak** er 3, så **Mer enn** `0` samsvarer: monitoren blir offline, og en hendelse erklæres. Når det har gått fem minutter uten noe aktivt produksjonsunntak, slutter regelen å samsvare, monitoren går tilbake til standardstatusen sin, og hendelsen løser seg selv.
 
 ## Feilsøking
 

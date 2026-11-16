@@ -135,7 +135,7 @@ Hva leverandøren mottar, og hva modellen kan gjøre med det:
 - **Bare det du legger i blokken.** OneUptime sender en fast sikkerhetsinstruksjon og deretter blokkens **Systeminstruksjoner**, **Prompt** og **Kontekst**, med referansene fylt ut. **Kontekst** kommer sist, etter en markør, og sikkerhetsinstruksjonen forteller modellen at alt etter markøren er upålitelige data, også tekst som ser ut som instruksjoner.
 - **Ingenting annet.** Dataene fra triggeren, historikken til arbeidsflyten, utdata fra andre blokker, prosjektposter, telemetri og hemmeligheter legges aldri ved. De forlater bare OneUptime når du viser til dem i en av de tre innstillingene.
 - **Tekst, og ingen verktøy.** Modellen kan ikke spørre OneUptime, gjøre HTTP-forespørsler eller endre data. Ekstra parametere fra en leverandør slipper bare gjennom en tillatelsesliste med felt som kun justerer genereringen: de kan ikke erstatte meldingene, legge til verktøy, nettsøk eller andre datakilder, be om noe annet enn tekst eller om flere svar, strømme, la leverandøren beholde forespørselen eller heve grensen for utdata i blokken. Felt OneUptime ikke kjenner, forkastes.
-- **Modellen er administratorens valg.** Må genereringen holde seg frakoblet, velger du en modell som ikke henter noe på egen hånd hos leverandøren.
+- **Modellen er administratorens valg.** Må genereringen holde seg offline, velger du en modell som ikke henter noe på egen hånd hos leverandøren.
 
 Hva som logges:
 

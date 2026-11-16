@@ -1,11 +1,11 @@
 # Opsgenie
 
-Senden Sie OneUptime-Vorfälle an [Opsgenie](https://www.atlassian.com/software/opsgenie). Ein Workflow legt einen Opsgenie-Alarm an, wenn ein OneUptime-Vorfall gemeldet wird, und ein zweiter schließt ihn, wenn der OneUptime-Vorfall behoben ist. Nutzen Sie das, solange Opsgenie Ihr Team noch alarmiert und OneUptime Ihre Systeme überwacht.
+Senden Sie OneUptime-Vorfälle an [Opsgenie](https://www.atlassian.com/software/opsgenie). Ein Workflow legt einen Opsgenie-Warnung an, wenn ein OneUptime-Vorfall gemeldet wird, und ein zweiter schließt ihn, wenn der OneUptime-Vorfall behoben ist. Nutzen Sie das, solange Opsgenie Ihr Team noch alarmiert und OneUptime Ihre Systeme überwacht.
 
 :::cards
 - [Den API-Schlüssel speichern](#den-api-schlüssel-speichern): Halten Sie den Schlüssel von Opsgenie aus Ihren Workflows heraus.
-- [Opsgenie-Alarme anlegen](#für-jeden-vorfall-einen-opsgenie-alarm-anlegen): Ein Workflow, zwei Bausteine.
-- [Sie schließen](#den-opsgenie-alarm-schließen): Ein zweiter Workflow, der dem Status des Vorfalls folgt.
+- [Opsgenie-Warnungen anlegen](#für-jeden-vorfall-einen-opsgenie-warnung-anlegen): Ein Workflow, zwei Bausteine.
+- [Sie schließen](#den-opsgenie-warnung-schließen): Ein zweiter Workflow, der dem Status des Vorfalls folgt.
 - [Fehlerbehebung](#fehlerbehebung): Wenn Opsgenie eine Anfrage ablehnt.
 :::
 
@@ -22,11 +22,11 @@ flowchart TB
     update -->|"nach Alias schließen"| og
 ```
 
-Beide Workflows rufen die [Opsgenie Alert API](https://docs.opsgenie.com/docs/alert-api) auf. Der erste gibt dem Alarm einen `alias`, gebildet aus der ID des OneUptime-Vorfalls, und der zweite schließt den Alarm über diesen Alias.
+Beide Workflows rufen die [Opsgenie Alert API](https://docs.opsgenie.com/docs/alert-api) auf. Der erste gibt der Warnung einen `alias`, gebildet aus der ID des OneUptime-Vorfalls, und der zweite schließt die Warnung über diesen Alias.
 
 ## Bevor Sie beginnen
 
-- Eine Opsgenie-Integration vom Typ **API** und ihr **API Key**. Legen Sie eine in Opsgenie unter **Settings → Integrations** an, oder unter den **Integrations** eines Teams, um Alarme an dieses Team zu senden.
+- Eine Opsgenie-Integration vom Typ **API** und ihr **API Key**. Legen Sie eine in Opsgenie unter **Settings → Integrations** an, oder unter den **Integrations** eines Teams, um Warnungen an dieses Team zu senden.
 - Ihre Opsgenie-Region. Konten in Europa, die sich unter `app.eu.opsgenie.com` anmelden, nutzen `api.eu.opsgenie.com`. Alle anderen nutzen `api.opsgenie.com`.
 - In OneUptime das Recht, Workflows und globale Variablen anzulegen. In OneUptime Cloud brauchen Workflows den Tarif **Growth** oder höher.
 
@@ -40,7 +40,7 @@ Beide Workflows rufen die [Opsgenie Alert API](https://docs.opsgenie.com/docs/al
 
 Eine geheime Variable wird in den Ausführungsprotokollen durch `[REDACTED]` ersetzt, der Schlüssel erscheint also nie in einer Ausführung.
 
-## Für jeden Vorfall einen Opsgenie-Alarm anlegen
+## Für jeden Vorfall einen Opsgenie-Warnung anlegen
 
 :::steps
 ### Den Workflow anlegen
@@ -51,7 +51,7 @@ Gehen Sie zu **Arbeitsabläufe**, klicken Sie auf **Arbeitsablauf erstellen** un
 
 Klicken Sie auf den gestrichelten Baustein **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **Bei Erstellung: Vorfall**. Klicken Sie auf den Trigger: Seine **Weiterzugebende Felder** beginnen mit **Titel**, also klicken Sie auf **Feld hinzufügen** und wählen Sie **Beschreibung**.
 
-### Den Alarm anlegen
+### Die Warnung anlegen
 
 Klicken Sie auf **Komponente hinzufügen**, fügen Sie einen **API-Aufruf POST (JSON)**-Baustein hinzu und verbinden Sie den Punkt **Erfolg** des Triggers damit. Setzen Sie seine **URL** auf `https://api.opsgenie.com/v2/alerts`, in Europa auf `https://api.eu.opsgenie.com/v2/alerts`. Setzen Sie unter **Weitere Felder** seine **Anfrage-Header** auf:
 
@@ -73,12 +73,12 @@ Und seinen **Anfragetext** auf:
 
 ### Testen und dann einschalten
 
-Klicken Sie auf **Arbeitsablauf ausführen**, wählen Sie unter **Vorfall** einen Testvorfall aus und führen Sie ihn aus. Der Schritt **API-Aufruf POST (JSON)** zeigt eine `202`-Antwort, und der Alarm erscheint einen Moment später in Opsgenie. Schalten Sie danach oben im **Editor** **Aktiviert** ein.
+Klicken Sie auf **Arbeitsablauf ausführen**, wählen Sie unter **Vorfall** einen Testvorfall aus und führen Sie ihn aus. Der Schritt **API-Aufruf POST (JSON)** zeigt eine `202`-Antwort, und die Warnung erscheint einen Moment später in Opsgenie. Schalten Sie danach oben im **Editor** **Aktiviert** ein.
 :::
 
 Das Schema von Opsgenie ist das Wort `GenieKey`, ein Leerzeichen, dann der Schlüssel. Opsgenie begrenzt `message` auf 130 Zeichen, und seine Prioritäten reichen von `P1` bis `P5`: Um die jeweils eigene Priorität jedes Vorfalls zu senden, siehe [Prioritäten zuordnen](#prioritäten-zuordnen).
 
-## Den Opsgenie-Alarm schließen
+## Den Opsgenie-Warnung schließen
 
 Ein Workflow hat einen Trigger, das Schließen braucht also einen zweiten Workflow, der startet, wenn sich der Status eines Vorfalls ändert.
 
@@ -95,7 +95,7 @@ Legen Sie einen Workflow namens `Close Opsgenie alerts` an und wählen Sie **Bei
 
 Fügen Sie nach dem Trigger einen **Wenn / Sonst**-Baustein hinzu. Setzen Sie **Zu prüfender Wert** auf `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` und **Vergleich** auf **ist wahr**.
 
-### Den Alarm schließen
+### Die Warnung schließen
 
 Fügen Sie nach der Seite **Ja** einen **API-Aufruf POST (JSON)**-Baustein hinzu, mit denselben **Anfrage-Header** und dieser **URL**:
 
@@ -107,10 +107,10 @@ Setzen Sie seinen **Anfragetext** auf `{ "source": "OneUptime", "note": "Resolve
 
 ### Ihn einschalten
 
-Schalten Sie **Aktiviert** ein und beheben Sie dann einen Testvorfall in OneUptime. Opsgenie schließt seinen Alarm.
+Schalten Sie **Aktiviert** ein und beheben Sie dann einen Testvorfall in OneUptime. Opsgenie schließt seine Warnung.
 :::
 
-`identifierType=alias` sagt Opsgenie, dass die Adresse den Alarm über seinen Alias benennt, nicht über seine eigene ID.
+`identifierType=alias` sagt Opsgenie, dass die Adresse die Warnung über seinen Alias benennt, nicht über seine eigene ID.
 
 ## Prioritäten zuordnen
 
@@ -141,10 +141,10 @@ Der Schlüssel ist falsch oder gehört zur anderen Region. Prüfen Sie, dass der
 :::
 
 :::details Das Schließen antwortet mit 404
-Kein Alarm hat diesen Alias. Beide Workflows müssen den Alias gleich bilden, `oneuptime-`, gefolgt von der `_id` des Vorfalls, und die URL muss auf `?identifierType=alias` enden.
+Keine Warnung hat diesen Alias. Beide Workflows müssen den Alias gleich bilden, `oneuptime-`, gefolgt von der `_id` des Vorfalls, und die URL muss auf `?identifierType=alias` enden.
 :::
 
-:::details Der Alarm erscheint nie, obwohl der Schritt 202 zeigt
+:::details Die Warnung erscheint nie, obwohl der Schritt 202 zeigt
 Opsgenie antwortet mit `202`, bevor es die Anfrage verarbeitet, eine Anfrage, die es später ablehnt, zeigt also trotzdem `202`. Suchen Sie die Anfrage in den Protokollen von Opsgenie, um zu sehen, warum sie abgelehnt wurde, etwa weil die Integration ausgeschaltet ist.
 :::
 

@@ -1,6 +1,6 @@
 # Hantera applikationer
 
-OneUptime skapar en RUM-applikation första gången telemetrin från din app kommer in. Den här sidan täcker det du hanterar därifrån: applikationens namn, etiketter och ägare, hur länge dess data lagras, arkivering, vem som kan se den och aviseringar.
+OneUptime skapar en RUM-applikation första gången telemetrin från din app kommer in. Den här sidan täcker det du hanterar därifrån: applikationens namn, etiketter och ägare, hur länge dess data lagras, arkivering, vem som kan se den och larm.
 
 :::cards
 - [Så skapas en applikation](#så-skapas-en-applikation): Känns igen på sitt `service.name` och skapas med sin första batch.
@@ -161,7 +161,7 @@ Alla med projektets Tittare-roll kan se RUM-applikationer och deras telemetri. S
 
 En användbar uppdelning: ge en supporttekniker `ReadRumApplication` och `ReadRumSessionReplay`. Hen kan då se vilka sessioner som hade fel utan att se någons skärm eller veta vem användaren var. Ge `ReadRumSessionReplayPayload` bara till de personer som behöver det; medlemmar med `ReadRumSessionReplayAudit` ser då varje visning på applikationens sida **Åtkomstlogg för uppspelningar**. [Vem kan titta på en inspelning](/docs/telemetry/session-replay#vem-kan-titta-på-en-inspelning) visar vad varje behörighet låser upp i sessionslistan och spelaren.
 
-## Aviseringar på RUM-data
+## Larm på RUM-data
 
 RUM-telemetri är vanliga loggar, mätvärden och spår, så det finns ingen separat RUM-övervakning: de vanliga övervakningarna fungerar med den. Det snabbaste sättet att komma igång är applikationens sida **Rekommendationer**, som erbjuder övervakningar som redan är avgränsade till applikationen:
 
@@ -169,7 +169,7 @@ RUM-telemetri är vanliga loggar, mätvärden och spår, så det finns ingen sep
 | --- | --- |
 | Core Web Vitals | Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint och Slow Time to First Byte. Se [Core Web Vitals](/docs/rum/web-vitals). |
 | Fel | Failed User Operations och Unhandled Browser Exceptions. |
-| Sessionsuppspelning | De fyra [aviseringarna för lagringsbudgeten](/docs/telemetry/session-replay#aviseringar-för-lagringsbudgeten), som varnar innan projektets dagliga gräns eller applikationens månadsbudget är förbrukad. De erbjuds så snart applikationen har spelat in en uppspelning, och månadsparet när den också har en månadsbudget. |
+| Sessionsuppspelning | De fyra [larmen för lagringsbudgeten](/docs/telemetry/session-replay#larm-för-lagringsbudgeten), som varnar innan projektets dagliga gräns eller applikationens månadsbudget är förbrukad. De erbjuds så snart applikationen har spelat in en uppspelning, och månadsparet när den också har en månadsbudget. |
 
 För att skapa en egen övervakning väljer du den som läser signalen:
 

@@ -90,7 +90,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "This is the full `otel-collector-config.yaml` the agent runs; the `.env` file supplies the `${env:...}` values:":
     "Det här är hela `otel-collector-config.yaml` som agenten kör; `.env`-filen ger värdena `${env:...}`:",
   "The agent ships metrics only until you turn on its syslog receivers. Arrays forward their alerts and audit events as syslog; the agent stamps `storage.array.name` on every line, so they land on this array's **Logs** page.":
-    "Agenten skickar bara mätvärden tills du slår på dess syslog-mottagare. Arrayer vidarebefordrar sina aviseringar och granskningshändelser som syslog; agenten sätter `storage.array.name` på varje rad, så att de hamnar på sidan **Loggar** för den här arrayen.",
+    "Agenten skickar bara mätvärden tills du slår på dess syslog-mottagare. Arrayer vidarebefordrar sina larm och granskningshändelser som syslog; agenten sätter `storage.array.name` på varje rad, så att de hamnar på sidan **Loggar** för den här arrayen.",
   "1. In `otel-collector-config.yaml`, uncomment the `syslog/tcp` and `syslog/udp` receivers and the `logs` pipeline. Classic BSD syslog timestamps carry no time zone: set `location` to the array's time zone unless its clock runs on UTC.":
     "1. Avkommentera mottagarna `syslog/tcp` och `syslog/udp` och pipelinen `logs` i `otel-collector-config.yaml`. Klassiska BSD-syslog-tidsstämplar saknar tidszon: sätt `location` till arrayens tidszon om inte dess klocka går på UTC.",
   "2. In `docker-compose.yml`, uncomment the `ports:` block that publishes `5514/tcp` and `5514/udp`, and open the port on the machine's firewall for the array's management network.":
@@ -105,10 +105,10 @@ const TRANSLATION: SetupGuideTranslation = {
   "The array shows up tagged `team:storage` and `env:production`. Labels are matched case-insensitively, so an existing `Production` label is reused; labels added in the OneUptime UI are never removed by the agent.":
     "Arrayen visas med etiketterna `team:storage` och `env:production`. Etiketter jämförs utan hänsyn till skiftläge, så en befintlig etikett `Production` återanvänds; etiketter som lagts till i OneUptimes gränssnitt tas aldrig bort av agenten.",
   "Every value is a gauge the FlashArray computes itself — latency per operation in microseconds, throughput per second. OneUptime's Storage Array pages, metric catalog and alert templates are built on:":
-    "Varje värde är en gauge som FlashArray själv beräknar: latens per operation i mikrosekunder, genomströmning per sekund. OneUptimes lagringsarraysidor, mätvärdeskatalog och aviseringsmallar bygger på:",
+    "Varje värde är en gauge som FlashArray själv beräknar: latens per operation i mikrosekunder, genomströmning per sekund. OneUptimes lagringsarraysidor, mätvärdeskatalog och larmmallar bygger på:",
   "| Endpoint | Data |": "| Slutpunkt | Data |",
   "| **Array** (`/metrics/array`) | `purefa_info`, capacity and data reduction (`purefa_array_space_*`), performance, open alerts (`purefa_alerts_open`), hardware components, drives, controllers and network interfaces |":
-    "| **Array** (`/metrics/array`) | `purefa_info`, kapacitet och datareduktion (`purefa_array_space_*`), prestanda, öppna aviseringar (`purefa_alerts_open`), hårdvarukomponenter, enheter, styrenheter och nätverksgränssnitt |",
+    "| **Array** (`/metrics/array`) | `purefa_info`, kapacitet och datareduktion (`purefa_array_space_*`), prestanda, öppna larm (`purefa_alerts_open`), hårdvarukomponenter, enheter, styrenheter och nätverksgränssnitt |",
   "| **Volumes** (`/metrics/volumes`) | Latency, IOPS, bandwidth, space and data reduction per volume |":
     "| **Volymer** (`/metrics/volumes`) | Latens, IOPS, bandbredd, utrymme och datareduktion per volym |",
   "| **Hosts** (`/metrics/hosts`) | Connectivity, connected volumes, latency, IOPS and space per host |":
@@ -199,9 +199,9 @@ const TRANSLATION: SetupGuideTranslation = {
   "4. On the FlashBlade, as an administrator, add a syslog server `udp://<agent-host>:5514` (or `tcp://`) in its syslog settings.":
     "4. Lägg som administratör på FlashBlade till en syslog-server `udp://<agent-host>:5514` (eller `tcp://`) i dess syslog-inställningar.",
   "Every value is a gauge the FlashBlade computes itself — latency per operation in microseconds, throughput per second. OneUptime's Storage Array pages, metric catalog and alert templates are built on:":
-    "Varje värde är en gauge som FlashBlade själv beräknar: latens per operation i mikrosekunder, genomströmning per sekund. OneUptimes lagringsarraysidor, mätvärdeskatalog och aviseringsmallar bygger på:",
+    "Varje värde är en gauge som FlashBlade själv beräknar: latens per operation i mikrosekunder, genomströmning per sekund. OneUptimes lagringsarraysidor, mätvärdeskatalog och larmmallar bygger på:",
   "| **Array** (`/metrics/array`) | `purefb_info`, capacity and data reduction (`purefb_array_space_*`), performance per protocol, open alerts (`purefb_alerts_open`), hardware health (`purefb_hardware_health`) |":
-    "| **Array** (`/metrics/array`) | `purefb_info`, kapacitet och datareduktion (`purefb_array_space_*`), prestanda per protokoll, öppna aviseringar (`purefb_alerts_open`), hårdvarans hälsa (`purefb_hardware_health`) |",
+    "| **Array** (`/metrics/array`) | `purefb_info`, kapacitet och datareduktion (`purefb_array_space_*`), prestanda per protokoll, öppna larm (`purefb_alerts_open`), hårdvarans hälsa (`purefb_hardware_health`) |",
   "| **File systems** (`/metrics/filesystems`) | Space, data reduction and performance per file system |":
     "| **Filsystem** (`/metrics/filesystems`) | Utrymme, datareduktion och prestanda per filsystem |",
   "| **Object store** (`/metrics/objectstore`) | Space, quota, object counts and performance per bucket |":

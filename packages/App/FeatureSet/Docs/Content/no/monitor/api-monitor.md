@@ -28,9 +28,9 @@ sequenceDiagram
     O->>O: Sjekk kriteriene<br/>fra topp til bunn
 ```
 
-Sonden sjekker API-ets sertifikat slik en nettleser gjør, også om utstederen har tilbakekalt det. Et tilbakekalt sertifikat får sjekken til å mislykkes på samme måte som et utløpt: monitoren blir frakoblet, og feilårsaken sier at sertifikatet ble tilbakekalt. **Tillat selvsignerte sertifikater** slår av disse sjekkene for monitorens eget vertsnavn.
+Sonden sjekker API-ets sertifikat slik en nettleser gjør, også om utstederen har tilbakekalt det. Et tilbakekalt sertifikat får sjekken til å mislykkes på samme måte som et utløpt: monitoren blir offline, og feilårsaken sier at sertifikatet ble tilbakekalt. **Tillat selvsignerte sertifikater** slår av disse sjekkene for monitorens eget vertsnavn.
 
-En sonde som har mistet sin egen nettverkstilkobling, rapporterer ikke noe resultat, så den kan ikke merke API-et ditt som frakoblet.
+En sonde som har mistet sin egen nettverkstilkobling, rapporterer ikke noe resultat, så den kan ikke merke API-et ditt som offline.
 
 ## Før du starter
 
@@ -59,7 +59,7 @@ Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **K
 
 ### Gå gjennom kriteriene
 
-**Kriterier** starter med [standardkriteriene](#standardkriterier): frakoblet når API-et ikke svarer eller svarer med en feil, tilkoblet ved enhver status `2xx` eller `3xx`. For også å sjekke hva API-et returnerer, legger du til et filter og klikker så på **Neste**.
+**Kriterier** starter med [standardkriteriene](#standardkriterier): offline når API-et ikke svarer eller svarer med en feil, tilkoblet ved enhver status `2xx` eller `3xx`. For også å sjekke hva API-et returnerer, legger du til et filter og klikker så på **Neste**.
 
 ### Velg sonder og opprett
 
@@ -155,7 +155,7 @@ Disse feilene prøves på nytt: tilkoblingsfeil, tidsavbrudd, svar `4xx` og `5xx
 
 ## Overvåkingskriterier
 
-Kriterier avgjør når API-et regnes som tilkoblet, redusert eller frakoblet, og om det erklærer en hendelse eller oppretter et varsel. Hvert kriterium sjekker ett eller flere filtre:
+Kriterier avgjør når API-et regnes som tilkoblet, redusert eller offline, og om det erklærer en hendelse eller oppretter et varsel. Hvert kriterium sjekker ett eller flere filtre:
 
 | Filter | Betingelser | Hva det sjekker |
 | --- | --- | --- |
@@ -178,12 +178,12 @@ Med to eller flere filtre avgjør **Samsvarsbetingelse** om **Alle** må samsvar
 
 En ny API-monitor starter med to kriterier, så den fungerer uten at du endrer noe:
 
-- **Frakoblet** — API-et svarer ikke, eller svarer med en statuskode på `400` eller høyere (eller under `200`). Monitoren merkes som **Frakoblet**, og en hendelse opprettes. Hendelsen løser seg selv når API-et er tilbake.
+- **Offline** — API-et svarer ikke, eller svarer med en statuskode på `400` eller høyere (eller under `200`). Monitoren merkes som **Offline**, og en hendelse opprettes. Hendelsen løser seg selv når API-et er tilbake.
 - **Oppe** — API-et svarer med en hvilken som helst statuskode `2xx` eller `3xx`, som `200`, `201`, `202` eller `204`. Monitoren merkes som **I drift**.
 
-I listen over kriterier har de navn etter monitoren: "Sjekk om _monitornavn_ er frakoblet" og "Sjekk om _monitornavn_ er tilkoblet".
+I listen over kriterier har de navn etter monitoren: "Sjekk om _monitornavn_ er offline" og "Sjekk om _monitornavn_ er tilkoblet".
 
-Et endepunkt som svarer `201 Created` eller `204 No Content`, regnes altså som oppe. Hvis bare én statuskode betyr frisk for deg, endrer du begge kriteriene på monitorens side **Konfigurasjon → Kriterier**: for eksempel **Statuskode for svar** / **Lik** / `200` i det tilkoblede kriteriet og **Ikke lik** / `200` i det frakoblede, i stedet for de to statuskodefiltrene hvert av dem har. For også å sjekke hva API-et returnerer, legger du til et filter **Svartekst** eller **JavaScript-uttrykk** i det frakoblede kriteriet.
+Et endepunkt som svarer `201 Created` eller `204 No Content`, regnes altså som oppe. Hvis bare én statuskode betyr frisk for deg, endrer du begge kriteriene på monitorens side **Konfigurasjon → Kriterier**: for eksempel **Statuskode for svar** / **Lik** / `200` i det tilkoblede kriteriet og **Ikke lik** / `200` i det offline, i stedet for de to statuskodefiltrene hvert av dem har. For også å sjekke hva API-et returnerer, legger du til et filter **Svartekst** eller **JavaScript-uttrykk** i det offline kriteriet.
 
 Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva som skjer.
 
@@ -220,7 +220,7 @@ Gjør vinduet lengre enn overvåkingsintervallet, slik at det rommer flere sjekk
 | Mål | Filter | Betingelse | Verdi |
 | --- | --- | --- | --- |
 | Merk API-et som redusert når det er tregt | **Svartid (i ms)** | **Større enn** | `1000` |
-| Frakoblet når helsesjekken melder et problem | **Svartekst** | **Inneholder ikke** | `"status":"ok"` |
+| Offline når helsesjekken melder et problem | **Svartekst** | **Inneholder ikke** | `"status":"ok"` |
 | Det samme, lest fra den tolkede JSON-en | **JavaScript-uttrykk** | **Evalueres til sann** | `"{{responseBody.status}}" !== "ok"` |
 | Godta bare `201` fra en `POST` | **Statuskode for svar** | **Lik** | `201` |
 
@@ -228,7 +228,7 @@ For å komme gjennom en omstart slår du på **Evaluer disse kriteriene over en 
 
 ## Feilsøking
 
-:::details API-et svarer på forespørslene mine, men monitoren er frakoblet
+:::details API-et svarer på forespørslene mine, men monitoren er offline
 Sonden fikk et annet svar enn deg. Hendelsens rotårsak og **Overvåkingslogger** på monitoren viser hva sonden så. Sjekk at sonden sender det API-et forventer: metoden, hodet `Authorization`, brødteksten. En brannmur eller en hastighetsbegrenser foran API-et kan også blokkere sondene: tillat [OneUptime Clouds sonde-IP-adresser](/docs/configuration/ip-addresses).
 :::
 

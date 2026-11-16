@@ -113,7 +113,7 @@ Hver lokasjon velger én av to oppsummeringspolicyer, på kortet **Health Rollup
 
 ### Verste status for en enhet (standard)
 
-Den verste statusen en enhet i undertreet rapporterer, blir lokasjonens status. Hvor alvorlig en status er, følger av prioriteten som monitorstatus: et nytt prosjekts statuser er Operational (1), Degraded (2) og Offline (3), og høyere er verre. Én frakoblet enhet gjør lokasjonen frakoblet, uansett hvor mange friske enheter som står ved siden av.
+Den verste statusen en enhet i undertreet rapporterer, blir lokasjonens status. Hvor alvorlig en status er, følger av prioriteten som monitorstatus: et nytt prosjekts statuser er Operational (1), Degraded (2) og Offline (3), og høyere er verre. Én offline enhet gjør lokasjonen offline, uansett hvor mange friske enheter som står ved siden av.
 
 Det er riktig svar for en Unit. Fire svitsjer og en brannmur i én bygning er ikke uavhengige: at én av dem er mørk, er et problem på den adressen, og å ta gjennomsnittet skjuler et virkelig avbrudd.
 
@@ -126,12 +126,12 @@ Lokasjonens status avgjøres av andelen av undertreets rapporterende enheter som
 | Andel enheter nede | Lokasjonens status |
 | --- | --- |
 | 0 % | Operational |
-| Over 0 %, under terskelen | Degraded: prosjektets status som verken er i drift eller frakoblet, eller Offline når prosjektet ikke har noen slik |
+| Over 0 %, under terskelen | Degraded: prosjektets status som verken er i drift eller offline, eller Offline når prosjektet ikke har noen slik |
 | Ved eller over terskelen | Offline |
 
 Terskelen settes per lokasjon, som **Offline Threshold (%)**, og er 50 som standard.
 
-Ingenting nede er Operational uansett hvor lavt terskelen settes: en terskel på 0 betyr "en hvilken som helst enhet nede gjør dette frakoblet", ikke "en frisk region er frakoblet".
+Ingenting nede er Operational uansett hvor lavt terskelen settes: en terskel på 0 betyr "en hvilken som helst enhet nede gjør dette offline", ikke "en frisk region er offline".
 
 ### Hvilke enheter som stemmer
 
@@ -220,7 +220,7 @@ Når ingenting på en lokasjon rapporterer en status lenger, fordi monitorene ba
 ## Feilsøking
 
 :::details En region er alltid rød
-Lokasjonen har policyen for verste status, så én frakoblet enhet et sted under den gjør den frakoblet. Bytt regionen til **Percentage of devices down** på kortet **Health Rollup**, med en terskel som svarer til hvor mye av regionen som må være nede før du kaller den nede.
+Lokasjonen har policyen for verste status, så én offline enhet et sted under den gjør den offline. Bytt regionen til **Percentage of devices down** på kortet **Health Rollup**, med en terskel som svarer til hvor mye av regionen som må være nede før du kaller den nede.
 :::
 
 :::details En lokasjon viser — i stedet for en oppetid

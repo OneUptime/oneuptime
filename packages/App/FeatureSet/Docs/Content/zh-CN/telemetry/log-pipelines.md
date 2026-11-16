@@ -84,7 +84,7 @@ flowchart TB
 
 ## Key=Value Parser
 
-防火墙和其他网络设备把每个事件记录为一行 `key=value` 对。一行包含哪些字段、顺序如何，取决于事件，因此单个 grok 模式无法描述它们。Key=Value Parser 不需要模式：它遍历整行，把找到的每一对都变成日志属性，无论顺序如何。成为属性后，你就可以对它们进行搜索和过滤，在 [日志监控](/docs/monitor/logs-monitor) 中使用它们，并通过 [分组依据](/docs/monitor/logs-monitor#按分组告警group-by) 按隧道、接口或用户各发出一次告警。
+防火墙和其他网络设备把每个事件记录为一行 `key=value` 对。一行包含哪些字段、顺序如何，取决于事件，因此单个 grok 模式无法描述它们。Key=Value Parser 不需要模式：它遍历整行，把找到的每一对都变成日志属性，无论顺序如何。成为属性后，你就可以对它们进行搜索和过滤，在 [日志监控](/docs/monitor/logs-monitor) 中使用它们，并通过 [分组依据](/docs/monitor/logs-monitor#按分组警报group-by) 按隧道、接口或用户各发出一次警报。
 
 ### 配置
 
@@ -162,9 +162,9 @@ date=2024-01-01 time=10:00:00 devname="FG100" logid="0100032001" type="event" su
 
 使用默认设置和 `fortigate` 前缀，会得到 `fortigate.devname = FG100`、`fortigate.subtype = vpn`、`fortigate.action = tunnel-down`、`fortigate.vpntunnel = HQ-to-Branch2` 和 `fortigate.time = 10:00:00`。时间值中的冒号是值的一部分，而不是分隔符。
 
-### 每个隧道只告警一次
+### 每个隧道只警报一次
 
-解析出字段后，[日志监控](/docs/monitor/logs-monitor) 就可以统计故障次数，并为每个隧道分别发出告警：过滤 `sophos.log_component` = `IPSec` 且正文包含 `terminated` 的日志，并按 `sophos.con_name` 分组。参阅 [按组告警](/docs/monitor/logs-monitor#按分组告警group-by)。
+解析出字段后，[日志监控](/docs/monitor/logs-monitor) 就可以统计故障次数，并为每个隧道分别发出警报：过滤 `sophos.log_component` = `IPSec` 且正文包含 `terminated` 的日志，并按 `sophos.con_name` 分组。参阅 [按组警报](/docs/monitor/logs-monitor#按分组警报group-by)。
 
 ## Grok Parser
 
@@ -206,7 +206,7 @@ date=2024-01-01 time=10:00:00 devname="FG100" logid="0100032001" type="event" su
 ## 后续步骤
 
 :::cards
-- [日志监控](/docs/monitor/logs-monitor): 根据管道提取的属性发出告警。
+- [日志监控](/docs/monitor/logs-monitor): 根据管道提取的属性发出警报。
 - [日志记录规则](/docs/telemetry/log-recording-rules): 把解析出的日志字段变成指标。
 - [Syslog](/docs/telemetry/syslog): 把防火墙和服务器的 syslog 发送到 OneUptime。
 - [搜索语法](/docs/telemetry/search-syntax): 在日志浏览器中按新属性搜索。

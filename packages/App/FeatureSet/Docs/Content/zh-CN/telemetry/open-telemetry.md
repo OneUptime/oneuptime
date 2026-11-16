@@ -472,6 +472,6 @@ SDK 很可能在通过 gRPC 向 HTTP 端点或 `localhost` 导出。设置 `OTEL
 :::cards
 - [搜索语法](/docs/telemetry/search-syntax): 在查看器中筛选日志、追踪、指标和异常。
 - [日志流水线](/docs/telemetry/log-pipelines): 在日志到达时进行解析和补充。
-- [日志监控](/docs/monitor/logs-monitor): 出现匹配的日志时发出告警。
+- [日志监控](/docs/monitor/logs-monitor): 出现匹配的日志时发出警报。
 - [Host OpenTelemetry Collector](/docs/telemetry/host-otel-collector): 用 Collector 采集主机指标和日志文件。
 :::

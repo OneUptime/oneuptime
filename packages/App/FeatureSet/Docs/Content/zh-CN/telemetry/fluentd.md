@@ -301,5 +301,5 @@ OneUptime 从记录中 `message`、`log`、`msg`、`body` 或 `text` 里最先�
 - [日志管道](/docs/telemetry/log-pipelines): 解析并丰富 Fluentd 发送的日志。
 - [搜索语法](/docs/telemetry/search-syntax): 在日志浏览器中查找日志。
 - [Fluent Bit](/docs/telemetry/fluentbit): 一个通过 OpenTelemetry 发送的更轻量的代理。
-- [日志监控](/docs/monitor/logs-monitor): 出现匹配的日志时发出告警。
+- [日志监控](/docs/monitor/logs-monitor): 出现匹配的日志时发出警报。
 :::
