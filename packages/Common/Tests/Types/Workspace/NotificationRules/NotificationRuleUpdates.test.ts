@@ -1463,3 +1463,216 @@ describe("what a new rule starts with", () => {
     ).toEqual([OnCallNow, NobodyOnCall]);
   });
 });
+
+/*
+ * MENTION THE PERSON WHO COMES ON CALL (#7968).
+ *
+ * A hand-off's line names the person on call as text that pings nobody. An
+ * on-call rule can ask to mention them instead, so they are notified in the
+ * channel. It is off unless the rule says so, and means something only
+ * while the rule posts who is on call now.
+ */
+describe("an on-call rule that mentions the person who comes on call", () => {
+  test("only an on-call policy's rule can", () => {
+    expect(NotificationRuleUpdates.canMentionWhoIsOnCall(ON_CALL_RULE)).toBe(
+      true,
+    );
+
+    for (const eventType of Object.values(NotificationRuleEventType)) {
+      if (eventType !== ON_CALL_RULE) {
+        expect({
+          eventType,
+          can: NotificationRuleUpdates.canMentionWhoIsOnCall(eventType),
+        }).toEqual({ eventType, can: false });
+      }
+    }
+
+    expect(NotificationRuleUpdates.canMentionWhoIsOnCall(undefined)).toBe(
+      false,
+    );
+  });
+
+  test("REGRESSION: off unless the rule says so - every rule saved before, and every new one", () => {
+    for (const rule of [
+      undefined,
+      null,
+      {},
+      NotificationRuleUpdates.getNewRuleUpdates(ON_CALL_RULE),
+      { shouldMentionWhoIsOnCall: false },
+      // Typed by hand into the JSON: anything but true is off.
+      { shouldMentionWhoIsOnCall: "true" as unknown as boolean },
+      { shouldMentionWhoIsOnCall: 1 as unknown as boolean },
+    ] as Array<RuleWithUpdates | null | undefined>) {
+      expect({
+        rule,
+        mentions: NotificationRuleUpdates.isMentioningWhoIsOnCall(rule),
+      }).toEqual({ rule, mentions: false });
+    }
+  });
+
+  test("on, while the rule posts who is on call now: every update, Key updates only, or the box ticked", () => {
+    for (const updatesToPost of [
+      undefined,
+      [OnCallNow, NobodyOnCall],
+      [OnCallNow],
+      [OnCallNext, OnCallNow, Overrides],
+    ]) {
+      expect(
+        NotificationRuleUpdates.isMentioningWhoIsOnCall({
+          shouldMentionWhoIsOnCall: true,
+          ...(updatesToPost ? { updatesToPost } : {}),
+        }),
+      ).toBe(true);
+    }
+  });
+
+  test("a rule that does not post who is on call now mentions nobody, whatever it says", () => {
+    for (const updatesToPost of [[], [OnCallNext], [NobodyOnCall, Overrides]]) {
+      expect(
+        NotificationRuleUpdates.isMentioningWhoIsOnCall({
+          shouldMentionWhoIsOnCall: true,
+          updatesToPost: updatesToPost,
+        }),
+      ).toBe(false);
+    }
+  });
+
+  test("the switch sets it, and leaves it out when off; the updates the rule posts stay", () => {
+    const on: RuleWithUpdates =
+      NotificationRuleUpdates.withMentionOfWhoIsOnCall({
+        rule: { updatesToPost: [OnCallNow] },
+        isOn: true,
+      });
+
+    expect(on).toEqual({
+      updatesToPost: [OnCallNow],
+      shouldMentionWhoIsOnCall: true,
+    });
+
+    expect(
+      NotificationRuleUpdates.withMentionOfWhoIsOnCall({
+        rule: on,
+        isOn: false,
+      }),
+    ).toEqual({ updatesToPost: [OnCallNow] });
+
+    // A new rule's JSON, from nothing.
+    expect(
+      NotificationRuleUpdates.withMentionOfWhoIsOnCall({
+        rule: undefined,
+        isOn: true,
+      }),
+    ).toEqual({ shouldMentionWhoIsOnCall: true });
+  });
+
+  test("choosing the updates keeps the switch as it was", () => {
+    expect(
+      NotificationRuleUpdates.withChoice({
+        rule: { shouldMentionWhoIsOnCall: true },
+        eventType: ON_CALL_RULE,
+        choice: NotificationRuleUpdatesChoice.KeyUpdates,
+      }),
+    ).toEqual({
+      shouldMentionWhoIsOnCall: true,
+      updatesToPost: [OnCallNow, NobodyOnCall],
+    });
+  });
+
+  test("a rule is saved with true or false, and with true only on an on-call policy's rule", () => {
+    for (const value of [undefined, null, true, false]) {
+      expect(
+        NotificationRuleUpdates.getMentionValidationError({
+          eventType: ON_CALL_RULE,
+          shouldMentionWhoIsOnCall: value,
+        }),
+      ).toBeNull();
+    }
+
+    expect(
+      NotificationRuleUpdates.getMentionValidationError({
+        eventType: ON_CALL_RULE,
+        shouldMentionWhoIsOnCall: "yes",
+      }),
+    ).toBe(
+      "shouldMentionWhoIsOnCall is true or false: whether a hand-off's line mentions the person who comes on call.",
+    );
+
+    expect(
+      NotificationRuleUpdates.getMentionValidationError({
+        eventType: INCIDENT_RULE,
+        shouldMentionWhoIsOnCall: true,
+      }),
+    ).toBe(
+      "Incident rules do not mention who is on call: leave shouldMentionWhoIsOnCall out. On-call policy rules can.",
+    );
+
+    // Off says nothing a rule of any kind cannot hold.
+    expect(
+      NotificationRuleUpdates.getMentionValidationError({
+        eventType: INCIDENT_RULE,
+        shouldMentionWhoIsOnCall: false,
+      }),
+    ).toBeNull();
+  });
+
+  describe("which of a record's own channels hear the line with the mention", () => {
+    const MENTIONS: RuleOfChannel = {
+      id: "rule-mentions",
+      rule: { updatesToPost: [OnCallNow], shouldMentionWhoIsOnCall: true },
+    };
+    const QUIET: RuleOfChannel = {
+      id: "rule-quiet",
+      rule: { updatesToPost: [OnCallNow] },
+    };
+
+    function hearsMention(
+      channelOf: NotificationRuleWorkspaceChannel,
+      rules: Array<RuleOfChannel>,
+    ): boolean {
+      return NotificationRuleUpdates.isWantedInChannel({
+        channel: channelOf,
+        rules: rules,
+        updateKinds: [OnCallNow],
+        onlyWhereRule: (rule: RuleWithUpdates | null | undefined): boolean => {
+          return NotificationRuleUpdates.isMentioningWhoIsOnCall(rule);
+        },
+      });
+    }
+
+    test("a channel of a rule that asks for it", () => {
+      expect(
+        hearsMention(channel({ first: MENTIONS.id, all: [MENTIONS.id] }), [
+          MENTIONS,
+          QUIET,
+        ]),
+      ).toBe(true);
+      expect(
+        hearsMention(channel({ first: QUIET.id, all: [QUIET.id] }), [
+          MENTIONS,
+          QUIET,
+        ]),
+      ).toBe(false);
+    });
+
+    test("a channel two rules share: when either asks for it", () => {
+      expect(
+        hearsMention(
+          channel({ first: QUIET.id, all: [QUIET.id, MENTIONS.id] }),
+          [MENTIONS, QUIET],
+        ),
+      ).toBe(true);
+    });
+
+    test("a channel whose rules are not known has no rule to ask for it", () => {
+      expect(hearsMention(channel({}), [MENTIONS])).toBe(false);
+      // Without the filter it hears every update, as before.
+      expect(
+        NotificationRuleUpdates.isWantedInChannel({
+          channel: channel({}),
+          rules: [MENTIONS],
+          updateKinds: [OnCallNow],
+        }),
+      ).toBe(true);
+    });
+  });
+});

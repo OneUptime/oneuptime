@@ -56258,5 +56258,8 @@
   "Revocation Attempted At": "وقت محاولة الإبطال",
   "Revocation Error": "خطأ الإبطال",
   "Worker ID": "معرّف العامل",
-  "Roster Refresh Due At": "موعد تحديث قائمة المناوبين"
+  "Roster Refresh Due At": "موعد تحديث قائمة المناوبين",
+  "Mention the person who comes on call": "الإشارة إلى من يتسلّم المناوبة",
+  "Mentions the person who comes on call": "يشير إلى من يتسلّم المناوبة",
+  "They are notified in the channel at each hand-off, once they have connected their chat account to OneUptime.": "يتلقى إشعارًا في القناة عند كل تسليم مناوبة، بعد ربط حساب الدردشة الخاص به بـ OneUptime."
 }

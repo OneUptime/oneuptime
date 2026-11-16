@@ -627,7 +627,11 @@ describe("the writers hand the kinds to the message they post", () => {
       });
     }
 
-    // The override's three lines, one of each.
+    /*
+     * The override's three lines, one of each - each written twice: with
+     * OneUptime's names for any workspace without a line of its own, and
+     * with each connected workspace's names (#7967).
+     */
     const overrides: string = squeezed(
       "Server/Services/OnCallDutyPolicyUserOverrideService.ts",
     );
@@ -639,8 +643,28 @@ describe("the writers hand the kinds to the message they post", () => {
     ]) {
       expect({ line, times: overrides.split(line).length - 1 }).toEqual({
         line,
-        times: 1,
+        times: 2,
       });
+    }
+
+    /*
+     * Every entry that names a person - an override, somebody added to an
+     * escalation rule or taken out - hands each workspace its own line, its
+     * people named as that workspace knows them (#7967).
+     */
+    for (const [writer, written] of [
+      ["Server/Services/OnCallDutyPolicyEscalationRuleUserService.ts", 2],
+      ["Server/Services/OnCallDutyPolicyUserOverrideService.ts", 3],
+    ] as Array<[string, number]>) {
+      const code: string = squeezed(writer);
+
+      expect({
+        writer,
+        byWorkspace:
+          code.split("chatInfoByWorkspaceType:chatInfoByWorkspaceType").length -
+          1,
+        writers: code.split("newOnCallChatByWorkspace(").length - 1,
+      }).toEqual({ writer, byWorkspace: written, writers: written });
     }
   });
 

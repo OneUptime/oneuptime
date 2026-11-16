@@ -23,6 +23,10 @@ import FeedMarkdown, {
   mdText,
   MarkdownText,
 } from "../../Utils/Markdown/FeedMarkdown";
+import OnCallChatByWorkspace, {
+  OnCallChatTextByWorkspaceType,
+  OnCallChatWriter,
+} from "../Utils/OnCall/OnCallChatByWorkspace";
 import OnCallChatText from "../Utils/OnCall/OnCallChatText";
 import WorkspaceMessageTime from "../Utils/Workspace/WorkspaceMessageTime";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -599,6 +603,36 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
         ? mdText`All alerts will be routed to **${routeAlertsToUserMarkdown}** from **${from}**  to **${until}**. `
         : mdText`Nobody is named to cover, so from **${from}** to **${until}** each of their turns goes to the next person in the rotation, and they are not paged.`;
 
+      const chatPolicy: MarkdownText = OnCallChatText.policy({
+        name: onCallPolicyName || "",
+        link: policyLink,
+      });
+
+      /*
+       * Each workspace's line names the person and their cover as it knows
+       * them, as a hand-off's does (issue #7967).
+       */
+      const chatInfoByWorkspaceType: OnCallChatTextByWorkspaceType =
+        createdItem.startsAt && createdItem.endsAt
+          ? await new OnCallChatByWorkspace({
+              projectId: projectId,
+              onCallDutyPolicyId: onCallDutyPolicyId,
+            }).write(
+              async (writer: OnCallChatWriter): Promise<MarkdownText> => {
+                return OnCallChatText.overrideAdded({
+                  policy: chatPolicy,
+                  person: await writer.nameOf(overrideUserId),
+                  cover: routeAlertsToUserId
+                    ? await writer.nameOf(routeAlertsToUserId)
+                    : undefined,
+                  from: createdItem.startsAt!,
+                  until: createdItem.endsAt!,
+                  moment: writer.moment,
+                });
+              },
+            )
+          : {};
+
       await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
         onCallDutyPolicyId: onCallDutyPolicyId,
         projectId: projectId!,
@@ -615,10 +649,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
         chatInfoInMarkdown:
           createdItem.startsAt && createdItem.endsAt
             ? OnCallChatText.overrideAdded({
-                policy: OnCallChatText.policy({
-                  name: onCallPolicyName || "",
-                  link: policyLink,
-                }),
+                policy: chatPolicy,
                 person: overrideUserMarkdown,
                 cover: routeAlertsToUserMarkdown,
                 from: createdItem.startsAt,
@@ -628,6 +659,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
                 },
               }).toString()
             : undefined,
+        chatInfoByWorkspaceType: chatInfoByWorkspaceType,
 
         userId: createdItem.createdByUserId! || undefined,
         workspaceNotification: {
@@ -1349,6 +1381,32 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
         )
       ).toString();
 
+      const chatPolicy: MarkdownText = OnCallChatText.policy({
+        name: onCallPolicyName || "",
+        link: policyLink,
+      });
+
+      /*
+       * Each workspace's line names the person and who covers now as it
+       * knows them, as a hand-off's does (issue #7967).
+       */
+      const chatInfoByWorkspaceType: OnCallChatTextByWorkspaceType =
+        await new OnCallChatByWorkspace({
+          projectId: projectId,
+          onCallDutyPolicyId: onCallDutyPolicyId,
+        }).write(async (writer: OnCallChatWriter): Promise<MarkdownText> => {
+          return OnCallChatText.overrideChanged({
+            policy: chatPolicy,
+            person: await writer.nameOf(overrideUserId),
+            cover: afterCoverId
+              ? await writer.nameOf(new ObjectID(afterCoverId))
+              : undefined,
+            from: afterStartsAt,
+            until: afterEndsAt,
+            moment: writer.moment,
+          });
+        });
+
       await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
         onCallDutyPolicyId: onCallDutyPolicyId,
         projectId: projectId,
@@ -1363,10 +1421,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
          * #7549). What it was stays in the policy's feed.
          */
         chatInfoInMarkdown: OnCallChatText.overrideChanged({
-          policy: OnCallChatText.policy({
-            name: onCallPolicyName || "",
-            link: policyLink,
-          }),
+          policy: chatPolicy,
           person: overrideUserMarkdown,
           cover: coverMarkdown,
           from: afterStartsAt,
@@ -1375,6 +1430,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
             return WorkspaceMessageTime.dateAndTime(date);
           },
         }).toString(),
+        chatInfoByWorkspaceType: chatInfoByWorkspaceType,
         userId: data.userId || undefined,
         workspaceNotification: {
           sendWorkspaceNotification: true,
@@ -1505,6 +1561,22 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
           )
         ).toString();
 
+        const chatPolicy: MarkdownText = OnCallChatText.policy({
+          name: onCallPolicyName || "",
+          link: policyLink,
+        });
+
+        // Each workspace's line names the person as it knows them (#7967).
+        const chatInfoByWorkspaceType: OnCallChatTextByWorkspaceType =
+          await new OnCallChatByWorkspace({
+            projectId: projectId,
+          }).write(async (writer: OnCallChatWriter): Promise<MarkdownText> => {
+            return OnCallChatText.overrideRemoved({
+              policy: chatPolicy,
+              person: await writer.nameOf(overrideUserId),
+            });
+          });
+
         await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
           onCallDutyPolicyId: onCallDutyPolicyId,
           projectId: projectId!,
@@ -1514,12 +1586,10 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
           feedInfoInMarkdown:
             mdText`❌ Removed a User Override Rule for user **${overrideUserMarkdown}** for the [On-Call Policy ${onCallPolicyName}](${policyLink}). All alerts will be routed back to **${overrideUserMarkdown}**`.toString(),
           chatInfoInMarkdown: OnCallChatText.overrideRemoved({
-            policy: OnCallChatText.policy({
-              name: onCallPolicyName || "",
-              link: policyLink,
-            }),
+            policy: chatPolicy,
             person: overrideUserMarkdown,
           }).toString(),
+          chatInfoByWorkspaceType: chatInfoByWorkspaceType,
           userId: deleteByUserId || undefined,
           workspaceNotification: {
             sendWorkspaceNotification: true,

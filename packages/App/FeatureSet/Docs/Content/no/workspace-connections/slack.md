@@ -132,7 +132,7 @@ Ved hvert vaktskifte får kanalene til en vaktpolicy vite hvem som har vakt, i �
 > 📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then @bob.
 
 - Payments lenker til policyen i OneUptime. Når policyen tilkaller mer enn én tidsplan, nevner linjen også tidsplanen: Payments (Primary).
-- En person nevnes med Slack-navnet sitt når vedkommende har koblet Slack-kontoen sin til OneUptime, og med navnet sitt i OneUptime frem til da. Tidspunkter vises i hver lesers egen tidssone.
+- En person nevnes med Slack-navnet sitt når vedkommende har koblet Slack-kontoen sin til OneUptime, og med navnet sitt i OneUptime frem til da, i hver vaktmelding: vaktskifter, overstyringer og personer som legges til i policyen eller tas ut. Tidspunkter vises i hver lesers egen tidssone.
 - Når flere av policyens eskaleringsregler tilkaller den samme tidsplanen, publiseres hvert vaktskifte én gang, ikke én gang per regel.
 
 En regel publiserer det den valgte i steget **Oppdateringer**, og en ny regel starter med **Bare viktige oppdateringer**: hvem som har vakt nå, og når ingen har det.
@@ -147,6 +147,8 @@ En regel publiserer det den valgte i steget **Oppdateringer**, og en ny regel st
 | **Eiere** | Eiere lagt til og fjernet. |
 
 En kanal får én melding per vaktskifte, også når to regler publiserer i den. En vaktregel som ble lagret før regler valgte oppdateringene sine, publiserer alle, som før.
+
+Et navn varsler ingen, så en kanal som hører hvert vaktskifte, blir ikke pinget ved hvert. For å varsle personen som får vakt, slå på **Nevn personen som får vakt** i steget **Oppdateringer** i regelen: Meldingen om vaktskiftet nevner da personen, når vedkommende har koblet Slack-kontoen sin til OneUptime. Den neste nevnes aldri, og heller ikke noen som ikke har koblet kontoen sin. Bryteren vises så lenge regelen publiserer **Hvem som har vakt nå**, og er slått av for en ny regel.
 
 ## Hvem som er i kanalen til en post
 
@@ -261,7 +263,7 @@ OneUptime svarer bare på det som er rettet til den.
 - **I et varsels egen kanal.** I kanalen OneUptime opprettet for et varsel, mens varselet er åpent, sier skjemaet at hendelsen opprettes fra det varselet, og begynner med varselets tittel og de ressursene det er knyttet til som du kan se. Hendelsen knyttes til varselet, slik en hendelse som opprettes fra varselets side gjør, og hendelsen til et privat varsel er også privat. Når du ikke kan knytte varsler til hendelser, opprettes hendelsen uten tilknytningen, og du får vite hvorfor.
 - **Hva et skjema kan nevne.** Hendelsen eller begivenheten opprettes med dine egne tillatelser og krediteres deg. En monitor, vaktpolicy, etikett, alvorlighetsgrad eller status du ikke kan lese, eller en fra et annet prosjekt, avvises som en prosjektet ikke har, selv fra et skjema som ble åpnet før tilgangen din endret seg, og ingenting opprettes. OneUptime forteller deg hvorfor i kanalen, i en melding bare du ser.
 
-**Execute On-Call Policy** på en hendelse, et varsel eller en episode fungerer på samme måte: den krever tillatelse til å kjøre en vaktpolicy (**Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Vaktadministrator** og **Vaktmedlem**, eller **Execute On-Call Policies** i en egendefinert rolle) og til å lese den hendelsen, det varselet eller den episoden, og den tilbyr de aktive vaktpolicyene du kan lese.
+**Execute On-Call Policy** på en hendelse, et varsel eller en episode fungerer på samme måte: den krever tillatelse til å kjøre en vaktpolicy (**Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Vaktadministrator** og **Vaktmedlem**, eller **Execute On-Call Policies** i en egendefinert rolle) og til å lese den hendelsen, det varselet eller den episoden, og den tilbyr de aktive vaktpolicyene du kan lese. Den tilkaller personene i policyen til en av dem svarer eller hendelsen, varselet eller episoden er løst, også når noen allerede har bekreftet den, og skjemaet sier det under listen sin.
 
 ## Tilkall noen fra Slack
 
