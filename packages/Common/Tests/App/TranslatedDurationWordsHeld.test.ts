@@ -195,7 +195,7 @@ describe("the Translator holds a duration's number to its word", () => {
   test("the reminder refusal, looked up whole by its English", () => {
     const key: string =
       "Reminders can be sent between 15 minutes and 14 days before a shift.";
-    const german: string = dashboardTranslator("de").translateText(key);
+    const german: string = dashboardTranslator("de").translateText(key) || "";
 
     expect(german).not.toBe(key);
     expect(breaksAfter(german, "15")).toBe(false);
