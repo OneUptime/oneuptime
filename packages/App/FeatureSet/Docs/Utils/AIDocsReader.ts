@@ -526,7 +526,19 @@ export const tokenizeQueryForDocs: (
   const synonyms: Map<string, Array<DocsSearchSynonym>> = getDocsSearchSynonyms(
     resolved,
   );
-  const words: Array<string> = splitQuestionWords(query, resolved);
+  const particles: ReadonlySet<string> =
+    getDocsSearchSeparableParticles(resolved);
+  /*
+   * A verb's first part (DOCS_SEARCH_SEPARABLE_PARTICLES) is read joined
+   * to the verb (DocsAIReader.compoundsOf), never alone: Dutch "aan" in
+   * "Hoe zet ik tweestapsverificatie aan?" is not looked for, as a
+   * question's own words are not (#8698).
+   */
+  const words: Array<string> = splitQuestionWords(query, resolved).filter(
+    (word: string): boolean => {
+      return !particles.has(foldDocsSearchWord(word));
+    },
+  );
   const otherWords: Array<string> = words.flatMap(
     (word: string): Array<string> => {
       return (synonyms.get(foldDocsSearchWord(word)) || [])

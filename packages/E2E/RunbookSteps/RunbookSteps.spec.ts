@@ -3,6 +3,7 @@ import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * A step asks for approval before it runs, and every step's options are
@@ -1074,4 +1075,18 @@ test.describe("on every screen", () => {
     ).toBeVisible();
     await screenshot(page, "run-german");
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German whole, parsed on every page load of every test. English is in the
+ * bundle now, and each other language a chunk of its own, loaded only by a
+ * page drawn in it (SuiteHelpers/FixtureLocales.js), built as the Dashboard
+ * ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de"],
+  address: (language: string): string => {
+    return `/?page=steps${language === "en" ? "" : `&lang=${language}`}`;
+  },
 });

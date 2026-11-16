@@ -1824,7 +1824,8 @@ describe("an engine the agent has no config for", () => {
       serverAddress: "acme.prod.example.com",
     });
     const step: string = guide.steps[0]!.markdown || "";
-    expect(step).toContain("OneUptime does not know AcmeDB's engine yet");
+    // Its name as the data reported it, in a code span (#8780).
+    expect(step).toContain("OneUptime does not know `AcmeDB`'s engine yet");
     expect(step).toContain("value: acmedb");
     expect(step).toContain('value: "acme.prod.example.com"');
   });

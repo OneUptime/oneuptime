@@ -19,6 +19,9 @@ const fs = require("fs");
 const http = require("http");
 const path = require("path");
 const { createConfig } = require("../../../Common/UI/esbuild-config.js");
+const {
+  dashboardLocalesPlugin,
+} = require("../../SuiteHelpers/FixtureLocalesBuild.js");
 const esbuild = require("../../../Common/node_modules/esbuild");
 const ejs = require("../../../Common/node_modules/ejs");
 
@@ -44,6 +47,8 @@ function bundle(entry, serviceName, publicPath, outdir, extraAlias) {
     entryPoint: path.join(__dirname, entry),
     outdir: outdir,
     additionalAlias: { ...alias, ...(extraAlias || {}) },
+    // The locales as the Dashboard's own build ships them (#8366).
+    additionalPlugins: [dashboardLocalesPlugin()],
   });
   config.target = "es2022";
   config.loader[".js"] = "jsx";

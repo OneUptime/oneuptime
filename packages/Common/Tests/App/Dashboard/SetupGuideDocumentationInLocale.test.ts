@@ -157,6 +157,20 @@ function markdownsOf(content: SetupGuideContent): Array<string> {
 function keysOf(content: SetupGuideContent): Array<string> {
   const keys: Array<string> = [];
 
+  /*
+   * The key step: what it asks, and the label and hint over the address it
+   * shows (IngestionKeySelector words both, as the card words the rest).
+   */
+  for (const text of [
+    content.keyStep?.description,
+    content.keyStep?.endpointLabel,
+    content.keyStep?.endpointHint,
+  ]) {
+    if (text) {
+      keys.push(text);
+    }
+  }
+
   for (const step of content.steps) {
     keys.push(step.title);
     if (step.description) {
@@ -437,13 +451,17 @@ describe.each(
       }
     });
 
+    /*
+     * The shortest is a database's own tab for an engine inside the
+     * application (SQLite): its intro, the SDK step and the page's topics.
+     */
     test("the guide has pieces to word, in every way through it", () => {
       expect(WAYS[product.name]!.length).toBeGreaterThan(3);
 
       for (const way of WAYS[product.name]!) {
         expect({
           way: way.label,
-          pieces: getSetupGuideWordPieces(way.content).length > 5,
+          pieces: getSetupGuideWordPieces(way.content).length >= 3,
         }).toEqual({ way: way.label, pieces: true });
       }
     });

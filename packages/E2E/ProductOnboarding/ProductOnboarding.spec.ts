@@ -11,6 +11,7 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 import { cardBodyMisfits } from "../SuiteHelpers/CardBodyFit";
 import { sideMenuAtRest } from "../SuiteHelpers/SideMenuAtRest";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * How a product explains itself (Components/ProductOnboarding, #6430), in a
@@ -730,7 +731,7 @@ test("a read-only member reads the explanation without its button, under the tab
   // The table keeps its own button, locked, and says why in words a phone shows.
   await expect(page.getByTestId("empty-table-create-button")).toBeDisabled();
   await expect(page.getByTestId("table-empty-state-note")).toHaveText(
-    "You don't have permission to create these. Ask a project admin for access.",
+    "You don't have permission to create these. Ask a Project Admin for access.",
   );
 
   await screenshot(page, "monitors-first-run-viewer-1440");
@@ -2159,3 +2160,17 @@ for (const reader of [
     await shootEveryExplanation(page, `390-${reader.lang}-${reader.theme}`);
   });
 }
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German and Persian whole, parsed on every page load of every test. English
+ * is in the bundle now, and each other language a chunk of its own, loaded
+ * only by a page drawn in it (SuiteHelpers/FixtureLocales.js), built as the
+ * Dashboard ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "fa"],
+  address: (language: string): string => {
+    return language === "en" ? MONITORS : `${MONITORS}?lang=${language}`;
+  },
+});

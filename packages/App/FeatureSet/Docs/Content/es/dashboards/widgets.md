@@ -49,7 +49,7 @@ Estos cuatro widgets leen una consulta de métricas, construida igual que en el 
 
 ### Gráfico
 
-Una serie temporal de una o varias consultas de métricas a lo largo del intervalo de tiempo del panel. **Tipo de gráfico** la dibuja como un gráfico de líneas, de barras, de áreas, de áreas apiladas o circular. **Consultas adicionales** superpone más métricas en los mismos ejes, y **Fórmulas** las combina con `+`, `-`, `*`, `/`, `%`, `^` y paréntesis, como en `(1 - a) * 100`. Los ajustes de visualización de cada consulta añaden una leyenda y una unidad, un color, líneas de advertencia y críticas, y una tasa por segundo para los contadores que solo crecen.
+Una serie temporal de una o varias consultas de métricas a lo largo del intervalo de tiempo del panel. **Tipo de gráfico** la dibuja como un gráfico de líneas, de barras, de áreas, de áreas apiladas o circular. **Consultas adicionales** superponen más métricas en los mismos ejes, y **Fórmulas** las combinan con `+`, `-`, `*`, `/`, `%`, `^` y paréntesis, como en `(1 - a) * 100`. Los ajustes de visualización de cada consulta añaden una leyenda y una unidad, un color, líneas de advertencia y críticas, y una tasa por segundo para los contadores que solo crecen.
 
 Úsalo cuando la forma de la línea cuenta la historia: latencia, errores, rendimiento o profundidad de una cola.
 

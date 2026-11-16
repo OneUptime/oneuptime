@@ -54,7 +54,8 @@ import { initReactI18next } from "react-i18next";
 import ExternalMcpServersPage from "../../../App/FeatureSet/Dashboard/src/Pages/Settings/ExternalMcpServers";
 import SettingsLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Settings/Layout";
 import ExternalMcpServerViewPage from "../../../App/FeatureSet/Dashboard/src/Pages/Settings/ExternalMcpServerView";
-import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
+import EN from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
+import { localeResources } from "../../SuiteHelpers/FixtureLocales";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ExternalMcpServer from "Common/Models/DatabaseModels/ExternalMcpServer";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -626,13 +627,27 @@ API.get = async () => new HTTPResponse(200, {}, {});
  * separators i18next reads in a key (the "." and ":" of a sentence) are
  * turned off, as the Dashboard's own setup does.
  */
+/*
+ * English, the fallback, is in the bundle; German is a chunk of its own,
+ * loaded only by a page drawn in that language, as the Dashboard loads a
+ * locale (src/Utils/I18nLocaleLoader.ts), and built as the Dashboard ships
+ * them (server.js, SuiteHelpers/FixtureLocalesBuild.js). Imported whole,
+ * they were parsed on every page load of every test (#8366).
+ */
+const LOCALE_LOADERS = {
+  de: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/de.json");
+  },
+};
+
 await i18next.use(initReactI18next).init({
   lng: language,
-  fallbackLng: language,
-  resources: {
-    en: { translation: {} },
-    de: { translation: DE },
-  },
+  fallbackLng: "en",
+  resources: await localeResources({
+    language: language,
+    english: EN,
+    loaders: LOCALE_LOADERS,
+  }),
   interpolation: { escapeValue: false },
   keySeparator: false,
   nsSeparator: false,

@@ -4,6 +4,7 @@ import fsPromises from "fs/promises";
 import path from "path";
 import { expectCardsFit } from "../SuiteHelpers/CardBodyFit";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * An ESXi host's page inside its vCenter, in a browser, against the offline
@@ -1362,4 +1363,18 @@ test.describe("on a phone, in dark mode and in German", () => {
     );
     await expectNoSidewaysScroll(page);
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German whole, parsed on every page load of every test. English is in the
+ * bundle now, and each other language a chunk of its own, loaded only by a
+ * page drawn in it (SuiteHelpers/FixtureLocales.js), built as the Dashboard
+ * ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de"],
+  address: (language: string): string => {
+    return language === "en" ? HOST_PAGE : `${HOST_PAGE}?lang=${language}`;
+  },
 });

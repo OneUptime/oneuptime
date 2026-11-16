@@ -11,6 +11,7 @@ import {
   DocsVocabularyMatch,
   foldDocsSearchWord,
   getDocsSearchQuestionWords,
+  getDocsSearchSeparableParticles,
   getDocsSearchSynonyms,
   getTypoAllowance,
   isDocsSearchAskingWord,
@@ -36,7 +37,8 @@ import { localizeDocsUrl } from "./I18n";
  * looked for, as Ask AI does not look for it: "Wie überwache ich meine
  * Website?" is "überwache" and "Website". A question's verb may be one
  * the page that answers it never says, so a question also gets the pages
- * named for half its words or more (isQuestion, #8334); keywords do not.
+ * named for half its words or more (isQuestion, #8334), or, where none is,
+ * the sections whose headings are (#8698); keywords do not.
  * A page's title counts most,
  * then a section's heading, then what a section says; a word every page
  * holds counts little. A guide (NavLink.isGuide) goes above a reference
@@ -116,6 +118,18 @@ const NAME_BOOST: number = 3;
  * 9th for "Hvordan lager jeg en statusside?".
  */
 const QUESTION_NAME_SHARE_POWER: number = 0.5;
+/*
+ * A section a question is answered by, on a page named for something else
+ * (#8698): its heading must hold half the question's words or more, and it
+ * is offered only where no page is named for the question, as Your
+ * Account's "Slå på tofaktorautentisering" is for "Hvordan slår jeg på
+ * tofaktorautentisering?". Let in beside the pages named for a question
+ * as well, every section whose heading named part of it put Japanese
+ * Website Monitor 6th, behind headings that say ウェブサイト, and Italian
+ * Subscribers 17th; offered only on a page not offered itself, Norwegian
+ * API keys fell from 9th to 23rd.
+ */
+const QUESTION_HEADING_LEAST_SHARE: number = 0.5;
 // A question mark, wherever it is typed: Latin, full-width, Arabic script's, and Spanish's opening one.
 const QUESTION_MARK: RegExp = /[?？؟¿]/u;
 
@@ -186,8 +200,10 @@ interface ScoredUnit {
 // What a page or a section holds of what was typed.
 interface UnitScore {
   score: number;
-  // The part of `score` its page's name holds: none for a section.
+  // The part of `score` its name holds: a page's title, a section's heading.
   named: number;
+  // How many of the typed words its name holds.
+  namedWords: number;
   // How many of the typed words it holds.
   matched: number;
   terms: Set<string>;
@@ -509,7 +525,22 @@ export default class DocsSearch {
 
     DocsSearch.addCompounds(index, words);
 
-    return words;
+    /*
+     * A verb's first part (DOCS_SEARCH_SEPARABLE_PARTICLES) is found in the
+     * verb it joins, which its other word now holds, and never alone, as
+     * Ask AI reads it (tokenizeQueryForDocs, #8698). Typed with nothing
+     * else, or in a phrase the docs say, it is read as a word.
+     */
+    const particles: ReadonlySet<string> = isPhrase
+      ? new Set<string>()
+      : getDocsSearchSeparableParticles(index.language);
+    const joinable: Array<DocsQueryWord> = words.filter(
+      (word: DocsQueryWord): boolean => {
+        return !particles.has(foldDocsSearchWord(word.typed));
+      },
+    );
+
+    return joinable.length > 0 ? joinable : words;
   }
 
   /*
@@ -764,6 +795,7 @@ export default class DocsSearch {
     ): UnitScore => {
       let score: number = 0;
       let named: number = 0;
+      let namedWords: number = 0;
       let matched: number = 0;
       const terms: Set<string> = new Set<string>();
 
@@ -802,6 +834,7 @@ export default class DocsSearch {
           score += best;
           if (bestTerms.every(isNamed)) {
             named += best;
+            namedWords++;
           }
           for (const term of bestTerms) {
             terms.add(term);
@@ -809,12 +842,14 @@ export default class DocsSearch {
         }
       }
 
-      return { score, named, matched, terms };
+      return { score, named, namedWords, matched, terms };
     };
 
     const complete: Array<ScoredUnit> = [];
     const partial: Array<ScoredUnit> = [];
     const asked: Map<AIDocsIndexedPage, ScoredUnit> = new Map();
+    // The sections a question's words name the heading of (#8698), lifted only where no page is named for it.
+    const askedSections: Map<AIDocsIndexedSection, ScoredUnit> = new Map();
     const keep: (
       page: AIDocsIndexedPage,
       section: AIDocsIndexedSection | null,
@@ -856,21 +891,25 @@ export default class DocsSearch {
         unit.score *= share * share;
         partial.push(unit);
 
+        const askedScore: number =
+          (scored.named * Math.pow(share, QUESTION_NAME_SHARE_POWER) +
+            (scored.score - scored.named) * share * share) *
+          (page.isGuide ? GUIDE_BOOST : 1);
+
         // A page named for part of a question goes beside the results that hold all of it.
         if (isQuestion && !section && scored.named > 0) {
-          asked.set(page, {
-            ...unit,
-            score:
-              (scored.named * Math.pow(share, QUESTION_NAME_SHARE_POWER) +
-                (scored.score - scored.named) * share * share) *
-              (page.isGuide ? GUIDE_BOOST : 1),
-          });
+          asked.set(page, { ...unit, score: askedScore });
+        }
+
+        // So does a section whose own heading holds half its words or more, where no page is named for it.
+        if (
+          isQuestion &&
+          section &&
+          scored.namedWords / words.length >= QUESTION_HEADING_LEAST_SHARE
+        ) {
+          askedSections.set(section, { ...unit, score: askedScore });
         }
       }
-    };
-
-    const isNameless: (term: string) => boolean = (): boolean => {
-      return false;
     };
 
     for (const page of index.pages) {
@@ -891,14 +930,19 @@ export default class DocsSearch {
         keep(
           page,
           section,
-          scoreUnit((term: string): number => {
-            return DocsSearch.sectionFieldWeight(
-              page,
-              section,
-              term,
-              averageLength,
-            );
-          }, isNameless),
+          scoreUnit(
+            (term: string): number => {
+              return DocsSearch.sectionFieldWeight(
+                page,
+                section,
+                term,
+                averageLength,
+              );
+            },
+            (term: string): boolean => {
+              return section.titleTerms.has(term);
+            },
+          ),
         );
       }
     }
@@ -906,13 +950,21 @@ export default class DocsSearch {
     /*
      * The results that hold every word, and the pages named for part of a
      * question beside them; with none of the first, the results that hold
-     * most of the words, as before.
+     * most of the words, as before. Where no page is named for a question,
+     * the sections whose headings are go beside them instead (#8698): the
+     * question was asked about a part of a page named for something else.
      */
+    const sections: Map<AIDocsIndexedSection, ScoredUnit> =
+      asked.size === 0 ? askedSections : new Map();
     const units: Array<ScoredUnit> = (
       complete.length > 0
-        ? [...complete, ...asked.values()]
+        ? [...complete, ...asked.values(), ...sections.values()]
         : partial.map((unit: ScoredUnit): ScoredUnit => {
-            return (!unit.section && asked.get(unit.page)) || unit;
+            return (
+              (unit.section
+                ? sections.get(unit.section)
+                : asked.get(unit.page)) || unit
+            );
           })
     ).sort((a: ScoredUnit, b: ScoredUnit): number => {
       return (

@@ -11,6 +11,9 @@ export default defineConfig({
   reporter: "list",
   outputDir: "../../output/playwright/pencil-button/test-results",
   use: {
+    // One zone whatever the machine's (Tests/Ops/E2EConfigsPinTheirZone.test.js).
+    timezoneId: "UTC",
+    locale: "en-US",
     baseURL: "http://127.0.0.1:4208",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",

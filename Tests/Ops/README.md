@@ -194,6 +194,21 @@ to is up. A check that names neither leaves `FATAL: role "root" does not exist`
 in the log every ten seconds. Every other probe of a PostgreSQL this repository
 starts is held to naming its role too.
 
+### `ComposeMigrationsRunOnce.test.js`
+
+One process applies a Docker Compose install's schema migrations: the App.
+`PostgresAppInstance.connect()` applies the pending ones unless
+`RUN_DATABASE_MIGRATIONS_ON_BOOT` is `"false"`, and the ingress's Node sidecar
+(`packages/Nginx`) connects to PostgreSQL too, so on a first boot the two
+migrated the same database at once, with deadlocks and "already exists"
+failures only the retries got past (#8417). The suite holds the packages whose
+entry connects to PostgreSQL to the App and the ingress. With docker's compose
+plugin on PATH (no daemon needed; with `RUN_COMPOSE_DATABASE_RUNTIME_TESTS=1`
+it fails rather than skips without one), it renders the stacks of `npm start`,
+`npm run dev` and CI's e2e jobs: the App applies the migrations, and the
+ingress turns them off and waits for them (`DATABASE_MIGRATION_WAIT_TIMEOUT_MS`
+not `0`), as the Helm chart's runtime pods wait for its migrate Job.
+
 ### `ComposeDatastorePasswordRuntime.test.js`
 
 The ClickHouse and Valkey `docker-compose.yml` runs, for real
@@ -1738,6 +1753,28 @@ paints) a gap or an alignment between them is off by however far things moved.
 evaluate. The suite fails any spec under packages/E2E with two or more
 statements in a row that each await one locator's `boundingBox()`; a box read
 alone, or after an action, is left alone.
+
+### `E2EConfigsPinTheirZone.test.js`
+
+A browser that Playwright isn't told a zone for reads dates in the zone of the
+machine running it, so a spec that pins "09:30 AM UTC" passes on a runner and
+fails on a laptop in another zone. Each `packages/E2E/playwright*.config.ts`
+sets `timezoneId` in its top-level `use` to a zone that exists, written out as
+a string: Europe/London where a suite reads GMT, UTC elsewhere. A project that
+sets its own must name a zone that exists too. The configs whose suites open no
+browser through `use` are listed with why: Sharding opens none, and Lighthouse
+launches its own (#8724).
+
+### `E2ENoBreakSpacesFromHelper.test.js`
+
+The product holds a number to its unit with a no-break space (U+00A0): "182
+ms". A spec that writes that space by hand (as the character, its escape, or
+`String.fromCharCode(0xa0)`) reads like one with a plain space, and specs with
+a plain space went red without anyone seeing why. Specs under packages/E2E write
+it through `SuiteHelpers/NoBreakSpaces.ts` (`withUnit(182, "ms")`,
+`NO_BREAK_SPACE`). The suite fails a spec that writes it by hand, except inside
+a function the page runs (the callback of `evaluate`, `evaluateAll`,
+`waitForFunction` and the like), which cannot import a module (#8725).
 
 ### `CompileWorkflow.test.js`
 

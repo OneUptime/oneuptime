@@ -9,6 +9,7 @@ import fs from "fs";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * File and Multiple files custom fields, and a public form's file
@@ -1462,4 +1463,18 @@ test.describe("a public form's file questions", () => {
     await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "form-fa-1280");
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German, Persian and Arabic whole, parsed on every page load of every test.
+ * English is in the bundle now, and each other language a chunk of its own,
+ * loaded only by a page drawn in it (SuiteHelpers/FixtureLocales.js), built
+ * as the Dashboard ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "fa", "ar"],
+  address: (language: string): string => {
+    return language === "en" ? CARD_PATH : `${CARD_PATH}?lang=${language}`;
+  },
 });

@@ -114,14 +114,11 @@ const DatabaseDocumentationCard: FunctionComponent<ComponentProps> = (
       )}
       getContent={getContent}
       /*
-       * The product guide reads in the reader's language (#8341). A
-       * database's own guide - its row's identity, its own collector - has
-       * no words in another language yet (#8746), so it reads in English whole
-       * rather than half translated.
+       * Every guide the card draws reads in the reader's language (#8341,
+       * #8746): the product page's, a row's agent guide and the
+       * own-collector guide of an engine the agent has no config for.
        */
-      translations={
-        props.database ? undefined : DATABASE_DOCUMENTATION_TRANSLATIONS
-      }
+      translations={DATABASE_DOCUMENTATION_TRANSLATIONS}
       isBare={props.isBare}
       inputs={props.inputs}
       lastStep={props.lastStep}

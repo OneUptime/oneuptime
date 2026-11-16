@@ -8,6 +8,7 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * Adding a host in one command, and the collectors OneUptime manages on
@@ -1752,4 +1753,18 @@ test("in the dark theme", async ({ page }: { page: Page }) => {
     page.getByTestId("host-collector-default-hosts-windows"),
   ).toHaveText("1 host");
   await screenshot(page, "collector-configs-dark");
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German whole, parsed on every page load of every test. English is in the
+ * bundle now, and each other language a chunk of its own, loaded only by a
+ * page drawn in it (SuiteHelpers/FixtureLocales.js), built as the Dashboard
+ * ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de"],
+  address: (language: string): string => {
+    return language === "en" ? HOSTS : `${HOSTS}?lang=${language}`;
+  },
 });
