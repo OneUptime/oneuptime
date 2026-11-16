@@ -56113,5 +56113,8 @@
   "This incident episode is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the episode is resolved.": "このインシデントエピソードはすでに確認済みです。選択したポリシーは、担当者の誰かが応答するかエピソードが解決されるまで、引き続き担当者をレベルごとに呼び出します。",
   "This incident episode is resolved, so no on-call policy can be started for it.": "このインシデントエピソードは解決済みのため、オンコールポリシーを開始できません。",
   "This incident is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the incident is resolved.": "このインシデントはすでに確認済みです。選択したポリシーは、担当者の誰かが応答するかインシデントが解決されるまで、引き続き担当者をレベルごとに呼び出します。",
-  "This incident is resolved, so no on-call policy can be started for it.": "このインシデントは解決済みのため、オンコールポリシーを開始できません。"
+  "This incident is resolved, so no on-call policy can be started for it.": "このインシデントは解決済みのため、オンコールポリシーを開始できません。",
+  "Mention the person who comes on call": "オンコールを引き継ぐ人をメンションする",
+  "Mentions the person who comes on call": "オンコールを引き継ぐ人をメンションします",
+  "They are notified in the channel at each hand-off, once they have connected their chat account to OneUptime.": "チャットアカウントを OneUptime に接続していれば、引き継ぎのたびにチャンネルで通知されます。"
 }

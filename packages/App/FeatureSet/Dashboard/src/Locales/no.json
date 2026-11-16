@@ -56113,5 +56113,8 @@
   "This incident episode is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the episode is resolved.": "Denne hendelsesepisoden er allerede bekreftet. Policyen du velger, tilkaller likevel personene sine, nivå for nivå, til en av dem svarer eller episoden er løst.",
   "This incident episode is resolved, so no on-call policy can be started for it.": "Denne hendelsesepisoden er løst, så ingen vaktpolicy kan startes for den.",
   "This incident is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the incident is resolved.": "Denne hendelsen er allerede bekreftet. Policyen du velger, tilkaller likevel personene sine, nivå for nivå, til en av dem svarer eller hendelsen er løst.",
-  "This incident is resolved, so no on-call policy can be started for it.": "Denne hendelsen er løst, så ingen vaktpolicy kan startes for den."
+  "This incident is resolved, so no on-call policy can be started for it.": "Denne hendelsen er løst, så ingen vaktpolicy kan startes for den.",
+  "Mention the person who comes on call": "Nevn personen som får vakt",
+  "Mentions the person who comes on call": "Nevner personen som får vakt",
+  "They are notified in the channel at each hand-off, once they have connected their chat account to OneUptime.": "Personen varsles i kanalen ved hvert vaktskifte, når vedkommende har koblet chattekontoen sin til OneUptime."
 }

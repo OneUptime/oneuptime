@@ -56113,5 +56113,8 @@
   "This incident episode is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the episode is resolved.": "此事件片段已被確認。所選策略仍會逐層呼叫其人員，直到其中有人回應或片段已解決。",
   "This incident episode is resolved, so no on-call policy can be started for it.": "此事件片段已解決，因此無法為它啟動待命策略。",
   "This incident is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the incident is resolved.": "此事件已被確認。所選策略仍會逐層呼叫其人員，直到其中有人回應或事件已解決。",
-  "This incident is resolved, so no on-call policy can be started for it.": "此事件已解決，因此無法為它啟動待命策略。"
+  "This incident is resolved, so no on-call policy can be started for it.": "此事件已解決，因此無法為它啟動待命策略。",
+  "Mention the person who comes on call": "提及接手待命的人員",
+  "Mentions the person who comes on call": "會提及接手待命的人員",
+  "They are notified in the channel at each hand-off, once they have connected their chat account to OneUptime.": "只要已將聊天帳號連接到 OneUptime，每次交接時都會在頻道中收到通知。"
 }

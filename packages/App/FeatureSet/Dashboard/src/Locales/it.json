@@ -56113,5 +56113,8 @@
   "This incident episode is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the episode is resolved.": "Questo episodio di incidente è già riconosciuto. La policy che scegli avvisa comunque le sue persone, livello per livello, finché una di loro non risponde o l'episodio non viene risolto.",
   "This incident episode is resolved, so no on-call policy can be started for it.": "Questo episodio di incidente è risolto, quindi non si può avviare alcuna policy di reperibilità per esso.",
   "This incident is acknowledged already. The policy you pick still pages its people, level by level, until one of them answers or the incident is resolved.": "Questo incidente è già riconosciuto. La policy che scegli avvisa comunque le sue persone, livello per livello, finché una di loro non risponde o l'incidente non viene risolto.",
-  "This incident is resolved, so no on-call policy can be started for it.": "Questo incidente è risolto, quindi non si può avviare alcuna policy di reperibilità per esso."
+  "This incident is resolved, so no on-call policy can be started for it.": "Questo incidente è risolto, quindi non si può avviare alcuna policy di reperibilità per esso.",
+  "Mention the person who comes on call": "Menzionare la persona che entra in reperibilità",
+  "Mentions the person who comes on call": "Menziona la persona che entra in reperibilità",
+  "They are notified in the channel at each hand-off, once they have connected their chat account to OneUptime.": "Riceve una notifica nel canale a ogni cambio turno, dopo aver collegato il proprio account di chat a OneUptime."
 }

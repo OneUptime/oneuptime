@@ -6,6 +6,7 @@ import NotificationRuleUpdates, {
 import Checkbox from "Common/UI/Components/Checkbox/Checkbox";
 import ChoiceRows from "Common/UI/Components/ChoiceRows/ChoiceRows";
 import FieldError from "Common/UI/Components/Forms/Fields/FieldError";
+import Toggle from "Common/UI/Components/Toggle/Toggle";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
@@ -15,6 +16,8 @@ import {
   EVERY_UPDATE_TITLE,
   getUpdateKindCopy,
   KEY_UPDATES_TITLE,
+  MENTION_WHO_IS_ON_CALL_DESCRIPTION,
+  MENTION_WHO_IS_ON_CALL_TITLE,
   UPDATES_COPY,
   UPDATES_SECTION_TITLE,
   UpdateKindCopy,
@@ -51,6 +54,19 @@ import {
  * on a new rule or on one saved with boxes of its own. Picking Choose
  * updates ticks the boxes of what the rule posts so far, and changes
  * nothing until a box is changed.
+ *
+ * An on-call rule that posts who is on call now has one switch under the
+ * answers (issue #7968), off unless turned on:
+ *
+ *   ┌──────────────────────────────────────────────────────────┐
+ *   │ (  ) Mention the person who comes on call                 │
+ *   │      They are notified in the channel at each hand-off... │
+ *   └──────────────────────────────────────────────────────────┘
+ *
+ * On, the hand-off line mentions them by the chat account they connected
+ * (BaseNotificationRule.shouldMentionWhoIsOnCall). A rule that stops
+ * posting who is on call now keeps the switch as it was, and mentions
+ * nobody until it posts it again.
  */
 
 export interface ComponentProps {
@@ -174,6 +190,15 @@ const NotificationRuleUpdatesForm: FunctionComponent<ComponentProps> = (
     </div>
   );
 
+  /*
+   * An on-call rule's hand-off line can mention the person who comes on
+   * call (issue #7968): offered while the rule posts who is on call now,
+   * since only that line names them.
+   */
+  const canMention: boolean =
+    NotificationRuleUpdates.canMentionWhoIsOnCall(props.eventType) &&
+    posted.includes(NotificationRuleUpdateKind.OnCallNow);
+
   return (
     <div data-testid="notification-rule-updates-form" className="space-y-3">
       <div className="overflow-hidden rounded-lg border border-gray-200">
@@ -208,6 +233,32 @@ const NotificationRuleUpdatesForm: FunctionComponent<ComponentProps> = (
           ]}
         />
       </div>
+
+      {canMention ? (
+        <div
+          className="rounded-lg border border-gray-200 px-4 py-3"
+          data-testid="notification-rule-updates-mention"
+        >
+          <Toggle
+            title={MENTION_WHO_IS_ON_CALL_TITLE}
+            description={MENTION_WHO_IS_ON_CALL_DESCRIPTION}
+            value={rule?.shouldMentionWhoIsOnCall === true}
+            dataTestId="notification-rule-updates-mention-toggle"
+            onChange={(isOn: boolean) => {
+              props.onChange(
+                NotificationRuleUpdates.withMentionOfWhoIsOnCall<IncidentNotificationRule>(
+                  {
+                    rule: rule,
+                    isOn: isOn,
+                  },
+                ),
+              );
+            }}
+          />
+        </div>
+      ) : (
+        <></>
+      )}
 
       {props.error ? (
         <FieldError message={props.error} className="text-sm" />
