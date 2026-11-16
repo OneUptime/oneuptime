@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 Stel ze in `config.env` in en voer daarna `npm start` uit. `DISABLE_TELEMETRY_FOR_APP` is standaard `true`, en dan wordt er niets verstuurd.
 :::
 
-OneUptime heeft zowel het endpoint als de headers nodig: zonder header verstuurt het niets. Schrijf elke header als `name=value` en scheid meerdere met `;`. Een waarde mag `=` bevatten. OneUptime voegt zelf `/v1/metrics` aan het endpoint toe, en dezelfde instellingen versturen ook de eigen traces en logs. Elke metric verschijnt zodra OneUptime hem voor het eerst vastlegt: `notification.send.count` bij het eerste verstuurde bericht.
+OneUptime heeft zowel het endpoint als de headers nodig: zonder header verstuurt het niets. Schrijf elke header als `name=value` en scheid meerdere met `;`, of met `,` zoals in `OTEL_EXPORTER_OTLP_HEADERS`. Een waarde mag `=` bevatten. Zonder `;` wordt een waarde gelezen zoals die standaard haar schrijft, een spatie als `%20`: eindig de instelling met `;` om een waarde precies zo te versturen als ze geschreven is. OneUptime voegt zelf `/v1/metrics` aan het endpoint toe, en dezelfde instellingen versturen ook de eigen traces en logs. Elke metric verschijnt zodra OneUptime hem voor het eerst vastlegt: `notification.send.count` bij het eerste verstuurde bericht.
 
 ### Delta's naar een OneUptime-project sturen
 

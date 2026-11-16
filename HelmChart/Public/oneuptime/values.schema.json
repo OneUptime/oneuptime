@@ -3136,7 +3136,7 @@
                         "string",
                         "null"
                     ],
-                    "description": "Headers OneUptime's own telemetry is exported with: name=value, several separated by ';'. A value may hold '='."
+                    "description": "Headers OneUptime's own telemetry is exported with: name=value, several separated by ';', or by ',' with percent-encoded values as in OTEL_EXPORTER_OTLP_HEADERS. A value may hold '='."
                 },
                 "kubernetesClusterName": {
                     "type": [

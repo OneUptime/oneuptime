@@ -117,9 +117,26 @@ export default class SyslogIngestService extends OtelIngestBaseService {
         messages,
       } satisfies JSONObject;
 
-      Response.sendEmptySuccessResponse(req, res);
+      /*
+       * Acknowledge only after queue admission, as the OTLP endpoints do.
+       * This answered 200 first and queued after, so messages the queue then
+       * refused were lost behind a success; a relay retries a 503. The queue
+       * service logs the failure; the sender is told nothing of the backend
+       * or its payload.
+       */
+      try {
+        await SyslogQueueService.addSyslogIngestJob(req as TelemetryRequest);
+      } catch {
+        return Response.sendCustomResponse(
+          req,
+          res,
+          503,
+          { message: "Telemetry queue unavailable. Please retry." },
+          {},
+        );
+      }
 
-      await SyslogQueueService.addSyslogIngestJob(req as TelemetryRequest);
+      Response.sendEmptySuccessResponse(req, res);
 
       return;
     } catch (error) {
