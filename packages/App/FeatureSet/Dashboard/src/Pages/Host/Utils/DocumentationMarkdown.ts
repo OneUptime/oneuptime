@@ -640,6 +640,7 @@ sc.exe --% create "otelcol-contrib" binPath= "\\"${WINDOWS_INSTALL_DIR}\\otelcol
 sc.exe start "otelcol-contrib"`,
 )}
 
+> [!NOTE]
 > **Note:** The service runs as \`LocalSystem\` so it can read every Windows service. On Windows the \`load\` scraper only emulates a load average from the *Processor Queue Length* counter (it starts at 0); if it can't read the counter it is logged and skipped, so the rest of the \`hostmetrics\` config runs unchanged. The [Host OpenTelemetry Collector docs](/docs/telemetry/host-otel-collector) also cover the signed \`.msi\` installer.`,
       };
   }
