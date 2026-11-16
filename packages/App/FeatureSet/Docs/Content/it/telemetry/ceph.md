@@ -265,7 +265,7 @@ sudo chmod 600 ceph/ceph.client.oneuptime-ai.keyring
 docker compose up -d
 ```
 
-Cosa può eseguire, come funzionano le correzioni e come risolverne i problemi: [Infrastructure IA Agents](/docs/ai/infrastructure-ai-agents#cluster-ceph).
+Cosa può eseguire, come funzionano le correzioni e come risolverne i problemi: [Infrastructure Agenti IA](/docs/ai/infrastructure-ai-agents#cluster-ceph).
 
 ## Risoluzione dei problemi
 
@@ -307,6 +307,6 @@ OneUptime registra un cluster Ceph tramite il suo `ceph.cluster.name`, che l'age
 :::cards
 - [Monitor Ceph](/docs/monitor/ceph-monitor): Avvisi su stato, OSD, placement group, capacità, crash e operazioni lente.
 - [Agent Proxmox](/docs/telemetry/proxmox): Usi Ceph sotto Proxmox VE? Monitora anche il cluster.
-- [Infrastructure IA Agents](/docs/ai/infrastructure-ai-agents): Cosa può eseguire l'agente IA Ceph e come funzionano le correzioni.
+- [Infrastructure Agenti IA](/docs/ai/infrastructure-ai-agents): Cosa può eseguire l'agente IA Ceph e come funzionano le correzioni.
 - [Collector OpenTelemetry sull'host](/docs/telemetry/host-otel-collector): La vista del sistema operativo di ogni host Ceph.
 :::

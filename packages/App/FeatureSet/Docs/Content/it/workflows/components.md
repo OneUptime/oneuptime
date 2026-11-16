@@ -19,7 +19,7 @@ Raramente ti servirà tenerla aperta mentre costruisci. Le impostazioni di ogni 
 | Inviare un'email tramite il tuo server di posta               | [Email](#email)                                                   |
 | Chiamare una persona, un team o chi è reperibile | [Paging](#paging) |
 | Chiamare qualsiasi altra API o un tuo servizio                | [API](#api)                                                       |
-| Riassumere, classificare o scrivere testo                     | [Generate Text with IA](#generate-text-with-ia)                   |
+| Riassumere, classificare o scrivere testo                     | [Genera testo con l'IA](#genera-testo-con-lia)                   |
 | Prendere un percorso o un altro in base a un valore           | [Conditions](#conditions)                                         |
 | Prendere uno di più percorsi in base a un valore              | [Switch / Case](#switch-case)                                     |
 | Proseguire solo quando poche righe di JavaScript lo dicono | [Check With JavaScript](#check-with-javascript) |
@@ -73,7 +73,7 @@ I reindirizzamenti non vengono seguiti, quindi punta il blocco all'indirizzo che
 
 ## IA
 
-### Generate Text with IA
+### Genera testo con l'IA
 
 Genera una risposta testuale da un prompt e da un contesto JSON facoltativo. Il blocco usa il provider LLM predefinito del progetto, o il provider globale dell'installazione quando il progetto non ne ha uno. I provider si configurano in modo centralizzato in **Impostazioni del progetto → IA → Provider LLM**; le loro chiavi e i loro endpoint non sono mai impostazioni del blocco.
 

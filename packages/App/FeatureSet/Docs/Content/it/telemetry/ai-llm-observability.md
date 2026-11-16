@@ -44,7 +44,7 @@ Tutte e tre sono in **Prodotti → IA / LLM → Collega**. Usane una, due o tutt
 | Via d'ingresso | Cosa ottieni | Come |
 | --- | --- | --- |
 | **Le tue app** | Ogni chiamata di IA mentre avviene: la conversazione, la persona, il prompt e la risposta, token, costo ed errori | OpenTelemetry dal tuo codice o da un gateway, in cinque passaggi |
-| **I tuoi account dei provider di IA** | Cosa ha consumato e quanto è costato ogni account OpenAI, Anthropic, Azure, Bedrock, Vertex IA o Cursor, per giorno o per ora | Una credenziale di sola lettura e nessun codice: [Account dei provider di IA](/docs/telemetry/ai-provider-accounts) |
+| **I tuoi account dei provider di IA** | Cosa ha consumato e quanto è costato ogni account OpenAI, Anthropic, Azure, Bedrock, Vertex AI o Cursor, per giorno o per ora | Una credenziale di sola lettura e nessun codice: [Account dei provider di IA](/docs/telemetry/ai-provider-accounts) |
 | **Gli strumenti di IA della tua azienda** | Cosa chiedono le tue persone a Claude Enterprise o Microsoft 365 Copilot, per persona | Una credenziale di sola lettura e nessun codice: [Strumenti di IA aziendali](/docs/telemetry/ai-company-tools) |
 
 Gli account dei provider e gli assistenti di programmazione portano utilizzo e costo, mai una chiamata: riempiono **Utilizzo**, e **Conversazioni** e **Chiamate** restano vuote finché le tue app non inviano le loro chiamate di IA o non si collega uno strumento di IA dell'azienda. [Verifica cosa arriva](#verifica-cosa-arriva) mostra quale via porta cosa.
@@ -65,7 +65,7 @@ La **Verifica della configurazione** in cima a **Collega** dice cosa porta ogni 
 ## Prima di iniziare
 
 - Un progetto OneUptime in cui puoi creare una chiave di acquisizione della telemetria.
-- Un'app che chiama un modello, e una strumentazione GenAI per il suo linguaggio: **OpenLLMetry** (Traceloop), **OpenInference** (Arize), il **Vercel IA SDK**, o le strumentazioni OpenTelemetry per OpenAI, Anthropic e Gemini.
+- Un'app che chiama un modello, e una strumentazione GenAI per il suo linguaggio: **OpenLLMetry** (Traceloop), **OpenInference** (Arize), il **Vercel AI SDK**, o le strumentazioni OpenTelemetry per OpenAI, Anthropic e Gemini.
 
 > [!TIP]
 > Il traffico verso i modelli che passa da un gateway come LiteLLM o Portkey si può esportare dal gateway invece che da ogni app: vedi [Gateway IA](/docs/telemetry/ai-gateways). Per gli assistenti di programmazione usati dai tuoi ingegneri, vedi [Assistenti di programmazione IA](/docs/telemetry/ai-coding-assistants).
@@ -151,7 +151,7 @@ export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
 
 Le strumentazioni OpenTelemetry più recenti accettano `span_only`, `event_only` o `span_and_event` al posto di `true`. Senza contenuto registrato, una conversazione mostra comunque i suoi tempi, il suo costo e i suoi problemi. I prompt possono contenere dati sensibili: [Privacy e oscuramento](#privacy-e-oscuramento) mostra come mascherarli prima che vengano salvati.
 
-Le conversazioni leggono ciò che è registrato sullo span della chiamata, e gli eventi di log che l'app invia con gli id di traccia e di span della chiamata. La strumentazione OpenTelemetry per Python lo registra sullo span con `span_only`; le strumentazioni per JavaScript e Java, e quella per Python con `true` o `event_only`, lo inviano come eventi di log, che arrivano a OneUptime con i log dell'app. L'SDK IA Inference di Azure lo registra sullo span con `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true`, Microsoft.Extensions.IA con `EnableSensitiveData`; la libreria OpenAI per .NET non registra nulla.
+Le conversazioni leggono ciò che è registrato sullo span della chiamata, e gli eventi di log che l'app invia con gli id di traccia e di span della chiamata. La strumentazione OpenTelemetry per Python lo registra sullo span con `span_only`; le strumentazioni per JavaScript e Java, e quella per Python con `true` o `event_only`, lo inviano come eventi di log, che arrivano a OneUptime con i log dell'app. L'SDK AI Inference di Azure lo registra sullo span con `AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED=true`, Microsoft.Extensions.IA con `EnableSensitiveData`; la libreria OpenAI per .NET non registra nulla.
 
 ### Raggruppa le chiamate in conversazioni
 
@@ -166,7 +166,7 @@ Traceloop.set_association_properties({
 })
 ```
 
-Con il Vercel IA SDK, passa l'id della chat come `experimental_telemetry: { metadata: { sessionId } }`. Le chiamate senza id di conversazione compaiono comunque, una richiesta (una traccia) alla volta.
+Con il Vercel AI SDK, passa l'id della chat come `experimental_telemetry: { metadata: { sessionId } }`. Le chiamate senza id di conversazione compaiono comunque, una richiesta (una traccia) alla volta.
 
 ### Indica chi ha chiesto
 
@@ -241,7 +241,7 @@ Un avviso pronto genera un avviso che si risolve da solo, e mostra il monitor co
 
 La scheda **Utilizzo** mostra le chiamate, i token e il costo di un intervallo di tempo (gli ultimi 7 giorni, se non ne scegli un altro), e una tabella dei primi 25 secondo una di cinque suddivisioni: **Dipendente**, **Team**, **Modello**, **Provider** e **Applicazione / Servizio**. Le chiamate che non nominano nessuno vengono contate in **Non attribuito**, mai scartate.
 
-Queste sono **Le tue chiamate IA**. Scegli invece **Account provider** per vedere cosa è stato addebitato ai tuoi account OpenAI, Anthropic, Azure, Bedrock, Vertex IA e Cursor collegati: vedi [Account dei provider di IA](/docs/telemetry/ai-provider-accounts#vedere-lutilizzo). Le due cose non vengono mai sommate.
+Queste sono **Le tue chiamate IA**. Scegli invece **Account provider** per vedere cosa è stato addebitato ai tuoi account OpenAI, Anthropic, Azure, Bedrock, Vertex AI e Cursor collegati: vedi [Account dei provider di IA](/docs/telemetry/ai-provider-accounts#vedere-lutilizzo). Le due cose non vengono mai sommate.
 
 Persone e team vengono dagli attributi di identità della chiamata: vedi [Attribuzione a dipendenti e team](/docs/telemetry/ai-coding-assistants#attribuzione-a-dipendenti-e-team).
 
@@ -325,7 +325,7 @@ Le conversazioni si leggono con lo stesso permesso delle tracce: chi può legger
 
 ## Attributi che OneUptime legge
 
-OneUptime legge le convenzioni GenAI di OpenTelemetry, e le varianti usate da OpenLLMetry, OpenInference, il Vercel IA SDK e LiteLLM, così le librerie più diffuse funzionano così come sono. Per ogni valore, vince la prima chiave che lo span porta:
+OneUptime legge le convenzioni GenAI di OpenTelemetry, e le varianti usate da OpenLLMetry, OpenInference, il Vercel AI SDK e LiteLLM, così le librerie più diffuse funzionano così come sono. Per ogni valore, vince la prima chiave che lo span porta:
 
 | Valore | Chiavi, nell'ordine in cui vengono provate |
 | --- | --- |
@@ -359,7 +359,7 @@ La vista della conversazione legge i messaggi di una chiamata da, in quest'ordin
 
 - l'evento `gen_ai.client.inference.operation.details`;
 - gli attributi `gen_ai.input.messages`, `gen_ai.output.messages` e `gen_ai.system_instructions`;
-- i vecchi eventi per ruolo: `gen_ai.system.message`, `gen_ai.user.message`, `gen_ai.assistant.message`, `gen_ai.tool.message` e `gen_ai.choice`, con il messaggio in `gen_ai.event.content` quando li ha inviati l'SDK IA Inference di Azure o Semantic Kernel;
+- i vecchi eventi per ruolo: `gen_ai.system.message`, `gen_ai.user.message`, `gen_ai.assistant.message`, `gen_ai.tool.message` e `gen_ai.choice`, con il messaggio in `gen_ai.event.content` quando li ha inviati l'SDK AI Inference di Azure o Semantic Kernel;
 - gli attributi indicizzati: `gen_ai.prompt.N.content` e `gen_ai.completion.N.content` di OpenLLMetry, `llm.input_messages.N.message.content` e `llm.output_messages.N.message.content` di OpenInference;
 - gli array di messaggi in `gen_ai.prompt`, `gen_ai.completion`, `ai.prompt.messages`, `ai.response.text`, `input.value` e `output.value`.
 
@@ -398,7 +398,7 @@ La finestra mobile del monitor è più corta di 15 minuti, quindi a volte non tr
 ## Passaggi successivi
 
 :::cards
-- [Account dei provider di IA](/docs/telemetry/ai-provider-accounts): Utilizzo e costo dei tuoi account OpenAI, Anthropic, Azure, Bedrock, Vertex IA e Cursor, senza codice.
+- [Account dei provider di IA](/docs/telemetry/ai-provider-accounts): Utilizzo e costo dei tuoi account OpenAI, Anthropic, Azure, Bedrock, Vertex AI e Cursor, senza codice.
 - [Strumenti di IA aziendali](/docs/telemetry/ai-company-tools): Cosa chiedono le tue persone a Claude Enterprise e Microsoft 365 Copilot.
 - [Assistenti di programmazione IA](/docs/telemetry/ai-coding-assistants): La spesa per ingegnere di Claude Code, Cursor, Codex, Gemini CLI e Copilot.
 - [Gateway IA](/docs/telemetry/ai-gateways): Traccia le chiamate ai modelli di ogni app da un unico gateway LiteLLM o Portkey.

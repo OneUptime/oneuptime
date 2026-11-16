@@ -250,7 +250,7 @@ I comandi e il file Compose qui sopra, l'[`install.sh`](https://oneuptime.com/in
 - Viene eseguito come root con il socket di Docker montato, perché il socket appartiene a root — e chi può usare il socket è root su questo host, `:ro` o no. Il limite è la policy dei comandi dell'agent: non esegue mai `exec`, `run`, `rm` o `prune`, e non modifica mai sé stesso, il collector o qualsiasi cosa in `ONEUPTIME_AI_PROTECTED_TARGETS` (glob di nomi di container). I valori d'ambiente nell'output di `docker inspect` vengono mascherati prima che qualcosa lasci l'host.
 - `install.sh --no-ai-agent` lo omette; `docker rm -f oneuptime-docker-ai-agent` lo rimuove. Aggiornalo come il collector: `docker pull oneuptime/resource-ai-agent:release`, rimuovilo e avvialo di nuovo.
 
-Cosa può eseguire, come funzionano le correzioni e come risolverne i problemi: [Infrastructure IA Agents](/docs/ai/infrastructure-ai-agents#host-docker-e-podman).
+Cosa può eseguire, come funzionano le correzioni e come risolverne i problemi: [Infrastructure Agenti IA](/docs/ai/infrastructure-ai-agents#host-docker-e-podman).
 
 ## Risoluzione dei problemi
 

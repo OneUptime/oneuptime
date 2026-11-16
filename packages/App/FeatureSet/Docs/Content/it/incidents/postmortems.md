@@ -58,7 +58,7 @@ Scrivere un post-mortem richiede il ruolo Proprietario del progetto, Amministrat
 
 ## Partire da un modello o da una bozza dell'IA
 
-Due pulsanti compilano la nota al posto vostro. Finché non c'è nulla di scritto, sono accanto a **Scrivi il post-mortem**: **Inizia da un modello**, non appena il progetto ha un modello di post-mortem, e **Generate with IA**. Una volta scritto il post-mortem, sono nel menu **⋯** accanto a **Modifica nota post mortem**, come **Applica modello** e **Generate with IA**. Entrambi aprono lo stesso editor, con la nota compilata e il resto del post-mortem com'era. Nulla viene salvato finché non fate clic su **Salva modifiche**, quindi rileggete la nota e correggetela prima.
+Due pulsanti compilano la nota al posto vostro. Finché non c'è nulla di scritto, sono accanto a **Scrivi il post-mortem**: **Inizia da un modello**, non appena il progetto ha un modello di post-mortem, e **Generate with AI**. Una volta scritto il post-mortem, sono nel menu **⋯** accanto a **Modifica nota post mortem**, come **Applica modello** e **Generate with AI**. Entrambi aprono lo stesso editor, con la nota compilata e il resto del post-mortem com'era. Nulla viene salvato finché non fate clic su **Salva modifiche**, quindi rileggete la nota e correggetela prima.
 
 ### Applicare un modello
 
@@ -68,9 +68,9 @@ Fate clic su **Inizia da un modello**, oppure su **Applica modello** nel menu **
 
 ### Generarlo con l'IA
 
-Fate clic su **Generate with IA**. Il dialogo **Genera post-mortem con l'IA** propone una traccia in **Seleziona modello**: **Standard Postmortem**, **Detailed Technical Postmortem** o **Brief Postmortem**, poi i vostri modelli di post-mortem. **Template Preview** mostra la traccia, e potete modificarla prima di generare.
+Fate clic su **Generate with AI**. Il dialogo **Genera post-mortem con l'IA** propone una traccia in **Seleziona modello**: **Standard Postmortem**, **Detailed Technical Postmortem** o **Brief Postmortem**, poi i vostri modelli di post-mortem. **Template Preview** mostra la traccia, e potete modificarla prima di generare.
 
-Fate clic su **Generate with IA** in fondo al dialogo. OneUptime AI legge l'incidente (la sua descrizione, la causa principale e la correzione, la cronologia degli stati, le note pubbliche e private, i messaggi del suo canale Slack o Microsoft Teams, e ciò che si è detto nelle [sue chiamate](/docs/workspace-connections/video-calls#trascrizioni-delle-chiamate)) e scrive il post-mortem secondo la vostra traccia. Poi l'editor si apre con il risultato.
+Fate clic su **Generate with AI** in fondo al dialogo. OneUptime AI legge l'incidente (la sua descrizione, la causa principale e la correzione, la cronologia degli stati, le note pubbliche e private, i messaggi del suo canale Slack o Microsoft Teams, e ciò che si è detto nelle [sue chiamate](/docs/workspace-connections/video-calls#trascrizioni-delle-chiamate)) e scrive il post-mortem secondo la vostra traccia. Poi l'editor si apre con il risultato.
 
 La generazione richiede che l'IA sia attiva per il progetto, in **Impostazioni del progetto → IA → Funzionalità IA**, e un provider LLM: vedere [Provider LLM](/docs/ai/llm-provider). Richiede anche il ruolo Proprietario del progetto o Amministratore del progetto, oppure un ruolo personalizzato con il permesso Edit Incident: gli altri ruoli possono scrivere il post-mortem, ma non generarlo.
 
@@ -91,7 +91,7 @@ Senza regole, ogni incidente risolto riceve una bozza, secondo lo schema standar
 - I suoi **Modelli** sono i modelli di post-mortem che la bozza può seguire. Senza alcun modello, la bozza segue lo schema standard; con uno, quel modello; con più di uno, quello che secondo OneUptime AI si adatta meglio all'incidente. Il post della bozza nel feed nomina il modello che ha seguito.
 - Il suo **Provider LLM**, in **Altri campi**, è il provider con cui OneUptime AI scrive la bozza e ne sceglie il modello. Se non se ne sceglie nessuno, è il provider predefinito del progetto, altrimenti quello globale. Il post della bozza nel feed nomina il provider scelto da una regola, o quello usato al suo posto e perché. Vedere [Quale provider LLM usa una regola](/docs/ai/ai-sre#quale-provider-llm-usa-una-regola).
 - Decide la prima regola abilitata che corrisponde all'incidente, partendo dall'alto dell'elenco: trascinare una regola per cambiarne la posizione. Un incidente a cui non corrisponde nessuna regola non riceve una bozza, e nessun incidente la riceve finché le regole non si possono leggere.
-- **Scrivi una bozza di post-mortem quando un incidente viene risolto** resta l'unico interruttore che disattiva le bozze. Le regole decidono solo le bozze che OneUptime AI scrive da sé: **Generate with IA** offre ogni schema, qualunque cosa dicano.
+- **Scrivi una bozza di post-mortem quando un incidente viene risolto** resta l'unico interruttore che disattiva le bozze. Le regole decidono solo le bozze che OneUptime AI scrive da sé: **Generate with AI** offre ogni schema, qualunque cosa dicano.
 - Creare, modificare e riordinare le regole richiede il ruolo Proprietario del progetto o Amministratore del progetto. Su OneUptime Cloud, i modelli richiedono il piano Growth: al di sotto, le regole decidono comunque quali incidenti ricevono una bozza, e ogni bozza segue lo schema standard.
 
 ## Pubblicarlo sulla vostra pagina di stato
@@ -213,7 +213,7 @@ Per leggere le azioni da intraprendere serve ciò che serve per leggere l'incide
 
 ## Post-mortem degli episodi
 
-Anche un episodio di incidenti ha una pagina **Post-mortem**, sotto **Indagine**: un unico resoconto per tutti gli incidenti dell'episodio. Fate clic su **Modifica post mortem** per scriverlo. **Applica modello** e **Generate with IA** funzionano come su un incidente, e l'IA legge l'episodio e i suoi incidenti membri.
+Anche un episodio di incidenti ha una pagina **Post-mortem**, sotto **Indagine**: un unico resoconto per tutti gli incidenti dell'episodio. Fate clic su **Modifica post mortem** per scriverlo. **Applica modello** e **Generate with AI** funzionano come su un incidente, e l'IA legge l'episodio e i suoi incidenti membri.
 
 Il post-mortem di un episodio è solo la nota: non ha allegati, e nessuna pagina di stato lo mostra. OneUptime AI non ne scrive uno da solo quando un episodio viene risolto. Generarlo richiede il ruolo Proprietario del progetto o Amministratore del progetto, oppure un ruolo personalizzato con il permesso Edit Incident Episode. Non ha nemmeno uno stato, e l'elenco dei post-mortem non lo include.
 
@@ -241,7 +241,7 @@ Le azioni da intraprendere di un post-mortem sono record a sé, in `/api/inciden
 Il progetto non ha ancora un modello di post-mortem, oppure il vostro ruolo non può leggerli. Createne uno in **Incidenti → Impostazioni → Modelli post-mortem**. Su OneUptime Cloud, i modelli richiedono il piano Growth.
 :::
 
-:::details Generate with IA dice che l'IA è disattivata, o che vi manca il permesso
+:::details Generate with AI dice che l'IA è disattivata, o che vi manca il permesso
 Attivate l'IA in **Impostazioni del progetto → IA → Funzionalità IA**. La generazione richiede il ruolo Proprietario del progetto o Amministratore del progetto, oppure un ruolo personalizzato con il permesso Edit Incident, anche per chi può modificare il post-mortem.
 :::
 

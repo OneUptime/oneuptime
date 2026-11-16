@@ -486,7 +486,7 @@ Ogni punto dati porta l'ID risorsa Azure della sua risorsa (`azuremonitor.resour
 | `Microsoft.Synapse/workspaces` | Synapse Workspace | PaaS |
 | `Microsoft.Kusto/clusters` | Data Explorer Cluster | PaaS |
 | `Microsoft.StreamAnalytics/streamingjobs` | Stream Analytics Job | PaaS |
-| `Microsoft.CognitiveServices/accounts` | Azure IA Services or OpenAI | PaaS |
+| `Microsoft.CognitiveServices/accounts` | Azure AI Services or OpenAI | PaaS |
 | `Microsoft.Search/searchServices` | IA Search Service | PaaS |
 | `Microsoft.MachineLearningServices/workspaces` | Machine Learning Workspace | PaaS |
 | `Microsoft.KeyVault/vaults` | Key Vault | PaaS |
@@ -592,7 +592,7 @@ Cloud Monitoring nomina la risorsa monitorata di ogni metrica con un tipo e dell
 | `cloud_tasks_queue` | `project_id`, `location`, `queue_id` | Cloud Tasks Queue | PaaS |
 | `cloud_composer_environment` | `project_id`, `location`, `environment_name` | Cloud Composer Environment | PaaS |
 | `dataproc_cluster` | `project_id`, `region`, `cluster_name` | Dataproc Cluster | PaaS |
-| `aiplatform.googleapis.com/Endpoint` | `resource_container`, `location`, `endpoint_id` | Vertex IA Endpoint | PaaS |
+| `aiplatform.googleapis.com/Endpoint` | `resource_container`, `location`, `endpoint_id` | Vertex AI Endpoint | PaaS |
 :::
 
 ### Nomi

@@ -15,7 +15,7 @@ Un provider LLM è il modello dietro ogni funzionalità di IA di OneUptime: inda
 - **Domande**: **Chiedi all'IA** risponde a partire dai dati del tuo progetto, con una fonte per ogni affermazione. Vedi [Chiedi all'IA](/docs/ai/ask-ai).
 - **Bozze**: **Bozza con IA** nelle note di incidenti, avvisi e manutenzioni programmate, e i postmortem, scritti su richiesta o quando un incidente si risolve.
 - **Codice**: pull request che correggono eccezioni, tracce lente e le cause trovate dalle indagini, da OneUptime o da GitHub. Vedi [Codice](/docs/ai/ai-agent).
-- **Tutto il resto**: il triage di IA Insights, i passaggi di IA dei flussi di lavoro e dei runbook, e le risposte in Slack e Microsoft Teams.
+- **Tutto il resto**: il triage di Insight IA, i passaggi di IA dei flussi di lavoro e dei runbook, e le risposte in Slack e Microsoft Teams.
 
 ## Quale provider usa l'IA
 

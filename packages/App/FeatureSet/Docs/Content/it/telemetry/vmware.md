@@ -433,7 +433,7 @@ Il `docker-compose.yml` dell'agent esegue anche l'**Agente IA VMware**, `oneupti
 - Gira come UID 1000 senza capabilities e non esegue mai operazioni guest, snapshot, `esxcli` o qualsiasi cosa crei o distrugga una VM. Elimina il servizio `oneuptime-vmware-ai-agent` da `docker-compose.yml` se non usi OneUptime AI.
 - L'installazione senza Docker non ha un agente IA: viene distribuito solo come immagine container. Per aggiungerne uno, eseguilo con Docker su una qualsiasi macchina che raggiunga vCenter — scarica `docker-compose.yml`, scrivi accanto un `.env` con le impostazioni di `/opt/oneuptime-vmware-agent/.env`, tra virgolette singole come le vuole Docker Compose, e avvia l'agente IA da solo con `docker compose up -d oneuptime-vmware-ai-agent` (non il collector, che è già in esecuzione).
 
-Cosa può eseguire, come funzionano le correzioni e come risolverne i problemi: [Infrastructure IA Agents](/docs/ai/infrastructure-ai-agents#vmware-vcenter). Il README dell'agent contiene i comandi esatti per il ruolo delle correzioni.
+Cosa può eseguire, come funzionano le correzioni e come risolverne i problemi: [Infrastructure Agenti IA](/docs/ai/infrastructure-ai-agents#vmware-vcenter). Il README dell'agent contiene i comandi esatti per il ruolo delle correzioni.
 
 ## Risoluzione dei problemi
 
@@ -518,6 +518,6 @@ vSphere non ha un push OpenTelemetry proprio, quindi l'agent (o qualsiasi OpenTe
 :::cards
 - [Monitor VMware](/docs/monitor/vmware-monitor): Avvisi su host, VM, datastore, cluster, datacenter e vSAN.
 - [VMware senza agent](/docs/telemetry/vmware-agentless): Lascia invece che una sonda raccolga il vCenter.
-- [Infrastructure IA Agents](/docs/ai/infrastructure-ai-agents): Cosa può eseguire l'agente IA VMware e come funzionano le correzioni.
+- [Infrastructure Agenti IA](/docs/ai/infrastructure-ai-agents): Cosa può eseguire l'agente IA VMware e come funzionano le correzioni.
 - [Collector OpenTelemetry sull'host](/docs/telemetry/host-otel-collector): La vista del sistema operativo all'interno delle VM, o della macchina dell'agent.
 :::

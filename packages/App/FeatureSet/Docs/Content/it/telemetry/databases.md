@@ -455,7 +455,7 @@ Le sue variabili, nello stesso `.env` (il file compose le passa solo all'agente 
 | `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | l'identità del collector | Registra l'agente IA come un database diverso da quello del collector: il suo id in OneUptime, oppure `<engine>\|<address>:<port>`. Lascialo vuoto |
 | `LOG_LEVEL` | `info` | Il livello di log dell'agente IA: `debug`, `info`, `warn` o `error` |
 
-Che cosa può eseguire, come funzionano le correzioni e come risolvere i problemi: [Infrastructure IA Agents](/docs/ai/infrastructure-ai-agents#server-di-database).
+Che cosa può eseguire, come funzionano le correzioni e come risolvere i problemi: [Infrastructure Agenti IA](/docs/ai/infrastructure-ai-agents#server-di-database).
 
 ## Kubernetes
 
@@ -787,5 +787,5 @@ Il monitor non nomina il database. Filtra o raggruppa un monitor di metriche o d
 - [Monitor metriche](/docs/monitor/metrics-monitor): Ricevi avvisi sulle metriche del motore di un database, filtrate sul suo `oneuptime.database.server.id`.
 - [Monitor stato database](/docs/monitor/database-health-monitor): Controlla PostgreSQL, MySQL o SQL Server da una sonda, senza agent.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Strumenta le tue applicazioni, così le loro chiamate al database riempiono **Query dalle applicazioni**.
-- [Infrastructure IA Agents](/docs/ai/infrastructure-ai-agents): Che cosa può eseguire l'agente IA per database e come funzionano le correzioni.
+- [Infrastructure Agenti IA](/docs/ai/infrastructure-ai-agents): Che cosa può eseguire l'agente IA per database e come funzionano le correzioni.
 :::

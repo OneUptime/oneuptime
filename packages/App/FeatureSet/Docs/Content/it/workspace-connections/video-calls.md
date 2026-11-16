@@ -139,7 +139,7 @@ Microsoft consente alle app di leggere solo le trascrizioni delle riunioni di Te
 
 | Chiamata | Come ottiene la sua trascrizione | Cosa le serve |
 | --- | --- | --- |
-| Zoom | **Ottieni da Zoom** | Una riunione registrata nel cloud con la trascrizione audio attiva, o con il riepilogo della riunione di IA Companion attivo. La connessione ha bisogno degli scope per le trascrizioni (vedi [Zoom](#zoom)), e una creata con l'accesso prima di essi ha bisogno di **Reconnect**. Zoom prepara una trascrizione dopo la riunione, di solito entro il doppio della sua durata. |
+| Zoom | **Ottieni da Zoom** | Una riunione registrata nel cloud con la trascrizione audio attiva, o con il riepilogo della riunione di AI Companion attivo. La connessione ha bisogno degli scope per le trascrizioni (vedi [Zoom](#zoom)), e una creata con l'accesso prima di essi ha bisogno di **Reconnect**. Zoom prepara una trascrizione dopo la riunione, di solito entro il doppio della sua durata. |
 | Google Meet | **Ottieni da Google Meet** | Trascrizioni attivate nella chiamata, in un'edizione di Google Workspace che le offre. Nient'altro da configurare: OneUptime legge le trascrizioni delle riunioni che ha creato. Google conserva una trascrizione leggibile dalle app per 30 giorni. |
 | Microsoft Teams | **Ottieni da Microsoft Teams** | Una riunione avviata da OneUptime mentre [ogni chiamata viene registrata e trascritta](#registrare-e-trascrivere-ogni-chiamata): Microsoft consente alle app di leggere solo le trascrizioni delle riunioni presenti in un calendario, e conserva una riunione per 60 giorni. Per qualsiasi altra riunione di Teams, **Aggiungi trascrizione**: in Teams, apri il riepilogo della riunione, poi la sua trascrizione, e scaricala come file `.vtt`. |
 | Link di riunione o huddle di Slack | **Aggiungi trascrizione** | La trascrizione che conservano lo strumento per riunioni o le note dell'huddle. |
@@ -297,7 +297,7 @@ Cambia **Who can join** (Google Meet) o **Who skips the lobby** (Microsoft Teams
 :::
 
 :::details Ottieni da Zoom non trova nessuna trascrizione
-Zoom conserva una trascrizione solo di una riunione registrata nel cloud con la trascrizione audio attiva, o con il riepilogo della riunione di IA Companion attivo, e la prepara dopo la fine della riunione. La scheda dice quale dei due casi: riprova più tardi, oppure attiva una delle due opzioni per le riunioni degli incidenti. Nel frattempo, **Aggiungi trascrizione** prende una trascrizione che hai salvato.
+Zoom conserva una trascrizione solo di una riunione registrata nel cloud con la trascrizione audio attiva, o con il riepilogo della riunione di AI Companion attivo, e la prepara dopo la fine della riunione. La scheda dice quale dei due casi: riprova più tardi, oppure attiva una delle due opzioni per le riunioni degli incidenti. Nel frattempo, **Aggiungi trascrizione** prende una trascrizione che hai salvato.
 :::
 
 :::details La scheda Video Call aspetta ancora una trascrizione

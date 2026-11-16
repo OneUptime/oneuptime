@@ -117,7 +117,7 @@ Questi pulsanti compaiono solo dove possono avviare un'attività. Con l'IA disat
 
 Per aprire la pagina **Correggi con l'IA** di un'eccezione, apri l'eccezione in **Prodotti → Osservabilità → Eccezioni** e scegli **Correggi con l'IA** nel suo menu laterale. Un'eccezione risolta o archiviata deve prima essere contrassegnata come non risolta.
 
-OneUptime AI avvia anche attività di correzione da solo: da un'indagine che trova una modifica al codice, da una che termina senza conclusioni perché mancava telemetria, e dagli IA Insights su eccezioni e tracce lente. Ognuna ha il suo interruttore; vedi [Correzioni di codice automatiche](/docs/ai/ai-sre#correzioni-automatiche-del-codice).
+OneUptime AI avvia anche attività di correzione da solo: da un'indagine che trova una modifica al codice, da una che termina senza conclusioni perché mancava telemetria, e dagli Insight IA su eccezioni e tracce lente. Ognuna ha il suo interruttore; vedi [Correzioni di codice automatiche](/docs/ai/ai-sre#correzioni-automatiche-del-codice).
 
 ## Telemetria di produzione in una correzione
 
@@ -311,7 +311,7 @@ Qualsiasi modo di eseguire il container funziona (Docker Compose, Kubernetes e c
 | `ONEUPTIME_URL` | L'indirizzo della tua istanza OneUptime (`https://oneuptime.com` su OneUptime Cloud). |
 
 > [!NOTE]
-> Prima di OneUptime 12, le correzioni di codice IA giravano su un componente IA Agent separato (l'immagine `oneuptime/ai-agent` con variabili `AI_AGENT_*`). È confluito nel Runner: se ne esegui ancora uno, la [guida all'aggiornamento da v11 a v12](/docs/installation/upgrading) spiega come sostituirlo.
+> Prima di OneUptime 12, le correzioni di codice IA giravano su un componente Agente IA separato (l'immagine `oneuptime/ai-agent` con variabili `AI_AGENT_*`). È confluito nel Runner: se ne esegui ancora uno, la [guida all'aggiornamento da v11 a v12](/docs/installation/upgrading) spiega come sostituirlo.
 
 ## Correzioni di codice automatiche dalle indagini
 

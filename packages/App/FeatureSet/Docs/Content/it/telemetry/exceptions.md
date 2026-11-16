@@ -138,7 +138,7 @@ In cima alla **Panoramica** di un'eccezione, **Spiega con OneUptime AI** chiede 
 | **Dove guardare** | I frame dello stack trace da aprire per primi. |
 | **Prossimi passi** | Al massimo tre passi per confermarla o correggerla. |
 
-La spiegazione resta sull'eccezione, così la persona successiva che la apre la legge subito, e **Spiega di nuovo** ne chiede una nuova. **Correggi con l'IA** apre la pagina **Correggi con l'IA** dell'eccezione, e **Fai una domanda di approfondimento** apre Ask IA sull'eccezione.
+La spiegazione resta sull'eccezione, così la persona successiva che la apre la legge subito, e **Spiega di nuovo** ne chiede una nuova. **Correggi con l'IA** apre la pagina **Correggi con l'IA** dell'eccezione, e **Fai una domanda di approfondimento** apre Chiedi all'IA sull'eccezione.
 
 ID, indirizzi email e IP e token vengono tolti da tutto ciò che viene inviato, e degli attributi di uno span ne vengono inviati solo alcuni, come la route e il codice di stato. La spiegazione usa il provider LLM e i crediti IA del progetto, e non viene offerta finché **Abilita IA** è disattivato. Chiunque possa leggere l'eccezione può chiederne una.
 

@@ -50,7 +50,7 @@ Tre cose decidono cosa ottieni da uno strumento: se invia OpenTelemetry, come la
 | Cline | Metriche e log | Configurato centralmente, nella dashboard dell'organizzazione di Cline | Un `user_id` anonimizzato | — |
 | LiteLLM e Portkey | Tracce di ogni chiamata che passa dal gateway | Dal processo del gateway | Con LiteLLM, il proprietario della chiave virtuale | [Gateway IA](/docs/telemetry/ai-gateways) |
 | Le tue app | Ciò che invia la tua strumentazione GenAI | Dalla tua app | Chiunque tu imposti come `user.id` | [Osservabilità IA / LLM](/docs/telemetry/ai-llm-observability) |
-| Windsurf, JetBrains IA, Amazon Bedrock, Azure OpenAI | Nessun OpenTelemetry proprio | Solo tramite un gateway che metti davanti; l'utilizzo e i costi di Bedrock e Azure anche come [account del provider](/docs/telemetry/ai-provider-accounts) | Chi nomina il gateway | [Gateway IA](/docs/telemetry/ai-gateways) |
+| Windsurf, JetBrains AI, Amazon Bedrock, Azure OpenAI | Nessun OpenTelemetry proprio | Solo tramite un gateway che metti davanti; l'utilizzo e i costi di Bedrock e Azure anche come [account del provider](/docs/telemetry/ai-provider-accounts) | Chi nomina il gateway | [Gateway IA](/docs/telemetry/ai-gateways) |
 
 Un trattino significa che OneUptime non ha ancora una guida per lo strumento. La sua telemetria viene comunque acquisita come qualsiasi altro OpenTelemetry.
 
@@ -58,11 +58,11 @@ Un trattino significa che OneUptime non ha ancora una guida per lo strumento. La
 Copilot esporta OpenTelemetry solo dalle sue superfici agente: la chat e la modalità agente di VS Code, l'host dell'agente dietro Copilot CLI, il Copilot SDK, e i flussi di lavoro agente negli IDE JetBrains tramite il plugin di Copilot. GitHub non documenta alcuna esportazione per i completamenti inline, Copilot su github.com o la revisione del codice di Copilot. Copilot non invia alcun attributo utente, quindi imposta `enduser.id` e `user.email` per macchina tramite `resourceAttributes` o `OTEL_RESOURCE_ATTRIBUTES`.
 :::
 
-:::details Amazon Bedrock, Azure OpenAI, Windsurf e JetBrains IA
+:::details Amazon Bedrock, Azure OpenAI, Windsurf e JetBrains AI
 - **Amazon Bedrock**: le API `InvokeModel` e `Converse` non inviano OpenTelemetry. Bedrock AgentCore è diverso: AWS documenta per esso metriche, span e log, inviati a CloudWatch per impostazione predefinita. Impostare `DISABLE_ADOT_OBSERVABILITY=true` disattiva la configurazione ADOT predefinita del runtime, così puoi puntare l'SDK ADOT verso OneUptime. L'utilizzo dei modelli per regione e modello si può leggere da CloudWatch come [account del provider](/docs/telemetry/ai-provider-accounts#amazon-bedrock).
 - **Azure OpenAI**: il servizio non invia nulla, e le sue metriche di Azure Monitor non hanno una dimensione utente. Strumenta il client, o metti davanti API Management o un altro gateway. Il suo utilizzo per risorsa e modello si può leggere come [account del provider](/docs/telemetry/ai-provider-accounts#azure-openai-e-microsoft-foundry).
 - **Windsurf**: non documenta alcuna esportazione di telemetria. I dati per utente sono nell'API Enterprise di Windsurf, che OneUptime non interroga.
-- **JetBrains IA Assistant e Junie**: non esportano l'utilizzo. Il plugin OpenTelemetry di JetBrains riceve la telemetria della tua app dentro l'IDE; non invia nulla all'esterno.
+- **JetBrains AI Assistant e Junie**: non esportano l'utilizzo. Il plugin OpenTelemetry di JetBrains riceve la telemetria della tua app dentro l'IDE; non invia nulla all'esterno.
 :::
 
 ## Attribuzione a dipendenti e team
@@ -162,7 +162,7 @@ Una riga letta dalle metriche dice **Dalle metriche di utilizzo** sotto il suo n
 
 ## Niente OpenTelemetry? Metti davanti un gateway
 
-Per Windsurf, JetBrains IA, le API dei modelli di Bedrock, Azure OpenAI e qualsiasi altra cosa senza un'esportazione propria, metti davanti un gateway IA. Ogni chiamata passa allora da un unico processo che invia OpenTelemetry, e configuri l'esportazione una sola volta.
+Per Windsurf, JetBrains AI, le API dei modelli di Bedrock, Azure OpenAI e qualsiasi altra cosa senza un'esportazione propria, metti davanti un gateway IA. Ogni chiamata passa allora da un unico processo che invia OpenTelemetry, e configuri l'esportazione una sola volta.
 
 **Usa LiteLLM con una chiave virtuale per dipendente.** LiteLLM mette su ogni span l'id e l'email del proprietario della chiave, che OneUptime legge come il dipendente, e il team della chiave come il team. Calcola anche da sé il prezzo di ogni chiamata, con le tariffe personalizzate che imposti sul proxy, e il costo che riporta vince sulla stima di OneUptime. Non usare per questo il suo id di utente finale: quello è il cliente. La configurazione è in [Gateway IA](/docs/telemetry/ai-gateways).
 
@@ -188,7 +188,7 @@ Codex invia anche le sue metriche a OpenAI per impostazione predefinita: vedi [O
 
 ## Cosa OneUptime non fa ancora
 
-- **Nessun connettore di amministrazione per gli strumenti di programmazione, tranne quello di Cursor.** OneUptime legge gli account OpenAI, Anthropic, Azure, Bedrock e Vertex IA dietro gli strumenti, e l'Admin API di un team Cursor ([Account dei provider di IA](/docs/telemetry/ai-provider-accounts)), ma non la fatturazione di Copilot di GitHub, né le API di Windsurf o di JetBrains.
+- **Nessun connettore di amministrazione per gli strumenti di programmazione, tranne quello di Cursor.** OneUptime legge gli account OpenAI, Anthropic, Azure, Bedrock e Vertex AI dietro gli strumenti, e l'Admin API di un team Cursor ([Account dei provider di IA](/docs/telemetry/ai-provider-accounts)), ma non la fatturazione di Copilot di GitHub, né le API di Windsurf o di JetBrains.
 - **Il costo è una stima, a meno che uno strumento non lo riporti.** Un costo riportato viene usato così com'è; altrimenti OneUptime calcola il prezzo dei token con i prezzi di listino. Lo stesso `cursor.cost.usage` di Cursor è una stima.
 - **L'identità sui record di log non viene letta.** Lo `user.email` di Codex, che invia solo nei log, non viene collegato alla spesa.
 - **Il `cursor.user.email` di Cursor non viene ancora letto**, quindi gli utenti di Cursor compaiono con il loro intero `cursor.user.id`.

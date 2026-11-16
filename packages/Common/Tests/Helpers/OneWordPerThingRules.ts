@@ -219,15 +219,20 @@ export const ONE_WORD_RULES: ReadonlyArray<SentenceRule> = [
   },
   /*
    * Italian spelled the abbreviation two ways: IA, as its AI key and the
-   * AI agent's pages do, and AI (Agente AI di OneUptime). It says IA; the
-   * product's name, OneUptime AI, is a name and stays as written (#8768).
+   * AI agent's pages do, and AI (Agente AI di OneUptime). It says IA. Names
+   * stay as written: the product's, OneUptime AI; other products' (Vertex
+   * AI, Vercel AI SDK, Azure AI Inference, Zoom AI Companion, JetBrains AI);
+   * and the permissions', which every language keeps in English (Edit AI
+   * Rule, Read AI Agent Task), as are the labels the Italian Dashboard still
+   * draws in English (Generate with AI) (#8768).
    */
   {
     language: "it",
     thing: "AI",
     english: /\bAI\b/,
     word: /\bIA\b/,
-    dropped: /(?<!OneUptime )\bAI\b/,
+    dropped:
+      /(?<!OneUptime |Vertex |Vercel |Azure |JetBrains |with )\bAI\b(?! (?:SDK|Companion|Inference|Agent|Rule))/,
   },
   /*
    * An alert, as the Dashboard says it in most strings (#8769): Simplified

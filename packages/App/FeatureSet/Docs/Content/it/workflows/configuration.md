@@ -202,7 +202,7 @@ I passaggi che leggono e modificano i record di OneUptime — i componenti Find,
 
 Quando un controllo rifiuta un passaggio, il passaggio prende la sua uscita **Errore** senza fare la modifica rifiutata, e il log dell'esecuzione nomina il passaggio e il motivo con parole semplici, ad esempio *"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Leggilo nelle [Esecuzioni](/docs/workflows/runs-and-logs) del flusso di lavoro. Un passaggio Create Many crea i suoi record uno alla volta e si ferma al primo rifiutato: i record creati prima di quello vengono conservati.
 
-I passaggi che parlano con altri sistemi — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, Custom Code e Generate Text with IA — non leggono né modificano record di OneUptime, quindi niente di tutto questo li riguarda.
+I passaggi che parlano con altri sistemi — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, Custom Code e Genera testo con l'IA — non leggono né modificano record di OneUptime, quindi niente di tutto questo li riguarda.
 
 ## Limiti di piano
 
@@ -224,7 +224,7 @@ La finestra scorre: ogni esecuzione registrata dal progetto, a mano o da un trig
 | Un blocco **Esegui JavaScript personalizzato**                          | 5 secondi          | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
 | Un blocco **Pausa**                                          | Al massimo 30 giorni | —                             |
 
-L'esecutore controlla la scadenza prima e dopo ogni blocco, e segna un'esecuzione in ritardo come **Tempo scaduto** non appena riprende il controllo. Non può interrompere un blocco a metà, quindi i blocchi che attendono la rete hanno limiti di tempo propri: una richiesta di Generate Text with IA si arrende dopo al massimo 60 secondi, e una richiesta di token OAuth 2.0 dopo 20. Un'attesa su un blocco **Pausa** non conta nel tempo di un'esecuzione: l'esecuzione viene messa da parte e riceve 2 nuovi minuti al risveglio.
+L'esecutore controlla la scadenza prima e dopo ogni blocco, e segna un'esecuzione in ritardo come **Tempo scaduto** non appena riprende il controllo. Non può interrompere un blocco a metà, quindi i blocchi che attendono la rete hanno limiti di tempo propri: una richiesta di Genera testo con l'IA si arrende dopo al massimo 60 secondi, e una richiesta di token OAuth 2.0 dopo 20. Un'attesa su un blocco **Pausa** non conta nel tempo di un'esecuzione: l'esecuzione viene messa da parte e riceve 2 nuovi minuti al risveglio.
 
 ## Limite alle chiamate tra flussi di lavoro
 
