@@ -1719,6 +1719,12 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
                           posture: agent?.posture,
                         }).gcpHost,
                         props.cloudAccount?.accountId || undefined,
+                        // An Azure agent on its own VM: Run Command's docker logs.
+                        getCloudAiAgentReportedChoices({
+                          provider: cloudProvider,
+                          accountId: props.cloudAccount?.accountId || "",
+                          posture: agent?.posture,
+                        }).azureHost,
                       )
                     : getResourceAiAgentLogsCommand(descriptor.resourceType)
                 }
