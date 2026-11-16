@@ -525,7 +525,18 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    createBy.data.status = UserNotificationExecutionStatus.Scheduled;
+    /*
+     * Every page starts Scheduled, and its start runs its rules - except a
+     * page merged into the person's open page from another policy's run
+     * (UserNotificationRuleService.recordMergedPage), which starts Already
+     * Paged and runs none (Types/OnCallDutyPolicy/OnCallPageMerge).
+     */
+    if (
+      createBy.data.status !== UserNotificationExecutionStatus.AlreadyPaged ||
+      !createBy.data.mergedIntoUserOnCallLogId
+    ) {
+      createBy.data.status = UserNotificationExecutionStatus.Scheduled;
+    }
 
     return {
       createBy,
@@ -577,6 +588,10 @@ export class Service extends DatabaseService<Model> {
         case UserNotificationExecutionStatus.PassedOn:
           status = OnCallDutyExecutionLogTimelineStatus.PassedOn;
           break;
+        // Merged into their open page from another policy's run (OnCallPageMerge).
+        case UserNotificationExecutionStatus.AlreadyPaged:
+          status = OnCallDutyExecutionLogTimelineStatus.AlreadyPaged;
+          break;
         default:
           throw new BadDataException("Invalid status");
       }
@@ -603,7 +618,9 @@ export class Service extends DatabaseService<Model> {
          * - unless the step already says what became of the page: skipped
          * (an opt-out, somebody who left), failed, or acknowledged. Moving
          * those back to "Notification Sent" claimed a page went out that
-         * never did.
+         * never did. So does a page merged into the person's open page from
+         * another policy's run that ends without taking the page over
+         * (OnCallPageMerge): it sent nothing, the other page did.
          */
         if (
           status === OnCallDutyExecutionLogTimelineStatus.NotificationSent &&
@@ -612,6 +629,7 @@ export class Service extends DatabaseService<Model> {
             OnCallDutyExecutionLogTimelineStatus.Skipped,
             OnCallDutyExecutionLogTimelineStatus.Error,
             OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged,
+            OnCallDutyExecutionLogTimelineStatus.AlreadyPaged,
           ].includes(stepStatus)
         ) {
           continue;
@@ -654,6 +672,16 @@ export class Service extends DatabaseService<Model> {
     _onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
+    /*
+     * A page merged into the person's open page from another policy's run
+     * sends nothing as it starts: that page's notifications stand for it,
+     * and its line says so already (OnCallPageMerge). The person's-log
+     * worker reads it each minute, for whether that page is still open.
+     */
+    if (createdItem.status === UserNotificationExecutionStatus.AlreadyPaged) {
+      return createdItem;
+    }
+
     // update this item to be processed.
     await this.updateOneById({
       id: createdItem.id!,

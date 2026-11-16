@@ -57,6 +57,13 @@ import {
   toOnCallPolicyRunStatusMessage,
 } from "Common/Types/OnCallDutyPolicy/OnCallPolicyRunRetry";
 import JobDeadline from "Common/Server/Utils/JobDeadline";
+import OnCallPageMerge, {
+  OnCallMergedPageReading,
+  OnCallMergedPageStanding,
+} from "Common/Server/Utils/OnCall/OnCallPageMerge";
+import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
+import { getOnCallPageMergeTakenOverMessage } from "Common/Types/OnCallDutyPolicy/OnCallPageMerge";
+import { JSONObject } from "Common/Types/JSON";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Select from "Common/Server/Types/Database/Select";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -72,11 +79,29 @@ import {
 export const USER_LOG_PAGE_SIZE: number = 100;
 export const USER_LOG_CONCURRENCY: number = 8;
 
+/*
+ * The logs the worker goes through every minute: every page still paging,
+ * and every page merged into the person's open page from another policy's
+ * run, which waits on it, is answered with it, or takes the page over
+ * (Types/OnCallDutyPolicy/OnCallPageMerge).
+ */
+export const USER_LOG_STATUSES_WORKED_ON: Array<UserNotificationExecutionStatus> =
+  [
+    UserNotificationExecutionStatus.Executing,
+    UserNotificationExecutionStatus.AlreadyPaged,
+  ];
+
 // What the worker reads of each log still paging.
 export const USER_LOG_SELECT: Select<UserOnCallLog> = {
   _id: true,
   projectId: true,
   createdAt: true,
+  /*
+   * Paging, or merged into the person's open page from another policy's
+   * run (Already Paged), and then the page it stands on (OnCallPageMerge).
+   */
+  status: true,
+  mergedIntoUserOnCallLogId: true,
   executedNotificationRules: true,
   userId: true,
   userNotificationEventType: true,
@@ -142,7 +167,7 @@ export const executePendingUserOnCallLogs: (
     readPage: (afterId: ObjectID | null): Promise<Array<UserOnCallLog>> => {
       return UserOnCallLogService.findBy({
         query: {
-          status: UserNotificationExecutionStatus.Executing,
+          status: QueryHelper.any(USER_LOG_STATUSES_WORKED_ON),
           ...(afterId ? { _id: QueryHelper.greaterThan(afterId) } : {}),
         },
         select: USER_LOG_SELECT,
@@ -930,6 +955,54 @@ const runPendingNotificationLog: RunPendingNotificationLogFunction = async (
   }
 
   /*
+   * A page merged into the person's open page from another policy's run
+   * (OnCallPageMerge) sends nothing while that page is open: its
+   * notifications stand for both. The person answered it: this one is
+   * answered with it. It is over without their answer - they escalated it,
+   * it failed, its run stopped: this one takes the page over below,
+   * counting as sent what the other page sent.
+   */
+  let mergedPageTakeOver: OnCallMergedPageReading | null = null;
+
+  if (
+    pendingNotificationLog.status ===
+    UserNotificationExecutionStatus.AlreadyPaged
+  ) {
+    const merged: OnCallMergedPageReading =
+      await OnCallPageMerge.readMergedPage(pendingNotificationLog);
+
+    if (merged.standing === OnCallMergedPageStanding.Waits) {
+      return;
+    }
+
+    if (merged.standing === OnCallMergedPageStanding.Answered) {
+      await UserOnCallLogTimelineService.acknowledgePage({
+        userOnCallLogId: pendingNotificationLog.id!,
+        userId: pendingNotificationLog.userId!,
+        onCallDutyPolicyExecutionLogId:
+          pendingNotificationLog.onCallDutyPolicyExecutionLogId,
+        onCallDutyPolicyExecutionLogTimelineId:
+          pendingNotificationLog.onCallDutyPolicyExecutionLogTimelineId,
+        triggeredByIncidentId: pendingNotificationLog.triggeredByIncidentId,
+        triggeredByAlertId: pendingNotificationLog.triggeredByAlertId,
+        triggeredByAlertEpisodeId:
+          pendingNotificationLog.triggeredByAlertEpisodeId,
+        triggeredByIncidentEpisodeId:
+          pendingNotificationLog.triggeredByIncidentEpisodeId,
+        acknowledgedAt: merged.acknowledgedAt || OneUptimeDate.getCurrentDate(),
+        userNotificationEventType:
+          pendingNotificationLog.userNotificationEventType,
+        projectId: pendingNotificationLog.projectId,
+        isAnsweredWithAnotherPage: true,
+      });
+
+      return;
+    }
+
+    mergedPageTakeOver = merged;
+  }
+
+  /*
    * The rules a page runs for the person (UserOnCallLogService
    * .getPagingRulesQuery) - the same read a test page runs its rules
    * with, so a test reaches exactly what a real page reaches over time:
@@ -975,10 +1048,71 @@ const runPendingNotificationLog: RunPendingNotificationLogFunction = async (
   /*
    * Every delivery already sent on this log: each rule's first push under
    * the rule's id, each repeat under a key of its own (NotificationRepeat).
+   * A merged page taking the page over counts the other page's as its own.
    */
+  const executedNotificationRules: JSONObject = {
+    ...(mergedPageTakeOver?.claimsSent || {}),
+    ...((pendingNotificationLog.executedNotificationRules as
+      | JSONObject
+      | undefined) || {}),
+  };
+
   const executedClaimKeys: Array<string> = Object.keys(
-    pendingNotificationLog.executedNotificationRules! || {},
+    executedNotificationRules,
   );
+
+  if (mergedPageTakeOver) {
+    const isAnythingLeftToSend: boolean =
+      notificationRules.length === 0
+        ? executedClaimKeys.length === 0
+        : notificationRules.some((rule: UserNotificationRule): boolean => {
+            return !isRuleFullyExecuted({
+              executedClaimKeys: executedClaimKeys,
+              ruleId: rule.id?.toString() || "",
+              repeatEveryMinutes: rule.repeatEveryMinutes,
+            });
+          });
+
+    /*
+     * The other page sent everything this one would have: it ends, having
+     * sent nothing, and its line keeps saying who paged them.
+     */
+    if (!isAnythingLeftToSend) {
+      await UserOnCallLogService.updateOneById({
+        id: pendingNotificationLog.id!,
+        data: {
+          status: UserNotificationExecutionStatus.Completed,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      return;
+    }
+
+    /*
+     * It takes the page over: from now on it pages the person itself, on
+     * its own clock, with what the other page sent counted as sent.
+     */
+    await UserOnCallLogService.updateOneById({
+      id: pendingNotificationLog.id!,
+      data: {
+        status: UserNotificationExecutionStatus.Executing,
+        statusMessage: getOnCallPageMergeTakenOverMessage({
+          policyName: mergedPageTakeOver.policyName,
+        }),
+        executedNotificationRules: executedNotificationRules,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    logger.info(
+      `On-call log ${pendingNotificationLog._id}: the page it was merged into is over without an answer; it pages its person itself now.`,
+    );
+  }
 
   /*
    * No rule of the person's matches the page, and nothing was ever sent

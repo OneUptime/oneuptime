@@ -316,6 +316,28 @@ export interface ExecuteNotificationRuleOptions {
   repeatNumber?: number | undefined;
 }
 
+/*
+ * What a person's page is about, and where it sits in its run: everything
+ * their log of it (UserOnCallLog) is written with, whether its notification
+ * rules run (startUserNotificationRulesExecution) or it is merged into their
+ * open page from another policy's run (recordMergedPage).
+ */
+export interface UserOnCallLogPageOptions {
+  projectId: ObjectID;
+  triggeredByIncidentId?: ObjectID | undefined;
+  triggeredByAlertId?: ObjectID | undefined;
+  triggeredByAlertEpisodeId?: ObjectID | undefined;
+  triggeredByIncidentEpisodeId?: ObjectID | undefined;
+  userNotificationEventType: UserNotificationEventType;
+  onCallPolicyExecutionLogId?: ObjectID | undefined;
+  onCallPolicyId: ObjectID | undefined;
+  onCallPolicyEscalationRuleId?: ObjectID | undefined;
+  userBelongsToTeamId?: ObjectID | undefined;
+  onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
+  onCallScheduleId?: ObjectID | undefined;
+  overridedByUserId?: ObjectID | undefined;
+}
+
 export interface ExecuteFallbackNotificationOptions
   extends ExecuteNotificationRuleOptions {
   userId: ObjectID;
@@ -7914,23 +7936,105 @@ export class Service extends ProjectReferencesService<Model> {
   @CaptureSpan()
   public async startUserNotificationRulesExecution(
     userId: ObjectID,
-    options: {
-      projectId: ObjectID;
-      triggeredByIncidentId?: ObjectID | undefined;
-      triggeredByAlertId?: ObjectID | undefined;
-      triggeredByAlertEpisodeId?: ObjectID | undefined;
-      triggeredByIncidentEpisodeId?: ObjectID | undefined;
-      userNotificationEventType: UserNotificationEventType;
-      onCallPolicyExecutionLogId?: ObjectID | undefined;
-      onCallPolicyId: ObjectID | undefined;
-      onCallPolicyEscalationRuleId?: ObjectID | undefined;
-      userBelongsToTeamId?: ObjectID | undefined;
-      onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
-      onCallScheduleId?: ObjectID | undefined;
-      overridedByUserId?: ObjectID | undefined;
-    },
+    options: UserOnCallLogPageOptions,
   ): Promise<void> {
     // add user notification log.
+    const userOnCallLog: UserOnCallLog = this.getNewUserOnCallLog(
+      userId,
+      options,
+    );
+
+    userOnCallLog.status = UserNotificationExecutionStatus.Scheduled;
+    userOnCallLog.statusMessage = "Scheduled";
+
+    await UserOnCallLogService.create({
+      data: userOnCallLog,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    /*
+     * The person paged joins the channels of the record paged for whose
+     * rules add on-call responders: an incident's, an alert's, or an
+     * episode's. A page with no record (a direct page from chat) has none.
+     */
+    if (
+      !options.triggeredByIncidentId &&
+      !options.triggeredByAlertId &&
+      !options.triggeredByIncidentEpisodeId &&
+      !options.triggeredByAlertEpisodeId
+    ) {
+      return;
+    }
+
+    /*
+     * Somebody paged as an observer (OnCallObserverPage) is kept informed,
+     * not pulled into the response: a rule that adds on-call responders to
+     * the record's channel does not add them. A rule that names their team
+     * or them still does, as it always has.
+     */
+    if (await this.isObserverRun(options.onCallPolicyExecutionLogId)) {
+      return;
+    }
+
+    this.runWorkspaceRulesForOnCallNotification({
+      projectId: options.projectId,
+      alertId: options.triggeredByAlertId,
+      incidentId: options.triggeredByIncidentId,
+      incidentEpisodeId: options.triggeredByIncidentEpisodeId,
+      alertEpisodeId: options.triggeredByAlertEpisodeId,
+      userId: userId,
+    }).catch((error: Error) => {
+      logger.error(error, {
+        projectId: options.projectId?.toString(),
+        userId: userId?.toString(),
+      } as LogAttributes);
+    });
+  }
+
+  /*
+   * A PAGE MERGED INTO THE PERSON'S OPEN PAGE FROM ANOTHER POLICY'S RUN
+   * (Types/OnCallDutyPolicy/OnCallPageMerge): their log of it, as a page's
+   * is written, in status Already Paged, naming the page it stands on. No
+   * notification rule runs for it - the page it stands on reaches them for
+   * both - and nobody is invited to the record's channels again: that
+   * page's start did it. It takes the page over, and pages them itself,
+   * only if that page ends without their answer
+   * (UserOnCallLog:ExecutePendingExecutions).
+   */
+  @CaptureSpan()
+  public async recordMergedPage(
+    userId: ObjectID,
+    options: UserOnCallLogPageOptions & {
+      // Their open page from another policy's run, this one is merged into.
+      mergedIntoUserOnCallLogId: ObjectID;
+      // What the page says: who is paging them already.
+      statusMessage: string;
+    },
+  ): Promise<void> {
+    const userOnCallLog: UserOnCallLog = this.getNewUserOnCallLog(
+      userId,
+      options,
+    );
+
+    userOnCallLog.status = UserNotificationExecutionStatus.AlreadyPaged;
+    userOnCallLog.statusMessage = options.statusMessage;
+    userOnCallLog.mergedIntoUserOnCallLogId = options.mergedIntoUserOnCallLogId;
+
+    await UserOnCallLogService.create({
+      data: userOnCallLog,
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  // A person's log of a page, with everything it is about filled in.
+  private getNewUserOnCallLog(
+    userId: ObjectID,
+    options: UserOnCallLogPageOptions,
+  ): UserOnCallLog {
     const userOnCallLog: UserOnCallLog = new UserOnCallLog();
 
     userOnCallLog.userId = userId;
@@ -7983,57 +8087,11 @@ export class Service extends ProjectReferencesService<Model> {
       userOnCallLog.onCallDutyScheduleId = options.onCallScheduleId;
     }
 
-    userOnCallLog.status = UserNotificationExecutionStatus.Scheduled;
-    userOnCallLog.statusMessage = "Scheduled";
-
     if (options.overridedByUserId) {
       userOnCallLog.overridedByUserId = options.overridedByUserId;
     }
 
-    await UserOnCallLogService.create({
-      data: userOnCallLog,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    /*
-     * The person paged joins the channels of the record paged for whose
-     * rules add on-call responders: an incident's, an alert's, or an
-     * episode's. A page with no record (a direct page from chat) has none.
-     */
-    if (
-      !options.triggeredByIncidentId &&
-      !options.triggeredByAlertId &&
-      !options.triggeredByIncidentEpisodeId &&
-      !options.triggeredByAlertEpisodeId
-    ) {
-      return;
-    }
-
-    /*
-     * Somebody paged as an observer (OnCallObserverPage) is kept informed,
-     * not pulled into the response: a rule that adds on-call responders to
-     * the record's channel does not add them. A rule that names their team
-     * or them still does, as it always has.
-     */
-    if (await this.isObserverRun(options.onCallPolicyExecutionLogId)) {
-      return;
-    }
-
-    this.runWorkspaceRulesForOnCallNotification({
-      projectId: options.projectId,
-      alertId: options.triggeredByAlertId,
-      incidentId: options.triggeredByIncidentId,
-      incidentEpisodeId: options.triggeredByIncidentEpisodeId,
-      alertEpisodeId: options.triggeredByAlertEpisodeId,
-      userId: userId,
-    }).catch((error: Error) => {
-      logger.error(error, {
-        projectId: options.projectId?.toString(),
-        userId: userId?.toString(),
-      } as LogAttributes);
-    });
+    return userOnCallLog;
   }
 
   /*

@@ -1,13 +1,21 @@
 import OnCallDutyPolicyEscalationRule from "../../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicyExecutionLog from "../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
+import OnCallDutyPolicyExecutionLogTimeline from "../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
 import UserOnCallLog from "../../../../Models/DatabaseModels/UserOnCallLog";
 import OnCallDutyPolicyEscalationRuleService from "../../../../Server/Services/OnCallDutyPolicyEscalationRuleService";
 import OnCallAcknowledgementTimeoutUtil, {
   OnCallPageAgainOutcome,
   OnCallPageAgainResult,
 } from "../../../../Server/Utils/OnCall/OnCallAcknowledgementTimeout";
+import OnCallPageMerge, {
+  OnCallMergedPageReading,
+  OnCallMergedPageStanding,
+} from "../../../../Server/Utils/OnCall/OnCallPageMerge";
 import OnCallPagePassOn from "../../../../Server/Utils/OnCall/OnCallPagePassOn";
 import ObjectID from "../../../../Types/ObjectID";
+import OnCallDutyExecutionLogTimelineStatus from "../../../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
+import { getOnCallPageMergedMessage } from "../../../../Types/OnCallDutyPolicy/OnCallPageMerge";
+import UserNotificationExecutionStatus from "../../../../Types/UserNotification/UserNotificationExecutionStatus";
 import {
   getOnCallPolicyRunRecordHandledMessage,
   getOnCallPolicyRunRecordResolvedMessage,
@@ -33,6 +41,7 @@ import {
   NAMES,
   POLICY_ID,
   PROJECT_ID,
+  PageEvent,
   RUN_ID,
   TEAM_ID,
   nextId,
@@ -48,7 +57,7 @@ import {
 
 /*
  * CONCURRENT PAGING AND ACKNOWLEDGEMENT, THROUGH THE REAL CODE
- * (https://github.com/OneUptime/oneuptime/issues/7596).
+ * (https://github.com/OneUptime/oneuptime/issues/7596, #7837).
  *
  * A customer asked three things:
  *
@@ -64,9 +73,13 @@ import {
  * the page-again clock - and the escalation worker's tick, ending each run
  * by the one rule the worker ends runs by (isOnCallPageEndedOnlyByAnAnswer).
  *
- * The policy pages Ana at its first level and Carl at its second, 30
- * minutes later; Dana is somebody who works the incident without being
- * paged by it.
+ * The first answer changed with #7837: the second policy's page of them is
+ * merged into their open page from the first (OnCallPageMerge) - one set of
+ * notifications, with the second run saying who is paging them.
+ *
+ * The policy, Payments, pages Ana at its first level and Carl at its second,
+ * 30 minutes later; Dana is somebody who works the incident without being
+ * paged by it. A second policy, Billing, pages whom each test says.
  */
 
 let world: AcknowledgementTimeoutWorld;
@@ -86,23 +99,32 @@ afterEach(() => {
 });
 
 /*
- * A run of the policy started by hand - Execute On-Call Policy in the
- * Dashboard, Slack or Microsoft Teams - by `by`, paging the policy's first
- * level, as OnCallDutyPolicyExecutionLogService starts every run.
+ * A run of a policy for the incident, paging the policy's first level, as
+ * OnCallDutyPolicyExecutionLogService starts every run: started by hand -
+ * Execute On-Call Policy in the Dashboard, Slack or Microsoft Teams - by
+ * `by`, or by OneUptime (no `by`), as the incident's on-call rules start it;
+ * as observers when `isObserverPage`.
  */
-async function startByHand(
-  by: ObjectID,
-  data?: {
-    onCallDutyPolicyId?: ObjectID | undefined;
-    firstRule?: OnCallDutyPolicyEscalationRule | undefined;
-  },
-): Promise<ObjectID> {
+async function startPolicy(data: {
+  by?: ObjectID | undefined;
+  onCallDutyPolicyId?: ObjectID | undefined;
+  firstRule?: OnCallDutyPolicyEscalationRule | undefined;
+  isObserverPage?: boolean | undefined;
+}): Promise<ObjectID> {
   const run: OnCallDutyPolicyExecutionLog = new OnCallDutyPolicyExecutionLog();
   run.id = nextId();
   run.projectId = PROJECT_ID;
-  run.onCallDutyPolicyId = data?.onCallDutyPolicyId || POLICY_ID;
+  run.onCallDutyPolicyId = data.onCallDutyPolicyId || POLICY_ID;
   run.triggeredByIncidentId = INCIDENT_ID;
-  run.triggeredByUserId = by;
+
+  if (data.by) {
+    run.triggeredByUserId = data.by;
+  }
+
+  if (data.isObserverPage) {
+    run.isObserverPage = true;
+  }
+
   run.userNotificationEventType = UserNotificationEventType.IncidentCreated;
   run.status = OnCallDutyPolicyStatus.Executing;
   run.onCallPolicyExecutionRepeatCount = 1;
@@ -110,7 +132,7 @@ async function startByHand(
   world.addRunRow(run);
 
   await OnCallDutyPolicyEscalationRuleService.startRuleExecution(
-    (data?.firstRule || first).id!,
+    (data.firstRule || first).id!,
     {
       projectId: PROJECT_ID,
       triggeredByIncidentId: INCIDENT_ID,
@@ -123,29 +145,115 @@ async function startByHand(
   return run.id;
 }
 
-// A second policy of the same incident, whose first level pages `users`.
-function secondPolicy(users: Array<ObjectID>): {
+// A run of the policy started by hand, by `by`.
+async function startByHand(
+  by: ObjectID,
+  data?: {
+    onCallDutyPolicyId?: ObjectID | undefined;
+    firstRule?: OnCallDutyPolicyEscalationRule | undefined;
+  },
+): Promise<ObjectID> {
+  return await startPolicy({ ...data, by: by });
+}
+
+interface SecondPolicy {
   policyId: ObjectID;
   rule: OnCallDutyPolicyEscalationRule;
-} {
+}
+
+/*
+ * A second policy of the same incident, Billing, whose first level pages
+ * `users` and waits `escalateAfterInMinutes` - and, when `thenUsers` are
+ * given, a second level that pages them.
+ */
+function secondPolicy(
+  users: Array<ObjectID>,
+  options?: {
+    escalateAfterInMinutes?: number | undefined;
+    thenUsers?: Array<ObjectID> | undefined;
+  },
+): SecondPolicy {
   const policyId: ObjectID = nextId();
   const rule: OnCallDutyPolicyEscalationRule = world.addRule({
     order: 1,
     users: users,
+    escalateAfterInMinutes: options?.escalateAfterInMinutes,
   });
   rule.onCallDutyPolicyId = policyId;
+
+  if (options?.thenUsers) {
+    const next: OnCallDutyPolicyEscalationRule = world.addRule({
+      order: 2,
+      users: options.thenUsers,
+    });
+    next.onCallDutyPolicyId = policyId;
+  }
+
+  world.policyNames[policyId.toString()] = "Billing";
 
   return { policyId: policyId, rule: rule };
 }
 
-// Everybody's pages, as "Name: run" - one row for each time a run paged them.
+// A run of Billing, as OneUptime starts it for the incident.
+async function startBilling(billing: SecondPolicy): Promise<ObjectID> {
+  return await startPolicy({
+    onCallDutyPolicyId: billing.policyId,
+    firstRule: billing.rule,
+  });
+}
+
+/*
+ * Everybody's pages, as "Name: run" - one row for each time a run paged them
+ * through their On-Call Rules. A page merged into another sends nothing, and
+ * is no row here (mergedPagesOf).
+ */
 function pagesOf(userId: ObjectID): Array<string> {
-  return world.logs
-    .filter((log: UserOnCallLog) => {
-      return log.userId?.toString() === userId.toString();
+  return world.pages
+    .filter((page: PageEvent) => {
+      return page.userId === userId.toString();
     })
-    .map((log: UserOnCallLog) => {
-      return `${NAMES[userId.toString()]}: ${log.onCallDutyPolicyExecutionLogId!.toString()}`;
+    .map((page: PageEvent) => {
+      return `${NAMES[userId.toString()]}: ${page.runId}`;
+    });
+}
+
+// A person's log in a run.
+function logOf(userId: ObjectID, runId: ObjectID): UserOnCallLog {
+  return world.logs.find((log: UserOnCallLog) => {
+    return (
+      log.userId?.toString() === userId.toString() &&
+      log.onCallDutyPolicyExecutionLogId?.toString() === runId.toString()
+    );
+  })!;
+}
+
+// The run's line for a person.
+function lineOf(
+  userId: ObjectID,
+  runId: ObjectID,
+): OnCallDutyPolicyExecutionLogTimeline {
+  return world.steps.find((step: OnCallDutyPolicyExecutionLogTimeline) => {
+    return (
+      step.alertSentToUserId?.toString() === userId.toString() &&
+      step.onCallDutyPolicyExecutionLogId?.toString() === runId.toString()
+    );
+  })!;
+}
+
+// A person's merged pages, as "Name: run into the log of run".
+function mergedPagesOf(userId: ObjectID): Array<string> {
+  return world.merges
+    .filter((merge: { userId: string }) => {
+      return merge.userId === userId.toString();
+    })
+    .map((merge: { runId: string; intoLogId: string }) => {
+      const into: UserOnCallLog | undefined = world.logs.find(
+        (log: UserOnCallLog) => {
+          return log.id?.toString() === merge.intoLogId;
+        },
+      );
+
+      return `${NAMES[userId.toString()]}: ${merge.runId} into ${into?.onCallDutyPolicyExecutionLogId?.toString()}`;
     });
 }
 
@@ -159,20 +267,53 @@ async function openPagesOf(userId: ObjectID): Promise<Array<OnCallOpenPage>> {
 }
 
 describe("1. the same person on call in two policies of one incident", () => {
-  test("is paged once by each policy's run: two pages, each through their own On-Call Rules", async () => {
-    const other: { policyId: ObjectID; rule: OnCallDutyPolicyEscalationRule } =
-      secondPolicy([ANA]);
+  test("is paged once: the second policy's page of them is merged into the first's, and sends nothing", async () => {
+    const billing: SecondPolicy = secondPolicy([ANA]);
 
     await world.startRun();
-    const secondRun: ObjectID = await startByHand(DANA, {
-      onCallDutyPolicyId: other.policyId,
-      firstRule: other.rule,
-    });
+    const billingRun: ObjectID = await startBilling(billing);
 
-    expect(pagesOf(ANA)).toEqual([
-      `Ana Lopez: ${RUN_ID.toString()}`,
-      `Ana Lopez: ${secondRun.toString()}`,
+    expect(pagesOf(ANA)).toEqual([`Ana Lopez: ${RUN_ID.toString()}`]);
+    expect(mergedPagesOf(ANA)).toEqual([
+      `Ana Lopez: ${billingRun.toString()} into ${RUN_ID.toString()}`,
     ]);
+    expect(logOf(ANA, billingRun).status).toBe(
+      UserNotificationExecutionStatus.AlreadyPaged,
+    );
+    expect(logOf(ANA, billingRun).mergedIntoUserOnCallLogId!.toString()).toBe(
+      logOf(ANA, RUN_ID).id!.toString(),
+    );
+  });
+
+  test("the second run's line for them says who is paging them already", async () => {
+    const billing: SecondPolicy = secondPolicy([ANA]);
+
+    await world.startRun();
+    const billingRun: ObjectID = await startBilling(billing);
+
+    expect(lineOf(ANA, billingRun).status).toBe(
+      OnCallDutyExecutionLogTimelineStatus.AlreadyPaged,
+    );
+    expect(lineOf(ANA, billingRun).statusMessage).toBe(
+      getOnCallPageMergedMessage({ policyName: "Payments" }),
+    );
+    expect(lineOf(ANA, billingRun).statusMessage).toBe(
+      "Already paged about this by Payments, so not paged again.",
+    );
+    expect(logOf(ANA, billingRun).statusMessage).toBe(
+      lineOf(ANA, billingRun).statusMessage,
+    );
+  });
+
+  test("somebody only the second policy names is paged by it as always", async () => {
+    const billing: SecondPolicy = secondPolicy([ANA, BOB]);
+
+    await world.startRun();
+    const billingRun: ObjectID = await startBilling(billing);
+
+    expect(pagesOf(BOB)).toEqual([`Bob Smith: ${billingRun.toString()}`]);
+    expect(pagesOf(ANA)).toEqual([`Ana Lopez: ${RUN_ID.toString()}`]);
+    expect(mergedPagesOf(BOB)).toEqual([]);
   });
 
   test("named twice in one level - by name and through a team - is paged once by it", async () => {
@@ -186,6 +327,323 @@ describe("1. the same person on call in two policies of one incident", () => {
 
     expect(pagesOf(ANA)).toHaveLength(1);
     expect(pagesOf(BOB)).toHaveLength(1);
+  });
+
+  test("the second policy's level, holding only somebody already paged, waits its minutes before its next level", async () => {
+    const billing: SecondPolicy = secondPolicy([ANA], {
+      escalateAfterInMinutes: 10,
+      thenUsers: [BOB],
+    });
+
+    await world.startRun();
+    const billingRun: ObjectID = await startBilling(billing);
+
+    // Not a level that paged nobody: it is not passed at once.
+    expect(world.runById(billingRun).lastExecutedEscalationRuleOrder).toBe(1);
+    expect(pagesOf(BOB)).toEqual([]);
+    expect(world.levelLines()).toEqual([]);
+
+    world.advance(9);
+    await world.escalationTick();
+
+    expect(pagesOf(BOB)).toEqual([]);
+
+    world.advance(1);
+    await world.escalationTick();
+
+    expect(pagesOf(BOB)).toEqual([`Bob Smith: ${billingRun.toString()}`]);
+  });
+
+  test("a page whose notifications all went out is still open while its run pages: a later policy's page is merged into it", async () => {
+    const billing: SecondPolicy = secondPolicy([ANA]);
+
+    await world.startRun();
+    // Her On-Call Rules have all sent what they had to; Payments still waits.
+    await world.deliver(ANA);
+
+    world.advance(5);
+    const billingRun: ObjectID = await startBilling(billing);
+
+    expect(pagesOf(ANA)).toEqual([`Ana Lopez: ${RUN_ID.toString()}`]);
+    expect(logOf(ANA, billingRun).status).toBe(
+      UserNotificationExecutionStatus.AlreadyPaged,
+    );
+  });
+
+  test("a page whose run stopped is no longer open: the next policy pages them itself", async () => {
+    const billing: SecondPolicy = secondPolicy([ANA]);
+
+    await world.startRun();
+    await world.deliver(ANA);
+    world.runById(RUN_ID).status = OnCallDutyPolicyStatus.Completed;
+
+    const billingRun: ObjectID = await startBilling(billing);
+
+    expect(pagesOf(ANA)).toEqual([
+      `Ana Lopez: ${RUN_ID.toString()}`,
+      `Ana Lopez: ${billingRun.toString()}`,
+    ]);
+    expect(mergedPagesOf(ANA)).toEqual([]);
+  });
+
+  test("a page they escalated is no longer open: the next policy pages them itself", async () => {
+    const billing: SecondPolicy = secondPolicy([ANA]);
+
+    await world.startRun();
+    await world.escalate(ANA, RUN_ID);
+
+    const billingRun: ObjectID = await startBilling(billing);
+
+    expect(pagesOf(ANA)).toContain(`Ana Lopez: ${billingRun.toString()}`);
+    expect(mergedPagesOf(ANA)).toEqual([]);
+  });
+
+  test("a third policy's page is merged into their first page too, not into the second's", async () => {
+    const billing: SecondPolicy = secondPolicy([ANA]);
+    const third: SecondPolicy = secondPolicy([ANA]);
+
+    await world.startRun();
+    const billingRun: ObjectID = await startBilling(billing);
+    world.advance(1);
+    const thirdRun: ObjectID = await startBilling(third);
+
+    expect(pagesOf(ANA)).toEqual([`Ana Lopez: ${RUN_ID.toString()}`]);
+    expect(mergedPagesOf(ANA)).toEqual([
+      `Ana Lopez: ${billingRun.toString()} into ${RUN_ID.toString()}`,
+      `Ana Lopez: ${thirdRun.toString()} into ${RUN_ID.toString()}`,
+    ]);
+  });
+});
+
+describe("1. answering the one page answers it for every run it stands for", () => {
+  test("both runs record them as who acknowledged it, and the merged page is acknowledged with it", async () => {
+    const billing: SecondPolicy = secondPolicy([ANA]);
+
+    await world.startRun();
+    const billingRun: ObjectID = await startBilling(billing);
+
+    world.advance(4);
+    await world.answerPage(ANA, RUN_ID);
+
+    for (const run of [RUN_ID, billingRun]) {
+      expect(world.runById(run).status).toBe(OnCallDutyPolicyStatus.Completed);
+      expect(world.runById(run).acknowledgedByUserId!.toString()).toBe(
+        ANA.toString(),
+      );
+    }
+
+    expect(logOf(ANA, billingRun).status).toBe(
+      UserNotificationExecutionStatus.Completed,
+    );
+    expect(logOf(ANA, billingRun).acknowledgedAt).toEqual(
+      new Date(world.clock),
+    );
+    expect(lineOf(ANA, billingRun).status).toBe(
+      OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged,
+    );
+    expect(world.incident!.stateId.toString()).toBe(ACKNOWLEDGED.toString());
+  });
+
+  test("neither policy pages its next level after that", async () => {
+    const billing: SecondPolicy = secondPolicy([ANA], {
+      escalateAfterInMinutes: 10,
+      thenUsers: [BOB],
+    });
+
+    await world.startRun();
+    await startBilling(billing);
+
+    world.advance(4);
+    await world.answerPage(ANA, RUN_ID);
+
+    world.advance(LEVEL_WAIT_IN_MINUTES);
+    await world.escalationTick();
+
+    expect(pagesOf(BOB)).toEqual([]);
+    expect(pagesOf(CARL)).toEqual([]);
+  });
+
+  test("somebody else on the second policy's level is not answered for: only the person who answered is", async () => {
+    const billing: SecondPolicy = secondPolicy([ANA, BOB]);
+
+    await world.startRun();
+    const billingRun: ObjectID = await startBilling(billing);
+
+    world.advance(4);
+    await world.answerPage(ANA, RUN_ID);
+
+    expect(logOf(BOB, billingRun).acknowledgedAt).toBeFalsy();
+    expect(logOf(ANA, billingRun).acknowledgedAt).toBeTruthy();
+  });
+});
+
+describe("1. escalating the one page", () => {
+  test("from its message escalates that policy only: the merged page is then free to take the page over", async () => {
+    const billing: SecondPolicy = secondPolicy([ANA]);
+
+    await world.startRun();
+    const billingRun: ObjectID = await startBilling(billing);
+
+    world.advance(2);
+    const answer: OnCallPassOnAnswer = await world.escalate(ANA, RUN_ID);
+
+    expect(answer.passedOn).toBe(true);
+    expect(pagesOf(CARL)).toEqual([`Carl Diaz: ${RUN_ID.toString()}`]);
+    // Billing is not escalated: Ana still has its page.
+    expect(logOf(ANA, billingRun).status).toBe(
+      UserNotificationExecutionStatus.AlreadyPaged,
+    );
+    expect(world.runById(billingRun).status).toBe(
+      OnCallDutyPolicyStatus.Executing,
+    );
+
+    const merged: OnCallMergedPageReading =
+      await OnCallPageMerge.readMergedPage(logOf(ANA, billingRun));
+
+    expect(merged.standing).toBe(OnCallMergedPageStanding.TakesOver);
+    expect(merged.policyName).toBe("Payments");
+  });
+
+  test("from the Dashboard or the app escalates every page about it, the merged one too", async () => {
+    const billing: SecondPolicy = secondPolicy([ANA], {
+      thenUsers: [BOB],
+    });
+
+    await world.startRun();
+    const billingRun: ObjectID = await startBilling(billing);
+
+    // The record's page lists both runs' pages of hers, and escalates both.
+    expect(
+      (await openPagesOf(ANA)).map((page: OnCallOpenPage) => {
+        return page.executionLogId;
+      }),
+    ).toEqual([RUN_ID.toString(), billingRun.toString()]);
+
+    world.advance(2);
+    const answers: Array<OnCallPassOnAnswer> =
+      await OnCallPagePassOn.passOnForRecord({
+        userId: ANA,
+        projectId: PROJECT_ID,
+        recordType: OnCallPageRecordType.Incident,
+        recordId: INCIDENT_ID,
+      });
+
+    expect(
+      answers.map((answer: OnCallPassOnAnswer) => {
+        return answer.passedOn;
+      }),
+    ).toEqual([true, true]);
+    expect(logOf(ANA, billingRun).status).toBe(
+      UserNotificationExecutionStatus.PassedOn,
+    );
+    expect(pagesOf(CARL)).toEqual([`Carl Diaz: ${RUN_ID.toString()}`]);
+    expect(pagesOf(BOB)).toEqual([`Bob Smith: ${billingRun.toString()}`]);
+  });
+
+  test("the merged page keeps the second policy's level waiting while somebody else on it escalates", async () => {
+    const billing: SecondPolicy = secondPolicy([ANA, BOB], {
+      thenUsers: [DANA],
+    });
+
+    await world.startRun();
+    const billingRun: ObjectID = await startBilling(billing);
+
+    world.advance(2);
+    const answer: OnCallPassOnAnswer = await world.escalate(BOB, billingRun);
+
+    // Ana is still on Billing's level, through Payments' page of her.
+    expect(answer.passedOn).toBe(true);
+    expect(answer.result!.outcome).toBe(OnCallPassOnOutcome.OthersStillPaged);
+    expect(pagesOf(DANA)).toEqual([]);
+  });
+});
+
+describe("1. what is never merged", () => {
+  test("a policy started by hand pages its people itself, even somebody another policy is paging already", async () => {
+    const billing: SecondPolicy = secondPolicy([ANA]);
+
+    await world.startRun();
+    const byHand: ObjectID = await startByHand(DANA, {
+      onCallDutyPolicyId: billing.policyId,
+      firstRule: billing.rule,
+    });
+
+    expect(pagesOf(ANA)).toEqual([
+      `Ana Lopez: ${RUN_ID.toString()}`,
+      `Ana Lopez: ${byHand.toString()}`,
+    ]);
+    expect(mergedPagesOf(ANA)).toEqual([]);
+  });
+
+  test("a policy OneUptime starts is merged into an open page of a policy started by hand, which outlasts it", async () => {
+    const billing: SecondPolicy = secondPolicy([ANA]);
+
+    const byHand: ObjectID = await startByHand(DANA);
+    const billingRun: ObjectID = await startBilling(billing);
+
+    expect(pagesOf(ANA)).toEqual([`Ana Lopez: ${byHand.toString()}`]);
+    expect(mergedPagesOf(ANA)).toEqual([
+      `Ana Lopez: ${billingRun.toString()} into ${byHand.toString()}`,
+    ]);
+
+    // Her answer to the page by hand answers Billing's too.
+    world.advance(3);
+    await world.answerPage(ANA, byHand);
+
+    expect(world.runById(billingRun).acknowledgedByUserId!.toString()).toBe(
+      ANA.toString(),
+    );
+  });
+
+  test("an observer's page and a responder's page are never merged: a responder's page after an observer's", async () => {
+    const billing: SecondPolicy = secondPolicy([ANA]);
+
+    const observers: ObjectID = await startPolicy({ isObserverPage: true });
+    const billingRun: ObjectID = await startBilling(billing);
+
+    expect(pagesOf(ANA)).toEqual([
+      `Ana Lopez: ${observers.toString()}`,
+      `Ana Lopez: ${billingRun.toString()}`,
+    ]);
+    expect(mergedPagesOf(ANA)).toEqual([]);
+  });
+
+  test("an observer's page and a responder's page are never merged: an observer's page after a responder's", async () => {
+    const billing: SecondPolicy = secondPolicy([ANA]);
+
+    await world.startRun();
+    const observers: ObjectID = await startPolicy({
+      onCallDutyPolicyId: billing.policyId,
+      firstRule: billing.rule,
+      isObserverPage: true,
+    });
+
+    expect(pagesOf(ANA)).toEqual([
+      `Ana Lopez: ${RUN_ID.toString()}`,
+      `Ana Lopez: ${observers.toString()}`,
+    ]);
+    expect(mergedPagesOf(ANA)).toEqual([]);
+  });
+
+  test("seeing an observer's page answers no responder's page merged into anything", async () => {
+    const billing: SecondPolicy = secondPolicy([ANA]);
+
+    const observers: ObjectID = await startPolicy({ isObserverPage: true });
+    await world.startRun();
+    const billingRun: ObjectID = await startBilling(billing);
+
+    // Billing's page of her stands on Payments' responder's page, not the observers'.
+    expect(mergedPagesOf(ANA)).toEqual([
+      `Ana Lopez: ${billingRun.toString()} into ${RUN_ID.toString()}`,
+    ]);
+
+    world.advance(2);
+    await world.answerPage(ANA, observers);
+
+    expect(logOf(ANA, billingRun).status).toBe(
+      UserNotificationExecutionStatus.AlreadyPaged,
+    );
+    expect(world.runById(billingRun).acknowledgedByUserId).toBeFalsy();
   });
 });
 
