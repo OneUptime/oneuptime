@@ -84,6 +84,11 @@ export interface FakeGitLabOptions {
   projects?: Array<FakeGitLabProject> | undefined;
   // What "now" is for a token's expiry.
   now?: (() => Date) | undefined;
+  /*
+   * The branches a project has now, where a real Git repository holds them
+   * (FakeGitLabServer): read instead of the project's own list.
+   */
+  branchesOf?: ((projectId: string) => Array<string>) | undefined;
 }
 
 export interface FakeGitLab {
@@ -373,10 +378,13 @@ export function fakeGitLab(options: FakeGitLabOptions): FakeGitLab {
       const body: Record<string, unknown> = JSON.parse(request.body || "{}");
       const sourceBranch: string = String(body["source_branch"] || "");
       const targetBranch: string = String(body["target_branch"] || "");
+      const branches: Array<string> = options.branchesOf
+        ? options.branchesOf(project.id)
+        : project.branches;
 
       if (
-        !project.branches.includes(sourceBranch) ||
-        !project.branches.includes(targetBranch)
+        !branches.includes(sourceBranch) ||
+        !branches.includes(targetBranch)
       ) {
         return {
           status: 422,
