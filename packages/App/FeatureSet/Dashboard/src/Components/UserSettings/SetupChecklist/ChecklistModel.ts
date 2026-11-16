@@ -702,8 +702,13 @@ const buildAwarenessSteps: BuildStepsFunction = (
     steps.push({
       key: "deliverable-settings",
       title: "Your notification settings point at channels that work",
+      /*
+       * The person's own Notification Settings, where the switches are -
+       * not the project's Notification Channels, which #6817 renamed and
+       * this sentence was renamed with by mistake.
+       */
       description:
-        "Switching a channel on in Notification Channels does nothing unless you have a verified method on that channel.",
+        "Switching a channel on in Notification Settings does nothing unless you have a verified method on that channel.",
       detail:
         undeliverable.length === 0
           ? ""

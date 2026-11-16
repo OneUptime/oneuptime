@@ -74,8 +74,14 @@ const REQUIRED_KEYS: Array<string> = [
   "Turn individual emails back on in Notification Settings",
   "Routine emails turned off.",
   "Review your individual preferences in Notification Settings",
-  "These switches decide which notifications reach you, not how much email they add up to.",
-  "Reduce routine emails or change email rollup in Email Preferences",
+  /*
+   * Each page's first line (#8887), which says what the page is for and
+   * links the other: Notification Settings' two sentences, and Email
+   * Preferences' own.
+   */
+  "Choose which updates reach you, and on which channels.",
+  "On-call pages follow {{howToReachMe}}, and {{emailPreferences}} sets how much email you get.",
+  "How much email your updates add up to in this project. {{notificationSettings}} decides which updates you get.",
 ];
 
 function squash(text: string): string {
@@ -375,7 +381,26 @@ describe("Cross-page links", () => {
       "const emailPreferencesRoute: Route = RouteUtil.populateRouteParams( RouteMap[PageMap.USER_SETTINGS_EMAIL_PREFERENCES] as Route, );",
     );
     expect(matrixPage).toContain(
-      '<Link to={emailPreferencesRoute} className="text-indigo-600 hover:underline" >',
+      "<Link to={emailPreferencesRoute} className={USER_SETTINGS_PAGE_LINK_CLASS_NAME} >",
+    );
+  });
+
+  /*
+   * And back again, in Email Preferences' first line (#8887): which updates
+   * you get is the other page's question.
+   */
+  test("Email Preferences' first line sends a reader to Notification Settings", () => {
+    const page: string = readCode(
+      "Pages",
+      "UserSettings",
+      "EmailPreferences.tsx",
+    );
+
+    expect(page).toContain(
+      "const notificationSettingsRoute: Route = RouteUtil.populateRouteParams( RouteMap[PageMap.USER_SETTINGS_NOTIFICATION_SETTINGS] as Route, );",
+    );
+    expect(page).toContain(
+      "<Link to={notificationSettingsRoute} className={USER_SETTINGS_PAGE_LINK_CLASS_NAME} >",
     );
   });
 
@@ -401,6 +426,7 @@ describe("Cross-page links", () => {
   test("no cross-page link uses a RouteMap entry unpopulated", () => {
     for (const source of [
       readCode("Pages", "UserSettings", "NotificationSettings.tsx"),
+      readCode("Pages", "UserSettings", "EmailPreferences.tsx"),
       readCode("Components", "EmailPreferences", "EmailNoiseCard.tsx"),
     ]) {
       expect(source).not.toMatch(/to={RouteMap\[/);
