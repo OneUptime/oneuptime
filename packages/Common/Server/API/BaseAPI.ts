@@ -353,6 +353,8 @@ export default class BaseAPI<
       });
     }
 
+    await this.onBeforeSendRecords(list);
+
     // More matched than the cap: the count is the cap, and says so.
     if (countCap !== undefined && count.toNumber() > countCap) {
       return Response.sendEntityArrayResponse(
@@ -462,6 +464,8 @@ export default class BaseAPI<
         `${new this.entityType().singularName || "Record"} not found.`,
       );
     }
+
+    await this.onBeforeSendRecords([item]);
 
     return Response.sendEntityResponse(req, res, item, this.entityType);
   }
@@ -762,5 +766,20 @@ export default class BaseAPI<
     _res: ExpressResponse,
   ): Promise<any> {
     return Promise.resolve(true);
+  }
+
+  /*
+   * What an API puts on the records a get-item or a get-list read found,
+   * just before they are sent: nothing, unless it says otherwise. Here, on
+   * the way out of the API, rather than in the service's read: a service
+   * that changes what it found loses realtime's shortcut for the readers
+   * who read every record of a project (readsEveryRecordInProject). The
+   * monitor's API puts each monitor's latest heartbeat over the row's
+   * (MonitorAPI, issue #8123).
+   */
+  protected async onBeforeSendRecords(
+    _records: Array<BaseModel>,
+  ): Promise<void> {
+    return Promise.resolve();
   }
 }

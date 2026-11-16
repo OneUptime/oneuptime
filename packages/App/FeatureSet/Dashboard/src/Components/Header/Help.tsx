@@ -104,9 +104,10 @@ export const useHelpEntries: (
         url: URL.fromString(getDocsPageUrl(QUICKSTART_DOCS_PAGE, language)),
       },
       /*
-       * The map of the product - four products in the order a problem
-       * flows through them - from any page, in any project. It used to
-       * live only inside Home's Welcome checklist.
+       * The map of the product - the four steps a problem moves through,
+       * with the products that do each, then every product by category
+       * (#8891) - from any page, in any project. It used to live only
+       * inside Home's Welcome checklist.
        */
       {
         id: "how-oneuptime-works",

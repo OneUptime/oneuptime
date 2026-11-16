@@ -35,7 +35,7 @@ Alla API-begäranden autentiseras med en API-nyckel. En nyckel tillhör ett proj
 
 ### Kopiera nyckeln
 
-Nyckelns sida öppnas. Kopiera **API-nyckel** från kortet **Detaljer om API-nyckel** och håll den utanför din kod:
+OneUptime visar nyckeln en gång, i dialogrutan **Kopiera din API-nyckel**: kopiera den innan du trycker på **Klar**, eftersom ingen sida visar den igen. Håll den utanför din kod:
 
 ```bash
 export ONEUPTIME_API_KEY="your-api-key"
@@ -93,7 +93,7 @@ Ett fält i en post som resursen namnger filtreras under dess relation: `"user":
 
 En resurs med ägare - en monitor, en incident, en jourpolicy och varje annan med användar- och teamägare - filtreras också efter vem som äger den, under `owners`: `"owners": { "_type": "OwnedBy", "userIds": ["..."], "teamIds": ["..."] }` hittar de poster som en eller flera av de personerna och teamen äger. `match` är `AnyOf` om du inte anger den: `NoneOf` hittar de poster som ingen av dem äger, även poster utan ägare, och `AnyOwner` och `NoOwner` hittar de poster som har någon ägare eller ingen, utan att namnge någon. Ett teams medlemmar är inte ägare till det som teamet äger. Ett filter namnger högst 1 000 personer och team tillsammans, en resurs utan ägare avvisar det med en `400`, och att filtrera på ägare utan behörighet att läsa dem nekas med en `422`.
 
-`select` namnger fälten som ska returneras, och `_id` kommer alltid med. `sort` ordnar dem, `ASC` eller `DESC`; utan sortering kommer de nyaste först. En lista returnerar 10 poster om du inte anger `limit`, upp till 10 000, och `skip` hoppar först över så många: fortsätt att öka `skip` med `limit` tills du har `count` av dem. Lägg till `?output-type=csv` i en listbegäran för CSV i stället för JSON.
+`select` namnger fälten som ska returneras, och `_id` kommer alltid med. `sort` ordnar dem, `ASC` eller `DESC`; utan sortering kommer de nyaste först. En lista returnerar 10 poster om du inte anger `limit`, upp till 10 000, och `skip` hoppar först över så många: fortsätt att öka `skip` med `limit` tills du har `count` av dem. På en lång lista tar det tid att räkna varje träff: lägg till `countUpTo`, till exempel `10000`, så slutar räkningen där, eller vid sidans slut om det är längre fram. När fler poster matchar är `count` där räkningen slutade, och svaret har också `"isCountCapped": true`: med `"countUpTo": 1` säger det om fler poster följer efter sidan. Lägg till `?output-type=csv` i en listbegäran för CSV i stället för JSON.
 
 Ett fälts ordning kan också säga var posterna utan värde i det hamnar: `{ "declaredAt": { "direction": "DESC", "nulls": "LAST" } }` sätter de senaste först och de utan värde sist, och `FIRST` sätter dem först. En relation till en post sorterar efter ett fält i posten den namnger: `{ "incidentSeverity": { "order": "ASC" } }` listar incidenter i ordningen för deras allvarlighetsgrader. En relation som bara får en riktning, som i `{ "incidentSeverity": "DESC" }`, avvisas med en `400` som i stället namnger ett fält att sortera efter, och detsamma gäller en relation till många poster, som en incidents `labels`: varje incident har en lista av dem, och en lista har inget enda värde att ordna incidenter efter. Att sortera efter ett fält kräver också behörighet att läsa det, genom en relation som på själva resursen: en sortering efter ett fält du inte får läsa avvisas med en `422`.
 
@@ -341,7 +341,7 @@ Varje resurs, slutpunkt och fält finns i [OneUptimes API-referens](/reference).
 ## Felsökning
 
 :::details Varje begäran besvaras med 400 Invalid API Key
-Huvudet `ApiKey` är tomt, är inte en nyckel, eller namnger en nyckel som har upphört att gälla eller återställts. Kopiera nyckeln igen från dess sida under **Projektinställningar → Avancerad → API-nycklar**, där även dess datum för **Upphör** står.
+Huvudet `ApiKey` är tomt, är inte en nyckel, eller namnger en nyckel som har upphört att gälla eller återställts. Hitta nyckeln under **Projektinställningar → Avancerad → API-nycklar** på hur den slutar, och kontrollera dess datum för **Upphör**. En nyckel som du inte längre har kan inte visas igen: återställ den på dess sida för att få en ny.
 :::
 
 :::details Varje begäran besvaras med 402 Payment Required

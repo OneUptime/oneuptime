@@ -33,6 +33,10 @@ import {
   StubbedDashboardCustomNotificationChannels,
   stubDashboardCustomNotificationChannels,
 } from "./CustomNotificationChannelsStub";
+import {
+  resetNotificationChannelReadiness,
+  stubNotificationChannelReadiness,
+} from "./NotificationChannelReadinessStub";
 
 /*
  * User Settings > Notification Settings and custom channels: a "Custom
@@ -353,6 +357,8 @@ describe("the notification settings matrix and custom channels", () => {
     jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
     jest.spyOn(User, "getUserId").mockReturnValue(USER_ID);
     stubDashboardSecurityCaseValues();
+    // Every channel has a verified method: every column is offered.
+    stubNotificationChannelReadiness();
     jest
       .spyOn(ModelAPI, "getCommonHeaders")
       .mockReturnValue({ tenantid: PROJECT_ID.toString() });
@@ -387,6 +393,7 @@ describe("the notification settings matrix and custom channels", () => {
     jest.restoreAllMocks();
     ConnectedWorkspaces.setFetcher(null);
     ConnectedWorkspaces.reset();
+    resetNotificationChannelReadiness();
   });
 
   function rowFor(
@@ -443,7 +450,7 @@ describe("the notification settings matrix and custom channels", () => {
 
     expect(firstTableHeaders()).toEqual(COLUMNS_WITHOUT_CUSTOM_CHANNELS);
     expect(
-      within(row).queryByRole("switch", { name: /^Custom Channels:/ }),
+      within(row).queryByRole("switch", { name: /^Custom Channels for / }),
     ).not.toBeInTheDocument();
     expect(within(row).getAllByRole("switch")).toHaveLength(9);
   });
@@ -473,7 +480,7 @@ describe("the notification settings matrix and custom channels", () => {
 
       expect(switches).toHaveLength(10);
       expect(switches[9]!.getAttribute("aria-label")).toMatch(
-        /^Custom Channels: /,
+        /^Custom Channels for /,
       );
     }
   });
@@ -503,12 +510,12 @@ describe("the notification settings matrix and custom channels", () => {
 
     expect(
       within(await findEventRow("Incident created")).getByRole("switch", {
-        name: "Custom Channels: On. Click to disable.",
+        name: "Custom Channels for Incident created",
       }),
     ).toHaveAttribute("aria-checked", "true");
     expect(
       within(await findEventRow("Incident note posted")).getByRole("switch", {
-        name: "Custom Channels: Off. Click to enable.",
+        name: "Custom Channels for Incident note posted",
       }),
     ).toHaveAttribute("aria-checked", "false");
   });
@@ -537,7 +544,7 @@ describe("the notification settings matrix and custom channels", () => {
     renderPage();
     const row: HTMLElement = await findEventRow("Incident note posted");
     fireEvent.click(
-      within(row).getByRole("switch", { name: /^Custom Channels:/ }),
+      within(row).getByRole("switch", { name: /^Custom Channels for / }),
     );
 
     await waitFor(() => {
@@ -555,14 +562,14 @@ describe("the notification settings matrix and custom channels", () => {
       expect(
         within(
           screen.getByText("Incident note posted").closest("tr")!,
-        ).getByRole("switch", { name: /^Custom Channels:/ }),
+        ).getByRole("switch", { name: /^Custom Channels for / }),
       ).toHaveAttribute("aria-checked", "true");
     });
     // Email on the same row is untouched.
     expect(
       within(screen.getByText("Incident note posted").closest("tr")!).getByRole(
         "switch",
-        { name: /^Email:/ },
+        { name: /^Email for / },
       ),
     ).toHaveAttribute("aria-checked", "true");
   });
@@ -577,7 +584,7 @@ describe("the notification settings matrix and custom channels", () => {
     renderPage();
     const row: HTMLElement = await findEventRow("Incident note posted");
     fireEvent.click(
-      within(row).getByRole("switch", { name: /^Custom Channels:/ }),
+      within(row).getByRole("switch", { name: /^Custom Channels for / }),
     );
 
     await waitFor(() => {
@@ -600,7 +607,7 @@ describe("the notification settings matrix and custom channels", () => {
     renderPage();
     const row: HTMLElement = await findEventRow("Incident note posted");
     fireEvent.click(
-      within(row).getByRole("switch", { name: /^Custom Channels:/ }),
+      within(row).getByRole("switch", { name: /^Custom Channels for / }),
     );
 
     await waitFor(() => {
@@ -628,7 +635,7 @@ describe("the notification settings matrix and custom channels", () => {
     renderPage();
     const row: HTMLElement = await findEventRow("Incident note posted");
     fireEvent.click(
-      within(row).getByRole("switch", { name: /^Custom Channels:/ }),
+      within(row).getByRole("switch", { name: /^Custom Channels for / }),
     );
 
     expect(
@@ -638,7 +645,7 @@ describe("the notification settings matrix and custom channels", () => {
       expect(
         within(
           screen.getByText("Incident note posted").closest("tr")!,
-        ).getByRole("switch", { name: /^Custom Channels:/ }),
+        ).getByRole("switch", { name: /^Custom Channels for / }),
       ).toHaveAttribute("aria-checked", "false");
     });
   });
@@ -654,7 +661,7 @@ describe("the notification settings matrix and custom channels", () => {
 
     renderPage();
     const row: HTMLElement = await findEventRow("Incident note posted");
-    fireEvent.click(within(row).getByRole("switch", { name: /^Email:/ }));
+    fireEvent.click(within(row).getByRole("switch", { name: /^Email for / }));
 
     await waitFor(() => {
       expect(updateById).toHaveBeenCalledTimes(1);
@@ -695,7 +702,7 @@ describe("the notification settings matrix and custom channels", () => {
     const row: HTMLElement = await findEventRow("Incident created");
 
     expect(
-      within(row).getByRole("switch", { name: /^Custom Channels:/ }),
+      within(row).getByRole("switch", { name: /^Custom Channels for / }),
     ).toBeInTheDocument();
     expect(firstTableHeaders()).toEqual([
       ...COLUMNS_WITHOUT_CUSTOM_CHANNELS,
@@ -733,7 +740,7 @@ describe("the notification settings matrix and custom channels", () => {
 
     expect(firstTableHeaders()).toEqual(COLUMNS_WITHOUT_CUSTOM_CHANNELS);
     expect(
-      within(row).queryByRole("switch", { name: /^Custom Channels:/ }),
+      within(row).queryByRole("switch", { name: /^Custom Channels for / }),
     ).not.toBeInTheDocument();
     expect(within(row).getAllByRole("switch")).toHaveLength(9);
   });

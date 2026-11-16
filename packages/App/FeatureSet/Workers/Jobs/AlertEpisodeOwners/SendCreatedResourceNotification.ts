@@ -1,5 +1,10 @@
 import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
+import OwnerNotificationBacklog, {
+  OwnerNotificationPage,
+} from "../../Utils/OwnerNotificationBacklog";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
+import ProjectService from "Common/Server/Services/ProjectService";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
@@ -63,7 +68,7 @@ const EPISODE_SELECT: Select<AlertEpisode> = {
 RunCron(
   "AlertEpisodeOwner:SendCreatedResourceEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
-  async () => {
+  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
     /*
      * The owners a run that stopped part way left untold - a worker killed
      * between the take and the last owner (#8509) - told first, exactly
@@ -91,78 +96,100 @@ RunCron(
       },
     });
 
-    // Get all alert episodes that need owner notification
-    const episodes: Array<AlertEpisode> = await AlertEpisodeService.findAllBy({
-      query: {
+    /*
+     * Every episode whose owners have not been told it was created, a page at a
+     * time, oldest first, each taken by one run alone and told by the run
+     * that took it; the run stops at its deadline and the next carries on
+     * (OwnerNotificationBacklog, issue #8862).
+     */
+    await OwnerNotificationBacklog.forEachToNotify<AlertEpisode>({
+      jobName: "AlertEpisodeOwner:SendCreatedResourceEmail",
+      service: AlertEpisodeService,
+      notYetNotified: {
         isOwnerNotifiedOfEpisodeCreation: false,
       },
-      props: {
-        isRoot: true,
+      notified: {
+        isOwnerNotifiedOfEpisodeCreation: true,
       },
-      skip: 0,
       select: EPISODE_SELECT,
-    });
+      deadline: deadline,
+      notify: async (input: {
+        record: AlertEpisode;
+        page: OwnerNotificationPage;
+        take: () => Promise<boolean>;
+      }): Promise<void> => {
+        const episode: AlertEpisode = input.record;
+        const notification: OwnerNotificationOf = {
+          kind: OwnerNotificationKind.AlertEpisodeCreated,
+          projectId: episode.projectId!,
+          resourceId: episode.id!,
+          eventId: episode.id!,
+        };
 
-    for (const episode of episodes) {
-      const notification: OwnerNotificationOf = {
-        kind: OwnerNotificationKind.AlertEpisodeCreated,
-        projectId: episode.projectId!,
-        resourceId: episode.id!,
-        eventId: episode.id!,
-      };
+        /*
+         * Whom it is to tell - its owners, or the project's when it has none -
+         * written before the take: a worker stopped from here on leaves them to
+         * be told by a later run, and one stopped before the take leaves the
+         * episode to be read again.
+         */
+        const delivery: OwnerNotificationDelivery =
+          await OwnerNotificationDeliveries.planForOwnersOf({
+            notification: notification,
+            findOwners: () => {
+              return AlertEpisodeService.findOwners(episode.id!);
+            },
+            // Read once for every record of the page.
+            findProjectOwners: (): Promise<Array<User>> => {
+              return input.page.once(
+                `projectOwners:${episode.projectId!.toString()}`,
+                () => {
+                  return ProjectService.getOwners(episode.projectId!);
+                },
+              );
+            },
+            writesFeedItem: true,
+            /*
+             * Not those the episode's on-call page reached already: someone
+             * who is on call and an owner is told of the episode once, not
+             * twice (#7987).
+             */
+            findOwnersToLeaveOut: (
+              owners: Array<User>,
+            ): Promise<Array<User>> => {
+              return OwnersReachedByAPage.findAmong({
+                notification: notification,
+                owners: owners,
+              });
+            },
+          });
 
-      /*
-       * Whom it is to tell - its owners, or the project's when it has none -
-       * written before the take: a worker stopped from here on leaves them to
-       * be told by a later run, and one stopped before the take leaves the
-       * episode to be read again.
-       */
-      const delivery: OwnerNotificationDelivery =
-        await OwnerNotificationDeliveries.planForOwnersOf({
-          notification: notification,
-          findOwners: () => {
-            return AlertEpisodeService.findOwners(episode.id!);
-          },
-          writesFeedItem: true,
-          /*
-           * Not those the episode's on-call page reached already: someone
-           * who is on call and an owner is told of the episode once, not
-           * twice (#7987).
-           */
-          findOwnersToLeaveOut: (owners: Array<User>): Promise<Array<User>> => {
-            return OwnersReachedByAPage.findAmong({
-              notification: notification,
-              owners: owners,
-            });
-          },
-        });
+        /*
+         * Taken - marked notified, by one hook-free compare-and-set - before
+         * its owners are told, so one whose notification keeps failing is
+         * never read again on every run. Taken by another run first: that run
+         * tells them.
+         */
+        if (!(await input.take())) {
+          return;
+        }
 
-      await AlertEpisodeService.updateOneById({
-        id: episode.id!,
-        data: {
-          isOwnerNotifiedOfEpisodeCreation: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      try {
-        await notifyOwnersOfEpisodeCreated(episode, delivery);
-      } catch (e) {
-        logger.error(
-          "Error in sending alert episode created resource notification",
-          {
+        try {
+          await notifyOwnersOfEpisodeCreated(episode, delivery);
+        } catch (e) {
+          logger.error(
+            "Error in sending alert episode created resource notification",
+            {
+              projectId: episode.projectId?.toString(),
+              alertEpisodeId: episode.id?.toString(),
+            },
+          );
+          logger.error(e, {
             projectId: episode.projectId?.toString(),
             alertEpisodeId: episode.id?.toString(),
-          },
-        );
-        logger.error(e, {
-          projectId: episode.projectId?.toString(),
-          alertEpisodeId: episode.id?.toString(),
-        });
-      }
-    }
+          });
+        }
+      },
+    });
   },
 );
 

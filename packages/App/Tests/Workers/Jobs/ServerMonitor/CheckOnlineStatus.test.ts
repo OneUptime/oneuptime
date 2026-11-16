@@ -561,9 +561,14 @@ describe("ServerMonitor:CheckOnlineStatus worker", () => {
       MONITOR_B_ID.toString(),
     ]);
 
-    // ...and the failure was logged per-monitor, not swallowed globally.
+    /*
+     * ...and the failure was logged per-monitor, not swallowed globally:
+     * logMonitorEvaluationError (#8069) logs the line, then the error, each
+     * with the log attributes it was handed - none here.
+     */
     expect(mockedLogger.error).toHaveBeenCalledWith(
       expect.stringContaining(MONITOR_A_ID.toString()),
+      undefined,
     );
   });
 });

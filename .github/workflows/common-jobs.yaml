@@ -136,7 +136,10 @@ jobs:
       # eslint.config.js), on planted snippets that must and must not be
       # reported, before the lint they take part in: a rule that stopped
       # reporting would leave the lint green and the code scanning guards to
-      # find the copy on main. Seconds; it needs only the root install above.
+      # find the copy on main. With them, the tests of Scripts/Lint/
+      # LintByProject.js, which the lint below and `npm run lint:changed` run
+      # (its file grouping, the changed files it finds, its exit codes).
+      # Seconds; it needs only the root install above.
       - name: Test the repository's own lint rules
         run: npm run test-lint-rules
       - run: npm run lint
@@ -146,4 +149,4 @@ jobs:
         run: npm run docs:check-anchors
       - name: Show how to fix lint
         if: ${{ failure() }}
-        run: echo "Please run 'npm run fix' to auto-fix lint, 'npm run i18n:validate' to see any missing/extra locale keys or broken placeholders, and 'npm run docs:check-anchors' to see any in-page doc links pointing at a heading that does not exist."
+        run: echo "Please run 'npm run fix-lint:changed' to auto-fix lint in the files your branch changed (or 'npm run fix' for the whole repository), 'npm run i18n:validate' to see any missing/extra locale keys or broken placeholders, and 'npm run docs:check-anchors' to see any in-page doc links pointing at a heading that does not exist."

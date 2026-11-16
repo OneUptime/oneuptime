@@ -5,6 +5,7 @@ import Detail from "Common/UI/Components/Detail/Detail";
 import Field from "Common/UI/Components/Detail/Field";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { translationKey } from "Common/Types/Translator";
+import { HEARTBEAT_SWEEP_EVERY_SECONDS } from "Common/Utils/Monitor/HeartbeatSweepSchedule";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -27,12 +28,35 @@ export const REQUEST_CONTENT_NOT_SHOWN: string = translationKey(
 export const INCOMING_REQUEST_CONTENT_NOT_SHOWN_TEST_ID: string =
   "incoming-request-content-not-shown";
 
+/*
+ * How often the heartbeat sweeps check a monitor, in the reader's words:
+ * "Every 30 seconds". The incoming email summary says it too.
+ */
+export const getHeartbeatSweepScheduleText: (
+  translator: Translator,
+) => string = (translator: Translator): string => {
+  return translator.translatePlural(
+    {
+      one: "Every {{count}} second",
+      other: "Every {{count}} seconds",
+    },
+    HEARTBEAT_SWEEP_EVERY_SECONDS,
+  );
+};
+
 export const INCOMING_REQUEST_SECRETS_MASKED_TEST_ID: string =
   "incoming-request-secrets-masked";
 
 export interface ComponentProps {
   incomingMonitorRequest: IncomingMonitorRequest;
   incomingRequestMonitorHeartbeatCheckedAt?: Date | undefined;
+  /*
+   * The heartbeat sweep is checking the monitor on its schedule: the stamp
+   * is as recent as a running sweep leaves it (HeartbeatSweepSchedule, issue
+   * #8123). The fact then says the schedule rather than the stamp, which is
+   * written only every few minutes.
+   */
+  isStatusCheckOnSchedule?: boolean | undefined;
   /*
    * The request is the copy the server cuts for readers, as a monitor's
    * latest request is (Monitor.incomingMonitorRequest): the details then
@@ -121,9 +145,13 @@ const IncomingRequestMonitorView: FunctionComponent<ComponentProps> = (
         {props.incomingRequestMonitorHeartbeatCheckedAt ? (
           <SummaryFact
             title="Monitor Status Check At"
-            value={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-              props.incomingRequestMonitorHeartbeatCheckedAt,
-            )}
+            value={
+              props.isStatusCheckOnSchedule
+                ? getHeartbeatSweepScheduleText(translator)
+                : OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                    props.incomingRequestMonitorHeartbeatCheckedAt,
+                  )
+            }
           />
         ) : (
           <></>

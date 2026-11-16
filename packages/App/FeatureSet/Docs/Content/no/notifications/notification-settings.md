@@ -18,9 +18,9 @@ flowchart TB
     setting -->|"alt av"| nothing["Ingenting sendes"]
 ```
 
-- Hver rad er en hendelse, og hver kolonne en kanal: E-post, SMS, Anrop, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost og Webhook. Slack, Microsoft Teams og Mattermost er bare kolonner når prosjektet har koblet dem til.
+- Hver rad er en hendelse, og hver kolonne en kanal: E-post, SMS, Anrop, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost og Webhook. Slack, Microsoft Teams og Mattermost er bare kolonner når prosjektet har koblet dem til. En kanal du ikke har satt opp ennå, er ikke en kolonne: Den står over fanene under **Kanaler som ikke er satt opp ennå**, som en lenke for å sette den opp.
 - En kanal som er slått på, sender til hver verifisert metode du har på den i dette prosjektet, ikke bare til én.
-- En kanal som er slått på uten en verifisert metode bak seg, sender ingenting. **Your setup checklist** sier fra om det under **Staying informed**.
+- En kanal som er slått på uten en verifisert metode bak seg, sender ingenting. Kolonnen dens viser **Konfigurer** under navnet, og bryterne dens kan bare slås av. **Your setup checklist** sier fra om det også, under **Staying informed**.
 - En oppdatering går til eierne av tingen: personene som er oppført som eiere, og medlemmene av eierteamene dens. Har en ting ingen eiere, går den i stedet til Prosjekteiere. Den som vakttilkallingen for en ny hendelse, et nytt varsel eller en ny episode allerede har nådd, får ikke beskjed på nytt om at den er opprettet. En hendelse om å ha blitt lagt til som eier går bare til personen som ble lagt til. Stopper OneUptime mens den sender en oppdatering til eierne av en ting, får personene den ennå ikke hadde nådd, den når OneUptime er tilbake, noen minutter forsinket, og ingen får den to ganger.
 - Sikkerhetssaker har ingen eiere. En ny sak går til alle som kan se prosjektets saker, på prioriteten hver av dem velger, og en tildelt sak går til personene den er tildelt. Se [Sikkerhetssaker](/docs/telemetry/security-cases#varslinger).
 - Hver e-post til eiere slutter med en lenke, "Manage notification preferences", tilbake til denne siden.
@@ -34,11 +34,11 @@ Gå til **Brukerinnstillinger → Varslingsinnstillinger**. Fanene er **Hendelse
 
 ### Finn hendelsen
 
-Hver fane har ett eller flere kort, som **Hendelsesepisoder** på fanen **Hendelser**. Hver rad er en hendelse, med en linje som sier når den sendes.
+Hver fane har ett eller flere kort, som **Hendelsesepisoder** på fanen **Hendelser**. Hver rad er en hendelse, med en linje som sier når den sendes. Over kortene sier fanen hvor mange av hendelsene dens du får høre om, og via hvilke kanaler.
 
 ### Klikk på en kanal
 
-Klikk på en kanals sirkel for å slå den på, og igjen for å slå den av. En hake betyr på. Endringer lagres automatisk.
+Klikk på en kanals bryter for å slå den på, og igjen for å slå den av. Kortets første rad, **Alle hendelser**, slår en kanal på eller av for hver hendelse på kortet. Hver endring lagres med en gang, og kortet viser **Lagret**.
 :::
 
 ## Hva som er slått på for et nytt medlem

@@ -199,7 +199,7 @@ Los formatos de salida y los tamaños de lista no se guardan aquí: pase `-o` y 
 :::
 
 :::details El mensaje "API error (400): Invalid API Key"
-La clave no es una clave de API de OneUptime, ha caducado o se restableció. Cópiela de nuevo desde su página en **Ajustes del proyecto → Avanzado → Claves de API**, donde también está su fecha en **Caduca**, y vuelva a iniciar sesión con el mismo nombre de contexto. El comando termina con el código `2`.
+La clave no es una clave de API de OneUptime, ha caducado o se restableció. Búsquela en **Ajustes del proyecto → Avanzado → Claves de API** por cómo termina, y compruebe su fecha en **Caduca**. Una clave que ya no tiene no se puede volver a mostrar: restablézcala en su página y vuelva a iniciar sesión con la nueva con el mismo nombre de contexto. El comando termina con el código `2`.
 :::
 
 :::details El mensaje "API error (402): API keys need the Growth plan"

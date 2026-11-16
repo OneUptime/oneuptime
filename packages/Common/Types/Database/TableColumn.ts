@@ -60,6 +60,17 @@ export interface TableColumnMetadata {
    * holds every column named like a secret to this.
    */
   secret?: boolean;
+  /*
+   * A secret OneUptime makes, answers once and keeps only as its hash: a
+   * project's API key (#8902). The answer to the create that makes the
+   * record holds it - and a reset of it, by a route of its own - and
+   * nothing reads it back: nobody may read the column (its read access is
+   * empty), so it is in no read, list or select schema. The OpenAPI spec
+   * puts it in the create's answer alone (<Table>CreatedSchema), marked
+   * x-oneuptime-shown-once, and the Terraform and OpenTofu provider keeps
+   * it in state from that answer instead of reading it back.
+   */
+  shownOnce?: boolean;
   manyToOneRelationColumn?: string;
   type: TableColumnType;
   canReadOnRelationQuery?: boolean;

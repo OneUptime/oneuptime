@@ -280,7 +280,7 @@ API-sleutels krijgen machtigingen rechtstreeks, op de sleutel zelf, of via de aa
 :::steps
 1. Open **Projectinstellingen > Geavanceerd > API-sleutels** en klik op **API-sleutel aanmaken**. Op OneUptime Cloud vragen API-sleutels het Growth-abonnement.
 2. Typ de **Naam** van de sleutel en kies zijn **Toegang**. De beschrijving en de vervaldatum staan onder **Meer velden**; een sleutel verloopt een jaar na de dag waarop hij is aangemaakt, tenzij u een andere datum kiest, en het ingeklapte deel zegt dat.
-3. Maak de sleutel aan. Hij opent op zijn pagina, waar u hem kopieert.
+3. Maak de sleutel aan. OneUptime toont hem één keer, in een dialoogvenster: kopieer hem daar. Daarna opent zijn pagina.
 :::
 
 De rol die u kiest, wordt de eerste machtiging van de sleutel zodra de sleutel bestaat, precies alsof u hem op de pagina van de sleutel had toegevoegd. U krijgt alleen de rollen aangeboden die u zelf hebt — een sleutel kan nooit meer krijgen dan de persoon die hem geeft heeft — en wie sleutels mag aanmaken maar niet mag wijzigen wat ze kunnen, wordt niets gevraagd.

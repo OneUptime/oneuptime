@@ -14,7 +14,7 @@ Terraform が表示したメッセージ、または起きたことを下の表�
 | メッセージまたは症状 | 対処 |
 | --- | --- |
 | `Missing API Key` | プロバイダーにキーを渡します: [`Missing API Key` または `Invalid API Key`](#missing-api-key-または-invalid-api-key) を参照 |
-| `Invalid API Key` | キーをもう一度コピーするか、新しく作成します: [`Missing API Key` または `Invalid API Key`](#missing-api-key-または-invalid-api-key) を参照 |
+| `Invalid API Key` | キーを確認するか、リセットして新しいキーを取得します: [`Missing API Key` または `Invalid API Key`](#missing-api-key-または-invalid-api-key) を参照 |
 | `ProjectId required` | マスターキーではなく、プロジェクトの API キーを使います: [`ProjectId required`](#projectid-required) を参照 |
 | `You do not have permissions to create Monitor` | メッセージに書かれた権限をキーに付与します: [キーに権限が足りない](#キーに権限が足りない) を参照 |
 | `API keys need the Growth plan` | プロジェクトを Growth プランに戻します: [支払いが必要](#支払いが必要) を参照 |
@@ -60,7 +60,7 @@ flowchart TB
 
 `Missing API Key` は、プロバイダーがリクエストを送る前に停止させます。プロバイダーブロックの `api_key` も、環境変数 `ONEUPTIME_API_KEY` も設定されていません。Terraform を実行するシェルで変数をエクスポートするか、`sensitive` と指定した変数でキーを渡してください。
 
-`Invalid API Key` は、OneUptime が知らないキーに対する応答です。入力を誤ったキー、期限切れまたは削除されたキー、あるいは `oneuptime_url` が指すものとは別の OneUptime のキーです。**プロジェクト設定 → 詳細 → API キー** にあるキーのページからもう一度コピーするか、新しいキーを作成してください。
+`Invalid API Key` は、OneUptime が知らないキーに対する応答です。入力を誤ったキー、期限切れまたは削除されたキー、あるいは `oneuptime_url` が指すものとは別の OneUptime のキーです。**プロジェクト設定 → 詳細 → API キー** にあるキーのページに表示される末尾の文字と照らし合わせるか、そこでリセットして新しいキーを取得してください。
 
 ### `ProjectId required`
 

@@ -415,35 +415,38 @@ describe("the stale capture sweep", () => {
 });
 
 describe("the retention sweep", () => {
-  test("stays a transaction a batch: a capture and its file commit together", async () => {
+  /*
+   * Issue #8929: a batch is one self-committing statement - a capture and
+   * its file are deleted by two data-modifying WITHs of it, so they commit
+   * together - on the service's own connection, never a transaction.
+   */
+  test("is one statement a batch: a capture and its file commit together", async () => {
     const service: PacketCaptureServiceType = new PacketCaptureServiceType();
     const statements: Array<string> = [];
-    const answers: Array<unknown> = [
-      [[{ _id: CAPTURE_ID.toString(), fileId: TEST_ID.toString() }], 1],
-      [],
-    ];
-    let transactions: number = 0;
+    const answers: Array<unknown> = [[{ _id: CAPTURE_ID.toString() }]];
 
-    jest.spyOn(service, "executeTransaction").mockImplementation((async (
-      run: (manager: unknown) => Promise<unknown>,
-    ): Promise<unknown> => {
-      transactions++;
-
-      return await run({
+    jest.spyOn(service, "executeTransaction").mockImplementation((async () => {
+      throw new Error("A retention batch must not open a transaction.");
+    }) as never);
+    jest.spyOn(service, "getRepository").mockReturnValue({
+      manager: {
         query: async (sql: string): Promise<unknown> => {
           statements.push(normalizeSql(sql));
           return answers.shift();
         },
-      });
-    }) as never);
+      },
+    } as never);
 
     expect(await service.deleteExpiredCaptures()).toBe(1);
 
-    expect(transactions).toBe(1);
-    expect(statements).toHaveLength(2);
-    expect(statements[0]).toContain('DELETE FROM "PacketCapture"');
-    expect(statements[1]).toBe(
-      'DELETE FROM "File" WHERE "_id" = ANY($1::uuid[])',
+    expect(service.executeTransaction).not.toHaveBeenCalled();
+    expect(statements).toHaveLength(1);
+    expect(statements[0]).toMatch(
+      /^WITH "expired" AS \( DELETE FROM "PacketCapture"/,
     );
+    expect(statements[0]).toContain(
+      '"files" AS ( DELETE FROM "File" WHERE "_id" IN ( SELECT "fileId" FROM "expired"',
+    );
+    expect(statements[0]).toMatch(/SELECT "_id" FROM "expired"$/);
   });
 });

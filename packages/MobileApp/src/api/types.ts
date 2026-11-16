@@ -296,8 +296,22 @@ export interface MonitorItem {
   monitorType?: string;
   currentMonitorStatus?: NamedEntityWithColor & {
     isOperationalState?: boolean;
+    isOfflineState?: boolean;
   };
   disableActiveMonitoring?: boolean;
+  /*
+   * What the row rule reads besides (utils/monitorHealth). A server older
+   * than Monitor.firstMeasuredAt is asked none of these (api/monitors), and
+   * every one is then absent.
+   */
+  isArchived?: boolean;
+  disableActiveMonitoringBecauseOfManualIncident?: boolean;
+  disableActiveMonitoringBecauseOfScheduledMaintenanceEvent?: boolean;
+  isNoProbeEnabledOnThisMonitor?: boolean;
+  isAllProbesDisconnectedFromThisMonitor?: boolean;
+  // null while nothing has measured the monitor yet.
+  firstMeasuredAt?: string | null;
+  monitoringInterval?: string | null;
   createdAt: string;
   projectId?: string;
 }

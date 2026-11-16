@@ -87,10 +87,16 @@ npm run compile
 
 ### 自分のファイルだけを lint する
 
-リポジトリのルートから、変更したファイルを指定します。
+リポジトリのルートから、ブランチで変更したファイルを lint し、ESLint で直せるものを直します。
 
 ```bash
-npx eslint --fix packages/App/path/to/File.ts
+npm run fix-lint:changed
+```
+
+`origin/main` と異なるファイルを、コミット済みかどうかにかかわらずすべて取り出し、ファイルが属する TypeScript プロジェクトごとに ESLint を実行します。複数のパッケージのファイルに一度に `npx eslint` を実行すると、メモリが足りなくなります。ほかのファイルを同じ方法で lint するには、`--` の後に指定します。
+
+```bash
+node Scripts/Lint/LintByProject.js --fix -- packages/App/path/to/File.ts
 ```
 
 `npm run lint` と `npm run fix-lint` は使わないでください。リポジトリ全体を lint します。

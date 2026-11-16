@@ -280,7 +280,7 @@ A las claves de API se les conceden permisos directamente, en la propia clave, o
 :::steps
 1. Abra **Ajustes del proyecto > Avanzado > Claves de API** y haga clic en **Crear Clave de API**. En OneUptime Cloud, las claves de API requieren el plan Growth.
 2. Escriba el **Nombre** de la clave y elija su **Acceso**. La descripción y la fecha de caducidad están en **Más campos**; una clave caduca un año después del día en que se crea, salvo que elija otra fecha, y la sección plegada lo indica.
-3. Cree la clave. Se abre en su página, donde la copia.
+3. Cree la clave. OneUptime la muestra una sola vez, en un diálogo: cópiela allí. Después se abre su página.
 :::
 
 El rol que elija pasa a ser el primer permiso de la clave en cuanto la clave existe, exactamente como si lo hubiera añadido en la página de la clave. Solo se le ofrecen los roles que usted mismo tiene —una clave nunca puede recibir más de lo que tiene quien se la da—, y a quien puede crear claves pero no cambiar lo que pueden hacer no se le pregunta.

@@ -36,8 +36,10 @@ function relative(file: string): string {
  */
 const HAND_ROLLED_SWITCHES: Record<string, string> = {
   "packages/Common/UI/Components/Toggle/Toggle.tsx": "The switch itself.",
-  "packages/App/FeatureSet/Dashboard/src/Pages/UserSettings/NotificationSettings.tsx":
-    "A round on/off cell in the per-event channel matrix, one per channel per event: a grid of ticks, not a switch beside a sentence.",
+  /*
+   * Notification Settings' matrix drew its own round cells - a green tick for
+   * on, a grey dot for off - until #8887 made each cell the shared Toggle.
+   */
   "packages/App/FeatureSet/Dashboard/src/Components/NetworkSite/SiteGeoMap.tsx":
     "Rows of the map's layer menu, drawn as checkbox rows the way a menu of options is.",
   "packages/App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayUi.tsx":

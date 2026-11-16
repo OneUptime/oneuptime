@@ -1,4 +1,5 @@
 import { JSONObject } from "../../../Types/JSON";
+import RetryAfter from "../../../Utils/RetryAfter";
 import DataSourceHttpFetch, {
   DataSourceHttpRequest,
   DataSourceHttpResponse,
@@ -765,12 +766,9 @@ export default class DataverseApi {
     } as DataSourceHttpRequest);
 
     if (response.statusCode === 429) {
-      const retryAfter: number = Number(response.headers?.["retry-after"]);
-
+      // Whole seconds or an HTTP-date, as RFC 9110 writes them (RetryAfter).
       throw new DataverseThrottledError(
-        Number.isFinite(retryAfter) && retryAfter >= 0
-          ? Math.round(retryAfter)
-          : null,
+        RetryAfter.secondsFromHeaders(response.headers) ?? null,
       );
     }
 

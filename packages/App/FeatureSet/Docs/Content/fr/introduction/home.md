@@ -36,7 +36,7 @@ La ligne du haut nomme ce qui est ouvert de plus urgent, dans une couleur assort
 | Des moniteurs fonctionnent et rien n'est ouvert | **Tous les systèmes sont opérationnels** |
 | Le projet n'a pas encore de moniteur | **Rien n'est encore surveillé** |
 
-À côté, l'accueil indique quand il a chargé le projet pour la dernière fois, et **Actualiser** le recharge. Quand vous revenez sur un onglet de l'accueil après une minute ou plus, il s'actualise tout seul.
+À côté, l'accueil indique quand il a chargé le projet pour la dernière fois, et **Actualiser** le recharge. L'accueil suit aussi ce qu'il compte au fil des changements : quand un incident, une alerte, un moniteur, un événement de maintenance ou un SLO est créé, modifié ou supprimé, la ligne, les nombres, **Attention requise** et **Maintenance à venir** se mettent à jour en quelques secondes, sans actualiser. Quand vous revenez sur un onglet de l'accueil après une minute ou plus, il s'actualise tout seul.
 
 Tant que rien n'est encore surveillé, la ligne se termine par le bouton **Créez votre premier moniteur**, qui ouvre la configuration guidée **Savoir quand mon site web ou mon API est en panne**. Seules les personnes autorisées à créer des moniteurs le voient.
 
@@ -89,6 +89,8 @@ flowchart TB
 
 La liste disparaît pour tout le monde une fois chaque étape terminée. Pour la masquer plus tôt, cliquez sur **Masquer** : elle n'est masquée que pour vous, sur chaque appareil, et une ligne reste avec **Afficher** et **Comment fonctionne OneUptime**. Les personnes invitées dans le projet comme membres ne voient pas la liste. **Comment fonctionne OneUptime** reste à un clic, dans n'importe quel projet : ouvrez-le depuis **Aide**, ou avec le bouton à côté de **Explorer OneUptime**.
 
+**Comment fonctionne OneUptime** s'ouvre sur **Comment tout s'articule** : les quatre étapes par lesquelles passe un problème, **Détecter**, **Réagir**, **Communiquer** et **Améliorer**, chacune avec les produits qui s'en chargent. Viennent ensuite les catégories du menu **Produits**, chacune avec ses produits et ce à quoi sert chacun : choisissez-en une, ou passez à la suivante avec les flèches du clavier ou **Suivant**. Cliquez sur un produit pour l'ouvrir. Les produits que votre projet masque n'y figurent pas.
+
 ### Attention requise
 
 **Attention requise** liste par leur nom ce que les nombres comptent : les incidents ouverts, les alertes ouvertes, les moniteurs non opérationnels, les SLO à risque et les maintenances en cours, les plus urgents d'abord. Chaque ligne affiche sa gravité ou son état, indique quand un incident ou une alerte a commencé et quand une maintenance se termine, et ouvre l'élément. Chaque type en montre jusqu'à cinq, avec **Tout afficher** pour le reste, qui ouvre la même liste que son nombre. Quand rien n'est ouvert, la section affiche **Rien ne nécessite votre attention**.
@@ -137,7 +139,7 @@ Un mot souligné de pointillés, comme **Sondes** dans le formulaire d'un nouvea
 
 Au-dessus du titre de chaque page, un fil comme *Projet › Docker › Paramètres › Règles de propriétaire* indique où se trouve la page. Chaque étape avant la dernière ouvre sa page.
 
-- **Les listes se tiennent à jour d'elles-mêmes.** Quand un incident ou une alerte est créé, pris en compte ou résolu n'importe où, les listes d'incidents, d'alertes et d'épisodes l'affichent en quelques secondes, sans actualiser. Tant que vous êtes au milieu de quelque chose sur une liste, par exemple des lignes cochées ou une boîte de dialogue ouverte, elle attend et se met à jour quand vous avez terminé.
+- **Les listes se tiennent à jour d'elles-mêmes.** Quand un incident, une alerte, un moniteur ou un événement de maintenance est créé, modifié ou supprimé n'importe où, les listes d'incidents, d'alertes, d'épisodes, de moniteurs et d'événements de maintenance l'affichent en quelques secondes, sans actualiser, tout comme les nombres à côté d'elles dans les menus latéraux. Les nombres de la cloche, et les listes **Incidents actifs**, **Alertes actives**, **Épisodes d'incident actifs** et **Épisodes d'alerte actifs**, suivent tous les projets dont vous faites partie, pas seulement celui qui est ouvert. Tant que vous êtes au milieu de quelque chose sur une liste, par exemple des lignes cochées ou une boîte de dialogue ouverte, elle attend et se met à jour quand vous avez terminé.
 - **Sur un téléphone, les puces de filtre se replient** derrière **Filtre**, pour que la liste commence plus haut. Les puces que vous avez définies restent visibles, avec **Tout effacer**. Appuyez sur **Filtre** pour voir toutes les puces, et à nouveau pour les replier.
 - L'option **Colonnes** du menu **⋯** d'une liste choisit les colonnes que la liste affiche et leur ordre, et les garde pour vous dans ce navigateur. Un Propriétaire du projet ou un Administrateur du projet peut aussi y cocher **Afficher ces colonnes pour tout le monde dans ce projet** : quiconque n'a pas choisi ses propres colonnes pour cette liste les voit, et **Réinitialiser aux valeurs par défaut du projet** remet les vôtres sur celles-ci.
 - L'option **Lignes compactes**, dans le même menu, affiche les lignes de chaque liste moins hautes, si bien qu'une longue liste en montre environ un cinquième de plus. Ce choix est gardé dans ce navigateur.
