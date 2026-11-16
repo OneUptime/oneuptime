@@ -13,6 +13,12 @@ import {
   Translator,
 } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import Toast, {
+  CHANGES_SAVED,
+  getItemCreatedTemplate,
+  ITEM_DELETED,
+  ITEM_REMOVED,
+} from "../../Utils/Toast";
 import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
 
 import Query from "../../../Types/BaseDatabase/Query";
@@ -642,6 +648,12 @@ export interface BaseTableProps<
   fetchRequestOptions?: RequestOptions | undefined;
   deleteRequestOptions?: RequestOptions | undefined;
   onItemDeleted?: ((item: TBaseModel) => void) | undefined;
+  /*
+   * A row created, edited or deleted from the list says so in the corner:
+   * "Nightly Backup deleted", "Changes saved" (Toast, #9120). Leave it out
+   * where the page says so itself, in its own words.
+   */
+  hideChangeToasts?: boolean | undefined;
   onBeforeEdit?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
   /*
    * Rows the reader may not change, though their permissions let them change
@@ -1064,6 +1076,35 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         : "";
 
     return givenName || getRecordDisplayName(item, { model: model });
+  };
+
+  type SayItemChangedFunction = (template: string, item: unknown) => void;
+
+  /*
+   * A row created or deleted says so in the corner, by its name, or by its
+   * kind where it has none: "Nightly Backup deleted", "Monitor created"
+   * (#9120). The row was gone, or there, with nothing to say it was the one
+   * the person meant.
+   */
+  const sayItemChanged: SayItemChangedFunction = (
+    template: string,
+    item: unknown,
+  ): void => {
+    if (props.hideChangeToasts) {
+      return;
+    }
+
+    const name: string = getItemLabel(item);
+
+    Toast.success(
+      translator.translateTemplate(template, {
+        itemName:
+          name ||
+          translatableTerm(
+            getDeleteLabel(props.singularName, model.singularName),
+          ),
+      }),
+    );
   };
 
   /*
@@ -2242,6 +2283,18 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       refreshSideMenuCounts();
 
       props.onItemDeleted?.(item);
+
+      /*
+       * A table with its own word for its delete (Remove, Unlink, Reject)
+       * takes the row away without deleting what it points at.
+       */
+      const hasOwnDeleteWord: boolean = Boolean(
+        props.bulkActions?.deleteVerb?.trim() ||
+          (props.deleteButtonText?.trim() &&
+            props.deleteButtonText.trim() !== "Delete"),
+      );
+
+      sayItemChanged(hasOwnDeleteWord ? ITEM_REMOVED : ITEM_DELETED, item);
 
       if (data.length === 1 && currentPageNumber > 1) {
         setCurrentPageNumber(currentPageNumber - 1);
@@ -6405,6 +6458,18 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           onBeforeUpdate: props.onBeforeUpdate,
           onSuccess: async (item: TBaseModel): Promise<void> => {
             setShowModal(false);
+
+            // Said as the dialog closes, before the list reads again.
+            if (modalType === ModalType.Edit) {
+              if (!props.hideChangeToasts) {
+                Toast.success(
+                  translator.translateText(CHANGES_SAVED) || CHANGES_SAVED,
+                );
+              }
+            } else {
+              sayItemChanged(getItemCreatedTemplate(props.createVerb), item);
+            }
+
             setCurrentPageNumber(1);
             // Created or changed: the counts beside the list follow.
             refreshSideMenuCounts();

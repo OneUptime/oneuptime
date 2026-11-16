@@ -4144,5 +4144,16 @@
   "Complete:": "충족:",
   "Incomplete:": "미충족:",
   "Special character included (optional)": "특수 문자 포함됨 (선택 사항)",
-  "Special characters are optional. Try !, @, # or $.": "특수 문자는 선택 사항입니다. !, @, # 또는 $를 사용해 보세요."
+  "Special characters are optional. Try !, @, # or $.": "특수 문자는 선택 사항입니다. !, @, # 또는 $를 사용해 보세요.",
+  "Changes saved": "변경 사항 저장됨",
+  "{{itemName}} added": "{{itemName}} 추가됨",
+  "{{itemName}} attached": "{{itemName}} 첨부됨",
+  "{{itemName}} connected": "{{itemName}} 연결됨",
+  "{{itemName}} created": "{{itemName}} 생성됨",
+  "{{itemName}} declared": "{{itemName}} 선언됨",
+  "{{itemName}} deleted": "{{itemName}} 삭제됨",
+  "{{itemName}} invited": "{{itemName}} 초대됨",
+  "{{itemName}} linked": "{{itemName}} 연결됨",
+  "{{itemName}} removed": "{{itemName}} 제거됨",
+  "{{itemName}} started": "{{itemName}} 시작됨"
 }

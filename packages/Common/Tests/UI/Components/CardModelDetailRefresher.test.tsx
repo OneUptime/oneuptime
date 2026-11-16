@@ -81,6 +81,7 @@ jest.mock("../../../UI/Utils/User", () => {
 
 import ModelDetail from "../../../UI/Components/ModelDetail/ModelDetail";
 import CardModelDetail from "../../../UI/Components/ModelDetail/CardModelDetail";
+import Toast, { ToastItem } from "../../../UI/Utils/Toast";
 import Probe from "../../../Models/DatabaseModels/Probe";
 
 /*
@@ -165,6 +166,7 @@ describe("CardModelDetail refresher", () => {
   let probeName: string;
 
   beforeEach(() => {
+    Toast.dismissAll();
     probeName = "WBHQ";
     getItemMock.mockReset();
     getItemMock.mockImplementation((data: any) => {
@@ -261,6 +263,12 @@ describe("CardModelDetail refresher", () => {
 
     expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
     expect(countDetailFetches()).toBe(2);
+    // And it says so: the dialog closing was all there was to go by (#9120).
+    expect(
+      Toast.getToasts().map((toast: ToastItem) => {
+        return toast.title;
+      }),
+    ).toEqual(["Changes saved"]);
 
     /*
      * The save flipped the internal refresher on its own. A page toggle after
@@ -573,6 +581,7 @@ describe("CardModelDetail shows what its Edit dialog saved, wherever the page pu
   );
 
   it("a refused save keeps the dialog open with the reason, and the card as it was", async () => {
+    Toast.dismissAll();
     createOrUpdateMock.mockReset();
     createOrUpdateMock.mockRejectedValue(
       new Error("You do not have permission to edit this probe."),
@@ -595,8 +604,9 @@ describe("CardModelDetail shows what its Edit dialog saved, wherever the page pu
 
     expect(screen.getByRole("dialog")).toBeDefined();
     expect(screen.queryByText("WBHQ never saved")).toBeNull();
-    // Nothing was saved, so nothing is read again.
+    // Nothing was saved, so nothing is read again, and nothing says it was.
     expect(countDetailFetches()).toBe(1);
+    expect(Toast.getToasts()).toEqual([]);
   });
 });
 
