@@ -71,6 +71,8 @@ import VMwareDocumentationCard from "../../../../App/FeatureSet/Dashboard/src/Co
 import DatabaseDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Documentation";
 import DatabaseDocumentationCard from "../../../../App/FeatureSet/Dashboard/src/Components/DatabaseServer/DocumentationCard";
 import HostDocumentationCard from "../../../../App/FeatureSet/Dashboard/src/Components/Host/DocumentationCard";
+import MessageQueueDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Documentation";
+import MessageQueueDocumentationCard from "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Utils/MessageQueueDocumentationCard";
 import DockerDocumentationCard from "../../../../App/FeatureSet/Dashboard/src/Components/Docker/DocumentationCard";
 import SetupGuideCard from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuideCard";
 import {
@@ -132,6 +134,11 @@ import {
   getHostSetupGuide,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/DocumentationMarkdown";
 import { HOST_DOCUMENTATION_TRANSLATIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/DocumentationTranslations";
+import {
+  MessageQueueDocumentationTarget,
+  getMessageQueueSetupGuide,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Utils/DocumentationMarkdown";
+import { MESSAGE_QUEUE_DOCUMENTATION_TRANSLATIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Utils/DocumentationTranslations";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
@@ -162,6 +169,7 @@ const WORDS: Record<string, Record<string, SetupGuideTranslation>> = {
   VMware: {},
   Database: {},
   Host: {},
+  MessageQueue: {},
 };
 
 /*
@@ -278,6 +286,22 @@ function hostGuide(method: HostInstallMethod = "docker"): SetupGuideContent {
     oneuptimeUrl: READER_URL,
     apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
     method: method,
+  });
+}
+
+/*
+ * The Queues guide a reader meets before a key is picked: Apache Kafka
+ * until another system is picked, or a queue's own guide with `queue`.
+ */
+function messageQueueGuide(
+  system: string = "kafka",
+  queue?: MessageQueueDocumentationTarget,
+): SetupGuideContent {
+  return getMessageQueueSetupGuide({
+    oneuptimeUrl: READER_URL,
+    apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
+    system: system,
+    queue: queue,
   });
 }
 
@@ -513,6 +537,9 @@ beforeAll(async () => {
     ).default;
     WORDS["Host"]![language] = (
       await HOST_DOCUMENTATION_TRANSLATIONS[language]!()
+    ).default;
+    WORDS["MessageQueue"]![language] = (
+      await MESSAGE_QUEUE_DOCUMENTATION_TRANSLATIONS[language]!()
     ).default;
   }
 
@@ -1712,6 +1739,138 @@ describe("Hosts > Help > Documentation, the collector you install yourself", () 
       expect(drawnTexts().join("\n")).toContain("aiAgent.enabled");
     },
   );
+});
+
+describe("Queues > Help > Documentation", () => {
+  // The page in `language`, a messaging system picked, every topic and tab open.
+  async function drawWithSystem(
+    language: string,
+    system?: string,
+  ): Promise<void> {
+    if (system) {
+      await drawWithOption(
+        language,
+        <MessageQueueDocumentationPage {...PAGE_PROPS} />,
+        system,
+      );
+    } else {
+      await act(async () => {
+        await i18next.changeLanguage(language);
+      });
+      await act(async () => {
+        render(
+          <MemoryRouter>
+            <MessageQueueDocumentationPage {...PAGE_PROPS} />
+          </MemoryRouter>,
+        );
+      });
+      await settle();
+    }
+    await openEveryTopic();
+    await openEveryVariant();
+  }
+
+  test.each(["de", "ar"])(
+    "in %s, the Apache Kafka guide it opens on, its question and its pills in the reader's words, its config as written",
+    async (language: string) => {
+      await drawWithSystem(language);
+
+      expectGuideInReadersWords("MessageQueue", messageQueueGuide(), language);
+
+      // The card's title, question and key step come from the locale files.
+      const locale: Record<string, string> = readDashboardLocale(language);
+      for (const key of [
+        "Queues Installation Guide",
+        "Which messaging system?",
+      ]) {
+        expect(locale[key]).not.toBe(key);
+        expect(screen.getByText(locale[key]!)).toBeInTheDocument();
+        expect(screen.queryByText(key)).toBeNull();
+      }
+      // The pills name each system as it is written, in every language.
+      expect(screen.getByTestId("setup-guide-option-kafka")).toHaveTextContent(
+        "Apache Kafka",
+      );
+
+      // The receiver and its settings are the English's.
+      const drawn: string = drawnTexts().join("\n");
+      expect(drawn).toContain("kafka_metrics");
+      expect(drawn).toContain("`messaging.destination.name`");
+      for (const markdown of mockDrawnMarkdown) {
+        expect(markdown.readingDirection).toBe(
+          language === "ar" ? "rtl" : "ltr",
+        );
+      }
+    },
+  );
+
+  /*
+   * Each kind of broker step: a collector receiver (RabbitMQ), a cloud
+   * monitoring API (Amazon SQS), the JMX Scraper (ActiveMQ), none at all
+   * (Azure Event Grid's charted-nothing note), JMS's Advanced topic and
+   * BullMQ's transform.
+   */
+  test.each([
+    ["de", "rabbitmq"],
+    ["ar", "aws_sqs"],
+    ["de", "activemq"],
+    ["ar", "eventgrid"],
+    ["de", "jms"],
+    ["ar", "bullmq"],
+  ])(
+    "in %s, picking %s draws that system's steps and topics in the reader's words",
+    async (language: string, system: string) => {
+      await drawWithSystem(language, system);
+
+      expectGuideInReadersWords(
+        "MessageQueue",
+        messageQueueGuide(system),
+        language,
+      );
+    },
+  );
+
+  /*
+   * A queue's own Documentation tab has pieces of its own (its identity,
+   * its broker's address, a system the catalog does not know) that have no
+   * words yet: it reads English whole, not half in each language.
+   */
+  test("in de, a queue's own tab reads in English whole", async () => {
+    const queue: MessageQueueDocumentationTarget = {
+      system: "kafka",
+      destination: "orders",
+      brokerScope: "",
+      brokerAddress: "broker-1.example.com:9092",
+    };
+
+    await act(async () => {
+      await i18next.changeLanguage("de");
+    });
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <MessageQueueDocumentationCard
+            title="Set up this queue"
+            description=""
+            queue={queue}
+          />
+        </MemoryRouter>,
+      );
+    });
+    await settle();
+    await openEveryTopic();
+    await openEveryVariant();
+
+    const drawn: string = drawnTexts().join("\n");
+    for (const piece of getSetupGuideWordPieces(
+      messageQueueGuide("kafka", queue),
+    )) {
+      expect({ piece, drawn: drawn.includes(piece) }).toEqual({
+        piece,
+        drawn: true,
+      });
+    }
+  });
 });
 
 describe("Podman > Help > Documentation", () => {

@@ -65,6 +65,10 @@ import {
   HOST_INSTALL_METHODS,
   getHostSetupGuide,
 } from "../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/DocumentationMarkdown";
+import {
+  MESSAGE_QUEUE_SETUP_GUIDE_OPTIONS,
+  getMessageQueueSetupGuide,
+} from "../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Utils/DocumentationMarkdown";
 
 /*
  * EVERY WAY THROUGH A PRODUCT'S SETUP GUIDE (#8341).
@@ -564,6 +568,27 @@ export function getHostSetupGuideWays(): Array<SetupGuideWay> {
         oneuptimeUrl: reader.oneuptimeUrl,
         apiKey: reader.apiKey,
         method: option,
+      });
+    },
+  });
+}
+
+/*
+ * The Queues guide varies by messaging system: how its spans name it, what
+ * traces its clients, the collector (or scraper) that reads its broker, and
+ * what a queue's page charts. Only the product page reads in the reader's
+ * language; a queue's own Documentation tab is English whole, so there is
+ * no queue to build for here.
+ */
+export function getMessageQueueSetupGuideWays(): Array<SetupGuideWay> {
+  return getSetupGuideWays({
+    options: MESSAGE_QUEUE_SETUP_GUIDE_OPTIONS,
+    names: [],
+    build: (reader: SetupGuideReader, option: string): SetupGuideContent => {
+      return getMessageQueueSetupGuide({
+        oneuptimeUrl: reader.oneuptimeUrl,
+        apiKey: reader.apiKey,
+        system: option,
       });
     },
   });

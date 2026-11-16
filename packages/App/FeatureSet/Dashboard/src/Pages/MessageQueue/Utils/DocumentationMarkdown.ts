@@ -34,7 +34,10 @@ import {
   MessageQueueMetricDescriptor,
   getMessageQueueMetricsForSystem,
 } from "Common/Types/MessageQueue/MessageQueueMetricCatalog";
-import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 
 /*
@@ -1264,6 +1267,11 @@ function instrumentationStep(context: GuideContext): SetupGuideStep {
  * and 5m in awsCloudWatchConfig: 11 to 17 minutes), as queues.md says of
  * the same config.
  */
+const CLOUDWATCH_LATENESS_MINUTES: { earliest: number; latest: number } = {
+  earliest: 11,
+  latest: 17,
+};
+// The same, as the docs page's sentence words it.
 const CLOUDWATCH_LATENESS: string = "11 to 17 minutes";
 
 function prefilledBrokerNote(context: GuideContext, what: string): string {
@@ -1296,13 +1304,21 @@ function unknownConfigNote(context: GuideContext): string {
 function brokerStepDescription(context: GuideContext): string {
   if (canBrokerMetricsReachMessageQueue(context.system, context.queue)) {
     return context.queue
-      ? "They add the broker's view of this queue to its Overview, under Broker health."
-      : "They add the broker's view of each queue to its Overview, under Broker health.";
+      ? translationKey(
+          "They add the broker's view of this queue to its Overview, under Broker health.",
+        )
+      : translationKey(
+          "They add the broker's view of each queue to its Overview, under Broker health.",
+        );
   }
   if (isOutsideBrokerMetricsScope(context)) {
-    return "They chart on the same destination's queue in its namespace, not on this one.";
+    return translationKey(
+      "They chart on the same destination's queue in its namespace, not on this one.",
+    );
   }
-  return "No queue page charts them: they arrive in the Metrics explorer.";
+  return translationKey(
+    "No queue page charts them: they arrive in the Metrics explorer.",
+  );
 }
 
 /*
@@ -1710,8 +1726,8 @@ function chartedMetricsTopic(context: GuideContext): SetupGuideTopic {
   const rows: Array<MessageQueueChartedMetricRow> =
     getMessageQueueChartedMetricRows(context.system);
   const title: string = context.queue
-    ? "What this queue's page charts"
-    : "What a queue's page charts";
+    ? translationKey("What this queue's page charts")
+    : translationKey("What a queue's page charts");
   const lines: Array<string> = [];
 
   if (rows.length === 0) {
@@ -1784,7 +1800,9 @@ function docsEntryLink(title: string, anchor: string): string {
 }
 
 function notCreatedTopic(context: GuideContext): SetupGuideTopic {
-  const title: string = "A queue my applications use was not created";
+  const title: string = translationKey(
+    "A queue my applications use was not created",
+  );
   return {
     title: title,
     summary:
@@ -1905,9 +1923,13 @@ function brokerHealthEmptyCauses(
     case "aws_sqs":
     case "aws.sns":
       return {
+        /*
+         * The numbers go into the sentence, not "11 to 17 minutes" as one
+         * value: that would read in English inside every other language.
+         */
         summary: translateTemplate(
-          "A refused key, or metrics that arrive {{lateness}} late.",
-          { lateness: CLOUDWATCH_LATENESS },
+          "A refused key, or metrics that arrive {{earliest}} to {{latest}} minutes late.",
+          CLOUDWATCH_LATENESS_MINUTES,
         ),
         reasons: [
           `It is late. \`aws_cloudwatch\` waits \`delay\` (10 minutes) for CloudWatch to publish, so its points arrive ${CLOUDWATCH_LATENESS} late.`,
@@ -1935,7 +1957,7 @@ function brokerHealthEmptyCauses(
 }
 
 function brokerHealthEmptyTopic(context: GuideContext): SetupGuideTopic {
-  const title: string = "Broker health stays empty";
+  const title: string = translationKey("Broker health stays empty");
   const causes: BrokerHealthEmptyCauses = brokerHealthEmptyCauses(context);
   return {
     title: title,
@@ -1952,8 +1974,12 @@ function brokerHealthEmptyTopic(context: GuideContext): SetupGuideTopic {
 }
 
 function troubleshootingTopics(context: GuideContext): Array<SetupGuideTopic> {
-  const twoQueuesTitle: string = "Two queues for one destination";
-  const queuePerRequestTitle: string = "A new queue for every request";
+  const twoQueuesTitle: string = translationKey(
+    "Two queues for one destination",
+  );
+  const queuePerRequestTitle: string = translationKey(
+    "A new queue for every request",
+  );
 
   return [
     notCreatedTopic(context),
@@ -2113,8 +2139,9 @@ export function getMessageQueueSetupGuide(
       ),
       endpointLabel: "OTLP Endpoint",
       endpointValue: `${options.oneuptimeUrl}/otlp`,
-      endpointHint:
+      endpointHint: translationKey(
         "SDKs that take a base endpoint add /v1/traces, /v1/metrics and /v1/logs to it, and so does the collector's otlphttp exporter.",
+      ),
     },
     intro: introMarkdown(context),
     steps: steps,
@@ -2173,6 +2200,29 @@ export function getMessageQueueGuideSystems(): Array<MessagingSystemDescriptor> 
 }
 
 /*
+ * Each catalog system's name as a locale key, so the picker's pill reads
+ * as the reader's language writes it (#8341): every one writes these names
+ * as English does (i18n/SameAsEnglish.json). A system the catalog adds
+ * later shows its display name until it has a key here.
+ */
+const MESSAGE_QUEUE_PICKER_LABELS: Readonly<Record<string, string>> = {
+  kafka: translationKey("Apache Kafka"),
+  rabbitmq: translationKey("RabbitMQ"),
+  activemq: translationKey("Apache ActiveMQ"),
+  jms: translationKey("JMS"),
+  aws_sqs: translationKey("Amazon SQS"),
+  "aws.sns": translationKey("Amazon SNS"),
+  gcp_pubsub: translationKey("Google Cloud Pub/Sub"),
+  servicebus: translationKey("Azure Service Bus"),
+  eventhubs: translationKey("Azure Event Hubs"),
+  eventgrid: translationKey("Azure Event Grid"),
+  pulsar: translationKey("Apache Pulsar"),
+  rocketmq: translationKey("Apache RocketMQ"),
+  nats: translationKey("NATS"),
+  bullmq: translationKey("BullMQ"),
+};
+
+/*
  * The product guide's picker, one pill per catalog system, keyed by the
  * canonical `messaging.system`. The options come from the catalog, so the
  * picker can only offer a system OneUptime knows, and a system added to the
@@ -2184,7 +2234,9 @@ export const MESSAGE_QUEUE_SETUP_GUIDE_OPTIONS: ReadonlyArray<SetupGuideOption> 
     (descriptor: MessagingSystemDescriptor): SetupGuideOption => {
       return {
         key: descriptor.system,
-        label: descriptor.displayName,
+        label:
+          MESSAGE_QUEUE_PICKER_LABELS[descriptor.system] ||
+          descriptor.displayName,
         description: `messaging.system: ${descriptor.system}`,
       };
     },
