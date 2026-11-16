@@ -59,7 +59,7 @@ const PROVIDER_HOST: string = "llm.example.test";
 const SIXTEEN_MB: number = 16 * 1024 * 1024;
 
 const TOO_LARGE_SENTENCE: string =
-  "the answer was larger than 16 MB, so it was not read.";
+  "the answer was larger than 16\u00A0MB, so it was not read.";
 
 // An OpenAI chat completion whose body is exactly `size` bytes long.
 function openAiCompletionOfSize(size: number): string {
@@ -349,7 +349,7 @@ describe("the models list keeps its own limit", () => {
     );
 
     expect(error.message).toBe(
-      "OpenAICompatible API request failed: the answer was larger than 8 MB, so it was not read.",
+      "OpenAICompatible API request failed: the answer was larger than 8\u00A0MB, so it was not read.",
     );
     expect(
       server.requests.map((request: { url: string }) => {
@@ -371,7 +371,7 @@ describe("Test LLM Provider says what happened", () => {
     );
 
     expect(text).toBe(
-      "The OpenAI-compatible server's answer was larger than 16 MB, so it was not read. Check the Base URL: it should be the provider's API.",
+      "The OpenAI-compatible server's answer was larger than 16\u00A0MB, so it was not read. Check the Base URL: it should be the provider's API.",
     );
     expect(text).not.toContain("could not reach");
     expectNoAddress(text, server);
@@ -391,6 +391,6 @@ describe("Test LLM Provider says what happened", () => {
       llmType,
     );
 
-    expect(text.startsWith(`${subject} was larger than 16 MB`)).toBe(true);
+    expect(text.startsWith(`${subject} was larger than 16\u00A0MB`)).toBe(true);
   });
 });

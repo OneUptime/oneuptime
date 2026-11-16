@@ -215,7 +215,7 @@ describe("how much of an answer a Runbook HTTP step reads", () => {
     expect(result.success).toBe(false);
     expect(result.output).toBe("");
     expect(result.errorMessage).toBe(
-      "The answer was larger than 10 MB, so it was not read.",
+      "The answer was larger than 10\u00A0MB, so it was not read.",
     );
   });
 

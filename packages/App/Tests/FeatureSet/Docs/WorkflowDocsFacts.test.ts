@@ -859,7 +859,7 @@ describe("the components page", () => {
     );
     // The reason the block's Error holds names the same limit.
     expect(ResponseTooLarge.getMessage(API_COMPONENT_MAX_RESPONSE_BYTES)).toBe(
-      "The answer was larger than 10 MB, so it was not read.",
+      "The answer was larger than 10\u00A0MB, so it was not read.",
     );
     expect(outputTitles(component(ComponentID.ApiGet)).includes("Error")).toBe(
       true,
