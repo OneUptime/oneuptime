@@ -4,6 +4,12 @@ import {
   StatusPageSubscriberContact,
   StatusPageSubscriberUnsubscribeChannel,
 } from "../../../Types/StatusPage/StatusPageSubscriberUnsubscribe";
+import Dictionary from "../../../Types/Dictionary";
+import {
+  STATUS_PAGE_SUBSCRIBERS_PAGE_PATH,
+  getStatusPageSubscriberChannelForUnsubscribeChannel,
+  getStatusPageSubscriberChannelQuery,
+} from "../../../Types/StatusPage/StatusPageSubscriberChannel";
 
 /*
  * The email a status page's team gets when a subscriber the team added
@@ -55,18 +61,6 @@ export interface StatusPageSubscriberUnsubscribeNoticeEmail {
   message: string;
 }
 
-const SUBSCRIBER_LIST_ROUTES: Record<
-  StatusPageSubscriberUnsubscribeChannel,
-  string
-> = {
-  [StatusPageSubscriberUnsubscribeChannel.Email]: "email-subscribers",
-  [StatusPageSubscriberUnsubscribeChannel.SMS]: "sms-subscribers",
-  [StatusPageSubscriberUnsubscribeChannel.Slack]: "slack-subscribers",
-  [StatusPageSubscriberUnsubscribeChannel.MicrosoftTeams]:
-    "microsoft-teams-subscribers",
-  [StatusPageSubscriberUnsubscribeChannel.Webhook]: "webhook-subscribers",
-};
-
 const CHANNEL_NAMES: Record<StatusPageSubscriberUnsubscribeChannel, string> = {
   [StatusPageSubscriberUnsubscribeChannel.Email]: "email subscriber",
   [StatusPageSubscriberUnsubscribeChannel.SMS]: "SMS subscriber",
@@ -90,13 +84,22 @@ export default class StatusPageSubscriberUnsubscribeNotice {
     "status-page-subscriber-unsubscribe-notice";
 
   /*
-   * The dashboard route, under the status page, of the list a channel's
-   * subscribers are on (Dashboard RouteMap, STATUS_PAGE_VIEW_*_SUBSCRIBERS).
+   * The dashboard route, under the status page, of the one Subscribers page
+   * (Common's StatusPageSubscriberChannel), and the query that opens it on
+   * the channel's tab. Each channel had a page of its own until #9125; their
+   * old addresses forward to these tabs, so a link in an email sent before
+   * still arrives.
    */
-  public static getSubscriberListRoute(
+  public static getSubscriberListRoute(): string {
+    return STATUS_PAGE_SUBSCRIBERS_PAGE_PATH;
+  }
+
+  public static getSubscriberListQuery(
     channel: StatusPageSubscriberUnsubscribeChannel,
-  ): string {
-    return SUBSCRIBER_LIST_ROUTES[channel];
+  ): Dictionary<string> {
+    return getStatusPageSubscriberChannelQuery(
+      getStatusPageSubscriberChannelForUnsubscribeChannel(channel),
+    );
   }
 
   public static build(

@@ -2634,9 +2634,12 @@ export class Service extends ProjectReferencesService<Model> {
       )
     )
       .addRoute(
-        `/${StatusPageSubscriberUnsubscribeNotice.getSubscriberListRoute(
+        `/${StatusPageSubscriberUnsubscribeNotice.getSubscriberListRoute()}`,
+      )
+      .addQueryParams(
+        StatusPageSubscriberUnsubscribeNotice.getSubscriberListQuery(
           contact.channel,
-        )}`,
+        ),
       )
       .toString();
 

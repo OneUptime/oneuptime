@@ -112,21 +112,30 @@ describe("StatusPageSubscriberUnsubscribeNotice.build", () => {
     expect(email.message).toContain("A Slack subscriber unsubscribed");
   });
 
+  test("links to the status page's one Subscribers page", () => {
+    expect(StatusPageSubscriberUnsubscribeNotice.getSubscriberListRoute()).toBe(
+      "subscribers",
+    );
+  });
+
   test.each([
-    [StatusPageSubscriberUnsubscribeChannel.Email, "email-subscribers"],
-    [StatusPageSubscriberUnsubscribeChannel.SMS, "sms-subscribers"],
-    [StatusPageSubscriberUnsubscribeChannel.Slack, "slack-subscribers"],
+    [StatusPageSubscriberUnsubscribeChannel.Email, {}],
+    [StatusPageSubscriberUnsubscribeChannel.SMS, { channel: "sms" }],
+    [StatusPageSubscriberUnsubscribeChannel.Slack, { channel: "slack" }],
     [
       StatusPageSubscriberUnsubscribeChannel.MicrosoftTeams,
-      "microsoft-teams-subscribers",
+      { channel: "microsoft-teams" },
     ],
-    [StatusPageSubscriberUnsubscribeChannel.Webhook, "webhook-subscribers"],
+    [StatusPageSubscriberUnsubscribeChannel.Webhook, { channel: "webhook" }],
   ])(
-    "links a %s subscriber to the dashboard's %s list",
-    (channel: StatusPageSubscriberUnsubscribeChannel, route: string) => {
+    "opens a %s subscriber's link on its channel's tab",
+    (
+      channel: StatusPageSubscriberUnsubscribeChannel,
+      query: Record<string, string>,
+    ) => {
       expect(
-        StatusPageSubscriberUnsubscribeNotice.getSubscriberListRoute(channel),
-      ).toBe(route);
+        StatusPageSubscriberUnsubscribeNotice.getSubscriberListQuery(channel),
+      ).toEqual(query);
     },
   );
 });
