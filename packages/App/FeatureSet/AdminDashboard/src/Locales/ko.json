@@ -4055,5 +4055,13 @@
   "Billed For": "청구 대상",
   "Amount": "금액",
   "Invoice": "청구서",
-  "Invoices": "청구서 목록"
+  "Invoices": "청구서 목록",
+  "Runs JavaScript steps as its own user: let its container switch users (allowPrivilegeEscalation, SETUID and SETGID).": "JavaScript 단계를 자체 사용자로 실행합니다. 컨테이너가 사용자를 전환할 수 있게 하세요(allowPrivilegeEscalation, SETUID, SETGID).",
+  "Runs JavaScript steps as its own user: run its container as the image's own user, node.": "JavaScript 단계를 자체 사용자로 실행합니다. 컨테이너를 이미지 자체 사용자 node로 실행하세요.",
+  "Runs JavaScript steps as its own user: run the Runner image, not its sources.": "JavaScript 단계를 자체 사용자로 실행합니다. 소스가 아니라 Runner 이미지를 실행하세요.",
+  "Runs JavaScript steps as its own user: its sandbox check failed, and its log says why.": "JavaScript 단계를 자체 사용자로 실행합니다. 샌드박스 확인에 실패했으며, 그 이유는 로그에 있습니다.",
+  "JavaScript steps share its network: let its container use seccomp, as Docker's and Kubernetes' default profiles do.": "JavaScript 단계가 네트워크를 공유합니다. Docker와 Kubernetes의 기본 프로필처럼 컨테이너가 seccomp를 사용할 수 있게 하세요.",
+  "JavaScript steps share its network: run the Runner image, not its sources.": "JavaScript 단계가 네트워크를 공유합니다. 소스가 아니라 Runner 이미지를 실행하세요.",
+  "JavaScript steps share its network: its network filter's check failed, and its log says why.": "JavaScript 단계가 네트워크를 공유합니다. 네트워크 필터 확인에 실패했으며, 그 이유는 로그에 있습니다.",
+  "Runs JavaScript steps as its own user and on its network: run the Runner image, not its sources.": "JavaScript 단계를 자체 사용자로, 그 네트워크에서 실행합니다. 소스가 아니라 Runner 이미지를 실행하세요."
 }

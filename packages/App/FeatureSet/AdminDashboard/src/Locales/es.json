@@ -4055,5 +4055,13 @@
   "Billed For": "Concepto",
   "Amount": "Importe",
   "Invoice": "Factura",
-  "Invoices": "Facturas"
+  "Invoices": "Facturas",
+  "Runs JavaScript steps as its own user: let its container switch users (allowPrivilegeEscalation, SETUID and SETGID).": "Ejecuta los pasos de JavaScript como su propio usuario: deja que su contenedor cambie de usuario (allowPrivilegeEscalation, SETUID y SETGID).",
+  "Runs JavaScript steps as its own user: run its container as the image's own user, node.": "Ejecuta los pasos de JavaScript como su propio usuario: ejecuta su contenedor como el usuario de la imagen, node.",
+  "Runs JavaScript steps as its own user: run the Runner image, not its sources.": "Ejecuta los pasos de JavaScript como su propio usuario: ejecuta la imagen del Runner, no sus fuentes.",
+  "Runs JavaScript steps as its own user: its sandbox check failed, and its log says why.": "Ejecuta los pasos de JavaScript como su propio usuario: su comprobación de la zona de pruebas falló, y su registro dice por qué.",
+  "JavaScript steps share its network: let its container use seccomp, as Docker's and Kubernetes' default profiles do.": "Los pasos de JavaScript comparten su red: deja que su contenedor use seccomp, como lo hacen los perfiles predeterminados de Docker y Kubernetes.",
+  "JavaScript steps share its network: run the Runner image, not its sources.": "Los pasos de JavaScript comparten su red: ejecuta la imagen del Runner, no sus fuentes.",
+  "JavaScript steps share its network: its network filter's check failed, and its log says why.": "Los pasos de JavaScript comparten su red: la comprobación de su filtro de red falló, y su registro dice por qué.",
+  "Runs JavaScript steps as its own user and on its network: run the Runner image, not its sources.": "Ejecuta los pasos de JavaScript como su propio usuario y en su red: ejecuta la imagen del Runner, no sus fuentes."
 }

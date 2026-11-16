@@ -4055,5 +4055,13 @@
   "Billed For": "Faktureret for",
   "Amount": "Beløb",
   "Invoice": "Faktura",
-  "Invoices": "Fakturaer"
+  "Invoices": "Fakturaer",
+  "Runs JavaScript steps as its own user: let its container switch users (allowPrivilegeEscalation, SETUID and SETGID).": "Kører JavaScript-trin som sin egen bruger: lad dens container skifte bruger (allowPrivilegeEscalation, SETUID og SETGID).",
+  "Runs JavaScript steps as its own user: run its container as the image's own user, node.": "Kører JavaScript-trin som sin egen bruger: kør dens container som imagets egen bruger, node.",
+  "Runs JavaScript steps as its own user: run the Runner image, not its sources.": "Kører JavaScript-trin som sin egen bruger: kør Runner-imaget, ikke dets kildekode.",
+  "Runs JavaScript steps as its own user: its sandbox check failed, and its log says why.": "Kører JavaScript-trin som sin egen bruger: dens sandkassetjek mislykkedes, og dens log siger hvorfor.",
+  "JavaScript steps share its network: let its container use seccomp, as Docker's and Kubernetes' default profiles do.": "JavaScript-trin deler dens netværk: lad dens container bruge seccomp, som Dockers og Kubernetes' standardprofiler gør.",
+  "JavaScript steps share its network: run the Runner image, not its sources.": "JavaScript-trin deler dens netværk: kør Runner-imaget, ikke dets kildekode.",
+  "JavaScript steps share its network: its network filter's check failed, and its log says why.": "JavaScript-trin deler dens netværk: tjekket af dens netværksfilter mislykkedes, og dens log siger hvorfor.",
+  "Runs JavaScript steps as its own user and on its network: run the Runner image, not its sources.": "Kører JavaScript-trin som sin egen bruger og på dens netværk: kør Runner-imaget, ikke dets kildekode."
 }

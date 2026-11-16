@@ -136,48 +136,32 @@ export function parseGlobalRunnerSandboxReport(
 }
 
 /*
- * What the Admin Dashboard says under a global Runner's status when its
- * steps get less than a user of their own and no network: one sentence for
- * each, saying what the step gets and what to change. English keys, which
- * every Admin Dashboard locale words.
+ * What the Admin Dashboard draws under a global Runner's status when its
+ * steps get less than a user of their own and no network: one line for each,
+ * saying what the step gets and what to change. The decision is here, so it
+ * is shared and testable; the words are the Admin Dashboard's own, so its
+ * locales hold them (the page's GLOBAL_RUNNER_SANDBOX_COPY).
  */
-export const GLOBAL_RUNNER_SANDBOX_COPY: {
-  ownUserNoPrivilege: string;
-  ownUserNotInNodeGroup: string;
-  ownUserNotInstalled: string;
-  ownUserCheckFailed: string;
-  sharedNetworkNoSeccomp: string;
-  sharedNetworkNotInstalled: string;
-  sharedNetworkCheckFailed: string;
-  notInstalled: string;
-} = {
-  ownUserNoPrivilege:
-    "Runs JavaScript steps as its own user: let its container switch users (allowPrivilegeEscalation, SETUID and SETGID).",
-  ownUserNotInNodeGroup:
-    "Runs JavaScript steps as its own user: run its container as the image's own user, node.",
-  ownUserNotInstalled:
-    "Runs JavaScript steps as its own user: run the Runner image, not its sources.",
-  ownUserCheckFailed:
-    "Runs JavaScript steps as its own user: its sandbox check failed, and its log says why.",
-  sharedNetworkNoSeccomp:
-    "JavaScript steps share its network: let its container use seccomp, as Docker's and Kubernetes' default profiles do.",
-  sharedNetworkNotInstalled:
-    "JavaScript steps share its network: run the Runner image, not its sources.",
-  sharedNetworkCheckFailed:
-    "JavaScript steps share its network: its network filter's check failed, and its log says why.",
-  // Both, for the one reason: a Runner run from its sources.
-  notInstalled:
-    "Runs JavaScript steps as its own user and on its network: run the Runner image, not its sources.",
-};
+export enum GlobalRunnerSandboxShortfall {
+  OwnUserNoPrivilege = "own-user-no-privilege",
+  OwnUserNotInNodeGroup = "own-user-not-in-node-group",
+  OwnUserNotInstalled = "own-user-not-installed",
+  OwnUserCheckFailed = "own-user-check-failed",
+  SharedNetworkNoSeccomp = "shared-network-no-seccomp",
+  SharedNetworkNotInstalled = "shared-network-not-installed",
+  SharedNetworkCheckFailed = "shared-network-check-failed",
+  // Both, for the one reason: a Runner run from its sources, not its image.
+  NotInstalled = "not-installed",
+}
 
 /*
- * The sentences for a report, in the order the page draws them: the user
+ * The shortfalls for a report, in the order the page draws them: the user
  * first, then the network. None for a Runner whose steps get both, or one
  * that says nothing.
  */
 export function getGlobalRunnerSandboxShortfalls(
   report: GlobalRunnerSandboxReport | null,
-): Array<string> {
+): Array<GlobalRunnerSandboxShortfall> {
   if (!report) {
     return [];
   }
@@ -193,39 +177,39 @@ export function getGlobalRunnerSandboxShortfalls(
     report.userReason === GlobalRunnerStepUserReason.NotInstalled &&
     report.networkReason === GlobalRunnerStepNetworkReason.NotInstalled
   ) {
-    return [GLOBAL_RUNNER_SANDBOX_COPY.notInstalled];
+    return [GlobalRunnerSandboxShortfall.NotInstalled];
   }
 
-  const sentences: Array<string> = [];
+  const shortfalls: Array<GlobalRunnerSandboxShortfall> = [];
 
   if (isOwnUserMissing) {
     switch (report.userReason) {
       case GlobalRunnerStepUserReason.NoPrivilege:
-        sentences.push(GLOBAL_RUNNER_SANDBOX_COPY.ownUserNoPrivilege);
+        shortfalls.push(GlobalRunnerSandboxShortfall.OwnUserNoPrivilege);
         break;
       case GlobalRunnerStepUserReason.NotInNodeGroup:
-        sentences.push(GLOBAL_RUNNER_SANDBOX_COPY.ownUserNotInNodeGroup);
+        shortfalls.push(GlobalRunnerSandboxShortfall.OwnUserNotInNodeGroup);
         break;
       case GlobalRunnerStepUserReason.NotInstalled:
-        sentences.push(GLOBAL_RUNNER_SANDBOX_COPY.ownUserNotInstalled);
+        shortfalls.push(GlobalRunnerSandboxShortfall.OwnUserNotInstalled);
         break;
       default:
-        sentences.push(GLOBAL_RUNNER_SANDBOX_COPY.ownUserCheckFailed);
+        shortfalls.push(GlobalRunnerSandboxShortfall.OwnUserCheckFailed);
     }
   }
 
   if (isNetworkShared) {
     switch (report.networkReason) {
       case GlobalRunnerStepNetworkReason.NoSeccomp:
-        sentences.push(GLOBAL_RUNNER_SANDBOX_COPY.sharedNetworkNoSeccomp);
+        shortfalls.push(GlobalRunnerSandboxShortfall.SharedNetworkNoSeccomp);
         break;
       case GlobalRunnerStepNetworkReason.NotInstalled:
-        sentences.push(GLOBAL_RUNNER_SANDBOX_COPY.sharedNetworkNotInstalled);
+        shortfalls.push(GlobalRunnerSandboxShortfall.SharedNetworkNotInstalled);
         break;
       default:
-        sentences.push(GLOBAL_RUNNER_SANDBOX_COPY.sharedNetworkCheckFailed);
+        shortfalls.push(GlobalRunnerSandboxShortfall.SharedNetworkCheckFailed);
     }
   }
 
-  return sentences;
+  return shortfalls;
 }
