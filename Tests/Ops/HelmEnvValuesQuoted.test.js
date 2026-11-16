@@ -433,10 +433,13 @@ describe("every env value a chart template writes as one action is quoted", () =
       [
         'HelmChart/Public/oneuptime/templates/_helpers.tpl: value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.endpoint }}',
         'HelmChart/Public/oneuptime/templates/_helpers.tpl: value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.headers }}',
+        'HelmChart/Public/oneuptime/templates/_helpers.tpl: value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.metricsTemporality }}',
         'HelmChart/Public/oneuptime/templates/global-runner.yaml: value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.endpoint }}',
         'HelmChart/Public/oneuptime/templates/global-runner.yaml: value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.headers }}',
+        'HelmChart/Public/oneuptime/templates/global-runner.yaml: value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.metricsTemporality }}',
         'HelmChart/Public/oneuptime/templates/probe.yaml: value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.endpoint }}',
         'HelmChart/Public/oneuptime/templates/probe.yaml: value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.headers }}',
+        'HelmChart/Public/oneuptime/templates/probe.yaml: value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.metricsTemporality }}',
       ].sort(),
     );
   });
@@ -942,6 +945,59 @@ describe("the oneuptime chart hands every credential and free-text setting to it
       }
 
       expect([...holders].sort()).toEqual(EXPORTER_WORKLOADS);
+    },
+  );
+
+  /*
+   * openTelemetryExporter.metricsTemporality (#6760): the OTLP metric exporter
+   * of every workload that sends OneUptime's own telemetry reads it, so each
+   * of them gets it, and only once; unset, none does, and every exporter keeps
+   * its default, cumulative.
+   */
+  testWithHelm(
+    "the metrics temporality reaches every workload that sends OneUptime's own telemetry, and none without it",
+    () => {
+      const holdersOf = (documents) => {
+        const holders = [];
+
+        for (const [workload, entry] of envEntries(documents)) {
+          if (
+            entry.name === "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE"
+          ) {
+            expect({ workload, value: entry.value }).toEqual({
+              workload,
+              value: "delta",
+            });
+            holders.push(workload);
+          }
+        }
+
+        return holders.sort();
+      };
+
+      expect(
+        holdersOf(
+          render(
+            deepMerge(ALL_ON, {
+              openTelemetryExporter: {
+                endpoint: "https://oneuptime.example.com/otlp",
+                headers: "x-oneuptime-token=key",
+                metricsTemporality: "delta",
+              },
+            }),
+          ),
+        ),
+      ).toEqual(EXPORTER_WORKLOADS);
+      expect(holdersOf(render(ALL_ON))).toEqual([]);
+      expect(
+        holdersOf(
+          render(
+            deepMerge(ALL_ON, {
+              openTelemetryExporter: { metricsTemporality: "" },
+            }),
+          ),
+        ),
+      ).toEqual([]);
     },
   );
 });

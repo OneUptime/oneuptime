@@ -3138,6 +3138,19 @@
                     ],
                     "description": "Headers OneUptime's own telemetry is exported with: name=value, several separated by ';', or by ',' with percent-encoded values as in OTEL_EXPORTER_OTLP_HEADERS. A value may hold '='."
                 },
+                "metricsTemporality": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "enum": [
+                        "",
+                        "cumulative",
+                        "delta",
+                        null
+                    ],
+                    "description": "How OneUptime's own metrics are sent (OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE): empty or cumulative for running totals, the OpenTelemetry default; delta for what happened since the last point, which a OneUptime project reads exactly."
+                },
                 "kubernetesClusterName": {
                     "type": [
                         "string",

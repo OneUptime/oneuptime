@@ -468,6 +468,17 @@ or dod. Not a secret: the Dashboard reads it too, for its links to Teams.
 - name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
   value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.headers }}
 {{- end }}
+{{- /*
+How OneUptime's own metrics are sent: the OTLP metric exporter reads the
+variable itself, and without it sends running totals (cumulative). delta is
+what a OneUptime project reads exactly (#6760). The probes and the global
+Runner, which take their exporter settings from their own templates, get it
+there.
+*/}}
+{{- if $.Values.openTelemetryExporter.metricsTemporality }}
+- name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
+  value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.metricsTemporality }}
+{{- end }}
 {{- if $.Values.openTelemetryExporter.captureAiMessageContent }}
 - name: OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT
   value: "true"
