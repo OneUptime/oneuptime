@@ -187,6 +187,10 @@ Jede Variable liest auch ihren alten Namen, mit `INCIDENT_FORM_` statt `FORM_` d
 
 Hat Ihre OneUptime-Instanz hCaptcha eingeschaltet, zeigt das Formular ein Captcha, und eine Einreichung, die es nicht bestanden hat, wird abgelehnt. Es gibt keine Einstellung pro Formular. Eine selbst gehostete Installation schaltet Captcha mit `CAPTCHA_ENABLED`, `CAPTCHA_SITE_KEY` und `CAPTCHA_SECRET_KEY` ein — dieselben Einstellungen, die die Registrierung schützen. Ohne Captcha tragen die Ratenbegrenzungen und die IP-Zulassungsliste die Last.
 
+### Malware-Prüfung
+
+Eine selbst gehostete Installation kann jede Datei, die Personen senden, vor dem Speichern mit ClamAV auf Malware prüfen lassen: die Dateien eines Formulars und die Dateien, die Personen angemeldet oder mit einem API-Schlüssel hochladen. Setzen Sie `CLAMAV_HOST` (und `CLAMAV_PORT`, standardmäßig `3310`) auf einen ClamAV-Daemon. Mit Docker Compose starten `COMPOSE_PROFILES=clamav` und `CLAMAV_HOST=clamav` in `config.env` das mit OneUptime gelieferte ClamAV; mit Helm setzen Sie `clamav.enabled`. Eine Datei, die ClamAV beanstandet, wird mit ihrem Namen abgelehnt, und von der Einsendung wird nichts gespeichert. Solange ClamAV nicht antwortet, wird jede Datei mit "Dateien können gerade nicht auf Viren geprüft werden, deshalb wurden sie nicht angenommen. Bitte versuchen Sie es in ein paar Minuten erneut." (503) abgelehnt, sodass keine Datei ungeprüft gespeichert wird. Ohne `CLAMAV_HOST` werden Dateien wie bisher nicht geprüft.
+
 ## Fehlerbehebung
 
 :::details Der Link sagt, das Formular sei nicht verfügbar

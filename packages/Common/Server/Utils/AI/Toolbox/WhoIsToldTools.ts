@@ -131,7 +131,14 @@ const OWNERS_WORDS: Readonly<Record<WhoIsToldOwnersSource, string>> = {
   [WhoIsToldOwnersSource.MonitorOwners]: "the monitor's owners",
 };
 
-// "the owners added by owner rules (Dana Reyes, team Platform)".
+/*
+ * "the owners added by owner rules (Dana Reyes, team Platform)". An owner
+ * the page reaches first is not emailed as an owner too (#8860), as the
+ * card's "Ana Lopez is paged, so isn't emailed as an owner too." says:
+ * "its owners (Ben Ito) - not Ana Lopez, whom the on-call page reaches
+ * first, so is not emailed as an owner too", or, when the page reaches
+ * every owner, "nobody as an owner: ...".
+ */
 function describeOwners(owners: WhoIsToldOwners): string {
   const named: Array<string> = [
     ...owners.userNames,
@@ -140,8 +147,34 @@ function describeOwners(owners: WhoIsToldOwners): string {
     }),
   ];
   const who: string = OWNERS_WORDS[owners.source];
+  const paged: Array<string> = (owners.pagedOwners || []).map(
+    (owner: { name: string }): string => {
+      return owner.name || "someone";
+    },
+  );
+  const notThem: string =
+    paged.length > 0
+      ? `${paged.join(", ")}, whom the on-call page reaches first, so ${
+          paged.length === 1 ? "is" : "are"
+        } not emailed as ${
+          owners.source === WhoIsToldOwnersSource.ProjectOwners
+            ? paged.length === 1
+              ? "a Project Owner"
+              : "Project Owners"
+            : paged.length === 1
+              ? "an owner"
+              : "owners"
+        } too`
+      : "";
 
-  return named.length > 0 ? `${who} (${named.join(", ")})` : who;
+  if (paged.length > 0 && named.length === 0) {
+    return `nobody as an owner: ${notThem}`;
+  }
+
+  const emailed: string =
+    named.length > 0 ? `${who} (${named.join(", ")})` : who;
+
+  return paged.length > 0 ? `${emailed} - not ${notThem}` : emailed;
 }
 
 /*

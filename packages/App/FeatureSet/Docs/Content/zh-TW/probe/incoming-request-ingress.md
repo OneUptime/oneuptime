@@ -160,10 +160,10 @@ curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
 
 | 項目 | 探測器如何處理 |
 | --- | --- |
-| 回應 | 在轉送請求之前，傳回帶空 JSON 物件（`{}`）的 `200`。與 OneUptime 一樣，無論之後發生什麼都會傳回：錯誤的秘密金鑰也會收到它。 |
+| 回應 | 在轉送請求之前，傳回帶空 JSON 物件（`{}`）的 `200`。與 OneUptime 一樣，無論之後發生什麼都會傳回：錯誤的秘密金鑰也會收到它。 服務對 URL 的檢查也會收到它，而 OneUptime 本身會依服務預期的方式回應這種檢查：請把 Slack、Microsoft Graph、Okta 和 Azure Event Grid 指向 OneUptime 本身的 URL。 |
 | 方法 | `POST` 以 `POST` 轉送。`GET` 和 `HEAD` 以 `GET` 轉送。其他方法會從探測器收到 `404`。 |
 | 標頭 | 除逐跳標頭（`Host`、`Connection`、`Content-Length`、`Transfer-Encoding`、`Keep-Alive`、`Proxy-Authenticate`、`Proxy-Authorization`、`TE`、`Trailer`、`Upgrade`）和 `Content-Encoding` 之外的全部標頭，因為探測器轉送的是未壓縮的本文。探測器會加上 `OneUptime-Probe-Id`。 |
-| 本文 | 最大 50 MB 的 JSON 和表單本文，以及以純文字傳送的 JSON（Amazon SNS 就是這樣傳送的），與直接傳給 OneUptime 時相同。同樣地，其他本文到達監測器時為空。 |
+| 本文 | 最大 50 MB 的 JSON、表單、純文字和 `+json` 本文，與直接傳給 OneUptime 時相同：純文字或 `+json` 本文會依送達時的原樣連同它的 `Content-Type` 一起轉送。同樣地，其他本文到達監測器時為空。 |
 | 重試 | 轉送失敗時，探測器最多重試 `PROBE_INGRESS_FORWARD_RETRY_LIMIT` 次，依序等待 2 秒、4 秒、8 秒，最長不超過 15 秒。之後記錄失敗並捨棄該請求。 |
 | Proxy | 設定了 `HTTP_PROXY_URL` 或 `HTTPS_PROXY_URL` 時，轉送會經過探測器的 Proxy。 |
 | 轉送目標 | `ONEUPTIME_URL` 加上 `/incoming-request-ingest/incoming-request/<secret-key>`。 |

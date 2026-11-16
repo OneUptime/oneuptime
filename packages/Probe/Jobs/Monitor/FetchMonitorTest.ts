@@ -79,6 +79,11 @@ class FetchMonitorTestAndProbe {
     try {
       logger.debug("MONITOR TEST: Fetching monitor  list");
 
+      // The server asked this probe to wait (ServerBusy): it asks later.
+      if (ServerBusy.isBackingOff("monitor tests")) {
+        return [];
+      }
+
       const monitorListUrl: URL = URL.fromString(
         PROBE_INGEST_URL.toString(),
       ).addRoute("/monitor-test/list");
@@ -100,7 +105,7 @@ class FetchMonitorTestAndProbe {
 
       // Too busy to hand out tests now: they stay due for the next tick.
       if (ServerBusy.isBusyAnswer(result)) {
-        ServerBusy.note("monitor tests");
+        ServerBusy.note("monitor tests", result);
         return [];
       }
 

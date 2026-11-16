@@ -150,8 +150,11 @@ describe("MonitorGroupService batched status helpers", () => {
       expect(callArg.query.monitorGroupId).toBe(anySpy.mock.results[0]!.value);
       /*
        * The select must carry the grouping key, the member's current status,
-       * whether the member is archived (archived members are dropped) and
-       * whether its monitoring is off (its status then decides nothing).
+       * whether the member is archived (archived members are dropped),
+       * whether its monitoring is off (its status then decides nothing) and
+       * whether anything has measured it yet, and what kind of monitor it is
+       * (a status page draws a group none of whose monitors has been
+       * checked as Not monitored yet, #8899).
        */
       expect(callArg.select).toEqual({
         monitorGroupId: true,
@@ -160,6 +163,8 @@ describe("MonitorGroupService batched status helpers", () => {
           currentMonitorStatusId: true,
           isArchived: true,
           disableActiveMonitoring: true,
+          firstMeasuredAt: true,
+          monitorType: true,
         },
       });
       expect(callArg.props).toEqual({ isRoot: true });

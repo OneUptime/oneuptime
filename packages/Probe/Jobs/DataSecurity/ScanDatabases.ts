@@ -4,6 +4,7 @@ import {
   PROBE_INGEST_URL,
 } from "../../Config";
 import ProbeAPIRequest from "../../Utils/ProbeAPIRequest";
+import ServerBusy from "../../Utils/ServerBusy";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -56,6 +57,9 @@ import {
 // How long one result upload may take.
 export const RESULT_UPLOAD_TIMEOUT_IN_MS: number = 2 * 60 * 1000;
 
+// The work the work request hands out, as a busy answer names it (ServerBusy).
+const DATA_SECURITY_WORK: string = "Data Security scans";
+
 // What a scan needs; replaced in tests.
 export interface ScanDatabasesDependencies {
   sample: (
@@ -99,6 +103,11 @@ export async function fetchDataSecurityWork(): Promise<
     DATA_SECURITY_PROBE_WORK_ROUTE,
   );
 
+  // The server asked this probe to wait (ServerBusy): it asks later.
+  if (ServerBusy.isBackingOff(DATA_SECURITY_WORK)) {
+    return [];
+  }
+
   try {
     const result: HTTPResponse<JSONObject> | HTTPErrorResponse =
       await API.fetch<JSONObject>({
@@ -108,6 +117,15 @@ export async function fetchDataSecurityWork(): Promise<
         headers: {},
         options: ProbeAPIRequest.getDefaultRequestOptions(url),
       });
+
+    /*
+     * Too busy to hand out stores now (issue #8051): nothing was claimed,
+     * they stay due, and this probe asks again at a later tick.
+     */
+    if (ServerBusy.isBusyAnswer(result)) {
+      ServerBusy.note(DATA_SECURITY_WORK, result);
+      return [];
+    }
 
     if (result instanceof HTTPErrorResponse) {
       logger.warn(

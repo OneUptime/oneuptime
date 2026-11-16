@@ -94,6 +94,7 @@ Servizi, host, cluster Kubernetes, host Docker e Podman, cluster Docker Swarm, P
 | Log dei monitor, una riga per controllo | 1 giorno, salvo modifiche | Su un'installazione self-hosted, **Conservazione dei log del monitor (giorni)** nell'Admin Dashboard |
 | Metriche dei monitor, e le metriche che registrano gli SLO | 30 giorni, salvo modifiche | Su un'installazione self-hosted, **Conservazione delle metriche del monitor (giorni)** nell'Admin Dashboard |
 | [Utilizzo della telemetria](/docs/telemetry/usage), un conteggio per risorsa, segnale e giorno | 120 giorni, salvo modifiche | Su un'installazione self-hosted, **Conservazione dell'utilizzo della telemetria (giorni)** nell'Admin Dashboard |
+| Incidenti e avvisi risolti, con le loro cronologie, note e file | Finché il progetto non sceglie una durata | **Incidenti → Impostazioni → Conservazione dei dati** e **Avvisi → Impostazioni → Conservazione dei dati**: vedete [Conservazione dei dati](/docs/incidents/settings#conservazione-dei-dati). Su un'installazione self-hosted, **Conserva al massimo** nell'Admin Dashboard sottopone tutti i progetti a un limite |
 
 ## Quanto costa la conservazione
 

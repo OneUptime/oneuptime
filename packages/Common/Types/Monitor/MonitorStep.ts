@@ -7,6 +7,7 @@ import BadDataException from "../Exception/BadDataException";
 import IP from "../IP/IP";
 import { JSONObject, ObjectType } from "../JSON";
 import JSONFunctions from "../JSONFunctions";
+import { joinSerializableObjectDictionary } from "../JoinedSerializableObjects";
 import ObjectID from "../ObjectID";
 import Port from "../Port";
 import { Translator } from "../Translator";
@@ -1764,3 +1765,11 @@ export default class MonitorStep extends DatabaseProperty {
     return JSON.stringify(this.toJSON());
   }
 }
+
+/*
+ * JSON naming a step reads back as one wherever this module is loaded: it
+ * joins SerializableObjectDictionary here rather than being imported by it,
+ * so a page that never reads a monitor does not download every monitor type
+ * (JoinedSerializableObjects).
+ */
+joinSerializableObjectDictionary(ObjectType.MonitorStep, MonitorStep);

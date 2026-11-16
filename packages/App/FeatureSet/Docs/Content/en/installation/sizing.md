@@ -82,6 +82,8 @@ Storage scales **linearly with retention**: a 90-day window costs about three ti
 
 PostgreSQL stores your configuration and operational state, not telemetry, so it grows slowly and stays small next to ClickHouse. Even large deployments are typically in the tens of GB. The default **25 Gi** volume is fine for small installs; plan 50–100 GB for larger ones, with headroom for incident and alert history.
 
+Resolved incidents and alerts stay until each project picks how long to keep them. To hold every project to a limit, set **Keep for at most** under **Admin Dashboard → Settings → Data Retention**: see [A limit for the whole server](/docs/incidents/settings#a-limit-for-the-whole-server).
+
 With many app, worker and probe replicas, database connections can run out before storage does. Each pod opens up to 50 connections by default, and the bundled PostgreSQL allows 500. The chart includes an optional **PgBouncer** connection pooler (`pgbouncer.enabled`) for exactly this: turn it on for deployments with many replicas.
 
 ## Valkey — cache, queues, and sessions

@@ -1,4 +1,3 @@
-import { EntityManager } from "./DatabaseService";
 import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/NetworkDeviceDiagnostic";
 import NetworkDevice from "../../Models/DatabaseModels/NetworkDevice";
@@ -481,6 +480,11 @@ export class Service extends ProjectReferencesService<Model> {
    * Returns whether a row was updated. False means the id is unknown, was
    * claimed by a different probe, or is already Completed; the ingest route
    * turns that into a 400 rather than a silent 200.
+   *
+   * The UPDATE is self-committing: its own WHERE is the guard (OneUptime
+   * issue #8870). It ran inside a transaction, which added a BEGIN and a
+   * COMMIT round trip to every report, and held the connection between
+   * them, for nothing to commit together.
    */
   @CaptureSpan()
   public async recordReport(data: {
@@ -499,53 +503,47 @@ export class Service extends ProjectReferencesService<Model> {
       );
     }
 
-    return await this.executeTransaction(
-      async (transactionalEntityManager: EntityManager) => {
-        const updateQuery: string = `
-          UPDATE "NetworkDeviceDiagnostic"
-          SET "status" = $3,
-              "statusMessage" = $4,
-              "pingResult" = $5::jsonb,
-              "traceRouteResult" = $6::jsonb,
-              "snmpWalkResult" = $8::jsonb,
-              "completedAt" = now(),
-              "updatedAt" = now()
-          WHERE "_id" = $1
-            AND "probeId" = $2
-            AND "deletedAt" IS NULL
-            AND "status" <> $7
-          RETURNING "_id"
-        `;
+    const updateQuery: string = `
+      UPDATE "NetworkDeviceDiagnostic"
+      SET "status" = $3,
+          "statusMessage" = $4,
+          "pingResult" = $5::jsonb,
+          "traceRouteResult" = $6::jsonb,
+          "snmpWalkResult" = $8::jsonb,
+          "completedAt" = now(),
+          "updatedAt" = now()
+      WHERE "_id" = $1
+        AND "probeId" = $2
+        AND "deletedAt" IS NULL
+        AND "status" <> $7
+      RETURNING "_id"
+    `;
 
-        const result: unknown = await transactionalEntityManager.query(
-          updateQuery,
-          [
-            report.networkDeviceDiagnosticId.toString(),
-            data.probeId.toString(),
-            report.status,
-            /*
-             * Raw SQL bypasses DatabaseService.checkMaxLengthOfFields, and
-             * Postgres rejects a value longer than the varchar column — which
-             * would leave the row In Progress forever. Cut the probe's text
-             * to the column's declared length instead.
-             */
-            report.statusMessage
-              ? report.statusMessage.substring(0, ColumnLength.LongText)
-              : null,
-            report.pingResult ? JSON.stringify(report.pingResult) : null,
-            report.traceRouteResult
-              ? JSON.stringify(report.traceRouteResult)
-              : null,
-            NetworkDeviceDiagnosticStatus.Completed,
-            report.snmpWalkResult
-              ? JSON.stringify(report.snmpWalkResult)
-              : null,
-          ],
-        );
-
-        return readAffectedRowCount(result) > 0;
-      },
+    const result: unknown = await this.getRepository().manager.query(
+      updateQuery,
+      [
+        report.networkDeviceDiagnosticId.toString(),
+        data.probeId.toString(),
+        report.status,
+        /*
+         * Raw SQL bypasses DatabaseService.checkMaxLengthOfFields, and
+         * Postgres rejects a value longer than the varchar column — which
+         * would leave the row In Progress forever. Cut the probe's text to
+         * the column's declared length instead.
+         */
+        report.statusMessage
+          ? report.statusMessage.substring(0, ColumnLength.LongText)
+          : null,
+        report.pingResult ? JSON.stringify(report.pingResult) : null,
+        report.traceRouteResult
+          ? JSON.stringify(report.traceRouteResult)
+          : null,
+        NetworkDeviceDiagnosticStatus.Completed,
+        report.snmpWalkResult ? JSON.stringify(report.snmpWalkResult) : null,
+      ],
     );
+
+    return readAffectedRowCount(result) > 0;
   }
 }
 

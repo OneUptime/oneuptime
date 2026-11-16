@@ -86,6 +86,8 @@ Klik op **Formule toevoegen** en schrijf de **Formule** met de variabelen van de
 
 Een variabele mag met of zonder `$` worden geschreven, in hoofdletters of kleine letters. Een formule die een query noemt die u niet hebt gedefinieerd, meldt dat in plaats van te tekenen.
 
+Een query die telt wat er gebeurde, de som of het aantal van een teller of een histogram, heeft geen datapunt in een stap waarin niets gebeurde, dus leest een formule hem daar als 0: `$b / $a * 100` tekent 0 in een stap zonder mislukking. Een meter, een gemiddelde of een percentiel zonder datapunt is onbekend, en de formule laat die stap weg. Ze laat ook een stap weg waarin geen van haar query's een datapunt heeft, en een stap die minder dan een minuut geleden eindigde, waarvan de laatste datapunten nog onderweg kunnen zijn.
+
 ## Rond een grafiek verkennen
 
 De knoppen boven de grafieken werken met het tijdsbereik dat u bekijkt:

@@ -244,7 +244,7 @@ Un blocco aggiunto a un flusso di lavoro che parte da un incidente o da un avvis
 
 **Successo** viene eseguito appena almeno una persona è stata chiamata, o una policy è partita. **Errore** viene eseguito quando non è stato chiamato nessuno, e il valore **Errore** del blocco dice perché, ad esempio che nella pianificazione nessuno è reperibile. **Riepilogo** dice in una frase chi è stato chiamato e chi è stato escluso, pronta da pubblicare in un canale, e **Utenti chiamati** elenca le persone chiamate.
 
-Chi è assente non viene chiamato: al suo posto viene chiamato chi la sua sostituzione utente indica per sostituirlo. Una chiamata indica al massimo 100 persone, team e pianificazioni. Vedi [Come viene raggiunta ogni persona](/docs/on-call/escalation-rules#come-viene-raggiunta-ogni-persona).
+Chi è assente non viene chiamato: al suo posto viene chiamato chi la sua sostituzione utente indica per sostituirlo. Chi viene già chiamato al riguardo da una policy di reperibilità o da un'altra chiamata non viene chiamato di nuovo, e compare comunque in **Utenti chiamati**: se quella chiamata finisce senza la sua risposta, la chiamata del blocco lo chiama da sé. Una chiamata indica al massimo 100 persone, team e pianificazioni. Vedi [Come viene raggiunta ogni persona](/docs/on-call/escalation-rules#come-viene-raggiunta-ogni-persona).
 
 Una chiamata senza una policy di reperibilità alle spalle è elencata con le esecuzioni delle policy come **Chiamata diretta**: nei log di reperibilità dell'incidente o dell'avviso, nel suo feed e nel suo canale Slack o Microsoft Teams, e nei log di ogni persona chiamata. Resta aperta per 30 minuti, e poi finché partono ancora chiamate. Se per allora nessuno ha confermato, finisce senza chiamare nessun altro.
 

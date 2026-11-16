@@ -639,15 +639,17 @@ export default class StatusPageAnnouncement extends BaseModel {
   })
   public deletedByUserId?: ObjectID = undefined;
 
+  /*
+   * Whether the status page's subscribers were told about the announcement,
+   * and how it went (subscriberNotificationStatusMessage below): OneUptime's
+   * record of the notification, so nobody may give a new announcement either
+   * (#8907). The create decides it from shouldStatusPageSubscribersBeNotified
+   * - queued, or skipped saying why - and the job that sends it writes the
+   * rest. Editors may still write it back to Pending: that is how the
+   * dashboard sends it again.
+   */
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.CreateStatusPageAnnouncement,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -686,14 +688,7 @@ export default class StatusPageAnnouncement extends BaseModel {
     undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.CreateStatusPageAnnouncement,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -837,15 +832,15 @@ export default class StatusPageAnnouncement extends BaseModel {
   })
   public shouldStatusPageSubscribersBeNotified?: boolean = undefined;
 
+  /*
+   * Whether the owners of the announcement's status pages were told about it:
+   * OneUptime's to say, written by the job that tells them
+   * (StatusPageOwner:SendAnnouncementCreatedEmail), so nobody may give a new
+   * announcement a value in it (#8907), as for a note's. One created as
+   * already told was never announced to the owners.
+   */
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.CreateStatusPageAnnouncement,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

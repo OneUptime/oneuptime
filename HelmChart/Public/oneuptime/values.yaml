@@ -64,7 +64,7 @@ image:
 
   ## Image references that replace the ones this chart builds, by image:
   ## app, nginx, probe, runner, home, test, postgres, clickhouse,
-  ## clickhouseKeeper, valkey, pgbouncer, vllm, kubectl. Each is either a full
+  ## clickhouseKeeper, valkey, pgbouncer, vllm, clamav, kubectl. Each is either a full
   ## reference, or {registry, repository, tag | digest} (registry optional).
   ## The marketplace editions of this chart point them at the marketplace's own
   ## registry; on Microsoft Marketplace, global.azure.images does the same.
@@ -2335,8 +2335,8 @@ app:
   # How each app pod shares that pool, so queue jobs and probes can never take
   # every connection sign-ins and dashboards need (see "Size the Postgres
   # connections" in docs/production-checklist.md). Of a pool of 50, by
-  # default: probe scheduling - the monitors, monitor tests and network
-  # devices probes are handed, and their pending counts - runs at most 10
+  # default: probe scheduling - every request a probe makes for work, and
+  # the pending counts - runs at most 10
   # requests at once (a fifth of the pool, half of that for one probe), and
   # the queue jobs this pod runs while worker.enabled is false hold at most
   # 30 connections (the pool less a fifth kept for requests and less probe
@@ -2744,6 +2744,30 @@ globalRunner:
     fallback:
       failureThreshold: 3
       replicas: 1
+
+# Malware scanning of the files people send OneUptime - a public form's
+# files, and the files people upload while signed in or with an API key - with
+# ClamAV. Off by default: files are stored without a scan, as before. While it
+# is on, a file ClamAV flags is refused, saying which, and every file is
+# refused while ClamAV does not answer, so no file is stored unchecked.
+clamav:
+  # Run ClamAV in the cluster (a Deployment and a Service) and scan with it.
+  enabled: false
+  # Or scan with a ClamAV daemon (clamd) of your own: its address. Used only
+  # while enabled is false; empty scans nothing.
+  host: ""
+  port: 3310
+  image:
+    repository: clamav/clamav
+    tag: "1.4"
+    pullPolicy: IfNotPresent
+  # ClamAV keeps its signatures in memory: about 2 GiB, more while it reloads them.
+  resources:
+  nodeSelector: {}
+  affinity: {}
+  tolerations: []
+  podSecurityContext: {}
+  containerSecurityContext: {}
 
 # vLLM: self-hosted, OpenAI-compatible LLM inference server (https://docs.vllm.ai)
 # for running local models in-cluster instead of calling OpenAI/Anthropic/etc.

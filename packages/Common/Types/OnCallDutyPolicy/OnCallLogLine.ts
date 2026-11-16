@@ -23,8 +23,11 @@ import {
 import { NO_LONGER_A_PROJECT_MEMBER_STATUS_MESSAGE } from "./OnCallPageLine";
 import {
   ON_CALL_PAGE_MERGE_UNNAMED_POLICY,
+  OnCallPageCoverKind,
+  OnCallPageCoverName,
+  readOnCallPageMergeTakenOverDirectlyMessage,
   readOnCallPageMergeTakenOverMessage,
-  readOnCallPageMergedMessage,
+  readOnCallPageMergedLine,
 } from "./OnCallPageMerge";
 import { ON_CALL_PAGE_NAMES_NO_RECORD_MESSAGE } from "./OnCallPageRecordGone";
 import {
@@ -168,6 +171,14 @@ export enum OnCallLogLineCode {
    */
   PageMerged = "PageMerged",
   PageMergeTakenOver = "PageMergeTakenOver",
+  /*
+   * Merged into a direct page (#8859): one a person sent from Slack or
+   * Microsoft Teams, by who sent it, or a workflow's, by the workflow.
+   */
+  PageMergedDirectly = "PageMergedDirectly",
+  PageMergedByWorkflow = "PageMergedByWorkflow",
+  // A merged direct page that took the page over: what it stood on.
+  PageMergeTakenOverDirectly = "PageMergeTakenOverDirectly",
 }
 
 export interface OnCallLogLine {
@@ -307,18 +318,28 @@ function readSeenByObserver(message: string): OnCallLogLine | null {
   };
 }
 
+// The code of a merged page's line, by the kind of page it names.
+const MERGED_LINE_CODES: Readonly<
+  Record<OnCallPageCoverKind, OnCallLogLineCode>
+> = {
+  [OnCallPageCoverKind.Policy]: OnCallLogLineCode.PageMerged,
+  [OnCallPageCoverKind.PersonPage]: OnCallLogLineCode.PageMergedDirectly,
+  [OnCallPageCoverKind.WorkflowPage]: OnCallLogLineCode.PageMergedByWorkflow,
+};
+
 /*
- * A merged page's line (OnCallPageMerge): the policy paging them, as
- * written - none when the line names no policy, which the Dashboard says in
- * the reader's words - and the line of one that took the page over.
+ * A merged page's line (OnCallPageMerge): what is paging them, as written -
+ * a policy, none when the line names no policy, which the Dashboard says in
+ * the reader's words; a person who paged them directly; a workflow (#8859) -
+ * and the line of one that took the page over.
  */
 function readMergedPageLine(message: string): OnCallLogLine | null {
-  const merged: string | null = readOnCallPageMergedMessage(message);
+  const merged: OnCallPageCoverName | null = readOnCallPageMergedLine(message);
 
-  if (merged !== null) {
+  if (merged) {
     return {
-      code: OnCallLogLineCode.PageMerged,
-      ...(merged !== ON_CALL_PAGE_MERGE_UNNAMED_POLICY ? { name: merged } : {}),
+      code: MERGED_LINE_CODES[merged.kind],
+      ...(merged.name ? { name: merged.name } : {}),
     };
   }
 
@@ -329,6 +350,18 @@ function readMergedPageLine(message: string): OnCallLogLine | null {
       code: OnCallLogLineCode.PageMergeTakenOver,
       ...(takenOver !== ON_CALL_PAGE_MERGE_UNNAMED_POLICY
         ? { name: takenOver }
+        : {}),
+    };
+  }
+
+  const takenOverDirectly: string | null =
+    readOnCallPageMergeTakenOverDirectlyMessage(message);
+
+  if (takenOverDirectly !== null) {
+    return {
+      code: OnCallLogLineCode.PageMergeTakenOverDirectly,
+      ...(takenOverDirectly !== ON_CALL_PAGE_MERGE_UNNAMED_POLICY
+        ? { name: takenOverDirectly }
         : {}),
     };
   }

@@ -1496,8 +1496,18 @@ describe("Data Retention (telemetry/data-retention)", () => {
       `Leave empty for ${TELEMETRY_USAGE_DEFAULT_RETENTION_IN_DAYS} days.`,
     );
 
+    // The limit on resolved incidents and alerts, a card of its own (#6941).
+    const limits: string = readPackageFile(
+      "App/FeatureSet/AdminDashboard/src/Pages/Settings/DataRetention/ResolvedRecordRetentionLimitsCopy.ts",
+    );
+
     for (const label of ADMIN_DASHBOARD_LABELS[DATA_RETENTION] || []) {
-      expect(admin).toContain(`title: "${label}",`);
+      expect({
+        label,
+        isDrawn:
+          admin.includes(`title: "${label}",`) ||
+          limits.includes(`translationKey("${label}")`),
+      }).toEqual({ label, isDrawn: true });
       expect(adminDashboardLabel("en", label)).toBe(label);
     }
 
@@ -1512,6 +1522,8 @@ describe("Data Retention (telemetry/data-retention)", () => {
       "1 day unless changed",
       "30 days unless changed",
       `${TELEMETRY_USAGE_DEFAULT_RETENTION_IN_DAYS} days unless changed`,
+      // Every project starts at Never (Types/Retention/ResolvedRecordRetention).
+      "Until the project picks a length",
     ]);
   });
 
@@ -2281,7 +2293,73 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
       events: "jane@example.com",
     });
     expect(page).toContain(
-      "or **Event Attributes Only**. The attributes of a span's links are scrubbed with the span's own attributes.",
+      "or **Event Attributes Only**. The attributes of a span's links are scrubbed with the span's own attributes, and **All (Name, Attributes & Events)** also scrubs a span's status message and its events' names.",
+    );
+  });
+
+  // Issue #6513: the texts no rule read before.
+  it("scrubs a span's status message and its events' names under All, and under no other choice", () => {
+    const after: (fields: string) => JSONObject = (
+      fields: string,
+    ): JSONObject => {
+      return TraceScrubRuleService.scrubSpan(
+        {
+          name: "GET /cart",
+          statusMessage: "card declined for jane@example.com",
+          attributes: {},
+          events: [{ name: "retry for jane@example.com", attributes: {} }],
+          links: [],
+        },
+        [traceScrubRule(TraceScrubPatternType.Email, fields)] as never,
+      );
+    };
+    const read: (row: JSONObject) => Array<unknown> = (
+      row: JSONObject,
+    ): Array<unknown> => {
+      return [row["statusMessage"], (row["events"] as JSONArray)[0]!["name"]];
+    };
+
+    expect({
+      all: read(after(TraceScrubField.All)),
+      name: read(after(TraceScrubField.Name)),
+      attributes: read(after(TraceScrubField.Attributes)),
+      events: read(after(TraceScrubField.Events)),
+    }).toEqual({
+      all: ["card declined for [REDACTED]", "retry for [REDACTED]"],
+      name: [
+        "card declined for jane@example.com",
+        "retry for jane@example.com",
+      ],
+      attributes: [
+        "card declined for jane@example.com",
+        "retry for jane@example.com",
+      ],
+      events: [
+        "card declined for jane@example.com",
+        "retry for jane@example.com",
+      ],
+    });
+  });
+
+  it("a Sensitive Attribute Keys rule reads keys, whatever its fields say: in attributes, and in a log's JSON body", () => {
+    const body: string = JSON.stringify({ user: "jane", password: "hunter2" });
+    const row: JSONObject = LogScrubRuleService.scrubLog(
+      { body: body, attributes: { api_key: "abc" } },
+      [
+        scrubRule(
+          LogScrubPatternType.SensitiveKeys,
+          LogScrubAction.Redact,
+          LogScrubField.Body,
+        ),
+      ] as never,
+    );
+
+    expect((row["attributes"] as JSONObject)["api_key"]).toBe("[REDACTED]");
+    expect(row["body"]).toBe(
+      JSON.stringify({ user: "jane", password: "[REDACTED]" }),
+    );
+    expect(page).toContain(
+      "A **Sensitive Attribute Keys** rule reads keys, so it always scrubs the values under them: in attributes, and in a log's JSON body.",
     );
   });
 
@@ -2382,10 +2460,13 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     );
   });
 
-  it("stores a log body sent as a map or a list as its JSON text, which a pattern rule scrubs", () => {
+  it("stores a log body sent as a map or a list as its JSON text, which a pattern rule scrubs and a keys rule reads", () => {
     const body: string = JSON.stringify({
       kvlistValue: {
-        values: [{ key: "user", value: { stringValue: "jane@example.com" } }],
+        values: [
+          { key: "user", value: { stringValue: "jane@example.com" } },
+          { key: "password", value: { stringValue: "hunter2" } },
+        ],
       },
     });
 
@@ -2395,8 +2476,19 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
         scrubRule(LogScrubPatternType.Email, LogScrubAction.Redact),
       ]),
     ).toBe(body.replace("jane@example.com", "[REDACTED]"));
+    // Issue #6513: the keys inside it, and those of a body written as JSON.
+    expect(
+      scrubbedBody(body, [
+        scrubRule(LogScrubPatternType.SensitiveKeys, LogScrubAction.Redact),
+      ]),
+    ).toBe(body.replace('"hunter2"', '"[REDACTED]"'));
+    expect(
+      scrubbedBody('{"user":"jane","password":"hunter2"}', [
+        scrubRule(LogScrubPatternType.SensitiveKeys, LogScrubAction.Redact),
+      ]),
+    ).toBe('{"user":"jane","password":"[REDACTED]"}');
     expect(page).toContain(
-      "A log body sent as a map or a list is stored as its JSON text, which a pattern rule scrubs like any other text.",
+      "A log body sent as a map or a list is stored as its JSON text: a pattern rule scrubs it like any other text, and a **Sensitive Attribute Keys** rule reads the keys inside it, as it does in a body written as JSON.",
     );
   });
 
@@ -2453,6 +2545,28 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
 
     expect(page).toContain(
       `A value nested more than ${SCRUB_MAX_VALUE_DEPTH} levels deep, or one that would take a record past ${SCRUB_MAX_NESTED_VALUES_PER_RECORD.toLocaleString("en-US")} values inside its lists and maps, is read and stored as its JSON text. A pattern rule scrubs what it finds in that text, and a **Sensitive Attribute Keys** rule hides the whole value when a word such as \`password\` or \`token\` appears in it.`,
+    );
+
+    // Issue #6513: in a log body, only the part past the bounds is text.
+    const body: string = JSON.stringify({
+      user: { password: "hunter2" },
+      deep: nested({ token: "t-1" }, SCRUB_MAX_VALUE_DEPTH + 1),
+      notes: nested("nothing to hide", SCRUB_MAX_VALUE_DEPTH + 1),
+    });
+
+    expect(
+      JSON.parse(
+        scrubbedBody(body, [
+          scrubRule(LogScrubPatternType.SensitiveKeys, LogScrubAction.Redact),
+        ]),
+      ),
+    ).toEqual({
+      user: { password: "[REDACTED]" },
+      deep: nested("[REDACTED]", SCRUB_MAX_VALUE_DEPTH - 1),
+      notes: nested("nothing to hide", SCRUB_MAX_VALUE_DEPTH + 1),
+    });
+    expect(page).toContain(
+      "In a log body, only the part past these bounds is read as text: the rest of the body is still read key by key.",
     );
   });
 
