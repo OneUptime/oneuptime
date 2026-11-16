@@ -47,7 +47,7 @@ Haz clic en **Guardar cambios**, que aparece en cuanto algo ha cambiado. Escribe
 
 **Prueba tus avisos**, al pie de la página, te envía un aviso de prueba a través de ellas.
 
-Cuando una gravedad merece otra cosa, **Distinto para algunas gravedades**, debajo de los pasos, abre las pestañas y tarjetas que se describen abajo. Una tarjeta que difiere de tu secuencia lleva la marca **Difiere de la secuencia**, y la secuencia indica qué hace cada una en su lugar. Si tus reglas ya difieren, la página se abre en las tarjetas, con **Usar una sola secuencia para todo**: al guardar, primero nombra las tarjetas que pierden su diferencia. Una gravedad que tu proyecto archivó conserva sus propias reglas.
+Cuando una gravedad merece otra cosa, **Distinto para algunas gravedades**, el botón junto al título, abre las pestañas y tarjetas que se describen abajo. Una tarjeta que difiere de tu secuencia lleva la marca **Difiere de la secuencia**. La página sigue abriéndose en tus pasos y, debajo de ellos, lista cada tarjeta que difiere y qué hace en su lugar. **Guardar cambios** deja esas tarjetas como están; **Usar esta secuencia para cada gravedad**, al final de esa lista, les da también tu secuencia, después de nombrar las tarjetas que pierden su diferencia. Una gravedad que tu proyecto archivó conserva sus propias reglas.
 
 Una política de guardia decide a quién se avisa y cuándo llega su siguiente nivel. Cómo se te contacta es esta secuencia, para cada política que te avisa.
 

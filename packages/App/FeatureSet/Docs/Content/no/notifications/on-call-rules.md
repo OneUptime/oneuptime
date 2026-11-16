@@ -47,7 +47,7 @@ Klikk på **Lagre endringer**, som vises så snart noe er endret. Det skriver de
 
 **Test oppkallene dine**, nederst på siden, sender deg et testoppkall gjennom dem.
 
-Når en alvorlighetsgrad fortjener noe annet, åpner **Annerledes for noen alvorlighetsgrader** under trinnene fanene og kortene som beskrives nedenfor. Et kort som avviker fra rekkefølgen din, er merket **Avviker fra rekkefølgen**, og rekkefølgen viser hva hvert kort gjør i stedet. Avviker reglene dine allerede, åpner siden på kortene, med **Bruk én rekkefølge for alt**: når du lagrer, nevner den først kortene som mister avviket sitt. En alvorlighetsgrad prosjektet ditt har arkivert, beholder sine egne regler.
+Når en alvorlighetsgrad fortjener noe annet, åpner **Annerledes for noen alvorlighetsgrader**, knappen ved siden av tittelen, fanene og kortene som beskrives nedenfor. Et kort som avviker fra rekkefølgen din, er merket **Avviker fra rekkefølgen**. Siden åpner fortsatt på trinnene dine og viser under dem hvert kort som avviker, og hva det gjør i stedet. **Lagre endringer** lar disse kortene være som de er; **Bruk denne rekkefølgen for alle alvorlighetsgrader**, sist i listen, gir dem også rekkefølgen din, etter å ha nevnt kortene som mister avviket sitt. En alvorlighetsgrad prosjektet ditt har arkivert, beholder sine egne regler.
 
 En vaktpolicy bestemmer hvem som kalles opp og når neste nivå kommer. Hvordan du nås, er denne rekkefølgen, for hver policy som kaller deg opp.
 
