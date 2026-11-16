@@ -134,7 +134,9 @@ export default class RunbookPrivateRecordAccess {
       }
 
       if (!(await RunbookPrivateRecordAccess.isRunReadable(data))) {
-        throw new NotFoundException("Runbook execution not found");
+        throw new NotFoundException(
+          "OneUptime could not find this runbook run. It may have been deleted.",
+        );
       }
 
       throw new NotAuthorizedException(

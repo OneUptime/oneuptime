@@ -432,7 +432,9 @@ export default class RunbookAPI {
         });
 
       if (!execution) {
-        throw new NotFoundException("Runbook execution not found");
+        throw new NotFoundException(
+          "OneUptime could not find this runbook run. It may have been deleted.",
+        );
       }
 
       CommonAPI.assertResourceBelongsToProject({
