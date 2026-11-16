@@ -2,6 +2,11 @@ import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObje
 import ServiceLevelObjectiveOwnerTeam from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerTeam";
 import ServiceLevelObjectiveOwnerUser from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerUser";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
+import {
+  UsedByListActions,
+  getUsedByListActions,
+} from "../UsedBy/UsedByListActions";
+import { UsedByRecordKind } from "Common/Types/UsedBy/UsedBy";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import {
@@ -84,6 +89,9 @@ export type UseSloBulkActionsFunction = () => SloBulkActionsResult;
  */
 export const useSloBulkActions: UseSloBulkActionsFunction =
   (): SloBulkActionsResult => {
+    const usedBy: UsedByListActions<ServiceLevelObjective> =
+      getUsedByListActions<ServiceLevelObjective>(UsedByRecordKind.Slo);
+
     const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
       useBulkLabelActions<ServiceLevelObjective>({
         modelType: ServiceLevelObjective,
@@ -128,6 +136,9 @@ export const useSloBulkActions: UseSloBulkActionsFunction =
       pluralName: "SLOs",
       archiveConfirmMessage: SLO_BULK_ARCHIVE_CONFIRM_MESSAGE,
       unarchiveConfirmMessage: SLO_BULK_UNARCHIVE_CONFIRM_MESSAGE,
+      // What still uses the SLOs - burn-rate rules, dashboards - first (#7435).
+      archiveConfirmDetails: usedBy.archiveConfirmDetails,
+      getArchiveConfirmationDetails: usedBy.getArchiveConfirmationDetails,
     });
 
     /*

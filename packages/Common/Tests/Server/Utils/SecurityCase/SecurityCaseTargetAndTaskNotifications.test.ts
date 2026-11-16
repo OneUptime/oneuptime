@@ -33,6 +33,7 @@ import OneUptimeDate from "../../../../Types/Date";
 import EmailTemplateType from "../../../../Types/Email/EmailTemplateType";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import { JSONArray, JSONObject } from "../../../../Types/JSON";
+import { NotificationRuleUpdateKind } from "../../../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
 import NotificationSettingEventType from "../../../../Types/NotificationSetting/NotificationSettingEventType";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
@@ -753,6 +754,10 @@ describe("who is told that a case is about to miss a target", () => {
     expect(channelPosts[0]!["notificationText"]).toBe(
       "Security case CASE-12 is about to miss its acknowledge target: Brute force against admin",
     );
+    // Posted as a response target, about to be missed (#7936).
+    expect(
+      (channelPosts[0]!["workspaceNotification"] as JSONObject)["updateKinds"],
+    ).toEqual([NotificationRuleUpdateKind.ResponseTargets]);
   });
 
   test("a watcher whose chosen priority the case does not reach is not told", async () => {
@@ -866,6 +871,10 @@ describe("who is told that a case is about to miss a target", () => {
     expect(String(channelPosts[0]!["feedInfoInMarkdown"])).toContain(
       "🚨 **Security case missed its acknowledge target**",
     );
+    // A missed target is a response target too (#7936).
+    expect(
+      (channelPosts[0]!["workspaceNotification"] as JSONObject)["updateKinds"],
+    ).toEqual([NotificationRuleUpdateKind.ResponseTargets]);
   });
 
   test("taken on since the check: nothing is said", async () => {

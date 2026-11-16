@@ -1,4 +1,4 @@
-import React from "react";
+import React, { ReactElement } from "react";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { ErrorFunction, VoidFunction } from "../../../Types/FunctionTypes";
@@ -30,6 +30,7 @@ import NamedSentence from "../DeleteConfirmation/NamedSentence";
 import { BULK_ACTION_CONCURRENCY, runBulkAction } from "./BulkActionRunner";
 import {
   BulkActionButtonSchema,
+  BulkActionConfirmControls,
   BulkActionOnClickProps,
 } from "./BulkUpdateForm";
 
@@ -59,6 +60,21 @@ export interface BulkArchiveActionsConfig<T extends BaseModel> {
    * roll up into their site's health.
    */
   concurrency?: number | undefined;
+  /*
+   * Drawn in the bulk Archive's dialog under its question: what still uses
+   * the selected rows, read when the dialog opens (a list's Used by,
+   * #7435), which may hold the dialog's Archive meanwhile.
+   */
+  archiveConfirmDetails?:
+    | ((
+        items: Array<T>,
+        controls: BulkActionConfirmControls,
+      ) => ReactElement | undefined)
+    | undefined;
+  // The same for a row's own Archive, under its sentence.
+  getArchiveConfirmationDetails?:
+    | ((item: T) => ReactElement | undefined)
+    | undefined;
 }
 
 export interface BulkArchiveActionsResult<T extends BaseModel> {
@@ -290,6 +306,7 @@ function useBulkArchiveActions<T extends BaseModel>(
 
       return getDefaultConfirmMessage("archive", items.length);
     },
+    confirmDetails: config.archiveConfirmDetails,
     onClick: async (props: BulkActionOnClickProps<T>): Promise<void> => {
       await applyArchive("archive", props);
     },
@@ -348,12 +365,21 @@ function useBulkArchiveActions<T extends BaseModel>(
           />
         ),
         details: (
-          <p
-            data-testid="row-archive-consequence"
-            className="text-sm leading-6 text-gray-600"
-          >
-            {translator.translateText(sentence) || sentence}
-          </p>
+          <>
+            <p
+              data-testid="row-archive-consequence"
+              className="text-sm leading-6 text-gray-600"
+            >
+              {translator.translateText(sentence) || sentence}
+            </p>
+            {isArchiving && config.getArchiveConfirmationDetails ? (
+              <div className="mt-3">
+                {config.getArchiveConfirmationDetails(item)}
+              </div>
+            ) : (
+              <></>
+            )}
+          </>
         ),
         submitButtonText: isArchiving ? "Archive" : "Unarchive",
         submitButtonType: ButtonStyleType.PRIMARY,

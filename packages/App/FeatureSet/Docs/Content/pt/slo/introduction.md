@@ -196,6 +196,8 @@ A **Visão geral** responde a "estamos dentro do orçamento?", de cima para baix
 
 Quando o SLO está em um nível da sua política de orçamento de erros, a **Visão geral** também mostra esse nível e o que a equipe combinou fazer nele: veja [Política de orçamento de erros](/docs/slo/error-budget-policy).
 
+O cartão **Usado por** lista as regras de taxa de consumo e os níveis da política de orçamento de erros que atuam no SLO, e os painéis que o mostram. Arquivar ou excluir o SLO diz isso primeiro: suas regras e níveis vão junto com ele.
+
 ### Configurações
 
 A página **Configurações** reúne como um SLO mede, um cartão para cada coisa:

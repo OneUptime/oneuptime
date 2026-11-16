@@ -1,5 +1,10 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import {
+  UsedByListActions,
+  getUsedByListActions,
+} from "../../Components/UsedBy/UsedByListActions";
+import { UsedByRecordKind } from "Common/Types/UsedBy/UsedBy";
+import {
   ON_CALL_POLICIES_IMPORT_OFFER,
   withToolImportOffer,
 } from "../../Components/ToolImport/ToolImportOffer";
@@ -79,9 +84,18 @@ const OnCallDutyPage: FunctionComponent<
       resourceIdField: "onCallDutyPolicyId",
     });
 
+  /*
+   * A row's Delete and Archive, and the bulk ones, say what still uses
+   * the records first (#7435).
+   */
+  const usedBy: UsedByListActions<OnCallDutyPolicy> =
+    getUsedByListActions<OnCallDutyPolicy>(UsedByRecordKind.OnCallPolicy);
+
   // Archived policies leave this list; they are on the Archived page.
   const { archiveBulkActions, archiveRowActions } =
     useBulkArchiveActions<OnCallDutyPolicy>({
+      archiveConfirmDetails: usedBy.archiveConfirmDetails,
+      getArchiveConfirmationDetails: usedBy.getArchiveConfirmationDetails,
       modelType: OnCallDutyPolicy,
       singularName: ON_CALL_POLICY_ARCHIVE_COPY.singularName,
       pluralName: ON_CALL_POLICY_ARCHIVE_COPY.pluralName,
@@ -174,6 +188,7 @@ const OnCallDutyPage: FunctionComponent<
           tableId: "on-call-policies-table",
         }}
         isDeleteable={true}
+        getDeleteConfirmation={usedBy.getDeleteConfirmation}
         deleteConfirmationWarning={ARCHIVE_INSTEAD_OF_DELETE}
         name="On-Call > Policies"
         showViewIdButton={true}
@@ -186,6 +201,7 @@ const OnCallDutyPage: FunctionComponent<
             ...ownerBulkActions,
             ...archiveBulkActions,
           ],
+          deleteConfirmationDetails: usedBy.deleteConfirmationDetails,
         }}
         cardProps={{
           title: "On-Call Policies",

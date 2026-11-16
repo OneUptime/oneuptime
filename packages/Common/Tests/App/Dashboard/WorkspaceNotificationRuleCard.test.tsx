@@ -1026,6 +1026,14 @@ describe("a rule's updates", () => {
       [],
       "Only when an on-call policy is created",
     ],
+    // A security case rule's notices (#7936): with none, it posts nothing.
+    [
+      NotificationRuleEventType.SecurityCase,
+      ["PriorityReached", "ApprovalRequested", "ResponseTargets"],
+      "Key updates only",
+    ],
+    [NotificationRuleEventType.SecurityCase, ["ApprovalRequested"], null],
+    [NotificationRuleEventType.SecurityCase, [], "Posts nothing"],
   ])(
     "a %s rule's card says what it picked, %j",
     async (
@@ -1123,9 +1131,38 @@ describe("a rule's updates", () => {
     });
   });
 
+  test("a security case rule's card names the notices it posts, in the order of its boxes (#7936)", async () => {
+    const cards: Array<HTMLElement> = await renderCards(
+      [
+        {
+          id: KEY_ONLY,
+          name: "Approvals",
+          rule: ruleJson({
+            updatesToPost: ["ResponseTargets", "ApprovalRequested"],
+          }),
+        },
+        {
+          id: "9a8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
+          name: "Saved before security case rules chose",
+          rule: ruleJson({}),
+        },
+      ],
+      {
+        eventType: NotificationRuleEventType.SecurityCase,
+        canStartVideoCall: false,
+      },
+    );
+
+    expect(updatesRow(cards[0]!)).toEqual({
+      title: null,
+      updates: "Approvals needed · Response targets",
+    });
+    // It posts every notice, as it always did: no row, as no rule's that posts every update.
+    expect(rowNames(cards[1]!)).not.toContain("Updates");
+  });
+
   test.each([
     NotificationRuleEventType.Monitor,
-    NotificationRuleEventType.SecurityCase,
     NotificationRuleEventType.SecurityHunt,
     NotificationRuleEventType.ServiceLevelObjective,
   ])(

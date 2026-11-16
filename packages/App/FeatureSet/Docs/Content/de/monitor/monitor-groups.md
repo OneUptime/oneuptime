@@ -96,6 +96,8 @@ Jeder Balken des Verfügbarkeits-Diagramms, hier und auf einer Statusseite, zeig
 
 Die Liste **Monitor-Gruppen** kann Gruppen nach Eigentümer und Label filtern, Labels und Eigentümer für viele Gruppen auf einmal setzen und Gruppen als JSON exportieren oder importieren.
 
+Die **Übersicht** hat außerdem eine Karte **Verwendet von**: die Statusseiten, die die Gruppe zeigen, und die SLOs, die ihre Monitore messen. Zeigt keine Statusseite sie, sagt die Karte es und verlinkt zu den Statusseiten. Wer die Gruppe löscht, auf ihrer Seite oder aus der Liste, sieht zuerst, welche Statusseiten sie zeigen.
+
 ## Überwachung für eine ganze Gruppe ausschalten
 
 Die Karte **Überwachung** in der **Übersicht** einer Gruppe schaltet die Überwachung für alle Monitore der Gruppe auf einmal aus oder wieder ein.

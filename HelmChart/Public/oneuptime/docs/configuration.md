@@ -511,6 +511,35 @@ Confirm what an upgrade would actually change before you run it:
 helm template my-oneuptime oneuptime/oneuptime -f values.yaml | grep -c NODE_EXTRA_CA_CERTS
 ```
 
+### Example: the Node.js heap
+
+Every Node.js service (app, worker, every probe, home, telemetry-writer, the
+nginx pod's sidecar, test-server, the global Runner and the migrate Job) sizes
+its heap to its container's memory limit when it starts: three quarters of
+`<service>.resources.limits.memory`, at least 256 MB and at most 8096 MB, and
+8096 MB when the container has no limit. The quarter left is for the memory
+Node.js uses outside its heap. So to give a service more heap, raise its memory
+limit, and the heap follows.
+
+To choose the heap yourself, set `--max-old-space-size` (in MB) in the
+service's `NODE_OPTIONS`. It comes after the one the service derives from its
+limit, and Node.js takes the last one, so yours wins:
+
+```yaml
+app:
+  resources:
+    limits:
+      memory: 4Gi
+  extraEnv:
+    - name: NODE_OPTIONS
+      value: --max-old-space-size=2048
+```
+
+The probe and Runner images set `NODE_OPTIONS=--use-openssl-ca` themselves (so
+Node.js trusts the system's certificate store), and a `NODE_OPTIONS` you set
+replaces it: keep it in your value for them, as in
+`--use-openssl-ca --max-old-space-size=2048`.
+
 ## Migration Job annotations
 
 The Job that runs the database migrations takes annotations of its own, for the

@@ -1,5 +1,11 @@
-import { getAdminServerSetupUrl } from "../../Utils/ServerEmail";
 import SetupHealthApi from "./SetupHealthApi";
+import {
+  DISMISS_CLASS_NAME,
+  FindingFix,
+  FindingIcon,
+  FindingSentence,
+  SetupHealthDismissModal,
+} from "./SetupHealthFindingParts";
 import {
   DISMISSED_ICON_BOX,
   LEVEL_LOOK,
@@ -7,21 +13,17 @@ import {
   SetupHealthLevelLook,
   getSetupHealthFindingIcon,
 } from "./SetupHealthLook";
+import SetupHealthQuickFixButton from "./SetupHealthQuickFixButton";
 import SetupHealthSummary from "./SetupHealthSummary";
 import {
   FINDINGS_SHOWN_PER_CHECK,
   LEVEL_WORDS,
   RELATED_RECORDS_MORE,
   RELATED_RECORDS_SHOWN,
-  SERVER_FIX_WORDS,
   SETUP_HEALTH_AFFECTS,
   SETUP_HEALTH_WORDS_PAGE,
-  SetupHealthFixLink,
-  SetupHealthSentenceValues,
-  getSetupHealthFixLink,
   getSetupHealthRecordRoute,
   getSetupHealthSentence,
-  getSetupHealthSentenceValues,
   groupSetupHealthFindings,
 } from "./SetupHealthWords";
 import Route from "Common/Types/API/Route";
@@ -32,7 +34,6 @@ import {
   SETUP_HEALTH_LEVEL_ORDER,
   SetupHealthAnswer,
   SetupHealthFinding,
-  SetupHealthFix,
   SetupHealthLevel,
   SetupHealthRecord,
 } from "Common/Types/SetupHealth/SetupHealth";
@@ -43,23 +44,17 @@ import ErrorSentence, {
   ErrorInSentence,
 } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 import Icon from "Common/UI/Components/Icon/Icon";
-import { IconColorClasses } from "Common/UI/Components/Navbar/NavBarMenuModal";
 import Link from "Common/UI/Components/Link/Link";
-import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
-import TextArea from "Common/UI/Components/TextArea/TextArea";
-import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import API from "Common/UI/Utils/API/API";
 import { getLineDirection } from "Common/UI/Utils/LineDirection";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import ProductEvents from "Common/UI/Utils/ProductEvents";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import User from "Common/UI/Utils/User";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
-  ReactNode,
   useCallback,
   useEffect,
   useRef,
@@ -72,12 +67,15 @@ import React, {
  * in one line. Each level is a card; each finding a row with the icon of
  * what it is about, one sentence with the project's names in bold, the
  * records it reaches, and right under the sentence the button that opens
- * its fix - never at the far end of a wide row. A finding the team leaves
- * as it is on purpose is dismissed, with a reason, for everyone; Dismissed,
- * folded at the end, brings it back.
+ * its fix - never at the far end of a wide row. Two findings can be fixed
+ * from their row in one click, after a dialog that says what will change
+ * (#7299, SetupHealthQuickFixButton). A finding the team leaves as it is on
+ * purpose is dismissed, with a reason, for everyone; Dismissed, folded at
+ * the end, brings it back. A finding is drawn by SetupHealthFindingParts,
+ * as the line at the top of its record's page draws it (#7297).
  *
  * One request (SetupHealthApi), answered from a minute-old answer on the
- * server; Recheck works it out again.
+ * server; Recheck, and a fix made here, work it out again.
  */
 
 type LoadState =
@@ -105,25 +103,11 @@ const LINK_HOVER_CLASS_NAME: string = "hover:underline";
 
 const LINK_CLASS_NAME: string = `${LINK_BASE_CLASS_NAME} ${LINK_HOVER_CLASS_NAME}`;
 
-/*
- * A finding's fix: the one obvious next step, so it looks like a button,
- * tinted as the product's links are.
- */
-const FIX_CLASS_NAME: string =
-  "inline-flex items-center gap-1.5 rounded-md bg-indigo-50 px-2.5 py-1 text-sm font-medium text-indigo-700 ring-1 ring-inset ring-indigo-200 transition hover:bg-indigo-100 hover:text-indigo-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
-
-const DISMISS_CLASS_NAME: string =
-  "rounded text-sm text-gray-500 hover:text-gray-900 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
-
 // A record a finding reaches: a chip with its kind's icon and its name.
 const RELATED_CHIP_CLASS_NAME: string =
   "inline-flex min-w-0 max-w-full items-center gap-1 rounded-md bg-gray-50 px-1.5 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200";
 
 const RELATED_LINK_CLASS_NAME: string = `${RELATED_CHIP_CLASS_NAME} transition hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500`;
-
-// The box a row's icon sits in, tinted by its level.
-const ICON_BOX_CLASS_NAME: string =
-  "flex h-8 w-8 flex-none items-center justify-center rounded-lg ring-1 ring-inset";
 
 /*
  * A link drawn as a button that works for a while (Restore): busy then, it
@@ -141,59 +125,6 @@ function getBusyLinkClassName(isBusy: boolean): string {
 function getSource(): string {
   return Navigation.getQueryStringByName("from") || "direct";
 }
-
-// The icon of a row, in a box of its level's colours.
-const FindingIcon: FunctionComponent<{
-  icon: IconProp;
-  colors: IconColorClasses;
-}> = (props: { icon: IconProp; colors: IconColorClasses }): ReactElement => {
-  return (
-    <span
-      aria-hidden="true"
-      className={`${ICON_BOX_CLASS_NAME} ${props.colors.bg} ${props.colors.ring}`}
-    >
-      <Icon icon={props.icon} className={`h-4 w-4 ${props.colors.text}`} />
-    </span>
-  );
-};
-
-/*
- * A finding's sentence in the reader's language, the project's names in
- * bold. Only the names the sentence holds are drawn apart: a name it does
- * not hold would leave the sentence unable to draw whole.
- */
-const FindingSentence: FunctionComponent<{
-  finding: SetupHealthFinding;
-}> = (props: { finding: SetupHealthFinding }): ReactElement => {
-  const sentence: SetupHealthSentenceValues = getSetupHealthSentenceValues(
-    props.finding,
-  );
-  const slots: Record<string, ReactNode> = {};
-  const values: SetupHealthSentenceValues["values"] = { ...sentence.values };
-
-  for (const [key, name] of Object.entries(sentence.names)) {
-    if (props.finding.words.includes(`{{${key}}}`)) {
-      slots[key] = (
-        <span
-          className="font-semibold text-gray-900"
-          data-testid="setup-health-name"
-        >
-          {name}
-        </span>
-      );
-    } else {
-      values[key] = name;
-    }
-  }
-
-  return (
-    <TranslatedSentence
-      template={props.finding.words}
-      slots={slots}
-      values={values}
-    />
-  );
-};
 
 // The records a finding reaches, each a chip that opens it.
 const RelatedRecords: FunctionComponent<{
@@ -271,77 +202,17 @@ const RelatedRecords: FunctionComponent<{
   );
 };
 
-// The fix of one finding: its page, or for the server, its admin.
-const FindingFix: FunctionComponent<{
-  finding: SetupHealthFinding;
-}> = (props: { finding: SetupHealthFinding }): ReactElement => {
-  const translator: Translator = useTranslator();
-  const finding: SetupHealthFinding = props.finding;
-
-  const onOpen: () => void = (): void => {
-    ProductEvents.send(ProductEventName.SetupHealthFixOpened, {
-      check: finding.check,
-      level: finding.level,
-    });
-  };
-
-  if (finding.fix === SetupHealthFix.ServerSettings) {
-    if (!User.isMasterAdmin()) {
-      return (
-        <span
-          className="text-sm text-gray-600"
-          data-testid="setup-health-ask-admin"
-        >
-          {translator.translateText(SETUP_HEALTH_WORDS_PAGE.askServerAdmin)}
-        </span>
-      );
-    }
-
-    return (
-      <Link
-        to={getAdminServerSetupUrl()}
-        openInNewTab={true}
-        onClick={onOpen}
-        className={FIX_CLASS_NAME}
-        dataTestId="setup-health-fix"
-      >
-        {translator.translateText(SERVER_FIX_WORDS)}
-        <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5 flex-none" />
-      </Link>
-    );
-  }
-
-  const fix: SetupHealthFixLink | null = getSetupHealthFixLink({
-    finding: finding,
-    translator: translator,
-  });
-
-  if (!fix) {
-    return <></>;
-  }
-
-  return (
-    <Link
-      to={fix.route}
-      onClick={onOpen}
-      className={FIX_CLASS_NAME}
-      dataTestId="setup-health-fix"
-    >
-      {fix.text}
-      <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5 flex-none" />
-    </Link>
-  );
-};
-
 // One finding: what it is about, what is wrong, what it reaches, and the fix.
 const FindingRow: FunctionComponent<{
   finding: SetupHealthFinding;
   canDismiss: boolean;
   onDismiss: (finding: SetupHealthFinding) => void;
+  onFixed: () => void;
 }> = (props: {
   finding: SetupHealthFinding;
   canDismiss: boolean;
   onDismiss: (finding: SetupHealthFinding) => void;
+  onFixed: () => void;
 }): ReactElement => {
   const translator: Translator = useTranslator();
   const look: SetupHealthLevelLook = LEVEL_LOOK[props.finding.level];
@@ -368,6 +239,10 @@ const FindingRow: FunctionComponent<{
         </p>
         <RelatedRecords records={props.finding.related} />
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+          <SetupHealthQuickFixButton
+            finding={props.finding}
+            onApplied={props.onFixed}
+          />
           <FindingFix finding={props.finding} />
           {props.canDismiss ? (
             <button
@@ -395,11 +270,13 @@ const FindingGroup: FunctionComponent<{
   findings: Array<SetupHealthFinding>;
   canDismiss: boolean;
   onDismiss: (finding: SetupHealthFinding) => void;
+  onFixed: () => void;
 }> = (props: {
   groupKey: string;
   findings: Array<SetupHealthFinding>;
   canDismiss: boolean;
   onDismiss: (finding: SetupHealthFinding) => void;
+  onFixed: () => void;
 }): ReactElement => {
   const translator: Translator = useTranslator();
   const [isOpen, setIsOpen] = useState<boolean>(false);
@@ -421,6 +298,7 @@ const FindingGroup: FunctionComponent<{
               finding={finding}
               canDismiss={props.canDismiss}
               onDismiss={props.onDismiss}
+              onFixed={props.onFixed}
             />
           );
         })}
@@ -528,9 +406,6 @@ const SetupHealthView: FunctionComponent = (): ReactElement => {
   const [dismissTarget, setDismissTarget] = useState<SetupHealthFinding | null>(
     null,
   );
-  const [reason, setReason] = useState<string>("");
-  const [isDismissing, setIsDismissing] = useState<boolean>(false);
-  const [dismissError, setDismissError] = useState<string>("");
   const [restoringKey, setRestoringKey] = useState<string>("");
   const [actionError, setActionError] = useState<string>("");
   const [isDismissedOpen, setIsDismissedOpen] = useState<boolean>(false);
@@ -604,30 +479,14 @@ const SetupHealthView: FunctionComponent = (): ReactElement => {
     await load(false);
   };
 
-  const confirmDismiss: () => Promise<void> = async (): Promise<void> => {
-    if (!dismissTarget) {
-      return;
-    }
-
-    setIsDismissing(true);
-    setDismissError("");
-
-    try {
-      await SetupHealthApi.dismiss({ finding: dismissTarget, reason: reason });
-
-      ProductEvents.send(ProductEventName.SetupHealthFindingDismissed, {
-        check: dismissTarget.check,
-        has_reason: reason.trim().length > 0,
-      });
-
-      setDismissTarget(null);
-      setReason("");
-      await load(false);
-    } catch (err) {
-      setDismissError(API.getFriendlyMessage(err as Error));
-    }
-
-    setIsDismissing(false);
+  /*
+   * A fix made from a row (#7299): the findings are worked out again now,
+   * not read from the minute-old answer, so the one just fixed is gone.
+   */
+  const afterFix: () => Promise<void> = async (): Promise<void> => {
+    setIsRechecking(true);
+    await load(true);
+    setIsRechecking(false);
   };
 
   const restore: (item: DismissedSetupHealthFinding) => Promise<void> = async (
@@ -686,9 +545,10 @@ const SetupHealthView: FunctionComponent = (): ReactElement => {
                     findings={group.findings}
                     canDismiss={canDismiss}
                     onDismiss={(finding: SetupHealthFinding) => {
-                      setDismissError("");
-                      setReason("");
                       setDismissTarget(finding);
+                    }}
+                    onFixed={() => {
+                      void afterFix();
                     }}
                   />
                 );
@@ -855,61 +715,16 @@ const SetupHealthView: FunctionComponent = (): ReactElement => {
       {getBody()}
 
       {dismissTarget ? (
-        <ConfirmModal
-          title={SETUP_HEALTH_WORDS_PAGE.dismissTitle}
-          description={
-            <div className="space-y-2">
-              <p className="text-sm text-gray-900">
-                {getSetupHealthSentence(dismissTarget, translator)}
-              </p>
-              <p className="text-sm text-gray-500">
-                {translator.translateText(
-                  SETUP_HEALTH_WORDS_PAGE.dismissDescription,
-                )}
-              </p>
-            </div>
-          }
-          submitButtonText={SETUP_HEALTH_WORDS_PAGE.dismiss}
-          isLoading={isDismissing}
-          error={dismissError || undefined}
-          onSubmit={() => {
-            void confirmDismiss();
-          }}
+        <SetupHealthDismissModal
+          finding={dismissTarget}
           onClose={() => {
-            if (!isDismissing) {
-              setDismissTarget(null);
-              setReason("");
-              setDismissError("");
-            }
+            setDismissTarget(null);
           }}
-        >
-          <div className="mt-3 space-y-1">
-            <label
-              id="setup-health-dismiss-reason-label"
-              htmlFor="setup-health-dismiss-reason"
-              className="block text-sm font-medium text-gray-700"
-            >
-              {translator.translateText(
-                SETUP_HEALTH_WORDS_PAGE.dismissReasonLabel,
-              )}{" "}
-              <span className="font-normal text-gray-500">
-                {translator.translateText("(Optional)")}
-              </span>
-            </label>
-            <TextArea
-              id="setup-health-dismiss-reason"
-              value={reason}
-              placeholder={SETUP_HEALTH_WORDS_PAGE.dismissPlaceholder}
-              ariaLabelledby="setup-health-dismiss-reason-label"
-              dataTestId="setup-health-dismiss-reason"
-              autoGrow={true}
-              rows={2}
-              onChange={(value: string) => {
-                setReason(value);
-              }}
-            />
-          </div>
-        </ConfirmModal>
+          onDismissed={() => {
+            setDismissTarget(null);
+            void load(false);
+          }}
+        />
       ) : (
         <></>
       )}

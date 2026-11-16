@@ -96,6 +96,8 @@ Cada barra do gráfico de tempo de atividade, aqui e em uma página de status, m
 
 A lista **Grupos de monitores** pode filtrar grupos por proprietário e rótulo, definir rótulos e proprietários em muitos grupos de uma vez, e exportar ou importar grupos como JSON.
 
+A **Visão geral** também tem um cartão **Usado por**: as páginas de status que mostram o grupo e os SLOs que medem seus monitores. Quando nenhuma página de status o mostra, o cartão diz isso e leva às páginas de status. Excluir o grupo, em sua página ou pela lista, diz primeiro quais páginas de status o mostram.
+
 ## Desligar o monitoramento de um grupo inteiro
 
 O cartão **Monitoramento** na **Visão geral** de um grupo desliga o monitoramento, ou o liga de novo, para todos os monitores do grupo de uma só vez.

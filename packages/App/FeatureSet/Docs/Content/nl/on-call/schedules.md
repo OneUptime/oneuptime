@@ -101,6 +101,8 @@ Afwezigheid die zo is toegevoegd, geldt voor elk bereikbaarheidsbeleid, dus vraa
 
 Via de API slaat een gebruikersoverride (`/api/on-call-duty-policy-user-override`) die zonder `routeAlertsToUserId` wordt gemaakt, de persoon in `overrideUserId` over van `startsAt` tot `endsAt`.
 
+Het **Overzicht** van een schema heeft een kaart **Gebruikt door**: de bereikbaarheidsbeleidsregels waarvan de escalatieregels oproepen wie er bereikbaar is, met de regels die dat doen. Doet geen enkel dat, dan zegt de kaart het en linkt naar het bereikbaarheidsbeleid. Het schema verwijderen, op zijn pagina of vanuit de lijst, zegt eerst welk beleid via het schema oproept. Beleid dat u niet mag openen, wordt geteld maar niet genoemd.
+
 ## Schema's maken met de API of Terraform
 
 Bereikbaarheidsschema's zijn de resource `/api/on-call-duty-policy-schedule`; hun lagen en de mensen daarin zijn de resources `/api/on-call-duty-schedule-layer` en `/api/on-call-duty-schedule-layer-user`.
@@ -108,6 +110,7 @@ Bereikbaarheidsschema's zijn de resource `/api/on-call-duty-policy-schedule`; hu
 - Een schema maken met `firstLayerUsers` (een lijst met gebruikers-id's, in de volgorde waarin ze elkaar afwisselen) in de `miscDataProps` geeft het zijn eerste laag, net als in het dashboard: **Layer 1**, van dienst vanaf nu, de klok rond. `firstLayerRotation` zegt hoe lang elke beurt duurt, als een rotatie zoals `{"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}`; zonder deze waarde een week. Elke gebruiker moet lid van het project zijn en de aanroeper moet lagen mogen maken; anders wordt het schema niet gemaakt.
 - Een schema dat zonder deze waarden wordt gemaakt, heeft zoals voorheen geen lagen; de Terraform-resource voor schema's stuurt ze niet mee.
 - Een laag die zonder `rotation` wordt gemaakt, draagt dagelijks over, zoals altijd.
+- Een wijziging van de lagen van een schema en de mensen daarin, gemaakt met de API of Terraform, wordt als één wijziging gemeld: wie er bereikbaar is, wordt bepaald zodra de lagen een halve minuut niet zijn gewijzigd, en wie bereikbaar wordt, dat niet meer is of de volgende is, hoort het één keer, niet één keer per geschreven laag of persoon. Oproepen gaan naar wie de lagen bereikbaar maken zodra elke wijziging is opgeslagen.
 
 ```bash
 curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \

@@ -196,6 +196,8 @@ Die **Übersicht** beantwortet „Sind wir im Budget?“, von oben nach unten:
 
 Ist das SLO in einer Stufe seiner Fehlerbudget-Richtlinie, zeigt die **Übersicht** auch diese Stufe und was das Team in ihr vereinbart hat: siehe [Fehlerbudget-Richtlinie](/docs/slo/error-budget-policy).
 
+Die Karte **Verwendet von** listet die Burn-Rate-Regeln und die Stufen der Fehlerbudget-Richtlinie, die auf das SLO wirken, und die Dashboards, die es zeigen. Wer das SLO archiviert oder löscht, sieht sie zuerst: Seine Regeln und Stufen werden mit ihm gelöscht.
+
 ### Einstellungen
 
 Die Seite **Einstellungen** enthält, wie ein SLO misst, je eine Karte:

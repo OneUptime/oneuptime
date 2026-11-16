@@ -110,7 +110,7 @@ export const NOTIFICATION_RULE_CONDITIONS_DESCRIPTIONS: ByEventType = {
     "Conditions are checked when an on-call policy is created and again each time it changes.",
   ),
   [NotificationRuleEventType.SecurityCase]: translationKey(
-    "Conditions are checked each time there is something to post about a security case: when it opens or rises to a higher priority, is assigned, or has a playbook step waiting for approval.",
+    "Conditions are checked each time there is something to post about a security case: when it opens or rises to a higher priority, is assigned, has a playbook step waiting for approval, or is about to miss a response target.",
   ),
   // What there is to post about a hunt: SecurityHuntNotifications.
   [NotificationRuleEventType.SecurityHunt]: translationKey(
@@ -420,7 +420,7 @@ export const NOTIFICATION_RULES_CARD_DESCRIPTIONS: ByEventType = {
   ),
   // What there is to post about a case: SecurityCaseNotifications.
   [NotificationRuleEventType.SecurityCase]: translationKey(
-    "Each rule picks the security cases it is for, then posts to channels you have when a case opens, is assigned or has a playbook step waiting for approval.",
+    "Each rule picks the security cases it is for and the notices it posts to channels you have: new and raised cases, assignments, approvals needed and response targets.",
   ),
   // What there is to post about a hunt: SecurityHuntNotifications.
   [NotificationRuleEventType.SecurityHunt]: translationKey(

@@ -11,6 +11,7 @@ import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import ObjectID from "Common/Types/ObjectID";
 import Timezone from "Common/Types/Timezone";
+import { NotificationRuleUpdateKind } from "Common/Types/Workspace/NotificationRules/NotificationRuleUpdates";
 
 /*
  * Regression tests for the IncidentOwner:SendUnresolvedReminderNotification
@@ -31,6 +32,10 @@ import Timezone from "Common/Types/Timezone";
  * App/Tests/Workers/Jobs suites use) and each test drives one full tick.
  * Markdown itself is REAL (spied, not stubbed) so the pinned HTML is the
  * genuine marked output.
+ *
+ * The incidents due are read a page at a time (findBy) and each reminder is
+ * moved on by one compare-and-set (OwnerReminderBacklog, issue #9019); the
+ * incident's affected resources are read back through findAllBy.
  */
 
 type CronHandler = () => Promise<void>;
@@ -88,6 +93,10 @@ jest.mock("Common/Server/Services/IncidentService", () => {
     __esModule: true,
     default: {
       findAllBy: jest.fn(),
+      findBy: jest.fn(),
+      findOneById: jest.fn(),
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(),
+      onTriggerWorkflow: jest.fn(),
       updateOneById: jest.fn(),
       findOwners: jest.fn(),
       isIncidentResolved: jest.fn(),
@@ -178,6 +187,10 @@ import "../../../../FeatureSet/Workers/Jobs/IncidentOwners/SendUnresolvedReminde
 import FeedMarkdown from "Common/Utils/Markdown/FeedMarkdown";
 interface IncidentServiceMock {
   findAllBy: jest.Mock;
+  findBy: jest.Mock;
+  findOneById: jest.Mock;
+  compareAndSetColumnsByIdWithoutHooks: jest.Mock;
+  onTriggerWorkflow: jest.Mock;
   updateOneById: jest.Mock;
   findOwners: jest.Mock;
   isIncidentResolved: jest.Mock;
@@ -274,6 +287,15 @@ function sentVars(): Array<Dictionary<string>> {
   );
 }
 
+/*
+ * The incident is due: the job's page read hands it back, and so does the
+ * read of its affected resources.
+ */
+function due(incident: Incident): void {
+  incidentService.findBy.mockResolvedValue([incident]);
+  incidentService.findAllBy.mockResolvedValue([incident]);
+}
+
 async function runWorkerTick(): Promise<void> {
   const handler: CronHandler | undefined =
     mockCapturedJobs["IncidentOwner:SendUnresolvedReminderNotification"];
@@ -314,6 +336,11 @@ describe("IncidentOwner:SendUnresolvedReminderNotification worker", () => {
     rule.reminderIntervalInMinutes = 30;
 
     incidentService.findAllBy.mockResolvedValue([]);
+    incidentService.findBy.mockResolvedValue([]);
+    incidentService.compareAndSetColumnsByIdWithoutHooks.mockResolvedValue(
+      true,
+    );
+    incidentService.onTriggerWorkflow.mockResolvedValue(undefined);
     incidentService.updateOneById.mockResolvedValue(undefined);
     incidentService.findOwners.mockResolvedValue([]);
     incidentService.isIncidentResolved.mockResolvedValue(false);
@@ -333,9 +360,7 @@ describe("IncidentOwner:SendUnresolvedReminderNotification worker", () => {
   });
 
   test("converts the description ONCE per incident for 3 owners - not once per owner - and every owner gets byte-identical vars", async () => {
-    incidentService.findAllBy.mockResolvedValue([
-      makeIncident(DESCRIPTION_MARKDOWN),
-    ]);
+    due(makeIncident(DESCRIPTION_MARKDOWN));
     incidentService.findOwners.mockResolvedValue([
       makeOwner("user-1"),
       makeOwner("user-2"),
@@ -414,9 +439,7 @@ describe("IncidentOwner:SendUnresolvedReminderNotification worker", () => {
   });
 
   test("the timezone-dependent declaredAt var STAYS per-user while the description conversion is still shared", async () => {
-    incidentService.findAllBy.mockResolvedValue([
-      makeIncident(DESCRIPTION_MARKDOWN),
-    ]);
+    due(makeIncident(DESCRIPTION_MARKDOWN));
     incidentService.findOwners.mockResolvedValue([
       makeOwner("user-1"),
       makeOwner("user-2", Timezone.AmericaNew_York),
@@ -455,9 +478,7 @@ describe("IncidentOwner:SendUnresolvedReminderNotification worker", () => {
   });
 
   test("an incident with no owners at all converts NOTHING and sends nothing", async () => {
-    incidentService.findAllBy.mockResolvedValue([
-      makeIncident(DESCRIPTION_MARKDOWN),
-    ]);
+    due(makeIncident(DESCRIPTION_MARKDOWN));
     incidentService.findOwners.mockResolvedValue([]);
     projectService.getOwners.mockResolvedValue([]);
 
@@ -472,7 +493,7 @@ describe("IncidentOwner:SendUnresolvedReminderNotification worker", () => {
   });
 
   test("an empty description converts to the same (empty) HTML the old code produced, still exactly once", async () => {
-    incidentService.findAllBy.mockResolvedValue([makeIncident(undefined)]);
+    due(makeIncident(undefined));
     incidentService.findOwners.mockResolvedValue([
       makeOwner("user-1"),
       makeOwner("user-2"),
@@ -501,9 +522,7 @@ describe("IncidentOwner:SendUnresolvedReminderNotification worker", () => {
   });
 
   test("Project Owners (fallback) get the shared conversion too, without the isOwner flag", async () => {
-    incidentService.findAllBy.mockResolvedValue([
-      makeIncident(DESCRIPTION_MARKDOWN),
-    ]);
+    due(makeIncident(DESCRIPTION_MARKDOWN));
     incidentService.findOwners.mockResolvedValue([]);
     projectService.getOwners.mockResolvedValue([
       makeOwner("project-owner-1"),
@@ -526,13 +545,89 @@ describe("IncidentOwner:SendUnresolvedReminderNotification worker", () => {
   });
 
   /*
+   * Posted to the incident's channels as a reminder: a box of its own on a
+   * rule's Updates step, so a channel takes reminders without everything
+   * else, or everything else without them (#7938).
+   */
+  test("the feed item is posted to the channels as a reminder", async () => {
+    due(makeIncident(DESCRIPTION_MARKDOWN));
+    incidentService.findOwners.mockResolvedValue([makeOwner("user-1")]);
+
+    await runWorkerTick();
+
+    expect(feedService.createIncidentFeedItem).toHaveBeenCalledTimes(1);
+    expect(
+      (
+        feedService.createIncidentFeedItem.mock.calls[0]![0] as {
+          workspaceNotification: unknown;
+        }
+      ).workspaceNotification,
+    ).toEqual({
+      sendWorkspaceNotification: true,
+      updateKinds: [NotificationRuleUpdateKind.Reminders],
+    });
+  });
+
+  /*
+   * Moved on in one statement, round the hooks: no read and write of the
+   * incident through updateOneById, no realtime event, and an On Update
+   * trigger only for the workflows that watch the reminder's columns
+   * (#9019).
+   */
+  test("the reminder is moved on by one compare-and-set, never through updateOneById", async () => {
+    const incident: Incident = makeIncident(DESCRIPTION_MARKDOWN);
+    incident.nextReminderNotificationAt = new Date("2026-08-18T09:59:00.000Z");
+    due(incident);
+    incidentService.findOwners.mockResolvedValue([makeOwner("user-1")]);
+
+    await runWorkerTick();
+
+    expect(incidentService.updateOneById).not.toHaveBeenCalled();
+    expect(
+      incidentService.compareAndSetColumnsByIdWithoutHooks,
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      incidentService.compareAndSetColumnsByIdWithoutHooks.mock.calls[0]![0],
+    ).toEqual({
+      id: INCIDENT_ID,
+      data: {
+        nextReminderNotificationAt: new Date(NOW.getTime() + 30 * 60 * 1000),
+        reminderNotificationSentCount: 1,
+      },
+      expectedData: {
+        nextReminderNotificationAt: new Date("2026-08-18T09:59:00.000Z"),
+        reminderNotificationSentCount: 0,
+      },
+    });
+    expect(notificationService.sendUserNotification).toHaveBeenCalledTimes(1);
+  });
+
+  test("REGRESSION: a reminder another run moved first is not sent again", async () => {
+    due(makeIncident(DESCRIPTION_MARKDOWN));
+    incidentService.findOwners.mockResolvedValue([makeOwner("user-1")]);
+    incidentService.compareAndSetColumnsByIdWithoutHooks.mockResolvedValue(
+      false,
+    );
+
+    // As the other run left it: sent, and counted.
+    const sentElsewhere: Incident = makeIncident(DESCRIPTION_MARKDOWN);
+    sentElsewhere.reminderNotificationSentCount = 1;
+    incidentService.findOneById.mockResolvedValue(sentElsewhere);
+
+    await runWorkerTick();
+
+    expect(notificationService.sendUserNotification).not.toHaveBeenCalled();
+    expect(feedService.createIncidentFeedItem).not.toHaveBeenCalled();
+  });
+
+  /*
    * The title is user text. Compiled again by the mailer, "{{ ... }}" in it
    * rendered as nothing and a lone "{{" stopped the email being sent.
    */
   test("a title quoting template syntax reaches the subject as written, marked literal", async () => {
     const incident: Incident = makeIncident(DESCRIPTION_MARKDOWN);
     incident.title = "Rollout of {{ .Values.image.tag }} stalled";
-    incidentService.findAllBy.mockResolvedValue([incident]);
+    due(incident);
     incidentService.findOwners.mockResolvedValue([makeOwner("user-1")]);
 
     await runWorkerTick();

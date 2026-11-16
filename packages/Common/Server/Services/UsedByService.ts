@@ -1,28 +1,91 @@
 import { getMetadataArgsStorage } from "typeorm";
 import { JoinTableMetadataArgs } from "typeorm/metadata-args/JoinTableMetadataArgs";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import AIAgentOwnerTeam from "../../Models/DatabaseModels/AIAgentOwnerTeam";
+import AIPostmortemRule from "../../Models/DatabaseModels/AIPostmortemRule";
 import Alert from "../../Models/DatabaseModels/Alert";
+import AlertEpisodeOnCallRule from "../../Models/DatabaseModels/AlertEpisodeOnCallRule";
+import AlertEpisodeOwnerTeam from "../../Models/DatabaseModels/AlertEpisodeOwnerTeam";
+import AlertGroupingRule from "../../Models/DatabaseModels/AlertGroupingRule";
+import AlertIncidentRule from "../../Models/DatabaseModels/AlertIncidentRule";
+import AlertLabelRule from "../../Models/DatabaseModels/AlertLabelRule";
+import AlertOnCallRule from "../../Models/DatabaseModels/AlertOnCallRule";
+import AlertOwnerRule from "../../Models/DatabaseModels/AlertOwnerRule";
+import AlertOwnerTeam from "../../Models/DatabaseModels/AlertOwnerTeam";
+import AlertPrivacyRule from "../../Models/DatabaseModels/AlertPrivacyRule";
+import AutoRemediationRule from "../../Models/DatabaseModels/AutoRemediationRule";
+import CephClusterOwnerTeam from "../../Models/DatabaseModels/CephClusterOwnerTeam";
+import CloudBudget from "../../Models/DatabaseModels/CloudBudget";
+import CloudResourceOwnerTeam from "../../Models/DatabaseModels/CloudResourceOwnerTeam";
 import Dashboard from "../../Models/DatabaseModels/Dashboard";
+import DashboardOwnerTeam from "../../Models/DatabaseModels/DashboardOwnerTeam";
+import DataAssetOwnerTeam from "../../Models/DatabaseModels/DataAssetOwnerTeam";
+import DataStoreOwnerTeam from "../../Models/DatabaseModels/DataStoreOwnerTeam";
+import DatabaseServerOwnerTeam from "../../Models/DatabaseModels/DatabaseServerOwnerTeam";
+import DockerHostOwnerTeam from "../../Models/DatabaseModels/DockerHostOwnerTeam";
+import DockerSwarmClusterOwnerTeam from "../../Models/DatabaseModels/DockerSwarmClusterOwnerTeam";
+import HostOwnerTeam from "../../Models/DatabaseModels/HostOwnerTeam";
 import Incident from "../../Models/DatabaseModels/Incident";
+import IncidentEpisodeOnCallRule from "../../Models/DatabaseModels/IncidentEpisodeOnCallRule";
+import IncidentEpisodeOwnerTeam from "../../Models/DatabaseModels/IncidentEpisodeOwnerTeam";
+import IncidentGroupingRule from "../../Models/DatabaseModels/IncidentGroupingRule";
+import IncidentLabelRule from "../../Models/DatabaseModels/IncidentLabelRule";
+import IncidentOnCallRule from "../../Models/DatabaseModels/IncidentOnCallRule";
+import IncidentOwnerRule from "../../Models/DatabaseModels/IncidentOwnerRule";
+import IncidentOwnerTeam from "../../Models/DatabaseModels/IncidentOwnerTeam";
+import IncidentPrivacyRule from "../../Models/DatabaseModels/IncidentPrivacyRule";
+import IncidentSlaRule from "../../Models/DatabaseModels/IncidentSlaRule";
+import IncidentTemplate from "../../Models/DatabaseModels/IncidentTemplate";
+import IncidentTemplateOwnerTeam from "../../Models/DatabaseModels/IncidentTemplateOwnerTeam";
+import IncomingCallPolicyOwnerTeam from "../../Models/DatabaseModels/IncomingCallPolicyOwnerTeam";
+import IoTFleetOwnerTeam from "../../Models/DatabaseModels/IoTFleetOwnerTeam";
+import KubernetesClusterOwnerTeam from "../../Models/DatabaseModels/KubernetesClusterOwnerTeam";
+import MessageQueueOwnerTeam from "../../Models/DatabaseModels/MessageQueueOwnerTeam";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorGroup from "../../Models/DatabaseModels/MonitorGroup";
+import MonitorGroupOwnerTeam from "../../Models/DatabaseModels/MonitorGroupOwnerTeam";
 import MonitorGroupResource from "../../Models/DatabaseModels/MonitorGroupResource";
 import MonitorOwnerTeam from "../../Models/DatabaseModels/MonitorOwnerTeam";
+import NetworkDeviceOwnerTeam from "../../Models/DatabaseModels/NetworkDeviceOwnerTeam";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
+import OnCallDutyPolicyEscalationRule from "../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicyEscalationRuleSchedule from "../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
 import OnCallDutyPolicyEscalationRuleTeam from "../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleTeam";
 import OnCallDutyPolicyOwnerTeam from "../../Models/DatabaseModels/OnCallDutyPolicyOwnerTeam";
 import OnCallDutyPolicySchedule from "../../Models/DatabaseModels/OnCallDutyPolicySchedule";
 import OnCallDutyPolicyScheduleOwnerTeam from "../../Models/DatabaseModels/OnCallDutyPolicyScheduleOwnerTeam";
+import OpenStackCloudOwnerTeam from "../../Models/DatabaseModels/OpenStackCloudOwnerTeam";
+import PodmanHostOwnerTeam from "../../Models/DatabaseModels/PodmanHostOwnerTeam";
+import ProbeOwnerTeam from "../../Models/DatabaseModels/ProbeOwnerTeam";
+import ProxmoxClusterOwnerTeam from "../../Models/DatabaseModels/ProxmoxClusterOwnerTeam";
+import RumApplicationOwnerTeam from "../../Models/DatabaseModels/RumApplicationOwnerTeam";
+import RunbookOwnerTeam from "../../Models/DatabaseModels/RunbookOwnerTeam";
+import RunbookRule from "../../Models/DatabaseModels/RunbookRule";
+import RunnerOwnerTeam from "../../Models/DatabaseModels/RunnerOwnerTeam";
 import ScheduledMaintenance from "../../Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenanceLabelRule from "../../Models/DatabaseModels/ScheduledMaintenanceLabelRule";
+import ScheduledMaintenanceOwnerRule from "../../Models/DatabaseModels/ScheduledMaintenanceOwnerRule";
+import ScheduledMaintenanceOwnerTeam from "../../Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
 import ScheduledMaintenanceState from "../../Models/DatabaseModels/ScheduledMaintenanceState";
+import ScheduledMaintenanceTemplate from "../../Models/DatabaseModels/ScheduledMaintenanceTemplate";
+import ScheduledMaintenanceTemplateOwnerTeam from "../../Models/DatabaseModels/ScheduledMaintenanceTemplateOwnerTeam";
+import ServerlessFunctionOwnerTeam from "../../Models/DatabaseModels/ServerlessFunctionOwnerTeam";
 import Service from "../../Models/DatabaseModels/Service";
 import ServiceLevelObjective from "../../Models/DatabaseModels/ServiceLevelObjective";
+import ServiceLevelObjectiveBurnRateRule from "../../Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
+import ServiceLevelObjectiveErrorBudgetPolicyTier from "../../Models/DatabaseModels/ServiceLevelObjectiveErrorBudgetPolicyTier";
+import ServiceLevelObjectiveOwnerTeam from "../../Models/DatabaseModels/ServiceLevelObjectiveOwnerTeam";
 import ServiceOwnerTeam from "../../Models/DatabaseModels/ServiceOwnerTeam";
 import StatusPage from "../../Models/DatabaseModels/StatusPage";
+import StatusPageAnnouncementTemplate from "../../Models/DatabaseModels/StatusPageAnnouncementTemplate";
 import StatusPageOwnerTeam from "../../Models/DatabaseModels/StatusPageOwnerTeam";
 import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
+import StorageArrayOwnerTeam from "../../Models/DatabaseModels/StorageArrayOwnerTeam";
+import TeamOwnerTeam from "../../Models/DatabaseModels/TeamOwnerTeam";
+import VMwareVCenterOwnerTeam from "../../Models/DatabaseModels/VMwareVCenterOwnerTeam";
 import Workflow from "../../Models/DatabaseModels/Workflow";
+import WorkflowOwnerTeam from "../../Models/DatabaseModels/WorkflowOwnerTeam";
+import AutoRemediationTriggerEntity from "../../Types/AutoRemediation/AutoRemediationTriggerEntity";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
@@ -35,19 +98,27 @@ import PaymentRequiredException from "../../Types/Exception/PaymentRequiredExcep
 import ServerException from "../../Types/Exception/ServerException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
+import RunbookRuleTriggerEntity from "../../Types/Runbook/RunbookRuleTriggerEntity";
 import {
+  USED_BY_BULK_MAX_RECORDS,
   USED_BY_PREVIEW_ROW_COUNT,
+  UsedByBulkSummary,
+  UsedByCounts,
   UsedByGroup,
+  UsedByGroupPart,
   UsedByPage,
   UsedByRecordKind,
   UsedByRelation,
   UsedByRelationDescription,
   UsedByRow,
+  UsedByRowKind,
   UsedBySummary,
+  getUsedByBulkRelations,
   getUsedByRelations,
   normalizeUsedByPageSize,
   normalizeUsedBySkip,
 } from "../../Types/UsedBy/UsedBy";
+import ArrayUtil from "../../Utils/Array";
 import ScheduledMaintenanceStartUtil from "../../Utils/ScheduledMaintenanceStart";
 import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -58,25 +129,77 @@ import IncidentStatusPageScope, {
   StatusPageScopeTarget,
 } from "../Utils/StatusPage/IncidentStatusPageScope";
 import StatusPageVisibilityQuery from "../Utils/StatusPage/StatusPageVisibilityQuery";
+import AIAgentService from "./AIAgentService";
+import AIPostmortemRuleService from "./AIPostmortemRuleService";
+import AlertEpisodeOnCallRuleService from "./AlertEpisodeOnCallRuleService";
+import AlertEpisodeService from "./AlertEpisodeService";
+import AlertGroupingRuleService from "./AlertGroupingRuleService";
+import AlertIncidentRuleService from "./AlertIncidentRuleService";
+import AlertLabelRuleService from "./AlertLabelRuleService";
+import AlertOnCallRuleService from "./AlertOnCallRuleService";
+import AlertOwnerRuleService from "./AlertOwnerRuleService";
+import AlertPrivacyRuleService from "./AlertPrivacyRuleService";
 import AlertService from "./AlertService";
+import AutoRemediationRuleService from "./AutoRemediationRuleService";
+import CephClusterService from "./CephClusterService";
+import CloudBudgetService from "./CloudBudgetService";
+import CloudResourceService from "./CloudResourceService";
 import DashboardService from "./DashboardService";
+import DataAssetService from "./DataAssetService";
+import DataStoreService from "./DataStoreService";
+import DatabaseServerService from "./DatabaseServerService";
 import DatabaseService from "./DatabaseService";
+import DockerHostService from "./DockerHostService";
+import DockerSwarmClusterService from "./DockerSwarmClusterService";
+import HostService from "./HostService";
+import IncidentEpisodeOnCallRuleService from "./IncidentEpisodeOnCallRuleService";
+import IncidentEpisodeService from "./IncidentEpisodeService";
+import IncidentGroupingRuleService from "./IncidentGroupingRuleService";
+import IncidentLabelRuleService from "./IncidentLabelRuleService";
+import IncidentOnCallRuleService from "./IncidentOnCallRuleService";
+import IncidentOwnerRuleService from "./IncidentOwnerRuleService";
+import IncidentPrivacyRuleService from "./IncidentPrivacyRuleService";
 import IncidentService from "./IncidentService";
+import IncidentSlaRuleService from "./IncidentSlaRuleService";
 import IncidentStateService from "./IncidentStateService";
+import IncidentTemplateService from "./IncidentTemplateService";
+import IncomingCallPolicyService from "./IncomingCallPolicyService";
+import IoTFleetService from "./IoTFleetService";
+import KubernetesClusterService from "./KubernetesClusterService";
 import LabelService from "./LabelService";
+import MessageQueueService from "./MessageQueueService";
 import MonitorGroupResourceService from "./MonitorGroupResourceService";
 import MonitorGroupService from "./MonitorGroupService";
 import MonitorService from "./MonitorService";
+import NetworkDeviceService from "./NetworkDeviceService";
+import OnCallDutyPolicyEscalationRuleService from "./OnCallDutyPolicyEscalationRuleService";
 import OnCallDutyPolicyEscalationRuleScheduleService from "./OnCallDutyPolicyEscalationRuleScheduleService";
 import OnCallDutyPolicyEscalationRuleTeamService from "./OnCallDutyPolicyEscalationRuleTeamService";
 import OnCallDutyPolicyScheduleService from "./OnCallDutyPolicyScheduleService";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
+import OpenStackCloudService from "./OpenStackCloudService";
+import PodmanHostService from "./PodmanHostService";
+import ProbeService from "./ProbeService";
+import ProxmoxClusterService from "./ProxmoxClusterService";
+import RumApplicationService from "./RumApplicationService";
+import RunbookRuleService from "./RunbookRuleService";
+import RunbookService from "./RunbookService";
+import RunnerService from "./RunnerService";
+import ScheduledMaintenanceLabelRuleService from "./ScheduledMaintenanceLabelRuleService";
+import ScheduledMaintenanceOwnerRuleService from "./ScheduledMaintenanceOwnerRuleService";
 import ScheduledMaintenanceService from "./ScheduledMaintenanceService";
 import ScheduledMaintenanceStateService from "./ScheduledMaintenanceStateService";
+import ScheduledMaintenanceTemplateService from "./ScheduledMaintenanceTemplateService";
+import ServerlessFunctionService from "./ServerlessFunctionService";
+import ServiceLevelObjectiveBurnRateRuleService from "./ServiceLevelObjectiveBurnRateRuleService";
+import ServiceLevelObjectiveErrorBudgetPolicyTierService from "./ServiceLevelObjectiveErrorBudgetPolicyTierService";
 import ServiceLevelObjectiveService from "./ServiceLevelObjectiveService";
 import ServiceService from "./ServiceService";
+import StatusPageAnnouncementTemplateService from "./StatusPageAnnouncementTemplateService";
 import StatusPageService from "./StatusPageService";
+import StorageArrayService from "./StorageArrayService";
 import TeamService from "./TeamService";
+import VMwareVCenterService from "./VMwareVCenterService";
 import WorkflowService from "./WorkflowService";
 
 /*
@@ -93,14 +216,26 @@ import WorkflowService from "./WorkflowService";
  * OneUptime, narrowed to the project, for the total: the difference is
  * what the reader may not see, which is counted and never named.
  *
- * READS STAY BOUNDED, however many records refer to one: per relation one
- * COUNT as OneUptime, one COUNT as the reader (skipped when the total is
- * 0), and the first USED_BY_PREVIEW_ROW_COUNT rows (skipped when the
- * reader may see none). The rest of a relation is read a page at a time
- * (getPage), at most USED_BY_MAX_PAGE_SIZE rows. A reference is written as
- * a condition on the referring row's own id - `_id IN (SELECT ... FROM
- * <join table> WHERE <column> = :id)` - never as a join, so a count is one
- * row per record and a page never repeats one.
+ * A FAMILY (the rules that name a monitor, everything else a team owns) is
+ * several of those plans counted as one line: each kind of record read
+ * through its own service, its counts summed, its rows read kind by kind.
+ *
+ * READS STAY BOUNDED, however many records refer to one: per kind of
+ * record one COUNT as OneUptime, one COUNT as the reader (skipped when the
+ * total is 0), and the first USED_BY_PREVIEW_ROW_COUNT rows across a
+ * relation's kinds (skipped where the reader may see none) - a family's
+ * kinds are counted a few at a time (USED_BY_FAMILY_CONCURRENCY) so one
+ * card never takes the connection pool. The rest of a relation is read a
+ * page at a time (getPage), at most USED_BY_MAX_PAGE_SIZE rows, each kind's
+ * page in turn, skipped over by their counts. A reference is written as a
+ * condition on the referring row's own id - `_id IN (SELECT ... FROM <join
+ * table> WHERE <column> IN (:ids))` - never as a join, so a count is one row
+ * per record and a page never repeats one.
+ *
+ * SEVERAL RECORDS AT ONCE (getSummaries, for a list's bulk Delete and
+ * Archive): every condition takes the list of ids, so each relation is
+ * counted once for all of them - a record that refers to two of them is
+ * one record - with no rows read.
  *
  * Archived records are left out wherever a model can be archived: they
  * are retired, hidden from their lists, and change nothing.
@@ -110,9 +245,16 @@ export const USED_BY_ROOT_PROPS: DatabaseCommonInteractionProps = {
   isRoot: true,
 };
 
+// How many kinds of a family are counted at the same time.
+export const USED_BY_FAMILY_CONCURRENCY: number = 4;
+
 export interface UsedByReadContext {
   projectId: ObjectID;
-  recordId: ObjectID;
+  /*
+   * The records asked about: the one a page is about, or a list's selection
+   * (getSummaries). Every relation's condition reads all of them.
+   */
+  recordIds: Array<ObjectID>;
   // The reader's props: what they may see is read with these.
   props: DatabaseCommonInteractionProps;
   // When the read is made: maintenance "coming up" is after this.
@@ -128,10 +270,11 @@ export interface UsedByFindData {
 }
 
 /*
- * How one relation is read for one record. A plain relation is a query on
- * `service`'s model; a relation that cannot be one query (the incidents a
- * status page shows, which only IncidentStatusPageScope decides) gives
- * `count` and `find` instead, each handed the props to read with.
+ * How one kind of record that refers is read for the records asked about.
+ * A plain plan is a query on `service`'s model; a relation that cannot be
+ * one query (the incidents a status page shows, which only
+ * IncidentStatusPageScope decides) gives `count` and `find` instead, each
+ * handed the props to read with.
  */
 export interface UsedByReadPlan {
   service: DatabaseService<BaseModel>;
@@ -160,11 +303,44 @@ export interface UsedByReadPlan {
         props: DatabaseCommonInteractionProps;
       }) => Promise<Dictionary<string>>)
     | undefined;
+  /*
+   * A family's kind: the kind of record its rows are, said on each row.
+   * Required of every plan of a family.
+   */
+  rowKind?: UsedByRowKind | undefined;
+  /*
+   * A row's kind by one of its columns, where one model's rows open
+   * different pages: a runbook rule's by what triggers it. A value it does
+   * not list keeps `rowKind`.
+   */
+  rowKindByColumn?:
+    | { column: string; rowKinds: Dictionary<UsedByRowKind> }
+    | undefined;
+  /*
+   * The column naming the record whose page opens a row, when that is not
+   * the row: an SLO's burn-rate rule opens its SLO's page.
+   */
+  linkIdColumn?: string | undefined;
+  /*
+   * The column that says a row does nothing now, and the value that means
+   * so: a rule's isEnabled false, a monitor's disableActiveMonitoring true.
+   */
+  offWhen?: { column: string; value: boolean } | undefined;
 }
 
 export interface UsedByRelationDefinition {
   relation: UsedByRelation;
-  getPlan: (context: UsedByReadContext) => Promise<UsedByReadPlan>;
+  // A relation of one kind of record.
+  getPlan?:
+    | ((context: UsedByReadContext) => Promise<UsedByReadPlan>)
+    | undefined;
+  /*
+   * A family: one plan per kind of record it counts together, in the order
+   * its rows are read, each with its rowKind.
+   */
+  getFamilyPlans?:
+    | ((context: UsedByReadContext) => Promise<Array<UsedByReadPlan>>)
+    | undefined;
 }
 
 type ModelType = { new (): BaseModel };
@@ -239,6 +415,29 @@ export function listHoldsAny(
 }
 
 /*
+ * The records of `modelType` any of whose lists `propertyNames` holds one
+ * of `values` - an SLO burn-rate rule pages a policy for its alerts or its
+ * incidents: one condition on their own id.
+ */
+export function anyListHoldsAny(
+  modelType: ModelType,
+  propertyNames: Array<string>,
+  values: Array<ObjectID>,
+): unknown {
+  if (propertyNames.length === 1) {
+    return listHoldsAny(modelType, propertyNames[0] as string, values);
+  }
+
+  return QueryHelper.anyOfConditions(
+    propertyNames.map((propertyName: string) => {
+      return {
+        condition: listHoldsAny(modelType, propertyName, values) as any,
+      };
+    }),
+  );
+}
+
+/*
  * The records named by `ownerColumn` of the rows of `joinModel` whose
  * `referenceColumn` is one of `values` - the status pages (statusPageId)
  * of the StatusPageResource rows that list a monitor (monitorId): a
@@ -284,6 +483,15 @@ export function withoutArchived(
   return query;
 }
 
+// A rule that can be switched off says so on its row.
+function offWhenSwitchedOff(
+  service: DatabaseService<BaseModel>,
+): UsedByReadPlan["offWhen"] {
+  return service.getModel().getTableColumnMetadata("isEnabled")
+    ? { column: "isEnabled", value: false }
+    : undefined;
+}
+
 // A plain relation: the rows of `service` matching `query`, by name.
 function plainPlan(data: {
   service: DatabaseService<BaseModel>;
@@ -292,6 +500,10 @@ function plainPlan(data: {
   numberColumn?: string | undefined;
   sort?: Sort<BaseModel> | undefined;
   getDetails?: UsedByReadPlan["getDetails"];
+  rowKind?: UsedByRowKind | undefined;
+  rowKindByColumn?: UsedByReadPlan["rowKindByColumn"];
+  linkIdColumn?: string | undefined;
+  offWhen?: UsedByReadPlan["offWhen"];
 }): UsedByReadPlan {
   return {
     service: data.service,
@@ -302,13 +514,20 @@ function plainPlan(data: {
     numberColumn: data.numberColumn,
     sort: data.sort,
     getDetails: data.getDetails,
+    rowKind: data.rowKind,
+    rowKindByColumn: data.rowKindByColumn,
+    linkIdColumn: data.linkIdColumn,
+    offWhen: data.offWhen,
   };
 }
 
 /*
  * The escalation rules of each policy that page the record, by policy id:
- * "Primary, Second line", in the order the rules escalate. Read with the
- * reader's props; a rule they may not read is left out.
+ * "Primary, Second line", in the order the rules escalate. Two reads, each
+ * with the reader's props: which rules of the policies name the record,
+ * then those rules by id - a rule's order is not a column a read through
+ * a relation may select, so reading it that way refused the whole card.
+ * A rule they may not read is left out.
  */
 async function getEscalationRuleNames(data: {
   service: DatabaseService<BaseModel>;
@@ -321,36 +540,66 @@ async function getEscalationRuleNames(data: {
     return {};
   }
 
-  const rows: Array<BaseModel> = await data.service.findBy({
+  const links: Array<BaseModel> = await data.service.findBy({
     query: asQuery({
       projectId: data.context.projectId,
-      [data.recordColumn]: data.context.recordId,
+      [data.recordColumn]: QueryHelper.any(data.context.recordIds),
       onCallDutyPolicyId: QueryHelper.any(data.rowIds),
     }),
     select: {
       onCallDutyPolicyId: true,
-      onCallDutyPolicyEscalationRule: {
-        name: true,
-        order: true,
-      },
+      onCallDutyPolicyEscalationRuleId: true,
     } as Select<BaseModel>,
     skip: 0,
     limit: LIMIT_PER_PROJECT,
     props: data.props,
   });
 
+  const ruleIds: Array<ObjectID> = toIds(
+    links,
+    (link: BaseModel): ObjectID | null => {
+      const id: string = readIdText(link, "onCallDutyPolicyEscalationRuleId");
+      return id ? new ObjectID(id) : null;
+    },
+  );
+
+  if (ruleIds.length === 0) {
+    return {};
+  }
+
+  const escalationRules: Array<OnCallDutyPolicyEscalationRule> =
+    await OnCallDutyPolicyEscalationRuleService.findBy({
+      query: {
+        projectId: data.context.projectId,
+        _id: QueryHelper.any(ruleIds),
+      },
+      select: {
+        _id: true,
+        name: true,
+        order: true,
+      },
+      skip: 0,
+      limit: ruleIds.length,
+      props: data.props,
+    });
+
+  const ruleById: Dictionary<OnCallDutyPolicyEscalationRule> = {};
+
+  for (const escalationRule of escalationRules) {
+    if (escalationRule.id) {
+      ruleById[escalationRule.id.toString()] = escalationRule;
+    }
+  }
+
   const rulesByPolicy: Dictionary<Array<{ name: string; order: number }>> = {};
 
-  for (const row of rows) {
-    const policyId: string = String(
-      (row as unknown as Dictionary<unknown>)["onCallDutyPolicyId"] || "",
-    );
-    const rule: Dictionary<unknown> | undefined = (
-      row as unknown as Dictionary<unknown>
-    )["onCallDutyPolicyEscalationRule"] as Dictionary<unknown> | undefined;
-    const name: string = String(rule?.["name"] || "").trim();
+  for (const link of links) {
+    const policyId: string = readIdText(link, "onCallDutyPolicyId");
+    const rule: OnCallDutyPolicyEscalationRule | undefined =
+      ruleById[readIdText(link, "onCallDutyPolicyEscalationRuleId")];
+    const name: string = String(rule?.name || "").trim();
 
-    if (!policyId || !name) {
+    if (!policyId || !rule || !name) {
       continue;
     }
 
@@ -362,7 +611,7 @@ async function getEscalationRuleNames(data: {
         return each.name === name;
       })
     ) {
-      rules.push({ name: name, order: Number(rule?.["order"]) || 0 });
+      rules.push({ name: name, order: Number(rule.order) || 0 });
     }
 
     rulesByPolicy[policyId] = rules;
@@ -389,7 +638,42 @@ async function getEscalationRuleNames(data: {
   return details;
 }
 
-// The ids of the monitor groups a monitor is in, read as OneUptime.
+// The ids, each once, in their order.
+export function uniqueIds(ids: Array<ObjectID>): Array<ObjectID> {
+  const seen: Set<string> = new Set<string>();
+
+  return ids.filter((id: ObjectID): boolean => {
+    const text: string = id.toString().toLowerCase();
+
+    if (seen.has(text)) {
+      return false;
+    }
+
+    seen.add(text);
+    return true;
+  });
+}
+
+function toIds<TModel extends BaseModel>(
+  models: Array<TModel>,
+  read: (model: TModel) => ObjectID | null | undefined,
+): Array<ObjectID> {
+  const seen: Set<string> = new Set<string>();
+  const ids: Array<ObjectID> = [];
+
+  for (const model of models) {
+    const id: ObjectID | null | undefined = read(model);
+
+    if (id && !seen.has(id.toString())) {
+      seen.add(id.toString());
+      ids.push(id);
+    }
+  }
+
+  return ids;
+}
+
+// The ids of the monitor groups the monitors are in, read as OneUptime.
 async function getMonitorGroupIdsOf(
   context: UsedByReadContext,
 ): Promise<Array<ObjectID>> {
@@ -397,7 +681,7 @@ async function getMonitorGroupIdsOf(
     await MonitorGroupResourceService.findBy({
       query: {
         projectId: context.projectId,
-        monitorId: context.recordId,
+        monitorId: QueryHelper.any(context.recordIds),
       },
       select: {
         monitorGroupId: true,
@@ -407,16 +691,35 @@ async function getMonitorGroupIdsOf(
       props: USED_BY_ROOT_PROPS,
     });
 
-  return rows
-    .map((row: MonitorGroupResource): ObjectID | undefined => {
-      return row.monitorGroupId;
-    })
-    .filter((id: ObjectID | undefined): id is ObjectID => {
-      return Boolean(id);
-    });
+  return toIds(rows, (row: MonitorGroupResource): ObjectID | undefined => {
+    return row.monitorGroupId;
+  });
 }
 
-// The ids of the monitors watching a service, read as OneUptime.
+// The ids of the monitors in the monitor groups, read as OneUptime.
+async function getMonitorIdsInGroups(
+  context: UsedByReadContext,
+): Promise<Array<ObjectID>> {
+  const rows: Array<MonitorGroupResource> =
+    await MonitorGroupResourceService.findBy({
+      query: {
+        projectId: context.projectId,
+        monitorGroupId: QueryHelper.any(context.recordIds),
+      },
+      select: {
+        monitorId: true,
+      },
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+      props: USED_BY_ROOT_PROPS,
+    });
+
+  return toIds(rows, (row: MonitorGroupResource): ObjectID | undefined => {
+    return row.monitorId;
+  });
+}
+
+// The ids of the monitors watching the services, read as OneUptime.
 async function getMonitorIdsWatching(
   context: UsedByReadContext,
 ): Promise<Array<ObjectID>> {
@@ -424,7 +727,7 @@ async function getMonitorIdsWatching(
     query: asQuery<Monitor>({
       projectId: context.projectId,
       isArchived: false,
-      _id: listHoldsAny(Monitor, "services", [context.recordId]),
+      _id: listHoldsAny(Monitor, "services", context.recordIds),
     }),
     select: {
       _id: true,
@@ -434,13 +737,9 @@ async function getMonitorIdsWatching(
     props: USED_BY_ROOT_PROPS,
   });
 
-  return monitors
-    .map((monitor: Monitor): ObjectID | null => {
-      return monitor.id;
-    })
-    .filter((id: ObjectID | null): id is ObjectID => {
-      return Boolean(id);
-    });
+  return toIds(monitors, (monitor: Monitor): ObjectID | null => {
+    return monitor.id;
+  });
 }
 
 /*
@@ -467,13 +766,41 @@ async function getUpcomingOrOngoingStateIds(
   ];
 }
 
+// How the records a team can own are named, by kind.
+interface NamedBy {
+  nameColumn?: string | undefined;
+  numberColumn?: string | undefined;
+  sort?: Sort<BaseModel> | undefined;
+}
+
+const NEWEST_FIRST: Sort<BaseModel> = {
+  createdAt: SortOrder.Descending,
+};
+
+const SOONEST_FIRST: Sort<BaseModel> = {
+  startsAt: SortOrder.Ascending,
+} as Sort<BaseModel>;
+
+// A template is named by its template name.
+const TEMPLATE_NAMED: NamedBy = { nameColumn: "templateName" };
+
+function eventNamed(numberColumn: string): NamedBy {
+  return {
+    nameColumn: "title",
+    numberColumn: numberColumn,
+    sort: NEWEST_FIRST,
+  };
+}
+
 // The team owns these: the records of `ownerTeamModel` that name it.
 function ownedByTeam(data: {
   service: DatabaseService<BaseModel>;
   ownerTeamModel: ModelType;
   ownerColumn: string;
-}): (context: UsedByReadContext) => Promise<UsedByReadPlan> {
-  return async (context: UsedByReadContext): Promise<UsedByReadPlan> => {
+  rowKind?: UsedByRowKind | undefined;
+  namedBy?: NamedBy | undefined;
+}): (context: UsedByReadContext) => UsedByReadPlan {
+  return (context: UsedByReadContext): UsedByReadPlan => {
     return plainPlan({
       service: data.service,
       query: {
@@ -481,9 +808,11 @@ function ownedByTeam(data: {
           joinModel: data.ownerTeamModel,
           ownerColumn: data.ownerColumn,
           referenceColumn: "teamId",
-          values: [context.recordId],
+          values: context.recordIds,
         }),
       },
+      rowKind: data.rowKind,
+      ...(data.namedBy || {}),
     });
   };
 }
@@ -500,7 +829,7 @@ function carriesLabel(data: {
     return plainPlan({
       service: data.service,
       query: {
-        _id: listHoldsAny(data.modelType, "labels", [context.recordId]),
+        _id: listHoldsAny(data.modelType, "labels", context.recordIds),
       },
       nameColumn: data.nameColumn,
       numberColumn: data.numberColumn,
@@ -509,13 +838,504 @@ function carriesLabel(data: {
   };
 }
 
-const NEWEST_FIRST: Sort<BaseModel> = {
-  createdAt: SortOrder.Descending,
-};
+/*
+ * A family's kind that names the records in one of its lists - a rule's
+ * `monitors`, a template's `onCallDutyPolicies`: switched-off rules said so.
+ */
+function naming(data: {
+  service: DatabaseService<BaseModel>;
+  modelType: ModelType;
+  lists: Array<string>;
+  rowKind: UsedByRowKind;
+  rowKindByColumn?: UsedByReadPlan["rowKindByColumn"];
+  linkIdColumn?: string | undefined;
+  namedBy?: NamedBy | undefined;
+}): (context: UsedByReadContext) => UsedByReadPlan {
+  return (context: UsedByReadContext): UsedByReadPlan => {
+    return plainPlan({
+      service: data.service,
+      query: {
+        _id: anyListHoldsAny(data.modelType, data.lists, context.recordIds),
+      },
+      rowKind: data.rowKind,
+      rowKindByColumn: data.rowKindByColumn,
+      linkIdColumn: data.linkIdColumn,
+      offWhen: offWhenSwitchedOff(data.service),
+      ...(data.namedBy || {}),
+    });
+  };
+}
 
-const SOONEST_FIRST: Sort<BaseModel> = {
-  startsAt: SortOrder.Ascending,
-} as Sort<BaseModel>;
+// A family read from plans that need nothing but the records asked about.
+function familyOf(
+  builders: Array<(context: UsedByReadContext) => UsedByReadPlan>,
+): (context: UsedByReadContext) => Promise<Array<UsedByReadPlan>> {
+  return async (context: UsedByReadContext): Promise<Array<UsedByReadPlan>> => {
+    return builders.map(
+      (build: (context: UsedByReadContext) => UsedByReadPlan) => {
+        return build(context);
+      },
+    );
+  };
+}
+
+/*
+ * The rules limited to particular monitors, in MONITOR_RULE_ROW_KINDS's
+ * order. An AI rule and a runbook rule open the page of what triggers them.
+ */
+export const MONITOR_RULE_PLANS: Array<
+  (context: UsedByReadContext) => UsedByReadPlan
+> = [
+  naming({
+    service: asService(IncidentOnCallRuleService),
+    modelType: IncidentOnCallRule,
+    lists: ["monitors"],
+    rowKind: UsedByRowKind.IncidentOnCallRule,
+  }),
+  naming({
+    service: asService(AlertOnCallRuleService),
+    modelType: AlertOnCallRule,
+    lists: ["monitors"],
+    rowKind: UsedByRowKind.AlertOnCallRule,
+  }),
+  naming({
+    service: asService(IncidentGroupingRuleService),
+    modelType: IncidentGroupingRule,
+    lists: ["monitors"],
+    rowKind: UsedByRowKind.IncidentGroupingRule,
+  }),
+  naming({
+    service: asService(AlertGroupingRuleService),
+    modelType: AlertGroupingRule,
+    lists: ["monitors"],
+    rowKind: UsedByRowKind.AlertGroupingRule,
+  }),
+  naming({
+    service: asService(IncidentOwnerRuleService),
+    modelType: IncidentOwnerRule,
+    lists: ["monitors"],
+    rowKind: UsedByRowKind.IncidentOwnerRule,
+  }),
+  naming({
+    service: asService(AlertOwnerRuleService),
+    modelType: AlertOwnerRule,
+    lists: ["monitors"],
+    rowKind: UsedByRowKind.AlertOwnerRule,
+  }),
+  naming({
+    service: asService(IncidentLabelRuleService),
+    modelType: IncidentLabelRule,
+    lists: ["monitors"],
+    rowKind: UsedByRowKind.IncidentLabelRule,
+  }),
+  naming({
+    service: asService(AlertLabelRuleService),
+    modelType: AlertLabelRule,
+    lists: ["monitors"],
+    rowKind: UsedByRowKind.AlertLabelRule,
+  }),
+  naming({
+    service: asService(IncidentPrivacyRuleService),
+    modelType: IncidentPrivacyRule,
+    lists: ["monitors"],
+    rowKind: UsedByRowKind.IncidentPrivacyRule,
+  }),
+  naming({
+    service: asService(AlertPrivacyRuleService),
+    modelType: AlertPrivacyRule,
+    lists: ["monitors"],
+    rowKind: UsedByRowKind.AlertPrivacyRule,
+  }),
+  naming({
+    service: asService(IncidentSlaRuleService),
+    modelType: IncidentSlaRule,
+    lists: ["monitors"],
+    rowKind: UsedByRowKind.IncidentSlaRule,
+  }),
+  naming({
+    service: asService(AlertIncidentRuleService),
+    modelType: AlertIncidentRule,
+    lists: ["monitors"],
+    rowKind: UsedByRowKind.AlertIncidentRule,
+  }),
+  naming({
+    service: asService(AutoRemediationRuleService),
+    modelType: AutoRemediationRule,
+    lists: ["monitors"],
+    rowKind: UsedByRowKind.IncidentAiRule,
+    rowKindByColumn: {
+      column: "triggerEntityType",
+      rowKinds: {
+        [AutoRemediationTriggerEntity.Incident]: UsedByRowKind.IncidentAiRule,
+        [AutoRemediationTriggerEntity.Alert]: UsedByRowKind.AlertAiRule,
+      },
+    },
+  }),
+  naming({
+    service: asService(RunbookRuleService),
+    modelType: RunbookRule,
+    lists: ["monitors"],
+    rowKind: UsedByRowKind.IncidentRunbookRule,
+    rowKindByColumn: {
+      column: "triggerEntityType",
+      rowKinds: {
+        [RunbookRuleTriggerEntity.Incident]: UsedByRowKind.IncidentRunbookRule,
+        [RunbookRuleTriggerEntity.Alert]: UsedByRowKind.AlertRunbookRule,
+        [RunbookRuleTriggerEntity.ScheduledMaintenance]:
+          UsedByRowKind.MaintenanceRunbookRule,
+      },
+    },
+  }),
+  naming({
+    service: asService(AIPostmortemRuleService),
+    modelType: AIPostmortemRule,
+    lists: ["monitors"],
+    rowKind: UsedByRowKind.PostmortemRule,
+  }),
+  naming({
+    service: asService(ScheduledMaintenanceOwnerRuleService),
+    modelType: ScheduledMaintenanceOwnerRule,
+    lists: ["monitors"],
+    rowKind: UsedByRowKind.MaintenanceOwnerRule,
+  }),
+  naming({
+    service: asService(ScheduledMaintenanceLabelRuleService),
+    modelType: ScheduledMaintenanceLabelRule,
+    lists: ["monitors"],
+    rowKind: UsedByRowKind.MaintenanceLabelRule,
+  }),
+];
+
+// The templates that name monitors, in MONITOR_TEMPLATE_ROW_KINDS's order.
+export const MONITOR_TEMPLATE_PLANS: Array<
+  (context: UsedByReadContext) => UsedByReadPlan
+> = [
+  naming({
+    service: asService(IncidentTemplateService),
+    modelType: IncidentTemplate,
+    lists: ["monitors"],
+    rowKind: UsedByRowKind.IncidentTemplate,
+    namedBy: TEMPLATE_NAMED,
+  }),
+  naming({
+    service: asService(ScheduledMaintenanceTemplateService),
+    modelType: ScheduledMaintenanceTemplate,
+    lists: ["monitors"],
+    rowKind: UsedByRowKind.MaintenanceTemplate,
+    namedBy: TEMPLATE_NAMED,
+  }),
+  naming({
+    service: asService(StatusPageAnnouncementTemplateService),
+    modelType: StatusPageAnnouncementTemplate,
+    lists: ["monitors"],
+    rowKind: UsedByRowKind.AnnouncementTemplate,
+    namedBy: TEMPLATE_NAMED,
+  }),
+];
+
+// Everything else a team owns, in TEAM_OWNED_OTHER_ROW_KINDS's order.
+export const TEAM_OWNED_OTHER_PLANS: Array<
+  (context: UsedByReadContext) => UsedByReadPlan
+> = [
+  ownedByTeam({
+    service: asService(ServiceLevelObjectiveService),
+    ownerTeamModel: ServiceLevelObjectiveOwnerTeam,
+    ownerColumn: "serviceLevelObjectiveId",
+    rowKind: UsedByRowKind.ServiceLevelObjective,
+  }),
+  ownedByTeam({
+    service: asService(DashboardService),
+    ownerTeamModel: DashboardOwnerTeam,
+    ownerColumn: "dashboardId",
+    rowKind: UsedByRowKind.Dashboard,
+  }),
+  ownedByTeam({
+    service: asService(WorkflowService),
+    ownerTeamModel: WorkflowOwnerTeam,
+    ownerColumn: "workflowId",
+    rowKind: UsedByRowKind.Workflow,
+  }),
+  ownedByTeam({
+    service: asService(MonitorGroupService),
+    ownerTeamModel: MonitorGroupOwnerTeam,
+    ownerColumn: "monitorGroupId",
+    rowKind: UsedByRowKind.MonitorGroup,
+  }),
+  ownedByTeam({
+    service: asService(RunbookService),
+    ownerTeamModel: RunbookOwnerTeam,
+    ownerColumn: "runbookId",
+    rowKind: UsedByRowKind.Runbook,
+  }),
+  ownedByTeam({
+    service: asService(IncidentTemplateService),
+    ownerTeamModel: IncidentTemplateOwnerTeam,
+    ownerColumn: "incidentTemplateId",
+    rowKind: UsedByRowKind.IncidentTemplate,
+    namedBy: TEMPLATE_NAMED,
+  }),
+  ownedByTeam({
+    service: asService(ScheduledMaintenanceTemplateService),
+    ownerTeamModel: ScheduledMaintenanceTemplateOwnerTeam,
+    ownerColumn: "scheduledMaintenanceTemplateId",
+    rowKind: UsedByRowKind.MaintenanceTemplate,
+    namedBy: TEMPLATE_NAMED,
+  }),
+  ownedByTeam({
+    service: asService(IncomingCallPolicyService),
+    ownerTeamModel: IncomingCallPolicyOwnerTeam,
+    ownerColumn: "incomingCallPolicyId",
+    rowKind: UsedByRowKind.IncomingCallPolicy,
+  }),
+  ownedByTeam({
+    service: asService(TeamService),
+    ownerTeamModel: TeamOwnerTeam,
+    ownerColumn: "ownedTeamId",
+    rowKind: UsedByRowKind.Team,
+  }),
+  ownedByTeam({
+    service: asService(HostService),
+    ownerTeamModel: HostOwnerTeam,
+    ownerColumn: "hostId",
+    rowKind: UsedByRowKind.Host,
+  }),
+  ownedByTeam({
+    service: asService(KubernetesClusterService),
+    ownerTeamModel: KubernetesClusterOwnerTeam,
+    ownerColumn: "kubernetesClusterId",
+    rowKind: UsedByRowKind.KubernetesCluster,
+  }),
+  ownedByTeam({
+    service: asService(DockerHostService),
+    ownerTeamModel: DockerHostOwnerTeam,
+    ownerColumn: "dockerHostId",
+    rowKind: UsedByRowKind.DockerHost,
+  }),
+  ownedByTeam({
+    service: asService(DockerSwarmClusterService),
+    ownerTeamModel: DockerSwarmClusterOwnerTeam,
+    ownerColumn: "dockerSwarmClusterId",
+    rowKind: UsedByRowKind.DockerSwarmCluster,
+  }),
+  ownedByTeam({
+    service: asService(PodmanHostService),
+    ownerTeamModel: PodmanHostOwnerTeam,
+    ownerColumn: "podmanHostId",
+    rowKind: UsedByRowKind.PodmanHost,
+  }),
+  ownedByTeam({
+    service: asService(ProxmoxClusterService),
+    ownerTeamModel: ProxmoxClusterOwnerTeam,
+    ownerColumn: "proxmoxClusterId",
+    rowKind: UsedByRowKind.ProxmoxCluster,
+  }),
+  ownedByTeam({
+    service: asService(OpenStackCloudService),
+    ownerTeamModel: OpenStackCloudOwnerTeam,
+    ownerColumn: "openStackCloudId",
+    rowKind: UsedByRowKind.OpenStackCloud,
+  }),
+  ownedByTeam({
+    service: asService(VMwareVCenterService),
+    ownerTeamModel: VMwareVCenterOwnerTeam,
+    ownerColumn: "vmwareVCenterId",
+    rowKind: UsedByRowKind.VMwareVCenter,
+  }),
+  ownedByTeam({
+    service: asService(CephClusterService),
+    ownerTeamModel: CephClusterOwnerTeam,
+    ownerColumn: "cephClusterId",
+    rowKind: UsedByRowKind.CephCluster,
+  }),
+  ownedByTeam({
+    service: asService(StorageArrayService),
+    ownerTeamModel: StorageArrayOwnerTeam,
+    ownerColumn: "storageArrayId",
+    rowKind: UsedByRowKind.StorageArray,
+  }),
+  ownedByTeam({
+    service: asService(NetworkDeviceService),
+    ownerTeamModel: NetworkDeviceOwnerTeam,
+    ownerColumn: "networkDeviceId",
+    rowKind: UsedByRowKind.NetworkDevice,
+  }),
+  ownedByTeam({
+    service: asService(IoTFleetService),
+    ownerTeamModel: IoTFleetOwnerTeam,
+    ownerColumn: "iotFleetId",
+    rowKind: UsedByRowKind.IoTFleet,
+  }),
+  ownedByTeam({
+    service: asService(CloudResourceService),
+    ownerTeamModel: CloudResourceOwnerTeam,
+    ownerColumn: "cloudResourceId",
+    rowKind: UsedByRowKind.CloudResource,
+  }),
+  ownedByTeam({
+    service: asService(ServerlessFunctionService),
+    ownerTeamModel: ServerlessFunctionOwnerTeam,
+    ownerColumn: "serverlessFunctionId",
+    rowKind: UsedByRowKind.ServerlessFunction,
+  }),
+  ownedByTeam({
+    service: asService(DatabaseServerService),
+    ownerTeamModel: DatabaseServerOwnerTeam,
+    ownerColumn: "databaseServerId",
+    rowKind: UsedByRowKind.DatabaseServer,
+  }),
+  ownedByTeam({
+    service: asService(MessageQueueService),
+    ownerTeamModel: MessageQueueOwnerTeam,
+    ownerColumn: "messageQueueId",
+    rowKind: UsedByRowKind.MessageQueue,
+  }),
+  ownedByTeam({
+    service: asService(RumApplicationService),
+    ownerTeamModel: RumApplicationOwnerTeam,
+    ownerColumn: "rumApplicationId",
+    rowKind: UsedByRowKind.RumApplication,
+  }),
+  ownedByTeam({
+    service: asService(DataStoreService),
+    ownerTeamModel: DataStoreOwnerTeam,
+    ownerColumn: "dataStoreId",
+    rowKind: UsedByRowKind.DataStore,
+  }),
+  ownedByTeam({
+    service: asService(DataAssetService),
+    ownerTeamModel: DataAssetOwnerTeam,
+    ownerColumn: "dataAssetId",
+    rowKind: UsedByRowKind.DataAsset,
+  }),
+  ownedByTeam({
+    service: asService(ProbeService),
+    ownerTeamModel: ProbeOwnerTeam,
+    ownerColumn: "probeId",
+    rowKind: UsedByRowKind.Probe,
+  }),
+  ownedByTeam({
+    service: asService(RunnerService),
+    ownerTeamModel: RunnerOwnerTeam,
+    ownerColumn: "runnerId",
+    rowKind: UsedByRowKind.Runner,
+  }),
+  ownedByTeam({
+    service: asService(AIAgentService),
+    ownerTeamModel: AIAgentOwnerTeam,
+    ownerColumn: "aiAgentId",
+    rowKind: UsedByRowKind.AIAgent,
+  }),
+  ownedByTeam({
+    service: asService(IncidentService),
+    ownerTeamModel: IncidentOwnerTeam,
+    ownerColumn: "incidentId",
+    rowKind: UsedByRowKind.Incident,
+    namedBy: eventNamed("incidentNumberWithPrefix"),
+  }),
+  ownedByTeam({
+    service: asService(IncidentEpisodeService),
+    ownerTeamModel: IncidentEpisodeOwnerTeam,
+    ownerColumn: "incidentEpisodeId",
+    rowKind: UsedByRowKind.IncidentEpisode,
+    namedBy: eventNamed("episodeNumberWithPrefix"),
+  }),
+  ownedByTeam({
+    service: asService(AlertService),
+    ownerTeamModel: AlertOwnerTeam,
+    ownerColumn: "alertId",
+    rowKind: UsedByRowKind.Alert,
+    namedBy: eventNamed("alertNumberWithPrefix"),
+  }),
+  ownedByTeam({
+    service: asService(AlertEpisodeService),
+    ownerTeamModel: AlertEpisodeOwnerTeam,
+    ownerColumn: "alertEpisodeId",
+    rowKind: UsedByRowKind.AlertEpisode,
+    namedBy: eventNamed("episodeNumberWithPrefix"),
+  }),
+  ownedByTeam({
+    service: asService(ScheduledMaintenanceService),
+    ownerTeamModel: ScheduledMaintenanceOwnerTeam,
+    ownerColumn: "scheduledMaintenanceId",
+    rowKind: UsedByRowKind.ScheduledMaintenance,
+    namedBy: eventNamed("scheduledMaintenanceNumberWithPrefix"),
+  }),
+];
+
+// The on-call rules that page a policy, in ON_CALL_POLICY_RULE_ROW_KINDS's order.
+export const ON_CALL_POLICY_RULE_PLANS: Array<
+  (context: UsedByReadContext) => UsedByReadPlan
+> = [
+  naming({
+    service: asService(IncidentOnCallRuleService),
+    modelType: IncidentOnCallRule,
+    lists: ["onCallDutyPolicies"],
+    rowKind: UsedByRowKind.IncidentOnCallRule,
+  }),
+  naming({
+    service: asService(AlertOnCallRuleService),
+    modelType: AlertOnCallRule,
+    lists: ["onCallDutyPolicies"],
+    rowKind: UsedByRowKind.AlertOnCallRule,
+  }),
+  naming({
+    service: asService(IncidentEpisodeOnCallRuleService),
+    modelType: IncidentEpisodeOnCallRule,
+    lists: ["onCallDutyPolicies"],
+    rowKind: UsedByRowKind.IncidentEpisodeOnCallRule,
+  }),
+  naming({
+    service: asService(AlertEpisodeOnCallRuleService),
+    modelType: AlertEpisodeOnCallRule,
+    lists: ["onCallDutyPolicies"],
+    rowKind: UsedByRowKind.AlertEpisodeOnCallRule,
+  }),
+];
+
+// Everything else that pages a policy, in ON_CALL_POLICY_OTHER_ROW_KINDS's order.
+export const ON_CALL_POLICY_OTHER_PLANS: Array<
+  (context: UsedByReadContext) => UsedByReadPlan
+> = [
+  naming({
+    service: asService(IncidentTemplateService),
+    modelType: IncidentTemplate,
+    lists: ["onCallDutyPolicies"],
+    rowKind: UsedByRowKind.IncidentTemplate,
+    namedBy: TEMPLATE_NAMED,
+  }),
+  naming({
+    service: asService(IncidentGroupingRuleService),
+    modelType: IncidentGroupingRule,
+    lists: ["onCallDutyPolicies"],
+    rowKind: UsedByRowKind.IncidentGroupingRule,
+  }),
+  naming({
+    service: asService(AlertGroupingRuleService),
+    modelType: AlertGroupingRule,
+    lists: ["onCallDutyPolicies"],
+    rowKind: UsedByRowKind.AlertGroupingRule,
+  }),
+  naming({
+    service: asService(ServiceLevelObjectiveBurnRateRuleService),
+    modelType: ServiceLevelObjectiveBurnRateRule,
+    lists: ["onCallDutyPolicies", "incidentOnCallDutyPolicies"],
+    rowKind: UsedByRowKind.SloBurnRateRule,
+    linkIdColumn: "serviceLevelObjectiveId",
+  }),
+  naming({
+    service: asService(ServiceLevelObjectiveErrorBudgetPolicyTierService),
+    modelType: ServiceLevelObjectiveErrorBudgetPolicyTier,
+    lists: ["onCallDutyPolicies", "incidentOnCallDutyPolicies"],
+    rowKind: UsedByRowKind.SloErrorBudgetPolicyTier,
+    linkIdColumn: "serviceLevelObjectiveId",
+  }),
+  naming({
+    service: asService(CloudBudgetService),
+    modelType: CloudBudget,
+    lists: ["onCallDutyPolicies"],
+    rowKind: UsedByRowKind.CloudBudget,
+  }),
+];
 
 /*
  * Every relation, by the way it is read. Types/UsedBy/UsedBy lists which
@@ -543,7 +1363,7 @@ export const USED_BY_RELATION_DEFINITIONS: Readonly<
                 joinModel: StatusPageResource,
                 ownerColumn: "statusPageId",
                 referenceColumn: "monitorId",
-                values: [context.recordId],
+                values: context.recordIds,
               }) as any,
             },
             {
@@ -569,7 +1389,7 @@ export const USED_BY_RELATION_DEFINITIONS: Readonly<
             joinModel: MonitorGroupResource,
             ownerColumn: "monitorGroupId",
             referenceColumn: "monitorId",
-            values: [context.recordId],
+            values: context.recordIds,
           }),
         },
       });
@@ -581,9 +1401,11 @@ export const USED_BY_RELATION_DEFINITIONS: Readonly<
       return plainPlan({
         service: asService(ServiceLevelObjectiveService),
         query: {
-          _id: listHoldsAny(ServiceLevelObjective, "monitors", [
-            context.recordId,
-          ]),
+          _id: listHoldsAny(
+            ServiceLevelObjective,
+            "monitors",
+            context.recordIds,
+          ),
         },
       });
     },
@@ -599,9 +1421,11 @@ export const USED_BY_RELATION_DEFINITIONS: Readonly<
         query:
           stateIds.length > 0
             ? {
-                _id: listHoldsAny(ScheduledMaintenance, "monitors", [
-                  context.recordId,
-                ]),
+                _id: listHoldsAny(
+                  ScheduledMaintenance,
+                  "monitors",
+                  context.recordIds,
+                ),
                 currentScheduledMaintenanceStateId: QueryHelper.any(stateIds),
               }
             : null,
@@ -617,10 +1441,18 @@ export const USED_BY_RELATION_DEFINITIONS: Readonly<
       return plainPlan({
         service: asService(MonitorService),
         query: {
-          _id: listHoldsAny(Monitor, "dependsOnMonitors", [context.recordId]),
+          _id: listHoldsAny(Monitor, "dependsOnMonitors", context.recordIds),
         },
       });
     },
+  },
+  [UsedByRelation.MonitorRules]: {
+    relation: UsedByRelation.MonitorRules,
+    getFamilyPlans: familyOf(MONITOR_RULE_PLANS),
+  },
+  [UsedByRelation.MonitorTemplates]: {
+    relation: UsedByRelation.MonitorTemplates,
+    getFamilyPlans: familyOf(MONITOR_TEMPLATE_PLANS),
   },
   [UsedByRelation.MonitorWorkflows]: {
     relation: UsedByRelation.MonitorWorkflows,
@@ -629,7 +1461,11 @@ export const USED_BY_RELATION_DEFINITIONS: Readonly<
       return plainPlan({
         service: asService(WorkflowService),
         query: {
-          graph: QueryHelper.textContainsAnyOf([context.recordId.toString()]),
+          graph: QueryHelper.textContainsAnyOf(
+            context.recordIds.map((id: ObjectID): string => {
+              return id.toString();
+            }),
+          ),
         },
       });
     },
@@ -640,7 +1476,7 @@ export const USED_BY_RELATION_DEFINITIONS: Readonly<
     getPlan: async (context: UsedByReadContext): Promise<UsedByReadPlan> => {
       return plainPlan({
         service: asService(DashboardService),
-        query: DashboardService.getQueryForLayoutsNaming(context.recordId),
+        query: DashboardService.getQueryForLayoutsNaming(context.recordIds),
       });
     },
   },
@@ -655,7 +1491,7 @@ export const USED_BY_RELATION_DEFINITIONS: Readonly<
             joinModel: OnCallDutyPolicyEscalationRuleSchedule,
             ownerColumn: "onCallDutyPolicyId",
             referenceColumn: "onCallDutyPolicyScheduleId",
-            values: [context.recordId],
+            values: context.recordIds,
           }),
         },
         getDetails: (data: {
@@ -680,7 +1516,7 @@ export const USED_BY_RELATION_DEFINITIONS: Readonly<
       return plainPlan({
         service: asService(MonitorService),
         query: {
-          _id: listHoldsAny(Monitor, "services", [context.recordId]),
+          _id: listHoldsAny(Monitor, "services", context.recordIds),
         },
       });
     },
@@ -717,12 +1553,27 @@ export const USED_BY_RELATION_DEFINITIONS: Readonly<
      * them: on a monitor it lists (directly or through a group), visible
      * on status pages, not private, within the page's scope - decided only
      * by IncidentStatusPageScope - and only while the page shows incidents
-     * at all.
+     * at all. One page at a time (isOneRecordOnly): each page's scope is
+     * its own.
      */
     getPlan: async (context: UsedByReadContext): Promise<UsedByReadPlan> => {
+      const statusPageId: ObjectID | undefined = context.recordIds[0];
+
+      const plan: UsedByReadPlan = {
+        service: asService(IncidentService),
+        query: null,
+        nameColumn: "title",
+        numberColumn: "incidentNumberWithPrefix",
+        sort: NEWEST_FIRST,
+      };
+
+      if (!statusPageId || context.recordIds.length !== 1) {
+        return plan;
+      }
+
       const statusPage: StatusPage | null = await StatusPageService.findOneById(
         {
-          id: context.recordId,
+          id: statusPageId,
           select: {
             _id: true,
             projectId: true,
@@ -737,18 +1588,10 @@ export const USED_BY_RELATION_DEFINITIONS: Readonly<
         statusPage && statusPage.showIncidentsOnStatusPage
           ? (
               await StatusPageService.getMonitorIdsOnStatusPage({
-                statusPageId: context.recordId,
+                statusPageId: statusPageId,
               })
             ).monitorsOnStatusPage
           : [];
-
-      const plan: UsedByReadPlan = {
-        service: asService(IncidentService),
-        query: null,
-        nameColumn: "title",
-        numberColumn: "incidentNumberWithPrefix",
-        sort: NEWEST_FIRST,
-      };
 
       if (!statusPage || monitorIds.length === 0) {
         return plan;
@@ -793,26 +1636,34 @@ export const USED_BY_RELATION_DEFINITIONS: Readonly<
   [UsedByRelation.StatusPageMaintenance]: {
     relation: UsedByRelation.StatusPageMaintenance,
     /*
-     * The maintenance in progress or coming up that the page shows: named
-     * on it, visible on status pages and published by now - and only while
-     * the page shows scheduled maintenance at all.
+     * The maintenance in progress or coming up that the pages show: named
+     * on them, visible on status pages and published by now - and only on
+     * pages that show scheduled maintenance at all.
      */
     getPlan: async (context: UsedByReadContext): Promise<UsedByReadPlan> => {
-      const statusPage: StatusPage | null = await StatusPageService.findOneById(
-        {
-          id: context.recordId,
-          select: {
-            _id: true,
-            showScheduledMaintenanceEventsOnStatusPage: true,
-          },
-          props: USED_BY_ROOT_PROPS,
+      const statusPages: Array<StatusPage> = await StatusPageService.findBy({
+        query: {
+          _id: QueryHelper.any(context.recordIds),
+          projectId: context.projectId,
+          showScheduledMaintenanceEventsOnStatusPage: true,
+        },
+        select: {
+          _id: true,
+        },
+        skip: 0,
+        limit: context.recordIds.length,
+        props: USED_BY_ROOT_PROPS,
+      });
+
+      const shownOn: Array<ObjectID> = toIds(
+        statusPages,
+        (statusPage: StatusPage): ObjectID | null => {
+          return statusPage.id;
         },
       );
 
       const stateIds: Array<ObjectID> =
-        statusPage && statusPage.showScheduledMaintenanceEventsOnStatusPage
-          ? await getUpcomingOrOngoingStateIds(context)
-          : [];
+        shownOn.length > 0 ? await getUpcomingOrOngoingStateIds(context) : [];
 
       return plainPlan({
         service: asService(ScheduledMaintenanceService),
@@ -820,9 +1671,11 @@ export const USED_BY_RELATION_DEFINITIONS: Readonly<
           stateIds.length > 0
             ? (StatusPageVisibilityQuery.shownScheduledMaintenance(
                 asQuery<ScheduledMaintenance>({
-                  _id: listHoldsAny(ScheduledMaintenance, "statusPages", [
-                    context.recordId,
-                  ]),
+                  _id: listHoldsAny(
+                    ScheduledMaintenance,
+                    "statusPages",
+                    shownOn,
+                  ),
                   currentScheduledMaintenanceStateId: QueryHelper.any(stateIds),
                 }),
                 { now: context.now },
@@ -845,7 +1698,7 @@ export const USED_BY_RELATION_DEFINITIONS: Readonly<
             joinModel: OnCallDutyPolicyEscalationRuleTeam,
             ownerColumn: "onCallDutyPolicyId",
             referenceColumn: "teamId",
-            values: [context.recordId],
+            values: context.recordIds,
           }),
         },
         getDetails: (data: {
@@ -865,43 +1718,191 @@ export const USED_BY_RELATION_DEFINITIONS: Readonly<
   },
   [UsedByRelation.TeamOwnedMonitors]: {
     relation: UsedByRelation.TeamOwnedMonitors,
-    getPlan: ownedByTeam({
-      service: asService(MonitorService),
-      ownerTeamModel: MonitorOwnerTeam,
-      ownerColumn: "monitorId",
-    }),
+    getPlan: async (context: UsedByReadContext): Promise<UsedByReadPlan> => {
+      return ownedByTeam({
+        service: asService(MonitorService),
+        ownerTeamModel: MonitorOwnerTeam,
+        ownerColumn: "monitorId",
+      })(context);
+    },
   },
   [UsedByRelation.TeamOwnedStatusPages]: {
     relation: UsedByRelation.TeamOwnedStatusPages,
-    getPlan: ownedByTeam({
-      service: asService(StatusPageService),
-      ownerTeamModel: StatusPageOwnerTeam,
-      ownerColumn: "statusPageId",
-    }),
+    getPlan: async (context: UsedByReadContext): Promise<UsedByReadPlan> => {
+      return ownedByTeam({
+        service: asService(StatusPageService),
+        ownerTeamModel: StatusPageOwnerTeam,
+        ownerColumn: "statusPageId",
+      })(context);
+    },
   },
   [UsedByRelation.TeamOwnedServices]: {
     relation: UsedByRelation.TeamOwnedServices,
-    getPlan: ownedByTeam({
-      service: asService(ServiceService),
-      ownerTeamModel: ServiceOwnerTeam,
-      ownerColumn: "serviceId",
-    }),
+    getPlan: async (context: UsedByReadContext): Promise<UsedByReadPlan> => {
+      return ownedByTeam({
+        service: asService(ServiceService),
+        ownerTeamModel: ServiceOwnerTeam,
+        ownerColumn: "serviceId",
+      })(context);
+    },
   },
   [UsedByRelation.TeamOwnedOnCallPolicies]: {
     relation: UsedByRelation.TeamOwnedOnCallPolicies,
-    getPlan: ownedByTeam({
-      service: asService(OnCallDutyPolicyService),
-      ownerTeamModel: OnCallDutyPolicyOwnerTeam,
-      ownerColumn: "onCallDutyPolicyId",
-    }),
+    getPlan: async (context: UsedByReadContext): Promise<UsedByReadPlan> => {
+      return ownedByTeam({
+        service: asService(OnCallDutyPolicyService),
+        ownerTeamModel: OnCallDutyPolicyOwnerTeam,
+        ownerColumn: "onCallDutyPolicyId",
+      })(context);
+    },
   },
   [UsedByRelation.TeamOwnedSchedules]: {
     relation: UsedByRelation.TeamOwnedSchedules,
-    getPlan: ownedByTeam({
-      service: asService(OnCallDutyPolicyScheduleService),
-      ownerTeamModel: OnCallDutyPolicyScheduleOwnerTeam,
-      ownerColumn: "onCallDutyPolicyScheduleId",
-    }),
+    getPlan: async (context: UsedByReadContext): Promise<UsedByReadPlan> => {
+      return ownedByTeam({
+        service: asService(OnCallDutyPolicyScheduleService),
+        ownerTeamModel: OnCallDutyPolicyScheduleOwnerTeam,
+        ownerColumn: "onCallDutyPolicyScheduleId",
+      })(context);
+    },
+  },
+  [UsedByRelation.TeamOwnedOther]: {
+    relation: UsedByRelation.TeamOwnedOther,
+    getFamilyPlans: familyOf(TEAM_OWNED_OTHER_PLANS),
+  },
+
+  [UsedByRelation.OnCallPolicyRules]: {
+    relation: UsedByRelation.OnCallPolicyRules,
+    getFamilyPlans: familyOf(ON_CALL_POLICY_RULE_PLANS),
+  },
+  [UsedByRelation.OnCallPolicyMonitors]: {
+    relation: UsedByRelation.OnCallPolicyMonitors,
+    /*
+     * A monitor's criteria page a policy when they open an incident or an
+     * alert: the policy's id is in the monitor's steps. A monitor that is
+     * not checked says so - it pages nobody until it is.
+     */
+    getPlan: async (context: UsedByReadContext): Promise<UsedByReadPlan> => {
+      return plainPlan({
+        service: asService(MonitorService),
+        query: {
+          monitorSteps: QueryHelper.textContainsAnyOf(
+            context.recordIds.map((id: ObjectID): string => {
+              return id.toString();
+            }),
+          ),
+        },
+        offWhen: { column: "disableActiveMonitoring", value: true },
+      });
+    },
+  },
+  [UsedByRelation.OnCallPolicyOther]: {
+    relation: UsedByRelation.OnCallPolicyOther,
+    getFamilyPlans: familyOf(ON_CALL_POLICY_OTHER_PLANS),
+  },
+  [UsedByRelation.OnCallPolicyWorkflows]: {
+    relation: UsedByRelation.OnCallPolicyWorkflows,
+    // A workflow's Page On-Call Policy step holds the policy's id.
+    getPlan: async (context: UsedByReadContext): Promise<UsedByReadPlan> => {
+      return plainPlan({
+        service: asService(WorkflowService),
+        query: {
+          graph: QueryHelper.textContainsAnyOf(
+            context.recordIds.map((id: ObjectID): string => {
+              return id.toString();
+            }),
+          ),
+        },
+      });
+    },
+  },
+
+  [UsedByRelation.MonitorGroupStatusPages]: {
+    relation: UsedByRelation.MonitorGroupStatusPages,
+    getPlan: async (context: UsedByReadContext): Promise<UsedByReadPlan> => {
+      return plainPlan({
+        service: asService(StatusPageService),
+        query: {
+          _id: namedByRowsReferencing({
+            joinModel: StatusPageResource,
+            ownerColumn: "statusPageId",
+            referenceColumn: "monitorGroupId",
+            values: context.recordIds,
+          }),
+        },
+      });
+    },
+  },
+  [UsedByRelation.MonitorGroupSlos]: {
+    relation: UsedByRelation.MonitorGroupSlos,
+    /*
+     * No SLO names a monitor group: its SLOs are those that measure one of
+     * its monitors.
+     */
+    getPlan: async (context: UsedByReadContext): Promise<UsedByReadPlan> => {
+      const monitorIds: Array<ObjectID> = await getMonitorIdsInGroups(context);
+
+      return plainPlan({
+        service: asService(ServiceLevelObjectiveService),
+        query:
+          monitorIds.length > 0
+            ? {
+                _id: listHoldsAny(
+                  ServiceLevelObjective,
+                  "monitors",
+                  monitorIds,
+                ),
+              }
+            : null,
+      });
+    },
+  },
+
+  [UsedByRelation.SloBurnRateRules]: {
+    relation: UsedByRelation.SloBurnRateRules,
+    // Its rules open the SLO's Burn-Rate Rules page.
+    getPlan: async (context: UsedByReadContext): Promise<UsedByReadPlan> => {
+      const service: DatabaseService<BaseModel> = asService(
+        ServiceLevelObjectiveBurnRateRuleService,
+      );
+
+      return plainPlan({
+        service: service,
+        query: {
+          serviceLevelObjectiveId: QueryHelper.any(context.recordIds),
+        },
+        linkIdColumn: "serviceLevelObjectiveId",
+        offWhen: offWhenSwitchedOff(service),
+      });
+    },
+  },
+  [UsedByRelation.SloErrorBudgetPolicies]: {
+    relation: UsedByRelation.SloErrorBudgetPolicies,
+    // Its tiers open the SLO's Error Budget Policy page.
+    getPlan: async (context: UsedByReadContext): Promise<UsedByReadPlan> => {
+      const service: DatabaseService<BaseModel> = asService(
+        ServiceLevelObjectiveErrorBudgetPolicyTierService,
+      );
+
+      return plainPlan({
+        service: service,
+        query: {
+          serviceLevelObjectiveId: QueryHelper.any(context.recordIds),
+        },
+        linkIdColumn: "serviceLevelObjectiveId",
+        offWhen: offWhenSwitchedOff(service),
+      });
+    },
+  },
+  [UsedByRelation.SloDashboards]: {
+    relation: UsedByRelation.SloDashboards,
+    // A widget's SLO holds the SLO's id: the layout's text holds it.
+    getPlan: async (context: UsedByReadContext): Promise<UsedByReadPlan> => {
+      return plainPlan({
+        service: asService(DashboardService),
+        query: DashboardService.getQueryForLayoutsNaming(context.recordIds),
+      });
+    },
   },
 
   [UsedByRelation.LabelMonitors]: {
@@ -1012,6 +2013,9 @@ export const USED_BY_RECORD_SERVICES: Readonly<
   [UsedByRecordKind.StatusPage]: asService(StatusPageService),
   [UsedByRecordKind.Team]: asService(TeamService),
   [UsedByRecordKind.Label]: asService(LabelService),
+  [UsedByRecordKind.OnCallPolicy]: asService(OnCallDutyPolicyService),
+  [UsedByRecordKind.MonitorGroup]: asService(MonitorGroupService),
+  [UsedByRecordKind.Slo]: asService(ServiceLevelObjectiveService),
 };
 
 // A refusal that means "you may not read these", not a failure.
@@ -1031,6 +2035,30 @@ function readString(model: BaseModel, column: string): string {
   const value: unknown = (model as unknown as Dictionary<unknown>)[column];
 
   return typeof value === "string" ? value : "";
+}
+
+// An id a column holds, as text: an ObjectID or its string.
+function readIdText(model: BaseModel, column: string): string {
+  const value: unknown = (model as unknown as Dictionary<unknown>)[column];
+
+  if (value instanceof ObjectID) {
+    return value.toString();
+  }
+
+  return typeof value === "string" ? value : "";
+}
+
+// One kind of record that refers, with how many of it the reader may read.
+export interface UsedByMemberCounts {
+  plan: UsedByReadPlan;
+  count: number;
+  hiddenCount: number;
+}
+
+// How a relation is read: one plan, or a family's several.
+interface RelationPlans {
+  isFamily: boolean;
+  plans: Array<UsedByReadPlan>;
 }
 
 export class UsedByServiceClass {
@@ -1053,22 +2081,26 @@ export class UsedByServiceClass {
         async (
           description: UsedByRelationDescription,
         ): Promise<UsedByGroup> => {
-          const plan: UsedByReadPlan = await this.getPlan(
+          const read: RelationPlans = await this.getRelationPlans(
             description.relation,
             context,
           );
-          const counts: { count: number; hiddenCount: number } =
-            await this.countRelation(plan, context);
+          const members: Array<UsedByMemberCounts> = await this.countMembers(
+            read.plans,
+            context,
+          );
+          const counts: UsedByCounts = this.toCounts(
+            description,
+            read.isFamily,
+            members,
+          );
 
           return {
-            relation: description.relation,
-            rowKind: description.rowKind,
-            count: counts.count,
-            hiddenCount: counts.hiddenCount,
+            ...counts,
             rows:
               counts.count > 0
-                ? await this.findRows({
-                    plan: plan,
+                ? await this.findMemberRows({
+                    members: members,
                     context: context,
                     skip: 0,
                     limit: USED_BY_PREVIEW_ROW_COUNT,
@@ -1082,6 +2114,75 @@ export class UsedByServiceClass {
     return {
       recordKind: data.recordKind,
       recordId: data.recordId.toString(),
+      groups: groups,
+    };
+  }
+
+  /*
+   * What refers to any of several records of one kind - a list's selection,
+   * before its bulk Delete or Archive: each relation counted once for all
+   * of them, with no rows. Only the records the reader may read are
+   * counted (recordCount says how many); none of them, and nothing is.
+   */
+  @CaptureSpan()
+  public async getSummaries(data: {
+    recordKind: UsedByRecordKind;
+    recordIds: Array<ObjectID>;
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    now?: Date | undefined;
+  }): Promise<UsedByBulkSummary> {
+    if (data.recordIds.length > USED_BY_BULK_MAX_RECORDS) {
+      throw new BadDataException(
+        `At most ${USED_BY_BULK_MAX_RECORDS} records can be counted at once. Select fewer, then try again.`,
+      );
+    }
+
+    const recordIds: Array<ObjectID> = await this.getReadableRecordIds(data);
+    const descriptions: ReadonlyArray<UsedByRelationDescription> =
+      getUsedByBulkRelations(data.recordKind);
+
+    if (recordIds.length === 0) {
+      return {
+        recordKind: data.recordKind,
+        recordCount: 0,
+        groups: descriptions.map(
+          (description: UsedByRelationDescription): UsedByCounts => {
+            return this.toCounts(description, Boolean(description.family), []);
+          },
+        ),
+      };
+    }
+
+    const context: UsedByReadContext = {
+      projectId: data.projectId,
+      recordIds: recordIds,
+      props: data.props,
+      now: data.now || new Date(),
+    };
+
+    const groups: Array<UsedByCounts> = await Promise.all(
+      descriptions.map(
+        async (
+          description: UsedByRelationDescription,
+        ): Promise<UsedByCounts> => {
+          const read: RelationPlans = await this.getRelationPlans(
+            description.relation,
+            context,
+          );
+
+          return this.toCounts(
+            description,
+            read.isFamily,
+            await this.countMembers(read.plans, context),
+          );
+        },
+      ),
+    );
+
+    return {
+      recordKind: data.recordKind,
+      recordCount: recordIds.length,
       groups: groups,
     };
   }
@@ -1114,9 +2215,19 @@ export class UsedByServiceClass {
     const skip: number = normalizeUsedBySkip(data.skip);
     const limit: number = normalizeUsedByPageSize(data.limit);
     const context: UsedByReadContext = await this.getContext(data);
-    const plan: UsedByReadPlan = await this.getPlan(data.relation, context);
-    const counts: { count: number; hiddenCount: number } =
-      await this.countRelation(plan, context);
+    const read: RelationPlans = await this.getRelationPlans(
+      data.relation,
+      context,
+    );
+    const members: Array<UsedByMemberCounts> = await this.countMembers(
+      read.plans,
+      context,
+    );
+    const counts: UsedByCounts = this.toCounts(
+      description,
+      read.isFamily,
+      members,
+    );
 
     return {
       recordKind: data.recordKind,
@@ -1129,8 +2240,8 @@ export class UsedByServiceClass {
       pageSize: limit,
       rows:
         counts.count > skip
-          ? await this.findRows({
-              plan: plan,
+          ? await this.findMemberRows({
+              members: members,
               context: context,
               skip: skip,
               limit: limit,
@@ -1151,14 +2262,9 @@ export class UsedByServiceClass {
     props: DatabaseCommonInteractionProps;
     now?: Date | undefined;
   }): Promise<UsedByReadContext> {
-    const service: DatabaseService<BaseModel> | undefined =
-      USED_BY_RECORD_SERVICES[data.recordKind];
-
-    if (!service) {
-      throw new BadDataException(
-        `${data.recordKind} is not a kind of record that shows what uses it. Ask about a monitor, an on-call schedule, a service, a status page, a team or a label.`,
-      );
-    }
+    const service: DatabaseService<BaseModel> = this.getRecordService(
+      data.recordKind,
+    );
 
     let record: BaseModel | null = null;
 
@@ -1187,26 +2293,94 @@ export class UsedByServiceClass {
 
     return {
       projectId: data.projectId,
-      recordId: data.recordId,
+      recordIds: [data.recordId],
       props: data.props,
       now: data.now || new Date(),
     };
   }
 
-  private async getPlan(
-    relation: UsedByRelation,
-    context: UsedByReadContext,
-  ): Promise<UsedByReadPlan> {
-    const definition: UsedByRelationDefinition | undefined =
-      USED_BY_RELATION_DEFINITIONS[relation];
+  /*
+   * Of several records, those the reader may read in the project: the
+   * others are not counted, so nothing about what refers to them is told.
+   */
+  private async getReadableRecordIds(data: {
+    recordKind: UsedByRecordKind;
+    recordIds: Array<ObjectID>;
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<ObjectID>> {
+    const service: DatabaseService<BaseModel> = this.getRecordService(
+      data.recordKind,
+    );
+    const asked: Array<ObjectID> = uniqueIds(data.recordIds);
 
-    if (!definition) {
-      throw new ServerException(
-        `${relation} has no definition of how it is read. Add it to USED_BY_RELATION_DEFINITIONS.`,
+    if (asked.length === 0) {
+      return [];
+    }
+
+    try {
+      const records: Array<BaseModel> = await service.findBy({
+        query: asQuery({
+          _id: QueryHelper.any(asked),
+          projectId: data.projectId,
+        }),
+        select: {
+          _id: true,
+        } as Select<BaseModel>,
+        skip: 0,
+        limit: asked.length,
+        props: data.props,
+      });
+
+      return toIds(records, (record: BaseModel): ObjectID | null => {
+        return record.id;
+      });
+    } catch (error) {
+      if (!isReadRefusal(error)) {
+        throw error;
+      }
+
+      return [];
+    }
+  }
+
+  private getRecordService(
+    recordKind: UsedByRecordKind,
+  ): DatabaseService<BaseModel> {
+    const service: DatabaseService<BaseModel> | undefined =
+      USED_BY_RECORD_SERVICES[recordKind];
+
+    if (!service) {
+      throw new BadDataException(
+        `${recordKind} is not a kind of record that shows what uses it. Ask about a monitor, an on-call schedule, an on-call policy, a service, a status page, a team, a label, a monitor group or an SLO.`,
       );
     }
 
-    return await definition.getPlan(context);
+    return service;
+  }
+
+  // How a relation is read: its one plan, or its family's.
+  public async getRelationPlans(
+    relation: UsedByRelation,
+    context: UsedByReadContext,
+  ): Promise<RelationPlans> {
+    const definition: UsedByRelationDefinition | undefined =
+      USED_BY_RELATION_DEFINITIONS[relation];
+
+    if (definition?.getFamilyPlans) {
+      return {
+        isFamily: true,
+        plans: await definition.getFamilyPlans(context),
+      };
+    }
+
+    if (definition?.getPlan) {
+      return { isFamily: false, plans: [await definition.getPlan(context)] };
+    }
+
+    throw new ServerException(
+      `${relation} has no definition of how it is read. Add it to USED_BY_RELATION_DEFINITIONS.`,
+    );
   }
 
   private async countWith(
@@ -1267,6 +2441,108 @@ export class UsedByServiceClass {
     return { count: visible, hiddenCount: total - visible };
   }
 
+  // Every kind of a relation counted, a few at a time.
+  public async countMembers(
+    plans: Array<UsedByReadPlan>,
+    context: UsedByReadContext,
+  ): Promise<Array<UsedByMemberCounts>> {
+    return await ArrayUtil.mapWithConcurrency(
+      plans,
+      USED_BY_FAMILY_CONCURRENCY,
+      async (plan: UsedByReadPlan): Promise<UsedByMemberCounts> => {
+        return {
+          plan: plan,
+          ...(await this.countRelation(plan, context)),
+        };
+      },
+    );
+  }
+
+  // A relation's counts: its kinds' summed, and a family's parts.
+  private toCounts(
+    description: UsedByRelationDescription,
+    isFamily: boolean,
+    members: Array<UsedByMemberCounts>,
+  ): UsedByCounts {
+    let count: number = 0;
+    let hiddenCount: number = 0;
+    const parts: Array<UsedByGroupPart> = [];
+
+    for (const member of members) {
+      count += member.count;
+      hiddenCount += member.hiddenCount;
+
+      if (isFamily && member.count + member.hiddenCount > 0) {
+        parts.push({
+          rowKind: member.plan.rowKind || description.rowKind,
+          count: member.count,
+          hiddenCount: member.hiddenCount,
+        });
+      }
+    }
+
+    const counts: UsedByCounts = {
+      relation: description.relation,
+      rowKind: description.rowKind,
+      count: count,
+      hiddenCount: hiddenCount,
+    };
+
+    if (isFamily) {
+      counts.parts = parts;
+    }
+
+    return counts;
+  }
+
+  /*
+   * A page of a relation's rows the reader may read, across its kinds in
+   * order: the kinds before the page are skipped over by their counts, and
+   * a kind is read only for the rows of the page it holds - never every
+   * row of every kind.
+   */
+  public async findMemberRows(data: {
+    members: Array<UsedByMemberCounts>;
+    context: UsedByReadContext;
+    skip: number;
+    limit: number;
+  }): Promise<Array<UsedByRow>> {
+    const rows: Array<UsedByRow> = [];
+    let toSkip: number = Math.max(0, data.skip);
+    let left: number = Math.max(0, data.limit);
+
+    for (const member of data.members) {
+      if (left <= 0) {
+        break;
+      }
+
+      if (member.count <= 0) {
+        continue;
+      }
+
+      if (toSkip >= member.count) {
+        toSkip -= member.count;
+        continue;
+      }
+
+      const take: number = Math.min(left, member.count - toSkip);
+
+      rows.push(
+        ...(await this.findRows({
+          plan: member.plan,
+          context: data.context,
+          skip: toSkip,
+          limit: take,
+        })),
+      );
+
+      left -= take;
+      toSkip = 0;
+    }
+
+    return rows;
+  }
+
   // The rows the reader may read, a page of them, with their details.
   public async findRows(data: {
     plan: UsedByReadPlan;
@@ -1285,8 +2561,15 @@ export class UsedByServiceClass {
       [plan.nameColumn]: true,
     };
 
-    if (plan.numberColumn) {
-      select[plan.numberColumn] = true;
+    for (const column of [
+      plan.numberColumn,
+      plan.rowKindByColumn?.column,
+      plan.linkIdColumn,
+      plan.offWhen?.column,
+    ]) {
+      if (column) {
+        select[column] = true;
+      }
     }
 
     const sort: Sort<BaseModel> =
@@ -1325,13 +2608,12 @@ export class UsedByServiceClass {
       return [];
     }
 
-    const ids: Array<ObjectID> = models
-      .map((model: BaseModel): ObjectID | null => {
+    const ids: Array<ObjectID> = toIds(
+      models,
+      (model: BaseModel): ObjectID | null => {
         return model.id;
-      })
-      .filter((id: ObjectID | null): id is ObjectID => {
-        return Boolean(id);
-      });
+      },
+    );
 
     let details: Dictionary<string> = {};
 
@@ -1375,6 +2657,37 @@ export class UsedByServiceClass {
 
       if (details[id]) {
         row.detail = details[id];
+      }
+
+      const rowKind: UsedByRowKind | undefined =
+        (plan.rowKindByColumn
+          ? plan.rowKindByColumn.rowKinds[
+              String(
+                (model as unknown as Dictionary<unknown>)[
+                  plan.rowKindByColumn.column
+                ] ?? "",
+              )
+            ]
+          : undefined) || plan.rowKind;
+
+      if (rowKind) {
+        row.rowKind = rowKind;
+      }
+
+      const linkId: string = plan.linkIdColumn
+        ? readIdText(model, plan.linkIdColumn)
+        : "";
+
+      if (linkId) {
+        row.linkId = linkId;
+      }
+
+      if (
+        plan.offWhen &&
+        (model as unknown as Dictionary<unknown>)[plan.offWhen.column] ===
+          plan.offWhen.value
+      ) {
+        row.isOff = true;
       }
 
       rows.push(row);

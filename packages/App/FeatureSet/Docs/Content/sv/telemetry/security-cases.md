@@ -246,6 +246,8 @@ För att posta i en kanal lägger du till en regel under **Produkter → Säkerh
 
 Varje avisering utom en uppgifts postas i kanalerna för varje regel som ärendet matchar just då. En regel där **Prioritet för säkerhetsärende** innehåller någon av **Kritisk** och **Hög** postar ärenden med High och Critical när de öppnas, och ett ärende med Medium när det stiger till High. Ett säkerhetsärende får aldrig en egen kanal.
 
+Steget **Uppdateringar** i en regel väljer vilka av dessa meddelanden den publicerar: **Nya ärenden och höjda prioriteter**, **Tilldelningar**, **Väntande godkännanden** och **Svarsmål**, en ruta var under **Välj uppdateringar**. **Bara viktiga uppdateringar** publicerar alla utom tilldelningarna, för en kanal som bara ska höra det någon måste agera på. En regel som sparades före steget, och en ny regel, publicerar alla meddelanden.
+
 ## Playbooks
 
 En playbook är en lista med steg som körs på ett ärende. Skapa en under **Produkter → Säkerhetshändelser → Playbooks**, från en mall eller tom, och lägg till dess steg på dess sida. Ett projekt utan playbooks ser mallarna i stället för en tom lista; när det finns playbooks öppnar **Skapa från mall** vid listan dem, med **Tillagd** vid de som projektet redan har.

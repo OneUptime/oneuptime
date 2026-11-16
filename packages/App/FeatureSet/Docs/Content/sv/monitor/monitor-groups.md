@@ -96,6 +96,8 @@ Varje stapel i drifttidsgrafen, här och på en statussida, visar hur länge gru
 
 Listan **Monitorgrupper** kan filtrera grupper efter ägare och etikett, sätta etiketter och ägare på många grupper på en gång och exportera eller importera grupper som JSON.
 
+**Översikt** har också kortet **Används av**: statussidorna som visar gruppen, och SLO:erna som mäter dess monitorer. När ingen statussida visar den säger kortet det och länkar till statussidorna. När du tar bort gruppen, på dess sida eller från listan, sägs först vilka statussidor som visar den.
+
 ## Stäng av övervakningen för en hel grupp
 
 Kortet **Övervakning** på en grupps **Översikt** stänger av övervakningen, eller slår på den igen, för alla monitorer i gruppen på en gång.

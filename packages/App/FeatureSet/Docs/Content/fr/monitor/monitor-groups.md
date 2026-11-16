@@ -96,6 +96,8 @@ Chaque barre du graphique de disponibilité, ici comme sur une page de statut, m
 
 La liste **Groupes de moniteurs** peut filtrer les groupes par propriétaire et par libellé, définir les libellés et les propriétaires de nombreux groupes à la fois, et exporter ou importer des groupes en JSON.
 
+La **Vue d'ensemble** a aussi une carte **Utilisé par** : les pages de statut qui affichent le groupe, et les SLOs qui mesurent ses moniteurs. Quand aucune page de statut ne l'affiche, la carte le dit et renvoie aux pages de statut. Supprimer le groupe, sur sa page ou depuis la liste, dit d'abord quelles pages de statut l'affichent.
+
 ## Désactiver la surveillance de tout un groupe
 
 La carte **Surveillance** de la **Vue d'ensemble** d'un groupe désactive la surveillance, ou la réactive, pour tous les moniteurs du groupe en une seule fois.

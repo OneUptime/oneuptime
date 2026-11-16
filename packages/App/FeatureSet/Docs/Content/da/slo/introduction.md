@@ -196,6 +196,8 @@ Når noget forhindrer et SLO i at måle, fortæller et banner øverst på hver a
 
 Når SLO'et er i et niveau i sin fejlbudgetpolitik, viser **Oversigt** også det niveau, og hvad teamet har aftalt at gøre i det: se [Fejlbudgetpolitik](/docs/slo/error-budget-policy).
 
+Kortet **Bruges af** viser de forbrugsrateregler og de trin i fejlbudgetpolitikken, der virker på SLO'et, og de dashboards, der viser det. Når du arkiverer eller sletter SLO'et, siges de først: dets regler og trin forsvinder med det.
+
 ### Indstillinger
 
 Siden **Indstillinger** samler, hvordan et SLO måler, med ét kort til hver ting:

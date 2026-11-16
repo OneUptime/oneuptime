@@ -196,6 +196,8 @@ The **Overview** answers "are we within budget?", from top to bottom:
 
 When the SLO is in a tier of its error budget policy, the **Overview** also shows that tier and what the team agreed to do in it: see [Error Budget Policy](/docs/slo/error-budget-policy).
 
+The **Used by** card lists the burn-rate rules and the error budget policy tiers that act on the SLO, and the dashboards that show it. Archiving or deleting the SLO says these first: its rules and tiers go with it.
+
 ### Settings
 
 The **Settings** page holds how an SLO measures, one card each:

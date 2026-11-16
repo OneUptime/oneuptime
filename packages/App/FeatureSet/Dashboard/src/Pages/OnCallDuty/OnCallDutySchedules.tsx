@@ -1,4 +1,9 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import {
+  UsedByListActions,
+  getUsedByListActions,
+} from "../../Components/UsedBy/UsedByListActions";
+import { UsedByRecordKind } from "Common/Types/UsedBy/UsedBy";
 import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserElement from "../../Components/User/User";
@@ -116,6 +121,13 @@ const OnCallDutyPage: FunctionComponent<
       });
     }, []);
 
+  /*
+   * A row's Delete and the bulk Delete say what still uses the
+   * records first (#7435).
+   */
+  const usedBy: UsedByListActions<OnCallDutySchedule> =
+    getUsedByListActions<OnCallDutySchedule>(UsedByRecordKind.OnCallSchedule);
+
   return (
     <Fragment>
       <ModelTable<OnCallDutySchedule>
@@ -153,6 +165,7 @@ const OnCallDutyPage: FunctionComponent<
           tableId: "on-call-schedules-table",
         }}
         isDeleteable={true}
+        getDeleteConfirmation={usedBy.getDeleteConfirmation}
         name="On-Call > Schedules"
         showViewIdButton={true}
         isEditable={false}
@@ -160,6 +173,7 @@ const OnCallDutyPage: FunctionComponent<
         isViewable={true}
         bulkActions={{
           buttons: [...labelBulkActions, ...ownerBulkActions],
+          deleteConfirmationDetails: usedBy.deleteConfirmationDetails,
         }}
         cardProps={{
           title: "On-Call Schedules",

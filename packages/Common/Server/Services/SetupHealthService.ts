@@ -1,6 +1,12 @@
-import { IsBillingEnabled } from "../EnvironmentConfig";
+import {
+  IsBillingEnabled,
+  issuesFreeCustomDomainCertificates,
+} from "../EnvironmentConfig";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 import QueryHelper from "../Types/Database/QueryHelper";
+import CertificateOrder, {
+  CustomDomainCertificateState,
+} from "../Utils/Greenlock/CertificateOrder";
 import logger from "../Utils/Logger";
 import ServerSendingStatus from "../Utils/ServerSending/ServerSendingStatus";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -28,6 +34,7 @@ import StatusPageDomainService from "./StatusPageDomainService";
 import StatusPageResourceService from "./StatusPageResourceService";
 import StatusPageService from "./StatusPageService";
 import TeamMemberService from "./TeamMemberService";
+import TelemetryIngestionKeyService from "./TelemetryIngestionKeyService";
 import WhoIsToldService, {
   WHO_IS_TOLD_MONITOR_SELECT,
   canServerSendBy,
@@ -48,6 +55,7 @@ import StatusPage from "../../Models/DatabaseModels/StatusPage";
 import StatusPageDomain from "../../Models/DatabaseModels/StatusPageDomain";
 import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
+import TelemetryIngestionKey from "../../Models/DatabaseModels/TelemetryIngestionKey";
 import User from "../../Models/DatabaseModels/User";
 import WorkspaceNotificationRule from "../../Models/DatabaseModels/WorkspaceNotificationRule";
 import WorkspaceProjectAuthToken from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
@@ -75,12 +83,16 @@ import {
   SetupHealthAnswer,
   SetupHealthBalanceFact,
   SetupHealthDismissal,
+  SetupHealthDomainCertificateFact,
   SetupHealthDomainFact,
   SetupHealthFacts,
   SetupHealthFinding,
+  SetupHealthIngestionKeyFact,
   SetupHealthMonitorFact,
   SetupHealthOwnersFact,
   SetupHealthReadable,
+  SetupHealthRecord,
+  SetupHealthRecordAnswer,
   SetupHealthRecordKind,
   SetupHealthResponderFact,
   SetupHealthResponderReason,
@@ -92,6 +104,7 @@ import {
   applySetupHealthDismissals,
   getSetupHealthCounts,
   getSetupHealthFindings,
+  getSetupHealthFindingsForRecord,
   getSetupHealthRecordIds,
   redactSetupHealthFindings,
 } from "../../Types/SetupHealth/SetupHealth";
@@ -109,10 +122,12 @@ import WorkspaceType, {
  * responders come from one Readiness summary; and every other check is one
  * read of its kind for the whole project - the policies, the rules that run
  * them, the schedules they page (resolved in one batch), the status pages,
- * their resources and domains, the owners and members, the chat workspaces
- * and their rules, the activation milestones. A project of a thousand
- * monitors costs what a project of ten does, plus a read of the monitors
- * per thousand (SetupHealthService.test measures it).
+ * their resources and domains (and where the verified domains' free
+ * certificates stand, in one batch: the certificate table and Redis), the
+ * owners and members, the chat workspaces and their rules, the activation
+ * milestones, the ingestion keys. A project of a thousand monitors costs
+ * what a project of ten does, plus a read of the monitors per thousand
+ * (SetupHealthService.test measures it).
  *
  * The findings are kept a minute per project, as Readiness and "When this
  * goes down" keep theirs, and two asks at once share one computation. Each
@@ -284,6 +299,59 @@ export default class SetupHealthService {
     });
 
     return { counts: answer.counts, checkedAt: answer.checkedAt };
+  }
+
+  /*
+   * ONE RECORD'S OPEN FINDINGS, for the line at the top of its page (#7297):
+   * from the same minute-old project findings as the page, cut to the ones
+   * about the record (getSetupHealthFindingsForRecord), redacted the same
+   * way - only the kinds those findings name are read for what the person
+   * may see - and without the dismissed ones.
+   */
+  @CaptureSpan()
+  public static async getForRecord(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    record: Pick<SetupHealthRecord, "kind" | "id">;
+    // Work it out again now: after a fix made from the record's page.
+    refresh?: boolean | undefined;
+  }): Promise<SetupHealthRecordAnswer> {
+    const computed: ProjectFindings = await this.getProjectFindings({
+      projectId: data.projectId,
+      refresh: data.refresh,
+    });
+
+    const about: Array<SetupHealthFinding> = getSetupHealthFindingsForRecord(
+      computed.findings,
+      data.record,
+    );
+
+    if (about.length === 0) {
+      return { findings: [], checkedAt: computed.checkedAt };
+    }
+
+    const readable: SetupHealthReadable = await this.readReadable({
+      projectId: data.projectId,
+      props: data.props,
+      findings: about,
+    });
+
+    const visible: Array<SetupHealthFinding> = redactSetupHealthFindings(
+      about,
+      readable,
+    );
+
+    if (visible.length === 0) {
+      return { findings: [], checkedAt: computed.checkedAt };
+    }
+
+    return {
+      findings: applySetupHealthDismissals(
+        visible,
+        await this.readDismissals(data.projectId),
+      ).findings,
+      checkedAt: computed.checkedAt,
+    };
   }
 
   /*
@@ -485,6 +553,13 @@ export default class SetupHealthService {
           };
         },
         null,
+      ),
+      ingestionKeys: await this.attempt(
+        "the ingestion keys",
+        async (): Promise<Array<SetupHealthIngestionKeyFact>> => {
+          return await this.readIngestionKeys(projectId);
+        },
+        [],
       ),
     };
   }
@@ -850,6 +925,7 @@ export default class SetupHealthService {
           statusPageId: true,
           statusPage: { name: true },
           isCnameVerified: true,
+          isCustomCertificate: true,
           createdAt: true,
         },
         skip: 0,
@@ -857,7 +933,7 @@ export default class SetupHealthService {
         props: { isRoot: true },
       });
 
-    return domains
+    const facts: Array<SetupHealthDomainFact> = domains
       .filter((domain: StatusPageDomain): boolean => {
         return (
           Boolean(idText(domain.id)) && Boolean(idText(domain.statusPageId))
@@ -871,6 +947,112 @@ export default class SetupHealthService {
           statusPageName: domain.statusPage?.name?.toString() || "",
           isCnameVerified: Boolean(domain.isCnameVerified),
           createdAt: isoOf(domain.createdAt),
+          isCustomCertificate: Boolean(domain.isCustomCertificate),
+          certificate: null,
+        };
+      });
+
+    return await this.withCertificates(facts);
+  }
+
+  /*
+   * Where the free certificates of the verified domains stand, as the
+   * Custom Domains page's Status column reads them: one batch for every
+   * domain (CertificateOrder.getCertificateStates). Not read on an
+   * installation that issues no free certificates - its proxy, or an
+   * uploaded certificate, serves HTTPS - nor for a domain still waiting for
+   * its CNAME record, or served with an uploaded certificate. A read that
+   * fails leaves every certificate unread, so no domain is said to have one
+   * that failed.
+   */
+  private static async withCertificates(
+    facts: Array<SetupHealthDomainFact>,
+  ): Promise<Array<SetupHealthDomainFact>> {
+    const asked: Array<SetupHealthDomainFact> = facts.filter(
+      (domain: SetupHealthDomainFact): boolean => {
+        return (
+          domain.isCnameVerified &&
+          !domain.isCustomCertificate &&
+          Boolean(domain.fullDomain)
+        );
+      },
+    );
+
+    if (asked.length === 0 || !issuesFreeCustomDomainCertificates()) {
+      return facts;
+    }
+
+    const states: Map<string, CustomDomainCertificateState> | null =
+      await this.attempt(
+        "the custom domains' certificates",
+        async (): Promise<Map<string, CustomDomainCertificateState>> => {
+          return await CertificateOrder.getCertificateStates(
+            asked.map((domain: SetupHealthDomainFact): string => {
+              return domain.fullDomain;
+            }),
+          );
+        },
+        null,
+      );
+
+    if (!states) {
+      return facts;
+    }
+
+    return facts.map((domain: SetupHealthDomainFact): SetupHealthDomainFact => {
+      if (!asked.includes(domain)) {
+        return domain;
+      }
+
+      const state: CustomDomainCertificateState | undefined = states.get(
+        CertificateOrder.normalizeDomain(domain.fullDomain),
+      );
+
+      const certificate: SetupHealthDomainCertificateFact = {
+        expiresAt: isoOf(state?.certificateExpiresAt),
+        hasOrderFailed: Boolean(state?.lastOrderError),
+      };
+
+      return { ...domain, certificate: certificate };
+    });
+  }
+
+  /*
+   * The project's ingestion keys: when each was made and last used, and
+   * whether it can be used at all. Never its secret.
+   */
+  private static async readIngestionKeys(
+    projectId: ObjectID,
+  ): Promise<Array<SetupHealthIngestionKeyFact>> {
+    const keys: Array<TelemetryIngestionKey> =
+      await TelemetryIngestionKeyService.findBy({
+        query: { projectId: projectId },
+        select: {
+          _id: true,
+          name: true,
+          createdAt: true,
+          lastUsedAt: true,
+          isEnabled: true,
+          expiresAt: true,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: { isRoot: true },
+      });
+
+    return keys
+      .filter((key: TelemetryIngestionKey): boolean => {
+        return Boolean(idText(key.id));
+      })
+      .map((key: TelemetryIngestionKey): SetupHealthIngestionKeyFact => {
+        return {
+          id: idText(key.id),
+          name: key.name?.toString() || "",
+          createdAt: isoOf(key.createdAt),
+          lastUsedAt: isoOf(key.lastUsedAt),
+          // A key made before the switch existed reads it empty: it is on.
+          isDisabled: key.isEnabled === false,
+          expiresAt: isoOf(key.expiresAt),
         };
       });
   }
@@ -1102,18 +1284,39 @@ export default class SetupHealthService {
           });
         },
       ),
-      canReadResponders: await this.canReadPolicies(data),
+      ingestionKeyIds: await readIds(
+        SetupHealthRecordKind.TelemetryIngestionKey,
+        async (ids: Array<ObjectID>): Promise<Array<TelemetryIngestionKey>> => {
+          return await TelemetryIngestionKeyService.findBy({
+            query: idsQuery(ids),
+            select: { _id: true },
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            props: data.props,
+          });
+        },
+      ),
+      canReadResponders: await this.canReadResponders(data),
     };
   }
 
   /*
    * Whether the caller may read the project's on-call policies, as the
-   * Readiness page asks: who a policy pages is told only to them.
+   * Readiness page asks: who a policy pages is told only to them. Not asked
+   * when no finding names a person.
    */
-  private static async canReadPolicies(data: {
+  private static async canReadResponders(data: {
     projectId: ObjectID;
     props: DatabaseCommonInteractionProps;
+    findings: Array<SetupHealthFinding>;
   }): Promise<boolean> {
+    if (
+      getSetupHealthRecordIds(data.findings, SetupHealthRecordKind.User)
+        .length === 0
+    ) {
+      return false;
+    }
+
     try {
       await OnCallDutyPolicyService.findBy({
         query: { projectId: data.projectId },

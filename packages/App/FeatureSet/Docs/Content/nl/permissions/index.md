@@ -103,6 +103,8 @@ De rol die u kiest, wordt de eerste machtiging van het team, voor alle resources
 
 Waar u het vindt: open een team onder **Teams** om naar **Leden** en **Machtigingen** te gaan; zijn aangepaste rollen en **Machtigingen blokkeren** staan onder **Meer instellingen** onderaan de pagina Machtigingen, waarvan de ingeklapte kop toont hoeveel het team er van elk heeft.
 
+De pagina van een team heeft een kaart **Gebruikt door**: de bereikbaarheidsbeleidsregels waarvan de escalatieregels het team oproepen, en alles wat het team in eigendom heeft, van monitoren en statuspagina's tot SLOs, dashboards, infrastructuur en incidenten. Een team verwijderen, op zijn pagina of vanuit de lijst, zegt dit eerst: zijn beleid roept zijn leden niet meer op, en het is er geen eigenaar meer van. Wat u niet mag openen, wordt geteld maar niet genoemd.
+
 ## Machtigingen
 
 Een machtiging is één vermogen. Er zijn twee manieren om ze toe te kennen, en beide staan op het tabblad **Machtigingen** van het team.

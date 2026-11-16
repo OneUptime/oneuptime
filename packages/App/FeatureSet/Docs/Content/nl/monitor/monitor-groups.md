@@ -96,6 +96,8 @@ Elke balk van de uptime grafiek, hier en op een statuspagina, laat zien hoe lang
 
 De lijst **Monitorgroepen** kan groepen filteren op eigenaar en label, labels en eigenaren voor veel groepen tegelijk instellen, en groepen als JSON exporteren of importeren.
 
+Het **Overzicht** heeft ook een kaart **Gebruikt door**: de statuspagina's die de groep tonen, en de SLOs die haar monitoren meten. Toont geen statuspagina haar, dan zegt de kaart het en linkt naar de statuspagina's. De groep verwijderen, op haar pagina of vanuit de lijst, zegt eerst welke statuspagina's haar tonen.
+
 ## Bewaking uitzetten voor een hele groep
 
 De kaart **Bewaking** op het **Overzicht** van een groep zet de bewaking in één keer uit, of weer aan, voor elke monitor in de groep.

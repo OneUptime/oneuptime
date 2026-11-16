@@ -243,6 +243,8 @@ Archiviate una pagina di stato per metterla offline senza eliminarla. Una pagina
 
 Per archiviare una pagina di stato, apritela e andate in **Avanzato → Impostazioni avanzate → Archivia: pagina di stato**. Per archiviarne diverse, selezionatele nell'elenco **Pagine di stato** e scegliete **Archivia**. Per recuperarne una, aprite **Pagine di stato → Avanzato → Archiviato**, selezionatela e scegliete **Annulla archiviazione**, oppure apritela e fate clic su **Annulla archiviazione** nel banner in cima alle sue pagine.
 
+La **Panoramica** di una pagina di stato ha una scheda **Mostrato ora**: gli incidenti aperti e la manutenzione in arrivo o in corso che i visitatori vi vedono adesso. Archiviare o eliminare la pagina, dalle sue pagine o dall'elenco, dice prima cosa i visitatori smetterebbero di vedere.
+
 ## Prossimi passi
 
 :::cards

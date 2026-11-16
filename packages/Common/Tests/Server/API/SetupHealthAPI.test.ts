@@ -16,6 +16,8 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import {
   SetupHealthAnswer,
+  SetupHealthRecordAnswer,
+  SetupHealthRecordKind,
   SetupHealthSummary,
 } from "../../../Types/SetupHealth/SetupHealth";
 import { beforeEach, describe, expect, test } from "@jest/globals";
@@ -104,8 +106,16 @@ async function call(data: {
   };
 }
 
+const RECORD_ANSWER: SetupHealthRecordAnswer = {
+  findings: [],
+  checkedAt: "2026-11-12T10:00:00.000Z",
+};
+
+const POLICY: string = "68124444-0000-4000-8000-0000000000b1";
+
 let getForCaller: jest.SpyInstance;
 let getSummaryForCaller: jest.SpyInstance;
+let getForRecord: jest.SpyInstance;
 
 beforeEach(() => {
   jest.restoreAllMocks();
@@ -123,6 +133,9 @@ beforeEach(() => {
   getSummaryForCaller = jest
     .spyOn(SetupHealthService, "getSummaryForCaller")
     .mockResolvedValue(SUMMARY as never);
+  getForRecord = jest
+    .spyOn(SetupHealthService, "getForRecord")
+    .mockResolvedValue(RECORD_ANSWER as never);
 });
 
 describe("GET /setup-health", () => {
@@ -209,5 +222,86 @@ describe("GET /setup-health/summary", () => {
 
     expect(thrown).toBeInstanceOf(NotAuthorizedException);
     expect(getSummaryForCaller).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * #7297: the line at the top of a record's page asks for that record's
+ * findings only.
+ */
+describe("GET /setup-health/record", () => {
+  const path: string = `${SETUP_HEALTH_API_PATH}/record`;
+
+  test("is behind the signed-in member's middleware", () => {
+    expect(mockRouter.match("GET", path).middleware).toBe(
+      UserMiddleware.getUserMiddleware,
+    );
+  });
+
+  test("hands back the record's findings for the caller, for the project they were let into", async () => {
+    const { thrown, sent } = await call({
+      path: path,
+      query: { kind: SetupHealthRecordKind.OnCallDutyPolicy, id: POLICY },
+    });
+
+    expect(thrown).toBeUndefined();
+    expect(sent).toEqual(RECORD_ANSWER);
+    expect(getForRecord).toHaveBeenCalledWith({
+      projectId: PROJECT,
+      props: PROPS,
+      record: { kind: SetupHealthRecordKind.OnCallDutyPolicy, id: POLICY },
+      refresh: false,
+    });
+    expect(getForCaller).not.toHaveBeenCalled();
+  });
+
+  test("refresh=true works the record's findings out again, after a fix made from its page", async () => {
+    await call({
+      path: path,
+      query: {
+        kind: SetupHealthRecordKind.StatusPage,
+        id: POLICY,
+        refresh: "true",
+      },
+    });
+
+    expect(getForRecord.mock.calls[0]![0]).toMatchObject({ refresh: true });
+  });
+
+  test.each([
+    ["a person", { kind: SetupHealthRecordKind.User, id: POLICY }],
+    ["the project", { kind: SetupHealthRecordKind.Project, id: POLICY }],
+    ["a kind it does not know", { kind: "Incident", id: POLICY }],
+    ["no kind", { id: POLICY }],
+    [
+      "an id that is not one",
+      { kind: SetupHealthRecordKind.StatusPage, id: "1 OR 1=1" },
+    ],
+    ["no id", { kind: SetupHealthRecordKind.StatusPage }],
+  ])(
+    "%s is refused with a sentence, before anything is read",
+    async (_name: string, query: JSONObject) => {
+      const { thrown } = await call({ path: path, query: query });
+
+      expect(thrown).toBeInstanceOf(BadDataException);
+      expect((thrown as Error).message).toMatch(/^Setup Health can't.*\.$/);
+      expect(getForRecord).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a caller who is not a member of the project is refused", async () => {
+    jest
+      .spyOn(CommonAPI, "assertAuthenticatedProjectMember")
+      .mockImplementation(() => {
+        throw new NotAuthorizedException("Not a member.");
+      });
+
+    const { thrown } = await call({
+      path: path,
+      query: { kind: SetupHealthRecordKind.OnCallDutyPolicy, id: POLICY },
+    });
+
+    expect(thrown).toBeInstanceOf(NotAuthorizedException);
+    expect(getForRecord).not.toHaveBeenCalled();
   });
 });

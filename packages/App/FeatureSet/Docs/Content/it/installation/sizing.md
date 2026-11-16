@@ -102,6 +102,8 @@ Oltre agli archivi di dati, dimensiona i carichi di lavoro senza stato. Ognuno g
 | Gateway di ingresso | `nginx` | Il volume di richieste |
 | Telemetry writer, quando attivato | `telemetryWriter` | Non con il carico: raggruppa ogni inserimento di telemetria in ClickHouse, quindi si dimensiona su ciò che ClickHouse può reggere |
 
+Ognuno esegue Node.js, che dimensiona il proprio heap sul limite di memoria del suo container (`resources.limits.memory`): il 75% del limite, almeno 256 MB e al massimo 8096 MB. Senza limite, l'heap può crescere fino a 8096 MB. Il resto del limite resta per la memoria che Node.js usa fuori dal suo heap. Per scegliere tu l'heap, imposta `NODE_OPTIONS` su `--max-old-space-size=` seguito da una dimensione in MB, nell'`extraEnv` del servizio (con Docker Compose, nell'`environment` del servizio, in un file di override). Ha la precedenza sulla dimensione che dà il limite.
+
 Il chart include **KEDA**, così app, worker, sonde e il Runner globale possono scalare in base alla coda arretrata. Attiva `keda.enabled` insieme al `keda.enabled` di ogni servizio (per esempio `app.keda.enabled`). Su un cluster che non ha ancora KEDA, la prima installazione richiede un passaggio in più: vedi la [guida KEDA](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md) del chart. I servizi che KEDA non gestisce possono usare invece un autoscaler basato su CPU o memoria (`autoscaling`).
 
 ## Livelli di partenza

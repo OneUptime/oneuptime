@@ -26,6 +26,8 @@ flowchart TB
     statuspage --> subscribers["Subscribers"]
 ```
 
+Each record's page also says what uses it. A monitor's **Used by** card lists the status pages that show it, its monitor groups, the SLOs that measure it, the maintenance coming up that names it, the monitors that depend on it, the rules and templates that name it, and the workflows and dashboards that use it. What you may not open is counted, not named. Deleting or archiving a record says the same first, on its own pages and in the lists.
+
 ## Projects and people
 
 A **project** holds everything: monitors, incidents, on-call policies, status pages, telemetry and settings. Most companies need one, and some keep one per environment or business unit. Nothing you create in one project is visible in another.

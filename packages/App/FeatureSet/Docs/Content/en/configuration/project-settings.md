@@ -92,6 +92,8 @@ In a list, a record's labels are shown one under another; when there are more th
 
 To retire a label, archive it from its row's **⋯** menu instead of deleting it. Everything that has the label keeps it, and you can still filter by it, but nobody can add it to anything again: every label picker leaves it out, and the API, Terraform and MCP refuse it. The dialog lists the rules and permissions set up to use the label, which keep using it until you change them. Archived labels are listed apart, in the folded **Archived Labels** section, where **Unarchive** puts one back. **Delete** first lists everything the label would come off, and offers **Archive instead**.
 
+**Used by**, in a label's row menu, counts the records of each kind that carry the label, and opens them a page at a time. Records you may not open are counted, not named.
+
 ## Notifications
 
 **Project Settings → Notifications** holds how the project sends notifications:

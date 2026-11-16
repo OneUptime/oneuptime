@@ -71,6 +71,8 @@ Junto a su nombre, la **Vista general** de un servicio indica si llega su teleme
 
 Los propietarios importan más allá de la página: un rol cuyo ámbito es Owned lee la telemetría de los servicios que le pertenecen a usted o a sus equipos. Consulte [Telemetría](/docs/permissions/index#telemetría).
 
+La **Vista general** de un servicio tiene una tarjeta **Usado por**: los monitores que supervisan el servicio y los SLO que los miden. Archivar o eliminar el servicio, en sus páginas o desde la lista, los dice primero. Lo que no puedes abrir se cuenta, pero no se nombra.
+
 ## Cambiar un servicio
 
 :::steps
