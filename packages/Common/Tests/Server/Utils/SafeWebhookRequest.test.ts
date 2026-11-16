@@ -4,6 +4,7 @@
 
 import SafeWebhookRequest, {
   WEBHOOK_MAX_RESPONSE_BYTES,
+  WebhookAnswerTooLargeException,
   WebhookTarget,
 } from "../../../Server/Utils/SafeWebhookRequest";
 import DataSourceEgressGuard, {
@@ -702,13 +703,27 @@ describe("the request goes out on exactly the URL that was checked", () => {
       response.end(`"${"x".repeat(64 * 1024)}"`);
     };
 
-    await expect(
-      SafeWebhookRequest.post(
-        server.url(),
-        {},
-        { validation: MEMBER_POLICY, maxContentLength: 1024 },
-      ),
-    ).rejects.toThrow(/maxContentLength/);
+    const error: unknown = await SafeWebhookRequest.post(
+      server.url(),
+      {},
+      { validation: MEMBER_POLICY, maxContentLength: 1024 },
+    ).catch((caught: unknown) => {
+      return caught;
+    });
+
+    expect(error).toBeInstanceOf(WebhookAnswerTooLargeException);
+    expect(error).toBeInstanceOf(APIException);
+    expect((error as WebhookAnswerTooLargeException).message).toBe(
+      "The answer was larger than 1 KB, so it was not read.",
+    );
+    expect((error as WebhookAnswerTooLargeException).maxContentLength).toBe(
+      1024,
+    );
+    expect(
+      (error as WebhookAnswerTooLargeException).describe("Zabbix's answer"),
+    ).toBe("Zabbix's answer was larger than 1 KB, so it was not read.");
+    // Nothing of the URL, which can carry a secret.
+    expect((error as Error).message).not.toContain(String(server.port));
 
     await eventually(() => {
       return server.openSockets.size === 0;
@@ -717,6 +732,67 @@ describe("the request goes out on exactly the URL that was checked", () => {
 
   test("a notification webhook reads at most a mebibyte of an answer", () => {
     expect(WEBHOOK_MAX_RESPONSE_BYTES).toBe(1024 * 1024);
+  });
+
+  test("a sender that names no limit reads at most a mebibyte, never an answer of any size", async () => {
+    const server: TestServer = await serve();
+
+    server.handler = (
+      _request: http.IncomingMessage,
+      response: http.ServerResponse,
+    ): void => {
+      response.writeHead(200, { "Content-Type": "application/json" });
+      response.end(`"${"x".repeat(WEBHOOK_MAX_RESPONSE_BYTES + 1)}"`);
+    };
+
+    await expect(
+      SafeWebhookRequest.post(server.url(), {}, { validation: MEMBER_POLICY }),
+    ).rejects.toThrow("The answer was larger than 1 MB, so it was not read.");
+
+    server.handler = (
+      _request: http.IncomingMessage,
+      response: http.ServerResponse,
+    ): void => {
+      response.writeHead(200, { "Content-Type": "application/json" });
+      // Exactly the limit: the two quotes make up the rest.
+      response.end(`"${"x".repeat(WEBHOOK_MAX_RESPONSE_BYTES - 2)}"`);
+    };
+
+    const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+      await SafeWebhookRequest.post(
+        server.url(),
+        {},
+        { validation: MEMBER_POLICY },
+      );
+
+    expect(response.statusCode).toBe(200);
+  });
+
+  test("an answer too large to read is not asked for again: it would only be as large again", async () => {
+    const server: TestServer = await serve();
+
+    server.handler = (
+      _request: http.IncomingMessage,
+      response: http.ServerResponse,
+    ): void => {
+      response.writeHead(200, { "Content-Type": "application/json" });
+      response.end(`"${"x".repeat(4096)}"`);
+    };
+
+    await expect(
+      SafeWebhookRequest.post(
+        server.url(),
+        {},
+        {
+          validation: MEMBER_POLICY,
+          maxContentLength: 1024,
+          retries: 3,
+          retryOnlyOnRetryableErrors: true,
+        },
+      ),
+    ).rejects.toThrow(WebhookAnswerTooLargeException);
+
+    expect(server.requests).toHaveLength(1);
   });
 
   test("headers and body are sent as given", async () => {
@@ -1118,8 +1194,32 @@ describe("what API is handed", () => {
         "doNotFollowRedirects",
         "httpAgent",
         "httpsAgent",
+        "maxContentLength",
         "useNodeHttpAdapter",
       ].sort(),
     );
+    // A sender that names no limit reads as much as a webhook does.
+    expect(
+      (post.mock.calls[0]![0] as APIRequestOptions).options?.maxContentLength,
+    ).toBe(WEBHOOK_MAX_RESPONSE_BYTES);
+  });
+
+  test("a sender's own limit is the one API is handed", async () => {
+    const post: SpyInstance<typeof API.post> = jest
+      .spyOn(API, "post")
+      .mockResolvedValue(
+        new HTTPResponse<JSONObject>(200, {}, {}) as never,
+      ) as unknown as SpyInstance<typeof API.post>;
+    checkAnswers["hooks.example.com"] = [PUBLIC_ADDRESS];
+
+    await SafeWebhookRequest.post(
+      "https://hooks.example.com/hook",
+      {},
+      { maxContentLength: 10 * 1024 * 1024 },
+    );
+
+    expect(
+      (post.mock.calls[0]![0] as APIRequestOptions).options?.maxContentLength,
+    ).toBe(10 * 1024 * 1024);
   });
 });

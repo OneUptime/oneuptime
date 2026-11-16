@@ -8,6 +8,7 @@ import APIException from "../../Types/Exception/ApiException";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONArray, JSONObject } from "../../Types/JSON";
 import API, { RequestOptions } from "../../Utils/API";
+import ResponseTooLarge from "../../Utils/ResponseTooLarge";
 import DataSourceEgressGuard, { PinnedAgents } from "./DataSource/EgressGuard";
 import SSRFProtection, {
   ValidatedWebhookTarget,
@@ -67,9 +68,14 @@ import SSRFProtection, {
  *   - A total timeout, when the caller gives one, is a hard one: no new
  *     attempt starts that it cannot pay for (API's own budget), and an
  *     attempt still in flight when it runs out is aborted and its socket
- *     closed, so a server that trickles its answer cannot hold one open. A
- *     notification webhook also reads at most WEBHOOK_MAX_RESPONSE_BYTES of
- *     an answer.
+ *     closed, so a server that trickles its answer cannot hold one open.
+ *
+ *   - No answer is read whole that is larger than the caller reads
+ *     (maxContentLength): WEBHOOK_MAX_RESPONSE_BYTES unless it says
+ *     otherwise, so no sender reads an answer of any size, as the workflow
+ *     API steps, Update Zabbix Problem and a Mattermost server's calls once
+ *     did (issue #8875). A larger answer fails, unread, as a
+ *     WebhookAnswerTooLargeException that says so.
  *
  * The Mattermost workflow step (Mattermost/MattermostWebhook) reads every
  * answer as text itself, so it sends with axios directly; it pins the same
@@ -97,6 +103,10 @@ export interface WebhookSendOptions {
   retries?: number | undefined;
   exponentialBackoff?: boolean | undefined;
   retryOnlyOnRetryableErrors?: boolean | undefined;
+  /*
+   * The most of an answer read, in bytes. WEBHOOK_MAX_RESPONSE_BYTES when
+   * not given; a larger answer throws WebhookAnswerTooLargeException.
+   */
   maxContentLength?: number | undefined;
   maxBodyLength?: number | undefined;
 }
@@ -112,13 +122,39 @@ export interface WebhookRequestOptions extends WebhookSendOptions {
 export type WebhookPostOptions = Omit<WebhookRequestOptions, "method" | "data">;
 
 /*
- * The most of an answer a notification webhook reads (maxContentLength).
- * Its sender only wants the status, and at most a short excerpt for a log;
- * without a limit an endpoint - a status page sign-up's is anyone's to
- * choose - could stream a body until the worker runs out of memory. An
- * answer this large is no webhook's: it fails, unread.
+ * The most of an answer a request reads (maxContentLength) unless its
+ * caller reads more. A notification webhook's sender only wants the
+ * status, and at most a short excerpt for a log; without a limit an
+ * endpoint - a status page sign-up's is anyone's to choose - could stream
+ * a body until the worker runs out of memory. An answer this large is no
+ * webhook's: it fails, unread.
  */
 export const WEBHOOK_MAX_RESPONSE_BYTES: number = 1024 * 1024;
+
+/*
+ * A request whose answer was larger than it reads (maxContentLength): the
+ * answer was not read, and asking again gets the same one. Its message says
+ * so in a sentence - "The answer was larger than 10 MB, so it was not
+ * read." - in place of axios's "maxContentLength size of 10485760
+ * exceeded", and names nothing of the URL.
+ */
+export class WebhookAnswerTooLargeException extends APIException {
+  // The most of an answer the request read, in bytes.
+  public readonly maxContentLength: number;
+
+  public constructor(maxContentLength: number, error?: Error) {
+    super(ResponseTooLarge.getMessage(maxContentLength), error);
+    this.maxContentLength = maxContentLength;
+  }
+
+  /*
+   * The same sentence, naming whose answer it was: "Zabbix's answer was
+   * larger than 1 MB, so it was not read."
+   */
+  public describe(subject: string): string {
+    return ResponseTooLarge.getMessage(this.maxContentLength, subject);
+  }
+}
 
 // A scheme as SSRFProtection reads one off the raw URL: letters, then ":/".
 const SCHEME_PREFIX: RegExp = /^\s*[a-z][a-z0-9+.-]*:\//i;
@@ -224,9 +260,10 @@ export default class SafeWebhookRequest {
         options.retryOnlyOnRetryableErrors;
     }
 
-    if (options.maxContentLength !== undefined) {
-      requestOptions.maxContentLength = options.maxContentLength;
-    }
+    // Never an answer of any size: the caller's limit, or a webhook's.
+    const maxContentLength: number =
+      options.maxContentLength ?? WEBHOOK_MAX_RESPONSE_BYTES;
+    requestOptions.maxContentLength = maxContentLength;
 
     if (options.maxBodyLength !== undefined) {
       requestOptions.maxBodyLength = options.maxBodyLength;
@@ -278,6 +315,13 @@ export default class SafeWebhookRequest {
       if (deadline?.signal.aborted && options.totalTimeoutInMs !== undefined) {
         throw new APIException(
           SafeWebhookRequest.getDeadlineMessage(options.totalTimeoutInMs),
+          error instanceof Error ? error : undefined,
+        );
+      }
+
+      if (ResponseTooLarge.isError(error)) {
+        throw new WebhookAnswerTooLargeException(
+          maxContentLength,
           error instanceof Error ? error : undefined,
         );
       }
