@@ -1,6 +1,7 @@
 import { expect, Locator, Page, Route, test, TestInfo } from "@playwright/test";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * A dashboard's default time range and auto-refresh, and each viewer's own
@@ -1721,4 +1722,18 @@ test.describe("the public dashboard", () => {
     await expectWidgetsRead(page, 0, 1);
     await expect(publicAutoRefresh(page)).toHaveText("");
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German, Japanese and Persian whole, parsed on every page load of every
+ * test. English is in the bundle now, and each other language a chunk of its
+ * own, loaded only by a page drawn in it (SuiteHelpers/FixtureLocales.js),
+ * built as the Dashboard ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "ja", "fa"],
+  address: (language: string): string => {
+    return appPath("wall", language === "en" ? "" : `?lang=${language}`);
+  },
 });

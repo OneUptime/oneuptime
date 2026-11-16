@@ -9,6 +9,7 @@ import {
   test,
 } from "./Helpers";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * The OpenStack product area, as a person uses it: the clouds list and Archived, a cloud's
@@ -453,4 +454,20 @@ test.describe("wherever they are read", () => {
       await screenshot(page, `openstack-${name}-390-fa`);
     });
   }
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German, Persian and Arabic whole, parsed on every page load of every test.
+ * English is in the bundle now, and each other language a chunk of its own,
+ * loaded only by a page drawn in it (SuiteHelpers/FixtureLocales.js), built
+ * as the Dashboard ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "fa", "ar"],
+  address: (language: string): string => {
+    return language === "en"
+      ? PRODUCT_PATH
+      : `${PRODUCT_PATH}?lang=${language}`;
+  },
 });

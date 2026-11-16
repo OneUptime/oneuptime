@@ -1315,6 +1315,38 @@ test.describe("watchDashboardLocales", () => {
     expect(await watch.scriptBytesBesideLocale("fa")).toBe(all);
   });
 
+  test("reads a script wherever its fixture serves it: the Dashboard widget fixtures' /app/", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const watch: LocaleWatch = watchDashboardLocales(page);
+
+    await page.route(`${HOST}/**`, async (route: Route) => {
+      const url: URL = new URL(route.request().url());
+
+      if (url.pathname.startsWith("/app/")) {
+        await route.fulfill({
+          contentType: "text/javascript",
+          body:
+            url.pathname === "/app/AppFixture.js"
+              ? `${localeModule("en")}\nexport const loaded = true;\n`
+              : localeModule("fa"),
+        });
+        return;
+      }
+
+      await route.fulfill({
+        contentType: "text/html",
+        body: `<!doctype html><html lang="fa"><head><meta charset="utf-8"></head><body><script type="module">await import("/app/AppFixture.js");await import("/app/fa-XYZ789.js");document.body.insertAdjacentHTML("beforeend", '<p id="ready">fa</p>');</script></body></html>`,
+      });
+    });
+    await page.goto(`${HOST}/page?lang=fa`);
+    await expect(page.locator("#ready")).toBeVisible();
+
+    expect(await watch.languages()).toEqual(["fa"]);
+  });
+
   test("an entry that holds German and Persian whole reads as both, on an English page", async ({
     page,
   }: {

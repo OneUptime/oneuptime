@@ -383,9 +383,9 @@ See `SecurityPage/README.md`. Screenshots of each are written to
   a page that switches language while open. In a spec,
   `expectPageLoadsOnlyItsLanguage(page, check, language)` holds a page to
   its own locale and a script budget, and `dashboardWord(language, english)`
-  reads the words it should show. `Tests/Ops/E2EFixtureLocalesAsShipped`
-  holds every fixture to this. Its `KNOWN_STATIC` lists the fixtures still
-  to move (#8645), and the list only shrinks.
+  reads the words it should show, and `describePageLanguages(block)` gives a
+  suite those checks in one call. `Tests/Ops/E2EFixtureLocalesAsShipped`
+  holds every fixture to this (#8645 moved the last ones).
 
 A fixture navigates as the frontend it draws: one that draws Dashboard pages
 mounts `<BrowserRouter useTransitions={false}>`, as the Dashboard's

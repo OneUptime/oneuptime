@@ -45,6 +45,18 @@ const OPEN_CASES_PATH: string = `${PRODUCT}/cases`;
 const OKTA_EXPORT_SHA256: string =
   "9f2c1a7e4b8d3f60c5e1a2b7d9083e4f6a1c5b2d8e7f9a0b3c4d5e6f7a8b9c0d";
 
+/*
+ * The line under the Okta export's name, as read from the page: its file,
+ * and its size held to its unit by a no-break space (#8717).
+ */
+const OKTA_EXPORT_META: string = `okta-system-log-2026-10-14.json · ${withUnit("470.8", "KB")}`;
+
+// Who added each piece of evidence and when, a number held to its unit (#8456).
+const ADDED_LINES: Array<string> = [
+  "Added by Diego Alvarez an hour ago",
+  `Added by Maya Chen ${withUnit(3, "hours")} ago`,
+];
+
 const SCREENSHOTS: string = path.resolve(
   __dirname,
   "../../../output/playwright/security-operations-ui",
@@ -761,7 +773,7 @@ test.describe("a case's evidence", () => {
     });
     expect(metas).toEqual([
       "https://acme-commerce.okta.example/admin/users?filter=sprayed",
-      "okta-system-log-2026-10-14.json · 470.8 KB",
+      OKTA_EXPORT_META,
     ]);
     await expect(page.getByTestId("security-case-evidence-sha256")).toHaveText(
       "9f2c1a7e…9c0d",
@@ -774,10 +786,7 @@ test.describe("a case's evidence", () => {
      * Who added each and when, a line under it - the table's one column,
      * so no name is cut short and the rows never scroll sideways.
      */
-    expect(await addedLines(page)).toEqual([
-      "Added by Diego Alvarez an hour ago",
-      "Added by Maya Chen 3 hours ago",
-    ]);
+    expect(await addedLines(page)).toEqual(ADDED_LINES);
     // The table's header names one column: Evidence.
     const header: Locator = page
       .locator("#security-case-evidence-table-body")
@@ -877,7 +886,7 @@ test.describe("a case's evidence", () => {
     });
     expect(metas).toEqual([
       "https://acme-commerce.okta.example/admin/users?filter=sprayed",
-      "okta-system-log-2026-10-14.json · 470.8 KB",
+      OKTA_EXPORT_META,
     ]);
   });
 
@@ -952,10 +961,9 @@ test.describe("a case's evidence", () => {
       });
 
       // Each piece of evidence says who added it and when, at every width.
-      expect(await addedLines(page), `added lines at ${width}`).toEqual([
-        "Added by Diego Alvarez an hour ago",
-        "Added by Maya Chen 3 hours ago",
-      ]);
+      expect(await addedLines(page), `added lines at ${width}`).toEqual(
+        ADDED_LINES,
+      );
 
       /*
        * From md up a table: beside the side menu its card is 620 to 760px

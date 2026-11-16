@@ -88,9 +88,8 @@ import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import User from "Common/UI/Utils/User";
 import PermissionUtil from "Common/UI/Utils/Permission";
-import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
-import JA from "../../../App/FeatureSet/Dashboard/src/Locales/ja.json";
-import FA from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
+import EN from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
+import { localeResources } from "../../SuiteHelpers/FixtureLocales";
 import ADMIN_EN from "../../../App/FeatureSet/AdminDashboard/src/Locales/en.json";
 import ADMIN_DE from "../../../App/FeatureSet/AdminDashboard/src/Locales/de.json";
 import ADMIN_JA from "../../../App/FeatureSet/AdminDashboard/src/Locales/ja.json";
@@ -782,6 +781,28 @@ API.post = async (options) => {
 };
 
 /*
+ * English, the fallback, is in the bundle; German, Japanese and Persian are
+ * each a chunk of its own, loaded only by a page drawn in that language, as
+ * the Dashboard loads a locale (src/Utils/I18nLocaleLoader.ts), and built as
+ * the Dashboard ships them (server.js, SuiteHelpers/FixtureLocalesBuild.js).
+ * Imported whole, they were parsed on every page load of every test (#8645).
+ *
+ * The Admin Dashboard's locales, under half a megabyte each, are still
+ * imported whole for its pages.
+ */
+const LOCALE_LOADERS = {
+  de: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/de.json");
+  },
+  ja: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/ja.json");
+  },
+  fa: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/fa.json");
+  },
+};
+
+/*
  * The Dashboard looks every string up by its English text, so the
  * separators i18next reads in a key (the "." and ":" of a sentence) are
  * turned off, as the Dashboard's own setup does. The Admin Dashboard reads
@@ -803,13 +824,12 @@ await i18next.use(initReactI18next).init(
       }
     : {
         lng: language,
-        fallbackLng: language,
-        resources: {
-          en: { translation: {} },
-          de: { translation: DE },
-          ja: { translation: JA },
-          fa: { translation: FA },
-        },
+        fallbackLng: "en",
+        resources: await localeResources({
+          language,
+          english: EN,
+          loaders: LOCALE_LOADERS,
+        }),
         interpolation: { escapeValue: false },
         keySeparator: false,
         nsSeparator: false,

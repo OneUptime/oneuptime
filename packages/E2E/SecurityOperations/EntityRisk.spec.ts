@@ -8,6 +8,7 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { withUnit } from "../SuiteHelpers/NoBreakSpaces";
 
 /*
  * Entity risk on the Security Operations fixture's synthetic month
@@ -725,7 +726,8 @@ test.describe("an entity's page", () => {
     expect(sources[0]).toContain("Detection Rule");
     expect(sources[0]).toContain("50");
     expect(sources[0]).toContain("14");
-    expect(sources[0]).toContain("9 minutes ago");
+    // Read as written: the number held to its unit (#8456).
+    expect(sources[0]).toContain(`${withUnit(9, "minutes")} ago`);
     expect(sources[0]).toContain("TA0006 Credential Access");
     expect(sources[1]).toContain("Spray, then a success");
     expect(sources[2]).toContain("Corporate MISP");
