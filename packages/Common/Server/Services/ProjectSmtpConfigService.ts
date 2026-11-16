@@ -1,5 +1,8 @@
 import DatabaseService from "./DatabaseService";
 import CreateBy from "../Types/Database/CreateBy";
+import { OnUpdate } from "../Types/Database/Hooks";
+import UpdateBy from "../Types/Database/UpdateBy";
+import WriteOnlyCredentialChanges from "../Utils/AuditLog/WriteOnlyCredentialChanges";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { isAwsRegion } from "../../Types/Cloud/AwsRegionCode";
 import EmailServer from "../../Types/Email/EmailServer";
@@ -61,6 +64,25 @@ export class Service extends DatabaseService<Model> {
     }
 
     return created;
+  }
+
+  /*
+   * Nobody reads a credential back, so the audit log leaves its value out
+   * of every entry; an update that changes one is still recorded, as
+   * changed - by whom, when - never with its value
+   * (WriteOnlyCredentialChanges). A password rotated alone would leave no
+   * entry otherwise.
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    WriteOnlyCredentialChanges.recordInAuditLog(
+      updateBy,
+      PROJECT_SMTP_CONFIG_CREDENTIAL_COLUMNS,
+    );
+
+    return { updateBy, carryForward: null };
   }
 
   public toEmailServer(

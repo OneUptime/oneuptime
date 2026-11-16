@@ -7,6 +7,7 @@ import { CodeHost } from "../../Types/CodeRepository/CodeHost";
 import URL from "../../Types/API/URL";
 import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import WriteOnlyCredentialChanges from "../Utils/AuditLog/WriteOnlyCredentialChanges";
 import {
   RepoResolution,
   ResolvableRepository,
@@ -146,6 +147,12 @@ export class Service extends ProjectReferencesService<Model> {
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     await super.onBeforeUpdate(updateBy);
+
+    /*
+     * The webhook secret is write-only: a change to it is recorded in the
+     * audit log as changed, never with its value (WriteOnlyCredentialChanges).
+     */
+    WriteOnlyCredentialChanges.recordInAuditLog(updateBy, ["secretToken"]);
 
     await Service.assertRunnerCanWorkInRepositories(updateBy.data);
 
