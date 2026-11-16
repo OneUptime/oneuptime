@@ -6,7 +6,7 @@ OneUptime enregistre le sort des notifications qu'il envoie : combien d'incident
 - [Les activer](#les-activer): Deux paramètres, et rien n'est enregistré sans eux.
 - [Les métriques](#les-métriques): Sept métriques, du déclencheur au téléphone.
 - [Comment une alerte est chronométrée](#comment-une-alerte-est-chronométrée): D'où partent le délai d'envoi et le retard d'envoi.
-- [Des SLO pour commencer](#des-slo-pour-commencer): Quatre objectifs, requête par requête.
+- [Des SLO pour commencer](#des-slo-pour-commencer): Cinq objectifs, requête par requête.
 :::
 
 ## Fonctionnement
@@ -151,7 +151,7 @@ Les statuts n'arrivent que là où le fournisseur peut les signaler :
 | --- | --- |
 | `monitor_data_received` | Quand OneUptime a reçu les données qui ont déclenché le moniteur : une requête entrante, le rapport d'un agent serveur, un e-mail entrant, la vérification d'une sonde, un trap SNMP ou l'interrogation d'un équipement réseau. Elle inclut le temps que les données ont attendu dans la file avant d'être évaluées. |
 | `record_created` | Quand l'incident, l'alerte ou l'épisode a été créé : par un moniteur de télémétrie, une règle ou une personne, et pour une vérification d'absence, comme un heartbeat qui s'est arrêté. |
-| `page_started` | Quand une alerte a démarré plus tard : une personne, un flux de travail ou une règle qui correspond désormais l'a démarrée, ou c'est une alerte directe. Pour une alerte retenue par sa règle d'astreinte ou par OneUptime AI, quand sa suspension a pris fin, ou quand elle a démarré si c'était plus tôt. Pour une nouvelle alerte, quand le délai après prise en compte a expiré. Un worker arrivé en retard à l'une ou l'autre se voit donc dans le temps. |
+| `page_started` | Quand une alerte a démarré plus tard : une personne, un flux de travail ou une règle qui correspond désormais l'a démarrée, ou c'est une alerte directe. Pour une alerte retenue par sa règle d'astreinte ou par OneUptime AI, quand sa suspension a pris fin, ou quand elle a démarré si c'était plus tôt. Pour une nouvelle alerte, quand le délai après prise en compte a expiré, ou quand sa politique a été modifiée pour la dernière fois, si c'était plus tard : un délai raccourci au point d'avoir déjà expiré est chronométré depuis la modification. Un worker arrivé en retard à l'une ou l'autre se voit donc dans le temps. |
 
 Pour une requête entrante, la durée part de la dernière requête reçue par le point de terminaison, elle peut donc être un peu courte.
 
@@ -183,7 +183,7 @@ Un percentile est calculé à partir des compartiments, et tracé au milieu du c
 
 ## Des SLO pour commencer
 
-Quatre objectifs que la plupart des installations peuvent promettre, chacun construit à partir d'une ou deux requêtes dans l'explorateur de métriques du projet qui reçoit les métriques. Ils lisent une période exactement dès que les métriques arrivent sous forme de deltas : voir [Envoyer des deltas à un projet OneUptime](#envoyer-des-deltas-à-un-projet-oneuptime).
+Cinq objectifs que la plupart des installations peuvent promettre, chacun construit à partir d'une ou deux requêtes dans l'explorateur de métriques du projet qui reçoit les métriques. Ils lisent une période exactement dès que les métriques arrivent sous forme de deltas : voir [Envoyer des deltas à un projet OneUptime](#envoyer-des-deltas-à-un-projet-oneuptime).
 
 ### En construire un dans l'explorateur de métriques
 
@@ -216,7 +216,17 @@ La formule `$b / $a * 100` est la part qui a échoué, et l'objectif tient tant 
 | --- | --- | --- | --- |
 | `a` | `notification.time_to_send` | **P95** | `notification.page.start != page_started` |
 
-L'objectif tient tant que `a` reste inférieur ou égal à 30000. Les alertes démarrées plus tard sont chronométrées depuis leur démarrage ou leur échéance, pas depuis un déclencheur, elles sont donc exclues. Regroupez par `notification.page.start` pour voir la file des moniteurs (`monitor_data_received`) à part du reste, ou par `notification.channel` pour trouver un canal lent.
+L'objectif tient tant que `a` reste inférieur ou égal à 30000. Les alertes démarrées plus tard sont chronométrées depuis leur démarrage ou leur échéance, pas depuis un déclencheur, elles sont donc exclues : l'objectif suivant les couvre. Regroupez par `notification.page.start` pour voir la file des moniteurs (`monitor_data_received`) à part du reste, ou par `notification.channel` pour trouver un canal lent.
+
+### Les alertes démarrées plus tard partent en moins de 2 minutes
+
+95 % des alertes démarrées plus tard atteignent leur fournisseur dans les 2 minutes suivant leur échéance : une alerte retenue, une nouvelle alerte et une alerte qu'une personne, un flux de travail ou une règle a démarrée.
+
+| Requête | Métrique | Agrégation | Conditions |
+| --- | --- | --- | --- |
+| `a` | `notification.time_to_send` | **P95** | `notification.page.start = page_started` |
+
+L'objectif tient tant que `a` reste inférieur ou égal à 120000. Une alerte retenue ou une nouvelle alerte attend la prochaine exécution d'un worker qui tourne une fois par minute, donc jusqu'à une minute de son temps se passe à l'attendre, et un worker qui a pris du retard en ajoute davantage.
 
 ### Les notifications envoyées plus tard partent en moins de 90 secondes
 

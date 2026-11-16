@@ -92,6 +92,8 @@ Em uma lista, os rótulos de um registro aparecem um abaixo do outro; quando há
 
 Para aposentar um rótulo, arquive-o pelo menu **⋯** da sua linha em vez de excluí-lo. Tudo o que tem o rótulo o mantém e você ainda pode filtrar por ele, mas ninguém pode adicioná-lo a mais nada: todo seletor de rótulos o deixa de fora, e a API, o Terraform e o MCP o recusam. A caixa de diálogo lista as regras e permissões configuradas para usar o rótulo, que continuam usando-o até que você as altere. Os rótulos arquivados são listados à parte, na seção recolhida **Rótulos arquivados**, onde **Desarquivar** devolve um. **Excluir** lista primeiro tudo de onde o rótulo seria removido e oferece **Arquivar em vez disso**.
 
+**Usado por**, no menu da linha de um rótulo, conta os registros de cada tipo que levam o rótulo e os abre uma página por vez. Os registros que você não pode abrir são contados, não nomeados.
+
 ## Notificações
 
 **Configurações do projeto → Notificações** reúne como o projeto envia notificações:

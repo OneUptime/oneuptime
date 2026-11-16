@@ -135,7 +135,11 @@ import {
 import StatusPageReportPeriodUtil, {
   StatusPageReportPeriod,
 } from "../../Utils/StatusPage/ReportPeriod";
-import StatusPageReportText from "../../Utils/StatusPage/ReportText";
+import StatusPageReportText, {
+  StatusPageReportUptimeText,
+} from "../../Utils/StatusPage/ReportText";
+import { EMPTY_VALUE_MARK } from "../../Types/EmptyValueMark";
+import MonitorMeasuredFrom from "../Utils/Monitor/MonitorMeasuredFrom";
 import SubscriberLanguage from "../Utils/StatusPage/SubscriberLanguage";
 import { SubscriberEmailText } from "../Utils/StatusPage/SubscriberMessageText";
 import { writeInLanguage } from "../Utils/ServerTranslation";
@@ -2164,6 +2168,8 @@ export class Service extends ProjectReferencesService<StatusPage> {
         statusPageUrl: statusPageURL,
         detailsUrl: statusPageURL,
         hasResources: report.totalResources > 0 ? "true" : "false",
+        // Whether anything on the page was measured in the period (#9030).
+        hasUptime: report.hasUptime === false ? "false" : "true",
         /*
          * A custom template is the team's own words, written once: the
          * report it is filled with reads in the page's default language,
@@ -2377,14 +2383,15 @@ export class Service extends ProjectReferencesService<StatusPage> {
       reportTimezone: data.reportPeriod.timezone,
     };
 
+    // Nothing to measure: no figures, never a 0% uptime (issue #9030).
     if (statusPageResources.length === 0) {
       return {
         ...periodStrings,
         totalResources: 0,
         totalIncidents: 0,
-        averageUptimePercent: "0%",
-        totalDowntimeInHoursAndMinutes: "0",
-        totalDowntimeInMinutes: 0,
+        averageUptimePercent: EMPTY_VALUE_MARK,
+        hasUptime: false,
+        totalDowntimeInHoursAndMinutes: EMPTY_VALUE_MARK,
         resources: [],
         groups: [],
         ungroupedResources: [],
@@ -2541,15 +2548,14 @@ export class Service extends ProjectReferencesService<StatusPage> {
       }
 
       /*
-       * Nothing recorded in the window. This used to fall back to the capped
-       * rows, which hold nothing the uncapped queries do not, so it always
-       * came out as 100% and no downtime - which is still what is printed,
-       * now without fetching them.
+       * Nothing measured in the window (issue #9030): a monitor nothing had
+       * checked yet - the uptime statements leave out the time before a
+       * monitor's first check (#8960) - or one whose monitoring was off the
+       * whole time. The live page shows no uptime for it, a dash, and so
+       * does the report, downtime and all: it used to print 100% and no
+       * downtime, and average that 100% into its group and the page.
        */
-      if (uptimePercent === null) {
-        uptimePercent = 100;
-        downtimeInSeconds = 0;
-      }
+      const isMeasured: boolean = uptimePercent !== null;
 
       entries.push({
         statusPageResource: resource,
@@ -2562,23 +2568,50 @@ export class Service extends ProjectReferencesService<StatusPage> {
             endDate: endDate,
           }),
           uptimePercent: uptimePercent,
-          uptimePercentAsString: `${uptimePercent}%`,
-          downtimeInHoursAndMinutes:
-            this.getDowntimeInHoursAndMinutes(downtimeInSeconds),
-          downtimeInMinutes: this.getDowntimeInMinutes(downtimeInSeconds),
+          uptimePercentAsString: isMeasured
+            ? `${uptimePercent}%`
+            : EMPTY_VALUE_MARK,
+          downtimeInHoursAndMinutes: isMeasured
+            ? this.getDowntimeInHoursAndMinutes(downtimeInSeconds)
+            : EMPTY_VALUE_MARK,
+          ...(isMeasured
+            ? {
+                downtimeInMinutes: this.getDowntimeInMinutes(downtimeInSeconds),
+              }
+            : {}),
         },
       });
 
       monitorIdsByResourceIndex.push(monitorIdsForThisResource);
-      downtimeInSecondsByResourceIndex.push(downtimeInSeconds);
+      // Nothing measured is no downtime in the rollups above it.
+      downtimeInSecondsByResourceIndex.push(isMeasured ? downtimeInSeconds : 0);
     }
 
-    const avgUptimePercent: number =
-      entries.reduce((acc: number, entry: StatusPageReportResourceEntry) => {
-        return acc + entry.reportItem.uptimePercent;
-      }, 0) / entries.length;
+    // What the page shows beside such a resource instead of a status.
+    await this.writeNotMonitoredTexts({
+      entries: entries,
+      monitorIdsByResourceIndex: monitorIdsByResourceIndex,
+      projectId: statusPage.projectId!,
+      windowEnd: endDate,
+    });
 
-    const avgUptimePercentString: string = avgUptimePercent.toFixed(2) + "%";
+    // The page's average, of the resources measured: none, no figure.
+    const measuredUptimePercents: Array<number> =
+      this.getMeasuredUptimePercents(
+        entries.map((entry: StatusPageReportResourceEntry) => {
+          return entry.reportItem;
+        }),
+      );
+
+    const hasUptime: boolean = measuredUptimePercents.length > 0;
+
+    const avgUptimePercentString: string = hasUptime
+      ? (
+          measuredUptimePercents.reduce((acc: number, percent: number) => {
+            return acc + percent;
+          }, 0) / measuredUptimePercents.length
+        ).toFixed(2) + "%"
+      : EMPTY_VALUE_MARK;
 
     // the time at least one monitor on the page was down.
     const pageDowntime: MergedDowntimeTotals =
@@ -2630,16 +2663,99 @@ export class Service extends ProjectReferencesService<StatusPage> {
       totalResources: statusPageResources.length,
       totalIncidents: incidentCount,
       averageUptimePercent: avgUptimePercentString,
+      hasUptime: hasUptime,
       resources: structure.resources,
       groups: structure.groups,
       ungroupedResources: structure.resourcesWithoutGroup,
       rows: structure.rows,
       hasGroups: structure.groups.length > 0,
-      totalDowntimeInHoursAndMinutes: this.getDowntimeInHoursAndMinutes(
-        pageDowntimeInSeconds,
-      ),
-      totalDowntimeInMinutes: this.getDowntimeInMinutes(pageDowntimeInSeconds),
+      // Nothing on the page measured: no downtime figure either.
+      totalDowntimeInHoursAndMinutes: hasUptime
+        ? this.getDowntimeInHoursAndMinutes(pageDowntimeInSeconds)
+        : EMPTY_VALUE_MARK,
+      ...(hasUptime
+        ? {
+            totalDowntimeInMinutes: this.getDowntimeInMinutes(
+              pageDowntimeInSeconds,
+            ),
+          }
+        : {}),
     };
+  }
+
+  // The uptime of each item something was measured for, in order.
+  private getMeasuredUptimePercents(
+    items: Array<{ uptimePercent: number | null }>,
+  ): Array<number> {
+    const percents: Array<number> = [];
+
+    for (const item of items) {
+      if (item.uptimePercent !== null) {
+        percents.push(item.uptimePercent);
+      }
+    }
+
+    return percents;
+  }
+
+  /*
+   * What the report says beside a resource it measured nothing for (issue
+   * #9030), as the status page says it of the resource's row: "Not
+   * monitored yet" when nothing had checked its monitors by the end of the
+   * window - a monitor group none of whose monitors had been checked -
+   * and "Not monitored" otherwise, its monitoring having been off. A
+   * resource with no monitors says nothing but its dash. The monitors are
+   * read only when the report holds such a resource.
+   */
+  private async writeNotMonitoredTexts(data: {
+    entries: Array<StatusPageReportResourceEntry>;
+    monitorIdsByResourceIndex: Array<Array<ObjectID>>;
+    projectId: ObjectID;
+    windowEnd: Date;
+  }): Promise<void> {
+    const notMeasuredIndexes: Array<number> = [];
+    const monitorIds: Dictionary<ObjectID> = {};
+
+    data.entries.forEach(
+      (entry: StatusPageReportResourceEntry, index: number): void => {
+        if (entry.reportItem.uptimePercent !== null) {
+          return;
+        }
+
+        notMeasuredIndexes.push(index);
+
+        for (const monitorId of data.monitorIdsByResourceIndex[index] || []) {
+          monitorIds[monitorId.toString()] = monitorId;
+        }
+      },
+    );
+
+    if (Object.keys(monitorIds).length === 0) {
+      return;
+    }
+
+    const notCheckedMonitorIds: Set<string> =
+      await MonitorMeasuredFrom.getMonitorIdsNotCheckedBy({
+        projectId: data.projectId,
+        monitorIds: Object.values(monitorIds),
+        at: data.windowEnd,
+      });
+
+    for (const index of notMeasuredIndexes) {
+      const resourceMonitorIds: Array<ObjectID> =
+        data.monitorIdsByResourceIndex[index] || [];
+
+      if (resourceMonitorIds.length === 0) {
+        continue;
+      }
+
+      data.entries[index]!.reportItem.notMonitoredText =
+        resourceMonitorIds.every((monitorId: ObjectID): boolean => {
+          return notCheckedMonitorIds.has(monitorId.toString());
+        })
+          ? StatusPageReportUptimeText.notMonitoredYet
+          : StatusPageReportUptimeText.notMonitored;
+    }
   }
 
   /*
@@ -2773,7 +2889,11 @@ export class Service extends ProjectReferencesService<StatusPage> {
             return;
           }
 
-          uptimePercentsInSubtree.push(entry.reportItem.uptimePercent);
+          // Only what was measured: the live page's rollup leaves the rest out.
+          if (entry.reportItem.uptimePercent !== null) {
+            uptimePercentsInSubtree.push(entry.reportItem.uptimePercent);
+          }
+
           downtimesInSecondsInSubtree.push(
             data.downtimeInSecondsByResourceIndex?.[index] || 0,
           );
@@ -2807,16 +2927,18 @@ export class Service extends ProjectReferencesService<StatusPage> {
       /*
        * Averaging the resources' percentages (rather than recomputing from the
        * merged downtime) is what the live page does, so a group in the email
-       * shows the number a reader can compare against the page.
+       * shows the number a reader can compare against the page. A group
+       * nothing beneath which was measured - or that holds no resource - has
+       * no figure, as on the page (issue #9030): it used to read 0%.
        */
-      const uptimePercent: number =
+      const uptimePercent: number | null =
         uptimePercentsInSubtree.length > 0
           ? UptimeUtil.calculateAvgUptimePercentage({
               uptimePercentages: uptimePercentsInSubtree,
               precision:
                 group.uptimePercentPrecision || UptimePrecision.TWO_DECIMAL,
             })
-          : 0;
+          : null;
 
       let totalIncidentCount: number | undefined =
         incidentCountByMonitorSet[monitorSetKey];
@@ -2841,15 +2963,25 @@ export class Service extends ProjectReferencesService<StatusPage> {
           resourceDowntimesInSeconds: downtimesInSecondsInSubtree,
         });
 
-      groupMetricsByGroupId[groupId] = {
-        uptimePercent: uptimePercent,
-        uptimePercentAsString: `${uptimePercent}%`,
-        downtimeInHoursAndMinutes: this.getDowntimeInHoursAndMinutes(
-          rolledUpDowntimeInSeconds,
-        ),
-        downtimeInMinutes: this.getDowntimeInMinutes(rolledUpDowntimeInSeconds),
-        totalIncidentCount: totalIncidentCount,
-      };
+      groupMetricsByGroupId[groupId] =
+        uptimePercent === null
+          ? {
+              uptimePercent: null,
+              uptimePercentAsString: EMPTY_VALUE_MARK,
+              downtimeInHoursAndMinutes: EMPTY_VALUE_MARK,
+              totalIncidentCount: totalIncidentCount,
+            }
+          : {
+              uptimePercent: uptimePercent,
+              uptimePercentAsString: `${uptimePercent}%`,
+              downtimeInHoursAndMinutes: this.getDowntimeInHoursAndMinutes(
+                rolledUpDowntimeInSeconds,
+              ),
+              downtimeInMinutes: this.getDowntimeInMinutes(
+                rolledUpDowntimeInSeconds,
+              ),
+              totalIncidentCount: totalIncidentCount,
+            };
     }
 
     return groupMetricsByGroupId;
@@ -3135,6 +3267,10 @@ export class Service extends ProjectReferencesService<StatusPage> {
         monitorGroupIds,
       ));
 
+    /*
+     * Without each group whose monitors are all off, or not monitored yet
+     * (issue #8899): the statuses in hand say which a monitor starts in.
+     */
     const monitorGroupStatuses: Dictionary<MonitorStatus> =
       FrozenMonitorResources.withoutNotMonitoredMonitorGroups({
         monitorGroupStatuses:
@@ -3144,6 +3280,9 @@ export class Service extends ProjectReferencesService<StatusPage> {
             monitorGroupResources: resourcesByGroupId,
           }),
         monitorGroupResources: resourcesByGroupId,
+        startingStatusIds: FrozenMonitorResources.getStartingStatusIds(
+          data.monitorStatuses,
+        ),
       });
 
     for (const monitorGroupId of Object.keys(monitorGroupStatuses)) {

@@ -35,7 +35,7 @@ Apri **Impostazioni del progetto → Avanzato → Chiavi API** e fai clic su **C
 
 ### Copiare la chiave
 
-Si apre la pagina della chiave. Copia la **Chiave API** dalla scheda **Dettagli chiave API** e tienila fuori dal tuo codice:
+OneUptime mostra la chiave una sola volta, nella finestra di dialogo **Copia la tua chiave API**: copiala prima di premere **Fatto**, perché nessuna pagina la mostra di nuovo. Tienila fuori dal tuo codice:
 
 ```bash
 export ONEUPTIME_API_KEY="your-api-key"
@@ -93,7 +93,7 @@ Un campo di un record che la risorsa nomina si filtra sotto la sua relazione: `"
 
 Una risorsa con proprietari - un monitor, un incidente, una policy di reperibilità e ogni altra con proprietari utente e team - si filtra anche in base a chi la possiede, sotto `owners`: `"owners": { "_type": "OwnedBy", "userIds": ["..."], "teamIds": ["..."] }` trova i record di cui sono proprietari una o più di quelle persone e di quei team. `match` è `AnyOf` se non lo imposti: `NoneOf` trova i record di cui nessuno di loro è proprietario, compresi i record senza proprietari, e `AnyOwner` e `NoOwner` trovano i record con almeno un proprietario o senza nessuno, senza nominare nessuno. I membri di un team non sono proprietari di ciò che il team possiede. Un filtro nomina al massimo 1.000 persone e team in tutto, una risorsa senza proprietari lo rifiuta con un `400`, e filtrare per proprietari senza il permesso di leggerli viene rifiutato con un `422`.
 
-`select` nomina i campi da restituire, e `_id` torna sempre. `sort` li ordina, `ASC` o `DESC`; senza ordinamento, i più recenti vengono per primi. Un elenco restituisce 10 record se non imposti `limit`, fino a 10.000, e `skip` ne salta prima altrettanti: continua ad aumentare `skip` di `limit` finché non ne hai `count`. Aggiungi `?output-type=csv` a una richiesta di elenco per avere CSV invece di JSON.
+`select` nomina i campi da restituire, e `_id` torna sempre. `sort` li ordina, `ASC` o `DESC`; senza ordinamento, i più recenti vengono per primi. Un elenco restituisce 10 record se non imposti `limit`, fino a 10.000, e `skip` ne salta prima altrettanti: continua ad aumentare `skip` di `limit` finché non ne hai `count`. Su un elenco lungo, contare ogni corrispondenza richiede tempo: aggiungi `countUpTo`, per esempio `10000`, e il conteggio si ferma lì, o alla fine della pagina se è più avanti. Quando corrispondono più record, `count` è dove si è fermato e la risposta riporta anche `"isCountCapped": true`: con `"countUpTo": 1`, questo dice se dopo la pagina seguono altri record. Aggiungi `?output-type=csv` a una richiesta di elenco per avere CSV invece di JSON.
 
 L'ordine di un campo può anche dire dove vanno i record senza un valore in esso: `{ "declaredAt": { "direction": "DESC", "nulls": "LAST" } }` mette prima i più recenti e in fondo quelli che non ne hanno, e `FIRST` li mette prima. Una relazione con un record ordina per un campo del record che nomina: `{ "incidentSeverity": { "order": "ASC" } }` elenca gli incidenti nell'ordine delle loro gravità. Una relazione che riceve solo una direzione, come in `{ "incidentSeverity": "DESC" }`, viene rifiutata con un `400` che nomina invece un campo per cui ordinare, e così una relazione con molti record, come le `labels` di un incidente: ogni incidente ne ha un elenco, e un elenco non ha un unico valore per cui mettere in ordine gli incidenti. Ordinare per un campo richiede anche il permesso di leggerlo, attraverso una relazione come sulla risorsa stessa: un ordinamento per un campo che non puoi leggere viene rifiutato con un `422`.
 
@@ -341,7 +341,7 @@ Ogni risorsa, endpoint e campo si trova nel [riferimento API di OneUptime](/refe
 ## Risoluzione dei problemi
 
 :::details Ogni richiesta risponde 400 Invalid API Key
-L'intestazione `ApiKey` è vuota, non è una chiave, oppure nomina una chiave scaduta o reimpostata. Copia di nuovo la chiave dalla sua pagina in **Impostazioni del progetto → Avanzato → Chiavi API**, dove c'è anche la sua data **Scade**.
+L'intestazione `ApiKey` è vuota, non è una chiave, oppure nomina una chiave scaduta o reimpostata. Trova la chiave in **Impostazioni del progetto → Avanzato → Chiavi API** da come finisce, e controlla la sua data **Scade**. Una chiave che non hai più non può essere mostrata di nuovo: reimpostala nella sua pagina per averne una nuova.
 :::
 
 :::details Ogni richiesta risponde 402 Payment Required

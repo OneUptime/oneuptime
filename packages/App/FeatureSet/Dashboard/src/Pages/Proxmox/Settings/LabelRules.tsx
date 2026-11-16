@@ -1,3 +1,4 @@
+import { getLabelRuleHelpMarkdown } from "../../../Utils/Help/ResourceRuleHelp";
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
@@ -17,22 +18,9 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
 
-const proxmoxClusterLabelDocumentation: string = `
-### How Proxmox Cluster Label Rules Work
-
-Proxmox Cluster Label Rules attach labels to a Proxmox cluster automatically when it matches your criteria — so you don't have to remember to tag new Proxmox clusters.
-
-### Match Criteria
-
-A rule matches a Proxmox cluster only when **all** specified criteria pass. Empty criteria are skipped.
-
-- **Proxmox Cluster Labels** (prerequisite) — any-of
-- **Name / Description Pattern** — case-insensitive regex
-
-### Action
-
-When a rule matches, every label listed in \`Labels to Add\` is attached to the Proxmox cluster. Already-attached labels are not duplicated. Multiple matching rules all fire — the union of their labels ends up attached.
-`;
+const proxmoxClusterLabelDocumentation: string = getLabelRuleHelpMarkdown({
+  nouns: { singular: "Proxmox cluster", plural: "Proxmox clusters" },
+});
 
 const ProxmoxClusterLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
   props: RuleSettingsPageProps,

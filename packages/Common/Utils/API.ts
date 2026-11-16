@@ -24,6 +24,7 @@ import HTTPResponseBodyReader, {
 } from "./HTTPResponseBodyReader";
 import { getSameServerRedirectCheck } from "./SameServerRedirect";
 import ResponseTooLarge from "./ResponseTooLarge";
+import RetryAfter from "./RetryAfter";
 import type { Agent as HttpAgent } from "http";
 import type { Agent as HttpsAgent } from "https";
 
@@ -1053,13 +1054,16 @@ export default class API {
      * could pick — coming back early just spends another attempt on the same
      * 429. Still capped: the caller's budget is what bounds the total wait,
      * and an unbounded Retry-After would hand that control to the server.
+     * And never less than a second (RetryAfter's floor): "0" or a date gone
+     * by would otherwise spend every retry at once.
      */
     const retryAfterInMs: number | undefined = API.getRetryAfterInMs(
       data.error,
+      ceilingInMs,
     );
 
     if (retryAfterInMs !== undefined) {
-      return Math.min(retryAfterInMs, ceilingInMs);
+      return retryAfterInMs;
     }
 
     if (!data.exponentialBackoff) {
@@ -1081,51 +1085,25 @@ export default class API {
     return Math.round(backoffInMs / 2 + Math.random() * (backoffInMs / 2));
   }
 
-  /**
-   * Read a Retry-After header off a failed response. Returns undefined unless
-   * the header is present and names a sane, non-negative wait.
+  /*
+   * The Retry-After of a failed response, as RFC 9110 writes it (see
+   * RetryAfter), held between a second and `ceilingInMs`. Undefined unless
+   * the header is there and is delay-seconds or an HTTP-date: "1.5", "-5"
+   * or "5 seconds" are none (Date.parse took them for days in 2001, a wait
+   * long over, and every retry went at once - issue #8928), so the backoff
+   * applies.
    */
-  private static getRetryAfterInMs(error: unknown): number | undefined {
+  private static getRetryAfterInMs(
+    error: unknown,
+    ceilingInMs: number,
+  ): number | undefined {
     if (!axios.isAxiosError(error)) {
       return undefined;
     }
 
-    const headers: unknown = error.response?.headers;
-
-    if (!headers || typeof headers !== "object") {
-      return undefined;
-    }
-
-    const rawHeader: unknown =
-      (headers as Dictionary<unknown>)["retry-after"] ??
-      (headers as Dictionary<unknown>)["Retry-After"];
-
-    if (rawHeader === undefined || rawHeader === null) {
-      return undefined;
-    }
-
-    const headerValue: string = String(rawHeader).trim();
-
-    if (!headerValue) {
-      return undefined;
-    }
-
-    // Form 1: delta-seconds.
-    const deltaSecondsRegex: RegExp = /^\d+$/;
-
-    if (deltaSecondsRegex.test(headerValue)) {
-      return Number(headerValue) * 1000;
-    }
-
-    // Form 2: an HTTP-date to wait until.
-    const retryAtInMs: number = Date.parse(headerValue);
-
-    if (Number.isNaN(retryAtInMs)) {
-      return undefined;
-    }
-
-    // A date already in the past means "retry now", not "retry in the past".
-    return Math.max(0, retryAtInMs - Date.now());
+    return RetryAfter.msFromHeaders(error.response?.headers, {
+      maxMs: ceilingInMs,
+    });
   }
 
   private static getErrorResponse(error: AxiosError): HTTPErrorResponse {

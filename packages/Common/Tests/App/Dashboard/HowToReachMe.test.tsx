@@ -24,9 +24,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 /*
  * HOW TO REACH ME (#6820, drawn as steps in #8139): the page opens on one
  * ladder - numbered steps, each a time and the ways to reach the person
- * that go out together then - opens on the grid for rules that differ or
- * a link to one kind, names every difference, and saves a ladder in one
- * request, for yourself or for a member with their masked methods. A step's
+ * that go out together then - for rules that differ too, naming every
+ * difference under the steps (#8890), opens on the grid for a link to one
+ * kind, and saves a ladder in one request, for yourself or for a member
+ * with their masked methods. A step's
  * time is changed on its heading and moves the whole step; Add puts a way
  * into a step, Add Step starts one after the last; Save Changes shows once
  * there is something to save, and leaving before then asks first. The reads
@@ -467,10 +468,13 @@ describe("which view it opens on", () => {
       expect(icon.classList.contains("hidden")).toBe(false);
     }
 
-    // What it is for, beside the way to make some severities differ.
+    // What it is for; nothing differs, so no list of what does.
     expect(screen.getByTestId("paging-ladder-scope")).toHaveTextContent(
       "Used for every incident, alert and episode, of every severity.",
     );
+    expect(
+      screen.queryByTestId("paging-ladder-differences-section"),
+    ).not.toBeInTheDocument();
 
     // Nothing changed: nothing to save, and no button for it.
     expect(
@@ -483,17 +487,35 @@ describe("which view it opens on", () => {
     expect(loadDataMock).toHaveBeenCalledWith(new ObjectID(ME));
   });
 
-  test("rules that differ open on the grid, naming each card and how it differs", async () => {
+  test("rules that differ still open on the steps, naming each card that differs under them (#8890)", async () => {
     givenRules(DIFFERING);
     renderPage();
 
-    await screen.findByTestId("paging-ladder-summary");
-    expect(pageView()).toBe("grid");
+    await screen.findByTestId("paging-ladder");
+    expect(pageView()).toBe("ladder");
+
+    // The steps stay reachable and editable: the ladder most cards page.
+    expect(drawnSteps()).toEqual([
+      { wait: "At once", methods: ["SMS: +15550100"] },
+      { wait: "After 5\u00A0minutes", methods: ["Phone call: +15550100"] },
+    ]);
+    expect(screen.getByTestId("paging-ladder-add-step")).toBeInTheDocument();
+
+    // Not "every severity": the cards that differ are listed instead.
+    expect(screen.queryByTestId("paging-ladder-scope")).not.toBeInTheDocument();
+    const section: HTMLElement = screen.getByTestId(
+      "paging-ladder-differences-section",
+    );
     expect(
-      screen.getByText("1 card is different from the ladder."),
+      within(section).getByText("Different from the ladder"),
+    ).toBeInTheDocument();
+    expect(
+      within(section).getByText(
+        "These keep their own rules when you save changes to the steps.",
+      ),
     ).toBeInTheDocument();
 
-    const difference: HTMLElement = screen.getByTestId(
+    const difference: HTMLElement = within(section).getByTestId(
       "paging-ladder-difference",
     );
     expect(within(difference).getByText("Incidents")).toBeInTheDocument();
@@ -504,7 +526,27 @@ describe("which view it opens on", () => {
     expect(within(difference).getByText("Phone call")).toBeInTheDocument();
     expect(within(difference).getByText("At once")).toBeInTheDocument();
 
-    // The grid marks the card that differs.
+    // Giving them the ladder too is a button of its own, and nothing to save until then.
+    expect(
+      within(section).getByTestId("paging-ladder-use-for-every-severity"),
+    ).toHaveTextContent("Use This Ladder for Every Severity");
+    expect(
+      screen.queryByTestId("paging-ladder-save-bar"),
+    ).not.toBeInTheDocument();
+    expect(tabsProps).toBeNull();
+  });
+
+  test("the grid marks each card that differs, and its button goes back to the steps", async () => {
+    givenRules(DIFFERING);
+    renderPage();
+
+    fireEvent.click(await screen.findByTestId("paging-ladder-open-grid"));
+
+    await screen.findByTestId("paging-ladder-summary");
+    expect(pageView()).toBe("grid");
+    expect(
+      screen.getByText("1 card is different from the ladder."),
+    ).toBeInTheDocument();
     expect(tabsProps).not.toBeNull();
     expect([...(tabsProps!.differingCellKeys || [])]).toEqual([
       getPagingLadderCellKey({
@@ -512,9 +554,14 @@ describe("which view it opens on", () => {
         severityId: CRITICAL,
       }),
     ]);
+
+    // It only goes back: never words that read as a reset.
     expect(
-      screen.getByText("Use One Ladder for Everything"),
-    ).toBeInTheDocument();
+      screen.queryByText("Use One Ladder for Everything"),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText("Back to One Ladder"));
+    expect(pageView()).toBe("ladder");
+    expect(saveMock).not.toHaveBeenCalled();
   });
 
   test("a link to one kind's tab opens the grid, even on one ladder", async () => {
@@ -570,7 +617,7 @@ describe("which view it opens on", () => {
 });
 
 describe("moving between the ladder and the grid", () => {
-  test("Different for Some Severities, at the ladder's foot, opens the grid and says so in an event", async () => {
+  test("Different for Some Severities, a button beside the ladder's title, opens the grid and says so in an event (#8890)", async () => {
     givenRules(ONE_LADDER);
     renderPage();
 
@@ -578,11 +625,16 @@ describe("moving between the ladder and the grid", () => {
       "paging-ladder-open-grid",
     );
     expect(openGrid).toHaveTextContent("Different for Some Severities");
+    // A button in the card's header, where its actions are - not a link at its foot.
+    expect(openGrid.tagName).toBe("BUTTON");
     expect(
-      within(screen.getByTestId("paging-ladder-scope")).getByTestId(
+      openGrid.closest("[data-testid='card-header-actions']"),
+    ).not.toBeNull();
+    expect(
+      within(screen.getByTestId("paging-ladder-scope")).queryByTestId(
         "paging-ladder-open-grid",
       ),
-    ).toBe(openGrid);
+    ).toBeNull();
 
     fireEvent.click(openGrid);
 
@@ -635,6 +687,7 @@ describe("moving between the ladder and the grid", () => {
   test("a change on the grid reads the rules again", async () => {
     givenRules(DIFFERING);
     renderPage();
+    fireEvent.click(await screen.findByTestId("paging-ladder-open-grid"));
     await screen.findByTestId("on-call-rules-tabs-stub");
 
     givenRules(ONE_LADDER);
@@ -967,23 +1020,58 @@ describe("changing the steps", () => {
     expect(LeaveGuard.isHeld()).toBe(false);
   });
 
-  test("using one ladder over rules that differ names the cards that change, before anything is saved", async () => {
+  test("a changed step over rules that differ saves without asking, and the cards that differ keep their own rules (#8890)", async () => {
+    givenRules(DIFFERING);
+    renderPage();
+    await screen.findByTestId("paging-ladder");
+
+    changeStepWait(1, 15);
+    // What the server writes: the new ladder, and Critical incidents still calling at once.
+    givenRules([
+      ...rulesFor(CELLS, [
+        step("userSmsId", SMS, 0),
+        step("userCallId", CALL, 15),
+      ]),
+      ...rulesFor([CELLS[0]!], [step("userCallId", CALL, 0)]),
+    ]);
+    fireEvent.click(screen.getByTestId("paging-ladder-save"));
+
+    // Nothing is lost, so nothing to confirm.
+    expect(
+      screen.queryByTestId("paging-ladder-confirm-cards"),
+    ).not.toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(saveMock).toHaveBeenCalledTimes(1);
+    });
+    expect(saveMock).toHaveBeenCalledWith({
+      userId: undefined,
+      steps: [step("userSmsId", SMS, 0), step("userCallId", CALL, 15)],
+      keepCards: [CELLS[0]],
+    });
+    expect(sendEventMock).toHaveBeenCalledWith(
+      ProductEventName.PagingLadderSaved,
+      { is_own: true, step_count: 2, replaced_card_count: 0 },
+    );
+    expect(await screen.findByTestId("paging-ladder-saved")).toHaveTextContent(
+      "Saved. The severities that differ keep their own rules.",
+    );
+  });
+
+  test("Use This Ladder for Every Severity names the cards that change, before anything is saved", async () => {
     givenRules(DIFFERING);
     renderPage();
 
-    fireEvent.click(await screen.findByText("Use One Ladder for Everything"));
-
-    expect(pageView()).toBe("ladder");
-    expect(
-      screen.getByTestId("paging-ladder-replaces-note"),
-    ).toBeInTheDocument();
-
-    // Nothing changed in the ladder, and still it can be saved: it replaces the difference.
-    fireEvent.click(screen.getByTestId("paging-ladder-save"));
+    fireEvent.click(
+      await screen.findByTestId("paging-ladder-use-for-every-severity"),
+    );
 
     const confirmCards: HTMLElement = await screen.findByTestId(
       "paging-ladder-confirm-cards",
     );
+    expect(
+      screen.getByText("Use This Ladder for Every Severity?"),
+    ).toBeInTheDocument();
     expect(within(confirmCards).getByText("Incidents")).toBeInTheDocument();
     expect(
       within(confirmCards).getByText("Critical Incident"),
@@ -999,12 +1087,24 @@ describe("changing the steps", () => {
     expect(saveMock).toHaveBeenCalledWith({
       userId: undefined,
       steps: [step("userSmsId", SMS, 0), step("userCallId", CALL, 5)],
+      keepCards: undefined,
     });
+    expect(
+      (saveMock.mock.calls[0]![0] as { keepCards?: unknown }).keepCards,
+    ).toBeUndefined();
     expect(sendEventMock).toHaveBeenCalledWith(
       ProductEventName.PagingLadderSaved,
       { is_own: true, step_count: 2, replaced_card_count: 1 },
     );
-    await screen.findByTestId("paging-ladder-saved");
+    expect(await screen.findByTestId("paging-ladder-saved")).toHaveTextContent(
+      "Saved. Every severity now uses this ladder.",
+    );
+    // Read again: nothing differs any more.
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId("paging-ladder-differences-section"),
+      ).not.toBeInTheDocument();
+    });
   });
 
   test("a save the server refuses says why, and keeps the ladder as it was typed", async () => {

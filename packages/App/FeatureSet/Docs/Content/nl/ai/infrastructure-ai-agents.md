@@ -325,7 +325,7 @@ Fixes hebben dezelfde vier modi als op een Kubernetes-cluster; `ONEUPTIME_AI_FIX
 - **Uit**: AI onderzoekt alleen.
 - **Om goedkeuring vragen**: na de oorzaakanalyse stelt OneUptime AI met leesopdrachten een diagnose en stelt het kleinste plan op dat de oorzaak aanpakt, bijvoorbeeld `docker restart web`. Het plan verschijnt bij het incident of de waarschuwing met de motivering, het verwachte effect en de rollback; een mens keurt het met één klik goed, en OneUptime voert precies die opdrachten uit.
 - **Automatisch**: veilige wijzigingen (**SafeWrite**) worden vanzelf uitgevoerd; een riskantere wijziging (**RiskyWrite**) wordt ter goedkeuring voorgesteld, tenzij de lijst met toegestane opdrachten van de resource precies de vorm ervan noemt.
-- **Goedkeuring overslaan**: elke wijziging die het beleid toestaat, riskantere inbegrepen, wordt vanzelf uitgevoerd. Wat altijd een mens nodig heeft, wacht nog steeds op een mens.
+- **Goedkeuring overslaan**: elke wijziging die het beleid toestaat, riskantere inbegrepen, wordt vanzelf uitgevoerd. Wat altijd een mens nodig heeft, wacht nog steeds op een mens. Vraagt het project dat twee mensen een riskantere fix goedkeuren, dan wordt een riskantere wijziging in plaats daarvan ter goedkeuring aan hen voorgesteld.
 
 Nadat een fix is uitgevoerd, houdt OneUptime de monitors van het incident of de waarschuwing in de gaten. Herstellen ze niet, dan wordt de rollback van het plan uitgevoerd en stelt OneUptime AI nog een plan op, met de mislukte poging voor ogen: hoogstens twee rondes per incident of waarschuwing. In de modus **Automatisch** vraagt die tweede ronde om goedkeuring; bij **Goedkeuring overslaan** wordt ook die vanzelf uitgevoerd. Onbewaakte fixes hebben een stroomonderbreker van drie per resource per uur: daarboven, of zolang een andere onbewaakte ronde van OneUptime AI dezelfde resource nog wijzigt of controleert, stelt een ronde zijn plan ter goedkeuring voor in plaats van het uit te voeren.
 
@@ -342,7 +342,7 @@ Een incident of waarschuwing krijgt één AI-fixbaan. Is het gekoppeld aan een K
 
 Sommige riskantere wijzigingen **hebben altijd een mens nodig** in elke modus, Goedkeuring overslaan inbegrepen, en geen enkele vermelding op de lijst met toegestane opdrachten verandert dat; ze zijn als zodanig gemarkeerd in de tabellen hieronder.
 
-Een project kan ook vragen dat twee mensen een fix goedkeuren die een riskantere wijziging bevat: zie [Twee mensen keuren een riskantere fix goed](/docs/ai/ai-sre#twee-mensen-keuren-een-riskantere-fix-goed).
+Een project kan ook vragen dat twee mensen een fix goedkeuren die een riskantere wijziging bevat; dan wordt geen riskantere wijziging vanzelf uitgevoerd, ook niet via de lijst met toegestane opdrachten of Goedkeuring overslaan: zie [Twee mensen keuren een riskantere fix goed](/docs/ai/ai-sre#twee-mensen-keuren-een-riskantere-fix-goed).
 
 ### Fixes op Docker- en Podman-hosts
 

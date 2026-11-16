@@ -71,6 +71,8 @@ export const SETUP_HEALTH_FIX_PAGES: Readonly<Record<SetupHealthFix, string>> =
     [SetupHealthFix.ProjectOwners]: "Teams (the Owners team)",
     [SetupHealthFix.WorkspaceNotificationRules]:
       "Incidents > the chat workspace's page (its notification rules)",
+    [SetupHealthFix.TelemetryIngestionKey]:
+      "Project Settings > Telemetry & APM > Ingestion Keys, the key's own page",
   };
 
 function findingForLlm(finding: SetupHealthFinding): JSONObject {
@@ -85,7 +87,7 @@ function findingForLlm(finding: SetupHealthFinding): JSONObject {
 export const GetSetupHealthTool: ObservabilityTool = {
   name: GET_SETUP_HEALTH_TOOL_NAME,
   description:
-    'This project\'s Setup health: what in its setup would stop the right people from being told when something breaks - a monitor that pages nobody, alerts while only incidents have on-call rules, an on-call policy nothing runs or that reaches nobody, a responder who cannot be paged, SMS or calls switched off, an empty balance, a server that cannot send email, a schedule with nobody on call, a status page that shows no monitor - worst first, each with the page that fixes it. Answers "is my setup OK?" and "why was nobody paged?". Levels: pages_will_not_arrive, worth_fixing, suggestion. Findings the team dismissed on purpose are left out unless includeDismissed is true. The citation of this result opens the Setup Health page: cite it when you answer from it.',
+    'This project\'s Setup health: what in its setup would stop the right people from being told when something breaks - a monitor that pages nobody, alerts while only incidents have on-call rules, an on-call policy nothing runs or that reaches nobody, a responder who cannot be paged, SMS or calls switched off, an empty balance, a server that cannot send email, a schedule with nobody on call, a status page that shows no monitor, a custom domain whose CNAME or SSL certificate keeps its status page from opening, an ingestion key no data has arrived with - worst first, each with the page that fixes it. Answers "is my setup OK?" and "why was nobody paged?". Levels: pages_will_not_arrive, worth_fixing, suggestion. Findings the team dismissed on purpose are left out unless includeDismissed is true. The citation of this result opens the Setup Health page: cite it when you answer from it.',
   inputSchema: {
     type: "object",
     properties: {

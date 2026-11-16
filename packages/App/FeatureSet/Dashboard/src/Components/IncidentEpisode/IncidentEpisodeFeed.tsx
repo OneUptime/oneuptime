@@ -1,4 +1,13 @@
 import { getPageAsObserversField } from "../OnCallPolicy/ExecutePolicy/PageAsObserversField";
+import {
+  ExecuteOnCallPolicyMenuLock,
+  getExecuteOnCallPolicyDescription,
+  getExecuteOnCallPolicyMenuLock,
+} from "../OnCallPolicy/ExecutePolicy/ExecuteOnCallPolicyWords";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import { usePrivateRecordGate } from "Common/UI/Utils/PrivateRecordScope";
+import { OnCallPageRecordType } from "Common/Types/OnCallDutyPolicy/OnCallPagePassOn";
+import { EventStanding } from "../../Utils/EventDuration";
 import React, { FunctionComponent, ReactElement } from "react";
 import ObjectID from "Common/Types/ObjectID";
 import API from "Common/UI/Utils/API/API";
@@ -65,6 +74,13 @@ export interface ComponentProps {
    * is locked with why (EventNoteKind.isPrivateEvent).
    */
   isPrivate?: boolean | undefined;
+  /*
+   * Where the episode stands now (EpisodeTiming.standing). Resolved,
+   * "Execute On-Call Policy" is locked with why; acknowledged, its form says
+   * the policy still pages until one of its people answers
+   * (ExecuteOnCallPolicyWords). Unknown, it is offered as before.
+   */
+  standing?: EventStanding | undefined;
 }
 
 /*
@@ -78,6 +94,10 @@ export const getIncidentEpisodeFeedEventIcon: (
   return getIncidentEpisodeFeedIcon(eventType as IncidentEpisodeFeedEventType);
 };
 
+// What its menu's actions start, asked about with the record's scope.
+const PRIVATE_RECORD_PAGE: OnCallDutyPolicyExecutionLog =
+  new OnCallDutyPolicyExecutionLog();
+
 const IncidentEpisodeFeedElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -85,6 +105,26 @@ const IncidentEpisodeFeedElement: FunctionComponent<ComponentProps> = (
     props.notifyStatusPageSubscribersByDefault ?? true;
   const [showOnCallPolicyModal, setShowOnCallPolicyModal] =
     React.useState<boolean>(false);
+
+  /*
+   * What the reader holds on the incident episode when it is private
+   * (PrivateRecordScope): a page about it is started only through a team of theirs that owns it
+   * (#8913), so the menu locks it saying why when none of those may.
+   */
+  const privateRecordGate: ReturnType<typeof usePrivateRecordGate> =
+    usePrivateRecordGate();
+
+  // Execute On-Call Policy, by where the incident episode stands and who may page.
+  const executePolicyLock: ExecuteOnCallPolicyMenuLock =
+    getExecuteOnCallPolicyMenuLock({
+      recordType: OnCallPageRecordType.IncidentEpisode,
+      standing: props.standing,
+      permissionGate: PermissionGate.check(
+        new OnCallDutyPolicyExecutionLog(),
+        ModelAction.Create,
+        privateRecordGate(PRIVATE_RECORD_PAGE),
+      ),
+    });
 
   type GetFeedItemsFromEpisodeFeeds = (
     episodeFeeds: IncidentEpisodeFeed[],
@@ -221,6 +261,8 @@ const IncidentEpisodeFeedElement: FunctionComponent<ComponentProps> = (
               key="incident-episode-action-execute-policy"
               text="Execute On-Call Policy"
               icon={IconProp.Call}
+              isDisabled={executePolicyLock.isDisabled}
+              tooltip={executePolicyLock.tooltip}
               onClick={() => {
                 setShowOnCallPolicyModal(true);
               }}
@@ -246,9 +288,10 @@ const IncidentEpisodeFeedElement: FunctionComponent<ComponentProps> = (
             modalWidth={ModalWidth.Normal}
             name={"execute-on-call-policy"}
             title={"Execute On-Call Policy"}
-            description={
-              "Execute the on-call policy for this episode. This will notify the on-call team members and start the on-call process."
-            }
+            description={getExecuteOnCallPolicyDescription({
+              recordType: OnCallPageRecordType.IncidentEpisode,
+              standing: props.standing,
+            })}
             onClose={() => {
               setShowOnCallPolicyModal(false);
             }}
@@ -282,6 +325,12 @@ const IncidentEpisodeFeedElement: FunctionComponent<ComponentProps> = (
                     type: OnCallDutyPolicy,
                     labelField: "name",
                     valueField: "_id",
+                    /*
+                     * Archived policies page no one, so they are not
+                     * offered (OnCallDutyPolicyArchive), as Slack and
+                     * Microsoft Teams leave them out of their own form.
+                     */
+                    query: { isArchived: false },
                   },
                   required: true,
                   placeholder: "Select On-Call Policy",

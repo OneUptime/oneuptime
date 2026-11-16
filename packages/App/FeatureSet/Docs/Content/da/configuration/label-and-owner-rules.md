@@ -107,6 +107,8 @@ En regels redigeringsformular har de samme to trin og tilføjer kontakten **Akti
 
 Sådan en regel kan stadig omdøbes, slås fra eller slettes, også via API'et og Terraform. Listen markerer en regel, der ikke tilføjer noget, med **Tilføjer intet** ved siden af dens status, og det samme gør reglens egen side. Rediger den for at vælge, hvad den tilføjer, eller slet den.
 
+En regel, hvis matchende etiketter alle er slettet, slås fra i stedet for at matche alle ressourcer, og listen markerer den med **Begrænset til slettede poster** ved siden af dens status. Rediger den for at vælge, hvad den matcher, og slå den derefter til. Se [Når de poster, en regel er begrænset til, slettes](/docs/incidents/settings#når-de-poster-en-regel-er-begrænset-til-slettes).
+
 ## Hvornår regler kører
 
 Hver aktiveret regel kører, når en ressource oprettes, fra dashboardet eller via API'et, og hver regel, der matcher, tilføjer det, den tilføjer:

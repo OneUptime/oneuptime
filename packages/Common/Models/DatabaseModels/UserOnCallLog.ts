@@ -133,7 +133,11 @@ export default class UserOnCallLog extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      /*
+       * On-call history: deleting the team keeps this row and clears the
+       * reference (issue #9036).
+       */
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )
@@ -329,7 +333,11 @@ export default class UserOnCallLog extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      /*
+       * On-call history: deleting the escalation rule keeps this row and
+       * clears the reference (issue #9036).
+       */
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )
@@ -796,7 +804,11 @@ export default class UserOnCallLog extends BaseModel {
       cascade: false,
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      /*
+       * On-call history: deleting this person's account keeps this row
+       * and clears the reference (issue #9036).
+       */
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )
@@ -886,7 +898,11 @@ export default class UserOnCallLog extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      /*
+       * On-call history: deleting the schedule keeps this row and clears
+       * the reference (issue #9036).
+       */
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )
@@ -932,7 +948,11 @@ export default class UserOnCallLog extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      /*
+       * On-call history: deleting this person's account keeps this row
+       * and clears the reference (issue #9036).
+       */
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )

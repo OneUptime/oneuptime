@@ -76,6 +76,8 @@ jest.mock(
       __esModule: true,
       default: {
         findOneBy: jest.fn(),
+        // The policy's levels a run moves on through (OnCallRunLevel).
+        findBy: jest.fn(),
         startRuleExecution: jest.fn(),
       },
     };
@@ -143,9 +145,11 @@ const executionLogService: {
 
 const ruleService: {
   findOneBy: jest.Mock;
+  findBy: jest.Mock;
   startRuleExecution: jest.Mock;
 } = OnCallDutyPolicyEscalationRuleService as unknown as {
   findOneBy: jest.Mock;
+  findBy: jest.Mock;
   startRuleExecution: jest.Mock;
 };
 
@@ -176,6 +180,8 @@ function runOnLevel1(): OnCallDutyPolicyExecutionLog {
   );
   log.status = OnCallDutyPolicyStatus.Executing;
   log.lastExecutedEscalationRuleOrder = 1;
+  // A run on a level names its rule (one with none was deleted, issue #9036).
+  log.lastExecutedEscalationRuleId = RULE_IDS[0]!;
   log.executeNextEscalationRuleInMinutes = 30;
   log.lastEscalationRuleExecutedAt = STARTED;
   log.createdAt = STARTED;
@@ -223,6 +229,22 @@ beforeEach(() => {
     hadScheduleGap: false,
     movesOnAtOnce: false,
   });
+  // The policy's three levels.
+  ruleService.findBy.mockImplementation(
+    (): Promise<Array<OnCallDutyPolicyEscalationRule>> => {
+      return Promise.resolve(
+        RULE_IDS.map(
+          (id: ObjectID, index: number): OnCallDutyPolicyEscalationRule => {
+            const rule: OnCallDutyPolicyEscalationRule =
+              new OnCallDutyPolicyEscalationRule();
+            rule.id = id;
+            rule.order = index + 1;
+            return rule;
+          },
+        ),
+      );
+    },
+  );
   ruleService.findOneBy.mockImplementation(
     (args: {
       query: { order: number };

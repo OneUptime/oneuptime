@@ -69,10 +69,6 @@
     "ingestionBudgets": "इंजेशन बजट",
     "products": "उत्पाद"
   },
-  "topAlert": {
-    "title": "OneUptime एडमिन डैशबोर्ड",
-    "description": "आप इस डैशबोर्ड पर OneUptime सर्वर से संबंधित कार्य कर सकते हैं।"
-  },
   "header": {
     "exitAdmin": "एडमिन से बाहर निकलें",
     "help": "सहायता",
@@ -4056,6 +4052,14 @@
   "Amount": "राशि",
   "Invoice": "चालान",
   "Invoices": "चालान सूची",
+  "Runs JavaScript steps as its own user: let its container switch users (allowPrivilegeEscalation, SETUID and SETGID).": "JavaScript चरणों को अपने ही उपयोगकर्ता के रूप में चलाता है: इसके कंटेनर को उपयोगकर्ता बदलने दें (allowPrivilegeEscalation, SETUID और SETGID)।",
+  "Runs JavaScript steps as its own user: run its container as the image's own user, node.": "JavaScript चरणों को अपने ही उपयोगकर्ता के रूप में चलाता है: इसके कंटेनर को इमेज के अपने उपयोगकर्ता node के रूप में चलाएँ।",
+  "Runs JavaScript steps as its own user: run the Runner image, not its sources.": "JavaScript चरणों को अपने ही उपयोगकर्ता के रूप में चलाता है: इसके सोर्स के बजाय Runner इमेज चलाएँ।",
+  "Runs JavaScript steps as its own user: its sandbox check failed, and its log says why.": "JavaScript चरणों को अपने ही उपयोगकर्ता के रूप में चलाता है: इसकी सैंडबॉक्स जाँच विफल रही, और इसका लॉग कारण बताता है।",
+  "JavaScript steps share its network: let its container use seccomp, as Docker's and Kubernetes' default profiles do.": "JavaScript चरण इसके नेटवर्क को साझा करते हैं: इसके कंटेनर को seccomp उपयोग करने दें, जैसा Docker और Kubernetes के डिफ़ॉल्ट प्रोफ़ाइल करते हैं।",
+  "JavaScript steps share its network: run the Runner image, not its sources.": "JavaScript चरण इसके नेटवर्क को साझा करते हैं: इसके सोर्स के बजाय Runner इमेज चलाएँ।",
+  "JavaScript steps share its network: its network filter's check failed, and its log says why.": "JavaScript चरण इसके नेटवर्क को साझा करते हैं: इसके नेटवर्क फ़िल्टर की जाँच विफल रही, और इसका लॉग कारण बताता है।",
+  "Runs JavaScript steps as its own user and on its network: run the Runner image, not its sources.": "JavaScript चरणों को अपने ही उपयोगकर्ता के रूप में और इसके नेटवर्क पर चलाता है: इसके सोर्स के बजाय Runner इमेज चलाएँ।",
   "Keep for at most": "अधिकतम इतने समय तक रखें",
   "New projects delete after": "नए प्रोजेक्ट में इसके बाद हटाएं",
   "Longer than the limit above.": "ऊपर की सीमा से लंबा।",
@@ -4105,5 +4109,23 @@
   "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO._one": "{{count}} व्यक्ति अब भी बिना SSO के साइन इन है। SSO से साइन इन करने तक वह कोई प्रोजेक्ट नहीं खोल सकता।",
   "Sign them out": "उन्हें साइन आउट करें",
   "Sign out everyone signed in without SSO?": "बिना SSO के साइन इन सभी लोगों को साइन आउट करें?",
-  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "उनके सेशन अभी हर डिवाइस पर खत्म हो जाएंगे, और वे फिर से SSO से साइन इन करेंगे। मास्टर एडमिन साइन इन रहेंगे।"
+  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "उनके सेशन अभी हर डिवाइस पर खत्म हो जाएंगे, और वे फिर से SSO से साइन इन करेंगे। मास्टर एडमिन साइन इन रहेंगे।",
+  "Made by {{name}} on {{date}}": "{{name}} ने {{date}} को बनाई",
+  "Made on {{date}}": "{{date}} को बनाई गई",
+  "Ends in {{hint}}": "अंत में {{hint}}",
+  "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to support@oneuptime.com, and scores, never words, go to product analytics.": "जवाब इसी सर्वर पर रखे जाते हैं और यहाँ इसके मास्टर एडमिन उन्हें पढ़ते हैं। \"फ़ीडबैक दें\" को support@oneuptime.com पर ईमेल भी किया जाता है, और स्कोर, शब्द कभी नहीं, प्रोडक्ट एनालिटिक्स को जाते हैं।",
+  "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to the Admin Notification Email, when one is set. Nothing is sent to OneUptime.": "जवाब इसी सर्वर पर रखे जाते हैं और यहाँ इसके मास्टर एडमिन उन्हें पढ़ते हैं। एडमिन सूचना ईमेल सेट होने पर \"फ़ीडबैक दें\" उस पर भी ईमेल किया जाता है। OneUptime को कुछ नहीं भेजा जाता।",
+  "Know when my website or API is down": "जानना कि मेरी वेबसाइट या API कब डाउन है",
+  "Page the right person when something breaks": "कुछ बिगड़ने पर सही व्यक्ति को बुलाना",
+  "Publish a status page": "एक स्थिति पृष्ठ प्रकाशित करें",
+  "Send logs, metrics and traces, then get alerted": "लॉग, मेट्रिक्स और ट्रेस भेजें, फिर अलर्ट पाएँ",
+  "Guided setup": "गाइडेड सेटअप",
+  "Give feedback": "फ़ीडबैक दें",
+  "First-week check-in": "पहले हफ़्ते की जाँच",
+  "How OneUptime works": "OneUptime कैसे काम करता है",
+  "Is OneUptime set up the way you wanted?": "क्या OneUptime वैसे सेट हो गया है जैसा आप चाहते थे?",
+  "Something's broken": "कुछ काम नहीं कर रहा",
+  "Confusing": "उलझाने वाला",
+  "Idea": "विचार",
+  "Other": "अन्य"
 }

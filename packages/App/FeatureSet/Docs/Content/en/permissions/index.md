@@ -103,6 +103,8 @@ The role you pick becomes the team's first permission, for all resources in the 
 
 Where to find it: open a team from **Teams** to reach **Members** and **Permissions**; its custom roles and **Block Permissions** are under **More settings** at the bottom of the Permissions page, whose folded header shows how many of each the team has.
 
+A team's page has a **Used by** card: the on-call policies whose escalation rules page the team, and everything the team owns, from monitors and status pages to SLOs, dashboards, infrastructure and incidents. Deleting a team, on its page or from the list, says these first: its policies stop paging its members, and it stops owning them. What you may not open is counted, not named.
+
 ## Permissions
 
 A permission is one capability. There are two ways to hand them out, and both live on the team's **Permissions** tab.
@@ -280,7 +282,7 @@ API keys are granted permissions directly, on the key itself, or through the cus
 :::steps
 1. Open **Project Settings > Advanced > API Keys** and click **Create API Key**. On OneUptime Cloud, API keys need the Growth plan.
 2. Type the key's **Name** and pick its **Access**. The description and the expiry date are under **More fields**; a key expires a year from the day it is created unless you pick another date, and the folded section says so.
-3. Create the key. It opens on its page, where you copy it.
+3. Create the key. OneUptime shows it once, in a dialog: copy it there. Then its page opens.
 :::
 
 The role you pick becomes the key's first permission as soon as the key exists, exactly as if you had added it on the key's page. You are offered only the roles you hold yourself — a key can never be given more than the person giving it has — and someone who may create keys but not change what they can do is not asked.
@@ -340,7 +342,7 @@ Resolved permissions are cached per user and project, and refreshed when team me
 
 An incident, an alert or an episode marked private is seen only by its owners — the people named as its owners and the members of its owner teams who have accepted their invitation — and by Project Owners and Project Admins.
 
-It is changed only with the permissions of the teams that own it and of the people named as its owners. Someone named as an owner acts on it with every permission they hold. Anyone else acts on it only with the permissions of their teams that own it, each with its own scope and labels: another team's permission reaches no private record that team does not own. That holds for everything done to the record and to what belongs to it — editing it, changing its state, its notes, owners, roles, labels, linked alerts, episode members and calls, and deleting it — from the dashboard, the API, bulk actions, Slack, Microsoft Teams and OneUptime AI alike. Project Owners and Project Admins change every private record, and so do workflow steps, which act as a Project Admin; an API key does only with `ProjectOwner` or `ProjectAdmin`.
+It is changed only with the permissions of the teams that own it and of the people named as its owners. Someone named as an owner acts on it with every permission they hold. Anyone else acts on it only with the permissions of their teams that own it, each with its own scope and labels: another team's permission reaches no private record that team does not own. That holds for everything done to the record and to what belongs to it — editing it, changing its state, its notes, owners, roles, labels, linked alerts, episode members and calls, and deleting it — from the dashboard, the API, bulk actions, Slack, Microsoft Teams and OneUptime AI alike. Project Owners and Project Admins change every private record, and an API key does only with `ProjectOwner` or `ProjectAdmin`.
 
 | Someone on Team 1 and Team 2 | A private incident Team 2 owns | A public incident Team 2 owns |
 | --- | --- | --- |
@@ -349,6 +351,12 @@ It is changed only with the permissions of the teams that own it and of the peop
 | Team 2 holds `IncidentMember` as well | Changes it through Team 2 | Changes it through either team |
 
 A team that owns private records but holds no permissions, one used only to group people, lets its members see them and change none of them. On a private record's page, a change the person's teams that own it may not make is locked, saying why. To let them make it, give a team that owns it the permission, make a team that holds the permission an owner, or make the person an owner.
+
+What is done about a private record follows the same rule: paging about it (**Execute On-Call Policy**, **Page now**, and paging from Slack, Microsoft Teams, Mattermost or OneUptime AI), starting a runbook for it or moving that run along, and approving, dry-running or dismissing a fix OneUptime AI proposed for it. Each takes its own permission, such as paging on-call policies or starting runbook executions, and on a private record only the teams that own it lend it, besides the people named as its owners. Anyone else is refused with the reason, and nothing is paged, run or changed.
+
+What is done and sent about a private record is read only by those who may read the record: its on-call policy runs, its runbook runs, the fixes proposed for it, and the logs of the email, SMS, calls, push notifications, chat messages, webhooks and AI requests OneUptime sent about it. The people paged about it still see their page.
+
+Workflows don't act on private records. A workflow's steps act as a Project Admin but are never lent its sight of private incidents, alerts and episodes: they find none, change none and add nothing to one, and a workflow doesn't start on one or on anything that belongs to one. See [What workflow steps can do](/docs/workflows/configuration#what-workflow-steps-can-do).
 
 ### Rules owned by teams
 

@@ -12,7 +12,7 @@ Un obiettivo del livello di servizio (SLO) è un obiettivo di affidabilità per 
 
 ## Come funziona
 
-Uno SLO misura una di due cose. Uno SLO di disponibilità dei monitor legge le cronologie di stato dei monitor collegati: gli stessi dati che mostrano le tue pagine di stato. Uno SLO di richieste conta le richieste servite dai suoi servizi, a partire dalle loro tracce: vedi [SLO di richieste e latenza](/docs/slo/request-slos). Il resto di questa pagina descrive gli SLO di disponibilità dei monitor, e gli SLO di richieste funzionano allo stesso modo salvo dove è detto altrimenti. Da questi dati OneUptime calcola quanta parte della finestra di conformità è stata tempo buono, quanto resta del budget di errore e con che velocità si consuma. Il tempo con il monitoraggio di un monitor disattivato è escluso: niente controlla il monitor in quel periodo, quindi quel tempo non consuma il budget di errore né conta come tempo buono.
+Uno SLO misura una di due cose. Uno SLO di disponibilità dei monitor legge le cronologie di stato dei monitor collegati: gli stessi dati che mostrano le tue pagine di stato. Uno SLO di richieste conta le richieste servite dai suoi servizi, a partire dalle loro tracce: vedi [SLO di richieste e latenza](/docs/slo/request-slos). Il resto di questa pagina descrive gli SLO di disponibilità dei monitor, e gli SLO di richieste funzionano allo stesso modo salvo dove è detto altrimenti. Da questi dati OneUptime calcola quanta parte della finestra di conformità è stata tempo buono, quanto resta del budget di errore e con che velocità si consuma. Il tempo con il monitoraggio di un monitor disattivato è escluso: niente controlla il monitor in quel periodo, quindi quel tempo non consuma il budget di errore né conta come tempo buono. Lo stesso vale per il tempo prima del primo controllo di un monitor: finché niente ha controllato un monitor, il suo stato è solo quello operativo in cui viene creato ogni monitor, quindi uno SLO viene misurato dai primi controlli dei suoi monitor, e uno i cui monitor niente ha ancora controllato non ha niente da misurare finché non vengono controllati.
 
 ```mermaid title="Dai controlli dei monitor allo stato di uno SLO"
 flowchart TB
@@ -139,7 +139,7 @@ OneUptime assegna uno stato a ogni SLO valutato:
 | **Integro** | Resta più budget della soglia a rischio. |
 | **A rischio** | Il budget rimanente è sceso alla soglia a rischio o sotto: il 20% per impostazione predefinita. |
 | **Budget esaurito** | Il budget è stato speso tutto, o superato. |
-| **Configurato male** | Lo SLO non si può misurare: non ha monitor, i suoi monitor non esistono più o non hanno ancora registrato uno stato nella sua finestra, oppure il suo obiettivo è fuori intervallo. Uno SLO di richieste è configurato male se non ha servizi, se non ha una soglia di latenza, o finché i suoi servizi non hanno servito una richiesta nella sua finestra. |
+| **Configurato male** | Lo SLO non si può misurare: non ha monitor, i suoi monitor non esistono più, niente li ha ancora controllati o non hanno ancora registrato uno stato nella sua finestra, oppure il suo obiettivo è fuori intervallo. Uno SLO di richieste è configurato male se non ha servizi, se non ha una soglia di latenza, o finché i suoi servizi non hanno servito una richiesta nella sua finestra. |
 | **In pausa** | Ogni monitor che misura è archiviato o ha il monitoraggio attivo disattivato, a mano, da un incidente manuale o da una manutenzione programmata. Riprende da solo appena uno di essi torna a essere monitorato. |
 
 Uno SLO disattivato o archiviato non viene valutato, quindi il suo stato resta com'era; l'elenco degli SLO mostra invece un'etichetta **Disabilitato** o **Archiviato**. I proprietari di uno SLO ricevono una notifica quando lo stato passa a **A rischio** o **Budget esaurito**: vedi [Budget di errore](/docs/slo/error-budget).
@@ -195,6 +195,8 @@ La **Panoramica** risponde a «siamo dentro il budget?», dall'alto in basso:
 - **Regole del tasso di consumo**: la soglia di ogni regola abilitata accanto al tasso di consumo attuale, per le regole il cui periodo è di 6 ore o meno, e cosa dichiara la regola.
 
 Quando lo SLO è in un livello della sua policy del budget di errore, la **Panoramica** mostra anche quel livello e cosa il team ha concordato di fare in esso: vedi [Policy del budget di errore](/docs/slo/error-budget-policy).
+
+La scheda **Usato da** elenca le regole di tasso di consumo e i livelli della policy del budget di errore che agiscono sullo SLO, e le dashboard che lo mostrano. Archiviare o eliminare lo SLO li dice prima: le sue regole e i suoi livelli vengono eliminati con esso.
 
 ### Impostazioni
 

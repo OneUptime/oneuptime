@@ -86,7 +86,9 @@ import ConfirmModal from "../Modal/ConfirmModal";
 import RecordIdModal from "../ObjectID/RecordIdModal";
 import { getRecordIdText, hasRecordId } from "../ObjectID/RecordIdText";
 import { getApiReferencePagePath } from "../../../Utils/ApiReferencePage";
-import Modal, { ModalWidth } from "../Modal/Modal";
+import { ModalWidth } from "../Modal/Modal";
+import HelpModal from "../Help/HelpModal";
+import { HelpContent } from "../Help/HelpContent";
 import DeleteConfirmationMessage from "../DeleteConfirmation/DeleteConfirmationMessage";
 import {
   getDeleteConsequence,
@@ -94,7 +96,6 @@ import {
 } from "../DeleteConfirmation/DeleteConsequences";
 import DeleteItemNames from "../DeleteConfirmation/DeleteItemNames";
 import { getRecordDisplayName } from "../../Utils/ModelDisplayName";
-import MarkdownViewer from "../Markdown.tsx/LazyMarkdownViewer";
 import Icon from "../Icon/Icon";
 import Filter from "../ModelFilter/Filter";
 import { DropdownOption, DropdownOptionLabel } from "../Dropdown/Dropdown";
@@ -455,7 +456,17 @@ export interface BulkActionProps<T extends BaseModel | AnalyticsBaseModel> {
  */
 export interface DeleteConfirmation {
   title?: string | undefined;
-  description: string | ReactElement;
+  /*
+   * The dialog's words in place of the table's own question ("Are you
+   * sure you want to delete ...?" and what goes with it), which is said
+   * when this is left out.
+   */
+  description?: string | ReactElement | undefined;
+  /*
+   * Drawn under the question, whichever it is: what still uses the row,
+   * read before the dialog opens (a list's Used by, #7435).
+   */
+  details?: ReactElement | undefined;
   submitButtonText?: string | undefined;
   /*
    * A gentler way to the same end, offered in the dialog: "Archive instead"
@@ -492,13 +503,12 @@ export interface BaseTableProps<
    * Useful for in-table filter chips, alerts, etc.
    */
   topContent?: ReactElement | undefined;
-  helpContent?:
-    | {
-        title: string;
-        description?: string | undefined;
-        markdown: string;
-      }
-    | undefined;
+  /*
+   * The list's help (?): a title, a line under it and a markdown document
+   * of a lead and "##" topics, opened in the help dialog (HelpModal) from
+   * the card's header and from the empty list.
+   */
+  helpContent?: HelpContent | undefined;
   documentationLink?: Route | URL | undefined;
   videoLink?: Route | URL | undefined;
   showCreateForm?: undefined | boolean;
@@ -621,6 +631,14 @@ export interface BaseTableProps<
    * row moving would get in the way of what the page is for.
    */
   isLive?: boolean | undefined;
+  /*
+   * A list that reads several projects at once (fetchRequestOptions'
+   * isMultiTenantRequest - Active Incidents lists every project the person
+   * belongs to): the projects whose changes it hears, so a record changing
+   * in any of them reads the page again, not only one in the open project.
+   * Unset: the open project's (LiveRows.getLiveRowTenantIds).
+   */
+  liveProjectIds?: Array<ObjectID> | undefined;
   fetchRequestOptions?: RequestOptions | undefined;
   deleteRequestOptions?: RequestOptions | undefined;
   onItemDeleted?: ((item: TBaseModel) => void) | undefined;
@@ -3606,6 +3624,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         ? (props.modelType as { new (): BaseModel })
         : null,
     tenantId: ProjectUtil.getCurrentProjectId(),
+    // A list across projects hears each of them.
+    tenantIds: props.liveProjectIds,
     isEnabled: props.isLive !== false,
     isHeld: (): boolean => {
       return isLiveRowsHeld({
@@ -6442,21 +6462,33 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 dataTestId="delete-confirmation-loading"
               />
             ) : (
-              deleteConfirmation?.description || (
-                <DeleteConfirmationMessage
-                  kind="question"
-                  name={getItemLabel(currentDeleteableItem)}
-                  typeLabel={getDeleteLabel(
-                    props.singularName,
-                    model.singularName,
-                  )}
-                  /*
-                   * What goes with it, as the bulk Delete and the record's
-                   * own Delete page say it.
-                   */
-                  warning={getDeleteWarning(props.deleteConfirmationWarning)}
-                />
-              )
+              <>
+                {deleteConfirmation?.description || (
+                  <DeleteConfirmationMessage
+                    kind="question"
+                    name={getItemLabel(currentDeleteableItem)}
+                    typeLabel={getDeleteLabel(
+                      props.singularName,
+                      model.singularName,
+                    )}
+                    /*
+                     * What goes with it, as the bulk Delete and the record's
+                     * own Delete page say it.
+                     */
+                    warning={getDeleteWarning(props.deleteConfirmationWarning)}
+                  />
+                )}
+                {deleteConfirmation?.details ? (
+                  <div
+                    className="mt-3"
+                    data-testid="delete-confirmation-details"
+                  >
+                    {deleteConfirmation.details}
+                  </div>
+                ) : (
+                  <></>
+                )}
+              </>
             )
           }
           disableSubmitButton={isDeleteConfirmationLoading}
@@ -6554,19 +6586,15 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       )}
 
       {showHelpModal && props.helpContent && (
-        <Modal
+        <HelpModal
           title={props.helpContent.title}
           description={props.helpContent.description}
+          markdown={props.helpContent.markdown}
+          documentationLink={props.documentationLink}
           onClose={() => {
             setShowHelpModal(false);
           }}
-          modalWidth={ModalWidth.Large}
-          closeButtonText="Close"
-        >
-          <div className="p-2">
-            <MarkdownViewer text={props.helpContent.markdown} />
-          </div>
-        </Modal>
+        />
       )}
 
       {getColumnCustomizationModal()}

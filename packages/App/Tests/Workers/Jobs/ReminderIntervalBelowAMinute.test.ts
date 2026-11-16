@@ -24,7 +24,9 @@ import ObjectID from "Common/Types/ObjectID";
  * anything. A rule with a real interval reminds as it did.
  *
  * Each test drives one tick of the real worker; RunCron is mocked to capture
- * its handler, and every service it calls is mocked.
+ * its handler, and every service it calls is mocked. The records due are
+ * read a page at a time (findBy), and each is moved on - its next reminder,
+ * or none - by one compare-and-set (OwnerReminderBacklog, issue #9019).
  */
 
 type CronHandler = () => Promise<void>;
@@ -74,6 +76,10 @@ jest.mock("Common/Server/Services/AlertService", () => {
     __esModule: true,
     default: {
       findAllBy: jest.fn(),
+      findBy: jest.fn(),
+      findOneById: jest.fn(),
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(),
+      onTriggerWorkflow: jest.fn(),
       updateOneById: jest.fn(),
       findOwners: jest.fn(),
       isAlertResolved: jest.fn(),
@@ -88,6 +94,10 @@ jest.mock("Common/Server/Services/IncidentService", () => {
     __esModule: true,
     default: {
       findAllBy: jest.fn(),
+      findBy: jest.fn(),
+      findOneById: jest.fn(),
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(),
+      onTriggerWorkflow: jest.fn(),
       updateOneById: jest.fn(),
       findOwners: jest.fn(),
       isIncidentResolved: jest.fn(),
@@ -102,6 +112,10 @@ jest.mock("Common/Server/Services/ScheduledMaintenanceService", () => {
     __esModule: true,
     default: {
       findAllBy: jest.fn(),
+      findBy: jest.fn(),
+      findOneById: jest.fn(),
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(),
+      onTriggerWorkflow: jest.fn(),
       updateOneById: jest.fn(),
       findOwners: jest.fn(),
       isScheduledMaintenanceCompleted: jest.fn(),
@@ -196,6 +210,8 @@ const NOW: Date = new Date("2026-11-12T10:00:00.000Z");
 const OPENED_AT: Date = new Date("2026-11-12T08:00:00.000Z");
 const PROJECT_ID: ObjectID = new ObjectID("project-1");
 const MINUTE_IN_MS: number = 60 * 1000;
+// When the record's reminder came due, as the run reads it.
+const DUE_AT: Date = new Date("2026-11-12T09:59:00.000Z");
 
 const projectService: MockedService =
   ProjectService as unknown as MockedService;
@@ -243,6 +259,7 @@ const SUBJECTS: Array<Subject> = [
       alert.labels = [];
       alert.createdAt = OPENED_AT;
       alert.enableReminders = true;
+      alert.nextReminderNotificationAt = DUE_AT;
       alert.reminderNotificationSentCount = 2;
       return alert;
     },
@@ -267,6 +284,7 @@ const SUBJECTS: Array<Subject> = [
       incident.createdAt = OPENED_AT;
       incident.declaredAt = OPENED_AT;
       incident.enableReminders = true;
+      incident.nextReminderNotificationAt = DUE_AT;
       incident.reminderNotificationSentCount = 2;
       return incident;
     },
@@ -305,6 +323,7 @@ function makeMaintenance(startsAt: Date): ScheduledMaintenance {
   event.startsAt = startsAt;
   event.endsAt = OneUptimeDate.addRemoveHours(startsAt, 4);
   event.enableReminders = true;
+  event.nextReminderNotificationAt = DUE_AT;
   event.reminderNotificationSentCount = 2;
   return event;
 }
@@ -319,26 +338,34 @@ async function runTick(subject: Subject): Promise<void> {
   await handler();
 }
 
-// What each updateOneById of the record wrote, in order.
+/*
+ * What each move of the record wrote, in order: one compare-and-set each,
+ * from the reminder as it was read, and never through updateOneById.
+ */
 function writesOf(subject: Subject): Array<Record<string, unknown>> {
-  return subject.service["updateOneById"]!.mock.calls.map(
-    (args: Array<unknown>): Record<string, unknown> => {
-      const update: {
-        id: ObjectID;
-        data: Record<string, unknown>;
-        props: Record<string, unknown>;
-      } = args[0] as {
-        id: ObjectID;
-        data: Record<string, unknown>;
-        props: Record<string, unknown>;
-      };
+  expect(subject.service["updateOneById"]).not.toHaveBeenCalled();
 
-      expect(update.id.toString()).toBe(subject.recordId.toString());
-      expect(update.props).toEqual({ isRoot: true });
+  return subject.service[
+    "compareAndSetColumnsByIdWithoutHooks"
+  ]!.mock.calls.map((args: Array<unknown>): Record<string, unknown> => {
+    const move: {
+      id: ObjectID;
+      data: Record<string, unknown>;
+      expectedData: Record<string, unknown>;
+    } = args[0] as {
+      id: ObjectID;
+      data: Record<string, unknown>;
+      expectedData: Record<string, unknown>;
+    };
 
-      return update.data;
-    },
-  );
+    expect(move.id.toString()).toBe(subject.recordId.toString());
+    expect(move.expectedData).toEqual({
+      nextReminderNotificationAt: DUE_AT,
+      reminderNotificationSentCount: 2,
+    });
+
+    return move.data;
+  });
 }
 
 beforeEach(() => {
@@ -376,6 +403,10 @@ beforeEach(() => {
     }
 
     subject.service["findAllBy"]!.mockResolvedValue([]);
+    subject.service["findBy"]!.mockResolvedValue([]);
+    subject.service["compareAndSetColumnsByIdWithoutHooks"]!.mockResolvedValue(
+      true,
+    );
     subject.service["findOwners"]!.mockResolvedValue([]);
     subject.service[subject.isClosed]!.mockResolvedValue(false);
     subject.ruleService["findMatchingRule"]!.mockResolvedValue(null);
@@ -393,7 +424,7 @@ afterEach(() => {
 
 describe.each(SUBJECTS)("the reminder worker of $name", (subject: Subject) => {
   function due(interval: unknown): void {
-    subject.service["findAllBy"]!.mockResolvedValue([subject.makeRecord()]);
+    subject.service["findBy"]!.mockResolvedValue([subject.makeRecord()]);
     subject.ruleService["findMatchingRule"]!.mockResolvedValue(
       subject.makeRule(interval),
     );
@@ -453,9 +484,7 @@ describe("a scheduled maintenance event that has not started, with a rule that w
   const STARTS_AT: Date = new Date("2026-11-12T12:00:00.000Z");
 
   function due(interval: number): void {
-    subject.service["findAllBy"]!.mockResolvedValue([
-      makeMaintenance(STARTS_AT),
-    ]);
+    subject.service["findBy"]!.mockResolvedValue([makeMaintenance(STARTS_AT)]);
 
     const rule: ScheduledMaintenanceReminderRule =
       new ScheduledMaintenanceReminderRule();

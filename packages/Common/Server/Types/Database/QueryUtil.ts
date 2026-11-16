@@ -1,5 +1,5 @@
 import Query from "./Query";
-import QueryHelper from "./QueryHelper";
+import QueryHelper, { ManyToManyRelatedTable } from "./QueryHelper";
 import UUIDColumnFilter from "./UUIDColumnFilter";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import EqualToOrNull from "../../../Types/BaseDatabase/EqualToOrNull";
@@ -276,6 +276,47 @@ export default class QueryUtil {
   }
 
   /*
+   * A condition on the record's id that a filter on one of its many-to-many
+   * relations stands for (IsNull, NotNull, IncludesAll, IncludesNone: a
+   * subquery on the join table), added to what the id's own filter holds -
+   * whatever order the query's keys come in. An id filter not serialized
+   * yet, because its key comes later (an ObjectID, Includes, a list), is
+   * serialized first: taking its place dropped it, and a read of some
+   * records by id read every record the relation's filter matched.
+   */
+  private static addConditionOnId<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    query: Query<TBaseModel>,
+    condition: FindOperator<any>,
+  ): void {
+    let existing: unknown = (query as Record<string, unknown>)["_id"];
+
+    // As serializeQuery writes it, the id checked as a uuid: idempotent.
+    if (existing !== undefined && !(existing instanceof FindOperator)) {
+      existing = (
+        QueryUtil.serializeQuery(modelType, {
+          _id: existing,
+        } as Query<TBaseModel>) as Record<string, unknown>
+      )["_id"];
+    }
+
+    if (existing === undefined) {
+      (query as any)._id = condition;
+    } else if (existing instanceof FindOperator) {
+      (query as any)._id = And(existing, condition);
+    } else if (typeof existing === Typeof.String && existing !== "") {
+      (query as any)._id = And(
+        QueryHelper.equalTo(existing as string) as FindOperator<any>,
+        condition,
+      );
+    } else {
+      throw new BadDataException(
+        "The filter on _id cannot be combined with the other filters of the query.",
+      );
+    }
+  }
+
+  /*
    * A filter on a related record's own columns: a plain object under a
    * relation (one record or many), never a list of ids, an id or an
    * operator.
@@ -460,6 +501,18 @@ export default class QueryUtil {
         continue;
       }
 
+      /*
+       * A list of related records (a monitor's labels) that is null holds
+       * none of them: IsNull, below. Handed to TypeORM as IS NULL on the
+       * relation, it refused the read with a server error.
+       */
+      if (
+        tableColumnMetadata?.type === TableColumnType.EntityArray &&
+        query[key] === null
+      ) {
+        query[key] = new IsNull() as any;
+      }
+
       if (tableColumnMetadata && query[key] === null) {
         query[key] = QueryHelper.isNull();
       } else if (
@@ -482,20 +535,7 @@ export default class QueryUtil {
 
             delete query[key];
 
-            const existingIdFilter: any = (query as any)._id;
-            if (existingIdFilter instanceof FindOperator) {
-              (query as any)._id = And(existingIdFilter, subqueryFilter);
-            } else if (
-              existingIdFilter &&
-              typeof existingIdFilter === Typeof.String
-            ) {
-              (query as any)._id = And(
-                QueryHelper.equalTo(existingIdFilter as string),
-                subqueryFilter,
-              );
-            } else {
-              (query as any)._id = subqueryFilter;
-            }
+            QueryUtil.addConditionOnId(modelType, query, subqueryFilter);
           } else {
             /*
              * Metadata unavailable — drop the filter rather than emit
@@ -642,20 +682,7 @@ export default class QueryUtil {
 
             delete query[key];
 
-            const existingIdFilter: any = (query as any)._id;
-            if (existingIdFilter instanceof FindOperator) {
-              (query as any)._id = And(existingIdFilter, subqueryFilter);
-            } else if (
-              existingIdFilter &&
-              typeof existingIdFilter === Typeof.String
-            ) {
-              (query as any)._id = And(
-                QueryHelper.equalTo(existingIdFilter as string),
-                subqueryFilter,
-              );
-            } else {
-              (query as any)._id = subqueryFilter;
-            }
+            QueryUtil.addConditionOnId(modelType, query, subqueryFilter);
           } else {
             delete query[key];
           }
@@ -725,20 +752,7 @@ export default class QueryUtil {
              */
             delete query[key];
 
-            const existingIdFilter: any = (query as any)._id;
-            if (existingIdFilter instanceof FindOperator) {
-              (query as any)._id = And(existingIdFilter, subqueryFilter);
-            } else if (
-              existingIdFilter &&
-              typeof existingIdFilter === Typeof.String
-            ) {
-              (query as any)._id = And(
-                QueryHelper.equalTo(existingIdFilter as string),
-                subqueryFilter,
-              );
-            } else {
-              (query as any)._id = subqueryFilter;
-            }
+            QueryUtil.addConditionOnId(modelType, query, subqueryFilter);
           } else {
             // Fall back to OR behavior when metadata cannot be resolved.
             query[key] = values as any;
@@ -790,20 +804,7 @@ export default class QueryUtil {
 
             delete query[key];
 
-            const existingIdFilter: any = (query as any)._id;
-            if (existingIdFilter instanceof FindOperator) {
-              (query as any)._id = And(existingIdFilter, subqueryFilter);
-            } else if (
-              existingIdFilter &&
-              typeof existingIdFilter === Typeof.String
-            ) {
-              (query as any)._id = And(
-                QueryHelper.equalTo(existingIdFilter as string),
-                subqueryFilter,
-              );
-            } else {
-              (query as any)._id = subqueryFilter;
-            }
+            QueryUtil.addConditionOnId(modelType, query, subqueryFilter);
           } else {
             delete query[key];
           }
@@ -932,6 +933,32 @@ export default class QueryUtil {
             return item;
           },
         ) as any;
+
+        /*
+         * The records carrying one of these labels - the dashboard's label
+         * chips, a label pick in a dropdown - as a condition on the
+         * record's id (getLabelsFilterCondition), as a grant limited to
+         * labels keeps them (AccessControlPermission.addLabelIdsToQuery):
+         * the records the filter through the relation matched, with no
+         * to-many join in the read, so its page and its count are read as
+         * an unfiltered list's are (PagedFind, CappedCount). Each record
+         * is read with all its labels: through the relation, the filter
+         * also trimmed the labels a record came back with to the ones it
+         * matched. Another relation of many records keeps its filter
+         * through the relation.
+         */
+        const carriesLabels: FindOperator<unknown> | null =
+          QueryUtil.getLabelsFilterCondition(
+            modelType,
+            key,
+            query[key] as unknown as Array<string>,
+          );
+
+        if (carriesLabels) {
+          groupedRelationFilters.push(carriesLabels);
+          delete query[key];
+          continue;
+        }
 
         (query as any)[key] = {
           _id: QueryHelper.any(query[key] as Array<string>),
@@ -1072,6 +1099,127 @@ export default class QueryUtil {
       joinTableName,
       ownerColumnName,
       relationColumnName,
+    };
+  }
+
+  /*
+   * The condition on the record's id that a filter by the model's own
+   * labels stands for (serializeQuery: `labels: [ids]`, Includes): the
+   * records carrying one of `labelIds` (getLinkedToAnyCondition). Null for
+   * any other relation, which keeps its filter through the relation, and
+   * without the join table's names (no database).
+   */
+  public static getLabelsFilterCondition<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    propertyPath: string,
+    labelIds: Array<string | ObjectID>,
+  ): FindOperator<unknown> | null {
+    if (propertyPath !== new modelType().getAccessControlColumn()) {
+      return null;
+    }
+
+    return QueryUtil.getLinkedToAnyCondition(modelType, propertyPath, labelIds);
+  }
+
+  /*
+   * THE RECORDS LINKED, THROUGH A MANY-TO-MANY RELATION, TO ONE OF `ids`, as
+   * a condition on the record's id: its join table names one of them, the
+   * related row there and not deleted - the records a filter through the
+   * relation itself (`labels: { _id: In(ids) }`) matches, since TypeORM's
+   * join leaves deleted rows out. One uncorrelated subquery
+   * (QueryHelper.anyOfEntitiesInManyToMany): it reads the same in a SELECT,
+   * an UPDATE and a DELETE, and joins nothing into the read, which returns
+   * one row per record. No ids match nothing. Null when the join table
+   * cannot be followed: not a many-to-many relation, or no database.
+   */
+  public static getLinkedToAnyCondition<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    propertyPath: string,
+    ids: Array<string | ObjectID>,
+  ): FindOperator<unknown> | null {
+    const links: ReturnType<typeof QueryUtil.getManyToManyRelationMetadata> =
+      QueryUtil.getManyToManyRelationMetadata(modelType, propertyPath);
+
+    if (!links) {
+      return null;
+    }
+
+    return QueryHelper.anyOfEntitiesInManyToMany({
+      values: ids,
+      joinTableName: links.joinTableName,
+      ownerColumnName: links.ownerColumnName,
+      relationColumnName: links.relationColumnName,
+      relatedTable: QueryUtil.getManyToManyRelatedTable(
+        modelType,
+        propertyPath,
+      ),
+    }) as unknown as FindOperator<unknown>;
+  }
+
+  /*
+   * The table a many-to-many relation's join table links the model's
+   * records to (a monitor's labels: Label), the column of it the join table
+   * names, and the column that marks a row of it deleted, if it has one.
+   * Null when the column is not a many-to-many relation or the database is
+   * not connected (getManyToManyRelationMetadata).
+   *
+   * A filter through the relation itself joins only the related rows not
+   * marked deleted (TypeORM adds `deletedAt IS NULL` to the join), so a
+   * condition on the join table that is to match the same records asks the
+   * same of the row it links to (QueryHelper.anyOfEntitiesInManyToMany).
+   */
+  public static getManyToManyRelatedTable<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    propertyPath: string,
+  ): ManyToManyRelatedTable | null {
+    if (!PostgresAppInstance.isConnected()) {
+      return null;
+    }
+
+    const dataSource: DataSource | null = PostgresAppInstance.getDataSource();
+
+    if (!dataSource) {
+      return null;
+    }
+
+    let entityMetadata: EntityMetadata | undefined;
+
+    try {
+      entityMetadata = dataSource.getMetadata(modelType);
+    } catch {
+      return null;
+    }
+
+    const relation: RelationMetadata | undefined =
+      entityMetadata?.findRelationWithPropertyPath(propertyPath);
+
+    if (!relation || !relation.isManyToMany) {
+      return null;
+    }
+
+    const owningRelation: RelationMetadata = relation.isOwning
+      ? relation
+      : relation.inverseRelation ?? relation;
+
+    // The join table's column that names the related row, and what it names.
+    const relationColumn: RelationMetadata["joinColumns"][number] | undefined =
+      relation.isOwning
+        ? owningRelation.inverseJoinColumns[0]
+        : owningRelation.joinColumns[0];
+
+    const relatedMetadata: EntityMetadata = relation.inverseEntityMetadata;
+    const columnName: string | undefined =
+      relationColumn?.referencedColumn?.databaseName;
+
+    if (!relatedMetadata?.tableName || !columnName) {
+      return null;
+    }
+
+    return {
+      tableName: relatedMetadata.tableName,
+      columnName: columnName,
+      deleteDateColumnName:
+        relatedMetadata.deleteDateColumn?.databaseName || null,
     };
   }
 }

@@ -832,7 +832,11 @@ export default class EmailLog extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      /*
+       * A record of what was sent: deleting the escalation rule keeps it and
+       * clears the reference (issue #9036).
+       */
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )
@@ -894,7 +898,11 @@ export default class EmailLog extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      /*
+       * A record of what was sent: deleting the schedule keeps it and
+       * clears the reference (issue #9036).
+       */
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )
@@ -954,7 +962,11 @@ export default class EmailLog extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      /*
+       * A record of what was sent: deleting the team keeps it and
+       * clears the reference (issue #9036).
+       */
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )

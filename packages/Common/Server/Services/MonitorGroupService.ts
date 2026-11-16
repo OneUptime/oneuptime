@@ -17,7 +17,9 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import { OnDelete } from "../Types/Database/Hooks";
 import StatusPageResourceService from "./StatusPageResourceService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import FrozenMonitorResources from "../../Utils/StatusPage/FrozenMonitorResources";
+import FrozenMonitorResources, {
+  MONITOR_NOT_MONITORED_YET_SELECT,
+} from "../../Utils/StatusPage/FrozenMonitorResources";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorService from "./MonitorService";
 import MonitorGroupMonitoring, {
@@ -25,6 +27,17 @@ import MonitorGroupMonitoring, {
   MonitorGroupMonitoringSummary,
 } from "../../Utils/Monitor/MonitorGroupMonitoring";
 import { MONITORING_OFF_SELECT } from "../../Utils/Monitor/MonitoringOff";
+import OneUptimeDate from "../../Types/Date";
+import { MonitorGroupUptimeSummary } from "../../Types/Monitor/MonitorGroupUptimeSummary";
+import { MONITOR_UPTIME_HISTORY_DAYS } from "../../Types/Monitor/MonitorUptimeSummary";
+import {
+  MonitorGroupUptimeDailyAggregate,
+  UptimeDayBucket,
+} from "../../Types/StatusPage/UptimeDailyAggregate";
+import MonitorGroupUptimeDailyAggregateUtil from "../../Utils/StatusPage/MonitorGroupUptimeDailyAggregateUtil";
+import UptimeDailyAggregateUtil, {
+  UptimeDailyAggregateTotals,
+} from "../../Utils/StatusPage/UptimeDailyAggregateUtil";
 
 export class Service extends ProjectReferencesService<MonitorGroup> {
   public constructor() {
@@ -166,6 +179,150 @@ export class Service extends ProjectReferencesService<MonitorGroup> {
       });
 
     return monitorStatusTimelines;
+  }
+
+  /**
+   * The group's uptime history for the Dashboard's monitor group page
+   * (issue #6886): its 90 calendar days, cut in `timezone`, and its totals
+   * over them, measured by the database from every row.
+   *
+   * The page used to merge the rows of getStatusTimeline in the browser.
+   * Those arrive under one 10,000 row cap, oldest first, so a group whose
+   * monitors wrote more changes than that in 90 days lost its newest days.
+   * These are the days a status page draws the group with
+   * (MonitorStatusTimelineService.getMonitorGroupDailyUptimeAggregate): at
+   * every instant the worst status among its monitors, a monitor's time with
+   * monitoring off and before its first check left out. On the Dashboard
+   * every status that is not operational counts as down, as the page has
+   * always counted it, so those outrank the rest.
+   *
+   * Its monitors are the ones getStatusTimeline reads: every monitor of the
+   * group but an archived one. The days start at local midnight 89 days
+   * before now - the monitor page's strip - and the totals are summed from
+   * them, so the percentage always agrees with the bars beside it.
+   *
+   * It reads as root and does no authorisation: the route in MonitorGroupAPI
+   * decides who may read the group's history first.
+   */
+  @CaptureSpan()
+  public async getUptimeSummary(data: {
+    monitorGroupId: ObjectID;
+    projectId: ObjectID;
+    timezone: string;
+    now: Date;
+  }): Promise<MonitorGroupUptimeSummary> {
+    const now: Date = data.now;
+
+    /*
+     * Calendar arithmetic in the zone, then local midnight: 89 x 24 hours
+     * would land on the wrong day across a DST change.
+     */
+    const startDate: Date = OneUptimeDate.getStartOfDay(
+      OneUptimeDate.addRemoveDays(
+        now,
+        -(MONITOR_UPTIME_HISTORY_DAYS - 1),
+        data.timezone,
+      ),
+      data.timezone,
+    );
+
+    const [monitorGroupResources, monitorStatuses]: [
+      Array<MonitorGroupResource>,
+      Array<MonitorStatus>,
+    ] = await Promise.all([
+      MonitorGroupResourceService.findBy({
+        query: {
+          monitorGroupId: data.monitorGroupId,
+          projectId: data.projectId,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        select: {
+          monitorId: true,
+          monitor: {
+            isArchived: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+      }),
+      MonitorStatusService.findBy({
+        query: {
+          projectId: data.projectId,
+        },
+        select: {
+          _id: true,
+          priority: true,
+          isOperationalState: true,
+        },
+        sort: {
+          priority: SortOrder.Ascending,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      }),
+    ]);
+
+    // An archived monitor is retired: its frozen status speaks for nothing.
+    const monitorIds: Array<ObjectID> = [];
+
+    for (const resource of FrozenMonitorResources.withoutArchivedMonitors(
+      monitorGroupResources,
+    )) {
+      if (resource.monitorId) {
+        monitorIds.push(resource.monitorId);
+      }
+    }
+
+    const downtimeMonitorStatusIds: Array<string> = monitorStatuses
+      .filter((status: MonitorStatus): boolean => {
+        return !status.isOperationalState;
+      })
+      .map((status: MonitorStatus): string => {
+        return status.id!.toString();
+      });
+
+    const aggregate: MonitorGroupUptimeDailyAggregate =
+      await MonitorStatusTimelineService.getMonitorGroupDailyUptimeAggregate({
+        monitorGroups: [
+          { monitorGroupId: data.monitorGroupId, monitorIds: monitorIds },
+        ],
+        rankedMonitorStatusIds:
+          MonitorGroupUptimeDailyAggregateUtil.getRankedMonitorStatusIds({
+            monitorStatuses: monitorStatuses,
+            downtimeMonitorStatusIds: downtimeMonitorStatusIds,
+          }),
+        startDate: startDate,
+        endDate: now,
+        timezone: data.timezone,
+      });
+
+    const buckets: Array<UptimeDayBucket> =
+      MonitorGroupUptimeDailyAggregateUtil.getBucketsForMonitorGroup(
+        aggregate,
+        data.monitorGroupId,
+      ) || [];
+
+    const totals: UptimeDailyAggregateTotals =
+      UptimeDailyAggregateUtil.getTotals({
+        buckets: buckets,
+        downtimeMonitorStatusIds: downtimeMonitorStatusIds,
+      });
+
+    return {
+      monitorGroupId: data.monitorGroupId,
+      timezone: aggregate.timezone || data.timezone,
+      generatedAt: now,
+      startDate: startDate,
+      endDate: now,
+      buckets: buckets,
+      coveredSeconds: totals.coveredSeconds,
+      downtimeSeconds: totals.downtimeSeconds,
+    };
   }
 
   @CaptureSpan()
@@ -468,6 +625,12 @@ export class Service extends ProjectReferencesService<MonitorGroup> {
             currentMonitorStatusId: true,
             isArchived: true,
             ...MONITORING_OFF_SELECT,
+            /*
+             * Whether anything has measured each member yet: a status page
+             * draws a group none of whose monitors has been checked as Not
+             * monitored yet (FrozenMonitorResources, issue #8899).
+             */
+            ...MONITOR_NOT_MONITORED_YET_SELECT,
           },
         },
         props: {

@@ -4,10 +4,12 @@ import URL from "Common/Types/API/URL";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import {
+  UsedByBulkSummary,
   UsedByPage,
   UsedByRecordKind,
   UsedByRelation,
   UsedBySummary,
+  isUsedByBulkSummary,
   isUsedByPage,
   isUsedBySummary,
 } from "Common/Types/UsedBy/UsedBy";
@@ -19,7 +21,8 @@ import { COULD_NOT_LOAD_USED_BY } from "./UsedByWords";
 /*
  * WHAT REFERS TO A RECORD, as the Dashboard asks for it
  * (Common/Server/API/UsedByAPI): one request per card for the counts and
- * the first rows, and one per page of "See all".
+ * the first rows, one per page of "See all", and one per bulk Delete or
+ * Archive dialog for the whole selection, however many records it holds.
  */
 
 export const USED_BY_API_PATH: string = "/used-by";
@@ -48,6 +51,15 @@ export function getUsedByPageUrl(data: {
   url.addQueryParam("limit", String(data.limit));
 
   return url;
+}
+
+// Where a list's selection is counted (POST, the ids in its body).
+export function getUsedBySummariesUrl(data: {
+  recordKind: UsedByRecordKind;
+}): URL {
+  return URL.fromString(APP_API_URL.toString()).addRoute(
+    `${USED_BY_API_PATH}/${data.recordKind}`,
+  );
 }
 
 export class UsedByApiError extends Error {
@@ -84,6 +96,41 @@ export default class UsedByApi {
     const body: JSONValue = await getJson(getUsedBySummaryUrl(data));
 
     if (!isUsedBySummary(body)) {
+      throw new UsedByApiError(COULD_NOT_LOAD_USED_BY);
+    }
+
+    return body;
+  }
+
+  /*
+   * What refers to any of a list's selection, counted once for all of it:
+   * one request, however many records are selected.
+   */
+  public static async getSummaries(data: {
+    recordKind: UsedByRecordKind;
+    recordIds: Array<ObjectID>;
+  }): Promise<UsedByBulkSummary> {
+    const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+      await API.post<JSONObject>({
+        url: getUsedBySummariesUrl(data),
+        data: {
+          recordIds: data.recordIds.map((id: ObjectID): string => {
+            return id.toString();
+          }),
+        },
+        headers: { ...ModelAPI.getCommonHeaders() },
+      });
+
+    if (response instanceof HTTPErrorResponse) {
+      throw new UsedByApiError(
+        API.getFriendlyMessage(response),
+        response.statusCode,
+      );
+    }
+
+    const body: JSONValue = response.data as JSONValue;
+
+    if (!isUsedByBulkSummary(body)) {
       throw new UsedByApiError(COULD_NOT_LOAD_USED_BY);
     }
 

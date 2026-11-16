@@ -36,7 +36,11 @@ import axios, { AxiosResponse } from "axios";
  * GitSmartHttp) never see a socket.
  */
 
-export type CodeHostHttpMethod = "GET" | "POST" | "PUT" | "PATCH";
+/*
+ * DELETE is what revokes a token OneUptime made for a code-fix run
+ * (GitLab's DELETE /projects/:id/access_tokens/:token_id).
+ */
+export type CodeHostHttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 export interface CodeHostHttpRequest {
   method: CodeHostHttpMethod;

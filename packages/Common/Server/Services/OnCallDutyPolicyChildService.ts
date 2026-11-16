@@ -46,8 +46,14 @@ export default class OnCallDutyPolicyChildService<
 
     /*
      * Check the original columns before normalizing relations. In particular,
-     * a read-only caller must not reach the rule-ordering create hook.
+     * a read-only caller must not reach the rule-ordering create hook. Asked
+     * of the record as the create's own column checks read it: who created
+     * it is OneUptime's to stamp (the rule service names the person adding a
+     * rule's people, teams and schedules on their join rows), and a value in
+     * a server-set column is dropped or refused as the create would. See
+     * the helper.
      */
+    this.takeOutWhatTheServerSetsOnCreate(createBy);
     CreatePermission.checkCreatePermissions(this.modelType, data, props);
 
     if (!props.tenantId || props.isMultiTenantRequest) {

@@ -965,11 +965,37 @@ export default class PermissionGate {
 
     const translator: Translator = getGlobalTranslator();
 
+    const sentence: string =
+      translator.translateText(options.sentence) || options.sentence;
+
+    /*
+     * Refused on a private record that the reader's own permissions would
+     * allow: the teams of theirs that own it may not (PrivateRecordScope),
+     * as check says it - naming a permission they hold would only puzzle
+     * them. A fix OneUptime AI proposed for a private incident, say (#8913).
+     */
+    if (
+      options.privateRecordReason &&
+      HeldPermissionsUtil.holdsAnyOf(
+        this.getHeldPermissions({
+          ...options,
+          held: undefined,
+          permissions: undefined,
+        }),
+        permissions,
+        options,
+      )
+    ) {
+      return {
+        isAllowed: false,
+        disabledReason: `${sentence} ${options.privateRecordReason}`,
+      };
+    }
+
     return {
       isAllowed: false,
       disabledReason: this.appendPermissionsToSentence({
-        sentence:
-          translator.translateText(options.sentence) || options.sentence,
+        sentence: sentence,
         permissions: [...permissions],
         held: held,
       }),

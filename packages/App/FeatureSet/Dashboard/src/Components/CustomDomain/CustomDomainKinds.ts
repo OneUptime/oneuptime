@@ -50,6 +50,14 @@ export interface CustomDomainKind {
    * address it: the list's View Documentation opens it (#6822).
    */
   docsPath: string;
+  /*
+   * The step-by-step guide that walks this kind of custom domain from "I
+   * have a domain" to the page answering on it over HTTPS, at its first
+   * custom domain step, as the docs address it: the card links it beside
+   * its description (#7021). Only status pages have one (Publish a Status
+   * Page, #7398); a kind without one links none.
+   */
+  guideDocsPath?: string | undefined;
 }
 
 export const STATUS_PAGE_CUSTOM_DOMAINS: CustomDomainKind = {
@@ -65,6 +73,7 @@ export const STATUS_PAGE_CUSTOM_DOMAINS: CustomDomainKind = {
   cnameRecordVariable: "STATUS_PAGE_CNAME_RECORD",
   copy: STATUS_PAGE_CUSTOM_DOMAIN_COPY,
   docsPath: "/docs/status-pages/branding-and-domains#custom-domains",
+  guideDocsPath: "/docs/guides/status-page#add-your-domain",
 };
 
 export const DASHBOARD_CUSTOM_DOMAINS: CustomDomainKind = {

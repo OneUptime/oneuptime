@@ -256,12 +256,13 @@ describe.each([
     renderPage(page.Page, listUrl);
 
     const help: Props = tableProps()["helpContent"];
-    expect(help["markdown"]).toMatch(/^### Match Criteria$/m);
+    // A "##" topic of the help dialog (Common HelpContent).
+    expect(help["markdown"]).toMatch(/^## Match Criteria$/m);
     expect(help["markdown"]).toContain("**Messaging System**");
     expect(help["markdown"]).not.toContain("Messaging System Pattern");
     expect(help["markdown"]).toContain("^kafka$");
     // The naming tips sit outside the section the shared help rewrites.
-    expect(help["markdown"]).toMatch(/^### Matching Discovered Queues$/m);
+    expect(help["markdown"]).toMatch(/^## Matching Discovered Queues$/m);
   });
 });
 

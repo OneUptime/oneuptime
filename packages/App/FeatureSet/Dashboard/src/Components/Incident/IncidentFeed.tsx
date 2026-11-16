@@ -1,4 +1,15 @@
 import { getPageAsObserversField } from "../OnCallPolicy/ExecutePolicy/PageAsObserversField";
+import {
+  ExecuteOnCallPolicyMenuLock,
+  getExecuteOnCallPolicyDescription,
+  getExecuteOnCallPolicyMenuLock,
+  getMenuLock,
+} from "../OnCallPolicy/ExecutePolicy/ExecuteOnCallPolicyWords";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import { usePrivateRecordGate } from "Common/UI/Utils/PrivateRecordScope";
+import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
+import { OnCallPageRecordType } from "Common/Types/OnCallDutyPolicy/OnCallPagePassOn";
+import { EventStanding } from "../../Utils/EventDuration";
 import React, { FunctionComponent, ReactElement } from "react";
 import ObjectID from "Common/Types/ObjectID";
 import API from "Common/UI/Utils/API/API";
@@ -67,6 +78,13 @@ export interface ComponentProps {
    * is locked with why (EventNoteKind.isPrivateEvent).
    */
   isPrivate?: boolean | undefined;
+  /*
+   * Where the incident stands now (getEventStanding). Resolved, "Execute
+   * On-Call Policy" is locked with why; acknowledged, its form says the
+   * policy still pages until one of its people answers
+   * (ExecuteOnCallPolicyWords). Unknown, it is offered as before.
+   */
+  standing?: EventStanding | undefined;
 }
 
 /*
@@ -147,6 +165,11 @@ export const getIncidentFeedEventIcon: (eventType: string) => IconProp = (
   return getFeedEntryKind({ kinds: INCIDENT_FEED_KINDS, eventType }).icon;
 };
 
+// What its menu's actions start, asked about with the record's scope.
+const PRIVATE_RECORD_PAGE: OnCallDutyPolicyExecutionLog =
+  new OnCallDutyPolicyExecutionLog();
+const PRIVATE_RECORD_RUN: RunbookExecution = new RunbookExecution();
+
 const IncidentFeedElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -155,6 +178,36 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
     props.notifyStatusPageSubscribersByDefault ?? true;
   const [showOnCallPolicyModal, setShowOnCallPolicyModal] =
     React.useState<boolean>(false);
+
+  /*
+   * What the reader holds on the incident when it is private
+   * (PrivateRecordScope): a page about it, and a runbook run linked to it,
+   * are started only through a team of theirs that owns it
+   * (#8913), so the menu locks them saying why when none of those may.
+   */
+  const privateRecordGate: ReturnType<typeof usePrivateRecordGate> =
+    usePrivateRecordGate();
+
+  // Execute On-Call Policy, by where the incident stands and who may page.
+  const executePolicyLock: ExecuteOnCallPolicyMenuLock =
+    getExecuteOnCallPolicyMenuLock({
+      recordType: OnCallPageRecordType.Incident,
+      standing: props.standing,
+      permissionGate: PermissionGate.check(
+        new OnCallDutyPolicyExecutionLog(),
+        ModelAction.Create,
+        privateRecordGate(PRIVATE_RECORD_PAGE),
+      ),
+    });
+
+  // Execute Runbook, by who may start a run linked to it.
+  const executeRunbookLock: ExecuteOnCallPolicyMenuLock = getMenuLock(
+    PermissionGate.check(
+      new RunbookExecution(),
+      ModelAction.Create,
+      privateRecordGate(PRIVATE_RECORD_RUN),
+    ),
+  );
 
   const [showRunbookPickerModal, setShowRunbookPickerModal] =
     React.useState<boolean>(false);
@@ -315,6 +368,8 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
               key="incident-action-run-runbook"
               text="Execute Runbook"
               icon={IconProp.Play}
+              isDisabled={executeRunbookLock.isDisabled}
+              tooltip={executeRunbookLock.tooltip}
               onClick={() => {
                 setShowRunbookPickerModal(true);
               }}
@@ -323,6 +378,8 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
               key="incident-action-execute-policy"
               text="Execute On-Call Policy"
               icon={IconProp.Call}
+              isDisabled={executePolicyLock.isDisabled}
+              tooltip={executePolicyLock.tooltip}
               onClick={() => {
                 setShowOnCallPolicyModal(true);
               }}
@@ -348,9 +405,10 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
             modalWidth={ModalWidth.Normal}
             name={"execute-on-call-policy"}
             title={"Execute On-Call Policy"}
-            description={
-              "Execute the on-call policy for this incident. This will notify the on-call team members and start the on-call process."
-            }
+            description={getExecuteOnCallPolicyDescription({
+              recordType: OnCallPageRecordType.Incident,
+              standing: props.standing,
+            })}
             onClose={() => {
               setShowOnCallPolicyModal(false);
             }}
@@ -384,6 +442,12 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
                     type: OnCallDutyPolicy,
                     labelField: "name",
                     valueField: "_id",
+                    /*
+                     * Archived policies page no one, so they are not
+                     * offered (OnCallDutyPolicyArchive), as Slack and
+                     * Microsoft Teams leave them out of their own form.
+                     */
+                    query: { isArchived: false },
                   },
                   required: true,
                   placeholder: "Select On-Call Policy",

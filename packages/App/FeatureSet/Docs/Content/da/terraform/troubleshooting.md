@@ -14,7 +14,7 @@ Slå den meddelelse, Terraform skrev, eller det, du så ske, op i tabellen neden
 | Meddelelse eller symptom | Hvad du skal gøre |
 | --- | --- |
 | `Missing API Key` | Giv provideren dens nøgle: se [`Missing API Key` eller `Invalid API Key`](#missing-api-key-eller-invalid-api-key) |
-| `Invalid API Key` | Kopiér nøglen igen, eller opret en ny: se [`Missing API Key` eller `Invalid API Key`](#missing-api-key-eller-invalid-api-key) |
+| `Invalid API Key` | Tjek nøglen, eller nulstil den for at få en ny: se [`Missing API Key` eller `Invalid API Key`](#missing-api-key-eller-invalid-api-key) |
 | `ProjectId required` | Brug en API-nøgle til projektet, ikke en masternøgle: se [`ProjectId required`](#projectid-required) |
 | `You do not have permissions to create Monitor` | Giv nøglen den tilladelse, meddelelsen nævner: se [Nøglen mangler en tilladelse](#nøglen-mangler-en-tilladelse) |
 | `API keys need the Growth plan` | Flyt projektet tilbage til abonnementet Growth: se [Betaling påkrævet](#betaling-påkrævet) |
@@ -60,7 +60,7 @@ Provideren nævner, hvad den var i gang med: `Unable to create monitor` og `Unab
 
 `Missing API Key` stopper provideren, før den sender nogen forespørgsel: hverken `api_key` i provider-blokken eller miljøvariablen `ONEUPTIME_API_KEY` er angivet. Eksportér variablen i den shell, du kører Terraform i, eller send nøglen i en variabel markeret `sensitive`.
 
-`Invalid API Key` er OneUptimes svar på en nøgle, den ikke kender: en, der er tastet forkert, udløbet eller slettet, eller en fra en anden OneUptime end den, `oneuptime_url` peger på. Kopiér nøglen igen fra dens side under **Projektindstillinger → Avanceret → API-nøgler**, eller opret en ny.
+`Invalid API Key` er OneUptimes svar på en nøgle, den ikke kender: en, der er tastet forkert, udløbet eller slettet, eller en fra en anden OneUptime end den, `oneuptime_url` peger på. Tjek den mod, hvordan nøglen ender på dens side under **Projektindstillinger → Avanceret → API-nøgler**, eller nulstil den dér for at få en ny.
 
 ### `ProjectId required`
 

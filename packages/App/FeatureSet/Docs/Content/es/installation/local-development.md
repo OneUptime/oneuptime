@@ -87,10 +87,16 @@ npm run compile
 
 ### Pasar el linter solo a tus archivos
 
-Desde la raíz del repositorio, pasa los archivos que cambiaste:
+Desde la raíz del repositorio, pasa el linter a los archivos que cambió tu rama y corrige lo que ESLint pueda corregir:
 
 ```bash
-npx eslint --fix packages/App/path/to/File.ts
+npm run fix-lint:changed
+```
+
+Toma cada archivo que difiere de `origin/main`, confirmado o no, y ejecuta ESLint una vez por cada proyecto de TypeScript al que pertenecen: un solo `npx eslint` sobre los archivos de varios paquetes se queda sin memoria. Para pasar el linter a otros archivos de la misma forma, nómbralos después de `--`:
+
+```bash
+node Scripts/Lint/LintByProject.js --fix -- packages/App/path/to/File.ts
 ```
 
 Evita `npm run lint` y `npm run fix-lint`: pasan el linter a todo el repositorio.

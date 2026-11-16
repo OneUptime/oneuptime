@@ -45,6 +45,7 @@
     "uptimePercent": "{{percent}} oppetid",
     "operational": "I drift",
     "notMonitored": "Ikke overvåket",
+    "notMonitoredYet": "Ikke overvåket ennå",
     "noResourcesInGroup": "Ingen ressurser lagt til i denne gruppen.",
     "activeIncidents": "Aktive hendelser",
     "scheduledMaintenanceEvents": "Planlagt vedlikehold",
@@ -55,6 +56,7 @@
     "someResourcesAre": "Noen ressurser er {{status}}",
     "someResourcesAreUnder": "Noen ressurser er under {{status}}",
     "noResourcesAreMonitored": "Ingen ressurser overvåkes akkurat nå",
+    "noResourcesAreMonitoredYet": "Ingen ressurser er overvåket ennå",
     "oneSubGroup": "1 gruppe",
     "subGroupCount": "{{total}} grupper"
   },
@@ -180,7 +182,9 @@
     "manageExisting": "Administrer eksisterende abonnement",
     "sendManagementLink": "Send administrasjonslenke",
     "subscribedSuccessfully": "Du er abonnert.",
-    "emailSentCheckSpam": "En e-post med lenken er sendt til e-postadressen din. Hvis du ikke ser e-posten, sjekk søppelpostmappen.",
+    "emailSentCheckSpam": "Vi har sendt en e-post til denne adressen. Åpne lenken i den for å bekrefte abonnementet ditt. Hvis du ikke ser den, sjekk søppelpostmappen.",
+    "checkEmailTitle": "Sjekk e-posten din",
+    "checkPhoneTitle": "Sjekk telefonen din",
     "manageLinkSent": "Hvis et abonnement samsvarer med opplysningene du skrev inn, har vi sendt en lenke for å administrere det.",
     "manageLinkSentEmail": "Hvis denne e-postadressen har et abonnement, har vi sendt en administrasjonslenke til adressen. Hvis du ikke ser e-posten, sjekk søppelpostmappen.",
     "menu": {

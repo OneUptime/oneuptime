@@ -57,6 +57,8 @@ En policy som flere regler legger til, kjører én gang. En alvorlighetsgrad kj�
 - **Brukeroverstyringer** dekker for folk bare i denne policyen. Se [Brukeroverstyringer](/docs/on-call/user-overrides).
 - **Innstillinger** har **Eksporter Vaktpolicy** og kortet som arkiverer policyen.
 
+**Hva som utløser denne policyen**, på **Oversikt**, viser vaktreglene, monitorene der kriteriene utløser policyen, malene og andre regler som utløser den, og arbeidsflytene som gjør det, hver med en lenke. En regel som er slått av, viser **Av**. Når ingenting utløser policyen, sier kortet det: den varsler ingen før noe utløser den. Når du sletter eller arkiverer policyen, sies det samme først. Det du ikke kan åpne, telles, men navngis ikke.
+
 ## Gjenta en policy
 
 Når ventetiden til det siste nivået er ute uten at noen har bekreftet, stopper en policy, med mindre den gjentas. For å velge åpner du siden **Eskaleringsregler** for policyen og klikker på **Rediger** på kortet **Gjentakelsespolicy** under reglene. **Rediger gjentakelsespolicy** spør **Hvis ingen bekrefter etter det siste nivået**:
@@ -93,7 +95,7 @@ Ingen går glipp av en tilkalling ved bare å bli tilkalt én gang. Den ene tilk
 
 Noen tilkallinger fortsetter etter at den er bekreftet, til noen de har tilkalt, svarer, eller den er løst: en ny varsling, en tilkalling til observatører, en tilkalling som noen har sendt til personer fra Slack eller Microsoft Teams, og en policy som er startet manuelt.
 
-En policy som er startet manuelt, er en som er startet med **Kjør vaktpolicy**, eller av en tilkalling fra Slack eller Microsoft Teams som nevner den. Den tilkaller nivå for nivå som enhver kjøring, med samtaler og gjentatte push-varsler, og at noen andre bekrefter hendelsen, stopper den ikke: slik tilkaller du et annet team til en hendelse som noen allerede jobber med. Den den har tilkalt, svarer fra meldingen i tilkallingen sin, en samtale eller en SMS, eller ved selv å bekrefte hendelsen; når hendelsen er bekreftet, tilbyr siden til hendelsen vedkommende **Bekreft igjen**. **Eskaler** sender den videre til neste nivå. På en hendelse, et varsel eller en episode som er løst, startes ingenting, og du får vite hvorfor. Varslene fra den sier hvem som startet hvilken policy, og har med meldingen som ble sendt med en tilkalling fra Slack eller Microsoft Teams.
+En policy som er startet manuelt, er en som er startet med **Kjør vaktpolicy**, eller av en tilkalling fra Slack eller Microsoft Teams som nevner den. Den tilkaller nivå for nivå som enhver kjøring, med samtaler og gjentatte push-varsler, og at noen andre bekrefter hendelsen, stopper den ikke: slik tilkaller du et annet team til en hendelse som noen allerede jobber med. Den den har tilkalt, svarer fra meldingen i tilkallingen sin, en samtale eller en SMS, eller ved selv å bekrefte hendelsen; når hendelsen er bekreftet, tilbyr siden til hendelsen vedkommende **Bekreft igjen**. **Eskaler** sender den videre til neste nivå. På en hendelse, et varsel eller en episode som er løst, startes ingenting, og du får vite hvorfor: dashbordet slår av **Kjør vaktpolicy** og viser årsaken. Varslene fra den sier hvem som startet hvilken policy, og har med meldingen som ble sendt med en tilkalling fra Slack eller Microsoft Teams.
 
 ## Utførelseslogger
 

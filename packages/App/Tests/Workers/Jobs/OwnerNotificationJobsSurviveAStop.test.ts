@@ -14,6 +14,7 @@ import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTim
 import Project from "Common/Models/DatabaseModels/Project";
 import User from "Common/Models/DatabaseModels/User";
 import OneUptimeDate from "Common/Types/Date";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 import Email from "Common/Types/Email";
 import { JSONObject } from "Common/Types/JSON";
 import Name from "Common/Types/Name";
@@ -52,7 +53,11 @@ import {
  * posted, owner added and still-open reminder - and the 23 of episodes,
  * monitors, scheduled maintenance events, status pages, SLOs and network
  * devices each take (mark) the record
- * they tell of before they tell its owners. A worker stopped hard in between
+ * they tell of before they tell its owners. Every one reads what it has to
+ * tell a page at a time and takes each record by one hook-free
+ * compare-and-set (OwnerNotificationBacklog, #7974, #8862) - a reminder job
+ * moves the reminder on with it (OwnerReminderBacklog, #9019): its services
+ * answer that read and that take here. A worker stopped hard in between
  * (an out-of-memory kill, a node lost) used to leave every owner not reached
  * yet untold for good. Now each writes whom it is about to tell before the
  * take, tells each owner through a claim only one run can win, and starts
@@ -78,7 +83,7 @@ import {
  *     gone before the next run.
  */
 
-type CronHandler = () => Promise<void>;
+type CronHandler = (deadline?: JobDeadline) => Promise<void>;
 
 const mockCapturedJobs: Record<string, CronHandler> = {};
 
@@ -132,6 +137,8 @@ jest.mock("Common/Server/Services/IncidentService", () => {
       getIncidentLinkInDashboard: jest.fn(),
       getIncidentIdentifiedDate: jest.fn(),
       updateOneById: jest.fn(),
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(),
+      onTriggerWorkflow: jest.fn(),
       isIncidentResolved: jest.fn(),
       isIncidentAcknowledged: jest.fn(),
     },
@@ -152,6 +159,8 @@ jest.mock("Common/Server/Services/AlertService", () => {
       getAlertIdentifiedDate: jest.fn(),
       countBy: jest.fn(),
       updateOneById: jest.fn(),
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(),
+      onTriggerWorkflow: jest.fn(),
       isAlertResolved: jest.fn(),
       isAlertAcknowledged: jest.fn(),
     },
@@ -183,6 +192,7 @@ function mockAnyService(): unknown {
       findOneBy: jest.fn(),
       updateOneById: jest.fn(),
       compareAndSetColumnsByIdWithoutHooks: jest.fn(),
+      onTriggerWorkflow: jest.fn(),
       findOwners: jest.fn(),
       getEpisodeLinkInDashboard: jest.fn(),
       getMonitorLinkInDashboard: jest.fn(),
@@ -814,15 +824,17 @@ function readWhileThere<T>(record: () => T): () => Promise<Array<T>> {
   };
 }
 
-async function takeOrStop(): Promise<void> {
-  if (world.takeStops) {
-    world.takeStops = false;
-    world.stoppedAt.push("take");
-    await NEVER;
+/*
+ * A reminder job's move (OwnerReminderBacklog, #9019): sending the reminder -
+ * the next one later, counted - is the take, one compare-and-set only one
+ * run wins; taking the reminders away is not.
+ */
+async function reminderMove(data: { data: JSONObject }): Promise<boolean> {
+  if (data.data["nextReminderNotificationAt"] === null) {
+    return true;
   }
 
-  world.isTaken = true;
-  world.takes++;
+  return await compareAndSetTake();
 }
 
 // A take that matches only the record as it was read, as the Created jobs' does.
@@ -1045,8 +1057,13 @@ const CASES: Array<JobCase> = [
         return record;
       };
 
-      asMock(IncidentPublicNoteService.findAllBy).mockImplementation(
+      // Read a page at a time, and taken by one compare-and-set (#8862).
+      asMock(IncidentPublicNoteService.findBy).mockImplementation(
         dueWhileNotTaken(note),
+      );
+      // The page's incidents, read with it.
+      asMock(IncidentService.findBy).mockImplementation(
+        readWhileThere(incident),
       );
       // Read again only while it is published, as the job asks.
       asMock(IncidentPublicNoteService.findOneBy).mockImplementation(
@@ -1058,9 +1075,9 @@ const CASES: Array<JobCase> = [
             : null;
         },
       );
-      asMock(IncidentPublicNoteService.updateOneById).mockImplementation(
-        takeOrStop,
-      );
+      asMock(
+        IncidentPublicNoteService.compareAndSetColumnsByIdWithoutHooks,
+      ).mockImplementation(compareAndSetTake);
     },
   },
   {
@@ -1084,17 +1101,20 @@ const CASES: Array<JobCase> = [
         return record;
       };
 
-      asMock(IncidentInternalNoteService.findAllBy).mockImplementation(
+      asMock(IncidentInternalNoteService.findBy).mockImplementation(
         dueWhileNotTaken(note),
+      );
+      asMock(IncidentService.findBy).mockImplementation(
+        readWhileThere(incident),
       );
       asMock(IncidentInternalNoteService.findOneById).mockImplementation(
         async () => {
           return world.exists ? note() : null;
         },
       );
-      asMock(IncidentInternalNoteService.updateOneById).mockImplementation(
-        takeOrStop,
-      );
+      asMock(
+        IncidentInternalNoteService.compareAndSetColumnsByIdWithoutHooks,
+      ).mockImplementation(compareAndSetTake);
     },
   },
   {
@@ -1118,17 +1138,18 @@ const CASES: Array<JobCase> = [
         return record;
       };
 
-      asMock(AlertInternalNoteService.findAllBy).mockImplementation(
+      asMock(AlertInternalNoteService.findBy).mockImplementation(
         dueWhileNotTaken(note),
       );
+      asMock(AlertService.findBy).mockImplementation(readWhileThere(alert));
       asMock(AlertInternalNoteService.findOneById).mockImplementation(
         async () => {
           return world.exists ? note() : null;
         },
       );
-      asMock(AlertInternalNoteService.updateOneById).mockImplementation(
-        takeOrStop,
-      );
+      asMock(
+        AlertInternalNoteService.compareAndSetColumnsByIdWithoutHooks,
+      ).mockImplementation(compareAndSetTake);
     },
   },
   {
@@ -1151,13 +1172,17 @@ const CASES: Array<JobCase> = [
         return record;
       };
 
-      asMock(IncidentOwnerTeamService.findAllBy).mockImplementation(
+      // Read a page at a time with the incident's other rows (#8862).
+      asMock(IncidentOwnerTeamService.findBy).mockImplementation(
         dueWhileNotTaken(ownerRow),
       );
-      asMock(IncidentOwnerUserService.findAllBy).mockResolvedValue([]);
-      asMock(IncidentOwnerTeamService.updateOneById).mockImplementation(
-        takeOrStop,
+      asMock(IncidentOwnerUserService.findBy).mockResolvedValue([]);
+      asMock(IncidentService.findBy).mockImplementation(
+        readWhileThere(incident),
       );
+      asMock(
+        IncidentOwnerTeamService.compareAndSetColumnsByIdWithoutHooks,
+      ).mockImplementation(compareAndSetTake);
     },
   },
   {
@@ -1180,13 +1205,14 @@ const CASES: Array<JobCase> = [
         return record;
       };
 
-      asMock(AlertOwnerTeamService.findAllBy).mockImplementation(
+      asMock(AlertOwnerTeamService.findBy).mockImplementation(
         dueWhileNotTaken(ownerRow),
       );
-      asMock(AlertOwnerUserService.findAllBy).mockResolvedValue([]);
-      asMock(AlertOwnerTeamService.updateOneById).mockImplementation(
-        takeOrStop,
-      );
+      asMock(AlertOwnerUserService.findBy).mockResolvedValue([]);
+      asMock(AlertService.findBy).mockImplementation(readWhileThere(alert));
+      asMock(
+        AlertOwnerTeamService.compareAndSetColumnsByIdWithoutHooks,
+      ).mockImplementation(compareAndSetTake);
     },
   },
   {
@@ -1201,17 +1227,17 @@ const CASES: Array<JobCase> = [
     feedService: IncidentFeedService.createIncidentFeedItem,
     arrange: (): void => {
       arrangeIncident();
-      asMock(IncidentService.findAllBy).mockImplementation(
+      // Due a page at a time until a run moves it on (#9019).
+      asMock(IncidentService.findBy).mockImplementation(
         dueWhileNotTaken(incident),
       );
-      asMock(IncidentService.updateOneById).mockImplementation(
-        async (data: { data: JSONObject }) => {
-          // Moving the reminder on is the take; stopping it is not.
-          if (data.data["nextReminderNotificationAt"] !== null) {
-            await takeOrStop();
-          }
-        },
+      // Its affected resources, read while it is there.
+      asMock(IncidentService.findAllBy).mockImplementation(
+        readWhileThere(incident),
       );
+      asMock(
+        IncidentService.compareAndSetColumnsByIdWithoutHooks,
+      ).mockImplementation(reminderMove);
       asMock(IncidentReminderRuleService.findMatchingRule).mockResolvedValue({
         reminderIntervalInMinutes: 30,
       });
@@ -1229,16 +1255,11 @@ const CASES: Array<JobCase> = [
     feedService: AlertFeedService.createAlertFeedItem,
     arrange: (): void => {
       arrangeAlert();
-      asMock(AlertService.findAllBy).mockImplementation(
-        dueWhileNotTaken(alert),
-      );
-      asMock(AlertService.updateOneById).mockImplementation(
-        async (data: { data: JSONObject }) => {
-          if (data.data["nextReminderNotificationAt"] !== null) {
-            await takeOrStop();
-          }
-        },
-      );
+      asMock(AlertService.findBy).mockImplementation(dueWhileNotTaken(alert));
+      asMock(AlertService.findAllBy).mockImplementation(readWhileThere(alert));
+      asMock(
+        AlertService.compareAndSetColumnsByIdWithoutHooks,
+      ).mockImplementation(reminderMove);
       asMock(AlertReminderRuleService.findMatchingRule).mockResolvedValue({
         reminderIntervalInMinutes: 30,
       });
@@ -1435,20 +1456,8 @@ function arrangeRecord(service: unknown, record: () => PlainRecord): void {
 }
 
 /*
- * A record due until the job takes it: read by the job's due read, read
- * again by its id while it is there, and taken by its update.
- */
-function arrangeDue(service: unknown, record: () => PlainRecord): void {
-  asMock(serviceOf(service)["findAllBy"]).mockImplementation(
-    dueWhileNotTaken(record),
-  );
-  arrangeRecord(service, record);
-  asMock(serviceOf(service)["updateOneById"]).mockImplementation(takeOrStop);
-}
-
-/*
- * A state change due until the job takes it (OwnerNotificationBacklog,
- * #7974): read a page at a time while it is there and not taken, read again
+ * A record due until the job takes it (OwnerNotificationBacklog, #7974,
+ * #8862): read a page at a time while it is there and not taken, read again
  * by its id, and taken by one compare-and-set that only one run wins.
  */
 function arrangeBacklog(service: unknown, record: () => PlainRecord): void {
@@ -1493,7 +1502,11 @@ function ownerAddedCase(of: OwnerAddedOf): JobCase {
     },
     arrange: (): void => {
       arrangeRecord(of.recordService, of.record);
-      arrangeDue(of.teamService, ownerTeamRow(of.recordIdField));
+      // The records of a page's rows, read with it.
+      asMock(serviceOf(of.recordService)["findBy"]).mockImplementation(
+        readWhileThere(of.record),
+      );
+      arrangeBacklog(of.teamService, ownerTeamRow(of.recordIdField));
     },
   };
 }
@@ -1519,6 +1532,8 @@ interface EpisodeOf {
     ownerAdded: OwnerNotificationKind;
   };
   memberAddedJob: string;
+  // The member row's mark: told of the alert or incident it added.
+  memberMark: string;
 }
 
 function episodeCases(of: EpisodeOf): Array<JobCase> {
@@ -1538,7 +1553,7 @@ function episodeCases(of: EpisodeOf): Array<JobCase> {
       feedItems: feedItems,
       feedService: feedService,
       arrange: (): void => {
-        arrangeDue(of.episodeService, of.episode);
+        arrangeBacklog(of.episodeService, of.episode);
       },
     },
     {
@@ -1580,7 +1595,11 @@ function episodeCases(of: EpisodeOf): Array<JobCase> {
       feedService: feedService,
       arrange: (): void => {
         arrangeRecord(of.episodeService, of.episode);
-        arrangeDue(of.noteService, (): PlainRecord => {
+        // The page's episodes, read with it.
+        asMock(serviceOf(of.episodeService)["findBy"]).mockImplementation(
+          readWhileThere(of.episode),
+        );
+        arrangeBacklog(of.noteService, (): PlainRecord => {
           return plain({
             id: EVENT_ID,
             projectId: PROJECT_ID,
@@ -1614,10 +1633,22 @@ function episodeCases(of: EpisodeOf): Array<JobCase> {
         };
 
         arrangeRecord(of.episodeService, of.episode);
-        arrangeDue(of.memberService, member);
-        // The batch read again by a later run: the members notified since.
+        // The page's episodes, read with it.
+        asMock(serviceOf(of.episodeService)["findBy"]).mockImplementation(
+          readWhileThere(of.episode),
+        );
+        arrangeBacklog(of.memberService, member);
+        /*
+         * Read a page at a time with its episode's batch while not taken
+         * (#8862) - and the batch read again by a later run: the members
+         * notified since.
+         */
         asMock(serviceOf(of.memberService)["findBy"]).mockImplementation(
-          async () => {
+          async (data: { query: JSONObject }) => {
+            if (data.query[of.memberMark] === false) {
+              return world.exists && !world.isTaken ? [member()] : [];
+            }
+
             return world.exists ? [member()] : [];
           },
         );
@@ -1684,6 +1715,7 @@ const EVERY_RESOURCE_CASES: Array<JobCase> = [
       ownerAdded: OwnerNotificationKind.IncidentEpisodeOwnerAdded,
     },
     memberAddedJob: "IncidentEpisodeOwner:SendIncidentAddedEmail",
+    memberMark: "isOwnerNotifiedOfIncidentAdded",
   }),
   ...episodeCases({
     noun: "alert",
@@ -1706,6 +1738,7 @@ const EVERY_RESOURCE_CASES: Array<JobCase> = [
       ownerAdded: OwnerNotificationKind.AlertEpisodeOwnerAdded,
     },
     memberAddedJob: "AlertEpisodeOwner:SendAlertAddedEmail",
+    memberMark: "isOwnerNotifiedOfAlertAdded",
   }),
   {
     title: "a monitor's Created notification",
@@ -1719,7 +1752,7 @@ const EVERY_RESOURCE_CASES: Array<JobCase> = [
       return [];
     },
     arrange: (): void => {
-      arrangeDue(MonitorService, monitor);
+      arrangeBacklog(MonitorService, monitor);
     },
   },
   {
@@ -1770,7 +1803,7 @@ const EVERY_RESOURCE_CASES: Array<JobCase> = [
     feedService:
       ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem,
     arrange: (): void => {
-      arrangeDue(ScheduledMaintenanceService, scheduledMaintenance);
+      arrangeBacklog(ScheduledMaintenanceService, scheduledMaintenance);
     },
   },
   {
@@ -1814,9 +1847,14 @@ const EVERY_RESOURCE_CASES: Array<JobCase> = [
       ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem,
     arrange: (): void => {
       arrangeRecord(ScheduledMaintenanceService, scheduledMaintenance);
-      asMock(
-        ScheduledMaintenancePublicNoteService.findAllBy,
-      ).mockImplementation(dueWhileNotTaken(scheduledMaintenanceNote));
+      // The page's events, read with it.
+      asMock(ScheduledMaintenanceService.findBy).mockImplementation(
+        readWhileThere(scheduledMaintenance),
+      );
+      // Read a page at a time, and taken by one compare-and-set (#8862).
+      asMock(ScheduledMaintenancePublicNoteService.findBy).mockImplementation(
+        dueWhileNotTaken(scheduledMaintenanceNote),
+      );
       // Read again only while it is published, as the job asks.
       asMock(
         ScheduledMaintenancePublicNoteService.findOneBy,
@@ -1828,8 +1866,8 @@ const EVERY_RESOURCE_CASES: Array<JobCase> = [
           : null;
       });
       asMock(
-        ScheduledMaintenancePublicNoteService.updateOneById,
-      ).mockImplementation(takeOrStop);
+        ScheduledMaintenancePublicNoteService.compareAndSetColumnsByIdWithoutHooks,
+      ).mockImplementation(compareAndSetTake);
     },
   },
   {
@@ -1845,7 +1883,10 @@ const EVERY_RESOURCE_CASES: Array<JobCase> = [
       ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem,
     arrange: (): void => {
       arrangeRecord(ScheduledMaintenanceService, scheduledMaintenance);
-      arrangeDue(
+      asMock(ScheduledMaintenanceService.findBy).mockImplementation(
+        readWhileThere(scheduledMaintenance),
+      );
+      arrangeBacklog(
         ScheduledMaintenanceInternalNoteService,
         scheduledMaintenanceNote,
       );
@@ -1872,18 +1913,16 @@ const EVERY_RESOURCE_CASES: Array<JobCase> = [
     feedService:
       ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem,
     arrange: (): void => {
-      asMock(ScheduledMaintenanceService.findAllBy).mockImplementation(
+      asMock(ScheduledMaintenanceService.findBy).mockImplementation(
         dueWhileNotTaken(scheduledMaintenance),
       );
-      arrangeRecord(ScheduledMaintenanceService, scheduledMaintenance);
-      asMock(ScheduledMaintenanceService.updateOneById).mockImplementation(
-        async (data: { data: JSONObject }) => {
-          // Moving the reminder on is the take; stopping it is not.
-          if (data.data["nextReminderNotificationAt"] !== null) {
-            await takeOrStop();
-          }
-        },
+      asMock(ScheduledMaintenanceService.findAllBy).mockImplementation(
+        readWhileThere(scheduledMaintenance),
       );
+      arrangeRecord(ScheduledMaintenanceService, scheduledMaintenance);
+      asMock(
+        ScheduledMaintenanceService.compareAndSetColumnsByIdWithoutHooks,
+      ).mockImplementation(reminderMove);
       asMock(
         ScheduledMaintenanceReminderRuleService.findMatchingRule,
       ).mockResolvedValue({
@@ -1904,7 +1943,7 @@ const EVERY_RESOURCE_CASES: Array<JobCase> = [
       return [];
     },
     arrange: (): void => {
-      arrangeDue(StatusPageService, statusPage);
+      arrangeBacklog(StatusPageService, statusPage);
     },
   },
   {
@@ -1920,7 +1959,7 @@ const EVERY_RESOURCE_CASES: Array<JobCase> = [
       return [];
     },
     arrange: (): void => {
-      arrangeDue(StatusPageAnnouncementService, (): PlainRecord => {
+      arrangeBacklog(StatusPageAnnouncementService, (): PlainRecord => {
         return plain({
           id: EVENT_ID,
           projectId: PROJECT_ID,
@@ -2008,7 +2047,7 @@ describe.each([...CASES, ...EVERY_RESOURCE_CASES])(
     let pages: InMemoryOnCallPages;
     let now: Date;
 
-    function runJob(): Promise<void> {
+    function runJob(deadline?: JobDeadline | undefined): Promise<void> {
       const handler: CronHandler | undefined =
         mockCapturedJobs[jobCase.jobName];
 
@@ -2016,7 +2055,7 @@ describe.each([...CASES, ...EVERY_RESOURCE_CASES])(
         throw new Error(`${jobCase.jobName} registered no cron handler.`);
       }
 
-      return handler();
+      return handler(deadline);
     }
 
     // Waits until a run started without waiting for it has stopped `count` times.
@@ -2094,6 +2133,13 @@ describe.each([...CASES, ...EVERY_RESOURCE_CASES])(
       for (const service of [
         IncidentStateTimelineService,
         AlertStateTimelineService,
+        IncidentPublicNoteService,
+        IncidentInternalNoteService,
+        AlertInternalNoteService,
+        IncidentOwnerTeamService,
+        IncidentOwnerUserService,
+        AlertOwnerTeamService,
+        AlertOwnerUserService,
         IncidentService,
         AlertService,
       ]) {
@@ -2908,11 +2954,92 @@ describe.each([...CASES, ...EVERY_RESOURCE_CASES])(
       });
     }
 
+    /*
+     * THE RUN'S DEADLINE (#8862, #9019). Every job goes through
+     * OwnerNotificationBacklog and stops at its run's deadline - its time
+     * limit, or its lease lost: what it did not reach is left as it was, and
+     * the next run tells each owner once. The reminder jobs too: a reminder
+     * not reached is still due.
+     */
+    {
+      test("a run whose deadline passed takes nothing and tells nobody; the next run tells each owner once", async () => {
+        const deadline: JobDeadline = new JobDeadline();
+        deadline.end();
+
+        await runJob(deadline);
+
+        expect(world.sent).toEqual([]);
+        expect(world.takes).toBe(0);
+        expect(world.isTaken).toBe(false);
+
+        await restartedMinutesLater(1);
+
+        expect(sendsByOwner()).toEqual(everyOwnerOnce());
+        expect(world.takes).toBe(1);
+      });
+
+      test("a deadline that passes while the owners are told: they are all told, once, and nobody again", async () => {
+        const deadline: JobDeadline = new JobDeadline();
+
+        asMock(
+          UserNotificationSettingService.sendUserNotification,
+        ).mockImplementation(async (data: { userId: ObjectID }) => {
+          world.sent.push(data.userId.toString());
+          // The lease is lost as the first owner is told.
+          deadline.end();
+        });
+
+        await runJob(deadline);
+
+        // The record was taken before the deadline passed: its owners are told.
+        expect(sendsByOwner()).toEqual(everyOwnerOnce());
+        expect(world.takes).toBe(1);
+
+        await restartedMinutesLater(
+          OwnerNotificationDeliveries.RESUME_AFTER_MINUTES,
+        );
+        await restartedMinutesLater(30);
+
+        expect(sendsByOwner()).toEqual(everyOwnerOnce());
+        expect(world.takes).toBe(1);
+      });
+    }
+
     if (
       jobCase.kind === OwnerNotificationKind.IncidentPublicNotePosted ||
       jobCase.kind ===
         OwnerNotificationKind.ScheduledMaintenancePublicNotePosted
     ) {
+      test("a public note is taken only while it is published: the take matches it, as the read does (#8862)", async () => {
+        await runJob();
+
+        const service: unknown =
+          jobCase.kind === OwnerNotificationKind.IncidentPublicNotePosted
+            ? IncidentPublicNoteService
+            : ScheduledMaintenancePublicNoteService;
+        const takesOf: Array<Array<unknown>> = asMock(
+          serviceOf(service)["compareAndSetColumnsByIdWithoutHooks"],
+        ).mock.calls;
+
+        expect(takesOf).toHaveLength(1);
+        expect(takesOf[0]![0]).toEqual(
+          expect.objectContaining({
+            data: { isOwnerNotified: true },
+            expectedData: { isOwnerNotified: false, isPublished: true },
+          }),
+        );
+
+        // Every page it read asked for published notes only.
+        for (const call of asMock(serviceOf(service)["findBy"]).mock.calls) {
+          expect((call[0] as { query: JSONObject }).query).toEqual(
+            expect.objectContaining({
+              isOwnerNotified: false,
+              isPublished: true,
+            }),
+          );
+        }
+      });
+
       test("a public note no longer published when the next run takes its owners up: nobody else is told", async () => {
         table.stopAt({ statement: "startTelling", userId: idOf(OWNER_2) });
         void runJob();
@@ -2965,12 +3092,12 @@ describe.each([...CASES, ...EVERY_RESOURCE_CASES])(
         world.isTaken = false;
         now = new Date(now.getTime() + 30 * 60 * 1000);
 
-        const findAllBy: unknown =
+        const findBy: unknown =
           jobCase.kind === OwnerNotificationKind.IncidentReminder
-            ? IncidentService.findAllBy
-            : AlertService.findAllBy;
+            ? IncidentService.findBy
+            : AlertService.findBy;
 
-        asMock(findAllBy).mockImplementation(async () => {
+        asMock(findBy).mockImplementation(async () => {
           if (world.isTaken) {
             return [];
           }
@@ -3001,6 +3128,108 @@ describe.each([...CASES, ...EVERY_RESOURCE_CASES])(
 );
 
 describe("the owners of an owner row", () => {
+  /*
+   * Regression (#8862): the owner rows of one incident - its team rows and
+   * its user rows - are told of together, so a person both name is told once
+   * even when the run's deadline passes before it reaches the user rows'
+   * table. Told of a table at a time, the person was told again by the next
+   * run, of the user row.
+   */
+  test("a person a team row and a user row both added is told once though the run stops at its deadline after the team rows", async () => {
+    jest.clearAllMocks();
+    useInMemoryOwnerNotificationDeliveries();
+
+    const sent: Array<string> = [];
+    const takenRows: Set<string> = new Set<string>();
+    const deadline: JobDeadline = new JobDeadline();
+
+    asMock(IncidentOwnerTeamService.findOneById).mockResolvedValue(null);
+    asMock(IncidentService.findOneById).mockImplementation(async () => {
+      return incident();
+    });
+    asMock(IncidentService.findBy).mockResolvedValue([incident()]);
+    asMock(IncidentService.getIncidentLinkInDashboard).mockResolvedValue(
+      "https://oneuptime.test/incident",
+    );
+
+    const teamRow: IncidentOwnerTeam = new IncidentOwnerTeam(EVENT_ID);
+    teamRow.incidentId = INCIDENT_ID;
+    teamRow.teamId = new ObjectID("aaaaaaaa-0000-4000-8000-0000000000c1");
+
+    const userRow: { id: ObjectID; incidentId: ObjectID; user: User } = {
+      id: new ObjectID("aaaaaaaa-0000-4000-8000-0000000000e2"),
+      incidentId: INCIDENT_ID,
+      user: OWNER_1,
+    };
+
+    // Each table answers its rows not taken yet, and takes each once.
+    const stillToTell: (
+      rows: Array<{ id: ObjectID | null }>,
+    ) => () => Promise<Array<unknown>> = (
+      rows: Array<{ id: ObjectID | null }>,
+    ) => {
+      return async (): Promise<Array<unknown>> => {
+        return rows.filter((row: { id: ObjectID | null }): boolean => {
+          return !takenRows.has(row.id!.toString());
+        });
+      };
+    };
+    const takeOnce: (data: {
+      id: ObjectID;
+    }) => Promise<boolean> = async (data: {
+      id: ObjectID;
+    }): Promise<boolean> => {
+      if (takenRows.has(data.id.toString())) {
+        return false;
+      }
+
+      takenRows.add(data.id.toString());
+      return true;
+    };
+
+    asMock(IncidentOwnerTeamService.findBy).mockImplementation(
+      stillToTell([teamRow]),
+    );
+    asMock(IncidentOwnerUserService.findBy).mockImplementation(
+      stillToTell([userRow]),
+    );
+    asMock(
+      IncidentOwnerTeamService.compareAndSetColumnsByIdWithoutHooks,
+    ).mockImplementation(takeOnce);
+    asMock(
+      IncidentOwnerUserService.compareAndSetColumnsByIdWithoutHooks,
+    ).mockImplementation(takeOnce);
+    asMock(TeamMemberService.getUsersInTeams).mockResolvedValue([
+      OWNER_1,
+      OWNER_2,
+    ]);
+    asMock(TeamMemberService.filterUsersToProjectMembers).mockImplementation(
+      async (data: { users: Array<User> }) => {
+        return data.users;
+      },
+    );
+    asMock(
+      UserNotificationSettingService.sendUserNotification,
+    ).mockImplementation(async (data: { userId: ObjectID }) => {
+      sent.push(data.userId.toString());
+      // The lease is lost while the team row's people are told.
+      deadline.end();
+    });
+
+    await mockCapturedJobs["IncidentOwner:SendOwnerAddedEmail"]!(deadline);
+    // The next run, on its own deadline.
+    await mockCapturedJobs["IncidentOwner:SendOwnerAddedEmail"]!(
+      new JobDeadline(),
+    );
+
+    expect(sent.sort()).toEqual([idOf(OWNER_1), idOf(OWNER_2)].sort());
+    expect(takenRows).toEqual(
+      new Set<string>([teamRow.id!.toString(), userRow.id.toString()]),
+    );
+
+    jest.restoreAllMocks();
+  });
+
   test("a person a team row and a user row both added to an incident in the same run is told once", async () => {
     jest.clearAllMocks();
     useInMemoryOwnerNotificationDeliveries();
@@ -3024,10 +3253,16 @@ describe("the owners of an owner row", () => {
       user: OWNER_1,
     };
 
-    asMock(IncidentOwnerTeamService.findAllBy).mockResolvedValue([teamRow]);
-    asMock(IncidentOwnerUserService.findAllBy).mockResolvedValue([userRow]);
-    asMock(IncidentOwnerTeamService.updateOneById).mockResolvedValue(undefined);
-    asMock(IncidentOwnerUserService.updateOneById).mockResolvedValue(undefined);
+    // Read a page at a time, the incident's rows of both tables together (#8862).
+    asMock(IncidentOwnerTeamService.findBy).mockResolvedValue([teamRow]);
+    asMock(IncidentOwnerUserService.findBy).mockResolvedValue([userRow]);
+    asMock(IncidentService.findBy).mockResolvedValue([incident()]);
+    asMock(
+      IncidentOwnerTeamService.compareAndSetColumnsByIdWithoutHooks,
+    ).mockResolvedValue(true);
+    asMock(
+      IncidentOwnerUserService.compareAndSetColumnsByIdWithoutHooks,
+    ).mockResolvedValue(true);
     asMock(TeamMemberService.getUsersInTeams).mockResolvedValue([
       OWNER_1,
       OWNER_2,
@@ -3047,9 +3282,13 @@ describe("the owners of an owner row", () => {
 
     expect(sent.sort()).toEqual([idOf(OWNER_1), idOf(OWNER_2)].sort());
 
-    // Both rows are marked, so neither is read again.
-    expect(IncidentOwnerTeamService.updateOneById).toHaveBeenCalledTimes(1);
-    expect(IncidentOwnerUserService.updateOneById).toHaveBeenCalledTimes(1);
+    // Both rows are taken, once each, so neither is read again.
+    expect(
+      IncidentOwnerTeamService.compareAndSetColumnsByIdWithoutHooks,
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      IncidentOwnerUserService.compareAndSetColumnsByIdWithoutHooks,
+    ).toHaveBeenCalledTimes(1);
 
     jest.restoreAllMocks();
   });
@@ -3156,7 +3395,8 @@ describe("people assigned to an incident with a role", () => {
       return new Date(now.getTime());
     });
 
-    asMock(IncidentMemberService.findAllBy).mockImplementation(async () => {
+    // Read a page at a time, each row taken by one compare-and-set (#8862).
+    asMock(IncidentMemberService.findBy).mockImplementation(async () => {
       return rows.filter((row: PlainRecord): boolean => {
         return !marked.has(rowIdOf(row));
       });
@@ -3170,17 +3410,26 @@ describe("people assigned to an incident with a role", () => {
         );
       },
     );
-    asMock(IncidentMemberService.updateOneById).mockImplementation(
-      async (data: { id: ObjectID }) => {
-        if (markStops) {
-          markStops = false;
-          stoppedAt.push("mark");
-          await NEVER;
-        }
+    asMock(
+      IncidentMemberService.compareAndSetColumnsByIdWithoutHooks,
+    ).mockImplementation(async (data: { id: ObjectID }) => {
+      if (markStops) {
+        markStops = false;
+        stoppedAt.push("mark");
+        await NEVER;
+      }
 
-        marked.add(data.id.toString());
-      },
-    );
+      if (marked.has(data.id.toString())) {
+        return false;
+      }
+
+      marked.add(data.id.toString());
+      return true;
+    });
+    // The page's incidents, read with it.
+    asMock(IncidentService.findBy).mockImplementation(async () => {
+      return incidentExists ? [incident()] : [];
+    });
     asMock(IncidentRoleService.findOneById).mockImplementation(
       async (data: { id: ObjectID }) => {
         return { name: ROLE_NAMES[data.id.toString()] };
@@ -3250,7 +3499,7 @@ describe("people assigned to an incident with a role", () => {
     expect(sendsByPerson()).toEqual(everyoneOnce());
   });
 
-  test("whom each row is to tell is written down before the rows are marked", async () => {
+  test("whom a row is to tell is written down before the row is marked", async () => {
     markStops = true;
     void run();
     await untilStopped();
@@ -3258,11 +3507,12 @@ describe("people assigned to an incident with a role", () => {
     expect(stoppedAt).toEqual(["mark"]);
     expect(sent).toEqual([]);
 
-    for (const row of rows) {
-      expect(Object.values(table.statusesOf(rowIdOf(row)))).toEqual([
-        OwnerNotificationDeliveryStatus.Pending,
-      ]);
-    }
+    // Each row is a notification of its own, planned and taken in turn (#8862).
+    expect(Object.values(table.statusesOf(rowIdOf(rows[0]!)))).toEqual([
+      OwnerNotificationDeliveryStatus.Pending,
+    ]);
+    expect(table.statusesOf(rowIdOf(rows[1]!))).toEqual({});
+    expect(table.statusesOf(rowIdOf(rows[2]!))).toEqual({});
 
     // Started again: each person told once, whether the rows or the later run tells them.
     await restartedMinutesLater(
@@ -3344,8 +3594,11 @@ describe("people assigned to an incident with a role", () => {
     );
 
     expect(sendsByPerson()).toEqual({ [idOf(OWNER_1)]: 1 });
-    expect(Object.values(table.statusesOf(rowIdOf(rows[2]!)))).toEqual([
+    // The second person's row, set out on, is given up; the third tells nobody.
+    expect(Object.values(table.statusesOf(rowIdOf(rows[1]!)))).toEqual([
       OwnerNotificationDeliveryStatus.Failed,
     ]);
+    expect(table.statusesOf(rowIdOf(rows[2]!))).toEqual({});
+    expect(marked.has(rowIdOf(rows[2]!))).toBe(true);
   });
 });

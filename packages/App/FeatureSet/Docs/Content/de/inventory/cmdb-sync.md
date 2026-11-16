@@ -63,7 +63,7 @@ Ein reiner Lese-Export braucht eine einzige Berechtigung, **Read Inventory Item*
 
 ### Den Schlüssel kopieren
 
-Kopieren Sie den **API-Schlüssel** von der Seite des Schlüssels und stellen Sie ihn Ihrem Job zur Verfügung:
+Verwenden Sie den Schlüssel, den OneUptime Ihnen beim Anlegen einmal angezeigt hat, und stellen Sie ihn Ihrem Job zur Verfügung:
 
 ```bash
 export ONEUPTIME_API_KEY="your-api-key"

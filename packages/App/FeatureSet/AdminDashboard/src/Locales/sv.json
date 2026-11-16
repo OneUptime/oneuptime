@@ -69,10 +69,6 @@
     "ingestionBudgets": "Intagningsbudgetar",
     "products": "Produkter"
   },
-  "topAlert": {
-    "title": "OneUptime administratörspanel",
-    "description": "Du kan utföra dina OneUptime-serverrelaterade uppgifter på denna panel."
-  },
   "header": {
     "exitAdmin": "Lämna admin",
     "help": "Hjälp",
@@ -4056,6 +4052,14 @@
   "Amount": "Belopp",
   "Invoice": "Faktura",
   "Invoices": "Fakturor",
+  "Runs JavaScript steps as its own user: let its container switch users (allowPrivilegeEscalation, SETUID and SETGID).": "Kör JavaScript-steg som egen användare: låt dess container byta användare (allowPrivilegeEscalation, SETUID och SETGID).",
+  "Runs JavaScript steps as its own user: run its container as the image's own user, node.": "Kör JavaScript-steg som egen användare: kör dess container som imagens egen användare, node.",
+  "Runs JavaScript steps as its own user: run the Runner image, not its sources.": "Kör JavaScript-steg som egen användare: kör Runner-imagen, inte dess källkod.",
+  "Runs JavaScript steps as its own user: its sandbox check failed, and its log says why.": "Kör JavaScript-steg som egen användare: dess sandlådekontroll misslyckades, och dess logg säger varför.",
+  "JavaScript steps share its network: let its container use seccomp, as Docker's and Kubernetes' default profiles do.": "JavaScript-steg delar dess nätverk: låt dess container använda seccomp, som standardprofilerna för Docker och Kubernetes gör.",
+  "JavaScript steps share its network: run the Runner image, not its sources.": "JavaScript-steg delar dess nätverk: kör Runner-imagen, inte dess källkod.",
+  "JavaScript steps share its network: its network filter's check failed, and its log says why.": "JavaScript-steg delar dess nätverk: kontrollen av dess nätverksfilter misslyckades, och dess logg säger varför.",
+  "Runs JavaScript steps as its own user and on its network: run the Runner image, not its sources.": "Kör JavaScript-steg som egen användare och på dess nätverk: kör Runner-imagen, inte dess källkod.",
   "Keep for at most": "Behåll i högst",
   "New projects delete after": "Nya projekt tar bort efter",
   "Longer than the limit above.": "Längre än gränsen ovan.",
@@ -4105,5 +4109,23 @@
   "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO._one": "{{count}} person är fortfarande inloggad utan SSO. Personen kan inte öppna något projekt förrän hen loggar in med SSO.",
   "Sign them out": "Logga ut dem",
   "Sign out everyone signed in without SSO?": "Logga ut alla som är inloggade utan SSO?",
-  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "Deras sessioner avslutas nu på alla enheter, och de loggar in igen med SSO. Huvudadministratörer förblir inloggade."
+  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "Deras sessioner avslutas nu på alla enheter, och de loggar in igen med SSO. Huvudadministratörer förblir inloggade.",
+  "Made by {{name}} on {{date}}": "Skapad av {{name}} den {{date}}",
+  "Made on {{date}}": "Skapad den {{date}}",
+  "Ends in {{hint}}": "Slutar på {{hint}}",
+  "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to support@oneuptime.com, and scores, never words, go to product analytics.": "Svaren sparas på den här servern och läses här av dess huvudadministratörer. ”Ge feedback” skickas också med e-post till support@oneuptime.com, och betyg, aldrig text, går till produktanalysen.",
+  "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to the Admin Notification Email, when one is set. Nothing is sent to OneUptime.": "Svaren sparas på den här servern och läses här av dess huvudadministratörer. ”Ge feedback” skickas också till admin-notifierings-e-posten, om en är angiven. Ingenting skickas till OneUptime.",
+  "Know when my website or API is down": "Veta när min webbplats eller mitt API ligger nere",
+  "Page the right person when something breaks": "Larma rätt person när något går sönder",
+  "Publish a status page": "Publicera en statussida",
+  "Send logs, metrics and traces, then get alerted": "Skicka loggar, mätvärden och spår och få sedan larm",
+  "Guided setup": "Guidad installation",
+  "Give feedback": "Ge feedback",
+  "First-week check-in": "Uppföljning efter första veckan",
+  "How OneUptime works": "Så fungerar OneUptime",
+  "Is OneUptime set up the way you wanted?": "Är OneUptime konfigurerat som du ville?",
+  "Something's broken": "Något fungerar inte",
+  "Confusing": "Oklart",
+  "Idea": "Idé",
+  "Other": "Annat"
 }

@@ -103,6 +103,8 @@ Il ruolo che scegliete diventa la prima autorizzazione del team, per tutte le ri
 
 Dove trovarlo: aprite un team da **Team** per raggiungere **Membri** e **Autorizzazioni**; i suoi ruoli personalizzati e **Blocca autorizzazioni** si trovano sotto **Altre impostazioni** in fondo alla pagina Autorizzazioni, la cui intestazione chiusa mostra quanti ne ha il team per ciascuno.
 
+La pagina di un team ha una scheda **Usato da**: le policy di reperibilità le cui regole di escalation chiamano il team, e tutto ciò che il team possiede, dai monitor e dalle pagine di stato agli SLO, alle dashboard, all'infrastruttura e agli incidenti. Eliminare un team, dalla sua pagina o dall'elenco, lo dice prima: le sue policy smettono di chiamare i suoi membri e non ne è più proprietario. Ciò che non puoi aprire viene contato, non nominato.
+
 ## Autorizzazioni
 
 Un'autorizzazione è una singola capacità. Ci sono due modi di assegnarle, ed entrambi si trovano nella scheda **Autorizzazioni** del team.
@@ -280,7 +282,7 @@ Le chiavi API ricevono le autorizzazioni direttamente, sulla chiave stessa, o tr
 :::steps
 1. Aprite **Impostazioni del progetto > Avanzato > Chiavi API** e fate clic su **Crea: Chiave API**. Su OneUptime Cloud, le chiavi API richiedono il piano Growth.
 2. Inserite il **Nome** della chiave e scegliete il suo **Accesso**. La descrizione e la data di scadenza si trovano sotto **Altri campi**; una chiave scade un anno dopo il giorno in cui viene creata, a meno che non scegliate un'altra data, e la sezione chiusa lo indica.
-3. Create la chiave. Si apre sulla sua pagina, dove la copiate.
+3. Create la chiave. OneUptime la mostra una sola volta, in una finestra di dialogo: copiatela lì. Poi si apre la sua pagina.
 :::
 
 Il ruolo che scegliete diventa la prima autorizzazione della chiave appena la chiave esiste, esattamente come se lo aveste aggiunto nella pagina della chiave. Vi vengono proposti solo i ruoli che detenete voi stessi — una chiave non può mai ricevere più di quanto abbia la persona che la concede — e a chi può creare chiavi ma non cambiare ciò che possono fare non viene chiesto.
@@ -340,7 +342,7 @@ Le autorizzazioni risolte vengono memorizzate nella cache per utente e progetto,
 
 Un incidente, un avviso o un episodio contrassegnato come privato è visibile solo ai suoi proprietari — le persone indicate come suoi proprietari e i membri dei suoi team proprietari che hanno accettato l'invito — e ai Proprietari del progetto e agli Amministratori del progetto.
 
-Un record di questo tipo si modifica solo con le autorizzazioni dei team che ne sono proprietari e delle persone indicate come suoi proprietari. Chi è indicato come proprietario agisce su di esso con tutte le autorizzazioni che detiene. Chiunque altro agisce su di esso solo con le autorizzazioni dei propri team che ne sono proprietari, ciascuna con il proprio ambito e le proprie etichette: l'autorizzazione di un altro team non raggiunge nessun record privato di cui quel team non sia proprietario. Questo vale per tutto ciò che si fa sul record e su ciò che gli appartiene — modificarlo, cambiarne lo stato, le note, i proprietari, i ruoli, le etichette, gli avvisi collegati, i membri dell'episodio e le chiamate, ed eliminarlo — dalla dashboard, dall'API, dalle azioni in blocco, da Slack, da Microsoft Teams o da OneUptime AI. I Proprietari del progetto e gli Amministratori del progetto modificano ogni record privato, e così i passaggi dei flussi di lavoro, che agiscono come Amministratore del progetto; una chiave API lo fa solo con `ProjectOwner` o `ProjectAdmin`.
+Un record di questo tipo si modifica solo con le autorizzazioni dei team che ne sono proprietari e delle persone indicate come suoi proprietari. Chi è indicato come proprietario agisce su di esso con tutte le autorizzazioni che detiene. Chiunque altro agisce su di esso solo con le autorizzazioni dei propri team che ne sono proprietari, ciascuna con il proprio ambito e le proprie etichette: l'autorizzazione di un altro team non raggiunge nessun record privato di cui quel team non sia proprietario. Questo vale per tutto ciò che si fa sul record e su ciò che gli appartiene — modificarlo, cambiarne lo stato, le note, i proprietari, i ruoli, le etichette, gli avvisi collegati, i membri dell'episodio e le chiamate, ed eliminarlo — dalla dashboard, dall'API, dalle azioni in blocco, da Slack, da Microsoft Teams o da OneUptime AI. I Proprietari del progetto e gli Amministratori del progetto modificano ogni record privato, e una chiave API lo fa solo con `ProjectOwner` o `ProjectAdmin`.
 
 | Chi è nel team 1 e nel team 2 | Un incidente privato del team 2 | Un incidente pubblico del team 2 |
 | --- | --- | --- |
@@ -349,6 +351,12 @@ Un record di questo tipo si modifica solo con le autorizzazioni dei team che ne 
 | Il team 2 ha anche `IncidentMember` | Lo modifica tramite il team 2 | Lo modifica tramite l'uno o l'altro team |
 
 Un team proprietario di record privati ma senza autorizzazioni, usato solo per raggruppare persone, permette ai suoi membri di vederli e di non modificarne nessuno. Nella pagina di un record privato, una modifica che i team proprietari della persona non possono fare è bloccata e dice perché. Per permettergliela, date l'autorizzazione a un team proprietario, rendete proprietario un team che la detiene o rendete proprietaria la persona.
+
+Ciò che si fa a proposito di un record privato segue la stessa regola: avvisare qualcuno al riguardo (**Esegui policy di reperibilità**, **Chiama ora** e gli avvisi da Slack, Microsoft Teams, Mattermost o OneUptime AI), avviare un runbook per esso o far avanzare quell'esecuzione, e approvare, provare a vuoto o scartare una correzione che OneUptime AI ha proposto per esso. Ogni azione richiede il proprio permesso, come attivare le politiche di reperibilità o avviare esecuzioni di runbook, e su un record privato lo prestano solo i team che ne sono proprietari, oltre alle persone indicate come suoi proprietari. Chiunque altro viene rifiutato con il motivo, e nulla viene avvisato, eseguito o modificato.
+
+Ciò che si fa e si invia a proposito di un record privato è letto solo da chi può leggere il record: le sue esecuzioni delle politiche di reperibilità, le sue esecuzioni di runbook, le correzioni proposte per esso e i log di email, SMS, chiamate, notifiche push, messaggi di chat, webhook e richieste all'IA che OneUptime ha inviato al riguardo. Le persone avvisate al riguardo vedono comunque il loro avviso.
+
+I flussi di lavoro non agiscono sui record privati. I passaggi di un flusso di lavoro agiscono come Amministratore del progetto, ma non ricevono mai in prestito la sua vista su incidenti, avvisi ed episodi privati: non ne trovano, non ne modificano e non vi aggiungono nulla, e un flusso di lavoro non parte da uno di essi né da qualcosa che gli appartiene. Vedi [Cosa possono fare i passaggi di un flusso di lavoro](/docs/workflows/configuration#cosa-possono-fare-i-passaggi-di-un-flusso-di-lavoro).
 
 ### Regole che appartengono a dei team
 

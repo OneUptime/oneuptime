@@ -1268,6 +1268,39 @@ export default class CodeRepository extends BaseModel {
   })
   public gitLabProjectId?: string = undefined;
 
+  /*
+   * When the repository's host last refused to make the short-lived access
+   * token an AI code fix pushes with (issue #8912: a GitLab project access
+   * token, which GitLab makes only for a Maintainer's or Owner's token with
+   * the api scope, and on GitLab.com only on Premium and Ultimate). Empty
+   * while it makes one, or has not been asked. While it is set, a global
+   * Runner that is never handed a connection's own token takes none of the
+   * repository's fixes (Types/Runner/GlobalRunnerRepositoryTokens).
+   * Server-written; cleared when the connection's token is replaced.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ReadCodeRepository,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    canReadOnRelationQuery: false,
+    title: "Minted Token Refused At",
+    description:
+      "When the repository's host last refused to make the short-lived access token an AI code fix pushes with. Empty while it makes one. Set by OneUptime, and cleared when the connection's token is replaced.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public mintedTokenRefusedAt?: Date = undefined;
+
   // Webhook secret for verifying incoming webhooks
   @ColumnAccessControl({
     create: [
@@ -1282,13 +1315,22 @@ export default class CodeRepository extends BaseModel {
       Permission.EditCodeRepository,
     ],
   })
+  /*
+   * Write-only (read: []) and kept encrypted at rest (`encrypted: true`):
+   * a webhook signed with it is taken as the repository's own.
+   * DatabaseService encrypts it on every write and decrypts it on every
+   * read; the EncryptProjectCredentials data migration encrypts the tokens
+   * stored before.
+   */
   @TableColumn({
     secret: true,
+    encrypted: true,
     required: false,
     type: TableColumnType.VeryLongText,
     canReadOnRelationQuery: false,
     title: "Secret Token",
-    description: "Secret token used to verify incoming webhooks",
+    description:
+      "Secret token used to verify incoming webhooks. Write-only: kept encrypted and never returned by the API.",
   })
   @Column({
     nullable: true,

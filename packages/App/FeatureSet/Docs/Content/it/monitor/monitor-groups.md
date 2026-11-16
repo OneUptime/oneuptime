@@ -92,9 +92,11 @@ Aprite un gruppo per vederne le pagine nel menu laterale:
 
 La disponibilità nella **Panoramica** conta come inattività ogni stato tranne quello operativo. Una pagina di stato conta solo gli stati nel proprio elenco **Conta come inattività**: vedere [Scegliere cosa mostra la pagina](/docs/status-pages/index#scegliere-che-cosa-compare-sulla-pagina).
 
-Ogni barra del grafico di uptime, qui e su una pagina di stato, mostra per quanto tempo il gruppo stesso è rimasto in ciascuno stato quel giorno: in ogni momento ha lo stato peggiore tra i suoi monitor, quindi un'ora in cui due di essi sono offline insieme è un'ora del gruppo, e un giorno non supera mai un giorno. I giorni sono i vostri: la dashboard li disegna nel fuso orario delle vostre impostazioni utente, e una pagina di stato in quello di ogni visitatore.
+Ogni barra del grafico di uptime, qui e su una pagina di stato, mostra per quanto tempo il gruppo stesso è rimasto in ciascuno stato quel giorno: in ogni momento ha lo stato peggiore tra i suoi monitor, quindi un'ora in cui due di essi sono offline insieme è un'ora del gruppo, e un giorno non supera mai un giorno. I giorni sono i vostri: la dashboard li disegna nel fuso orario delle vostre impostazioni utente, e una pagina di stato in quello di ogni visitatore. Il tempo di un monitor prima del suo primo controllo non vi è compreso: finché niente ha controllato un monitor, il suo stato è solo quello operativo in cui viene creato ogni monitor, quindi le barre e l'uptime del gruppo escludono quel tempo. La dashboard li misura da ogni cambio di stato dei monitor del gruppo, per quanti siano, come fa una pagina di stato.
 
 L'elenco **Gruppi di monitor** può filtrare i gruppi per proprietario ed etichetta, impostare etichette e proprietari su molti gruppi insieme, ed esportare o importare gruppi in JSON.
+
+La **Panoramica** ha anche una scheda **Usato da**: le pagine di stato che mostrano il gruppo e gli SLO che misurano i suoi monitor. Se nessuna pagina di stato lo mostra, la scheda lo dice e rimanda alle pagine di stato. Eliminare il gruppo, dalla sua pagina o dall'elenco, dice prima quali pagine di stato lo mostrano.
 
 ## Disattivare il monitoraggio di un intero gruppo
 

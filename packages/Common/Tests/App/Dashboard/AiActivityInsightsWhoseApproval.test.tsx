@@ -292,3 +292,120 @@ describe("AI Insights says whose approval a waiting fix needs", () => {
     },
   );
 });
+
+/*
+ * A fix the reader gave the first of the two approvals a riskier fix needs
+ * waits for someone else's approval, not theirs (#6422): AI Insights says
+ * so, and counts only the others as waiting for the reader.
+ */
+describe("AI Insights tells a first approver whose approval their fix waits for", () => {
+  function approvedFirstByReader(
+    count: number,
+    approvedFirst: number,
+  ): AiActivityInsight {
+    return {
+      ...awaitingApproval(count),
+      approvedFirstByReaderCount: approvedFirst,
+    };
+  }
+
+  function waitingFacts(): string {
+    const item: HTMLElement = screen
+      .getAllByTestId("ai-insights-insight")
+      .find((element: HTMLElement): boolean => {
+        return (
+          element.getAttribute("data-kind") ===
+          AiActivityInsightKind.FixesAwaitingApproval
+        );
+      })!;
+
+    return withoutIsolateMarks(
+      within(item).getByTestId("ai-insights-insight-facts").textContent || "",
+    );
+  }
+
+  beforeEach(() => {
+    asReader([row(Permission.ProjectMember)]);
+  });
+
+  test("the one fix waiting is theirs to have approved first: it waits for someone else's approval", () => {
+    renderInsights(makeInsights({ insights: [approvedFirstByReader(1, 1)] }));
+
+    expect(waitingHeadline()).toBe(
+      "A fix you approved first is waiting for someone else's approval",
+    );
+    expect(waitingFacts()).toContain(
+      "It holds a riskier change, so it runs once someone else approves it too.",
+    );
+    expect(waitingFacts()).not.toContain("as soon as someone approves it");
+  });
+
+  test("every fix waiting is one they approved first", () => {
+    renderInsights(makeInsights({ insights: [approvedFirstByReader(3, 3)] }));
+
+    expect(waitingHeadline()).toBe(
+      "3 fixes you approved first are waiting for someone else's approval",
+    );
+    expect(waitingFacts()).toContain(
+      "They hold riskier changes, so each runs once someone else approves it too.",
+    );
+  });
+
+  test("some wait for them, and some they approved first: the heading counts theirs to approve, a fact the rest", () => {
+    renderInsights(makeInsights({ insights: [approvedFirstByReader(3, 1)] }));
+
+    expect(waitingHeadline()).toBe("2 fixes are waiting for your approval");
+    expect(waitingFacts()).toContain(
+      "OneUptime AI has them ready: each runs as soon as someone approves it.",
+    );
+    expect(waitingFacts()).toContain(
+      "1 more you approved first waits for someone else's approval.",
+    );
+  });
+
+  test("negative control: someone else approved first, or nobody did - it waits for theirs", () => {
+    renderInsights(makeInsights({ insights: [approvedFirstByReader(2, 0)] }));
+
+    expect(waitingHeadline()).toBe("2 fixes are waiting for your approval");
+    expect(waitingFacts()).not.toContain("you approved first");
+  });
+
+  test("a reader the server would refuse reads that fixes wait for approval, whoever approved first", () => {
+    cleanup();
+    asReader(BLOCKED_MEMBER);
+    renderInsights(makeInsights({ insights: [approvedFirstByReader(2, 2)] }));
+
+    expect(waitingHeadline()).toBe("2 fixes are waiting for approval");
+  });
+
+  test.each(["de", "fa"])(
+    "in %s, in the language's own words",
+    async (language: string) => {
+      const locale: Record<string, string> = readLocale(language);
+      const english: Record<string, string> = readLocale("en");
+
+      for (const key of [
+        "{{count}} fixes you approved first are waiting for someone else's approval",
+        "{{count}} fixes you approved first are waiting for someone else's approval_one",
+        "They hold riskier changes, so each runs once someone else approves it too.",
+        "They hold riskier changes, so each runs once someone else approves it too._one",
+        "{{count}} more you approved first wait for someone else's approval.",
+        "{{count}} more you approved first wait for someone else's approval._one",
+      ]) {
+        expect(locale[key]).toBeDefined();
+        expect(locale[key]).not.toBe(english[key]);
+      }
+
+      await inLanguage(language);
+      renderInsights(makeInsights({ insights: [approvedFirstByReader(3, 3)] }));
+
+      const digits: string = new Intl.NumberFormat(language).format(3);
+
+      expect(waitingHeadline()).toBe(
+        locale[
+          "{{count}} fixes you approved first are waiting for someone else's approval"
+        ]!.replace("{{count}}", digits),
+      );
+    },
+  );
+});

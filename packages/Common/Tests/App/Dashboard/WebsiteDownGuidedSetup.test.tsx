@@ -241,7 +241,14 @@ jest.mock("../../../UI/Utils/ProductEvents", () => {
 
 import WebsiteDownGuidedSetup from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/WebsiteDown/WebsiteDownGuidedSetup";
 import { getGuidedSetupRunKey } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/GuidedSetupProgress";
-import { GUIDED_SETUP_GUIDE_LINK_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/GuidedSetupFrame";
+import {
+  GUIDED_SETUP_ASIDE_TEST_ID,
+  GUIDED_SETUP_GUIDE_LINK_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/GuidedSetupFrame";
+import {
+  WELCOME_STEP_MINUTES,
+  WelcomeStep,
+} from "../../../Types/WelcomeChecklist/WelcomeChecklist";
 import {
   WEBSITE_DOWN_COPY,
   WEBSITE_DOWN_SETUP_GUIDE_DOCS_PATH,
@@ -2069,6 +2076,58 @@ describe("the person setting it up owns the monitor (#7409)", () => {
  * project with no card on file may not make a monitor that runs checks. The
  * step said nothing until Start checking was refused, in red, with no link.
  */
+/*
+ * Beside the steps (#8897): what the setup sets up, ticked as it goes, and
+ * about how long it takes - the same minutes Home's quickstart says beside
+ * "Create your first monitor".
+ */
+describe("what it sets up, beside the steps", () => {
+  test("a check around the clock, who is told and a test, the first one open, and about how long", async () => {
+    await renderSetup();
+
+    const aside: HTMLElement = screen.getByTestId(GUIDED_SETUP_ASIDE_TEST_ID);
+
+    expect(
+      Array.from(aside.querySelectorAll("li")).map(
+        (item: HTMLLIElement): string => {
+          return item.textContent || "";
+        },
+      ),
+    ).toEqual([
+      "OneUptime checks your website or API around the clock.",
+      "The right people are told when it goes down.",
+      "A test page proves that a page reaches them.",
+    ]);
+    expect(screen.getByTestId("guided-setup-outcome-check")).toHaveAttribute(
+      "data-state",
+      "open",
+    );
+    expect(screen.getByTestId("guided-setup-outcome-test")).toHaveAttribute(
+      "data-state",
+      "upcoming",
+    );
+    expect(screen.getByTestId("guided-setup-minutes")).toHaveTextContent(
+      new RegExp(
+        `^About ${WELCOME_STEP_MINUTES[WelcomeStep.Monitor]}\\sminutes$`,
+      ),
+    );
+  });
+
+  test("the check ticks off once the monitor is made", async () => {
+    keepRun({ monitorId: MONITOR_ID });
+
+    await renderSetup();
+
+    expect(screen.getByTestId("guided-setup-outcome-check")).toHaveAttribute(
+      "data-state",
+      "done",
+    );
+    expect(
+      screen.getByTestId("guided-setup-outcome-who_is_told"),
+    ).toHaveAttribute("data-state", "open");
+  });
+});
+
 describe("a payment method first, on Cloud's Free plan (#7367)", () => {
   const paymentRequired: () => HTTPErrorResponse = (): HTTPErrorResponse => {
     return new HTTPErrorResponse(
@@ -2204,6 +2263,84 @@ describe("a payment method first, on Cloud's Free plan (#7367)", () => {
 
     expect(api["needsPaymentMethod"]).toHaveBeenCalledTimes(2);
     expect(screen.queryByTestId("guided-setup-payment-needed")).toBeNull();
+  });
+
+  /*
+   * "Keep the Free-plan billing truth, but make it calm and not the first
+   * thing that blocks the first action" (#8897): it was a yellow warning
+   * over the address field, the first thing on the page.
+   */
+  test("is said calmly, after the address it would check and right above Start checking", async () => {
+    api["needsPaymentMethod"]!.mockResolvedValue(true);
+
+    await renderSetup();
+
+    const notice: HTMLElement = screen.getByTestId(
+      "guided-setup-payment-needed",
+    );
+    const address: HTMLElement = screen.getByTestId("guided-setup-address");
+
+    // The address comes first: the notice no longer stands over it.
+    expect(
+      address.compareDocumentPosition(notice) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      screen
+        .getByTestId("guided-setup-is-api")
+        .compareDocumentPosition(notice) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // Right above the button it is about: nothing else in between.
+    expect(notice.nextElementSibling).toContainElement(
+      screen.getByTestId("guided-setup-start-checking"),
+    );
+    // Calm: a note, not a warning or an alert.
+    expect(notice).toHaveAttribute("data-refused", "false");
+    expect(notice).not.toHaveAttribute("role");
+    expect(notice.className).toContain("bg-gray-50");
+    expect(notice.className).not.toContain("amber");
+    expect(screen.queryAllByRole("alert")).toHaveLength(0);
+    // The field is still the one the cursor is in.
+    expect(address).toHaveFocus();
+  });
+
+  test("a press refused for want of one says it louder, as the alert it now is", async () => {
+    api["needsPaymentMethod"]!.mockResolvedValue(true);
+    api["createMonitor"]!.mockRejectedValue(paymentRequired());
+
+    await renderSetup();
+    typeAddress("acme.example");
+    await startChecking();
+
+    const notice: HTMLElement = screen.getByTestId(
+      "guided-setup-payment-needed",
+    );
+
+    expect(notice).toHaveAttribute("data-refused", "true");
+    expect(notice).toHaveAttribute("role", "alert");
+    expect(notice.className).toContain("bg-amber-50");
+    expect(screen.getAllByRole("alert")).toEqual([notice]);
+  });
+
+  test("Check again after a refusal speaks calmly again while one is still needed", async () => {
+    api["needsPaymentMethod"]!.mockResolvedValue(true);
+    api["createMonitor"]!.mockRejectedValue(paymentRequired());
+
+    await renderSetup();
+    typeAddress("acme.example");
+    await startChecking();
+
+    expect(screen.getByTestId("guided-setup-payment-needed")).toHaveAttribute(
+      "data-refused",
+      "true",
+    );
+
+    await press("guided-setup-check-payment-again");
+
+    expect(screen.getByTestId("guided-setup-payment-needed")).toHaveAttribute(
+      "data-refused",
+      "false",
+    );
   });
 
   test("any other refusal still says why, in red", async () => {

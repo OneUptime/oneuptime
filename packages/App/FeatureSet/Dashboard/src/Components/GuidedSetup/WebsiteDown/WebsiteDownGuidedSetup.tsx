@@ -52,6 +52,10 @@ import {
   useServerEmail,
 } from "../../../Utils/ServerEmail";
 import Route from "Common/Types/API/Route";
+import {
+  WELCOME_STEP_MINUTES,
+  WelcomeStep,
+} from "Common/Types/WelcomeChecklist/WelcomeChecklist";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   OnCallTestPageResult,
@@ -61,6 +65,7 @@ import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ButtonType from "Common/UI/Components/Button/ButtonTypes";
 import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
+import Icon from "Common/UI/Components/Icon/Icon";
 import Input from "Common/UI/Components/Input/Input";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import LazyPeoplePicker from "Common/UI/Components/PeoplePicker/LazyPeoplePicker";
@@ -174,6 +179,11 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
    * monitor, so the step says so before Start checking (#7367).
    */
   const [needsPayment, setNeedsPayment] = useState<boolean>(false);
+  /*
+   * Start checking was pressed and refused for want of one: the calm note
+   * beside the button says so louder (#8897).
+   */
+  const [isPaymentRefused, setIsPaymentRefused] = useState<boolean>(false);
   /*
    * Whether this person owns the run's monitor, read from the records (the
    * setup makes them one when the server does not, #7409). Null until read.
@@ -619,6 +629,7 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
       if (isPaymentRequired(err)) {
         // Said with where to add one, not as the server's line in red (#7367).
         setNeedsPayment(true);
+        setIsPaymentRefused(true);
       } else {
         setSaveError(API.getFriendlyMessage(err));
       }
@@ -627,44 +638,67 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
     setIsSaving(false);
   };
 
-  // Before Start checking, on Cloud's Free plan with no payment method (#7367).
+  /*
+   * Before Start checking, on Cloud's Free plan with no payment method
+   * (#7367). The truth, said calmly where it applies (#8897): right above
+   * the button it is about, after the address it would check - not as a
+   * warning over the field, the first thing the person met on the page. A
+   * press refused for want of one says it louder, as the alert it now is.
+   */
   const paymentNotice: ReactElement = needsPayment ? (
-    <div data-testid="guided-setup-payment-needed">
-      <Alert
-        type={AlertType.WARNING}
-        title={getPaymentNeededText({
-          translator: translator,
-          mayAddPaymentMethod: mayAddPaymentMethod(),
-        })}
+    <div
+      data-testid="guided-setup-payment-needed"
+      data-refused={isPaymentRefused ? "true" : "false"}
+      role={isPaymentRefused ? "alert" : undefined}
+      className={`flex items-start gap-3 rounded-lg border px-4 py-3 text-sm ${
+        isPaymentRefused
+          ? "border-amber-200 bg-amber-50 text-amber-900"
+          : "border-gray-200 bg-gray-50 text-gray-700"
+      }`}
+    >
+      <Icon
+        icon={IconProp.CreditCard}
+        className={`mt-0.5 h-4 w-4 flex-none ${
+          isPaymentRefused ? "text-amber-600" : "text-gray-400"
+        }`}
       />
-      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
-        {mayAddPaymentMethod() ? (
-          /*
-           * In a new tab: the address typed here stays, and the step asks
-           * again when the person comes back to it.
-           */
-          <a
-            href={routeOf(PageMap.SETTINGS_BILLING).toString()}
-            target="_blank"
-            rel="noopener noreferrer"
+      <div className="min-w-0">
+        <p>
+          {getPaymentNeededText({
+            translator: translator,
+            mayAddPaymentMethod: mayAddPaymentMethod(),
+          })}
+        </p>
+        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+          {mayAddPaymentMethod() ? (
+            /*
+             * In a new tab: the address typed here stays, and the step asks
+             * again when the person comes back to it.
+             */
+            <a
+              href={routeOf(PageMap.SETTINGS_BILLING).toString()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={linkClassName}
+              data-testid="guided-setup-add-payment-method"
+            >
+              {translator.translateText(WEBSITE_DOWN_COPY.addPaymentMethod)}
+            </a>
+          ) : (
+            <></>
+          )}
+          <button
+            type="button"
             className={linkClassName}
-            data-testid="guided-setup-add-payment-method"
+            data-testid="guided-setup-check-payment-again"
+            onClick={() => {
+              setIsPaymentRefused(false);
+              void WebsiteDownApi.needsPaymentMethod().then(setNeedsPayment);
+            }}
           >
-            {translator.translateText(WEBSITE_DOWN_COPY.addPaymentMethod)}
-          </a>
-        ) : (
-          <></>
-        )}
-        <button
-          type="button"
-          className={linkClassName}
-          data-testid="guided-setup-check-payment-again"
-          onClick={() => {
-            void WebsiteDownApi.needsPaymentMethod().then(setNeedsPayment);
-          }}
-        >
-          {translator.translateText(WEBSITE_DOWN_COPY.checkPaymentAgain)}
-        </button>
+            {translator.translateText(WEBSITE_DOWN_COPY.checkPaymentAgain)}
+          </button>
+        </div>
       </div>
     </div>
   ) : (
@@ -736,7 +770,6 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
       <p className="text-sm text-gray-500">
         {translator.translateText(WEBSITE_DOWN_COPY.checkHelp)}
       </p>
-      {paymentNotice}
       <div>
         <label
           htmlFor="guided-setup-address"
@@ -775,6 +808,7 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
       ) : (
         <></>
       )}
+      {paymentNotice}
       <div className={ACTIONS_CLASS_NAME}>
         <Button
           title={WEBSITE_DOWN_COPY.startChecking}
@@ -1265,18 +1299,21 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
     {
       ...progress[0]!,
       title: WEBSITE_DOWN_COPY.checkTitle,
+      outcome: WEBSITE_DOWN_COPY.checkOutcome,
       doneLine: checkSentence?.text || monitor?.name,
       content: checkContent,
     },
     {
       ...progress[1]!,
       title: WEBSITE_DOWN_COPY.whoTitle,
+      outcome: WEBSITE_DOWN_COPY.whoOutcome,
       doneLine: whoDoneLine,
       content: whoContent,
     },
     {
       ...progress[2]!,
       title: WEBSITE_DOWN_COPY.testTitle,
+      outcome: WEBSITE_DOWN_COPY.testOutcome,
       doneLine:
         isAcknowledged && testResult
           ? getResultSentence(translator, testResult)
@@ -1419,6 +1456,7 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
       summary={summary}
       isFinished={isWebsiteDownFinished(facts)}
       guideDocsPath={WEBSITE_DOWN_SETUP_GUIDE_DOCS_PATH}
+      minutes={WELCOME_STEP_MINUTES[WelcomeStep.Monitor]}
     />
   );
 };

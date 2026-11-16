@@ -209,14 +209,18 @@ describe("the live SLO list leaves archived SLOs out", () => {
   test("the in-app help explains monitors, monitor rules, settings and archiving", () => {
     const source: string = readSource("Pages", "Slo", "Slos.tsx");
 
-    expect(source).toContain("### Choosing What an SLO Measures");
+    // Each `##` is a topic of the help dialog (#8889).
+    expect(source).toContain("## Set Up an SLO 1. Create an SLO");
+    expect(source).toContain("choose what it measures:");
     expect(source).toContain("**Monitor Rules**");
-    expect(source).toContain("### SLO Settings");
-    expect(source).toContain("### Archiving");
+    expect(source).toContain("## Settings, Archiving and History - ");
+    expect(source).toContain(
+      "An SLO's **Settings** page changes what it measures",
+    );
     expect(source).toContain("**Archived** page");
     // The side menu keeps Archived in its collapsed Advanced section.
     expect(source).toContain(
-      "Find them on the **Archived** page, under **Advanced** in the side menu,",
+      "Archived SLOs are on the **Archived** page, under **Advanced** in the side menu,",
     );
     expect(source).toContain("| **Disabled** |");
   });

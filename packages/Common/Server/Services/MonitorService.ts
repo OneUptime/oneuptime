@@ -125,6 +125,7 @@ import MonitorStepsIdentityUtil from "../../Utils/Monitor/MonitorStepsIdentityUt
 import MetricQueryCloudAggregation from "../../Utils/Metrics/MetricQueryCloudAggregation";
 import InfrastructureResourceBinding from "../Utils/Monitor/InfrastructureResourceBinding";
 import OpenStackMonitorDependencies from "../Utils/OpenStack/OpenStackMonitorDependencies";
+import MonitorFirstMeasured from "../Utils/Monitor/MonitorFirstMeasured";
 import SyntheticMonitorStepsUtil from "../../Utils/Monitor/SyntheticMonitorStepsUtil";
 import MonitorStepsValuesUtil from "../../Utils/Monitor/MonitorStepsValuesUtil";
 import ProbeStatusMonitorEvaluator from "../Utils/Monitor/ProbeStatusMonitorEvaluator";
@@ -2744,6 +2745,18 @@ ${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description pro
       projectId: createdItem.projectId,
       monitorType: createdItem.monitorType,
       monitor: createdItem,
+    });
+
+    /*
+     * A manual monitor is measured from the start: nothing checks it, and
+     * its status is the one a person sets (Monitor.firstMeasuredAt). Every
+     * other monitor waits for its first result, which stamps it then. Never
+     * thrown: the monitor is created either way.
+     */
+    await MonitorFirstMeasured.stampManualMonitorOnCreate({
+      monitorId: createdItem.id,
+      monitorType: createdItem.monitorType,
+      createdAt: createdItem.createdAt,
     });
 
     // Execute operations sequentially with error handling (workspace first)

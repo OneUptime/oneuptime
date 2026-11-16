@@ -73,6 +73,11 @@ import {
   readOnCallPageMergedLine,
 } from "../../../../Types/OnCallDutyPolicy/OnCallPageMerge";
 import { isOnCallDirectPage } from "../../../../Types/OnCallDutyPolicy/OnCallDirectPage";
+import {
+  getOnCallRunCurrentLevel,
+  getOnCallRunNextLevel,
+  hasOnCallRunStartedALevel,
+} from "../../../../Types/OnCallDutyPolicy/OnCallRunLevel";
 import { isOnCallPersonPage } from "../../../../Types/OnCallDutyPolicy/OnCallPersonPage";
 import { isOnCallPolicyStartedByHand } from "../../../../Types/OnCallDutyPolicy/OnCallPolicyStartedByHand";
 import { isOnCallObserverPage } from "../../../../Types/OnCallDutyPolicy/OnCallObserverPage";
@@ -869,6 +874,9 @@ export default class OnCallPolicyRunMessage {
             email: true,
           },
           onCallDutyPolicyEscalationRuleId: true,
+          // The level a line is about, as it was: names a deleted one (#9036).
+          escalationRuleOrder: true,
+          escalationRuleName: true,
           onCallDutyScheduleId: true,
           onCallDutySchedule: {
             name: true,
@@ -979,7 +987,8 @@ export default class OnCallPolicyRunMessage {
      */
     const hasStarted: boolean =
       run.outcome !== OnCallPolicyRunOutcome.Paging ||
-      Boolean(executionLog.lastExecutedEscalationRuleId) ||
+      // A level started - one deleted since included (OnCallRunLevel, #9036).
+      hasOnCallRunStartedALevel(executionLog) ||
       (isDirectPage &&
         executionLog.status === OnCallDutyPolicyStatus.Executing);
 
@@ -1034,6 +1043,31 @@ export default class OnCallPolicyRunMessage {
   }
 
   /*
+   * The name of a level deleted while the run was on it (issue #9036), as
+   * its lines recorded it when they were written: the newest line at its
+   * place whose rule is gone. None when no line recorded one.
+   */
+  public static getDeletedLevelName(data: {
+    timeline: Array<OnCallDutyPolicyExecutionLogTimeline>;
+    order: number;
+  }): string | undefined {
+    for (let index: number = data.timeline.length - 1; index >= 0; index--) {
+      const line: OnCallDutyPolicyExecutionLogTimeline = data.timeline[index]!;
+      const name: string = (line.escalationRuleName || "").trim();
+
+      if (
+        !line.onCallDutyPolicyEscalationRuleId &&
+        line.escalationRuleOrder === data.order &&
+        name
+      ) {
+        return name;
+      }
+    }
+
+    return undefined;
+  }
+
+  /*
    * The run's message, from what its execution log and its timeline say -
    * everything but how it ended (getOutcome), which may need the record.
    */
@@ -1077,24 +1111,39 @@ export default class OnCallPolicyRunMessage {
       });
     };
 
+    /*
+     * The level the run is on, among the policy's levels now
+     * (OnCallRunLevel). One deleted while the run paged (issue #9036) is no
+     * level of the policy now: the run waits out its wait, then pages the
+     * level that moved up into its place. The message says so - the deleted
+     * level by the number it recorded and the name its lines recorded - and
+     * never names the level that took its place as the one paging.
+     */
     const currentRuleModel: OnCallDutyPolicyEscalationRule | undefined =
-      ruleById(executionLog.lastExecutedEscalationRuleId) ||
-      data.rules.find((rule: OnCallDutyPolicyEscalationRule) => {
-        return (
-          executionLog.lastExecutedEscalationRuleOrder !== undefined &&
-          executionLog.lastExecutedEscalationRuleOrder !== null &&
-          rule.order === executionLog.lastExecutedEscalationRuleOrder
-        );
-      });
+      getOnCallRunCurrentLevel({ run: executionLog, levels: data.rules }) ||
+      undefined;
 
-    const currentRule: OnCallPolicyRunRule | undefined =
-      toRule(currentRuleModel);
+    const recordedOrder: number | null | undefined =
+      executionLog.lastExecutedEscalationRuleOrder;
+
+    const currentRule: OnCallPolicyRunRule | undefined = currentRuleModel
+      ? toRule(currentRuleModel)
+      : hasOnCallRunStartedALevel(executionLog) &&
+          typeof recordedOrder === "number"
+        ? {
+            order: recordedOrder,
+            name: this.getDeletedLevelName({
+              timeline: data.timeline,
+              order: recordedOrder,
+            }),
+            isDeleted: true,
+          }
+        : undefined;
 
     const nextRule: OnCallPolicyRunRule | undefined = currentRule
       ? toRule(
-          data.rules.find((rule: OnCallDutyPolicyEscalationRule) => {
-            return (rule.order || 0) > currentRule.order;
-          }),
+          getOnCallRunNextLevel({ run: executionLog, levels: data.rules }) ||
+            undefined,
         )
       : undefined;
 
@@ -1718,9 +1767,10 @@ export default class OnCallPolicyRunMessage {
       currentRuleModel &&
       typeof currentRuleModel.order === "number" &&
       stepsByRuleId.get(currentRuleModel.id?.toString() || "")?.movedOnAtOnce
-        ? data.rules.find((rule: OnCallDutyPolicyEscalationRule): boolean => {
-            return rule.order === currentRuleModel.order! + 1;
-          })
+        ? getOnCallRunNextLevel({
+            run: executionLog,
+            levels: data.rules,
+          }) || undefined
         : undefined;
 
     const shownRule: OnCallPolicyRunRule | undefined = levelMovingOnTo

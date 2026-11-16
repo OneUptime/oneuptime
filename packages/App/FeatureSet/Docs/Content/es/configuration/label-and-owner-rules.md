@@ -107,6 +107,8 @@ El formulario de edición de una regla tiene los mismos dos pasos y añade el in
 
 Una regla así se puede seguir renombrando, desactivando o eliminando, también mediante la API y Terraform. La lista marca una regla que no añade nada con **No añade nada** junto a su estado, y lo mismo hace la página de la regla. Edítala para elegir qué añade, o elimínala.
 
+Una regla cuyas etiquetas de coincidencia se eliminan todas se desactiva en lugar de coincidir con todos los recursos, y la lista la marca con **Limitada a registros eliminados** junto a su estado. Edítala para elegir con qué coincide y luego actívala. Consulta [Cuando se eliminan los registros a los que se limita una regla](/docs/incidents/settings#cuando-se-eliminan-los-registros-a-los-que-se-limita-una-regla).
+
 ## Cuándo se ejecutan las reglas
 
 Cada regla habilitada se ejecuta cuando se crea un recurso, desde el panel o mediante la API, y cada regla que coincide añade lo que añade:

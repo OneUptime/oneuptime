@@ -10,7 +10,10 @@ import { SUPPORTED_STATUS_PAGE_LANGUAGE_CODES } from "Common/Types/StatusPage/St
  * from a 320 px phone to a laptop.
  *
  * Under the page's own filled button, an "or" divider, then each other way
- * in as a normal outlined button with an icon before its words. The words
+ * in as a normal outlined button with an icon before its words. On the
+ * sign-in page, single sign-on and the passkey fold under "More ways to sign
+ * in" (#9023); the fixture leaves the fold open, as a browser that opened it
+ * once finds it, unless the address says folded=1. The words
  * and the icon are one run of text (SignInOptionLabel): a label too long for
  * one line - Spanish "Iniciar sesión con una clave de acceso" on a phone -
  * wraps into balanced lines and keeps its icon beside its first words. When
@@ -52,6 +55,8 @@ const DIVIDERS: string = [
   '[data-testid="sign-up-options-divider"]',
   '[data-testid="global-providers-divider"]',
 ].join(", ");
+// "More ways to sign in", the sign-in page's fold (MoreWaysToSignIn).
+const MORE_WAYS: string = "more-ways-to-sign-in";
 // The page's own filled button: Sign in, Sign in with SSO, Sign Up.
 const SUBMIT: string = '[id$="-form-submit-button"]';
 // Between the instance-wide providers and the email lookup.
@@ -505,6 +510,18 @@ const open: (page: Page, query: string) => Promise<void> = async (
   });
 };
 
+// The sign-in page as a first visit draws it, with nothing but the fold's line under Sign in.
+const openFolded: (page: Page, query: string) => Promise<void> = async (
+  page: Page,
+  query: string,
+): Promise<void> => {
+  await page.goto(`/?${query}`);
+  await expect(page.getByTestId(MORE_WAYS)).toBeVisible();
+  await page.evaluate(async (): Promise<void> => {
+    await document.fonts.ready;
+  });
+};
+
 const box: (locator: Locator) => Promise<Rect> = async (
   locator: Locator,
 ): Promise<Rect> => {
@@ -520,7 +537,7 @@ const box: (locator: Locator) => Promise<Rect> = async (
 };
 
 test.describe("The other ways to sign in, as the browser draws them", () => {
-  test("the sign-in page: under Sign in, 'or', then single sign-on, Microsoft and the passkey, each as wide as Sign in and as tall", async ({
+  test("the sign-in page: under Sign in, 'or', Microsoft, More ways to sign in, then single sign-on and the passkey, each as wide as Sign in and as tall", async ({
     page,
   }: {
     page: Page;
@@ -533,10 +550,11 @@ test.describe("The other ways to sign in, as the browser draws them", () => {
       const divider: Rect = await box(
         page.getByTestId("sign-in-options-divider"),
       );
+      const more: Rect = await box(page.getByTestId(MORE_WAYS));
       const options: Array<Rect> = [];
       for (const testId of [
-        "sso-login",
         "microsoft-sign-in",
+        "sso-login",
         "passkey-login",
       ]) {
         options.push(await box(page.getByTestId(testId)));
@@ -544,6 +562,9 @@ test.describe("The other ways to sign in, as the browser draws them", () => {
 
       expect(divider.top).toBeGreaterThanOrEqual(login.bottom);
       expect(options[0]!.top).toBeGreaterThanOrEqual(divider.bottom);
+      // The fold's line sits between Microsoft and what it holds.
+      expect(more.top).toBeGreaterThanOrEqual(options[0]!.bottom);
+      expect(options[1]!.top).toBeGreaterThanOrEqual(more.bottom);
       let above: Rect = divider;
       for (const option of options) {
         expect(option.top).toBeGreaterThanOrEqual(above.bottom);
@@ -592,7 +613,7 @@ test.describe("The other ways to sign in, as the browser draws them", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, "page=login&passkey=cancel");
+    await open(page, "page=login&ms=1&passkey=cancel");
     await page.getByTestId("passkey-login").click();
     await expect(page.getByTestId("passkey-notice")).toBeVisible();
 
@@ -630,6 +651,7 @@ test.describe("The other ways to sign in, as the browser draws them", () => {
       "sign-in-options-divider",
       "sso-login",
       "microsoft-sign-in",
+      MORE_WAYS,
     ]) {
       expect(await form.getByTestId(testId).count()).toBe(1);
     }
@@ -1136,8 +1158,12 @@ test.describe("The other ways to sign in, as the browser draws them", () => {
 
     await expect(page.getByTestId("email")).toHaveCount(1);
     await expect(page.getByTestId("password")).toHaveCount(1);
-    // SSO stays one click away, under "or"; nothing the server would refuse.
+    /*
+     * SSO stays in reach, in More ways to sign in; nothing the server would
+     * refuse, and no "or" over a fold with nothing beside it.
+     */
     await expect(page.locator(OPTIONS)).toHaveCount(1);
+    await expect(page.getByTestId("sign-in-options-divider")).toHaveCount(0);
     await expect(page.getByTestId("sso-login")).toHaveAttribute(
       "href",
       "/accounts/sso",
@@ -1157,12 +1183,112 @@ test.describe("The other ways to sign in, as the browser draws them", () => {
       page,
       SUPPORTED_ACCOUNTS_LANGUAGE_CODES,
       WIDTHS,
+      null,
     );
 
     expect(result.problems).toEqual([]);
     expect(result.checked).toBe(
       SUPPORTED_ACCOUNTS_LANGUAGE_CODES.length * WIDTHS.length,
     );
+  });
+
+  /*
+   * A first visit (#9023): the password form, Sign in, and one quiet line,
+   * "More ways to sign in", centred under Sign in - with Google and
+   * Microsoft between them where the server offers them. In every language,
+   * from 320px up, the line is on the card, never wider than Sign in, and the
+   * page never scrolls sideways.
+   */
+  test("a first visit: More ways to sign in, folded, is one quiet line centred under Sign in, in every language, from 320px up", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openFolded(page, "page=login&folded=1");
+
+    await expect(page.getByTestId(MORE_WAYS)).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    await expect(page.locator(OPTIONS)).toHaveCount(0);
+    await expect(page.getByTestId("sign-in-options-divider")).toHaveCount(0);
+
+    const problems: Array<string> = [];
+    for (const width of WIDTHS) {
+      await page.setViewportSize({ width, height: 900 });
+      for (const language of SUPPORTED_ACCOUNTS_LANGUAGE_CODES) {
+        await page.evaluate(async (code: string): Promise<void> => {
+          await (
+            window as unknown as {
+              __setLanguage: (language: string) => Promise<void>;
+            }
+          ).__setLanguage(code);
+        }, language);
+        const where: string = `${language} at ${width}px`;
+        const login: Rect = await box(page.locator(SUBMIT));
+        const more: Rect = await box(page.getByTestId(MORE_WAYS));
+        const centre: (rect: Rect) => number = (rect: Rect): number => {
+          return (rect.left + rect.right) / 2;
+        };
+
+        if ((await settledSidewaysScrollOf(page)) > 0) {
+          problems.push(`${where}: the page scrolls sideways`);
+        }
+        if (more.top < login.bottom) {
+          problems.push(`${where}: the line is not under Sign in`);
+        }
+        if (Math.abs(centre(more) - centre(login)) > 1) {
+          problems.push(`${where}: the line is not centred under Sign in`);
+        }
+        if (more.left < login.left - 0.5 || more.right > login.right + 0.5) {
+          problems.push(`${where}: the line is wider than Sign in`);
+        }
+        // A quiet line: well short of a button's height, unless it wraps.
+        if (heightOf(more) >= heightOf(login) * 1.5) {
+          problems.push(`${where}: the line is ${heightOf(more)}px tall`);
+        }
+      }
+    }
+    expect(problems).toEqual([]);
+  });
+
+  test("a first visit with Microsoft: 'or', Microsoft, then More ways to sign in; opening it draws single sign-on and the passkey under it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openFolded(page, "page=login&ms=1&folded=1");
+    await page.setViewportSize({ width: 390, height: 900 });
+
+    const divider: Rect = await box(
+      page.getByTestId("sign-in-options-divider"),
+    );
+    const microsoft: Rect = await box(page.getByTestId("microsoft-sign-in"));
+    const more: Rect = await box(page.getByTestId(MORE_WAYS));
+
+    expect(microsoft.top).toBeGreaterThanOrEqual(divider.bottom);
+    expect(more.top).toBeGreaterThanOrEqual(microsoft.bottom);
+    await expect(page.locator(OPTIONS)).toHaveCount(1);
+
+    await page.getByTestId(MORE_WAYS).click();
+
+    await expect(page.getByTestId(MORE_WAYS)).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    // Measured again: pressing it may have scrolled the page.
+    const opened: Rect = await box(page.getByTestId(MORE_WAYS));
+    const sso: Rect = await box(page.getByTestId("sso-login"));
+    const passkey: Rect = await box(page.getByTestId("passkey-login"));
+    const login: Rect = await box(page.locator(SUBMIT));
+    expect(sso.top).toBeGreaterThanOrEqual(opened.bottom);
+    expect(passkey.top).toBeGreaterThanOrEqual(sso.bottom);
+    expect(Math.abs(widthOf(sso) - widthOf(login))).toBeLessThanOrEqual(0.5);
+
+    // Pressed again, it folds them away.
+    await page.getByTestId(MORE_WAYS).click();
+    await expect(page.getByTestId("sso-login")).toHaveCount(0);
+    await expect(page.getByTestId("passkey-login")).toHaveCount(0);
   });
 
   test("captures the sign-in options for visual review", async ({
@@ -1172,6 +1298,17 @@ test.describe("The other ways to sign in, as the browser draws them", () => {
   }, testInfo: TestInfo) => {
     const shots: Array<{ name: string; query: string; width: number }> = [
       { name: "login-en-1280", query: "page=login&ms=1", width: 1280 },
+      // A first visit, More ways to sign in folded (#9023).
+      {
+        name: "login-folded-en-390",
+        query: "page=login&folded=1",
+        width: 390,
+      },
+      {
+        name: "login-folded-ms-de-390",
+        query: "page=login&ms=1&folded=1&lang=de",
+        width: 390,
+      },
       { name: "login-es-390", query: "page=login&ms=1&lang=es", width: 390 },
       { name: "login-fa-390", query: "page=login&ms=1&lang=fa", width: 390 },
       { name: "sso-en-390", query: "page=sso&globalsso=1", width: 390 },
@@ -1205,7 +1342,11 @@ test.describe("The other ways to sign in, as the browser draws them", () => {
 
     for (const shot of shots) {
       await page.setViewportSize({ width: shot.width, height: 900 });
-      await open(page, shot.query);
+      if (shot.query.includes("folded=1")) {
+        await openFolded(page, shot.query);
+      } else {
+        await open(page, shot.query);
+      }
       await page.screenshot({
         path: testInfo.outputPath(`${shot.name}.png`),
         fullPage: true,

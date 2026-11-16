@@ -246,6 +246,8 @@ To post to a channel, add a rule under **Products → Security Events → Worksp
 
 Each notification but a task's is posted to the channels of every rule the case matches at that moment. A rule with **Security Case Priority** contains any of **Critical** and **High** posts High and Critical cases as they open, and a Medium case when it rises to High. A security case never gets a channel of its own.
 
+A rule's **Updates** step picks which of these notices it posts: **New and raised cases**, **Assignments**, **Approvals needed** and **Response targets**, one box each under **Choose updates**. **Key updates only** posts every one but the assignments, for a channel that should hear only what someone has to act on. A rule saved before the step, and a new rule, posts every notice.
+
 ## Playbooks
 
 A playbook is a list of steps that run on a case. Create one under **Products → Security Events → Playbooks**, from a template or blank, and add its steps on its page. A project with no playbooks sees the templates in place of an empty list; once there are playbooks, **Create from Template** on the list opens them, with **Added** on the ones the project already has.

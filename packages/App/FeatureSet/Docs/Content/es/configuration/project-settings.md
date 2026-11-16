@@ -92,6 +92,8 @@ En una lista, las etiquetas de un registro se muestran una debajo de otra; cuand
 
 Para retirar una etiqueta, archívela desde el menú **⋯** de su fila en lugar de eliminarla. Todo lo que tiene la etiqueta la conserva y puede seguir filtrando por ella, pero nadie puede volver a añadirla a nada: cada selector de etiquetas la omite, y la API, Terraform y MCP la rechazan. El diálogo enumera las reglas y los permisos configurados para usar la etiqueta, que la siguen usando hasta que los cambie. Las etiquetas archivadas se listan aparte, en la sección plegada **Etiquetas archivadas**, donde **Desarchivar** devuelve una. **Eliminar** enumera primero todo aquello de lo que se quitaría la etiqueta y ofrece **Archivar en su lugar**.
 
+**Usado por**, en el menú de la fila de una etiqueta, cuenta los registros de cada tipo que llevan la etiqueta y los abre página a página. Los registros que no puedes abrir se cuentan, pero no se nombran.
+
 ## Notificaciones
 
 **Ajustes del proyecto → Notificaciones** contiene cómo envía notificaciones el proyecto:

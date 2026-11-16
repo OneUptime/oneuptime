@@ -21,93 +21,47 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 
 const documentationMarkdown: string = `
-### How Log Pipelines Work
+A log pipeline changes logs as they arrive, before they are stored. It picks logs with a filter, then runs its processors on them in order: parse a text line into attributes, set the right severity, rename an attribute or tag a category.
 
-Log pipelines let you transform and enrich logs **at ingest time** — before they are stored. Each pipeline matches logs using a filter query, then runs a series of processors to modify them.
+## How It Works
 
-\`\`\`mermaid
-flowchart TD
-    A[Log Arrives] --> B{Match Against Pipelines}
-    B -->|Filter Matches| C[Run Processors In Order]
-    B -->|No Match| D[Store Log As-Is]
-    C --> E[Processor 1: Remap Severity]
-    E --> F[Processor 2: Remap Attributes]
-    F --> G[Processor 3: Categorize]
-    G --> H[Store Transformed Log]
-\`\`\`
+1. Drop filters run first, then scrub rules. A log a drop filter drops never reaches a pipeline.
+2. Every pipeline whose filter matches the log runs its processors on it, from the top of the list down. Drag a pipeline to change its place. A pipeline with no filter takes every log.
+3. Open a pipeline to add its processors. They run in their own order, each on what the one before it left.
 
----
+A pipeline changes the logs that arrive after you save it, within about a minute. Logs already stored stay as they are.
 
-### Key Concepts
+## Processors
 
-| Concept | Description |
-|---------|-------------|
-| **Pipeline** | A named rule that matches logs and applies processors to them |
-| **Filter Query** | Determines which logs this pipeline applies to |
-| **Processor** | A transformation step that modifies the log (e.g., remap severity, rename attributes) |
-| **Sort Order** | Pipelines run in order — drag rows to reorder. Lower = runs first |
+| Processor | What it does |
+|-----------|--------------|
+| **Grok Parser** | Pulls fields out of a text line into attributes, with a grok pattern |
+| **Key=Value Parser** | Splits a line of \`key=value\` pairs into attributes, whatever their order |
+| **Severity Remapper** | Sets a log's severity from a field, such as \`level=warn\` |
+| **Attribute Remapper** | Renames or copies an attribute |
+| **Category Processor** | Sets an attribute to a category, by the first of its filters a log matches |
 
----
+## Filter Queries
 
-### Filter Query Syntax
+A filter picks logs by their fields:
 
-Filter queries let you target specific logs. If left empty, the pipeline matches **all logs**.
+| Operator | Example | Matches |
+|----------|---------|---------|
+| \`=\` | \`severityText = 'Error'\` | Exactly this value |
+| \`!=\` | \`severityText != 'Debug'\` | Anything but this value |
+| \`IN\` | \`severityText IN ('Error', 'Warning')\` | Any value in the list |
+| \`LIKE\` | \`body LIKE 'timeout'\` | Text that contains this, in any case |
+| \`AND\`, \`OR\` | \`severityText = 'Error' AND attributes.service = 'api'\` | Both, or either, of two conditions |
 
-| Operator | Example | Description |
-|----------|---------|-------------|
-| \`=\` | \`severityText = 'Error'\` | Exact match |
-| \`!=\` | \`severityText != 'Debug'\` | Not equal |
-| \`LIKE\` | \`body LIKE 'timeout'\` | Substring match (use \`%\` for SQL-style wildcards) |
-| \`IN\` | \`severityText IN ('Error', 'Warning')\` | Match any value in list |
-| \`AND\` | \`severityText = 'Error' AND attributes.service = 'api'\` | Both conditions must match |
-| \`OR\` | \`severityText = 'Error' OR severityText = 'Warning'\` | Either condition matches |
+- **Fields:** \`severityText\`, \`body\`, \`primaryEntityId\` and \`attributes.<key>\`.
+- **Severities:** \`Unspecified\`, \`Trace\`, \`Debug\`, \`Information\`, \`Warning\`, \`Error\` and \`Fatal\`. It is \`Information\`, not \`INFO\`, and \`Warning\`, not \`WARN\`.
+- \`=\`, \`!=\` and \`IN\` are case-sensitive: \`'Error'\` matches, \`'ERROR'\` does not. Only \`LIKE\` ignores case.
 
-**Available fields:** \`severityText\`, \`body\`, \`primaryEntityId\`, \`attributes.<key>\`
+## Examples
 
-**Severity values:** \`Unspecified\`, \`Trace\`, \`Debug\`, \`Information\`, \`Warning\`, \`Error\`, \`Fatal\`
-
-> \`=\`, \`!=\` and \`IN\` are **case-sensitive** — \`'Error'\` matches, \`'ERROR'\` never will. Only \`LIKE\` ignores case. Note the level is \`Information\` (not \`INFO\`) and \`Warning\` (not \`WARN\`).
-
----
-
-### Processor Types
-
-#### Severity Remapper
-Converts a log field value into a standard severity level. Useful when your application logs severity as text like "warn" or "fatal" instead of standard OpenTelemetry severity.
-
-**Example:** Map \`level = "warn"\` → severity WARNING (13)
-
-#### Attribute Remapper
-Renames or copies a log attribute from one key to another. Useful for normalizing attribute names across different services.
-
-**Example:** Rename \`attributes.src_ip\` → \`attributes.source_address\`
-
-#### Category Processor
-Adds a category label to logs based on filter conditions. Useful for tagging logs with business-level categories.
-
-**Example:** Tag logs matching \`severityText = 'Error'\` with category "Error"
-
----
-
-### Examples
-
-#### Example 1: Normalize severity from application logs
-1. Create a pipeline with filter: \`attributes.source = 'legacy-app'\`
-2. Add a **Severity Remapper** processor:
-   - Source Key: \`level\`
-   - Mappings: \`warn\` → WARNING, \`fatal\` → FATAL, \`info\` → INFO
-
-#### Example 2: Rename attributes for consistency
-1. Create a pipeline with no filter (matches all logs)
-2. Add an **Attribute Remapper** processor:
-   - Source: \`attributes.client_ip\`
-   - Target: \`attributes.source_address\`
-
-#### Example 3: Categorize error logs
-1. Create a pipeline with filter: \`severityText IN ('Error', 'Fatal')\`
-2. Add a **Category Processor**:
-   - Target Key: \`error_category\`
-   - Categories: "Database Error" for \`body LIKE 'connection'\`, "Timeout" for \`body LIKE 'timeout'\`
+- **Fix a legacy app's severities**: a pipeline for \`attributes.source = 'legacy-app'\` with a **Severity Remapper** that reads \`level\` and maps \`warn\` to Warning, \`fatal\` to Fatal and \`info\` to Information.
+- **Use one name for an attribute**: a pipeline with no filter and an **Attribute Remapper** from \`attributes.client_ip\` to \`attributes.source_address\`.
+- **Sort errors into categories**: a pipeline for \`severityText IN ('Error', 'Fatal')\` with a **Category Processor** that writes \`error_category\`: "Database Error" for \`body LIKE 'connection'\`, "Timeout" for \`body LIKE 'timeout'\`.
 `;
 
 /*
@@ -186,7 +140,7 @@ const LogPipelines: FunctionComponent<
       helpContent={{
         title: "How Log Pipelines Work",
         description:
-          "Understanding filters, processors, and how logs are transformed at ingest time",
+          "Parse, fix and tag logs as they arrive, before they are stored.",
         markdown: documentationMarkdown,
       }}
       noItemsMessage={"No log pipelines found."}

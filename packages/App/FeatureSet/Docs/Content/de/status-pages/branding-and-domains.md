@@ -208,14 +208,14 @@ Geben Sie in **Domäne** (Platzhalter `status.example.com`) die ganze Adresse ei
 
 #### Das kostenlose Zertifikat behalten oder ein eigenes hochladen
 
-**Weitere Felder** ist eingeklappt, und sein Kopf sagt, welches Zertifikat die Domain verwenden wird: „Wir stellen ein kostenloses SSL-Zertifikat für diese Domain aus und erneuern es automatisch.“ Öffnen Sie es nur, um ein eigenes Zertifikat zu verwenden: Schalten Sie **Benutzerdefiniertes Zertifikat hochladen** ein und fügen Sie dann **Zertifikat** und **Privater Schlüssel des Zertifikats** im PEM-Format ein. Beide sind dann Pflicht.
+**Weitere Felder** ist eingeklappt, und sein Kopf sagt, welches Zertifikat die Domain verwenden wird: „Wir stellen ein kostenloses SSL-Zertifikat für diese Domain aus und erneuern es automatisch.“ Öffnen Sie es nur, um ein eigenes Zertifikat zu verwenden: Schalten Sie **Benutzerdefiniertes Zertifikat hochladen** ein und fügen Sie dann **Zertifikat** und **Privater Schlüssel des Zertifikats** im PEM-Format ein. Beide sind dann Pflicht. Der Schlüssel wird verschlüsselt gespeichert und nie wieder angezeigt. Ein Zertifikat und ein Schlüssel, die nicht zusammengehören, werden abgelehnt, mit dem Grund unter dem Feld, das nicht stimmt.
 
 #### Weiter
 
 Klicken Sie auf **Weiter**. Hat das Projekt die Domain, auf der die Adresse liegt, bereits verifiziert, wird die Domain hinzugefügt und ihre **DNS-Einrichtung** öffnet sich, mit dem hinzuzufügenden CNAME-Eintrag. Wenn nicht, fügt OneUptime diese Domain zu **Projekteinstellungen → Erweitert → Domänen** hinzu, und die **DNS-Einrichtung** öffnet sich mit beiden Einträgen, sodass Sie die Domain direkt dort verifizieren, ohne die Seite zu verlassen.
 :::
 
-Der vollständige Name einer Domain wird beim Hinzufügen festgelegt; **Bearbeiten** ändert daher nur ihr Zertifikat. Um eine andere Adresse zu verwenden, fügen Sie diese hinzu und löschen die alte. Ein Name, den schon ein Dashboard oder ein Formular verwendet, in welchem Projekt auch immer, wird abgelehnt: Eine Domain zeigt eine Statusseite, ein Dashboard oder ein Formular.
+Der vollständige Name einer Domain wird beim Hinzufügen festgelegt; **Bearbeiten** ändert daher nur ihr Zertifikat. Bei einer Domain, die Ihr eigenes Zertifikat ausliefert, ist **Privater Schlüssel des Zertifikats** im Dialog **Bearbeiten** leer: Lassen Sie das Feld leer, um den gespeicherten Schlüssel zu behalten, was für ein mit demselben Schlüssel erneuertes Zertifikat genügt, oder fügen Sie einen neuen Schlüssel ein. Bei einer Domain mit dem kostenlosen Zertifikat fragt das Einschalten von **Benutzerdefiniertes Zertifikat hochladen** nach dem Schlüssel. Um eine andere Adresse zu verwenden, fügen Sie diese hinzu und löschen die alte. Ein Name, den schon ein Dashboard oder ein Formular verwendet, in welchem Projekt auch immer, wird abgelehnt: Eine Domain zeigt eine Statusseite, ein Dashboard oder ein Formular.
 
 Um eine Domain zum Projekt hinzuzufügen, brauchen Sie die Berechtigung, Projektdomains zu erstellen (**Create Domain**, oder Projektinhaber oder Projektadministrator), und um sie zu verifizieren, **Edit Domain**. Fehlen sie, sagt der Dialog, wer es tun kann.
 

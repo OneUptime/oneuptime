@@ -45,6 +45,7 @@
     "uptimePercent": "{{percent}} de disponibilidad",
     "operational": "Operativo",
     "notMonitored": "No monitoreado",
+    "notMonitoredYet": "Aún no monitoreado",
     "noResourcesInGroup": "No se han añadido recursos a este grupo.",
     "activeIncidents": "Incidencias activas",
     "scheduledMaintenanceEvents": "Mantenimiento programado",
@@ -55,6 +56,7 @@
     "someResourcesAre": "Algunos recursos están {{status}}",
     "someResourcesAreUnder": "Algunos recursos están en {{status}}",
     "noResourcesAreMonitored": "Ningún recurso está monitoreado en este momento",
+    "noResourcesAreMonitoredYet": "Aún no se monitorea ningún recurso",
     "oneSubGroup": "1 grupo",
     "subGroupCount": "{{total}} grupos"
   },
@@ -180,7 +182,9 @@
     "manageExisting": "Gestionar suscripción existente",
     "sendManagementLink": "Enviar enlace de gestión",
     "subscribedSuccessfully": "Se ha suscrito correctamente.",
-    "emailSentCheckSpam": "Se ha enviado un correo electrónico con el enlace a su dirección. Si no ve el correo, revise su carpeta de spam.",
+    "emailSentCheckSpam": "Hemos enviado un correo electrónico a esta dirección. Abra el enlace que contiene para confirmar su suscripción. Si no lo ve, revise su carpeta de spam.",
+    "checkEmailTitle": "Revise su correo electrónico",
+    "checkPhoneTitle": "Revise su teléfono",
     "manageLinkSent": "Si alguna suscripción coincide con los datos que ha introducido, hemos enviado un enlace para gestionarla.",
     "manageLinkSentEmail": "Si esta dirección de correo electrónico tiene una suscripción, hemos enviado a esa dirección un enlace para gestionarla. Si no ve el correo, revise su carpeta de spam.",
     "menu": {

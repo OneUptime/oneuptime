@@ -69,10 +69,6 @@
     "ingestionBudgets": "Presupuestos de ingesta",
     "products": "Productos"
   },
-  "topAlert": {
-    "title": "Panel de administración de OneUptime",
-    "description": "Puede realizar sus tareas relacionadas con el servidor OneUptime en este panel."
-  },
   "header": {
     "exitAdmin": "Salir del admin",
     "help": "Ayuda",
@@ -4056,6 +4052,14 @@
   "Amount": "Importe",
   "Invoice": "Factura",
   "Invoices": "Facturas",
+  "Runs JavaScript steps as its own user: let its container switch users (allowPrivilegeEscalation, SETUID and SETGID).": "Ejecuta los pasos de JavaScript como su propio usuario: deja que su contenedor cambie de usuario (allowPrivilegeEscalation, SETUID y SETGID).",
+  "Runs JavaScript steps as its own user: run its container as the image's own user, node.": "Ejecuta los pasos de JavaScript como su propio usuario: ejecuta su contenedor como el usuario de la imagen, node.",
+  "Runs JavaScript steps as its own user: run the Runner image, not its sources.": "Ejecuta los pasos de JavaScript como su propio usuario: ejecuta la imagen del Runner, no sus fuentes.",
+  "Runs JavaScript steps as its own user: its sandbox check failed, and its log says why.": "Ejecuta los pasos de JavaScript como su propio usuario: su comprobación de la zona de pruebas falló, y su registro dice por qué.",
+  "JavaScript steps share its network: let its container use seccomp, as Docker's and Kubernetes' default profiles do.": "Los pasos de JavaScript comparten su red: deja que su contenedor use seccomp, como lo hacen los perfiles predeterminados de Docker y Kubernetes.",
+  "JavaScript steps share its network: run the Runner image, not its sources.": "Los pasos de JavaScript comparten su red: ejecuta la imagen del Runner, no sus fuentes.",
+  "JavaScript steps share its network: its network filter's check failed, and its log says why.": "Los pasos de JavaScript comparten su red: la comprobación de su filtro de red falló, y su registro dice por qué.",
+  "Runs JavaScript steps as its own user and on its network: run the Runner image, not its sources.": "Ejecuta los pasos de JavaScript como su propio usuario y en su red: ejecuta la imagen del Runner, no sus fuentes.",
   "Keep for at most": "Conservar como máximo",
   "New projects delete after": "Los proyectos nuevos eliminan después de",
   "Longer than the limit above.": "Más largo que el límite de arriba.",
@@ -4105,5 +4109,23 @@
   "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO._one": "{{count}} persona sigue con la sesión iniciada sin SSO. No puede abrir ningún proyecto hasta que inicie sesión con SSO.",
   "Sign them out": "Cerrar su sesión",
   "Sign out everyone signed in without SSO?": "¿Cerrar la sesión de todos los que la iniciaron sin SSO?",
-  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "Sus sesiones terminan ahora en todos los dispositivos y vuelven a iniciar sesión con SSO. Los administradores maestros siguen con la sesión iniciada."
+  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "Sus sesiones terminan ahora en todos los dispositivos y vuelven a iniciar sesión con SSO. Los administradores maestros siguen con la sesión iniciada.",
+  "Made by {{name}} on {{date}}": "Creada por {{name}} el {{date}}",
+  "Made on {{date}}": "Creada el {{date}}",
+  "Ends in {{hint}}": "Termina en {{hint}}",
+  "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to support@oneuptime.com, and scores, never words, go to product analytics.": "Las respuestas se guardan en este servidor y las leen aquí sus administradores principales. «Dar mi opinión» también se envía por correo a support@oneuptime.com, y las puntuaciones, nunca el texto, van a la analítica de producto.",
+  "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to the Admin Notification Email, when one is set. Nothing is sent to OneUptime.": "Las respuestas se guardan en este servidor y las leen aquí sus administradores principales. «Dar mi opinión» también se envía al correo de notificación admin, si hay uno. No se envía nada a OneUptime.",
+  "Know when my website or API is down": "Saber cuándo cae mi sitio web o mi API",
+  "Page the right person when something breaks": "Avisar a la persona adecuada cuando algo falle",
+  "Publish a status page": "Publica una página de estado",
+  "Send logs, metrics and traces, then get alerted": "Envía registros, métricas y trazas, y recibe alertas",
+  "Guided setup": "Configuración guiada",
+  "Give feedback": "Dar tu opinión",
+  "First-week check-in": "Revisión tras la primera semana",
+  "How OneUptime works": "Cómo funciona OneUptime",
+  "Is OneUptime set up the way you wanted?": "¿Está OneUptime configurado como querías?",
+  "Something's broken": "Algo no funciona",
+  "Confusing": "Confuso",
+  "Idea": "Idea",
+  "Other": "Otro"
 }

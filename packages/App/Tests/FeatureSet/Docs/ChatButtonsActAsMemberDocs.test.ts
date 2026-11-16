@@ -235,7 +235,11 @@ describe("Docs: Slack's and Microsoft Teams' buttons act as the member", () => {
 });
 
 describe("Docs: an archived on-call policy pages no one from a record's Execute On-Call Policy", () => {
-  test("the incident feed's Execute On-Call Policy says so", () => {
+  /*
+   * Its form offers none since #7839 (`query: { isArchived: false }` on each
+   * feed's picker), as Slack's and Microsoft Teams' forms leave them out.
+   */
+  test("the incident feed's Execute On-Call Policy says so, and that it offers none", () => {
     const feed: string = read("incidents/notes-owners-and-feed.md");
     const line: string | undefined = feed
       .split("\n")
@@ -244,7 +248,9 @@ describe("Docs: an archived on-call policy pages no one from a record's Execute 
       });
 
     expect(line).toBeDefined();
-    expect(line).toContain("An archived policy pages no one");
+    expect(line).toContain(
+      "archived policies, which page no one, are not offered",
+    );
   });
 });
 

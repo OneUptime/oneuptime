@@ -2946,6 +2946,17 @@ describe("status page resources", () => {
     const dropsOffRows: RegExp = /AND NOT (src\.)?is_off/;
     const keepsOffRowsApart: RegExp =
       /CASE WHEN src\.is_off THEN (NULL|0) ELSE /;
+    const readsTheMark: string = 't."isMonitoringOff" IS TRUE AS is_off';
+
+    /*
+     * Since #8960 the statements read their rows in one place, which cuts
+     * each monitor's time before its first check as well
+     * (getTimelineSourceCtes): it reads the mark, and a statement that
+     * reads its rows through it reads the mark with them.
+     */
+    expect(methodBody("public static getTimelineSourceCtes(")).toContain(
+      readsTheMark,
+    );
 
     for (const method of [
       "public async getDailyUptimeAggregate(",
@@ -2954,7 +2965,9 @@ describe("status page resources", () => {
       const body: string = methodBody(method);
       expect({
         method: method,
-        reads: body.includes('t."isMonitoringOff" IS TRUE AS is_off'),
+        reads:
+          body.includes(readsTheMark) ||
+          body.includes("Service.getTimelineSourceCtes("),
         keepsApart: keepsOffRowsApart.test(body),
         drops: dropsOffRows.test(body),
       }).toEqual({
@@ -2968,7 +2981,10 @@ describe("status page resources", () => {
     const mergedDowntime: string = methodBody(
       "public async getMergedDowntimeSeconds(",
     );
-    expect(mergedDowntime).toContain('t."isMonitoringOff" IS TRUE AS is_off');
+    expect(
+      mergedDowntime.includes(readsTheMark) ||
+        mergedDowntime.includes("Service.getTimelineSourceCtes("),
+    ).toBe(true);
     expect(dropsOffRows.test(mergedDowntime)).toBe(true);
     expect(readSource("Common/Server/Services/StatusPageService.ts")).toContain(
       "isMonitoringOff: true,",
@@ -2977,6 +2993,152 @@ describe("status page resources", () => {
     expect(RESOURCES).toContain(
       "- **A monitor whose monitoring is off shows Not monitored.** Nothing checks it, so the status it last had says nothing now: its row shows **Not monitored** in gray, and counts toward neither the group above it nor the overall status banner. Its history bars keep its history up to when its monitoring was turned off and leave out the time after: a day it was off reads **Not monitored**, not no data, and a day it was off for in part says for how long. A monitor group counts only its monitors whose monitoring is on, and shows **Not monitored** when it is off for all of them; its bars and uptime leave out each monitor's time with monitoring off, and a day it was off for all of them reads **Not monitored** too. When nothing on the page is monitored, the banner says so.",
     );
+  });
+
+  /*
+   * Issue #8899: a monitor nothing has checked yet holds the operational
+   * status every monitor is created in. Its row says Not monitored yet, in
+   * gray, and decides no status - not its group's, not the page's - unless
+   * something else set its status before its first check.
+   */
+  it("draws a monitor nothing has checked yet as Not monitored yet, deciding no status (#8899)", () => {
+    const overviewWords: Record<string, unknown> = (
+      JSON.parse(
+        readSource("App/FeatureSet/StatusPage/src/Locales/en.json"),
+      ) as Record<string, Record<string, unknown>>
+    )["overview"] as Record<string, unknown>;
+    const overview: string = oneLine(
+      readSource("App/FeatureSet/StatusPage/src/Pages/Overview/Overview.tsx"),
+    );
+
+    expect(overviewWords["notMonitoredYet"]).toBe("Not monitored yet");
+    expect(overviewWords["noResourcesAreMonitoredYet"]).toBe(
+      "No Resources are monitored yet",
+    );
+    expect(overview).toContain('t("overview.noResourcesAreMonitoredYet")');
+
+    const operational: string = "status-operational";
+    const offline: string = "status-offline";
+    const startingStatusIds: ReadonlySet<string> =
+      FrozenMonitorResources.getStartingStatusIds([
+        { _id: operational, isOperationalState: true, isOfflineState: false },
+        { _id: offline, isOperationalState: false, isOfflineState: true },
+      ]);
+    const brandNew: (statusId: string) => {
+      disableActiveMonitoring: boolean;
+      firstMeasuredAt: null;
+      monitorType: string;
+      currentMonitorStatusId: string;
+    } = (statusId: string) => {
+      return {
+        disableActiveMonitoring: false,
+        firstMeasuredAt: null,
+        monitorType: "Website",
+        currentMonitorStatusId: statusId,
+      };
+    };
+
+    const resources: Parameters<
+      typeof FrozenMonitorResources.getNotMonitoredYetResourceIds
+    >[0]["statusPageResources"] = [
+      { _id: "monitor-new", monitorId: "a", monitor: brandNew(operational) },
+      // An incident set it Offline before its first check: shown as it is.
+      { _id: "monitor-set", monitorId: "b", monitor: brandNew(offline) },
+      { _id: "group-new", monitorGroupId: "c" },
+      { _id: "group-mixed", monitorGroupId: "d" },
+    ];
+    const monitorGroupResources: Parameters<
+      typeof FrozenMonitorResources.getNotMonitoredYetResourceIds
+    >[0]["monitorGroupResources"] = {
+      c: [{ monitor: brandNew(operational) }],
+      d: [
+        { monitor: brandNew(operational) },
+        { monitor: { disableActiveMonitoring: true } },
+      ],
+    };
+
+    // Each decides no status, as a monitor nothing checks does...
+    expect(
+      FrozenMonitorResources.getNotMonitoredResourceIds({
+        statusPageResources: resources,
+        monitorGroupResources,
+        startingStatusIds,
+      }),
+    ).toEqual(["monitor-new", "group-new", "group-mixed"]);
+    // ...and the page words the ones nothing has checked yet apart.
+    expect(
+      FrozenMonitorResources.getNotMonitoredYetResourceIds({
+        statusPageResources: resources,
+        monitorGroupResources,
+        startingStatusIds,
+      }),
+    ).toEqual(["monitor-new", "group-new"]);
+
+    expect(RESOURCES).toContain(
+      "- **A monitor nothing has checked yet shows Not monitored yet.** Every monitor starts in the operational status, so until its first check comes back, its row shows **Not monitored yet** in gray rather than that status, and counts toward neither the group above it nor the overall status banner. A monitor group leaves its monitors nothing has checked yet out of its status, and shows **Not monitored yet** when none of them has been checked. Its history bars and uptime start at the first check too: a day before it reads as no data, not as a day up, and a resource nothing has checked yet shows a dash for its uptime and is left out of the uptime of the group above it and of the overall uptime percent. A status an incident or a person set before the first check is shown, and counted in the uptime, as it is. When nothing on the page has been checked yet, the banner says so.",
+    );
+  });
+
+  /*
+   * Issue #8960, documented in #9032: a monitor's bars and uptime start at
+   * its first check. Every statement that measures its time reads its rows
+   * through the cut (getTimelineSourceCtes and getFirstCheckCutSql), of a
+   * status a monitor starts in only; a resource nothing measured shows a
+   * dash and is left out of its group's average and the page's.
+   */
+  it("starts a monitor's bars and uptime at its first check, as the page says (#8960)", () => {
+    const timelineService: string = oneLine(
+      readSource("Common/Server/Services/MonitorStatusTimelineService.ts"),
+    );
+
+    expect(timelineService).toContain("public static getFirstCheckCutSql(");
+    expect(timelineService).toContain('ms."isOperationalState" IS TRUE');
+    expect(timelineService).toContain('ms."isOfflineState" IS NOT TRUE');
+    expect(timelineService).toContain(
+      "COALESCE(m.\"firstMeasuredAt\", 'infinity'::timestamptz)",
+    );
+
+    const monitorOverview: string = oneLine(
+      readSource(
+        "App/FeatureSet/StatusPage/src/Components/Monitor/MonitorOverview.tsx",
+      ),
+    );
+
+    // A reading that covers nothing is a dash, never 100%.
+    expect(monitorOverview).toContain("uptimePercent === null");
+    expect(monitorOverview).toContain("EMPTY_VALUE_MARK");
+
+    expect(RESOURCES).toContain(
+      "Its history bars and uptime start at the first check too: a day before it reads as no data, not as a day up, and a resource nothing has checked yet shows a dash for its uptime and is left out of the uptime of the group above it and of the overall uptime percent.",
+    );
+  });
+
+  /*
+   * Each docs language names it as that language's status page draws it:
+   * the page's overview.notMonitoredYet.
+   */
+  it("names Not monitored yet as each language's status page draws it (#8899)", () => {
+    for (const language of SUPPORTED_DOCS_LANGUAGE_CODES) {
+      const statusPageWords: Record<
+        string,
+        Record<string, unknown>
+      > = JSON.parse(
+        readSource(`App/FeatureSet/StatusPage/src/Locales/${language}.json`),
+      ) as Record<string, Record<string, unknown>>;
+      const word: string = String(
+        (statusPageWords["overview"] || {})["notMonitoredYet"],
+      );
+      const page: string = readPage(
+        language,
+        "status-pages/resources-and-groups",
+      );
+
+      expect({ language, word, named: page.includes(`**${word}**`) }).toEqual({
+        language,
+        word,
+        named: true,
+      });
+    }
   });
 });
 

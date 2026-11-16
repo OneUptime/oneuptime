@@ -32,6 +32,11 @@ import {
 } from "Common/UI/Config";
 import GoogleSignInButton from "../Components/GoogleSignInButton/GoogleSignInButton";
 import MicrosoftSignInButton from "../Components/MicrosoftSignInButton/MicrosoftSignInButton";
+import MoreWaysToSignIn, {
+  MORE_WAYS_TO_SIGN_IN_OPTIONS_ID,
+  readMoreWaysToSignInOpen,
+  rememberMoreWaysToSignInOpen,
+} from "../Components/MoreWaysToSignIn/MoreWaysToSignIn";
 import ProductLogo from "Common/UI/Components/ProductLogo/ProductLogo";
 import { isProductRenamed } from "Common/UI/Utils/ProductBranding";
 import EditionLabel from "Common/UI/Components/EditionLabel/EditionLabel";
@@ -219,6 +224,32 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
   const isMagicLinkLoginOffered: boolean =
     Boolean(signInMethodsRead.signInMethods?.isMagicLinkLoginEnabled) &&
     !isMasterAdminPasswordPage;
+
+  /*
+   * Google and Microsoft, where this server offers them: shown under the
+   * password form, not folded. Not on the master admins' page, where the
+   * server requires SSO and they sign nobody in.
+   */
+  const isGoogleSignInOffered: boolean =
+    Boolean(GoogleSignInClientId) && !isMasterAdminPasswordPage;
+  const isMicrosoftSignInOffered: boolean =
+    Boolean(MicrosoftSignInClientId) && !isMasterAdminPasswordPage;
+  const hasProviderSignIn: boolean =
+    isGoogleSignInOffered || isMicrosoftSignInOffered;
+
+  /*
+   * Whether "More ways to sign in" is open: single sign-on, a sign-in link
+   * and a passkey (MoreWaysToSignIn). Folded unless this browser left it
+   * open.
+   */
+  const [isMoreWaysOpen, setIsMoreWaysOpen] = React.useState<boolean>(
+    readMoreWaysToSignInOpen,
+  );
+
+  const toggleMoreWays: (isOpen: boolean) => void = (isOpen: boolean): void => {
+    setIsMoreWaysOpen(isOpen);
+    rememberMoreWaysToSignInOpen(isOpen);
+  };
 
   /*
    * On the page a sign-in link opens: the link's token, read once - "" when
@@ -1469,14 +1500,17 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
                 {/*
                  * The password form comes first, and its "Login" is the page's
                  * one filled button: it is how most people sign in. Under it,
-                 * an "or" divider and the other ways in, as normal buttons as
-                 * wide and as tall as Login, outlined where Login is filled:
-                 * single sign-on, Google and Microsoft where this server offers
-                 * them, and a passkey, last (SignInOptionStyle). Passkeys used to open the
-                 * card in a tinted panel of their own, which pushed the form
-                 * people came for below the fold on a phone; after that, the
-                 * other ways in were centred text links, which read as small
-                 * print rather than as choices.
+                 * Google and Microsoft where this server offers them, after an
+                 * "or", as normal buttons as wide and as tall as Login,
+                 * outlined where Login is filled (SignInOptionStyle). Then one
+                 * quiet line, "More ways to sign in", which opens single
+                 * sign-on, a sign-in link by email and a passkey, last, as the
+                 * same buttons. All five used to stand open under the form,
+                 * and people could not tell which was theirs (#9023). Passkeys
+                 * before that opened the card in a tinted panel of their own,
+                 * which pushed the form people came for below the fold on a
+                 * phone; and before that, the other ways in were centred text
+                 * links, which read as small print rather than as choices.
                  *
                  * While a passkey attempt runs, the form is paused, and looks
                  * it: disabled, faded, and out of the pointer's reach, its
@@ -1566,63 +1600,83 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
                     maxPrimaryButtonWidth={true}
                     footer={
                       /*
-                       * The other ways in that leave this page: single sign-on,
-                       * and Google and Microsoft where this server offers them.
-                       * Inside the fieldset, so a passkey attempt pauses them
-                       * with the form; the passkey option, last, follows the
-                       * fieldset.
+                       * The other ways in that leave this page. Google and
+                       * Microsoft, where this server offers them, under an
+                       * "or": one click, and known at a glance. Single
+                       * sign-on and a sign-in link by email fold under "More
+                       * ways to sign in" (MoreWaysToSignIn) with the passkey,
+                       * so the card shows one clear way in, not five buttons
+                       * (#9023). Inside the fieldset, so a passkey attempt
+                       * pauses them with the form; the passkey option, last,
+                       * follows the fieldset.
                        */
                       <div data-testid="sign-in-options">
-                        <LabelledDivider
-                          label={t("common.or")}
-                          className="my-5"
-                          dataTestId="sign-in-options-divider"
+                        {hasProviderSignIn && (
+                          <>
+                            <LabelledDivider
+                              label={t("common.or")}
+                              className="my-5"
+                              dataTestId="sign-in-options-divider"
+                            />
+                            <div className="space-y-3">
+                              {/*
+                               * Not on the master admins' page: while the
+                               * server requires SSO, Google and Microsoft sign
+                               * nobody in.
+                               */}
+                              {isGoogleSignInOffered ? (
+                                <GoogleSignInButton
+                                  title={t("common.continueWithGoogle")}
+                                />
+                              ) : (
+                                <></>
+                              )}
+                              {isMicrosoftSignInOffered ? (
+                                <MicrosoftSignInButton
+                                  title={t("login.signInWithMicrosoft")}
+                                />
+                              ) : (
+                                <></>
+                              )}
+                            </div>
+                          </>
+                        )}
+                        <MoreWaysToSignIn
+                          isOpen={isMoreWaysOpen}
+                          onToggle={toggleMoreWays}
+                          className={hasProviderSignIn ? "mt-4" : "mt-5"}
                         />
-                        <div className="space-y-3">
-                          <SignInOptionLink
-                            to={new Route("/accounts/sso")}
-                            id="sso-login"
-                            dataTestId="sso-login"
-                            icon={IconProp.ShieldCheck}
-                            title={t("login.signInWithSso")}
-                          />
-                          {/*
-                           * Not on the master admins' page: while the server
-                           * requires SSO, Google and Microsoft sign nobody in.
-                           */}
-                          {GoogleSignInClientId &&
-                          !isMasterAdminPasswordPage ? (
-                            <GoogleSignInButton
-                              title={t("common.continueWithGoogle")}
-                            />
-                          ) : (
-                            <></>
-                          )}
-                          {MicrosoftSignInClientId &&
-                          !isMasterAdminPasswordPage ? (
-                            <MicrosoftSignInButton
-                              title={t("login.signInWithMicrosoft")}
-                            />
-                          ) : (
-                            <></>
-                          )}
-                          {/*
-                           * A sign-in link emailed to the account, where this
-                           * server takes them (Common/Types/Accounts/MagicLink):
-                           * the address, then the link, on a page of its own.
-                           */}
-                          {isMagicLinkLoginOffered ? (
+                        {isMoreWaysOpen && (
+                          <div
+                            id={MORE_WAYS_TO_SIGN_IN_OPTIONS_ID}
+                            className="mt-3 space-y-3"
+                          >
                             <SignInOptionLink
-                              to={new Route(`/accounts/${MAGIC_LINK_ROUTE}`)}
-                              id={MAGIC_LINK_SIGN_IN_OPTION_TEST_ID}
-                              dataTestId={MAGIC_LINK_SIGN_IN_OPTION_TEST_ID}
-                              icon={IconProp.Email}
-                              title={t("login.emailSignInLink")}
+                              to={new Route("/accounts/sso")}
+                              id="sso-login"
+                              dataTestId="sso-login"
+                              icon={IconProp.ShieldCheck}
+                              title={t("login.signInWithSso")}
                             />
-                          ) : (
-                            <></>
-                          )}
-                        </div>
+                            {/*
+                             * A sign-in link emailed to the account, where
+                             * this server takes them (Common/Types/Accounts/
+                             * MagicLink): the address, then the link, on a
+                             * page of its own.
+                             */}
+                            {isMagicLinkLoginOffered ? (
+                              <SignInOptionLink
+                                to={new Route(`/accounts/${MAGIC_LINK_ROUTE}`)}
+                                id={MAGIC_LINK_SIGN_IN_OPTION_TEST_ID}
+                                dataTestId={MAGIC_LINK_SIGN_IN_OPTION_TEST_ID}
+                                icon={IconProp.Email}
+                                title={t("login.emailSignInLink")}
+                              />
+                            ) : (
+                              <></>
+                            )}
+                          </div>
+                        )}
                       </div>
                     }
                   />
@@ -1655,7 +1709,7 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
                  * alone: a passkey is no SSO either, and the page is their way
                  * in when the rest are closed.
                  */}
-                {!isMasterAdminPasswordPage && (
+                {!isMasterAdminPasswordPage && isMoreWaysOpen && (
                   <div
                     className="mt-3 text-center text-sm"
                     data-testid="passkey-option"

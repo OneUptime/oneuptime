@@ -103,6 +103,8 @@ De rol die u kiest, wordt de eerste machtiging van het team, voor alle resources
 
 Waar u het vindt: open een team onder **Teams** om naar **Leden** en **Machtigingen** te gaan; zijn aangepaste rollen en **Machtigingen blokkeren** staan onder **Meer instellingen** onderaan de pagina Machtigingen, waarvan de ingeklapte kop toont hoeveel het team er van elk heeft.
 
+De pagina van een team heeft een kaart **Gebruikt door**: de bereikbaarheidsbeleidsregels waarvan de escalatieregels het team oproepen, en alles wat het team in eigendom heeft, van monitoren en statuspagina's tot SLOs, dashboards, infrastructuur en incidenten. Een team verwijderen, op zijn pagina of vanuit de lijst, zegt dit eerst: zijn beleid roept zijn leden niet meer op, en het is er geen eigenaar meer van. Wat u niet mag openen, wordt geteld maar niet genoemd.
+
 ## Machtigingen
 
 Een machtiging is één vermogen. Er zijn twee manieren om ze toe te kennen, en beide staan op het tabblad **Machtigingen** van het team.
@@ -280,7 +282,7 @@ API-sleutels krijgen machtigingen rechtstreeks, op de sleutel zelf, of via de aa
 :::steps
 1. Open **Projectinstellingen > Geavanceerd > API-sleutels** en klik op **API-sleutel aanmaken**. Op OneUptime Cloud vragen API-sleutels het Growth-abonnement.
 2. Typ de **Naam** van de sleutel en kies zijn **Toegang**. De beschrijving en de vervaldatum staan onder **Meer velden**; een sleutel verloopt een jaar na de dag waarop hij is aangemaakt, tenzij u een andere datum kiest, en het ingeklapte deel zegt dat.
-3. Maak de sleutel aan. Hij opent op zijn pagina, waar u hem kopieert.
+3. Maak de sleutel aan. OneUptime toont hem één keer, in een dialoogvenster: kopieer hem daar. Daarna opent zijn pagina.
 :::
 
 De rol die u kiest, wordt de eerste machtiging van de sleutel zodra de sleutel bestaat, precies alsof u hem op de pagina van de sleutel had toegevoegd. U krijgt alleen de rollen aangeboden die u zelf hebt — een sleutel kan nooit meer krijgen dan de persoon die hem geeft heeft — en wie sleutels mag aanmaken maar niet mag wijzigen wat ze kunnen, wordt niets gevraagd.
@@ -340,7 +342,7 @@ Opgeloste machtigingen worden per gebruiker en project gecachet en vernieuwd wan
 
 Een incident, waarschuwing of episode die als privé is gemarkeerd, is alleen zichtbaar voor de eigenaren ervan — de personen die als eigenaar zijn genoemd en de leden van de eigenaarteams die hun uitnodiging hebben geaccepteerd — en voor de Projecteigenaren en Projectbeheerders.
 
-Zo'n record wordt alleen gewijzigd met de machtigingen van de teams die eigenaar ervan zijn en van de personen die als eigenaar zijn genoemd. Wie als eigenaar is genoemd, handelt erop met elke machtiging die hij heeft. Ieder ander handelt erop alleen met de machtigingen van zijn teams die eigenaar ervan zijn, elk met een eigen bereik en eigen labels: de machtiging van een ander team bereikt geen privérecord waarvan dat team geen eigenaar is. Dat geldt voor alles wat er met het record en wat erbij hoort gebeurt — het bewerken, de status wijzigen, de notities, eigenaren, rollen, labels, gekoppelde waarschuwingen, episodeleden en gesprekken, en het verwijderen — vanuit het dashboard, de API, bulkacties, Slack, Microsoft Teams of OneUptime AI. De Projecteigenaren en Projectbeheerders wijzigen elk privérecord, net als workflowstappen, die als Projectbeheerder handelen; een API-sleutel doet dat alleen met `ProjectOwner` of `ProjectAdmin`.
+Zo'n record wordt alleen gewijzigd met de machtigingen van de teams die eigenaar ervan zijn en van de personen die als eigenaar zijn genoemd. Wie als eigenaar is genoemd, handelt erop met elke machtiging die hij heeft. Ieder ander handelt erop alleen met de machtigingen van zijn teams die eigenaar ervan zijn, elk met een eigen bereik en eigen labels: de machtiging van een ander team bereikt geen privérecord waarvan dat team geen eigenaar is. Dat geldt voor alles wat er met het record en wat erbij hoort gebeurt — het bewerken, de status wijzigen, de notities, eigenaren, rollen, labels, gekoppelde waarschuwingen, episodeleden en gesprekken, en het verwijderen — vanuit het dashboard, de API, bulkacties, Slack, Microsoft Teams of OneUptime AI. De Projecteigenaren en Projectbeheerders wijzigen elk privérecord, en een API-sleutel doet dat alleen met `ProjectOwner` of `ProjectAdmin`.
 
 | Iemand in team 1 en team 2 | Een privé-incident van team 2 | Een openbaar incident van team 2 |
 | --- | --- | --- |
@@ -349,6 +351,12 @@ Zo'n record wordt alleen gewijzigd met de machtigingen van de teams die eigenaar
 | Team 2 heeft ook `IncidentMember` | Wijzigt het via team 2 | Wijzigt het via elk van beide teams |
 
 Een team dat eigenaar is van privérecords maar geen machtigingen heeft, een team dat alleen mensen groepeert, laat zijn leden ze zien en geen ervan wijzigen. Op de pagina van een privérecord is een wijziging die de teams van de persoon die eigenaar zijn niet mogen maken vergrendeld, met de reden erbij. Om die toe te staan, geeft u een team dat eigenaar is de machtiging, maakt u een team met de machtiging eigenaar of maakt u de persoon eigenaar.
+
+Wat er rond een privérecord wordt gedaan, volgt dezelfde regel: iemand erover oproepen (**Bereikbaarheidsdienstbeleid uitvoeren**, **Nu oproepen** en oproepen vanuit Slack, Microsoft Teams, Mattermost of OneUptime AI), een runbook ervoor starten of die run verder brengen, en een correctie die OneUptime AI ervoor voorstelde goedkeuren, op proef draaien of afwijzen. Elk daarvan vraagt een eigen recht, zoals on-callbeleid oproepen of runbookuitvoeringen starten, en op een privérecord lenen alleen de teams die het bezitten dat recht uit, naast de personen die als eigenaar zijn genoemd. Iedereen anders wordt met de reden geweigerd, en er wordt niets opgeroepen, uitgevoerd of gewijzigd.
+
+Wat er rond een privérecord wordt gedaan en verstuurd, lezen alleen zij die het record mogen lezen: de runs van on-callbeleid, de runbookruns, de correcties die ervoor zijn voorgesteld, en de logboeken van de e-mails, sms'jes, oproepen, pushmeldingen, chatberichten, webhooks en AI-verzoeken die OneUptime erover verstuurde. De mensen die erover zijn opgeroepen, zien hun oproep nog steeds.
+
+Workflows handelen niet op privérecords. De stappen van een workflow handelen als Projectbeheerder, maar krijgen nooit diens zicht op privé-incidenten, -waarschuwingen en -episodes geleend: ze vinden er geen, wijzigen er geen en voegen er niets aan toe, en een workflow start niet op zo'n record of op iets dat erbij hoort. Zie [Wat workflowstappen mogen](/docs/workflows/configuration#wat-workflowstappen-mogen).
 
 ### Regels die bij teams horen
 

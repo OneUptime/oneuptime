@@ -92,6 +92,8 @@ I en lista visas en posts etiketter under varandra; är de fler än fyra visas d
 
 För att fasa ut en etikett arkiverar du den från radens meny **⋯** i stället för att ta bort den. Allt som har etiketten behåller den, och du kan fortfarande filtrera på den, men ingen kan lägga till den på något igen: Varje etikettväljare utelämnar den, och API:et, Terraform och MCP avvisar den. Dialogen listar de regler och behörigheter som är inställda på att använda etiketten, och som fortsätter att använda den tills du ändrar dem. Arkiverade etiketter listas för sig, i det hopfällda avsnittet **Arkiverade etiketter**, där **Avarkivera** återställer en. **Ta bort** listar först allt som etiketten skulle tas bort från och erbjuder **Arkivera i stället**.
 
+**Används av**, i menyn på en etiketts rad, räknar posterna av varje slag som har etiketten, och öppnar dem en sida i taget. Poster du inte får öppna räknas men namnges inte.
+
 ## Aviseringar
 
 **Projektinställningar → Aviseringar** innehåller hur projektet skickar aviseringar:

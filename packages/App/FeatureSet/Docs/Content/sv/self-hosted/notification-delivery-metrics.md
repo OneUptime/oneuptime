@@ -6,7 +6,7 @@ OneUptime registrerar hur det går för aviseringarna det skickar: hur många in
 - [Slå på dem](#slå-på-dem): Två inställningar, och utan dem registreras ingenting.
 - [Mätvärdena](#mätvärdena): Sju mätvärden, från utlösaren till telefonen.
 - [Så tidsmäts ett larm](#så-tidsmäts-ett-larm): Vad tid till sändning och sändningsfördröjning räknas från.
-- [SLO:er att börja med](#sloer-att-börja-med): Fyra mål, fråga för fråga.
+- [SLO:er att börja med](#sloer-att-börja-med): Fem mål, fråga för fråga.
 :::
 
 ## Så fungerar det
@@ -151,7 +151,7 @@ Statusar kommer bara där leverantören kan rapportera dem:
 | --- | --- |
 | `monitor_data_received` | När OneUptime tog emot de data som utlöste monitorn: en inkommande begäran, en serveragents rapport, ett inkommande e-postmeddelande, en sonds kontroll, en SNMP-trap eller en avläsning av en nätverksenhet. Det inkluderar tiden som data väntade i kön på att utvärderas. |
 | `record_created` | När incidenten, larmet eller episoden skapades: av en telemetrimonitor, en regel eller en person, och vid en kontroll av frånvaro, till exempel en heartbeat som slutade. |
-| `page_started` | När ett larm startade senare: en person, ett arbetsflöde eller en regel som nu matchar startade det, eller det är ett direktlarm. För ett larm som dess jourregel eller OneUptime AI höll kvar, när uppehållet tog slut, eller när det startade om det var tidigare. För ett nytt larm, när tidsgränsen efter bekräftelse löpte ut. Så syns en worker som kom sent till något av dem i tiden. |
+| `page_started` | När ett larm startade senare: en person, ett arbetsflöde eller en regel som nu matchar startade det, eller det är ett direktlarm. För ett larm som dess jourregel eller OneUptime AI höll kvar, när uppehållet tog slut, eller när det startade om det var tidigare. För ett nytt larm, när tidsgränsen efter bekräftelse löpte ut, eller när dess policy senast ändrades, om det var senare: en tidsgräns som kortades så mycket att den redan hade löpt ut tidsmäts från ändringen. Så syns en worker som kom sent till något av dem i tiden. |
 
 För en inkommande begäran löper tiden från den senaste begäran som slutpunkten tog emot, så den kan bli lite för kort.
 
@@ -183,7 +183,7 @@ En percentil beräknas från bucketarna och ritas som mitten av den bucket den h
 
 ## SLO:er att börja med
 
-Fyra mål som de flesta installationer kan lova, vart och ett byggt av en eller två frågor i mätvärdesutforskaren i projektet som tar emot mätvärdena. De läser ett tidsintervall exakt när mätvärdena kommer fram som deltor: se [Skicka deltor till ett OneUptime-projekt](#skicka-deltor-till-ett-oneuptime-projekt).
+Fem mål som de flesta installationer kan lova, vart och ett byggt av en eller två frågor i mätvärdesutforskaren i projektet som tar emot mätvärdena. De läser ett tidsintervall exakt när mätvärdena kommer fram som deltor: se [Skicka deltor till ett OneUptime-projekt](#skicka-deltor-till-ett-oneuptime-projekt).
 
 ### Bygg ett i mätvärdesutforskaren
 
@@ -216,7 +216,17 @@ Formeln `$b / $a * 100` är andelen som misslyckades, och målet håller så lä
 | --- | --- | --- | --- |
 | `a` | `notification.time_to_send` | **P95** | `notification.page.start != page_started` |
 
-Målet håller så länge `a` ligger på eller under 30000. Larm som startas senare tidsmäts från sin start eller sin förfallotid, inte från en utlösare, så de lämnas utanför. Gruppera efter `notification.page.start` för att se monitorernas kö (`monitor_data_received`) skild från resten, eller efter `notification.channel` för att hitta en långsam kanal.
+Målet håller så länge `a` ligger på eller under 30000. Larm som startas senare tidsmäts från sin start eller sin förfallotid, inte från en utlösare, så de lämnas utanför: nästa mål täcker dem. Gruppera efter `notification.page.start` för att se monitorernas kö (`monitor_data_received`) skild från resten, eller efter `notification.channel` för att hitta en långsam kanal.
+
+### Larm som startas senare går ut inom 2 minuter
+
+95 % av larmen som startas senare når sin leverantör inom 2 minuter efter förfallotiden: ett larm som hölls kvar, ett nytt larm och ett larm som en person, ett arbetsflöde eller en regel startade.
+
+| Fråga | Mätvärde | Aggregering | Villkor |
+| --- | --- | --- | --- |
+| `a` | `notification.time_to_send` | **P95** | `notification.page.start = page_started` |
+
+Målet håller så länge `a` ligger på eller under 120000. Ett larm som hölls kvar eller ett nytt larm väntar på nästa körning av en worker som körs en gång i minuten, så upp till en minut av tiden går åt till att vänta på den, och en worker som hamnade efter lägger till mer.
 
 ### Senare skickade aviseringar går ut inom 90 sekunder
 

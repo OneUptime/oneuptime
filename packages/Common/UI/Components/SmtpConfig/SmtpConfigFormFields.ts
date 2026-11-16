@@ -1444,6 +1444,66 @@ export const getProviderSenderFormFields: <TEntity>(columns: {
   ];
 };
 
+type StoredValuesRule = (storedValues: unknown) => boolean;
+
+/*
+ * WHICH CREDENTIAL A PROJECT'S CONFIG KEEPS, AS ITS EDIT DIALOG READ IT.
+ *
+ * A project's credentials are write-only (ProjectSmtpConfig): the Edit
+ * dialog never loads one, and leaves each blank, which keeps the stored
+ * one (ModelForm's write-only fields). A config keeps the credential of the
+ * way it sends, as the form asked for it: the password of a server it
+ * signs in to with one, the client secret of its OAuth app, the key of its
+ * provider. So each credential is kept - blank keeps it, and it says so -
+ * only on a config that, as the dialog read it, sent that way. On any other
+ * there is nothing stored to keep, and it is asked for as on a new config
+ * (Field.hasNothingStoredWhenEditing): a config switched to OAuth asks for
+ * its client secret, one switched to SendGrid for its key.
+ */
+export const PROJECT_SMTP_CONFIG_CREDENTIAL_IS_KEPT_BY: Readonly<
+  Record<string, StoredValuesRule>
+> = {
+  password: (storedValues: unknown): boolean => {
+    return showsSmtpPassword(storedValues, PROJECT_SMTP_CONFIG_FORM_COLUMNS);
+  },
+  clientSecret: (storedValues: unknown): boolean => {
+    return showsSmtpOAuthCredentials(
+      storedValues,
+      PROJECT_SMTP_CONFIG_FORM_COLUMNS,
+    );
+  },
+  amazonSesSecretAccessKey: isProjectTransport(MailTransportType.AmazonSES),
+  sendgridApiKey: isProjectTransport(MailTransportType.SendGrid),
+  mailgunApiKey: isProjectTransport(MailTransportType.Mailgun),
+  postmarkServerToken: isProjectTransport(MailTransportType.Postmark),
+  resendApiKey: isProjectTransport(MailTransportType.Resend),
+};
+
+// A project's field, asked for as on a new config when nothing is kept.
+const withStoredCredentialRule: (
+  field: Field<ProjectSmtpConfig>,
+) => Field<ProjectSmtpConfig> = (
+  field: Field<ProjectSmtpConfig>,
+): Field<ProjectSmtpConfig> => {
+  const column: string | undefined = Object.keys(field.field || {})[0];
+  const isKept: StoredValuesRule | undefined = column
+    ? PROJECT_SMTP_CONFIG_CREDENTIAL_IS_KEPT_BY[column]
+    : undefined;
+
+  if (!isKept) {
+    return field;
+  }
+
+  return {
+    ...field,
+    hasNothingStoredWhenEditing: (
+      storedValues: FormValues<ProjectSmtpConfig>,
+    ): boolean => {
+      return !isKept(storedValues);
+    },
+  };
+};
+
 /**
  * A project's Custom SMTP config: the provider first, its Name beside it,
  * then the step of the provider picked, then who the mail comes from.
@@ -1458,7 +1518,7 @@ export const getProjectSmtpConfigFormFields: () => Array<
   const serverSection: FormFieldCollapsibleSection<ProjectSmtpConfig> =
     getProjectSmtpServerSection();
 
-  return [
+  const fields: Array<Field<ProjectSmtpConfig>> = [
     {
       field: { name: true },
       title: "Name",
@@ -1634,6 +1694,9 @@ export const getProjectSmtpConfigFormFields: () => Array<
       fromName: "fromName",
     }),
   ];
+
+  // Its credentials are write-only: see PROJECT_SMTP_CONFIG_CREDENTIAL_IS_KEPT_BY.
+  return fields.map(withStoredCredentialRule);
 };
 
 /*

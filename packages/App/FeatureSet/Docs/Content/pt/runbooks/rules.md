@@ -49,7 +49,7 @@ Você vê todas as execuções, iniciadas por regras ou não, em **Runbooks → 
 :::steps
 ### Abrir as regras de runbook
 
-Em **Incidentes**, **Alertas** ou **Manutenção programada**, abra **Regras → Regras de runbook** e clique em **Criar: Runbook Rule**.
+Em **Incidentes**, **Alertas** ou **Manutenção programada**, abra **Regras → Regras de runbook** e clique em **Criar: Regra de runbook**.
 
 ### Adicionar condições
 
@@ -57,7 +57,7 @@ Em **Corresponder**, **Aplica-se a** começa em todo evento novo desse tipo, por
 
 ### Escolher os runbooks
 
-Em **Runbooks**, escolha um ou mais **Runbooks para iniciar**. O **Nome** da regra os acompanha, como "Iniciar Database failover", até você digitar um próprio, e uma **Descrição** fica em **Mais campos**. Clique em **Criar: Runbook Rule**. A regra fica ativa assim que é criada e aparece na lista com o status **Habilitado**.
+Em **Runbooks**, escolha um ou mais **Runbooks para iniciar**. O **Nome** da regra os acompanha, como "Iniciar Database failover", até você digitar um próprio, e uma **Descrição** fica em **Mais campos**. Clique em **Criar: Regra de runbook**. A regra fica ativa assim que é criada e aparece na lista com o status **Habilitado**.
 :::
 
 ## Anatomia de uma regra

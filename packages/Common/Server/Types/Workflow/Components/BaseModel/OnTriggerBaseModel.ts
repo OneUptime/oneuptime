@@ -35,11 +35,15 @@ import {
   getCustomFieldName,
 } from "../../../../../Types/Workflow/CustomFieldsColumn";
 import { DatabaseOperation } from "../../../../../Types/Workflow/DatabaseOperation";
-import { getWatchedColumns } from "../../../../../Types/Workflow/WatchedFields";
+import {
+  HEARD_ONLY_WHERE_WATCHED_KEY,
+  getWatchedColumns,
+} from "../../../../../Types/Workflow/WatchedFields";
 import Workflow from "../../../../../Models/DatabaseModels/Workflow";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 import { normalizeModelKeys } from "./ModelArguments";
 import { describeRefusal } from "./LogComponentError";
+import { getWorkflowPrivateRecordRefusal } from "../../../../../Types/Workflow/WorkflowPrivateRecords";
 
 export default class OnTriggerBaseModel<
   TBaseModel extends BaseModel,
@@ -121,6 +125,30 @@ export default class OnTriggerBaseModel<
 
     if (args["_id"]) {
       data["_id"] = args["_id"];
+    }
+
+    /*
+     * Never on a private incident, alert or episode, nor on anything of one
+     * (#8914): a step sees no private record, and what the event hands the
+     * run - an update's new values - is the record's. The event is not
+     * posted for one (DatabaseService.onTriggerWorkflow); a run started by
+     * hand, or a record made private while its event waited, stops here,
+     * before any of it is handed on.
+     */
+    if (
+      data["_id"] &&
+      ObjectID.isValidUUID(data["_id"].toString()) &&
+      (await this.service!.isAboutPrivateRecord(
+        new ObjectID(data["_id"].toString()),
+      ))
+    ) {
+      const refusal: string = getWorkflowPrivateRecordRefusal(
+        this.service!.getModel().singularName || "record",
+      );
+
+      options.log(refusal);
+
+      throw new BadDataException(refusal);
     }
 
     const miscData: JSONObject = (data?.["miscData"] as JSONObject) || {};
@@ -224,11 +252,21 @@ export default class OnTriggerBaseModel<
     }
 
     if (!model) {
-      options.log("Model not found with id " + data["_id"].toString());
+      /*
+       * A record of a kind that can be private, or a part of one, the step
+       * does not find: in the same words as one that is private, so the run
+       * log never tells the two apart (see the check at the top).
+       */
+      const notFound: string =
+        this.service!.getPrivateRecordColumns().length > 0
+          ? getWorkflowPrivateRecordRefusal(
+              this.service!.getModel().singularName || "record",
+            )
+          : "Model not found with id " + data["_id"].toString();
 
-      throw new BadDataException(
-        ("Model not found with id " + data["_id"].toString()) as string,
-      );
+      options.log(notFound);
+
+      throw new BadDataException(notFound);
     }
 
     return {
@@ -357,7 +395,10 @@ export default class OnTriggerBaseModel<
    * Whether an update reaches a workflow through its Fields to watch
    * (stored as "listen-on"): yes with nothing watched, and yes when the
    * update says it changed one of the watched fields. An update that says
-   * nothing of what it changed skips the check, as it always has.
+   * nothing of what it changed skips the check, as it always has. An update
+   * OneUptime makes for its own bookkeeping - a reminder moved on - reaches
+   * only a workflow that watches a field it changed
+   * (HEARD_ONLY_WHERE_WATCHED_KEY, issue #9019).
    */
   private isUpdateWatched(data: {
     workflow: Workflow;
@@ -366,15 +407,20 @@ export default class OnTriggerBaseModel<
   }): boolean {
     const workflow: Workflow = data.workflow;
 
+    const miscData: JSONObject =
+      (data.requestData?.["miscData"] as JSONObject) || {};
+
+    // What a workflow that watches nothing hears of the update.
+    const isHeardUnwatched: boolean =
+      miscData[HEARD_ONLY_WHERE_WATCHED_KEY] !== true;
+
     if (!workflow.triggerArguments?.["listen-on"]) {
-      return true;
+      return isHeardUnwatched;
     }
 
     let listenOn: JSONObject = workflow.triggerArguments?.[
       "listen-on"
     ] as JSONObject;
-    const miscData: JSONObject =
-      (data.requestData?.["miscData"] as JSONObject) || {};
 
     if (
       !listenOn ||
@@ -382,7 +428,7 @@ export default class OnTriggerBaseModel<
       !miscData ||
       Object.keys(miscData).length === 0
     ) {
-      return true;
+      return isHeardUnwatched;
     }
 
     try {
@@ -400,7 +446,7 @@ export default class OnTriggerBaseModel<
     const updatedFields: JSONObject = miscData["updatedFields"] as JSONObject;
 
     if (!updatedFields || Object.keys(updatedFields).length === 0) {
-      return true;
+      return isHeardUnwatched;
     }
 
     /*

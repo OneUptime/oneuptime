@@ -267,20 +267,30 @@ describe("a log body sent as a map or a list: a Sensitive Attribute Keys rule re
     expect(
       scrubbedBody('{ "level": "info", "msg": "login" }', [SENSITIVE_KEYS]),
     ).toBe('{ "level": "info", "msg": "login" }');
-    // ...and written as JSON writes it when a secret is hidden.
+    // ...and when a secret is hidden: only the secret changes (#8993).
     expect(
       scrubbedBody('{ "msg": "login", "password": "hunter2" }', [
         SENSITIVE_KEYS,
       ]),
-    ).toBe('{"msg":"login","password":"[REDACTED]"}');
+    ).toBe('{ "msg": "login", "password": "[REDACTED]" }');
   });
 
-  test("a key written with an escape is read as the key it is", () => {
+  test("a key written with an escape is read as the key it is, and stays written so", () => {
     expect(
       scrubbedBody('{"pass\\u0077ord":"hunter2","note":"a\\nb"}', [
         SENSITIVE_KEYS,
       ]),
-    ).toBe('{"password":"[REDACTED]","note":"a\\nb"}');
+    ).toBe('{"pass\\u0077ord":"[REDACTED]","note":"a\\nb"}');
+  });
+
+  test("the numbers, spaces and keys of a body it hides a secret in stay as they were written (#8993)", () => {
+    const body: string =
+      '{\n  "user_id": 12345678901234567890,\n  "amount": 1.50,\n  "10": "ten",\n  "2": "two",\n  "password": "a",\n  "password": "b"\n}';
+
+    // Parsed and written again, the id lost digits, 1.50 became 1.5, "2" moved and one password was dropped.
+    expect(scrubbedBody(body, [SENSITIVE_KEYS])).toBe(
+      body.split('"a"').join('"[REDACTED]"').split('"b"').join('"[REDACTED]"'),
+    );
   });
 
   test("a rule saved with a body-only scope still reads the body's keys", () => {
@@ -291,32 +301,41 @@ describe("a log body sent as a map or a list: a Sensitive Attribute Keys rule re
     ).toBe(stored(kv([["password", str("[REDACTED]")]])));
   });
 
-  test("the keys are read before a pattern rule listed first changes the text: an address after an escape is matched with it", () => {
+  test("the keys are read whatever the order of the list, and an address after an escape leaves the body JSON (#8923)", () => {
     const body: string = stored(
       kv([
         ["message", str(`line one\n${EMAIL}`)],
         ["password", str("pw-3")],
       ]),
     );
-    // The Email rule alone: the match takes the escape's letter with it.
+    /*
+     * The Email rule alone. Its match used to take the escape's letter
+     * with it - `n` + the address - and leave `\[REDACTED]`, which is not
+     * JSON. The address is matched as written, after the line break.
+     */
     const emailOnly: string = scrubbedBody(body, [
       { patternType: "email", action: "redact" },
     ]);
 
-    expect(emailOnly).not.toContain(EMAIL);
-    expect(() => {
-      return JSON.parse(emailOnly);
-    }).toThrow();
+    expect(emailOnly).toBe(
+      stored(
+        kv([
+          ["message", str("line one\n[REDACTED]")],
+          ["password", str("pw-3")],
+        ]),
+      ),
+    );
 
     const both: string = scrubbedBody(body, [
       { patternType: "email", action: "redact" },
       SENSITIVE_KEYS,
     ]);
 
-    expect(both).not.toContain(EMAIL);
-    expect(both).not.toContain("pw-3");
-    expect(both).toContain(
-      '"key":"password","value":{"stringValue":"[REDACTED]"}',
+    expect(JSON.parse(both)).toEqual(
+      kv([
+        ["message", str("line one\n[REDACTED]")],
+        ["password", str("[REDACTED]")],
+      ]),
     );
   });
 
@@ -597,6 +616,10 @@ describe("a span's status message and its events' names: All reaches them", () =
         ): string => {
           asked.push(text);
           return regex.replace(text, replacer);
+        },
+        matchRanges: (text: string): Array<[number, number]> => {
+          asked.push(text);
+          return regex.matchRanges(text);
         },
       };
     }

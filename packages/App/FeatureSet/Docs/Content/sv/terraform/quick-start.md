@@ -32,7 +32,7 @@ flowchart TB
 
 Öppna **Projektinställningar → Avancerad → API-nycklar** i OneUptimes instrumentpanel och klicka på **Skapa API-nyckel**. Ge den ett **Namn**, till exempel `terraform`, och välj **Projektadministratör** under **Åtkomst**: Terraform skapar, läser, ändrar och tar bort alla slags poster som det hanterar, och **Projektadministratör** får göra allt det. För en mer begränsad nyckel väljer du **Välj behörigheter senare** och lägger bara till de behörigheter som du behöver på nyckelns sida.
 
-Nyckeln går ut om ett år. För att välja ett annat datum öppnar du **Fler fält** innan du skapar den, eller ändrar datumet senare på nyckelns sida. När nyckeln har skapats öppnas dess sida: kopiera **API-nyckel** från kortet **Detaljer om API-nyckel**.
+Nyckeln går ut om ett år. För att välja ett annat datum öppnar du **Fler fält** innan du skapar den, eller ändrar datumet senare på nyckelns sida. När nyckeln har skapats visar OneUptime den en gång, i dialogrutan **Kopiera din API-nyckel**: kopiera den innan du trycker på **Klar**.
 
 ### Gör nyckeln tillgänglig för Terraform
 
@@ -218,7 +218,7 @@ Providern hittade ingen API-nyckel. Exportera `ONEUPTIME_API_KEY` i det skal dä
 :::
 
 :::details Meddelandet ”the OneUptime API returned status 400: Invalid API Key”
-Nyckeln är felskriven, har gått ut eller har tagits bort, eller så hör den till ett annat OneUptime än det som `oneuptime_url` pekar på. Kopiera nyckeln igen från dess sida, eller skapa en ny.
+Nyckeln är felskriven, har gått ut eller har tagits bort, eller så hör den till ett annat OneUptime än det som `oneuptime_url` pekar på. Jämför den med hur nyckeln slutar på dess sida, eller återställ den där för att få en ny.
 :::
 
 :::details Meddelandet ”the OneUptime API returned status 402: API keys need the Growth plan”

@@ -135,6 +135,72 @@ describe("Subscribers & Announcements (English): Email reports", () => {
     );
   });
 
+  /*
+   * Issue #9030: a resource nothing was measured for in the report's window
+   * has no figures, a dash, with the status page's own words for it, and is
+   * left out of the averages - what StatusPageService builds and the
+   * built-in email draws.
+   */
+  it("says what a resource nothing was measured for reads in the report, as the report builds it (#9030)", () => {
+    const service: string = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../../../../Common/Server/Services/StatusPageService.ts",
+      ),
+      "utf8",
+    );
+    const template: string = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../../../FeatureSet/Notification/Templates/StatusPageSubscriberReport.hbs",
+      ),
+      "utf8",
+    );
+
+    expect(service).toContain("EMPTY_VALUE_MARK");
+    expect(service).toContain("StatusPageReportUptimeText.notMonitoredYet");
+    expect(service).toContain("StatusPageReportUptimeText.notMonitored");
+    expect(template).toContain("{{this.notMonitoredText}}");
+
+    expect(section).toContain(
+      "A resource nothing was measured for in that time, because nothing had checked it yet or its monitoring was off, has no uptime or downtime in the report: both read as a dash, with Not monitored yet or Not monitored under its name as on the status page, and it is left out of its group's and the page's average uptime.",
+    );
+  });
+
+  /*
+   * And in every docs language, in the words that language's status page
+   * shows for such a resource (overview.notMonitoredYet and
+   * overview.notMonitored), which the report itself writes there too.
+   */
+  it("names it, in every docs language, as that language's status page does (#9030)", () => {
+    for (const language of fs.readdirSync(CONTENT_DIR).sort()) {
+      if (language === "en") {
+        continue;
+      }
+
+      const overview: Record<string, string> = (
+        JSON.parse(
+          fs.readFileSync(
+            path.resolve(
+              __dirname,
+              "../../../FeatureSet/StatusPage/src/Locales",
+              `${language}.json`,
+            ),
+            "utf8",
+          ),
+        ) as { overview: Record<string, string> }
+      ).overview;
+
+      const words: string = readPage(`${language}/status-pages/subscribers.md`);
+
+      expect({
+        language,
+        notMonitoredYet: words.includes(overview["notMonitoredYet"]!),
+        notMonitored: words.includes(overview["notMonitored"]!),
+      }).toEqual({ language, notMonitoredYet: true, notMonitored: true });
+    }
+  });
+
   it("links only to sections the page has", () => {
     const anchors: Array<string> = Array.from(
       section.matchAll(/\]\(#([a-z0-9-]+)\)/g),

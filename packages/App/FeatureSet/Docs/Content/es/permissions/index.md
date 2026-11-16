@@ -103,6 +103,8 @@ El rol que elija pasa a ser el primer permiso del equipo, para todos los recurso
 
 Dónde encontrarlo: abra un equipo desde **Equipos** para llegar a **Miembros** y **Permisos**; sus roles personalizados y **Bloquear permisos** están en **Más ajustes**, al final de la página Permisos, cuyo encabezado plegado muestra cuántos de cada uno tiene el equipo.
 
+La página de un equipo tiene una tarjeta **Usado por**: las políticas de guardia cuyas reglas de escalado avisan al equipo, y todo lo que posee, desde monitores y páginas de estado hasta SLO, paneles, infraestructura e incidentes. Eliminar un equipo, en su página o desde la lista, lo dice primero: sus políticas dejan de avisar a sus miembros y deja de poseerlos. Lo que no puedes abrir se cuenta, pero no se nombra.
+
 ## Permisos
 
 Un permiso es una capacidad concreta. Hay dos formas de repartirlos, y ambas están en la pestaña **Permisos** del equipo.
@@ -280,7 +282,7 @@ A las claves de API se les conceden permisos directamente, en la propia clave, o
 :::steps
 1. Abra **Ajustes del proyecto > Avanzado > Claves de API** y haga clic en **Crear Clave de API**. En OneUptime Cloud, las claves de API requieren el plan Growth.
 2. Escriba el **Nombre** de la clave y elija su **Acceso**. La descripción y la fecha de caducidad están en **Más campos**; una clave caduca un año después del día en que se crea, salvo que elija otra fecha, y la sección plegada lo indica.
-3. Cree la clave. Se abre en su página, donde la copia.
+3. Cree la clave. OneUptime la muestra una sola vez, en un diálogo: cópiela allí. Después se abre su página.
 :::
 
 El rol que elija pasa a ser el primer permiso de la clave en cuanto la clave existe, exactamente como si lo hubiera añadido en la página de la clave. Solo se le ofrecen los roles que usted mismo tiene —una clave nunca puede recibir más de lo que tiene quien se la da—, y a quien puede crear claves pero no cambiar lo que pueden hacer no se le pregunta.
@@ -340,7 +342,7 @@ Los permisos resueltos se almacenan en caché por usuario y proyecto, y se refre
 
 Un incidente, una alerta o un episodio marcado como privado solo lo ven sus propietarios —las personas nombradas como sus propietarias y los miembros de sus equipos propietarios que han aceptado su invitación— y los Propietarios del proyecto y Administradores del proyecto.
 
-Un registro así solo se cambia con los permisos de los equipos que son sus propietarios y de las personas nombradas como sus propietarias. Quien está nombrado como propietario actúa sobre él con todos los permisos que tiene. Cualquier otra persona solo actúa sobre él con los permisos de sus equipos que son sus propietarios, cada uno con su propio alcance y sus etiquetas: el permiso de otro equipo no llega a ningún registro privado del que ese equipo no sea propietario. Esto vale para todo lo que se hace con el registro y con lo que le pertenece —editarlo, cambiar su estado, sus notas, propietarios, roles, etiquetas, alertas vinculadas, miembros del episodio y llamadas, y eliminarlo— desde el panel, la API, las acciones masivas, Slack, Microsoft Teams u OneUptime AI. Los Propietarios del proyecto y Administradores del proyecto cambian cualquier registro privado, y también los pasos de los flujos de trabajo, que actúan como Administrador del proyecto; una clave de API solo lo hace con `ProjectOwner` o `ProjectAdmin`.
+Un registro así solo se cambia con los permisos de los equipos que son sus propietarios y de las personas nombradas como sus propietarias. Quien está nombrado como propietario actúa sobre él con todos los permisos que tiene. Cualquier otra persona solo actúa sobre él con los permisos de sus equipos que son sus propietarios, cada uno con su propio alcance y sus etiquetas: el permiso de otro equipo no llega a ningún registro privado del que ese equipo no sea propietario. Esto vale para todo lo que se hace con el registro y con lo que le pertenece —editarlo, cambiar su estado, sus notas, propietarios, roles, etiquetas, alertas vinculadas, miembros del episodio y llamadas, y eliminarlo— desde el panel, la API, las acciones masivas, Slack, Microsoft Teams u OneUptime AI. Los Propietarios del proyecto y Administradores del proyecto cambian cualquier registro privado, y una clave de API solo lo hace con `ProjectOwner` o `ProjectAdmin`.
 
 | Alguien en el equipo 1 y el equipo 2 | Un incidente privado del equipo 2 | Un incidente público del equipo 2 |
 | --- | --- | --- |
@@ -349,6 +351,12 @@ Un registro así solo se cambia con los permisos de los equipos que son sus prop
 | El equipo 2 también tiene `IncidentMember` | Lo cambia a través del equipo 2 | Lo cambia a través de cualquiera de los dos |
 
 Un equipo que es propietario de registros privados pero no tiene permisos, uno que solo sirve para agrupar personas, deja que sus miembros los vean y no cambien ninguno. En la página de un registro privado, un cambio que los equipos propietarios de la persona no pueden hacer aparece bloqueado y dice por qué. Para que pueda hacerlo, dé el permiso a un equipo propietario, haga propietario a un equipo que tenga el permiso o haga propietaria a la persona.
+
+Lo que se hace a propósito de un registro privado sigue la misma regla: avisar a alguien por él (**Ejecutar política de guardia**, **Avisar ahora** y los avisos desde Slack, Microsoft Teams, Mattermost u OneUptime AI), iniciar un runbook para él o hacer avanzar esa ejecución, y aprobar, ensayar o descartar una corrección que OneUptime AI propuso para él. Cada acción requiere su propio permiso, como activar políticas de guardia o iniciar ejecuciones de runbooks, y en un registro privado solo lo prestan los equipos que son sus propietarios, además de las personas nombradas como sus propietarios. A cualquier otra persona se le rechaza con el motivo, y no se avisa, ejecuta ni cambia nada.
+
+Lo que se hace y se envía a propósito de un registro privado solo lo leen quienes pueden leer el registro: sus ejecuciones de políticas de guardia, sus ejecuciones de runbooks, las correcciones propuestas para él y los registros de los correos, SMS, llamadas, notificaciones push, mensajes de chat, webhooks y solicitudes de IA que OneUptime envió sobre él. Las personas avisadas por él siguen viendo su aviso.
+
+Los flujos de trabajo no actúan sobre registros privados. Los pasos de un flujo de trabajo actúan como Administrador del proyecto, pero nunca reciben prestada su visión de los incidentes, alertas y episodios privados: no encuentran ninguno, no cambian ninguno ni le añaden nada, y un flujo de trabajo no se inicia con uno ni con nada que le pertenezca. Consulte [Qué pueden hacer los pasos de un flujo de trabajo](/docs/workflows/configuration#qué-pueden-hacer-los-pasos-de-un-flujo-de-trabajo).
 
 ### Reglas que pertenecen a equipos
 

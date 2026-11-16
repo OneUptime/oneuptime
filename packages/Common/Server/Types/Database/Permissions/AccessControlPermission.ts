@@ -777,81 +777,130 @@ export default class AccessControlPermission {
    * (addAccessControlIdsToQuery). Nothing for no labels, a grant over the
    * whole project, or for a model that carries no labels. Asked again with
    * another list, the records must carry one label of each.
+   *
+   * THE CONDITION IS ON THE RECORD'S OWN ID (getCarriesLabelsCondition), as
+   * a block with labels is (ReadPermission.addBlockedLabelsToQuery) and as
+   * labels beside grants scoped to Owned are (addGrantToQuery): the records
+   * the label join table links to one of the labels, the label not deleted
+   * - the very records a filter through the labels relation matched. It
+   * used to be that filter, `labels: [permitted ids]`: a to-many join in
+   * the WHERE, which can decide which records match, so a page of a
+   * label-limited reader's list could not take its ids from the table
+   * alone (PagedFind) and was paged by TypeORM's SELECT DISTINCT over every
+   * matching record times its labels times every relation the list selects,
+   * on every live refresh; its count, by a DISTINCT over the same join. With
+   * the condition on the id, the read joins its labels only to select them,
+   * and pages and counts as an unrestricted reader's does.
+   *
+   * The filter also trimmed the labels a read returned: TypeORM joins a
+   * relation the read selects and filters through once, so each record came
+   * back with only the permitted labels it carries. A record is now read
+   * with every label it carries, as for any other reader - every member of
+   * a project may read its labels (ProjectUser) - and a form that saves the
+   * labels it read keeps the others on the record.
+   *
+   * The caller's own filter on the labels stays as sent, beside it: a
+   * record with labels {X, Y} matches "label X" for a reader limited to Y.
+   *
+   * Without the join table's names (no database: a test of the permission
+   * checks alone) the relation itself narrows the read, as it used to.
    */
   public static addLabelIdsToQuery<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     query: Query<TBaseModel>,
     accessControlIds: Array<ObjectID>,
   ): Query<TBaseModel> {
-    const model: BaseModel = new modelType();
+    const accessControlColumn: string | null =
+      new modelType().getAccessControlColumn();
 
-    // if the model has access control column, then add the access control labels to the query.
-    if (model.getAccessControlColumn()) {
-      if (accessControlIds.length > 0) {
-        const accessControlColumn: string =
-          model.getAccessControlColumn() as string;
-        const existingFilter: unknown = (query as any)[accessControlColumn];
+    if (!accessControlColumn || accessControlIds.length === 0) {
+      return query;
+    }
 
-        if (existingFilter === undefined || existingFilter === null) {
-          (query as any)[accessControlColumn] = accessControlIds;
-        } else {
-          /*
-           * The caller already filters on the access-control column (e.g.
-           * "show monitors with label X"). Overwriting that filter with the
-           * permitted set would silently widen it to "any permitted label".
-           * Both predicates must hold independently — a record with labels
-           * {X, Y} (X requested, Y permitted) must match even when X itself
-           * is not permitted — so keep the caller's filter on the relation
-           * key and AND the permitted-set predicate onto _id as a join-table
-           * subquery.
-           */
-          const manyToManyMeta: {
-            joinTableName: string;
-            ownerColumnName: string;
-            relationColumnName: string;
-          } | null = QueryUtil.getManyToManyRelationMetadata(
-            modelType,
-            accessControlColumn,
-          );
+    const carriesLabels: FindWhereProperty<any> | null =
+      AccessControlPermission.getCarriesLabelsCondition(
+        modelType,
+        accessControlIds,
+      );
 
-          if (manyToManyMeta) {
-            (query as any)._id = combineWithPrivacyClause(
-              (query as any)._id,
-              QueryHelper.anyOfEntitiesInManyToMany({
-                values: accessControlIds,
-                joinTableName: manyToManyMeta.joinTableName,
-                ownerColumnName: manyToManyMeta.ownerColumnName,
-                relationColumnName: manyToManyMeta.relationColumnName,
-              }),
-            );
-          } else {
-            /*
-             * Join metadata unavailable — fail closed to the permitted set.
-             * The caller's filter is dropped, but access never widens: a
-             * list already there (another grant's labels, asked first) keeps
-             * only the labels on both.
-             */
-            const permittedIds: Array<ObjectID> = Array.isArray(existingFilter)
-              ? AccessControlPermission.getLabelsOnBoth(
-                  existingFilter as Array<ObjectID>,
-                  accessControlIds,
-                )
-              : accessControlIds;
+    if (carriesLabels) {
+      /*
+       * The id's own filter serialized first, as the block rule does: what
+       * QueryUtil turns into an operator (an ObjectID, Includes, NotEqual)
+       * is not turned once it is inside And().
+       */
+      const idQuery: Query<TBaseModel> = QueryUtil.serializeQuery(modelType, {
+        _id: query._id,
+      } as Query<TBaseModel>);
 
-            if (permittedIds.length > 0) {
-              (query as any)[accessControlColumn] = permittedIds;
-            } else {
-              // No label on both: no record carries one of each.
-              (query as any)._id = QueryHelper.equalTo(
-                ObjectID.getZeroObjectID().toString(),
-              );
-            }
-          }
-        }
-      }
+      (query as any)._id = combineWithPrivacyClause(
+        ReadPermission.getSupportedFilter(idQuery._id),
+        carriesLabels,
+      );
+
+      return query;
+    }
+
+    const existingFilter: unknown = (query as any)[accessControlColumn];
+
+    if (existingFilter === undefined || existingFilter === null) {
+      (query as any)[accessControlColumn] = accessControlIds;
+      return query;
+    }
+
+    /*
+     * The caller filters on the labels too, and without the join table the
+     * two cannot both be asked: fail closed to the permitted set. The
+     * caller's filter is dropped, but access never widens: a list already
+     * there (another grant's labels, asked first) keeps only the labels on
+     * both.
+     */
+    const permittedIds: Array<ObjectID> = Array.isArray(existingFilter)
+      ? AccessControlPermission.getLabelsOnBoth(
+          existingFilter as Array<ObjectID>,
+          accessControlIds,
+        )
+      : accessControlIds;
+
+    if (permittedIds.length > 0) {
+      (query as any)[accessControlColumn] = permittedIds;
+    } else {
+      // No label on both: no record carries one of each.
+      (query as any)._id = QueryHelper.equalTo(
+        ObjectID.getZeroObjectID().toString(),
+      );
     }
 
     return query;
+  }
+
+  /*
+   * THE RECORDS OF A LABELLED MODEL CARRYING ONE OF `labelIds`, as a
+   * condition on the record's id: linked to one of them through the
+   * model's label join table, the label there and not deleted - the
+   * records a filter through the labels relation itself matches, since
+   * that join leaves deleted labels out (QueryUtil.getLinkedToAnyCondition).
+   * One uncorrelated subquery, so it reads the same in a SELECT, an UPDATE
+   * and a DELETE, and joins nothing into the read. Null for a model that
+   * carries no labels, or when the join table cannot be followed (no
+   * database).
+   */
+  public static getCarriesLabelsCondition(
+    modelType: { new (): BaseModel },
+    labelIds: Array<ObjectID>,
+  ): FindWhereProperty<any> | null {
+    const accessControlColumn: string | null =
+      new modelType().getAccessControlColumn();
+
+    if (!accessControlColumn) {
+      return null;
+    }
+
+    return QueryUtil.getLinkedToAnyCondition(
+      modelType,
+      accessControlColumn,
+      labelIds,
+    ) as FindWhereProperty<any> | null;
   }
 
   // The labels of `labelIds` that are also in `within`.
@@ -1305,24 +1354,18 @@ export default class AccessControlPermission {
     let labelCondition: FindWhereProperty<any> | null = null;
 
     if (accessControlColumn) {
-      const labelsMeta: ReturnType<
-        typeof QueryUtil.getManyToManyRelationMetadata
-      > = QueryUtil.getManyToManyRelationMetadata(
+      // The records carrying one of the labels, as addLabelIdsToQuery keeps them.
+      labelCondition = AccessControlPermission.getCarriesLabelsCondition(
         modelType,
-        accessControlColumn,
+        grant.labelIds,
       );
 
       // A model whose labels cannot be followed is misconfigured: refused.
-      if (!labelsMeta) {
+      if (!labelCondition) {
         throw new BadDataException(
           "Cannot apply read label restrictions without access-control relation metadata.",
         );
       }
-
-      labelCondition = QueryHelper.anyOfEntitiesInManyToMany({
-        values: grant.labelIds,
-        ...labelsMeta,
-      });
     } else {
       labelCondition = ReadPermission.getGrantedLabelsCondition(
         modelType,

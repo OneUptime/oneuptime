@@ -32,6 +32,7 @@ import Exception from "Common/Types/Exception/Exception";
 import ServiceUnavailableException from "Common/Types/Exception/ServiceUnavailableException";
 import ObjectID from "Common/Types/ObjectID";
 import Sleep from "Common/Types/Sleep";
+import RetryAfter from "Common/Utils/RetryAfter";
 import Stripe from "stripe";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import PayAsYouGoBillingService, {
@@ -1644,6 +1645,10 @@ export class StripeBillingProvider implements BillingProvider {
    * to the exponential backoff. It is kept because it is correct if Stripe
    * ever does send one - not because it is mitigating today's rate limit.
    * Do not count it as mitigation when sizing this.
+   *
+   * Read as RFC 9110 writes it (Common's RetryAfter): whole seconds or an
+   * HTTP-date. Anything else - "1.5", which Number() read as a second and a
+   * half - is no Retry-After, and the doubling applies.
    */
   private static getPaymentReadRetryDelay(
     err: unknown,
@@ -1653,19 +1658,17 @@ export class StripeBillingProvider implements BillingProvider {
       1000 * 2 ** attempt * (1 + Math.random() / 2),
     );
 
-    const headers: Record<string, string | undefined> =
-      ((err ?? {}) as { headers?: Record<string, string | undefined> })
-        .headers || {};
-    const retryAfterInSeconds: number = Number(
-      headers["retry-after"] ?? headers["Retry-After"],
+    const retryAfterInMs: number | undefined = RetryAfter.msFromHeaders(
+      ((err ?? {}) as { headers?: unknown }).headers,
+      { maxMs: PAYMENT_READ_MAX_RETRY_DELAY_IN_MS },
     );
 
-    if (!Number.isFinite(retryAfterInSeconds) || retryAfterInSeconds <= 0) {
+    if (retryAfterInMs === undefined) {
       return backoffInMs;
     }
 
     return Math.min(
-      Math.max(backoffInMs, retryAfterInSeconds * 1000),
+      Math.max(backoffInMs, retryAfterInMs),
       PAYMENT_READ_MAX_RETRY_DELAY_IN_MS,
     );
   }

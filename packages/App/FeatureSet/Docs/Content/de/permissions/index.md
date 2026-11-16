@@ -103,6 +103,8 @@ Die gewählte Rolle wird zur ersten Berechtigung des Teams, für alle Ressourcen
 
 Wo Sie es finden: Öffnen Sie ein Team unter **Teams**, um zu **Mitglieder** und **Berechtigungen** zu gelangen; seine benutzerdefinierten Rollen und **Berechtigungen blockieren** liegen unter **Weitere Einstellungen** unten auf der Seite Berechtigungen, deren eingeklappte Überschrift zeigt, wie viele von beiden das Team hat.
 
+Die Seite eines Teams hat eine Karte **Verwendet von**: die Bereitschaftsrichtlinien, deren Eskalationsregeln das Team alarmieren, und alles, was das Team besitzt, von Monitoren und Statusseiten bis zu SLOs, Dashboards, Infrastruktur und Vorfällen. Wer ein Team löscht, auf seiner Seite oder aus der Liste, sieht das zuerst: Seine Richtlinien alarmieren seine Mitglieder nicht mehr, und es besitzt nichts mehr davon. Was Sie nicht öffnen dürfen, wird gezählt, aber nicht genannt.
+
 ## Berechtigungen
 
 Eine Berechtigung ist eine einzelne Fähigkeit. Es gibt zwei Wege, sie zu vergeben, und beide liegen auf dem Tab **Berechtigungen** des Teams.
@@ -280,7 +282,7 @@ API-Schlüssel erhalten Berechtigungen direkt am Schlüssel oder über die benut
 :::steps
 1. Öffnen Sie **Projekteinstellungen > Erweitert > API-Schlüssel** und klicken Sie auf **API-Schlüssel erstellen**. In OneUptime Cloud brauchen API-Schlüssel den Growth-Tarif.
 2. Geben Sie den **Name** des Schlüssels ein und wählen Sie seinen **Zugriff**. Die Beschreibung und das Ablaufdatum liegen unter **Weitere Felder**; ein Schlüssel läuft ein Jahr nach dem Tag seiner Erstellung ab, sofern Sie kein anderes Datum wählen, und der eingeklappte Bereich sagt das.
-3. Legen Sie den Schlüssel an. Er öffnet sich auf seiner Seite, wo Sie ihn kopieren.
+3. Legen Sie den Schlüssel an. OneUptime zeigt ihn einmal an, in einem Dialog: Kopieren Sie ihn dort. Danach öffnet sich seine Seite.
 :::
 
 Die gewählte Rolle wird zur ersten Berechtigung des Schlüssels, sobald der Schlüssel existiert — genau so, als hätten Sie sie auf der Seite des Schlüssels hinzugefügt. Angeboten werden nur die Rollen, die Sie selbst haben — ein Schlüssel kann nie mehr bekommen, als die Person hat, die ihn vergibt —, und wer Schlüssel anlegen, aber nicht ändern darf, was sie tun dürfen, wird gar nicht gefragt.
@@ -340,7 +342,7 @@ Aufgelöste Berechtigungen werden pro Benutzer und Projekt zwischengespeichert u
 
 Ein Vorfall, eine Warnung oder eine Episode, die als privat markiert ist, ist nur für ihre Eigentümer sichtbar — die als Eigentümer genannten Personen und die Mitglieder der Eigentümer-Teams, die ihre Einladung angenommen haben — sowie für die Projektinhaber und Projektadministratoren.
 
-Ein solcher Datensatz wird nur mit den Berechtigungen der Teams geändert, denen er gehört, und mit denen der Personen, die als seine Eigentümer genannt sind. Wer als Eigentümer genannt ist, handelt an ihm mit jeder Berechtigung, die er hält. Alle anderen handeln an ihm nur mit den Berechtigungen ihrer Teams, denen er gehört, jede mit ihrem eigenen Geltungsbereich und ihren Labels: Die Berechtigung eines anderen Teams erreicht keinen privaten Datensatz, der diesem Team nicht gehört. Das gilt für alles, was mit dem Datensatz und dem, was zu ihm gehört, geschieht — ihn bearbeiten, seinen Status ändern, seine Notizen, Eigentümer, Rollen, Labels, verknüpften Warnungen, Episodenmitglieder und Anrufe, und ihn löschen —, ob über das Dashboard, die API, Massenaktionen, Slack, Microsoft Teams oder OneUptime AI. Die Projektinhaber und Projektadministratoren ändern jeden privaten Datensatz, ebenso Workflow-Schritte, die als Projektadministrator handeln; ein API-Schlüssel nur mit `ProjectOwner` oder `ProjectAdmin`.
+Ein solcher Datensatz wird nur mit den Berechtigungen der Teams geändert, denen er gehört, und mit denen der Personen, die als seine Eigentümer genannt sind. Wer als Eigentümer genannt ist, handelt an ihm mit jeder Berechtigung, die er hält. Alle anderen handeln an ihm nur mit den Berechtigungen ihrer Teams, denen er gehört, jede mit ihrem eigenen Geltungsbereich und ihren Labels: Die Berechtigung eines anderen Teams erreicht keinen privaten Datensatz, der diesem Team nicht gehört. Das gilt für alles, was mit dem Datensatz und dem, was zu ihm gehört, geschieht — ihn bearbeiten, seinen Status ändern, seine Notizen, Eigentümer, Rollen, Labels, verknüpften Warnungen, Episodenmitglieder und Anrufe, und ihn löschen —, ob über das Dashboard, die API, Massenaktionen, Slack, Microsoft Teams oder OneUptime AI. Die Projektinhaber und Projektadministratoren ändern jeden privaten Datensatz, ein API-Schlüssel nur mit `ProjectOwner` oder `ProjectAdmin`.
 
 | Jemand in Team 1 und Team 2 | Ein privater Vorfall, der Team 2 gehört | Ein öffentlicher Vorfall, der Team 2 gehört |
 | --- | --- | --- |
@@ -349,6 +351,12 @@ Ein solcher Datensatz wird nur mit den Berechtigungen der Teams geändert, denen
 | Team 2 hat zusätzlich `IncidentMember` | Ändert ihn über Team 2 | Ändert ihn über jedes der beiden Teams |
 
 Ein Team, dem private Datensätze gehören, das aber keine Berechtigungen hat — eines, das nur Personen gruppiert —, lässt seine Mitglieder sie sehen und keinen davon ändern. Auf der Seite eines privaten Datensatzes ist eine Änderung, die die Teams der Person, denen er gehört, nicht vornehmen dürfen, gesperrt und sagt, warum. Damit die Person sie vornehmen kann, geben Sie einem Team, dem er gehört, die Berechtigung, machen Sie ein Team mit der Berechtigung zum Eigentümer oder machen Sie die Person zum Eigentümer.
+
+Was mit Bezug auf einen privaten Datensatz getan wird, folgt derselben Regel: jemanden zu ihm anzupiepen (**Bereitschaftsdienst-Richtlinie ausführen**, **Jetzt alarmieren** und das Anpiepen aus Slack, Microsoft Teams, Mattermost oder OneUptime AI), ein Runbook für ihn zu starten oder diesen Lauf weiterzuführen, und eine Korrektur, die OneUptime AI für ihn vorgeschlagen hat, zu genehmigen, im Probelauf zu prüfen oder zu verwerfen. Jedes davon braucht seine eigene Berechtigung, etwa Bereitschaftsrichtlinien auszulösen oder Runbook-Ausführungen zu starten, und bei einem privaten Datensatz leihen sie nur die Teams, denen er gehört, neben den Personen, die als seine Eigentümer genannt sind. Alle anderen werden mit dem Grund abgelehnt, und nichts wird angepiept, ausgeführt oder geändert.
+
+Was mit Bezug auf einen privaten Datensatz getan und gesendet wird, lesen nur die, die den Datensatz lesen dürfen: seine Läufe von Bereitschaftsrichtlinien, seine Runbook-Läufe, die für ihn vorgeschlagenen Korrekturen und die Protokolle der E-Mails, SMS, Anrufe, Push-Benachrichtigungen, Chatnachrichten, Webhooks und KI-Anfragen, die OneUptime zu ihm gesendet hat. Die Personen, die zu ihm angepiept werden, sehen ihre Benachrichtigung weiterhin.
+
+Workflows handeln nicht an privaten Datensätzen. Die Schritte eines Workflows handeln als Projektadministrator, bekommen dessen Sicht auf private Vorfälle, Warnungen und Episoden aber nie geliehen: Sie finden keinen, ändern keinen und fügen keinem etwas hinzu, und ein Workflow startet nicht bei einem solchen Datensatz oder bei etwas, das zu ihm gehört. Siehe [Was Workflow-Schritte dürfen](/docs/workflows/configuration#was-workflow-schritte-dürfen).
 
 ### Regeln, die Teams gehören
 

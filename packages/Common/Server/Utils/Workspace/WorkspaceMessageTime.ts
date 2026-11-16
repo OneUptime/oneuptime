@@ -1,6 +1,10 @@
+import OneUptimeDate from "../../../Types/Date";
+import Timezone from "../../../Types/Timezone";
 import FeedMarkdown, {
   MarkdownText,
+  mdText,
 } from "../../../Utils/Markdown/FeedMarkdown";
+import moment from "moment-timezone";
 
 /*
  * A MOMENT IN A SLACK OR MICROSOFT TEAMS MESSAGE, IN EACH READER'S OWN TIME.
@@ -26,6 +30,11 @@ import FeedMarkdown, {
  * be shown in its reader's zone - a notification log, a Mattermost post
  * (MattermostUtil.getMessageText) - it reads as the time in UTC
  * (toPlainText).
+ *
+ * A line that knows the zone its moments were set in says them in words on
+ * that zone's clock where no reader's own can be shown (dateAndTimeInZone):
+ * an on-call line in Mattermost reads "until Sat, Nov 14 at 5:50 PM EST",
+ * in its schedule's zone, not "until 2026-11-14 at 22:50 UTC" (issue #7970).
  */
 
 // The Teams form, as time() writes it: whole seconds, in UTC.
@@ -62,6 +71,41 @@ export default class WorkspaceMessageTime {
     return FeedMarkdown.asMarkdown(
       `{{DATE(${iso}, SHORT)}} at {{TIME(${iso})}}`,
     );
+  }
+
+  /*
+   * The moment with its day, in words, on the clock of one time zone, which
+   * it names: "Sat, Nov 14 at 5:50 PM EST" - and the year too when the
+   * moment is not in this year there, "Sat, Jan 2, 2027 at 9:00 AM EST".
+   * For a line read where no reader's own zone can be shown, and that knows
+   * the zone its moments were set in: an on-call line in Mattermost, in its
+   * schedule's zone (issue #7970). Without a zone, or with one no clock
+   * knows, in UTC: "Sat, Nov 14 at 10:50 PM UTC". Plain text, as Markdown.
+   */
+  public static dateAndTimeInZone(
+    date: Date,
+    timezone?: Timezone | string | null | undefined,
+    now?: Date | undefined,
+  ): MarkdownText {
+    const zone: string =
+      timezone && moment.tz.zone(timezone.toString())
+        ? timezone.toString()
+        : Timezone.UTC;
+    const zoned: moment.Moment = moment(date).tz(zone);
+    const isThisYear: boolean =
+      zoned.year() ===
+      moment(now || OneUptimeDate.getCurrentDate())
+        .tz(zone)
+        .year();
+
+    const words: string = zoned.format(
+      isThisYear ? "ddd, MMM D [at] h:mm A" : "ddd, MMM D, YYYY [at] h:mm A",
+    );
+
+    return mdText`${words} ${OneUptimeDate.getZoneAbbrByTimezone(
+      zone as Timezone,
+      date,
+    )}`;
   }
 
   /*

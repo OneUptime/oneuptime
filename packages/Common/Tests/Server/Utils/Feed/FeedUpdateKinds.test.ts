@@ -36,14 +36,30 @@ import path from "path";
  *     entry's type, or a kind its writer names (a resolve, a severity
  *     change) - never a box that changes nothing;
  *   - each feed service, and each writer that knows more than its entry's
- *     type, hands the kinds to the message it posts.
+ *     type, hands the kinds to the message it posts: a reminder that the
+ *     record is still open (#7938) and an edit of its custom fields (#7937)
+ *     among them.
+ *
+ * A security case rule chooses its notices too (#7936), which are no feed
+ * entries: SecurityCaseNotifications names each where it posts it.
  */
 
 const COMMON: string = path.resolve(__dirname, "../../../..");
 
+// The reminder jobs are App's (FeatureSet/Workers/Jobs).
+const WORKER_JOBS: string = path.resolve(
+  COMMON,
+  "../App/FeatureSet/Workers/Jobs",
+);
+
 function source(relativePath: string): string {
   return fs.readFileSync(path.join(COMMON, relativePath), "utf-8");
 }
+
+// Kinds of rule whose posts are no feed entries: each names its own.
+const POSTED_WITHOUT_A_FEED: Array<NotificationRuleEventType> = [
+  NotificationRuleEventType.SecurityCase,
+];
 
 // The source with its whitespace squeezed, so Prettier's line breaks do not matter.
 function squeezed(relativePath: string): string {
@@ -79,6 +95,8 @@ const TABLES: Array<FeedTable> = [
     namedByWriters: [
       NotificationRuleUpdateKind.ResolvedAndReopened,
       NotificationRuleUpdateKind.SeverityChanges,
+      NotificationRuleUpdateKind.CustomFields,
+      NotificationRuleUpdateKind.Reminders,
     ],
   },
   {
@@ -92,6 +110,8 @@ const TABLES: Array<FeedTable> = [
     namedByWriters: [
       NotificationRuleUpdateKind.ResolvedAndReopened,
       NotificationRuleUpdateKind.SeverityChanges,
+      NotificationRuleUpdateKind.CustomFields,
+      NotificationRuleUpdateKind.Reminders,
     ],
   },
   {
@@ -122,7 +142,8 @@ const TABLES: Array<FeedTable> = [
     createdEntry: ScheduledMaintenanceFeedEventType.ScheduledMaintenanceCreated,
     service: "Server/Services/ScheduledMaintenanceFeedService.ts",
     feedEventTypeField: "scheduledMaintenanceFeedEventType",
-    namedByWriters: [],
+    // A reminder that the event is still open (#7938).
+    namedByWriters: [NotificationRuleUpdateKind.Reminders],
   },
   // An on-call policy's feed (#7549).
   {
@@ -139,7 +160,7 @@ const TABLES: Array<FeedTable> = [
 ];
 
 describe("the feed tables", () => {
-  test("cover every kind of rule that chooses its updates, and only those", () => {
+  test("cover every kind of rule that chooses its updates from a feed, and only those", () => {
     expect(
       TABLES.map((table: FeedTable): string => {
         return table.eventType;
@@ -147,10 +168,18 @@ describe("the feed tables", () => {
     ).toEqual(
       Object.values(NotificationRuleEventType)
         .filter((eventType: NotificationRuleEventType): boolean => {
-          return NotificationRuleUpdates.canChooseUpdates(eventType);
+          return (
+            NotificationRuleUpdates.canChooseUpdates(eventType) &&
+            !POSTED_WITHOUT_A_FEED.includes(eventType)
+          );
         })
         .sort(),
     );
+
+    // A security case rule chooses, from notices no feed entry is.
+    for (const eventType of POSTED_WITHOUT_A_FEED) {
+      expect(NotificationRuleUpdates.canChooseUpdates(eventType)).toBe(true);
+    }
   });
 
   test("say which update every kind of feed entry is", () => {
@@ -485,6 +514,76 @@ describe("the writers hand the kinds to the message they post", () => {
     );
   });
 
+  test("an incident's and an alert's update hook says when the custom fields changed: a box of their own (#7937)", () => {
+    for (const hook of [
+      "Server/Services/IncidentService.ts",
+      "Server/Services/AlertService.ts",
+    ]) {
+      const code: string = squeezed(hook);
+
+      expect({ hook, customFields: true }).toEqual({
+        hook,
+        customFields: code.includes(
+          "updateKinds.push(NotificationRuleUpdateKind.CustomFields);",
+        ),
+      });
+    }
+  });
+
+  test("each reminder job names its feed entry a reminder, and so no other owner notice is one (#7938)", () => {
+    for (const job of [
+      "IncidentOwners/SendUnresolvedReminderNotification.ts",
+      "AlertOwners/SendUnresolvedReminderNotification.ts",
+      "ScheduledMaintenanceOwners/SendUnresolvedReminderNotification.ts",
+    ]) {
+      const code: string = fs
+        .readFileSync(path.join(WORKER_JOBS, job), "utf-8")
+        .replace(/\s+/g, "");
+
+      expect({ job, names: true }).toEqual({
+        job,
+        names: code.includes(
+          "sendWorkspaceNotification:true,updateKinds:[NotificationRuleUpdateKind.Reminders],",
+        ),
+      });
+    }
+
+    /*
+     * The entry's type stays Everything else: an owner notice posted by
+     * another job one day is not a reminder.
+     */
+    expect(
+      INCIDENT_FEED_UPDATE_KINDS[IncidentFeedEventType.OwnerNotificationSent],
+    ).toBe(NotificationRuleUpdateKind.Other);
+    expect(
+      ALERT_FEED_UPDATE_KINDS[AlertFeedEventType.OwnerNotificationSent],
+    ).toBe(NotificationRuleUpdateKind.Other);
+    expect(
+      SCHEDULED_MAINTENANCE_FEED_UPDATE_KINDS[
+        ScheduledMaintenanceFeedEventType.OwnerNotificationSent
+      ],
+    ).toBe(NotificationRuleUpdateKind.Other);
+  });
+
+  test("each security case notice is posted with its kind (#7936)", () => {
+    const notices: string = squeezed(
+      "Server/Utils/SecurityCase/SecurityCaseNotifications.ts",
+    );
+
+    for (const kind of NotificationRuleUpdates.getChoosableKinds(
+      NotificationRuleEventType.SecurityCase,
+    )) {
+      expect({ kind, times: 1 }).toEqual({
+        kind,
+        times:
+          notices.split(`updateKind:NotificationRuleUpdateKind.${kind},`)
+            .length - 1,
+      });
+    }
+
+    expect(notices).toContain("updateKinds:[data.updateKind],");
+  });
+
   test("an on-call policy's handoff lines say who is next where a rule wants that, and only there", () => {
     const posts: string = squeezed("Server/Utils/OnCall/OnCallHandoffPosts.ts");
 
@@ -528,7 +627,11 @@ describe("the writers hand the kinds to the message they post", () => {
       });
     }
 
-    // The override's three lines, one of each.
+    /*
+     * The override's three lines, one of each - each written twice: with
+     * OneUptime's names for any workspace without a line of its own, and
+     * with each connected workspace's names (#7967).
+     */
     const overrides: string = squeezed(
       "Server/Services/OnCallDutyPolicyUserOverrideService.ts",
     );
@@ -540,8 +643,28 @@ describe("the writers hand the kinds to the message they post", () => {
     ]) {
       expect({ line, times: overrides.split(line).length - 1 }).toEqual({
         line,
-        times: 1,
+        times: 2,
       });
+    }
+
+    /*
+     * Every entry that names a person - an override, somebody added to an
+     * escalation rule or taken out - hands each workspace its own line, its
+     * people named as that workspace knows them (#7967).
+     */
+    for (const [writer, written] of [
+      ["Server/Services/OnCallDutyPolicyEscalationRuleUserService.ts", 2],
+      ["Server/Services/OnCallDutyPolicyUserOverrideService.ts", 3],
+    ] as Array<[string, number]>) {
+      const code: string = squeezed(writer);
+
+      expect({
+        writer,
+        byWorkspace:
+          code.split("chatInfoByWorkspaceType:chatInfoByWorkspaceType").length -
+          1,
+        writers: code.split("newOnCallChatByWorkspace(").length - 1,
+      }).toEqual({ writer, byWorkspace: written, writers: written });
     }
   });
 

@@ -59,6 +59,13 @@ learned one can find their way around the next.
 - **A new project is told what is not set up, never that all is well.** With no monitors, Home says
   "No monitors yet" and opens the Monitors list. It does not say "Inoperational monitors 0 · All
   operational". Not enforced: use judgement.
+- **While a new project's quickstart shows, it is all of Home.** The question "What do you want to do
+  first?" and the steps its goals bring are the one thing a new person meets: a new project's Home was
+  a banner to create a monitor, five zeros, the Welcome card and two empty lists, all asking for the
+  same first click (#8897). Only what cannot wait shows above it: an open incident or anything else
+  that needs someone, and an unfinished server, to its admin. Hiding the checklist or finishing it
+  brings the rest of Home back, with the line that shows it again. Enforced by
+  [HomePage](../../packages/Common/Tests/App/Dashboard/HomePage.test.tsx).
 - **Do not ask for what is already done.** "Send your first logs" never sits above a page of logs, and
   there is one button for one job on a page, not the explanation's and the empty state's for the same
   setup. Not enforced: use judgement.
@@ -66,7 +73,9 @@ learned one can find their way around the next.
   monitor, who is told and a test page; three products would leave the person to find the chain. A
   guided setup draws its steps in `Components/GuidedSetup/GuidedSetupFrame`: each step saves real
   records, coming back opens the first step not done, and it ends with a summary read from the
-  records and what to do next (`/monitors/setup`, #6804; `/on-call-duty/setup`, #6805). Its journey gets a budget of its own, with
+  records and what to do next (`/monitors/setup`, #6804; `/on-call-duty/setup`, #6805). Beside its
+  steps it lists what the setup sets up, ticked as each step is done, and about how long it takes,
+  the minutes Home's checklist says beside its step (#8897). Its journey gets a budget of its own, with
   `"path": "guided"`. Enforced by
   [GuidedSetupFrame](../../packages/Common/Tests/App/Dashboard/GuidedSetupFrame.test.tsx).
 
@@ -372,6 +381,11 @@ work out, starts from a default for everything else, and folds what most people 
 - **On a narrow screen, columns fold under another column** the page names (`foldInto`): an
   incident's severity under its state. Enforced by
   [TableFoldIntoGuard](../../packages/App/Tests/Dashboard/TableFoldIntoGuard.test.ts).
+- **A phone's card keeps what the list is read for.** A phone draws each row as a card and leaves
+  out the columns marked `hideOnMobile`: labels, owners, a second date. Never the fact people open
+  the list for: an incident's card had no severity, beside an alert's that has one, and a maintenance
+  event's card never said when it starts (#9011). Enforced by
+  [PhoneCardsKeepTriageFactsGuard](../../packages/App/Tests/Dashboard/PhoneCardsKeepTriageFactsGuard.test.ts).
 - **A column sorts the whole list by what it shows.** A column that shows one related record sorts by
   it: a severity, a state or a monitor status by its place in the project's list, worst first
   descending, where its first click goes (as the dashboard's list widgets sort it); anything else by
@@ -466,6 +480,26 @@ work out, starts from a default for everything else, and folds what most people 
   [AppLinkLeaveGuard](../../packages/Common/Tests/App/Dashboard/AppLinkLeaveGuard.test.tsx) and
   [ProjectPickerLeaveGuard](../../packages/Common/Tests/UI/Components/ProjectPickerLeaveGuard.test.tsx).
 
+### Help dialogs
+
+A list's help (?) and a product's "how it works" guide open one dialog, `HelpModal`
+(`Common/UI/Components/Help`): what the thing is in short, then its topics, each opened on its own,
+with its documentation one click away and "Was this clear?" under it (#8889). "How SLOs Work" was a
+page of markdown as wide as the screen, six headings and a rule between each, with nothing to say
+what was further down.
+
+- **A help document says what the thing is first, then its topics.** Its lead, one to three
+  sentences, is what everybody reads, and the dialog shows it as "In short"; each `##` heading is a
+  topic the dialog lists, and the one a person needs to act comes first. No heading repeats the
+  dialog's title, and nothing draws a line between the topics: the dialog sets them apart itself.
+  Write it in `HelpContent`'s shape, on the page or with a shared builder (`Utils/Help/ResourceRuleHelp`
+  writes every resource's label and owner rule help). Enforced by
+  [HelpDialogsGuard](../../packages/Common/Tests/App/Dashboard/HelpDialogsGuard.test.ts).
+- **Help says what the product does, checked against the code.** When a rule runs, what it changes,
+  what it never does, and the words the form shows ("Which Incidents", "More fields"): the help that
+  listed three log processors of five, or a severity no filter can match, sent people the wrong way.
+  Not enforced: use judgement.
+
 ## Cards and the look of a page
 
 - **No card inside a card.** A section inside a card is a divider and a heading. Enforced by
@@ -501,6 +535,12 @@ work out, starts from a default for everything else, and folds what most people 
 - **A button that cannot be pressed looks it,** the same way everywhere: faded, with the not-allowed
   cursor. Enforced by
   [HandDrawnButtonLockedLookGuard](../../packages/Common/Tests/UI/HandDrawnButtonLockedLookGuard.test.ts).
+- **A button that adds a row to a builder never looks like the form's action.** Add condition, Add
+  filter and Add row put one more line into what the person is building; the form's own action is
+  elsewhere. Draw them as outline buttons (`ButtonStyleType.OUTLINE`), never filled or tinted: a
+  rule's Applies to step drew Add condition in tinted indigo, the one coloured button on a screen
+  whose Next is not primary, and it read as the dialog's main action (#9116). Enforced by
+  [AddRowButtonsNotPrimaryGuard](../../packages/Common/Tests/UI/Components/AddRowButtonsNotPrimaryGuard.test.ts).
 - **Icons and logos are one-colour SVGs,** and an icon means one thing: a timeline is shown with the
   timeline's icon. Enforced by
   [ProviderLogosGuard](../../packages/Common/Tests/UI/Components/ProviderLogo/ProviderLogosGuard.test.ts)
@@ -1113,7 +1153,8 @@ then `npm run i18n:validate` from the root.
 ## Asking people
 
 People who are lost leave quietly, so the product asks them, in five seconds, what was hard
-(#6832). Answers stay on the server, for its master admins (Admin Dashboard > Feedback).
+(#6832). Answers stay on the server, for its master admins (Admin Dashboard > Feedback), and what a
+person writes in Give Feedback also reaches whoever can answer it.
 
 - **Ask at most one question a week, once per question, and never while something is down.** A
   question OneUptime asks goes through `ProductFeedback.ask` (`Common/UI/Utils/ProductFeedback`),
@@ -1128,8 +1169,17 @@ People who are lost leave quietly, so the product asks them, in five seconds, wh
   not, so the product asks none. Enforced by
   [FeedbackQuestionsGuard](../../packages/App/Tests/Dashboard/FeedbackQuestionsGuard.test.ts).
 - **An answer carries the page as a route with no ids, and the version, and nothing else.** No
-  person, no project, no address. Say where it goes where it is given: to the server's admins on a
-  self-hosted server, and to the OneUptime team on Cloud. Enforced by
+  person, no project, no address: the row kept names nobody. Say where it goes where it is given: to
+  the server's admins on a self-hosted server, and to the OneUptime team on Cloud. Enforced by
+  [FeedbackQuestionsGuard](../../packages/App/Tests/Dashboard/FeedbackQuestionsGuard.test.ts).
+- **Give Feedback is a message, and reaches someone who can answer it.** The person writes to a team
+  and wants a reply, so the server emails it with their name and email address, their project, the
+  page and the version, copying them, and a reply goes to them (#8893): to the OneUptime team
+  (support@oneuptime.com) on Cloud, and to the server's Admin Notification Email on a self-hosted
+  server, never to OneUptime. A self-hosted server with none emails nothing, and the answer names
+  nobody. The dialog says to whom and with what before anything is sent, names the page as its
+  breadcrumbs do ("SLOs", never the route it sends, "/dashboard/:projectId/slos"), and once sent says
+  only what the server did: "A copy is on its way to you@example.com". Enforced by
   [FeedbackQuestionsGuard](../../packages/App/Tests/Dashboard/FeedbackQuestionsGuard.test.ts).
 - **Before each release, someone who has not seen the changes walks the core jobs as a newcomer**,
   and posts what made them hesitate, guess or go back on the epic #6802:

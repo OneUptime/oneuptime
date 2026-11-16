@@ -243,6 +243,8 @@ Archivieren Sie eine Statusseite, um sie offline zu nehmen, ohne sie zu löschen
 
 Um eine Statusseite zu archivieren, öffnen Sie sie und gehen zu **Erweitert → Erweiterte Einstellungen → Statusseite archivieren**. Um mehrere zu archivieren, wählen Sie sie in der Liste **Statusseiten** aus und wählen **Archivieren**. Um eine zurückzuholen, öffnen Sie **Statusseiten → Erweitert → Archiviert**, wählen sie aus und wählen **Aus dem Archiv holen**, oder öffnen Sie sie und klicken Sie auf **Aus dem Archiv holen** im Banner oben auf ihren Seiten.
 
+Die **Übersicht** einer Statusseite hat eine Karte **Jetzt angezeigt**: die offenen Vorfälle und die anstehenden oder laufenden Wartungen, die Besucher gerade darauf sehen. Wer die Seite archiviert oder löscht, auf ihren eigenen Seiten oder aus der Liste, sieht zuerst, was Besucher nicht mehr sehen würden.
+
 ## Nächste Schritte
 
 :::cards

@@ -12,7 +12,7 @@ A service level objective (SLO) is a reliability target for what you run, such a
 
 ## How it works
 
-An SLO measures one of two things. A monitor uptime SLO reads the status timelines of the monitors attached to it: the same data your status pages show. A request SLO counts the requests its services serve, from their traces: see [Request and Latency SLOs](/docs/slo/request-slos). The rest of this page describes monitor uptime SLOs, and request SLOs work the same way unless it says otherwise. From them OneUptime works out how much of the compliance window was good time, how much of the error budget is left, and how fast it is being spent. Time with a monitor's monitoring turned off is left out: nothing checks the monitor then, so that time neither spends the error budget nor counts as good time.
+An SLO measures one of two things. A monitor uptime SLO reads the status timelines of the monitors attached to it: the same data your status pages show. A request SLO counts the requests its services serve, from their traces: see [Request and Latency SLOs](/docs/slo/request-slos). The rest of this page describes monitor uptime SLOs, and request SLOs work the same way unless it says otherwise. From them OneUptime works out how much of the compliance window was good time, how much of the error budget is left, and how fast it is being spent. Time with a monitor's monitoring turned off is left out: nothing checks the monitor then, so that time neither spends the error budget nor counts as good time. So is the time before a monitor's first check: until something has checked a monitor, its status is only the operational one every monitor is created in, so an SLO is measured from its monitors' first checks, and one whose monitors nothing has checked yet has nothing to measure until they are checked.
 
 ```mermaid title="From monitor checks to an SLO's status"
 flowchart TB
@@ -139,7 +139,7 @@ OneUptime gives every evaluated SLO a status:
 | **Healthy** | More than the at-risk threshold of the budget is left. |
 | **At Risk** | The budget left has dropped to the at-risk threshold or below: 20% by default. |
 | **Budget Exhausted** | The budget is fully spent, or overspent. |
-| **Misconfigured** | The SLO cannot be measured: it has no monitors, its monitors no longer exist or have not recorded a status in its window yet, or its target is out of range. A request SLO is misconfigured without services, without a latency threshold, or before its services have served a request in its window. |
+| **Misconfigured** | The SLO cannot be measured: it has no monitors, its monitors no longer exist, nothing has checked them yet or they have not recorded a status in its window yet, or its target is out of range. A request SLO is misconfigured without services, without a latency threshold, or before its services have served a request in its window. |
 | **Paused** | Every monitor it measures is archived or has active monitoring turned off, by hand, by a manual incident or by scheduled maintenance. It resumes by itself once one of them is monitored again. |
 
 A turned-off or archived SLO is not evaluated, so its status stays where it was; the SLO list shows a **Disabled** or **Archived** pill instead. SLO owners are notified when the status changes to **At Risk** or **Budget Exhausted**: see [Error Budgets](/docs/slo/error-budget).
@@ -195,6 +195,8 @@ The **Overview** answers "are we within budget?", from top to bottom:
 - **Burn rate rules**: each enabled rule's threshold beside the current burn rate, for rules that look back 6 hours or less, and what the rule declares.
 
 When the SLO is in a tier of its error budget policy, the **Overview** also shows that tier and what the team agreed to do in it: see [Error Budget Policy](/docs/slo/error-budget-policy).
+
+The **Used by** card lists the burn-rate rules and the error budget policy tiers that act on the SLO, and the dashboards that show it. Archiving or deleting the SLO says these first: its rules and tiers go with it.
 
 ### Settings
 

@@ -45,6 +45,7 @@
     "uptimePercent": "稼働率 {{percent}}",
     "operational": "稼働中",
     "notMonitored": "未監視",
+    "notMonitoredYet": "まだ監視されていません",
     "noResourcesInGroup": "このグループにリソースが追加されていません。",
     "activeIncidents": "進行中のインシデント",
     "scheduledMaintenanceEvents": "定期メンテナンス",
@@ -55,6 +56,7 @@
     "someResourcesAre": "一部のリソースは {{status}} です",
     "someResourcesAreUnder": "一部のリソースは {{status}} 中です",
     "noResourcesAreMonitored": "現在監視されているリソースはありません",
+    "noResourcesAreMonitoredYet": "まだ監視されているリソースはありません",
     "oneSubGroup": "1 グループ",
     "subGroupCount": "{{total}} グループ"
   },
@@ -180,7 +182,9 @@
     "manageExisting": "既存の購読を管理",
     "sendManagementLink": "管理リンクを送信",
     "subscribedSuccessfully": "購読が正常に完了しました。",
-    "emailSentCheckSpam": "リンクを含むメールをお送りしました。メールが見当たらない場合は、スパムフォルダをご確認ください。",
+    "emailSentCheckSpam": "このアドレスにメールを送信しました。メール内のリンクを開いて、購読を確認してください。メールが見当たらない場合は、スパムフォルダをご確認ください。",
+    "checkEmailTitle": "メールをご確認ください",
+    "checkPhoneTitle": "電話をご確認ください",
     "manageLinkSent": "入力された情報に一致する購読がある場合は、その購読を管理するためのリンクをお送りしました。",
     "manageLinkSentEmail": "このメールアドレスで購読されている場合は、購読を管理するためのリンクをこのアドレスにお送りしました。メールが見当たらない場合は、スパムフォルダをご確認ください。",
     "menu": {

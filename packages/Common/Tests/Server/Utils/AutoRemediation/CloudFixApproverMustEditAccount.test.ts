@@ -1,5 +1,5 @@
 import RemediationApproval from "../../../../Server/Utils/AutoRemediation/RemediationApproval";
-import { getRemediationPlanFingerprint } from "../../../../Server/Utils/AutoRemediation/RemediationPlanFingerprint";
+import { getRemediationPlanFingerprint } from "../../../../Types/AutoRemediation/RemediationPlanFingerprint";
 import CommandPlanExecutor from "../../../../Server/Utils/AutoRemediation/CommandPlanExecutor";
 import WorkspaceRemediationActions from "../../../../Server/Utils/Workspace/WorkspaceRemediationActions";
 import AlertFeedService from "../../../../Server/Services/AlertFeedService";
@@ -33,6 +33,7 @@ import UserType from "../../../../Types/UserType";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import { withLabelJoinTables } from "../../TestingUtils/LabelJoinTables";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import PrivateRecordWriteCheck from "../../../../Server/Utils/Permission/PrivateRecordWriteCheck";
 
 /*
  * A PERSON WHO MAY NOT CHANGE A CLOUD ACCOUNT CANNOT APPROVE ONEUPTIME AI'S
@@ -177,6 +178,8 @@ function suggestionRow(cloud: Cloud): Record<string, unknown> {
     projectId: PROJECT_ID,
     incidentId: INCIDENT_ID,
     status: AutoRemediationSuggestionStatus.Suggested,
+    // The row's version, which every write moves on.
+    version: 1,
     suggestionType: AutoRemediationSuggestionType.CommandPlan,
     resourceType: cloud.type,
     resourceId: new ObjectID(CLOUD_ACCOUNT_ID),
@@ -229,6 +232,15 @@ function cloudStatus(cloud: Cloud): ResourceAiAccessStatus {
     isRemediationReady: true,
   };
 }
+
+/*
+ * The fixes here are for incidents and alerts that are not private, or that
+ * the person reaches: what a fix's buttons ask of a private record's owning
+ * teams (#8913) is RemediationPrivateRecord's own suite.
+ */
+beforeEach(() => {
+  jest.spyOn(PrivateRecordWriteCheck, "reaches").mockResolvedValue(true);
+});
 
 describe.each(CLOUDS)(
   "$name: approving OneUptime AI's fix of the account",

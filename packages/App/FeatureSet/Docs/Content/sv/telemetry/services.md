@@ -71,6 +71,8 @@ Bredvid namnet visar en tjänsts **Översikt** om dess telemetri kommer: **Tar e
 
 Ägare spelar roll även utanför sidan: en roll med omfånget Owned läser telemetrin för de tjänster som du eller dina team äger. Se [Telemetri](/docs/permissions/index#telemetri).
 
+En tjänsts **Översikt** har kortet **Används av**: monitorerna som bevakar tjänsten, och SLO:erna som mäter dem. När du arkiverar eller tar bort tjänsten, på dess sidor eller från listan, sägs de först. Det du inte får öppna räknas men namnges inte.
+
 ## Ändra en tjänst
 
 :::steps

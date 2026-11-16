@@ -23,27 +23,30 @@ import {
 } from "../../../Utils/Form/EventRuleForm";
 
 const incidentPrivacyDocumentation: string = `
-### How Incident Privacy Rules Work
+A privacy rule makes every new incident it matches private: only its owners, Project Admins and Project Owners can see it.
 
-A privacy rule makes every new incident it matches private: only the incident's owners (the people and teams named as its owners), Project Admins and Project Owners can see it.
+## How It Works
 
-### Match Criteria
+- A matching incident is private from the moment it is declared. One matching rule is enough.
+- Privacy is decided before anything else happens to the incident, so its Slack or Microsoft Teams channel is private too.
+- To make incidents you already have private, open a rule and select **Run Now**. Nothing is made public again.
 
-The conditions a new incident must meet.
+## Match Criteria
 
-### What It Does
-
-A matching incident is private from the moment it is created. One matching rule is enough. Privacy is decided before anything else happens to the incident, so its Slack or Microsoft Teams channel is private too.
+The conditions a new incident must meet, such as its monitors, severity, labels or title.
 `;
 
 const incidentEpisodePrivacyDocumentation: string = `
-### How Incident Episode Privacy Rules Work
-
 An episode privacy rule makes every new incident episode it matches private: only its owners, Project Admins and Project Owners can see it.
 
-### Match Criteria
+## How It Works
 
-The conditions a new episode must meet.
+- A matching episode is private from the moment it opens. One matching rule is enough.
+- To make episodes you already have private, open a rule and select **Run Now**. Nothing is made public again.
+
+## Match Criteria
+
+The conditions a new episode must meet, such as its severity, labels or title.
 `;
 
 interface RulesTableProps {

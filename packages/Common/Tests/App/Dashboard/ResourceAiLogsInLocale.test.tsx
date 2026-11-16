@@ -193,6 +193,11 @@ const AI_LOGS_HELD_WORDS: Array<string> = [
       return getResourceFixStatusLook(status).label;
     },
   ),
+  // A fix approved once that waits for the second of two approvals (#6422).
+  getResourceFixStatusLook(
+    AutoRemediationSuggestionStatus.Suggested,
+    "2026-09-22T09:06:00.000Z",
+  ).label,
   ...getResourceCommandStatusOptions().map(
     (option: { label: string }): string => {
       return option.label;

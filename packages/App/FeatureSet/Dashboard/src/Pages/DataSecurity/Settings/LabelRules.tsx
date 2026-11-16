@@ -1,3 +1,4 @@
+import { getLabelRuleHelpMarkdown } from "../../../Utils/Help/ResourceRuleHelp";
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
@@ -24,6 +25,10 @@ import Label from "Common/Models/DatabaseModels/Label";
  * The same two-step form as every label rule (Utils/Form/ResourceRuleForm):
  * what the rule matches, then the labels it adds.
  */
+const labelRuleDocumentation: string = getLabelRuleHelpMarkdown({
+  nouns: { singular: "data store", plural: "data stores" },
+});
+
 const DataStoreLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
   props: RuleSettingsPageProps,
 ): ReactElement => {
@@ -51,6 +56,11 @@ const DataStoreLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         title: "Data Store Label Rules",
         description:
           "Auto-attach labels when matching data stores are discovered.",
+      }}
+      helpContent={{
+        title: "How Data Store Label Rules Work",
+        description: "Match data stores and attach labels automatically.",
+        markdown: labelRuleDocumentation,
       }}
       sortBy="name"
       sortOrder={SortOrder.Ascending}

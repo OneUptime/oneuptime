@@ -5,6 +5,7 @@ import {
   SANDBOX_IDENTITY_MIN,
   SANDBOX_LAUNCHER_PATH,
 } from "../../../Utils/JavaScriptSandbox/SandboxIdentity";
+import { SANDBOX_NO_NETWORK_PATH } from "../../../Utils/JavaScriptSandbox/SandboxNetwork";
 import {
   PASSED_THROUGH_ENVIRONMENT,
   SANDBOX_WORKER_BUNDLE_PATH,
@@ -28,6 +29,10 @@ const dockerfile: string = fs.readFileSync(
 const launcherSourcePath: string = path.join(
   runnerRoot,
   "Utils/JavaScriptSandbox/Native/javascript-sandbox.c",
+);
+const noNetworkSourcePath: string = path.join(
+  runnerRoot,
+  "Utils/JavaScriptSandbox/Native/javascript-sandbox-no-network.c",
 );
 
 // C source without its comments, so only code is matched.
@@ -73,6 +78,41 @@ describe("the Runner image's JavaScript sandbox", () => {
     expect(compile).toContain(HARDENING_FLAGS);
   });
 
+  test("the production build compiles the no-network filter's source into the path the Runner runs, with the same hardening flags", () => {
+    const compile: string = instructionContaining(
+      `-o ${SANDBOX_NO_NETWORK_PATH} /usr/src/app/Utils/JavaScriptSandbox/Native/javascript-sandbox-no-network.c`,
+      productionStart,
+    );
+
+    expect(fs.existsSync(noNetworkSourcePath)).toBe(true);
+    expect(compile).toContain(HARDENING_FLAGS);
+  });
+
+  test("the image owns the no-network filter as root, runnable by all, never setuid", () => {
+    const setUp: string = instructionContaining(
+      `chmod 0755 ${SANDBOX_NO_NETWORK_PATH}`,
+      productionStart,
+    );
+
+    // Owned by root (with the other files on the chown root:root line).
+    expect(setUp).toMatch(
+      new RegExp(
+        `chown root:root [^&]*${SANDBOX_NO_NETWORK_PATH.replace(/[/]/g, "\\/")}`,
+      ),
+    );
+    // Mode 0755: never a setuid or setgid bit, which would be a leading 4, 2 or 6.
+    const mode: RegExpMatchArray | null = setUp.match(
+      new RegExp(
+        `chmod ([0-7]+) ${SANDBOX_NO_NETWORK_PATH.replace(/[/]/g, "\\/")}`,
+      ),
+    );
+    expect(mode).not.toBeNull();
+    expect(mode![1]).toBe("0755");
+    expect(setUp).toContain(
+      `{ ${SANDBOX_NO_NETWORK_PATH} check; test $? -eq 0; }`,
+    );
+  });
+
   test("and bundles the worker into the path the Runner runs, holding every package but isolated-vm", () => {
     const bundle: string = instructionContaining(
       `--outfile=${SANDBOX_WORKER_BUNDLE_PATH}`,
@@ -112,11 +152,11 @@ describe("the Runner image's JavaScript sandbox", () => {
       `{ ${SANDBOX_LAUNCHER_PATH} 2>/dev/null; test $? -eq 64; }`,
     );
     expect(setUp).toContain(
-      `{ echo '' | NODE_PATH=/usr/src/Common/node_modules node --no-node-snapshot ${SANDBOX_WORKER_BUNDLE_PATH}; test $? -eq 2; }`,
+      `{ echo '' | NODE_PATH=/usr/src/Common/node_modules node --no-node-snapshot ${SANDBOX_WORKER_BUNDLE_PATH} 3>/dev/null 4>/dev/null; test $? -eq 2; }`,
     );
   });
 
-  test("the development image compiles the same launcher, with the same flags, and owns it the same way", () => {
+  test("the development image compiles the same launcher and filter, with the same flags, and owns them the same way", () => {
     const developmentPart: string = dockerfile.slice(
       developmentStart,
       productionStart,
@@ -129,13 +169,84 @@ describe("the Runner image's JavaScript sandbox", () => {
     expect(developmentPart).toContain(
       "COPY ./packages/Runner/Utils/JavaScriptSandbox/Native/javascript-sandbox.c /tmp/javascript-sandbox.c",
     );
+    expect(developmentPart).toContain(
+      "COPY ./packages/Runner/Utils/JavaScriptSandbox/Native/javascript-sandbox-no-network.c /tmp/javascript-sandbox-no-network.c",
+    );
     expect(compile).toContain(HARDENING_FLAGS);
     expect(compile).toContain(`chown root:node ${SANDBOX_LAUNCHER_PATH}`);
     expect(compile).toContain(`chmod 4750 ${SANDBOX_LAUNCHER_PATH}`);
+    expect(compile).toContain(
+      `-o ${SANDBOX_NO_NETWORK_PATH} /tmp/javascript-sandbox-no-network.c`,
+    );
+    expect(compile).toContain(`chmod 0755 ${SANDBOX_NO_NETWORK_PATH}`);
     // Before the toolchain is purged.
     expect(dockerfile.indexOf(compile)).toBeLessThan(
       dockerfile.indexOf("apt-get purge -y --auto-remove python3 make g++"),
     );
+  });
+});
+
+describe("the no-network filter's source", () => {
+  const source: string = fs.readFileSync(noNetworkSourcePath, "utf8");
+  const code: string = withoutComments(source);
+
+  test("no_new_privs is set before the seccomp filter, so a process with no privilege may set it", () => {
+    const noNewPrivs: number = code.indexOf("PR_SET_NO_NEW_PRIVS");
+    const setFilter: number = code.indexOf("PR_SET_SECCOMP");
+
+    expect(noNewPrivs).toBeGreaterThan(-1);
+    expect(setFilter).toBeGreaterThan(-1);
+    expect(noNewPrivs).toBeLessThan(setFilter);
+  });
+
+  test("every socket of every family is refused, and io_uring too", () => {
+    for (const call of [
+      "__NR_socket",
+      "__NR_socketpair",
+      "__NR_io_uring_setup",
+      "__NR_io_uring_enter",
+      "__NR_io_uring_register",
+    ]) {
+      expect(code).toContain(`REFUSE(${call},`);
+    }
+  });
+
+  test("nothing of another process - its memory or its open connections", () => {
+    for (const call of [
+      "__NR_ptrace",
+      "__NR_process_vm_readv",
+      "__NR_process_vm_writev",
+      "__NR_pidfd_getfd",
+    ]) {
+      expect(code).toContain(`REFUSE(${call},`);
+    }
+  });
+
+  test("another architecture's system-call table is killed, not let through", () => {
+    expect(code).toContain("seccomp_data, arch)");
+    expect(code).toContain("SECCOMP_RET_KILL_PROCESS");
+    // x32's numbers are this table's with a high bit; they are killed too.
+    expect(code).toContain("X32_SYSCALL_BIT");
+  });
+
+  test("it runs a program by its full path only, and no shell", () => {
+    for (const forbidden of [
+      "system(",
+      "popen(",
+      "execv p(".replace(" ", ""),
+      "execl(",
+      "dlopen(",
+    ]) {
+      expect(code).not.toContain(forbidden);
+    }
+    expect(code).toContain("argv[1][0] != '/'");
+    expect(code).toContain("execve(argv[1]");
+  });
+
+  test("its check proves a socket is refused once the filter is set", () => {
+    expect(code).toContain("is_socket_refused(AF_INET)");
+    expect(code).toContain("is_socket_refused(AF_INET6)");
+    expect(code).toContain("is_socket_refused(AF_UNIX)");
   });
 });
 
@@ -264,8 +375,8 @@ describe("the launcher's source", () => {
     expect(limits).toContain(
       "set_limit(RLIMIT_NOFILE, SANDBOX_OPEN_FILE_LIMIT)",
     );
-    // Standard input, output, error and the result channel stay open.
-    expect(code).toContain("#define FIRST_FD_TO_CLOSE 4");
+    // Standard input, output, error, the result and the HTTP channel stay open.
+    expect(code).toContain("#define FIRST_FD_TO_CLOSE 5");
   });
 
   test("the step's environment holds only the names the Runner passes, never NODE_OPTIONS or one of the Runner's own", () => {

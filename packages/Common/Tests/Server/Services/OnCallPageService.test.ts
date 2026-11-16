@@ -27,8 +27,11 @@ import OnCallPageService, {
   OnCallPageRecordType,
   OnCallPageResult,
   OnCallPageTargets,
+  getPageAboutAction,
 } from "../../../Server/Services/OnCallPageService";
 import OnCallRunPageMessage from "../../../Server/Utils/OnCall/OnCallRunPageMessage";
+import PrivateRecordWriteCheck from "../../../Server/Utils/Permission/PrivateRecordWriteCheck";
+import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
 import TeamService from "../../../Server/Services/TeamService";
 import UserService from "../../../Server/Services/UserService";
 import logger from "../../../Server/Utils/Logger";
@@ -1423,8 +1426,14 @@ describe("OnCallPageService.page", () => {
       );
       nothingWasStarted();
 
-      // Its owner may page about it.
+      /*
+       * Its owner may page about it: their permission to page reaches it
+       * (#8913, asked of the record they read as private).
+       */
       incidentPrivacy.callerOwnsPrivateRecords = true;
+      const reaches: SpyInstance<typeof PrivateRecordWriteCheck.reaches> = jest
+        .spyOn(PrivateRecordWriteCheck, "reaches")
+        .mockResolvedValue(true);
 
       const result: OnCallPageResult = await page({
         targets: { userIds: [JANE] },
@@ -1432,6 +1441,51 @@ describe("OnCallPageService.page", () => {
       });
 
       expect(result.record.label).toBe("Incident INC-8");
+      expect(reaches).toHaveBeenCalledWith(
+        expect.objectContaining({
+          modelType: OnCallDutyPolicyExecutionLog,
+          type: DatabaseRequestType.Create,
+          recordService: IncidentService,
+          recordId: INCIDENT,
+          readRecord: expect.objectContaining({ isPrivate: true }),
+        }),
+      );
+    });
+
+    /*
+     * A PAGE ABOUT A PRIVATE INCIDENT, ONLY THROUGH ITS OWNERS (#8913): a
+     * member who sees it - a team of theirs owns it - but whose teams that
+     * own it may not page is refused, saying why, and nobody is paged: not
+     * the people, teams and schedules a page reaches directly (which
+     * OneUptime starts), nor the policies.
+     */
+    test("a private incident whose owning teams may not page about it is refused, saying why, and nobody is paged", async () => {
+      incidents.get(INCIDENT)!["isPrivate"] = true;
+      incidentPrivacy.callerOwnsPrivateRecords = true;
+      jest.spyOn(PrivateRecordWriteCheck, "reaches").mockResolvedValue(false);
+
+      const error: Error = await refusalOf(
+        page({ targets: { userIds: [JANE] }, about: { incidentId: INCIDENT } }),
+      );
+
+      expect(error).toBeInstanceOf(NotAuthorizedException);
+      expect(error.message).toBe(
+        `You do not have permission to ${getPageAboutAction("incident")}. This incident is private, so it is changed only with the permissions of the teams that own it and of the people named as its owners, and none of them lets you do this. Ask a Project Admin to give one of the teams that own it this permission, or to add you as an owner.`,
+      );
+      nothingWasStarted();
+    });
+
+    test("a public incident is paged about without asking its owners", async () => {
+      const reaches: SpyInstance<typeof PrivateRecordWriteCheck.reaches> =
+        jest.spyOn(PrivateRecordWriteCheck, "reaches");
+
+      await page({
+        targets: { userIds: [JANE] },
+        about: { incidentId: INCIDENT },
+      });
+
+      // Asked of the record as read: not private, so nothing more is read.
+      expect(await reaches.mock.results[0]!.value).toBe(true);
     });
   });
 

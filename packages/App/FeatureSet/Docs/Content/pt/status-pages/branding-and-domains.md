@@ -208,14 +208,14 @@ Em **Domínio** (texto de exemplo `status.example.com`), digite o endereço comp
 
 #### Manter o certificado gratuito, ou enviar o seu
 
-**Mais campos** começa recolhido, e o cabeçalho dele diz qual certificado o domínio vai usar: "Emitimos um certificado SSL gratuito para este domínio e o renovamos automaticamente." Abra-o só para usar um certificado seu: ative **Carregar Certificado Personalizado** e cole o **Certificado** e a **Chave privada do certificado** em formato PEM. Os dois passam então a ser obrigatórios.
+**Mais campos** começa recolhido, e o cabeçalho dele diz qual certificado o domínio vai usar: "Emitimos um certificado SSL gratuito para este domínio e o renovamos automaticamente." Abra-o só para usar um certificado seu: ative **Carregar Certificado Personalizado** e cole o **Certificado** e a **Chave privada do certificado** em formato PEM. Os dois passam então a ser obrigatórios. A chave é armazenada criptografada e nunca mais é mostrada. Um certificado e uma chave que não combinam são recusados, com o motivo abaixo do campo errado.
 
 #### Continuar
 
 Clique em **Continuar**. Se o projeto já verificou o domínio em que o endereço está, o domínio é adicionado e a **Configuração de DNS** dele se abre, com o registro CNAME a adicionar. Se não, o OneUptime adiciona esse domínio em **Configurações do projeto → Avançado → Domínios**, e a **Configuração de DNS** se abre com os dois registros, para você verificar o domínio ali mesmo, sem sair da página.
 :::
 
-O nome completo de um domínio é fixado quando você o adiciona, então **Editar** muda só o certificado dele. Para usar outro endereço, adicione esse e exclua o antigo. Um nome que um painel ou um formulário já usa, em qualquer projeto, é recusado: um domínio mostra uma única página de status, um único painel ou um único formulário.
+O nome completo de um domínio é fixado quando você o adiciona, então **Editar** muda só o certificado dele. Em um domínio que serve o seu próprio certificado, **Chave privada do certificado** fica vazia na caixa de diálogo **Editar**: deixe-a em branco para manter a chave armazenada, que é tudo de que um certificado renovado com a mesma chave precisa, ou cole uma chave nova. Em um domínio com o certificado gratuito, ativar **Carregar Certificado Personalizado** pede a chave. Para usar outro endereço, adicione esse e exclua o antigo. Um nome que um painel ou um formulário já usa, em qualquer projeto, é recusado: um domínio mostra uma única página de status, um único painel ou um único formulário.
 
 Adicionar um domínio ao projeto exige permissão para criar domínios do projeto (**Create Domain**, ou Proprietário do projeto ou Administrador do projeto), e verificá-lo exige **Edit Domain**. Sem elas, a caixa de diálogo diz quem pode fazer isso.
 

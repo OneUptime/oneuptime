@@ -71,6 +71,8 @@ Ved siden af navnet viser en tjenestes **Oversigt**, om dens telemetri kommer: *
 
 Ejere betyder noget ud over siden: en rolle med omfanget Owned læser telemetrien for de tjenester, som du eller dine teams ejer. Se [Telemetri](/docs/permissions/index#telemetri).
 
+En tjenestes **Oversigt** har et kort **Bruges af**: de monitorer, der overvåger tjenesten, og de SLOs, der måler dem. Når du arkiverer eller sletter tjenesten, på dens sider eller fra listen, siges de først. Det, du ikke må åbne, tælles, men nævnes ikke.
+
 ## Skift en tjeneste
 
 :::steps

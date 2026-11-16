@@ -118,13 +118,21 @@ describe("Markdown eager-graph contract", () => {
     expect(source).not.toMatch(STATIC_MARKDOWN_VIEWER_IMPORT);
   });
 
-  test("eager-graph Common components (BaseModelTable, FeedItem) import LazyMarkdownViewer, not MarkdownViewer", () => {
+  test("eager-graph Common components (the help dialog, FeedItem) import LazyMarkdownViewer, not MarkdownViewer", () => {
     /*
      * Statically-imported Dashboard pages (Home, ActiveIncidents, ...) reach
-     * BaseModelTable through ModelTable, and feeds reach FeedItem — so these
-     * two Common files are part of the eager graph as much as SafeChatMarkdown.
+     * BaseModelTable through ModelTable, and with it the help dialog it
+     * opens (HelpModal, which draws a list's help since #8889); feeds reach
+     * FeedItem — so these Common files are part of the eager graph as much
+     * as SafeChatMarkdown.
      */
     const files: Array<string> = [
+      path.join(COMMON_ROOT, "UI", "Components", "Help", "HelpModal.tsx"),
+      path.join(COMMON_ROOT, "UI", "Components", "Feed", "FeedItem.tsx"),
+    ];
+
+    // BaseModelTable draws no markdown of its own: its help is HelpModal's.
+    const baseModelTable: string = readCode(
       path.join(
         COMMON_ROOT,
         "UI",
@@ -132,8 +140,10 @@ describe("Markdown eager-graph contract", () => {
         "ModelTable",
         "BaseModelTable.tsx",
       ),
-      path.join(COMMON_ROOT, "UI", "Components", "Feed", "FeedItem.tsx"),
-    ];
+    );
+
+    expect(baseModelTable).toMatch(/from\s*["']\.\.\/Help\/HelpModal["']/);
+    expect(baseModelTable).not.toMatch(STATIC_MARKDOWN_VIEWER_IMPORT);
 
     for (const filePath of files) {
       const source: string = readCode(filePath);

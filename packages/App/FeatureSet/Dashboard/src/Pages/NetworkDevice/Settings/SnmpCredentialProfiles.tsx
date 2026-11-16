@@ -9,27 +9,25 @@ import NetworkSnmpCredentialProfile from "Common/Models/DatabaseModels/NetworkSn
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const snmpCredentialProfileDocumentation: string = `
-### What an SNMP Credential Profile Is
+An SNMP credential profile is one set of SNMP credentials, a v1 or v2c community string or a v3 user with its keys, that many devices share. Attach it to a device, or to a site for every device in it, and they are walked with it on their next poll. Rotating a community string is one edit here.
 
-A profile is one named set of SNMP credentials — a v1/v2c community string, or a v3 user with its security level, protocols and keys — that many devices share. Attach it to a device, or to a site so every device in that site picks it up, and the devices are walked over SNMP with those credentials on their next poll. Nothing is copied onto the device: rotating a community string is one edit here, not one per device.
+## Which Credentials a Device Uses
 
-### How a device's credentials are resolved
+A probe uses the first of these that is usable:
 
-When a probe polls a device it looks for a usable credential set in this order and stops at the first hit:
+1. **The device's own credentials**, typed on the device.
+2. **The device's profile**, on its **Settings** (Network > Devices > a device).
+3. **Its site's profile**, on the site's **Settings** (Network > Sites > a site), for every device in the site.
 
-1. **The device's own credentials**, typed on the device itself.
-2. **The device's profile** (Network > Devices > a device > Settings).
-3. **The site's profile** (Network > Sites > a site > Settings), inherited by every device in that site.
+A v1 or v2c profile needs a community string, and a v3 profile a username, to be usable: an empty one is skipped. With none of the three, a device is **pinged only**: it has an up or down status and a place on the map and in its site, but no interfaces, inventory or health OIDs until credentials appear.
 
-With none of the three the device is **pinged only**: it still has an up/down status, still sits on the map and in its site, but has no interfaces, inventory or health OIDs until credentials appear somewhere in that chain. "Usable" means a v1/v2c profile with a non-empty community string, or a v3 profile with a non-empty username — an empty profile is skipped, not used.
+## Secrets
 
-### Secrets
+The community string and the v3 keys are encrypted, and only roles that may read a device's own credentials may read them here. A list of devices or sites shows a profile's name and version, never its secrets.
 
-The community string and the v3 authentication and privacy keys are encrypted at rest, and only roles that may read a device's own credentials may read them here. A device or site listing that shows its profile shows the profile's name and version, never its secrets.
+## Deleting a Profile
 
-### Deleting a profile
-
-A profile that any device or site still points at **cannot be deleted**; the delete is refused with a count of what is in the way. Move those devices and sites to another profile, or clear the profile on them, and then delete it. This is deliberate: silently dropping a profile out from under its devices would turn every one of them into a ping-only device on its next poll with nothing anywhere to say why.
+A profile a device or a site still uses cannot be deleted, and the refusal says how many use it. Move them to another profile, or clear it on them, first. Dropping it from under them would turn each into a ping-only device on its next poll, with nothing to say why.
 `;
 
 /*

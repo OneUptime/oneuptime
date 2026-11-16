@@ -56,6 +56,19 @@ export default class AcmeCertificate extends BaseModel {
   })
   public certificate?: string = undefined;
 
+  /*
+   * The private key of the certificate Let's Encrypt issued for the domain.
+   * Whoever holds it can serve the domain as its owner, so it is kept
+   * encrypted at rest, as the keys customers upload for their own
+   * certificates are (StatusPageDomain.customCertificateKey). The Greenlock
+   * store writes it through the service, which encrypts it
+   * (GreenlockUtil.orderCert, on every order and renewal), and nginx's jobs
+   * read it as OneUptime through the service, which decrypts it
+   * (Nginx/Jobs/AcmeWriteCertificates, WriteServerCertToDisk). The keys
+   * stored before were encrypted by the EncryptLetsEncryptKeys data
+   * migration; until it reaches a row, that row's key reads as itself.
+   * Nobody reads it through the API (read: []).
+   */
   @ColumnAccessControl({
     create: [],
     read: [],
@@ -63,6 +76,7 @@ export default class AcmeCertificate extends BaseModel {
   })
   @TableColumn({
     secret: true,
+    encrypted: true,
     type: TableColumnType.VeryLongText,
   })
   @Column({

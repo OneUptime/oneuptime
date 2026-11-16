@@ -9,6 +9,7 @@ import {
   GlobalConfigSql,
   SqlCall,
   SqlRow,
+  SqlWrite,
 } from "./Fixtures/GlobalConfigCredentialsSql";
 import { SERVER_SETTINGS_ID } from "./Fixtures/ServerSettingsAsWritten";
 import fs from "fs";
@@ -37,8 +38,8 @@ import {
  *   1. it is registered once, after the migrations that make the row, and
  *      before the slot AddAuditLogMcpClientColumns keeps last;
  *   2. a stored key is replaced by its hash, which the key presented still
- *      matches - every integration keeps working - and nothing else of the
- *      row changes;
+ *      matches - every integration keeps working - with its hint, its last
+ *      four characters (#8903), and nothing else of the row changes;
  *   3. a row with no key, and a key already stored as its hash, are left
  *      as they are, so a second run changes nothing;
  *   4. a key made between its read and its write is kept, and two runs at
@@ -100,6 +101,13 @@ function stubTable(rows: Array<SqlRow>): GlobalConfigSql {
 function updates(sql: GlobalConfigSql): Array<SqlCall> {
   return sql.calls.filter((call: SqlCall): boolean => {
     return call.sql.startsWith("UPDATE");
+  });
+}
+
+// The writes of the key itself: its hint is written beside each one.
+function keyWrites(sql: GlobalConfigSql): Array<SqlWrite> {
+  return sql.writes.filter((write: SqlWrite): boolean => {
+    return write.column === "masterApiKey";
   });
 }
 
@@ -194,6 +202,10 @@ describe("HashMasterApiKey", () => {
     expectKeyWorks(rows[0]!);
     expectKeyWorks(rows[0]!, KEY.toUpperCase());
 
+    // With its hint, the page's "ends in 2b34": once hashed, nothing can tell it.
+    expect(rows[0]!["masterApiKeyHint"]).toBe("2b34");
+    expect(rows[0]!["masterApiKeyHint"]).toBe(MasterApiKey.getHint(KEY));
+
     // Nothing else of the row changes.
     for (const [column, value] of Object.entries(OTHER_COLUMNS)) {
       expect([column, rows[0]![column]]).toEqual([column, value]);
@@ -206,14 +218,15 @@ describe("HashMasterApiKey", () => {
       }),
     ).toEqual([
       `SELECT "_id", "masterApiKey" FROM "GlobalConfig"`,
-      `UPDATE "GlobalConfig" SET "masterApiKey" = $1 WHERE "_id" = $2 AND encode(sha256(convert_to("masterApiKey", 'UTF8')), 'hex') = $3`,
+      `UPDATE "GlobalConfig" SET "masterApiKey" = $1, "masterApiKeyHint" = $2 WHERE "_id" = $3 AND encode(sha256(convert_to("masterApiKey", 'UTF8')), 'hex') = $4`,
     ]);
     expect(updates(sql)[0]!.params).toEqual([
       MasterApiKey.hash(KEY),
+      "2b34",
       SERVER_SETTINGS_ID,
       digestOfValueRead(KEY),
     ]);
-    expect(sql.writes).toHaveLength(1);
+    expect(keyWrites(sql)).toHaveLength(1);
   });
 
   test("a key stored upper-case is hashed as the lookup hashes it, and compared as it was read", async () => {
@@ -224,7 +237,9 @@ describe("HashMasterApiKey", () => {
 
     expect(rows[0]!["masterApiKey"]).toBe(MasterApiKey.hash(KEY));
     expectKeyWorks(rows[0]!);
-    expect(updates(sql)[0]!.params[2]).toBe(
+    // Its hint, as the page writes it: lower-case.
+    expect(rows[0]!["masterApiKeyHint"]).toBe("2b34");
+    expect(updates(sql)[0]!.params[3]).toBe(
       digestOfValueRead(KEY.toUpperCase()),
     );
   });
@@ -241,6 +256,10 @@ describe("HashMasterApiKey", () => {
     expectKeyWorks(rows[0]!, KEY);
     expectKeyWorks(rows[1]!, otherKey);
     expect(rows[0]!["masterApiKey"]).not.toBe(rows[1]!["masterApiKey"]);
+    expect([
+      rows[0]!["masterApiKeyHint"],
+      rows[1]!["masterApiKeyHint"],
+    ]).toEqual(["2b34", "3e12"]);
   });
 
   test.each([
@@ -271,6 +290,8 @@ describe("HashMasterApiKey", () => {
 
     expect(updates(sql)).toHaveLength(0);
     expect(rows[0]!["masterApiKey"]).toBe(madeSince);
+    // Its hint was written with it by the service: nothing here touches it.
+    expect(rows[0]!["masterApiKeyHint"]).toBeUndefined();
     // Known for a hash, and passed by: not tried as a key, and no failure logged.
     expect(logger.error).not.toHaveBeenCalled();
   });
@@ -281,7 +302,7 @@ describe("HashMasterApiKey", () => {
 
     await migrate();
 
-    expect(first.writes).toHaveLength(1);
+    expect(keyWrites(first)).toHaveLength(1);
 
     const afterFirst: SqlRow = { ...rows[0]! };
 
@@ -312,7 +333,9 @@ describe("HashMasterApiKey", () => {
     expect(rows[0]!["masterApiKey"]).toBe(MasterApiKey.hash(newKey));
     expectKeyWorks(rows[0]!, newKey);
     expect(sql.writes).toHaveLength(0);
-    expect(updates(sql)[0]!.params[2]).toBe(digestOfValueRead(KEY));
+    // Nor the old key's hint over the new key's.
+    expect(rows[0]!["masterApiKeyHint"]).toBeUndefined();
+    expect(updates(sql)[0]!.params[3]).toBe(digestOfValueRead(KEY));
   });
 
   test("two runs at once hash the key once", async () => {
@@ -339,7 +362,7 @@ describe("HashMasterApiKey", () => {
 
     expect(reads).toBe(2);
     expect(updates(sql)).toHaveLength(2);
-    expect(sql.writes).toHaveLength(1);
+    expect(keyWrites(sql)).toHaveLength(1);
     // Hashed once: the hash of the key, not a hash of its hash.
     expect(rows[0]!["masterApiKey"]).toBe(MasterApiKey.hash(KEY));
     expectKeyWorks(rows[0]!);
@@ -356,6 +379,7 @@ describe("HashMasterApiKey", () => {
     await expect(migrate()).resolves.toBeUndefined();
 
     expect(rows[0]!["masterApiKey"]).toBe(KEY);
+    expect(rows[0]!["masterApiKeyHint"]).toBeUndefined();
     expectKeyWorks(rows[0]!);
     expect(loggedText()).toContain(
       `HashMasterApiKey: failed to hash the master API key of the server's settings ${SERVER_SETTINGS_ID}. It keeps working; reset it on Admin Dashboard > Settings > API Key to store it hashed:`,

@@ -1022,6 +1022,23 @@ import { MasterApiKeyHashedColumn1809180790100 } from "./1809180790100-MasterApi
 import { RemoveSampleProject1809180800000 } from "./1809180800000-RemoveSampleProject";
 import { AddRunnerCanRunCodeFixes1809180900000 } from "./1809180900000-AddRunnerCanRunCodeFixes";
 import { AddResolvedRecordRetentionServerLimits1809181000000 } from "./1809181000000-AddResolvedRecordRetentionServerLimits";
+import { AddMonitorFirstMeasuredAt1809181100000 } from "./1809181100000-AddMonitorFirstMeasuredAt";
+import { ApiKeyHashedColumn1809181200000 } from "./1809181200000-ApiKeyHashedColumn";
+import { AddMasterApiKeyCreatedByAndHint1809181300000 } from "./1809181300000-AddMasterApiKeyCreatedByAndHint";
+import { AddFirstApprovedPlanFingerprint1809181730000 } from "./1809181730000-AddFirstApprovedPlanFingerprint";
+import { AddIncomingRequestSecretMonitorAccess1809181830000 } from "./1809181830000-AddIncomingRequestSecretMonitorAccess";
+import { DropOnCallExecutionLogStepIndexes1809182000000 } from "./1809182000000-DropOnCallExecutionLogStepIndexes";
+import { AddScheduleRosterRefreshDueAt1809182100000 } from "./1809182100000-AddScheduleRosterRefreshDueAt";
+import { AddScheduleRosterRefreshDueAtIndex1809182110000 } from "./1809182110000-AddScheduleRosterRefreshDueAtIndex";
+import { AddCodeRepositoryMintedToken1809182200000 } from "./1809182200000-AddCodeRepositoryMintedToken";
+import { ProjectCredentialsEncryptedColumns1809182300000 } from "./1809182300000-ProjectCredentialsEncryptedColumns";
+import { DropGreenlockTables1809182470000 } from "./1809182470000-DropGreenlockTables";
+import { AddCustomFieldsAndRemindersToUpdatesToPost1809182480026 } from "./1809182480026-AddCustomFieldsAndRemindersToUpdatesToPost";
+import { AddRuleEmptiedLimits1809182490000 } from "./1809182490000-AddRuleEmptiedLimits";
+import { AddEscalationRuleOrderAndNameToOnCallTimeline1809182500000 } from "./1809182500000-AddEscalationRuleOrderAndNameToOnCallTimeline";
+import { KeepOnCallHistoryWhenItsSettingsAreDeleted1809182510000 } from "./1809182510000-KeepOnCallHistoryWhenItsSettingsAreDeleted";
+import { KeepOwnersWhenTheirPictureFileIsDeleted1809182520000 } from "./1809182520000-KeepOwnersWhenTheirPictureFileIsDeleted";
+import { KeepNotificationLogsWhenOnCallSettingsAreDeleted1809182530000 } from "./1809182530000-KeepNotificationLogsWhenOnCallSettingsAreDeleted";
 
 export default [
   InitialMigration,
@@ -2048,4 +2065,21 @@ export default [
   RemoveSampleProject1809180800000,
   AddRunnerCanRunCodeFixes1809180900000,
   AddResolvedRecordRetentionServerLimits1809181000000,
+  AddMonitorFirstMeasuredAt1809181100000,
+  ApiKeyHashedColumn1809181200000,
+  AddMasterApiKeyCreatedByAndHint1809181300000,
+  AddFirstApprovedPlanFingerprint1809181730000,
+  AddIncomingRequestSecretMonitorAccess1809181830000,
+  DropOnCallExecutionLogStepIndexes1809182000000,
+  AddScheduleRosterRefreshDueAt1809182100000,
+  AddScheduleRosterRefreshDueAtIndex1809182110000,
+  AddCodeRepositoryMintedToken1809182200000,
+  ProjectCredentialsEncryptedColumns1809182300000,
+  DropGreenlockTables1809182470000,
+  AddCustomFieldsAndRemindersToUpdatesToPost1809182480026,
+  AddRuleEmptiedLimits1809182490000,
+  AddEscalationRuleOrderAndNameToOnCallTimeline1809182500000,
+  KeepOnCallHistoryWhenItsSettingsAreDeleted1809182510000,
+  KeepOwnersWhenTheirPictureFileIsDeleted1809182520000,
+  KeepNotificationLogsWhenOnCallSettingsAreDeleted1809182530000,
 ];

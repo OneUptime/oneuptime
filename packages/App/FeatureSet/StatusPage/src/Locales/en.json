@@ -45,6 +45,7 @@
     "uptimePercent": "{{percent}} uptime",
     "operational": "Operational",
     "notMonitored": "Not monitored",
+    "notMonitoredYet": "Not monitored yet",
     "noResourcesInGroup": "No resources added to this group.",
     "activeIncidents": "Active Incidents",
     "scheduledMaintenanceEvents": "Scheduled Maintenance",
@@ -55,6 +56,7 @@
     "someResourcesAre": "Some Resources are {{status}}",
     "someResourcesAreUnder": "Some Resources are under {{status}}",
     "noResourcesAreMonitored": "No Resources are monitored right now",
+    "noResourcesAreMonitoredYet": "No Resources are monitored yet",
     "oneSubGroup": "1 group",
     "subGroupCount": "{{total}} groups"
   },
@@ -180,7 +182,9 @@
     "manageExisting": "Manage Existing Subscription",
     "sendManagementLink": "Send Management Link",
     "subscribedSuccessfully": "You have been subscribed successfully.",
-    "emailSentCheckSpam": "An email with the link has been sent to your email. If you don't see the email, please check your spam folder.",
+    "emailSentCheckSpam": "We have sent an email to this address. Open the link in it to confirm your subscription. If you don't see it, check your spam folder.",
+    "checkEmailTitle": "Check your email",
+    "checkPhoneTitle": "Check your phone",
     "manageLinkSent": "If a subscription matches the details you entered, we have sent a link to manage it.",
     "manageLinkSentEmail": "If this email address has a subscription, we have sent it a link to manage it. If you don't see the email, please check your spam folder.",
     "menu": {

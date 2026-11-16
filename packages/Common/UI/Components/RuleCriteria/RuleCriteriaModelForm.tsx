@@ -14,6 +14,11 @@ import FormValues from "../Forms/Types/FormValues";
 import { translateValidationMessage } from "../Forms/Validation";
 import RuleCriteriaBuilder from "./RuleCriteriaBuilder";
 import {
+  getRuleEmptiedLimits,
+  RuleEmptiedLimitsAlert,
+} from "./RuleEmptiedLimitsNote";
+import { RuleEmptiedLimit } from "../../../Types/Rules/RuleEmptiedLimit";
+import {
   formatRuleCriteriaMessage,
   getAvailableRuleCriteriaFields,
   getRuleCriteriaFormProblem,
@@ -155,7 +160,7 @@ export function replaceLegacyRuleCriteriaFields<TEntity extends BaseModel>(
       values: FormValues<TEntity>,
       customElementProps: CustomElementProps,
     ): ReactElement => {
-      return (
+      const builder: ReactElement = (
         <RuleCriteriaBuilder
           fields={legacyFields}
           legacyValues={values as unknown as Record<string, unknown>}
@@ -167,6 +172,32 @@ export function replaceLegacyRuleCriteriaFields<TEntity extends BaseModel>(
             customElementProps.onChange?.(criteria);
           }}
         />
+      );
+
+      /*
+       * A rule OneUptime switched off because every record a list of it
+       * was limited to was deleted says so here, above what it applies to,
+       * where that is chosen again (#9066). The Edit form reads the note
+       * without sending it (ModelTable's alsoReadColumns). Every other
+       * rule's field is the builder alone.
+       */
+      const emptiedLimits: Array<RuleEmptiedLimit> =
+        getRuleEmptiedLimits(values);
+
+      if (emptiedLimits.length === 0) {
+        return builder;
+      }
+
+      return (
+        <>
+          <div className="mb-4">
+            <RuleEmptiedLimitsAlert
+              model={model}
+              emptiedLimits={emptiedLimits}
+            />
+          </div>
+          {builder}
+        </>
       );
     },
   };

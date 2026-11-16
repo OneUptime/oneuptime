@@ -92,6 +92,8 @@ In einer Liste werden die Beschriftungen eines Datensatzes untereinander angezei
 
 Um eine Beschriftung außer Dienst zu stellen, archivieren Sie sie über das Menü **⋯** ihrer Zeile, statt sie zu löschen. Alles, was die Beschriftung hat, behält sie, und Sie können weiterhin danach filtern, aber niemand kann sie erneut zu etwas hinzufügen: Jede Beschriftungsauswahl lässt sie weg, und die API, Terraform und MCP lehnen sie ab. Der Dialog listet die Regeln und Berechtigungen auf, die so eingerichtet sind, dass sie die Beschriftung verwenden; sie verwenden sie weiter, bis Sie sie ändern. Archivierte Beschriftungen werden getrennt aufgeführt, im eingeklappten Abschnitt **Archivierte Beschriftungen**, wo **Aus dem Archiv holen** eine wiederherstellt. **Löschen** listet zuerst alles auf, wovon die Beschriftung entfernt würde, und bietet **Stattdessen archivieren** an.
 
+**Verwendet von**, im Menü der Zeile einer Beschriftung, zählt die Datensätze jeder Art, die die Beschriftung tragen, und öffnet sie seitenweise. Datensätze, die Sie nicht öffnen dürfen, werden gezählt, aber nicht genannt.
+
 ## Benachrichtigungen
 
 **Projekteinstellungen → Benachrichtigungen** enthält, wie das Projekt Benachrichtigungen sendet:

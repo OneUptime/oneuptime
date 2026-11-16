@@ -10,10 +10,11 @@ import ts from "typescript";
  * standalone package with no Common dependency, so it carries BYTE-IDENTICAL
  * copies of those files (and everything they import) under
  * agents/KubernetesAIAgent/Common/, in the same relative layout — plus the
- * Runner's KubectlArgvGuard. If a copy drifts, the two sides of the trust
- * boundary disagree about a command: the server approves what the agent
- * refuses (every fix fails in the cluster), or the agent runs what the
- * server would now refuse.
+ * Runner's KubectlArgvGuard, and Utils/RetryAfter.ts, the Retry-After
+ * reader every OneUptime client shares (issue #8928). If a policy copy
+ * drifts, the two sides of the trust boundary disagree about a command: the
+ * server approves what the agent refuses (every fix fails in the cluster),
+ * or the agent runs what the server would now refuse.
  *
  * So this fails when:
  *   - a copy differs from its source (run `npm run sync-common` in
@@ -232,6 +233,8 @@ describe("Kubernetes AI agent: copies of the kubectl policy closure", () => {
         "Utils/AiRemediation/CommandPolicy.ts",
         "Types/Kubernetes/KubernetesClusterAiAccess.ts",
         "Types/AutoRemediation/AiRemediationCommandPolicyVerdict.ts",
+        // How long a refusal asked the agent to wait (issue #8928).
+        "Utils/RetryAfter.ts",
       ]),
     );
   });

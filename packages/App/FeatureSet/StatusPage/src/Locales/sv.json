@@ -45,6 +45,7 @@
     "uptimePercent": "{{percent}} drifttid",
     "operational": "Fungerar",
     "notMonitored": "Inte övervakad",
+    "notMonitoredYet": "Inte övervakad än",
     "noResourcesInGroup": "Inga resurser har lagts till i den här gruppen.",
     "activeIncidents": "Aktiva incidenter",
     "scheduledMaintenanceEvents": "Schemalagt underhåll",
@@ -55,6 +56,7 @@
     "someResourcesAre": "Vissa resurser är {{status}}",
     "someResourcesAreUnder": "Vissa resurser är under {{status}}",
     "noResourcesAreMonitored": "Inga resurser övervakas just nu",
+    "noResourcesAreMonitoredYet": "Inga resurser övervakas än",
     "oneSubGroup": "1 grupp",
     "subGroupCount": "{{total}} grupper"
   },
@@ -180,7 +182,9 @@
     "manageExisting": "Hantera befintlig prenumeration",
     "sendManagementLink": "Skicka hanteringslänk",
     "subscribedSuccessfully": "Du har prenumererat.",
-    "emailSentCheckSpam": "Ett e-postmeddelande med länken har skickats till din e-postadress. Om du inte ser e-postmeddelandet, kontrollera din skräppostmapp.",
+    "emailSentCheckSpam": "Vi har skickat ett e-postmeddelande till den här adressen. Öppna länken i det för att bekräfta din prenumeration. Om du inte ser det, kontrollera din skräppostmapp.",
+    "checkEmailTitle": "Kolla din e-post",
+    "checkPhoneTitle": "Kolla din telefon",
     "manageLinkSent": "Om en prenumeration matchar uppgifterna du angav har vi skickat en länk för att hantera den.",
     "manageLinkSentEmail": "Om den här e-postadressen har en prenumeration har vi skickat en hanteringslänk till adressen. Om du inte ser e-postmeddelandet, kontrollera din skräppostmapp.",
     "menu": {

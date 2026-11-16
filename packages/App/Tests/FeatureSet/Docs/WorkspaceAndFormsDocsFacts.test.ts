@@ -631,7 +631,8 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
     /*
      * The Updates step is offered for exactly the rules that choose their
      * updates (#7581): incidents, alerts, both kinds of episode, scheduled
-     * maintenance and on-call policies (#7549), which the row names.
+     * maintenance, on-call policies (#7549) and security cases (#7936),
+     * which the row names.
      */
     expect(table).toContain("...(isUpdatesEventType(props.eventType)");
     expect(
@@ -650,6 +651,7 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
         NotificationRuleEventType.AlertEpisode,
         NotificationRuleEventType.ScheduledMaintenance,
         NotificationRuleEventType.OnCallDutyPolicy,
+        NotificationRuleEventType.SecurityCase,
       ]),
     );
 
@@ -699,7 +701,7 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
       const updates: string = rows[3]?.[1] || "";
 
       expect(updates).toMatch(
-        /^Incidents, alerts, episodes, maintenance events and on-call policies only: /,
+        /^Incidents, alerts, episodes, maintenance events, on-call policies and security cases only: /,
       );
       expect(boldSpans(updates)).toEqual([
         EVERY_UPDATE_TITLE,
@@ -750,7 +752,37 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
         "a new rule starts with it, except an on-call policy's.",
       );
       expect(updates).toContain(
-        "for an on-call policy, who is on call now and when nobody is, which a new on-call policy rule starts with.",
+        "for an on-call policy, who is on call now and when nobody is, which a new on-call policy rule starts with;",
+      );
+
+      // A security case's key notices, as its step lists them (#7936).
+      expect(
+        NotificationRuleUpdates.getKeyKinds(
+          NotificationRuleEventType.SecurityCase,
+        ),
+      ).toEqual([
+        NotificationRuleUpdateKind.PriorityReached,
+        NotificationRuleUpdateKind.ApprovalRequested,
+        NotificationRuleUpdateKind.ResponseTargets,
+      ]);
+      expect(updates).toContain(
+        "for a security case, new and raised cases, approvals needed and response targets.",
+      );
+
+      // Custom field changes and still-open reminders, boxes of their own (#7937, #7938).
+      for (const eventType of [
+        NotificationRuleEventType.Incident,
+        NotificationRuleEventType.Alert,
+      ]) {
+        expect(NotificationRuleUpdates.getChoosableKinds(eventType)).toEqual(
+          expect.arrayContaining([
+            NotificationRuleUpdateKind.CustomFields,
+            NotificationRuleUpdateKind.Reminders,
+          ]),
+        );
+      }
+      expect(updates).toContain(
+        "an incident's or an alert's custom field changes and the reminders that a record is still open among them.",
       );
 
       // What every rule posts, whatever it picks.
@@ -760,6 +792,17 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
       ]);
       expect(updates).toContain(
         "Whatever you pick, the rule posts the record's first message, and a video call when one starts.",
+      );
+      // A security case's notices are all its rule posts: none is posted whatever it picks.
+      expect(
+        NotificationRuleUpdates.getChoosableKinds(
+          NotificationRuleEventType.SecurityCase,
+        ).filter((kind: NotificationRuleUpdateKind): boolean => {
+          return NotificationRuleUpdates.isAlwaysPosted(kind);
+        }),
+      ).toEqual([]);
+      expect(updates).toContain(
+        "A security case has no first message: its rule posts only the notices it picks.",
       );
 
       // A channel gets an update a rule that posts there chose.

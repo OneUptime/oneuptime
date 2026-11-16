@@ -337,7 +337,7 @@ test.describe("SLOs", () => {
     await expect(archivedLink).toBeVisible({ timeout: 30000 });
   });
 
-  test("should create an SLO from one short form and land on its overview", async () => {
+  test("should create an SLO from its two-step form and land on its overview", async () => {
     test.setTimeout(180000);
     const page: Page = ctx.page;
 
@@ -365,17 +365,43 @@ test.describe("SLOs", () => {
     const submitButton: Locator = page.getByTestId(
       "modal-footer-submit-button",
     );
+    const nextButton: Locator = page.getByTestId("modal-footer-next-button");
 
     /*
-     * One page of three rows: the name, the target and the folded More
-     * fields section. There is no step list and no Next - the target was the only
-     * thing without a default, and it comes prefilled - so the one button
-     * creates. No Monitors field either: monitors are attached on the SLO's
-     * Monitors page or by a monitor rule.
+     * Two steps: what the SLO measures, then its objective. The Metric step
+     * between them is listed only once Metric is the answer.
+     */
+    await expect(
+      modal.getByRole("navigation", { name: "Progress" }).getByRole("listitem"),
+    ).toHaveText(["What It Measures", "Objective"]);
+
+    /*
+     * The first step asks what the SLO measures, with Monitor uptime picked:
+     * the SLO this suite builds. The services a request SLO measures are
+     * asked only for the answers that use them, and the name waits for the
+     * next step.
+     */
+    await expect(
+      form
+        .getByRole("radiogroup", { name: "What It Measures" })
+        .getByRole("radio", { name: "Monitor uptime", exact: true }),
+    ).toBeChecked();
+    await expect(form.getByText("Services", { exact: true })).toHaveCount(0);
+    await expect(form.getByLabel("Name", { exact: true })).toHaveCount(0);
+    await expect(submitButton).toHaveCount(0);
+    await expect(nextButton).toHaveText("Next");
+
+    await nextButton.click();
+
+    /*
+     * The objective: the name, the target and the folded More fields
+     * section. The target was the only thing without a default, and it
+     * comes prefilled, so this last step's button creates. No Monitors field
+     * either: monitors are attached on the SLO's Monitors page or by a
+     * monitor rule.
      */
     await expect(form.getByLabel("Name", { exact: true })).toBeVisible();
-    await expect(form.locator('nav[aria-label="Progress"]')).toHaveCount(0);
-    await expect(page.getByTestId("modal-footer-next-button")).toHaveCount(0);
+    await expect(nextButton).toHaveCount(0);
     await expect(submitButton).toContainText("Create Service Level Objective");
     // The suggested target, there to see and change.
     await expect(form.getByLabel("Target (%)")).toHaveValue("99.9");

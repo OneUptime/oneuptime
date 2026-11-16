@@ -107,6 +107,8 @@ Het bewerkingsformulier van een regel heeft dezelfde twee stappen en voegt de sc
 
 Zo'n regel kunt u nog steeds hernoemen, uitschakelen of verwijderen, ook via de API en Terraform. De lijst markeert een regel die niets toevoegt naast zijn status met **Voegt niets toe**, en de eigen pagina van de regel doet hetzelfde. Bewerk hem om te kiezen wat hij toevoegt, of verwijder hem.
 
+Een regel waarvan alle labels om op te matchen zijn verwijderd, wordt uitgeschakeld in plaats van op elke resource te matchen, en de lijst markeert hem naast zijn status met **Beperkt tot verwijderde records**. Bewerk hem om te kiezen waarop hij matcht en schakel hem daarna in. Zie [Wanneer de records worden verwijderd waartoe een regel beperkt is](/docs/incidents/settings#wanneer-de-records-worden-verwijderd-waartoe-een-regel-beperkt-is).
+
 ## Wanneer regels worden uitgevoerd
 
 Elke ingeschakelde regel wordt uitgevoerd wanneer een resource wordt aangemaakt, vanuit het dashboard of via de API, en elke regel die van toepassing is, voegt toe wat hij toevoegt:

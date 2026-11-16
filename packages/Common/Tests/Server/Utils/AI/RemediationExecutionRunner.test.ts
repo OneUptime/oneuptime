@@ -191,11 +191,17 @@ function mockRule(overrides: Partial<Record<string, unknown>> = {}): void {
   } as unknown as AutoRemediationRule);
 }
 
-// Enable AI on, and nothing else: no round needs another project switch.
+/*
+ * Enable AI on, and nothing else: no round needs another project switch.
+ * The project does not ask two people to approve a riskier fix (the column
+ * is never empty on a real row; RemediationCommandToolsTwoApprovals pins it
+ * turned on).
+ */
 function mockProject(overrides: Partial<Record<string, unknown>> = {}): void {
   jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
     id: PROJECT_ID,
     enableAi: true,
+    requireTwoApprovalsForRiskierFixes: false,
     ...overrides,
   } as unknown as Project);
 }

@@ -20,6 +20,8 @@ Apri **Home** nella barra in alto, oppure premi `g` e poi `h` da qualsiasi punto
 5. **Il tuo progetto**, di cosa è fatto il progetto, e **Prossime manutenzioni** quando ce n'è qualcuna in programma.
 6. **Esplora OneUptime**, tutti i prodotti, una categoria alla volta.
 
+Finché la checklist **Benvenuto in OneUptime 👋** di un nuovo progetto è visibile, occupa tutta la Home: la prima cosa che vedi è cosa fare per prima. Un incidente aperto, o qualsiasi altra cosa che richieda qualcuno, compare comunque sopra. Nascondi la checklist, o completala, e il resto della Home torna.
+
 ### Cercare e creare
 
 La casella di ricerca apre la ricerca, come `Mod` + `K`: digita il nome di qualsiasi pagina, monitor, incidente, avviso, pagina di stato o policy di reperibilità. Vedi la sezione [Cercare](#cercare-una-pagina-unimpostazione-o-unazione). **Dichiara incidente** apre il modulo per dichiarare un incidente. **Crea** offre **Crea monitor**, **Pianifica manutenzione** e **Crea annuncio**. Ognuno viene mostrato solo a chi ha il permesso di usarlo.
@@ -36,7 +38,7 @@ La riga in alto nomina la cosa più urgente tra quelle aperte, in un colore corr
 | I monitor sono attivi e non c'è nulla di aperto | **Tutti i sistemi sono operativi** |
 | Il progetto non ha ancora monitor | **Non c'è ancora nulla sotto monitoraggio** |
 
-Accanto, la home dice quando ha caricato il progetto l'ultima volta, e **Aggiorna** lo ricarica. Quando torni a una scheda della home dopo un minuto o più, si aggiorna da sola.
+Accanto, la home dice quando ha caricato il progetto l'ultima volta, e **Aggiorna** lo ricarica. La home segue anche ciò che conta mentre cambia: quando un incidente, un avviso, un monitor, un evento di manutenzione o uno SLO viene creato, modificato o eliminato, la riga, i numeri, **Richiede attenzione** e **Prossime manutenzioni** si aggiornano in pochi secondi, senza ricaricare. Quando torni a una scheda della home dopo un minuto o più, si aggiorna da sola.
 
 Finché non c'è ancora nulla sotto monitoraggio, la riga termina con il pulsante **Crea il tuo primo monitor**, che apre la configurazione guidata **Sapere quando il mio sito web o la mia API non funziona**. Lo vede solo chi può creare monitor.
 
@@ -56,7 +58,7 @@ Un numero sopra lo zero mostra **Richiede attenzione**, oppure **In corso** e **
 
 ### L'elenco di benvenuto
 
-La prima volta che un Proprietario del progetto o un Amministratore del progetto apre la Home di un nuovo progetto, la scheda chiede **Cosa vuoi fare per prima cosa?** Spunta uno o più obiettivi, come **Sapere quando il mio sito web o la mia API non funziona** o **Do solo un'occhiata**, e fai clic su **Continua**: la checklist conterrà i passaggi che servono a quegli obiettivi. **Salta** dà i quattro passaggi che riceve ogni progetto. Per rispondere di nuovo in seguito, fai clic su **Cambia** nella checklist. A un progetto che usa già monitor, telemetria o reperibilità non viene chiesto.
+La prima volta che un Proprietario del progetto o un Amministratore del progetto apre la Home di un nuovo progetto, la scheda lo saluta per nome e chiede **Cosa vuoi fare per prima cosa?** Scegli uno o più obiettivi, come **Sapere quando il mio sito web o la mia API non funziona**, e fai clic su **Continua**: la checklist conterrà i passaggi che servono a quegli obiettivi. Mentre scegli, indica quanti passaggi sono e quanto tempo richiedono circa. **Do solo un'occhiata** ti porta invece direttamente al resto della Home e lascia una riga per mostrare di nuovo la checklist. Per rispondere di nuovo in seguito, fai clic su **Cambia** nella checklist. A un progetto che usa già monitor, telemetria o reperibilità non viene chiesto.
 
 Ogni passaggio si spunta da solo quando la cosa funziona, non quando esiste un record, e chiunque configuri il progetto vede la stessa lista, su ogni dispositivo:
 
@@ -72,9 +74,13 @@ Ogni passaggio si spunta da solo quando la cosa funziona, non quando esiste un r
 
 Il passaggio da fare per primo è segnato con **Prossimo passaggio**. Con il piano Free di OneUptime Cloud, che include una persona, **Invita il tuo team** dice che serve il piano Growth e apre **Fatturazione**. Su un server self-hosted che non può ancora inviare email, gli amministratori del server vedono prima **Questo server non può ancora inviare email**, che apre la dashboard di amministrazione.
 
+Ogni passaggio indica quanto tempo richiede circa, la checklist quanto tempo resta circa, e il passaggio successivo ha un proprio pulsante **Avvia**.
+
 Una configurazione guidata fa tutto il lavoro in una sola pagina, un passaggio alla volta, e termina con ciò che ha configurato e cosa fare dopo. Per riaprirne una più tardi, cerca il suo nome.
 
-Sotto i passaggi, **Come funziona OneUptime** mostra i quattro prodotti principali nell'ordine in cui un problema li attraversa: **Monitor**, **Incidenti e avvisi**, **Reperibilità** e **Pagine di stato**. Fai clic su uno per aprirlo. Sotto dice cosa alimenta questo ciclo, la telemetria e l'infrastruttura, e rimanda a [Concetti fondamentali](/docs/introduction/core-concepts) e [Glossario](/docs/introduction/glossary).
+Accanto ai suoi passaggi, una configurazione guidata elenca ciò che configura, spuntato man mano che procedi, e indica quanto tempo richiede circa.
+
+Sotto i passaggi, una riga apre **Come funziona OneUptime**: tutto ciò che fa OneUptime, e come si incastra.
 
 ```mermaid title="Quando compare la checklist di benvenuto"
 flowchart TB
@@ -89,13 +95,15 @@ flowchart TB
 
 La checklist sparisce per tutti quando ogni passaggio è fatto. Per nasconderla prima, fai clic su **Nascondi**: resta nascosta solo per te, su ogni dispositivo, e rimane una riga con **Mostralo** e **Come funziona OneUptime**. Chi è stato invitato nel progetto come membro non vede la checklist. **Come funziona OneUptime** resta a un clic, in qualsiasi progetto: aprilo da **Aiuto** o con il pulsante accanto a **Esplora OneUptime**.
 
+**Come funziona OneUptime** si apre su **Come si incastra tutto**: i quattro passaggi che un problema attraversa, **Rileva**, **Rispondi**, **Comunica** e **Migliora**, ognuno con i prodotti che lo svolgono. Poi vengono le categorie del menu **Prodotti**, ognuna con i suoi prodotti e a cosa serve ciascuno: scegline una, o passa alla successiva con i tasti freccia o **Avanti**. Fai clic su un prodotto per aprirlo. I prodotti che il tuo progetto nasconde non ci sono.
+
 ### Richiede attenzione
 
 **Richiede attenzione** elenca per nome ciò che i numeri contano: gli incidenti aperti, gli avvisi aperti, i monitor non operativi, gli SLO a rischio e le manutenzioni in corso, prima i più urgenti. Ogni riga mostra la gravità o lo stato, dice quando è iniziato un incidente o un avviso e quando termina una manutenzione, e apre l'elemento. Per ogni tipo ne mostra fino a cinque, con **Mostra tutti** per gli altri, che apre lo stesso elenco del suo numero. Quando non c'è nulla di aperto, dice **Nulla richiede la tua attenzione**.
 
 ### Stato della configurazione
 
-Quando qualcosa nella configurazione del progetto impedirebbe di avvisare le persone, **Richiede attenzione** termina con **Configurazione**: quante cose meritano un'occhiata. Apre **Stato della configurazione**, che inizia con una riga nel colore del rilevamento più grave: quanti problemi impedirebbero di avvisare le persone, quante cose sono da correggere, oppure **Niente da correggere**. Più in basso, la pagina elenca ciò che è configurato male, il più grave per primo, sotto **Gli avvisi non arriveranno**, **Da correggere** e **Suggerimenti**: un monitor che non avvisa nessuno, una policy di reperibilità che nulla esegue, una persona che non può essere avvisata, gli SMS disattivati, una pianificazione di reperibilità senza nessuno reperibile, una pagina di stato che non mostra alcun monitor. Ogni rilevamento dice in una frase cosa non va, con i nomi dei tuoi monitor, policy e persone in grassetto, i monitor o le policy che tocca dopo **Riguarda**, e subito sotto il pulsante che apre la sua correzione. I rilevamenti di un monitor sono le interruzioni che nomina la sua scheda **Quando va giù**. Un rilevamento che il tuo team lascia così di proposito può essere nascosto con un motivo, per tutti, e ripristinato da **Ignorato**. La ricerca trova la pagina come **Stato della configurazione**, e Chiedi all'IA risponde a "la mia configurazione va bene?" partendo da essa.
+Quando qualcosa nella configurazione del progetto impedirebbe di avvisare le persone, **Richiede attenzione** termina con **Configurazione**: quante cose meritano un'occhiata. Apre **Stato della configurazione**, che inizia con una riga nel colore del rilevamento più grave: quanti problemi impedirebbero di avvisare le persone, quante cose sono da correggere, oppure **Niente da correggere**. Più in basso, la pagina elenca ciò che è configurato male, il più grave per primo, sotto **Gli avvisi non arriveranno**, **Da correggere** e **Suggerimenti**: un monitor che non avvisa nessuno, una policy di reperibilità che nulla esegue, una persona che non può essere avvisata, gli SMS disattivati, una pianificazione di reperibilità senza nessuno reperibile, una pagina di stato che non mostra alcun monitor, un dominio personalizzato il cui certificato SSL non è stato possibile emettere, una chiave di acquisizione con cui non è mai arrivato alcun dato. Ogni rilevamento dice in una frase cosa non va, con i nomi dei tuoi monitor, policy e persone in grassetto, i monitor o le policy che tocca dopo **Riguarda**, e subito sotto il pulsante che apre la sua correzione. Due si correggono lì stesso, dopo che una finestra di dialogo ha detto esattamente cosa cambierà: **Attiva SMS** (o le chiamate telefoniche, WhatsApp o Telegram), per chi può attivarlo, e **Crea regola di reperibilità**, che attiva la policy di reperibilità che scegli per un monitor che non avvisava nessuno. I rilevamenti di un monitor sono le interruzioni che nomina la sua scheda **Quando va giù**, e una policy di reperibilità che nulla esegue, o un dominio personalizzato che non apre la sua pagina di stato, lo dice anche in cima alla pagina della policy o della pagina di stato. Un rilevamento che il tuo team lascia così di proposito può essere nascosto con un motivo, per tutti, e ripristinato da **Ignorato**. La ricerca trova la pagina come **Stato della configurazione**, e Chiedi all'IA risponde a "la mia configurazione va bene?" partendo da essa.
 
 ### Il tuo progetto
 
@@ -137,7 +145,7 @@ Una parola con una linea tratteggiata sotto, come **Sonde** nel modulo di un nuo
 
 Sopra il titolo di ogni pagina, un percorso come *Progetto › Docker › Impostazioni › Regole del proprietario* dice dove si trova la pagina. Ogni passo prima dell'ultimo apre la sua pagina.
 
-- **Gli elenchi si aggiornano da soli.** Quando un incidente o un avviso viene creato, preso in carico o risolto ovunque, gli elenchi di incidenti, avvisi ed episodi lo mostrano in pochi secondi, senza ricaricare. Mentre sei nel mezzo di qualcosa in un elenco, ad esempio con righe selezionate o una finestra di dialogo aperta, l'elenco aspetta e si aggiorna quando hai finito.
+- **Gli elenchi si aggiornano da soli.** Quando un incidente, un avviso, un monitor o un evento di manutenzione viene creato, modificato o eliminato ovunque, gli elenchi di incidenti, avvisi, episodi, monitor ed eventi di manutenzione lo mostrano in pochi secondi, senza ricaricare, e così i conteggi accanto a loro nei menu laterali. I conteggi della campanella, e gli elenchi **Incidenti attivi**, **Avvisi attivi**, **Episodi di incidente attivi** ed **Episodi di avviso attivi**, seguono tutti i progetti di cui fai parte, non solo quello aperto. Mentre sei nel mezzo di qualcosa in un elenco, ad esempio con righe selezionate o una finestra di dialogo aperta, l'elenco aspetta e si aggiorna quando hai finito.
 - **Su un telefono i chip dei filtri si richiudono** dietro **Filtro**, così l'elenco comincia più in alto. I chip che hai impostato restano in vista, con **Cancella tutto**. Premi **Filtro** per vedere tutti i chip, e di nuovo per richiuderli.
 - La voce **Colonne** nel menu **⋯** di un elenco sceglie quali colonne mostra l'elenco e in che ordine, e le conserva per te in questo browser. Un Proprietario del progetto o un Amministratore del progetto può anche spuntare lì **Mostra queste colonne a tutti in questo progetto**: chi non ha scelto le proprie colonne per quell'elenco vede queste, e **Reimposta i valori predefiniti del progetto** riporta le tue a queste.
 - La voce **Righe compatte**, nello stesso menu, disegna più basse le righe di ogni elenco, così un elenco lungo ne mostra circa un quinto in più. La scelta resta in questo browser.

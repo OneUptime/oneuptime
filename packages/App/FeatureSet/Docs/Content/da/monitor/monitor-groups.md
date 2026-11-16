@@ -92,9 +92,11 @@ For at tage en monitor ud af gruppen klikker du på **Fjern** i dens række unde
 
 Oppetiden på **Oversigt** tæller enhver status undtagen den driftsklare som nedetid. En statusside tæller kun statusserne på sin egen liste **Tæller som nedetid**: se [Vælg, hvad siden viser](/docs/status-pages/index#at-vælge-hvad-der-vises-på-siden).
 
-Hver søjle i oppetidsgrafen, her og på en statusside, viser, hvor længe gruppen selv var i hver status den dag: i hvert øjeblik har den den værste status blandt sine monitorer, så en time, hvor to af dem er offline samtidig, er én time for gruppen, og en dag bliver aldrig til mere end en dag. Dagene er dine egne: dashboardet tegner dem i tidszonen fra dine brugerindstillinger, og en statusside i hver besøgendes.
+Hver søjle i oppetidsgrafen, her og på en statusside, viser, hvor længe gruppen selv var i hver status den dag: i hvert øjeblik har den den værste status blandt sine monitorer, så en time, hvor to af dem er offline samtidig, er én time for gruppen, og en dag bliver aldrig til mere end en dag. Dagene er dine egne: dashboardet tegner dem i tidszonen fra dine brugerindstillinger, og en statusside i hver besøgendes. En monitors tid før dens første tjek er ikke med i dem: indtil noget har tjekket en monitor, er dens status kun den driftsklare, som hver monitor oprettes med, så gruppens søjler og oppetid udelader den tid. Dashboardet måler dem ud fra hver statusændring for gruppens monitorer, uanset hvor mange der er, ligesom en statusside gør.
 
 Listen **Monitorgrupper** kan filtrere grupper efter ejer og etiket, sætte etiketter og ejere på mange grupper på én gang og eksportere eller importere grupper som JSON.
+
+**Oversigt** har også et kort **Bruges af**: de statussider, der viser gruppen, og de SLOs, der måler dens monitorer. Når ingen statusside viser den, siger kortet det og linker til statussiderne. Når du sletter gruppen, på dens side eller fra listen, siges det først, hvilke statussider der viser den.
 
 ## Slå overvågning fra for en hel gruppe
 

@@ -103,6 +103,8 @@ Le rôle que vous choisissez devient la première autorisation de l'équipe, pou
 
 Où le trouver : ouvrez une équipe depuis **Équipes** pour accéder à **Membres** et **Autorisations** ; ses rôles personnalisés et **Bloquer les autorisations** se trouvent sous **Plus de paramètres**, en bas de la page Autorisations, dont l'en-tête replié indique combien l'équipe en a de chaque.
 
+La page d'une équipe a une carte **Utilisé par** : les politiques d'astreinte dont les règles d'escalade appellent l'équipe, et tout ce qu'elle possède, des moniteurs et pages de statut aux SLOs, tableaux de bord, infrastructure et incidents. Supprimer une équipe, sur sa page ou depuis la liste, le dit d'abord : ses politiques n'appellent plus ses membres, et elle ne les possède plus. Ce que vous ne pouvez pas ouvrir est compté, pas nommé.
+
 ## Autorisations
 
 Une autorisation est une capacité unique. Il y a deux façons de les distribuer, toutes deux dans l'onglet **Autorisations** de l'équipe.
@@ -280,7 +282,7 @@ Les clés d'API reçoivent leurs autorisations directement, sur la clé elle-mê
 :::steps
 1. Ouvrez **Paramètres du projet > Avancé > Clés API** et cliquez sur **Créer : Clé API**. Sur OneUptime Cloud, les clés d'API demandent l'offre Growth.
 2. Saisissez le **Nom** de la clé et choisissez son **Accès**. La description et la date d'expiration se trouvent sous **Plus de champs** ; une clé expire un an après le jour de sa création, sauf si vous choisissez une autre date, et la section repliée l'indique.
-3. Créez la clé. Elle s'ouvre sur sa page, où vous la copiez.
+3. Créez la clé. OneUptime ne l'affiche qu'une seule fois, dans une boîte de dialogue : copiez-la là. Ensuite, sa page s'ouvre.
 :::
 
 Le rôle que vous choisissez devient la première autorisation de la clé dès que la clé existe, exactement comme si vous l'aviez ajouté sur la page de la clé. Seuls les rôles que vous détenez vous-même vous sont proposés — une clé ne peut jamais recevoir plus que ce que détient la personne qui la donne — et une personne qui peut créer des clés sans pouvoir changer ce qu'elles peuvent faire n'est pas interrogée.
@@ -340,7 +342,7 @@ Les autorisations résolues sont mises en cache par utilisateur et par projet, e
 
 Un incident, une alerte ou un épisode marqué comme privé n'est visible que par ses propriétaires — les personnes désignées comme ses propriétaires et les membres de ses équipes propriétaires qui ont accepté leur invitation — et par les Propriétaires du projet et les Administrateurs du projet.
 
-Un tel enregistrement n'est modifié qu'avec les autorisations des équipes qui en sont propriétaires et des personnes désignées comme ses propriétaires. Une personne désignée comme propriétaire agit sur lui avec toutes les autorisations qu'elle détient. Toute autre personne n'agit sur lui qu'avec les autorisations de ses équipes qui en sont propriétaires, chacune avec sa propre portée et ses étiquettes : l'autorisation d'une autre équipe n'atteint aucun enregistrement privé dont cette équipe n'est pas propriétaire. Cela vaut pour tout ce qui est fait à l'enregistrement et à ce qui lui appartient — le modifier, changer son état, ses notes, propriétaires, rôles, étiquettes, alertes liées, membres d'épisode et appels, et le supprimer — depuis le tableau de bord, l'API, les actions groupées, Slack, Microsoft Teams ou OneUptime AI. Les Propriétaires du projet et les Administrateurs du projet modifient tous les enregistrements privés, tout comme les étapes de flux de travail, qui agissent en tant qu'Administrateur du projet ; une clé d'API ne le fait qu'avec `ProjectOwner` ou `ProjectAdmin`.
+Un tel enregistrement n'est modifié qu'avec les autorisations des équipes qui en sont propriétaires et des personnes désignées comme ses propriétaires. Une personne désignée comme propriétaire agit sur lui avec toutes les autorisations qu'elle détient. Toute autre personne n'agit sur lui qu'avec les autorisations de ses équipes qui en sont propriétaires, chacune avec sa propre portée et ses étiquettes : l'autorisation d'une autre équipe n'atteint aucun enregistrement privé dont cette équipe n'est pas propriétaire. Cela vaut pour tout ce qui est fait à l'enregistrement et à ce qui lui appartient — le modifier, changer son état, ses notes, propriétaires, rôles, étiquettes, alertes liées, membres d'épisode et appels, et le supprimer — depuis le tableau de bord, l'API, les actions groupées, Slack, Microsoft Teams ou OneUptime AI. Les Propriétaires du projet et les Administrateurs du projet modifient tous les enregistrements privés, et une clé d'API ne le fait qu'avec `ProjectOwner` ou `ProjectAdmin`.
 
 | Quelqu'un dans l'équipe 1 et l'équipe 2 | Un incident privé de l'équipe 2 | Un incident public de l'équipe 2 |
 | --- | --- | --- |
@@ -349,6 +351,12 @@ Un tel enregistrement n'est modifié qu'avec les autorisations des équipes qui 
 | L'équipe 2 a aussi `IncidentMember` | Le modifie via l'équipe 2 | Le modifie via l'une ou l'autre équipe |
 
 Une équipe propriétaire d'enregistrements privés mais sans aucune autorisation, qui sert seulement à regrouper des personnes, permet à ses membres de les voir, mais de n'en modifier aucun. Sur la page d'un enregistrement privé, une modification que les équipes propriétaires de la personne ne peuvent pas faire est verrouillée et dit pourquoi. Pour la lui permettre, donnez l'autorisation à une équipe propriétaire, faites d'une équipe qui détient l'autorisation une propriétaire, ou faites de la personne une propriétaire.
+
+Ce qui est fait au sujet d'un enregistrement privé suit la même règle : alerter quelqu'un à son sujet (**Exécuter la politique d'astreinte**, **Alerter maintenant** et les alertes depuis Slack, Microsoft Teams, Mattermost ou OneUptime AI), lancer un runbook pour lui ou faire avancer cette exécution, et approuver, tester à blanc ou écarter une correction que OneUptime AI a proposée pour lui. Chaque action demande sa propre autorisation, comme déclencher des politiques d'astreinte ou lancer des exécutions de runbooks, et sur un enregistrement privé seules les équipes qui le possèdent la prêtent, en plus des personnes nommées comme ses propriétaires. Toute autre personne est refusée avec la raison, et rien n'est alerté, exécuté ni modifié.
+
+Ce qui est fait et envoyé au sujet d'un enregistrement privé n'est lu que par ceux qui peuvent lire l'enregistrement : ses exécutions de politiques d'astreinte, ses exécutions de runbooks, les corrections proposées pour lui, et les journaux des e-mails, SMS, appels, notifications push, messages de discussion, webhooks et requêtes d'IA que OneUptime a envoyés à son sujet. Les personnes alertées à son sujet voient toujours leur alerte.
+
+Les flux de travail n'agissent pas sur les enregistrements privés. Les étapes d'un flux de travail agissent en tant qu'Administrateur du projet, mais ne reçoivent jamais sa vue sur les incidents, alertes et épisodes privés : elles n'en trouvent aucun, n'en modifient aucun et ne leur ajoutent rien, et un flux de travail ne démarre ni sur l'un d'eux ni sur ce qui lui appartient. Voir [Ce que les étapes d'un flux de travail peuvent faire](/docs/workflows/configuration#ce-que-les-étapes-dun-flux-de-travail-peuvent-faire).
 
 ### Règles appartenant à des équipes
 

@@ -828,7 +828,8 @@ const DeveloperDocsPage: FunctionComponent<ComponentProps> = (
       host: HOST,
       isHttps: HTTP_PROTOCOL === Protocol.HTTPS,
     }),
-    platformVersion: VERSION.toString(),
+    // The release the server runs; null in a development build, so nothing is pinned.
+    platformVersion: VERSION || null,
     apiKeysUrl: RouteUtil.populateRouteParams(
       RouteMap[PageMap.SETTINGS_APIKEYS] as Route,
     ).toString(),

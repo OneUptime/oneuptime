@@ -391,7 +391,7 @@ Per un incidente limitato a pagine di stato specifiche, la regola di un'email o 
 
 ## Report via email
 
-Una pagina di stato può inviare per email ai suoi iscritti un report secondo una pianificazione: per ogni risorsa della pagina, il suo uptime, la sua inattività e i suoi incidenti in un certo periodo. Si imposta nella scheda **Report via email** in **Pagine di stato → la vostra pagina → Avanzato → Report**.
+Una pagina di stato può inviare per email ai suoi iscritti un report secondo una pianificazione: per ogni risorsa della pagina, il suo uptime, la sua inattività e i suoi incidenti in un certo periodo. Una risorsa per cui in quel periodo non è stato misurato nulla, perché niente l'aveva ancora controllata o il suo monitoraggio era disattivato, non ha uptime né inattività nel report: entrambi appaiono come un trattino, con Non ancora monitorato o Non monitorato sotto il suo nome come sulla pagina di stato, ed è esclusa dall'uptime medio del suo gruppo e della pagina. Si imposta nella scheda **Report via email** in **Pagine di stato → la vostra pagina → Avanzato → Report**.
 
 - **Invia report via email** attiva e disattiva i report, e si salva appena lo cambiate. Non c'è nulla da compilare in nessun caso.
 - **La prima volta che i report vengono attivati**, la pagina riceve una pianificazione: un report il 1° di ogni mese alle 09:00, a partire dal prossimo 1° del mese, ciascuno sull'intero mese di calendario precedente, quindi il report inviato il 1° novembre copre ottobre. Le 09:00 sono nel fuso orario del report, che è UTC a meno che non lo cambiate.

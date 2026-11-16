@@ -45,6 +45,7 @@
     "uptimePercent": "{{percent}} وقت التشغيل",
     "operational": "يعمل بشكل طبيعي",
     "notMonitored": "غير مراقَب",
+    "notMonitoredYet": "لم يُراقَب بعد",
     "noResourcesInGroup": "لم تُضف أي موارد إلى هذه المجموعة.",
     "activeIncidents": "الحوادث النشطة",
     "scheduledMaintenanceEvents": "الصيانة المجدولة",
@@ -55,6 +56,7 @@
     "someResourcesAre": "حالة بعض الموارد: {{status}}",
     "someResourcesAreUnder": "بعض الموارد في حالة: {{status}}",
     "noResourcesAreMonitored": "لا يخضع أي مورد للمراقبة الآن",
+    "noResourcesAreMonitoredYet": "لم يخضع أي مورد للمراقبة بعد",
     "oneSubGroup": "مجموعة واحدة",
     "subGroupCount": "المجموعات: {{total}}"
   },
@@ -180,7 +182,9 @@
     "manageExisting": "إدارة اشتراك قائم",
     "sendManagementLink": "إرسال رابط الإدارة",
     "subscribedSuccessfully": "تم اشتراكك بنجاح.",
-    "emailSentCheckSpam": "أُرسلت رسالة بالرابط إلى بريدك الإلكتروني. إذا لم تجدها، يُرجى التحقق من مجلد الرسائل غير المرغوب فيها.",
+    "emailSentCheckSpam": "أرسلنا رسالة إلى عنوان البريد الإلكتروني هذا. افتح الرابط الذي فيها لتأكيد اشتراكك. إذا لم تجدها، يُرجى التحقق من مجلد الرسائل غير المرغوب فيها.",
+    "checkEmailTitle": "تحقّق من بريدك الإلكتروني",
+    "checkPhoneTitle": "تحقّق من هاتفك",
     "manageLinkSent": "إذا كان هناك اشتراك يطابق التفاصيل التي أدخلتها، فقد أرسلنا رابطًا لإدارته.",
     "manageLinkSentEmail": "إذا كان لهذا البريد الإلكتروني اشتراك، فقد أرسلنا إليه رابطًا لإدارته. إذا لم تجد الرسالة، يُرجى التحقق من مجلد الرسائل غير المرغوب فيها.",
     "menu": {

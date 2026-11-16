@@ -103,6 +103,8 @@ Rollen du velger, blir teamets første tillatelse, for alle ressursene i prosjek
 
 Hvor du finner det: åpne et team fra **Team** for å komme til **Medlemmer** og **Tillatelser**; de egendefinerte rollene og **Blokker tillatelser** ligger under **Flere innstillinger** nederst på siden Tillatelser, der den sammenfoldede overskriften viser hvor mange av hver teamet har.
 
+Siden til et team har kortet **Brukes av**: vaktpolicyene der eskaleringsreglene varsler teamet, og alt teamet eier, fra monitorer og statussider til SLO-er, dashbord, infrastruktur og hendelser. Når du sletter et team, på siden dets eller fra listen, sies dette først: policyene slutter å varsle medlemmene, og teamet eier dem ikke lenger. Det du ikke kan åpne, telles, men navngis ikke.
+
 ## Tillatelser
 
 En tillatelse er én evne. Det finnes to måter å dele dem ut på, og begge ligger på teamets fane **Tillatelser**.
@@ -280,7 +282,7 @@ API-nøkler får tillatelser direkte, på selve nøkkelen, eller gjennom de egen
 :::steps
 1. Åpne **Prosjektinnstillinger > Avansert > API-nøkler**, og klikk på **Opprett API-nøkkel**. På OneUptime Cloud krever API-nøkler Growth-planen.
 2. Skriv inn nøkkelens **Navn**, og velg dens **Tilgang**. Beskrivelsen og utløpsdatoen ligger under **Flere felt**; en nøkkel utløper et år etter dagen den opprettes, med mindre du velger en annen dato, og den sammenfoldede delen sier det.
-3. Opprett nøkkelen. Den åpnes på sin egen side, der du kopierer den.
+3. Opprett nøkkelen. OneUptime viser den én gang, i en dialog: kopier den der. Deretter åpnes siden dens.
 :::
 
 Rollen du velger, blir nøkkelens første tillatelse så snart nøkkelen finnes, akkurat som om du hadde lagt den til på nøkkelens side. Du får bare tilbud om rollene du selv har — en nøkkel kan aldri få mer enn personen som gir den har — og den som kan opprette nøkler, men ikke endre hva de kan gjøre, blir ikke spurt.
@@ -340,7 +342,7 @@ Løste tillatelser bufres per bruker og prosjekt, og oppdateres når teammedlems
 
 En hendelse, et varsel eller en episode som er merket som privat, kan bare ses av eierne sine — personene som er oppført som eiere, og medlemmene av eierteamene som har godtatt invitasjonen sin — og av Prosjekteiere og Prosjektadministratorer.
 
-En slik post endres bare med tillatelsene til teamene som eier den, og til personene som er oppført som eiere av den. Den som er oppført som eier, handler på den med alle tillatelsene vedkommende har. Alle andre handler bare på den med tillatelsene til teamene sine som eier den, hver med sitt eget omfang og sine egne etiketter: et annet teams tillatelse når ingen privat post som det teamet ikke eier. Det gjelder alt som gjøres med posten og det som hører til den — å redigere den, endre tilstanden, notatene, eierne, rollene, etikettene, de koblede varslene, episodemedlemmene og samtalene, og å slette den — fra dashbordet, API-et, massehandlinger, Slack, Microsoft Teams eller OneUptime AI. Prosjekteiere og Prosjektadministratorer endrer enhver privat post, og det gjør også arbeidsflyttrinn, som handler som Prosjektadministrator; en API-nøkkel gjør det bare med `ProjectOwner` eller `ProjectAdmin`.
+En slik post endres bare med tillatelsene til teamene som eier den, og til personene som er oppført som eiere av den. Den som er oppført som eier, handler på den med alle tillatelsene vedkommende har. Alle andre handler bare på den med tillatelsene til teamene sine som eier den, hver med sitt eget omfang og sine egne etiketter: et annet teams tillatelse når ingen privat post som det teamet ikke eier. Det gjelder alt som gjøres med posten og det som hører til den — å redigere den, endre tilstanden, notatene, eierne, rollene, etikettene, de koblede varslene, episodemedlemmene og samtalene, og å slette den — fra dashbordet, API-et, massehandlinger, Slack, Microsoft Teams eller OneUptime AI. Prosjekteiere og Prosjektadministratorer endrer enhver privat post, og en API-nøkkel gjør det bare med `ProjectOwner` eller `ProjectAdmin`.
 
 | Noen i team 1 og team 2 | En privat hendelse som team 2 eier | En offentlig hendelse som team 2 eier |
 | --- | --- | --- |
@@ -349,6 +351,12 @@ En slik post endres bare med tillatelsene til teamene som eier den, og til perso
 | Team 2 har også `IncidentMember` | Endrer den via team 2 | Endrer den via begge teamene |
 
 Et team som eier private poster, men ikke har noen tillatelser, et team som bare brukes til å samle personer, lar medlemmene sine se dem og endre ingen av dem. På siden til en privat post er en endring som personens team som eier den, ikke har lov til å gjøre, låst og sier hvorfor. For å tillate den gir du et team som eier den, tillatelsen, gjør et team med tillatelsen til eier eller gjør personen til eier.
+
+Det som gjøres med en privat post, følger samme regel: å kalle ut noen om den (**Kjør vaktpolicy**, **Tilkall nå** og utkalling fra Slack, Microsoft Teams, Mattermost eller OneUptime AI), å starte en runbook for den eller føre den kjøringen videre, og å godkjenne, prøvekjøre eller avvise en rettelse OneUptime AI har foreslått for den. Hver av dem krever sin egen tillatelse, for eksempel å kalle ut via vaktpolicyer eller å starte runbook-kjøringer, og på en privat post låner bare teamene som eier den, den ut, i tillegg til personene som er oppgitt som dens eiere. Alle andre avvises med begrunnelsen, og ingenting kalles ut, kjøres eller endres.
+
+Det som gjøres og sendes om en privat post, leses bare av dem som får lese posten: kjøringene av vaktpolicyer, runbook-kjøringene, rettelsene som er foreslått for den, og loggene over e-postene, SMS-ene, samtalene, push-varslene, chatmeldingene, webhookene og AI-forespørslene OneUptime sendte om den. Personene som kalles ut om den, ser fortsatt utkallingen sin.
+
+Arbeidsflyter handler ikke på private poster. Trinnene i en arbeidsflyt handler som Prosjektadministrator, men får aldri låne dens innsyn i private hendelser, varsler og episoder: de finner ingen, endrer ingen og legger ikke til noe i en, og en arbeidsflyt starter ikke på en slik post eller på noe som hører til den. Se [Hva arbeidsflyttrinn kan gjøre](/docs/workflows/configuration#hva-arbeidsflyttrinn-kan-gjøre).
 
 ### Regler som tilhører team
 

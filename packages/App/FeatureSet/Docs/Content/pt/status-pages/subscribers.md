@@ -391,7 +391,7 @@ Para um incidente limitado a páginas de status específicas, a regra de um e-ma
 
 ## Relatórios por e-mail
 
-Uma página de status pode enviar por e-mail aos assinantes um relatório em um agendamento: para cada recurso da página, o tempo de atividade, a indisponibilidade e os incidentes dele em um período. Isso é definido no cartão **Relatórios por e-mail** em **Páginas de status → sua página → Avançado → Relatórios**.
+Uma página de status pode enviar por e-mail aos assinantes um relatório em um agendamento: para cada recurso da página, o tempo de atividade, a indisponibilidade e os incidentes dele em um período. Um recurso para o qual nada foi medido nesse período, porque nada o tinha verificado ainda ou o monitoramento dele estava desligado, não tem tempo de atividade nem indisponibilidade no relatório: os dois aparecem como um travessão, com Ainda não monitorado ou Não monitorado sob o nome dele como na página de status, e ele fica de fora do tempo de atividade médio do grupo e da página. Isso é definido no cartão **Relatórios por e-mail** em **Páginas de status → sua página → Avançado → Relatórios**.
 
 - **Enviar relatórios por e-mail** liga e desliga os relatórios, e é salvo assim que você o muda. Não há nada para preencher em nenhum dos casos.
 - **Na primeira vez que os relatórios são ligados**, a página ganha um agendamento: um relatório no dia 1º de cada mês às 09:00, a partir do próximo dia 1º, cada um cobrindo o mês de calendário inteiro anterior, então o relatório enviado em 1º de novembro cobre outubro. As 09:00 ficam no fuso horário do relatório, que é UTC a menos que você o mude.

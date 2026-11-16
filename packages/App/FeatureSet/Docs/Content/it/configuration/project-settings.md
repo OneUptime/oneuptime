@@ -92,6 +92,8 @@ In un elenco, le etichette di un record sono mostrate una sotto l'altra; quando 
 
 Per ritirare un'etichetta, archiviala dal menu **⋯** della sua riga invece di eliminarla. Tutto ciò che ha l'etichetta la mantiene e puoi ancora filtrare in base a essa, ma nessuno può più aggiungerla a nulla: ogni selettore di etichette la esclude, e l'API, Terraform e MCP la rifiutano. La finestra di dialogo elenca le regole e le autorizzazioni configurate per usare l'etichetta, che continuano a usarla finché non le modifichi. Le etichette archiviate sono elencate a parte, nella sezione compressa **Etichette archiviate**, dove **Annulla archiviazione** ne ripristina una. **Elimina** elenca prima tutto ciò da cui l'etichetta verrebbe rimossa, e offre **Archivia invece**.
 
+**Usato da**, nel menu della riga di un'etichetta, conta i record di ogni tipo che portano l'etichetta e li apre una pagina alla volta. I record che non puoi aprire vengono contati, non nominati.
+
 ## Notifiche
 
 **Impostazioni del progetto → Notifiche** raccoglie il modo in cui il progetto invia le notifiche:

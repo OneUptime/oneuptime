@@ -560,7 +560,11 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      /*
+       * On-call history: deleting the escalation rule keeps this row and
+       * clears the reference (issue #9036).
+       */
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )
@@ -597,6 +601,72 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
   })
   public onCallDutyPolicyEscalationRuleId?: ObjectID = undefined;
 
+  /*
+   * The level this line is about - its place in the policy and its name -
+   * as they were when the line was written (issue #9036). The rule itself
+   * may be deleted later, which clears onCallDutyPolicyEscalationRuleId
+   * and keeps the line: these still say which level it was ("Level 2:
+   * Database (deleted)"). Empty on a direct page's lines, and on lines
+   * written before they were recorded. Written once, with the line: in no
+   * index.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
+      Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    title: "Escalation Rule Order",
+    description:
+      "The level of the escalation rule this timeline event belongs to (1 for the first), as it was when the event was written. Kept when the rule is deleted later. Empty for a step of a direct page.",
+    example: 2,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public escalationRuleOrder?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
+      Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    title: "Escalation Rule Name",
+    description:
+      "The name of the escalation rule this timeline event belongs to, as it was when the event was written. Kept when the rule is deleted later. Empty for a step of a direct page.",
+    example: "Database on-call",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public escalationRuleName?: string = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [
@@ -625,7 +695,11 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      /*
+       * On-call history: deleting this person's account keeps this row
+       * and clears the reference (issue #9036).
+       */
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )
@@ -715,7 +789,11 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      /*
+       * On-call history: deleting the team keeps this row and clears the
+       * reference (issue #9036).
+       */
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )
@@ -778,7 +856,11 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      /*
+       * On-call history: deleting the schedule keeps this row and clears
+       * the reference (issue #9036).
+       */
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )
@@ -1138,7 +1220,11 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      /*
+       * On-call history: deleting this person's account keeps this row
+       * and clears the reference (issue #9036).
+       */
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )

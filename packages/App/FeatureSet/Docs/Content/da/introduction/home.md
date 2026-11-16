@@ -20,6 +20,8 @@ Hjem er den første side, du ser i et projekt. Den viser med et blik, om noget h
 5. **Dit projekt**, hvad projektet består af, og **Kommende vedligeholdelse**, når der er planlagt noget.
 6. **Udforsk OneUptime**, alle produkter, én kategori ad gangen.
 
+Mens et nyt projekts tjekliste **Velkommen til OneUptime 👋** vises, er den hele Hjem: det første, du ser, er det, du skal gøre først. En åben hændelse, eller andet der kræver nogen, vises stadig over den. Skjul tjeklisten, eller gør den færdig, så kommer resten af Hjem tilbage.
+
 ### Søg og opret
 
 Søgefeltet åbner søgningen, ligesom `Mod` + `K`: skriv navnet på en side, monitor, hændelse, advarsel, statusside eller vagtpolitik. Se [Søg](#søg-efter-en-side-en-indstilling-eller-en-handling). **Erklær hændelse** åbner formularen, hvor du erklærer en hændelse. **Opret** tilbyder **Opret monitor**, **Planlæg vedligeholdelse** og **Opret meddelelse**. Hver af dem vises kun for dem, der må bruge den.
@@ -36,7 +38,7 @@ Linjen øverst nævner det mest presserende, der er åbent, i en tilsvarende far
 | Monitorer kører, og intet er åbent | **Alle systemer er i drift** |
 | Projektet har ingen monitorer endnu | **Der overvåges ikke noget endnu** |
 
-Ved siden af siger Hjem, hvornår den sidst læste projektet, og **Opdater** læser det igen. Når du vender tilbage til en fane med Hjem efter et minut eller mere, opdaterer den sig selv.
+Ved siden af siger Hjem, hvornår den sidst læste projektet, og **Opdater** læser det igen. Hjem følger også med, når det, den tæller, ændrer sig: når en hændelse, en advarsel, en monitor, en vedligeholdelseshændelse eller et SLO oprettes, ændres eller slettes, følger linjen, tallene, **Kræver opmærksomhed** og **Kommende vedligeholdelse** med inden for få sekunder, uden at du skal genindlæse. Når du vender tilbage til en fane med Hjem efter et minut eller mere, opdaterer den sig selv.
 
 Så længe intet overvåges endnu, slutter linjen med knappen **Opret din første monitor**, som åbner den guidede opsætning **Vide, når mit website eller API er nede**. Kun personer, der har lov til at oprette monitorer, ser den.
 
@@ -56,7 +58,7 @@ Et tal over nul viser **Kræver opmærksomhed**, eller **I gang** og **Budgettet
 
 ### Velkomsttjeklisten
 
-Første gang en Projektejer eller Projektadministrator åbner Hjem i et nyt projekt, spørger kortet **Hvad vil du gøre først?** Sæt flueben ved et eller flere mål, fx **Vide, når mit website eller API er nede** eller **Jeg kigger bare**, og klik på **Fortsæt**: tjeklisten indeholder så de trin, som målene kræver. **Spring over** giver de fire trin, som alle projekter får. For at svare igen senere skal du klikke på **Skift** i tjeklisten. Et projekt, der allerede bruger monitorer, telemetri eller vagter, bliver ikke spurgt.
+Første gang en Projektejer eller Projektadministrator åbner Hjem i et nyt projekt, hilser kortet på dem med fornavn og spørger **Hvad vil du gøre først?** Vælg et eller flere mål, fx **Vide, når mit website eller API er nede**, og klik på **Fortsæt**: tjeklisten indeholder så de trin, som målene kræver. Mens du vælger, fortæller den, hvor mange trin det er, og cirka hvor lang tid de tager. **Jeg kigger bare** fører dig i stedet direkte til resten af Hjem og efterlader en linje, så du kan vise tjeklisten igen. For at svare igen senere skal du klikke på **Skift** i tjeklisten. Et projekt, der allerede bruger monitorer, telemetri eller vagter, bliver ikke spurgt.
 
 Hvert trin krydser sig selv af, når tingen virker, ikke når en post findes, og alle, der sætter projektet op, ser den samme liste på alle enheder:
 
@@ -72,9 +74,13 @@ Hvert trin krydser sig selv af, når tingen virker, ikke når en post findes, og
 
 Det trin, du skal tage først, er markeret med **Næste trin**. På OneUptime Clouds Free-abonnement, der har én person, siger **Inviter dit team**, at det kræver Growth-abonnementet, og åbner **Fakturering**. På en selvhostet server, der endnu ikke kan sende e-mail, ser serverens administratorer først **Denne server kan ikke sende e-mail endnu**; det åbner administrationsdashboardet.
 
+Hvert trin fortæller, cirka hvor lang tid det tager, tjeklisten, cirka hvor meget tid der er tilbage, og det næste trin har sin egen knap **Start**.
+
 En guidet opsætning klarer hele opgaven på én side, et trin ad gangen, og slutter med, hvad den har sat op, og hvad du kan gøre bagefter. Søg efter dens navn for at åbne den igen senere.
 
-Under trinene viser **Sådan virker OneUptime** de fire kerneprodukter i den rækkefølge, et problem bevæger sig gennem dem: **Monitorer**, **Hændelser og advarsler**, **Vagt** og **Statussider**. Klik på et for at åbne det. Under dem står, hvad der fodrer kredsløbet, telemetri og infrastruktur, med links til [Grundbegreber](/docs/introduction/core-concepts) og [Ordliste](/docs/introduction/glossary).
+Ved siden af sine trin viser en guidet opsætning, hvad den sætter op, sat flueben ved efterhånden, og fortæller, cirka hvor lang tid den tager.
+
+Under trinene åbner en linje **Sådan virker OneUptime**: alt, hvad OneUptime gør, og hvordan det hænger sammen.
 
 ```mermaid title="Hvornår velkomsttjeklisten vises"
 flowchart TB
@@ -89,13 +95,15 @@ flowchart TB
 
 Tjeklisten forsvinder for alle, når hvert trin er færdigt. For at skjule den før, skal du klikke på **Skjul**: den er så kun skjult for dig, på alle enheder, og en linje bliver stående med **Vis den** og **Sådan virker OneUptime**. Folk, der er inviteret til projektet som medlemmer, ser ikke tjeklisten. **Sådan virker OneUptime** er stadig ét klik væk i alle projekter: åbn det fra **Hjælp** eller med knappen ved siden af **Udforsk OneUptime**.
 
+**Sådan virker OneUptime** åbner med **Sådan hænger det sammen**: de fire trin, et problem går igennem, **Opdage**, **Reagere**, **Kommunikere** og **Forbedre**, hver med de produkter, der klarer det. Derefter kommer kategorierne i menuen **Produkter**, hver med sine produkter og hvad hvert produkt er til: vælg en, eller gå videre med piletasterne eller **Næste**. Klik på et produkt for at åbne det. Produkter, som dit projekt skjuler, er udeladt.
+
 ### Kræver opmærksomhed
 
 **Kræver opmærksomhed** viser ved navn det, tallene tæller: de åbne hændelser, de åbne advarsler, de monitorer, der ikke er i drift, SLO'erne i fare og de igangværende vedligeholdelser, det mest presserende først. Hver række viser sin alvor eller status, siger, hvornår en hændelse eller advarsel begyndte, og hvornår vedligeholdelsen slutter, og åbner posten. Hver slags viser op til fem, med **Vis alle** for resten, som åbner den samme liste som dens tal. Når intet er åbent, står der **Intet kræver din opmærksomhed**.
 
 ### Opsætningens tilstand
 
-Når noget i projektets opsætning ville forhindre, at folk får besked, slutter **Kræver opmærksomhed** med **Opsætning**: hvor mange ting der bør ses på. Den åbner **Opsætningens tilstand**, som begynder med én linje i farven på det alvorligste fund: hvor mange problemer der ville forhindre, at folk får besked, hvor mange ting der er værd at rette, eller **Intet at rette**. Under den viser siden, hvad der er sat forkert op, det værste først, under **Tilkald når ikke frem**, **Værd at rette** og **Forslag**: en monitor, der ikke tilkalder nogen, en vagtpolitik, som intet kører, en person, der ikke kan tilkaldes, SMS slået fra, en vagttidsplan uden nogen på vagt, en statusside, der ikke viser nogen monitor. Hvert fund siger med én sætning, hvad der er galt, med navnene på jeres monitorer, politikker og personer med fed skrift, de monitorer eller politikker, fundet rammer, efter **Berører**, og lige under det knappen, der åbner rettelsen. En monitors fund er de brud, som dens kort **Når den går ned** nævner. Et fund, som jeres team bevidst lader være, kan skjules med en begrundelse, for alle, og gendannes fra **Afvist**. Søg finder siden som **Opsætningens tilstand**, og Spørg AI svarer på "er min opsætning i orden?" ud fra den.
+Når noget i projektets opsætning ville forhindre, at folk får besked, slutter **Kræver opmærksomhed** med **Opsætning**: hvor mange ting der bør ses på. Den åbner **Opsætningens tilstand**, som begynder med én linje i farven på det alvorligste fund: hvor mange problemer der ville forhindre, at folk får besked, hvor mange ting der er værd at rette, eller **Intet at rette**. Under den viser siden, hvad der er sat forkert op, det værste først, under **Tilkald når ikke frem**, **Værd at rette** og **Forslag**: en monitor, der ikke tilkalder nogen, en vagtpolitik, som intet kører, en person, der ikke kan tilkaldes, SMS slået fra, en vagttidsplan uden nogen på vagt, en statusside, der ikke viser nogen monitor, et brugerdefineret domæne, hvis SSL-certifikat ikke kunne udstedes, en indtagelsesnøgle, som der aldrig er kommet data ind med. Hvert fund siger med én sætning, hvad der er galt, med navnene på jeres monitorer, politikker og personer med fed skrift, de monitorer eller politikker, fundet rammer, efter **Berører**, og lige under det knappen, der åbner rettelsen. To kan rettes lige der, når en dialog har sagt præcis, hvad der ændres: **Slå SMS til** (eller telefonopkald, WhatsApp eller Telegram) for dem, der må slå det til, og **Opret vagtregel**, som tilkalder den vagtpolitik, du vælger, for en monitor, der ikke tilkaldte nogen. En monitors fund er de brud, som dens kort **Når den går ned** nævner, og en vagtpolitik, som intet kører, eller et brugerdefineret domæne, der ikke åbner sin statusside, siger det også øverst på politikkens eller statussidens egen side. Et fund, som jeres team bevidst lader være, kan skjules med en begrundelse, for alle, og gendannes fra **Afvist**. Søg finder siden som **Opsætningens tilstand**, og Spørg AI svarer på "er min opsætning i orden?" ud fra den.
 
 ### Dit projekt
 
@@ -137,7 +145,7 @@ Et ord med en prikket linje under, som **Sonder** i formularen til en ny monitor
 
 Over hver sides titel viser et spor som *Projekt › Docker › Indstillinger › Ejerregler*, hvor siden ligger. Hvert trin før det sidste åbner sin side.
 
-- **Lister holder sig selv opdaterede.** Når en hændelse eller advarsel oprettes, kvitteres eller løses et sted, viser listerne over hændelser, advarsler og episoder det inden for få sekunder, uden at du skal genindlæse. Mens du er midt i noget på en liste, for eksempel med rækker markeret eller en dialog åben, venter den og indhenter det, når du er færdig.
+- **Lister holder sig selv opdaterede.** Når en hændelse, en advarsel, en monitor eller en vedligeholdelseshændelse oprettes, ændres eller slettes et sted, viser listerne over hændelser, advarsler, episoder, monitorer og vedligeholdelseshændelser det inden for få sekunder, uden at du skal genindlæse, og det samme gør tallene ved siden af dem i sidemenuerne. Klokkens tal og listerne **Aktive hændelser**, **Aktive advarsler**, **Aktive hændelsesepisoder** og **Aktive advarselsepisoder** følger alle de projekter, du er med i, ikke kun det, der er åbent. Mens du er midt i noget på en liste, for eksempel med rækker markeret eller en dialog åben, venter den og indhenter det, når du er færdig.
 - **På en telefon foldes filterchipsene væk** bag **Filter**, så listen starter længere oppe. De chips, du har sat, bliver i syne sammen med **Ryd alt**. Tryk på **Filter** for at se alle chips, og igen for at folde dem væk.
 - **Kolonner**, i menuen **⋯** på en liste, vælger, hvilke kolonner listen viser og i hvilken rækkefølge, og husker dem for dig i denne browser. En Projektejer eller en Projektadministrator kan også sætte flueben ved **Vis disse kolonner for alle i dette projekt** der: alle, der ikke har valgt deres egne kolonner til listen, ser dem, og **Nulstil til projektets standard** sætter dine egne tilbage til dem.
 - **Kompakte rækker**, i samme menu, gør rækkerne i alle lister lavere, så en lang liste viser omkring en femtedel flere af dem. Valget huskes i denne browser.

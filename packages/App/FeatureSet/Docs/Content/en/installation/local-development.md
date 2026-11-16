@@ -87,10 +87,16 @@ npm run compile
 
 ### Lint only your files
 
-From the repository root, pass the files you changed:
+From the repository root, lint the files your branch changed, and fix what ESLint can:
 
 ```bash
-npx eslint --fix packages/App/path/to/File.ts
+npm run fix-lint:changed
+```
+
+It takes every file that differs from `origin/main`, committed or not, and runs ESLint once for each TypeScript project they belong to: one `npx eslint` over the files of several packages runs out of memory. To lint other files the same way, name them after `--`:
+
+```bash
+node Scripts/Lint/LintByProject.js --fix -- packages/App/path/to/File.ts
 ```
 
 Avoid `npm run lint` and `npm run fix-lint`: they lint the whole repository.

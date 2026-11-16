@@ -26,6 +26,8 @@ flowchart TB
     statuspage --> subscribers["Abonnenter"]
 ```
 
+Hver posts side siger også, hvad der bruger den. En monitors kort **Bruges af** viser de statussider, der viser den, dens monitorgrupper, de SLOs, der måler den, kommende vedligeholdelse, der nævner den, de monitorer, der afhænger af den, de regler og skabeloner, der nævner den, og de arbejdsgange og dashboards, der bruger den. Det, du ikke må åbne, tælles, men nævnes ikke. Når du sletter eller arkiverer en post, siges det samme først, på dens egne sider og i listerne.
+
 ## Projekter og personer
 
 Et **projekt** rummer alt: monitorer, hændelser, vagtpolitikker, statussider, telemetri og indstillinger. De fleste virksomheder har brug for ét, og nogle har ét pr. miljø eller forretningsenhed. Intet, du opretter i ét projekt, kan ses i et andet.

@@ -2410,6 +2410,12 @@ app:
     http: 3002
     grpc: 4317
     mqtt: 1883
+  # Pod resources. Every Node.js service (this one, worker, probes, home,
+  # telemetryWriter, nginx's sidecar, globalRunner, migrate) sizes its heap to
+  # resources.limits.memory: three quarters of it, 256 MB to 8096 MB, and
+  # 8096 MB without a limit. A --max-old-space-size in the service's
+  # NODE_OPTIONS (extraEnv) wins: see docs/configuration.md, "Example: the
+  # Node.js heap".
   resources:
   nodeSelector: {}
   podSecurityContext: {}
@@ -2687,6 +2693,21 @@ globalRunner:
   # How many steps each replica runs at the same time. A project runs at most
   # three of its steps on global Runners at once, whatever this says.
   concurrency: 4
+  # Keep Forgejo, Gitea and Git repositories off global Runners, as OneUptime
+  # Cloud does, and the GitLab ones GitLab makes no short-lived token for.
+  # OneUptime opens an AI code fix's pull request itself, so the token a global
+  # Runner pushes with is narrow: a GitHub repository's is minted for that one
+  # repository, a GitLab repository's is a project access token made for that
+  # one fix (GitLab makes one for a connection token of someone with the
+  # Maintainer role and the api scope, on GitLab self-managed or GitLab.com
+  # Premium or Ultimate), and both are revoked when the fix ends. OneUptime
+  # cannot make such a token on Forgejo, Gitea or Git, so a global Runner
+  # would get the connection's own long-lived token. Turn this on when this
+  # install serves several tenants whose code must stay apart: those
+  # repositories' code fixes then need one of the project's own Runners.
+  # GitHub repositories, and every repository on a single-tenant install, are
+  # unchanged. (The name is from before GitLab's short-lived tokens.)
+  codeFixGitHubOnly: false
   disableTelemetryCollection: false
   enableProfiling: false
   # The global Runner's key (optional — generated and kept in the release
@@ -2707,14 +2728,26 @@ globalRunner:
   # chart-wide value (they are not merged).
   affinity: {}
   topologySpreadConstraints: []
-  # Each JavaScript step runs in a process of its own, as a user of its own:
-  # the image's sandbox launcher switches the step's process to that user. A
-  # context of your own (here, or the chart-wide containerSecurityContext)
-  # must leave it able to: keep allowPrivilegeEscalation true (the default)
-  # and the SETUID and SETGID capabilities, for example
-  #   capabilities: { drop: ["ALL"], add: ["SETUID", "SETGID"] }
-  # Without them steps still run in their own process, but as the Runner's
-  # user, and the Runner's log says so.
+  # Each JavaScript step runs in a process of its own, as a user of its own
+  # and with no network of its own:
+  #   - A user of its own: the image's sandbox launcher switches the step's
+  #     process to that user. A context of your own (here, or the chart-wide
+  #     containerSecurityContext) must leave it able to: keep
+  #     allowPrivilegeEscalation true (the default) and the SETUID and SETGID
+  #     capabilities, for example
+  #       capabilities: { drop: ["ALL"], add: ["SETUID", "SETGID"] }
+  #     Without them steps still run in their own process, but as the Runner's
+  #     user, and the Runner's log says so.
+  #   - No network of its own: the image's no-network filter sets a seccomp
+  #     filter that lets the step's process open no socket, so code that got
+  #     out of a step's sandbox reaches nothing by itself - not this cluster,
+  #     the Kubernetes API or a cloud metadata endpoint. It needs no privilege
+  #     and no capability, only a seccomp profile that lets a process filter
+  #     its own system calls (Kubernetes' RuntimeDefault, which OpenShift's
+  #     restricted SCC requires; Docker Compose's default). The step's HTTP
+  #     goes through the Runner to public addresses only either way. A profile
+  #     that forbids seccomp filters leaves the step on this pod's network;
+  #     the Runner's log and the Admin Dashboard say so.
   containerSecurityContext: {}
   # Extra env / volumes for the global Runner. Unlike every other service, it
   # never takes the chart-wide extraEnv/extraVolumes/extraVolumeMounts: those

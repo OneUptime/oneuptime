@@ -45,6 +45,7 @@
     "uptimePercent": "{{percent}} de disponibilité",
     "operational": "Opérationnel",
     "notMonitored": "Non surveillé",
+    "notMonitoredYet": "Pas encore surveillé",
     "noResourcesInGroup": "Aucune ressource ajoutée à ce groupe.",
     "activeIncidents": "Incidents actifs",
     "scheduledMaintenanceEvents": "Maintenance planifiée",
@@ -55,6 +56,7 @@
     "someResourcesAre": "Certaines ressources sont {{status}}",
     "someResourcesAreUnder": "Certaines ressources sont en {{status}}",
     "noResourcesAreMonitored": "Aucune ressource n'est surveillée pour le moment",
+    "noResourcesAreMonitoredYet": "Aucune ressource n'est encore surveillée",
     "oneSubGroup": "1 groupe",
     "subGroupCount": "{{total}} groupes"
   },
@@ -180,7 +182,9 @@
     "manageExisting": "Gérer l'abonnement existant",
     "sendManagementLink": "Envoyer le lien de gestion",
     "subscribedSuccessfully": "Vous avez été abonné avec succès.",
-    "emailSentCheckSpam": "Un e-mail contenant le lien a été envoyé à votre adresse. Si vous ne voyez pas l'e-mail, veuillez vérifier votre dossier spam.",
+    "emailSentCheckSpam": "Nous avons envoyé un e-mail à cette adresse. Ouvrez le lien qu'il contient pour confirmer votre abonnement. Si vous ne le voyez pas, vérifiez votre dossier spam.",
+    "checkEmailTitle": "Consultez vos e-mails",
+    "checkPhoneTitle": "Consultez votre téléphone",
     "manageLinkSent": "Si un abonnement correspond aux informations que vous avez saisies, nous avons envoyé un lien pour le gérer.",
     "manageLinkSentEmail": "Si cette adresse e-mail est associée à un abonnement, nous avons envoyé à cette adresse un lien pour le gérer. Si vous ne voyez pas l'e-mail, veuillez vérifier votre dossier spam.",
     "menu": {

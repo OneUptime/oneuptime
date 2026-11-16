@@ -45,6 +45,7 @@
     "uptimePercent": "{{percent}} Verfügbarkeit",
     "operational": "Betriebsbereit",
     "notMonitored": "Nicht überwacht",
+    "notMonitoredYet": "Noch nicht überwacht",
     "noResourcesInGroup": "Dieser Gruppe wurden keine Ressourcen hinzugefügt.",
     "activeIncidents": "Aktive Vorfälle",
     "scheduledMaintenanceEvents": "Geplante Wartung",
@@ -55,6 +56,7 @@
     "someResourcesAre": "Einige Ressourcen sind {{status}}",
     "someResourcesAreUnder": "Einige Ressourcen sind in {{status}}",
     "noResourcesAreMonitored": "Derzeit werden keine Ressourcen überwacht",
+    "noResourcesAreMonitoredYet": "Es werden noch keine Ressourcen überwacht",
     "oneSubGroup": "1 Gruppe",
     "subGroupCount": "{{total}} Gruppen"
   },
@@ -180,7 +182,9 @@
     "manageExisting": "Bestehendes Abonnement verwalten",
     "sendManagementLink": "Verwaltungslink senden",
     "subscribedSuccessfully": "Sie wurden erfolgreich abonniert.",
-    "emailSentCheckSpam": "Eine E-Mail mit dem Link wurde an Ihre E-Mail-Adresse gesendet. Wenn Sie die E-Mail nicht sehen, überprüfen Sie bitte Ihren Spam-Ordner.",
+    "emailSentCheckSpam": "Wir haben eine E-Mail an diese Adresse gesendet. Öffnen Sie den Link darin, um Ihr Abonnement zu bestätigen. Wenn Sie sie nicht sehen, überprüfen Sie Ihren Spam-Ordner.",
+    "checkEmailTitle": "Prüfen Sie Ihre E-Mails",
+    "checkPhoneTitle": "Prüfen Sie Ihr Telefon",
     "manageLinkSent": "Wenn ein Abonnement mit Ihren Angaben übereinstimmt, haben wir einen Link zur Verwaltung des Abonnements gesendet.",
     "manageLinkSentEmail": "Wenn für diese E-Mail-Adresse ein Abonnement besteht, haben wir einen Link zur Verwaltung des Abonnements an diese Adresse gesendet. Wenn Sie die E-Mail nicht sehen, überprüfen Sie bitte Ihren Spam-Ordner.",
     "menu": {

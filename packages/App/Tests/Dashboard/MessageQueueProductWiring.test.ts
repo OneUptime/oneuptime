@@ -856,8 +856,17 @@ describe("the rule forms match exactly what the rule engines evaluate", () => {
           ? `formSteps={getLabelRuleFormSteps<${model}>()}`
           : `formSteps={getOwnerRuleFormSteps<${model}>()}`,
       );
-      // The help keeps a Match Criteria heading, which the shared help replaces.
-      expect(source).toMatch(/^### Match Criteria$/m);
+      /*
+       * The help is the shared label or owner rule help (Utils/Help/
+       * ResourceRuleHelp), whose Match Criteria topic the shared rule help
+       * replaces, with the queue's own naming tips after it.
+       */
+      expect(dense(source)).toContain(
+        model.endsWith("LabelRule")
+          ? "getLabelRuleHelpMarkdown({"
+          : "getOwnerRuleHelpMarkdown({",
+      );
+      expect(source).toContain('topic: "Matching Discovered Queues"');
     },
   );
 

@@ -57,6 +57,8 @@ Open een beleid vanuit de lijst. Het zijmenu ervan bevat alles over het beleid:
 - **Gebruikersoverschrijvingen** vervangt personen alleen in dit beleid. Zie [Gebruikersoverschrijvingen](/docs/on-call/user-overrides).
 - **Instellingen** bevat **Bereikbaarheidsbeleid exporteren** en de kaart die het beleid archiveert.
 
+**Wat dit beleid activeert**, op het **Overzicht**, toont de bereikbaarheidsregels, de monitoren waarvan de criteria het beleid activeren, de sjablonen en andere regels die het activeren, en de workflows die dat doen, elk met een link. Een uitgeschakelde regel toont **Uit**. Activeert niets het beleid, dan zegt de kaart het: het roept niemand op totdat iets het activeert. Het beleid verwijderen of archiveren zegt eerst hetzelfde. Wat u niet mag openen, wordt geteld maar niet genoemd.
+
 ## Een beleid herhalen
 
 Loopt de wachttijd van het laatste niveau af zonder dat iemand bevestigt, dan stopt een beleid, tenzij het zich herhaalt. Open om dat te kiezen de pagina **Escalatieregels** van het beleid en klik op **Bewerken** op de kaart **Herhaalbeleid** onder de regels. **Herhaalbeleid bewerken** vraagt **Als niemand bevestigt na het laatste niveau**:
@@ -93,7 +95,7 @@ Eén keer opgeroepen worden betekent niet dat iemand een oproep mist. Die ene op
 
 Sommige oproepen gaan na de bevestiging door, tot iemand die ze opriepen antwoordt of het is opgelost: een nieuwe oproep, een oproep aan waarnemers, een oproep die iemand vanuit Slack of Microsoft Teams naar mensen stuurde, en een beleid dat met de hand is gestart.
 
-Een beleid dat met de hand is gestart, is gestart met **Bereikbaarheidsdienstbeleid uitvoeren**, of door een oproep vanuit Slack of Microsoft Teams die het noemt. Het roept niveau voor niveau op zoals elke uitvoering, met gesprekken en herhaalde pushmeldingen, en dat iemand anders het incident bevestigt, stopt het niet: zo roep je een ander team op voor een incident waar al iemand mee bezig is. Wie het opriep, antwoordt vanuit het bericht van zijn oproep, met een gesprek of een sms, of door zelf het incident te bevestigen; zodra het incident bevestigd is, biedt de pagina van het incident **Opnieuw bevestigen** aan. **Escaleren** geeft het door aan het volgende niveau. Bij een incident, waarschuwing of episode dat is opgelost, wordt niets gestart, en je krijgt te horen waarom. De meldingen ervan zeggen wie welk beleid heeft gestart, en bevatten het bericht dat met een oproep vanuit Slack of Microsoft Teams is meegestuurd.
+Een beleid dat met de hand is gestart, is gestart met **Bereikbaarheidsdienstbeleid uitvoeren**, of door een oproep vanuit Slack of Microsoft Teams die het noemt. Het roept niveau voor niveau op zoals elke uitvoering, met gesprekken en herhaalde pushmeldingen, en dat iemand anders het incident bevestigt, stopt het niet: zo roep je een ander team op voor een incident waar al iemand mee bezig is. Wie het opriep, antwoordt vanuit het bericht van zijn oproep, met een gesprek of een sms, of door zelf het incident te bevestigen; zodra het incident bevestigd is, biedt de pagina van het incident **Opnieuw bevestigen** aan. **Escaleren** geeft het door aan het volgende niveau. Bij een incident, waarschuwing of episode dat is opgelost, wordt niets gestart, en je krijgt te horen waarom: het dashboard zet **Bereikbaarheidsdienstbeleid uitvoeren** uit en noemt de reden. De meldingen ervan zeggen wie welk beleid heeft gestart, en bevatten het bericht dat met een oproep vanuit Slack of Microsoft Teams is meegestuurd.
 
 ## Uitvoeringslogboeken
 

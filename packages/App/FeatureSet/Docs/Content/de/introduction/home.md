@@ -20,6 +20,8 @@ Die Startseite ist die erste Seite, die Sie in einem Projekt sehen. Sie zeigt au
 5. **Ihr Projekt**, woraus das Projekt besteht, und **Bevorstehende Wartung**, wenn eine geplant ist.
 6. **OneUptime erkunden**, jedes Produkt, eine Kategorie nach der anderen.
 
+Solange die Checkliste **Willkommen bei OneUptime 👋** eines neuen Projekts angezeigt wird, ist sie die ganze Startseite: Als Erstes sehen Sie, was zuerst zu tun ist. Ein offener Vorfall oder etwas anderes, das jemanden braucht, erscheint trotzdem darüber. Blenden Sie die Checkliste aus oder schließen Sie sie ab, dann kehrt der Rest der Startseite zurück.
+
 ### Suchen und erstellen
 
 Das Suchfeld öffnet die Suche, genau wie `Mod` + `K`: Tippen Sie den Namen einer beliebigen Seite, eines Monitors, eines Vorfalls, einer Warnung, einer Statusseite oder einer Bereitschaftsrichtlinie. Siehe [Suchen](#nach-einer-seite-einer-einstellung-oder-einer-aktion-suchen). **Vorfall melden** öffnet das Formular, mit dem Sie einen Vorfall melden. **Erstellen** bietet **Monitor erstellen**, **Wartung planen** und **Ankündigung erstellen** an. Jede davon wird nur Personen angezeigt, die sie verwenden dürfen.
@@ -36,7 +38,7 @@ Die Zeile ganz oben nennt das Dringendste, was gerade offen ist, in einer passen
 | Monitore laufen, und nichts ist offen | **Alle Systeme betriebsbereit** |
 | Das Projekt hat noch keine Monitore | **Es wird noch nichts überwacht** |
 
-Daneben zeigt die Startseite, wann sie das Projekt zuletzt geladen hat, und **Aktualisieren** lädt es neu. Wenn Sie nach einer Minute oder länger zu einem Tab mit der Startseite zurückkehren, aktualisiert sie sich von selbst.
+Daneben zeigt die Startseite, wann sie das Projekt zuletzt geladen hat, und **Aktualisieren** lädt es neu. Die Startseite folgt außerdem dem, was sie zählt: Wird ein Vorfall, eine Warnung, ein Monitor, ein Wartungsereignis oder ein SLO erstellt, geändert oder gelöscht, ziehen die Zeile, die Zahlen, **Erfordert Aufmerksamkeit** und **Bevorstehende Wartung** innerhalb von Sekunden nach, ohne Neuladen. Wenn Sie nach einer Minute oder länger zu einem Tab mit der Startseite zurückkehren, aktualisiert sie sich von selbst.
 
 Solange noch nichts überwacht wird, endet die Zeile mit der Schaltfläche **Ersten Monitor erstellen**, die die geführte Einrichtung **Wissen, wenn meine Website oder API ausfällt** öffnet. Nur wer Monitore erstellen darf, sieht sie.
 
@@ -56,7 +58,7 @@ Eine Zahl über null zeigt **Erfordert Aufmerksamkeit**, bei Wartung und SLOs **
 
 ### Die Willkommens-Checkliste
 
-Wenn ein Projektinhaber oder Projektadministrator die Startseite eines neuen Projekts zum ersten Mal öffnet, fragt die Karte **Was möchten Sie zuerst tun?** Haken Sie ein oder mehrere Ziele an, etwa **Wissen, wenn meine Website oder API ausfällt** oder **Ich sehe mich nur um**, und klicken Sie auf **Weiter**: Die Checkliste enthält dann die Schritte, die diese Ziele brauchen. **Überspringen** gibt Ihnen die vier Schritte, die jedes Projekt bekommt. Um später neu zu antworten, klicken Sie in der Checkliste auf **Ändern**. Ein Projekt, das schon Monitore, Telemetrie oder Bereitschaft nutzt, wird nicht gefragt.
+Wenn ein Projektinhaber oder Projektadministrator die Startseite eines neuen Projekts zum ersten Mal öffnet, begrüßt die Karte ihn mit seinem Vornamen und fragt **Was möchten Sie zuerst tun?** Wählen Sie ein oder mehrere Ziele, etwa **Wissen, wenn meine Website oder API ausfällt**, und klicken Sie auf **Weiter**: Die Checkliste enthält dann die Schritte, die diese Ziele brauchen. Während Sie wählen, sagt sie, wie viele Schritte das sind und wie lange sie etwa dauern. **Ich sehe mich nur um** bringt Sie stattdessen direkt zum Rest der Startseite und lässt eine Zeile stehen, mit der Sie die Checkliste wieder einblenden. Um später neu zu antworten, klicken Sie in der Checkliste auf **Ändern**. Ein Projekt, das schon Monitore, Telemetrie oder Bereitschaft nutzt, wird nicht gefragt.
 
 Jeder Schritt hakt sich selbst ab, sobald die Sache funktioniert, nicht schon, wenn ein Eintrag existiert, und alle, die das Projekt einrichten, sehen auf jedem Gerät dieselbe Liste:
 
@@ -72,9 +74,13 @@ Jeder Schritt hakt sich selbst ab, sobald die Sache funktioniert, nicht schon, w
 
 Der Schritt, mit dem Sie beginnen, ist mit **Nächster Schritt** markiert. Im Free-Tarif von OneUptime Cloud, der eine Person umfasst, sagt **Team einladen**, dass es den Growth-Tarif braucht, und öffnet **Abrechnung**. Auf einem selbst gehosteten Server, der noch keine E-Mails senden kann, sehen die Administratoren des Servers zuerst **Dieser Server kann noch keine E-Mails senden**; das öffnet das Admin-Dashboard.
 
+Jeder Schritt sagt, wie lange er etwa dauert, die Checkliste, wie viel Zeit etwa noch bleibt, und der nächste Schritt hat eine eigene Schaltfläche **Starten**.
+
 Eine geführte Einrichtung erledigt die ganze Aufgabe auf einer Seite, Schritt für Schritt, und endet damit, was sie eingerichtet hat und was als Nächstes zu tun ist. Um eine später wieder zu öffnen, suchen Sie nach ihrem Namen.
 
-Unter den Schritten zeigt **So funktioniert OneUptime** die vier Kernprodukte in der Reihenfolge, in der ein Problem sie durchläuft: **Monitore**, **Vorfälle & Warnungen**, **Bereitschaft** und **Statusseiten**. Klicken Sie auf eines, um es zu öffnen. Darunter steht, was diesen Kreislauf speist, Telemetrie und Infrastruktur, mit Links zu den Seiten [Grundkonzepte](/docs/introduction/core-concepts) und [Glossar](/docs/introduction/glossary).
+Neben ihren Schritten listet eine geführte Einrichtung auf, was sie einrichtet, abgehakt, sobald Sie vorankommen, und sagt, wie lange sie etwa dauert.
+
+Unter den Schritten öffnet eine Zeile **So funktioniert OneUptime**: alles, was OneUptime kann, und wie es zusammenhängt.
 
 ```mermaid title="Wann die Willkommens-Checkliste erscheint"
 flowchart TB
@@ -89,13 +95,15 @@ flowchart TB
 
 Die Checkliste verschwindet für alle, sobald jeder Schritt erledigt ist. Um sie früher auszublenden, klicken Sie auf **Ausblenden**: Sie ist dann nur für Sie ausgeblendet, auf jedem Gerät, und eine Zeile bleibt mit **Anzeigen** und **So funktioniert OneUptime**. Wer als Mitglied in das Projekt eingeladen wurde, sieht die Checkliste nicht. **So funktioniert OneUptime** bleibt in jedem Projekt einen Klick entfernt: Öffnen Sie es über **Hilfe** oder mit der Schaltfläche neben **OneUptime erkunden**.
 
+**So funktioniert OneUptime** öffnet sich mit **Wie alles zusammenhängt**: den vier Schritten, die ein Problem durchläuft, **Erkennen**, **Reagieren**, **Informieren** und **Verbessern**, jeder mit den Produkten, die ihn übernehmen. Danach folgen die Kategorien des Menüs **Produkte**, jede mit ihren Produkten und wofür jedes da ist: Wählen Sie eine aus, oder gehen Sie mit den Pfeiltasten oder **Weiter** zur nächsten. Klicken Sie auf ein Produkt, um es zu öffnen. Produkte, die Ihr Projekt ausblendet, fehlen dort.
+
 ### Erfordert Aufmerksamkeit
 
 **Erfordert Aufmerksamkeit** führt mit Namen auf, was die Zahlen zählen: die offenen Vorfälle, die offenen Warnungen, die nicht betriebsbereiten Monitore, die gefährdeten SLOs und die laufenden Wartungen, das Dringendste zuerst. Jede Zeile zeigt ihren Schweregrad oder Status, sagt, wann ein Vorfall oder eine Warnung begonnen hat und wann eine Wartung endet, und öffnet den Eintrag. Von jeder Art erscheinen bis zu fünf, mit **Alle anzeigen** für den Rest: Es öffnet dieselbe Liste wie die Zahl dieser Art. Wenn nichts offen ist, steht dort **Nichts erfordert Ihre Aufmerksamkeit**.
 
 ### Einrichtungsstatus
 
-Wenn etwas in der Einrichtung des Projekts verhindern würde, dass die richtigen Leute Bescheid bekommen, endet **Erfordert Aufmerksamkeit** mit **Einrichtung**: wie viele Dinge einen Blick brauchen. Die Zeile öffnet **Einrichtungsstatus**, der mit einer Zeile in der Farbe des schwersten Befunds beginnt: wie viele Probleme verhindern würden, dass Menschen benachrichtigt werden, wie viele Punkte behoben werden sollten, oder **Nichts zu beheben**. Darunter listet die Seite auf, was falsch eingerichtet ist, das Schlimmste zuerst, unter **Alarmierungen kommen nicht an**, **Sollte behoben werden** und **Vorschläge**: ein Monitor, der niemanden alarmiert, eine Bereitschaftsrichtlinie, die nie ausgelöst wird, eine Person, die nicht alarmiert werden kann, ausgeschaltete SMS, ein Bereitschaftszeitplan, in dem niemand Dienst hat, eine Statusseite, die keinen Monitor zeigt. Jeder Befund sagt in einem Satz, was nicht stimmt, mit den Namen Ihrer Monitore, Richtlinien und Personen in Fettschrift, den Monitoren oder Richtlinien, die er berührt, hinter **Betrifft**, und direkt darunter der Schaltfläche, die die Behebung öffnet. Die Befunde eines Monitors sind die Lücken, die seine Karte **Wenn das ausfällt** nennt. Einen Befund, den Ihr Team absichtlich so lässt, können Sie mit einer Begründung für alle ausblenden und unter **Verworfen** wiederherstellen. Die Suche findet die Seite als **Einrichtungsstatus**, und KI fragen beantwortet „Ist meine Einrichtung in Ordnung?“ anhand dieser Seite.
+Wenn etwas in der Einrichtung des Projekts verhindern würde, dass die richtigen Leute Bescheid bekommen, endet **Erfordert Aufmerksamkeit** mit **Einrichtung**: wie viele Dinge einen Blick brauchen. Die Zeile öffnet **Einrichtungsstatus**, der mit einer Zeile in der Farbe des schwersten Befunds beginnt: wie viele Probleme verhindern würden, dass Menschen benachrichtigt werden, wie viele Punkte behoben werden sollten, oder **Nichts zu beheben**. Darunter listet die Seite auf, was falsch eingerichtet ist, das Schlimmste zuerst, unter **Alarmierungen kommen nicht an**, **Sollte behoben werden** und **Vorschläge**: ein Monitor, der niemanden alarmiert, eine Bereitschaftsrichtlinie, die nie ausgelöst wird, eine Person, die nicht alarmiert werden kann, ausgeschaltete SMS, ein Bereitschaftszeitplan, in dem niemand Dienst hat, eine Statusseite, die keinen Monitor zeigt, eine benutzerdefinierte Domain, deren SSL-Zertifikat nicht ausgestellt werden konnte, ein Ingestion-Schlüssel, mit dem nie Daten angekommen sind. Jeder Befund sagt in einem Satz, was nicht stimmt, mit den Namen Ihrer Monitore, Richtlinien und Personen in Fettschrift, den Monitoren oder Richtlinien, die er berührt, hinter **Betrifft**, und direkt darunter der Schaltfläche, die die Behebung öffnet. Zwei lassen sich direkt dort beheben, nachdem ein Dialog genau gesagt hat, was sich ändert: **SMS einschalten** (oder Telefonanrufe, WhatsApp oder Telegram) für alle, die den Schalter umlegen dürfen, und **Bereitschaftsregel erstellen**, die für einen Monitor, der niemanden alarmiert hat, die gewählte Bereitschaftsrichtlinie alarmiert. Die Befunde eines Monitors sind die Lücken, die seine Karte **Wenn das ausfällt** nennt, und eine Bereitschaftsrichtlinie, die nie ausgelöst wird, oder eine benutzerdefinierte Domain, die ihre Statusseite nicht öffnet, sagt es auch oben auf der eigenen Seite der Richtlinie oder der Statusseite. Einen Befund, den Ihr Team absichtlich so lässt, können Sie mit einer Begründung für alle ausblenden und unter **Verworfen** wiederherstellen. Die Suche findet die Seite als **Einrichtungsstatus**, und KI fragen beantwortet „Ist meine Einrichtung in Ordnung?“ anhand dieser Seite.
 
 ### Ihr Projekt
 
@@ -137,7 +145,7 @@ Ein Wort mit gepunkteter Linie darunter, etwa **Sonden** im Formular eines neuen
 
 Über dem Titel jeder Seite zeigt ein Pfad wie *Projekt › Docker › Einstellungen › Eigentümerregeln*, wo die Seite liegt. Jeder Schritt vor dem letzten öffnet seine Seite.
 
-- **Listen halten sich selbst aktuell.** Wird irgendwo ein Vorfall oder eine Warnung erstellt, bestätigt oder behoben, zeigen die Listen der Vorfälle, Warnungen und Episoden das innerhalb von Sekunden, ohne Neuladen. Solange Sie auf einer Liste mitten in etwas sind, etwa mit markierten Zeilen oder einem offenen Dialog, wartet sie und holt alles nach, wenn Sie fertig sind.
+- **Listen halten sich selbst aktuell.** Wird irgendwo ein Vorfall, eine Warnung, ein Monitor oder ein Wartungsereignis erstellt, geändert oder gelöscht, zeigen die Listen der Vorfälle, Warnungen, Episoden, Monitore und Wartungsereignisse das innerhalb von Sekunden, ohne Neuladen, und ebenso die Zahlen daneben in den Seitenmenüs. Die Zahlen der Glocke und die Listen **Aktive Vorfälle**, **Aktive Warnungen**, **Aktive Vorfall-Episoden** und **Aktive Warnungs-Episoden** folgen allen Projekten, denen Sie angehören, nicht nur dem geöffneten. Solange Sie auf einer Liste mitten in etwas sind, etwa mit markierten Zeilen oder einem offenen Dialog, wartet sie und holt alles nach, wenn Sie fertig sind.
 - **Auf dem Telefon klappen die Filter-Chips weg**, hinter **Filter**, sodass die Liste weiter oben beginnt. Die Chips, die Sie gesetzt haben, bleiben sichtbar, mit **Alle löschen**. Drücken Sie **Filter**, um alle Chips zu sehen, und noch einmal, um sie wieder zuzuklappen.
 - Der Eintrag **Spalten** im Menü **⋯** einer Liste legt fest, welche Spalten die Liste zeigt und in welcher Reihenfolge, und merkt sie sich für Sie in diesem Browser. Ein Projektinhaber oder ein Projektadministrator kann dort außerdem **Diese Spalten allen in diesem Projekt anzeigen** ankreuzen: Wer für diese Liste keine eigenen Spalten gewählt hat, sieht diese, und **Auf Projektstandard zurücksetzen** setzt Ihre eigenen wieder auf sie zurück.
 - Der Eintrag **Kompakte Zeilen** im selben Menü zeichnet die Zeilen jeder Liste niedriger, sodass eine lange Liste etwa ein Fünftel mehr davon zeigt. Die Wahl bleibt in diesem Browser gespeichert.

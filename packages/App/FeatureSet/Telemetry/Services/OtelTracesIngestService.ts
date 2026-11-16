@@ -18,6 +18,7 @@ import {
 } from "../Utils/ObiSpanSemantics";
 import OneUptimeDate, { ExactUnixNano } from "Common/Types/Date";
 import { readDeploymentEnvironment } from "Common/Utils/Telemetry/DeploymentEnvironment";
+import { readSessionIdFromAttributes } from "Common/Utils/Telemetry/CorrelationIdAttributes";
 import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import {
   IngestionStamp,
@@ -1650,59 +1651,6 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
   }
 
   /*
-   * Session replay correlation from attributes: the FALLBACK for a span
-   * whose trace state carries no recorder session member (see
-   * buildSpanEvaluationRow), such as a span from the page's own browser
-   * OpenTelemetry, or from a backend that sets the id itself.
-   * `session.id` reaches us in one of two shapes and we must accept both:
-   *
-   *   - as a span attribute, under the bare key "session.id";
-   *   - as a RESOURCE attribute, which TelemetryUtil.getAttributes
-   *     prefixes with "resource.", so it arrives as
-   *     "resource.session.id".
-   *
-   * Reading only the bare key would look correct in a unit test and fail
-   * in production, because a browser SDK sets session.id ONCE on the
-   * resource rather than on every span.
-   *
-   * Duplicated verbatim in OtelLogsIngestService: the two ingest services
-   * share no base for row building, and a Common helper would put an
-   * ingest-only concern in the shared telemetry utils. Logs have no
-   * trace-state path, because an OTLP log record carries no trace state.
-   */
-  private static readonly sessionIdAttributeKeys: ReadonlyArray<string> = [
-    "session.id",
-    "resource.session.id",
-  ];
-
-  private static getSessionIdFromAttributes(
-    attributes: Record<string, unknown> | undefined,
-  ): string {
-    if (!attributes) {
-      return "";
-    }
-
-    for (const key of this.sessionIdAttributeKeys) {
-      const value: unknown = attributes[key];
-
-      if (typeof value === "string" && value !== "") {
-        return value;
-      }
-
-      /*
-       * A numeric or boolean session id is nonsense but harmless to
-       * coerce; an array or object is not a usable join key, so it falls
-       * through to the next candidate key and ultimately to "".
-       */
-      if (typeof value === "number" || typeof value === "boolean") {
-        return String(value);
-      }
-    }
-
-    return "";
-  }
-
-  /*
    * The drop-filter-visible slice of a span row: every column of the full
    * row EXCEPT the three ingest-generated stamps (_id, createdAt,
    * retentionDate), in the full row's exact field order. The drop filter
@@ -1761,11 +1709,17 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
        * can keep stamping backend spans until its session ends, but the
        * tombstone lookup needs Redis and throws when Redis is down, and a
        * span batch must not fail for that.
+       *
+       * Without the member, the FALLBACK is the `session.id` attribute, or
+       * the resource's: a span from the page's own browser OpenTelemetry,
+       * or from a backend that sets the id itself
+       * (Common/Utils/Telemetry/CorrelationIdAttributes, shared with the
+       * logs ingest and the scrub rules, which keep it).
        */
       sessionId:
         data.sessionTraceState !== null
           ? data.sessionTraceState.sessionId
-          : this.getSessionIdFromAttributes(data.attributes),
+          : readSessionIdFromAttributes(data.attributes),
       parentSpanId: data.parentSpanId,
       traceState: data.traceState || "",
       attributes: data.attributes,

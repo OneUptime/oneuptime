@@ -86,6 +86,7 @@ import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentEpisode from "../../../Models/DatabaseModels/IncidentEpisode";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
+import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import ObjectID from "../../../Types/ObjectID";
 
 const PROJECT_ID: string = "8f2a1b3c-4d5e-4f60-9a7b-1c2d3e4f5a6b";
@@ -250,17 +251,46 @@ describe("what a count listens for", () => {
     },
   );
 
+  /*
+   * Not Operational, Probe Disconnected, Ongoing Maintenance Events: what
+   * they count changes on its own - a check fails, a probe goes away, an
+   * event starts at its time - and the count follows it (#6918).
+   */
   test.each([
     ["Monitor", Monitor],
     ["ScheduledMaintenance", ScheduledMaintenance],
   ])(
-    "a kind the server announces nothing for (%s) is not listened for",
-    (_name: string, modelType: { new (): any }) => {
+    "the counts of the Monitors and Maintenance Events menus (%s) hear every change, in their project",
+    (name: string, modelType: { new (): any }) => {
       mount({ modelType: modelType });
 
-      expect(subscriptions).toHaveLength(0);
+      expect(
+        active()
+          .map((subscription: Subscription): string => {
+            return `${subscription.modelName}:${subscription.eventType}:${subscription.tenantId}`;
+          })
+          .sort(),
+      ).toEqual([
+        `${name}:Create:${PROJECT_ID}`,
+        `${name}:Delete:${PROJECT_ID}`,
+        `${name}:Update:${PROJECT_ID}`,
+      ]);
     },
   );
+
+  test("a monitor going offline counts Not Operational again at once", () => {
+    const harness: Harness = mount({ modelType: Monitor });
+
+    announce("Update");
+
+    expect(harness.recount).toHaveBeenCalledTimes(1);
+  });
+
+  test("a kind the server announces nothing for is not listened for", () => {
+    mount({ modelType: StatusPage });
+
+    expect(subscriptions).toHaveLength(0);
+  });
 
   test("nothing while there is no question to count", () => {
     mount({ isEnabled: false });
@@ -286,7 +316,7 @@ describe("what a count listens for", () => {
     );
 
     // A kind the server announces nothing for.
-    mount({ modelType: Monitor, getTenantId: getTenantId });
+    mount({ modelType: StatusPage, getTenantId: getTenantId });
     // No question to count yet.
     mount({ isEnabled: false, getTenantId: getTenantId });
 
@@ -509,23 +539,41 @@ describe("starting over and stopping", () => {
  * count asks LiveConnection for the connection the app opened instead.
  */
 describe("what a count loads", () => {
+  /*
+   * The count hears its kind through UseLiveRefresh, which every part that
+   * reads again shares: neither loads Realtime itself, only its type, and
+   * asks LiveConnection for the connection the app opened.
+   */
   test("Realtime's type alone: the connection is asked for from LiveConnection", () => {
-    const source: string = fs.readFileSync(
+    const count: string = fs.readFileSync(
       path.join(__dirname, "../../../UI/Components/SideMenu/UseLiveCount.ts"),
       "utf8",
     );
 
+    expect(
+      Array.from(
+        count.matchAll(/^import[^;]*from "\.\.\/\.\.\/Utils\/[^"]*";$/gm),
+      ).map((match: RegExpMatchArray): string => {
+        return match[0];
+      }),
+    ).toEqual(['import useLiveRefresh from "../../Utils/UseLiveRefresh";']);
+
+    const refresh: string = fs.readFileSync(
+      path.join(__dirname, "../../../UI/Utils/UseLiveRefresh.ts"),
+      "utf8",
+    );
+
     const imports: Array<string> = Array.from(
-      source.matchAll(
-        /^import[^;]*from "\.\.\/\.\.\/Utils\/(?:Realtime|LiveConnection)";$/gm,
+      refresh.matchAll(
+        /^import[^;]*from "\.\/(?:Realtime|LiveConnection)";$/gm,
       ),
     ).map((match: RegExpMatchArray): string => {
       return match[0];
     });
 
     expect(imports).toEqual([
-      'import { getOpenLiveConnection } from "../../Utils/LiveConnection";',
-      'import type Realtime from "../../Utils/Realtime";',
+      'import { getOpenLiveConnection } from "./LiveConnection";',
+      'import type Realtime from "./Realtime";',
     ]);
   });
 });

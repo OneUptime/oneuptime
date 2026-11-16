@@ -892,6 +892,138 @@ describe("OpenAPI specification", () => {
   });
 
   /*
+   * A LIST'S COUNT UP TO A CAP (#8114). A database model's list takes
+   * countUpTo (BaseAPI.getCountUpTo) and answers isCountCapped when more
+   * match than it counted; a telemetry list counts every row and takes
+   * neither (AnalyticsBaseAPI).
+   */
+  describe("a list's count up to a cap", () => {
+    function listOperation(path: string): JSONObject {
+      return ((paths[path] as JSONObject)["post"] || {}) as JSONObject;
+    }
+
+    function requestProperties(operation: JSONObject): JSONObject {
+      return (
+        (
+          ((operation["requestBody"] as JSONObject)["content"] as JSONObject)[
+            "application/json"
+          ] as JSONObject
+        )["schema"] as JSONObject
+      )["properties"] as JSONObject;
+    }
+
+    function answerProperties(operation: JSONObject): JSONObject {
+      return (
+        (
+          (
+            ((operation["responses"] as JSONObject)["200"] as JSONObject)[
+              "content"
+            ] as JSONObject
+          )["application/json"] as JSONObject
+        )["schema"] as JSONObject
+      )["properties"] as JSONObject;
+    }
+
+    it("takes countUpTo, a whole number of at least 1, on every database model's list, and answers isCountCapped", () => {
+      const problems: Array<string> = [];
+      let lists: number = 0;
+
+      for (const modelType of Models) {
+        const model: DatabaseBaseModel = new modelType();
+
+        if (
+          !model.tableName ||
+          !model.enableDocumentation ||
+          !model.crudApiPath
+        ) {
+          continue;
+        }
+
+        const path: string = `${model.crudApiPath.toString()}/get-list`;
+
+        if (!paths[path]) {
+          continue;
+        }
+
+        lists++;
+
+        const operation: JSONObject = listOperation(path);
+        const countUpTo: JSONObject | undefined = requestProperties(operation)[
+          "countUpTo"
+        ] as JSONObject | undefined;
+        const isCountCapped: JSONObject | undefined = answerProperties(
+          operation,
+        )["isCountCapped"] as JSONObject | undefined;
+
+        if (
+          !countUpTo ||
+          countUpTo["type"] !== "integer" ||
+          countUpTo["minimum"] !== 1
+        ) {
+          problems.push(`${path}: countUpTo ${JSON.stringify(countUpTo)}`);
+        }
+
+        if (!isCountCapped || isCountCapped["type"] !== "boolean") {
+          problems.push(
+            `${path}: isCountCapped ${JSON.stringify(isCountCapped)}`,
+          );
+        }
+      }
+
+      expect(problems).toEqual([]);
+      expect(lists).toBeGreaterThan(100);
+    });
+
+    it("says what the cap is and what the answer says when more match", () => {
+      const operation: JSONObject = listOperation("/monitor/get-list");
+
+      expect(
+        (requestProperties(operation)["countUpTo"] as JSONObject)[
+          "description"
+        ],
+      ).toBe(
+        "Count the matching items no further than this, or than the end of the page if that is further. When more match, count is where it stopped and isCountCapped is true. Leave it out to count every matching item.",
+      );
+      expect(
+        (answerProperties(operation)["isCountCapped"] as JSONObject)[
+          "description"
+        ],
+      ).toBe(
+        "True when the request set countUpTo and more items match than were counted: count is where the count stopped. Absent when count is exact.",
+      );
+    });
+
+    it("leaves both off a telemetry table's list, which counts every row", () => {
+      const problems: Array<string> = [];
+
+      for (const modelType of AnalyticsModels) {
+        const model: AnalyticsBaseModel = new modelType();
+
+        if (!model.crudApiPath) {
+          continue;
+        }
+
+        const path: string = `${model.crudApiPath.toString()}/get-list`;
+
+        if (!paths[path]) {
+          continue;
+        }
+
+        const operation: JSONObject = listOperation(path);
+
+        if (
+          requestProperties(operation)["countUpTo"] ||
+          answerProperties(operation)["isCountCapped"]
+        ) {
+          problems.push(path);
+        }
+      }
+
+      expect(problems).toEqual([]);
+    });
+  });
+
+  /*
    * A PROJECT'S OWN TWILIO ACCOUNT AND MAIL SERVER (#7737).
    *
    * Settings > Notification Channels: the Twilio account that sends a
@@ -913,6 +1045,12 @@ describe("OpenAPI specification", () => {
       secrets: Array<string>;
       // The secrets the spec also writes as format: password.
       passwords: Array<string>;
+      /*
+       * Whether a read answers the credentials. A project's mail
+       * credentials are write-only (#8989): written on create and update,
+       * never read back.
+       */
+      readsCredentialsBack: boolean;
     }
 
     const TWILIO: Channel = {
@@ -922,6 +1060,7 @@ describe("OpenAPI specification", () => {
       resource: "call_and_sms_config",
       secrets: ["twilioAuthToken"],
       passwords: ["twilioAuthToken"],
+      readsCredentialsBack: true,
     };
 
     const MAIL: Channel = {
@@ -938,18 +1077,17 @@ describe("OpenAPI specification", () => {
         "resendApiKey",
         "sendgridApiKey",
       ],
-      /*
-       * The encrypted keys, and the password, a Password column. The OAuth
-       * client secret is marked `secret` and keeps its text format.
-       */
+      // Every one is encrypted text now, the OAuth client secret included (#8989).
       passwords: [
         "amazonSesSecretAccessKey",
+        "clientSecret",
         "mailgunApiKey",
         "password",
         "postmarkServerToken",
         "resendApiKey",
         "sendgridApiKey",
       ],
+      readsCredentialsBack: false,
     };
 
     const CHANNELS: Array<Channel> = [TWILIO, MAIL];
@@ -1071,6 +1209,15 @@ describe("OpenAPI specification", () => {
       expect(description).not.toContain("SMTP");
     });
 
+    // The schemas a credential is in: a write-only one's are the writes'.
+    function holdsCredentials(channel: Channel, kind: string): boolean {
+      return (
+        channel.readsCredentialsBack ||
+        kind === "CreateSchema" ||
+        kind === "UpdateSchema"
+      );
+    }
+
     it.each(CHANNELS)(
       "marks each credential of $tableName secret, and nothing else",
       (channel: Channel) => {
@@ -1091,8 +1238,14 @@ describe("OpenAPI specification", () => {
             })
             .sort();
 
-          expect([kind, secrets]).toEqual([kind, channel.secrets]);
-          expect([kind, passwords]).toEqual([kind, channel.passwords]);
+          expect([kind, secrets]).toEqual([
+            kind,
+            holdsCredentials(channel, kind) ? channel.secrets : [],
+          ]);
+          expect([kind, passwords]).toEqual([
+            kind,
+            holdsCredentials(channel, kind) ? channel.passwords : [],
+          ]);
         }
       },
     );
@@ -1127,6 +1280,12 @@ describe("OpenAPI specification", () => {
         const dataSource: TerraformDataSource = getDataSource(channel);
 
         for (const name of getSnakeNames(channel.secrets)) {
+          // A lookup reads no write-only credential.
+          if (!channel.readsCredentialsBack) {
+            expect([name, dataSource.schema[name]]).toEqual([name, undefined]);
+            continue;
+          }
+
           expect([name, dataSource.schema[name]?.sensitive]).toEqual([
             name,
             true,
@@ -1142,11 +1301,13 @@ describe("OpenAPI specification", () => {
 
     /*
      * A credential is written on create and on every update that changes it,
-     * and read back, so a token changed in the configuration is sent and a
-     * refresh compares what the server holds.
+     * so a token changed in the configuration is sent. One that is read back
+     * lets a refresh compare what the server holds; a write-only one (a
+     * project's mail credentials, #8989) is never answered, and the provider
+     * keeps the value configured.
      */
     it.each(CHANNELS)(
-      "writes each credential of $resource on create and update, and reads it back",
+      "writes each credential of $resource on create and update, and reads back only what is not write-only",
       (channel: Channel) => {
         const resource: TerraformResource = getResource(channel);
 
@@ -1156,7 +1317,7 @@ describe("OpenAPI specification", () => {
             Boolean(resource.operationSchemas?.create?.[name]),
             Boolean(resource.operationSchemas?.update?.[name]),
             Boolean(resource.operationSchemas?.read?.[name]),
-          ]).toEqual([name, true, true, true]);
+          ]).toEqual([name, true, true, channel.readsCredentialsBack]);
         }
       },
     );

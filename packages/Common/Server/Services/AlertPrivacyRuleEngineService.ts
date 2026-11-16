@@ -14,8 +14,8 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { MarkdownText, mdText } from "../../Utils/Markdown/FeedMarkdown";
 import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 import logger, { LogAttributes } from "../Utils/Logger";
-import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
+import RuleSetCache from "../Utils/Rules/RuleSetCache";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import {
   ApplyRulesToExistingResourceData,
@@ -80,16 +80,12 @@ class AlertPrivacyRuleEngineServiceClass
     }
 
     try {
+      // Kept until any of the project's rules changes (RuleSetCache).
       const rules: Array<AlertPrivacyRule> =
-        await AlertPrivacyRuleService.findBy({
-          query: {
-            projectId: alert.projectId,
-            isEnabled: true,
-          },
-          props: { isRoot: true },
+        await RuleSetCache.findEnabledRules<AlertPrivacyRule>({
+          service: AlertPrivacyRuleService,
+          projectId: alert.projectId,
           select: this.ruleSelect,
-          limit: MAX_RULES_EVALUATED_PER_PROJECT,
-          skip: 0,
         });
 
       logIfRuleReadWasTruncated({

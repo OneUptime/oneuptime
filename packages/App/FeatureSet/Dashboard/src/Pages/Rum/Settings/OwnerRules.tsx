@@ -1,3 +1,4 @@
+import { getOwnerRuleHelpMarkdown } from "../../../Utils/Help/ResourceRuleHelp";
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
@@ -16,6 +17,10 @@ import RumApplicationOwnerRule from "Common/Models/DatabaseModels/RumApplication
 import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
+
+const ownerRuleDocumentation: string = getOwnerRuleHelpMarkdown({
+  nouns: { singular: "RUM application", plural: "RUM applications" },
+});
 
 const RumApplicationOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
   props: RuleSettingsPageProps,
@@ -47,6 +52,12 @@ const RumApplicationOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         title: "RUM Application Owner Rules",
         description:
           "Auto-assign owners when matching RUM applications are created.",
+      }}
+      helpContent={{
+        title: "How RUM Application Owner Rules Work",
+        description:
+          "Match RUM applications and add owner users/teams automatically.",
+        markdown: ownerRuleDocumentation,
       }}
       sortBy="name"
       sortOrder={SortOrder.Ascending}

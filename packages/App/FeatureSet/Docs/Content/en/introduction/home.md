@@ -20,6 +20,8 @@ Open **Home** in the bar at the top, or press `g` then `h` from anywhere. Home i
 5. **Your project**, what the project is made of, and **Upcoming maintenance** when any is scheduled.
 6. **Explore OneUptime**, every product, one category at a time.
 
+While a new project's **Welcome to OneUptime 👋** checklist shows, it is all of Home, so the first thing you meet is what to do first. An open incident, or anything else that needs someone, still shows above it. Hide the checklist, or finish it, and the rest of Home comes back.
+
 ### Search and create
 
 The search box opens Search, the same as `Mod` + `K`: type the name of any page, monitor, incident, alert, status page or on-call policy. See [Searching](#searching-for-a-page-a-setting-or-an-action). **Declare Incident** opens the form that declares an incident. **Create** offers **Create Monitor**, **Schedule Maintenance** and **Create Announcement**. Each one is shown only to people who are allowed to use it.
@@ -36,7 +38,7 @@ The line at the top names the most urgent thing that is open, in a matching colo
 | Monitors are running and nothing is open | **All systems operational** |
 | The project has no monitors yet | **Nothing is being monitored yet** |
 
-Beside it, Home says when it last read the project, and **Refresh** reads it again. When you come back to a Home tab after a minute or more, it refreshes by itself.
+Beside it, Home says when it last read the project, and **Refresh** reads it again. Home also follows what it counts as it changes: when an incident, alert, monitor, maintenance event or SLO is created, changed or deleted, the line, the numbers, **Needs attention** and **Upcoming maintenance** catch up within seconds, without a refresh. When you come back to a Home tab after a minute or more, it refreshes by itself.
 
 While nothing is monitored yet, the line ends on **Create your first monitor**, which opens the guided setup **Know when my website or API is down**. Only people who are allowed to create monitors see it.
 
@@ -56,7 +58,7 @@ A count above zero reads **Needs attention**, or **In progress** and **Budget bu
 
 ### The welcome checklist
 
-The first time a Project Owner or Project Admin opens Home in a new project, the card asks **What do you want to do first?** Tick one or more goals, such as **Know when my website or API is down** or **Just looking around**, and click **Continue**: the checklist then holds the steps those goals need. **Skip** gives the four steps every project gets. To answer again later, click **Change** on the checklist. A project that already has monitors, telemetry or on-call in use is not asked.
+The first time a Project Owner or Project Admin opens Home in a new project, the card greets them by their first name and asks **What do you want to do first?** Pick one or more goals, such as **Know when my website or API is down**, and click **Continue**: the checklist then holds the steps those goals need. While you pick, it says how many steps that is and about how long they take. **Just looking around** takes you straight to the rest of Home instead, and leaves a line to show the checklist again. To answer again later, click **Change** on the checklist. A project that already has monitors, telemetry or on-call in use is not asked.
 
 Each step ticks itself off when the thing works, not when a record exists, and everyone setting up the project sees the same list, on every device:
 
@@ -72,9 +74,13 @@ Each step ticks itself off when the thing works, not when a record exists, and e
 
 The step to do first is marked **Next step**. On OneUptime Cloud's Free plan, which has one person, **Invite your team** says it needs the Growth plan, and opens **Billing**. On a self-hosted server that cannot send email yet, the server's admins see **This server cannot send email yet** first; it opens the Admin Dashboard.
 
+Each step says about how long it takes, the checklist says about how long is left, and the next step has a **Start** button of its own.
+
 A guided setup does the whole job on one page, a step at a time, and ends with what it set up and what to do next. To open one again later, search for its name.
 
-Under the steps, **How OneUptime works** shows the four core products in the order a problem flows through them: **Monitors**, **Incidents & Alerts**, **On-Call** and **Status Pages**. Click one to open it. Under them it says what feeds that loop, telemetry and infrastructure, and links to [Core Concepts](/docs/introduction/core-concepts) and the [Glossary](/docs/introduction/glossary).
+Beside its steps, a guided setup lists what it sets up, ticked off as you go, and says about how long it takes.
+
+Under the steps, a line opens **How OneUptime works**: everything OneUptime does, and how it fits together.
 
 ```mermaid title="When the welcome checklist shows"
 flowchart TB
@@ -89,13 +95,15 @@ flowchart TB
 
 The checklist goes away for everyone once every step is done. To hide it sooner, click **Hide**: it is hidden for you alone, on every device, and a line stays with **Show it** and **How OneUptime works**. People invited to the project as members do not see the checklist. **How OneUptime works** stays one click away, in any project: open it from **Help**, or with the button beside **Explore OneUptime**.
 
+**How OneUptime works** opens on **How it fits together**: the four steps a problem moves through, **Detect**, **Respond**, **Communicate** and **Improve**, each with the products that do it. Then come the categories of the **Products** menu, each listing its products and what each is for: pick one, or move on with the arrow keys or **Next**. Click a product to open it. Products your project hides are left out.
+
 ### Needs attention
 
 **Needs attention** lists, by name, what the numbers count: the open incidents, the open alerts, the monitors that are not operational, the SLOs at risk and the maintenance in progress, the most urgent first. Each row shows its severity or status, says when an incident or alert started and when maintenance ends, and opens the record. Each kind shows up to five, with **View all** for the rest, which opens the same list as its number. When nothing is open, it says **Nothing needs your attention**.
 
 ### Setup health
 
-When something in the project's setup would stop people from being told, **Needs attention** ends with **Setup**: how many things need a look. It opens **Setup Health**, which starts with one line in the colour of the worst finding: how many problems would stop people from being told, how many things are worth fixing, or **Nothing to fix**. Under it, the page lists what is misconfigured, worst first, under **Pages Will Not Arrive**, **Worth Fixing** and **Suggestions**: a monitor that pages nobody, an on-call policy nothing runs, a responder who can't be paged, SMS switched off, a schedule with nobody on call, a status page that shows no monitor. Each finding says what is wrong in one sentence, with your monitors', policies' and people's names in bold, the monitors or policies it **Affects**, and right under it the button that opens its fix. A monitor's findings are the breaks its **When this goes down** card names. A finding your team leaves as it is on purpose can be dismissed with a reason, for everyone, and restored from **Dismissed**. Search finds the page as **Setup Health**, and Ask AI answers "is my setup OK?" from it.
+When something in the project's setup would stop people from being told, **Needs attention** ends with **Setup**: how many things need a look. It opens **Setup Health**, which starts with one line in the colour of the worst finding: how many problems would stop people from being told, how many things are worth fixing, or **Nothing to fix**. Under it, the page lists what is misconfigured, worst first, under **Pages Will Not Arrive**, **Worth Fixing** and **Suggestions**: a monitor that pages nobody, an on-call policy nothing runs, a responder who can't be paged, SMS switched off, a schedule with nobody on call, a status page that shows no monitor, a custom domain whose SSL certificate couldn't be issued, an ingestion key no data has arrived with. Each finding says what is wrong in one sentence, with your monitors', policies' and people's names in bold, the monitors or policies it **Affects**, and right under it the button that opens its fix. Two can be fixed right there, once a dialog has said exactly what will change: **Turn On SMS** (or phone calls, WhatsApp or Telegram), for whoever may switch it on, and **Create On-Call Rule**, which pages the on-call policy you pick for a monitor that paged nobody. A monitor's findings are the breaks its **When this goes down** card names, and an on-call policy that nothing runs, or a custom domain that doesn't open its status page, says so at the top of the policy's or the status page's own page too. A finding your team leaves as it is on purpose can be dismissed with a reason, for everyone, and restored from **Dismissed**. Search finds the page as **Setup Health**, and Ask AI answers "is my setup OK?" from it.
 
 ### Your project
 
@@ -137,7 +145,7 @@ A word with a dotted line under it, such as **Probes** on a new monitor's form, 
 
 Over every page's title, a trail such as *Project › Docker › Settings › Owner Rules* says where the page is. Each step before the last opens its page.
 
-- **Lists keep themselves current.** When an incident or alert is created, acknowledged or resolved anywhere, the lists of incidents, alerts and episodes show it within seconds, without a refresh. While you are in the middle of something on a list, such as rows ticked or a dialog open, it waits, and catches up when you are done.
+- **Lists keep themselves current.** When an incident, alert, monitor or maintenance event is created, changed or deleted anywhere, the lists of incidents, alerts, episodes, monitors and maintenance events show it within seconds, without a refresh, and so do the counts beside them in the side menus. The bell's counts, and the **Active Incidents**, **Active Alerts**, **Active Incident Episodes** and **Active Alert Episodes** lists, follow every project you belong to, not only the one that is open. While you are in the middle of something on a list, such as rows ticked or a dialog open, it waits, and catches up when you are done.
 - **On a phone, the filter chips fold away** behind **Filter**, so the list starts higher up. The chips you set stay in sight, with **Clear all**. Press **Filter** to see every chip, and again to fold them.
 - **Columns**, in a list's **⋯** menu, picks the columns the list shows and their order, and keeps them for you in this browser. A Project Owner or a Project Admin can tick **Show these columns to everyone in this project** there too: anyone who hasn't picked their own columns for that list sees them, and **Reset to project default** takes your own back to them.
 - **Compact rows**, in the same menu, draws every list's rows shorter, so a long list shows about a fifth more of them. It is kept in this browser.

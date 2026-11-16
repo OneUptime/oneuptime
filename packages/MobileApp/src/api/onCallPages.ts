@@ -1,5 +1,6 @@
-import type { AxiosError, AxiosResponse } from "axios";
+import type { AxiosResponse } from "axios";
 import apiClient from "./client";
+import { isRefusedSelect } from "./refusedSelect";
 import { toPlainText } from "../utils/text";
 import type { OnCallPageItem } from "./types";
 
@@ -107,15 +108,6 @@ export function toOnCallPageItem(
 const OBSERVER_PAGE_SELECT: Record<string, unknown> = {
   onCallDutyPolicyExecutionLog: { _id: true, isObserverPage: true },
 };
-
-function isRefusedSelect(error: unknown): boolean {
-  return (
-    Boolean(error) &&
-    typeof error === "object" &&
-    (error as AxiosError).isAxiosError === true &&
-    (error as AxiosError).response?.status === 400
-  );
-}
 
 async function postMyOnCallPages(
   project: { projectId: string; projectName: string },

@@ -144,7 +144,7 @@ Wählen Sie unter **Zugriff** **Betrachter** für einen Agenten, der nur liest, 
 
 ### Den Schlüssel kopieren
 
-Klicken Sie auf **API-Schlüssel erstellen**: Die Seite des Schlüssels öffnet sich. Kopieren Sie den Schlüssel dort.
+Klicken Sie auf **API-Schlüssel erstellen**. OneUptime zeigt den Schlüssel einmal an, im Dialog **Kopieren Sie Ihren API-Schlüssel**: Kopieren Sie ihn, bevor Sie auf **Fertig** klicken.
 :::
 
 API-Schlüssel gehören zu einem Projekt: Der MCP-Server entnimmt das Projekt dem Schlüssel, sodass Tools zum Anlegen nie ein Argument `projectId` brauchen.

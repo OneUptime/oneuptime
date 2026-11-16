@@ -9,9 +9,15 @@ import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
 import {
+  INCOMING_REQUEST_SECRET_DEFAULT_ACCESS,
   INCOMING_REQUEST_SECRET_HEADER,
+  INCOMING_REQUEST_SIGNATURE_HEADER,
+  INCOMING_REQUEST_SIGNATURE_TOLERANCE_SECONDS,
   IncomingRequestSecretProblem,
 } from "../../../Types/Monitor/IncomingMonitor/IncomingRequestSecret";
+import MonitorSecretAccess, {
+  MonitorSecretAccessUtil,
+} from "../../../Types/Monitor/MonitorSecretAccess";
 import ObjectID from "../../../Types/ObjectID";
 
 /*
@@ -22,16 +28,24 @@ import ObjectID from "../../../Types/ObjectID";
  * Read on every request to an Incoming Request monitor, by the ingest
  * endpoint and again by the worker, so it is kept in Redis for a minute
  * rather than read from Postgres each time: the project's switch, and the
- * SHA-256 of each of its secrets with the secret's id. Never a secret itself.
- * Turning the switch, or creating or deleting a secret, forgets it at once
- * (forget, from ProjectService and IncomingRequestSecretService), so a change
- * applies to the next request; the minute is the bound for the rare read that
- * raced the change, and for a Redis that could not be told.
+ * SHA-256 of each of its secrets with the secret's id and which monitors it
+ * covers (issue #8501). Never a secret itself. Turning the switch, or
+ * creating, changing or deleting a secret, forgets it at once (forget, from
+ * ProjectService and IncomingRequestSecretService), so a change applies to
+ * the next request; the minute is the bound for the rare read that raced the
+ * change, and for a Redis that could not be told.
  *
  * The secrets are read whether or not the project requires one yet: a
  * request is checked against them either way, so a monitor's senders that do
  * not send one yet are known before the requirement is turned on (issue
  * #8498, IncomingRequestSecretActivity).
+ *
+ * A request is accepted with a secret only when that secret covers the
+ * request's monitor: one of the project's secrets that is limited to other
+ * monitors is refused as a wrong one is, so tenant A's secret never opens
+ * tenant B's monitors (issue #8501). Which of the two it was is kept on the
+ * monitor (SecretNotForMonitor), for the people who manage the secrets; the
+ * sender is told only that it is not one this monitor accepts.
  *
  * A Redis that cannot be reached is a miss: the policy is read from Postgres.
  * A project that requires a secret and has none refuses every request - the
@@ -42,11 +56,14 @@ import ObjectID from "../../../Types/ObjectID";
 export enum IncomingRequestSecretVerdict {
   // The project does not require a secret: the request goes on as before.
   NotRequired = "NotRequired",
-  // The request presented one of the project's secrets.
+  // The request presented one of the project's secrets that covers its monitor.
   Accepted = "Accepted",
   // The project requires a secret and the request presented none.
   Missing = "Missing",
-  // The request presented a secret, and none was one of the project's.
+  /*
+   * The request presented a secret, and none was one of the project's that
+   * covers its monitor - or a signature that could not be accepted.
+   */
   NotRecognized = "NotRecognized",
 }
 
@@ -54,6 +71,14 @@ export interface IncomingRequestSecretOfPolicy {
   secretId: string;
   // The SHA-256 (hex) of the secret (IncomingRequestSecretRequest.hashSecret).
   secretHash: string;
+  /*
+   * Which monitors accept it (MonitorSecretAccess) and the list its mode
+   * reads. A policy kept before #8501 has none of these: All Monitors, as
+   * every secret then was.
+   */
+  monitorAccess?: string | undefined;
+  monitorIds?: Array<string> | undefined;
+  labelIds?: Array<string> | undefined;
 }
 
 export interface IncomingRequestSecretPolicyValue {
@@ -62,32 +87,53 @@ export interface IncomingRequestSecretPolicyValue {
   secrets: Array<IncomingRequestSecretOfPolicy>;
 }
 
+// The monitor a request is for, as far as which secrets cover it goes.
+export interface IncomingRequestSecretMonitor {
+  monitorId: string | undefined;
+  // Its labels' ids: read only when a secret of the project is label-scoped.
+  labelIds: Array<string>;
+}
+
 export interface IncomingRequestSecretDecision {
   verdict: IncomingRequestSecretVerdict;
-  // The secret the request presented, when it presented one of the project's.
+  // The secret the request presented, when it presented one that covers its monitor.
   matchedSecretId?: string | undefined;
   /*
    * Whatever the project requires: whether the request sent one of the
-   * project's secrets - for the monitor's record of requests with and without
-   * one (IncomingRequestSecretActivity). Undefined while the project has no
-   * secret: there is nothing to have sent.
+   * project's secrets that covers its monitor - for the monitor's record of
+   * requests with and without one (IncomingRequestSecretActivity).
+   * Undefined while the project has no secret: there is nothing to have
+   * sent.
    */
   sentValidSecret?: boolean | undefined;
   // Why it did not, when it did not.
   problem?: IncomingRequestSecretProblem | undefined;
+  /*
+   * The SHA-256 of each presented secret that matched none of the project's
+   * secrets covering the monitor: what a refused request counts as its wrong
+   * guesses (WrongIncomingRequestSecretLimit).
+   */
+  wrongSecretHashes: Array<string>;
 }
 
-export const INCOMING_REQUEST_SECRET_MISSING_MESSAGE: string = `This project requires a secret on every incoming request. Send one of the project's incoming request secrets in the ${INCOMING_REQUEST_SECRET_HEADER} header, or as a Bearer token in the Authorization header. A Project Owner or Project Admin finds them under Monitors > Settings > Incoming Request Secrets.`;
+export const INCOMING_REQUEST_SECRET_MISSING_MESSAGE: string = `This project requires a secret on every incoming request. Send one of the project's incoming request secrets in the ${INCOMING_REQUEST_SECRET_HEADER} header or as a Bearer token in the Authorization header, or sign the request with one (${INCOMING_REQUEST_SIGNATURE_HEADER}). Whoever manages them finds them under Monitors > Settings > Incoming Request Secrets.`;
 
-export const INCOMING_REQUEST_SECRET_NOT_RECOGNIZED_MESSAGE: string = `The secret sent with this request is not one of this project's incoming request secrets. Check the value in the ${INCOMING_REQUEST_SECRET_HEADER} header or the Authorization header against Monitors > Settings > Incoming Request Secrets, where a Project Owner or Project Admin can also create a new one.`;
+export const INCOMING_REQUEST_SECRET_NOT_RECOGNIZED_MESSAGE: string = `The secret sent with this request is not one of this project's incoming request secrets that this monitor accepts, or its signature was not made with one. Check the value in the ${INCOMING_REQUEST_SECRET_HEADER} header, the Authorization header or the signature against Monitors > Settings > Incoming Request Secrets, where whoever manages them can also create a new one.`;
+
+export const INCOMING_REQUEST_SIGNATURE_EXPIRED_MESSAGE: string = `This request's signature was made more than ${INCOMING_REQUEST_SIGNATURE_TOLERANCE_SECONDS / 60} minutes away from OneUptime's clock, so it is refused: a request someone captured cannot be sent again later. Sign each request when you send it, with the current time, and check the sender's clock.`;
+
+export const INCOMING_REQUEST_SIGNATURE_REPLAYED_MESSAGE: string =
+  "A request with this signature was already received, so this one is refused: a signed request is accepted once. Sign each request again when you send it.";
 
 export default class IncomingRequestSecretPolicy {
   /*
-   * "-v2": a policy kept by a server from before #8498 has no secrets while
-   * the project requires none, and must not be read as one that has none.
+   * "-v3": a policy kept by a server from before #8501 has no monitor access
+   * for its secrets, and must not be read as one whose secrets cover every
+   * monitor; "-v2" before it, for #8498's secrets read before the
+   * requirement.
    */
   public static readonly NAMESPACE: string =
-    "incoming-request-secret-policy-v2";
+    "incoming-request-secret-policy-v3";
 
   public static readonly EXPIRES_IN_SECONDS: number = 60;
 
@@ -161,38 +207,104 @@ export default class IncomingRequestSecretPolicy {
     }
   }
 
-  // What a request that presented these secrets gets under this policy.
+  // Whether any of the policy's secrets is limited to monitors with labels.
+  public static hasLabelScopedSecret(
+    policy: IncomingRequestSecretPolicyValue,
+  ): boolean {
+    return policy.secrets.some(
+      (secret: IncomingRequestSecretOfPolicy): boolean => {
+        return secret.monitorAccess === MonitorSecretAccess.MonitorsWithLabels;
+      },
+    );
+  }
+
+  /*
+   * Whether a secret of the policy covers a monitor, by the rule monitor
+   * secrets keep. A request whose monitor is not known (a test, a caller
+   * from before #8501) is judged as a monitor nobody listed, with no labels.
+   */
+  public static coversMonitor(data: {
+    secret: IncomingRequestSecretOfPolicy;
+    monitor: IncomingRequestSecretMonitor | undefined;
+  }): boolean {
+    // Both are the policy's project: the policy is read per project.
+    const projectId: string = "policy";
+
+    return MonitorSecretAccessUtil.canMonitorUseSecret({
+      secret: {
+        projectId: projectId,
+        monitorAccess:
+          data.secret.monitorAccess || INCOMING_REQUEST_SECRET_DEFAULT_ACCESS,
+        monitorIds: data.secret.monitorIds || [],
+        labelIds: data.secret.labelIds || [],
+      },
+      monitor: {
+        monitorId: data.monitor?.monitorId,
+        projectId: projectId,
+        labelIds: data.monitor?.labelIds || [],
+      },
+    });
+  }
+
+  /*
+   * What a request that presented these secrets gets under this policy, for
+   * this monitor. `signatureProblem` is why a signature it presented was not
+   * accepted before its secrets were compared (an expired one), when it
+   * presented one.
+   */
   public static decide(data: {
     policy: IncomingRequestSecretPolicyValue;
     presentedSecretHashes: ReadonlyArray<string> | undefined;
+    monitor?: IncomingRequestSecretMonitor | undefined;
+    signatureProblem?: IncomingRequestSecretProblem | undefined;
   }): IncomingRequestSecretDecision {
     const presented: ReadonlyArray<string> = data.presentedSecretHashes || [];
 
+    const covering: Array<IncomingRequestSecretOfPolicy> =
+      data.policy.secrets.filter(
+        (secret: IncomingRequestSecretOfPolicy): boolean => {
+          return this.coversMonitor({ secret, monitor: data.monitor });
+        },
+      );
+
+    /*
+     * Compared in constant time for every pair: first with the secrets that
+     * cover the monitor, then - only for a request none of those accepts -
+     * with every one of the project's, so a secret the monitor does not
+     * accept is told apart from a wrong one on the monitor's record.
+     */
     const matchedHash: string | null =
       presented.length === 0
         ? null
         : IncomingRequestSecretRequest.findMatchingHash({
             presentedSecretHashes: presented,
-            projectSecretHashes: data.policy.secrets.map(
-              (secret: IncomingRequestSecretOfPolicy): string => {
-                return secret.secretHash;
-              },
-            ),
+            projectSecretHashes: this.getHashes(covering),
           });
 
     const matched: IncomingRequestSecretOfPolicy | undefined = matchedHash
-      ? data.policy.secrets.find(
-          (secret: IncomingRequestSecretOfPolicy): boolean => {
-            return secret.secretHash === matchedHash;
-          },
-        )
+      ? covering.find((secret: IncomingRequestSecretOfPolicy): boolean => {
+          return secret.secretHash === matchedHash;
+        })
       : undefined;
+
+    const isProjectSecretForOtherMonitors: boolean =
+      !matched &&
+      presented.length > 0 &&
+      IncomingRequestSecretRequest.findMatchingHash({
+        presentedSecretHashes: presented,
+        projectSecretHashes: this.getHashes(data.policy.secrets),
+      }) !== null;
 
     const problem: IncomingRequestSecretProblem | undefined = matched
       ? undefined
-      : presented.length === 0
-        ? IncomingRequestSecretProblem.NoSecret
-        : IncomingRequestSecretProblem.WrongSecret;
+      : isProjectSecretForOtherMonitors
+        ? IncomingRequestSecretProblem.SecretNotForMonitor
+        : presented.length > 0
+          ? IncomingRequestSecretProblem.WrongSecret
+          : data.signatureProblem || IncomingRequestSecretProblem.NoSecret;
+
+    // None of them was one the monitor accepts: each was a wrong guess.
+    const wrongSecretHashes: Array<string> = matched ? [] : [...presented];
 
     const presentation: Pick<
       IncomingRequestSecretDecision,
@@ -206,17 +318,23 @@ export default class IncomingRequestSecretPolicy {
       return {
         verdict: IncomingRequestSecretVerdict.NotRequired,
         matchedSecretId: matched?.secretId,
+        wrongSecretHashes: [],
         ...presentation,
       };
     }
 
     if (problem === IncomingRequestSecretProblem.NoSecret) {
-      return { verdict: IncomingRequestSecretVerdict.Missing, ...presentation };
+      return {
+        verdict: IncomingRequestSecretVerdict.Missing,
+        wrongSecretHashes: [],
+        ...presentation,
+      };
     }
 
-    if (problem === IncomingRequestSecretProblem.WrongSecret) {
+    if (problem) {
       return {
         verdict: IncomingRequestSecretVerdict.NotRecognized,
+        wrongSecretHashes: wrongSecretHashes,
         ...presentation,
       };
     }
@@ -224,6 +342,7 @@ export default class IncomingRequestSecretPolicy {
     return {
       verdict: IncomingRequestSecretVerdict.Accepted,
       matchedSecretId: matched?.secretId,
+      wrongSecretHashes: [],
       ...presentation,
     };
   }
@@ -235,13 +354,22 @@ export default class IncomingRequestSecretPolicy {
     );
   }
 
-  // What the sender is told when its request is refused.
+  /*
+   * What the sender is told when its request is refused. A secret the
+   * monitor does not accept is worded as a wrong one: the sender is not told
+   * that it is one of the project's.
+   */
   public static getRefusalMessage(
     verdict: IncomingRequestSecretVerdict,
+    problem?: IncomingRequestSecretProblem | undefined,
   ): string {
-    return verdict === IncomingRequestSecretVerdict.NotRecognized
-      ? INCOMING_REQUEST_SECRET_NOT_RECOGNIZED_MESSAGE
-      : INCOMING_REQUEST_SECRET_MISSING_MESSAGE;
+    if (verdict !== IncomingRequestSecretVerdict.NotRecognized) {
+      return INCOMING_REQUEST_SECRET_MISSING_MESSAGE;
+    }
+
+    return problem === IncomingRequestSecretProblem.ExpiredSignature
+      ? INCOMING_REQUEST_SIGNATURE_EXPIRED_MESSAGE
+      : INCOMING_REQUEST_SECRET_NOT_RECOGNIZED_MESSAGE;
   }
 
   /*
@@ -313,6 +441,13 @@ export default class IncomingRequestSecretPolicy {
         select: {
           _id: true,
           secretValue: true,
+          monitorAccess: true,
+          monitors: {
+            _id: true,
+          },
+          labels: {
+            _id: true,
+          },
         },
         limit: LIMIT_MAX,
         skip: 0,
@@ -328,14 +463,49 @@ export default class IncomingRequestSecretPolicy {
           return Boolean(secret.id && secret.secretValue?.trim());
         })
         .map((secret: IncomingRequestSecret): IncomingRequestSecretOfPolicy => {
+          const access: string =
+            secret.monitorAccess || INCOMING_REQUEST_SECRET_DEFAULT_ACCESS;
+
           return {
             secretId: secret.id!.toString(),
             secretHash: IncomingRequestSecretRequest.hashSecret(
               secret.secretValue!,
             ),
+            monitorAccess: access,
+            // Only the list the mode reads: the other grants nothing.
+            monitorIds:
+              access === MonitorSecretAccess.SpecificMonitors
+                ? this.getIds(secret.monitors)
+                : [],
+            labelIds:
+              access === MonitorSecretAccess.MonitorsWithLabels
+                ? this.getIds(secret.labels)
+                : [],
           };
         }),
     };
+  }
+
+  private static getHashes(
+    secrets: Array<IncomingRequestSecretOfPolicy>,
+  ): Array<string> {
+    return secrets.map((secret: IncomingRequestSecretOfPolicy): string => {
+      return secret.secretHash;
+    });
+  }
+
+  private static getIds(
+    items: Array<{ id: ObjectID | null }> | undefined,
+  ): Array<string> {
+    const ids: Array<string> = [];
+
+    for (const item of items || []) {
+      if (item.id) {
+        ids.push(item.id.toString().toLowerCase());
+      }
+    }
+
+    return ids;
   }
 
   // A policy as it was kept, or null when what was kept is not one.
@@ -357,17 +527,43 @@ export default class IncomingRequestSecretPolicy {
     for (const keptSecret of keptSecrets) {
       const secretId: unknown = (keptSecret as JSONObject)?.["secretId"];
       const secretHash: unknown = (keptSecret as JSONObject)?.["secretHash"];
+      const monitorAccess: unknown = (keptSecret as JSONObject)?.[
+        "monitorAccess"
+      ];
+      const monitorIds: unknown = (keptSecret as JSONObject)?.["monitorIds"];
+      const labelIds: unknown = (keptSecret as JSONObject)?.["labelIds"];
 
-      if (typeof secretId !== "string" || typeof secretHash !== "string") {
+      if (
+        typeof secretId !== "string" ||
+        typeof secretHash !== "string" ||
+        typeof monitorAccess !== "string" ||
+        !this.isListOfStrings(monitorIds) ||
+        !this.isListOfStrings(labelIds)
+      ) {
         return null;
       }
 
-      secrets.push({ secretId, secretHash });
+      secrets.push({
+        secretId,
+        secretHash,
+        monitorAccess,
+        monitorIds: monitorIds as Array<string>,
+        labelIds: labelIds as Array<string>,
+      });
     }
 
     return {
       isRequired: kept["isRequired"] as boolean,
       secrets,
     };
+  }
+
+  private static isListOfStrings(value: unknown): boolean {
+    return (
+      Array.isArray(value) &&
+      value.every((item: unknown): boolean => {
+        return typeof item === "string";
+      })
+    );
   }
 }

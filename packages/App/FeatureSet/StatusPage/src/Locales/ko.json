@@ -45,6 +45,7 @@
     "uptimePercent": "가동 시간 {{percent}}",
     "operational": "정상 작동",
     "notMonitored": "모니터링되지 않음",
+    "notMonitoredYet": "아직 모니터링되지 않음",
     "noResourcesInGroup": "이 그룹에 추가된 리소스가 없습니다.",
     "activeIncidents": "진행 중인 사고",
     "scheduledMaintenanceEvents": "예정된 유지 관리",
@@ -55,6 +56,7 @@
     "someResourcesAre": "일부 리소스가 {{status}}입니다",
     "someResourcesAreUnder": "일부 리소스가 {{status}} 중입니다",
     "noResourcesAreMonitored": "현재 모니터링되는 리소스가 없습니다",
+    "noResourcesAreMonitoredYet": "아직 모니터링되는 리소스가 없습니다",
     "oneSubGroup": "그룹 1개",
     "subGroupCount": "그룹 {{total}}개"
   },
@@ -180,7 +182,9 @@
     "manageExisting": "기존 구독 관리",
     "sendManagementLink": "관리 링크 보내기",
     "subscribedSuccessfully": "구독이 완료되었습니다.",
-    "emailSentCheckSpam": "링크가 포함된 이메일이 이메일 주소로 전송되었습니다. 이메일이 보이지 않으면 스팸 폴더를 확인해주세요.",
+    "emailSentCheckSpam": "이 주소로 이메일을 보냈습니다. 이메일의 링크를 열어 구독을 확인하세요. 이메일이 보이지 않으면 스팸 폴더를 확인해주세요.",
+    "checkEmailTitle": "이메일을 확인하세요",
+    "checkPhoneTitle": "휴대폰을 확인하세요",
     "manageLinkSent": "입력하신 정보와 일치하는 구독이 있으면 해당 구독을 관리할 수 있는 링크를 보내드렸습니다.",
     "manageLinkSentEmail": "이 이메일 주소로 등록된 구독이 있으면 구독을 관리할 수 있는 링크를 이 주소로 보내드렸습니다. 이메일이 보이지 않으면 스팸 폴더를 확인해주세요.",
     "menu": {

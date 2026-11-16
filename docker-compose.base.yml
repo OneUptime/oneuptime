@@ -247,6 +247,12 @@ x-common-runtime-variables: &common-runtime-variables
   SECURITY_ADVISORIES_CHECK_URL: ${SECURITY_ADVISORIES_CHECK_URL:-}
   DISABLE_INSTANCE_CHECK_IN: ${DISABLE_INSTANCE_CHECK_IN:-false}
 
+  # A self-hosted multi-tenant install keeps Forgejo, Gitea and Git
+  # repositories, and the GitLab ones GitLab makes no short-lived token for,
+  # off global Runners (as OneUptime Cloud does). Defaulted so a config.env
+  # upgraded in place, which will not have the key, keeps the rule off.
+  GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY: ${GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY:-false}
+
   # On-call calendar feeds (token-in-URL .ics subscriptions). Defaulted so a
   # config.env upgraded in place, which will not have these keys, neither warns
   # nor hands the container an empty kill switch. Blank rate-limit values mean

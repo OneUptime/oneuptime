@@ -20,6 +20,8 @@ Abra **Início** na barra do topo, ou pressione `g` e depois `h` de qualquer lug
 5. **Seu projeto**, do que o projeto é feito, e **Próximas manutenções** quando houver alguma programada.
 6. **Explore o OneUptime**, todos os produtos, uma categoria por vez.
 
+Enquanto a lista **Boas-vindas ao OneUptime 👋** de um projeto novo aparece, ela ocupa todo o Início: a primeira coisa que você vê é o que fazer primeiro. Um incidente aberto, ou qualquer outra coisa que precise de alguém, continua aparecendo acima dela. Oculte a lista, ou conclua-a, e o resto do Início volta.
+
 ### Pesquisar e criar
 
 A caixa de pesquisa abre a pesquisa, assim como `Mod` + `K`: digite o nome de qualquer página, monitor, incidente, alerta, página de status ou política de plantão. Veja [Pesquisar](#pesquisar-uma-página-uma-configuração-ou-uma-ação). **Declarar incidente** abre o formulário que declara um incidente. **Criar** oferece **Criar monitor**, **Agendar manutenção** e **Criar anúncio**. Cada um só aparece para quem tem permissão para usá-lo.
@@ -36,7 +38,7 @@ A linha do topo nomeia o que há de mais urgente em aberto, numa cor corresponde
 | Há monitores em execução e nada está aberto | **Todos os sistemas estão operacionais** |
 | O projeto ainda não tem monitores | **Nada está sendo monitorado ainda** |
 
-Ao lado, o Início diz quando leu o projeto pela última vez, e **Atualizar** o lê de novo. Quando você volta a uma aba do Início depois de um minuto ou mais, ele se atualiza sozinho.
+Ao lado, o Início diz quando leu o projeto pela última vez, e **Atualizar** o lê de novo. O Início também acompanha o que conta à medida que muda: quando um incidente, alerta, monitor, evento de manutenção ou SLO é criado, alterado ou excluído, a linha, os números, **Requer atenção** e **Próximas manutenções** se atualizam em segundos, sem recarregar. Quando você volta a uma aba do Início depois de um minuto ou mais, ele se atualiza sozinho.
 
 Enquanto nada está sendo monitorado, a linha termina com o botão **Crie seu primeiro monitor**, que abre a configuração guiada **Saber quando meu site ou API cair**. Só quem tem permissão para criar monitores o vê.
 
@@ -56,7 +58,7 @@ Um número acima de zero mostra **Requer atenção**, ou **Em andamento** e **Or
 
 ### A lista de boas-vindas
 
-Na primeira vez que um Proprietário do projeto ou um Administrador do projeto abre o Início de um projeto novo, o cartão pergunta **O que você quer fazer primeiro?** Marque um ou mais objetivos, como **Saber quando meu site ou API cair** ou **Só estou dando uma olhada**, e clique em **Continuar**: a lista passa a ter as etapas de que esses objetivos precisam. **Pular** dá as quatro etapas que todo projeto recebe. Para responder de novo depois, clique em **Alterar** na lista. Um projeto que já usa monitores, telemetria ou plantão não é perguntado.
+Na primeira vez que um Proprietário do projeto ou um Administrador do projeto abre o Início de um projeto novo, o cartão o cumprimenta pelo primeiro nome e pergunta **O que você quer fazer primeiro?** Escolha um ou mais objetivos, como **Saber quando meu site ou API cair**, e clique em **Continuar**: a lista passa a ter as etapas de que esses objetivos precisam. Enquanto você escolhe, ela diz quantas etapas são e quanto tempo levam, mais ou menos. **Só estou dando uma olhada** leva você direto ao resto do Início e deixa uma linha para mostrar a lista de novo. Para responder de novo depois, clique em **Alterar** na lista. Um projeto que já usa monitores, telemetria ou plantão não é perguntado.
 
 Cada etapa se marca sozinha quando a coisa funciona, não quando um registro existe, e todos que configuram o projeto veem a mesma lista, em todos os dispositivos:
 
@@ -72,9 +74,13 @@ Cada etapa se marca sozinha quando a coisa funciona, não quando um registro exi
 
 A etapa a fazer primeiro é marcada com **Próxima etapa**. No plano Free do OneUptime Cloud, que tem uma pessoa, **Convide sua equipe** diz que precisa do plano Growth e abre **Cobrança**. Em um servidor auto-hospedado que ainda não pode enviar e-mails, os administradores do servidor veem primeiro **Este servidor ainda não pode enviar e-mails**, que abre o painel de administração.
 
+Cada etapa diz quanto tempo leva, mais ou menos, a lista diz quanto tempo falta, e a próxima etapa tem seu próprio botão **Iniciar**.
+
 Uma configuração guiada faz todo o trabalho em uma só página, uma etapa de cada vez, e termina com o que configurou e o que fazer em seguida. Para abri-la de novo mais tarde, pesquise pelo nome dela.
 
-Abaixo das etapas, **Como o OneUptime funciona** mostra os quatro produtos principais na ordem em que um problema passa por eles: **Monitores**, **Incidentes e alertas**, **Plantão** e **Páginas de status**. Clique em um para abri-lo. Abaixo, ele diz o que alimenta esse ciclo, a telemetria e a infraestrutura, e leva a [Conceitos básicos](/docs/introduction/core-concepts) e [Glossário](/docs/introduction/glossary).
+Ao lado das etapas, uma configuração guiada lista o que ela configura, marcado à medida que você avança, e diz quanto tempo leva, mais ou menos.
+
+Abaixo das etapas, uma linha abre **Como o OneUptime funciona**: tudo o que o OneUptime faz, e como tudo se encaixa.
 
 ```mermaid title="Quando a lista de boas-vindas aparece"
 flowchart TB
@@ -89,13 +95,15 @@ flowchart TB
 
 A lista some para todos quando todas as etapas estão concluídas. Para ocultá-la antes, clique em **Ocultar**: ela fica oculta só para você, em todos os dispositivos, e fica uma linha com **Mostrar** e **Como o OneUptime funciona**. Quem foi convidado ao projeto como membro não vê a lista. **Como o OneUptime funciona** continua a um clique, em qualquer projeto: abra-o em **Ajuda** ou com o botão ao lado de **Explore o OneUptime**.
 
+**Como o OneUptime funciona** abre em **Como tudo se encaixa**: as quatro etapas pelas quais um problema passa, **Detectar**, **Responder**, **Comunicar** e **Melhorar**, cada uma com os produtos que a realizam. Depois vêm as categorias do menu **Produtos**, cada uma com seus produtos e para que serve cada um: escolha uma, ou passe para a próxima com as setas do teclado ou **Próximo**. Clique em um produto para abri-lo. Os produtos que seu projeto oculta ficam de fora.
+
 ### Requer atenção
 
 **Requer atenção** lista, pelo nome, o que os números contam: os incidentes abertos, os alertas abertos, os monitores que não estão operacionais, os SLOs em risco e as manutenções em andamento, os mais urgentes primeiro. Cada linha mostra a severidade ou o status, diz quando um incidente ou alerta começou e quando a manutenção termina, e abre o registro. Cada tipo mostra até cinco, com **Mostrar todos** para o resto, que abre a mesma lista que o seu número. Quando nada está aberto, diz **Nada precisa da sua atenção**.
 
 ### Saúde da configuração
 
-Quando algo na configuração do projeto impediria que as pessoas fossem avisadas, **Requer atenção** termina com **Configuração**: quantas coisas precisam de uma olhada. Ela abre **Saúde da configuração**, que começa com uma linha na cor da descoberta mais grave: quantos problemas impediriam que as pessoas fossem avisadas, quantos itens vale corrigir, ou **Nada para corrigir**. Abaixo dela, a página lista o que está mal configurado, o mais grave primeiro, em **Os acionamentos não chegarão**, **Vale corrigir** e **Sugestões**: um monitor que não aciona ninguém, uma política de plantão que nada executa, uma pessoa que não pode ser acionada, SMS desativado, um agendamento de plantão sem ninguém de plantão, uma página de status que não mostra nenhum monitor. Cada descoberta diz em uma frase o que está errado, com os nomes dos seus monitores, políticas e pessoas em negrito, os monitores ou políticas que ela afeta depois de **Afeta**, e logo abaixo o botão que abre a correção. As descobertas de um monitor são as falhas que o cartão **Quando cair** dele aponta. Uma descoberta que sua equipe deixa assim de propósito pode ser dispensada com um motivo, para todos, e restaurada em **Dispensado**. A pesquisa encontra a página como **Saúde da configuração**, e Pergunte à IA responde "minha configuração está OK?" a partir dela.
+Quando algo na configuração do projeto impediria que as pessoas fossem avisadas, **Requer atenção** termina com **Configuração**: quantas coisas precisam de uma olhada. Ela abre **Saúde da configuração**, que começa com uma linha na cor da descoberta mais grave: quantos problemas impediriam que as pessoas fossem avisadas, quantos itens vale corrigir, ou **Nada para corrigir**. Abaixo dela, a página lista o que está mal configurado, o mais grave primeiro, em **Os acionamentos não chegarão**, **Vale corrigir** e **Sugestões**: um monitor que não aciona ninguém, uma política de plantão que nada executa, uma pessoa que não pode ser acionada, SMS desativado, um agendamento de plantão sem ninguém de plantão, uma página de status que não mostra nenhum monitor, um domínio personalizado cujo certificado SSL não pôde ser emitido, uma chave de ingestão com a qual nenhum dado chegou. Cada descoberta diz em uma frase o que está errado, com os nomes dos seus monitores, políticas e pessoas em negrito, os monitores ou políticas que ela afeta depois de **Afeta**, e logo abaixo o botão que abre a correção. Duas podem ser corrigidas ali mesmo, depois que uma caixa de diálogo diz exatamente o que vai mudar: **Ativar SMS** (ou as chamadas telefônicas, o WhatsApp ou o Telegram), para quem pode ativá-lo, e **Criar regra de plantão**, que aciona a política de plantão que você escolher para um monitor que não acionava ninguém. As descobertas de um monitor são as falhas que o cartão **Quando cair** dele aponta, e uma política de plantão que nada executa, ou um domínio personalizado que não abre sua página de status, também avisa no topo da página da política ou da página de status. Uma descoberta que sua equipe deixa assim de propósito pode ser dispensada com um motivo, para todos, e restaurada em **Dispensado**. A pesquisa encontra a página como **Saúde da configuração**, e Pergunte à IA responde "minha configuração está OK?" a partir dela.
 
 ### Seu projeto
 
@@ -137,7 +145,7 @@ Uma palavra com uma linha pontilhada embaixo, como **Sondas** no formulário de 
 
 Acima do título de cada página, uma trilha como *Projeto › Docker › Configurações › Regras de proprietário* diz onde a página está. Cada passo antes do último abre a sua página.
 
-- **As listas se mantêm atualizadas sozinhas.** Quando um incidente ou alerta é criado, reconhecido ou resolvido em qualquer lugar, as listas de incidentes, alertas e episódios o mostram em segundos, sem recarregar. Enquanto você está no meio de algo em uma lista, como linhas marcadas ou uma caixa de diálogo aberta, ela espera e se atualiza quando você termina.
+- **As listas se mantêm atualizadas sozinhas.** Quando um incidente, alerta, monitor ou evento de manutenção é criado, alterado ou excluído em qualquer lugar, as listas de incidentes, alertas, episódios, monitores e eventos de manutenção o mostram em segundos, sem recarregar, e o mesmo fazem as contagens ao lado delas nos menus laterais. As contagens do sino, e as listas **Incidentes ativos**, **Alertas ativos**, **Episódios de incidente ativos** e **Episódios de alerta ativos**, acompanham todos os projetos de que você faz parte, não só o que está aberto. Enquanto você está no meio de algo em uma lista, como linhas marcadas ou uma caixa de diálogo aberta, ela espera e se atualiza quando você termina.
 - **No celular, os chips de filtro se recolhem** atrás de **Filtro**, para que a lista comece mais acima. Os chips que você definiu continuam à vista, com **Limpar tudo**. Toque em **Filtro** para ver todos os chips, e de novo para recolhê-los.
 - A opção **Colunas** no menu **⋯** de uma lista escolhe quais colunas a lista mostra e em que ordem, e as guarda para você neste navegador. Um Proprietário do projeto ou um Administrador do projeto também pode marcar ali **Mostrar estas colunas a todos neste projeto**: quem não escolheu as próprias colunas para essa lista vê essas, e **Redefinir para o padrão do projeto** volta as suas para elas.
 - A opção **Linhas compactas**, no mesmo menu, deixa mais baixas as linhas de todas as listas, então uma lista longa mostra cerca de um quinto a mais delas. A escolha fica guardada neste navegador.

@@ -6,7 +6,11 @@ import {
 import MonitorTypeUtil from "../../Utils/MonitorType";
 import ProjectUtil from "Common/UI/Utils/Project";
 
-import { Black, Gray500, Red500 } from "Common/Types/BrandColors";
+import { Black } from "Common/Types/BrandColors";
+import MonitorRowStatusUtil, {
+  MonitorRowStatus,
+} from "Common/Utils/Monitor/MonitorRowStatus";
+import { STARTING_STATUS_SELECT } from "Common/Utils/Monitor/MonitorFirstCheck";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
@@ -30,6 +34,11 @@ import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelAction
 import useCustomFieldFacets from "../CustomFields/useCustomFieldFacets";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
+import {
+  UsedByListActions,
+  getUsedByListActions,
+} from "../UsedBy/UsedByListActions";
+import { UsedByRecordKind } from "Common/Types/UsedBy/UsedBy";
 import {
   DISABLE_SWITCH_ACTION,
   ENABLE_SWITCH_ACTION,
@@ -170,6 +179,14 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
     isArchived: isArchivedView,
   } as Query<Monitor>;
 
+  /*
+   * A row's Delete and Archive, and the bulk ones, say what still uses the
+   * monitors first: status pages, SLOs, rules that name them (#7435).
+   */
+  const usedBy: UsedByListActions<Monitor> = getUsedByListActions<Monitor>(
+    UsedByRecordKind.Monitor,
+  );
+
   const {
     archiveBulkActions,
     unarchiveBulkActions,
@@ -181,6 +198,8 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
     pluralName: MONITOR_ARCHIVE_COPY.pluralName,
     archiveConfirmMessage: MONITOR_ARCHIVE_COPY.bulkArchiveConfirmMessage,
     unarchiveConfirmMessage: MONITOR_ARCHIVE_COPY.bulkUnarchiveConfirmMessage,
+    archiveConfirmDetails: usedBy.archiveConfirmDetails,
+    getArchiveConfirmationDetails: usedBy.getArchiveConfirmationDetails,
   });
 
   /*
@@ -691,7 +710,9 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                 ...archiveBulkActions,
                 ModalTableBulkDefaultActions.Delete,
               ],
+          deleteConfirmationDetails: usedBy.deleteConfirmationDetails,
         }}
+        getDeleteConfirmation={usedBy.getDeleteConfirmation}
         /*
          * Each row's ⋯ menu: Enable or Disable (the one that changes the
          * row), the page's own actions, then Archive - or, on the Archived
@@ -733,12 +754,23 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
           buttons: cardbuttons,
         }}
         videoLink={props.videoLink}
+        /*
+         * Everything the status column's rule reads (MonitorRowStatus): the
+         * flags that say nothing checks a monitor, and whether anything has
+         * measured it yet, with when it was created and how often it is
+         * checked, which say whether its first result is overdue.
+         */
         selectMoreFields={{
+          isArchived: true,
           disableActiveMonitoring: true,
+          disableActiveMonitoringBecauseOfManualIncident: true,
+          disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
           isNoProbeEnabledOnThisMonitor: true,
           isAllProbesDisconnectedFromThisMonitor: true,
           monitorType: true,
-          isArchived: true,
+          firstMeasuredAt: true,
+          createdAt: true,
+          monitoringInterval: true,
         }}
         noItemsMessage={props.noItemsMessage}
         showRefreshButton={true}
@@ -801,69 +833,48 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
               currentMonitorStatus: {
                 color: true,
                 name: true,
+                // What tells the status every monitor starts in (#8899).
+                ...STARTING_STATUS_SELECT,
               },
             },
 
             title: "Monitor Status",
             type: FieldType.Entity,
 
+            /*
+             * What the monitor's own page says of it, from the rule the
+             * Monitor List widget reads too (MonitorRowStatus): why nothing
+             * checks it (Archived, Disabled, no probes), why nothing has yet
+             * (Paused, No results yet, Waiting for data - the operational
+             * status it was created in is not one a check stands behind),
+             * and otherwise its status, pulsing as a live status does.
+             */
             getElement: (item: Monitor): ReactElement => {
               if (!item["currentMonitorStatus"]) {
                 throw new BadDataException("Monitor Status not found");
               }
 
-              /*
-               * An archived monitor is not checked, so its last status is
-               * frozen: say why instead of showing it as if it were live.
-               */
-              if (item && item.isArchived) {
-                return (
-                  <Statusbubble
-                    shouldAnimate={false}
-                    color={Gray500}
-                    text={"Archived"}
-                  />
-                );
-              }
+              const status: MonitorRowStatus =
+                MonitorRowStatusUtil.getRowStatus(item);
 
-              if (item && item["disableActiveMonitoring"]) {
+              if (status.isProductWords) {
                 return (
                   <Statusbubble
                     shouldAnimate={false}
-                    color={Gray500}
-                    text={"Disabled"}
-                  />
-                );
-              }
-
-              if (item && item.isNoProbeEnabledOnThisMonitor) {
-                return (
-                  <Statusbubble
-                    shouldAnimate={false}
-                    color={Red500}
-                    text={"Probes Not Enabled"}
-                  />
-                );
-              }
-
-              if (item && item.isAllProbesDisconnectedFromThisMonitor) {
-                return (
-                  <Statusbubble
-                    shouldAnimate={false}
-                    color={Red500}
-                    text={"Probes Disconnected"}
+                    color={status.color || Black}
+                    text={status.text}
                   />
                 );
               }
 
               return (
                 <Statusbubble
-                  color={item.currentMonitorStatus.color || Black}
-                  shouldAnimate={true}
-                  text={item.currentMonitorStatus.name || "Unknown"}
+                  color={status.color || Black}
+                  shouldAnimate={status.shouldAnimate}
+                  text={status.text}
                   isUserContent={isRecordNameAsWritten(
                     StateListType.MonitorStatus,
-                    item.currentMonitorStatus.name,
+                    status.text,
                   )}
                 />
               );

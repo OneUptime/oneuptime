@@ -44,6 +44,7 @@ import {
   expect,
   test,
 } from "@jest/globals";
+import PrivateRecordWriteCheck from "../../../Server/Utils/Permission/PrivateRecordWriteCheck";
 
 /*
  * ---------------------------------------------------------------------------
@@ -304,6 +305,8 @@ function resourceRoundRow(
     projectId: PROJECT_ID,
     incidentId: INCIDENT_ID,
     status: AutoRemediationSuggestionStatus.Suggested,
+    // The row's version, which every write moves on.
+    version: 1,
     suggestionType: AutoRemediationSuggestionType.CommandPlan,
     commandPlan: { commands } as JSONObject,
     verificationWindowMinutes: 15,
@@ -351,6 +354,15 @@ function resourceStatus(
     ...overrides,
   };
 }
+
+/*
+ * The fixes here are for incidents and alerts that are not private, or that
+ * the person reaches: what a fix's buttons ask of a private record's owning
+ * teams (#8913) is RemediationPrivateRecord's own suite.
+ */
+beforeEach(() => {
+  jest.spyOn(PrivateRecordWriteCheck, "reaches").mockResolvedValue(true);
+});
 
 describe("POST /auto-remediation/approve — resource rounds and the resource AI agent", () => {
   let suggestionFindSpy: jest.SpyInstance;

@@ -535,6 +535,9 @@ function readInsight(value: unknown): AiActivityInsight | null {
   const verifiedCount: number | undefined = readOptionalCount(
     value["verifiedCount"],
   );
+  const approvedFirstByReaderCount: number | undefined = readOptionalCount(
+    value["approvedFirstByReaderCount"],
+  );
   const problemKey: string | null = readString(value["problemKey"]);
   const title: string | null = readString(value["title"]);
   const firstSeenAt: string | null = readString(value["firstSeenAt"]);
@@ -589,11 +592,30 @@ function readInsight(value: unknown): AiActivityInsight | null {
       : {}),
     ...(evidenceCount !== undefined ? { evidenceCount } : {}),
     ...(verifiedCount !== undefined ? { verifiedCount } : {}),
+    ...(approvedFirstByReaderCount !== undefined
+      ? { approvedFirstByReaderCount }
+      : {}),
     ...(insightId ? { insightId } : {}),
     ...(insightSeverity ? { insightSeverity } : {}),
     ...(insightType ? { insightType } : {}),
     ...(reason ? { reason: reason as InvestigationNotStartedCode } : {}),
   };
+}
+
+/*
+ * The fixes a FixesAwaitingApproval insight counts, by whose approval they
+ * wait for: the ones the reader gave the first of two approvals wait for
+ * someone else's (#6422), the others for the reader's.
+ */
+export function getAwaitingApprovalSplit(
+  insight: Pick<AiActivityInsight, "count" | "approvedFirstByReaderCount">,
+): { approvedFirst: number; others: number } {
+  const approvedFirst: number = Math.min(
+    Math.max(insight.approvedFirstByReaderCount || 0, 0),
+    insight.count,
+  );
+
+  return { approvedFirst, others: insight.count - approvedFirst };
 }
 
 /*
@@ -1165,22 +1187,44 @@ export function describeInsightHeadline(
         insight.count,
       );
 
-    case AiActivityInsightKind.FixesAwaitingApproval:
-      return context.mayApproveFixes === false
-        ? translatePlural(
-            {
-              one: "A fix is waiting for approval",
-              other: "{{count}} fixes are waiting for approval",
-            },
-            insight.count,
-          )
-        : translatePlural(
-            {
-              one: "A fix is waiting for your approval",
-              other: "{{count}} fixes are waiting for your approval",
-            },
-            insight.count,
-          );
+    case AiActivityInsightKind.FixesAwaitingApproval: {
+      if (context.mayApproveFixes === false) {
+        return translatePlural(
+          {
+            one: "A fix is waiting for approval",
+            other: "{{count}} fixes are waiting for approval",
+          },
+          insight.count,
+        );
+      }
+
+      /*
+       * A fix the reader approved first waits for someone else's approval,
+       * not theirs (#6422): the title counts only the fixes that wait for
+       * the reader, and says so of the rest when there are no others.
+       */
+      const split: { approvedFirst: number; others: number } =
+        getAwaitingApprovalSplit(insight);
+
+      if (split.approvedFirst > 0 && split.others === 0) {
+        return translatePlural(
+          {
+            one: "A fix you approved first is waiting for someone else's approval",
+            other:
+              "{{count}} fixes you approved first are waiting for someone else's approval",
+          },
+          split.approvedFirst,
+        );
+      }
+
+      return translatePlural(
+        {
+          one: "A fix is waiting for your approval",
+          other: "{{count}} fixes are waiting for your approval",
+        },
+        split.others,
+      );
+    }
 
     case AiActivityInsightKind.ReadyForAutomaticFixes:
       return translateTemplate(
@@ -1441,19 +1485,50 @@ export function describeInsightFacts(
 
       return facts;
 
-    case AiActivityInsightKind.FixesAwaitingApproval:
-      facts.push(
-        translatePlural(
-          {
-            one: "OneUptime AI has it ready: it runs as soon as someone approves it.",
-            other:
-              "OneUptime AI has them ready: each runs as soon as someone approves it.",
-          },
-          insight.count,
-        ),
-      );
+    case AiActivityInsightKind.FixesAwaitingApproval: {
+      const split: { approvedFirst: number; others: number } =
+        context.mayApproveFixes === false
+          ? { approvedFirst: 0, others: insight.count }
+          : getAwaitingApprovalSplit(insight);
+
+      if (split.others > 0) {
+        facts.push(
+          translatePlural(
+            {
+              one: "OneUptime AI has it ready: it runs as soon as someone approves it.",
+              other:
+                "OneUptime AI has them ready: each runs as soon as someone approves it.",
+            },
+            split.others,
+          ),
+        );
+      }
+
+      // What the reader approved first waits for another person, not them.
+      if (split.approvedFirst > 0) {
+        facts.push(
+          split.others > 0
+            ? translatePlural(
+                {
+                  one: "{{count}} more you approved first waits for someone else's approval.",
+                  other:
+                    "{{count}} more you approved first wait for someone else's approval.",
+                },
+                split.approvedFirst,
+              )
+            : translatePlural(
+                {
+                  one: "It holds a riskier change, so it runs once someone else approves it too.",
+                  other:
+                    "They hold riskier changes, so each runs once someone else approves it too.",
+                },
+                split.approvedFirst,
+              ),
+        );
+      }
 
       return facts;
+    }
 
     case AiActivityInsightKind.ReadyForAutomaticFixes: {
       facts.push(

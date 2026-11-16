@@ -246,6 +246,8 @@ Pour publier dans un canal, ajoutez une règle sous **Produits → Événements 
 
 Chaque notification, sauf celle d'une tâche, est publiée dans les canaux de toutes les règles auxquelles le dossier correspond à ce moment-là. Une règle où **Priorité du dossier de sécurité** contient l'une des valeurs **Critique** et **Élevé** publie les dossiers Élevé et Critique dès leur ouverture, et un dossier Medium quand il monte à Élevé. Un dossier de sécurité n'a jamais de canal à lui.
 
+L'étape **Mises à jour** d'une règle choisit lesquelles de ces notifications elle publie : **Nouveaux dossiers et hausses de priorité**, **Attributions**, **Approbations demandées** et **Objectifs de réponse**, une case chacune sous **Choisir les mises à jour**. **Mises à jour clés uniquement** les publie toutes sauf les attributions, pour un canal qui ne doit entendre que ce sur quoi quelqu'un doit agir. Une règle enregistrée avant l'étape, comme une nouvelle règle, publie toutes les notifications.
+
 ## Playbooks
 
 Un playbook est une liste d'étapes qui s'exécutent sur un dossier. Créez-en un sous **Produits → Événements de sécurité → Playbooks**, à partir d'un modèle ou de zéro, et ajoutez ses étapes sur sa page. Un projet sans playbook voit les modèles à la place d'une liste vide ; dès qu'il a des playbooks, **Créer à partir d'un modèle** sur la liste les ouvre, avec **Ajouté** sur ceux que le projet a déjà.

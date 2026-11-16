@@ -11,8 +11,21 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageCustomField from "Common/Models/DatabaseModels/StatusPageCustomField";
 import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
 import UsedByCard from "../../../Components/UsedBy/UsedByCard";
+import SetupHealthRecordFindings from "../../../Components/SetupHealth/SetupHealthRecordFindings";
 import { UsedByRecordKind } from "Common/Types/UsedBy/UsedBy";
+import {
+  SetupHealthCheck,
+  SetupHealthRecordKind,
+} from "Common/Types/SetupHealth/SetupHealth";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+
+/*
+ * What the status page's Overview says already, so Setup Health's line
+ * leaves it out: its first step says it shows no monitors yet.
+ */
+export const STATUS_PAGE_OVERVIEW_SAYS: ReadonlyArray<SetupHealthCheck> = [
+  SetupHealthCheck.StatusPageShowsNoMonitor,
+];
 
 const StatusPageView: FunctionComponent<
   PageComponentProps
@@ -26,6 +39,17 @@ const StatusPageView: FunctionComponent<
        * visitors see no status until monitors are added on Resources.
        */}
       <StatusPageFirstStep statusPageId={modelId} />
+
+      {/*
+       * Setup Health's findings about this page (#7297): a custom domain
+       * that does not open it, by its CNAME record or its certificate,
+       * which only its Custom Domains page says otherwise.
+       */}
+      <SetupHealthRecordFindings
+        recordKind={SetupHealthRecordKind.StatusPage}
+        recordId={modelId}
+        saidByThisPage={STATUS_PAGE_OVERVIEW_SAYS}
+      />
 
       <StatusPagePreviewLink modelId={modelId} />
 

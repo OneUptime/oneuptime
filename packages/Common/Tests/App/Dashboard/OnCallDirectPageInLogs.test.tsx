@@ -563,6 +563,8 @@ describe("a run's timeline", () => {
   function line(data: {
     hasPolicy?: boolean;
     hasRule?: boolean;
+    // The line names its rule, which the reader may not read.
+    hasRuleId?: boolean;
     teamName?: string;
     hasUser?: boolean;
     hasSchedule?: boolean;
@@ -572,6 +574,10 @@ describe("a run's timeline", () => {
 
     if (data.hasPolicy) {
       timeline.onCallDutyPolicyId = new ObjectID(POLICY_ID);
+    }
+
+    if (data.hasRule || data.hasRuleId) {
+      timeline.onCallDutyPolicyEscalationRuleId = new ObjectID(RULE_ID);
     }
 
     if (data.hasRule) {
@@ -618,10 +624,22 @@ describe("a run's timeline", () => {
     expect(said).not.toContain("No escalation rule found.");
   });
 
-  test("a policy's line whose rule is gone still says so", () => {
+  test("a policy's line whose rule the reader may not read still says so", () => {
+    expect(
+      cellText(
+        table(),
+        "Escalation Rule",
+        line({ hasPolicy: true, hasRuleId: true }),
+      ),
+    ).toBe("No escalation rule found.");
+    expect(screen.queryByTestId("on-call-direct-page")).toBeNull();
+  });
+
+  // OnCallHistoryWithDeletedSettings.test.tsx has the rest (issue #9036).
+  test("a policy's line whose rule was deleted says so, and is no direct page", () => {
     expect(
       cellText(table(), "Escalation Rule", line({ hasPolicy: true })),
-    ).toBe("No escalation rule found.");
+    ).toBe("Deleted escalation rule");
     expect(screen.queryByTestId("on-call-direct-page")).toBeNull();
   });
 
@@ -748,6 +766,8 @@ describe("User Settings > Notification Logs", () => {
     hasPolicy?: boolean;
     policyIsReadable?: boolean;
     hasRule?: boolean;
+    // The page names its rule, which the reader may not read.
+    hasRuleId?: boolean;
   }): UserOnCallLog {
     const log: UserOnCallLog = new UserOnCallLog();
 
@@ -757,6 +777,10 @@ describe("User Settings > Notification Logs", () => {
       if (data.policyIsReadable !== false) {
         log.onCallDutyPolicy = policy();
       }
+    }
+
+    if (data.hasRule || data.hasRuleId) {
+      log.onCallDutyPolicyEscalationRuleId = new ObjectID(RULE_ID);
     }
 
     if (data.hasRule) {
@@ -791,6 +815,7 @@ describe("User Settings > Notification Logs", () => {
     const item: UserOnCallLog = page({
       hasPolicy: true,
       policyIsReadable: false,
+      hasRuleId: true,
     });
 
     expect(cellText(recordedTable, "On-Call Policy", item)).toBe(
