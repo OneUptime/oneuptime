@@ -10,7 +10,11 @@ import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
-import { NO_BREAK_SPACE, withUnit } from "../SuiteHelpers/NoBreakSpaces";
+import {
+  NO_BREAK_SPACE,
+  withSpacesShown,
+  withUnit,
+} from "../SuiteHelpers/NoBreakSpaces";
 
 /*
  * Renders the real Incident, Alert, Scheduled Maintenance, Incident Episode
@@ -239,7 +243,7 @@ const INCIDENT_PAGE: EventPage = {
   ],
   state: "Resolved",
   severity: "SEV-2",
-  duration: "Lasted 11 minutes",
+  duration: `Lasted ${withUnit(11, "minutes")}`,
   /*
    * Who is on it before what it touched: the Incident Commander (the roles
    * card's primary role) and the owners, teams first.
@@ -318,7 +322,7 @@ const ALERT_PAGE: EventPage = {
   ],
   state: "Resolved",
   severity: "High",
-  duration: "Lasted 9 minutes",
+  duration: `Lasted ${withUnit(9, "minutes")}`,
   // An alert has no roles: its owners lead.
   facts: [
     { label: "Owners", value: "Payments" },
@@ -377,7 +381,7 @@ const SCHEDULED_MAINTENANCE_PAGE: EventPage = {
     "Maintenance duration",
   ],
   state: "Scheduled",
-  duration: "Starts in 2 hours",
+  duration: `Starts in ${withUnit(2, "hours")}`,
   /*
    * Who owns it (teams first), where it shows - each status page a link -
    * and who created it.
@@ -438,12 +442,12 @@ const INCIDENT_EPISODE_PAGE: EventPage = {
   ],
   state: "Resolved",
   severity: "SEV-2",
-  duration: "Lasted 18 minutes",
+  duration: `Lasted ${withUnit(18, "minutes")}`,
   facts: [
     { label: "Incident Commander", value: "Maya Chen" },
     { label: "Owners", value: "Checkout SRE, Sam Rivera" },
     { label: "Grouping", value: "Checkout incidents within 30 minutes" },
-    { label: "Last incident added", value: "19 minutes ago" },
+    { label: "Last incident added", value: `${withUnit(19, "minutes")} ago` },
   ],
   statBar: "Episode timing",
   stats: [
@@ -492,11 +496,11 @@ const ALERT_EPISODE_PAGE: EventPage = {
   ],
   state: "Resolved",
   severity: "High",
-  duration: "Lasted 36 minutes",
+  duration: `Lasted ${withUnit(36, "minutes")}`,
   facts: [
     { label: "Owners", value: "Payments" },
     { label: "Grouping", value: "Payments webhook alerts" },
-    { label: "Last alert added", value: "14 minutes ago" },
+    { label: "Last alert added", value: `${withUnit(14, "minutes")} ago` },
   ],
   statBar: "Episode timing",
   stats: [
@@ -1284,11 +1288,12 @@ async function expectHeroDuration(
   header: Locator,
   text: string,
 ): Promise<void> {
+  // Each number held to its unit (#8779): a failure says which space it read.
   await expect
     .poll(async (): Promise<string> => {
-      return heroDuration(header);
+      return withSpacesShown(await heroDuration(header));
     })
-    .toBe(text);
+    .toBe(withSpacesShown(text));
 }
 
 async function detailLabels(scope: Locator): Promise<Array<string>> {
@@ -1629,7 +1634,7 @@ test.describe("AI investigation report", () => {
       "Checkout requests timing out on orders-db",
     );
     await expect(hero(page)).toContainText("#1029");
-    await expectHeroDuration(hero(page), "Lasted 51 minutes");
+    await expectHeroDuration(hero(page), `Lasted ${withUnit(51, "minutes")}`);
     await expect(
       page.getByText("Checkout requests timing out on orders-db").first(),
     ).toBeVisible();
@@ -3033,7 +3038,7 @@ test.describe("evidence checked", () => {
       .click();
     await expect(page).toHaveURL(new RegExp(`${incidentPath(1017)}$`));
     await expect(hero(page)).toContainText("#1017");
-    await expectHeroDuration(hero(page), "Lasted 38 minutes");
+    await expectHeroDuration(hero(page), `Lasted ${withUnit(38, "minutes")}`);
   });
 
   test("?fail=evidence shows the error and Try again requests the rows again", async ({
@@ -8464,7 +8469,10 @@ test.describe("incident and alert overview", () => {
     const actions: Locator = page.getByRole("group", { name: "Event actions" });
     await expect(actions.getByRole("button")).toHaveText(["Resolve"]);
     await expectRenderedText(heroChips(page), "Acknowledged SEV-2");
-    await expectHeroDuration(hero(page), "Ongoing for 19 minutes");
+    await expectHeroDuration(
+      hero(page),
+      `Ongoing for ${withUnit(19, "minutes")}`,
+    );
     // How long it has run is the header's, beside its state.
     expect(await statCells(page, INCIDENT_PAGE.statBar)).toEqual([
       INCIDENT_PAGE.stats[0],
@@ -8500,7 +8508,7 @@ test.describe("incident and alert overview", () => {
 
     await expect(actions.getByRole("button")).toHaveCount(0);
     await expectRenderedText(heroChips(page), "Resolved SEV-2");
-    await expectHeroDuration(hero(page), "Lasted 19 minutes");
+    await expectHeroDuration(hero(page), `Lasted ${withUnit(19, "minutes")}`);
     await expect
       .poll(async (): Promise<number> => {
         return (await fixture(page)).getItemRequests.length;
@@ -8574,7 +8582,10 @@ test.describe("incident and alert overview", () => {
       DECLARE_INCIDENT,
     ]);
     await expectRenderedText(heroChips(page), "Acknowledged High");
-    await expectHeroDuration(hero(page), "Ongoing for 14 minutes");
+    await expectHeroDuration(
+      hero(page),
+      `Ongoing for ${withUnit(14, "minutes")}`,
+    );
     const creates: Array<RecordedWrite> = (await fixture(page)).creates.filter(
       (write: RecordedWrite): boolean => {
         return write.modelName === "AlertStateTimeline";
@@ -10393,7 +10404,10 @@ test.describe("the header, by its own width", () => {
     await expect(band).toContainText(
       "Planned to start at Sep 14 2026, 06:00 PM UTC, but it has not been marked as Ongoing yet.",
     );
-    await expectHeroDuration(hero(page), "Start overdue by 20 minutes");
+    await expectHeroDuration(
+      hero(page),
+      `Start overdue by ${withUnit(20, "minutes")}`,
+    );
     expect((await headerColours(page)).unreadable).toEqual([]);
     await page.mouse.move(0, 0);
     await screenshotElement(hero(page), "event-header-maintenance-overdue");
@@ -10961,7 +10975,7 @@ const MAINTENANCE_PHASES: ReadonlyArray<MaintenancePhase> = [
   {
     sm: "scheduled",
     state: "Scheduled",
-    duration: "Starts in 2 hours",
+    duration: `Starts in ${withUnit(2, "hours")}`,
     actions: ["Mark as Ongoing", "Mark as Ended", "More actions"],
     starts: {
       label: "Starts",
@@ -10978,7 +10992,7 @@ const MAINTENANCE_PHASES: ReadonlyArray<MaintenancePhase> = [
   {
     sm: "ongoing",
     state: "Ongoing",
-    duration: "In progress for 15 minutes",
+    duration: `In progress for ${withUnit(15, "minutes")}`,
     actions: ["Mark as Ended", "More actions"],
     starts: {
       label: "Starts",
@@ -10995,7 +11009,7 @@ const MAINTENANCE_PHASES: ReadonlyArray<MaintenancePhase> = [
   {
     sm: "ended",
     state: "Ended",
-    duration: "Completed in 1 hour, 2 minutes",
+    duration: `Completed in ${withUnit(1, "hour")}, ${withUnit(2, "minutes")}`,
     actions: ["More actions"],
     starts: {
       label: "Starts",
@@ -11012,7 +11026,7 @@ const MAINTENANCE_PHASES: ReadonlyArray<MaintenancePhase> = [
   {
     sm: "overdue",
     state: "Scheduled",
-    duration: "Start overdue by 20 minutes",
+    duration: `Start overdue by ${withUnit(20, "minutes")}`,
     actions: ["Mark as Ongoing", "Mark as Ended", "More actions"],
     starts: {
       label: "Starts",
@@ -11030,7 +11044,7 @@ const MAINTENANCE_PHASES: ReadonlyArray<MaintenancePhase> = [
   {
     sm: "overrun",
     state: "Ongoing",
-    duration: "Overrunning by 30 minutes",
+    duration: `Overrunning by ${withUnit(30, "minutes")}`,
     actions: ["Mark as Ended", "More actions"],
     starts: {
       label: "Starts",
@@ -11817,7 +11831,7 @@ test.describe("affected resources card", () => {
 
 test.describe("scheduled maintenance overview", () => {
   for (const phase of MAINTENANCE_PHASES) {
-    test(`?sm=${phase.sm} shows "${phase.duration}", its actions and the window`, async ({
+    test(`?sm=${phase.sm} shows "${phase.duration.split(NO_BREAK_SPACE).join(" ")}", its actions and the window`, async ({
       page,
     }: {
       page: Page;
@@ -19704,7 +19718,7 @@ test.describe("at a glance: when, and what it touched", () => {
     expect(zoneSize).toBeLessThan(valueSize);
     // How long it lasted is the header's alone.
     await expect(statBar.getByText("Duration", { exact: true })).toHaveCount(0);
-    await expectHeroDuration(hero(page), "Lasted 11 minutes");
+    await expectHeroDuration(hero(page), `Lasted ${withUnit(11, "minutes")}`);
     // And when and by whom it was declared is the tile's alone.
     const detailsLabels: Array<string> = await detailLabels(
       card(page, INCIDENT_PAGE.detailsCard),
