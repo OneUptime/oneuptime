@@ -75,7 +75,7 @@ describe("the Incoming Request page on a project's incoming request secrets", ()
 
     expect(section()).toContain("is refused with `401` and the reason");
     expect(english).toContain(
-      "A project that requires a secret on every request answers a request without one `401`",
+      "A project that requires a secret on every request answers a request without one with `401`",
     );
   });
 
