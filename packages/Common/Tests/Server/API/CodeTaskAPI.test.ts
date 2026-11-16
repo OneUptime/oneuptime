@@ -1732,6 +1732,8 @@ describe("a task list's filters, search and counts", () => {
     });
     expect(CodeTaskListQuery.readPage).toHaveBeenCalledWith({
       projectId: PROJECT_ID,
+      // Whose tasks: none about a private record they do not see (#9165).
+      reader: world.props,
       repositoryIds: [REPOSITORY_ID],
       includeWithoutRepository: false,
       isProductionReviews: false,
@@ -2126,6 +2128,19 @@ describe("the repositories, at a glance", () => {
           .calls[0]![0] as { props: unknown }
       ).props,
     ).toBe(MEMBER);
+    /*
+     * And what is counted of them is the caller's too: no task about a
+     * private incident or alert they do not see (#9165).
+     */
+    expect(CodeTaskStats.getRepositoryStats).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      repositoryIds: [REPOSITORY_ID],
+      reader: MEMBER,
+    });
+    expect(CodeTaskStats.countTasksWithoutRepository).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      reader: MEMBER,
+    });
   });
 
   /*

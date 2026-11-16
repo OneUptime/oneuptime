@@ -1,11 +1,18 @@
 import AIAgentTaskPullRequest from "../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
+import Alert from "../../../../Models/DatabaseModels/Alert";
 import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import CodeRepository from "../../../../Models/DatabaseModels/CodeRepository";
+import Incident from "../../../../Models/DatabaseModels/Incident";
 import AIRunService from "../../../../Server/Services/AIRunService";
 import AlertFeedService from "../../../../Server/Services/AlertFeedService";
+import AlertService from "../../../../Server/Services/AlertService";
 import AutoRemediationSuggestionService from "../../../../Server/Services/AutoRemediationSuggestionService";
 import IncidentFeedService from "../../../../Server/Services/IncidentFeedService";
+import IncidentService from "../../../../Server/Services/IncidentService";
+import DatabaseRequestType from "../../../../Server/Types/BaseDatabase/DatabaseRequestType";
+import PrivateRecordWriteCheck from "../../../../Server/Utils/Permission/PrivateRecordWriteCheck";
+import { OPEN_FIX_PULL_REQUEST_ACTION } from "../../../../Server/Utils/AutoRemediation/RemediationApproval";
 import CodeTaskAccess from "../../../../Server/Utils/AI/CodeTask/CodeTaskAccess";
 import CodeTaskContextBuilder from "../../../../Server/Utils/AI/CodeTask/CodeTaskContextBuilder";
 import CodeTaskGate from "../../../../Server/Utils/AI/CodeTask/CodeTaskGate";
@@ -88,6 +95,7 @@ const SUGGESTION_ID: ObjectID = new ObjectID(
 const INCIDENT_ID: ObjectID = new ObjectID(
   "44444444-4444-4444-8444-444444444444",
 );
+const ALERT_ID: ObjectID = new ObjectID("aaaaaaaa-4444-4444-8444-444444444444");
 const CLOUD_ACCOUNT_ID: string = "55555555-5555-4555-8555-555555555555";
 const REPOSITORY_ID: string = "66666666-6666-4666-8666-666666666666";
 const OTHER_REPOSITORY_ID: string = "77777777-7777-4777-8777-777777777777";
@@ -297,10 +305,199 @@ describe("DeclaredCodeChanges", () => {
     alertFeed = jest
       .spyOn(AlertFeedService, "createAlertFeedItem")
       .mockResolvedValue({} as never);
+    /*
+     * The fix's incident or alert, as it is now: public unless a test makes
+     * it private - and the person reaches it, unless a test says not.
+     */
+    recordIsPrivate = false;
+    incidentRead = jest
+      .spyOn(IncidentService, "findOneById")
+      .mockImplementation(async () => {
+        const incident: Incident = new Incident(INCIDENT_ID);
+        incident.isPrivate = recordIsPrivate;
+        return incident;
+      });
+    alertRead = jest
+      .spyOn(AlertService, "findOneById")
+      .mockImplementation(async () => {
+        const alert: Alert = new Alert(ALERT_ID);
+        alert.isPrivate = recordIsPrivate;
+        return alert;
+      });
+    reaches = jest
+      .spyOn(PrivateRecordWriteCheck, "reaches")
+      .mockResolvedValue(true);
   });
+
+  let recordIsPrivate: boolean;
+  let incidentRead: SpyInstance<typeof IncidentService.findOneById>;
+  let alertRead: SpyInstance<typeof AlertService.findOneById>;
+  let reaches: SpyInstance<typeof PrivateRecordWriteCheck.reaches>;
+
+  // A fix of the alert, rather than of the incident.
+  function alertsSuggestion(): AutoRemediationSuggestion {
+    const row: AutoRemediationSuggestion = suggestion([step()]);
+    row.incidentId = undefined;
+    row.alertId = ALERT_ID;
+    return row;
+  }
 
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  /*
+   * A FIX OF A PRIVATE INCIDENT OR ALERT (#9106, #9165): its pull request is
+   * opened only through the record's owners, as approving the fix is; it
+   * takes nothing of the record into the task; and the dialog is told the
+   * record is private, so it can say the pull request leaves it out.
+   */
+  describe("a fix of a private record", () => {
+    test("opening its pull request asks whether the person's permission reaches the record, as approving the fix does", async () => {
+      await DeclaredCodeChanges.start({
+        props: PROPS,
+        tenantId: PROJECT_ID,
+        suggestionId: SUGGESTION_ID.toString(),
+        sequence: 1,
+        codeRepositoryId: REPOSITORY_ID,
+      });
+
+      const asked: {
+        modelType: { name: string };
+        type: DatabaseRequestType;
+        recordService: { modelType: { new (): { tableName?: string } } };
+        recordId: ObjectID;
+        props: DatabaseCommonInteractionProps;
+      } = reaches.mock.calls[0]![0] as never;
+
+      expect(asked.modelType.name).toBe("RunbookExecution");
+      expect(asked.type).toBe(DatabaseRequestType.Create);
+      expect(new asked.recordService.modelType().tableName).toBe("Incident");
+      expect(asked.recordId.toString()).toBe(INCIDENT_ID.toString());
+      expect(asked.props).toBe(PROPS);
+
+      // An alert's fix: the alert.
+      rootRead.mockResolvedValue(alertsSuggestion());
+      reaches.mockClear();
+
+      await DeclaredCodeChanges.start({
+        props: PROPS,
+        tenantId: PROJECT_ID,
+        suggestionId: SUGGESTION_ID.toString(),
+        sequence: 1,
+        codeRepositoryId: REPOSITORY_ID,
+      });
+
+      expect(
+        new (
+          reaches.mock.calls[0]![0] as {
+            recordService: { modelType: { new (): { tableName?: string } } };
+          }
+        ).recordService.modelType().tableName,
+      ).toBe("Alert");
+    });
+
+    test("one its owners do not let is refused, saying why - before a task is started or one on its way is handed back", async () => {
+      reaches.mockResolvedValue(false);
+      // A task already on its way for the step: not handed back either.
+      findRuns.mockResolvedValue([task({ status: AIRunStatus.Running })]);
+
+      let refusal: unknown = null;
+
+      try {
+        await DeclaredCodeChanges.start({
+          props: PROPS,
+          tenantId: PROJECT_ID,
+          suggestionId: SUGGESTION_ID.toString(),
+          sequence: 1,
+          codeRepositoryId: REPOSITORY_ID,
+        });
+      } catch (error) {
+        refusal = error;
+      }
+
+      expect(refusal).toBeInstanceOf(NotAuthorizedException);
+      expect((refusal as Error).message).toBe(
+        `You do not have permission to ${OPEN_FIX_PULL_REQUEST_ACTION}. This incident is private, so it is changed only with the permissions of the teams that own it and of the people named as its owners, and none of them lets you do this. Ask a Project Admin to give one of the teams that own it this permission, or to add you as an owner.`,
+      );
+      expect(findRuns).not.toHaveBeenCalled();
+      expect(startTask).not.toHaveBeenCalled();
+      expect(gate).not.toHaveBeenCalled();
+      expect(incidentFeed).not.toHaveBeenCalled();
+    });
+
+    test("its task is asked the change alone: nothing of the private record goes with it", async () => {
+      recordIsPrivate = true;
+
+      await DeclaredCodeChanges.start({
+        props: PROPS,
+        tenantId: PROJECT_ID,
+        suggestionId: SUGGESTION_ID.toString(),
+        sequence: 1,
+        codeRepositoryId: REPOSITORY_ID,
+      });
+
+      expect(incidentRead.mock.calls[0]![0]).toMatchObject({
+        id: INCIDENT_ID,
+        props: { isRoot: true },
+      });
+      // Nothing of the record is read into the task's context.
+      expect(contextBuild).not.toHaveBeenCalled();
+      expect(
+        (startTask.mock.calls[0]![0] as { context: Array<unknown> }).context,
+      ).toEqual([]);
+      // The request still says what to change, and the task is still the fix's.
+      expect(
+        (startTask.mock.calls[0]![0] as { message: string }).message,
+      ).toContain("Scale the ECS service web out to 4 tasks");
+      expect(
+        (
+          startTask.mock.calls[0]![0] as {
+            declaredCodeChange: { suggestionId: string };
+          }
+        ).declaredCodeChange.suggestionId,
+      ).toBe(SUGGESTION_ID.toString());
+    });
+
+    test("a private alert's fix: nothing of the alert either", async () => {
+      recordIsPrivate = true;
+      rootRead.mockResolvedValue(alertsSuggestion());
+
+      await DeclaredCodeChanges.start({
+        props: PROPS,
+        tenantId: PROJECT_ID,
+        suggestionId: SUGGESTION_ID.toString(),
+        sequence: 1,
+        codeRepositoryId: REPOSITORY_ID,
+      });
+
+      expect(alertRead).toHaveBeenCalled();
+      expect(
+        (startTask.mock.calls[0]![0] as { context: Array<unknown> }).context,
+      ).toEqual([]);
+    });
+
+    test("the dialog is told the record is private, and of which kind; a public one's is told nothing", async () => {
+      const ownerOf: () => Promise<DeclaredCodeOwnerJSON> =
+        (): Promise<DeclaredCodeOwnerJSON> => {
+          return DeclaredCodeChanges.getOwner({
+            props: PROPS,
+            tenantId: PROJECT_ID,
+            suggestionId: SUGGESTION_ID.toString(),
+            sequence: 1,
+          });
+        };
+
+      expect(await ownerOf()).not.toHaveProperty("privateRecord");
+
+      recordIsPrivate = true;
+
+      expect((await ownerOf()).privateRecord).toBe("incident");
+
+      rootRead.mockResolvedValue(alertsSuggestion());
+
+      expect((await ownerOf()).privateRecord).toBe("alert");
+    });
   });
 
   describe("getOwner", () => {

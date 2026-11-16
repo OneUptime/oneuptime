@@ -193,8 +193,10 @@ async function writtenBy(
   expect(commit).toHaveBeenCalledTimes(1);
   expect(finish).toHaveBeenCalledTimes(1);
 
-  const opened: { title: string; body: string } = finish.mock
-    .calls[0]![1] as { title: string; body: string };
+  const opened: { title: string; body: string } = finish.mock.calls[0]![1] as {
+    title: string;
+    body: string;
+  };
 
   return {
     prompt: (executeTask.mock.calls[0]![0] as CodeAgentTask).prompt,
@@ -236,7 +238,10 @@ describe("this Runner says it keeps private records out of its pull requests", (
 
 describe.each(RECIPES)(
   "$recipe about a private record",
-  (recipe: { recipe: string; handler: () => SubjectPullRequestTaskHandler }) => {
+  (recipe: {
+    recipe: string;
+    handler: () => SubjectPullRequestTaskHandler;
+  }) => {
     test.each(["incident", "alert"] as const)(
       "a private %s: the commit, the title and the description name nothing of it",
       async (subjectType: "incident" | "alert") => {

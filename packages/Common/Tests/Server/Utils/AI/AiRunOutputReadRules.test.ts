@@ -2,6 +2,7 @@ import Entities from "../../../../Models/DatabaseModels/Index";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import AIConversation from "../../../../Models/DatabaseModels/AIConversation";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
+import AIAgentTaskPullRequestService from "../../../../Server/Services/AIAgentTaskPullRequestService";
 import AIConversationMessageService from "../../../../Server/Services/AIConversationMessageService";
 import AIConversationService from "../../../../Server/Services/AIConversationService";
 import AIRunEventService from "../../../../Server/Services/AIRunEventService";
@@ -9,6 +10,7 @@ import AIRunService from "../../../../Server/Services/AIRunService";
 import DatabaseService from "../../../../Server/Services/DatabaseService";
 import RunnerJobService from "../../../../Server/Services/RunnerJobService";
 import PrivateRecordPermission from "../../../../Server/Types/Database/Permissions/PrivateRecordPermission";
+import { AI_RUN_ABOUT_KEYS } from "../../../../Server/Utils/AI/AIRunOutputReadFilter";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
@@ -107,9 +109,14 @@ const RULES: Record<string, Rule> = {
     kind: "partOfTheRecord",
     why: "The fix OneUptime AI proposed for an incident or alert, read only by those who see it (#9101).",
   },
+  /*
+   * A CodeFix run's pull request: the project's as CodeFix runs are, and
+   * one about a private incident or alert only its owners' (#9165).
+   */
   AIAgentTaskPullRequest: {
-    kind: "projectWide",
-    why: "A CodeFix run's pull request, the project's as CodeFix runs are. One about a private incident or alert does not follow its owners yet: #9165.",
+    kind: "readThroughTheRun",
+    service: asService(AIAgentTaskPullRequestService),
+    column: "aiRunId",
   },
   AIInsight: {
     kind: "projectWide",
@@ -363,6 +370,44 @@ describe.each(
         }
       },
     );
+
+    /*
+     * And a run about a private incident or alert only by those who see it
+     * (#9165): a condition on every key naming what a run is about, in a
+     * find and a count alike, which the read hook says it narrows by. A
+     * Project Owner sees every private record, so none.
+     */
+    test("is read by a member only where they see the private record it is about; by a Project Owner everywhere", async () => {
+      const [member, owner]: Array<DatabaseCommonInteractionProps> =
+        READERS.map(([, props]: [string, DatabaseCommonInteractionProps]) => {
+          return props;
+        });
+
+      for (const query of [
+        await hookedQuery(rule.service, member!),
+        await countedQuery(rule.service, member!),
+      ]) {
+        for (const key of AI_RUN_ABOUT_KEYS) {
+          expect({ key, sql: sqlOf(query[key]) }).toEqual({
+            key,
+            sql: expect.stringMatching(/^\(COLUMN IS NULL OR /),
+          });
+        }
+      }
+
+      for (const query of [
+        await hookedQuery(rule.service, owner!),
+        await countedQuery(rule.service, owner!),
+      ]) {
+        for (const key of AI_RUN_ABOUT_KEYS) {
+          expect(query[key]).toBeUndefined();
+        }
+      }
+
+      expect(rule.service.getColumnsReadHooksNarrowBy()).toEqual(
+        expect.arrayContaining([...AI_RUN_ABOUT_KEYS]),
+      );
+    });
   }
 
   if (rule.kind === "readOnlyByOneUptime") {
