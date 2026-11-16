@@ -86,6 +86,26 @@ export class Service extends ProjectReferencesService<Model> {
    * callback and the installation webhooks only ever call for a project the
    * installation is already bound to — so this check passes for them.
    */
+  /*
+   * A create hands back the row it saved, with the webhook secret on it as
+   * it was stored: encrypted. BaseAPI serializes the row whole into the
+   * answer of POST /code-repository, without a column read check, and a
+   * workflow step's create returns it to the workflow's logs - a ciphertext
+   * of a secret nobody may read back (read: []). So it is taken off first.
+   */
+  @CaptureSpan()
+  public override async create(createBy: CreateBy<Model>): Promise<Model> {
+    const created: Model = await super.create(createBy);
+
+    /*
+     * Cleared rather than deleted, as BaseAPI.createItem clears a model's
+     * `_id`: an unset column holds undefined, which serializes as nothing.
+     */
+    (created as unknown as Record<string, unknown>)["secretToken"] = undefined;
+
+    return created;
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
