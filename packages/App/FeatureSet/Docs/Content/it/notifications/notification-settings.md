@@ -18,9 +18,9 @@ flowchart TB
     setting -->|"tutto spento"| nothing["Non viene inviato nulla"]
 ```
 
-- Ogni riga è un evento, e ogni colonna un canale: E-mail, SMS, Chiamata, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost e Webhook. Slack, Microsoft Teams e Mattermost sono colonne solo se il progetto li ha collegati.
+- Ogni riga è un evento, e ogni colonna un canale: E-mail, SMS, Chiamata, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost e Webhook. Slack, Microsoft Teams e Mattermost sono colonne solo se il progetto li ha collegati. Un canale non ancora configurato non è una colonna: è elencato in **Canali non ancora configurati**, sopra le schede, come link per configurarlo.
 - Un canale attivo invia a ogni metodo verificato che avete su di esso in questo progetto, non a uno solo.
-- Un canale attivo senza un metodo verificato dietro non invia nulla. **Your setup checklist** lo segnala in **Staying informed**.
+- Un canale attivo senza un metodo verificato dietro non invia nulla. La sua colonna mostra **Configura** sotto il nome, e i suoi interruttori si possono solo disattivare. **Your setup checklist** lo segnala anche, in **Staying informed**.
 - Un aggiornamento va ai proprietari dell'elemento: le persone indicate come proprietari e i membri dei suoi team proprietari. Quando un elemento non ha proprietari, va invece ai Proprietari del progetto. Chi è già stato raggiunto dalla chiamata di reperibilità di un nuovo incidente, avviso o episodio non riceve di nuovo la notifica della sua creazione. Un evento sull'essere stati aggiunti come proprietari va solo alla persona aggiunta. Se OneUptime si ferma mentre sta inviando un aggiornamento ai proprietari di un elemento, le persone a cui non era ancora arrivato lo ricevono quando OneUptime torna, qualche minuto dopo, e nessuno lo riceve due volte.
 - I casi di sicurezza non hanno proprietari. Un nuovo caso va a tutti coloro che possono vedere i casi del progetto, a partire dalla priorità che ciascuno sceglie, e un caso assegnato alle persone a cui è assegnato. Vedete [Casi di sicurezza](/docs/telemetry/security-cases#notifiche).
 - Ogni e-mail ai proprietari termina con un link "Manage notification preferences" che riporta a questa pagina.
@@ -34,11 +34,11 @@ Andate in **Impostazioni utente → Impostazioni notifiche**. Le schede sono **I
 
 ### Trovate l'evento
 
-Ogni scheda contiene uno o più riquadri, come **Episodi di incidenti** nella scheda **Incidenti**. Ogni riga è un evento, con una frase che dice quando viene inviato.
+Ogni scheda contiene uno o più riquadri, come **Episodi di incidenti** nella scheda **Incidenti**. Ogni riga è un evento, con una frase che dice quando viene inviato. Sopra i riquadri, la scheda dice per quanti dei suoi eventi ricevete avvisi, e tramite quali canali.
 
 ### Fate clic su un canale
 
-Fate clic sul cerchio di un canale per attivarlo, e di nuovo per disattivarlo. Un segno di spunta significa attivo. Le modifiche si salvano automaticamente.
+Fate clic sull'interruttore di un canale per attivarlo, e di nuovo per disattivarlo. La prima riga di un riquadro, **Tutti gli eventi**, attiva o disattiva un canale per ogni evento del riquadro. Ogni modifica si salva subito, e il riquadro mostra **Salvato**.
 :::
 
 ## Cosa è attivo per un nuovo membro

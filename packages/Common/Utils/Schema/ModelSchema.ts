@@ -5,6 +5,7 @@ import {
   TableColumnMetadata,
 } from "../../Types/Database/TableColumn";
 import Dictionary from "../../Types/Dictionary";
+import ObjectID from "../../Types/ObjectID";
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { z as ZodTypes } from "zod";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -1568,6 +1569,8 @@ export class ModelSchema extends BaseSchema {
     example: SchemaExample;
     makeOptional?: boolean;
     disableOpenApiSchema?: boolean;
+    // A create's answer: the columns it answers once too (getCreatedModelSchema).
+    includeShownOnce?: boolean;
   }): ModelSchemaType {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
@@ -1614,10 +1617,18 @@ export class ModelSchema extends BaseSchema {
         continue;
       }
 
+      /*
+       * A column a create answers once is in that answer, though nobody may
+       * read it (getCreatedModelSchema).
+       */
+      const isShownOnceHere: boolean = Boolean(
+        column.shownOnce && data.includeShownOnce && data.schemaType === "read",
+      );
+
       // Filter out columns with no permissions (root-only access)
       const accessControl: ColumnAccessControl | undefined =
         columnAccessControl[key];
-      if (accessControl) {
+      if (accessControl && !isShownOnceHere) {
         let hasPermissions: boolean = false;
 
         // Check if column has any permissions defined for the current operation
@@ -1650,11 +1661,13 @@ export class ModelSchema extends BaseSchema {
         }
       }
 
-      let zodType: ZodTypes.ZodTypeAny = this.getZodTypeForColumn(
-        column,
-        data.schemaType,
-        data.disableOpenApiSchema || false,
-      );
+      let zodType: ZodTypes.ZodTypeAny = isShownOnceHere
+        ? this.getShownOnceZodType(column)
+        : this.getZodTypeForColumn(
+            column,
+            data.schemaType,
+            data.disableOpenApiSchema || false,
+          );
 
       /*
        * Check if the column is required and make it optional if not
@@ -1724,6 +1737,31 @@ export class ModelSchema extends BaseSchema {
   }
 
   // Helper method to get Zod type for a column
+  /*
+   * A column a create answers once, as that answer holds it: the value the
+   * create made - a key, not the hash stored - read only, a secret, and
+   * marked x-oneuptime-shown-once, so a client keeps it from this answer
+   * instead of reading it back. A uuid when its example is one: an API key
+   * is.
+   */
+  private static getShownOnceZodType(
+    column: TableColumnMetadata,
+  ): ZodTypes.ZodTypeAny {
+    const example: unknown = column.example;
+    const isUuid: boolean =
+      typeof example === "string" && ObjectID.isValidUUID(example);
+
+    return ModelSchema.annotateSecret(
+      z.string().openapi({
+        type: "string",
+        ...(isUuid ? { format: "uuid" } : {}),
+        ...(example !== undefined ? { example: example } : {}),
+        readOnly: true,
+      } as any),
+      column,
+    ).openapi({ "x-oneuptime-shown-once": true } as any);
+  }
+
   private static getZodTypeForColumn(
     column: TableColumnMetadata,
     schemaType: "create" | "read" | "update" | "delete",
@@ -2148,6 +2186,46 @@ export class ModelSchema extends BaseSchema {
       modelType: data.modelType,
       schemaType: "read",
       description: "Read",
+      example: this.generateDynamicExample({
+        modelType: data.modelType,
+        schemaType: "read",
+      }),
+    });
+  }
+
+  /*
+   * The columns of a model OneUptime answers once, in the answer to the
+   * create that makes a record, and never reads back (TableColumnMetadata
+   * shownOnce): a project's API key (#8902).
+   */
+  public static getShownOnceColumns(
+    modelType: new () => DatabaseBaseModel,
+  ): Array<string> {
+    const columns: Dictionary<TableColumnMetadata> = getTableColumns(
+      new modelType(),
+    );
+
+    return Object.keys(columns).filter((key: string): boolean => {
+      return Boolean(columns[key]?.shownOnce);
+    });
+  }
+
+  /*
+   * What a create answers (<Table>CreatedSchema), for a model with a column
+   * it answers once: the read schema, and that column - its value as the
+   * create made it, marked x-oneuptime-shown-once. No other answer holds it:
+   * nobody may read the column, so a read, a list or a select never names
+   * it. The Terraform and OpenTofu provider keeps it in state from this
+   * answer.
+   */
+  public static getCreatedModelSchema(data: {
+    modelType: new () => DatabaseBaseModel;
+  }): ModelSchemaType {
+    return this.buildModelSchema({
+      modelType: data.modelType,
+      schemaType: "read",
+      includeShownOnce: true,
+      description: "Created",
       example: this.generateDynamicExample({
         modelType: data.modelType,
         schemaType: "read",

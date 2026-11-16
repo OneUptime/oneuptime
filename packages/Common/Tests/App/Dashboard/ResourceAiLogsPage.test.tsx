@@ -457,7 +457,40 @@ describe("parseResourceAiLogs", () => {
       alertId: ALERT_ID,
       approvedAt: null,
       approvedByName: null,
+      firstApprovedAt: null,
     });
+  });
+
+  test("reads when a fix that still waits was approved first, and says it waits for a second approval", () => {
+    const parsed: ResourceAiLogs | null = parseResourceAiLogs({
+      investigations: [],
+      fixes: [
+        {
+          id: FIX_ID,
+          status: AutoRemediationSuggestionStatus.Suggested,
+          firstApprovedAt: "2026-09-22T09:06:00.000Z",
+        },
+      ],
+    });
+
+    expect(parsed?.fixes[0]?.firstApprovedAt).toBe("2026-09-22T09:06:00.000Z");
+    expect(
+      getResourceFixStatusLook(
+        AutoRemediationSuggestionStatus.Suggested,
+        parsed?.fixes[0]?.firstApprovedAt,
+      ),
+    ).toEqual({ label: "Waiting for a second approval", color: Yellow500 });
+    // Negative controls: nobody approved it yet, or it no longer waits.
+    expect(
+      getResourceFixStatusLook(AutoRemediationSuggestionStatus.Suggested, null)
+        .label,
+    ).toBe("Waiting for approval");
+    expect(
+      getResourceFixStatusLook(
+        AutoRemediationSuggestionStatus.Dismissed,
+        "2026-09-22T09:06:00.000Z",
+      ).label,
+    ).toBe("Dismissed");
   });
 
   test.each([

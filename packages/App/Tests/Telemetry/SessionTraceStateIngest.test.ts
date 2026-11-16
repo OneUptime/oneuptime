@@ -69,6 +69,11 @@ import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceSe
 import TelemetryFanInWriter from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import TraceDropFilter from "Common/Models/DatabaseModels/TraceDropFilter";
+import TraceScrubRule from "Common/Models/DatabaseModels/TraceScrubRule";
+import {
+  buildReplaySessionExceptionsQuery,
+  buildReplaySessionSpansQuery,
+} from "../../FeatureSet/Dashboard/src/Utils/ReplayCorrelation";
 import TraceDropFilterAction from "Common/Types/Trace/TraceDropFilterAction";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -1114,5 +1119,137 @@ describe("Span ingest: the recorder's session member of the trace state", () => 
 
       expectRepairedTrace();
     });
+  });
+});
+
+/*
+ * #8924: under a Sensitive Attribute Keys rule - whose key list names
+ * "session id" - a span stays filed under its recording. Its sessionId is
+ * what a recording's Traces and Errors find it by
+ * (Dashboard/src/Utils/ReplayCorrelation) and what a session's erasure
+ * deletes by (Workers/Jobs/Rum/ProcessSessionErasureRequests), so it is
+ * kept, and so is the attribute it was read from: the same id, hidden in
+ * one field and shown in the next, protected nothing. A session.id that
+ * holds anything else is hidden as before.
+ */
+describe("Span ingest under a Sensitive Attribute Keys rule: the session id stays the recording's (#8924)", () => {
+  let spanInsertSpy: jest.SpyInstance;
+  let exceptionInsertSpy: jest.SpyInstance;
+
+  beforeAll(() => {
+    TelemetryFanInWriter.configure({
+      maxWaitMs: 10,
+      maxBatchRows: 50,
+      retryBaseDelayMs: 1,
+      retryMaxDelayMs: 5,
+    });
+  });
+
+  beforeEach(() => {
+    mockBodyStoreBackingMap.clear();
+    setupIngestMocks([]);
+
+    const rule: TraceScrubRule = new TraceScrubRule();
+    rule.name = "secrets";
+    rule.patternType = "sensitiveKeys";
+    rule.scrubAction = "redact";
+
+    const regex: unknown = (
+      TraceScrubRuleService as unknown as {
+        getRegexForPattern: (patternType: string) => unknown;
+      }
+    ).getRegexForPattern("sensitiveKeys");
+
+    jest
+      .spyOn(TraceScrubRuleService, "loadScrubRules")
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValue([{ rule: rule, regex: regex }] as any);
+    spanInsertSpy = jest
+      .spyOn(SpanService, "insertJsonRows")
+      .mockResolvedValue(undefined);
+    exceptionInsertSpy = jest
+      .spyOn(ExceptionInstanceService, "insertJsonRows")
+      .mockResolvedValue(undefined);
+  });
+
+  afterEach(async () => {
+    await TelemetryFanInWriter.flushAll();
+    jest.restoreAllMocks();
+  });
+
+  test("a span from the page's own OpenTelemetry keeps its resource session.id, and the recording finds it and its exception", async () => {
+    await OtelTracesIngestService.processTracesFromQueue(
+      tracesRequest({
+        spans: [
+          {
+            withException: true,
+            attributes: [
+              stringAttribute("http.request.header.cookie", "sessionid=abc123"),
+            ],
+          },
+        ],
+        resourceAttributes: [stringAttribute("session.id", SESSION_ID)],
+      }),
+    );
+
+    const spanRow: JSONObject = onlyRow(spanInsertSpy);
+    const attributes: JSONObject = spanRow["attributes"] as JSONObject;
+
+    expect(spanRow["sessionId"]).toBe(SESSION_ID);
+    expect(attributes["resource.session.id"]).toBe(SESSION_ID);
+    // The login session in the cookie is hidden.
+    expect(JSON.stringify(attributes)).not.toContain("abc123");
+
+    // What the recording's Traces and Errors ask for is what was stored.
+    expect(
+      buildReplaySessionSpansQuery({ sessionId: SESSION_ID, window: null }),
+    ).toEqual({ sessionId: spanRow["sessionId"] });
+    expect(
+      buildReplaySessionExceptionsQuery({
+        sessionId: SESSION_ID,
+        window: null,
+      }),
+    ).toEqual({ sessionId: onlyRow(exceptionInsertSpy)["sessionId"] });
+  });
+
+  test("a backend span the recorder's trace state files under the recording hides a session.id of its own", async () => {
+    await OtelTracesIngestService.processTracesFromQueue(
+      tracesRequest({
+        spans: [
+          {
+            traceState: buildSessionTraceStateMember(SESSION_ID),
+            attributes: [stringAttribute("session.id", ATTRIBUTE_SESSION_ID)],
+          },
+        ],
+        resourceAttributes: [
+          stringAttribute("session.id", RESOURCE_SESSION_ID),
+        ],
+      }),
+    );
+
+    const spanRow: JSONObject = onlyRow(spanInsertSpy);
+    const attributes: JSONObject = spanRow["attributes"] as JSONObject;
+
+    expect(spanRow["sessionId"]).toBe(SESSION_ID);
+    // Neither is the span's session: both are hidden, as before.
+    expect(attributes["session.id"]).toBe("[REDACTED]");
+    expect(attributes["resource.session.id"]).toBe("[REDACTED]");
+  });
+
+  test("a span's own session.id, when no trace state names one, is kept", async () => {
+    await OtelTracesIngestService.processTracesFromQueue(
+      tracesRequest({
+        spans: [
+          { attributes: [stringAttribute("session.id", OTHER_SESSION_ID)] },
+        ],
+      }),
+    );
+
+    const spanRow: JSONObject = onlyRow(spanInsertSpy);
+
+    expect(spanRow["sessionId"]).toBe(OTHER_SESSION_ID);
+    expect((spanRow["attributes"] as JSONObject)["session.id"]).toBe(
+      OTHER_SESSION_ID,
+    );
   });
 });

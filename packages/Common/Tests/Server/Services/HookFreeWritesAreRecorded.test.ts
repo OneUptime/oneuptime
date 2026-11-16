@@ -142,6 +142,11 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     "ExceptionUtil.saveOrUpdateTelemetryExceptionsBatch TelemetryException":
       Why.Reported,
   },
+  // The monitors measured before firstMeasuredAt was kept, stamped (#8899).
+  "packages/App/FeatureSet/Workers/DataMigrations/BackfillMonitorFirstMeasuredAt.ts":
+    {
+      "(module) Monitor": Why.Migration,
+    },
   "packages/App/FeatureSet/Workers/DataMigrations/BackfillNetworkSiteTypes.ts":
     {
       "BackfillNetworkSiteTypes.backfillProject NetworkSite": Why.Migration,
@@ -513,6 +518,14 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
    */
   "packages/Common/Server/Utils/Monitor/IncomingRequestSecretActivity.ts": {
     "IncomingRequestSecretActivity.record Monitor": Why.Reported,
+  },
+  /*
+   * When something first measured a monitor (#8899): stamped once in its
+   * life, by the first result accepted for it, or as a manual monitor is
+   * created. Nobody changed the monitor.
+   */
+  "packages/Common/Server/Utils/Monitor/MonitorFirstMeasured.ts": {
+    "MonitorFirstMeasured.stamp Monitor": Why.Bookkeeping,
   },
   "packages/Common/Server/Utils/Monitor/MonitorResource.ts": {
     "MonitorResourceUtil.monitorResource Monitor": Why.Reported,

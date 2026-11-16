@@ -1023,6 +1023,10 @@ import { RemoveSampleProject1809180800000 } from "./1809180800000-RemoveSamplePr
 import { AddRunnerCanRunCodeFixes1809180900000 } from "./1809180900000-AddRunnerCanRunCodeFixes";
 import { AddResolvedRecordRetentionServerLimits1809181000000 } from "./1809181000000-AddResolvedRecordRetentionServerLimits";
 import { AddMonitorFirstMeasuredAt1809181100000 } from "./1809181100000-AddMonitorFirstMeasuredAt";
+import { ApiKeyHashedColumn1809181200000 } from "./1809181200000-ApiKeyHashedColumn";
+import { AddMasterApiKeyCreatedByAndHint1809181300000 } from "./1809181300000-AddMasterApiKeyCreatedByAndHint";
+import { AddFirstApprovedPlanFingerprint1809181730000 } from "./1809181730000-AddFirstApprovedPlanFingerprint";
+import { AddIncomingRequestSecretMonitorAccess1809181830000 } from "./1809181830000-AddIncomingRequestSecretMonitorAccess";
 
 export default [
   InitialMigration,
@@ -2050,4 +2054,8 @@ export default [
   AddRunnerCanRunCodeFixes1809180900000,
   AddResolvedRecordRetentionServerLimits1809181000000,
   AddMonitorFirstMeasuredAt1809181100000,
+  ApiKeyHashedColumn1809181200000,
+  AddMasterApiKeyCreatedByAndHint1809181300000,
+  AddFirstApprovedPlanFingerprint1809181730000,
+  AddIncomingRequestSecretMonitorAccess1809181830000,
 ];

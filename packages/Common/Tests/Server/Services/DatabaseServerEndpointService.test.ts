@@ -546,6 +546,39 @@ function fakeRowMatches(database: FakeDatabase, query: any): boolean {
     }
   }
 
+  /*
+   * A grant limited to labels keeps a database by a condition on its id
+   * against its label join table (#8113), and a block with labels leaves
+   * one out the same way: the database carries one of the labels bound,
+   * or none of them.
+   */
+  for (const condition of labelRuleConditionsOf(query._id)) {
+    const sql: string = String(condition.getSql("DatabaseServer._id"));
+
+    if (!sql.includes('"DatabaseServerLabel"."databaseServerId"')) {
+      continue;
+    }
+
+    const labelIds: Array<string> = Object.values(
+      condition._objectLiteralParameters ||
+        condition.objectLiteralParameters ||
+        {},
+    )
+      .flat()
+      .map((labelId: unknown): string => {
+        return String(labelId).toLowerCase();
+      });
+    const carries: boolean = database.labelIds.some(
+      (labelId: string): boolean => {
+        return labelIds.includes(labelId.toLowerCase());
+      },
+    );
+
+    if (sql.includes("NOT IN (SELECT") ? carries : !carries) {
+      return false;
+    }
+  }
+
   return true;
 }
 

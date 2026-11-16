@@ -1,5 +1,8 @@
 import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
+import PreviousTimelineEntries, {
+  TimelineOf,
+} from "../../Utils/PreviousTimelineEntries";
 import OwnerNotificationBacklog, {
   OwnerNotificationPage,
 } from "../../Utils/OwnerNotificationBacklog";
@@ -27,8 +30,6 @@ import ScheduledMaintenanceFeedService from "Common/Server/Services/ScheduledMai
 import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
 import { Blue500 } from "Common/Types/BrandColors";
 import UserService from "Common/Server/Services/UserService";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
@@ -65,6 +66,20 @@ const STATE_TIMELINE_SELECT: Select<ScheduledMaintenanceStateTimeline> = {
   scheduledMaintenanceState: {
     name: true,
     color: true,
+  },
+};
+
+/*
+ * The entries a state change's previous one is read from, and what it is read
+ * with: for "Was ... for ..." in its email (PreviousTimelineEntries).
+ */
+const TIMELINE: TimelineOf<ScheduledMaintenanceStateTimeline> = {
+  service: ScheduledMaintenanceStateTimelineService,
+  recordIdColumn: "scheduledMaintenanceId",
+  select: {
+    scheduledMaintenanceStateId: true,
+    startsAt: true,
+    createdAt: true,
   },
 };
 
@@ -123,6 +138,21 @@ RunCron(
         },
         select: STATE_TIMELINE_SELECT,
         deadline: deadline,
+        /*
+         * The entry before each state change, read once for the page: two reads
+         * per maintenance event with more than one of them on the page, instead of
+         * one per state change (PreviousTimelineEntries, issue #8863).
+         */
+        readPage: async (
+          entries: Array<ScheduledMaintenanceStateTimeline>,
+          page: OwnerNotificationPage,
+        ): Promise<void> => {
+          await PreviousTimelineEntries.readForPage({
+            ...TIMELINE,
+            entries: entries,
+            page: page,
+          });
+        },
         notify: async (input: {
           record: ScheduledMaintenanceStateTimeline;
           page: OwnerNotificationPage;
@@ -259,25 +289,11 @@ async function notifyOwnersOfStateChange(data: {
     scheduledMaintenanceStateTimeline.startsAt
   ) {
     const previousTimeline: ScheduledMaintenanceStateTimeline | null =
-      await ScheduledMaintenanceStateTimelineService.findOneBy({
-        query: {
-          scheduledMaintenanceId:
-            scheduledMaintenanceStateTimeline.scheduledMaintenanceId,
-          startsAt: QueryHelper.lessThan(
-            scheduledMaintenanceStateTimeline.startsAt,
-          ),
-        },
-        sort: {
-          startsAt: SortOrder.Descending,
-        },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          scheduledMaintenanceStateId: true,
-          startsAt: true,
-          createdAt: true,
-        },
+      // Read with the page's other state changes of the maintenance event, or on its own (#8863).
+      await PreviousTimelineEntries.of({
+        ...TIMELINE,
+        entry: scheduledMaintenanceStateTimeline,
+        page: data.page,
       });
 
     if (previousTimeline?.scheduledMaintenanceStateId) {

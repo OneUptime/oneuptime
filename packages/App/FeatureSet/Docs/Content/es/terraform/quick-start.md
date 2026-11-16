@@ -32,7 +32,7 @@ flowchart TB
 
 En el panel de OneUptime, abra **Ajustes del proyecto → Avanzado → Claves de API** y haga clic en **Crear Clave de API**. Dele un **Nombre**, como `terraform`, y en **Acceso** elija **Administrador del proyecto**: Terraform crea, lee, cambia y elimina cada tipo de registro que gestiona, y **Administrador del proyecto** puede hacer todo eso. Para una clave más limitada, elija **Elegir los permisos más tarde** y añada en la página de la clave solo los permisos que necesite.
 
-La clave caduca dentro de un año. Para elegir otra fecha, abra **Más campos** antes de crearla, o cambie la fecha más tarde en la página de la clave. Una vez creada la clave, se abre su página: copie la **Clave de API** de la tarjeta **Detalles de la clave de API**.
+La clave caduca dentro de un año. Para elegir otra fecha, abra **Más campos** antes de crearla, o cambie la fecha más tarde en la página de la clave. Una vez creada la clave, OneUptime la muestra una sola vez, en el diálogo **Copia tu clave de API**: cópiela antes de pulsar **Hecho**.
 
 ### Poner la clave a disposición de Terraform
 
@@ -218,7 +218,7 @@ El proveedor no encontró ninguna clave de API. Exporte `ONEUPTIME_API_KEY` en l
 :::
 
 :::details Mensaje «the OneUptime API returned status 400: Invalid API Key»
-La clave está mal escrita, caducada o eliminada, o pertenece a otra instancia de OneUptime distinta de la que indica `oneuptime_url`. Copie de nuevo la clave desde su página, o cree una nueva.
+La clave está mal escrita, caducada o eliminada, o pertenece a otra instancia de OneUptime distinta de la que indica `oneuptime_url`. Compruébela con cómo termina la clave en su página, o restablézcala allí para obtener una nueva.
 :::
 
 :::details Mensaje «the OneUptime API returned status 402: API keys need the Growth plan»

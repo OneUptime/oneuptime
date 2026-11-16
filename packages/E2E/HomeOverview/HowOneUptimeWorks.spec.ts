@@ -8,13 +8,16 @@ import {
 import fs from "fs/promises";
 import { readFileSync } from "fs";
 import path from "path";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * "How OneUptime works", always one click away, and a word's definition
  * where it is used (#6819), in a real browser with production's CSS: Help
  * starts with the ways to learn; Help and Home's Explore OneUptime open How
- * OneUptime works in a dialog; its words "Telemetry" and "Infrastructure"
+ * OneUptime works in a dialog - the four steps a problem moves through, then
+ * every product by category (#8891), walked with the arrow keys and Next;
+ * a product opens its page; Detect's words "telemetry" and "infrastructure"
  * show their Glossary definitions on hover, focus and tap.
  *
  * The definitions are the docs' own: the glossary route's answer is built
@@ -197,6 +200,14 @@ function word(page: Page, term: string): Locator {
   return dialog(page).locator(`[data-glossary-term="${term}"]`);
 }
 
+function step(page: Page, key: string): Locator {
+  return dialog(page).getByTestId(`how-oneuptime-works-step-${key}`);
+}
+
+function sections(page: Page): Locator {
+  return dialog(page).getByTestId("how-oneuptime-works-tab");
+}
+
 function popover(page: Page): Locator {
   return page.getByTestId("defined-term-popover");
 }
@@ -237,7 +248,7 @@ test.describe("Help starts with learning", () => {
 });
 
 test.describe("How OneUptime works, from Help", () => {
-  test("opens on any page, with its four steps, what feeds them and the docs", async ({
+  test("opens on any page, with its four steps, the products that do them and the docs", async ({
     page,
   }: {
     page: Page;
@@ -246,10 +257,15 @@ test.describe("How OneUptime works, from Help", () => {
     await open(page);
     await openFromHelp(page, "Help");
 
-    await expect(dialog(page).getByRole("listitem")).toHaveCount(4);
     await expect(
-      dialog(page).getByTestId("how-oneuptime-works-feeds"),
-    ).toContainText("feed the loop");
+      dialog(page).getByTestId(/^how-oneuptime-works-step-/),
+    ).toHaveCount(4);
+    await expect(step(page, "detect")).toContainText(
+      "watch your telemetry and infrastructure for problems",
+    );
+    await expect(
+      step(page, "respond").getByTestId("how-oneuptime-works-product"),
+    ).toHaveText(["Incidents", "Alerts", "On-Call"]);
     await expect(
       dialog(page).getByTestId("how-oneuptime-works-docs-core-concepts"),
     ).toHaveAttribute(
@@ -450,5 +466,151 @@ test.describe("How OneUptime works, from Home", () => {
     ).toBe("rtl");
 
     await screenshot(page, "how-oneuptime-works-fa");
+  });
+});
+
+test.describe("How OneUptime works, the whole product", () => {
+  test("the sections walk with the arrow keys and Next, and a category shows every product it holds", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await open(page);
+    await openFromHelp(page, "Help");
+
+    // The focus starts on the first section, How it fits together.
+    await expect(sections(page).first()).toBeFocused();
+    await expect(sections(page).first()).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+
+    await page.keyboard.press("ArrowDown");
+    await expect(sections(page).nth(1)).toBeFocused();
+    await expect(
+      dialog(page).getByTestId("how-oneuptime-works-panel"),
+    ).toHaveAttribute("data-section", "Essentials");
+    await expect(
+      dialog(page)
+        .getByTestId("how-oneuptime-works-panel")
+        .getByTestId("how-oneuptime-works-product")
+        .first(),
+    ).toContainText("Monitors");
+
+    await page.keyboard.press("End");
+    await expect(
+      dialog(page).getByTestId("how-oneuptime-works-next"),
+    ).toHaveCount(0);
+
+    await page.keyboard.press("Home");
+    await dialog(page).getByTestId("how-oneuptime-works-next").click();
+    await expect(sections(page).nth(1)).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+
+    // Infrastructure: every platform, with what each is for.
+    await sections(page).filter({ hasText: "Infrastructure" }).click();
+    await expect(
+      dialog(page).getByTestId("how-oneuptime-works-panel"),
+    ).toContainText("The servers, containers, clusters, storage and networks");
+    await expect(
+      dialog(page)
+        .getByTestId("how-oneuptime-works-panel")
+        .getByTestId("how-oneuptime-works-product")
+        .filter({ hasText: "Kubernetes" }),
+    ).toHaveCount(1);
+
+    await screenshot(page, "how-oneuptime-works-category");
+  });
+
+  test("a product opens its page, and the dialog closes", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await open(page);
+    await page.getByTestId("home-how-oneuptime-works").click();
+    await expect(dialog(page)).toBeVisible();
+
+    await step(page, "respond")
+      .getByTestId("how-oneuptime-works-product")
+      .filter({ hasText: "On-Call" })
+      .click();
+
+    await expect(dialog(page)).toHaveCount(0);
+    await expect(page.getByTestId("stub-page")).toContainText(
+      `/dashboard/${PROJECT_ID}/on-call-duty`,
+    );
+  });
+
+  test("on a phone, the sections are a row that scrolls sideways inside the dialog, and the page never does", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await open(page);
+    await page.getByTestId("home-how-oneuptime-works").click();
+    await expect(dialog(page)).toBeVisible();
+
+    const row: Locator = dialog(page).getByRole("tablist");
+    const widths: { scrollWidth: number; clientWidth: number } =
+      await row.evaluate(
+        (element: Element): { scrollWidth: number; clientWidth: number } => {
+          return {
+            scrollWidth: element.scrollWidth,
+            clientWidth: element.clientWidth,
+          };
+        },
+      );
+
+    expect(widths.scrollWidth).toBeGreaterThan(widths.clientWidth);
+    await expectNoSidewaysScroll(page);
+
+    const infrastructure: Locator = sections(page).filter({
+      hasText: "Infrastructure",
+    });
+
+    await infrastructure.click();
+    await expect(infrastructure).toHaveAttribute("aria-selected", "true");
+    await expect(infrastructure).toBeInViewport();
+    await expectNoSidewaysScroll(page);
+
+    await screenshot(page, "how-oneuptime-works-phone-category");
+  });
+
+  test("in Persian, the sections are on the right, and Left goes on to the next", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await open(page, "lang=fa");
+    await page.getByTestId("home-how-oneuptime-works").click();
+    await expect(sections(page).first()).toBeFocused();
+
+    /*
+     * Read in one frame: the dialog is still growing in, and two reads one
+     * after the other would come from two moments of it.
+     */
+    const [list, panel] = await boxesInOneFrame([
+      dialog(page).getByRole("tablist"),
+      dialog(page).getByTestId("how-oneuptime-works-panel"),
+    ]);
+
+    expect(list!.x).toBeGreaterThan(panel!.x);
+
+    await page.keyboard.press("ArrowLeft");
+    await expect(sections(page).nth(1)).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+
+    // Back to the steps, numbered in Persian digits.
+    await page.keyboard.press("ArrowRight");
+    await expect(step(page, "detect")).toContainText("۱");
   });
 });

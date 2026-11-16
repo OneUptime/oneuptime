@@ -5,6 +5,8 @@ import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 import { RemediationActionValue } from "../../../AutoRemediation/RemediationChatMessage";
+import { ApprovalStepChangedException } from "../../../AutoRemediation/RemediationApproval";
+import { mdText } from "../../../../../Utils/Markdown/FeedMarkdown";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import { WorkspaceAnswer } from "../../WorkspaceActionAnswers";
 import WorkspaceRemediationActions, {
@@ -147,22 +149,41 @@ export default class MicrosoftTeamsRemediationActions {
       data.actionType ===
       MicrosoftTeamsRemediationActionType.SubmitApproveRemediation
     ) {
-      const approved: WorkspaceAnswer =
-        await WorkspaceRemediationActions.approve({
+      let answer: WorkspaceAnswer;
+
+      try {
+        answer = await WorkspaceRemediationActions.approve({
           props,
           value,
           from: WorkspaceType.MicrosoftTeams,
           suggestion,
         });
+      } catch (err) {
+        if (!(err instanceof ApprovalStepChangedException)) {
+          throw err;
+        }
+
+        /*
+         * The card no longer says what its press does (someone else
+         * approved first, or the rule changed): nothing was done, and the
+         * presser is told to review the fix again.
+         */
+        answer = {
+          markdown: mdText`${err.message}`.toString(),
+          text: err.message,
+        };
+      }
 
       /*
-       * Confirmed, then the approval card is removed - best-effort, as
-       * every submitted form is (MicrosoftTeamsReplies): it has done its
-       * work, and left on screen it would invite a second press.
+       * Confirmed (or told to review it again), then the approval card is
+       * removed - best-effort, as every submitted form is
+       * (MicrosoftTeamsReplies): it has done its work, or no longer says
+       * what pressing it does, and left on screen it would invite another
+       * press from anyone in the channel.
        */
       await MicrosoftTeamsActionAnswer.reply({
         turnContext: data.turnContext,
-        answer: approved,
+        answer,
       });
       await MicrosoftTeamsReplies.deleteBestEffort(
         data.turnContext,

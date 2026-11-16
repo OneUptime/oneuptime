@@ -6,7 +6,7 @@ import {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
-import EventLoop from "Common/Server/Utils/EventLoop";
+import { EventLoopBudget } from "Common/Server/Utils/EventLoop";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import ObjectID from "Common/Types/ObjectID";
 import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
@@ -131,13 +131,22 @@ export default class SecurityEventsIngestService extends OtelIngestBaseService {
        * when no explicit service-name header was sent.
        */
       const normalizedEvents: Array<NormalizedSecurityEvent> = [];
-      let entryCounter: number = 0;
+
+      /*
+       * The event loop is handed back by the time the work took, not every
+       * 500 events: an event's work grows with what it carries - a CEF or
+       * LEEF line, a cloud audit record with nested request and response
+       * parameters - so a count held the loop for as long as 500 of the
+       * largest took. One budget for the batch, asked before each event as
+       * it is normalized and again as it is written
+       * (Common/Server/Utils/EventLoop.ts, #8925).
+       */
+      const eventLoopBudget: EventLoopBudget = new EventLoopBudget();
 
       for (const entry of entries) {
-        if (entryCounter % 500 === 0) {
-          await EventLoop.yieldToEventLoop();
+        if (eventLoopBudget.isSpent()) {
+          await eventLoopBudget.handBack();
         }
-        entryCounter++;
 
         try {
           const normalized: NormalizedSecurityEvent | null =
@@ -197,8 +206,8 @@ export default class SecurityEventsIngestService extends OtelIngestBaseService {
 
       for (const normalized of normalizedEvents) {
         try {
-          if (processed % 500 === 0) {
-            await EventLoop.yieldToEventLoop();
+          if (eventLoopBudget.isSpent()) {
+            await eventLoopBudget.handBack();
           }
 
           dbRows.push(

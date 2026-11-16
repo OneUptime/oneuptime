@@ -1,7 +1,7 @@
 import RemediationApproval, {
   getFixChangedSinceMessage,
 } from "../../../../Server/Utils/AutoRemediation/RemediationApproval";
-import { getRemediationPlanFingerprint } from "../../../../Server/Utils/AutoRemediation/RemediationPlanFingerprint";
+import { getRemediationPlanFingerprint } from "../../../../Types/AutoRemediation/RemediationPlanFingerprint";
 import AlertFeedService from "../../../../Server/Services/AlertFeedService";
 import AutoRemediationSuggestionService from "../../../../Server/Services/AutoRemediationSuggestionService";
 import ExternalMcpServerService from "../../../../Server/Services/ExternalMcpServerService";
@@ -111,6 +111,8 @@ function mcpRow(
     projectId: PROJECT_ID,
     incidentId: INCIDENT_ID,
     status: AutoRemediationSuggestionStatus.Suggested,
+    // The row's version, which every write moves on.
+    version: 1,
     suggestionType: AutoRemediationSuggestionType.McpToolCalls,
     mcpToolCallPlan: ExternalMcpToolCallPlanUtil.toJSON({
       calls: [call(ExternalMcpToolCallStatus.Proposed)],
@@ -127,6 +129,8 @@ function commandRow(): Record<string, unknown> {
     projectId: PROJECT_ID,
     incidentId: INCIDENT_ID,
     status: AutoRemediationSuggestionStatus.Suggested,
+    // The row's version, which every write moves on.
+    version: 1,
     suggestionType: AutoRemediationSuggestionType.CommandPlan,
     commandPlan: AiRemediationCommandPlanUtil.toJSON({
       commands: [

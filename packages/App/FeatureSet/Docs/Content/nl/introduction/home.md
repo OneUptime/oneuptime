@@ -36,7 +36,7 @@ De regel bovenaan noemt het dringendste dat openstaat, in een bijpassende kleur:
 | Er draaien monitoren en er staat niets open | **Alle systemen operationeel** |
 | Het project heeft nog geen monitoren | **Er wordt nog niets gemonitord** |
 
-Ernaast staat wanneer Start het project voor het laatst heeft gelezen, en **Vernieuwen** leest het opnieuw. Komt u na een minuut of langer terug op een tabblad met Start, dan vernieuwt Start zich vanzelf.
+Ernaast staat wanneer Start het project voor het laatst heeft gelezen, en **Vernieuwen** leest het opnieuw. Start volgt ook wat het telt terwijl het verandert: wanneer een incident, waarschuwing, monitor, onderhoudsgebeurtenis of SLO wordt aangemaakt, gewijzigd of verwijderd, lopen de regel, de getallen, **Vraagt aandacht** en **Aankomend onderhoud** binnen enkele seconden bij, zonder te vernieuwen. Komt u na een minuut of langer terug op een tabblad met Start, dan vernieuwt Start zich vanzelf.
 
 Zolang er nog niets wordt gemonitord, eindigt de regel met de knop **Maak je eerste monitor**, die de begeleide installatie **Weten wanneer mijn website of API plat ligt** opent. Alleen wie monitoren mag maken, ziet hem.
 
@@ -89,6 +89,8 @@ flowchart TB
 
 De checklist verdwijnt voor iedereen zodra elke stap klaar is. Om hem eerder te verbergen, klik je op **Verbergen**: hij is dan alleen voor jou verborgen, op elk apparaat, en er blijft een regel met **Tonen** en **Hoe OneUptime werkt**. Wie als lid in het project is uitgenodigd, ziet de checklist niet. **Hoe OneUptime werkt** blijft in elk project één klik verwijderd: open het via **Hulp** of met de knop naast **Verken OneUptime**.
 
+**Hoe OneUptime werkt** opent op **Hoe het in elkaar grijpt**: de vier stappen die een probleem doorloopt, **Detecteren**, **Reageren**, **Communiceren** en **Verbeteren**, elk met de producten die die stap doen. Daarna volgen de categorieën van het menu **Producten**, elk met zijn producten en waarvoor elk dient: kies er een, of ga naar de volgende met de pijltjestoetsen of **Volgende**. Klik op een product om het te openen. Producten die je project verbergt, staan er niet in.
+
 ### Vraagt aandacht
 
 **Vraagt aandacht** toont bij naam wat de getallen tellen: de open incidenten, de open waarschuwingen, de monitoren die niet operationeel zijn, de SLO's in gevaar en het lopende onderhoud, het dringendste eerst. Elke rij toont de ernst of status, zegt wanneer een incident of waarschuwing begon en wanneer het onderhoud eindigt, en opent het item. Van elke soort staan er hooguit vijf, met **Alle tonen** voor de rest, dat dezelfde lijst opent als het getal ervan. Als er niets openstaat, staat er **Niets vraagt je aandacht**.
@@ -137,7 +139,7 @@ Een woord met een stippellijn eronder, zoals **Sondes** in het formulier van een
 
 Boven de titel van elke pagina toont een pad zoals *Project › Docker › Instellingen › Eigenaarsregels* waar de pagina staat. Elke stap vóór de laatste opent zijn pagina.
 
-- **Lijsten houden zichzelf bij.** Wanneer ergens een incident of waarschuwing wordt aangemaakt, bevestigd of opgelost, tonen de lijsten met incidenten, waarschuwingen en episodes dat binnen enkele seconden, zonder te vernieuwen. Terwijl u op een lijst midden in iets zit, zoals aangevinkte rijen of een open dialoogvenster, wacht de lijst en haalt ze alles in zodra u klaar bent.
+- **Lijsten houden zichzelf bij.** Wanneer ergens een incident, waarschuwing, monitor of onderhoudsgebeurtenis wordt aangemaakt, gewijzigd of verwijderd, tonen de lijsten met incidenten, waarschuwingen, episodes, monitoren en onderhoudsgebeurtenissen dat binnen enkele seconden, zonder te vernieuwen, en de aantallen ernaast in de zijmenu's ook. De aantallen van de bel, en de lijsten **Actieve incidenten**, **Actieve waarschuwingen**, **Actieve incidentepisodes** en **Actieve waarschuwingsepisodes**, volgen elk project waar u lid van bent, niet alleen het project dat open is. Terwijl u op een lijst midden in iets zit, zoals aangevinkte rijen of een open dialoogvenster, wacht de lijst en haalt ze alles in zodra u klaar bent.
 - **Op een telefoon klappen de filterchips weg** achter **Filter**, zodat de lijst hoger begint. De chips die u hebt ingesteld blijven in beeld, met **Alles wissen**. Druk op **Filter** om alle chips te zien, en nogmaals om ze weer in te klappen.
 - Het item **Kolommen** in het menu **⋯** van een lijst kiest welke kolommen de lijst toont en in welke volgorde, en bewaart ze voor u in deze browser. Een Projecteigenaar of Projectbeheerder kan daar ook **Deze kolommen aan iedereen in dit project tonen** aanvinken: wie voor die lijst geen eigen kolommen heeft gekozen, ziet dan deze, en **Terugzetten naar projectstandaard** zet uw eigen kolommen weer op deze terug.
 - Het item **Compacte rijen** in hetzelfde menu tekent de rijen van elke lijst lager, zodat een lange lijst er ongeveer een vijfde meer toont. De keuze blijft bewaard in deze browser.

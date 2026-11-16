@@ -396,7 +396,7 @@ describe("once a fix two people approved is decided", () => {
 });
 
 describe("getRemediationFixApprovals", () => {
-  test("only a command plan that waits for approval can need two", () => {
+  test("only a fix that waits for approval can need two, and never a runbook", () => {
     const none: RemediationFixApprovals = {
       isWaitingForSecondApproval: false,
       needsTwoApprovals: false,
@@ -421,12 +421,59 @@ describe("getRemediationFixApprovals", () => {
     expect(
       getRemediationFixApprovals({
         suggestion: approvedFirstByMaya({
-          suggestionType: AutoRemediationSuggestionType.McpToolCalls,
+          suggestionType: AutoRemediationSuggestionType.Runbook,
         }),
         isTwoApprovalsRuleOn: true,
         readerUserId: MAYA,
       }),
     ).toEqual(none);
+  });
+
+  /*
+   * A fix through MCP servers holds a riskier change whatever it changes
+   * (#6421): no policy of OneUptime's tiers what an MCP tool does.
+   */
+  test("a fix through MCP servers needs two where the rule is on, and waits after its first approval", () => {
+    expect(
+      getRemediationFixApprovals({
+        suggestion: {
+          status: AutoRemediationSuggestionStatus.Suggested,
+          suggestionType: AutoRemediationSuggestionType.McpToolCalls,
+        },
+        isTwoApprovalsRuleOn: true,
+        readerUserId: MAYA,
+      }),
+    ).toEqual({
+      isWaitingForSecondApproval: false,
+      needsTwoApprovals: true,
+      isFirstApprovedByReader: false,
+    });
+
+    expect(
+      getRemediationFixApprovals({
+        suggestion: approvedFirstByMaya({
+          suggestionType: AutoRemediationSuggestionType.McpToolCalls,
+        }),
+        isTwoApprovalsRuleOn: true,
+        readerUserId: MAYA,
+      }),
+    ).toEqual({
+      isWaitingForSecondApproval: true,
+      needsTwoApprovals: true,
+      isFirstApprovedByReader: true,
+    });
+
+    // Negative control: with the rule off, one approval makes its changes.
+    expect(
+      getRemediationFixApprovals({
+        suggestion: {
+          status: AutoRemediationSuggestionStatus.Suggested,
+          suggestionType: AutoRemediationSuggestionType.McpToolCalls,
+        },
+        isTwoApprovalsRuleOn: false,
+        readerUserId: MAYA,
+      }).needsTwoApprovals,
+    ).toBe(false);
   });
 
   test("a plan that can no longer be approved waits for nobody", () => {

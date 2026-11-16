@@ -1,5 +1,6 @@
 import type { AxiosResponse } from "axios";
 import apiClient from "./client";
+import { isRefusedSelect } from "./refusedSelect";
 import type {
   ListResponse,
   MonitorItem,
@@ -10,7 +11,87 @@ import {
   getDisabledMonitorsQuery,
   getListedMonitorsQuery,
   getMonitorIssuesQuery,
+  getMonitorRowStatusSelect,
 } from "../utils/monitorHealth";
+
+/*
+ * What the Monitors screen and a monitor's own screen read of a monitor: the
+ * monitor, and every field the row rule reads (utils/monitorHealth) - the
+ * flags that say nothing checks it, whether anything has measured it yet,
+ * when it was created and how often it is checked - so the app says of it
+ * what the web says: Waiting for data, No results yet, Paused, Probes Not
+ * Enabled or Probes Disconnected where no check stands behind its status.
+ */
+function getMonitorSelect(withProjectId: boolean): Record<string, unknown> {
+  const rowStatusSelect: Record<string, unknown> = getMonitorRowStatusSelect();
+
+  return {
+    _id: true,
+    name: true,
+    description: true,
+    ...rowStatusSelect,
+    currentMonitorStatus: {
+      _id: true,
+      ...(rowStatusSelect["currentMonitorStatus"] as Record<string, unknown>),
+    },
+    ...(withProjectId ? { projectId: true } : {}),
+  };
+}
+
+/*
+ * What the app read before, for a server older than Monitor.firstMeasuredAt
+ * (#8899): such a server refuses a select that names a column it does not
+ * have, as a bad request. Its monitors are read without firstMeasuredAt, so
+ * each one says its status as it always did.
+ */
+function getLegacyMonitorSelect(
+  withProjectId: boolean,
+): Record<string, unknown> {
+  return {
+    _id: true,
+    name: true,
+    description: true,
+    monitorType: true,
+    currentMonitorStatus: {
+      _id: true,
+      name: true,
+      color: true,
+      isOperationalState: true,
+    },
+    disableActiveMonitoring: true,
+    createdAt: true,
+    ...(withProjectId ? { projectId: true } : {}),
+  };
+}
+
+// A page of monitors, read as the row rule needs them, or as before.
+async function postMonitorList(data: {
+  projectId: string;
+  url: string;
+  getQuery: () => Record<string, unknown>;
+  sort: Record<string, unknown>;
+  withProjectId: boolean;
+}): Promise<AxiosResponse> {
+  const post: (select: Record<string, unknown>) => Promise<AxiosResponse> = (
+    select: Record<string, unknown>,
+  ): Promise<AxiosResponse> => {
+    return apiClient.post(
+      data.url,
+      { query: data.getQuery(), select: select, sort: data.sort },
+      { headers: { tenantid: data.projectId } },
+    );
+  };
+
+  try {
+    return await post(getMonitorSelect(data.withProjectId));
+  } catch (error: unknown) {
+    if (!isRefusedSelect(error)) {
+      throw error;
+    }
+
+    return await post(getLegacyMonitorSelect(data.withProjectId));
+  }
+}
 
 /*
  * The Monitors screen's list. Archived monitors are left out, as from every
@@ -24,31 +105,13 @@ export async function fetchMonitors(
 ): Promise<ListResponse<MonitorItem>> {
   const { skip = 0, limit = 100 } = options;
 
-  const response: AxiosResponse = await apiClient.post(
-    `/api/monitor/get-list?skip=${skip}&limit=${limit}`,
-    {
-      query: getListedMonitorsQuery(),
-      select: {
-        _id: true,
-        name: true,
-        description: true,
-        monitorType: true,
-        currentMonitorStatus: {
-          _id: true,
-          name: true,
-          color: true,
-          isOperationalState: true,
-        },
-        disableActiveMonitoring: true,
-        createdAt: true,
-        projectId: true,
-      },
-      sort: { createdAt: "DESC" },
-    },
-    {
-      headers: { tenantid: projectId },
-    },
-  );
+  const response: AxiosResponse = await postMonitorList({
+    projectId: projectId,
+    url: `/api/monitor/get-list?skip=${skip}&limit=${limit}`,
+    getQuery: getListedMonitorsQuery,
+    sort: { createdAt: "DESC" },
+    withProjectId: true,
+  });
   return response.data;
 }
 
@@ -56,30 +119,15 @@ export async function fetchMonitorById(
   projectId: string,
   monitorId: string,
 ): Promise<MonitorItem | null> {
-  const response: AxiosResponse = await apiClient.post(
-    "/api/monitor/get-list?skip=0&limit=1",
-    {
-      query: { _id: monitorId },
-      select: {
-        _id: true,
-        name: true,
-        description: true,
-        monitorType: true,
-        currentMonitorStatus: {
-          _id: true,
-          name: true,
-          color: true,
-          isOperationalState: true,
-        },
-        disableActiveMonitoring: true,
-        createdAt: true,
-      },
-      sort: {},
+  const response: AxiosResponse = await postMonitorList({
+    projectId: projectId,
+    url: "/api/monitor/get-list?skip=0&limit=1",
+    getQuery: (): Record<string, unknown> => {
+      return { _id: monitorId };
     },
-    {
-      headers: { tenantid: projectId },
-    },
-  );
+    sort: {},
+    withProjectId: false,
+  });
 
   /*
    * `null` for a row that is not there, and never `undefined`.

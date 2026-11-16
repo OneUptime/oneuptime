@@ -163,6 +163,12 @@ export function readOwnStrings(
  */
 export const ADMIN_DASHBOARD_CATALOGS: ReadonlyArray<string> = [
   "packages/Common/Types/Analytics/ActivationMilestone.ts",
+  /*
+   * What a feedback answer was about - a guided setup by its name, Give
+   * feedback's kind, the check-in's question - which the Feedback page looks
+   * up by the answer's kind and topic (#8893).
+   */
+  "packages/Common/Types/ProductFeedback/ProductFeedback.ts",
 ];
 
 export function readAdminCatalogStrings(): OwnStrings {

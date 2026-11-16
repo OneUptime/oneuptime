@@ -504,8 +504,18 @@ export default interface Field<TEntity> {
    * optional, because blank keeps what is stored. With nothing stored blank would keep
    * nothing, so it is asked for as on a new record (ModelForm). Its value is still never read
    * back.
+   *
+   * Or a function of what the record holds, as the edit read it, for a column only some
+   * records keep a value in: a custom domain's private key is stored only once the domain
+   * serves its own certificate, so one on the free certificate is asked for the key when it
+   * is switched to its own (CustomDomainCertificateFields), and one that serves it already
+   * keeps the stored key when the field is left blank. ModelForm decides before the form is
+   * drawn, from the record it read; a form that reads no record hands it its initialValues.
    */
-  hasNothingStoredWhenEditing?: boolean | undefined;
+  hasNothingStoredWhenEditing?:
+    | boolean
+    | ((storedValues: FormValues<TEntity>) => boolean)
+    | undefined;
 
   /*
    * The field only drives the form: it fills in, or edits a part of,

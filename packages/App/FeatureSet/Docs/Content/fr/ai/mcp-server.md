@@ -144,7 +144,7 @@ Sous **Accès**, choisissez **Lecteur** pour un agent qui ne fait que lire, ou *
 
 ### Copier la clé
 
-Cliquez sur **Créer : Clé API** : la page de la clé s'ouvre. Copiez la clé depuis cette page.
+Cliquez sur **Créer : Clé API**. OneUptime n'affiche la clé qu'une seule fois, dans la boîte de dialogue **Copiez votre clé API** : copiez-la avant d'appuyer sur **Terminé**.
 :::
 
 Les clés API appartiennent à un projet : le serveur MCP prend le projet dans la clé, si bien que les outils de création n'ont jamais besoin d'un argument `projectId`.

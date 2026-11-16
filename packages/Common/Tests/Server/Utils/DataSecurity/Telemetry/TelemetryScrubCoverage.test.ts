@@ -520,6 +520,32 @@ describe("a sensitive-keys rule", () => {
     ["trace", DataStoreKind.TelemetryTraces, "name", false],
     ["trace", DataStoreKind.TelemetryExceptions, "attributes.session_id", true],
     ["trace", DataStoreKind.TelemetryExceptions, "message", false],
+    /*
+     * #8924: a record's own session or conversation id, which the rule
+     * keeps when the attribute holds it, as the record's column does. An
+     * event's attributes, and any other session key, are hidden as before.
+     */
+    ["log", DataStoreKind.TelemetryLogs, "attributes.session.id", false],
+    [
+      "log",
+      DataStoreKind.TelemetryLogs,
+      "attributes.resource.session.id",
+      false,
+    ],
+    ["trace", DataStoreKind.TelemetryTraces, "attributes.session.id", false],
+    [
+      "trace",
+      DataStoreKind.TelemetryAiConversations,
+      "attributes.langfuse.session.id",
+      false,
+    ],
+    [
+      "trace",
+      DataStoreKind.TelemetryTraces,
+      "events.checkout.session_id",
+      true,
+    ],
+    ["trace", DataStoreKind.TelemetryTraces, "attributes.app.session.id", true],
     [
       "trace",
       DataStoreKind.TelemetryAiConversations,
@@ -980,6 +1006,18 @@ describe("Scrub It", () => {
     expect(saved.patternType).toBe("sensitiveKeys");
     expect(saved.customRegex).toBeUndefined();
     expect(saved.fieldsToScrub).toBe("attributes");
+  });
+
+  test("a secret in a record's session.id: not a sensitive-keys rule, which keeps the record's own session id (#8924)", async () => {
+    await createScrubRuleForFinding({
+      projectId: PROJECT_ID,
+      kind: DataStoreKind.TelemetryLogs,
+      dataTypeId: "github-token",
+      location: "attributes.session.id",
+    });
+
+    // A pattern for the token's shape: it reads the value whatever its key.
+    expect(createdLogRule().patternType).toBe("custom");
   });
 
   test("a token in an exception message: a trace rule on events", async () => {

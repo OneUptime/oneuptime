@@ -1,3 +1,4 @@
+import ProjectService from "../../../../Server/Services/ProjectService";
 import RemediationCommandToolkit, {
   ROLL_BACK_CHANGE_TOOL_NAME,
   RemediationCommandNeedingApproval,
@@ -231,6 +232,14 @@ function declares(
 }
 
 beforeEach(() => {
+  /*
+   * The project does not ask two people to approve a riskier fix: what
+   * this suite pins runs as it always has (RemediationCommandToolsTwoApprovals
+   * pins the rule turned on).
+   */
+  jest
+    .spyOn(ProjectService, "findOneById")
+    .mockResolvedValue({ requireTwoApprovalsForRiskierFixes: false } as never);
   persistedPlans = [];
   liveClusterStatuses.clear();
   jest.spyOn(logger, "error").mockImplementation((): void => {
