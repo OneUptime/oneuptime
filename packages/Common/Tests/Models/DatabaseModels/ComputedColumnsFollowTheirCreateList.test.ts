@@ -42,15 +42,18 @@ import path from "path";
  *
  * This holds every computed column of every model to that, as the models
  * declare them, so a column added tomorrow is held to it the day it is
- * declared:
+ * declared. A value a caller may not create never reaches the record:
  *
- *   - one nobody may create is refused, with its name, to a member holding
- *     every permission a team can be given - unless it is one of the columns
- *     whose value is replaced (ComputedColumnsReplacedOnCreate), which is
- *     dropped instead;
+ *   - it is refused, with the column's name, when the caller may not even
+ *     read the column - the salts, tokens and verification state, which no
+ *     record the caller could read carries - even to a member holding every
+ *     permission a team can be given;
+ *   - it is dropped, when the caller may read the column (a record read and
+ *     sent back whole carries it), or the column is one whose value a create
+ *     sends is replaced whoever sends it (ComputedColumnsReplacedOnCreate);
  *   - one some may create is taken from each permission that may create its
- *     table that the column's list names, and refused to each one it does
- *     not;
+ *     table that the column's list names, and dropped or refused for each
+ *     one it does not;
  *   - the check of the record as written lets it through only as one the
  *     create's own steps wrote, or one OneUptime's code marked;
  *   - the ones the check never weighs are ones OneUptime writes on every
@@ -121,6 +124,7 @@ interface ComputedColumn {
   modelType: ModelType;
   metadata: TableColumnMetadata;
   create: Array<Permission>;
+  read: Array<Permission>;
 }
 
 function tableOf(modelType: ModelType): string {
@@ -147,6 +151,7 @@ const COMPUTED_COLUMNS: Array<ComputedColumn> = (Models as Array<ModelType>)
           modelType: modelType,
           metadata: model.getTableColumnMetadata(column),
           create: accessControl?.create || [],
+          read: accessControl?.read || [],
         };
       });
   })
@@ -180,12 +185,12 @@ const NOT_WEIGHED: Array<ComputedColumn> = COMPUTED_COLUMNS.filter(
   },
 );
 
-// Whether a member holding `permissions` holds one of the column's create list.
-function isOnTheList(
-  entry: ComputedColumn,
+// Whether a member holding `permissions` holds one of `list`.
+function holdsOneOf(
+  list: Array<Permission>,
   permissions: Array<Permission>,
 ): boolean {
-  return entry.create.some((permission: Permission): boolean => {
+  return list.some((permission: Permission): boolean => {
     return (
       permissions.includes(permission) ||
       HELD_BY_EVERY_PERSON.includes(permission)
@@ -193,7 +198,40 @@ function isOnTheList(
   });
 }
 
+// Whether a member holding `permissions` holds one of the column's create list.
+function isOnTheList(
+  entry: ComputedColumn,
+  permissions: Array<Permission>,
+): boolean {
+  return holdsOneOf(entry.create, permissions);
+}
+
+function isReplaced(entry: ComputedColumn): boolean {
+  return ComputedColumnsReplacedOnCreate.isReplaced(entry.table, entry.column);
+}
+
 type Outcome = "taken" | "dropped" | "refused";
+
+/*
+ * What the rule says a create from a member holding `permissions` that gives
+ * `entry` a value gets: taken from those on the column's create list;
+ * dropped for those who may read the column, or for a column whose value is
+ * replaced; refused to everyone else.
+ */
+function expectedOutcome(
+  entry: ComputedColumn,
+  permissions: Array<Permission>,
+): Outcome {
+  if (isOnTheList(entry, permissions)) {
+    return "taken";
+  }
+
+  if (isReplaced(entry) || holdsOneOf(entry.read, permissions)) {
+    return "dropped";
+  }
+
+  return "refused";
+}
 
 // What the ask before the hooks does with a create that gives `entry` a value.
 function askBeforeHooks(
@@ -338,11 +376,18 @@ describe("a create that gives a computed column nobody may create a value", () =
 
   const EVERYTHING: DatabaseCommonInteractionProps = memberWith(GRANTABLE);
 
+  // The server's own, which no role reads: a value in one is made up.
+  const NOBODY_READS: Array<ComputedColumn> = NOBODY.filter(
+    (entry: ComputedColumn): boolean => {
+      return entry.read.length === 0 && !isReplaced(entry);
+    },
+  );
+
   test("they are most of the computed columns", () => {
     expect(NOBODY.length).toBeGreaterThan(400);
   });
 
-  test("is refused with the column's name, even to a member who holds every permission - or the value is dropped, for a column whose value is replaced", () => {
+  test("never reaches the record from a member holding every permission: dropped where they may read it, refused where they may not", () => {
     const outcomes: Array<{ column: string; outcome: Outcome }> = NOBODY.map(
       (entry: ComputedColumn) => {
         return {
@@ -356,12 +401,7 @@ describe("a create that gives a computed column nobody may create a value", () =
       (entry: ComputedColumn) => {
         return {
           column: nameOf(entry),
-          outcome: ComputedColumnsReplacedOnCreate.isReplaced(
-            entry.table,
-            entry.column,
-          )
-            ? "dropped"
-            : "refused",
+          outcome: expectedOutcome(entry, GRANTABLE),
         };
       },
     );
@@ -369,8 +409,40 @@ describe("a create that gives a computed column nobody may create a value", () =
     expect(outcomes).toEqual(expected);
   });
 
-  test("is refused to every permission that may create the column's table", () => {
-    const taken: Array<string> = [];
+  /*
+   * The salts, tokens, codes and the server's bookkeeping: no record a
+   * caller could read carries them, so every create that sends one is told
+   * so, whoever makes it.
+   */
+  test("one no role reads is refused with its name, even to a member holding every permission", () => {
+    expect(NOBODY_READS.length).toBeGreaterThan(50);
+
+    const notRefused: Array<string> = NOBODY_READS.filter(
+      (entry: ComputedColumn): boolean => {
+        return askBeforeHooks(entry, EVERYTHING) !== "refused";
+      },
+    ).map(nameOf);
+
+    expect(notRefused).toEqual([]);
+
+    for (const secret of [
+      "User.passwordSalt",
+      "StatusPagePrivateUser.passwordSalt",
+      "StatusPage.masterPasswordSalt",
+      "Dashboard.masterPasswordSalt",
+      "StatusPageSubscriber.unsubscribeToken",
+      "ProjectOnCallCalendarFeed.tokenHash",
+      "UserSMS.verificationCodeExpiresAt",
+      "UserEmail.verificationFailedAttempts",
+      "Incident.createdNotificationHeldAt",
+      "Label.nameSortKey",
+    ]) {
+      expect(NOBODY_READS.map(nameOf)).toContain(secret);
+    }
+  });
+
+  test("is never taken from any permission that may create the column's table, and dropped only for one that may read it", () => {
+    const wrong: Array<string> = [];
 
     for (const entry of NOBODY) {
       const creators: Array<Permission> = TablePermission.getTablePermission(
@@ -380,14 +452,17 @@ describe("a create that gives a computed column nobody may create a value", () =
 
       for (const creator of creators) {
         const outcome: Outcome = askBeforeHooks(entry, memberWith([creator]));
+        const expected: Outcome = expectedOutcome(entry, [creator]);
 
-        if (outcome === "taken") {
-          taken.push(`${nameOf(entry)} from ${creator}`);
+        if (outcome === "taken" || outcome !== expected) {
+          wrong.push(
+            `${nameOf(entry)} from ${creator}: ${outcome}, not ${expected}`,
+          );
         }
       }
     }
 
-    expect(taken).toEqual([]);
+    expect(wrong).toEqual([]);
   });
 
   test("is refused again by the check of the record as written, unless the create's own steps wrote it, or OneUptime's code marked it", () => {
@@ -422,7 +497,7 @@ describe("a create that gives a computed column some may create a value", () => 
     expect(SOME.length).toBeGreaterThan(0);
   });
 
-  test("is taken from each permission that may create the table that the column's list names, and refused to each one it does not", () => {
+  test("is taken from each permission that may create the table that the column's list names, and dropped or refused for each one it does not", () => {
     const wrong: Array<string> = [];
 
     for (const entry of SOME) {
@@ -433,11 +508,7 @@ describe("a create that gives a computed column some may create a value", () => 
 
       for (const creator of creators) {
         const outcome: Outcome = askBeforeHooks(entry, memberWith([creator]));
-        const expected: Outcome = isOnTheList(entry, [creator])
-          ? "taken"
-          : ComputedColumnsReplacedOnCreate.isReplaced(entry.table, entry.column)
-            ? "dropped"
-            : "refused";
+        const expected: Outcome = expectedOutcome(entry, [creator]);
 
         if (outcome !== expected) {
           wrong.push(
@@ -501,6 +572,11 @@ describe("OneUptime itself and a server admin", () => {
 
 describe("the columns whose value a create sends is replaced", () => {
   test("are few, and each is named once", () => {
+    /*
+     * The rule drops what a caller may read; a column is named here only
+     * when its declaration promises that a create's value is replaced for
+     * everyone, those who cannot read it included.
+     */
     const names: Array<string> = COMPUTED_COLUMNS_REPLACED_ON_CREATE.map(
       (entry: ComputedColumnReplacedOnCreate): string => {
         return `${entry.tableName}.${entry.column}`;
@@ -538,16 +614,14 @@ describe("the columns whose value a create sends is replaced", () => {
 });
 
 describe("what OneUptime's own code marks on a record", () => {
+  // A column no role may create or read: an unmarked value in it is refused.
   const entry: ComputedColumn = WEIGHED.find((column: ComputedColumn) => {
-    return column.create.length === 0 && !isReplacedEntry(column);
-  })!;
-
-  function isReplacedEntry(column: ComputedColumn): boolean {
-    return ComputedColumnsReplacedOnCreate.isReplaced(
-      column.table,
-      column.column,
+    return (
+      column.create.length === 0 &&
+      column.read.length === 0 &&
+      !isReplaced(column)
     );
-  }
+  })!;
 
   test("passes on the record it marked, and on no other record", () => {
     const marked: DatabaseBaseModel = new entry.modelType();

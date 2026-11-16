@@ -194,20 +194,31 @@ export default class ColumnPermissions {
    *
    * A column marked computed is one OneUptime fills in: a number, a token, a
    * salt, whether a record's owners were told. A value a create gives one is
-   * held to the column's create list, as every other column's is: anyone not
-   * on it is refused with the column's name, as an update is
-   * (ColumnWriteRefusedException), before a hook acts on the write. It is
-   * asked here, while the record is still what the caller sent: the record
-   * the check after the hooks reads holds what the hooks, the defaults and
-   * the hashing wrote too - a salt, an incident's number - which are
-   * OneUptime's (checkDataColumnPermissions, columnsSetByServer).
+   * held to the column's create list, as every other column's is, and never
+   * reaches the record unless the caller is on it. It is asked here, while
+   * the record is still what the caller sent: the record the check after the
+   * hooks reads holds what the hooks, the defaults and the hashing wrote too
+   * - a salt, an incident's number - which are OneUptime's
+   * (checkDataColumnPermissions, columnsSetByServer).
    *
-   * Two kinds of value pass anyway. One OneUptime's own code put there for
-   * the person it writes as is marked on the record (ServerSetColumns). And
-   * a column whose own declaration has always said that a value a create
-   * sends is replaced (ComputedColumnsReplacedOnCreate) has the value
-   * dropped instead: the create goes on as if it had not been sent, and the
-   * column's service fills it in.
+   * A value the caller may not create is:
+   *
+   *   - dropped, when the caller may read the column: a record read and sent
+   *     back whole - a copy, a record a workflow step passes on, a client that
+   *     posts back what it got - carries every column its reader may read, so
+   *     the create goes on as if the value had not been sent, and the
+   *     column's service fills it in;
+   *   - refused with the column's name, as an update is
+   *     (ColumnWriteRefusedException), when the caller may not even read it -
+   *     a salt, a token, a verification code's expiry: no record they could
+   *     read carries it, so the value is one they made up - before a hook
+   *     acts on the write.
+   *
+   * Two kinds of value pass as they are. One OneUptime's own code put there
+   * for the person it writes as is marked on the record (ServerSetColumns).
+   * And a column whose own declaration has always said that a value a
+   * create sends is replaced (ComputedColumnsReplacedOnCreate) has the value
+   * dropped whoever sends it.
    *
    * OneUptime itself and a server admin are not asked, as no column check
    * asks them. Returns the server-set columns the caller gave a value and
@@ -231,11 +242,17 @@ export default class ColumnPermissions {
       return [];
     }
 
+    const rows: Array<UserPermission> =
+      ColumnPermissions.getColumnCheckRows(props);
+
     const permissionColumns: Columns = this.getModelColumnsByPermissions(
       modelType,
-      ColumnPermissions.getColumnCheckRows(props),
+      rows,
       DatabaseRequestType.Create,
     );
+
+    // The columns the caller may read, read once and only when it is asked.
+    let readableColumns: Columns | null = null;
 
     const sentByCaller: Array<string> = [];
 
@@ -250,7 +267,18 @@ export default class ColumnPermissions {
         continue;
       }
 
-      if (ComputedColumnsReplacedOnCreate.isReplaced(model.tableName, column)) {
+      if (!readableColumns) {
+        readableColumns = this.getModelColumnsByPermissions(
+          modelType,
+          rows,
+          DatabaseRequestType.Read,
+        );
+      }
+
+      if (
+        ComputedColumnsReplacedOnCreate.isReplaced(model.tableName, column) ||
+        readableColumns.columns.includes(column)
+      ) {
         // Cleared, not deleted: `data` is the caller's model instance.
         (data as unknown as Dictionary<unknown>)[column] = undefined;
         continue;
