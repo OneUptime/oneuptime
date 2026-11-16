@@ -1,4 +1,6 @@
+import AIRun from "../../../Models/DatabaseModels/AIRun";
 import Alert from "../../../Models/DatabaseModels/Alert";
+import AutoRemediationSuggestion from "../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import AIRunType from "../../../Types/AI/AIRunType";
@@ -7,11 +9,15 @@ import { FindWhereProperty } from "../../../Types/BaseDatabase/Query";
 import QueryOperator from "../../../Types/BaseDatabase/QueryOperator";
 import Text from "../../../Types/Text";
 import PrivateRecordPermission, {
+  PrivateRecordColumn,
   PrivateRecordKind,
 } from "../../Types/Database/Permissions/PrivateRecordPermission";
 import QueryUtil from "../../Types/Database/QueryUtil";
 import PrivateRecordReadFilter from "../Permission/PrivateRecordReadFilter";
-import { combineWithPrivacyClause } from "../PrivacyFilterUtil";
+import {
+  combineWithPrivacyClause,
+  shouldBypassRecordPrivacy,
+} from "../PrivacyFilterUtil";
 import { FindOperator, Raw } from "typeorm";
 
 /*
@@ -48,11 +54,23 @@ import { FindOperator, Raw } from "typeorm";
  * else's to read. An API key and a workflow's step read no chat's: no
  * person asked. Root and server admins read every one.
  *
+ * WHAT A RUN IS ABOUT (#9165). A run names the incident or alert it is
+ * about by a key of its own (AI_RUN_RECORD_KEYS: an investigation, the fix
+ * pull request OneUptime AI writes from one), or a fix OneUptime AI
+ * proposed for one, which is a part of that record (AI_RUN_PART_KEYS: the
+ * Code task that writes a fix step's change into the code declaring its
+ * cloud resource, DeclaredCodeChanges). A turn of a Code task - a reply -
+ * names none of these: it is about what its task is about, the first run
+ * its key names (AI_RUN_TASK_KEY). The same rule holds wherever the run is
+ * read: its own row (AIRunPrivacyFilter, applyToRunRow), what it ran
+ * (applyToRunKey: Runner jobs), its pull request (AIAgentTaskPullRequest
+ * Service) and the Code pages' own SQL (getRunAboutSql, getReadableRunsSql).
+ *
  * Written on the key naming the run, as a lookup of that run by its primary
  * key - `key IS NULL OR EXISTS (SELECT 1 FROM "AIRun" ... WHERE _id = key
- * AND ...)` - and of the incident or alert it is about by theirs: a row
- * naming no run is not narrowed by it, and a read never gathers every run
- * or every record the caller may read first.
+ * AND ...)` - and of the incident, alert, fix or task it is about by
+ * theirs: a row naming no run is not narrowed by it, and a read never
+ * gathers every run or every record the caller may read first.
  */
 
 /*
@@ -83,6 +101,47 @@ export const AI_RUN_RECORD_KEYS: ReadonlyArray<AIRunRecordKey> = [
   { column: "triggeredByIncidentId", recordModelType: Incident },
   { column: "triggeredByAlertId", recordModelType: Alert },
 ];
+
+/*
+ * A part of a private record a run is about, by the key of the run naming
+ * it: a fix OneUptime AI proposed for an incident or alert (#9165).
+ */
+export interface AIRunPartKey {
+  column: string;
+  partModelType: { new (): BaseModel };
+}
+
+export const AI_RUN_PART_KEYS: ReadonlyArray<AIRunPartKey> = [
+  {
+    column: "triggeredByAutoRemediationSuggestionId",
+    partModelType: AutoRemediationSuggestion,
+  },
+];
+
+// The first run of the Code task a turn is a reply in (CodeTaskRuns).
+export const AI_RUN_TASK_KEY: string = "codeTaskId";
+
+// Every key of a run the rule reads: what a read of the run is narrowed by.
+export const AI_RUN_ABOUT_KEYS: ReadonlyArray<string> = [
+  ...AI_RUN_RECORD_KEYS.map((key: AIRunRecordKey): string => {
+    return key.column;
+  }),
+  ...AI_RUN_PART_KEYS.map((key: AIRunPartKey): string => {
+    return key.column;
+  }),
+  AI_RUN_TASK_KEY,
+];
+
+/*
+ * A condition on one key, written for the key's SQL - a column of an alias,
+ * or the column TypeORM hands a Raw - with the parameters it binds. Built
+ * once, so every read gets parameter names and aliases of its own, and
+ * written as often as its SQL is asked for.
+ */
+interface KeyCondition {
+  write: (key: string) => string;
+  parameters: Record<string, unknown>;
+}
 
 export default class AIRunOutputReadFilter {
   /*
@@ -119,40 +178,14 @@ export default class AIRunOutputReadFilter {
       readBy.push(`"${run}"."userId" = :${asker}`);
     }
 
-    const conditions: Array<string> = [`(${readBy.join(" OR ")})`];
-
-    for (const key of AI_RUN_RECORD_KEYS) {
-      const kind: PrivateRecordKind = PrivateRecordPermission.getKind(
-        new key.recordModelType().tableName,
-      )!;
-
-      // No record of the kind, or one that is no private one they do not see.
-      const notUnseen: FindWhereProperty<any> | undefined =
-        PrivateRecordReadFilter.getOptionalRecordReadRaw({
-          kind: kind,
-          props: props,
-        });
-
-      // Those who see every private record read a run about any of them.
-      if (!notUnseen) {
-        continue;
-      }
-
-      const operator: FindOperator<unknown> =
-        notUnseen as unknown as FindOperator<unknown>;
-      const column: string = `"${run}"."${key.column}"`;
-      const record: string = `aiRunRecord${Text.generateRandomText(10)}`;
-
-      Object.assign(parameters, operator.objectLiteralParameters || {});
-
-      /*
-       * A record that is gone names none the caller sees: nothing says any
-       * more whether it was private.
-       */
-      conditions.push(
-        `(${column} IS NULL OR (EXISTS (SELECT 1 FROM "${kind.tableName}" "${record}" WHERE "${record}"."_id" = ${column}) AND ${(operator.getSql as (alias: string) => string)(column)}))`,
-      );
-    }
+    const conditions: Array<string> = [
+      `(${readBy.join(" OR ")})`,
+      ...AIRunOutputReadFilter.writeAboutConditions({
+        run: run,
+        props: props,
+        parameters: parameters,
+      }),
+    ];
 
     /*
      * Asked of each row's own run, by its primary key - never by gathering
@@ -183,6 +216,350 @@ export default class AIRunOutputReadFilter {
       return data.query;
     }
 
+    return AIRunOutputReadFilter.addToColumn({
+      query: data.query,
+      modelType: data.modelType,
+      column: data.column,
+      condition: readable,
+    });
+  }
+
+  /*
+   * A query over the AI runs themselves (AIRunService: `/ai-run`, a find, a
+   * count, a live update), kept to the runs about no private incident or
+   * alert the caller does not see: each key the rule reads
+   * (AI_RUN_ABOUT_KEYS) names none, or one they see - a record that exists
+   * and is no private one they do not see, a fix whose record they see, a
+   * task about what they see. The caller's own filter on each key stays
+   * beside it. Who may read which kind of run is the caller's
+   * (AIRunPrivacyFilter). As it is for those who see every private record.
+   */
+  public static applyToRunRow<T>(
+    query: T,
+    props: DatabaseCommonInteractionProps,
+  ): T {
+    if (shouldBypassRecordPrivacy(props)) {
+      return query;
+    }
+
+    let filtered: T = query;
+
+    const keys: Array<{ column: string; condition: KeyCondition | null }> = [
+      ...AI_RUN_RECORD_KEYS.map((key: AIRunRecordKey) => {
+        return {
+          column: key.column,
+          condition: AIRunOutputReadFilter.getRecordKeyCondition(key, props),
+        };
+      }),
+      ...AI_RUN_PART_KEYS.map((key: AIRunPartKey) => {
+        return {
+          column: key.column,
+          condition: AIRunOutputReadFilter.getPartKeyCondition(key, props),
+        };
+      }),
+      {
+        column: AI_RUN_TASK_KEY,
+        condition: AIRunOutputReadFilter.getTaskKeyCondition(props),
+      },
+    ];
+
+    for (const key of keys) {
+      if (!key.condition) {
+        continue;
+      }
+
+      filtered = AIRunOutputReadFilter.addToColumn({
+        query: filtered,
+        modelType: AIRun,
+        column: key.column,
+        condition: Raw(key.condition.write, key.condition.parameters),
+      });
+    }
+
+    return filtered;
+  }
+
+  /*
+   * The same rule, for a statement written with positional parameters - the
+   * Code pages' own reads (CodeTaskListQuery, CodeTaskStats): the SQL that
+   * keeps the run `alias` (a table alias, "AIRun" for the table read
+   * without one) to the runs about no private record the caller does not
+   * see, each value it binds added to `parameters` as `$n`. Null for those
+   * who see every private record.
+   */
+  public static getRunAboutSql(data: {
+    alias: string;
+    props: DatabaseCommonInteractionProps;
+    parameters: Array<unknown>;
+  }): string | null {
+    if (shouldBypassRecordPrivacy(data.props)) {
+      return null;
+    }
+
+    const named: Record<string, unknown> = {};
+    const conditions: Array<string> = AIRunOutputReadFilter.writeAboutConditions(
+      {
+        run: data.alias,
+        props: data.props,
+        parameters: named,
+      },
+    );
+
+    if (conditions.length === 0) {
+      return null;
+    }
+
+    return AIRunOutputReadFilter.toPositional({
+      sql: `(${conditions.join(" AND ")})`,
+      named: named,
+      parameters: data.parameters,
+    });
+  }
+
+  /*
+   * getReadableRunsRaw on the key `key` (its SQL: "pullRequest"."aiRunId"),
+   * for a statement written with positional parameters - a pull request,
+   * read through its run. Null for root and server admins.
+   */
+  public static getReadableRunsSql(data: {
+    key: string;
+    props: DatabaseCommonInteractionProps;
+    parameters: Array<unknown>;
+  }): string | null {
+    const readable: FindWhereProperty<any> | undefined =
+      AIRunOutputReadFilter.getReadableRunsRaw(data.props);
+
+    if (!readable) {
+      return null;
+    }
+
+    const operator: FindOperator<unknown> =
+      readable as unknown as FindOperator<unknown>;
+
+    return AIRunOutputReadFilter.toPositional({
+      sql: (operator.getSql as (alias: string) => string)(data.key),
+      named: (operator.objectLiteralParameters || {}) as Record<
+        string,
+        unknown
+      >,
+      parameters: data.parameters,
+    });
+  }
+
+  /*
+   * The conditions on the run `run` (an alias) that keep it to the runs
+   * about no private record the caller does not see: its own keys, and the
+   * task it is a turn of. None for those who see every private record.
+   */
+  private static writeAboutConditions(data: {
+    run: string;
+    props: DatabaseCommonInteractionProps;
+    parameters: Record<string, unknown>;
+  }): Array<string> {
+    const conditions: Array<string> = AIRunOutputReadFilter.writeOwnConditions(
+      data,
+    );
+
+    const task: KeyCondition | null = AIRunOutputReadFilter.getTaskKeyCondition(
+      data.props,
+    );
+
+    if (task) {
+      Object.assign(data.parameters, task.parameters);
+      conditions.push(task.write(`"${data.run}"."${AI_RUN_TASK_KEY}"`));
+    }
+
+    return conditions;
+  }
+
+  // The conditions on the run's own keys: its record, and its fix.
+  private static writeOwnConditions(data: {
+    run: string;
+    props: DatabaseCommonInteractionProps;
+    parameters: Record<string, unknown>;
+  }): Array<string> {
+    const conditions: Array<string> = [];
+
+    const written: Array<{ column: string; condition: KeyCondition | null }> =
+      [
+        ...AI_RUN_RECORD_KEYS.map((key: AIRunRecordKey) => {
+          return {
+            column: key.column,
+            condition: AIRunOutputReadFilter.getRecordKeyCondition(
+              key,
+              data.props,
+            ),
+          };
+        }),
+        ...AI_RUN_PART_KEYS.map((key: AIRunPartKey) => {
+          return {
+            column: key.column,
+            condition: AIRunOutputReadFilter.getPartKeyCondition(
+              key,
+              data.props,
+            ),
+          };
+        }),
+      ];
+
+    for (const key of written) {
+      if (!key.condition) {
+        continue;
+      }
+
+      Object.assign(data.parameters, key.condition.parameters);
+      conditions.push(key.condition.write(`"${data.run}"."${key.column}"`));
+    }
+
+    return conditions;
+  }
+
+  /*
+   * A key naming an incident or an alert: no record, or one that exists and
+   * is no private one the caller does not see. A record that is gone names
+   * none the caller sees: nothing says any more whether it was private.
+   * Null for those who see every private record.
+   */
+  private static getRecordKeyCondition(
+    key: AIRunRecordKey,
+    props: DatabaseCommonInteractionProps,
+  ): KeyCondition | null {
+    const kind: PrivateRecordKind = PrivateRecordPermission.getKind(
+      new key.recordModelType().tableName,
+    )!;
+
+    // No record of the kind, or one that is no private one they do not see.
+    const notUnseen: FindWhereProperty<any> | undefined =
+      PrivateRecordReadFilter.getOptionalRecordReadRaw({
+        kind: kind,
+        props: props,
+      });
+
+    // Those who see every private record read a run about any of them.
+    if (!notUnseen) {
+      return null;
+    }
+
+    const operator: FindOperator<unknown> =
+      notUnseen as unknown as FindOperator<unknown>;
+    const getSql: (alias: string) => string = operator.getSql as (
+      alias: string,
+    ) => string;
+    const record: string = `aiRunRecord${Text.generateRandomText(10)}`;
+
+    return {
+      parameters: { ...(operator.objectLiteralParameters || {}) },
+      write: (column: string): string => {
+        return `(${column} IS NULL OR (EXISTS (SELECT 1 FROM "${kind.tableName}" "${record}" WHERE "${record}"."_id" = ${column}) AND ${getSql(column)}))`;
+      },
+    };
+  }
+
+  /*
+   * A key naming a part of a private record - a fix OneUptime AI proposed
+   * for an incident or alert: no part, or one that exists and whose every
+   * private record it names the caller sees. A fix that is gone - deleted
+   * with its record (#9103) - names none the caller sees, as its commands
+   * are read (#9154). Null for those who see every private record.
+   */
+  private static getPartKeyCondition(
+    key: AIRunPartKey,
+    props: DatabaseCommonInteractionProps,
+  ): KeyCondition | null {
+    if (shouldBypassRecordPrivacy(props)) {
+      return null;
+    }
+
+    const part: string = `aiRunPart${Text.generateRandomText(10)}`;
+    const parameters: Record<string, unknown> = {};
+    const seen: Array<string> = [];
+
+    for (const recordColumn of PrivateRecordPermission.getPrivateRecordColumns(
+      key.partModelType,
+    )) {
+      const notUnseen: FindWhereProperty<any> | undefined =
+        PrivateRecordReadFilter.getOptionalRecordReadRaw({
+          kind: recordColumn.kind,
+          props: props,
+        });
+
+      if (!notUnseen) {
+        continue;
+      }
+
+      const operator: FindOperator<unknown> =
+        notUnseen as unknown as FindOperator<unknown>;
+
+      Object.assign(parameters, operator.objectLiteralParameters || {});
+      seen.push(
+        (operator.getSql as (alias: string) => string)(
+          `"${part}"."${AIRunOutputReadFilter.getKeyOf(recordColumn)}"`,
+        ),
+      );
+    }
+
+    const tableName: string = new key.partModelType().tableName as string;
+
+    return {
+      parameters: parameters,
+      write: (column: string): string => {
+        return `(${column} IS NULL OR EXISTS (SELECT 1 FROM "${tableName}" "${part}" WHERE "${part}"."_id" = ${column}${seen
+          .map((condition: string): string => {
+            return ` AND ${condition}`;
+          })
+          .join("")}))`;
+      },
+    };
+  }
+
+  /*
+   * The key naming a turn's task: no task - the run is a task's first turn,
+   * or no Code task at all - or a task whose own keys meet the rule. A task
+   * that is gone is about nothing the caller is known to see. Null for those
+   * who see every private record.
+   */
+  private static getTaskKeyCondition(
+    props: DatabaseCommonInteractionProps,
+  ): KeyCondition | null {
+    const task: string = `aiRunTask${Text.generateRandomText(10)}`;
+    const parameters: Record<string, unknown> = {};
+    const conditions: Array<string> = AIRunOutputReadFilter.writeOwnConditions(
+      {
+        run: task,
+        props: props,
+        parameters: parameters,
+      },
+    );
+
+    if (conditions.length === 0) {
+      return null;
+    }
+
+    return {
+      parameters: parameters,
+      write: (column: string): string => {
+        return `(${column} IS NULL OR EXISTS (SELECT 1 FROM "AIRun" "${task}" WHERE "${task}"."_id" = ${column} AND ${conditions.join(" AND ")}))`;
+      },
+    };
+  }
+
+  // The column of a part's row naming a private record.
+  private static getKeyOf(column: PrivateRecordColumn): string {
+    return column.isRecord ? "_id" : column.column;
+  }
+
+  /*
+   * `query`, with `condition` put on `column` beside the caller's own filter
+   * on it, which stays - one of OneUptime's operators written as SQL first,
+   * as the model writes it (QueryUtil.serializeQuery), so it is kept rather
+   * than dropped.
+   */
+  private static addToColumn<T>(data: {
+    query: T;
+    modelType: { new (): BaseModel };
+    column: string;
+    condition: FindWhereProperty<any>;
+  }): T {
     const filtered: Record<string, unknown> = (data.query || {}) as Record<
       string,
       unknown
@@ -198,8 +575,58 @@ export default class AIRunOutputReadFilter {
       )[data.column];
     }
 
-    filtered[data.column] = combineWithPrivacyClause(existing, readable);
+    filtered[data.column] = combineWithPrivacyClause(existing, data.condition);
 
     return filtered as T;
+  }
+
+  /*
+   * SQL written with named parameters (`:name`, `:...name` for a list),
+   * written with positional ones instead: each value added to `parameters`,
+   * and its name replaced by `$n` (a list by one `$n` a value). Every name
+   * here is one this file or PrivateRecordReadFilter made up, with ten
+   * random characters, so none is part of the SQL around it; longest first,
+   * so none is read as the start of another.
+   */
+  private static toPositional(data: {
+    sql: string;
+    named: Record<string, unknown>;
+    parameters: Array<unknown>;
+  }): string {
+    let sql: string = data.sql;
+
+    const names: Array<string> = Object.keys(data.named).sort(
+      (left: string, right: string): number => {
+        return right.length - left.length;
+      },
+    );
+
+    for (const name of names) {
+      const value: unknown = data.named[name];
+      const pattern: RegExp = new RegExp(
+        `:(\\.\\.\\.)?${name}(?![A-Za-z0-9_])`,
+        "g",
+      );
+
+      let placeholder: string | null = null;
+
+      sql = sql.replace(pattern, (_match: string, spread?: string): string => {
+        if (spread && Array.isArray(value)) {
+          return value
+            .map((each: unknown): string => {
+              return `$${data.parameters.push(each)}`;
+            })
+            .join(", ");
+        }
+
+        if (placeholder === null) {
+          placeholder = `$${data.parameters.push(value)}`;
+        }
+
+        return placeholder;
+      });
+    }
+
+    return sql;
   }
 }
