@@ -636,12 +636,6 @@
         "usageCardDescription": "Hur länge varje projekts dagliga telemetrianvändning bevaras, med fakturering på eller av.",
         "usageEditButton": "Redigera bevarande av telemetrianvändning"
       },
-      "apiKey": {
-        "cardTitle": "Master-API-nyckel-inställningar",
-        "cardDescription": "Har root-åtkomst till alla projekt på den här servern.",
-        "editButton": "Redigera API-nyckel-inställningar",
-        "apiKeyNotGenerated": "API-nyckel ännu inte genererad."
-      },
       "llmProviders": {
         "bannerTitle": "Behöver du hjälp med att konfigurera LLM-leverantörer?",
         "bannerDescription": "LLM-leverantörer aktiverar AI-funktioner. Du kan konfigurera globala LLM-leverantörer som är tillgängliga för alla projekt.",
@@ -752,7 +746,6 @@
   "Edit Server": "Redigera server",
   "Edit SMTP Config": "Redigera SMTP-konfiguration",
   "Edit API Key": "Redigera API-nyckel",
-  "Edit API Key Settings": "Redigera API-nyckelinställningar",
   "Edit Twilio Config": "Redigera Twilio-konfiguration",
   "Edit Telegram Config": "Redigera Telegram-konfiguration",
   "Edit Meta WhatsApp Config": "Redigera Meta WhatsApp-konfiguration",
@@ -4019,5 +4012,15 @@
   "### Setup Steps": "### Installationssteg",
   "### Required WhatsApp Templates": "### WhatsApp-mallar som krävs",
   "### Template Bodies": "### Mallinnehåll",
-  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Kopiera mallinnehållet nedan exakt — inklusive skiljetecken och mellanslag — när du skapar varje mall i Meta. Variabellistan visar varje platshållare som måste ställas in i WhatsApp Manager."
+  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Kopiera mallinnehållet nedan exakt — inklusive skiljetecken och mellanslag — när du skapar varje mall i Meta. Variabellistan visar varje platshållare som måste ställas in i WhatsApp Manager.",
+  "No key yet. Create one for scripts and tools that call the API as a master admin.": "Ingen nyckel än. Skapa en för skript och verktyg som anropar API:et som huvudadministratör.",
+  "A key is set. It was shown once, when it was made: only its hash is kept, so it can't be shown again. If you lost it, reset it.": "En nyckel är angiven. Den visades en gång, när den skapades: bara dess hash sparas, så den kan inte visas igen. Om du har tappat bort den, återställ den.",
+  "Create Key": "Skapa nyckel",
+  "Reset Key": "Återställ nyckel",
+  "Requests with the key are accepted.": "Begäranden med nyckeln godkänns.",
+  "Reset Master API Key?": "Återställa master-API-nyckeln?",
+  "The current key stops working at once, for every script and tool that uses it. The new key is shown once.": "Den nuvarande nyckeln slutar fungera direkt, för varje skript och verktyg som använder den. Den nya nyckeln visas en gång.",
+  "Copy Your Master API Key": "Kopiera din master-API-nyckel",
+  "Copy it now and keep it somewhere safe, such as a secret manager. It is shown only this once: OneUptime keeps only a hash of it.": "Kopiera den nu och förvara den på ett säkert ställe, till exempel i en secret manager. Den visas bara den här gången: OneUptime sparar bara en hash av den.",
+  "The server did not answer with the master API key. Try again.": "Servern svarade inte med master-API-nyckeln. Försök igen."
 }

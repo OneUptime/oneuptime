@@ -40,6 +40,7 @@ import {
   NextFunction,
 } from "../../../Server/Utils/Express";
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
+import MasterApiKey from "../../../Server/Utils/MasterApiKey";
 import { ensureMasterAdminPageAccess } from "../../../Server/Utils/MasterAdminPageAccess";
 import RealtimeAccessChanges, {
   RealtimeAccessChangeKind,
@@ -145,6 +146,9 @@ const OTHER_PROJECT_ID: ObjectID = new ObjectID(
 
 // The instance-wide master API key (Admin Dashboard > Settings > API Key).
 const MASTER_API_KEY: string = "6c000000-0000-4000-8000-0000000000b1";
+
+// What the server's settings row holds of it: its hash (#7901).
+const MASTER_API_KEY_HASH: string = MasterApiKey.hash(MASTER_API_KEY);
 
 // The server's own settings: the one GlobalConfig row (Admin Dashboard > Settings).
 const GLOBAL_CONFIG_ID: ObjectID = ObjectID.getZeroObjectID();
@@ -497,14 +501,19 @@ beforeEach(() => {
     userRow(people.member, { name: "Mo Member", isMasterAdmin: false }),
   ]);
 
-  globalConfigs = useInMemoryTable(GlobalConfigService, [
-    {
-      _id: GLOBAL_CONFIG_ID.toString(),
-      isMasterApiKeyEnabled: true,
-      masterApiKey: MASTER_API_KEY,
-      smtpHost: "smtp.example.com",
-    },
-  ]);
+  // Answering only what a read selects, as Postgres does.
+  globalConfigs = useInMemoryTable(
+    GlobalConfigService,
+    [
+      {
+        _id: GLOBAL_CONFIG_ID.toString(),
+        isMasterApiKeyEnabled: true,
+        masterApiKey: MASTER_API_KEY_HASH,
+        smtpHost: "smtp.example.com",
+      },
+    ],
+    { answersOnlySelectedColumns: true },
+  );
 });
 
 afterEach(() => {
@@ -1220,9 +1229,10 @@ describe("removed on another app server", () => {
 /*
  * The server's own settings (Admin Dashboard > Settings) are read and
  * written through their own CRUD API, which only a master admin passes:
- * mail and SMS credentials, the server's sign-in rules, and the master API
- * key - a credential of its own that outlives any session. They are held
- * to the account like every other master-admin power.
+ * mail and SMS credentials and the server's sign-in rules. They are held
+ * to the account like every other master-admin power. The master API key -
+ * a credential of its own that outlives any session - is not among what
+ * they read: only its hash is kept (#7901), and not even that is read back.
  */
 describe("the server's own settings", () => {
   function readSettings(session: string): Promise<HttpResult> {
@@ -1243,14 +1253,16 @@ describe("the server's own settings", () => {
     });
   }
 
-  test("a master admin reads them, the master API key among them", async () => {
+  test("a master admin reads them, but never the master API key, nor its hash", async () => {
     const result: HttpResult = await readSettings(
       sessionOf(people.former, true),
     );
 
     expect(result.status).toBe(200);
-    expect((result.body as JSONObject)["masterApiKey"]).toBeTruthy();
-    expect(JSON.stringify(result.body)).toContain(MASTER_API_KEY);
+    expect((result.body as JSONObject)["smtpHost"]).toBeTruthy();
+    expect((result.body as JSONObject)["masterApiKey"]).toBeUndefined();
+    expect(result.text).not.toContain(MASTER_API_KEY_HASH);
+    expect(result.text).not.toContain(MASTER_API_KEY);
   });
 
   test("a master admin whose access was removed no longer reads them, nor changes them", async () => {
@@ -1263,7 +1275,7 @@ describe("the server's own settings", () => {
     const read: HttpResult = await readSettings(formerSession);
 
     expect(read.status).toBe(ExceptionCode.NotAuthorizedException);
-    expect(read.text).not.toContain(MASTER_API_KEY);
+    expect(read.text).not.toContain("smtp.example.com");
 
     const write: HttpResult = await changeSettings(formerSession);
 
