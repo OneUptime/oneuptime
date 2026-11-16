@@ -38,6 +38,7 @@ import OpenStackMaintenanceReach from "../../../Server/Utils/OpenStack/OpenStack
 import OpenStackProjectNoticeSender from "../../../Server/Utils/OpenStack/OpenStackProjectNoticeSender";
 import OpenStackProjectNotices from "../../../Server/Utils/OpenStack/OpenStackProjectNotices";
 import SSRFProtection from "../../../Server/Utils/SSRFProtection";
+import { approveEveryWebhookAddress } from "../TestingUtils/WebhookAddressCheck";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import URL from "../../../Types/API/URL";
 import Email from "../../../Types/Email";
@@ -190,10 +191,15 @@ describePostgres("who an OpenStack failure tells, on Postgres", () => {
     jest.spyOn(PostgresAppInstance, "isConnected").mockReturnValue(true);
     jest.spyOn(PostgresAppInstance, "getDataSource").mockReturnValue(database);
     jest.spyOn(logger, "warn").mockReturnValue(undefined as never);
-    // A webhook's address needs no DNS to be told about here: what a refusal does is in the sender's own test.
+    /*
+     * A webhook's address needs no DNS to be told about here: what a refusal does is in the sender's own
+     * test. Saving a notice checks it (validateWebhookTargetIsSafe); sending one checks it again and dials
+     * what that check approved (WebhookAddressCheck).
+     */
     jest
       .spyOn(SSRFProtection, "validateWebhookTargetIsSafe")
       .mockResolvedValue(undefined);
+    approveEveryWebhookAddress();
 
     incidentStateOpen = ObjectID.generate().toString();
     incidentStateResolved = ObjectID.generate().toString();

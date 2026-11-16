@@ -6,8 +6,13 @@ import CallAndSmsGatewayService, {
 } from "../../FeatureSet/Notification/Services/CallAndSmsGatewayService";
 import SignedWebhookPost, {
   MAX_SIGNED_WEBHOOK_BODY_LENGTH,
+  SIGNED_WEBHOOK_TARGET_VALIDATION,
 } from "../../FeatureSet/Notification/Utils/SignedWebhookPost";
-import SSRFProtection from "Common/Server/Utils/SSRFProtection";
+import {
+  APPROVED_WEBHOOK_ADDRESS,
+  approveEveryWebhookAddress,
+} from "Common/Tests/Server/TestingUtils/WebhookAddressCheck";
+import { WebhookTarget } from "Common/Server/Utils/SafeWebhookRequest";
 import logger from "Common/Server/Utils/Logger";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -112,9 +117,8 @@ function headersOf(index: number = 0): Record<string, string> {
 
 beforeEach(() => {
   post = jest.spyOn(API, "post").mockResolvedValue(ok());
-  ssrf = jest
-    .spyOn(SSRFProtection, "validateWebhookTargetIsSafe")
-    .mockResolvedValue(undefined);
+  // The check every send runs, approving each URL (WebhookAddressCheck).
+  ssrf = approveEveryWebhookAddress() as unknown as jest.SpyInstance;
   sleep = jest.spyOn(SignedWebhookPost, "sleep").mockResolvedValue();
   (logger.error as unknown as jest.Mock).mockClear();
   (getCallAndSmsGateway as unknown as jest.Mock).mockReset();
@@ -162,12 +166,22 @@ describe("what is sent", () => {
 
     expect(signed).toHaveBeenCalledTimes(1);
     expect(signed.mock.calls[0]![0]).toEqual({
-      url: GATEWAY.url,
+      target: expect.anything(),
       secret: GATEWAY.secret,
       eventType: "sms",
       payload: PAYLOAD,
       userAgent: CALL_AND_SMS_GATEWAY_USER_AGENT,
     });
+
+    // The gateway's URL as its check approved it: every attempt dials that.
+    const target: WebhookTarget = (
+      signed.mock.calls[0]![0] as { target: WebhookTarget }
+    ).target;
+
+    expect(target.url.href).toBe(GATEWAY.url);
+    expect(target.addresses).toEqual([
+      { address: APPROVED_WEBHOOK_ADDRESS, family: 4 },
+    ]);
   });
 
   test("the URL is checked before anything is sent, with the installation's private network allowed", async () => {
@@ -177,6 +191,7 @@ describe("what is sent", () => {
     expect(ssrf).toHaveBeenCalledWith(GATEWAY.url, {
       allowPrivateNetworkTargets: true,
     });
+    expect(ssrf.mock.calls[0]![1]).toBe(SIGNED_WEBHOOK_TARGET_VALIDATION);
     expect(ssrf.mock.invocationCallOrder[0]!).toBeLessThan(
       post.mock.invocationCallOrder[0]!,
     );

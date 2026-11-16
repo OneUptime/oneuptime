@@ -1,12 +1,15 @@
 import { JSONObject } from "Common/Types/JSON";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
-import URL from "Common/Types/API/URL";
 import {
   CUSTOM_CHANNEL_EVENT_HEADER,
   CUSTOM_CHANNEL_SIGNATURE_HEADER,
 } from "Common/Types/CustomNotificationChannel/CustomNotificationChannelPayload";
-import API from "Common/Utils/API";
+import SafeWebhookRequest, {
+  WEBHOOK_MAX_RESPONSE_BYTES,
+  WebhookTarget,
+} from "Common/Server/Utils/SafeWebhookRequest";
+import { WebhookTargetValidationOptions } from "Common/Server/Utils/SSRFProtection";
 import crypto from "crypto";
 
 /*
@@ -25,7 +28,23 @@ import crypto from "crypto";
  * its exact body, keyed with the service's secret (X-OneUptime-Signature:
  * sha256=<hex>), so one verifier serves both. What is sent is the caller's
  * business; what the outcome is called, and where it is recorded, is too.
+ *
+ * The caller checks the service's URL first (SafeWebhookRequest.resolveTarget,
+ * with SIGNED_WEBHOOK_TARGET_VALIDATION), and says why it may not be
+ * reached in its own words; every attempt here then dials an address that
+ * check approved, and no other, and follows no redirect.
  */
+
+/*
+ * The installation's own service - its admin's gateway or custom channel -
+ * is often on its private network, so private targets are allowed, as they
+ * are when its URL is saved (GlobalConfigService, the custom channel's
+ * service), where the instance allows them.
+ */
+export const SIGNED_WEBHOOK_TARGET_VALIDATION: WebhookTargetValidationOptions =
+  {
+    allowPrivateNetworkTargets: true,
+  };
 
 // How long one attempt waits for the service to answer.
 export const SIGNED_WEBHOOK_REQUEST_TIMEOUT_MS: number = 10_000;
@@ -94,7 +113,8 @@ export default class SignedWebhookPost {
    * attempt went, and how many there were.
    */
   public static async post(data: {
-    url: string;
+    // The service's URL as its check approved it (SafeWebhookRequest.resolveTarget).
+    target: WebhookTarget;
     secret: string;
     eventType: string;
     payload: JSONObject;
@@ -126,7 +146,7 @@ export default class SignedWebhookPost {
       attempts++;
 
       outcome = await this.attempt({
-        url: data.url,
+        target: data.target,
         payload: data.payload,
         headers: headers,
       });
@@ -145,20 +165,18 @@ export default class SignedWebhookPost {
   }
 
   private static async attempt(data: {
-    url: string;
+    target: WebhookTarget;
     payload: JSONObject;
     headers: Record<string, string>;
   }): Promise<AttemptOutcome> {
     try {
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-        await API.post<JSONObject>({
-          url: URL.fromString(data.url),
+        await SafeWebhookRequest.send<JSONObject>(data.target, {
           data: data.payload,
           headers: data.headers,
-          options: {
-            timeout: SIGNED_WEBHOOK_REQUEST_TIMEOUT_MS,
-            doNotFollowRedirects: true,
-          },
+          timeout: SIGNED_WEBHOOK_REQUEST_TIMEOUT_MS,
+          // Only the status is read: an endless answer is a failure, unread.
+          maxContentLength: WEBHOOK_MAX_RESPONSE_BYTES,
         });
 
       const statusCode: number = response.statusCode || 0;

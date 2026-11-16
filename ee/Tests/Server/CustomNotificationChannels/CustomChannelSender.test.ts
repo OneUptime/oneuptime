@@ -61,6 +61,7 @@ import SignedWebhookPost, {
   SIGNED_WEBHOOK_MAX_ATTEMPTS,
   SIGNED_WEBHOOK_REQUEST_TIMEOUT_MS,
   SIGNED_WEBHOOK_RETRY_DELAYS_MS,
+  SIGNED_WEBHOOK_TARGET_VALIDATION,
 } from "App/FeatureSet/Notification/Utils/SignedWebhookPost";
 import CustomNotificationChannelService from "Common/Server/Services/CustomNotificationChannelService";
 import { CustomChannelDeliveryResult } from "Common/Server/Services/CustomNotificationChannelDeliveryService";
@@ -68,6 +69,10 @@ import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTi
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import { CUSTOM_CHANNEL_NOT_ACTIVE_MESSAGE } from "Common/Server/Utils/Notification/CustomChannelEdition";
 import SSRFProtection from "Common/Server/Utils/SSRFProtection";
+import {
+  APPROVED_WEBHOOK_ADDRESS,
+  approveEveryWebhookAddress,
+} from "Common/Tests/Server/TestingUtils/WebhookAddressCheck";
 import CustomNotificationChannel from "Common/Models/DatabaseModels/CustomNotificationChannel";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -79,7 +84,10 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
-import API from "Common/Utils/API";
+import API, { RequestOptions } from "Common/Utils/API";
+import SafeWebhookRequest, {
+  WebhookTarget,
+} from "Common/Server/Utils/SafeWebhookRequest";
 import FakeEnterpriseModule, {
   createEditionStateCases,
   createLicenseSnapshot,
@@ -139,7 +147,9 @@ let find: jest.SpiedFunction<
   typeof CustomNotificationChannelService.findOneById
 >;
 let post: jest.SpiedFunction<typeof API.post>;
-let ssrf: jest.SpiedFunction<typeof SSRFProtection.validateWebhookTargetIsSafe>;
+let ssrf: jest.SpiedFunction<
+  typeof SSRFProtection.validateAndResolveWebhookTarget
+>;
 /*
  * The notification's on-call log row: read with its version, and written
  * only while it holds the status and the version read
@@ -205,9 +215,10 @@ beforeEach(() => {
     .spyOn(CustomNotificationChannelService, "findOneById")
     .mockResolvedValue(channel());
   post = jest.spyOn(API, "post").mockResolvedValue(ok() as never);
-  ssrf = jest
-    .spyOn(SSRFProtection, "validateWebhookTargetIsSafe")
-    .mockResolvedValue(undefined as never);
+  // The check every send runs, approving each URL (WebhookAddressCheck).
+  ssrf = approveEveryWebhookAddress() as unknown as jest.SpiedFunction<
+    typeof SSRFProtection.validateAndResolveWebhookTarget
+  >;
   timeline = new OnCallTimelineRows();
   timeline.add(TIMELINE_ID, UserNotificationStatus.Sending, {
     statusMessage: "Sending to CorpoApp.",
@@ -236,10 +247,45 @@ describe("what is sent", () => {
     );
     expect(headersOf()["User-Agent"]).toBe(CUSTOM_CHANNEL_USER_AGENT);
     expect(CUSTOM_CHANNEL_USER_AGENT).toBe("OneUptime-CustomChannel/1.0");
-    expect(request()["options"]).toEqual({
+    expect(request()["options"]).toMatchObject({
       timeout: SIGNED_WEBHOOK_REQUEST_TIMEOUT_MS,
       doNotFollowRedirects: true,
+      // Exactly the URL that was checked, on Node's http adapter (issue 6611).
+      dispatchUrl: URL_TEXT,
+      useNodeHttpAdapter: true,
     });
+  });
+
+  test("the channel's URL is checked with the installation's own rule, and every attempt dials what that check approved (issue 6611)", async () => {
+    post
+      .mockResolvedValueOnce(
+        new HTTPErrorResponse(503, { message: "restarting" }, {}) as never,
+      )
+      .mockResolvedValueOnce(ok() as never);
+    const sendSpy: jest.SpiedFunction<typeof SafeWebhookRequest.send> =
+      jest.spyOn(SafeWebhookRequest, "send");
+
+    await send();
+
+    expect(ssrf).toHaveBeenCalledTimes(1);
+    expect(ssrf.mock.calls[0]![1]).toBe(SIGNED_WEBHOOK_TARGET_VALIDATION);
+    expect(sendSpy).toHaveBeenCalledTimes(2);
+
+    const target: WebhookTarget = sendSpy.mock.calls[0]![0];
+
+    expect(target.url.href).toBe(URL_TEXT);
+    expect(target.addresses).toEqual([
+      { address: APPROVED_WEBHOOK_ADDRESS, family: 4 },
+    ]);
+    expect(sendSpy.mock.calls[1]![0]).toBe(target);
+
+    for (const call of post.mock.calls) {
+      const options: RequestOptions = (call[0] as { options: RequestOptions })
+        .options;
+
+      expect(options.httpAgent).toBeDefined();
+      expect(options.httpsAgent).toBeDefined();
+    }
   });
 
   test("signed with the channel's own secret, over the exact body", async () => {
