@@ -1,3 +1,4 @@
+import LLMProviderAnswerTooLargeException from "./LLMProviderAnswerTooLargeException";
 import LLMProviderHTTPException from "./LLMProviderHTTPException";
 import ProductBrandingText from "../ProductBrandingText";
 import APIException from "../../../Types/Exception/ApiException";
@@ -29,6 +30,8 @@ import LlmType from "../../../Types/LLM/LlmType";
  *    where: LLMService leaves the address out), and to check the Base URL.
  *    The product is named as the installation names it
  *    (ProductBrandingText).
+ *  - An answer larger than OneUptime reads (LLMProviderAnswerTooLargeException):
+ *    whose answer it was and the limit, and to check the Base URL.
  *  - Anything else LLMService says in words already (a key that is required,
  *    a refusal): as it is.
  */
@@ -69,6 +72,9 @@ export default class LlmProviderTestFailure {
 
     if (error instanceof LLMProviderHTTPException) {
       text = LlmProviderTestFailure.describeAnswer(error, names.subject);
+    } else if (error instanceof LLMProviderAnswerTooLargeException) {
+      // It answered, so "could not reach" would send the person the wrong way.
+      text = `${error.describe(names.subject)} Check the Base URL: it should be the provider's API.`;
     } else if (
       error instanceof EgressGuardException ||
       error instanceof APIException
