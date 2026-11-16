@@ -428,6 +428,16 @@ work out, starts from a default for everything else, and folds what most people 
   found." with "Refresh?", which reads as a failed load on a new project. A product's own list explains
   the product while the project has none. Enforced by
   [CoreListEmptyStates](../../packages/Common/Tests/App/Dashboard/CoreListEmptyStates.test.tsx).
+- **A list's own empty sentence never says "found".** The table heads its empty state with the
+  page's `noItemsMessage`, so some fifty Dashboard lists greeted a new project with "No ingestion
+  keys found", "No custom domains found" (#9124, #9060). Write "No X yet." and leave what the list
+  is for to the card's description, which the empty state takes over, or add the one sentence that
+  says when rows arrive ("Pods appear here a few minutes after the agent starts scraping"). A
+  search or filter that hides every row is told apart by the table itself. A list that only ever
+  shows the answer to a query the reader set (the traces explorer) is listed in the guard with its
+  reason. A monitor's Logs says when its first check runs and links to Probes & Interval; its SLOs
+  offer Create with the monitor already attached. Enforced by
+  [EmptyListsSayYetGuard](../../packages/App/Tests/Dashboard/EmptyListsSayYetGuard.test.ts).
 - **A search or filter that finds nothing never offers Create.** It says nothing matched. Not
   enforced: use judgement.
 - **An empty state says each thing once.** An embedded logs list's empty state has one line from the
