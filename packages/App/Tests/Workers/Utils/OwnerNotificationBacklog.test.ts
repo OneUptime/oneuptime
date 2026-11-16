@@ -681,14 +681,16 @@ describe("what a page reads once", () => {
 describe("OwnerNotificationPage", () => {
   test("reads each key once, however many ask, at once or after", async () => {
     const page: OwnerNotificationPage = new OwnerNotificationPage();
-    const read: jest.Mock = jest.fn(async () => {
-      await nextTick();
-      return ["owner-1"];
-    });
+    const read: jest.Mock<Promise<Array<string>>, []> = jest.fn(
+      async (): Promise<Array<string>> => {
+        await nextTick();
+        return ["owner-1"];
+      },
+    );
 
     const answers: Array<Array<string>> = await Promise.all([
-      page.once("owners:1", read),
-      page.once("owners:1", read),
+      page.once<Array<string>>("owners:1", read),
+      page.once<Array<string>>("owners:1", read),
     ]);
 
     expect(await page.once("owners:1", read)).toEqual(["owner-1"]);
