@@ -305,6 +305,31 @@ describe("Profiling", () => {
       expect(initConfig().authToken).toBe("secret-token");
     });
 
+    /*
+     * Issue #7162: headers copied as OTEL_EXPORTER_OTLP_HEADERS writes them
+     * are read as the exporters now read them, so the profiler is handed the
+     * token the traces, metrics and logs are sent with.
+     */
+    test("finds the token among headers separated by ','", () => {
+      process.env[OTLP_ENDPOINT] = "https://collector.example.com/otlp";
+      process.env[OTLP_HEADERS] =
+        "x-other=value,x-oneuptime-token=secret-token,x-more=value";
+
+      Profiling.init({ serviceName: "app" });
+
+      expect(initConfig().authToken).toBe("secret-token");
+    });
+
+    test("decodes a token written percent-encoded the standard way", () => {
+      process.env[OTLP_ENDPOINT] = "https://collector.example.com/otlp";
+      process.env[OTLP_HEADERS] =
+        "Authorization=Basic%20dXNlcjpwYXNzd29yZA==,x-oneuptime-token=c2Vj%2Bcm V0%3D";
+
+      Profiling.init({ serviceName: "app" });
+
+      expect(initConfig().authToken).toBe("c2Vj+cm V0=");
+    });
+
     test("trims spaces around the token's name and value, as the exporters do", () => {
       process.env[OTLP_ENDPOINT] = "https://collector.example.com/otlp";
       process.env[OTLP_HEADERS] =

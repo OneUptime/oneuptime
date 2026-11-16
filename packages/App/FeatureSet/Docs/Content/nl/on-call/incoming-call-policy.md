@@ -41,10 +41,11 @@ flowchart TB
 Ga naar **Projectinstellingen** > **Meldingen** > **Meldingskanalen** en open **Meer instellingen**. Klik in de kaart **Twilio-configuratie** op **Twilio-configuratie maken** en vul het formulier in:
 
 - **Naam** en **Beschrijving**: waar het account voor is, zoals "Supportlijn".
+- **Dit account gebruiken voor**: **Oproepen en sms**, of **Alleen oproepen** als de nummers van het account geen sms kunnen versturen. Inkomende oproepen werken met allebei.
 - **Twilio-account-SID**: uit de Twilio Console. Hij begint met `AC`.
 - **Twilio-authenticatietoken**: uit de Twilio Console.
-- **Twilio primair telefoonnummer**: een nummer van dat account, voor de sms'jes en gesprekken die het verstuurt. Onder **Meer velden**, optioneel: nummers voor ontvangers in andere landen, en nummers voor sms als de nummers van het account alleen kunnen bellen (zie [Aparte nummers voor oproepen en sms](/docs/self-hosted/twilio-integration#aparte-nummers-voor-oproepen-en-sms)).
-- **Instellen als projectstandaard**: aan voor de eerste Twilio-configuratie van het project, zodat ook de sms'jes en gesprekken naar de leden van het project via dit account gaan. Zet het uit als dit account alleen voor inkomende oproepen is.
+- **Twilio primair telefoonnummer**: een nummer van dat account, voor de oproepen die het doet, en voor zijn sms'jes als het die verstuurt. Onder **Meer velden**, optioneel: nummers voor ontvangers in andere landen, en nummers voor sms als de nummers van het account alleen kunnen bellen (zie [Aparte nummers voor oproepen en sms](/docs/self-hosted/twilio-integration#aparte-nummers-voor-oproepen-en-sms)).
+- **Instellen als projectstandaard**: aan voor de eerste Twilio-configuratie van het project, zodat ook de oproepen naar de leden van het project via dit account gaan, en hun sms'jes als het voor **Oproepen en sms** wordt gebruikt. Zet het uit als dit account alleen voor inkomende oproepen is.
 
 ### Maak het beleid aan
 

@@ -3,9 +3,12 @@ import AlertStateTimeline from "../../../../Models/DatabaseModels/AlertStateTime
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import IncidentStateTimeline from "../../../../Models/DatabaseModels/IncidentStateTimeline";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
+import AlertInternalNoteService from "../../../../Server/Services/AlertInternalNoteService";
 import AlertService from "../../../../Server/Services/AlertService";
 import AlertStateService from "../../../../Server/Services/AlertStateService";
 import AlertStateTimelineService from "../../../../Server/Services/AlertStateTimelineService";
+import IncidentInternalNoteService from "../../../../Server/Services/IncidentInternalNoteService";
+import IncidentPublicNoteService from "../../../../Server/Services/IncidentPublicNoteService";
 import IncidentService from "../../../../Server/Services/IncidentService";
 import IncidentStateService from "../../../../Server/Services/IncidentStateService";
 import IncidentStateTimelineService from "../../../../Server/Services/IncidentStateTimelineService";
@@ -169,6 +172,17 @@ let alertResolvedState: MockFunction;
 let userMarkdown: MockFunction;
 let errors: MockFunction;
 
+/*
+ * What a person did on a record, by its id: a state change (an acknowledge
+ * is one) or a note. Read only when upgrading.
+ */
+let incidentStateChangesByAPerson: Set<string>;
+let incidentInternalNotesByAPerson: Set<string>;
+let incidentPublicNotesByAPerson: Set<string>;
+let alertStateChangesByAPerson: Set<string>;
+let alertNotesByAPerson: Set<string>;
+let workedOnReads: Array<{ service: string; query: Dictionary<unknown> }>;
+
 let incidentNumber: number = 0;
 
 function incident(data: {
@@ -283,6 +297,59 @@ beforeEach(() => {
 
   errors = getJestMockFunction();
   jest.spyOn(logger, "error").mockImplementation(errors as never);
+
+  incidentStateChangesByAPerson = new Set<string>();
+  incidentInternalNotesByAPerson = new Set<string>();
+  incidentPublicNotesByAPerson = new Set<string>();
+  alertStateChangesByAPerson = new Set<string>();
+  alertNotesByAPerson = new Set<string>();
+  workedOnReads = [];
+
+  const workedOn: (
+    service: string,
+    idColumn: "incidentId" | "alertId",
+    byAPerson: () => Set<string>,
+  ) => (findOneBy: unknown) => Promise<{ _id: string } | null> = (
+    service: string,
+    idColumn: "incidentId" | "alertId",
+    byAPerson: () => Set<string>,
+  ): ((findOneBy: unknown) => Promise<{ _id: string } | null>) => {
+    return async (findOneBy: unknown): Promise<{ _id: string } | null> => {
+      const query: Dictionary<unknown> = (
+        findOneBy as { query: Dictionary<unknown> }
+      ).query;
+      workedOnReads.push({ service: service, query: query });
+      return byAPerson().has(String(query[idColumn]))
+        ? { _id: "by-a-person" }
+        : null;
+    };
+  };
+
+  jest.spyOn(IncidentStateTimelineService, "findOneBy").mockImplementation(
+    workedOn("IncidentStateTimeline", "incidentId", () => {
+      return incidentStateChangesByAPerson;
+    }) as never,
+  );
+  jest.spyOn(IncidentInternalNoteService, "findOneBy").mockImplementation(
+    workedOn("IncidentInternalNote", "incidentId", () => {
+      return incidentInternalNotesByAPerson;
+    }) as never,
+  );
+  jest.spyOn(IncidentPublicNoteService, "findOneBy").mockImplementation(
+    workedOn("IncidentPublicNote", "incidentId", () => {
+      return incidentPublicNotesByAPerson;
+    }) as never,
+  );
+  jest.spyOn(AlertStateTimelineService, "findOneBy").mockImplementation(
+    workedOn("AlertStateTimeline", "alertId", () => {
+      return alertStateChangesByAPerson;
+    }) as never,
+  );
+  jest.spyOn(AlertInternalNoteService, "findOneBy").mockImplementation(
+    workedOn("AlertInternalNote", "alertId", () => {
+      return alertNotesByAPerson;
+    }) as never,
+  );
 });
 
 afterEach(() => {
@@ -295,6 +362,14 @@ async function turnOff(
   return await MonitorTurnedOff.resolveWhatItWouldHaveResolved({
     monitorId: MONITOR_ID,
     turnedOffByUserId: turnedOffByUserId,
+  });
+}
+
+// The upgrade's data migration, for a monitor already off (issue #6479).
+async function upgrade(): Promise<MonitorTurnedOffResult> {
+  return await MonitorTurnedOff.resolveWhatItWouldHaveResolved({
+    monitorId: MONITOR_ID,
+    isUpgrade: true,
   });
 }
 
@@ -764,5 +839,331 @@ describe("one record that fails does not stop the others", () => {
       resolvedAlertIds: [],
     });
     expect(incidentTimelines).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * WHEN ONEUPTIME IS UPGRADED (issue #6479): the data migration resolves what
+ * monitors turned off before the switch did this had left open. The same
+ * records as the switch - and never what a person has worked on, since
+ * nobody is there to decide - with a root cause that says it happened at
+ * the upgrade.
+ */
+describe("when OneUptime is upgraded", () => {
+  test("an untouched incident and alert the monitor would have resolved are resolved", async () => {
+    const opened: Incident = incident({
+      criteriaId: OFFLINE,
+      templateId: OFFLINE_INCIDENT_TEMPLATE,
+    });
+    const raised: Alert = alert({ criteriaId: OFFLINE });
+    openIncidents = [opened];
+    openAlerts = [raised];
+
+    expect(await upgrade()).toEqual({
+      resolvedIncidentIds: [opened.id!.toString()],
+      resolvedAlertIds: [raised.id!.toString()],
+      leftForAPersonIncidentIds: [],
+      leftForAPersonAlertIds: [],
+    });
+    expect(writtenIncidentTimelines()).toEqual([
+      {
+        recordId: opened.id!.toString(),
+        stateId: RESOLVED_INCIDENT_STATE_ID.toString(),
+        projectId: PROJECT_ID.toString(),
+        rootCause: expect.any(String),
+        props: { isRoot: true },
+      },
+    ]);
+    expect(writtenAlertTimelines()).toHaveLength(1);
+  });
+
+  test("its root cause says it was resolved when OneUptime was upgraded, not that monitoring was turned off now", async () => {
+    openIncidents = [
+      incident({ criteriaId: OFFLINE, templateId: OFFLINE_INCIDENT_TEMPLATE }),
+    ];
+    openAlerts = [alert({ criteriaId: OFFLINE })];
+
+    await upgrade();
+
+    expect(writtenIncidentTimelines()[0]!.rootCause).toBe(
+      `Monitoring is off for the monitor **${MONITOR_NAME}**. This incident was set to resolve on its own once the monitor recovered, and nothing checks the monitor while its monitoring is off, so it was resolved when OneUptime was upgraded. If monitoring is turned back on while the problem is still there, a new incident is opened.`,
+    );
+    expect(writtenAlertTimelines()[0]!.rootCause).toBe(
+      `Monitoring is off for the monitor **${MONITOR_NAME}**. This alert was set to resolve on its own once the monitor recovered, and nothing checks the monitor while its monitoring is off, so it was resolved when OneUptime was upgraded. If monitoring is turned back on while the problem is still there, a new alert is opened.`,
+    );
+    // Nobody turned it off now: no person is read or named.
+    expect(userMarkdown).not.toHaveBeenCalled();
+    expect(writtenIncidentTimelines()[0]!.rootCause).not.toContain(
+      "turned off monitoring",
+    );
+  });
+
+  test("the monitor's name is placed as text in the upgrade's root cause too", () => {
+    const rootCause: string = MonitorTurnedOff.getRootCause({
+      kind: "incident",
+      monitorName: "API **prod** [eu](https://evil.example)",
+      turnedOffBy: FeedMarkdown.empty(),
+      isUpgrade: true,
+    });
+
+    expect(rootCause).toContain(
+      "**API \\*\\*prod\\*\\* \\[eu\\](https://evil.example)**",
+    );
+    expect(rootCause).not.toContain("[eu](");
+  });
+
+  test("an incident a person moved - acknowledged, say - stays open for them", async () => {
+    const acknowledged: Incident = incident({
+      criteriaId: OFFLINE,
+      templateId: OFFLINE_INCIDENT_TEMPLATE,
+    });
+    const untouched: Incident = incident({
+      criteriaId: OFFLINE,
+      templateId: OFFLINE_INCIDENT_TEMPLATE,
+    });
+    openIncidents = [acknowledged, untouched];
+    incidentStateChangesByAPerson.add(acknowledged.id!.toString());
+
+    const result: MonitorTurnedOffResult = await upgrade();
+
+    expect(result.resolvedIncidentIds).toEqual([untouched.id!.toString()]);
+    expect(result.leftForAPersonIncidentIds).toEqual([
+      acknowledged.id!.toString(),
+    ]);
+    expect(
+      writtenIncidentTimelines().map((written: WrittenTimeline): string => {
+        return written.recordId;
+      }),
+    ).toEqual([untouched.id!.toString()]);
+  });
+
+  test("an incident a person wrote a note on - internal or on a status page - stays open for them", async () => {
+    const internalNote: Incident = incident({
+      criteriaId: OFFLINE,
+      templateId: OFFLINE_INCIDENT_TEMPLATE,
+    });
+    const publicNote: Incident = incident({
+      criteriaId: OFFLINE,
+      templateId: OFFLINE_INCIDENT_TEMPLATE,
+    });
+    openIncidents = [internalNote, publicNote];
+    incidentInternalNotesByAPerson.add(internalNote.id!.toString());
+    incidentPublicNotesByAPerson.add(publicNote.id!.toString());
+
+    const result: MonitorTurnedOffResult = await upgrade();
+
+    expect(result.resolvedIncidentIds).toEqual([]);
+    expect(result.leftForAPersonIncidentIds).toEqual([
+      internalNote.id!.toString(),
+      publicNote.id!.toString(),
+    ]);
+    expect(incidentTimelines).not.toHaveBeenCalled();
+    // Nothing to resolve: the resolved state is not even looked up.
+    expect(incidentResolvedState).not.toHaveBeenCalled();
+  });
+
+  test("an alert a person moved or wrote a note on stays open for them", async () => {
+    const acknowledged: Alert = alert({ criteriaId: OFFLINE });
+    const noted: Alert = alert({ criteriaId: OFFLINE });
+    const untouched: Alert = alert({ criteriaId: OFFLINE });
+    openAlerts = [acknowledged, noted, untouched];
+    alertStateChangesByAPerson.add(acknowledged.id!.toString());
+    alertNotesByAPerson.add(noted.id!.toString());
+
+    const result: MonitorTurnedOffResult = await upgrade();
+
+    expect(result.resolvedAlertIds).toEqual([untouched.id!.toString()]);
+    expect(result.leftForAPersonAlertIds).toEqual([
+      acknowledged.id!.toString(),
+      noted.id!.toString(),
+    ]);
+  });
+
+  test("whether a person worked on it is read one record at a time, by its id and a creator who is a person, as OneUptime", async () => {
+    const opened: Incident = incident({
+      criteriaId: OFFLINE,
+      templateId: OFFLINE_INCIDENT_TEMPLATE,
+    });
+    const raised: Alert = alert({ criteriaId: OFFLINE });
+    openIncidents = [opened];
+    openAlerts = [raised];
+
+    await upgrade();
+
+    expect(
+      workedOnReads.map(
+        (read: { service: string; query: Dictionary<unknown> }): string => {
+          return read.service;
+        },
+      ),
+    ).toEqual([
+      "IncidentStateTimeline",
+      "IncidentInternalNote",
+      "IncidentPublicNote",
+      "AlertStateTimeline",
+      "AlertInternalNote",
+    ]);
+
+    for (const read of workedOnReads) {
+      const recordId: unknown =
+        read.query["incidentId"] || read.query["alertId"];
+
+      expect([opened.id!.toString(), raised.id!.toString()]).toContain(
+        String(recordId),
+      );
+      // createdByUserId IS NOT NULL: a row OneUptime wrote names nobody.
+      expect(read.query["createdByUserId"]).toBeDefined();
+    }
+
+    const findOneBy: {
+      select: Dictionary<unknown>;
+      props: Dictionary<unknown>;
+    } = jest.mocked(IncidentStateTimelineService.findOneBy).mock
+      .calls[0]![0] as unknown as {
+      select: Dictionary<unknown>;
+      props: Dictionary<unknown>;
+    };
+
+    expect(findOneBy.select).toEqual({ _id: true });
+    expect(findOneBy.props).toEqual({ isRoot: true });
+  });
+
+  test("a state change by a person is enough: the notes are not read then", async () => {
+    const acknowledged: Incident = incident({
+      criteriaId: OFFLINE,
+      templateId: OFFLINE_INCIDENT_TEMPLATE,
+    });
+    openIncidents = [acknowledged];
+    incidentStateChangesByAPerson.add(acknowledged.id!.toString());
+
+    await upgrade();
+
+    expect(
+      workedOnReads.map(
+        (read: { service: string; query: Dictionary<unknown> }): string => {
+          return read.service;
+        },
+      ),
+    ).toEqual(["IncidentStateTimeline"]);
+  });
+
+  test("a record whose history cannot be read stays open, and the failure is logged", async () => {
+    const unreadable: Incident = incident({
+      criteriaId: OFFLINE,
+      templateId: OFFLINE_INCIDENT_TEMPLATE,
+    });
+    const readable: Incident = incident({
+      criteriaId: OFFLINE,
+      templateId: OFFLINE_INCIDENT_TEMPLATE,
+    });
+    openIncidents = [unreadable, readable];
+
+    jest
+      .mocked(IncidentInternalNoteService.findOneBy)
+      .mockImplementation((async (findOneBy: unknown) => {
+        const query: Dictionary<unknown> = (
+          findOneBy as { query: Dictionary<unknown> }
+        ).query;
+
+        if (String(query["incidentId"]) === unreadable.id!.toString()) {
+          throw new Error("connection reset");
+        }
+
+        return null;
+      }) as never);
+
+    const result: MonitorTurnedOffResult = await upgrade();
+
+    expect(result.resolvedIncidentIds).toEqual([readable.id!.toString()]);
+    expect(result.leftForAPersonIncidentIds).toEqual([
+      unreadable.id!.toString(),
+    ]);
+    expect(errors).toHaveBeenCalled();
+  });
+
+  test("it resolves no more than the switch: declared by hand, left to a person by its criteria, or of a removed criteria, they stay open", async () => {
+    openIncidents = [
+      incident({}),
+      incident({
+        criteriaId: DEGRADED,
+        templateId: DEGRADED_INCIDENT_TEMPLATE,
+      }),
+      incident({ criteriaId: "criteria-removed", templateId: "x" }),
+    ];
+    openAlerts = [alert({}), alert({ criteriaId: DEGRADED })];
+
+    const result: MonitorTurnedOffResult = await upgrade();
+
+    expect(result.resolvedIncidentIds).toEqual([]);
+    expect(result.resolvedAlertIds).toEqual([]);
+    // Not even read: only what it would have resolved is looked at.
+    expect(workedOnReads).toEqual([]);
+  });
+
+  test("a monitor whose monitoring is on again by now is left to its checks", async () => {
+    storedMonitor!.disableActiveMonitoring = false;
+    openIncidents = [
+      incident({ criteriaId: OFFLINE, templateId: OFFLINE_INCIDENT_TEMPLATE }),
+    ];
+
+    expect(await upgrade()).toEqual({
+      resolvedIncidentIds: [],
+      resolvedAlertIds: [],
+      leftForAPersonIncidentIds: [],
+      leftForAPersonAlertIds: [],
+    });
+    expect(incidentReads).not.toHaveBeenCalled();
+  });
+
+  test("run twice, it resolves nothing more: what it resolved is no longer open, and what a person worked on is left again", async () => {
+    const untouched: Incident = incident({
+      criteriaId: OFFLINE,
+      templateId: OFFLINE_INCIDENT_TEMPLATE,
+    });
+    const acknowledged: Incident = incident({
+      criteriaId: OFFLINE,
+      templateId: OFFLINE_INCIDENT_TEMPLATE,
+    });
+    openIncidents = [untouched, acknowledged];
+    incidentStateChangesByAPerson.add(acknowledged.id!.toString());
+
+    // The resolve takes the incident off the open list, as the database does.
+    incidentTimelines.mockImplementation(async (createBy: unknown) => {
+      const data: IncidentStateTimeline = (
+        createBy as { data: IncidentStateTimeline }
+      ).data;
+      openIncidents = openIncidents.filter((open: Incident): boolean => {
+        return open.id!.toString() !== data.incidentId!.toString();
+      });
+      return data;
+    });
+
+    const first: MonitorTurnedOffResult = await upgrade();
+    const second: MonitorTurnedOffResult = await upgrade();
+
+    expect(first.resolvedIncidentIds).toEqual([untouched.id!.toString()]);
+    expect(second.resolvedIncidentIds).toEqual([]);
+    expect(second.leftForAPersonIncidentIds).toEqual([
+      acknowledged.id!.toString(),
+    ]);
+    expect(incidentTimelines).toHaveBeenCalledTimes(1);
+  });
+
+  test("turning monitoring off is unchanged: the person deciding resolves what they acknowledged too, and no history is read", async () => {
+    const acknowledged: Incident = incident({
+      criteriaId: OFFLINE,
+      templateId: OFFLINE_INCIDENT_TEMPLATE,
+    });
+    openIncidents = [acknowledged];
+    incidentStateChangesByAPerson.add(acknowledged.id!.toString());
+
+    const result: MonitorTurnedOffResult = await turnOff();
+
+    expect(result).toEqual({
+      resolvedIncidentIds: [acknowledged.id!.toString()],
+      resolvedAlertIds: [],
+    });
+    expect(result.leftForAPersonIncidentIds).toBeUndefined();
+    expect(workedOnReads).toEqual([]);
   });
 });

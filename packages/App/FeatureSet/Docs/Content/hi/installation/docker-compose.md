@@ -117,7 +117,7 @@ cp config.example.env config.env
 
 ### होस्टनेम सेट करें
 
-`config.env` खोलें और `HOST` को उस डोमेन नाम या IP पते पर सेट करें जिससे लोग OneUptime तक पहुँचेंगे, `http://` के बिना। `localhost` सिर्फ़ तब रखें जब आप OneUptime को अपने कंप्यूटर पर आज़मा रहे हों।
+`config.env` खोलें और `HOST` को उस डोमेन नाम या IP पते पर सेट करें जिससे लोग OneUptime तक पहुँचेंगे, `http://` के बिना। `localhost` सिर्फ़ तब रखें जब आप OneUptime को अपने कंप्यूटर पर आज़मा रहे हों। IPv6 पता वेब पते की तरह ब्रैकेट में लिखा जाता है, और पोर्ट हो तो उनके बाद: `HOST=[2001:db8::1]:8080`।
 
 ```ini title="config.env"
 HOST=oneuptime.example.com

@@ -401,7 +401,7 @@ Eine Untersuchung, die scheitert, abläuft oder veraltet, gibt die Behebung trot
 
 Während die Behebung wartet, sagt das der Schritt **Behebung** – **Wartet** – und zeigt, was geschah, sobald die Untersuchung abgeschlossen ist.
 
-Die automatische Behebung hängt von zwei Schaltern ab. **Neue Vorfälle automatisch beheben** (oder für Warnungen), aus, bis das Projekt es einschaltet: Ist es aus, wird kein neuer Vorfall (und keine neue Warnung) behoben. Und **KI aktivieren** (**Projekteinstellungen → KI → KI-Funktionen**), der KI-Hauptschalter des Projekts: Ist er aus, läuft keine KI-Regel – nicht einmal eine, die ein Runbook ohne KI startet –, und kein Cluster und keine Ressource wird behoben.
+Die automatische Behebung hängt von zwei Schaltern ab. **Neue Vorfälle automatisch beheben** (oder für Warnungen), aus, bis das Projekt es einschaltet: Ist es aus, wird kein neuer Vorfall (und keine neue Warnung) behoben. Und **KI aktivieren** (**Projekteinstellungen → KI → KI-Funktionen**), der KI-Hauptschalter des Projekts: Ist er aus, läuft keine KI-Regel – nicht einmal eine, die ein Runbook ohne KI startet –, und kein Cluster und keine Ressource wird behoben. Ein Runner oder ein KI-Agent, der bereits einen Befehl hält, wenn **KI aktivieren** ausgeschaltet wird, wird bei seinem nächsten Heartbeat angewiesen aufzuhören: Ein Befehl, der noch nicht begonnen hat, beginnt nicht.
 
 ## Was die automatische Behebung getan hat
 

@@ -161,6 +161,7 @@ Abra um SLO para ver suas páginas no menu lateral:
 | --- | --- |
 | **Visão geral** | O status, os números principais, o consumo do orçamento de erros, a atividade recente, os alertas e incidentes abertos e as regras de taxa de consumo. |
 | **Métricas** | As métricas `oneuptime.slo.*` do SLO, seu histórico de longo prazo do orçamento de erros e as métricas dos incidentes e alertas que o afetam. Veja [Métricas e painéis de SLO](/docs/slo/metrics). |
+| **Relatório mensal** | Como o SLO se saiu em cada mês do calendário e no período inteiro. Veja [O relatório mensal](#o-relatório-mensal). |
 | **Incidentes** | Os incidentes que suas regras de taxa de consumo e sua política de orçamento de erros declararam. O selo conta os abertos. |
 | **Alertas** | Os alertas que suas regras de taxa de consumo e sua política de orçamento de erros geraram. O selo conta os abertos. |
 | **Feed** | O que aconteceu com o SLO, como linha do tempo. Veja [Feed e registros de auditoria de SLO](/docs/slo/feed-and-audit-logs). |
@@ -209,6 +210,31 @@ A página **Configurações** reúne como um SLO mede, um cartão para cada cois
 | **Arquivar: SLO** | **Arquivar** ou **Desarquivar**. | Veja [Arquivar um SLO](#arquivar-um-slo). |
 
 Depois de uma mudança no que ele mede, na meta, no período ou no cálculo da indisponibilidade, o OneUptime avalia o SLO de novo na execução seguinte.
+
+### O relatório mensal
+
+O **Relatório mensal** mostra como o SLO se saiu em cada mês do calendário dos últimos **3 meses**, **6 meses**, **9 meses** ou **12 meses**, ou de um ano civil. Cada mês mostra o SLI, o tempo de inatividade (num SLO de requisições, as requisições com falha ou lentas; num SLO de métrica, os eventos ruins), a parte do orçamento de erros que usou e o resultado:
+
+| Resultado | O que significa |
+| --- | --- |
+| Atendido | O mês terminou, e o SLI dele atingiu a meta. |
+| Não atendido | O mês terminou sem atingir a meta, ou o mês ainda está em andamento e já tem mais tempo de inatividade do que o mês inteiro permite. |
+| No caminho certo | O mês ainda está em andamento, e o SLI dele até agora atinge a meta. |
+| Abaixo da meta | O mês ainda está em andamento, e o SLI dele até agora está abaixo da meta. |
+| Sem dados | Nada foi medido naquele mês. |
+
+A linha **Total** mede o período inteiro como um só. Um SLO com vários monitores também ganha uma tabela **Por monitor**: o SLI de cada monitor em cada mês, com primeiro o monitor que mais custou ao SLO. **Baixar CSV** salva o relatório como um arquivo para uma planilha.
+
+Nada a mais é guardado para o relatório. Cada mês é calculado a partir do histórico de status dos monitores quando você o abre, com os monitores, os status de indisponibilidade e a meta do SLO como estão agora, então ele volta até antes de o SLO ser criado. Os meses de um SLO de requisições vêm das requisições que o OneUptime contou para ele, e os de um SLO de métrica dos eventos da métrica dele, guardados por 400 dias. Os meses seguem o fuso horário do SLO, ou UTC quando ele não tem um.
+
+A API responde com o mesmo relatório:
+
+```bash
+curl -sS "https://oneuptime.com/api/service-level-objective/<slo-id>/monthly-report?months=12" \
+  -H "ApiKey: $ONEUPTIME_API_KEY"
+```
+
+Peça com `months` de 1 a 24 meses terminando no mês atual, ou um ano civil com `year`, como `year=2025`.
 
 ## Arquivar um SLO
 

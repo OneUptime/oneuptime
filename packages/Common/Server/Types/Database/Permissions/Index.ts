@@ -24,6 +24,7 @@ import NotAuthenticatedException from "../../../../Types/Exception/NotAuthentica
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 import CallerPlan from "../../../Utils/Billing/CallerPlan";
+import ColumnPermissions from "./ColumnPermission";
 
 export default class ModelPermission {
   /*
@@ -285,16 +286,51 @@ export default class ModelPermission {
     }
   }
 
+  /*
+   * A create's values in server-set columns, asked of what the caller sent
+   * before the create's hooks run (ColumnPermission
+   * .checkComputedColumnsSentOnCreate). Returns the ones the caller gave a
+   * value and may create.
+   */
+  @CaptureSpan()
+  public static checkComputedColumnsSentOnCreate<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    data: TBaseModel,
+    props: DatabaseCommonInteractionProps,
+  ): Array<string> {
+    DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(props);
+
+    try {
+      return ColumnPermissions.checkComputedColumnsSentOnCreate(
+        modelType,
+        data,
+        props,
+      );
+    } catch (error) {
+      throw ModelPermission.toAnonymousRefusal(error, props);
+    }
+  }
+
+  /*
+   * `columnsSetByServer`: the server-set columns the create's own steps
+   * wrote into `data` (CreatePermission.checkCreatePermissions).
+   */
   @CaptureSpan()
   public static checkCreatePermissions<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     data: TBaseModel,
     props: DatabaseCommonInteractionProps,
+    columnsSetByServer: Array<string> = [],
   ): void {
     DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(props);
 
     try {
-      return CreatePermission.checkCreatePermissions(modelType, data, props);
+      return CreatePermission.checkCreatePermissions(
+        modelType,
+        data,
+        props,
+        columnsSetByServer,
+      );
     } catch (error) {
       throw ModelPermission.toAnonymousRefusal(error, props);
     }

@@ -53,20 +53,18 @@ export interface ClaimedDataStore {
 
 /*
  * Whether the project `p` is served (ProjectService.getActiveProjectStatusQuery):
- * not deleted, not blocked, not a sample, and its subscriptions not
- * inactive, with the served subscription statuses bound as the parameter
- * named. Every Data Security path that reads a store's content holds a
- * project to it - the probe's claim, the workers' claim and their scan
- * (DataSecurityWorkerClaim), and the hourly telemetry scan
- * (DataSecurityTelemetryScanRule) - so nothing of a suspended, blocked or
- * sample project is read. Read through a LEFT JOIN, a missing project is
- * NULL here, never true.
+ * not deleted, not blocked, and its subscriptions not inactive, with the
+ * served subscription statuses bound as the parameter named. Every Data
+ * Security path that reads a store's content holds a project to it - the
+ * probe's claim, the workers' claim and their scan (DataSecurityWorkerClaim),
+ * and the hourly telemetry scan (DataSecurityTelemetryScanRule) - so nothing
+ * of a suspended or blocked project is read. Read through a LEFT JOIN, a
+ * missing project is NULL here, never true.
  */
 export function getServedProjectSql(statusesParameter: string): Array<string> {
   return [
     `p."deletedAt" IS NULL`,
     `p."isBlocked" = false`,
-    `p."isSampleProject" = false`,
     `(p."paymentProviderSubscriptionStatus" IS NULL OR p."paymentProviderSubscriptionStatus" = ANY(${statusesParameter}::text[]))`,
     `(p."paymentProviderMeteredSubscriptionStatus" IS NULL OR p."paymentProviderMeteredSubscriptionStatus" = ANY(${statusesParameter}::text[]))`,
   ];
@@ -192,7 +190,7 @@ export async function isDataStoreContentScannableByProbe(data: {
  * (Utils/Probe/ClaimSetAside): content scanning off on the store or for the
  * project, archived, not self-managed or of a kind a probe cannot sample,
  * without a connection variable, on a probe that is not the project's own,
- * or of a suspended, blocked, sample or deleted project. Each is judged
+ * or of a suspended, blocked or deleted project. Each is judged
  * again by the claim's own rule (getContentScannableSql, IS NOT TRUE), so a
  * store the claim would hand out is never moved. Makes due the probe's
  * stores with no nextContentScanAt at all.

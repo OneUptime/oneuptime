@@ -1,17 +1,27 @@
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { EventEmitter } from "events";
 
 /*
- * THE HTTP INGEST MIDDLEWARE STAMPS THE KEY THAT SENT AN ADMITTED REQUEST AS
- * USED, THROUGH THE HELPER THE OTLP gRPC SERVER SHARES, AND NEVER A KEY IT
- * REFUSED (issue #7887).
+ * THE HTTP INGEST MIDDLEWARE STAMPS THE KEY THAT SENT A REQUEST AS USED ONCE
+ * ITS ROUTE HAS ACCEPTED THE DATA, THROUGH THE HELPER THE OTLP gRPC SERVER
+ * SHARES, AND NEVER A KEY IT REFUSED (issues #7887, #8021).
  *
  * "Last Used At" and the telemetry guides' first-data wait read the stamp. A
  * refused key - switched off, expired, a browser key where it may not write,
  * over a limit or a budget, a project that cannot pay - is not "used", and
  * stamping it would tell a customer a dead key is still live. So each branch
  * of the guard is driven here, and what it stamped is asserted beside how it
- * answered the sender. GrpcServerKeyLastUsed.test.ts does the same for the
- * gRPC server, through the same TelemetryIngestionKeyLastUsed.stamp.
+ * answered the sender.
+ *
+ * Admission is not acceptance: the guard hands an admitted request on before
+ * its route has queued anything, and the route can still refuse it - a 503
+ * while the queue cannot take the export, a body it cannot read. The guard
+ * used to stamp at admission; gRPC stamps once the queue has taken the export
+ * (GrpcServerKeyLastUsed.test.ts). Now the guard stamps when the route
+ * answers with a success, which a route sends only once it has the data, so
+ * an admitted request is driven on to each way its route can answer.
+ * OtlpKeyLastUsedAcrossProtocols.test.ts holds the real OTLP routes, over
+ * HTTP JSON and protobuf, and the gRPC server to that one rule.
  *
  * The key lookup, the limiter and the budget are mocked at the module
  * boundary, as in the guard's other suites; the helper itself runs, so the
@@ -185,6 +195,41 @@ function refuseOnBudget(refusal: TelemetryIngestionBudgetRefusal): void {
 }
 
 /*
+ * The response the guard is handed: what Express's is to it - a status, the
+ * setters a refusal uses, and "finish" once an answer is sent. answer() is
+ * the route answering an admitted request, as its res.end() comes to.
+ */
+class GuardResponse extends EventEmitter {
+  public statusCode: number = 200;
+  public headersSent: boolean = false;
+  public setHeader: MockFn = jest.fn() as unknown as MockFn;
+  public refusedWith: number | null = null;
+
+  public status(code: number): this {
+    this.statusCode = code;
+    this.refusedWith = code;
+    return this;
+  }
+
+  public send(): this {
+    return this;
+  }
+
+  public json(): this {
+    return this;
+  }
+
+  public answer(statusCode: number): void {
+    this.statusCode = statusCode;
+    this.headersSent = true;
+    this.emit("finish");
+  }
+}
+
+// The response of the last run(), for a test to answer as the route would.
+let lastResponse: GuardResponse;
+
+/*
  * How the middleware answered: the exception it answered with, the status a
  * budget refusal set, what it handed to next(), or "next()" for an admitted
  * request.
@@ -193,26 +238,13 @@ async function run(
   surface: TelemetryIngestSurface | null,
   headers: Record<string, string> = { "x-oneuptime-token": TOKEN },
 ): Promise<string> {
-  let status: number | null = null;
   const req: ExpressRequest = {
     headers,
     body: Buffer.alloc(10),
     id: "test-request-id",
   } as unknown as ExpressRequest;
-  const res: Record<string, unknown> = {
-    headersSent: false,
-    setHeader: jest.fn(),
-    status: (code: number): Record<string, unknown> => {
-      status = code;
-      return res;
-    },
-    send: (): Record<string, unknown> => {
-      return res;
-    },
-    json: (): Record<string, unknown> => {
-      return res;
-    },
-  };
+  const res: GuardResponse = new GuardResponse();
+  lastResponse = res;
   const next: MockFn = jest.fn() as unknown as MockFn;
 
   if (surface === null) {
@@ -236,8 +268,8 @@ async function run(
     return sent.constructor.name;
   }
 
-  if (status !== null) {
-    return `HTTP ${status}`;
+  if (res.refusedWith !== null) {
+    return `HTTP ${res.refusedWith}`;
   }
 
   if (next.mock.calls.length !== 1) {
@@ -346,7 +378,7 @@ const ADMITTED_CASES: Array<AdmittedCase> = [
   },
 ];
 
-describe("an admitted request stamps the key that sent it, through the shared helper", () => {
+describe("an admitted request stamps the key that sent it once its route accepts the data, through the shared helper", () => {
   test.each(ADMITTED_CASES)("$label", async (admitted: AdmittedCase) => {
     const policy: TelemetryIngestionKeyPolicy = admitted.policy();
     resolveTo(policy);
@@ -354,10 +386,100 @@ describe("an admitted request stamps the key that sent it, through the shared he
 
     expect(await run(admitted.surface, admitted.headers)).toBe("next()");
 
+    // Admitted and handed to the route, which has accepted nothing yet.
+    expect(stamp).not.toHaveBeenCalled();
+    expect(markUsed()).not.toHaveBeenCalled();
+
+    // The route took the data and answered with a success.
+    lastResponse.answer(200);
+
     expect(stamp).toHaveBeenCalledTimes(1);
     expect(stamp).toHaveBeenCalledWith(policy);
     expect(markUsed()).toHaveBeenCalledTimes(1);
     expect(String(markUsed().mock.calls[0]![0])).toBe(KEY_ID);
+  });
+});
+
+/*
+ * The ways a route says it took the data: OTLP, Fluent and Syslog 200,
+ * Datadog and session replay 202, remote write and Loki 204.
+ */
+describe("every success a route answers with stamps the key once", () => {
+  test.each([200, 202, 204])("%p", async (status: number) => {
+    expect(await run(TelemetryIngestSurface.OtelLogs)).toBe("next()");
+
+    lastResponse.answer(status);
+
+    expect(markUsed()).toHaveBeenCalledTimes(1);
+    expect(String(markUsed().mock.calls[0]![0])).toBe(KEY_ID);
+  });
+});
+
+interface RouteFailureCase {
+  label: string;
+  status: number;
+}
+
+/*
+ * An admitted request its route then refuses or fails. The 503 is issue
+ * #8021 itself: the queue could not take the export, the sender is told to
+ * retry, and only the retry the queue takes stamps - as on gRPC.
+ */
+const ROUTE_FAILURE_CASES: Array<RouteFailureCase> = [
+  { label: "the queue cannot take the export (503)", status: 503 },
+  { label: "the route failed (500)", status: 500 },
+  { label: "a body the route cannot read (400)", status: 400 },
+  { label: "a body larger than the route takes (413)", status: 413 },
+  { label: "a content coding the route cannot undo (415)", status: 415 },
+  { label: "a sender the route itself throttles (429)", status: 429 },
+];
+
+describe("an admitted request its route refuses or fails stamps nothing", () => {
+  test.each(ROUTE_FAILURE_CASES)(
+    "$label",
+    async (failure: RouteFailureCase) => {
+      expect(await run(TelemetryIngestSurface.OtelTraces)).toBe("next()");
+
+      lastResponse.answer(failure.status);
+
+      expect(stamp).not.toHaveBeenCalled();
+      expect(markUsed()).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a request its route never answers - the client left first - stamps nothing", async () => {
+    expect(await run(TelemetryIngestSurface.OtelMetrics)).toBe("next()");
+
+    lastResponse.emit("close");
+
+    expect(stamp).not.toHaveBeenCalled();
+    expect(markUsed()).not.toHaveBeenCalled();
+  });
+
+  test("an export the queue refused, then its retry the queue took: only the retry stamps", async () => {
+    expect(await run(TelemetryIngestSurface.OtelLogs)).toBe("next()");
+    lastResponse.answer(503);
+
+    expect(markUsed()).not.toHaveBeenCalled();
+
+    expect(await run(TelemetryIngestSurface.OtelLogs)).toBe("next()");
+    lastResponse.answer(200);
+
+    expect(markUsed()).toHaveBeenCalledTimes(1);
+  });
+
+  test("a guard handed a response it cannot watch still admits the request, and stamps nothing", async () => {
+    const next: MockFn = jest.fn() as unknown as MockFn;
+
+    await TelemetryIngest.forSurface(TelemetryIngestSurface.OtelLogs)(
+      { headers: { "x-oneuptime-token": TOKEN } } as unknown as ExpressRequest,
+      {} as unknown as ExpressResponse,
+      next as unknown as NextFunction,
+    );
+
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(next.mock.calls[0]).toEqual([]);
+    expect(markUsed()).not.toHaveBeenCalled();
   });
 });
 
@@ -518,6 +640,10 @@ describe("a refused or failed request stamps nothing", () => {
     refused.arrange();
 
     expect(await run(refused.surface, refused.headers)).toBe(refused.answer);
+
+    // The refusal goes out, and nothing waits on it for a success.
+    expect(lastResponse.listenerCount("finish")).toBe(0);
+    lastResponse.emit("finish");
 
     expect(stamp).not.toHaveBeenCalled();
     expect(markUsed()).not.toHaveBeenCalled();

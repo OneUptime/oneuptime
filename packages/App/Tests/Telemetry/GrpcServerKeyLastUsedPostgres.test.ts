@@ -293,8 +293,8 @@ describePostgres("a key used only over OTLP/gRPC (Postgres)", () => {
     ).toBe(schema);
 
     await database.query(
-      `INSERT INTO "${schema}"."Project" ("_id", "name", "isBlocked", "isSampleProject")
-       VALUES ($1, 'Collector', false, false), ($2, 'Blocked', true, false)`,
+      `INSERT INTO "${schema}"."Project" ("_id", "name", "isBlocked")
+       VALUES ($1, 'Collector', false), ($2, 'Blocked', true)`,
       [projectId, blockedProjectId],
     );
 

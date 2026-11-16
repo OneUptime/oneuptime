@@ -8,6 +8,7 @@ import ProjectService, {
   CurrentPlan,
 } from "../../../Server/Services/ProjectService";
 import UserService from "../../../Server/Services/UserService";
+import MasterApiKey from "../../../Server/Utils/MasterApiKey";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -19,6 +20,7 @@ import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import Email from "../../../Types/Email";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import Exception from "../../../Types/Exception/Exception";
+import HashedString from "../../../Types/HashedString";
 import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
@@ -389,8 +391,14 @@ describe("what the plan check never sees", () => {
   test("the instance's master key is not held to a project's plan", async () => {
     findApiKey.mockResolvedValue(null);
 
+    // The master key on, stored as its hash (#7901).
     const masterConfig: GlobalConfig = new GlobalConfig();
     masterConfig._id = ObjectID.getZeroObjectID().toString();
+    masterConfig.isMasterApiKeyEnabled = true;
+    masterConfig.masterApiKey = new HashedString(
+      MasterApiKey.hash(MASTER_API_KEY_VALUE),
+      true,
+    );
     globalConfigFindOneBy.mockResolvedValue(masterConfig);
 
     const masterAdmin: User = new User();

@@ -41,6 +41,7 @@ const {
   parsePortSetting,
   splitHost,
   cleanedHost,
+  bracketedReadingsOf,
   exampleAddress,
   hostFindings,
   dockerFailureOf,
@@ -605,6 +606,345 @@ describe("HOST, HTTP_PROTOCOL and PROVISION_SSL", () => {
 
     expect(levelsOf(findings)).toEqual(["warn", "warn"]);
     expect(findings[1].message).toContain("set HOST=localhost:8080");
+  });
+});
+
+/*
+ * An IPv6 HOST is written in brackets, with any port after them (#8022):
+ * HOST=[2001:db8::1], HOST=[2001:db8::1]:8080, as a web address writes it and
+ * a browser names it in every request. Without brackets it never worked: the
+ * ingress never took a request for it, and every link read
+ * http://2001:db8::1/... Nor can the brackets be put in for the person, since
+ * 2001:db8::1:8080 is an address of its own as well as 2001:db8::1 on port
+ * 8080. So the start stops, with the line to write.
+ */
+describe("an IPv6 HOST goes in brackets", () => {
+  const stock = [
+    "HTTP_PROTOCOL=http",
+    "PROVISION_SSL=false",
+    "ONEUPTIME_HTTP_PORT=80",
+    "TRUSTED_PROXY_HOPS=1",
+  ];
+
+  function findingsFor(host, changes) {
+    return hostFindings(
+      settingsWith(stock.concat(changes || [], [`HOST=${host}`])),
+      INTERFACES,
+    );
+  }
+
+  // Every shape that works, with a port and without one: nothing is said.
+  test.each([
+    "oneuptime.example.com",
+    "oneuptime.example.com:8080",
+    "OneUptime.Example.com:8443",
+    "203.0.113.5",
+    "203.0.113.5:8080",
+    "[2001:db8::1]",
+    "[2001:db8::1]:8080",
+    "[2001:DB8::1]:8443",
+    "[2001:db8:0:0:0:0:0:1]",
+    "[::ffff:192.0.2.1]:8080",
+    "[fe80::1]:65535",
+  ])("HOST=%s starts, and nothing is said", (host) => {
+    expect(findingsFor(host)).toEqual([]);
+  });
+
+  test("an IPv6 address without brackets stops the start, with the line that brackets it", () => {
+    expect(findingsFor("2001:db8::1")).toEqual([
+      {
+        level: "stop",
+        message:
+          "HOST in config.env is 2001:db8::1, an IPv6 address without the brackets a web address needs around one, so no browser can open OneUptime at it. Write HOST=[2001:db8::1].",
+      },
+    ]);
+  });
+
+  test("one whose last group could be a port names both readings: only the person knows which was meant", () => {
+    expect(findingsFor("2001:db8::1:8080")).toEqual([
+      {
+        level: "stop",
+        message:
+          "HOST in config.env is 2001:db8::1:8080, an IPv6 address without the brackets a web address needs around one, so no browser can open OneUptime at it. Write HOST=[2001:db8::1:8080], or HOST=[2001:db8::1]:8080 if 8080 is the port people open it on.",
+      },
+    ]);
+  });
+
+  test("an address of all eight groups and a port reads one way: the port goes after the brackets", () => {
+    expect(findingsFor("2001:db8:0:0:0:0:0:1:8080")).toEqual([
+      {
+        level: "stop",
+        message:
+          "HOST in config.env is 2001:db8:0:0:0:0:0:1:8080, an IPv6 address and a port, without the brackets a web address needs around the address, so no browser can open OneUptime at it. Write HOST=[2001:db8:0:0:0:0:0:1]:8080.",
+      },
+    ]);
+  });
+
+  test.each([
+    ["::1", "HOST=[::1]"],
+    ["fd00::7", "HOST=[fd00::7]"],
+    ["2001:DB8::1", "HOST=[2001:DB8::1]"],
+    ["::ffff:192.0.2.1", "HOST=[::ffff:192.0.2.1]"],
+    [
+      "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
+      "HOST=[2001:0db8:85a3:0000:0000:8a2e:0370:7334]",
+    ],
+  ])("HOST=%s stops: write %s", (host, line) => {
+    const findings = findingsFor(host);
+
+    expect(levelsOf(findings)).toEqual(["stop"]);
+    expect(findings[0].message).toContain(
+      "without the brackets a web address needs around one",
+    );
+    expect(findings[0].message.endsWith(` Write ${line}.`)).toBe(true);
+  });
+
+  test("the line it gives is one the next start takes: in brackets, nothing more is said", () => {
+    for (const host of [
+      "2001:db8::1",
+      "2001:db8::1:8080",
+      "2001:db8:0:0:0:0:0:1:8080",
+      "fd00::7",
+    ]) {
+      const message = findingsFor(host)[0].message;
+      const lines = message.match(/HOST=\S+?(?=[,.]? |\.$)/g);
+
+      expect({ host, lines: lines.length > 0 }).toEqual({ host, lines: true });
+
+      for (const line of lines) {
+        expect({
+          line,
+          findings: findingsFor(line.slice("HOST=".length)),
+        }).toEqual({
+          line,
+          findings: [],
+        });
+      }
+    }
+  });
+
+  test.each(["::", "[::]", "[::]:8080"])(
+    "HOST=%s is still an address servers listen on, not one to bracket",
+    (host) => {
+      const findings = findingsFor(host);
+
+      expect(levelsOf(findings)).toEqual(["stop"]);
+      expect(findings[0].message).toContain(
+        "an address servers listen on rather than one people open",
+      );
+    },
+  );
+
+  test("[::1] is this computer, as localhost is: said, and OneUptime starts", () => {
+    expect(levelsOf(findingsFor("[::1]"))).toEqual(["warn"]);
+    expect(levelsOf(findingsFor("[::1]:8080"))).toEqual(["warn"]);
+    expect(findingsFor("[::1]")[0].message).toContain(
+      "HOST is [::1], so only this computer can open OneUptime.",
+    );
+  });
+
+  test.each([
+    "a:b:c",
+    "oneuptime.example.com:8080:9090",
+    "203.0.113.5:80:80",
+    // A zone names a network card of this server, which no other computer has.
+    "fe80::1%eth0",
+  ])(
+    "HOST=%s, with two colons and no IPv6 address either way, is no address",
+    (host) => {
+      expect(findingsFor(host)).toEqual([
+        {
+          level: "stop",
+          message: `HOST in config.env is ${host}, which is not an address: a domain name or an IPv4 address has one colon at most, before its port, and an IPv6 address goes in brackets, such as HOST=[2001:db8::1].`,
+        },
+      ]);
+    },
+  );
+
+  test.each([
+    "[2001:db8::1",
+    "[oneuptime.example.com]",
+    "[203.0.113.5]:8080",
+    "[2001:db8::1]8080",
+    "[2001:db8::1]:8080:9090",
+    "[[2001:db8::1]]",
+    "[]",
+    "[fe80::1%25eth0]",
+  ])("HOST=%s: brackets hold an IPv6 address and nothing else", (host) => {
+    expect(findingsFor(host)).toEqual([
+      {
+        level: "stop",
+        message: `HOST in config.env is ${host}. Brackets hold an IPv6 address and nothing else, with any port after the closing one, such as HOST=[2001:db8::1] or HOST=[2001:db8::1]:8080. A domain name or an IPv4 address goes without them.`,
+      },
+    ]);
+  });
+
+  test.each([
+    ["[2001:db8::1]:", "no port follows its last colon"],
+    ["[2001:db8::1]:http", "http is not a port"],
+    ["[2001:db8::1]:0", "0 is not a port"],
+    ["[2001:db8::1]:65536", "65536 is not a port"],
+  ])("HOST=%s: after the brackets comes a port, %s", (host, why) => {
+    expect(findingsFor(host)).toEqual([
+      {
+        level: "stop",
+        message: `HOST in config.env is ${host}, but ${why}. A port is a number from 1 to 65535, such as HOST=[2001:db8::1]:8080; without one, write HOST=[2001:db8::1].`,
+      },
+    ]);
+  });
+
+  test.each([
+    ["oneuptime.example.com:", "no port follows its colon"],
+    ["oneuptime.example.com:https", "https is not a port"],
+    ["203.0.113.5:99999", "99999 is not a port"],
+    ["localhost:0", "0 is not a port"],
+  ])(
+    "HOST=%s: a name's or an IPv4 address's port is a number, %s",
+    (host, why) => {
+      const name = host.slice(0, host.indexOf(":"));
+
+      expect(findingsFor(host)).toEqual([
+        {
+          level: "stop",
+          message: `HOST in config.env is ${host}, but ${why}. A port is a number from 1 to 65535, such as HOST=${name}:8080; without one, write HOST=${name}.`,
+        },
+      ]);
+    },
+  );
+
+  test("a port with no address before it stops the start", () => {
+    expect(findingsFor(":8080")).toEqual([
+      {
+        level: "stop",
+        message:
+          "HOST in config.env is :8080, a port with no address before it. Write the domain name or IP address people open OneUptime at before the colon, such as HOST=oneuptime.example.com:8080.",
+      },
+    ]);
+  });
+
+  test.each([
+    ["http://2001:db8::1/", "HOST=[2001:db8::1]"],
+    ["https://[2001:db8::1]:8443/dashboard", "HOST=[2001:db8::1]:8443"],
+    [
+      "https://2001:db8::1:8443/",
+      "HOST=[2001:db8::1:8443], or HOST=[2001:db8::1]:8443 if 8443 is the port people open it on",
+    ],
+  ])(
+    "HOST=%s, written as a web address, is given back as the address alone, in brackets: %s",
+    (host, lines) => {
+      expect(findingsFor(host)).toEqual([
+        {
+          level: "stop",
+          message: `HOST in config.env is ${host}. Write the address alone, without http:// or a path: ${lines}. HTTP_PROTOCOL says whether people use http or https.`,
+        },
+      ]);
+    },
+  );
+
+  test("a bracketed address on a moved ingress is told the port in its own spelling", () => {
+    expect(findingsFor("[2001:db8::1]", ["ONEUPTIME_HTTP_PORT=8080"])).toEqual([
+      {
+        level: "warn",
+        message: `OneUptime's ingress is on port 8080 (ONEUPTIME_HTTP_PORT=8080), but HOST has no port, so its pages call port 80 and signing in fails. If people open it at http://[2001:db8::1]:8080, set HOST=[2001:db8::1]:8080. If a proxy of yours on port 80 or 443 is in front of it, see ${DOCS_URL}#use-your-own-reverse-proxy.`,
+      },
+    ]);
+    expect(
+      findingsFor("[2001:db8::1]:8080", ["ONEUPTIME_HTTP_PORT=8080"]),
+    ).toEqual([]);
+  });
+
+  test("PROVISION_SSL with an IPv6 address: Let's Encrypt issues certificates for domain names only", () => {
+    expect(
+      findingsFor("[2001:db8::1]", [
+        "PROVISION_SSL=true",
+        "HTTP_PROTOCOL=https",
+      ]),
+    ).toEqual([
+      {
+        level: "warn",
+        message:
+          "PROVISION_SSL=true, but HOST is [2001:db8::1]: Let's Encrypt issues certificates for domain names only. Set HOST to a domain name that points at this server, or PROVISION_SSL=false.",
+      },
+    ]);
+  });
+
+  test.each(["[2001:db8::1]", "[2001:db8::1]:8080", "2001:db8::1"])(
+    "HOST=%s is no name to look up",
+    async (host) => {
+      const lookup = jest.fn(() => {
+        return Promise.resolve("not-found");
+      });
+
+      expect(await dnsFindings(settingsWith([`HOST=${host}`]), lookup)).toEqual(
+        [],
+      );
+      expect(lookup).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each([
+    ["2001:db8::1", [{ host: "[2001:db8::1]", port: null }]],
+    [
+      "2001:db8::1:8080",
+      [
+        { host: "[2001:db8::1:8080]", port: null },
+        { host: "[2001:db8::1]:8080", port: "8080" },
+      ],
+    ],
+    [
+      "2001:db8:0:0:0:0:0:1:443",
+      [{ host: "[2001:db8:0:0:0:0:0:1]:443", port: "443" }],
+    ],
+    // Its last group is no port: 0, more than 65535, or not a number.
+    ["2001:db8::1:0", [{ host: "[2001:db8::1:0]", port: null }]],
+    ["2001:db8::1:abcd", [{ host: "[2001:db8::1:abcd]", port: null }]],
+    ["::1", [{ host: "[::1]", port: null }]],
+    ["a:b:c", []],
+    ["fe80::1%eth0", []],
+  ])("%s reads as %j", (text, readings) => {
+    expect(bracketedReadingsOf(text)).toEqual(readings);
+  });
+
+  test("a start with an IPv6 address without brackets stops before Compose starts anything, and says the line to write", async () => {
+    const result = await runWith({
+      config: TEMPLATE.replace("HOST=localhost", "HOST=2001:db8::1"),
+    });
+
+    expect(result.code).toBe(1);
+    expect(
+      result.lines.filter((line) => {
+        return line.startsWith("  ✗ ");
+      }),
+    ).toEqual([
+      "  ✗ HOST in config.env is 2001:db8::1, an IPv6 address without the brackets a web address needs around one, so no browser can open OneUptime at it. Write HOST=[2001:db8::1].",
+    ]);
+    expect(result.lines.slice(-2)[0]).toContain("OneUptime did not start.");
+    // config.env is the person's to change: the start never rewrites HOST.
+    expect(result.config).toContain("\nHOST=2001:db8::1\n");
+  });
+
+  test("a start with the address in brackets and a port goes on", async () => {
+    const result = await runWith({
+      config: TEMPLATE.replace(
+        "HOST=localhost",
+        "HOST=[2001:db8::1]:8080",
+      ).replace("ONEUPTIME_HTTP_PORT=80", "ONEUPTIME_HTTP_PORT=8080"),
+      docker: healthyDocker({
+        "docker compose config": answered(
+          JSON.stringify(renderedConfig({ http: "8080" })),
+        ),
+      }),
+    });
+
+    expect(result.code).toBe(0);
+    expect(
+      result.lines.filter((line) => {
+        return (
+          !line.startsWith("  ✓ ") &&
+          line !== "Checking this server before OneUptime starts:"
+        );
+      }),
+    ).toEqual([]);
   });
 });
 

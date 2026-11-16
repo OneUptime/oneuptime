@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 Impostale in `config.env`, poi esegui `npm start`. `DISABLE_TELEMETRY_FOR_APP` è `true` per impostazione predefinita, e in quel caso non viene inviato nulla.
 :::
 
-OneUptime ha bisogno sia dell'endpoint sia delle intestazioni: senza un'intestazione non invia nulla. Scrivi ogni intestazione come `name=value` e separane più d'una con `;`. Un valore può contenere `=`. OneUptime aggiunge da sé `/v1/metrics` all'endpoint, e le stesse impostazioni inviano anche le sue tracce e i suoi log. Ogni metrica compare non appena OneUptime la registra per la prima volta: `notification.send.count` con il primo messaggio inviato.
+OneUptime ha bisogno sia dell'endpoint sia delle intestazioni: senza un'intestazione non invia nulla. Scrivi ogni intestazione come `name=value` e separane più d'una con `;`, oppure con `,` come in `OTEL_EXPORTER_OTLP_HEADERS`. Un valore può contenere `=`. Senza un `;`, un valore viene letto come lo scrive quello standard, con uno spazio come `%20`: termina l'impostazione con `;` per inviarlo esattamente come è scritto. OneUptime aggiunge da sé `/v1/metrics` all'endpoint, e le stesse impostazioni inviano anche le sue tracce e i suoi log. Ogni metrica compare non appena OneUptime la registra per la prima volta: `notification.send.count` con il primo messaggio inviato.
 
 ### Inviare delta a un progetto OneUptime
 

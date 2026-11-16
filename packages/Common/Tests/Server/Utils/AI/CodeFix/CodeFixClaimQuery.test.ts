@@ -8,6 +8,7 @@ import AIRunType from "../../../../../Types/AI/AIRunType";
 import CodeFixTaskType from "../../../../../Types/AI/CodeFixTaskType";
 import ObjectID from "../../../../../Types/ObjectID";
 import { CodeWorkerKind } from "../../../../../Types/Runner/CodeRepositoryRunner";
+import CodeRepositoryType from "../../../../../Types/CodeRepository/CodeRepositoryType";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -163,6 +164,49 @@ describe("CodeFixClaimQuery.getCondition", () => {
       `EXISTS (SELECT 1 FROM "Project" AS "project" WHERE "project"."_id" = "run"."projectId" AND "project"."useGlobalRunners" = true AND "project"."deletedAt" IS NULL)`,
     );
     expect(condition.parameters).toHaveLength(4);
+  });
+
+  test("on OneUptime Cloud a global Runner takes only GitHub repositories' runs, and runs whose repository is not known yet (#6115)", () => {
+    const condition: CodeFixClaimCondition = CodeFixClaimQuery.getCondition({
+      worker: { kind: CodeWorkerKind.GlobalRunner, id: AGENT_ID },
+      claimableTaskTypes: TASK_TYPES,
+      keepsConnectionRepositoriesOff: true,
+    });
+
+    expect(condition.condition).toContain(
+      `("repository"."_id" IS NULL OR "repository"."repositoryHostedAt" IS NULL OR "repository"."repositoryHostedAt" = $5)`,
+    );
+    expect(condition.parameters[4]).toBe(CodeRepositoryType.GitHub);
+    expect(condition.parameters).toHaveLength(5);
+
+    // The count a global Runner is scaled on reads the same runs.
+    expect(
+      CodeFixClaimQuery.getCountStatement({
+        worker: { kind: CodeWorkerKind.GlobalRunner, id: AGENT_ID },
+        claimableTaskTypes: TASK_TYPES,
+        keepsConnectionRepositoriesOff: true,
+      }).sql,
+    ).toContain(`"repository"."repositoryHostedAt" = $5`);
+  });
+
+  test("elsewhere, and for every worker but a global Runner, the host is never read", () => {
+    expect(conditionFor(CodeWorkerKind.GlobalRunner).condition).not.toContain(
+      `"repositoryHostedAt"`,
+    );
+
+    for (const kind of [
+      CodeWorkerKind.ProjectRunner,
+      CodeWorkerKind.ProjectAgent,
+    ]) {
+      expect(
+        CodeFixClaimQuery.getCondition({
+          worker: { kind, id: RUNNER_ID },
+          projectId: PROJECT_ID,
+          claimableTaskTypes: TASK_TYPES,
+          keepsConnectionRepositoriesOff: true,
+        }).condition,
+      ).not.toContain(`"repositoryHostedAt"`);
+    }
   });
 
   test("a global Runner never takes a run of a repository that follows a default Runner its project has", () => {

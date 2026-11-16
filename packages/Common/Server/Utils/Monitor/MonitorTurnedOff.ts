@@ -1,6 +1,9 @@
 import Alert from "../../../Models/DatabaseModels/Alert";
+import AlertInternalNote from "../../../Models/DatabaseModels/AlertInternalNote";
 import AlertStateTimeline from "../../../Models/DatabaseModels/AlertStateTimeline";
 import Incident from "../../../Models/DatabaseModels/Incident";
+import IncidentInternalNote from "../../../Models/DatabaseModels/IncidentInternalNote";
+import IncidentPublicNote from "../../../Models/DatabaseModels/IncidentPublicNote";
 import IncidentStateTimeline from "../../../Models/DatabaseModels/IncidentStateTimeline";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
@@ -13,9 +16,12 @@ import FeedMarkdown, {
 import MonitorAutoResolveTemplates, {
   MonitorAutoResolveTemplateIds,
 } from "../../../Utils/Monitor/MonitorAutoResolveTemplates";
+import AlertInternalNoteService from "../../Services/AlertInternalNoteService";
 import AlertService from "../../Services/AlertService";
 import AlertStateService from "../../Services/AlertStateService";
 import AlertStateTimelineService from "../../Services/AlertStateTimelineService";
+import IncidentInternalNoteService from "../../Services/IncidentInternalNoteService";
+import IncidentPublicNoteService from "../../Services/IncidentPublicNoteService";
 import IncidentService from "../../Services/IncidentService";
 import IncidentStateService from "../../Services/IncidentStateService";
 import IncidentStateTimelineService from "../../Services/IncidentStateTimelineService";
@@ -55,15 +61,37 @@ import MonitorIncident from "./MonitorIncident";
  *
  * One record that fails to resolve is logged and does not stop the others;
  * nothing here fails the change that turned monitoring off.
+ *
+ * WHEN ONEUPTIME IS UPGRADED (issue #6479). Monitors turned off before this
+ * existed kept what they had left open. The data migration
+ * ResolveWhatMonitorsTurnedOffWouldHaveResolved resolves it for them
+ * (isUpgrade), with one difference: nobody is there to decide, as the person
+ * who turns monitoring off is, so an incident or alert a person has worked on
+ * - moved its state, acknowledged it, written a note on it - is left to them.
+ * Only what was left behind untouched is resolved, and its root cause says it
+ * was resolved when OneUptime was upgraded, not that monitoring was turned
+ * off just now.
  */
 
 export interface MonitorTurnedOffResult {
   resolvedIncidentIds: Array<string>;
   resolvedAlertIds: Array<string>;
+  /*
+   * When upgrading only: what the monitor would have resolved, left open
+   * because a person has worked on it.
+   */
+  leftForAPersonIncidentIds?: Array<string> | undefined;
+  leftForAPersonAlertIds?: Array<string> | undefined;
 }
 
 // What the root cause of a resolve says, for an incident or an alert.
 type RecordKind = "incident" | "alert";
+
+// The records of one kind a resolve went through: resolved, or left alone.
+interface ResolvedRecords {
+  resolvedIds: Array<string>;
+  leftForAPersonIds: Array<string>;
+}
 
 export default class MonitorTurnedOff {
   /*
@@ -76,10 +104,20 @@ export default class MonitorTurnedOff {
     monitorId: ObjectID;
     // Who turned monitoring off, when a person did. Named in the root cause.
     turnedOffByUserId?: ObjectID | null | undefined;
+    /*
+     * The monitor's monitoring was already off when OneUptime was upgraded
+     * (the data migration), rather than turned off just now: what a person
+     * has worked on stays open, and the root cause says so.
+     */
+    isUpgrade?: boolean | undefined;
   }): Promise<MonitorTurnedOffResult> {
+    const isUpgrade: boolean = data.isUpgrade === true;
     const result: MonitorTurnedOffResult = {
       resolvedIncidentIds: [],
       resolvedAlertIds: [],
+      ...(isUpgrade
+        ? { leftForAPersonIncidentIds: [], leftForAPersonAlertIds: [] }
+        : {}),
     };
 
     const monitor: Monitor | null = await MonitorService.findOneById({
@@ -138,12 +176,19 @@ export default class MonitorTurnedOff {
 
     if (Object.keys(templateIds.incidents).length > 0) {
       try {
-        result.resolvedIncidentIds = await this.resolveOpenIncidents({
+        const incidents: ResolvedRecords = await this.resolveOpenIncidents({
           monitor: monitor,
           templateIds: templateIds,
           getTurnedOffBy: getTurnedOffBy,
+          isUpgrade: isUpgrade,
           logAttributes: logAttributes,
         });
+
+        result.resolvedIncidentIds = incidents.resolvedIds;
+
+        if (isUpgrade) {
+          result.leftForAPersonIncidentIds = incidents.leftForAPersonIds;
+        }
       } catch (err) {
         logger.error(
           `Resolving the open incidents of monitor ${data.monitorId.toString()} after its monitoring was turned off failed`,
@@ -155,12 +200,19 @@ export default class MonitorTurnedOff {
 
     if (Object.keys(templateIds.alerts).length > 0) {
       try {
-        result.resolvedAlertIds = await this.resolveOpenAlerts({
+        const alerts: ResolvedRecords = await this.resolveOpenAlerts({
           monitor: monitor,
           templateIds: templateIds,
           getTurnedOffBy: getTurnedOffBy,
+          isUpgrade: isUpgrade,
           logAttributes: logAttributes,
         });
+
+        result.resolvedAlertIds = alerts.resolvedIds;
+
+        if (isUpgrade) {
+          result.leftForAPersonAlertIds = alerts.leftForAPersonIds;
+        }
       } catch (err) {
         logger.error(
           `Resolving the open alerts of monitor ${data.monitorId.toString()} after its monitoring was turned off failed`,
@@ -181,7 +233,21 @@ export default class MonitorTurnedOff {
     kind: RecordKind;
     monitorName: string;
     turnedOffBy: MarkdownText;
+    /*
+     * Resolved by the upgrade's data migration: monitoring was turned off
+     * before, by whoever and whenever, so the timeline does not say it was
+     * turned off now.
+     */
+    isUpgrade?: boolean | undefined;
   }): string {
+    if (data.isUpgrade) {
+      return (
+        data.kind === "incident"
+          ? mdText`Monitoring is off for the monitor **${data.monitorName}**. This incident was set to resolve on its own once the monitor recovered, and nothing checks the monitor while its monitoring is off, so it was resolved when OneUptime was upgraded. If monitoring is turned back on while the problem is still there, a new incident is opened.`
+          : mdText`Monitoring is off for the monitor **${data.monitorName}**. This alert was set to resolve on its own once the monitor recovered, and nothing checks the monitor while its monitoring is off, so it was resolved when OneUptime was upgraded. If monitoring is turned back on while the problem is still there, a new alert is opened.`
+      ).toString();
+    }
+
     const turnedOff: MarkdownText = data.turnedOffBy.isEmpty()
       ? mdText`Monitoring was turned off for the monitor **${data.monitorName}**.`
       : mdText`${data.turnedOffBy} turned off monitoring for the monitor **${data.monitorName}**.`;
@@ -194,12 +260,117 @@ export default class MonitorTurnedOff {
     return mdText`${turnedOff} ${why}`.toString();
   }
 
+  /*
+   * Whether a person has worked on the incident: moved its state -
+   * acknowledging it is a state timeline row created as them - or written a
+   * note on it, internal or on a status page. OneUptime stamps each such
+   * record with the person who created it, and nobody when no person did
+   * (UserAttribution), so the rows the monitor wrote itself name no one.
+   * One incident at a time, so no limit on a list leaves a row out. A read
+   * that fails reads as worked on: what cannot be checked stays open.
+   */
+  private static async hasAPersonWorkedOnIncident(data: {
+    incidentId: ObjectID;
+    logAttributes: LogAttributes;
+  }): Promise<boolean> {
+    try {
+      const stateChange: IncidentStateTimeline | null =
+        await IncidentStateTimelineService.findOneBy({
+          query: {
+            incidentId: data.incidentId,
+            createdByUserId: QueryHelper.notNull(),
+          },
+          select: { _id: true },
+          props: { isRoot: true },
+        });
+
+      if (stateChange) {
+        return true;
+      }
+
+      const internalNote: IncidentInternalNote | null =
+        await IncidentInternalNoteService.findOneBy({
+          query: {
+            incidentId: data.incidentId,
+            createdByUserId: QueryHelper.notNull(),
+          },
+          select: { _id: true },
+          props: { isRoot: true },
+        });
+
+      if (internalNote) {
+        return true;
+      }
+
+      const publicNote: IncidentPublicNote | null =
+        await IncidentPublicNoteService.findOneBy({
+          query: {
+            incidentId: data.incidentId,
+            createdByUserId: QueryHelper.notNull(),
+          },
+          select: { _id: true },
+          props: { isRoot: true },
+        });
+
+      return Boolean(publicNote);
+    } catch (err) {
+      logger.error(
+        `Could not read whether a person has worked on incident ${data.incidentId.toString()}, so it stays open`,
+        data.logAttributes,
+      );
+      logger.error(err, data.logAttributes);
+      return true;
+    }
+  }
+
+  // The same for an alert: its state changes and its notes.
+  private static async hasAPersonWorkedOnAlert(data: {
+    alertId: ObjectID;
+    logAttributes: LogAttributes;
+  }): Promise<boolean> {
+    try {
+      const stateChange: AlertStateTimeline | null =
+        await AlertStateTimelineService.findOneBy({
+          query: {
+            alertId: data.alertId,
+            createdByUserId: QueryHelper.notNull(),
+          },
+          select: { _id: true },
+          props: { isRoot: true },
+        });
+
+      if (stateChange) {
+        return true;
+      }
+
+      const note: AlertInternalNote | null =
+        await AlertInternalNoteService.findOneBy({
+          query: {
+            alertId: data.alertId,
+            createdByUserId: QueryHelper.notNull(),
+          },
+          select: { _id: true },
+          props: { isRoot: true },
+        });
+
+      return Boolean(note);
+    } catch (err) {
+      logger.error(
+        `Could not read whether a person has worked on alert ${data.alertId.toString()}, so it stays open`,
+        data.logAttributes,
+      );
+      logger.error(err, data.logAttributes);
+      return true;
+    }
+  }
+
   private static async resolveOpenIncidents(data: {
     monitor: Monitor;
     templateIds: MonitorAutoResolveTemplateIds;
     getTurnedOffBy: () => Promise<MarkdownText>;
+    isUpgrade: boolean;
     logAttributes: LogAttributes;
-  }): Promise<Array<string>> {
+  }): Promise<ResolvedRecords> {
     const projectId: ObjectID = data.monitor.projectId!;
 
     // Open: in a state above the project's resolved state, as a check reads them.
@@ -224,7 +395,7 @@ export default class MonitorTurnedOff {
       },
     });
 
-    const incidentsToResolve: Array<Incident> = openIncidents.filter(
+    const wouldHaveResolved: Array<Incident> = openIncidents.filter(
       (incident: Incident): boolean => {
         return MonitorIncident.isAutoResolveConfiguredForIncident({
           openIncident: incident,
@@ -234,8 +405,27 @@ export default class MonitorTurnedOff {
       },
     );
 
+    // Upgrading, what a person has worked on is theirs to close.
+    const incidentsToResolve: Array<Incident> = [];
+    const leftForAPersonIds: Array<string> = [];
+
+    for (const incident of wouldHaveResolved) {
+      if (
+        data.isUpgrade &&
+        (await this.hasAPersonWorkedOnIncident({
+          incidentId: incident.id!,
+          logAttributes: data.logAttributes,
+        }))
+      ) {
+        leftForAPersonIds.push(incident.id!.toString());
+        continue;
+      }
+
+      incidentsToResolve.push(incident);
+    }
+
     if (incidentsToResolve.length === 0) {
-      return [];
+      return { resolvedIds: [], leftForAPersonIds: leftForAPersonIds };
     }
 
     // Looked up once there is something to resolve: it throws for a project with none.
@@ -247,7 +437,11 @@ export default class MonitorTurnedOff {
     const rootCause: string = this.getRootCause({
       kind: "incident",
       monitorName: data.monitor.name || "",
-      turnedOffBy: await data.getTurnedOffBy(),
+      // Upgrading, nobody turned it off now: no person to read.
+      turnedOffBy: data.isUpgrade
+        ? FeedMarkdown.empty()
+        : await data.getTurnedOffBy(),
+      isUpgrade: data.isUpgrade,
     });
 
     const resolvedIncidentIds: Array<string> = [];
@@ -288,15 +482,19 @@ export default class MonitorTurnedOff {
       }
     }
 
-    return resolvedIncidentIds;
+    return {
+      resolvedIds: resolvedIncidentIds,
+      leftForAPersonIds: leftForAPersonIds,
+    };
   }
 
   private static async resolveOpenAlerts(data: {
     monitor: Monitor;
     templateIds: MonitorAutoResolveTemplateIds;
     getTurnedOffBy: () => Promise<MarkdownText>;
+    isUpgrade: boolean;
     logAttributes: LogAttributes;
-  }): Promise<Array<string>> {
+  }): Promise<ResolvedRecords> {
     const projectId: ObjectID = data.monitor.projectId!;
 
     const openAlerts: Array<Alert> = await AlertService.findBy({
@@ -319,7 +517,7 @@ export default class MonitorTurnedOff {
       },
     });
 
-    const alertsToResolve: Array<Alert> = openAlerts.filter(
+    const wouldHaveResolved: Array<Alert> = openAlerts.filter(
       (alert: Alert): boolean => {
         return MonitorAlert.isAutoResolveConfiguredForAlert({
           openAlert: alert,
@@ -329,8 +527,27 @@ export default class MonitorTurnedOff {
       },
     );
 
+    // Upgrading, what a person has worked on is theirs to close.
+    const alertsToResolve: Array<Alert> = [];
+    const leftForAPersonIds: Array<string> = [];
+
+    for (const alert of wouldHaveResolved) {
+      if (
+        data.isUpgrade &&
+        (await this.hasAPersonWorkedOnAlert({
+          alertId: alert.id!,
+          logAttributes: data.logAttributes,
+        }))
+      ) {
+        leftForAPersonIds.push(alert.id!.toString());
+        continue;
+      }
+
+      alertsToResolve.push(alert);
+    }
+
     if (alertsToResolve.length === 0) {
-      return [];
+      return { resolvedIds: [], leftForAPersonIds: leftForAPersonIds };
     }
 
     const resolvedStateId: ObjectID =
@@ -339,7 +556,11 @@ export default class MonitorTurnedOff {
     const rootCause: string = this.getRootCause({
       kind: "alert",
       monitorName: data.monitor.name || "",
-      turnedOffBy: await data.getTurnedOffBy(),
+      // Upgrading, nobody turned it off now: no person to read.
+      turnedOffBy: data.isUpgrade
+        ? FeedMarkdown.empty()
+        : await data.getTurnedOffBy(),
+      isUpgrade: data.isUpgrade,
     });
 
     const resolvedAlertIds: Array<string> = [];
@@ -377,6 +598,9 @@ export default class MonitorTurnedOff {
       }
     }
 
-    return resolvedAlertIds;
+    return {
+      resolvedIds: resolvedAlertIds,
+      leftForAPersonIds: leftForAPersonIds,
+    };
   }
 }

@@ -957,4 +957,30 @@ export default class UserOnCallLog extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public overridedByUserId?: ObjectID = undefined;
+
+  /*
+   * A page merged into the person's open page about the same record from
+   * another policy's run (status Already Paged): that page's log, whose
+   * notifications stand for this one. Its state says whether this page
+   * waits, is answered with it, or takes the page over
+   * (Types/OnCallDutyPolicy/OnCallPageMerge). Empty for every other page.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Merged Into On-Call Log ID",
+    description:
+      "The person's page from another on-call policy's run that this page was merged into: its notifications stand for this one. Empty unless this page was merged.",
+    example: "8d9e0f1a-2b3c-4d5e-8f6a-7b8c9d0e1f2a",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public mergedIntoUserOnCallLogId?: ObjectID = undefined;
 }

@@ -3,8 +3,58 @@ import Color from "../../../Types/Color";
 import UptimeHistoryLabels, {
   DefaultUptimeHistoryLabels,
 } from "../../../Types/Monitor/UptimeHistoryLabels";
+import DayUptimeGraphUtil, {
+  MONITORING_OFF_MINIMUM_SECONDS,
+} from "../../../Utils/Uptime/DayUptimeGraphUtil";
 import React, { FunctionComponent, ReactElement } from "react";
 import { getStatusTextProps } from "../../Utils/StatusColorStyle";
+
+/*
+ * The pause the Status Timeline's Monitoring Off pill and the "Monitoring is
+ * turned off" banner carry, drawn the way the no-data block draws its icon.
+ */
+const PauseIcon: FunctionComponent<{ size: number; color: string }> = (props: {
+  size: number;
+  color: string;
+}): ReactElement => {
+  return (
+    <svg
+      aria-hidden="true"
+      width={props.size}
+      height={props.size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={props.color}
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ flexShrink: 0 }}
+    >
+      <circle cx="12" cy="12" r="10" />
+      <line x1="10" y1="9" x2="10" y2="15" />
+      <line x1="14" y1="9" x2="14" y2="15" />
+    </svg>
+  );
+};
+
+// A day nothing was measured on, with or without monitoring: one quiet block.
+const NO_READING_BLOCK_STYLE: React.CSSProperties = {
+  backgroundColor: "var(--ou-surface-secondary, #f9fafb)",
+  borderRadius: "8px",
+  padding: "16px",
+  textAlign: "center",
+};
+
+/*
+ * Its words in the muted grey every other line of the summary is set in,
+ * which reads at 4.5:1 on that surface: the subtle grey they were in read
+ * at 2.5:1.
+ */
+const NO_READING_TEXT_STYLE: React.CSSProperties = {
+  fontSize: "12px",
+  color: "var(--ou-text-muted, #6b7280)",
+  fontWeight: 500,
+};
 
 export interface StatusDuration {
   label: string;
@@ -35,6 +85,13 @@ export interface ComponentProps {
    * both of today's callers). Only affects the trailing margin and rule.
    */
   hasFollowingContent?: boolean | undefined;
+  /*
+   * How long monitoring was off that day (issue #7112). With no events, the
+   * day was not checked because monitoring was off, and says so in place of
+   * "No monitoring data"; with events, the uptime is of the checked time,
+   * and a line under it says for how long monitoring was off.
+   */
+  monitoringOffSeconds?: number | undefined;
   /* Defaults to English. The status page passes translated strings. */
   labels?: UptimeHistoryLabels | undefined;
 }
@@ -85,13 +142,30 @@ const UptimeDaySummary: FunctionComponent<ComponentProps> = (
 
   const hasStatuses: boolean = sortedDurations.length > 0;
 
+  const monitoringOffSeconds: number = Math.max(
+    Number(props.monitoringOffSeconds) || 0,
+    0,
+  );
+
+  // Nothing checked, because monitoring was off: not a day with no data.
+  const isMonitoringOffDay: boolean = DayUptimeGraphUtil.isMonitoringOffDay({
+    hasEvents: props.hasEvents,
+    monitoringOffSeconds: monitoringOffSeconds,
+  });
+
+  // Checked for part of the day: the uptime is of that part.
+  const isMonitoringOffForPart: boolean =
+    props.hasEvents && monitoringOffSeconds >= MONITORING_OFF_MINIMUM_SECONDS;
+
+  const hasBreakdown: boolean = hasStatuses || isMonitoringOffForPart;
+
   return (
     <>
       {/* ── Uptime ── */}
       {props.hasEvents && (
         <div
           style={{
-            marginBottom: hasStatuses || hasFollowingContent ? "12px" : "0",
+            marginBottom: hasBreakdown || hasFollowingContent ? "12px" : "0",
           }}
         >
           <div
@@ -191,16 +265,30 @@ const UptimeDaySummary: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
-      {/* ── No data ── */}
-      {!props.hasEvents && (
+      {/* ── Monitoring off (issue #7112) ── */}
+      {isMonitoringOffDay && (
         <div
-          style={{
-            backgroundColor: "var(--ou-surface-secondary, #f9fafb)",
-            borderRadius: "8px",
-            padding: "16px",
-            textAlign: "center",
-          }}
+          data-testid="uptime-day-monitoring-off"
+          style={NO_READING_BLOCK_STYLE}
         >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              marginBottom: "6px",
+            }}
+          >
+            <PauseIcon size={18} color="var(--ou-text-subtle, #9ca3af)" />
+          </div>
+          <div style={NO_READING_TEXT_STYLE}>
+            {labels.monitoringOffOnThisDay}
+          </div>
+        </div>
+      )}
+
+      {/* ── No data ── */}
+      {!props.hasEvents && !isMonitoringOffDay && (
+        <div data-testid="uptime-day-no-data" style={NO_READING_BLOCK_STYLE}>
           <svg
             width="18"
             height="18"
@@ -216,20 +304,12 @@ const UptimeDaySummary: FunctionComponent<ComponentProps> = (
             <line x1="12" y1="8" x2="12" y2="12" />
             <line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
-          <div
-            style={{
-              fontSize: "12px",
-              color: "var(--ou-text-subtle, #9ca3af)",
-              fontWeight: 500,
-            }}
-          >
-            {labels.noMonitoringData}
-          </div>
+          <div style={NO_READING_TEXT_STYLE}>{labels.noMonitoringData}</div>
         </div>
       )}
 
       {/* ── Status breakdown ── */}
-      {hasStatuses && (
+      {hasBreakdown && (
         <div
           style={{
             paddingBottom: hasFollowingContent ? "10px" : "0",
@@ -325,6 +405,38 @@ const UptimeDaySummary: FunctionComponent<ComponentProps> = (
               </div>
             );
           })}
+          {/*
+           * Time with monitoring off is in no status and out of the
+           * uptime above, as the Status Timeline's legend lists it last
+           * with no share: said in a line of its own, how long it lasted.
+           */}
+          {isMonitoringOffForPart && (
+            <div
+              data-testid="uptime-day-monitoring-off-for"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                padding: "4px 0",
+                gap: "6px",
+              }}
+            >
+              <PauseIcon size={12} color="var(--ou-text-muted, #6b7280)" />
+              <span
+                style={{
+                  fontSize: "12px",
+                  color: "var(--ou-text-muted, #6b7280)",
+                  fontWeight: 500,
+                }}
+              >
+                {DayUptimeGraphUtil.fillLabel(labels.monitoringOffFor, {
+                  duration:
+                    OneUptimeDate.secondsToFormattedFriendlyTimeString(
+                      monitoringOffSeconds,
+                    ),
+                })}
+              </span>
+            </div>
+          )}
         </div>
       )}
     </>

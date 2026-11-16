@@ -1391,7 +1391,7 @@ describe("an observer's page, in the language of the person it pages", () => {
       "Zur Info (Beobachter): Vorfall INC-42 - Checkout is down",
     );
     expect(email.vars["observerPageInfo"]).toBe(
-      "Sie wurden als Beobachter alarmiert, damit Sie informiert bleiben: Die Zuständigen kümmern sich weiter um diesen Vorfall. Wenn Sie diesen Alarm bestätigen, heißt das nur, dass Sie ihn gesehen haben. Der Vorfall wird dadurch nicht bestätigt.",
+      "Sie wurden als Beobachter alarmiert, damit Sie informiert bleiben: Die Zuständigen kümmern sich weiter um diesen Vorfall. Wenn Sie diese Alarmierung bestätigen, heißt das nur, dass Sie sie gesehen haben. Der Vorfall wird dadurch nicht bestätigt.",
     );
     expect(email.vars["observerPageWhy"]).toBe(
       "Sie erhalten diese E-Mail, weil Sie als Beobachter alarmiert wurden: Sie bleiben über diesen Vorfall informiert, während sich die Zuständigen darum kümmern.",

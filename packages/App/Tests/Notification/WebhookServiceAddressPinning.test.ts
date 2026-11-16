@@ -22,6 +22,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import crypto from "crypto";
 import dns from "dns";
 import http from "http";
@@ -300,7 +301,11 @@ describe("a project's webhook", () => {
 
     process.env[ALLOW_ENV] = "true";
     logs = [];
-    const sendSpy: jest.SpiedFunction<typeof SafeWebhookRequest.send> = jest
+    const sendSpy: SpyInstance<
+      (
+        ...args: Parameters<typeof SafeWebhookRequest.send>
+      ) => ReturnType<typeof SafeWebhookRequest.send>
+    > = jest
       .spyOn(SafeWebhookRequest, "send")
       .mockRejectedValue(new Error("not sent in this test") as never);
 
