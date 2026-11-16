@@ -74,12 +74,52 @@ const WHAT_NEEDS_IT: Readonly<Record<TwilioMessageKind, string>> = {
 export const WHO_CAN_ADD_A_TWILIO_ACCOUNT_SENTENCE: string = `The OneUptime server's administrator can add one in ${SERVER_TWILIO_SETTINGS_PAGE}, or ${WHO_MAY_ADD_A_PROJECT_TWILIO_ACCOUNT} can add this project's own in ${PROJECT_TWILIO_SETTINGS_PAGE}.`;
 
 /*
- * What else can be done when a project's own Twilio config is not used for
- * the message (TwilioConfigUse): the server's administrator can add an
- * account for it, or someone who may edit the project's config can have it
- * used for calls and SMS too.
+ * What else can be done when a status page's own Twilio config is not used
+ * for the message (TwilioConfigUse): the server's administrator can add an
+ * account for it, or someone who may edit the project's configs can have
+ * the config used for calls and SMS too.
  */
-export const WHO_CAN_USE_THE_PROJECT_TWILIO_ACCOUNT_FOR_IT_SENTENCE: string = `The OneUptime server's administrator can add one in ${SERVER_TWILIO_SETTINGS_PAGE}, or ${WHO_MAY_EDIT_A_PROJECT_TWILIO_ACCOUNT} can use this project's config for calls and SMS in ${PROJECT_TWILIO_SETTINGS_PAGE}.`;
+export const WHO_CAN_USE_THE_PROJECT_TWILIO_ACCOUNT_FOR_IT_SENTENCE: string = `The OneUptime server's administrator can add one in ${SERVER_TWILIO_SETTINGS_PAGE}, or ${WHO_MAY_EDIT_A_PROJECT_TWILIO_ACCOUNT} can use this config for calls and SMS in ${PROJECT_TWILIO_SETTINGS_PAGE}.`;
+
+/*
+ * The row action that makes a config the project's default for one kind of
+ * message, as the Twilio Config table names it for a config that would take
+ * only that kind - one used for SMS only, or for calls only
+ * (TwilioConfigDefaultCopy).
+ */
+export const SET_AS_PROJECT_DEFAULT_FOR: Readonly<
+  Record<TwilioMessageKind, string>
+> = {
+  [TwilioMessageKind.SMS]: "Set as Project Default for SMS",
+  [TwilioMessageKind.Call]: "Set as Project Default for Calls",
+};
+
+// What a config sends, as in "a config used for SMS only", "the default for calls".
+const WHAT_A_CONFIG_SENDS: Readonly<Record<TwilioMessageKind, string>> = {
+  [TwilioMessageKind.SMS]: "SMS",
+  [TwilioMessageKind.Call]: "calls",
+};
+
+/*
+ * What else can be done when the project's default Twilio config is not
+ * used for the message: a project has one default for SMS and one for
+ * calls (TwilioConfigDefaults), so the fix is most often a second config,
+ * used for that kind only - numbers that cannot do both are why a project
+ * has a config for one kind only (issue #6574) - made the default for it.
+ * Or the default is used for calls and SMS. Or the server's administrator
+ * adds an account for it. "The OneUptime server's administrator can add one
+ * in ..., or a Project Owner, a Project Admin or someone with Edit Call and
+ * SMS can make a config used for calls only the project default for calls
+ * (Set as Project Default for Calls in its row's menu), or use this config
+ * for calls and SMS, in Project Settings > ...".
+ */
+export const getWhoCanSetAProjectDefaultForItSentence: (
+  kind: TwilioMessageKind,
+) => string = (kind: TwilioMessageKind): string => {
+  const sends: string = WHAT_A_CONFIG_SENDS[kind];
+
+  return `The OneUptime server's administrator can add one in ${SERVER_TWILIO_SETTINGS_PAGE}, or ${WHO_MAY_EDIT_A_PROJECT_TWILIO_ACCOUNT} can make a config used for ${sends} only the project default for ${sends} (${SET_AS_PROJECT_DEFAULT_FOR[kind]} in its row's menu), or use this config for calls and SMS, in ${PROJECT_TWILIO_SETTINGS_PAGE}.`;
+};
 
 /*
  * What is known of why no account takes the message: what the project's
@@ -91,6 +131,12 @@ export const WHO_CAN_USE_THE_PROJECT_TWILIO_ACCOUNT_FOR_IT_SENTENCE: string = `T
  */
 export interface NoTwilioAccountContext {
   projectConfigUse?: unknown;
+  /*
+   * The config is a status page's own (StatusPage.callSmsConfig), which its
+   * subscribers' SMS go through, rather than the project's default for the
+   * message: a project default would not change what the page sends.
+   */
+  isStatusPageConfig?: boolean | undefined;
 }
 
 // Whether the project's own config was passed over: it is not used for this kind.
@@ -115,19 +161,31 @@ const isProjectConfigNotUsedFor: (
 };
 
 /*
- * "This project's Twilio config is used for SMS only, and no other Twilio
- * account is set up to make phone calls. The OneUptime server's
- * administrator can add one in ..., or ... can use this project's config
- * for calls and SMS in ...": why a message the project's own config is not
- * used for went nowhere.
+ * "This project's default Twilio config is used for SMS only, and no other
+ * Twilio account is set up to make phone calls. The OneUptime server's
+ * administrator can add one in ..., or ... can make a config used for calls
+ * only the project default for calls (...), or use this config for calls
+ * and SMS, in ...": why a message the project's own config is not used for
+ * went nowhere. Only the project's default for the message was read - a
+ * project can have several configs - so it says "default". A status page's
+ * own config is the page's: "This status page's Twilio config ...".
  */
 const getProjectConfigNotUsedForMessage: (
   kind: TwilioMessageKind,
-  projectConfigUse: unknown,
-) => string = (kind: TwilioMessageKind, projectConfigUse: unknown): string => {
-  return `This project's Twilio config is used for ${TwilioConfigUses.getUseInSentence(
-    projectConfigUse,
-  )}, and no other Twilio account is set up to ${WHAT_NEEDS_IT[kind]}. ${WHO_CAN_USE_THE_PROJECT_TWILIO_ACCOUNT_FOR_IT_SENTENCE}`;
+  context: NoTwilioAccountContext,
+) => string = (
+  kind: TwilioMessageKind,
+  context: NoTwilioAccountContext,
+): string => {
+  const whatItIsUsedFor: string = `is used for ${TwilioConfigUses.getUseInSentence(
+    context.projectConfigUse,
+  )}, and no other Twilio account is set up to ${WHAT_NEEDS_IT[kind]}.`;
+
+  if (context.isStatusPageConfig) {
+    return `This status page's Twilio config ${whatItIsUsedFor} ${WHO_CAN_USE_THE_PROJECT_TWILIO_ACCOUNT_FOR_IT_SENTENCE}`;
+  }
+
+  return `This project's default Twilio config ${whatItIsUsedFor} ${getWhoCanSetAProjectDefaultForItSentence(kind)}`;
 };
 
 /*
@@ -149,7 +207,7 @@ export const getNoTwilioAccountMessage: (
   context?: NoTwilioAccountContext | undefined,
 ): string => {
   if (isProjectConfigNotUsedFor(kind, context)) {
-    return getProjectConfigNotUsedForMessage(kind, context!.projectConfigUse);
+    return getProjectConfigNotUsedForMessage(kind, context!);
   }
 
   return `No Twilio account is set up to ${WHAT_NEEDS_IT[kind]}. ${WHO_CAN_ADD_A_TWILIO_ACCOUNT_SENTENCE}`;
@@ -162,10 +220,10 @@ export const getNoTwilioAccountMessage: (
 export const INCOMING_CALL_NUMBER_NO_TWILIO_ACCOUNT_MESSAGE: string = `Numbers for incoming calls are verified by SMS, and no Twilio account is set up to send SMS. ${WHO_CAN_ADD_A_TWILIO_ACCOUNT_SENTENCE}`;
 
 /*
- * The same, saying why when the project's own config is used for calls
+ * The same, saying why when the project's default config is used for calls
  * only: "Numbers for incoming calls are verified by SMS. This project's
- * Twilio config is used for calls only, and no other Twilio account is set
- * up to send SMS. ..."
+ * default Twilio config is used for calls only, and no other Twilio account
+ * is set up to send SMS. ..."
  */
 export const getIncomingCallNumberNoTwilioAccountMessage: (
   context?: NoTwilioAccountContext | undefined,
@@ -173,7 +231,7 @@ export const getIncomingCallNumberNoTwilioAccountMessage: (
   if (isProjectConfigNotUsedFor(TwilioMessageKind.SMS, context)) {
     return `Numbers for incoming calls are verified by SMS. ${getProjectConfigNotUsedForMessage(
       TwilioMessageKind.SMS,
-      context!.projectConfigUse,
+      context!,
     )}`;
   }
 
