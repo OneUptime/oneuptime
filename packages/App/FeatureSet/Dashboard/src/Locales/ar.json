@@ -55926,5 +55926,7 @@
   "Wrong backup code": "رمز احتياطي خاطئ",
   "Wrong password": "كلمة مرور خاطئة",
   "{{count}} attempt": "{{count}} محاولة",
-  "{{summary}} - view sign-in attempt details": "{{summary}} - عرض تفاصيل محاولة تسجيل الدخول"
+  "{{summary}} - view sign-in attempt details": "{{summary}} - عرض تفاصيل محاولة تسجيل الدخول",
+  "Attachment Seen At": "وقت آخر ظهور للاتصال",
+  "Signed out by a server admin because single sign-on is required": "سجّل مسؤول الخادم الخروج لأن تسجيل الدخول الموحّد (SSO) مطلوب"
 }

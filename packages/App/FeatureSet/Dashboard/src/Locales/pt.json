@@ -55926,5 +55926,7 @@
   "Wrong backup code": "Código de backup incorreto",
   "Wrong password": "Senha incorreta",
   "{{count}} attempt": "{{count}} tentativa",
-  "{{summary}} - view sign-in attempt details": "{{summary}} - ver detalhes da tentativa de login"
+  "{{summary}} - view sign-in attempt details": "{{summary}} - ver detalhes da tentativa de login",
+  "Attachment Seen At": "Conexão Vista Pela Última Vez Em",
+  "Signed out by a server admin because single sign-on is required": "Sessão encerrada por um administrador do servidor porque o login único (SSO) é obrigatório"
 }

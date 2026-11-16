@@ -4019,5 +4019,10 @@
   "### Setup Steps": "### Étapes de configuration",
   "### Required WhatsApp Templates": "### Modèles WhatsApp requis",
   "### Template Bodies": "### Contenu des modèles",
-  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Copiez exactement le contenu du modèle ci-dessous — ponctuation et espaces compris — en créant chaque modèle dans Meta. La liste des variables montre chaque espace réservé à configurer dans WhatsApp Manager."
+  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Copiez exactement le contenu du modèle ci-dessous — ponctuation et espaces compris — en créant chaque modèle dans Meta. La liste des variables montre chaque espace réservé à configurer dans WhatsApp Manager.",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO.": "{{count}} personnes sont encore connectées sans SSO. Elles ne peuvent ouvrir aucun projet tant qu'elles ne se connectent pas avec le SSO.",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO._one": "{{count}} personne est encore connectée sans SSO. Elle ne peut ouvrir aucun projet tant qu'elle ne se connecte pas avec le SSO.",
+  "Sign them out": "Les déconnecter",
+  "Sign out everyone signed in without SSO?": "Déconnecter tous ceux qui sont connectés sans SSO ?",
+  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "Leurs sessions prennent fin maintenant, sur tous les appareils, et ils se reconnectent avec le SSO. Les administrateurs principaux restent connectés."
 }

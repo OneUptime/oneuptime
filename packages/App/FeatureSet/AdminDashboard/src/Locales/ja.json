@@ -4019,5 +4019,10 @@
   "### Setup Steps": "### 設定手順",
   "### Required WhatsApp Templates": "### 必要な WhatsApp テンプレート",
   "### Template Bodies": "### テンプレートの本文",
-  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Meta で各テンプレートを作成するときは、下のテンプレート本文を句読点や空白も含めてそのままコピーしてください。変数の一覧には、WhatsApp Manager で設定が必要なプレースホルダーがすべて示されています。"
+  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Meta で各テンプレートを作成するときは、下のテンプレート本文を句読点や空白も含めてそのままコピーしてください。変数の一覧には、WhatsApp Manager で設定が必要なプレースホルダーがすべて示されています。",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO.": "SSO を使わずにサインインしたままのユーザーが {{count}} 人います。SSO でサインインするまで、どのプロジェクトも開けません。",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO._one": "SSO を使わずにサインインしたままのユーザーが {{count}} 人います。SSO でサインインするまで、どのプロジェクトも開けません。",
+  "Sign them out": "サインアウトさせる",
+  "Sign out everyone signed in without SSO?": "SSO を使わずにサインインしている全員をサインアウトしますか？",
+  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "すべてのデバイスでセッションがすぐに終了し、SSO で再度サインインすることになります。マスター管理者はサインインしたままです。"
 }

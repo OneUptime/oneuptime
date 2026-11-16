@@ -55926,5 +55926,7 @@
   "Wrong backup code": "バックアップコードの誤り",
   "Wrong password": "パスワードの誤り",
   "{{count}} attempt": "試行 {{count}} 回",
-  "{{summary}} - view sign-in attempt details": "{{summary}} - サインイン試行の詳細を表示"
+  "{{summary}} - view sign-in attempt details": "{{summary}} - サインイン試行の詳細を表示",
+  "Attachment Seen At": "接続の最終確認日時",
+  "Signed out by a server admin because single sign-on is required": "シングルサインオン（SSO）必須のため、サーバー管理者によるサインアウト"
 }

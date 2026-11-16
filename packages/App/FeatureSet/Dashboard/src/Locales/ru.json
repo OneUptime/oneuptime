@@ -55926,5 +55926,7 @@
   "Wrong backup code": "Неверный резервный код",
   "Wrong password": "Неверный пароль",
   "{{count}} attempt": "{{count}} попытка",
-  "{{summary}} - view sign-in attempt details": "{{summary}} — открыть сведения о попытке входа"
+  "{{summary}} - view sign-in attempt details": "{{summary}} — открыть сведения о попытке входа",
+  "Attachment Seen At": "Подключение последний раз видели",
+  "Signed out by a server admin because single sign-on is required": "Сеанс завершён администратором сервера: требуется единый вход (SSO)"
 }

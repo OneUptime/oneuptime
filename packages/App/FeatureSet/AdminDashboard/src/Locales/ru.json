@@ -4019,5 +4019,10 @@
   "### Setup Steps": "### Шаги настройки",
   "### Required WhatsApp Templates": "### Нужные шаблоны WhatsApp",
   "### Template Bodies": "### Содержимое шаблонов",
-  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Создавая каждый шаблон в Meta, скопируйте его содержимое ниже в точности — со всеми знаками препинания и пробелами. В списке переменных показан каждый заполнитель, который нужно настроить в WhatsApp Manager."
+  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Создавая каждый шаблон в Meta, скопируйте его содержимое ниже в точности — со всеми знаками препинания и пробелами. В списке переменных показан каждый заполнитель, который нужно настроить в WhatsApp Manager.",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO.": "Пользователей, всё ещё вошедших без SSO: {{count}}. Они не смогут открыть ни один проект, пока не войдут через SSO.",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO._one": "{{count}} пользователь всё ещё вошёл без SSO. Он не сможет открыть ни один проект, пока не войдёт через SSO.",
+  "Sign them out": "Завершить их сеансы",
+  "Sign out everyone signed in without SSO?": "Завершить сеансы всех, кто вошёл без SSO?",
+  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "Их сеансы завершатся сейчас на всех устройствах, и они снова войдут через SSO. Главные администраторы останутся в системе."
 }

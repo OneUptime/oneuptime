@@ -4019,5 +4019,10 @@
   "### Setup Steps": "### Opsætningstrin",
   "### Required WhatsApp Templates": "### Påkrævede WhatsApp-skabeloner",
   "### Template Bodies": "### Skabelonindhold",
-  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Kopiér skabelonindholdet nedenfor nøjagtigt — inklusive tegnsætning og mellemrum — når du opretter hver skabelon i Meta. Listen over variabler viser hver pladsholder, der skal opsættes i WhatsApp Manager."
+  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Kopiér skabelonindholdet nedenfor nøjagtigt — inklusive tegnsætning og mellemrum — når du opretter hver skabelon i Meta. Listen over variabler viser hver pladsholder, der skal opsættes i WhatsApp Manager.",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO.": "{{count}} personer er stadig logget ind uden SSO. De kan ikke åbne noget projekt, før de logger ind med SSO.",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO._one": "{{count}} person er stadig logget ind uden SSO. Personen kan ikke åbne noget projekt, før vedkommende logger ind med SSO.",
+  "Sign them out": "Log dem ud",
+  "Sign out everyone signed in without SSO?": "Log alle ud, der er logget ind uden SSO?",
+  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "Deres sessioner slutter nu på alle enheder, og de logger ind igen med SSO. Hovedadministratorer forbliver logget ind."
 }

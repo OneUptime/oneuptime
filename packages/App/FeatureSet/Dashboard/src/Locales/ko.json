@@ -55926,5 +55926,7 @@
   "Wrong backup code": "잘못된 백업 코드",
   "Wrong password": "잘못된 비밀번호",
   "{{count}} attempt": "{{count}}회 시도",
-  "{{summary}} - view sign-in attempt details": "{{summary}} - 로그인 시도 세부 정보 보기"
+  "{{summary}} - view sign-in attempt details": "{{summary}} - 로그인 시도 세부 정보 보기",
+  "Attachment Seen At": "연결 마지막 확인 시각",
+  "Signed out by a server admin because single sign-on is required": "싱글 사인온(SSO)이 필요하여 서버 관리자가 로그아웃함"
 }

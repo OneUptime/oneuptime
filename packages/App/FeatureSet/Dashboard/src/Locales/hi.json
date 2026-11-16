@@ -55926,5 +55926,7 @@
   "Wrong backup code": "गलत बैकअप कोड",
   "Wrong password": "गलत पासवर्ड",
   "{{count}} attempt": "{{count}} प्रयास",
-  "{{summary}} - view sign-in attempt details": "{{summary}} - साइन-इन प्रयास का विवरण देखें"
+  "{{summary}} - view sign-in attempt details": "{{summary}} - साइन-इन प्रयास का विवरण देखें",
+  "Attachment Seen At": "जुड़ाव अंतिम बार देखा गया",
+  "Signed out by a server admin because single sign-on is required": "सिंगल साइन ऑन (SSO) ज़रूरी होने के कारण सर्वर एडमिन ने साइन आउट किया"
 }

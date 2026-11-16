@@ -4019,5 +4019,10 @@
   "### Setup Steps": "### सेटअप के चरण",
   "### Required WhatsApp Templates": "### आवश्यक WhatsApp टेम्पलेट",
   "### Template Bodies": "### टेम्पलेट की सामग्री",
-  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Meta में हर टेम्पलेट बनाते समय नीचे दी गई टेम्पलेट सामग्री ठीक वैसी ही कॉपी करें — विराम चिह्नों और रिक्त स्थानों सहित। वेरिएबल की सूची हर वह प्लेसहोल्डर दिखाती है जिसे WhatsApp Manager में कॉन्फ़िगर करना ज़रूरी है।"
+  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Meta में हर टेम्पलेट बनाते समय नीचे दी गई टेम्पलेट सामग्री ठीक वैसी ही कॉपी करें — विराम चिह्नों और रिक्त स्थानों सहित। वेरिएबल की सूची हर वह प्लेसहोल्डर दिखाती है जिसे WhatsApp Manager में कॉन्फ़िगर करना ज़रूरी है।",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO.": "{{count}} लोग अब भी बिना SSO के साइन इन हैं। SSO से साइन इन करने तक वे कोई प्रोजेक्ट नहीं खोल सकते।",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO._one": "{{count}} व्यक्ति अब भी बिना SSO के साइन इन है। SSO से साइन इन करने तक वह कोई प्रोजेक्ट नहीं खोल सकता।",
+  "Sign them out": "उन्हें साइन आउट करें",
+  "Sign out everyone signed in without SSO?": "बिना SSO के साइन इन सभी लोगों को साइन आउट करें?",
+  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "उनके सेशन अभी हर डिवाइस पर खत्म हो जाएंगे, और वे फिर से SSO से साइन इन करेंगे। मास्टर एडमिन साइन इन रहेंगे।"
 }

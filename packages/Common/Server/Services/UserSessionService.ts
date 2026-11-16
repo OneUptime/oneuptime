@@ -721,6 +721,61 @@ export class Service extends DatabaseService<Model> {
       : `(session.additionalInfo ->> 'isGlobalLogin') IS DISTINCT FROM 'false'`;
   }
 
+  /*
+   * THE SESSIONS THAT DID NOT SIGN IN WITH SINGLE SIGN-ON, of everyone but
+   * master admins (#6116).
+   *
+   * While the whole server requires SSO (GlobalConfig.requireSsoForLogin),
+   * a session that signed in another way - a password or a sign-in link, a
+   * passkey, Sign in with Google or Microsoft, from Vercel, or one that does
+   * not say - opens no project, but it lives on: its person stays signed in
+   * to their account, and it renews for 30 days. A master admin can end
+   * them all at once (Admin Dashboard > Settings > Single Sign-On), and asks
+   * first how many people that signs out. Master admins are left out: the
+   * server never requires SSO of them, and their own session is how the
+   * change was made. Whether a session is an SSO sign-in is what it was
+   * created with (getSessionKindSql).
+   */
+  private getSessionsSignedInWithoutSsoQuery(): SelectQueryBuilder<Model> {
+    return this.getLiveSessionsQuery()
+      .andWhere(Service.getSessionKindSql(false))
+      .andWhere(
+        `session.userId NOT IN (SELECT "masterAdmin"."_id" FROM "User" "masterAdmin" WHERE "masterAdmin"."isMasterAdmin" = true)`,
+      );
+  }
+
+  // How many people - not master admins - have a session that did not sign in with SSO.
+  @CaptureSpan()
+  public async countPeopleSignedInWithoutSso(): Promise<number> {
+    const row: { peopleCount?: unknown } | undefined =
+      await this.getSessionsSignedInWithoutSsoQuery()
+        .select('COUNT(DISTINCT session."userId")', "peopleCount")
+        .getRawOne();
+
+    return Number(row?.peopleCount || 0);
+  }
+
+  /*
+   * Ends every such session, a batch at a time, the way the session lengths
+   * end theirs (endSessionsSelectedBy): revoked with SignedInWithoutSso's
+   * words, so its refresh token is refused from now on, its live updates
+   * end at once and its end is in the audit log. An access token it handed
+   * out lives out its last minutes (15 at most) but opens no project, which
+   * the server requires SSO for. Returns how many sessions it ended.
+   */
+  @CaptureSpan()
+  public async endSessionsSignedInWithoutSso(): Promise<number> {
+    return await this.endSessionsSelectedBy({
+      buildQuery: (): SelectQueryBuilder<Model> => {
+        return this.getSessionsSignedInWithoutSsoQuery();
+      },
+      revokedReason: getSessionEndCauseRevokedReason(
+        SessionEndCause.SignedInWithoutSso,
+      ),
+      description: "signed in without SSO",
+    });
+  }
+
   // Ends the sessions one condition ends, a batch at a time; how many it ended.
   private async endSessionsWhere(
     condition: PastLengthCondition,

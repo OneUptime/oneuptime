@@ -55926,5 +55926,7 @@
   "Wrong backup code": "Verkeerde back-upcode",
   "Wrong password": "Verkeerd wachtwoord",
   "{{count}} attempt": "{{count}} poging",
-  "{{summary}} - view sign-in attempt details": "{{summary}} - details van de aanmeldpoging bekijken"
+  "{{summary}} - view sign-in attempt details": "{{summary}} - details van de aanmeldpoging bekijken",
+  "Attachment Seen At": "Aansluiting laatst gezien op",
+  "Signed out by a server admin because single sign-on is required": "Afgemeld door een serverbeheerder omdat single sign-on (SSO) vereist is"
 }

@@ -55926,5 +55926,7 @@
   "Wrong backup code": "Feil reservekode",
   "Wrong password": "Feil passord",
   "{{count}} attempt": "{{count}} forsøk",
-  "{{summary}} - view sign-in attempt details": "{{summary}} - se detaljer om påloggingsforsøket"
+  "{{summary}} - view sign-in attempt details": "{{summary}} - se detaljer om påloggingsforsøket",
+  "Attachment Seen At": "Tilkobling sist sett",
+  "Signed out by a server admin because single sign-on is required": "Logget ut av en serveradministrator fordi enkel pålogging (SSO) er påkrevd"
 }

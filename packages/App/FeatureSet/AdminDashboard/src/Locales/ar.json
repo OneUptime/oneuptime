@@ -4019,5 +4019,10 @@
   "### Setup Steps": "### خطوات الإعداد",
   "### Required WhatsApp Templates": "### قوالب WhatsApp المطلوبة",
   "### Template Bodies": "### محتوى القوالب",
-  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> انسخ محتوى القالب أدناه كما هو تمامًا — بعلامات الترقيم والمسافات — عند إنشاء كل قالب في Meta. تعرض قائمة المتغيرات كل عنصر نائب يجب ضبطه في WhatsApp Manager."
+  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> انسخ محتوى القالب أدناه كما هو تمامًا — بعلامات الترقيم والمسافات — عند إنشاء كل قالب في Meta. تعرض قائمة المتغيرات كل عنصر نائب يجب ضبطه في WhatsApp Manager.",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO.": "عدد من لا يزالون مسجّلي الدخول بدون SSO: {{count}}. لا يمكنهم فتح أي مشروع حتى يسجّلوا الدخول باستخدام SSO.",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO._one": "{{count}} شخص لا يزال مسجّل الدخول بدون SSO. لا يمكنه فتح أي مشروع حتى يسجّل الدخول باستخدام SSO.",
+  "Sign them out": "تسجيل خروجهم",
+  "Sign out everyone signed in without SSO?": "هل تريد تسجيل خروج كل من سجّل الدخول بدون SSO؟",
+  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "تنتهي جلساتهم الآن على كل الأجهزة، ويسجّلون الدخول مجددًا باستخدام SSO. يبقى المسؤولون الرئيسيون مسجّلي الدخول."
 }

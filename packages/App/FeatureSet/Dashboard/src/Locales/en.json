@@ -55926,5 +55926,7 @@
   "Wrong backup code": "Wrong backup code",
   "Wrong password": "Wrong password",
   "{{count}} attempt": "{{count}} attempt",
-  "{{summary}} - view sign-in attempt details": "{{summary}} - view sign-in attempt details"
+  "{{summary}} - view sign-in attempt details": "{{summary}} - view sign-in attempt details",
+  "Attachment Seen At": "Attachment Seen At",
+  "Signed out by a server admin because single sign-on is required": "Signed out by a server admin because single sign-on is required"
 }

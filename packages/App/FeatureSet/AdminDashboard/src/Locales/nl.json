@@ -4019,5 +4019,10 @@
   "### Setup Steps": "### Installatiestappen",
   "### Required WhatsApp Templates": "### Vereiste WhatsApp-sjablonen",
   "### Template Bodies": "### Inhoud van de sjablonen",
-  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Kopieer de inhoud van het sjabloon hieronder precies — inclusief leestekens en spaties — wanneer je elk sjabloon in Meta aanmaakt. De lijst met variabelen toont elke tijdelijke aanduiding die in WhatsApp Manager moet worden ingesteld."
+  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> Kopieer de inhoud van het sjabloon hieronder precies — inclusief leestekens en spaties — wanneer je elk sjabloon in Meta aanmaakt. De lijst met variabelen toont elke tijdelijke aanduiding die in WhatsApp Manager moet worden ingesteld.",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO.": "{{count}} mensen zijn nog zonder SSO ingelogd. Ze kunnen geen project openen tot ze inloggen met SSO.",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO._one": "{{count}} persoon is nog zonder SSO ingelogd. Die kan geen project openen tot die inlogt met SSO.",
+  "Sign them out": "Ze uitloggen",
+  "Sign out everyone signed in without SSO?": "Iedereen uitloggen die zonder SSO is ingelogd?",
+  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "Hun sessies eindigen nu, op elk apparaat, en ze loggen opnieuw in met SSO. Hoofdbeheerders blijven ingelogd."
 }

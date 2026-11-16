@@ -55926,5 +55926,7 @@
   "Wrong backup code": "Forkert backupkode",
   "Wrong password": "Forkert adgangskode",
   "{{count}} attempt": "{{count}} forsøg",
-  "{{summary}} - view sign-in attempt details": "{{summary}} - se detaljer om loginforsøget"
+  "{{summary}} - view sign-in attempt details": "{{summary}} - se detaljer om loginforsøget",
+  "Attachment Seen At": "Tilslutning senest set den",
+  "Signed out by a server admin because single sign-on is required": "Logget ud af en serveradministrator, fordi single sign-on (SSO) er påkrævet"
 }

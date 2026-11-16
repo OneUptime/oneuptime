@@ -4019,5 +4019,10 @@
   "### Setup Steps": "### 設定步驟",
   "### Required WhatsApp Templates": "### 必要的 WhatsApp 範本",
   "### Template Bodies": "### 範本內文",
-  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> 在 Meta 中建立每個範本時，請原樣複製下方的範本內文，包括標點和空格。變數清單列出了必須在 WhatsApp Manager 中設定的每個預留位置。"
+  "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.": "> [!NOTE]\n> 在 Meta 中建立每個範本時，請原樣複製下方的範本內文，包括標點和空格。變數清單列出了必須在 WhatsApp Manager 中設定的每個預留位置。",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO.": "仍有 {{count}} 人未使用 SSO 登入。在使用 SSO 登入之前，他們無法開啟任何專案。",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO._one": "仍有 {{count}} 人未使用 SSO 登入。在使用 SSO 登入之前，他們無法開啟任何專案。",
+  "Sign them out": "將他們登出",
+  "Sign out everyone signed in without SSO?": "要登出所有未使用 SSO 登入的人嗎？",
+  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "他們在所有裝置上的工作階段將立即結束，需要使用 SSO 重新登入。主要管理員會保持登入狀態。"
 }

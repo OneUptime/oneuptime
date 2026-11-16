@@ -55926,5 +55926,7 @@
   "Wrong backup code": "備用代碼錯誤",
   "Wrong password": "密碼錯誤",
   "{{count}} attempt": "{{count}} 次嘗試",
-  "{{summary}} - view sign-in attempt details": "{{summary}} - 檢視登入嘗試詳細資料"
+  "{{summary}} - view sign-in attempt details": "{{summary}} - 檢視登入嘗試詳細資料",
+  "Attachment Seen At": "連接最近發現時間",
+  "Signed out by a server admin because single sign-on is required": "因需要單一登入 (SSO)，已被伺服器管理員登出"
 }

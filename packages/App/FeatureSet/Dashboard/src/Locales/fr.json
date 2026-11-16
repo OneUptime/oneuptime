@@ -55926,5 +55926,7 @@
   "Wrong backup code": "Code de secours erroné",
   "Wrong password": "Mot de passe erroné",
   "{{count}} attempt": "{{count}} tentative",
-  "{{summary}} - view sign-in attempt details": "{{summary}} - voir les détails de la tentative de connexion"
+  "{{summary}} - view sign-in attempt details": "{{summary}} - voir les détails de la tentative de connexion",
+  "Attachment Seen At": "Raccordement vu pour la dernière fois le",
+  "Signed out by a server admin because single sign-on is required": "Déconnecté par un administrateur du serveur, car l'authentification unique (SSO) est requise"
 }
