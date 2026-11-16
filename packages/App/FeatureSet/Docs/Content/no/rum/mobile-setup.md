@@ -39,7 +39,7 @@ Gjør `device.id` til en ID per installasjon, aldri en annonse-ID eller noe anne
 ## Før du begynner
 
 - En app med et OpenTelemetry-SDK: OpenTelemetry Java SDK eller OpenTelemetry Android, opentelemetry-swift, eller OpenTelemetry JavaScript SDK for React Native.
-- En **Server**-inntaksnøkkel, opprettet under **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler** med **Opprett ingestion-nøkkel**. En **Nettleser**-nøkkel avvises fra en mobilapp: Den kontrolleres mot headeren `Origin`, som mobil-SDK-er ikke sender.
+- En **Server**-inntaksnøkkel, opprettet under **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler** med **Opprett inntaksnøkkel**. En **Nettleser**-nøkkel avvises fra en mobilapp: Den kontrolleres mot headeren `Origin`, som mobil-SDK-er ikke sender.
 - Disse OTLP-innstillingene. Hvis du drifter OneUptime selv, bytter du ut `https://oneuptime.com` med din egen vert.
 
 | Innstilling | Verdi |

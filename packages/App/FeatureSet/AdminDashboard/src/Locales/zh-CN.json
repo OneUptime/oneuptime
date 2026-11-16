@@ -2722,7 +2722,7 @@
   "Deleting a team takes away the permissions it gave its members. Anyone for whom it was their only team loses access to the project.": "删除团队会收回它授予成员的权限。没有其他团队的成员将无法再访问该项目。",
   "Deleting an API key stops anything that uses it from working.": "删除 API 密钥后，所有使用它的功能都将停止工作。",
   "Deleting a custom role takes its permissions from every team and API key that has it. The teams and keys themselves stay, with everything else they have.": "删除自定义角色会从拥有它的每个团队和 API 密钥收回其权限。团队和密钥本身会保留，连同它们拥有的其他一切。",
-  "Deleting an ingestion key makes OneUptime refuse telemetry that is still sent with it.": "删除采集密钥后，OneUptime 将拒绝仍使用它发送的遥测数据。",
+  "Deleting an ingestion key makes OneUptime refuse telemetry that is still sent with it.": "删除摄取密钥后，OneUptime 将拒绝仍使用它发送的遥测数据。",
   "Deleting an announcement takes it off every status page that shows it.": "删除公告会将其从显示它的每个状态页中移除。",
   "Deleting a pipeline also deletes its processors.": "删除管道也会删除其处理器。",
   "Deleting a form also deletes its submissions and custom domains. The incidents and events it created stay.": "删除表单也会删除其提交记录和自定义域名。它创建的事件和维护事件会保留。",

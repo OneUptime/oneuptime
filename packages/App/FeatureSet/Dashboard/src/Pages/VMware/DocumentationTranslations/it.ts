@@ -30,7 +30,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "In the next step, use the host itself as the endpoint (`https://esxi01.example.com`) with this local user. Everything the host knows is collected — the host, its VMs, datastores and resource pools; a standalone host has no datacenter or cluster object, so those pages stay empty.":
     "Nel passaggio successivo usa l'host stesso come endpoint (`https://esxi01.example.com`) con questo utente locale. Viene raccolto tutto ciò che l'host conosce — l'host, le sue VM, i datastore e i pool di risorse; un host autonomo non ha oggetti datacenter o cluster, quindi quelle pagine restano vuote.",
   "The script asks for your OneUptime URL and ingestion key, both shown in step 1 (pick a key there to have them filled in here), and then for:":
-    "Lo script chiede l'URL di OneUptime e la chiave di ingestione, entrambi mostrati nel passaggio 1 (scegli lì una chiave perché vengano compilati qui), e poi:",
+    "Lo script chiede l'URL di OneUptime e la chiave di acquisizione, entrambi mostrati nel passaggio 1 (scegli lì una chiave perché vengano compilati qui), e poi:",
   "- **vCenter name** — how the vCenter appears in OneUptime. Give every vCenter its own and keep it stable: a new name registers a new vCenter.":
     "- **Nome del vCenter**: come il vCenter appare in OneUptime. Dai a ogni vCenter il suo e mantienilo stabile: un nome nuovo registra un nuovo vCenter.",
   "- **vCenter endpoint** — scheme and host, without `/sdk`, e.g. `https://vcsa.example.com`.":
@@ -56,7 +56,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "| `ONEUPTIME_URL` | Yes | Your OneUptime instance URL (e.g. `<YOUR_ONEUPTIME_URL>`) |":
     "| `ONEUPTIME_URL` | Sì | L'URL della tua istanza OneUptime (ad es. `<YOUR_ONEUPTIME_URL>`) |",
   "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes | Telemetry ingestion key — the one picked in step 1 |":
-    "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Sì | La chiave di ingestione della telemetria, quella scelta nel passaggio 1 |",
+    "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Sì | La chiave di acquisizione della telemetria, quella scelta nel passaggio 1 |",
   "| `VMWARE_VCENTER_NAME` | Yes | The name this vCenter registers under in OneUptime. Stamped on every metric as the `vmware.vcenter.name` resource attribute. Keep it stable — changing it registers a new vCenter (default: `vmware-vcenter`) |":
     "| `VMWARE_VCENTER_NAME` | Sì | Il nome con cui questo vCenter si registra in OneUptime. Apposto su ogni metrica come attributo di risorsa `vmware.vcenter.name`. Mantienilo stabile: cambiarlo registra un nuovo vCenter (predefinito: `vmware-vcenter`) |",
   "| `VCENTER_ENDPOINT` | Yes | Scheme + host of vCenter Server or a standalone ESXi host, **without** `/sdk`, e.g. `https://vcsa.example.com` |":
@@ -134,7 +134,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Then remove the `oneuptime` user's permission in vCenter (and the OneUptime AI fixes user's, if you created one) if you no longer need it.":
     "Poi rimuovi l'autorizzazione dell'utente `oneuptime` in vCenter (e quella dell'utente per le correzioni di OneUptime AI, se ne hai creato uno) se non ti serve più.",
   "`troubleshoot.sh` checks the whole chain — container runtime, vCenter reachability and credentials, vCenter-name stamping, token shape, collector self-metrics — and asks OneUptime directly whether it accepts your ingestion key. That last check matters most: OneUptime's OTLP endpoints refuse a bad key with `401` or `422`, which the collector logs as a single `Exporting failed` line per batch that is easy to miss, so the script asks `GET /otlp/v1/validate` for a direct 200/401 verdict.":
-    "`troubleshoot.sh` controlla l'intera catena — runtime dei container, raggiungibilità e credenziali di vCenter, apposizione del nome del vCenter, forma del token, metriche proprie del collector — e chiede direttamente a OneUptime se accetta la tua chiave di ingestione. Quest'ultimo controllo è il più importante: gli endpoint OTLP di OneUptime rifiutano una chiave errata con `401` o `422`, che il collector registra come una sola riga `Exporting failed` per batch, facile da non notare, perciò lo script chiede a `GET /otlp/v1/validate` un verdetto diretto 200/401.",
+    "`troubleshoot.sh` controlla l'intera catena — runtime dei container, raggiungibilità e credenziali di vCenter, apposizione del nome del vCenter, forma del token, metriche proprie del collector — e chiede direttamente a OneUptime se accetta la tua chiave di acquisizione. Quest'ultimo controllo è il più importante: gli endpoint OTLP di OneUptime rifiutano una chiave errata con `401` o `422`, che il collector registra come una sola riga `Exporting failed` per batch, facile da non notare, perciò lo script chiede a `GET /otlp/v1/validate` un verdetto diretto 200/401.",
   "It ends with a verdict naming the most likely cause.":
     "Termina con un verdetto che nomina la causa più probabile.",
   "1. Check that the agent is running (in `/opt/oneuptime-vmware-agent`): `docker compose ps`":
@@ -142,7 +142,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "2. Check the agent logs for errors: `docker compose logs oneuptime-vmware-agent | grep -i error`":
     "2. Cerca errori nei log dell'agente: `docker compose logs oneuptime-vmware-agent | grep -i error`",
   "3. Verify your OneUptime URL and ingestion key are correct.":
-    "3. Verifica che l'URL di OneUptime e la chiave di ingestione siano corretti.",
+    "3. Verifica che l'URL di OneUptime e la chiave di acquisizione siano corretti.",
   "4. Ensure the agent machine can reach the OneUptime instance over the network.":
     "4. Assicurati che la macchina dell'agente possa raggiungere l'istanza OneUptime in rete.",
   "1. Check the collector logs: a login error (`incorrect user name or password`, `InvalidLogin`) means bad credentials — or a password containing `$`, `#`, spaces or quotes that is not single-quoted in `.env` (Docker Compose expands `$VAR` and treats a space followed by `#` as a comment otherwise), `x509: certificate signed by unknown authority` means TLS verification is on against a self-signed certificate (set `VCENTER_INSECURE_SKIP_VERIFY=true`), `connection refused` / `no such host` means a wrong `VCENTER_ENDPOINT`.":
@@ -170,7 +170,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "The vCenter identity comes from `VMWARE_VCENTER_NAME`, stamped on every metric as `vmware.vcenter.name`. This vCenter is **`vcenter-1`**. Fix it in `.env` and apply it with `docker compose up -d` in `/opt/oneuptime-vmware-agent` — note that a new name registers a new vCenter.":
     "L'identità del vCenter viene da `VMWARE_VCENTER_NAME`, apposto su ogni metrica come `vmware.vcenter.name`. Questo vCenter è **`vcenter-1`**. Correggilo in `.env` e applicalo con `docker compose up -d` in `/opt/oneuptime-vmware-agent` — tieni presente che un nome nuovo registra un nuovo vCenter.",
   "The command already carries your OneUptime URL and ingestion key. The script asks for the rest:":
-    "Il comando contiene già l'URL di OneUptime e la chiave di ingestione. Il resto lo chiede lo script:",
+    "Il comando contiene già l'URL di OneUptime e la chiave di acquisizione. Il resto lo chiede lo script:",
   "Download `docker-compose.yml` and `otel-collector-config.yaml` from this OneUptime into a new folder:":
     "Scarica `docker-compose.yml` e `otel-collector-config.yaml` da questo OneUptime in una nuova cartella:",
   "Create a `.env` file next to them:":
@@ -186,7 +186,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "It holds a password, so make it private, then start the agent:":
     "Contiene una password, quindi rendilo privato, poi avvia l'agente:",
   "Pick an ingestion key in step 1 to fill in `<YOUR_API_KEY>`.":
-    "Scegli una chiave di ingestione nel passaggio 1 per compilare `<YOUR_API_KEY>`.",
+    "Scegli una chiave di acquisizione nel passaggio 1 per compilare `<YOUR_API_KEY>`.",
   "The agent reads these from the `.env` file next to `docker-compose.yml`. After changing one, apply it with `docker compose up -d` in the folder with `docker-compose.yml`.":
     "L'agente le legge dal file `.env` accanto a `docker-compose.yml`. Dopo averne cambiata una, applicala con `docker compose up -d` nella cartella con `docker-compose.yml`.",
   "| `VCENTER_PASSWORD` | Yes | That user's password. If it contains `$`, `#`, spaces or quotes, single-quote it in `.env` — see **vCenter rejects the login** under Troubleshooting |":
@@ -258,9 +258,9 @@ const TRANSLATION: SetupGuideTranslation = {
   "2. Check its log for errors: `sudo journalctl -u oneuptime-vmware-agent | grep -i error`":
     "2. Cerca errori nel suo log: `sudo journalctl -u oneuptime-vmware-agent | grep -i error`",
   "3. Ask OneUptime whether it takes your ingestion key. `\"valid\":true` with `\"keyType\":\"Server\"` means it does; anything else says what is wrong with the key:":
-    "3. Chiedi a OneUptime se accetta la tua chiave di ingestione. `\"valid\":true` con `\"keyType\":\"Server\"` significa di sì; qualsiasi altra risposta dice cosa non va nella chiave:",
+    "3. Chiedi a OneUptime se accetta la tua chiave di acquisizione. `\"valid\":true` con `\"keyType\":\"Server\"` significa di sì; qualsiasi altra risposta dice cosa non va nella chiave:",
   "1. Check the log (`sudo journalctl -u oneuptime-vmware-agent -n 100 --no-pager`): a login error (`incorrect user name or password`, `InvalidLogin`) means bad credentials — or a user name or password that is not double-quoted, backslashes doubled, in `.env`; `x509: certificate signed by unknown authority` means TLS verification is on against a certificate this machine does not trust (see **x509 or other TLS errors**); `connection refused` / `no such host` means a wrong `VCENTER_ENDPOINT`; `Exporting failed` with a `401` or `422` means OneUptime refuses the ingestion key.":
-    "1. Controlla il log (`sudo journalctl -u oneuptime-vmware-agent -n 100 --no-pager`): un errore di accesso (`incorrect user name or password`, `InvalidLogin`) indica credenziali errate — oppure un nome utente o una password non tra virgolette doppie, con le barre rovesciate raddoppiate, in `.env`; `x509: certificate signed by unknown authority` indica che la verifica TLS è attiva contro un certificato di cui questa macchina non si fida (vedi **Errori x509 o altri errori TLS**); `connection refused` / `no such host` indica un `VCENTER_ENDPOINT` errato; `Exporting failed` con un `401` o un `422` indica che OneUptime rifiuta la chiave di ingestione.",
+    "1. Controlla il log (`sudo journalctl -u oneuptime-vmware-agent -n 100 --no-pager`): un errore di accesso (`incorrect user name or password`, `InvalidLogin`) indica credenziali errate — oppure un nome utente o una password non tra virgolette doppie, con le barre rovesciate raddoppiate, in `.env`; `x509: certificate signed by unknown authority` indica che la verifica TLS è attiva contro un certificato di cui questa macchina non si fida (vedi **Errori x509 o altri errori TLS**); `connection refused` / `no such host` indica un `VCENTER_ENDPOINT` errato; `Exporting failed` con un `401` o un `422` indica che OneUptime rifiuta la chiave di acquisizione.",
   "2. Verify the endpoint is reachable. The collector runs on this machine, not in a container, so a plain `curl` takes its path — you should see an XML document advertising `urn:vim25`:":
     "2. Verifica che l'endpoint sia raggiungibile. Il collector gira su questa macchina, non in un container, quindi un semplice `curl` segue lo stesso percorso: dovresti vedere un documento XML che annuncia `urn:vim25`:",
   "3. Read the collector's own counters: `otelcol_receiver_accepted_metric_points` grows while vCenter answers, `otelcol_exporter_sent_metric_points` while OneUptime takes the data, and `otelcol_exporter_send_failed_metric_points` appears when it does not:":

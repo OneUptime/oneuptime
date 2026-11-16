@@ -33,7 +33,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "A privilege-separated token only gets the permissions its user also has, so both need the role. It must sit on the root path `/`: pve-exporter reads cluster-wide status, and a token scoped to a sub-path fails with `Permission check failed (/, Sys.Audit)`.":
     "Een token met gescheiden bevoegdheden krijgt alleen de rechten die zijn gebruiker ook heeft, dus beide hebben de rol nodig. Hij moet op het rootpad `/` staan: pve-exporter leest de status van het hele cluster, en een token dat tot een subpad is beperkt, faalt met `Permission check failed (/, Sys.Audit)`.",
   "The script asks for your OneUptime URL and ingestion key, both shown in step 1 (pick a key there to have them filled in here), and then for:":
-    "Het script vraagt om je OneUptime-URL en je inname-sleutel, die allebei in stap 1 staan (kies daar een sleutel om ze hier ingevuld te krijgen), en daarna om:",
+    "Het script vraagt om je OneUptime-URL en je ingestiesleutel, die allebei in stap 1 staan (kies daar een sleutel om ze hier ingevuld te krijgen), en daarna om:",
   "- **Cluster name** — how the cluster appears in OneUptime. Give every cluster its own and keep it stable: a new name registers a new cluster.":
     "- **Clusternaam**: hoe het cluster in OneUptime verschijnt. Geef elk cluster een eigen naam en houd hem stabiel: een nieuwe naam registreert een nieuw cluster.",
   "- **Proxmox VE API host** — any node, e.g. `192.168.1.10`. While its API does not answer, the agent reads the cluster from the next node in the list below.":
@@ -53,7 +53,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "**OneUptime AI agent (on by default, read-only).** AI investigations are on: it lets OneUptime AI investigate incidents and alerts on this cluster with read-only `pvesh` requests, and changes nothing unless you allow fixes — see **OneUptime AI agent** under Advanced.":
     "**OneUptime AI-agent (standaard aan, alleen-lezen).** AI-onderzoeken staan aan: hij laat OneUptime AI incidenten en waarschuwingen op dit cluster onderzoeken met alleen-lezen `pvesh`-verzoeken, en hij verandert niets tenzij je oplossingen toestaat; zie **OneUptime AI-agent** onder Geavanceerd.",
   "Needs Proxmox VE 8.3 or later. Pick an ingestion key in step 1 to show the two commands: they carry the key, which Proxmox VE keeps in the webhook target they add.":
-    "Vereist Proxmox VE 8.3 of nieuwer. Kies in stap 1 een inname-sleutel om de twee opdrachten te tonen: ze bevatten de sleutel, die Proxmox VE bewaart in het webhookdoel dat ze toevoegen.",
+    "Vereist Proxmox VE 8.3 of nieuwer. Kies in stap 1 een ingestiesleutel om de twee opdrachten te tonen: ze bevatten de sleutel, die Proxmox VE bewaart in het webhookdoel dat ze toevoegen.",
   "Each guest's page then shows its last backup, and the cluster's **Recommendations** offer the **Backup Job Failed** and **Node Fenced** alerts.":
     "De pagina van elke gast toont dan zijn laatste back-up, en de **Aanbevelingen** van het cluster bieden de waarschuwingen **Backup Job Failed** en **Node Fenced** aan.",
   "The install script writes these to `/opt/oneuptime-proxmox-agent/.env`. After changing one, apply it with `docker compose up -d` in `/opt/oneuptime-proxmox-agent`.":
@@ -63,7 +63,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "| `ONEUPTIME_URL` | Yes | Your OneUptime instance URL (e.g. `<YOUR_ONEUPTIME_URL>`) |":
     "| `ONEUPTIME_URL` | Ja | De URL van je OneUptime-instantie (bijv. `<YOUR_ONEUPTIME_URL>`) |",
   "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes | Telemetry ingestion key — the one picked in step 1 |":
-    "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | De telemetrie-inname-sleutel, die je in stap 1 hebt gekozen |",
+    "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | De telemetrie-ingestiesleutel, die je in stap 1 hebt gekozen |",
   "| `PROXMOX_CLUSTER_NAME` | Yes | Cluster identifier shown in OneUptime. Stamped on every metric as the `proxmox.cluster.name` resource attribute. Keep it stable — changing it registers a new cluster (default: `proxmox-cluster`) |":
     "| `PROXMOX_CLUSTER_NAME` | Ja | De clusteraanduiding die OneUptime toont. Op elke metriek gezet als het resourceattribuut `proxmox.cluster.name`. Houd hem stabiel: wijzigen registreert een nieuw cluster (standaard: `proxmox-cluster`) |",
   "| `PVE_HOST` | Yes | The node whose Proxmox VE API the exporter reads the cluster from and the AI agent queries, e.g. `192.168.1.10`. While its API does not answer, both use the next node in `PVE_NODES` that does |":
@@ -162,7 +162,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Then delete the API token under *Datacenter → Permissions → API Tokens* if you no longer need it.":
     "Verwijder daarna het API-token onder *Datacenter → Permissions → API Tokens* als je het niet meer nodig hebt.",
   "`troubleshoot.sh` checks the whole chain — container runtime, the exporter scrape, cluster-name stamping, token shape, collector self-metrics — and asks OneUptime directly whether it accepts your ingestion key. That last check matters most: OneUptime's OTLP endpoints refuse a bad key with `401` or `422`, which the collector logs as a single `Exporting failed` line per batch that is easy to miss, so the script asks `GET /otlp/v1/validate` for a direct 200/401 verdict.":
-    "`troubleshoot.sh` controleert de hele keten (containerruntime, het scrapen van de exporter, het zetten van de clusternaam, de vorm van het token, de eigen metrieken van de collector) en vraagt OneUptime rechtstreeks of het je inname-sleutel accepteert. Die laatste controle telt het zwaarst: de OTLP-endpoints van OneUptime weigeren een verkeerde sleutel met `401` of `422`, wat de collector per batch logt als één makkelijk te missen regel `Exporting failed`, dus vraagt het script `GET /otlp/v1/validate` om een direct oordeel 200/401.",
+    "`troubleshoot.sh` controleert de hele keten (containerruntime, het scrapen van de exporter, het zetten van de clusternaam, de vorm van het token, de eigen metrieken van de collector) en vraagt OneUptime rechtstreeks of het je ingestiesleutel accepteert. Die laatste controle telt het zwaarst: de OTLP-endpoints van OneUptime weigeren een verkeerde sleutel met `401` of `422`, wat de collector per batch logt als één makkelijk te missen regel `Exporting failed`, dus vraagt het script `GET /otlp/v1/validate` om een direct oordeel 200/401.",
   "It ends with a verdict naming the most likely cause.":
     "Het eindigt met een oordeel dat de waarschijnlijkste oorzaak noemt.",
   "1. Check that the agent is running (in `/opt/oneuptime-proxmox-agent`): `docker compose ps`":
@@ -170,7 +170,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "2. Check the agent logs for errors: `docker compose logs oneuptime-proxmox-agent | grep -i error`":
     "2. Controleer de logboeken van de agent op fouten: `docker compose logs oneuptime-proxmox-agent | grep -i error`",
   "3. Verify your OneUptime URL and ingestion key are correct.":
-    "3. Controleer of je OneUptime-URL en inname-sleutel kloppen.",
+    "3. Controleer of je OneUptime-URL en ingestiesleutel kloppen.",
   "4. Ensure the agent machine can reach the OneUptime instance over the network.":
     "4. Zorg dat de machine van de agent de OneUptime-instantie via het netwerk kan bereiken.",
   "1. Check the exporter answers. The bundled exporter does not publish its port on the host, so run curl inside its network namespace — you should see `pve_*` metric lines (for your own exporter, curl its `host:9221` directly):":
@@ -192,7 +192,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "The cluster's identity comes from `PROXMOX_CLUSTER_NAME`, stamped on every metric as `proxmox.cluster.name`. This cluster is **`pve-1`**. Fix it in `.env` and apply it with `docker compose up -d` in `/opt/oneuptime-proxmox-agent` — note that a new name registers a new cluster.":
     "De identiteit van het cluster komt uit `PROXMOX_CLUSTER_NAME`, op elke metriek gezet als `proxmox.cluster.name`. Dit cluster is **`pve-1`**. Corrigeer hem in `.env` en pas hem toe met `docker compose up -d` in `/opt/oneuptime-proxmox-agent`; let op: een nieuwe naam registreert een nieuw cluster.",
   "The command already carries your OneUptime URL and ingestion key. The script asks for the rest:":
-    "De opdracht bevat al je OneUptime-URL en inname-sleutel. Naar de rest vraagt het script:",
+    "De opdracht bevat al je OneUptime-URL en ingestiesleutel. Naar de rest vraagt het script:",
   "Needs Proxmox VE 8.3 or later. The first command adds a webhook target named `oneuptime`, which sends each notification to OneUptime as a log of this cluster and keeps the key and the cluster's name in its secrets. The second sends every notification to it. Replace `my-proxmox-cluster` with the cluster name you gave the agent, so the notifications reach the same cluster.":
     "Vereist Proxmox VE 8.3 of nieuwer. De eerste opdracht voegt een webhookdoel met de naam `oneuptime` toe, dat elke melding als logboekregel van dit cluster naar OneUptime stuurt en de sleutel en de naam van het cluster in zijn secrets bewaart. De tweede stuurt elke melding daarheen. Vervang `my-proxmox-cluster` door de clusternaam die je de agent hebt gegeven, zodat de meldingen hetzelfde cluster bereiken.",
   "Each guest's page then shows its last backup, and the cluster's **Recommendations** offer the **Backup Job Failed** and **Node Fenced** alerts. To stop sending them:":
@@ -213,7 +213,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "- Vul het token uit de vorige stap in. `COMPOSE_PROFILES=pve-exporter` start ook de meegeleverde prometheus-pve-exporter, die de API ermee leest.",
   "Start the agent:": "Start de agent:",
   "Pick an ingestion key in step 1 to fill in `<YOUR_API_KEY>`.":
-    "Kies in stap 1 een inname-sleutel om `<YOUR_API_KEY>` in te vullen.",
+    "Kies in stap 1 een ingestiesleutel om `<YOUR_API_KEY>` in te vullen.",
   "The agent reads these from the `.env` file next to `docker-compose.yml`. After changing one, apply it with `docker compose up -d` in the folder with `docker-compose.yml`.":
     "De agent leest deze uit het `.env`-bestand naast `docker-compose.yml`. Pas na een wijziging de waarde toe met `docker compose up -d` in de map met `docker-compose.yml`.",
   "Leave `COMPOSE_PROFILES` out of `.env` and point the agent at your exporter instead (`host:port`, no scheme):":

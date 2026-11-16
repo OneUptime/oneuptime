@@ -119,7 +119,7 @@ flowchart TB
 ## Дальнейшие шаги
 
 :::cards
-- [Ключи приема](/docs/telemetry/ingestion-keys): Отправляйте телеметрию в свой проект.
+- [Ключи приёма](/docs/telemetry/ingestion-keys): Отправляйте телеметрию в свой проект.
 - [Фильтры отбрасывания и правила очистки](/docs/telemetry/drop-filters-and-scrub-rules): Храните только нужную телеметрию.
 - [Сервисы](/docs/telemetry/services): Задайте собственный срок хранения сервиса.
 - [Редакция Enterprise](/docs/self-hosted/enterprise): Что дают переопределения срока хранения.

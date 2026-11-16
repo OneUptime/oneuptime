@@ -19,7 +19,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Replace `my-podman-host` with a name for this host, such as `prod-podman-01`. It is how the host appears in OneUptime, so keep it stable: a new name registers a new host.":
     "`my-podman-host` को इस होस्ट के नाम से बदलें, जैसे `prod-podman-01`। OneUptime में होस्ट इसी नाम से दिखता है, इसलिए इसे स्थिर रखें: नया नाम नया होस्ट पंजीकृत करता है।",
   "Pick an ingestion key in step 1 to fill in `<YOUR_API_KEY>`.":
-    "`<YOUR_API_KEY>` भरने के लिए चरण 1 में एक इन्जेशन कुंजी चुनें।",
+    "`<YOUR_API_KEY>` भरने के लिए चरण 1 में एक इंजेशन कुंजी चुनें।",
   "Look for this line in the logs:": "लॉग में यह पंक्ति खोजें:",
   "Once the agent connects, the host appears automatically in the **Podman** section — usually within a minute or so. The OneUptime AI agent shows as Connected on the host's **AI → AI agent** page, and at the bottom of its **Overview**.":
     "एजेंट के कनेक्ट होते ही होस्ट अपने आप **Podman** सेक्शन में दिखने लगता है — आमतौर पर लगभग एक मिनट में। OneUptime एआई एजेंट होस्ट के **एआई → AI एजेंट** पेज पर और उसके **अवलोकन** के नीचे कनेक्टेड दिखता है।",
@@ -29,7 +29,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "| `ONEUPTIME_URL` | Yes | Your OneUptime instance URL (e.g. `<YOUR_ONEUPTIME_URL>`) |":
     "| `ONEUPTIME_URL` | हाँ | आपके OneUptime इंस्टेंस का URL (जैसे `<YOUR_ONEUPTIME_URL>`) |",
   "| `ONEUPTIME_SERVICE_TOKEN` | Yes | The telemetry ingestion key from step 1 |":
-    "| `ONEUPTIME_SERVICE_TOKEN` | हाँ | चरण 1 की टेलीमेट्री इन्जेशन कुंजी |",
+    "| `ONEUPTIME_SERVICE_TOKEN` | हाँ | चरण 1 की टेलीमेट्री इंजेशन कुंजी |",
   "| `PODMAN_HOST_NAME` | No | Friendly name for this host. Defaults to `podman-host` |":
     "| `PODMAN_HOST_NAME` | नहीं | इस होस्ट का पहचानने लायक नाम। डिफ़ॉल्ट `podman-host` है |",
   "| `DOCKER_API_VERSION` | No | Docker API version the agent speaks to the Podman socket. Empty by default: the agent negotiates it with the socket. Set it only to pin a version (see Troubleshooting) |":
@@ -105,13 +105,13 @@ const TRANSLATION: SetupGuideTranslation = {
   "2. Check the agent's logs for errors: `podman logs oneuptime-podman-agent 2>&1 | grep -i error`":
     "2. एजेंट के लॉग में त्रुटियाँ जाँचें: `podman logs oneuptime-podman-agent 2>&1 | grep -i error`",
   "3. Verify the OneUptime URL and ingestion key in the `podman run` command are correct.":
-    "3. पुष्टि करें कि `podman run` कमांड में OneUptime URL और इन्जेशन कुंजी सही हैं।",
+    "3. पुष्टि करें कि `podman run` कमांड में OneUptime URL और इंजेशन कुंजी सही हैं।",
   "4. Make sure the host can reach your OneUptime instance over the network.":
     "4. पक्का करें कि होस्ट नेटवर्क पर आपके OneUptime इंस्टेंस तक पहुँच सकता है।",
   "Check that the Podman socket is mounted into the agent. Its image has no shell, so look from a throwaway container that shares its mounts:":
     "जाँचें कि Podman सॉकेट एजेंट में माउंट है। इसकी इमेज में कोई शेल नहीं है, इसलिए किसी ऐसे अस्थायी कंटेनर से देखें जो इसके माउंट साझा करता हो:",
   "Then look for export errors in the agent's logs — `podman logs oneuptime-podman-agent 2>&1 | grep -i error` — and make sure the ingestion key is valid and has not expired.":
-    "फिर एजेंट के लॉग में एक्सपोर्ट त्रुटियाँ खोजें (`podman logs oneuptime-podman-agent 2>&1 | grep -i error`) और पक्का करें कि इन्जेशन कुंजी मान्य है और उसकी अवधि ख़त्म नहीं हुई है।",
+    "फिर एजेंट के लॉग में एक्सपोर्ट त्रुटियाँ खोजें (`podman logs oneuptime-podman-agent 2>&1 | grep -i error`) और पक्का करें कि इंजेशन कुंजी मान्य है और उसकी अवधि ख़त्म नहीं हुई है।",
   "Metrics arrive but the **Logs** tab is empty, or shows only the agent's own logs? Your containers are most likely not using a file-based log driver (`k8s-file` or `json-file`) — rootful Podman defaults to `journald`, which the agent cannot read.":
     "मेट्रिक्स आ रहे हैं पर **लॉग** टैब खाली है, या केवल एजेंट के अपने लॉग दिखाता है? आपके कंटेनर शायद कोई फ़ाइल-आधारित लॉग ड्राइवर (`k8s-file` या `json-file`) इस्तेमाल नहीं कर रहे — rootful Podman डिफ़ॉल्ट रूप से `journald` इस्तेमाल करता है, जिसे एजेंट नहीं पढ़ सकता।",
   "If step 1 shows `no files match the configured criteria`, or step 3 lists no files for your containers, they are not using `k8s-file`. Switch them (see **Collect logs from every container (k8s-file log driver)** under Advanced), then recreate each one — a container keeps the log driver it was created with:":
@@ -145,7 +145,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Add it to the agent's `environment:` list, e.g. `- DOCKER_API_VERSION=1.41`, and run `podman compose up -d`. Newer servers still serve older API versions, so a pinned version keeps working after an upgrade.":
     "इसे एजेंट की `environment:` सूची में जोड़ें, जैसे `- DOCKER_API_VERSION=1.41`, और `podman compose up -d` चलाएँ। नए सर्वर अब भी पुराने API संस्करण चलाते हैं, इसलिए तय किया गया संस्करण अपग्रेड के बाद भी काम करता रहता है।",
   "3. Verify the OneUptime URL and ingestion key in docker-compose.yml are correct.":
-    "3. पुष्टि करें कि docker-compose.yml में OneUptime URL और इन्जेशन कुंजी सही हैं।",
+    "3. पुष्टि करें कि docker-compose.yml में OneUptime URL और इंजेशन कुंजी सही हैं।",
   "The host's name comes from `PODMAN_HOST_NAME`. An agent started without it reports `podman-host`, so every host set up that way looks like the same host. Set `PODMAN_HOST_NAME` to a name of its own on each host and run `podman compose up -d` to recreate the agent with it.":
     "होस्ट का नाम `PODMAN_HOST_NAME` से आता है। इसके बिना शुरू हुआ एजेंट `podman-host` बताता है, इसलिए इस तरह सेट किया गया हर होस्ट एक ही होस्ट जैसा दिखता है। हर होस्ट पर `PODMAN_HOST_NAME` को उसका अपना नाम दें और उसके साथ एजेंट फिर से बनाने के लिए `podman compose up -d` चलाएँ।",
 };

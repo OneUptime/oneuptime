@@ -54,7 +54,7 @@ Aggiungi un tag script a ogni pagina che vuoi registrare.
 :::steps
 ### Creare una chiave Browser
 
-In **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione**, fai clic su **Crea chiave di ingestione**, scegli **Browser** come **Tipo di chiave** ed elenca le origini del tuo sito in **Origini consentite**. Poi copia la **Chiave segreta** della chiave. [Configurazione browser](/docs/rum/browser-setup#configurazione) mostra ogni schermata.
+In **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione**, fai clic su **Crea chiave di acquisizione**, scegli **Browser** come **Tipo di chiave** ed elenca le origini del tuo sito in **Origini consentite**. Poi copia la **Chiave segreta** della chiave. [Configurazione browser](/docs/rum/browser-setup#configurazione) mostra ogni schermata.
 
 ### Aggiungere il tag script
 

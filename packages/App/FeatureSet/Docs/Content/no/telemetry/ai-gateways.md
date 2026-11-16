@@ -31,7 +31,7 @@ OneUptime har ingen egen gateway: den ville holdt på leverandørnøklene dine o
 
 ## Før du begynner
 
-- En ingestion-nøkkel: åpne **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler**, og klikk på **Opprett ingestion-nøkkel**.
+- En inntaksnøkkel: åpne **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler**, og klikk på **Opprett inntaksnøkkel**.
 - OTLP-basis-URL-en din: `https://oneuptime.com/otlp`, eller `https://YOUR-ONEUPTIME-HOST/otlp` hvis du hoster OneUptime selv. OneUptime tar imot OTLP over HTTP, i protobuf og i JSON.
 - Nøkkelen følger med i hodet `x-oneuptime-token` på hver eksportforespørsel.
 

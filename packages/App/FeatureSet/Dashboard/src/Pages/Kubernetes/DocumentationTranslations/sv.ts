@@ -20,7 +20,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "`--set aiAgent.enabled=true` turns **AI investigations** on, as the chart does by default: OneUptime AI investigates incidents and alerts on this cluster with read-only kubectl, through the Kubernetes AI agent.":
     "`--set aiAgent.enabled=true` slår på **AI-utredningar**, som chartet gör som standard: OneUptime AI utreder incidenter och larm på det här klustret med skrivskyddad kubectl, via Kubernetes-AI-agenten.",
   "Pick an ingestion key in step 1 to fill in `<YOUR_API_KEY>`.":
-    "Välj en ingestion-nyckel i steg 1 för att fylla i `<YOUR_API_KEY>`.",
+    "Välj en intagningsnyckel i steg 1 för att fylla i `<YOUR_API_KEY>`.",
   "You should see:": "Du bör se:",
   "The collector and the Kubernetes AI agent, plus one `-logs` and one `-ebpf` pod on every node. Once they are `Running`, the cluster appears automatically in the **Kubernetes** section — usually within a minute or two.":
     "Insamlaren och Kubernetes-AI-agenten, plus en `-logs`- och en `-ebpf`-pod på varje nod. När de är `Running` visas klustret automatiskt i avsnittet **Kubernetes**, oftast inom en eller ett par minuter.",
@@ -134,7 +134,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "2. Check the collector's logs: `kubectl logs -n oneuptime-agent deployment/kubernetes-agent`":
     "2. Kontrollera insamlarens loggar: `kubectl logs -n oneuptime-agent deployment/kubernetes-agent`",
   "3. Verify the OneUptime URL and ingestion key in the install command are correct.":
-    "3. Bekräfta att OneUptime-URL:en och ingestion-nyckeln i installationskommandot är korrekta.",
+    "3. Bekräfta att OneUptime-URL:en och intagningsnyckeln i installationskommandot är korrekta.",
   "4. Make sure the cluster can reach your OneUptime instance over the network.":
     "4. Se till att klustret når din OneUptime-instans över nätverket.",
   "1. Check the AI agent's pod: `kubectl get pods -n oneuptime-agent -l component=ai-agent`":

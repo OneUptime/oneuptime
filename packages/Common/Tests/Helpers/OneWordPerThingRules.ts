@@ -67,6 +67,9 @@ export interface SentenceRule {
   docsEnglish?: RegExp;
 }
 
+// English that names an ingestion key.
+const INGESTION_KEY: RegExp = /\bingestion[ -]keys?\b/i;
+
 // A Runner's English that names another agent, AWS's App Runner or the migrations' runner.
 const NOT_THE_RUNNER: RegExp = /\bagent|app runner|proxy|migration/i;
 
@@ -480,4 +483,108 @@ export const ONE_WORD_RULES: ReadonlyArray<SentenceRule> = [
     word: /engine-metrie[kc]/i,
     dropped: /\bengine ?metri|\bengine-metrics/i,
   },
+  /*
+   * An ingestion key: the Ingestion Keys page's title, its Create button and
+   * every sentence about one say the same word, the one the page's title and
+   * the docs say (#8806). Swedish titled the card Intagningsnycklar over a
+   * Skapa ingestion-nyckel button, Danish Indtagelsesnøgler over Opret
+   * ingestion-nøgle, Italian Chiavi di acquisizione over Crea chiave di
+   * ingestione. The seven other languages said one word already
+   * (INGESTION_KEY_WORDS).
+   */
+  {
+    language: "da",
+    thing: "Ingestion Keys",
+    english: INGESTION_KEY,
+    word: /indtagelsesnøgl/i,
+    dropped: /ingestion-?nøgl|ingestionsnøgl|indlæsningsnøgl|nøgle til telemetri-indtagelse/i,
+  },
+  {
+    language: "de",
+    thing: "Ingestion Keys",
+    english: INGESTION_KEY,
+    word: /Ingestion-Schlüssel/i,
+    dropped: /Aufnahme-?schlüssel|Erfassungs-?schlüssel|Ingestion-?Key/i,
+  },
+  {
+    language: "hi",
+    thing: "Ingestion Keys",
+    english: INGESTION_KEY,
+    word: /इंजेशन/,
+    dropped: /इन्जेशन|इनजेशन/,
+  },
+  {
+    language: "it",
+    thing: "Ingestion Keys",
+    english: INGESTION_KEY,
+    word: /chiav[ei] di acquisizione/i,
+    dropped: /chiav[ei] di ingestione/i,
+  },
+  {
+    language: "ja",
+    thing: "Ingestion Keys",
+    english: INGESTION_KEY,
+    word: /取り込みキー/,
+    dropped: /インジェス(?:ト|ション)キー/,
+  },
+  {
+    language: "nl",
+    thing: "Ingestion Keys",
+    english: INGESTION_KEY,
+    word: /ingestiesleutel/i,
+    dropped: /inname-?sleutel|opnamesleutel/i,
+  },
+  {
+    language: "no",
+    thing: "Ingestion Keys",
+    english: INGESTION_KEY,
+    word: /inntaksnøk/i,
+    dropped: /ingestion-?nøk|innhentingsnøk|innsamlingsnøk|nøkkel for telemetri-inntak/i,
+  },
+  {
+    language: "ru",
+    thing: "Ingestion Keys",
+    english: INGESTION_KEY,
+    word: /ключ\p{L}* приёма/iu,
+    dropped: /приема/i,
+  },
+  {
+    language: "sv",
+    thing: "Ingestion Keys",
+    english: INGESTION_KEY,
+    word: /intagningsnyck/i,
+    dropped: /ingestion-?nyck|inmatningsnyck|intagsnyck|nyckel för telemetriinmatning|telemetrinyckel för inmatning/i,
+  },
+  {
+    language: "zh-CN",
+    thing: "Ingestion Keys",
+    english: INGESTION_KEY,
+    word: /摄取密钥/,
+    dropped: /引入密钥|采集密钥/,
+  },
 ];
+
+/*
+ * Each language's word for an ingestion key, in all 17: every Dashboard and
+ * Admin Dashboard string whose English names an ingestion key says it
+ * (OneWordInSentencesPerThing).
+ */
+export const INGESTION_KEY_WORDS: Readonly<Record<string, RegExp>> = {
+  ar: /استيعاب/,
+  da: /indtagelsesnøgl/i,
+  de: /Ingestion-Schlüssel/i,
+  es: /claves? de ingesta/i,
+  fa: /کلید(?:های)? دریافت/,
+  fr: /clés? d['’]ingestion/i,
+  hi: /इंजेशन/,
+  it: /chiav[ei] di acquisizione/i,
+  ja: /取り込みキー/,
+  ko: /수집 키/,
+  nl: /ingestiesleutel/i,
+  no: /inntaksnøk/i,
+  pt: /chaves? de ingestão/i,
+  ru: /ключ\p{L}* приёма/iu,
+  sv: /intagningsnyck/i,
+  "zh-CN": /摄取密钥/,
+  "zh-TW": /擷取金鑰/,
+};

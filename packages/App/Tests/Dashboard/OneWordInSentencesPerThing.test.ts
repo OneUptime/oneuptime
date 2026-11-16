@@ -4,6 +4,7 @@ import fs from "fs";
 import path from "path";
 import { readDashboardLocale } from "Common/Tests/Helpers/DashboardLocales";
 import {
+  INGESTION_KEY_WORDS,
   ONE_WORD_RULES,
   SentenceRule,
 } from "Common/Tests/Helpers/OneWordPerThingRules";
@@ -637,6 +638,120 @@ describe("a thing's Admin Dashboard strings in each language", () => {
       expect(adminStillDropped(rule)).toEqual([]);
     },
   );
+});
+
+/*
+ * AN INGESTION KEY IS ONE WORD, ON ITS PAGE AND EVERYWHERE (#8806).
+ *
+ * The Ingestion Keys card titled its list one way and its Create button
+ * another: Swedish Intagningsnycklar over Skapa ingestion-nyckel, Danish
+ * Indtagelsesnøgler over Opret ingestion-nøgle, Italian Chiavi di
+ * acquisizione over Crea chiave di ingestione. A reader could not tell the
+ * button makes one of the keys the title lists. Every string whose English
+ * names an ingestion key, in the Dashboard and the Admin Dashboard, says the
+ * language's word, in all 17 languages; the words they dropped are held out
+ * of the docs and the setup guides by the shared rules.
+ */
+const NAMES_AN_INGESTION_KEY: RegExp = /\bingestion[ -]keys?\b/i;
+
+// The strings whose English names an ingestion key and that do not say the language's word.
+function notSayingIngestionKey(
+  language: string,
+  strings: Record<string, string>,
+  english: (place: string) => string,
+): Array<string> {
+  const word: RegExp = INGESTION_KEY_WORDS[language]!;
+
+  return Object.keys(strings).filter((place: string): boolean => {
+    const named: string = englishOf(english(place));
+    const text: string = strings[place]!;
+
+    return (
+      NAMES_AN_INGESTION_KEY.test(named.replace(NOT_WORDS, " ")) &&
+      text !== named &&
+      !word.test(text.replace(NOT_WORDS, " "))
+    );
+  });
+}
+
+describe("an ingestion key in each language", () => {
+  test("every Dashboard language has its word", () => {
+    expect(Object.keys(INGESTION_KEY_WORDS).sort()).toEqual(
+      fs
+        .readdirSync(path.resolve(__dirname, "../../FeatureSet/Dashboard/src/Locales"))
+        .filter((file: string): boolean => {
+          return file.endsWith(".json") && file !== "en.json";
+        })
+        .map((file: string): string => {
+          return file.replace(/\.json$/, "");
+        })
+        .sort(),
+    );
+  });
+
+  test.each(Object.keys(INGESTION_KEY_WORDS))(
+    "%s: the Ingestion Keys title and its Create button say one word",
+    (language: string) => {
+      const words: Record<string, string> = readDashboardLocale(language);
+      const word: RegExp = INGESTION_KEY_WORDS[language]!;
+
+      expect({
+        language,
+        title: word.test(words["Ingestion Keys"]!),
+        button: word.test(words["Create Ingestion Key"]!),
+        key: word.test(words["Ingestion Key"]!),
+      }).toEqual({ language, title: true, button: true, key: true });
+    },
+  );
+
+  test.each(Object.keys(INGESTION_KEY_WORDS))(
+    "%s: every Dashboard and Admin Dashboard string about an ingestion key says it",
+    (language: string) => {
+      const dashboard: Record<string, string> = readDashboardLocale(language);
+      const adminEnglish: Record<string, string> = adminWords("en");
+
+      expect({
+        language,
+        dashboard: notSayingIngestionKey(
+          language,
+          dashboard,
+          (place: string): string => {
+            return place;
+          },
+        ),
+        admin: fs.existsSync(path.join(ADMIN_LOCALES, `${language}.json`))
+          ? notSayingIngestionKey(
+              language,
+              adminWords(language),
+              (place: string): string => {
+                return adminEnglish[place] ?? place;
+              },
+            )
+          : [],
+      }).toEqual({ language, dashboard: [], admin: [] });
+    },
+  );
+
+  test("a string that names an ingestion key another way is caught (control)", () => {
+    expect(
+      notSayingIngestionKey(
+        "sv",
+        { "Create Ingestion Key": "Skapa ingestion-nyckel" },
+        (place: string): string => {
+          return place;
+        },
+      ),
+    ).toEqual(["Create Ingestion Key"]);
+    expect(
+      notSayingIngestionKey(
+        "sv",
+        { "Create Ingestion Key": "Skapa intagningsnyckel" },
+        (place: string): string => {
+          return place;
+        },
+      ),
+    ).toEqual([]);
+  });
 });
 
 describe("the single keys and the titles", () => {

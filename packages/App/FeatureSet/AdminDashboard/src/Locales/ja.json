@@ -2722,7 +2722,7 @@
   "Deleting a team takes away the permissions it gave its members. Anyone for whom it was their only team loses access to the project.": "チームを削除すると、そのチームがメンバーに与えていた権限がなくなります。ほかにチームがないメンバーはプロジェクトにアクセスできなくなります。",
   "Deleting an API key stops anything that uses it from working.": "API キーを削除すると、そのキーを使っているものはすべて動かなくなります。",
   "Deleting a custom role takes its permissions from every team and API key that has it. The teams and keys themselves stay, with everything else they have.": "カスタムロールを削除すると、そのロールを持つすべてのチームと API キーからその権限がなくなります。チームとキー自体は、ほかに持っているものとともにそのまま残ります。",
-  "Deleting an ingestion key makes OneUptime refuse telemetry that is still sent with it.": "インジェストキーを削除すると、そのキーで送信され続けるテレメトリーを OneUptime は受け付けなくなります。",
+  "Deleting an ingestion key makes OneUptime refuse telemetry that is still sent with it.": "取り込みキーを削除すると、そのキーで送信され続けるテレメトリーを OneUptime は受け付けなくなります。",
   "Deleting an announcement takes it off every status page that shows it.": "お知らせを削除すると、そのお知らせを表示しているすべてのステータスページから外れます。",
   "Deleting a pipeline also deletes its processors.": "パイプラインを削除すると、そのプロセッサも削除されます。",
   "Deleting a form also deletes its submissions and custom domains. The incidents and events it created stay.": "フォームを削除すると、その送信履歴とカスタムドメインも削除されます。フォームから作成されたインシデントとイベントは残ります。",

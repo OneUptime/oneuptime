@@ -158,7 +158,7 @@ Niente viene eliminato o disattivato. Le chiavi e le connessioni vengono conserv
 
 Sotto **Growth**, **Impostazioni del progetto** > **Avanzato** > **Chiavi API** elenca le chiavi che il progetto ha ancora e dice che si sono fermate, quindi ognuna può essere eliminata (revocata) con qualsiasi piano. Creare o modificare chiavi richiede **Growth**. **Impostazioni del progetto** > **Fatturazione e fatture** > **Fatturazione** indica quante chiavi API un piano inferiore ferma e quante connessioni SCIM limita, per ogni piano che puoi scegliere, e cosa ha fermato il piano del progetto; i Proprietari del progetto ricevono un'email quando un cambio di piano le ferma. I proprietari dei progetti che erano già sotto questi piani quando tutto questo è iniziato ricevono un'unica email che dice cosa si è fermato e come riattivarlo.
 
-Sono coinvolte solo le chiavi API e le connessioni SCIM di un progetto. Le persone no: l'accesso alla dashboard, e i client MCP collegati tramite accesso, funzionano come prima. Le chiavi di ingestione della telemetria, le chiavi delle sonde e le chiavi degli agent non sono chiavi API e continuano a funzionare. Le installazioni self-hosted non hanno piani, quindi per loro non cambia nulla.
+Sono coinvolte solo le chiavi API e le connessioni SCIM di un progetto. Le persone no: l'accesso alla dashboard, e i client MCP collegati tramite accesso, funzionano come prima. Le chiavi di acquisizione della telemetria, le chiavi delle sonde e le chiavi degli agent non sono chiavi API e continuano a funzionare. Le installazioni self-hosted non hanno piani, quindi per loro non cambia nulla.
 
 ## Nominare e scrivere record
 

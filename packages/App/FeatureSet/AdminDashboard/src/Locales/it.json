@@ -2722,7 +2722,7 @@
   "Deleting a team takes away the permissions it gave its members. Anyone for whom it was their only team loses access to the project.": "Eliminando un team i suoi membri perdono le autorizzazioni che dava loro. Chi non ha altri team perde l'accesso al progetto.",
   "Deleting an API key stops anything that uses it from working.": "Eliminando una chiave API smette di funzionare tutto ciò che la usa.",
   "Deleting a custom role takes its permissions from every team and API key that has it. The teams and keys themselves stay, with everything else they have.": "Eliminare un ruolo personalizzato toglie le sue autorizzazioni a ogni team e chiave API che lo ha. I team e le chiavi restano, con tutto il resto che hanno.",
-  "Deleting an ingestion key makes OneUptime refuse telemetry that is still sent with it.": "Eliminando una chiave di ingestione OneUptime rifiuta la telemetria ancora inviata con essa.",
+  "Deleting an ingestion key makes OneUptime refuse telemetry that is still sent with it.": "Eliminando una chiave di acquisizione OneUptime rifiuta la telemetria ancora inviata con essa.",
   "Deleting an announcement takes it off every status page that shows it.": "Eliminando un annuncio lo si toglie da ogni pagina di stato che lo mostra.",
   "Deleting a pipeline also deletes its processors.": "Eliminando una pipeline si eliminano anche i suoi processori.",
   "Deleting a form also deletes its submissions and custom domains. The incidents and events it created stay.": "Eliminando un modulo si eliminano anche i suoi invii e i domini personalizzati. Gli incidenti e gli eventi che ha creato restano.",

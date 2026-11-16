@@ -23,7 +23,7 @@ flowchart TB
     collector -->|"OTLP über HTTPS"| oneuptime
 ```
 
-Der Supervisor fragt OneUptime etwa alle 30 Sekunden mit Ihrem Aufnahmeschlüssel nach der Konfiguration des Hosts und meldet, welche Konfiguration der Host ausführt und ob sie gestartet ist. Der Host wird unter **Hosts** registriert, sobald sich der Supervisor zum ersten Mal verbindet, benannt nach seinem Hostnamen, und seine Seiten füllen sich, während seine Metriken und Logs eintreffen.
+Der Supervisor fragt OneUptime etwa alle 30 Sekunden mit Ihrem Ingestion-Schlüssel nach der Konfiguration des Hosts und meldet, welche Konfiguration der Host ausführt und ob sie gestartet ist. Der Host wird unter **Hosts** registriert, sobald sich der Supervisor zum ersten Mal verbindet, benannt nach seinem Hostnamen, und seine Seiten füllen sich, während seine Metriken und Logs eintreffen.
 
 Jeder Host führt eine Konfiguration aus, gewählt in dieser Reihenfolge:
 
@@ -37,7 +37,7 @@ Der OneUptime-Standard liest auf jedem System CPU, Arbeitsspeicher, Datenträger
 
 ## Bevor Sie beginnen
 
-- Einen Aufnahmeschlüssel. **Host hinzufügen** erstellt einen für Sie, oder wählen Sie einen, den Sie unter **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel** angelegt haben.
+- Einen Ingestion-Schlüssel. **Host hinzufügen** erstellt einen für Sie, oder wählen Sie einen, den Sie unter **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel** angelegt haben.
 - Administratorrechte auf dem Host: `sudo` unter Linux und macOS, PowerShell als Administrator unter Windows.
 - Linux mit systemd, Windows 10 oder Windows Server 2019 und neuer, oder macOS auf Apple Silicon oder Intel.
 - Ausgehendes HTTPS vom Host zu Ihrer OneUptime-URL, direkt oder über einen Proxy.
@@ -49,7 +49,7 @@ Der OneUptime-Standard liest auf jedem System CPU, Arbeitsspeicher, Datenträger
 
 Öffnen Sie **Produkte → Infrastruktur → Hosts** und wählen Sie **Host hinzufügen**. Wählen Sie, was auf dem Host läuft: Linux, Windows oder macOS. Die Knoten eines Kubernetes-Clusters überwacht stattdessen der [Kubernetes Agent](/docs/telemetry/kubernetes-agent).
 
-### Einen Aufnahmeschlüssel wählen
+### Einen Ingestion-Schlüssel wählen
 
 Wählen Sie einen Schlüssel oder erstellen Sie einen im Dialog. Der Befehl unten setzt ihn ein.
 
@@ -202,7 +202,7 @@ Führen Sie den Befehl erneut aus, um eine davon zu ändern oder auf ein neueres
 | Linux und macOS | Windows | Was sie bewirkt |
 | --- | --- | --- |
 | `--url URL` | `-Url URL` | Wo OneUptime ist. |
-| `--key KEY` | `-Key KEY` | Ein Telemetrie-Aufnahmeschlüssel Ihres Projekts. |
+| `--key KEY` | `-Key KEY` | Ein Telemetrie-Ingestion-Schlüssel Ihres Projekts. |
 | `--label KEY=VALUE` | `-Label KEY=VALUE` | Beschriftet den Host. Wiederholen Sie sie für weitere Beschriftungen; unter Windows listen Sie sie mit Kommas auf. |
 | `--env NAME=VALUE` | `-EnvVar NAME=VALUE` | Gibt dem Collector eine Umgebungsvariable, für Konfigurationen, die `${env:NAME}` lesen. |
 | `--version VERSION` | `-Version VERSION` | Das zu installierende Collector-Release, standardmäßig 0.161.0. |
@@ -261,6 +261,6 @@ OneUptime zeigt lieber keine Zahl als eine alte: Der Host hat seit 15 Minuten ni
 :::cards
 - [Host-OpenTelemetry-Collector](/docs/telemetry/host-otel-collector): Den Collector stattdessen selbst installieren und seine Konfiguration schreiben.
 - [Host-Monitor](/docs/monitor/host-monitor): Bei dem alarmieren, was Ihre Hosts melden.
-- [Aufnahmeschlüssel](/docs/telemetry/ingestion-keys): Die Schlüssel erstellen, eingrenzen und rotieren, mit denen Hosts senden.
+- [Ingestion-Schlüssel](/docs/telemetry/ingestion-keys): Die Schlüssel erstellen, eingrenzen und rotieren, mit denen Hosts senden.
 - [Kubernetes Agent](/docs/telemetry/kubernetes-agent): Die Knoten und Workloads eines Clusters überwachen.
 :::

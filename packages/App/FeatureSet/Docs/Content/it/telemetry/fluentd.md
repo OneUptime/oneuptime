@@ -31,11 +31,11 @@ Fluentd invia i record a blocchi in JSON, con la tua chiave di acquisizione nell
 
 Vai a **Prodotti → Impostazioni del progetto**, apri **Telemetria e APM** nel menu laterale e seleziona **Chiavi di acquisizione**.
 
-![L'elenco «Chiavi di acquisizione», con «Crea chiave di ingestione» evidenziato](screen:ingestion-keys)
+![L'elenco «Chiavi di acquisizione», con «Crea chiave di acquisizione» evidenziato](screen:ingestion-keys)
 
 ### Creare una chiave
 
-Fai clic su **Crea chiave di ingestione**. La finestra ha già il nome della chiave compilato e **Server** scelto (il tipo di chiave con cui invia un'applicazione o un collector), quindi fai clic su **Crea chiave di ingestione** per crearla, oppure rinominala prima.
+Fai clic su **Crea chiave di acquisizione**. La finestra ha già il nome della chiave compilato e **Server** scelto (il tipo di chiave con cui invia un'applicazione o un collector), quindi fai clic su **Crea chiave di acquisizione** per crearla, oppure rinominala prima.
 
 ### Copiare il segreto
 
