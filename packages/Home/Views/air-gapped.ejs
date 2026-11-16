@@ -36,7 +36,7 @@
 
     .ag-card:hover {
       transform: translateY(-3px);
-      box-shadow: 0 18px 40px -20px rgba(15, 23, 42, 0.25);
+      box-shadow: 0 22px 44px -24px rgba(15, 23, 42, 0.28);
     }
 
     .ag-code {
@@ -63,13 +63,41 @@
       outline-offset: -2px;
     }
 
+    /* The bar of section links scrolls sideways on a phone, without a scrollbar. */
+    .ag-bar {
+      scrollbar-width: none;
+    }
+
+    .ag-bar::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* Safari draws its own marker beside a question unless told not to. */
+    #faq summary::-webkit-details-marker {
+      display: none;
+    }
+
     /*
      * A section the bar's links (or the hero's buttons) jump to starts right
-     * under the sticky bar, 46px tall, rather than below a strip of the
+     * under the sticky bar, 45px tall, rather than below a strip of the
      * section before it.
      */
     section[id] {
       scroll-margin-top: 2.875rem;
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      #air-gapped {
+        scroll-behavior: smooth;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .ag-card,
+      .ag-card:hover {
+        transition: none;
+        transform: none;
+      }
     }
   </style>
   <%- include('./Partials/tailwind-stylesheet') -%>
@@ -88,6 +116,11 @@
     lock: 'M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z',
     check: 'm4.5 12.75 6 6 9-13.5',
     arrowRight: 'M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3',
+    arrowUpRight: 'm4.5 19.5 15-15m0 0H8.25m11.25 0v11.25',
+    plus: 'M12 4.5v15m7.5-7.5h-15',
+    cloud: 'M2.25 15a4.5 4.5 0 0 0 4.5 4.5H18a3.75 3.75 0 0 0 1.332-7.257 3 3 0 0 0-3.758-3.848 5.25 5.25 0 0 0-10.233 2.33A4.502 4.502 0 0 0 2.25 15Z',
+    cut: 'M6 18 18 6M6 6l12 12',
+    question: 'M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z',
     government: 'M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0 0 12 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75Z',
     'critical-infrastructure': 'm3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z',
     'regulated-industries': 'M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z',
@@ -103,6 +136,8 @@
     registry: 'm20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0-3-3m3 3 3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z',
     identity: 'M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Zm6-10.125a1.875 1.875 0 1 1-3.75 0 1.875 1.875 0 0 1 3.75 0Zm1.294 6.336a6.721 6.721 0 0 1-3.17.789 6.721 6.721 0 0 1-3.168-.789 3.376 3.376 0 0 1 6.338 0Z',
     model: 'M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 0 0 2.25-2.25V6.75a2.25 2.25 0 0 0-2.25-2.25H6.75A2.25 2.25 0 0 0 4.5 6.75v10.5a2.25 2.25 0 0 0 2.25 2.25Zm.75-12h9v9h-9v-9Z',
+    server: 'M5.25 14.25h13.5m-13.5 0a3 3 0 0 1-3-3m3 3a3 3 0 1 0 0 6h13.5a3 3 0 1 0 0-6m-16.5-3a3 3 0 0 1 3-3h13.5a3 3 0 0 1 3 3m-19.5 0a4.5 4.5 0 0 1 .9-2.7L5.737 5.1a3.375 3.375 0 0 1 2.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 0 1 .9 2.7m0 0a3 3 0 0 1-3 3m0 3h.008v.008h-.008v-.008Zm0-6h.008v.008h-.008v-.008Zm-3 6h.008v.008h-.008v-.008Zm0-6h.008v.008h-.008v-.008Z',
+    none: 'M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636',
     offline: 'm3 3 8.735 8.735m0 0a.374.374 0 1 1 .53.53m-.53-.53.53.53m0 0L21 21M14.652 9.348a3.75 3.75 0 0 1 0 5.304m2.121-7.425a6.75 6.75 0 0 1 0 9.546m2.121-11.667c3.808 3.807 3.808 9.98 0 13.788m-9.546-4.242a3.733 3.733 0 0 1-1.06-2.122m-1.061 4.243a6.75 6.75 0 0 1-1.625-6.929m-.496 9.05c-3.068-3.067-3.664-7.67-1.79-11.334M12 12h.008v.008H12V12Z',
     residency: 'M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z',
     keys: 'M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z',
@@ -120,6 +155,16 @@
   icons.vulnerabilities = icons['supply-chain'];
   icons.hardening = icons.lock;
   icons.nist = icons.government;
+
+  // The AI options: a model you run, a server on your network, or none.
+  icons.ollama = icons.model;
+  icons['openai-compatible'] = icons.server;
+  icons['no-ai'] = icons.none;
+
+  // An outline icon, by its path. Every icon on the page is decoration: the words beside it say what it means.
+  const drawIcon = function (d, iconClass, strokeWidth) {
+%><svg class="<%= iconClass %>" fill="none" viewBox="0 0 24 24" stroke-width="<%= strokeWidth || 1.5 %>" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="<%= d %>" /></svg><%
+  };
 
   /*
    * How code inside a sentence looks: on white, on a light grey panel, and on
@@ -169,6 +214,17 @@
     });
   };
 
+  // The three dots of a window's title bar, as the self-hosted page draws its install window.
+  const drawWindowDots = function () {
+%><span class="flex flex-none items-center gap-1.5" aria-hidden="true"><span class="h-2.5 w-2.5 rounded-full bg-rose-400/70"></span><span class="h-2.5 w-2.5 rounded-full bg-amber-400/70"></span><span class="h-2.5 w-2.5 rounded-full bg-emerald-400/70"></span></span><%
+  };
+
+  // What every section heading on a light background shares.
+  const eyebrowClass = 'text-sm font-semibold text-emerald-600';
+  const titleClass = 'mt-3 text-balance text-3xl font-semibold tracking-tight text-gray-950 sm:text-4xl';
+  const leadClass = 'mt-4 text-pretty text-base leading-7 text-gray-600 sm:text-lg sm:leading-8';
+  const linkFocus = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600';
+
 -%>
 
 <body class="bg-white antialiased text-gray-900">
@@ -177,109 +233,144 @@
   <main id="main-content">
 
     <!-- ============================================================ HERO -->
-    <section class="relative isolate overflow-hidden bg-white" id="air-gapped-hero" aria-labelledby="air-gapped-title">
-      <div class="absolute inset-x-0 top-0 -z-10 h-[40rem] bg-[radial-gradient(55%_60%_at_50%_0%,rgba(16,185,129,0.09),transparent_70%)]" aria-hidden="true"></div>
+    <%#
+      Dark, as the networks it is for are: the page's promise on the left, and
+      on the right the picture of it - OneUptime and everything it uses inside
+      one boundary, the customer's network, with the internet above it and no
+      line joining the two.
+    -%>
+    <section class="relative isolate overflow-hidden bg-gray-950" id="air-gapped-hero" aria-labelledby="air-gapped-title">
+      <div class="absolute inset-0 -z-10 bg-[linear-gradient(to_right,rgba(255,255,255,0.045)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.045)_1px,transparent_1px)] bg-[size:3.5rem_3.5rem] [mask-image:radial-gradient(ellipse_80%_70%_at_50%_0%,#000_35%,transparent_100%)]" aria-hidden="true"></div>
+      <div class="absolute inset-0 -z-10 bg-[radial-gradient(42%_55%_at_78%_45%,rgba(16,185,129,0.16),transparent_70%),radial-gradient(35%_40%_at_10%_0%,rgba(16,185,129,0.08),transparent_70%)]" aria-hidden="true"></div>
+      <div class="absolute inset-x-0 bottom-0 -z-10 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" aria-hidden="true"></div>
 
-      <div class="mx-auto max-w-7xl px-6 py-20 sm:py-28 lg:px-8">
-        <div class="mx-auto max-w-3xl text-center">
-          <p class="inline-flex items-center gap-2 rounded-full bg-gray-50 px-4 py-1.5 text-sm text-gray-600 ring-1 ring-inset ring-gray-200">
-            <svg class="h-4 w-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons.lock %>" />
-            </svg>
-            <span>Self-Hosted</span>
-            <span class="h-1 w-1 rounded-full bg-gray-300" aria-hidden="true"></span>
-            <span>Air-Gapped</span>
-          </p>
+      <div class="mx-auto max-w-7xl px-6 pb-20 pt-16 sm:pb-24 sm:pt-20 lg:px-8 lg:pb-28 lg:pt-24">
+        <div class="grid grid-cols-1 items-center gap-16 lg:grid-cols-12 lg:gap-12">
+          <div class="lg:col-span-6">
+            <p class="inline-flex items-center gap-2 rounded-full bg-white/5 px-3.5 py-1.5 text-sm text-gray-300 ring-1 ring-inset ring-white/10">
+              <% drawIcon(icons.lock, 'h-4 w-4 text-emerald-400'); %>
+              <span>Self-Hosted</span>
+              <span class="h-1 w-1 rounded-full bg-gray-600" aria-hidden="true"></span>
+              <span>Air-Gapped</span>
+            </p>
 
-          <h1 id="air-gapped-title" class="mt-8 text-balance text-4xl font-medium tracking-tight text-gray-900 sm:text-5xl lg:text-[3.5rem] lg:leading-[1.15]">
-            Run OneUptime
-            <span class="text-gray-500 sm:block">with no internet connection.</span>
-          </h1>
+            <%#
+              The period is drawn as the brand's square, as the homepage's title
+              draws its own. It stays a real period, only transparent, with the
+              square laid over it: a period kept for screen readers alone (sr-only)
+              is absolutely positioned, so browsers read the title as "connection
+              ." with a space, and the E2E suite finds the heading by its exact name.
+            -%>
+            <h1 id="air-gapped-title" class="mt-8 text-balance text-[2.5rem] font-semibold leading-[1.05] tracking-[-0.035em] text-white sm:text-6xl lg:text-[3.75rem]">
+              Run OneUptime
+              <span class="block text-gray-400">with no internet connection<span class="relative text-transparent">.<span class="absolute bottom-[0.3em] left-[0.04em] h-[0.15em] w-[0.15em] rounded-[0.02em] bg-[#7ed957]" aria-hidden="true"></span></span></span>
+            </h1>
 
-          <p class="mx-auto mt-6 max-w-2xl text-balance text-base leading-7 text-gray-600 sm:text-lg sm:leading-8">
-            Monitoring, incidents, on-call, status pages, logs, metrics and traces on your own Kubernetes cluster,
-            behind your air gap. The same images and Helm chart every self-hosted install runs, from your own
-            registry.
-          </p>
+            <p class="mt-6 max-w-xl text-pretty text-base leading-7 text-gray-400 sm:text-lg sm:leading-8">
+              Monitoring, incidents, on-call, status pages, logs, metrics and traces on your own Kubernetes cluster,
+              behind your air gap. The same images and Helm chart every self-hosted install runs, from your own
+              registry.
+            </p>
 
-          <div class="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
-            <a href="#plan-your-install" data-ou-cta="cta_request_demo"
-              class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gray-900 px-6 py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900 sm:w-auto">
-              Plan your air-gapped install
-              <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons.arrowRight %>"></path>
-              </svg>
-            </a>
-            <a href="#set-up"
-              class="inline-flex w-full items-center justify-center rounded-lg bg-white px-6 py-3 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-600 sm:w-auto">
-              See the four steps
-            </a>
-          </div>
-        </div>
-
-        <ul role="list" class="mx-auto mt-12 flex max-w-5xl flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm text-gray-500" data-testid="air-gapped-proof-points">
-          <% content.proofPoints.forEach(function (proofPoint) { -%>
-          <li class="flex items-center gap-2">
-            <svg class="h-4 w-4 flex-none text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons.check %>" />
-            </svg>
-            <span><%= proofPoint %></span>
-          </li>
-          <% }); -%>
-        </ul>
-
-        <%#
-          The picture: inside one dashed boundary - the customer's network -
-          OneUptime with the probes and datastores the chart runs beside it,
-          drawn inside it, and the customer's own services it uses in place of
-          anything on the internet. Nothing is drawn outside the boundary.
-        -%>
-        <div class="mx-auto mt-16 max-w-4xl" data-testid="air-gapped-network">
-          <div class="rounded-3xl border-2 border-dashed border-emerald-300 bg-emerald-50/40 p-4 sm:p-7">
-            <div class="flex flex-wrap items-center justify-between gap-x-6 gap-y-1.5">
-              <p class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-emerald-700">
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons.lock %>" />
-                </svg>
-                Your network
-              </p>
-              <p class="inline-flex items-center gap-1.5 text-xs text-gray-500">
-                <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons.offline %>" />
-                </svg>
-                No route to the internet needed
-              </p>
+            <div class="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <a href="#plan-your-install" data-ou-cta="cta_request_demo"
+                class="group inline-flex items-center justify-center gap-2 rounded-lg bg-white px-5 py-3 text-sm font-semibold text-gray-950 shadow-sm transition-colors hover:bg-gray-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
+                Plan your air-gapped install
+                <% drawIcon(icons.arrowRight, 'h-4 w-4 transition-transform motion-safe:group-hover:translate-x-0.5', 2); %>
+              </a>
+              <a href="#set-up"
+                class="inline-flex items-center justify-center rounded-lg px-5 py-3 text-sm font-semibold text-white ring-1 ring-inset ring-white/20 transition-colors hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
+                See the four steps
+              </a>
             </div>
 
-            <div class="mt-4 rounded-2xl bg-gray-900 p-4 shadow-lg sm:p-5" data-testid="air-gapped-network-oneuptime">
-              <p class="text-base font-semibold text-white">OneUptime</p>
-              <p class="mt-0.5 text-sm text-gray-400">Dashboard, status pages, API, telemetry ingest and background jobs</p>
+            <ul role="list" class="mt-12 grid max-w-xl grid-cols-1 gap-x-6 gap-y-3 border-t border-white/10 pt-8 text-sm text-gray-300 sm:grid-cols-2" data-testid="air-gapped-proof-points">
+              <% content.proofPoints.forEach(function (proofPoint) { -%>
+              <li class="flex items-center gap-2.5">
+                <span class="flex h-5 w-5 flex-none items-center justify-center rounded-full bg-emerald-400/10 ring-1 ring-inset ring-emerald-400/30" aria-hidden="true">
+                  <% drawIcon(icons.check, 'h-3 w-3 text-emerald-400', 2.5); %>
+                </span>
+                <span><%= proofPoint %></span>
+              </li>
+              <% }); -%>
+            </ul>
+          </div>
 
-              <ul role="list" aria-label="Runs in your cluster" class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                <% content.network.runs.forEach(function (item) { -%>
-                <li class="rounded-xl bg-white/[0.06] p-3 ring-1 ring-inset ring-white/10">
-                  <svg class="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons[item.icon] %>" />
-                  </svg>
-                  <span class="mt-2 block text-sm font-medium text-white"><%= item.label %></span>
-                  <span class="mt-0.5 block text-xs leading-5 text-gray-400"><%= item.detail %></span>
+          <%#
+            The picture. The internet sits above the boundary, cut off from it;
+            inside the boundary - the customer's network - OneUptime with the
+            probes and datastores the chart runs beside it, drawn inside it, and
+            the customer's own services it uses in place of anything on the
+            internet. The internet and the line are decoration: "No route to
+            the internet needed" says it in words.
+          -%>
+          <div class="lg:col-span-6" data-testid="air-gapped-network">
+            <div class="flex flex-col items-center" aria-hidden="true">
+              <span class="inline-flex items-center gap-2 rounded-full bg-white/[0.04] px-3 py-1 text-xs font-medium text-gray-400 ring-1 ring-inset ring-white/10">
+                <% drawIcon(icons.cloud, 'h-3.5 w-3.5'); %>
+                Internet
+              </span>
+              <span class="relative h-14 w-px bg-[linear-gradient(to_bottom,rgba(156,163,175,0.45)_50%,transparent_50%)] bg-[size:1px_7px]">
+                <span class="absolute left-1/2 top-1/2 flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-gray-950 text-rose-400 ring-1 ring-rose-400/40">
+                  <% drawIcon(icons.cut, 'h-3 w-3', 2.5); %>
+                </span>
+              </span>
+            </div>
+
+            <div class="rounded-3xl border border-dashed border-emerald-400/40 bg-emerald-400/[0.03] p-4 shadow-[0_0_90px_-30px_rgba(16,185,129,0.55)] sm:p-6">
+              <div class="flex flex-wrap items-center justify-between gap-x-6 gap-y-1.5">
+                <p class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-emerald-400">
+                  <% drawIcon(icons.lock, 'h-4 w-4'); %>
+                  Your network
+                </p>
+                <p class="inline-flex items-center gap-1.5 text-xs text-gray-400">
+                  <% drawIcon(icons.offline, 'h-4 w-4 text-gray-500'); %>
+                  No route to the internet needed
+                </p>
+              </div>
+
+              <div class="mt-4 rounded-2xl bg-white/[0.04] p-3 ring-1 ring-inset ring-white/10 sm:p-5" data-testid="air-gapped-network-oneuptime">
+                <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                  <p class="flex items-center gap-1 text-base font-semibold tracking-tight text-white">OneUptime<span class="mb-1.5 h-1.5 w-1.5 rounded-[1px] bg-[#7ed957]" aria-hidden="true"></span></p>
+                  <span class="flex-none rounded-full bg-white/5 px-2.5 py-1 text-[11px] font-medium text-gray-300 ring-1 ring-inset ring-white/10">Your Kubernetes cluster</span>
+                </div>
+                <p class="mt-1 text-sm text-gray-400">Dashboard, status pages, API, telemetry ingest and background jobs</p>
+
+                <%# Side by side from a tablet up; on a phone each icon sits over its words, which then have the card's width. -%>
+                <ul role="list" aria-label="Runs in your cluster" class="mt-4 grid grid-cols-2 gap-2">
+                  <% content.network.runs.forEach(function (item) { -%>
+                  <li class="flex flex-col gap-2.5 rounded-xl bg-gray-950/50 p-3 ring-1 ring-inset ring-white/[0.08] sm:flex-row sm:items-start sm:gap-3">
+                    <span class="flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-emerald-400/10 text-emerald-400 ring-1 ring-inset ring-emerald-400/20">
+                      <% drawIcon(icons[item.icon], 'h-4 w-4'); %>
+                    </span>
+                    <span class="min-w-0">
+                      <span class="block text-sm font-medium text-white"><%= item.label %></span>
+                      <span class="mt-0.5 block text-xs leading-5 text-gray-400"><%= item.detail %></span>
+                    </span>
+                  </li>
+                  <% }); -%>
+                </ul>
+              </div>
+
+              <div class="flex justify-center" aria-hidden="true">
+                <span class="h-5 w-px bg-white/15"></span>
+              </div>
+
+              <p class="text-xs font-semibold uppercase tracking-wider text-gray-400" id="air-gapped-network-yours">Uses your own</p>
+              <ul role="list" aria-labelledby="air-gapped-network-yours" class="mt-2.5 grid grid-cols-2 gap-2">
+                <% content.network.yours.forEach(function (item) { -%>
+                <li class="flex flex-col gap-2.5 rounded-xl bg-white/[0.03] p-3 ring-1 ring-inset ring-white/10 sm:flex-row sm:items-start sm:gap-3">
+                  <span class="flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-white/[0.06] text-gray-200 ring-1 ring-inset ring-white/10">
+                    <% drawIcon(icons[item.icon], 'h-4 w-4'); %>
+                  </span>
+                  <span class="min-w-0">
+                    <span class="block text-sm font-medium text-white"><%= item.label %></span>
+                    <span class="mt-0.5 block text-xs leading-5 text-gray-400"><%= item.detail %></span>
+                  </span>
                 </li>
                 <% }); -%>
               </ul>
             </div>
-
-            <p class="mt-5 text-xs font-semibold uppercase tracking-wider text-gray-500" id="air-gapped-network-yours">Uses your own</p>
-            <ul role="list" aria-labelledby="air-gapped-network-yours" class="mt-2.5 grid grid-cols-2 gap-2 sm:grid-cols-4">
-              <% content.network.yours.forEach(function (item) { -%>
-              <li class="rounded-xl bg-white p-3 shadow-sm ring-1 ring-gray-200">
-                <svg class="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons[item.icon] %>" />
-                </svg>
-                <span class="mt-2 block text-sm font-medium text-gray-900"><%= item.label %></span>
-                <span class="mt-0.5 block text-xs leading-5 text-gray-500"><%= item.detail %></span>
-              </li>
-              <% }); -%>
-            </ul>
           </div>
         </div>
       </div>
@@ -291,52 +382,55 @@
       tablet up; a phone's bar is all links, and the hero's button leads
       there). z-10 keeps it under the site's menus (z-20): a phone's menu is
       taller than the screen, and scrolling it would otherwise slide this bar
-      over its links.
+      over its links. The script at the end of the page marks the section in
+      view (aria-current="location").
     -%>
-    <div class="sticky top-0 z-10 border-y border-gray-200 bg-white/90 backdrop-blur">
-      <div class="mx-auto flex max-w-7xl items-center gap-6 px-6 lg:px-8">
-        <nav aria-label="On this page" class="ag-scroll flex min-w-0 flex-1 items-center gap-6 py-3 text-sm text-gray-500 whitespace-nowrap">
-          <a href="#who-its-for" class="hover:text-gray-900">Who it's for</a>
-          <a href="#inside" class="hover:text-gray-900">What runs inside</a>
-          <a href="#by-product" class="hover:text-gray-900">By product</a>
-          <a href="#set-up" class="hover:text-gray-900">Set up</a>
-          <a href="#connections-out" class="hover:text-gray-900">Connections out</a>
-          <a href="#ai" class="hover:text-gray-900">AI</a>
-          <a href="#compliance" class="hover:text-gray-900">Compliance</a>
-          <a href="#evidence" class="hover:text-gray-900">Evidence</a>
-          <a href="#faq" class="hover:text-gray-900">FAQ</a>
+    <div class="sticky top-0 z-10 border-b border-gray-200 bg-white/90 backdrop-blur-md">
+      <div class="mx-auto flex max-w-7xl items-center gap-4 px-6 lg:px-8">
+        <nav aria-label="On this page" class="ag-scroll ag-bar relative -mx-3 flex min-w-0 flex-1 items-center gap-1 px-3 py-2 text-sm text-gray-500 whitespace-nowrap">
+          <% [
+            ['#who-its-for', "Who it's for"],
+            ['#inside', 'What runs inside'],
+            ['#by-product', 'By product'],
+            ['#set-up', 'Set up'],
+            ['#connections-out', 'Connections out'],
+            ['#ai', 'AI'],
+            ['#compliance', 'Compliance'],
+            ['#evidence', 'Evidence'],
+            ['#faq', 'FAQ']
+          ].forEach(function (link) { -%>
+          <a href="<%= link[0] %>" class="rounded-full px-3 py-1 transition-colors hover:bg-gray-900/[0.04] hover:text-gray-900 aria-[current=location]:bg-gray-900/[0.06] aria-[current=location]:font-medium aria-[current=location]:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-emerald-600"><%= link[1] %></a>
+          <% }); -%>
         </nav>
         <a href="#plan-your-install" data-ou-cta="cta_request_demo" data-testid="air-gapped-nav-plan"
-          class="max-md:hidden md:inline-flex flex-none items-center gap-1.5 rounded-md bg-gray-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900">
+          class="max-md:hidden md:inline-flex group flex-none items-center gap-1.5 rounded-md bg-gray-950 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900">
           Plan your install
-          <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons.arrowRight %>"></path>
-          </svg>
+          <% drawIcon(icons.arrowRight, 'h-3.5 w-3.5 transition-transform motion-safe:group-hover:translate-x-0.5', 2); %>
         </a>
       </div>
     </div>
 
     <!-- ===================================================== WHO IT'S FOR -->
-    <section id="who-its-for" class="bg-white py-20 sm:py-28" aria-labelledby="who-its-for-title">
+    <section id="who-its-for" class="bg-white py-24 sm:py-32" aria-labelledby="who-its-for-title">
       <div class="mx-auto max-w-7xl px-6 lg:px-8">
         <div class="max-w-3xl">
-          <p class="text-sm font-medium uppercase tracking-wide text-emerald-600">Who it's for</p>
-          <h2 id="who-its-for-title" class="mt-3 text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">For networks that stay closed</h2>
-          <p class="mt-4 text-base leading-7 text-gray-600">
+          <p class="<%= eyebrowClass %>">Who it's for</p>
+          <h2 id="who-its-for-title" class="<%= titleClass %>">For networks that stay closed</h2>
+          <p class="<%= leadClass %>">
             Where monitoring data may not leave and the network never reaches the internet, OneUptime runs entirely
             inside.
           </p>
         </div>
 
-        <ul role="list" class="mt-12 grid grid-cols-1 gap-5 md:grid-cols-3">
+        <ul role="list" class="mt-14 grid grid-cols-1 gap-6 md:grid-cols-3">
           <% content.audiences.forEach(function (audience) { -%>
-          <li class="ag-card rounded-2xl border border-gray-200 bg-white p-7 shadow-sm" data-testid="air-gapped-audience">
-            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-900 text-white">
-              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons[audience.key] %>" />
-              </svg>
+          <li class="ag-card group relative isolate overflow-hidden rounded-2xl bg-white p-8 shadow-sm ring-1 ring-gray-200" data-testid="air-gapped-audience">
+            <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-500/70 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" aria-hidden="true"></div>
+            <% drawIcon(icons[audience.key], 'pointer-events-none absolute -bottom-12 -right-12 -z-10 h-40 w-40 text-gray-100/80 transition-colors duration-300 group-hover:text-emerald-50', 1); %>
+            <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-gray-950 text-white shadow-sm">
+              <% drawIcon(icons[audience.key], 'h-5 w-5'); %>
             </span>
-            <h3 class="mt-5 text-lg font-semibold text-gray-900"><%= audience.title %></h3>
+            <h3 class="mt-6 text-lg font-semibold text-gray-950"><%= audience.title %></h3>
             <p class="mt-2 text-sm leading-6 text-gray-600"><%= audience.description %></p>
           </li>
           <% }); -%>
@@ -345,32 +439,28 @@
     </section>
 
     <!-- ================================================ WHAT RUNS INSIDE -->
-    <section id="inside" class="border-t border-gray-100 bg-gray-50 py-20 sm:py-28" aria-labelledby="inside-title">
+    <section id="inside" class="border-t border-gray-100 bg-gray-50 py-24 sm:py-32" aria-labelledby="inside-title">
       <div class="mx-auto max-w-7xl px-6 lg:px-8">
         <div class="max-w-3xl">
-          <p class="text-sm font-medium uppercase tracking-wide text-emerald-600">What runs inside</p>
-          <h2 id="inside-title" class="mt-3 text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Everything runs inside your network</h2>
-          <p class="mt-4 text-base leading-7 text-gray-600">
+          <p class="<%= eyebrowClass %>">What runs inside</p>
+          <h2 id="inside-title" class="<%= titleClass %>">Everything runs inside your network</h2>
+          <p class="<%= leadClass %>">
             No part of the core platform waits on the internet. All of this works on a network with no route out.
           </p>
         </div>
 
-        <ul role="list" class="mt-12 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+        <ul role="list" class="mt-14 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           <% content.capabilities.forEach(function (capability) { -%>
-          <li class="ag-card flex flex-col rounded-2xl border border-gray-200 bg-white p-7 shadow-sm" data-testid="air-gapped-capability">
-            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 ring-1 ring-inset ring-emerald-100">
-              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons[capability.key] %>" />
-              </svg>
+          <li class="ag-card flex flex-col rounded-2xl bg-white p-7 shadow-sm ring-1 ring-gray-200/80" data-testid="air-gapped-capability">
+            <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-b from-emerald-50 to-white text-emerald-600 shadow-sm ring-1 ring-inset ring-emerald-100">
+              <% drawIcon(icons[capability.key], 'h-5 w-5'); %>
             </span>
-            <h3 class="mt-5 text-lg font-semibold text-gray-900"><%= capability.title %></h3>
+            <h3 class="mt-6 text-lg font-semibold text-gray-950"><%= capability.title %></h3>
             <p class="mt-2 flex-1 text-sm leading-6 text-gray-600"><%= capability.description %></p>
             <% if (capability.link) { -%>
-            <a href="<%= capability.link.href %>" class="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-gray-900 hover:text-gray-600">
+            <a href="<%= capability.link.href %>" class="group mt-6 inline-flex items-center gap-1.5 self-start rounded text-sm font-semibold text-gray-950 hover:text-emerald-700 <%= linkFocus %>">
               <%= capability.link.label %>
-              <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons.arrowRight %>"></path>
-              </svg>
+              <% drawIcon(icons.arrowRight, 'h-3.5 w-3.5 transition-transform motion-safe:group-hover:translate-x-0.5', 2); %>
             </a>
             <% } -%>
           </li>
@@ -380,27 +470,28 @@
     </section>
 
     <!-- ====================================================== BY PRODUCT -->
-    <section id="by-product" class="bg-white py-20 sm:py-28" aria-labelledby="by-product-title">
+    <section id="by-product" class="bg-white py-24 sm:py-32" aria-labelledby="by-product-title">
       <div class="mx-auto max-w-7xl px-6 lg:px-8">
         <div class="max-w-3xl">
-          <p class="text-sm font-medium uppercase tracking-wide text-emerald-600">By product</p>
-          <h2 id="by-product-title" class="mt-3 text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Air-gapped, product by product</h2>
-          <p class="mt-4 text-base leading-7 text-gray-600">
+          <p class="<%= eyebrowClass %>">By product</p>
+          <h2 id="by-product-title" class="<%= titleClass %>">Air-gapped, product by product</h2>
+          <p class="<%= leadClass %>">
             What each product does behind the gap: what runs inside, what changes, and what to configure.
           </p>
         </div>
 
-        <ul role="list" class="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <ul role="list" class="mt-14 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <% content.topics.forEach(function (topic) { -%>
           <li data-testid="air-gapped-topic-card">
-            <a href="<%= topic.path %>" class="ag-card flex h-full flex-col rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-              <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-900 text-white">
-                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="<%= topic.iconPath %>" />
-                </svg>
+            <a href="<%= topic.path %>" class="ag-card group relative flex h-full items-start gap-4 rounded-2xl bg-white p-5 pr-11 shadow-sm ring-1 ring-gray-200 hover:ring-gray-300 <%= linkFocus %>">
+              <span class="flex h-10 w-10 flex-none items-center justify-center rounded-xl bg-gray-950 text-white transition-colors duration-300 group-hover:bg-emerald-600">
+                <% drawIcon(topic.iconPath, 'h-5 w-5'); %>
               </span>
-              <span class="mt-4 text-base font-semibold text-gray-900"><%= topic.title %></span>
-              <span class="mt-1.5 flex-1 text-sm leading-6 text-gray-600"><%= topic.summary %></span>
+              <span class="min-w-0">
+                <span class="block text-base font-semibold text-gray-950"><%= topic.title %></span>
+                <span class="mt-1 block text-sm leading-6 text-gray-600"><%= topic.summary %></span>
+              </span>
+              <% drawIcon(icons.arrowRight, 'absolute right-5 top-6 h-4 w-4 text-gray-300 transition duration-300 group-hover:text-gray-950 motion-safe:group-hover:translate-x-0.5', 2); %>
             </a>
           </li>
           <% }); -%>
@@ -409,44 +500,54 @@
     </section>
 
     <!-- ========================================================== SET UP -->
-    <section id="set-up" class="border-t border-gray-100 bg-white py-20 sm:py-28" aria-labelledby="set-up-title">
+    <section id="set-up" class="border-t border-gray-100 bg-gray-50 py-24 sm:py-32" aria-labelledby="set-up-title">
       <div class="mx-auto max-w-7xl px-6 lg:px-8">
         <div class="max-w-3xl">
-          <p class="text-sm font-medium uppercase tracking-wide text-emerald-600">Set up</p>
-          <h2 id="set-up-title" class="mt-3 text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Four steps to an air-gapped install</h2>
-          <p class="mt-4 text-base leading-7 text-gray-600">
+          <p class="<%= eyebrowClass %>">Set up</p>
+          <h2 id="set-up-title" class="<%= titleClass %>">Four steps to an air-gapped install</h2>
+          <p class="<%= leadClass %>">
             It is the same Helm chart every self-hosted install runs. There is no special air-gapped build to procure.
           </p>
         </div>
 
-        <div class="mt-12 grid grid-cols-1 gap-10 lg:grid-cols-2 lg:gap-14">
-          <ol role="list" class="space-y-8">
-            <% content.steps.forEach(function (step, stepIndex) { -%>
-            <li class="flex gap-4" data-testid="air-gapped-step" id="step-<%= step.key %>">
-              <span class="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-gray-900 text-sm font-semibold text-white" aria-hidden="true"><%= stepIndex + 1 %></span>
-              <div class="min-w-0">
-                <h3 class="text-base font-semibold leading-8 text-gray-900"><%= step.title %></h3>
-                <p class="mt-1 text-sm leading-6 text-gray-600"><% drawText(step.description, inlineCode); %></p>
+        <div class="mt-14 grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-16">
+          <%#
+            The steps, joined by a line from one number to the next. The line
+            is a div, so each step's first span is still its number.
+          -%>
+          <ol role="list" class="lg:col-span-7">
+            <% content.steps.forEach(function (step, stepIndex) { const isLast = stepIndex === content.steps.length - 1; -%>
+            <li class="relative flex gap-4 pb-12 last:pb-0 sm:gap-5" data-testid="air-gapped-step" id="step-<%= step.key %>">
+              <% if (!isLast) { -%>
+              <div class="absolute bottom-0 left-[1.125rem] top-11 w-px bg-gradient-to-b from-gray-300 via-gray-200 to-gray-200" aria-hidden="true"></div>
+              <% } -%>
+              <span class="relative flex h-9 w-9 flex-none items-center justify-center rounded-full bg-gray-950 text-sm font-semibold text-white shadow-sm ring-4 ring-gray-50" aria-hidden="true"><%= stepIndex + 1 %></span>
+              <div class="min-w-0 flex-1 pt-1">
+                <h3 class="text-lg font-semibold leading-7 text-gray-950"><%= step.title %></h3>
+                <p class="mt-2 text-sm leading-6 text-gray-600"><% drawText(step.description, inlineCodeOnGray); %></p>
                 <% if (step.settings.length > 0 || step.link) { -%>
-                <div class="mt-3 flex flex-wrap items-center gap-2" data-testid="air-gapped-step-settings">
+                <div class="mt-4 flex flex-wrap items-center gap-2" data-testid="air-gapped-step-settings">
                   <% step.settings.forEach(function (setting) { -%>
                   <%# A long setting breaks inside itself rather than run off a narrow phone. -%>
-                  <code class="ag-code max-w-full rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-800 [overflow-wrap:anywhere]"><%= setting %></code>
+                  <code class="ag-code max-w-full rounded-md bg-white px-1.5 py-1 text-xs text-gray-800 shadow-sm ring-1 ring-inset ring-gray-200 [overflow-wrap:anywhere] sm:px-2"><%= setting %></code>
                   <% }); -%>
-                  <% if (step.link) { -%>
-                  <a href="<%= step.link.href %>"<% if (step.link.href.indexOf('https://') === 0) { %> target="_blank" rel="noopener noreferrer"<% } %> class="inline-flex items-center gap-1 text-xs font-medium text-gray-700 underline underline-offset-2 hover:text-gray-900"><%= step.link.label %><% if (step.link.href.indexOf('https://') === 0) { %><span class="sr-only"> (opens in a new tab)</span><% } %></a>
+                  <% if (step.link) { const external = step.link.href.indexOf('https://') === 0; -%>
+                  <a href="<%= step.link.href %>"<% if (external) { %> target="_blank" rel="noopener noreferrer"<% } %> class="group inline-flex items-center gap-1 rounded text-xs font-semibold text-gray-950 hover:text-emerald-700 <%= linkFocus %>"><%= step.link.label %><% if (external) { %><span class="sr-only"> (opens in a new tab)</span><% drawIcon(icons.arrowUpRight, 'h-3 w-3', 2); %><% } else { %><% drawIcon(icons.arrowRight, 'h-3 w-3 transition-transform motion-safe:group-hover:translate-x-0.5', 2); %><% } %></a>
                   <% } -%>
                 </div>
                 <% } -%>
                 <% if (step.key === 'bring-in-chart') { -%>
-                <div class="mt-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5" data-testid="air-gapped-signing-key">
-                  <p class="text-xs font-medium text-gray-500">Signing key fingerprint</p>
-                  <p class="ag-code mt-1 text-xs leading-5 text-gray-800">
+                <div class="mt-4 max-w-md rounded-xl bg-white px-4 py-3 shadow-sm ring-1 ring-inset ring-gray-200" data-testid="air-gapped-signing-key">
+                  <p class="flex items-center gap-1.5 text-xs font-medium text-gray-500">
+                    <% drawIcon(icons.keys, 'h-3.5 w-3.5 text-emerald-600'); %>
+                    Signing key fingerprint
+                  </p>
+                  <p class="ag-code mt-1.5 text-[13px] leading-6 text-gray-900">
                     <% content.signingKey.fingerprintHalves.forEach(function (half) { -%>
-                    <span class="mr-2 inline-block whitespace-nowrap"><%= half %></span>
+                    <span class="mr-3 inline-block whitespace-nowrap"><%= half %></span>
                     <% }); -%>
                   </p>
-                  <a href="<%= content.signingKey.url %>" target="_blank" rel="noopener noreferrer" class="mt-1 inline-block whitespace-nowrap text-xs font-medium text-gray-700 underline underline-offset-2 hover:text-gray-900">OneUptime's public key<span class="sr-only"> (opens in a new tab)</span></a>
+                  <a href="<%= content.signingKey.url %>" target="_blank" rel="noopener noreferrer" class="mt-1 inline-flex items-center gap-1 whitespace-nowrap rounded text-xs font-semibold text-gray-950 hover:text-emerald-700 <%= linkFocus %>">OneUptime's public key<span class="sr-only"> (opens in a new tab)</span><% drawIcon(icons.arrowUpRight, 'h-3 w-3', 2); %></a>
                 </div>
                 <% } -%>
               </div>
@@ -454,45 +555,44 @@
             <% }); -%>
           </ol>
 
-          <div class="lg:sticky lg:top-24 lg:self-start">
-            <div class="overflow-hidden rounded-2xl bg-gray-900 shadow-xl ring-1 ring-gray-900/10" data-testid="air-gapped-values">
-              <div class="border-b border-white/10 px-5 py-3">
-                <span class="ag-code text-xs font-medium text-gray-300">values.yaml</span>
+          <div class="lg:col-span-5">
+            <div class="lg:sticky lg:top-20">
+              <div class="overflow-hidden rounded-2xl bg-gray-950 shadow-2xl shadow-gray-950/20 ring-1 ring-gray-950/10" data-testid="air-gapped-values">
+                <div class="flex items-center gap-3 border-b border-white/10 bg-white/[0.03] px-4 py-3">
+                  <% drawWindowDots(); %>
+                  <span class="ag-code text-xs font-medium text-gray-300">values.yaml</span>
+                </div>
+                <div class="ag-scroll px-5 py-5" tabindex="0" role="region" aria-label="values.yaml for an air-gapped install">
+                  <pre class="ag-code text-[13px] leading-6 text-gray-200"><code><% drawSettingLines(content.valuesYaml, ': '); %></code></pre>
+                </div>
               </div>
-              <div class="ag-scroll px-5 py-5" tabindex="0" role="region" aria-label="values.yaml for an air-gapped install">
-                <pre class="ag-code text-[13px] leading-6 text-gray-200"><code><% drawSettingLines(content.valuesYaml, ': '); %></code></pre>
-              </div>
+              <p class="mt-4 text-xs leading-5 text-gray-500"><%= content.valuesCaption %></p>
             </div>
-            <p class="mt-3 text-xs leading-5 text-gray-500"><%= content.valuesCaption %></p>
           </div>
         </div>
 
-        <div class="mt-12 flex flex-col gap-4 rounded-2xl border border-gray-200 bg-gray-50 p-6 sm:flex-row sm:items-center sm:justify-between" data-testid="air-gapped-upgrades">
+        <div class="mt-16 flex flex-col gap-4 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 sm:flex-row sm:items-center sm:justify-between" data-testid="air-gapped-upgrades">
           <div class="flex gap-4">
-            <span class="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-white text-gray-700 ring-1 ring-inset ring-gray-200">
-              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons.upgrade %>" />
-              </svg>
+            <span class="flex h-10 w-10 flex-none items-center justify-center rounded-xl bg-gradient-to-b from-emerald-50 to-white text-emerald-600 shadow-sm ring-1 ring-inset ring-emerald-100">
+              <% drawIcon(icons.upgrade, 'h-5 w-5'); %>
             </span>
-            <p class="max-w-3xl text-sm leading-6 text-gray-600"><% drawText(content.upgradeNote, inlineCodeOnGray); %></p>
+            <p class="max-w-3xl text-sm leading-6 text-gray-600"><% drawText(content.upgradeNote, inlineCode); %></p>
           </div>
-          <a href="<%= content.docs.upgrading %>" class="inline-flex flex-none items-center gap-1.5 text-sm font-medium text-gray-900 hover:text-gray-600 max-sm:ml-[3.25rem] sm:ml-6">
+          <a href="<%= content.docs.upgrading %>" class="group inline-flex flex-none items-center gap-1.5 rounded text-sm font-semibold text-gray-950 hover:text-emerald-700 max-sm:ml-14 sm:ml-6 <%= linkFocus %>">
             Upgrading
-            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons.arrowRight %>"></path>
-            </svg>
+            <% drawIcon(icons.arrowRight, 'h-3.5 w-3.5 transition-transform motion-safe:group-hover:translate-x-0.5', 2); %>
           </a>
         </div>
       </div>
     </section>
 
     <!-- ================================================ CONNECTIONS OUT -->
-    <section id="connections-out" class="border-t border-gray-100 bg-gray-50 py-20 sm:py-28" aria-labelledby="connections-out-title">
+    <section id="connections-out" class="bg-white py-24 sm:py-32" aria-labelledby="connections-out-title">
       <div class="mx-auto max-w-7xl px-6 lg:px-8">
         <div class="max-w-3xl">
-          <p class="text-sm font-medium uppercase tracking-wide text-emerald-600">Connections out</p>
-          <h2 id="connections-out-title" class="mt-3 text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">What reaches out, and what to use instead</h2>
-          <p class="mt-4 text-base leading-7 text-gray-600">
+          <p class="<%= eyebrowClass %>">Connections out</p>
+          <h2 id="connections-out-title" class="<%= titleClass %>">What reaches out, and what to use instead</h2>
+          <p class="<%= leadClass %>">
             Four things reach out on their own unless you change a setting. Everything else, from SMS to Slack to a
             hosted AI model, reaches out only once you set it up.
           </p>
@@ -505,15 +605,15 @@
           named inline.
         -%>
         <% [
-          { key: 'on-by-default', title: 'On by default', dot: 'bg-amber-500', onByDefault: true },
-          { key: 'once-set-up', title: 'Only once you set them up', dot: 'bg-gray-400', onByDefault: false }
+          { key: 'on-by-default', title: 'On by default', dot: 'bg-amber-500', halo: 'ring-amber-500/20', onByDefault: true },
+          { key: 'once-set-up', title: 'Only once you set them up', dot: 'bg-gray-400', halo: 'ring-gray-400/20', onByDefault: false }
         ].forEach(function (group) { -%>
-        <div class="<%= group.onByDefault ? 'mt-12' : 'mt-10' %>" data-testid="air-gapped-connections-<%= group.key %>">
-          <h3 id="connections-<%= group.key %>-title" class="flex items-center gap-2.5 text-base font-semibold text-gray-900">
-            <span class="h-2 w-2 flex-none rounded-full <%= group.dot %>" aria-hidden="true"></span>
+        <div class="<%= group.onByDefault ? 'mt-14' : 'mt-12' %>" data-testid="air-gapped-connections-<%= group.key %>">
+          <h3 id="connections-<%= group.key %>-title" class="flex items-center gap-3 text-base font-semibold text-gray-950">
+            <span class="h-2 w-2 flex-none rounded-full ring-4 <%= group.dot %> <%= group.halo %>" aria-hidden="true"></span>
             <%= group.title %>
           </h3>
-          <div class="mt-4 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+          <div class="mt-4 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-200">
             <div class="max-md:hidden md:grid md:grid-cols-12 md:gap-6 border-b border-gray-200 bg-gray-50 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500" aria-hidden="true" data-testid="air-gapped-connections-columns">
               <span class="md:col-span-3">Connection</span>
               <span class="md:col-span-4">When</span>
@@ -521,15 +621,15 @@
             </div>
             <ul role="list" aria-labelledby="connections-<%= group.key %>-title" class="divide-y divide-gray-100">
               <% content.connections.filter(function (connection) { return connection.onByDefault === group.onByDefault; }).forEach(function (connection) { -%>
-              <li class="px-6 py-5 md:grid md:grid-cols-12 md:gap-6" data-testid="air-gapped-connection" id="connection-<%= connection.key %>">
+              <li class="px-6 py-5 transition-colors hover:bg-gray-50/60 md:grid md:grid-cols-12 md:gap-6" data-testid="air-gapped-connection" id="connection-<%= connection.key %>">
                 <div class="md:col-span-3">
-                  <h4 class="text-sm font-semibold text-gray-900"><%= connection.name %></h4>
+                  <h4 class="text-sm font-semibold text-gray-950"><%= connection.name %></h4>
                   <p class="mt-1 text-xs leading-5 text-gray-500"><% drawText(connection.destination, 'ag-code whitespace-nowrap text-gray-600'); %></p>
                 </div>
                 <p class="mt-3 text-sm leading-6 text-gray-600 md:col-span-4 md:mt-0">
-                  <span class="font-medium text-gray-900 md:hidden">When: </span><% drawText(connection.when, inlineCode); %>
+                  <span class="font-medium text-gray-950 md:hidden">When: </span><% drawText(connection.when, inlineCode); %>
                 </p>
-                <p class="mt-2 text-sm leading-6 text-gray-900 md:col-span-5 md:mt-0">
+                <p class="mt-2 text-sm leading-6 text-gray-950 md:col-span-5 md:mt-0">
                   <span class="font-medium md:hidden">Inside an air gap: </span><% drawText(connection.inside, inlineCode); %>
                 </p>
               </li>
@@ -539,57 +639,62 @@
         </div>
         <% }); -%>
 
-        <p class="mt-6 max-w-3xl text-sm leading-6 text-gray-500" data-testid="air-gapped-connections-more">
+        <p class="mt-8 max-w-3xl text-sm leading-6 text-gray-500" data-testid="air-gapped-connections-more">
           The docs name the exact addresses each integration needs, in
-          <a href="<%= content.docs.connectionsOut %>" class="font-medium text-gray-700 underline underline-offset-2 hover:text-gray-900">connections out of your network</a>,
+          <a href="<%= content.docs.connectionsOut %>" class="font-medium text-gray-700 underline underline-offset-2 hover:text-gray-950">connections out of your network</a>,
           and every setting that lets OneUptime reach private addresses, in
-          <a href="<%= content.docs.privateNetworkAccess %>" class="font-medium text-gray-700 underline underline-offset-2 hover:text-gray-900">private network access</a>.
+          <a href="<%= content.docs.privateNetworkAccess %>" class="font-medium text-gray-700 underline underline-offset-2 hover:text-gray-950">private network access</a>.
         </p>
       </div>
     </section>
 
     <!-- ============================================================== AI -->
-    <section id="ai" class="relative isolate overflow-hidden bg-gray-900 py-20 sm:py-28" aria-labelledby="ai-title">
+    <section id="ai" class="relative isolate overflow-hidden bg-gray-950 py-24 sm:py-32" aria-labelledby="ai-title">
+      <div class="absolute inset-0 -z-10 bg-[radial-gradient(45%_60%_at_85%_30%,rgba(16,185,129,0.14),transparent_70%)]" aria-hidden="true"></div>
+      <div class="absolute inset-0 -z-10 bg-[linear-gradient(to_right,rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:3.5rem_3.5rem] [mask-image:radial-gradient(ellipse_60%_70%_at_85%_30%,#000_20%,transparent_100%)]" aria-hidden="true"></div>
+
       <div class="mx-auto max-w-7xl px-6 lg:px-8">
-        <div class="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:items-start lg:gap-16">
+        <div class="grid grid-cols-1 gap-14 lg:grid-cols-2 lg:items-start lg:gap-16">
           <div>
-            <p class="text-sm font-medium uppercase tracking-wide text-emerald-400">AI without the internet</p>
-            <h2 id="ai-title" class="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl">OneUptime AI, on a model you run</h2>
-            <p class="mt-4 text-base leading-7 text-gray-400">
+            <p class="text-sm font-semibold text-emerald-400">AI without the internet</p>
+            <h2 id="ai-title" class="mt-3 text-balance text-3xl font-semibold tracking-tight text-white sm:text-4xl">OneUptime AI, on a model you run</h2>
+            <p class="mt-4 text-pretty text-base leading-7 text-gray-400 sm:text-lg sm:leading-8">
               Investigations, Ask AI and drafts work with a model on your network, so no prompt leaves it.
             </p>
 
-            <ul role="list" class="mt-8 space-y-4">
+            <ul role="list" class="mt-10 space-y-3">
               <% content.ai.options.forEach(function (option) { -%>
-              <li class="flex gap-3.5 rounded-xl border border-white/10 bg-white/[0.03] p-4" data-testid="air-gapped-ai-option">
-                <svg class="mt-0.5 h-5 w-5 flex-none text-emerald-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons.check %>" />
-                </svg>
-                <span>
+              <li class="flex gap-4 rounded-2xl bg-white/[0.03] p-5 ring-1 ring-inset ring-white/10 transition-colors hover:bg-white/[0.05]" data-testid="air-gapped-ai-option">
+                <span class="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-emerald-400/10 text-emerald-400 ring-1 ring-inset ring-emerald-400/20">
+                  <% drawIcon(icons[option.key] || icons.check, 'h-5 w-5'); %>
+                </span>
+                <span class="min-w-0">
                   <span class="block text-sm font-semibold text-white"><%= option.title %></span>
-                  <span class="mt-0.5 block text-sm leading-6 text-gray-400"><%= option.description %></span>
+                  <span class="mt-1 block text-sm leading-6 text-gray-400"><%= option.description %></span>
                 </span>
               </li>
               <% }); -%>
             </ul>
           </div>
 
-          <div>
-            <div class="overflow-hidden rounded-2xl border border-white/10 bg-black/40">
-              <div class="border-b border-white/10 px-5 py-3">
+          <div class="lg:pt-24">
+            <div class="overflow-hidden rounded-2xl bg-black/40 shadow-2xl ring-1 ring-white/10">
+              <div class="flex items-center gap-3 border-b border-white/10 bg-white/[0.03] px-4 py-3">
+                <% drawWindowDots(); %>
                 <span class="text-xs font-medium text-gray-300">A global provider for every project</span>
               </div>
               <div class="ag-scroll px-5 py-5" tabindex="0" role="region" aria-label="Global LLM provider settings for Ollama">
                 <pre class="ag-code text-[13px] leading-6 text-gray-200"><code><% drawSettingLines(content.ai.envExample, '='); %></code></pre>
               </div>
             </div>
-            <p class="mt-4 text-sm leading-6 text-gray-400" data-testid="air-gapped-ai-setup"><% drawText(content.ai.setup, inlineCodeOnDark); %></p>
-            <p class="mt-3 text-sm leading-6 text-gray-400"><%= content.ai.safety %></p>
-            <a href="<%= content.docs.llmProviders %>" class="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-white hover:text-gray-300">
+            <p class="mt-6 text-sm leading-6 text-gray-400" data-testid="air-gapped-ai-setup"><% drawText(content.ai.setup, inlineCodeOnDark); %></p>
+            <p class="mt-4 flex gap-3 rounded-xl bg-emerald-400/[0.06] p-4 text-sm leading-6 text-gray-300 ring-1 ring-inset ring-emerald-400/15">
+              <% drawIcon(icons['regulated-industries'], 'mt-0.5 h-5 w-5 flex-none text-emerald-400'); %>
+              <span><%= content.ai.safety %></span>
+            </p>
+            <a href="<%= content.docs.llmProviders %>" class="group mt-6 inline-flex items-center gap-1.5 rounded text-sm font-semibold text-white hover:text-emerald-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
               LLM providers
-              <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons.arrowRight %>"></path>
-              </svg>
+              <% drawIcon(icons.arrowRight, 'h-3.5 w-3.5 transition-transform motion-safe:group-hover:translate-x-0.5', 2); %>
             </a>
           </div>
         </div>
@@ -597,26 +702,25 @@
     </section>
 
     <!-- ====================================================== COMPLIANCE -->
-    <section id="compliance" class="bg-white py-20 sm:py-28" aria-labelledby="compliance-title">
+    <section id="compliance" class="bg-white py-24 sm:py-32" aria-labelledby="compliance-title">
       <div class="mx-auto max-w-7xl px-6 lg:px-8">
         <div class="max-w-3xl">
-          <p class="text-sm font-medium uppercase tracking-wide text-emerald-600">Compliance and data residency</p>
-          <h2 id="compliance-title" class="mt-3 text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Your data, inside your boundary</h2>
-          <p class="mt-4 text-base leading-7 text-gray-600">
+          <p class="<%= eyebrowClass %>">Compliance and data residency</p>
+          <h2 id="compliance-title" class="<%= titleClass %>">Your data, inside your boundary</h2>
+          <p class="<%= leadClass %>">
             On an air-gapped install, every record stays where you put it, and you decide who certifies it.
           </p>
         </div>
 
-        <ul role="list" class="mt-12 grid grid-cols-1 gap-5 md:grid-cols-2">
+        <%# One panel in four parts, its hairlines drawn by the gaps between them. -%>
+        <ul role="list" class="mt-14 grid grid-cols-1 gap-px overflow-hidden rounded-3xl bg-gray-200 shadow-sm ring-1 ring-gray-200 md:grid-cols-2">
           <% content.compliance.forEach(function (point) { -%>
-          <li class="flex gap-5 rounded-2xl border border-gray-200 bg-white p-7 shadow-sm" data-testid="air-gapped-compliance">
-            <span class="flex h-10 w-10 flex-none items-center justify-center rounded-xl bg-gray-100 text-gray-700">
-              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons[point.key] %>" />
-              </svg>
+          <li class="flex gap-5 bg-white p-8 sm:p-10" data-testid="air-gapped-compliance">
+            <span class="flex h-11 w-11 flex-none items-center justify-center rounded-xl bg-gray-950 text-emerald-400 shadow-sm">
+              <% drawIcon(icons[point.key], 'h-5 w-5'); %>
             </span>
             <div class="min-w-0">
-              <h3 class="text-base font-semibold text-gray-900"><%= point.title %></h3>
+              <h3 class="text-lg font-semibold text-gray-950"><%= point.title %></h3>
               <p class="mt-2 text-sm leading-6 text-gray-600"><%= point.description %></p>
             </div>
           </li>
@@ -625,9 +729,9 @@
 
         <p class="mt-8 max-w-3xl text-sm leading-6 text-gray-500">
           Every compliance statement on this page is governed by our
-          <a href="/trust#claims" class="font-medium text-gray-700 underline underline-offset-2 hover:text-gray-900">claims matrix</a>,
+          <a href="/trust#claims" class="font-medium text-gray-700 underline underline-offset-2 hover:text-gray-950">claims matrix</a>,
           which links each one to the document that makes it true. For the rest of self-hosting, from sizing to support,
-          see <a href="/enterprise/self-hosted" class="font-medium text-gray-700 underline underline-offset-2 hover:text-gray-900">Self-Hosted</a>.
+          see <a href="/enterprise/self-hosted" class="font-medium text-gray-700 underline underline-offset-2 hover:text-gray-950">Self-Hosted</a>.
         </p>
       </div>
     </section>
@@ -636,90 +740,104 @@
     <%#
       What a security reviewer checks before anything crosses, and the
       documents an assessor asks for: each card links the docs page that shows
-      how (Utils/AirGapped.ts, AirGappedEvidenceItems), beside the command that
-      verifies an image's signature.
+      how (Utils/AirGapped.ts, AirGappedEvidenceItems), under the command that
+      verifies an image's signature, drawn the full width so its long lines
+      fit.
     -%>
-    <section id="evidence" class="border-t border-gray-100 bg-gray-50 py-20 sm:py-28" aria-labelledby="evidence-title">
+    <section id="evidence" class="border-t border-gray-100 bg-gray-50 py-24 sm:py-32" aria-labelledby="evidence-title">
       <div class="mx-auto max-w-7xl px-6 lg:px-8">
-        <div class="lg:grid lg:grid-cols-12 lg:gap-12">
-          <div class="lg:col-span-5">
-            <p class="text-sm font-medium uppercase tracking-wide text-emerald-600">Evidence</p>
-            <h2 id="evidence-title" class="mt-3 text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Everything your security review asks for</h2>
-            <p class="mt-4 text-base leading-7 text-gray-600">
-              Check every image and the chart before they cross, and hand your assessor the documents that map OneUptime
-              to their controls.
-            </p>
-            <div class="mt-8 overflow-hidden rounded-2xl bg-gray-900 shadow-xl ring-1 ring-gray-900/10" data-testid="air-gapped-verify">
-              <div class="border-b border-white/10 px-5 py-3">
-                <span class="ag-code text-xs font-medium text-gray-300">Verify an image before it crosses</span>
-              </div>
-              <div class="ag-scroll px-5 py-5" tabindex="0" role="region" aria-label="cosign verify command for an image">
-                <pre class="ag-code text-[13px] leading-6 text-gray-200"><code><%= content.evidence.verifyCommand %></code></pre>
-              </div>
-            </div>
-          </div>
-
-          <ul role="list" class="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:col-span-7 lg:mt-0">
-            <% content.evidence.items.forEach(function (item) { -%>
-            <li class="ag-card flex flex-col rounded-2xl border border-gray-200 bg-white p-7 shadow-sm" data-testid="air-gapped-evidence">
-              <span class="flex h-10 w-10 flex-none items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
-                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons[item.key] %>" />
-                </svg>
-              </span>
-              <h3 class="mt-5 text-base font-semibold text-gray-900"><%= item.title %></h3>
-              <p class="mt-2 flex-1 text-sm leading-6 text-gray-600"><% drawText(item.description, inlineCode); %></p>
-              <a href="<%= item.link.href %>" class="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-gray-900 hover:text-gray-600">
-                <%= item.link.label %>
-                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons.arrowRight %>"></path>
-                </svg>
-              </a>
-            </li>
-            <% }); -%>
-          </ul>
+        <div class="max-w-3xl">
+          <p class="<%= eyebrowClass %>">Evidence</p>
+          <h2 id="evidence-title" class="<%= titleClass %>">Everything your security review asks for</h2>
+          <p class="<%= leadClass %>">
+            Check every image and the chart before they cross, and hand your assessor the documents that map OneUptime
+            to their controls.
+          </p>
         </div>
+
+        <div class="mt-14 overflow-hidden rounded-2xl bg-gray-950 shadow-2xl shadow-gray-950/20 ring-1 ring-gray-950/10" data-testid="air-gapped-verify">
+          <div class="flex items-center gap-3 border-b border-white/10 bg-white/[0.03] px-4 py-3">
+            <% drawWindowDots(); %>
+            <span class="text-xs font-medium text-gray-300">Verify an image before it crosses</span>
+          </div>
+          <div class="ag-scroll px-5 py-5 sm:px-6" tabindex="0" role="region" aria-label="cosign verify command for an image">
+            <pre class="ag-code text-[13px] leading-6 text-gray-200"><code><%= content.evidence.verifyCommand %></code></pre>
+          </div>
+        </div>
+
+        <ul role="list" class="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <% content.evidence.items.forEach(function (item) { -%>
+          <li class="ag-card flex flex-col rounded-2xl bg-white p-7 shadow-sm ring-1 ring-gray-200/80" data-testid="air-gapped-evidence">
+            <span class="flex h-11 w-11 flex-none items-center justify-center rounded-xl bg-gradient-to-b from-emerald-50 to-white text-emerald-600 shadow-sm ring-1 ring-inset ring-emerald-100">
+              <% drawIcon(icons[item.key], 'h-5 w-5'); %>
+            </span>
+            <h3 class="mt-6 text-lg font-semibold text-gray-950"><%= item.title %></h3>
+            <p class="mt-2 flex-1 text-sm leading-6 text-gray-600"><% drawText(item.description, inlineCode); %></p>
+            <a href="<%= item.link.href %>" class="group mt-6 inline-flex items-center gap-1.5 self-start rounded text-sm font-semibold text-gray-950 hover:text-emerald-700 <%= linkFocus %>">
+              <%= item.link.label %>
+              <% drawIcon(icons.arrowRight, 'h-3.5 w-3.5 transition-transform motion-safe:group-hover:translate-x-0.5', 2); %>
+            </a>
+          </li>
+          <% }); -%>
+        </ul>
       </div>
     </section>
 
     <!-- ============================================================= FAQ -->
-    <section id="faq" class="border-t border-gray-100 bg-white py-20 sm:py-28" aria-labelledby="faq-title">
-      <div class="mx-auto max-w-4xl px-6 lg:px-8">
-        <h2 id="faq-title" class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Questions buyers ask</h2>
+    <section id="faq" class="bg-white py-24 sm:py-32" aria-labelledby="faq-title">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-16">
+          <div class="lg:col-span-4">
+            <div class="lg:sticky lg:top-24">
+              <p class="<%= eyebrowClass %>">FAQ</p>
+              <h2 id="faq-title" class="<%= titleClass %>">Questions buyers ask</h2>
+              <div class="mt-8 rounded-2xl bg-gray-50 p-6 ring-1 ring-inset ring-gray-200">
+                <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-gray-700 shadow-sm ring-1 ring-inset ring-gray-200">
+                  <% drawIcon(icons.question, 'h-5 w-5'); %>
+                </span>
+                <p class="mt-4 text-sm leading-6 text-gray-600">
+                  Another question? Bring it to your install plan, with the engineers who build the platform.
+                </p>
+                <a href="#plan-your-install" data-ou-cta="cta_request_demo" class="group mt-4 inline-flex items-center gap-1.5 rounded text-sm font-semibold text-gray-950 hover:text-emerald-700 <%= linkFocus %>">
+                  Plan your install
+                  <% drawIcon(icons.arrowRight, 'h-3.5 w-3.5 transition-transform motion-safe:group-hover:translate-x-0.5', 2); %>
+                </a>
+              </div>
+            </div>
+          </div>
 
-        <div class="mt-12 divide-y divide-gray-100 border-y border-gray-100">
-          <% content.faqs.forEach(function (faq) { -%>
-          <details class="group py-6" data-testid="air-gapped-faq">
-            <summary class="flex cursor-pointer list-none items-start justify-between gap-6">
-              <span class="text-base font-medium text-gray-900"><%= faq.question %></span>
-              <span
-                class="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500 transition-transform group-open:rotate-45" aria-hidden="true">
-                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"></path>
-                </svg>
-              </span>
-            </summary>
-            <p class="mt-4 text-sm leading-7 text-gray-600"><% drawText(faq.answer, inlineCode); %></p>
-          </details>
-          <% }); -%>
+          <div class="lg:col-span-8">
+            <div class="divide-y divide-gray-200 border-y border-gray-200">
+              <% content.faqs.forEach(function (faq) { -%>
+              <details class="group" data-testid="air-gapped-faq">
+                <summary class="flex cursor-pointer list-none items-start justify-between gap-6 rounded-lg py-6 text-gray-950 transition-colors hover:text-emerald-700 <%= linkFocus %>">
+                  <span class="text-base font-semibold"><%= faq.question %></span>
+                  <span class="mt-0.5 flex h-6 w-6 flex-none items-center justify-center rounded-full bg-gray-100 text-gray-500 transition duration-300 group-open:rotate-45 group-open:bg-gray-950 group-open:text-white" aria-hidden="true">
+                    <% drawIcon(icons.plus, 'h-3.5 w-3.5', 2); %>
+                  </span>
+                </summary>
+                <p class="-mt-2 pb-6 pr-12 text-sm leading-7 text-gray-600"><% drawText(faq.answer, inlineCode); %></p>
+              </details>
+              <% }); -%>
+            </div>
+          </div>
         </div>
       </div>
     </section>
 
     <!-- ================================================ PLAN YOUR INSTALL -->
-    <section id="plan-your-install" class="relative isolate overflow-hidden bg-gray-900 py-20 sm:py-28" aria-labelledby="plan-your-install-title">
-      <div
-        class="absolute inset-0 -z-10 bg-[linear-gradient(to_right,rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_70%_60%_at_50%_0%,#000_60%,transparent_110%)]">
-      </div>
+    <section id="plan-your-install" class="relative isolate overflow-hidden bg-gray-950 py-24 sm:py-32" aria-labelledby="plan-your-install-title">
+      <div class="absolute inset-0 -z-10 bg-[linear-gradient(to_right,rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:3.5rem_3.5rem] [mask-image:radial-gradient(ellipse_70%_60%_at_50%_0%,#000_50%,transparent_110%)]" aria-hidden="true"></div>
+      <div class="absolute inset-0 -z-10 bg-[radial-gradient(50%_45%_at_50%_0%,rgba(16,185,129,0.14),transparent_70%)]" aria-hidden="true"></div>
 
       <div class="mx-auto max-w-7xl px-6 lg:px-8">
         <div class="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:items-center lg:gap-16">
           <div>
-            <p class="text-sm font-medium uppercase tracking-wide text-emerald-400">Plan your install</p>
-            <h2 id="plan-your-install-title" class="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+            <p class="text-sm font-semibold text-emerald-400">Plan your install</p>
+            <h2 id="plan-your-install-title" class="mt-3 text-balance text-3xl font-semibold tracking-tight text-white sm:text-4xl">
               Bring us your network. Leave with an install plan.
             </h2>
-            <p class="mt-5 text-base leading-7 text-gray-400">
+            <p class="mt-5 text-pretty text-base leading-7 text-gray-400 sm:text-lg sm:leading-8">
               A working session with the engineers who build the platform, not a sales call. We go through what to
               mirror, which values to set, how licensing and upgrades work inside your gap, and where each
               responsibility sits.
@@ -728,17 +846,19 @@
             <p class="mt-8 text-sm leading-6 text-gray-400">
               Pick a time below, or write to
               <a href="mailto:<%= planCall.email %>"
-                class="font-medium text-gray-300 underline underline-offset-2 hover:text-white"><%= planCall.email %></a>
+                class="font-medium text-gray-200 underline underline-offset-2 hover:text-white"><%= planCall.email %></a>
               if you would rather start over email.
             </p>
           </div>
 
-          <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-7">
-            <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-400">What we cover</p>
-            <ul role="list" class="mt-5 space-y-4" data-testid="air-gapped-plan-topics">
+          <div class="rounded-2xl bg-white/[0.03] p-7 ring-1 ring-inset ring-white/10 sm:p-8">
+            <p class="text-xs font-semibold uppercase tracking-wider text-gray-400">What we cover</p>
+            <ul role="list" class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2" data-testid="air-gapped-plan-topics">
               <% planCall.topics.forEach(function (topic) { -%>
               <li class="flex gap-3">
-                <span class="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-emerald-400" aria-hidden="true"></span>
+                <span class="mt-0.5 flex h-5 w-5 flex-none items-center justify-center rounded-full bg-emerald-400/10 ring-1 ring-inset ring-emerald-400/30" aria-hidden="true">
+                  <% drawIcon(icons.check, 'h-3 w-3 text-emerald-400', 2.5); %>
+                </span>
                 <span class="text-sm leading-6 text-gray-300"><%= topic %></span>
               </li>
               <% }); -%>
@@ -754,7 +874,7 @@
           self-hosted.ejs and demo.ejs.
         -%>
         <div class="mt-16">
-          <div class="overflow-hidden rounded-2xl bg-white">
+          <div class="overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-white/10">
             <div class="h-[500px] w-full overflow-auto sm:h-[600px] lg:h-[680px]"
               id="my-cal-inline-air-gapped"></div>
           </div>
@@ -801,6 +921,86 @@
         calNamespace: detail.namespace
       });
     });
+  </script>
+
+  <script type="text/javascript">
+    /*
+     * The bar that follows the reader marks the section in view with
+     * aria-current="location" (drawn as a filled pill), and on a phone, where
+     * the bar scrolls sideways, brings that link into sight. Without
+     * JavaScript the bar is the same list of links, with no mark.
+     */
+    (function () {
+      var bar = document.querySelector('nav[aria-label="On this page"]');
+
+      if (!bar || !window.requestAnimationFrame) {
+        return;
+      }
+
+      var entries = Array.prototype.slice.call(bar.querySelectorAll('a[href^="#"]')).map(function (link) {
+        return { link: link, section: document.getElementById(link.getAttribute('href').slice(1)) };
+      }).filter(function (entry) {
+        return entry.section;
+      });
+      var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var current = null;
+      var scheduled = false;
+
+      var mark = function () {
+        scheduled = false;
+
+        /*
+         * A section is the reader's once its top has passed a line just under
+         * the bar where it sticks, at the top of the window - not where it
+         * sits before it sticks, below the hero, where the first section
+         * would count as read while the reader is still in the hero.
+         */
+        var line = bar.offsetHeight + 24;
+        var active = null;
+
+        entries.forEach(function (entry) {
+          var box = entry.section.getBoundingClientRect();
+
+          if (box.top <= line && box.bottom > line) {
+            active = entry;
+          }
+        });
+
+        if (active === current) {
+          return;
+        }
+
+        if (current) {
+          current.link.removeAttribute('aria-current');
+        }
+
+        current = active;
+
+        if (!current) {
+          return;
+        }
+
+        current.link.setAttribute('aria-current', 'location');
+
+        if (bar.scrollWidth > bar.clientWidth && typeof bar.scrollTo === 'function') {
+          bar.scrollTo({
+            left: Math.max(0, current.link.offsetLeft - (bar.clientWidth - current.link.offsetWidth) / 2),
+            behavior: reduceMotion ? 'auto' : 'smooth'
+          });
+        }
+      };
+
+      var schedule = function () {
+        if (!scheduled) {
+          scheduled = true;
+          window.requestAnimationFrame(mark);
+        }
+      };
+
+      window.addEventListener('scroll', schedule, { passive: true });
+      window.addEventListener('resize', schedule);
+      mark();
+    })();
   </script>
 </body>
 

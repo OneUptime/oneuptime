@@ -520,6 +520,8 @@
     "{{count}} ms",
     "{{count}} namespace",
     "{{count}} namespaces",
+    "{{count}} pipeline",
+    "{{count}} pipelines",
     "{{count}} placement group",
     "{{count}} placement groups",
     "{{count}} pod",

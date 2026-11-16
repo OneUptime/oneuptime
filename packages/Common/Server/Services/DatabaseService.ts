@@ -9957,6 +9957,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     carryForward: any;
     relationSelect: RelationSelect<TBaseModel> | null;
     fileReader: RelatedFileReader | null;
+    asker: DatabaseCommonInteractionProps;
   }> {
     findBy.props = await this.checkCallerBeforeHooks(
       findBy.props,
@@ -10046,6 +10047,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       carryForward: onFind.carryForward,
       relationSelect: result.relationSelect,
       fileReader: fileReader,
+      asker: asker,
     };
   }
 
@@ -10061,6 +10063,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         carryForward: any;
         relationSelect: RelationSelect<TBaseModel> | null;
         fileReader: RelatedFileReader | null;
+        asker: DatabaseCommonInteractionProps;
       } = await this.narrowRead(findBy);
 
       const onBeforeFind: FindBy<TBaseModel> = narrowed.findBy;
@@ -10127,6 +10130,21 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       }
 
       /*
+       * An order by a private incident's, alert's or episode's fields - or
+       * a part's - through a relation, only where no row this read matches
+       * names one the caller does not see, by who asked (#9102). See
+       * PrivateRecordReadFilter.checkRelationSortOfRows.
+       */
+      await PrivateRecordReadFilter.checkRelationSortOfRows({
+        modelType: this.modelType,
+        sort: onBeforeFind.sort,
+        where: onBeforeFind.query,
+        props: narrowed.asker,
+        repository: this.getRepository(),
+        withDeleted: withDeleted || false,
+      });
+
+      /*
        * repository.find, with a page of a joined read taken in one query
        * where one query gives the same page (PagedFind).
        */
@@ -10177,6 +10195,19 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         rows: decryptedItems,
         select: onBeforeFind.select,
         reader: fileReader,
+      });
+
+      /*
+       * A private incident, alert or episode, or a part of one, reached
+       * through a relation, only for someone who sees it - by who asked,
+       * as they asked; anyone else gets the row without it (#9102). See
+       * PrivateRecordReadFilter.keepSeenRelatedRecords.
+       */
+      await PrivateRecordReadFilter.keepSeenRelatedRecords({
+        modelType: this.modelType,
+        rows: decryptedItems,
+        select: onBeforeFind.select,
+        props: narrowed.asker,
       });
 
       for (const item of decryptedItems) {

@@ -327,7 +327,8 @@ export default class AutoRemediationSuggestion extends BaseModel {
     type: TableColumnType.Entity,
     modelType: Incident,
     title: "Incident",
-    description: "The incident this suggestion remediates.",
+    description:
+      "The incident this suggestion remediates. Deleting the incident deletes the suggestion.",
   })
   @ManyToOne(
     () => {
@@ -336,7 +337,7 @@ export default class AutoRemediationSuggestion extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "SET NULL",
+      onDelete: "CASCADE",
       orphanedRowAction: "nullify",
     },
   )
@@ -381,7 +382,8 @@ export default class AutoRemediationSuggestion extends BaseModel {
     type: TableColumnType.Entity,
     modelType: Alert,
     title: "Alert",
-    description: "The alert this suggestion remediates.",
+    description:
+      "The alert this suggestion remediates. Deleting the alert deletes the suggestion.",
   })
   @ManyToOne(
     () => {
@@ -390,7 +392,7 @@ export default class AutoRemediationSuggestion extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "SET NULL",
+      onDelete: "CASCADE",
       orphanedRowAction: "nullify",
     },
   )

@@ -39,6 +39,7 @@ AI エージェントは、データを使う前に、それが新しいこと�
 | `POST /api/data-observability/pipelines/lineage` | パイプラインが読み取るテーブルと書き込むテーブルを、各テーブルの現在の状態とともに返します。パイプラインのページが描くのと同じです。 `{ "dataPipelineId": "<pipeline ID>", "depth": 1 }` を送ります | API キー |
 | `POST /api/data-observability/alerts/<alert ID>/lineage` | データアラートのリネージを、そのアラートを引き起こしたアラートと、そのアラートが引き起こしたアラートへの経路とともに返します。アラートのページが描くのと同じです。1 つの列に対するチェックから上がったアラートでは、その `column` と各矢印が運ぶ列も返します | API キー |
 | `POST /api/data-observability/lineage/expand` | リネージ図のカードが描いていない次のテーブルを、その数を選んだときと同じように返します。カードを `nodeId` とその `side` で、描かれているものを `focusNodeId`、`tables`、`dataDashboardIds` で送ります | API キー |
+| `POST /api/data-observability/lineage/map` | **リネージマップ** ページが描画するとおりの、プロジェクトのリネージマップ。データを書き込み、読み取るサービス、テーブル、パイプライン、ダッシュボードと、それらの間の矢印を、最近確認されたものから順に返します | API キー |
 | `POST /api/data-observability/checks/apply` | `oneuptime data-checks apply` と同じように、プロジェクトのチェックをファイルに一致させます。 `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` を送ります | API キー |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | データプロダクトの「data as of」バッジ | バッジ専用のトークン |
 

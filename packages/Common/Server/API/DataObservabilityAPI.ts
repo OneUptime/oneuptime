@@ -94,6 +94,8 @@ import DataTableLineageAnswerer, {
   formatDataTableLineageAnswer,
 } from "../Utils/DataObservability/DataTableLineageAnswer";
 import DataAlertLineageReader from "../Utils/DataObservability/DataAlertLineage";
+import DataLineageMapReader from "../Utils/DataObservability/DataLineageMap";
+import { DataLineageMap } from "../../Types/DataObservability/DataLineageMap";
 import {
   DataLineageExpandRequest,
   DataLineageExpansion,
@@ -151,6 +153,9 @@ import CommonAPI from "./CommonAPI";
  *    problems first, for a table named as for its freshness
  *    (DataTableLineageAnswer): what the MCP server's get_data_table_lineage
  *    tool asks;
+ *  - the project's lineage map (DataLineageMap): every flow it has seen,
+ *    services, tables, pipelines and dashboards, for the same people and
+ *    their API keys - what the Lineage Map page draws;
  *  - a data product's "data as of" badge, for anyone with its secret, so it
  *    can be embedded where nobody signs in to OneUptime;
  *  - Connect a database, for those who may create data assets.
@@ -632,6 +637,33 @@ export default class DataObservabilityAPI extends BaseAPI<
         return lineage as unknown as JSONObject;
       },
       // Read-only, so a build in CI can ask what a change reaches.
+      { allowsApiKey: true },
+    );
+
+    /*
+     * The project's lineage map: every flow it has seen, newest first, as
+     * many as one map draws - which services write and read which tables,
+     * what each table is built from, the pipelines that load them and the
+     * dashboards built on them. Open alerts as the person who asked may
+     * see them.
+     */
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.lineageMap,
+      READ_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        _req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const map: DataLineageMap = await DataLineageMapReader.read({
+          projectId,
+          now: OneUptimeDate.getCurrentDate(),
+          reader: props,
+        });
+
+        return map as unknown as JSONObject;
+      },
+      // Read-only, so a script or an agent can ask what depends on what.
       { allowsApiKey: true },
     );
 
