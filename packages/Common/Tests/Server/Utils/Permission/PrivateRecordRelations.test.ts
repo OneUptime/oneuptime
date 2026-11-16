@@ -5,6 +5,7 @@ import PrivateRecordReadFilter, {
 import PrivateRecordPermission from "../../../../Server/Types/Database/Permissions/PrivateRecordPermission";
 import DatabaseService from "../../../../Server/Services/DatabaseService";
 import RunnerJobService, {
+  RUNNER_JOB_AI_RUN_KEY,
   RUNNER_JOB_READ_THROUGH,
   Service as RunnerJobServiceClass,
 } from "../../../../Server/Services/RunnerJobService";
@@ -1006,10 +1007,12 @@ describe("a sort checked against the rows", () => {
  * A RUNNER JOB carries what a runbook run's step, or a fix's command, ran and
  * printed: it is read only where its reader sees every private record the
  * run or the fix names - and a job of a fix that is gone, which it names by
- * a plain id, only by those who see every private record.
+ * a plain id, only by those who see every private record. A job of an AI
+ * run is read only by those who may read the run, too (#9155:
+ * AIRunOutputReadFilter.test).
  */
 describe("a Runner job", () => {
-  test("is read through the run and the fix it names", () => {
+  test("is read through the run and the fix it names, and the AI run it ran a command for", () => {
     expect(
       RUNNER_JOB_READ_THROUGH.map(
         (key: { column: string; partModelType: unknown }) => {
@@ -1020,9 +1023,11 @@ describe("a Runner job", () => {
       "runbookExecutionId -> RunbookExecution",
       "autoRemediationSuggestionId -> AutoRemediationSuggestion",
     ]);
+    expect(RUNNER_JOB_AI_RUN_KEY).toBe("aiRunId");
     expect(RunnerJobService.getColumnsReadHooksNarrowBy()).toEqual([
       "runbookExecutionId",
       "autoRemediationSuggestionId",
+      "aiRunId",
     ]);
   });
 
@@ -1063,7 +1068,13 @@ describe("a Runner job", () => {
     );
   });
 
-  test.each(SEE_EVERY_PRIVATE_RECORD)(
+  test.each(
+    SEE_EVERY_PRIVATE_RECORD.filter(
+      (reader: [string, DatabaseCommonInteractionProps]): boolean => {
+        return Boolean(reader[1].isRoot || reader[1].isMasterAdmin);
+      },
+    ),
+  )(
     "%s reads every job, unnarrowed",
     (_who: string, props: DatabaseCommonInteractionProps) => {
       expect(
@@ -1071,6 +1082,27 @@ describe("a Runner job", () => {
       ).toEqual({
         status: "Running",
       });
+    },
+  );
+
+  test.each(
+    SEE_EVERY_PRIVATE_RECORD.filter(
+      (reader: [string, DatabaseCommonInteractionProps]): boolean => {
+        return !reader[1].isRoot && !reader[1].isMasterAdmin;
+      },
+    ),
+  )(
+    "%s reads every job of a run or a fix, and of an AI run only one they may read: not someone else's chat",
+    (_who: string, props: DatabaseCommonInteractionProps) => {
+      const query: Record<string, unknown> =
+        RunnerJobServiceClass.applyPrivacyFilters({ status: "Running" }, props);
+
+      expect(Object.keys(query).sort()).toEqual(["aiRunId", "status"]);
+      expect(sqlOf(query["aiRunId"])).toMatch(
+        /^\(COLUMN IS NULL OR COLUMN IN \(SELECT "aiRun\w+"\."_id" FROM "AIRun" "aiRun\w+" WHERE /,
+      );
+      // No private record is out of their sight.
+      expect(sqlOf(query["aiRunId"])).not.toContain(`FROM "Incident"`);
     },
   );
 
@@ -1084,6 +1116,7 @@ describe("a Runner job", () => {
     ).onBeforeFind({ query: {}, props: member, skip: 0, limit: 10 });
 
     expect(Object.keys(find.findBy.query).sort()).toEqual([
+      "aiRunId",
       "autoRemediationSuggestionId",
       "runbookExecutionId",
     ]);
@@ -1099,7 +1132,7 @@ describe("a Runner job", () => {
       Object.keys(
         (counted.mock.calls[0]![0] as { query: Record<string, unknown> }).query,
       ).sort(),
-    ).toEqual(["autoRemediationSuggestionId", "runbookExecutionId"]);
+    ).toEqual(["aiRunId", "autoRemediationSuggestionId", "runbookExecutionId"]);
   });
 });
 
