@@ -153,6 +153,8 @@ const SEEDERS: Array<string> = [
   "addDefaultNetworkDeviceRoles",
   "addDefaultSecurityCasePriorities",
   "addDefaultSecurityCaseStatuses",
+  // The server's retention of resolved incidents and alerts (#6941).
+  "applyServerRetentionDefaults",
 ];
 
 const propsOf: (creator: Creator) => DatabaseCommonInteractionProps = (

@@ -1,6 +1,11 @@
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import DashboardSideMenu from "../SideMenu";
+import ResolvedRecordRetentionLimitsCard from "./ResolvedRecordRetentionLimitsCard";
+import {
+  ALERT_RETENTION_LIMITS_COPY,
+  INCIDENT_RETENTION_LIMITS_COPY,
+} from "./ResolvedRecordRetentionLimitsCopy";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -44,6 +49,17 @@ const Settings: FunctionComponent = (): ReactElement => {
       ]}
       sideMenu={<DashboardSideMenu />}
     >
+      {/*
+       * How long projects keep resolved incidents and alerts (issue #6941):
+       * a limit every project is held to, and where a new project starts.
+       * First, as what a growing database most often needs: each project
+       * keeps every resolved one until someone picks a length.
+       */}
+      <ResolvedRecordRetentionLimitsCard
+        copy={INCIDENT_RETENTION_LIMITS_COPY}
+      />
+      <ResolvedRecordRetentionLimitsCard copy={ALERT_RETENTION_LIMITS_COPY} />
+
       <CardModelDetail
         name="Monitor Log Retention Settings"
         cardProps={{

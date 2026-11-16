@@ -1,6 +1,7 @@
 import NetworkSiteLeafPurge, {
   LeafPurgeBatch,
   LeafPurgeShape,
+  MAX_CYCLE_ROWS,
   ROWS_NAMED_IN_LOG,
   findCycles,
 } from "../../../../Server/Utils/NetworkSite/NetworkSiteLeafPurge";
@@ -539,6 +540,36 @@ describe("NetworkSiteLeafPurge.purgeBatch", () => {
     expect(purge.deleted).toEqual([[siteId(5).toString()]]);
   });
 
+  it("removes a cycle larger than the batch whole, and reads cycles past a small batch's limit", async () => {
+    /*
+     * The daily purge asks for 1000 rows a call (SoftDeletedRowsPurge). A
+     * cycle cannot be split, so one larger than that would never go: the
+     * first cycle goes whole whatever its size, and the read sees up to
+     * MAX_CYCLE_ROWS of them.
+     */
+    const purge: World = world({
+      limit: 3,
+      cycleCandidates: [
+        site({ index: 1, parentIndex: 2 }),
+        site({ index: 2, parentIndex: 3 }),
+        site({ index: 3, parentIndex: 4 }),
+        site({ index: 4, parentIndex: 5 }),
+        site({ index: 5, parentIndex: 1 }),
+        site({ index: 6, parentIndex: 7 }),
+        site({ index: 7, parentIndex: 6 }),
+      ],
+    });
+
+    await expect(NetworkSiteLeafPurge.purgeBatch(purge.batch)).resolves.toBe(5);
+
+    expect(purge.deleted).toEqual([
+      [1, 2, 3, 4, 5].map((index: number): string => {
+        return siteId(index).toString();
+      }),
+    ]);
+    expect(purge.reads[1]!.limit).toBe(MAX_CYCLE_ROWS);
+  });
+
   it("removes only whole cycles, as many as fit in the limit", async () => {
     const purge: World = world({
       limit: 3,
@@ -559,7 +590,7 @@ describe("NetworkSiteLeafPurge.purgeBatch", () => {
     ]);
   });
 
-  it("keeps a cycle bigger than its limit, and logs its rows as staying", async () => {
+  it("keeps a cycle its read cannot see whole - one past MAX_CYCLE_ROWS - and logs its rows as staying", async () => {
     const warn: SpyInstance<typeof logger.warn> = jest
       .spyOn(logger, "warn")
       .mockImplementation((): void => {
@@ -570,9 +601,10 @@ describe("NetworkSiteLeafPurge.purgeBatch", () => {
       site({ index: 2, parentIndex: 3 }),
       site({ index: 3, parentIndex: 1 }),
     ];
+    // The read stopped before the ring closed: 3, which names 1, is not in it.
     const purge: World = world({
       limit: 2,
-      cycleCandidates: ring,
+      cycleCandidates: ring.slice(0, 2),
       stay: ring,
     });
 

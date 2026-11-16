@@ -94,6 +94,7 @@ Tjenester, værter, Kubernetes-klynger, Docker- og Podman-værter, Docker Swarm-
 | Monitorprotokoller, én række pr. tjek | 1 dag, medmindre det ændres | På en selvhostet installation, **Opbevaring af monitorlogfiler (dage)** i Admin Dashboard |
 | Monitormetrikker, og de metrikker, SLO'er registrerer | 30 dage, medmindre det ændres | På en selvhostet installation, **Opbevaring af monitormetrikker (dage)** i Admin Dashboard |
 | [Telemetriforbrug](/docs/telemetry/usage), én optælling pr. ressource, signal og dag | 120 dage, medmindre det ændres | På en selvhostet installation, **Opbevaring af telemetriforbrug (dage)** i Admin Dashboard |
+| Løste hændelser og advarsler, med deres tidslinjer, noter og filer | Indtil projektet vælger en periode | **Hændelser → Indstillinger → Dataopbevaring** og **Advarsler → Indstillinger → Dataopbevaring**: se [Dataopbevaring](/docs/incidents/settings#dataopbevaring). På en selvhostet installation holder **Behold i højst** i Admin Dashboard alle projekter til en grænse |
 
 ## Hvad opbevaring koster
 

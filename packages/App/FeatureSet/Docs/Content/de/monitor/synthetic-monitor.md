@@ -156,6 +156,11 @@ return {
 
 Ein Lauf behält bis zu 20 Screenshots, jeden bis 10 MB und insgesamt 50 MB. Ein Screenshot kann auch in dem Vorfall oder der Warnung erscheinen, die ein fehlschlagender Lauf eröffnet — auf dessen Seite und in den E-Mails dazu —, wenn Sie ihn in die Vorfall- oder Warnungsbeschreibung des Monitors setzen. Siehe [Einen Screenshot zeigen](/docs/monitor/incident-alert-templating#einen-screenshot-zeigen).
 
+Die Screenshots einer Prüfung bleiben in den eigenen Protokollen des Monitors, nicht in den Protokollen eines Vorfalls oder einer Warnung und nicht in den Statusänderungen eines Monitors: Diese behalten den Rest der Prüfung, und jeder Lauf, dessen Screenshots weggelassen wurden, sagt das (`areScreenshotsOmitted`). Screenshots, die dort bereits gespeichert sind, löscht nach dem Upgrade ein Job, der stündlich läuft, nach und nach, bis keine mehr übrig sind.
+
+> [!NOTE]
+> Bei einer selbst gehosteten Installation verwendet PostgreSQL den Platz der gelöschten Screenshots wieder, gibt ihn aber nicht an die Festplatte zurück. Um die Datenbank zu verkleinern, sobald sie gelöscht sind, führen Sie in einem Wartungsfenster `VACUUM FULL` für die größten Tabellen aus, das jede Tabelle sperrt, während es sie neu schreibt, oder verwenden Sie `pg_repack`, das das nicht tut.
+
 :::details Screenshots zurückgeben (veraltet)
 Aus Gründen der Abwärtskompatibilität können Sie Screenshots auch als Teil des Rückgabewerts aus dem Skript zurückgeben. So zurückgegebene Screenshots werden **nur** erfasst, wenn das Skript normal endet — sie gehen verloren, wenn das Skript einen Fehler wirft. Bevorzugen Sie das Seitenkanal-Muster oben, wenn Sie Belege für Fehlschläge wollen.
 

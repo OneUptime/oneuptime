@@ -185,6 +185,15 @@ export function isEditThatKeepsTheDevice(data: unknown): boolean {
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+
+    /*
+     * The hourly age-out soft deletes the discovered devices nothing sees
+     * any more (DiscoveredDeviceAgeOut). They are deleted for good once they
+     * have been deleted for 30 days, on every installation - not only where
+     * billing is on - so a busy network's devices do not pile up in the
+     * table for good (SoftDeletedRowsPurge, issue #6528).
+     */
+    this.purgesSoftDeletedRowsOnEveryInstall = true;
   }
 
   /*
