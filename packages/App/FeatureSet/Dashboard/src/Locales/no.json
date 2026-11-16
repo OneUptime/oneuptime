@@ -191,8 +191,7 @@
     "billedYearlySuffix": "/mnd fakturert årlig"
   },
   "header": {
-    "errorTitleOnCallPolicies": "Feil ved lasting av vaktpolicyer",
-    "onCallPoliciesFetchError": "Noe er galt, vi kan ikke hente vaktpolicyene du er på vakt for. Last inn siden på nytt for å prøve igjen.",
+    "onCallPoliciesFetchError": "Kunne ikke sjekke hvilke vaktpolicyer du er på vakt for.",
     "incidentsActiveOne": "{{count}} Aktiv hendelse",
     "incidentsActiveOther": "{{count}} Aktive hendelser",
     "incidentsTooltip": "Vis alle aktive hendelser",
@@ -56422,8 +56421,20 @@
   "{{count}} more further downstream_one": "{{count}} til lenger nedstrøms",
   "{{share}} of this graph is code without symbols, so its functions have no names.": "{{share}} av denne grafen er kode uten symboler, så funksjonene har ingen navn.",
   "Busiest: {{function}} · {{share}}": "Travlest: {{function}} · {{share}}",
+  "Couldn't pin {{product}}.": "Kunne ikke feste {{product}}.",
+  "Couldn't unpin {{product}}.": "Kunne ikke løsne {{product}}.",
   "How to read a flame graph": "Slik leser du en flammegraf",
   "How to read this": "Slik leser du den",
   "Where the time goes, what to fix first, and what the colours mean.": "Hvor tiden går, hva du bør rette først, og hva fargene betyr.",
-  "Your code: {{function}} · {{share}}": "Din kode: {{function}} · {{share}}"
+  "Your code: {{function}} · {{share}}": "Din kode: {{function}} · {{share}}",
+  "{{itemName}} added": "{{itemName}} lagt til",
+  "{{itemName}} attached": "{{itemName}} vedlagt",
+  "{{itemName}} connected": "{{itemName}} koblet til",
+  "{{itemName}} created": "{{itemName}} opprettet",
+  "{{itemName}} declared": "{{itemName}} erklært",
+  "{{itemName}} deleted": "{{itemName}} slettet",
+  "{{itemName}} invited": "{{itemName}} invitert",
+  "{{itemName}} linked": "{{itemName}} koblet til",
+  "{{itemName}} removed": "{{itemName}} fjernet",
+  "{{itemName}} started": "{{itemName}} startet"
 }

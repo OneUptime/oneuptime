@@ -191,8 +191,7 @@
     "billedYearlySuffix": "/Mon. jährlich abgerechnet"
   },
   "header": {
-    "errorTitleOnCallPolicies": "Fehler beim Laden der Bereitschaftsrichtlinien",
-    "onCallPoliciesFetchError": "Etwas stimmt nicht, wir können die Bereitschaftsrichtlinien, für die Sie im Dienst sind, nicht abrufen. Laden Sie die Seite neu, um es erneut zu versuchen.",
+    "onCallPoliciesFetchError": "Es konnte nicht geprüft werden, für welche Bereitschaftsrichtlinien Sie im Dienst sind.",
     "incidentsActiveOne": "{{count}} Aktiver Vorfall",
     "incidentsActiveOther": "{{count}} Aktive Vorfälle",
     "incidentsTooltip": "Alle aktiven Vorfälle anzeigen",
@@ -56422,8 +56421,20 @@
   "{{count}} more further downstream_one": "{{count}} weitere weiter stromabwärts",
   "{{share}} of this graph is code without symbols, so its functions have no names.": "{{share}} dieses Diagramms ist Code ohne Symbole, daher haben seine Funktionen keine Namen.",
   "Busiest: {{function}} · {{share}}": "Am aktivsten: {{function}} · {{share}}",
+  "Couldn't pin {{product}}.": "{{product}} konnte nicht fixiert werden.",
+  "Couldn't unpin {{product}}.": "{{product}} konnte nicht gelöst werden.",
   "How to read a flame graph": "So lesen Sie ein Flame-Diagramm",
   "How to read this": "So lesen Sie das",
   "Where the time goes, what to fix first, and what the colours mean.": "Wohin die Zeit geht, was zuerst zu beheben ist und was die Farben bedeuten.",
-  "Your code: {{function}} · {{share}}": "Ihr Code: {{function}} · {{share}}"
+  "Your code: {{function}} · {{share}}": "Ihr Code: {{function}} · {{share}}",
+  "{{itemName}} added": "{{itemName}} hinzugefügt",
+  "{{itemName}} attached": "{{itemName}} angehängt",
+  "{{itemName}} connected": "{{itemName}} verbunden",
+  "{{itemName}} created": "{{itemName}} erstellt",
+  "{{itemName}} declared": "{{itemName}} gemeldet",
+  "{{itemName}} deleted": "{{itemName}} gelöscht",
+  "{{itemName}} invited": "{{itemName}} eingeladen",
+  "{{itemName}} linked": "{{itemName}} verknüpft",
+  "{{itemName}} removed": "{{itemName}} entfernt",
+  "{{itemName}} started": "{{itemName}} gestartet"
 }

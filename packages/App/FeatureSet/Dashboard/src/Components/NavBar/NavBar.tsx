@@ -12,8 +12,12 @@ import URL from "Common/Types/API/URL";
 import ProductKey from "Common/Types/Product/ProductKey";
 import { canPinAnotherProduct } from "Common/Types/Product/ProductPins";
 import NavBar, { MoreMenuItem } from "Common/UI/Components/Navbar/NavBar";
+import ErrorLine from "Common/UI/Components/ErrorMessage/ErrorLine";
+import API from "Common/UI/Utils/API/API";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import Toast from "Common/UI/Utils/Toast";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import { PhoneMenuHelp, PhoneMenuSearch } from "./PhoneMenuEntries";
 import React, { FunctionComponent, ReactElement } from "react";
 import { useTranslation } from "react-i18next";
@@ -34,10 +38,24 @@ export const PINNED_PRODUCTS_LABEL: string = translationKey("Pinned");
  */
 export const PRODUCTS_SEARCH_LABEL: string = translationKey("Search products");
 
+/*
+ * A pin the server did not keep (#9120). The bar puts the product back
+ * where it was, and this says why: it went back without a word, so a
+ * person without the permission saw their pin vanish and could not tell.
+ */
+export const PIN_FAILED_TITLE: string = translationKey(
+  "Couldn't pin {{product}}.",
+);
+
+export const UNPIN_FAILED_TITLE: string = translationKey(
+  "Couldn't unpin {{product}}.",
+);
+
 const DashboardNavbar: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { t } = useTranslation();
+  const translator: Translator = useTranslator();
 
   /*
    * The nav/products catalog is shared with the command palette via this hook
@@ -78,13 +96,31 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       return;
     }
 
+    const isPinned: boolean = !products.answer.pinned.includes(product);
+
     setProductPinned({
       projectId: projectId,
       product: product,
-      isPinned: !products.answer.pinned.includes(product),
+      isPinned: isPinned,
       source: ProductPinSource.Menu,
-    }).catch(() => {
-      // The pin went back; the bar shows what the server kept.
+    }).catch((err: unknown) => {
+      // The pin went back; the bar shows what the server kept, and this says why.
+      const productName: string = item.isTitleTranslated
+        ? item.title
+        : translator.translateText(item.title) || item.title;
+
+      Toast.error(
+        translator.translateTemplate(
+          isPinned ? PIN_FAILED_TITLE : UNPIN_FAILED_TITLE,
+          { product: productName },
+        ),
+        {
+          description: (
+            <ErrorLine as="div" message={API.getFriendlyMessage(err)} />
+          ),
+          dataTestId: "product-pin-failed",
+        },
+      );
     });
   };
 

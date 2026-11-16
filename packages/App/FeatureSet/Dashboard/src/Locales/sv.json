@@ -191,8 +191,7 @@
     "billedYearlySuffix": "/mån fakturerat årligen"
   },
   "header": {
-    "errorTitleOnCallPolicies": "Fel vid laddning av jourpolicyer",
-    "onCallPoliciesFetchError": "Något är inte rätt, vi kan inte hämta jourpolicyerna du är i tjänst för. Ladda om sidan för att försöka igen.",
+    "onCallPoliciesFetchError": "Det gick inte att kontrollera vilka jourpolicyer du är i tjänst för.",
     "incidentsActiveOne": "{{count}} Aktiv incident",
     "incidentsActiveOther": "{{count}} Aktiva incidenter",
     "incidentsTooltip": "Visa alla aktiva incidenter",
@@ -56422,8 +56421,20 @@
   "{{count}} more further downstream_one": "{{count}} till längre nedströms",
   "{{share}} of this graph is code without symbols, so its functions have no names.": "{{share}} av det här diagrammet är kod utan symboler, så dess funktioner saknar namn.",
   "Busiest: {{function}} · {{share}}": "Mest belastad: {{function}} · {{share}}",
+  "Couldn't pin {{product}}.": "Det gick inte att fästa {{product}}.",
+  "Couldn't unpin {{product}}.": "Det gick inte att lossa {{product}}.",
   "How to read a flame graph": "Så läser du en flamgraf",
   "How to read this": "Så läser du den",
   "Where the time goes, what to fix first, and what the colours mean.": "Vart tiden går, vad du ska åtgärda först och vad färgerna betyder.",
-  "Your code: {{function}} · {{share}}": "Din kod: {{function}} · {{share}}"
+  "Your code: {{function}} · {{share}}": "Din kod: {{function}} · {{share}}",
+  "{{itemName}} added": "{{itemName}} har lagts till",
+  "{{itemName}} attached": "{{itemName}} har bifogats",
+  "{{itemName}} connected": "{{itemName}} har anslutits",
+  "{{itemName}} created": "{{itemName}} har skapats",
+  "{{itemName}} declared": "{{itemName}} har deklarerats",
+  "{{itemName}} deleted": "{{itemName}} har tagits bort",
+  "{{itemName}} invited": "{{itemName}} har bjudits in",
+  "{{itemName}} linked": "{{itemName}} har länkats",
+  "{{itemName}} removed": "{{itemName}} har tagits bort från listan",
+  "{{itemName}} started": "{{itemName}} har startats"
 }

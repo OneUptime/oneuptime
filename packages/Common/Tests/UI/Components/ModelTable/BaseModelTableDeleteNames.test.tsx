@@ -85,6 +85,7 @@ import BaseModelTable, {
   ComponentProps as BaseModelTableProps,
 } from "../../../../UI/Components/ModelTable/BaseModelTable";
 import TableFilterUrlState from "../../../../UI/Utils/TableFilterUrlState";
+import Toast, { ToastItem } from "../../../../UI/Utils/Toast";
 import PermissionGate from "../../../../UI/Utils/PermissionGate";
 import FieldType from "../../../../UI/Components/Types/FieldType";
 import { ButtonStyleType } from "../../../../UI/Components/Button/Button";
@@ -347,6 +348,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   jest.restoreAllMocks();
+  Toast.dismissAll();
 });
 
 describe("a row's Delete", () => {
@@ -647,5 +649,123 @@ describe("a numbered row's Delete names it by its number first", () => {
     expect(
       within(description).getByTestId("delete-confirmation-name"),
     ).toHaveTextContent(/^Manually declared$/);
+  });
+});
+
+/*
+ * A row deleted from its menu went without a word: the dialog closed and
+ * the list read again, and only a bulk Delete said "N deleted" (#9120).
+ */
+describe("a row's Delete says what it deleted", () => {
+  type ToastTitlesFunction = () => Array<string>;
+
+  const toastTitles: ToastTitlesFunction = (): Array<string> => {
+    return Toast.getToasts().map((toast: ToastItem) => {
+      return toast.title;
+    });
+  };
+
+  // A record has its id (BaseModel's), which a delete needs; JSON rows have only _id.
+  type WithIdsFunction = (rows: Array<JSONObject>) => Array<JSONObject>;
+
+  const withIds: WithIdsFunction = (
+    rows: Array<JSONObject>,
+  ): Array<JSONObject> => {
+    return rows.map((row: JSONObject) => {
+      return { ...row, id: row["_id"] };
+    });
+  };
+
+  type ConfirmDeleteFunction = () => Promise<void>;
+
+  const confirmDelete: ConfirmDeleteFunction = async (): Promise<void> => {
+    fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("confirm-modal-description")).toBeNull();
+    });
+  };
+
+  test("by the row's name", async () => {
+    renderTable({
+      modelType: NetworkDevice,
+      columnField: "name",
+      rows: withIds(makeDevices(3)),
+    });
+
+    await openRowDelete(2);
+    await confirmDelete();
+
+    expect(toastTitles()).toEqual(["core-router-3 deleted"]);
+  });
+
+  test("by its kind, where the row has no name of its own", async () => {
+    renderTable({
+      modelType: TeamMember,
+      columnField: "user",
+      rows: withIds([{ _id: "member-1", user: { name: "Jane Doe" } }]),
+    });
+
+    await openRowDelete(0);
+    await confirmDelete();
+
+    expect(toastTitles()).toEqual(["Team Member deleted"]);
+  });
+
+  test("as removed, for a table whose delete is called something else", async () => {
+    renderTable({
+      modelType: NetworkDevice,
+      columnField: "name",
+      rows: withIds(makeDevices(2)),
+      withBulkActions: true,
+      deleteVerb: "Unlink",
+    });
+
+    await openRowDelete(0);
+    await confirmDelete();
+
+    expect(toastTitles()).toEqual(["core-router-1 removed"]);
+  });
+
+  test("not at all where the page says so itself", async () => {
+    render(
+      <BaseModelTable<BaseModel>
+        {...makeProps({
+          modelType: NetworkDevice,
+          columnField: "name",
+          rows: withIds(makeDevices(1)),
+        })}
+        hideChangeToasts={true}
+      />,
+    );
+
+    await openRowDelete(0);
+    await confirmDelete();
+
+    expect(toastTitles()).toEqual([]);
+  });
+
+  test("not when the delete failed: the error is said instead", async () => {
+    const props: BaseModelTableProps<BaseModel> = makeProps({
+      modelType: NetworkDevice,
+      columnField: "name",
+      rows: withIds(makeDevices(1)),
+    });
+
+    props.callbacks.deleteItem = async (): Promise<void> => {
+      throw new Error("You need the Delete Network Device permission.");
+    };
+
+    render(<BaseModelTable<BaseModel> {...props} />);
+
+    await openRowDelete(0);
+    fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("You need the Delete Network Device permission."),
+      ).toBeInTheDocument();
+    });
+    expect(toastTitles()).toEqual([]);
   });
 });

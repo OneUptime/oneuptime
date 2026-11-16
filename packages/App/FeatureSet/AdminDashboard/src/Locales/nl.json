@@ -4144,5 +4144,16 @@
   "Complete:": "Voldaan:",
   "Incomplete:": "Niet voldaan:",
   "Special character included (optional)": "Speciaal teken toegevoegd (optioneel)",
-  "Special characters are optional. Try !, @, # or $.": "Speciale tekens zijn optioneel. Probeer !, @, # of $."
+  "Special characters are optional. Try !, @, # or $.": "Speciale tekens zijn optioneel. Probeer !, @, # of $.",
+  "Changes saved": "Wijzigingen opgeslagen",
+  "{{itemName}} added": "{{itemName}} toegevoegd",
+  "{{itemName}} attached": "{{itemName}} bijgevoegd",
+  "{{itemName}} connected": "{{itemName}} gekoppeld",
+  "{{itemName}} created": "{{itemName}} aangemaakt",
+  "{{itemName}} declared": "{{itemName}} gemeld",
+  "{{itemName}} deleted": "{{itemName}} verwijderd",
+  "{{itemName}} invited": "{{itemName}} uitgenodigd",
+  "{{itemName}} linked": "{{itemName}} gekoppeld",
+  "{{itemName}} removed": "{{itemName}} weggehaald",
+  "{{itemName}} started": "{{itemName}} gestart"
 }

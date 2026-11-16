@@ -13,8 +13,9 @@ name: Terraform Provider E2E Tests
 # number>", the group cancel-closed-pr-runs.yml joins to stop it.
 #
 # The nightly run has a group of its own too. github.event.schedule, the cron
-# line that started it, is set on scheduled runs only, so a push to main that
-# lands while the nightly run is going neither cancels it nor is cancelled by it.
+# line that started it, is set on scheduled runs only, so a run started by hand
+# on main while the nightly run is going neither cancels it nor is cancelled by
+# it.
 # Tests/Ops/ReleaseE2ePipeline.test.js holds the release and nightly groups, and
 # CancelClosedPrRuns.test.js the pull request's.
 concurrency:
@@ -27,11 +28,9 @@ permissions:
 
 on:
   pull_request:
-  push:
-    branches:
-      - main
-      - main
-      - develop
+  # Not on every push to main: each pull request was tested on its merge
+  # with main, and main runs this nightly and on demand instead
+  # (Tests/Ops/PullRequestChecksNotOnPush.test.js says why).
   # Nightly, on main. HashiCorp asks the providers it lists as Partner for
   # tests that run nightly as a GitHub Action, and it gives main a run on
   # the days nothing merges.

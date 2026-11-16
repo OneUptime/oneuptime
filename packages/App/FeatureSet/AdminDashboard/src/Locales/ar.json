@@ -4144,5 +4144,16 @@
   "Complete:": "مكتمل:",
   "Incomplete:": "غير مكتمل:",
   "Special character included (optional)": "تتضمن حرفًا خاصًا (اختياري)",
-  "Special characters are optional. Try !, @, # or $.": "الأحرف الخاصة اختيارية. جرّب ! أو @ أو # أو $."
+  "Special characters are optional. Try !, @, # or $.": "الأحرف الخاصة اختيارية. جرّب ! أو @ أو # أو $.",
+  "Changes saved": "تم حفظ التغييرات",
+  "{{itemName}} added": "تمت إضافة {{itemName}}",
+  "{{itemName}} attached": "تم إرفاق {{itemName}}",
+  "{{itemName}} connected": "تم توصيل {{itemName}}",
+  "{{itemName}} created": "تم إنشاء {{itemName}}",
+  "{{itemName}} declared": "تم إعلان {{itemName}}",
+  "{{itemName}} deleted": "تم حذف {{itemName}}",
+  "{{itemName}} invited": "تمت دعوة {{itemName}}",
+  "{{itemName}} linked": "تم ربط {{itemName}}",
+  "{{itemName}} removed": "تمت إزالة {{itemName}}",
+  "{{itemName}} started": "تم بدء {{itemName}}"
 }

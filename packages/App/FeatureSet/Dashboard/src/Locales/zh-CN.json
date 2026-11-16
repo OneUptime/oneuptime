@@ -191,8 +191,7 @@
     "billedYearlySuffix": "/月 按年计费"
   },
   "header": {
-    "errorTitleOnCallPolicies": "加载值班策略出错",
-    "onCallPoliciesFetchError": "出错了,我们无法获取您正在值班的值班策略。重新加载页面以重试。",
+    "onCallPoliciesFetchError": "无法检查您正在值班的值班策略。",
     "incidentsActiveOne": "{{count}} 个活动事件",
     "incidentsActiveOther": "{{count}} 个活动事件",
     "incidentsTooltip": "查看所有活动事件",
@@ -56422,8 +56421,20 @@
   "{{count}} more further downstream_one": "更下游还有 {{count}} 个",
   "{{share}} of this graph is code without symbols, so its functions have no names.": "此图中 {{share}} 是没有符号的代码，因此其函数没有名称。",
   "Busiest: {{function}} · {{share}}": "最繁忙：{{function}} · {{share}}",
+  "Couldn't pin {{product}}.": "无法固定{{product}}。",
+  "Couldn't unpin {{product}}.": "无法取消固定{{product}}。",
   "How to read a flame graph": "如何阅读火焰图",
   "How to read this": "如何阅读",
   "Where the time goes, what to fix first, and what the colours mean.": "时间花在哪里、先修复什么，以及颜色的含义。",
-  "Your code: {{function}} · {{share}}": "您的代码：{{function}} · {{share}}"
+  "Your code: {{function}} · {{share}}": "您的代码：{{function}} · {{share}}",
+  "{{itemName}} added": "已添加{{itemName}}",
+  "{{itemName}} attached": "已附加{{itemName}}",
+  "{{itemName}} connected": "已连接{{itemName}}",
+  "{{itemName}} created": "已创建{{itemName}}",
+  "{{itemName}} declared": "已宣告{{itemName}}",
+  "{{itemName}} deleted": "已删除{{itemName}}",
+  "{{itemName}} invited": "已邀请{{itemName}}",
+  "{{itemName}} linked": "已关联{{itemName}}",
+  "{{itemName}} removed": "已移除{{itemName}}",
+  "{{itemName}} started": "已开始{{itemName}}"
 }

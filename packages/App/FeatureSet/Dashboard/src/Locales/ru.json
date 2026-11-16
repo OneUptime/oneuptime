@@ -191,8 +191,7 @@
     "billedYearlySuffix": "/мес. при годовой оплате"
   },
   "header": {
-    "errorTitleOnCallPolicies": "Ошибка загрузки политик дежурства",
-    "onCallPoliciesFetchError": "Что-то не так, мы не можем получить политики дежурства, по которым вы дежурите. Перезагрузите страницу, чтобы попробовать снова.",
+    "onCallPoliciesFetchError": "Не удалось проверить, по каким политикам дежурства вы дежурите.",
     "incidentsActiveOne": "{{count}} Активный инцидент",
     "incidentsActiveOther": "{{count}} Активные инциденты",
     "incidentsTooltip": "Посмотреть все активные инциденты",
@@ -56422,8 +56421,20 @@
   "{{count}} more further downstream_one": "Ещё {{count}} дальше вниз по потоку",
   "{{share}} of this graph is code without symbols, so its functions have no names.": "{{share}} этого графа — код без символов, поэтому у его функций нет имён.",
   "Busiest: {{function}} · {{share}}": "Самая загруженная: {{function}} · {{share}}",
+  "Couldn't pin {{product}}.": "Не удалось закрепить {{product}}.",
+  "Couldn't unpin {{product}}.": "Не удалось открепить {{product}}.",
   "How to read a flame graph": "Как читать флейм-граф",
   "How to read this": "Как это читать",
   "Where the time goes, what to fix first, and what the colours mean.": "Куда уходит время, что исправить в первую очередь и что означают цвета.",
-  "Your code: {{function}} · {{share}}": "Ваш код: {{function}} · {{share}}"
+  "Your code: {{function}} · {{share}}": "Ваш код: {{function}} · {{share}}",
+  "{{itemName}} added": "Добавлено: {{itemName}}",
+  "{{itemName}} attached": "Прикреплено: {{itemName}}",
+  "{{itemName}} connected": "Подключено: {{itemName}}",
+  "{{itemName}} created": "Создано: {{itemName}}",
+  "{{itemName}} declared": "Объявлено: {{itemName}}",
+  "{{itemName}} deleted": "Удалено: {{itemName}}",
+  "{{itemName}} invited": "Приглашено: {{itemName}}",
+  "{{itemName}} linked": "Связано: {{itemName}}",
+  "{{itemName}} removed": "Убрано: {{itemName}}",
+  "{{itemName}} started": "Запущено: {{itemName}}"
 }

@@ -191,8 +191,7 @@
     "billedYearlySuffix": "/ماه با صورت‌حساب سالانه"
   },
   "header": {
-    "errorTitleOnCallPolicies": "خطا در بارگذاری سیاست‌های آنکال",
-    "onCallPoliciesFetchError": "چیزی درست نیست، نمی‌توانیم سیاست‌های آنکالی را که در آن‌ها کشیک هستید دریافت کنیم. برای تلاش دوباره صفحه را بارگذاری کنید.",
+    "onCallPoliciesFetchError": "بررسی نشد که در کدام سیاست‌های آنکال کشیک هستید.",
     "incidentsActiveOne": "{{count}} حادثه فعال",
     "incidentsActiveOther": "{{count}} حادثه فعال",
     "incidentsTooltip": "مشاهده همه حوادث فعال",
@@ -56422,8 +56421,20 @@
   "{{count}} more further downstream_one": "{{count}} مورد دیگر دورتر در پایین‌دست",
   "{{share}} of this graph is code without symbols, so its functions have no names.": "{{share}} از این نمودار کدِ بدون نماد است، پس تابع‌های آن نامی ندارند.",
   "Busiest: {{function}} · {{share}}": "پرکارترین: {{function}} · {{share}}",
+  "Couldn't pin {{product}}.": "سنجاق کردن {{product}} انجام نشد.",
+  "Couldn't unpin {{product}}.": "برداشتن سنجاق {{product}} انجام نشد.",
   "How to read a flame graph": "چگونه یک نمودار شعله را بخوانیم",
   "How to read this": "چگونه این را بخوانیم",
   "Where the time goes, what to fix first, and what the colours mean.": "زمان کجا صرف می‌شود، اول چه چیزی را درست کنیم و رنگ‌ها چه معنایی دارند.",
-  "Your code: {{function}} · {{share}}": "کد شما: {{function}} · {{share}}"
+  "Your code: {{function}} · {{share}}": "کد شما: {{function}} · {{share}}",
+  "{{itemName}} added": "{{itemName}} افزوده شد",
+  "{{itemName}} attached": "{{itemName}} پیوست شد",
+  "{{itemName}} connected": "{{itemName}} متصل شد",
+  "{{itemName}} created": "{{itemName}} ایجاد شد",
+  "{{itemName}} declared": "{{itemName}} اعلام شد",
+  "{{itemName}} deleted": "{{itemName}} حذف شد",
+  "{{itemName}} invited": "{{itemName}} دعوت شد",
+  "{{itemName}} linked": "{{itemName}} پیوند داده شد",
+  "{{itemName}} removed": "{{itemName}} برداشته شد",
+  "{{itemName}} started": "{{itemName}} آغاز شد"
 }
