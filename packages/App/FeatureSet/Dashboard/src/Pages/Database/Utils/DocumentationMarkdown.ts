@@ -2514,9 +2514,15 @@ function getOwnCollectorRecipe(data: {
 }): OwnCollectorRecipe {
   const descriptor: DatabaseSystemDescriptor | null =
     getDatabaseSystemDescriptor(data.database.dbSystem);
-  const engineLabel: string = getDatabaseSystemDisplayName(
-    data.database.dbSystem,
-  );
+  /*
+   * An engine the catalog does not know is named as the data reported it,
+   * in a code span: any name at all can come in, and a code span is what a
+   * guide's words in another language are found without (#8780) - so its
+   * sentences read in the reader's language whatever the engine is called.
+   */
+  const engineLabel: string = descriptor
+    ? getDatabaseSystemDisplayName(data.database.dbSystem)
+    : `\`${getDatabaseSystemDisplayName(data.database.dbSystem).replace(/`/g, "")}\``;
   const system: string =
     normalizeDatabaseSystem(data.database.dbSystem) || "unknown";
   const source: DatabaseEngineMetricsSource = descriptor

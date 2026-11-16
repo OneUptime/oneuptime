@@ -4,6 +4,7 @@ import fsPromises from "fs/promises";
 import path from "path";
 import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { withUnit } from "../SuiteHelpers/NoBreakSpaces";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
@@ -640,9 +641,9 @@ test.describe("the Hosts list", () => {
       // German's own percent, as the tiles write theirs (#7106).
       fill(GERMAN, "{{mount}} {{percent}} full", {
         mount: "/var/lib/postgresql",
-        percent: "96\u00A0%",
+        percent: withUnit(96, "%"),
       }),
-      fill(GERMAN, "Memory {{percent}} used", { percent: "92\u00A0%" }),
+      fill(GERMAN, "Memory {{percent}} used", { percent: withUnit(92, "%") }),
     ]);
     await expect(
       attentionRow(card, HOST_IDS["web03"]!).getByTestId(

@@ -113,7 +113,7 @@ Ingen av prosjektene den e-postadressen er medlem av, har satt opp single sign-o
 :::
 
 :::details En sikkerhetsnøkkel er din eneste andre faktor
-Appen kan ikke bruke en sikkerhetsnøkkel. Logg inn med en av reservekodene dine, eller legg til en autentiseringsapp på kontoen din i dashbordet: se [Slå på tofaktorautentisering](/docs/introduction/your-account#slå-på-totrinnsbekreftelse).
+Appen kan ikke bruke en sikkerhetsnøkkel. Logg inn med en av reservekodene dine, eller legg til en autentiseringsapp på kontoen din i dashbordet: se [Slå på tofaktorautentisering](/docs/introduction/your-account#slå-på-tofaktorautentisering).
 :::
 
 :::details Innlogging med tilgangsnøkkel mislykkes
