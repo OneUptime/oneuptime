@@ -13,6 +13,7 @@ import Permission, {
 import { ColumnAccessControl } from "../../Types/BaseDatabase/AccessControl";
 import PermissionUtil from "./Permission";
 import { getListSeparator } from "./ListSeparator";
+import { joinSentences } from "./SentenceSeparator";
 import PrivateRecordHeld from "../../Types/PrivateRecord/PrivateRecordHeld";
 import TeamOwnedRuleHeld from "../../Types/TeamOwnedRule/TeamOwnedRuleHeld";
 import {
@@ -485,11 +486,14 @@ export default class PermissionGate {
     ) {
       return {
         isAllowed: false,
-        disabledReason: `${this.buildFirstSentence({
-          singularName: options?.singularName || model.singularName || "item",
-          verb: (options?.verb?.trim() || action).toLowerCase(),
-          sentence: options?.sentence,
-        })} ${options.privateRecordReason}`,
+        disabledReason: joinSentences([
+          this.buildFirstSentence({
+            singularName: options?.singularName || model.singularName || "item",
+            verb: (options?.verb?.trim() || action).toLowerCase(),
+            sentence: options?.sentence,
+          }),
+          options.privateRecordReason,
+        ]),
       };
     }
 
@@ -988,7 +992,8 @@ export default class PermissionGate {
     ) {
       return {
         isAllowed: false,
-        disabledReason: `${sentence} ${options.privateRecordReason}`,
+        // Two whole sentences, each looked up whole, run together as the reader's script runs them.
+        disabledReason: joinSentences([sentence, options.privateRecordReason]),
       };
     }
 

@@ -256,6 +256,7 @@ import KubernetesClusterOverview, {
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/Index";
 import { KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS } from "../../../../App/FeatureSet/Dashboard/src/Components/MetricDescriptions/KubernetesClusterMetricDescriptions";
 import IconProp from "../../../Types/Icon/IconProp";
+import { withDurationWordsHeld } from "../../../Types/NoBreakSpaces";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 
 const PAGE_PROPS: PageComponentProps = {} as PageComponentProps;
@@ -596,9 +597,10 @@ describe("the cluster overview page", () => {
     for (let index: number = 0; index < EXPECTED.length; index++) {
       const [title, text] = EXPECTED[index]!;
 
+      // As the page draws it: a duration's figure held to its word (#8770).
       expect({ title, shown: await explanationOf(buttons[index]!) }).toEqual({
         title,
-        shown: text,
+        shown: withDurationWordsHeld(text),
       });
     }
   });
@@ -804,7 +806,7 @@ describe("the cluster overview page", () => {
       await explanationOf(
         screen.getAllByRole("button", { name: "About Filesystem" })[0]!,
       ),
-    ).toBe(TEXT.filesystem);
+    ).toBe(withDurationWordsHeld(TEXT.filesystem));
   });
 
   test("the page loads the cluster named in the route", async () => {
