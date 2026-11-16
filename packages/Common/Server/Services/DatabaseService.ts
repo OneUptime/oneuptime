@@ -7614,28 +7614,31 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * A query builder scoped to exactly the rows this read may see, and — this
    * is the whole point — scoped so that each of them appears ONCE.
    *
-   * The permission pipeline expresses a label-scoped ALLOW as a condition on
-   * the access-control RELATION — `{ labels: [permittedIds] }`, which
-   * QueryUtil.serializeQuery then nests into `{ labels: { _id: <a set
-   * membership operator> } }`. Handed to TypeORM's FindOptions machinery that
-   * becomes a join through the many-to-many junction table — and a join
-   * multiplies rows. A device carrying two permitted labels comes back twice.
+   * A condition on a to-many RELATION — `{ labels: { _id: <a set membership
+   * operator> } }`, what QueryUtil.serializeQuery makes of a list of ids on a
+   * relation of many records — is, handed to TypeORM's FindOptions machinery,
+   * a join through the many-to-many junction table, and a join multiplies
+   * rows. A device carrying two of the labels comes back twice.
    *
-   * A label BLOCK no longer takes that route, and it is worth being precise
-   * about why, because the shape reads like the allow half's mirror image and
-   * is not. A relation condition cannot express "has NONE of these labels" at
-   * all: a device labelled {blocked, other} still matches the join through its
-   * "other" row. So ReadPermission writes the block as a flat predicate on the
-   * owner's own id instead — `_id NOT IN (SELECT ownerId FROM the junction
-   * table WHERE labelId IN (...))`. Flat means no join, which means no
-   * duplicate rows, which means the block half needs nothing from this method
-   * beyond the cheap path below.
+   * The label rules no longer take that route. A label BLOCK cannot: a
+   * relation condition cannot express "has NONE of these labels" at all — a
+   * device labelled {blocked, other} still matches the join through its
+   * "other" row — so ReadPermission writes it as a flat predicate on the
+   * owner's own id, `_id NOT IN (SELECT ownerId FROM the junction table WHERE
+   * labelId IN (...))`. A label-scoped ALLOW, and a filter by the model's own
+   * labels, are flat too: `_id IN (SELECT ...)`
+   * (AccessControlPermission.addLabelIdsToQuery,
+   * QueryUtil.getLabelsFilterCondition), which a list pages and counts
+   * without a join as well. Flat means no join, which means no duplicate
+   * rows, which means they need nothing from this method beyond the cheap
+   * path below. Only where the label join table cannot be named - no
+   * database - does an allow still go through the relation.
    *
-   * The allow half is not the only producer of relation-keyed conditions
-   * either. `@CanAccessIfCanReadOn` makes BasePermission write
-   * `query[relation] = { <the related model's access-control column>: ids }`
-   * for StatusPageResource, IncidentInternalNote, AlertEpisodeMember and
-   * others, and that arrives here indistinguishable from a label allow.
+   * Relation-keyed conditions are still made, though. `@CanAccessIfCanReadOn`
+   * makes BasePermission write `query[relation] = { <the related model's
+   * access-control column>: ids }` for StatusPageResource,
+   * IncidentInternalNote, AlertEpisodeMember and others, and a caller filters
+   * through any other relation of many records (an incident's monitors).
    *
    * `findBy` never notices, because entity hydration de-duplicates by primary
    * key on the way out. An aggregate has no such step: COUNT(*) would report
@@ -7650,10 +7653,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * by a DISTINCT subquery of ids. The joins live inside that subquery, where
    * duplicate rows collapse before anything is added up.
    *
-   * The subquery is skipped when the query is flat — every read by a user with
-   * no label-scoped allow grant and no `@CanAccessIfCanReadOn` relation, which
-   * is the hot path, and the block half above with it — so the ordinary
-   * full-fleet aggregate stays a single sequential scan.
+   * The subquery is skipped when the query is flat — every read with no
+   * `@CanAccessIfCanReadOn` relation and no filter through a relation of many
+   * records, which is the hot path, and the label rules above with it — so
+   * the ordinary full-fleet aggregate stays a single sequential scan.
    */
   private buildAggregateScope(
     query: Query<TBaseModel>,
