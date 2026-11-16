@@ -14,7 +14,6 @@
  */
 
 export const ROLLUP_JOB_NAME: string = "EmailRollup:FlushDueRollups";
-export const ROLLUP_SWEEP_LOCK_NAMESPACE: string = "Workers.Cron";
 
 /*
  * The FIRST BURST_THRESHOLD rollup-eligible owner emails for one
@@ -100,18 +99,17 @@ export const MAX_DISCOVERY_PAGES_PER_TICK: number = 4;
  *
  * MailService.sendMail is an HTTP POST to the notification service with no
  * timeout of its own, so a hung connection would hang this await forever. That
- * matters more here than anywhere else the product sends mail, because the
- * sweep holds a Redis mutex whose lock is auto-refreshed while it is held: a
- * single wedged send would therefore stop EVERY replica from flushing ANY
- * recipient's rollup, indefinitely, while the queue behind it grew and its
- * oldest rows aged out of retention unsent. One minute is far longer than a
- * healthy send and far shorter than the sweep's budget.
+ * matters more here than anywhere else the product sends mail: one sweep runs
+ * at a time (RunCron), and a single wedged send would hold that sweep past
+ * its deadline - it stops only between buckets - so no replica would flush
+ * ANY recipient's rollup until the run's lease lapsed, while the queue behind
+ * it grew. One minute is far longer than a healthy send and far shorter than
+ * the sweep's budget.
  */
 export const ROLLUP_SEND_TIMEOUT_MS: number = 60 * 1000;
 
 export const ROLLUP_SWEEP_BUDGET_MS: number = 3 * 60 * 1000;
 export const ROLLUP_JOB_TIMEOUT_MS: number = 4 * 60 * 1000; // below JobDictionary's 5-min default
-export const ROLLUP_SWEEP_LOCK_TIMEOUT_MS: number = 5 * 60 * 1000; // outlives the job timeout
 export const ROLLUP_ITEM_RETENTION_DAYS: number = 7;
 export const ROLLUP_BATCH_RETENTION_DAYS: number = 30;
 export const ROLLUP_SUBJECT_MAX_LENGTH: number = 500; // ColumnLength.LongText

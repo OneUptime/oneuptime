@@ -1,5 +1,4 @@
 import DatabaseConfig from "../../DatabaseConfig";
-import Semaphore, { SemaphoreMutex } from "../../Infrastructure/Semaphore";
 import MailService from "../../Services/MailService";
 import ProjectService from "../../Services/ProjectService";
 import UserEmailService from "../../Services/UserEmailService";
@@ -8,6 +7,7 @@ import UserNotificationEmailRollupItemService from "../../Services/UserNotificat
 import UserNotificationSettingService from "../../Services/UserNotificationSettingService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import PostgresErrorTranslator from "../Database/PostgresErrorTranslator";
+import JobDeadline from "../JobDeadline";
 import logger from "../Logger";
 import ProjectMembership, {
   ProjectUserPair,
@@ -23,8 +23,6 @@ import {
   ROLLUP_JOB_NAME,
   ROLLUP_SEND_TIMEOUT_MS,
   ROLLUP_SWEEP_BUDGET_MS,
-  ROLLUP_SWEEP_LOCK_NAMESPACE,
-  ROLLUP_SWEEP_LOCK_TIMEOUT_MS,
 } from "./EmailRollupConstants";
 import { buildRollupEmail, RollupEmail } from "./EmailRollupRenderer";
 import Project from "../../../Models/DatabaseModels/Project";
@@ -75,10 +73,11 @@ import Text from "../../../Types/Text";
  *      replica renders exactly the rows it wrote and never a row a concurrent
  *      flush stamped underneath it.
  *
- *   3. The Redis sweep lock, which is an OPTIMISATION and nothing more: it
- *      stops N replicas doing the same scan every minute. If Redis is down
- *      the tick is skipped and the next one covers the same work; if the lock
- *      were removed entirely, layers 1 and 2 would still be correct.
+ *   3. One sweep at a time, which is an OPTIMISATION and nothing more: it
+ *      stops N replicas doing the same scan every minute. RunCron provides it
+ *      for every scheduled job (CronLock's lease, issue #8103), so the runner
+ *      takes no lock of its own any more; if two sweeps did overlap, layers 1
+ *      and 2 would still be correct.
  *
  * WHAT IS DELIBERATELY NOT USED: a conditional updateOneBy as a
  * compare-and-swap. DatabaseService._updateBy resolves its predicate in a
@@ -146,6 +145,11 @@ export interface RollupSweepStats {
   errors: number;
   // True when the wall-clock budget ended the loop before every bucket ran.
   budgetExhausted: boolean;
+  /*
+   * True when the run's deadline - its time limit, or its lease lost - ended
+   * the sweep before every page was read or every bucket ran.
+   */
+  stoppedAtDeadline: boolean;
 }
 
 const MILLISECONDS_PER_MINUTE: number = 60 * 1000;
@@ -161,55 +165,22 @@ const STATUS_MESSAGE_MAX_LENGTH: number = ColumnLength.LongText;
 
 export default class EmailRollupFlushRunner {
   /**
-   * The once-a-minute cron body: one sweep under a cross-replica lock.
+   * One sweep - the once-a-minute cron body: discover the due buckets
+   * oldest-first and flush each of them once. Never throws for one bucket's
+   * bad data - a bucket that fails is logged and the rest of the tick
+   * continues.
    *
-   * The lock is an OPTIMISATION, not a correctness mechanism. It exists so
-   * that N replicas do not all run the same scan every minute; the claim
-   * insert underneath it is what actually makes a rollup exactly-once. A held
-   * lock or an unreachable Redis therefore just skips the tick - the holder is
-   * covering the same work, and if nobody is, the next tick will.
-   */
-  @CaptureSpan()
-  public static async runSweepUnderLock(options?: {
-    now?: Date | undefined;
-  }): Promise<RollupSweepStats | null> {
-    let mutex: SemaphoreMutex | null = null;
-
-    try {
-      mutex = await Semaphore.lock({
-        key: ROLLUP_JOB_NAME,
-        namespace: ROLLUP_SWEEP_LOCK_NAMESPACE,
-        lockTimeout: ROLLUP_SWEEP_LOCK_TIMEOUT_MS,
-        acquireAttemptsLimit: 1,
-      });
-    } catch (err) {
-      logger.debug(
-        `${ROLLUP_JOB_NAME}: could not acquire the sweep lock; a sweep is already in flight (or Redis is unavailable). Skipping this run: ${err}`,
-      );
-      return null;
-    }
-
-    try {
-      return await EmailRollupFlushRunner.runSweep(options);
-    } finally {
-      try {
-        await Semaphore.release(mutex);
-      } catch (err) {
-        logger.error(
-          `${ROLLUP_JOB_NAME}: error releasing the sweep lock: ${err}`,
-        );
-      }
-    }
-  }
-
-  /**
-   * One sweep: discover the due buckets oldest-first and flush each of them
-   * once. Never throws for one bucket's bad data - a bucket that fails is
-   * logged and the rest of the tick continues.
+   * The sweep stops between discovery pages and between buckets once the
+   * run's `deadline` has passed - its time limit, or its lease lost (RunCron,
+   * CronLock) - as it does once its own wall-clock budget is spent: a bucket
+   * in flight finishes, and the rest is still due for the next tick. No lock
+   * of its own: RunCron already runs one sweep at a time, and the claim
+   * insert is what makes a rollup exactly-once.
    */
   @CaptureSpan()
   public static async runSweep(options?: {
     now?: Date | undefined;
+    deadline?: JobDeadline | undefined;
   }): Promise<RollupSweepStats> {
     const now: Date = options?.now || OneUptimeDate.getCurrentDate();
     const startMs: number = Date.now();
@@ -239,8 +210,15 @@ export default class EmailRollupFlushRunner {
     const seen: Set<string> = new Set<string>();
     const buckets: Array<RollupBucket> = [];
     let itemsScanned: number = 0;
+    let stoppedAtDeadline: boolean = false;
 
     for (let page: number = 0; page < MAX_DISCOVERY_PAGES_PER_TICK; page++) {
+      // Between pages: what was found so far is still flushed below.
+      if (options?.deadline?.hasPassed()) {
+        stoppedAtDeadline = true;
+        break;
+      }
+
       const due: Array<UserNotificationEmailRollupItem> =
         await UserNotificationEmailRollupItemService.findBy({
           query: {
@@ -334,9 +312,18 @@ export default class EmailRollupFlushRunner {
       claimCollisions: 0,
       errors: 0,
       budgetExhausted: false,
+      stoppedAtDeadline: stoppedAtDeadline,
     };
 
     for (const bucket of bucketsThisTick) {
+      if (options?.deadline?.hasPassed()) {
+        stats.stoppedAtDeadline = true;
+        logger.warn(
+          `${ROLLUP_JOB_NAME}: the run's deadline has passed after ${stats.bucketsProcessed} of ${bucketsThisTick.length} bucket(s); the rest are picked up next tick.`,
+        );
+        break;
+      }
+
       if (Date.now() - startMs > ROLLUP_SWEEP_BUDGET_MS) {
         stats.budgetExhausted = true;
         logger.warn(

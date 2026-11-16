@@ -6,10 +6,8 @@ import {
   CLAIM_EPOCH_MINUTES,
   FLUSH_AFTER_MINUTES,
   MAX_ITEMS_PER_ROLLUP,
-  ROLLUP_JOB_NAME,
-  ROLLUP_SWEEP_LOCK_NAMESPACE,
-  ROLLUP_SWEEP_LOCK_TIMEOUT_MS,
 } from "../../../../Server/Utils/EmailRollup/EmailRollupConstants";
+import JobDeadline from "../../../../Server/Utils/JobDeadline";
 import { RollupBatchStatus } from "../../../../Models/DatabaseModels/UserNotificationEmailRollupBatch";
 import OneUptimeDate from "../../../../Types/Date";
 import Email from "../../../../Types/Email";
@@ -56,10 +54,13 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  *      than the flush delay) or the twelve-per-hour ceiling stops being true
  *      (epoch shorter).
  *
- *   4. A HELD LOCK MUST BE A NO-OP, NOT A HALF-SWEEP. And a lock that is taken
- *      must always be released, including when the sweep throws - a leaked
- *      Redis lock stops every replica from flushing for its whole five-minute
- *      timeout, which is a self-inflicted outage of the feature.
+ *   4. ONE SWEEP AT A TIME IS RUNCRON'S, AND A SWEEP STOPS AT ITS DEADLINE.
+ *      The runner takes no lock of its own (issue #8103): RunCron runs one
+ *      sweep at a time under its lease, and the claim insert, not a lock, is
+ *      what makes a rollup exactly-once. Once the run's deadline has passed -
+ *      its time limit, or its lease lost - the sweep reads no further page and
+ *      starts no further bucket; what it did not reach is still due, and
+ *      flushed whole by the next tick.
  *
  * Everything here drives the REAL runner through the in-memory harness, whose
  * batch table enforces the unique index the way Postgres does.
@@ -364,55 +365,89 @@ describe("EmailRollupFlushRunner - the epoch claim", () => {
 
   /*
    * ----------------------------------------------------------------------- *
-   * (D) The sweep lock.
+   * (D) One sweep at a time, and the run's deadline.
    * -----------------------------------------------------------------------
    */
 
-  describe("runSweepUnderLock", () => {
-    test("takes the lock with acquireAttemptsLimit 1, keyed on the job name", async () => {
+  describe("runSweep and the run", () => {
+    test("takes no lock of its own: one sweep at a time is RunCron's", async () => {
       seedDueItem({ minutesAgo: 12 });
 
-      await EmailRollupFlushRunner.runSweepUnderLock({ now: NOW });
-
-      expect(harness.lockCalls).toHaveLength(1);
-      expect(harness.lockCalls[0]).toEqual({
-        key: ROLLUP_JOB_NAME,
-        namespace: ROLLUP_SWEEP_LOCK_NAMESPACE,
-        lockTimeout: ROLLUP_SWEEP_LOCK_TIMEOUT_MS,
-        acquireAttemptsLimit: 1,
+      const stats: RollupSweepStats = await EmailRollupFlushRunner.runSweep({
+        now: NOW,
+        deadline: new JobDeadline(),
       });
+
+      expect(stats.sent).toBe(1);
+      expect(stats.stoppedAtDeadline).toBe(false);
+      expect(harness.lockCalls).toHaveLength(0);
+      expect(harness.releasedMutexes).toHaveLength(0);
     });
 
-    test("a lock it cannot take skips the whole tick and touches nothing", async () => {
+    test("a deadline that passed before it started reads nothing and sends nothing", async () => {
       seedDueItem({ minutesAgo: 12 });
-      harness.lockAvailable = false;
 
-      const stats: RollupSweepStats | null =
-        await EmailRollupFlushRunner.runSweepUnderLock({ now: NOW });
+      const deadline: JobDeadline = new JobDeadline();
+      deadline.end();
 
-      expect(stats).toBeNull();
+      const stats: RollupSweepStats = await EmailRollupFlushRunner.runSweep({
+        now: NOW,
+        deadline: deadline,
+      });
+
+      expect(stats.stoppedAtDeadline).toBe(true);
       expect(harness.itemFindByCalls).toBe(0);
       expect(harness.batchCreateCalls).toBe(0);
       expect(harness.sendAttempts).toHaveLength(0);
-      expect(harness.releasedMutexes).toHaveLength(0);
-
-      /*
-       * Debug, not error: Redis being briefly unavailable is an expected
-       * operating condition for an optimisation, and the next tick covers it.
-       */
-      expect(harness.errors).toHaveLength(0);
-      expect(harness.debugs.join(" ")).toContain(ROLLUP_JOB_NAME);
+      // Still due: the next tick flushes it.
+      expect(pendingItems(harness)).toHaveLength(1);
     });
 
-    test("releases the lock after a normal sweep", async () => {
+    test("stops before the next bucket once the deadline has passed, and leaves the rest due", async () => {
+      seedDueItem({ minutesAgo: 30, subject: "first bucket" });
+      seedDueItem({
+        minutesAgo: 20,
+        subject: "second bucket",
+        userId: OTHER_USER_ID,
+        toEmail: OTHER_EMAIL,
+      });
+
+      const deadline: JobDeadline = new JobDeadline();
+
+      // The time limit runs out while the first bucket is being sent.
+      harness.failSend = (): null => {
+        deadline.end();
+        return null;
+      };
+
+      const stats: RollupSweepStats = await EmailRollupFlushRunner.runSweep({
+        now: NOW,
+        deadline: deadline,
+      });
+
+      expect(stats.stoppedAtDeadline).toBe(true);
+      expect(stats.bucketsDue).toBe(2);
+      expect(stats.bucketsProcessed).toBe(1);
+      expect(harness.sent).toHaveLength(1);
+      // The bucket in flight finished whole; the other is still due.
+      expect(pendingItems(harness)).toHaveLength(1);
+      expect(harness.warnings.join(" ")).toContain(
+        "the run's deadline has passed",
+      );
+    });
+
+    test("with no deadline handed, a sweep runs to the end", async () => {
       seedDueItem({ minutesAgo: 12 });
 
-      await EmailRollupFlushRunner.runSweepUnderLock({ now: NOW });
+      const stats: RollupSweepStats = await EmailRollupFlushRunner.runSweep({
+        now: NOW,
+      });
 
-      expect(harness.releasedMutexes).toHaveLength(1);
+      expect(stats.sent).toBe(1);
+      expect(stats.stoppedAtDeadline).toBe(false);
     });
 
-    test("releases the lock in finally even when the sweep throws", async () => {
+    test("passes a failure to read what is due on, so the run is marked failed", async () => {
       const failure: Error = new Error("the pending scan blew up");
 
       jest
@@ -420,10 +455,8 @@ describe("EmailRollupFlushRunner - the epoch claim", () => {
         .mockRejectedValue(failure as never);
 
       await expect(
-        EmailRollupFlushRunner.runSweepUnderLock({ now: NOW }),
+        EmailRollupFlushRunner.runSweep({ now: NOW }),
       ).rejects.toThrow(failure);
-
-      expect(harness.releasedMutexes).toHaveLength(1);
     });
   });
 
