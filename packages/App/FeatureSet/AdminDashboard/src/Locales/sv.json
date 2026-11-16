@@ -340,7 +340,7 @@
       "fieldMeteredSubscriptionId": "ID för förbrukningsbaserad prenumeration",
       "noTrial": "Inte i provperiod",
       "changePlanTitle": "Byt plan",
-      "changePlanDescription": "Flytta det här projektet till en annan plan. En pågående provperiod fortsätter; annars faktureras den nya planen från och med nu, proportionellt på nästa faktura. Kunden behöver ingen registrerad betalningsmetod: det kunden är skyldig väntar tills en har lagts till.",
+      "changePlanDescription": "Flytta det här projektet till en annan plan, proportionellt på nästa faktura. En pågående provperiod fortsätter. Ingen betalningsmetod behövs: avgifterna väntar tills en har lagts till.",
       "changePlanSubmitButton": "Byt plan",
       "changePlanSuccess": "Planen har bytts till {{plan}}.",
       "changePlanFailure": "Planen byttes inte. Försök igen.",

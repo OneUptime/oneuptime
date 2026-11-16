@@ -56444,5 +56444,7 @@
   "Test message not sent": "テストメッセージを送信できませんでした",
   "No projects yet": "プロジェクトはまだありません",
   "Open (pull request)": "オープン",
-  "Welcome to OneUptime": "OneUptime へようこそ"
+  "Welcome to OneUptime": "OneUptime へようこそ",
+  "None of this SLO's services sent an event of its metric in these months. Pick a later period, or wait for their metrics to arrive.": "この SLO のどのサービスも、これらの月にメトリクスのイベントを送信していません。もっと後の期間を選ぶか、メトリクスが届くまでお待ちください。",
+  "Riskier fixes, such as stopping something or scaling it to zero, and every fix through an MCP server run only once two different people approve them.": "停止やゼロへのスケールなどリスクの高い修正と、MCP サーバー経由の修正は、2 人の異なるユーザーが承認するまで実行されません。"
 }

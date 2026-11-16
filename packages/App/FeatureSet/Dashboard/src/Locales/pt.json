@@ -56444,5 +56444,7 @@
   "Test message not sent": "Mensagem de teste não enviada",
   "No projects yet": "Nenhum projeto ainda",
   "Open (pull request)": "Aberto",
-  "Welcome to OneUptime": "Boas-vindas ao OneUptime"
+  "Welcome to OneUptime": "Boas-vindas ao OneUptime",
+  "None of this SLO's services sent an event of its metric in these months. Pick a later period, or wait for their metrics to arrive.": "Nenhum dos serviços deste SLO enviou um evento da métrica dele nestes meses. Escolha um período posterior, ou aguarde a chegada das métricas deles.",
+  "Riskier fixes, such as stopping something or scaling it to zero, and every fix through an MCP server run only once two different people approve them.": "Correções mais arriscadas, como parar algo ou escalá-lo para zero, e qualquer correção por meio de um servidor MCP só são executadas depois que duas pessoas diferentes as aprovam."
 }

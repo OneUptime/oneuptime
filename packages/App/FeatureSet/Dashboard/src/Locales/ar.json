@@ -56444,5 +56444,7 @@
   "Test message not sent": "لم تُرسَل الرسالة التجريبية",
   "No projects yet": "لا توجد مشاريع بعد",
   "Open (pull request)": "مفتوح",
-  "Welcome to OneUptime": "مرحبًا بك في OneUptime"
+  "Welcome to OneUptime": "مرحبًا بك في OneUptime",
+  "None of this SLO's services sent an event of its metric in these months. Pick a later period, or wait for their metrics to arrive.": "لم ترسل أي من خدمات هدف SLO هذا حدثًا من مقياسه في هذه الأشهر. اختر فترة لاحقة، أو انتظر وصول مقاييسها.",
+  "Riskier fixes, such as stopping something or scaling it to zero, and every fix through an MCP server run only once two different people approve them.": "لا تُشغَّل الإصلاحات الأكثر خطورة، مثل إيقاف شيء أو تقليص حجمه إلى الصفر، ولا أي إصلاح عبر خادم MCP، إلا بعد موافقة شخصين مختلفين."
 }

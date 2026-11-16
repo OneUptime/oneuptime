@@ -56444,5 +56444,7 @@
   "Test message not sent": "테스트 메시지를 보내지 못했습니다",
   "No projects yet": "아직 프로젝트가 없습니다",
   "Open (pull request)": "열림",
-  "Welcome to OneUptime": "OneUptime에 오신 것을 환영합니다"
+  "Welcome to OneUptime": "OneUptime에 오신 것을 환영합니다",
+  "None of this SLO's services sent an event of its metric in these months. Pick a later period, or wait for their metrics to arrive.": "이 기간 동안 이 SLO의 서비스 중 메트릭 이벤트를 보낸 서비스가 없습니다. 더 이후 기간을 선택하거나 메트릭이 도착할 때까지 기다리세요.",
+  "Riskier fixes, such as stopping something or scaling it to zero, and every fix through an MCP server run only once two different people approve them.": "중지나 0으로 스케일링처럼 위험이 큰 수정과 MCP 서버를 통한 모든 수정은 서로 다른 두 사람이 승인해야만 실행됩니다."
 }
