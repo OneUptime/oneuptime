@@ -13,6 +13,8 @@ import {
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import UpdateByID from "../../../Server/Types/Database/UpdateByID";
 import MasterApiKey from "../../../Server/Utils/MasterApiKey";
+import UserService from "../../../Server/Services/UserService";
+import User from "../../../Models/DatabaseModels/User";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
@@ -39,6 +41,10 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
  *   - createMasterApiKey makes a random key, stores its hash, turns it on
  *     and answers the key - which is in nothing it writes;
  *   - getMasterApiKeyState says whether there is one, never what it is.
+ *
+ * And which key it is (#8903): createMasterApiKey records when it was made,
+ * by whom and its hint, which the generic API neither writes nor reads
+ * either, and getMasterApiKeyState answers them, with the maker's name.
  */
 
 type GlobalConfigServiceWithHooks = {
@@ -106,14 +112,25 @@ afterEach(() => {
 });
 
 describe("ROOT_ONLY_MASTER_API_KEY_COLUMNS", () => {
-  test("is the master API key's column", () => {
-    expect([...ROOT_ONLY_MASTER_API_KEY_COLUMNS]).toEqual(["masterApiKey"]);
+  test("is the master API key's column, and which key it is: when made, by whom, its hint", () => {
+    expect([...ROOT_ONLY_MASTER_API_KEY_COLUMNS]).toEqual([
+      "masterApiKey",
+      "masterApiKeyCreatedAt",
+      "masterApiKeyCreatedByUserId",
+      "masterApiKeyHint",
+    ]);
   });
 
   test("which no permission reads or writes by its own column ACL either", () => {
-    expect(
-      new GlobalConfig().getColumnAccessControlFor("masterApiKey"),
-    ).toEqual(expect.objectContaining({ create: [], read: [], update: [] }));
+    for (const column of ROOT_ONLY_MASTER_API_KEY_COLUMNS) {
+      expect([
+        column,
+        new GlobalConfig().getColumnAccessControlFor(column as string),
+      ]).toEqual([
+        column,
+        expect.objectContaining({ create: [], read: [], update: [] }),
+      ]);
+    }
   });
 });
 
@@ -163,6 +180,31 @@ describe("writes through the API", () => {
       new NotAuthorizedException(MASTER_API_KEY_WRITTEN_HERE_MESSAGE),
     );
   });
+
+  test.each([
+    ["when it was made", { masterApiKeyCreatedAt: new Date() }],
+    [
+      "who made it: someone else",
+      { masterApiKeyCreatedByUserId: ObjectID.generate() },
+    ],
+    ["who made it: nobody", { masterApiKeyCreatedByUserId: null }],
+    ["its hint", { masterApiKeyHint: "2b34" }],
+  ])(
+    "a master admin's update of %s is refused: the key's record is OneUptime's",
+    async (_label: string, data: Record<string, unknown>) => {
+      await expect(
+        hooks.onBeforeUpdate(makeUpdateBy(data, MASTER_ADMIN_PROPS)),
+      ).rejects.toThrow(
+        new NotAuthorizedException(MASTER_API_KEY_WRITTEN_HERE_MESSAGE),
+      );
+      await expect(
+        hooks.onBeforeCreate({
+          data: data as unknown as GlobalConfig,
+          props: MASTER_ADMIN_PROPS,
+        } as CreateBy<GlobalConfig>),
+      ).rejects.toBeInstanceOf(NotAuthorizedException);
+    },
+  );
 
   test("turning the key on or off is not affected: the switch is the admin's", async () => {
     await expect(
@@ -249,6 +291,28 @@ describe("reads through the API", () => {
     expect(result.findBy.query).toEqual({ _id: ZERO_ID });
   });
 
+  test("nor which key it is: when it was made, by whom, its hint", async () => {
+    const result: OnFind<GlobalConfig> = await hooks.onBeforeFind(
+      makeFindBy(
+        {
+          _id: true,
+          masterApiKeyCreatedAt: true,
+          masterApiKeyCreatedByUserId: true,
+          masterApiKeyHint: true,
+          isMasterApiKeyEnabled: true,
+        },
+        { masterApiKeyHint: "2b34" },
+        MASTER_ADMIN_PROPS,
+      ),
+    );
+
+    expect(Object.keys(result.findBy.select || {}).sort()).toEqual([
+      "_id",
+      "isMasterApiKeyEnabled",
+    ]);
+    expect(result.findBy.query).toEqual({});
+  });
+
   test("the branding columns are still dropped with it", async () => {
     const result: OnFind<GlobalConfig> = await hooks.onBeforeFind(
       makeFindBy(
@@ -316,6 +380,9 @@ describe("createMasterApiKey", () => {
     expect(Object.keys(call.data).sort()).toEqual([
       "isMasterApiKeyEnabled",
       "masterApiKey",
+      "masterApiKeyCreatedAt",
+      "masterApiKeyCreatedByUserId",
+      "masterApiKeyHint",
     ]);
     expect(call.data.isMasterApiKeyEnabled).toBe(true);
 
@@ -331,6 +398,44 @@ describe("createMasterApiKey", () => {
         storedValue: stored.toString(),
       }),
     ).toBe(true);
+  });
+
+  test("records when the key was made, by the master admin who made it, and its hint", async () => {
+    const update: jest.SpiedFunction<UpdateOneById> = spyUpdate(1);
+    const madeBy: ObjectID = ObjectID.generate();
+    const before: number = Date.now();
+
+    const key: string = await GlobalConfigService.createMasterApiKey({
+      createdByUserId: madeBy,
+    });
+    const call: UpdateByID<GlobalConfig> = written(update);
+
+    expect(call.data.masterApiKeyCreatedByUserId?.toString()).toBe(
+      madeBy.toString(),
+    );
+    expect(call.data.masterApiKeyHint).toBe(key.slice(-4));
+    expect(call.data.masterApiKeyHint).toBe(MasterApiKey.getHint(key));
+
+    const madeAt: number = (call.data.masterApiKeyCreatedAt as Date).getTime();
+
+    expect(madeAt).toBeGreaterThanOrEqual(before);
+    expect(madeAt).toBeLessThanOrEqual(Date.now());
+  });
+
+  test("made by nobody - no master admin named - says so, rather than keep the maker of the key before", async () => {
+    for (const data of [undefined, {}, { createdByUserId: null }]) {
+      const update: jest.SpiedFunction<UpdateOneById> = spyUpdate(1);
+
+      await GlobalConfigService.createMasterApiKey(data);
+
+      const call: UpdateByID<GlobalConfig> = written(update);
+
+      // Written, as null: the column is cleared, not left as it was.
+      expect(Object.keys(call.data)).toContain("masterApiKeyCreatedByUserId");
+      expect(call.data.masterApiKeyCreatedByUserId).toBeNull();
+
+      update.mockRestore();
+    }
   });
 
   test("writes nothing that holds the key", async () => {
@@ -394,6 +499,35 @@ describe("getMasterApiKeyState", () => {
     >;
   };
 
+  // The users the state names, by id: none unless a test adds one.
+  const answerUsers: (
+    users: Record<string, { name?: string; email?: string }>,
+  ) => jest.SpiedFunction<(...args: Array<unknown>) => Promise<unknown>> = (
+    users: Record<string, { name?: string; email?: string }>,
+  ): jest.SpiedFunction<(...args: Array<unknown>) => Promise<unknown>> => {
+    return getJestSpyOn(UserService, "findOneById").mockImplementation(
+      (async (findOneById: { id: ObjectID }): Promise<User | null> => {
+        const found: { name?: string; email?: string } | undefined =
+          users[findOneById.id.toString()];
+
+        return found
+          ? (Object.assign(new User(), found) as unknown as User)
+          : null;
+      }) as never,
+    ) as unknown as jest.SpiedFunction<
+      (...args: Array<unknown>) => Promise<unknown>
+    >;
+  };
+
+  const MADE_AT: Date = new Date("2026-11-16T09:30:00.000Z");
+  const ADA: ObjectID = ObjectID.generate();
+
+  // What the state says of which key it is, while it does not know.
+  const UNKNOWN_KEY: Pick<
+    MasterApiKeyState,
+    "createdAt" | "createdByName" | "hint"
+  > = { createdAt: null, createdByName: null, hint: null };
+
   test("says a key is set, and on, never what it is", async () => {
     const find: jest.SpiedFunction<
       (...args: Array<unknown>) => Promise<unknown>
@@ -405,14 +539,106 @@ describe("getMasterApiKeyState", () => {
     const state: MasterApiKeyState =
       await GlobalConfigService.getMasterApiKeyState();
 
-    expect(state).toEqual({ isSet: true, isEnabled: true });
+    expect(state).toEqual({ isSet: true, isEnabled: true, ...UNKNOWN_KEY });
     expect(JSON.stringify(state)).not.toContain(MasterApiKey.hash(KEY));
 
     expect(find).toHaveBeenCalledWith({
       id: ObjectID.getZeroObjectID(),
-      select: { masterApiKey: true, isMasterApiKeyEnabled: true },
+      select: {
+        masterApiKey: true,
+        isMasterApiKeyEnabled: true,
+        masterApiKeyCreatedAt: true,
+        masterApiKeyCreatedByUserId: true,
+        masterApiKeyHint: true,
+      },
       props: { isRoot: true },
     });
+  });
+
+  test("says which key it is: when it was made, by whom - by name - and its hint", async () => {
+    answerRow({
+      masterApiKey: new HashedString(MasterApiKey.hash(KEY), true),
+      isMasterApiKeyEnabled: true,
+      masterApiKeyCreatedAt: MADE_AT,
+      masterApiKeyCreatedByUserId: ADA,
+      masterApiKeyHint: "2b34",
+    });
+    const findUser: jest.SpiedFunction<
+      (...args: Array<unknown>) => Promise<unknown>
+    > = answerUsers({
+      [ADA.toString()]: { name: "Ada Lovelace", email: "ada@example.com" },
+    });
+
+    const state: MasterApiKeyState =
+      await GlobalConfigService.getMasterApiKeyState();
+
+    expect(state).toEqual({
+      isSet: true,
+      isEnabled: true,
+      createdAt: MADE_AT,
+      createdByName: "Ada Lovelace",
+      hint: "2b34",
+    });
+    // The maker is read as OneUptime, for their name and email alone.
+    expect(findUser).toHaveBeenCalledWith({
+      id: ADA,
+      select: { name: true, email: true },
+      props: { isRoot: true },
+    });
+  });
+
+  test("a maker with no name is named by their email", async () => {
+    answerRow({
+      masterApiKey: new HashedString(MasterApiKey.hash(KEY), true),
+      isMasterApiKeyEnabled: true,
+      masterApiKeyCreatedAt: MADE_AT,
+      masterApiKeyCreatedByUserId: ADA,
+      masterApiKeyHint: "2b34",
+    });
+    answerUsers({ [ADA.toString()]: { email: "ada@example.com" } });
+
+    expect(
+      (await GlobalConfigService.getMasterApiKeyState()).createdByName,
+    ).toBe("ada@example.com");
+  });
+
+  test("a maker who was since deleted is named by nobody: the key was made, not by whom", async () => {
+    answerRow({
+      masterApiKey: new HashedString(MasterApiKey.hash(KEY), true),
+      isMasterApiKeyEnabled: true,
+      masterApiKeyCreatedAt: MADE_AT,
+      masterApiKeyCreatedByUserId: ADA,
+      masterApiKeyHint: "2b34",
+    });
+    answerUsers({});
+
+    const state: MasterApiKeyState =
+      await GlobalConfigService.getMasterApiKeyState();
+
+    expect(state.createdAt).toEqual(MADE_AT);
+    expect(state.createdByName).toBeNull();
+    expect(state.hint).toBe("2b34");
+  });
+
+  test("a key the data migration hashed has its hint, and no time or maker: nobody recorded them", async () => {
+    answerRow({
+      masterApiKey: new HashedString(MasterApiKey.hash(KEY), true),
+      isMasterApiKeyEnabled: true,
+      masterApiKeyHint: "2b34",
+    });
+    const findUser: jest.SpiedFunction<
+      (...args: Array<unknown>) => Promise<unknown>
+    > = answerUsers({});
+
+    expect(await GlobalConfigService.getMasterApiKeyState()).toEqual({
+      isSet: true,
+      isEnabled: true,
+      createdAt: null,
+      createdByName: null,
+      hint: "2b34",
+    });
+    // Nobody to look up.
+    expect(findUser).not.toHaveBeenCalled();
   });
 
   test("a key stored before keys were hashed is a key set too", async () => {
@@ -424,6 +650,7 @@ describe("getMasterApiKeyState", () => {
     expect(await GlobalConfigService.getMasterApiKeyState()).toEqual({
       isSet: true,
       isEnabled: true,
+      ...UNKNOWN_KEY,
     });
   });
 
@@ -436,16 +663,27 @@ describe("getMasterApiKeyState", () => {
     expect(await GlobalConfigService.getMasterApiKeyState()).toEqual({
       isSet: true,
       isEnabled: false,
+      ...UNKNOWN_KEY,
     });
   });
 
-  test("says there is none when there is none", async () => {
-    answerRow({ isMasterApiKeyEnabled: true });
+  test("says there is none when there is none - and nothing of a key cleared", async () => {
+    answerRow({
+      isMasterApiKeyEnabled: true,
+      masterApiKeyCreatedAt: MADE_AT,
+      masterApiKeyCreatedByUserId: ADA,
+      masterApiKeyHint: "2b34",
+    });
+    const findUser: jest.SpiedFunction<
+      (...args: Array<unknown>) => Promise<unknown>
+    > = answerUsers({ [ADA.toString()]: { name: "Ada Lovelace" } });
 
     expect(await GlobalConfigService.getMasterApiKeyState()).toEqual({
       isSet: false,
       isEnabled: true,
+      ...UNKNOWN_KEY,
     });
+    expect(findUser).not.toHaveBeenCalled();
   });
 
   test("and when the server's settings are not there at all", async () => {
@@ -454,6 +692,7 @@ describe("getMasterApiKeyState", () => {
     expect(await GlobalConfigService.getMasterApiKeyState()).toEqual({
       isSet: false,
       isEnabled: false,
+      ...UNKNOWN_KEY,
     });
   });
 });

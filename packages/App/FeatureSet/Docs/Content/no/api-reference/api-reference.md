@@ -35,7 +35,7 @@ Alle API-forespørsler autentiseres med en API-nøkkel. En nøkkel hører til et
 
 ### Kopier nøkkelen
 
-Nøkkelens side åpnes. Kopier **API-nøkkel** fra kortet **API-nøkkeldetaljer**, og hold den unna koden din:
+OneUptime viser nøkkelen én gang, i dialogen **Kopier API-nøkkelen din**: kopier den før du trykker på **Ferdig**, for ingen side viser den igjen. Hold den unna koden din:
 
 ```bash
 export ONEUPTIME_API_KEY="your-api-key"
@@ -93,7 +93,7 @@ Et felt i en post som ressursen nevner, filtreres under relasjonen: `"user": { "
 
 En ressurs med eiere - en monitor, en hendelse, en vaktpolicy og enhver annen med bruker- og teameiere - filtreres også etter hvem som eier den, under `owners`: `"owners": { "_type": "OwnedBy", "userIds": ["..."], "teamIds": ["..."] }` finner postene som én eller flere av de personene og teamene eier. `match` er `AnyOf` med mindre du setter den: `NoneOf` finner postene som ingen av dem eier, også poster uten eiere, og `AnyOwner` og `NoOwner` finner postene med en eier eller uten, uten å nevne noen. Medlemmene i et team er ikke eiere av det teamet eier. Ett filter nevner høyst 1 000 personer og team til sammen, en ressurs uten eiere avviser det med en `400`, og å filtrere etter eiere uten tillatelse til å lese dem avvises med en `422`.
 
-`select` nevner feltene som skal returneres, og `_id` kommer alltid med. `sort` ordner dem, `ASC` eller `DESC`; uten sortering kommer de nyeste først. En liste returnerer 10 poster med mindre du setter `limit`, opptil 10 000, og `skip` hopper først over så mange: fortsett å øke `skip` med `limit` til du har `count` av dem. Legg til `?output-type=csv` i en listeforespørsel for å få CSV i stedet for JSON.
+`select` nevner feltene som skal returneres, og `_id` kommer alltid med. `sort` ordner dem, `ASC` eller `DESC`; uten sortering kommer de nyeste først. En liste returnerer 10 poster med mindre du setter `limit`, opptil 10 000, og `skip` hopper først over så mange: fortsett å øke `skip` med `limit` til du har `count` av dem. På en lang liste tar det tid å telle hvert treff: legg til `countUpTo`, for eksempel `10000`, så stopper tellingen der, eller ved slutten av siden hvis den ligger lenger ut. Når flere poster treffer, er `count` der tellingen stoppet, og svaret har også `"isCountCapped": true`: med `"countUpTo": 1` sier det om det kommer flere poster etter siden. Legg til `?output-type=csv` i en listeforespørsel for å få CSV i stedet for JSON.
 
 Rekkefølgen til et felt kan også si hvor postene uten en verdi i det havner: `{ "declaredAt": { "direction": "DESC", "nulls": "LAST" } }` setter de nyeste først og dem uten verdi sist, og `FIRST` setter dem først. En relasjon til én post sorterer etter et felt i posten den nevner: `{ "incidentSeverity": { "order": "ASC" } }` viser hendelser i rekkefølgen til alvorlighetsgradene deres. En relasjon som bare får en retning, som i `{ "incidentSeverity": "DESC" }`, avvises med en `400` som i stedet nevner et felt å sortere etter, og det samme gjør en relasjon til mange poster, som `labels` for en hendelse: hver hendelse har en liste av dem, og en liste har ikke én verdi å sette hendelser i rekkefølge etter. Å sortere etter et felt krever også tillatelse til å lese det, gjennom en relasjon som på selve ressursen: en sortering etter et felt du ikke har lov til å lese, avvises med en `422`.
 
@@ -341,7 +341,7 @@ Hver ressurs, hvert endepunkt og hvert felt står i [OneUptime API-referansen](/
 ## Feilsøking
 
 :::details Hver forespørsel svarer 400 Invalid API Key
-Headeren `ApiKey` er tom, er ikke en nøkkel, eller nevner en nøkkel som har utløpt eller er tilbakestilt. Kopier nøkkelen på nytt fra siden dens under **Prosjektinnstillinger → Avansert → API-nøkler**, der datoen under **Utløper** også står.
+Headeren `ApiKey` er tom, er ikke en nøkkel, eller nevner en nøkkel som har utløpt eller er tilbakestilt. Finn nøkkelen under **Prosjektinnstillinger → Avansert → API-nøkler** på hvordan den slutter, og sjekk datoen under **Utløper**. En nøkkel du ikke lenger har, kan ikke vises igjen: tilbakestill den på siden dens for å få en ny.
 :::
 
 :::details Hver forespørsel svarer 402 Payment Required

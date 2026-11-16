@@ -89,6 +89,8 @@ flowchart TB
 
 Tjeklisten forsvinder for alle, når hvert trin er færdigt. For at skjule den før, skal du klikke på **Skjul**: den er så kun skjult for dig, på alle enheder, og en linje bliver stående med **Vis den** og **Sådan virker OneUptime**. Folk, der er inviteret til projektet som medlemmer, ser ikke tjeklisten. **Sådan virker OneUptime** er stadig ét klik væk i alle projekter: åbn det fra **Hjælp** eller med knappen ved siden af **Udforsk OneUptime**.
 
+**Sådan virker OneUptime** åbner med **Sådan hænger det sammen**: de fire trin, et problem går igennem, **Opdage**, **Reagere**, **Kommunikere** og **Forbedre**, hver med de produkter, der klarer det. Derefter kommer kategorierne i menuen **Produkter**, hver med sine produkter og hvad hvert produkt er til: vælg en, eller gå videre med piletasterne eller **Næste**. Klik på et produkt for at åbne det. Produkter, som dit projekt skjuler, er udeladt.
+
 ### Kræver opmærksomhed
 
 **Kræver opmærksomhed** viser ved navn det, tallene tæller: de åbne hændelser, de åbne advarsler, de monitorer, der ikke er i drift, SLO'erne i fare og de igangværende vedligeholdelser, det mest presserende først. Hver række viser sin alvor eller status, siger, hvornår en hændelse eller advarsel begyndte, og hvornår vedligeholdelsen slutter, og åbner posten. Hver slags viser op til fem, med **Vis alle** for resten, som åbner den samme liste som dens tal. Når intet er åbent, står der **Intet kræver din opmærksomhed**.

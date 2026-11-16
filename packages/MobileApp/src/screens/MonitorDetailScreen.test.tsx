@@ -14,6 +14,7 @@ import {
   makeFeedItem,
   makeMonitor,
   makeNamedEntityWithColor,
+  makeNeverCheckedMonitor,
 } from "../__tests__/testSupport";
 import { ThemeProvider } from "../theme";
 import { darkColors, lightColors } from "../theme/colors";
@@ -363,15 +364,35 @@ describe("What a loaded monitor puts on screen", () => {
     expect(screen.getAllByText("QuantumEntanglement")).toHaveLength(2);
   });
 
-  test("a known type is shown by its readable name", async () => {
+  test.each([
+    ["Database", "Database Health"],
+    ["Custom JavaScript Code", "Custom JavaScript"],
+  ])(
+    "%j, as the server stores it, is shown by its readable name %j",
+    async (monitorType: string, label: string) => {
+      /*
+       * Keyed by the type's stored name: keyed by the enum's keys
+       * (CustomJavaScriptCode), the names never matched what the server sends.
+       */
+      mockMonitorQuery.current = queryState<MonitorItem>({
+        data: makeMonitor({ monitorType }),
+      });
+
+      await renderScreen();
+
+      expect(screen.getAllByText(label)).toHaveLength(2);
+      expect(screen.queryByText(monitorType)).toBeNull();
+    },
+  );
+
+  test("a type whose stored name reads well already is shown as it is", async () => {
     mockMonitorQuery.current = queryState<MonitorItem>({
-      data: makeMonitor({ monitorType: "SSLCertificate" }),
+      data: makeMonitor({ monitorType: "SSL Certificate" }),
     });
 
     await renderScreen();
 
     expect(screen.getAllByText("SSL Certificate")).toHaveLength(2);
-    expect(screen.queryByText("SSLCertificate")).toBeNull();
   });
 
   test("a monitor with no type at all still has a heading", async () => {
@@ -391,7 +412,8 @@ describe("What a loaded monitor puts on screen", () => {
 
     await renderScreen();
 
-    expect(screen.getByText("Unknown")).toBeTruthy();
+    // In the header and in Details, as the web's row says it.
+    expect(screen.getAllByText("Unknown")).toHaveLength(2);
     expect(screen.queryByText("Operational")).toBeNull();
   });
 });
@@ -418,6 +440,260 @@ describe("A monitor whose active monitoring is switched off", () => {
     await renderScreen();
 
     expect(screen.queryByText("Operational")).toBeNull();
+  });
+});
+
+describe("A monitor no check stands behind (#8961)", () => {
+  /*
+   * A monitor is created in the operational status, so before its first
+   * result the screen said "Operational", in green, twice. It says what the
+   * web's page says now - Waiting for data, No results yet, Paused, Probes
+   * Not Enabled or Probes Disconnected - in the header and in Details, and a
+   * banner says why and what comes next. The screen judges "overdue" on the
+   * phone's clock, so the monitors here are made relative to it.
+   */
+  const MINUTE: number = 60 * 1000;
+  const HOUR: number = 60 * MINUTE;
+
+  function showMonitor(
+    overrides: Partial<MonitorItem> = {},
+    createdAgoMs: number = MINUTE,
+  ): void {
+    mockMonitorQuery.current = queryState<MonitorItem>({
+      data: makeNeverCheckedMonitor(overrides, { createdAgoMs }),
+    });
+  }
+
+  test("says Waiting for data in the header and in Details, never Operational", async () => {
+    showMonitor();
+
+    await renderScreen();
+
+    expect(screen.getAllByText("Waiting for data")).toHaveLength(2);
+    expect(screen.queryByText("Operational")).toBeNull();
+    expect(
+      flatStyle(screen.getByTestId("detail-state-dot")).backgroundColor,
+    ).toBe(lightColors.textTertiary);
+  });
+
+  test("explains that the first result is on its way, by what checks it", async () => {
+    showMonitor();
+
+    await renderScreen();
+
+    expect(screen.getByTestId("monitor-waiting-banner")).toHaveStyle({
+      backgroundColor: lightColors.statusInfoBg,
+      borderRadius: radius.lg,
+    });
+    expect(screen.getByText("Waiting for the first check")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "The first result usually arrives within a few minutes.",
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByTestId("monitor-paused-banner")).toBeNull();
+  });
+
+  test.each([
+    [
+      "Incoming Request",
+      "Waiting for the first heartbeat",
+      "Send a GET or POST request to this monitor's heartbeat URL to start tracking it.",
+    ],
+    [
+      "Incoming Email",
+      "Waiting for the first email",
+      "Send an email to this monitor's address to start tracking it.",
+    ],
+    [
+      "Server",
+      "Waiting for the agent to report",
+      "Install the server agent to start sending reports.",
+    ],
+    [
+      "Logs",
+      "Waiting for the first evaluation",
+      "Its status shows here once the first evaluation has run.",
+    ],
+  ])(
+    "a %s monitor waits for its own first signal",
+    async (monitorType: string, title: string, message: string) => {
+      showMonitor({ monitorType });
+
+      await renderScreen();
+
+      expect(screen.getAllByText("Waiting for data")).toHaveLength(2);
+      expect(screen.getByText(title)).toBeTruthy();
+      expect(screen.getByText(message)).toBeTruthy();
+    },
+  );
+
+  test("says No results yet once the first result is overdue, and since when", async () => {
+    showMonitor({}, 2 * HOUR);
+
+    await renderScreen();
+
+    expect(screen.getAllByText("No results yet")).toHaveLength(2);
+    expect(screen.getByTestId("monitor-no-results-banner")).toHaveStyle({
+      backgroundColor: lightColors.statusWarningBg,
+    });
+    expect(screen.getByText("No check has completed yet")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "No check result has arrived since this monitor was created 2h ago.",
+      ),
+    ).toBeTruthy();
+    expect(
+      flatStyle(screen.getByTestId("detail-state-dot")).backgroundColor,
+    ).toBe(lightColors.statusWarning);
+  });
+
+  test("a telemetry monitor's overdue first result is an evaluation", async () => {
+    showMonitor({ monitorType: "Metrics" }, 2 * HOUR);
+
+    await renderScreen();
+
+    expect(screen.getByText("No evaluation has completed yet")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "No evaluation has run since this monitor was created 2h ago.",
+      ),
+    ).toBeTruthy();
+  });
+
+  test.each([
+    [
+      { disableActiveMonitoringBecauseOfManualIncident: true },
+      "Monitoring is paused by an incident",
+      "Nothing has checked this monitor yet. Checks resume when the incident that paused this monitor is resolved.",
+    ],
+    [
+      { disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true },
+      "Monitoring is paused for scheduled maintenance",
+      "Nothing has checked this monitor yet. Checks resume automatically when the maintenance event ends.",
+    ],
+  ])(
+    "says Paused while %j holds its checks",
+    async (pause: Partial<MonitorItem>, title: string, message: string) => {
+      showMonitor(pause, 2 * HOUR);
+
+      await renderScreen();
+
+      expect(screen.getAllByText("Paused")).toHaveLength(2);
+      expect(
+        screen.getByTestId("monitor-first-check-paused-banner"),
+      ).toBeTruthy();
+      expect(screen.getByText(title)).toBeTruthy();
+      expect(screen.getByText(message)).toBeTruthy();
+    },
+  );
+
+  test.each([
+    [
+      { isNoProbeEnabledOnThisMonitor: true },
+      "Probes Not Enabled",
+      "monitor-no-probe-banner",
+      "Nothing is checking this monitor",
+    ],
+    [
+      { isAllProbesDisconnectedFromThisMonitor: true },
+      "Probes Disconnected",
+      "monitor-probes-disconnected-banner",
+      "Every probe checking this monitor is disconnected",
+    ],
+  ])(
+    "says why no probe checks it: %j",
+    async (
+      flags: Partial<MonitorItem>,
+      words: string,
+      testID: string,
+      title: string,
+    ) => {
+      // Measured once, before its probes stopped: its status is no check's now.
+      showMonitor({ ...flags, firstMeasuredAt: "2026-11-01T00:00:00.000Z" });
+
+      await renderScreen();
+
+      expect(screen.getAllByText(words)).toHaveLength(2);
+      expect(screen.queryByText("Operational")).toBeNull();
+      expect(screen.getByTestId(testID)).toHaveStyle({
+        backgroundColor: lightColors.statusErrorBg,
+      });
+      expect(screen.getByText(title)).toBeTruthy();
+      expect(
+        flatStyle(screen.getByTestId("detail-state-dot")).backgroundColor,
+      ).toBe(lightColors.statusError);
+    },
+  );
+
+  test("an archived monitor says so, as the web's page does", async () => {
+    showMonitor({ isArchived: true, firstMeasuredAt: "2026-11-01T00:00:00Z" });
+
+    await renderScreen();
+
+    expect(screen.getAllByText("Archived")).toHaveLength(2);
+    expect(screen.getByTestId("monitor-archived-banner")).toBeTruthy();
+    expect(screen.getByText("This monitor is archived")).toBeTruthy();
+  });
+
+  test("once something has measured it, says its status and no banner", async () => {
+    showMonitor({
+      firstMeasuredAt: new Date(Date.now() - MINUTE).toISOString(),
+    });
+
+    await renderScreen();
+
+    expect(screen.getAllByText("Operational")).toHaveLength(2);
+    for (const testID of [
+      "monitor-waiting-banner",
+      "monitor-no-results-banner",
+      "monitor-first-check-paused-banner",
+      "monitor-no-probe-banner",
+      "monitor-probes-disconnected-banner",
+      "monitor-paused-banner",
+    ]) {
+      expect(screen.queryByTestId(testID)).toBeNull();
+    }
+  });
+
+  test("read from a server older than firstMeasuredAt, says its status as it always did", async () => {
+    showMonitor({ firstMeasuredAt: undefined }, 2 * HOUR);
+
+    await renderScreen();
+
+    expect(screen.getAllByText("Operational")).toHaveLength(2);
+    expect(screen.queryByText("Waiting for data")).toBeNull();
+  });
+
+  test("a status something set before the first check is shown as it is", async () => {
+    showMonitor({
+      currentMonitorStatus: {
+        ...makeNamedEntityWithColor({
+          name: "Offline",
+          color: makeColor({ r: 239, g: 68, b: 68 }),
+        }),
+        isOperationalState: false,
+        isOfflineState: true,
+      },
+    });
+
+    await renderScreen();
+
+    expect(screen.getAllByText("Offline")).toHaveLength(2);
+    expect(screen.queryByTestId("monitor-waiting-banner")).toBeNull();
+  });
+
+  test("a dark device draws the banner and the dot from the dark palette", async () => {
+    showMonitor({}, 2 * HOUR);
+
+    await renderScreen("dark");
+
+    expect(screen.getByTestId("monitor-no-results-banner")).toHaveStyle({
+      backgroundColor: darkColors.statusWarningBg,
+    });
+    expect(
+      flatStyle(screen.getByTestId("detail-state-dot")).backgroundColor,
+    ).toBe(darkColors.statusWarning);
   });
 });
 

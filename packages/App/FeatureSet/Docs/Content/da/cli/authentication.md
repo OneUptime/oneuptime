@@ -199,7 +199,7 @@ Outputformater og listestørrelser gemmes ikke her: giv `-o` og `--limit` til hv
 :::
 
 :::details Meddelelsen "API error (400): Invalid API Key"
-Nøglen er ikke en API-nøgle til OneUptime, er udløbet eller er blevet nulstillet. Kopiér den igen fra dens side under **Projektindstillinger → Avanceret → API-nøgler**, hvor dens dato også står under **Udløber**, og log ind igen under det samme kontekstnavn. Kommandoen afslutter med koden `2`.
+Nøglen er ikke en API-nøgle til OneUptime, er udløbet eller er blevet nulstillet. Find den under **Projektindstillinger → Avanceret → API-nøgler** på, hvordan den ender, og tjek dens dato under **Udløber**. En nøgle, du ikke længere har, kan ikke vises igen: nulstil den på dens side, og log ind igen under det samme kontekstnavn med den nye. Kommandoen afslutter med koden `2`.
 :::
 
 :::details Meddelelsen "API error (402): API keys need the Growth plan"

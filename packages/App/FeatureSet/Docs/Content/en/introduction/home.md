@@ -89,6 +89,8 @@ flowchart TB
 
 The checklist goes away for everyone once every step is done. To hide it sooner, click **Hide**: it is hidden for you alone, on every device, and a line stays with **Show it** and **How OneUptime works**. People invited to the project as members do not see the checklist. **How OneUptime works** stays one click away, in any project: open it from **Help**, or with the button beside **Explore OneUptime**.
 
+**How OneUptime works** opens on **How it fits together**: the four steps a problem moves through, **Detect**, **Respond**, **Communicate** and **Improve**, each with the products that do it. Then come the categories of the **Products** menu, each listing its products and what each is for: pick one, or move on with the arrow keys or **Next**. Click a product to open it. Products your project hides are left out.
+
 ### Needs attention
 
 **Needs attention** lists, by name, what the numbers count: the open incidents, the open alerts, the monitors that are not operational, the SLOs at risk and the maintenance in progress, the most urgent first. Each row shows its severity or status, says when an incident or alert started and when maintenance ends, and opens the record. Each kind shows up to five, with **View all** for the rest, which opens the same list as its number. When nothing is open, it says **Nothing needs your attention**.

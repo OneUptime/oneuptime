@@ -63,7 +63,7 @@ En skrivskyddad export behöver en enda behörighet, **Read Inventory Item**: in
 
 ### Kopiera nyckeln
 
-Kopiera **API-nyckel** från nyckelns sida och gör den tillgänglig för ditt jobb:
+Använd nyckeln som OneUptime visade dig en gång, när du skapade den, och gör den tillgänglig för ditt jobb:
 
 ```bash
 export ONEUPTIME_API_KEY="your-api-key"

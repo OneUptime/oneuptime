@@ -7,6 +7,7 @@ import {
   MermaidEntryFilename,
   VendorAssetsPath,
 } from "../../../Server/Utils/VendorAssets";
+import { isMermaidBrowserFile } from "../../../UI/esbuild-mermaid";
 
 /*
  * The vendored files are third-party build output that a human refreshes by
@@ -352,14 +353,26 @@ describe("the mermaid build the docs and the blog import", () => {
   const CONTENT_HASHED_CHUNK: RegExp =
     /^chunks\/[A-Za-z0-9._-]+-[A-Z0-9]{8,}\.mjs$/;
 
+  /*
+   * Besides the entry and its chunks, the build leaves one file in its
+   * directory, so that a later build knows the directory as its own
+   * (#7568). It is no module, and VendorAssets never serves it.
+   */
+  const BUILD_MARKER: string = ".oneuptime-mermaid-build";
+
   test("names every chunk by its content, under chunks/", () => {
     for (const file of build.files.keys()) {
-      if (file === MermaidEntryFilename) {
+      if (file === MermaidEntryFilename || file === BUILD_MARKER) {
         continue;
       }
 
       expect([file, CONTENT_HASHED_CHUNK.test(file)]).toEqual([file, true]);
     }
+  });
+
+  test("holds the file a build leaves in its directory, which is no file of the build's to serve", () => {
+    expect(build.files.has(BUILD_MARKER)).toBe(true);
+    expect(isMermaidBrowserFile(BUILD_MARKER)).toBe(false);
   });
 
   test("carries exactly one katex: the one npm installed, no older than Common's override", () => {

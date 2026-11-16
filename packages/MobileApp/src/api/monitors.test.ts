@@ -19,7 +19,9 @@ import {
   makeMonitor,
   makeMonitorStatus,
   makeNamedEntityWithColor,
+  makeNeverCheckedMonitor,
 } from "../__tests__/testSupport";
+import { getMonitorRowStatusSelect } from "../utils/monitorHealth";
 import type {
   FeedItem,
   ListResponse,
@@ -207,12 +209,14 @@ describe("fetchMonitors", () => {
     expect(requestSort()).toEqual({ createdAt: "DESC" });
   });
 
-  test("selects the current status colour and semantic health flag", async () => {
+  test("selects the current status colour, its semantic health flag and what tells the status a monitor starts in", async () => {
     /*
      * The list row paints a status pill from currentMonitorStatus.color. Ask
      * for the relation without its color and the pill falls back to a neutral
      * grey for every monitor - the list still renders, so nothing looks
-     * broken, and a down monitor stops standing out.
+     * broken, and a down monitor stops standing out. isOfflineState tells
+     * the status every monitor is created in from one flagged both ways
+     * (utils/monitorFirstCheck).
      */
     await fetchMonitors(PROJECT_ID);
 
@@ -221,7 +225,43 @@ describe("fetchMonitors", () => {
       name: true,
       color: true,
       isOperationalState: true,
+      isOfflineState: true,
     });
+  });
+
+  test("selects every field the row rule reads, so a monitor nothing has checked yet is not drawn as Operational (#8961)", async () => {
+    await fetchMonitors(PROJECT_ID);
+
+    const select: Record<string, unknown> = requestSelect();
+
+    for (const field of [
+      "isArchived",
+      "disableActiveMonitoring",
+      "disableActiveMonitoringBecauseOfManualIncident",
+      "disableActiveMonitoringBecauseOfScheduledMaintenanceEvent",
+      "isNoProbeEnabledOnThisMonitor",
+      "isAllProbesDisconnectedFromThisMonitor",
+      "monitorType",
+      "firstMeasuredAt",
+      "createdAt",
+      "monitoringInterval",
+    ]) {
+      expect({ field, selected: select[field] }).toEqual({
+        field,
+        selected: true,
+      });
+    }
+
+    // And everything the row rule reads is all the screen adds to the row.
+    expect(Object.keys(select).sort()).toEqual(
+      [
+        ...Object.keys(getMonitorRowStatusSelect()),
+        "_id",
+        "name",
+        "description",
+        "projectId",
+      ].sort(),
+    );
   });
 
   test("selects the disabled flag and the owning project id", async () => {
@@ -272,6 +312,146 @@ describe("fetchMonitors", () => {
   });
 });
 
+describe("A server older than Monitor.firstMeasuredAt", () => {
+  /*
+   * A server before #8899 has no firstMeasuredAt, and refuses a select that
+   * names a column it does not have as a bad request ("Invalid select
+   * clause. Cannot select on ..."). The Monitors screen and a monitor's own
+   * screen must not then fail: they read the monitors as they always did,
+   * and each says its status as it always did.
+   */
+  const LEGACY_SELECT: Record<string, unknown> = {
+    _id: true,
+    name: true,
+    description: true,
+    monitorType: true,
+    currentMonitorStatus: {
+      _id: true,
+      name: true,
+      color: true,
+      isOperationalState: true,
+    },
+    disableActiveMonitoring: true,
+    createdAt: true,
+  };
+
+  function axiosError(status: number): Error {
+    return Object.assign(new Error(`Request failed with status ${status}`), {
+      isAxiosError: true,
+      response: { status, data: {} },
+    });
+  }
+
+  function selectOf(index: number): Record<string, unknown> {
+    return (postMock.mock.calls[index]![1] as Record<string, unknown>)[
+      "select"
+    ] as Record<string, unknown>;
+  }
+
+  test("the list is read once more, as before, when the row rule's select is refused", async () => {
+    const monitor: MonitorItem = makeMonitor();
+    postMock
+      .mockRejectedValueOnce(axiosError(400))
+      .mockResolvedValueOnce({ data: makeListResponse([monitor]) });
+
+    const result: ListResponse<MonitorItem> = await fetchMonitors(PROJECT_ID, {
+      skip: 20,
+      limit: 10,
+    });
+
+    expect(postMock).toHaveBeenCalledTimes(2);
+    expect(selectOf(0)["firstMeasuredAt"]).toBe(true);
+    expect(selectOf(1)).toEqual({ ...LEGACY_SELECT, projectId: true });
+    // The same page of the same monitors, in the same project and order.
+    for (const call of postMock.mock.calls) {
+      expect(call[0]).toBe("/api/monitor/get-list?skip=20&limit=10");
+      expect((call[1] as Record<string, unknown>)["query"]).toEqual({
+        isArchived: false,
+      });
+      expect((call[1] as Record<string, unknown>)["sort"]).toEqual({
+        createdAt: "DESC",
+      });
+      expect(call[2]).toEqual({ headers: { tenantid: PROJECT_ID } });
+    }
+    expect(result.data).toEqual([monitor]);
+  });
+
+  test("a monitor is read once more, as before, when the row rule's select is refused", async () => {
+    const monitor: MonitorItem = makeMonitor();
+    postMock
+      .mockRejectedValueOnce(axiosError(400))
+      .mockResolvedValueOnce({ data: makeListResponse([monitor]) });
+
+    const result: MonitorItem | null = await fetchMonitorById(
+      PROJECT_ID,
+      MONITOR_ID,
+    );
+
+    expect(postMock).toHaveBeenCalledTimes(2);
+    expect(selectOf(1)).toEqual(LEGACY_SELECT);
+    expect(
+      (postMock.mock.calls[1]![1] as Record<string, unknown>)["query"],
+    ).toEqual({ _id: MONITOR_ID });
+    expect(result).toEqual(monitor);
+  });
+
+  test("a modern server is asked once: nothing is read twice", async () => {
+    respondWith(makeListResponse([makeNeverCheckedMonitor()]));
+
+    await fetchMonitors(PROJECT_ID);
+    await fetchMonitorById(PROJECT_ID, MONITOR_ID);
+
+    expect(postMock).toHaveBeenCalledTimes(2);
+    expect(selectOf(0)["firstMeasuredAt"]).toBe(true);
+    expect(selectOf(1)["firstMeasuredAt"]).toBe(true);
+  });
+
+  test("any other failure - signed out, refused, the server down, no signal - is not asked again", async () => {
+    for (const error of [
+      axiosError(401),
+      axiosError(403),
+      axiosError(500),
+      new Error("Network Error"),
+    ]) {
+      postMock.mockReset();
+      postMock.mockRejectedValueOnce(error);
+
+      await expect(fetchMonitors(PROJECT_ID)).rejects.toBe(error);
+      expect(postMock).toHaveBeenCalledTimes(1);
+
+      postMock.mockReset();
+      postMock.mockRejectedValueOnce(error);
+
+      await expect(fetchMonitorById(PROJECT_ID, MONITOR_ID)).rejects.toBe(
+        error,
+      );
+      expect(postMock).toHaveBeenCalledTimes(1);
+    }
+  });
+
+  test("a read refused the old way too is the screen's error", async () => {
+    const second: Error = axiosError(400);
+    postMock
+      .mockRejectedValueOnce(axiosError(400))
+      .mockRejectedValueOnce(second);
+
+    await expect(fetchMonitors(PROJECT_ID)).rejects.toBe(second);
+    expect(postMock).toHaveBeenCalledTimes(2);
+  });
+
+  test("the counts Home reads ask for ids only, which every server has, and are not affected", async () => {
+    respondWith(makeListResponse([], { count: 3 }));
+
+    await fetchMonitorCount(PROJECT_ID);
+    await fetchDisabledMonitorCount(PROJECT_ID);
+    await fetchInoperationalMonitorCount(PROJECT_ID);
+
+    for (let index: number = 0; index < 3; index++) {
+      expect(selectOf(index)).toEqual({ _id: true });
+    }
+  });
+});
+
 describe("fetchMonitorById", () => {
   beforeEach(() => {
     respondWith(makeListResponse([makeMonitor()]));
@@ -296,7 +476,22 @@ describe("fetchMonitorById", () => {
       name: true,
       color: true,
       isOperationalState: true,
+      isOfflineState: true,
     });
+  });
+
+  test("reads every field the row rule reads, as the list does", async () => {
+    await fetchMonitorById(PROJECT_ID, MONITOR_ID);
+
+    expect(Object.keys(requestSelect()).sort()).toEqual(
+      [
+        ...Object.keys(getMonitorRowStatusSelect()),
+        "_id",
+        "name",
+        "description",
+      ].sort(),
+    );
+    expect(requestSelect()["firstMeasuredAt"]).toBe(true);
   });
 
   test("carries the tenantid even though the id already identifies the row", async () => {

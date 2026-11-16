@@ -12,6 +12,10 @@ import {
   callLauncher,
   hasLiveProcessOfUser,
 } from "../../../../Utils/JavaScriptSandbox/SandboxIdentity";
+import {
+  SANDBOX_NO_NETWORK_PATH,
+  decideSandboxNetwork,
+} from "../../../../Utils/JavaScriptSandbox/SandboxNetwork";
 import fs from "fs";
 
 /*
@@ -84,6 +88,13 @@ async function main(): Promise<void> {
     isolation: { isolation: SandboxIsolation.OwnUser, reason: null },
     identities,
     launcherPath: SANDBOX_LAUNCHER_PATH,
+    network: await decideSandboxNetwork({
+      noNetworkPath: SANDBOX_NO_NETWORK_PATH,
+      call: callLauncher,
+      platform: process.platform,
+      exists: fs.existsSync,
+    }),
+    noNetworkPath: SANDBOX_NO_NETWORK_PATH,
     workerEntry: getDefaultWorkerEntry(),
     deadlineGraceMs: SANDBOX_DEADLINE_GRACE_MS,
   };

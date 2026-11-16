@@ -199,7 +199,7 @@ Output formats and list sizes are not saved here: give `-o` and `--limit` to eac
 :::
 
 :::details API error (400): Invalid API Key
-The key is not an API key of OneUptime, has expired, or was reset. Copy it again from its page in **Project Settings → Advanced → API Keys**, where its **Expires** date is too, and log in again under the same context name. The command exits with code `2`.
+The key is not an API key of OneUptime, has expired, or was reset. Find it in **Project Settings → Advanced → API Keys** by how it ends, and check its **Expires** date. A key you no longer have cannot be shown again: reset it on its page, and log in again under the same context name with the new one. The command exits with code `2`.
 :::
 
 :::details API error (402): API keys need the Growth plan

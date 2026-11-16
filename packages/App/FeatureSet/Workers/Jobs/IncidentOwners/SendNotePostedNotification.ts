@@ -1,5 +1,10 @@
 import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
+import OwnerNotificationBacklog, {
+  OwnerNotificationPage,
+} from "../../Utils/OwnerNotificationBacklog";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import Dictionary from "Common/Types/Dictionary";
@@ -75,7 +80,7 @@ const INCIDENT_SELECT: Select<Incident> = {
 RunCron(
   "IncidentOwner:SendsNotePostedEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
-  async () => {
+  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
     /*
      * The owners a run that stopped part way left untold - a worker killed
      * between the take and the last owner (#8199) - told first, exactly
@@ -135,114 +140,190 @@ RunCron(
       },
     });
 
-    const publicNotes: Array<IncidentPublicNote> =
-      await IncidentPublicNoteService.findAllBy({
-        query: {
-          isOwnerNotified: false,
-          /*
-           * Published notes only: a note waiting for approval was not
-           * posted, so its owners hear of it once it is published.
-           */
-          isPublished: true,
-        },
-        props: {
-          isRoot: true,
-        },
-        skip: 0,
-        select: PUBLIC_NOTE_SELECT,
-      });
-
-    const privateNotes: Array<IncidentInternalNote> =
-      await IncidentInternalNoteService.findAllBy({
-        query: {
-          isOwnerNotified: false,
-        },
-        props: {
-          isRoot: true,
-        },
-        skip: 0,
-        select: PRIVATE_NOTE_SELECT,
-      });
-
-    const notes: Array<{ note: BaseModel; isPrivateNote: boolean }> = [
-      ...publicNotes.map((note: IncidentPublicNote) => {
-        return { note: note as BaseModel, isPrivateNote: false };
-      }),
-      ...privateNotes.map((note: IncidentInternalNote) => {
-        return { note: note as BaseModel, isPrivateNote: true };
-      }),
-    ];
-
-    for (const { note, isPrivateNote } of notes) {
-      // get all scheduled events of all the projects.
-      const incident: Incident | null = await readIncident(
-        note.getColumnValue("incidentId")! as ObjectID,
-      );
-
-      /*
-       * Whom it is to tell, written before the take: a worker stopped from
-       * here on leaves them to be told by a later run, and one stopped
-       * before the take leaves the note to be read again.
-       */
-      const delivery: OwnerNotificationDelivery | null = incident
-        ? await planOwnersOfNote({
-            note: note,
-            isPrivateNote: isPrivateNote,
-            incident: incident,
-          })
-        : null;
-
-      /*
-       * Marked as notified before its owners are told, so a note whose
-       * notification keeps failing is never read again on every run - one
-       * whose incident is gone too.
-       */
-      if (isPrivateNote) {
-        await IncidentInternalNoteService.updateOneById({
-          id: note.id!,
-          data: {
-            isOwnerNotified: true,
-          },
-          props: {
-            isRoot: true,
-          },
+    /*
+     * Every note posted on an incident and not told of yet - the published
+     * public ones, then the private ones - a page at a time, oldest first,
+     * each taken by one run alone and told by the run that took it; the run
+     * stops at its deadline and the next carries on
+     * (OwnerNotificationBacklog, issue #8862).
+     */
+    await OwnerNotificationBacklog.forEachToNotify<IncidentPublicNote>({
+      jobName: "IncidentOwner:SendsNotePostedEmail",
+      service: IncidentPublicNoteService,
+      notYetNotified: {
+        isOwnerNotified: false,
+        /*
+         * Published notes only: a note waiting for approval was not
+         * posted, so its owners hear of it once it is published. Taken only
+         * while it is published, too: the take matches this as well.
+         */
+        isPublished: true,
+      },
+      notified: {
+        isOwnerNotified: true,
+      },
+      select: PUBLIC_NOTE_SELECT,
+      deadline: deadline,
+      readPage: readIncidentsOfPage,
+      notify: async (input: {
+        record: IncidentPublicNote;
+        page: OwnerNotificationPage;
+        take: () => Promise<boolean>;
+      }): Promise<void> => {
+        await notifyOfNote({
+          note: input.record,
+          isPrivateNote: false,
+          page: input.page,
+          take: input.take,
         });
-      } else {
-        await IncidentPublicNoteService.updateOneById({
-          id: note.id!,
-          data: {
-            isOwnerNotified: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-      }
+      },
+    });
 
-      if (!incident || !delivery) {
-        continue;
-      }
-
-      try {
-        await notifyOwnersOfNote({
-          note: note,
-          isPrivateNote: isPrivateNote,
-          incident: incident,
-          delivery: delivery,
+    await OwnerNotificationBacklog.forEachToNotify<IncidentInternalNote>({
+      jobName: "IncidentOwner:SendsNotePostedEmail",
+      service: IncidentInternalNoteService,
+      notYetNotified: {
+        isOwnerNotified: false,
+      },
+      notified: {
+        isOwnerNotified: true,
+      },
+      select: PRIVATE_NOTE_SELECT,
+      deadline: deadline,
+      readPage: readIncidentsOfPage,
+      notify: async (input: {
+        record: IncidentInternalNote;
+        page: OwnerNotificationPage;
+        take: () => Promise<boolean>;
+      }): Promise<void> => {
+        await notifyOfNote({
+          note: input.record,
+          isPrivateNote: true,
+          page: input.page,
+          take: input.take,
         });
-      } catch (e) {
-        logger.error("Error in sending incident note posted notification", {
-          projectId: incident.projectId?.toString(),
-          incidentId: incident.id?.toString(),
-        });
-        logger.error(e, {
-          projectId: incident.projectId?.toString(),
-          incidentId: incident.id?.toString(),
-        });
-      }
-    }
+      },
+    });
   },
 );
+
+/*
+ * One note read by the run: whom it tells planned, the note taken, and -
+ * when this run took it - its owners told.
+ */
+async function notifyOfNote(data: {
+  note: IncidentPublicNote | IncidentInternalNote;
+  isPrivateNote: boolean;
+  page: OwnerNotificationPage;
+  take: () => Promise<boolean>;
+}): Promise<void> {
+  const note: IncidentPublicNote | IncidentInternalNote = data.note;
+  const isPrivateNote: boolean = data.isPrivateNote;
+  const incidentId: ObjectID | undefined = note.incidentId;
+
+  // Read with the page's incidents.
+  const incident: Incident | null = incidentId
+    ? await data.page.once(
+        incidentKey(incidentId),
+        (): Promise<Incident | null> => {
+          return readIncident(incidentId);
+        },
+      )
+    : null;
+
+  /*
+   * Whom it is to tell, written before the take: a worker stopped from
+   * here on leaves them to be told by a later run, and one stopped before
+   * the take leaves the note to be read again.
+   */
+  const delivery: OwnerNotificationDelivery | null = incident
+    ? await planOwnersOfNote({
+        note: note,
+        isPrivateNote: isPrivateNote,
+        incident: incident,
+        page: data.page,
+      })
+    : null;
+
+  /*
+   * Marked as notified before its owners are told, so a note whose
+   * notification keeps failing is never read again on every run - one
+   * whose incident is gone too. Taken by another run first (or a public
+   * note no longer published): not this run's to tell.
+   */
+  if (!(await data.take())) {
+    return;
+  }
+
+  if (!incident || !delivery) {
+    return;
+  }
+
+  try {
+    await notifyOwnersOfNote({
+      note: note,
+      isPrivateNote: isPrivateNote,
+      incident: incident,
+      delivery: delivery,
+    });
+  } catch (e) {
+    logger.error("Error in sending incident note posted notification", {
+      projectId: incident.projectId?.toString(),
+      incidentId: incident.id?.toString(),
+    });
+    logger.error(e, {
+      projectId: incident.projectId?.toString(),
+      incidentId: incident.id?.toString(),
+    });
+  }
+}
+
+function incidentKey(incidentId: ObjectID): string {
+  return `incident:${incidentId.toString()}`;
+}
+
+/*
+ * The incidents of a page's notes, in one query: each is read once however
+ * many of its notes the page has.
+ */
+async function readIncidentsOfPage(
+  notes: Array<IncidentPublicNote | IncidentInternalNote>,
+  page: OwnerNotificationPage,
+): Promise<void> {
+  const incidentIds: Map<string, ObjectID> = new Map<string, ObjectID>();
+
+  for (const note of notes) {
+    if (note.incidentId) {
+      incidentIds.set(note.incidentId.toString(), note.incidentId);
+    }
+  }
+
+  if (incidentIds.size === 0) {
+    return;
+  }
+
+  const incidents: Array<Incident> = await IncidentService.findBy({
+    query: {
+      _id: QueryHelper.any(Array.from(incidentIds.values())),
+    },
+    select: INCIDENT_SELECT,
+    limit: incidentIds.size,
+    skip: 0,
+    props: {
+      isRoot: true,
+    },
+  });
+
+  /*
+   * One not found - gone since its note was read - is read on its own when
+   * a note asks for it, as it would be without the page.
+   */
+  for (const each of incidents) {
+    if (each.id) {
+      page.prime<Incident | null>(incidentKey(each.id), each);
+    }
+  }
+}
 
 async function readIncident(incidentId: ObjectID): Promise<Incident | null> {
   return await IncidentService.findOneById({
@@ -264,19 +345,33 @@ async function planOwnersOfNote(data: {
   note: BaseModel;
   isPrivateNote: boolean;
   incident: Incident;
+  // What the notes of one page read once, for all of them.
+  page: OwnerNotificationPage;
 }): Promise<OwnerNotificationDelivery> {
   let owners: Array<User> = [];
   let isProjectOwners: boolean = false;
 
   try {
-    owners = await IncidentService.findOwners(data.incident.id!);
+    owners = await data.page.once(
+      `owners:${data.incident.id!.toString()}`,
+      (): Promise<Array<User>> => {
+        return IncidentService.findOwners(data.incident.id!);
+      },
+    );
 
     if (owners.length === 0) {
       isProjectOwners = true;
 
       // find project owners.
-      owners = await ProjectService.getOwners(
-        data.note.getColumnValue("projectId") as ObjectID,
+      const projectId: ObjectID = data.note.getColumnValue(
+        "projectId",
+      ) as ObjectID;
+
+      owners = await data.page.once(
+        `projectOwners:${projectId.toString()}`,
+        (): Promise<Array<User>> => {
+          return ProjectService.getOwners(projectId);
+        },
       );
     }
   } catch (e) {

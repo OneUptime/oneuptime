@@ -12,7 +12,11 @@ import Permission, { UserPermission } from "../../../../../Types/Permission";
 import UserType from "../../../../../Types/UserType";
 import { meetsCondition } from "../../../TestingUtils/QueryConditions";
 import { ON_HIGHEST_PLAN } from "../../../TestingUtils/RequestPlan";
-import { withLabelJoinTables } from "../../../TestingUtils/LabelJoinTables";
+import {
+  getLabelListsKeptTo,
+  getLabelsKeptTo,
+  withLabelJoinTables,
+} from "../../../TestingUtils/LabelJoinTables";
 import {
   afterEach,
   beforeEach,
@@ -21,7 +25,6 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { FindOperator } from "typeorm";
 
 /*
  * A COLUMN ONLY EDITORS READ IS READ ONLY WHERE ITS EDITOR'S GRANT REACHES.
@@ -263,29 +266,9 @@ describe("a monitor's secret keys, beside a Viewer over the whole project", () =
 });
 
 describe("a column's labels narrow a read, never widen it", () => {
-  // The label ids of an `_id` or `labels` condition, as the query holds them.
+  // The label ids the query keeps the monitors to, in every condition.
   function labelsOf(query: Dictionary<unknown>): Array<string> {
-    const labels: Array<string> = (
-      (query["labels"] as Array<ObjectID> | undefined) || []
-    ).map((labelId: ObjectID): string => {
-      return labelId.toString();
-    });
-
-    const idCondition: unknown = query["_id"];
-    const bound: Array<string> =
-      idCondition instanceof FindOperator
-        ? Object.values(
-            (
-              idCondition as unknown as {
-                objectLiteralParameters?: Record<string, unknown>;
-              }
-            ).objectLiteralParameters || {},
-          )
-            .flat()
-            .map(String)
-        : [];
-
-    return [...labels, ...bound].sort();
+    return getLabelsKeptTo(Monitor, query);
   }
 
   test("a read limited to one label and a change limited to another read neither label's monitors alone", async () => {
@@ -308,13 +291,10 @@ describe("a column's labels narrow a read, never widen it", () => {
       )) as Dictionary<unknown>;
 
     // Two conditions, one per list: a monitor carries one label of each.
-    expect(
-      ((query["labels"] as Array<ObjectID>) || []).map(
-        (labelId: ObjectID): string => {
-          return labelId.toString();
-        },
-      ),
-    ).toEqual([LABEL_READ.toString()]);
+    expect(getLabelListsKeptTo(Monitor, query)).toEqual([
+      [LABEL_READ.toString()],
+      [LABEL_CHANGE.toString()],
+    ]);
     expect(labelsOf(query)).toEqual(
       [LABEL_READ.toString(), LABEL_CHANGE.toString()].sort(),
     );

@@ -69,7 +69,6 @@ import {
   makePcapRecord,
   pcapLength,
 } from "../Utils/PacketCapture/PcapFixture";
-import { EntityManager } from "typeorm";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
@@ -224,47 +223,8 @@ interface RecordedStatement {
 }
 
 /*
- * A fake EntityManager, in a transaction, that records every statement and
- * answers each with the next scripted result. The service only ever calls
- * `query`. Only the retention sweep's batches are transactions now.
- */
-function stubTransaction(
-  service: PacketCaptureServiceType,
-  results: Array<unknown>,
-): Array<RecordedStatement> {
-  const statements: Array<RecordedStatement> = [];
-  const queue: Array<unknown> = [...results];
-
-  jest
-    .spyOn(service, "executeTransaction")
-    .mockImplementation(
-      async <TResult>(
-        runInTransaction: (entityManager: EntityManager) => Promise<TResult>,
-      ): Promise<TResult> => {
-        const entityManager: {
-          query: (sql: string, params: Array<unknown>) => Promise<unknown>;
-        } = {
-          query: async (
-            sql: string,
-            params: Array<unknown>,
-          ): Promise<unknown> => {
-            statements.push({ sql, params });
-            return queue.length > 0 ? queue.shift() : [];
-          },
-        };
-
-        return await runInTransaction(
-          entityManager as unknown as EntityManager,
-        );
-      },
-    );
-
-  return statements;
-}
-
-/*
  * The service's own connection, for its writes that are each one
- * self-committing statement (OneUptime issue #8870): records every
+ * self-committing statement (OneUptime issues #8870 and #8929): records every
  * statement sent on getRepository().manager, answers each with the next
  * scripted result, and makes executeTransaction throw - a write that opens
  * a transaction again fails here.
@@ -1853,70 +1813,106 @@ describe("failStaleCaptures", () => {
 });
 
 describe("deleteExpiredCaptures", () => {
-  test("deletes captures past the retention period with their files, a batch at a time", async () => {
+  /*
+   * Issue #8929: each batch is one self-committing statement - its captures
+   * and their files deleted by two data-modifying WITHs of it, so they
+   * commit together - where it was a transaction of two statements.
+   */
+  test("deletes captures past the retention period with their files, a batch a statement", async () => {
     const { service } = buildService();
     const fullBatch: Array<JSONObject> = [];
 
     for (let index: number = 0; index < 200; index++) {
       fullBatch.push({
         _id: `aaaaaaaa-0000-4000-8000-${index.toString().padStart(12, "0")}`,
-        fileId: index === 0 ? FILE_ID.toString() : null,
       });
     }
 
-    const statements: Array<RecordedStatement> = stubTransaction(service, [
-      [fullBatch, 200],
-      [],
-      [
-        [
-          { _id: CAPTURE_ID.toString(), fileId: SECOND_FILE_ID.toString() },
-          { _id: SECOND_CAPTURE_ID.toString(), fileId: "not-a-uuid" },
-        ],
-        2,
-      ],
-      [],
+    // A WITH ... SELECT comes back from TypeORM as its bare rows.
+    const statements: Array<RecordedStatement> = stubStatements(service, [
+      fullBatch,
+      [{ _id: CAPTURE_ID.toString() }, { _id: SECOND_CAPTURE_ID.toString() }],
     ]);
 
     const before: number = Date.now();
     expect(await service.deleteExpiredCaptures()).toBe(202);
 
-    expect(statements).toHaveLength(4);
+    // One statement a batch, and no transaction (stubStatements refuses one).
+    expect(statements).toHaveLength(2);
 
-    const [firstDelete, firstFiles, secondDelete, secondFiles] = statements as [
-      RecordedStatement,
-      RecordedStatement,
+    const [firstBatch, secondBatch] = statements as [
       RecordedStatement,
       RecordedStatement,
     ];
+    const sql: string = flatten(firstBatch.sql);
 
-    expect(flatten(firstDelete.sql)).toContain('DELETE FROM "PacketCapture"');
-    expect(flatten(firstDelete.sql)).toContain('"createdAt" < $1');
-    expect(flatten(firstDelete.sql)).toContain('RETURNING "_id", "fileId"');
-    expect(firstDelete.params[1]).toBe(200);
+    expect(sql).toBe(
+      [
+        'WITH "expired" AS (',
+        'DELETE FROM "PacketCapture" WHERE "_id" IN (',
+        'SELECT "_id" FROM "PacketCapture" WHERE "createdAt" < $1',
+        'ORDER BY "createdAt" ASC LIMIT $2 ) RETURNING "_id", "fileId"',
+        '), "files" AS (',
+        'DELETE FROM "File" WHERE "_id" IN (',
+        'SELECT "fileId" FROM "expired" WHERE "fileId" IS NOT NULL ) )',
+        'SELECT "_id" FROM "expired"',
+      ].join(" "),
+    );
+    expect(firstBatch.params[1]).toBe(200);
 
-    const cutoff: number = (firstDelete.params[0] as Date).getTime();
+    const cutoff: number = (firstBatch.params[0] as Date).getTime();
     const retention: number =
       PACKET_CAPTURE_RETENTION_IN_DAYS * 24 * 3600 * 1000;
     expect(cutoff).toBeLessThanOrEqual(Date.now() - retention);
     expect(cutoff).toBeGreaterThanOrEqual(before - retention - 1000);
 
-    expect(flatten(firstFiles.sql)).toBe(
-      'DELETE FROM "File" WHERE "_id" = ANY($1::uuid[])',
-    );
-    expect(firstFiles.params).toEqual([[FILE_ID.toString()]]);
-
-    expect(flatten(secondDelete.sql)).toContain('DELETE FROM "PacketCapture"');
-    expect(secondFiles.params).toEqual([[SECOND_FILE_ID.toString()]]);
+    // The next batch is the same statement, with the same cutoff.
+    expect(secondBatch.sql).toBe(firstBatch.sql);
+    expect(secondBatch.params).toEqual(firstBatch.params);
   });
 
   test("nothing expired, one statement", async () => {
     const { service } = buildService();
-    const statements: Array<RecordedStatement> = stubTransaction(service, [
-      [[], 0],
+    const statements: Array<RecordedStatement> = stubStatements(service, [[]]);
+
+    expect(await service.deleteExpiredCaptures()).toBe(0);
+    expect(statements).toHaveLength(1);
+  });
+
+  test("an answer it cannot read counts as nothing deleted, and the sweep stops", async () => {
+    const { service } = buildService();
+    const statements: Array<RecordedStatement> = stubStatements(service, [
+      { rows: "?" },
     ]);
 
     expect(await service.deleteExpiredCaptures()).toBe(0);
     expect(statements).toHaveLength(1);
+  });
+
+  test("a batch that fails is passed on, and the next batch is not sent", async () => {
+    const { service } = buildService();
+    let sent: number = 0;
+
+    jest
+      .spyOn(service, "executeTransaction")
+      .mockImplementation((async (): Promise<never> => {
+        throw new Error("This write is one statement.");
+      }) as never);
+    jest.spyOn(service, "getRepository").mockReturnValue({
+      manager: {
+        query: async (): Promise<unknown> => {
+          sent++;
+          throw new Error(
+            'update or delete on table "File" violates foreign key constraint',
+          );
+        },
+      },
+    } as never);
+
+    await expect(service.deleteExpiredCaptures()).rejects.toThrow(
+      "violates foreign key constraint",
+    );
+    expect(sent).toBe(1);
   });
 });
 

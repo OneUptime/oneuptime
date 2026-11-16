@@ -255,7 +255,7 @@ npm test            # compiles, then runs the node:test suites in Tests/
 npm run check-common
 ```
 
-`Common/` holds byte-identical copies of `packages/Common/Types/ResourceAiAgent/`, `packages/Common/Utils/AiRemediation/Resource/` (every file in both, so a new tool module is picked up automatically), `Types/AutoRemediation/AiRemediationCommandPolicyVerdict.ts` and `Types/Runbook/RunnerJobOrigin.ts`. Never edit them here: change the source and run `npm run sync-common`. `packages/Common/Tests/Utils/AiRemediation/ResourceAiAgentPolicyCopyParity.test.ts` fails when a copy is missing or drifts.
+`Common/` holds byte-identical copies of `packages/Common/Types/ResourceAiAgent/`, `packages/Common/Utils/AiRemediation/Resource/` (every file in both, so a new tool module is picked up automatically), `Types/AutoRemediation/AiRemediationCommandPolicyVerdict.ts`, `Types/Runbook/RunnerJobOrigin.ts` and `Utils/RetryAfter.ts` (how long OneUptime, or a cloud API, asked the agent to wait, read the way every OneUptime client reads it). Never edit them here: change the source and run `npm run sync-common`. `packages/Common/Tests/Utils/AiRemediation/ResourceAiAgentPolicyCopyParity.test.ts` fails when a copy is missing or drifts.
 
 The core (`Agent`, `Config`, `IngestClient`, `Registration`, `Heartbeat`, `JobLoop`, `Health`, `Posture`) knows nothing about any one tool. Each resource type's executor lives in `Executors/` and implements `ResourceExecutor`: `prepare()` runs `PrepareGuard` first and then its own checks, `SpawnSandbox` runs CLIs, and `ExecutorFactory` picks the executor from the resource type — every executor class is built with the same `constructor(options: ExecutorOptions)`.
 

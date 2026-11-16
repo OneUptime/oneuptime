@@ -210,6 +210,7 @@ import AttachedFiles, { hasAttachedFiles } from "../Utils/File/AttachedFiles";
 import StatusPageOverviewCache from "../Utils/StatusPage/StatusPageOverviewCache";
 import DiscoveredResourceIdCache from "../Utils/Telemetry/DiscoveredResourceIdCache";
 import ProjectUsageCache from "../Utils/ProjectProducts/ProjectUsageCache";
+import WorkflowListeners from "../Utils/Workflow/WorkflowListeners";
 import CallerPlan from "../Utils/Billing/CallerPlan";
 import QueryIdCondition from "../Utils/Database/QueryIdCondition";
 import {
@@ -6098,6 +6099,28 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   ): Promise<void> {
     if (this.getModel().enableWorkflowOn) {
       /*
+       * Posted only when an enabled workflow of the project that is not
+       * archived listens to this event - its model's On Create, On Update or
+       * On Delete, or On Create or Update - as the workflow service's
+       * handler reads them: most projects have no workflow on most models,
+       * and each post cost the workflow service a request and a read of the
+       * project's workflows. Posted whenever that cannot be told (#8861,
+       * WorkflowListeners).
+       */
+      const isListenedTo: boolean = await WorkflowListeners.isAnyListening({
+        projectId: projectId,
+        triggerIds: WorkflowListeners.triggerIdsOf({
+          tableName: this.getModel().tableName!,
+          triggerType: triggerType,
+          enableWorkflowOn: this.getModel().enableWorkflowOn,
+        }),
+      });
+
+      if (!isListenedTo) {
+        return;
+      }
+
+      /*
        * An update the record's own create makes, before the create has
        * announced the record: On Create or Update hears the create, once,
        * and not these (RecordsBeingCreated). Said beside the event's data,
@@ -6668,6 +6691,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
        * up" on it at once, on every server (#7465). See ProjectUsageCache.
        */
       await ProjectUsageCache.afterCreate({
+        tableName: this.model.tableName,
+        row: createBy.data,
+      });
+
+      /*
+       * A workflow created: its project's writes read again which triggers
+       * its workflows listen to, in every process (#8861).
+       */
+      await WorkflowListeners.afterCreate({
         tableName: this.model.tableName,
         row: createBy.data,
       });
@@ -7852,28 +7884,31 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * A query builder scoped to exactly the rows this read may see, and — this
    * is the whole point — scoped so that each of them appears ONCE.
    *
-   * The permission pipeline expresses a label-scoped ALLOW as a condition on
-   * the access-control RELATION — `{ labels: [permittedIds] }`, which
-   * QueryUtil.serializeQuery then nests into `{ labels: { _id: <a set
-   * membership operator> } }`. Handed to TypeORM's FindOptions machinery that
-   * becomes a join through the many-to-many junction table — and a join
-   * multiplies rows. A device carrying two permitted labels comes back twice.
+   * A condition on a to-many RELATION — `{ labels: { _id: <a set membership
+   * operator> } }`, what QueryUtil.serializeQuery makes of a list of ids on a
+   * relation of many records — is, handed to TypeORM's FindOptions machinery,
+   * a join through the many-to-many junction table, and a join multiplies
+   * rows. A device carrying two of the labels comes back twice.
    *
-   * A label BLOCK no longer takes that route, and it is worth being precise
-   * about why, because the shape reads like the allow half's mirror image and
-   * is not. A relation condition cannot express "has NONE of these labels" at
-   * all: a device labelled {blocked, other} still matches the join through its
-   * "other" row. So ReadPermission writes the block as a flat predicate on the
-   * owner's own id instead — `_id NOT IN (SELECT ownerId FROM the junction
-   * table WHERE labelId IN (...))`. Flat means no join, which means no
-   * duplicate rows, which means the block half needs nothing from this method
-   * beyond the cheap path below.
+   * The label rules no longer take that route. A label BLOCK cannot: a
+   * relation condition cannot express "has NONE of these labels" at all — a
+   * device labelled {blocked, other} still matches the join through its
+   * "other" row — so ReadPermission writes it as a flat predicate on the
+   * owner's own id, `_id NOT IN (SELECT ownerId FROM the junction table WHERE
+   * labelId IN (...))`. A label-scoped ALLOW, and a filter by the model's own
+   * labels, are flat too: `_id IN (SELECT ...)`
+   * (AccessControlPermission.addLabelIdsToQuery,
+   * QueryUtil.getLabelsFilterCondition), which a list pages and counts
+   * without a join as well. Flat means no join, which means no duplicate
+   * rows, which means they need nothing from this method beyond the cheap
+   * path below. Only where the label join table cannot be named - no
+   * database - does an allow still go through the relation.
    *
-   * The allow half is not the only producer of relation-keyed conditions
-   * either. `@CanAccessIfCanReadOn` makes BasePermission write
-   * `query[relation] = { <the related model's access-control column>: ids }`
-   * for StatusPageResource, IncidentInternalNote, AlertEpisodeMember and
-   * others, and that arrives here indistinguishable from a label allow.
+   * Relation-keyed conditions are still made, though. `@CanAccessIfCanReadOn`
+   * makes BasePermission write `query[relation] = { <the related model's
+   * access-control column>: ids }` for StatusPageResource,
+   * IncidentInternalNote, AlertEpisodeMember and others, and a caller filters
+   * through any other relation of many records (an incident's monitors).
    *
    * `findBy` never notices, because entity hydration de-duplicates by primary
    * key on the way out. An aggregate has no such step: COUNT(*) would report
@@ -7888,10 +7923,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * by a DISTINCT subquery of ids. The joins live inside that subquery, where
    * duplicate rows collapse before anything is added up.
    *
-   * The subquery is skipped when the query is flat — every read by a user with
-   * no label-scoped allow grant and no `@CanAccessIfCanReadOn` relation, which
-   * is the hot path, and the block half above with it — so the ordinary
-   * full-fleet aggregate stays a single sequential scan.
+   * The subquery is skipped when the query is flat — every read with no
+   * `@CanAccessIfCanReadOn` relation and no filter through a relation of many
+   * records, which is the hot path, and the label rules above with it — so
+   * the ordinary full-fleet aggregate stays a single sequential scan.
    */
   private buildAggregateScope(
     query: Query<TBaseModel>,
@@ -8173,6 +8208,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
         // Gone from every status page at once. See StatusPageOverviewCache.
         await StatusPageOverviewCache.afterDelete({
+          tableName: this.model.tableName,
+          rows: rowsDeleted,
+        });
+
+        // A workflow deleted is posted to no more (#8861). See WorkflowListeners.
+        await WorkflowListeners.afterDelete({
           tableName: this.model.tableName,
           rows: rowsDeleted,
         });
@@ -8558,6 +8599,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
         // Gone from every status page at once. See StatusPageOverviewCache.
         await StatusPageOverviewCache.afterDelete({
+          tableName: this.model.tableName,
+          rows: items,
+        });
+
+        // A workflow deleted is posted to no more (#8861). See WorkflowListeners.
+        await WorkflowListeners.afterDelete({
           tableName: this.model.tableName,
           rows: items,
         });
@@ -10865,6 +10912,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         tableName: this.model.tableName,
         rows: affectedItems,
         written: data,
+      });
+
+      /*
+       * A workflow turned on or off, archived, given another trigger: its
+       * project's writes read again which triggers its workflows listen to,
+       * in every process - with the update's hooks or without (#8861).
+       */
+      await WorkflowListeners.afterUpdate({
+        tableName: this.model.tableName,
+        rows: affectedItems,
       });
 
       /*

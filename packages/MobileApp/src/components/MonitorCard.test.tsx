@@ -9,6 +9,7 @@ import { rgbToHex } from "../utils/color";
 import {
   makeMonitor,
   makeNamedEntityWithColor,
+  makeNeverCheckedMonitor,
 } from "../__tests__/testSupport";
 import type { ColorField, MonitorItem } from "../api/types";
 
@@ -121,15 +122,27 @@ describe("What an ordinary monitor row shows", () => {
     expect(screen.getByText("Website")).toBeTruthy();
   });
 
-  test("a long monitor type is shortened to the label the list uses", async () => {
-    const monitor: MonitorItem = makeMonitor({
-      monitorType: "SSLCertificate",
-    });
+  test.each([
+    ["SSL Certificate", "SSL"],
+    ["Incoming Request", "Incoming"],
+    ["Synthetic Monitor", "Synthetic"],
+    ["Custom JavaScript Code", "Custom"],
+  ])(
+    "a long monitor type, %j as the server sends it, is shortened to %j",
+    async (monitorType: string, label: string) => {
+      /*
+       * The shorthand is keyed by the type's stored name. It was keyed by the
+       * enum's keys (SSLCertificate), which the server never sends, so the
+       * list showed every long name in full.
+       */
+      const monitor: MonitorItem = makeMonitor({ monitorType });
 
-    await render(<MonitorCard monitor={monitor} onPress={noop} />);
+      await render(<MonitorCard monitor={monitor} onPress={noop} />);
 
-    expect(screen.getByText("SSL")).toBeTruthy();
-  });
+      expect(screen.getByText(label)).toBeTruthy();
+      expect(screen.queryByText(monitorType)).toBeNull();
+    },
+  );
 
   test("a monitor type nobody anticipated is shown as it came, not dropped", async () => {
     /*
@@ -262,7 +275,7 @@ describe("Status markers preserve server colours while text stays readable", () 
 });
 
 describe("A monitor whose status has not arrived", () => {
-  test("no status pill is drawn rather than an empty one", async () => {
+  test("says Unknown, the web row's word for it, and never a status it was not sent", async () => {
     const monitor: MonitorItem = makeMonitor({
       currentMonitorStatus: undefined,
     });
@@ -270,7 +283,11 @@ describe("A monitor whose status has not arrived", () => {
     await render(<MonitorCard monitor={monitor} onPress={noop} />);
 
     expect(screen.getByText("api.example.com")).toBeTruthy();
+    expect(screen.getByText("Unknown")).toBeTruthy();
     expect(screen.queryByText("Operational")).toBeNull();
+    expect(styleOf(statusStripe()).backgroundColor).toBe(
+      lightColors.textTertiary,
+    );
   });
 
   test("the card still announces itself, saying the status is unknown", async () => {
@@ -281,7 +298,7 @@ describe("A monitor whose status has not arrived", () => {
     await render(<MonitorCard monitor={monitor} onPress={noop} />);
 
     expect(
-      screen.getByLabelText("Monitor api.example.com. Status: unknown."),
+      screen.getByLabelText("Monitor api.example.com. Status: Unknown."),
     ).toBeTruthy();
   });
 
@@ -468,6 +485,204 @@ describe("A monitor with active monitoring switched off", () => {
     await fireEvent.press(screen.getByText("api.example.com"));
 
     expect(onPress).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("A monitor no check stands behind (#8961)", () => {
+  /*
+   * Every monitor is created in the operational status, so a monitor nothing
+   * has checked yet arrived as "Operational", in green, and the row said so.
+   * The web's row says Waiting for data, No results yet or Paused for it,
+   * and Probes Not Enabled or Probes Disconnected for a monitor no probe
+   * checks (Common/Utils/Monitor/MonitorRowStatus); so does this row now,
+   * and its screen reader label with it.
+   */
+  const NOW: Date = new Date("2026-11-16T12:00:00.000Z");
+  const MINUTE: number = 60 * 1000;
+  const HOUR: number = 60 * MINUTE;
+
+  function neverChecked(
+    overrides: Partial<MonitorItem> = {},
+    createdAgoMs: number = MINUTE,
+  ): MonitorItem {
+    return makeNeverCheckedMonitor(overrides, {
+      createdAgoMs,
+      now: NOW.getTime(),
+    });
+  }
+
+  async function renderRow(monitor: MonitorItem): Promise<void> {
+    await render(<MonitorCard monitor={monitor} onPress={noop} now={NOW} />);
+  }
+
+  test("says Waiting for data in the muted tone, and never Operational", async () => {
+    await renderRow(neverChecked());
+
+    expect(screen.getByText("Waiting for data")).toBeTruthy();
+    expect(screen.queryByText("Operational")).toBeNull();
+    expect(styleOf(statusStripe()).backgroundColor).toBe(
+      lightColors.textTertiary,
+    );
+  });
+
+  test("the screen reader hears the same words, and nothing claims it is operational", async () => {
+    await renderRow(neverChecked());
+
+    expect(
+      screen.getByLabelText(
+        "Monitor new-api.example.com. Status: Waiting for data.",
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByLabelText(/Operational/)).toBeNull();
+  });
+
+  test("says No results yet, in the warning tone, once its first result is overdue", async () => {
+    await renderRow(neverChecked({}, 2 * HOUR));
+
+    expect(screen.getByText("No results yet")).toBeTruthy();
+    expect(styleOf(statusStripe()).backgroundColor).toBe(
+      lightColors.statusWarning,
+    );
+  });
+
+  test("is judged at the time it is handed: the same monitor waits a minute in and is overdue an hour later", async () => {
+    const monitor: MonitorItem = neverChecked();
+
+    const view: Awaited<ReturnType<typeof render>> = await render(
+      <MonitorCard monitor={monitor} onPress={noop} now={NOW} />,
+    );
+    expect(screen.getByText("Waiting for data")).toBeTruthy();
+
+    await view.rerender(
+      <MonitorCard
+        monitor={monitor}
+        onPress={noop}
+        now={new Date(NOW.getTime() + HOUR)}
+      />,
+    );
+    expect(screen.getByText("No results yet")).toBeTruthy();
+  });
+
+  test("a heartbeat monitor waits for its first request however long ago it was created", async () => {
+    await renderRow(
+      neverChecked({ monitorType: "Incoming Request" }, 40 * 24 * HOUR),
+    );
+
+    expect(screen.getByText("Waiting for data")).toBeTruthy();
+  });
+
+  test.each([
+    ["an incident", { disableActiveMonitoringBecauseOfManualIncident: true }],
+    [
+      "a maintenance event",
+      { disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true },
+    ],
+  ])(
+    "says Paused while %s holds its checks",
+    async (_name: string, pause: Partial<MonitorItem>) => {
+      await renderRow(neverChecked(pause, 2 * HOUR));
+
+      expect(screen.getByText("Paused")).toBeTruthy();
+      expect(styleOf(statusStripe()).backgroundColor).toBe(
+        lightColors.textTertiary,
+      );
+    },
+  );
+
+  test.each([
+    ["Probes Not Enabled", { isNoProbeEnabledOnThisMonitor: true }],
+    ["Probes Disconnected", { isAllProbesDisconnectedFromThisMonitor: true }],
+  ])(
+    "says %s in the error tone, measured or not",
+    async (words: string, flags: Partial<MonitorItem>) => {
+      for (const firstMeasuredAt of [null, "2026-11-01T00:00:00.000Z"]) {
+        const view: Awaited<ReturnType<typeof render>> = await render(
+          <MonitorCard
+            monitor={neverChecked({ ...flags, firstMeasuredAt })}
+            onPress={noop}
+            now={NOW}
+          />,
+        );
+
+        expect(screen.getByText(words)).toBeTruthy();
+        expect(screen.queryByText("Operational")).toBeNull();
+        expect(styleOf(statusStripe()).backgroundColor).toBe(
+          lightColors.statusError,
+        );
+        await view.unmount();
+      }
+    },
+  );
+
+  test("once something has measured it, says its status in its own colour", async () => {
+    await renderRow(neverChecked({ firstMeasuredAt: "2026-11-16T11:59:30Z" }));
+
+    expect(screen.getByText("Operational")).toBeTruthy();
+    expect(styleOf(statusStripe()).backgroundColor).toBe(
+      rgbToHex({ r: 34, g: 197, b: 94 }),
+    );
+  });
+
+  test("read from a server older than firstMeasuredAt, says its status as it always did", async () => {
+    await renderRow(neverChecked({ firstMeasuredAt: undefined }));
+
+    expect(screen.getByText("Operational")).toBeTruthy();
+  });
+
+  test("a manual monitor says the status a person set", async () => {
+    await renderRow(neverChecked({ monitorType: "Manual" }));
+
+    expect(screen.getByText("Operational")).toBeTruthy();
+  });
+
+  test("a status something set before the first check is said as it is", async () => {
+    await renderRow(
+      neverChecked({
+        currentMonitorStatus: {
+          ...makeNamedEntityWithColor({
+            name: "Offline",
+            color: { r: 239, g: 68, b: 68 },
+          }),
+          isOperationalState: false,
+          isOfflineState: true,
+        },
+      }),
+    );
+
+    expect(screen.getByText("Offline")).toBeTruthy();
+    expect(screen.queryByText("Waiting for data")).toBeNull();
+  });
+
+  test("Disabled wins over all of it: monitoring off says Disabled", async () => {
+    await renderRow(
+      neverChecked({
+        disableActiveMonitoring: true,
+        isAllProbesDisconnectedFromThisMonitor: true,
+      }),
+    );
+
+    expect(screen.getByText("Disabled")).toBeTruthy();
+  });
+
+  test("in dark mode, the tones come from the dark palette", async () => {
+    mockColorScheme = "dark";
+
+    await render(
+      <ThemeProvider>
+        <MonitorCard
+          monitor={neverChecked({}, 2 * HOUR)}
+          onPress={noop}
+          now={NOW}
+        />
+      </ThemeProvider>,
+    );
+
+    expect(styleOf(statusStripe()).backgroundColor).toBe(
+      darkColors.statusWarning,
+    );
+    expect(screen.getByText("No results yet")).toHaveStyle({
+      color: darkColors.textPrimary,
+    });
   });
 });
 

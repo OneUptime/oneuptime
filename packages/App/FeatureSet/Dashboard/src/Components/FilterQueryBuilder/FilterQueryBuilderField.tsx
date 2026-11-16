@@ -33,7 +33,14 @@ export interface ComponentProps {
   config: FilterBuilderConfig;
 }
 
-// "log must match" starts the row, so its first letter is a capital.
+/*
+ * "log must match" starts the row, so its first letter is a capital. The
+ * Translator gives a term its capital only where the filled text reads as
+ * a sentence (#7772), and "{{entity}} must match" is a piece of one, with
+ * no sentence end, so it keeps the term in lower case: the row capitalises
+ * it here. (The inventory item's empty state is a whole sentence, and
+ * takes its capital from the Translator alone.)
+ */
 function capitalizeFirst(text: string): string {
   return text.charAt(0).toLocaleUpperCase() + text.slice(1);
 }

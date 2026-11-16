@@ -791,6 +791,24 @@ describe("DatabaseService.getColumnsNarrowingReadOf", () => {
     ).resolves.toContain("labels");
   });
 
+  test("a grant for some labels, with the label join tables known, narrows the read by a condition on the row itself", async () => {
+    withLabelLinks();
+
+    const narrowedBy: Array<string> | null =
+      await ServiceLevelObjectiveService.getColumnsNarrowingReadOf(
+        propsWith([
+          {
+            permission: Permission.ProjectMember,
+            labelIds: [LABEL_ID],
+            scope: PermissionScope.Labels,
+          },
+        ]),
+      );
+
+    expect(narrowedBy).toContain("_id");
+    expect(narrowedBy).not.toContain("labels");
+  });
+
   test("a block with labels narrows the read by a condition on the row itself", async () => {
     withLabelLinks();
 
@@ -838,6 +856,18 @@ describe("updating records: who could read them before the write hears about it 
       permission: Permission.ProjectOwner,
       labelIds: [LABEL_ID],
       isBlockPermission: true,
+    },
+  ]);
+  /*
+   * A grant limited to labels keeps the incidents by a condition on their
+   * id against the label join table (#8113), not through the labels
+   * relation: still asked when the labels are written, and only then.
+   */
+  const LIMITED: DatabaseCommonInteractionProps = propsWith([
+    {
+      permission: Permission.ProjectOwner,
+      labelIds: [LABEL_ID],
+      scope: PermissionScope.Labels,
     },
   ]);
 
@@ -1024,6 +1054,18 @@ describe("updating records: who could read them before the write hears about it 
       "someone with a block with labels, when the private switch is written",
       BLOCKED,
       { isPrivate: true },
+      false,
+    ],
+    [
+      "someone limited to some labels, when the labels are written",
+      LIMITED,
+      { labels: [] },
+      true,
+    ],
+    [
+      "someone limited to some labels, when only the title is written",
+      LIMITED,
+      { title: "Renamed" },
       false,
     ],
   ] as Array<
