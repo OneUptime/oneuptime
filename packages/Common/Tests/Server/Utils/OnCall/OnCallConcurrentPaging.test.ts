@@ -540,6 +540,28 @@ describe("1. escalating the one page", () => {
     expect(pagesOf(BOB)).toEqual([`Bob Smith: ${billingRun.toString()}`]);
   });
 
+  test("from the app, the merged page is escalated too when its own run has stopped: it would page them again otherwise", async () => {
+    const billing: SecondPolicy = secondPolicy([ANA]);
+
+    await world.startRun();
+    const billingRun: ObjectID = await startBilling(billing);
+
+    // Billing went through its levels; Ana's page of it still stands on Payments'.
+    world.runById(billingRun).status = OnCallDutyPolicyStatus.Completed;
+
+    world.advance(2);
+    await OnCallPagePassOn.passOnForRecord({
+      userId: ANA,
+      projectId: PROJECT_ID,
+      recordType: OnCallPageRecordType.Incident,
+      recordId: INCIDENT_ID,
+    });
+
+    expect(logOf(ANA, billingRun).status).toBe(
+      UserNotificationExecutionStatus.PassedOn,
+    );
+  });
+
   test("the merged page keeps the second policy's level waiting while somebody else on it escalates", async () => {
     const billing: SecondPolicy = secondPolicy([ANA, BOB], {
       thenUsers: [DANA],
