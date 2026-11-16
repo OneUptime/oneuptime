@@ -40,10 +40,10 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
  *     the other way from what they said. { title: null } threw a TypeError.
  *
  * Each is refused here as bad data (400), with what to send instead. Every
- * sort TypeORM reads as written passes untouched, so no list that loads
- * today changes: a field with "ASC" or "DESC" (TypeORM's "asc", "desc", 1
- * and -1 too), or with { direction, nulls }; a relation of one record with
- * an object of its own fields, to any depth; a field with no order at all
+ * sort TypeORM reads as written passes untouched, and every sort the product
+ * sends is one: a field with "ASC" or "DESC" (TypeORM's "asc", "desc", 1 and
+ * -1 too), or with { direction, nulls }; a relation of one record with an
+ * object of its own fields, to any depth; a field with no order at all
  * (undefined), which TypeORM leaves out.
  *
  * The rules are TypeORM's, read from OneUptime's column metadata, which says
