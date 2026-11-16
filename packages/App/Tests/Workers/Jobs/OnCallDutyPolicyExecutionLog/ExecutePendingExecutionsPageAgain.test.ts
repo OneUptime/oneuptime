@@ -73,6 +73,8 @@ jest.mock(
       __esModule: true,
       default: {
         findOneBy: jest.fn(),
+        // The policy's levels a run moves on through (OnCallRunLevel).
+        findBy: jest.fn(),
         startRuleExecution: jest.fn(),
       },
     };
@@ -165,9 +167,11 @@ const executionLogService: {
 
 const ruleService: {
   findOneBy: jest.Mock;
+  findBy: jest.Mock;
   startRuleExecution: jest.Mock;
 } = OnCallDutyPolicyEscalationRuleService as unknown as {
   findOneBy: jest.Mock;
+  findBy: jest.Mock;
   startRuleExecution: jest.Mock;
 };
 
@@ -180,6 +184,9 @@ const alertService: { isAlertAcknowledged: jest.Mock } =
 const timeout: { readRecordState: jest.Mock } =
   OnCallAcknowledgementTimeout as unknown as { readRecordState: jest.Mock };
 
+const LEVEL_1_ID: ObjectID = new ObjectID(
+  "9d000000-0000-4000-8000-000000000001",
+);
 const LEVEL_2_ID: ObjectID = new ObjectID(
   "9d000000-0000-4000-8000-000000000002",
 );
@@ -206,6 +213,8 @@ function runOnLevelOne(data: {
 
   log.status = OnCallDutyPolicyStatus.Executing;
   log.lastExecutedEscalationRuleOrder = 1;
+  // A run on a level names its rule (one with none was deleted, issue #9036).
+  log.lastExecutedEscalationRuleId = LEVEL_1_ID;
   log.executeNextEscalationRuleInMinutes = 30;
   log.lastEscalationRuleExecutedAt = new Date(Date.now() - 31 * 60 * 1000);
   log.createdAt = new Date(Date.now() - 31 * 60 * 1000);
@@ -256,6 +265,23 @@ beforeEach(() => {
     isAcknowledged: true,
     isResolved: false,
   });
+
+  // The policy's two levels.
+  ruleService.findBy.mockImplementation(
+    (): Promise<Array<OnCallDutyPolicyEscalationRule>> => {
+      return Promise.resolve(
+        [LEVEL_1_ID, LEVEL_2_ID].map(
+          (id: ObjectID, index: number): OnCallDutyPolicyEscalationRule => {
+            const rule: OnCallDutyPolicyEscalationRule =
+              new OnCallDutyPolicyEscalationRule();
+            rule.id = id;
+            rule.order = index + 1;
+            return rule;
+          },
+        ),
+      );
+    },
+  );
 
   ruleService.findOneBy.mockImplementation(
     (args: {

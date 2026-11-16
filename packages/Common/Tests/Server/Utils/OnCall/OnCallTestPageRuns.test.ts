@@ -94,6 +94,8 @@ function testRun(
   run.status = OnCallDutyPolicyStatus.Executing;
   run.createdAt = STARTED;
   run.lastExecutedEscalationRuleOrder = data.levelOrder ?? 1;
+  // A run on a level names its rule (one with none was deleted, issue #9036).
+  run.lastExecutedEscalationRuleId = ruleOf(data.levelOrder ?? 1).id!;
   run.lastEscalationRuleExecutedAt = data.levelStartedAt || STARTED;
   run.executeNextEscalationRuleInMinutes = data.levelWaitInMinutes ?? 30;
   run.onCallPolicyExecutionRepeatCount = 1;
@@ -163,14 +165,11 @@ beforeEach(() => {
       lastEscalationRuleExecutedAt: STARTED,
     } as never);
 
+  // The policy's levels, as they are now (OnCallRunLevel, issue #9036).
   jest
-    .spyOn(OnCallDutyPolicyEscalationRuleService, "findOneBy")
-    .mockImplementation((async (data: { query: { order: number } }) => {
-      return (
-        rules.find((rule: OnCallDutyPolicyEscalationRule) => {
-          return rule.order === data.query.order;
-        }) || null
-      );
+    .spyOn(OnCallDutyPolicyEscalationRuleService, "findBy")
+    .mockImplementation((async () => {
+      return [...rules];
     }) as never);
 
   startSpy = jest

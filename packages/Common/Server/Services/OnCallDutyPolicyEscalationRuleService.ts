@@ -32,6 +32,7 @@ import UserNotificationRuleService from "./UserNotificationRuleService";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import ColumnLength from "../../Types/Database/ColumnLength";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
@@ -179,6 +180,14 @@ export interface PageContext {
   userNotificationEventType: UserNotificationEventType;
   onCallPolicyExecutionLogId: ObjectID;
   onCallPolicyId?: ObjectID | undefined;
+  /*
+   * The escalation rule's place and name as its level starts: written on
+   * each of the level's lines (escalationRuleOrder, escalationRuleName), so
+   * a line whose rule is deleted later still says which level it was
+   * (issue #9036). A direct page's lines have none.
+   */
+  escalationRuleOrder?: number | undefined;
+  escalationRuleName?: string | undefined;
 }
 
 // Why somebody, or some target, was not paged.
@@ -301,6 +310,9 @@ export interface RuleExecutionOptions {
   onCallPolicyId: ObjectID;
   passedOnUserIds?: Array<ObjectID> | undefined;
   alsoPageUserIds?: Array<ObjectID> | undefined;
+  // The level's place and name, for its lines (PageContext).
+  escalationRuleOrder?: number | undefined;
+  escalationRuleName?: string | undefined;
 }
 
 /*
@@ -514,6 +526,8 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         _id: true,
         order: true,
         escalateAfterInMinutes: true,
+        // Recorded on the level's lines, for after the rule is deleted.
+        name: true,
       },
       props: {
         isRoot: true,
@@ -571,7 +585,17 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
 
     return await this.pageRule({
       ruleId: ruleId,
-      options: options,
+      /*
+       * The level's place and name as it starts, on each of its lines: a
+       * line whose rule is deleted later still says which level it was
+       * (issue #9036).
+       */
+      options: {
+        ...options,
+        escalationRuleOrder:
+          typeof rule.order === "number" ? rule.order : undefined,
+        escalationRuleName: rule.name || undefined,
+      },
       level: {
         ruleId: ruleId.toString(),
         startedAt: startedAt,
@@ -950,10 +974,20 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
   public async recordLevelSkippedByEscalation(
     ruleId: ObjectID,
     options: PageContext,
+    // The level's place and name now, recorded on its line (issue #9036).
+    level?: {
+      order?: number | null | undefined;
+      name?: string | null | undefined;
+    },
   ): Promise<void> {
     const log: OnCallDutyPolicyExecutionLogTimeline = Service.getNewTimelineLog(
       {
-        context: options,
+        context: {
+          ...options,
+          escalationRuleOrder:
+            typeof level?.order === "number" ? level.order : undefined,
+          escalationRuleName: level?.name || undefined,
+        },
         ruleId: ruleId,
       },
     );
@@ -1222,8 +1256,10 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
 
   /*
    * A new line of a run's timeline: the run, what it pages about, and - for
-   * an on-call policy's run - the policy and the escalation rule. A direct
-   * page's lines name neither.
+   * an on-call policy's run - the policy and the escalation rule, with the
+   * rule's place and name as the level started: a rule deleted later is
+   * cleared from the line (ON DELETE SET NULL), and these still say which
+   * level it was (issue #9036). A direct page's lines name none of them.
    */
   private static getNewTimelineLog(data: {
     context: PageContext;
@@ -1243,6 +1279,19 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
 
     if (data.ruleId) {
       log.onCallDutyPolicyEscalationRuleId = data.ruleId;
+
+      if (
+        typeof options.escalationRuleOrder === "number" &&
+        Number.isInteger(options.escalationRuleOrder)
+      ) {
+        log.escalationRuleOrder = options.escalationRuleOrder;
+      }
+
+      const ruleName: string = (options.escalationRuleName || "").trim();
+
+      if (ruleName) {
+        log.escalationRuleName = ruleName.substring(0, ColumnLength.ShortText);
+      }
     }
 
     log.userNotificationEventType = options.userNotificationEventType;
@@ -2679,6 +2728,44 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
     return rulesBefore.toNumber() + 1;
   }
 
+  /*
+   * The rule's place now, on the runs still on it, as it is about to be
+   * deleted (OnCallDutyPolicyExecutionLogService.recordPlaceOfRunsOnRule).
+   * Logged, never thrown: the delete goes on either way.
+   */
+  private async recordPlaceOfRunsOnRule(rule: Model): Promise<void> {
+    if (!rule.id || typeof rule.order !== "number") {
+      return;
+    }
+
+    try {
+      const runs: number =
+        await OnCallDutyPolicyExecutionLogService.recordPlaceOfRunsOnRule({
+          ruleId: rule.id,
+          order: rule.order,
+        });
+
+      if (runs > 0) {
+        logger.debug(
+          `Escalation rule ${rule.id.toString()} is being deleted with ${runs} on-call run(s) on it; they go on from its place, ${rule.order}.`,
+          {
+            projectId: rule.projectId?.toString(),
+            onCallDutyPolicyEscalationRuleId: rule.id.toString(),
+          } as LogAttributes,
+        );
+      }
+    } catch (err) {
+      logger.error(
+        `Could not write the place of escalation rule ${rule.id.toString()} on the on-call runs still on it; they go on from the place they recorded.`,
+        {
+          projectId: rule.projectId?.toString(),
+          onCallDutyPolicyEscalationRuleId: rule.id.toString(),
+        } as LogAttributes,
+      );
+      logger.error(err as Error);
+    }
+  }
+
   @CaptureSpan()
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
@@ -2715,6 +2802,18 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
           "This escalation rule no longer exists. Reload the page to see the current rules.",
         );
       }
+
+      /*
+       * The runs still paging on this level keep paging once it is gone
+       * (issue #9036): the delete clears the rule from them (ON DELETE SET
+       * NULL), and each goes on from the place it recorded - to the level
+       * that moves up into this one's - once the wait it started is over.
+       * That place is written again from the rule as it is now, in case a
+       * level before it changed while they paged. Never in the way of the
+       * delete: a run whose place could not be written goes on from the
+       * place it recorded.
+       */
+      await this.recordPlaceOfRunsOnRule(resource);
 
       // delete users in escalation rule, teams in escalation rule and schedules in escalation rule.
       await OnCallDutyPolicyEscalationRuleScheduleService.deleteBy({

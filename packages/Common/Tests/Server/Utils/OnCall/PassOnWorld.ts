@@ -853,6 +853,52 @@ export default class PassOnWorld {
     return rule;
   }
 
+  /*
+   * A rule deleted from the policy, as deleting one through the API does it
+   * (issue #9036): the runs still on it have its place written on them
+   * (OnCallDutyPolicyExecutionLogService.recordPlaceOfRunsOnRule); the
+   * rules after it move up a place (ContiguousOrder); and every row that
+   * named it - runs, their lines, people's pages and their deliveries - is
+   * kept, the rule cleared from it (ON DELETE SET NULL).
+   */
+  public deleteRule(rule: OnCallDutyPolicyEscalationRule): void {
+    const ruleKey: string = rule.id!.toString();
+    const order: number = rule.order!;
+
+    for (const run of this.runs) {
+      if (
+        sameKey(run.lastExecutedEscalationRuleId, ruleKey) &&
+        run.status === OnCallDutyPolicyStatus.Executing
+      ) {
+        run.lastExecutedEscalationRuleOrder = order;
+      }
+    }
+
+    this.rules = this.rules.filter(
+      (candidate: OnCallDutyPolicyEscalationRule): boolean => {
+        return !sameKey(candidate.id, ruleKey);
+      },
+    );
+
+    for (const later of this.rules) {
+      if ((later.order || 0) > order) {
+        later.order = later.order! - 1;
+      }
+    }
+
+    for (const run of this.runs) {
+      if (sameKey(run.lastExecutedEscalationRuleId, ruleKey)) {
+        run.lastExecutedEscalationRuleId = undefined;
+      }
+    }
+
+    for (const row of [...this.steps, ...this.logs, ...this.deliveries]) {
+      if (sameKey(row.onCallDutyPolicyEscalationRuleId, ruleKey)) {
+        row.onCallDutyPolicyEscalationRuleId = undefined;
+      }
+    }
+  }
+
   // ---- running it --------------------------------------------------------
 
   public get run(): OnCallDutyPolicyExecutionLog {

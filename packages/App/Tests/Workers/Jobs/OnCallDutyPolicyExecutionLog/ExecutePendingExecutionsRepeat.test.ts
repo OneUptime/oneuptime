@@ -79,6 +79,8 @@ jest.mock(
       __esModule: true,
       default: {
         findOneBy: jest.fn(),
+        // The policy's levels a run moves on through (OnCallRunLevel).
+        findBy: jest.fn(),
         startRuleExecution: jest.fn(),
       },
     };
@@ -148,9 +150,11 @@ const executionLogService: {
 
 const ruleService: {
   findOneBy: jest.Mock;
+  findBy: jest.Mock;
   startRuleExecution: jest.Mock;
 } = OnCallDutyPolicyEscalationRuleService as unknown as {
   findOneBy: jest.Mock;
+  findBy: jest.Mock;
   startRuleExecution: jest.Mock;
 };
 
@@ -163,6 +167,7 @@ const incidentService: { isIncidentAcknowledged: jest.Mock } =
   IncidentService as unknown as { isIncidentAcknowledged: jest.Mock };
 
 const FIRST_RULE_ID: ObjectID = ObjectID.generate();
+const SECOND_RULE_ID: ObjectID = ObjectID.generate();
 
 // The person an earlier rule of the run paged.
 const PAGED_USER_ID: ObjectID = ObjectID.generate();
@@ -230,6 +235,7 @@ function atTheEndOfTheLastRule(
   log.triggeredByIncidentId = ObjectID.generate();
   log.status = OnCallDutyPolicyStatus.Executing;
   log.lastExecutedEscalationRuleOrder = 2;
+  log.lastExecutedEscalationRuleId = SECOND_RULE_ID;
   log.executeNextEscalationRuleInMinutes = 0;
   log.lastEscalationRuleExecutedAt = new Date(Date.now() - 60 * 60 * 1000);
   log.createdAt = new Date(Date.now() - 2 * 60 * 60 * 1000);
@@ -321,6 +327,22 @@ beforeEach(() => {
   timelineService.findBy.mockImplementation(readTimeline);
 
   // The policy has two rules: no third after the second, the first on a repeat.
+  ruleService.findBy.mockImplementation(
+    (): Promise<Array<OnCallDutyPolicyEscalationRule>> => {
+      return Promise.resolve(
+        [FIRST_RULE_ID, SECOND_RULE_ID].map(
+          (id: ObjectID, index: number): OnCallDutyPolicyEscalationRule => {
+            const rule: OnCallDutyPolicyEscalationRule =
+              new OnCallDutyPolicyEscalationRule();
+            rule.id = id;
+            rule.order = index + 1;
+            return rule;
+          },
+        ),
+      );
+    },
+  );
+
   ruleService.findOneBy.mockImplementation(
     (args: {
       query: { order: number };

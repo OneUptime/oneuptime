@@ -11,6 +11,10 @@ import UserNotificationRuleService from "Common/Server/Services/UserNotification
 import logger from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
 import OnCallDutyPolicyStatus from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
+import {
+  getOnCallPolicyFirstLevel,
+  getOnCallRunNextLevel,
+} from "Common/Types/OnCallDutyPolicy/OnCallRunLevel";
 import EmptyLevelWorld from "Common/Tests/Server/Utils/OnCall/EmptyLevelWorld";
 import {
   INCIDENT_ID,
@@ -63,7 +67,10 @@ export class ProcessStopped extends Error {
 export enum FailurePoint {
   // The claim that moves a run on (claimEscalationAdvance).
   ClaimMoveOn = "ClaimMoveOn",
-  // The read of the rule a run moves on to (EscalationRule findOneBy).
+  /*
+   * The read of the rule a run moves on to: EscalationRule findOneBy, and
+   * the read of its policy's levels it picks the next from (findBy).
+   */
   ReadNextRule = "ReadNextRule",
   // The read of a rule as it starts (startRuleExecution's findOneById).
   ReadStartingRule = "ReadStartingRule",
@@ -461,6 +468,31 @@ export default class PolicyRunFailureWorld extends EmptyLevelWorld {
       },
     );
 
+    /*
+     * A run moves on by reading its policy's levels, and picking the next
+     * among them (OnCallRunLevel, issue #9036): that read is the read of the
+     * rule it moves on to. A failure planned for one level's read - by its
+     * order - is told the order of the level the run would move on to: the
+     * next, or the first again for a policy that repeats.
+     */
+    this.wrap(
+      OnCallDutyPolicyEscalationRuleService,
+      "findBy",
+      (args: Array<unknown>) => {
+        const query: Record<string, unknown> =
+          (args[0] as { query?: Record<string, unknown> } | undefined)?.query ||
+          {};
+
+        this.hit(FailurePoint.ReadNextRule, [
+          {
+            ...(args[0] as Record<string, unknown>),
+            query: { ...query, order: this.nextOrder() },
+          },
+          ...args.slice(1),
+        ]);
+      },
+    );
+
     this.wrap(
       OnCallDutyPolicyEscalationRuleService,
       "findOneById",
@@ -559,6 +591,27 @@ export default class PolicyRunFailureWorld extends EmptyLevelWorld {
       before(args);
       return await base!.apply(target, args);
     }) as never);
+  }
+
+  /*
+   * The order of the level the run paging now would move on to: the next
+   * of its policy's levels, or its first for a new pass.
+   */
+  private nextOrder(): number | undefined {
+    const run: OnCallDutyPolicyExecutionLog | undefined = this.runs.find(
+      (candidate: OnCallDutyPolicyExecutionLog) => {
+        return candidate.status === OnCallDutyPolicyStatus.Executing;
+      },
+    );
+
+    if (!run) {
+      return undefined;
+    }
+
+    return (
+      getOnCallRunNextLevel({ run: run, levels: this.rules }) ||
+      getOnCallPolicyFirstLevel(this.rules)
+    )?.order;
   }
 
   private plan(point: FailurePoint, failure: PlannedFailure): void {
