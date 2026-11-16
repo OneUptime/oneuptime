@@ -418,7 +418,6 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
       const join: FirstResponderJoin = this.getFirstResponderJoin({
         key: key,
         projectId: projectId,
-        props: data.props,
       });
 
       CreatePermission.checkCreatePermissions(
@@ -517,7 +516,6 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
         const join: FirstResponderJoin = this.getFirstResponderJoin({
           key: key,
           projectId: data.projectId,
-          props: data.props,
         });
 
         join.row.setColumnValue("onCallDutyPolicyId", data.policyId);
@@ -557,11 +555,17 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
    * A join row of the first rule as the rule service writes it for one kind
    * of responder (addUser, addTeam, addOnCallSchedules), with placeholder
    * ids: what the permission check reads is which columns are written.
+   *
+   * Without its creator: who created a row is OneUptime's to stamp, after
+   * the create's permission checks (DatabaseService.sanitizeCreateOrUpdate),
+   * and a create made as a person takes out any creator its row names
+   * before they are asked (UserAttribution), so its checks never ask about
+   * the column. Asked here, it would be refused to everyone: nobody may
+   * give a new record its creator.
    */
   private getFirstResponderJoin(data: {
     key: FirstResponderKey;
     projectId: ObjectID;
-    props: DatabaseCommonInteractionProps;
   }): FirstResponderJoin {
     const placeholderId: ObjectID = ObjectID.getZeroObjectID();
 
@@ -587,10 +591,6 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
     join.row.setColumnValue("projectId", data.projectId);
     join.row.setColumnValue("onCallDutyPolicyId", placeholderId);
     join.row.setColumnValue("onCallDutyPolicyEscalationRuleId", placeholderId);
-
-    if (data.props.userId) {
-      join.row.setColumnValue("createdByUserId", data.props.userId);
-    }
 
     return join;
   }
