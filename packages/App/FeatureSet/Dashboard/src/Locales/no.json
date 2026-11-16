@@ -56008,5 +56008,11 @@
   "Runs AI Code Fixes": "Kjører AI-koderettinger",
   "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "Verdiene til nøkler som ser sensitive ut, erstattes med [REDACTED] i attributter og i en loggtekst i JSON.",
   "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "Hvilke deler av sporsegmentet som skal renses: sporsegmentnavn, verdier for attributter og lenkeattributter, hendelsesattributtverdier eller alt, også statusmeldingen og hendelsesnavnene.",
-  "Signed out by a server admin because single sign-on is required": "Logget ut av en serveradministrator fordi enkel pålogging (SSO) er påkrevd"
+  "Signed out by a server admin because single sign-on is required": "Logget ut av en serveradministrator fordi enkel pålogging (SSO) er påkrevd",
+  "OneUptime needs this key to serve your domain over HTTPS. It is stored encrypted and never shown again.": "OneUptime trenger denne nøkkelen for å levere domenet ditt over HTTPS. Den lagres kryptert og vises aldri igjen.",
+  "The certificate could not be read. Paste it in PEM format, starting with -----BEGIN CERTIFICATE-----.": "Sertifikatet kunne ikke leses. Lim det inn i PEM-format, slik at det starter med -----BEGIN CERTIFICATE-----.",
+  "The private key could not be read. Paste it in PEM format, starting with -----BEGIN PRIVATE KEY-----.": "Den private nøkkelen kunne ikke leses. Lim den inn i PEM-format, slik at den starter med -----BEGIN PRIVATE KEY-----.",
+  "The private key does not belong to this certificate. Paste the private key the certificate was issued for.": "Den private nøkkelen hører ikke til dette sertifikatet. Lim inn den private nøkkelen som sertifikatet ble utstedt for.",
+  "The private key is protected by a passphrase. Paste it without one: the server has to read it to serve the certificate.": "Den private nøkkelen er beskyttet med en passordfrase. Lim den inn uten: serveren må kunne lese den for å levere sertifikatet.",
+  "To serve your own certificate, add both the certificate and its private key.": "For å levere ditt eget sertifikat må du legge til både sertifikatet og den private nøkkelen."
 }

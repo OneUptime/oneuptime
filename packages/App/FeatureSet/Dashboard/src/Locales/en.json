@@ -56008,5 +56008,11 @@
   "Runs AI Code Fixes": "Runs AI Code Fixes",
   "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].",
   "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.",
-  "Signed out by a server admin because single sign-on is required": "Signed out by a server admin because single sign-on is required"
+  "Signed out by a server admin because single sign-on is required": "Signed out by a server admin because single sign-on is required",
+  "OneUptime needs this key to serve your domain over HTTPS. It is stored encrypted and never shown again.": "OneUptime needs this key to serve your domain over HTTPS. It is stored encrypted and never shown again.",
+  "The certificate could not be read. Paste it in PEM format, starting with -----BEGIN CERTIFICATE-----.": "The certificate could not be read. Paste it in PEM format, starting with -----BEGIN CERTIFICATE-----.",
+  "The private key could not be read. Paste it in PEM format, starting with -----BEGIN PRIVATE KEY-----.": "The private key could not be read. Paste it in PEM format, starting with -----BEGIN PRIVATE KEY-----.",
+  "The private key does not belong to this certificate. Paste the private key the certificate was issued for.": "The private key does not belong to this certificate. Paste the private key the certificate was issued for.",
+  "The private key is protected by a passphrase. Paste it without one: the server has to read it to serve the certificate.": "The private key is protected by a passphrase. Paste it without one: the server has to read it to serve the certificate.",
+  "To serve your own certificate, add both the certificate and its private key.": "To serve your own certificate, add both the certificate and its private key."
 }

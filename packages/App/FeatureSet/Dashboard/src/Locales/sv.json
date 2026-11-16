@@ -56008,5 +56008,11 @@
   "Runs AI Code Fixes": "Kör AI-kodkorrigeringar",
   "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "Värdena för nycklar som ser känsliga ut ersätts med [REDACTED] i attribut och i en loggkropp i JSON.",
   "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "Vilka delar av spannet som ska maskeras: spannamn, värden för attribut och länkattribut, händelseattributvärden eller alla, även statusmeddelandet och händelsenamnen.",
-  "Signed out by a server admin because single sign-on is required": "Utloggad av en serveradministratör eftersom enkel inloggning (SSO) krävs"
+  "Signed out by a server admin because single sign-on is required": "Utloggad av en serveradministratör eftersom enkel inloggning (SSO) krävs",
+  "OneUptime needs this key to serve your domain over HTTPS. It is stored encrypted and never shown again.": "OneUptime behöver den här nyckeln för att leverera din domän över HTTPS. Den lagras krypterad och visas aldrig igen.",
+  "The certificate could not be read. Paste it in PEM format, starting with -----BEGIN CERTIFICATE-----.": "Certifikatet kunde inte läsas. Klistra in det i PEM-format, så att det börjar med -----BEGIN CERTIFICATE-----.",
+  "The private key could not be read. Paste it in PEM format, starting with -----BEGIN PRIVATE KEY-----.": "Den privata nyckeln kunde inte läsas. Klistra in den i PEM-format, så att den börjar med -----BEGIN PRIVATE KEY-----.",
+  "The private key does not belong to this certificate. Paste the private key the certificate was issued for.": "Den privata nyckeln hör inte till det här certifikatet. Klistra in den privata nyckel som certifikatet utfärdades för.",
+  "The private key is protected by a passphrase. Paste it without one: the server has to read it to serve the certificate.": "Den privata nyckeln är skyddad med en lösenfras. Klistra in den utan: servern måste kunna läsa den för att leverera certifikatet.",
+  "To serve your own certificate, add both the certificate and its private key.": "Om du vill leverera ditt eget certifikat lägger du till både certifikatet och dess privata nyckel."
 }

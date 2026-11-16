@@ -56008,5 +56008,11 @@
   "Runs AI Code Fixes": "AI のコード修正を実行",
   "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "機密情報に見えるキーの値は、属性と JSON のログ本文で [REDACTED] に置き換えられます。",
   "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "スパンのどの部分をスクラブするか：スパン名、属性値とリンク属性値、イベント属性値、またはすべて（ステータスメッセージとイベント名も含む）。",
-  "Signed out by a server admin because single sign-on is required": "シングルサインオン（SSO）必須のため、サーバー管理者によるサインアウト"
+  "Signed out by a server admin because single sign-on is required": "シングルサインオン（SSO）必須のため、サーバー管理者によるサインアウト",
+  "OneUptime needs this key to serve your domain over HTTPS. It is stored encrypted and never shown again.": "OneUptime がドメインを HTTPS で配信するには、この鍵が必要です。暗号化して保存され、再表示されることはありません。",
+  "The certificate could not be read. Paste it in PEM format, starting with -----BEGIN CERTIFICATE-----.": "証明書を読み取れませんでした。-----BEGIN CERTIFICATE----- で始まる PEM 形式で貼り付けてください。",
+  "The private key could not be read. Paste it in PEM format, starting with -----BEGIN PRIVATE KEY-----.": "秘密鍵を読み取れませんでした。-----BEGIN PRIVATE KEY----- で始まる PEM 形式で貼り付けてください。",
+  "The private key does not belong to this certificate. Paste the private key the certificate was issued for.": "秘密鍵がこの証明書と一致しません。この証明書の発行に使用された秘密鍵を貼り付けてください。",
+  "The private key is protected by a passphrase. Paste it without one: the server has to read it to serve the certificate.": "秘密鍵はパスフレーズで保護されています。パスフレーズなしで貼り付けてください。証明書を配信するには、サーバーが鍵を読み取る必要があります。",
+  "To serve your own certificate, add both the certificate and its private key.": "独自の証明書を配信するには、証明書とその秘密鍵の両方を追加してください。"
 }

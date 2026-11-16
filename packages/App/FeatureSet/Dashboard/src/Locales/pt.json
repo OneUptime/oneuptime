@@ -56008,5 +56008,11 @@
   "Runs AI Code Fixes": "Executa correções de código por IA",
   "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].": "Os valores das chaves que parecem sensíveis, nos atributos e em um corpo do registro JSON, são substituídos por [REDACTED].",
   "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.": "Quais partes do span devem ser limpas: nome do span, valores dos atributos e dos atributos de links, valores dos atributos de evento ou todas, incluindo a mensagem de status e os nomes dos eventos.",
-  "Signed out by a server admin because single sign-on is required": "Sessão encerrada por um administrador do servidor porque o login único (SSO) é obrigatório"
+  "Signed out by a server admin because single sign-on is required": "Sessão encerrada por um administrador do servidor porque o login único (SSO) é obrigatório",
+  "OneUptime needs this key to serve your domain over HTTPS. It is stored encrypted and never shown again.": "O OneUptime precisa desta chave para servir seu domínio por HTTPS. Ela é armazenada criptografada e nunca mais é mostrada.",
+  "The certificate could not be read. Paste it in PEM format, starting with -----BEGIN CERTIFICATE-----.": "Não foi possível ler o certificado. Cole-o no formato PEM, começando com -----BEGIN CERTIFICATE-----.",
+  "The private key could not be read. Paste it in PEM format, starting with -----BEGIN PRIVATE KEY-----.": "Não foi possível ler a chave privada. Cole-a no formato PEM, começando com -----BEGIN PRIVATE KEY-----.",
+  "The private key does not belong to this certificate. Paste the private key the certificate was issued for.": "A chave privada não pertence a este certificado. Cole a chave privada para a qual o certificado foi emitido.",
+  "The private key is protected by a passphrase. Paste it without one: the server has to read it to serve the certificate.": "A chave privada está protegida por uma frase secreta. Cole-a sem ela: o servidor precisa lê-la para servir o certificado.",
+  "To serve your own certificate, add both the certificate and its private key.": "Para servir seu próprio certificado, adicione o certificado e a chave privada dele."
 }
