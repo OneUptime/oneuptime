@@ -284,7 +284,7 @@
     "accessWriteTitle": "Læse- og skriveadgang",
     "accessWriteDescription": "Se data og foretage ændringer: bekræfte og løse hændelser og advarsler, tilføje noter samt oprette, opdatere eller slette ressourcer.",
     "accessReadTitle": "Kun læseadgang",
-    "accessReadDescription": "Se hændelser, advarsler, overvågninger, statussider og telemetri. Kan ikke ændre noget.",
+    "accessReadDescription": "Se hændelser, advarsler, monitorer, statussider og telemetri. Kan ikke ændre noget.",
     "permissionsNote": "Klienten handler i dit navn og kan aldrig gøre mere, end dine egne tilladelser i dette projekt tillader. Du kan til enhver tid frakoble den under Projektindstillinger > AI > MCP-server.",
     "authorizeButton": "Godkend",
     "denyButton": "Annuller",

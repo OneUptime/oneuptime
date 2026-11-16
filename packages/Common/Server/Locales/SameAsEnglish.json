@@ -27,8 +27,15 @@
     "Status:",
     "[Incident] {{title}}"
   ],
-  "da": ["Note", "Note:", "Offline", "Status", "Status:"],
-  "no": ["Status", "Status:"],
+  "da": [
+    "Monitor: {{monitorName}}",
+    "Note",
+    "Note:",
+    "Offline",
+    "Status",
+    "Status:"
+  ],
+  "no": ["Monitor: {{monitorName}}", "Offline", "Status", "Status:"],
   "sv": [
     "Incident",
     "Incident - {{title}}",
