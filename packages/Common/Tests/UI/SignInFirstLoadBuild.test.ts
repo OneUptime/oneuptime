@@ -30,6 +30,12 @@ const COMMON_ROOT: string = path.resolve(__dirname, "..", "..");
  * altogether (BrowserTelemetrySdk.ts says why), and so are crypto-js's
  * ciphers, which HashedString brought with the SHA-256 it hashes with.
  *
+ * Every form (ModelForm) asked whether it was a rule's through the rule
+ * criteria form, and brought the condition builder a rule's form draws, the
+ * checks of a rule's conditions and the pattern matcher they read: it asks
+ * through RuleCriteriaLegacyFields, and a rule's form loads the rest
+ * (LazyRuleCriteriaModelForm).
+ *
  * An error's words, which API and every form load, joined their sentences
  * through DeleteConsequences and brought its table of sentences about
  * deleting records: they join them with SentenceSeparator, and the table is
@@ -244,6 +250,31 @@ const LEFT_OUT: ReadonlyArray<LeftOut> = [
   {
     name: "the rules that set code apart in a sentence read from the right, which load with Arabic or Persian words",
     path: "Types/CodeInSentence.ts",
+    isLoadedWhenNeeded: true,
+  },
+  {
+    name: "the rule criteria form, which only a rule's form loads (ModelForm, LazyRuleCriteriaModelForm)",
+    path: "UI/Components/RuleCriteria/RuleCriteriaModelForm.tsx",
+    isLoadedWhenNeeded: true,
+  },
+  {
+    name: "the condition builder a rule's form draws its match fields with",
+    path: "UI/Components/RuleCriteria/RuleCriteriaBuilder.tsx",
+    isLoadedWhenNeeded: true,
+  },
+  {
+    name: "the checks of a rule's conditions, with their sentences",
+    path: "UI/Components/RuleCriteria/RuleCriteriaFields.ts",
+    isLoadedWhenNeeded: true,
+  },
+  {
+    name: "the check of a pattern a condition is written with",
+    path: "Utils/Rules/RulePatternMatchUtil.ts",
+    isLoadedWhenNeeded: true,
+  },
+  {
+    name: "the regular expressions such a pattern is read as",
+    path: "Utils/LinearRegExp/LinearRegExp.ts",
     isLoadedWhenNeeded: true,
   },
   {
