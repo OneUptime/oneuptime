@@ -43,6 +43,23 @@ import { dashboardTranslator } from "../Helpers/DashboardLocales";
 
 const REPOSITORY_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
 
+/*
+ * The Enterprise Edition's pages are read only where ee/ is checked out:
+ * the Common Test job deletes it before it runs, and the Enterprise Edition
+ * Test workflow (test.ee.yaml) runs this with it. Their states' words are
+ * the core's locales', and are held everywhere.
+ */
+const ENTERPRISE_PRESENT: boolean = fs.existsSync(
+  path.join(REPOSITORY_ROOT, "ee"),
+);
+
+// The files of a set this checkout has: ee/'s only where it is.
+function filesDrawingHere(set: StateSet): Array<string> {
+  return set.drawnIn.filter((file: string): boolean => {
+    return ENTERPRISE_PRESENT || !file.startsWith("ee/");
+  });
+}
+
 const LOCALE_DIRS: Record<string, string> = {
   Dashboard: "packages/App/FeatureSet/Dashboard/src/Locales",
   AdminDashboard: "packages/App/FeatureSet/AdminDashboard/src/Locales",
@@ -357,7 +374,7 @@ describe.each(
   test("are drawn there, every one, and are keys of the app's English", () => {
     const english: Record<string, unknown> = readLocale(set.app, "en");
 
-    for (const file of set.drawnIn) {
+    for (const file of filesDrawingHere(set)) {
       const source: string = fs.readFileSync(
         path.join(REPOSITORY_ROOT, file),
         "utf8",
@@ -397,7 +414,7 @@ describe.each(
         true,
       ]);
 
-      for (const file of set.drawnIn) {
+      for (const file of filesDrawingHere(set)) {
         const source: string = fs.readFileSync(
           path.join(REPOSITORY_ROOT, file),
           "utf8",
