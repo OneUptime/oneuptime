@@ -703,7 +703,11 @@ work out, starts from a default for everything else, and folds what most people 
   or `Intl.RelativeTimeFormat` yourself. English OneUptime writes in words holds its number too
   ("5 hours ago", "1 min 47 secs", "10 days, 23 hours", #8669): code joins a figure to a
   duration's word with `NO_BREAK_SPACE` (`` `${count}${NO_BREAK_SPACE}minutes` ``), and English it
-  did not join itself, such as moment's, goes through `withDurationWordsHeld`. Enforced by
+  did not join itself, such as moment's, goes through `withDurationWordsHeld`. So does a sentence
+  built in code (#8695): "Rescan Interval must be at least 15 minutes.", "Every 6 hours", a guide's
+  "the last 10 minutes", and a word chosen by its count (`` `${n} ${n === 1 ? "hour" : "hours"}` ``).
+  A sentence looked up whole by its English keeps its plain spaces in the code, so the key still
+  matches, and the page holds the English it draws (`withDurationWordsHeld`). Enforced by
   [NumbersKeepTheirUnitsGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsGuard.test.ts),
   [NumbersKeepTheirUnitsInCodeGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsInCodeGuard.test.ts)
   and

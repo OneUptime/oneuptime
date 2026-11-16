@@ -28,6 +28,7 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 
 /*
  * Pay-as-you-go signposting for Free plan projects.
@@ -53,7 +54,7 @@ export const ACTIVE_MONITOR_PRICE_TEXT: string = formatPriceInUSD(
   ACTIVE_MONITOR_PRICE_IN_USD_PER_MONTH,
 );
 
-export const TELEMETRY_PRICE_SENTENCE: string = `${TELEMETRY_PRICE_PER_GB_TEXT} per GB ingested, with ${TELEMETRY_PRICE_RETENTION_IN_DAYS} day retention`;
+export const TELEMETRY_PRICE_SENTENCE: string = `${TELEMETRY_PRICE_PER_GB_TEXT} per GB ingested, with ${TELEMETRY_PRICE_RETENTION_IN_DAYS}${NO_BREAK_SPACE}day retention`;
 
 /*
  * Session replay rides on the same ingestion key and is metered at its own,
@@ -61,7 +62,7 @@ export const TELEMETRY_PRICE_SENTENCE: string = `${TELEMETRY_PRICE_PER_GB_TEXT} 
  * would understate a replay-heavy bill twentyfold, so both numbers travel
  * together everywhere the key's price is stated.
  */
-export const SESSION_REPLAY_PRICE_SENTENCE: string = `${SESSION_REPLAY_PRICE_PER_GB_TEXT} per GB, with ${TELEMETRY_PRICE_RETENTION_IN_DAYS} day retention`;
+export const SESSION_REPLAY_PRICE_SENTENCE: string = `${SESSION_REPLAY_PRICE_PER_GB_TEXT} per GB, with ${TELEMETRY_PRICE_RETENTION_IN_DAYS}${NO_BREAK_SPACE}day retention`;
 
 export const TELEMETRY_RATES_SENTENCE: string = `Logs, traces, metrics, profiles and security events are billed at ${TELEMETRY_PRICE_SENTENCE}. Session replay recordings are billed at ${SESSION_REPLAY_PRICE_SENTENCE}.`;
 

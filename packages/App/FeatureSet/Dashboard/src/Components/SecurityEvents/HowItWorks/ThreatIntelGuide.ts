@@ -50,6 +50,7 @@ import {
   fillGuideTemplate,
   markdownTable,
 } from "./SecurityEventsGuide";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 
 /*
  * What a customer needs to know to trust a threat intel feed: where its
@@ -222,15 +223,17 @@ export function describeListSchedule(minutes: number): string {
 
   if (minutes % MINUTES_IN_DAY === 0) {
     const days: number = minutes / MINUTES_IN_DAY;
-    return days === 1 ? "Every day" : `Every ${days} days`;
+    return days === 1 ? "Every day" : `Every ${days}${NO_BREAK_SPACE}days`;
   }
 
   if (minutes % 60 === 0) {
     const hours: number = minutes / 60;
-    return hours === 1 ? "Every hour" : `Every ${hours} hours`;
+    return hours === 1 ? "Every hour" : `Every ${hours}${NO_BREAK_SPACE}hours`;
   }
 
-  return minutes === 1 ? "Every minute" : `Every ${minutes} minutes`;
+  return minutes === 1
+    ? "Every minute"
+    : `Every ${minutes}${NO_BREAK_SPACE}minutes`;
 }
 
 const recommendedListRows: Array<Array<string>> =
@@ -260,7 +263,7 @@ ${markdownTable(["List", "Published by", "Read", "Confidence", "A match opens"],
 | **List URL** | An \`https\` address that downloads a text file with one IP address, domain, URL or file hash a line. |
 | **Confidence** | How sure the list is, 1–100. Every indicator on the list gets it, and it sets their threat level; empty is Medium. |
 
-Each poll downloads the whole list and reads it a line at a time: the first value on a line, up to a space, tab, comma or semicolon. Comment lines (\`#\`, \`;\`, \`//\`) and address ranges are skipped. A list holds at most ${THREAT_INTEL_LIST_MAX_INDICATORS.toLocaleString("en-US")} indicators, and it is read every ${THREAT_INTEL_LIST_MIN_POLL_INTERVAL_IN_MINUTES} minutes at most. A value stays active for ${THREAT_INTEL_LIST_VALID_DAYS} days after the poll that last read it, and a value the list drops stops matching at the next poll.
+Each poll downloads the whole list and reads it a line at a time: the first value on a line, up to a space, tab, comma or semicolon. Comment lines (\`#\`, \`;\`, \`//\`) and address ranges are skipped. A list holds at most ${THREAT_INTEL_LIST_MAX_INDICATORS.toLocaleString("en-US")} indicators, and it is read every ${THREAT_INTEL_LIST_MIN_POLL_INTERVAL_IN_MINUTES}${NO_BREAK_SPACE}minutes at most. A value stays active for ${THREAT_INTEL_LIST_VALID_DAYS}${NO_BREAK_SPACE}days after the poll that last read it, and a value the list drops stops matching at the next poll.
 
 #### Reading Google SecOps
 
@@ -268,7 +271,7 @@ Each poll downloads the whole list and reads it a line at a time: the first valu
 | --- | --- |
 | **Google SecOps Connection** | The Google SecOps connection whose key reads the indicators. Its service account needs the Chronicle API Viewer role. |
 
-Each poll reads the indicator matches Google SecOps recorded since the previous poll; the first poll reads the last ${THREAT_INTEL_GOOGLE_SECOPS_MAX_WINDOW_IN_DAYS} days. An indicator stays active for ${THREAT_INTEL_GOOGLE_SECOPS_VALID_DAYS} days after Google SecOps last saw it, and one an analyst muted there stops matching here too.
+Each poll reads the indicator matches Google SecOps recorded since the previous poll; the first poll reads the last ${THREAT_INTEL_GOOGLE_SECOPS_MAX_WINDOW_IN_DAYS}${NO_BREAK_SPACE}days. An indicator stays active for ${THREAT_INTEL_GOOGLE_SECOPS_VALID_DAYS}${NO_BREAK_SPACE}days after Google SecOps last saw it, and one an analyst muted there stops matching here too.
 
 #### Subscribing a collection
 
@@ -288,7 +291,7 @@ A list is public, and Google SecOps signs in with its connection's key: only a T
 
 #### Polling a collection
 
-Each poll picks up where the last one stopped, so only new objects are fetched. A large collection syncs over several polls — **Last Poll Summary** says when more pages remain. To finish a big first sync sooner, shorten the poll interval (down to ${THREAT_INTEL_POLL_INTERVAL_MIN_IN_MINUTES} minute) until it catches up.
+Each poll picks up where the last one stopped, so only new objects are fetched. A large collection syncs over several polls — **Last Poll Summary** says when more pages remain. To finish a big first sync sooner, shorten the poll interval (down to ${THREAT_INTEL_POLL_INTERVAL_MIN_IN_MINUTES}${NO_BREAK_SPACE}minute) until it catches up.
 
 Polls identify themselves with the user agent \`OneUptime/<version> (+https://oneuptime.com)\`. If your provider's firewall answers \`403\`, ask them to allow it.
 
@@ -318,7 +321,7 @@ Indicators whose STIX \`confidence\` is below the feed's Minimum Confidence are 
 
 #### How long an indicator stays active
 
-- An indicator matches from its \`valid_from\` until its \`valid_until\`. With no \`valid_until\`, it stays active for ${THREAT_INTEL_DEFAULT_VALID_DAYS} days from \`valid_from\` — polling it again does not extend that.
+- An indicator matches from its \`valid_from\` until its \`valid_until\`. With no \`valid_until\`, it stays active for ${THREAT_INTEL_DEFAULT_VALID_DAYS}${NO_BREAK_SPACE}days from \`valid_from\` — polling it again does not extend that.
 - A revoked indicator, or one updated with a \`valid_until\` in the past, stops matching as soon as the update is polled. So does a value the provider removes from an updated pattern.
 - Values are stored in lowercase and matched regardless of case.
 
@@ -379,7 +382,7 @@ Tagging only knows the indicators that exist when an event arrives — events ar
 
 Every minute, each enabled feed's active indicators are matched against the events whose **event time** falls since the feed's previous check. This catches intel that arrived after an event was tagged but before its window closed.
 
-- The first check covers the last ${THREAT_INTEL_FIRST_MATCH_WINDOW_IN_MINUTES} minutes. After an outage, the next check catches up on at most the last ${LOOKBACK_IN_HOURS} hours.
+- The first check covers the last ${THREAT_INTEL_FIRST_MATCH_WINDOW_IN_MINUTES}${NO_BREAK_SPACE}minutes. After an outage, the next check catches up on at most the last ${LOOKBACK_IN_HOURS}${NO_BREAK_SPACE}hours.
 - Each window is checked once. Intel that arrives after a window has been checked only applies to future events.
 - An event that arrives late, with a timestamp from before the previous check, is still tagged at ingest but is not matched.
 - Each check matches at most ${THREAT_INTEL_MAX_INDICATORS_PER_EVALUATION} indicator values per feed — the ones seen in the most events.

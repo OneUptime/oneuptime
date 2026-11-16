@@ -56,6 +56,7 @@ import {
 } from "../Utils/WindowsServices";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 
 interface ServiceRow {
   key: string;
@@ -607,7 +608,7 @@ const HostServices: FunctionComponent<
    */
   const noItemsMessage: string =
     rows.length === 0
-      ? `No Windows service metrics in the last ${SERVICE_LOOKBACK_MINUTES} minutes. Add the windows_service receiver to your collector: see the Documentation tab.`
+      ? `No Windows service metrics in the last ${SERVICE_LOOKBACK_MINUTES}${NO_BREAK_SPACE}minutes. Add the windows_service receiver to your collector: see the Documentation tab.`
       : "No services match the current filters.";
 
   /*

@@ -682,9 +682,10 @@ describe("MonitorOverviewHero run states", () => {
 
     if (testCase.hasExplanation) {
       expect(presentation.explanation).toBeTruthy();
+      // The page's text, its spaces folded as the matcher folds the element's.
       expect(
         screen.getByTestId("monitor-overview-explanation"),
-      ).toHaveTextContent(presentation.explanation!);
+      ).toHaveTextContent(presentation.explanation!.replace(/\u00A0/g, " "));
     } else {
       expect(screen.queryByTestId("monitor-overview-explanation")).toBeNull();
     }
