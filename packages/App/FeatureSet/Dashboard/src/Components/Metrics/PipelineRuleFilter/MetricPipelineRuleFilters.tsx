@@ -5,7 +5,10 @@ import MetricPipelineRuleFilterCondition, {
   MetricPipelineRuleFilterConditionUtil,
 } from "Common/Types/Metrics/MetricPipelineRuleFilterCondition";
 import { isFilterConditionNeeded } from "Common/Types/Filter/FilterConditionUtil";
-import Button, { ButtonSize } from "Common/UI/Components/Button/Button";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
 import RuleAppliesToChoice from "Common/UI/Components/RuleCriteria/RuleAppliesToChoice";
 import { RuleCriteriaCopy } from "Common/UI/Components/RuleCriteria/RuleCriteriaFields";
@@ -195,13 +198,14 @@ const MetricPipelineRuleFilters: FunctionComponent<ComponentProps> = (
           })}
 
           {/*
-           * From md up a Button sits 12px in (md:ml-3, for a dialog's
-           * footer), taken back here so it lines up with the filters. Below
-           * md it has no such margin and is as wide as they are.
+           * Adding a filter is a step inside the form, not its action: an
+           * outline button, sized to its words and in line with the
+           * filters at every width, as the rule builder's is (#9116).
            */}
-          <div className="mt-3 md:-ml-3">
+          <div className="mt-3">
             <Button
               title="Add Filter"
+              buttonStyle={ButtonStyleType.OUTLINE}
               buttonSize={ButtonSize.Small}
               icon={IconProp.Add}
               onClick={addFilter}

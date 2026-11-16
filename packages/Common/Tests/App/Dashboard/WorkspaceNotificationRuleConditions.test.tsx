@@ -598,10 +598,10 @@ describe("The workspace notification rule Conditions editor", () => {
     });
 
     /*
-     * A Button is full width under md, and only from md up sits 12px in
-     * (md:ml-3, for a dialog's footer). Taking those 12px back at every
-     * width pushed the full-width button 12px out of line with the
-     * conditions on a phone.
+     * Add Condition is an outline button (#9116): sized to its words, with
+     * no dialog footer's margin (md:ml-3) to take back, so nothing around
+     * it pulls it out of line with the conditions at any width. It was a
+     * NORMAL button, full width under md and 12px in from md up.
      */
     test("Add Condition lines up with the conditions at every width", async () => {
       renderConditions(NotificationRuleEventType.Incident);
@@ -613,12 +613,17 @@ describe("The workspace notification rule Conditions editor", () => {
         }),
       );
 
-      const wrapper: HTMLElement = screen.getByTestId(
+      const button: HTMLElement = screen.getByTestId(
         "notification-rule-add-condition",
-      ).parentElement as HTMLElement;
-      const classes: Array<string> = wrapper.className.split(/\s+/);
-      expect(classes).toContain("md:-ml-3");
-      expect(classes).not.toContain("-ml-3");
+      );
+      const wrapper: HTMLElement = button.parentElement as HTMLElement;
+      const buttonClasses: Array<string> = button.className.split(/\s+/);
+
+      expect(buttonClasses).not.toContain("md:ml-3");
+      expect(buttonClasses).not.toContain("w-full");
+      expect(buttonClasses).toContain("border-gray-300");
+      expect(buttonClasses).toContain("bg-white");
+      expect(wrapper.className).not.toMatch(/-ml-/);
     });
   });
 

@@ -91,3 +91,16 @@ export const RULE_CRITERIA_VALUE_CELL_CLASS_NAME: string =
 // The remove button: at the end of the first line, at every width.
 export const RULE_CRITERIA_REMOVE_CELL_CLASS_NAME: string =
   "col-[2] row-[1] flex h-10 items-center justify-end [@container(min-width:24rem)_and_(max-width:36.99rem)]:col-[3] [@container(min-width:37rem)_and_(max-width:55.99rem)]:col-[4] [@container(min-width:56rem)]:col-[5]";
+
+/*
+ * Add condition, under the conditions: a container of its own, as wide as
+ * the list, so from 24rem the button starts where the pickers do (after the
+ * 3.5rem "If" column and the 0.5rem gap) and reads as adding a row to them.
+ * On a phone, where the pickers take the row's width, it starts at the edge
+ * as they do. Inline start, so right to left it lines up from the right.
+ */
+export const RULE_CRITERIA_ADD_ROW_CLASS_NAME: string =
+  "[container-type:inline-size]";
+
+export const RULE_CRITERIA_ADD_CELL_CLASS_NAME: string =
+  "[@container(min-width:24rem)]:ps-16";
