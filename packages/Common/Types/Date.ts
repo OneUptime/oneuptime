@@ -1412,21 +1412,6 @@ export default class OneUptimeDate {
     return this.secondsToFormattedFriendlyTimeString(seconds);
   }
 
-  public static toTimeString(
-    date: Date | string,
-    use12HourFormat?: boolean,
-  ): string {
-    if (typeof date === "string") {
-      date = this.fromString(date);
-    }
-
-    const format: "hh:mm A" | "HH:mm" =
-      use12HourFormat || this.getUserPrefers12HourFormat()
-        ? "hh:mm A"
-        : "HH:mm";
-    return moment(date).format(format);
-  }
-
   public static isSame(date1: Date, date2: Date): boolean {
     date1 = this.fromString(date1);
     date2 = this.fromString(date2);
@@ -2189,10 +2174,6 @@ export default class OneUptimeDate {
       this.getCurrentMomentDate().toDate(),
       this.toDayCount(days),
     );
-  }
-
-  public static secondsToFormattedTimeString(seconds: number): string {
-    return moment.utc(seconds * 1000).format("HH:mm:ss");
   }
 
   public static toUnixTimestamp(date: Date): number {

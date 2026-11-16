@@ -2752,6 +2752,43 @@ describe("the Service Map these properties describe", () => {
     expect(lineage).not.toMatch(/addEventListener\(\s*"focusin"/);
   });
 
+  /*
+   * A resource's topology map had a copy of its own (#6958): a focusin
+   * listener that panned, with no scroll listener, no window-refocus check
+   * and no page scroll. It follows the focus with the shared piece now,
+   * from a child of <ReactFlow>, and keeps nothing of the copy.
+   */
+  test("a resource's topology map follows keyboard focus with the same piece, and keeps no copy of its own", () => {
+    const canvas: string = fs
+      .readFileSync(
+        path.join(
+          TOPOLOGY_DIR,
+          "..",
+          "ResourceTopology",
+          "ResourceTopologyCanvas.tsx",
+        ),
+        "utf8",
+      )
+      .replace(/\/\*[\s\S]*?\*\//g, " ")
+      .replace(/\/\/.*$/gm, " ");
+
+    expect(canvas).toMatch(
+      /import \{ useFlowKeyboardFocus \} from "\.\.\/Topology\/FlowKeyboardFocus";/,
+    );
+    expect(canvas).toMatch(/useFlowKeyboardFocus\(keepNoNoteOfTheView\);/);
+    // Called from the child of <ReactFlow> that reads React Flow's store.
+    expect(
+      canvas.indexOf("useFlowKeyboardFocus(keepNoNoteOfTheView);"),
+    ).toBeGreaterThan(canvas.indexOf("const ViewportController"));
+    expect(
+      canvas.indexOf("useFlowKeyboardFocus(keepNoNoteOfTheView);"),
+    ).toBeLessThan(canvas.indexOf("const MapControls"));
+    expect(canvas).not.toMatch(/addEventListener\(\s*"focusin"/);
+    expect(canvas).not.toMatch(/panDeltaToReveal|isKeyboardFocus/);
+    expect(canvas).not.toMatch(/FOCUS_REVEAL_PADDING_PX/);
+    expect(canvas).not.toMatch(/scrollLeft|scrollTop/);
+  });
+
   test("keeps the out-of-view notice 16 px inside the canvas, placed from the canvas's box and the window's height", () => {
     const map: string = readCode("ServiceMapGraph.tsx");
     expect(map).toMatch(/OUT_OF_VIEW_NOTICE_INSET_PX: number = 16;/);
