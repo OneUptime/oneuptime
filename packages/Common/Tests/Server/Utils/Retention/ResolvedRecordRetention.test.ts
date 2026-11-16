@@ -2002,17 +2002,28 @@ describe("countDueRecords: what a setting deletes now", () => {
       NOW.getTime() - 90 * DAY_MS,
     );
     expect(statement.params[3]).toEqual([COMPLETED_STATUS_ID]);
-    expect(statement.params[4]).toBe(RETENTION_COUNT_UP_TO);
+    // One past the bound, so exactly the bound is told from more than it.
+    expect(statement.params[4]).toBe(RETENTION_COUNT_UP_TO + 1);
     // Through the count's own runner, with its timeout - never the purge's.
     expect(database.statements).toEqual([]);
   });
 
-  test("a count that reaches the bound says at least that many", async () => {
-    countAnswer = [{ count: RETENTION_COUNT_UP_TO }];
+  test("a count past the bound says more than the bound", async () => {
+    countAnswer = [{ count: RETENTION_COUNT_UP_TO + 1 }];
 
     expect(await count()).toEqual({
       count: RETENTION_COUNT_UP_TO,
       isAtLeast: true,
+    });
+  });
+
+  // "More than 10,000" would be wrong by one for exactly 10,000.
+  test("exactly the bound is said as it is", async () => {
+    countAnswer = [{ count: RETENTION_COUNT_UP_TO }];
+
+    expect(await count()).toEqual({
+      count: RETENTION_COUNT_UP_TO,
+      isAtLeast: false,
     });
   });
 

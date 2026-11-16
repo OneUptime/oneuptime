@@ -143,8 +143,8 @@ export interface DueRetentionProject {
 export interface DueRecordsCount {
   count: number;
   /*
-   * The count stopped at RETENTION_COUNT_UP_TO: at least that many are due.
-   * A project with years of records is not counted to the last one.
+   * More than RETENTION_COUNT_UP_TO are due, and `count` is that bound: a
+   * project with years of records is not counted to the last one.
    */
   isAtLeast: boolean;
 }
@@ -253,10 +253,10 @@ export const RETENTION_PROJECTS_PER_PAGE: number = 100;
 export const RETENTION_TIME_BUDGET_MS: number = 10 * 60 * 1000;
 
 /*
- * The most a count of what a setting deletes reads (countDueRecords): past
- * it, the answer is "at least" - a project turning retention on with years
- * of incidents is told it deletes more than this, not made to wait while
- * every one is counted.
+ * The most a count of what a setting deletes says (countDueRecords): past
+ * it, a project turning retention on with years of incidents is told it
+ * deletes more than this, not made to wait while every one is counted. The
+ * count reads one row more, so exactly this many is said as it is.
  */
 export const RETENTION_COUNT_UP_TO: number = 10000;
 
@@ -821,7 +821,8 @@ export default class ResolvedRecordRetention {
           keepCompletedPostmortems: data.keepCompletedPostmortems,
           chosenStatusIds: data.keptPostmortemStatusIds,
         }),
-        upTo: RETENTION_COUNT_UP_TO,
+        // One past the bound: "more than" only when more are due.
+        upTo: RETENTION_COUNT_UP_TO + 1,
       });
 
     const rows: Array<Record<string, unknown>> = await this.runCountQuery(
@@ -832,8 +833,8 @@ export default class ResolvedRecordRetention {
     const count: number = readCount(rows);
 
     return {
-      count: count,
-      isAtLeast: count >= RETENTION_COUNT_UP_TO,
+      count: Math.min(count, RETENTION_COUNT_UP_TO),
+      isAtLeast: count > RETENTION_COUNT_UP_TO,
     };
   }
 
