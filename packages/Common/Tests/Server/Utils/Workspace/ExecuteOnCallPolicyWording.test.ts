@@ -1,6 +1,16 @@
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { EXECUTE_ON_CALL_POLICY_WORDS } from "../../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/ExecutePolicy/ExecuteOnCallPolicyWords";
 import DatabaseConfig from "../../../../Server/DatabaseConfig";
 import { MessageBlocksByWorkspaceType } from "../../../../Server/Services/WorkspaceNotificationRuleService";
+import Response from "../../../../Server/Utils/Response";
+import MattermostUtil from "../../../../Server/Utils/Workspace/Mattermost/Mattermost";
+import MattermostActions, {
+  MATTERMOST_ON_CALL_POLICY_FIELD,
+} from "../../../../Server/Utils/Workspace/Mattermost/MattermostActions";
+import {
+  MattermostPress,
+  MattermostRecordType,
+} from "../../../../Server/Utils/Workspace/Mattermost/MattermostActionTypes";
 import { getMicrosoftTeamsActionType } from "../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/ActionTypes";
 import MicrosoftTeamsAlertActions from "../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/Alert";
 import MicrosoftTeamsAlertEpisodeActions from "../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/AlertEpisode";
@@ -8,10 +18,23 @@ import MicrosoftTeamsIncidentActions from "../../../../Server/Utils/Workspace/Mi
 import MicrosoftTeamsIncidentEpisodeActions from "../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/IncidentEpisode";
 import MicrosoftTeamsAlertMessages from "../../../../Server/Utils/Workspace/MicrosoftTeams/Messages/Alert";
 import MicrosoftTeamsIncidentMessages from "../../../../Server/Utils/Workspace/MicrosoftTeams/Messages/Incident";
+import MicrosoftTeamsCardChoices from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsCardChoices";
 import MicrosoftTeamsConnectPrompt from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsConnectPrompt";
 import SlackActionType from "../../../../Server/Utils/Workspace/Slack/Actions/ActionTypes";
+import SlackAlertActions from "../../../../Server/Utils/Workspace/Slack/Actions/Alert";
+import SlackAlertEpisodeActions from "../../../../Server/Utils/Workspace/Slack/Actions/AlertEpisode";
+import SlackActionAnswer from "../../../../Server/Utils/Workspace/Slack/Actions/Answer";
+import SlackActionAuthorization from "../../../../Server/Utils/Workspace/Slack/Actions/Authorization";
 import SlackConnectPrompt from "../../../../Server/Utils/Workspace/Slack/Actions/ConnectPrompt";
+import SlackIncidentActions from "../../../../Server/Utils/Workspace/Slack/Actions/Incident";
+import SlackIncidentEpisodeActions from "../../../../Server/Utils/Workspace/Slack/Actions/IncidentEpisode";
+import SlackUtil from "../../../../Server/Utils/Workspace/Slack/Slack";
 import WorkspaceActionAuthorization from "../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
+import {
+  getExecuteOnCallPolicyFormDescription,
+  WORKSPACE_EXECUTE_ON_CALL_POLICY_DESCRIPTIONS,
+} from "../../../../Server/Utils/Workspace/WorkspaceExecuteOnCallPolicyForm";
+import { OnCallPageRecordType } from "../../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import {
   WorkspaceConnectRequestAgainKind,
   WorkspacePressDescription,
@@ -28,8 +51,10 @@ import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/Datab
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import {
+  WorkspaceDropdownBlock,
   WorkspaceMessageBlock,
   WorkspaceMessagePayloadButton,
+  WorkspaceModalBlock,
   WorkspacePayloadButtons,
 } from "../../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
@@ -554,6 +579,264 @@ describe("Microsoft Teams' card is titled the same, and asks for the On-Call Pol
         type: "Input.ChoiceSet",
         id: "onCallPolicy",
         label: "On-Call Policy",
+      });
+    },
+  );
+});
+
+/*
+ * HOW LONG THE POLICY PAGES, SAID UNDER EVERY CHAT'S POLICY DROPDOWN (#9006).
+ *
+ * A policy started by hand pages its people, level by level, until one of
+ * them answers or the record is resolved: somebody else acknowledging the
+ * record does not stop it. The Dashboard's form says so (#7839); Slack's
+ * modal, Microsoft Teams' card and Mattermost's dialog had a label and a
+ * placeholder only. Each now says it under the dropdown, in the sentence
+ * the Dashboard shows on a record nobody acknowledged yet - one sentence
+ * that holds whatever the record's state - from one table
+ * (WorkspaceExecuteOnCallPolicyForm), so the three chats say the same.
+ */
+describe("the chats' Execute On-Call Policy forms say how long the policy pages (#9006)", () => {
+  interface FormRecord {
+    record: string;
+    recordType: OnCallPageRecordType;
+    slack: {
+      viewExecuteOnCallPolicy: (data: unknown) => Promise<void>;
+    };
+    teams: unknown;
+    teamsBuilder: string;
+    mattermost: MattermostRecordType;
+  }
+
+  const FORM_RECORDS: ReadonlyArray<FormRecord> = [
+    {
+      record: "incident",
+      recordType: OnCallPageRecordType.Incident,
+      slack: SlackIncidentActions as never,
+      teams: MicrosoftTeamsIncidentActions,
+      teamsBuilder: "buildExecuteOnCallPolicyCard",
+      mattermost: MattermostRecordType.Incident,
+    },
+    {
+      record: "alert",
+      recordType: OnCallPageRecordType.Alert,
+      slack: SlackAlertActions as never,
+      teams: MicrosoftTeamsAlertActions,
+      teamsBuilder: "buildExecuteAlertOnCallPolicyCard",
+      mattermost: MattermostRecordType.Alert,
+    },
+    {
+      record: "incident episode",
+      recordType: OnCallPageRecordType.IncidentEpisode,
+      slack: SlackIncidentEpisodeActions as never,
+      teams: MicrosoftTeamsIncidentEpisodeActions,
+      teamsBuilder: "buildExecuteIncidentEpisodeOnCallPolicyCard",
+      mattermost: MattermostRecordType.IncidentEpisode,
+    },
+    {
+      record: "alert episode",
+      recordType: OnCallPageRecordType.AlertEpisode,
+      slack: SlackAlertEpisodeActions as never,
+      teams: MicrosoftTeamsAlertEpisodeActions,
+      teamsBuilder: "buildExecuteAlertEpisodeOnCallPolicyCard",
+      mattermost: MattermostRecordType.AlertEpisode,
+    },
+  ];
+
+  // The policies the member may read: what each form offers.
+  function offerOnePolicy(): void {
+    const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
+    policy._id = ObjectID.generate().toString();
+    policy.name = "Primary on-call";
+
+    jest
+      .spyOn(WorkspaceActionAuthorization, "findReadable")
+      .mockResolvedValue([policy] as never);
+  }
+
+  test("the table holds every record's sentence, and only those", () => {
+    expect(
+      Object.keys(WORKSPACE_EXECUTE_ON_CALL_POLICY_DESCRIPTIONS).sort(),
+    ).toEqual(Object.values(OnCallPageRecordType).sort());
+  });
+
+  test.each(FORM_RECORDS)(
+    "$record: the chats say the Dashboard's own sentence for a record nobody acknowledged",
+    (form: FormRecord) => {
+      const sentence: string = getExecuteOnCallPolicyFormDescription(
+        form.recordType,
+      );
+
+      expect(sentence).toBe(EXECUTE_ON_CALL_POLICY_WORDS[form.recordType].open);
+      // It names the record, and when the paging ends.
+      expect(sentence).toContain(`about this ${form.record},`);
+      expect(sentence).toContain("until one of them answers or the ");
+      expect(sentence).toMatch(/is resolved\.$/);
+    },
+  );
+
+  test.each(FORM_RECORDS)(
+    "$record: the sentence holds on an acknowledged record too - it never says the record is open",
+    (form: FormRecord) => {
+      const sentence: string = getExecuteOnCallPolicyFormDescription(
+        form.recordType,
+      );
+
+      expect(sentence).not.toMatch(/acknowledged|nobody|not yet/i);
+      // The Dashboard's acknowledged sentence says the same about paging.
+      expect(
+        EXECUTE_ON_CALL_POLICY_WORDS[form.recordType].acknowledged,
+      ).toContain(sentence.slice(sentence.indexOf("level by level")));
+    },
+  );
+
+  test("every sentence fits Mattermost's help text whole, and Slack's hint", () => {
+    for (const sentence of Object.values(
+      WORKSPACE_EXECUTE_ON_CALL_POLICY_DESCRIPTIONS,
+    )) {
+      expect({
+        sentence,
+        fits: sentence.length <= MattermostUtil.DIALOG_HELP_TEXT_MAX_LENGTH,
+      }).toEqual({ sentence, fits: true });
+      expect(sentence.length).toBeLessThanOrEqual(2000);
+    }
+  });
+
+  test.each(FORM_RECORDS)(
+    "$record: Slack's modal says it as the policy dropdown's hint",
+    async (form: FormRecord) => {
+      offerOnePolicy();
+      // Slack is answered at once, before the form is read.
+      for (const answer of [
+        "sendJsonObjectResponse",
+        "sendTextResponse",
+      ] as const) {
+        jest.spyOn(Response, answer).mockImplementation((() => {
+          return undefined;
+        }) as never);
+      }
+      jest
+        .spyOn(SlackActionAuthorization, "authorize")
+        .mockResolvedValue({} as never);
+
+      const shown: Array<WorkspaceModalBlock> = [];
+
+      jest
+        .spyOn(SlackActionAnswer, "showModal")
+        .mockImplementation((async (data: {
+          modalBlock: WorkspaceModalBlock;
+        }) => {
+          shown.push(data.modalBlock);
+        }) as never);
+
+      await form.slack.viewExecuteOnCallPolicy({
+        slackRequest: {
+          isAuthorized: true,
+          projectId: projectId,
+          userId: ObjectID.generate(),
+        },
+        action: { actionValue: recordId.toString() },
+        req: {},
+        res: {},
+      });
+
+      expect(shown).toHaveLength(1);
+
+      const dropdown: WorkspaceDropdownBlock = shown[0]!
+        .blocks[0] as WorkspaceDropdownBlock;
+
+      expect(dropdown).toMatchObject({
+        _type: "WorkspaceDropdownBlock",
+        label: "On-Call Policy",
+        description: getExecuteOnCallPolicyFormDescription(form.recordType),
+      });
+
+      // Drawn as the select's hint, in plain text.
+      expect(
+        SlackUtil.getDropdownBlock({ payloadDropdownBlock: dropdown })["hint"],
+      ).toEqual({
+        type: "plain_text",
+        text: getExecuteOnCallPolicyFormDescription(form.recordType),
+      });
+    },
+  );
+
+  test.each(FORM_RECORDS)(
+    "$record: Microsoft Teams' card says it in a note under the dropdown",
+    async (form: FormRecord) => {
+      offerOnePolicy();
+
+      const builder: unknown = (form.teams as Record<string, unknown>)[
+        form.teamsBuilder
+      ];
+
+      const built: JSONObject | null = await (
+        builder as (
+          recordId: string,
+          projectId: ObjectID,
+          props: DatabaseCommonInteractionProps,
+        ) => Promise<JSONObject | null>
+      ).call(form.teams, recordId.toString(), projectId, {});
+
+      const body: Array<JSONObject> = (built?.["body"] ||
+        []) as Array<JSONObject>;
+
+      expect(body[1]).toMatchObject({
+        type: "Input.ChoiceSet",
+        id: "onCallPolicy",
+      });
+      expect(body[2]).toEqual(
+        MicrosoftTeamsCardChoices.buildNoteElement(
+          getExecuteOnCallPolicyFormDescription(form.recordType),
+        ),
+      );
+      expect(body).toHaveLength(3);
+    },
+  );
+
+  test.each(FORM_RECORDS)(
+    "$record: Mattermost's dialog says it as the policy field's help text, whole",
+    async (form: FormRecord) => {
+      offerOnePolicy();
+      jest
+        .spyOn(WorkspaceActionAuthorization, "assertCanCreate")
+        .mockResolvedValue(undefined as never);
+
+      const modalBlock: WorkspaceModalBlock = await (
+        MattermostActions as unknown as {
+          getForm: (data: unknown) => Promise<WorkspaceModalBlock>;
+        }
+      ).getForm({
+        requester: {
+          projectId: projectId,
+          userId: ObjectID.generate(),
+          mattermostUserId: "mm-user",
+          props: {},
+          authToken: "token",
+          channelId: "channel",
+        },
+        spec: {
+          recordType: form.mattermost,
+          press: MattermostPress.OpenOnCallPolicyForm,
+          submitActionId: "submit",
+        },
+        recordId: recordId,
+      });
+
+      const dialog: JSONObject = MattermostUtil.getDialog({
+        modalBlock: modalBlock,
+        // A Mattermost id: 26 lower-case letters and digits.
+        teamId: "abcdefghijklmnopqrstuvwxyz",
+      });
+      const elements: Array<JSONObject> = dialog[
+        "elements"
+      ] as Array<JSONObject>;
+
+      expect(elements).toHaveLength(1);
+      expect(elements[0]).toMatchObject({
+        name: MATTERMOST_ON_CALL_POLICY_FIELD,
+        display_name: "On-Call Policy",
+        help_text: getExecuteOnCallPolicyFormDescription(form.recordType),
       });
     },
   );

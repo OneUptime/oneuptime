@@ -19,8 +19,9 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import OnCallRulePolicyScope from "../Utils/Rules/OnCallRulePolicyScope";
-import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
+import RuleSetCache from "../Utils/Rules/RuleSetCache";
+import Select from "../Types/Database/Select";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
@@ -411,35 +412,36 @@ class IncidentOnCallRuleEngineServiceClass {
     return await this.findEnabledRules(projectId);
   }
 
-  // The project's enabled rules of this kind, with what matching them needs.
+  // What matching the project's rules needs of each.
+  private readonly ruleSelect: Select<IncidentOnCallRule> = {
+    _id: true,
+    name: true,
+    criteria: true,
+    monitors: { _id: true },
+    incidentSeverities: { _id: true },
+    incidentLabels: { _id: true },
+    monitorLabels: { _id: true },
+    incidentTitlePattern: true,
+    incidentDescriptionPattern: true,
+    monitorNamePattern: true,
+    monitorDescriptionPattern: true,
+    onCallDutyPolicies: { _id: true },
+    ...ON_CALL_RULE_WHEN_TO_PAGE_SELECT,
+    ...ON_CALL_RULE_PAGE_AS_SELECT,
+  };
+
+  /*
+   * The project's enabled rules of this kind, with what matching them needs:
+   * kept until any of the project's rules changes (RuleSetCache).
+   */
   private async findEnabledRules(
     projectId: ObjectID,
   ): Promise<Array<IncidentOnCallRule>> {
     const rules: Array<IncidentOnCallRule> =
-      await IncidentOnCallRuleService.findBy({
-        query: {
-          projectId: projectId,
-          isEnabled: true,
-        },
-        props: { isRoot: true },
-        select: {
-          _id: true,
-          name: true,
-          criteria: true,
-          monitors: { _id: true },
-          incidentSeverities: { _id: true },
-          incidentLabels: { _id: true },
-          monitorLabels: { _id: true },
-          incidentTitlePattern: true,
-          incidentDescriptionPattern: true,
-          monitorNamePattern: true,
-          monitorDescriptionPattern: true,
-          onCallDutyPolicies: { _id: true },
-          ...ON_CALL_RULE_WHEN_TO_PAGE_SELECT,
-          ...ON_CALL_RULE_PAGE_AS_SELECT,
-        },
-        limit: MAX_RULES_EVALUATED_PER_PROJECT,
-        skip: 0,
+      await RuleSetCache.findEnabledRules<IncidentOnCallRule>({
+        service: IncidentOnCallRuleService,
+        projectId: projectId,
+        select: this.ruleSelect,
       });
 
     logIfRuleReadWasTruncated({

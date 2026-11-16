@@ -184,6 +184,37 @@ export interface WorkspacePayloadMarkdown extends WorkspaceMessageBlock {
    * the text.
    */
   menu?: WorkspacePayloadMenu | undefined;
+  /*
+   * The people the text mentions on purpose, each written in it in its
+   * workspace's own way (WorkspacePayloadMention.text): Microsoft Teams
+   * notifies them only with a mention entity for each, and Mattermost,
+   * which breaks every other "@" of a post, keeps theirs. Only OneUptime's
+   * own code writes one - a person on call, on a rule that asks for it
+   * (issue #7968) - never the text somebody typed.
+   */
+  mentions?: Array<WorkspacePayloadMention> | undefined;
+}
+
+/*
+ * A person a message mentions - notifies - in one workspace, by the account
+ * they connected to OneUptime there.
+ */
+export interface WorkspacePayloadMention {
+  /*
+   * How the message's text writes the mention: "<@U0123ABC>" in Slack,
+   * "<at>Ana Lee</at>" in Microsoft Teams, "@ana.lee" in Mattermost.
+   */
+  text: string;
+  /*
+   * Their account: a Slack user id, a Microsoft Entra object id, a
+   * Mattermost user id.
+   */
+  workspaceUserId: string;
+  /*
+   * The name the mention shows - Teams' <at> text, Mattermost's username -
+   * and the one a notification log says for it.
+   */
+  name: string;
 }
 
 /*

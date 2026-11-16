@@ -31,10 +31,11 @@ import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
  *
  * Only the kinds of rule that choose their updates have them
  * (NotificationRuleUpdates.canChooseUpdates): incidents, alerts, their
- * episodes, scheduled maintenance and on-call policies - whose updates are
- * who is on call, not what happened to a record (issue #7549). Each has
- * all its words in one entry of UPDATES_COPY, so a kind of rule that
- * starts choosing its updates adds one entry here and its kinds in
+ * episodes, scheduled maintenance, on-call policies - whose updates are
+ * who is on call, not what happened to a record (issue #7549) - and
+ * security cases, whose four notices are all a rule posts (issue #7936).
+ * Each has all its words in one entry of UPDATES_COPY, so a kind of rule
+ * that starts choosing its updates adds one entry here and its kinds in
  * NotificationRuleUpdates. Every sentence is whole in the locale files,
  * one per kind of record where the record is named, so it reads right in
  * every language.
@@ -48,7 +49,8 @@ export type UpdatesEventType =
   | NotificationRuleEventType.IncidentEpisode
   | NotificationRuleEventType.AlertEpisode
   | NotificationRuleEventType.ScheduledMaintenance
-  | NotificationRuleEventType.OnCallDutyPolicy;
+  | NotificationRuleEventType.OnCallDutyPolicy
+  | NotificationRuleEventType.SecurityCase;
 
 // One box of Choose updates: its name, and what it covers.
 export interface UpdateKindCopy {
@@ -63,7 +65,7 @@ export interface UpdatesCopy {
   // Under Every update, and under Key updates only: what each posts.
   everyUpdateDescription: string;
   keyUpdatesDescription: string;
-  // Under the boxes when none is ticked: when the rule still posts.
+  // Under the boxes when none is ticked: when the rule still posts, if ever.
   nothingChosenNote: string;
   /*
    * The card's Updates row of a rule with every box cleared, saying the
@@ -77,6 +79,22 @@ export interface UpdatesCopy {
 // The step's question, its field's title and its section's heading.
 export const UPDATES_SECTION_TITLE: string = translationKey(
   "Which updates to post",
+);
+
+/*
+ * An on-call rule's switch under its answers (issue #7968), shown while it
+ * posts who is on call now: its hand-off line then mentions - notifies -
+ * the person who comes on call, by the chat account they connected. Off
+ * unless turned on. And the line the rule's card says it with.
+ */
+export const MENTION_WHO_IS_ON_CALL_TITLE: string = translationKey(
+  "Mention the person who comes on call",
+);
+export const MENTION_WHO_IS_ON_CALL_DESCRIPTION: string = translationKey(
+  "They are notified in the channel at each hand-off, once they have connected their chat account to OneUptime.",
+);
+export const MENTION_WHO_IS_ON_CALL_SUMMARY: string = translationKey(
+  "Mentions the person who comes on call",
 );
 
 // The three answers.
@@ -97,6 +115,8 @@ const OWNERS: string = translationKey("Owners");
 const PAGING: string = translationKey("Paging");
 const AI_ANALYSIS: string = translationKey("AI analysis and fixes");
 const OTHER_EDITS: string = translationKey("Other edits");
+const CUSTOM_FIELDS: string = translationKey("Custom field changes");
+const REMINDERS: string = translationKey("Reminders");
 const EVERYTHING_ELSE: string = translationKey("Everything else");
 
 const NOTES_ON_STATUS_PAGES: string = translationKey(
@@ -107,6 +127,12 @@ const NOTES_OFF_STATUS_PAGES: string = translationKey(
 );
 const OWNERS_ADDED_AND_REMOVED: string = translationKey(
   "Owners added and removed.",
+);
+const TITLE_DESCRIPTION_LABELS_AND_MORE: string = translationKey(
+  "Title, description, labels and more.",
+);
+const CUSTOM_FIELD_VALUES_CHANGED: string = translationKey(
+  "Custom field values set, changed or cleared.",
 );
 const WHO_WAS_PAGED: string = translationKey(
   "Who an on-call policy paged, and who acknowledged.",
@@ -185,14 +211,22 @@ export const UPDATES_COPY: Readonly<Record<UpdatesEventType, UpdatesCopy>> = {
       },
       [NotificationRuleUpdateKind.Edits]: {
         title: OTHER_EDITS,
+        description: TITLE_DESCRIPTION_LABELS_AND_MORE,
+      },
+      [NotificationRuleUpdateKind.CustomFields]: {
+        title: CUSTOM_FIELDS,
+        description: CUSTOM_FIELD_VALUES_CHANGED,
+      },
+      [NotificationRuleUpdateKind.Reminders]: {
+        title: REMINDERS,
         description: translationKey(
-          "Title, description, labels, custom fields and more.",
+          "Reminders that the incident is still open.",
         ),
       },
       [NotificationRuleUpdateKind.Other]: {
         title: EVERYTHING_ELSE,
         description: translationKey(
-          "Linked alerts, reminders and subscribers who could not be notified.",
+          "Linked alerts, and subscribers who could not be notified.",
         ),
       },
     },
@@ -248,13 +282,19 @@ export const UPDATES_COPY: Readonly<Record<UpdatesEventType, UpdatesCopy>> = {
       },
       [NotificationRuleUpdateKind.Edits]: {
         title: OTHER_EDITS,
-        description: translationKey("Title, description, labels and more."),
+        description: TITLE_DESCRIPTION_LABELS_AND_MORE,
+      },
+      [NotificationRuleUpdateKind.CustomFields]: {
+        title: CUSTOM_FIELDS,
+        description: CUSTOM_FIELD_VALUES_CHANGED,
+      },
+      [NotificationRuleUpdateKind.Reminders]: {
+        title: REMINDERS,
+        description: translationKey("Reminders that the alert is still open."),
       },
       [NotificationRuleUpdateKind.Other]: {
         title: EVERYTHING_ELSE,
-        description: translationKey(
-          "Reminders, and anything else posted about the alert.",
-        ),
+        description: translationKey("Anything else posted about the alert."),
       },
     },
   },
@@ -385,11 +425,15 @@ export const UPDATES_COPY: Readonly<Record<UpdatesEventType, UpdatesCopy>> = {
         title: PRIVATE_NOTES,
         description: NOTES_OFF_STATUS_PAGES,
       },
+      [NotificationRuleUpdateKind.Reminders]: {
+        title: REMINDERS,
+        description: translationKey(
+          "Reminders that the event is not over yet.",
+        ),
+      },
       [NotificationRuleUpdateKind.Other]: {
         title: EVERYTHING_ELSE,
-        description: translationKey(
-          "Reminders, and anything else posted about the event.",
-        ),
+        description: translationKey("Anything else posted about the event."),
       },
     },
   },
@@ -451,11 +495,57 @@ export const UPDATES_COPY: Readonly<Record<UpdatesEventType, UpdatesCopy>> = {
       },
     },
   },
+  /*
+   * A case has no first message: its four notices are all a rule posts, so
+   * a rule may leave every one out (issue #7936).
+   */
+  [NotificationRuleEventType.SecurityCase]: {
+    sectionDescription: translationKey(
+      "Pick the notices the rule posts about the cases it is for.",
+    ),
+    everyUpdateDescription: translationKey(
+      "New and raised cases, assignments, approvals needed and response targets.",
+    ),
+    keyUpdatesDescription: translationKey(
+      "New and raised cases, approvals needed and response targets.",
+    ),
+    nothingChosenNote: translationKey(
+      "With none ticked, the rule posts nothing.",
+    ),
+    nothingChosenTitle: translationKey("Posts nothing"),
+    kinds: {
+      [NotificationRuleUpdateKind.PriorityReached]: {
+        title: translationKey("New and raised cases"),
+        description: translationKey(
+          "When a case opens, or rises to a higher priority.",
+        ),
+      },
+      [NotificationRuleUpdateKind.Assigned]: {
+        title: translationKey("Assignments"),
+        description: translationKey(
+          "When a case is assigned to a person or a team.",
+        ),
+      },
+      [NotificationRuleUpdateKind.ApprovalRequested]: {
+        title: translationKey("Approvals needed"),
+        description: translationKey(
+          "When a playbook step waits for someone to approve it.",
+        ),
+      },
+      [NotificationRuleUpdateKind.ResponseTargets]: {
+        title: translationKey("Response targets"),
+        description: translationKey(
+          "When a case is about to miss a response target, or misses it.",
+        ),
+      },
+    },
+  },
 };
 
 /*
  * The kinds of rule that choose their updates. Every other kind - monitors,
- * security and SLO rules - posts every update and has no Updates step.
+ * security hunts and SLO rules - posts every update and has no Updates
+ * step.
  */
 export function isUpdatesEventType(
   eventType: NotificationRuleEventType,
@@ -489,6 +579,11 @@ export interface UpdatesSummary {
    * none after its first message.
    */
   updates: Array<string>;
+  /*
+   * An on-call rule that mentions the person who comes on call (issue
+   * #7968): "Mentions the person who comes on call". None for every other.
+   */
+  mention: string | undefined;
 }
 
 /*
@@ -501,6 +596,10 @@ export interface UpdatesSummary {
  *
  *   Only when an incident is declared or a video call starts
  *                                             every box cleared
+ *
+ *   Key updates only                          an on-call rule that mentions
+ *   Who is on call now · Nobody on call       the person who comes on call
+ *   Mentions the person who comes on call     (issue #7968)
  */
 export function getUpdatesSummary(data: {
   rule: StoredRuleUpdates;
@@ -518,8 +617,15 @@ export function getUpdatesSummary(data: {
       eventType: data.eventType,
     });
 
+  // Said only while the rule mentions anybody: it posts who is on call now.
+  const mention: string | undefined =
+    NotificationRuleUpdates.canMentionWhoIsOnCall(data.eventType) &&
+    NotificationRuleUpdates.isMentioningWhoIsOnCall(data.rule)
+      ? tx(MENTION_WHO_IS_ON_CALL_SUMMARY)
+      : undefined;
+
   if (choice === NotificationRuleUpdatesChoice.EveryUpdate) {
-    return { title: tx(EVERY_UPDATE_TITLE), updates: [] };
+    return { title: tx(EVERY_UPDATE_TITLE), updates: [], mention: mention };
   }
 
   const posted: Array<NotificationRuleUpdateKind> =
@@ -532,6 +638,7 @@ export function getUpdatesSummary(data: {
     return {
       title: tx(UPDATES_COPY[data.eventType].nothingChosenTitle),
       updates: [],
+      mention: undefined,
     };
   }
 
@@ -552,5 +659,6 @@ export function getUpdatesSummary(data: {
         ? tx(KEY_UPDATES_TITLE)
         : undefined,
     updates: names,
+    mention: mention,
   };
 }

@@ -1008,7 +1008,12 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
               },
               title: "Starts At",
               type: FieldType.DateTime,
-              hideOnMobile: true,
+              /*
+               * On a phone's card too: when it starts is what a maintenance
+               * event is read for, and the card showed only how long it
+               * lasts (#9011). Ends At stays off it, as Duration says the
+               * rest.
+               */
             },
             {
               field: {

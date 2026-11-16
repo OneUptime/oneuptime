@@ -691,6 +691,37 @@ describe("SLOs Overview, against the product", () => {
     );
   });
 
+  /*
+   * Issue #9031, documented in #9032: the time before a monitor's first
+   * check is no time for an SLO, as it is none for a status page's uptime.
+   * The SLO's timelines come with it marked as not monitored
+   * (SloMonitorTimelines, TimeBeforeFirstCheck), once the upgrade has put
+   * first checks right for history; an SLO whose monitors nothing has
+   * checked yet measures nothing, and says why.
+   */
+  it("leaves out the time before a monitor's first check, as the worker measures it (#9031)", () => {
+    const timelines: string = fs.readFileSync(
+      path.join(PACKAGES_DIR, "Common/Server/Utils/Slo/SloMonitorTimelines.ts"),
+      "utf8",
+    );
+    const worker: string = readSource("worker");
+
+    expect(timelines).toContain("TimeBeforeFirstCheck.markNotMonitored(");
+    expect(timelines).toContain(
+      "MonitorMeasuredFrom.getMeasuredFromByMonitorId(",
+    );
+    expect(worker).toContain(
+      "Nothing has checked the monitors attached to this SLO yet",
+    );
+
+    expect(page).toContain(
+      "So is the time before a monitor's first check: until something has checked a monitor, its status is only the operational one every monitor is created in, so an SLO is measured from its monitors' first checks, and one whose monitors nothing has checked yet has nothing to measure until they are checked.",
+    );
+    expect(section(page, "SLO status")).toContain(
+      "its monitors no longer exist, nothing has checked them yet or they have not recorded a status in its window yet",
+    );
+  });
+
   it("lists every status the worker gives an SLO, and no other", () => {
     expect(firstCells(section(page, "SLO status"))).toEqual(
       Object.values(SloStatus).map((status: string): string => {

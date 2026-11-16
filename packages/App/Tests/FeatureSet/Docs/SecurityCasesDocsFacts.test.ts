@@ -40,6 +40,15 @@ import {
 import { getNotificationRuleDestinationDescription } from "../../../FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/NotificationRuleCopy";
 import { canRuleCreateChannel } from "../../../FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/NotificationRuleOwnChannel";
 import {
+  CHOOSE_UPDATES_TITLE,
+  KEY_UPDATES_TITLE,
+  UPDATES_COPY,
+  UpdateKindCopy,
+} from "../../../FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/NotificationRuleUpdatesCopy";
+import NotificationRuleUpdates, {
+  NotificationRuleUpdateKind,
+} from "Common/Types/Workspace/NotificationRules/NotificationRuleUpdates";
+import {
   SECURITY_EVENTS_MENU,
   SECURITY_EVENTS_WORKSPACE_PAGES,
   SecurityEventsMenuItem,
@@ -2075,6 +2084,71 @@ describe("Security Cases and Playbooks docs", () => {
       "A rule names the channels to post to (and, in Microsoft Teams, the chats)",
     );
     expect(rules).toContain("A security case never gets a channel of its own.");
+  });
+
+  /*
+   * A channel meant for approvals got every assignment too (#7936): a rule's
+   * Updates step picks the notices it posts, each box as the step names it.
+   */
+  it("says a rule's Updates step picks its notices, each as the step names it, and Key updates only leaves the assignments out", () => {
+    const rules: string = section(
+      page,
+      "Post to Slack, Microsoft Teams and Mattermost channels",
+    );
+    const notices: Array<NotificationRuleUpdateKind> =
+      NotificationRuleUpdates.getChoosableKinds(
+        NotificationRuleEventType.SecurityCase,
+      );
+    const titles: Array<string> = notices.map(
+      (kind: NotificationRuleUpdateKind): string => {
+        return (
+          UPDATES_COPY[NotificationRuleEventType.SecurityCase].kinds[
+            kind
+          ] as UpdateKindCopy
+        ).title;
+      },
+    );
+
+    expect(titles).toEqual([
+      "New and raised cases",
+      "Assignments",
+      "Approvals needed",
+      "Response targets",
+    ]);
+    expect(rules).toContain(
+      `A rule's **Updates** step picks which of these notices it posts: ${titles
+        .slice(0, -1)
+        .map((title: string): string => {
+          return `**${title}**`;
+        })
+        .join(
+          ", ",
+        )} and **${titles[titles.length - 1]}**, one box each under **${CHOOSE_UPDATES_TITLE}**.`,
+    );
+
+    // Key updates only: every notice but the assignments.
+    expect(
+      NotificationRuleUpdates.getKeyKinds(
+        NotificationRuleEventType.SecurityCase,
+      ),
+    ).toEqual(
+      notices.filter((kind: NotificationRuleUpdateKind): boolean => {
+        return kind !== NotificationRuleUpdateKind.Assigned;
+      }),
+    );
+    expect(rules).toContain(
+      `**${KEY_UPDATES_TITLE}** posts every one but the assignments`,
+    );
+
+    // A rule saved before the step, and a new one, posts every notice.
+    expect(
+      NotificationRuleUpdates.getNewRuleUpdatesToPost(
+        NotificationRuleEventType.SecurityCase,
+      ),
+    ).toBeUndefined();
+    expect(rules).toContain(
+      "A rule saved before the step, and a new rule, posts every notice.",
+    );
   });
 
   it("names the API's routes as the models serve them", () => {

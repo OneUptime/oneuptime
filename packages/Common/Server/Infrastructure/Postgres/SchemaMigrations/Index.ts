@@ -1033,6 +1033,7 @@ import { AddScheduleRosterRefreshDueAtIndex1809182110000 } from "./1809182110000
 import { AddCodeRepositoryMintedToken1809182200000 } from "./1809182200000-AddCodeRepositoryMintedToken";
 import { ProjectCredentialsEncryptedColumns1809182300000 } from "./1809182300000-ProjectCredentialsEncryptedColumns";
 import { DropGreenlockTables1809182470000 } from "./1809182470000-DropGreenlockTables";
+import { AddCustomFieldsAndRemindersToUpdatesToPost1809182480026 } from "./1809182480026-AddCustomFieldsAndRemindersToUpdatesToPost";
 
 export default [
   InitialMigration,
@@ -2070,4 +2071,5 @@ export default [
   AddCodeRepositoryMintedToken1809182200000,
   ProjectCredentialsEncryptedColumns1809182300000,
   DropGreenlockTables1809182470000,
+  AddCustomFieldsAndRemindersToUpdatesToPost1809182480026,
 ];

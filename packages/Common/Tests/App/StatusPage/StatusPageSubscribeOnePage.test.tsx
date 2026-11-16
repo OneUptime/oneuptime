@@ -420,9 +420,27 @@ describe("Subscribing on a status page", () => {
       expect(sentIds(subscriber["statusPageResources"])).toEqual([]);
       expect(sentIds(subscriber["statusPageEventTypes"])).toEqual([]);
       expect(sentUrl()).toContain(`/subscribe/${STATUS_PAGE_ID}`);
+
+      /*
+       * The confirmation panel: what to do next as its heading, and a
+       * sentence that says what the link is for (#9027). It was one faint
+       * gray-400 sentence, "An email with the link has been sent to your
+       * email."
+       */
+      const confirmation: HTMLElement = await screen.findByRole("status");
+
+      expect(confirmation).toBeVisible();
       expect(
-        await screen.findByText(/An email with the link has been sent/),
+        within(confirmation).getByRole("heading", { name: "Check your email" }),
       ).toBeVisible();
+      expect(
+        within(confirmation).getByText(
+          /Open the link in it to confirm your subscription\./,
+        ),
+      ).toBeVisible();
+      expect(confirmation.innerHTML).not.toContain("text-gray-400");
+      // The form is gone: its job is done.
+      expect(subscribeButton()).toBeNull();
     });
 
     test("Enter in the address subscribes: there is nothing to walk on to", async () => {

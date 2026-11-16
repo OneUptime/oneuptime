@@ -14,6 +14,9 @@ import {
   EVERY_UPDATE_TITLE,
   isUpdatesEventType,
   KEY_UPDATES_TITLE,
+  MENTION_WHO_IS_ON_CALL_DESCRIPTION,
+  MENTION_WHO_IS_ON_CALL_SUMMARY,
+  MENTION_WHO_IS_ON_CALL_TITLE,
   UPDATES_COPY,
   UPDATES_SECTION_TITLE,
   UpdateKindCopy,
@@ -113,6 +116,10 @@ function everySentence(): Array<string> {
     KEY_UPDATES_TITLE,
     CHOOSE_UPDATES_TITLE,
     CHOOSE_UPDATES_DESCRIPTION,
+    // An on-call rule's switch, and its card's line (#7968).
+    MENTION_WHO_IS_ON_CALL_TITLE,
+    MENTION_WHO_IS_ON_CALL_DESCRIPTION,
+    MENTION_WHO_IS_ON_CALL_SUMMARY,
   ];
 
   for (const eventType of UPDATES_EVENT_TYPES) {
@@ -812,6 +819,248 @@ describe("an on-call policy rule's step", () => {
     ]);
     expect(german["Who is on call now"]).not.toBe("Who is on call now");
   });
+
+  /*
+   * MENTION THE PERSON WHO COMES ON CALL (#7968): one switch under the
+   * answers, while the rule posts who is on call now. Off unless turned
+   * on; the rule's card says so when it is on.
+   */
+  describe("the switch that mentions the person who comes on call (#7968)", () => {
+    function mentionSwitch(): HTMLElement | null {
+      return screen.queryByRole("switch", {
+        name: MENTION_WHO_IS_ON_CALL_TITLE,
+      });
+    }
+
+    test("REGRESSION: off for a new rule, and for every rule saved before", async () => {
+      const instance: i18n = await dashboardIn(ENGLISH);
+
+      for (const rule of [
+        {
+          ...ruleOf(),
+          ...NotificationRuleUpdates.getNewRuleUpdates(ON_CALL),
+        } as IncidentNotificationRule,
+        ruleOf(),
+      ]) {
+        renderStep({ rule: rule, eventType: ON_CALL, instance: instance });
+
+        expect(mentionSwitch()).toBeInTheDocument();
+        expect(mentionSwitch()).toHaveAttribute("aria-checked", "false");
+        expect(mentionSwitch()).toHaveAccessibleDescription(
+          MENTION_WHO_IS_ON_CALL_DESCRIPTION,
+        );
+
+        cleanup();
+      }
+    });
+
+    test("turned on, the rule mentions them; turned off again, the rule is as it was", async () => {
+      const rule: IncidentNotificationRule = ruleOf([OnCallNow, NobodyOnCall]);
+      const changes: Array<IncidentNotificationRule> = renderStep({
+        rule: rule,
+        eventType: ON_CALL,
+        instance: await dashboardIn(ENGLISH),
+      });
+
+      await userEvent.click(mentionSwitch()!);
+
+      expect(changes[changes.length - 1]).toEqual({
+        ...rule,
+        shouldMentionWhoIsOnCall: true,
+      });
+      expect(mentionSwitch()).toHaveAttribute("aria-checked", "true");
+
+      await userEvent.click(mentionSwitch()!);
+
+      expect(changes[changes.length - 1]).toEqual(rule);
+      expect(
+        (changes[changes.length - 1] as { shouldMentionWhoIsOnCall?: unknown })
+          .shouldMentionWhoIsOnCall,
+      ).toBeUndefined();
+    });
+
+    test("a rule that does not post who is on call now offers no switch: it names nobody on call to mention", async () => {
+      const instance: i18n = await dashboardIn(ENGLISH);
+
+      renderStep({
+        rule: ruleOf([OnCallNext, NobodyOnCall]),
+        eventType: ON_CALL,
+        instance: instance,
+      });
+
+      expect(mentionSwitch()).not.toBeInTheDocument();
+
+      cleanup();
+
+      // Unticking who is on call now takes the switch away, and keeps it.
+      const changes: Array<IncidentNotificationRule> = renderStep({
+        rule: {
+          ...ruleOf([OnCallNow]),
+          shouldMentionWhoIsOnCall: true,
+        } as IncidentNotificationRule,
+        eventType: ON_CALL,
+        instance: instance,
+      });
+
+      expect(mentionSwitch()).toHaveAttribute("aria-checked", "true");
+
+      await userEvent.click(answer("Choose updates"));
+      await userEvent.click(box("Who is on call now"));
+
+      expect(mentionSwitch()).not.toBeInTheDocument();
+      expect(changes[changes.length - 1]).toMatchObject({
+        updatesToPost: [],
+        shouldMentionWhoIsOnCall: true,
+      });
+    });
+
+    test("choosing other updates keeps the switch as it is", async () => {
+      const changes: Array<IncidentNotificationRule> = renderStep({
+        rule: {
+          ...ruleOf([OnCallNow]),
+          shouldMentionWhoIsOnCall: true,
+        } as IncidentNotificationRule,
+        eventType: ON_CALL,
+        instance: await dashboardIn(ENGLISH),
+      });
+
+      await userEvent.click(answer("Every update"));
+
+      expect(changes[changes.length - 1]).toEqual({
+        ...ruleOf(),
+        shouldMentionWhoIsOnCall: true,
+      });
+      expect(mentionSwitch()).toHaveAttribute("aria-checked", "true");
+    });
+
+    test("no other kind of rule has it", async () => {
+      const instance: i18n = await dashboardIn(ENGLISH);
+
+      for (const eventType of UPDATES_EVENT_TYPES.filter(
+        (candidate: UpdatesEventType): boolean => {
+          return candidate !== ON_CALL;
+        },
+      )) {
+        renderStep({ rule: ruleOf(), eventType: eventType, instance });
+
+        expect({ eventType, hasSwitch: Boolean(mentionSwitch()) }).toEqual({
+          eventType,
+          hasSwitch: false,
+        });
+
+        cleanup();
+      }
+    });
+
+    test("the card says it mentions them, only while it does", async () => {
+      const instance: i18n = await dashboardIn(ENGLISH);
+
+      const mentionLine: (
+        rule: IncidentNotificationRule,
+        eventType?: UpdatesEventType,
+      ) => string | null = (
+        rule: IncidentNotificationRule,
+        eventType?: UpdatesEventType,
+      ): string | null => {
+        render(
+          <I18nextProvider i18n={instance}>
+            <UpdatesRuleSummary rule={rule} eventType={eventType || ON_CALL} />
+          </I18nextProvider>,
+        );
+
+        const line: string | null =
+          screen.queryByTestId("notification-rule-updates-summary-mention")
+            ?.textContent || null;
+
+        cleanup();
+
+        return line;
+      };
+
+      // On, posting who is on call now: every update, or the key updates.
+      for (const updatesToPost of [undefined, [OnCallNow, NobodyOnCall]]) {
+        expect(
+          mentionLine({
+            ...ruleOf(updatesToPost),
+            shouldMentionWhoIsOnCall: true,
+          } as IncidentNotificationRule),
+        ).toBe(MENTION_WHO_IS_ON_CALL_SUMMARY);
+      }
+
+      // Off, or posting nobody on call now to mention.
+      expect(mentionLine(ruleOf([OnCallNow]))).toBeNull();
+      expect(
+        mentionLine({
+          ...ruleOf([OnCallNext]),
+          shouldMentionWhoIsOnCall: true,
+        } as IncidentNotificationRule),
+      ).toBeNull();
+      expect(
+        mentionLine({
+          ...ruleOf([]),
+          shouldMentionWhoIsOnCall: true,
+        } as IncidentNotificationRule),
+      ).toBeNull();
+    });
+
+    test("German: the switch and the card's line, in German words", async () => {
+      const german: Locale = readLocale("de");
+      const instance: i18n = await dashboardIn("de");
+
+      renderStep({
+        rule: ruleOf([OnCallNow]),
+        eventType: ON_CALL,
+        instance: instance,
+      });
+
+      expect(
+        screen.getByRole("switch", {
+          name: german[MENTION_WHO_IS_ON_CALL_TITLE]!,
+        }),
+      ).toHaveAccessibleDescription(
+        german[MENTION_WHO_IS_ON_CALL_DESCRIPTION]!,
+      );
+      expect(german[MENTION_WHO_IS_ON_CALL_TITLE]).not.toBe(
+        MENTION_WHO_IS_ON_CALL_TITLE,
+      );
+
+      cleanup();
+
+      render(
+        <I18nextProvider i18n={instance}>
+          <UpdatesRuleSummary
+            rule={
+              {
+                ...ruleOf([OnCallNow]),
+                shouldMentionWhoIsOnCall: true,
+              } as IncidentNotificationRule
+            }
+            eventType={ON_CALL}
+          />
+        </I18nextProvider>,
+      );
+
+      expect(
+        screen.getByTestId("notification-rule-updates-summary-mention"),
+      ).toHaveTextContent(german[MENTION_WHO_IS_ON_CALL_SUMMARY]!);
+    });
+
+    test("its words are one short sentence each, as a switch's help is", () => {
+      expect(MENTION_WHO_IS_ON_CALL_DESCRIPTION.length).toBeLessThanOrEqual(
+        150,
+      );
+
+      for (const code of DASHBOARD_LANGUAGES) {
+        const locale: Locale = readLocale(code);
+
+        expect({
+          code,
+          fits:
+            (locale[MENTION_WHO_IS_ON_CALL_DESCRIPTION] || "").length <= 150,
+        }).toEqual({ code, fits: true });
+      }
+    });
+  });
 });
 
 describe("the step and the card's row in other languages", () => {
@@ -931,5 +1180,192 @@ describe("the step and the card's row in other languages", () => {
     ).toHaveTextContent(
       "Ist nichts ausgewählt, postet die Regel nur, wenn ein Vorfall gemeldet oder ein Videoanruf gestartet wird.",
     );
+  });
+});
+
+/*
+ * AN INCIDENT'S AND AN ALERT'S CUSTOM FIELD CHANGES AND STILL-OPEN
+ * REMINDERS, BOXES OF THEIR OWN (#7937, #7938), and a security case rule's
+ * step (#7936): the four notices a case posts, which a rule may all leave
+ * out - a case has no first message.
+ */
+describe("the boxes out of Other edits and Everything else", () => {
+  test.each([
+    NotificationRuleEventType.Incident,
+    NotificationRuleEventType.Alert,
+  ] as Array<UpdatesEventType>)(
+    "a %s rule's Custom field changes and Reminders boxes sit after Other edits and say what each covers",
+    async (eventType: UpdatesEventType) => {
+      renderStep({
+        rule: ruleOf([]),
+        eventType: eventType,
+        instance: await dashboardIn(ENGLISH),
+      });
+
+      const names: Array<string> = boxes().map(
+        (updateBox: HTMLElement): string => {
+          return (
+            document.querySelector(`label[for="${updateBox.id}"]`)
+              ?.textContent || ""
+          );
+        },
+      );
+
+      expect(names.slice(-4)).toEqual([
+        "Other edits",
+        "Custom field changes",
+        "Reminders",
+        "Everything else",
+      ]);
+      expect(box("Other edits")).toHaveAccessibleDescription(
+        "Title, description, labels and more.",
+      );
+      expect(box("Custom field changes")).toHaveAccessibleDescription(
+        "Custom field values set, changed or cleared.",
+      );
+      expect(box("Reminders")).toHaveAccessibleDescription(
+        eventType === NotificationRuleEventType.Incident
+          ? "Reminders that the incident is still open."
+          : "Reminders that the alert is still open.",
+      );
+    },
+  );
+
+  test("Everything else no longer says it carries the reminders or the custom fields", () => {
+    for (const eventType of UPDATES_EVENT_TYPES) {
+      const kinds: UpdatesCopy["kinds"] = UPDATES_COPY[eventType].kinds;
+
+      for (const kind of [
+        NotificationRuleUpdateKind.Other,
+        NotificationRuleUpdateKind.Edits,
+      ]) {
+        const description: string =
+          (kinds[kind] as UpdateKindCopy | undefined)?.description || "";
+
+        expect({ eventType, kind, description }).toEqual({
+          eventType,
+          kind,
+          description: expect.not.stringMatching(/reminder|custom field/i),
+        });
+      }
+    }
+  });
+
+  test("a maintenance event rule has a Reminders box, before Everything else", async () => {
+    renderStep({
+      rule: ruleOf([]),
+      eventType: NotificationRuleEventType.ScheduledMaintenance,
+      instance: await dashboardIn(ENGLISH),
+    });
+
+    expect(box("Reminders")).toHaveAccessibleDescription(
+      "Reminders that the event is not over yet.",
+    );
+    expect(box("Everything else")).toHaveAccessibleDescription(
+      "Anything else posted about the event.",
+    );
+  });
+
+  test("ticking Reminders on a rule of Everything else adds it in the boxes' order", async () => {
+    const changes: Array<IncidentNotificationRule> = renderStep({
+      rule: ruleOf([NotificationRuleUpdateKind.Other]),
+      instance: await dashboardIn(ENGLISH),
+    });
+
+    await userEvent.click(box("Reminders"));
+
+    expect(
+      (changes[changes.length - 1] as { updatesToPost?: unknown })
+        .updatesToPost,
+    ).toEqual([
+      NotificationRuleUpdateKind.Reminders,
+      NotificationRuleUpdateKind.Other,
+    ]);
+  });
+
+  test("German: the new boxes in German", async () => {
+    renderStep({ rule: ruleOf([]), instance: await dashboardIn("de") });
+
+    expect(box("Änderungen benutzerdefinierter Felder")).toBeVisible();
+    expect(box("Erinnerungen")).toHaveAccessibleDescription(
+      "Erinnerungen, dass der Vorfall noch offen ist.",
+    );
+  });
+});
+
+describe("a security case rule's step (#7936)", () => {
+  const SECURITY_CASE: UpdatesEventType =
+    NotificationRuleEventType.SecurityCase;
+
+  test("a rule saved before the step, and a new rule, opens on Every update", async () => {
+    renderStep({
+      rule: {
+        ...ruleOf(),
+        ...NotificationRuleUpdates.getNewRuleUpdates(SECURITY_CASE),
+      } as IncidentNotificationRule,
+      eventType: SECURITY_CASE,
+      instance: await dashboardIn(ENGLISH),
+    });
+
+    expect(checkedAnswer()).toBe("Every update");
+    expect(answer("Every update")).toHaveAccessibleDescription(
+      "New and raised cases, assignments, approvals needed and response targets.",
+    );
+    expect(answer("Key updates only")).toHaveAccessibleDescription(
+      "New and raised cases, approvals needed and response targets.",
+    );
+  });
+
+  test("its boxes are the four notices, each saying when it is posted", async () => {
+    renderStep({
+      rule: ruleOf([NotificationRuleUpdateKind.ApprovalRequested]),
+      eventType: SECURITY_CASE,
+      instance: await dashboardIn(ENGLISH),
+    });
+
+    expect(box("New and raised cases")).toHaveAccessibleDescription(
+      "When a case opens, or rises to a higher priority.",
+    );
+    expect(box("Assignments")).toHaveAccessibleDescription(
+      "When a case is assigned to a person or a team.",
+    );
+    expect(box("Approvals needed")).toHaveAccessibleDescription(
+      "When a playbook step waits for someone to approve it.",
+    );
+    expect(box("Response targets")).toHaveAccessibleDescription(
+      "When a case is about to miss a response target, or misses it.",
+    );
+    expect(tickedBoxes()).toEqual(["Approvals needed"]);
+  });
+
+  test("Key updates only ticks every notice but Assignments", async () => {
+    const changes: Array<IncidentNotificationRule> = renderStep({
+      rule: ruleOf(),
+      eventType: SECURITY_CASE,
+      instance: await dashboardIn(ENGLISH),
+    });
+
+    await userEvent.click(answer("Key updates only"));
+
+    expect(
+      (changes[changes.length - 1] as { updatesToPost?: unknown })
+        .updatesToPost,
+    ).toEqual([
+      NotificationRuleUpdateKind.PriorityReached,
+      NotificationRuleUpdateKind.ApprovalRequested,
+      NotificationRuleUpdateKind.ResponseTargets,
+    ]);
+  });
+
+  test("with none ticked, it says the rule posts nothing", async () => {
+    renderStep({
+      rule: ruleOf([]),
+      eventType: SECURITY_CASE,
+      instance: await dashboardIn(ENGLISH),
+    });
+
+    expect(
+      screen.getByTestId("notification-rule-updates-nothing-chosen"),
+    ).toHaveTextContent("With none ticked, the rule posts nothing.");
   });
 });

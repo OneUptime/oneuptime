@@ -13,6 +13,7 @@ import {
 import Response from "../../../../../Server/Utils/Response";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
+import { HEARD_ONLY_WHERE_WATCHED_KEY } from "../../../../../Types/Workflow/WatchedFields";
 import {
   afterEach,
   beforeEach,
@@ -232,5 +233,91 @@ describe("and only such a field", () => {
         undefined,
       ),
     ).resolves.toEqual([LISTENS_ON_NAME]);
+  });
+});
+
+/*
+ * AN UPDATE ONEUPTIME MAKES FOR ITS OWN BOOKKEEPING REACHES ONLY THE
+ * WORKFLOWS THAT WATCH A FIELD IT CHANGED (#9019).
+ *
+ * A reminder that an incident is still open moves its next reminder on and
+ * counts it. Moved through updateOneById, that started every On Update
+ * workflow of the incident that watches no fields, at every reminder. The
+ * reminder jobs move it round the hooks now, and start the workflows
+ * themselves with HEARD_ONLY_WHERE_WATCHED_KEY: a workflow that watches the
+ * reminder's count - one that escalates at the third reminder - still runs,
+ * and one that watches nothing does not.
+ */
+describe("a reminder moved on reaches only the workflows that watch it", () => {
+  const LISTENS_ON_COUNT: string = "6ba7b810-9dad-41d1-80b4-00c04fd43107";
+  const LISTENS_ON_NEXT: string = "6ba7b810-9dad-41d1-80b4-00c04fd43108";
+  const LISTENS_ON_EMPTY: string = "6ba7b810-9dad-41d1-80b4-00c04fd43109";
+
+  const WORKFLOWS: Array<Workflow> = [
+    workflowListeningOn(LISTENS_ON_NOTHING, undefined),
+    workflowListeningOn(LISTENS_ON_EMPTY, {}),
+    workflowListeningOn(LISTENS_ON_NAME, { name: true }),
+    workflowListeningOn(LISTENS_ON_COUNT, {
+      reminderNotificationSentCount: true,
+    }),
+    workflowListeningOn(LISTENS_ON_NEXT, {
+      nextReminderNotificationAt: true,
+    }),
+  ];
+
+  const REMINDER_SENT: JSONObject = {
+    updatedFields: {
+      nextReminderNotificationAt: {
+        _type: "DateTime",
+        value: "2026-11-16T10:30:00.000Z",
+      },
+      reminderNotificationSentCount: 3,
+    },
+    [HEARD_ONLY_WHERE_WATCHED_KEY]: true,
+  };
+
+  test("REGRESSION: a reminder sent runs the workflows that watch its count or its next one, and not one that watches nothing", async () => {
+    await expect(runsFor(WORKFLOWS, REMINDER_SENT)).resolves.toEqual([
+      LISTENS_ON_COUNT,
+      LISTENS_ON_NEXT,
+    ]);
+  });
+
+  test("the reminders stopped: only the workflows that watch the next one", async () => {
+    await expect(
+      runsFor(WORKFLOWS, {
+        updatedFields: { nextReminderNotificationAt: null },
+        [HEARD_ONLY_WHERE_WATCHED_KEY]: true,
+      }),
+    ).resolves.toEqual([LISTENS_ON_NEXT]);
+  });
+
+  test("one that says nothing of its fields reaches no workflow", async () => {
+    await expect(
+      runsFor(WORKFLOWS, {
+        updatedFields: {},
+        [HEARD_ONLY_WHERE_WATCHED_KEY]: true,
+      }),
+    ).resolves.toEqual([]);
+  });
+
+  test("an update a person makes still reaches every workflow that watches nothing, or a field it changed", async () => {
+    await expect(
+      runsFor(WORKFLOWS, {
+        updatedFields: { reminderNotificationSentCount: 3 },
+      }),
+    ).resolves.toEqual([
+      LISTENS_ON_NOTHING,
+      LISTENS_ON_EMPTY,
+      LISTENS_ON_COUNT,
+    ]);
+
+    // Said false, or not a yes, it is any other update.
+    await expect(
+      runsFor([workflowListeningOn(LISTENS_ON_NOTHING, undefined)], {
+        updatedFields: { name: "Checkout API" },
+        [HEARD_ONLY_WHERE_WATCHED_KEY]: false,
+      }),
+    ).resolves.toEqual([LISTENS_ON_NOTHING]);
   });
 });

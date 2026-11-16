@@ -69,6 +69,18 @@ import ObjectID from "Common/Types/ObjectID";
  * group), each taken by its own compare-and-set. A run stops between groups,
  * never inside one, so a deadline never splits what one run would have told
  * together.
+ *
+ * The reminder jobs (issue #9019) - an incident, an alert or a maintenance
+ * event still open - go through forEachDue: what they tell of is not marked
+ * once, it comes due again and again (nextReminderNotificationAt). They read
+ * every record due at once, with no deadline, and moved each reminder on
+ * through updateOneById: a read, the write, a realtime event and a workflow
+ * trigger for what is the job's own bookkeeping, so an On Update workflow
+ * that watches no fields ran at every reminder. Now a run reads what is due
+ * a page at a time, the longest due first, stops at its deadline, and the
+ * job moves each record on - its next reminder, or none - with one
+ * compare-and-set expecting what it read: of two runs at once, one moves a
+ * reminder, and tells of it.
  */
 
 export const OWNER_NOTIFICATION_PAGE_SIZE: number = 100;
@@ -140,6 +152,15 @@ export interface OwnerNotificationGroupResult {
   groups: number;
   // Whether the run's deadline stopped it before it read everything.
   stoppedAtDeadline: boolean;
+}
+
+/*
+ * How a reminder job moves a record on (forEachDue): `moved` written where
+ * the record still holds `expected`, as the job read it.
+ */
+export interface OwnerNotificationMove<TRecord extends BaseModel> {
+  expected: PartialEntity<TRecord>;
+  moved: PartialEntity<TRecord>;
 }
 
 /*
@@ -223,6 +244,179 @@ export default class OwnerNotificationBacklog {
       alreadyTaken?: ((byThisRun: boolean) => void) | undefined;
     }) => Promise<void>;
   }): Promise<OwnerNotificationBacklogResult> {
+    return await this.readPages<TRecord>({
+      jobName: data.jobName,
+      service: data.service,
+      query: data.notYetNotified as Query<TRecord>,
+      // Oldest first; ties broken by id (DatabaseService adds it).
+      sort: {
+        createdAt: SortOrder.Ascending,
+      } as Sort<TRecord>,
+      select: data.select,
+      deadline: data.deadline,
+      pageSize: data.pageSize,
+      readPage: data.readPage,
+      /*
+       * Taken by another run, it is marked, and no page reads it again:
+       * only a record never taken is left out by id.
+       */
+      leftOutWhen: [TakeOutcome.NotTaken],
+      notify: async (input: {
+        record: TRecord;
+        page: OwnerNotificationPage;
+        id: ObjectID;
+        takes: Array<Promise<boolean>>;
+      }): Promise<void> => {
+        // The take, once the job asks for it: made at most once per record.
+        const taking: { take: Promise<boolean> | null } = { take: null };
+
+        const take: () => Promise<boolean> = (): Promise<boolean> => {
+          if (!taking.take) {
+            taking.take = OwnerNotificationBacklog.take({
+              service: data.service,
+              id: input.id,
+              notYetNotified: data.notYetNotified,
+              notified: data.notified,
+            });
+            input.takes.push(taking.take);
+          }
+
+          return taking.take;
+        };
+
+        const alreadyTaken: (byThisRun: boolean) => void = (
+          byThisRun: boolean,
+        ): void => {
+          if (!taking.take) {
+            taking.take = Promise.resolve(byThisRun);
+            input.takes.push(taking.take);
+          }
+        };
+
+        await data.notify({
+          record: input.record,
+          page: input.page,
+          take: take,
+          alreadyTaken: alreadyTaken,
+        });
+      },
+    });
+  }
+
+  /*
+   * Goes through the records of `service` that `due` finds - a reminder job's
+   * records whose reminder is due (see the top of this file) - a page at a
+   * time, in `sort`'s order, the longest due first. For each, `notify` is
+   * handed the record, its page and `take`: the job decides what becomes of
+   * the record - its next reminder, or none - and moves it on with take(),
+   * one hook-free compare-and-set that writes `moved` only where the record
+   * still holds `expected`, what the job read. It answers true for the run
+   * whose write moved it. A job may take a second time, expecting what it
+   * read again after the first take found the record changed. A record this
+   * run read and did not move - another writer moved it first, or its job
+   * failed - is left out of the pages after it by id, and the next run reads
+   * it again if it is still due. Never throws for one record.
+   */
+  public static async forEachDue<TRecord extends BaseModel>(data: {
+    jobName: string;
+    service: DatabaseService<TRecord>;
+    /*
+     * What is due, as of the run's start:
+     * { nextReminderNotificationAt: QueryHelper.lessThan(now) }.
+     */
+    due: Query<TRecord>;
+    // The longest due first: { nextReminderNotificationAt: SortOrder.Ascending }.
+    sort: Sort<TRecord>;
+    select: Select<TRecord>;
+    deadline?: JobDeadline | undefined;
+    pageSize?: number | undefined;
+    notify: (input: {
+      record: TRecord;
+      page: OwnerNotificationPage;
+      take: (move: OwnerNotificationMove<TRecord>) => Promise<boolean>;
+    }) => Promise<void>;
+  }): Promise<OwnerNotificationBacklogResult> {
+    return await this.readPages<TRecord>({
+      jobName: data.jobName,
+      service: data.service,
+      query: data.due,
+      sort: data.sort,
+      select: data.select,
+      deadline: data.deadline,
+      pageSize: data.pageSize,
+      /*
+       * Moved by another writer, a record may still be due; moved by this
+       * run, it never is - its next reminder is put after the run's start,
+       * or taken away. So whatever this run did not move is left out by id,
+       * and no page hands the job a record twice in one run.
+       */
+      leftOutWhen: [TakeOutcome.NotTaken, TakeOutcome.TakenElsewhere],
+      notify: async (input: {
+        record: TRecord;
+        page: OwnerNotificationPage;
+        id: ObjectID;
+        takes: Array<Promise<boolean>>;
+      }): Promise<void> => {
+        const take: (
+          move: OwnerNotificationMove<TRecord>,
+        ) => Promise<boolean> = (
+          move: OwnerNotificationMove<TRecord>,
+        ): Promise<boolean> => {
+          const taking: Promise<boolean> = OwnerNotificationBacklog.move({
+            service: data.service,
+            id: input.id,
+            move: move,
+          });
+
+          input.takes.push(taking);
+
+          return taking;
+        };
+
+        await data.notify({
+          record: input.record,
+          page: input.page,
+          take: take,
+        });
+      },
+    });
+  }
+
+  /*
+   * The pages a backlog's run reads, and what the job did with each record
+   * (forEachToNotify, forEachDue): a page at a time, in `sort`'s order, every
+   * record the run read and left as `leftOutWhen` says left out of the pages
+   * after it by id. Stops between records once the deadline passes. A record
+   * is handed to the job once a run: should one come back - moved by this
+   * run to where `query` finds it again - it is passed over, and a page that
+   * brings nothing new ends the run.
+   */
+  private static async readPages<TRecord extends BaseModel>(data: {
+    jobName: string;
+    service: DatabaseService<TRecord>;
+    query: Query<TRecord>;
+    sort: Sort<TRecord>;
+    select: Select<TRecord>;
+    deadline?: JobDeadline | undefined;
+    pageSize?: number | undefined;
+    readPage?:
+      | ((
+          records: Array<TRecord>,
+          page: OwnerNotificationPage,
+        ) => Promise<void>)
+      | undefined;
+    leftOutWhen: ReadonlyArray<TakeOutcome>;
+    /*
+     * The job, for one record: each take it makes goes into `takes`, which
+     * say what became of the record, whether the job threw or not.
+     */
+    notify: (input: {
+      record: TRecord;
+      page: OwnerNotificationPage;
+      id: ObjectID;
+      takes: Array<Promise<boolean>>;
+    }) => Promise<void>;
+  }): Promise<OwnerNotificationBacklogResult> {
     const pageSize: number = data.pageSize || OWNER_NOTIFICATION_PAGE_SIZE;
 
     const result: OwnerNotificationBacklogResult = {
@@ -236,6 +430,9 @@ export default class OwnerNotificationBacklog {
 
     // Read by this run and not taken: left out of every page after.
     const leftOut: Array<ObjectID> = [];
+
+    // Every record handed to the job this run.
+    const handed: Set<string> = new Set<string>();
 
     pages: for (;;) {
       if (data.deadline?.hasPassed()) {
@@ -252,17 +449,14 @@ export default class OwnerNotificationBacklog {
 
       const records: Array<TRecord> = await data.service.findBy({
         query: {
-          ...data.notYetNotified,
+          ...data.query,
           ...(leftOut.length > 0 ? { _id: QueryHelper.notIn(leftOut) } : {}),
         } as Query<TRecord>,
         select: {
           ...data.select,
           _id: true,
         } as Select<TRecord>,
-        // Oldest first; ties broken by id (DatabaseService adds it).
-        sort: {
-          createdAt: SortOrder.Ascending,
-        } as Sort<TRecord>,
+        sort: data.sort,
         limit: pageSize,
         skip: 0,
         props: {
@@ -291,6 +485,8 @@ export default class OwnerNotificationBacklog {
         }
       }
 
+      let isAnyNew: boolean = false;
+
       for (const record of records) {
         if (data.deadline?.hasPassed()) {
           result.stoppedAtDeadline = true;
@@ -303,36 +499,23 @@ export default class OwnerNotificationBacklog {
           continue;
         }
 
-        // The take, once the job asks for it: made at most once per record.
-        const taking: { take: Promise<boolean> | null } = { take: null };
+        const key: string = id.toString().toLowerCase();
 
-        const take: () => Promise<boolean> = (): Promise<boolean> => {
-          if (!taking.take) {
-            taking.take = OwnerNotificationBacklog.take({
-              service: data.service,
-              id: id,
-              notYetNotified: data.notYetNotified,
-              notified: data.notified,
-            });
-          }
+        if (handed.has(key)) {
+          continue;
+        }
 
-          return taking.take;
-        };
+        handed.add(key);
+        isAnyNew = true;
 
-        const alreadyTaken: (byThisRun: boolean) => void = (
-          byThisRun: boolean,
-        ): void => {
-          if (!taking.take) {
-            taking.take = Promise.resolve(byThisRun);
-          }
-        };
+        const takes: Array<Promise<boolean>> = [];
 
         try {
           await data.notify({
             record: record,
             page: page,
-            take: take,
-            alreadyTaken: alreadyTaken,
+            id: id,
+            takes: takes,
           });
         } catch (error) {
           result.failed++;
@@ -342,21 +525,22 @@ export default class OwnerNotificationBacklog {
           logger.error(error);
         }
 
-        const outcome: TakeOutcome = await OwnerNotificationBacklog.outcomeOf(
-          taking.take,
-        );
+        const outcome: TakeOutcome =
+          await OwnerNotificationBacklog.outcomeOf(takes);
 
         if (outcome === TakeOutcome.Taken) {
           result.taken++;
         } else if (outcome === TakeOutcome.TakenElsewhere) {
           result.takenElsewhere++;
-        } else {
-          // Never taken - its job failed before, or the take did: not again this run.
+        }
+
+        if (data.leftOutWhen.includes(outcome)) {
+          // Not again this run.
           leftOut.push(id);
         }
       }
 
-      if (records.length < pageSize) {
+      if (!isAnyNew || records.length < pageSize) {
         break;
       }
     }
@@ -812,20 +996,29 @@ export default class OwnerNotificationBacklog {
     return taken;
   }
 
-  // What became of a record's take, once its job is done with it.
+  /*
+   * What became of a record, once its job is done with it: taken when one of
+   * its takes moved it, taken elsewhere when a take found it moved or gone,
+   * not taken when it made none - or none answered.
+   */
   private static async outcomeOf(
-    taking: Promise<boolean> | null,
+    takes: Array<Promise<boolean>>,
   ): Promise<TakeOutcome> {
-    if (!taking) {
-      return TakeOutcome.NotTaken;
+    let outcome: TakeOutcome = TakeOutcome.NotTaken;
+
+    for (const taking of takes) {
+      try {
+        if (await taking) {
+          return TakeOutcome.Taken;
+        }
+
+        outcome = TakeOutcome.TakenElsewhere;
+      } catch {
+        // The job awaited it, so its failure is logged with the job's.
+      }
     }
 
-    try {
-      return (await taking) ? TakeOutcome.Taken : TakeOutcome.TakenElsewhere;
-    } catch {
-      // The job awaited it, so its failure is logged with the job's.
-      return TakeOutcome.NotTaken;
-    }
+    return outcome;
   }
 
   /*
@@ -846,6 +1039,23 @@ export default class OwnerNotificationBacklog {
       id: data.id,
       data: data.notified,
       expectedData: data.notYetNotified,
+    });
+  }
+
+  /*
+   * Moves one record on (forEachDue) - true for the run whose write did,
+   * false where the record no longer holds what the job read, or is gone.
+   * One hook-free statement, for the job's own bookkeeping, as take() is.
+   */
+  public static async move<TRecord extends BaseModel>(data: {
+    service: DatabaseService<TRecord>;
+    id: ObjectID;
+    move: OwnerNotificationMove<TRecord>;
+  }): Promise<boolean> {
+    return await data.service.compareAndSetColumnsByIdWithoutHooks({
+      id: data.id,
+      data: data.move.moved,
+      expectedData: data.move.expected,
     });
   }
 }

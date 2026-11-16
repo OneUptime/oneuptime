@@ -3,10 +3,8 @@ import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import Timezone from "../../../Types/Timezone";
 import { NotificationRuleUpdateKind } from "../../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
-import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import { OnCallDutyPolicyFeedEventType } from "../../../Models/DatabaseModels/OnCallDutyPolicyFeed";
 import OnCallDutyPolicyEscalationRuleSchedule from "../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
-import WorkspaceProjectAuthToken from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import FeedMarkdown, {
   MarkdownText,
   mdText,
@@ -15,11 +13,16 @@ import OnCallDutyPolicyEscalationRuleScheduleService from "../../Services/OnCall
 import OnCallDutyPolicyFeedService from "../../Services/OnCallDutyPolicyFeedService";
 import OnCallDutyPolicyService from "../../Services/OnCallDutyPolicyService";
 import UserService from "../../Services/UserService";
-import WorkspaceProjectAuthTokenService from "../../Services/WorkspaceProjectAuthTokenService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import logger, { LogAttributes } from "../Logger";
-import WorkspaceUtil from "../Workspace/Workspace";
 import WorkspaceMessageTime from "../Workspace/WorkspaceMessageTime";
+import OnCallChatByWorkspace, {
+  OnCallChatLines,
+  OnCallChatMentionsByWorkspaceType,
+  OnCallChatTextByWorkspaceType,
+  OnCallChatWriter,
+  OnCallNameOf,
+} from "./OnCallChatByWorkspace";
 import OnCallChatText, { OnCallMomentText } from "./OnCallChatText";
 
 /*
@@ -49,9 +52,21 @@ import OnCallChatText, { OnCallMomentText } from "./OnCallChatText";
  *
  * The person on call is named as each workspace knows them: "@ana" where
  * they connected their account there (WorkspaceUtil
- * .getUserStringForWorkspace), their OneUptime name otherwise. A moment
- * reads in each reader's own zone in Slack and Microsoft Teams, in UTC in
- * Mattermost, and in the schedule's zone in the policy's feed.
+ * .getUserStringForWorkspace), their OneUptime name otherwise - as every
+ * other on-call line names them (OnCallChatByWorkspace). A moment reads in
+ * each reader's own zone in Slack and Microsoft Teams, in words in the
+ * schedule's zone in Mattermost ("until Sat, Nov 14 at 5:50 PM EST", issue
+ * #7970) - UTC for a schedule set in none - and in the schedule's zone in
+ * the policy's feed.
+ *
+ * A name pings nobody, so a channel that hears every hand-off is not
+ * pinged by each one. A rule can ask to mention the person who comes on
+ * call instead (issue #7968, NotificationRuleUpdates
+ * .isMentioningWhoIsOnCall): the lines that name who is on call now are
+ * then said twice - with a real mention where they connected their
+ * account (WorkspaceMentions), to the channels whose rules ask for it, and
+ * as before to every other channel - so no channel gets both. Who is next
+ * is never mentioned, and nobody who connected no account is.
  *
  * Never throws: the roster refresh that calls this must go on to store the
  * new roster.
@@ -106,9 +121,6 @@ export interface OnCallChatPost {
   alsoWantedUpdateKinds?: Array<NotificationRuleUpdateKind> | undefined;
   notWantedUpdateKinds?: Array<NotificationRuleUpdateKind> | undefined;
 }
-
-// How a person is named in a line.
-type NameOf = (userId: ObjectID) => Promise<MarkdownText>;
 
 export default class OnCallHandoffPosts {
   // Whether two roster users are the same person (nobody and nobody are).
@@ -235,8 +247,14 @@ export default class OnCallHandoffPosts {
     line: OnCallChatLine;
     handoff: OnCallHandoff;
     policy: MarkdownText;
-    nameOf: NameOf;
+    nameOf: OnCallNameOf;
     moment: OnCallMomentText;
+    /*
+     * How the person on call now is named, where it is not nameOf: a
+     * mention, on a rule that asks for one (issue #7968). Who is next is
+     * always nameOf's.
+     */
+    nameOfPersonOnCall?: OnCallNameOf | undefined;
   }): Promise<MarkdownText> {
     const handoff: OnCallHandoff = data.handoff;
     const nextUserId: ObjectID | null = this.getNextToName(handoff);
@@ -266,7 +284,9 @@ export default class OnCallHandoffPosts {
     }
 
     return OnCallChatText.nowOnCall({
-      person: await data.nameOf(handoff.currentUserId),
+      person: await (data.nameOfPersonOnCall || data.nameOf)(
+        handoff.currentUserId,
+      ),
       policy: data.policy,
       until: handoff.handoffAt,
       next:
@@ -412,8 +432,8 @@ export default class OnCallHandoffPosts {
 
   /*
    * A line in each channel whose rules want one (getChatPosts): the person
-   * named as each connected workspace knows them, moments in each
-   * reader's own zone.
+   * named as each connected workspace knows them, moments in each reader's
+   * own zone - in Mattermost, in the schedule's (OnCallChatByWorkspace).
    */
   private static async postToChannels(data: {
     handoff: OnCallHandoff;
@@ -426,109 +446,131 @@ export default class OnCallHandoffPosts {
       return;
     }
 
-    const workspaceTypes: Array<WorkspaceType> = (
-      (await WorkspaceProjectAuthTokenService.getProjectAuths({
-        projectId: handoff.projectId,
-      })) || []
-    )
-      .filter((projectAuth: WorkspaceProjectAuthToken): boolean => {
-        return Boolean(projectAuth.authToken && projectAuth.workspaceType);
-      })
-      .map((projectAuth: WorkspaceProjectAuthToken): WorkspaceType => {
-        return projectAuth.workspaceType!;
-      });
+    // Each person's name in each workspace, asked once for all the lines.
+    const chat: OnCallChatByWorkspace = new OnCallChatByWorkspace({
+      projectId: handoff.projectId,
+      timezone: handoff.scheduleTimezone,
+    });
 
     // Nothing connected: nowhere to post.
-    if (workspaceTypes.length === 0) {
+    if ((await chat.getWorkspaceTypes()).length === 0) {
       return;
     }
-
-    // Each person's name in each workspace, asked once for all the lines.
-    const names: Map<string, MarkdownText> = new Map<string, MarkdownText>();
-
-    const nameIn: (workspaceType: WorkspaceType | null) => NameOf = (
-      workspaceType: WorkspaceType | null,
-    ): NameOf => {
-      return async (userId: ObjectID): Promise<MarkdownText> => {
-        const key: string = `${workspaceType || ""}:${userId.toString()}`;
-        const known: MarkdownText | undefined = names.get(key);
-
-        if (known) {
-          return known;
-        }
-
-        const name: string = workspaceType
-          ? (
-              await WorkspaceUtil.getUserStringForWorkspace({
-                userId: userId,
-                projectId: handoff.projectId,
-                workspaceType: workspaceType,
-              })
-            ).trim()
-          : (
-              await UserService.getUserMarkdownString({
-                userId: userId,
-                projectId: handoff.projectId,
-              })
-            ).toString();
-
-        const markdown: MarkdownText = name
-          ? FeedMarkdown.asMarkdown(name)
-          : mdText`Somebody`;
-
-        names.set(key, markdown);
-
-        return markdown;
-      };
-    };
-
-    // Each reader's own zone (Slack, Microsoft Teams); UTC in Mattermost.
-    const moment: OnCallMomentText = (date: Date): MarkdownText => {
-      return WorkspaceMessageTime.dateAndTime(date);
-    };
 
     for (const post of posts) {
       // One message failing must not keep the others from their channels.
       try {
-        const markdownByWorkspaceType: Partial<Record<WorkspaceType, string>> =
-          {};
-
-        for (const workspaceType of workspaceTypes) {
-          markdownByWorkspaceType[workspaceType] = (
-            await this.getLine({
-              line: post.line,
-              handoff: handoff,
-              policy: data.policy,
-              nameOf: nameIn(workspaceType),
-              moment: moment,
-            })
-          ).toString();
-        }
+        const markdownByWorkspaceType: OnCallChatTextByWorkspaceType =
+          await chat.write(
+            (writer: OnCallChatWriter): Promise<MarkdownText> => {
+              return this.getLine({
+                line: post.line,
+                handoff: handoff,
+                policy: data.policy,
+                nameOf: writer.nameOf,
+                moment: writer.moment,
+              });
+            },
+          );
 
         // For a workspace that has no line of its own: OneUptime's names.
         const line: MarkdownText = await this.getLine({
           line: post.line,
           handoff: handoff,
           policy: data.policy,
-          nameOf: nameIn(null),
-          moment: moment,
+          nameOf: chat.nameIn(null),
+          moment: (date: Date): MarkdownText => {
+            return WorkspaceMessageTime.dateAndTime(date);
+          },
         });
 
         if (line.isEmpty()) {
           continue;
         }
 
-        await OnCallDutyPolicyFeedService.sendWorkspaceNotification({
-          projectId: handoff.projectId,
-          onCallDutyPolicyId: handoff.onCallDutyPolicyId,
-          feedInfoInMarkdown: line.toString(),
+        /*
+         * The line again with the person on call mentioned, for the
+         * channels whose rules ask for it (issue #7968) - none when they
+         * connected no workspace's account, and nobody can be mentioned.
+         */
+        const mentioned: OnCallChatLines | null =
+          await this.getLinesMentioningPersonOnCall({
+            chat: chat,
+            post: post,
+            handoff: handoff,
+            policy: data.policy,
+          });
+
+        const send: (message: {
+          markdownByWorkspaceType: OnCallChatTextByWorkspaceType;
+          mentionsByWorkspaceType?:
+            | OnCallChatMentionsByWorkspaceType
+            | undefined;
+          mentioning?: boolean | undefined;
+        }) => Promise<void> = async (message: {
+          markdownByWorkspaceType: OnCallChatTextByWorkspaceType;
+          mentionsByWorkspaceType?:
+            | OnCallChatMentionsByWorkspaceType
+            | undefined;
+          mentioning?: boolean | undefined;
+        }): Promise<void> => {
+          await OnCallDutyPolicyFeedService.sendWorkspaceNotification({
+            projectId: handoff.projectId,
+            onCallDutyPolicyId: handoff.onCallDutyPolicyId,
+            feedInfoInMarkdown: line.toString(),
+            markdownByWorkspaceType: message.markdownByWorkspaceType,
+            ...(message.mentionsByWorkspaceType
+              ? { mentionsByWorkspaceType: message.mentionsByWorkspaceType }
+              : {}),
+            ...(message.mentioning !== undefined
+              ? { mentioning: message.mentioning }
+              : {}),
+            workspaceNotification: {
+              sendWorkspaceNotification: true,
+            },
+            updateKinds: post.updateKinds,
+            alsoWantedUpdateKinds: post.alsoWantedUpdateKinds,
+            notWantedUpdateKinds: post.notWantedUpdateKinds,
+          });
+        };
+
+        if (!mentioned) {
+          await send({ markdownByWorkspaceType: markdownByWorkspaceType });
+          continue;
+        }
+
+        /*
+         * Said both ways, each to its own channels - never both to one: the
+         * mention where a rule that posts it there asks for it, the name
+         * everywhere else. Should the mention not be posted, the channels
+         * that asked for it hear the line without it, rather than nothing.
+         */
+        let isMentionPosted: boolean = true;
+
+        try {
+          await send({
+            markdownByWorkspaceType: mentioned.lines,
+            mentionsByWorkspaceType: mentioned.mentions,
+            mentioning: true,
+          });
+        } catch (err) {
+          isMentionPosted = false;
+          logger.error(
+            "Could not post an on-call handoff's mention to its channels: they hear the line without it.",
+            {
+              projectId: handoff.projectId?.toString(),
+              onCallDutyPolicyId: handoff.onCallDutyPolicyId?.toString(),
+            } as LogAttributes,
+          );
+          logger.error(err, {
+            projectId: handoff.projectId?.toString(),
+            onCallDutyPolicyId: handoff.onCallDutyPolicyId?.toString(),
+          } as LogAttributes);
+        }
+
+        await send({
           markdownByWorkspaceType: markdownByWorkspaceType,
-          workspaceNotification: {
-            sendWorkspaceNotification: true,
-          },
-          updateKinds: post.updateKinds,
-          alsoWantedUpdateKinds: post.alsoWantedUpdateKinds,
-          notWantedUpdateKinds: post.notWantedUpdateKinds,
+          mentioning: isMentionPosted ? false : undefined,
         });
       } catch (err) {
         logger.error("Could not post an on-call handoff to its channels.", {
@@ -541,5 +583,41 @@ export default class OnCallHandoffPosts {
         } as LogAttributes);
       }
     }
+  }
+
+  /*
+   * A post's line in each workspace with the person on call now mentioned
+   * where they connected that workspace's account (issue #7968), or null
+   * when the post names nobody on call now - who is next and nobody on
+   * call are never mentioned - or nobody can be mentioned anywhere.
+   */
+  private static async getLinesMentioningPersonOnCall(data: {
+    chat: OnCallChatByWorkspace;
+    post: OnCallChatPost;
+    handoff: OnCallHandoff;
+    policy: MarkdownText;
+  }): Promise<OnCallChatLines | null> {
+    if (
+      !data.handoff.currentUserId ||
+      (data.post.line !== OnCallChatLine.NowOnCall &&
+        data.post.line !== OnCallChatLine.NowOnCallThenNext)
+    ) {
+      return null;
+    }
+
+    const mentioned: OnCallChatLines = await data.chat.writeWithMentions(
+      (writer: OnCallChatWriter): Promise<MarkdownText> => {
+        return this.getLine({
+          line: data.post.line,
+          handoff: data.handoff,
+          policy: data.policy,
+          nameOf: writer.nameOf,
+          moment: writer.moment,
+          nameOfPersonOnCall: writer.mentionOf,
+        });
+      },
+    );
+
+    return Object.keys(mentioned.mentions).length > 0 ? mentioned : null;
   }
 }

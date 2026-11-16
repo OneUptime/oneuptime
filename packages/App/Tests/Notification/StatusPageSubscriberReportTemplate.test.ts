@@ -37,6 +37,7 @@ import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/S
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import { beforeAll, describe, expect, test } from "@jest/globals";
 import { STATUS_PAGE_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
+import { withoutIsolateMarks } from "Common/Tests/Helpers/IsolateMarks";
 
 // The email language helpers the templates word their text with.
 registerEmailLanguageHelpers(Handlebars);
@@ -1246,5 +1247,220 @@ describe("the uptime report's inbox preview, and its headings on a phone", () =>
 
     expect(html).toContain('<th scope="col" align="left" width="34%"');
     expect(html).toContain('<th scope="col" align="right" width="22%"');
+  });
+});
+
+/*
+ * A RESOURCE THE REPORT MEASURED NOTHING FOR (issue #9030).
+ *
+ * A monitor nothing had checked yet in the period, or whose monitoring was
+ * off throughout, has no uptime: the status page shows a dash for it, and
+ * under its name, where the page shows a status, "Not monitored yet" or
+ * "Not monitored". The report used to print 100% and no downtime for it,
+ * and average that 100% in. Now its row reads the dash for both figures
+ * and the page's words under its name, in the built-in email and in the
+ * starter a status page is offered for its own; and a page nothing on
+ * which was measured previews the period and says so, never "— average
+ * uptime".
+ */
+describe("a resource the uptime report measured nothing for (#9030)", () => {
+  const DASH: string = "—";
+
+  function reportWithUnmeasured(notMonitoredText: string): StatusPageReport {
+    const unmeasured: StatusPageReportResourceEntry = {
+      statusPageResource: ((): StatusPageResource => {
+        const resource: StatusPageResource = new StatusPageResource();
+        resource.displayName = "New API";
+        return resource;
+      })(),
+      reportItem: {
+        resourceName: "New API",
+        totalIncidentCount: 0,
+        uptimePercent: null,
+        uptimePercentAsString: DASH,
+        downtimeInHoursAndMinutes: DASH,
+        notMonitoredText: notMonitoredText,
+      },
+    };
+
+    return {
+      ...buildReport({
+        entries: [makeEntry({ resourceName: "WBHQ website" }), unmeasured],
+        statusPageGroups: [],
+      }),
+      averageUptimePercent: "100.00%",
+      hasUptime: true,
+    };
+  }
+
+  // The cells of the row whose name is `name`, as rendered.
+  function rowOf(html: string, name: string): string {
+    const at: number = html.indexOf(`>${name}`);
+
+    expect(at).toBeGreaterThan(-1);
+
+    return html.slice(at, html.indexOf("</tr>", at));
+  }
+
+  function renderBuiltIn(
+    report: StatusPageReport,
+    vars: Record<string, unknown> = {},
+  ): string {
+    return renderReportTemplate({
+      statusPageName: "WBHQ Status Page",
+      hasResources: "true",
+      hasUptime: report.hasUptime === false ? "false" : "true",
+      statusPageUrl: "https://status.example.com",
+      detailsUrl: "https://status.example.com",
+      report: report,
+      ...getEmailLanguageVariables("en"),
+      ...vars,
+    });
+  }
+
+  test("the built-in report reads a dash for its uptime and downtime, and the status page's words under its name", () => {
+    const row: string = rowOf(
+      renderBuiltIn(reportWithUnmeasured("Not monitored yet")),
+      "New API",
+    );
+
+    expect(row).toContain(">Not monitored yet</div>");
+    expect(row.match(new RegExp(`>${DASH}</td>`, "g"))).toHaveLength(2);
+    expect(row).not.toContain("100%");
+  });
+
+  test("a measured resource says nothing under its name", () => {
+    const row: string = rowOf(
+      renderBuiltIn(reportWithUnmeasured("Not monitored yet")),
+      "WBHQ website",
+    );
+
+    expect(row).not.toContain("Not monitored");
+    expect(row).toContain(">100%</td>");
+  });
+
+  test.each(STATUS_PAGE_LANGUAGES)(
+    "%s: the words under the name are the report's, written in the reader's language",
+    (language: string) => {
+      // writeReportInLanguage puts the status page's words in; the template draws them.
+      const words: string = `${language}: not monitored yet`;
+      const html: string = renderBuiltIn(reportWithUnmeasured(words), {
+        ...getEmailLanguageVariables(language),
+      });
+
+      expect(rowOf(html, "New API")).toContain(`>${words}</div>`);
+    },
+  );
+
+  test("the starter offered for a page's own template reads the same", () => {
+    const html: string = renderStarter(reportWithUnmeasured("Not monitored"));
+    const row: string = rowOf(html, "New API");
+
+    expect(row).toContain(">Not monitored</div>");
+    expect(row.match(new RegExp(`>${DASH}</td>`, "g"))).toHaveLength(2);
+  });
+
+  describe("a page nothing on which was measured", () => {
+    function nothingMeasured(): StatusPageReport {
+      return {
+        ...reportWithUnmeasured("Not monitored yet"),
+        averageUptimePercent: DASH,
+        hasUptime: false,
+        totalDowntimeInHoursAndMinutes: DASH,
+      };
+    }
+
+    const PREVIEW_START: string =
+      '<div style="display: none; max-height: 0; overflow: hidden; opacity: 0; mso-hide: all;">';
+
+    function previewOf(html: string): string {
+      const start: number = html.indexOf(PREVIEW_START) + PREVIEW_START.length;
+
+      return html.slice(start, html.indexOf("</div>", start));
+    }
+
+    test("previews the period and that nothing on it was monitored, never '— average uptime'", () => {
+      const preview: string = previewOf(renderBuiltIn(nothingMeasured()));
+
+      expect(preview).toBe(
+        "WBHQ Status Page uptime report for July 2026: none of its resources were monitored.",
+      );
+      expect(preview).not.toContain("average uptime");
+      expect(preview).not.toContain("100%");
+    });
+
+    test.each(STATUS_PAGE_LANGUAGES)(
+      "%s previews it in the reader's language",
+      (language: string) => {
+        const preview: string = previewOf(
+          renderBuiltIn(nothingMeasured(), {
+            ...getEmailLanguageVariables(language),
+          }),
+        );
+
+        // The sentence as the server's locale words it, its values filled in.
+        const locale: Record<string, string> = JSON.parse(
+          fs.readFileSync(
+            Path.resolve(
+              __dirname,
+              "../../../Common/Server/Locales",
+              `${language}.json`,
+            ),
+            { encoding: "utf8" },
+          ),
+        ) as Record<string, string>;
+
+        const sentence: string =
+          locale[
+            "{{statusPageName}} uptime report for {{period}}: none of its resources were monitored."
+          ]!;
+
+        /*
+         * As the inbox reads the HTML: its entities as the characters they
+         * are, and French's no-break space before a colon as a space.
+         */
+        const read: string = withoutIsolateMarks(preview)
+          .replace(/&#x27;/g, "'")
+          .replace(/&quot;/g, '"')
+          .replace(/&amp;/g, "&")
+          .replace(/\s/g, " ");
+
+        expect(read).toBe(
+          sentence
+            .replace("{{statusPageName}}", "WBHQ Status Page")
+            .replace("{{period}}", "July 2026")
+            .replace(/\s/g, " "),
+        );
+        expect(preview).not.toContain("none of its resources were monitored");
+      },
+    );
+
+    test("its hero and its downtime read a dash", () => {
+      const html: string = renderBuiltIn(nothingMeasured());
+
+      expect(html).toContain(`>${DASH}</p>`);
+      expectLabelsFirstAndLinedUp(html, [
+        ["Downtime", DASH],
+        ["Incidents", "3"],
+        ["Resources", "2"],
+      ]);
+    });
+
+    test("a report built without hasUptime previews its average, as it always did", () => {
+      const report: StatusPageReport = reportWithUnmeasured("Not monitored");
+      delete (report as { hasUptime?: boolean | undefined }).hasUptime;
+
+      const html: string = renderReportTemplate({
+        statusPageName: "WBHQ Status Page",
+        hasResources: "true",
+        statusPageUrl: "https://status.example.com",
+        report: report,
+        ...getEmailLanguageVariables("en"),
+      });
+
+      expect(previewOf(html)).toBe(
+        "WBHQ Status Page uptime report — 100.00% average uptime for July 2026.",
+      );
+    });
   });
 });

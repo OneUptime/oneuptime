@@ -246,6 +246,8 @@ For å legge ut i en kanal legger du til en regel under **Produkter → Sikkerhe
 
 Alle varslinger unntatt en oppgaves legges ut i kanalene til hver regel saken treffer i det øyeblikket. En regel der **Prioritet for sikkerhetssak** inneholder en av **Kritisk** og **Høy**, legger ut saker med High og Kritisk når de åpnes, og en sak med Medium når den stiger til High. En sikkerhetssak får aldri en egen kanal.
 
+Steget **Oppdateringer** i en regel velger hvilke av disse meldingene den publiserer: **Nye saker og økte prioriteter**, **Tildelinger**, **Ventende godkjenninger** og **Responsmål**, én avkrysningsboks hver under **Velg oppdateringer**. **Bare viktige oppdateringer** publiserer alle unntatt tildelingene, for en kanal som bare skal høre det noen må gjøre noe med. En regel lagret før steget, og en ny regel, publiserer alle meldinger.
+
 ## Playbooks
 
 En playbook er en liste med steg som kjører på en sak. Opprett en under **Produkter → Sikkerhetshendelser → Playbooks**, fra en mal eller fra bunnen av, og legg til stegene på siden dens. Et prosjekt uten playbooks ser malene i stedet for en tom liste; når det finnes playbooks, åpner **Opprett fra mal** ved listen dem, med **Lagt til** ved dem prosjektet allerede har.

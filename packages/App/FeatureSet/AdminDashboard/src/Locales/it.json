@@ -69,10 +69,6 @@
     "ingestionBudgets": "Budget di acquisizione",
     "products": "Prodotti"
   },
-  "topAlert": {
-    "title": "Pannello amministratore OneUptime",
-    "description": "Puoi eseguire le tue attività relative al server OneUptime su questo pannello."
-  },
   "header": {
     "exitAdmin": "Esci dall'admin",
     "help": "Aiuto",

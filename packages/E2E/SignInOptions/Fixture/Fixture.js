@@ -26,6 +26,11 @@
  *   firstaccount=1                       the self-hosted server has no account yet
  *                                        (POST /identity/first-account says so; the
  *                                        sign-up page waits for that answer)
+ *   folded=1                             the sign-in page as a first visit draws it:
+ *                                        "More ways to sign in" folded (#9023). It is
+ *                                        open otherwise, as a browser that left it
+ *                                        open finds it, so single sign-on and the
+ *                                        passkey are drawn
  *
  * window.__setLanguage(code) switches the page's language in place, and
  * resolves once the page has drawn it.
@@ -44,9 +49,17 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import ObjectID from "Common/Types/ObjectID";
 import UserUtil from "Common/UI/Utils/User";
 import Navigation from "Common/UI/Utils/Navigation";
+import { MORE_WAYS_TO_SIGN_IN_OPEN_KEY } from "Common/Types/Accounts/MoreWaysToSignIn";
 
 const params = new URLSearchParams(window.location.search);
 const page = params.get("page") || "login";
+
+// "More ways to sign in", as this browser left it: open unless folded=1.
+if (params.get("folded") === "1") {
+  window.localStorage.removeItem(MORE_WAYS_TO_SIGN_IN_OPEN_KEY);
+} else {
+  window.localStorage.setItem(MORE_WAYS_TO_SIGN_IN_OPEN_KEY, "true");
+}
 
 const never = () => {
   return new Promise(() => {});

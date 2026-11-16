@@ -69,10 +69,6 @@
     "ingestionBudgets": "بودجه‌های دریافت داده",
     "products": "محصولات"
   },
-  "topAlert": {
-    "title": "داشبورد مدیریت OneUptime",
-    "description": "می‌توانید کارهای مربوط به سرور OneUptime خود را در این داشبورد انجام دهید."
-  },
   "header": {
     "exitAdmin": "خروج از بخش مدیریت",
     "help": "راهنما",
