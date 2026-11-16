@@ -49,8 +49,6 @@
     "noResourcesInGroup": "Ingen ressurser lagt til i denne gruppen.",
     "activeIncidents": "Aktive hendelser",
     "scheduledMaintenanceEvents": "Planlagt vedlikehold",
-    "allClearTitle": "Alt ser bra ut",
-    "allClearDescription": "Ingen ressurser er lagt til på denne statussiden ennå. Legg til noen ressurser fra kontrollpanelet.",
     "allResourcesAre": "Alle ressurser er {{status}}",
     "allMonitoredResourcesAre": "Alle overvåkede ressurser er {{status}}",
     "someResourcesAre": "Noen ressurser er {{status}}",
@@ -58,7 +56,10 @@
     "noResourcesAreMonitored": "Ingen ressurser overvåkes akkurat nå",
     "noResourcesAreMonitoredYet": "Ingen ressurser er overvåket ennå",
     "oneSubGroup": "1 gruppe",
-    "subGroupCount": "{{total}} grupper"
+    "subGroupCount": "{{total}} grupper",
+    "noResourcesTitle": "Ingenting å vise ennå",
+    "noResourcesDescription": "Denne siden viser ingen tjenester ennå.",
+    "noResourcesPreviewDescription": "Besøkende ser denne meldingen til du legger til ressurser. Legg til monitorer eller grupper på denne statussiden under Ressurser i dashbordet."
   },
   "eventItem": {
     "affectedResources": "Berørte ressurser",
@@ -115,30 +116,23 @@
     "title": "Hendelser",
     "singular": "Hendelse",
     "active": "Aktive hendelser",
-    "resolved": "Løste hendelser",
-    "none": "Ingen hendelser",
-    "noneDescription": "Ingen hendelser er publisert på denne statussiden.",
+    "noneDescription": "Når en hendelse påvirker tjenestene på denne siden, publiseres den her.",
     "postmortem": "Hendelsesgjennomgang",
     "declaredAt": "Rapportert den ",
     "declaredAtTime": "Rapportert den {{time}}",
     "report": "Hendelsesrapport",
-    "notFound": "Hendelsen ble ikke funnet på denne statussiden."
-  },
-  "episodes": {
-    "report": "Episoderapport",
-    "none": "Ingen episode",
-    "notFound": "Episoden ble ikke funnet på denne statussiden."
+    "notFound": "Sjekk lenken, eller åpne fanen Hendelser på denne siden.",
+    "notFoundTitle": "Fant ikke hendelsen"
   },
   "announcements": {
     "title": "Kunngjøringer",
     "singular": "Kunngjøring",
     "active": "Aktive kunngjøringer",
-    "past": "Tidligere kunngjøringer",
-    "none": "Ingen kunngjøringer",
-    "noneDescription": "Ingen kunngjøringer er publisert på denne siden så langt.",
+    "noneDescription": "Når det er nytt om tjenestene på denne siden, publiseres det her.",
     "announcedAt": "Kunngjort den ",
     "announcedAtTime": "Kunngjort den {{time}}",
-    "notFound": "Kunngjøringen ble ikke funnet på denne statussiden."
+    "notFound": "Sjekk lenken, eller åpne fanen Kunngjøringer på denne siden.",
+    "notFoundTitle": "Fant ikke kunngjøringen"
   },
   "scheduledEvents": {
     "title": "Planlagt vedlikehold",
@@ -146,9 +140,7 @@
     "scheduledMaintenance": "Planlagt vedlikehold",
     "ongoing": "Pågående vedlikehold",
     "upcoming": "Kommende vedlikehold",
-    "completed": "Fullført vedlikehold",
     "none": "Ikke noe planlagt vedlikehold",
-    "noneDescription": "Det er ikke publisert noe planlagt vedlikehold for denne statussiden.",
     "scheduledAt": "Planlagt til ",
     "scheduledAtTime": "Planlagt til {{time}}",
     "report": "Rapport for vedlikeholdshendelse",
@@ -507,5 +499,17 @@
   "Incomplete:": "Ikke oppfylt:",
   "Special character included (optional)": "Spesialtegn inkludert (valgfritt)",
   "Special characters are optional. Try !, @, # or $.": "Spesialtegn er valgfrie. Prøv !, @, # eller $.",
-  "Dismiss": "Skjul"
+  "Dismiss": "Skjul",
+  "Resolved in the Last {{count}} Days": "Løst i løpet av de siste {{count}} dagene",
+  "Resolved in the Last {{count}} Days_one": "Løst i løpet av det siste døgnet",
+  "No incidents in the last {{count}} days": "Ingen hendelser de siste {{count}} dagene",
+  "No incidents in the last {{count}} days_one": "Ingen hendelser det siste døgnet",
+  "Ended in the Last {{count}} Days": "Avsluttet i løpet av de siste {{count}} dagene",
+  "Ended in the Last {{count}} Days_one": "Avsluttet i løpet av det siste døgnet",
+  "No announcements in the last {{count}} days": "Ingen kunngjøringer de siste {{count}} dagene",
+  "No announcements in the last {{count}} days_one": "Ingen kunngjøringer det siste døgnet",
+  "Completed in the Last {{count}} Days": "Fullført i løpet av de siste {{count}} dagene",
+  "Completed in the Last {{count}} Days_one": "Fullført i løpet av det siste døgnet",
+  "None is planned, and none took place in the last {{count}} days.": "Ingenting er planlagt, og ingenting har funnet sted de siste {{count}} dagene.",
+  "None is planned, and none took place in the last {{count}} days._one": "Ingenting er planlagt, og ingenting har funnet sted det siste døgnet."
 }

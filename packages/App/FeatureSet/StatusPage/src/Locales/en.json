@@ -49,8 +49,6 @@
     "noResourcesInGroup": "No resources added to this group.",
     "activeIncidents": "Active Incidents",
     "scheduledMaintenanceEvents": "Scheduled Maintenance",
-    "allClearTitle": "Everything looks great",
-    "allClearDescription": "No resources added to this status page yet. Please add some resources from the dashboard.",
     "allResourcesAre": "All Resources are {{status}}",
     "allMonitoredResourcesAre": "All monitored Resources are {{status}}",
     "someResourcesAre": "Some Resources are {{status}}",
@@ -58,7 +56,10 @@
     "noResourcesAreMonitored": "No Resources are monitored right now",
     "noResourcesAreMonitoredYet": "No Resources are monitored yet",
     "oneSubGroup": "1 group",
-    "subGroupCount": "{{total}} groups"
+    "subGroupCount": "{{total}} groups",
+    "noResourcesTitle": "Nothing to show yet",
+    "noResourcesDescription": "This page isn't showing any services yet.",
+    "noResourcesPreviewDescription": "Visitors see this until you add resources. Add monitors or groups to this status page under Resources in the Dashboard."
   },
   "eventItem": {
     "affectedResources": "Affected resources",
@@ -115,30 +116,23 @@
     "title": "Incidents",
     "singular": "Incident",
     "active": "Active Incidents",
-    "resolved": "Resolved Incidents",
-    "none": "No Incident",
-    "noneDescription": "No incidents posted on this status page.",
+    "noneDescription": "When an incident affects the services on this page, it is posted here.",
     "postmortem": "Incident Postmortem",
     "declaredAt": "Declared at ",
     "declaredAtTime": "Declared at {{time}}",
     "report": "Incident Report",
-    "notFound": "Incident not found on this status page."
-  },
-  "episodes": {
-    "report": "Episode Report",
-    "none": "No Episode",
-    "notFound": "Episode not found on this status page."
+    "notFound": "Check the link, or open this page's Incidents tab.",
+    "notFoundTitle": "Incident not found"
   },
   "announcements": {
     "title": "Announcements",
     "singular": "Announcement",
     "active": "Active Announcements",
-    "past": "Past Announcements",
-    "none": "No Announcement",
-    "noneDescription": "No announcements posted so far on this page.",
+    "noneDescription": "When there's news about the services on this page, it is posted here.",
     "announcedAt": "Announced at ",
     "announcedAtTime": "Announced at {{time}}",
-    "notFound": "Announcement not found on this status page."
+    "notFound": "Check the link, or open this page's Announcements tab.",
+    "notFoundTitle": "Announcement not found"
   },
   "scheduledEvents": {
     "title": "Scheduled Maintenance",
@@ -146,9 +140,7 @@
     "scheduledMaintenance": "Scheduled Maintenance",
     "ongoing": "Ongoing Maintenance",
     "upcoming": "Upcoming Maintenance",
-    "completed": "Completed Maintenance",
-    "none": "No Scheduled Maintenance",
-    "noneDescription": "No scheduled maintenance posted for this status page.",
+    "none": "No maintenance planned",
     "scheduledAt": "Scheduled at ",
     "scheduledAtTime": "Scheduled at {{time}}",
     "report": "Maintenance Event Report",
@@ -507,5 +499,17 @@
   "Incomplete:": "Incomplete:",
   "Special character included (optional)": "Special character included (optional)",
   "Special characters are optional. Try !, @, # or $.": "Special characters are optional. Try !, @, # or $.",
-  "Dismiss": "Dismiss"
+  "Dismiss": "Dismiss",
+  "Resolved in the Last {{count}} Days": "Resolved in the Last {{count}} Days",
+  "Resolved in the Last {{count}} Days_one": "Resolved in the Last Day",
+  "No incidents in the last {{count}} days": "No incidents in the last {{count}} days",
+  "No incidents in the last {{count}} days_one": "No incidents in the last day",
+  "Ended in the Last {{count}} Days": "Ended in the Last {{count}} Days",
+  "Ended in the Last {{count}} Days_one": "Ended in the Last Day",
+  "No announcements in the last {{count}} days": "No announcements in the last {{count}} days",
+  "No announcements in the last {{count}} days_one": "No announcements in the last day",
+  "Completed in the Last {{count}} Days": "Completed in the Last {{count}} Days",
+  "Completed in the Last {{count}} Days_one": "Completed in the Last Day",
+  "None is planned, and none took place in the last {{count}} days.": "None is planned, and none took place in the last {{count}} days.",
+  "None is planned, and none took place in the last {{count}} days._one": "None is planned, and none took place in the last day."
 }
