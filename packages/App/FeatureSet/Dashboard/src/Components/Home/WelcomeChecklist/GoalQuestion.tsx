@@ -81,14 +81,36 @@ export const getPickableGoals: (
   });
 };
 
-const CARD_CLASS_NAME: string =
-  "relative flex h-full cursor-pointer flex-col rounded-xl border p-5 text-start transition focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2";
+/*
+ * A card is one row on a phone - its icon, its words, its mark - so the six
+ * fit on a screen or two, and from sm up a tile: the icon over the words,
+ * the mark in the top corner.
+ */
+export const GOAL_CARD_CLASS_NAME: string =
+  "relative flex h-full cursor-pointer items-start gap-4 rounded-xl border p-4 text-start transition focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2 sm:flex-col sm:gap-0 sm:p-5";
 
 const CHOSEN_CARD_CLASS_NAME: string =
   "border-indigo-500 bg-indigo-50 shadow-md ring-1 ring-indigo-500";
 
 const CARD_AT_REST_CLASS_NAME: string =
   "border-gray-200 bg-white hover:border-indigo-300 hover:shadow-md";
+
+/*
+ * The goal's checkbox lies over its round mark, see-through: the click is
+ * the checkbox's own, and the dark theme's way of drawing a checkbox (square,
+ * with a tick of its own) never shows over the mark.
+ */
+export const GOAL_CHECKBOX_CLASS_NAME: string =
+  "absolute inset-0 z-10 m-0 h-6 w-6 cursor-pointer opacity-0";
+
+// The round mark: an empty ring, and an indigo disc with a tick once picked.
+export const GOAL_MARK_CLASS_NAME: string =
+  "flex h-6 w-6 items-center justify-center rounded-full border-2 transition";
+
+export const GOAL_MARK_CHOSEN_CLASS_NAME: string =
+  "border-indigo-600 bg-indigo-600";
+
+export const GOAL_MARK_AT_REST_CLASS_NAME: string = "border-gray-300 bg-white";
 
 const GoalQuestion: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -188,23 +210,38 @@ const GoalQuestion: FunctionComponent<ComponentProps> = (
                   key={entry.goal}
                   data-testid={`welcome-goal-${entry.goal}`}
                   data-chosen={isChosen ? "true" : "false"}
-                  className={`${CARD_CLASS_NAME} ${
+                  className={`${GOAL_CARD_CLASS_NAME} ${
                     isChosen ? CHOSEN_CARD_CLASS_NAME : CARD_AT_REST_CLASS_NAME
                   }`}
                 >
-                  <span className="flex items-start justify-between gap-3">
+                  <span
+                    aria-hidden="true"
+                    className={`flex h-11 w-11 flex-none items-center justify-center rounded-xl ${entry.iconBackgroundClassName}`}
+                  >
+                    <Icon icon={entry.icon} className="h-5 w-5 text-white" />
+                  </span>
+                  <span className="block min-w-0 flex-1 sm:mt-4">
                     <span
-                      aria-hidden="true"
-                      className={`flex h-11 w-11 flex-none items-center justify-center rounded-xl ${entry.iconBackgroundClassName}`}
+                      id={titleId}
+                      className="block text-base font-semibold text-gray-900"
                     >
-                      <Icon icon={entry.icon} className="h-5 w-5 text-white" />
+                      {translator.translateText(entry.title)}
                     </span>
-                    {/*
-                     * The choice itself: a real checkbox, drawn as the round
-                     * mark in the card's corner. The card is its label, so a
-                     * click anywhere on it picks it; it is named by the goal
-                     * and described by what the goal brings.
-                     */}
+                    <span
+                      id={outcomeId}
+                      className="mt-1 block text-sm text-gray-600"
+                    >
+                      {translator.translateText(entry.outcome)}
+                    </span>
+                  </span>
+                  {/*
+                   * The choice itself: a real checkbox, over the round mark
+                   * in the card's corner - an empty ring, and an indigo
+                   * disc with a tick once picked. The card is its label, so
+                   * a click anywhere on it picks it; it is named by the
+                   * goal and described by what the goal brings.
+                   */}
+                  <span className="relative mt-0.5 flex h-6 w-6 flex-none sm:absolute sm:end-5 sm:top-5 sm:mt-0">
                     <input
                       type="checkbox"
                       checked={isChosen}
@@ -213,21 +250,27 @@ const GoalQuestion: FunctionComponent<ComponentProps> = (
                       }}
                       aria-labelledby={titleId}
                       aria-describedby={outcomeId}
-                      data-testid={`welcome-goal-${entry.goal}-mark`}
-                      className="mt-0.5 h-6 w-6 flex-none cursor-pointer rounded-full border-gray-300 text-indigo-600 transition focus:ring-0 focus:ring-offset-0"
+                      data-testid={`welcome-goal-${entry.goal}-checkbox`}
+                      className={GOAL_CHECKBOX_CLASS_NAME}
                     />
-                  </span>
-                  <span
-                    id={titleId}
-                    className="mt-4 block text-base font-semibold text-gray-900"
-                  >
-                    {translator.translateText(entry.title)}
-                  </span>
-                  <span
-                    id={outcomeId}
-                    className="mt-1 block text-sm text-gray-600"
-                  >
-                    {translator.translateText(entry.outcome)}
+                    <span
+                      aria-hidden="true"
+                      data-testid={`welcome-goal-${entry.goal}-mark`}
+                      className={`${GOAL_MARK_CLASS_NAME} ${
+                        isChosen
+                          ? GOAL_MARK_CHOSEN_CLASS_NAME
+                          : GOAL_MARK_AT_REST_CLASS_NAME
+                      }`}
+                    >
+                      {isChosen ? (
+                        <Icon
+                          icon={IconProp.Check}
+                          className="h-3.5 w-3.5 text-white"
+                        />
+                      ) : (
+                        <></>
+                      )}
+                    </span>
                   </span>
                 </label>
               );

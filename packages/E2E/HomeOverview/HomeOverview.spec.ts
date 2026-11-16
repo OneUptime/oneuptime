@@ -996,7 +996,7 @@ const ON_CALL_STEP_SENTENCE: string =
 async function checklistSteps(page: Page): Promise<Array<string>> {
   return page
     .getByTestId("getting-started")
-    .locator('[data-testid^="getting-started-task-"]')
+    .locator('[data-testid^="getting-started-task-"][data-done]')
     .evaluateAll((elements: Array<Element>): Array<string> => {
       return elements.map((element: Element): string => {
         return (element.getAttribute("data-testid") || "").replace(
@@ -1046,7 +1046,7 @@ test.describe("a newcomer's first steps", () => {
         // One column: every step's tile starts at the same left edge.
         const lefts: Array<number> = await page
           .getByTestId("getting-started")
-          .locator('[data-testid^="getting-started-task-"]')
+          .locator('[data-testid^="getting-started-task-"][data-done]')
           .evaluateAll((elements: Array<Element>): Array<number> => {
             return elements.map((element: Element): number => {
               return Math.round(element.getBoundingClientRect().left);
@@ -1189,6 +1189,14 @@ test.describe("what do you want to do first?", () => {
       await expect(page.getByTestId("welcome-question-plan-steps")).toHaveText(
         "3 steps to set up",
       );
+      await expect(page.getByTestId("welcome-goal-uptime")).toHaveAttribute(
+        "data-chosen",
+        "true",
+      );
+      await expect(page.getByTestId("welcome-question-continue")).toBeEnabled();
+
+      await screenshot(page, `home-welcome-picked-${width}`);
+
       await page.getByTestId("welcome-question-continue").click();
 
       await expect(page.getByTestId("getting-started")).toBeVisible();

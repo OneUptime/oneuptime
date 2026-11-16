@@ -104,6 +104,7 @@ import GettingStarted, {
   WelcomeCardView,
   getStepAfter,
   getWelcomeCardView,
+  isQuickstartTakingHome,
   isQuickstartView,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/GettingStarted";
 import {
@@ -112,6 +113,13 @@ import {
   WELCOME_JUST_LOOKING_GOAL,
   WelcomeGoalEntry,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/WelcomeChecklist/WelcomeChecklistCatalog";
+import {
+  GOAL_CARD_CLASS_NAME,
+  GOAL_CHECKBOX_CLASS_NAME,
+  GOAL_MARK_AT_REST_CLASS_NAME,
+  GOAL_MARK_CHOSEN_CLASS_NAME,
+  GOAL_MARK_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Home/WelcomeChecklist/GoalQuestion";
 import { ProductEventName } from "../../../Types/Analytics/ProductEvent";
 import ObjectID from "../../../Types/ObjectID";
 import ProjectGoal, {
@@ -184,14 +192,17 @@ const NEW_PROJECT: WelcomeChecklistAnswer = answer({ shouldAskForGoals: true });
 
 // Every view the card said it drew, in order (Home draws the page by it).
 let views: Array<WelcomeCardView | null> = [];
+// And each time, whether it said it was the whole of Home.
+let takingHome: Array<boolean> = [];
 
 async function renderGettingStarted(): Promise<void> {
   await act(async () => {
     render(
       <GettingStarted
         projectId={new ObjectID(PROJECT_ID)}
-        onViewChange={(view: WelcomeCardView | null) => {
+        onViewChange={(view: WelcomeCardView | null, isTakingHome: boolean) => {
           views.push(view);
+          takingHome.push(isTakingHome);
         }}
       />,
     );
@@ -214,6 +225,7 @@ beforeEach(() => {
   window.localStorage.clear();
   window.sessionStorage.clear();
   views = [];
+  takingHome = [];
   jest
     .spyOn(ProjectUtil, "getCurrentProjectId")
     .mockReturnValue(new ObjectID(PROJECT_ID));
@@ -325,28 +337,60 @@ describe("What do you want to do first?", () => {
     const card: HTMLElement = screen.getByTestId(
       `welcome-goal-${ProjectGoal.Uptime}`,
     );
-    const mark: HTMLInputElement = screen.getByTestId(
-      `welcome-goal-${ProjectGoal.Uptime}-mark`,
-    ) as HTMLInputElement;
+    const mark: () => HTMLElement = (): HTMLElement => {
+      return screen.getByTestId(`welcome-goal-${ProjectGoal.Uptime}-mark`);
+    };
 
-    // The round mark in the card's corner is the checkbox itself.
-    expect(mark).toBe(goalBox(ProjectGoal.Uptime));
-    expect(mark.className).toContain("rounded-full");
+    // The round mark in the card's corner, with the checkbox lying over it.
+    expect(mark().className).toContain(GOAL_MARK_CLASS_NAME);
+    expect(mark().className).toContain(GOAL_MARK_AT_REST_CLASS_NAME);
+    expect(mark()).toHaveAttribute("aria-hidden", "true");
+    expect(
+      screen.getByTestId(`welcome-goal-${ProjectGoal.Uptime}-checkbox`),
+    ).toBe(goalBox(ProjectGoal.Uptime));
+    expect(goalBox(ProjectGoal.Uptime).className).toBe(
+      GOAL_CHECKBOX_CLASS_NAME,
+    );
     expect(card).toHaveAttribute("data-chosen", "false");
-    expect(mark.checked).toBe(false);
+    expect(mark().querySelector("svg")).toBeNull();
 
     fireEvent.click(goalBox(ProjectGoal.Uptime));
 
     expect(card).toHaveAttribute("data-chosen", "true");
     expect(card.className).toContain("border-indigo-500");
     expect(card.className).toContain("bg-indigo-50");
-    expect(mark.checked).toBe(true);
+    expect(mark().className).toContain(GOAL_MARK_CHOSEN_CLASS_NAME);
+    // The tick, inside the disc.
+    expect(mark().querySelector("svg")).not.toBeNull();
+    expect(goalBox(ProjectGoal.Uptime).checked).toBe(true);
 
     fireEvent.click(goalBox(ProjectGoal.Uptime));
 
     expect(card).toHaveAttribute("data-chosen", "false");
     expect(card.className).not.toContain("border-indigo-500");
-    expect(mark.checked).toBe(false);
+    expect(mark().className).toContain(GOAL_MARK_AT_REST_CLASS_NAME);
+    expect(goalBox(ProjectGoal.Uptime).checked).toBe(false);
+  });
+
+  /*
+   * The dark theme draws every visible checkbox its own way (square, with
+   * a tick of its own: Theme.css), which fought the round mark. The
+   * checkbox lies over the mark, see-through, so it still takes the click
+   * and the keyboard, and only the mark is seen.
+   */
+  test("the checkbox lies over its mark, see-through, and takes the click itself", () => {
+    expect(GOAL_CHECKBOX_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining(["absolute", "inset-0", "z-10", "opacity-0"]),
+    );
+    expect(GOAL_CHECKBOX_CLASS_NAME).not.toContain("sr-only");
+    expect(GOAL_CHECKBOX_CLASS_NAME).not.toContain("pointer-events-none");
+    expect(GOAL_MARK_CLASS_NAME).toContain("rounded-full");
+  });
+
+  test("a card is one row on a phone and a tile from sm up", () => {
+    expect(GOAL_CARD_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining(["flex", "items-start", "sm:flex-col"]),
+    );
   });
 
   test("a click anywhere on a card picks it: the card is the checkbox's label", async () => {
@@ -916,6 +960,83 @@ describe("the view it says it draws, for Home", () => {
 
     expect(views[views.length - 1]).toBe(WelcomeCardView.None);
   });
+
+  test("the question is the whole of Home; so is the checklist its answer brings", async () => {
+    postMock.mockResolvedValue(answer({ goals: [ProjectGoal.Uptime] }));
+    await renderGettingStarted();
+
+    expect(views[views.length - 1]).toBe(WelcomeCardView.Question);
+    expect(takingHome[takingHome.length - 1]).toBe(true);
+
+    fireEvent.click(goalBox(ProjectGoal.Uptime));
+    await press("welcome-question-continue");
+
+    expect(views[views.length - 1]).toBe(WelcomeCardView.Checklist);
+    expect(takingHome[takingHome.length - 1]).toBe(true);
+  });
+
+  test("an older project's checklist, whose question was never answered, is not", async () => {
+    fetchMock.mockResolvedValue(answer({ goals: null }));
+    await renderGettingStarted();
+
+    expect(views[views.length - 1]).toBe(WelcomeCardView.Checklist);
+    expect(takingHome[takingHome.length - 1]).toBe(false);
+  });
+
+  test("nothing takes Home before the answer is read", async () => {
+    fetchMock.mockImplementation(() => {
+      return new Promise(() => {
+        // not answered
+      });
+    });
+    await renderGettingStarted();
+
+    expect(views).toEqual([null]);
+    expect(takingHome).toEqual([false]);
+  });
+
+  test.each([
+    ["the question", WelcomeCardView.Question, answer({ goals: null }), true],
+    [
+      "a new project's checklist",
+      WelcomeCardView.Checklist,
+      answer({ goals: [ProjectGoal.Uptime] }),
+      true,
+    ],
+    [
+      "a skipped question's checklist",
+      WelcomeCardView.Checklist,
+      answer({ goals: [] }),
+      true,
+    ],
+    [
+      "an older project's checklist",
+      WelcomeCardView.Checklist,
+      answer({ goals: null }),
+      false,
+    ],
+    ["the line left by Hide", WelcomeCardView.Hidden, answer(), false],
+    [
+      "an invited member's first steps",
+      WelcomeCardView.InvitedMember,
+      answer({ audience: WelcomeAudience.InvitedMember }),
+      false,
+    ],
+    ["nothing", WelcomeCardView.None, null, false],
+    ["not read yet", null, null, false],
+  ])(
+    "whether the quickstart takes Home: %s",
+    (
+      _name: string,
+      view: WelcomeCardView | null,
+      value: WelcomeChecklistAnswer | null,
+      expected: boolean,
+    ) => {
+      expect(isQuickstartTakingHome({ view: view, answer: value })).toBe(
+        expected,
+      );
+    },
+  );
 
   test("only the question and the checklist are the quickstart", () => {
     expect(isQuickstartView(WelcomeCardView.Question)).toBe(true);
