@@ -689,8 +689,8 @@ describe("the facts a reason carries", () => {
         german,
       )[1];
 
-      expect(one).toContain("von 1 Minute untersucht");
-      expect(many).toContain("von 30 Minuten untersucht");
+      expect(one).toContain("von 1\u00A0Minute untersucht");
+      expect(many).toContain("von 30\u00A0Minuten untersucht");
     });
 
     /*
@@ -698,11 +698,11 @@ describe("the facts a reason carries", () => {
      * (ARABIC.md): the short unit, the same for every count.
      */
     test.each([
-      [1, "(1 دقيقة)"],
-      [2, "(2 د)"],
-      [5, "(5 د)"],
-      [11, "(11 د)"],
-      [100, "(100 د)"],
+      [1, "(1\u00A0دقيقة)"],
+      [2, "(2\u00A0د)"],
+      [5, "(5\u00A0د)"],
+      [11, "(11\u00A0د)"],
+      [100, "(100\u00A0د)"],
     ])("Arabic says %i minutes as %s", (minutes: number, phrase: string) => {
       expect(
         read(
@@ -724,7 +724,7 @@ describe("the facts a reason carries", () => {
             { facts: { cooldownWindowMinutes: minutes } },
             dashboardTranslator("ru"),
           )[1],
-        ).toContain(`(${minutes} мин.)`);
+        ).toContain(`(${minutes}\u00A0мин.)`);
       },
     );
 

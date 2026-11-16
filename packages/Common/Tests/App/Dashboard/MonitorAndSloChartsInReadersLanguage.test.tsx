@@ -37,6 +37,7 @@ import { SLO_CURRENT_BURN_RATE_WINDOW_MINUTES } from "../../../Utils/Slo/SloEval
 import {
   dashboardTranslator,
   readDashboardLocale,
+  readDashboardLocaleAsDrawn,
 } from "../../Helpers/DashboardLocales";
 
 /*
@@ -436,7 +437,7 @@ describe("a monitor's Metrics tab", () => {
 
         expect({ metric: chart.metric, title: chart.title }).toEqual({
           metric: chart.metric,
-          title: readDashboardLocale(code)[english],
+          title: readDashboardLocaleAsDrawn(code)[english],
         });
         expect(chart.title).not.toBe(english);
 
@@ -451,7 +452,7 @@ describe("a monitor's Metrics tab", () => {
           description: chart.description,
         }).toEqual({
           metric: chart.metric,
-          description: readDashboardLocale(code)[englishDescription],
+          description: readDashboardLocaleAsDrawn(code)[englishDescription],
         });
         expect(chart.description).not.toBe(englishDescription);
       }

@@ -324,7 +324,7 @@ describe("a new feed's source", () => {
 
     expect(
       pollInterval.customValidation!({ ...LIST, pollIntervalInMinutes: 5 }),
-    ).toBe("A list is read every 15 minutes at most.");
+    ).toBe("A list is read every 15\u00A0minutes at most.");
     expect(
       pollInterval.customValidation!({ ...LIST, pollIntervalInMinutes: 15 }),
     ).toBeNull();

@@ -1965,7 +1965,7 @@ describe("the check step states discovery's own numbers", () => {
       "Check that your queues appear",
     );
     expect(check.description).toBe(
-      `OneUptime looks for new queues every ${MESSAGE_QUEUE_DISCOVERY_INTERVAL_MINUTES} minutes.`,
+      `OneUptime looks for new queues every ${MESSAGE_QUEUE_DISCOVERY_INTERVAL_MINUTES}\u00A0minutes.`,
     );
     const markdown: string = check.markdown || "";
     expect(markdown).toContain(
@@ -2718,7 +2718,10 @@ describe("troubleshooting follows the docs page", () => {
         "Broker health stays empty",
       );
       const body: string = normalizeEntryText(topic.markdown);
+      // The summary holds a duration's figure to its word (#8770); the body writes a space.
       const causes: Array<string> = (topic.summary || "")
+        .split("\u00A0")
+        .join(" ")
         .toLowerCase()
         .replace(/\.$/, "")
         .split(/, (?:or )?/);

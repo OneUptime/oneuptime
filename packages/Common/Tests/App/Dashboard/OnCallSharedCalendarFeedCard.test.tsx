@@ -686,7 +686,9 @@ describe("SharedCalendarFeedCard - a published link", () => {
     expect(
       screen.getByTestId("schedule-shared-calendar-feed-status-line")
         .textContent,
-    ).toBe("~977 fetches · link ending in …t34m · Last rotated 30 days ago");
+    ).toBe(
+      "~977 fetches · link ending in …t34m · Last rotated 30\u00A0days ago",
+    );
     expect(
       screen.getByTestId("schedule-shared-calendar-feed-status-pill"),
     ).toHaveTextContent("Active");

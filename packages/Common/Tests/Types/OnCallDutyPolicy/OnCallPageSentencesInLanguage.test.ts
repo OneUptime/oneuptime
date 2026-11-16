@@ -63,31 +63,45 @@ const withoutIsolates: (text: string) => string = (text: string): string => {
 
 describe("a timeout in words, in the person's language", () => {
   test("German, with its own singular and plural", () => {
-    expect(describeOnCallAcknowledgementTimeout(1, GERMAN)).toBe("1 Minute");
-    expect(describeOnCallAcknowledgementTimeout(30, GERMAN)).toBe("30 Minuten");
-    expect(describeOnCallAcknowledgementTimeout(60, GERMAN)).toBe("1 Stunde");
-    expect(describeOnCallAcknowledgementTimeout(120, GERMAN)).toBe("2 Stunden");
+    expect(describeOnCallAcknowledgementTimeout(1, GERMAN)).toBe(
+      "1\u00A0Minute",
+    );
+    expect(describeOnCallAcknowledgementTimeout(30, GERMAN)).toBe(
+      "30\u00A0Minuten",
+    );
+    expect(describeOnCallAcknowledgementTimeout(60, GERMAN)).toBe(
+      "1\u00A0Stunde",
+    );
+    expect(describeOnCallAcknowledgementTimeout(120, GERMAN)).toBe(
+      "2\u00A0Stunden",
+    );
     expect(describeOnCallAcknowledgementTimeout(90, GERMAN)).toBe(
-      "1 Stunde 30 Minuten",
+      "1\u00A0Stunde 30\u00A0Minuten",
     );
   });
 
   test("Spanish joins hours and minutes with its own word", () => {
     expect(describeOnCallAcknowledgementTimeout(61, SPANISH)).toBe(
-      "1 hora y 1 minuto",
+      "1\u00A0hora y 1\u00A0minuto",
     );
   });
 
   test("Russian writes a count in a form that reads for any number", () => {
-    expect(describeOnCallAcknowledgementTimeout(21, RUSSIAN)).toBe("21 мин");
-    expect(describeOnCallAcknowledgementTimeout(22, RUSSIAN)).toBe("22 мин");
-    expect(describeOnCallAcknowledgementTimeout(1440, RUSSIAN)).toBe("24 ч");
+    expect(describeOnCallAcknowledgementTimeout(21, RUSSIAN)).toBe(
+      "21\u00A0мин",
+    );
+    expect(describeOnCallAcknowledgementTimeout(22, RUSSIAN)).toBe(
+      "22\u00A0мин",
+    );
+    expect(describeOnCallAcknowledgementTimeout(1440, RUSSIAN)).toBe(
+      "24\u00A0ч",
+    );
   });
 
   test("Persian writes its own digits", () => {
     expect(
       withoutIsolates(describeOnCallAcknowledgementTimeout(90, PERSIAN)),
-    ).toBe("۱ ساعت و ۳۰ دقیقه");
+    ).toBe("۱\u00A0ساعت و ۳۰\u00A0دقیقه");
   });
 
   test("without a translator: English, as always", () => {
@@ -106,7 +120,7 @@ describe("a page again, in the person's language", () => {
         translator: GERMAN,
       }),
     ).toBe(
-      "Dieser Vorfall im Projekt Acme ist 30 Minuten nach der Bestätigung noch immer nicht behoben.",
+      "Dieser Vorfall im Projekt Acme ist 30\u00A0Minuten nach der Bestätigung noch immer nicht behoben.",
     );
     expect(
       getOnCallPageAgainEmailLine({
@@ -126,7 +140,7 @@ describe("a page again, in the person's language", () => {
         translator: SPANISH,
       }),
     ).toBe(
-      "Este episodio de alerta sigue sin resolverse 1 hora después de reconocerse.",
+      "Este episodio de alerta sigue sin resolverse 1\u00A0hora después de reconocerse.",
     );
   });
 
@@ -137,7 +151,7 @@ describe("a page again, in the person's language", () => {
     expect(
       getOnCallPageAgainWhyLine({ pageAgainNumber: 2, minutes: 5 }, GERMAN),
     ).toBe(
-      "Sie erhalten diese Nachricht, weil das Problem 5 Minuten nach der Bestätigung noch immer nicht behoben ist.",
+      "Sie erhalten diese Nachricht, weil das Problem 5\u00A0Minuten nach der Bestätigung noch immer nicht behoben ist.",
     );
   });
 

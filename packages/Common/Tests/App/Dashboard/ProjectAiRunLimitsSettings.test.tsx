@@ -479,7 +479,7 @@ describe("the Limits per run card", () => {
     );
     expect(detailValue(card, TOOL_CALLS_TITLE)).toBe("2,500");
     expect(detailValue(card, TOKENS_TITLE)).toBe("No limit");
-    expect(detailValue(card, TIME_TITLE)).toBe("45 minutes");
+    expect(detailValue(card, TIME_TITLE)).toBe("45\u00A0minutes");
   });
 
   test("a large token cap and a one-minute time limit read as words", async () => {
@@ -498,7 +498,7 @@ describe("the Limits per run card", () => {
       },
       { timeout: WAIT_TIMEOUT },
     );
-    expect(detailValue(card, TIME_TITLE)).toBe("1 minute");
+    expect(detailValue(card, TIME_TITLE)).toBe("1\u00A0minute");
     expect(detailValue(card, MODEL_CALLS_TITLE)).toBe("No limit");
   });
 
@@ -1016,7 +1016,7 @@ describe("the card's copy", () => {
         value: 45,
         translator: persian,
       }),
-    ).toBe(`${(45).toLocaleString("fa")} دقیقه`);
+    ).toBe(`${(45).toLocaleString("fa")}\u00A0دقیقه`);
     expect(
       getProjectAiRunLimitValueText({
         column: "aiRunMaxTokens",
@@ -1030,7 +1030,7 @@ describe("the card's copy", () => {
         value: 90,
         translator: german,
       }),
-    ).toBe("90 Minuten");
+    ).toBe("90\u00A0Minuten");
   });
 
   test("a limit not set, or not one the server would keep, is empty: the card shows the placeholder", () => {

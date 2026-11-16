@@ -349,13 +349,13 @@ describe("the folded More settings", () => {
     await loadSessionLength(8);
 
     expect(setChips(advancedSection())).toEqual([
-      `${StatusPageSessionLengthCopy.cardTitle}: 8 hours`,
+      `${StatusPageSessionLengthCopy.cardTitle}: 8\u00A0hours`,
     ]);
 
     await loadSessionLength(24 * 30);
 
     expect(setChips(advancedSection())).toEqual([
-      `${StatusPageSessionLengthCopy.cardTitle}: 30 days`,
+      `${StatusPageSessionLengthCopy.cardTitle}: 30\u00A0days`,
     ]);
 
     // Taken away: named again, not set.

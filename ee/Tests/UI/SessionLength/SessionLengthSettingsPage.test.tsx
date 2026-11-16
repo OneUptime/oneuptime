@@ -156,6 +156,7 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import API from "Common/UI/Utils/API/API";
 import { getPageAnchorNameForTitle } from "Common/UI/Utils/PageAnchor";
+import { withPlainSpaces } from "Common/Types/NoBreakSpaces";
 
 type Row = Partial<
   Record<
@@ -299,7 +300,12 @@ function enabledOptions(column: string): Array<string> {
 async function pick(column: string, label: string): Promise<void> {
   fireEvent.keyDown(box(column), { key: "ArrowDown", code: "ArrowDown" });
 
-  const option: HTMLElement = screen.getByRole("option", { name: label });
+  // An option's name holds a duration's figure to its word (#8770).
+  const option: HTMLElement = screen.getByRole("option", {
+    name: (name: string): boolean => {
+      return withPlainSpaces(name) === label;
+    },
+  });
 
   fireEvent.mouseDown(option);
   fireEvent.click(option);
@@ -389,7 +395,7 @@ describe("what the page reads and shows", () => {
     expect(description(LENGTH)).toBe(
       SessionLengthCopy.lengthNoLimitDescription,
     );
-    expect(shown(IDLE)).toBe("30 days");
+    expect(shown(IDLE)).toBe("30\u00A0days");
     expect(description(IDLE)).toBe(SessionLengthCopy.idleDefaultDescription);
   });
 
@@ -451,9 +457,9 @@ describe("what the page reads and shows", () => {
 
     await openPage();
 
-    expect(shown(LENGTH)).toBe("8 hours");
+    expect(shown(LENGTH)).toBe("8\u00A0hours");
     expect(description(LENGTH)).toBe(SessionLengthCopy.lengthSetDescription);
-    expect(shown(IDLE)).toBe("30 minutes");
+    expect(shown(IDLE)).toBe("30\u00A0minutes");
     expect(description(IDLE)).toBe(SessionLengthCopy.idleSetDescription);
   });
 
@@ -466,7 +472,7 @@ describe("what the page reads and shows", () => {
 
     await openPage();
 
-    expect(shown(IDLE)).toBe("15 minutes");
+    expect(shown(IDLE)).toBe("15\u00A0minutes");
     expect(description(IDLE)).toBe(SessionLengthCopy.idleShortestDescription);
     expect(description(IDLE)).toContain(
       "The mobile app needs a version newer than 1.6.0",
@@ -495,29 +501,29 @@ describe("what the page reads and shows", () => {
     expect(offered(LENGTH)).toEqual([
       "No limit",
       "1 hour",
-      "4 hours",
-      "8 hours",
-      "12 hours",
+      "4\u00A0hours",
+      "8\u00A0hours",
+      "12\u00A0hours",
       "1 day",
-      "3 days",
-      "7 days",
-      "14 days",
-      "30 days",
-      "90 days",
+      "3\u00A0days",
+      "7\u00A0days",
+      "14\u00A0days",
+      "30\u00A0days",
+      "90\u00A0days",
     ]);
     expect(offered(IDLE)).toEqual([
-      "15 minutes",
-      "30 minutes",
+      "15\u00A0minutes",
+      "30\u00A0minutes",
       "1 hour",
-      "2 hours",
-      "4 hours",
-      "8 hours",
-      "12 hours",
+      "2\u00A0hours",
+      "4\u00A0hours",
+      "8\u00A0hours",
+      "12\u00A0hours",
       "1 day",
-      "3 days",
-      "7 days",
-      "14 days",
-      "30 days",
+      "3\u00A0days",
+      "7\u00A0days",
+      "14\u00A0days",
+      "30\u00A0days",
     ]);
   });
 
@@ -526,10 +532,10 @@ describe("what the page reads and shows", () => {
 
     await openPage();
 
-    expect(shown(LENGTH)).toBe("45 minutes");
+    expect(shown(LENGTH)).toBe("45\u00A0minutes");
     expect(offered(LENGTH).slice(0, 3)).toEqual([
       "No limit",
-      "45 minutes",
+      "45\u00A0minutes",
       "1 hour",
     ]);
   });
@@ -617,7 +623,7 @@ describe("a pick that signs people out right away", () => {
       "Saving this signs out 3 people right away: their sign-ins are already older, or have been idle longer, than it allows.",
     );
     // The row shows the pick while it is asked.
-    expect(shown(IDLE)).toBe("15 minutes");
+    expect(shown(IDLE)).toBe("15\u00A0minutes");
 
     fireEvent.click(
       screen.getByRole("button", { name: SessionLengthCopy.confirmButton }),
@@ -707,7 +713,7 @@ describe("a pick that signs people out right away", () => {
 
     expect(writes()).toEqual([]);
     expect(confirmation()).toBeNull();
-    expect(shown(LENGTH)).toBe("8 hours");
+    expect(shown(LENGTH)).toBe("8\u00A0hours");
   });
 
   test("when the server cannot say who, it is asked in general words, and the button still says what going ahead does", async () => {
@@ -743,7 +749,7 @@ describe("a pick that signs people out right away", () => {
         screen.getByTestId(`${getSessionLengthRowTestId(LENGTH)}-error`),
       ).toBeInTheDocument();
     });
-    expect(shown(LENGTH)).toBe("8 hours");
+    expect(shown(LENGTH)).toBe("8\u00A0hours");
   });
 });
 
@@ -825,7 +831,7 @@ describe("SSO sign-ins, under More settings", () => {
     await openPage();
 
     expect(shown(SSO_LENGTH)).toBe("1 hour");
-    expect(shown(SSO_IDLE)).toBe("30 days");
+    expect(shown(SSO_IDLE)).toBe("30\u00A0days");
   });
 
   test("turning the switch on starts SSO sign-ins at the lengths above, in one write, without asking anyone", async () => {
@@ -850,7 +856,7 @@ describe("SSO sign-ins, under More settings", () => {
     expect(confirmation()).toBeNull();
     // Its two rows show what SSO sign-ins now follow: the same lengths.
     await waitFor(() => {
-      expect(shown(SSO_LENGTH)).toBe("8 hours");
+      expect(shown(SSO_LENGTH)).toBe("8\u00A0hours");
     });
     expect(shown(SSO_IDLE)).toBe("1 hour");
   });
@@ -874,7 +880,7 @@ describe("SSO sign-ins, under More settings", () => {
     await waitFor(() => {
       expect(shown(SSO_LENGTH)).toBe("No limit");
     });
-    expect(shown(SSO_IDLE)).toBe("30 days");
+    expect(shown(SSO_IDLE)).toBe("30\u00A0days");
   });
 
   test("SSO lengths left from an earlier time it was on never come back: turning it on asks nothing and starts again from the lengths above", async () => {
@@ -899,7 +905,7 @@ describe("SSO sign-ins, under More settings", () => {
       ]);
     });
     await waitFor(() => {
-      expect(shown(SSO_LENGTH)).toBe("8 hours");
+      expect(shown(SSO_LENGTH)).toBe("8\u00A0hours");
     });
   });
 
@@ -1185,8 +1191,8 @@ describe("the license", () => {
           `${NOTICE_TEST_ID_PREFIX}-${mode}-notice-${LicensedFeature.SessionLength}`,
         ),
       ).toBeInTheDocument();
-      expect(enabledOptions(LENGTH)).toEqual(["No limit", "8 hours"]);
-      expect(enabledOptions(IDLE)).toEqual(["30 days"]);
+      expect(enabledOptions(LENGTH)).toEqual(["No limit", "8\u00A0hours"]);
+      expect(enabledOptions(IDLE)).toEqual(["30\u00A0days"]);
     },
   );
 

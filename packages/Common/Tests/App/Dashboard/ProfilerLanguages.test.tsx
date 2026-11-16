@@ -323,7 +323,7 @@ describe("windows and deploy times", () => {
         isCustom: false,
         translator: translatorFor("de"),
       }),
-    ).toBe("die letzten 7 Tage");
+    ).toBe("die letzten 7\u00A0Tage");
     expect(
       formatWindow({ ...thirtyMinutes, translator: translatorFor("de") }),
     ).toBe("die letzten 30\u00A0Minuten");

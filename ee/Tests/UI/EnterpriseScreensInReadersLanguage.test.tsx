@@ -69,6 +69,7 @@ import {
 } from "Common/Types/EnterpriseLicense/EnterpriseLicensePeriods";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import { Translator } from "Common/Types/Translator";
+import { withPlainSpaces } from "Common/Types/NoBreakSpaces";
 
 const LANGUAGES: ReadonlyArray<string> = ["en", "de", "ar", "fa"];
 
@@ -246,12 +247,17 @@ describe("the retention override form and its summary", () => {
 
       const translator: Translator = dashboardTranslator(language);
 
-      // An override chip's days, in the form the count takes.
+      /*
+       * An override chip's days, in the form the count takes.
+       * A text matcher folds the chip's held space (#8770): find it by its words.
+       */
       expect(
         screen.getByText(
-          translator.translatePlural(
-            { one: "{{count}} day", other: "{{count}} days" },
-            90,
+          withPlainSpaces(
+            translator.translatePlural(
+              { one: "{{count}} day", other: "{{count}} days" },
+              90,
+            ),
           ),
         ),
       ).toBeInTheDocument();

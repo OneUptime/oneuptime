@@ -1101,9 +1101,13 @@ const fillSentenceValues: (
   return joinPieces(fillPieces(template, values, language), language);
 };
 
-// A value as the English sentence shows it.
-const englishValue: (value: TemplateValue) => string = (
+/*
+ * A value as the English sentence shows it: a composed one composed in
+ * English, on a page as a page's English is (drawsOnPage, #8770).
+ */
+const englishValue: (value: TemplateValue, onPage?: boolean) => string = (
   value: TemplateValue,
+  onPage: boolean = false,
 ): string => {
   if (isTranslatableTerm(value)) {
     // A key that names its meaning goes in as its word (MeaningKeys).
@@ -1115,7 +1119,9 @@ const englishValue: (value: TemplateValue) => string = (
   }
 
   if (isComposedValue(value)) {
-    return value.compose(getEnglishTranslator());
+    return value.compose(
+      onPage ? getEnglishPageTranslator() : getEnglishTranslator(),
+    );
   }
 
   return String(value);
@@ -1146,8 +1152,10 @@ const englishDateValues: (values: TemplateValues) => TemplateValues = (
  */
 const englishTextValues: (
   values: TemplateValues,
+  onPage?: boolean,
 ) => Record<string, SentenceValue> = (
   values: TemplateValues,
+  onPage: boolean = false,
 ): Record<string, SentenceValue> => {
   const dated: TemplateValues = englishDateValues(values);
   const result: Record<string, SentenceValue> = {};
@@ -1155,7 +1163,11 @@ const englishTextValues: (
   for (const key of Object.keys(dated)) {
     const value: TemplateValue = dated[key] as TemplateValue;
 
-    result[key] = toSentenceValue(value, englishValue(value), DEFAULT_LANGUAGE);
+    result[key] = toSentenceValue(
+      value,
+      englishValue(value, onPage),
+      DEFAULT_LANGUAGE,
+    );
   }
 
   return result;
@@ -1248,7 +1260,12 @@ const fillSettingValuesApart: (
 export const fillTemplate: (
   template: string,
   values?: TemplateValues,
-) => string = (template: string, values: TemplateValues = {}): string => {
+  onPage?: boolean,
+) => string = (
+  template: string,
+  values: TemplateValues = {},
+  onPage: boolean = false,
+): string => {
   return template.replace(
     PLACEHOLDER,
     (match: string, key: string, at: number): string => {
@@ -1257,7 +1274,7 @@ export const fillTemplate: (
       }
 
       const value: TemplateValue = values[key] as TemplateValue;
-      const text: string = englishValue(value);
+      const text: string = englishValue(value, onPage);
 
       return startsASentence(template, at)
         ? toSentenceValue(value, text, DEFAULT_LANGUAGE).atSentenceStart
@@ -1372,14 +1389,29 @@ const punctuateInLanguage: (words: string, language: string) => string = (
   return words.split(INLINE_SEPARATOR).join(DOT_ZERO_INLINE_SEPARATOR);
 };
 
+/*
+ * How a translator is used. drawsOnPage: what it words is a page's line,
+ * so English's own sentence holds a duration's figure to its word too
+ * ("Every 5\u00A0minutes", #8770), as a wording in any other language
+ * always does. Without it - English OneUptime writes into a record, a root
+ * cause, a status message the Dashboard reads back by its English - English
+ * holds a unit's symbol only, and what is stored still matches.
+ */
+export interface TranslatorOptions {
+  drawsOnPage?: boolean | undefined;
+}
+
 export const createTranslator: (
   lookup: TextLookup | undefined,
   language?: string | undefined,
+  options?: TranslatorOptions,
 ) => Translator = (
   lookup: TextLookup | undefined,
   language?: string | undefined,
+  options?: TranslatorOptions,
 ): Translator => {
   const activeLanguage: string = language || DEFAULT_LANGUAGE;
+  const holdsEnglishDurations: boolean = Boolean(options?.drawsOnPage);
 
   // OneUptime's words, punctuated as the reader's language punctuates a line.
   const punctuate: (words: string) => string = (words: string): string => {
@@ -1402,12 +1434,15 @@ export const createTranslator: (
   /*
    * An English sentence as it sets a line: punctuated, and each number it
    * writes beside a unit kept with it - "Every 5\u00A0min", "411\u00A0ms"
-   * (#8302). Only a template, OneUptime's own English, is set: an English
-   * text with no wording anywhere (translateText) may be a value, and goes
-   * out as written.
+   * (#8302), and beside a duration's word on a page ("Every 5\u00A0minutes",
+   * drawsOnPage, #8770). Only a template, OneUptime's own English, is set:
+   * an English text with no wording anywhere (translateText) may be a
+   * value, and goes out as written.
    */
   const setEnglish: (english: string) => string = (english: string): string => {
-    return withNumbersKeptWithUnits(punctuate(english), english);
+    return withNumbersKeptWithUnits(punctuate(english), english, {
+      durationWords: holdsEnglishDurations,
+    });
   };
 
   // The stored wording for `key`, or undefined when nothing has one.
@@ -1566,12 +1601,16 @@ export const createTranslator: (
         return setsValuesApart
           ? fillSettingValuesApart(
               setEnglish(english),
-              englishTextValues(values),
+              englishTextValues(values, holdsEnglishDurations),
               LEFT_TO_RIGHT,
               setsSlotsApart,
               DEFAULT_LANGUAGE,
             )
-          : fillTemplate(setEnglish(english), englishDateValues(values));
+          : fillTemplate(
+              setEnglish(english),
+              englishDateValues(values),
+              holdsEnglishDurations,
+            );
       }
 
       // No words of its own: the reader's words, as their sentence holds them.
@@ -1805,6 +1844,19 @@ const getEnglishTranslator: () => Translator = (): Translator => {
   }
 
   return englishTranslator;
+};
+
+// The same, for an English sentence a page draws (drawsOnPage, #8770).
+let englishPageTranslator: Translator | null = null;
+
+const getEnglishPageTranslator: () => Translator = (): Translator => {
+  if (!englishPageTranslator) {
+    englishPageTranslator = createTranslator(undefined, DEFAULT_LANGUAGE, {
+      drawsOnPage: true,
+    });
+  }
+
+  return englishPageTranslator;
 };
 
 // How a language separates a list's items, where it is not a comma.

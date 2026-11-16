@@ -818,7 +818,7 @@ describe("the page's words", () => {
 
   test("the subtitle promises what is worth knowing, not a record of AI's work", () => {
     expect(getAiInsightsPageSubtitle("cluster")).toBe(
-      "What OneUptime AI found out about this cluster in the last 30 days: what keeps going wrong and why, and what to do about it.",
+      "What OneUptime AI found out about this cluster in the last 30\u00A0days: what keeps going wrong and why, and what to do about it.",
     );
     expect(getAiInsightsEmptyDescription("Ceph cluster")).toBe(
       "When an alert or incident fires on this Ceph cluster, OneUptime AI investigates it. This page then tells you what keeps coming back and why, what is behind most of the trouble, what AI fixed on its own, and the risks it spots before anything pages.",
@@ -1305,7 +1305,7 @@ describe("the facts under each insight: the numbers behind it, as whole sentence
   describe("a problem that keeps coming back", () => {
     test("how often, how much of it this week against last, and how much of everything it is", () => {
       expect(facts(insightOfKind(AiActivityInsightKind.RecurringProblem))).toBe(
-        "It happened 12 times in the last 30 days. 5 of them were in the last 7 days, up from 2 the 7 days before. That is 12 of the 20 incidents and alerts on this cluster in the last 30 days.",
+        "It happened 12 times in the last 30\u00A0days. 5 of them were in the last 7\u00A0days, up from 2 the 7\u00A0days before. That is 12 of the 20 incidents and alerts on this cluster in the last 30\u00A0days.",
       );
     });
 
@@ -1320,7 +1320,7 @@ describe("the facts under each insight: the numbers behind it, as whole sentence
           }),
         ),
       ).toBe(
-        "It happened 4 times in the last 30 days. It started 3\u00A0days ago.",
+        "It happened 4 times in the last 30\u00A0days. It started 3\u00A0days ago.",
       );
     });
 
@@ -1334,7 +1334,7 @@ describe("the facts under each insight: the numbers behind it, as whole sentence
           }),
         ),
       ).toBe(
-        "It happened 9 times in the last 30 days. 1 of them was in the last 7 days, down from 6 the 7 days before.",
+        "It happened 9 times in the last 30\u00A0days. 1 of them was in the last 7\u00A0days, down from 6 the 7\u00A0days before.",
       );
     });
 
@@ -1348,7 +1348,7 @@ describe("the facts under each insight: the numbers behind it, as whole sentence
           }),
         ),
       ).toBe(
-        "It happened 8 times in the last 30 days. 3 of them were in the last 7 days.",
+        "It happened 8 times in the last 30\u00A0days. 3 of them were in the last 7\u00A0days.",
       );
       expect(
         facts(
@@ -1358,7 +1358,7 @@ describe("the facts under each insight: the numbers behind it, as whole sentence
             previousCount: 3,
           }),
         ),
-      ).toBe("It happened 8 times in the last 30 days.");
+      ).toBe("It happened 8 times in the last 30\u00A0days.");
     });
 
     test("its share of everything is said only when it is half or more", () => {
@@ -1386,10 +1386,10 @@ describe("the facts under each insight: the numbers behind it, as whole sentence
       );
 
       expect(facts(item, INCIDENTS)).toContain(
-        "That is 9 of the 12 incidents created in the last 30 days.",
+        "That is 9 of the 12 incidents created in the last 30\u00A0days.",
       );
       expect(facts(item, ALERTS)).toContain(
-        "That is 9 of the 12 alerts created in the last 30 days.",
+        "That is 9 of the 12 alerts created in the last 30\u00A0days.",
       );
     });
 
@@ -1399,13 +1399,13 @@ describe("the facts under each insight: the numbers behind it, as whole sentence
           ...CLUSTER,
           windowInDays: 14,
         }),
-      ).toBe("It happened 3 times in the last 14 days.");
+      ).toBe("It happened 3 times in the last 14\u00A0days.");
     });
   });
 
   test("a hotspot: how much of everything it was part of, and where to look first", () => {
     expect(facts(insightOfKind(AiActivityInsightKind.Hotspot))).toBe(
-      "It was part of 14 of the 20 incidents and alerts on this cluster in the last 30 days. Problems that share one place often share one cause: look there first.",
+      "It was part of 14 of the 20 incidents and alerts on this cluster in the last 30\u00A0days. Problems that share one place often share one cause: look there first.",
     );
     expect(
       facts(
@@ -1413,7 +1413,7 @@ describe("the facts under each insight: the numbers behind it, as whole sentence
         INCIDENTS,
       ),
     ).toBe(
-      "It was part of 17 of the 40 incidents created in the last 30 days. Problems that share one place often share one cause: look there first.",
+      "It was part of 17 of the 40 incidents created in the last 30\u00A0days. Problems that share one place often share one cause: look there first.",
     );
     expect(
       facts(
@@ -1421,7 +1421,7 @@ describe("the facts under each insight: the numbers behind it, as whole sentence
         ALERTS,
       ),
     ).toBe(
-      "It was part of 1 of the 1 alert created in the last 30 days. Problems that share one place often share one cause: look there first.",
+      "It was part of 1 of the 1 alert created in the last 30\u00A0days. Problems that share one place often share one cause: look there first.",
     );
     expect(facts(insight(AiActivityInsightKind.Hotspot))).toBe(
       "Problems that share one place often share one cause: look there first.",
@@ -1472,7 +1472,7 @@ describe("the facts under each insight: the numbers behind it, as whole sentence
 
   test("fixes that did not help: what the check found, out of how many", () => {
     expect(facts(insightOfKind(AiActivityInsightKind.FixesDidNotHelp))).toBe(
-      "OneUptime AI checked after it was applied: the problem was still there. That is 1 of the 4 fixes applied in the last 30 days.",
+      "OneUptime AI checked after it was applied: the problem was still there. That is 1 of the 4 fixes applied in the last 30\u00A0days.",
     );
     expect(
       facts(
@@ -1505,14 +1505,14 @@ describe("the facts under each insight: the numbers behind it, as whole sentence
         }),
       ),
     ).toBe(
-      "That is 4 fixes in the last 30 days, and none dismissed. 3 of them were checked afterwards and solved the problem. Let OneUptime AI apply fixes like these on its own, and they run the moment the problem starts.",
+      "That is 4 fixes in the last 30\u00A0days, and none dismissed. 3 of them were checked afterwards and solved the problem. Let OneUptime AI apply fixes like these on its own, and they run the moment the problem starts.",
     );
     expect(
       facts(
         insight(AiActivityInsightKind.ReadyForAutomaticFixes, { count: 3 }),
       ),
     ).toBe(
-      "That is 3 fixes in the last 30 days, and none dismissed. Let OneUptime AI apply fixes like these on its own, and they run the moment the problem starts.",
+      "That is 3 fixes in the last 30\u00A0days, and none dismissed. Let OneUptime AI apply fixes like these on its own, and they run the moment the problem starts.",
     );
   });
 
@@ -1527,7 +1527,7 @@ describe("the facts under each insight: the numbers behind it, as whole sentence
         INCIDENTS,
       ),
     ).toBe(
-      "There is no LLM provider OneUptime AI can use. That is 26 of the 40 incidents created in the last 30 days.",
+      "There is no LLM provider OneUptime AI can use. That is 26 of the 40 incidents created in the last 30\u00A0days.",
     );
     expect(
       facts(
@@ -1604,7 +1604,7 @@ describe("when a problem tends to happen, in the reader's own time", () => {
     readTimesIn("UTC", false);
 
     expect(describeTimeOfDay(NIGHTLY, GENERATED_AT)).toBe(
-      "It usually starts between 01:00 and 04:00 (UTC): on 9 of the 10 days it happened.",
+      "It usually starts between 01:00 and 04:00 (UTC): on 9 of the 10\u00A0days it happened.",
     );
   });
 
@@ -1614,18 +1614,20 @@ describe("when a problem tends to happen, in the reader's own time", () => {
     expect(
       describeTimeOfDay({ ...NIGHTLY, days: 10, totalDays: 10 }, GENERATED_AT),
     ).toBe(
-      "It starts between 01:00 and 04:00 (UTC) on every one of the 10 days it happened.",
+      "It starts between 01:00 and 04:00 (UTC) on every one of the 10\u00A0days it happened.",
     );
     expect(
       describeTimeOfDay({ ...NIGHTLY, days: 1, totalDays: 1 }, GENERATED_AT),
-    ).toBe("It starts between 01:00 and 04:00 (UTC) on the 1 day it happened.");
+    ).toBe(
+      "It starts between 01:00 and 04:00 (UTC) on the 1\u00A0day it happened.",
+    );
   });
 
   test("in New York, on a 12-hour clock: the evening before, in its own zone", () => {
     readTimesIn("America/New_York", true);
 
     expect(describeTimeOfDay(NIGHTLY, GENERATED_AT)).toBe(
-      "It usually starts between 9:00 PM and 12:00 AM (EDT): on 9 of the 10 days it happened.",
+      "It usually starts between 9:00 PM and 12:00 AM (EDT): on 9 of the 10\u00A0days it happened.",
     );
   });
 
@@ -1635,7 +1637,7 @@ describe("when a problem tends to happen, in the reader's own time", () => {
     expect(
       describeTimeOfDay({ ...NIGHTLY, startHourUtc: 23 }, GENERATED_AT),
     ).toBe(
-      "It usually starts between 23:00 and 02:00 (UTC): on 9 of the 10 days it happened.",
+      "It usually starts between 23:00 and 02:00 (UTC): on 9 of the 10\u00A0days it happened.",
     );
   });
 
@@ -1644,7 +1646,7 @@ describe("when a problem tends to happen, in the reader's own time", () => {
 
     // January: standard time.
     expect(describeTimeOfDay(NIGHTLY, "2026-01-15T12:00:00.000Z")).toBe(
-      "It usually starts between 20:00 and 23:00 (EST): on 9 of the 10 days it happened.",
+      "It usually starts between 20:00 and 23:00 (EST): on 9 of the 10\u00A0days it happened.",
     );
   });
 
@@ -1719,7 +1721,7 @@ describe("facts joined like a list", () => {
 describe("a problem's lines", () => {
   test("how often, how much of it this week, how often investigated, and when last", () => {
     expect(describeProblemCount(recurringProblem())).toBe(
-      "12 times · 5 in the last 7 days · investigated 5 times · last seen 10\u00A0hours ago",
+      "12 times · 5 in the last 7\u00A0days · investigated 5 times · last seen 10\u00A0hours ago",
     );
     expect(describeProblemCount(oneOffProblem())).toBe(
       "1 time · investigated 1 time · last seen 4\u00A0days ago",
@@ -1831,7 +1833,8 @@ describe("what went wrong with AI's own work: a footnote, never the headline", (
     expect(notes).toEqual([
       {
         kind: AiActivityHealthKind.InvestigationsFailed,
-        sentence: "1 investigation failed or timed out in the last 30 days.",
+        sentence:
+          "1 investigation failed or timed out in the last 30\u00A0days.",
       },
       {
         kind: AiActivityHealthKind.CommandsTimedOut,
@@ -1860,7 +1863,7 @@ describe("what went wrong with AI's own work: a footnote, never the headline", (
         return note.sentence;
       }),
     ).toEqual([
-      "4 investigations failed or timed out in the last 14 days.",
+      "4 investigations failed or timed out in the last 14\u00A0days.",
       "2 commands OneUptime AI sent were never picked up by the agent.",
       "3 findings were rejected by your team or did not match the root cause recorded later.",
     ]);
@@ -1889,7 +1892,7 @@ describe("the trend", () => {
   test("sums the last seven days and the seven before them", () => {
     expect(getTrendWeeks(makeTrend())).toEqual({ thisWeek: 5, lastWeek: 2 });
     expect(describeTrendWeeks(makeTrend())).toBe(
-      "5 investigations in the last 7 days (2 the 7 days before).",
+      "5 investigations in the last 7\u00A0days (2 the 7\u00A0days before).",
     );
   });
 
@@ -1910,7 +1913,9 @@ describe("the trend", () => {
           fixes: 0,
         },
       ]),
-    ).toBe("1 investigation in the last 7 days (0 the 7 days before).");
+    ).toBe(
+      "1 investigation in the last 7\u00A0days (0 the 7\u00A0days before).",
+    );
   });
 
   test("each day says what happened on it, without the fixes for a reader who may not see them", () => {

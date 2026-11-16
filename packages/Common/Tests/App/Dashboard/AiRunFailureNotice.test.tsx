@@ -1042,7 +1042,7 @@ describe("the words for each kind of failure", () => {
         },
         translator,
       ),
-    ).toBe("The LLM provider did not answer within 1 second.");
+    ).toBe("The LLM provider did not answer within 1\u00A0second.");
     expect(
       describeAiRunFailureCause(
         { failureKind: AIRunFailureKind.ProviderTimeout },
@@ -1175,7 +1175,7 @@ describe("describeAttemptEnd: how an attempt ended, as a line of the activity", 
         translator,
       ),
     ).toBe(
-      "Did not finish: The LLM provider did not answer within 90 seconds. Trying again.",
+      "Did not finish: The LLM provider did not answer within 90\u00A0seconds. Trying again.",
     );
   });
 

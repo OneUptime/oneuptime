@@ -43,6 +43,10 @@ import DiscoveredDevicesFakeServer, {
   FAKE_DISCOVERED_DEVICE_ROUTES,
   FakeDiscoveredDevice,
 } from "./DiscoveredDevicesFakeServer";
+import {
+  withNumbersKeptWithUnits,
+  withPlainSpaces,
+} from "../../../Types/NoBreakSpaces";
 
 /*
  * UNSEEN DEVICES, RENDERED (OneUptime issue #6389).
@@ -241,8 +245,11 @@ async function pick(optionText: string): Promise<void> {
     fireEvent.keyDown(removeAfter(), { key: "ArrowDown", keyCode: 40 });
   });
 
+  // An option's name holds a duration's figure to its word (#8770).
   const option: HTMLElement = await screen.findByRole("option", {
-    name: optionText,
+    name: (name: string): boolean => {
+      return withPlainSpaces(name) === optionText;
+    },
   });
 
   await act(async () => {
@@ -481,7 +488,7 @@ describe("the line in the reader's language", () => {
     expect(sentence).toBeTruthy();
     expect(sentence).not.toBe(DISCOVERED_DEVICE_RETENTION_LINE.other);
     expect(withoutIsolateMarks(retentionLine()!.textContent || "")).toBe(
-      `${sentence.replace("{{count}}", "30")} ${GERMAN["Change"]}`,
+      `${withNumbersKeptWithUnits(sentence, DISCOVERED_DEVICE_RETENTION_LINE.other, { durationWords: true }).replace("{{count}}", "30")} ${GERMAN["Change"]}`,
     );
   });
 
@@ -505,7 +512,11 @@ describe("the line in the reader's language", () => {
 
     expect(persianThirty).toBe("۳۰");
     expect(withoutIsolateMarks(retentionLine()!.textContent || "")).toContain(
-      sentence.replace("{{count}}", persianThirty),
+      withNumbersKeptWithUnits(
+        sentence,
+        DISCOVERED_DEVICE_RETENTION_LINE.other,
+        { durationWords: true },
+      ).replace("{{count}}", persianThirty),
     );
     expect(retentionLine()!.textContent).not.toContain("30");
   });
@@ -529,7 +540,7 @@ describe("the Unseen Devices card", () => {
         select: { discoveredDeviceRetentionInDays: true },
       }),
     );
-    expect(picked()).toBe("90 days");
+    expect(picked()).toBe("90\u00A0days");
     expect(settingDescription()).toBe(
       DiscoveredDeviceRetentionCopy.onDescription,
     );
@@ -561,13 +572,13 @@ describe("the Unseen Devices card", () => {
     );
 
     expect(options).toEqual([
-      "7 days",
-      "14 days",
-      "30 days",
-      "60 days",
-      "90 days",
-      "180 days",
-      "365 days",
+      "7\u00A0days",
+      "14\u00A0days",
+      "30\u00A0days",
+      "60\u00A0days",
+      "90\u00A0days",
+      "180\u00A0days",
+      "365\u00A0days",
       "Never",
     ]);
   });
@@ -623,7 +634,7 @@ describe("the Unseen Devices card", () => {
         ),
       ).toHaveTextContent("You may not change this project's settings.");
     });
-    expect(picked()).toBe("30 days");
+    expect(picked()).toBe("30\u00A0days");
     expect(told).toEqual([30]);
   });
 
@@ -645,7 +656,7 @@ describe("the Unseen Devices card", () => {
     expect(
       document.getElementById(locked.getAttribute("aria-labelledby") || ""),
     ).toHaveTextContent(DiscoveredDeviceRetentionCopy.label);
-    expect(picked()).toBe("30 days");
+    expect(picked()).toBe("30\u00A0days");
     expect(updateSpy).not.toHaveBeenCalled();
 
     /*
@@ -664,7 +675,7 @@ describe("the Unseen Devices card", () => {
     await renderCard();
     await screen.findByTestId(DISCOVERED_DEVICE_RETENTION_SETTING_TEST_ID);
 
-    expect(picked()).toBe("30 days");
+    expect(picked()).toBe("30\u00A0days");
   });
 
   test("a failed read says why, and Try again reads again", async () => {

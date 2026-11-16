@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
+import { withNumbersKeptWithUnits } from "Common/Types/NoBreakSpaces";
 import {
   createTranslator,
   DEFAULT_LANGUAGE,
@@ -35,8 +36,15 @@ const marking: Translator = createTranslator((text: string): string => {
 
 const english: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
 
+/*
+ * A text as the marking translator words it, set as the Translator sets a
+ * wording: each figure its English writes before a unit held to it, a
+ * duration's word too (#8770).
+ */
 function marked(text: string): string {
-  return `${OPEN}${text}${CLOSE}`;
+  return withNumbersKeptWithUnits(`${OPEN}${text}${CLOSE}`, text, {
+    durationWords: true,
+  });
 }
 
 const FULL_DIAGNOSTICS: Record<string, unknown> = {

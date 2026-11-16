@@ -766,7 +766,7 @@ describe("the badge's numbers in Persian", () => {
     );
 
     expect(notice).toContain("دورهٔ آزمایشی ۱۴ روزه");
-    expect(notice).toContain("۱۰ روز مانده");
+    expect(notice).toContain("۱۰\u00A0روز مانده");
     expect(notice).not.toContain("14");
   });
 
@@ -797,7 +797,7 @@ describe("the badge's numbers in Persian", () => {
       ).querySelector("h4")?.textContent || "";
 
     expect(title).toBe(
-      `دورهٔ آزمایشی Enterprise Edition: ${FIRST_STRONG_ISOLATE}۱۰ روز مانده${POP_DIRECTIONAL_ISOLATE}`,
+      `دورهٔ آزمایشی Enterprise Edition: ${FIRST_STRONG_ISOLATE}۱۰\u00A0روز مانده${POP_DIRECTIONAL_ISOLATE}`,
     );
   });
 
@@ -1166,8 +1166,8 @@ describe("the days left, in the middle of a sentence", () => {
    * días" - not "Noch", "Quedan".
    */
   test.each([
-    ["de", "Enterprise Edition (Testphase, noch 10 Tage)"],
-    ["es", "Enterprise Edition (prueba, quedan 10 días)"],
+    ["de", "Enterprise Edition (Testphase, noch 10\u00A0Tage)"],
+    ["es", "Enterprise Edition (prueba, quedan 10\u00A0días)"],
   ])("%s: %s", async (language: string, name: string) => {
     isEnterpriseEdition = true;
     payload = publicPayload({

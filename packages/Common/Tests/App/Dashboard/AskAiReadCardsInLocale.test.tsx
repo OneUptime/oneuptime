@@ -477,7 +477,7 @@ describe("a status page's and an on-call policy's cards in German", () => {
       "Regel 2 — Database team",
     );
     expect(withoutIsolateMarks(drawn.facts[0]!.value.text)).toBe(
-      'Alarmiert Benutzer "Alice", Team "SRE", eskaliert dann nach 5 Minuten',
+      'Alarmiert Benutzer "Alice", Team "SRE", eskaliert dann nach 5\u00A0Minuten',
     );
   });
 });

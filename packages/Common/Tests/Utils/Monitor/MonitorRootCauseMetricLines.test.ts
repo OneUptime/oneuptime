@@ -260,7 +260,7 @@ describe("in German", () => {
     const de: Record<string, string> = readDashboardLocale("de");
 
     expect(lineLike(METRIC_ROOT_CAUSE, worded, "- Time Window:")).toBe(
-      `- ${de["Time Window"]}: letzte 5 Minuten`,
+      `- ${de["Time Window"]}: letzte 5\u00A0Minuten`,
     );
     expect(plain(lineLike(METRIC_ROOT_CAUSE, worded, "- Data Arrives:"))).toBe(
       `- ${de["Data Arrives"]}: etwa 12 Minuten zu spät`,

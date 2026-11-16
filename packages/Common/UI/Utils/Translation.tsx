@@ -103,8 +103,9 @@ const useTranslateValue: () => UseTranslateValueResult =
          */
         if (composedWordsOf(value)) {
           return (
-            createTranslator(lookUpOwnWording, language).translateText(value) ||
-            value
+            createTranslator(lookUpOwnWording, language, {
+              drawsOnPage: true,
+            }).translateText(value) || value
           );
         }
 
@@ -127,7 +128,10 @@ const useTranslateValue: () => UseTranslateValueResult =
       return value;
     };
 
-    const translator: Translator = createTranslator(translateString, language);
+    // A page's translator: its English holds a duration's figure too (#8770).
+    const translator: Translator = createTranslator(translateString, language, {
+      drawsOnPage: true,
+    });
 
     return {
       translateValue,

@@ -294,8 +294,12 @@ describe("the highlights' words", () => {
   });
 
   test("what is new, and the newest", () => {
-    expect(describeNewHighlight(3)).toBe("3 new findings in the last 7 days");
-    expect(describeNewHighlight(1)).toBe("1 new finding in the last 7 days");
+    expect(describeNewHighlight(3)).toBe(
+      "3 new findings in the last 7\u00A0days",
+    );
+    expect(describeNewHighlight(1)).toBe(
+      "1 new finding in the last 7\u00A0days",
+    );
     expect(
       describeNewestFinding({
         id: NEWEST_ID,

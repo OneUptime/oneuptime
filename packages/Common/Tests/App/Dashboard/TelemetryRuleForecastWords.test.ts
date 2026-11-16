@@ -205,8 +205,8 @@ describe("the forecast conditions of a Metrics rule", () => {
       ),
     ).toEqual({ value: 48, label: "2 days" });
     expect(formatForecastHorizon(36, ENGLISH)).toBe("36 hours");
-    expect(formatForecastHorizon(168, GERMAN)).toBe("7 Tage");
-    expect(formatForecastHorizon(1, GERMAN)).toBe("1 Stunde");
+    expect(formatForecastHorizon(168, GERMAN)).toBe("7\u00A0Tage");
+    expect(formatForecastHorizon(1, GERMAN)).toBe("1\u00A0Stunde");
   });
 
   test("have a Within field and a hint in every language's words", () => {

@@ -480,7 +480,10 @@ describe("an alert's own card", () => {
     await renderAlert(anAnswer({ isAlertOpen: true }));
 
     expect(chips(`table:${CALLBACKS}`)).toEqual(["1 open alert", "Fresh"]);
-    expect(chips(`table:${MART}`)).toEqual(["1 open alert", "Late by 2 hours"]);
+    expect(chips(`table:${MART}`)).toEqual([
+      "1 open alert",
+      "Late by 2\u00A0hours",
+    ]);
     // A dropped table says so, whatever it counted.
     expect(chips(`table:${OLD}`)).toEqual(["Dropped"]);
   });

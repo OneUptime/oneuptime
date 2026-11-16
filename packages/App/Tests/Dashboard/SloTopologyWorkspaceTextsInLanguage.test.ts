@@ -343,11 +343,13 @@ describe("the SLO overview's words in the reader's language", () => {
     };
 
     expect(getSloWindowTextInLanguage(rolling(30), DE)).toBe(
-      "Rollierend 30 Tage",
+      "Rollierend 30\u00A0Tage",
     );
-    expect(getSloWindowTextInLanguage(rolling(1), DE)).toBe("Rollierend 1 Tag");
+    expect(getSloWindowTextInLanguage(rolling(1), DE)).toBe(
+      "Rollierend 1\u00A0Tag",
+    );
     expect(getSloWindowPhraseInLanguage(rolling(7), DE)).toBe(
-      "die letzten 7 Tage",
+      "die letzten 7\u00A0Tage",
     );
     expect(
       getSloWindowTextInLanguage(
@@ -364,23 +366,23 @@ describe("the SLO overview's words in the reader's language", () => {
       "نافذة متحركة (الأيام: 2)",
     );
     expect(getSloWindowTextInLanguage(rolling(1), AR)).toBe(
-      "نافذة متحركة (1 يوم)",
+      "نافذة متحركة (1\u00A0يوم)",
     );
     expect(getSloWindowPhraseInLanguage(rolling(30), AR)).toBe(
-      "الأيام الـ30 الماضية",
+      "الأيام الـ30\u00A0الماضية",
     );
 
     // Russian: 21 days is its "one" form, 5 days its general one.
     expect(getSloWindowTextInLanguage(rolling(21), RU)).toBe(
-      "Скользящее окно: 21 день",
+      "Скользящее окно: 21\u00A0день",
     );
     expect(getSloWindowTextInLanguage(rolling(5), RU)).toBe(
-      "Скользящее окно: 5 дн.",
+      "Скользящее окно: 5\u00A0дн.",
     );
 
     // Japanese has one form for every count.
     expect(getSloWindowTextInLanguage(rolling(1), JA)).toBe(
-      "ローリング 1 日間",
+      "ローリング 1\u00A0日間",
     );
   });
 
@@ -431,7 +433,7 @@ describe("the SLO overview's words in the reader's language", () => {
     );
 
     expect(german).toMatch(
-      /^.+ Ausfallzeit erlaubt pro rollierenden 30 Tagen$/,
+      /^.+ Ausfallzeit erlaubt pro rollierenden 30\u00A0Tagen$/,
     );
     // The duration is German too: never the English "43m 12s".
     expect(german).not.toContain(formatDurationCompact(2592));
@@ -446,7 +448,7 @@ describe("the SLO overview's words in the reader's language", () => {
 
   test("the evaluation cadence and the metrics page's burn category", () => {
     expect(getSloEvaluationCadenceText(DE)).toBe(
-      `Läuft alle ${SLO_EVALUATION_CADENCE_MINUTES} Minuten`,
+      `Läuft alle ${SLO_EVALUATION_CADENCE_MINUTES}\u00A0Minuten`,
     );
     expect(getSloMetricCategories(DE)[1]!.description).toBe(
       DE.translatePlural(
@@ -476,7 +478,7 @@ describe("the SLO overview's words in the reader's language", () => {
         "Error budget left over {{window}}, with the at-risk and exhausted lines this SLO is judged against.",
         { window: sloWindowPhraseValue(window) },
       ),
-    ).toContain("die letzten 30 Tage");
+    ).toContain("die letzten 30\u00A0Tage");
 
     // Inside a sentence the language has not worded: English, whole.
     expect(

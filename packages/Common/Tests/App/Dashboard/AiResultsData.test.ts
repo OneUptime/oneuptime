@@ -645,7 +645,7 @@ describe("Pages Avoided", () => {
 
   test("its last four weeks against the four before", () => {
     expect(card().recentWeeks).toBe(
-      "Last 4 weeks: 10 of 15. The 4 weeks before: 6 of 14.",
+      "Last 4\u00A0weeks: 10 of 15. The 4\u00A0weeks before: 6 of 14.",
     );
   });
 
@@ -790,7 +790,7 @@ describe("Fixes Verified", () => {
 
   test("its last four weeks against the four before", () => {
     expect(card().recentWeeks).toBe(
-      "Last 4 weeks: 5 of 6. The 4 weeks before: 4 of 6.",
+      "Last 4\u00A0weeks: 5 of 6. The 4\u00A0weeks before: 4 of 6.",
     );
   });
 
@@ -967,7 +967,7 @@ describe("Root Causes Confirmed", () => {
 
   test("its last four weeks against the four before", () => {
     expect(card().recentWeeks).toBe(
-      "Last 4 weeks: 6 of 8. The 4 weeks before: 3 of 4.",
+      "Last 4\u00A0weeks: 6 of 8. The 4\u00A0weeks before: 3 of 4.",
     );
   });
 
@@ -1169,7 +1169,7 @@ describe("describeRecentWeeks: the last four weeks against the four before", () 
 
   test("nothing in either: none yet, and none", () => {
     expect(describeRecentWeeks(makeQuietWeeks(), pick)).toBe(
-      "Last 4 weeks: none yet. The 4 weeks before: none.",
+      "Last 4\u00A0weeks: none yet. The 4\u00A0weeks before: none.",
     );
   });
 
@@ -1182,7 +1182,7 @@ describe("describeRecentWeeks: the last four weeks against the four before", () 
         ),
         pick,
       ),
-    ).toBe("Last 4 weeks: none yet. The 4 weeks before: 1 of 3.");
+    ).toBe("Last 4\u00A0weeks: none yet. The 4\u00A0weeks before: 1 of 3.");
   });
 
   test("something only in the last four", () => {
@@ -1194,7 +1194,7 @@ describe("describeRecentWeeks: the last four weeks against the four before", () 
         ),
         pick,
       ),
-    ).toBe("Last 4 weeks: 3 of 4. The 4 weeks before: none.");
+    ).toBe("Last 4\u00A0weeks: 3 of 4. The 4\u00A0weeks before: none.");
   });
 
   test("the first four of the twelve weeks are in neither", () => {
@@ -1206,7 +1206,7 @@ describe("describeRecentWeeks: the last four weeks against the four before", () 
         ),
         pick,
       ),
-    ).toBe("Last 4 weeks: none yet. The 4 weeks before: none.");
+    ).toBe("Last 4\u00A0weeks: none yet. The 4\u00A0weeks before: none.");
   });
 
   test("with fewer than eight weeks, the weeks before are the ones there are", () => {
@@ -1215,9 +1215,9 @@ describe("describeRecentWeeks: the last four weeks against the four before", () 
         weeksOf([1, 1, 2, 0, 1, 0], [2, 1, 2, 1, 1, 3]),
         pick,
       ),
-    ).toBe("Last 4 weeks: 3 of 7. The 4 weeks before: 2 of 3.");
+    ).toBe("Last 4\u00A0weeks: 3 of 7. The 4\u00A0weeks before: 2 of 3.");
     expect(describeRecentWeeks(weeksOf([1, 0, 2], [1, 1, 2]), pick)).toBe(
-      "Last 4 weeks: 3 of 4. The 4 weeks before: none.",
+      "Last 4\u00A0weeks: 3 of 4. The 4\u00A0weeks before: none.",
     );
   });
 
@@ -1230,7 +1230,9 @@ describe("describeRecentWeeks: the last four weeks against the four before", () 
         ),
         pick,
       ),
-    ).toBe("Last 4 weeks: 1,234 of 5,678. The 4 weeks before: 0 of 2,000.");
+    ).toBe(
+      "Last 4\u00A0weeks: 1,234 of 5,678. The 4\u00A0weeks before: 0 of 2,000.",
+    );
   });
 });
 

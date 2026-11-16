@@ -187,7 +187,7 @@ describe("a one form a language words as English does is its own", () => {
 
   test("French counts 0 as one, and says 0 minute and 0 instance", () => {
     expect(getPluralCategory("fr", 0)).toBe("one");
-    expect(read("fr", MINUTES, 0)).toBe("0 minute");
+    expect(read("fr", MINUTES, 0)).toBe("0\u00A0minute");
     expect(read("fr", MINUTES, 1)).toBe("1 minute");
     expect(read("fr", MINUTES, 5)).toBe("5 minutes");
     expect(read("fr", INSTANCES, 0)).toBe("0 instance");
@@ -282,7 +282,7 @@ describe("the marks change what they should, and nothing else", () => {
     expect(changed.sort()).toEqual(
       [
         "fr 0: 0 instances -> 0 instance",
-        "fr 0: 0 minutes -> 0 minute",
+        "fr 0: 0 minutes -> 0\u00A0minute",
         "pt 0: 0 monitors -> 0 monitor",
       ].sort(),
     );
@@ -383,6 +383,6 @@ describe("drawn by the shared components", () => {
       return (value.textContent || "").trim();
     });
 
-    expect(values).toEqual(["0 minute", "5 minutes"]);
+    expect(values).toEqual(["0\u00A0minute", "5\u00A0minutes"]);
   });
 });

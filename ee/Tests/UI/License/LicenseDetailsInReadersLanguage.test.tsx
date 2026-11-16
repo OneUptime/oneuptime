@@ -452,7 +452,7 @@ describe("the license details in the reader's language", () => {
     const drawn: string = await drawIn("Dashboard", "de", unlimited());
 
     expect(drawn).toContain("/ unbegrenzt");
-    expect(drawn).toContain("innerhalb von 24 Stunden gesendet.");
+    expect(drawn).toContain("innerhalb von 24\u00A0Stunden gesendet.");
     expect(drawn).not.toContain("unlimited");
   });
 

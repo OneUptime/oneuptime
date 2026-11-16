@@ -95,6 +95,7 @@ import {
 } from "../../../Utils/Project/NotificationChannels";
 import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 import { CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME } from "../../../UI/Utils/LineDirection";
+import { withNumbersKeptWithUnits } from "../../../Types/NoBreakSpaces";
 
 const LOCALES_DIR: string = path.resolve(
   __dirname,
@@ -316,9 +317,14 @@ function textOf(element: HTMLElement): string {
   return withoutIsolateMarks(element.textContent || "");
 }
 
-// What a plural's sentence says before and after its count.
+/*
+ * What a plural's sentence says before and after its count.
+ * The words around the count, as the page sets them: the count held to its word (#8770).
+ */
 function aroundCount(language: string, key: string): [string, string] {
-  const [before, after] = worded(language, key).split("{{count}}");
+  const [before, after] = withNumbersKeptWithUnits(worded(language, key), key, {
+    durationWords: true,
+  }).split("{{count}}");
 
   return [before!, after!];
 }
