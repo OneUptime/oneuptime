@@ -18,6 +18,7 @@
  * Dashboard reads the same rules the server enforces.
  */
 
+import Dictionary from "../../Dictionary";
 import MonitorSecretAccess from "../MonitorSecretAccess";
 
 /*
@@ -108,6 +109,28 @@ export const INCOMING_REQUEST_SIGNATURE_FORMATS: ReadonlyArray<IncomingRequestSi
       hasTimestamp: true,
     },
   ];
+
+/*
+ * Whether a request's headers, as Node hands them over (names in lower
+ * case), carry one of the signatures above. Only the header's name is looked
+ * at: whether its value is a signature, and whose, is decided where it is
+ * checked. A relay - a probe's incoming request ingress - passes such a
+ * request's body on as the bytes that came, so its signature still holds.
+ */
+export const carriesIncomingRequestSignature: (
+  headers: Dictionary<string | Array<string> | undefined>,
+) => boolean = (
+  headers: Dictionary<string | Array<string> | undefined>,
+): boolean => {
+  return INCOMING_REQUEST_SIGNATURE_FORMATS.some(
+    (format: IncomingRequestSignatureFormat): boolean => {
+      const value: string | Array<string> | undefined =
+        headers[format.header.toLowerCase()];
+
+      return Array.isArray(value) ? value.length > 0 : Boolean(value);
+    },
+  );
+};
 
 /*
  * How far a signature's time may be from OneUptime's clock, either way: five
