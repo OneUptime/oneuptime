@@ -113,7 +113,10 @@ describe("isHash", () => {
 
   test.each([
     ["a key", KEY],
-    ["a digest upper-cased, which HashedString never writes", expectedDigest(KEY).toUpperCase()],
+    [
+      "a digest upper-cased, which HashedString never writes",
+      expectedDigest(KEY).toUpperCase(),
+    ],
     ["a digest cut short", expectedDigest(KEY).slice(0, 63)],
     ["nothing", ""],
     ["no value at all", null],

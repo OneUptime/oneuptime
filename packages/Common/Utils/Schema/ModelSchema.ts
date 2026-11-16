@@ -1622,9 +1622,7 @@ export class ModelSchema extends BaseSchema {
        * read it (getCreatedModelSchema).
        */
       const isShownOnceHere: boolean = Boolean(
-        column.shownOnce &&
-          data.includeShownOnce &&
-          data.schemaType === "read",
+        column.shownOnce && data.includeShownOnce && data.schemaType === "read",
       );
 
       // Filter out columns with no permissions (root-only access)

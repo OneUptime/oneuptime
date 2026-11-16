@@ -256,9 +256,10 @@ describe("HashMasterApiKey", () => {
     expectKeyWorks(rows[0]!, KEY);
     expectKeyWorks(rows[1]!, otherKey);
     expect(rows[0]!["masterApiKey"]).not.toBe(rows[1]!["masterApiKey"]);
-    expect([rows[0]!["masterApiKeyHint"], rows[1]!["masterApiKeyHint"]]).toEqual(
-      ["2b34", "3e12"],
-    );
+    expect([
+      rows[0]!["masterApiKeyHint"],
+      rows[1]!["masterApiKeyHint"],
+    ]).toEqual(["2b34", "3e12"]);
   });
 
   test.each([

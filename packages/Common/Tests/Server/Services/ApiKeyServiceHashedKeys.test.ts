@@ -36,7 +36,11 @@ import {
 import ApiKey from "../../../Models/DatabaseModels/ApiKey";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import FindBy from "../../../Server/Types/Database/FindBy";
-import { OnCreate, OnFind, OnUpdate } from "../../../Server/Types/Database/Hooks";
+import {
+  OnCreate,
+  OnFind,
+  OnUpdate,
+} from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import UpdateByID from "../../../Server/Types/Database/UpdateByID";
 import HashedApiKey from "../../../Server/Utils/APIKey/HashedApiKey";
@@ -278,9 +282,9 @@ describe("the create's one answer", () => {
 
     expect(json["apiKey"]).toEqual({ _type: "HashedString", value: made });
     expect(getKeyShownOnCreate(json["apiKey"])).toBe(made);
-    expect(getKeyShownOnCreate(ApiKey.fromJSON(json, ApiKey).getValue("apiKey"))).toBe(
-      made,
-    );
+    expect(
+      getKeyShownOnCreate(ApiKey.fromJSON(json, ApiKey).getValue("apiKey")),
+    ).toBe(made);
     expect(JSON.stringify(json)).not.toContain(HashedApiKey.hash(made));
   });
 
@@ -326,7 +330,9 @@ describe("a write of a key", () => {
       for (const props of [MEMBER_PROPS, MASTER_ADMIN_PROPS, ROOT_PROPS]) {
         await expect(
           hooks.onBeforeUpdate(updateBy(data, props)),
-        ).rejects.toThrow(new NotAuthorizedException(API_KEY_WRITTEN_HERE_MESSAGE));
+        ).rejects.toThrow(
+          new NotAuthorizedException(API_KEY_WRITTEN_HERE_MESSAGE),
+        );
       }
     },
   );
@@ -518,7 +524,10 @@ describe("resetApiKey", () => {
         "You do not have permission to update API Key.",
       ),
     ],
-    ["one that is not there is answered as missing", new NotFoundException("API Key not found.")],
+    [
+      "one that is not there is answered as missing",
+      new NotFoundException("API Key not found."),
+    ],
   ])(
     "a key that was not written answers no key: %s",
     async (_label: string, why: Error) => {
@@ -638,9 +647,9 @@ describe("findApiKey, through the upgrade", () => {
 
     now += KEYS_STORED_AS_WRITTEN_CHECK_TTL_MS;
 
-    expect(
-      (await service.findApiKey(new ObjectID(KEY)))?.id.toString(),
-    ).toBe(KEY_ROW_ID);
+    expect((await service.findApiKey(new ObjectID(KEY)))?.id.toString()).toBe(
+      KEY_ROW_ID,
+    );
   });
 
   test("a question the database does not answer counts as yes: no upgrade locks anyone out", async () => {
@@ -649,9 +658,9 @@ describe("findApiKey, through the upgrade", () => {
       return String(lookup.query["apiKey"]) === KEY ? keyRow() : null;
     });
 
-    expect(
-      (await service.findApiKey(new ObjectID(KEY)))?.id.toString(),
-    ).toBe(KEY_ROW_ID);
+    expect((await service.findApiKey(new ObjectID(KEY)))?.id.toString()).toBe(
+      KEY_ROW_ID,
+    );
     expect(logger.error).toHaveBeenCalled();
   });
 
@@ -698,9 +707,9 @@ describe("findApiKey, through the upgrade", () => {
       }),
     );
 
-    expect(
-      (await service.findApiKey(new ObjectID(KEY)))?.id.toString(),
-    ).toBe(KEY_ROW_ID);
+    expect((await service.findApiKey(new ObjectID(KEY)))?.id.toString()).toBe(
+      KEY_ROW_ID,
+    );
     expect(lookedUpBy()).toEqual([HashedApiKey.hash(KEY), KEY]);
   });
 
@@ -715,9 +724,9 @@ describe("findApiKey, through the upgrade", () => {
       return keyRow();
     });
 
-    expect(
-      (await service.findApiKey(new ObjectID(KEY)))?.id.toString(),
-    ).toBe(KEY_ROW_ID);
+    expect((await service.findApiKey(new ObjectID(KEY)))?.id.toString()).toBe(
+      KEY_ROW_ID,
+    );
   });
 
   test("any other failure of the lookup is an error, never a key not found", async () => {

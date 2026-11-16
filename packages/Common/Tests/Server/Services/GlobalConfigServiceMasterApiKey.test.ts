@@ -505,16 +505,16 @@ describe("getMasterApiKeyState", () => {
   ) => jest.SpiedFunction<(...args: Array<unknown>) => Promise<unknown>> = (
     users: Record<string, { name?: string; email?: string }>,
   ): jest.SpiedFunction<(...args: Array<unknown>) => Promise<unknown>> => {
-    return getJestSpyOn(UserService, "findOneById").mockImplementation((async (
-      findOneById: { id: ObjectID },
-    ): Promise<User | null> => {
-      const found: { name?: string; email?: string } | undefined =
-        users[findOneById.id.toString()];
+    return getJestSpyOn(UserService, "findOneById").mockImplementation(
+      (async (findOneById: { id: ObjectID }): Promise<User | null> => {
+        const found: { name?: string; email?: string } | undefined =
+          users[findOneById.id.toString()];
 
-      return found
-        ? (Object.assign(new User(), found) as unknown as User)
-        : null;
-    }) as never) as unknown as jest.SpiedFunction<
+        return found
+          ? (Object.assign(new User(), found) as unknown as User)
+          : null;
+      }) as never,
+    ) as unknown as jest.SpiedFunction<
       (...args: Array<unknown>) => Promise<unknown>
     >;
   };

@@ -63,9 +63,9 @@ describe("a project's API key in the OpenAPI specification", () => {
     const success: JSONObject = (responses["200"] ||
       responses["201"]) as JSONObject;
     const data: JSONObject = (
-      (
-        (success["content"] as JSONObject)["application/json"] as JSONObject
-      )["schema"] as JSONObject
+      ((success["content"] as JSONObject)["application/json"] as JSONObject)[
+        "schema"
+      ] as JSONObject
     )["properties"] as JSONObject;
 
     return String((data["data"] as JSONObject)["$ref"]).replace(

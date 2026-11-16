@@ -474,9 +474,7 @@ describe("Reset API Key", () => {
     const request: { url: unknown; headers: Record<string, string> } = postSpy
       .mock.calls[0]![0] as { url: unknown; headers: Record<string, string> };
 
-    expect(String(request.url)).toContain(
-      `/api-key/${KEY_ID}/reset-key`,
-    );
+    expect(String(request.url)).toContain(`/api-key/${KEY_ID}/reset-key`);
     // The project the server resolves the reset's permissions in.
     expect(request.headers).toEqual({ tenantid: PROJECT_ID });
 
@@ -491,15 +489,14 @@ describe("Reset API Key", () => {
     expect(ApiKeyShownOnceCopy.shownOnceDescription).toContain(
       "It is shown only this once",
     );
-    expect(within(shown).getByTestId(API_KEY_SHOWN_ONCE_TEST_ID)).toContainElement(
-      screen.getByTestId(API_KEY_SHOWN_ONCE_VALUE_TEST_ID),
-    );
+    expect(
+      within(shown).getByTestId(API_KEY_SHOWN_ONCE_TEST_ID),
+    ).toContainElement(screen.getByTestId(API_KEY_SHOWN_ONCE_VALUE_TEST_ID));
     // A copy button beside it, and the key read left to right.
     expect(within(shown).getByRole("button", { name: /Copy/ })).toBeVisible();
-    expect(screen.getByTestId(API_KEY_SHOWN_ONCE_VALUE_TEST_ID)).toHaveAttribute(
-      "dir",
-      "ltr",
-    );
+    expect(
+      screen.getByTestId(API_KEY_SHOWN_ONCE_VALUE_TEST_ID),
+    ).toHaveAttribute("dir", "ltr");
     // Only the dialog that shows it is open.
     expect(screen.getAllByRole("dialog")).toHaveLength(1);
   });
@@ -516,12 +513,12 @@ describe("Reset API Key", () => {
 
     expect(
       names.some((name: string): boolean => {
-        return /Done/.test(name);
+        return name.includes("Done");
       }),
     ).toBe(true);
     expect(
       names.some((name: string): boolean => {
-        return /Cancel|Close/.test(name);
+        return name.includes("Cancel") || name.includes("Close");
       }),
     ).toBe(false);
 

@@ -167,19 +167,17 @@ describe("a project's API key, over HTTP", () => {
      * project, by their id. Stood in before the router is made, which
      * takes the middleware as its routes are registered.
      */
-    jest
-      .spyOn(UserMiddleware, "getUserMiddleware")
-      .mockImplementation((async (
-        req: ExpressRequest,
-        _res: ExpressResponse,
-        next: NextFunction,
-      ): Promise<void> => {
-        (req as OneUptimeRequest).tenantId = PROJECT_ID;
-        (req as OneUptimeRequest).userAuthorization = {
-          userId: signedInUserId,
-        } as never;
-        next();
-      }) as never);
+    jest.spyOn(UserMiddleware, "getUserMiddleware").mockImplementation((async (
+      req: ExpressRequest,
+      _res: ExpressResponse,
+      next: NextFunction,
+    ): Promise<void> => {
+      (req as OneUptimeRequest).tenantId = PROJECT_ID;
+      (req as OneUptimeRequest).userAuthorization = {
+        userId: signedInUserId,
+      } as never;
+      next();
+    }) as never);
 
     const app: express.Express = express();
     app.use(express.json());
@@ -225,9 +223,7 @@ describe("a project's API key, over HTTP", () => {
   describe("POST /api-key/:id/reset-key", () => {
     test("is the route the Dashboard calls", () => {
       expect(RESET_API_KEY_PATH).toBe("reset-key");
-      expect(getResetApiKeyRoute(KEY_ID)).toBe(
-        `/api-key/${KEY_ID}/reset-key`,
-      );
+      expect(getResetApiKeyRoute(KEY_ID)).toBe(`/api-key/${KEY_ID}/reset-key`);
     });
 
     test("makes the key a new one with the caller's props, and answers it once", async () => {

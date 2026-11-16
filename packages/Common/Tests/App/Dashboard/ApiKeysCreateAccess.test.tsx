@@ -1193,10 +1193,9 @@ describe("the new key, shown once (#8902)", () => {
       within(shown).getByText(ApiKeyShownOnceCopy.shownOnceDescription),
     ).toBeVisible();
     expect(within(shown).getByRole("button", { name: /Copy/ })).toBeVisible();
-    expect(screen.getByTestId(API_KEY_SHOWN_ONCE_VALUE_TEST_ID)).toHaveAttribute(
-      "dir",
-      "ltr",
-    );
+    expect(
+      screen.getByTestId(API_KEY_SHOWN_ONCE_VALUE_TEST_ID),
+    ).toHaveAttribute("dir", "ltr");
     // The key's page waits for Done: leaving now would lose the key.
     expect(navigateCalls).toEqual([]);
   });
@@ -1224,7 +1223,7 @@ describe("the new key, shown once (#8902)", () => {
           return button.textContent || button.getAttribute("aria-label") || "";
         })
         .filter((name: string): boolean => {
-          return /Cancel|Close/.test(name);
+          return name.includes("Cancel") || name.includes("Close");
         }),
     ).toEqual([]);
 

@@ -1,4 +1,5 @@
 import { KEY_STORED_AS_WRITTEN_SQL_PATTERN } from "Common/Server/Services/ApiKeyService";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import crypto from "crypto";
 
 /*
@@ -39,9 +40,8 @@ export interface ApiKeySql {
 }
 
 const SELECT: RegExp = new RegExp(
-  `^SELECT "_id", "apiKey" FROM "ApiKey" WHERE "_id" > \\$1 AND "apiKey" ~\\* '${KEY_STORED_AS_WRITTEN_SQL_PATTERN.replace(
-    /[.*+?^${}()|[\]\\]/g,
-    "\\$&",
+  `^SELECT "_id", "apiKey" FROM "ApiKey" WHERE "_id" > \\$1 AND "apiKey" ~\\* '${escapeRegExp(
+    KEY_STORED_AS_WRITTEN_SQL_PATTERN,
   )}' ORDER BY "_id" ASC LIMIT (\\d+)$`,
 );
 

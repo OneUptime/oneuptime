@@ -101,9 +101,10 @@ function expectRegisteredInOrder(className: string): void {
       earlier.match(CLASS_TIMESTAMP)?.[1];
 
     if (earlierTimestamp) {
-      expect([earlier, Number(earlierTimestamp) < Number(timestamp)]).toEqual(
-        [earlier, true],
-      );
+      expect([earlier, Number(earlierTimestamp) < Number(timestamp)]).toEqual([
+        earlier,
+        true,
+      ]);
     }
   }
 }
@@ -258,9 +259,7 @@ describe("AddMasterApiKeyCreatedByAndHint", () => {
         ),
       ),
     ).toBe(true);
-    expect(migration.name).toBe(
-      "AddMasterApiKeyCreatedByAndHint1809180790300",
-    );
+    expect(migration.name).toBe("AddMasterApiKeyCreatedByAndHint1809180790300");
     expectRegisteredInOrder("AddMasterApiKeyCreatedByAndHint1809180790300");
   });
 });

@@ -283,15 +283,11 @@ describe("HashProjectApiKeys", () => {
 
     expect(pages).toHaveLength(3);
     expect(pages[0]!.params).toEqual(["00000000-0000-0000-0000-000000000000"]);
-    expect(pages[1]!.params).toEqual([
-      nthId(HASH_PROJECT_API_KEYS_PAGE_SIZE),
-    ]);
+    expect(pages[1]!.params).toEqual([nthId(HASH_PROJECT_API_KEYS_PAGE_SIZE)]);
     expect(pages[2]!.params).toEqual([
       nthId(HASH_PROJECT_API_KEYS_PAGE_SIZE * 2),
     ]);
-    expect(pages[0]!.sql).toContain(
-      `LIMIT ${HASH_PROJECT_API_KEYS_PAGE_SIZE}`,
-    );
+    expect(pages[0]!.sql).toContain(`LIMIT ${HASH_PROJECT_API_KEYS_PAGE_SIZE}`);
   });
 
   test("a key already stored as its hash is not read, let alone written: a key made since, through the service", async () => {

@@ -75,10 +75,11 @@ export const getMasterApiKeyFacts: (
   const facts: Array<string> = [];
 
   if (state.createdAt) {
-    const date: string = OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-      state.createdAt,
-      true,
-    );
+    const date: string =
+      OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+        state.createdAt,
+        true,
+      );
 
     facts.push(
       state.createdByName

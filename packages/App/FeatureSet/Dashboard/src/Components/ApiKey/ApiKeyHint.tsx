@@ -1,4 +1,7 @@
-import { API_KEY_HINT_TEST_ID, ApiKeyShownOnceCopy } from "./ApiKeyShownOnceCopy";
+import {
+  API_KEY_HINT_TEST_ID,
+  ApiKeyShownOnceCopy,
+} from "./ApiKeyShownOnceCopy";
 import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import React, { FunctionComponent, ReactElement } from "react";

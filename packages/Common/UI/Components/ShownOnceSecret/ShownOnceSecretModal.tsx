@@ -29,7 +29,8 @@ export interface ComponentProps {
 }
 
 export const SHOWN_ONCE_SECRET_TEST_ID: string = "shown-once-secret";
-export const SHOWN_ONCE_SECRET_VALUE_TEST_ID: string = "shown-once-secret-value";
+export const SHOWN_ONCE_SECRET_VALUE_TEST_ID: string =
+  "shown-once-secret-value";
 
 const ShownOnceSecretModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -54,7 +55,11 @@ const ShownOnceSecretModal: FunctionComponent<ComponentProps> = (
         >
           {props.secret}
         </code>
-        <CopyTextButton textToBeCopied={props.secret} size="sm" variant="soft" />
+        <CopyTextButton
+          textToBeCopied={props.secret}
+          size="sm"
+          variant="soft"
+        />
       </div>
     </ConfirmModal>
   );

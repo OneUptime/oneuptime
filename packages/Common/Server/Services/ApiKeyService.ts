@@ -2,12 +2,7 @@ import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import FindBy from "../Types/Database/FindBy";
 import UpdateBy from "../Types/Database/UpdateBy";
-import {
-  OnCreate,
-  OnDelete,
-  OnFind,
-  OnUpdate,
-} from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -323,7 +318,10 @@ export class Service extends DatabaseService<Model> {
 
     const apiKeyHint: unknown = record?.["apiKeyHint"];
 
-    if (typeof apiKeyHint !== "string" || !API_KEY_HINT_PATTERN.test(apiKeyHint)) {
+    if (
+      typeof apiKeyHint !== "string" ||
+      !API_KEY_HINT_PATTERN.test(apiKeyHint)
+    ) {
       throw new BadDataException(
         "An API key is written with its hint, its last four characters. Make it with ApiKeyService.resetApiKey.",
       );
@@ -469,7 +467,9 @@ export class Service extends DatabaseService<Model> {
   }
 
   // The live key stored as this value - a key's hash, or a key as written.
-  private async findLiveKeyStoredAs(storedValue: string): Promise<Model | null> {
+  private async findLiveKeyStoredAs(
+    storedValue: string,
+  ): Promise<Model | null> {
     return await this.findOneBy({
       query: {
         apiKey: new HashedString(storedValue, true),
