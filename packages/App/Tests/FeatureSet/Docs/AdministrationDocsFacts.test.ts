@@ -69,6 +69,12 @@ import {
   SESSION_AUDIT_LOG_ACTIONS,
 } from "Common/Types/AuditLog/AuditLogSessionEvent";
 import {
+  AUDIT_LOG_SIGN_IN_ATTEMPT_RESOURCE_TYPE,
+  FAILED_SIGN_IN_WINDOW_IN_MINUTES,
+  FAILED_SIGN_INS_RECORDED_PER_WINDOW,
+} from "Common/Types/AuditLog/AuditLogSignInFailure";
+import { AUDIT_LOG_STATUS_PAGE_SESSION_ROOT_RESOURCE_TYPE } from "Common/Types/AuditLog/AuditLogStatusPageSession";
+import {
   ACTIVITY_REPORTED_WITHIN_IN_MINUTES,
   DEFAULT_SESSION_IDLE_DAYS,
   IDLE_TIMEOUT_SWEEP_MARGIN_IN_MINUTES,
@@ -2392,6 +2398,7 @@ describe("Audit Logs", () => {
         "Delete",
         "Download",
         "SignIn",
+        "SignInFailed",
         "SignOut",
         "SessionTimeout",
         "SessionRevoked",
@@ -2465,6 +2472,85 @@ describe("Audit Logs", () => {
     );
     expect(sessionService).toContain("await this.recordSessionEnds({");
     expect(sessionService).toContain("public async endSessionsThatRanOut(");
+  });
+
+  /*
+   * Issue #6788: a failed sign-in on an existing account is in its person's
+   * projects' audit logs, about the attempt, with the account as its actor,
+   * never with what was typed, recorded after the sign-in page has
+   * answered, and held to so many an hour for an account. The page says
+   * each, by the numbers the bound keeps.
+   */
+  it("says failed sign-ins are recorded, how many, and that the sign-in page answers as before", () => {
+    const sessions: string = section(page, "## Sign-ins and sessions");
+    const bound: string = readCommonSource(
+      "Server/Utils/AuditLog/FailedSignInAuditLog.ts",
+    );
+    const authentication: string = fs.readFileSync(
+      path.join(
+        PACKAGES_DIR,
+        "App",
+        "FeatureSet",
+        "Identity",
+        "API",
+        "Authentication.ts",
+      ),
+      "utf8",
+    );
+
+    expect(FAILED_SIGN_INS_RECORDED_PER_WINDOW).toBe(10);
+    expect(FAILED_SIGN_IN_WINDOW_IN_MINUTES).toBe(60);
+    expect(AUDIT_LOG_SIGN_IN_ATTEMPT_RESOURCE_TYPE).toBe("Sign-In Attempt");
+    expect(sessions).toContain(
+      "| `Sign-In Failed` | Someone tries to sign in to an existing account and fails: a wrong password, authenticator code, backup code or security key, a blocked or unverified account, or a single sign-on OneUptime refused. |",
+    );
+    expect(sessions).toContain(
+      "A `Sign-In Failed` entry is about the attempt, named by the device it came from. Its **Actor** is the account the attempt was made on: whoever made it did not prove they are that person.",
+    );
+    expect(sessions).toContain(
+      "An attempt on an email address that no account has is not recorded, and recording an attempt changes neither what the sign-in page answers nor how fast.",
+    );
+    expect(sessions).toContain(
+      `So that a flood of attempts cannot fill the audit log, the first ${FAILED_SIGN_INS_RECORDED_PER_WINDOW} failed attempts on an account in an hour are recorded one by one. The rest are counted, and the account's next entry says how many attempts it stands for and when the first of them was made.`,
+    );
+
+    // After the answer, never awaited by the route: setImmediate, then the count.
+    expect(bound).toContain("setImmediate((): void => {");
+    expect(bound).toContain("await FailedSignInAuditLog.countAttempt({");
+    expect(authentication).toContain(
+      "recordFailedSignIn(SignInFailureReason.WrongPassword);",
+    );
+    expect(authentication).not.toContain("await FailedSignInAuditLog");
+  });
+
+  /*
+   * Issue #6790: a private status page's readers' sign-ins, sign-outs and
+   * revoked sessions are in the status page's project, and on its own
+   * Audit Logs page: each entry rolls up to the status page.
+   */
+  it("says a private status page's readers' sessions are recorded, in the status page's project", () => {
+    const sessions: string = section(page, "## Sign-ins and sessions");
+    const readerSessions: string = readCommonSource(
+      "Server/Services/StatusPagePrivateUserSessionService.ts",
+    );
+
+    expect(AUDIT_LOG_STATUS_PAGE_SESSION_ROOT_RESOURCE_TYPE).toBe(
+      "Status Page",
+    );
+    expect(sessions).toContain(
+      "The readers of a private status page are recorded too, in the status page's project only: each sign-in with a password, a sign-in link or the status page's single sign-on, each sign-out, and each session OneUptime ends because the reader's password changed or the status page no longer accepts how it signed in. Their entries are also on the status page's own **Audit Logs** page.",
+    );
+    expect(readerSessions).toContain(
+      "await AuditLogService.recordStatusPageSessionEvents(events);",
+    );
+    expect(readerSessions).toContain(
+      "protected override async onBeforeUpdate(",
+    );
+
+    // No longer listed as working state the audit log leaves out.
+    expect(section(page, "## What is recorded")).not.toContain(
+      "Status page readers' sessions",
+    );
   });
 
   /*
