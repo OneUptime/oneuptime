@@ -56375,5 +56375,8 @@
   "Complete:": "已满足：",
   "Incomplete:": "未满足：",
   "Special character included (optional)": "已包含特殊字符（可选）",
-  "Special characters are optional. Try !, @, # or $.": "特殊字符为可选项。可以尝试 !、@、# 或 $。"
+  "Special characters are optional. Try !, @, # or $.": "特殊字符为可选项。可以尝试 !、@、# 或 $。",
+  "No commands you can see.": "没有你可以查看的命令。",
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open.": "此处运行的 {{count}} 条命令未列出：它们是为你无法打开的 AI 聊天、事件或警报运行的。",
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "此处运行的 {{count}} 条命令未列出：它是为你无法打开的 AI 聊天、事件或警报运行的。"
 }

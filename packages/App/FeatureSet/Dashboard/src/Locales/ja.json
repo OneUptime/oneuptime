@@ -56375,5 +56375,8 @@
   "Complete:": "達成済み：",
   "Incomplete:": "未達成：",
   "Special character included (optional)": "記号が含まれています（任意）",
-  "Special characters are optional. Try !, @, # or $.": "記号の使用は任意です。!、@、#、$ などを使ってみてください。"
+  "Special characters are optional. Try !, @, # or $.": "記号の使用は任意です。!、@、#、$ などを使ってみてください。",
+  "No commands you can see.": "表示できるコマンドはありません。",
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open.": "ここで実行されたコマンドのうち {{count}} 件は一覧に表示されていません。開くことのできない AI チャット、インシデント、またはアラートのために実行されたものです。",
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "ここで実行されたコマンドのうち {{count}} 件は一覧に表示されていません。開くことのできない AI チャット、インシデント、またはアラートのために実行されたものです。"
 }

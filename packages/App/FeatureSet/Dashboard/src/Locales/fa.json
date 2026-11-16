@@ -56375,5 +56375,8 @@
   "Complete:": "رعایت شده:",
   "Incomplete:": "رعایت نشده:",
   "Special character included (optional)": "نویسهٔ ویژه دارد (اختیاری)",
-  "Special characters are optional. Try !, @, # or $.": "نویسه‌های ویژه اختیاری هستند. از !، @، # یا $ استفاده کنید."
+  "Special characters are optional. Try !, @, # or $.": "نویسه‌های ویژه اختیاری هستند. از !، @، # یا $ استفاده کنید.",
+  "No commands you can see.": "دستوری که بتوانید ببینید وجود ندارد.",
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open.": "{{count}} دستوری که اینجا اجرا شده‌اند در فهرست نیستند: برای گفتگوهای هوش مصنوعی، حادثه‌ها یا هشدارهایی اجرا شده‌اند که نمی‌توانید باز کنید.",
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "{{count}} دستوری که اینجا اجرا شده است در فهرست نیست: برای گفتگوی هوش مصنوعی، حادثه یا هشداری اجرا شده است که نمی‌توانید باز کنید."
 }

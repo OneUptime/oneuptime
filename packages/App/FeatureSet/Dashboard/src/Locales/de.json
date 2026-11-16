@@ -56375,5 +56375,8 @@
   "Complete:": "Erfüllt:",
   "Incomplete:": "Nicht erfüllt:",
   "Special character included (optional)": "Sonderzeichen enthalten (optional)",
-  "Special characters are optional. Try !, @, # or $.": "Sonderzeichen sind optional. Probiere !, @, # oder $."
+  "Special characters are optional. Try !, @, # or $.": "Sonderzeichen sind optional. Probiere !, @, # oder $.",
+  "No commands you can see.": "Keine Befehle, die Sie sehen können.",
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open.": "{{count}} Befehle, die hier ausgeführt wurden, werden nicht aufgeführt: Sie wurden für KI-Chats, Vorfälle oder Warnungen ausgeführt, die Sie nicht öffnen können.",
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "{{count}} Befehl, der hier ausgeführt wurde, wird nicht aufgeführt: Er wurde für einen KI-Chat, einen Vorfall oder eine Warnung ausgeführt, die Sie nicht öffnen können."
 }

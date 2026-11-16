@@ -56375,5 +56375,8 @@
   "Complete:": "Voldaan:",
   "Incomplete:": "Niet voldaan:",
   "Special character included (optional)": "Speciaal teken toegevoegd (optioneel)",
-  "Special characters are optional. Try !, @, # or $.": "Speciale tekens zijn optioneel. Probeer !, @, # of $."
+  "Special characters are optional. Try !, @, # or $.": "Speciale tekens zijn optioneel. Probeer !, @, # of $.",
+  "No commands you can see.": "Geen opdrachten die u kunt zien.",
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open.": "{{count}} opdrachten die hier zijn uitgevoerd, staan niet in de lijst: ze zijn uitgevoerd voor AI-chats, incidenten of waarschuwingen die u niet kunt openen.",
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "{{count}} opdracht die hier is uitgevoerd, staat niet in de lijst: die is uitgevoerd voor een AI-chat, een incident of een waarschuwing die u niet kunt openen."
 }

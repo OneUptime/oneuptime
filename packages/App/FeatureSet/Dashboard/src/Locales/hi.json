@@ -56375,5 +56375,8 @@
   "Complete:": "पूरी हुई:",
   "Incomplete:": "पूरी नहीं हुई:",
   "Special character included (optional)": "विशेष चिह्न शामिल है (वैकल्पिक)",
-  "Special characters are optional. Try !, @, # or $.": "विशेष चिह्न वैकल्पिक हैं। !, @, # या $ आज़माएँ।"
+  "Special characters are optional. Try !, @, # or $.": "विशेष चिह्न वैकल्पिक हैं। !, @, # या $ आज़माएँ।",
+  "No commands you can see.": "ऐसा कोई कमांड नहीं जिसे आप देख सकें।",
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open.": "यहाँ चलाए गए {{count}} कमांड सूची में नहीं हैं: वे ऐसे AI चैट, घटनाओं या अलर्ट के लिए चलाए गए थे जिन्हें आप नहीं खोल सकते।",
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "यहाँ चलाया गया {{count}} कमांड सूची में नहीं है: वह ऐसे AI चैट, घटना या अलर्ट के लिए चलाया गया था जिसे आप नहीं खोल सकते।"
 }

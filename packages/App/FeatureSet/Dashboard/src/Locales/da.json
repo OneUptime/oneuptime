@@ -56375,5 +56375,8 @@
   "Complete:": "Opfyldt:",
   "Incomplete:": "Ikke opfyldt:",
   "Special character included (optional)": "Specialtegn inkluderet (valgfrit)",
-  "Special characters are optional. Try !, @, # or $.": "Specialtegn er valgfrie. Prøv !, @, # eller $."
+  "Special characters are optional. Try !, @, # or $.": "Specialtegn er valgfrie. Prøv !, @, # eller $.",
+  "No commands you can see.": "Ingen kommandoer, du kan se.",
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open.": "{{count}} kommandoer, der blev kørt her, vises ikke: de blev kørt for AI-chats, hændelser eller advarsler, du ikke kan åbne.",
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "{{count}} kommando, der blev kørt her, vises ikke: den blev kørt for en AI-chat, en hændelse eller en advarsel, du ikke kan åbne."
 }

@@ -56375,5 +56375,8 @@
   "Complete:": "مكتمل:",
   "Incomplete:": "غير مكتمل:",
   "Special character included (optional)": "تتضمن حرفًا خاصًا (اختياري)",
-  "Special characters are optional. Try !, @, # or $.": "الأحرف الخاصة اختيارية. جرّب ! أو @ أو # أو $."
+  "Special characters are optional. Try !, @, # or $.": "الأحرف الخاصة اختيارية. جرّب ! أو @ أو # أو $.",
+  "No commands you can see.": "لا توجد أوامر يمكنك رؤيتها.",
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open.": "الأوامر التي شُغّلت هنا ولا تظهر في القائمة: {{count}}. شُغّلت لدردشات ذكاء اصطناعي أو حوادث أو تنبيهات لا يمكنك فتحها.",
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "{{count}} أمر شُغّل هنا لا يظهر في القائمة: شُغّل لدردشة ذكاء اصطناعي أو حادث أو تنبيه لا يمكنك فتحه."
 }

@@ -56375,5 +56375,8 @@
   "Complete:": "Complete:",
   "Incomplete:": "Incomplete:",
   "Special character included (optional)": "Special character included (optional)",
-  "Special characters are optional. Try !, @, # or $.": "Special characters are optional. Try !, @, # or $."
+  "Special characters are optional. Try !, @, # or $.": "Special characters are optional. Try !, @, # or $.",
+  "No commands you can see.": "No commands you can see.",
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open.": "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open.",
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "{{count}} command that ran here isn't listed: it was run for an AI chat, incident or alert you can't open."
 }
