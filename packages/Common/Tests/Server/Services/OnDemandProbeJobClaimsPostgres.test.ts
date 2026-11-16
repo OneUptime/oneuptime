@@ -65,7 +65,7 @@ import { DataSource } from "typeorm";
  * from ON_DEMAND_PROBE_JOB_CLAIM_TEST_DATABASE_HOST / _PORT (default
  * localhost:5400, Scripts/Dev/docker-compose.dev.yml).
  */
-const describePostgres: typeof describe =
+const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_ON_DEMAND_PROBE_JOB_CLAIM_TESTS"] === "true"
     ? describe
     : describe.skip;
@@ -393,7 +393,7 @@ describePostgres("on-demand probe job claims on Postgres", () => {
     async function insertDiagnostic(
       data: {
         probe?: ObjectID;
-        status?: NetworkDeviceDiagnosticStatus;
+        status?: string;
         createdMinutesAgo?: number;
         deleted?: boolean;
       } = {},

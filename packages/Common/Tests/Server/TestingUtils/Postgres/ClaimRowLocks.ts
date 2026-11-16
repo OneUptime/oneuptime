@@ -247,20 +247,18 @@ export async function statementsSentBy<T>(
   const realQuery: PostgresQueryRunner["query"] =
     PostgresQueryRunner.prototype.query;
 
-  const spy: jest.SpiedFunction<PostgresQueryRunner["query"]> = jest
-    .spyOn(PostgresQueryRunner.prototype, "query")
-    .mockImplementation(function (
-      this: PostgresQueryRunner,
-      ...args: Parameters<PostgresQueryRunner["query"]>
-    ): ReturnType<PostgresQueryRunner["query"]> {
-      statements.push(String(args[0]));
-      return realQuery.apply(this, args);
-    } as never);
+  PostgresQueryRunner.prototype.query = function (
+    this: PostgresQueryRunner,
+    ...args: Parameters<PostgresQueryRunner["query"]>
+  ): ReturnType<PostgresQueryRunner["query"]> {
+    statements.push(String(args[0]));
+    return realQuery.apply(this, args);
+  };
 
   try {
     return { result: await run(), statements: statements };
   } finally {
-    spy.mockRestore();
+    PostgresQueryRunner.prototype.query = realQuery;
   }
 }
 
