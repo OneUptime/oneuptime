@@ -2380,6 +2380,12 @@ export class ProjectService extends ProjectReferencesService<Model> {
     projectId: ObjectID;
     paymentProviderPlanId: string;
     endTrialAt?: Date | null;
+    /*
+     * False only when a master admin moves the project from the Admin
+     * Dashboard (ProjectAPI's admin-change-plan): the customer need not have
+     * a payment method on file. A customer's own change always does.
+     */
+    requirePaymentMethod?: boolean | undefined;
   }): Promise<void> {
     if (!IsBillingEnabled) {
       throw new BadDataException("Billing is not enabled for this server");
@@ -2456,12 +2462,16 @@ export class ProjectService extends ProjectReferencesService<Model> {
       throw new BadDataException("Payment Provider customer not found");
     }
 
-    const hasPaymentMethods: boolean = await BillingService.hasPaymentMethods(
-      project.paymentProviderCustomerId,
-    );
+    const requirePaymentMethod: boolean = params.requirePaymentMethod !== false;
 
-    if (!hasPaymentMethods) {
-      throw new BadDataException(Errors.BillingService.NO_PAYMENTS_METHODS);
+    if (requirePaymentMethod) {
+      const hasPaymentMethods: boolean = await BillingService.hasPaymentMethods(
+        project.paymentProviderCustomerId,
+      );
+
+      if (!hasPaymentMethods) {
+        throw new BadDataException(Errors.BillingService.NO_PAYMENTS_METHODS);
+      }
     }
 
     const plan: SubscriptionPlan | undefined =
@@ -2506,6 +2516,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
       quantity: seats,
       isYearly: plan.getYearlyPlanId() === params.paymentProviderPlanId,
       endTrialAt: endTrialAt,
+      requirePaymentMethod: requirePaymentMethod,
     });
 
     const subscriptionState: SubscriptionStatus | null =

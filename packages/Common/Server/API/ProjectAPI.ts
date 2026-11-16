@@ -76,16 +76,6 @@ export function getNumberingReadPermissions(): Array<Permission> {
 }
 
 /*
- * What a master admin is told when the project they are moving to another
- * plan has no payment method. The payment provider refuses any plan change
- * without one (BillingService.changePlan), and its own words speak to the
- * customer ("Please go to Project Settings..."), not to the OneUptime staff
- * acting on the project from the Admin Dashboard.
- */
-export const ADMIN_CHANGE_PLAN_NO_PAYMENT_METHOD_MESSAGE: string =
-  "This project has no payment method, and its plan cannot change without one. Ask a Project Owner to add one under Project Settings > Billing and Invoices > Billing, then try again.";
-
-/*
  * The master admin a request comes from, for the audit line a master-admin
  * route writes, or undefined when it cannot be read. The master admin
  * middleware checks the session but does not put it on the request, so the
@@ -179,6 +169,10 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
             throw new BadDataException("Plan ID is required to change plan");
           }
 
+          const isMasterAdmin: boolean = Boolean(
+            (req as OneUptimeRequest).userAuthorization?.isMasterAdmin,
+          );
+
           // Check for payment methods early before making any Stripe API calls
           const project: Project | null = await ProjectService.findOneById({
             id: projectId,
@@ -207,7 +201,7 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
                 paymentProviderPlanId,
                 getAllEnvVars(),
               ) &&
-              !(req as OneUptimeRequest).userAuthorization?.isMasterAdmin
+              !isMasterAdmin
             ) {
               throw new BadDataException(
                 "This plan is arranged with OneUptime's sales team. Please contact sales to move to it.",
@@ -218,15 +212,22 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
               throw new BadDataException("Payment Provider customer not found");
             }
 
-            const hasPaymentMethods: boolean =
-              await BillingService.hasPaymentMethods(
-                project.paymentProviderCustomerId,
-              );
+            /*
+             * A master admin moves a project whatever its customer has on
+             * file, as the Admin Dashboard's admin-change-plan does; anyone
+             * else needs a payment method first.
+             */
+            if (!isMasterAdmin) {
+              const hasPaymentMethods: boolean =
+                await BillingService.hasPaymentMethods(
+                  project.paymentProviderCustomerId,
+                );
 
-            if (!hasPaymentMethods) {
-              throw new BadDataException(
-                Errors.BillingService.NO_PAYMENTS_METHODS,
-              );
+              if (!hasPaymentMethods) {
+                throw new BadDataException(
+                  Errors.BillingService.NO_PAYMENTS_METHODS,
+                );
+              }
             }
           }
 
@@ -235,10 +236,7 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
             [Permission.ProjectOwner, Permission.ManageProjectBilling],
           );
 
-          if (
-            !hasBillingPermission &&
-            !(req as OneUptimeRequest).userAuthorization?.isMasterAdmin
-          ) {
+          if (!hasBillingPermission && !isMasterAdmin) {
             throw new BadDataException(
               `You need ${Permission.ProjectOwner} or ${Permission.ManageProjectBilling} permission to change project plan`,
             );
@@ -247,6 +245,7 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
           await ProjectService.changePlan({
             projectId: projectId,
             paymentProviderPlanId: paymentProviderPlanId,
+            ...(isMasterAdmin ? { requirePaymentMethod: false } : {}),
           });
 
           return Response.sendEmptySuccessResponse(req, res);
@@ -477,8 +476,9 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
      * The move itself is the one the customer makes
      * (ProjectService.changePlan): the payment provider is changed first, a
      * running trial carries over, and a project a cloud marketplace bills
-     * moves without a card. A custom-priced plan (Enterprise) can be picked
-     * here, as change-plan lets a master admin pick it.
+     * moves without a card. Unlike the customer's, it does not need a
+     * payment method on file. A custom-priced plan (Enterprise) can be
+     * picked here, as change-plan lets a master admin pick it.
      */
     this.router.put(
       `${new this.entityType().getCrudApiPath()?.toString()}/:id/admin-change-plan`,
@@ -565,23 +565,18 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
           const changedByUserId: ObjectID | undefined =
             readMasterAdminUserId(req);
 
-          try {
-            await ProjectService.changePlan({
-              projectId: projectId,
-              paymentProviderPlanId: paymentProviderPlanId,
-            });
-          } catch (err) {
-            if (
-              err instanceof BadDataException &&
-              err.message === Errors.BillingService.NO_PAYMENTS_METHODS
-            ) {
-              throw new BadDataException(
-                ADMIN_CHANGE_PLAN_NO_PAYMENT_METHOD_MESSAGE,
-              );
-            }
-
-            throw err;
-          }
+          /*
+           * Staff move a project whatever the customer has on file: a
+           * project with no payment method moves too, and anything the new
+           * plan owes waits on an invoice the customer pays once they add one
+           * (StripeBillingProvider.changePlan). The customer's own change
+           * still needs a payment method.
+           */
+          await ProjectService.changePlan({
+            projectId: projectId,
+            paymentProviderPlanId: paymentProviderPlanId,
+            requirePaymentMethod: false,
+          });
 
           logger.info(
             `Plan for project ${projectId.toString()} changed from ${
