@@ -23,10 +23,11 @@ import {
 /*
  * HOW TO REACH ME: SAVE A PAGING LADDER (#6820, PagingLadderService).
  *
- *   POST /paging-ladder/apply   { userId?, steps: [...] }
+ *   POST /paging-ladder/apply   { userId?, steps: [...], keepCards?: [...] }
  *
  * Saves the ladder as the person's on-call rules, in every live card of
- * the grid. `userId` names a member; left out, the ladder is the caller's
+ * the grid but those `keepCards` names ({ ruleType, severityId }), which
+ * keep their own rules (#8890). `userId` names a member; left out, the ladder is the caller's
  * own. A signed-in member of the project, as a person, on a credential
  * that may make changes - a ladder is somebody's, so a project API key
  * saves none. Who may change whose ladder is the service's to say.
@@ -85,6 +86,7 @@ router.post(
           projectId: projectId,
           targetUserId: targetUserId,
           steps: body["steps"],
+          keepCards: body["keepCards"],
           props: props,
         });
 

@@ -186,6 +186,7 @@ import ResolveWhatMonitorsTurnedOffWouldHaveResolved from "./ResolveWhatMonitors
 import BackfillMonitorFirstMeasuredAt from "./BackfillMonitorFirstMeasuredAt";
 import BackfillMonitorFirstMeasuredAtForUptimeHistory from "./BackfillMonitorFirstMeasuredAtForUptimeHistory";
 import EncryptProjectCredentials from "./EncryptProjectCredentials";
+import SwitchOffRulesLimitedOnlyToDeletedRecords from "./SwitchOffRulesLimitedOnlyToDeletedRecords";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -1273,6 +1274,14 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new EncryptProjectCredentials(),
+  /*
+   * A rule whose list holds only soft-deleted records reads it as empty and
+   * matches every record (#9066): switched off and noted, as a delete now
+   * does. A rule emptied by a delete before this release left no trace and
+   * is not changed. Postgres only and idempotent; before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new SwitchOffRulesLimitedOnlyToDeletedRecords(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

@@ -35,6 +35,7 @@ import RunbookStepType from "../../../../Types/Runbook/RunbookStepType";
 import UserType from "../../../../Types/UserType";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import PrivateRecordWriteCheck from "../../../../Server/Utils/Permission/PrivateRecordWriteCheck";
 
 /*
  * Contract under test - approving and dismissing a fix from a Slack or
@@ -158,6 +159,15 @@ function fingerprintOf(row: Record<string, unknown>): string {
     mcpToolCallPlan: row["mcpToolCallPlan"] as JSONObject | undefined,
   });
 }
+
+/*
+ * The fixes here are for incidents and alerts that are not private, or that
+ * the person reaches: what a fix's buttons ask of a private record's owning
+ * teams (#8913) is RemediationPrivateRecord's own suite.
+ */
+beforeEach(() => {
+  jest.spyOn(PrivateRecordWriteCheck, "reaches").mockResolvedValue(true);
+});
 
 describe("approving or dismissing a fix from a chat message", () => {
   let row: Record<string, unknown>;

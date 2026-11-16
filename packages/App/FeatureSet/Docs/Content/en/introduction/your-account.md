@@ -84,14 +84,14 @@ A new password signs every device out of your account, and any password reset li
 3. Follow your browser's prompt to save the passkey.
 :::
 
-Next time, choose **Sign in with a passkey** on the sign-in page.
+Next time, choose **More ways to sign in** → **Sign in with a passkey** on the sign-in page.
 
 ### Sign in with an emailed link
 
 You can sign in with a link instead of your password. There is nothing to set up.
 
 :::steps
-1. On the sign-in page, choose **Email me a sign-in link**.
+1. On the sign-in page, choose **More ways to sign in** → **Email me a sign-in link**.
 2. Enter your email address and click **Email me a sign-in link**. The page then shows **Check your email**.
 3. Open the link in the email and click **Sign in**.
 :::

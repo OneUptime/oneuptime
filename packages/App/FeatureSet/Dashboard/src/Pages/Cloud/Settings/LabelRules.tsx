@@ -1,3 +1,4 @@
+import { getLabelRuleHelpMarkdown } from "../../../Utils/Help/ResourceRuleHelp";
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
@@ -36,6 +37,10 @@ const cloudResourceKind: EqualToOrNull<string> = getCloudRuleListKind(
 const RULE_WORDING: RuleWording<CloudResourceLabelRule> =
   getCloudRuleWording<CloudResourceLabelRule>(CloudResourceKind.Resource);
 
+const labelRuleDocumentation: string = getLabelRuleHelpMarkdown({
+  nouns: { singular: "cloud resource", plural: "cloud resources" },
+});
+
 const CloudResourceLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
   props: RuleSettingsPageProps,
 ): ReactElement => {
@@ -63,6 +68,11 @@ const CloudResourceLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         title: "Cloud Resource Label Rules",
         description:
           "Auto-attach labels when matching cloud resources are created.",
+      }}
+      helpContent={{
+        title: "How Cloud Resource Label Rules Work",
+        description: "Match cloud resources and attach labels automatically.",
+        markdown: labelRuleDocumentation,
       }}
       /*
        * Cloud's rules are for the resources of its accounts; App Platforms

@@ -73,6 +73,8 @@ export const NOT_UX_GUARDS: Record<string, string> = {
     "Permissions: a workflow's view-only Builder changes nothing.",
   "packages/Common/Tests/UI/Components/Workflow/WorkflowViewOnlyGuard.test.ts":
     "Permissions: every Builder control honours the view-only Builder.",
+  "packages/Common/Tests/UI/EmptyComponentFilesGuard.test.ts":
+    "Code health: every file of Common's component library holds code.",
   "packages/Common/Tests/UI/ForeignHiddenRuleGuard.test.ts":
     "Browser robustness: a stylesheet the app does not ship cannot hide the navigation.",
   "packages/Common/Tests/UI/HookOrderGuard.test.ts":

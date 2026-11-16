@@ -129,7 +129,7 @@ SLO 的規則會發布其錯誤預算策略的變化：在 SLO 進入某個級�
 
 > 📞 @Ana Lee is now on call for Payments until Sat, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
 
-Payments 連結到 OneUptime 中的策略。將 Microsoft Teams 帳戶連結到 OneUptime 的人以其 Microsoft Teams 名稱顯示，在此之前以其 OneUptime 名稱顯示。時間依每位讀者自己的時區顯示。規則的 **更新** 步驟與 Slack 一樣選擇要發布哪些待命訊息，新規則預設使用目前待命人員以及何時無人待命：請參閱 [待命訊息](/docs/workspace-connections/slack#待命訊息)。
+Payments 連結到 OneUptime 中的策略。將 Microsoft Teams 帳戶連結到 OneUptime 的人在每一則待命訊息中都以其 Microsoft Teams 名稱顯示，在此之前以其 OneUptime 名稱顯示。時間依每位讀者自己的時區顯示。規則的 **更新** 步驟與 Slack 一樣選擇要發布哪些待命訊息，新規則預設使用目前待命人員以及何時無人待命：請參閱 [待命訊息](/docs/workspace-connections/slack#待命訊息)。開啟 **提及接手待命的人員** 後，只要此人已連結 Microsoft Teams 帳戶，訊息就會提及此人，Microsoft Teams 也會通知此人。
 
 ## 測試規則
 
@@ -219,7 +219,7 @@ Payments 連結到 OneUptime 中的策略。將 Microsoft Teams 帳戶連結到 
 - **在警示的專屬頻道中。** 在 OneUptime 為某個警示建立的頻道中，只要警示仍未關閉，輸入 `incident` 就會開啟一張卡片，說明事件是從該警示宣告的，並以警示的標題以及警示所關聯的、要求卡片的人可以檢視的資源開始。事件會關聯到該警示，就像從警示頁面宣告的事件一樣，私人警示的事件也是私人的。如果提交卡片的人無權將警示關聯到事件，事件會在沒有該關聯的情況下宣告，機器人會告訴此人原因。
 - **表單可以指定什麼。** 在頻道或群組聊天中，任何在場的人都可以提交表單，並且以提交者的身分、依其自己的權限提交。事件或活動以這些權限建立，並記在此人名下。此人無法讀取的監測器、待命策略、標籤、嚴重程度或狀態，或屬於其他專案的，都會像專案中不存在一樣被拒絕，並且不會建立任何內容：機器人會回覆 "One of the values you picked ... is not available in this project any more. Please pick it again."
 
-事件、警示或片段上的 **Execute On-Call Policy** 也以同樣方式運作：它需要執行待命策略的權限（ **專案擁有者**、 **專案管理員**、 **專案成員**、 **待命管理員** 和 **待命成員**，或自訂角色中的 **Execute On-Call Policies** ）以及讀取該事件、警示或片段的權限，並提供此人可以讀取的有效待命策略。從卡片檢視監測器或待命策略時，也會以按下按鈕的人的身分讀取。
+事件、警示或片段上的 **Execute On-Call Policy** 也以同樣方式運作：它需要執行待命策略的權限（ **專案擁有者**、 **專案管理員**、 **專案成員**、 **待命管理員** 和 **待命成員**，或自訂角色中的 **Execute On-Call Policies** ）以及讀取該事件、警示或片段的權限，並提供此人可以讀取的有效待命策略。即使已有人確認，它也會一直呼叫該策略的人員，直到其中有人回應或事件、警示或片段已解決，卡片的清單下方也會這樣說明。從卡片檢視監測器或待命策略時，也會以按下按鈕的人的身分讀取。
 
 ## 從 Microsoft Teams 呼叫他人
 

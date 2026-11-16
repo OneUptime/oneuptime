@@ -19,6 +19,7 @@ import FeedUpdateKinds, {
 } from "../Utils/Feed/FeedUpdateKinds";
 import { NotificationRuleUpdateKind } from "../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
+import { WorkspacePayloadMention } from "../../Types/Workspace/WorkspaceMessagePayload";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends ProjectReferencesService<OnCallDutyPolicyFeed> {
@@ -60,6 +61,16 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyFeed> {
      * schedule Primary to Payments".
      */
     chatInfoInMarkdown?: string | undefined;
+    /*
+     * The channels' line as each workspace reads it, where it is not
+     * chatInfoInMarkdown (issue #7967): its people named as that workspace
+     * knows them - "@ana.lee" where Ana connected her account there - and
+     * its moments as it shows them (OnCallChatByWorkspace). The feed keeps
+     * OneUptime's names.
+     */
+    chatInfoByWorkspaceType?:
+      | Partial<Record<WorkspaceType, string>>
+      | undefined;
   }): Promise<void> {
     try {
       logger.debug(
@@ -145,6 +156,10 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyFeed> {
             onCallDutyPolicyId: data.onCallDutyPolicyId,
             feedInfoInMarkdown:
               data.chatInfoInMarkdown || data.feedInfoInMarkdown,
+            ...(data.chatInfoByWorkspaceType &&
+            Object.keys(data.chatInfoByWorkspaceType).length > 0
+              ? { markdownByWorkspaceType: data.chatInfoByWorkspaceType }
+              : {}),
             workspaceNotification: data.workspaceNotification,
             // Which updates it is: posted where a rule wants one of them.
             updateKinds: FeedUpdateKinds.resolve({
@@ -214,6 +229,18 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyFeed> {
     markdownByWorkspaceType?:
       | Partial<Record<WorkspaceType, string>>
       | undefined;
+    /*
+     * The person on call each workspace's line mentions, on a rule that
+     * asks for it (issue #7968, OnCallHandoffPosts)...
+     */
+    mentionsByWorkspaceType?:
+      | Partial<Record<WorkspaceType, Array<WorkspacePayloadMention>>>
+      | undefined;
+    /*
+     * ...posted only where a rule that wants the line asks to mention them
+     * (true), or, the line without, only where none does (false).
+     */
+    mentioning?: boolean | undefined;
   }): Promise<void> {
     return await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification(
       {
@@ -223,6 +250,9 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyFeed> {
         },
         feedInfoInMarkdown: data.feedInfoInMarkdown,
         markdownByWorkspaceType: data.markdownByWorkspaceType,
+        ...(data.mentionsByWorkspaceType
+          ? { mentionsByWorkspaceType: data.mentionsByWorkspaceType }
+          : {}),
         notificationText: data.workspaceNotification.notificationText,
         workspaceNotification: {
           ...FeedWorkspaceNotificationUtil.toWorkspaceNotification({
@@ -235,6 +265,9 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyFeed> {
             : {}),
           ...(data.notWantedUpdateKinds
             ? { notWantedUpdateKinds: data.notWantedUpdateKinds }
+            : {}),
+          ...(data.mentioning !== undefined
+            ? { mentioning: data.mentioning }
             : {}),
         },
       },

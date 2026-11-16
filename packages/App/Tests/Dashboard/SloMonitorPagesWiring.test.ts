@@ -168,8 +168,9 @@ describe("SLO Monitor Rules page", () => {
     }
   });
 
+  // A "##" topic of the help dialog (Common HelpContent).
   test("its help has a Match Criteria section for the builder to rewrite", () => {
-    expect(readRaw(MONITOR_RULES_PAGE)).toContain("### Match Criteria");
+    expect(readRaw(MONITOR_RULES_PAGE)).toMatch(/^## Match Criteria$/m);
   });
 
   test("shows the SLO notice banner and links through to the Monitors page", () => {

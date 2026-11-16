@@ -81,6 +81,22 @@ export const UPDATES_SECTION_TITLE: string = translationKey(
   "Which updates to post",
 );
 
+/*
+ * An on-call rule's switch under its answers (issue #7968), shown while it
+ * posts who is on call now: its hand-off line then mentions - notifies -
+ * the person who comes on call, by the chat account they connected. Off
+ * unless turned on. And the line the rule's card says it with.
+ */
+export const MENTION_WHO_IS_ON_CALL_TITLE: string = translationKey(
+  "Mention the person who comes on call",
+);
+export const MENTION_WHO_IS_ON_CALL_DESCRIPTION: string = translationKey(
+  "They are notified in the channel at each hand-off, once they have connected their chat account to OneUptime.",
+);
+export const MENTION_WHO_IS_ON_CALL_SUMMARY: string = translationKey(
+  "Mentions the person who comes on call",
+);
+
 // The three answers.
 export const EVERY_UPDATE_TITLE: string = translationKey("Every update");
 export const KEY_UPDATES_TITLE: string = translationKey("Key updates only");
@@ -563,6 +579,11 @@ export interface UpdatesSummary {
    * none after its first message.
    */
   updates: Array<string>;
+  /*
+   * An on-call rule that mentions the person who comes on call (issue
+   * #7968): "Mentions the person who comes on call". None for every other.
+   */
+  mention: string | undefined;
 }
 
 /*
@@ -575,6 +596,10 @@ export interface UpdatesSummary {
  *
  *   Only when an incident is declared or a video call starts
  *                                             every box cleared
+ *
+ *   Key updates only                          an on-call rule that mentions
+ *   Who is on call now · Nobody on call       the person who comes on call
+ *   Mentions the person who comes on call     (issue #7968)
  */
 export function getUpdatesSummary(data: {
   rule: StoredRuleUpdates;
@@ -592,8 +617,15 @@ export function getUpdatesSummary(data: {
       eventType: data.eventType,
     });
 
+  // Said only while the rule mentions anybody: it posts who is on call now.
+  const mention: string | undefined =
+    NotificationRuleUpdates.canMentionWhoIsOnCall(data.eventType) &&
+    NotificationRuleUpdates.isMentioningWhoIsOnCall(data.rule)
+      ? tx(MENTION_WHO_IS_ON_CALL_SUMMARY)
+      : undefined;
+
   if (choice === NotificationRuleUpdatesChoice.EveryUpdate) {
-    return { title: tx(EVERY_UPDATE_TITLE), updates: [] };
+    return { title: tx(EVERY_UPDATE_TITLE), updates: [], mention: mention };
   }
 
   const posted: Array<NotificationRuleUpdateKind> =
@@ -606,6 +638,7 @@ export function getUpdatesSummary(data: {
     return {
       title: tx(UPDATES_COPY[data.eventType].nothingChosenTitle),
       updates: [],
+      mention: undefined,
     };
   }
 
@@ -626,5 +659,6 @@ export function getUpdatesSummary(data: {
         ? tx(KEY_UPDATES_TITLE)
         : undefined,
     updates: names,
+    mention: mention,
   };
 }

@@ -27,7 +27,11 @@ import {
   needsOnCallRuleCheck,
   shouldAskForGoals,
   GOAL_PRODUCTS,
+  WELCOME_STEP_MINUTES,
   WELCOME_STEP_PRODUCTS,
+  getPlanStepsForGoals,
+  getWelcomeMinutesLeft,
+  getWelcomeStepsMinutes,
   isGoalOffOnServer,
   isWelcomeStepOffOnServer,
 } from "../../../Types/WelcomeChecklist/WelcomeChecklist";
@@ -840,5 +844,187 @@ describe("products switched off on the server", () => {
     expect(
       isWelcomeStepOffOnServer(WelcomeStep.Team, [ProductKey.Monitors]),
     ).toBe(false);
+  });
+});
+
+/*
+ * About how long each step takes (issue #8897): said beside each step of
+ * the quickstart, added up for what is left, and added up for the plan a
+ * choice of goals brings, before it is sent.
+ */
+describe("about how long it takes", () => {
+  test("every step says how many minutes, a whole number of at least one", () => {
+    expect(Object.keys(WELCOME_STEP_MINUTES).sort()).toEqual(
+      [...WELCOME_STEP_ORDER].sort(),
+    );
+
+    for (const step of WELCOME_STEP_ORDER) {
+      const minutes: number = WELCOME_STEP_MINUTES[step];
+
+      expect({ step, whole: Number.isInteger(minutes) }).toEqual({
+        step,
+        whole: true,
+      });
+      expect({ step, atLeastOne: minutes >= 1 }).toEqual({
+        step,
+        atLeastOne: true,
+      });
+    }
+  });
+
+  test("a guided setup's step takes a few minutes, never an hour", () => {
+    for (const step of WELCOME_STEP_ORDER) {
+      expect({ step, short: WELCOME_STEP_MINUTES[step] <= 15 }).toEqual({
+        step,
+        short: true,
+      });
+    }
+  });
+
+  test("the four steps every project gets add up to a quarter of an hour at most, as the Quickstart guide says", () => {
+    expect(getWelcomeStepsMinutes(DEFAULT_WELCOME_STEPS)).toBeLessThanOrEqual(
+      15,
+    );
+    expect(getWelcomeStepsMinutes([])).toBe(0);
+    expect(
+      getWelcomeStepsMinutes([WelcomeStep.Monitor, WelcomeStep.StatusPage]),
+    ).toBe(
+      WELCOME_STEP_MINUTES[WelcomeStep.Monitor] +
+        WELCOME_STEP_MINUTES[WelcomeStep.StatusPage],
+    );
+  });
+
+  test("what is left counts the steps not done that the plan allows", () => {
+    const steps: Array<WelcomeChecklistStepState> = [
+      {
+        step: WelcomeStep.Monitor,
+        isDone: true,
+        needsPlan: null,
+        isNext: false,
+      },
+      {
+        step: WelcomeStep.OnCall,
+        isDone: false,
+        needsPlan: null,
+        isNext: true,
+      },
+      {
+        step: WelcomeStep.StatusPage,
+        isDone: false,
+        needsPlan: null,
+        isNext: false,
+      },
+      {
+        step: WelcomeStep.Team,
+        isDone: false,
+        needsPlan: PlanType.Growth,
+        isNext: false,
+      },
+    ];
+
+    expect(getWelcomeMinutesLeft(steps)).toBe(
+      WELCOME_STEP_MINUTES[WelcomeStep.OnCall] +
+        WELCOME_STEP_MINUTES[WelcomeStep.StatusPage],
+    );
+    expect(
+      getWelcomeMinutesLeft(
+        steps.map((state: WelcomeChecklistStepState) => {
+          return { ...state, isDone: true, needsPlan: null };
+        }),
+      ),
+    ).toBe(0);
+  });
+
+  test("a checklist built for goals has as many minutes left as its steps take, until one is done", () => {
+    const checklist: WelcomeChecklist = buildWelcomeChecklist({
+      goals: [ProjectGoal.Uptime, ProjectGoal.StatusPage],
+      facts: NOTHING,
+      plan: { isFreePlan: false },
+      readerIsServerAdmin: false,
+    });
+
+    expect(getWelcomeMinutesLeft(checklist.steps)).toBe(
+      getWelcomeStepsMinutes(stepsOf(checklist)),
+    );
+
+    const afterMonitor: WelcomeChecklist = buildWelcomeChecklist({
+      goals: [ProjectGoal.Uptime, ProjectGoal.StatusPage],
+      facts: facts({
+        reached: [ActivationMilestone.FirstCheckResultReceived],
+      }),
+      plan: { isFreePlan: false },
+      readerIsServerAdmin: false,
+    });
+
+    expect(getWelcomeMinutesLeft(afterMonitor.steps)).toBe(
+      getWelcomeStepsMinutes(stepsOf(checklist)) -
+        WELCOME_STEP_MINUTES[WelcomeStep.Monitor],
+    );
+  });
+});
+
+describe("the plan a choice of goals brings, before it is sent", () => {
+  test("nothing chosen is no plan: never the four steps a skip gives", () => {
+    expect(getPlanStepsForGoals([])).toEqual([]);
+  });
+
+  test("the goals' steps, each once, in the checklist's order", () => {
+    expect(
+      getPlanStepsForGoals([ProjectGoal.StatusPage, ProjectGoal.Uptime]),
+    ).toEqual([
+      WelcomeStep.Monitor,
+      WelcomeStep.OnCall,
+      WelcomeStep.StatusPage,
+    ]);
+    expect(getPlanStepsForGoals([ProjectGoal.OnCall])).toEqual([
+      WelcomeStep.Monitor,
+      WelcomeStep.OnCall,
+      WelcomeStep.Team,
+    ]);
+  });
+
+  test("is the steps the server builds for the same goals", () => {
+    for (const goal of PROJECT_GOALS) {
+      const checklist: WelcomeChecklist = buildWelcomeChecklist({
+        goals: [goal],
+        facts: NOTHING,
+        plan: { isFreePlan: false },
+        readerIsServerAdmin: false,
+      });
+
+      expect({ goal, steps: getPlanStepsForGoals([goal]) }).toEqual({
+        goal,
+        steps: stepsOf(checklist),
+      });
+    }
+  });
+
+  test("leaves out a step of a product switched off on the server, as the server does", () => {
+    const off: Array<ProductKey> = [ProductKey.StatusPages];
+
+    expect(
+      getPlanStepsForGoals([ProjectGoal.Uptime, ProjectGoal.StatusPage], off),
+    ).toEqual(
+      stepsOf(
+        buildWelcomeChecklist({
+          goals: [ProjectGoal.Uptime, ProjectGoal.StatusPage],
+          facts: NOTHING,
+          plan: { isFreePlan: false },
+          readerIsServerAdmin: false,
+          offProducts: off,
+        }),
+      ),
+    );
+    expect(getPlanStepsForGoals([ProjectGoal.StatusPage], off)).not.toContain(
+      WelcomeStep.StatusPage,
+    );
+  });
+
+  test("never names the server's email: it is no goal's", () => {
+    for (const goal of PROJECT_GOALS) {
+      expect(getPlanStepsForGoals([goal])).not.toContain(
+        WelcomeStep.ServerEmail,
+      );
+    }
   });
 });

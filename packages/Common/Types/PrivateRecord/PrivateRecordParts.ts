@@ -27,11 +27,61 @@ export const PRIVATE_RECORD_TABLES: ReadonlyArray<string> = [
  * episode; an incident's link to an alert is read through the incident and
  * is as much a part of the alert. A write of such a row changes both, and is
  * held to both. PrivateRecordParts.test lists every model naming two.
+ *
+ * The same holds for what a person does ABOUT a private record, though it
+ * is read through something else (#8913):
+ *
+ *   - a page of an on-call policy, about the incident, alert or episode it
+ *     names (triggeredBy*): the Dashboard's Execute On-Call Policy, Page
+ *     now, Slack, Microsoft Teams and OneUptime AI - and each step of it,
+ *     which OneUptime writes;
+ *   - a run of a runbook linked to an incident or an alert: Run runbook,
+ *     OneUptime AI, and the steps advanced, skipped or cancelled;
+ *   - a fix OneUptime AI proposed for an incident or an alert: approved,
+ *     dry-run again or dismissed.
+ *
+ * On a private record, each is made only with the permissions of the teams
+ * that own it, of the people named as its owners, and of Project Owners and
+ * Admins - like a note on it - and read only by those who see the record.
+ *
+ * So is what OneUptime sent about one - the email, SMS, call, push, WhatsApp,
+ * Telegram, Slack or Microsoft Teams message and webhook logs, and the
+ * calls it made to an AI provider - whose text quotes the record: only
+ * OneUptime writes them, and only those who see the record read them. A
+ * person's own page (UserOnCallLog) is theirs: they were paged about it.
  */
 export const ALSO_PART_OF: Readonly<Record<string, ReadonlyArray<string>>> = {
   AlertEpisodeMember: ["alertEpisodeId"],
   IncidentEpisodeMember: ["incidentEpisodeId"],
   IncidentAlert: ["alertId"],
+  OnCallDutyPolicyExecutionLog: [
+    "triggeredByIncidentId",
+    "triggeredByAlertId",
+    "triggeredByIncidentEpisodeId",
+    "triggeredByAlertEpisodeId",
+  ],
+  OnCallDutyPolicyExecutionLogTimeline: [
+    "triggeredByIncidentId",
+    "triggeredByAlertId",
+    "triggeredByIncidentEpisodeId",
+    "triggeredByAlertEpisodeId",
+  ],
+  RunbookExecution: ["incidentId", "alertId"],
+  AutoRemediationSuggestion: ["incidentId", "alertId"],
+  CallLog: ["incidentId", "alertId"],
+  EmailLog: ["incidentId", "alertId"],
+  LlmLog: ["incidentId", "alertId"],
+  PushNotificationLog: ["incidentId", "alertId"],
+  SmsLog: ["incidentId", "alertId"],
+  TelegramLog: ["incidentId", "alertId"],
+  WebhookLog: ["incidentId", "alertId"],
+  WhatsAppLog: ["incidentId", "alertId"],
+  WorkspaceNotificationLog: [
+    "incidentId",
+    "alertId",
+    "incidentEpisodeId",
+    "alertEpisodeId",
+  ],
 };
 
 // What the two functions below read of a model: a database model is one.

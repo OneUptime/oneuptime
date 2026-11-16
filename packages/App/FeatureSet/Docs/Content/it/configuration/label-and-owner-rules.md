@@ -107,6 +107,8 @@ Il modulo di modifica di una regola ha gli stessi due passaggi e aggiunge l'inte
 
 Una regola del genere si può comunque rinominare, disattivare o eliminare, anche tramite l'API e Terraform. L'elenco contrassegna una regola che non aggiunge nulla con **Non aggiunge nulla** accanto al suo stato, e lo stesso fa la pagina della regola. Modificala per scegliere cosa aggiunge, oppure eliminala.
 
+Una regola le cui etichette di corrispondenza sono tutte eliminate viene disattivata invece di corrispondere a ogni risorsa, e l'elenco la segnala con **Limitata a record eliminati** accanto al suo stato. Modificatela per scegliere a cosa corrisponde, poi riattivatela. Vedete [Quando vengono eliminati i record a cui una regola è limitata](/docs/incidents/settings#quando-vengono-eliminati-i-record-a-cui-una-regola-è-limitata).
+
 ## Quando vengono eseguite le regole
 
 Ogni regola abilitata viene eseguita quando si crea una risorsa, dalla dashboard o tramite l'API, e ogni regola che corrisponde aggiunge ciò che aggiunge:

@@ -67,6 +67,8 @@ export const STATUS_PAGE_NAME_MIN_LENGTH: number =
   GUIDED_STATUS_PAGE_NAME_MIN_LENGTH;
 
 export const STATUS_PAGE_SETUP_COPY: {
+  pickOutcome: string;
+  reviewOutcome: string;
   setupTitle: string;
   setupDescription: string;
   cannotCreate: string;
@@ -110,6 +112,14 @@ export const STATUS_PAGE_SETUP_COPY: {
   nextStatusPage: string;
   startOver: string;
 } = {
+  /*
+   * What each step sets up, beside the steps (GuidedSetupFrame, #8897): the
+   * outcome the person is working towards, ticked as each step is done.
+   */
+  pickOutcome: translationKey(
+    "A status page shows your monitors, with their status and uptime.",
+  ),
+  reviewOutcome: translationKey("Your customers see it at its own address."),
   setupTitle: translationKey("Publish a status page"),
   setupDescription: translationKey(
     "Guided setup: name a status page, pick what it shows and see what your customers see, on this page.",

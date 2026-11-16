@@ -12,40 +12,30 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const networkDeviceRoleDocumentation: string = `
-### How Device Roles Work
+A device role says what a device does on your network: Router, Switch, Firewall, Wireless AP and so on. Rename the roles, drag them into the order you want, delete the ones you do not use, or add your own, such as \`PoS Terminal\`, \`SD-WAN Edge\` or \`Kiosk\`.
 
-A device role is what a device DOES on your network — Router, Switch, Firewall, Wireless AP and so on. The defaults are a starting point: rename them, drag them into the order you want them listed in, delete the ones you don't use, or add your own (\`PoS Terminal\`, \`SD-WAN Edge\`, \`Kiosk\`) to match the estate you actually run.
+## Where a Device's Role Comes From
 
-### Where a device's role comes from
+The first of these wins:
 
-Two places, and the first one wins:
+1. **The role you give it**, on the device's **Settings** (Network > Devices > a device). This is the only role that is not worked out.
+2. **SNMP**: left without one, a device's role is worked out from its own identity, its \`sysDescr\`, \`sysObjectId\`, model and hostname.
 
-1. **The role you assign it** on the device itself (Network > Devices > a device > Settings). This is the only statement about a role that is not a guess.
-2. **SNMP classification.** Left unassigned, OneUptime works the role out from the device's own identity — its \`sysDescr\`, \`sysObjectId\`, model and hostname. That is more reliable than a guess, which is why it is the default for anything with SNMP to read.
+A device nothing walks, such as a ping-only device or one whose health comes from a monitor, has no identity to work from: give it a role, or it is drawn as a plain node.
 
-A device nothing walks — a ping-only device, or one whose health comes from a monitor — has no identity to classify, so assigning it a role here is the only way it is drawn as anything but an anonymous node.
+## Key
 
-### Key
+A role's **Key** is made from its name when it is created and never changes. SNMP matches devices to it, so renaming \`Wireless AP\` to \`Access Point\` keeps every access point already found pointing at it. The eleven roles OneUptime starts with keep the keys SNMP gives, which is why a new name does not change them.
 
-Each role has a **Key**, derived from its name when the role is created and never changed afterwards. The key is the role's identity: SNMP classification matches against it, so renaming \`Wireless AP\` to \`Access Point\` keeps every access point already classified pointing at the renamed role. The eleven seeded roles keep the keys the classifier emits, which is why they cannot be re-derived from a new name.
+## Shape, Core Layer and SNMP Walkable
 
-### Shape
+- **Topology Shape** is how devices of the role are drawn on the network map, as engineers draw them by hand: a circle for a router, a rounded square for a switch, a diamond for a firewall, a triangle for an access point.
+- **Is Core Layer** marks the roles at the top of the network, the ones everything else reaches the world through. The tiered and radial layouts put them above everything else, and the parent-child layout starts its trees from them. Router, Firewall and Load balancer are core to begin with. A switch is not: it hangs off a router.
+- **Is SNMP Walkable** says whether a device of the role is worth polling over SNMP. A handset, a camera or a desk printer only answers a ping, so adding one from the map gives it a monitor instead of an SNMP poll that would never answer.
 
-\`Topology Shape\` is the silhouette devices of this role are drawn with on the network map, following the conventions network engineers already draw with by hand — a circle for a router, a rounded square for a switch, a diamond for a firewall, a triangle for an access point.
+## Deleting a Role
 
-### Core Layer
-
-\`Is Core Layer\` is load-bearing, not a label. It marks the roles that sit at the **top of the network** — the boxes everything else reaches the rest of the world through. The tiered and radial topology layouts band core devices above everything else, and the parent-child layout prefers them when it picks the root of a tree.
-
-Router, Firewall and Load balancer are core by default. Switch deliberately is not: a switch is infrastructure, but it is infrastructure that hangs off a router.
-
-### SNMP Walkable
-
-\`Is SNMP Walkable\` says whether a device of this role is worth polling with SNMP. A handset, a camera and a desk printer answer a ping and nothing else. Adopting one from the topology map therefore opens on a **monitor** rather than SNMP polling, so you don't end up with a device that is permanently unreachable.
-
-### Deleting a role
-
-Deleting a role does **not** delete the devices using it. They go back to being classified from their own SNMP identity — exactly what an unassigned role has always meant. Delete a *seeded* role and SNMP classification can still produce it; such a device is drawn as a neutral node until you add the role back.
+Deleting a role does not delete its devices: they go back to having their role worked out from SNMP. Delete one of the roles OneUptime starts with, and SNMP can still give it: such a device is drawn as a plain node until you add the role back.
 `;
 
 /*

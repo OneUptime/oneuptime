@@ -211,10 +211,13 @@ journey(
 
 /*
  * 1 and 2, guided (#6804): the same job - a website monitor, and being told
- * when it goes down - in the guided setup that Home's "Create your first
- * monitor" opens (and its checklist, for the goal "Know when my website or
- * API is down"). The address, who is told (me, to start with), and a test
- * page to myself, acknowledged from the email. Ends on the summary.
+ * when it goes down - in the guided setup the checklist's "Create your first
+ * monitor" opens, after the goal "Know when my website or API is down" is
+ * picked on Home. A new project's Home is its quickstart alone (#8897), so
+ * the job starts at the question, as the on-call setup's does, not at the
+ * health card's shortcut the question now replaces. The address, who is
+ * told (me, to start with), and a test page to myself, acknowledged from
+ * the email. Ends on the summary.
  */
 journey(
   "website-down-guided",
@@ -223,6 +226,8 @@ journey(
       `${DASHBOARD}/home/`,
       page.getByRole("heading", { name: "Home" }),
     );
+    await person.tick(/Know when my website or API is down/);
+    await person.press("Continue");
     await person.press(/Create your first monitor/);
     await person.type(
       "Website or API address",

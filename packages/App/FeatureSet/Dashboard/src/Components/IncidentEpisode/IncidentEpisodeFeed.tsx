@@ -4,6 +4,8 @@ import {
   getExecuteOnCallPolicyDescription,
   getExecuteOnCallPolicyMenuLock,
 } from "../OnCallPolicy/ExecutePolicy/ExecuteOnCallPolicyWords";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import { usePrivateRecordGate } from "Common/UI/Utils/PrivateRecordScope";
 import { OnCallPageRecordType } from "Common/Types/OnCallDutyPolicy/OnCallPagePassOn";
 import { EventStanding } from "../../Utils/EventDuration";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -92,6 +94,10 @@ export const getIncidentEpisodeFeedEventIcon: (
   return getIncidentEpisodeFeedIcon(eventType as IncidentEpisodeFeedEventType);
 };
 
+// What its menu's actions start, asked about with the record's scope.
+const PRIVATE_RECORD_PAGE: OnCallDutyPolicyExecutionLog =
+  new OnCallDutyPolicyExecutionLog();
+
 const IncidentEpisodeFeedElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -100,11 +106,24 @@ const IncidentEpisodeFeedElement: FunctionComponent<ComponentProps> = (
   const [showOnCallPolicyModal, setShowOnCallPolicyModal] =
     React.useState<boolean>(false);
 
-  // Execute On-Call Policy, by where the incident episode stands.
+  /*
+   * What the reader holds on the incident episode when it is private
+   * (PrivateRecordScope): a page about it is started only through a team of theirs that owns it
+   * (#8913), so the menu locks it saying why when none of those may.
+   */
+  const privateRecordGate: ReturnType<typeof usePrivateRecordGate> =
+    usePrivateRecordGate();
+
+  // Execute On-Call Policy, by where the incident episode stands and who may page.
   const executePolicyLock: ExecuteOnCallPolicyMenuLock =
     getExecuteOnCallPolicyMenuLock({
       recordType: OnCallPageRecordType.IncidentEpisode,
       standing: props.standing,
+      permissionGate: PermissionGate.check(
+        new OnCallDutyPolicyExecutionLog(),
+        ModelAction.Create,
+        privateRecordGate(PRIVATE_RECORD_PAGE),
+      ),
     });
 
   type GetFeedItemsFromEpisodeFeeds = (

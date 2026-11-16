@@ -47,7 +47,7 @@ Klik på **Gem ændringer**, som vises, så snart noget er ændret. Det skriver 
 
 **Test dine kald**, nederst på siden, sender dig et testkald gennem dem.
 
-Når en alvorlighed fortjener noget andet, åbner **Anderledes for nogle alvorligheder** under trinnene fanerne og kortene, der er beskrevet nedenfor. Et kort, der afviger fra din rækkefølge, er markeret med **Afviger fra rækkefølgen**, og rækkefølgen viser, hvad hvert kort gør i stedet. Afviger dine regler allerede, åbner siden på kortene med **Brug én rækkefølge til alt**: når du gemmer, nævner den først de kort, der mister deres afvigelse. En alvorlighed, dit projekt har arkiveret, beholder sine egne regler.
+Når en alvorlighed fortjener noget andet, åbner **Anderledes for nogle alvorligheder**, knappen ved siden af titlen, fanerne og kortene, der er beskrevet nedenfor. Et kort, der afviger fra din rækkefølge, er markeret med **Afviger fra rækkefølgen**. Siden åbner stadig på dine trin og viser under dem hvert kort, der afviger, og hvad det gør i stedet. **Gem ændringer** lader de kort være, som de er; **Brug denne rækkefølge for alle alvorligheder**, sidst i listen, giver dem også din rækkefølge, efter at have nævnt de kort, der mister deres afvigelse. En alvorlighed, dit projekt har arkiveret, beholder sine egne regler.
 
 En vagtpolitik bestemmer, hvem der kaldes, og hvornår dens næste niveau kommer. Hvordan du nås, er denne rækkefølge, for hver politik, der kalder dig.
 

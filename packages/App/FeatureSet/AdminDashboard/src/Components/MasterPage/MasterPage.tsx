@@ -2,13 +2,11 @@ import Footer from "../Footer/Footer";
 import Header from "../Header/Header";
 import NavBar from "../NavBar/NavBar";
 import MasterPage from "Common/UI/Components/MasterPage/MasterPage";
-import TopAlert from "Common/UI/Components/TopAlert/TopAlert";
 import ServerSendingTopAlert from "Common/UI/Components/ServerSending/ServerSendingTopAlert";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import React, { FunctionComponent, ReactElement } from "react";
-import { useTranslation } from "react-i18next";
 
 export interface ComponentProps {
   children: ReactElement | Array<ReactElement>;
@@ -17,16 +15,14 @@ export interface ComponentProps {
 const DashboardMasterPage: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const { t } = useTranslation();
   return (
     <div>
-      <TopAlert
-        title={t("topAlert.title")}
-        description={t("topAlert.description")}
-      />
       {/*
-       * While the server cannot send email, or its global probes have all
-       * stopped reporting: what is not happening, and where to fix it.
+       * No banner saying what this dashboard is: the header's "Admin
+       * Dashboard" label and the trail every page starts with say it
+       * (#9041). A banner here is only for what a master admin must act on:
+       * while the server cannot send email, or its global probes have all
+       * stopped reporting, what is not happening and where to fix it.
        */}
       <ServerSendingTopAlert
         emailSettingsLink={RouteUtil.populateRouteParams(

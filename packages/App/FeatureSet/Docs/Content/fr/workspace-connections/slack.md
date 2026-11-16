@@ -132,7 +132,7 @@ Une règle de notification peut appartenir à des équipes. **Équipes responsab
 > 📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then @bob.
 
 - Payments renvoie à la politique dans OneUptime. Quand la politique appelle plus d'un planning, la ligne nomme aussi le planning : Payments (Primary).
-- Une personne est nommée par son nom Slack une fois qu'elle a connecté son compte Slack à OneUptime, et par son nom OneUptime jusque-là. Les heures s'affichent dans le fuseau horaire de chaque lecteur.
+- Une personne est nommée par son nom Slack une fois qu'elle a connecté son compte Slack à OneUptime, et par son nom OneUptime jusque-là, dans chaque ligne d'astreinte : relèves, remplacements, et personnes ajoutées à la politique ou retirées. Les heures s'affichent dans le fuseau horaire de chaque lecteur.
 - Quand plusieurs règles d'escalade de la politique appellent le même planning, chaque relève est publiée une fois, et non une fois par règle.
 
 Une règle publie ce qu'elle a choisi à son étape **Mises à jour**, et une nouvelle règle commence par **Mises à jour clés uniquement** : qui est d'astreinte maintenant, et quand personne ne l'est.
@@ -147,6 +147,8 @@ Une règle publie ce qu'elle a choisi à son étape **Mises à jour**, et une no
 | **Propriétaires** | Propriétaires ajoutés et retirés. |
 
 Un canal reçoit un seul message par relève, même quand deux règles y publient. Une règle d'astreinte enregistrée avant que les règles choisissent leurs mises à jour les publie toutes, comme avant.
+
+Un nom ne notifie personne, si bien qu'un canal qui entend chaque relève n'est pas sollicité à chacune. Pour notifier la personne qui prend l'astreinte, activez **Mentionner la personne qui prend l'astreinte** à l'étape **Mises à jour** de la règle : la ligne de la relève la mentionne alors, une fois qu'elle a connecté son compte Slack à OneUptime. La personne suivante n'est jamais mentionnée, ni personne qui n'a pas connecté son compte. L'interrupteur s'affiche tant que la règle publie **Qui est d'astreinte maintenant**, et il est désactivé pour une nouvelle règle.
 
 ## Qui est dans le canal d'un enregistrement
 
@@ -261,7 +263,7 @@ OneUptime ne répond qu'à ce qui lui est adressé.
 - **Dans le canal propre d'une alerte.** Dans le canal que OneUptime a créé pour une alerte, tant que l'alerte est ouverte, le formulaire dit que l'incident est déclaré depuis cette alerte, et commence avec le titre de l'alerte et les ressources auxquelles elle est liée que vous pouvez voir. L'incident est lié à l'alerte, comme un incident déclaré depuis la page de l'alerte, et l'incident d'une alerte privée est privé lui aussi. Quand vous ne pouvez pas lier des alertes à des incidents, l'incident est déclaré sans le lien, et vous apprenez pourquoi.
 - **Ce qu'un formulaire peut nommer.** L'incident ou l'événement est créé avec vos propres autorisations et vous est attribué. Un moniteur, une politique d'astreinte, une étiquette, une gravité ou un état que vous ne pouvez pas lire, ou qui appartient à un autre projet, est refusé comme un élément que le projet n'a pas, même depuis un formulaire ouvert avant que votre accès change, et rien n'est créé. OneUptime vous dit pourquoi dans le canal, dans un message que vous seul voyez.
 
-**Execute On-Call Policy** sur un incident, une alerte ou un épisode fonctionne de la même façon : il demande l'autorisation d'exécuter une politique d'astreinte (**Propriétaire du projet**, **Administrateur du projet**, **Membre du projet**, **Administrateur des astreintes** et **Membre des astreintes**, ou **Execute On-Call Policies** dans un rôle personnalisé) et de lire cet incident, cette alerte ou cet épisode, et propose les politiques d'astreinte actives que vous pouvez lire.
+**Execute On-Call Policy** sur un incident, une alerte ou un épisode fonctionne de la même façon : il demande l'autorisation d'exécuter une politique d'astreinte (**Propriétaire du projet**, **Administrateur du projet**, **Membre du projet**, **Administrateur des astreintes** et **Membre des astreintes**, ou **Execute On-Call Policies** dans un rôle personnalisé) et de lire cet incident, cette alerte ou cet épisode, et propose les politiques d'astreinte actives que vous pouvez lire. La politique alerte ses personnes jusqu'à ce que l'une d'elles réponde ou que l'incident, l'alerte ou l'épisode soit résolu, même si quelqu'un l'a déjà pris en compte, et le formulaire le dit sous sa liste.
 
 ## Alerter quelqu'un depuis Slack
 

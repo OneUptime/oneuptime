@@ -68,6 +68,8 @@ const SECTION_AFTER: string = "Turn on two-factor authentication";
 
 // What the Accounts app draws at each step, in the order a reader meets it.
 const SIGN_IN_OPTION: string = "login.emailSignInLink";
+// The fold the option is in on the sign-in page (#9023).
+const MORE_WAYS: string = "login.moreWaysToSignIn";
 const REQUEST_BUTTON: string = "magicLink.submitButton";
 const SENT_TITLE: string = "magicLink.sentTitle";
 const LINK_PAGE_BUTTON: string = "login.magicLink.submit";
@@ -401,7 +403,7 @@ describe("Your Account, in English", () => {
 
   it("walks through the steps with each screen's own words", () => {
     expect(stepsOf(section)).toEqual([
-      `1. On the sign-in page, choose **${drawn(ACCOUNTS, "en", SIGN_IN_OPTION)}**.`,
+      `1. On the sign-in page, choose **${drawn(ACCOUNTS, "en", MORE_WAYS)}** → **${drawn(ACCOUNTS, "en", SIGN_IN_OPTION)}**.`,
       `2. Enter your email address and click **${drawn(ACCOUNTS, "en", REQUEST_BUTTON)}**. The page then shows **${drawn(ACCOUNTS, "en", SENT_TITLE)}**.`,
       `3. Open the link in the email and click **${drawn(ACCOUNTS, "en", LINK_PAGE_BUTTON)}**.`,
     ]);

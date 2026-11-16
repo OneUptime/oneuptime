@@ -84,14 +84,14 @@ En ny adgangskode logger alle enheder ud af din konto, og ethvert nulstillingsli
 3. Følg din browsers anvisning for at gemme adgangsnøglen.
 :::
 
-Næste gang vælger du **Log ind med en adgangsnøgle** på loginsiden.
+Næste gang vælger du **Flere måder at logge ind på** → **Log ind med en adgangsnøgle** på loginsiden.
 
 ### Log ind med et link sendt på e-mail
 
 Du kan logge ind med et link i stedet for din adgangskode. Der er intet at sætte op.
 
 :::steps
-1. Vælg **Send mig et login-link** på loginsiden.
+1. Vælg **Flere måder at logge ind på** → **Send mig et login-link** på loginsiden.
 2. Indtast din e-mailadresse, og klik på **Send mig et login-link**. Siden viser derefter **Tjek din e-mail**.
 3. Åbn linket i e-mailen, og klik på **Log ind**.
 :::

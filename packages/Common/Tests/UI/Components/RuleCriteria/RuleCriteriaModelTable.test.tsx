@@ -21,6 +21,10 @@ import {
   getRuleCriteriaSummaryText,
   RULE_CRITERIA_SUMMARY_MATCHES_NOTHING,
 } from "../../../../UI/Components/RuleCriteria/RuleCriteriaSummary";
+import {
+  getLabelRuleHelpMarkdown,
+  getOwnerRuleHelpMarkdown,
+} from "../../../../../App/FeatureSet/Dashboard/src/Utils/Help/ResourceRuleHelp";
 import IncidentOnCallRule from "../../../../Models/DatabaseModels/IncidentOnCallRule";
 import HostLabelRule from "../../../../Models/DatabaseModels/HostLabelRule";
 import RunbookRule from "../../../../Models/DatabaseModels/RunbookRule";
@@ -122,7 +126,7 @@ function extractMatchCriteriaHelpMarkdown(source: string): Array<string> {
       const markdown: string = node.getText(sourceFile).slice(1, -1);
 
       if (
-        markdown.match(/^#{3,4} Match Criteria(?: \(Filtering\))?$/m) !== null
+        markdown.match(/^#{2,4} Match Criteria(?: \(Filtering\))?$/m) !== null
       ) {
         result.push(markdown);
       }
@@ -133,6 +137,29 @@ function extractMatchCriteriaHelpMarkdown(source: string): Array<string> {
 
   visit(sourceFile);
   return result;
+}
+
+/*
+ * The help a resource's label and owner rule pages write with the shared
+ * helpers (Dashboard Utils/Help/ResourceRuleHelp, #8889): one document per
+ * call, each with the Match Criteria topic the table rewrites.
+ */
+const SHARED_RULE_HELP_CALL: RegExp =
+  /\b(getLabelRuleHelpMarkdown|getOwnerRuleHelpMarkdown)\(\{/g;
+
+function getSharedRuleHelpMarkdown(source: string): Array<string> {
+  return Array.from(source.matchAll(SHARED_RULE_HELP_CALL)).map(
+    (match: RegExpMatchArray): string => {
+      const nouns: { singular: string; plural: string } = {
+        singular: "resource",
+        plural: "resources",
+      };
+
+      return match[1] === "getLabelRuleHelpMarkdown"
+        ? getLabelRuleHelpMarkdown({ nouns: nouns })
+        : getOwnerRuleHelpMarkdown({ nouns: nouns });
+    },
+  );
 }
 
 describe("rule criteria table integration", () => {
@@ -350,9 +377,12 @@ More details stay here.
     );
     const helpMarkdown: Array<string> = helpFormFiles.flatMap(
       (filePath: string): Array<string> => {
-        return extractMatchCriteriaHelpMarkdown(
-          fs.readFileSync(filePath, "utf8"),
-        );
+        const source: string = fs.readFileSync(filePath, "utf8");
+
+        return [
+          ...extractMatchCriteriaHelpMarkdown(source),
+          ...getSharedRuleHelpMarkdown(source),
+        ];
       },
     );
 
@@ -360,23 +390,26 @@ More details stay here.
      * The AI rules forms (investigation rules and auto remediation rules made
      * one: Match, Investigate, Fix - for incidents and alerts, and for each
      * telemetry lane in TelemetryAiRulesTable) have no help panel, nor has
-     * the postmortem rules form (Match, then Draft), nor have Data
-     * Security's label and owner rules for data stores, nor the cloud
-     * owner and label rules - Cloud's and, since the two products split,
-     * App Platforms' (81, with the alert incident rules: Match, then
-     * Incident, and a help panel whose Match Criteria section is the
-     * shared one, and OpenStack's and Data Observability's label and owner
-     * rules; 82 with the network naming rules, whose help has the shared
-     * Match Criteria section too).
+     * the postmortem rules form (Match, then Draft) (81, with the alert
+     * incident rules: Match, then Incident, and a help panel whose Match
+     * Criteria section is the shared one, and OpenStack's and Data
+     * Observability's label and owner rules; 82 with the network naming
+     * rules, whose help has the shared Match Criteria section too). Data
+     * Security's label and owner rules for data stores, the cloud ones -
+     * Cloud's and App Platforms' - and RUM's and Serverless's had no help
+     * panel either, until #8889 gave them the shared one: 76.
      */
     expect(staticRuleFormFiles).toHaveLength(82);
-    expect(helpFormFiles).toHaveLength(66);
+    expect(helpFormFiles).toHaveLength(76);
     /*
      * 68, the five episode rule help texts that now have the heading too,
      * the alert incident rules', two for Data Observability's data assets,
-     * and the network naming rules'.
+     * and the network naming rules'; 78 with the alert episode owner rules',
+     * which had none until every help became a lead and its topics (#8889),
+     * and 88 with the ten rule pages that had no help. Sixty of them are the
+     * resource label and owner rules' shared help.
      */
-    expect(helpMarkdown).toHaveLength(77);
+    expect(helpMarkdown).toHaveLength(88);
 
     for (const markdown of helpMarkdown) {
       const transformed: string = replaceRuleCriteriaHelpMarkdown(markdown);

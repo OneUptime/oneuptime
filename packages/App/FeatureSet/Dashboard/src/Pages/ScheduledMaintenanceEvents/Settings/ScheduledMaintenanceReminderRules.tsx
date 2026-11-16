@@ -16,38 +16,24 @@ import { MAINTENANCE_REMINDER_TIMING_FIELD_TITLE } from "../../../Components/Rem
 import MaintenanceReminderTimingText from "../../../Components/Reminders/MaintenanceReminderTimingText";
 
 const documentationMarkdown: string = `
-### How Scheduled Maintenance Reminder Rules Work
+A reminder rule keeps reminding a maintenance event's owners, as often as it says: before the event starts, while it is in progress, or both.
 
-A reminder rule reminds a maintenance event's owners, as often as it says. A new event gets the first rule that matches it, from the top of the list down, and its reminders go out when the rule's **Remind Owners** says: before the event starts, while it is in progress, or both.
+## How It Works
 
-\`\`\`mermaid
-flowchart TD
-    A[Maintenance Event Created] --> B{Match Against Reminder Rules}
-    B -->|Rule Matches| C[Schedule Reminder]
-    B -->|No Match| D[No Reminders]
-    C --> E[Wait for Interval]
-    E --> F{Time to Stop?}
-    F -->|No| G[Notify Event Owners]
-    G --> E
-    F -->|Yes| H[Stop Reminders]
-\`\`\`
+- A new event gets the first rule that matches it, from the top of the list down. Drag a rule by its handle to change its place; a new rule goes to the end.
+- Its owners are reminded at the rule's interval, when the rule's **Remind Owners** says.
+- An event no rule matches gets no reminders.
 
----
+## Match Criteria
 
-### Match Criteria
+| Condition | Matches |
+|-----------|---------|
+| **Labels** | Events with these labels. Leave it empty to match every event. |
 
-| Criteria | Description |
-|----------|-------------|
-| **Labels** | Only events with these labels. Leave empty to match all events. |
+## Remind Owners
 
-Rules are evaluated from the top of the list down - the first matching rule wins. Drag a rule by its handle to change its place; a new rule is added to the end.
-
----
-
-### Remind Owners
-
-| Answer | When reminders are sent |
-|--------|-------------------------|
+| Answer | When reminders go out |
+|--------|-----------------------|
 | **While it is in progress** | From when the event starts until it ends. A new rule starts here. |
 | **Before it starts** | From when the event is scheduled until it starts. |
 | **Before it starts and while it is in progress** | From when the event is scheduled until it ends. |

@@ -72,31 +72,54 @@ interface FormModalState {
 }
 
 const documentationMarkdown: string = `
-### How Security Event Connections Work
+A connection brings in what one security product finds, such as a SIEM, an EDR or XDR platform, a cloud security service or an identity provider, as security events you can search, correlate and alert on. It polls the product on the interval you set.
 
-A connection polls one security product (a SIEM, an EDR / XDR platform, a cloud security service or an identity provider) on the interval set here and imports each new record as an OCSF security event attributed to that product. Records are read by the time the **source created them**, so a detection about yesterday that the source only created this morning is still picked up.
+## How a Connection Works
 
-- The first scheduled poll looks back 24 hours; older records need a historical import from **Diagnostics**.
-- **Test connection** runs immediately, without a worker, and reports a checklist: access to the provider, what it has available to import, and whether OneUptime's own workers and scheduler are running. It imports nothing.
-- **Health** reads *Polling, no events imported yet* while polls succeed but nothing has arrived. That is the state to investigate with **Test connection**, not a success.
-- Credentials are encrypted at rest and never returned by the API. Rotate them with **Update credentials**; leaving a credential blank while editing keeps the stored value.
-- **Last Error** stores the most recent failure with credentials redacted. Open **View Error** in the **Actions** column to read it.
+- Each poll imports the product's new records as OCSF security events attributed to it. Records are read by the time the **source created them**, so a detection about yesterday that the source created this morning is still picked up.
+- The first poll looks back 24 hours. Bring in older records with a historical import from **Diagnostics**.
+- Each provider's setup guide lists the roles, scopes and console locations for every value the form asks for.
 
-Each provider's setup guide lists the exact roles, scopes and console locations for every value the form asks for.
+## Testing and Health
+
+- **Test connection** runs at once, without a worker, and reports a checklist: access to the provider, what it has to import, and whether OneUptime's workers and scheduler are running. It imports nothing.
+- **Health** reads *Polling, no events imported yet* while polls succeed but nothing arrives. That is a state to look into with **Test connection**, not a success.
+- **Last Error** keeps the latest failure, with credentials redacted. Open **View Error** in the row's **Actions** to read it.
+
+## Credentials
+
+Credentials are encrypted and never returned by the API. Rotate them with **Update credentials**; a credential left blank while editing keeps its stored value.
 `;
 
 /*
- * The help panel: the framework-level text above, then a section for each
+ * A provider's help as topics of the help dialog (Common HelpContent): its
+ * "###" sections become "##" topics after the framework's, and the lines
+ * drawn between them go, as the dialog draws its own. The provider's
+ * markdown stays as written in ConnectorProviderHelp, which a test reads
+ * by its declaration.
+ */
+export function getConnectorProviderHelpTopics(markdown: string): string {
+  return markdown
+    .replace(/^### /gm, "## ")
+    .replace(/^---[ \t]*$/gm, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+/*
+ * The help panel: the framework-level text above, then the topics of each
  * provider that has in-product help of its own (ConnectorProviderHelp), in
  * catalog order.
  */
 export function securityEventConnectionsHelpMarkdown(): string {
-  return connectorProviderHelpEntries().reduce(
-    (markdown: string, entry: ConnectorProviderHelpEntry): string => {
-      return `${markdown}\n---\n${entry.markdown}`;
-    },
-    documentationMarkdown,
-  );
+  return [
+    documentationMarkdown.trim(),
+    ...connectorProviderHelpEntries().map(
+      (entry: ConnectorProviderHelpEntry): string => {
+        return getConnectorProviderHelpTopics(entry.markdown);
+      },
+    ),
+  ].join("\n\n");
 }
 
 /*
@@ -245,7 +268,7 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
         helpContent={{
           title: "How Security Event Connections Work",
           description:
-            "What a connection polls, how to test it, how to read its health, and provider-specific guidance",
+            "Bring what your security products find into OneUptime, as security events.",
           markdown: securityEventConnectionsHelpMarkdown(),
         }}
         noItemsMessage={

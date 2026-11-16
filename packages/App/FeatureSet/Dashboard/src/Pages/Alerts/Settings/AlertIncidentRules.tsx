@@ -43,40 +43,25 @@ import {
 } from "../../../Utils/Form/ResourceRuleForm";
 
 const alertIncidentRuleDocumentation: string = `
-### How Alert Incident Rules Work
+An incident rule declares an incident from the alerts it matches, so an alert that needs an incident gets one without anyone declaring it by hand.
 
-An incident rule declares an incident from the alerts it matches, so an alert that needs an incident gets one without anyone having to declare it by hand.
+## How It Works
 
-\`\`\`mermaid
-flowchart TD
-    A[New Alert Created] --> B{First Rule That Matches}
-    B -->|No Rule Matches| C[It Stays an Alert]
-    B -->|Declares Right Away| D[Incident Declared]
-    B -->|Has a Wait| E{Still Unresolved When the Wait Is Up?}
-    E -->|Yes| D
-    E -->|No| C
-    D --> F[Alert Linked to the Incident]
-\`\`\`
+- Rules are checked from the top of the list down, and the first one that matches an alert decides. Drag a rule to change its place.
+- The incident is declared as **Declare Incident** on the alert's page would declare it: it takes the alert's title, description, monitor, resources and labels, is private when the alert is, and the alert is linked to it. The incident's own on-call, owner, label and privacy rules then run on it, as on any new incident.
+- An alert becomes at most one incident this way: an alert already linked to an incident is left alone.
 
-### Match Criteria
+## Match Criteria
 
-The conditions an alert must meet.
+The conditions an alert must meet, such as its monitor, severity, labels or title.
 
-### What It Does
-
-When a rule matches, OneUptime declares an incident from the alert, as **Declare Incident** on the alert's page would: the incident takes the alert's title, description, monitor, resources and labels, is private when the alert is, and the alert is linked to it. The incident's own rules - on-call, owner, label and privacy rules - then run on it as on any new incident.
-
-### Severity
-
-Pick the incident's severity, or leave it empty to give each incident the severity that matches its alert's: the incident severity with the same name, or else the one at the same place in the list.
-
-### Waiting Before Declaring
+## Waiting Before Declaring
 
 With **Declare After (Minutes)** above 0, the incident is declared only if the alert is still unresolved when the wait is up. An alert that resolves on its own before then never becomes an incident.
 
-### Several Matching Rules
+## Severity
 
-Rules are checked from the top of the list down, and the first one that matches an alert decides. Drag the rows to put the rules in order. An alert becomes at most one incident this way: one already linked to an incident is left alone.
+Pick the incident's severity, or leave it empty to give each incident the severity that matches its alert's: the incident severity with the same name, or else the one at the same place in the list.
 `;
 
 const AlertIncidentRulesPage: FunctionComponent<

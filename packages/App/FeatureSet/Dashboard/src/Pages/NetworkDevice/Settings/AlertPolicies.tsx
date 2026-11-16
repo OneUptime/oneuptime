@@ -69,37 +69,36 @@ import {
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 const networkAlertPolicyDocumentation: string = `
-### What an Alert Policy Is
+An alert policy says once what a whole set of devices is alerted on: which devices, by site, role and label, and what to alert on, with a Network Device monitor template. OneUptime keeps one monitor per matching device as devices are added, moved, relabelled and removed, so the two-hundred-and-first warehouse switch is covered the moment it is discovered.
 
-A policy says once what a whole set of devices is alerted on: **which** devices (a scope of sites, device roles and labels) and **what** to alert on (a Network Device monitor template). The engine then keeps one Network Device monitor per matching device, cloned from that template, as devices are added, moved between sites, re-labelled, archived and removed. Two hundred warehouse switches that should raise an incident when unreachable is one policy, not two hundred monitors — and the two-hundred-and-first switch is covered the moment it is discovered.
+## Start with the Recommended Policy
 
-### Scope
+With no policies yet, the page offers one: a **Network device alert pack (recommended)** template and an **Alert on every device** policy that applies it to the whole project.
 
-- **AND across kinds**: a device must match the sites list AND the roles list AND the labels list.
-- **OR within a kind**: "in site A or site B", "carrying label X or label Y".
-- **An empty kind matches everything.** Leave sites empty to cover every site (including devices in no site).
+- The template declares an incident when a device stops answering ping and SNMP or an interface goes down, and raises an alert when the SNMP walk fails, or an interface saturates or logs errors.
+- It is found again by a marker in its description, so it is never made twice. Narrow the policy's scope afterwards if the whole project is too much.
+- On a device with no SNMP credentials only the reachability item can ever fire. Such a device is pinged, not walked: give it credentials, its own or a profile's, and the same monitor checks the rest on its next poll.
 
-A policy with every kind empty covers **every device in the project**. The table says "All devices" against it so nobody misreads the reach.
+## Scope
 
-Only probe-polled devices that have a probe are covered: a monitor-backed device already has a monitor of its own, and an archived device is left alone.
+- A device must match the sites list, the roles list and the labels list.
+- Within a list, any one is enough: "site A or site B", "label X or label Y".
+- An empty list matches everything: leave sites empty to cover every site, and devices in no site.
 
-### Monitors and your plan
+A policy with every list empty covers every device in the project, and the table says **All devices** against it. Only devices a probe polls are covered: a device with a monitor of its own keeps it, and an archived device is left alone.
 
-**Each policy provisions one monitor per matching device, and every one of those monitors counts towards your plan.** An unscoped policy in a large estate is a lot of monitors from one form submit; the confirmation says how many devices are in the project before the recommended policy is created.
+## Monitors and Your Plan
 
-Provisioned monitors are named after the device and are re-synced from the template: edit the template's criteria and every monitor follows; edit a provisioned monitor by hand and the next sync overwrites it. Disabling a policy stands its monitors down without deleting them; deleting a policy deletes the monitors it provisioned.
+Each matching device gets a monitor, and every one counts towards your plan: an unscoped policy in a large estate is a lot of monitors. Before the recommended policy is created, it says how many devices the project has.
 
-### Templates
+- A monitor is named after its device, and follows its template: edit the template's criteria and every monitor follows. A change made to one of them by hand is overwritten on the next sync.
+- Disabling a policy stands its monitors down without deleting them. Deleting a policy deletes its monitors.
 
-The template must be a **Network Device** monitor template, and one template can back only one policy — and cannot at the same time be selected by an auto-import rule. A provisioned monitor's provenance is the pair (device, template), so a template shared by two owners would leave both claiming the same monitor. The form refuses those selections with a sentence rather than a constraint error.
+## Templates
 
-A policy outlives its template. Should a template ever go, the policies that used it keep their name and their scope, provision nothing until another template is picked, and show in the table with no template against them — so a lost template is a repair, never a rebuild.
+The template must be a **Network Device** monitor template, and backs one policy only: not two, and not a policy and an auto import rule, which would both claim the same monitors. The form says so when you pick one already in use.
 
-### The recommended policy
-
-With no policies yet, the page offers to create one: a **Network device alert pack (recommended)** template — an incident when a device stops answering ping and SNMP or an interface goes down, an alert when the SNMP walk fails, an interface saturates or logs errors — and an **Alert on every device** policy that applies it to the whole project. The template is found again by a marker in its description, so the action never mints a second copy. Narrow the policy's scope afterwards if the whole project is too much.
-
-On a device with no SNMP credentials only the reachability item can ever fire. Such a device is pinged, not walked, so there are no interfaces and no walk result for the other four items to read, and they are not evaluated rather than reported as healthy. Give the device credentials — its own, or a profile on it or on its site — and the same monitor starts evaluating the rest on the next poll, with nothing to change here.
+If a policy's template is ever deleted, the policy keeps its name and scope, makes no monitors until you pick another, and shows with no template in the table.
 `;
 
 /*

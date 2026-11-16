@@ -28,6 +28,7 @@ import {
 import UserType from "../../../../Types/UserType";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import PrivateRecordWriteCheck from "../../../../Server/Utils/Permission/PrivateRecordWriteCheck";
 
 /*
  * Contract under test - who may dismiss a fix OneUptime AI proposed
@@ -115,6 +116,15 @@ function runbookRow(
     ...overrides,
   };
 }
+
+/*
+ * The fixes here are for incidents and alerts that are not private, or that
+ * the person reaches: what a fix's buttons ask of a private record's owning
+ * teams (#8913) is RemediationPrivateRecord's own suite.
+ */
+beforeEach(() => {
+  jest.spyOn(PrivateRecordWriteCheck, "reaches").mockResolvedValue(true);
+});
 
 describe("who may dismiss a fix", () => {
   let row: Record<string, unknown>;

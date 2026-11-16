@@ -29,6 +29,7 @@ import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedExc
 import PaymentRequiredException from "../../../../Types/Exception/PaymentRequiredException";
 import { JSONObject, JSONValue } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import { OnCallPageRecordType } from "../../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import { PrivateRecordKind } from "../../../../Types/StatusPage/PrivateRecordPublicNotes";
 import {
   WorkspaceDropdownBlock,
@@ -95,6 +96,7 @@ import WorkspaceNoteForm, {
 } from "../WorkspaceNoteForm";
 import WorkspaceHeldPublicNote from "../WorkspaceHeldPublicNote";
 import WorkspacePublicNoteApproval from "../WorkspacePublicNoteApproval";
+import { getExecuteOnCallPolicyFormDescription } from "../WorkspaceExecuteOnCallPolicyForm";
 import MattermostUtil from "./Mattermost";
 import MattermostActionContext, {
   MattermostPressedAction,
@@ -186,6 +188,12 @@ interface RecordTypeDetails {
     | "scheduledMaintenanceId";
   // How workspace logs name the button's record: "acknowledge_incident".
   loggedName: string;
+  /*
+   * The record as an on-call policy pages about it: what its Execute
+   * On-Call Policy form says (WorkspaceExecuteOnCallPolicyForm). None for
+   * a record no policy is started for.
+   */
+  onCallPageRecordType?: OnCallPageRecordType | undefined;
 }
 
 const RECORD_TYPES: Record<MattermostRecordType, RecordTypeDetails> = {
@@ -194,24 +202,28 @@ const RECORD_TYPES: Record<MattermostRecordType, RecordTypeDetails> = {
     stateTimelineModel: IncidentStateTimeline,
     logColumn: "incidentId",
     loggedName: "incident",
+    onCallPageRecordType: OnCallPageRecordType.Incident,
   },
   [MattermostRecordType.Alert]: {
     eventType: WorkspaceEventType.Alert,
     stateTimelineModel: AlertStateTimeline,
     logColumn: "alertId",
     loggedName: "alert",
+    onCallPageRecordType: OnCallPageRecordType.Alert,
   },
   [MattermostRecordType.IncidentEpisode]: {
     eventType: WorkspaceEventType.IncidentEpisode,
     stateTimelineModel: IncidentEpisodeStateTimeline,
     logColumn: "incidentEpisodeId",
     loggedName: "incident_episode",
+    onCallPageRecordType: OnCallPageRecordType.IncidentEpisode,
   },
   [MattermostRecordType.AlertEpisode]: {
     eventType: WorkspaceEventType.AlertEpisode,
     stateTimelineModel: AlertEpisodeStateTimeline,
     logColumn: "alertEpisodeId",
     loggedName: "alert_episode",
+    onCallPageRecordType: OnCallPageRecordType.AlertEpisode,
   },
   [MattermostRecordType.ScheduledMaintenance]: {
     eventType: WorkspaceEventType.ScheduledMaintenance,
@@ -1129,6 +1141,10 @@ export default class MattermostActions {
           );
         }
 
+        // How long the policy pages, as the Dashboard's form says (#9006).
+        const onCallPageRecordType: OnCallPageRecordType | undefined =
+          RECORD_TYPES[data.spec.recordType].onCallPageRecordType;
+
         return {
           _type: "WorkspaceModalBlock",
           title: "Execute On-Call Policy",
@@ -1142,6 +1158,14 @@ export default class MattermostActions {
               label: "On-Call Policy",
               blockId: MATTERMOST_ON_CALL_POLICY_FIELD,
               placeholder: "Select an on-call policy",
+              ...(onCallPageRecordType
+                ? {
+                    description:
+                      getExecuteOnCallPolicyFormDescription(
+                        onCallPageRecordType,
+                      ),
+                  }
+                : {}),
               options: options,
             } as WorkspaceDropdownBlock,
           ],

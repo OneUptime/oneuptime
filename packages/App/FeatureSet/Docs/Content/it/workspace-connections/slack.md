@@ -132,7 +132,7 @@ A ogni cambio turno, i canali di una policy di reperibilità vengono a sapere ch
 > 📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then @bob.
 
 - Payments rimanda alla policy in OneUptime. Quando la policy chiama più di una pianificazione, la riga nomina anche la pianificazione: Payments (Primary).
-- Una persona viene nominata con il suo nome Slack una volta che ha collegato il proprio account Slack a OneUptime, e con il suo nome in OneUptime fino ad allora. Gli orari sono mostrati nel fuso orario di ciascun lettore.
+- Una persona viene nominata con il suo nome Slack una volta che ha collegato il proprio account Slack a OneUptime, e con il suo nome in OneUptime fino ad allora, in ogni riga di reperibilità: cambi turno, sostituzioni e persone aggiunte alla policy o rimosse. Gli orari sono mostrati nel fuso orario di ciascun lettore.
 - Quando più regole di escalation della policy chiamano la stessa pianificazione, ogni cambio turno viene pubblicato una volta, non una volta per regola.
 
 Una regola pubblica ciò che ha scelto nel suo passaggio **Aggiornamenti**, e una nuova regola parte da **Solo aggiornamenti chiave**: chi è reperibile ora, e quando non lo è nessuno.
@@ -147,6 +147,8 @@ Una regola pubblica ciò che ha scelto nel suo passaggio **Aggiornamenti**, e un
 | **Proprietari** | Proprietari aggiunti e rimossi. |
 
 Un canale riceve un solo messaggio per cambio turno, anche quando due regole vi pubblicano. Una regola di reperibilità salvata prima che le regole scegliessero i propri aggiornamenti li pubblica tutti, come prima.
+
+Un nome non notifica nessuno, così un canale che riceve ogni cambio turno non viene sollecitato a ognuno. Per notificare la persona che entra in reperibilità, attiva **Menzionare la persona che entra in reperibilità** nel passaggio **Aggiornamenti** della regola: la riga del cambio turno la menziona allora, una volta che ha collegato il proprio account Slack a OneUptime. Chi viene dopo non viene mai menzionato, né chi non ha collegato il proprio account. L'interruttore compare finché la regola pubblica **Chi è reperibile ora**, ed è disattivato per una nuova regola.
 
 ## Chi è nel canale di un record
 
@@ -261,7 +263,7 @@ OneUptime risponde solo a ciò che è rivolto a lui.
 - **Nel canale proprio di un avviso.** Nel canale che OneUptime ha creato per un avviso, finché l'avviso è aperto, il modulo dice che l'incidente viene dichiarato da quell'avviso, e parte dal titolo dell'avviso e dalle risorse a cui è collegato che puoi vedere. L'incidente viene collegato all'avviso, come uno dichiarato dalla pagina dell'avviso, e l'incidente di un avviso privato è anch'esso privato. Quando non puoi collegare avvisi a incidenti, l'incidente viene dichiarato senza il collegamento, e ti viene detto perché.
 - **Cosa può indicare un modulo.** L'incidente o l'evento viene creato con i tuoi permessi e attribuito a te. Un monitor, una policy di reperibilità, un'etichetta, una gravità o uno stato che non puoi leggere, o uno di un altro progetto, viene rifiutato come uno che il progetto non ha, anche da un modulo aperto prima che il tuo accesso cambiasse, e non viene creato nulla. OneUptime ti spiega il motivo nel canale, in un messaggio che vedi solo tu.
 
-**Execute On-Call Policy** su un incidente, un avviso o un episodio funziona allo stesso modo: richiede il permesso di eseguire una policy di reperibilità (**Proprietario del progetto**, **Amministratore del progetto**, **Membro del progetto**, **Amministratore della reperibilità** e **Membro della reperibilità**, oppure **Execute On-Call Policies** in un ruolo personalizzato) e di leggere quell'incidente, avviso o episodio, e offre le policy di reperibilità attive che puoi leggere.
+**Execute On-Call Policy** su un incidente, un avviso o un episodio funziona allo stesso modo: richiede il permesso di eseguire una policy di reperibilità (**Proprietario del progetto**, **Amministratore del progetto**, **Membro del progetto**, **Amministratore della reperibilità** e **Membro della reperibilità**, oppure **Execute On-Call Policies** in un ruolo personalizzato) e di leggere quell'incidente, avviso o episodio, e offre le policy di reperibilità attive che puoi leggere. La policy avvisa le sue persone finché una di loro non risponde o l'incidente, l'avviso o l'episodio non viene risolto, anche se qualcuno l'ha già riconosciuto, e il modulo lo dice sotto il suo elenco.
 
 ## Chiamare qualcuno da Slack
 

@@ -107,6 +107,8 @@ Le formulaire de modification d'une règle a les deux mêmes étapes et ajoute l
 
 Une telle règle peut toujours être renommée, désactivée ou supprimée, y compris par l'API et Terraform. La liste marque une règle qui n'ajoute rien avec **N'ajoute rien** à côté de son statut, tout comme la page de la règle. Modifiez-la pour choisir ce qu'elle ajoute, ou supprimez-la.
 
+Une règle dont les étiquettes de correspondance sont toutes supprimées est désactivée au lieu de correspondre à toutes les ressources, et la liste la signale par **Limitée à des éléments supprimés** à côté de son statut. Modifiez-la pour choisir ce à quoi elle correspond, puis réactivez-la. Voir [Quand les éléments auxquels une règle est limitée sont supprimés](/docs/incidents/settings#quand-les-éléments-auxquels-une-règle-est-limitée-sont-supprimés).
+
 ## Quand les règles s'exécutent
 
 Chaque règle activée s'exécute quand une ressource est créée, depuis le tableau de bord ou par l'API, et chaque règle qui correspond ajoute ce qu'elle ajoute :

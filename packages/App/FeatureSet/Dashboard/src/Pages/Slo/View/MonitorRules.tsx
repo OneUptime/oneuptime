@@ -25,42 +25,24 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
  * builder that replaces the individual match fields.
  */
 const monitorRuleDocumentation: string = `
-### How SLO Monitor Rules Work
+A monitor rule picks the monitors this SLO measures, so you do not attach each one by hand. Describe them once, such as every monitor labelled Production, and every monitor that matches is attached, now and as monitors are created or change.
 
-A monitor rule decides which monitors this SLO measures, so you do not have to pick every monitor by hand. Describe the monitors once - "every monitor labelled Production", "every monitor whose name starts with api-" - and every monitor that matches is attached to this SLO, now and as monitors are created or change.
+## How Rules Pick Monitors
 
-An SLO can have as many rules as you like. A monitor is attached while **any** enabled rule matches it, and detached once none does.
+- A monitor is attached while any enabled rule matches it, and detached once none does.
+- Rules run as soon as you create, change, enable, disable or delete one, and whenever a monitor is created or its labels, type, name or description change.
+- Rules keep this SLO's monitors up to date while it is disabled or archived, so it comes back measuring the right ones.
+- Every monitor a rule attaches or detaches is recorded on the SLO's **Feed**.
 
-### Match Criteria
+## Match Criteria
 
-Add conditions and choose **Match all** to require every condition, or **Match any** to require at least one condition.
+Add conditions on a monitor's labels, type, name or description, and choose **Match all** or **Match any**. A pattern is a case-insensitive regular expression (\`^api-.*\`) or a \`*\` wildcard (\`*checkout*\`); one that is neither is refused when you save.
 
-- **Monitor Labels** - matches a monitor carrying *any one* of the labels you select.
-- **Monitor Type** - use **Equals** or **Does not equal** to include or exclude a monitor type.
-- **Monitor Name** - compare the monitor name using a text operator.
-- **Monitor Description** - compare the monitor description using a text operator.
+## Rules and Monitors Attached by Hand
 
-The **Matches pattern** and **Does not match pattern** operators take either syntax: a case-insensitive regular expression (\`^api-.*\`) or a \`*\` wildcard (\`*checkout*\`). A pattern that is neither - \`api-(01\` - is rejected when you save, rather than silently matching nothing.
+While any rule is enabled, the rules manage this SLO's monitors: you cannot add monitors by hand, or remove the ones a rule attached. Monitors you attached by hand before are never touched by a rule: not adopted when they match, and not detached when they stop matching.
 
-At least one criterion is required. Use \`.*\` as the name pattern if you really do want every monitor in the project.
-
-### When Rules Run
-
-- When you create, edit, enable, disable or delete a rule, this SLO's monitors are re-evaluated immediately.
-- When a monitor is created, or its labels, type, name or description change, every rule on every SLO in the project is re-evaluated for it.
-- Rules keep the monitor list current even while the SLO is disabled or archived, so it resumes with the right monitors.
-
-### What Rules Own
-
-Rules only ever detach monitors a rule attached. A monitor you attached by hand is never adopted by a rule when it happens to match, and never detached when it stops matching or when a rule is deleted.
-
-Disabling or deleting a rule detaches the monitors only that rule matched. Monitors another enabled rule still matches stay attached.
-
-### Adding Monitors By Hand
-
-While at least one rule is enabled, this SLO's monitors are managed by its rules: monitors cannot be added by hand, and monitors a rule attached cannot be removed by hand. Monitors attached by hand before the rules were enabled can still be removed. Disable every rule to go back to picking monitors yourself.
-
-Every attach and detach is recorded on the SLO's Feed.
+Disabling or deleting a rule detaches the monitors only that rule matched. Disable every rule to pick monitors yourself again.
 `;
 
 const SloMonitorRules: FunctionComponent<RuleSettingsPageProps> = (

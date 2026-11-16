@@ -47,7 +47,7 @@ Click **Save Changes**, which shows once something has changed. It writes the sa
 
 **Test your pages**, at the foot of the page, sends you a test page through them.
 
-When a severity deserves something else, **Different for Some Severities**, under the steps, opens the tabs and cards described below. A card that differs from your ladder is marked **Differs from the ladder**, and the ladder lists what each one does instead. If your rules already differ, the page opens on the cards, with **Use One Ladder for Everything**: saving it first names the cards that lose their difference. A severity your project archived keeps its own rules.
+When a severity deserves something else, **Different for Some Severities**, the button beside the title, opens the tabs and cards described below. A card that differs from your ladder is marked **Differs from the ladder**. The page still opens on your steps, and lists under them each card that differs and what it does instead. **Save Changes** leaves those cards as they are; **Use This Ladder for Every Severity**, at the end of that list, gives them your ladder too, after naming the cards that lose their difference. A severity your project archived keeps its own rules.
 
 An on-call policy decides who is paged and when its next level is. How you are reached is this ladder, for every policy that pages you.
 

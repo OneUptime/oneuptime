@@ -35,32 +35,21 @@ import StatusPageMonitorRuleCopy, {
 } from "../../../Components/StatusPage/StatusPageMonitorRuleForm";
 
 const monitorRuleDocumentation: string = `
-### How Status Page Monitor Rules Work
+A monitor rule adds monitors to a group on this status page for you. Describe the monitors once, and every monitor that matches shows up in the group you chose, without picking each one or typing its display name.
 
-A monitor rule adds monitors to this status page for you. Instead of picking every monitor by hand and typing a display name for each, describe the monitors once and every monitor that matches shows up in the group you chose.
+## How Rules Add Monitors
 
-### Match Criteria
+- A rule runs as soon as you create or change it, against every monitor that exists, and again whenever a monitor is created or its labels, name or description change.
+- A monitor already on the page is never added a second time.
+- **Run Now** on a rule's page syncs this status page with it straight away.
 
-A monitor has to pass **all** the criteria you fill in. Criteria you leave empty are skipped.
+## Match Criteria
 
-- **Monitor Labels** — matches a monitor carrying *any one* of the labels you select.
-- **Monitor Name Pattern** — matched against the monitor name.
-- **Monitor Description Pattern** — matched against the monitor description.
+Add conditions on a monitor's labels, name or description. A pattern is a case-insensitive regular expression (\`^api-.*\`) or a \`*\` wildcard (\`*checkout*\`); one that is neither is refused when you save.
 
-Patterns take either syntax, the same as network device rules: a case-insensitive regular expression (\`^api-.*\`) or a \`*\` wildcard (\`*checkout*\`). A pattern that is neither — \`api-(01\` — is rejected when you save, rather than silently matching nothing.
+## Rules and Monitors Added by Hand
 
-At least one criterion is required. Use \`.*\` as the name pattern if you really do want every monitor in the project.
-
-### When Rules Run
-
-- When you create or edit a rule, it runs immediately against every monitor that already exists.
-- When a monitor is created, or its labels, name or description change, every rule on every status page in the project is re-evaluated for it.
-
-### What Rules Own
-
-A rule only ever removes resources it added itself. A monitor you added to this page by hand is never touched — it is not adopted into a rule when it happens to match, and it is not removed when it stops matching or when the rule is deleted.
-
-Disabling or deleting a rule removes the resources that rule added, and leaves everything else alone. A monitor that is already on the page is never added a second time, so rules and manual resources cannot produce duplicates.
+A rule only removes what it added. A monitor you added to this page by hand is never adopted by a rule when it matches, and never removed when it stops matching or when a rule is deleted. Disabling or deleting a rule removes the monitors it added.
 `;
 
 /*

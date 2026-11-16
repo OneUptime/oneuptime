@@ -33,6 +33,7 @@ import {
   fillGuideTemplate,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/SecurityEventsGuide";
 import { SECURITY_EVENTS_GUIDE_TITLES } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/SecurityEventsGuideCopy";
+import { getHelpSectionBodyTestId } from "../../../UI/Components/Help/HelpModal";
 import {
   DETECTION_RULE_TYPE_DESCRIPTIONS,
   DETECTION_RULE_TYPE_TITLES,
@@ -278,7 +279,7 @@ describe("the How it works card in every language", () => {
     );
 
     test.each(LANGUAGES)(
-      `${name}, %s: the full guide's title, description and tabs are looked up too`,
+      `${name}, %s: the full guide's title, description, summary and topics are looked up too`,
       async (language: string) => {
         const locale: Record<string, string> = readLocale(language);
         const card: HTMLElement = await renderIn(language, guide);
@@ -292,6 +293,9 @@ describe("the How it works card in every language", () => {
         expect(dialog).toHaveTextContent(said(locale, guide.guideTitle));
         expect(dialog).toHaveTextContent(said(locale, guide.guideDescription));
         expect(dialog).toHaveTextContent(said(locale, "Full documentation"));
+        // What the guide says in short, under the help dialog's own label.
+        expect(dialog).toHaveTextContent(said(locale, "In short"));
+        expect(dialog).toHaveTextContent(said(locale, guide.summary));
 
         for (const section of guide.sections) {
           expect([section.id, dialog.textContent]).toEqual([
@@ -300,11 +304,11 @@ describe("the How it works card in every language", () => {
           ]);
         }
 
-        // The first tab is open: its markdown, the documentation, as written.
+        // The first topic is open: its markdown, the documentation, as written.
         const first: SecurityEventsGuideSection = guide.sections[0]!;
 
         expect(
-          within(dialog).getByTestId(`how-it-works-section-${first.id}`),
+          within(dialog).getByTestId(getHelpSectionBodyTestId(first.id)),
         ).toHaveTextContent(first.markdown.trim().slice(0, 40));
       },
     );

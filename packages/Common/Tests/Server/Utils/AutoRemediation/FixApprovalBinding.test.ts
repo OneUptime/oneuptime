@@ -61,6 +61,7 @@ import UserType from "../../../../Types/UserType";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import { withLabelJoinTables } from "../../TestingUtils/LabelJoinTables";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import PrivateRecordWriteCheck from "../../../../Server/Utils/Permission/PrivateRecordWriteCheck";
 
 /*
  * AN APPROVAL IS BOUND TO THE EXACT FIX IT APPROVES (#6421, #6422).
@@ -675,6 +676,15 @@ function secondAfter(userId: ObjectID): string {
   });
 }
 
+/*
+ * The fixes here are for incidents and alerts that are not private, or that
+ * the person reaches: what a fix's buttons ask of a private record's owning
+ * teams (#8913) is RemediationPrivateRecord's own suite.
+ */
+beforeEach(() => {
+  jest.spyOn(PrivateRecordWriteCheck, "reaches").mockResolvedValue(true);
+});
+
 describe("no approving one plan and running another", () => {
   test("the card's Approve of a plan that changed since it was shown does nothing", async () => {
     const shown: string = fingerprintNow();
@@ -769,10 +779,11 @@ describe("no approving one plan and running another", () => {
 
     await approveFrom("Dashboard", member(MAYA_ID));
 
-    expect(updates.map((update: SentUpdate) => update.landed)).toEqual([
-      false,
-      true,
-    ]);
+    expect(
+      updates.map((update: SentUpdate) => {
+        return update.landed;
+      }),
+    ).toEqual([false, true]);
     expect(row["status"]).toBe(AutoRemediationSuggestionStatus.Approved);
     expect(execute).toHaveBeenCalledTimes(1);
   });

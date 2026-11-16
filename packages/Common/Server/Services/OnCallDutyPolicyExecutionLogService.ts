@@ -1,11 +1,15 @@
 import ProjectMilestoneService from "./ProjectMilestoneService";
 import ActivationMilestone from "../../Types/Analytics/ActivationMilestone";
 import CreateBy from "../Types/Database/CreateBy";
+import CountBy from "../Types/Database/CountBy";
+import FindBy from "../Types/Database/FindBy";
 import {
   DatabaseTriggerType,
   OnCreate,
+  OnFind,
   OnUpdate,
 } from "../Types/Database/Hooks";
+import PrivateRecordReadFilter from "../Utils/Permission/PrivateRecordReadFilter";
 import ProjectReferencesService from "./ProjectReferencesService";
 import OnCallDutyPolicyEscalationRuleService, {
   OnCallPagingOutcome,
@@ -156,6 +160,44 @@ export class Service extends ProjectReferencesService<Model> {
    */
   protected override checksServerWrites(): boolean {
     return false;
+  }
+
+  /*
+   * A page about a private incident, alert or episode is read only by those
+   * who see that record (PrivateRecordReadFilter): its own columns say who
+   * was paged about it and what the person who paged wrote, and its
+   * relation reads the record itself. A page about no private record is
+   * read as before.
+   */
+  @CaptureSpan()
+  protected override async onBeforeFind(
+    findBy: FindBy<Model>,
+  ): Promise<OnFind<Model>> {
+    findBy.query = PrivateRecordReadFilter.apply(
+      findBy.query,
+      findBy.props,
+      Model,
+    );
+
+    return { findBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  public override async countBy(
+    countBy: CountBy<Model>,
+  ): Promise<PositiveNumber> {
+    countBy.query = PrivateRecordReadFilter.apply(
+      countBy.query,
+      countBy.props,
+      Model,
+    );
+
+    return await super.countBy(countBy);
+  }
+
+  // The read hook narrows by the records a page is about. See onBeforeFind.
+  public override getColumnsReadHooksNarrowBy(): Array<string> {
+    return PrivateRecordReadFilter.getNamedRecordColumnNames(Model);
   }
 
   /**

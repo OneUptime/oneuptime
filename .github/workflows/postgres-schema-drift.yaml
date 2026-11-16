@@ -462,6 +462,28 @@ jobs:
           Tests/Server/Services/EpisodeMemberPrivateEndsPostgres.test.ts
           --forceExit
 
+      # Clones the migrated on-call policy pages and their steps, runbook runs,
+      # the email, SMS, call, push, WhatsApp, Telegram, webhook, Slack /
+      # Microsoft Teams and AI request logs, the incidents, alerts and
+      # episodes they name, those records' owners and the team members into
+      # an isolated schema, and reads each through its own service: one about
+      # a private record is read only by those who see the record - not by
+      # another member, a pending invitee, an API key without Project Admin
+      # or a workflow's step - and a page, a runbook run or a fix about a
+      # private incident or alert is started only through its owners (#8913).
+      - name: Test that what is done about a private record follows its owners on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PRIVATE_RECORD_ACTIONS_TESTS: "true"
+          PRIVATE_RECORD_ACTIONS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PRIVATE_RECORD_ACTIONS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PRIVATE_RECORD_ACTIONS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/PrivateRecordActionsPostgres.test.ts
+          --forceExit
+
       # Several incidents or alerts added to an episode in one request, or an
       # episode created with them: each answered, only those the person can
       # see added, and the episode's count, severity and one feed entry
@@ -911,8 +933,8 @@ jobs:
       # number (INC-8, 8), by the words of a name and by ID, through each
       # model's own service. So the statements the lookup builds are run by
       # Postgres, and every read is the caller's own: held to the workflow's
-      # project, to a label the caller is held to, and away from private
-      # records they do not own.
+      # project and to a label the caller is held to, and never a private
+      # incident, alert or episode - a workflow does not act on one (#8914).
       - name: Test Run Workflow's record lookup on migrated Postgres
         if: matrix.shard == 3
         working-directory: packages/Common
@@ -4136,6 +4158,28 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/UsedByPostgres.test.ts --forceExit
+
+      # #9066: a rule is never widened to every record by a delete. Every
+      # list a rule can be limited to (152 match lists of 87 rule kinds and
+      # an AI rule's runbooks, repositories and MCP servers) through the
+      # real delete, on clones carrying the migrated join tables' foreign
+      # keys: the rule limited to the deleted record alone is switched off
+      # and noted, every other rule is left as it was; a bulk delete, a
+      # retention purge, a failed DELETE put back, a race with an edit;
+      # switching such a rule on is held back until its list says something
+      # again; and the repair of rules whose lists hold only soft-deleted
+      # records.
+      - name: Test rules limited to deleted records on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_RULE_EMPTIED_LIMITS_TESTS: "true"
+          RULE_EMPTIED_LIMITS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          RULE_EMPTIED_LIMITS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          RULE_EMPTIED_LIMITS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/RuleEmptiedLimitsPostgres.test.ts --forceExit
 
       # Postmortem statuses (Incidents > Postmortems), on migrated Postgres:
       # the two migrations on a copy of the incidents table that already

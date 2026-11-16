@@ -201,3 +201,107 @@ describe("WorkspaceMessageTime.dateAndTime - a moment days away, with its day", 
     }
   });
 });
+
+/*
+ * A MOMENT IN WORDS, ON ONE ZONE'S CLOCK (issue #7970).
+ *
+ * Mattermost shows no moment in each reader's own zone, so its on-call
+ * lines read "until 2026-11-14 at 22:50 UTC", and a team in New York did
+ * the sum at every hand-off. A line that knows the zone its shifts are set
+ * in says the moment in words on that zone's clock, as the policy's feed in
+ * OneUptime does: "Sat, Nov 14 at 5:50 PM EST".
+ */
+describe("WorkspaceMessageTime.dateAndTimeInZone", () => {
+  // Saturday 14 November 2026, 22:50 UTC: 5:50 PM in New York.
+  const HANDOFF_AT: Date = new Date("2026-11-14T22:50:00.000Z");
+  const NOW: Date = new Date("2026-11-13T12:00:00.000Z");
+
+  test("REGRESSION: the issue's own line - the day, the time and the zone, in words", () => {
+    expect(
+      WorkspaceMessageTime.dateAndTimeInZone(
+        HANDOFF_AT,
+        "America/New_York",
+        NOW,
+      ).toString(),
+    ).toBe("Sat, Nov 14 at 5:50 PM EST");
+  });
+
+  test("on the clock the zone keeps that day: daylight saving included", () => {
+    expect(
+      WorkspaceMessageTime.dateAndTimeInZone(
+        new Date("2026-07-03T21:50:00.000Z"),
+        "America/New_York",
+        NOW,
+      ).toString(),
+    ).toBe("Fri, Jul 3 at 5:50 PM EDT");
+    expect(
+      WorkspaceMessageTime.dateAndTimeInZone(
+        HANDOFF_AT,
+        "Asia/Kolkata",
+        NOW,
+      ).toString(),
+    ).toBe("Sun, Nov 15 at 4:20 AM IST");
+  });
+
+  test("with no zone to use, in UTC - still in words", () => {
+    for (const timezone of [null, undefined, ""]) {
+      expect(
+        WorkspaceMessageTime.dateAndTimeInZone(
+          HANDOFF_AT,
+          timezone,
+          NOW,
+        ).toString(),
+      ).toBe("Sat, Nov 14 at 10:50 PM UTC");
+    }
+  });
+
+  test("a zone no clock knows reads in UTC, not in the server's own zone", () => {
+    expect(
+      WorkspaceMessageTime.dateAndTimeInZone(
+        HANDOFF_AT,
+        "Mars/Olympus_Mons",
+        NOW,
+      ).toString(),
+    ).toBe("Sat, Nov 14 at 10:50 PM UTC");
+  });
+
+  test("a moment in another year there says its year; this year's leaves it out", () => {
+    expect(
+      WorkspaceMessageTime.dateAndTimeInZone(
+        new Date("2027-01-02T14:00:00.000Z"),
+        "America/New_York",
+        NOW,
+      ).toString(),
+    ).toBe("Sat, Jan 2, 2027 at 9:00 AM EST");
+
+    // New Year's Eve in New York is New Year's Day in UTC: the zone's year.
+    expect(
+      WorkspaceMessageTime.dateAndTimeInZone(
+        new Date("2027-01-01T03:00:00.000Z"),
+        "America/New_York",
+        new Date("2026-12-31T12:00:00.000Z"),
+      ).toString(),
+    ).toBe("Thu, Dec 31 at 10:00 PM EST");
+  });
+
+  test("a zone known by its offset alone reads as GMT and that offset", () => {
+    expect(
+      WorkspaceMessageTime.dateAndTimeInZone(
+        HANDOFF_AT,
+        "America/Sao_Paulo",
+        NOW,
+      ).toString(),
+    ).toBe("Sat, Nov 14 at 7:50 PM GMT-03");
+  });
+
+  test("is no moment the workspaces convert: Slack, Mattermost and a log show it as it is", () => {
+    const words: string = WorkspaceMessageTime.dateAndTimeInZone(
+      HANDOFF_AT,
+      "America/New_York",
+      NOW,
+    ).toString();
+
+    expect(WorkspaceMessageTime.toSlack(words)).toBe(words);
+    expect(WorkspaceMessageTime.toPlainText(words)).toBe(words);
+  });
+});

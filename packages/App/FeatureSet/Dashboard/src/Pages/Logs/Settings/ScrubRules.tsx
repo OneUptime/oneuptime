@@ -124,71 +124,44 @@ const fieldsToScrubConfig: Record<string, PillConfig> = {
 };
 
 const documentationMarkdown: string = `
-### How Log Scrub Rules Work
+A scrub rule finds sensitive data, such as email addresses, card numbers or passwords, in your logs as they arrive, and removes it before the logs are stored. It never reaches your log storage.
 
-Log scrub rules automatically detect and remove sensitive data (PII) from your logs **at ingest time** — before they are stored. This ensures sensitive information never reaches your log storage.
+## How It Works
 
-\`\`\`mermaid
-flowchart TD
-    A[Log Received] --> B{Match Against Scrub Rules}
-    B -->|Pattern Matches| C[Apply Scrub Action]
-    B -->|No Match| D[Store Log As-Is]
-    C -->|Redact| E["Replace with [REDACTED]"]
-    C -->|Mask| F["Partially hide e.g. j***@***.com"]
-    C -->|Hash| G[Replace with deterministic hash]
-    E --> H[Store Scrubbed Log]
-    F --> H
-    G --> H
-\`\`\`
+- Scrub rules run after drop filters and before pipelines, on each log's body and attributes.
+- Rules run in the order of the table: drag a rule to change its place. Put narrow rules before broad ones.
+- A rule changes the logs that arrive after you save it, within about a minute. Logs already stored stay as they are.
+- A new rule is named after what it finds ("Scrub email addresses") until you type a name of your own.
 
----
+## What a Rule Finds
 
-### Pattern Types
-
-| Pattern | What It Detects | Example Match |
-|---------|----------------|---------------|
+| Pattern | Finds | For example |
+|---------|-------|-------------|
 | **Email Address** | Email addresses | user@example.com |
-| **Credit Card** | Credit card numbers | 4111-1111-1111-1111 |
-| **SSN** | US Social Security Numbers | 123-45-6789 |
+| **Credit Card** | Card numbers | 4111-1111-1111-1111 |
+| **SSN** | US Social Security numbers | 123-45-6789 |
 | **Phone Number** | Phone numbers | +1 (555) 123-4567 |
 | **IP Address** | IPv4 addresses | 192.168.1.1 |
-| **Sensitive Attribute Keys** | The whole value of any attribute whose key looks sensitive (password, token, apiKey, authorization, cookie, ...) | \`password: "hunter2"\` → \`password: "[REDACTED]"\` |
-| **Custom Regex** | Your own pattern | Any regex you define |
+| **Sensitive Attribute Keys** | The whole value of every attribute whose key looks sensitive: password, token, apiKey, authorization, cookie and more | \`password: "hunter2"\` → \`password: "[REDACTED]"\` |
+| **Custom Regex** | Your own pattern | Anything your regular expression matches |
 
-A **Custom Regex** rule needs its pattern: a regular expression for the text to scrub, written without slashes or flags (\`\\bSECRET-[A-Z0-9]+\\b\`, not \`/secret/i\`). Matching is case-sensitive. A pattern that is empty, does not compile, or matches empty text is refused when you save, because the rule would scrub nothing. A rule saved before that check without a usable pattern is marked **Scrubs nothing** in the table: edit it to give it one.
+A **Custom Regex** is written without slashes or flags (\`\\bSECRET-[A-Z0-9]+\\b\`, not \`/secret/i\`), and matches case-sensitively. A pattern that is empty, does not compile, or matches empty text is refused when you save, since it would scrub nothing. A rule saved before that check without a usable pattern shows **Scrubs nothing** in the table: edit it to give it one.
 
-A new rule is named after its pattern type ("Scrub email addresses") until you type a name of your own.
+## What It Does with What It Finds
 
----
+| Action | What it does | For example |
+|--------|--------------|-------------|
+| **Redact** | Replaces it with \`[REDACTED]\`. A new rule does this. | \`user@example.com\` → \`[REDACTED]\` |
+| **Mask** | Hides part of it, keeping its shape | \`user@example.com\` → \`u***@***.com\` |
+| **Hash** | Replaces it with its SHA-256 hash | \`user@example.com\` → \`a1b2c3d4...\` |
 
-### Scrub Actions Explained
+The action is under **More fields**.
 
-| Action | Behavior | Example |
-|--------|----------|---------|
-| **Redact** | Replaces the entire match with \`[REDACTED]\` | \`user@example.com\` → \`[REDACTED]\` |
-| **Mask** | Partially hides the value, preserving structure | \`user@example.com\` → \`u***@***.com\` |
-| **Hash** | Replaces with a deterministic SHA-256 hash | \`user@example.com\` → \`a1b2c3d4...\` |
+> **Tip:** Use **Hash** to follow one value across logs without showing it: the same value always gives the same hash.
 
-A new rule redacts, unless you pick another action under **More fields**.
+## Where It Looks
 
-> **Tip:** Use **Hash** when you need to correlate occurrences of the same value across logs without exposing the actual data. The same input always produces the same hash.
-
----
-
-### Fields to Scrub
-
-Each log entry has two parts that can contain sensitive data:
-
-- **Body**: The main log message text
-- **Attributes**: Key-value metadata attached to the log (e.g. \`user.email\`, \`client.ip\`)
-
-A new rule scrubs both; you can choose the body only or attributes only under **More fields**. A **Sensitive Attribute Keys** rule always scrubs attribute values, since it matches attribute keys.
-
----
-
-### Rule Ordering
-
-Rules are evaluated in the order shown in the table. Drag and drop to reorder. Earlier rules are applied first, so place more specific rules before broader ones.
+A new rule scrubs both the log's **Body**, its message, and its **Attributes**, such as \`user.email\` or \`client.ip\`. Under **More fields**, pick the body only or the attributes only. A **Sensitive Attribute Keys** rule always scrubs attributes, since it matches their keys.
 `;
 
 const LogScrubRules: FunctionComponent<
@@ -236,8 +209,7 @@ const LogScrubRules: FunctionComponent<
       }}
       helpContent={{
         title: "How Log Scrub Rules Work",
-        description:
-          "Understanding pattern types, scrub actions, and how sensitive data is removed from logs at ingest time",
+        description: "Remove sensitive data from logs before they are stored.",
         markdown: documentationMarkdown,
       }}
       noItemsMessage={"No scrub rules found."}

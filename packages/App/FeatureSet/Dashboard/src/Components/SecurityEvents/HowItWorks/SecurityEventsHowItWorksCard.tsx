@@ -1,13 +1,10 @@
 import React, { FunctionComponent, ReactElement, useId, useState } from "react";
 import URL from "Common/Types/API/URL";
 import IconProp from "Common/Types/Icon/IconProp";
+import HelpModal from "Common/UI/Components/Help/HelpModal";
+import { HelpSection } from "Common/UI/Components/Help/HelpDocument";
 import Icon from "Common/UI/Components/Icon/Icon";
-import Link from "Common/UI/Components/Link/Link";
-import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
-import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import { PillSize } from "Common/UI/Components/Pill/Pill";
-import { Tab } from "Common/UI/Components/Tabs/Tab";
-import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { DOCS_URL } from "Common/UI/Config";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -29,7 +26,8 @@ import {
  * to miss, and a customer staring at an empty rules table is exactly the
  * one who needs the explanation. So the card shows the pipeline — how an
  * event becomes an alert — and the level-to-severity mapping inline, and
- * opens the full guide in a modal, one tab per topic.
+ * opens the full guide in the help dialog every list's help opens
+ * (HelpModal): the guide's summary in short, then one topic per section.
  *
  * Someone who has read it can hide it. The choice is remembered per guide
  * in this browser; hidden, the card shrinks to its title row, so the
@@ -43,8 +41,8 @@ import {
  * Everything the card draws is looked up in the reader's language: the
  * guide's words are en.json keys, and a sentence with numbers in it is a
  * template the numbers are written into the reader's way. The full guide's
- * tabs are named in that language too; their markdown is the documentation
- * and stays English, with the docs page a click away.
+ * topics are named in that language too; their markdown is the
+ * documentation and stays English, with the docs page a click away.
  */
 
 export interface ComponentProps {
@@ -165,8 +163,13 @@ const SecurityEventsHowItWorksCard: FunctionComponent<ComponentProps> = (
     listItemCount: props.listItemCount,
   });
 
-  // The section the guide modal opened on; null while it is closed.
-  const [openSectionId, setOpenSectionId] = useState<string | null>(null);
+  /*
+   * The full guide, while it is open: with the section a link pointed at
+   * (the levels link), or none - the guide then opens at its start.
+   */
+  const [openGuideAt, setOpenGuideAt] = useState<{
+    sectionId: string | undefined;
+  } | null>(null);
 
   const idPrefix: string = useId();
   const titleId: string = `${idPrefix}-title`;
@@ -181,16 +184,15 @@ const SecurityEventsHowItWorksCard: FunctionComponent<ComponentProps> = (
   const openGuide: (sectionId?: string) => void = (
     sectionId?: string,
   ): void => {
-    const section: SecurityEventsGuideSection | undefined =
-      (sectionId && getGuideSection(guide, sectionId)) || guide.sections[0];
+    const section: SecurityEventsGuideSection | undefined = sectionId
+      ? getGuideSection(guide, sectionId)
+      : undefined;
 
-    if (section) {
-      setOpenSectionId(section.id);
-    }
+    setOpenGuideAt({ sectionId: section?.id });
   };
 
   const closeGuide: () => void = (): void => {
-    setOpenSectionId(null);
+    setOpenGuideAt(null);
   };
 
   const renderStep: (
@@ -278,62 +280,35 @@ const SecurityEventsHowItWorksCard: FunctionComponent<ComponentProps> = (
 
   const renderGuideModal: () => ReactElement | null =
     (): ReactElement | null => {
-      if (openSectionId === null) {
+      if (openGuideAt === null) {
         return null;
       }
 
-      const initialSection: SecurityEventsGuideSection | undefined =
-        getGuideSection(guide, openSectionId);
-
-      const tabs: Array<Tab> = guide.sections.map(
-        (section: SecurityEventsGuideSection): Tab => {
+      /*
+       * The guide's summary and its sections' titles in the reader's
+       * words; each section's markdown is the documentation, in English.
+       */
+      const sections: Array<HelpSection> = guide.sections.map(
+        (section: SecurityEventsGuideSection): HelpSection => {
           return {
-            name: say(section.title),
-            children: (
-              <div
-                className="pb-2"
-                data-testid={`how-it-works-section-${section.id}`}
-              >
-                <MarkdownViewer text={section.markdown} />
-              </div>
-            ),
+            id: section.id,
+            title: say(section.title),
+            markdown: section.markdown,
           };
         },
       );
 
       return (
-        <Modal
-          title={say(guide.guideTitle)}
-          isTitleTranslated={true}
-          description={say(guide.guideDescription)}
-          modalWidth={ModalWidth.Large}
+        <HelpModal
+          title={guide.guideTitle}
+          description={guide.guideDescription}
+          document={{ summary: say(guide.summary), sections: sections }}
+          initialSectionId={openGuideAt.sectionId}
+          documentationLink={URL.fromString(
+            `${DOCS_URL.toString()}${guide.documentationPath}`,
+          )}
           onClose={closeGuide}
-          closeButtonText={say("Close")}
-          leftFooterElement={
-            <Link
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-700"
-              openInNewTab={true}
-              to={URL.fromString(
-                `${DOCS_URL.toString()}${guide.documentationPath}`,
-              )}
-            >
-              <>
-                <Icon icon={IconProp.ExternalLink} className="h-4 w-4" />
-                {say("Full documentation")}
-              </>
-            </Link>
-          }
-        >
-          <Tabs
-            tabs={tabs}
-            initialTabName={
-              initialSection ? say(initialSection.title) : undefined
-            }
-            onTabChange={() => {
-              // The selected tab is local to the open modal.
-            }}
-          />
-        </Modal>
+        />
       );
     };
 

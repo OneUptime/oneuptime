@@ -14,6 +14,7 @@ import { MarkdownText, mdText } from "../../../Utils/Markdown/FeedMarkdown";
 import { leadWithAuthorMarkdown } from "../../../Utils/Markdown/FeedLead";
 import WorkspaceMessagePayload, {
   WorkspacePayloadMarkdown,
+  WorkspacePayloadMention,
 } from "../../../Types/Workspace/WorkspaceMessagePayload";
 import logger, { LogAttributes } from "../Logger";
 import WorkspaceProjectAuthTokenService from "../../Services/WorkspaceProjectAuthTokenService";
@@ -67,6 +68,14 @@ export default class WorkspaceUtil {
     markdownByWorkspaceType?:
       | Partial<Record<WorkspaceType, string>>
       | undefined;
+    /*
+     * The people a workspace's own line mentions on purpose, as it writes
+     * them (WorkspacePayloadMarkdown.mentions, issue #7968). Only with that
+     * workspace's own line: the shared one mentions nobody.
+     */
+    mentionsByWorkspaceType?:
+      | Partial<Record<WorkspaceType, Array<WorkspacePayloadMention>>>
+      | undefined;
   }): Promise<Array<MessageBlocksByWorkspaceType>> {
     const workspaceTypes: Array<WorkspaceType> = this.getAllWorkspaceTypes();
 
@@ -87,6 +96,13 @@ export default class WorkspaceUtil {
         authorMarkdown = this.getApiKeyStringForWorkspace(data.apiKeyName);
       }
 
+      const ownMarkdown: string | undefined =
+        data.markdownByWorkspaceType?.[workspaceType];
+      const mentions: Array<WorkspacePayloadMention> =
+        ownMarkdown !== undefined
+          ? data.mentionsByWorkspaceType?.[workspaceType] || []
+          : [];
+
       messageBlocksByWorkspaceType.push({
         workspaceType: workspaceType,
         messageBlocks: [
@@ -94,9 +110,9 @@ export default class WorkspaceUtil {
             _type: "WorkspacePayloadMarkdown",
             text: leadWithAuthorMarkdown({
               authorMarkdown: authorMarkdown,
-              markdown:
-                data.markdownByWorkspaceType?.[workspaceType] ?? data.markdown,
+              markdown: ownMarkdown ?? data.markdown,
             }),
+            ...(mentions.length > 0 ? { mentions: mentions } : {}),
           } as WorkspacePayloadMarkdown,
         ],
       });

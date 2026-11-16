@@ -684,7 +684,33 @@ afterEach(() => {
   window.localStorage.clear();
 });
 
+// What the setup sets up, beside the steps (#8897), in the order listed.
+const outcomesBeside: () => Array<string> = (): Array<string> => {
+  return Array.from(
+    screen.getByTestId("guided-setup-aside").querySelectorAll("li"),
+  ).map((item: HTMLLIElement): string => {
+    return item.textContent || "";
+  });
+};
+
 describe("a brand-new project", () => {
+  test("beside the steps, what it sets up, the first one open, and about how long", async () => {
+    await renderSetup();
+
+    expect(outcomesBeside()).toEqual([
+      "A page reaches you by every method you verified.",
+      "An on-call policy pages the right people for every new incident and alert.",
+      "If nobody answers in time, the page goes further.",
+      "A test page proves that the policy reaches people.",
+    ]);
+    expect(
+      screen.getByTestId("guided-setup-outcome-reach_you"),
+    ).toHaveAttribute("data-state", "open");
+    expect(screen.getByTestId("guided-setup-minutes")).toHaveTextContent(
+      /^About 5\sminutes$/,
+    );
+  });
+
   test("opens on how you are reached, with the whole job in view, and makes nothing", async () => {
     await renderSetup();
 

@@ -3329,9 +3329,8 @@ describe("the rules a new event passes through", () => {
 
   it("fires every matching owner, label and runbook rule, adding each owner and label once", () => {
     expect(OWNER_RULES_PAGE).toContain(
-      "Already-assigned owners are not duplicated.",
+      "Every rule that matches adds its owners. An owner the event already has is not added twice.",
     );
-    expect(OWNER_RULES_PAGE).toContain("Multiple matching rules all fire");
     expect(passes).toContain(
       "- **Owner Rules**, **Label Rules** and **Runbook Rules** all act when they match. Owners and labels that several rules add are added once.",
     );
@@ -3418,9 +3417,22 @@ describe("owner and label rules", () => {
     );
   });
 
+  /*
+   * The Match step is the shared condition builder, which starts on Match
+   * all: the docs' sentence is its default. It also offers Match any, which
+   * the in-app help says and the docs do not yet (#9026).
+   */
   it("match only when every condition filled in holds", () => {
+    const builder: string = readCommonSource(
+      "UI/Components/RuleCriteria/RuleCriteriaBuilder.tsx",
+    );
+
+    expect(builder).toContain(
+      "next.filterCondition || criteria.filterCondition || FilterCondition.All,",
+    );
+    expect(builder).toContain("[FilterCondition.All, FilterCondition.Any]");
     expect(OWNER_RULES_PAGE).toContain(
-      "A rule matches an event only when **all** specified criteria pass. Empty criteria are skipped.",
+      "choose whether all of them or any one must match.",
     );
     expect(rules).toContain(
       "A rule matches only when every condition you fill in holds; a condition left empty is skipped.",
@@ -3430,8 +3442,12 @@ describe("owner and label rules", () => {
   it("fold six inherit switches, and refuse a new rule that adds nothing", () => {
     expect(RULE_FORM).toContain('title: "Inherit Labels",');
     expect(RULE_FORM).toContain('title: "Inherit Owners",');
-    expect(OWNER_RULES_PAGE.match(/`Inherit Owners From [^`]+`/g)?.length).toBe(
-      6,
+    // One switch each, in the maintenance event's Inherit Owners fold.
+    expect(
+      RULE_FORM.match(/"Assign every owner of the event's [^"]+"/g)?.length,
+    ).toBe(6);
+    expect(OWNER_RULES_PAGE).toContain(
+      "Under **Inherit Owners**, a rule can also add the owners of the event's monitors, and of the hosts, Kubernetes clusters, Docker hosts, Podman hosts and services it affects.",
     );
     expect(RULE_FORM).toContain("A new rule must add something:");
     expect(rules).toContain(

@@ -55,143 +55,47 @@ import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 
 const documentationMarkdown: string = `
-### How Alert Grouping Works
+A grouping rule puts related alerts into one **episode**, so your team works on one problem instead of a flood of alerts. When a database goes down and 20 monitors raise alerts, all 20 can share one episode that is acknowledged and resolved together.
 
-Alert grouping automatically combines related alerts into logical containers called **Episodes**. This reduces alert fatigue by showing one episode with 50 alerts instead of 50 individual notifications.
+## Set Up a Rule
 
-\`\`\`mermaid
-flowchart TD
-    A[🔔 New Alert Created] --> B{Match Against Rules}
-    B -->|Rule Matches| C{Find Existing Episode}
-    B -->|No Match| D[Alert Stays Ungrouped]
-    C -->|Episode Found| E[Add Alert to Episode]
-    C -->|No Episode| W{Enough Alerts Ongoing?}
-    W -->|Yes| F[Create New Episode]
-    W -->|Not Yet| X[Alert Waits on Its Own]
-    X -.->|More Alerts Arrive| F
-    E --> G[Update Episode Count]
-    F --> H[Execute On-Call Policy]
-\`\`\`
+1. Start from a template, or create a custom rule.
+2. Under **Group alerts by**, choose what alerts must share to go into one episode: their **Monitor**, **Severity** or **Title**, their **Connected Services**, nothing at all (**Everything Together**), or a **Custom** mix.
+3. Under **Which Alerts**, narrow the rule down to the alerts it should take: its match criteria. Left as it is, the rule takes every new alert.
 
-A rule waits for nothing unless **Wait for more alerts** is on, under **More fields**: then a new episode opens only once that many matching alerts are ongoing, and it opens with all of them.
+Rules are checked from the top of the list down, and the first one that matches an alert takes it. Drag a rule to change its place.
 
----
+## How Episodes Open and Close
 
-### Match Criteria vs Group By
+- An alert joins the open episode its rule groups it into, or opens a new one, which pages the rule's on-call policies. An alert no rule takes stays on its own.
+- **Only group alerts that arrive close together** keeps an episode to alerts a few minutes apart. Off, matching alerts keep joining the open episode until it is resolved.
+- **Wait for more alerts** opens an episode only once several matching alerts are ongoing, and puts them all in it. Until then, each alert stays on its own and pages only its own on-call policies.
+- **Reopen recently resolved episodes** reopens an episode when a matching alert arrives soon after it was resolved, instead of starting a new one.
+- **Wait before resolving an episode** waits, once every alert in it is resolved, in case one comes back. **Resolve quiet episodes** resolves an episode no new alert has joined for a while.
 
-These two concepts work together but serve different purposes:
+## Match Criteria
 
-| Aspect | Match Criteria | Group By |
-|--------|---------------|----------|
-| **Purpose** | Filter which alerts this rule applies to | Partition matching alerts into separate episodes |
-| **Question** | "Does this alert qualify for this rule?" | "Which episode does this alert go into?" |
-| **Example** | Only Critical alerts from production monitors | Separate episode per monitor |
+Add conditions on the alert, such as its monitor, severity, labels or title, and choose whether all of them or any one must match.
 
-#### Match Criteria (Filtering)
+## A Custom Mix
 
-Match criteria acts as a **filter** that determines which alerts are eligible for this grouping rule. An alert must pass ALL specified criteria to be processed by the rule.
+With **Custom**, choose each thing alerts must share to go into one episode. Alerts that differ in any of them go into separate episodes:
 
-- **Monitors**: Only alerts from these specific monitors
-- **Severities**: Only alerts with these severity levels
-- **Labels**: Only alerts with at least one of these labels
-- **Title/Description Patterns**: Regex patterns to match alert content
+| Option | Alerts share an episode when they have the same |
+|--------|-------------------------------------------------|
+| **Monitor** | Monitor |
+| **Severity** | Severity |
+| **Alert Title** | Title |
+| **Alert Labels** | Set of labels |
+| **Monitor Labels** | Set of monitor labels |
+| **Connected Services** | Services, or services that call each other on the Service Map. An alert on no service is grouped by its monitor. |
 
-#### Group By (Partitioning)
+## Examples
 
-Group By determines **how matching alerts are subdivided** into separate episodes. This creates the "grouping key" that identifies which episode an alert belongs to.
-
-\`\`\`mermaid
-flowchart LR
-    subgraph "Match Criteria: Severity = Critical"
-        A1[Alert: CPU High<br/>Monitor A]
-        A2[Alert: Memory Low<br/>Monitor A]
-        A3[Alert: CPU High<br/>Monitor B]
-        A4[Alert: Disk Full<br/>Monitor B]
-    end
-
-    subgraph "Group By: Monitor"
-        E1[Episode 1<br/>Monitor A<br/>2 alerts]
-        E2[Episode 2<br/>Monitor B<br/>2 alerts]
-    end
-
-    A1 --> E1
-    A2 --> E1
-    A3 --> E2
-    A4 --> E2
-\`\`\`
-
----
-
-### Group By Options Explained
-
-| Option | When Enabled | When Disabled |
-|--------|-------------|---------------|
-| **Group By Monitor** | Alerts from different monitors → separate episodes | Alerts from any monitor can be grouped together |
-| **Group By Severity** | Alerts with different severities → separate episodes | Alerts of any severity can be grouped together |
-| **Group By Alert Title** | Alerts with different titles → separate episodes | Alerts with any title can be grouped together |
-| **Group By Alert Labels** | Alerts with different sets of labels → separate episodes (exact set match) | Alert labels are ignored for grouping |
-| **Group By Monitor Labels** | Alerts whose monitors have different sets of labels → separate episodes (exact set match) | Monitor labels are ignored for grouping |
-| **Group By Connected Services** | Alerts on services that call each other on the Service Map → the same episode; on unconnected services → separate episodes. Alerts on no service are grouped by monitor | The Service Map is ignored for grouping |
-
-#### Default Behavior
-
-**If NO Group By options are enabled**, all matching alerts go into **ONE single episode**. This is useful when you want to group all related alerts regardless of their source.
-
-\`\`\`mermaid
-flowchart TD
-    subgraph "No Group By Enabled"
-        direction TB
-        A1[Alert 1] --> E[Single Episode<br/>All Matching Alerts]
-        A2[Alert 2] --> E
-        A3[Alert 3] --> E
-        A4[Alert 4] --> E
-    end
-\`\`\`
-
----
-
-### Examples
-
-#### Example 1: Group all Critical alerts by Monitor
-
-**Configuration:**
-- Match Criteria: Severity = Critical
-- Group By: Monitor ✓
-
-**Result:** Each monitor gets its own episode for critical alerts.
-
-#### Example 2: Single episode for all database alerts
-
-**Configuration:**
-- Match Criteria: Monitor Labels = "database"
-- Group By: (none enabled)
-
-**Result:** ALL database alerts go into one episode, regardless of which specific database monitor they come from.
-
-#### Example 3: Fine-grained grouping
-
-**Configuration:**
-- Match Criteria: (none - matches all alerts)
-- Group By: Monitor ✓, Severity ✓, Alert Title ✓
-
-**Result:** Very specific episodes - one per unique combination of monitor + severity + title.
-
-#### Example 4: One episode only for a broader outage
-
-**Configuration:**
-- Match Criteria: (none - matches all alerts)
-- Group By: (none enabled) - **Everything Together**
-- More fields: **Wait for more alerts**, 3
-
-**Result:** A lone alert stays on its own. Once 3 matching alerts are ongoing - arriving within the time window of each other while it is on - one episode opens with all 3, and the alerts after them join it.
-
-#### Example 5: One episode for a failure that spreads
-
-**Configuration:**
-- Match Criteria: (none - matches all alerts)
-- Group By: **Connected Services**
-
-**Result:** The orders service slows down and raises an alert. Checkout and payments, which call orders on the Service Map, start failing too and raise one each. All three share one episode instead of paging three times. Alerts on a service that calls nothing and is called by nothing on the map get an episode of their own. An alert joins an episode when one of its services - its own, or its monitor's - is, calls or is called by a service already in it.
+- **One episode per monitor for critical alerts**: group by **Monitor**, for alerts whose severity is Critical.
+- **One episode for every database alert**: **Everything Together**, for alerts whose monitor is labelled \`database\`.
+- **An episode only for a wider outage**: **Everything Together**, with **Wait for more alerts** set to 3. A lone alert stays on its own; once 3 are ongoing, one episode opens with all of them, and the next ones join it.
+- **One episode for a failure that spreads**: group by **Connected Services**. The orders service slows down and raises an alert; checkout and payments, which call orders, start failing too. All three share one episode instead of paging three times.
 `;
 
 const KIND: GroupingRuleKind = GroupingRuleKind.Alert;
@@ -255,7 +159,7 @@ const AlertGroupingRulesPage: FunctionComponent<
         helpContent={{
           title: "How Alert Grouping Rules Work",
           description:
-            "Understanding Match Criteria, Group By, and how alerts are organized into episodes",
+            "Put related alerts into one episode, so one problem pages people once.",
           markdown: documentationMarkdown,
         }}
         noItemsMessage={extras.noItemsMessage}

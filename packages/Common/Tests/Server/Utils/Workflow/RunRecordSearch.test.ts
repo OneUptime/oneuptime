@@ -74,6 +74,31 @@ type MatchesFunction = (
   query: Dictionary<unknown>,
 ) => boolean;
 
+// A condition's parts: those of an And, or the condition itself.
+function partsOf(condition: unknown): Array<unknown> {
+  const operator: FindOperator<unknown> = condition as FindOperator<unknown>;
+
+  return operator.type === "and"
+    ? [...(operator.value as unknown as Array<unknown>)]
+    : [condition];
+}
+
+/*
+ * The rule that leaves private incidents, alerts and episodes out, and what
+ * belongs to them (PrivateRecordReadFilter.keepToNotPrivate): a run of a
+ * workflow never acts on one (#8914). Read off a stored record's isPrivate.
+ */
+function isNotPrivateRule(condition: unknown): boolean {
+  const operator: FindOperator<unknown> = condition as FindOperator<unknown>;
+
+  return (
+    isQueryCondition(condition) &&
+    operator.type === "raw" &&
+    typeof operator.getSql === "function" &&
+    operator.getSql("c").includes(`"isPrivate" = TRUE`)
+  );
+}
+
 // The query, as the database reads it.
 const matches: MatchesFunction = (
   record: StoredRecord,
@@ -82,6 +107,23 @@ const matches: MatchesFunction = (
   return Object.entries(query).every(
     ([column, expected]: [string, unknown]): boolean => {
       const actual: unknown = record[column];
+
+      if (
+        isQueryCondition(expected) &&
+        partsOf(expected).some(isNotPrivateRule)
+      ) {
+        if (record["isPrivate"] === true) {
+          return false;
+        }
+
+        return partsOf(expected)
+          .filter((part: unknown): boolean => {
+            return !isNotPrivateRule(part);
+          })
+          .every((part: unknown): boolean => {
+            return meetsCondition(part, actual);
+          });
+      }
 
       // A condition on a name: every word typed, anywhere in it.
       if (isQueryCondition(expected)) {
@@ -626,6 +668,80 @@ describe("finding a record by its ID", () => {
     expect(found).toHaveLength(1);
     expect(found[0]?.id).toBe(record["_id"]);
     expect(found[0]?.matchedBy).toBe(RunRecordMatch.Id);
+  });
+});
+
+/*
+ * A RUN OF A WORKFLOW NEVER ACTS ON A PRIVATE RECORD (#8914): its steps see
+ * no private incident, alert or episode, and its trigger stops on one. So
+ * Run Workflow does not offer one, by its number, its title or its ID -
+ * not even to someone who sees it, which a record's owner does.
+ */
+describe.each(
+  NUMBERED_MODELS.filter((kind: NumberedModel): boolean => {
+    return kind.name !== "ScheduledMaintenance";
+  }),
+)("a private $name", (kind: NumberedModel) => {
+  test("is never offered: a workflow does not act on one", async () => {
+    const open: StoredRecord = recordOf({
+      kind: kind,
+      number: 7,
+      name: "Payroll export is late",
+    });
+    const secret: StoredRecord = {
+      ...recordOf({
+        kind: kind,
+        number: 8,
+        name: "Payroll export copied to a public bucket",
+      }),
+      isPrivate: true,
+    };
+    const fake: FakeService = makeService({
+      model: kind.model,
+      records: [open, secret],
+    });
+
+    for (const typed of [
+      "8",
+      `${kind.prefix}8`,
+      "payroll bucket",
+      secret["_id"] as string,
+    ]) {
+      expect({
+        typed,
+        found: await RunRecordSearch.search(request(fake, typed)),
+      }).toEqual({ typed, found: [] });
+    }
+
+    const newest: Array<RunRecordOption> = await RunRecordSearch.search(
+      request(fake, ""),
+    );
+
+    expect(
+      newest.map((option: RunRecordOption): string => {
+        return option.id;
+      }),
+    ).toEqual([open["_id"]]);
+  });
+});
+
+describe("a maintenance event, which is never private", () => {
+  test("is offered with no rule about private records", async () => {
+    const MAINTENANCE: NumberedModel = NUMBERED_MODELS.find(
+      (kind: NumberedModel): boolean => {
+        return kind.name === "ScheduledMaintenance";
+      },
+    )!;
+    const fake: FakeService = makeService({
+      model: MAINTENANCE.model,
+      records: [recordOf({ kind: MAINTENANCE, number: 3, name: "Upgrade" })],
+    });
+
+    await RunRecordSearch.search(request(fake, "3"));
+
+    for (const call of fake.calls) {
+      expect(Object.keys(call.query)).not.toContain("_id");
+    }
   });
 });
 

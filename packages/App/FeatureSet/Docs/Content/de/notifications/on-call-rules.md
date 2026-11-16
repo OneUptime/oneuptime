@@ -47,7 +47,7 @@ Klicken Sie auf **Änderungen speichern**, das erscheint, sobald sich etwas geä
 
 **Ihre Alarmierungen testen**, am Fuß der Seite, sendet Ihnen einen Testalarm durch sie.
 
-Verdient ein Schweregrad etwas anderes, öffnet **Für einige Schweregrade anders** unter den Schritten die unten beschriebenen Tabs und Karten. Eine Karte, die von Ihrem Ablauf abweicht, ist mit **Weicht vom Ablauf ab** markiert, und der Ablauf nennt, was jede stattdessen tut. Weichen Ihre Regeln schon ab, öffnet sich die Seite mit den Karten und mit **Einen Ablauf für alles verwenden**: Beim Speichern nennt es zuerst die Karten, die ihre Abweichung verlieren. Ein Schweregrad, den Ihr Projekt archiviert hat, behält seine eigenen Regeln.
+Verdient ein Schweregrad etwas anderes, öffnet **Für einige Schweregrade anders**, die Schaltfläche neben dem Titel, die unten beschriebenen Tabs und Karten. Eine Karte, die von Ihrem Ablauf abweicht, ist mit **Weicht vom Ablauf ab** markiert. Die Seite öffnet sich weiterhin mit Ihren Schritten und nennt darunter jede abweichende Karte und was sie stattdessen tut. **Änderungen speichern** lässt diese Karten, wie sie sind; **Diesen Ablauf für jeden Schweregrad verwenden** am Ende dieser Liste gibt auch ihnen Ihren Ablauf, nachdem es die Karten genannt hat, die ihre Abweichung verlieren. Ein Schweregrad, den Ihr Projekt archiviert hat, behält seine eigenen Regeln.
 
 Eine Bereitschaftsrichtlinie entscheidet, wer alarmiert wird und wann ihre nächste Stufe kommt. Wie Sie erreicht werden, ist dieser Ablauf, für jede Richtlinie, die Sie alarmiert.
 

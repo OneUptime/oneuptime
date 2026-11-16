@@ -69,10 +69,6 @@
     "ingestionBudgets": "擷取預算",
     "products": "產品"
   },
-  "topAlert": {
-    "title": "OneUptime 管理員儀表板",
-    "description": "您可以在此儀表板上執行與 OneUptime 伺服器相關的任務。"
-  },
   "header": {
     "exitAdmin": "退出管理員",
     "help": "說明",

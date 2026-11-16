@@ -4,7 +4,11 @@ import RouteParams from "./RouteParams";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import ProductKey from "Common/Types/Product/ProductKey";
-import { NavItem, MoreMenuItem } from "Common/UI/Components/Navbar/NavBar";
+import {
+  HOME_NAV_BAR_ITEM_ID,
+  NavItem,
+  MoreMenuItem,
+} from "Common/UI/Components/Navbar/NavBar";
 import { useTranslation } from "react-i18next";
 import { BILLING_ENABLED } from "Common/UI/Config";
 
@@ -77,7 +81,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
   // Build the main navigation items - only Home now
   const navItems: NavItem[] = [
     {
-      id: "home-nav-bar-item",
+      id: HOME_NAV_BAR_ITEM_ID,
       title: t("navbar.home"),
       isTitleTranslated: true,
       icon: IconProp.Home,

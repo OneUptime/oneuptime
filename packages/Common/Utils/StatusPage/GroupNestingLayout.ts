@@ -133,10 +133,11 @@ export default class StatusPageGroupNestingLayoutUtil {
   /*
    * Quieter than the per-resource labels it replaces. It is a scale, not a
    * reading, and it is what made a nested block look shouty when it appeared
-   * three times in one screen.
+   * three times in one screen. Quiet in size, not in contrast: gray-500
+   * (4.8:1 on the white card), where gray-400 was 2.5:1 at 11px (#9016).
    */
   public static getTimeAxisClassName(): string {
-    return "flex justify-between text-[11px] text-gray-400";
+    return "flex justify-between text-[11px] text-gray-500";
   }
 
   /*

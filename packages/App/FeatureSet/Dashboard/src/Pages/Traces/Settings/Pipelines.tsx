@@ -21,40 +21,43 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 
 const documentationMarkdown: string = `
-### How Trace Pipelines Work
+A trace pipeline changes spans as they arrive, before they are stored. It picks spans with a filter, then runs its processors on them in order: rename an attribute or a span, set a span's status or kind, or tag a category.
 
-Trace pipelines let you transform and enrich spans **at ingest time** — before they are stored. Each pipeline matches spans using a filter query, then runs a series of processors to modify them.
+## How It Works
 
----
+1. Drop filters run first, then scrub rules. A span a drop filter drops never reaches a pipeline.
+2. Every pipeline whose filter matches the span runs its processors on it, from the top of the list down. Drag a pipeline to change its place. A pipeline with no filter takes every span.
+3. Open a pipeline to add its processors. They run in their own order, each on what the one before it left.
 
-### Processor Types
+A pipeline changes the spans that arrive after you save it, within about a minute. Spans already stored keep what they had.
 
-- **Attribute Remapper** — copy/rename span attribute keys.
-- **Span Name Remapper** — rewrite span names based on a source field.
-- **Status Remapper** — override span status code / message based on a source field.
-- **Span Kind Remapper** — override span kind.
-- **Category Processor** — tag spans with a category attribute based on filter rules.
+## Processors
 
-### Filter Query Syntax
+| Processor | What it does |
+|-----------|--------------|
+| **Attribute Remapper** | Renames or copies an attribute |
+| **Span Name Remapper** | Rewrites a span's name when a field has a value |
+| **Status Remapper** | Sets a span's status from a field |
+| **Span Kind Remapper** | Sets a span's kind from a field |
+| **Category Processor** | Sets an attribute to a category, by the first of its filters a span matches |
 
-| Operator | Example | Description |
-|----------|---------|-------------|
-| \`=\` | \`kind = 'SPAN_KIND_SERVER'\` | Exact match |
-| \`!=\` | \`statusCode != 2\` | Not equal |
-| \`LIKE\` | \`name LIKE 'health'\` | Substring match (use \`%\` for SQL-style wildcards) |
-| \`IN\` | \`kind IN ('SPAN_KIND_CLIENT', 'SPAN_KIND_PRODUCER')\` | Match any value in list |
-| \`AND\` / \`OR\` | combine conditions |
+## Filter Queries
 
-**Available fields:** \`name\`, \`kind\`, \`statusCode\`, \`primaryEntityId\`, \`attributes.<key>\`
+| Operator | Example | Matches |
+|----------|---------|---------|
+| \`=\` | \`kind = 'SPAN_KIND_SERVER'\` | Exactly this value |
+| \`!=\` | \`statusCode != 2\` | Anything but this value |
+| \`IN\` | \`kind IN ('SPAN_KIND_CLIENT', 'SPAN_KIND_PRODUCER')\` | Any value in the list |
+| \`AND\`, \`OR\` | \`kind = 'SPAN_KIND_SERVER' AND statusCode = 2\` | Both, or either, of two conditions |
 
-### Example: mark successful HTTP spans as Ok
+**Fields:** \`name\`, \`kind\`, \`statusCode\`, \`primaryEntityId\` and \`attributes.<key>\`.
 
-Most instrumentation leaves successful spans **Unset**, the OpenTelemetry default, and sets **Error** only on failure. So Unset already means "no error". If you want successful requests to show as **Ok**:
+## Example: Mark Successful HTTP Spans as Ok
 
-1. Create a pipeline with the filter condition **Status = Unset** (\`statusCode = '0'\`), so spans already marked Error are never changed.
-2. Add a **Status Remapper** processor with the source key \`http.response.status_code\` (older SDKs use \`http.status_code\`) and one mapping per code, for example \`200\` → Ok, \`201\` → Ok, \`204\` → Ok and \`304\` → Ok. Each mapping matches one exact value.
+Most instrumentation leaves a successful span **Unset**, the OpenTelemetry default, and sets **Error** only on a failure, so Unset already means "no error". To show successful requests as **Ok**:
 
-Pipelines apply to spans ingested after you save them (a change can take up to a minute to reach ingest); spans already stored keep their status.
+1. Create a pipeline whose filter is **Status = Unset** (\`statusCode = '0'\`), so a span marked Error is never changed.
+2. Add a **Status Remapper** that reads \`http.response.status_code\` (older SDKs write \`http.status_code\`), with one mapping per code: \`200\` → Ok, \`201\` → Ok, \`204\` → Ok and \`304\` → Ok. Each mapping matches one exact value.
 `;
 
 /*
@@ -133,7 +136,7 @@ const TracePipelines: FunctionComponent<
       helpContent={{
         title: "How Trace Pipelines Work",
         description:
-          "Understanding filters, processors, and how spans are transformed at ingest time",
+          "Rename, fix and tag spans as they arrive, before they are stored.",
         markdown: documentationMarkdown,
       }}
       noItemsMessage={"No trace pipelines found."}

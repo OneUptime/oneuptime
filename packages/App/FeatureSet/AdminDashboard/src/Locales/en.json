@@ -69,10 +69,6 @@
     "ingestionBudgets": "Ingestion Budgets",
     "products": "Products"
   },
-  "topAlert": {
-    "title": "OneUptime Admin Dashboard",
-    "description": "You can perform your OneUptime server related tasks on this dashboard."
-  },
   "header": {
     "exitAdmin": "Exit Admin",
     "help": "Help",

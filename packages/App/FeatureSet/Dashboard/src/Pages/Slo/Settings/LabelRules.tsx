@@ -1,3 +1,4 @@
+import { getLabelRuleHelpMarkdown } from "../../../Utils/Help/ResourceRuleHelp";
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
@@ -17,22 +18,9 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
 
-const sloLabelDocumentation: string = `
-### How SLO Label Rules Work
-
-SLO Label Rules attach labels to an SLO automatically when it matches your criteria — so you don't have to remember to tag new SLOs.
-
-### Match Criteria
-
-A rule matches an SLO only when **all** specified criteria pass. Empty criteria are skipped.
-
-- **SLO Labels** (prerequisite) — any-of
-- **Name / Description Pattern** — case-insensitive regex, or a \`*\` wildcard such as \`*checkout*\`
-
-### Action
-
-When a rule matches, every label listed in \`Labels to Add\` is attached to the SLO. Already-attached labels are not duplicated. Multiple matching rules all fire — the union of their labels ends up attached.
-`;
+const sloLabelDocumentation: string = getLabelRuleHelpMarkdown({
+  nouns: { singular: "SLO", plural: "SLOs" },
+});
 
 const SloLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
   props: RuleSettingsPageProps,

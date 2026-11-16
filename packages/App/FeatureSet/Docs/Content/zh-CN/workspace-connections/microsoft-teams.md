@@ -129,7 +129,7 @@ SLO 的规则会发布其错误预算策略的变化：在 SLO 进入某个级�
 
 > 📞 @Ana Lee is now on call for Payments until Sat, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
 
-Payments 链接到 OneUptime 中的策略。将 Microsoft Teams 账户连接到 OneUptime 的人以其 Microsoft Teams 名称显示，在此之前以其 OneUptime 名称显示。时间按每位读者自己的时区显示。规则的 **更新** 步骤与 Slack 一样选择要发布哪些值班消息，新规则默认使用当前值班人员以及何时无人值班：请参阅 [值班消息](/docs/workspace-connections/slack#值班消息)。
+Payments 链接到 OneUptime 中的策略。将 Microsoft Teams 账户连接到 OneUptime 的人在每一条值班消息中都以其 Microsoft Teams 名称显示，在此之前以其 OneUptime 名称显示。时间按每位读者自己的时区显示。规则的 **更新** 步骤与 Slack 一样选择要发布哪些值班消息，新规则默认使用当前值班人员以及何时无人值班：请参阅 [值班消息](/docs/workspace-connections/slack#值班消息)。打开 **提及接班的值班人员** 后，只要此人已连接 Microsoft Teams 账户，消息就会提及此人，Microsoft Teams 也会通知此人。
 
 ## 测试规则
 
@@ -219,7 +219,7 @@ Payments 链接到 OneUptime 中的策略。将 Microsoft Teams 账户连接到 
 - **在警报的专属频道中。** 在 OneUptime 为某个警报创建的频道中，只要警报仍未关闭，输入 `incident` 就会打开一张卡片，说明事件是从该警报声明的，并以警报的标题以及警报所关联的、请求卡片的人可以查看的资源开始。事件会关联到该警报，就像从警报页面声明的事件一样，私密警报的事件也是私密的。如果提交卡片的人无权将警报关联到事件，事件会在没有该关联的情况下声明，机器人会告诉此人原因。
 - **表单可以指定什么。** 在频道或群聊中，任何在场的人都可以提交表单，并且以提交者的身份、按其自己的权限提交。事件或活动以这些权限创建，并记在此人名下。此人无法读取的监视器、值班策略、标签、严重程度或状态，或属于其他项目的，都会像项目中不存在一样被拒绝，并且不会创建任何内容：机器人会回复 "One of the values you picked ... is not available in this project any more. Please pick it again."
 
-事件、警报或片段上的 **Execute On-Call Policy** 也以同样方式工作：它需要执行值班策略的权限（ **项目所有者**、 **项目管理员**、 **项目成员**、 **值班管理员** 和 **值班成员**，或自定义角色中的 **Execute On-Call Policies** ）以及读取该事件、警报或片段的权限，并提供此人可以读取的有效值班策略。从卡片查看监视器或值班策略时，也会以点击按钮的人的身份读取。
+事件、警报或片段上的 **Execute On-Call Policy** 也以同样方式工作：它需要执行值班策略的权限（ **项目所有者**、 **项目管理员**、 **项目成员**、 **值班管理员** 和 **值班成员**，或自定义角色中的 **Execute On-Call Policies** ）以及读取该事件、警报或片段的权限，并提供此人可以读取的有效值班策略。即使已有人确认，它也会一直呼叫该策略的人员，直到其中有人应答或事件、警报或片段已解决，卡片的列表下方也会这样说明。从卡片查看监视器或值班策略时，也会以点击按钮的人的身份读取。
 
 ## 从 Microsoft Teams 呼叫他人
 
