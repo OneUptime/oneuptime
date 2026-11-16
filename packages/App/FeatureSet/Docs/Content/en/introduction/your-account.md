@@ -70,11 +70,13 @@ Expand **Security** in the side menu of **User Profile**. It has three pages.
 
 :::steps
 1. Open **Security → Password Management**.
-2. Enter the new password in **Password** and again in **Confirm Password**. It must be at least 6 characters long.
+2. Enter the new password in **New Password** and again in **Confirm Password**. It must be at least 15 characters long and not a predictable one, such as a common password or a repeated pattern: a few unrelated words work well. The checklist under the field ticks off each part as you type.
 3. Click **Update Password**.
 :::
 
 A new password signs every device out of your account, and any password reset link or sign-in link already sent stops working.
+
+Every page that sets a password asks the same: signing up, the reset link from **Forgot password?**, this page, and a server admin's **Set Password**. A password you set before this rule keeps working until you change it.
 
 ### Add a passkey
 

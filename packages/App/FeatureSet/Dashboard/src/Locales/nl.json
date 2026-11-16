@@ -56358,5 +56358,22 @@
   "Slow Trace": "Trage trace",
   "Started by": "Gestart door",
   "Started from": "Gestart vanuit",
-  "Time worked": "Gewerkte tijd"
+  "Time worked": "Gewerkte tijd",
+  "Use at least {{minimum}} characters.": "Gebruik minimaal {{minimum}} tekens.",
+  "Try a few unrelated words.": "Probeer een paar woorden die niets met elkaar te maken hebben.",
+  "Password meets requirements": "Het wachtwoord voldoet aan de vereisten",
+  "Password must be at least 15 characters.": "Het wachtwoord moet minimaal 15 tekens bevatten.",
+  "Password cannot be more than 100 characters.": "Het wachtwoord mag niet langer zijn dan 100 tekens.",
+  "Choose a less predictable password. Try a few unrelated words.": "Kies een minder voorspelbaar wachtwoord. Probeer een paar woorden die niets met elkaar te maken hebben.",
+  "Password cannot be blank.": "Het wachtwoord mag niet alleen uit spaties bestaan.",
+  "Password is required.": "Een wachtwoord is verplicht.",
+  "Password must be a string.": "Het wachtwoord moet een tekenreeks zijn.",
+  "Between {{minimum}} and {{maximum}} characters": "Tussen {{minimum}} en {{maximum}} tekens",
+  "Avoid common or repeated patterns": "Vermijd veelvoorkomende of herhaalde patronen",
+  "Password length": "Wachtwoordlengte",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} / minimaal {{minimum}} tekens",
+  "Complete:": "Voldaan:",
+  "Incomplete:": "Niet voldaan:",
+  "Special character included (optional)": "Speciaal teken toegevoegd (optioneel)",
+  "Special characters are optional. Try !, @, # or $.": "Speciale tekens zijn optioneel. Probeer !, @, # of $."
 }

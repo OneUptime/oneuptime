@@ -138,7 +138,7 @@ jest.mock("../../../UI/Components/EditionLabel/EditionLabel", () => {
 // Registers the Accounts locale resources on the shared i18next instance.
 import "../../../../App/FeatureSet/Accounts/src/Utils/i18n";
 import Footer from "../../../../App/FeatureSet/Accounts/src/Components/Footer/Footer";
-import PasswordRequirements from "../../../../App/FeatureSet/Accounts/src/Components/PasswordRequirements/PasswordRequirements";
+import PasswordRequirements from "../../../UI/Components/PasswordRequirements/PasswordRequirements";
 import VerifyEmailPending from "../../../../App/FeatureSet/Accounts/src/Components/VerifyEmailPending/VerifyEmailPending";
 import ForbiddenPage from "../../../../App/FeatureSet/Accounts/src/Pages/Forbidden";
 import ForgotPasswordPage from "../../../../App/FeatureSet/Accounts/src/Pages/ForgotPassword";

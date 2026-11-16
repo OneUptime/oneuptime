@@ -56358,5 +56358,22 @@
   "Slow Trace": "Långsamt spår",
   "Started by": "Startad av",
   "Started from": "Startad från",
-  "Time worked": "Arbetstid"
+  "Time worked": "Arbetstid",
+  "Use at least {{minimum}} characters.": "Använd minst {{minimum}} tecken.",
+  "Try a few unrelated words.": "Prova några ord utan koppling till varandra.",
+  "Password meets requirements": "Lösenordet uppfyller kraven",
+  "Password must be at least 15 characters.": "Lösenordet måste innehålla minst 15 tecken.",
+  "Password cannot be more than 100 characters.": "Lösenordet får inte innehålla fler än 100 tecken.",
+  "Choose a less predictable password. Try a few unrelated words.": "Välj ett mindre förutsägbart lösenord. Prova några ord utan koppling till varandra.",
+  "Password cannot be blank.": "Lösenordet får inte bara innehålla blanksteg.",
+  "Password is required.": "Lösenord krävs.",
+  "Password must be a string.": "Lösenordet måste vara en textsträng.",
+  "Between {{minimum}} and {{maximum}} characters": "Mellan {{minimum}} och {{maximum}} tecken",
+  "Avoid common or repeated patterns": "Undvik vanliga eller upprepade mönster",
+  "Password length": "Lösenordets längd",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} / minst {{minimum}} tecken",
+  "Complete:": "Uppfyllt:",
+  "Incomplete:": "Inte uppfyllt:",
+  "Special character included (optional)": "Specialtecken inkluderat (valfritt)",
+  "Special characters are optional. Try !, @, # or $.": "Specialtecken är valfria. Prova !, @, # eller $."
 }

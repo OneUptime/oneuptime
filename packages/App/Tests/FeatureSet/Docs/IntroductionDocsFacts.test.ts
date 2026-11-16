@@ -3838,14 +3838,24 @@ describe("Your Account", () => {
     );
   });
 
-  it("asks for a password of at least 6 characters, twice", () => {
+  it("asks for a password that keeps the one password rule, twice", () => {
     const password: string = dashboard("Pages/Global/UserProfile/Password.tsx");
+    const rule: string = readSource(COMMON_DIR, "Types/Password.ts");
 
-    expect(password.split("minLength: 6").length - 1).toBe(2);
-    expect(password).toContain('title: "Password"');
-    expect(password).toContain('title: "Confirm Password"');
+    // The shared fields: the rule's checklist, then its confirmation (#9123).
+    expect(password).toContain("getNewPasswordFields<");
+    expect(password).toContain('translator.translateText("New Password")');
+    expect(password).toContain('translator.translateText("Confirm Password")');
     expect(password).toContain('submitButtonText={"Update Password"}');
-    expect(YOUR_ACCOUNT).toContain("It must be at least 6 characters long.");
+    expect(rule).toContain(
+      "export const MINIMUM_PASSWORD_LENGTH: number = 15;",
+    );
+    expect(YOUR_ACCOUNT).toContain(
+      "Enter the new password in **New Password** and again in **Confirm Password**. It must be at least 15 characters long",
+    );
+    expect(YOUR_ACCOUNT).toContain(
+      "A password you set before this rule keeps working until you change it.",
+    );
   });
 
   it("says what a new password ends, as the write that stores one ends it", () => {

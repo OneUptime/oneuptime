@@ -176,10 +176,17 @@
   "resetPassword": {
     "title": "Reset your password",
     "subtitle": "Please enter your new password and we will have it updated.",
-    "successMessage": "Your password has been updated. Please sign in.",
     "submitButton": "Reset Password",
     "knowPasswordPrompt": "Know your password?",
-    "loginLink": "Sign in."
+    "loginLink": "Sign in.",
+    "successTitle": "Your password has been reset",
+    "successDescription": "Sign in with your new password.",
+    "signInButton": "Sign In",
+    "linkExpiredTitle": "This reset link has expired",
+    "linkExpiredDescription": "Reset links work for one day. Ask for a new link and we will email it to you.",
+    "linkInvalidTitle": "This reset link no longer works",
+    "linkInvalidDescription": "It may have been used already, or only part of it was copied. Ask for a new link and we will email it to you.",
+    "requestNewLinkButton": "Request a New Link"
   },
   "sso": {
     "title": "Sign in with SSO",

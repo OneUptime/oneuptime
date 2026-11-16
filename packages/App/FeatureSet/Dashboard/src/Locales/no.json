@@ -56358,5 +56358,22 @@
   "Slow Trace": "Tregt spor",
   "Started by": "Startet av",
   "Started from": "Startet fra",
-  "Time worked": "Arbeidstid"
+  "Time worked": "Arbeidstid",
+  "Use at least {{minimum}} characters.": "Bruk minst {{minimum}} tegn.",
+  "Try a few unrelated words.": "Prøv noen ord uten sammenheng med hverandre.",
+  "Password meets requirements": "Passordet oppfyller kravene",
+  "Password must be at least 15 characters.": "Passordet må inneholde minst 15 tegn.",
+  "Password cannot be more than 100 characters.": "Passordet kan ikke inneholde mer enn 100 tegn.",
+  "Choose a less predictable password. Try a few unrelated words.": "Velg et mindre forutsigbart passord. Prøv noen ord uten sammenheng med hverandre.",
+  "Password cannot be blank.": "Passordet kan ikke bare inneholde mellomrom.",
+  "Password is required.": "Passord er påkrevd.",
+  "Password must be a string.": "Passordet må være en tekststreng.",
+  "Between {{minimum}} and {{maximum}} characters": "Mellom {{minimum}} og {{maximum}} tegn",
+  "Avoid common or repeated patterns": "Unngå vanlige eller gjentatte mønstre",
+  "Password length": "Passordlengde",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} / minst {{minimum}} tegn",
+  "Complete:": "Oppfylt:",
+  "Incomplete:": "Ikke oppfylt:",
+  "Special character included (optional)": "Spesialtegn inkludert (valgfritt)",
+  "Special characters are optional. Try !, @, # or $.": "Spesialtegn er valgfrie. Prøv !, @, # eller $."
 }

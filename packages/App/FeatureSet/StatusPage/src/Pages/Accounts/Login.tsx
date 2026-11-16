@@ -151,9 +151,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                 title: t("accounts.shared.password"),
                 required: true,
                 showEvenIfPermissionDoesNotExist: true,
-                validation: {
-                  minLength: 6,
-                },
+                // No length check: a password set before the rule (#9123) still signs in.
                 fieldType: FormFieldSchemaType.Password,
                 // The sign-in password: password managers fill it.
                 autoComplete: "current-password",

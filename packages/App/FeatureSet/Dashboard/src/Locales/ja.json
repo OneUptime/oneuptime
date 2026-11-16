@@ -56358,5 +56358,22 @@
   "Slow Trace": "遅いトレース",
   "Started by": "開始者",
   "Started from": "開始元",
-  "Time worked": "作業時間"
+  "Time worked": "作業時間",
+  "Use at least {{minimum}} characters.": "{{minimum}}文字以上で入力してください。",
+  "Try a few unrelated words.": "関連のない単語をいくつか組み合わせてみてください。",
+  "Password meets requirements": "パスワードは要件を満たしています",
+  "Password must be at least 15 characters.": "パスワードは15文字以上にしてください。",
+  "Password cannot be more than 100 characters.": "パスワードは100文字以内にしてください。",
+  "Choose a less predictable password. Try a few unrelated words.": "推測されにくいパスワードを選んでください。関連のない単語をいくつか組み合わせてみてください。",
+  "Password cannot be blank.": "パスワードを空白のみにすることはできません。",
+  "Password is required.": "パスワードは必須です。",
+  "Password must be a string.": "パスワードは文字列で入力してください。",
+  "Between {{minimum}} and {{maximum}} characters": "{{minimum}}文字以上{{maximum}}文字以下",
+  "Avoid common or repeated patterns": "よく使われるパターンや繰り返しを避ける",
+  "Password length": "パスワードの長さ",
+  "{{length}} / {{minimum}} characters minimum": "{{length}}文字 / 最低{{minimum}}文字",
+  "Complete:": "達成済み：",
+  "Incomplete:": "未達成：",
+  "Special character included (optional)": "記号が含まれています（任意）",
+  "Special characters are optional. Try !, @, # or $.": "記号の使用は任意です。!、@、#、$ などを使ってみてください。"
 }
