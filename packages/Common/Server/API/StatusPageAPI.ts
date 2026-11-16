@@ -401,13 +401,15 @@ export default class StatusPageAPI extends BaseAPI<
 
   /*
    * How long what a page is set up as - its HTML's title and language
-   * (/seo), its settings (/master-page) - is kept, at most. Any change to
-   * the page's settings, links or single sign-on starts a new generation of
-   * its project (StatusPageOverviewCache), so it shows at once: this bounds
-   * only what no write of the page marks, such as a license that changes
-   * the "Powered by OneUptime" line.
+   * (/seo), its settings (/master-page) - is kept, at most: as long as its
+   * overview, so nothing a visitor sees is older. Any change to the page's
+   * settings, links or single sign-on starts a new generation of its project
+   * (StatusPageOverviewCache), so it shows at once: this bounds only what no
+   * write of the page marks - a license that changes the "Powered by
+   * OneUptime" line, an image file deleted outright.
    */
-  public static readonly SETTINGS_TTL_MS: number = 60_000;
+  public static readonly SETTINGS_TTL_MS: number =
+    StatusPageOverviewCache.TTL_MS;
 
   // What a page's HTML is rendered with (/seo): null for no such page.
   private static seoCache: StatusPageReadCache<JSONObject | null> =

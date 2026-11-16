@@ -15,7 +15,9 @@ import { createHash } from "crypto";
  * image), under the page and its project's generation
  * (StatusPageOverviewCache): a new image, or one taken off, is a write to the
  * page's settings, which starts a new generation in every process at once.
- * Anything else is seen when the entry runs out, within TTL_MS.
+ * Anything else - an image file deleted outright, which takes it off its
+ * page in the database alone - is seen when the entry runs out, within
+ * TTL_MS: as long as the page's overview is kept.
  *
  * The bytes are bounded (InMemoryLruCache): at most MAX_BYTES across every
  * page, the image used least recently let go first, and no image over
@@ -56,8 +58,8 @@ export interface StatusPageImage extends StatusPageImageFile {
 const EMPTY_ENTRY_BYTES: number = 64;
 
 export default class StatusPageImageCache {
-  // How long an image is kept, at most.
-  public static readonly TTL_MS: number = 60_000;
+  // How long an image is kept, at most: as long as the page's overview.
+  public static readonly TTL_MS: number = StatusPageOverviewCache.TTL_MS;
 
   // At most how many bytes of images this process keeps, every page's.
   public static MAX_BYTES: number = 64 * 1024 * 1024;
