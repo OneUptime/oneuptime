@@ -77,6 +77,13 @@ import StorageArrayResource from "../../../Models/DatabaseModels/StorageArrayRes
 import DockerSwarmResource from "../../../Models/DatabaseModels/DockerSwarmResource";
 import Span from "../../../Models/AnalyticsModels/Span";
 import SecurityEvent from "../../../Models/AnalyticsModels/SecurityEvent";
+import AnalyticsModelPermission from "../../../Server/Types/AnalyticsDatabase/ModelPermission";
+import Query from "../../../Server/Types/Database/Query";
+import SortValidator from "../../../Server/Types/Database/Permissions/SortValidator";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import ObjectID from "../../../Types/ObjectID";
+import Permission from "../../../Types/Permission";
+import UserType from "../../../Types/UserType";
 
 const ASC: DashboardWidgetSortDirection =
   DashboardWidgetSortDirection.Ascending;
@@ -98,6 +105,31 @@ function choice(
 
 // A key a widget's arguments and a viewer's browser keep a sort under.
 const SORT_KEY_PATTERN: RegExp = /^[a-zA-Z][a-zA-Z0-9]*$/;
+
+const PROJECT_ID: ObjectID = ObjectID.generate();
+
+// A viewer of the dashboard holding exactly `permission` in its project.
+function readerWith(permission: Permission): DatabaseCommonInteractionProps {
+  return {
+    userId: ObjectID.generate(),
+    userType: UserType.User,
+    tenantId: PROJECT_ID,
+    userTenantAccessPermission: {
+      [PROJECT_ID.toString()]: {
+        _type: "UserTenantAccessPermission",
+        projectId: PROJECT_ID,
+        permissions: [
+          {
+            _type: "UserPermission",
+            permission: permission,
+            labelIds: [],
+            isBlockPermission: false,
+          },
+        ],
+      },
+    },
+  };
+}
 
 // A sort with its keys in order, as the database reads them.
 function written(sort: JSONObject): string {
@@ -422,6 +454,60 @@ describe.each(WIDGETS)(
 
             for (const step of steps) {
               expect(Object.keys(step.sort).length).toBeGreaterThan(0);
+            }
+          }
+        }
+      });
+
+      /*
+       * A dashboard reads a widget's list as its viewer, and a read holds
+       * each column its sort names to the viewer's read of it (#8839): every
+       * order the widget reads is one every reader of its rows may sort by.
+       */
+      test("every order it reads is one every reader of its rows may sort by", () => {
+        const modelType: { new (): BaseModel | AnalyticsBaseModel } =
+          entry.model as { new (): BaseModel | AnalyticsBaseModel };
+        const model: BaseModel | AnalyticsBaseModel = new modelType();
+        const readers: Array<Permission> = model.getReadPermissions() || [];
+
+        expect(readers.length).toBeGreaterThan(0);
+
+        for (const permission of readers) {
+          for (const column of spec.columns) {
+            for (const direction of [ASC, DESC]) {
+              for (const step of getDashboardWidgetListReadSteps({
+                componentType: entry.componentType,
+                choice: choice(column.key, direction),
+                query: {},
+              })) {
+                let refusal: unknown = null;
+
+                try {
+                  if (model instanceof AnalyticsBaseModel) {
+                    AnalyticsModelPermission.checkSortPermission(
+                      modelType as { new (): AnalyticsBaseModel },
+                      step.sort,
+                      readerWith(permission),
+                    );
+                  } else {
+                    SortValidator.checkSortPermission({
+                      modelType: modelType as { new (): BaseModel },
+                      query: {} as Query<BaseModel>,
+                      sort: step.sort,
+                      props: readerWith(permission),
+                    });
+                  }
+                } catch (error) {
+                  refusal = error;
+                }
+
+                expect([permission, column.key, direction, refusal]).toEqual([
+                  permission,
+                  column.key,
+                  direction,
+                  null,
+                ]);
+              }
             }
           }
         }

@@ -659,7 +659,9 @@ export default class ModelPermission {
   /*
    * `write` is set for the read an update makes of the rows it changes
    * (checkUpdatePermissions): its rows are those of the resources both the
-   * read's and the update's grants reach (addWriteScopeToQuery).
+   * read's and the update's grants reach (addWriteScopeToQuery). `sort` is
+   * the order a read asked for, held to the caller's read of each column it
+   * names, as the select is (checkSortPermission, #8839).
    */
   @CaptureSpan()
   public static async checkReadPermission<TBaseModel extends BaseModel>(
@@ -668,6 +670,7 @@ export default class ModelPermission {
     select: Select<TBaseModel> | null,
     props: DatabaseCommonInteractionProps,
     write?: { type: DatabaseRequestType.Update } | undefined,
+    sort?: unknown,
   ): Promise<CheckReadPermissionType<TBaseModel>> {
     // The project's plan, when the read is one a plan decides (CallerPlan).
     props = await CallerPlan.withAnalyticsPlanFor({
@@ -721,6 +724,14 @@ export default class ModelPermission {
         if (select) {
           // check query permission.
           this.checkSelectPermission(modelType, select, props);
+        }
+
+        if (sort) {
+          this.checkSortPermission(
+            modelType as unknown as AnalyticsBaseModelType,
+            sort,
+            props,
+          );
         }
       }
     }
@@ -1047,6 +1058,63 @@ export default class ModelPermission {
     }
 
     return new Columns(columns);
+  }
+
+  /*
+   * A SORT READS THE COLUMNS IT ORDERS BY (#8839): where each row falls in
+   * the order says what it holds, so a telemetry read's sort is held to the
+   * caller's read of every column it names, as its select is - the ids and
+   * times every select may name pass. A key that is not a column is left to
+   * StatementGenerator.toSortStatement, which refuses it as bad data. Root
+   * and a master admin pass, as they pass every check.
+   */
+  public static checkSortPermission(
+    modelType: AnalyticsBaseModelType,
+    sort: unknown,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (
+      props.isRoot ||
+      props.isMasterAdmin ||
+      !sort ||
+      typeof sort !== "object" ||
+      Array.isArray(sort)
+    ) {
+      return;
+    }
+
+    const model: BaseModel = new modelType();
+
+    const readable: Columns = this.getModelColumnsByPermissions(
+      modelType,
+      ModelPermission.getColumnCheckRows(props),
+      DatabaseRequestType.Read,
+    );
+
+    const excludedColumnNames: Array<string> =
+      ModelPermission.getExcludedColumnNames();
+
+    for (const key of Object.keys(sort as Record<string, unknown>)) {
+      if (
+        (sort as Record<string, unknown>)[key] === undefined ||
+        excludedColumnNames.includes(key)
+      ) {
+        continue;
+      }
+
+      const column: AnalyticsTableColumn | null = model.getTableColumn(key);
+
+      if (!column || readable.columns.includes(key)) {
+        continue;
+      }
+
+      throw new NotAuthorizedException(
+        ColumnRefusalMessage.getSortRefusal({
+          column: key,
+          permissions: column.accessControl?.read || [],
+        }),
+      );
+    }
   }
 
   private static checkSelectPermission<TBaseModel extends BaseModel>(

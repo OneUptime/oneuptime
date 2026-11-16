@@ -157,6 +157,7 @@ export default class TenantPermission {
    * permission check in a multi-tenant request: below a table's update plan
    * only an update that switches records off passes (BillingPermission).
    */
+  // `sort`: a read's order, held in each project as its select is (#8839).
   @CaptureSpan()
   public static async addTenantScopeToQuery<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
@@ -165,6 +166,7 @@ export default class TenantPermission {
     props: DatabaseCommonInteractionProps,
     type: DatabaseRequestType,
     updateData?: unknown,
+    sort?: unknown,
   ): Promise<Query<TBaseModel>> {
     const model: BaseModel = new modelType();
 
@@ -327,6 +329,7 @@ export default class TenantPermission {
                     projectProps,
                     type,
                     updateData,
+                    sort,
                   );
 
                 return { ...checkBasePermissions.query };
