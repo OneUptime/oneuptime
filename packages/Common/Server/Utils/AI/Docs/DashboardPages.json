@@ -3393,7 +3393,7 @@
     "kind": "page"
   },
   {
-    "title": "Insights",
+    "title": "Insights (explorer analytics)",
     "where": [
       "Logs"
     ],
@@ -3548,7 +3548,7 @@
     "kind": "page"
   },
   {
-    "title": "Insights",
+    "title": "Insights (explorer analytics)",
     "where": [
       "Metrics"
     ],
@@ -3656,7 +3656,7 @@
     "kind": "page"
   },
   {
-    "title": "Insights",
+    "title": "Insights (explorer analytics)",
     "where": [
       "Traces"
     ],
@@ -3871,7 +3871,7 @@
     "kind": "page"
   },
   {
-    "title": "Insights",
+    "title": "Insights (explorer analytics)",
     "where": [
       "Exceptions"
     ],

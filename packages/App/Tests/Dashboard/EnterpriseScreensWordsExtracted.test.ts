@@ -50,6 +50,18 @@ const SCREENS: ReadonlyArray<string> = [
   "ee/Dashboard/StatusPageBranding",
 ];
 
+/*
+ * The screens are the Enterprise Edition's. The App Test job deletes ee/
+ * before it runs (core is the Community Edition by construction), and the
+ * extractor reads a root that is not there as no words, so the screens are
+ * held to their words where ee/ is checked out: the Enterprise Edition Test
+ * workflow (test.ee.yaml) runs this with ee/ present. The rule catalog and
+ * the findings are Common's, and are read everywhere.
+ */
+const ENTERPRISE_PRESENT: boolean = fs.existsSync(
+  path.join(REPOSITORY_ROOT, "ee", "Dashboard"),
+);
+
 const CATALOG: string = "packages/Common/Types/Team/ComplianceRule.ts";
 
 // What the compliance page says about a rule and a member (#8632).
@@ -118,7 +130,10 @@ describe("the roots the extractor reads", () => {
     "%s is read as the Dashboard's own screens",
     (directory: string) => {
       expect(rootOf(directory).kind).toBe("ui");
-      expect(fs.existsSync(path.join(REPOSITORY_ROOT, directory))).toBe(true);
+
+      if (ENTERPRISE_PRESENT) {
+        expect(fs.existsSync(path.join(REPOSITORY_ROOT, directory))).toBe(true);
+      }
     },
   );
 
@@ -172,6 +187,10 @@ describe("the roots the extractor reads", () => {
    * scan finds nothing in any of them.
    */
   test("every directory of ee/Dashboard the Dashboard draws is read, and none draws a hard-coded word", () => {
+    if (!ENTERPRISE_PRESENT) {
+      return;
+    }
+
     const drawn: Array<string> = fs
       .readdirSync(path.join(REPOSITORY_ROOT, "ee/Dashboard"), {
         withFileTypes: true,
@@ -265,6 +284,10 @@ describe("the words the Enterprise screens draw", () => {
   test.each(SCREENS)(
     "are found by the extractor in %s",
     (directory: string) => {
+      if (!ENTERPRISE_PRESENT) {
+        return;
+      }
+
       const found: Set<string> = textsOf(directory);
 
       for (const text of DRAWN[directory] || []) {
@@ -277,6 +300,10 @@ describe("the words the Enterprise screens draw", () => {
   );
 
   test("a count is found with both its forms", () => {
+    if (!ENTERPRISE_PRESENT) {
+      return;
+    }
+
     const plurals: Map<string, string | undefined> = new Map(
       extractedFrom("ee/Dashboard/TeamCompliance")
         .filter((entry: ExtractedString): boolean => {

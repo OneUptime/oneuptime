@@ -130,15 +130,35 @@ const markdownLinesOf: (file: string) => Array<MarkdownLine> = (
   return lines;
 };
 
-const ALL_MARKDOWN_LINES: Array<MarkdownLine> = APPS.flatMap(
-  (app: string): Array<MarkdownLine> => {
+const SOURCE_FILES: Array<string> = APPS.flatMap(
+  (app: string): Array<string> => {
     const srcDir: string = path.join(FEATURE_SET_DIR, app, "src");
 
-    return fs.existsSync(srcDir)
-      ? sourceFilesOf(srcDir).flatMap(markdownLinesOf)
-      : [];
+    return fs.existsSync(srcDir) ? sourceFilesOf(srcDir) : [];
   },
 );
+
+/*
+ * A setup guide's words in a language (SetupGuideTranslation, #8341) are
+ * no Markdown of their own: each entry is a piece of the English guide and
+ * the language's words for it, drawn in its place. A callout's marker is a
+ * piece of its own, drawn as the English writes it, so a quote there opens
+ * with its bold lead after the English's marker. They are read below, as
+ * pieces and their words.
+ */
+const GUIDE_WORDS: RegExp = /:\s*SetupGuideTranslation\s*=\s*\{/;
+
+const GUIDE_WORDS_FILES: Array<string> = SOURCE_FILES.filter(
+  (file: string): boolean => {
+    return GUIDE_WORDS.test(fs.readFileSync(file, "utf8"));
+  },
+);
+
+const ALL_MARKDOWN_LINES: Array<MarkdownLine> = SOURCE_FILES.filter(
+  (file: string): boolean => {
+    return !GUIDE_WORDS_FILES.includes(file);
+  },
+).flatMap(markdownLinesOf);
 
 interface QuotedBoldLead extends MarkdownLine {
   bold: string;
@@ -165,6 +185,17 @@ const QUOTED_BOLD_LEADS: Array<QuotedBoldLead> = ALL_MARKDOWN_LINES.flatMap(
   },
 );
 
+// A callout a "> [!KIND]" line marks: the marker every language draws as written.
+const isMarkedByMarker: (lead: QuotedBoldLead) => boolean = (
+  lead: QuotedBoldLead,
+): boolean => {
+  const marker: RegExpExecArray | null = CALLOUT_MARKER_LINE.exec(
+    lead.previous,
+  );
+
+  return Boolean(marker && getMarkdownCalloutKind(marker[1]));
+};
+
 const isMarkedCallout: (lead: QuotedBoldLead) => boolean = (
   lead: QuotedBoldLead,
 ): boolean => {
@@ -172,11 +203,7 @@ const isMarkedCallout: (lead: QuotedBoldLead) => boolean = (
     return true;
   }
 
-  const marker: RegExpExecArray | null = CALLOUT_MARKER_LINE.exec(
-    lead.previous,
-  );
-
-  return Boolean(marker && getMarkdownCalloutKind(marker[1]));
+  return isMarkedByMarker(lead);
 };
 
 describe("setup guides mark their callouts", () => {
@@ -211,6 +238,66 @@ describe("setup guides mark their callouts", () => {
       return `${lead.file}:${lead.line} "> **${lead.bold}**" - put "> [!WARNING]" (or [!NOTE], [!TIP]) on the line above`;
     });
 
+    expect(unmarked).toEqual([]);
+  });
+
+  /*
+   * In a guide's words, a quote that opens with a bold lead is one the
+   * English guide marks with a "> [!KIND]" line, drawn before it in every
+   * language. The viewer reads a bold label as a kind only in English - a
+   * translated "**Hinweis:**" names none - so a callout the English marks by
+   * its label alone draws as a quote in every other language. Its words
+   * stay a quote, so the marker opens their callout.
+   */
+  test("a guide's words for a quote with a bold lead are a callout's that the English marks with a marker line", async () => {
+    const markedInEnglish: Set<string> = new Set<string>(
+      QUOTED_BOLD_LEADS.filter(isMarkedByMarker).map(
+        (lead: QuotedBoldLead): string => {
+          // A template literal writes a code span's backticks escaped.
+          return lead.bold.split("\\`").join("`");
+        },
+      ),
+    );
+    const quotes: Array<string> = [];
+    const unmarked: Array<string> = [];
+
+    for (const file of GUIDE_WORDS_FILES) {
+      const words: Readonly<Record<string, string>> = (
+        (await import(file)) as { default: Readonly<Record<string, string>> }
+      ).default;
+
+      for (const [english, translated] of Object.entries(words)) {
+        const englishLead: RegExpExecArray | null =
+          QUOTED_BOLD_LEAD.exec(english);
+
+        if (!englishLead && !QUOTED_BOLD_LEAD.test(translated)) {
+          continue;
+        }
+
+        const piece: string = `${path.relative(FEATURE_SET_DIR, file)} "${english.slice(0, 60)}"`;
+
+        quotes.push(piece);
+
+        if (
+          !englishLead ||
+          !markedInEnglish.has(englishLead[1]!) ||
+          !translated.startsWith(">")
+        ) {
+          unmarked.push(
+            `${piece} - put "> [!NOTE]" (or [!WARNING], [!TIP]) on the line above it in the English guide, and keep its words a quote`,
+          );
+        }
+      }
+    }
+
+    // The Host guide's, in each of its languages.
+    expect(quotes).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining(
+          'Dashboard/src/Pages/Host/DocumentationTranslations/de.ts "> **Note for native installs:**',
+        ),
+      ]),
+    );
     expect(unmarked).toEqual([]);
   });
 

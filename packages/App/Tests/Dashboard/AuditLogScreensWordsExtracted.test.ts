@@ -37,6 +37,17 @@ const REPOSITORY_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
 
 const SCREENS: string = "ee/Dashboard/AuditLogs";
 
+/*
+ * The screens are the Enterprise Edition's. The App Test job deletes ee/
+ * before it runs (core is the Community Edition by construction), and the
+ * extractor reads a root that is not there as no words, so their words are
+ * held to it where ee/ is checked out: the Enterprise Edition Test workflow
+ * (test.ee.yaml) runs this with ee/ present.
+ */
+const ENTERPRISE_PRESENT: boolean = fs.existsSync(
+  path.join(REPOSITORY_ROOT, SCREENS),
+);
+
 const SESSION_LABELS: string =
   "packages/Common/Types/AuditLog/AuditLogSessionEvent.ts";
 
@@ -157,6 +168,10 @@ describe("the words the audit log's screens draw", () => {
   ];
 
   test("are found by the extractor", () => {
+    if (!ENTERPRISE_PRESENT) {
+      return;
+    }
+
     const found: Set<string> = textsOf(extractedFrom(SCREENS));
 
     for (const text of DRAWN) {
@@ -168,6 +183,10 @@ describe("the words the audit log's screens draw", () => {
   });
 
   test("a count is found with both its forms", () => {
+    if (!ENTERPRISE_PRESENT) {
+      return;
+    }
+
     const plurals: Map<string, string | undefined> = new Map(
       extractedFrom(SCREENS)
         .filter((entry: ExtractedString): boolean => {
