@@ -89,6 +89,8 @@ flowchart TB
 
 La checklist sparisce per tutti quando ogni passaggio è fatto. Per nasconderla prima, fai clic su **Nascondi**: resta nascosta solo per te, su ogni dispositivo, e rimane una riga con **Mostralo** e **Come funziona OneUptime**. Chi è stato invitato nel progetto come membro non vede la checklist. **Come funziona OneUptime** resta a un clic, in qualsiasi progetto: aprilo da **Aiuto** o con il pulsante accanto a **Esplora OneUptime**.
 
+**Come funziona OneUptime** si apre su **Come si incastra tutto**: i quattro passaggi che un problema attraversa, **Rileva**, **Rispondi**, **Comunica** e **Migliora**, ognuno con i prodotti che lo svolgono. Poi vengono le categorie del menu **Prodotti**, ognuna con i suoi prodotti e a cosa serve ciascuno: scegline una, o passa alla successiva con i tasti freccia o **Avanti**. Fai clic su un prodotto per aprirlo. I prodotti che il tuo progetto nasconde non ci sono.
+
 ### Richiede attenzione
 
 **Richiede attenzione** elenca per nome ciò che i numeri contano: gli incidenti aperti, gli avvisi aperti, i monitor non operativi, gli SLO a rischio e le manutenzioni in corso, prima i più urgenti. Ogni riga mostra la gravità o lo stato, dice quando è iniziato un incidente o un avviso e quando termina una manutenzione, e apre l'elemento. Per ogni tipo ne mostra fino a cinque, con **Mostra tutti** per gli altri, che apre lo stesso elenco del suo numero. Quando non c'è nulla di aperto, dice **Nulla richiede la tua attenzione**.

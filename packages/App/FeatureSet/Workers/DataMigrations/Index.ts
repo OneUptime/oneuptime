@@ -136,6 +136,7 @@ import ReadHashRoutesInProductAnalyticsEntryPages from "./ReadHashRoutesInProduc
 import ScrubProductAnalyticsAddresses from "./ScrubProductAnalyticsAddresses";
 import ScrubSessionReplayAddresses from "./ScrubSessionReplayAddresses";
 import EncryptUploadedCertificateKeys from "./EncryptUploadedCertificateKeys";
+import EncryptLetsEncryptKeys from "./EncryptLetsEncryptKeys";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
 import BackfillProjectMilestones from "./BackfillProjectMilestones";
 import AddNetworkTrafficUsageUplinkHealthColumns from "./AddNetworkTrafficUsageUplinkHealthColumns";
@@ -179,6 +180,7 @@ import RecordMonitoringOffOnStatusTimelines from "./RecordMonitoringOffOnStatusT
 import SettleOnCallNotificationsStuckBeforeUpgrade from "./SettleOnCallNotificationsStuckBeforeUpgrade";
 import EncryptGlobalConfigCredentials from "./EncryptGlobalConfigCredentials";
 import HashMasterApiKey from "./HashMasterApiKey";
+import HashProjectApiKeys from "./HashProjectApiKeys";
 import BackfillNetworkEndpointCoarseLastSeenAt from "./BackfillNetworkEndpointCoarseLastSeenAt";
 import ResolveWhatMonitorsTurnedOffWouldHaveResolved from "./ResolveWhatMonitorsTurnedOffWouldHaveResolved";
 import BackfillMonitorFirstMeasuredAt from "./BackfillMonitorFirstMeasuredAt";
@@ -1100,6 +1102,17 @@ const DataMigrations: Array<DataMigrationBase> = [
    */
   new HashMasterApiKey(),
   /*
+   * Hashes the project API keys (ApiKey.apiKey, Project Settings > Advanced
+   * > API Keys) that were stored as they were written, before keys were
+   * stored hashed (#8902), with each key's hint, so every script and
+   * integration that uses one keeps working. After the schema migration
+   * ApiKeyHashedColumn, which makes the column a varchar and keeps the keys;
+   * paged, idempotent and safe twice at once; it writes only the ApiKey
+   * table, so it sits above the runbook migrations that keep their places
+   * before the last slot AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new HashProjectApiKeys(),
+  /*
    * NetworkEndpoint.coarseLastSeenAt (#8092): lastSeenAt copied in for the
    * live endpoints that were seen, so the age-out of discovered devices,
    * which now finds its candidates by that column, finds the ones no walk
@@ -1208,6 +1221,16 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new EncryptUploadedCertificateKeys(),
+  /*
+   * The private keys of the free certificates ordered from Let's Encrypt
+   * (AcmeCertificate.certificateKey), and the account and certificate keys
+   * the Greenlock store it replaced kept (GreenlockCertificate.blob), stored
+   * as plaintext before they were kept encrypted at rest: each encrypted in
+   * place, in raw SQL, only while it still holds the value read. Paged and
+   * idempotent; nginx serves a key not encrypted yet as itself meanwhile.
+   * Before the last slot AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new EncryptLetsEncryptKeys(),
   /*
    * A monitor nothing has checked yet reads Operational, the status every
    * monitor is created in (issue #8899): Monitor.firstMeasuredAt now says

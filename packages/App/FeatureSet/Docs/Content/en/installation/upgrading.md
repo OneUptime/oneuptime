@@ -809,6 +809,22 @@ working mail server.
   and **Enabled** turns it off. The API no longer reads `masterApiKey` back,
   and refuses a key written to it. Rolled back to an earlier release, the
   page shows the key's hash, which is no key: generate a new key there.
+- **A project's API keys are stored hashed, and each is shown only when it is made.**
+  A key was stored as it was written, so a database dump or a backup held a
+  working key for every project. Now only its hash is stored, and the
+  upgrade hashes the keys you have: the scripts, integrations and Terraform
+  configurations that sign in with them keep working, with no change.
+  **Project Settings → Advanced → API Keys** shows a new key once, when it
+  is created or reset, to copy then, and says how each key ends in its
+  place. The API no longer reads a key back: the create answers it once,
+  and `POST /api-key/:id/reset-key` makes a new one. If Terraform or
+  OpenTofu manages your API keys, upgrade the provider with the server: it
+  keeps `api_key` in state from the create, where an earlier provider clears
+  it at its next refresh, and an imported key, like the `oneuptime_api_key`
+  data source, has none. A server of the earlier release still running
+  during the upgrade refuses the keys once they are hashed, until it is
+  replaced. Rolled back to an earlier release, each key is replaced by a
+  new one, shown on its page: give it to whatever used the old one.
 - **A record you may not read can no longer be changed or deleted, and a
   change by ID that reaches nothing says so.** A change or a delete - from
   the dashboard, the API, Terraform, the MCP tools or a workflow - now

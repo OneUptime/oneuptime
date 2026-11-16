@@ -65,7 +65,8 @@ describe("Retry-After", () => {
   test("delta-seconds, as most providers send it", () => {
     expect(HttpMailApi.parseRetryAfter("30")).toBe(30);
     expect(HttpMailApi.parseRetryAfter(" 2 ")).toBe(2);
-    expect(HttpMailApi.parseRetryAfter("0")).toBe(0);
+    // A second at least: "0" is not a retry at once.
+    expect(HttpMailApi.parseRetryAfter("0")).toBe(1);
   });
 
   test("an HTTP date, as the seconds left until it", () => {
@@ -74,10 +75,17 @@ describe("Retry-After", () => {
     expect(
       HttpMailApi.parseRetryAfter("Thu, 01 Jan 2026 00:00:10 GMT", now),
     ).toBe(10);
-    // A date already past asks for no wait at all.
+    // A date already past - a server clock behind ours - waits a second.
     expect(
       HttpMailApi.parseRetryAfter("Wed, 31 Dec 2025 23:59:00 GMT", now),
-    ).toBe(0);
+    ).toBe(1);
+    // The obsolete RFC 850 and asctime shapes too, asctime in UTC.
+    expect(
+      HttpMailApi.parseRetryAfter("Thursday, 01-Jan-26 00:00:10 GMT", now),
+    ).toBe(10);
+    expect(HttpMailApi.parseRetryAfter("Thu Jan  1 00:00:10 2026", now)).toBe(
+      10,
+    );
   });
 
   test("absent, negative or not a time: the backoff applies", () => {
@@ -87,6 +95,17 @@ describe("Retry-After", () => {
     expect(HttpMailApi.parseRetryAfter("-5")).toBeUndefined();
     expect(HttpMailApi.parseRetryAfter("soon")).toBeUndefined();
   });
+
+  /*
+   * Issue #8928: Number() read "1.5" as a second and a half and "0x10" as
+   * 16, and Date.parse took "5 seconds" for a day gone by: no wait at all.
+   */
+  test.each([["1.5"], ["5 seconds"], ["+5"], ["1e3"], ["0x10"], ["   "]])(
+    "%j is no Retry-After: the backoff applies",
+    (value: string) => {
+      expect(HttpMailApi.parseRetryAfter(value)).toBeUndefined();
+    },
+  );
 });
 
 describe("the wait before a retry", () => {

@@ -14,7 +14,7 @@ Terraform ने जो संदेश दिखाया, या आपने 
 | संदेश या लक्षण | क्या करें |
 | --- | --- |
 | `Missing API Key` | प्रदाता को उसकी कुंजी दें: देखें [`Missing API Key` या `Invalid API Key`](#missing-api-key-या-invalid-api-key) |
-| `Invalid API Key` | कुंजी फिर से कॉपी करें, या नई बनाएँ: देखें [`Missing API Key` या `Invalid API Key`](#missing-api-key-या-invalid-api-key) |
+| `Invalid API Key` | कुंजी जाँचें, या नई कुंजी के लिए उसे रीसेट करें: देखें [`Missing API Key` या `Invalid API Key`](#missing-api-key-या-invalid-api-key) |
 | `ProjectId required` | मास्टर कुंजी के बजाय प्रोजेक्ट की API कुंजी इस्तेमाल करें: देखें [`ProjectId required`](#projectid-required) |
 | `You do not have permissions to create Monitor` | कुंजी को वह अनुमति दें जिसका संदेश में नाम है: देखें [कुंजी में एक अनुमति की कमी है](#कुंजी-में-एक-अनुमति-की-कमी-है) |
 | `API keys need the Growth plan` | प्रोजेक्ट को वापस Growth प्लान पर ले जाएँ: देखें [भुगतान आवश्यक](#भुगतान-आवश्यक) |
@@ -60,7 +60,7 @@ flowchart TB
 
 `Missing API Key` प्रदाता को कोई भी अनुरोध करने से पहले रोक देता है: न तो प्रदाता ब्लॉक में `api_key` सेट है और न ही `ONEUPTIME_API_KEY` एनवायरनमेंट वेरिएबल। जिस शेल में आप Terraform चलाते हैं उसमें वेरिएबल export करें, या कुंजी को `sensitive` चिह्नित वेरिएबल में पास करें।
 
-`Invalid API Key` उस कुंजी के लिए OneUptime का जवाब है जिसे वह नहीं जानता: गलत टाइप की गई, समाप्त या हटाई गई कुंजी, या किसी ऐसे दूसरे OneUptime की कुंजी जिसकी ओर `oneuptime_url` इशारा नहीं करता। कुंजी को **प्रोजेक्ट सेटिंग्स → उन्नत → API कुंजियाँ** के तहत उसके पेज से फिर कॉपी करें, या नई बनाएँ।
+`Invalid API Key` उस कुंजी के लिए OneUptime का जवाब है जिसे वह नहीं जानता: गलत टाइप की गई, समाप्त या हटाई गई कुंजी, या किसी ऐसे दूसरे OneUptime की कुंजी जिसकी ओर `oneuptime_url` इशारा नहीं करता। उसे **प्रोजेक्ट सेटिंग्स → उन्नत → API कुंजियाँ** के तहत कुंजी के पेज पर दिखे उसके आखिरी अक्षरों से मिलाएँ, या नई कुंजी के लिए उसे वहाँ रीसेट करें।
 
 ### `ProjectId required`
 

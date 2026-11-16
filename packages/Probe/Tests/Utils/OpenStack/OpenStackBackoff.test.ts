@@ -23,25 +23,56 @@ describe("Retry-After", () => {
   test.each([
     ["seconds", "30", 30_000],
     ["seconds with spaces", " 5 ", 5000],
-    ["no seconds", "0", 0],
+    // A second at least: never a retry at once.
+    ["no seconds", "0", 1000],
     ["an array of one", ["7"], 7000],
+    ["an array that agrees", ["7", "7"], 7000],
     ["a date ahead", "Wed, 04 Nov 2026 12:00:10 GMT", 10_000],
-    ["a date already gone", "Wed, 04 Nov 2026 11:59:00 GMT", 0],
+    ["a date already gone", "Wed, 04 Nov 2026 11:59:00 GMT", 1000],
+    ["an RFC 850 date", "Wednesday, 04-Nov-26 12:00:10 GMT", 10_000],
+    ["an asctime date, in UTC", "Wed Nov  4 12:00:10 2026", 10_000],
   ])("%s", (_name: string, value: string | Array<string>, expected: number) => {
     expect(parseRetryAfter(value, NOW)).toBe(expected);
   });
 
+  /*
+   * Issue #8928: "1.5" was read as 1.5 seconds, and Date.parse took "-5" or
+   * "5 seconds" for a day in 2001. RFC 9110 allows digits only, or a date.
+   */
   test.each([
     ["nothing", undefined],
     ["blank", "   "],
     ["words", "soon"],
     ["a negative", "-5"],
-  ])("%s says nothing usable", (_name: string, value: string | undefined) => {
-    expect(parseRetryAfter(value, NOW)).toBeNull();
-  });
+    ["a fraction", "1.5"],
+    ["seconds in words", "5 seconds"],
+    ["an exponent", "1e3"],
+    ["hex", "0x10"],
+    ["a sign", "+5"],
+    ["an array that disagrees", ["7", "8"]],
+    ["a date in another shape", "2026-11-04T12:00:10Z"],
+  ])(
+    "%s says nothing usable",
+    (_name: string, value: string | Array<string> | undefined) => {
+      expect(parseRetryAfter(value, NOW)).toBeNull();
+    },
+  );
 });
 
 describe("waiting to try one request again", () => {
+  test("a Retry-After that is no number of seconds and no date doubles, as none does", () => {
+    for (const retryAfter of ["1.5", "-5", "5 seconds"]) {
+      expect(
+        computeRetryDelayInMs({
+          attempt: 1,
+          retryAfter: retryAfter,
+          now: NOW,
+          random: 0,
+        }),
+      ).toBe(RETRY_BASE_DELAY_IN_MS / 2);
+    }
+  });
+
   test("what the service asked for wins", () => {
     expect(
       computeRetryDelayInMs({

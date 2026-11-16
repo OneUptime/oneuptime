@@ -197,12 +197,21 @@ describe("an exported entry carries no secret", () => {
     uninstallEnterpriseModule();
   });
 
-  test("an API key's key is recorded as set, never with its value", async () => {
+  /*
+   * A project's API key is stored as its hash, which nobody may read, and
+   * the record a create hands back holds the key itself, for the create's
+   * one answer (ApiKeyService.onCreateSuccess, #8902): the very record the
+   * recorder is handed. Left out of the entry altogether, as every column
+   * nobody may read is; its hint - its last four characters, no secret -
+   * says which key it was.
+   */
+  test("an API key's key never reaches its entry, though the created record holds it", async () => {
     const apiKey: ApiKey = new ApiKey();
     apiKey.id = ObjectID.generate();
     apiKey.projectId = PROJECT_ID;
     apiKey.name = "CI deploy key";
-    apiKey.apiKey = new ObjectID(API_KEY_VALUE);
+    apiKey.apiKey = new HashedString(API_KEY_VALUE);
+    apiKey.apiKeyHint = API_KEY_VALUE.slice(-4);
 
     await recorder.recordCreate({
       model: new ApiKey(),
@@ -211,9 +220,10 @@ describe("an exported entry carries no secret", () => {
     });
 
     expect(inserted).toHaveLength(1);
-    expect(changeOf(inserted[0]!, "apiKey")).toEqual({
-      field: "apiKey",
-      newValue: "[REDACTED]",
+    expect(changeOf(inserted[0]!, "apiKey")).toBeUndefined();
+    expect(changeOf(inserted[0]!, "apiKeyHint")).toEqual({
+      field: "apiKeyHint",
+      newValue: API_KEY_VALUE.slice(-4),
     });
     expect(changeOf(inserted[0]!, "name")).toEqual({
       field: "name",
@@ -224,7 +234,6 @@ describe("an exported entry carries no secret", () => {
 
     expect(file).not.toContain(API_KEY_VALUE);
     expect(file).toContain("CI deploy key");
-    expect(file).toContain('{"field":"apiKey","newValue":"[REDACTED]"}');
   });
 
   test("rotating a monitor's secret key is recorded as a change, without either key", async () => {

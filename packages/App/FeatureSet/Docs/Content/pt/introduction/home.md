@@ -89,6 +89,8 @@ flowchart TB
 
 A lista some para todos quando todas as etapas estão concluídas. Para ocultá-la antes, clique em **Ocultar**: ela fica oculta só para você, em todos os dispositivos, e fica uma linha com **Mostrar** e **Como o OneUptime funciona**. Quem foi convidado ao projeto como membro não vê a lista. **Como o OneUptime funciona** continua a um clique, em qualquer projeto: abra-o em **Ajuda** ou com o botão ao lado de **Explore o OneUptime**.
 
+**Como o OneUptime funciona** abre em **Como tudo se encaixa**: as quatro etapas pelas quais um problema passa, **Detectar**, **Responder**, **Comunicar** e **Melhorar**, cada uma com os produtos que a realizam. Depois vêm as categorias do menu **Produtos**, cada uma com seus produtos e para que serve cada um: escolha uma, ou passe para a próxima com as setas do teclado ou **Próximo**. Clique em um produto para abri-lo. Os produtos que seu projeto oculta ficam de fora.
+
 ### Requer atenção
 
 **Requer atenção** lista, pelo nome, o que os números contam: os incidentes abertos, os alertas abertos, os monitores que não estão operacionais, os SLOs em risco e as manutenções em andamento, os mais urgentes primeiro. Cada linha mostra a severidade ou o status, diz quando um incidente ou alerta começou e quando a manutenção termina, e abre o registro. Cada tipo mostra até cinco, com **Mostrar todos** para o resto, que abre a mesma lista que o seu número. Quando nada está aberto, diz **Nada precisa da sua atenção**.

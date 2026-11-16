@@ -84,6 +84,7 @@ These are sent from the Dashboard with `ProductEvents.send(ProductEventName.X, {
 | `home/member_step_started` | An invited member opens one of their own first steps on Home: their setup checklist (`reach`), a test page to themselves (`test_page`), their shifts (`on_call`) or the mobile app (`mobile_app`) | `step` | `MemberFirstSteps` |
 | `home/member_steps_dismissed` | An invited member hides their own first steps on Home | `open_count` | `MemberFirstSteps` |
 | `how_it_works/opened` | A product's "How it works" is opened, or How OneUptime works (`product` is `oneuptime`) | `product`, and for How OneUptime works `source` (`help`, `home`) | `ProductAboutButton`, `HowOneUptimeWorksDialog` |
+| `how_it_works/product_opened` | A product is opened from How OneUptime works (#8891): from one of the four steps a problem moves through, or from its category's list. Which products people open there says what they came to find | `product` (its key, such as `logs`), `place` (`loop` or `category`) | `HowOneUptimeWorksOverview` |
 | `search/no_results` | A command palette search settles with nothing found. Only searches of 2 characters or more count, after one second, or when the palette closes on them | `source`, `query_length`, and on Cloud `query` (40 characters at most) | `DashboardCommandPalette` |
 | `ask_ai/question_asked` | Ask AI takes a question. The question itself is never sent | `is_new_conversation`, `permission_mode` | `useAiChat` |
 | `ask_ai/answer_rated` | An answer is rated, or its rating cleared | `rating` (`up`, `down`, `cleared`) | `useAiChat` |

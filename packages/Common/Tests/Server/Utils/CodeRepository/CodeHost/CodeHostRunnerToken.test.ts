@@ -62,6 +62,7 @@ const GLOBAL_RUNNER: CodeWorker = {
 
 let connection: CodeRepositoryConnection | undefined;
 let savedBilling: string | undefined;
+let savedGitHubOnly: string | undefined;
 
 function makeConnection(
   overrides: Partial<CodeRepositoryConnection> = {},
@@ -132,7 +133,9 @@ function serverAnswering(status: number): {
 beforeEach(() => {
   connection = makeConnection();
   savedBilling = process.env["BILLING_ENABLED"];
+  savedGitHubOnly = process.env["GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY"];
   delete process.env["BILLING_ENABLED"];
+  delete process.env["GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY"];
 
   jest
     .spyOn(CodeHostAccess, "readConnections")
@@ -156,6 +159,12 @@ afterEach(() => {
     delete process.env["BILLING_ENABLED"];
   } else {
     process.env["BILLING_ENABLED"] = savedBilling;
+  }
+
+  if (savedGitHubOnly === undefined) {
+    delete process.env["GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY"];
+  } else {
+    process.env["GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY"] = savedGitHubOnly;
   }
 
   jest.restoreAllMocks();
@@ -426,7 +435,7 @@ describe("a global Runner on OneUptime Cloud", () => {
     expect(decision.grant!.token).toBe(TOKEN);
   });
 
-  test("on a self-hosted OneUptime a global Runner is handed it as before", async () => {
+  test("on a single-tenant self-hosted OneUptime a global Runner is handed it as before", async () => {
     const decision: CodeHostRunnerDecision = await CodeHostRunnerToken.decide({
       repository: makeRepository(),
       worker: GLOBAL_RUNNER,
@@ -435,6 +444,31 @@ describe("a global Runner on OneUptime Cloud", () => {
     });
 
     expect(decision.grant!.token).toBe(TOKEN);
+  });
+
+  /*
+   * #8915: a self-hosted multi-tenant install turns the same rule on with
+   * GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY, billing off.
+   */
+  test("a self-hosted multi-tenant install (the setting on) is handed no connection token either", async () => {
+    process.env["GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY"] = "true";
+    const server: {
+      transport: CodeHostTransport;
+      seen: Array<CodeHostHttpRequest>;
+    } = serverAnswering(200);
+
+    const decision: CodeHostRunnerDecision = await CodeHostRunnerToken.decide({
+      repository: makeRepository({
+        repositoryHostedAt: CodeRepositoryType.Forgejo,
+      }),
+      worker: GLOBAL_RUNNER,
+      supportedCodeHosts: [CodeRepositoryType.Forgejo],
+      transport: server.transport,
+    });
+
+    expect(decision.grant).toBeUndefined();
+    expect(decision.refusal).toBe(GLOBAL_RUNNER_REPOSITORY_TOKEN_REFUSAL);
+    expect(server.seen).toHaveLength(0);
   });
 });
 

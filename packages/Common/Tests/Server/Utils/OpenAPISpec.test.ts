@@ -892,6 +892,138 @@ describe("OpenAPI specification", () => {
   });
 
   /*
+   * A LIST'S COUNT UP TO A CAP (#8114). A database model's list takes
+   * countUpTo (BaseAPI.getCountUpTo) and answers isCountCapped when more
+   * match than it counted; a telemetry list counts every row and takes
+   * neither (AnalyticsBaseAPI).
+   */
+  describe("a list's count up to a cap", () => {
+    function listOperation(path: string): JSONObject {
+      return ((paths[path] as JSONObject)["post"] || {}) as JSONObject;
+    }
+
+    function requestProperties(operation: JSONObject): JSONObject {
+      return (
+        (
+          ((operation["requestBody"] as JSONObject)["content"] as JSONObject)[
+            "application/json"
+          ] as JSONObject
+        )["schema"] as JSONObject
+      )["properties"] as JSONObject;
+    }
+
+    function answerProperties(operation: JSONObject): JSONObject {
+      return (
+        (
+          (
+            ((operation["responses"] as JSONObject)["200"] as JSONObject)[
+              "content"
+            ] as JSONObject
+          )["application/json"] as JSONObject
+        )["schema"] as JSONObject
+      )["properties"] as JSONObject;
+    }
+
+    it("takes countUpTo, a whole number of at least 1, on every database model's list, and answers isCountCapped", () => {
+      const problems: Array<string> = [];
+      let lists: number = 0;
+
+      for (const modelType of Models) {
+        const model: DatabaseBaseModel = new modelType();
+
+        if (
+          !model.tableName ||
+          !model.enableDocumentation ||
+          !model.crudApiPath
+        ) {
+          continue;
+        }
+
+        const path: string = `${model.crudApiPath.toString()}/get-list`;
+
+        if (!paths[path]) {
+          continue;
+        }
+
+        lists++;
+
+        const operation: JSONObject = listOperation(path);
+        const countUpTo: JSONObject | undefined = requestProperties(operation)[
+          "countUpTo"
+        ] as JSONObject | undefined;
+        const isCountCapped: JSONObject | undefined = answerProperties(
+          operation,
+        )["isCountCapped"] as JSONObject | undefined;
+
+        if (
+          !countUpTo ||
+          countUpTo["type"] !== "integer" ||
+          countUpTo["minimum"] !== 1
+        ) {
+          problems.push(`${path}: countUpTo ${JSON.stringify(countUpTo)}`);
+        }
+
+        if (!isCountCapped || isCountCapped["type"] !== "boolean") {
+          problems.push(
+            `${path}: isCountCapped ${JSON.stringify(isCountCapped)}`,
+          );
+        }
+      }
+
+      expect(problems).toEqual([]);
+      expect(lists).toBeGreaterThan(100);
+    });
+
+    it("says what the cap is and what the answer says when more match", () => {
+      const operation: JSONObject = listOperation("/monitor/get-list");
+
+      expect(
+        (requestProperties(operation)["countUpTo"] as JSONObject)[
+          "description"
+        ],
+      ).toBe(
+        "Count the matching items no further than this, or than the end of the page if that is further. When more match, count is where it stopped and isCountCapped is true. Leave it out to count every matching item.",
+      );
+      expect(
+        (answerProperties(operation)["isCountCapped"] as JSONObject)[
+          "description"
+        ],
+      ).toBe(
+        "True when the request set countUpTo and more items match than were counted: count is where the count stopped. Absent when count is exact.",
+      );
+    });
+
+    it("leaves both off a telemetry table's list, which counts every row", () => {
+      const problems: Array<string> = [];
+
+      for (const modelType of AnalyticsModels) {
+        const model: AnalyticsBaseModel = new modelType();
+
+        if (!model.crudApiPath) {
+          continue;
+        }
+
+        const path: string = `${model.crudApiPath.toString()}/get-list`;
+
+        if (!paths[path]) {
+          continue;
+        }
+
+        const operation: JSONObject = listOperation(path);
+
+        if (
+          requestProperties(operation)["countUpTo"] ||
+          answerProperties(operation)["isCountCapped"]
+        ) {
+          problems.push(path);
+        }
+      }
+
+      expect(problems).toEqual([]);
+    });
+  });
+
+  /*
    * A PROJECT'S OWN TWILIO ACCOUNT AND MAIL SERVER (#7737).
    *
    * Settings > Notification Channels: the Twilio account that sends a
