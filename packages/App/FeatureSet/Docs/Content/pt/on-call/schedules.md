@@ -101,6 +101,8 @@ Uma ausência adicionada assim vale para todas as políticas de plantão, então
 
 Com a API, uma substituição de usuário (`/api/on-call-duty-policy-user-override`) criada sem `routeAlertsToUserId` pula a pessoa em `overrideUserId` de `startsAt` até `endsAt`.
 
+A **Visão geral** de um agendamento tem um cartão **Usado por**: as políticas de plantão cujas regras de escalonamento acionam quem está de plantão, com as regras que fazem isso. Quando nenhuma faz, ele diz isso e leva às políticas de plantão. Excluir o agendamento, em sua página ou pela lista, diz primeiro quais políticas acionam por ele. As políticas que você não pode abrir são contadas, não nomeadas.
+
 ## Criar agendamentos com a API ou o Terraform
 
 Os agendamentos de plantão são o recurso `/api/on-call-duty-policy-schedule`; as camadas deles e as pessoas nelas são os recursos `/api/on-call-duty-schedule-layer` e `/api/on-call-duty-schedule-layer-user`.

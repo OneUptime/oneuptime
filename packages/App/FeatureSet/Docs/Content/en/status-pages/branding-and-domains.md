@@ -208,14 +208,14 @@ In **Domain** (placeholder `status.example.com`), type the whole address people 
 
 #### Keep the free certificate, or upload your own
 
-**More fields** is folded, and its header says which certificate the domain will use: "We issue a free SSL certificate for this domain and renew it automatically." Open it only to use a certificate of your own: switch **Upload Custom Certificate** on, then paste the **Certificate** and the **Certificate Private Key** in PEM format. Both are then required.
+**More fields** is folded, and its header says which certificate the domain will use: "We issue a free SSL certificate for this domain and renew it automatically." Open it only to use a certificate of your own: switch **Upload Custom Certificate** on, then paste the **Certificate** and the **Certificate Private Key** in PEM format. Both are then required. The key is stored encrypted and never shown again. A certificate and key that do not belong together are refused, with the reason under the field that is wrong.
 
 #### Continue
 
 Click **Continue**. If the project has verified the domain the address is on, the domain is added and its **DNS Setup** opens, with the CNAME record to add. If it has not, OneUptime adds that domain to **Project Settings → Advanced → Domains**, and **DNS Setup** opens with both records, so you verify the domain right there, without leaving the page.
 :::
 
-A domain's full name is fixed when you add it, so **Edit** changes only its certificate. To use a different address, add that one and delete the old one. A name a dashboard or a form already uses, in any project, is refused: one domain shows one status page, dashboard or form.
+A domain's full name is fixed when you add it, so **Edit** changes only its certificate. On a domain that serves your own certificate, **Certificate Private Key** is empty in the **Edit** dialog: leave it blank to keep the stored key, which is all a certificate renewed with the same key needs, or paste a new key. On a domain on the free certificate, switching **Upload Custom Certificate** on asks for the key. To use a different address, add that one and delete the old one. A name a dashboard or a form already uses, in any project, is refused: one domain shows one status page, dashboard or form.
 
 Adding a domain to the project takes permission to create project domains (**Create Domain**, or Project Owner or Project Admin), and verifying it takes **Edit Domain**. Without them, the dialog says who can do it.
 

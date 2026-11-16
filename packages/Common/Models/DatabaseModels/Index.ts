@@ -147,9 +147,6 @@ import InstanceHealthLog from "./InstanceHealthLog";
 import ProductFeedback from "./ProductFeedback";
 import InstanceReceivingPeriod from "./InstanceReceivingPeriod";
 import InstanceTokenSigningKey from "./InstanceTokenSigningKey";
-import GreenlockCertificate from "./GreenlockCertificate";
-// Greenlock
-import GreenlockChallenge from "./GreenlockChallenge";
 // Incidents
 import Incident from "./Incident";
 import IncidentFeed from "./IncidentFeed";
@@ -969,9 +966,6 @@ const AllModelTypes: Array<{
 
   BillingPaymentMethods,
   BillingInvoice,
-
-  GreenlockChallenge,
-  GreenlockCertificate,
 
   Workflow,
   WorkflowVariables,

@@ -57,6 +57,8 @@ En policy som flere regler legger til, kjører én gang. En alvorlighetsgrad kj�
 - **Brukeroverstyringer** dekker for folk bare i denne policyen. Se [Brukeroverstyringer](/docs/on-call/user-overrides).
 - **Innstillinger** har **Eksporter Vaktpolicy** og kortet som arkiverer policyen.
 
+**Hva som utløser denne policyen**, på **Oversikt**, viser vaktreglene, monitorene der kriteriene utløser policyen, malene og andre regler som utløser den, og arbeidsflytene som gjør det, hver med en lenke. En regel som er slått av, viser **Av**. Når ingenting utløser policyen, sier kortet det: den varsler ingen før noe utløser den. Når du sletter eller arkiverer policyen, sies det samme først. Det du ikke kan åpne, telles, men navngis ikke.
+
 ## Gjenta en policy
 
 Når ventetiden til det siste nivået er ute uten at noen har bekreftet, stopper en policy, med mindre den gjentas. For å velge åpner du siden **Eskaleringsregler** for policyen og klikker på **Rediger** på kortet **Gjentakelsespolicy** under reglene. **Rediger gjentakelsespolicy** spør **Hvis ingen bekrefter etter det siste nivået**:

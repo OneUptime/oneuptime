@@ -26,6 +26,8 @@ flowchart TB
     statuspage --> subscribers["Abonnees"]
 ```
 
+De pagina van elk record zegt ook wat het gebruikt. De kaart **Gebruikt door** van een monitor toont de statuspagina's die hem tonen, zijn monitorgroepen, de SLOs die hem meten, het komende onderhoud dat hem noemt, de monitoren die van hem afhankelijk zijn, de regels en sjablonen die hem noemen, en de workflows en dashboards die hem gebruiken. Wat u niet mag openen, wordt geteld maar niet genoemd. Een record verwijderen of archiveren zegt eerst hetzelfde, op zijn eigen pagina's en in de lijsten.
+
 ## Projecten en mensen
 
 Een **project** bevat alles: monitoren, incidenten, bereikbaarheidsbeleid, statuspagina's, telemetrie en instellingen. De meeste bedrijven hebben er één nodig, sommige houden er één per omgeving of bedrijfsonderdeel aan. Niets wat u in het ene project maakt, is zichtbaar in een ander.

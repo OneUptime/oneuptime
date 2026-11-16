@@ -196,6 +196,8 @@ Het **Overzicht** beantwoordt "zitten we binnen het budget?", van boven naar ben
 
 Als de SLO in een niveau van zijn foutbudgetbeleid zit, toont het **Overzicht** ook dat niveau en wat het team daarin heeft afgesproken: zie [Foutbudgetbeleid](/docs/slo/error-budget-policy).
 
+De kaart **Gebruikt door** toont de verbruikssnelheidsregels en de niveaus van het foutbudgetbeleid die op de SLO werken, en de dashboards die haar tonen. De SLO archiveren of verwijderen zegt deze eerst: haar regels en niveaus verdwijnen met haar.
+
 ### Instellingen
 
 De pagina **Instellingen** brengt samen hoe een SLO meet, één kaart per onderdeel:

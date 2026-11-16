@@ -196,6 +196,8 @@ När något hindrar ett SLO från att mäta talar en banner högst upp på var o
 
 När SLO:et är i en nivå i sin felbudgetpolicy visar **Översikt** också den nivån och vad teamet har kommit överens om att göra i den: se [Felbudgetpolicy](/docs/slo/error-budget-policy).
 
+Kortet **Används av** listar förbrukningstaktsreglerna och nivåerna i felbudgetpolicyn som verkar på SLO:n, och instrumentpanelerna som visar den. När du arkiverar eller tar bort SLO:n sägs de först: dess regler och nivåer försvinner med den.
+
 ### Inställningar
 
 Sidan **Inställningar** samlar hur ett SLO mäter, med ett kort för varje sak:

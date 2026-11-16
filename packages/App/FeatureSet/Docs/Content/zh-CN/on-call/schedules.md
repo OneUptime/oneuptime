@@ -101,6 +101,8 @@ flowchart TB
 
 通过 API 创建用户替班（ `/api/on-call-duty-policy-user-override` ）时，如果不带 `routeAlertsToUserId` ，就会跳过 `overrideUserId` 中的人，时间从 `startsAt` 到 `endsAt` 。
 
+计划的**概览**中有一张**被使用于**卡片：其升级规则会呼叫值班人员的值班策略，以及执行呼叫的规则。如果没有策略呼叫，卡片会说明这一点，并链接到值班策略。在计划页面或列表中删除计划时，会先说明哪些策略会通过它呼叫。你无权打开的策略只计数，不显示名称。
+
 ## 使用 API 或 Terraform 创建计划
 
 值班计划是 `/api/on-call-duty-policy-schedule` 资源；其层和层中的人员是 `/api/on-call-duty-schedule-layer` 和 `/api/on-call-duty-schedule-layer-user` 资源。

@@ -243,6 +243,8 @@ Archiva una página de estado para desconectarla sin eliminarla. Una página de 
 
 Para archivar una página de estado, ábrela y ve a **Avanzado → Ajustes avanzados → Archivar página de estado**. Para archivar varias, selecciónalas en la lista **Páginas de estado** y elige **Archivar**. Para recuperar una, abre **Páginas de estado → Avanzado → Archivado**, selecciónala y elige **Desarchivar**, o ábrela y haz clic en **Desarchivar** en el banner de la parte superior de sus páginas.
 
+La **Vista general** de una página de estado tiene una tarjeta **Mostrado ahora**: los incidentes abiertos y el mantenimiento próximo o en curso que los visitantes ven en ella ahora mismo. Archivar o eliminar la página, en sus propias páginas o desde la lista, dice primero qué dejarían de ver los visitantes.
+
 ## Próximos pasos
 
 :::cards

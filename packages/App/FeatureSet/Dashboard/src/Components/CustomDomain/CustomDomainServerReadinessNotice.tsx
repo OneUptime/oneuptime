@@ -1,4 +1,7 @@
 import { ADD_CUSTOM_DOMAIN_TEST_IDS } from "./CustomDomainCopy";
+import CustomDomainEvents, {
+  CustomDomainEventSource,
+} from "./CustomDomainEvents";
 import { CustomDomainKind } from "./CustomDomainKinds";
 import CustomDomainServerReadiness, {
   CustomDomainReadinessCheck,
@@ -21,6 +24,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -34,10 +38,17 @@ import React, {
  * Nothing at all while the server is ready, while the answer is on its way,
  * when it cannot be read, and on OneUptime Cloud (BILLING_ENABLED), where
  * there is nothing for a customer to set.
+ *
+ * A server that is not ready says so once per dialog as a product event too
+ * (custom_domain/server_not_ready, #7024), naming the checks that failed -
+ * never the target. It reaches product analytics only where the server's
+ * admin has set it up.
  */
 
 export interface ComponentProps {
   kind: CustomDomainKind;
+  // Where the notice is drawn, for its product event; none sends none.
+  eventSource?: CustomDomainEventSource | undefined;
 }
 
 /*
@@ -100,6 +111,27 @@ const CustomDomainServerReadinessNotice: FunctionComponent<ComponentProps> = (
 
   const readiness: CustomDomainServerReadinessResult | undefined =
     useCustomDomainServerReadiness(props.kind);
+
+  // Whether this notice has sent its event: once, however often it draws.
+  const hasSentEvent: React.MutableRefObject<boolean> = useRef<boolean>(false);
+
+  useEffect(() => {
+    if (!readiness || !props.eventSource || hasSentEvent.current) {
+      return;
+    }
+
+    if (CustomDomainServerReadiness.isReady(readiness)) {
+      return;
+    }
+
+    hasSentEvent.current = true;
+
+    CustomDomainEvents.serverNotReady({
+      kind: props.kind,
+      source: props.eventSource,
+      readiness: readiness,
+    });
+  }, [readiness]);
 
   if (!readiness || !CustomDomainServerReadiness.needsAttention(readiness)) {
     return <></>;

@@ -101,6 +101,8 @@ flowchart TB
 
 透過 API 建立使用者覆寫（ `/api/on-call-duty-policy-user-override` ）時，如果不帶 `routeAlertsToUserId` ，就會略過 `overrideUserId` 中的人，時間從 `startsAt` 到 `endsAt` 。
 
+排程的**概覽**中有一張**被使用於**卡片：其上報規則會呼叫待命人員的待命策略，以及執行呼叫的規則。如果沒有策略呼叫，卡片會說明這一點，並連結到待命策略。在排程頁面或清單中刪除排程時，會先說明哪些策略會透過它呼叫。你無權開啟的策略只計數，不顯示名稱。
+
 ## 使用 API 或 Terraform 建立排程
 
 待命排程是 `/api/on-call-duty-policy-schedule` 資源；其層和層中的人員是 `/api/on-call-duty-schedule-layer` 和 `/api/on-call-duty-schedule-layer-user` 資源。

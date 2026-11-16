@@ -14,7 +14,11 @@ import {
   getUsedByImpactSentence,
   getUsedByRelationTitle,
 } from "./UsedByWords";
+import { ProjectProductsState } from "../../Utils/ProjectProducts/ProjectProductsStore";
+import useProjectProducts from "../../Utils/ProjectProducts/UseProjectProducts";
 import { ProductEventName } from "Common/Types/Analytics/ProductEvent";
+import { getOffProducts } from "Common/Types/Product/ServerProducts";
+import { withoutRowsOfProductsOff } from "Common/Types/UsedBy/UsedByServerProducts";
 import ObjectID from "Common/Types/ObjectID";
 import {
   USED_BY_PAGE_SIZE,
@@ -83,6 +87,7 @@ const RelationRows: FunctionComponent<{
   relation: UsedByRelation;
 }): ReactElement => {
   const translator: Translator = useTranslator();
+  const products: ProjectProductsState = useProjectProducts();
   const [state, setState] = useState<PageState>({ status: "loading" });
   const [retryCount, setRetryCount] = useState<number>(0);
   const recordIdString: string = props.recordId.toString();
@@ -173,6 +178,12 @@ const RelationRows: FunctionComponent<{
   const loaded: Extract<PageState, { status: "loaded" }> = state;
   const hiddenNote: string = getUsedByHiddenNote(loaded, translator);
   const hasMore: boolean = loaded.rows.length < loaded.count;
+  // A family's rows of a product switched off on the server are left out.
+  const shownRows: Array<UsedByRow> = withoutRowsOfProductsOff(
+    loaded.rows,
+    getRowKindOf(props.relation),
+    getOffProducts(products.answer.offOnServer || {}),
+  );
 
   const showMore: () => void = (): void => {
     setState({ ...loaded, isLoadingMore: true, moreError: "" });
@@ -229,7 +240,7 @@ const RelationRows: FunctionComponent<{
       </p>
       <div className="mt-3 max-h-[60vh] overflow-y-auto">
         <UsedByRowList
-          rows={loaded.rows}
+          rows={shownRows}
           rowKind={getRowKindOf(props.relation)}
         />
       </div>
@@ -309,7 +320,9 @@ const EverythingThatUsesIt: FunctionComponent<{
   }
 
   if (isUsedByNothing(used.state.summary)) {
-    return <UsedByEmpty recordKind={props.recordKind} />;
+    return (
+      <UsedByEmpty recordKind={props.recordKind} recordId={props.recordId} />
+    );
   }
 
   return (

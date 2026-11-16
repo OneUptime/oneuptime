@@ -49,7 +49,7 @@ Du ser alle kjøringer, startet av en regel eller ikke, under **Runbooks → Kj�
 :::steps
 ### Åpne Runbook-regler
 
-I **Hendelser**, **Varsler** eller **Planlagt vedlikehold** åpner du **Regler → Runbook-regler** og klikker **Opprett Runbook Rule**.
+I **Hendelser**, **Varsler** eller **Planlagt vedlikehold** åpner du **Regler → Runbook-regler** og klikker **Opprett Runbook-regel**.
 
 ### Legg til betingelser
 
@@ -57,7 +57,7 @@ Under **Treff** starter **Gjelder for** på hver ny begivenhet av denne typen, f
 
 ### Velg runbooks
 
-Under **Runbooks** velger du ett eller flere **Runbooks å starte**. Regelens **Navn** følger dem, for eksempel "Kjør Database failover", til du skriver inn ditt eget, og en **Beskrivelse** venter under **Flere felt**. Klikk **Opprett Runbook Rule**. Regelen er aktiv så snart den er opprettet, og vises i listen med statusen **Aktivert**.
+Under **Runbooks** velger du ett eller flere **Runbooks å starte**. Regelens **Navn** følger dem, for eksempel "Kjør Database failover", til du skriver inn ditt eget, og en **Beskrivelse** venter under **Flere felt**. Klikk **Opprett Runbook-regel**. Regelen er aktiv så snart den er opprettet, og vises i listen med statusen **Aktivert**.
 :::
 
 ## Hvordan en regel er bygd opp
