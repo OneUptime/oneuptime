@@ -122,6 +122,25 @@ export interface LinkReferenceDefinition {
 }
 
 /*
+ * The definitions of a text (readLinkReferenceDefinitions), and what was
+ * read to find them.
+ */
+export interface LinkReferenceDefinitionsReading {
+  definitions: Array<LinkReferenceDefinition>;
+  /*
+   * How many levels were read as readBlocks reads one - the whole text, and
+   * each quote and list item read inside it - and their characters in all.
+   * A line nested sixteen deep was sixteen such levels; a line's quotes and
+   * list items are passed through now (readLevel), and a quote's lines lose
+   * every marker a quote inside it would strip before one level is made of
+   * them: so these stay within a few times the text's length, however deep
+   * it nests (#7601).
+   */
+  levelsRead: number;
+  charactersRead: number;
+}
+
+/*
  * How many block quotes and list items deep a definition is still found:
  * the depth past which an email holds Markdown back from marked
  * (SLOW_MARKDOWN_MAX_NESTING_DEPTH, Utils/Markdown/SlowMarkdown), where a
@@ -491,19 +510,40 @@ const getTitleFinders: (text: string) => TitleFinders = (
 };
 
 /*
+ * Where the title finders of a text are kept (a level's reading): made the
+ * first time a title is read - most definitions have none, and most levels
+ * no definition.
+ */
+interface TitleFindersHolder {
+  finders: TitleFinders | null;
+}
+
+/*
  * After the title that opens at `titleStart`, where only spaces follow it on
  * its line; -1 when no title opens there that its line ends after.
  */
 const readTitle: (
   text: string,
   titleStart: number,
-  finders: TitleFinders,
+  holder: TitleFindersHolder,
 ) => number = (
   text: string,
   titleStart: number,
-  finders: TitleFinders,
+  holder: TitleFindersHolder,
 ): number => {
   const opening: number = text.charCodeAt(titleStart);
+
+  if (
+    opening !== DOUBLE_QUOTE &&
+    opening !== SINGLE_QUOTE &&
+    opening !== OPEN_PARENTHESIS
+  ) {
+    return -1;
+  }
+
+  holder.finders = holder.finders ?? getTitleFinders(text);
+
+  const finders: TitleFinders = holder.finders;
 
   if (opening === DOUBLE_QUOTE) {
     /*
@@ -578,12 +618,12 @@ const readAfterDestination: (
   text: string,
   definition: Omit<LinkReferenceDefinition, "destinationEnd" | "end">,
   destinationEnd: number,
-  finders: TitleFinders,
+  holder: TitleFindersHolder,
 ) => DefinitionReading | null = (
   text: string,
   definition: Omit<LinkReferenceDefinition, "destinationEnd" | "end">,
   destinationEnd: number,
-  finders: TitleFinders,
+  holder: TitleFindersHolder,
 ): DefinitionReading | null => {
   const afterSpaces: number = skipSpaces(text, destinationEnd);
 
@@ -596,7 +636,7 @@ const readAfterDestination: (
       text.charCodeAt(afterSpaces) === LINE_FEED
         ? skipSpaces(text, afterSpaces + 1)
         : afterSpaces;
-    const titleEnd: number = readTitle(text, titleStart, finders);
+    const titleEnd: number = readTitle(text, titleStart, holder);
 
     if (titleEnd !== -1) {
       return {
@@ -672,11 +712,11 @@ const findLabelEnd: (text: string, labelStart: number) => number = (
 const readDefinition: (
   text: string,
   blockStart: number,
-  finders: TitleFinders,
+  holder: TitleFindersHolder,
 ) => DefinitionReading | null = (
   text: string,
   blockStart: number,
-  finders: TitleFinders,
+  holder: TitleFindersHolder,
 ): DefinitionReading | null => {
   const at: number = skipUpToThreeSpaces(text, blockStart);
 
@@ -731,7 +771,7 @@ const readDefinition: (
           text,
           definition,
           close + 1,
-          finders,
+          holder,
         );
 
         if (reading !== null) {
@@ -756,7 +796,7 @@ const readDefinition: (
     destinationEnd++;
   }
 
-  return readAfterDestination(text, definition, destinationEnd, finders);
+  return readAfterDestination(text, definition, destinationEnd, holder);
 };
 
 /*
@@ -782,29 +822,52 @@ const readDefinition: (
  */
 interface LevelLines {
   /*
-   * Where each piece of a line starts in the level's text: the line's start,
-   * and after each separator that marked changes what follows.
+   * Four numbers for each piece, in one array (PIECE_FIELDS), not four
+   * arrays of numbers:
+   *
+   *   - PIECE_START: where the piece starts in the level's text - the
+   *     line's start, or right after a separator that marked changes what
+   *     follows.
+   *   - PIECE_WHOLE_LINE_START: where the line of the whole text it comes
+   *     from starts, markers and all.
+   *   - PIECE_SOLID_START, PIECE_WHOLE_SOLID_START: from where the piece is
+   *     the whole text's, in the level's text and in the whole text: its
+   *     line's first character that is neither a space nor a tab (its end,
+   *     when it has none), or a later piece's start.
    */
-  starts: Array<number>;
-  // Where the line of the whole text it comes from starts, markers and all.
-  wholeLineStarts: Array<number>;
-  /*
-   * From where the piece is the whole text's, in the level's text and in the
-   * whole text: its line's first character that is neither a space nor a
-   * tab (its end, when it has none), or a later piece's start.
-   */
-  solidStarts: Array<number>;
-  wholeSolidStarts: Array<number>;
+  pieces: Array<number>;
+  // How many pieces `pieces` holds.
+  count: number;
   // The piece asked of last: positions are asked of in order, mostly.
   cursor: number;
 }
+
+const PIECE_FIELDS: number = 4;
+const PIECE_START: number = 0;
+const PIECE_WHOLE_LINE_START: number = 1;
+const PIECE_SOLID_START: number = 2;
+const PIECE_WHOLE_SOLID_START: number = 3;
 
 interface BlockLevel {
   text: string;
   // How many block quotes and list items it is inside: 0 for the whole text.
   depth: number;
-  // null when `text` is the whole text itself.
+  /*
+   * null when `text` is the whole text itself, or one line that holds no
+   * separator (`isLine`).
+   */
   lines: LevelLines | null;
+  /*
+   * Whether the level is one line with no separator in it - a list item's
+   * line, a quote's - which needs no table: one piece, where its whole line
+   * starts (`wholeLineStart`), and from where it is the whole text's
+   * (`solid` here, `wholeSolid` there). Most levels are such a line: a
+   * list's every item is a level, and so is every quote in one.
+   */
+  isLine: boolean;
+  wholeLineStart: number;
+  solid: number;
+  wholeSolid: number;
   // Where its line and paragraph separators are, in order: found when asked.
   separators: ReadonlyArray<number> | null;
 }
@@ -880,16 +943,18 @@ const getLevelLine: (lines: LevelLines, position: number) => number = (
   lines: LevelLines,
   position: number,
 ): number => {
-  const starts: Array<number> = lines.starts;
+  const pieces: Array<number> = lines.pieces;
+  const count: number = lines.count;
 
   for (
     let line: number = lines.cursor;
-    line < Math.min(lines.cursor + 2, starts.length);
+    line < Math.min(lines.cursor + 2, count);
     line++
   ) {
     if (
-      starts[line]! <= position &&
-      (line + 1 >= starts.length || starts[line + 1]! > position)
+      pieces[line * PIECE_FIELDS + PIECE_START]! <= position &&
+      (line + 1 >= count ||
+        pieces[(line + 1) * PIECE_FIELDS + PIECE_START]! > position)
     ) {
       lines.cursor = line;
       return line;
@@ -898,12 +963,12 @@ const getLevelLine: (lines: LevelLines, position: number) => number = (
 
   // By halves, when it is further on or back.
   let low: number = 0;
-  let high: number = starts.length - 1;
+  let high: number = count - 1;
 
   while (low < high) {
     const middle: number = Math.ceil((low + high) / 2);
 
-    if (starts[middle]! <= position) {
+    if (pieces[middle * PIECE_FIELDS + PIECE_START]! <= position) {
       low = middle;
     } else {
       high = middle - 1;
@@ -923,15 +988,19 @@ const toWhole: (level: BlockLevel, position: number) => number = (
   level: BlockLevel,
   position: number,
 ): number => {
-  if (level.lines === null) {
-    return position;
+  const lines: LevelLines | null = level.lines;
+
+  if (lines === null) {
+    return level.isLine
+      ? level.wholeSolid + (position - level.solid)
+      : position;
   }
 
-  const line: number = getLevelLine(level.lines, position);
+  const at: number = getLevelLine(lines, position) * PIECE_FIELDS;
 
   return (
-    level.lines.wholeSolidStarts[line]! +
-    (position - level.lines.solidStarts[line]!)
+    lines.pieces[at + PIECE_WHOLE_SOLID_START]! +
+    (position - lines.pieces[at + PIECE_SOLID_START]!)
   );
 };
 
@@ -940,11 +1009,17 @@ const getWholeLineStart: (level: BlockLevel, position: number) => number = (
   level: BlockLevel,
   position: number,
 ): number => {
-  if (level.lines === null) {
-    return level.text.lastIndexOf("\n", position - 1) + 1;
+  const lines: LevelLines | null = level.lines;
+
+  if (lines === null) {
+    return level.isLine
+      ? level.wholeLineStart
+      : level.text.lastIndexOf("\n", position - 1) + 1;
   }
 
-  return level.lines.wholeLineStarts[getLevelLine(level.lines, position)]!;
+  return lines.pieces[
+    getLevelLine(lines, position) * PIECE_FIELDS + PIECE_WHOLE_LINE_START
+  ]!;
 };
 
 /*
@@ -996,10 +1071,87 @@ const addPiece: (
   solid: number,
   sourceSolid: number,
 ): void => {
-  made.starts.push(start);
-  made.wholeLineStarts.push(wholeLineStart);
-  made.solidStarts.push(solid);
-  made.wholeSolidStarts.push(toWhole(source, sourceSolid));
+  // In the order of PIECE_START to PIECE_WHOLE_SOLID_START.
+  made.pieces.push(start, wholeLineStart, solid, toWhole(source, sourceSolid));
+  made.count++;
+};
+
+/*
+ * Where a line of a level to be made, text[from, to), is copied from: past
+ * the spaces and the tabs after them that start it, when tabs do - marked
+ * makes them spaces (`/^( *)(\t+)/gm`) - or `from` itself.
+ */
+const getCopiedFrom: (text: string, from: number, to: number) => number = (
+  text: string,
+  from: number,
+  to: number,
+): number => {
+  const spacesEnd: number = skipRun(text, from, to, SPACE);
+  const tabsEnd: number = skipRun(text, spacesEnd, to, TAB);
+
+  return tabsEnd > spacesEnd ? tabsEnd : from;
+};
+
+/*
+ * The spaces a level's line from `from` starts with, before what is copied
+ * of it from `copiedFrom` (getCopiedFrom): the `lead` marked writes ahead
+ * of it, then - when tabs start it - its spaces, and four for each tab.
+ */
+const getLeadSpaces: (
+  text: string,
+  lead: number,
+  from: number,
+  copiedFrom: number,
+) => number = (
+  text: string,
+  lead: number,
+  from: number,
+  copiedFrom: number,
+): number => {
+  if (copiedFrom === from) {
+    return lead;
+  }
+
+  const spacesEnd: number = skipRun(text, from, copiedFrom, SPACE);
+
+  return lead + (spacesEnd - from) + 4 * (copiedFrom - spacesEnd);
+};
+
+/*
+ * The level of `line` of `source` - one line with no separator in it - as
+ * makeLevel makes it (BlockLevel.isLine): a slice of its source, unless
+ * tabs or a lead start it.
+ */
+const makeLineLevel: (
+  source: BlockLevel,
+  line: LevelLine,
+  depth: number,
+) => BlockLevel = (
+  source: BlockLevel,
+  line: LevelLine,
+  depth: number,
+): BlockLevel => {
+  const text: string = source.text;
+  const copiedFrom: number = getCopiedFrom(text, line.from, line.to);
+  const spaces: number = getLeadSpaces(text, line.lead, line.from, copiedFrom);
+  let solid: number = copiedFrom;
+
+  while (solid < line.to && isSpaceOrTab(text.charCodeAt(solid))) {
+    solid++;
+  }
+
+  const rest: string = text.slice(copiedFrom, line.to);
+
+  return {
+    text: spaces > 0 ? " ".repeat(spaces) + rest : rest,
+    depth: depth,
+    lines: null,
+    isLine: true,
+    wholeLineStart: getWholeLineStart(source, line.from),
+    solid: spaces + (solid - copiedFrom),
+    wholeSolid: toWhole(source, solid),
+    separators: NO_POSITIONS,
+  };
 };
 
 /*
@@ -1025,14 +1177,17 @@ const makeLevel: (
   const separators: ReadonlyArray<number> = getSeparators(source);
   let separator: number =
     lines.length > 0 ? firstAtOrAfter(separators, lines[0]!.from) : 0;
+
+  // One line with no separator in it needs no table.
+  if (
+    lines.length === 1 &&
+    (separator >= separators.length || separators[separator]! >= lines[0]!.to)
+  ) {
+    return makeLineLevel(source, lines[0]!, depth);
+  }
+
+  const made: LevelLines = { pieces: [], count: 0, cursor: 0 };
   const pieces: Array<string> = [];
-  const made: LevelLines = {
-    starts: [],
-    wholeLineStarts: [],
-    solidStarts: [],
-    wholeSolidStarts: [],
-    cursor: 0,
-  };
   let length: number = 0;
 
   for (let index: number = 0; index < lines.length; index++) {
@@ -1043,26 +1198,13 @@ const makeLevel: (
       length++;
     }
 
-    let spacesEnd: number = line.from;
-
-    while (spacesEnd < line.to && text.charCodeAt(spacesEnd) === SPACE) {
-      spacesEnd++;
-    }
-
-    let tabsEnd: number = spacesEnd;
-
-    while (tabsEnd < line.to && text.charCodeAt(tabsEnd) === TAB) {
-      tabsEnd++;
-    }
-
-    let spaces: number = line.lead;
-    let copiedFrom: number = line.from;
-
-    if (tabsEnd > spacesEnd) {
-      spaces += spacesEnd - line.from + 4 * (tabsEnd - spacesEnd);
-      copiedFrom = tabsEnd;
-    }
-
+    const copiedFrom: number = getCopiedFrom(text, line.from, line.to);
+    const spaces: number = getLeadSpaces(
+      text,
+      line.lead,
+      line.from,
+      copiedFrom,
+    );
     let solid: number = copiedFrom;
 
     while (solid < line.to && isSpaceOrTab(text.charCodeAt(solid))) {
@@ -1148,7 +1290,15 @@ const makeLevel: (
     text: pieces.join(""),
     depth: depth,
     lines: made,
-    separators: null,
+    isLine: false,
+    wholeLineStart: 0,
+    solid: 0,
+    wholeSolid: 0,
+    /*
+     * A level's text is pieces of its source's, spaces and line breaks: it
+     * holds a separator only where its source does.
+     */
+    separators: separators.length === 0 ? NO_POSITIONS : null,
   };
 };
 
@@ -1163,6 +1313,10 @@ const getWholeLevel: (text: string) => BlockLevel = (
     text: text,
     depth: 0,
     lines: null,
+    isLine: false,
+    wholeLineStart: 0,
+    solid: 0,
+    wholeSolid: 0,
     separators: null,
   };
 
@@ -1193,15 +1347,21 @@ const getWholeLevel: (text: string) => BlockLevel = (
 /*
  * What a level is read with: its finders, made the first time they are
  * asked, and what a setext heading's underline was last looked for to.
+ * Most levels are a list item's line or two, read once: what is looked for
+ * ahead of a line is made only when a line asks for it.
  */
 interface LevelReading {
   level: BlockLevel;
-  definitions: Array<LinkReferenceDefinition>;
+  found: LinkReferenceDefinitionsReading;
   finders: TitleFinders | null;
-  // The next "]:", which a definition holds.
-  nextDefinitionColon: NextPositionFunction;
+  /*
+   * The next "]:", which a definition holds - looked for from
+   * `colonAskedFrom`, and remembered as `remembered` remembers.
+   */
+  colonAskedFrom: number;
+  colonFound: number;
   // The next line break a line of spaces and a line break come after.
-  nextBlankLineBreak: NextPositionFunction;
+  nextBlankLineBreak: NextPositionFunction | null;
   /*
    * A setext heading looked for at `setextFrom` found none before
    * `setextStop`: none is found at a block starting after the one, up to the
@@ -1213,21 +1373,32 @@ interface LevelReading {
 
 const startReading: (
   level: BlockLevel,
-  definitions: Array<LinkReferenceDefinition>,
+  found: LinkReferenceDefinitionsReading,
 ) => LevelReading = (
   level: BlockLevel,
-  definitions: Array<LinkReferenceDefinition>,
+  found: LinkReferenceDefinitionsReading,
 ): LevelReading => {
-  const text: string = level.text;
-
   return {
     level: level,
-    definitions: definitions,
+    found: found,
     finders: null,
-    nextDefinitionColon: remembered((from: number): number => {
-      return text.indexOf("]:", from);
-    }),
-    nextBlankLineBreak: remembered((from: number): number => {
+    colonAskedFrom: Number.POSITIVE_INFINITY,
+    colonFound: -1,
+    nextBlankLineBreak: null,
+    setextFrom: -1,
+    setextStop: -1,
+  };
+};
+
+// The next line break of the level from `from` that a blank line comes after.
+const getNextBlankLineBreak: (reading: LevelReading, from: number) => number = (
+  reading: LevelReading,
+  from: number,
+): number => {
+  if (reading.nextBlankLineBreak === null) {
+    const text: string = reading.level.text;
+
+    reading.nextBlankLineBreak = remembered((from: number): number => {
       for (
         let lineBreak: number = text.indexOf("\n", from);
         lineBreak !== -1;
@@ -1239,18 +1410,10 @@ const startReading: (
       }
 
       return -1;
-    }),
-    setextFrom: -1,
-    setextStop: -1,
-  };
-};
+    });
+  }
 
-const getFinders: (reading: LevelReading) => TitleFinders = (
-  reading: LevelReading,
-): TitleFinders => {
-  reading.finders = reading.finders ?? getTitleFinders(reading.level.text);
-
-  return reading.finders;
+  return reading.nextBlankLineBreak(from);
 };
 
 /*
@@ -1279,9 +1442,16 @@ const holdsDefinitionColon: (
   from: number,
   to: number,
 ) => boolean = (reading: LevelReading, from: number, to: number): boolean => {
-  const colon: number = reading.nextDefinitionColon(from);
+  // Looked for again only before what was asked, or past what was found.
+  if (
+    from < reading.colonAskedFrom ||
+    (reading.colonFound !== -1 && from > reading.colonFound)
+  ) {
+    reading.colonAskedFrom = from;
+    reading.colonFound = reading.level.text.indexOf("]:", from);
+  }
 
-  return colon !== -1 && colon < to;
+  return reading.colonFound !== -1 && reading.colonFound < to;
 };
 
 /*
@@ -1999,6 +2169,69 @@ const readFencedCode: (text: string, at: number, lineEnd: number) => number = (
 };
 
 /*
+ * Where a quote's line goes on after its ">" at `marker` - and the space
+ * or tab after it - as marked strips it (`/^ *>[ \t]?/gm`): its line ends
+ * at `lineEnd`.
+ */
+const afterQuoteMarker: (
+  text: string,
+  marker: number,
+  lineEnd: number,
+) => number = (text: string, marker: number, lineEnd: number): number => {
+  const from: number = marker + 1;
+
+  return from < lineEnd && isSpaceOrTab(text.charCodeAt(from))
+    ? from + 1
+    : from;
+};
+
+// A quote's lines without the empty ones at their end: no line breaks at its end.
+const popEmptyLines: (lines: Array<LevelLine>) => void = (
+  lines: Array<LevelLine>,
+): void => {
+  while (
+    lines.length > 0 &&
+    lines[lines.length - 1]!.lead === 0 &&
+    lines[lines.length - 1]!.from >= lines[lines.length - 1]!.to
+  ) {
+    lines.pop();
+  }
+};
+
+/*
+ * Whether the level `lines` of `text` make is one block quote of all of
+ * them, read as readBlocks reads it: each line starts with up to three
+ * spaces and a ">" - with no lead and no tab before it, so the level reads
+ * them as they are. Then the first line is no spaces alone, code, fence,
+ * heading or thematic break, every line starts a quote's line, and a lazy
+ * line stops at the next, which starts a quote: the quote takes them all,
+ * and the level defines nothing but what the level inside it does. The
+ * level's depth is the caller's to check.
+ */
+const isEveryLineQuoted: (text: string, lines: Array<LevelLine>) => boolean = (
+  text: string,
+  lines: Array<LevelLine>,
+): boolean => {
+  if (lines.length === 0) {
+    return false;
+  }
+
+  for (const line of lines) {
+    const marker: number = skipUpToThreeSpaces(text, line.from);
+
+    if (
+      line.lead !== 0 ||
+      marker >= line.to ||
+      text.charCodeAt(marker) !== GREATER_THAN
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+/*
  * A block quote: lines that start with up to three spaces and ">", each
  * carried on - when anything follows its ">" - by the lazy lines of a
  * paragraph, which only what ends a paragraph ends (blockquote rule). Its
@@ -2067,35 +2300,56 @@ const readBlockQuote: (reading: LevelReading, at: number) => number = (
         });
       } else {
         const marker: number = skipSpaces(text, lineStart);
-        let from: number = lineStart;
 
-        if (text.charCodeAt(marker) === GREATER_THAN) {
-          from = marker + 1;
-
-          if (from < lineEnd && isSpaceOrTab(text.charCodeAt(from))) {
-            from++;
-          }
-        }
-
-        lines.push({ lead: 0, from: from, to: lineEnd });
+        lines.push({
+          lead: 0,
+          from:
+            text.charCodeAt(marker) === GREATER_THAN
+              ? afterQuoteMarker(text, marker, lineEnd)
+              : lineStart,
+          to: lineEnd,
+        });
       }
 
       lineStart = lineEnd + 1;
     }
 
-    // No line breaks at its end.
-    while (
-      lines.length > 0 &&
-      lines[lines.length - 1]!.lead === 0 &&
-      lines[lines.length - 1]!.from >= lines[lines.length - 1]!.to
-    ) {
-      lines.pop();
+    popEmptyLines(lines);
+
+    /*
+     * A quote whose every line is a quote again - "> > > [a]: b", line
+     * after line - holds a level that is that one quote and nothing else,
+     * whose own level is all it defines (isEveryLineQuoted). So it is not
+     * made: its lines lose their next marker where they are, and the level
+     * inside it is the one made and read - one copy of the text, not one for
+     * each level it is nested in (#7601).
+     */
+    let depth: number = reading.level.depth + 1;
+
+    if (getSeparators(reading.level).length === 0) {
+      while (isEveryLineQuoted(text, lines)) {
+        // Its quote is too deep to be read inside: it defines nothing.
+        if (depth >= MAX_DEFINITION_NESTING_DEPTH) {
+          return end;
+        }
+
+        for (const line of lines) {
+          line.from = afterQuoteMarker(
+            text,
+            skipUpToThreeSpaces(text, line.from),
+            line.to,
+          );
+        }
+
+        popEmptyLines(lines);
+        depth++;
+      }
     }
 
-    readBlocks(
-      makeLevel(reading.level, lines, reading.level.depth + 1, true),
+    readLevel(
+      makeLevel(reading.level, lines, depth, true),
       true,
-      reading.definitions,
+      reading.found,
     );
   }
 
@@ -2103,23 +2357,19 @@ const readBlockQuote: (reading: LevelReading, at: number) => number = (
 };
 
 /*
- * A list's bullet: where it ends, and what an item of the same list starts
- * with - the same "*", "+" or "-", or digits and the same "." or ")".
+ * Where a list's bullet at `at` ends - "*", "+" or "-", or one to nine
+ * digits and "." or ")" - or -1 when none is there. An item of the same
+ * list ends its bullet with the same character: the same "*", "+" or "-",
+ * or digits and the same "." or ")" - which never is one of the others.
  */
-interface ListBullet {
-  end: number;
-  mark: number;
-  isOrdered: boolean;
-}
-
-const readBullet: (text: string, at: number) => ListBullet | null = (
+const readBullet: (text: string, at: number) => number = (
   text: string,
   at: number,
-): ListBullet | null => {
+): number => {
   const code: number = text.charCodeAt(at);
 
   if (code === ASTERISK || code === PLUS || code === DASH) {
-    return { end: at + 1, mark: code, isOrdered: false };
+    return at + 1;
   }
 
   let digitsEnd: number = at;
@@ -2135,58 +2385,45 @@ const readBullet: (text: string, at: number) => ListBullet | null = (
     digitsEnd - at > 9 ||
     (delimiter !== DOT && delimiter !== CLOSE_PARENTHESIS)
   ) {
-    return null;
+    return -1;
   }
 
-  return { end: digitsEnd + 1, mark: delimiter, isOrdered: true };
+  return digitsEnd + 1;
 };
 
 /*
- * Where the line text[from, to), after `lead` spaces, has its first
- * character that is no space - -1 when it has none - and the shapes of it
- * that end a list item, as its list tokenizer reads them with up to
- * `maxSpaces` spaces before them.
+ * Whether the line text[from, to), after `lead` spaces, is one of the
+ * shapes that end a list item, as its list tokenizer reads them with up to
+ * `maxSpaces` spaces before them: a fence, a heading, a thematic break -
+ * and, `withBullets`, a bullet.
  */
-const getFirstNonSpace: (
-  text: string,
-  line: LevelLine,
-) => { index: number; at: number } = (
-  text: string,
-  line: LevelLine,
-): { index: number; at: number } => {
-  let at: number = line.from;
-
-  while (at < line.to && text.charCodeAt(at) === SPACE) {
-    at++;
-  }
-
-  return { index: at < line.to ? line.lead + (at - line.from) : -1, at: at };
-};
-
 const beginsItemBreak: (
   text: string,
-  line: LevelLine,
+  lead: number,
+  from: number,
+  to: number,
   maxSpaces: number,
   withBullets: boolean,
 ) => boolean = (
   text: string,
-  line: LevelLine,
+  lead: number,
+  from: number,
+  to: number,
   maxSpaces: number,
   withBullets: boolean,
 ): boolean => {
-  const first: { index: number; at: number } = getFirstNonSpace(text, line);
+  const at: number = skipRun(text, from, to, SPACE);
 
-  if (first.index === -1 || first.index > maxSpaces) {
+  if (at >= to || lead + (at - from) > maxSpaces) {
     return false;
   }
 
-  const at: number = first.at;
   const code: number = text.charCodeAt(at);
 
   // A fence: "```" or "~~~".
   if (
     (code === BACKTICK || code === TILDE) &&
-    at + 2 < line.to &&
+    at + 2 < to &&
     text.charCodeAt(at + 1) === code &&
     text.charCodeAt(at + 2) === code
   ) {
@@ -2203,7 +2440,7 @@ const beginsItemBreak: (
     let marks: number = 0;
     let isBreak: boolean = true;
 
-    for (let index: number = at; index < line.to && isBreak; index++) {
+    for (let index: number = at; index < to && isBreak; index++) {
       const next: number = text.charCodeAt(index);
 
       if (next === code) {
@@ -2220,11 +2457,11 @@ const beginsItemBreak: (
 
   // A bullet, then a space, a tab or the end of the line.
   if (withBullets) {
-    const bullet: ListBullet | null = readBullet(text, at);
+    const bulletEnd: number = readBullet(text, at);
 
     return (
-      bullet !== null &&
-      (bullet.end >= line.to || isSpaceOrTab(text.charCodeAt(bullet.end)))
+      bulletEnd !== -1 &&
+      (bulletEnd >= to || isSpaceOrTab(text.charCodeAt(bulletEnd)))
     );
   }
 
@@ -2232,9 +2469,30 @@ const beginsItemBreak: (
 };
 
 /*
- * The item of a list whose bullet is `bullet` that starts at `at`, as its
- * list tokenizer reads it: its lines (each as the item holds it), and where
- * the line after them starts. null when no item of the list starts there.
+ * Where the line text[from, to), after `lead` spaces, has its first
+ * character that is no space: -1 when it has none.
+ */
+const getFirstNonSpace: (
+  text: string,
+  lead: number,
+  from: number,
+  to: number,
+) => number = (
+  text: string,
+  lead: number,
+  from: number,
+  to: number,
+): number => {
+  const at: number = skipRun(text, from, to, SPACE);
+
+  return at < to ? lead + (at - from) : -1;
+};
+
+/*
+ * The item of a list whose bullet ends with `mark` that starts at `at`, as
+ * its list tokenizer reads it: its lines (each as the item holds it), and
+ * where the line after them starts. null when no item of the list starts
+ * there.
  */
 interface ListItem {
   lines: Array<LevelLine>;
@@ -2244,42 +2502,32 @@ interface ListItem {
 const readListItem: (
   text: string,
   at: number,
-  bullet: ListBullet,
+  mark: number,
 ) => ListItem | null = (
   text: string,
   at: number,
-  bullet: ListBullet,
+  mark: number,
 ): ListItem | null => {
   const lineEnd: number = getLineEnd(text, at);
-  const itemBullet: ListBullet | null = readBullet(
-    text,
-    skipUpToThreeSpaces(text, at),
-  );
+  const contentStart: number = readBullet(text, skipUpToThreeSpaces(text, at));
 
   if (
-    itemBullet === null ||
-    itemBullet.isOrdered !== bullet.isOrdered ||
-    itemBullet.mark !== bullet.mark ||
-    (itemBullet.end < lineEnd &&
-      !isSpaceOrTab(text.charCodeAt(itemBullet.end))) ||
+    contentStart === -1 ||
+    text.charCodeAt(contentStart - 1) !== mark ||
+    (contentStart < lineEnd && !isSpaceOrTab(text.charCodeAt(contentStart))) ||
     isThematicBreak(text, at, lineEnd)
   ) {
     return null;
   }
 
   // The first line after the bullet, its first tabs three spaces each.
-  const contentStart: number = itemBullet.end;
   let tabsEnd: number = contentStart;
 
   while (tabsEnd < lineEnd && text.charCodeAt(tabsEnd) === TAB) {
     tabsEnd++;
   }
 
-  const firstLine: LevelLine = {
-    lead: 3 * (tabsEnd - contentStart),
-    from: tabsEnd,
-    to: lineEnd,
-  };
+  const firstLead: number = 3 * (tabsEnd - contentStart);
 
   /*
    * How far the item's lines are indented: to the first character after
@@ -2297,18 +2545,17 @@ const readListItem: (
    * when a tab starts it, and the last of the spaces up to the end of the
    * text when they are all it has.
    */
-  let head: LevelLine = firstLine;
-
-  if (firstLine.lead === 0) {
-    head = {
-      lead: 0,
-      from:
-        indent >= 0
-          ? Math.min(contentStart + indent, lineEnd)
-          : Math.max(contentStart, lineEnd - 1),
-      to: lineEnd,
-    };
-  }
+  const head: LevelLine =
+    firstLead > 0
+      ? { lead: firstLead, from: tabsEnd, to: lineEnd }
+      : {
+          lead: 0,
+          from:
+            indent >= 0
+              ? Math.min(contentStart + indent, lineEnd)
+              : Math.max(contentStart, lineEnd - 1),
+          to: lineEnd,
+        };
 
   indent += contentStart - at;
 
@@ -2316,7 +2563,7 @@ const readListItem: (
   let end: number = nextLineStart(text, lineEnd);
 
   // An item that is no more than its bullet ends at a blank line after it.
-  const isEmpty: boolean = firstLine.lead === 0 && contentStart === lineEnd;
+  const isEmpty: boolean = firstLead === 0 && contentStart === lineEnd;
 
   if (isEmpty && skipSpaces(text, end) >= getLineEnd(text, end)) {
     return {
@@ -2327,42 +2574,49 @@ const readListItem: (
 
   const maxSpaces: number = Math.min(3, indent - 1);
   let hasBlankLine: boolean = false;
-  let previous: LevelLine = firstLine;
+  // The line before, as the item holds it: its first line after the bullet.
+  let previousLead: number = firstLead;
+  let previousFrom: number = tabsEnd;
+  let previousTo: number = lineEnd;
 
   while (end < text.length) {
     const nextEnd: number = getLineEnd(text, end);
-    const next: LevelLine = { lead: 0, from: end, to: nextEnd };
 
-    if (beginsItemBreak(text, next, maxSpaces, true)) {
+    if (beginsItemBreak(text, 0, end, nextEnd, maxSpaces, true)) {
       break;
     }
 
     const isBlank: boolean = isAllWhiteSpace(text, end, nextEnd);
-    const nextFirst: number = getFirstNonSpace(text, next).index;
-    const dedented: LevelLine = {
-      lead: 0,
-      from: Math.min(end + indent, nextEnd),
-      to: nextEnd,
-    };
+    const nextFirst: number = getFirstNonSpace(text, 0, end, nextEnd);
+    const dedentedFrom: number = Math.min(end + indent, nextEnd);
 
     if (nextFirst >= indent || isBlank) {
-      lines.push(dedented);
+      lines.push({ lead: 0, from: dedentedFrom, to: nextEnd });
     } else {
       // A lazy line carries on a paragraph alone.
       if (
         hasBlankLine ||
-        getFirstNonSpace(text, previous).index >= 4 ||
-        beginsItemBreak(text, previous, maxSpaces, false)
+        getFirstNonSpace(text, previousLead, previousFrom, previousTo) >= 4 ||
+        beginsItemBreak(
+          text,
+          previousLead,
+          previousFrom,
+          previousTo,
+          maxSpaces,
+          false,
+        )
       ) {
         break;
       }
 
-      lines.push(next);
+      lines.push({ lead: 0, from: end, to: nextEnd });
     }
 
     hasBlankLine = hasBlankLine || isBlank;
     end = nextLineStart(text, nextEnd);
-    previous = dedented;
+    previousLead = 0;
+    previousFrom = dedentedFrom;
+    previousTo = nextEnd;
   }
 
   // A task's "[ ] " or "[x] ", and the spaces after it, are no content.
@@ -2389,39 +2643,41 @@ const readListItem: (
 };
 
 /*
- * A list: its items, each up to the next item of the same list (list
- * rule) - the last without the white space at its end, which the blocks
- * after the list read. Each item's lines are read again, as marked reads
- * them, without the bullet and indentation.
+ * A list's items, each up to the next item of the same list (list rule) -
+ * the last without the white space at its end, which the blocks after the
+ * list read - and where those blocks start.
  */
-const readList: (reading: LevelReading, at: number) => number = (
-  reading: LevelReading,
+interface ListReading {
+  items: Array<Array<LevelLine>>;
+  end: number;
+}
+
+// The list that starts at `at` of `text`, or null when none starts there.
+const readListItems: (text: string, at: number) => ListReading | null = (
+  text: string,
   at: number,
-): number => {
-  const text: string = reading.level.text;
+): ListReading | null => {
   const lineEnd: number = getLineEnd(text, at);
-  const bullet: ListBullet | null = readBullet(
-    text,
-    skipUpToThreeSpaces(text, at),
-  );
+  const bulletEnd: number = readBullet(text, skipUpToThreeSpaces(text, at));
 
   /*
    * The first item's bullet ends its line, or a space or a tab and more
    * come after it.
    */
   if (
-    bullet === null ||
-    (bullet.end < lineEnd &&
-      (!isSpaceOrTab(text.charCodeAt(bullet.end)) || bullet.end + 1 >= lineEnd))
+    bulletEnd === -1 ||
+    (bulletEnd < lineEnd &&
+      (!isSpaceOrTab(text.charCodeAt(bulletEnd)) || bulletEnd + 1 >= lineEnd))
   ) {
-    return -1;
+    return null;
   }
 
+  const mark: number = text.charCodeAt(bulletEnd - 1);
   const items: Array<Array<LevelLine>> = [];
   let itemsEnd: number = at;
 
   while (itemsEnd < text.length) {
-    const item: ListItem | null = readListItem(text, itemsEnd, bullet);
+    const item: ListItem | null = readListItem(text, itemsEnd, mark);
 
     if (item === null) {
       break;
@@ -2456,8 +2712,25 @@ const readList: (reading: LevelReading, at: number) => number = (
     last.pop();
   }
 
+  return { items: items, end: end };
+};
+
+/*
+ * A list (readListItems). Each item's lines are read again, as marked reads
+ * them, without the bullet and indentation.
+ */
+const readList: (reading: LevelReading, at: number) => number = (
+  reading: LevelReading,
+  at: number,
+): number => {
+  const list: ListReading | null = readListItems(reading.level.text, at);
+
+  if (list === null) {
+    return -1;
+  }
+
   if (reading.level.depth < MAX_DEFINITION_NESTING_DEPTH) {
-    for (const lines of items) {
+    for (const lines of list.items) {
       if (
         lines.length > 0 &&
         holdsDefinitionColon(
@@ -2466,16 +2739,16 @@ const readList: (reading: LevelReading, at: number) => number = (
           lines[lines.length - 1]!.to,
         )
       ) {
-        readBlocks(
+        readLevel(
           makeLevel(reading.level, lines, reading.level.depth + 1, false),
           false,
-          reading.definitions,
+          reading.found,
         );
       }
     }
   }
 
-  return end;
+  return list.end;
 };
 
 /*
@@ -2666,7 +2939,7 @@ const readHtmlBlockEnd: (reading: LevelReading, from: number) => number = (
   from: number,
 ): number => {
   const text: string = reading.level.text;
-  let end: number = reading.nextBlankLineBreak(from);
+  let end: number = getNextBlankLineBreak(reading, from);
 
   if (end === -1) {
     return text.length;
@@ -2960,18 +3233,21 @@ const toWholeDefinition: (
 const readBlocks: (
   level: BlockLevel,
   top: boolean,
-  definitions: Array<LinkReferenceDefinition>,
+  found: LinkReferenceDefinitionsReading,
 ) => void = (
   level: BlockLevel,
   top: boolean,
-  definitions: Array<LinkReferenceDefinition>,
+  found: LinkReferenceDefinitionsReading,
 ): void => {
-  const reading: LevelReading = startReading(level, definitions);
+  const reading: LevelReading = startReading(level, found);
   const text: string = level.text;
   let isTop: boolean = top;
   // Whether the block before is a paragraph or text: a definition carries it on.
   let carriesOn: boolean = false;
   let at: number = 0;
+
+  found.levelsRead++;
+  found.charactersRead += text.length;
 
   while (at < text.length) {
     // One line break joins the block before it; more end a paragraph.
@@ -3038,12 +3314,12 @@ const readBlocks: (
     const definition: DefinitionReading | null = readDefinition(
       text,
       at,
-      getFinders(reading),
+      reading,
     );
 
     if (definition !== null) {
       if (!carriesOn) {
-        definitions.push(toWholeDefinition(level, definition.definition));
+        found.definitions.push(toWholeDefinition(level, definition.definition));
       }
 
       at = definition.next;
@@ -3072,6 +3348,216 @@ const readBlocks: (
 };
 
 /*
+ * What the one item holds of a list that a one-line text opens - the
+ * item's bullet ending at `contentStart` - as readListItems reads it there:
+ * the line readListItem holds of it, without a task's "[ ] " and without
+ * the white space at its end, which the list leaves out. undefined when no
+ * list starts there; null when the item holds nothing. The caller reads no
+ * thematic break there.
+ */
+const readLineItem: (
+  text: string,
+  contentStart: number,
+) => LevelLine | null | undefined = (
+  text: string,
+  contentStart: number,
+): LevelLine | null | undefined => {
+  const lineEnd: number = text.length;
+
+  // The bullet ends the line, or a space or a tab and more come after it.
+  if (
+    contentStart < lineEnd &&
+    (!isSpaceOrTab(text.charCodeAt(contentStart)) ||
+      contentStart + 1 >= lineEnd)
+  ) {
+    return undefined;
+  }
+
+  let tabsEnd: number = contentStart;
+
+  while (tabsEnd < lineEnd && text.charCodeAt(tabsEnd) === TAB) {
+    tabsEnd++;
+  }
+
+  const lead: number = 3 * (tabsEnd - contentStart);
+  let from: number = tabsEnd;
+
+  if (lead === 0) {
+    const firstNonSpace: number = skipSpaces(text, contentStart);
+    let indent: number =
+      firstNonSpace < lineEnd ? firstNonSpace - contentStart : -1;
+
+    indent = indent > 4 ? 1 : indent;
+    from =
+      indent >= 0
+        ? Math.min(contentStart + indent, lineEnd)
+        : Math.max(contentStart, lineEnd - 1);
+
+    // A task's "[ ] " or "[x] ", and the spaces after it, are no content.
+    if (
+      from + 3 < lineEnd &&
+      text.charCodeAt(from) === OPEN_BRACKET &&
+      (text.charCodeAt(from + 1) === SPACE ||
+        text.charCodeAt(from + 1) === LOWER_X ||
+        text.charCodeAt(from + 1) === UPPER_X) &&
+      text.charCodeAt(from + 2) === CLOSE_BRACKET &&
+      text.charCodeAt(from + 3) === SPACE
+    ) {
+      from = Math.min(skipSpaces(text, from + 3), lineEnd);
+    }
+  }
+
+  let to: number = lineEnd;
+
+  while (to > from && isWhiteSpaceCode(text.charCodeAt(to - 1))) {
+    to--;
+  }
+
+  return to > from ? { lead: lead, from: from, to: to } : null;
+};
+
+/*
+ * A level, read as readBlocks reads it - with no reading made for each
+ * quote and list item a line opens inside it (#7601). Every line of a list
+ * is a level of its own, and so is every quote of one line in it: a line
+ * of "> - > - > - > - [a]: b" is eight, and with each read afresh - its
+ * text, its reading, the sequence of blocks tried - 16 MiB of such lines,
+ * sixteen markers deep, took 6.9 s where 16 MiB of one level took 2 s.
+ * So while a level is a line (BlockLevel.isLine) that opens a quote or a
+ * list item, the line inside it is the next level read, at once, as
+ * makeLineLevel makes it; the first that opens neither is read as
+ * readBlocks reads any level.
+ *
+ * Read so exactly where readBlocks reads that quote or list item, and the
+ * line holds nothing else. Up to three spaces and a ">" are no spaces
+ * alone, code, fence, heading or thematic break, and the quote takes the
+ * whole line (readBlockQuote). A bullet after up to three spaces starts no
+ * code, fence or heading either, and where no thematic break is read, the
+ * list is one item, the whole line (readLineItem): what is after it is
+ * white space, which defines nothing. Anything else is left to readBlocks.
+ */
+const readLevel: (
+  level: BlockLevel,
+  top: boolean,
+  found: LinkReferenceDefinitionsReading,
+) => void = (
+  level: BlockLevel,
+  top: boolean,
+  found: LinkReferenceDefinitionsReading,
+): void => {
+  if (!level.isLine) {
+    readBlocks(level, top, found);
+    return;
+  }
+
+  // The line being read: its text, depth, and from where it is the whole text's.
+  let text: string = level.text;
+  let depth: number = level.depth;
+  let solid: number = level.solid;
+  let wholeSolid: number = level.wholeSolid;
+  let isTop: boolean = top;
+  /*
+   * Its first "]:", looked for once: a quote's marker, a bullet and the
+   * spaces and tabs a line loses hold none, so each line inside holds the
+   * same one, where its own text puts it.
+   */
+  let colon: number = text.indexOf("]:");
+
+  for (;;) {
+    const opening: number = skipUpToThreeSpaces(text, 0);
+    let lead: number = 0;
+    let from: number;
+    let to: number = text.length;
+
+    if (text.charCodeAt(opening) === GREATER_THAN) {
+      // As readBlockQuote reads one line: holding a "]:", without its marker.
+      if (depth >= MAX_DEFINITION_NESTING_DEPTH || colon === -1) {
+        return;
+      }
+
+      from = afterQuoteMarker(text, opening, to);
+
+      // A quote of its marker alone holds no line.
+      if (from >= to) {
+        return;
+      }
+
+      isTop = true;
+    } else {
+      // As readList reads one line: one item, holding a "]:".
+      const contentStart: number = readBullet(text, opening);
+
+      if (contentStart === -1 || isThematicBreak(text, 0, to)) {
+        break;
+      }
+
+      const item: LevelLine | null | undefined = readLineItem(
+        text,
+        contentStart,
+      );
+
+      if (item === undefined) {
+        break;
+      }
+
+      if (depth >= MAX_DEFINITION_NESTING_DEPTH || item === null) {
+        return;
+      }
+
+      if (colon !== -1 && colon < item.from) {
+        colon = text.indexOf("]:", item.from);
+      }
+
+      if (colon === -1 || colon >= item.to) {
+        return;
+      }
+
+      lead = item.lead;
+      from = item.from;
+      to = item.to;
+      isTop = false;
+    }
+
+    // The line inside it, as makeLineLevel makes it.
+    const copiedFrom: number = getCopiedFrom(text, from, to);
+    const spaces: number = getLeadSpaces(text, lead, from, copiedFrom);
+    let solidAt: number = copiedFrom;
+
+    while (solidAt < to && isSpaceOrTab(text.charCodeAt(solidAt))) {
+      solidAt++;
+    }
+
+    // Where the line is the whole text's: on from its own solid start.
+    wholeSolid += solidAt - solid;
+    solid = spaces + (solidAt - copiedFrom);
+
+    const rest: string = text.slice(copiedFrom, to);
+
+    text = spaces > 0 ? " ".repeat(spaces) + rest : rest;
+    colon =
+      colon >= copiedFrom ? spaces + (colon - copiedFrom) : text.indexOf("]:");
+    depth++;
+  }
+
+  readBlocks(
+    depth === level.depth
+      ? level
+      : {
+          text: text,
+          depth: depth,
+          lines: null,
+          isLine: true,
+          wholeLineStart: level.wholeLineStart,
+          solid: solid,
+          wholeSolid: wholeSolid,
+          separators: NO_POSITIONS,
+        },
+    isTop,
+    found,
+  );
+};
+
+/*
  * Every link reference definition marked reads in `text` (see the top of
  * this file), in the order of the text: a label defined twice, twice.
  */
@@ -3080,15 +3566,32 @@ export const getLinkReferenceDefinitions: (
 ) => Array<LinkReferenceDefinition> = (
   text: string,
 ): Array<LinkReferenceDefinition> => {
-  const definitions: Array<LinkReferenceDefinition> = [];
+  return readLinkReferenceDefinitions(text).definitions;
+};
 
-  if (typeof text !== "string" || text.indexOf("]:") === -1) {
-    return definitions;
+/*
+ * getLinkReferenceDefinitions, and what it read for them: the levels it
+ * read as readBlocks reads one - the whole text, and each quote and list
+ * item it read inside it - and their characters in all. Counted the same
+ * on any machine, however loaded: a test holds the work to the text's
+ * length with it, without a clock (#7601).
+ */
+export const readLinkReferenceDefinitions: (
+  text: string,
+) => LinkReferenceDefinitionsReading = (
+  text: string,
+): LinkReferenceDefinitionsReading => {
+  const found: LinkReferenceDefinitionsReading = {
+    definitions: [],
+    levelsRead: 0,
+    charactersRead: 0,
+  };
+
+  if (typeof text === "string" && text.indexOf("]:") !== -1) {
+    readBlocks(getWholeLevel(text), true, found);
   }
 
-  readBlocks(getWholeLevel(text), true, definitions);
-
-  return definitions;
+  return found;
 };
 
 /*
