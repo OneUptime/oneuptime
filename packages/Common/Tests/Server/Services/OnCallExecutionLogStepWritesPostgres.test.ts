@@ -31,8 +31,8 @@ import { DataSource } from "typeorm";
  *
  *   - no index on the table names a column the claim or a pass's count
  *     writes (or updatedAt and version, which every update writes), and
- *     the rule a run is on keeps its index, which the ON DELETE CASCADE of
- *     an escalation rule reads;
+ *     the rule a run is on keeps its index, which the ON DELETE SET NULL
+ *     of an escalation rule reads (issue #9036);
  *   - a claim, and its give-back, are HOT: no index entry written;
  *   - a level's start, which changes the rule a run is on, is not - it
  *     writes the table's remaining indexes, ten with the key.
@@ -246,7 +246,7 @@ describePostgres("an escalation step's writes, against Postgres", () => {
     expect(afterGiveBack.hot - afterClaim.hot).toBe(1);
   });
 
-  test("a level's start, which changes the rule the run is on, is not HOT: that index is read by the cascade", async () => {
+  test("a level's start, which changes the rule the run is on, is not HOT: that index is read by a rule's ON DELETE", async () => {
     const run: ObjectID = await seedRun(new Date("2026-03-03T12:00:00.000Z"));
 
     const before: TableCounts = await counts();

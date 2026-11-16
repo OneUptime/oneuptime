@@ -23,8 +23,8 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
  * HOT, and wrote all fourteen of the table's indexes.
  *
  * The four go, online. "lastExecutedEscalationRuleId" keeps its index: the
- * ON DELETE CASCADE of an escalation rule finds the runs that last
- * executed it by it.
+ * ON DELETE of an escalation rule (SET NULL since issue #9036, CASCADE
+ * before) finds the runs that last executed it by it.
  *
  * Pure SQL-contract assertions against a fake QueryRunner; OnlineDdl's own
  * steps are recorded as "online: <statement>". The names are TypeORM's own,

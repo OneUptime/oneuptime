@@ -300,7 +300,11 @@ class User extends UserModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      /*
+       * Deleting the picture's file clears the reference and keeps the
+       * person (issue #9069).
+       */
+      onDelete: "SET NULL",
       orphanedRowAction: "delete",
     },
   )

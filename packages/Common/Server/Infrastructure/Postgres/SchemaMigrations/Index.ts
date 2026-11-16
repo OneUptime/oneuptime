@@ -1034,6 +1034,9 @@ import { AddCodeRepositoryMintedToken1809182200000 } from "./1809182200000-AddCo
 import { ProjectCredentialsEncryptedColumns1809182300000 } from "./1809182300000-ProjectCredentialsEncryptedColumns";
 import { DropGreenlockTables1809182470000 } from "./1809182470000-DropGreenlockTables";
 import { AddCustomFieldsAndRemindersToUpdatesToPost1809182480026 } from "./1809182480026-AddCustomFieldsAndRemindersToUpdatesToPost";
+import { AddEscalationRuleOrderAndNameToOnCallTimeline1809182500000 } from "./1809182500000-AddEscalationRuleOrderAndNameToOnCallTimeline";
+import { KeepOnCallHistoryWhenItsSettingsAreDeleted1809182510000 } from "./1809182510000-KeepOnCallHistoryWhenItsSettingsAreDeleted";
+import { KeepPersonWhenTheirPictureFileIsDeleted1809182520000 } from "./1809182520000-KeepPersonWhenTheirPictureFileIsDeleted";
 
 export default [
   InitialMigration,
@@ -2072,4 +2075,7 @@ export default [
   ProjectCredentialsEncryptedColumns1809182300000,
   DropGreenlockTables1809182470000,
   AddCustomFieldsAndRemindersToUpdatesToPost1809182480026,
+  AddEscalationRuleOrderAndNameToOnCallTimeline1809182500000,
+  KeepOnCallHistoryWhenItsSettingsAreDeleted1809182510000,
+  KeepPersonWhenTheirPictureFileIsDeleted1809182520000,
 ];
