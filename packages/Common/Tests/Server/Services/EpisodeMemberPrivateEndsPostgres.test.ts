@@ -633,24 +633,40 @@ describePostgres(
         },
       );
 
-      test(`a workflow step, acting as a Project Admin of its project, adds the private ${kind.noun} to the private episode`, async () => {
+      /*
+       * A workflow's step acts as a Project Admin, but is never lent a
+       * Project Admin's sight of private records (#8914): it adds no private
+       * record to an episode, and nothing to a private episode, and hears
+       * what a missing one gets - as a caller who owns neither does. A
+       * public record goes on a public episode as before.
+       */
+      test(`a workflow step, though it acts as a Project Admin, adds the private ${kind.noun} to no episode, and nothing to the private episode`, async () => {
         const s: Seeded = await seed(kind);
+        const step: DatabaseCommonInteractionProps =
+          WorkflowPrincipal.getPropsWithoutPlan({
+            projectId: s.projectId,
+            workflowId: ObjectID.generate(),
+          });
 
         expect(
-          await add(
-            kind,
-            s,
-            s.privateEpisodeId,
-            s.privateRecordId,
-            WorkflowPrincipal.getPropsWithoutPlan({
-              projectId: s.projectId,
-              workflowId: ObjectID.generate(),
-            }),
-          ),
-        ).toBeNull();
+          (await add(kind, s, s.publicEpisodeId, s.privateRecordId, step))
+            ?.message,
+        ).toBe(kind.hiddenRecord(s.privateRecordId));
 
-        expect(await membersOf(kind, s.privateEpisodeId)).toEqual([
-          s.privateRecordId.toString(),
+        expect(
+          (await add(kind, s, s.privateEpisodeId, s.publicRecordId, step))
+            ?.message,
+        ).toBe(kind.hiddenEpisode(s.privateEpisodeId));
+
+        expect(await membersOf(kind, s.privateEpisodeId)).toEqual([]);
+        expect(await membersOf(kind, s.publicEpisodeId)).toEqual([]);
+
+        // A public record on a public episode, as before.
+        expect(
+          await add(kind, s, s.publicEpisodeId, s.publicRecordId, step),
+        ).toBeNull();
+        expect(await membersOf(kind, s.publicEpisodeId)).toEqual([
+          s.publicRecordId.toString(),
         ]);
       });
 

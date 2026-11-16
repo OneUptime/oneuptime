@@ -68,6 +68,7 @@ import {
   test,
 } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
+import PrivateRecordWriteCheck from "../../../Server/Utils/Permission/PrivateRecordWriteCheck";
 
 /*
  * A DIRECT PAGE IS A RUN WITH NO POLICY, AND ONLY ONEUPTIME STARTS ONE.
@@ -183,6 +184,16 @@ async function refusalOf(promise: Promise<unknown>): Promise<Error> {
 
   throw new Error("Expected a refusal, but the call went through.");
 }
+
+/*
+ * The runs here are about incidents and alerts that are not private, or
+ * that the caller reaches: what a page about a private record asks of its
+ * owning teams (#8913) is PrivateRecordActionsPostgres's, on a real
+ * database.
+ */
+beforeEach(() => {
+  jest.spyOn(PrivateRecordWriteCheck, "reaches").mockResolvedValue(true);
+});
 
 describe("a direct page's run", () => {
   let runs: InMemoryTable;

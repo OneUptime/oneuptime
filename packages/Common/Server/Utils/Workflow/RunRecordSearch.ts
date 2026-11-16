@@ -240,7 +240,7 @@ export default class RunRecordSearch {
         ...data.query,
         [tenantColumn]: data.request.projectId,
       } as Dictionary<unknown>,
-      data.request.service.modelType as { new (): BaseModel },
+      model.constructor as { new (): BaseModel },
     );
 
     const select: Dictionary<boolean> = {

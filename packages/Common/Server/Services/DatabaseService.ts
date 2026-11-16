@@ -180,6 +180,7 @@ import {
   shouldBypassRecordPrivacy,
 } from "../Utils/PrivacyFilterUtil";
 import PrivateRecordReadFilter from "../Utils/Permission/PrivateRecordReadFilter";
+import PrivateRecordWriteCheck from "../Utils/Permission/PrivateRecordWriteCheck";
 import ArchivedValueCheck, {
   ArchivableValueColumn,
   ArchivableValuePick,
@@ -6593,35 +6594,19 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         continue;
       }
 
-      const unreachableQuery: Query<BaseModel> | null =
-        PrivateRecordPermission.getUnreachableRecordsQuery({
-          modelType: this.modelType,
-          recordModelType: column.recordModelType,
-          recordIds: [recordId],
-          props: props,
-          type: DatabaseRequestType.Create,
-        });
-
-      if (!unreachableQuery) {
-        continue;
-      }
-
       const reader: DatabaseService<BaseModel> =
         DatabaseService.getParentReader(column.recordModelType);
 
-      const unreachable: Array<BaseModel> = await reader.findBy({
-        query: DatabaseService.inProject(
-          column.recordModelType,
-          unreachableQuery,
-          projectId,
-        ),
-        select: { _id: true } as Select<BaseModel>,
-        skip: 0,
-        limit: 1,
-        props: { isRoot: true },
-      });
-
-      if (unreachable.length === 0) {
+      // The rule's own check of one record (PrivateRecordWriteCheck).
+      if (
+        await PrivateRecordWriteCheck.reaches({
+          modelType: this.modelType,
+          type: DatabaseRequestType.Create,
+          recordService: reader,
+          recordId: new ObjectID(recordId),
+          props: projectId ? { ...props, tenantId: projectId } : props,
+        })
+      ) {
         continue;
       }
 
