@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 在 `config.env` 中设置它们，然后运行 `npm start`。`DISABLE_TELEMETRY_FOR_APP` 默认为 `true`，此时不会发送任何内容。
 :::
 
-OneUptime 需要同时设置端点和请求头：没有请求头时它什么都不发送。每个请求头写成 `name=value`，多个请求头之间用 `;` 分隔，也可以像 `OTEL_EXPORTER_OTLP_HEADERS` 那样用 `,` 分隔。值中可以包含 `=`。没有 `;` 时，值按该标准的写法读取，空格写作 `%20`：要按原样发送值，请在设置末尾加上 `;`。OneUptime 会自行在端点后加上 `/v1/metrics`，同样的设置也会发送它自己的追踪和日志。每个指标在 OneUptime 首次记录它时出现：`notification.send.count` 在发送第一条消息时出现。
+OneUptime 需要同时设置端点和请求头：没有请求头时它什么都不发送。每个请求头写成 `name=value`，多个请求头之间用 `;` 分隔，也可以像 `OTEL_EXPORTER_OTLP_HEADERS` 那样用 `,` 分隔。值中可以包含 `=`。没有 `;` 时，值按该标准的写法读取，空格写作 `%20`：要按原样发送值，请在设置末尾加上 `;`。直接设置在 `OTEL_EXPORTER_OTLP_HEADERS` 中的请求头，或仅针对指标设置在 `OTEL_EXPORTER_OTLP_METRICS_HEADERS` 中的请求头，同样有效：导出器也会发送它们，同名时以 OneUptime 自己的请求头为准。OneUptime 会自行在端点后加上 `/v1/metrics`，同样的设置也会发送它自己的追踪和日志。每个指标在 OneUptime 首次记录它时出现：`notification.send.count` 在发送第一条消息时出现。
 
 ### 向 OneUptime 项目发送增量
 
@@ -57,19 +57,15 @@ OneUptime 按 OpenTelemetry 的默认方式发送计数器和直方图：每个�
 :::tabs
 @tab Kubernetes
 ```yaml
-extraEnv:
-  - name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
-    value: delta
+openTelemetryExporter:
+  metricsTemporality: delta
 ```
-服务自己的列表会替换整个 Chart 的列表：如果您设置了 `app.extraEnv` 或 `worker.extraEnv`，也要在那里加上它。
+Chart 会把这个值以 `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE` 的形式传给每个发送 OneUptime 自身遥测数据的服务。
 @tab Docker Compose
-```yaml title="docker-compose.override.yml"
-services:
-  app:
-    environment:
-      OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: delta
+```bash
+OPENTELEMETRY_EXPORTER_OTLP_METRICS_TEMPORALITY=delta
 ```
-在 `docker-compose.yml` 旁边创建该文件，或将这些内容添加到您已有的文件中，然后运行 `npm start`。
+在 `config.env` 中设置它，然后运行 `npm start`。
 :::
 
 这适用于 OneUptime 发送的关于自身的每个指标。像 Prometheus 这样自行读取累计总数的后端无需任何更改。

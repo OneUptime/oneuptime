@@ -338,6 +338,33 @@ export function buildFailedDeliveryMessage(data: {
 }
 
 /*
+ * A page Meta could not deliver says so on the person's on-call timeline,
+ * with Meta's words, as an SMS page Twilio could not deliver does
+ * (API/SMS.ts): only while the page still says Sent or Sending
+ * (OnCallNotificationStatus), so an acknowledgement or a skip is never
+ * written over, and a page corrected already is not written again. A
+ * failure to read or write the page throws.
+ */
+const correctFailedPage: (data: {
+  userOnCallLogTimelineId: ObjectID;
+  messageId: string;
+  statusPayload: JSONObject;
+}) => Promise<void> = async (data: {
+  userOnCallLogTimelineId: ObjectID;
+  messageId: string;
+  statusPayload: JSONObject;
+}): Promise<void> => {
+  await recordProviderReport({
+    userOnCallLogTimelineId: data.userOnCallLogTimelineId,
+    status: UserNotificationStatus.Error,
+    statusMessage: buildFailedDeliveryMessage({
+      messageId: data.messageId,
+      statusPayload: data.statusPayload,
+    }),
+  });
+};
+
+/*
  * The log of the message Meta's id names. The log gets the id with the
  * send's result, once Meta answered the send (WhatsAppService).
  */
@@ -487,6 +514,25 @@ export const updateWhatsAppLogStatus: (
         next: derivedStatus,
       })
     ) {
+      /*
+       * Meta's failure again, for a message its log says failed already:
+       * the webhook that moved the log into Failed may have stopped before
+       * its page was corrected - the database failed - and asked Meta to
+       * send the status again (503). The page is corrected now; once it
+       * is, this writes nothing.
+       */
+      if (
+        derivedStatus === WhatsAppStatus.Failed &&
+        whatsAppLog.status === WhatsAppStatus.Failed &&
+        whatsAppLog.userOnCallLogTimelineId
+      ) {
+        await correctFailedPage({
+          userOnCallLogTimelineId: whatsAppLog.userOnCallLogTimelineId,
+          messageId: messageId,
+          statusPayload: statusPayload,
+        });
+      }
+
       logger.debug(
         `[Meta WhatsApp Webhook] Kept the status of the WhatsApp log for message id ${messageId}: ${derivedStatus} came after ${whatsAppLog.status}.`,
         {} as any,
@@ -545,25 +591,19 @@ export const updateWhatsAppLogStatus: (
   }
 
   /*
-   * A page Meta could not deliver says so on the person's on-call timeline,
-   * with Meta's words, as an SMS page Twilio could not deliver does
-   * (API/SMS.ts): once, by the webhook that moved the log into Failed - a
-   * repeated one finds the log failed already, and stops above - and only
-   * while the page still says Sent or Sending (OnCallNotificationStatus).
-   * An acknowledgement or a skip is never written over.
+   * The page of a message Meta could not deliver, by the webhook that moved
+   * the log into Failed. A repeated one finds the log failed already, and
+   * corrects the page above only if it still says Sent or Sending.
    */
   if (
     hasEndedNow &&
     derivedStatus === WhatsAppStatus.Failed &&
     whatsAppLog.userOnCallLogTimelineId
   ) {
-    await recordProviderReport({
+    await correctFailedPage({
       userOnCallLogTimelineId: whatsAppLog.userOnCallLogTimelineId,
-      status: UserNotificationStatus.Error,
-      statusMessage: buildFailedDeliveryMessage({
-        messageId: messageId,
-        statusPayload: statusPayload,
-      }),
+      messageId: messageId,
+      statusPayload: statusPayload,
     });
   }
 
@@ -807,13 +847,23 @@ router.post(
           index: number,
         ): void => {
           if (result.status === "rejected") {
+            const statusItem: JSONObject = statusItems[index] || {};
+
             /*
              * A status that could not be handled - the database failed -
-             * leaves the others handled. Its message's id only: the
-             * payload holds the recipient's phone number.
+             * leaves the others handled, and is asked for again, as an
+             * early status is: while it is recent. One that fails every
+             * time - a bug - is not asked for for days.
              */
+            const isAskedAgain: boolean = isRecentStatus(statusItem);
+
+            if (isAskedAgain) {
+              isSentAgain = true;
+            }
+
+            // Its message's id and status only: the payload holds the recipient's phone number.
             logger.error(
-              `[Meta WhatsApp Webhook] Could not handle the status of message id ${String(statusItems[index]?.["id"] || "none")}: ${result.reason}`,
+              `[Meta WhatsApp Webhook] Could not handle the status of message id ${String(statusItem["id"] || "none")} (status: ${String(statusItem["status"] || "none")})${isAskedAgain ? ", so Meta is asked to send it again" : ""}: ${result.reason}`,
               getLogAttributesFromRequest(req as any),
             );
             return;
@@ -827,10 +877,11 @@ router.post(
 
       /*
        * A status that came before its message's log had the message's id,
-       * while the message was being sent: Meta sends a webhook it was not
-       * answered 200 for again later, all of it. The statuses handled now
-       * change nothing then - each write is a compare-and-set, and a
-       * message is counted once.
+       * while the message was being sent, or one that could not be
+       * handled: Meta sends a webhook it was not answered 200 for again
+       * later, all of it. The statuses handled now change nothing then -
+       * each write is a compare-and-set, a message is counted once, and a
+       * page is corrected only while it still says Sent or Sending.
        */
       if (isSentAgain) {
         res.sendStatus(503);

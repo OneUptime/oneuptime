@@ -117,7 +117,9 @@ describe.each([
     /*
      * The hook writes it with the flag on every held create: the column
      * check, which runs on the record as the hooks left it, lets a member's
-     * create through with it - as it does the flag.
+     * create through with it - as it does the flag - because the create's
+     * own steps wrote it (columnsSetByServer, which DatabaseService hands
+     * over).
      */
     it("does not refuse a member's create the hook wrote it on", () => {
       const record: BaseModel = new modelType();
@@ -129,8 +131,36 @@ describe.each([
           record,
           memberProps(),
           DatabaseRequestType.Create,
+          ["createdNotificationHeldAt"],
         );
       }).not.toThrow();
+    });
+
+    /*
+     * A create that sends one itself would start a hold behind the hook's
+     * back: it is refused before the hooks run, and by the check of the
+     * record as written too (#6541).
+     */
+    it("refuses a member's create that sends it", () => {
+      const record: BaseModel = new modelType();
+      record.setColumnValue("createdNotificationHeldAt", new Date());
+
+      expect(() => {
+        ColumnPermissions.checkComputedColumnsSentOnCreate(
+          modelType,
+          record,
+          memberProps(),
+        );
+      }).toThrow(/createdNotificationHeldAt/);
+
+      expect(() => {
+        ColumnPermissions.checkDataColumnPermissions(
+          modelType,
+          record,
+          memberProps(),
+          DatabaseRequestType.Create,
+        );
+      }).toThrow(/createdNotificationHeldAt/);
     });
 
     it("refuses a member's update that writes it", () => {

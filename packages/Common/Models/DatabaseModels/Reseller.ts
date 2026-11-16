@@ -142,10 +142,7 @@ export default class Reseller extends BaseModel {
   @TableColumn({
     manyToOneRelationColumn: "createdByUserId",
     type: TableColumnType.Entity,
-    // Lazy: User imports Project, which imports this model (see modelTypeThunk).
-    modelTypeThunk: () => {
-      return User;
-    },
+    modelType: User,
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
@@ -193,10 +190,7 @@ export default class Reseller extends BaseModel {
     manyToOneRelationColumn: "deletedByUserId",
     type: TableColumnType.Entity,
     title: "Deleted by User",
-    // Lazy: User imports Project, which imports this model (see modelTypeThunk).
-    modelTypeThunk: () => {
-      return User;
-    },
+    modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
     example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",

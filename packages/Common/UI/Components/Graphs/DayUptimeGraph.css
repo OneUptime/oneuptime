@@ -18,6 +18,22 @@
   );
 }
 
+/* ---------- A day monitoring was off ----------
+   Thin dark stripes over a lighter grey (MONITORING_OFF_BAR_COLOR, drawn as
+   the bar's background colour): the Status Timeline's pattern for time with
+   monitoring off, so the strip and the band on a monitor's page say it the
+   same way. Told from a day with no data, whose stripes are pale and wide,
+   without colour. Only the image: the colour stays the bar's own. */
+.uptime-bar-monitoring-off {
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgba(75, 85, 99, 0.45) 0,
+    rgba(75, 85, 99, 0.45) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+}
+
 /* ---------- A day with scheduled maintenance ----------
    A blue band across the top of the bar (MAINTENANCE_MARK_COLOR in
    Utils/StatusPage/HistoryChartBarColors), over whatever colour the day is

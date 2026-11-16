@@ -364,6 +364,9 @@ export const CODE_TASK_BLOCKER_SENTENCES: Partial<
   [CodeTaskBlockerType.RepositoryNeedsOwnRunner]: translationKey(
     "This repository's Git server is on a network OneUptime does not reach, so a global Runner cannot work in it. Pick one of your own Runners on that network.",
   ),
+  [CodeTaskBlockerType.RepositoryTokenNeedsOwnRunner]: translationKey(
+    "On OneUptime Cloud, AI works in a repository that is not on GitHub on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.",
+  ),
   [CodeTaskBlockerType.NoLlmProvider]: translationKey(
     "AI needs an LLM provider for this project.",
   ),
@@ -492,6 +495,11 @@ export const CODE_TASK_BLOCKER_FIXES: Partial<
     title: translationKey("Pick a Runner"),
     setting: CodeRepositorySetting.Runner,
   },
+  [CodeTaskBlockerType.RepositoryTokenNeedsOwnRunner]: {
+    pageMap: PageMap.CODE_REPOSITORY_VIEW_SETTINGS,
+    title: translationKey("Pick a Runner"),
+    setting: CodeRepositorySetting.Runner,
+  },
   [CodeTaskBlockerType.NoLlmProvider]: {
     pageMap: PageMap.SETTINGS_AI_LLM_PROVIDERS,
     title: translationKey("Add an LLM provider"),
@@ -532,6 +540,7 @@ export const CODE_TASK_BLOCKER_FIXES: Partial<
 export const CODE_TASK_REPOSITORY_SETTINGS_FIXES: Array<CodeTaskBlockerType> = [
   CodeTaskBlockerType.RepositoryTokenRefused,
   CodeTaskBlockerType.RepositoryNeedsOwnRunner,
+  CodeTaskBlockerType.RepositoryTokenNeedsOwnRunner,
   CodeTaskBlockerType.NoAgent,
   CodeTaskBlockerType.RunnerNotOnline,
   CodeTaskBlockerType.GlobalRunnersOff,
@@ -557,6 +566,9 @@ export const CODE_TASK_BLOCKER_WHO_CAN_FIX: Partial<
     "A Project Admin can replace the access token in this repository's settings.",
   ),
   [CodeTaskBlockerType.RepositoryNeedsOwnRunner]: translationKey(
+    "A Project Admin can pick this repository's Runner in its settings.",
+  ),
+  [CodeTaskBlockerType.RepositoryTokenNeedsOwnRunner]: translationKey(
     "A Project Admin can pick this repository's Runner in its settings.",
   ),
   [CodeTaskBlockerType.NoAgent]: translationKey(

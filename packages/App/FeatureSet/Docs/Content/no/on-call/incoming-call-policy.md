@@ -41,10 +41,11 @@ flowchart TB
 Gå til **Prosjektinnstillinger** > **Varslinger** > **Varslingskanaler**, og åpne **Flere innstillinger**. Klikk på **Opprett Twilio-konfigurasjon** i kortet **Twilio-konfigurasjon**, og fyll ut skjemaet:
 
 - **Navn** og **Beskrivelse**: hva kontoen brukes til, for eksempel "Supportlinje".
+- **Bruk denne kontoen til**: **Anrop og SMS**, eller **Bare anrop** når kontoens numre ikke kan sende SMS. Innkommende anrop fungerer med begge.
 - **Twilio-konto-SID**: fra Twilio Console. Den starter med `AC`.
 - **Twilio-autentiseringstoken**: fra Twilio Console.
-- **Twilio primært telefonnummer**: et nummer på den kontoen, for SMS-ene og anropene den sender. Under **Flere felt**, valgfritt: numre for mottakere i andre land og numre for SMS når kontoens numre bare kan ringe (se [Egne numre for anrop og SMS](/docs/self-hosted/twilio-integration#egne-numre-for-anrop-og-sms)).
-- **Angi som prosjektstandard**: på for prosjektets første Twilio-konfigurasjon, så SMS-er og anrop til prosjektets medlemmer også går gjennom denne kontoen. Slå det av hvis kontoen bare er for innkommende anrop.
+- **Twilio primært telefonnummer**: et nummer på den kontoen, for anropene den gjør, og for SMS-ene når den sender SMS. Under **Flere felt**, valgfritt: numre for mottakere i andre land og numre for SMS når kontoens numre bare kan ringe (se [Egne numre for anrop og SMS](/docs/self-hosted/twilio-integration#egne-numre-for-anrop-og-sms)).
+- **Angi som prosjektstandard**: på for prosjektets første Twilio-konfigurasjon, så anrop til prosjektets medlemmer også går gjennom denne kontoen, og SMS-ene deres når den brukes til **Anrop og SMS**. Slå det av hvis kontoen bare er for innkommende anrop.
 
 ### Opprett policyen
 

@@ -80,6 +80,23 @@ export const NO_DATA_BAR_COLOR: Color = new Color("#9CA3AF");
 export const NO_DATA_BAR_CLASS_NAME: string = "uptime-bar-no-data";
 
 /*
+ * A day monitoring was off (issue #7112): nothing checked the monitor, so
+ * the day has no status - but it is not a day nobody knew about either:
+ * someone turned monitoring off. A lighter grey than a day with no data,
+ * crossed by the thin dark stripes the Status Timeline draws time with
+ * monitoring off in (StatusTimelineLayout MONITORING_OFF_STRIPES), so the
+ * strip and the band on a monitor's page say it the same way. Grey, so it
+ * is never read as a status; striped, so every eye tells it from a good
+ * day and from a day with no data, whose stripes are pale and wide. No
+ * rule and no default colour reaches it.
+ */
+export const MONITORING_OFF_BAR_COLOR: Color = new Color("#D1D5DB");
+
+// The stripes, drawn over that grey by DayUptimeGraph.css.
+export const MONITORING_OFF_BAR_CLASS_NAME: string =
+  "uptime-bar-monitoring-off";
+
+/*
  * A day with scheduled maintenance: a blue band across the top of its bar
  * (DayUptimeGraph.css), whatever colour the day itself is drawn in. Blue is
  * what status pages use for planned work, and it is a colour none of the

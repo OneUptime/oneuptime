@@ -69,6 +69,7 @@ import UserAuthentication from "./Pages/Users/View/Authentication";
 import UserSettings from "./Pages/Users/View/Settings";
 import ProjectView from "./Pages/Projects/View/Index";
 import ProjectSubscription from "./Pages/Projects/View/Subscription";
+import ProjectInvoices from "./Pages/Projects/View/Invoices";
 import ProjectSupport from "./Pages/Projects/View/Support";
 import ProjectTelemetryUsage from "./Pages/Projects/View/TelemetryUsage";
 import ProjectIngestionBudgets from "./Pages/Projects/View/IngestionBudgets";
@@ -245,6 +246,11 @@ const App: () => JSX.Element = () => {
         <PageRoute
           path={RouteMap[PageMap.PROJECT_SUBSCRIPTION]?.toString() || ""}
           element={<ProjectSubscription />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.PROJECT_INVOICES]?.toString() || ""}
+          element={<ProjectInvoices />}
         />
 
         <PageRoute

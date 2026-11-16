@@ -255,7 +255,6 @@ describe("a monitor's attributes", () => {
       "current_monitor_status_id",
       "telemetry_monitor_next_monitor_at",
       "server_monitor_response",
-      "incoming_monitor_request",
     ]) {
       expect({
         name,
@@ -269,6 +268,20 @@ describe("a monitor's attributes", () => {
         managed: attribute(Monitor, name).isServerManaged,
       }).toEqual({ name, managed: false });
     }
+  });
+
+  /*
+   * The server writes an Incoming Request monitor's latest request from
+   * each request it receives: nobody may set it on a create or change it
+   * on an update (#6541), so a configuration cannot set it either.
+   */
+  test("its latest incoming request is no attribute: only the server writes it", () => {
+    expect(
+      getTerraformAttribute(Monitor, "incomingMonitorRequest"),
+    ).toBeUndefined();
+    expect(
+      getTerraformAttribute(Monitor, "incomingMonitorRequestAsReceived"),
+    ).toBeUndefined();
   });
 });
 

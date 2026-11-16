@@ -256,8 +256,8 @@ describePostgres("a key used only over MQTT (Postgres)", () => {
     ).toBe(schema);
 
     await database.query(
-      `INSERT INTO "${schema}"."Project" ("_id", "name", "isBlocked", "isSampleProject")
-       VALUES ($1, 'Gateways', false, false), ($2, 'Blocked', true, false)`,
+      `INSERT INTO "${schema}"."Project" ("_id", "name", "isBlocked")
+       VALUES ($1, 'Gateways', false), ($2, 'Blocked', true)`,
       [projectId, blockedProjectId],
     );
 

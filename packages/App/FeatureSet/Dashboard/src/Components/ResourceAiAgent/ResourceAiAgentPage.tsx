@@ -36,6 +36,8 @@ import {
   getResourceAiAttention,
   getResourceAiRefusedRegistrationWarning,
   getResourceAutomaticRemediation,
+  RESOURCE_ACCESS_TEST_VERDICT_TITLES,
+  getResourceAccessTestVerdict,
   parseResourceAccessTestResult,
   parseResourceAiAccessStatus,
   shouldShowResourceWriteAccessCommands,
@@ -1499,6 +1501,25 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
         ) : (
           renderAsk()
         );
+      case "show_cloud_agent_setup":
+        /*
+         * The setup dialog, with the command to run again: offered to
+         * everyone who can see the page, as Change is; the dialog makes
+         * its key only for someone who may set the agent up.
+         */
+        return cloudProvider ? (
+          <Button
+            title="Show how"
+            buttonStyle={ButtonStyleType.NORMAL}
+            buttonSize={ButtonSize.Small}
+            dataTestId="ai-agent-gap-show-cloud-agent-setup"
+            onClick={() => {
+              setIsCloudSetupOpen(true);
+            }}
+          />
+        ) : (
+          <></>
+        );
       default:
         return <></>;
     }
@@ -1698,6 +1719,12 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
                           posture: agent?.posture,
                         }).gcpHost,
                         props.cloudAccount?.accountId || undefined,
+                        // An Azure agent on its own VM: Run Command's docker logs.
+                        getCloudAiAgentReportedChoices({
+                          provider: cloudProvider,
+                          accountId: props.cloudAccount?.accountId || "",
+                          posture: agent?.posture,
+                        }).azureHost,
                       )
                     : getResourceAiAgentLogsCommand(descriptor.resourceType)
                 }
@@ -1827,14 +1854,24 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
 
           {testResult ? (
             <div className="space-y-3" data-testid="ai-agent-test-results">
+              {/*
+               * A cloud account's agent that reads but whose every change
+               * would fail as it is set up (its write role, identity or
+               * account): amber, with what fixes it, never "works".
+               */}
               <Alert
-                type={testResult.ok ? AlertType.SUCCESS : AlertType.WARNING}
+                type={
+                  getResourceAccessTestVerdict(testResult) === "works"
+                    ? AlertType.SUCCESS
+                    : AlertType.WARNING
+                }
                 strongTitle={
-                  testResult.ok
-                    ? "The connection works"
-                    : "The connection is not working yet"
+                  RESOURCE_ACCESS_TEST_VERDICT_TITLES[
+                    getResourceAccessTestVerdict(testResult)
+                  ]
                 }
                 title={testResult.message}
+                dataTestId="ai-agent-test-verdict"
               />
               {testResult.results.map(
                 (

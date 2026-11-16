@@ -401,7 +401,7 @@ Une investigation qui échoue, expire ou devient obsolète libère quand même l
 
 Pendant que la remédiation attend, l'étape **Remédiation** le dit — **En attente** — et montre ce qui s'est passé une fois l'investigation aboutie.
 
-La remédiation automatique dépend de deux interrupteurs. **Corriger automatiquement les nouveaux incidents** (ou les alertes), désactivé tant que le projet ne l'active pas : quand il est désactivé, aucun nouvel incident (ou alerte) n'est corrigé. Et **Activer l'IA** (**Paramètres du projet → IA → Fonctionnalités IA**), l'interrupteur principal de l'IA du projet : quand il est désactivé, aucune règle IA ne s'exécute — pas même une règle qui démarre un runbook sans IA — et aucun cluster ni aucune ressource n'est corrigé.
+La remédiation automatique dépend de deux interrupteurs. **Corriger automatiquement les nouveaux incidents** (ou les alertes), désactivé tant que le projet ne l'active pas : quand il est désactivé, aucun nouvel incident (ou alerte) n'est corrigé. Et **Activer l'IA** (**Paramètres du projet → IA → Fonctionnalités IA**), l'interrupteur principal de l'IA du projet : quand il est désactivé, aucune règle IA ne s'exécute — pas même une règle qui démarre un runbook sans IA — et aucun cluster ni aucune ressource n'est corrigé. Un Runner ou un agent IA qui détient déjà une commande quand **Activer l'IA** est désactivé reçoit l'ordre de s'arrêter à son prochain heartbeat : une commande qui n'a pas encore commencé ne commence pas.
 
 ## Ce qu'a fait la remédiation automatique
 

@@ -336,12 +336,13 @@ function snapshot(row: StoredSmsLog | undefined): SmsLog | null {
 
 // A status callback URL's path: the SMS log's id and token, then its query.
 const STATUS_CALLBACK_PATH: RegExp =
-  /\/notification\/sms\/status-callback\/([^/?]+)\/([^/?]+)(?:\?(.*))?$/;
+  /\/notification\/sms\/status-callback\/([^/?#]+)\/([^/?#]+)(?:\?([^#]*))?$/;
 
 /*
  * Twilio calling the status callback URL the SMS was handed to it with, as
  * the route receives it: the log's id and token in the path, the account
- * it went out on in the query.
+ * it went out on in the query. Not its fragment, which asks Twilio to send
+ * the callback again (StatusCallbackRetry): a request never carries one.
  */
 async function twilioCallsBack(
   messageStatus: string,
@@ -351,7 +352,9 @@ async function twilioCallsBack(
     statusCallbackUrls[statusCallbackUrls.length - 1];
   expect(url).toBeDefined();
 
-  const match: RegExpExecArray | null = STATUS_CALLBACK_PATH.exec(url!);
+  const match: RegExpExecArray | null = STATUS_CALLBACK_PATH.exec(
+    url!.split("#")[0]!,
+  );
   expect(match).not.toBeNull();
 
   const query: JSONObject = {};
@@ -558,9 +561,10 @@ describe("the route and the send", () => {
     expect(statusCallbackUrls[0]).toMatch(
       /^https?:\/\/oneuptime\.example\.com\/notification\/sms\/status-callback\//,
     );
+    // Its path names the log; its fragment asks Twilio to send it again on a 5xx.
     expect(
       statusCallbackUrls[0]!.endsWith(
-        `/${onlyLog().id.toString()}/${onlyLog().statusCallbackToken}`,
+        `/${onlyLog().id.toString()}/${onlyLog().statusCallbackToken}#rc=3&rp=ct,5xx`,
       ),
     ).toBe(true);
   });

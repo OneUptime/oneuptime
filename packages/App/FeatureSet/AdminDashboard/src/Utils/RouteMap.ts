@@ -35,6 +35,10 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.PROJECT_SUBSCRIPTION]: new Route(
     `/admin/projects/${RouteParams.ModelID}/subscription`,
   ),
+  // The project's invoices at the payment provider, which staff may void.
+  [PageMap.PROJECT_INVOICES]: new Route(
+    `/admin/projects/${RouteParams.ModelID}/invoices`,
+  ),
   [PageMap.PROJECT_SUPPORT]: new Route(
     `/admin/projects/${RouteParams.ModelID}/support`,
   ),
@@ -81,7 +85,6 @@ const RouteMap: Dictionary<Route> = {
     `/admin/users/${RouteParams.ModelID}/delete`,
   ),
 
-  [PageMap.SETTINGS_HOST]: new Route(`/admin/settings/host`),
   [PageMap.SETTINGS_SMTP]: new Route(`/admin/settings/smtp`),
   [PageMap.SETTINGS_CALL_AND_SMS]: new Route(`/admin/settings/call-and-sms`),
   [PageMap.SETTINGS_WHATSAPP]: new Route(`/admin/settings/whatsapp`),

@@ -70,6 +70,12 @@ export interface ComponentProps {
   uptimePercent: number;
   hasEvents: boolean;
   statusDurations: Array<StatusDuration>;
+  /*
+   * How long monitoring was off that day (issue #7112): a day it was off
+   * says so in place of "No monitoring data", and a day it was off for in
+   * part says for how long under its uptime.
+   */
+  monitoringOffSeconds?: number | undefined;
   incidents: Array<UptimeBarTooltipIncident>;
   onIncidentClick?: ((incidentId: string) => void) | undefined;
   /*
@@ -173,6 +179,7 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
         uptimePercent={props.uptimePercent}
         hasEvents={props.hasEvents}
         statusDurations={props.statusDurations}
+        monitoringOffSeconds={props.monitoringOffSeconds}
         hasFollowingContent={hasIncidents || hasMaintenance}
         labels={props.labels}
       />

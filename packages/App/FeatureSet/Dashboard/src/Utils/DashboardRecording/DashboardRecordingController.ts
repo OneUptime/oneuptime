@@ -46,11 +46,6 @@ export interface DashboardRecordingState {
   config: DashboardRecordingConfig | null;
   // The page's route pattern, never its address.
   page: string;
-  /*
-   * The project in view is a sample one (#6808): exploring the sample is
-   * not setting up for real, and the weekly view tells them apart.
-   */
-  isSampleProject?: boolean | undefined;
 }
 
 export interface DashboardRecordingControllerOptions {
@@ -231,10 +226,7 @@ export default class DashboardRecordingController {
       return;
     }
 
-    const tags: Record<string, string> = {
-      page: this.page || "",
-      sample_project: this.latest?.isSampleProject ? "true" : "false",
-    };
+    const tags: Record<string, string> = { page: this.page || "" };
 
     if (this.place) {
       tags["guided_setup"] = this.place.setup;
