@@ -55,7 +55,7 @@ import { DataSource } from "typeorm";
  * Every row is written under projects of the test's own, deleted afterwards
  * - the files first, as a file names its project with no foreign key.
  */
-const describePostgres: typeof describe =
+const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_ATTACHED_FILES_TESTS"] === "true"
     ? describe
     : describe.skip;

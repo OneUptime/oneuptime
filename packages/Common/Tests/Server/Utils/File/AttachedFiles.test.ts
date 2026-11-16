@@ -1,5 +1,6 @@
 import AttachedFiles, {
   ATTACHMENT_SOURCES,
+  AttachedFilesQuery,
   AttachmentSource,
   getAttachedFilesSql,
   hasAttachedFiles,
@@ -7,6 +8,7 @@ import AttachedFiles, {
 import logger from "../../../../Server/Utils/Logger";
 import "../../../../Models/DatabaseModels/Index";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { Mock } from "jest-mock";
 import { getMetadataArgsStorage } from "typeorm";
 import { JoinTableMetadataArgs } from "typeorm/metadata-args/JoinTableMetadataArgs";
 import { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs";
@@ -546,11 +548,12 @@ describe("readFilesOfRowsDeleted", () => {
   );
 
   test("no valid id, or a table with no attachments, reads nothing", async () => {
-    const query: jest.Mock<
-      (sql: string, parameters: Array<unknown>) => Promise<unknown>
-    > = jest.fn(async () => {
-      return [];
-    });
+    // jest-mock's Mock, the type @jest/globals' jest.fn returns.
+    const query: Mock<AttachedFilesQuery> = jest.fn<AttachedFilesQuery>(
+      async (): Promise<unknown> => {
+        return [];
+      },
+    );
 
     expect(
       (
