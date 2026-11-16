@@ -373,6 +373,80 @@ describe("the computed columns, as the models declare them", () => {
   });
 });
 
+/*
+ * A reference has two names, its ID column and the relation over it
+ * (`dataStoreId`, `dataStore`), and a create may send either: the ask before
+ * the hooks fills the ID column in from the relation, and TypeORM stores the
+ * relation in place of its ID column. Where one of the two is server-set, the
+ * two take the same create list, so neither name lets in someone the other
+ * keeps out: a value the rule drops under one name is refused under the
+ * other, never stored.
+ */
+describe("the two names of a reference", () => {
+  interface ReferenceNames {
+    table: string;
+    relation: string;
+    idColumn: string;
+    relationCreate: Array<Permission>;
+    idColumnCreate: Array<Permission>;
+  }
+
+  const SERVER_SET_REFERENCES: Array<ReferenceNames> = (
+    Models as Array<ModelType>
+  ).flatMap((modelType: ModelType): Array<ReferenceNames> => {
+    const model: DatabaseBaseModel = new modelType();
+
+    return model
+      .getTableColumns()
+      .columns.flatMap((relation: string): Array<ReferenceNames> => {
+        const idColumn: string | undefined =
+          model.getTableColumnMetadata(relation)?.manyToOneRelationColumn;
+
+        if (!idColumn || !model.getTableColumnMetadata(idColumn)) {
+          return [];
+        }
+
+        if (
+          !model.getTableColumnMetadata(relation).computed &&
+          !model.getTableColumnMetadata(idColumn).computed
+        ) {
+          return [];
+        }
+
+        return [
+          {
+            table: tableOf(modelType),
+            relation: relation,
+            idColumn: idColumn,
+            relationCreate: [
+              ...(model.getColumnAccessControlFor(relation)?.create || []),
+            ].sort(),
+            idColumnCreate: [
+              ...(model.getColumnAccessControlFor(idColumn)?.create || []),
+            ].sort(),
+          },
+        ];
+      });
+  });
+
+  test("where one is server-set, take the same create list", () => {
+    expect(SERVER_SET_REFERENCES.length).toBeGreaterThan(0);
+
+    const apart: Array<string> = SERVER_SET_REFERENCES.filter(
+      (reference: ReferenceNames): boolean => {
+        return (
+          JSON.stringify(reference.relationCreate) !==
+          JSON.stringify(reference.idColumnCreate)
+        );
+      },
+    ).map((reference: ReferenceNames): string => {
+      return `${reference.table}.${reference.relation} / ${reference.idColumn}`;
+    });
+
+    expect(apart).toEqual([]);
+  });
+});
+
 describe("a create that gives a computed column nobody may create a value", () => {
   const NOBODY: Array<ComputedColumn> = WEIGHED.filter(
     (entry: ComputedColumn): boolean => {
@@ -398,7 +472,7 @@ describe("a create that gives a computed column nobody may create a value", () =
       (entry: ComputedColumn) => {
         return {
           column: nameOf(entry),
-          outcome: askBeforeHooks(entry, memberWith(GRANTABLE)),
+          outcome: askBeforeHooks(entry, EVERYTHING),
         };
       },
     );
@@ -471,19 +545,53 @@ describe("a create that gives a computed column nobody may create a value", () =
     expect(wrong).toEqual([]);
   });
 
+  /*
+   * Asked as a member holding what creates the column's table, built once
+   * per table: nobody may create these columns, so the answer is the same
+   * for every member.
+   */
   test("is refused again by the check of the record as written, unless the create's own steps wrote it, or OneUptime's code marked it", () => {
+    const creators: Map<ModelType, DatabaseCommonInteractionProps> = new Map<
+      ModelType,
+      DatabaseCommonInteractionProps
+    >();
+
+    const creatorOf: (
+      entry: ComputedColumn,
+    ) => DatabaseCommonInteractionProps = (
+      entry: ComputedColumn,
+    ): DatabaseCommonInteractionProps => {
+      let props: DatabaseCommonInteractionProps | undefined = creators.get(
+        entry.modelType,
+      );
+
+      if (!props) {
+        props = memberWith(
+          TablePermission.getTablePermission(
+            entry.modelType,
+            DatabaseRequestType.Create,
+          ),
+        );
+        creators.set(entry.modelType, props);
+      }
+
+      return props;
+    };
+
     const wrong: Array<string> = [];
 
     for (const entry of NOBODY) {
-      if (askOfRecord(entry, EVERYTHING, {}) !== "refused") {
+      const props: DatabaseCommonInteractionProps = creatorOf(entry);
+
+      if (askOfRecord(entry, props, {}) !== "refused") {
         wrong.push(`${nameOf(entry)}: a caller's value passed`);
       }
 
-      if (askOfRecord(entry, EVERYTHING, { setByServer: true }) !== "passes") {
+      if (askOfRecord(entry, props, { setByServer: true }) !== "passes") {
         wrong.push(`${nameOf(entry)}: a value the create wrote was refused`);
       }
 
-      if (askOfRecord(entry, EVERYTHING, { marked: true }) !== "passes") {
+      if (askOfRecord(entry, props, { marked: true }) !== "passes") {
         wrong.push(`${nameOf(entry)}: a value OneUptime marked was refused`);
       }
     }
