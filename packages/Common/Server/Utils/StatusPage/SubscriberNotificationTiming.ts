@@ -22,7 +22,10 @@ import OneUptimeDate from "../../../Types/Date";
  *   the Notification service tries SMTP three times with a 60 second connect
  *   timeout each (about 3 minutes 5 seconds), and the Slack and webhook
  *   senders retry three times with 2, 4 and 8 second backoffs - so it only
- *   cuts off a request that hangs. The request itself is not cancelled.
+ *   cuts off a request that hangs. The request itself is not cancelled. A
+ *   subscriber's own webhook never gets that far: its post gives up by
+ *   itself after half this time, and closes its socket
+ *   (SUBSCRIBER_WEBHOOK_TOTAL_TIMEOUT_IN_MS in StatusPageSubscriberWebhook).
  * - A notification starts no new message once SEND_WINDOW_IN_MS has passed
  *   since it was claimed. What it has not reached is recorded as not sent,
  *   and the notification settles as Failed.

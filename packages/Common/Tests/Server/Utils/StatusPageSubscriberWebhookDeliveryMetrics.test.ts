@@ -85,7 +85,12 @@ jest.mock("../../../Server/Utils/Logger");
 import StatusPageSubscriberWebhookUtil, {
   SIGNED_UP_SUBSCRIBER_PRIVATE_NETWORK_HINT,
   StatusPageWebhookPayload,
+  SUBSCRIBER_WEBHOOK_ATTEMPT_TIMEOUT_IN_MS,
+  SUBSCRIBER_WEBHOOK_RETRIES,
+  SUBSCRIBER_WEBHOOK_TOTAL_TIMEOUT_IN_MS,
 } from "../../../Server/Utils/StatusPageSubscriberWebhook";
+import SafeWebhookRequest from "../../../Server/Utils/SafeWebhookRequest";
+import SubscriberNotificationTiming from "../../../Server/Utils/StatusPage/SubscriberNotificationTiming";
 import {
   NotificationDeliveryChannel,
   NotificationDeliveryOutcome,
@@ -105,7 +110,7 @@ import axios from "axios";
 import dns from "dns";
 import fs from "fs";
 import http from "http";
-import { AddressInfo } from "net";
+import { AddressInfo, Socket } from "net";
 import path from "path";
 
 const ALLOW_ENV: string = "ALLOW_PRIVATE_NETWORK_WEBHOOKS";
@@ -447,12 +452,26 @@ describe("a post to a status page subscriber's webhook is counted once, for the 
       posts.mock.calls[0]![0] as APIRequestOptions
     ).options;
 
-    // As it always was: tried again, backing off, and never redirected.
-    expect(options).toEqual({
-      retries: 3,
+    /*
+     * As it always was - tried again, backing off, never redirected - and,
+     * since issue #6845, given up when the endpoint does not answer
+     * (SUBSCRIBER_WEBHOOK_ATTEMPT_TIMEOUT_IN_MS and _TOTAL_). Since issue
+     * #6611 it dials only the address its check approved, on its own
+     * agents, with Node's http adapter, on exactly the URL that was checked.
+     */
+    expect(options).toMatchObject({
+      retries: SUBSCRIBER_WEBHOOK_RETRIES,
       exponentialBackoff: true,
       doNotFollowRedirects: true,
+      timeout: SUBSCRIBER_WEBHOOK_ATTEMPT_TIMEOUT_IN_MS,
+      totalTimeoutInMs: SUBSCRIBER_WEBHOOK_TOTAL_TIMEOUT_IN_MS,
+      useNodeHttpAdapter: true,
+      dispatchUrl: new globalThis.URL(PUBLIC_HOOK).href,
     });
+    expect(SUBSCRIBER_WEBHOOK_RETRIES).toBe(3);
+    expect(options?.httpAgent).toBeInstanceOf(http.Agent);
+    expect(options?.httpsAgent).toBeDefined();
+    expect(options?.signal).toBeDefined();
     expect(sendCounterCalls).toHaveLength(1);
   });
 
@@ -731,6 +750,10 @@ describe("counted once however many times the post was tried, against a real end
   // How the endpoint answers each request, in turn; 200 once they run out.
   let statuses: Array<number> = [];
   let requests: Array<string> = [];
+  // How long the endpoint takes to answer; null: it takes the post and never answers.
+  let answerAfterInMs: number | null = 0;
+  // The connections the endpoint has open now.
+  const openSockets: Set<Socket> = new Set<Socket>();
   const originalAdapter: typeof axios.defaults.adapter = axios.defaults.adapter;
 
   beforeAll(async () => {
@@ -753,23 +776,37 @@ describe("counted once however many times the post was tried, against a real end
         });
 
         request.on("end", () => {
-          const status: number = statuses.shift() || 200;
-
-          if (status >= 300 && status < 400) {
-            response.writeHead(status, {
-              Location: `http://127.0.0.1:${port}/redirected`,
-            });
-            response.end();
+          if (answerAfterInMs === null) {
             return;
           }
 
-          response.writeHead(status, { "Content-Type": "application/json" });
-          response.end(
-            JSON.stringify({ received: body.length > 0, status: status }),
-          );
+          const status: number = statuses.shift() || 200;
+
+          setTimeout(() => {
+            if (status >= 300 && status < 400) {
+              response.writeHead(status, {
+                Location: `http://127.0.0.1:${port}/redirected`,
+              });
+              response.end();
+              return;
+            }
+
+            response.writeHead(status, { "Content-Type": "application/json" });
+            response.end(
+              JSON.stringify({ received: body.length > 0, status: status }),
+            );
+          }, answerAfterInMs);
         });
       },
     );
+
+    server.on("connection", (socket: Socket) => {
+      openSockets.add(socket);
+
+      socket.on("close", () => {
+        openSockets.delete(socket);
+      });
+    });
 
     await new Promise<void>((resolve: () => void) => {
       server.listen(0, "127.0.0.1", resolve);
@@ -797,6 +834,7 @@ describe("counted once however many times the post was tried, against a real end
   beforeEach(() => {
     statuses = [];
     requests = [];
+    answerAfterInMs = 0;
     process.env[ALLOW_ENV] = "true";
     process.env[ALLOWLIST_ENV] = "127.0.0.1";
 
@@ -894,6 +932,129 @@ describe("counted once however many times the post was tried, against a real end
     expect(sendCounterCalls).toEqual([
       { value: 1, attributes: { ...SUBSCRIBER_WEBHOOK, outcome: "failure" } },
     ]);
+  });
+
+  /*
+   * AN ENDPOINT THAT NEVER ANSWERS (issue #6845). The post's own limits -
+   * SUBSCRIBER_WEBHOOK_ATTEMPT_TIMEOUT_IN_MS and _TOTAL_ - are thirty
+   * seconds and two minutes; here they are what the sender asks for, a
+   * hundred times shorter, so the suite stays fast. A sender that asked
+   * for none would get none here either, and its post would hang.
+   */
+  function withLimitsAHundredTimesShorter(): void {
+    const realSend: typeof SafeWebhookRequest.send =
+      SafeWebhookRequest.send.bind(SafeWebhookRequest);
+
+    jest.spyOn(SafeWebhookRequest, "send").mockImplementation(((
+      ...args: Parameters<typeof SafeWebhookRequest.send>
+    ) => {
+      const options: NonNullable<
+        Parameters<typeof SafeWebhookRequest.send>[1]
+      > = args[1] || {};
+
+      return realSend(args[0], {
+        ...options,
+        timeout:
+          options.timeout === undefined ? undefined : options.timeout / 100,
+        totalTimeoutInMs:
+          options.totalTimeoutInMs === undefined
+            ? undefined
+            : options.totalTimeoutInMs / 100,
+      });
+    }) as typeof SafeWebhookRequest.send);
+  }
+
+  test("an endpoint that takes the post and never answers: the send gives up in time, is one failure with its time, and the connection is closed", async () => {
+    answerAfterInMs = null;
+    withLimitsAHundredTimesShorter();
+
+    const startedAt: number = Date.now();
+
+    await expect(
+      send({ webhookUrl: hook(), isAddedByTeam: true }),
+    ).rejects.toBeInstanceOf(Error);
+
+    const tookInMs: number = Date.now() - startedAt;
+
+    // Its total, 1.2 seconds here, and not a moment more than it takes to close.
+    expect(tookInMs).toBeLessThan(
+      SUBSCRIBER_WEBHOOK_TOTAL_TIMEOUT_IN_MS / 100 + 1000,
+    );
+    expect(requests.length).toBeGreaterThanOrEqual(1);
+    expect(sendCounterCalls).toEqual([
+      { value: 1, attributes: { ...SUBSCRIBER_WEBHOOK, outcome: "failure" } },
+    ]);
+    expect(sendDurationCalls).toHaveLength(1);
+    expect(sendDurationCalls[0]!.attributes).toEqual(
+      sendCounterCalls[0]!.attributes,
+    );
+    expect(sendDurationCalls[0]!.value).toBeGreaterThanOrEqual(
+      SUBSCRIBER_WEBHOOK_ATTEMPT_TIMEOUT_IN_MS / 100 - 5,
+    );
+
+    // Its request is freed: the endpoint sees every connection closed.
+    const deadline: number = Date.now() + 2000;
+
+    while (openSockets.size > 0 && Date.now() < deadline) {
+      await new Promise<void>((resolve: () => void) => {
+        setTimeout(resolve, 10);
+      });
+    }
+
+    expect(openSockets.size).toBe(0);
+  }, 10000);
+
+  test("an endpoint that answers slowly, but inside the timeout, is a success", async () => {
+    // A third of an attempt's time, at a hundredth.
+    answerAfterInMs = SUBSCRIBER_WEBHOOK_ATTEMPT_TIMEOUT_IN_MS / 300;
+    withLimitsAHundredTimesShorter();
+
+    const result: HTTPResponse<JSONObject> | HTTPErrorResponse = await send({
+      webhookUrl: hook(),
+      isAddedByTeam: true,
+    });
+
+    expect(result).toBeInstanceOf(HTTPResponse);
+    expect(result).not.toBeInstanceOf(HTTPErrorResponse);
+    expect(requests).toEqual(["/hook"]);
+    expect(outcomes()).toEqual(["success"]);
+  }, 10000);
+});
+
+describe("how long a post to a subscriber's webhook may take (issue #6845)", () => {
+  test("it gives up well before the subscriber jobs stop waiting for the message", () => {
+    /*
+     * The hard limit is the total: an attempt still in flight when it runs
+     * out is aborted (SafeWebhookRequest). It is half the message timeout,
+     * so the job's timeout never has to cut off a webhook.
+     */
+    expect(SUBSCRIBER_WEBHOOK_TOTAL_TIMEOUT_IN_MS).toBeLessThan(
+      SubscriberNotificationTiming.SEND_TIMEOUT_IN_MS,
+    );
+    expect(SUBSCRIBER_WEBHOOK_TOTAL_TIMEOUT_IN_MS).toBe(
+      SubscriberNotificationTiming.SEND_TIMEOUT_IN_MS / 2,
+    );
+  });
+
+  test("one attempt is a fraction of the total, so a slow endpoint is still tried again", () => {
+    expect(SUBSCRIBER_WEBHOOK_ATTEMPT_TIMEOUT_IN_MS).toBe(30 * 1000);
+    expect(SUBSCRIBER_WEBHOOK_ATTEMPT_TIMEOUT_IN_MS).toBeLessThan(
+      SUBSCRIBER_WEBHOOK_TOTAL_TIMEOUT_IN_MS / 2,
+    );
+  });
+
+  test("every try and its backoff fit in the total, but for the last one, which the total cuts short", () => {
+    // API's backoff before try n+1 is at most 2^(n+1) seconds: 2, 4, 8.
+    const longestBackoffsInMs: number = [2, 4, 8]
+      .slice(0, SUBSCRIBER_WEBHOOK_RETRIES)
+      .reduce((total: number, seconds: number) => {
+        return total + seconds * 1000;
+      }, 0);
+
+    expect(
+      SUBSCRIBER_WEBHOOK_RETRIES * SUBSCRIBER_WEBHOOK_ATTEMPT_TIMEOUT_IN_MS +
+        longestBackoffsInMs,
+    ).toBeLessThanOrEqual(SUBSCRIBER_WEBHOOK_TOTAL_TIMEOUT_IN_MS);
   });
 });
 
