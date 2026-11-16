@@ -45,6 +45,7 @@
     "uptimePercent": "{{percent}} زمان کارکرد",
     "operational": "عملیاتی",
     "notMonitored": "پایش نشده",
+    "notMonitoredYet": "هنوز پایش نشده",
     "noResourcesInGroup": "هیچ منبعی به این گروه اضافه نشده است.",
     "activeIncidents": "حوادث فعال",
     "scheduledMaintenanceEvents": "تعمیر و نگهداری زمان‌بندی‌شده",
@@ -55,6 +56,7 @@
     "someResourcesAre": "برخی از منابع {{status}} هستند",
     "someResourcesAreUnder": "برخی از منابع در وضعیت {{status}} هستند",
     "noResourcesAreMonitored": "در حال حاضر هیچ منبعی پایش نمی‌شود",
+    "noResourcesAreMonitoredYet": "هنوز هیچ منبعی پایش نشده است",
     "oneSubGroup": "۱ گروه",
     "subGroupCount": "{{total}} گروه"
   },

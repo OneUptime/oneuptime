@@ -187,6 +187,10 @@ OneUptime Cloud 에서는 IP 허용 목록을 설정하려면 **Scale** 플랜�
 
 OneUptime 인스턴스에서 hCaptcha 가 켜져 있으면 양식에 캡차가 표시되며, 캡차를 통과하지 않은 제출은 거부됩니다. 양식별 설정은 없습니다. 자체 호스팅 설치에서는 `CAPTCHA_ENABLED`, `CAPTCHA_SITE_KEY`, `CAPTCHA_SECRET_KEY` 로 캡차를 켭니다. 회원 가입을 보호하는 것과 같은 설정입니다. 캡차가 없으면 속도 제한과 IP 허용 목록이 부담을 집니다.
 
+### 악성 코드 검사
+
+자체 호스팅 설치에서는 사람들이 보내는 모든 파일을 저장하기 전에 ClamAV로 악성 코드를 검사할 수 있습니다. 양식의 파일과, 로그인한 사람이나 API 키로 업로드하는 파일이 대상입니다. `CLAMAV_HOST`(와 `CLAMAV_PORT`, 기본값 `3310`)를 ClamAV 데몬으로 설정하세요. Docker Compose에서는 `config.env`의 `COMPOSE_PROFILES=clamav`와 `CLAMAV_HOST=clamav`로 OneUptime에 포함된 ClamAV가 시작되고, Helm에서는 `clamav.enabled`를 켭니다. ClamAV가 탐지한 파일은 어떤 파일인지 알려 주며 거부되고, 제출된 내용은 아무것도 저장되지 않습니다. ClamAV가 응답하지 않는 동안에는 모든 파일이 "지금은 파일의 바이러스 검사를 할 수 없어 파일이 접수되지 않았습니다. 몇 분 후에 다시 시도해 주세요." (503)으로 거부되므로, 검사하지 않은 파일은 저장되지 않습니다. `CLAMAV_HOST`가 없으면 이전처럼 파일을 검사하지 않습니다.
+
 ## 문제 해결
 
 :::details 링크에 양식을 사용할 수 없다고 표시됨

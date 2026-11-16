@@ -62,7 +62,12 @@ export default class SsoRequiredSignIn {
     }
   }
 
-  // Whether the server requires SSO, for a path no master admin takes.
+  /*
+   * Whether the server requires SSO: for a way in no master admin takes
+   * (Sign in with Google or Microsoft, sign-in from Vercel, a sign-up), and
+   * for a master admin's own question about it (signing out everyone who
+   * signed in without SSO, GlobalConfigAPI).
+   */
   public static async isSsoRequired(): Promise<boolean> {
     return await GlobalConfigService.getRequireSsoForLogin();
   }

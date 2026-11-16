@@ -82,6 +82,13 @@ const FRONTEND_ENV_ALLOW_LIST: Array<string> = [
    * release emails from oneuptime.com (Accounts' Register page).
    */
   "DISABLE_INSTANCE_CHECK_IN",
+  /*
+   * A self-hosted multi-tenant install keeps GitLab, Forgejo, Gitea and Git
+   * repositories off global Runners (as OneUptime Cloud does): the Dashboard's
+   * Runner picker draws the amber line for them (Types/Runner/
+   * GlobalRunnerRepositoryTokens).
+   */
+  "GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY",
 ];
 
 /*
@@ -939,7 +946,7 @@ export const ReceivesIngressTraffic: boolean =
  * connection a sign-in needs (Utils/Database/ConnectionShares, #7920):
  *
  *   - PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS: probe scheduling requests
- *     (monitor, monitor test and network device lists, pending counts)
+ *     (every request a probe makes for work, and the pending counts)
  *     running at once. Default: a fifth of DATABASE_MAX_OPEN_CONNECTIONS.
  *   - DATABASE_MAX_QUEUE_JOB_CONNECTIONS: Postgres connections the queue jobs
  *     of this process hold at once. Default: the pool less a fifth kept for
@@ -2256,3 +2263,20 @@ export const InboundEmailWebhookSecretWarning: string | null =
   InboundEmailDomain && !InboundEmailWebhookSecret
     ? `INBOUND_EMAIL_DOMAIN is set, but INBOUND_EMAIL_WEBHOOK_SECRET is unset, blank or a placeholder from the OneUptime repository or its docs, so nothing proves an email was delivered by SendGrid. OneUptime refuses every email delivered to the inbound domain until it is set (with 503, which SendGrid retries for up to three days), and none reaches an Incoming Email monitor or a workflow. If the Destination URL in SendGrid's Inbound Parse settings already ends with a long random value of your own, set INBOUND_EMAIL_WEBHOOK_SECRET to that value. Otherwise change that URL first, to end with a new long random value (https://<your OneUptime host>/incoming-email/sendgrid/<the new value>), and then set INBOUND_EMAIL_WEBHOOK_SECRET to the same value, so that SendGrid retries the emails sent in between instead of having them refused for a wrong secret. With Docker Compose, set it in config.env and run npm start; with Helm, set inboundEmail.webhookSecret and upgrade the release. See ${InboundEmailSetupDocsUrl}.`
     : null;
+
+/*
+ * Malware scanning of the files people send OneUptime (MalwareScanner): the
+ * address of a ClamAV daemon, clamd. Unset, nothing is scanned, as before.
+ * Set, every file sent with a public form's answers and every file a person
+ * or an API key uploads is scanned before it is stored, and refused when
+ * clamd flags it or cannot be asked. With Docker Compose the bundled one is
+ * started by COMPOSE_PROFILES=clamav and answers as CLAMAV_HOST=clamav; with
+ * Helm, clamav.enabled runs one in the cluster (see config.example.env).
+ */
+export const ClamAvHost: string = (process.env["CLAMAV_HOST"] || "").trim();
+
+export const ClamAvPort: number = ((): number => {
+  const port: number = Number((process.env["CLAMAV_PORT"] || "").trim());
+
+  return Number.isInteger(port) && port > 0 && port < 65536 ? port : 3310;
+})();

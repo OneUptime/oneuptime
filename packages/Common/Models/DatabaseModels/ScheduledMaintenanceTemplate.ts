@@ -1259,15 +1259,16 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
   })
   public isRecurringEvent?: boolean = undefined;
 
+  /*
+   * When the template's next event is created: worked out by
+   * ScheduledMaintenanceTemplateService from the schedule (the first event and
+   * the interval) while the template recurs, left empty when it does not, and
+   * moved on by the job that creates the events. So nobody may give a new
+   * template one (#8907). Whoever may edit the template may still write it,
+   * because the service writes it into the editor's own update.
+   */
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ScheduledMaintenanceAdmin,
-      Permission.ScheduledMaintenanceMember,
-      Permission.CreateScheduledMaintenanceTemplate,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

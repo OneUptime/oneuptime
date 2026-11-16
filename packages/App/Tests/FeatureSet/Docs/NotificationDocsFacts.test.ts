@@ -2094,13 +2094,43 @@ describe("notification settings", () => {
     expect(settingService).toContain(
       "since sendUserNotification no-ops when no row exists",
     );
-    expect(page).toContain(
-      '"Click any channel to switch it on or off. Changes save automatically."',
-    );
     expect(settings).toContain(
       "A channel that is on sends to every verified method you have on it in this project, not just one.",
     );
-    expect(settings).toContain("Changes save automatically.");
+  });
+
+  /*
+   * #8887: each cell is the shared switch, a card of several events opens on
+   * All events, a channel that cannot reach you is no column but a link
+   * under "Channels not set up yet", and a card says "Saved".
+   */
+  it("says how a switch is flipped, saved, and switched for a whole card, as the matrix draws it", () => {
+    const matrix: string = readDashboardSource(
+      "Components/NotificationSettings/NotificationMatrix.tsx",
+    );
+    const words: string = readDashboardSource(
+      "Components/NotificationSettings/NotificationSettingsWords.ts",
+    );
+
+    expect(matrix).toContain(
+      'import Toggle from "Common/UI/Components/Toggle/Toggle";',
+    );
+    expect(matrix).toContain("<SaveStatus");
+    expect(words).toContain('allEvents: translationKey("All events"),');
+    expect(words).toContain(
+      'notSetUpChannels: translationKey("Channels not set up yet"),',
+    );
+    expect(words).toContain('setUp: translationKey("Set up"),');
+    expect(settings).toContain(
+      "Click a channel's switch to turn it on, and again to turn it off. A card's first row, **All events**, turns a channel on or off for every event of the card. Each change saves at once, and the card says **Saved**.",
+    );
+    expect(settings).toContain(
+      "A channel you have not set up yet is not a column: it is listed under **Channels not set up yet**, above the tabs, as a link to set it up.",
+    );
+    expect(settings).toContain(
+      "Its column says **Set up** under its name, and its switches can only be turned off.",
+    );
+    expect(settings).not.toContain("circle");
   });
 
   it("lists, tab by tab, the events a new member starts with, and the rest", () => {

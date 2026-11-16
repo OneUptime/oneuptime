@@ -15,7 +15,12 @@ import crypto from "crypto";
  *   UPDATE "GlobalConfig" SET "<column>" = $1 WHERE "_id" = $2
  *     AND encode(sha256(convert_to("<column>", 'UTF8')), 'hex') = $3
  *     the same, compared by the SHA-256 of what the column holds, which is
- *     how HashMasterApiKey keeps the key out of its parameters.
+ *     how HashMasterApiKey keeps the key out of its parameters;
+ *   UPDATE "GlobalConfig" SET "<column>" = $1, "<other>" = $2
+ *     WHERE "_id" = $3
+ *     AND encode(sha256(convert_to("<column>", 'UTF8')), 'hex') = $4
+ *     the same, writing a second column with it - the key's hint, which
+ *     HashMasterApiKey writes with its hash.
  *
  * Any other statement, or one that sets a column other than the one it
  * compares, fails the test. A test may run code before a SELECT answers or
@@ -60,6 +65,9 @@ const UPDATE_ONE_COLUMN_BLINDLY: RegExp =
 // The same write, compared by the SHA-256 of what the column holds.
 const UPDATE_ONE_COLUMN_BY_DIGEST: RegExp =
   /^UPDATE "GlobalConfig" SET "(\w+)" = \$1 WHERE "_id" = \$2 AND encode\(sha256\(convert_to\("(\w+)", 'UTF8'\)\), 'hex'\) = \$3$/;
+// And with a second column written beside the one compared.
+const UPDATE_TWO_COLUMNS_BY_DIGEST: RegExp =
+  /^UPDATE "GlobalConfig" SET "(\w+)" = \$1, "(\w+)" = \$2 WHERE "_id" = \$3 AND encode\(sha256\(convert_to\("(\w+)", 'UTF8'\)\), 'hex'\) = \$4$/;
 
 // SHA-256 of a text, as Postgres's encode(sha256(convert_to(text, 'UTF8')), 'hex').
 function sha256Of(value: unknown): string {
@@ -116,6 +124,60 @@ export function answerGlobalConfigSql(
 
           return read;
         });
+      }
+
+      const twoByDigest: RegExpMatchArray | null = text.match(
+        UPDATE_TWO_COLUMNS_BY_DIGEST,
+      );
+
+      if (twoByDigest) {
+        const column: string = twoByDigest[1]!;
+        const otherColumn: string = twoByDigest[2]!;
+
+        if (twoByDigest[3] !== column) {
+          throw new Error(
+            `GlobalConfigSql: an UPDATE sets ${column} and compares ${twoByDigest[3]}`,
+          );
+        }
+
+        if (!params || params.length !== 4) {
+          throw new Error(
+            "GlobalConfigSql: an UPDATE takes a value for each placeholder",
+          );
+        }
+
+        const [value, otherValue, id, expected] = params;
+
+        if (sql.beforeUpdate) {
+          await sql.beforeUpdate({ id: String(id), column: column });
+        }
+
+        let changed: number = 0;
+
+        for (const row of rows()) {
+          if (
+            sameId(row["_id"], id) &&
+            !isNull(row[column]) &&
+            !isNull(expected) &&
+            sha256Of(row[column]) === expected
+          ) {
+            row[column] = value;
+            row[otherColumn] = otherValue;
+            sql.writes.push({
+              id: String(row["_id"]),
+              column: column,
+              value: value,
+            });
+            sql.writes.push({
+              id: String(row["_id"]),
+              column: otherColumn,
+              value: otherValue,
+            });
+            changed++;
+          }
+        }
+
+        return [[], changed];
       }
 
       const byDigest: RegExpMatchArray | null = text.match(

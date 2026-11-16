@@ -20,6 +20,8 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
+import BaseAPI from "Common/Server/API/BaseAPI";
+import { ExpressRequest } from "Common/Server/Utils/Express";
 import ColumnRefusalMessage from "Common/Server/Types/Database/Permissions/ColumnRefusalMessage";
 import UUIDColumnFilter, {
   EXAMPLE_UUID,
@@ -46,6 +48,7 @@ import LIMIT_MAX, {
   LIMIT_PER_PROJECT,
 } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import BadRequestException from "Common/Types/Exception/BadRequestException";
 import ExceptionCode from "Common/Types/Exception/ExceptionCode";
 import { JSONObject, ObjectType } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
@@ -107,6 +110,7 @@ const SETTINGS_MENU: string = `${DASHBOARD_APP}/Pages/Settings/SideMenu.tsx`;
 const API_KEYS_PAGE: string = `${DASHBOARD_APP}/Pages/Settings/APIKeys.tsx`;
 const API_KEY_PAGE: string = `${DASHBOARD_APP}/Pages/Settings/APIKeyView.tsx`;
 const API_KEY_FORM: string = `${DASHBOARD_APP}/Components/ApiKey/ApiKeyCreateForm.ts`;
+const API_KEY_SHOWN_ONCE: string = `${DASHBOARD_APP}/Components/ApiKey/ApiKeyShownOnceCopy.ts`;
 const API_KEY_PERMISSIONS: string = `${DASHBOARD_APP}/Components/ApiKey/ApiKeyPermissionTable.tsx`;
 const ROLE_ACCESS: string = `${DASHBOARD_APP}/Components/Permission/RoleAccess.ts`;
 
@@ -482,6 +486,83 @@ describe("OneUptime API Reference: a request and its answer", () => {
     );
   });
 
+  /*
+   * #8114: a list's count can stop at a cap (BaseAPI.getList's countUpTo),
+   * which the dashboard's lists have asked for since they say "10,000+". The
+   * page says how to ask for it, how far the count then goes, and what the
+   * answer says - held to the code that reads it and the answer it writes.
+   */
+  it("caps a list's count when asked, and says when more match, as BaseAPI.getCountUpTo and getList do", () => {
+    const section: string = englishSection(
+      API_REFERENCE,
+      "### Filter, sort and page",
+    );
+    const getList: string = baseApiMethod("getList");
+    const listRequest: (data: {
+      query?: JSONObject;
+      body?: JSONObject;
+    }) => ExpressRequest = (data: {
+      query?: JSONObject;
+      body?: JSONObject;
+    }): ExpressRequest => {
+      return {
+        query: data.query || {},
+        body: data.body || {},
+      } as unknown as ExpressRequest;
+    };
+
+    expect(section).toContain(
+      'On a long list, counting every match takes time: add `countUpTo`, such as `10000`, and the count stops there, or at the end of the page if that is further. When more records match, `count` is where it stopped and the answer also carries `"isCountCapped": true`: with `"countUpTo": 1`, that says whether more records follow the page.',
+    );
+
+    // Asked for in the body or the query string, as skip and limit are.
+    expect(
+      BaseAPI.getCountUpTo(listRequest({ body: { countUpTo: 10000 } })),
+    ).toBe(10000);
+    expect(
+      BaseAPI.getCountUpTo(listRequest({ query: { countUpTo: "1" } })),
+    ).toBe(1);
+    // Not asked for: every match is counted, as before.
+    expect(BaseAPI.getCountUpTo(listRequest({}))).toBeUndefined();
+    expect(() => {
+      BaseAPI.getCountUpTo(listRequest({ body: { countUpTo: 0 } }));
+    }).toThrow(BadRequestException);
+
+    // The count stops at countUpTo, or at the end of the page if that is further.
+    expect(getList).toContain(
+      "const countUpTo: number | undefined = BaseAPI.getCountUpTo(req);",
+    );
+    expect(getList).toContain(
+      "Math.max(countUpTo, skip.toNumber() + limit.toNumber())",
+    );
+    expect(getList).toContain("upTo: countCap");
+
+    // More matched: the count is where it stopped, and the answer says so.
+    expect(getList).toContain(
+      "if (countCap !== undefined && count.toNumber() > countCap) {",
+    );
+    expect(getList).toContain("new PositiveNumber(countCap)");
+    expect(getList).toContain("{ isCountCapped: true }");
+
+    const capped: JSONObject = new ListData({
+      data: [],
+      count: new PositiveNumber(10000),
+      skip: new PositiveNumber(0),
+      limit: new PositiveNumber(DEFAULT_LIMIT),
+      isCountCapped: true,
+    }).toJSON();
+    const exact: JSONObject = new ListData({
+      data: [],
+      count: new PositiveNumber(240),
+      skip: new PositiveNumber(0),
+      limit: new PositiveNumber(DEFAULT_LIMIT),
+    }).toJSON();
+
+    expect(capped["isCountCapped"]).toBe(true);
+    expect(capped["count"]).toBe(10000);
+    expect(exact["isCountCapped"]).toBeUndefined();
+  });
+
   it("answers a list as data and count, as CSV on request, with dates and IDs wrapped", () => {
     const listed: JSONObject = new ListData({
       data: [],
@@ -738,20 +819,34 @@ describe("OneUptime API Reference: an API key", () => {
     );
   });
 
-  it("opens the key's page on its API Key Details card, where the key and its expiry are", () => {
+  /*
+   * A key is stored as its hash (#8902): the create shows it once, in a
+   * dialog that Done closes, and no page shows it again. The key's page
+   * says how it ends (#8903) and when it expires, which is how the
+   * troubleshooting finds it.
+   */
+  it("shows the new key once, in the Copy Your API Key dialog, and finds it by how it ends", () => {
     const keys: string = readRepoFile(API_KEYS_PAGE);
     const view: string = readRepoFile(API_KEY_PAGE);
+    const shownOnce: string = readRepoFile(API_KEY_SHOWN_ONCE);
 
-    expect(keys).toContain(
-      "Navigation.navigate(getApiKeyRoute(createdApiKey.id));",
+    expect(keys).toContain("<ShownOnceSecretModal");
+    expect(keys).toContain("title={ApiKeyShownOnceCopy.shownOnceTitle}");
+    expect(keys).toContain("doneButtonText={ApiKeyShownOnceCopy.done}");
+    expect(shownOnce).toContain(
+      'shownOnceTitle: translationKey("Copy Your API Key")',
     );
+    expect(shownOnce).toContain('done: translationKey("Done")');
     expect(view).toContain('title: "API Key Details"');
     expect(view).toContain('title: "API Key",');
+    expect(view).toContain("<ApiKeyHint hint={item.apiKeyHint} />");
     expect(view).toContain('title: "Expires",');
     expect(firstRequest()).toContain(
-      "The key's page opens. Copy the **API Key** from the **API Key Details** card",
+      "OneUptime shows the key once, in the **Copy Your API Key** dialog: copy it before you press **Done**, as no page shows it again.",
     );
-    expect(page).toContain("where its **Expires** date is too.");
+    expect(page).toContain(
+      "Find the key under **Project Settings → Advanced → API Keys** by how it ends, and check its **Expires** date. A key you no longer have cannot be shown again: reset it on its page for a new one.",
+    );
   });
 
   it("adds a role or a single permission from the key's Permissions card", () => {

@@ -50,7 +50,7 @@ Blockerade mål delas in i två nivåer.
 
 Slutpunkten för molnmetadata `169.254.169.254` ligger i den förbjudna nivån av en anledning. På en moln-VM lämnar den ut instansens IAM-inloggningsuppgifter till allt som kan göra en HTTP-begäran från maskinen, så ingen generell inställning kommer någonsin att öppna den.
 
-IPv6-skrivsätt som bär ett IPv4-mål inuti sig – IPv4-mapped (`::ffff:10.0.0.5`), NAT64, 6to4, Teredo – klassificeras efter den IPv4-adress de når, så de kan inte användas för att smuggla en förbjuden adress förbi en tillåtelse för den privata nivån.
+IPv6-skrivsätt som bär ett IPv4-mål inuti sig – IPv4-mapped (`::ffff:10.0.0.5`), IPv4-compatible (`::10.0.0.5`), NAT64, 6to4, Teredo – klassificeras efter den IPv4-adress de når, hur de än skrivs, så de kan inte användas för att smuggla en förbjuden adress förbi en tillåtelse för den privata nivån.
 
 ## Webhooks och arbetsflöden
 
@@ -141,6 +141,8 @@ Bara det exakta värdet `true` slår på den. På en instans med `BILLING_ENABLE
 På Docker Compose har `config.env` en rad `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=false` (lägg till den om din `config.env` är äldre). Ändra den raden till `true` i stället för att lägga till en rad till, och kör sedan `npm run start` så att containrarna återskapas med det nya värdet; `docker compose restart` läser inte om `config.env`. På Kubernetes sätter du den i din values-fil och uppgraderar releasen; chartet skickar den vidare till app- och worker-poddarna.
 
 När den är på rapporteras ett nekat värdnamn utan att det sägs vad det slogs upp till, till exempel _"LLM provider host ollama.internal could not be reached."_ Ett namn som inte går att slå upp alls får samma meddelande, så att projektmedlemmar inte kan använda de här fälten för att ta reda på vilka interna namn som finns. En adress som skrivits som IP anges fortfarande tillsammans med orsaken, till exempel _"LLM provider host 10.0.4.12 is not allowed: private network address."_ Med `LOG_LEVEL=DEBUG` loggar appen den adress som varje nekat namn slogs upp till.
+
+Bakom en utgående proxy går anslutningarna över HTTP genom den, precis som webhooks: datakällor och anslutningar för säkerhetshändelser som läses över HTTP, threat intel-flöden, LLM-leverantörer, OAuth-token-URL:er, enkel inloggning med OIDC, externa kalendrar, MCP-servrar, säkerhetskopior, verifiering av egna domäner, HTTP-steg i runbooks och Grafana OnCall-importen använder proxyn angiven i `HTTPS_PROXY`, `HTTP_PROXY` eller `ALL_PROXY`, oavsett om den anges med en adress eller ett värdnamn. OneUptime kontrollerar fortfarande adressen först och följer aldrig en omdirigering, men det är proxyn som slår upp namnet och ansluter, så neka link-local-mål på själva proxyn, särskilt `169.254.169.254`. En värd i `NO_PROXY` ansluts direkt, till adressen som OneUptime kontrollerade: lista dina interna värdar där. Databas- och SMTP-anslutningar och Git-servrar ansluter alltid direkt, utan proxy.
 
 ## Sonder och monitorer
 

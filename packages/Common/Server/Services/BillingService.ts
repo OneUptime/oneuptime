@@ -239,6 +239,8 @@ export class BillingService extends BaseService {
     quantity: number;
     isYearly: boolean;
     endTrialAt?: Date | undefined;
+    // False only for a master admin's move: see BillingProvider.changePlan.
+    requirePaymentMethod?: boolean | undefined;
   }): Promise<{
     subscriptionId: string;
     meteredSubscriptionId: string;

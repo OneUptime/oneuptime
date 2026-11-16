@@ -98,6 +98,8 @@ export const ADMIN_DASHBOARD_LABELS: Readonly<
     "Monitor Log Retention (Days)",
     "Monitor Metric Retention (Days)",
     "Telemetry Usage Retention (Days)",
+    // The limit on resolved incidents and alerts for every project (#6941).
+    "Keep for at most",
   ],
 };
 
@@ -140,6 +142,8 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Lists and nested values are read too.",
     "A value too large to read item by item is read as text.",
     "Exceptions come from the scrubbed record.",
+    // Why a record's session id is not hidden (issue #8924).
+    "A record's session id is kept.",
     "Session replays are scrubbed too.",
     "Rules run in the order of the list.",
     "A custom pattern takes time in line with the record.",

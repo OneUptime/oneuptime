@@ -50,7 +50,7 @@ Ping, Port, SSL 인증서, DNS, DNSSEC, SNMP / 네트워크 장치, SQL 쿼리, 
 
 클라우드 메타데이터 엔드포인트 `169.254.169.254`가 금지 단계에 있는 데에는 이유가 있습니다. 클라우드 VM에서 이 엔드포인트는 머신에서 HTTP 요청을 보낼 수 있는 모든 것에 인스턴스의 IAM 자격 증명을 건네주므로, 어떤 일괄 설정으로도 절대 열리지 않습니다.
 
-내부에 IPv4 대상을 담은 IPv6 표기(IPv4 매핑 (`::ffff:10.0.0.5`), NAT64, 6to4, Teredo)는 실제로 도달하는 IPv4 주소를 기준으로 분류되므로, 이를 이용해 프라이빗 단계 허용을 우회하여 금지된 주소를 몰래 들여올 수 없습니다.
+내부에 IPv4 대상을 담은 IPv6 표기(IPv4 매핑 (`::ffff:10.0.0.5`), IPv4 호환 (`::10.0.0.5`), NAT64, 6to4, Teredo)는 어떻게 표기되든 실제로 도달하는 IPv4 주소를 기준으로 분류되므로, 이를 이용해 프라이빗 단계 허용을 우회하여 금지된 주소를 몰래 들여올 수 없습니다.
 
 ## 웹후크와 워크플로
 
@@ -141,6 +141,8 @@ outboundConnections:
 Docker Compose에서는 `config.env`에 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=false` 줄이 있습니다(`config.env`가 그보다 오래되었다면 추가하세요). 줄을 하나 더 추가하지 말고 그 줄을 `true`로 바꾼 다음 `npm run start`를 실행해 새 값으로 컨테이너를 다시 만드세요. `docker compose restart`는 `config.env`를 다시 읽지 않습니다. Kubernetes에서는 values 파일에 설정하고 릴리스를 업그레이드하세요. 차트가 이를 app 및 worker 파드에 전달합니다.
 
 이 설정이 켜져 있으면 거부된 호스트 이름은 무엇으로 확인되었는지 밝히지 않고 보고됩니다. 예를 들면 _"LLM provider host ollama.internal could not be reached."_ 와 같습니다. 전혀 확인되지 않는 이름도 같은 메시지를 받으므로, 프로젝트 멤버는 이 필드를 이용해 어떤 내부 이름이 존재하는지 알아낼 수 없습니다. IP로 입력한 주소는 여전히 이유와 함께 표시됩니다. 예를 들면 _"LLM provider host 10.0.4.12 is not allowed: private network address."_ 와 같습니다. `LOG_LEVEL=DEBUG`에서는 앱이 거부된 각 이름이 확인된 주소를 로그에 기록합니다.
+
+아웃바운드 프록시 뒤에서는 HTTP로 하는 연결이 웹후크처럼 프록시를 거칩니다. HTTP로 읽는 데이터 소스와 보안 이벤트 연결, 위협 인텔리전스 피드, LLM 공급자, OAuth 토큰 URL, OIDC Single Sign-On, 외부 캘린더, MCP 서버, 백업, 사용자 지정 도메인 확인, 런북 HTTP 단계, Grafana OnCall 가져오기는 주소로 지정했든 호스트 이름으로 지정했든 `HTTPS_PROXY`, `HTTP_PROXY` 또는 `ALL_PROXY`에 설정된 프록시를 사용합니다. OneUptime은 여전히 주소를 먼저 확인하고 리디렉션을 따르지 않지만, 이름을 조회하고 연결하는 것은 프록시이므로 링크 로컬 대상, 특히 `169.254.169.254`는 프록시에서 직접 거부하세요. `NO_PROXY`에 있는 호스트는 OneUptime이 확인한 주소로 직접 연결되므로 내부 호스트는 그곳에 나열하세요. 데이터베이스 및 SMTP 연결과 Git 서버는 항상 프록시 없이 직접 연결합니다.
 
 ## 프로브와 모니터
 

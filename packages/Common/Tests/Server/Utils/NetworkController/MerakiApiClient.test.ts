@@ -198,6 +198,44 @@ describe("a 429", () => {
     expect(readRetryAfterSeconds(undefined, START)).toBeNull();
   });
 
+  test("RFC 850 and asctime dates count, asctime in UTC; a date gone by or 0 is a second", () => {
+    expect(
+      readRetryAfterSeconds("Saturday, 24-Oct-26 12:00:30 GMT", START),
+    ).toBe(30);
+    expect(readRetryAfterSeconds("Sat Oct 24 12:00:30 2026", START)).toBe(30);
+    expect(readRetryAfterSeconds("Sat, 24 Oct 2026 11:00:00 GMT", START)).toBe(
+      1,
+    );
+    expect(readRetryAfterSeconds("0", START)).toBe(1);
+  });
+
+  /*
+   * Issue #8928: Number() read "-5" as no wait at all and "1.5" as a second
+   * and a half, and Date.parse took "5 seconds" for a day gone by. None is a
+   * Retry-After (RFC 9110: digits only, or a date).
+   */
+  test.each([["-5"], ["1.5"], ["5 seconds"], ["0x10"], ["1e3"], ["+5"]])(
+    "%j is no Retry-After",
+    (value: string) => {
+      expect(readRetryAfterSeconds(value, START)).toBeNull();
+    },
+  );
+
+  test("a Retry-After that is no Retry-After backs off by itself, never retrying at once", async () => {
+    const { clock, client } = setup({
+      scripted: {
+        "/api/v1/organizations/549236": [
+          merakiError(429, "API rate limit exceeded", { "retry-after": "-5" }),
+        ],
+      },
+    });
+
+    await client.get("/organizations/549236", "", "organization");
+
+    expect(clock.sleeps).toContain(2000);
+    expect(clock.sleeps).not.toContain(0);
+  });
+
   test("gives up after three, saying it was asked to slow down", async () => {
     const answers: Array<ReturnType<typeof merakiError>> = Array.from(
       { length: MAX_RATE_LIMIT_RETRIES + 1 },

@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 Defina-as em `config.env` e depois execute `npm start`. `DISABLE_TELEMETRY_FOR_APP` é `true` por padrão, e então nada é enviado.
 :::
 
-O OneUptime precisa tanto do endpoint quanto dos cabeçalhos: sem um cabeçalho, ele não envia nada. Escreva cada cabeçalho como `name=value` e separe vários com `;`, ou com `,` como em `OTEL_EXPORTER_OTLP_HEADERS`. Um valor pode conter `=`. Sem um `;`, um valor é lido como esse padrão o escreve, com um espaço como `%20`: termine a configuração com `;` para enviá-lo exatamente como está escrito. O OneUptime acrescenta `/v1/metrics` ao endpoint por conta própria, e as mesmas configurações também enviam os traces e logs dele. Cada métrica aparece assim que o OneUptime a registra pela primeira vez: `notification.send.count` com a primeira mensagem enviada.
+O OneUptime precisa tanto do endpoint quanto dos cabeçalhos: sem um cabeçalho, ele não envia nada. Escreva cada cabeçalho como `name=value` e separe vários com `;`, ou com `,` como em `OTEL_EXPORTER_OTLP_HEADERS`. Um valor pode conter `=`. Sem um `;`, um valor é lido como esse padrão o escreve, com um espaço como `%20`: termine a configuração com `;` para enviá-lo exatamente como está escrito. Também contam os cabeçalhos definidos no próprio `OTEL_EXPORTER_OTLP_HEADERS`, ou em `OTEL_EXPORTER_OTLP_METRICS_HEADERS` só para as métricas: o exportador também os envia, e com o mesmo nome prevalecem os do OneUptime. O OneUptime acrescenta `/v1/metrics` ao endpoint por conta própria, e as mesmas configurações também enviam os traces e logs dele. Cada métrica aparece assim que o OneUptime a registra pela primeira vez: `notification.send.count` com a primeira mensagem enviada.
 
 ### Enviar deltas para um projeto do OneUptime
 
@@ -57,19 +57,15 @@ O OneUptime envia contadores e histogramas como o OpenTelemetry faz por padrão:
 :::tabs
 @tab Kubernetes
 ```yaml
-extraEnv:
-  - name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
-    value: delta
+openTelemetryExporter:
+  metricsTemporality: delta
 ```
-A lista própria de um serviço substitui a do chart inteiro: se você definir `app.extraEnv` ou `worker.extraEnv`, adicione-a lá também.
+O chart repassa o valor, como `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE`, a cada serviço que envia a telemetria do próprio OneUptime.
 @tab Docker Compose
-```yaml title="docker-compose.override.yml"
-services:
-  app:
-    environment:
-      OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: delta
+```bash
+OPENTELEMETRY_EXPORTER_OTLP_METRICS_TEMPORALITY=delta
 ```
-Crie-o ao lado de `docker-compose.yml`, ou acrescente isto ao que você já tem, e depois execute `npm start`.
+Defina-a em `config.env` e depois execute `npm start`.
 :::
 
 Isso vale para toda métrica que o OneUptime envia sobre si mesmo. Um backend que interpreta sozinho os totais acumulados, como o Prometheus, não precisa de nenhuma mudança.
@@ -210,7 +206,7 @@ No máximo 1% dos SMS de plantão enviados pela conta do Twilio da própria inst
 | `a` | `notification.send.count` | **Soma** | `notification.channel = sms`, `notification.on_call_page = true`, `notification.provider.config = global`, `outcome != not_sent` |
 | `b` | `notification.send.count` | **Soma** | As mesmas, com `outcome = failure` |
 
-A fórmula `$b / $a * 100` é a parcela que falhou, e o objetivo se mantém enquanto ela ficar igual ou abaixo de 1. Um passo sem falha não desenha nenhum ponto, já que `b` não tem nenhum. `outcome != not_sent` deixa de fora o que as configurações próprias dos projetos seguraram, e `global` as contas do Twilio dos próprios projetos. Em uma instalação que envia os SMS pelo seu gateway de SMS e chamadas, as mesmas consultas medem o gateway. Para outro canal, troque `sms`: `call`, `push` ou `email`.
+A fórmula `$b / $a * 100` é a parcela que falhou, e o objetivo se mantém enquanto ela ficar igual ou abaixo de 1. Um passo sem falha desenha 0, já que `b` não contou nada nele. `outcome != not_sent` deixa de fora o que as configurações próprias dos projetos seguraram, e `global` as contas do Twilio dos próprios projetos. Em uma instalação que envia os SMS pelo seu gateway de SMS e chamadas, as mesmas consultas medem o gateway. Para outro canal, troque `sms`: `call`, `push` ou `email`.
 
 ### Acionamentos saem em até 30 segundos
 

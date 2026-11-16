@@ -9,6 +9,7 @@ import DataSourceEgressGuard, {
   EgressGuardOptions,
   PinnedAgents,
 } from "../DataSource/EgressGuard";
+import RetryAfter from "../../../Utils/RetryAfter";
 import { redactLogString } from "../LogRedaction";
 import OutboundUserAgent from "../OutboundUserAgent";
 import axios, { AxiosResponse } from "axios";
@@ -146,6 +147,8 @@ export const TOOL_IMPORT_MAX_FAILURE_RETRIES: number = 3;
 // The wait after the first 429 with no hint, doubled each time up to the cap.
 export const TOOL_IMPORT_FIRST_BACKOFF_MS: number = 2000;
 export const TOOL_IMPORT_MAX_BACKOFF_MS: number = 60 * 1000;
+// The least a wait the tool asked for is: "0" is no request at once.
+export const TOOL_IMPORT_MIN_HINTED_WAIT_MS: number = 250;
 
 const MAX_MESSAGE_EXCERPT_LENGTH: number = 300;
 
@@ -306,11 +309,9 @@ export default class ToolImportHttpClient {
           });
         }
 
-        const hinted: number | null = this.getRetryAfterMs(response);
         await this.wait(
-          hinted !== null
-            ? Math.min(hinted, TOOL_IMPORT_MAX_BACKOFF_MS)
-            : this.getFailureBackoffMs(failureRetries),
+          this.getRetryAfterMs(response) ??
+            this.getFailureBackoffMs(failureRetries),
           false,
         );
         failureRetries++;
@@ -393,7 +394,10 @@ export default class ToolImportHttpClient {
       this.getRetryAfterMs(response) ?? this.getResetWaitMs(response);
 
     if (hinted !== null) {
-      return Math.min(Math.max(hinted, 250), TOOL_IMPORT_MAX_BACKOFF_MS);
+      return Math.min(
+        Math.max(hinted, TOOL_IMPORT_MIN_HINTED_WAIT_MS),
+        TOOL_IMPORT_MAX_BACKOFF_MS,
+      );
     }
 
     return Math.min(
@@ -402,27 +406,20 @@ export default class ToolImportHttpClient {
     );
   }
 
-  // Retry-After as seconds or as an HTTP date.
+  /*
+   * Retry-After as RFC 9110 writes it - a whole number of seconds, or an
+   * HTTP date (Common's RetryAfter) - from a quarter second to a minute.
+   * Null for anything else: "1.5", "-5" and "5 seconds" are no Retry-After
+   * (Date.parse took the last two for a day in 2001, so no wait at all).
+   */
   private getRetryAfterMs(response: ToolImportHttpResponse): number | null {
-    const value: string | undefined = response.headers?.["retry-after"];
-
-    if (!value) {
-      return null;
-    }
-
-    const seconds: number = Number(value.trim());
-
-    if (Number.isFinite(seconds) && seconds >= 0) {
-      return seconds * 1000;
-    }
-
-    const date: number = Date.parse(value);
-
-    if (Number.isFinite(date)) {
-      return Math.max(0, date - this.now());
-    }
-
-    return null;
+    return (
+      RetryAfter.msFromHeaders(response.headers, {
+        nowMs: this.now(),
+        minMs: TOOL_IMPORT_MIN_HINTED_WAIT_MS,
+        maxMs: TOOL_IMPORT_MAX_BACKOFF_MS,
+      }) ?? null
+    );
   }
 
   /*
@@ -654,6 +651,10 @@ export function createToolImportTransport(
  *    DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES;
  *  - the host is resolved and checked before every request, and the socket
  *    dials exactly the addresses that were checked (no DNS rebinding);
+ *  - behind an outbound proxy (HTTPS_PROXY, HTTP_PROXY, ALL_PROXY) the
+ *    request goes through it, as every other request of the server does,
+ *    whether the proxy is named by address or by host name; a host in
+ *    NO_PROXY is dialled directly, at the address that was checked;
  *  - no redirects, so a checked host cannot send the request elsewhere;
  *  - plain http only where private addresses are allowed (`allowHttp`):
  *    OneUptime Cloud sends a key over https only.
@@ -701,11 +702,16 @@ export function createToolImportAddressTransport(data: {
       });
     }
 
-    return await sendToolImportRequest({
-      url: pinned.url,
-      request: request,
-      agents: { httpAgent: pinned.httpAgent, httpsAgent: pinned.httpsAgent },
-    });
+    try {
+      return await sendToolImportRequest({
+        url: pinned.url,
+        request: request,
+        agents: { httpAgent: pinned.httpAgent, httpsAgent: pinned.httpsAgent },
+      });
+    } finally {
+      pinned.httpAgent.destroy();
+      pinned.httpsAgent.destroy();
+    }
   };
 }
 
@@ -727,6 +733,8 @@ async function sendToolImportRequest(data: {
   agents?: PinnedAgents | undefined;
 }): Promise<ToolImportHttpResponse> {
   const response: AxiosResponse<string> = await axios.request<string>({
+    // Only Node's http adapter uses the pinned agents.
+    adapter: "http",
     method: data.request.method,
     url: data.url.toString(),
     headers: OutboundUserAgent.withDefault(data.request.headers),

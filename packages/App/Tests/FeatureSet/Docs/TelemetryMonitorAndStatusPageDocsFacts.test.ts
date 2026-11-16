@@ -108,6 +108,7 @@ import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/Adva
 import CertificateReissueUtil from "Common/Utils/CertificateReissue";
 import { EVERY_FIFTEEN_MINUTE } from "Common/Utils/CronTime";
 import MetricFormulaEvaluator from "Common/Utils/Metrics/MetricFormulaEvaluator";
+import MetricZeroFill from "Common/Utils/Metrics/MetricZeroFill";
 import TelemetryMonitorWindow, {
   DEFAULT_TELEMETRY_MONITOR_WINDOW_MS,
 } from "Common/Utils/Monitor/TelemetryMonitorWindow";
@@ -2321,6 +2322,38 @@ describe("the Metrics monitor", () => {
       "Each query and formula gets a variable — `a`, `b`, `c` and so on — in the order you add them.",
     );
   });
+
+  /*
+   * Issue #6761: the worker's formulas read a query counting what happened
+   * as 0 in a bucket it has no data point in, once the bucket has been over
+   * for a minute (MetricZeroFill), so a failure share reads 0% where nothing
+   * failed - and a gauge, an average or a percentile leaves its bucket out.
+   */
+  it("says how a formula reads a count with no data point in a bucket, as the worker reads it", () => {
+    expect(METRICS).toContain(
+      "Formulas are worked out for each bucket from the queries' data points. A query that counts what happened, the sum or the count of a counter or a histogram, counts 0 in a bucket it has no data point in, once the bucket has been over for a minute, so a failure share reads 0% where nothing failed. A gauge, an average or a percentile with no data point is unknown, and the formula leaves that bucket out.",
+    );
+
+    // "over for a minute": the ingest queue's normal lag.
+    expect(MetricZeroFill.SETTLE_MS).toBe(60 * 1000);
+
+    const worker: string = oneLine(
+      readSource(
+        "App/FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor.ts",
+      ),
+    );
+
+    // Every metric-backed reader evaluates its formulas with the catalog's word.
+    expect(worker).toContain(
+      "select: { name: true, unit: true, isMonotonic: true, aggregationTemporality: true, },",
+    );
+    expect(worker).toContain("zeroFill: input.zeroFill,");
+    expect(
+      worker.split("zeroFill: zeroFill,").length - 1,
+    ).toBeGreaterThanOrEqual(
+      MonitorTypeHelper.getMetricBackedMonitorTypes().length,
+    );
+  });
 });
 
 describe("the Exceptions monitor", () => {
@@ -2944,6 +2977,118 @@ describe("status page resources", () => {
     expect(RESOURCES).toContain(
       "- **A monitor whose monitoring is off shows Not monitored.** Nothing checks it, so the status it last had says nothing now: its row shows **Not monitored** in gray, and counts toward neither the group above it nor the overall status banner. Its history bars keep its history up to when its monitoring was turned off and leave out the time after: a day it was off reads **Not monitored**, not no data, and a day it was off for in part says for how long. A monitor group counts only its monitors whose monitoring is on, and shows **Not monitored** when it is off for all of them; its bars and uptime leave out each monitor's time with monitoring off, and a day it was off for all of them reads **Not monitored** too. When nothing on the page is monitored, the banner says so.",
     );
+  });
+
+  /*
+   * Issue #8899: a monitor nothing has checked yet holds the operational
+   * status every monitor is created in. Its row says Not monitored yet, in
+   * gray, and decides no status - not its group's, not the page's - unless
+   * something else set its status before its first check.
+   */
+  it("draws a monitor nothing has checked yet as Not monitored yet, deciding no status (#8899)", () => {
+    const overviewWords: Record<string, unknown> = (
+      JSON.parse(
+        readSource("App/FeatureSet/StatusPage/src/Locales/en.json"),
+      ) as Record<string, Record<string, unknown>>
+    )["overview"] as Record<string, unknown>;
+    const overview: string = oneLine(
+      readSource("App/FeatureSet/StatusPage/src/Pages/Overview/Overview.tsx"),
+    );
+
+    expect(overviewWords["notMonitoredYet"]).toBe("Not monitored yet");
+    expect(overviewWords["noResourcesAreMonitoredYet"]).toBe(
+      "No Resources are monitored yet",
+    );
+    expect(overview).toContain('t("overview.noResourcesAreMonitoredYet")');
+
+    const operational: string = "status-operational";
+    const offline: string = "status-offline";
+    const startingStatusIds: ReadonlySet<string> =
+      FrozenMonitorResources.getStartingStatusIds([
+        { _id: operational, isOperationalState: true, isOfflineState: false },
+        { _id: offline, isOperationalState: false, isOfflineState: true },
+      ]);
+    const brandNew: (statusId: string) => {
+      disableActiveMonitoring: boolean;
+      firstMeasuredAt: null;
+      monitorType: string;
+      currentMonitorStatusId: string;
+    } = (statusId: string) => {
+      return {
+        disableActiveMonitoring: false,
+        firstMeasuredAt: null,
+        monitorType: "Website",
+        currentMonitorStatusId: statusId,
+      };
+    };
+
+    const resources: Parameters<
+      typeof FrozenMonitorResources.getNotMonitoredYetResourceIds
+    >[0]["statusPageResources"] = [
+      { _id: "monitor-new", monitorId: "a", monitor: brandNew(operational) },
+      // An incident set it Offline before its first check: shown as it is.
+      { _id: "monitor-set", monitorId: "b", monitor: brandNew(offline) },
+      { _id: "group-new", monitorGroupId: "c" },
+      { _id: "group-mixed", monitorGroupId: "d" },
+    ];
+    const monitorGroupResources: Parameters<
+      typeof FrozenMonitorResources.getNotMonitoredYetResourceIds
+    >[0]["monitorGroupResources"] = {
+      c: [{ monitor: brandNew(operational) }],
+      d: [
+        { monitor: brandNew(operational) },
+        { monitor: { disableActiveMonitoring: true } },
+      ],
+    };
+
+    // Each decides no status, as a monitor nothing checks does...
+    expect(
+      FrozenMonitorResources.getNotMonitoredResourceIds({
+        statusPageResources: resources,
+        monitorGroupResources,
+        startingStatusIds,
+      }),
+    ).toEqual(["monitor-new", "group-new", "group-mixed"]);
+    // ...and the page words the ones nothing has checked yet apart.
+    expect(
+      FrozenMonitorResources.getNotMonitoredYetResourceIds({
+        statusPageResources: resources,
+        monitorGroupResources,
+        startingStatusIds,
+      }),
+    ).toEqual(["monitor-new", "group-new"]);
+
+    expect(RESOURCES).toContain(
+      "- **A monitor nothing has checked yet shows Not monitored yet.** Every monitor starts in the operational status, so until its first check comes back, its row shows **Not monitored yet** in gray rather than that status, and counts toward neither the group above it nor the overall status banner. A monitor group leaves its monitors nothing has checked yet out of its status, and shows **Not monitored yet** when none of them has been checked. A status an incident or a person set before the first check is shown as it is. When nothing on the page has been checked yet, the banner says so.",
+    );
+  });
+
+  /*
+   * Each docs language names it as that language's status page draws it:
+   * the page's overview.notMonitoredYet.
+   */
+  it("names Not monitored yet as each language's status page draws it (#8899)", () => {
+    for (const language of SUPPORTED_DOCS_LANGUAGE_CODES) {
+      const statusPageWords: Record<
+        string,
+        Record<string, unknown>
+      > = JSON.parse(
+        readSource(`App/FeatureSet/StatusPage/src/Locales/${language}.json`),
+      ) as Record<string, Record<string, unknown>>;
+      const word: string = String(
+        (statusPageWords["overview"] || {})["notMonitoredYet"],
+      );
+      const page: string = readPage(
+        language,
+        "status-pages/resources-and-groups",
+      );
+
+      expect({ language, word, named: page.includes(`**${word}**`) }).toEqual({
+        language,
+        word,
+        named: true,
+      });
+    }
   });
 });
 

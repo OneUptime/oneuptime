@@ -32,6 +32,7 @@ import Exception from "Common/Types/Exception/Exception";
 import ServiceUnavailableException from "Common/Types/Exception/ServiceUnavailableException";
 import ObjectID from "Common/Types/ObjectID";
 import Sleep from "Common/Types/Sleep";
+import RetryAfter from "Common/Utils/RetryAfter";
 import Stripe from "stripe";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import PayAsYouGoBillingService, {
@@ -991,6 +992,8 @@ export class StripeBillingProvider implements BillingProvider {
     quantity: number;
     isYearly: boolean;
     endTrialAt?: Date | undefined;
+    // False only for a master admin's move: see the payment method check below.
+    requirePaymentMethod?: boolean | undefined;
   }): Promise<{
     subscriptionId: string;
     meteredSubscriptionId: string;
@@ -1027,7 +1030,17 @@ export class StripeBillingProvider implements BillingProvider {
     logger.debug("Payment methods");
     logger.debug(paymentMethods);
 
-    if (paymentMethods.length === 0) {
+    /*
+     * A customer changing their own plan needs a payment method on file, so
+     * what the new plan owes can be collected. A master admin moving a
+     * project from the Admin Dashboard does not: onto Free or within a
+     * trial nothing is owed, and otherwise the change is prorated onto the
+     * next invoice (or, for a subscription that has to be replaced, an
+     * invoice raised now), which stays open until the customer adds one.
+     * The payment methods are still read, for the default getPaymentMethods
+     * promotes when there is one.
+     */
+    if (paymentMethods.length === 0 && data.requirePaymentMethod !== false) {
       logger.debug("No payment methods");
 
       throw new BadDataException(Errors.BillingService.NO_PAYMENTS_METHODS);
@@ -1632,6 +1645,10 @@ export class StripeBillingProvider implements BillingProvider {
    * to the exponential backoff. It is kept because it is correct if Stripe
    * ever does send one - not because it is mitigating today's rate limit.
    * Do not count it as mitigation when sizing this.
+   *
+   * Read as RFC 9110 writes it (Common's RetryAfter): whole seconds or an
+   * HTTP-date. Anything else - "1.5", which Number() read as a second and a
+   * half - is no Retry-After, and the doubling applies.
    */
   private static getPaymentReadRetryDelay(
     err: unknown,
@@ -1641,19 +1658,17 @@ export class StripeBillingProvider implements BillingProvider {
       1000 * 2 ** attempt * (1 + Math.random() / 2),
     );
 
-    const headers: Record<string, string | undefined> =
-      ((err ?? {}) as { headers?: Record<string, string | undefined> })
-        .headers || {};
-    const retryAfterInSeconds: number = Number(
-      headers["retry-after"] ?? headers["Retry-After"],
+    const retryAfterInMs: number | undefined = RetryAfter.msFromHeaders(
+      ((err ?? {}) as { headers?: unknown }).headers,
+      { maxMs: PAYMENT_READ_MAX_RETRY_DELAY_IN_MS },
     );
 
-    if (!Number.isFinite(retryAfterInSeconds) || retryAfterInSeconds <= 0) {
+    if (retryAfterInMs === undefined) {
       return backoffInMs;
     }
 
     return Math.min(
-      Math.max(backoffInMs, retryAfterInSeconds * 1000),
+      Math.max(backoffInMs, retryAfterInMs),
       PAYMENT_READ_MAX_RETRY_DELAY_IN_MS,
     );
   }

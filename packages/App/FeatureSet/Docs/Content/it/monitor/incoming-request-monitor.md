@@ -84,7 +84,7 @@ Inviate richieste **GET** o **POST** a questo URL. HEAD viene accettato e tratta
 > Chiunque conosca questo URL può segnare il monitor come sano, quindi trattatelo come un segreto. Se trapela, aprite la pagina **Impostazioni** del monitor e fate clic su **Reimposta la chiave segreta della richiesta in arrivo**, poi aggiornate ogni mittente. La panoramica del monitor mostra l'ultima richiesta così come la conservano i suoi log: con segreti e dati personali mascherati, e senza intestazioni né corpo quando **Conserva il contenuto della richiesta** è disattivato. Il mascheramento riconosce i nomi e i modelli che conosce, quindi non inviate chiavi API o token verso questo endpoint.
 
 > [!IMPORTANT]
-> OneUptime risponde subito `200` con un oggetto JSON vuoto (`{}`) ed elabora la richiesta in una coda. Quella risposta viene scritta prima di qualsiasi convalida, quindi un `200` **non** conferma che la richiesta sia stata accettata: anche una chiave segreta sbagliata, un monitor eliminato e un monitor disattivato restituiscono `200`. Controllate la cronologia del monitor per confermare che le richieste arrivino. L'unica eccezione è un progetto che richiede un segreto a ogni richiesta: una richiesta senza segreto riceve `401`.
+> OneUptime risponde subito `200` con un oggetto JSON vuoto (`{}`) ed elabora la richiesta in una coda. Quella risposta viene scritta prima di qualsiasi convalida, quindi un `200` **non** conferma che la richiesta sia stata accettata: anche una chiave segreta sbagliata, un monitor eliminato e un monitor disattivato restituiscono `200`. Controllate la cronologia del monitor per confermare che le richieste arrivino. Un progetto che richiede un segreto a ogni richiesta risponde `401` a una richiesta senza segreto, e un servizio che verifica l'URL prima di consegnare qualcosa riceve la risposta che si aspetta: vedete [Servizi che verificano prima l'URL](#servizi-che-verificano-prima-lurl).
 
 ### Inviare un corpo della richiesta
 
@@ -94,7 +94,8 @@ Se volete raggiungere campi all'interno del corpo (`{{requestBody.status}}` in u
 | --- | --- |
 | `application/json` | Il JSON analizzato. |
 | `application/x-www-form-urlencoded` | Il modulo analizzato. Le chiavi tra parentesi quadre si annidano (`alerts[0][status]=firing`), e ogni valore è una stringa. |
-| `text/plain` | Il JSON analizzato, quando il testo è un oggetto o un array JSON: è così che Amazon SNS invia i suoi messaggi. Qualsiasi altro testo è un corpo vuoto. |
+| `text/plain` | Il JSON analizzato, quando il testo è un oggetto o un array JSON: è così che Amazon SNS invia i suoi messaggi. Qualsiasi altro testo è il testo stesso, quindi `backup failed: error 42` porta il monitor offline con i criteri predefiniti. |
+| `application/cloudevents+json`, o un altro tipo `+json` | Il JSON analizzato: è così che Azure Event Grid consegna i CloudEvents. |
 | Qualsiasi altro, o nessuno | Un corpo vuoto (`{}`), quindi nessun riferimento a `requestBody` si risolve, e un modello lo lascia così com'è. |
 
 Sono accettati corpi fino a 50 MB; uno più grande viene rifiutato con un `413`. Non comprimete il corpo con `Content-Encoding: gzip`: non verrebbe salvato come JSON, e i percorsi al suo interno non si risolverebbero.
@@ -383,9 +384,25 @@ Accanto è disponibile l'intero payload, quindi funzionano sia un titolo di inci
 
 Per una configurazione completa di Alertmanager, consultate [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). Per Grafana, consultate [Grafana](/docs/integrations/grafana).
 
+## Servizi che verificano prima l'URL
+
+Alcuni servizi verificano un nuovo endpoint prima di consegnargli qualcosa: gli inviano una richiesta, e consegnano solo quando risponde come si aspettano. OneUptime risponde da sé a queste verifiche, quindi basta incollare l'**Heartbeat URL** del monitor nel servizio.
+
+| Servizio | La verifica | Che cosa risponde OneUptime |
+| --- | --- | --- |
+| Azure Event Grid, schema Event Grid | Un `SubscriptionValidationEvent` | Il suo `validationCode`, come `validationResponse` |
+| Azure Event Grid, schema CloudEvents | Una richiesta `OPTIONS` che indica la sua origine | `WebHook-Allowed-Origin`, con quell'origine |
+| API Events di Slack | Una richiesta `url_verification` | La sua `challenge` |
+| Notifiche di modifica di Microsoft Graph | Un `POST` con un `validationToken` | Il token, come `text/plain` |
+| Event hook di Okta | Un `GET` con `X-Okta-Verification-Challenge` | La challenge, come `verification` |
+
+Una verifica riceve risposta solo sull'URL proprio di un monitor, e solo quando la richiesta conta: in un progetto che richiede un segreto a ogni richiesta, una verifica che non ne invia è rifiutata con `401`, come qualsiasi richiesta, quindi il servizio deve inviare il segreto in un'intestazione. La risposta contiene ciò che il servizio ha inviato perché gli sia restituito, e nient'altro della richiesta, e solo quando ha la forma che il servizio gli dà.
+
+Una verifica arriva al monitor come qualsiasi richiesta: i suoi criteri la valutano e compare nella **Panoramica** del monitor; la verifica CloudEvents riceve risposta e nient'altro. L'ingress richieste in arrivo di una sonda risponde a una verifica come a qualsiasi richiesta, con `{}`, quindi inviate questi servizi all'URL proprio di OneUptime.
+
 ## Sottoscrivere Amazon SNS o Azure Event Grid
 
-Amazon SNS e Azure Event Grid non inviano nulla a un nuovo endpoint finché qualcuno non conferma la sottoscrizione aprendo un link che il servizio gli invia. Quando arriva quella richiesta, la scheda **Riepilogo del monitor** nella **Panoramica** del monitor mostra che cosa attende il servizio, il topic e un pulsante che apre il link in una nuova scheda del browser.
+Amazon SNS non invia nulla a un nuovo endpoint finché qualcuno non conferma la sottoscrizione aprendo un link che vi invia. Anche Azure Event Grid invia un link simile, a un endpoint che non risponde alla sua verifica, e OneUptime vi risponde. Quando arriva un link ancora da aprire, la scheda **Riepilogo del monitor** nella **Panoramica** del monitor mostra che cosa attende il servizio, il topic e un pulsante che apre il link in una nuova scheda del browser.
 
 | Servizio | La richiesta | Pulsante | Validità del link |
 | --- | --- | --- | --- |
@@ -411,11 +428,11 @@ Se la scheda dice che il link non si può più aprire, selezionate la sottoscriz
 ### Azure Event Grid
 
 :::steps
-1. Nel portale di Azure, aprite la risorsa di cui volete ricevere gli eventi e aggiungete una sottoscrizione di eventi. Scegliete **Event Grid Schema** come schema degli eventi, **Web Hook** come tipo di endpoint e l'**Heartbeat URL** del monitor come endpoint.
-2. Entro 10 minuti, aprite la **Panoramica** del monitor e fate clic su **Convalida sottoscrizione** nella scheda **Riepilogo del monitor**.
+1. Nel portale di Azure, aprite la risorsa di cui volete ricevere gli eventi e aggiungete una sottoscrizione di eventi. Scegliete **Event Grid Schema** o **Cloud Event Schema v1.0** come schema degli eventi, **Web Hook** come tipo di endpoint e l'**Heartbeat URL** del monitor come endpoint.
+2. Create la sottoscrizione di eventi. OneUptime risponde alla verifica di Event Grid, quindi la sottoscrizione viene convalidata alla creazione e i suoi eventi cominciano ad arrivare.
 :::
 
-Event Grid convalida un endpoint che gli restituisce un codice, o il cui proprietario apre il link che invia. OneUptime risponde a ogni richiesta con un `200` vuoto, quindi la strada è il link. Il link punta a Event Grid sulla porta 553, che un firewall davanti al vostro browser deve consentire. Se prima passano 10 minuti, la sottoscrizione di eventi non va a buon fine: createla di nuovo.
+Event Grid convalida un endpoint che gli restituisce un codice, o il cui proprietario apre il link che invia. OneUptime restituisce il codice, quindi la scheda **Riepilogo del monitor** offre **Convalida sottoscrizione** solo per una convalida a cui OneUptime non ha risposto: apritela entro 10 minuti. Il link punta a Event Grid sulla porta 553, che un firewall davanti al vostro browser deve consentire. Se prima passano 10 minuti, la sottoscrizione di eventi non va a buon fine: createla di nuovo.
 
 ## Buone pratiche
 
@@ -444,7 +461,11 @@ Solo un criterio **Richiesta in arrivo** (**Non ricevuto in minuti**) può accor
 :::
 
 :::details Un filtro Corpo della Richiesta non corrisponde mai
-Inviate `Content-Type: application/json`, e scrivete il valore come JSON compatto: `"status":"firing"`, senza spazio dopo i due punti. Senza un tipo di contenuto JSON o di modulo, il corpo non viene analizzato: lo è solo il JSON inviato come `text/plain`.
+Inviate `Content-Type: application/json`, e scrivete il valore come JSON compatto: `"status":"firing"`, senza spazio dopo i due punti. Senza un tipo di contenuto JSON, di modulo o `text/plain`, il corpo è vuoto e un filtro su di esso non corrisponde mai.
+:::
+
+:::details Un servizio dice che l'URL non ha risposto alla sua verifica
+Date al servizio l'**Heartbeat URL** del monitor, su OneUptime stesso e non su una sonda. Se il progetto richiede un segreto a ogni richiesta, la verifica è rifiutata con `401` a meno che il servizio non invii il segreto. Poi fate verificare di nuovo l'URL al servizio: riceve risposta subito.
 :::
 
 :::details Un filtro Intestazione della richiesta non corrisponde mai

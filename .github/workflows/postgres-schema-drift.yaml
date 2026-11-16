@@ -326,6 +326,41 @@ jobs:
           Tests/Server/Utils/Retention/ResolvedRecordRetentionPostgres.test.ts
           --forceExit
 
+      # Clearing the Synthetic screenshots stored logs kept (issues #6903,
+      # #6942): a log with screenshots loses only them, every other row is
+      # not written at all - not even its updatedAt - a second walk writes
+      # nothing, a run keeps to its limits, and a table done is never read
+      # again.
+      - name: Test clearing stored log screenshots on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_STORED_LOG_SCREENSHOTS_TESTS: "true"
+          STORED_LOG_SCREENSHOTS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          STORED_LOG_SCREENSHOTS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          STORED_LOG_SCREENSHOTS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/Retention/StoredLogScreenshotsPostgres.test.ts
+          --forceExit
+
+      # Deleting for good the rows soft deleted more than 30 days ago (issue
+      # #6528): the discovered devices the age-out removed go on every
+      # installation, 1000 a statement, another table's only where billing
+      # is on, and no foreign key of the migrated schema can refuse a batch.
+      - name: Test purging soft-deleted rows on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SOFT_DELETED_ROWS_PURGE_TESTS: "true"
+          SOFT_DELETED_ROWS_PURGE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SOFT_DELETED_ROWS_PURGE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SOFT_DELETED_ROWS_PURGE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/Retention/SoftDeletedRowsPurgePostgres.test.ts
+          --forceExit
+
       # A project's activation milestones (#6894): each kept once, even by
       # servers racing for it, and the backfill fills what the data shows
       # without sending anything or overwriting a milestone kept live.
@@ -2637,6 +2672,27 @@ jobs:
           Tests/Server/Infrastructure/Postgres/AddAlertAndIncidentListIndexesPostgres.test.ts
           --forceExit
 
+      # #8113: a grant limited to labels, and a filter by labels, are a
+      # condition on the record's own id rather than a join through its
+      # labels. Every list, page, order, count, read by id and update of
+      # alerts, incidents and monitors runs twice through the real services
+      # and permission pipeline - the code as it was, frozen in the suite, and
+      # as it is - for a matrix of grants, blocks, Owned scopes and filters,
+      # and must reach the same records; and none outside the reader's labels.
+      # Clones the migrated tables into an isolated schema.
+      - name: Test label-limited lists before and after on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_LABEL_LIMITED_LIST_TESTS: "true"
+          LABEL_LIMITED_LIST_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          LABEL_LIMITED_LIST_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          LABEL_LIMITED_LIST_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/LabelLimitedListsPostgres.test.ts
+          --forceExit
+
       # The Network Overview counts the fleet in one scan
       # (NetworkDeviceService.getFleetScan) where it ran four reads: the
       # summary strip's numbers, the health buckets, the vendor breakdown and
@@ -2970,7 +3026,10 @@ jobs:
       # UPDATE SKIP LOCKED), hears
       # only its own stops, settles only its own captures, and the server
       # counts the packets in the uploaded file; Stop from the dashboard, the
-      # stale capture sweep and the retention sweep (files included).
+      # stale capture sweep and the retention sweep (files included, with
+      # the capture's real foreign key to its file in place). Each write's
+      # round trips are counted: one self-committing statement each (#8870),
+      # the stale sweep three, a retention batch one (#8929).
       - name: Test packet capture's SQL on migrated Postgres
         if: matrix.shard == 1
         working-directory: packages/Common
@@ -3248,7 +3307,8 @@ jobs:
       # the write a probe's monitor test result makes: keyed on the test and
       # the probe that reported it, so only the probe the test was handed to
       # writes it, step after step, and a probe that learned another
-      # project's test id writes nothing.
+      # project's test id writes nothing - in one self-committing statement
+      # (#8870).
       - name: Test monitor test results are written only by their probe on migrated Postgres
         if: matrix.shard == 1
         working-directory: packages/Common
@@ -3267,7 +3327,9 @@ jobs:
       # transaction, one round trip), FOR NO KEY UPDATE SKIP LOCKED - a row
       # another writer holds is skipped at once, claims at once hand out each
       # row once, a row that names a claimed one is still written - with the
-      # monitor test's ten-minute re-claim and the diagnostic's claim window.
+      # monitor test's ten-minute re-claim and the diagnostic's claim window;
+      # and a diagnostic's report, one self-committing statement keyed on the
+      # probe that never writes over a Completed answer (#8870).
       - name: Test the claims of a probe's on-demand jobs on migrated Postgres
         if: matrix.shard == 2
         working-directory: packages/Common
@@ -3619,6 +3681,30 @@ jobs:
           Tests/Workers/DataMigrations/HashMasterApiKeyPostgres.test.ts
           --forceExit
 
+      # A project's API keys through the upgrade that stores them hashed
+      # (#8902): on the ApiKey table as it was, with keys stored the old way,
+      # the API takes a key as written before the schema migration, after it
+      # and after HashProjectApiKeys, which leaves only hashes with their
+      # hints (a deleted key's too); then no key a request presents goes into
+      # a query; a reset's key works and the one before stops; a key created
+      # now is stored hashed; a master admin reads no key or hash and cannot
+      # write one; the master API key says when, by whom and how it ends
+      # (#8903); rolled back, a hashed key becomes a new random uuid. Clones
+      # the migrated ApiKey, GlobalConfig and User tables into an isolated
+      # schema.
+      - name: Test project API keys' upgrade to a hash on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_PROJECT_API_KEY_TESTS: "true"
+          PROJECT_API_KEY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PROJECT_API_KEY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PROJECT_API_KEY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/DataMigrations/HashProjectApiKeysPostgres.test.ts
+          --forceExit
+
       # Exceptions: the exception group upsert's ON CONFLICT branch, which is
       # all of regression detection - an occurrence after the resolve
       # reopens it as Regressed, a late one from before does not, and one
@@ -3749,6 +3835,27 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Utils/Measurement/MeasurementBackfillProgressPostgres.test.ts
+          --forceExit
+
+      # When something first measured a monitor (#8899): the column
+      # 1809180900000 adds is a nullable timestamp; BackfillMonitorFirstMeasuredAt
+      # stamps, with its creation time, every monitor that left a trace of being
+      # measured and every manual one, pages past a page, and changes nothing
+      # the second time; a first result's stamp lands once, and skips a row
+      # another writer holds rather than waiting for it. Clones the migrated
+      # Monitor, MonitorProbe and MonitorStatusTimeline tables into an
+      # isolated schema.
+      - name: Test when something first measured a monitor on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_MONITOR_FIRST_MEASURED_TESTS: "true"
+          MONITOR_FIRST_MEASURED_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          MONITOR_FIRST_MEASURED_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          MONITOR_FIRST_MEASURED_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/DataMigrations/BackfillMonitorFirstMeasuredAtPostgres.test.ts
           --forceExit
 
       # Archiving the values records pick from, on migrated Postgres: the two

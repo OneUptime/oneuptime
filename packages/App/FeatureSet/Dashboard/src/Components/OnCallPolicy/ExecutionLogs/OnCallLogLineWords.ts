@@ -436,15 +436,20 @@ export const LOG_PAGE_LINE_SENTENCES: Readonly<{
 };
 
 /*
- * A person's page merged into their open page from another policy's run
+ * A person's page merged into their open page from another run
  * (OnCallPageMerge): which policy is paging them - or, for a line that names
- * none, another policy - and the line of one that took the page over.
+ * none, another policy - who paged them directly from a chat, or which
+ * workflow did (#8859), and the line of one that took the page over.
  */
 export const LOG_MERGED_PAGE_SENTENCES: Readonly<{
   merged: string;
   mergedUnnamed: string;
+  mergedDirectly: string;
+  mergedByWorkflow: string;
   takenOver: string;
   takenOverUnnamed: string;
+  takenOverDirectly: string;
+  takenOverDirectlyUnnamed: string;
 }> = {
   merged: translationKey(
     "Already paged about this by {{name}}, so not paged again.",
@@ -452,11 +457,23 @@ export const LOG_MERGED_PAGE_SENTENCES: Readonly<{
   mergedUnnamed: translationKey(
     "Already paged about this by another on-call policy, so not paged again.",
   ),
+  mergedDirectly: translationKey(
+    "Already paged directly about this by {{name}}, so not paged again.",
+  ),
+  mergedByWorkflow: translationKey(
+    "Already paged about this through the workflow {{name}}, so not paged again.",
+  ),
   takenOver: translationKey(
     "Their page from {{name}} is over, so this policy pages them now.",
   ),
   takenOverUnnamed: translationKey(
     "Their page from another on-call policy is over, so this policy pages them now.",
+  ),
+  takenOverDirectly: translationKey(
+    "Their page from {{name}} is over, so they are paged directly now.",
+  ),
+  takenOverDirectlyUnnamed: translationKey(
+    "Their page from another on-call policy is over, so they are paged directly now.",
   ),
 };
 
@@ -715,6 +732,23 @@ function getPageLineSentence(
             { setsValuesApart: true },
           )
         : translator.translateTemplate(LOG_MERGED_PAGE_SENTENCES.mergedUnnamed);
+    // Merged into a direct page (#8859): who, or which workflow, paged them.
+    case OnCallLogLineCode.PageMergedDirectly:
+      return line.name
+        ? translator.translateTemplate(
+            LOG_MERGED_PAGE_SENTENCES.mergedDirectly,
+            { name: line.name },
+            { setsValuesApart: true },
+          )
+        : null;
+    case OnCallLogLineCode.PageMergedByWorkflow:
+      return line.name
+        ? translator.translateTemplate(
+            LOG_MERGED_PAGE_SENTENCES.mergedByWorkflow,
+            { name: line.name },
+            { setsValuesApart: true },
+          )
+        : null;
     case OnCallLogLineCode.PageMergeTakenOver:
       return line.name
         ? translator.translateTemplate(
@@ -724,6 +758,16 @@ function getPageLineSentence(
           )
         : translator.translateTemplate(
             LOG_MERGED_PAGE_SENTENCES.takenOverUnnamed,
+          );
+    case OnCallLogLineCode.PageMergeTakenOverDirectly:
+      return line.name
+        ? translator.translateTemplate(
+            LOG_MERGED_PAGE_SENTENCES.takenOverDirectly,
+            { name: line.name },
+            { setsValuesApart: true },
+          )
+        : translator.translateTemplate(
+            LOG_MERGED_PAGE_SENTENCES.takenOverDirectlyUnnamed,
           );
     case OnCallLogLineCode.NotificationStuck:
       return line.minutes

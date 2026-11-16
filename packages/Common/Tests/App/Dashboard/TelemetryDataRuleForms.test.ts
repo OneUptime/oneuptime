@@ -43,6 +43,7 @@ import {
   getTraceScrubRuleFormFields,
   LOG_SCRUB_RULE_DEFAULTS_SUMMARY,
   LOG_SCRUB_RULE_FORM_OPTIONS,
+  LOG_SENSITIVE_KEYS_SCRUB_RULE_DEFAULTS_SUMMARY,
   SCRUB_RULE_CUSTOM_REGEX_MATCHES_EMPTY_TEXT,
   SCRUB_RULE_CUSTOM_REGEX_MISSING,
   SCRUB_RULE_DEFAULT_NAMES,
@@ -287,6 +288,46 @@ describe("the scrub rule form", () => {
     expect(LOG_SCRUB_RULE_FORM_OPTIONS.defaultsSummary).toBe(
       LOG_SCRUB_RULE_DEFAULTS_SUMMARY,
     );
+    expect(TRACE_SCRUB_RULE_FORM_OPTIONS.sensitiveKeysSummary).toBe(
+      SENSITIVE_KEYS_SCRUB_RULE_DEFAULTS_SUMMARY,
+    );
+    expect(LOG_SCRUB_RULE_FORM_OPTIONS.sensitiveKeysSummary).toBe(
+      LOG_SENSITIVE_KEYS_SCRUB_RULE_DEFAULTS_SUMMARY,
+    );
+  });
+
+  /*
+   * What a trace rule's Fields to Scrub reaches (#6513): Attributes Only
+   * and All scrub a link's attributes with the span's own since #6507, and
+   * All the span's status message and its events' names too - so the help
+   * under the field, and the folded section's line while it is left at
+   * All, name them.
+   */
+  test("the trace form names the link attributes, the status message and the event names it scrubs", () => {
+    expect(TRACE_SCRUB_RULE_FORM_OPTIONS.fieldsToScrubHelp).toBe(
+      "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.",
+    );
+    expect(TRACE_SCRUB_RULE_DEFAULTS_SUMMARY).toBe(
+      "Matches are replaced with [REDACTED] in span names, status messages, attributes, events and links.",
+    );
+    // One short sentence under the field (Docs/ux/README.md#help-text).
+    expect(
+      TRACE_SCRUB_RULE_FORM_OPTIONS.fieldsToScrubHelp.length,
+    ).toBeLessThanOrEqual(150);
+  });
+
+  /*
+   * A log's Sensitive Attribute Keys rule reads the keys of a JSON body
+   * too (#6513); a span's reads the attributes of the span, its events and
+   * its links. Each form says what its own rule hides.
+   */
+  test("a sensitive-keys rule's line names what it hides on each signal", () => {
+    expect(LOG_SENSITIVE_KEYS_SCRUB_RULE_DEFAULTS_SUMMARY).toBe(
+      "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].",
+    );
+    expect(SENSITIVE_KEYS_SCRUB_RULE_DEFAULTS_SUMMARY).toBe(
+      "The values of attributes whose key looks sensitive are replaced with [REDACTED].",
+    );
   });
 
   test("both pages build their form from the same fields", () => {
@@ -496,6 +537,12 @@ describe("what the scrub rule's folded Advanced says", () => {
       getScrubRuleAdvancedSummary(LOG_SCRUB_RULE_FORM_OPTIONS, {
         patternType: "sensitiveKeys",
         fieldsToScrub: "body",
+      }),
+    ).toEqual([LOG_SENSITIVE_KEYS_SCRUB_RULE_DEFAULTS_SUMMARY]);
+    expect(
+      getScrubRuleAdvancedSummary(TRACE_SCRUB_RULE_FORM_OPTIONS, {
+        patternType: "sensitiveKeys",
+        fieldsToScrub: "name",
       }),
     ).toEqual([SENSITIVE_KEYS_SCRUB_RULE_DEFAULTS_SUMMARY]);
   });

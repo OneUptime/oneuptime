@@ -65,6 +65,8 @@ export enum ProductEventName {
 
   // A product's "How it works" explanation was opened.
   HowItWorksOpened = "how_it_works/opened",
+  // A product was opened from How OneUptime works (#8891).
+  HowItWorksProductOpened = "how_it_works/product_opened",
 
   // A search in the command palette (Cmd/Ctrl+K) found nothing.
   SearchFoundNothing = "search/no_results",
@@ -249,6 +251,12 @@ export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
     description:
       'A "How it works" explanation was opened: a product\'s, from beside the page\'s title, or How OneUptime works (product "oneuptime"), from Help, Home, Search or the phone menu (source).',
     properties: [token("product"), token("source")],
+  },
+  {
+    name: ProductEventName.HowItWorksProductOpened,
+    description:
+      'A product was opened from How OneUptime works: from one of the four steps a problem moves through (place "loop"), or from its category\'s list (place "category"). The product is its key, never its name.',
+    properties: [token("product"), token("place")],
   },
   {
     name: ProductEventName.SearchFoundNothing,

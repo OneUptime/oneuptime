@@ -2252,6 +2252,12 @@ describe("the quick start", () => {
     const form: string = readRepoFile(
       "packages/App/FeatureSet/Dashboard/src/Components/ApiKey/ApiKeyCreateForm.ts",
     );
+    const keys: string = readRepoFile(
+      "packages/App/FeatureSet/Dashboard/src/Pages/Settings/APIKeys.tsx",
+    );
+    const shownOnce: string = readRepoFile(
+      "packages/App/FeatureSet/Dashboard/src/Components/ApiKey/ApiKeyShownOnceCopy.ts",
+    );
     const view: string = readRepoFile(
       "packages/App/FeatureSet/Dashboard/src/Pages/Settings/APIKeyView.tsx",
     );
@@ -2273,17 +2279,33 @@ describe("the quick start", () => {
       "The key stops working on this date. A year from today unless you pick another.",
     );
     expect(MORE_FIELDS_SECTION_TITLE).toBe("More fields");
-    expect(view).toContain('title: "API Key Details"');
-    expect(view).toContain('title: "API Key",');
     expect(menu.indexOf('title: "Advanced"')).toBeLessThan(
       menu.indexOf('title: "API Keys"'),
     );
     expect(page).toContain(
       "The key expires a year from today. To pick another date, open **More fields** before you create it",
     );
-    expect(page).toContain(
-      "copy the **API Key** from the **API Key Details** card",
+
+    /*
+     * The key is stored as its hash (#8902): the create shows it once, in
+     * a dialog Done closes, and its page says only how it ends (#8903).
+     */
+    expect(keys).toContain("<ShownOnceSecretModal");
+    expect(keys).toContain("title={ApiKeyShownOnceCopy.shownOnceTitle}");
+    expect(keys).toContain("doneButtonText={ApiKeyShownOnceCopy.done}");
+    expect(shownOnce).toContain(
+      'shownOnceTitle: translationKey("Copy Your API Key")',
     );
+    expect(shownOnce).toContain('done: translationKey("Done")');
+    expect(view).toContain('title: "API Key",');
+    expect(view).toContain("<ApiKeyHint hint={item.apiKeyHint} />");
+    expect(page).toContain(
+      "Once the key is created, OneUptime shows it once, in the **Copy Your API Key** dialog: copy it before you press **Done**.",
+    );
+    expect(page).toContain(
+      "Check it against how the key ends on its page, or reset it there for a new one.",
+    );
+    expect(page).not.toContain("**API Key Details**");
   });
 
   it("reads the monitor statuses every project starts with, by the names they start with", () => {

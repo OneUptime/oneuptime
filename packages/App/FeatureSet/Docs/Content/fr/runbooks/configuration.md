@@ -58,6 +58,7 @@ Il n'existe plus d'indicateur d'environnement `RUNBOOK_BASH_ENABLED`. Le fonctio
 | Sortie par étape | **50 Ko**. Une sortie plus longue est coupée avec un marqueur. | Chaque étape automatisée |
 | Délai d'exécution | **30 secondes** par défaut | Étapes JavaScript, Bash, SSH et kubectl |
 | Délai de la requête | **30 secondes** par défaut | Étapes de requête HTTP |
+| Réponse par requête | **10 Mo**. Une réponse plus grande n'est pas lue et fait échouer l'étape. | Étapes de requête HTTP |
 | Délai de prise en charge | **2 minutes** par défaut : combien de temps le Worker attend que l'agent choisi prenne la tâche en charge avant de la faire échouer | Étapes JavaScript, Bash, SSH et kubectl |
 | Plage des délais | **1 seconde à 1 heure** | Chaque délai |
 | Attente d'une personne | Aucune limite | Étapes Manual et approbations |

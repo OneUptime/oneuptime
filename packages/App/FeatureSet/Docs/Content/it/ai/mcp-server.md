@@ -144,7 +144,7 @@ In **Accesso**, scegli **Visualizzatore** per un agente che legge soltanto, oppu
 
 ### Copia la chiave
 
-Fai clic su **Crea: Chiave API**: si apre la pagina della chiave. Copia la chiave da lì.
+Fai clic su **Crea: Chiave API**. OneUptime mostra la chiave una sola volta, nella finestra di dialogo **Copia la tua chiave API**: copiala prima di premere **Fatto**.
 :::
 
 Le chiavi API appartengono a un progetto: il server MCP prende il progetto dalla chiave, così gli strumenti di creazione non hanno mai bisogno di un argomento `projectId`.

@@ -220,6 +220,10 @@ const RUNNER_JOB_SERVICE: string = readSource(
   "Common/Server/Services/RunnerJobService.ts",
 );
 const VM_RUNNER: string = readSource("Common/Server/Utils/VM/VMRunner.ts");
+// The isolate's HTTP, as the host makes it (VMRunner's, and a global Runner's).
+const VM_HTTP_BRIDGE: string = readSource(
+  "Common/Server/Utils/VM/VMHttpBridge.ts",
+);
 const RUNNER_CONFIG: string = readSource("Runner/Config.ts");
 const RUNNER_INDEX: string = readSource("Runner/Index.ts");
 const RUNNER_DOCKERFILE: string = readSource("Runner/Dockerfile.tpl");
@@ -638,6 +642,23 @@ describe("what a step's output and network are held to", () => {
     );
   });
 
+  // #8875: the step reads a bounded answer, not one of any size.
+  it("say how much of an answer an HTTP request step reads", () => {
+    expect(STEP_EXECUTORS).toContain(
+      "export const HTTP_STEP_MAX_RESPONSE_BYTES: number = 10 * 1024 * 1024;",
+    );
+    expect(STEP_EXECUTORS).toContain(
+      "maxContentLength: HTTP_STEP_MAX_RESPONSE_BYTES,",
+    );
+    expect(STEP_EXECUTORS).toContain(
+      "errorMessage: ResponseTooLarge.getMessage(HTTP_STEP_MAX_RESPONSE_BYTES),",
+    );
+
+    expect(section(CONFIGURATION, "Output caps and timeouts")).toContain(
+      "| Answer per request | **10 MB**. A larger answer is not read, and fails the step. | HTTP request steps |",
+    );
+  });
+
   it("say what an HTTP request step counts as success, and that it follows no redirect", () => {
     expect(STEP_EXECUTORS).toContain("maxRedirects: 0,");
     expect(STEP_EXECUTORS).toContain(
@@ -763,8 +784,11 @@ describe("what a step's output and network are held to", () => {
     expect(VM_RUNNER).toContain("new ivm.Isolate({ memoryLimit: 128 })");
 
     // The axios bridge lets a script reach private addresses only when asked to ...
+    expect(VM_HTTP_BRIDGE).toContain(
+      "allowPrivateNetworkTargets:\n        this.policy.allowPrivateNetworkRequests === true,",
+    );
     expect(VM_RUNNER).toContain(
-      "allowPrivateNetworkTargets:\n            options.allowPrivateNetworkRequests === true,",
+      "allowPrivateNetworkRequests: options.allowPrivateNetworkRequests,",
     );
 
     // ... and the Runner never asks.

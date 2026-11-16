@@ -18,9 +18,9 @@ flowchart TB
     setting -->|"alles aus"| nothing["Nichts wird gesendet"]
 ```
 
-- Jede Zeile ist ein Ereignis und jede Spalte ein Kanal: E-Mail, SMS, Anruf, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost und Webhook. Slack, Microsoft Teams und Mattermost sind nur dann Spalten, wenn das Projekt sie verbunden hat.
+- Jede Zeile ist ein Ereignis und jede Spalte ein Kanal: E-Mail, SMS, Anruf, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost und Webhook. Slack, Microsoft Teams und Mattermost sind nur dann Spalten, wenn das Projekt sie verbunden hat. Ein Kanal, den Sie noch nicht eingerichtet haben, ist keine Spalte: Er steht oberhalb der Tabs unter **Noch nicht eingerichtete Kanäle**, als Link zum Einrichten.
 - Ein eingeschalteter Kanal sendet an jede verifizierte Methode, die Sie darauf in diesem Projekt haben, nicht nur an eine.
-- Ein eingeschalteter Kanal ohne verifizierte Methode dahinter sendet nichts. **Ihre Einrichtungs-Checkliste** sagt das unter **Auf dem Laufenden bleiben**.
+- Ein eingeschalteter Kanal ohne verifizierte Methode dahinter sendet nichts. Seine Spalte zeigt unter ihrem Namen **Einrichten**, und seine Schalter lassen sich nur ausschalten. **Ihre Einrichtungs-Checkliste** sagt das auch, unter **Auf dem Laufenden bleiben**.
 - Eine Neuigkeit geht an die Eigentümer des Datensatzes: die als Eigentümer genannten Personen und die Mitglieder seiner Eigentümer-Teams. Hat ein Datensatz keine Eigentümer, geht sie stattdessen an die Projektinhaber. Wer vom Bereitschaftsalarm eines neuen Vorfalls, einer neuen Warnung oder einer neuen Episode schon erreicht wurde, wird nicht noch einmal benachrichtigt, dass der Datensatz erstellt wurde. Ein Ereignis darüber, als Eigentümer hinzugefügt worden zu sein, geht nur an die hinzugefügte Person. Hält OneUptime an, während es eine Neuigkeit an die Eigentümer eines Datensatzes sendet, bekommen die Personen, zu denen es noch nicht gekommen war, sie, sobald OneUptime wieder läuft, ein paar Minuten später, und niemand bekommt sie zweimal.
 - Sicherheitsfälle haben keine Eigentümer. Ein neuer Fall geht an alle, die die Fälle des Projekts sehen können, ab der Priorität, die jede Person für sich wählt, und ein zugewiesener Fall an die Personen, denen er zugewiesen ist. Siehe [Sicherheitsfälle](/docs/telemetry/security-cases#benachrichtigungen).
 - Jede E-Mail an Eigentümer endet mit einem Link "Manage notification preferences", der hierher zurückführt.
@@ -34,11 +34,11 @@ Gehen Sie zu **Benutzereinstellungen → Benachrichtigungseinstellungen**. Die T
 
 ### Das Ereignis finden
 
-Jeder Tab enthält eine oder mehrere Karten, etwa **Vorfallsepisoden** auf dem Tab **Vorfälle**. Jede Zeile ist ein Ereignis, mit einer Zeile, die sagt, wann es gesendet wird.
+Jeder Tab enthält eine oder mehrere Karten, etwa **Vorfallsepisoden** auf dem Tab **Vorfälle**. Jede Zeile ist ein Ereignis, mit einer Zeile, die sagt, wann es gesendet wird. Über den Karten sagt der Tab, über wie viele seiner Ereignisse Sie benachrichtigt werden und über welche Kanäle.
 
 ### Einen Kanal anklicken
 
-Klicken Sie auf den Kreis eines Kanals, um ihn einzuschalten, und erneut, um ihn auszuschalten. Ein Häkchen bedeutet eingeschaltet. Änderungen werden automatisch gespeichert.
+Klicken Sie auf den Schalter eines Kanals, um ihn einzuschalten, und erneut, um ihn auszuschalten. Die erste Zeile einer Karte, **Alle Ereignisse**, schaltet einen Kanal für jedes Ereignis der Karte ein oder aus. Jede Änderung wird sofort gespeichert, und die Karte zeigt **Gespeichert**.
 :::
 
 ## Was für ein neues Mitglied eingeschaltet ist

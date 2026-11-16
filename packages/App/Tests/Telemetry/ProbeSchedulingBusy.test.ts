@@ -263,6 +263,11 @@ const RETRYING_PROBE: Array<string> = [
   ProbeCapability.NetworkDevicePing,
   ProbeCapability.RetryWhenBusy,
 ];
+// A probe from issue #8051 on: every work fetch reads a 429.
+const EVERY_WORK_RETRYING_PROBE: Array<string> = [
+  ...RETRYING_PROBE,
+  ProbeCapability.RetryAllWorkWhenBusy,
+];
 
 async function settle(): Promise<void> {
   for (let round: number = 0; round < 5; round++) {
@@ -297,7 +302,7 @@ describe("ProbeSchedulingMiddleware", () => {
         res.send({ devices: [] });
       },
     );
-    limit = ProbeSchedulingMiddleware.limit(emptyAnswer, limiter);
+    limit = ProbeSchedulingMiddleware.limit(emptyAnswer, { limiter });
   });
 
   test("a request with a slot goes on to the handler and keeps the slot until its answer has gone", async () => {
@@ -438,6 +443,142 @@ describe("ProbeSchedulingMiddleware", () => {
         body: { probeCapabilities: "retryWhenBusy" },
       } as unknown as ExpressRequest),
     ).toBe(false);
+  });
+
+  test("whether a probe retries is read for the capability the endpoint names", () => {
+    expect(
+      ProbeSchedulingMiddleware.probeRetriesWhenBusy(
+        makeRequest({ capabilities: RETRYING_PROBE }),
+        ProbeCapability.RetryAllWorkWhenBusy,
+      ),
+    ).toBe(false);
+    expect(
+      ProbeSchedulingMiddleware.probeRetriesWhenBusy(
+        makeRequest({ capabilities: EVERY_WORK_RETRYING_PROBE }),
+        ProbeCapability.RetryAllWorkWhenBusy,
+      ),
+    ).toBe(true);
+  });
+
+  /*
+   * The other work endpoints (issue #8051) answer a 429 only to a probe that
+   * declares retryAllWorkWhenBusy: a probe that declares retryWhenBusy alone
+   * reads a 429 from those fetches as a failed request, every tick.
+   */
+  describe("for an endpoint that names retryAllWorkWhenBusy", () => {
+    let workLimit: ProbeSchedulingMiddlewareFunction;
+
+    beforeEach(() => {
+      workLimit = ProbeSchedulingMiddleware.limit(emptyAnswer, {
+        limiter,
+        retriesWhenBusy: ProbeCapability.RetryAllWorkWhenBusy,
+      });
+    });
+
+    // A request that finds the one slot taken and the queue full.
+    async function refused(capabilities: Array<string>): Promise<{
+      res: FakeResponse;
+      next: AnyMock;
+    }> {
+      const held: KeyedConcurrencyRelease = await limiter.acquire("other");
+      const queued: Promise<KeyedConcurrencyRelease> =
+        limiter.acquire("other-2");
+      await settle();
+
+      const res: FakeResponse = new FakeResponse();
+      const next: AnyMock = jest.fn() as unknown as AnyMock;
+
+      await workLimit(
+        makeRequest({ capabilities: capabilities }),
+        asExpress(res),
+        next as NextFunction,
+      );
+
+      held();
+      (await queued)();
+      return { res, next };
+    }
+
+    test("refused, a probe that declares it gets a 429 with Retry-After", async () => {
+      const { res, next } = await refused(EVERY_WORK_RETRYING_PROBE);
+
+      expect(res.statusCode).toBe(429);
+      expect(res.headers["Retry-After"]).toBe(
+        String(PROBE_SCHEDULING_BUSY_RETRY_AFTER_SECONDS),
+      );
+      expect(emptyAnswer).not.toHaveBeenCalled();
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    test.each([
+      ["a probe that declares retryWhenBusy alone", RETRYING_PROBE],
+      ["an older probe", OLDER_PROBE],
+    ])(
+      "refused, %s gets the empty batch",
+      async (_label: string, capabilities: Array<string>) => {
+        const { res, next } = await refused(capabilities);
+
+        expect(emptyAnswer).toHaveBeenCalledTimes(1);
+        expect(res.statusCode).toBe(200);
+        expect(res.body).toEqual({ devices: [] });
+        expect(next).not.toHaveBeenCalled();
+      },
+    );
+
+    test("with a slot, a request goes on to the handler as any other", async () => {
+      const res: FakeResponse = new FakeResponse();
+      const next: AnyMock = jest.fn() as unknown as AnyMock;
+
+      await workLimit(
+        makeRequest({ capabilities: EVERY_WORK_RETRYING_PROBE }),
+        asExpress(res),
+        next as NextFunction,
+      );
+
+      expect(next).toHaveBeenCalledWith();
+      expect(limiter.runningCount(PROBE_ID.toString())).toBe(1);
+      res.send([]);
+      expect(limiter.runningCount()).toBe(0);
+    });
+  });
+
+  test("for an endpoint that names no capability, every probe is answered with the empty batch, never a 429", async () => {
+    const quietLimit: ProbeSchedulingMiddlewareFunction =
+      ProbeSchedulingMiddleware.limit(emptyAnswer, {
+        limiter,
+        retriesWhenBusy: null,
+      });
+
+    for (const capabilities of [
+      EVERY_WORK_RETRYING_PROBE,
+      RETRYING_PROBE,
+      OLDER_PROBE,
+    ]) {
+      emptyAnswer.mockClear();
+
+      // The one slot taken, and the queue full.
+      const held: KeyedConcurrencyRelease = await limiter.acquire("other");
+      const queued: Promise<KeyedConcurrencyRelease> =
+        limiter.acquire("other-2");
+      await settle();
+
+      const res: FakeResponse = new FakeResponse();
+      const next: AnyMock = jest.fn() as unknown as AnyMock;
+      await quietLimit(
+        makeRequest({ capabilities: capabilities }),
+        asExpress(res),
+        next as NextFunction,
+      );
+      held();
+      (await queued)();
+
+      expect(emptyAnswer).toHaveBeenCalledTimes(1);
+      expect(res.statusCode).toBe(200);
+      expect(res.headers["Retry-After"]).toBeUndefined();
+      expect(next).not.toHaveBeenCalled();
+    }
+
+    expect(limiter.runningCount()).toBe(0);
   });
 });
 

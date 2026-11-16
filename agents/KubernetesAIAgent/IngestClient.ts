@@ -1,4 +1,5 @@
 import { AgentPosture } from "./Posture";
+import RetryAfter from "./Common/Utils/RetryAfter";
 
 /*
  * The agent's only way to talk to OneUptime: JSON POSTs to
@@ -39,9 +40,6 @@ export const DEFAULT_REQUEST_TIMEOUT_MS: number = 30_000;
  * must stay inside a deadline (shutdown) wait at most this long for it.
  */
 export const CANCELLED_REQUEST_SETTLE_MS: number = 1_000;
-
-// Retry-After as delta-seconds.
-const RETRY_AFTER_SECONDS_PATTERN: RegExp = /^\d+$/;
 
 // The longest server message carried into logs and /status.
 const MAX_MESSAGE_CHARS: number = 500;
@@ -123,8 +121,10 @@ function parseJsonObject(text: string): Record<string, unknown> | null {
 
 /*
  * Retry-After as a number of seconds: the body's retryAfterSeconds when the
- * server sent one, else the header (delta-seconds or an HTTP date). Null
- * when neither says anything usable.
+ * server sent one, else the header, read as RFC 9110 writes it (Common's
+ * RetryAfter, copied into Common/): whole seconds or an HTTP date, at least
+ * one second. Null when neither says anything usable - "1.5", "-5" or
+ * "5 seconds" included, which Date.parse took for a day gone by.
  */
 export function parseRetryAfterSeconds(data: {
   header: string | null;
@@ -137,23 +137,7 @@ export function parseRetryAfterSeconds(data: {
     return Math.max(0, fromBody);
   }
 
-  const header: string = (data.header || "").trim();
-
-  if (!header) {
-    return null;
-  }
-
-  if (RETRY_AFTER_SECONDS_PATTERN.test(header)) {
-    return parseInt(header, 10);
-  }
-
-  const dateMs: number = Date.parse(header);
-
-  if (Number.isNaN(dateMs)) {
-    return null;
-  }
-
-  return Math.max(0, Math.ceil((dateMs - (data.nowMs ?? Date.now())) / 1000));
+  return RetryAfter.parseSeconds(data.header, { nowMs: data.nowMs }) ?? null;
 }
 
 function describeServerMessage(

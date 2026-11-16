@@ -1,13 +1,20 @@
 import {
   LinkReferenceDefinition,
+  LinkReferenceDefinitionsReading,
   MAX_DEFINITION_NESTING_DEPTH,
   NestedLinkReferenceDefinition,
   forEachBracketedLabel,
   getLinkReferenceDefinitions,
   normalizeLinkLabel,
+  readLinkReferenceDefinitions,
 } from "../../../Utils/Markdown/LinkReferenceDefinitions";
 import { SLOW_MARKDOWN_MAX_NESTING_DEPTH } from "../../../Utils/Markdown/SlowMarkdown";
-import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
+import {
+  ComparedRuns,
+  FastestRun,
+  fastestRun,
+  fastestRunsCompared,
+} from "../../Helpers/FastestRun";
 import { generatedTexts } from "../../Helpers/GeneratedTexts";
 import {
   MarkedReferences,
@@ -1594,6 +1601,46 @@ describe("Link reference definitions - read in time that grows with the text", (
       `- [s]: data:image/png;base64,${"iVBO".repeat(FOUR_MEGABYTES / 4)}`,
       1,
     ],
+    /*
+     * #7601: the shapes 16 MiB of which took 0.5 s to 6.9 s - a line nested
+     * sixteen deep read once a level, the slowest - four megabytes each.
+     */
+    [
+      "quotes and list items in turn, sixteen deep, a definition on every line",
+      repeated(`${"> - ".repeat(8)}[a]: b\n`),
+      timesRepeated(`${"> - ".repeat(8)}[a]: b\n`),
+    ],
+    [
+      "a quote of definitions, each line after one a marker alone",
+      repeated("> [a]: http://x\n> \n"),
+      timesRepeated("> [a]: http://x\n> \n"),
+    ],
+    [
+      "list items of a definition each",
+      repeated("- [a]: http://x\n"),
+      timesRepeated("- [a]: http://x\n"),
+    ],
+    [
+      "setext headings, a definition after each, four megabytes",
+      repeated("Title\n===\n[a]: b\n"),
+      timesRepeated("Title\n===\n[a]: b\n"),
+    ],
+    ["definitions in HTML blocks", repeated("<div>\n[a]: b\n</div>\n\n"), 0],
+    [
+      "a quote of paragraph lines holding a colon",
+      repeated("> a > [a]: b\n"),
+      0,
+    ],
+    [
+      "quotes sixteen deep, a definition on every line, four megabytes",
+      repeated(`${"> ".repeat(16)}[a]: /u\n`),
+      timesRepeated(`${"> ".repeat(16)}[a]: /u\n`),
+    ],
+    [
+      "list items sixteen deep, a definition on every line",
+      repeated(`${"- ".repeat(16)}[a]: /u\n`),
+      timesRepeated(`${"- ".repeat(16)}[a]: /u\n`),
+    ],
   ])(
     "getLinkReferenceDefinitions: %s",
     (_name: string, text: string, count: number) => {
@@ -1631,5 +1678,305 @@ describe("Link reference definitions - read in time that grows with the text", (
     });
 
     expect(timed.inMs).toBeLessThan(LIMIT_IN_MS);
+  });
+});
+
+/*
+ * A LINE NESTED SIXTEEN DEEP, READ IN ABOUT THE TIME OF ONE LEVEL (#7601).
+ *
+ * marked reads each block quote and each list item as a text of its own,
+ * and so does the finder: a line of "> - > - > - [a]: b" is a level for each
+ * of its markers. Each was read afresh - its text, its reading, the whole
+ * sequence of blocks tried - so 16 MiB of such lines, sixteen deep, took
+ * 6.9 s where 16 MiB of one level took 2 s. A line's quotes and list items
+ * are passed through now, and a quote whose every line is a quote again
+ * loses its markers where they are: what is read stays within a few times
+ * the text, however deep it nests.
+ *
+ * Held three ways: the levels read and their characters, counted - the same
+ * on any machine, however loaded; each shape timed against one level of as
+ * many lines and definitions, the two taking turns (fastestRunsCompared);
+ * and generated lines nested to seventeen deep, of every kind of quote and
+ * list item, against marked's own reading.
+ */
+describe("Link reference definitions - a line nested sixteen deep, read in about the time of one level (#7601)", () => {
+  const ONE_MEGABYTE: number = 1024 * 1024;
+
+  // How many times `unit` is in repeated(unit, length).
+  const timesRepeated: (unit: string, length?: number) => number = (
+    unit: string,
+    length: number = ONE_MEGABYTE,
+  ): number => {
+    return Math.ceil(length / unit.length);
+  };
+
+  // `unit` again and again, to about `length` characters.
+  const repeated: (unit: string, length?: number) => string = (
+    unit: string,
+    length: number = ONE_MEGABYTE,
+  ): string => {
+    return unit.repeat(timesRepeated(unit, length));
+  };
+
+  // `line`, then spaces to `width` characters: a definition may end in spaces.
+  const padded: (line: string, width: number) => string = (
+    line: string,
+    width: number,
+  ): string => {
+    return `${line}${" ".repeat(width - line.length)}`;
+  };
+
+  // The issue's line: eight quotes and eight list items in turn, then a definition.
+  const DEEP_LINE: string = `${"> - ".repeat(8)}[a]: b`;
+  const QUOTES_LINE: string = `${"> ".repeat(16)}[a]: /u`;
+  const BULLETS_LINE: string = `${"- ".repeat(16)}[a]: /u`;
+
+  test.each([
+    ["the issue's line: quotes and list items in turn", DEEP_LINE, true],
+    ["quotes", QUOTES_LINE, true],
+    [
+      "quotes seventeen deep, too deep to define",
+      `${"> ".repeat(17)}[a]: /u`,
+      false,
+    ],
+    ["list items", BULLETS_LINE, true],
+    [
+      "list items seventeen deep, too deep to define",
+      `${"- ".repeat(17)}[a]: /u`,
+      false,
+    ],
+    [
+      "numbered, task, quoted and starred items in turn",
+      `${"1. - [ ] > * ".repeat(4)}[a]: /u`,
+      true,
+    ],
+    [
+      "quotes, the definition after a paragraph's text",
+      `${"> ".repeat(16)}x [a]: /u`,
+      false,
+    ],
+    ["list items in quotes in list items, four deep", "- > - > [a]: /u", true],
+  ])(
+    "%s, sixteen deep, line after line: each line's last level is all that is read of it, counted",
+    (_name: string, line: string, defines: boolean) => {
+      const text: string = repeated(`${line}\n`);
+      const lines: number = timesRepeated(`${line}\n`);
+      const reading: LinkReferenceDefinitionsReading =
+        readLinkReferenceDefinitions(text);
+
+      expect(reading.definitions).toHaveLength(defines ? lines : 0);
+      /*
+       * The whole text, a quote of all its lines at most, and each line's
+       * last level - not a level for each marker of each line: 403,307
+       * levels of 9.6 times the text, for the issue's line, before.
+       */
+      expect(reading.levelsRead).toBeLessThanOrEqual(lines + 2);
+      expect(reading.charactersRead).toBeLessThanOrEqual(3 * text.length);
+    },
+  );
+
+  test("the definitions found are the same, and as marked reads them, however deep the line", () => {
+    for (const line of [DEEP_LINE, QUOTES_LINE, BULLETS_LINE]) {
+      const text: string = `${line}\n`.repeat(3);
+
+      expect(differenceFromMarked(text)).toBeNull();
+      expect(
+        getLinkReferenceDefinitions(text).map(
+          (definition: LinkReferenceDefinition): string => {
+            return definition.nested!.text;
+          },
+        ),
+      ).toEqual([
+        line.slice(line.indexOf("[")),
+        line.slice(line.indexOf("[")),
+        line.slice(line.indexOf("[")),
+      ]);
+    }
+  });
+
+  test.each([
+    ["the issue's line", DEEP_LINE, padded("> - [a]: b", DEEP_LINE.length)],
+    ["quotes", QUOTES_LINE, padded("> [a]: /u", QUOTES_LINE.length)],
+    ["list items", BULLETS_LINE, padded("- [a]: /u", BULLETS_LINE.length)],
+  ])(
+    "%s sixteen deep: in about the time of one level of as many lines and definitions, the two timed in turns",
+    (_name: string, deepLine: string, flatLine: string) => {
+      const deep: string = repeated(`${deepLine}\n`, 2 * ONE_MEGABYTE);
+      const flat: string = repeated(`${flatLine}\n`, 2 * ONE_MEGABYTE);
+      const runs: ComparedRuns<number, number> = fastestRunsCompared({
+        first: (): number => {
+          return getLinkReferenceDefinitions(deep).length;
+        },
+        second: (): number => {
+          return getLinkReferenceDefinitions(flat).length;
+        },
+      });
+
+      expect(runs.first.result).toBe(
+        timesRepeated(`${deepLine}\n`, 2 * ONE_MEGABYTE),
+      );
+      expect(runs.second.result).toBe(runs.first.result);
+      // Six to eleven times as long, before.
+      expect(runs.first.inMs).toBeLessThan(2.5 * runs.second.inMs);
+    },
+  );
+
+  /*
+   * Pieces that open a quote or a list item - or look as if they did, each
+   * one level at most - and what a line ends with. A line of sixteen of them
+   * nests no deeper than marked reads a definition in an email
+   * (MAX_DEFINITION_NESTING_DEPTH); one nested deeper defines for marked
+   * alone, and is held back (see "not inside quotes or lists nested deeper").
+   */
+  const OPENERS: ReadonlyArray<string> = [
+    "> ",
+    "> ",
+    ">",
+    ">\t",
+    " > ",
+    "   >",
+    "- ",
+    "- ",
+    "* ",
+    "+ ",
+    "1. ",
+    "2) ",
+    "10. ",
+    "- [ ] ",
+    "- [x] ",
+    "-\t",
+    "1.\t",
+    "  - ",
+    "-  ",
+    "-     ",
+    "-",
+    "1.",
+    "    ",
+    "  ",
+    "\t",
+  ];
+  // Those that open a level wherever they are.
+  const LEVEL_OPENERS: ReadonlyArray<string> = [
+    "> ",
+    ">",
+    "- ",
+    "* ",
+    "+ ",
+    "1. ",
+    "2) ",
+    "- [ ] ",
+  ];
+  const ENDINGS: ReadonlyArray<string> = [
+    "[a]: /a",
+    "[a]: /a   ",
+    "[b]: /b 't'",
+    "[c]: <u v>  \t",
+    "x [d]: /d",
+    "",
+    " ",
+    NO_BREAK_SPACE,
+    "[e]:",
+    "<?x?>[f]: /f",
+    "<!--x-->[g]: /g",
+    "```",
+    "# [h]: /h",
+    "===",
+    "---",
+    "[i]:\n/i",
+  ];
+
+  test("generated lines nested up to sixteen deep, of every kind of quote and list item: the same definitions as marked", () => {
+    const random: SeededRandom = seededRandom(7601);
+    let withDefinitions: number = 0;
+    let deepDefinitions: number = 0;
+    const differences: Array<string> = [];
+
+    for (let index: number = 0; index < 8000; index++) {
+      const depth: number = random(MAX_DEFINITION_NESTING_DEPTH + 1);
+      let line: string = "";
+
+      // Mostly what opens a level, so many lines reach deep.
+      for (let level: number = 0; level < depth; level++) {
+        line +=
+          random(4) === 0
+            ? OPENERS[random(OPENERS.length)]
+            : LEVEL_OPENERS[random(LEVEL_OPENERS.length)];
+      }
+
+      line += ENDINGS[random(ENDINGS.length)];
+
+      // The line alone, twice - the second a sibling or a lazy line - or after a paragraph.
+      const shape: number = random(3);
+      const text: string =
+        shape === 0 ? line : shape === 1 ? `${line}\n${line}` : `x\n\n${line}`;
+
+      if (Object.keys(markedLinks(text)).length > 0) {
+        withDefinitions++;
+        deepDefinitions += depth >= 12 ? 1 : 0;
+      }
+
+      const difference: string | null = differenceFromMarked(text);
+
+      if (difference !== null) {
+        differences.push(`${JSON.stringify(text)}: ${difference}`);
+      }
+    }
+
+    expect(differences.slice(0, 5)).toEqual([]);
+    // Many define, many twelve or more levels deep: about four fifths of what seed 7601 makes.
+    expect(withDefinitions).toBeGreaterThan(1600);
+    expect(deepDefinitions).toBeGreaterThan(340);
+  });
+
+  test("generated quotes of many lines, each line quoted to a depth of its own, lazy lines among them: the same definitions as marked", () => {
+    const random: SeededRandom = seededRandom(7602);
+    const MARKERS: ReadonlyArray<string> = [
+      "> ",
+      ">",
+      ">\t",
+      " > ",
+      "   >",
+      "    >",
+      "\t>",
+      ">  ",
+    ];
+    let withDefinitions: number = 0;
+    let quotedDeep: number = 0;
+    const differences: Array<string> = [];
+
+    for (let index: number = 0; index < 6000; index++) {
+      // Each line sixteen markers deep at most, as an email reads them.
+      const depth: number = 1 + random(MAX_DEFINITION_NESTING_DEPTH - 1);
+      const lines: Array<string> = [];
+
+      for (let line: number = 1 + random(6); line > 0; line--) {
+        // Most lines as deep as the quote, some less, some lazy, one deeper.
+        const lineDepth: number = random(4) === 0 ? random(depth + 2) : depth;
+        let written: string = "";
+
+        for (let level: number = 0; level < lineDepth; level++) {
+          written += random(6) === 0 ? MARKERS[random(MARKERS.length)] : "> ";
+        }
+
+        lines.push(`${written}${ENDINGS[random(ENDINGS.length)]}`);
+      }
+
+      const text: string = lines.join(random(5) === 0 ? "\n\n" : "\n");
+
+      if (Object.keys(markedLinks(text)).length > 0) {
+        withDefinitions++;
+        quotedDeep += depth >= 12 ? 1 : 0;
+      }
+
+      const difference: string | null = differenceFromMarked(text);
+
+      if (difference !== null) {
+        differences.push(`${JSON.stringify(text)}: ${difference}`);
+      }
+    }
+
+    expect(differences.slice(0, 5)).toEqual([]);
+    expect(withDefinitions).toBeGreaterThan(1000);
+    expect(quotedDeep).toBeGreaterThan(200);
   });
 });

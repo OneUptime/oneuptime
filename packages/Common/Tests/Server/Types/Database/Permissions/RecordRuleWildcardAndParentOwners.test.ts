@@ -228,14 +228,53 @@ const idsOf: (...ids: Array<ObjectID>) => Array<string> = (
 };
 
 // The label ids a labelled model's read keeps to, as the rule wrote them.
+/*
+ * The labels a grant keeps the incidents to: bound by the condition on the
+ * incident's id the label join table answers, `_id IN (SELECT
+ * "IncidentLabel"."incidentId" ...)` (AccessControlPermission
+ * .addLabelIdsToQuery, #8113) - a block's `NOT IN` is no grant - or, on a
+ * query the rule left the relation's own filter on, `labels`.
+ */
 const labelsOf: (query: Query<Incident>) => Array<string> = (
   query: Query<Incident>,
 ): Array<string> => {
-  return ((query.labels as unknown as Array<ObjectID>) || [])
-    .map((labelId: ObjectID): string => {
-      return labelId.toString();
-    })
-    .sort();
+  const labelIds: Array<string> = (
+    (query.labels as unknown as Array<ObjectID>) || []
+  ).map((labelId: ObjectID): string => {
+    return labelId.toString();
+  });
+
+  const visit: (condition: unknown) => void = (condition: unknown): void => {
+    if (!(condition instanceof FindOperator)) {
+      return;
+    }
+
+    if (condition.type === "and") {
+      (condition.value as unknown as Array<unknown>).forEach(visit);
+      return;
+    }
+
+    const sql: string =
+      typeof condition.getSql === "function"
+        ? condition.getSql("incident._id")
+        : "";
+
+    if (
+      sql.startsWith(
+        '(incident._id IN (SELECT "IncidentLabel"."incidentId" FROM "IncidentLabel"',
+      )
+    ) {
+      labelIds.push(
+        ...Object.values(condition.objectLiteralParameters || {})
+          .flat()
+          .map(String),
+      );
+    }
+  };
+
+  visit(query._id);
+
+  return labelIds.sort();
 };
 
 const scopeOf: (
@@ -442,7 +481,11 @@ describe("every grant and scope a read accepts narrows the records it reaches", 
       )) as Query<Incident>;
 
       expect(labelsOf(query)).toEqual(idsOf(stagingLabelId));
-      expect(query._id).toBeUndefined();
+      // The grant's condition on the id alone: no block takes records away.
+      expect((query._id as unknown as FindOperator<unknown>).type).toBe("raw");
+      expect(
+        (query._id as unknown as FindOperator<unknown>).getSql!("incident._id"),
+      ).not.toContain("NOT IN");
     });
 
     test("a block with labels on the wildcard read leaves the records out of a write too", async () => {

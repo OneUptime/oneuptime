@@ -156,6 +156,11 @@ return {
 
 Un'esecuzione conserva fino a 20 screenshot, ciascuno fino a 10 MB e 50 MB in totale. Uno screenshot può anche comparire nell'incidente o nell'avviso aperto da un'esecuzione fallita (nella sua pagina e nelle email che lo riguardano) se lo inserite nella descrizione di incidente o di avviso del monitor. Consultate [Mostrare uno screenshot](/docs/monitor/incident-alert-templating#mostrare-uno-screenshot).
 
+Gli screenshot di un controllo restano nei log del monitor stesso, non nei log di un incidente o di un avviso né nei cambi di stato di un monitor: questi conservano il resto del controllo, e ogni esecuzione i cui screenshot sono stati omessi lo indica (`areScreenshotsOmitted`). Gli screenshot già salvati lì vengono cancellati dopo l'aggiornamento da un job che gira ogni ora, un po' alla volta, finché non ne resta nessuno.
+
+> [!NOTE]
+> In un'installazione self-hosted, PostgreSQL riutilizza lo spazio lasciato dagli screenshot cancellati, ma non lo restituisce al disco. Per ridurre il database una volta cancellati, eseguite `VACUUM FULL` sulle tabelle più grandi in una finestra di manutenzione, perché blocca ogni tabella mentre la riscrive, oppure usate `pg_repack`, che non la blocca.
+
 :::details Restituire gli screenshot (metodo precedente)
 Per compatibilità con il passato, potete anche restituire gli screenshot dallo script come parte del valore di ritorno. Gli screenshot restituiti così vengono conservati **solo** quando lo script termina normalmente: vanno persi se lo script genera un errore. Preferite il canale laterale descritto sopra quando volete prove dei fallimenti.
 

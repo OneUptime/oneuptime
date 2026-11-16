@@ -272,7 +272,10 @@ describe("the cross-project Active lists say what they hold", () => {
       "Active Incidents",
       (): ReactElement => {
         return (
-          <GlobalActiveIncidentsPage {...propsFor(PageMap.ACTIVE_INCIDENTS)} />
+          <GlobalActiveIncidentsPage
+            {...propsFor(PageMap.ACTIVE_INCIDENTS)}
+            projects={[]}
+          />
         );
       },
       "Incidents nobody has acknowledged yet, from every project you belong to. Open one to acknowledge it.",
@@ -280,7 +283,12 @@ describe("the cross-project Active lists say what they hold", () => {
     [
       "Active Alerts",
       (): ReactElement => {
-        return <GlobalActiveAlertsPage {...propsFor(PageMap.ACTIVE_ALERTS)} />;
+        return (
+          <GlobalActiveAlertsPage
+            {...propsFor(PageMap.ACTIVE_ALERTS)}
+            projects={[]}
+          />
+        );
       },
       "Alerts nobody has acknowledged yet, from every project you belong to. Open one to acknowledge it.",
     ],

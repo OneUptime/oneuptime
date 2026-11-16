@@ -6,7 +6,9 @@ import {
 import ToolImportHttpClient, {
   createToolImportAddressTransport,
   createToolImportTransport,
+  TOOL_IMPORT_FIRST_BACKOFF_MS,
   TOOL_IMPORT_MAX_RATE_LIMIT_RETRIES,
+  TOOL_IMPORT_MIN_HINTED_WAIT_MS,
   ToolImportHttpClientOptions,
   ToolImportHttpError,
   ToolImportHttpErrorKind,
@@ -261,6 +263,84 @@ describe("ToolImportHttpClient: slowing down when the tool says to", () => {
     expect(short.sleep.waits).toEqual([250]);
   });
 
+  /*
+   * Issue #8928: Date.parse took "-5" for a day in 2001, gone by - a
+   * quarter second, the least - and Number() took "1.5" for a second and a
+   * half. Neither is a Retry-After (RFC 9110: digits only, or a date), so
+   * the wait doubles from two seconds as if there were no hint.
+   */
+  test.each([["-5"], ["1.5"], ["5 seconds"], ["0x10"], ["1e3"]])(
+    "a Retry-After of %j is no hint",
+    async (retryAfter: string) => {
+      const { client, sleep } = harness([
+        {
+          path: "/x",
+          answers: [
+            json({}, 429, { "retry-after": retryAfter }),
+            json({ ok: true }),
+          ],
+        },
+      ]);
+
+      await client.getJson("/x");
+
+      expect(sleep.waits).toEqual([TOOL_IMPORT_FIRST_BACKOFF_MS]);
+    },
+  );
+
+  test("Retry-After as an RFC 850 or asctime date is waited until, asctime in UTC", async () => {
+    const at: Date = new Date(NOW + 15_000);
+    const days: Array<string> = [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ];
+    const months: Array<string> = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+    const two: (value: number) => string = (value: number): string => {
+      return String(value).padStart(2, "0");
+    };
+    const time: string = `${two(at.getUTCHours())}:${two(at.getUTCMinutes())}:${two(at.getUTCSeconds())}`;
+
+    for (const retryAfter of [
+      `${days[at.getUTCDay()]}, ${two(at.getUTCDate())}-${months[at.getUTCMonth()]}-${two(at.getUTCFullYear() % 100)} ${time} GMT`,
+      `${days[at.getUTCDay()]!.slice(0, 3)} ${months[at.getUTCMonth()]} ${String(at.getUTCDate()).padStart(2, " ")} ${time} ${at.getUTCFullYear()}`,
+    ]) {
+      const { client, sleep } = harness([
+        {
+          path: "/x",
+          answers: [
+            json({}, 429, { "retry-after": retryAfter }),
+            json({ ok: true }),
+          ],
+        },
+      ]);
+
+      await client.getJson("/x");
+
+      expect({ retryAfter, waits: sleep.waits }).toEqual({
+        retryAfter,
+        waits: [15_000],
+      });
+    }
+  });
+
   test("it gives up in plain words after so many tries", async () => {
     const { client, api } = harness([
       { path: "/x", answers: [json({}, 429, { "retry-after": "1" })] },
@@ -303,6 +383,37 @@ describe("ToolImportHttpClient: failures", () => {
     );
     expect(sleep.waits).toEqual([1000, 2000, 4000]);
     expect(api.requests).toHaveLength(4);
+  });
+
+  test("a server error's Retry-After is waited out, never less than a quarter second", async () => {
+    const asked: Harness = harness([
+      {
+        path: "/x",
+        answers: [json({}, 503, { "retry-after": "2" }), json({ ok: 1 })],
+      },
+    ]);
+    await asked.client.getJson("/x");
+    expect(asked.sleep.waits).toEqual([2000]);
+
+    // "0" was a retry at once; a quarter second now.
+    const zero: Harness = harness([
+      {
+        path: "/x",
+        answers: [json({}, 503, { "retry-after": "0" }), json({ ok: 1 })],
+      },
+    ]);
+    await zero.client.getJson("/x");
+    expect(zero.sleep.waits).toEqual([TOOL_IMPORT_MIN_HINTED_WAIT_MS]);
+
+    // "-5" read as a day in 2001 was a retry at once too; no hint now.
+    const negative: Harness = harness([
+      {
+        path: "/x",
+        answers: [json({}, 503, { "retry-after": "-5" }), json({ ok: 1 })],
+      },
+    ]);
+    await negative.client.getJson("/x");
+    expect(negative.sleep.waits).toEqual([1000]);
   });
 
   test("a server error that recovers is not an error", async () => {

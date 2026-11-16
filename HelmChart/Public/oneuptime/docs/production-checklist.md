@@ -93,8 +93,9 @@ goes through the same steps in order, from installing the chart to a test page.
   PostgreSQL ships 500), or put PgBouncer in front (below). Inside a pod,
   background work gets bounded shares of that pool, so sign-ins and dashboards
   always find a connection however busy the jobs and probes are: probe
-  scheduling (the monitors, monitor tests and network devices probes are
-  handed, and their pending counts) runs at most a fifth of the pool at once,
+  scheduling (every request a probe makes for work - monitors, network
+  devices, discovery scans, VMware and OpenStack collections and the rest -
+  and their pending counts) runs at most a fifth of the pool at once,
   half of that for one probe (`app.probeSchedulingMaxConcurrentRequests`), and
   the queue jobs an `app` pod runs while `worker.enabled` is false hold at most
   the pool less a fifth kept for requests and less probe scheduling's share

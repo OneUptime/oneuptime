@@ -151,13 +151,28 @@ export const LOG_SCRUB_RULE_DEFAULTS_SUMMARY: string = translationKey(
   "Matches are replaced with [REDACTED] in the log body and attributes.",
 );
 
+/*
+ * All reaches every text a span stores: its name and status message, its
+ * attributes, its events (their names and attributes) and its links'
+ * attributes (#6513).
+ */
 export const TRACE_SCRUB_RULE_DEFAULTS_SUMMARY: string = translationKey(
-  "Matches are replaced with [REDACTED] in span names, attributes and event attributes.",
+  "Matches are replaced with [REDACTED] in span names, status messages, attributes, events and links.",
 );
 
+// A span's, its events' and its links' attributes.
 export const SENSITIVE_KEYS_SCRUB_RULE_DEFAULTS_SUMMARY: string =
   translationKey(
     "The values of attributes whose key looks sensitive are replaced with [REDACTED].",
+  );
+
+/*
+ * A log's attributes, and a body that is a map or a list: one sent so, or
+ * written as JSON (#6513).
+ */
+export const LOG_SENSITIVE_KEYS_SCRUB_RULE_DEFAULTS_SUMMARY: string =
+  translationKey(
+    "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].",
   );
 
 /**
@@ -257,8 +272,9 @@ const isCustomPattern: IsPatternTypeFunction = (
 };
 
 /*
- * A sensitive-keys rule reads attribute keys, so ingest scrubs attribute
- * values with it whatever its fields-to-scrub says: the form does not ask.
+ * A sensitive-keys rule reads keys - attributes', and a JSON log body's -
+ * so ingest runs it whatever its fields-to-scrub says: the form does not
+ * ask.
  */
 const isSensitiveKeysPattern: IsPatternTypeFunction = (
   values: FormValues<LogScrubRule>,
@@ -288,6 +304,8 @@ export interface ScrubRuleFormOptions {
   fieldsToScrubHelp: string;
   // What the folded section says while its default scrub scope is kept.
   defaultsSummary: string;
+  // What it says for a sensitive-keys rule, which has no scope to choose.
+  sensitiveKeysSummary: string;
 }
 
 /**
@@ -324,9 +342,7 @@ export const getScrubRuleAdvancedSummary: (
   }
 
   return [
-    sensitiveKeys
-      ? SENSITIVE_KEYS_SCRUB_RULE_DEFAULTS_SUMMARY
-      : options.defaultsSummary,
+    sensitiveKeys ? options.sensitiveKeysSummary : options.defaultsSummary,
   ];
 };
 
@@ -341,6 +357,7 @@ export const LOG_SCRUB_RULE_FORM_OPTIONS: ScrubRuleFormOptions = {
     "Which parts of the log to scrub: the log body (message), attribute values, or both.",
   ),
   defaultsSummary: LOG_SCRUB_RULE_DEFAULTS_SUMMARY,
+  sensitiveKeysSummary: LOG_SENSITIVE_KEYS_SCRUB_RULE_DEFAULTS_SUMMARY,
 };
 
 export const TRACE_SCRUB_RULE_FORM_OPTIONS: ScrubRuleFormOptions = {
@@ -351,10 +368,15 @@ export const TRACE_SCRUB_RULE_FORM_OPTIONS: ScrubRuleFormOptions = {
     { label: "Attributes Only", value: TraceScrubField.Attributes },
     { label: "Event Attributes Only", value: TraceScrubField.Events },
   ],
+  /*
+   * Attributes Only and All scrub a link's attributes with the span's own
+   * (#6507), and All the status message and the events' names too (#6513).
+   */
   fieldsToScrubHelp: translationKey(
-    "Which parts of the span to scrub: span name, attribute values, event attribute values, or all.",
+    "Which parts of the span to scrub: span name, attribute and link attribute values, event attribute values, or all, status message and event names too.",
   ),
   defaultsSummary: TRACE_SCRUB_RULE_DEFAULTS_SUMMARY,
+  sensitiveKeysSummary: SENSITIVE_KEYS_SCRUB_RULE_DEFAULTS_SUMMARY,
 };
 
 /*

@@ -156,6 +156,11 @@ return {
 
 En kørsel gemmer op til 20 skærmbilleder, hvert på op til 10 MB og 50 MB i alt. Et skærmbillede kan også vises i den hændelse eller advarsel, en mislykket kørsel åbner — på dens side og i e-mailene om den — ved at placere det i monitorens hændelses- eller advarselsbeskrivelse. Se [Vis et skærmbillede](/docs/monitor/incident-alert-templating#vis-et-skærmbillede).
 
+En kontrols skærmbilleder gemmes i monitorens egne logfiler, ikke i en hændelses eller en advarsels logfiler eller i en monitors statusændringer: de gemmer resten af kontrollen, og hver kørsel, hvis skærmbilleder er udeladt, siger det (`areScreenshotsOmitted`). Skærmbilleder, der allerede er gemt der, ryddes efter opgraderingen af et job, der kører hver time, lidt ad gangen, indtil der ikke er nogen tilbage.
+
+> [!NOTE]
+> På en selvhostet installation genbruger PostgreSQL den plads, de ryddede skærmbilleder efterlader, men giver den ikke tilbage til disken. For at gøre databasen mindre, når de er ryddet, skal du køre `VACUUM FULL` på de største tabeller i et vedligeholdelsesvindue, da den låser hver tabel, mens den skriver den om, eller bruge `pg_repack`, som ikke gør det.
+
 :::details Returnering af skærmbilleder (legacy)
 Af hensyn til bagudkompatibilitet kan du også returnere skærmbilleder fra scriptet som en del af returværdien. Skærmbilleder, der returneres på denne måde, gemmes **kun**, når scriptet afsluttes normalt — de går tabt, hvis scriptet kaster en fejl. Foretræk sidekanalmønstret ovenfor, når du vil have bevis på fejl.
 

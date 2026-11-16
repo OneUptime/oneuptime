@@ -135,7 +135,8 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 | `resourceGroups` | 分组；嵌套分组带有 `parentStatusPageGroupId`。 |
 | `monitorStatuses` | 项目的所有监视器状态，按优先级从低到高排列。 |
 | `monitorGroupCurrentStatuses`、`monitorsInGroup` | 页面上每个监视器分组的当前状态，以及其中的监视器。 |
-| `notMonitoredResourceIds` | 页面显示为 **未监控** 的资源的 ID：监控已关闭的监视器，或所有监视器的监控都已关闭的监视器分组。它们不决定任何状态，这样的分组在 `monitorGroupCurrentStatuses` 中没有条目。 |
+| `notMonitoredResourceIds` | 页面显示为 **未监控** 的资源的 ID：监控已关闭的监视器，或所有监视器的监控都已关闭的监视器分组。`notMonitoredYetResourceIds` 中的资源也列在这里。它们不决定任何状态，这样的分组在 `monitorGroupCurrentStatuses` 中没有条目。 |
+| `notMonitoredYetResourceIds` | 页面显示为 **尚未监控** 的资源的 ID：尚未被检查过、仍处于每个监视器开始时的正常运行状态的监视器，或其中没有任何监视器被检查过的监视器分组。 |
 | `monitorStatusTimelines`、`uptimeDailyAggregate`、`monitorGroupUptimeDailyAggregate`、`monitorGroupMergedDowntime`、`statusPageHistoryChartBarColorRules` | 绘制可用率条所用的数据，以及页面的条形颜色规则。 |
 | `activeIncidents`、`incidentPublicNotes`、`incidentStateTimelines`、`incidentStates` | 页面显示的未解决事件、它们的公开备注和状态变化，以及项目的事件状态。 |
 | `timelineIncidents` | 可用率条时间窗口内的事件（包括已解决的），用于条形的提示信息。 |
@@ -197,7 +198,7 @@ curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
 | `activeIncidents` | 页面显示的未解决事件，每个都带有它所影响资源的 `affectedResourceIds`。 |
 | `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | 进行中和即将到来的维护事件，每个都带有它的 `affectedResourceIds`。 |
 
-页面不显示资源的状态时，以及 `isMonitored` 为 `false` 时，该资源的 `currentStatus` 为 `null`：后者表示没有任何东西检查该资源，因为其监视器的监控已关闭，或其监视器组中每个监视器的监控都已关闭，所以页面将其显示为 **未监控**。只要进行中的事件指定了该资源的某个监视器，或其监视器组中的某个监视器，无论这些监视器处于什么状态，`isUnderMaintenance` 都为 `true`。
+页面不显示资源的状态时，以及 `isMonitored` 为 `false` 时，该资源的 `currentStatus` 为 `null`：后者表示没有任何东西检查该资源，因为其监视器的监控已关闭，或其监视器组中每个监视器的监控都已关闭，所以页面将其显示为 **未监控**；或者还没有任何东西检查过该资源，所以页面将其显示为 **尚未监控**。只要进行中的事件指定了该资源的某个监视器，或其监视器组中的某个监视器，无论这些监视器处于什么状态，`isUnderMaintenance` 都为 `true`。
 
 ## 指定日期范围的可用率
 

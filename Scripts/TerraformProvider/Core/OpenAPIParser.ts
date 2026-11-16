@@ -1176,6 +1176,13 @@ export class OpenAPIParser {
   }
 
   /*
+   * What the reference says of an attribute OneUptime answers once
+   * (shownOnce): where its value comes from, and when there is none.
+   */
+  public static readonly SHOWN_ONCE_DESCRIPTION: string =
+    "Kept in state from the answer to the create: OneUptime never reads it back, so a resource imported into Terraform has none. Replace the resource for a new one.";
+
+  /*
    * Whether a data source attribute can be a lookup argument: a single plain
    * value the list endpoint can match exactly. JSON, timestamps, phone
    * numbers (kept in OneUptime's spelling, which a lookup would have to
@@ -1400,10 +1407,18 @@ export class OpenAPIParser {
      */
     const isSecret: boolean =
       prop["x-oneuptime-secret"] === true || format === "password";
+    /*
+     * Answered once, by the create that makes the record, and never read
+     * back (ModelSchema.getCreatedModelSchema): kept in state from that
+     * answer instead.
+     */
+    const isShownOnce: boolean = prop["x-oneuptime-shown-once"] === true;
 
     const base: TerraformAttribute = {
       type: "string",
-      description: description,
+      description: isShownOnce
+        ? `${description} ${OpenAPIParser.SHOWN_ONCE_DESCRIPTION}`.trim()
+        : description,
       required: !computed && required,
       computed: computed,
       apiFieldName: propName,
@@ -1417,6 +1432,7 @@ export class OpenAPIParser {
         ? { relationTableName }
         : {}),
       ...(isSecret ? { sensitive: true } : {}),
+      ...(isShownOnce ? { shownOnce: true } : {}),
     };
 
     /*

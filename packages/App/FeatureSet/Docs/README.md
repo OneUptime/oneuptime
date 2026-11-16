@@ -94,6 +94,15 @@ compressed). Every installation serves its own docs, so it works on an
 air-gapped server too, and the page titles embedded in each page answer
 when the server cannot be reached.
 
+The server builds a language's index the first time someone searches in
+it, in one to three seconds, and keeps it while people search in that
+language: 14 to 25 MB a language, its words as typed arrays and its text
+deflated (`Utils/DocsIndex.ts`). An index nobody has searched in for half
+an hour is let go, and the next search builds it again
+(`DOCS_INDEX_IDLE_MS` in `Utils/AIDocsReader.ts`).
+`DocsIndexRealDocs.test.ts` fails an index that holds more than three
+times its pages' Markdown.
+
 ## What a page looks like
 
 Every page answers, in this order: what is this, why would I use it, how do I

@@ -1002,6 +1002,11 @@ export const AI_READ_CARD_LINES: {
   noMembers: string;
   noOneOnCall: string;
   onCallNow: string;
+  waitingForData: string;
+  noResultsYet: string;
+  paused: string;
+  probesNotEnabled: string;
+  probesDisconnected: string;
 } = {
   // A monitor whose monitoring is off, as the Monitors table says it; a runbook turned off.
   disabled: translationKey("Disabled"),
@@ -1010,7 +1015,28 @@ export const AI_READ_CARD_LINES: {
   noOneOnCall: translationKey("No one is on call"),
   // Who an on-call schedule has on call now, by name.
   onCallNow: translationKey("On call now: {{name}}"),
+  /*
+   * A monitor nothing has checked yet, as the Monitors table says it
+   * (Utils/Monitor/MonitorRowStatus, issue #8899) - on its card and in the
+   * table's Status column, never the operational status it was created
+   * in: its first result has not come back yet, it is overdue, an incident
+   * or maintenance holds its checks, or no probe can check it.
+   */
+  waitingForData: translationKey("Waiting for data"),
+  noResultsYet: translationKey("No results yet"),
+  paused: translationKey("Paused"),
+  probesNotEnabled: translationKey("Probes Not Enabled"),
+  probesDisconnected: translationKey("Probes Disconnected"),
 };
+
+// The lines above that say why nothing has checked a monitor yet.
+export const AI_READ_CARD_NOT_CHECKED_YET_LINES: ReadonlyArray<string> = [
+  AI_READ_CARD_LINES.waitingForData,
+  AI_READ_CARD_LINES.noResultsYet,
+  AI_READ_CARD_LINES.paused,
+  AI_READ_CARD_LINES.probesNotEnabled,
+  AI_READ_CARD_LINES.probesDisconnected,
+];
 
 /*
  * A read's card's values that are OneUptime's words, each said as a term:

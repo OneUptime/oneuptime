@@ -18,11 +18,25 @@ import {
 import ScrubNestedValuesUtil, {
   ScrubNestedValuesAllowance,
 } from "Common/Utils/Telemetry/ScrubNestedValues";
+import ScrubJsonTextUtil, {
+  ScrubJsonTexts,
+} from "Common/Utils/Telemetry/ScrubJsonText";
+import { maskKeepingEnds } from "Common/Utils/Telemetry/ScrubMask";
+import { correlationIdAttributeKeys } from "Common/Utils/Telemetry/CorrelationIdAttributes";
 import { copyOwnValues, readOwnValue } from "Common/Utils/LookupTable";
 
 interface CompiledRule {
   rule: TraceScrubRule;
   regex: ScrubRegExp;
+}
+
+// What an exception copies out of its span's exception event.
+export interface ExceptionContent {
+  message: string;
+  stackTrace: string;
+  // The event's exception.type, when the caller stores it.
+  exceptionType?: string | undefined;
+  attributes: JSONObject;
 }
 
 const CACHE_TTL_MS: number = 60 * 1000; // 60 seconds
@@ -238,22 +252,25 @@ export class TraceScrubRuleService {
       case TraceScrubPatternType.IPAddress:
         return "***.***.***.***";
 
-      default: {
-        if (value.length <= 2) {
-          return "***";
-        }
-        return (
-          value[0] +
-          "*".repeat(Math.max(value.length - 2, 3)) +
-          value[value.length - 1]!
-        );
-      }
+      default:
+        // First and last characters kept, whole (Common/Utils/Telemetry/ScrubMask).
+        return maskKeepingEnds(value);
     }
   }
 
+  /*
+   * The pattern rules over one text of a record. A text that is the JSON
+   * text of a list or a map - an attribute written as JSON, such as an AI
+   * call's messages, or one held as its JSON text - is read with its
+   * escapes read and stays JSON: a match is replaced only inside the values
+   * it covers (Common/Utils/Telemetry/ScrubJsonText, #8923). `jsonTexts`:
+   * the record's, so each such text is parsed once however many rules read
+   * it.
+   */
   private static scrubString(
     value: string,
     compiledRules: Array<CompiledRule>,
+    jsonTexts: ScrubJsonTexts,
   ): string {
     let result: string = value;
 
@@ -268,8 +285,17 @@ export class TraceScrubRuleService {
       const action: string =
         (rule.scrubAction as string) || TraceScrubAction.Redact;
 
-      result = regex.replace(result, (match: string): string => {
-        return this.applyScrubAction(match, action, patternType);
+      result = ScrubJsonTextUtil.scrubText({
+        text: result,
+        findMatches: (text: string): Array<[number, number]> => {
+          return regex.matchRanges(text);
+        },
+        replaceMatch: (match: string): string => {
+          return this.applyScrubAction(match, action, patternType);
+        },
+        // A person may have written a custom pattern against stored escapes.
+        readsAsWritten: patternType === TraceScrubPatternType.Custom,
+        jsonTexts: jsonTexts,
       });
     }
 
@@ -290,6 +316,8 @@ export class TraceScrubRuleService {
     attributes: JSONObject,
     rules: Array<CompiledRule>,
     heldAsText: ReadonlySet<string>,
+    jsonTexts: ScrubJsonTexts,
+    correlationIdKeys?: ReadonlySet<string> | undefined,
   ): void {
     for (const compiled of rules) {
       const isKeyTargeted: boolean =
@@ -300,7 +328,11 @@ export class TraceScrubRuleService {
         const action: string =
           (compiled.rule.scrubAction as string) || TraceScrubAction.Redact;
 
-        // Key match → every text of the value gets the action.
+        /*
+         * Key match → every text of the value gets the action - but for a
+         * span's attribute that holds its own session or conversation id,
+         * which its column keeps (#8924).
+         */
         ScrubNestedValuesUtil.hideAttributeTextsUnderSensitiveKeys(
           attributes,
           (key: string): boolean => {
@@ -314,6 +346,7 @@ export class TraceScrubRuleService {
             );
           },
           heldAsText,
+          correlationIdKeys,
         );
 
         continue;
@@ -324,7 +357,7 @@ export class TraceScrubRuleService {
       ScrubNestedValuesUtil.scrubAttributeTexts(
         attributes,
         (text: string): string => {
-          return this.scrubString(text, singleRule);
+          return this.scrubString(text, singleRule, jsonTexts);
         },
       );
     }
@@ -378,19 +411,17 @@ export class TraceScrubRuleService {
 
   /*
    * Scrub exception content extracted from a span's exception event.
-   * Exception message / stack trace / attributes are copies of the
+   * Exception message / stack trace / type / attributes are copies of the
    * span-event attributes, so the rules that apply are the ones scoped
    * to Events (or All) — keeping the ExceptionInstance copy consistent
-   * with the scrubbed event attributes stored on the Span row.
+   * with the scrubbed event attributes stored on the Span row. The type
+   * (exception.type) is scrubbed as the message is: the Span row's copy of
+   * it always was, and the exception's was stored as it came (#6513).
    */
   public static scrubExceptionContent(
-    content: {
-      message: string;
-      stackTrace: string;
-      attributes: JSONObject;
-    },
+    content: ExceptionContent,
     compiledRules: Array<CompiledRule>,
-  ): { message: string; stackTrace: string; attributes: JSONObject } {
+  ): ExceptionContent {
     if (compiledRules.length === 0) {
       return content;
     }
@@ -430,11 +461,31 @@ export class TraceScrubRuleService {
     const heldAsText: ReadonlySet<string> =
       this.holdOversizedValuesAsText([attributes]).get(attributes) ||
       NOTHING_HELD;
-    this.scrubAttributesInPlace(attributes, applicableRules, heldAsText);
+    const jsonTexts: ScrubJsonTexts = new ScrubJsonTexts();
+
+    this.scrubAttributesInPlace(
+      attributes,
+      applicableRules,
+      heldAsText,
+      jsonTexts,
+    );
 
     return {
-      message: this.scrubString(content.message, applicableRules),
-      stackTrace: this.scrubString(content.stackTrace, applicableRules),
+      message: this.scrubString(content.message, applicableRules, jsonTexts),
+      stackTrace: this.scrubString(
+        content.stackTrace,
+        applicableRules,
+        jsonTexts,
+      ),
+      ...(typeof content.exceptionType === "string"
+        ? {
+            exceptionType: this.scrubString(
+              content.exceptionType,
+              applicableRules,
+              jsonTexts,
+            ),
+          }
+        : {}),
       attributes: attributes,
     };
   }
@@ -467,6 +518,21 @@ export class TraceScrubRuleService {
     ): ReadonlySet<string> => {
       return heldAsText.get(attributes) || NOTHING_HELD;
     };
+
+    // Which of the span's texts are JSON, worked out once for every rule.
+    const jsonTexts: ScrubJsonTexts = new ScrubJsonTexts();
+
+    /*
+     * The span's own attributes that hold its session id or, on an AI call,
+     * its conversation id - the values its sessionId and llmConversationId
+     * columns store: correlation ids, which a Sensitive Attribute Keys rule
+     * keeps where the columns keep them
+     * (Common/Utils/Telemetry/CorrelationIdAttributes, #8924). An event's
+     * or a link's attributes are read as before. Read before any rule
+     * changes them.
+     */
+    const correlationIdKeys: ReadonlySet<string> =
+      correlationIdAttributeKeys(spanRow);
 
     /*
      * Each rule's `fieldsToScrub` is per-rule (name vs attributes
@@ -505,6 +571,28 @@ export class TraceScrubRuleService {
         spanRow["name"] = this.scrubString(
           spanRow["name"] as string,
           singleRule,
+          jsonTexts,
+        );
+      }
+
+      /*
+       * The status message: free text a span sets on itself, which often
+       * repeats the error it failed with - an address, a token in a URL.
+       * No scope but All names it (it is not the name, nor an attribute,
+       * nor an event), so All reaches it, as All reaches every text a span
+       * stores (#6513). A Sensitive Attribute Keys rule reads no free
+       * text: scrubString skips it. Most spans set none - an empty text,
+       * which no rule can match - and cost no rule a question.
+       */
+      if (
+        scrubAll &&
+        typeof spanRow["statusMessage"] === "string" &&
+        spanRow["statusMessage"] !== ""
+      ) {
+        spanRow["statusMessage"] = this.scrubString(
+          spanRow["statusMessage"] as string,
+          singleRule,
+          jsonTexts,
         );
       }
 
@@ -518,6 +606,8 @@ export class TraceScrubRuleService {
           spanRow["attributes"] as JSONObject,
           singleRule,
           heldIn(spanRow["attributes"]),
+          jsonTexts,
+          correlationIdKeys,
         );
       }
 
@@ -544,6 +634,7 @@ export class TraceScrubRuleService {
             spanRow[columnKey] = this.scrubString(
               spanRow[columnKey] as string,
               singleRule,
+              jsonTexts,
             );
           }
         }
@@ -565,12 +656,19 @@ export class TraceScrubRuleService {
               attributes as JSONObject,
               singleRule,
               heldIn(attributes),
+              jsonTexts,
             );
           }
         }
       }
 
-      // Span event attributes — walk events[].attributes.
+      /*
+       * Span events — walk events[].attributes, and under All the event's
+       * name too: an instrumentation can name an event with what happened
+       * ("Retrying after 10.0.0.12 refused"), and All reaches every text a
+       * span stores. Event Attributes Only reads what it says, the
+       * attributes (#6513).
+       */
       if (
         (scrubAll || fieldsToScrub === TraceScrubField.Events) &&
         Array.isArray(spanRow["events"])
@@ -579,11 +677,24 @@ export class TraceScrubRuleService {
           "events"
         ] as Array<JSONObject>;
         for (const event of events) {
-          if (event && typeof event === "object" && event["attributes"]) {
+          if (!event || typeof event !== "object") {
+            continue;
+          }
+
+          if (scrubAll && typeof event["name"] === "string") {
+            event["name"] = this.scrubString(
+              event["name"] as string,
+              singleRule,
+              jsonTexts,
+            );
+          }
+
+          if (event["attributes"]) {
             this.scrubAttributesInPlace(
               event["attributes"] as JSONObject,
               singleRule,
               heldIn(event["attributes"]),
+              jsonTexts,
             );
           }
         }

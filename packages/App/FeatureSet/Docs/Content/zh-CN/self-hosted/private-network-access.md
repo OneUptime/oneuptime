@@ -50,7 +50,7 @@ Ping、Port、SSL 证书、DNS、DNSSEC、SNMP / 网络设备、SQL 查询、数
 
 云元数据端点 `169.254.169.254` 被放在禁止层级是有原因的。在云虚拟机上，它会把实例的 IAM 凭据交给任何能从这台机器发出 HTTP 请求的东西，因此任何笼统的设置都永远不会开放它。
 
-在内部携带 IPv4 目标的 IPv6 写法（IPv4 映射（`::ffff:10.0.0.5`）、NAT64、6to4、Teredo）会按照它们实际到达的 IPv4 地址进行分类，因此无法借助这些写法绕过私有层级的放行，把禁止的地址偷偷带进来。
+在内部携带 IPv4 目标的 IPv6 写法（IPv4 映射（`::ffff:10.0.0.5`）、IPv4 兼容（`::10.0.0.5`）、NAT64、6to4、Teredo）无论怎样书写，都会按照它们实际到达的 IPv4 地址进行分类，因此无法借助这些写法绕过私有层级的放行，把禁止的地址偷偷带进来。
 
 ## Webhook 和工作流
 
@@ -141,6 +141,8 @@ outboundConnections:
 在 Docker Compose 中，`config.env` 里有一行 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=false`（如果你的 `config.env` 早于它，请添加这一行）。把这一行改为 `true`，而不是再添加一行，然后运行 `npm run start`，用新值重新创建容器；`docker compose restart` 不会重新读取 `config.env`。在 Kubernetes 中，在 values 文件中设置它并升级发布版本；chart 会把它传给 app 和 worker 的 Pod。
 
 开启后，被拒绝的主机名在报告时不会说明它解析到了什么，例如 _"LLM provider host ollama.internal could not be reached."_ 这样的消息。完全无法解析的名称也会得到同样的消息，因此项目成员无法利用这些字段查出存在哪些内部名称。以 IP 形式输入的地址仍会连同原因一起给出，例如 _"LLM provider host 10.0.4.12 is not allowed: private network address."_ 这样的消息。设置 `LOG_LEVEL=DEBUG` 后，应用会记录每个被拒绝的名称所解析到的地址。
+
+在出站代理之后，通过 HTTP 进行的连接会像 Webhook 一样经过代理：通过 HTTP 读取的数据源和安全事件连接、威胁情报源、LLM 提供商、OAuth 令牌 URL、OIDC 单点登录、外部日历、MCP 服务器、备份、自定义域名验证、Runbook HTTP 步骤以及 Grafana OnCall 导入，都会使用 `HTTPS_PROXY`、`HTTP_PROXY` 或 `ALL_PROXY` 中设置的代理，无论它是用地址还是用主机名指定的。OneUptime 仍会先检查地址，也从不跟随重定向，但解析名称并建立连接的是代理，因此请在代理本身拒绝链路本地目标，尤其是 `169.254.169.254`。`NO_PROXY` 中的主机会被直接连接，连到 OneUptime 检查过的地址：请把你的内部主机列在那里。数据库和 SMTP 连接以及 Git 服务器始终直接连接，不经过代理。
 
 ## 探测器和监视器
 
