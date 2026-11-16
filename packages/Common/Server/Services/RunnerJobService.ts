@@ -2251,6 +2251,54 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Why the agent holding this job must stop it (AiCommandKillSwitch
+   * .getStopReason: an AI command, not an access test, of a project whose
+   * Enable AI is off now), or null while it may go on. Read on every job
+   * heartbeat by each agent ingress - a Runner's, a Kubernetes AI agent's
+   * and a resource AI agent's, a cloud account's Cloud AI agent among them
+   * - after the lease was renewed, so a stopped agent still reports what it
+   * did.
+   *
+   * projectId is the authenticated agent's, which every claim query holds
+   * the job to. A global Runner has none: it holds only a runbook's own
+   * JavaScript steps, which Enable AI never stops, so nothing is read for
+   * it. A job the agent no longer holds says nothing here: the heartbeat
+   * already refused it.
+   */
+  @CaptureSpan()
+  public async getStopReasonOfHeldJob(data: {
+    jobId: ObjectID;
+    agentId: ObjectID;
+    projectId: ObjectID | null | undefined;
+  }): Promise<string | null> {
+    if (!data.projectId) {
+      return null;
+    }
+
+    const job: Model | null = await this.findOneBy({
+      query: {
+        _id: data.jobId.toString(),
+        assignedAgentId: data.agentId,
+      },
+      select: {
+        origin: true,
+        aiRunId: true,
+        autoRemediationSuggestionId: true,
+      },
+      props: { isRoot: true },
+    });
+
+    if (!job) {
+      return null;
+    }
+
+    return await AiCommandKillSwitch.getStopReason({
+      job,
+      projectId: data.projectId,
+    });
+  }
+
+  /*
    * What an AI-origin job's output looks like on the row. The dashboard
    * renders RunnerJob.output verbatim on the cluster's AI page and the
    * remediation card, so a `kubectl get secret -o yaml` an investigation

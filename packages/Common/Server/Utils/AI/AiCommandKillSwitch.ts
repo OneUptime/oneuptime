@@ -29,12 +29,14 @@ import ProjectService from "../../Services/ProjectService";
  *     resource AI agent ingresses): a job enqueued before the switch went
  *     off is failed with the reason, never handed to the agent.
  *
- * And a third time for a resource AI agent - a cloud account's Cloud AI
- * agent among them - on every heartbeat of a job it holds (getStopReason):
- * the switch turned off after the claim tells the agent to stop. Its
- * heartbeat just before the command starts stops it from starting; a cloud
- * change stops before its call, or stops waiting for one already sent. The
- * job is not failed for it: the agent reports what it did, and that is
+ * And a third time on every heartbeat of a job an agent holds - a Runner,
+ * a Kubernetes AI agent or a resource AI agent, a cloud account's Cloud AI
+ * agent among them (getStopReason, read for each by RunnerJobService
+ * .getStopReasonOfHeldJob): the switch turned off after the claim tells
+ * the agent to stop. Its heartbeat just before the command starts stops it
+ * from starting; a cloud change stops before its call, or stops waiting
+ * for one already sent. A command that already started is left to finish.
+ * The job is not failed for it: the agent reports what it did, and that is
  * what the job records.
  *
  * The one exception is an access test - Test connection on a resource's
@@ -118,7 +120,8 @@ export default class AiCommandKillSwitch {
    * Why an agent that holds this job - it claimed it, and may be running it
    * - must stop: an AI command (not an access test) of a project whose
    * Enable AI is off now. Null while it may go on. Read on each of the
-   * job's heartbeats (the resource AI agent's ingress).
+   * job's heartbeats, by every agent's ingress (RunnerJobService
+   * .getStopReasonOfHeldJob).
    */
   public static async getStopReason(data: {
     job: Pick<RunnerJob, "origin" | "aiRunId" | "autoRemediationSuggestionId">;
