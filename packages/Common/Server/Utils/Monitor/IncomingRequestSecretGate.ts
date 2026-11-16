@@ -44,6 +44,12 @@ import MonitorPauseState, {
  *   first request, one silent for a day, or a read that failed - goes on to
  *   the queue undecided, with its arrival unrecorded, and the worker decides.
  *
+ *   A verification handshake (WebhookVerification, issue #8429) is the one
+ *   request the edge looks up whatever the key: it is answered only for a
+ *   monitor's key, once the project's requirement lets it through, and it is
+ *   usually a new monitor's first request. Only a request of a handshake's
+ *   exact shape is looked up so, and a found key is kept for the minute.
+ *
  * IN THE WORKER - before the request is tracked, kept or evaluated
  * (decideInWorker). Always, on the policy as it is when the job runs: the
  * edge may not have decided, and a secret deleted while the job waited no
@@ -86,10 +92,18 @@ export default class IncomingRequestSecretGate {
   public static async decideAtEdge(data: {
     secretKey: string;
     presentedSecretHashes: Array<string>;
+    /*
+     * Look the key up even when no trusted caller has registered it: for a
+     * verification handshake, which is answered only for a monitor's key.
+     */
+    placeUntrackedKey?: boolean | undefined;
   }): Promise<IncomingRequestSecretEdgeDecision> {
     try {
       const monitorOfKey: MonitorOfSecretKey | null =
-        await this.findMonitorAtEdge(data.secretKey);
+        await this.findMonitorAtEdge({
+          secretKey: data.secretKey,
+          placeUntrackedKey: Boolean(data.placeUntrackedKey),
+        });
 
       if (!monitorOfKey) {
         return { mayRecordArrival: false };
@@ -223,13 +237,16 @@ export default class IncomingRequestSecretGate {
   /*
    * The monitor (and project) of an incoming request monitor's key, as the
    * edge may learn it: kept, or looked up for a key a trusted caller
-   * registered. Null when the edge cannot place it. A paused monitor is
-   * placed but never kept, as the worker never keeps one
-   * (ProcessIncomingRequestIngest).
+   * registered - or for any key, when asked to place an untracked one. Null
+   * when the edge cannot place it. A paused monitor is placed but never
+   * kept, as the worker never keeps one (ProcessIncomingRequestIngest).
    */
-  private static async findMonitorAtEdge(
-    secretKey: string,
-  ): Promise<MonitorOfSecretKey | null> {
+  private static async findMonitorAtEdge(data: {
+    secretKey: string;
+    placeUntrackedKey: boolean;
+  }): Promise<MonitorOfSecretKey | null> {
+    const secretKey: string = data.secretKey;
+
     if (!secretKey || !ObjectID.isValidUUID(secretKey)) {
       return null;
     }
@@ -244,7 +261,10 @@ export default class IncomingRequestSecretGate {
       return kept;
     }
 
-    if (!(await IncomingRequestReceivedAtStore.isTracked(secretKey))) {
+    if (
+      !data.placeUntrackedKey &&
+      !(await IncomingRequestReceivedAtStore.isTracked(secretKey))
+    ) {
       return null;
     }
 

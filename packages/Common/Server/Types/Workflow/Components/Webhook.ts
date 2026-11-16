@@ -5,6 +5,9 @@ import {
   RequestHandler,
 } from "../../../Utils/Express";
 import Response from "../../../Utils/Response";
+import WebhookVerification, {
+  WebhookVerificationAnswer,
+} from "../../../Utils/WebhookVerification";
 import ClusterKeyAuthorization from "../../../Middleware/ClusterKeyAuthorization";
 import WebhookRequestBody from "../../../Middleware/WebhookRequestBody";
 import { RunOptions, RunReturnType } from "../ComponentCode";
@@ -15,6 +18,8 @@ import ObjectID from "../../../../Types/ObjectID";
 import ComponentMetadata, { Port } from "../../../../Types/Workflow/Component";
 import ComponentID from "../../../../Types/Workflow/ComponentID";
 import WebhookComponents from "../../../../Types/Workflow/Components/Webhook";
+import { WORKFLOW_ARCHIVED_RUN_REFUSED_MESSAGE } from "../../../../Types/Workflow/WorkflowArchive";
+import { WORKFLOW_TURNED_OFF_MESSAGE } from "../../../../Types/Workflow/WorkflowEnabled";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 import WorkflowService from "../../../Services/WorkflowService";
 import Workflow from "../../../../Models/DatabaseModels/Workflow";
@@ -110,6 +115,21 @@ export default class WebhookTrigger extends TriggerCode {
         }
       },
     );
+
+    /*
+     * Only a CloudEvents validation reaches this: StartServer's CORS
+     * middleware answers every other OPTIONS request itself.
+     */
+    props.router.options(
+      `/trigger/:secretkey`,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.initTrigger(req, res, props);
+        } catch (e) {
+          return next(e);
+        }
+      },
+    );
   }
 
   @CaptureSpan()
@@ -132,6 +152,8 @@ export default class WebhookTrigger extends TriggerCode {
       select: {
         _id: true,
         triggerId: true,
+        isEnabled: true,
+        isArchived: true,
       },
       props: {
         isRoot: true,
@@ -149,6 +171,37 @@ export default class WebhookTrigger extends TriggerCode {
       SIGNED_WEBHOOK_TRIGGER_IDS.includes(workflow.triggerId)
     ) {
       throw new BadDataException(SIGNED_WEBHOOK_WORKFLOW_MESSAGE);
+    }
+
+    /*
+     * A service checking the URL before it delivers to it - Azure Event
+     * Grid, Slack, Microsoft Graph, Okta, a CloudEvents sender - gets the
+     * answer its protocol expects (WebhookVerification, issue #8429), and
+     * starts nothing: the check is no event for the workflow to act on. It
+     * is refused as a call would be while the workflow is archived or off,
+     * with why, so the service is never told to deliver to a workflow that
+     * would refuse every delivery.
+     */
+    const verification: WebhookVerificationAnswer | null =
+      WebhookVerification.recognize(WebhookVerification.readRequest(req));
+
+    if (verification) {
+      if (workflow.isArchived) {
+        throw new BadDataException(WORKFLOW_ARCHIVED_RUN_REFUSED_MESSAGE);
+      }
+
+      if (!workflow.isEnabled) {
+        throw new BadDataException(WORKFLOW_TURNED_OFF_MESSAGE);
+      }
+
+      WebhookVerification.send(res, verification);
+      return;
+    }
+
+    // An OPTIONS request that is no CloudEvents validation starts nothing.
+    if (req.method === "OPTIONS") {
+      Response.sendEmptySuccessResponse(req, res);
+      return;
     }
 
     const executeWorkflow: ExecuteWorkflowType = {

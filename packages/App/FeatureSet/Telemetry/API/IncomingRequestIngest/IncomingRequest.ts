@@ -20,6 +20,9 @@ import IncomingRequestSecretRequest, {
   PresentedIncomingRequestSecrets,
 } from "Common/Server/Utils/Monitor/IncomingRequestSecretRequest";
 import WebhookRequestBody from "Common/Server/Middleware/WebhookRequestBody";
+import WebhookVerification, {
+  WebhookVerificationAnswer,
+} from "Common/Server/Utils/WebhookVerification";
 import OneUptimeDate from "Common/Types/Date";
 
 const router: ExpressRouter = Express.getRouter();
@@ -79,23 +82,52 @@ const processIncomingRequest: RequestHandler = async (
     )?.toString();
 
     /*
+     * A service checking this URL before it delivers to it - Azure Event
+     * Grid, Slack, Microsoft Graph, Okta, a CloudEvents sender - expects its
+     * own answer, not the empty one (WebhookVerification, issue #8429).
+     */
+    const verification: WebhookVerificationAnswer | null =
+      WebhookVerification.recognize(WebhookVerification.readRequest(req));
+
+    /*
      * A project that requires an incoming request secret refuses a request
      * without one here, with 401 and what to send, before anything about it
      * is recorded (IncomingRequestSecretGate). A request the endpoint cannot
-     * place in a project goes on, and the worker decides.
+     * place in a project goes on, and the worker decides - but for a
+     * handshake, whose key the endpoint looks up whatever it is: it answers
+     * one only for a monitor's key, and only once the requirement lets it
+     * through.
      */
     const secretDecision: IncomingRequestSecretEdgeDecision =
       await IncomingRequestSecretGate.decideAtEdge({
         secretKey: monitorSecretKeyAsString,
         presentedSecretHashes: presented.secretHashes,
+        placeUntrackedKey: Boolean(verification),
       });
 
     if (secretDecision.refusalMessage) {
       throw new NotAuthenticatedException(secretDecision.refusalMessage);
     }
 
-    // Return response immediately
-    Response.sendEmptySuccessResponse(req, res);
+    /*
+     * Answered at once: a handshake with what its service expects, any other
+     * request with the empty body it always got.
+     */
+    if (verification && secretDecision.mayRecordArrival) {
+      WebhookVerification.send(res, verification);
+    } else {
+      Response.sendEmptySuccessResponse(req, res);
+    }
+
+    /*
+     * A CloudEvents validation (OPTIONS) is the subscription asking, not a
+     * request for the monitor: it is answered, and neither counts as a
+     * heartbeat nor reaches the criteria. Every other request does, a
+     * handshake included, as it always has.
+     */
+    if (req.method === "OPTIONS") {
+      return;
+    }
 
     /*
      * Record the arrival now, not when a worker gets to the job: the
@@ -145,6 +177,21 @@ router.post(
 router.get(
   "/incoming-request/:secretkey",
   readTextBody,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    processIncomingRequest(req, res, next);
+  },
+);
+
+/*
+ * Only a CloudEvents validation reaches this: StartServer's CORS middleware
+ * answers every other OPTIONS request itself.
+ */
+router.options(
+  "/incoming-request/:secretkey",
   async (
     req: ExpressRequest,
     res: ExpressResponse,
