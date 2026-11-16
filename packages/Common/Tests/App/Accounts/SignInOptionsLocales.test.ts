@@ -169,6 +169,8 @@ const ACCOUNTS_KEYS: Array<string> = [
   "common.or",
   "common.continueWithGoogle",
   "login.signInWithSso",
+  // The fold that holds single sign-on, a sign-in link and a passkey (#9023).
+  "login.moreWaysToSignIn",
   "sso.signInWithPassword",
 ];
 

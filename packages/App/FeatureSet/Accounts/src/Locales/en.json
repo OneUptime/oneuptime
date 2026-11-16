@@ -68,6 +68,7 @@
     "signInWithSso": "Sign in with SSO",
     "signInWithMicrosoft": "Sign in with Microsoft",
     "emailSignInLink": "Email me a sign-in link",
+    "moreWaysToSignIn": "More ways to sign in",
     "noAccountPrompt": "Don't have an account?",
     "registerLink": "Register.",
     "twoFactor": {

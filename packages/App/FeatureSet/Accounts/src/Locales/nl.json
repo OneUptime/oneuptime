@@ -68,6 +68,7 @@
     "signInWithSso": "Inloggen met SSO",
     "signInWithMicrosoft": "Inloggen met Microsoft",
     "emailSignInLink": "Stuur mij een inloglink",
+    "moreWaysToSignIn": "Meer manieren om in te loggen",
     "noAccountPrompt": "Hebt u geen account?",
     "registerLink": "Registreren.",
     "twoFactor": {
