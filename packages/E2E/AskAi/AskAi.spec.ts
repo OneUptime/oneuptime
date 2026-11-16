@@ -4281,7 +4281,10 @@ test.describe("monitors looked up, and the monitors table", () => {
           filled(words, "Off - not checked"),
         ]);
 
-        // None of OneUptime's words left in English.
+        /*
+         * None of OneUptime's words left in English - but a word the
+         * language writes as English does, as German says Monitor (#8628).
+         */
         for (const card of [offline, disabled]) {
           const text: string = await wordsOf(card);
           for (const english of [
@@ -4291,7 +4294,9 @@ test.describe("monitors looked up, and the monitors table", () => {
             "Off - not checked",
             "Incoming Request",
             "Type",
-          ]) {
+          ].filter((english: string): boolean => {
+            return filled(words, english) !== english;
+          })) {
             expect(text, `${language} ${width}: ${text}`).not.toContain(
               english,
             );
