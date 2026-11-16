@@ -229,9 +229,12 @@ describe("stack traces through more maps than the budget holds", () => {
     for (const run of [bounded, control]) {
       for (const round of run.frames) {
         expect(round).toEqual(
-          Array.from({ length: MODULES }, (unused: unknown, index: number) => {
-            return `at Object.fail (${moduleFile(index)}:${THROW_LINE}:${THROW_COLUMN})`;
-          }),
+          Array.from(
+            { length: MODULES },
+            (_unused: unknown, index: number): string => {
+              return `at Object.fail (${moduleFile(index)}:${THROW_LINE}:${THROW_COLUMN})`;
+            },
+          ),
         );
       }
     }
