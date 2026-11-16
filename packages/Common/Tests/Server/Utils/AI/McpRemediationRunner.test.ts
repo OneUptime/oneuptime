@@ -528,7 +528,7 @@ describe("which servers a fix may use, and whether it asks", () => {
    */
   test.each([true, "unreadable" as const])(
     "a rule that fixes without asking proposes where the project asks two people to approve a riskier fix (rule: %s)",
-    async (rule: true | "unreadable") => {
+    async (rule: boolean | "unreadable") => {
       suggestionRow({
         autoRemediationRuleId: RULE_ID,
         executionMode: AutoRemediationExecutionMode.FullAuto,

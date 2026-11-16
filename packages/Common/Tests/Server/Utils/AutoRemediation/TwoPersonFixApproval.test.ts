@@ -376,7 +376,7 @@ beforeEach(() => {
     .mockImplementation(
       async (args: {
         fromStatus: AutoRemediationSuggestionStatus;
-        atVersion?: number;
+        atVersion?: number | undefined;
         set: SuggestionTransitionSet;
       }): Promise<number> => {
         if (
