@@ -468,6 +468,15 @@ work out, starts from a default for everything else, and folds what most people 
   [DashboardWidgetPreviewGuard](../../packages/Common/Tests/App/Dashboard/DashboardWidgetPreviewGuard.test.tsx).
 - **Confirm only what cannot be undone.** A switch that can be flipped back saves without asking.
   Not enforced: use judgement.
+- **An action that changes something says it worked, without blocking the page.** A save, a
+  create, a delete or a test that went out says so in a toast (`Toast.success`,
+  `Common/UI/Utils/Toast`), which goes by itself; a failure says so in an error toast or a dialog,
+  and stays until it is closed. The shared model components already do it: a card's Edit says
+  "Changes saved", a list says "Nightly Backup deleted". Before, a change said nothing, or opened a
+  dialog to click away: "Saved", "Runbook steps saved successfully.", Got it (#9120). A dialog with
+  one way out (a `ConfirmModal` without `onClose`) stays only for what the person must read or act
+  on: what failed, a value shown once, a run's report, details they opened. Enforced by
+  [SuccessDialogsGuard](../../packages/Common/Tests/UI/SuccessDialogsGuard.test.ts).
 - **Leaving unsaved work asks first.** While a page holds work it has not saved (a dashboard being
   edited), a step to another page waits for its answer, Keep Editing or Discard Changes: a link,
   the side menu, the breadcrumbs, a button, the project picker, the browser's Back and Forward.
