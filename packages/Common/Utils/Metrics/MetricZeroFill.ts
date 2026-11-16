@@ -211,12 +211,14 @@ export default class MetricZeroFill {
    * formulas with: the catalog's semantics of its metrics, and which of its
    * steps are settled. Its interval is the one the aggregate API cuts the
    * window into (AggregationIntervalUtil.getAggregationIntervalForWindow),
-   * or the one the read pinned.
+   * the one the read pinned, or none at all for a read of the whole window
+   * as one value (`readsWholeWindow`, AggregationInterval.Total).
    */
   public static getOptions(input: {
     metricTypes: ReadonlyArray<MetricPointSemanticsSource | null | undefined>;
     window: { startDate: Date; endDate: Date };
     aggregationInterval?: AggregationInterval | undefined;
+    readsWholeWindow?: boolean | undefined;
     timezone?: Timezone | undefined;
     readAt: Date;
   }): MetricZeroFillOptions {
@@ -232,7 +234,9 @@ export default class MetricZeroFill {
         AggregationIntervalUtil.getAggregationIntervalForWindow({
           startDate: window.startDate,
           endDate: window.endDate,
-          aggregationInterval: input.aggregationInterval,
+          aggregationInterval: input.readsWholeWindow
+            ? AggregationInterval.Total
+            : input.aggregationInterval,
         });
     } catch {
       /*

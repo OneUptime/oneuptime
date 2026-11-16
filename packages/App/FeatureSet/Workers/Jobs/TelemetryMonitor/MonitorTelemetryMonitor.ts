@@ -108,6 +108,9 @@ import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType"
 import Dictionary from "Common/Types/Dictionary";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import MetricFormulaEvaluator from "Common/Utils/Metrics/MetricFormulaEvaluator";
+import MetricZeroFill, {
+  MetricZeroFillOptions,
+} from "Common/Utils/Metrics/MetricZeroFill";
 import MetricResultUnitConverter from "Common/Utils/Metrics/MetricResultUnitConverter";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import Metric from "Common/Models/AnalyticsModels/Metric";
@@ -584,24 +587,38 @@ const getQueryMetricNames: (
   return names;
 };
 
-/**
- * Fetch the native unit (as reported by OpenTelemetry and stored in
- * MetricType) for each metric name a query config references. Returned
- * as a lowercase-keyed map so lookups are case-insensitive.
+/*
+ * What the metric catalog (MetricType) says of the metrics a step's queries
+ * read: each one's native unit, as reported by OpenTelemetry - a
+ * lowercase-keyed map so lookups are case-insensitive - and the catalog
+ * entries themselves, whose counter semantics say how the step's formulas
+ * read a query with no point in a step (getFormulaZeroFill).
  */
-const loadNativeUnitsByMetricName: (input: {
+interface QueryMetricCatalog {
+  nativeUnitsByMetricName: Map<string, string>;
+  metricTypes: Array<MetricType>;
+}
+
+/**
+ * Fetch the catalog entry of each metric name a query config references:
+ * one read for the units and the counter semantics both.
+ */
+const loadQueryMetricCatalog: (input: {
   queryConfigs: Array<MetricQueryConfigData>;
   projectId: ObjectID;
-}) => Promise<Map<string, string>> = async (input: {
+}) => Promise<QueryMetricCatalog> = async (input: {
   queryConfigs: Array<MetricQueryConfigData>;
   projectId: ObjectID;
-}): Promise<Map<string, string>> => {
+}): Promise<QueryMetricCatalog> => {
   const names: Set<string> = new Set<string>(
     getQueryMetricNames(input.queryConfigs),
   );
 
   if (names.size === 0) {
-    return new Map<string, string>();
+    return {
+      nativeUnitsByMetricName: new Map<string, string>(),
+      metricTypes: [],
+    };
   }
 
   const metricTypes: Array<MetricType> = await MetricTypeService.findBy({
@@ -612,6 +629,8 @@ const loadNativeUnitsByMetricName: (input: {
     select: {
       name: true,
       unit: true,
+      isMonotonic: true,
+      aggregationTemporality: true,
     },
     limit: LIMIT_PER_PROJECT,
     skip: 0,
@@ -626,7 +645,50 @@ const loadNativeUnitsByMetricName: (input: {
       unitsByName.set(metricType.name.toLowerCase(), metricType.unit);
     }
   }
-  return unitsByName;
+
+  return {
+    nativeUnitsByMetricName: unitsByName,
+    metricTypes: metricTypes,
+  };
+};
+
+/*
+ * How a step's formulas read a query with no point in a step
+ * (MetricZeroFill): a query counting what happened is 0 there, in a step
+ * that has been over for a minute by the end of the window - which is where
+ * the ingest queue is while it is behind (ReceivingCoverage). Its steps are
+ * the ones the read cut the window into: a minute each up to three hours,
+ * or the whole window for a step read as one value, which ends at the
+ * window's end and so is never read as 0 - its ungrouped counts already are
+ * (MetricWholeWindow).
+ */
+export const getFormulaZeroFill: (input: {
+  metricTypes: Array<MetricType>;
+  startAndEndDate: InBetween<Date>;
+  aggregatesWholeWindow?: boolean | undefined;
+}) => MetricZeroFillOptions = (input: {
+  metricTypes: Array<MetricType>;
+  startAndEndDate: InBetween<Date>;
+  aggregatesWholeWindow?: boolean | undefined;
+}): MetricZeroFillOptions => {
+  const endDate: Date =
+    (input.startAndEndDate?.endValue as Date) || OneUptimeDate.getCurrentDate();
+  const startDate: Date =
+    (input.startAndEndDate?.startValue as Date) || endDate;
+
+  return MetricZeroFill.getOptions({
+    metricTypes: input.metricTypes.map((metricType: MetricType) => {
+      return {
+        name: metricType.name,
+        isMonotonic: metricType.isMonotonic,
+        aggregationTemporality: metricType.aggregationTemporality,
+      };
+    }),
+    window: { startDate: startDate, endDate: endDate },
+    // The steps the read cut: the window decides them, as it did the read's.
+    readsWholeWindow: input.aggregatesWholeWindow,
+    readAt: endDate,
+  });
 };
 
 /**
@@ -911,7 +973,17 @@ const bucketAggregatedResultBySeries: (input: {
     } else {
       buckets.set(fingerprint, {
         labels,
-        aggregatedResult: { data: [row] },
+        /*
+         * A read cut at its row limit lacks the oldest buckets of every
+         * series it has: each series says so, so its formulas never read
+         * what was cut as 0 (MetricZeroFill).
+         */
+        aggregatedResult: {
+          data: [row],
+          ...(input.aggregatedResult.truncated === true
+            ? { truncated: true }
+            : {}),
+        },
       });
     }
   }
@@ -1113,7 +1185,7 @@ export const readQueryDataPoints: (input: {
  * that slot is empty — the criteria evaluator already treats an empty
  * series as "no data" per the configured NoDataPolicy.
  */
-const buildSeriesBreakdown: (input: {
+export const buildSeriesBreakdown: (input: {
   queryConfigs: Array<MetricQueryConfigData>;
   formulaConfigs: Array<MetricFormulaConfigData>;
   perQueryResults: Array<AggregatedResult>;
@@ -1121,6 +1193,8 @@ const buildSeriesBreakdown: (input: {
   projectId: ObjectID;
   // When each query's series got their data, in query order, where read.
   perQueryArrivals?: Array<QueryArrivals | null> | undefined;
+  // How a count with no point in a step is read (getFormulaZeroFill).
+  zeroFill?: MetricZeroFillOptions | undefined;
 }) => Array<MetricSeriesResult> = (input: {
   queryConfigs: Array<MetricQueryConfigData>;
   formulaConfigs: Array<MetricFormulaConfigData>;
@@ -1128,6 +1202,7 @@ const buildSeriesBreakdown: (input: {
   attributeKeys: Array<string>;
   projectId: ObjectID;
   perQueryArrivals?: Array<QueryArrivals | null> | undefined;
+  zeroFill?: MetricZeroFillOptions | undefined;
 }): Array<MetricSeriesResult> => {
   /*
    * Bucket every query's results by fingerprint first. Each query
@@ -1162,16 +1237,31 @@ const buildSeriesBreakdown: (input: {
           string,
           { labels: JSONObject; aggregatedResult: AggregatedResult }
         >,
+        queryIndex: number,
       ) => {
-        return bucket.get(fingerprint)?.aggregatedResult || { data: [] };
+        return (
+          bucket.get(fingerprint)?.aggregatedResult || {
+            data: [],
+            // A series a cut read lacks may only have been cut.
+            ...(input.perQueryResults[queryIndex]?.truncated === true
+              ? { truncated: true }
+              : {}),
+          }
+        );
       },
     );
 
+    /*
+     * A series a counting query has no rows for - a service with requests
+     * and no failure - reads that query as 0 in it (MetricZeroFill), so its
+     * failure share is 0% rather than no data.
+     */
     const seriesWithFormulas: Array<AggregatedResult> = appendFormulaResults({
       queryConfigs: input.queryConfigs,
       formulaConfigs: input.formulaConfigs,
       aggregatedResults: perQueryForSeries,
       projectId: input.projectId,
+      zeroFill: input.zeroFill,
     });
 
     const arrivals: Array<MetricSeriesArrival | null> | undefined =
@@ -1180,6 +1270,7 @@ const buildSeriesBreakdown: (input: {
         queryConfigs: input.queryConfigs,
         formulaConfigs: input.formulaConfigs,
         fingerprint: fingerprint,
+        zeroFill: input.zeroFill,
       });
 
     breakdown.push({
@@ -1401,16 +1492,19 @@ const injectExpectedAbsentIoTDeviceSeries: (input: {
  * `aliasIndex = queryConfigs.length + formulaIndex`, so preserving order
  * is load-bearing.
  */
-const appendFormulaResults: (input: {
+export const appendFormulaResults: (input: {
   queryConfigs: Array<MetricQueryConfigData>;
   formulaConfigs: Array<MetricFormulaConfigData>;
   aggregatedResults: Array<AggregatedResult>;
   projectId: ObjectID;
+  // How a count with no point in a step is read (getFormulaZeroFill).
+  zeroFill?: MetricZeroFillOptions | undefined;
 }) => Array<AggregatedResult> = (input: {
   queryConfigs: Array<MetricQueryConfigData>;
   formulaConfigs: Array<MetricFormulaConfigData>;
   aggregatedResults: Array<AggregatedResult>;
   projectId: ObjectID;
+  zeroFill?: MetricZeroFillOptions | undefined;
 }): Array<AggregatedResult> => {
   const results: Array<AggregatedResult> = [...input.aggregatedResults];
 
@@ -1435,6 +1529,7 @@ const appendFormulaResults: (input: {
           queryConfigs: input.queryConfigs,
           formulaConfigs: input.formulaConfigs.slice(0, index),
           results,
+          zeroFill: input.zeroFill,
         });
       results.push(formulaResult);
     } catch (err) {
@@ -1932,11 +2027,20 @@ export const monitorMetric: MonitorMetricFunction = async (data: {
    * actually sees in the UI — e.g. "memory in GB + disk in GB" rather
    * than silently summing bytes with kilobytes.
    */
+  const metricCatalog: QueryMetricCatalog = await loadQueryMetricCatalog({
+    queryConfigs: metricMonitorConfig.metricViewConfig.queryConfigs,
+    projectId: data.projectId,
+  });
+
   const nativeUnitsByMetricName: Map<string, string> =
-    await loadNativeUnitsByMetricName({
-      queryConfigs: metricMonitorConfig.metricViewConfig.queryConfigs,
-      projectId: data.projectId,
-    });
+    metricCatalog.nativeUnitsByMetricName;
+
+  // How the step's formulas read a count with no point in a step.
+  const zeroFill: MetricZeroFillOptions = getFormulaZeroFill({
+    metricTypes: metricCatalog.metricTypes,
+    startAndEndDate: startAndEndDate,
+    aggregatesWholeWindow: aggregatesWholeWindow,
+  });
 
   const resultsInDisplayUnit: Array<AggregatedResult> =
     MetricResultUnitConverter.convertQueryResultsToDisplayUnit({
@@ -1950,6 +2054,7 @@ export const monitorMetric: MonitorMetricFunction = async (data: {
     formulaConfigs: metricMonitorConfig.metricViewConfig.formulaConfigs || [],
     aggregatedResults: resultsInDisplayUnit,
     projectId: data.projectId,
+    zeroFill: zeroFill,
   });
 
   let seriesBreakdown: Array<MetricSeriesResult> | undefined =
@@ -1962,6 +2067,7 @@ export const monitorMetric: MonitorMetricFunction = async (data: {
           perQueryArrivals: perQueryArrivals,
           attributeKeys: groupByAttributeKeys,
           projectId: data.projectId,
+          zeroFill: zeroFill,
         })
       : undefined;
 
@@ -1997,6 +2103,7 @@ export const monitorMetric: MonitorMetricFunction = async (data: {
       perQueryArrivals: perQueryArrivals,
       queryConfigs: metricMonitorConfig.metricViewConfig.queryConfigs,
       formulaConfigs: metricMonitorConfig.metricViewConfig.formulaConfigs,
+      zeroFill: zeroFill,
     }),
     metricResult: resultsWithFormulas,
     queryAttributes: readAttributes,
@@ -2401,11 +2508,19 @@ export const monitorKubernetes: MonitorKubernetesFunction = async (data: {
     }
   }
 
+  const metricCatalog: QueryMetricCatalog = await loadQueryMetricCatalog({
+    queryConfigs: kubernetesMonitorConfig.metricViewConfig.queryConfigs,
+    projectId: data.projectId,
+  });
+
   const nativeUnitsByMetricName: Map<string, string> =
-    await loadNativeUnitsByMetricName({
-      queryConfigs: kubernetesMonitorConfig.metricViewConfig.queryConfigs,
-      projectId: data.projectId,
-    });
+    metricCatalog.nativeUnitsByMetricName;
+
+  // How the step's formulas read a count with no point in a step.
+  const zeroFill: MetricZeroFillOptions = getFormulaZeroFill({
+    metricTypes: metricCatalog.metricTypes,
+    startAndEndDate: startAndEndDate,
+  });
 
   const unitsByMetricName: Dictionary<string> = buildNativeUnitsByMetricName({
     monitorType: MonitorType.Kubernetes,
@@ -2431,6 +2546,7 @@ export const monitorKubernetes: MonitorKubernetesFunction = async (data: {
       kubernetesMonitorConfig.metricViewConfig.formulaConfigs || [],
     aggregatedResults: resultsInDisplayUnit,
     projectId: data.projectId,
+    zeroFill: zeroFill,
   });
 
   const seriesBreakdown: Array<MetricSeriesResult> | undefined =
@@ -2443,6 +2559,7 @@ export const monitorKubernetes: MonitorKubernetesFunction = async (data: {
           perQueryArrivals: perQueryArrivals,
           attributeKeys: groupByAttributeKeys,
           projectId: data.projectId,
+          zeroFill: zeroFill,
         })
       : undefined;
 
@@ -2455,6 +2572,7 @@ export const monitorKubernetes: MonitorKubernetesFunction = async (data: {
       perQueryArrivals: perQueryArrivals,
       queryConfigs: kubernetesMonitorConfig.metricViewConfig.queryConfigs,
       formulaConfigs: kubernetesMonitorConfig.metricViewConfig.formulaConfigs,
+      zeroFill: zeroFill,
     }),
     metricResult: resultsWithFormulas,
     queryAttributes: readAttributes,
@@ -2589,11 +2707,19 @@ export const monitorDocker: MonitorDockerFunction = async (data: {
     readAttributes.push(getReadAttributes(query));
   }
 
+  const metricCatalog: QueryMetricCatalog = await loadQueryMetricCatalog({
+    queryConfigs: dockerMonitorConfig.metricViewConfig.queryConfigs,
+    projectId: data.projectId,
+  });
+
   const nativeUnitsByMetricName: Map<string, string> =
-    await loadNativeUnitsByMetricName({
-      queryConfigs: dockerMonitorConfig.metricViewConfig.queryConfigs,
-      projectId: data.projectId,
-    });
+    metricCatalog.nativeUnitsByMetricName;
+
+  // How the step's formulas read a count with no point in a step.
+  const zeroFill: MetricZeroFillOptions = getFormulaZeroFill({
+    metricTypes: metricCatalog.metricTypes,
+    startAndEndDate: startAndEndDate,
+  });
 
   const resultsInDisplayUnit: Array<AggregatedResult> =
     MetricResultUnitConverter.convertQueryResultsToDisplayUnit({
@@ -2607,6 +2733,7 @@ export const monitorDocker: MonitorDockerFunction = async (data: {
     formulaConfigs: dockerMonitorConfig.metricViewConfig.formulaConfigs || [],
     aggregatedResults: resultsInDisplayUnit,
     projectId: data.projectId,
+    zeroFill: zeroFill,
   });
 
   const seriesBreakdown: Array<MetricSeriesResult> | undefined =
@@ -2619,6 +2746,7 @@ export const monitorDocker: MonitorDockerFunction = async (data: {
           perQueryArrivals: perQueryArrivals,
           attributeKeys: groupByAttributeKeys,
           projectId: data.projectId,
+          zeroFill: zeroFill,
         })
       : undefined;
 
@@ -2631,6 +2759,7 @@ export const monitorDocker: MonitorDockerFunction = async (data: {
       perQueryArrivals: perQueryArrivals,
       queryConfigs: dockerMonitorConfig.metricViewConfig.queryConfigs,
       formulaConfigs: dockerMonitorConfig.metricViewConfig.formulaConfigs,
+      zeroFill: zeroFill,
     }),
     metricResult: resultsWithFormulas,
     queryAttributes: readAttributes,
@@ -2752,11 +2881,19 @@ export const monitorHost: MonitorHostFunction = async (data: {
     readAttributes.push(getReadAttributes(query));
   }
 
+  const metricCatalog: QueryMetricCatalog = await loadQueryMetricCatalog({
+    queryConfigs: hostMonitorConfig.metricViewConfig.queryConfigs,
+    projectId: data.projectId,
+  });
+
   const nativeUnitsByMetricName: Map<string, string> =
-    await loadNativeUnitsByMetricName({
-      queryConfigs: hostMonitorConfig.metricViewConfig.queryConfigs,
-      projectId: data.projectId,
-    });
+    metricCatalog.nativeUnitsByMetricName;
+
+  // How the step's formulas read a count with no point in a step.
+  const zeroFill: MetricZeroFillOptions = getFormulaZeroFill({
+    metricTypes: metricCatalog.metricTypes,
+    startAndEndDate: startAndEndDate,
+  });
 
   const resultsInDisplayUnit: Array<AggregatedResult> =
     MetricResultUnitConverter.convertQueryResultsToDisplayUnit({
@@ -2770,6 +2907,7 @@ export const monitorHost: MonitorHostFunction = async (data: {
     formulaConfigs: hostMonitorConfig.metricViewConfig.formulaConfigs || [],
     aggregatedResults: resultsInDisplayUnit,
     projectId: data.projectId,
+    zeroFill: zeroFill,
   });
 
   let seriesBreakdown: Array<MetricSeriesResult> | undefined =
@@ -2782,6 +2920,7 @@ export const monitorHost: MonitorHostFunction = async (data: {
           perQueryArrivals: perQueryArrivals,
           attributeKeys: groupByAttributeKeys,
           projectId: data.projectId,
+          zeroFill: zeroFill,
         })
       : undefined;
 
@@ -2814,6 +2953,7 @@ export const monitorHost: MonitorHostFunction = async (data: {
       perQueryArrivals: perQueryArrivals,
       queryConfigs: hostMonitorConfig.metricViewConfig.queryConfigs,
       formulaConfigs: hostMonitorConfig.metricViewConfig.formulaConfigs,
+      zeroFill: zeroFill,
     }),
     metricResult: resultsWithFormulas,
     queryAttributes: readAttributes,
@@ -2948,11 +3088,19 @@ export const monitorPodman: MonitorPodmanFunction = async (data: {
     readAttributes.push(getReadAttributes(query));
   }
 
+  const metricCatalog: QueryMetricCatalog = await loadQueryMetricCatalog({
+    queryConfigs: podmanMonitorConfig.metricViewConfig.queryConfigs,
+    projectId: data.projectId,
+  });
+
   const nativeUnitsByMetricName: Map<string, string> =
-    await loadNativeUnitsByMetricName({
-      queryConfigs: podmanMonitorConfig.metricViewConfig.queryConfigs,
-      projectId: data.projectId,
-    });
+    metricCatalog.nativeUnitsByMetricName;
+
+  // How the step's formulas read a count with no point in a step.
+  const zeroFill: MetricZeroFillOptions = getFormulaZeroFill({
+    metricTypes: metricCatalog.metricTypes,
+    startAndEndDate: startAndEndDate,
+  });
 
   const resultsInDisplayUnit: Array<AggregatedResult> =
     MetricResultUnitConverter.convertQueryResultsToDisplayUnit({
@@ -2966,6 +3114,7 @@ export const monitorPodman: MonitorPodmanFunction = async (data: {
     formulaConfigs: podmanMonitorConfig.metricViewConfig.formulaConfigs || [],
     aggregatedResults: resultsInDisplayUnit,
     projectId: data.projectId,
+    zeroFill: zeroFill,
   });
 
   const seriesBreakdown: Array<MetricSeriesResult> | undefined =
@@ -2978,6 +3127,7 @@ export const monitorPodman: MonitorPodmanFunction = async (data: {
           perQueryArrivals: perQueryArrivals,
           attributeKeys: groupByAttributeKeys,
           projectId: data.projectId,
+          zeroFill: zeroFill,
         })
       : undefined;
 
@@ -2990,6 +3140,7 @@ export const monitorPodman: MonitorPodmanFunction = async (data: {
       perQueryArrivals: perQueryArrivals,
       queryConfigs: podmanMonitorConfig.metricViewConfig.queryConfigs,
       formulaConfigs: podmanMonitorConfig.metricViewConfig.formulaConfigs,
+      zeroFill: zeroFill,
     }),
     metricResult: resultsWithFormulas,
     queryAttributes: readAttributes,
@@ -3176,11 +3327,19 @@ export const monitorProxmox: MonitorProxmoxFunction = async (data: {
     }
   }
 
+  const metricCatalog: QueryMetricCatalog = await loadQueryMetricCatalog({
+    queryConfigs: proxmoxMonitorConfig.metricViewConfig.queryConfigs,
+    projectId: data.projectId,
+  });
+
   const nativeUnitsByMetricName: Map<string, string> =
-    await loadNativeUnitsByMetricName({
-      queryConfigs: proxmoxMonitorConfig.metricViewConfig.queryConfigs,
-      projectId: data.projectId,
-    });
+    metricCatalog.nativeUnitsByMetricName;
+
+  // How the step's formulas read a count with no point in a step.
+  const zeroFill: MetricZeroFillOptions = getFormulaZeroFill({
+    metricTypes: metricCatalog.metricTypes,
+    startAndEndDate: startAndEndDate,
+  });
 
   const unitsByMetricName: Dictionary<string> = buildNativeUnitsByMetricName({
     monitorType: MonitorType.Proxmox,
@@ -3205,6 +3364,7 @@ export const monitorProxmox: MonitorProxmoxFunction = async (data: {
     formulaConfigs: proxmoxMonitorConfig.metricViewConfig.formulaConfigs || [],
     aggregatedResults: resultsInDisplayUnit,
     projectId: data.projectId,
+    zeroFill: zeroFill,
   });
 
   const seriesBreakdown: Array<MetricSeriesResult> | undefined =
@@ -3217,6 +3377,7 @@ export const monitorProxmox: MonitorProxmoxFunction = async (data: {
           perQueryArrivals: perQueryArrivals,
           attributeKeys: groupByAttributeKeys,
           projectId: data.projectId,
+          zeroFill: zeroFill,
         })
       : undefined;
 
@@ -3229,6 +3390,7 @@ export const monitorProxmox: MonitorProxmoxFunction = async (data: {
       perQueryArrivals: perQueryArrivals,
       queryConfigs: proxmoxMonitorConfig.metricViewConfig.queryConfigs,
       formulaConfigs: proxmoxMonitorConfig.metricViewConfig.formulaConfigs,
+      zeroFill: zeroFill,
     }),
     metricResult: resultsWithFormulas,
     queryAttributes: readAttributes,
@@ -3392,11 +3554,19 @@ export const monitorOpenStack: MonitorOpenStackFunction = async (data: {
     }
   }
 
+  const metricCatalog: QueryMetricCatalog = await loadQueryMetricCatalog({
+    queryConfigs: openstackMonitorConfig.metricViewConfig.queryConfigs,
+    projectId: data.projectId,
+  });
+
   const nativeUnitsByMetricName: Map<string, string> =
-    await loadNativeUnitsByMetricName({
-      queryConfigs: openstackMonitorConfig.metricViewConfig.queryConfigs,
-      projectId: data.projectId,
-    });
+    metricCatalog.nativeUnitsByMetricName;
+
+  // How the step's formulas read a count with no point in a step.
+  const zeroFill: MetricZeroFillOptions = getFormulaZeroFill({
+    metricTypes: metricCatalog.metricTypes,
+    startAndEndDate: startAndEndDate,
+  });
 
   const unitsByMetricName: Dictionary<string> = buildNativeUnitsByMetricName({
     monitorType: MonitorType.OpenStack,
@@ -3422,6 +3592,7 @@ export const monitorOpenStack: MonitorOpenStackFunction = async (data: {
       openstackMonitorConfig.metricViewConfig.formulaConfigs || [],
     aggregatedResults: resultsInDisplayUnit,
     projectId: data.projectId,
+    zeroFill: zeroFill,
   });
 
   const allSeries: Array<MetricSeriesResult> | undefined =
@@ -3434,6 +3605,7 @@ export const monitorOpenStack: MonitorOpenStackFunction = async (data: {
           perQueryArrivals: perQueryArrivals,
           attributeKeys: groupByAttributeKeys,
           projectId: data.projectId,
+          zeroFill: zeroFill,
         })
       : undefined;
 
@@ -3456,6 +3628,7 @@ export const monitorOpenStack: MonitorOpenStackFunction = async (data: {
       perQueryArrivals: perQueryArrivals,
       queryConfigs: openstackMonitorConfig.metricViewConfig.queryConfigs,
       formulaConfigs: openstackMonitorConfig.metricViewConfig.formulaConfigs,
+      zeroFill: zeroFill,
     }),
     metricResult: resultsWithFormulas,
     queryAttributes: readAttributes,
@@ -3614,11 +3787,19 @@ export const monitorVMware: MonitorVMwareFunction = async (data: {
     }
   }
 
+  const metricCatalog: QueryMetricCatalog = await loadQueryMetricCatalog({
+    queryConfigs: vmwareMonitorConfig.metricViewConfig.queryConfigs,
+    projectId: data.projectId,
+  });
+
   const nativeUnitsByMetricName: Map<string, string> =
-    await loadNativeUnitsByMetricName({
-      queryConfigs: vmwareMonitorConfig.metricViewConfig.queryConfigs,
-      projectId: data.projectId,
-    });
+    metricCatalog.nativeUnitsByMetricName;
+
+  // How the step's formulas read a count with no point in a step.
+  const zeroFill: MetricZeroFillOptions = getFormulaZeroFill({
+    metricTypes: metricCatalog.metricTypes,
+    startAndEndDate: startAndEndDate,
+  });
 
   const unitsByMetricName: Dictionary<string> = buildNativeUnitsByMetricName({
     monitorType: MonitorType.VMware,
@@ -3643,6 +3824,7 @@ export const monitorVMware: MonitorVMwareFunction = async (data: {
     formulaConfigs: vmwareMonitorConfig.metricViewConfig.formulaConfigs || [],
     aggregatedResults: resultsInDisplayUnit,
     projectId: data.projectId,
+    zeroFill: zeroFill,
   });
 
   const seriesBreakdown: Array<MetricSeriesResult> | undefined =
@@ -3655,6 +3837,7 @@ export const monitorVMware: MonitorVMwareFunction = async (data: {
           perQueryArrivals: perQueryArrivals,
           attributeKeys: groupByAttributeKeys,
           projectId: data.projectId,
+          zeroFill: zeroFill,
         })
       : undefined;
 
@@ -3667,6 +3850,7 @@ export const monitorVMware: MonitorVMwareFunction = async (data: {
       perQueryArrivals: perQueryArrivals,
       queryConfigs: vmwareMonitorConfig.metricViewConfig.queryConfigs,
       formulaConfigs: vmwareMonitorConfig.metricViewConfig.formulaConfigs,
+      zeroFill: zeroFill,
     }),
     metricResult: resultsWithFormulas,
     queryAttributes: readAttributes,
@@ -3833,11 +4017,19 @@ export const monitorIoT: MonitorIoTFunction = async (data: {
     readAttributes.push(getReadAttributes(query));
   }
 
+  const metricCatalog: QueryMetricCatalog = await loadQueryMetricCatalog({
+    queryConfigs: iotMonitorConfig.metricViewConfig.queryConfigs,
+    projectId: data.projectId,
+  });
+
   const nativeUnitsByMetricName: Map<string, string> =
-    await loadNativeUnitsByMetricName({
-      queryConfigs: iotMonitorConfig.metricViewConfig.queryConfigs,
-      projectId: data.projectId,
-    });
+    metricCatalog.nativeUnitsByMetricName;
+
+  // How the step's formulas read a count with no point in a step.
+  const zeroFill: MetricZeroFillOptions = getFormulaZeroFill({
+    metricTypes: metricCatalog.metricTypes,
+    startAndEndDate: startAndEndDate,
+  });
 
   const resultsInDisplayUnit: Array<AggregatedResult> =
     MetricResultUnitConverter.convertQueryResultsToDisplayUnit({
@@ -3851,6 +4043,7 @@ export const monitorIoT: MonitorIoTFunction = async (data: {
     formulaConfigs: iotMonitorConfig.metricViewConfig.formulaConfigs || [],
     aggregatedResults: resultsInDisplayUnit,
     projectId: data.projectId,
+    zeroFill: zeroFill,
   });
 
   let seriesBreakdown: Array<MetricSeriesResult> | undefined =
@@ -3863,6 +4056,7 @@ export const monitorIoT: MonitorIoTFunction = async (data: {
           perQueryArrivals: perQueryArrivals,
           attributeKeys: groupByAttributeKeys,
           projectId: data.projectId,
+          zeroFill: zeroFill,
         })
       : undefined;
 
@@ -3916,6 +4110,7 @@ export const monitorIoT: MonitorIoTFunction = async (data: {
       perQueryArrivals: perQueryArrivals,
       queryConfigs: iotMonitorConfig.metricViewConfig.queryConfigs,
       formulaConfigs: iotMonitorConfig.metricViewConfig.formulaConfigs,
+      zeroFill: zeroFill,
     }),
     metricResult: resultsWithFormulas,
     queryAttributes: readAttributes,
@@ -4162,11 +4357,19 @@ export const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
     }
   }
 
+  const metricCatalog: QueryMetricCatalog = await loadQueryMetricCatalog({
+    queryConfigs: dockerSwarmMonitorConfig.metricViewConfig.queryConfigs,
+    projectId: data.projectId,
+  });
+
   const nativeUnitsByMetricName: Map<string, string> =
-    await loadNativeUnitsByMetricName({
-      queryConfigs: dockerSwarmMonitorConfig.metricViewConfig.queryConfigs,
-      projectId: data.projectId,
-    });
+    metricCatalog.nativeUnitsByMetricName;
+
+  // How the step's formulas read a count with no point in a step.
+  const zeroFill: MetricZeroFillOptions = getFormulaZeroFill({
+    metricTypes: metricCatalog.metricTypes,
+    startAndEndDate: startAndEndDate,
+  });
 
   const unitsByMetricName: Dictionary<string> = buildNativeUnitsByMetricName({
     monitorType: MonitorType.DockerSwarm,
@@ -4192,6 +4395,7 @@ export const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
       dockerSwarmMonitorConfig.metricViewConfig.formulaConfigs || [],
     aggregatedResults: resultsInDisplayUnit,
     projectId: data.projectId,
+    zeroFill: zeroFill,
   });
 
   const seriesBreakdown: Array<MetricSeriesResult> | undefined =
@@ -4204,6 +4408,7 @@ export const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
           perQueryArrivals: perQueryArrivals,
           attributeKeys: groupByAttributeKeys,
           projectId: data.projectId,
+          zeroFill: zeroFill,
         })
       : undefined;
 
@@ -4216,6 +4421,7 @@ export const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
       perQueryArrivals: perQueryArrivals,
       queryConfigs: dockerSwarmMonitorConfig.metricViewConfig.queryConfigs,
       formulaConfigs: dockerSwarmMonitorConfig.metricViewConfig.formulaConfigs,
+      zeroFill: zeroFill,
     }),
     metricResult: resultsWithFormulas,
     queryAttributes: readAttributes,
@@ -4384,11 +4590,19 @@ export const monitorCeph: MonitorCephFunction = async (data: {
     }
   }
 
+  const metricCatalog: QueryMetricCatalog = await loadQueryMetricCatalog({
+    queryConfigs: cephMonitorConfig.metricViewConfig.queryConfigs,
+    projectId: data.projectId,
+  });
+
   const nativeUnitsByMetricName: Map<string, string> =
-    await loadNativeUnitsByMetricName({
-      queryConfigs: cephMonitorConfig.metricViewConfig.queryConfigs,
-      projectId: data.projectId,
-    });
+    metricCatalog.nativeUnitsByMetricName;
+
+  // How the step's formulas read a count with no point in a step.
+  const zeroFill: MetricZeroFillOptions = getFormulaZeroFill({
+    metricTypes: metricCatalog.metricTypes,
+    startAndEndDate: startAndEndDate,
+  });
 
   const unitsByMetricName: Dictionary<string> = buildNativeUnitsByMetricName({
     monitorType: MonitorType.Ceph,
@@ -4413,6 +4627,7 @@ export const monitorCeph: MonitorCephFunction = async (data: {
     formulaConfigs: cephMonitorConfig.metricViewConfig.formulaConfigs || [],
     aggregatedResults: resultsInDisplayUnit,
     projectId: data.projectId,
+    zeroFill: zeroFill,
   });
 
   const seriesBreakdown: Array<MetricSeriesResult> | undefined =
@@ -4425,6 +4640,7 @@ export const monitorCeph: MonitorCephFunction = async (data: {
           perQueryArrivals: perQueryArrivals,
           attributeKeys: groupByAttributeKeys,
           projectId: data.projectId,
+          zeroFill: zeroFill,
         })
       : undefined;
 
@@ -4437,6 +4653,7 @@ export const monitorCeph: MonitorCephFunction = async (data: {
       perQueryArrivals: perQueryArrivals,
       queryConfigs: cephMonitorConfig.metricViewConfig.queryConfigs,
       formulaConfigs: cephMonitorConfig.metricViewConfig.formulaConfigs,
+      zeroFill: zeroFill,
     }),
     metricResult: resultsWithFormulas,
     queryAttributes: readAttributes,
@@ -4598,11 +4815,19 @@ export const monitorStorageArray: MonitorStorageArrayFunction = async (data: {
     }
   }
 
+  const metricCatalog: QueryMetricCatalog = await loadQueryMetricCatalog({
+    queryConfigs: storageArrayMonitorConfig.metricViewConfig.queryConfigs,
+    projectId: data.projectId,
+  });
+
   const nativeUnitsByMetricName: Map<string, string> =
-    await loadNativeUnitsByMetricName({
-      queryConfigs: storageArrayMonitorConfig.metricViewConfig.queryConfigs,
-      projectId: data.projectId,
-    });
+    metricCatalog.nativeUnitsByMetricName;
+
+  // How the step's formulas read a count with no point in a step.
+  const zeroFill: MetricZeroFillOptions = getFormulaZeroFill({
+    metricTypes: metricCatalog.metricTypes,
+    startAndEndDate: startAndEndDate,
+  });
 
   const unitsByMetricName: Dictionary<string> = buildNativeUnitsByMetricName({
     monitorType: MonitorType.StorageArray,
@@ -4638,6 +4863,7 @@ export const monitorStorageArray: MonitorStorageArrayFunction = async (data: {
       storageArrayMonitorConfig.metricViewConfig.formulaConfigs || [],
     aggregatedResults: resultsInDisplayUnit,
     projectId: data.projectId,
+    zeroFill: zeroFill,
   });
 
   const seriesBreakdown: Array<MetricSeriesResult> | undefined =
@@ -4650,6 +4876,7 @@ export const monitorStorageArray: MonitorStorageArrayFunction = async (data: {
           perQueryArrivals: perQueryArrivals,
           attributeKeys: groupByAttributeKeys,
           projectId: data.projectId,
+          zeroFill: zeroFill,
         })
       : undefined;
 
@@ -4662,6 +4889,7 @@ export const monitorStorageArray: MonitorStorageArrayFunction = async (data: {
       perQueryArrivals: perQueryArrivals,
       queryConfigs: storageArrayMonitorConfig.metricViewConfig.queryConfigs,
       formulaConfigs: storageArrayMonitorConfig.metricViewConfig.formulaConfigs,
+      zeroFill: zeroFill,
     }),
     metricResult: resultsWithFormulas,
     queryAttributes: readAttributes,

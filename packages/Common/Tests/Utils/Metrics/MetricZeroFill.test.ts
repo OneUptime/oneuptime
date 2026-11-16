@@ -473,6 +473,34 @@ describe("MetricZeroFill.getOptions", () => {
     );
   });
 
+  test("a read of the whole window as one value is one step, over where the window ends", () => {
+    const window: { startDate: Date; endDate: Date } = {
+      startDate: new Date("2026-11-01T11:10:30.000Z"),
+      endDate: readAt,
+    };
+
+    const now: MetricZeroFillOptions = MetricZeroFill.getOptions({
+      metricTypes: [],
+      window,
+      readsWholeWindow: true,
+      readAt,
+    });
+
+    // Stamped at the window's end, as a monitor stamps it: never settled.
+    expect(now.isStepSettled!(readAt)).toBe(false);
+
+    const later: MetricZeroFillOptions = MetricZeroFill.getOptions({
+      metricTypes: [],
+      window,
+      readsWholeWindow: true,
+      // A pinned interval is no step of a read of the whole window.
+      aggregationInterval: AggregationInterval.Minute,
+      readAt: new Date(readAt.getTime() + MINUTE),
+    });
+
+    expect(later.isStepSettled!(readAt)).toBe(true);
+  });
+
   test("with no window to read, no step is settled", () => {
     const options: MetricZeroFillOptions = MetricZeroFill.getOptions({
       metricTypes: [],
