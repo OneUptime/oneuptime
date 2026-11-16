@@ -194,6 +194,21 @@ to is up. A check that names neither leaves `FATAL: role "root" does not exist`
 in the log every ten seconds. Every other probe of a PostgreSQL this repository
 starts is held to naming its role too.
 
+### `ComposeMigrationsRunOnce.test.js`
+
+One process applies a Docker Compose install's schema migrations: the App.
+`PostgresAppInstance.connect()` applies the pending ones unless
+`RUN_DATABASE_MIGRATIONS_ON_BOOT` is `"false"`, and the ingress's Node sidecar
+(`packages/Nginx`) connects to PostgreSQL too, so on a first boot the two
+migrated the same database at once, with deadlocks and "already exists"
+failures only the retries got past (#8417). The suite holds the packages whose
+entry connects to PostgreSQL to the App and the ingress. With docker's compose
+plugin on PATH (no daemon needed; with `RUN_COMPOSE_DATABASE_RUNTIME_TESTS=1`
+it fails rather than skips without one), it renders the stacks of `npm start`,
+`npm run dev` and CI's e2e jobs: the App applies the migrations, and the
+ingress turns them off and waits for them (`DATABASE_MIGRATION_WAIT_TIMEOUT_MS`
+not `0`), as the Helm chart's runtime pods wait for its migrate Job.
+
 ### `ComposeDatastorePasswordRuntime.test.js`
 
 The ClickHouse and Valkey `docker-compose.yml` runs, for real
