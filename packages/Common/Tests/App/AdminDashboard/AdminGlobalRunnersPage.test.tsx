@@ -124,6 +124,7 @@ import RouteMap from "../../../../App/FeatureSet/AdminDashboard/src/Utils/RouteM
 import { ADMIN_GLOBAL_RUNNERS_ROUTE } from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/GlobalRunnersCopy";
 import { RUNNER_IMAGE } from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/RunnerImage";
 import Runner from "../../../Models/DatabaseModels/Runner";
+import { JSONObject } from "../../../Types/JSON";
 import IsNull from "../../../Types/BaseDatabase/IsNull";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import {
@@ -473,7 +474,7 @@ describe("Admin Dashboard -> Settings -> Global Runners", () => {
    * when each step gets a user of its own and no network.
    */
   describe("a global Runner whose steps get less than a user of their own and no network says so", () => {
-    function withSandbox(hostInfo: Record<string, unknown>): Runner {
+    function withSandbox(hostInfo: JSONObject): Runner {
       const runner: Runner = globalRunner(new Date());
       runner.hostInfo = {
         [GLOBAL_RUNNER_SANDBOX_HOST_INFO_KEY]: hostInfo,

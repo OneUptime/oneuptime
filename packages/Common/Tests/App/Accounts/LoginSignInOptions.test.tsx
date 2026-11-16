@@ -1,4 +1,5 @@
 import { SpyInstance } from "jest-mock";
+import { getJestSpyOn } from "../../Spy";
 import "@testing-library/jest-dom";
 import {
   afterEach,
@@ -1094,7 +1095,7 @@ describe("The other ways to sign in", () => {
       // The fold's key cannot be read or written; the rest of the page's can.
       const getItem: Storage["getItem"] = Storage.prototype.getItem;
       const setItem: Storage["setItem"] = Storage.prototype.setItem;
-      jest.spyOn(Storage.prototype, "getItem").mockImplementation(function (
+      getJestSpyOn(Storage.prototype, "getItem").mockImplementation(function (
         this: Storage,
         key: string,
       ) {
@@ -1103,7 +1104,7 @@ describe("The other ways to sign in", () => {
         }
         return getItem.call(this, key);
       });
-      jest.spyOn(Storage.prototype, "setItem").mockImplementation(function (
+      getJestSpyOn(Storage.prototype, "setItem").mockImplementation(function (
         this: Storage,
         key: string,
         value: string,
