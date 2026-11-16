@@ -4,7 +4,7 @@ OneUptime 会拒绝向解析到私有、环回或链路本地范围的主机发�
 
 > Webhook URL resolves to a private, loopback, or link-local address and is not allowed
 
-对于托管产品来说，这个默认行为是正确的：任何人都可以注册，Webhook 的目标是不可信的输入。但在自托管实例上，它会妨碍一件很普通的事：把告警发送到只存在于你自己网络中的自托管 Mattermost、Jira 或工单系统。
+对于托管产品来说，这个默认行为是正确的：任何人都可以注册，Webhook 的目标是不可信的输入。但在自托管实例上，它会妨碍一件很普通的事：把警报发送到只存在于你自己网络中的自托管 Mattermost、Jira 或工单系统。
 
 本页说明如何有意识地、在尽可能小的范围内允许这种访问。由三个开关决定，每个开关负责一类连接，并且分别在不同的机器上配置：
 
@@ -59,7 +59,7 @@ Ping、Port、SSL 证书、DNS、DNSSEC、SNMP / 网络设备、SQL 查询、数
 - 工作流 **API** 组件（GET / POST / PUT / PATCH / DELETE）
 - 工作流 **Mattermost** 组件
 - 工作流 **Custom JavaScript** 组件发出的 HTTP 请求
-- 项目 Webhook 通知（事件、告警、监视器、值班、计划维护、状态页事件）
+- 项目 Webhook 通知（事件、警报、监视器、值班、计划维护、状态页事件）
 - 值班**用户 Webhook**
 - 你的团队从仪表板、用 API 密钥或由工作流添加的状态页 Webhook 订阅者
 

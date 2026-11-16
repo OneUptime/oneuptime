@@ -1968,7 +1968,7 @@ describe("the check step states discovery's own numbers", () => {
     );
     const markdown: string = check.markdown || "";
     expect(markdown).toContain(
-      `Every ${MESSAGE_QUEUE_DISCOVERY_INTERVAL_MINUTES} minutes OneUptime reads the last ${MESSAGE_QUEUE_DISCOVERY_WINDOW_MINUTES} minutes of spans and lists, under **Queues**, each destination at least ${DEFAULT_MESSAGE_QUEUE_MIN_SPANS} of them name (spans of any kind but SERVER).`,
+      `Every ${MESSAGE_QUEUE_DISCOVERY_INTERVAL_MINUTES}\u00A0minutes OneUptime reads the last ${MESSAGE_QUEUE_DISCOVERY_WINDOW_MINUTES}\u00A0minutes of spans and lists, under **Queues**, each destination at least ${DEFAULT_MESSAGE_QUEUE_MIN_SPANS} of them name (spans of any kind but SERVER).`,
     );
     expect(markdown).toContain(
       `On a self-hosted OneUptime, \`${MESSAGE_QUEUE_MIN_SPANS_ENV}\` sets that number.`,
@@ -1987,7 +1987,7 @@ describe("the check step states discovery's own numbers", () => {
       descriptorOf(system).brokerMetrics.kind === "cloud-monitoring";
     expect(
       markdown.includes(
-        `each run reads them from the last ${MESSAGE_QUEUE_DISCOVERY_CLOUD_METRIC_WINDOW_MINUTES} minutes`,
+        `each run reads them from the last ${MESSAGE_QUEUE_DISCOVERY_CLOUD_METRIC_WINDOW_MINUTES}\u00A0minutes`,
       ),
     ).toBe(reaches && isCloud);
   });
@@ -2077,12 +2077,12 @@ describe("the check step states discovery's own numbers", () => {
         "cloud-monitoring";
       expect(markdown).toContain(
         reaches
-          ? `The header reads **Seen recently** once discovery finds spans or broker metrics naming this queue. It runs every ${MESSAGE_QUEUE_DISCOVERY_INTERVAL_MINUTES} minutes over the last ${MESSAGE_QUEUE_DISCOVERY_WINDOW_MINUTES} minutes of telemetry${
+          ? `The header reads **Seen recently** once discovery finds spans or broker metrics naming this queue. It runs every ${MESSAGE_QUEUE_DISCOVERY_INTERVAL_MINUTES}\u00A0minutes over the last ${MESSAGE_QUEUE_DISCOVERY_WINDOW_MINUTES}\u00A0minutes of telemetry${
               isCloud
-                ? `, and over the last ${MESSAGE_QUEUE_DISCOVERY_CLOUD_METRIC_WINDOW_MINUTES} minutes of cloud monitoring metrics, which arrive late`
+                ? `, and over the last ${MESSAGE_QUEUE_DISCOVERY_CLOUD_METRIC_WINDOW_MINUTES}\u00A0minutes of cloud monitoring metrics, which arrive late`
                 : ""
             }.`
-          : `The header reads **Seen recently** once discovery finds spans or messaging client metrics naming this queue. It runs every ${MESSAGE_QUEUE_DISCOVERY_INTERVAL_MINUTES} minutes over the last ${MESSAGE_QUEUE_DISCOVERY_WINDOW_MINUTES} minutes of telemetry.`,
+          : `The header reads **Seen recently** once discovery finds spans or messaging client metrics naming this queue. It runs every ${MESSAGE_QUEUE_DISCOVERY_INTERVAL_MINUTES}\u00A0minutes over the last ${MESSAGE_QUEUE_DISCOVERY_WINDOW_MINUTES}\u00A0minutes of telemetry.`,
       );
       if (!reaches) {
         expect(markdown).not.toContain("broker metrics naming this queue");
@@ -2211,10 +2211,11 @@ describe("troubleshooting follows the docs page", () => {
     "%s: states the docs entries' facts",
     (_name: string, content: SetupGuideContent) => {
       for (const [title, facts] of SHARED_FACTS) {
-        const guide: string = findTopic(
-          content.troubleshooting,
-          title,
-        ).markdown.toLowerCase();
+        // The guide holds a figure to its duration's word (#8695); the docs write a space.
+        const guide: string = findTopic(content.troubleshooting, title)
+          .markdown.toLowerCase()
+          .split("\u00A0")
+          .join(" ");
         const docs: string = docsEntry(title);
         for (const fact of facts) {
           const lower: string = fact.toLowerCase();

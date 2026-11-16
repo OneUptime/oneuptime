@@ -1024,7 +1024,7 @@ service:
 | Pub/Sub 订阅的积压增长 | `pubsub.googleapis.com/subscription/num_undelivered_messages` | `resource.subscription_id` = `orders-billing` | Max |
 | 没有人消费某个 RabbitMQ 队列 | `rabbitmq.consumer.count` | `resource.rabbitmq.queue.name` = `orders` | Min |
 
-要用一个监视器监控某个系统的所有队列，请按该属性分组，而不是按它过滤：这样每个队列会各自发出警报（见 [按序列告警](/docs/monitor/metrics-monitor#按序列告警group-by)）。RabbitMQ 队列的深度（`rabbitmq.message.current`）以两个序列到达：`state` = `ready` 和 `state` = `unacknowledged`。**创建监视器** 构建的监视器会像队列页面一样把它们相加：每个状态一个查询，即 `a_ready` 和 `a_unacknowledged`，以及公式 `a_ready + a_unacknowledged`，其初始阈值作用于该公式的别名 `a`。手动构建的监视器也应如此，并把条件设在公式上。
+要用一个监视器监控某个系统的所有队列，请按该属性分组，而不是按它过滤：这样每个队列会各自发出警报（见 [按序列警报](/docs/monitor/metrics-monitor#按序列警报group-by)）。RabbitMQ 队列的深度（`rabbitmq.message.current`）以两个序列到达：`state` = `ready` 和 `state` = `unacknowledged`。**创建监视器** 构建的监视器会像队列页面一样把它们相加：每个状态一个查询，即 `a_ready` 和 `a_unacknowledged`，以及公式 `a_ready + a_unacknowledged`，其初始阈值作用于该公式的别名 `a`。手动构建的监视器也应如此，并把条件设在公式上。
 
 **延迟到达的指标。** 云监控 API 会在事后几分钟才发布它们的数值：使用本页的配置，`aws_cloudwatch` 接收器的最新数据点是 11 到 17 分钟之前的，而使用接收器默认的五分钟 `period` 时最多为 25 分钟；`googlecloudmonitoring` 接收器的最多为 9 分钟。因此，基于 SQS、SNS 或 Pub/Sub 指标的监视器需要比这更长的窗口，否则它看不到数据，永远不会触发；**创建监视器** 会以 30 分钟和 15 分钟的窗口创建这些监视器。
 

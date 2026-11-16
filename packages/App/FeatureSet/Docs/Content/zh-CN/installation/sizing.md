@@ -38,7 +38,7 @@ flowchart TB
 | 数据存储 | 存储的内容 | 决定其大小的因素 |
 | --- | --- | --- |
 | **ClickHouse** | 所有遥测数据（日志、指标、追踪、异常、性能剖析） | 遥测的 **摄取速率 × 保留期**。这约占您存储的 95%，是最主要的成本。 |
-| **PostgreSQL** | 配置和状态（监视器、事件、告警、用户、团队、项目、工作流、状态页面、仪表板） | **实体数量和历史**，而不是遥测数据量。增长缓慢。 |
+| **PostgreSQL** | 配置和状态（监视器、事件、警报、用户、团队、项目、工作流、状态页面、仪表板） | **实体数量和历史**，而不是遥测数据量。增长缓慢。 |
 | **Valkey** | 缓存、工作队列和会话 | **队列深度和活跃会话**。受内存限制，规模不大。不是权威数据源。 |
 
 OneUptime 运行时从不需要对象存储（S3、MinIO），也不会把较旧的遥测数据移到对象存储。只有当您选择备份到对象存储时才需要它：CloudNativePG 的 Barman Cloud 插件，或 ClickHouse 的 [clickhouse-backup](https://github.com/Altinity/clickhouse-backup)。Chart 自带的 CloudNativePG 备份（`postgresOperator.cnpg.backup`）会创建卷快照，不需要对象存储。CloudNativePG 从不删除旧快照：请自行清理，否则它们会不断增加。
@@ -80,7 +80,7 @@ ClickHouse disk ≈ (daily raw telemetry GB ÷ compression) × retention days ×
 
 ## PostgreSQL：配置与状态
 
-PostgreSQL 存储的是您的配置和运行状态，而不是遥测数据，因此增长缓慢，与 ClickHouse 相比始终很小。即使是大型部署，通常也只有几十 GB。默认的 **25 Gi** 卷适合小型安装；较大的安装请规划 50–100 GB，并为事件和告警历史留出余量。
+PostgreSQL 存储的是您的配置和运行状态，而不是遥测数据，因此增长缓慢，与 ClickHouse 相比始终很小。即使是大型部署，通常也只有几十 GB。默认的 **25 Gi** 卷适合小型安装；较大的安装请规划 50–100 GB，并为事件和警报历史留出余量。
 
 当应用、worker 和探测器的副本很多时，数据库连接可能会先于存储耗尽。每个 Pod 默认最多打开 50 个连接，而内置的 PostgreSQL 允许 500 个。Chart 正是为此提供了可选的连接池 **PgBouncer**（`pgbouncer.enabled`）：副本很多的部署请开启它。
 

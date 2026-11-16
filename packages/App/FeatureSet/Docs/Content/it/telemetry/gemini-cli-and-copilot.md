@@ -1,6 +1,6 @@
 # Gemini CLI e GitHub Copilot
 
-Gemini CLI e GitHub Copilot esportano entrambi OpenTelemetry da soli: puntali su OneUptime e le loro chiamate al modello, i token, i costi e le chiamate agli strumenti arrivano in [AI / LLM](/docs/telemetry/ai-llm-observability), accanto alle chiamate IA delle tue app. Si differenziano in ciò che conta di più per il riaddebito dei costi: Gemini CLI nomina la persona in ogni record, Copilot non nomina nessuno, quindi sei tu a nominare ogni sviluppatore.
+Gemini CLI e GitHub Copilot esportano entrambi OpenTelemetry da soli: puntali su OneUptime e le loro chiamate al modello, i token, i costi e le chiamate agli strumenti arrivano in [IA / LLM](/docs/telemetry/ai-llm-observability), accanto alle chiamate IA delle tue app. Si differenziano in ciò che conta di più per il riaddebito dei costi: Gemini CLI nomina la persona in ogni record, Copilot non nomina nessuno, quindi sei tu a nominare ogni sviluppatore.
 
 :::cards
 - [Gemini CLI](#configura-gemini-cli): Attiva la telemetria, con le tracce, e inviala direttamente a OneUptime.

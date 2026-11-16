@@ -1,6 +1,6 @@
 # Nettsted-monitor
 
-En nettstedsmonitor sjekker at en nettside svarer. Ved hver sjekk ber en sonde om sidens URL, og monitoren går frakoblet og erklærer en hendelse når siden ikke svarer eller svarer med en feil. For å kalle et endepunkt med en metode, hoder eller en brødtekst bruker du heller en [API-monitor](/docs/monitor/api-monitor).
+En nettstedsmonitor sjekker at en nettside svarer. Ved hver sjekk ber en sonde om sidens URL, og monitoren går offline og erklærer en hendelse når siden ikke svarer eller svarer med en feil. For å kalle et endepunkt med en metode, hoder eller en brødtekst bruker du heller en [API-monitor](/docs/monitor/api-monitor).
 
 > [!TIP]
 > Ny her? Følg guiden først: [Få beskjed når nettstedet eller API-et ditt går ned](/docs/guides/website-down).
@@ -30,9 +30,9 @@ flowchart TB
 
 Når ingen av monitorens kriterier leser svarets brødtekst (et filter **Svartekst** eller **JavaScript-uttrykk**), sender sonden en forespørsel `HEAD` i stedet for en `GET`, og gjentar den som `GET` hvis serveren avviser `HEAD`. Tilgangsloggene på serveren din kan vise begge.
 
-Sonden sjekker nettstedets sertifikat slik en nettleser gjør, også om utstederen har tilbakekalt det. Et tilbakekalt sertifikat får sjekken til å mislykkes på samme måte som et utløpt: monitoren blir frakoblet, og feilårsaken sier at sertifikatet ble tilbakekalt. **Tillat selvsignerte sertifikater** slår av disse sjekkene for monitorens eget vertsnavn.
+Sonden sjekker nettstedets sertifikat slik en nettleser gjør, også om utstederen har tilbakekalt det. Et tilbakekalt sertifikat får sjekken til å mislykkes på samme måte som et utløpt: monitoren blir offline, og feilårsaken sier at sertifikatet ble tilbakekalt. **Tillat selvsignerte sertifikater** slår av disse sjekkene for monitorens eget vertsnavn.
 
-En sonde som har mistet sin egen nettverkstilkobling, rapporterer ikke noe resultat, så den kan ikke merke nettstedet ditt som frakoblet.
+En sonde som har mistet sin egen nettverkstilkobling, rapporterer ikke noe resultat, så den kan ikke merke nettstedet ditt som offline.
 
 ## Før du starter
 
@@ -60,7 +60,7 @@ Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **K
 
 ### Gå gjennom kriteriene
 
-**Kriterier** starter med [standardkriteriene](#standardkriterier): frakoblet når nettstedet ikke svarer eller svarer med en feil, tilkoblet ved enhver status `2xx` eller `3xx`. Endre dem ved behov, og klikk så på **Neste**.
+**Kriterier** starter med [standardkriteriene](#standardkriterier): offline når nettstedet ikke svarer eller svarer med en feil, tilkoblet ved enhver status `2xx` eller `3xx`. Endre dem ved behov, og klikk så på **Neste**.
 
 ### Velg sonder og opprett
 
@@ -143,7 +143,7 @@ Disse feilene prøves på nytt: tilkoblingsfeil, tidsavbrudd, svar `4xx` og `5xx
 
 ## Overvåkingskriterier
 
-Kriterier avgjør når nettstedet regnes som tilkoblet, redusert eller frakoblet, og om det erklærer en hendelse eller oppretter et varsel. Hvert kriterium sjekker ett eller flere filtre:
+Kriterier avgjør når nettstedet regnes som tilkoblet, redusert eller offline, og om det erklærer en hendelse eller oppretter et varsel. Hvert kriterium sjekker ett eller flere filtre:
 
 | Filter | Betingelser | Hva det sjekker |
 | --- | --- | --- |
@@ -164,12 +164,12 @@ Med to eller flere filtre avgjør **Samsvarsbetingelse** om **Alle** må samsvar
 
 En ny nettstedsmonitor starter med to kriterier, så den fungerer uten at du endrer noe:
 
-- **Frakoblet** — nettstedet svarer ikke, eller svarer med en statuskode på `400` eller høyere (eller under `200`). Monitoren merkes som **Frakoblet**, og en hendelse opprettes. Hendelsen løser seg selv når nettstedet er tilbake.
+- **Offline** — nettstedet svarer ikke, eller svarer med en statuskode på `400` eller høyere (eller under `200`). Monitoren merkes som **Offline**, og en hendelse opprettes. Hendelsen løser seg selv når nettstedet er tilbake.
 - **Oppe** — nettstedet svarer med en hvilken som helst statuskode `2xx` eller `3xx`, som `200`, `204` eller `301`. Monitoren merkes som **I drift**.
 
-I listen over kriterier har de navn etter monitoren: "Sjekk om _monitornavn_ er frakoblet" og "Sjekk om _monitornavn_ er tilkoblet".
+I listen over kriterier har de navn etter monitoren: "Sjekk om _monitornavn_ er offline" og "Sjekk om _monitornavn_ er tilkoblet".
 
-En side som svarer `204 No Content`, eller en omdirigering du følger med **Ikke følg omdirigeringer** slått på, regnes altså som oppe. Hvis bare én statuskode betyr frisk for deg, endrer du begge kriteriene på monitorens side **Konfigurasjon → Kriterier**: for eksempel **Statuskode for svar** / **Lik** / `200` i det tilkoblede kriteriet og **Ikke lik** / `200` i det frakoblede, i stedet for de to statuskodefiltrene hvert av dem har.
+En side som svarer `204 No Content`, eller en omdirigering du følger med **Ikke følg omdirigeringer** slått på, regnes altså som oppe. Hvis bare én statuskode betyr frisk for deg, endrer du begge kriteriene på monitorens side **Konfigurasjon → Kriterier**: for eksempel **Statuskode for svar** / **Lik** / `200` i det tilkoblede kriteriet og **Ikke lik** / `200` i det offline, i stedet for de to statuskodefiltrene hvert av dem har.
 
 Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva som skjer.
 
@@ -214,7 +214,7 @@ For å komme gjennom en omstart slår du på **Evaluer disse kriteriene over en 
 
 ## Feilsøking
 
-:::details Monitoren er frakoblet, men nettstedet lastes i nettleseren min
+:::details Monitoren er offline, men nettstedet lastes i nettleseren min
 Sonden fikk et annet svar enn nettleseren din. Hendelsens rotårsak og **Overvåkingslogger** på monitoren viser hva sonden så. Vanlige årsaker:
 
 - En brannmur eller et botfilter blokkerer sondene. Tillat [OneUptime Clouds sonde-IP-adresser](/docs/configuration/ip-addresses).

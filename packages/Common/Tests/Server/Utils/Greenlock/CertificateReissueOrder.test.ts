@@ -258,7 +258,9 @@ describe("CertificateReissueOrder.reissue", () => {
         CertificateReissueUtil.getCooldownMessage(lastReissueRequestedAt, NOW),
       );
       // 02:30 + 24h is 02:30 tomorrow: 14h30m from noon.
-      expect(err.message).toContain("Please try again in 14 hours 30 minutes.");
+      expect(err.message).toContain(
+        "Please try again in 14\u00A0hours 30\u00A0minutes.",
+      );
       expect(calls.steps).toEqual(["claimCooldown"]);
       expect(redis.heldLocks.size).toBe(0);
     });

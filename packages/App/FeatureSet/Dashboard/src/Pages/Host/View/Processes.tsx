@@ -66,6 +66,7 @@ import { formatReaderFigure } from "Common/Types/DateLanguage";
 import TableEmptyValue, {
   getValueOrQuietDash,
 } from "Common/UI/Components/Table/TableEmptyValue";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 
 // In the reader's digits: "۱۲٫۵٪" in Persian, "12,5 %" in German (#7106).
 const formatPercent: (value: number | null) => string = (
@@ -604,7 +605,7 @@ const HostProcesses: FunctionComponent<
    */
   const noItemsMessage: string =
     rows.length === 0
-      ? `No process metrics in the last ${PROCESS_LOOKBACK_MINUTES} minutes. Turn on the collector's "process" scraper: see the Documentation tab.`
+      ? `No process metrics in the last ${PROCESS_LOOKBACK_MINUTES}${NO_BREAK_SPACE}minutes. Turn on the collector's "process" scraper: see the Documentation tab.`
       : translationKey("No processes match your search.");
 
   /*

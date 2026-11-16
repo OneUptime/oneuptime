@@ -47,9 +47,9 @@ const TRANSLATION: SetupGuideTranslation = {
     "- 하나의 리시버는 하나의 리전과 하나의 네임스페이스를 읽습니다: 리전마다 인스턴스를 추가하세요.",
   "To stream the metrics instead — a CloudWatch Metric Stream through Amazon Data Firehose to the collector's `awsfirehose` receiver — see [Amazon SQS](/docs/telemetry/queues#amazon-sqs).":
     "대신 메트릭을 스트리밍하려면(CloudWatch Metric Stream에서 Amazon Data Firehose를 거쳐 컬렉터의 `awsfirehose` 리시버로) [Amazon SQS](/docs/telemetry/queues#amazon-sqs)를 참조하세요.",
-  "Send a few messages through your queues. Every 10 minutes OneUptime reads the last 15 minutes of spans and lists, under **Queues**, each destination at least 3 of them name (spans of any kind but SERVER). On a self-hosted OneUptime, `MESSAGE_QUEUE_MIN_SPANS` sets that number.":
+  "Send a few messages through your queues. Every 10 minutes OneUptime reads the last 15 minutes of spans and lists, under **Queues**, each destination at least 3 of them name (spans of any kind but SERVER). On a self-hosted OneUptime, `MESSAGE_QUEUE_MIN_SPANS` sets that number.":
     "큐로 메시지를 몇 개 보내세요. OneUptime은 10분마다 최근 15분의 스팬을 읽고, 그중 3개 이상이 나타내는 대상을 **큐**에 나열합니다(SERVER를 제외한 모든 종류의 스팬). 셀프 호스팅 OneUptime에서는 `MESSAGE_QUEUE_MIN_SPANS`로 이 수를 정합니다.",
-  "One datapoint of a broker metric a queue page charts creates its queue too: cloud monitoring metrics arrive late, so each run reads them from the last 60 minutes. Messaging client metrics, and metrics of your own that carry `messaging.system` and `messaging.destination.name`, never create a queue: they show on the **Metrics** tab of one that exists.":
+  "One datapoint of a broker metric a queue page charts creates its queue too: cloud monitoring metrics arrive late, so each run reads them from the last 60 minutes. Messaging client metrics, and metrics of your own that carry `messaging.system` and `messaging.destination.name`, never create a queue: they show on the **Metrics** tab of one that exists.":
     "큐 페이지가 차트로 표시하는 브로커 메트릭은 데이터 포인트 하나만 도착해도 그 큐를 만듭니다. 클라우드 모니터링 메트릭은 늦게 도착하므로, 매 실행마다 최근 60분에서 읽습니다. 메시징 클라이언트 메트릭과, `messaging.system` 및 `messaging.destination.name`을 담은 자체 메트릭은 큐를 만들지 않습니다. 이미 있는 큐의 **메트릭** 탭에 표시됩니다.",
   "Queues are created on their own only while the project is under its [auto-create budget](/docs/telemetry/queues#the-auto-create-budget).":
     "큐는 프로젝트가 [자동 생성 한도](/docs/telemetry/queues#the-auto-create-budget) 아래에 있는 동안에만 자동으로 만들어집니다.",
@@ -68,7 +68,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "- 그 스팬이 OneUptime이 구분할 수 있는 메시징 시스템을 나타내지 않습니다. Celery의 스팬, BullMQ 자체의 텔레메트리 또는 직접 만든 클라이언트가 그렇습니다. `messaging.system`과 `messaging.destination.name`을 추가하고, 스팬의 종류를 PRODUCER 또는 CONSUMER로 지정하세요.",
   "- Its name is one OneUptime ignores (see [What is ignored](/docs/telemetry/queues#what-is-ignored)), or only SERVER spans name it.":
     "- 그 이름이 OneUptime이 무시하는 이름이거나([무시되는 항목](/docs/telemetry/queues#what-is-ignored) 참조), SERVER 스팬만 그 큐를 나타냅니다.",
-  "- Fewer than 3 of its spans arrived in the last 15 minutes, or the project reached its [auto-create budget](/docs/telemetry/queues#the-auto-create-budget).":
+  "- Fewer than 3 of its spans arrived in the last 15 minutes, or the project reached its [auto-create budget](/docs/telemetry/queues#the-auto-create-budget).":
     "- 최근 15분 동안 도착한 스팬이 3개 미만이거나, 프로젝트가 [자동 생성 한도](/docs/telemetry/queues#the-auto-create-budget)에 도달했습니다.",
   "When its spans do name it, create it by hand with the same system and destination (**Queues → Create Queue**): its **Traces** tab fills in from the spans already stored.":
     "스팬이 실제로 큐를 지정한다면 같은 시스템과 대상으로 직접 만드세요(**큐 → 큐 만들기**): 그 **트레이스** 탭은 이미 저장된 스팬으로 채워집니다.",

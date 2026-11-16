@@ -17,7 +17,7 @@ OneUptime AI fa tre cose per un nuovo incidente o avviso, e ognuna ha il proprio
 
 - **Indaga** (attivo per impostazione predefinita). Legge la tua telemetria, e i cluster e gli host in cui gira un agente IA, e pubblica un'analisi della causa principale con fonti. Un'indagine non modifica nulla.
 - **Corregge** (disattivato per impostazione predefinita). Quando la correzione è attiva, un'analisi sicura diventa una correzione: una pull request per una modifica al tuo codice, oppure un piano di comandi per un cluster o un host, eseguito come consente l'agente IA di quel cluster o host.
-- **Impara.** Le pagine AI Insights dicono che cosa continua ad andare storto, ricavandolo da tutto ciò che è stato registrato.
+- **Impara.** Le pagine Insight IA dicono che cosa continua ad andare storto, ricavandolo da tutto ciò che è stato registrato.
 
 ```mermaid title="Da un nuovo incidente a una correzione"
 flowchart TB
@@ -91,7 +91,7 @@ Un incidente o un avviso che OneUptime AI non ha indagato né corretto perché l
 
 ## Abilitare le indagini IA
 
-Le indagini autonome sono **attive per impostazione predefinita nei nuovi progetti**. Lo sono anche le bozze di post-mortem e gli AI Insights. La correzione parte disattivata, e le pull request che ne fanno parte si aprono solo finché è attiva (vedi [Correzioni automatiche del codice](#correzioni-automatiche-del-codice)). Un progetto creato prima di questa impostazione predefinita mantiene la propria; attiva le indagini come al passaggio 3, oppure con **Attiva** nella pagina **Agente IA** di un qualsiasi cluster Kubernetes (Proprietario del progetto o Amministratore del progetto). Per verificarle o modificarle:
+Le indagini autonome sono **attive per impostazione predefinita nei nuovi progetti**. Lo sono anche le bozze di post-mortem e gli Insight IA. La correzione parte disattivata, e le pull request che ne fanno parte si aprono solo finché è attiva (vedi [Correzioni automatiche del codice](#correzioni-automatiche-del-codice)). Un progetto creato prima di questa impostazione predefinita mantiene la propria; attiva le indagini come al passaggio 3, oppure con **Attiva** nella pagina **Agente IA** di un qualsiasi cluster Kubernetes (Proprietario del progetto o Amministratore del progetto). Per verificarle o modificarle:
 
 :::steps
 1. **Configura un provider LLM.** Le installazioni self-hosted usano la propria chiave (o girano completamente isolate con Ollama in locale): vedi [Provider LLM](/docs/ai/llm-provider). Gli utenti di OneUptime Cloud possono usare il provider globale preconfigurato, fatturato come token IA a consumo, quindi il progetto ha bisogno di crediti IA: un Proprietario del progetto o chi ha **Manage Billing** li aggiunge in **Impostazioni del progetto → IA → Crediti IA**, dove la **Ricarica automatica** evita che si esauriscano.
@@ -280,7 +280,7 @@ Tutto ciò che c'è nella pagina proviene da ciò che OneUptime ha già registra
 
 ### Tutto ciò che l'IA ha fatto su un cluster
 
-La pagina **Log IA** del cluster (IA → Log) è il log di tutto ciò che OneUptime AI ha fatto lì, dal più recente: ogni indagine con il suo incidente o avviso e il suo riepilogo, ogni correzione proposta o eseguita con il suo stato, e ogni comando kubectl (di indagine o di correzione) con il comando, il suo stato e quando è stato eseguito. Il riepilogo di un'indagine è il suo TL;DR o, quando non è stato possibile scrivere un TL;DR, il riepilogo con cui si apre il suo report. Questa pagina si chiamava prima AI Insights; un segnalibro del suo vecchio indirizzo ora apre la pagina AI Insights, che rimanda qui.
+La pagina **Log IA** del cluster (IA → Log) è il log di tutto ciò che OneUptime AI ha fatto lì, dal più recente: ogni indagine con il suo incidente o avviso e il suo riepilogo, ogni correzione proposta o eseguita con il suo stato, e ogni comando kubectl (di indagine o di correzione) con il comando, il suo stato e quando è stato eseguito. Il riepilogo di un'indagine è il suo TL;DR o, quando non è stato possibile scrivere un TL;DR, il riepilogo con cui si apre il suo report. Questa pagina si chiamava prima Insight IA; un segnalibro del suo vecchio indirizzo ora apre la pagina Insight IA, che rimanda qui.
 
 ### Tramite il precedente Runner nel cluster
 
@@ -480,7 +480,7 @@ I log di esecuzione della policy dicono come è finita ogni attesa. Tramite API 
 
 La sezione **IA** dei menu laterali di Incidenti e Avvisi si apre su due pagine che ripercorrono ciò che OneUptime AI ha fatto per quel tipo di segnale. Nessuna delle due modifica nulla: entrambe mostrano solo ciò che è stato registrato, e solo per gli incidenti (o gli avvisi) che puoi vedere.
 
-- **Insight** (**Incidenti → IA → Insight**, **Avvisi → IA → Insight**): la stessa pagina AI Insights di un cluster (vedi [Cosa ha imparato l'IA su un cluster](#cosa-ha-imparato-lia-su-un-cluster)), sugli incidenti (o gli avvisi) degli ultimi 30 giorni, ricavata sul server da ciò che è stato registrato:
+- **Insight** (**Incidenti → IA → Insight**, **Avvisi → IA → Insight**): la stessa pagina Insight IA di un cluster (vedi [Cosa ha imparato l'IA su un cluster](#cosa-ha-imparato-lia-su-un-cluster)), sugli incidenti (o gli avvisi) degli ultimi 30 giorni, ricavata sul server da ciò che è stato registrato:
   - **Cosa ha trovato OneUptime AI**: le poche cose che contano di più, ciascuna con gli incidenti dietro e un passo successivo: un incidente che continua a ripresentarsi (con quale frequenza e quale parte del totale rappresenta, se è nuovo questa settimana o sta peggiorando, quando tende a iniziare, i monitor che lo hanno generato, che cosa ha trovato l'IA e il passo che suggerisce), una correzione che non è servita o che aspetta l'approvazione, gli incidenti che l'IA non ha esaminato e perché (con la strada verso l'impostazione che lo decide, per chi può modificarla), il servizio o il monitor dietro diversi problemi distinti, ciò che l'IA ha corretto da sola e, quando il tuo team ha approvato ogni correzione proposta dall'IA, il modo per lasciare che l'IA applichi da sola correzioni come queste.
   - **Altri problemi**: il resto di ciò che l'IA ha esaminato, raggruppato per il monitor che lo ha generato (per titolo quando non c'è), il più frequente per primo: con quale frequenza, i monitor dietro, quali host, pod o altre parti colpisce, che cosa ha trovato e suggerisce l'ultima indagine, che fine hanno fatto le correzioni proposte dall'IA e che cosa hanno pensato dei risultati il tuo team e la valutazione automatica.
   - **Monitor che continuano a fallire** e **Servizi che continuano a fallire**: i monitor dietro il maggior numero di incidenti dei 30 giorni, e i servizi coinvolti nel maggior numero di incidenti, indagati o no.
@@ -597,7 +597,7 @@ Facoltativamente, OneUptime AI può anche aprire una **pull request di correzion
 Tutte e tre le impostazioni sono **attive per impostazione predefinita nei nuovi progetti** (un progetto creato prima di questa impostazione predefinita mantiene la propria), in **Prodotti → IA → Insight → Impostazioni**. Ognuna è un interruttore che si salva non appena lo sposti:
 
 1. **Monitora la telemetria alla ricerca di problemi**: attiva il ciclo di sorveglianza, la casella di posta e il triage.
-2. **Apri una pull request di correzione quando un insight indica il tuo codice**: attiva la creazione di attività di correzione per gli insight idonei. Richiede la stessa configurazione del flusso manuale "Fix with AI": un repository collegato e un provider LLM.
+2. **Apri una pull request di correzione quando un insight indica il tuo codice**: attiva la creazione di attività di correzione per gli insight idonei. Richiede la stessa configurazione del flusso manuale "Correggi con l'IA": un repository collegato e un provider LLM.
 3. **Archivia le eccezioni previste**: i gruppi di eccezioni che il triage classifica come rifiuti previsti (accessi rifiutati, limiti del piano, scanner che fanno scattare validazioni intenzionali) vengono archiviati, così smettono di comparire come non risolti. Gli errori degli utenti e le condizioni dell'infrastruttura non lo sono mai, e puoi ripristinare un gruppo archiviato dalla scheda **Archiviato**.
 
 Con **Abilita IA** disattivato, gli insight vengono comunque trovati (i rilevatori non usano l'IA), ma nessuno viene sottoposto a triage, archiviato o corretto; la pagina delle impostazioni lo dice in alto. Senza un provider LLM che OneUptime AI possa usare, dice che gli insight non vengono sottoposti a triage.
@@ -609,7 +609,7 @@ Ogni insight ha i pulsanti **Conferma** e **Nascondi**: usali anche quando non i
 - Deve essere configurato un provider LLM (specifico del progetto o il provider globale del cloud).
 - Le indagini scattano solo su incidenti e avvisi **appena creati**: attivare gli interruttori non indaga sui segnali passati.
 - Il controllo `baseline_anomaly` ha bisogno di circa due settimane di storico delle metriche prima che le sue baseline per ora della settimana siano affidabili; prima di allora segnala "insufficient baseline data" invece di tirare a indovinare.
-- Su OneUptime Cloud con il provider globale, le indagini consumano token IA a consumo (vedi **Impostazioni del progetto → IA → Crediti IA**). Usa la chiave del tuo provider per un uso non a consumo, oppure limita quanto l'IA può spendere ogni giorno con un limite giornaliero di spesa IA (Impostazioni del progetto → IA → AI Features → Altre impostazioni).
+- Su OneUptime Cloud con il provider globale, le indagini consumano token IA a consumo (vedi **Impostazioni del progetto → IA → Crediti IA**). Usa la chiave del tuo provider per un uso non a consumo, oppure limita quanto l'IA può spendere ogni giorno con un limite giornaliero di spesa IA (Impostazioni del progetto → IA → Funzionalità IA → Altre impostazioni).
 
 ## Risoluzione dei problemi
 

@@ -38,6 +38,7 @@ import {
   fillGuideTemplate,
   markdownTable,
 } from "./SecurityEventsGuide";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 
 /*
  * What a customer needs to know to trust a detection rule: when it runs,
@@ -593,16 +594,16 @@ Any rule but one with a \`re\` modifier can run in real time instead: turn on **
 - **A rule that fires on one event** - a **Match Count Threshold** of 1 and no **Distinct Count Field** - opens its case, alert and finding within seconds of each match, and runs on no interval.
 - **A rule that counts, and a correlation,** count in the windows their schedule reads: back to back, as long as the **Evaluation Interval**, and starting on the clock (at :00, :05, :10 for 5 minutes). A group fires the moment its window reaches the count - however late the event that makes it arrives - and at most once a window, so a burst that goes on fires again in the next one, as on the schedule. A correlation's own timespan still rolls across windows.
 
-Its **Status** says **Real time**. Turned on, it first reads what arrived since its last run; with **Run in Real Time** turned off, it goes back to its interval. A real-time rule disabled and enabled again first reads the time it was off, up to the last ${LOOKBACK_IN_HOURS} hours, as a scheduled rule does. A project runs at most ${DETECTION_REAL_TIME_RULES_MAX} rules in real time.
+Its **Status** says **Real time**. Turned on, it first reads what arrived since its last run; with **Run in Real Time** turned off, it goes back to its interval. A real-time rule disabled and enabled again first reads the time it was off, up to the last ${LOOKBACK_IN_HOURS}${NO_BREAK_SPACE}hours, as a scheduled rule does. A project runs at most ${DETECTION_REAL_TIME_RULES_MAX} rules in real time.
 
 #### Which events each run sees
 
-Each run searches the events whose **event time** falls between where the previous run stopped and **${DETECTION_EVALUATION_DELAY_IN_MINUTES} minutes ago**, then moves its starting point forward. The ${DETECTION_EVALUATION_DELAY_IN_MINUTES} minutes leave time for events still on their way - a log line read a minute after it was written, a batch a source sends late - so they are counted in the run that covers their time instead of being missed:
+Each run searches the events whose **event time** falls between where the previous run stopped and **${DETECTION_EVALUATION_DELAY_IN_MINUTES}${NO_BREAK_SPACE}minutes ago**, then moves its starting point forward. The ${DETECTION_EVALUATION_DELAY_IN_MINUTES}${NO_BREAK_SPACE}minutes leave time for events still on their way - a log line read a minute after it was written, a batch a source sends late - so they are counted in the run that covers their time instead of being missed:
 
 - **Windows are back to back, not rolling.** With a 10-minute interval, events at 09:58 and 10:01 can land in different runs and are counted separately. Leave some headroom when you choose a threshold.
 - **The first run** looks back one interval.
-- **After a gap** — a worker outage, or a rule re-enabled after being disabled — the next run covers the whole gap, up to the last ${LOOKBACK_IN_HOURS} hours. For that one run, a "5 in 10 minutes" rule behaves like "5 since the last run".
-- **Late events are not re-checked.** The window uses the time each event says it happened, not when it arrived. An event that reaches OneUptime more than ${DETECTION_EVALUATION_DELAY_IN_MINUTES} minutes after that time, once a run has covered it, is stored and searchable, but that rule will not evaluate it.
+- **After a gap** — a worker outage, or a rule re-enabled after being disabled — the next run covers the whole gap, up to the last ${LOOKBACK_IN_HOURS}${NO_BREAK_SPACE}hours. For that one run, a "5 in 10 minutes" rule behaves like "5 since the last run".
+- **Late events are not re-checked.** The window uses the time each event says it happened, not when it arrived. An event that reaches OneUptime more than ${DETECTION_EVALUATION_DELAY_IN_MINUTES}${NO_BREAK_SPACE}minutes after that time, once a run has covered it, is stored and searchable, but that rule will not evaluate it.
 
 #### Group By Field
 

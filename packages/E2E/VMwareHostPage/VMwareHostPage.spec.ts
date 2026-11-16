@@ -4,6 +4,8 @@ import fsPromises from "fs/promises";
 import path from "path";
 import { expectCardsFit } from "../SuiteHelpers/CardBodyFit";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { NO_BREAK_SPACE } from "../SuiteHelpers/NoBreakSpaces";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * An ESXi host's page inside its vCenter, in a browser, against the offline
@@ -295,7 +297,7 @@ test.describe("a reporting host at a laptop's width", () => {
     );
     await expect(tile(page, "Disk latency")).toContainText("slowest disk");
     await expect(tileValue(page, "Network")).toHaveText(
-      /^\d+(\.\d+)? [KMG]?B\/s$/,
+      new RegExp(`^\\d+(\\.\\d+)?${NO_BREAK_SPACE}[KMG]?B/s$`),
     );
 
     const charts: Locator = page.getByTestId("vmware-host-charts");
@@ -1362,4 +1364,18 @@ test.describe("on a phone, in dark mode and in German", () => {
     );
     await expectNoSidewaysScroll(page);
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German whole, parsed on every page load of every test. English is in the
+ * bundle now, and each other language a chunk of its own, loaded only by a
+ * page drawn in it (SuiteHelpers/FixtureLocales.js), built as the Dashboard
+ * ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de"],
+  address: (language: string): string => {
+    return language === "en" ? HOST_PAGE : `${HOST_PAGE}?lang=${language}`;
+  },
 });

@@ -206,7 +206,7 @@ Il modello scatta quando un pod di un Job fallisce in 15 minuti, e si risolve qu
 
 :::cards
 - [Agente Kubernetes (installazione Helm)](/docs/monitor/kubernetes-agent): Installare, aggiornare e regolare l'agente con Helm.
-- [Agent Kubernetes](/docs/telemetry/kubernetes-agent): Filtri per namespace, metriche del piano di controllo, filtri di gravità dei log e l'agente AI.
+- [Agent Kubernetes](/docs/telemetry/kubernetes-agent): Filtri per namespace, metriche del piano di controllo, filtri di gravità dei log e l'agente IA.
 - [Monitor metriche](/docs/monitor/metrics-monitor): Avvisare su qualsiasi metrica, comprese le metriche personalizzate ed eBPF dell'agente.
 - [Modelli di incidenti e avvisi](/docs/monitor/incident-alert-templating): Mettere il pod o il nodo in violazione nei titoli degli incidenti.
 :::

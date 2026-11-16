@@ -63,7 +63,7 @@ Aldrig forsinket og aldrig talt med:
 | ----------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | Vagtkald | Hvert kald fra en eskaleringspolitik og hver anmodning om kvittering |
 | Vagttider | "Du har vagt nu", "du har vagt som den næste", "din vagt begynder snart", "din vagt blev omfordelt" |
-| Kontosikkerhed | Nulstilling af adgangskode, bekræftelse af e-mail, adgangskode ændret, backupkode til totrinsbekræftelse brugt eller genereret igen |
+| Kontosikkerhed | Nulstilling af adgangskode, bekræftelse af e-mail, adgangskode ændret, backupkode til tofaktorgodkendelse brugt eller genereret igen |
 | Administrative meddelelser om din konto | En administrator har ændret dine notifikationsmetoder eller dine vagtregler |
 | Fakturering og saldo | Fakturaer, forfaldent abonnement, "vi kunne ikke kalde nogen, fordi kortet blev afvist" |
 | Instansens tilstand | Advarsler om Postgres, Valkey og ClickHouse til instansens administratorer |

@@ -47,9 +47,9 @@ const TRANSLATION: SetupGuideTranslation = {
     "- 一個接收器讀取一個區域和一個命名空間：每個區域新增一個執行個體。",
   "To stream the metrics instead — a CloudWatch Metric Stream through Amazon Data Firehose to the collector's `awsfirehose` receiver — see [Amazon SQS](/docs/telemetry/queues#amazon-sqs).":
     "若要改為串流傳輸指標（透過 CloudWatch Metric Stream 和 Amazon Data Firehose 傳送到 Collector 的 `awsfirehose` 接收器），請參閱 [Amazon SQS](/docs/telemetry/queues#amazon-sqs)。",
-  "Send a few messages through your queues. Every 10 minutes OneUptime reads the last 15 minutes of spans and lists, under **Queues**, each destination at least 3 of them name (spans of any kind but SERVER). On a self-hosted OneUptime, `MESSAGE_QUEUE_MIN_SPANS` sets that number.":
+  "Send a few messages through your queues. Every 10 minutes OneUptime reads the last 15 minutes of spans and lists, under **Queues**, each destination at least 3 of them name (spans of any kind but SERVER). On a self-hosted OneUptime, `MESSAGE_QUEUE_MIN_SPANS` sets that number.":
     "透過你的佇列傳送幾則訊息。OneUptime 每 10 分鐘讀取最近 15 分鐘的 span，並在 **佇列** 下列出其中至少 3 個 span 標明的每個目的地（SERVER 以外任何類型的 span）。在自行託管的 OneUptime 上，由 `MESSAGE_QUEUE_MIN_SPANS` 設定這個數量。",
-  "One datapoint of a broker metric a queue page charts creates its queue too: cloud monitoring metrics arrive late, so each run reads them from the last 60 minutes. Messaging client metrics, and metrics of your own that carry `messaging.system` and `messaging.destination.name`, never create a queue: they show on the **Metrics** tab of one that exists.":
+  "One datapoint of a broker metric a queue page charts creates its queue too: cloud monitoring metrics arrive late, so each run reads them from the last 60 minutes. Messaging client metrics, and metrics of your own that carry `messaging.system` and `messaging.destination.name`, never create a queue: they show on the **Metrics** tab of one that exists.":
     "佇列頁面會繪圖的 Broker 指標，哪怕只送達一個資料點，也會建立其佇列：雲端監控指標會延遲送達，因此每次執行都會讀取最近 60 分鐘的資料。訊息用戶端指標，以及你自己帶有 `messaging.system` 和 `messaging.destination.name` 的指標，都不會建立佇列：它們會顯示在既有佇列的 **指標** 分頁上。",
   "Queues are created on their own only while the project is under its [auto-create budget](/docs/telemetry/queues#the-auto-create-budget).":
     "只有在專案尚未達到其 [自動建立額度](/docs/telemetry/queues#the-auto-create-budget) 時，佇列才會自動建立。",
@@ -68,7 +68,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "- 它的 span 沒有標明 OneUptime 能辨識的訊息系統：Celery 的 span、BullMQ 本身的遙測或自行撰寫的用戶端都是如此。請加入 `messaging.system` 和 `messaging.destination.name`，並把 span 的類型設為 PRODUCER 或 CONSUMER。",
   "- Its name is one OneUptime ignores (see [What is ignored](/docs/telemetry/queues#what-is-ignored)), or only SERVER spans name it.":
     "- 它的名稱屬於 OneUptime 忽略的名稱（請參閱 [忽略的內容](/docs/telemetry/queues#what-is-ignored)），或者只有 SERVER span 標明了它。",
-  "- Fewer than 3 of its spans arrived in the last 15 minutes, or the project reached its [auto-create budget](/docs/telemetry/queues#the-auto-create-budget).":
+  "- Fewer than 3 of its spans arrived in the last 15 minutes, or the project reached its [auto-create budget](/docs/telemetry/queues#the-auto-create-budget).":
     "- 最近 15 分鐘內送達的 span 少於 3 個，或者專案已達到其 [自動建立額度](/docs/telemetry/queues#the-auto-create-budget)。",
   "When its spans do name it, create it by hand with the same system and destination (**Queues → Create Queue**): its **Traces** tab fills in from the spans already stored.":
     "如果它的 span 確實指明了它，請以相同的系統和目的地手動建立它（**佇列 → 建立佇列**）：它的 **追蹤** 分頁會從已儲存的 span 填入內容。",

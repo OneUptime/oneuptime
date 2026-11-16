@@ -1,9 +1,9 @@
 # 追踪监控
 
-追踪监视器在一个时间窗口内统计您的服务发送到 OneUptime、且与您的过滤器（Span 名称、状态、服务、属性）匹配的 Span。当计数满足您的条件时，它会更改监视器的状态、创建告警或声明事件。可以用它对某个端点的失败请求、错误 Span 激增，或已经停止发送追踪的服务告警。
+追踪监视器在一个时间窗口内统计您的服务发送到 OneUptime、且与您的过滤器（Span 名称、状态、服务、属性）匹配的 Span。当计数满足您的条件时，它会更改监视器的状态、创建警报或声明事件。可以用它对某个端点的失败请求、错误 Span 激增，或已经停止发送追踪的服务警报。
 
 :::cards
-- [创建监视器](#创建追踪监视器): 选择要统计的 Span 以及何时告警。
+- [创建监视器](#创建追踪监视器): 选择要统计的 Span 以及何时警报。
 - [Span 状态码](#span-状态码): OK、ERROR 和 UNSET 的含义，以及该按哪个过滤。
 - [如何评估](#如何评估): 时间窗口、计数和一分钟的周期。
 - [条件](#条件): 阈值、异常检测和默认值。
@@ -85,7 +85,7 @@ Span 必须匹配您设置的所有过滤器才会被计数。
 - **ERROR** — 操作遇到错误
 - **UNSET** — 未设置错误状态。这是 OpenTelemetry 的默认状态
 
-UNSET 并不表示数据缺失。OpenTelemetry 埋点会在操作失败时将状态设为 ERROR，而让成功的 Span 保持为 UNSET，因此在健康的服务上，大多数 Span 都是 UNSET。OneUptime 会以绿色将它们显示为“Unset (no error)”。记录异常不会改变 Span 的状态，因此 UNSET 的 Span 仍可能带有异常；这些异常会与该 Span 一起列出。若要针对失败发出告警，请按 ERROR 过滤。若要统计所有未失败的 Span，请同时选择 OK 和 UNSET。
+UNSET 并不表示数据缺失。OpenTelemetry 埋点会在操作失败时将状态设为 ERROR，而让成功的 Span 保持为 UNSET，因此在健康的服务上，大多数 Span 都是 UNSET。OneUptime 会以绿色将它们显示为“Unset (no error)”。记录异常不会改变 Span 的状态，因此 UNSET 的 Span 仍可能带有异常；这些异常会与该 Span 一起列出。若要针对失败发出警报，请按 ERROR 过滤。若要统计所有未失败的 Span，请同时选择 OK 和 UNSET。
 
 如果您希望成功的请求显示为 OK，请在 **追踪 > 设置 > 管道** 下添加一个追踪管道，其过滤条件为 **状态 = 未设置**，并包含一个 **状态重映射器**，用于将 `http.response.status_code` 的值（例如 `200`）映射为“正常 (1)”。
 
@@ -94,7 +94,7 @@ UNSET 并不表示数据缺失。OpenTelemetry 埋点会在操作失败时将状
 - **每分钟。** 追踪监视器不由探测器检查，因此没有可设置的间隔，也没有 **探测器与间隔** 页面。
 - **每次评估一个数字。** 监视器统计与所有过滤器匹配、且在评估前的 **时间窗口** 内开始的 Span。设为 **最近 5 分钟** 时，每次评估回看五分钟，因此相邻评估的窗口会重叠。
 - **没有 Span 就是计数 0。** 停止发送追踪的服务计数为 0，而 **请求中断** 正是在找这种情况。
-- **OneUptime 自身的停机不算沉默。** 只要时间窗口中包含 OneUptime 自身未接收数据的时间（正在重启、升级或追赶积压），检查就会等待：状态不会改变，也不会打开或解决任何事件或告警。请参阅 [OneUptime 未接收数据时](/docs/monitor/when-oneuptime-is-not-receiving)。
+- **OneUptime 自身的停机不算沉默。** 只要时间窗口中包含 OneUptime 自身未接收数据的时间（正在重启、升级或追赶积压），检查就会等待：状态不会改变，也不会打开或解决任何事件或警报。请参阅 [OneUptime 未接收数据时](/docs/monitor/when-oneuptime-is-not-receiving)。
 - **条件从上到下。** 第一个匹配的条件决定结果，因此请把最严重的放在最前面。
 
 每次状态变化及其原因都会记录在监视器的 **状态时间线** 上。
@@ -162,7 +162,7 @@ UNSET 并不表示数据缺失。OpenTelemetry 埋点会在操作失败时将状
 :::
 
 :::details 某个 Span 有异常，但没有被计为错误
-记录异常不会改变 Span 的状态。请按 **错误** 过滤，或使用 [异常监视器](/docs/monitor/exceptions-monitor) 对异常本身告警。
+记录异常不会改变 Span 的状态。请按 **错误** 过滤，或使用 [异常监视器](/docs/monitor/exceptions-monitor) 对异常本身警报。
 :::
 
 :::details 异常条件从不触发
@@ -172,8 +172,8 @@ UNSET 并不表示数据缺失。OpenTelemetry 埋点会在操作失败时将状
 ## 后续步骤
 
 :::cards
-- [异常监控](/docs/monitor/exceptions-monitor): 对您的服务记录的异常告警。
-- [日志监控](/docs/monitor/logs-monitor): 对日志量和日志内容告警。
+- [异常监控](/docs/monitor/exceptions-monitor): 对您的服务记录的异常警报。
+- [日志监控](/docs/monitor/logs-monitor): 对日志量和日志内容警报。
 - [搜索语法](/docs/telemetry/search-syntax): 在追踪浏览器中查找 Span 名称和状态。
-- [事件与告警模板](/docs/monitor/incident-alert-templating): 编写有用的告警标题和描述。
+- [事件与警报模板](/docs/monitor/incident-alert-templating): 编写有用的警报标题和描述。
 :::

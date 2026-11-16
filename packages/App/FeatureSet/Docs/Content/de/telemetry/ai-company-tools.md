@@ -25,7 +25,7 @@ flowchart TB
     calls --> tabs["Unterhaltungen,<br/>Aufrufe und Alarme"]
 ```
 
-Die Chats kommen so an wie die KI-Aufrufe Ihrer Apps, also gelten Scrub-Regeln, Drop-Filter, Aufbewahrung und die KI-Alarme für sie. Die Tools werden pro Lizenz bezahlt, daher tragen diese Aufrufe weder Tokens noch Kosten. Eine Frage, die eine Stunde lang keine Antwort hat, kommt für sich allein an, sodass auch ein Chat erscheint, den die KI nie beantwortet hat.
+Die Chats kommen so an wie die KI-Aufrufe Ihrer Apps, also gelten Scrub-Regeln, Drop-Filter, Aufbewahrung und die KI-Warnungen für sie. Die Tools werden pro Lizenz bezahlt, daher tragen diese Aufrufe weder Tokens noch Kosten. Eine Frage, die eine Stunde lang keine Antwort hat, kommt für sich allein an, sodass auch ein Chat erscheint, den die KI nie beantwortet hat.
 
 ## Bevor Sie beginnen
 

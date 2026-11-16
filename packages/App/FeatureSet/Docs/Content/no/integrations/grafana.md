@@ -49,7 +49,7 @@ Gå til **Monitorer**, og klikk på **Opprett monitor**. Velg **Innkommende fore
 
 ### Erklær en hendelse for hvert utløst varsel
 
-Åpne det første kriteriet i trinnet **Kriterier**, det som markerer monitoren som frakoblet. Sett filteret til **Forespørselstekst**, **Inneholder**, `"status":"firing"`. Dette kriteriet erklærer allerede en hendelse når filteret samsvarer. Fyll ut hendelsen:
+Åpne det første kriteriet i trinnet **Kriterier**, det som markerer monitoren som offline. Sett filteret til **Forespørselstekst**, **Inneholder**, `"status":"firing"`. Dette kriteriet erklærer allerede en hendelse når filteret samsvarer. Fyll ut hendelsen:
 
 - **Hendelsestittel**: `{{requestBody.commonLabels.alertname}}`.
 - **Hendelsesbeskrivelse**, under **Beskrivelse**: `{{requestBody.message}}`, teksten Grafana skriver for varslingen.

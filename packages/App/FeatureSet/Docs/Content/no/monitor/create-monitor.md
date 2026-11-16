@@ -44,7 +44,7 @@ For en monitor som sonder sjekker, kjører **Test monitor** sjekken én gang fø
 
 ### Gå gjennom kriteriene
 
-Nedenfor avgjør **Kriterier** når monitoren endrer status, erklærer en hendelse eller oppretter et varsel. En ny monitor starter med kriterier som passer for de fleste monitorer, hvert brettet sammen til én linje som sier hva det sjekker og hva det gjør. En ny nettstedsmonitor blir for eksempel merket som frakoblet og erklærer en hendelse når nettstedet ikke svarer eller svarer med en feilstatuskode.
+Nedenfor avgjør **Kriterier** når monitoren endrer status, erklærer en hendelse eller oppretter et varsel. En ny monitor starter med kriterier som passer for de fleste monitorer, hvert brettet sammen til én linje som sier hva det sjekker og hva det gjør. En ny nettstedsmonitor blir for eksempel merket som offline og erklærer en hendelse når nettstedet ikke svarer eller svarer med en feilstatuskode.
 
 Klikk på et kriterium for å åpne og endre det. **Legg til kriterier** legger til ett, åpent og klart til å fylles ut. For å endre rekkefølgen drar du et kriterium i håndtaket til venstre for det.
 

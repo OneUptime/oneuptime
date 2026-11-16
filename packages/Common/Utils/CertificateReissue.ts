@@ -1,4 +1,5 @@
 import OneUptimeDate from "../Types/Date";
+import { NO_BREAK_SPACE } from "../Types/NoBreakSpaces";
 
 /*
  * The cooldown that sits behind the "Reissue SSL Certificate" button on a
@@ -108,11 +109,13 @@ export default class CertificateReissueUtil {
     const parts: Array<string> = [];
 
     if (hours > 0) {
-      parts.push(`${hours} ${hours === 1 ? "hour" : "hours"}`);
+      parts.push(`${hours}${NO_BREAK_SPACE}${hours === 1 ? "hour" : "hours"}`);
     }
 
     if (minutes > 0) {
-      parts.push(`${minutes} ${minutes === 1 ? "minute" : "minutes"}`);
+      parts.push(
+        `${minutes}${NO_BREAK_SPACE}${minutes === 1 ? "minute" : "minutes"}`,
+      );
     }
 
     return parts.join(" ");
@@ -123,6 +126,6 @@ export default class CertificateReissueUtil {
    * customer reads the same explanation wherever they hit the limit.
    */
   public static getCooldownMessage(lastRequestedAt: Date, now: Date): string {
-    return `A certificate reissue was already requested for this domain in the last ${CertificateReissueUtil.COOLDOWN_IN_HOURS} hours. Certificates are issued by Let's Encrypt, which rate limits how often the same domain can be issued, so a reissue can only be requested once every ${CertificateReissueUtil.COOLDOWN_IN_HOURS} hours. Please try again in ${CertificateReissueUtil.getTimeRemainingText(lastRequestedAt, now)}.`;
+    return `A certificate reissue was already requested for this domain in the last ${CertificateReissueUtil.COOLDOWN_IN_HOURS}${NO_BREAK_SPACE}hours. Certificates are issued by Let's Encrypt, which rate limits how often the same domain can be issued, so a reissue can only be requested once every ${CertificateReissueUtil.COOLDOWN_IN_HOURS}${NO_BREAK_SPACE}hours. Please try again in ${CertificateReissueUtil.getTimeRemainingText(lastRequestedAt, now)}.`;
   }
 }

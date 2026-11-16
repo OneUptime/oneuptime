@@ -107,7 +107,7 @@ helm install oneuptime oneuptime-air-gap-14.0.102/chart/oneuptime-14.0.102.tgz \
 
 ## License the Enterprise Edition offline
 
-An Enterprise Edition install with no route out activates with a signed license token instead of a license key. A master admin reads the **instance ID** on **Admin Dashboard > Settings > License**, and OneUptime issues a token for that instance. The install verifies the token against the signing keys built into the release and never contacts OneUptime. See [Offline activation](/docs/self-hosted/enterprise#frakoblet-aktivering-installasjoner-uten-nettverkstilgang).
+An Enterprise Edition install with no route out activates with a signed license token instead of a license key. A master admin reads the **instance ID** on **Admin Dashboard > Settings > License**, and OneUptime issues a token for that instance. The install verifies the token against the signing keys built into the release and never contacts OneUptime. See [Offline activation](/docs/self-hosted/enterprise#offline-aktivering-installasjoner-uten-nettverkstilgang).
 
 ## Upgrade
 

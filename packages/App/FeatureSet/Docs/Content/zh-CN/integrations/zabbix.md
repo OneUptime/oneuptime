@@ -171,7 +171,7 @@ https://oneuptime.com/heartbeat/<secret key>
 自托管安装使用自己的主机来代替 `oneuptime.com`。
 :::
 
-监视器按原样读取请求的 JSON：`"status":"1"`，没有空格。每项设置的作用请参见 [接收来自其他系统的告警](/docs/monitor/incoming-request-monitor#接收来自其他系统的告警)。在 Zabbix 中所做的更新也以 `"status":"1"` 发送，监视器会再次把它读作该问题，不会创建第二个事件。
+监视器按原样读取请求的 JSON：`"status":"1"`，没有空格。每项设置的作用请参见 [接收来自其他系统的警报](/docs/monitor/incoming-request-monitor#接收来自其他系统的警报)。在 Zabbix 中所做的更新也以 `"status":"1"` 发送，监视器会再次把它读作该问题，不会创建第二个事件。
 
 ## 配置 Zabbix
 

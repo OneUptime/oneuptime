@@ -294,7 +294,7 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 
 在宽度小于 1024 像素的屏幕上，**事件** 列还会显示 **计数** 和 **最近出现**，它们在那里没有单独的列。
 
-### 搜索事件并设置告警
+### 搜索事件并设置警报
 
 每个事件也是一条日志。警告以严重程度 **警告** 存储，事件的内容在其属性中：
 
@@ -309,7 +309,7 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | `k8s.object.name` | `aks-userpool-11935137-vmss00000o` |
 | `k8s.namespace.name` | `default` |
 
-可以在 **日志** 中搜索它们，或用丢弃过滤器丢弃不需要的事件。要在事件发生时收到通知，请在集群的 **建议** 页面开启 **Warning Events**，或在其 **事件** 页面底部选择 **开启警告警报**：这是一个针对集群警告的 [日志监视器](/docs/monitor/logs-monitor)，每个对象和原因一条告警，5 分钟内没有新的相关警告即自动解决。只想收到部分原因的通知时，请在其过滤器中加入 `k8s.event.reason`。
+可以在 **日志** 中搜索它们，或用丢弃过滤器丢弃不需要的事件。要在事件发生时收到通知，请在集群的 **建议** 页面开启 **Warning Events**，或在其 **事件** 页面底部选择 **开启警告警报**：这是一个针对集群警告的 [日志监视器](/docs/monitor/logs-monitor)，每个对象和原因一条警报，5 分钟内没有新的相关警告即自动解决。只想收到部分原因的通知时，请在其过滤器中加入 `k8s.event.reason`。
 
 ## 配置选项
 

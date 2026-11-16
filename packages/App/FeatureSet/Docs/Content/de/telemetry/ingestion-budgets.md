@@ -6,7 +6,7 @@ Ein Ingestion-Budget begrenzt, wie viel Telemetrie ein Projekt an einem Tag send
 - [Wie Budgets funktionieren](#wie-budgets-funktionieren): Drei Ebenen, gezählt, während Telemetrie eintrifft.
 - [Die Standardbudgets aller Projekte festlegen](#die-standardbudgets-aller-projekte-festlegen): In den Einstellungen des Admin Dashboards.
 - [Einem Ingestion-Schlüssel ein eigenes Budget geben](#einem-ingestion-schlüssel-ein-eigenes-budget-geben): Ein Anteil am Budget des Projekts.
-- [Alarme für ein Budget einrichten](#alarme-für-ein-budget-einrichten): Bevor es aufgebraucht ist, und wenn es so weit ist.
+- [Warnungen für ein Budget einrichten](#warnungen-für-ein-budget-einrichten): Bevor es aufgebraucht ist, und wenn es so weit ist.
 :::
 
 ## Wie Budgets funktionieren
@@ -136,7 +136,7 @@ Gehen Sie zu **Projekteinstellungen → Telemetrie & APM → Nutzung**. Solange 
 - **In den Explorern** zeigt ein Banner über den Daten von Protokollen, Traces, Metriken, Profilen und Sicherheitsereignissen an, wenn das Budget dieses Signals seine Warnschwelle überschritten hat oder aufgebraucht ist, mit **Budgets ansehen**, um die Seite Nutzung zu öffnen.
 - **Im Admin Dashboard** zeigt die Seite **Ingestion-Budgets** eines Projekts dieselben Zahlen.
 
-## Alarme für ein Budget einrichten
+## Warnungen für ein Budget einrichten
 
 Alle 5 Minuten schreibt OneUptime die Tageszahlen jedes Budgets als Metriken des Projekts, und ein [Metriken-Monitor](/docs/monitor/metrics-monitor) alarmiert darauf wie auf jede andere Metrik:
 
@@ -160,7 +160,7 @@ Jeder Punkt trägt diese Attribute:
 Um bei 90% des Protokollbudgets des Projekts benachrichtigt zu werden, erstellen Sie einen Metriken-Monitor auf `oneuptime.telemetry.budget.used.percent`, gefiltert nach `signal` `logs` und `scope` `project`, der alarmiert, wenn das Maximum über 90 liegt:
 
 - **Mit dem Maximum aggregieren.** Jede Zahl steigt während eines Budgettags nur an.
-- **Ein Zeitfenster von 15 Minuten oder mehr verwenden.** Alle 5 Minuten wird ein Punkt geschrieben, und ein Zeitfenster ohne Punkt löst den Alarm auf.
+- **Ein Zeitfenster von 15 Minuten oder mehr verwenden.** Alle 5 Minuten wird ein Punkt geschrieben, und ein Zeitfenster ohne Punkt löst die Warnung auf.
 - **Mit Lücken rechnen, nicht mit Nullen.** Für eine Zahl, die 0 ist, wird nichts geschrieben, ebenso wenig, solange die Zählungen nicht lesbar sind.
 - **Sie kosten nichts.** Diese Metriken werden auf kein Budget angerechnet und nicht als Telemetrie-Nutzung gezählt, und sie werden so lange aufbewahrt wie Monitor-Metriken: 30 Tage, sofern der Instanzadministrator das nicht ändert. Metriknamen, die mit `oneuptime.telemetry.budget.` beginnen, sind ihnen vorbehalten: Metriken, die Ihre Anwendungen unter einem solchen Namen senden, werden verworfen.
 

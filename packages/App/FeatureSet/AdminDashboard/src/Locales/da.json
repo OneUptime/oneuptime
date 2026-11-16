@@ -515,7 +515,7 @@
         "magicLinkCardTitle": "Login-links",
         "magicLinkCardDescription": "Om folk kan logge ind med et link, der sendes til deres e-mail, i stedet for at skrive deres adgangskode.",
         "magicLinkSwitchTitle": "Lad folk logge ind med et link sendt på e-mail",
-        "magicLinkSwitchOnDescription": "Login-siden tilbyder at e-maile et link, der logger folk ind. Totrinsgodkendelse gælder stadig, og hvert link virker én gang i 15 minutter.",
+        "magicLinkSwitchOnDescription": "Login-siden tilbyder at e-maile et link, der logger folk ind. Tofaktorgodkendelse gælder stadig, og hvert link virker én gang i 15 minutter.",
         "magicLinkSwitchOffDescription": "Folk logger ind med deres adgangskode, en adgangsnøgle eller single sign-on. Links, der allerede er sendt, holder op med at virke.",
         "magicLinkWhileSsoRequired": "Så længe denne server kræver single sign-on, tilbyder login-siden kun SSO og sender ingen login-links.",
         "projectCreationCardTitle": "Projektoprettelse",

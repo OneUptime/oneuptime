@@ -63,7 +63,7 @@ Nooit vertraagd en nooit meegeteld:
 | ----------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | Oproepen tijdens dienst | Elke oproep van een escalatiebeleid en elk verzoek om bevestiging |
 | Diensttijden | "Je hebt nu dienst", "je hebt hierna dienst", "je dienst begint zo", "je dienst is opnieuw toegewezen" |
-| Accountbeveiliging | Wachtwoord opnieuw instellen, e-mailverificatie, wachtwoord gewijzigd, back-upcode voor tweestapsverificatie gebruikt of opnieuw gemaakt |
+| Accountbeveiliging | Wachtwoord opnieuw instellen, e-mailverificatie, wachtwoord gewijzigd, back-upcode voor tweefactorauthenticatie gebruikt of opnieuw gemaakt |
 | Beheermeldingen over je account | Een beheerder heeft je meldingsmethoden of je dienstregels gewijzigd |
 | Facturatie en saldo | Facturen, verlopen abonnement, "we konden niemand oproepen omdat de kaart werd geweigerd" |
 | Gezondheid van de instantie | Waarschuwingen over Postgres, Valkey en ClickHouse aan beheerders van de instantie |

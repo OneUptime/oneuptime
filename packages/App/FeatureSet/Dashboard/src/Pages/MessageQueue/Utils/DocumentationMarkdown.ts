@@ -38,6 +38,7 @@ import {
   translateTemplate,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 
 /*
  * The in-app setup guide of the Queues product: the product Documentation
@@ -1270,7 +1271,8 @@ const CLOUDWATCH_LATENESS_MINUTES: { earliest: number; latest: number } = {
   earliest: 11,
   latest: 17,
 };
-const CLOUDWATCH_LATENESS: string = `${CLOUDWATCH_LATENESS_MINUTES.earliest} to ${CLOUDWATCH_LATENESS_MINUTES.latest} minutes`;
+// The same, as the docs page's sentence words it.
+const CLOUDWATCH_LATENESS: string = "11 to 17 minutes";
 
 function prefilledBrokerNote(context: GuideContext, what: string): string {
   const address: string = context.queue?.brokerAddress || "";
@@ -1527,7 +1529,7 @@ function verificationStep(context: GuideContext): SetupGuideStep {
 
   if (!context.queue) {
     lines.push(
-      `Send a few messages through your queues. Every ${MESSAGE_QUEUE_DISCOVERY_INTERVAL_MINUTES} minutes OneUptime reads the last ${MESSAGE_QUEUE_DISCOVERY_WINDOW_MINUTES} minutes of spans and lists, under **Queues**, each destination at least ${MESSAGE_QUEUE_GUIDE_MIN_SPANS} of them name (spans of any kind but SERVER). On a self-hosted OneUptime, \`${MESSAGE_QUEUE_MIN_SPANS_ENV_NAME}\` sets that number.`,
+      `Send a few messages through your queues. Every ${MESSAGE_QUEUE_DISCOVERY_INTERVAL_MINUTES}${NO_BREAK_SPACE}minutes OneUptime reads the last ${MESSAGE_QUEUE_DISCOVERY_WINDOW_MINUTES}${NO_BREAK_SPACE}minutes of spans and lists, under **Queues**, each destination at least ${MESSAGE_QUEUE_GUIDE_MIN_SPANS} of them name (spans of any kind but SERVER). On a self-hosted OneUptime, \`${MESSAGE_QUEUE_MIN_SPANS_ENV_NAME}\` sets that number.`,
       "",
     );
     const creates: Array<string> = [];
@@ -1535,7 +1537,7 @@ function verificationStep(context: GuideContext): SetupGuideStep {
       creates.push(
         `One datapoint of a broker metric a queue page charts creates its queue too${
           isCloudMonitoring
-            ? `: cloud monitoring metrics arrive late, so each run reads them from the last ${MESSAGE_QUEUE_DISCOVERY_CLOUD_METRIC_WINDOW_MINUTES} minutes`
+            ? `: cloud monitoring metrics arrive late, so each run reads them from the last ${MESSAGE_QUEUE_DISCOVERY_CLOUD_METRIC_WINDOW_MINUTES}${NO_BREAK_SPACE}minutes`
             : ""
         }.`,
       );
@@ -1599,12 +1601,12 @@ function verificationStep(context: GuideContext): SetupGuideStep {
   lines.push(
     "",
     brokerMetricsReach
-      ? `The header reads **Seen recently** once discovery finds spans or broker metrics naming this queue. It runs every ${MESSAGE_QUEUE_DISCOVERY_INTERVAL_MINUTES} minutes over the last ${MESSAGE_QUEUE_DISCOVERY_WINDOW_MINUTES} minutes of telemetry${
+      ? `The header reads **Seen recently** once discovery finds spans or broker metrics naming this queue. It runs every ${MESSAGE_QUEUE_DISCOVERY_INTERVAL_MINUTES}${NO_BREAK_SPACE}minutes over the last ${MESSAGE_QUEUE_DISCOVERY_WINDOW_MINUTES}${NO_BREAK_SPACE}minutes of telemetry${
           isCloudMonitoring
-            ? `, and over the last ${MESSAGE_QUEUE_DISCOVERY_CLOUD_METRIC_WINDOW_MINUTES} minutes of cloud monitoring metrics, which arrive late`
+            ? `, and over the last ${MESSAGE_QUEUE_DISCOVERY_CLOUD_METRIC_WINDOW_MINUTES}${NO_BREAK_SPACE}minutes of cloud monitoring metrics, which arrive late`
             : ""
         }.`
-      : `The header reads **Seen recently** once discovery finds spans or messaging client metrics naming this queue. It runs every ${MESSAGE_QUEUE_DISCOVERY_INTERVAL_MINUTES} minutes over the last ${MESSAGE_QUEUE_DISCOVERY_WINDOW_MINUTES} minutes of telemetry.`,
+      : `The header reads **Seen recently** once discovery finds spans or messaging client metrics naming this queue. It runs every ${MESSAGE_QUEUE_DISCOVERY_INTERVAL_MINUTES}${NO_BREAK_SPACE}minutes over the last ${MESSAGE_QUEUE_DISCOVERY_WINDOW_MINUTES}${NO_BREAK_SPACE}minutes of telemetry.`,
   );
 
   return {
@@ -1812,7 +1814,7 @@ function notCreatedTopic(context: GuideContext): SetupGuideTopic {
           : ""
       }`,
       `- Its name is one OneUptime ignores (see [What is ignored](${MESSAGE_QUEUE_DOCS_PATH}#what-is-ignored)), or only SERVER spans name it.`,
-      `- Fewer than ${MESSAGE_QUEUE_GUIDE_MIN_SPANS} of its spans arrived in the last ${MESSAGE_QUEUE_DISCOVERY_WINDOW_MINUTES} minutes, or the project reached its [auto-create budget](${MESSAGE_QUEUE_DOCS_PATH}#the-auto-create-budget).`,
+      `- Fewer than ${MESSAGE_QUEUE_GUIDE_MIN_SPANS} of its spans arrived in the last ${MESSAGE_QUEUE_DISCOVERY_WINDOW_MINUTES}${NO_BREAK_SPACE}minutes, or the project reached its [auto-create budget](${MESSAGE_QUEUE_DOCS_PATH}#the-auto-create-budget).`,
       "",
       "When its spans do name it, create it by hand with the same system and destination (**Queues → Create Queue**): its **Traces** tab fills in from the spans already stored.",
       "",

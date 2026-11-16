@@ -47,9 +47,9 @@ const TRANSLATION: SetupGuideTranslation = {
     "- يقرأ المستقبِل الواحد منطقة واحدة ومساحة اسم واحدة: أضف نسخة لكل منطقة.",
   "To stream the metrics instead — a CloudWatch Metric Stream through Amazon Data Firehose to the collector's `awsfirehose` receiver — see [Amazon SQS](/docs/telemetry/queues#amazon-sqs).":
     "لبثّ المقاييس بدلًا من ذلك — عبر CloudWatch Metric Stream وAmazon Data Firehose إلى المستقبِل `awsfirehose` في المجمّع — راجع [Amazon SQS](/docs/telemetry/queues#amazon-sqs).",
-  "Send a few messages through your queues. Every 10 minutes OneUptime reads the last 15 minutes of spans and lists, under **Queues**, each destination at least 3 of them name (spans of any kind but SERVER). On a self-hosted OneUptime, `MESSAGE_QUEUE_MIN_SPANS` sets that number.":
+  "Send a few messages through your queues. Every 10 minutes OneUptime reads the last 15 minutes of spans and lists, under **Queues**, each destination at least 3 of them name (spans of any kind but SERVER). On a self-hosted OneUptime, `MESSAGE_QUEUE_MIN_SPANS` sets that number.":
     "أرسل بضع رسائل عبر قوائم الانتظار لديك. كل 10 دقائق يقرأ OneUptime امتدادات آخر 15 دقيقة ويسرد ضمن **قوائم الانتظار** كل وجهة يسمّيها 3 منها على الأقل (امتدادات من أي نوع عدا SERVER). وفي OneUptime المستضاف ذاتيًا، يحدّد `MESSAGE_QUEUE_MIN_SPANS` هذا العدد.",
-  "One datapoint of a broker metric a queue page charts creates its queue too: cloud monitoring metrics arrive late, so each run reads them from the last 60 minutes. Messaging client metrics, and metrics of your own that carry `messaging.system` and `messaging.destination.name`, never create a queue: they show on the **Metrics** tab of one that exists.":
+  "One datapoint of a broker metric a queue page charts creates its queue too: cloud monitoring metrics arrive late, so each run reads them from the last 60 minutes. Messaging client metrics, and metrics of your own that carry `messaging.system` and `messaging.destination.name`, never create a queue: they show on the **Metrics** tab of one that exists.":
     "نقطة بيانات واحدة من مقياس وسيط ترسمه صفحة قائمة الانتظار تنشئ قائمة انتظاره أيضًا: مقاييس المراقبة السحابية تصل متأخرة، لذا يقرؤها كل تشغيل من آخر 60 دقيقة. مقاييس عملاء المراسلة، ومقاييسك الخاصة التي تحمل `messaging.system` و`messaging.destination.name`، لا تنشئ قائمة انتظار أبدًا: إنها تظهر في علامة التبويب **المقاييس** لقائمة انتظار موجودة.",
   "Queues are created on their own only while the project is under its [auto-create budget](/docs/telemetry/queues#the-auto-create-budget).":
     "لا تُنشأ قوائم الانتظار تلقائيًا إلا ما دام المشروع دون [ميزانية الإنشاء التلقائي](/docs/telemetry/queues#the-auto-create-budget) الخاصة به.",
@@ -68,7 +68,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "- لا تسمّي امتداداتها أي نظام مراسلة يستطيع OneUptime تمييزه: امتدادات Celery، أو قياسات BullMQ عن بُعد الخاصة به، أو عميل مكتوب يدويًا. أضف `messaging.system` و`messaging.destination.name`، واجعل نوع الامتدادات PRODUCER أو CONSUMER.",
   "- Its name is one OneUptime ignores (see [What is ignored](/docs/telemetry/queues#what-is-ignored)), or only SERVER spans name it.":
     "- اسمها من الأسماء التي يتجاهلها OneUptime (راجع [ما يُتجاهَل](/docs/telemetry/queues#what-is-ignored))، أو لا تسمّيها إلا امتدادات SERVER.",
-  "- Fewer than 3 of its spans arrived in the last 15 minutes, or the project reached its [auto-create budget](/docs/telemetry/queues#the-auto-create-budget).":
+  "- Fewer than 3 of its spans arrived in the last 15 minutes, or the project reached its [auto-create budget](/docs/telemetry/queues#the-auto-create-budget).":
     "- وصل أقل من 3 من امتداداتها في آخر 15 دقيقة، أو بلغ المشروع [ميزانية الإنشاء التلقائي](/docs/telemetry/queues#the-auto-create-budget) الخاصة به.",
   "When its spans do name it, create it by hand with the same system and destination (**Queues → Create Queue**): its **Traces** tab fills in from the spans already stored.":
     "حين تسمّيها امتداداتها فعلًا، أنشئها يدويًا بالنظام والوجهة نفسيهما (**قوائم الانتظار ← إنشاء قائمة الانتظار**): فتمتلئ علامة التبويب **التتبعات** الخاصة بها من الامتدادات المخزّنة مسبقًا.",

@@ -24,6 +24,7 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import useTranslateValue from "Common/UI/Utils/Translation";
+import { withDurationWordsHeld } from "Common/Types/NoBreakSpaces";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -181,8 +182,15 @@ const ShiftRemindersCard: FunctionComponent<ComponentProps> = (
       validateCustomLeadMinutes(customValue);
 
     if (validation.error || validation.minutes === null) {
+      /*
+       * Looked up by its English, which keeps its plain spaces; the English
+       * a reader is shown holds "15 minutes" together, as every wording of
+       * it does (NoBreakSpaces, #8695).
+       */
       setCustomError(
-        translateString(validation.error || "") || validation.error || "",
+        withDurationWordsHeld(
+          translateString(validation.error || "") || validation.error || "",
+        ),
       );
       return;
     }

@@ -125,7 +125,8 @@ export const DOCS_SEARCH_SYNONYMS: Readonly<
     uitval: ["incident"],
     outage: ["incident"],
     uptime: ["monitor"],
-    "2fa": ["tweestapsverificatie"],
+    "2fa": ["tweefactorauthenticatie"],
+    tweestapsverificatie: ["tweefactorauthenticatie"],
   },
   /*
    * A website is a "hjemmeside" or "hemsida" to most who ask, and a
@@ -134,10 +135,10 @@ export const DOCS_SEARCH_SYNONYMS: Readonly<
    * Website Monitor 99th (#7875).
    */
   /*
-   * Two-factor authentication is "totrinsgodkendelse" in the Danish docs,
-   * while many readers say "tofaktor..." (#8335). The Norwegian docs say
-   * "tofaktorautentisering", as the Norwegian Dashboard does (#8701), and
-   * read "totrinnsbekreftelse", which Google and banks say, as it.
+   * Two-factor authentication is "tofaktorgodkendelse" in Danish and
+   * "tofaktorautentisering" in Norwegian, in the Dashboard and the docs
+   * alike (#8701, #8774). A reader's "totrinsgodkendelse" or
+   * "totrinnsbekreftelse", which Google and banks say, is read as it.
    */
   da: {
     pager: ["vagt*"],
@@ -145,9 +146,9 @@ export const DOCS_SEARCH_SYNONYMS: Readonly<
     outage: ["hændelse*"],
     uptime: ["overvågning*"],
     hjemmeside: ["websted"],
-    "2fa": ["totrinsgodkendelse"],
-    tofaktorgodkendelse: ["totrinsgodkendelse"],
-    tofaktorautentificering: ["totrinsgodkendelse"],
+    "2fa": ["tofaktorgodkendelse"],
+    totrinsgodkendelse: ["tofaktorgodkendelse"],
+    tofaktorautentificering: ["tofaktorgodkendelse"],
   },
   no: {
     pager: ["vakt*"],
@@ -196,6 +197,11 @@ export const DOCS_SEARCH_SYNONYMS: Readonly<
     आउटेज: ["घटना"],
     uptime: ["मॉनिटर"],
     अपटाइम: ["मॉनिटर"],
+    // The docs and the Dashboard say "दो-कारक प्रमाणीकरण"; many readers say it in English letters (#8774).
+    "2fa": ["दो-कारक प्रमाणीकरण"],
+    "टू-फ़ैक्टर": ["दो-कारक"],
+    "टू-फैक्टर": ["दो-कारक"],
+    ऑथेंटिकेशन: ["प्रमाणीकरण"],
   },
   ja: {
     pager: ["オンコール"],
@@ -212,6 +218,8 @@ export const DOCS_SEARCH_SYNONYMS: Readonly<
     outage: ["인시던트"],
     uptime: ["모니터"],
     "2fa": ["2단계 인증"],
+    // "이중 인증" (double authentication) is the docs' "2단계 인증" (#8774).
+    이중: ["2단계"],
   },
   "zh-CN": {
     pager: ["值班"],
@@ -220,6 +228,10 @@ export const DOCS_SEARCH_SYNONYMS: Readonly<
     宕机: ["事件"],
     outage: ["事件"],
     uptime: ["监视器"],
+    // The docs and the Dashboard say "双因素身份验证" (#8774).
+    "2fa": ["双因素身份验证"],
+    双重身份验证: ["双因素身份验证"],
+    双因素认证: ["双因素身份验证"],
   },
   "zh-TW": {
     pager: ["待命"],
@@ -229,6 +241,7 @@ export const DOCS_SEARCH_SYNONYMS: Readonly<
     outage: ["事件"],
     uptime: ["監測器"],
     "2fa": ["雙重驗證"],
+    雙因素驗證: ["雙重驗證"],
   },
 };
 
@@ -424,6 +437,9 @@ export const DOCS_SEARCH_QUESTION_WORDS: Readonly<
     "deiner",
     "deines",
     "man",
+    // someone, nobody: "Wie eskaliere ich, wenn niemand antwortet?" (#8775)
+    "jemand",
+    "niemand",
     // a, an, the
     "der",
     "die",
@@ -2255,6 +2271,11 @@ export interface DocsWordEndings {
   // Words whose forms no ending meets, read as one (DocsWordForms).
   forms?: DocsWordForms | undefined;
   /*
+   * Where a compound word is joined, by its first word and the rest: each
+   * is also read as a word of its own, beside the compound (#8775).
+   */
+  compoundJoint?: RegExp | undefined;
+  /*
    * Endings come off one after another, not one alone (#8335): a Persian
    * word ending in "م" loses it as if it were "my" ("تنظیم", set up, is
    * "تنظی"), so "تنظیمات" (settings) must lose "ات" and then "م" to meet it,
@@ -2336,11 +2357,69 @@ const NORDIC_ENDINGS: ReadonlyArray<string> = [
 // "opret" (create) is not "opr" with a definite "-et"; "webstedet" is "websted".
 const NORDIC_LONGER_STEMS: Readonly<Record<string, number>> = { et: 4 };
 
+// A German verb's endings in "-ieren", and its nouns' (#8775).
+const GERMAN_VERB_ENDINGS: ReadonlyArray<string> = [
+  "ierungen",
+  "ierung",
+  "ierten",
+  "ierte",
+  "ieren",
+  "ierst",
+  "iert",
+  "iere",
+  "ationen",
+  "ation",
+];
+const GERMAN_VERB_LONGER_STEMS: Readonly<Record<string, number>> =
+  Object.fromEntries(
+    GERMAN_VERB_ENDINGS.map((ending: string): [string, number] => {
+      return [ending, 4];
+    }),
+  );
+const GERMAN_VERB_KEPT_AFTER: Readonly<Record<string, RegExp>> =
+  Object.fromEntries(
+    GERMAN_VERB_ENDINGS.filter((ending: string): boolean => {
+      return ending.startsWith("ier");
+    }).map((ending: string): [string, RegExp] => {
+      return [ending, /^(?:pass|prob)$/];
+    }),
+  );
+
 export const DOCS_SEARCH_WORD_ENDINGS: Readonly<
   Record<string, DocsWordEndings>
 > = {
   en: ENGLISH_ENDINGS,
-  de: ENGLISH_ENDINGS,
+  /*
+   * English's eight, as every German word had (#7875), and the forms of a
+   * verb in "-ieren" with the nouns it makes (#8775): "eskaliere",
+   * "eskalieren" and "eskaliert" are "eskal", as "Eskalation" is;
+   * "konfigurieren" and "Konfiguration" are "konfigur", "aktivieren" and
+   * "Aktivierung" "aktiv". They met nowhere before: "-en" left
+   * "eskalier", and "Eskalation" kept its "-ation".
+   */
+  de: {
+    endings: [...ENGLISH_ENDINGS.endings, ...GERMAN_VERB_ENDINGS],
+    shortestStem: 3,
+    /*
+     * Four letters before them, or "Rotation" would be "rot" (red), and
+     * "datiert" (dated) would meet "Daten" (data) as "dat".
+     */
+    longerStems: GERMAN_VERB_LONGER_STEMS,
+    /*
+     * "passiert" (happens) is not "passen" (fits), nor "probieren" (to try)
+     * a Probe.
+     */
+    keptAfter: GERMAN_VERB_KEPT_AFTER,
+    script: LATIN_SCRIPT_WORD,
+    /*
+     * A compound joined at the "s" after "-ung", "-tion", "-heit", "-keit",
+     * "-schaft" or "-ität" is also read as its two words: the Escalation
+     * Rules page, "Eskalationsregeln", holds "Eskalation" (so "eskal") and
+     * "Regeln", and "Benachrichtigungsmethoden" holds "Benachrichtigung".
+     */
+    compoundJoint:
+      /^(\p{L}{3,}?(?:ung|tion|heit|keit|schaft|ität))s(\p{L}{3,})$/u,
+  },
   // "maak", "maakt" and "maken"; "stel" and "stellen"; "instellingen".
   nl: {
     endings: [...ENGLISH_ENDINGS.endings, "ingen"],

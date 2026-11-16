@@ -384,7 +384,7 @@ monitor_steps = [{
 }]
 ```
 
-`Greater Than` 和其他数字条件只匹配数值类型的字段，返回数据中不存在的字段只匹配 `Is Empty`。路径和条件的工作方式参见 [根据返回的数据告警](/docs/monitor/custom-code-monitor#根据返回的数据告警)。
+`Greater Than` 和其他数字条件只匹配数值类型的字段，返回数据中不存在的字段只匹配 `Is Empty`。路径和条件的工作方式参见 [根据返回的数据警报](/docs/monitor/custom-code-monitor#根据返回的数据警报)。
 
 ## 常见错误
 

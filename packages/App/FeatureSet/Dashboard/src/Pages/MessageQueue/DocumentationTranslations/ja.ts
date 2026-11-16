@@ -47,9 +47,9 @@ const TRANSLATION: SetupGuideTranslation = {
     "- 1 つのレシーバーは 1 つのリージョンと 1 つの名前空間を読み取ります: リージョンごとにインスタンスを追加します。",
   "To stream the metrics instead — a CloudWatch Metric Stream through Amazon Data Firehose to the collector's `awsfirehose` receiver — see [Amazon SQS](/docs/telemetry/queues#amazon-sqs).":
     "代わりにメトリクスをストリーミングする場合（CloudWatch Metric Stream から Amazon Data Firehose を経て Collector の `awsfirehose` レシーバーへ）は、[Amazon SQS](/docs/telemetry/queues#amazon-sqs) を参照してください。",
-  "Send a few messages through your queues. Every 10 minutes OneUptime reads the last 15 minutes of spans and lists, under **Queues**, each destination at least 3 of them name (spans of any kind but SERVER). On a self-hosted OneUptime, `MESSAGE_QUEUE_MIN_SPANS` sets that number.":
+  "Send a few messages through your queues. Every 10 minutes OneUptime reads the last 15 minutes of spans and lists, under **Queues**, each destination at least 3 of them name (spans of any kind but SERVER). On a self-hosted OneUptime, `MESSAGE_QUEUE_MIN_SPANS` sets that number.":
     "キューにいくつかメッセージを流してください。OneUptime は 10 分ごとに直近 15 分のスパンを読み、そのうち少なくとも 3 つが示す宛先を **キュー** に一覧します（SERVER 以外の種類のスパン）。セルフホストの OneUptime では、この数を `MESSAGE_QUEUE_MIN_SPANS` で設定します。",
-  "One datapoint of a broker metric a queue page charts creates its queue too: cloud monitoring metrics arrive late, so each run reads them from the last 60 minutes. Messaging client metrics, and metrics of your own that carry `messaging.system` and `messaging.destination.name`, never create a queue: they show on the **Metrics** tab of one that exists.":
+  "One datapoint of a broker metric a queue page charts creates its queue too: cloud monitoring metrics arrive late, so each run reads them from the last 60 minutes. Messaging client metrics, and metrics of your own that carry `messaging.system` and `messaging.destination.name`, never create a queue: they show on the **Metrics** tab of one that exists.":
     "キューのページがグラフ表示するブローカーメトリクスは、データポイントが 1 つ届くだけでもそのキューを作成します。クラウドの監視メトリクスは遅れて届くため、毎回直近 60 分から読みます。メッセージングクライアントのメトリクスや、`messaging.system` と `messaging.destination.name` を持つ独自のメトリクスがキューを作成することはありません。既存のキューの **メトリクス** タブに表示されます。",
   "Queues are created on their own only while the project is under its [auto-create budget](/docs/telemetry/queues#the-auto-create-budget).":
     "キューが自動的に作成されるのは、プロジェクトが [自動作成の上限](/docs/telemetry/queues#the-auto-create-budget) に達していない間だけです。",
@@ -68,7 +68,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "- そのスパンが、OneUptime が判別できるメッセージングシステムを示していません。Celery のスパン、BullMQ 自身のテレメトリー、自作のクライアントなどです。`messaging.system` と `messaging.destination.name` を追加し、スパンの種類を PRODUCER または CONSUMER にしてください。",
   "- Its name is one OneUptime ignores (see [What is ignored](/docs/telemetry/queues#what-is-ignored)), or only SERVER spans name it.":
     "- その名前が OneUptime の無視する名前である（[無視されるもの](/docs/telemetry/queues#what-is-ignored) を参照）か、SERVER スパンだけがそれを示しています。",
-  "- Fewer than 3 of its spans arrived in the last 15 minutes, or the project reached its [auto-create budget](/docs/telemetry/queues#the-auto-create-budget).":
+  "- Fewer than 3 of its spans arrived in the last 15 minutes, or the project reached its [auto-create budget](/docs/telemetry/queues#the-auto-create-budget).":
     "- 直近 15 分に届いたスパンが 3 つ未満か、プロジェクトが [自動作成の上限](/docs/telemetry/queues#the-auto-create-budget) に達しています。",
   "When its spans do name it, create it by hand with the same system and destination (**Queues → Create Queue**): its **Traces** tab fills in from the spans already stored.":
     "スパンがキューを示しているなら、同じシステムと宛先で手動で作成します (**キュー → キューを作成**): その **トレース** タブには、すでに保存されているスパンが表示されます。",

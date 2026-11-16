@@ -34,7 +34,7 @@ Diese Seite beschreibt, was jede Edition enthält, wie Sie die Enterprise Editio
 
 | Funktion | Community | Enterprise | OneUptime Cloud |
 | --- | --- | --- | --- |
-| Monitoring, Alarme, Incidents, Bereitschaftsdienst, Statusseiten, Logs, Metriken, Traces, Exceptions, Dashboards, Workflows, KI-Funktionen, API und Terraform | Ja | Ja | Jeder Plan |
+| Monitoring, Warnungen, Incidents, Bereitschaftsdienst, Statusseiten, Logs, Metriken, Traces, Exceptions, Dashboards, Workflows, KI-Funktionen, API und Terraform | Ja | Ja | Jeder Plan |
 | Anmeldung mit Passwort, Zwei-Faktor-Authentifizierung, Teams, integrierte Rollen und API-Schlüssel | Ja | Ja | Jeder Plan |
 | [SAML-SSO und OpenID Connect](/docs/identity/sso) für die Anmeldung bei Projekten | Ja | Ja | Ab dem Plan Scale |
 | SAML-SSO und OpenID Connect für die Anmeldung bei privaten Statusseiten | Ja | Ja | Ab dem Plan Scale |
@@ -49,7 +49,7 @@ Diese Seite beschreibt, was jede Edition enthält, wie Sie die Enterprise Editio
 | „Powered by OneUptime“ auf Statusseiten ausblenden | Nein | Ja | Ab dem Plan Scale |
 | Dashboards unter **Health** im Admin-Dashboard: Instanzübersicht, Hintergrund-Warteschlangen, Instanz-Logs, PostgreSQL, Valkey, ClickHouse-Cluster, Diagnose-Logs und Telemetrie-Ingestion | Nein | Ja | Nicht zutreffend |
 | **Query Console** im Admin-Dashboard | Nein | Ja | Nicht verfügbar |
-| Health-Alarme für PostgreSQL und Valkey (Redis) | Nein | Ja | Nicht zutreffend |
+| Health-Warnungen für PostgreSQL und Valkey (Redis) | Nein | Ja | Nicht zutreffend |
 | [Backups](/docs/installation/backups) von PostgreSQL und ClickHouse in Ihren eigenen Speicher, nach Zeitplan, mit Wiederherstellung | Nein | Ja | Nicht zutreffend |
 | [Benutzerdefinierte Benachrichtigungskanäle](/docs/self-hosted/custom-notification-channels): Personen über Ihren eigenen Dienst alarmieren, etwa über die App Ihres Unternehmens | Nein | Ja | Nicht zutreffend |
 | [Sitzungsdauer](/docs/self-hosted/session-length): wie lange Personen angemeldet bleiben, und wie lange ohne OneUptime zu nutzen | Nein | Ja | Nicht zutreffend |
@@ -201,7 +201,7 @@ Was endet, wenn eine Lizenz ausläuft:
 Was **nicht** endet:
 
 - **Single Sign-On.** Die Anmeldung per SAML und OIDC für Projekte, private Statusseiten, die gesamte Instanz (globales SSO) und die mobilen Apps sowie „Require SSO for login“ gehören zu jeder Edition. Eine abgelaufene Lizenz ändert nichts daran, und die Single-Sign-On-Konfiguration bleibt bearbeitbar.
-- **Das Kern-Monitoring ist nie betroffen**: Monitore, Alarme, Incidents, Bereitschaftsdienst, Statusseiten und Telemetrie funktionieren alle weiter.
+- **Das Kern-Monitoring ist nie betroffen**: Monitore, Warnungen, Incidents, Bereitschaftsdienst, Statusseiten und Telemetrie funktionieren alle weiter.
 - **Master-Admins können sich immer mit ihrem Passwort anmelden.**
 - **Benutzerdefinierte Rollen, IP-Zulassungslisten und die Zugriffssteuerung für Statusseiten gelten weiter.** Sie können sie entfernen, aber nicht anlegen oder ändern.
 - **Sitzungsdauern gelten weiter.** Sie können sie entfernen, aber nicht festlegen oder ändern.
@@ -224,7 +224,7 @@ Ihre Konfiguration bleibt in der Datenbank. Ein Wechsel zurück auf das Enterpri
 - **Benutzerdefinierte Rollen, IP-Zulassungslisten und die Zugriffssteuerung für Statusseiten gelten weiter.** Ihre Einstellungen zeigen einen Upgrade-Hinweis, mit dem, was noch gesetzt ist, und einer Schaltfläche zum Entfernen.
 - **Sitzungsdauern gelten nicht mehr.** Jede Anmeldung dauert so lange wie in der Community Edition. Die Dauern bleiben in der Datenbank und gelten wieder, wenn Sie zurückwechseln.
 - **Enterprise-Einstellungsseiten zeigen einen Upgrade-Hinweis.** Über die API können Sie die Enterprise-Konfiguration weiterhin lesen und löschen und ein SCIM-Bearer-Token zurücksetzen, aber nichts anderes anlegen oder ändern. Die Audit-Protokollierung lässt sich nicht einschalten.
-- **Die Enterprise-Dashboards unter Health, die Query Console sowie die Health-Alarme für PostgreSQL und Valkey enden.** Kapazitätsüberwachung und Bereinigung für ClickHouse, Migrationsstatus und das Support-Bundle funktionieren weiter.
+- **Die Enterprise-Dashboards unter Health, die Query Console sowie die Health-Warnungen für PostgreSQL und Valkey enden.** Kapazitätsüberwachung und Bereinigung für ClickHouse, Migrationsstatus und das Support-Bundle funktionieren weiter.
 
 > [!CAUTION]
 > **Bevor Sie eine Installation, deren Identity Provider Benutzer per SCIM deprovisioniert, auf das Community-Image umstellen, prüfen Sie, wer Zugriff hat.** Ohne SCIM behalten die Personen, die Sie bei Ihrem Identity Provider entfernen, ihre OneUptime-Konten, und sofern „Require SSO for login“ nicht für sie gilt, kann jeder, der das E-Mail-Postfach eines solchen Kontos noch erreicht, ein Passwort setzen und sich anmelden. Entfernen Sie diese Benutzer zuerst.

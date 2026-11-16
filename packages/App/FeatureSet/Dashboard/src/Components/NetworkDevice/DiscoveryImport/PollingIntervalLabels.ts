@@ -1,6 +1,7 @@
 import { DISCOVERY_IMPORT_POLLING_INTERVALS_IN_MINUTES } from "Common/Types/NetworkDevice/DiscoveryImport";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 
 /*
  * How each polling interval reads, in English - the keys every language's
@@ -21,7 +22,10 @@ export const POLLING_INTERVAL_LABELS: Readonly<Record<number, string>> = {
 
 // The English label of an interval; a value that is no choice reads as minutes.
 export function getPollingIntervalLabel(minutes: number): string {
-  return POLLING_INTERVAL_LABELS[minutes] || `Every ${minutes} minutes`;
+  return (
+    POLLING_INTERVAL_LABELS[minutes] ||
+    `Every ${minutes}${NO_BREAK_SPACE}minutes`
+  );
 }
 
 /*
