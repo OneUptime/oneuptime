@@ -55926,5 +55926,7 @@
   "Wrong backup code": "رمز احتياطي خاطئ",
   "Wrong password": "كلمة مرور خاطئة",
   "{{count}} attempt": "{{count}} محاولة",
-  "{{summary}} - view sign-in attempt details": "{{summary}} - عرض تفاصيل محاولة تسجيل الدخول"
+  "{{summary}} - view sign-in attempt details": "{{summary}} - عرض تفاصيل محاولة تسجيل الدخول",
+  "Attachment Seen At": "وقت رصد الاتصال",
+  "One bar per day for the last 90 days, in your time zone. Grey bars are days with no data or with monitoring off.": "شريط واحد لكل يوم خلال آخر 90 يومًا، بمنطقتك الزمنية. الأشرطة الرمادية أيام بلا بيانات أو كانت المراقبة فيها متوقفة."
 }

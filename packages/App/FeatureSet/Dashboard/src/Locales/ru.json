@@ -55926,5 +55926,7 @@
   "Wrong backup code": "Неверный резервный код",
   "Wrong password": "Неверный пароль",
   "{{count}} attempt": "{{count}} попытка",
-  "{{summary}} - view sign-in attempt details": "{{summary}} — открыть сведения о попытке входа"
+  "{{summary}} - view sign-in attempt details": "{{summary}} — открыть сведения о попытке входа",
+  "Attachment Seen At": "Подключение замечено в",
+  "One bar per day for the last 90 days, in your time zone. Grey bars are days with no data or with monitoring off.": "Одна полоса на каждый день за последние 90 дней, в вашем часовом поясе. Серые полосы — дни без данных или с выключенным мониторингом."
 }

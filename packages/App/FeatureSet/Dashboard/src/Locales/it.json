@@ -55926,5 +55926,7 @@
   "Wrong backup code": "Codice di backup errato",
   "Wrong password": "Password errata",
   "{{count}} attempt": "{{count}} tentativo",
-  "{{summary}} - view sign-in attempt details": "{{summary}} - vedi i dettagli del tentativo di accesso"
+  "{{summary}} - view sign-in attempt details": "{{summary}} - vedi i dettagli del tentativo di accesso",
+  "Attachment Seen At": "Collegamento visto il",
+  "One bar per day for the last 90 days, in your time zone. Grey bars are days with no data or with monitoring off.": "Una barra al giorno per gli ultimi 90 giorni, nel tuo fuso orario. Le barre grigie sono giorni senza dati o con il monitoraggio disattivato."
 }

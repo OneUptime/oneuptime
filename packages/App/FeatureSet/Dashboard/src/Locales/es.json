@@ -55926,5 +55926,7 @@
   "Wrong backup code": "Código de respaldo incorrecto",
   "Wrong password": "Contraseña incorrecta",
   "{{count}} attempt": "{{count}} intento",
-  "{{summary}} - view sign-in attempt details": "{{summary}} - ver los detalles del intento de inicio de sesión"
+  "{{summary}} - view sign-in attempt details": "{{summary}} - ver los detalles del intento de inicio de sesión",
+  "Attachment Seen At": "Conexión vista el",
+  "One bar per day for the last 90 days, in your time zone. Grey bars are days with no data or with monitoring off.": "Una barra por día durante los últimos 90 días, en tu zona horaria. Las barras grises son días sin datos o con el monitoreo desactivado."
 }

@@ -55926,5 +55926,7 @@
   "Wrong backup code": "備用代碼錯誤",
   "Wrong password": "密碼錯誤",
   "{{count}} attempt": "{{count}} 次嘗試",
-  "{{summary}} - view sign-in attempt details": "{{summary}} - 檢視登入嘗試詳細資料"
+  "{{summary}} - view sign-in attempt details": "{{summary}} - 檢視登入嘗試詳細資料",
+  "Attachment Seen At": "接入發現時間",
+  "One bar per day for the last 90 days, in your time zone. Grey bars are days with no data or with monitoring off.": "過去 90 天每天一個長條，依你的時區顯示。灰色長條表示沒有資料或監測已關閉的日子。"
 }

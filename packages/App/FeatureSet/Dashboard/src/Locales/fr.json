@@ -55926,5 +55926,7 @@
   "Wrong backup code": "Code de secours erroné",
   "Wrong password": "Mot de passe erroné",
   "{{count}} attempt": "{{count}} tentative",
-  "{{summary}} - view sign-in attempt details": "{{summary}} - voir les détails de la tentative de connexion"
+  "{{summary}} - view sign-in attempt details": "{{summary}} - voir les détails de la tentative de connexion",
+  "Attachment Seen At": "Raccordement vu le",
+  "One bar per day for the last 90 days, in your time zone. Grey bars are days with no data or with monitoring off.": "Une barre par jour pour les 90 derniers jours, dans votre fuseau horaire. Les barres grises sont des jours sans données ou avec la surveillance désactivée."
 }

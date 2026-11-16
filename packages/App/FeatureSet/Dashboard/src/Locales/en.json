@@ -55926,5 +55926,7 @@
   "Wrong backup code": "Wrong backup code",
   "Wrong password": "Wrong password",
   "{{count}} attempt": "{{count}} attempt",
-  "{{summary}} - view sign-in attempt details": "{{summary}} - view sign-in attempt details"
+  "{{summary}} - view sign-in attempt details": "{{summary}} - view sign-in attempt details",
+  "Attachment Seen At": "Attachment Seen At",
+  "One bar per day for the last 90 days, in your time zone. Grey bars are days with no data or with monitoring off.": "One bar per day for the last 90 days, in your time zone. Grey bars are days with no data or with monitoring off."
 }

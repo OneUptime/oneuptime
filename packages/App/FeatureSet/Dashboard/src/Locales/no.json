@@ -55926,5 +55926,7 @@
   "Wrong backup code": "Feil reservekode",
   "Wrong password": "Feil passord",
   "{{count}} attempt": "{{count}} forsøk",
-  "{{summary}} - view sign-in attempt details": "{{summary}} - se detaljer om påloggingsforsøket"
+  "{{summary}} - view sign-in attempt details": "{{summary}} - se detaljer om påloggingsforsøket",
+  "Attachment Seen At": "Tilkobling sett",
+  "One bar per day for the last 90 days, in your time zone. Grey bars are days with no data or with monitoring off.": "Én stolpe per dag for de siste 90 dagene, i din tidssone. Grå stolper er dager uten data eller med overvåking slått av."
 }

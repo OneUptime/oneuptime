@@ -55926,5 +55926,7 @@
   "Wrong backup code": "Fel reservkod",
   "Wrong password": "Fel lösenord",
   "{{count}} attempt": "{{count}} försök",
-  "{{summary}} - view sign-in attempt details": "{{summary}} - visa detaljer om inloggningsförsöket"
+  "{{summary}} - view sign-in attempt details": "{{summary}} - visa detaljer om inloggningsförsöket",
+  "Attachment Seen At": "Anslutning sedd den",
+  "One bar per day for the last 90 days, in your time zone. Grey bars are days with no data or with monitoring off.": "En stapel per dag för de senaste 90 dagarna, i din tidszon. Grå staplar är dagar utan data eller med övervakning avstängd."
 }

@@ -55926,5 +55926,7 @@
   "Wrong backup code": "Forkert backupkode",
   "Wrong password": "Forkert adgangskode",
   "{{count}} attempt": "{{count}} forsøg",
-  "{{summary}} - view sign-in attempt details": "{{summary}} - se detaljer om loginforsøget"
+  "{{summary}} - view sign-in attempt details": "{{summary}} - se detaljer om loginforsøget",
+  "Attachment Seen At": "Tilslutning set den",
+  "One bar per day for the last 90 days, in your time zone. Grey bars are days with no data or with monitoring off.": "Én bjælke pr. dag for de seneste 90 dage, i din tidszone. Grå bjælker er dage uden data eller med overvågning slået fra."
 }

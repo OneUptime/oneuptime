@@ -55926,5 +55926,7 @@
   "Wrong backup code": "کد پشتیبان نادرست",
   "Wrong password": "رمز عبور نادرست",
   "{{count}} attempt": "{{count}} تلاش",
-  "{{summary}} - view sign-in attempt details": "{{summary}} - دیدن جزئیات تلاش برای ورود"
+  "{{summary}} - view sign-in attempt details": "{{summary}} - دیدن جزئیات تلاش برای ورود",
+  "Attachment Seen At": "زمان مشاهدهٔ اتصال",
+  "One bar per day for the last 90 days, in your time zone. Grey bars are days with no data or with monitoring off.": "یک نوار برای هر روز در ۹۰ روز گذشته، در منطقه زمانی شما. نوارهای خاکستری روزهایی بدون داده یا با پایش خاموش هستند."
 }

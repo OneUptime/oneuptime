@@ -55926,5 +55926,7 @@
   "Wrong backup code": "Verkeerde back-upcode",
   "Wrong password": "Verkeerd wachtwoord",
   "{{count}} attempt": "{{count}} poging",
-  "{{summary}} - view sign-in attempt details": "{{summary}} - details van de aanmeldpoging bekijken"
+  "{{summary}} - view sign-in attempt details": "{{summary}} - details van de aanmeldpoging bekijken",
+  "Attachment Seen At": "Aansluiting gezien op",
+  "One bar per day for the last 90 days, in your time zone. Grey bars are days with no data or with monitoring off.": "Eén balk per dag voor de afgelopen 90 dagen, in uw tijdzone. Grijze balken zijn dagen zonder gegevens of met de bewaking uit."
 }

@@ -55926,5 +55926,7 @@
   "Wrong backup code": "バックアップコードの誤り",
   "Wrong password": "パスワードの誤り",
   "{{count}} attempt": "試行 {{count}} 回",
-  "{{summary}} - view sign-in attempt details": "{{summary}} - サインイン試行の詳細を表示"
+  "{{summary}} - view sign-in attempt details": "{{summary}} - サインイン試行の詳細を表示",
+  "Attachment Seen At": "接続確認日時",
+  "One bar per day for the last 90 days, in your time zone. Grey bars are days with no data or with monitoring off.": "過去 90 日間の 1 日ごとのバーで、あなたのタイムゾーンで表示します。灰色のバーはデータのない日、または監視がオフだった日です。"
 }

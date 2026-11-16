@@ -55926,5 +55926,7 @@
   "Wrong backup code": "잘못된 백업 코드",
   "Wrong password": "잘못된 비밀번호",
   "{{count}} attempt": "{{count}}회 시도",
-  "{{summary}} - view sign-in attempt details": "{{summary}} - 로그인 시도 세부 정보 보기"
+  "{{summary}} - view sign-in attempt details": "{{summary}} - 로그인 시도 세부 정보 보기",
+  "Attachment Seen At": "연결 확인 시각",
+  "One bar per day for the last 90 days, in your time zone. Grey bars are days with no data or with monitoring off.": "지난 90일 동안 하루에 막대 하나씩, 사용자의 시간대 기준으로 보여 줍니다. 회색 막대는 데이터가 없거나 모니터링이 꺼져 있던 날입니다."
 }

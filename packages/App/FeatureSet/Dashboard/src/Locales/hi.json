@@ -55926,5 +55926,7 @@
   "Wrong backup code": "गलत बैकअप कोड",
   "Wrong password": "गलत पासवर्ड",
   "{{count}} attempt": "{{count}} प्रयास",
-  "{{summary}} - view sign-in attempt details": "{{summary}} - साइन-इन प्रयास का विवरण देखें"
+  "{{summary}} - view sign-in attempt details": "{{summary}} - साइन-इन प्रयास का विवरण देखें",
+  "Attachment Seen At": "जुड़ाव देखा गया",
+  "One bar per day for the last 90 days, in your time zone. Grey bars are days with no data or with monitoring off.": "पिछले 90 दिनों में हर दिन के लिए एक बार, आपके समय क्षेत्र के अनुसार। धूसर बार वे दिन हैं जिनमें कोई डेटा नहीं था या निगरानी बंद थी।"
 }
