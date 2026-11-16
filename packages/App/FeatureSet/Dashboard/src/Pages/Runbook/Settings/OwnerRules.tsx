@@ -1,3 +1,4 @@
+import { getOwnerRuleHelpMarkdown } from "../../../Utils/Help/ResourceRuleHelp";
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
@@ -17,22 +18,9 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
 
-const runbookOwnerDocumentation: string = `
-### How Runbook Owner Rules Work
-
-Runbook Owner Rules add owner users and teams to a runbook automatically when it matches your criteria — without anyone having to remember to assign owners.
-
-### Match Criteria
-
-A rule matches a runbook only when **all** specified criteria pass. Empty criteria are skipped.
-
-- **Runbook Labels** — any-of (M2M)
-- **Name / Description Pattern** — case-insensitive regex
-
-### Action
-
-When a rule matches, every user and team listed on the rule is added as an owner. Already-assigned owners are not duplicated. If \`Notify Owners\` is enabled (default), added owners are notified. Multiple matching rules all fire — the union of their owners ends up assigned.
-`;
+const runbookOwnerDocumentation: string = getOwnerRuleHelpMarkdown({
+  nouns: { singular: "runbook", plural: "runbooks" },
+});
 
 const RunbookOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
   props: RuleSettingsPageProps,

@@ -37,57 +37,52 @@ import {
 import { getPollingIntervalOptions } from "../../../Components/NetworkDevice/DiscoveryImport/PollingIntervalLabels";
 
 const networkDeviceAutoImportDocumentation: string = `
-### How Auto Import Rules Work
+An auto import rule turns what a discovery scan finds into network devices for you: every host it matches is imported as the scan reports it, with no **Review Results** and **Import** by hand. Site, owner and label rules then apply to the new devices as usual.
 
-Auto Import Rules turn discovery scan results into Network Devices automatically — matching hosts are imported as a scan reports them, with no manual "Review Results → Import" step. Site assignment, owner, and label rules then apply to the imported devices automatically.
+## When Rules Run
 
-An import rule can also select a **Network Device Monitor Template**. That opt-in completes the alerting pipeline: OneUptime creates an active monitor for each matching device, copies the template's criteria, minimum probe agreement, custom fields and monitor labels, and then applies the normal Monitor Label and Owner Rules. Existing rules with no template remain inventory-only. It is the same choice **Review Results** offers when you import by hand, and makes the same monitors.
+Rules need no schedule: they run on scan results, which OneUptime checks for every minute. A rule runs:
 
-**Check every** sets how often the scan's probe polls each device the rule imports: it pings every device, and walks the ones that answered SNMP. Leave it empty for the default, every 5 minutes.
+- **As a scan reports hosts.** Each result a probe uploads is matched within about a minute, including the partial results of a long sweep. A scan with **Repeat this scan** on imports newly found hosts on every rescan.
+- **When you create or change a rule.** The project's recent scan results are offered to it again, so a rule you write today applies to hosts found today.
+- **When you select Run Now.**
 
-### When Rules Run
+Results older than 24 hours are not imported by themselves: only **Run Now** imports them. A host whose address already has a network device is skipped, so repeating a scan or a rule never makes a duplicate.
 
-Rules have no schedule of their own because they do not need one — they run off scan results, and OneUptime checks for results to import every minute. A rule runs:
+## Match Criteria
 
-- **As a scan reports hosts.** Every result a probe uploads is evaluated against the project's rules within about a minute, including the partial results a long sweep uploads while it is still running. A discovery scan with **Repeat this scan** turned on therefore imports newly discovered hosts on every rescan, with nobody pressing anything.
-- **When you create or change a rule.** Saving a rule re-offers the project's recent scan results to it, so a rule you write today applies to hosts discovered today — you do not have to run the scan again to see what the rule does.
-- **When you press Run Now**, described below.
+A rule imports a discovered host that matches its conditions. A rule needs at least one condition: with none it would match nothing, so it is refused when you save it.
 
-Results older than 24 hours are not imported automatically: an hours-old host list is the wrong thing to act on by surprise, so old results stay Run Now's job.
+## What the Conditions Compare
 
-Every host is checked against the project's inventory by IP address before anything is created. A host whose address already has a Network Device is skipped — repeating a scan, running a rule twice, and editing a rule all reconcile rather than duplicate.
+- **IP Address**: the host's address. **Is in** takes a CIDR (\`192.168.1.0/24\`) or an octet range (\`10.16-22.0-255.51-66\`), as a scan target does.
+- **System Name**, **System Description**: the host's SNMP sysName and sysDescr. A pattern is a case-insensitive regular expression or a \`*\` wildcard.
+- **System Object ID**: the vendor's registered enterprise OID. Its pattern is an OID prefix (\`1.3.6.1.4.1.9\`) or a \`*\` wildcard with literal dots: \`1.3.6.1.4.1.9.*\` is any Cisco device, and never enterprise 94. Only hosts from probes that report sysObjectID can match it.
 
-### Match Criteria
+Only hosts that answered SNMP are imported, unless you turn on **Include Ping-Only Hosts**. Beware: a wrong SNMP credential makes every host on a subnet look ping-only.
 
-A rule imports a discovered host when it matches the rule's conditions. At least one condition is required — a rule with no conditions matches nothing, and is rejected when you save it.
+## Monitors for Imported Devices
 
-### What the Conditions Compare
+Pick a **Network Device Monitor Template** to give each imported device a monitor too, made from the template's criteria, probe agreement, custom fields and labels, with your monitor label and owner rules applied. It is the same choice **Review Results** offers. Without a template, a rule only adds devices to the inventory.
 
-- **IP Address** — the discovered host's address. **Is in** takes a CIDR (\`192.168.1.0/24\`) or an octet range (\`10.16-22.0-255.51-66\`), the same notations a scan target takes.
-- **System Name**, **System Description** — the host's SNMP sysName and sysDescr. A pattern is a case-insensitive regular expression or a \`*\` wildcard.
-- **System Object ID** — the host's sysObjectID, the vendor's registered enterprise OID. Not the free-text syntax above: an OID is a dotted numeric arc, so its pattern is an OID prefix (\`1.3.6.1.4.1.9\`) or a \`*\` wildcard with literal dots (\`1.3.6.1.4.1.9.*\` is "any Cisco device" and can never match enterprise 94). Only hosts found by probes that report sysObjectID can match this condition.
+- Each monitor is active, and may count towards your plan. The template must be this project's, of the **Network Device** monitor type.
+- A host that only answers ping gets a monitor too: its reachability check fires, and its SNMP checks wait until the device has credentials.
+- A monitor is named after the device (its sysName, or its address). A template's **Default Monitor Name** is added after it (\`UN0660WANRTR01 - Unit Router\`), which tells two templates apart on one device.
+- Running a rule again adds a missing monitor, even for a device an earlier scan added, and leaves an existing Network Device monitor alone. Rules that pick the same template make one monitor; different templates make one each.
+- Changing a rule's template never deletes or rewrites the monitors it made before. Delete the old monitor and let the rule make the new one.
 
-By default only hosts that answered SNMP are imported. Enable **Include Ping-Only Hosts** to also import hosts that only answered ping — but beware: a wrong SNMP credential makes every host on a subnet report as ping-only.
+SNMP health OIDs, interface walking and endpoint collection stay settings of the device itself.
 
-### Monitor Provisioning
+## Exclusion Rules
 
-Selecting a monitor template creates active monitors and may affect plan usage or billing. The template must belong to this project and have the **Network Device** monitor type. Hosts that answer ping only get a monitor too: their probe pings them, so the template's reachability check fires for them, while its SNMP checks wait until the device has credentials.
+An exclusion rule turns the match around: a host it matches is never imported, even when another rule matches it. Use one to keep printers, phones and other hosts you do not want out of a broad rule. It cannot be run itself: it only vetoes the others.
 
-The monitor template is the alerting layer: it supplies evaluation criteria and monitor settings. SNMP Health OIDs, interface walking, and endpoint collection remain polling settings on the Network Device itself; auto-imported devices continue to use the existing vendor-health-template seeding behavior for those fields.
+## Dry Run and Run Now
 
-Provisioned monitors are named after the DEVICE, not the template: the discovered host's SNMP sysName, falling back to its address. A template that fills in **Default Monitor Name** appends it as a suffix (\`UN0660WANRTR01 - Unit Router\`), which is what tells two templates apart on one device; leave that field blank and each monitor carries the device name alone.
+- **Run Now** applies a rule to every scan in the project, including results older than 24 hours, and adds the template's monitor to devices that already exist.
+- **Dry Run** works out the same, writes nothing, and shows what would be imported and which monitors made, even for a disabled rule.
 
-Provisioning is reconciled and safe to repeat: a missing template monitor is added even when the Network Device was registered by an earlier scan, while an existing automatic or manually configured Network Device monitor is left alone. If several matching rules select the same template, OneUptime creates one monitor. If they deliberately select different templates, it creates one monitor per distinct template.
-
-Changing a rule's template does not delete or rewrite monitors created from its old template. This avoids destructive surprises; delete the old automatic monitor and let the intended rule recreate it, or replace it with a manual monitor if you are migrating templates.
-
-### Exclusion Rules
-
-An exclusion rule inverts the match: hosts it matches are **never** auto-imported, even when another rule matches them. Use one to carve printers, phones, or other unwanted hosts out of a broader import rule. An exclusion rule cannot be run directly — it vetoes other rules instead of importing anything.
-
-### Dry Run and Run Now
-
-Rules run by themselves (see **When Rules Run** above); these two buttons are for doing it deliberately. **Run Now** applies a rule to every scan already in the project — including results older than the 24-hour horizon automatic imports stop at, and including backfilling a selected template monitor for an already-registered matching device. **Dry Run** performs the same reconciliation but writes nothing — it answers what would be imported and which monitors would be created before you trust the rule. It also works on a **disabled** rule. Device and monitor creation are idempotent, so running a rule more than once is safe.
+Running a rule more than once is safe: nothing is made twice.
 `;
 
 const NetworkDeviceAutoImportRulesPage: FunctionComponent<

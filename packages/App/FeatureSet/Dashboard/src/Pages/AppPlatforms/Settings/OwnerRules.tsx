@@ -1,3 +1,4 @@
+import { getOwnerRuleHelpMarkdown } from "../../../Utils/Help/ResourceRuleHelp";
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
@@ -43,6 +44,10 @@ const RULE_WORDING: RuleWording<CloudResourceOwnerRule> =
  * rule made here is for environments only (CloudRuleKind); Cloud has its
  * own for the resources of its accounts.
  */
+const ownerRuleDocumentation: string = getOwnerRuleHelpMarkdown({
+  nouns: { singular: "cloud environment", plural: "cloud environments" },
+});
+
 const AppPlatformsOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
   props: RuleSettingsPageProps,
 ): ReactElement => {
@@ -78,6 +83,12 @@ const AppPlatformsOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         title: "Cloud Environment Owner Rules",
         description:
           "Auto-assign owners when matching environments are created.",
+      }}
+      helpContent={{
+        title: "How Cloud Environment Owner Rules Work",
+        description:
+          "Match cloud environments and add owner users/teams automatically.",
+        markdown: ownerRuleDocumentation,
       }}
       /*
        * App Platforms' rules are for environments; Cloud has its own for the

@@ -19,30 +19,25 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Label from "Common/Models/DatabaseModels/Label";
 
 const scheduledMaintenanceOwnerDocumentation: string = `
-### How Scheduled Maintenance Owner Rules Work
+An owner rule makes people and teams owners of every new maintenance event it matches, so each event has someone responsible for it from the start.
 
-Scheduled Maintenance Owner Rules add owner users and teams to a maintenance event automatically when it matches your criteria — without anyone having to remember to assign owners.
+## How It Works
 
-### Match Criteria
+- Rules run as each maintenance event is created. To add owners to events you already have, open a rule and select **Run Now**.
+- Every rule that matches adds its owners. An owner the event already has is not added twice.
+- A disabled rule does not run.
 
-A rule matches an event only when **all** specified criteria pass. Empty criteria are skipped.
+## Match Criteria
 
-- **Monitors**, **Event Labels**, **Monitor Labels** — any-of (M2M)
-- **Title / Description Pattern**, **Monitor Name / Description Pattern** — case-insensitive regex
+Add conditions on the event, such as its monitors, labels or title, and choose whether all of them or any one must match.
 
-### Action
+## Owners a Rule Copies
 
-When a rule matches:
+Under **Inherit Owners**, a rule can also add the owners of the event's monitors, and of the hosts, Kubernetes clusters, Docker hosts, Podman hosts and services it affects.
 
-- Every user and team listed on the rule is added as an owner.
-- If \`Inherit Owners From Monitors\` is on, every owner of the event's monitors is also added.
-- If \`Inherit Owners From Hosts\` is on, every owner of the event's affected hosts is also added.
-- If \`Inherit Owners From Kubernetes Clusters\` is on, every owner of the event's affected Kubernetes clusters is also added.
-- If \`Inherit Owners From Docker Hosts\` is on, every owner of the event's affected Docker hosts is also added.
-- If \`Inherit Owners From Podman Hosts\` is on, every owner of the event's affected Podman hosts is also added.
-- If \`Inherit Owners From Services\` is on, every owner of the event's affected services is also added.
+## Telling the New Owners
 
-Already-assigned owners are not duplicated. If \`Notify Owners\` is enabled (default), added owners are notified. Multiple matching rules all fire — the union of their owners ends up assigned.
+With **Notify Owners** on (the default), the people and teams a rule adds are told they now own the event. Turn it off to add them quietly.
 `;
 
 const ScheduledMaintenanceOwnerRulesPage: FunctionComponent<

@@ -102,15 +102,18 @@ export function getGuideSection(
 }
 
 /*
- * The whole guide as one markdown document, for surfaces that can only
- * show a single markdown blob — ModelTable's help (?) modal.
+ * The whole guide as one help document, for the table's help (?): the
+ * guide's summary first, which the help dialog shows as "In short", then
+ * one "##" topic per section, in order (Common HelpContent) - the same
+ * dialog the card opens the guide in.
  */
 export function guideToMarkdown(guide: SecurityEventsGuide): string {
-  return guide.sections
-    .map((section: SecurityEventsGuideSection): string => {
-      return `### ${section.title}\n\n${section.markdown.trim()}`;
-    })
-    .join("\n\n---\n\n");
+  return [
+    guide.summary.trim(),
+    ...guide.sections.map((section: SecurityEventsGuideSection): string => {
+      return `## ${section.title}\n\n${section.markdown.trim()}`;
+    }),
+  ].join("\n\n");
 }
 
 /*

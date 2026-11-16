@@ -110,7 +110,7 @@ const WelcomeNextStep: FunctionComponent = (): ReactElement => {
               translator.translateText(WELCOME_NEXT_STEP_COPY.dismiss) ||
               WELCOME_NEXT_STEP_COPY.dismiss
             }
-            className="rounded p-0.5 text-indigo-400 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            className="rounded p-0.5 text-indigo-500 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           >
             <Icon icon={IconProp.Close} className="h-4 w-4" />
           </button>

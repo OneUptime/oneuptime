@@ -4,8 +4,9 @@ import path from "path";
 
 /*
  * The copy that orients a new user in a very large product: what each item in
- * the Products menu is for, what each core list page holds, the Home
- * "How OneUptime works" strip and dialog, and the Getting Started checklist.
+ * the Products menu is for, what each core list page holds, the "How
+ * OneUptime works" dialog, and the Getting Started checklist with the line
+ * under its steps that opens that dialog (#8995).
  *
  * Copy fails quietly. A locale missing a key shows English (or a raw key) to
  * that user, a rewritten English string silently orphans its translations,
@@ -25,6 +26,33 @@ const DASHBOARD_SRC: string = path.join(
   "src",
 );
 const LOCALES_DIR: string = path.join(DASHBOARD_SRC, "Locales");
+
+/*
+ * The words a language writes as English writes them, on purpose: Danish
+ * and Norwegian "Start" (the next quickstart step's button) is the right
+ * word, recorded on the language's same-as-English list
+ * (i18n/Progress/<code>.json) or the global one (i18n/SameAsEnglish.json),
+ * as the Dashboard's locale guard reads them.
+ */
+const I18N_DIR: string = path.join(DASHBOARD_SRC, "..", "i18n");
+
+const readSameAsEnglish: (code: string) => Set<string> = (
+  code: string,
+): Set<string> => {
+  const global: Array<string> = JSON.parse(
+    fs.readFileSync(path.join(I18N_DIR, "SameAsEnglish.json"), "utf8"),
+  ) as Array<string>;
+  const progressPath: string = path.join(I18N_DIR, "Progress", `${code}.json`);
+  const progress: { sameAsEnglish?: Array<string> } = fs.existsSync(
+    progressPath,
+  )
+    ? (JSON.parse(fs.readFileSync(progressPath, "utf8")) as {
+        sameAsEnglish?: Array<string>;
+      })
+    : {};
+
+  return new Set<string>([...global, ...(progress.sameAsEnglish || [])]);
+};
 
 type Locale = Record<string, unknown>;
 
@@ -319,8 +347,6 @@ describe("Home orientation copy", () => {
     expect(literals).toEqual(
       expect.arrayContaining([
         "How OneUptime works",
-        "Incidents & Alerts",
-        "Pages the right person, and escalates if nobody answers.",
         "Welcome to OneUptime 👋",
         "Hide",
         "steps completed",
@@ -345,6 +371,33 @@ describe("Home orientation copy", () => {
     expect(literals.length).toBeGreaterThanOrEqual(70);
   });
 
+  test("the checklist tells no story of its own: its strip's words are gone, and it opens the dialog", () => {
+    /*
+     * The checklist drew four numbered products, what fed them and a
+     * footnote, beside the dialog's four steps: two shapes of one story.
+     */
+    for (const strip of [
+      "Incidents & Alerts",
+      "Pages the right person, and escalates if nobody answers.",
+      "That is the core. Logs, metrics, traces, infrastructure and everything else are optional — find them under Products when you need them.",
+    ]) {
+      expect(literals).not.toContain(strip);
+    }
+
+    const checklist: string = readSource(
+      "Components",
+      "Home",
+      "GettingStarted.tsx",
+    );
+    expect(checklist).toContain(
+      "openHowOneUptimeWorks(HowOneUptimeWorksOpenedFrom.WelcomeChecklist);",
+    );
+    expect(checklist).toContain(
+      "translator.translateText(HOW_ONEUPTIME_WORKS_DESCRIPTION)",
+    );
+    expect(checklist).not.toContain("<HowOneUptimeWorks ");
+  });
+
   test("every English literal is a key in en.json that maps to itself", () => {
     for (const literal of literals) {
       expect([literal, locales["en"]![literal]]).toEqual([literal, literal]);
@@ -352,28 +405,25 @@ describe("Home orientation copy", () => {
   });
 
   test.each(nonEnglish)("%s translates every Home literal", (code: string) => {
+    const sameAsEnglish: Set<string> = readSameAsEnglish(code);
+
     for (const literal of literals) {
       const value: unknown = locales[code]![literal];
       expect([literal, typeof value]).toEqual([literal, "string"]);
-      expect([literal, value]).not.toEqual([literal, literal]);
+
+      if (!sameAsEnglish.has(literal)) {
+        expect([literal, value]).not.toEqual([literal, literal]);
+      }
     }
   });
 
-  test.each(nonEnglish)(
-    "%s footnote names the Products menu by its translated label",
-    (code: string) => {
-      /*
-       * The footnote sends users to "Products"; in each language that has to
-       * be the word on the actual button, or they will not find it.
-       */
-      const footnote: string = locales[code]![
-        "That is the core. Logs, metrics, traces, infrastructure and everything else are optional — find them under Products when you need them."
-      ] as string;
-      const productsLabel: string = locales[code]!["Products"] as string;
-      expect(typeof productsLabel).toBe("string");
-      expect(footnote).toContain(productsLabel);
-    },
-  );
+  test("a literal a language writes as English is on that language's list, and nowhere else", () => {
+    // Danish and Norwegian say "Start" for Start; German says "Starten".
+    expect(readSameAsEnglish("da").has("Start")).toBe(true);
+    expect(readSameAsEnglish("no").has("Start")).toBe(true);
+    expect(readSameAsEnglish("de").has("Start")).toBe(false);
+    expect(locales["de"]!["Start"]).not.toBe("Start");
+  });
 });
 
 describe("Help menu", () => {

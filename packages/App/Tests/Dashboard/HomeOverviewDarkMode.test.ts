@@ -55,6 +55,16 @@ function readCodeAt(absolutePath: string): string {
   return squash(stripComments(fs.readFileSync(absolutePath, "utf8")));
 }
 
+/*
+ * The folders under Components/Home whose components Home draws as part of
+ * itself: the quickstart (the question, its steps and its greeting, #8897)
+ * and an invited member's first steps.
+ */
+const HOME_COMPONENT_SUBFOLDERS: Array<string> = [
+  "WelcomeChecklist",
+  "MemberFirstSteps",
+];
+
 // Home's page and every .tsx component in Components/Home, by file name.
 function getHomeModules(): Map<string, string> {
   const modules: Map<string, string> = new Map();
@@ -64,12 +74,16 @@ function getHomeModules(): Map<string, string> {
     readCodeAt(path.join(DASHBOARD_SRC, "Pages", "Home", "Home.tsx")),
   );
 
-  for (const fileName of fs.readdirSync(HOME_COMPONENTS_DIR).sort()) {
-    if (fileName.endsWith(".tsx")) {
-      modules.set(
-        `Components/Home/${fileName}`,
-        readCodeAt(path.join(HOME_COMPONENTS_DIR, fileName)),
-      );
+  for (const folder of ["", ...HOME_COMPONENT_SUBFOLDERS]) {
+    const directory: string = path.join(HOME_COMPONENTS_DIR, folder);
+
+    for (const fileName of fs.readdirSync(directory).sort()) {
+      if (fileName.endsWith(".tsx")) {
+        modules.set(
+          `Components/Home/${folder ? `${folder}/` : ""}${fileName}`,
+          readCodeAt(path.join(directory, fileName)),
+        );
+      }
     }
   }
 
@@ -116,6 +130,11 @@ function isRemapped(token: string): boolean {
   const utility: string = token.slice(token.lastIndexOf(":") + 1);
 
   if (utility === "text-white" || SOLID_FILL.test(utility)) {
+    return true;
+  }
+
+  // Nothing to repaint: transparent is the same in both themes.
+  if (utility.endsWith("-transparent")) {
     return true;
   }
 
@@ -178,6 +197,11 @@ describe("Home in the dark theme", () => {
       "Components/Home/ProjectHealthCard.tsx",
       "Components/Home/ProjectResources.tsx",
       "Components/Home/UpcomingMaintenance.tsx",
+      // The quickstart, which is the whole of Home while it shows (#8897).
+      "Components/Home/WelcomeChecklist/GoalQuestion.tsx",
+      "Components/Home/WelcomeChecklist/WelcomeGreeting.tsx",
+      "Components/Home/WelcomeChecklist/WelcomePlanStep.tsx",
+      "Components/Home/MemberFirstSteps/MemberFirstSteps.tsx",
     ]) {
       expect({ expected, found: modules.has(expected) }).toEqual({
         expected,

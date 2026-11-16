@@ -20,6 +20,8 @@ Hjem er den første side, du ser i et projekt. Den viser med et blik, om noget h
 5. **Dit projekt**, hvad projektet består af, og **Kommende vedligeholdelse**, når der er planlagt noget.
 6. **Udforsk OneUptime**, alle produkter, én kategori ad gangen.
 
+Mens et nyt projekts tjekliste **Velkommen til OneUptime 👋** vises, er den hele Hjem: det første, du ser, er det, du skal gøre først. En åben hændelse, eller andet der kræver nogen, vises stadig over den. Skjul tjeklisten, eller gør den færdig, så kommer resten af Hjem tilbage.
+
 ### Søg og opret
 
 Søgefeltet åbner søgningen, ligesom `Mod` + `K`: skriv navnet på en side, monitor, hændelse, advarsel, statusside eller vagtpolitik. Se [Søg](#søg-efter-en-side-en-indstilling-eller-en-handling). **Erklær hændelse** åbner formularen, hvor du erklærer en hændelse. **Opret** tilbyder **Opret monitor**, **Planlæg vedligeholdelse** og **Opret meddelelse**. Hver af dem vises kun for dem, der må bruge den.
@@ -56,7 +58,7 @@ Et tal over nul viser **Kræver opmærksomhed**, eller **I gang** og **Budgettet
 
 ### Velkomsttjeklisten
 
-Første gang en Projektejer eller Projektadministrator åbner Hjem i et nyt projekt, spørger kortet **Hvad vil du gøre først?** Sæt flueben ved et eller flere mål, fx **Vide, når mit website eller API er nede** eller **Jeg kigger bare**, og klik på **Fortsæt**: tjeklisten indeholder så de trin, som målene kræver. **Spring over** giver de fire trin, som alle projekter får. For at svare igen senere skal du klikke på **Skift** i tjeklisten. Et projekt, der allerede bruger monitorer, telemetri eller vagter, bliver ikke spurgt.
+Første gang en Projektejer eller Projektadministrator åbner Hjem i et nyt projekt, hilser kortet på dem med fornavn og spørger **Hvad vil du gøre først?** Vælg et eller flere mål, fx **Vide, når mit website eller API er nede**, og klik på **Fortsæt**: tjeklisten indeholder så de trin, som målene kræver. Mens du vælger, fortæller den, hvor mange trin det er, og cirka hvor lang tid de tager. **Jeg kigger bare** fører dig i stedet direkte til resten af Hjem og efterlader en linje, så du kan vise tjeklisten igen. For at svare igen senere skal du klikke på **Skift** i tjeklisten. Et projekt, der allerede bruger monitorer, telemetri eller vagter, bliver ikke spurgt.
 
 Hvert trin krydser sig selv af, når tingen virker, ikke når en post findes, og alle, der sætter projektet op, ser den samme liste på alle enheder:
 
@@ -72,9 +74,13 @@ Hvert trin krydser sig selv af, når tingen virker, ikke når en post findes, og
 
 Det trin, du skal tage først, er markeret med **Næste trin**. På OneUptime Clouds Free-abonnement, der har én person, siger **Inviter dit team**, at det kræver Growth-abonnementet, og åbner **Fakturering**. På en selvhostet server, der endnu ikke kan sende e-mail, ser serverens administratorer først **Denne server kan ikke sende e-mail endnu**; det åbner administrationsdashboardet.
 
+Hvert trin fortæller, cirka hvor lang tid det tager, tjeklisten, cirka hvor meget tid der er tilbage, og det næste trin har sin egen knap **Start**.
+
 En guidet opsætning klarer hele opgaven på én side, et trin ad gangen, og slutter med, hvad den har sat op, og hvad du kan gøre bagefter. Søg efter dens navn for at åbne den igen senere.
 
-Under trinene viser **Sådan virker OneUptime** de fire kerneprodukter i den rækkefølge, et problem bevæger sig gennem dem: **Monitorer**, **Hændelser og advarsler**, **Vagt** og **Statussider**. Klik på et for at åbne det. Under dem står, hvad der fodrer kredsløbet, telemetri og infrastruktur, med links til [Grundbegreber](/docs/introduction/core-concepts) og [Ordliste](/docs/introduction/glossary).
+Ved siden af sine trin viser en guidet opsætning, hvad den sætter op, sat flueben ved efterhånden, og fortæller, cirka hvor lang tid den tager.
+
+Under trinene åbner en linje **Sådan virker OneUptime**: alt, hvad OneUptime gør, og hvordan det hænger sammen.
 
 ```mermaid title="Hvornår velkomsttjeklisten vises"
 flowchart TB

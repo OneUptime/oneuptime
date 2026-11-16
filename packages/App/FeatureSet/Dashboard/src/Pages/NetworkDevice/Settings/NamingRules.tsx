@@ -33,33 +33,35 @@ import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
  */
 
 const namingRulesDocumentation: string = `
-### How Naming Rules Work
+A naming rule names your network devices by your naming convention: which devices, by its match criteria, and what they are called, by its name pattern. A device is named as discovery imports it, and the import shows each name before you import.
 
-Naming rules name your network devices by your naming convention. A rule says **which devices** (its match criteria) and **what they are called** (its name pattern). Rules are tried from the top of the list: the first enabled rule that matches a device, and has every value its name pattern needs, names it. Drag the rows to reorder them.
+## How Rules Name Devices
 
-Rules name a device when discovery imports it — from **Review Results**, from **Discovered Devices**, and through **Auto Import Rules**. The import dialog shows the name each device will get before you import. The name discovery found is kept on the device as its **Discovered Name**, and a later scan never renames a device a rule named.
+- Rules name a device when discovery imports it: from **Review Results**, from **Discovered Devices** and through **Auto Import Rules**.
+- Rules are tried from the top of the list down, and the first enabled rule that matches a device, and has every value its pattern needs, names it. Drag a rule to change its place.
+- The name discovery found is kept on the device as its **Discovered Name**, and a later scan never renames a device a rule named.
 
-### Match Criteria
+## Match Criteria
 
 A rule names the devices that match its conditions. A rule with no conditions can name every device.
 
-### What the Conditions Compare
+## What the Conditions Compare
 
-- **IP Address** — the device's address. **Is in** takes a subnet (\`10.48.145.0/24\`) or octet ranges, where \`*\` is any number (\`10.*.*.51\`, \`10.*.*.154-159\`).
-- **Discovered Name** — the name discovery found: the SNMP or NetBIOS name, the DNS name, or the address. A pattern is a case-insensitive regular expression or a \`*\` wildcard.
-- **MAC Address** — in any spelling: \`00:05:0b*\`, \`00-05-0B*\` and \`00050b*\` match the same devices.
-- **Vendor** — who made the device, from its MAC address or its SNMP answer.
-- **Site** — the device's site. A site matches the devices of the sites under it too, so one rule can cover a whole region.
+- **IP Address**: the device's address. **Is in** takes a subnet (\`10.48.145.0/24\`) or octet ranges, where \`*\` is any number (\`10.*.*.51\`, \`10.*.*.154-159\`).
+- **Discovered Name**: the name discovery found, from SNMP, NetBIOS or DNS, or the address. A pattern is a case-insensitive regular expression or a \`*\` wildcard.
+- **MAC Address**: in any spelling: \`00:05:0b*\`, \`00-05-0B*\` and \`00050b*\` match the same devices.
+- **Vendor**: who made the device, from its MAC address or its SNMP answer.
+- **Site**: the device's site, and the sites under it, so one rule can cover a whole region.
 
-### Name Patterns
+## Name Patterns
 
-A pattern is text, with the parts that differ from device to device in curly braces:
+A pattern is text, with the parts that change from device to device in curly braces:
 
-| Placeholder | Is replaced by | Example |
+| Placeholder | Is replaced by | For example |
 | --- | --- | --- |
-| \`{site.code}\` | The code of the device's site (set it on the site's settings) | \`1216\` |
+| \`{site.code}\` | The code of the device's site, set on the site's settings | \`1216\` |
 | \`{site}\` | The name of the device's site | \`Unit 1216\` |
-| \`{discoveredName}\` | The name discovery found: SNMP or NetBIOS name, DNS name, or address | \`dmb-5\` |
+| \`{discoveredName}\` | The name discovery found | \`dmb-5\` |
 | \`{ip}\` | The whole IP address | \`10.48.145.51\` |
 | \`{ip.1}\` … \`{ip.4}\` | One part of the IP address | \`51\` |
 | \`{mac}\` | The MAC address, 12 digits and letters | \`00050BB07FFC\` |
@@ -67,17 +69,17 @@ A pattern is text, with the parts that differ from device to device in curly bra
 | \`{lookup}\` | The value of the rule's lookup table for the device | \`MNUPLR01\` |
 | \`{n}\`, \`{nn}\`, \`{nnn}\` | The lowest number that makes the name unique: 1, 01, 001 | \`01\` |
 
-A placeholder can be followed by filters: \`{vendor|first:3|upper}\` is \`SIC\`. The filters are \`upper\`, \`lower\`, \`first:N\`, \`last:N\`, \`digits\` (only the digits: \`{site|digits}\` is \`1216\` for "Unit 1216") and \`nospaces\`.
+Filters change a placeholder: \`{vendor|first:3|upper}\` is \`SIC\`. They are \`upper\`, \`lower\`, \`first:N\`, \`last:N\`, \`digits\` (only the digits: \`{site|digits}\` is \`1216\` for "Unit 1216") and \`nospaces\`.
 
-A device that lacks a value its pattern needs — a site without a code, no MAC address, no row in the lookup table — is not named by the rule, and the next rule is tried. Names are unique in a project: a pattern without a number whose name another device already has leaves the device under its discovered name, and the preview says so.
+A device without a value its pattern needs, such as a site with no code, no MAC address or no row in the lookup table, is left to the next rule. Names are unique in a project: when a pattern with no number gives a name another device has, the device keeps its discovered name, and the preview says so.
 
-### Lookup Tables
+## Lookup Tables
 
-Some conventions are a table rather than a formula: in every unit's subnet, the device at **.51** is the menu player **MNUPLR01** and the one at **.151** the left screen **MNUSCR01**. Open **Lookup table** in the rule's Name step, choose what the table is keyed by — the last part of the IP address, the IP address, the MAC address or the discovered name — and type the rows, paste them from a spreadsheet, or import a CSV file. Then put \`{lookup}\` in the pattern: \`UN{site.code}{lookup}\` names all the devices of every unit with one rule. **Export CSV** saves the table back as a file.
+Some conventions are a table rather than a formula: in every unit's subnet, the device at **.51** is the menu player **MNUPLR01** and the one at **.151** the left screen **MNUSCR01**. Open **Lookup table** in the rule's Name step, choose what it is keyed by (the last part of the IP address, the IP address, the MAC address or the discovered name), and type the rows, paste them from a spreadsheet, or import a CSV file. Then put \`{lookup}\` in the pattern: \`UN{site.code}{lookup}\` names every device of every unit with one rule. **Export CSV** saves the table back to a file.
 
-### Devices You Already Have
+## Devices You Already Have
 
-**Apply to existing devices** checks every device against the rules and lists the ones that do not follow them, with the name each would get. Devices named by discovery or by a rule are ticked; devices whose names someone typed are listed unticked. Devices a rule cannot name yet are listed with the reason. Nothing is renamed until you confirm, and you can do the same for a selection with **Apply Naming Rules** on the Devices list.
+**Apply to existing devices** lists the devices that do not follow the rules, with the name each would get. Devices named by discovery or by a rule are ticked; devices whose names someone typed are listed unticked; devices a rule cannot name yet are listed with the reason. Nothing is renamed until you confirm. **Apply Naming Rules** on the Devices list does the same for the devices you select.
 `;
 
 const NetworkDeviceNamingRulesPage: FunctionComponent<

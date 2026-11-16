@@ -28,34 +28,27 @@ import React, {
 } from "react";
 
 const processorsDocMarkdown: string = `
-### How Processors Work
+Processors are the steps this pipeline runs on every span it matches, in order, each on what the one before it left. Drag a processor to change its place, and turn one off to skip it without deleting it.
 
-Processors are transformation steps that modify spans matched by this pipeline. They run **in order** — drag rows to reorder them.
+## Attribute Remapper
 
----
+Renames or copies a span attribute, such as \`http.user_agent\` to \`user_agent\`.
 
-### Processor Types
+## Span Name Remapper
 
-#### Attribute Remapper
-Copy or rename a span attribute (e.g. rename \`http.user_agent\` to \`user_agent\`).
+Rewrites a span's name when a field has a value. Use \`name\` as the **Source Key** to match on the span's current name, or any attribute key to match on that attribute's value.
 
-#### Span Name Remapper
-Override the span name when a source field matches a value. Use \`name\` as the Source Key to match the current span name, or any attribute key to match on an attribute value.
+## Status Remapper
 
-#### Status Remapper
-Override span status (Unset=0, Ok=1, Error=2) based on an attribute value.
+Sets a span's status from an attribute's value: Unset (0), Ok (1) or Error (2).
 
-#### Span Kind Remapper
-Override span kind (Server / Client / Producer / Consumer / Internal) based on an attribute value.
+## Span Kind Remapper
 
-#### Category Processor
-Tag spans with a category attribute based on filter rules — first match wins.
+Sets a span's kind from an attribute's value: Server, Client, Producer, Consumer or Internal.
 
----
+## Category Processor
 
-### Tips
-- **Order matters** — processors run sequentially.
-- **Disable without deleting** — toggle a processor off to temporarily skip it.
+Writes a category to an attribute. Its categories are checked in order, and the first one whose filter a span matches is written.
 `;
 
 const TracePipelineView: FunctionComponent<PageComponentProps> = (
@@ -177,7 +170,7 @@ const TracePipelineView: FunctionComponent<PageComponentProps> = (
         helpContent={{
           title: "How Trace Processors Work",
           description:
-            "Understanding AttributeRemapper, SpanNameRemapper, StatusRemapper, SpanKindRemapper, and CategoryProcessor",
+            "The steps this pipeline runs on every span it matches, in order.",
           markdown: processorsDocMarkdown,
         }}
         showRefreshButton={true}

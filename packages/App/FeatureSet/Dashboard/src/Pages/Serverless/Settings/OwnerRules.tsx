@@ -1,3 +1,4 @@
+import { getOwnerRuleHelpMarkdown } from "../../../Utils/Help/ResourceRuleHelp";
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
@@ -16,6 +17,10 @@ import ServerlessFunctionOwnerRule from "Common/Models/DatabaseModels/Serverless
 import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
+
+const ownerRuleDocumentation: string = getOwnerRuleHelpMarkdown({
+  nouns: { singular: "serverless function", plural: "serverless functions" },
+});
 
 const ServerlessFunctionOwnerRulesPage: FunctionComponent<
   RuleSettingsPageProps
@@ -47,6 +52,12 @@ const ServerlessFunctionOwnerRulesPage: FunctionComponent<
         title: "Serverless Function Owner Rules",
         description:
           "Auto-assign owners when matching serverless functions are created.",
+      }}
+      helpContent={{
+        title: "How Serverless Function Owner Rules Work",
+        description:
+          "Match serverless functions and add owner users/teams automatically.",
+        markdown: ownerRuleDocumentation,
       }}
       sortBy="name"
       sortOrder={SortOrder.Ascending}
