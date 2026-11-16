@@ -45,6 +45,7 @@
     "uptimePercent": "{{percent}} uptime",
     "operational": "Operational",
     "notMonitored": "Not monitored",
+    "notMonitoredYet": "Not monitored yet",
     "noResourcesInGroup": "No resources added to this group.",
     "activeIncidents": "Active Incidents",
     "scheduledMaintenanceEvents": "Scheduled Maintenance",
@@ -55,6 +56,7 @@
     "someResourcesAre": "Some Resources are {{status}}",
     "someResourcesAreUnder": "Some Resources are under {{status}}",
     "noResourcesAreMonitored": "No Resources are monitored right now",
+    "noResourcesAreMonitoredYet": "No Resources are monitored yet",
     "oneSubGroup": "1 group",
     "subGroupCount": "{{total}} groups"
   },

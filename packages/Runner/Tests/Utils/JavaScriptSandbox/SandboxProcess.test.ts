@@ -42,9 +42,12 @@ import {
   SANDBOX_WORKER_BUNDLE_PATH,
   SANDBOX_WORKER_SOURCE_PATH,
   STEP_ENDED_WITHOUT_RESULT_MESSAGE,
+  STEP_HTTP_CHANNEL_MISUSED_MESSAGE,
+  STEP_NO_NETWORK_FILTER_MESSAGE,
   STEP_NO_PRIVILEGE_MESSAGE,
   STEP_RAN_OUT_OF_TIME_MESSAGE,
   STEP_REPLY_TOO_LARGE_MESSAGE,
+  SandboxDecision,
   SandboxRunOptions,
   SandboxStepRequest,
   SandboxWorkerEntry,
@@ -54,7 +57,10 @@ import {
   getRunnerPackageDirectory,
   getSandboxEnvironment,
   getSandboxNodeArguments,
+  getSandboxProgram,
+  logSandboxDecision,
   runSandboxedStep,
+  toSandboxReport,
   usesOpenSslCertificateStore,
 } from "../../../Utils/JavaScriptSandbox/SandboxProcess";
 import {
@@ -64,9 +70,22 @@ import {
   SandboxIsolationDecision,
   callLauncher,
 } from "../../../Utils/JavaScriptSandbox/SandboxIdentity";
+import {
+  NO_NETWORK,
+  NO_NETWORK_EXIT_NO_FILTER,
+  SandboxNetwork,
+  SandboxNetworkDecision,
+} from "../../../Utils/JavaScriptSandbox/SandboxNetwork";
 import { JavaScriptStepOutcome } from "../../../Utils/JavaScriptSandbox/JavaScriptStepResult";
 import { TRUNCATED_OUTPUT_MARKER } from "../../../Utils/OutputTruncation";
 import { GLOBAL_RUNNER_JAVASCRIPT_PRIVATE_NETWORK_HINT } from "../../../Services/RunbookExecutor";
+import {
+  GlobalRunnerStepNetwork,
+  GlobalRunnerStepNetworkReason,
+  GlobalRunnerStepUser,
+  GlobalRunnerStepUserReason,
+} from "Common/Types/Runner/GlobalRunnerSandbox";
+import logger from "Common/Server/Utils/Logger";
 import { execFileSync } from "child_process";
 import fs from "fs";
 import os from "os";
@@ -82,6 +101,18 @@ const DEAD_STATE_PATTERN: RegExp = /State:\s+[ZX]/;
 const OWN_PROCESS: SandboxIsolationDecision = {
   isolation: SandboxIsolation.OwnProcess,
   reason: "a test",
+  reasonCode: GlobalRunnerStepUserReason.CheckFailed,
+};
+
+/*
+ * In jest there is no seccomp wrapper binary, so a step's process shares the
+ * test's network - and Node's permission model, without --allow-net, is what
+ * keeps it off a socket. The wrapper's own path is one nothing runs.
+ */
+const SHARED_NETWORK: SandboxNetworkDecision = {
+  network: SandboxNetwork.Shared,
+  reason: "a test",
+  reasonCode: GlobalRunnerStepNetworkReason.CheckFailed,
 };
 
 const SOURCE_WORKER: SandboxWorkerEntry = {
@@ -127,11 +158,16 @@ function optionsOf(
     isolation: OWN_PROCESS,
     identities: null,
     launcherPath: "/nonexistent/javascript-sandbox",
+    network: SHARED_NETWORK,
+    noNetworkPath: "/nonexistent/javascript-sandbox-no-network",
     workerEntry: SOURCE_WORKER,
     deadlineGraceMs: SANDBOX_DEADLINE_GRACE_MS,
     ...overrides,
   };
 }
+
+const loggerInfo: jest.Mock = logger.info as unknown as jest.Mock;
+const loggerWarn: jest.Mock = logger.warn as unknown as jest.Mock;
 
 // The processes still running this file as their program.
 function processesRunning(file: string): Array<number> {
@@ -199,7 +235,14 @@ describe("a step, in a process of its own", () => {
     expect(Date.now() - started).toBeLessThan(SANDBOX_DEADLINE_GRACE_MS);
   });
 
-  test("its HTTP is held to the global Runner's policy: a private address is refused, with what to do instead", async () => {
+  /*
+   * The step's process has no network of its own: its isolate's axios goes
+   * over the HTTP channel to the Runner, which makes the request through the
+   * SSRF guard with the Runner's policy. A refusal is a whole round trip - the
+   * process could not have refused a private address itself - so this proves
+   * the channel carries the step's HTTP, and the guard holds it to the policy.
+   */
+  test("its HTTP is held to the global Runner's policy by the Runner: a private address is refused, with what to do instead", async () => {
     const outcome: JavaScriptStepOutcome = await runSandboxedStep(
       stepOf("await axios.get('http://10.0.0.1/'); return 'reached';"),
       optionsOf(),
@@ -339,6 +382,22 @@ describe("what a step's process holds, even if its code got out of the isolate",
       code: "ERR_ACCESS_DENIED",
     });
   });
+
+  /*
+   * The one way a step could reach a network: a socket of its own. Here the
+   * permission model refuses it (no --allow-net); the image's no-network
+   * filter refuses it in the kernel too (RunnerImageRuntime). Either way the
+   * step reaches nothing by itself - not the cluster's or Compose's networks,
+   * the Kubernetes API or a cloud metadata endpoint - and its HTTP goes
+   * through the Runner.
+   */
+  test.each([
+    ["a TCP socket", "openTcpSocket"],
+    ["a UDP socket", "openUdpSocket"],
+  ])("it may not open %s of its own", (_label: string, attempt: string) => {
+    expect(report[attempt]).toMatchObject({ ok: false });
+    expect(report[attempt]).not.toEqual({ ok: false, code: "TIMEOUT" });
+  });
 });
 
 describe("a step's process that does not keep to the protocol", () => {
@@ -390,6 +449,56 @@ describe("a step's process that does not keep to the protocol", () => {
       output: "",
       errorMessage: STEP_REPLY_TOO_LARGE_MESSAGE,
     });
+  });
+
+  test.each([
+    [
+      "writes something other than its HTTP calls on its HTTP channel",
+      "http-garbage",
+    ],
+    ["writes more on its HTTP channel than a step may send", "http-flood"],
+  ])("one that %s is stopped", async (_label: string, mode: string) => {
+    const outcome: JavaScriptStepOutcome = await runSandboxedStep(
+      stepOf("", { args: { mode } }),
+      optionsOf({ workerEntry: MISBEHAVING_WORKER }),
+    );
+
+    expect(outcome).toEqual({
+      success: false,
+      output: "",
+      errorMessage: STEP_HTTP_CHANNEL_MISUSED_MESSAGE,
+    });
+    expect(processesRunning("MisbehavingWorker.js")).toEqual([]);
+  });
+
+  test("a no-network filter that can no longer be set fails the step, and says why", async () => {
+    const directory: string = fs.mkdtempSync(
+      path.join(os.tmpdir(), "runner-no-network-"),
+    );
+    const filter: string = path.join(directory, "no-network");
+
+    /*
+     * Stands in for javascript-sandbox-no-network when the kernel refuses the
+     * filter: it exits 72 without running the worker, as the real one does.
+     */
+    fs.writeFileSync(filter, `#!/bin/sh\nexit ${NO_NETWORK_EXIT_NO_FILTER}\n`, {
+      mode: 0o755,
+    });
+
+    try {
+      const outcome: JavaScriptStepOutcome = await runSandboxedStep(
+        stepOf("return 1;"),
+        optionsOf({ network: NO_NETWORK, noNetworkPath: filter }),
+      );
+
+      expect(outcome).toEqual({
+        success: false,
+        output: "",
+        errorMessage: STEP_NO_NETWORK_FILTER_MESSAGE,
+      });
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
   });
 });
 
@@ -566,17 +675,23 @@ describe("the step's command and environment", () => {
     kind: "bundle",
   };
 
-  test("Node's permission model, with leave to load isolated-vm, use the network and read the code it runs - and nothing more", () => {
+  test("Node's permission model, with leave to load isolated-vm and read the code it runs - and no network, not even that", () => {
     for (const entry of [SOURCE_WORKER, bundle]) {
       const args: Array<string> = getSandboxNodeArguments(entry);
 
       expect(args).toContain("--permission");
       expect(args).toContain("--allow-addons");
-      expect(args).toContain("--allow-net");
       expect(args).toContain("--no-node-snapshot");
       expect(args[args.length - 1]).toBe(entry.path);
 
+      /*
+       * No --allow-net: the isolate's HTTP goes through the Runner, so the
+       * process needs no network, and Node refuses it one.
+       */
+      expect(args).not.toContain("--allow-net");
+
       for (const forbidden of [
+        "--allow-net",
         "--allow-child-process",
         "--allow-worker",
         "--allow-wasi",
@@ -682,6 +797,100 @@ describe("the step's command and environment", () => {
         return false;
       }),
     ).toEqual(SOURCE_WORKER);
+  });
+
+  test("the program is the worker behind the no-network filter, or - where the step shares the network - the worker alone", () => {
+    const nodeArguments: Array<string> = getSandboxNodeArguments(SOURCE_WORKER);
+
+    expect(
+      getSandboxProgram({
+        network: NO_NETWORK,
+        noNetworkPath:
+          "/usr/lib/oneuptime-runner/javascript-sandbox-no-network",
+        nodeArguments,
+      }),
+    ).toEqual([
+      "/usr/lib/oneuptime-runner/javascript-sandbox-no-network",
+      process.execPath,
+      ...nodeArguments,
+    ]);
+
+    expect(
+      getSandboxProgram({
+        network: SHARED_NETWORK,
+        noNetworkPath:
+          "/usr/lib/oneuptime-runner/javascript-sandbox-no-network",
+        nodeArguments,
+      }),
+    ).toEqual([process.execPath, ...nodeArguments]);
+  });
+});
+
+describe("what the Runner says of its sandbox, in its log and on its heartbeat", () => {
+  function decisionOf(
+    isolation: SandboxIsolationDecision,
+    network: SandboxNetworkDecision,
+  ): SandboxDecision {
+    return { isolation, network };
+  }
+
+  const OWN_USER: SandboxIsolationDecision = {
+    isolation: SandboxIsolation.OwnUser,
+    reason: null,
+    reasonCode: null,
+  };
+
+  beforeEach(() => {
+    loggerInfo.mockClear();
+    loggerWarn.mockClear();
+  });
+
+  test("a step gets a user of its own and no network: the report says both, and the log says so once", () => {
+    const decision: SandboxDecision = decisionOf(OWN_USER, NO_NETWORK);
+
+    expect(toSandboxReport(decision)).toEqual({
+      user: GlobalRunnerStepUser.OwnUser,
+      network: GlobalRunnerStepNetwork.None,
+    });
+
+    logSandboxDecision(decision);
+
+    expect(loggerWarn).not.toHaveBeenCalled();
+    expect(loggerInfo).toHaveBeenCalledTimes(1);
+    expect(loggerInfo.mock.calls[0]![0]).toContain("as a user of its own");
+    expect(loggerInfo.mock.calls[0]![0]).toContain("no network");
+  });
+
+  test("a step gets the Runner's user: the report says why, and the log warns", () => {
+    const decision: SandboxDecision = decisionOf(OWN_PROCESS, NO_NETWORK);
+
+    expect(toSandboxReport(decision)).toEqual({
+      user: GlobalRunnerStepUser.RunnerUser,
+      userReason: GlobalRunnerStepUserReason.CheckFailed,
+      network: GlobalRunnerStepNetwork.None,
+    });
+
+    logSandboxDecision(decision);
+
+    expect(loggerWarn).toHaveBeenCalledTimes(1);
+    expect(loggerWarn.mock.calls[0]![0]).toContain("as this Runner's own user");
+  });
+
+  test("a step shares the Runner's network: the report says why, and the log warns", () => {
+    const decision: SandboxDecision = decisionOf(OWN_USER, SHARED_NETWORK);
+
+    expect(toSandboxReport(decision)).toEqual({
+      user: GlobalRunnerStepUser.OwnUser,
+      network: GlobalRunnerStepNetwork.Shared,
+      networkReason: GlobalRunnerStepNetworkReason.CheckFailed,
+    });
+
+    logSandboxDecision(decision);
+
+    expect(loggerWarn).toHaveBeenCalledTimes(1);
+    expect(loggerWarn.mock.calls[0]![0]).toContain(
+      "share this Runner's network",
+    );
   });
 });
 

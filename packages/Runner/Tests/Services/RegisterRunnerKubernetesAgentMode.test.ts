@@ -839,6 +839,44 @@ describe("Register.registerRunner in kubernetes-agent mode", () => {
       expect(sleepsInMs).toEqual([45_000, 60_000, 12_000]);
     });
 
+    /*
+     * Issue #8928: the header is read as RFC 9110 writes it. A date was read
+     * as no wait said (the fixed 20 s); one that is neither seconds nor a
+     * date still is.
+     */
+    test("the server's Retry-After as an HTTP-date is honoured too, and one that is neither waits the fixed interval", async () => {
+      const modules: LoadedModules = load();
+      const now: number = Date.UTC(2026, 10, 16, 10, 0, 0);
+      jest.spyOn(Date, "now").mockReturnValue(now);
+
+      postMock
+        .mockResolvedValueOnce(
+          new HTTPResponse<JSONObject>(403, PREDECESSOR_ONLINE, {
+            "retry-after": "Mon, 16 Nov 2026 10:00:35 GMT",
+          }),
+        )
+        .mockResolvedValueOnce(
+          new HTTPResponse<JSONObject>(403, PREDECESSOR_ONLINE, {
+            "Retry-After": "Monday, 16-Nov-26 10:00:25 GMT",
+          }),
+        )
+        .mockResolvedValueOnce(
+          new HTTPResponse<JSONObject>(403, PREDECESSOR_ONLINE, {
+            "retry-after": "1.5",
+          }),
+        )
+        .mockResolvedValueOnce(
+          new HTTPResponse<JSONObject>(403, PREDECESSOR_ONLINE, {
+            "retry-after": "-5",
+          }),
+        )
+        .mockResolvedValueOnce(REGISTERED);
+
+      await modules.Register.registerRunner();
+
+      expect(sleepsInMs).toEqual([35_000, 25_000, 20_000, 20_000]);
+    });
+
     test("an outage still backs off, but never past a minute for the agent Runner", async () => {
       const modules: LoadedModules = load();
 

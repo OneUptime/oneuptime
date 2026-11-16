@@ -1,4 +1,4 @@
-import { translationKey } from "Common/Types/Translator";
+import { PluralTemplate, translationKey } from "Common/Types/Translator";
 /*
  * What Settings > Single Sign-On says, kept free of React so App/Tests can
  * read these exact strings (see Index.tsx for the page).
@@ -77,6 +77,35 @@ export const REQUIRE_SSO_COPY: {
     "The sign-in page will offer only SSO. Everyone except master admins, including people signed in now, must sign in with SSO to open any project.",
   confirmButton: "Require SSO",
 };
+
+/*
+ * Under the switch while SSO is required (SessionsWithoutSso.tsx, #6116):
+ * how many people are still signed in without SSO - a password, a passkey,
+ * Sign in with Microsoft - and a button that signs them all out, after a
+ * dialog whose sentence fits a dialog's description (150 characters,
+ * ShortDescriptionsGuard). Nothing shows while nobody is. Every string is a
+ * key of the Admin Dashboard's locales, in all 17 languages
+ * (App/Tests/AdminDashboard/SessionsWithoutSsoLocales).
+ */
+export const SESSIONS_WITHOUT_SSO_COPY: {
+  stillSignedIn: PluralTemplate;
+  signOutButton: string;
+  confirmTitle: string;
+  confirmDescription: string;
+} = {
+  stillSignedIn: {
+    one: "{{count}} person is still signed in without SSO. They can't open any project until they sign in with SSO.",
+    other:
+      "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO.",
+  },
+  signOutButton: "Sign them out",
+  confirmTitle: "Sign out everyone signed in without SSO?",
+  confirmDescription:
+    "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.",
+};
+
+export const SESSIONS_WITHOUT_SSO_TEST_ID: string =
+  "admin-sessions-without-sso";
 
 /*
  * The Sign Up card on Settings > Authentication, while the server requires

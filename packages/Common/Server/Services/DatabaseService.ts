@@ -4911,6 +4911,38 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
+   * A RECORD AS A CREATE'S COLUMN CHECKS WILL READ IT, FOR A SERVICE THAT
+   * ASKS THEM ITSELF BEFORE THE CREATE STARTS (OnCallDutyPolicyChildService
+   * checks the columns of an on-call row before any hook, on the record as
+   * it was handed in).
+   *
+   * Before any of its own checks reads the record, a create takes out who
+   * did something to it (decideUserAttributionOnCreate: OneUptime stamps
+   * the creator after the checks) and holds a value in a server-set column
+   * to its create list (ColumnPermission.checkComputedColumnsSentOnCreate:
+   * dropped when the caller may read the column, refused with its name when
+   * they may not). This does the same to `createBy.data`, so an early check
+   * asks what the create asks: an escalation rule's join rows, which the
+   * rule service writes naming the person adding them, and a record a
+   * client read and sends back whole, are not refused for a value the
+   * create itself would have taken out or dropped - and a value it would
+   * refuse is still refused. The create asks it all again before its hooks
+   * run (checkCreateBeforeHooks). OneUptime's own writes and a server
+   * admin's keep what they name, as they do in the create.
+   */
+  protected takeOutWhatTheServerSetsOnCreate(
+    createBy: CreateBy<TBaseModel>,
+  ): void {
+    this.decideUserAttributionOnCreate(createBy.data, createBy.props);
+
+    ModelPermission.checkComputedColumnsSentOnCreate(
+      this.modelType,
+      createBy.data,
+      createBy.props,
+    );
+  }
+
+  /*
    * An update made in a project changes none of them either: they are taken
    * out of the write (a plain object by now - see sanitizeUpdateData), under
    * both names, before anything reads it, and the columns taken out are

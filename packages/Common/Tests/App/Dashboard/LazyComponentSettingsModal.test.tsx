@@ -7,7 +7,14 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import fs from "fs";
 import path from "path";
 import * as React from "react";
@@ -52,6 +59,8 @@ import ObjectID from "../../../Types/ObjectID";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "../../../Types/Time/TimeRange";
 import { LazyLibrary } from "../../../UI/Utils/LazyLibrary";
+import TabMemory from "../../../UI/Utils/NewVersion/TabMemory";
+import { CHUNK_LOAD_RELOAD_STORAGE_KEY } from "../../../UI/Utils/NewVersion/ChunkLoadError";
 
 const CANVAS: string = path.join(
   __dirname,
@@ -165,6 +174,8 @@ const renderModal: (onClose?: () => void) => void = (
 beforeEach(() => {
   held = [];
   modalRenderMock.mockReset();
+  // No reload into a new version is remembered from an earlier test.
+  TabMemory.remove(CHUNK_LOAD_RELOAD_STORAGE_KEY);
 
   // Nothing has loaded, whatever an earlier test let arrive.
   jest.spyOn(LazyLibrary.prototype, "getLoaded").mockReturnValue(null);
@@ -230,35 +241,57 @@ describe("a widget's settings, as the board opens them", () => {
     expect(held).toHaveLength(0);
   });
 
-  test("if their file does not arrive, the part of the page they open from says so", async () => {
-    // React reports the error the boundary catches; that is the point here.
-    jest.spyOn(console, "error").mockImplementation((): void => {});
+  test("if their file does not arrive, they open all the same and say so in their place, and the board stays", async () => {
+    const onClose: MockFunction = getJestMockFunction();
 
-    renderModal();
+    renderModal(onClose);
 
     await act(async () => {
       (held.shift() as HeldLoad).reject(
-        new Error("Loading chunk ComponentSettingsModal failed."),
+        new Error("The file could not be read"),
       );
 
       await tick();
     });
 
-    expect(screen.getByTestId("crashed")).toHaveTextContent(
-      "Loading chunk ComponentSettingsModal failed.",
+    const dialog: HTMLElement = screen.getByRole("dialog", {
+      name: "Component Settings",
+    });
+
+    expect(
+      await within(dialog).findByText("This couldn't be loaded."),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByTestId("chunk-load-recovery")).toHaveAttribute(
+      "data-variant",
+      "part",
     );
+    // The way out: a reload, which asks first if the board has changes.
+    expect(
+      within(dialog).getByTestId("chunk-load-recovery-reload"),
+    ).toBeEnabled();
+
+    // Nothing was thrown to the page around them.
+    expect(screen.queryByTestId("crashed")).toBeNull();
     expect(screen.queryByTestId("component-settings-modal")).toBeNull();
+
+    // And they close as the settings do.
+    fireEvent.click(within(dialog).getByTestId("modal-footer-close-button"));
+
+    expect(onClose).toHaveBeenCalled();
   });
 });
 
 describe("the imports that keep a widget's settings out of a board's first load", () => {
-  test("the board opens them through LazyComponentSettingsModal", () => {
+  test("the board opens them through LazyComponentSettingsModal, and asks for their file as it turns to edit mode", () => {
     const source: string = read("Index.tsx");
 
-    expect(source).toContain(
-      'import ComponentSettingsModal from "./LazyComponentSettingsModal";',
+    expect(source).toMatch(
+      /import ComponentSettingsModal, \{\s*loadComponentSettingsModal,\s*\} from "\.\/LazyComponentSettingsModal";/,
     );
     expect(source).not.toMatch(/from "\.\/ComponentSettingsModal"/);
+    expect(source).toMatch(
+      /if \(props\.isEditMode\) \{\s*loadComponentSettingsModal\(\)/,
+    );
   });
 
   test("LazyComponentSettingsModal reads the modal's types, and loads the modal only with import()", () => {

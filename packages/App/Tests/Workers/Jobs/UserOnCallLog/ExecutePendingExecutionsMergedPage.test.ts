@@ -6,7 +6,9 @@ import NotificationRuleType from "Common/Types/NotificationRule/NotificationRule
 import OnCallDutyPolicyStatus from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import { getRepeatClaimKey } from "Common/Types/NotificationRule/NotificationRepeat";
 import {
+  OnCallPageCoverKind,
   getOnCallPageMergeTakenOverMessage,
+  getOnCallPageMergedLine,
   getOnCallPageMergedMessage,
 } from "Common/Types/OnCallDutyPolicy/OnCallPageMerge";
 import UserOnCallLogService from "Common/Server/Services/UserOnCallLogService";
@@ -100,14 +102,23 @@ type PendingLog = Parameters<typeof executePendingNotificationLog>[0];
 
 /*
  * Billing's page of Ana, merged into Payments' page of her ten minutes ago:
- * it sent nothing of its own.
+ * it sent nothing of its own. Or, `isDirectPage`, a workflow's Page Users
+ * step's page of her (#8859), with no policy. Its line names what it was
+ * merged into: Payments, unless `line` says otherwise.
  */
 function mergedPage(data?: {
   mergedInto?: ObjectID | null | undefined;
+  isDirectPage?: boolean | undefined;
+  line?: string | undefined;
 }): PendingLog {
   const run: OnCallDutyPolicyExecutionLog = new OnCallDutyPolicyExecutionLog();
-  run.onCallDutyPolicyId = BILLING;
   run.userNotificationEventType = UserNotificationEventType.IncidentCreated;
+
+  if (data?.isDirectPage) {
+    run.triggeredByWorkflowId = BILLING;
+  } else {
+    run.onCallDutyPolicyId = BILLING;
+  }
 
   return {
     id: LOG_ID,
@@ -116,34 +127,53 @@ function mergedPage(data?: {
     userId: ANA,
     createdAt: new Date(Date.now() - 10 * 60 * 1000),
     status: UserNotificationExecutionStatus.AlreadyPaged,
-    statusMessage: getOnCallPageMergedMessage({ policyName: "Payments" }),
+    statusMessage:
+      data?.line ?? getOnCallPageMergedMessage({ policyName: "Payments" }),
     mergedIntoUserOnCallLogId:
       data?.mergedInto === null ? undefined : data?.mergedInto || COVER_ID,
     executedNotificationRules: {},
     userNotificationEventType: UserNotificationEventType.IncidentCreated,
     triggeredByIncidentId: INCIDENT_ID,
-    onCallDutyPolicyId: BILLING,
+    onCallDutyPolicyId: data?.isDirectPage ? undefined : BILLING,
     onCallDutyPolicyExecutionLogId: BILLING_RUN,
     onCallDutyPolicyExecutionLogTimelineId: BILLING_LINE,
     onCallDutyPolicyExecutionLog: run,
   } as unknown as PendingLog;
 }
 
-// Payments' page of Ana, as the worker reads it for Billing's.
+/*
+ * Payments' page of Ana, as the worker reads it for Billing's - or,
+ * `sentByJane`, a page Jane sent Ana from a chat (#8859), with no policy.
+ */
 function coverPage(data: {
   status: UserNotificationExecutionStatus;
   runStatus?: OnCallDutyPolicyStatus | undefined;
   acknowledgedAt?: Date | undefined;
   sent?: JSONObject | undefined;
+  sentByJane?: boolean | undefined;
 }): UserOnCallLog {
   const run: OnCallDutyPolicyExecutionLog = new OnCallDutyPolicyExecutionLog();
   run.status = data.runStatus || OnCallDutyPolicyStatus.Executing;
+
+  if (data.sentByJane) {
+    run.triggeredByUserId = new ObjectID(
+      "78370000-0000-4000-8000-00000000000c",
+    );
+  } else {
+    run.onCallDutyPolicyId = new ObjectID(
+      "78370000-0000-4000-8000-00000000000d",
+    );
+  }
 
   const cover: UserOnCallLog = new UserOnCallLog();
   cover.id = COVER_ID;
   cover.status = data.status;
   cover.executedNotificationRules = data.sent || {};
-  cover.onCallDutyPolicy = { name: "Payments" } as never;
+
+  if (!data.sentByJane) {
+    cover.onCallDutyPolicy = { name: "Payments" } as never;
+  }
+
   cover.onCallDutyPolicyExecutionLog = run;
 
   if (data.acknowledgedAt) {
@@ -385,7 +415,7 @@ describe("once the page it was merged into is over without her answer", () => {
     ]);
   });
 
-  test("it is gone: it takes the page over from the start", async () => {
+  test("it is gone: it takes the page over from the start, naming the page as its own line did (#8859)", async () => {
     cover = null;
 
     await executePendingNotificationLog(mergedPage(), MEMBER);
@@ -393,9 +423,24 @@ describe("once the page it was merged into is over without her answer", () => {
     expect(updates[0]).toMatchObject({
       status: UserNotificationExecutionStatus.Executing,
       statusMessage:
-        "Their page from another on-call policy is over, so this policy pages them now.",
+        "Their page from Payments is over, so this policy pages them now.",
     });
     expect(sent).toHaveLength(2);
+  });
+
+  test("it is gone, and its own line names nothing: another on-call policy", async () => {
+    cover = null;
+
+    await executePendingNotificationLog(
+      mergedPage({ line: "Something else." }),
+      MEMBER,
+    );
+
+    expect(updates[0]).toMatchObject({
+      status: UserNotificationExecutionStatus.Executing,
+      statusMessage:
+        "Their page from another on-call policy is over, so this policy pages them now.",
+    });
   });
 
   test("it names no page at all: it takes the page over from the start", async () => {
@@ -499,6 +544,98 @@ describe("the worker's tick", () => {
       status: true,
       mergedIntoUserOnCallLogId: true,
       executedNotificationRules: true,
+    });
+  });
+});
+
+/*
+ * A DIRECT PAGE AND A POLICY (#8859): a workflow's page of Ana merged into
+ * Payments' page of her, or Billing's merged into a page Jane sent her from
+ * a chat, is run as any merged page is - and its take-over says what it is.
+ */
+describe("a page merged into a direct page, or a direct page merged into a policy's", () => {
+  test("a workflow's page of her takes Payments' page over when she escalated it: she is paged directly now", async () => {
+    cover = coverPage({
+      status: UserNotificationExecutionStatus.PassedOn,
+      sent: PUSH_AND_TWO_REPEATS,
+    });
+
+    await executePendingNotificationLog(
+      mergedPage({ isDirectPage: true }),
+      MEMBER,
+    );
+
+    expect(updates[0]).toEqual({
+      status: UserNotificationExecutionStatus.Executing,
+      statusMessage:
+        "Their page from Payments is over, so they are paged directly now.",
+      executedNotificationRules: PUSH_AND_TWO_REPEATS,
+    });
+    expect(sent).toEqual([
+      { ruleId: CALL_RULE.toString(), repeatNumber: undefined },
+      { ruleId: PUSH_RULE.toString(), repeatNumber: 3 },
+    ]);
+  });
+
+  test("a workflow's page of her waits while Payments' page is open, sending nothing", async () => {
+    await executePendingNotificationLog(
+      mergedPage({ isDirectPage: true }),
+      MEMBER,
+    );
+
+    expect(sent).toEqual([]);
+    expect(updates).toEqual([]);
+  });
+
+  test("Billing's page of her takes over Jane's page, which she escalated: its line names Jane, as the merged line did", async () => {
+    cover = coverPage({
+      status: UserNotificationExecutionStatus.PassedOn,
+      sent: PUSH_AND_TWO_REPEATS,
+      sentByJane: true,
+    });
+
+    await executePendingNotificationLog(
+      mergedPage({
+        line: getOnCallPageMergedLine({
+          kind: OnCallPageCoverKind.PersonPage,
+          name: "Jane Doe",
+        }),
+      }),
+      MEMBER,
+    );
+
+    expect(updates[0]).toEqual({
+      status: UserNotificationExecutionStatus.Executing,
+      statusMessage:
+        "Their page from Jane Doe is over, so this policy pages them now.",
+      executedNotificationRules: PUSH_AND_TWO_REPEATS,
+    });
+  });
+
+  test("answering Jane's page answers Billing's merged into it", async () => {
+    const acknowledgedAt: Date = new Date(Date.now() - 60 * 1000);
+    cover = coverPage({
+      status: UserNotificationExecutionStatus.Completed,
+      acknowledgedAt: acknowledgedAt,
+      sentByJane: true,
+    });
+
+    await executePendingNotificationLog(
+      mergedPage({
+        line: getOnCallPageMergedLine({
+          kind: OnCallPageCoverKind.PersonPage,
+          name: "Jane Doe",
+        }),
+      }),
+      MEMBER,
+    );
+
+    expect(sent).toEqual([]);
+    expect(answered).toHaveLength(1);
+    expect(answered[0]).toMatchObject({
+      userOnCallLogId: LOG_ID,
+      acknowledgedAt: acknowledgedAt,
+      isAnsweredWithAnotherPage: true,
     });
   });
 });

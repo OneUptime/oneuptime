@@ -1,0 +1,144 @@
+# Malware scanning of the files people send OneUptime (#6118): a public form's
+# files, and the files people upload while signed in or with an API key, are
+# scanned with ClamAV before they are stored - when the installation opts in.
+#
+#   - Off by default: no ClamAV runs, and the app is told no scanner
+#     (CLAMAV_HOST empty), so files are stored without a scan, as before.
+#   - clamav.enabled runs ClamAV in the cluster (templates/clamav.yaml, a
+#     Deployment and a Service on clamd's port) and points the app at it.
+#   - clamav.host points the app at a clamd of the installation's own, and
+#     runs none.
+#
+# While scanning is on the app refuses every file it cannot have checked, so
+# the Deployment is ready only once clamd answers.
+suite: clamav malware scanning
+release:
+  name: oneuptime
+  namespace: oneuptime
+templates:
+  - templates/clamav.yaml
+  - templates/app.yaml
+tests:
+  - it: runs no ClamAV by default
+    templates:
+      - templates/clamav.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: tells the app no scanner by default, so nothing is scanned
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: CLAMAV_HOST
+            value: ""
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: CLAMAV_PORT
+            value: "3310"
+
+  - it: runs ClamAV in the cluster when it is enabled, a Deployment and a Service
+    templates:
+      - templates/clamav.yaml
+    set:
+      clamav.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 2
+      - isKind:
+          of: Deployment
+        documentIndex: 0
+      - equal:
+          path: metadata.name
+          value: oneuptime-clamav
+        documentIndex: 0
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: clamav/clamav:1.4
+        documentIndex: 0
+      - equal:
+          path: spec.template.spec.containers[0].ports[0].containerPort
+          value: 3310
+        documentIndex: 0
+      # Ready only once clamd answers: until then uploads are refused anyway.
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.tcpSocket.port
+          value: clamd
+        documentIndex: 0
+      - isKind:
+          of: Service
+        documentIndex: 1
+      - equal:
+          path: metadata.name
+          value: oneuptime-clamav
+        documentIndex: 1
+      - equal:
+          path: spec.ports[0].port
+          value: 3310
+        documentIndex: 1
+
+  - it: points the app at the ClamAV it runs
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      clamav.enabled: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: CLAMAV_HOST
+            value: oneuptime-clamav
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: CLAMAV_PORT
+            value: "3310"
+
+  - it: points the app at a clamd of the installation's own, and runs none
+    set:
+      clamav.host: clamd.security.svc.cluster.local
+      clamav.port: 3311
+    asserts:
+      - hasDocuments:
+          count: 0
+        template: templates/clamav.yaml
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: CLAMAV_HOST
+            value: clamd.security.svc.cluster.local
+        template: templates/app.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: CLAMAV_PORT
+            value: "3311"
+        template: templates/app.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+
+  - it: takes its image from image.overrides, as every image of the chart does
+    templates:
+      - templates/clamav.yaml
+    set:
+      clamav.enabled: true
+      image.overrides.clamav: registry.example.com/mirror/clamav:1.4.3
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: registry.example.com/mirror/clamav:1.4.3
+        documentIndex: 0

@@ -4056,6 +4056,14 @@
   "Amount": "Betrag",
   "Invoice": "Rechnung",
   "Invoices": "Rechnungen",
+  "Runs JavaScript steps as its own user: let its container switch users (allowPrivilegeEscalation, SETUID and SETGID).": "Führt JavaScript-Schritte als eigener Benutzer aus: Lassen Sie seinen Container Benutzer wechseln (allowPrivilegeEscalation, SETUID und SETGID).",
+  "Runs JavaScript steps as its own user: run its container as the image's own user, node.": "Führt JavaScript-Schritte als eigener Benutzer aus: Betreiben Sie seinen Container als den Benutzer des Images, node.",
+  "Runs JavaScript steps as its own user: run the Runner image, not its sources.": "Führt JavaScript-Schritte als eigener Benutzer aus: Betreiben Sie das Runner-Image, nicht seine Quellen.",
+  "Runs JavaScript steps as its own user: its sandbox check failed, and its log says why.": "Führt JavaScript-Schritte als eigener Benutzer aus: Seine Sandbox-Prüfung ist fehlgeschlagen, und sein Log sagt, warum.",
+  "JavaScript steps share its network: let its container use seccomp, as Docker's and Kubernetes' default profiles do.": "JavaScript-Schritte teilen sein Netzwerk: Lassen Sie seinen Container seccomp verwenden, wie es die Standardprofile von Docker und Kubernetes tun.",
+  "JavaScript steps share its network: run the Runner image, not its sources.": "JavaScript-Schritte teilen sein Netzwerk: Betreiben Sie das Runner-Image, nicht seine Quellen.",
+  "JavaScript steps share its network: its network filter's check failed, and its log says why.": "JavaScript-Schritte teilen sein Netzwerk: Die Prüfung seines Netzwerkfilters ist fehlgeschlagen, und sein Log sagt, warum.",
+  "Runs JavaScript steps as its own user and on its network: run the Runner image, not its sources.": "Führt JavaScript-Schritte als eigener Benutzer und in seinem Netzwerk aus: Betreiben Sie das Runner-Image, nicht seine Quellen.",
   "Keep for at most": "Höchstens behalten",
   "New projects delete after": "Neue Projekte löschen nach",
   "Longer than the limit above.": "Länger als das Limit oben.",
@@ -4100,5 +4108,10 @@
   "A new project deletes resolved alerts after {{count}} days until its owners change it. Projects that exist keep their own.": "Ein neues Projekt löscht behobene Warnungen nach {{count}} Tagen, bis seine Eigentümer das ändern. Bestehende Projekte behalten ihre eigene Einstellung.",
   "A new project deletes resolved alerts after {{count}} days until its owners change it. Projects that exist keep their own._one": "Ein neues Projekt löscht behobene Warnungen nach {{count}} Tag, bis seine Eigentümer das ändern. Bestehende Projekte behalten ihre eigene Einstellung.",
   "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own.": "Ein neues Projekt löscht behobene Warnungen nach {{count}} Jahren, bis seine Eigentümer das ändern. Bestehende Projekte behalten ihre eigene Einstellung.",
-  "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own._one": "Ein neues Projekt löscht behobene Warnungen nach {{count}} Jahr, bis seine Eigentümer das ändern. Bestehende Projekte behalten ihre eigene Einstellung."
+  "A new project deletes resolved alerts after {{count}} years until its owners change it. Projects that exist keep their own._one": "Ein neues Projekt löscht behobene Warnungen nach {{count}} Jahr, bis seine Eigentümer das ändern. Bestehende Projekte behalten ihre eigene Einstellung.",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO.": "{{count}} Personen sind noch ohne SSO angemeldet. Sie können kein Projekt öffnen, bis sie sich mit SSO anmelden.",
+  "{{count}} people are still signed in without SSO. They can't open any project until they sign in with SSO._one": "{{count}} Person ist noch ohne SSO angemeldet. Sie kann kein Projekt öffnen, bis sie sich mit SSO anmeldet.",
+  "Sign them out": "Diese Personen abmelden",
+  "Sign out everyone signed in without SSO?": "Alle abmelden, die ohne SSO angemeldet sind?",
+  "Their sessions end now, on every device, and they sign in again with SSO. Master admins stay signed in.": "Ihre Sitzungen enden sofort auf allen Geräten, und sie melden sich wieder mit SSO an. Master-Administratoren bleiben angemeldet."
 }

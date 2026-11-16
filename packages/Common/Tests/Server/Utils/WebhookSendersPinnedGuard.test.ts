@@ -105,8 +105,8 @@ const OWN_PINNING: Record<string, string> = {
   "packages/Common/Server/Utils/SafeWebhookRequest.ts": "the helper itself",
   "packages/Common/Server/Utils/Mattermost/MattermostWebhook.ts":
     "the Mattermost workflow step, which reads every answer as text",
-  "packages/Common/Server/Utils/VM/VMRunner.ts":
-    "the Custom JavaScript sandbox's axios bridge",
+  "packages/Common/Server/Utils/VM/VMHttpBridge.ts":
+    "the JavaScript sandbox's axios bridge (VMRunner's, and a global Runner's for its steps)",
 };
 
 function sourceFiles(folder: string): Array<string> {

@@ -43,10 +43,11 @@
  *   - for marked (limits.countAsMarked: the emails), each line as marked
  *     reads it (readMarkedLine, #7228): a link, an image or a reference
  *     whose label closes costs it a copy of its block, not a look through
- *     the rest of it; what a complete link's parentheses or a definition
- *     hold is read once; a "&" or a "]" costs nothing; and a run of an
- *     email address's characters before an "@" costs the run times itself
- *     and the domain after it.
+ *     the rest of it, and its brackets are no punctuation of a word
+ *     (#7599); what a complete link's parentheses or a definition hold is
+ *     read once; a "&" or a "]" costs nothing; and a run of an email
+ *     address's characters before an "@" costs the run times itself and
+ *     the domain after it.
  *   - for marked, each line of a list item it reads as a line of text: a
  *     look through half of the item (HOW MARKED READS A LIST ITEM, #7598).
  *     marked reads an item's text a line at a time, and looks through the
@@ -468,7 +469,14 @@ export const getWordPunctuationWork: (
  *     each "<...>" and each escape, with a copy of the block: so each costs
  *     a copy of its unit, which is a sixteenth of a look through it or less
  *     (MARKED_MASKED_ITEM_SHARE). A paragraph of 1,000 references, one on
- *     each line, took marked 9 ms; one of 18,724 (256 KB) took 5.5 s.
+ *     each line, took marked 9 ms; one of 18,724 (256 KB) took 5.5 s. Its
+ *     brackets, and an image's "!", are no punctuation of a word: links and
+ *     references glued into one word - a row of badges, a template that
+ *     writes "[a](b)" with no space - were held back from 4 KB as if marked
+ *     read the rest of the word from each of them, and marked read 64 KB of
+ *     them in a tenth of a second, as fast as spaced ones (#7599). A badge's
+ *     link, its label an image - "[![build](...)](...)" - is read as marked's
+ *     link rule reads it too (readClosedLinkLabel).
  *   - What a complete link's parentheses hold - its address and its title -
  *     and a definition marked takes, label and all, marked takes as one
  *     piece and never reads as inline Markdown: it is counted once, not as
@@ -485,7 +493,11 @@ export const getWordPunctuationWork: (
  * close on its line, costs as it does for the other parsers - a look
  * through the rest of its unit - as do emphasis, code spans, tags and the
  * punctuation of words, and a link past what the tails of its line may
- * read (MARKED_TAIL_READING_SHARE).
+ * read (MARKED_TAIL_READING_SHARE). So does a label or an address in "<>"
+ * whose "\" comes before a line or paragraph separator, which marked's
+ * escape does not take (isMarkedEscape): counted as a link, its tail - a
+ * word of "a!a!..." - was read once, where marked read it as text, in time
+ * that grows with its square.
  */
 
 /*
@@ -597,11 +609,26 @@ const getEscapedLength: (text: string, index: number, end: number) => number = (
 };
 
 /*
+ * Whether the "\" at `index` escapes the character after it as marked's
+ * labels and "<...>" addresses read one (`\\.`): any character but a line
+ * or paragraph separator, which "." does not match - there the label or
+ * the address does not close. (Line breaks are "\n" by then, and end the
+ * line.)
+ */
+const isMarkedEscape: (text: string, index: number) => boolean = (
+  text: string,
+  index: number,
+): boolean => {
+  return !isLineTerminatorCode(text.charCodeAt(index + 1));
+};
+
+/*
  * Where the label whose "[" is at `open` closes: the index of its "]" - or
  * -1 when a "[", a backtick or the line's end comes first, or the label is
  * longer than MAX_MARKED_LABEL_LENGTH. A "\" escapes the character after
- * it. A code span inside a label can hold a "]" for marked, so a label
- * with a backtick counts as one that never closes.
+ * it, but a line or paragraph separator (isMarkedEscape). A code span
+ * inside a label can hold a "]" for marked, so a label with a backtick
+ * counts as one that never closes.
  */
 const readClosedLabel: (text: string, open: number, end: number) => number = (
   text: string,
@@ -618,7 +645,56 @@ const readClosedLabel: (text: string, open: number, end: number) => number = (
       return index;
     }
 
-    if (code === OPEN_BRACKET || code === BACKTICK) {
+    if (
+      code === OPEN_BRACKET ||
+      code === BACKTICK ||
+      (code === BACKSLASH && !isMarkedEscape(text, index))
+    ) {
+      return -1;
+    }
+
+    index += code === BACKSLASH ? 2 : 1;
+  }
+
+  return -1;
+};
+
+/*
+ * Where the label of a link whose "[" is at `open` closes, as marked's link
+ * rule reads one (`_inlineLabel`): as readClosedLabel reads it, but a "["
+ * in it opens a group of its own, which closes before the label does - a
+ * badge's image, "[![build](https://...)](https://...)". -1 where the
+ * label, or a group in it, does not close first: a "[" in a group, a
+ * backtick, the line's end, or past MAX_MARKED_LABEL_LENGTH.
+ */
+const readClosedLinkLabel: (
+  text: string,
+  open: number,
+  end: number,
+) => number = (text: string, open: number, end: number): number => {
+  const limit: number = Math.min(end, open + 2 + MAX_MARKED_LABEL_LENGTH);
+  let isInGroup: boolean = false;
+  let index: number = open + 1;
+
+  while (index < limit) {
+    const code: number = text.charCodeAt(index);
+
+    if (code === CLOSE_BRACKET) {
+      if (!isInGroup) {
+        return index;
+      }
+
+      isInGroup = false;
+    } else if (code === OPEN_BRACKET) {
+      if (isInGroup) {
+        return -1;
+      }
+
+      isInGroup = true;
+    } else if (
+      code === BACKTICK ||
+      (code === BACKSLASH && !isMarkedEscape(text, index))
+    ) {
       return -1;
     }
 
@@ -706,7 +782,8 @@ interface TailReading {
  * where they do not close on the line (marked can close them on a later
  * line: counted as not closing, which only makes the line look costlier).
  *
- * The address is in "<>" - no "<" inside, a "\" escaping - or runs to
+ * The address is in "<>" - no "<" inside, a "\" escaping all but a
+ * separator (isMarkedEscape) - or runs to
  * white space or a control character, with its parentheses balanced: a ")"
  * with none open ends the link. After white space, a title in '"', "'" or
  * "()" may follow, then white space and the ")".
@@ -760,6 +837,11 @@ const readLinkTail: (
       const code: number = text.charCodeAt(index);
 
       if (code === BACKSLASH) {
+        // A "\" before a separator ends no address: marked's does not close.
+        if (!isMarkedEscape(text, index)) {
+          return read(-1, index + 1);
+        }
+
         index += 2;
         continue;
       }
@@ -861,7 +943,10 @@ export const getMarkedLinkEnd: (
   open: number,
   end: number,
 ) => number = (text: string, open: number, end: number): number => {
-  const close: number = readClosedLabel(text, open, end);
+  // A badge's label holds an image: as readMarkedLine reads it.
+  const closed: number = readClosedLabel(text, open, end);
+  const close: number =
+    closed === -1 ? readClosedLinkLabel(text, open, end) : closed;
 
   if (
     close === -1 ||
@@ -978,11 +1063,12 @@ export const getMarkedDefinitionAddressStart: (
  * HOW MARKED READS A LINE): characters it looks ahead from through the
  * unit, what it masks with a copy of the unit, and the line's work that
  * does not grow with the unit - the punctuation of its words as
- * getWordPunctuationWork counts it, what a complete link's parentheses
- * hold, once, and the runs before an "@". A definition marked takes costs
- * its length, once. A definition is one marked takes only as the first
- * line of its unit or after others: after a paragraph's line, marked reads
- * it as the paragraph's text.
+ * getWordPunctuationWork counts it, but the brackets of the links and
+ * references it masks and an image's "!", what a complete link's
+ * parentheses hold, once, and the runs before an "@". A definition marked
+ * takes costs its length, once. A definition is one marked takes only as
+ * the first line of its unit or after others: after a paragraph's line,
+ * marked reads it as the paragraph's text.
  */
 const readMarkedLine: (
   text: string,
@@ -1010,11 +1096,30 @@ const readMarkedLine: (
     return;
   }
 
-  // What marked reads once and is not counted otherwise: [skipFrom, skipTo).
+  /*
+   * What marked reads once and is not counted otherwise: [skipFrom, skipTo)
+   * - and, while the tail of a link in a badge's label is that, the tail of
+   * the badge's own link after it: [pendingSkipFrom, pendingSkipTo).
+   */
   let skipFrom: number = -1;
   let skipTo: number = end;
+  let pendingSkipFrom: number = -1;
+  let pendingSkipTo: number = end;
   let wordStart: number = start;
   let wordPunctuation: number = 0;
+  /*
+   * The "]" of the label that closes next - and of the badge's label around
+   * it - which is no punctuation of a word: marked reads the link or the
+   * reference whole, a masked item.
+   */
+  let uncountedClose: number = -1;
+  let outerUncountedClose: number = -1;
+  /*
+   * Where the label of a link that holds a link of its own ends - a
+   * badge's, "[![build](...)](...)": a link or a reference read inside it
+   * must end in it, as marked reads that label on its own.
+   */
+  let linkLabelEnd: number = -1;
   // Where the run of an email address's characters being read starts.
   let emailRunStart: number = start;
   /*
@@ -1040,19 +1145,34 @@ const readMarkedLine: (
       index = skipTo;
       emailRunStart = index;
       inlineFrom = index;
-      skipFrom = -1;
+      // The badge's own tail next, unless what was skipped took it.
+      skipFrom = pendingSkipFrom >= index ? pendingSkipFrom : -1;
+      skipTo = pendingSkipTo;
+      pendingSkipFrom = -1;
       continue;
     }
 
     const code: number = text.charCodeAt(index);
 
-    // The punctuation of words, as getWordPunctuationWork counts it.
+    /*
+     * The punctuation of words, as getWordPunctuationWork counts it - but
+     * the brackets of a link or a reference whose label closes, and an
+     * image's "!": marked masks each with a copy of the unit, which is what
+     * it costs (MARKED_MASKED_ITEM_SHARE).
+     */
     if (isSpaceOrTab(code)) {
       unit.work += wordPunctuation * (index - wordStart);
       wordStart = index + 1;
       wordPunctuation = 0;
+    } else if (index === uncountedClose) {
+      uncountedClose = outerUncountedClose;
+      outerUncountedClose = -1;
     } else if (isAsciiPunctuation(code)) {
       wordPunctuation++;
+    }
+
+    if (index > linkLabelEnd) {
+      linkLabelEnd = -1;
     }
 
     if (code === AT_SIGN && index > emailRunStart) {
@@ -1108,31 +1228,79 @@ const readMarkedLine: (
     } else if (code === BACKTICK) {
       unit.characters++;
     } else if (code === OPEN_BRACKET) {
-      const close: number = readClosedLabel(text, index, end);
-      const tailEnd: number =
+      let close: number = readClosedLabel(text, index, end);
+      let tailEnd: number =
         close !== -1 &&
         close + 1 < end &&
         text.charCodeAt(close + 1) === OPEN_PARENTHESIS
           ? readLinkTail(text, close + 1, end, tailReading)
           : -2;
+      // A badge's: a link whose label holds a link or an image of its own.
+      let holdsLink: boolean = false;
 
-      if (close === -1 || tailEnd === -1) {
+      if (close === -1 && linkLabelEnd === -1) {
+        const linkClose: number = readClosedLinkLabel(text, index, end);
+
+        if (
+          linkClose !== -1 &&
+          linkClose + 1 < end &&
+          text.charCodeAt(linkClose + 1) === OPEN_PARENTHESIS
+        ) {
+          tailEnd = readLinkTail(text, linkClose + 1, end, tailReading);
+          close = tailEnd >= 0 ? linkClose : -1;
+          holdsLink = close !== -1;
+        }
+      }
+
+      // In a badge's label: what marked reads in that label alone.
+      const endsInLabel: boolean =
+        linkLabelEnd === -1 ||
+        (tailEnd >= 0 ? tailEnd <= linkLabelEnd : close < linkLabelEnd);
+
+      if (close === -1 || tailEnd === -1 || !endsInLabel) {
         // A label or an address that does not close: a look through.
         unit.characters++;
-      } else if (tailEnd >= 0) {
-        unit.maskedItems++;
-        skipFrom = close + 1;
-        skipTo = tailEnd;
-        referenceEnd = -1;
       } else {
-        if (index === referenceEnd && !wasLabelOfText) {
-          wasLabelOfText = true;
-        } else {
-          unit.maskedItems++;
-          wasLabelOfText = false;
+        // Its brackets, and an image's "!", are no punctuation of a word.
+        wordPunctuation--;
+
+        if (
+          index > start &&
+          index - 1 >= wordStart &&
+          text.charCodeAt(index - 1) === EXCLAMATION_MARK
+        ) {
+          wordPunctuation--;
         }
 
-        referenceEnd = close + 1;
+        outerUncountedClose = uncountedClose;
+        uncountedClose = close;
+
+        if (tailEnd >= 0) {
+          unit.maskedItems++;
+
+          // The badge's own tail waits while its image's is read.
+          if (skipFrom !== -1) {
+            pendingSkipFrom = skipFrom;
+            pendingSkipTo = skipTo;
+          }
+
+          skipFrom = close + 1;
+          skipTo = tailEnd;
+          referenceEnd = -1;
+
+          if (holdsLink) {
+            linkLabelEnd = close;
+          }
+        } else {
+          if (index === referenceEnd && !wasLabelOfText) {
+            wasLabelOfText = true;
+          } else {
+            unit.maskedItems++;
+            wasLabelOfText = false;
+          }
+
+          referenceEnd = close + 1;
+        }
       }
     } else if (code === LESS_THAN) {
       if (

@@ -5,6 +5,7 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import MonitorRecordEvidence from "../../../Server/Utils/Monitor/MonitorRecordEvidence";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
 import IncomingMonitorRequest from "../../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
+import WebhookVerificationProvider from "../../../Types/Monitor/IncomingMonitor/WebhookVerificationProvider";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -313,6 +314,70 @@ describe("an Azure Event Grid validation", () => {
     expect(
       screen.getByTestId(SUBSCRIPTION_CONFIRMATION_LINK_GONE_TEST_ID),
     ).toHaveTextContent(VALIDATE.linkGone);
+  });
+
+  /*
+   * #8429: OneUptime answers Event Grid's validation code itself, and the
+   * request it answered says so. Event Grid is waiting for nothing: no
+   * notice, no button - the request is shown as any other.
+   */
+  test("that OneUptime answered asks for nothing", () => {
+    overview(
+      request(
+        eventGridValidation().map((event: unknown): JSONObject => {
+          return { ...(event as JSONObject), eventTime: ago(MINUTE) };
+        }),
+        {
+          requestHeaders: { "aeg-event-type": "SubscriptionValidation" },
+          answeredVerification: WebhookVerificationProvider.AzureEventGrid,
+        },
+      ),
+    );
+
+    expect(notice()).not.toBeInTheDocument();
+    expect(link()).not.toBeInTheDocument();
+    expect(screen.getByText("Last Request Received At")).toBeInTheDocument();
+  });
+
+  test("answered for another service still offers its link", () => {
+    overview(
+      request(
+        eventGridValidation().map((event: unknown): JSONObject => {
+          return { ...(event as JSONObject), eventTime: ago(MINUTE) };
+        }),
+        { answeredVerification: WebhookVerificationProvider.Slack },
+      ),
+    );
+
+    expect(link()!.getAttribute("href")).toBe(EVENT_GRID_VALIDATION_URL);
+  });
+
+  test("in a Monitoring Logs row, answered, asks for nothing there either", () => {
+    render(
+      <SummaryInfo
+        monitorType={MonitorType.IncomingRequest}
+        incomingMonitorRequest={request(
+          eventGridValidation().map((event: unknown): JSONObject => {
+            return { ...(event as JSONObject), eventTime: ago(MINUTE) };
+          }),
+          { answeredVerification: WebhookVerificationProvider.AzureEventGrid },
+        )}
+      />,
+    );
+
+    expect(notice()).not.toBeInTheDocument();
+  });
+});
+
+describe("an Amazon SNS confirmation, which OneUptime cannot answer", () => {
+  test("offers its link whatever the request says was answered", () => {
+    overview(
+      request(freshConfirmation(), {
+        answeredVerification: WebhookVerificationProvider.AzureEventGrid,
+      }),
+    );
+
+    expect(link()!.getAttribute("href")).toBe(SNS_SUBSCRIBE_URL);
   });
 });
 

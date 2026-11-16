@@ -64,7 +64,7 @@ image:
 
   ## Image references that replace the ones this chart builds, by image:
   ## app, nginx, probe, runner, home, test, postgres, clickhouse,
-  ## clickhouseKeeper, valkey, pgbouncer, vllm, kubectl. Each is either a full
+  ## clickhouseKeeper, valkey, pgbouncer, vllm, clamav, kubectl. Each is either a full
   ## reference, or {registry, repository, tag | digest} (registry optional).
   ## The marketplace editions of this chart point them at the marketplace's own
   ## registry; on Microsoft Marketplace, global.azure.images does the same.
@@ -2687,6 +2687,15 @@ globalRunner:
   # How many steps each replica runs at the same time. A project runs at most
   # three of its steps on global Runners at once, whatever this says.
   concurrency: 4
+  # Keep GitLab, Forgejo, Gitea and Git repositories off global Runners, as
+  # OneUptime Cloud does. A GitHub repository's token for an AI code fix is
+  # minted for that one repository and revoked when the fix ends; the other
+  # hosts have no such narrow token, so a global Runner would get the
+  # connection's own long-lived token. Turn this on when this install serves
+  # several tenants whose code must stay apart: those repositories' code fixes
+  # then need one of the project's own Runners. GitHub repositories, and every
+  # repository on a single-tenant install, are unchanged.
+  codeFixGitHubOnly: false
   disableTelemetryCollection: false
   enableProfiling: false
   # The global Runner's key (optional — generated and kept in the release
@@ -2707,14 +2716,26 @@ globalRunner:
   # chart-wide value (they are not merged).
   affinity: {}
   topologySpreadConstraints: []
-  # Each JavaScript step runs in a process of its own, as a user of its own:
-  # the image's sandbox launcher switches the step's process to that user. A
-  # context of your own (here, or the chart-wide containerSecurityContext)
-  # must leave it able to: keep allowPrivilegeEscalation true (the default)
-  # and the SETUID and SETGID capabilities, for example
-  #   capabilities: { drop: ["ALL"], add: ["SETUID", "SETGID"] }
-  # Without them steps still run in their own process, but as the Runner's
-  # user, and the Runner's log says so.
+  # Each JavaScript step runs in a process of its own, as a user of its own
+  # and with no network of its own:
+  #   - A user of its own: the image's sandbox launcher switches the step's
+  #     process to that user. A context of your own (here, or the chart-wide
+  #     containerSecurityContext) must leave it able to: keep
+  #     allowPrivilegeEscalation true (the default) and the SETUID and SETGID
+  #     capabilities, for example
+  #       capabilities: { drop: ["ALL"], add: ["SETUID", "SETGID"] }
+  #     Without them steps still run in their own process, but as the Runner's
+  #     user, and the Runner's log says so.
+  #   - No network of its own: the image's no-network filter sets a seccomp
+  #     filter that lets the step's process open no socket, so code that got
+  #     out of a step's sandbox reaches nothing by itself - not this cluster,
+  #     the Kubernetes API or a cloud metadata endpoint. It needs no privilege
+  #     and no capability, only a seccomp profile that lets a process filter
+  #     its own system calls (Kubernetes' RuntimeDefault, which OpenShift's
+  #     restricted SCC requires; Docker Compose's default). The step's HTTP
+  #     goes through the Runner to public addresses only either way. A profile
+  #     that forbids seccomp filters leaves the step on this pod's network;
+  #     the Runner's log and the Admin Dashboard say so.
   containerSecurityContext: {}
   # Extra env / volumes for the global Runner. Unlike every other service, it
   # never takes the chart-wide extraEnv/extraVolumes/extraVolumeMounts: those
@@ -2744,6 +2765,30 @@ globalRunner:
     fallback:
       failureThreshold: 3
       replicas: 1
+
+# Malware scanning of the files people send OneUptime - a public form's
+# files, and the files people upload while signed in or with an API key - with
+# ClamAV. Off by default: files are stored without a scan, as before. While it
+# is on, a file ClamAV flags is refused, saying which, and every file is
+# refused while ClamAV does not answer, so no file is stored unchecked.
+clamav:
+  # Run ClamAV in the cluster (a Deployment and a Service) and scan with it.
+  enabled: false
+  # Or scan with a ClamAV daemon (clamd) of your own: its address. Used only
+  # while enabled is false; empty scans nothing.
+  host: ""
+  port: 3310
+  image:
+    repository: clamav/clamav
+    tag: "1.4"
+    pullPolicy: IfNotPresent
+  # ClamAV keeps its signatures in memory: about 2 GiB, more while it reloads them.
+  resources:
+  nodeSelector: {}
+  affinity: {}
+  tolerations: []
+  podSecurityContext: {}
+  containerSecurityContext: {}
 
 # vLLM: self-hosted, OpenAI-compatible LLM inference server (https://docs.vllm.ai)
 # for running local models in-cluster instead of calling OpenAI/Anthropic/etc.

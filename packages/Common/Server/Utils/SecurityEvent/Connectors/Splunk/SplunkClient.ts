@@ -6,6 +6,7 @@ import {
   DataSourceHttpRequest,
   DataSourceHttpResponse,
 } from "../../../DataSource/HttpFetch";
+import RetryAfter from "../../../../../Utils/RetryAfter";
 import { redactLogString, redactLogValue } from "../../../LogRedaction";
 import ConnectorErrorMessage from "../../ConnectorErrorMessage";
 import { ConnectorTransport } from "../Types";
@@ -693,10 +694,20 @@ export default class SplunkClient {
       hint =
         "Splunk did not find the endpoint. The Splunk management URL must be the search head's management port (usually 8089) with no extra path; Splunk Web on port 8000 does not serve the REST API.";
     } else if (status === 429) {
-      const retryAfter: string = (response.headers || {})["retry-after"] || "";
-      hint = retryAfter
-        ? `Splunk throttled the request; it asked to retry after ${redactLogString(retryAfter)} seconds. The next poll retries the same window.`
-        : "Splunk throttled the request. The next poll retries the same window.";
+      /*
+       * As RFC 9110 writes it - whole seconds or an HTTP-date (Common's
+       * RetryAfter) - for the message alone: nothing waits on it, so it is
+       * said as asked, unbounded, and anything else as none.
+       */
+      const retryAfterSeconds: number | undefined =
+        RetryAfter.secondsFromHeaders(response.headers, {
+          minMs: 0,
+          maxMs: Number.MAX_SAFE_INTEGER,
+        });
+      hint =
+        retryAfterSeconds !== undefined
+          ? `Splunk throttled the request; it asked to retry after ${retryAfterSeconds} seconds. The next poll retries the same window.`
+          : "Splunk throttled the request. The next poll retries the same window.";
     } else if (status >= 500) {
       hint =
         "Splunk reported a server-side error (a search head under load, or a search that hit a limit). The next poll retries the same window.";

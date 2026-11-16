@@ -67,6 +67,45 @@ export interface WhoIsToldOwners {
   userNames: Array<string>;
   // The teams, by name: each of their members is emailed.
   teamNames: Array<string>;
+  /*
+   * OWNERS THE PAGE REACHES FIRST (#8860). The owners' "created" email of a
+   * new incident or alert leaves out everyone its on-call page has reached
+   * already (OwnersReachedByAPage, #7987): someone who is both an owner and
+   * on call is told once, by the page. These are the owners a readable
+   * policy's first level pages at once - so the email leaves them out - by
+   * id and name; userNames and teamNames are then the owners it still
+   * reaches. Set as the answer is handed to its reader
+   * (getWhoIsToldOwnersAsTold): what a policy they may not read pages is
+   * not theirs to learn. Absent from an older server's answer, and from a
+   * status change's owners, whom the change is told to all the same.
+   */
+  pagedOwners?: Array<WhoIsToldPagedOwner> | undefined;
+  /*
+   * Everyone the Created email is addressed to, person by person - the
+   * resolver's, from which the reader's pagedOwners are worked out. Taken
+   * out before the answer leaves the server (getWhoIsToldOwnersAsTold), so
+   * nobody learns who a team's members are from it.
+   */
+  recipients?: Array<WhoIsToldOwnerRecipient> | undefined;
+}
+
+// One person an owners' Created email is addressed to (#8860).
+export interface WhoIsToldOwnerRecipient {
+  userId: string;
+  name: string;
+  /*
+   * Named as an owner themselves - or a Project Owner standing in for
+   * owners - rather than only as a member of an owner team.
+   */
+  isNamed: boolean;
+  // The owner teams the email reaches them through, by name.
+  teamNames: Array<string>;
+}
+
+// An owner the page reaches first, whom the Created email leaves out (#8860).
+export interface WhoIsToldPagedOwner {
+  userId: string;
+  name: string;
 }
 
 // Why a person a policy reaches cannot be told by a page of this severity.
@@ -105,6 +144,15 @@ export interface WhoIsToldPerson {
   isFallback: boolean;
   isReachable: boolean;
   problem?: WhoIsToldPersonProblem | undefined;
+  /*
+   * The channels their page's first notifications go out by as it starts
+   * (#8860): a rule of theirs for the severity that notifies after no
+   * minutes, on a verified method of a channel the project has on - or,
+   * with no rule, what the fallback picks, which it sends at once. Empty
+   * when their first notification waits. Absent from an older server's
+   * answer.
+   */
+  channelsAtOnce?: Array<OnCallPageChannel> | undefined;
 }
 
 // One on-call policy what opens runs.
@@ -121,6 +169,14 @@ export interface WhoIsToldPolicy {
   isNamedByCriteria: boolean;
   // The ids of the on-call rules that run it.
   ruleIds: Array<string>;
+  /*
+   * Its run pages its first level as what opens is created (#8860): the
+   * criteria names it, which pages right away, or an on-call rule that runs
+   * it pages right away now (OnCallRulePagingHold). False when every rule
+   * that runs it holds its runs - for working hours, or for OneUptime AI.
+   * Absent from an older server's answer.
+   */
+  pagesAtOnce?: boolean | undefined;
   // How many escalation levels it has.
   levelCount: number;
   // Who its first level reaches right now.
@@ -820,6 +876,183 @@ export function getWhoIsToldBreaks(data: {
   return breaks;
 }
 
+/*
+ * Whether a notification by this channel goes out now, as the breaks above
+ * judge it: not by a channel the project switched off, not by email, SMS or
+ * a call a self-hosted server cannot send yet (unless the project's own
+ * Twilio sends SMS and calls), and on OneUptime Cloud not by one paid from a
+ * balance that is empty with no auto-recharge. A notification that fails
+ * never reached anybody (isOnCallPageNotificationOut).
+ */
+export function canWhoIsToldChannelSendNow(
+  channel: OnCallPageChannel,
+  channels: WhoIsToldChannels,
+): boolean {
+  if (getChannelsSwitchedOff(channels).includes(channel)) {
+    return false;
+  }
+
+  const hasNoBalance: boolean =
+    channels.isBillingEnabled &&
+    !channels.isAutoRechargeOn &&
+    (channels.balanceInUSDCents || 0) <= 0;
+
+  switch (channel) {
+    case OnCallPageChannel.Email:
+      return channels.serverCanSendEmail !== false;
+    case OnCallPageChannel.SMS:
+      return (
+        channels.hasOwnTwilioForSms ||
+        (channels.serverCanSendSms !== false && !hasNoBalance)
+      );
+    case OnCallPageChannel.Call:
+      return (
+        channels.hasOwnTwilioForCalls ||
+        (channels.serverCanCall !== false && !hasNoBalance)
+      );
+    case OnCallPageChannel.WhatsApp:
+    case OnCallPageChannel.Telegram:
+      return !hasNoBalance;
+    default:
+      return true;
+  }
+}
+
+/*
+ * Whether a policy's first level pages this person as what opens is
+ * created, by a notification that goes out then (#8860): the policy pages
+ * at once, they can be reached, and one of their first notifications goes
+ * out at once by a channel that sends now.
+ */
+export function isWhoIsToldPersonPagedAtOnce(data: {
+  policy: Pick<WhoIsToldPolicy, "isHidden" | "pagesAtOnce">;
+  person: Pick<WhoIsToldPerson, "isReachable" | "channelsAtOnce">;
+  channels: WhoIsToldChannels;
+}): boolean {
+  if (data.policy.isHidden || data.policy.pagesAtOnce !== true) {
+    return false;
+  }
+
+  if (!data.person.isReachable) {
+    return false;
+  }
+
+  return (data.person.channelsAtOnce || []).some(
+    (channel: OnCallPageChannel): boolean => {
+      return canWhoIsToldChannelSendNow(channel, data.channels);
+    },
+  );
+}
+
+/*
+ * WHO AN INCIDENT'S OR AN ALERT'S CREATED EMAIL TELLS, AS ITS READER SEES IT
+ * (#8860).
+ *
+ * The owners' "created" email leaves out each owner its on-call page has
+ * reached already (OwnersReachedByAPage, #7987): one with a notification of
+ * the page that went out by the time the email is sent, about a minute
+ * after the record is created. So an owner a policy's first level pages at
+ * once (isWhoIsToldPersonPagedAtOnce) - matched by user id, through a team
+ * as well as by name - is told once, by the page. Their name moves from the
+ * owners the email reaches to pagedOwners; an owner team stays among them
+ * while it has a member the email still reaches.
+ *
+ * Only what the job will in fact leave out is: a page held for working
+ * hours or for OneUptime AI, a person who cannot be reached, whose first
+ * notification waits, or who is only on a later level, is still emailed as
+ * an owner, as is anybody when nothing says otherwise. A policy the reader
+ * may not read (isHidden) says nothing of whom it pages: an owner only it
+ * pages is said to be emailed, as before. The email's recipients
+ * themselves are taken out of the answer either way.
+ */
+export function getWhoIsToldOwnersAsTold(data: {
+  owners: WhoIsToldOwners;
+  policies: ReadonlyArray<WhoIsToldPolicy>;
+  channels: WhoIsToldChannels;
+}): WhoIsToldOwners {
+  const { recipients, ...owners } = data.owners;
+
+  if (!recipients) {
+    return owners;
+  }
+
+  const pagedAtOnce: Set<string> = new Set<string>();
+
+  for (const policy of data.policies) {
+    for (const person of policy.people) {
+      if (
+        isWhoIsToldPersonPagedAtOnce({
+          policy: policy,
+          person: person,
+          channels: data.channels,
+        })
+      ) {
+        pagedAtOnce.add(person.userId.toLowerCase());
+      }
+    }
+  }
+
+  const isPagedAtOnce: (recipient: WhoIsToldOwnerRecipient) => boolean = (
+    recipient: WhoIsToldOwnerRecipient,
+  ): boolean => {
+    return pagedAtOnce.has(recipient.userId.toLowerCase());
+  };
+
+  const pagedOwners: Array<WhoIsToldPagedOwner> = recipients
+    .filter(isPagedAtOnce)
+    .map((recipient: WhoIsToldOwnerRecipient): WhoIsToldPagedOwner => {
+      return { userId: recipient.userId, name: recipient.name };
+    });
+
+  if (pagedOwners.length === 0) {
+    return owners;
+  }
+
+  const pagedNames: Set<string> = new Set<string>(
+    recipients
+      .filter((recipient: WhoIsToldOwnerRecipient): boolean => {
+        return recipient.isNamed && isPagedAtOnce(recipient);
+      })
+      .map((recipient: WhoIsToldOwnerRecipient): string => {
+        return recipient.name;
+      }),
+  );
+
+  // A name the email still reaches under it - another owner of that name - stays.
+  const stillEmailedNames: Set<string> = new Set<string>(
+    recipients
+      .filter((recipient: WhoIsToldOwnerRecipient): boolean => {
+        return recipient.isNamed && !isPagedAtOnce(recipient);
+      })
+      .map((recipient: WhoIsToldOwnerRecipient): string => {
+        return recipient.name;
+      }),
+  );
+
+  return {
+    ...owners,
+    userNames: owners.userNames.filter((name: string): boolean => {
+      return !pagedNames.has(name) || stillEmailedNames.has(name);
+    }),
+    // A team stays while the email reaches a member of it - or lists none of them.
+    teamNames: owners.teamNames.filter((teamName: string): boolean => {
+      const members: Array<WhoIsToldOwnerRecipient> = recipients.filter(
+        (recipient: WhoIsToldOwnerRecipient): boolean => {
+          return recipient.teamNames.includes(teamName);
+        },
+      );
+
+      return (
+        members.length === 0 ||
+        members.some((recipient: WhoIsToldOwnerRecipient): boolean => {
+          return !isPagedAtOnce(recipient);
+        })
+      );
+    }),
+    pagedOwners: pagedOwners,
+  };
+}
+
 // A rule or status page as it is, when the caller may read it; else nameless.
 function withNameIfReadable<T extends { id: string; name: string }>(
   item: T,
@@ -833,7 +1066,9 @@ function withNameIfReadable<T extends { id: string; name: string }>(
  * but not a policy is told paging is set up, and nothing of who: the
  * policy's name, people and gaps are taken away, and so are the names in
  * its breaks. An on-call rule, an owner rule or a status page they may not
- * read keeps its place without its name.
+ * read keeps its place without its name. Who an incident's or an alert's
+ * Created email tells is worked out from the policies as they read them
+ * (getWhoIsToldOwnersAsTold, #8860).
  */
 export function redactWhoIsTold(data: {
   result: WhoIsToldResult;
@@ -850,6 +1085,26 @@ export function redactWhoIsTold(data: {
     return !policyId || data.readablePolicyIds.has(policyId);
   };
 
+  const redactPolicy: (policy: WhoIsToldPolicy) => WhoIsToldPolicy = (
+    policy: WhoIsToldPolicy,
+  ): WhoIsToldPolicy => {
+    if (isReadable(policy.id)) {
+      return policy;
+    }
+
+    return {
+      id: policy.id,
+      name: "",
+      isHidden: true,
+      isNamedByCriteria: policy.isNamedByCriteria,
+      ruleIds: policy.ruleIds,
+      levelCount: 0,
+      people: [],
+      notPaged: [],
+      notPagedCodes: [],
+    };
+  };
+
   return {
     ...data.result,
     criteria: data.result.criteria.map(
@@ -857,8 +1112,16 @@ export function redactWhoIsTold(data: {
         return {
           ...item,
           events: item.events.map((event: WhoIsToldEvent): WhoIsToldEvent => {
+            const policies: Array<WhoIsToldPolicy> =
+              event.policies.map(redactPolicy);
+
             return {
               ...event,
+              owners: getWhoIsToldOwnersAsTold({
+                owners: event.owners,
+                policies: policies,
+                channels: data.result.channels,
+              }),
               ownerRules: event.ownerRules.map(
                 (rule: WhoIsToldRule): WhoIsToldRule => {
                   return withNameIfReadable(rule, data.readableOwnerRuleIds);
@@ -872,25 +1135,7 @@ export function redactWhoIsTold(data: {
                   return withNameIfReadable(page, data.readableStatusPageIds);
                 },
               ),
-              policies: event.policies.map(
-                (policy: WhoIsToldPolicy): WhoIsToldPolicy => {
-                  if (isReadable(policy.id)) {
-                    return policy;
-                  }
-
-                  return {
-                    id: policy.id,
-                    name: "",
-                    isHidden: true,
-                    isNamedByCriteria: policy.isNamedByCriteria,
-                    ruleIds: policy.ruleIds,
-                    levelCount: 0,
-                    people: [],
-                    notPaged: [],
-                    notPagedCodes: [],
-                  };
-                },
-              ),
+              policies: policies,
             };
           }),
         };

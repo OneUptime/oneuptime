@@ -204,6 +204,8 @@ describe("MicrosoftGraphMailProvider", () => {
   });
 
   test("retries a 429 and succeeds when a later attempt returns 202", async () => {
+    const requestedDelays: number[] = installInstantTimersRecordingDelays();
+
     fetchMock
       .mockResolvedValueOnce(makeResponse(429, { retryAfter: "0" }))
       .mockResolvedValueOnce(makeResponse(202));
@@ -214,9 +216,14 @@ describe("MicrosoftGraphMailProvider", () => {
     await provider.send(makeMail(), makeEmailServer());
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
+    // "0" waits a second, never a retry at once (issue #8928).
+    expect(requestedDelays).toContain(1000);
+    expect(requestedDelays).not.toContain(0);
   });
 
   test("retries a transient 5xx and succeeds", async () => {
+    installInstantTimersRecordingDelays();
+
     fetchMock
       .mockResolvedValueOnce(makeResponse(503, { retryAfter: "0" }))
       .mockResolvedValueOnce(makeResponse(202));
@@ -230,6 +237,7 @@ describe("MicrosoftGraphMailProvider", () => {
   });
 
   test("gives up after MAX_RETRIES on a persistent 429", async () => {
+    installInstantTimersRecordingDelays();
     fetchMock.mockResolvedValue(makeResponse(429, { retryAfter: "0" }));
 
     const provider: MicrosoftGraphMailProvider =
@@ -382,13 +390,16 @@ describe("MicrosoftGraphMailProvider", () => {
     expect(requestedDelays).toContain(60000);
   });
 
-  test("falls back to exponential backoff for an HTTP-date Retry-After", async () => {
+  test("honors an HTTP-date Retry-After, waiting until then (issue #8928)", async () => {
     const requestedDelays: number[] = installInstantTimersRecordingDelays();
+    /*
+     * Nine seconds ahead, to the second the date can name: the wait is
+     * rounded up to whole seconds, so it is exactly 9000ms.
+     */
+    const retryAt: string = new Date(Date.now() + 9000).toUTCString();
 
     fetchMock
-      .mockResolvedValueOnce(
-        makeResponse(429, { retryAfter: "Wed, 21 Oct 2026 07:28:00 GMT" }),
-      )
+      .mockResolvedValueOnce(makeResponse(429, { retryAfter: retryAt }))
       .mockResolvedValueOnce(makeResponse(202));
 
     const provider: MicrosoftGraphMailProvider =
@@ -397,16 +408,38 @@ describe("MicrosoftGraphMailProvider", () => {
     await provider.send(makeMail(), makeEmailServer());
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    /*
-     * The date form is not parsed as delta-seconds, so the retry uses the
-     * attempt-1 exponential backoff (1000-2000ms) rather than the raw header.
-     */
-    expect(
-      requestedDelays.some((delay: number) => {
-        return delay >= 1000 && delay < 2000;
-      }),
-    ).toBe(true);
+    expect(requestedDelays).toContain(9000);
   });
+
+  /*
+   * Issue #8928: Number() read "  " as 0 - a retry at once - and "1.5" as a
+   * second and a half. RFC 9110 allows digits only, or a date, so these fall
+   * back to the attempt-1 exponential backoff (1000-2000ms).
+   */
+  test.each([["1.5"], ["-5"], ["5 seconds"], ["0x10"], ["  "]])(
+    "falls back to exponential backoff for a Retry-After of %j",
+    async (retryAfter: string) => {
+      const requestedDelays: number[] = installInstantTimersRecordingDelays();
+
+      fetchMock
+        .mockResolvedValueOnce(makeResponse(429, { retryAfter: retryAfter }))
+        .mockResolvedValueOnce(makeResponse(202));
+
+      const provider: MicrosoftGraphMailProvider =
+        new MicrosoftGraphMailProvider();
+
+      await provider.send(makeMail(), makeEmailServer());
+
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(
+        requestedDelays.some((delay: number) => {
+          return delay >= 1000 && delay < 2000;
+        }),
+      ).toBe(true);
+      expect(requestedDelays).not.toContain(0);
+      expect(requestedDelays).not.toContain(1500);
+    },
+  );
 
   test('falls back to exponential backoff for a non-finite Retry-After ("Infinity")', async () => {
     const requestedDelays: number[] = installInstantTimersRecordingDelays();
@@ -434,6 +467,8 @@ describe("MicrosoftGraphMailProvider", () => {
   });
 
   test("retries a transient 408 Request Timeout and recovers", async () => {
+    installInstantTimersRecordingDelays();
+
     fetchMock
       .mockResolvedValueOnce(makeResponse(408, { retryAfter: "0" }))
       .mockResolvedValueOnce(makeResponse(202));
@@ -486,6 +521,7 @@ describe("MicrosoftGraphMailProvider", () => {
   });
 
   test("exhausts retries on a persistent 5xx and surfaces the HTTP status", async () => {
+    installInstantTimersRecordingDelays();
     fetchMock.mockResolvedValue(makeResponse(503, { retryAfter: "0" }));
 
     const provider: MicrosoftGraphMailProvider =
