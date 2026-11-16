@@ -6,7 +6,7 @@ import {
 } from "../../../Utils/Express";
 import Response from "../../../Utils/Response";
 import ClusterKeyAuthorization from "../../../Middleware/ClusterKeyAuthorization";
-import PlainTextJsonBody from "../../../Middleware/PlainTextJsonBody";
+import WebhookRequestBody from "../../../Middleware/WebhookRequestBody";
 import { RunOptions, RunReturnType } from "../ComponentCode";
 import TriggerCode, { ExecuteWorkflowType, InitProps } from "../TriggerCode";
 import BadDataException from "../../../../Types/Exception/BadDataException";
@@ -33,7 +33,7 @@ export const SIGNED_WEBHOOK_WORKFLOW_MESSAGE: string =
   "This workflow starts from Huntress, which signs its requests. Send them to the URL its Huntress trigger shows.";
 
 /*
- * The largest text/plain body read: the JSON parser's own limit
+ * The largest text/plain or +json body read: the JSON parser's own limit
  * (StartServer's jsonBodyParserOptions).
  */
 export const WEBHOOK_TEXT_BODY_LIMIT: string = "50mb";
@@ -79,10 +79,11 @@ export default class WebhookTrigger extends TriggerCode {
   public override async init(props: InitProps): Promise<void> {
     /*
      * JSON sent as text/plain - how Amazon SNS posts every message - is
-     * read as the JSON it is, so the next block can read its fields; any
-     * other text still arrives empty (PlainTextJsonBody, #7723).
+     * read as the JSON it is, so the next block can read its fields (#7723);
+     * any other text as the text it is (#8430); a +json body, such as Azure
+     * Event Grid's CloudEvents, as its JSON (WebhookRequestBody).
      */
-    const readTextBody: RequestHandler = PlainTextJsonBody.getReader(
+    const readTextBody: RequestHandler = WebhookRequestBody.getReader(
       WEBHOOK_TEXT_BODY_LIMIT,
     );
 
