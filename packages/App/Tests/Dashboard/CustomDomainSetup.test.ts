@@ -137,6 +137,8 @@ const SHARED: Array<string> = [
   // Add Custom Domain's field and button: the Dashboard's own words.
   CustomDomainCopy.addAddressTitle,
   CustomDomainCopy.addSubmit,
+  // The card's guide link: the words every guided setup links its guide with.
+  CustomDomainCopy.guideLink,
   ...KIND_COPIES.flatMap(([, copy]: [string, CustomDomainKindCopy]) => {
     return [
       copy.dnsSetupNotEnabled,
@@ -700,7 +702,7 @@ describe("the Custom Domains pages", () => {
     const kinds: string = readSource(KINDS);
 
     expect(kinds).toMatch(
-      /STATUS_PAGE_CUSTOM_DOMAINS: CustomDomainKind = \{ modelType: StatusPageDomain, parentColumn: "statusPageId", tableId: "domains-table", tableName: "Status Page > Domains", userPreferencesKey: "status-page-domains-table", saveFilterTableId: "status-page-domains-table", getCnameRecord: \(\): string => \{ return StatusPageCNameRecord; \}, cnameRecordVariable: "STATUS_PAGE_CNAME_RECORD", copy: STATUS_PAGE_CUSTOM_DOMAIN_COPY, docsPath: "\/docs\/status-pages\/branding-and-domains#custom-domains", \}/,
+      /STATUS_PAGE_CUSTOM_DOMAINS: CustomDomainKind = \{ modelType: StatusPageDomain, parentColumn: "statusPageId", tableId: "domains-table", tableName: "Status Page > Domains", userPreferencesKey: "status-page-domains-table", saveFilterTableId: "status-page-domains-table", getCnameRecord: \(\): string => \{ return StatusPageCNameRecord; \}, cnameRecordVariable: "STATUS_PAGE_CNAME_RECORD", copy: STATUS_PAGE_CUSTOM_DOMAIN_COPY, docsPath: "\/docs\/status-pages\/branding-and-domains#custom-domains", guideDocsPath: "\/docs\/guides\/status-page#add-your-domain", \}/,
     );
     expect(kinds).toMatch(
       /DASHBOARD_CUSTOM_DOMAINS: CustomDomainKind = \{ modelType: DashboardDomain, parentColumn: "dashboardId", tableId: "dashboard-domains-table", tableName: "Dashboard > Domains", userPreferencesKey: "dashboard-domains-table", saveFilterTableId: "dashboard-domains-table", getCnameRecord: \(\): string => \{ return DashboardCNameRecord; \}, cnameRecordVariable: "DASHBOARD_CNAME_RECORD", copy: DASHBOARD_CUSTOM_DOMAIN_COPY, docsPath: "\/docs\/dashboards\/sharing#custom-domains", \}/,
