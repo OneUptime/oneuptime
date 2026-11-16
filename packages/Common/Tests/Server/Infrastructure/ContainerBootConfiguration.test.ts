@@ -18,10 +18,14 @@ import path from "path";
  * TS_NODE_TRANSPILE_ONLY=1 strips the types without re-checking them. The dev
  * loop already does exactly this via nodemon; only production did not.
  *
- * The end state is what KubernetesCostAgent and KubernetesLogTailer already do:
- * `CMD ["node", "build/dist/Index.js"]`, with no ts-node in the image at all.
- * These tests encode the rule that gets us there safely: if you boot through
- * ts-node, you must not re-type-check at boot.
+ * The end state, which every image has reached: no ts-node in a running
+ * image at all. The agents (KubernetesCostAgent, KubernetesLogTailer, ...)
+ * run `CMD ["node", "build/dist/Index.js"]`, which tsc wrote; the servers
+ * (App, Home, ingress, Probe, Runner, test server) compile each TypeScript
+ * file beside itself with Common/Server/Utils/TsNode/Precompile.js and their
+ * start script runs Index.js after PrecompiledSourceMaps.js. These tests hold
+ * every image to that, and to checking its types at build time, since
+ * nothing checks them when it runs.
  */
 
 const REPO_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..", "..");
@@ -88,6 +92,13 @@ const CMD_INVOKES_TS_NODE: RegExp = /CMD.*ts-node\/register/;
 const TRANSPILE_ONLY_ENV: RegExp = /ENV\s+TS_NODE_TRANSPILE_ONLY=1/;
 const CMD_PRECOMPILED_ENTRYPOINT: RegExp =
   /CMD\s*\[\s*"node"\s*,\s*"build\/dist\/Index\.js"\s*\]/;
+// A server's start script: the JavaScript Precompile.js wrote, after the
+// stack-trace support for it.
+const STARTS_PRECOMPILED_SERVER: RegExp =
+  /&& exec node (--no-node-snapshot )?--require Common\/Server\/Utils\/TsNode\/PrecompiledSourceMaps\.js Index\.js$/;
+// The build step that writes that JavaScript, anchored to a RUN instruction.
+const RUN_PRECOMPILE_INSTRUCTION: RegExp =
+  /^\s*RUN\s+node\s+\/usr\/src\/Common\/Server\/Utils\/TsNode\/Precompile\.js\s+--project\s+\/usr\/src\/app\/tsconfig\.json\s+--root\s+\/usr\/src\/app\s+--root\s+\/usr\/src\/Common\s*$/m;
 const TS_NODE_ANYWHERE: RegExp = /ts-node\/register/;
 /*
  * The actual build step, anchored to a RUN instruction. A plain substring
@@ -322,61 +333,83 @@ describe("Container boot configuration", () => {
     expect(SERVICE_IMAGES.length).toBeGreaterThan(5);
   });
 
-  describe("images that boot through ts-node must not re-type-check at boot", () => {
-    const tsNodeImages: Array<ServiceImage> = SERVICE_IMAGES.filter(
-      bootsThroughTsNodeIncludingWrappers,
-    );
-
-    test("at least one such image exists", () => {
-      expect(tsNodeImages.length).toBeGreaterThan(0);
+  describe("no image boots through ts-node", () => {
+    /*
+     * ts-node in a running image meant TypeScript and ts-node in every
+     * process, every module compiled again at each start, and, without
+     * TS_NODE_TRANSPILE_ONLY, the whole type-check redone at boot.
+     */
+    test("not one does", () => {
+      expect(
+        SERVICE_IMAGES.filter(bootsThroughTsNodeIncludingWrappers).map(
+          (image: ServiceImage) => {
+            return image.service;
+          },
+        ),
+      ).toEqual([]);
     });
 
+    test("and none sets the flag ts-node's boot needed", () => {
+      expect(
+        SERVICE_IMAGES.filter((image: ServiceImage) => {
+          return TRANSPILE_ONLY_ENV.test(image.productionDockerfile);
+        }).map((image: ServiceImage) => {
+          return image.service;
+        }),
+      ).toEqual([]);
+    });
+  });
+
+  describe("servers run the JavaScript their build compiled", () => {
+    const servers: Array<ServiceImage> = SERVICE_IMAGES.filter(
+      (image: ServiceImage) => {
+        return (
+          image.startScript !== null &&
+          STARTS_PRECOMPILED_SERVER.test(image.startScript)
+        );
+      },
+    );
+
+    test("the App, Home, the ingress, the Probe, the Runner and the test server", () => {
+      expect(
+        servers
+          .map((image: ServiceImage) => {
+            return image.service;
+          })
+          .sort(),
+      ).toEqual(["App", "Home", "Nginx", "Probe", "Runner", "TestServer"]);
+    });
+
+    /*
+     * The image never checks its types when it runs, so its build must:
+     * `npm run compile` (tsc), before Precompile.js writes the JavaScript.
+     */
     test.each(
-      tsNodeImages.map((i: ServiceImage) => {
-        return i.service;
+      servers.map((image: ServiceImage) => {
+        return image.service;
       }),
     )(
-      "%s sets TS_NODE_TRANSPILE_ONLY=1 in its production image",
+      "%s type-checks, then compiles, at build time",
       (service: string) => {
         const image: ServiceImage | undefined = SERVICE_IMAGES.find(
           (i: ServiceImage) => {
             return i.service === service;
           },
         );
+        const stanza: string = image?.productionDockerfile ?? "";
+        const typeCheck: number = stanza.search(RUN_COMPILE_INSTRUCTION);
+        const compile: number = stanza.search(RUN_PRECOMPILE_INSTRUCTION);
 
-        expect(image).toBeDefined();
-        expect(image?.productionStanza).toMatch(TRANSPILE_ONLY_ENV);
+        expect(typeCheck).toBeGreaterThanOrEqual(0);
+        expect(compile).toBeGreaterThan(typeCheck);
       },
     );
   });
 
-  describe("no image disables the boot check without a build-time check", () => {
-    /*
-     * The two halves must stay together. Disabling the boot-time type-check on a
-     * service whose image never runs `npm run compile` would leave its types
-     * verified NOWHERE -- not at build, not at boot, not in CI.
-     */
-    test("every ts-node image type-checks at build time", () => {
-      const gaps: Array<string> = SERVICE_IMAGES.filter(
-        (image: ServiceImage) => {
-          return (
-            bootsThroughTsNodeIncludingWrappers(image) &&
-            !RUN_COMPILE_INSTRUCTION.test(image.productionStanza)
-          );
-        },
-      ).map((image: ServiceImage) => {
-        return image.service;
-      });
-
-      expect(gaps).toEqual([]);
-    });
-  });
-
-  describe("images that run precompiled JavaScript need no such flag", () => {
+  describe("images that run JavaScript compiled by tsc need no such flag", () => {
     /*
      * KubernetesCostAgent and KubernetesLogTailer boot `build/dist/Index.js`
-     * directly. They are the model the ts-node services should eventually
-     * follow, and they must not regress back to ts-node without the flag.
+     * directly, which tsc wrote, and must not regress back to ts-node.
      */
     const precompiledImages: Array<ServiceImage> = SERVICE_IMAGES.filter(
       (image: ServiceImage) => {
@@ -384,7 +417,7 @@ describe("Container boot configuration", () => {
       },
     );
 
-    test("the precompiled pattern is still in use somewhere", () => {
+    test("the pattern is still in use somewhere", () => {
       expect(precompiledImages.length).toBeGreaterThan(0);
     });
 
@@ -406,21 +439,26 @@ describe("Container boot configuration", () => {
 
   describe("build-time type checking is still in place", () => {
     /*
-     * transpile-only is only safe because tsc already ran at build time. If a
-     * service ever drops `npm run compile`, disabling the boot check would mean
-     * its types are never verified at all.
+     * An image that runs compiled JavaScript checks no types when it runs. If
+     * a service ever drops `npm run compile`, its types would never be
+     * verified at all.
      */
-    const tsNodeImages: Array<ServiceImage> = SERVICE_IMAGES.filter(
+    const compiledImages: Array<ServiceImage> = SERVICE_IMAGES.filter(
       (image: ServiceImage) => {
         return (
-          bootsThroughTsNodeIncludingWrappers(image) &&
-          TRANSPILE_ONLY_ENV.test(image.productionStanza)
+          CMD_PRECOMPILED_ENTRYPOINT.test(image.productionStanza) ||
+          (image.startScript !== null &&
+            STARTS_PRECOMPILED_SERVER.test(image.startScript))
         );
       },
     );
 
+    test("there are such images", () => {
+      expect(compiledImages.length).toBeGreaterThan(5);
+    });
+
     test.each(
-      tsNodeImages.map((i: ServiceImage) => {
+      compiledImages.map((i: ServiceImage) => {
         return i.service;
       }),
     )("%s still runs `npm run compile` at build time", (service: string) => {
@@ -614,9 +652,13 @@ describe("Container boot configuration", () => {
     );
 
     test.each(finalStages)(
-      "%s: the %s stage sets TS_NODE_TRANSPILE_ONLY=1",
+      "%s: the %s stage runs no ts-node and sets none of its flags",
       (service: string, name: string) => {
-        expect(stageNamed(service, name)?.body).toMatch(TRANSPILE_ONLY_ENV);
+        const body: string = stageNamed(service, name)?.body ?? "";
+
+        expect(body.length).toBeGreaterThan(0);
+        expect(body).not.toMatch(TRANSPILE_ONLY_ENV);
+        expect(body).not.toMatch(CMD_INVOKES_TS_NODE);
       },
     );
 
@@ -648,7 +690,7 @@ describe("Container boot configuration", () => {
     );
 
     test.each(finalStages)(
-      "%s: the %s stage is type-checked at build time (npm run compile in what it is built from)",
+      "%s: the %s stage is type-checked and compiled at build time (npm run compile, then Precompile.js, in what it is built from)",
       (service: string, name: string) => {
         const ancestry: Array<DockerfileStage> = buildOrder(
           stagesOf(service),
@@ -658,6 +700,11 @@ describe("Container boot configuration", () => {
         expect(
           ancestry.some((stage: DockerfileStage) => {
             return RUN_COMPILE_INSTRUCTION.test(stage.body);
+          }),
+        ).toBe(true);
+        expect(
+          ancestry.some((stage: DockerfileStage) => {
+            return RUN_PRECOMPILE_INSTRUCTION.test(stage.body);
           }),
         ).toBe(true);
       },

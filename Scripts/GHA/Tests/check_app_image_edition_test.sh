@@ -131,22 +131,14 @@ if [[ "${1:-}" == "run" ]]; then
 			cat "$fixture"
 			exit "$(cat "${FAKE_IMAGES_DIR}/${image}/probe.status" 2>/dev/null || echo 0)"
 		fi
-		# Run the probe for real. The fake tree's modules are plain .js, so
-		# ts-node is not needed (and not there).
-		args=()
-		while [[ $# -gt 0 ]]; do
-			if [[ "$1" == "--require" && "${2:-}" == "ts-node/register" ]]; then
-				shift 2
-				continue
-			fi
-			args+=("$1")
-			shift
-		done
+		# Run the probe for real, with node's flags as given: the fake tree's
+		# modules are plain .js, and it has a stand-in for the stack-trace
+		# module the probe requires first.
 		for entry in ${envs[@]+"${envs[@]}"}; do
 			export "$entry"
 		done
 		cd "${root}${workdir}" || exit 125
-		exec node "${args[@]}"
+		exec node "$@"
 	fi
 	echo "fake docker: unexpected entrypoint '${entrypoint}'" >&2
 	exit 2
@@ -162,13 +154,15 @@ RUNS_FILE="${IMAGES_DIR}/runs"
 
 # The App image's CMD: npm start's command through sh, which execs node.
 # Single-quoted so the heredoc below leaves its ${NODE_OPTIONS...} alone.
-GOOD_CMD='["sh","-c","export NODE_OPTIONS=\"--max-old-space-size=8096${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require ts-node/register Index.ts"]'
+GOOD_CMD='["sh","-c","export NODE_OPTIONS=\"--max-old-space-size=8096${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require Common/Server/Utils/TsNode/PrecompiledSourceMaps.js Index.js"]'
+# What the images started before they ran the JavaScript their build compiles.
+TS_NODE_CMD='["sh","-c","export NODE_OPTIONS=\"--max-old-space-size=8096${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require ts-node/register Index.ts"]'
 
 # Writes an image's docker-inspect .Config. The version label and the CMD
 # (GOOD_CMD unless given) are optional.
 write_config() {
-	local image="$1" edition="$2" licenses="$3" user="$4" transpile="$5" is_ee="$6" oneuptime_edition="$7" version="${8:-}" cmd="${9:-$GOOD_CMD}"
-	local env_entries="\"PATH=/usr/local/bin\",\"TS_NODE_TRANSPILE_ONLY=${transpile}\",\"IS_ENTERPRISE_EDITION=${is_ee}\""
+	local image="$1" edition="$2" licenses="$3" user="$4" is_ee="$5" oneuptime_edition="$6" version="${7:-}" cmd="${8:-$GOOD_CMD}"
+	local env_entries="\"PATH=/usr/local/bin\",\"IS_ENTERPRISE_EDITION=${is_ee}\""
 	if [[ -n "$oneuptime_edition" ]]; then
 		env_entries="${env_entries},\"ONEUPTIME_EDITION=${oneuptime_edition}\""
 	fi
@@ -184,8 +178,12 @@ EOF
 # probe must never pass (billing on, or a fixed edition).
 write_fake_core_modules() {
 	local root="$1"
-	mkdir -p "${root}/usr/src/Common/Server/Enterprise" "${root}/usr/src/app/Utils" "${root}/usr/src/app/node_modules"
+	mkdir -p "${root}/usr/src/Common/Server/Enterprise" "${root}/usr/src/Common/Server/Utils/TsNode" "${root}/usr/src/app/Utils" "${root}/usr/src/app/node_modules"
 	ln -s ../../Common "${root}/usr/src/app/node_modules/Common"
+	cat > "${root}/usr/src/Common/Server/Utils/TsNode/PrecompiledSourceMaps.js" <<'JS'
+"use strict";
+globalThis.ONEUPTIME_TEST_PRECOMPILED_SOURCE_MAPS = true;
+JS
 	cat > "${root}/usr/src/Common/Server/Enterprise/EnterpriseEdition.js" <<'JS'
 "use strict";
 let registered = null;
@@ -217,8 +215,8 @@ exports.default = {
     if (!(options.initTimeoutInMs > 0) || !(options.licenseLoadTimeoutInMs > 0)) {
       throw new Error("the probe must bound init() and the license load");
     }
-    if (process.env.TS_NODE_TRANSPILE_ONLY !== "1") {
-      throw new Error("the probe must run transpile-only");
+    if (globalThis.ONEUPTIME_TEST_PRECOMPILED_SOURCE_MAPS !== true) {
+      throw new Error("the probe must require the stack-trace support npm start requires first");
     }
     const directory = path.resolve(__dirname, "..", "..", "ee");
     const entryFile = path.join(directory, "Server", "Index.js");
@@ -292,12 +290,12 @@ JS
 
 good_community() {
 	make_community_tree "$1"
-	write_config "$1" community "Apache-2.0" node 1 false "" "${2:-}"
+	write_config "$1" community "Apache-2.0" node false "" "${2:-}"
 }
 
 good_enterprise() {
 	make_enterprise_tree "$1"
-	write_config "$1" enterprise "Apache-2.0 AND LicenseRef-OneUptime-Enterprise" node 1 true enterprise "${2:-}"
+	write_config "$1" enterprise "Apache-2.0 AND LicenseRef-OneUptime-Enterprise" node true enterprise "${2:-}"
 }
 
 # Makes the image's boot probe print $2 and exit with $3, instead of running.
@@ -334,8 +332,9 @@ assert_contains "$(cat "$RUNS_FILE")" "ce -c" "runs the content checks inside th
 assert_contains "$(cat "$RUNS_FILE")" "run image=ce entrypoint=sh user=root" "runs the content checks as root, so the scan can read every directory"
 runs="$(cat "$RUNS_FILE")"
 assert_contains "$runs" "run image=ce entrypoint=node user= network=none workdir=/usr/src/app" "runs the probe as the image's user, from /usr/src/app, without a network"
-assert_contains "$runs" "env=BILLING_ENABLED=false TS_NODE_TRANSPILE_ONLY=1 EE_PROBE_TIMEOUT_MS=300000" "runs the probe with billing off, transpile-only and a 300s watchdog"
-assert_contains "$runs" "node image=ce flags=--no-node-snapshot --max-old-space-size=8096 --require ts-node/register" "runs the probe with node's flags from npm start"
+assert_contains "$runs" "env=BILLING_ENABLED=false EE_PROBE_TIMEOUT_MS=300000" "runs the probe with billing off and a 300s watchdog"
+assert_contains "$runs" "node image=ce flags=--no-node-snapshot --max-old-space-size=8096 --require Common/Server/Utils/TsNode/PrecompiledSourceMaps.js" "runs the probe with node's flags from npm start"
+assert_contains "$output" "✅ runs the JavaScript the build compiled (Index.js), not ts-node" "checks the image runs the JavaScript its build compiled"
 
 good_enterprise ee
 status=0
@@ -448,13 +447,13 @@ assert_contains "$output" "✅ there is no /usr/src/packages/Common (ee/'s link 
 assert_contains "$output" "✅ there is no /usr/src/packages/App (ee/'s link to App)" "checks the App link"
 
 good_community ce-marked-enterprise
-write_config ce-marked-enterprise community "Apache-2.0" node 1 false enterprise
+write_config ce-marked-enterprise community "Apache-2.0" node false enterprise
 status=0
 output="$(run_check --image ce-marked-enterprise --edition community)" || status=$?
 assert_eq 1 "$status" "fails a Community image that sets ONEUPTIME_EDITION"
 
 good_community ce-ee-licence
-write_config ce-ee-licence community "Apache-2.0 AND LicenseRef-OneUptime-Enterprise" node 1 false ""
+write_config ce-ee-licence community "Apache-2.0 AND LicenseRef-OneUptime-Enterprise" node false ""
 status=0
 output="$(run_check --image ce-ee-licence --edition community)" || status=$?
 assert_eq 1 "$status" "fails a Community image labelled with the Enterprise licence"
@@ -502,7 +501,7 @@ assert_contains "$output" "❌ EnterpriseEdition has no module registered" "name
 
 # --- Each way an Enterprise image can be wrong. ---
 good_enterprise ee-no-marker
-write_config ee-no-marker enterprise "Apache-2.0 AND LicenseRef-OneUptime-Enterprise" node 1 true ""
+write_config ee-no-marker enterprise "Apache-2.0 AND LicenseRef-OneUptime-Enterprise" node true ""
 status=0
 output="$(run_check --image ee-no-marker --edition enterprise)" || status=$?
 assert_eq 1 "$status" "fails an Enterprise image without ONEUPTIME_EDITION=enterprise"
@@ -608,27 +607,35 @@ assert_contains "$output" "❌ /usr/src/LICENSE is the Apache License 2.0" "name
 assert_contains "$output" "❌ /usr/src/NOTICE says ee/ is under the OneUptime Enterprise License" "names the NOTICE"
 
 good_enterprise ee-root
-write_config ee-root enterprise "Apache-2.0 AND LicenseRef-OneUptime-Enterprise" root 1 true enterprise
+write_config ee-root enterprise "Apache-2.0 AND LicenseRef-OneUptime-Enterprise" root true enterprise
 status=0
 output="$(run_check --image ee-root --edition enterprise)" || status=$?
 assert_eq 1 "$status" "fails an image that runs as root"
 assert_contains "$output" "❌ runs as the node user" "names the user"
 
 good_enterprise ee-npm-start
-write_config ee-npm-start enterprise "Apache-2.0 AND LicenseRef-OneUptime-Enterprise" node 1 true enterprise "" '["npm","start"]'
+write_config ee-npm-start enterprise "Apache-2.0 AND LicenseRef-OneUptime-Enterprise" node true enterprise "" '["npm","start"]'
 status=0
 output="$(run_check --image ee-npm-start --edition enterprise)" || status=$?
 assert_eq 1 "$status" "fails an image that starts through npm"
 assert_contains "$output" "❌ CMD execs node itself, without npm" "names the CMD"
 
-good_enterprise ee-typecheck-at-boot
-write_config ee-typecheck-at-boot enterprise "Apache-2.0 AND LicenseRef-OneUptime-Enterprise" node 0 true enterprise
+good_enterprise ee-ts-node
+write_config ee-ts-node enterprise "Apache-2.0 AND LicenseRef-OneUptime-Enterprise" node true enterprise "" "$TS_NODE_CMD"
 status=0
-output="$(run_check --image ee-typecheck-at-boot --edition enterprise)" || status=$?
-assert_eq 1 "$status" "fails an image that type-checks at boot"
+output="$(run_check --image ee-ts-node --edition enterprise)" || status=$?
+assert_eq 1 "$status" "fails an image that runs its TypeScript through ts-node"
+assert_contains "$output" "❌ runs the JavaScript the build compiled (Index.js), not ts-node" "names the start command"
+
+good_enterprise ee-not-compiled
+rm "${IMAGES_DIR}/ee-not-compiled/root/usr/src/ee/Server/Index.js"
+status=0
+output="$(run_check --image ee-not-compiled --edition enterprise)" || status=$?
+assert_eq 1 "$status" "fails an Enterprise image whose ee/ was not compiled"
+assert_contains "$output" "❌ ee/ is compiled to JavaScript" "names ee's JavaScript"
 
 good_enterprise ee-flag-false
-write_config ee-flag-false enterprise "Apache-2.0 AND LicenseRef-OneUptime-Enterprise" node 1 false enterprise
+write_config ee-flag-false enterprise "Apache-2.0 AND LicenseRef-OneUptime-Enterprise" node false enterprise
 status=0
 output="$(run_check --image ee-flag-false --edition enterprise)" || status=$?
 assert_eq 1 "$status" "fails an Enterprise image with IS_ENTERPRISE_EDITION=false"
@@ -694,12 +701,12 @@ assert_contains "$output" '❌ the loader loads ee/ (outcome "loaded")' "names t
 assert_contains "$output" "❌ the module reports its version" "names the missing version"
 
 good_enterprise ee-probe-silent
-replay_probe ee-probe-silent 'Error: Cannot find module ts-node/register'
+replay_probe ee-probe-silent "Error: Cannot find module 'Common/Server/Utils/TsNode/PrecompiledSourceMaps.js'"
 status=0
 output="$(run_check --image ee-probe-silent --edition enterprise)" || status=$?
 assert_eq 1 "$status" "fails when the probe prints no EE_PROBE line"
 assert_contains "$output" "the probe failed: it printed no EE_PROBE line" "says so"
-assert_contains "$output" "| Error: Cannot find module ts-node/register" "shows what node printed"
+assert_contains "$output" "| Error: Cannot find module 'Common/Server/Utils/TsNode/PrecompiledSourceMaps.js'" "shows what node printed"
 
 good_enterprise ee-probe-garbled
 replay_probe ee-probe-garbled 'EE_PROBE {"outcome":'

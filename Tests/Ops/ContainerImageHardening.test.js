@@ -527,7 +527,9 @@ describe("Runner", () => {
     const PRUNE_COPY =
       "COPY ./Scripts/Docker/PruneUnreachablePackages.js /tmp/PruneUnreachablePackages.js";
     const PRUNE_RUN =
-      "RUN node /tmp/PruneUnreachablePackages.js --entry /usr/src/app/Index.ts --package /usr/src/Common && npm prune --omit=dev --offline --no-audit --no-fund && node -e \"require('ts-node'); require('typescript')\" && rm -rf /tmp/PruneUnreachablePackages.js /usr/src/Common/Tests /usr/src/app/build /usr/src/app/Tests";
+      "RUN node /tmp/PruneUnreachablePackages.js --entry /usr/src/app/Index.ts --entry /usr/src/Common/Server/Utils/TsNode/PrecompiledSourceMaps.js --package /usr/src/Common && npm prune --omit=dev --offline --no-audit --no-fund && node -e \"for (const name of ['ts-node', 'typescript']) for (const from of ['/usr/src/app', '/usr/src/Common']) { let found = ''; try { found = require.resolve(name, { paths: [from] }); } catch {} if (found) throw new Error(found + ' is still installed, and the image runs JavaScript'); }\" && rm -rf /tmp/PruneUnreachablePackages.js /usr/src/Common/Tests /usr/src/app/build /usr/src/app/Tests";
+    const PRECOMPILE =
+      "RUN node /usr/src/Common/Server/Utils/TsNode/Precompile.js --project /usr/src/app/tsconfig.json --root /usr/src/app --root /usr/src/Common";
 
     function indexOf(stageLines, line) {
       const index = stageLines.indexOf(line);
@@ -631,6 +633,7 @@ describe("Runner", () => {
         "COPY ./packages/Common /usr/src/Common",
       );
       const typeCheck = indexOf(stageLines, "RUN npm run compile");
+      const compile = indexOf(stageLines, PRECOMPILE);
       const copy = indexOf(stageLines, PRUNE_COPY);
       const prune = indexOf(stageLines, PRUNE_RUN);
       expect(runnerInstall).toBeLessThan(typeCheck);
@@ -638,28 +641,33 @@ describe("Runner", () => {
       expect(stageLines.slice(runnerInstall, typeCheck)).toContain(
         "COPY --chown=1000:1000 ./packages/Runner /usr/src/app",
       );
+      // The JavaScript is compiled once the types are checked, with the
+      // TypeScript and ts-node the prune then takes away.
+      expect(typeCheck).toBeLessThan(compile);
       // The prune comes last: the development packages the type-check
       // read (@types, typescript's peers) go with it.
-      expect(typeCheck).toBeLessThan(copy);
+      expect(compile).toBeLessThan(copy);
       expect(prune).toBe(copy + 1);
       expect(prune).toBe(stageLines.length - 1);
     });
 
-    test("the prune walks the file the Runner's start command runs, from the folder it is copied to", () => {
+    test("the prune walks the TypeScript of the file the Runner's start command runs, from the folder it is copied to", () => {
       const runnerPackage = readJson("packages/Runner/package.json");
       expect(runnerPackage.scripts.start).toMatch(
-        /exec node --no-node-snapshot --require ts-node\/register Index\.ts$/,
+        /exec node --no-node-snapshot --require Common\/Server\/Utils\/TsNode\/PrecompiledSourceMaps\.js Index\.js$/,
       );
       expect(
         fs.existsSync(path.join(REPO_ROOT, "packages/Runner/Index.ts")),
       ).toBe(true);
       expect(runnerPackage.dependencies.Common).toBe("file:../Common");
-      // ts-node runs it, so ts-node and the TypeScript it runs on stay.
-      expect(runnerPackage.dependencies["ts-node"]).toBeDefined();
+      // The image runs JavaScript: ts-node is a development package, and
+      // goes with the prune.
+      expect(runnerPackage.dependencies["ts-node"]).toBeUndefined();
+      expect(runnerPackage.devDependencies["ts-node"]).toBeDefined();
       expect(final.instructions).toContain("WORKDIR /usr/src/app");
       expect(final.instructions).toContain("USER node");
       expect(final.instructions[final.instructions.length - 1]).toMatch(
-        /exec node --no-node-snapshot --require ts-node\/register Index\.ts"\s*\]$/,
+        /exec node --no-node-snapshot --require Common\/Server\/Utils\/TsNode\/PrecompiledSourceMaps\.js Index\.js"\s*\]$/,
       );
     });
 
@@ -1168,6 +1176,7 @@ describe("App", () => {
         "--entry /usr/src/app/Index.ts",
         "--entry /usr/src/app/Migrate.ts",
         `--entry ${CALENDAR}/ExternalCalendarExpansionWorker.cjs`,
+        "--entry /usr/src/Common/Server/Utils/TsNode/PrecompiledSourceMaps.js",
         ...extraEntries.map((entry) => {
           return `--entry ${entry}`;
         }),
@@ -1175,7 +1184,7 @@ describe("App", () => {
         `--entry-loader ${CALENDAR}/ExternalCalendarExpansion.ts`,
         "--package /usr/src/Common",
         "&& npm prune --omit=dev --offline --no-audit --no-fund",
-        "&& node -e \"require('ts-node'); require('typescript')\"",
+        "&& node -e \"for (const name of ['ts-node', 'typescript']) for (const from of ['/usr/src/app', '/usr/src/Common']) { let found = ''; try { found = require.resolve(name, { paths: [from] }); } catch {} if (found) throw new Error(found + ' is still installed, and the image runs JavaScript'); }\"",
         "&& rm -rf /tmp/PruneUnreachablePackages.js /usr/src/Common/Tests /usr/src/app/build /usr/src/app/Tests /usr/src/app/FeatureSet/BrowserRecorder/Tests /usr/src/app/FeatureSet/MCP/Tests /usr/src/app/FeatureSet/MobileRecorder/Tests /usr/src/app/FeatureSet/*/node_modules",
       ].join(" ");
     };
@@ -1239,7 +1248,7 @@ describe("App", () => {
         return match[1];
       });
 
-      expect(files).toHaveLength(6);
+      expect(files).toHaveLength(7);
       for (const file of files) {
         const [prefix, repository] = inImage.find(([candidate]) => {
           return file.startsWith(candidate);
@@ -1253,19 +1262,22 @@ describe("App", () => {
       }
     });
 
-    test("the App's start command and its migrate command run the two entries the prune starts from", () => {
+    test("the App's start command and its migrate command run the JavaScript of the two entries the prune starts from", () => {
       const appPackage = readJson("packages/App/package.json");
       expect(appPackage.scripts.start).toMatch(
-        /exec node --no-node-snapshot --require ts-node\/register Index\.ts$/,
+        /exec node --no-node-snapshot --require Common\/Server\/Utils\/TsNode\/PrecompiledSourceMaps\.js Index\.js$/,
       );
       // The Helm chart's migrate job runs `npm run migrate` in this image.
       expect(appPackage.scripts.migrate).toMatch(
-        /exec node --no-node-snapshot --require ts-node\/register Migrate\.ts$/,
+        /exec node --no-node-snapshot --require Common\/Server\/Utils\/TsNode\/PrecompiledSourceMaps\.js Migrate\.js$/,
       );
       expect(
         read("HelmChart/Public/oneuptime/templates/migrate-job.yaml"),
       ).toContain('command: ["npm", "run", "migrate"]');
-      expect(appPackage.dependencies["ts-node"]).toBeDefined();
+      // The image runs JavaScript: ts-node is a development package, and
+      // goes with the prune.
+      expect(appPackage.dependencies["ts-node"]).toBeUndefined();
+      expect(appPackage.devDependencies["ts-node"]).toBeDefined();
     });
 
     test("the build's other files under /usr/src stay: the licence files, the agents, the mermaid build and the features whose tests go", () => {
@@ -1397,7 +1409,9 @@ describe("Nginx", () => {
     const PRUNE_COPY =
       "COPY ./Scripts/Docker/PruneUnreachablePackages.js /tmp/PruneUnreachablePackages.js";
     const PRUNE_RUN =
-      "RUN node /tmp/PruneUnreachablePackages.js --entry /usr/src/app/Index.ts --package /usr/src/Common && rm -rf /tmp/PruneUnreachablePackages.js /usr/src/Common/Tests /usr/src/app/build /usr/src/app/Tests && chmod +x /usr/src/app/run.sh";
+      "RUN node /tmp/PruneUnreachablePackages.js --entry /usr/src/app/Index.ts --entry /usr/src/Common/Server/Utils/TsNode/PrecompiledSourceMaps.js --package /usr/src/Common && npm prune --omit=dev --offline --no-audit --no-fund && node -e \"for (const name of ['ts-node', 'typescript']) for (const from of ['/usr/src/app', '/usr/src/Common']) { let found = ''; try { found = require.resolve(name, { paths: [from] }); } catch {} if (found) throw new Error(found + ' is still installed, and the image runs JavaScript'); }\" && rm -rf /tmp/PruneUnreachablePackages.js /usr/src/Common/Tests /usr/src/app/build /usr/src/app/Tests && chmod +x /usr/src/app/run.sh";
+    const PRECOMPILE =
+      "RUN node /usr/src/Common/Server/Utils/TsNode/Precompile.js --project /usr/src/app/tsconfig.json --root /usr/src/app --root /usr/src/Common";
 
     function indexOf(lines, line) {
       const index = lines.indexOf(line);
@@ -1431,24 +1445,29 @@ describe("Nginx", () => {
         "COPY ./packages/Common /usr/src/Common",
       );
       const typeCheck = indexOf(lines, "RUN npm run compile");
+      const compile = indexOf(lines, PRECOMPILE);
       const copy = indexOf(lines, PRUNE_COPY);
       const prune = indexOf(lines, PRUNE_RUN);
       expect(sidecarInstall).toBeLessThan(typeCheck);
       expect(lines.slice(sidecarInstall, typeCheck)).toContain(
         "COPY ./packages/Nginx /usr/src/app",
       );
-      // The prune comes last: Common's development packages (the @types the
-      // type-check reads) go with it.
-      expect(typeCheck).toBeLessThan(copy);
+      // The JavaScript is compiled once the types are checked, with the
+      // TypeScript and ts-node the prune then takes away.
+      expect(typeCheck).toBeLessThan(compile);
+      // The prune comes last: the development packages (the @types the
+      // type-check reads, ts-node and TypeScript) go with it.
+      expect(compile).toBeLessThan(copy);
       expect(prune).toBe(copy + 1);
       expect(prune).toBe(lines.length - 1);
     });
 
-    test("the prune walks the file the sidecar's start script runs, from the folder it is copied to", () => {
+    test("the prune walks the TypeScript of the file the sidecar's start script runs, from the folder it is copied to", () => {
       const nginxPackage = readJson("packages/Nginx/package.json");
       expect(nginxPackage.scripts.start).toMatch(
-        /exec node --require ts-node\/register Index\.ts$/,
+        /exec node --require Common\/Server\/Utils\/TsNode\/PrecompiledSourceMaps\.js Index\.js$/,
       );
+      expect(nginxPackage.dependencies["ts-node"]).toBeUndefined();
       expect(
         fs.existsSync(path.join(REPO_ROOT, "packages/Nginx/Index.ts")),
       ).toBe(true);

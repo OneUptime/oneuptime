@@ -33,14 +33,18 @@
 # own installs (500 MB, there only to bundle them), Common's packages that no
 # server code reaches (the Dashboard's diagrams and charts, React, Playwright,
 # esbuild, ...), Common's and the App's tests and the type-check's output (the
-# App runs Index.ts with ts-node), and the build toolchain, which stayed in the
-# layers that installed it after `apk del`. The pruned stages walk the App's
-# imports (Scripts/Docker/PruneUnreachablePackages.js) from its entry, from
-# the external calendar's worker thread (which alone requires ical.js) and,
-# for the Enterprise Edition, from ee/'s entry, which the Enterprise loader
-# requires, and from Migrate.ts, which the Helm chart's migrate job runs
-# (npm run migrate). Tests/Ops/ContainerImageHardening.test.js holds the
-# stages to this.
+# App runs the JavaScript the build compiles beside each TypeScript file, not
+# tsc's), TypeScript and ts-node (no process of the image loads them), and the
+# build toolchain, which stayed in the layers that installed it after `apk
+# del`. The pruned stages walk the App's imports
+# (Scripts/Docker/PruneUnreachablePackages.js) from its entry, from the
+# external calendar's worker thread (which alone requires ical.js), from the
+# stack-trace support every start command requires first
+# (Common/Server/Utils/TsNode/PrecompiledSourceMaps.js) and, for the
+# Enterprise Edition, from ee/'s entry, which the Enterprise loader requires,
+# and from Migrate.ts, which the Helm chart's migrate job runs (npm run
+# migrate). Tests/Ops/ContainerImageHardening.test.js holds the stages to
+# this.
 
 # Pull base image nodejs image.
 # Floating on the 26.x patch + alpine3.24 so each rebuild picks up the latest
@@ -218,8 +222,14 @@ RUN npm run build-frontends:prod
 # Written into FeatureSet/Docs/build and FeatureSet/APIReference/build, which
 # the pruned stages keep (they remove /usr/src/app/build, the type-check's).
 RUN npm run build-docs-css
-# Bundle app source
+# Type-check app source
 RUN npm run compile
+# Compile the App's TypeScript and Common's to JavaScript, each file beside its
+# TypeScript, as ts-node compiled them when the image ran it (the same
+# TypeScript, options and decorator metadata; source maps for stack traces):
+# the image runs JavaScript, and none of its processes loads TypeScript or
+# ts-node (Common/Server/Utils/TsNode/Precompile.js).
+RUN node /usr/src/Common/Server/Utils/TsNode/Precompile.js --project /usr/src/app/tsconfig.json --root /usr/src/app --root /usr/src/Common
 # The license terms travel with both images: LICENSE (the Apache License 2.0,
 # after a preamble that carves ee/ out of it) and the NOTICE that repeats that
 # split (the enterprise target adds ee/LICENSE with ee/). Root-owned, so the
@@ -269,8 +279,8 @@ COPY ./ee/package*.json /usr/src/ee/
 RUN --mount=type=cache,target=/tmp/npm npm ci --ignore-scripts --prefer-offline
 # .dockerignore keeps ee's tests, build output and any key material out.
 COPY ./ee /usr/src/ee
-# Type-check the ee server, as `npm run compile` does for core: production
-# boots transpile-only (TS_NODE_TRANSPILE_ONLY below), so this is the only type
+# Type-check the ee server, as `npm run compile` does for core: the image runs
+# the JavaScript compiled below without checking it, so this is the only type
 # check ee gets in the image. The ee UI is type-checked in CI (compile-ee), just
 # as the image never type-checks the frontends either.
 RUN ./node_modules/.bin/tsc -p tsconfig.json
@@ -289,6 +299,10 @@ RUN grep -rqF ONEUPTIME_EE_DASHBOARD_PLUGIN_v1 FeatureSet/Dashboard/public/dist 
     || { echo "The Dashboard bundle does not contain the Enterprise UI: ONEUPTIME_EE_DASHBOARD_PLUGIN_v1 is not in FeatureSet/Dashboard/public/dist." >&2; exit 1; }
 RUN grep -rqF ONEUPTIME_EE_ADMIN_DASHBOARD_PLUGIN_v1 FeatureSet/AdminDashboard/public/dist \
     || { echo "The Admin Dashboard bundle does not contain the Enterprise UI: ONEUPTIME_EE_ADMIN_DASHBOARD_PLUGIN_v1 is not in FeatureSet/AdminDashboard/public/dist." >&2; exit 1; }
+# Compile ee/ to JavaScript as the community build compiled the App and Common:
+# with the App's tsconfig, which is the one ts-node ran ee/ with. After the
+# Enterprise bundles above, so they are built from ee/'s TypeScript alone.
+RUN node /usr/src/Common/Server/Utils/TsNode/Precompile.js --project /usr/src/app/tsconfig.json --root /usr/src/ee
 # ee's devDependencies (typescript, jest, ts-jest, @types) were only needed for
 # the type-check above. The Common and App links are dependencies and stay.
 RUN npm --prefix /usr/src/ee prune --omit=dev --ignore-scripts
@@ -331,9 +345,11 @@ EXPOSE 3002
 # ---------------------------------------------------------------------------
 # enterprise-pruned: enterprise-build with only what the Enterprise Edition
 # runs. Common is pruned to the packages the App, the external calendar's
-# worker and ee/ reach; the App loses its development packages (ts-node keeps
-# the TypeScript it runs on), the frontends their installs (their bundles are
-# built), and Common and the App their tests and the type-check's output.
+# worker, the stack-trace support and ee/ reach; the App loses its
+# development packages (ts-node and TypeScript with them: the image runs the
+# JavaScript compiled above, and the check after the prune holds it to that),
+# the frontends their installs (their bundles are built), and Common and the
+# App their tests and the type-check's output.
 # ---------------------------------------------------------------------------
 FROM enterprise-build AS enterprise-pruned
 COPY ./Scripts/Docker/PruneUnreachablePackages.js /tmp/PruneUnreachablePackages.js
@@ -341,12 +357,13 @@ RUN node /tmp/PruneUnreachablePackages.js \
         --entry /usr/src/app/Index.ts \
         --entry /usr/src/app/Migrate.ts \
         --entry /usr/src/Common/Server/Utils/ScheduledMaintenance/ExternalCalendar/ExternalCalendarExpansionWorker.cjs \
+        --entry /usr/src/Common/Server/Utils/TsNode/PrecompiledSourceMaps.js \
         --entry /usr/src/ee/Server/Index.ts \
         --entry-loader /usr/src/app/Utils/EnterpriseLoader.ts \
         --entry-loader /usr/src/Common/Server/Utils/ScheduledMaintenance/ExternalCalendar/ExternalCalendarExpansion.ts \
         --package /usr/src/Common \
     && npm prune --omit=dev --offline --no-audit --no-fund \
-    && node -e "require('ts-node'); require('typescript')" \
+    && node -e "for (const name of ['ts-node', 'typescript']) for (const from of ['/usr/src/app', '/usr/src/Common']) { let found = ''; try { found = require.resolve(name, { paths: [from] }); } catch {} if (found) throw new Error(found + ' is still installed, and the image runs JavaScript'); }" \
     && rm -rf /tmp/PruneUnreachablePackages.js /usr/src/Common/Tests /usr/src/app/build /usr/src/app/Tests /usr/src/app/FeatureSet/BrowserRecorder/Tests /usr/src/app/FeatureSet/MCP/Tests /usr/src/app/FeatureSet/MobileRecorder/Tests /usr/src/app/FeatureSet/*/node_modules
 
 # ---------------------------------------------------------------------------
@@ -378,13 +395,6 @@ ENV ONEUPTIME_EDITION=enterprise
 # What the App actually loaded is the edition, and that is what env.js reports.
 ENV IS_ENTERPRISE_EDITION=true
 USER node
-# The full TypeScript type-check already ran at build time (`npm run compile`
-# and the ee tsc above). Without this, ts-node/register redoes that entire check
-# on every container start before the HTTP listener binds -- minutes of boot on
-# every pod, which is what turns a rolling update into a capacity hole and makes
-# recovery from a node failure just as slow. transpile-only strips types without
-# re-checking them; type errors are caught at build and in CI, not at boot.
-ENV TS_NODE_TRANSPILE_ONLY=1
 # Run the app: package.json's start script, through sh instead of npm.
 # `npm start` stays running as node's parent, a second Node.js process in the
 # container. The Kubernetes agent's eBPF instrumentation (OBI) installs its
@@ -406,7 +416,12 @@ ENV TS_NODE_TRANSPILE_ONLY=1
 # node holds beside the heap. An operator's own --max-old-space-size in
 # NODE_OPTIONS comes after this one and wins. Every image's start script opens
 # with the same rule (Tests/Ops/NodeImageHeapLimit.test.js).
-CMD [ "sh", "-c", "heap=8096; for file in \"/sys/fs/cgroup$(sed -n 's/^0:://p' /proc/self/cgroup 2>/dev/null)/memory.max\" /sys/fs/cgroup/memory.max /sys/fs/cgroup/memory/memory.limit_in_bytes; do limit=$(cat \"$file\" 2>/dev/null); case $limit in ''|*[!0-9]*|????????????????*) ;; *) heap=$((limit / 1048576 * 3 / 4)); [ $heap -ge 256 ] || heap=256; [ $heap -le 8096 ] || heap=8096; break ;; esac; done; export NODE_OPTIONS=\"--max-old-space-size=$heap${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require ts-node/register Index.ts" ]
+#
+# Then node runs Index.js, the JavaScript the build compiled from Index.ts,
+# after Common's PrecompiledSourceMaps.js: it gives stack traces the TypeScript
+# files, lines and columns from the maps the build wrote, and refuses to load
+# any TypeScript (Tests/Ops/ImagesRunJavaScript.test.js).
+CMD [ "sh", "-c", "heap=8096; for file in \"/sys/fs/cgroup$(sed -n 's/^0:://p' /proc/self/cgroup 2>/dev/null)/memory.max\" /sys/fs/cgroup/memory.max /sys/fs/cgroup/memory/memory.limit_in_bytes; do limit=$(cat \"$file\" 2>/dev/null); case $limit in ''|*[!0-9]*|????????????????*) ;; *) heap=$((limit / 1048576 * 3 / 4)); [ $heap -ge 256 ] || heap=256; [ $heap -le 8096 ] || heap=8096; break ;; esac; done; export NODE_OPTIONS=\"--max-old-space-size=$heap${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require Common/Server/Utils/TsNode/PrecompiledSourceMaps.js Index.js" ]
 
 # ---------------------------------------------------------------------------
 # community-pruned: community-build with only what the Community Edition runs,
@@ -419,11 +434,12 @@ RUN node /tmp/PruneUnreachablePackages.js \
         --entry /usr/src/app/Index.ts \
         --entry /usr/src/app/Migrate.ts \
         --entry /usr/src/Common/Server/Utils/ScheduledMaintenance/ExternalCalendar/ExternalCalendarExpansionWorker.cjs \
+        --entry /usr/src/Common/Server/Utils/TsNode/PrecompiledSourceMaps.js \
         --entry-loader /usr/src/app/Utils/EnterpriseLoader.ts \
         --entry-loader /usr/src/Common/Server/Utils/ScheduledMaintenance/ExternalCalendar/ExternalCalendarExpansion.ts \
         --package /usr/src/Common \
     && npm prune --omit=dev --offline --no-audit --no-fund \
-    && node -e "require('ts-node'); require('typescript')" \
+    && node -e "for (const name of ['ts-node', 'typescript']) for (const from of ['/usr/src/app', '/usr/src/Common']) { let found = ''; try { found = require.resolve(name, { paths: [from] }); } catch {} if (found) throw new Error(found + ' is still installed, and the image runs JavaScript'); }" \
     && rm -rf /tmp/PruneUnreachablePackages.js /usr/src/Common/Tests /usr/src/app/build /usr/src/app/Tests /usr/src/app/FeatureSet/BrowserRecorder/Tests /usr/src/app/FeatureSet/MCP/Tests /usr/src/app/FeatureSet/MobileRecorder/Tests /usr/src/app/FeatureSet/*/node_modules
 
 # ---------------------------------------------------------------------------
@@ -451,10 +467,8 @@ LABEL com.oneuptime.edition="community"
 # (packages/App/Utils/EnterpriseLoader.ts enforceBootGuards).
 ENV IS_ENTERPRISE_EDITION=false
 USER node
-# Types were checked at build time; see the enterprise stage above.
-ENV TS_NODE_TRANSPILE_ONLY=1
 # Run the app through sh, not npm, so node is the container's only process,
-# with a heap sized to the container's memory limit; see the enterprise stage
-# above.
-CMD [ "sh", "-c", "heap=8096; for file in \"/sys/fs/cgroup$(sed -n 's/^0:://p' /proc/self/cgroup 2>/dev/null)/memory.max\" /sys/fs/cgroup/memory.max /sys/fs/cgroup/memory/memory.limit_in_bytes; do limit=$(cat \"$file\" 2>/dev/null); case $limit in ''|*[!0-9]*|????????????????*) ;; *) heap=$((limit / 1048576 * 3 / 4)); [ $heap -ge 256 ] || heap=256; [ $heap -le 8096 ] || heap=8096; break ;; esac; done; export NODE_OPTIONS=\"--max-old-space-size=$heap${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require ts-node/register Index.ts" ]
+# with a heap sized to the container's memory limit, and run the JavaScript the
+# build compiled; see the enterprise stage above.
+CMD [ "sh", "-c", "heap=8096; for file in \"/sys/fs/cgroup$(sed -n 's/^0:://p' /proc/self/cgroup 2>/dev/null)/memory.max\" /sys/fs/cgroup/memory.max /sys/fs/cgroup/memory/memory.limit_in_bytes; do limit=$(cat \"$file\" 2>/dev/null); case $limit in ''|*[!0-9]*|????????????????*) ;; *) heap=$((limit / 1048576 * 3 / 4)); [ $heap -ge 256 ] || heap=256; [ $heap -le 8096 ] || heap=8096; break ;; esac; done; export NODE_OPTIONS=\"--max-old-space-size=$heap${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require Common/Server/Utils/TsNode/PrecompiledSourceMaps.js Index.js" ]
 {{ end }}

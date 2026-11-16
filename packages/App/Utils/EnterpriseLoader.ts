@@ -20,8 +20,8 @@ import JobDictionary from "../FeatureSet/Workers/Utils/JobDictionary";
 /*
  * Boot-time loader for the OneUptime Enterprise Edition module (ee/).
  *
- * Core never imports ee. This loader finds ee/Server/Index.ts (or .js) on
- * disk, requires it, checks it against the EnterpriseServerModule contract and
+ * Core never imports ee. This loader finds ee/Server/Index on disk, requires
+ * it, checks it against the EnterpriseServerModule contract and
  * registers it with EnterpriseEdition; every edition-dependent behaviour in
  * core then asks EnterpriseEdition. No ee on disk (the Community image) means
  * the Community Edition.
@@ -119,10 +119,17 @@ export const DEFAULT_ENTERPRISE_INIT_TIMEOUT_IN_MS: number = 30 * 1000;
 
 export const DEFAULT_ENTERPRISE_LICENSE_LOAD_TIMEOUT_IN_MS: number = 15 * 1000;
 
-const ENTRY_FILE_CANDIDATES: ReadonlyArray<string> = [
-  path.join("Server", "Index.ts"),
-  path.join("Server", "Index.js"),
-];
+/*
+ * ee/'s entry, named without its extension so that require() resolves it as
+ * it resolves every other module of the process: an image runs the
+ * JavaScript it compiled when it was built (Server/Index.js, beside
+ * Server/Index.ts), and a process started from the sources runs the
+ * TypeScript through ts-node or jest. Naming Index.ts would make an image's
+ * Node load the TypeScript with its own type stripping, which knows no
+ * decorators (Common/Server/Utils/TsNode/PrecompiledSourceMaps.js refuses
+ * it).
+ */
+const ENTRY_FILE: string = path.join("Server", "Index");
 
 export interface EnterpriseLoaderOptions {
   // Defaults to ONEUPTIME_EDITION (null = unrecognised value).
@@ -211,24 +218,26 @@ export default class EnterpriseLoader {
   }
 
   /*
-   * The module entry file inside an ee/ directory, or null. A FILE check: a
-   * leftover ee/node_modules (git keeps untracked directories when switching
-   * to an older branch) must not count as "Enterprise present".
+   * The module entry file inside an ee/ directory, as require() resolves
+   * Server/Index (ENTRY_FILE), or null. A FILE: a leftover ee/node_modules
+   * (git keeps untracked directories when switching to an older branch) must
+   * not count as "Enterprise present".
    */
   public static findEntryFile(directory: string): string | null {
-    for (const candidate of ENTRY_FILE_CANDIDATES) {
-      const entryFile: string = path.join(directory, candidate);
+    let entryFile: string;
 
-      try {
-        if (fs.statSync(entryFile).isFile()) {
-          return entryFile;
-        }
-      } catch {
-        // Not there; try the next candidate.
-      }
+    try {
+      entryFile = require.resolve(path.join(directory, ENTRY_FILE));
+    } catch {
+      // No entry this process could load.
+      return null;
     }
 
-    return null;
+    try {
+      return fs.statSync(entryFile).isFile() ? entryFile : null;
+    } catch {
+      return null;
+    }
   }
 
   /*
@@ -503,7 +512,7 @@ export default class EnterpriseLoader {
   ): void {
     const searched: string = searchedDirectories
       .map((directory: string): string => {
-        return path.join(directory, "Server", "Index.ts");
+        return `${path.join(directory, ENTRY_FILE)}.js or ${path.join(directory, ENTRY_FILE)}.ts`;
       })
       .join(", ");
 
