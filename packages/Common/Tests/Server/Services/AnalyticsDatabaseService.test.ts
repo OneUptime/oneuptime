@@ -30,6 +30,7 @@ import {
   afterEach,
   jest,
 } from "@jest/globals";
+import { Readable } from "stream";
 
 describe("AnalyticsDatabaseService", () => {
   class TestModel extends AnalyticsBaseModel {
@@ -870,20 +871,29 @@ describe("AnalyticsDatabaseService", () => {
 
   describe("execute / executeQuery per-call options", () => {
     let exec: ReturnType<typeof jest.fn>;
+    let command: ReturnType<typeof jest.fn>;
     let query: ReturnType<typeof jest.fn>;
 
     beforeEach(() => {
       exec = jest.fn(() => {
+        return Promise.resolve({ stream: Readable.from(["an answer"]) });
+      });
+      command = jest.fn(() => {
         return Promise.resolve({});
       });
       query = jest.fn(() => {
         return Promise.resolve({});
       });
       (service as any).database = {};
-      (service as any).databaseClient = { exec, query };
+      (service as any).databaseClient = { exec, command, query };
     });
 
-    test("execute threads clickhouse settings and query id into client.exec", async () => {
+    /*
+     * execute() sends what it always sent, through client.command(), which
+     * reads the answer to its end and so gives the connection back
+     * (AnalyticsExecuteReleasesConnection).
+     */
+    test("execute threads clickhouse settings and query id into client.command", async () => {
       await service.execute("INSERT INTO Foo SELECT 1", {
         clickhouseSettings: {
           insert_deduplication_token: "v3copy:Foo:1:202601",
@@ -892,7 +902,7 @@ describe("AnalyticsDatabaseService", () => {
         queryId: "v3copy:Foo:1:202601:123",
       });
 
-      expect(exec).toHaveBeenCalledWith({
+      expect(command).toHaveBeenCalledWith({
         query: "INSERT INTO Foo SELECT 1",
         query_params: undefined,
         clickhouse_settings: {
@@ -901,15 +911,30 @@ describe("AnalyticsDatabaseService", () => {
         },
         query_id: "v3copy:Foo:1:202601:123",
       });
+      expect(exec).not.toHaveBeenCalled();
     });
 
-    test("execute without options keeps the pre-existing exec payload", async () => {
+    test("execute without options keeps the pre-existing payload", async () => {
       await service.execute("SELECT 1");
+
+      expect(command).toHaveBeenCalledWith({
+        query: "SELECT 1",
+        query_params: undefined,
+      });
+      expect(exec).not.toHaveBeenCalled();
+    });
+
+    test("executeAndReadText sends the same payload through client.exec and reads the answer", async () => {
+      await expect(
+        service.executeAndReadText("SELECT 1", { queryId: "q-1" }),
+      ).resolves.toBe("an answer");
 
       expect(exec).toHaveBeenCalledWith({
         query: "SELECT 1",
         query_params: undefined,
+        query_id: "q-1",
       });
+      expect(command).not.toHaveBeenCalled();
     });
 
     test("executeQuery threads clickhouse settings into client.query", async () => {
