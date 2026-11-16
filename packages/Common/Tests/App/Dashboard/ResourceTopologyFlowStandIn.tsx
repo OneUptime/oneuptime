@@ -101,10 +101,6 @@ export function canvasSize(): StandInCanvas {
   return canvas;
 }
 
-export function setCanvasSize(size: StandInCanvas): void {
-  canvas = { ...size };
-}
-
 // Where the view is when the map is drawn: call before it renders.
 export function startViewAt(viewport: StandInViewport): void {
   shownViewport = { ...viewport };
