@@ -28,6 +28,7 @@ import StoredDashboardViewConfig from "Common/Utils/Dashboard/StoredDashboardVie
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ModelListModal from "Common/UI/Components/ModelListModal/ModelListModal";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import Toast from "Common/UI/Utils/Toast";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -77,9 +78,6 @@ const AddToDashboardModal: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const [isAdding, setIsAdding] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-  const [addedToDashboard, setAddedToDashboard] = useState<Dashboard | null>(
-    null,
-  );
 
   /*
    * Persistable plain shapes of the current view. Round-tripping through
@@ -201,7 +199,35 @@ const AddToDashboardModal: FunctionComponent<ComponentProps> = (
         },
       });
 
-      setAddedToDashboard(fullDashboard);
+      /*
+       * Said in the corner, with the way to the dashboard: "Chart Added" was
+       * a dialog over the explorer the person was still working in (#9120).
+       */
+      const addedToId: ObjectID = dashboardId;
+
+      Toast.success(translator.translateText("Chart Added") || "Chart Added", {
+        description: fullDashboard.name
+          ? translator.translateTemplate(
+              "The chart was added to the {{dashboard}} dashboard.",
+              { dashboard: fullDashboard.name },
+            )
+          : translator.translateTemplate(
+              "The chart was added to the selected dashboard.",
+            ),
+        action: {
+          title: translator.translateText("Open Dashboard") || "Open Dashboard",
+          onClick: () => {
+            Navigation.navigate(
+              RouteUtil.populateRouteParams(RouteMap[PageMap.DASHBOARD_VIEW]!, {
+                modelId: addedToId,
+              }),
+            );
+          },
+        },
+      });
+
+      props.onClose();
+      return;
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -243,37 +269,6 @@ const AddToDashboardModal: FunctionComponent<ComponentProps> = (
         submitButtonText="Close"
         submitButtonType={ButtonStyleType.NORMAL}
         onSubmit={props.onClose}
-      />
-    );
-  }
-
-  if (addedToDashboard) {
-    return (
-      <ConfirmModal
-        title="Chart Added"
-        description={
-          addedToDashboard.name
-            ? translator.translateTemplate(
-                "The chart was added to the {{dashboard}} dashboard.",
-                { dashboard: addedToDashboard.name },
-              )
-            : translator.translateTemplate(
-                "The chart was added to the selected dashboard.",
-              )
-        }
-        submitButtonText="Open Dashboard"
-        closeButtonText="Close"
-        onClose={props.onClose}
-        onSubmit={() => {
-          props.onClose();
-          if (addedToDashboard.id) {
-            Navigation.navigate(
-              RouteUtil.populateRouteParams(RouteMap[PageMap.DASHBOARD_VIEW]!, {
-                modelId: addedToDashboard.id,
-              }),
-            );
-          }
-        }}
       />
     );
   }

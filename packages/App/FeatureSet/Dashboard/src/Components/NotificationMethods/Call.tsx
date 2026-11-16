@@ -4,7 +4,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import Toast from "Common/UI/Utils/Toast";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
@@ -42,11 +42,6 @@ const Call: () => JSX.Element = (): ReactElement => {
 
   // The number whose verify dialog is open.
   const [verifyItem, setVerifyItem] = useState<UserCall | null>(null);
-
-  // A number just added that its SMS verification had already verified.
-  const [verifiedBySmsItem, setVerifiedBySmsItem] = useState<UserCall | null>(
-    null,
-  );
 
   const [refreshToggle, setRefreshToggle] = useState<string>(
     OneUptimeDate.getCurrentDate().toString(),
@@ -125,7 +120,25 @@ const Call: () => JSX.Element = (): ReactElement => {
          */
         onCreateSuccess={(item: UserCall): Promise<UserCall> => {
           if (item.isVerified) {
-            setVerifiedBySmsItem(item);
+            /*
+             * Said in the corner, with the number: it was a dialog to
+             * click away (#9120).
+             */
+            Toast.success(
+              translator.translateText(CallNumberVerifiedBySmsCopy.title) ||
+                CallNumberVerifiedBySmsCopy.title,
+              {
+                description: translator.translateTemplate(
+                  CallNumberVerifiedBySmsCopy.description,
+                  {
+                    destination: phoneNumberInLine(
+                      item.phone?.toString(),
+                      translator.language,
+                    ),
+                  },
+                ),
+              },
+            );
           } else {
             setVerifyItem(item);
           }
@@ -238,27 +251,6 @@ const Call: () => JSX.Element = (): ReactElement => {
           }}
           onVerified={() => {
             setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
-          }}
-        />
-      ) : (
-        <></>
-      )}
-
-      {verifiedBySmsItem ? (
-        <ConfirmModal
-          title={CallNumberVerifiedBySmsCopy.title}
-          description={translator.translateTemplate(
-            CallNumberVerifiedBySmsCopy.description,
-            {
-              destination: phoneNumberInLine(
-                verifiedBySmsItem.phone?.toString(),
-                translator.language,
-              ),
-            },
-          )}
-          submitButtonText={"Close"}
-          onSubmit={() => {
-            setVerifiedBySmsItem(null);
           }}
         />
       ) : (

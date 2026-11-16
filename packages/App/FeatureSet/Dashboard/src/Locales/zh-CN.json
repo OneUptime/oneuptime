@@ -56439,5 +56439,7 @@
   "{{itemName}} started": "已开始{{itemName}}",
   "No commands you can see.": "没有你可以查看的命令。",
   "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open.": "此处运行的 {{count}} 条命令未列出：它们是为你无法打开的 AI 聊天、事件或警报运行的。",
-  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "此处运行的 {{count}} 条命令未列出：它是为你无法打开的 AI 聊天、事件或警报运行的。"
+  "{{count}} commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open._one": "此处运行的 {{count}} 条命令未列出：它是为你无法打开的 AI 聊天、事件或警报运行的。",
+  "Test email report not sent": "测试报告邮件未发送",
+  "Test message not sent": "测试消息未发送"
 }

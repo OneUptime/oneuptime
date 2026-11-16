@@ -17,6 +17,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import User from "Common/UI/Utils/User";
 import UserMicrosoftTeams from "Common/Models/DatabaseModels/UserMicrosoftTeams";
+import Toast from "Common/UI/Utils/Toast";
 import React, { ReactElement, useState } from "react";
 import OneUptimeDate from "Common/Types/Date";
 import {
@@ -98,7 +99,11 @@ const MicrosoftTeams: () => JSX.Element = (): ReactElement => {
         setTestResult(API.getFriendlyMessage(response));
       } else {
         const data: JSONObject = response.data as JSONObject;
-        setTestResult(
+        /*
+         * Said in the corner: a dialog to click away said it worked
+         * (#9120). A failure stays in its dialog, to be read.
+         */
+        Toast.success(
           (data["statusMessage"] as string) ||
             translateTemplate(
               "Test message sent. Check your Microsoft Teams chats.",
@@ -215,7 +220,7 @@ const MicrosoftTeams: () => JSX.Element = (): ReactElement => {
 
       {testResult ? (
         <ConfirmModal
-          title={`Test Message`}
+          title={`Test message not sent`}
           description={testResult}
           submitButtonText={"Close"}
           isLoading={isTestLoading}
