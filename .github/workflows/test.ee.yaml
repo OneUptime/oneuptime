@@ -93,6 +93,16 @@ jobs:
       - name: Run App's menu path guard with ee/ present
         working-directory: packages/App
         run: node node_modules/.bin/jest Tests/Dashboard/SettingsMenuPathsInProductText.test.ts Tests/Dashboard/ProjectSettingsMenuPathsInProductText.test.ts Tests/Dashboard/OnCallDutyMenuPathsInProductText.test.ts --forceExit
+      # App's guard that the product's English names the built-in roles as the
+      # role picker draws them ("Ask a Project Admin", not "a project admin")
+      # reads ee/Dashboard, ee/AdminDashboard and ee/Server too: an Enterprise
+      # message that named "a project owner" after #8574 re-keyed the locales
+      # read in English in every language (#8814). The App Test job deletes
+      # ee/ first, so only this run holds the Enterprise texts to it. It only
+      # reads files.
+      - name: Run App's role name guard with ee/ present
+        working-directory: packages/App
+        run: node node_modules/.bin/jest Tests/ProductMessagesNameRoles.test.ts --forceExit
       # App's suites that hold the Dashboard's string extractor to the
       # Enterprise screens it reads as the Dashboard's own (ee/Dashboard: the
       # audit log, Team Compliance, the SCIM pages, the retention overrides,
