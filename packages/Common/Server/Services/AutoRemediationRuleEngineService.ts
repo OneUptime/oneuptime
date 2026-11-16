@@ -108,8 +108,9 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import IncidentAlertRuleMatcher from "../Utils/Rules/IncidentAlertRuleMatcher";
 import AutoRemediationDecisionRecorder from "../Utils/AutoRemediation/AutoRemediationDecisionRecorder";
-import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
+import RuleSetCache from "../Utils/Rules/RuleSetCache";
+import Select from "../Types/Database/Select";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
 import { getFixingAiRules } from "../../Types/AI/AiRule";
@@ -714,6 +715,37 @@ function isSameSubject(
   }
   return false;
 }
+
+/*
+ * What deciding a signal's remediation needs of each of the project's AI
+ * rules. A runbook's name is read with it: RuleSetCache reads the rules
+ * again when one is renamed (RELATED_COLUMNS_READ).
+ */
+const AUTO_REMEDIATION_RULE_SELECT: Select<AutoRemediationRule> = {
+  _id: true,
+  name: true,
+  executionMode: true,
+  remediationAction: true,
+  aiSelectsRunbook: true,
+  aiComposesCommands: true,
+  verificationWindowMinutes: true,
+  autoResolveOnVerifiedRecovery: true,
+  criteria: true,
+  titlePattern: true,
+  descriptionPattern: true,
+  monitors: { _id: true },
+  incidentSeverities: { _id: true },
+  alertSeverities: { _id: true },
+  labels: { _id: true },
+  monitorLabels: { _id: true },
+  runbooks: { _id: true, name: true },
+  runnerId: true,
+  externalMcpServers: { _id: true },
+  // The LLM provider the rule picks: none when empty.
+  llmProviderId: true,
+  // Whether the rule fixes what it matches, or only investigates it.
+  fixes: true,
+};
 
 class AutoRemediationRuleEngineServiceClass {
   /*
@@ -2591,41 +2623,15 @@ class AutoRemediationRuleEngineServiceClass {
      * (with the runbooks and the Runner a rule names), or a rule's runbooks
      * every time. A rule that only investigates fixes nothing it matches.
      */
+    // Kept until any of the project's rules changes (RuleSetCache).
     const rules: Array<AutoRemediationRule> =
-      await AutoRemediationRuleService.findBy({
+      await RuleSetCache.findEnabledRules<AutoRemediationRule>({
+        service: AutoRemediationRuleService,
+        projectId: data.projectId,
         query: {
-          projectId: data.projectId,
-          isEnabled: true,
           triggerEntityType: data.triggerEntityType,
         },
-        props: { isRoot: true },
-        select: {
-          _id: true,
-          name: true,
-          executionMode: true,
-          remediationAction: true,
-          aiSelectsRunbook: true,
-          aiComposesCommands: true,
-          verificationWindowMinutes: true,
-          autoResolveOnVerifiedRecovery: true,
-          criteria: true,
-          titlePattern: true,
-          descriptionPattern: true,
-          monitors: { _id: true },
-          incidentSeverities: { _id: true },
-          alertSeverities: { _id: true },
-          labels: { _id: true },
-          monitorLabels: { _id: true },
-          runbooks: { _id: true, name: true },
-          runnerId: true,
-          externalMcpServers: { _id: true },
-          // The LLM provider the rule picks: none when empty.
-          llmProviderId: true,
-          // Whether the rule fixes what it matches, or only investigates it.
-          fixes: true,
-        },
-        limit: MAX_RULES_EVALUATED_PER_PROJECT,
-        skip: 0,
+        select: AUTO_REMEDIATION_RULE_SELECT,
       });
 
     logIfRuleReadWasTruncated({
