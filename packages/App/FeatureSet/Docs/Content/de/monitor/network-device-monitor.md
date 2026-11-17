@@ -136,7 +136,7 @@ Lassen Sie den Abschnitt eingeklappt, und das Gerät wird nur angepingt: Der ein
 | SNMP-v3-Privacy-Schlüssel | Die Passphrase für die Verschlüsselung. | Mit Verschlüsselung |
 :::
 
-Auf dem Gerät eingegebene Anmeldedaten haben Vorrang vor einem daneben gewählten Anmeldedatenprofil, und der Standort des Geräts kann ebenfalls ein Standardprofil tragen. Anmeldedaten in einem Profil werden verschlüsselt gespeichert. Auf einem Gerät eingegebene Anmeldedaten sind durch dieselben Leseberechtigungen geschützt, werden aber nicht verschlüsselt gespeichert: ein Grund mehr, gemeinsam genutzte Anmeldedaten in einem Profil zu halten.
+Auf dem Gerät eingegebene Anmeldedaten haben Vorrang vor einem daneben gewählten Anmeldedatenprofil, und der Standort des Geräts kann ebenfalls ein Standardprofil tragen. Anmeldedaten in einem Profil werden verschlüsselt gespeichert. Auf einem Gerät eingegebene Anmeldedaten werden ebenfalls verschlüsselt gespeichert und sind durch dieselben Leseberechtigungen geschützt.
 
 ## Viele Geräte auf einmal ändern
 

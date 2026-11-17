@@ -169,6 +169,8 @@ function isFromOneUptime(rawBody, signatureHeader, secret) {
 
 Webhook 无需验证，因此添加后会立即添加其规则。私有地址和内部地址会被拒绝，除非自托管服务器的管理员允许它们：参见 [私有网络访问](/docs/self-hosted/private-network-access#webhook-和工作流)。
 
+你的 Webhook 地址以加密形式存储，只有你能读回：Slack、Microsoft Teams 或 Discord 的地址中带有密钥，任何拿到它的人都能向你的端点发送消息。你的通知规则用 Webhook 的 **名称** 来指代它，项目的 Webhook 日志只保留地址的协议和主机。
+
 ## 为项目开启渠道
 
 **SMS**、 **语音电话**、 **WhatsApp** 和 **Telegram** 在每个新项目中默认关闭，因为每条消息都要花钱：在 OneUptime Cloud 上，费用从项目余额中支付；如果项目的默认 Twilio 账户用于发送短信和电话，它们会改为通过项目自己的 Twilio 账户发送。邮件、推送、Slack、Microsoft Teams、Mattermost 和 Webhook 始终开启。

@@ -169,6 +169,8 @@ function isFromOneUptime(rawBody, signatureHeader, secret) {
 
 웹훅은 인증이 필요 없으므로, 추가하면 규칙도 바로 추가됩니다. 사설 주소와 내부 주소는 자체 호스팅 서버의 관리자가 허용하지 않는 한 거부됩니다. [프라이빗 네트워크 접근](/docs/self-hosted/private-network-access#웹후크와-워크플로)을 참고하세요.
 
+웹훅 주소는 암호화되어 저장되며, 다시 읽을 수 있는 사람은 본인뿐입니다. Slack, Microsoft Teams, Discord 주소에는 시크릿이 들어 있어, 주소를 가진 사람은 누구나 엔드포인트로 게시할 수 있기 때문입니다. 알림 규칙은 웹훅을 **이름**으로 나타내며, 프로젝트의 웹훅 로그는 주소의 스킴과 호스트만 남깁니다.
+
 ## 프로젝트에서 채널 켜기
 
 **SMS**, **음성 전화**, **WhatsApp**, **Telegram**은 메시지마다 비용이 들기 때문에 모든 새 프로젝트에서 꺼진 상태로 시작합니다. OneUptime Cloud에서는 프로젝트 잔액에서 지불되며, 프로젝트의 기본 Twilio 계정이 SMS와 전화를 보내면 그 계정을 통해 나갑니다. 이메일, 푸시, Slack, Microsoft Teams, Mattermost, 웹훅은 항상 켜져 있습니다.

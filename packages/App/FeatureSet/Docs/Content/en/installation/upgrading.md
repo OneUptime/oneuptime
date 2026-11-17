@@ -215,6 +215,9 @@ change.
    `mailgunApiKey`, `postmarkServerToken` or `resendApiKey`, or a custom
    domain's `customCertificateKey`, is refused. An API key is shown only by
    the request that creates or resets it.
+   A notification rule's read of its webhook's `webhookUrl` through
+   `userWebhook` is refused too, as is a read of a network device's legacy
+   `snmpV3Auth` by a key with only Viewer or Settings Viewer.
 4. **If the server reaches the internet through a proxy, let the proxy reach
    your identity provider, calendars, MCP servers and backup storage.** OIDC
    single sign-on, external calendars, MCP servers and backups now use the
@@ -326,6 +329,23 @@ and episodes.
   reads it, and a Runner from before this release is refused such a fix:
   update your Runners. See
   [Private incidents, alerts and episodes](/docs/permissions/index#private-incidents-alerts-and-episodes).
+- **Webhook addresses and SNMP credentials are stored encrypted, and logs
+  keep a webhook's address by its host.** A Slack, Microsoft Teams or Discord
+  webhook carries its secret in its address, and an SNMP community string or
+  v3 key opens the device it belongs to, so a database dump or a backup held
+  them ready to use. Now the addresses of status page subscribers' Slack,
+  Microsoft Teams and webhook subscriptions, of webhook notification methods,
+  of OpenStack project notices and of custom notification channels, a
+  channel's signing secret, and the SNMP credentials of network devices and
+  discovery scans are stored encrypted. The upgrade encrypts the ones you
+  have, and every notification, poll, sweep and import goes on using them as
+  written. A project's webhook logs keep only an address's scheme and host
+  (`https://hooks.slack.com/•••`), the logs from before the upgrade included,
+  and an on-call log names the webhook a page was sent to rather than its
+  address. A server of the earlier release still running during the upgrade
+  reads an encrypted address or credential as a broken one, so its sends and
+  polls fail until it is replaced, and what it saves meanwhile is stored as
+  written until it is next saved.
 :::
 
 ## Upgrading from OneUptime 13 → 14
