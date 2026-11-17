@@ -478,10 +478,12 @@ export enum DiscoveredDeviceEmptyKind {
 
 export function getDiscoveredDeviceEmptyKind(data: {
   search: string;
+  // A filter chip narrows the list as the search does (issue #9304).
+  isFiltered?: boolean | undefined;
   show: DiscoveredDeviceShow;
   counts: DiscoveredDeviceCounts;
 }): DiscoveredDeviceEmptyKind {
-  if (data.search.trim()) {
+  if (data.search.trim() || data.isFiltered) {
     /*
      * The counts are the search's: a match under another choice is not
      * "nothing matches" - the device is there, a click away.

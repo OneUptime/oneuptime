@@ -56561,5 +56561,10 @@
   "{{team}} (typed name)": "{{team}}（手動輸入的名稱）",
   "Nothing has checked this SLO's monitors yet. It is measured from their first check.": "此 SLO 的監測器尚未被檢查過。它從這些監測器的首次檢查開始計量。",
   "Discovered device {{name}}": "已探索的裝置 {{name}}",
-  "The Discovered Devices list": "已探索的裝置清單"
+  "The Discovered Devices list": "已探索的裝置清單",
+  "Every filter must match. Clear one, or clear them all.": "必須符合所有篩選條件。請清除其中一個，或全部清除。",
+  "Filter discovered devices": "篩選已探索的裝置",
+  "Network controller": "網路控制器",
+  "No discovered device matches this search and these filters.": "沒有已探索的裝置符合此搜尋和這些篩選條件。",
+  "Switch or router": "交換器或路由器"
 }

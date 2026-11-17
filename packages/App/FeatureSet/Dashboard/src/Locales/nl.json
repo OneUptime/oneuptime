@@ -56561,5 +56561,10 @@
   "{{team}} (typed name)": "{{team}} (getypte naam)",
   "Nothing has checked this SLO's monitors yet. It is measured from their first check.": "De monitoren van deze SLO zijn nog niet gecontroleerd. Ze wordt gemeten vanaf hun eerste controle.",
   "Discovered device {{name}}": "Gedetecteerd apparaat {{name}}",
-  "The Discovered Devices list": "De lijst met gedetecteerde apparaten"
+  "The Discovered Devices list": "De lijst met gedetecteerde apparaten",
+  "Every filter must match. Clear one, or clear them all.": "Elk filter moet overeenkomen. Wis er één, of wis ze allemaal.",
+  "Filter discovered devices": "Gedetecteerde apparaten filteren",
+  "Network controller": "Netwerkcontroller",
+  "No discovered device matches this search and these filters.": "Geen gedetecteerd apparaat komt overeen met deze zoekopdracht en deze filters.",
+  "Switch or router": "Switch of router"
 }

@@ -1,5 +1,9 @@
 import {
+  DiscoveredDeviceFilter,
+  DiscoveredDeviceFilterField,
+  DiscoveredDeviceFilterOperator,
   DiscoveredDeviceShow,
+  DiscoveredDeviceSource,
   DiscoveredDeviceSort,
   DiscoveredDeviceSortOrder,
   MAX_DISCOVERED_DEVICE_SEARCH_WORDS,
@@ -52,6 +56,7 @@ export interface DiscoveredDeviceScope {
 export interface DiscoveredDeviceRowsQuery {
   scope: DiscoveredDeviceScope;
   search: string;
+  filters?: Array<DiscoveredDeviceFilter> | undefined;
   show: DiscoveredDeviceShow;
   sort: DiscoveredDeviceSort;
   sortOrder: DiscoveredDeviceSortOrder;
@@ -254,6 +259,136 @@ export function buildSearchCondition(
     .join(" AND ");
 }
 
+// The name a row is listed under, as getDiscoveredDeviceName words it.
+const NAME_SQL: string = `COALESCE(NULLIF(btrim(c."classification"), ''), NULLIF(btrim(c."hostname"), ''), NULLIF(c."address", ''), c."macAddress")`;
+
+// Each text field's column, as the row draws it.
+const TEXT_FILTER_COLUMNS: Readonly<Record<string, string>> = {
+  [DiscoveredDeviceFilterField.Name]: NAME_SQL,
+  [DiscoveredDeviceFilterField.IpAddress]: `c."ipAddress"`,
+  [DiscoveredDeviceFilterField.MacAddress]: `c."macAddress"`,
+  [DiscoveredDeviceFilterField.Vendor]: `c."vendor"`,
+  [DiscoveredDeviceFilterField.Hostname]: `c."hostname"`,
+};
+
+/*
+ * One text filter, compared without case. A MAC is compared as its twelve
+ * hex digits when the value reads as part of one, so "aa-bb" finds
+ * aa:bb:cc:dd:ee:ff however either is separated.
+ */
+function buildTextFilterCondition(
+  filter: DiscoveredDeviceFilter,
+  params: StatementParams,
+): string {
+  let column: string = TEXT_FILTER_COLUMNS[filter.field] || `NULL::text`;
+  let value: string = filter.values[0] || "";
+
+  if (filter.field === DiscoveredDeviceFilterField.MacAddress && value) {
+    const hex: string | null = getMacSearchHex(value);
+
+    if (hex) {
+      column = `c."macKey"`;
+      value = hex;
+    }
+  }
+
+  const present: string = `NULLIF(btrim(${column}), '') IS NOT NULL`;
+  const like: (pattern: string) => string = (pattern: string): string => {
+    return `${column} ILIKE ${params.add(pattern)} ESCAPE '!'`;
+  };
+  const escaped: string = escapeLikePattern(value);
+
+  switch (filter.operator) {
+    case DiscoveredDeviceFilterOperator.IsEmpty:
+      return `NOT (${present})`;
+    case DiscoveredDeviceFilterOperator.IsNotEmpty:
+      return `(${present})`;
+    case DiscoveredDeviceFilterOperator.Is:
+      return `lower(btrim(${column})) = lower(${params.add(value)})`;
+    case DiscoveredDeviceFilterOperator.IsNot:
+      return `(NOT (${present}) OR lower(btrim(${column})) <> lower(${params.add(value)}))`;
+    case DiscoveredDeviceFilterOperator.Contains:
+      return like(`%${escaped}%`);
+    case DiscoveredDeviceFilterOperator.NotContains:
+      return `(NOT (${present}) OR NOT (${like(`%${escaped}%`)}))`;
+    case DiscoveredDeviceFilterOperator.StartsWith:
+      return like(`${escaped}%`);
+    case DiscoveredDeviceFilterOperator.EndsWith:
+      return like(`%${escaped}`);
+    default:
+      return "TRUE";
+  }
+}
+
+/*
+ * Every filter must hold (OneUptime issue #9304). Values travel as
+ * parameters, never in the text.
+ */
+export function buildFiltersCondition(
+  filters: Array<DiscoveredDeviceFilter> | undefined,
+  params: StatementParams,
+): string {
+  const conditions: Array<string> = [];
+
+  for (const filter of filters || []) {
+    switch (filter.field) {
+      case DiscoveredDeviceFilterField.Site:
+        if (filter.operator === DiscoveredDeviceFilterOperator.IsEmpty) {
+          conditions.push(`c."siteId" IS NULL`);
+        } else if (
+          filter.operator === DiscoveredDeviceFilterOperator.IsNotEmpty
+        ) {
+          conditions.push(`c."siteId" IS NOT NULL`);
+        } else if (filter.operator === DiscoveredDeviceFilterOperator.Is) {
+          conditions.push(
+            `c."siteId" = ANY(${params.add(filter.values)}::uuid[])`,
+          );
+        } else if (filter.operator === DiscoveredDeviceFilterOperator.IsNot) {
+          conditions.push(
+            `(c."siteId" IS NULL OR NOT (c."siteId" = ANY(${params.add(filter.values)}::uuid[])))`,
+          );
+        }
+        break;
+      case DiscoveredDeviceFilterField.Source: {
+        const fromController: boolean = filter.values.includes(
+          DiscoveredDeviceSource.Controller,
+        );
+        const fromWalk: boolean = filter.values.includes(
+          DiscoveredDeviceSource.Walk,
+        );
+
+        if (fromController !== fromWalk) {
+          conditions.push(
+            fromController
+              ? `c."isFromController"`
+              : `NOT c."isFromController"`,
+          );
+        }
+        break;
+      }
+      case DiscoveredDeviceFilterField.LastSeen:
+        if (filter.operator === DiscoveredDeviceFilterOperator.Before) {
+          conditions.push(
+            `c."lastSeenAt" < ${params.add(filter.values[0])}::timestamptz`,
+          );
+        } else if (filter.operator === DiscoveredDeviceFilterOperator.After) {
+          conditions.push(
+            `c."lastSeenAt" > ${params.add(filter.values[0])}::timestamptz`,
+          );
+        } else if (filter.operator === DiscoveredDeviceFilterOperator.Between) {
+          conditions.push(
+            `c."lastSeenAt" BETWEEN ${params.add(filter.values[0])}::timestamptz AND ${params.add(filter.values[1])}::timestamptz`,
+          );
+        }
+        break;
+      default:
+        conditions.push(buildTextFilterCondition(filter, params));
+    }
+  }
+
+  return conditions.length > 0 ? conditions.join("\n  AND ") : "TRUE";
+}
+
 export function buildShowCondition(show: DiscoveredDeviceShow): string {
   switch (show) {
     case DiscoveredDeviceShow.NotMonitored:
@@ -305,10 +440,12 @@ export function buildOrder(
 export function buildCountsStatement(data: {
   scope: DiscoveredDeviceScope;
   search: string;
+  filters?: Array<DiscoveredDeviceFilter> | undefined;
 }): DiscoveredDeviceStatement {
   const params: StatementParams = new StatementParams();
   const classified: string = buildClassifiedRows(data.scope, params);
   const search: string = buildSearchCondition(data.search, params);
+  const filters: string = buildFiltersCondition(data.filters, params);
 
   return {
     sql: `${classified}
@@ -318,7 +455,8 @@ SELECT
   COUNT(*) FILTER (WHERE c."monitoredDeviceId" IS NOT NULL)::int AS "monitored",
   COUNT(*) FILTER (WHERE c."monitoredDeviceId" IS NULL AND c."isHidden")::int AS "hidden"
 FROM classified c
-WHERE ${search}`,
+WHERE ${search}
+  AND ${filters}`,
     params: params.values,
   };
 }
@@ -330,6 +468,7 @@ export function buildRowsStatement(
   const params: StatementParams = new StatementParams();
   const classified: string = buildClassifiedRows(query.scope, params);
   const search: string = buildSearchCondition(query.search, params);
+  const filters: string = buildFiltersCondition(query.filters, params);
   const limit: string = params.add(Math.max(1, Math.floor(query.limit)));
   const skip: string = params.add(Math.max(0, Math.floor(query.skip)));
 
@@ -338,6 +477,7 @@ export function buildRowsStatement(
 SELECT ${ROW_COLUMNS}
 FROM classified c
 WHERE ${search}
+  AND ${filters}
   AND ${buildShowCondition(query.show)}
 ORDER BY ${buildOrder(query.sort, query.sortOrder)}
 LIMIT ${limit} OFFSET ${skip}`,
@@ -349,6 +489,7 @@ LIMIT ${limit} OFFSET ${skip}`,
 export function buildIdsStatement(data: {
   scope: DiscoveredDeviceScope;
   search: string;
+  filters?: Array<DiscoveredDeviceFilter> | undefined;
   show: DiscoveredDeviceShow;
   sort: DiscoveredDeviceSort;
   sortOrder: DiscoveredDeviceSortOrder;
@@ -357,6 +498,7 @@ export function buildIdsStatement(data: {
   const params: StatementParams = new StatementParams();
   const classified: string = buildClassifiedRows(data.scope, params);
   const search: string = buildSearchCondition(data.search, params);
+  const filters: string = buildFiltersCondition(data.filters, params);
   const limit: string = params.add(Math.max(1, Math.floor(data.limit)));
 
   return {
@@ -364,6 +506,7 @@ export function buildIdsStatement(data: {
 SELECT c."id", c."classification", c."hostname", c."ipAddress", c."macAddress", c."monitoredDeviceId"
 FROM classified c
 WHERE ${search}
+  AND ${filters}
   AND ${buildShowCondition(data.show)}
 ORDER BY ${buildOrder(data.sort, data.sortOrder)}
 LIMIT ${limit}`,

@@ -56561,5 +56561,10 @@
   "{{team}} (typed name)": "{{team}} (typed name)",
   "Nothing has checked this SLO's monitors yet. It is measured from their first check.": "Nothing has checked this SLO's monitors yet. It is measured from their first check.",
   "Discovered device {{name}}": "Discovered device {{name}}",
-  "The Discovered Devices list": "The Discovered Devices list"
+  "The Discovered Devices list": "The Discovered Devices list",
+  "Every filter must match. Clear one, or clear them all.": "Every filter must match. Clear one, or clear them all.",
+  "Filter discovered devices": "Filter discovered devices",
+  "Network controller": "Network controller",
+  "No discovered device matches this search and these filters.": "No discovered device matches this search and these filters.",
+  "Switch or router": "Switch or router"
 }
