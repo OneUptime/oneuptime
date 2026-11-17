@@ -75,7 +75,7 @@ function stepTitle(step: UserFlowJourneyStep, translator: Translator): string {
 }
 
 const MARKER_CLASS: string =
-  "text-[10px] font-semibold uppercase tracking-wide text-gray-500";
+  "text-xs font-semibold uppercase tracking-wide text-gray-500";
 
 function Step(props: {
   step: UserFlowJourneyStep;
@@ -236,7 +236,7 @@ function Journey(props: {
         </div>
         {journey.hasRecording === false ? (
           <span
-            className="text-xs text-gray-400"
+            className="text-xs text-gray-500"
             data-testid="user-flow-journey-no-recording"
           >
             {translator.translateText("No recording")}

@@ -225,7 +225,7 @@ const SpanPodExceptions: FunctionComponent<ComponentProps> = (
           <div className="min-w-0">
             {exception.exceptionType && (
               <div
-                className={`font-mono text-[11px] font-semibold ${
+                className={`font-mono text-xs font-semibold ${
                   isDuringSpan ? "text-red-700" : "text-gray-500"
                 }`}
               >
@@ -241,14 +241,14 @@ const SpanPodExceptions: FunctionComponent<ComponentProps> = (
             </div>
           </div>
           <div className="flex flex-none flex-col items-end gap-1">
-            <span className="font-mono text-[11px] tabular-nums text-gray-500">
+            <span className="font-mono text-xs tabular-nums text-gray-500">
               {line.offsetLabel}
             </span>
             {groupRoute && (
               <Link
                 to={groupRoute}
                 openInNewTab={true}
-                className="text-[11px] font-medium text-red-700 hover:underline"
+                className="text-xs font-medium text-red-700 hover:underline"
               >
                 {translator.translateText("View exception")}
               </Link>
@@ -257,7 +257,7 @@ const SpanPodExceptions: FunctionComponent<ComponentProps> = (
         </div>
         {exception.stackTrace && (
           <details className="mt-2">
-            <summary className="cursor-pointer text-[11px] font-medium text-red-700">
+            <summary className="cursor-pointer text-xs font-medium text-red-700">
               {translator.translateText("Stack trace")}
             </summary>
             <pre className="mt-1 max-h-60 overflow-auto whitespace-pre rounded bg-white p-2 font-mono text-[11px] text-gray-800">
@@ -324,7 +324,7 @@ const SpanPodExceptions: FunctionComponent<ComponentProps> = (
           },
         )}
         {result.isCut && (
-          <p className="text-[11px] text-gray-500">
+          <p className="text-xs text-gray-500">
             {describePodExceptionCut(translator)}
           </p>
         )}
@@ -358,7 +358,7 @@ const SpanPodExceptions: FunctionComponent<ComponentProps> = (
       {isOpen && (
         <div id={bodyId} className="space-y-3">
           <p
-            className="text-[11px] leading-relaxed text-gray-500"
+            className="text-xs leading-relaxed text-gray-500"
             data-testid="span-pod-exceptions-window"
           >
             {describeSpanPodExceptionWindow({

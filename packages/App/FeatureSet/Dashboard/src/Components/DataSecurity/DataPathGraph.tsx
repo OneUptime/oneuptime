@@ -431,7 +431,7 @@ const DataPathCard: FunctionComponent<NodeProps<DataPathCardData>> = (
         </span>
       </span>
       {subtitle ? (
-        <span className="mt-0.5 block truncate text-[11px] text-gray-500">
+        <span className="mt-0.5 block truncate text-xs text-gray-500">
           {subtitle}
         </span>
       ) : (

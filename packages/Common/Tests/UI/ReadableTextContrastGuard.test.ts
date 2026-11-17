@@ -119,6 +119,30 @@ const NOT_READ_AS_WORDS: ReadonlyArray<NotReadAsWords> = [
     reason:
       "The viewer's content when it is handed elements, on the same bg-slate-900 panel.",
   },
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Components/Cloud/CloudAiAgentSetupModal.tsx",
+    literal: "text-gray-400",
+    reason:
+      "A check row's label while its checkbox is disabled: the look of a disabled control, with the enabled label in gray-800.",
+  },
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Components/Code/CodeComposer.tsx",
+    literal: "text-gray-300",
+    reason:
+      "The Add context menu's button while the context is locked (the menu isDisabled): a disabled control.",
+  },
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Components/NetworkTraffic/Meraki/MerakiConnectModal.tsx",
+    literal: "bg-white text-gray-400 ring-gray-200",
+    reason:
+      "A step of the connect dialog not reached yet: its button is disabled until the steps before it are done.",
+  },
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/PagingLadderParts.tsx",
+    literal: "text-gray-400",
+    reason:
+      "The punctuation a translated method label puts between the method's name and its identifier (': '), handed in by renderText, so the scan cannot see it is only a mark.",
+  },
 ];
 
 function describeFinding(found: FaintText): string {
@@ -277,6 +301,12 @@ describe("the scan leaves alone what nobody reads as words", () => {
     ).toEqual([]);
     expect(
       scan(`<span className="sr-only text-gray-400">{label}</span>`),
+    ).toEqual([]);
+    // A field's look drawn for the eye: its placeholder is not read.
+    expect(
+      scan(
+        `<div aria-hidden="true"><div className="rounded-md border"><span className="text-gray-400">{placeholder}</span></div></div>`,
+      ),
     ).toEqual([]);
   });
 

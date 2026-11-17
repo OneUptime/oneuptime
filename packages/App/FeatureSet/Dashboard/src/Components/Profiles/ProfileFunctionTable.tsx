@@ -433,7 +433,7 @@ const ProfileFunctionTable: FunctionComponent<ComponentProps> = (
                 className="flex items-start gap-3 px-5 py-3 md:px-6"
                 data-testid="profiles-function-row"
               >
-                <span className="mt-0.5 w-6 flex-none text-right font-mono text-xs text-gray-400">
+                <span className="mt-0.5 w-6 flex-none text-right font-mono text-xs text-gray-500">
                   {index + 1}
                 </span>
                 <div className="min-w-0 flex-1">
@@ -546,7 +546,7 @@ const ProfileFunctionTable: FunctionComponent<ComponentProps> = (
               className="flex items-start gap-3 px-5 py-3 md:px-6"
               data-testid="profiles-function-row"
             >
-              <span className="mt-0.5 w-6 flex-none text-right font-mono text-xs text-gray-400">
+              <span className="mt-0.5 w-6 flex-none text-right font-mono text-xs text-gray-500">
                 {index + 1}
               </span>
               <div className="min-w-0 flex-1">

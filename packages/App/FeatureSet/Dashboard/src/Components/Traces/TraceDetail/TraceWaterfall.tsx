@@ -283,7 +283,7 @@ const TraceWaterfall: FunctionComponent<ComponentProps> = (
       <div className="overflow-x-auto">
         <div ref={containerRef} className="relative min-w-[720px]">
           {/* Header: column title, tree controls and the time axis. */}
-          <div className="relative flex h-9 items-stretch border-b border-gray-200 bg-gray-50 text-[11px] text-gray-500">
+          <div className="relative flex h-9 items-stretch border-b border-gray-200 bg-gray-50 text-xs text-gray-500">
             <div
               className="flex min-w-0 items-center justify-between gap-2 pl-3 pr-2"
               style={{ width: `${namePercent}%` }}
@@ -635,7 +635,7 @@ const TraceWaterfall: FunctionComponent<ComponentProps> = (
                               data-testid="trace-waterfall-bar"
                             />
                             <span
-                              className={`pointer-events-none absolute top-1/2 -translate-y-1/2 whitespace-nowrap text-[11px] tabular-nums ${
+                              className={`pointer-events-none absolute top-1/2 -translate-y-1/2 whitespace-nowrap text-xs tabular-nums ${
                                 geometry.labelPlacement === "inside"
                                   ? "font-medium text-white"
                                   : "text-gray-500"

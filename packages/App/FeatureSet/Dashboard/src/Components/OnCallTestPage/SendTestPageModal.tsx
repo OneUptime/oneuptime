@@ -429,7 +429,7 @@ const PreviewPerson: FunctionComponent<{
               return (
                 <li
                   key={`${method.channel}-${index}`}
-                  className={method.isVerified ? "" : "text-gray-400"}
+                  className={method.isVerified ? "" : "text-gray-500"}
                   data-testid="test-page-preview-method"
                 >
                   {describePreviewMethod(translator, method)}

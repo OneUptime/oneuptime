@@ -789,7 +789,7 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
                         <span className="text-sm text-gray-900">
                           {host.name || host.hostIdentifier}
                         </span>
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-gray-500">
                           {translator.translateText("Host")}
                         </span>
                       </div>
@@ -814,7 +814,7 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
                       <span className="text-sm text-gray-900" title={entityId}>
                         {source.primary}
                       </span>
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-gray-500">
                         {source.typeLabel}
                       </span>
                     </div>
@@ -828,7 +828,7 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
                     </span>
                     {source.shortId && (
                       <span
-                        className="text-xs font-mono text-gray-400"
+                        className="text-xs font-mono text-gray-500"
                         title={entityId}
                       >
                         {source.shortId}

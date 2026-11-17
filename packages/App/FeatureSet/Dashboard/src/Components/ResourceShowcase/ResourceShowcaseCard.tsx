@@ -304,7 +304,7 @@ const ShowcasePreviewPanel: FunctionComponent<{
           <span className="h-2.5 w-2.5 rounded-full bg-gray-200" />
           <span className="h-2.5 w-2.5 rounded-full bg-gray-200" />
           <span className="h-2.5 w-2.5 rounded-full bg-gray-200" />
-          <span className="ml-auto text-[11px] font-medium uppercase tracking-wider text-gray-400">
+          <span className="ml-auto text-[11px] font-medium uppercase tracking-wider text-gray-500">
             {translate(RESOURCE_SHOWCASE_EXAMPLE_LABEL)}
           </span>
         </div>
@@ -343,7 +343,7 @@ const ShowcasePreviewPanel: FunctionComponent<{
                   className="flex min-w-0 flex-col justify-between gap-0.5 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2"
                 >
                   {/* A long word ("Arbeitsspeicher") wraps rather than being cut. */}
-                  <div className="hyphens-auto break-words text-[11px] font-medium leading-snug text-gray-500">
+                  <div className="hyphens-auto break-words text-xs font-medium leading-snug text-gray-500">
                     {translate(stat.label)}
                   </div>
                   <div
@@ -366,9 +366,9 @@ const ShowcasePreviewPanel: FunctionComponent<{
           </div>
 
           <div className="rounded-lg border border-gray-100 px-3 pb-2 pt-2.5">
-            <div className="flex items-center justify-between gap-3 text-[11px] font-medium text-gray-500">
+            <div className="flex items-center justify-between gap-3 text-xs font-medium text-gray-500">
               <span className="truncate">{translate(preview.chart.label)}</span>
-              <span className="flex-shrink-0 text-gray-400">
+              <span className="flex-shrink-0 text-gray-500">
                 {translate(preview.chart.range || SHOWCASE_CHART_RANGE_TEXT)}
               </span>
             </div>
@@ -423,7 +423,7 @@ const ShowcasePreviewPanel: FunctionComponent<{
                     <div className="truncate font-mono text-xs text-gray-900">
                       {row.name}
                     </div>
-                    <div className="truncate text-[11px] text-gray-500">
+                    <div className="truncate text-xs text-gray-500">
                       {translate(row.detail)}
                     </div>
                   </div>

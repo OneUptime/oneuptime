@@ -412,7 +412,7 @@ function InvestigationWords(props: {
               {props.finding.text}
             </bdi>
             {props.finding.source === "report" ? (
-              <span className="ml-1 text-xs text-gray-400">
+              <span className="ml-1 text-xs text-gray-500">
                 {translator.translateText(AI_INSIGHTS_FROM_REPORT_NOTE)}
               </span>
             ) : (
@@ -1282,7 +1282,7 @@ function Trend(props: {
         them: a Persian page read "2026-10-07".
       */}
       <div
-        className="mt-1 flex justify-between text-xs text-gray-400"
+        className="mt-1 flex justify-between text-xs text-gray-500"
         data-testid="ai-insights-trend-ends"
       >
         <span>{describeTrendDate(props.trend[0]!.date)}</span>

@@ -157,7 +157,7 @@ export const StateSettingsTextCell: FunctionComponent<
     <span
       className={
         props.isMuted
-          ? "text-sm font-normal text-gray-400"
+          ? "text-sm font-normal text-gray-500"
           : props.isProse
             ? "text-sm font-normal text-gray-600"
             : "text-sm font-medium text-gray-700"

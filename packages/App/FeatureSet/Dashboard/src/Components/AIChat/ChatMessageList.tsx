@@ -418,7 +418,7 @@ const ChatMessageList: FunctionComponent<ComponentProps> = (
                     )
                   : undefined
               }
-              className={`flex-shrink-0 whitespace-nowrap text-gray-400 ${
+              className={`flex-shrink-0 whitespace-nowrap text-gray-500 ${
                 hasWork ? "px-1" : ""
               }`}
             >
@@ -520,7 +520,7 @@ const ChatMessageList: FunctionComponent<ComponentProps> = (
             {runStats ? (
               <p
                 data-testid="ai-chat-run-stats"
-                className="mt-1 text-[11px] leading-5 text-gray-400"
+                className="mt-1 text-xs leading-5 text-gray-500"
               >
                 {runStats}
               </p>

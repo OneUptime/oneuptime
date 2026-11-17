@@ -94,7 +94,7 @@ export const SecurityEntityChip: FunctionComponent<SecurityEntityChipProps> = (
         title={title}
       />
       {props.trailing !== undefined ? (
-        <span className="ml-0.5 flex-shrink-0 rounded bg-gray-100 px-1 text-[10px] font-semibold text-gray-600">
+        <span className="ml-0.5 flex-shrink-0 rounded bg-gray-100 px-1 text-xs font-semibold text-gray-600">
           {props.trailing}
         </span>
       ) : (
@@ -135,7 +135,7 @@ const SecurityEntityChips: FunctionComponent<SecurityEntityChipsProps> = (
 
   if (props.entities.length === 0) {
     return (
-      <span className="text-sm text-gray-400">
+      <span className="text-sm text-gray-500">
         {translator.translateText(props.emptyText || "No entities")}
       </span>
     );

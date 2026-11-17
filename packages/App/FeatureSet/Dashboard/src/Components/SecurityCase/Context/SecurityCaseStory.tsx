@@ -654,7 +654,7 @@ const SecurityCaseStory: FunctionComponent<ComponentProps> = (
                     {translator.translateText(STORY_FILTER_LABELS[option]) ||
                       STORY_FILTER_LABELS[option]}
                   </span>
-                  <span className="tabular-nums text-gray-400">
+                  <span className="tabular-nums text-gray-500">
                     {translator.formatNumber(counts[option])}
                   </span>
                 </button>

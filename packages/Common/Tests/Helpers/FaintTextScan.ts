@@ -15,7 +15,8 @@ import ts from "typescript";
  *   1. Faint text: a JSX element whose className names a resting
  *      text-gray-300 or text-gray-400 (or slate's) and that holds text: a
  *      word written in the JSX, or a value ({event.description}). An
- *      element that holds only icons, that is aria-hidden, or that sits on
+ *      element that holds only icons, that is aria-hidden (or inside an
+ *      aria-hidden element of the same file), or that sits on
  *      a dark ground of its own (bg-gray-700 and darker, on it or on an
  *      element around it in the same file) is left alone: there the light
  *      gray is the one that reads. A variant (hover:, dark:, placeholder:,
@@ -453,6 +454,25 @@ function isAnEyebrowOrAChip(
   );
 }
 
+/*
+ * Whether an element around this one in the file is aria-hidden: a preview
+ * drawn for the eye (a form field's look, a placeholder inside it) that a
+ * reader is not meant to read.
+ */
+function isInsideAriaHidden(element: ts.JsxOpeningElement): boolean {
+  let node: ts.Node | undefined = element.parent?.parent;
+
+  while (node) {
+    if (ts.isJsxElement(node) && isAriaHidden(node.openingElement)) {
+      return true;
+    }
+
+    node = node.parent;
+  }
+
+  return false;
+}
+
 // Whether the element, or one around it in the file, sits on a dark ground.
 function isOnADarkGround(
   element: ts.JsxOpeningElement | ts.JsxSelfClosingElement,
@@ -661,6 +681,7 @@ export function findFaintText(
       if (
         !isIconTag(tag) &&
         !isAriaHidden(opening) &&
+        !isInsideAriaHidden(opening) &&
         !isScreenReaderOnly(opening) &&
         !isOnlyAMark(node.children) &&
         childrenHoldText(node.children)

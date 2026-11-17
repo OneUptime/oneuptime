@@ -628,7 +628,7 @@ export const DiscoveredHostNamingLine: FunctionComponent<{
           {naming.name}
         </span>
         {naming.ruleName && (
-          <span className="max-sm:hidden flex-shrink-0 truncate text-xs text-gray-400 sm:inline">
+          <span className="max-sm:hidden flex-shrink-0 truncate text-xs text-gray-500 sm:inline">
             <InlineSeparator />
             {naming.ruleName}
           </span>
@@ -795,7 +795,7 @@ export const DiscoveredHostRow: FunctionComponent<DiscoveredHostRowProps> = (
             </div>
             {unnamedHostExplanation && (
               <Fragment>
-                <span className="flex-shrink-0 text-xs text-gray-400">
+                <span className="flex-shrink-0 text-xs text-gray-500">
                   {translator.translateText(unnamedHostExplanation.label)}
                 </span>
                 <InfoTooltip
@@ -813,7 +813,7 @@ export const DiscoveredHostRow: FunctionComponent<DiscoveredHostRowProps> = (
             {entry.ipAddress}
             {isNamedByNetbios && (
               <span
-                className="text-gray-400"
+                className="text-gray-500"
                 title={translator.translateText(
                   "The Windows computer name this host reported for itself over NetBIOS. A host's own name is used ahead of its reverse-DNS name.",
                 )}
@@ -823,13 +823,13 @@ export const DiscoveredHostRow: FunctionComponent<DiscoveredHostRowProps> = (
               </span>
             )}
             {secondaryFullName && (
-              <span className="text-gray-400">
+              <span className="text-gray-500">
                 <InlineSeparator />
                 {secondaryFullName}
               </span>
             )}
             {secondaryDnsHostname && (
-              <span className="text-gray-400">
+              <span className="text-gray-500">
                 <InlineSeparator />
                 {secondaryDnsHostname}
               </span>
@@ -866,7 +866,7 @@ export const DiscoveredHostRow: FunctionComponent<DiscoveredHostRowProps> = (
              */
             <div
               className={`truncate ${
-                vendor ? "text-xs text-gray-400" : "text-sm text-gray-600"
+                vendor ? "text-xs text-gray-500" : "text-sm text-gray-600"
               }`}
               title={entry.sysDescr}
             >

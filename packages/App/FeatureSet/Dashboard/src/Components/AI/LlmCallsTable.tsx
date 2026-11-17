@@ -114,7 +114,7 @@ const LlmCallsTable: FunctionComponent<ComponentProps> = (
 
     if (!telemetryService) {
       return (
-        <p className="text-gray-400">{translator.translateText("Unknown")}</p>
+        <p className="text-gray-500">{translator.translateText("Unknown")}</p>
       );
     }
 
@@ -470,7 +470,7 @@ const LlmCallsTable: FunctionComponent<ComponentProps> = (
               <span className="font-mono text-xs text-gray-700">
                 {input.toLocaleString(getReaderNumberLocale())} /{" "}
                 {output.toLocaleString(getReaderNumberLocale())}
-                <span className="text-gray-400">
+                <span className="text-gray-500">
                   {" "}
                   ({total.toLocaleString(getReaderNumberLocale())})
                 </span>

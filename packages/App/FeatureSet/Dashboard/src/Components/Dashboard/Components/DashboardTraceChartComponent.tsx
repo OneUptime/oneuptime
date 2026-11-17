@@ -431,7 +431,7 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
                     backgroundColor: colorForSeries(key, index),
                   }}
                 />
-                <span className="max-w-[180px] truncate text-[10px] text-gray-500">
+                <span className="max-w-[180px] truncate text-xs text-gray-500">
                   {labelForSeries(key)}
                 </span>
               </div>
