@@ -726,8 +726,7 @@ describe("4. a status page's subscriber lists offer Unsubscribe in each row", ()
   test("the shared subscriber list offers Unsubscribe in each row", () => {
     const list: ListUse | undefined = uses.find((use: ListUse): boolean => {
       return (
-        use.file === SUBSCRIBER_LIST &&
-        use.modelType === "StatusPageSubscriber"
+        use.file === SUBSCRIBER_LIST && use.modelType === "StatusPageSubscriber"
       );
     });
 

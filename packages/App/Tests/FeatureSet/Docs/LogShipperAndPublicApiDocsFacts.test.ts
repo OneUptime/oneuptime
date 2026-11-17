@@ -3043,7 +3043,9 @@ describe("the Public API page", () => {
       expect({
         column,
         default: statusPage.getTableColumnMetadata(column).defaultValue,
-        read: source.includes(`getStatusPageHistoryInDays( statusPage.${column}, )`),
+        read: source.includes(
+          `getStatusPageHistoryInDays( statusPage.${column}, )`,
+        ),
       }).toEqual({ column, default: 14, read: true });
     }
 
