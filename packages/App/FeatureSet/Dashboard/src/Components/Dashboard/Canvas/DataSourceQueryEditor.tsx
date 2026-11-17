@@ -231,7 +231,6 @@ const DataSourceQueryEditor: FunctionComponent<ComponentProps> = (
             title="Remove"
             buttonStyle={ButtonStyleType.DANGER_OUTLINE}
             buttonSize={ButtonSize.Small}
-            isFullWidthOnPhone={false}
             icon={IconProp.Trash}
             onClick={() => {
               const next: Array<DataSourceQueryConfig> = queryConfigs.filter(

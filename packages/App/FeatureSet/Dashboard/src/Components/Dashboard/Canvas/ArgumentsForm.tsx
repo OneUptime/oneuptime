@@ -770,7 +770,6 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                       title="Remove"
                       buttonSize={ButtonSize.Small}
                       buttonStyle={ButtonStyleType.DANGER_OUTLINE}
-                      isFullWidthOnPhone={false}
                       icon={IconProp.Trash}
                       onClick={() => {
                         const updated: Array<MetricQueryConfigData> = [

@@ -235,17 +235,14 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
                 )}
               </div>
               {/*
-               * The shared Button is the full width of a narrow screen (and
-               * steps 12px in from md up, for a dialog's footer): here it
-               * keeps its own size beside the column's name, at every width
-               * (isFullWidthOnPhone, issue #7331).
+               * Its own size beside the column's name, at every width
+               * (issue #7331): the shared Button has no width of its own.
                */}
               <div className="flex-none">
                 <Button
                   title="Remove"
                   buttonSize={ButtonSize.Small}
                   buttonStyle={ButtonStyleType.DANGER_OUTLINE}
-                  isFullWidthOnPhone={false}
                   icon={IconProp.Trash}
                   onClick={(): void => {
                     removeColumn(index);
@@ -437,7 +434,6 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
           title="Add Metric"
           buttonSize={ButtonSize.Small}
           buttonStyle={ButtonStyleType.OUTLINE}
-          isFullWidthOnPhone={false}
           icon={IconProp.Add}
           onClick={(): void => {
             addColumn(TableColumnKind.Metric);
@@ -447,7 +443,6 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
           title="Add Formula"
           buttonSize={ButtonSize.Small}
           buttonStyle={ButtonStyleType.OUTLINE}
-          isFullWidthOnPhone={false}
           icon={IconProp.Add}
           onClick={(): void => {
             addColumn(TableColumnKind.Formula);

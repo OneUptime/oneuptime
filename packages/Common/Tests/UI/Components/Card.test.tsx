@@ -294,7 +294,7 @@ describe("Card header layout", () => {
      * them and should be made on purpose.
      */
     const GOLDEN_WITH_ACTIONS: string =
-      '<div data-testid="card" class="mb-5 extra"><div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible"><div class="py-6 px-5 md:px-6"><div data-testid="card-header" data-header-layout="default" class="flex flex-wrap items-center gap-x-4 gap-y-2 md:flex-nowrap md:items-start"><div data-testid="card-header-title-block" class="min-w-0 md:flex-1"><h2 data-testid="card-details-heading" class="text-lg font-semibold leading-6 text-gray-900 text-balance break-words oneuptime-unmask">Title</h2><p data-testid="card-description" class="mt-1.5 text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed text-pretty oneuptime-unmask">Desc</p></div><div data-testid="card-header-actions" class="ml-auto flex max-w-full flex-wrap items-center justify-end gap-x-3 gap-y-2 md:flex-shrink-0"><div class="flex items-center"><span>right</span></div><div class="flex items-center [&amp;>button]:ml-0 [&amp;>button]:md:ml-0 [&amp;>*>button]:ml-0 [&amp;>*>button]:md:ml-0"><a href="/docs">Docs</a></div></div></div><div class="mt-0"><div>body</div></div></div></div></div>';
+      '<div data-testid="card" class="mb-5 extra"><div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible"><div class="py-6 px-5 md:px-6"><div data-testid="card-header" data-header-layout="default" class="flex flex-wrap items-center gap-x-4 gap-y-2 md:flex-nowrap md:items-start"><div data-testid="card-header-title-block" class="min-w-0 md:flex-1"><h2 data-testid="card-details-heading" class="text-lg font-semibold leading-6 text-gray-900 text-balance break-words oneuptime-unmask">Title</h2><p data-testid="card-description" class="mt-1.5 text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed text-pretty oneuptime-unmask">Desc</p></div><div data-testid="card-header-actions" class="ml-auto flex max-w-full flex-wrap items-center justify-end gap-x-3 gap-y-2 md:flex-shrink-0"><div class="flex items-center"><span>right</span></div><div class="flex items-center"><a href="/docs">Docs</a></div></div></div><div class="mt-0"><div>body</div></div></div></div></div>';
 
     const GOLDEN_WITHOUT_ACTIONS: string =
       '<div data-testid="card" class="mb-5 "><div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible"><div class="py-6 px-5 md:px-6"><div data-testid="card-header" data-header-layout="default" class="flex flex-wrap items-center gap-x-4 gap-y-2 md:flex-nowrap md:items-start"><div data-testid="card-header-title-block" class="w-full min-w-0"><h2 data-testid="card-details-heading" class="text-lg font-semibold leading-6 text-gray-900 text-balance break-words oneuptime-unmask">Title</h2><p data-testid="card-description" class="mt-1.5 text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed text-pretty oneuptime-unmask">Desc</p></div></div><div class="mt-4"><div>body</div></div></div></div></div>';
@@ -454,7 +454,7 @@ describe("Card header layout", () => {
     };
 
     const GOLDEN_WITH_ACTIONS: string =
-      '<div data-testid="card" class="mb-5 extra"><div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible"><div class="py-6 px-5 md:px-6"><div data-testid="card-header" data-header-layout="stacked"><div data-testid="card-header-title-row" class="flex flex-wrap items-center gap-x-4 gap-y-2 md:items-center"><div data-testid="card-header-title-block" class="min-w-0 md:grow md:basis-1/2"><h2 data-testid="card-details-heading" class="text-lg font-semibold leading-6 text-gray-900 text-balance break-words oneuptime-unmask">Title</h2></div><div data-testid="card-header-actions" class="ml-auto flex max-w-full flex-wrap items-center justify-end gap-x-3 gap-y-2 md:-my-[7px]"><div class="flex items-center"><span>right</span></div><div class="flex items-center [&amp;>button]:ml-0 [&amp;>button]:md:ml-0 [&amp;>*>button]:ml-0 [&amp;>*>button]:md:ml-0"><a href="/docs">Docs</a></div></div></div><p data-testid="card-description" class="mt-[9px] text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed text-pretty oneuptime-unmask">Desc</p></div><div class="mt-0"><div>body</div></div></div></div></div>';
+      '<div data-testid="card" class="mb-5 extra"><div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible"><div class="py-6 px-5 md:px-6"><div data-testid="card-header" data-header-layout="stacked"><div data-testid="card-header-title-row" class="flex flex-wrap items-center gap-x-4 gap-y-2 md:items-center"><div data-testid="card-header-title-block" class="min-w-0 md:grow md:basis-1/2"><h2 data-testid="card-details-heading" class="text-lg font-semibold leading-6 text-gray-900 text-balance break-words oneuptime-unmask">Title</h2></div><div data-testid="card-header-actions" class="ml-auto flex max-w-full flex-wrap items-center justify-end gap-x-3 gap-y-2 md:-my-[7px]"><div class="flex items-center"><span>right</span></div><div class="flex items-center"><a href="/docs">Docs</a></div></div></div><p data-testid="card-description" class="mt-[9px] text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed text-pretty oneuptime-unmask">Desc</p></div><div class="mt-0"><div>body</div></div></div></div></div>';
 
     test("renders this exact markup", () => {
       expect(
@@ -662,32 +662,39 @@ describe("Card header layout", () => {
         ).toBe(actions().children[1]);
       });
 
-      test("each button's box clears the button's own left margin, so the row's gap alone spaces them", () => {
+      test("the row's gap alone spaces the buttons: no box and no button carries a margin", () => {
         render(<Card {...baseProps} headerLayout={headerLayout} />);
 
         const boxes: Array<Element> = Array.from(actions().children).slice(1);
 
         for (const box of boxes) {
           expect(box.getAttribute("class")).toBe(CARD_HEADER_ACTION_CLASS_NAME);
-          expect(box).toHaveClass(
-            "[&>button]:ml-0",
-            "[&>button]:md:ml-0",
-            "[&>*>button]:ml-0",
-            "[&>*>button]:md:ml-0",
-          );
+          expect(box.getAttribute("class")).toBe("flex items-center");
         }
 
-        /*
-         * Normal buttons carry a dialog footer's md:ml-3, which the box
-         * clears; an outline button carries no margin of its own.
-         */
-        expect(screen.getByText("Edit").closest("button")).toHaveClass(
-          "md:ml-3",
-        );
-        expect(screen.getByText("Refresh").closest("button")).not.toHaveClass(
-          "ml-1",
-        );
+        // Neither a normal nor an outline button carries a margin (#9128).
+        for (const title of ["Edit", "Refresh"]) {
+          expect(screen.getByText(title).closest("button")?.className).not.toMatch(
+            /(^|\s)(md:)?!?m[ls]-/u,
+          );
+        }
         expect(classOf(actions())).toContain("gap-x-3");
+      });
+
+      /*
+       * Two short actions share the header's row on a phone, as they fit:
+       * a button that filled its box below md (w-full) made each box as
+       * wide as the row, so Send test SMS and Make test call took a line
+       * each on a 390px phone (#9100).
+       */
+      test("no button fills its box's width on a phone", () => {
+        render(<Card {...baseProps} headerLayout={headerLayout} />);
+
+        for (const title of ["Edit", "Refresh"]) {
+          expect(screen.getByText(title).closest("button")).not.toHaveClass(
+            "w-full",
+          );
+        }
       });
 
       test("never centred, never in a column", () => {
