@@ -2,6 +2,7 @@ import { expect, jest } from "@jest/globals";
 import { act, fireEvent } from "@testing-library/react";
 import VMwareResourceModel from "../../../Models/DatabaseModels/VMwareResource";
 import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
+import { withDurationWordsHeld } from "../../../Types/NoBreakSpaces";
 
 /*
  * Helpers for the VMware page render tests (VMwareOverviewTooltips,
@@ -106,6 +107,19 @@ export async function explainedLabels(
   }
 
   return result;
+}
+
+/*
+ * Labels paired with what they explain, as a page draws the explanations:
+ * each duration's figure held to its word by a no-break space (#8811). What
+ * explainedLabels reads is compared with these.
+ */
+export function asDrawn(
+  pairs: ReadonlyArray<[string, string]>,
+): Array<[string, string]> {
+  return pairs.map(([label, text]: [string, string]): [string, string] => {
+    return [label, withDurationWordsHeld(text)];
+  });
 }
 
 /*

@@ -136,6 +136,8 @@ import {
   HostMetric,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/MetricDescriptions/HostMetricDescriptions";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
+// A tooltip draws a duration's figure held to its word (#8811).
+import { withDurationWordsHeld } from "../../../Types/NoBreakSpaces";
 import NotEqual from "../../../Types/BaseDatabase/NotEqual";
 
 const D: Record<HostMetric, string> = HOST_METRIC_DESCRIPTIONS;
@@ -466,7 +468,7 @@ describe("Host process view", () => {
       await renderProcess();
 
       expect(await explanationOnHover(infoButtonsFor(label)[index]!)).toBe(
-        D[key],
+        withDurationWordsHeld(D[key]),
       );
     },
   );
@@ -670,10 +672,10 @@ describe("Host process view", () => {
 
     expect(infoLabels()).toEqual(["CPU", "Memory (RSS)", "Disk I/O"]);
     expect(await explanationOnHover(infoButtonsFor("Disk I/O")[0]!)).toBe(
-      D.processDiskIoChart,
+      withDurationWordsHeld(D.processDiskIoChart),
     );
     expect(await explanationOnHover(infoButtonsFor("CPU")[0]!)).toBe(
-      D.processCpuChart,
+      withDurationWordsHeld(D.processCpuChart),
     );
   });
 });
@@ -741,7 +743,9 @@ describe("Host Windows service view", () => {
     async (label: string, key: HostMetric) => {
       await renderService();
 
-      expect(await explanationOnHover(infoButtonsFor(label)[0]!)).toBe(D[key]);
+      expect(await explanationOnHover(infoButtonsFor(label)[0]!)).toBe(
+        withDurationWordsHeld(D[key]),
+      );
     },
   );
 
@@ -885,7 +889,9 @@ describe("Host systemd unit view", () => {
     async (label: string, key: HostMetric) => {
       await renderUnit();
 
-      expect(await explanationOnHover(infoButtonsFor(label)[0]!)).toBe(D[key]);
+      expect(await explanationOnHover(infoButtonsFor(label)[0]!)).toBe(
+        withDurationWordsHeld(D[key]),
+      );
     },
   );
 

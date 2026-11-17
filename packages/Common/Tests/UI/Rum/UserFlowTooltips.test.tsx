@@ -42,6 +42,7 @@ import {
 import { expectReadableDescriptionRecord } from "../../App/Dashboard/MetricDescriptionRules";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { QUIET_DASH_TEXT } from "../../Helpers/QuietDash";
+import { withDurationWordsHeld } from "../../../Types/NoBreakSpaces";
 
 /*
  * The User Flows page's (i) tooltips, rendered: the five overview tiles,
@@ -301,8 +302,9 @@ async function expectExplained(
 
   // Never nested in another control (a sort button, a finding card).
   expect(button.parentElement?.closest("button, a")).toBeNull();
+  // As a tooltip draws it: a duration's figure held to its word (#8811).
   expect(await tooltipTextOf(button)).toBe(
-    RUM_USER_FLOW_METRIC_DESCRIPTIONS[key],
+    withDurationWordsHeld(RUM_USER_FLOW_METRIC_DESCRIPTIONS[key]),
   );
 }
 
