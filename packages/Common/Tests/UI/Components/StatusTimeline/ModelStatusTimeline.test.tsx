@@ -923,6 +923,29 @@ describe("an entry's actions", () => {
 
     expect(getItemCalls[0]!.select).toEqual({ statusChangeLog: true });
     expect(await screen.findByText(/"responseCode": 503/)).toBeInTheDocument();
+    // A log kept whole says nothing about its size.
+    expect(screen.queryByTestId("trimmed-log-note")).not.toBeInTheDocument();
+  });
+
+  test("View Logs says so when the check the log kept was trimmed to its size limit (#9189)", async () => {
+    (rowsInStore[1] as MonitorStatusTimeline).statusChangeLog = {
+      responseCode: 503,
+      isEvidenceTruncated: true,
+    } as JSONObject;
+
+    await renderMonitor();
+
+    const menu: HTMLElement = await openEntryMenu(1);
+
+    await act(async () => {
+      fireEvent.click(
+        within(menu).getByRole("menuitem", { name: "View Logs" }),
+      );
+    });
+
+    expect(await screen.findByTestId("trimmed-log-note")).toHaveTextContent(
+      "This check was too large to keep in full, so it was trimmed.",
+    );
   });
 
   test("Show ID shows the event's id", async () => {

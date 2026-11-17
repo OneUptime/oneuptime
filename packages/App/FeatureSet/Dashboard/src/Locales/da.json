@@ -56512,5 +56512,6 @@
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private alert out.": "Alle med adgang til repositoriet kan se denne pull request med ændringen og dens beskrivelse. Denne private advarsel nævnes ikke i den.",
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "Alle med adgang til repositoriet kan se denne pull request med ændringen og dens beskrivelse. Denne private hændelse nævnes ikke i den.",
   "Only someone who may approve fixes can open this pull request.": "Kun en, der må godkende rettelser, kan åbne denne pull request.",
-  "VPA": "VPA"
+  "VPA": "VPA",
+  "This check was too large to keep in full, so it was trimmed.": "Dette tjek var for stort til at blive gemt i sin helhed, så det er blevet afkortet."
 }
