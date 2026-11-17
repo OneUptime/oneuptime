@@ -56,6 +56,19 @@ const CONNECTION_TOKEN: string = "glpat-the-connections-own-0002";
 
 const NOW: Date = new Date("2026-11-16T10:00:00.000Z");
 
+/*
+ * The fake GitLab's clock is the suite's (NOW): a token is made "on"
+ * 2026-11-16 and ends at the start of its expiry date, so GitLab judges it
+ * on the day the product made it - not on whatever day the suite runs, which
+ * passed that date at midnight UTC on 2026-11-17. A test that moves the
+ * clock passes its own `now`, which wins.
+ */
+const ON_THE_SUITES_CLOCK: { now: () => Date } = {
+  now: (): Date => {
+    return NOW;
+  },
+};
+
 let connection: CodeRepositoryConnection | undefined;
 let runs: Map<string, AIRun>;
 let store: MintedTokenStore;
@@ -204,6 +217,7 @@ describe("when a token ends on its own", () => {
   test("the fake GitLab ends it at the start of its expiry date, as GitLab does", async () => {
     let clock: Date = NOW;
     const gitLab: FakeGitLab = fakeGitLab({
+      ...ON_THE_SUITES_CLOCK,
       connectionToken: CONNECTION_TOKEN,
       now: (): Date => {
         return clock;
@@ -224,6 +238,7 @@ describe("when a token ends on its own", () => {
 describe("revoked when the Runner reports the fix's end (revokeForRun)", () => {
   test("every token the run was handed, through the connection's token, and marked so", async () => {
     const gitLab: FakeGitLab = fakeGitLab({
+      ...ON_THE_SUITES_CLOCK,
       connectionToken: CONNECTION_TOKEN,
     });
     const runId: ObjectID = ObjectID.generate();
@@ -258,6 +273,7 @@ describe("revoked when the Runner reports the fix's end (revokeForRun)", () => {
 
   test("another run's tokens are left alone", async () => {
     const gitLab: FakeGitLab = fakeGitLab({
+      ...ON_THE_SUITES_CLOCK,
       connectionToken: CONNECTION_TOKEN,
     });
     const ending: ObjectID = ObjectID.generate();
@@ -278,6 +294,7 @@ describe("revoked when the Runner reports the fix's end (revokeForRun)", () => {
 
   test("a token GitLab no longer has (404) counts as ended", async () => {
     const gitLab: FakeGitLab = fakeGitLab({
+      ...ON_THE_SUITES_CLOCK,
       connectionToken: CONNECTION_TOKEN,
     });
     const runId: ObjectID = ObjectID.generate();
@@ -298,6 +315,7 @@ describe("revoked when the Runner reports the fix's end (revokeForRun)", () => {
 
   test("GitLab failing to revoke is kept for the sweep, with its words, and never throws", async () => {
     const gitLab: FakeGitLab = fakeGitLab({
+      ...ON_THE_SUITES_CLOCK,
       connectionToken: CONNECTION_TOKEN,
       revokeFailsWithStatus: 500,
     });
@@ -342,6 +360,7 @@ describe("the sweep (revokeEnded): a token whose run no longer needs it", () => 
     "is revoked when the run %s",
     async (_name: string, status: AIRunStatus, holder: ObjectID) => {
       const gitLab: FakeGitLab = fakeGitLab({
+        ...ON_THE_SUITES_CLOCK,
         connectionToken: CONNECTION_TOKEN,
       });
       const runId: ObjectID = ObjectID.generate();
@@ -361,6 +380,7 @@ describe("the sweep (revokeEnded): a token whose run no longer needs it", () => 
 
   test("is revoked when the run is gone", async () => {
     const gitLab: FakeGitLab = fakeGitLab({
+      ...ON_THE_SUITES_CLOCK,
       connectionToken: CONNECTION_TOKEN,
     });
     const token: string = await mint({ gitLab, runId: ObjectID.generate() });
@@ -379,6 +399,7 @@ describe("the sweep (revokeEnded): a token whose run no longer needs it", () => 
 
   test("is kept while its worker still holds the running run", async () => {
     const gitLab: FakeGitLab = fakeGitLab({
+      ...ON_THE_SUITES_CLOCK,
       connectionToken: CONNECTION_TOKEN,
     });
     const runId: ObjectID = ObjectID.generate();
@@ -398,6 +419,7 @@ describe("the sweep (revokeEnded): a token whose run no longer needs it", () => 
 
   test("one that ended on its own is marked, and GitLab is not asked", async () => {
     const gitLab: FakeGitLab = fakeGitLab({
+      ...ON_THE_SUITES_CLOCK,
       connectionToken: CONNECTION_TOKEN,
     });
     const runId: ObjectID = ObjectID.generate();
@@ -427,6 +449,7 @@ describe("the sweep (revokeEnded): a token whose run no longer needs it", () => 
       throw new Error("GitLab kept failing (HTTP 500). Try again later.");
     };
     const gitLab: FakeGitLab = fakeGitLab({
+      ...ON_THE_SUITES_CLOCK,
       connectionToken: CONNECTION_TOKEN,
     });
     const runId: ObjectID = ObjectID.generate();
@@ -454,6 +477,7 @@ describe("the sweep (revokeEnded): a token whose run no longer needs it", () => 
 
   test("one whose connection is gone is noted, and ends on its own at its expiry", async () => {
     const gitLab: FakeGitLab = fakeGitLab({
+      ...ON_THE_SUITES_CLOCK,
       connectionToken: CONNECTION_TOKEN,
     });
     const runId: ObjectID = ObjectID.generate();
