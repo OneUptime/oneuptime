@@ -3,9 +3,12 @@ import CommonAPI from "../../../Server/API/CommonAPI";
 import {
   ON_CALL_TEST_PAGE_API_PATH,
   ON_CALL_TEST_POLICY_NOT_ALLOWED_MESSAGE,
+  readFireDrillEventKey,
   readObjectId,
   readTestedSeverity,
 } from "../../../Server/API/OnCallTestPageAPI";
+import OnCallFireDrillService from "../../../Server/Services/OnCallFireDrillService";
+import { ON_CALL_FIRE_DRILL_NOT_ALLOWED_MESSAGE } from "../../../Types/OnCallDutyPolicy/OnCallFireDrill";
 import TestSendAccess, {
   TestSendCaller,
 } from "../../../Server/API/TestSendAccess";
@@ -527,6 +530,215 @@ describe("the On-Call app's Acknowledge test page", () => {
 
     expect(thrown).toBeInstanceOf(BadDataException);
     expect(isAnswered).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * A monitor's fire drill (#7012): a signed-in member, as a person, who may
+ * read the monitor - and, to start it, who may test every policy it pages,
+ * each asked as the policy's own test asks it.
+ */
+describe("a monitor's fire drill", () => {
+  const MONITOR: ObjectID = new ObjectID(
+    "7e5af000-0000-4000-8000-000000000081",
+  );
+  const OTHER_POLICY: ObjectID = new ObjectID(
+    "7e5af000-0000-4000-8000-000000000082",
+  );
+
+  test.each([
+    ["POST", "/fire-drill/preview"],
+    ["POST", "/fire-drill/start"],
+  ])(
+    "%s %s runs behind the user middleware",
+    (method: string, path: string) => {
+      const route: ReturnType<typeof mockRouter.match> = mockRouter.match(
+        method,
+        `${ON_CALL_TEST_PAGE_API_PATH}${path}`,
+      );
+
+      expect(route.middleware).toBe(UserMiddleware.getUserMiddleware);
+    },
+  );
+
+  test("the preview is the caller's, in the caller's project, and asks of each policy whether they may test it as its own test asks", async () => {
+    const preview: jest.SpyInstance = jest
+      .spyOn(OnCallFireDrillService, "getPreview")
+      .mockImplementation((async (data: {
+        mayTestPolicy: (policyId: ObjectID) => Promise<boolean>;
+      }) => {
+        return {
+          monitorId: MONITOR.toString(),
+          mayTestPolicy: await data.mayTestPolicy(POLICY),
+          mayTestOther: await data.mayTestPolicy(OTHER_POLICY),
+        };
+      }) as never);
+    mayTestPolicy.mockImplementation((async (data: {
+      record: { id: ObjectID };
+      errorMessage: string;
+    }) => {
+      expect(data.errorMessage).toBe(ON_CALL_TEST_POLICY_NOT_ALLOWED_MESSAGE);
+
+      if (data.record.id.toString() === OTHER_POLICY.toString()) {
+        throw new NotAuthorizedException(data.errorMessage);
+      }
+
+      return CALLER;
+    }) as never);
+
+    const { thrown, sent } = await call("POST", "/fire-drill/preview", {
+      body: {
+        monitorId: MONITOR.toString(),
+        eventKey: " criteria-1:Incident:template-1:0 ",
+        projectId: OTHER_PROJECT.toString(),
+      },
+    });
+
+    expect(thrown).toBeUndefined();
+    expect(getCaller).toHaveBeenCalled();
+    expect(preview).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId: PROJECT,
+        monitorId: MONITOR,
+        callerUserId: ANA,
+        props: CALLER.props,
+        eventKey: "criteria-1:Incident:template-1:0",
+      }),
+    );
+    // A policy the check refuses is one they may not test - never an error.
+    expect(sent).toEqual({
+      monitorId: MONITOR.toString(),
+      mayTestPolicy: true,
+      mayTestOther: false,
+    });
+  });
+
+  test("a caller the test-send rule refuses previews nothing", async () => {
+    const preview: jest.SpyInstance = jest.spyOn(
+      OnCallFireDrillService,
+      "getPreview",
+    );
+    getCaller.mockRejectedValue(
+      new NotAuthorizedException(
+        ON_CALL_TEST_PAGE_NOT_AUTHORIZED_MESSAGE,
+      ) as never,
+    );
+
+    const { thrown } = await call("POST", "/fire-drill/preview", {
+      body: { monitorId: MONITOR.toString() },
+    });
+
+    expect(thrown).toBeInstanceOf(NotAuthorizedException);
+    expect(preview).not.toHaveBeenCalled();
+  });
+
+  test("starting it hands the service the check that refuses a policy the caller may not test with the drill's own words", async () => {
+    const start: jest.SpyInstance = jest
+      .spyOn(OnCallFireDrillService, "start")
+      .mockImplementation((async (data: {
+        assertMayTestPolicy: (policyId: ObjectID) => Promise<void>;
+      }) => {
+        await data.assertMayTestPolicy(POLICY);
+        await data.assertMayTestPolicy(OTHER_POLICY);
+        return { runs: [] };
+      }) as never);
+    mayTestPolicy.mockImplementation((async (data: {
+      record: { id: ObjectID };
+      errorMessage: string;
+    }) => {
+      if (data.record.id.toString() === OTHER_POLICY.toString()) {
+        throw new NotAuthorizedException(data.errorMessage);
+      }
+
+      return CALLER;
+    }) as never);
+
+    const { thrown } = await call("POST", "/fire-drill/start", {
+      body: {
+        monitorId: MONITOR.toString(),
+        eventKey: "criteria-1:Incident:template-1:0",
+      },
+    });
+
+    expect(start).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId: PROJECT,
+        monitorId: MONITOR,
+        sentByUserId: ANA,
+        eventKey: "criteria-1:Incident:template-1:0",
+      }),
+    );
+    expect(thrown).toBeInstanceOf(NotAuthorizedException);
+    expect((thrown as Error).message).toBe(
+      ON_CALL_FIRE_DRILL_NOT_ALLOWED_MESSAGE,
+    );
+  });
+
+  test("starting it sends what the service started", async () => {
+    jest.spyOn(OnCallFireDrillService, "start").mockResolvedValue({
+      runs: [
+        {
+          policyId: POLICY.toString(),
+          policyName: "Primary",
+          executionLogId: RUN.toString(),
+        },
+      ],
+    } as never);
+
+    const { thrown, sent } = await call("POST", "/fire-drill/start", {
+      body: {
+        monitorId: MONITOR.toString(),
+        eventKey: "criteria-1:Incident:template-1:0",
+      },
+    });
+
+    expect(thrown).toBeUndefined();
+    expect(sent).toEqual({
+      runs: [
+        {
+          policyId: POLICY.toString(),
+          policyName: "Primary",
+          executionLogId: RUN.toString(),
+        },
+      ],
+    });
+  });
+
+  test.each([
+    ["no monitor", { eventKey: "criteria-1:Incident:template-1:0" }],
+    ["a monitor that is not an id", { monitorId: "1 OR 1=1", eventKey: "k" }],
+    ["no failure", { monitorId: "7e5af000-0000-4000-8000-000000000081" }],
+    [
+      "a failure that is no key",
+      {
+        monitorId: "7e5af000-0000-4000-8000-000000000081",
+        eventKey: "x".repeat(201),
+      },
+    ],
+  ] as Array<[string, JSONObject]>)(
+    "starting it with %s is refused, and nothing is started",
+    async (_what: string, body: JSONObject) => {
+      const start: jest.SpyInstance = jest.spyOn(
+        OnCallFireDrillService,
+        "start",
+      );
+
+      const { thrown } = await call("POST", "/fire-drill/start", {
+        body: body,
+      });
+
+      expect(thrown).toBeInstanceOf(BadDataException);
+      expect(start).not.toHaveBeenCalled();
+    },
+  );
+
+  test("the failure asked for is text, trimmed, and at most 200 characters", () => {
+    expect(readFireDrillEventKey(" a:Incident:b:0 ")).toBe("a:Incident:b:0");
+    expect(readFireDrillEventKey("x".repeat(200))).toHaveLength(200);
+    expect(readFireDrillEventKey("x".repeat(201))).toBeUndefined();
+    expect(readFireDrillEventKey("")).toBeUndefined();
+    expect(readFireDrillEventKey(42)).toBeUndefined();
+    expect(readFireDrillEventKey({ key: "a" })).toBeUndefined();
   });
 });
 

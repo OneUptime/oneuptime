@@ -189,7 +189,10 @@ export const ON_CALL_TEST_PAGE_MESSAGE_NOT_FOUND_MESSAGE: string =
   "This test page was not found. It may have been sent to you in another project, or to somebody else.";
 
 const PERSON_LIMIT_NAMESPACE: string = "oncall-test-page-person";
-const POLICY_LIMIT_NAMESPACE: string = "oncall-test-page-policy";
+// A policy's test's window: one a policy every five minutes, a drill's too.
+export const ON_CALL_TEST_PAGE_POLICY_LIMIT_NAMESPACE: string =
+  "oncall-test-page-policy";
+const POLICY_LIMIT_NAMESPACE: string = ON_CALL_TEST_PAGE_POLICY_LIMIT_NAMESPACE;
 const PROJECT_LIMIT_NAMESPACE: string = "oncall-test-page-project";
 
 /*
@@ -212,6 +215,17 @@ const readPrice: (setting: string) => number = (setting: string): number => {
   const value: number = parseInt(process.env[setting] || "", 10);
   return Number.isFinite(value) && value > 0 ? value : 0;
 };
+
+/*
+ * One limit a test claims (claimLimits): a window of its own - a person's
+ * or a policy's - and the words that refuse a test inside it.
+ */
+export interface OnCallTestPageLimitKey {
+  namespace: string;
+  id: ObjectID;
+  intervalInSeconds: number;
+  tooSoonMessage: string;
+}
 
 // One target a test of a policy's level pages: who, and why them.
 interface PolicyLevelTarget {
@@ -618,39 +632,72 @@ export class OnCallTestPageService extends BaseService {
    */
   public async claimLimits(data: {
     projectId: ObjectID;
-    key: {
-      namespace: string;
-      id: ObjectID;
-      intervalInSeconds: number;
-      tooSoonMessage: string;
-    };
+    key: OnCallTestPageLimitKey;
     now?: Date | undefined;
   }): Promise<void> {
-    const token: string = crypto.randomUUID();
-    const windowKey: string = `${data.projectId.toString()}:${data.key.id.toString()}`;
+    await this.claimLimitsOfEach({
+      projectId: data.projectId,
+      keys: [data.key],
+      now: data.now,
+    });
+  }
 
-    let claimed: boolean;
+  /*
+   * THE SAME LIMITS FOR SEVERAL TESTS SENT AT ONCE - an on-call fire drill's
+   * policies (#7012) - claimed all or nothing: each key's own window, then
+   * one of the project's hour for each key, in one add. A test any of them
+   * refuses hands back every window this call claimed, and counts nothing:
+   * a drill never pages some of its policies and is refused the rest.
+   */
+  public async claimLimitsOfEach(data: {
+    projectId: ObjectID;
+    keys: ReadonlyArray<OnCallTestPageLimitKey>;
+    now?: Date | undefined;
+  }): Promise<void> {
+    const claimed: Array<{ namespace: string; key: string; token: string }> =
+      [];
 
-    try {
-      claimed = await GlobalCache.setStringIfNotExists(
-        data.key.namespace,
-        windowKey,
-        token,
-        {
-          expiresInSeconds: data.key.intervalInSeconds,
-        },
-      );
-    } catch (err) {
-      logger.error(
-        `Could not read how often test pages are sent in project ${data.projectId.toString()}: ${err}`,
-      );
-      throw new TooManyRequestsException(
-        ON_CALL_TEST_PAGE_LIMIT_UNREADABLE_MESSAGE,
-      );
+    const handBack: () => Promise<void> = async (): Promise<void> => {
+      for (const window of claimed) {
+        await this.releaseWindow(window.namespace, window.key, window.token);
+      }
+    };
+
+    for (const key of data.keys) {
+      const token: string = crypto.randomUUID();
+      const windowKey: string = `${data.projectId.toString()}:${key.id.toString()}`;
+
+      let isClaimed: boolean;
+
+      try {
+        isClaimed = await GlobalCache.setStringIfNotExists(
+          key.namespace,
+          windowKey,
+          token,
+          {
+            expiresInSeconds: key.intervalInSeconds,
+          },
+        );
+      } catch (err) {
+        logger.error(
+          `Could not read how often test pages are sent in project ${data.projectId.toString()}: ${err}`,
+        );
+        await handBack();
+        throw new TooManyRequestsException(
+          ON_CALL_TEST_PAGE_LIMIT_UNREADABLE_MESSAGE,
+        );
+      }
+
+      if (!isClaimed) {
+        await handBack();
+        throw new TooManyRequestsException(key.tooSoonMessage);
+      }
+
+      claimed.push({ namespace: key.namespace, key: windowKey, token: token });
     }
 
-    if (!claimed) {
-      throw new TooManyRequestsException(data.key.tooSoonMessage);
+    if (claimed.length === 0) {
+      return;
     }
 
     const now: Date = data.now || OneUptimeDate.getCurrentDate();
@@ -665,20 +712,21 @@ export class OnCallTestPageService extends BaseService {
         {
           limit: ON_CALL_TEST_PAGES_PER_PROJECT_PER_HOUR,
           expiresInSeconds: 60 * 60,
+          ...(claimed.length > 1 ? { by: claimed.length } : {}),
         },
       );
     } catch (err) {
       logger.error(
         `Could not count the test pages of project ${data.projectId.toString()}: ${err}`,
       );
-      await this.releaseWindow(data.key.namespace, windowKey, token);
+      await handBack();
       throw new TooManyRequestsException(
         ON_CALL_TEST_PAGE_LIMIT_UNREADABLE_MESSAGE,
       );
     }
 
     if (count === null) {
-      await this.releaseWindow(data.key.namespace, windowKey, token);
+      await handBack();
       throw new TooManyRequestsException(
         ON_CALL_TEST_PAGE_PROJECT_LIMIT_MESSAGE,
       );
@@ -714,6 +762,12 @@ export class OnCallTestPageService extends BaseService {
     severityId: ObjectID;
     targetUserId?: ObjectID | undefined;
     policyId?: ObjectID | undefined;
+    /*
+     * Whether a policy's preview reads the levels a test walking every
+     * level reaches. A fire drill pages its policies' first levels only
+     * (#7012), so it reads none: its walk is empty.
+     */
+    readsWalk?: boolean | undefined;
   }): Promise<OnCallTestPagePreview> {
     await this.readSeverity({
       projectId: data.projectId,
@@ -833,7 +887,7 @@ export class OnCallTestPageService extends BaseService {
       pagesAnybody: people.length > 0,
     };
 
-    if (previous.rule) {
+    if (previous.rule && data.readsWalk !== false) {
       for (let order: number = 2; ; order++) {
         const rule: OnCallDutyPolicyEscalationRule | undefined = getRuleOfOrder(
           rules,
