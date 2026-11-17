@@ -77,6 +77,8 @@ const RAW_SQL_READERS: Record<string, Classification> = {
     mustContain: [
       "AIRunOutputReadFilter.getRunAboutSql({",
       "AIRunOutputReadFilter.getReadableRunsSql({",
+      // A pull request a chat opened: what it carries (#9186).
+      "AIRunOutputReadFilter.getCarriedRecordsSql({",
       // Each statement's own condition, written into it.
       "const runsReadable: string = readableRuns(runParameters);",
       "const waitingReadable: string = readableRuns(waitingParameters);",
@@ -88,7 +90,7 @@ const RAW_SQL_READERS: Record<string, Classification> = {
   },
   "packages/Common/Server/Utils/AI/CodeTask/CodeTaskListRows.ts": {
     kind: "readsRowsAlreadyKept",
-    why: "A list's rows, read per task for the task ids its caller kept to the reader: CodeTaskAPI's page (CodeTaskListQuery or the rule's own read) and a fix's tasks (DeclaredCodeChanges.list, after the person read the fix, and so its record).",
+    why: "A list's rows, read per task for the task ids its caller kept to the reader: CodeTaskAPI's page (CodeTaskListQuery or the rule's own read) and a fix's tasks (DeclaredCodeChanges.list, after the person read the fix, and so its record: of a task a reply carried another record into, only its state and its pull request's link).",
   },
   "packages/Common/Server/Utils/AI/CodeTask/CodeTaskThread.ts": {
     kind: "readsRowsAlreadyKept",
@@ -164,7 +166,7 @@ const API_READERS: Record<string, Classification> = {
   },
   "packages/Common/Server/API/TelemetryExceptionAPI.ts": {
     kind: "aboutNoPrivateRecord",
-    why: "An exception's fix runs and their pull requests: about a telemetry exception, never an incident or alert.",
+    why: "An exception's fix runs and their pull requests: about a telemetry exception, never an incident or alert. Of a task a reply carried one into, it shows only the run's state and its pull request's link and production verdict.",
   },
   "packages/Common/Server/API/SecurityCaseAPI.ts": {
     kind: "aboutNoPrivateRecord",
@@ -172,7 +174,7 @@ const API_READERS: Record<string, Classification> = {
   },
   "packages/Common/Server/API/AIInvestigationAPI.ts": {
     kind: "afterTheRecord",
-    why: "An incident's or alert's investigations and the fix in the code they recommend, read once the person read that record under their own props: a private one's owners.",
+    why: "An incident's or alert's investigations and the fix in the code they recommend, read once the person read that record under their own props: a private one's owners. Of a fix a reply carried another record into, only the fix's state and its link.",
   },
   "packages/Common/Server/API/KubernetesClusterAiAccessAPI.ts": {
     kind: "afterTheRecord",

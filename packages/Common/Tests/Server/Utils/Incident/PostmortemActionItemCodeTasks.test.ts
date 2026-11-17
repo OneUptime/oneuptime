@@ -42,7 +42,10 @@ import PostmortemActionItemStatus from "../../../../Types/Incident/PostmortemAct
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
-import { ActionItemCodeTaskKind } from "../../../../Utils/Incident/PostmortemActionItemCodeTask";
+import {
+  ActionItemCodeTaskKind,
+  PRIVATE_INCIDENT_PULL_REQUEST_INSTRUCTION,
+} from "../../../../Utils/Incident/PostmortemActionItemCodeTask";
 
 /*
  * A postmortem's action item becomes a pull request or a test (#6801):
@@ -90,6 +93,7 @@ let columnWrites: Array<{
 let feedItems: Array<JSONObject>;
 let contextInputs: Array<CodeTaskContextInput>;
 let permissionsAsked: Array<ReadonlyArray<Permission>>;
+let incidentIsPrivate: boolean;
 
 function repository(): CodeRepository {
   const model: CodeRepository = new CodeRepository();
@@ -116,6 +120,7 @@ beforeEach(() => {
   feedItems = [];
   contextInputs = [];
   permissionsAsked = [];
+  incidentIsPrivate = false;
 
   jest
     .spyOn(IncidentPostmortemActionItemService, "findOneById")
@@ -185,6 +190,7 @@ beforeEach(() => {
     incident.title = "Checkout returns 503s";
     incident.incidentNumber = 42;
     incident.postmortemNote = "## Root Cause\nThe pool ran out.";
+    incident.isPrivate = incidentIsPrivate;
     return incident;
   });
 
@@ -362,6 +368,58 @@ describe("asking OneUptime AI for an action item's pull request", () => {
       },
     ]);
     expect((request["context"] as Array<unknown>).length).toBe(2);
+  });
+
+  /*
+   * The task carries the incident (#9186): its request is about it and its
+   * context holds it and its postmortem, so a private incident's task, its
+   * replies and its pull request follow the incident's owners.
+   */
+  test("the task carries the action item's incident, named beside its context", async () => {
+    await start();
+
+    expect(started[0]!["carries"]).toEqual({
+      incidentIds: [INCIDENT_ID.toString()],
+      alertIds: [],
+    });
+  });
+
+  test("a private incident's request names it by its number alone, and asks to keep it out of the pull request", async () => {
+    incidentIsPrivate = true;
+
+    await start();
+
+    const message: string = started[0]!["message"] as string;
+
+    expect(message).toContain(
+      "This is an action item from the postmortem of incident #42. The incident and its postmortem are attached.",
+    );
+    expect(message).not.toContain("Checkout returns 503s");
+    expect(message).toContain(PRIVATE_INCIDENT_PULL_REQUEST_INSTRUCTION);
+    // The AI still reads the incident and its postmortem, as context.
+    expect(contextInputs).toEqual([
+      { type: CodeTaskContextType.Incident, id: INCIDENT_ID.toString() },
+      {
+        type: CodeTaskContextType.Note,
+        text: "The incident's postmortem:\n\n## Root Cause\nThe pool ran out.",
+      },
+    ]);
+    // And the task carries it, so only its owners read the task.
+    expect(started[0]!["carries"]).toEqual({
+      incidentIds: [INCIDENT_ID.toString()],
+      alertIds: [],
+    });
+  });
+
+  test("a public incident's request names it with its title, as before", async () => {
+    await start();
+
+    expect(started[0]!["message"]).toContain(
+      "incident #42: Checkout returns 503s",
+    );
+    expect(started[0]!["message"]).not.toContain(
+      PRIVATE_INCIDENT_PULL_REQUEST_INSTRUCTION,
+    );
   });
 
   test("a test is asked for as a test, with what the person added", async () => {

@@ -178,6 +178,66 @@ export default class AIAgentTaskPullRequest extends BaseModel {
   })
   public aiRunId?: ObjectID = undefined;
 
+  /*
+   * The incidents and alerts a pull request OneUptime AI opened from a chat
+   * carries (#9186): the chat's subject - the incident or alert whose AI
+   * conversation it is, or the one Ask AI was asked about. Its title and
+   * description are the model's, written in that chat. Read by
+   * AIRunOutputReadFilter beside the run it names (a CodeFix run's pull
+   * request is read through its run, which carries what its task carries):
+   * one carrying a private incident or alert is read only by those who may
+   * read it, one carrying a record that is gone only by Project Owners and
+   * Project Admins. Written by OneUptime only.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProjectAIAgentTask,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "Carried Incident IDs",
+    description:
+      "IDs of the incidents this pull request carries: the subject of the AI chat it was opened from.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public carriedIncidentIds?: Array<string> = undefined;
+
+  // The alert counterpart of carriedIncidentIds.
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProjectAIAgentTask,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "Carried Alert IDs",
+    description:
+      "IDs of the alerts this pull request carries: the subject of the AI chat it was opened from.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public carriedAlertIds?: Array<string> = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

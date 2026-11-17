@@ -1041,6 +1041,8 @@ import { KeepOwnersWhenTheirPictureFileIsDeleted1809182520000 } from "./18091825
 import { KeepNotificationLogsWhenOnCallSettingsAreDeleted1809182530000 } from "./1809182530000-KeepNotificationLogsWhenOnCallSettingsAreDeleted";
 import { CascadeRunsAndFixesWithTheirRecord1809182600000 } from "./1809182600000-CascadeRunsAndFixesWithTheirRecord";
 import { DeleteRunsAndFixesOfDeletedRecords1809182610000 } from "./1809182610000-DeleteRunsAndFixesOfDeletedRecords";
+import { AddCarriedRecordsToCodeWork1809182700000 } from "./1809182700000-AddCarriedRecordsToCodeWork";
+import { LinkCodeWorkToTheRecordsItCarries1809182710000 } from "./1809182710000-LinkCodeWorkToTheRecordsItCarries";
 
 export default [
   InitialMigration,
@@ -2086,4 +2088,6 @@ export default [
   KeepNotificationLogsWhenOnCallSettingsAreDeleted1809182530000,
   CascadeRunsAndFixesWithTheirRecord1809182600000,
   DeleteRunsAndFixesOfDeletedRecords1809182610000,
+  AddCarriedRecordsToCodeWork1809182700000,
+  LinkCodeWorkToTheRecordsItCarries1809182710000,
 ];

@@ -75,6 +75,8 @@ Quem pode ler um repositório lê as tarefas dele. Pedir à IA, responder e para
 
 Uma tarefa sobre um incidente ou alerta privado, iniciada a partir da investigação dele ou de uma das correções dele, só é lida, com as respostas e o pull request dela, por quem pode ler o registro e, depois que o registro é excluído, só pelos Proprietários do projeto e Administradores do projeto. Para os demais, as listas, filtros, buscas e contagens do repositório a deixam de fora. Veja [Incidentes, alertas e episódios privados](/docs/permissions/index#incidentes-alertas-e-episódios-privados).
 
+O mesmo vale para uma tarefa que contém um incidente ou alerta privado: uma pedida com ele como contexto, uma à qual uma resposta o adicionou e a tarefa de uma ação de acompanhamento de um post-mortem. Uma tarefa que contém vários só é lida por quem pode ler todos eles. A caixa de diálogo que adiciona um incidente ou alerta a um pedido diz isso.
+
 ## Como funciona uma execução de correção
 
 ```mermaid title="De um clique a um pull request"

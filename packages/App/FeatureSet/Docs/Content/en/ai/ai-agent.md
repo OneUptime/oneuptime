@@ -75,6 +75,8 @@ Anyone who can read a repository reads its tasks. Asking AI, replying and stoppi
 
 A task about a private incident or alert, one started from its investigation or from one of its fixes, is read with its replies and its pull request only by those who may read the record, and, once the record is deleted, only by Project Owners and Project Admins. For everyone else, the repository's lists, filters, searches and counts leave it out. See [Private incidents, alerts and episodes](/docs/permissions/index#private-incidents-alerts-and-episodes).
 
+So is a task that carries a private incident or alert: one asked with it as context, one a reply added it to, and a postmortem action item's task. A task that carries several is read only by those who may read every one of them. The dialog that adds an incident or an alert to a request says so.
+
 ## How a fix run works
 
 ```mermaid title="From a click to a pull request"

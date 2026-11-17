@@ -75,6 +75,8 @@ Toute personne qui peut lire un dépôt lit ses tâches. Demander à l'IA, répo
 
 Une tâche au sujet d'un incident ou d'une alerte privés, lancée depuis son investigation ou depuis l'une de ses corrections, n'est lue, avec ses réponses et sa pull request, que par ceux qui peuvent lire l'enregistrement et, une fois l'enregistrement supprimé, uniquement par les Propriétaires du projet et les Administrateurs du projet. Pour tous les autres, les listes, filtres, recherches et décomptes du dépôt la laissent de côté. Voir [Incidents, alertes et épisodes privés](/docs/permissions/index#incidents-alertes-et-épisodes-privés).
 
+Il en va de même d'une tâche qui contient un incident ou une alerte privés : une tâche demandée avec lui comme contexte, une tâche à laquelle une réponse l'a ajouté et la tâche d'une action à mener d'un postmortem. Une tâche qui en contient plusieurs n'est lue que par ceux qui peuvent tous les lire. La boîte de dialogue qui ajoute un incident ou une alerte à une requête le dit.
+
 ## Déroulement d'une exécution de correction
 
 ```mermaid title="D'un clic à une pull request"
