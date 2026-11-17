@@ -287,13 +287,11 @@ change means every existing user has to authorize the app again.
      and steps in the test plan. Zoom denies a scope that lacks either, and
      asks for it to be removed.
    - The Documentation URL covers adding the app step by step, using each
-     feature, and removing it, with what happens to the data afterwards. For
-     transcripts, the docs do not say yet (#9264).
+     feature, and removing it, with what happens to the data afterwards.
    - The privacy policy discloses how the app accesses, uses, keeps and
      shares people's data, for how long, and how people can ask to see or
      delete it
      ([Zoom: app review guidelines](https://developers.zoom.us/docs/distribute/app-review-guidelines/)).
-     It does not cover transcripts yet (#9264).
    - The support page gives support hours, a first-response time and ways
      to reach support.
    - The Direct landing URL lets a signed-in person authorize the app, a
