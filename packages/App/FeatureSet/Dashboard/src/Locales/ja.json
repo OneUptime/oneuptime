@@ -56680,5 +56680,6 @@
   "{{acknowledged}} of {{count}} tests acknowledged so far.": "これまでに確認されたテスト：{{count}} 件中 {{acknowledged}} 件。",
   "{{acknowledged}} of {{count}} tests acknowledged so far._one": "これまでに確認されたテスト：{{count}} 件中 {{acknowledged}} 件。",
   "{{acknowledged}} of {{count}} tests acknowledged.": "確認されたテスト：{{count}} 件中 {{acknowledged}} 件。",
-  "{{acknowledged}} of {{count}} tests acknowledged._one": "確認されたテスト：{{count}} 件中 {{acknowledged}} 件。"
+  "{{acknowledged}} of {{count}} tests acknowledged._one": "確認されたテスト：{{count}} 件中 {{acknowledged}} 件。",
+  "Backup Script Last Run": "バックアップスクリプトの前回の実行"
 }

@@ -56680,5 +56680,6 @@
   "{{acknowledged}} of {{count}} tests acknowledged so far.": "Test riconosciuti finora: {{acknowledged}} su {{count}}.",
   "{{acknowledged}} of {{count}} tests acknowledged so far._one": "Test riconosciuto finora: {{acknowledged}} su {{count}}.",
   "{{acknowledged}} of {{count}} tests acknowledged.": "Test riconosciuti: {{acknowledged}} su {{count}}.",
-  "{{acknowledged}} of {{count}} tests acknowledged._one": "Test riconosciuto: {{acknowledged}} su {{count}}."
+  "{{acknowledged}} of {{count}} tests acknowledged._one": "Test riconosciuto: {{acknowledged}} su {{count}}.",
+  "Backup Script Last Run": "Ultima esecuzione dello script di backup"
 }

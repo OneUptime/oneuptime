@@ -56680,5 +56680,6 @@
   "{{acknowledged}} of {{count}} tests acknowledged so far.": "目前已确认 {{count}} 个测试中的 {{acknowledged}} 个。",
   "{{acknowledged}} of {{count}} tests acknowledged so far._one": "目前已确认 {{count}} 个测试中的 {{acknowledged}} 个。",
   "{{acknowledged}} of {{count}} tests acknowledged.": "已确认 {{count}} 个测试中的 {{acknowledged}} 个。",
-  "{{acknowledged}} of {{count}} tests acknowledged._one": "已确认 {{count}} 个测试中的 {{acknowledged}} 个。"
+  "{{acknowledged}} of {{count}} tests acknowledged._one": "已确认 {{count}} 个测试中的 {{acknowledged}} 个。",
+  "Backup Script Last Run": "备份脚本最近运行"
 }

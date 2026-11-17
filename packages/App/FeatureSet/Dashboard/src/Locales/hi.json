@@ -56680,5 +56680,6 @@
   "{{acknowledged}} of {{count}} tests acknowledged so far.": "अब तक स्वीकार किए गए परीक्षण: {{count}} में से {{acknowledged}}।",
   "{{acknowledged}} of {{count}} tests acknowledged so far._one": "अब तक स्वीकार किए गए परीक्षण: {{count}} में से {{acknowledged}}।",
   "{{acknowledged}} of {{count}} tests acknowledged.": "स्वीकार किए गए परीक्षण: {{count}} में से {{acknowledged}}।",
-  "{{acknowledged}} of {{count}} tests acknowledged._one": "स्वीकार किए गए परीक्षण: {{count}} में से {{acknowledged}}।"
+  "{{acknowledged}} of {{count}} tests acknowledged._one": "स्वीकार किए गए परीक्षण: {{count}} में से {{acknowledged}}।",
+  "Backup Script Last Run": "बैकअप स्क्रिप्ट का अंतिम रन"
 }

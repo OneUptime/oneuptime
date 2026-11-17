@@ -56680,5 +56680,6 @@
   "{{acknowledged}} of {{count}} tests acknowledged so far.": "Pruebas reconocidas hasta ahora: {{acknowledged}} de {{count}}.",
   "{{acknowledged}} of {{count}} tests acknowledged so far._one": "Prueba reconocida hasta ahora: {{acknowledged}} de {{count}}.",
   "{{acknowledged}} of {{count}} tests acknowledged.": "Pruebas reconocidas: {{acknowledged}} de {{count}}.",
-  "{{acknowledged}} of {{count}} tests acknowledged._one": "Prueba reconocida: {{acknowledged}} de {{count}}."
+  "{{acknowledged}} of {{count}} tests acknowledged._one": "Prueba reconocida: {{acknowledged}} de {{count}}.",
+  "Backup Script Last Run": "Última ejecución del script de copia de seguridad"
 }

@@ -56680,5 +56680,6 @@
   "{{acknowledged}} of {{count}} tests acknowledged so far.": "{{acknowledged}} von {{count}} Tests bisher bestätigt.",
   "{{acknowledged}} of {{count}} tests acknowledged so far._one": "{{acknowledged}} von {{count}} Test bisher bestätigt.",
   "{{acknowledged}} of {{count}} tests acknowledged.": "{{acknowledged}} von {{count}} Tests bestätigt.",
-  "{{acknowledged}} of {{count}} tests acknowledged._one": "{{acknowledged}} von {{count}} Test bestätigt."
+  "{{acknowledged}} of {{count}} tests acknowledged._one": "{{acknowledged}} von {{count}} Test bestätigt.",
+  "Backup Script Last Run": "Letzte Ausführung des Backup-Skripts"
 }

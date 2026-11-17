@@ -56680,5 +56680,6 @@
   "{{acknowledged}} of {{count}} tests acknowledged so far.": "آزمایش‌های تأییدشده تا اینجا: {{acknowledged}} از {{count}}.",
   "{{acknowledged}} of {{count}} tests acknowledged so far._one": "آزمایش‌های تأییدشده تا اینجا: {{acknowledged}} از {{count}}.",
   "{{acknowledged}} of {{count}} tests acknowledged.": "آزمایش‌های تأییدشده: {{acknowledged}} از {{count}}.",
-  "{{acknowledged}} of {{count}} tests acknowledged._one": "آزمایش‌های تأییدشده: {{acknowledged}} از {{count}}."
+  "{{acknowledged}} of {{count}} tests acknowledged._one": "آزمایش‌های تأییدشده: {{acknowledged}} از {{count}}.",
+  "Backup Script Last Run": "آخرین اجرای اسکریپت پشتیبان‌گیری"
 }

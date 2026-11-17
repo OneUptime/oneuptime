@@ -56680,5 +56680,6 @@
   "{{acknowledged}} of {{count}} tests acknowledged so far.": "Bekräftade test hittills: {{acknowledged}} av {{count}}.",
   "{{acknowledged}} of {{count}} tests acknowledged so far._one": "Bekräftat test hittills: {{acknowledged}} av {{count}}.",
   "{{acknowledged}} of {{count}} tests acknowledged.": "Bekräftade test: {{acknowledged}} av {{count}}.",
-  "{{acknowledged}} of {{count}} tests acknowledged._one": "Bekräftat test: {{acknowledged}} av {{count}}."
+  "{{acknowledged}} of {{count}} tests acknowledged._one": "Bekräftat test: {{acknowledged}} av {{count}}.",
+  "Backup Script Last Run": "Senaste körning av säkerhetskopieringsskriptet"
 }

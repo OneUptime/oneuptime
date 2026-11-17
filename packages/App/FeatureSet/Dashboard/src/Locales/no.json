@@ -56680,5 +56680,6 @@
   "{{acknowledged}} of {{count}} tests acknowledged so far.": "Bekreftede tester så langt: {{acknowledged}} av {{count}}.",
   "{{acknowledged}} of {{count}} tests acknowledged so far._one": "Bekreftet test så langt: {{acknowledged}} av {{count}}.",
   "{{acknowledged}} of {{count}} tests acknowledged.": "Bekreftede tester: {{acknowledged}} av {{count}}.",
-  "{{acknowledged}} of {{count}} tests acknowledged._one": "Bekreftet test: {{acknowledged}} av {{count}}."
+  "{{acknowledged}} of {{count}} tests acknowledged._one": "Bekreftet test: {{acknowledged}} av {{count}}.",
+  "Backup Script Last Run": "Siste kjøring av sikkerhetskopiskriptet"
 }
