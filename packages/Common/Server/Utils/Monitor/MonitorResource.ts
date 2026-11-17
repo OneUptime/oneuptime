@@ -70,6 +70,7 @@ import MonitorResourceContextUtil, {
   MonitorRecordResources,
 } from "./MonitorResourceContext";
 import MonitorRecordEvidence from "./MonitorRecordEvidence";
+import MonitorStoredCheck from "./MonitorStoredCheck";
 import LatestIncomingRequest, {
   LatestIncomingRequestColumns,
 } from "./LatestIncomingRequest";
@@ -2189,9 +2190,12 @@ export default class MonitorResourceUtil {
             monitorSteps.data.defaultMonitorStatusId!;
           monitorStatusTimeline.projectId = monitor.projectId!;
           monitorStatusTimeline.isOwnerNotified = true; // no need to notify owner as this is default status.
-          // Cut as the monitor's logs are: everyone who reads the monitor reads it.
+          /*
+           * Cut as the monitor's logs are: everyone who reads the monitor
+           * reads it. And bounded (MonitorStoredCheck).
+           */
           monitorStatusTimeline.statusChangeLog =
-            MonitorRecordEvidence.toStoredCheck({
+            MonitorStoredCheck.toStoredCheck({
               dataToProcess: dataToProcess,
               keepResponseContent:
                 MonitorRecordEvidence.keepsResponseContent(monitor),

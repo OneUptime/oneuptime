@@ -56512,5 +56512,6 @@
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private alert out.": "रिपॉजिटरी तक पहुंच रखने वाला हर व्यक्ति यह पुल रिक्वेस्ट, उसके बदलाव और विवरण के साथ, देख सकता है। इसमें इस निजी अलर्ट का उल्लेख नहीं होता।",
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "रिपॉजिटरी तक पहुंच रखने वाला हर व्यक्ति यह पुल रिक्वेस्ट, उसके बदलाव और विवरण के साथ, देख सकता है। इसमें इस निजी घटना का उल्लेख नहीं होता।",
   "Only someone who may approve fixes can open this pull request.": "यह पुल रिक्वेस्ट केवल वही व्यक्ति खोल सकता है जिसे सुधार स्वीकृत करने की अनुमति हो।",
-  "VPA": "VPA"
+  "VPA": "VPA",
+  "This check was too large to keep in full, so it was trimmed.": "यह जाँच पूरी तरह रखने के लिए बहुत बड़ी थी, इसलिए इसे छोटा कर दिया गया।"
 }
