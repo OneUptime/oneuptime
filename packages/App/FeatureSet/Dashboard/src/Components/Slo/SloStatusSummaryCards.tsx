@@ -238,7 +238,7 @@ const SloStatusSummaryCards: FunctionComponent<ComponentProps> = (
                   <div
                     data-testid={`slo-status-count-${tile.key}`}
                     className={`text-2xl font-semibold tabular-nums ${
-                      count > 0 ? tile.attentionClassName : "text-gray-400"
+                      count > 0 ? tile.attentionClassName : "text-gray-500"
                     }`}
                   >
                     {count}

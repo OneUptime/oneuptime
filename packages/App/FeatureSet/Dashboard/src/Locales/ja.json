@@ -56526,5 +56526,12 @@
   "Webhook Secret Key Hash": "Webhook シークレットキーのハッシュ",
   "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "開くことのできないプライベートなインシデントまたはアラートがこのタスクに追加されたため、進捗とプルリクエストは表示されません。",
   "OneUptime is added to your Zoom account": "OneUptime が Zoom アカウントに追加されました",
-  "{{connectZoom}} to start this project's calls in Zoom.": "{{connectZoom}}して、このプロジェクトの通話を Zoom で開始できるようにしてください。"
+  "{{connectZoom}} to start this project's calls in Zoom.": "{{connectZoom}}して、このプロジェクトの通話を Zoom で開始できるようにしてください。",
+  "Leaves out no policy now.": "現在、除外されるポリシーはありません。",
+  "Leaves out {{count}} policies now: {{names}}.": "現在 {{count}} 件のポリシーを除外します：{{names}}。",
+  "Leaves out {{count}} policies now: {{names}}._one": "現在 {{count}} 件のポリシーを除外します：{{names}}。",
+  "Matches no policy now.": "現在、一致するポリシーはありません。",
+  "Matches {{count}} policies now: {{names}}.": "現在 {{count}} 件のポリシーに一致します：{{names}}。",
+  "Matches {{count}} policies now: {{names}}._one": "現在 {{count}} 件のポリシーに一致します：{{names}}。",
+  "Use On-Call Policy instead": "代わりに「オンコールポリシー」を使用"
 }

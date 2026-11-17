@@ -126,7 +126,7 @@ const DataSourceTypeSelectModal: FunctionComponent<ComponentProps> = (
 
               return (
                 <div key={group.title}>
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3">
                     {group.title}
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

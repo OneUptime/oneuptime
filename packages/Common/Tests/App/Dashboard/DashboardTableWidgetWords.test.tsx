@@ -334,7 +334,7 @@ describe("a metric Table's group whose attribute holds nothing", () => {
 
     expect(word).toHaveTextContent(UNSET);
     // TableEmptyValue's gray: gray-300 was 1.5:1 on a light card.
-    expect(word).toHaveClass("text-gray-400");
+    expect(word).toHaveClass("text-gray-500");
     expect(word).not.toHaveClass("text-gray-300");
   });
 

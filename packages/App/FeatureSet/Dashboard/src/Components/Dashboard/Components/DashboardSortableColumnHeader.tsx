@@ -207,7 +207,7 @@ const DashboardSortableColumnHeader: FunctionComponent<ComponentProps> = (
         className={`group/sort block w-full overflow-hidden ${padding} ${
           props.alignRight ? "text-right" : "text-left"
         } cursor-pointer select-none font-medium uppercase tracking-wider transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${
-          isSorted ? "text-gray-700" : "text-gray-400 hover:text-gray-700"
+          isSorted ? "text-gray-700" : "text-gray-500 hover:text-gray-700"
         }`}
       >
         {props.alignRight ? indicator : <></>}

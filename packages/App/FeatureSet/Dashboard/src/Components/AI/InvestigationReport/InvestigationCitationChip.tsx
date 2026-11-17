@@ -20,7 +20,7 @@ export interface ComponentProps {
  * text.
  */
 export const CITATION_CHIP_CLASS_NAME: string =
-  "mx-0.5 inline-flex h-4 min-w-[1.375rem] items-center justify-center rounded-full px-1.5 align-[0.1em] text-[10px] font-semibold leading-none bg-gray-100 text-gray-600 transition-colors hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
+  "mx-0.5 inline-flex h-4 min-w-[1.375rem] items-center justify-center rounded-full px-1.5 align-[0.1em] text-xs font-semibold leading-none bg-gray-100 text-gray-600 transition-colors hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
 
 /*
  * An inline "[C11]" marker in the report prose, turned into a small button

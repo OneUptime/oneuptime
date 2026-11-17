@@ -93,7 +93,7 @@ const StoreBadgeEyebrow: FunctionComponent<{ text: string }> = ({
   }
 
   return (
-    <span className="text-[9px] font-medium uppercase tracking-[0.1em] text-gray-300">
+    <span className="text-[11px] font-medium uppercase leading-tight tracking-[0.1em] text-gray-300">
       {text.trim()}
     </span>
   );
@@ -266,7 +266,7 @@ const MobileApps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 className="flex flex-col gap-4 px-6 py-5 transition-colors hover:bg-gray-50/60 md:flex-row md:items-center md:justify-between md:px-10"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-gray-400">
+                  <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-gray-500">
                     {row.eyebrow}
                   </p>
                   <p className="mt-1 text-sm font-semibold text-gray-900">

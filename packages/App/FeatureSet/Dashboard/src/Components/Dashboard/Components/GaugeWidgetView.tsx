@@ -552,7 +552,7 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
             {displayValue}
             {displayUnit && (
               <span
-                className="text-gray-400 font-normal tracking-normal"
+                className="text-gray-500 font-normal tracking-normal"
                 style={{
                   fontSize: `${unitFontPx}px`,
                   marginInlineStart: isUnitSetApart ? "0.15em" : "0",
@@ -590,7 +590,7 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
       <div
         dir="ltr"
         data-testid={GAUGE_BOUNDS_TEST_ID}
-        className={`flex justify-between w-full text-[10px] text-gray-400 ${getNumberSpacingClassName(formattedMin + formattedMax)}`}
+        className={`flex justify-between w-full text-xs text-gray-500 ${getNumberSpacingClassName(formattedMin + formattedMax)}`}
         style={{ maxWidth: `${gaugeSize}px` }}
       >
         <span>{formattedMin}</span>

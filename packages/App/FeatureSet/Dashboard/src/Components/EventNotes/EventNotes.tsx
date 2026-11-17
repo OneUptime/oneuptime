@@ -1067,7 +1067,7 @@ function EventNotes<TNote extends BaseModel>(
               <h3 className="mb-4 flex items-center gap-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
                 <span>{tx(group.label)}</span>
                 <span className="h-px flex-1 bg-gray-100" />
-                <span className="font-medium normal-case tracking-normal text-gray-400">
+                <span className="font-medium normal-case tracking-normal text-gray-500">
                   {translator.translatePlural(
                     { one: "{{count}} note", other: "{{count}} notes" },
                     group.notes.length,
@@ -1191,7 +1191,7 @@ function EventNotes<TNote extends BaseModel>(
               {sortOrder === "newest"
                 ? tx("Show older notes")
                 : tx("Show newer notes")}
-              <span className="text-gray-400">
+              <span className="text-gray-500">
                 {translator.translatePlural(
                   { one: "({{count}} more)", other: "({{count}} more)" },
                   totalCount - notes.length,

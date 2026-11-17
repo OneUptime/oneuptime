@@ -568,7 +568,13 @@ describe("4. subscriber lists offer Unsubscribe, and nothing subscribes people a
 
   test("the Subscribers page draws that list on every channel's tab", () => {
     const page: string = fs.readFileSync(
-      path.join(DASHBOARD_SRC, "Pages", "StatusPages", "View", "Subscribers.tsx"),
+      path.join(
+        DASHBOARD_SRC,
+        "Pages",
+        "StatusPages",
+        "View",
+        "Subscribers.tsx",
+      ),
       "utf8",
     );
 

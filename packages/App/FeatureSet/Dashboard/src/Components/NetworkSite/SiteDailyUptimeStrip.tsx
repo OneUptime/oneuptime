@@ -110,7 +110,7 @@ const SiteDailyUptimeStrip: FunctionComponent<ComponentProps> = (
           },
         )}
       </div>
-      <div className="mt-2 flex items-center justify-between text-[11px] text-gray-400">
+      <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
         <span>
           {OneUptimeDate.getDateAsLocalFormattedString(
             props.entries[0]!.dayStart,

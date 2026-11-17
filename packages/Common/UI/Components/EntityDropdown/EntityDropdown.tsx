@@ -182,6 +182,15 @@ export interface EntityDropdownProps {
    * connected yet." Unset, "Nothing to pick yet." (EntityDropdownEmptyList).
    */
   emptyListText?: string | undefined;
+  /*
+   * What a value the field holds reads as once looking it up found no such
+   * record - a monitor or a label a rule's condition names, since deleted
+   * (#7807): in English, to look up, drawn in muted italics as the rule's
+   * card draws it, and removable like any pick. Unset, such a value shows
+   * its id, as before: a form whose values the database keeps whole has
+   * none.
+   */
+  notFoundLabel?: string | undefined;
 }
 
 const SEARCH_DEBOUNCE_MS: number = 250;
@@ -467,6 +476,14 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
 
   const optionsCacheRef: React.MutableRefObject<Map<string, DropdownOption>> =
     useRef<Map<string, DropdownOption>>(new Map());
+
+  /*
+   * The values a finished look-up found no record for (notFoundLabel): a
+   * record since deleted. One still being looked up is not among them.
+   */
+  const notFoundKeysRef: React.MutableRefObject<Set<string>> = useRef<
+    Set<string>
+  >(new Set());
 
   /*
    * Seed the cache *during render* rather than in a useEffect. A pure-effect
@@ -991,6 +1008,12 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
             optionsCacheRef.current.set(valueKey(opt.value), opt);
           }
         }
+        // Asked for, and not there: no such record any more.
+        for (const key of missing) {
+          if (!optionsCacheRef.current.has(key)) {
+            notFoundKeysRef.current.add(key);
+          }
+        }
         // Force a re-render so chips pick up the resolved labels.
         setSelectedKeys((prev: Array<string>): Array<string> => {
           return [...prev];
@@ -1417,6 +1440,18 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       if (cached) {
         return cached;
       }
+      /*
+       * A value no record answers to any more says so, where the page asks
+       * (notFoundLabel), in words to look up - never as a name as written.
+       */
+      if (props.notFoundLabel && notFoundKeysRef.current.has(key)) {
+        return {
+          value: key,
+          label: props.notFoundLabel,
+          isUserContent: false,
+          isNotFound: true,
+        };
+      }
       return { value: key, label: key };
     });
     /*
@@ -1425,7 +1460,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
      * graph honest — when the parent hands us new options, this memo
      * recomputes against the freshly-seeded cache.
      */
-  }, [selectedKeys, initialFlat, inboundOptions]);
+  }, [selectedKeys, initialFlat, inboundOptions, props.notFoundLabel]);
 
   /*
    * Visual label color extracted from option.color (which can be either a
@@ -1577,7 +1612,10 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                  */}
                 <span
                   data-testid="entity-dropdown-chip-label"
-                  className="min-w-0 [overflow-wrap:anywhere]"
+                  data-not-found={opt.isNotFound ? "true" : undefined}
+                  className={`min-w-0 [overflow-wrap:anywhere] ${
+                    opt.isNotFound ? "font-normal italic text-gray-500" : ""
+                  }`}
                 >
                   {getOptionText(opt)}
                 </span>
@@ -1711,7 +1749,17 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                     />
                   );
                 })()}
-                <span id={valueLabelId} className="font-medium text-gray-900">
+                <span
+                  id={valueLabelId}
+                  data-not-found={
+                    selectedOptions[0]!.isNotFound ? "true" : undefined
+                  }
+                  className={
+                    selectedOptions[0]!.isNotFound
+                      ? "font-normal italic text-gray-500"
+                      : "font-medium text-gray-900"
+                  }
+                >
                   {getOptionText(selectedOptions[0]!)}
                 </span>
                 {selectedOptions[0]!.isArchived && (

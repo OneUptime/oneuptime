@@ -877,7 +877,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
                   translator,
                 )}
               </p>
-              <p className="text-[11px] text-gray-400">{t("requests")}</p>
+              <p className="text-xs text-gray-500">{t("requests")}</p>
             </div>
             <div>
               <p className="text-sm font-semibold text-gray-900">
@@ -885,7 +885,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
                   formatErrorRate(totals.calls, totals.errors, translator),
                 )}
               </p>
-              <p className="text-[11px] text-gray-400">{t("errors")}</p>
+              <p className="text-xs text-gray-500">{t("errors")}</p>
             </div>
             <div>
               <p className="text-sm font-semibold text-gray-900">
@@ -897,7 +897,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
                   ),
                 )}
               </p>
-              <p className="text-[11px] text-gray-400">{t("avg latency")}</p>
+              <p className="text-xs text-gray-500">{t("avg latency")}</p>
             </div>
           </div>
         ) : (
@@ -1383,7 +1383,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
                   translationKey("Calls it made"),
                   props.traffic.outbound,
                 )}
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-gray-500">
                   {t("Latest ~15-minute window.")}
                 </p>
               </div>

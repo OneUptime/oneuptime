@@ -400,7 +400,7 @@ const DataSecurityIssuesPage: FunctionComponent<
               }
 
               return (
-                <span className="text-sm text-gray-400">
+                <span className="text-sm text-gray-500">
                   {translator.translateText(UNASSIGNED)}
                 </span>
               );

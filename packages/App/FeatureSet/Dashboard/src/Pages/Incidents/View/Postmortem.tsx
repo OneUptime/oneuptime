@@ -462,7 +462,7 @@ const IncidentPostmortem: FunctionComponent<
 
                 if (!modelIdString) {
                   return (
-                    <div className="text-sm text-gray-400 italic">
+                    <div className="text-sm text-gray-500 italic">
                       {translator.translateText(
                         "Attachments are available but the incident identifier is missing, so they cannot be displayed.",
                       )}

@@ -140,7 +140,7 @@ const WebVitalRouteBreakdownCard: FunctionComponent<
                 <span>
                   {translator.translateText("Route")}
                   {props.breakdown?.routeAttribute ? (
-                    <span className="ms-1 font-mono normal-case tracking-normal text-gray-400">
+                    <span className="ms-1 font-mono normal-case tracking-normal text-gray-500">
                       ({props.breakdown.routeAttribute})
                     </span>
                   ) : null}
@@ -208,7 +208,7 @@ const WebVitalRouteBreakdownCard: FunctionComponent<
                   </td>
                   <td className="whitespace-nowrap py-2 text-end">
                     <span
-                      className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${classes.chip}`}
+                      className={`rounded-full px-1.5 py-0.5 text-xs font-medium ${classes.chip}`}
                     >
                       {getValueOrQuietDash(ratingLabel(rated), {
                         isSmall: true,

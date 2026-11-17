@@ -136,7 +136,7 @@ const FilterQueryBuilderField: FunctionComponent<ComponentProps> = (
               className={`px-3.5 py-1.5 text-xs font-semibold rounded-md transition-all duration-150 ${
                 connector === "AND"
                   ? "bg-white text-indigo-700 shadow-sm ring-1 ring-black/5"
-                  : "text-gray-400 hover:text-gray-600"
+                  : "text-gray-500 hover:text-gray-600"
               }`}
               onClick={() => {
                 handleConnectorChange("AND");
@@ -149,7 +149,7 @@ const FilterQueryBuilderField: FunctionComponent<ComponentProps> = (
               className={`px-3.5 py-1.5 text-xs font-semibold rounded-md transition-all duration-150 ${
                 connector === "OR"
                   ? "bg-white text-amber-700 shadow-sm ring-1 ring-black/5"
-                  : "text-gray-400 hover:text-gray-600"
+                  : "text-gray-500 hover:text-gray-600"
               }`}
               onClick={() => {
                 handleConnectorChange("OR");
@@ -233,7 +233,7 @@ const FilterQueryBuilderField: FunctionComponent<ComponentProps> = (
       {previewQuery && (
         <div className="mt-4">
           <details className="group">
-            <summary className="flex items-center gap-1.5 cursor-pointer text-xs text-gray-400 hover:text-gray-500 transition-colors select-none list-none">
+            <summary className="flex items-center gap-1.5 cursor-pointer text-xs text-gray-500 hover:text-gray-500 transition-colors select-none list-none">
               {/* Points where the line goes, as Icon's chevrons do. */}
               <svg
                 className={`w-3 h-3 transition-transform duration-150 group-open:rotate-90 ${ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME}`}

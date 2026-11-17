@@ -1170,7 +1170,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
               ? "Services reporting"
               : "Not connected to anything in this view",
           )}{" "}
-          <span className="font-normal normal-case text-gray-400">
+          <span className="font-normal normal-case text-gray-500">
             ({translator.formatNumber(unconnectedEntries.length)})
           </span>
         </h4>

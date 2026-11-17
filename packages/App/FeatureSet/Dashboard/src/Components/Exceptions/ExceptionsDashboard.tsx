@@ -709,7 +709,7 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                               }}
                             />
                           </div>
-                          <span className="text-[11px] tabular-nums text-gray-500 shrink-0">
+                          <span className="text-xs tabular-nums text-gray-500 shrink-0">
                             {translator.translatePlural(
                               { one: "{{count}} hit", other: "{{count}} hits" },
                               summary.totalOccurrences,

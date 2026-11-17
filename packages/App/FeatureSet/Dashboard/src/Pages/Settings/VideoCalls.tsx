@@ -119,7 +119,7 @@ const HowItWorks: FunctionComponent = (): ReactElement => {
               </span>
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-gray-900">
-                  <span className="mr-1 text-gray-400">{index + 1}.</span>
+                  <span className="mr-1 text-gray-500">{index + 1}.</span>
                   {step.title}
                 </p>
                 <p className="mt-1 text-sm text-gray-500">{step.body}</p>

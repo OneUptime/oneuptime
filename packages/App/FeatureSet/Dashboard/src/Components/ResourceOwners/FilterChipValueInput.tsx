@@ -320,7 +320,7 @@ const FilterChipValueInput: FunctionComponent<ComponentProps> = (
                 />
               </div>
               <div className="mt-2 flex items-center justify-between">
-                <p className="px-0.5 text-xs text-gray-400">
+                <p className="px-0.5 text-xs text-gray-500">
                   {translator.translateText("Press Enter to apply.")}
                 </p>
                 <button

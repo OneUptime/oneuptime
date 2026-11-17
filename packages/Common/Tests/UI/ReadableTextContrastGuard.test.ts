@@ -9,7 +9,6 @@ import {
   findFaintText,
   scanDirectories,
 } from "../Helpers/FaintTextScan";
-import STILL_TO_FIX from "./ReadableTextStillToFix";
 import {
   DARK_SURFACES,
   LIGHT_SURFACES,
@@ -57,9 +56,7 @@ import {
  * placeholder drawn by hand, a disabled row) goes in NOT_READ_AS_WORDS below
  * with why.
  *
- * The shared UI (Common/UI) holds none. The apps hold no more than
- * STILL_TO_FIX (ReadableTextStillToFix.ts) allows a file, a count that may
- * only fall: lower it, or take the file off, as you fix them.
+ * Every app and the shared UI hold none (#9192 fixed the last of them).
  */
 
 /*
@@ -71,9 +68,6 @@ const SCANNED_DIRECTORIES: ReadonlyArray<string> = listScanRoots(
 ).map((directory: string): string => {
   return path.relative(REPOSITORY_ROOT, directory).split(path.sep).join("/");
 });
-
-// Held to none: the shared UI every app draws with.
-const SHARED_UI: string = "packages/Common/UI/";
 
 interface NotReadAsWords {
   file: string;
@@ -118,6 +112,37 @@ const NOT_READ_AS_WORDS: ReadonlyArray<NotReadAsWords> = [
     literal: "text-slate-300 whitespace-pre-wrap break-all",
     reason:
       "The viewer's content when it is handed elements, on the same bg-slate-900 panel.",
+  },
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Components/Cloud/CloudAiAgentSetupModal.tsx",
+    literal: "text-gray-400",
+    reason:
+      "A check row's label while its checkbox is disabled: the look of a disabled control, with the enabled label in gray-800.",
+  },
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Components/Code/CodeComposer.tsx",
+    literal: "text-gray-300",
+    reason:
+      "The Add context menu's button while the context is locked (the menu isDisabled): a disabled control.",
+  },
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Components/NetworkTraffic/Meraki/MerakiConnectModal.tsx",
+    literal: "bg-white text-gray-400 ring-gray-200",
+    reason:
+      "A step of the connect dialog not reached yet: its button is disabled until the steps before it are done.",
+  },
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/PagingLadderParts.tsx",
+    literal: "text-gray-400",
+    reason:
+      "The punctuation a translated method label puts between the method's name and its identifier (': '), handed in by renderText, so the scan cannot see it is only a mark.",
+  },
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Pages/Settings/MobileApps.tsx",
+    literal:
+      "text-[11px] font-medium uppercase leading-tight tracking-[0.1em] text-gray-300",
+    reason:
+      "A store badge's small line (\"Download on the\") on the badge's gray-800 to gray-950 gradient, drawn by a component apart from the badge: gray-300 is about 10:1 there.",
   },
 ];
 
@@ -278,6 +303,12 @@ describe("the scan leaves alone what nobody reads as words", () => {
     expect(
       scan(`<span className="sr-only text-gray-400">{label}</span>`),
     ).toEqual([]);
+    // A field's look drawn for the eye: its placeholder is not read.
+    expect(
+      scan(
+        `<div aria-hidden="true"><div className="rounded-md border"><span className="text-gray-400">{placeholder}</span></div></div>`,
+      ),
+    ).toEqual([]);
   });
 
   test("a lone separator or the quiet dash", () => {
@@ -325,22 +356,6 @@ describe("the scan leaves alone what nobody reads as words", () => {
 describe("text people read is readable (#9127, #9192)", () => {
   const everything: Array<FaintText> = scanDirectories(SCANNED_DIRECTORIES);
 
-  const found: Array<FaintText> = everything.filter(
-    (text: FaintText): boolean => {
-      return !isNotReadAsWords(text);
-    },
-  );
-
-  function countsByFile(): Map<string, number> {
-    const counts: Map<string, number> = new Map<string, number>();
-
-    for (const text of found) {
-      counts.set(text.file, (counts.get(text.file) || 0) + 1);
-    }
-
-    return counts;
-  }
-
   test("the scan reads the shared UI and every app", () => {
     for (const directory of [
       "packages/Common/UI",
@@ -355,56 +370,19 @@ describe("text people read is readable (#9127, #9192)", () => {
     // A path or a parser that went wrong would pass by finding nothing.
     expect(
       everything.some((text: FaintText): boolean => {
-        return text.file.startsWith(SHARED_UI);
+        return text.file.startsWith("packages/Common/UI/");
       }),
     ).toBe(true);
   });
 
-  test("the shared UI draws no faint or small text that is read as words", () => {
+  test("no faint or small text that is read as words, in any app", () => {
     expect(
-      found
+      everything
         .filter((text: FaintText): boolean => {
-          return text.file.startsWith(SHARED_UI);
+          return !isNotReadAsWords(text);
         })
         .map(describeFinding),
     ).toEqual([]);
-
-    for (const file of Object.keys(STILL_TO_FIX)) {
-      expect(file.startsWith(SHARED_UI)).toBe(false);
-    }
-  });
-
-  test("the apps hold no more faint or small text than they did", () => {
-    const counts: Map<string, number> = countsByFile();
-    const over: Array<string> = [];
-
-    for (const [file, count] of counts) {
-      if (count > (STILL_TO_FIX[file] || 0)) {
-        over.push(
-          ...found
-            .filter((text: FaintText): boolean => {
-              return text.file === file;
-            })
-            .map(describeFinding),
-        );
-      }
-    }
-
-    expect(over).toEqual([]);
-  });
-
-  test("a count that fell is lowered, so it cannot climb back", () => {
-    const counts: Map<string, number> = countsByFile();
-
-    for (const [file, allowed] of Object.entries(STILL_TO_FIX)) {
-      // The Enterprise screens are not in every copy of the repository.
-      if (!fs.existsSync(path.join(REPOSITORY_ROOT, file))) {
-        expect(file.startsWith("ee/")).toBe(true);
-        continue;
-      }
-
-      expect(`${file}: ${counts.get(file) || 0}`).toBe(`${file}: ${allowed}`);
-    }
   });
 
   test.each(
@@ -414,6 +392,14 @@ describe("text people read is readable (#9127, #9192)", () => {
   )(
     "each exception still matches a use: %s",
     (_file: string, entry: NotReadAsWords) => {
+      // The Enterprise screens are not in every copy of the repository.
+      if (
+        entry.file.startsWith("ee/") &&
+        !fs.existsSync(path.join(REPOSITORY_ROOT, entry.file))
+      ) {
+        return;
+      }
+
       expect(
         everything.some((text: FaintText): boolean => {
           return text.file === entry.file && text.literal === entry.literal;

@@ -920,7 +920,7 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
                   {translator.translateText("Top error patterns")}
                 </p>
                 {errorPatterns === null ? (
-                  <p className="mt-1 text-xs text-gray-400">
+                  <p className="mt-1 text-xs text-gray-500">
                     {translator.translateText("Loading…")}
                   </p>
                 ) : errorPatterns.length === 0 ? (
@@ -952,7 +952,7 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
                             <span className="min-w-0 flex-1 truncate font-mono text-xs text-gray-700 group-hover:text-gray-900">
                               {pattern.sampleBody || pattern.pattern}
                             </span>
-                            <span className="max-sm:hidden shrink-0 text-[11px] text-gray-400 sm:inline">
+                            <span className="max-sm:hidden shrink-0 text-xs text-gray-500 sm:inline">
                               {describeOccurrenceCount(
                                 pattern.count,
                                 pinnedTimeRange,
@@ -966,7 +966,7 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
                 )}
                 {scopeChipsForEvidence.length > 0 &&
                 Object.keys(extraction.attributes).length > 0 ? (
-                  <p className="mt-1.5 text-[11px] text-gray-400">
+                  <p className="mt-1.5 text-xs text-gray-500">
                     {translator.translateText(
                       "Patterns are scoped by service and window; attribute filters apply to the volume chart above.",
                     )}

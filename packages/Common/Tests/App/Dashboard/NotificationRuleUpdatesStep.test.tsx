@@ -737,6 +737,54 @@ describe("an on-call policy rule's step", () => {
     expect(tickedBoxes()).toEqual(["Who is on call now"]);
   });
 
+  /*
+   * A new on-call rule that leaves updatesToPost out starts on the key
+   * updates on the server too, and an edit that leaves it out keeps the
+   * rule's (#7971): Every update says so with null, which the server keeps.
+   */
+  test("REGRESSION: Every update is saved as null, so the server keeps it, and the step and card read it back", async () => {
+    const instance: i18n = await dashboardIn(ENGLISH);
+
+    const changes: Array<IncidentNotificationRule> = renderStep({
+      rule: {
+        ...ruleOf(),
+        ...NotificationRuleUpdates.getNewRuleUpdates(ON_CALL),
+      } as IncidentNotificationRule,
+      eventType: ON_CALL,
+      instance: instance,
+    });
+
+    await userEvent.click(answer("Every update"));
+
+    const saved: IncidentNotificationRule = changes[changes.length - 1]!;
+
+    expect(saved).toHaveProperty("updatesToPost", null);
+    expect(
+      NotificationRuleUpdates.withNewRuleUpdates({
+        rule: saved,
+        eventType: ON_CALL,
+      }),
+    ).toHaveProperty("updatesToPost", null);
+
+    cleanup();
+
+    renderStep({ rule: saved, eventType: ON_CALL, instance: instance });
+
+    expect(checkedAnswer()).toBe("Every update");
+
+    cleanup();
+
+    render(
+      <I18nextProvider i18n={instance}>
+        <UpdatesRuleSummary rule={saved} eventType={ON_CALL} />
+      </I18nextProvider>,
+    );
+
+    expect(
+      screen.getByTestId("notification-rule-updates-summary-title"),
+    ).toHaveTextContent("Every update");
+  });
+
   test("ticking who is on call next adds it, in the order of the boxes", async () => {
     const changes: Array<IncidentNotificationRule> = renderStep({
       rule: ruleOf([OnCallNow, NobodyOnCall]),
@@ -926,9 +974,11 @@ describe("an on-call policy rule's step", () => {
 
       await userEvent.click(answer("Every update"));
 
+      // Every update, said with null on an on-call rule (#7971).
       expect(changes[changes.length - 1]).toEqual({
         ...ruleOf(),
         shouldMentionWhoIsOnCall: true,
+        updatesToPost: null,
       });
       expect(mentionSwitch()).toHaveAttribute("aria-checked", "true");
     });
