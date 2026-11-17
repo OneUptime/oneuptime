@@ -37,18 +37,19 @@ import { ServerTestSendAnswer } from "Common/Types/ServerSetup/ServerTestSend";
  */
 
 // Who is signed in: the admin a test push goes to.
-export const readSignedInUserId: (req: ExpressRequest) => Promise<ObjectID> =
-  async (req: ExpressRequest): Promise<ObjectID> => {
-    const session: RequestSession = await UserMiddleware.readRequestSession(req);
+export const readSignedInUserId: (
+  req: ExpressRequest,
+) => Promise<ObjectID> = async (req: ExpressRequest): Promise<ObjectID> => {
+  const session: RequestSession = await UserMiddleware.readRequestSession(req);
 
-    if (session.kind !== "user" || !session.session.userId) {
-      throw new NotAuthenticatedException(
-        "Sign in again to send a test push to your own devices.",
-      );
-    }
+  if (session.kind !== "user" || !session.session.userId) {
+    throw new NotAuthenticatedException(
+      "Sign in again to send a test push to your own devices.",
+    );
+  }
 
-    return new ObjectID(session.session.userId.toString());
-  };
+  return new ObjectID(session.session.userId.toString());
+};
 
 const router: ExpressRouter = Express.getRouter();
 

@@ -1052,7 +1052,8 @@ describe("the page", () => {
    */
   test("the choices are quiet beside the fix, and still buttons a finger can hit", async () => {
     const checklist: HTMLElement = await renderIn("en", answerFor());
-    const quiet: Array<string> = SERVER_SETUP_QUIET_ACTION_CLASS_NAME.split(" ");
+    const quiet: Array<string> =
+      SERVER_SETUP_QUIET_ACTION_CLASS_NAME.split(" ");
 
     for (const [id, title] of [
       ["signups", "Keep sign-ups open"],
@@ -1096,7 +1097,8 @@ describe("the page", () => {
         ),
       }),
     );
-    const quiet: Array<string> = SERVER_SETUP_QUIET_ACTION_CLASS_NAME.split(" ");
+    const quiet: Array<string> =
+      SERVER_SETUP_QUIET_ACTION_CLASS_NAME.split(" ");
 
     for (const testId of [
       "server-setup-backups-undo",

@@ -22,12 +22,12 @@ const REPOSITORY: string = path.join(__dirname, "../../../../../..");
 
 describe("how the server was installed", () => {
   test("in a Kubernetes pod: Kubernetes, from the address every pod is handed or the chart's POD_NAME", () => {
-    expect(
-      getServerInstallKind({ KUBERNETES_SERVICE_HOST: "10.96.0.1" }),
-    ).toBe(ServerInstallKind.Kubernetes);
-    expect(getServerInstallKind({ POD_NAME: "oneuptime-app-6d4f8b9c7d-x2k9p" })).toBe(
+    expect(getServerInstallKind({ KUBERNETES_SERVICE_HOST: "10.96.0.1" })).toBe(
       ServerInstallKind.Kubernetes,
     );
+    expect(
+      getServerInstallKind({ POD_NAME: "oneuptime-app-6d4f8b9c7d-x2k9p" }),
+    ).toBe(ServerInstallKind.Kubernetes);
   });
 
   test("with Docker Compose's mark: Docker Compose", () => {
@@ -84,12 +84,17 @@ describe("how the server was installed", () => {
     // And docker-compose.yml's app is the base's.
     expect(
       fs.readFileSync(path.join(REPOSITORY, "docker-compose.yml"), "utf8"),
-    ).toMatch(/\n {2}app:\n(?: {4}.*\n)*? {4}extends:\n {6}file: \.\/docker-compose\.base\.yml\n {6}service: app\n/);
+    ).toMatch(
+      /\n {2}app:\n(?: {4}.*\n)*? {4}extends:\n {6}file: \.\/docker-compose\.base\.yml\n {6}service: app\n/,
+    );
   });
 
   test("the Helm chart's app pod is handed POD_NAME, the sign the server reads", () => {
     const helpers: string = fs.readFileSync(
-      path.join(REPOSITORY, "HelmChart/Public/oneuptime/templates/_helpers.tpl"),
+      path.join(
+        REPOSITORY,
+        "HelmChart/Public/oneuptime/templates/_helpers.tpl",
+      ),
       "utf8",
     );
     const app: string = fs.readFileSync(

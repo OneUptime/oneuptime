@@ -118,9 +118,9 @@ describe("backup.sh", () => {
 
     // The day of the month is read once, before pg_dump runs.
     expect(backupCode.match(/\$\(date \+%d\)/g)).toHaveLength(1);
-    expect(backupCode.match(new RegExp(FILE_NAME_ASSIGNMENT.source, "gm"))).toEqual(
-      ['BACKUP_FILE_NAME="db-$(date +%d).backup"'],
-    );
+    expect(
+      backupCode.match(new RegExp(FILE_NAME_ASSIGNMENT.source, "gm")),
+    ).toEqual(['BACKUP_FILE_NAME="db-$(date +%d).backup"']);
   });
 
   test("does not pass --clean/--create, which pg_dump ignores for archive formats", () => {

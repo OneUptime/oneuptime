@@ -162,7 +162,9 @@ describe("who may say the server was backed up", () => {
       ),
     ).resolves.toBeDefined();
     await expect(
-      hooks.onBeforeUpdate(makeUpdateBy({ backupScriptLastRun: RUN }, ROOT_PROPS)),
+      hooks.onBeforeUpdate(
+        makeUpdateBy({ backupScriptLastRun: RUN }, ROOT_PROPS),
+      ),
     ).resolves.toBeDefined();
   });
 });

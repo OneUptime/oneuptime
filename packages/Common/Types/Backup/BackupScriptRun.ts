@@ -59,11 +59,7 @@ const isObject: (value: unknown) => value is Record<string, unknown> = (
 const readSize: (value: unknown) => number | null = (
   value: unknown,
 ): number | null => {
-  if (
-    typeof value !== "number" ||
-    !Number.isSafeInteger(value) ||
-    value < 0
-  ) {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) {
     return null;
   }
 

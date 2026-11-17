@@ -22,7 +22,9 @@ const NOW: Date = new Date("2026-11-17T02:00:00.000Z");
 
 describe("what the script says", () => {
   test("whether the backup succeeded, and the dump's size", () => {
-    expect(readBackupScriptCheckIn({ succeeded: true, sizeInBytes: 4096 })).toEqual({
+    expect(
+      readBackupScriptCheckIn({ succeeded: true, sizeInBytes: 4096 }),
+    ).toEqual({
       succeeded: true,
       sizeInBytes: 4096,
     });
@@ -68,7 +70,7 @@ describe("what the script says", () => {
       password: "secret",
     });
 
-    expect(Object.keys(checkIn as object).sort()).toEqual(
+    expect(Object.keys(checkIn as Record<string, unknown>).sort()).toEqual(
       ["sizeInBytes", "succeeded"].sort(),
     );
   });

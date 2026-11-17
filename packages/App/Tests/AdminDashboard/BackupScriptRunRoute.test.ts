@@ -238,9 +238,9 @@ describe("over HTTP", () => {
     expect(writes).toHaveLength(1);
     expect(writes[0]!["succeeded"]).toBe(true);
     expect(writes[0]!["sizeInBytes"]).toBe(7340032);
-    expect(new Date(writes[0]!["at"] as string).getTime()).toBeGreaterThanOrEqual(
-      before - 1000,
-    );
+    expect(
+      new Date(writes[0]!["at"] as string).getTime(),
+    ).toBeGreaterThanOrEqual(before - 1000);
 
     const measured: ServerSetupCheckResult = await backups();
 

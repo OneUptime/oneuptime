@@ -13,8 +13,10 @@ jest.mock("Common/Server/Utils/Logger", () => {
 });
 
 // Whether this server has VAPID keys, for a test push to a browser (#7028).
-const mockVapid: { publicKey: string | undefined; privateKey: string | undefined } =
-  { publicKey: undefined, privateKey: undefined };
+const mockVapid: {
+  publicKey: string | undefined;
+  privateKey: string | undefined;
+} = { publicKey: undefined, privateKey: undefined };
 
 jest.mock("Common/Server/EnvironmentConfig", () => {
   const actual: Record<string, unknown> = jest.requireActual(
@@ -758,7 +760,13 @@ describe("a test push", () => {
   });
 
   test("only browsers, and no VAPID keys: says so, and nothing is sent", async () => {
-    devices = [device('{"endpoint":"https://fcm.googleapis.com/x"}', PushDeviceType.Web, "Chrome on macOS")];
+    devices = [
+      device(
+        '{"endpoint":"https://fcm.googleapis.com/x"}',
+        PushDeviceType.Web,
+        "Chrome on macOS",
+      ),
+    ];
 
     const answer: ServerTestSendAnswer =
       await ServerTestSendService.sendPush(ADA);
@@ -786,9 +794,9 @@ describe("a test push", () => {
     expect((query["userId"] as ObjectID).toString()).toBe(ADA.toString());
     expect(query["isVerified"]).toBe(true);
     expect(query["projectId"]).toBeUndefined();
-    expect(
-      (findDevices.mock.calls[0]![0] as { props: unknown }).props,
-    ).toEqual({ isRoot: true });
+    expect((findDevices.mock.calls[0]![0] as { props: unknown }).props).toEqual(
+      { isRoot: true },
+    );
 
     expect(pushedTokens()).toEqual([
       "ExponentPushToken[phone]",
@@ -807,7 +815,11 @@ describe("a test push", () => {
     mockVapid.publicKey = "public";
     mockVapid.privateKey = "private";
     devices = [
-      device('{"endpoint":"https://fcm.googleapis.com/x"}', PushDeviceType.Web, "Chrome on macOS"),
+      device(
+        '{"endpoint":"https://fcm.googleapis.com/x"}',
+        PushDeviceType.Web,
+        "Chrome on macOS",
+      ),
     ];
 
     const answer: ServerTestSendAnswer =
@@ -830,7 +842,11 @@ describe("a test push", () => {
 
   test("without VAPID keys a browser is left out, and the phone still gets it", async () => {
     devices = [
-      device('{"endpoint":"https://fcm.googleapis.com/x"}', PushDeviceType.Web, "Chrome on macOS"),
+      device(
+        '{"endpoint":"https://fcm.googleapis.com/x"}',
+        PushDeviceType.Web,
+        "Chrome on macOS",
+      ),
       device("ExponentPushToken[phone]", PushDeviceType.iOS, "iPhone"),
     ];
 
@@ -929,7 +945,10 @@ describe("a test push", () => {
     }): Promise<{ status: number; body: JSONObject | null }> {
       return new Promise(
         (
-          resolve: (result: { status: number; body: JSONObject | null }) => void,
+          resolve: (result: {
+            status: number;
+            body: JSONObject | null;
+          }) => void,
           reject: (e: Error) => void,
         ) => {
           const payload: string = JSON.stringify(data.body);
@@ -942,7 +961,9 @@ describe("a test push", () => {
               headers: {
                 "content-type": "application/json",
                 "content-length": Buffer.byteLength(payload),
-                ...(data.isMasterAdmin ? { "x-test-master-admin": "true" } : {}),
+                ...(data.isMasterAdmin
+                  ? { "x-test-master-admin": "true" }
+                  : {}),
               },
             },
             (response: http.IncomingMessage) => {
@@ -971,7 +992,9 @@ describe("a test push", () => {
 
     test("a master admin's test push: 200, to their own devices - a body naming someone else changes nothing", async () => {
       signedIn(ADA);
-      devices = [device("ExponentPushToken[phone]", PushDeviceType.iOS, "iPhone")];
+      devices = [
+        device("ExponentPushToken[phone]", PushDeviceType.iOS, "iPhone"),
+      ];
 
       const result: { status: number; body: JSONObject | null } =
         await postPush({
@@ -1012,7 +1035,9 @@ describe("a test push", () => {
 
     test("anybody but a master admin is refused, and nothing is read or sent", async () => {
       signedIn(ADA);
-      devices = [device("ExponentPushToken[phone]", PushDeviceType.iOS, "iPhone")];
+      devices = [
+        device("ExponentPushToken[phone]", PushDeviceType.iOS, "iPhone"),
+      ];
 
       const result: { status: number; body: JSONObject | null } =
         await postPush({ body: {}, isMasterAdmin: false });
@@ -1024,7 +1049,9 @@ describe("a test push", () => {
 
     test("a master admin whose session cannot be read is refused, and nothing is sent", async () => {
       signedIn(null);
-      devices = [device("ExponentPushToken[phone]", PushDeviceType.iOS, "iPhone")];
+      devices = [
+        device("ExponentPushToken[phone]", PushDeviceType.iOS, "iPhone"),
+      ];
 
       const result: { status: number; body: JSONObject | null } =
         await postPush({ body: {}, isMasterAdmin: true });

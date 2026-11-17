@@ -379,7 +379,8 @@ describe("the catalogue", () => {
       "../../../../App/FeatureSet/Docs/Content/en",
     );
     const repository: string = path.join(__dirname, "../../../../..");
-    const onGitHub: string = "https://github.com/OneUptime/oneuptime/blob/main/";
+    const onGitHub: string =
+      "https://github.com/OneUptime/oneuptime/blob/main/";
 
     for (const guide of Object.values(SERVER_SETUP_GUIDES)) {
       // A docs page this server serves, or a file of this repository on GitHub.
@@ -1671,10 +1672,7 @@ describe("the test push", () => {
     expect(
       check(
         freshFacts({
-          push: channel(
-            ServerSendingChannel.Push,
-            ServerSendingState.NotSetUp,
-          ),
+          push: channel(ServerSendingChannel.Push, ServerSendingState.NotSetUp),
         }),
         ServerSetupCheckId.BrowserPush,
       ).tests,

@@ -250,7 +250,7 @@ export const getServerSetupGuideUrl: (data: {
   guide: string;
   origin: string;
 }) => string = (data: { guide: string; origin: string }): string => {
-  return /^https:\/\//.test(data.guide)
+  return data.guide.startsWith("https://")
     ? data.guide
     : `${data.origin}${data.guide}`;
 };

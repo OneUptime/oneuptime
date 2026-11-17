@@ -72,24 +72,26 @@ describe("what it says", () => {
   const FAILED = { succeeded: false, sizeInBytes: null };
 
   test("told: where to see it", () => {
-    expect(describeAnswer({ status: 200 }, SUCCEEDED, "http://localhost")).toEqual(
-      {
-        told: true,
-        line: "OneUptime was told about this backup: Server Setup in the Admin Dashboard shows when the last one finished.",
-      },
-    );
-    expect(describeAnswer({ status: 200 }, FAILED, "http://localhost").line).toBe(
+    expect(
+      describeAnswer({ status: 200 }, SUCCEEDED, "http://localhost"),
+    ).toEqual({
+      told: true,
+      line: "OneUptime was told about this backup: Server Setup in the Admin Dashboard shows when the last one finished.",
+    });
+    expect(
+      describeAnswer({ status: 200 }, FAILED, "http://localhost").line,
+    ).toBe(
       "OneUptime was told that this backup failed: Server Setup in the Admin Dashboard says so until a backup succeeds.",
     );
   });
 
   test("an older server, a key it refused, one that failed, one that is down: not told, and why", () => {
-    expect(describeAnswer({ status: 404 }, SUCCEEDED, "http://localhost")).toEqual(
-      {
-        told: false,
-        line: "This OneUptime does not record backups yet, so Server Setup still asks whether the server is backed up. Update it with npm run update, and the next backup tells it.",
-      },
-    );
+    expect(
+      describeAnswer({ status: 404 }, SUCCEEDED, "http://localhost"),
+    ).toEqual({
+      told: false,
+      line: "This OneUptime does not record backups yet, so Server Setup still asks whether the server is backed up. Update it with npm run update, and the next backup tells it.",
+    });
     expect(
       describeAnswer({ status: 400 }, SUCCEEDED, "http://localhost").line,
     ).toBe(
@@ -120,9 +122,9 @@ describe("what it says", () => {
       { status: 500 },
       { error: "ETIMEDOUT" },
     ]) {
-      expect(describeAnswer(answer, SUCCEEDED, "http://localhost").line).not.toContain(
-        SECRET,
-      );
+      expect(
+        describeAnswer(answer, SUCCEEDED, "http://localhost").line,
+      ).not.toContain(SECRET);
     }
   });
 });

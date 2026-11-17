@@ -1,7 +1,10 @@
 import CallService from "./CallService";
 import MailService from "./MailService";
 import SmsService from "./SmsService";
-import { VapidPrivateKey, VapidPublicKey } from "Common/Server/EnvironmentConfig";
+import {
+  VapidPrivateKey,
+  VapidPublicKey,
+} from "Common/Server/EnvironmentConfig";
 import PushNotificationService from "Common/Server/Services/PushNotificationService";
 import UserPushService from "Common/Server/Services/UserPushService";
 import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
@@ -295,7 +298,9 @@ export default class ServerTestSendService {
    *     browser is left out when the server has no VAPID keys;
    *   - refused: none took it, and what each push service said.
    */
-  public static async sendPush(userId: ObjectID): Promise<ServerTestSendAnswer> {
+  public static async sendPush(
+    userId: ObjectID,
+  ): Promise<ServerTestSendAnswer> {
     const config: GlobalConfig | null =
       await ServerTestSendService.readConfig();
     const problem: string | null = ServerChannelSetup.getSetUpProblem(

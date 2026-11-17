@@ -79,7 +79,11 @@ describePostgres("AddBackupScriptLastRun against Postgres", () => {
   }
 
   async function columnOf(): Promise<
-    Array<{ udt_name: string; is_nullable: string; column_default: string | null }>
+    Array<{
+      udt_name: string;
+      is_nullable: string;
+      column_default: string | null;
+    }>
   > {
     return await database.query(
       `SELECT udt_name, is_nullable, column_default FROM information_schema.columns

@@ -26,7 +26,8 @@ const MIGRATION_TIMESTAMP: string = "1809183200000";
 const MIGRATION_BASE_NAME: string = "AddBackupScriptLastRun";
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
 // The last migration registered before it.
-const PREVIOUS_MIGRATION: string = "AddOnCallFireDrillResultsIndexAndKey1809183110000";
+const PREVIOUS_MIGRATION: string =
+  "AddOnCallFireDrillResultsIndexAndKey1809183110000";
 
 const MIGRATION_DIRECTORY: string = path.join(
   __dirname,
