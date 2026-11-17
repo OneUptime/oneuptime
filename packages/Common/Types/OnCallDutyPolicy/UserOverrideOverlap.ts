@@ -216,16 +216,76 @@ export default class UserOverrideOverlap {
     );
   }
 
-  // The overrides among `others` that keep `override` from being saved, the one used first.
+  /*
+   * The overrides among `others` that keep `override` from being saved, the
+   * one used first. An edit that only shortens an override (`saved`, its
+   * times as they are saved) - ends it now, say, or starts it later - adds
+   * no time, so it cannot make an overlap, and none keeps it from being
+   * saved: an overlap saved before the rule never stops one from being
+   * ended early. An edit that adds time is held to all of its new times,
+   * as an add is, so it resolves such an overlap rather than grow it.
+   */
   public static getConflicts<T extends UserOverrideTimes>(
     override: UserOverrideTimes,
     others: Array<T>,
+    saved?: { startsAt: Date; endsAt: Date } | undefined,
   ): Array<T> {
+    if (saved && !UserOverrideOverlap.addsTime(saved, override)) {
+      return [];
+    }
+
     return others
       .filter((other: T): boolean => {
         return UserOverrideOverlap.isConflict(override, other);
       })
       .sort(UserOverrideOverlap.compareUse);
+  }
+
+  // Whether an edit's new times (`next`) hold any time its saved ones did not.
+  public static addsTime(
+    saved: { startsAt: Date; endsAt: Date },
+    next: { startsAt: Date; endsAt: Date },
+  ): boolean {
+    return UserOverrideOverlap.getAddedTimes(saved, next).length > 0;
+  }
+
+  /*
+   * The time an edit adds to an override: the parts of its new times
+   * (`next`) that its saved ones did not hold - none for one ended early or
+   * started later, the whole of them for one moved clear of where it was.
+   */
+  public static getAddedTimes(
+    saved: { startsAt: Date; endsAt: Date },
+    next: { startsAt: Date; endsAt: Date },
+  ): Array<{ startsAt: Date; endsAt: Date }> {
+    const savedStart: number = new Date(saved.startsAt).getTime();
+    const savedEnd: number = new Date(saved.endsAt).getTime();
+    const nextStart: number = new Date(next.startsAt).getTime();
+    const nextEnd: number = new Date(next.endsAt).getTime();
+
+    if (nextEnd <= nextStart) {
+      return [];
+    }
+
+    // Clear of where it was: all of it is new.
+    if (nextEnd <= savedStart || nextStart >= savedEnd) {
+      return [{ startsAt: new Date(nextStart), endsAt: new Date(nextEnd) }];
+    }
+
+    const added: Array<{ startsAt: Date; endsAt: Date }> = [];
+
+    if (nextStart < savedStart) {
+      added.push({
+        startsAt: new Date(nextStart),
+        endsAt: new Date(savedStart),
+      });
+    }
+
+    if (nextEnd > savedEnd) {
+      added.push({ startsAt: new Date(savedEnd), endsAt: new Date(nextEnd) });
+    }
+
+    return added;
   }
 
   /*
