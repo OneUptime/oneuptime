@@ -653,9 +653,11 @@ async function findIncomingEmailMonitor(
     throw new BadDataException("Invalid Secret Key");
   }
 
-  const monitor: Monitor | null = await MonitorService.findOneBy({
+  // Found by the key's lookup hash: the key is kept encrypted (#9012).
+  const monitor: Monitor | null = await MonitorService.findOneByPresentedKey({
+    column: "incomingEmailSecretKey",
+    presentedKey: emailData.secretKey,
     query: {
-      incomingEmailSecretKey: new ObjectID(emailData.secretKey),
       monitorType: MonitorType.IncomingEmail,
     },
     select: INCOMING_EMAIL_MONITOR_SELECT,

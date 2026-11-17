@@ -161,24 +161,29 @@ beforeAll(async () => {
       .spyOn(MonitorSecretKeyCache, "setMonitor")
       .mockImplementation((async () => {}) as never);
 
-    // The database knows the new monitor's key, and no made-up one.
-    jest.spyOn(MonitorService, "findOneBy").mockImplementation((async (data: {
-      query: { incomingRequestSecretKey: { toString: () => string } };
-    }) => {
-      const key: string = data.query.incomingRequestSecretKey.toString();
-      lookups.push(key);
+    /*
+     * The database knows the new monitor's key, and no made-up one: the key
+     * is found by its lookup hash (#9012), the lookup stubbed here.
+     */
+    jest
+      .spyOn(MonitorService, "findOneByPresentedKey")
+      .mockImplementation((async (data: {
+        presentedKey: { toString: () => string };
+      }) => {
+        const key: string = data.presentedKey.toString();
+        lookups.push(key);
 
-      return key === NEW_MONITOR_KEY
-        ? {
-            _id: MONITOR_ID,
-            projectId: new ObjectID(PROJECT_ID),
-            isArchived: false,
-            disableActiveMonitoring: false,
-            disableActiveMonitoringBecauseOfManualIncident: false,
-            disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: false,
-          }
-        : null;
-    }) as never);
+        return key === NEW_MONITOR_KEY
+          ? {
+              _id: MONITOR_ID,
+              projectId: new ObjectID(PROJECT_ID),
+              isArchived: false,
+              disableActiveMonitoring: false,
+              disableActiveMonitoringBecauseOfManualIncident: false,
+              disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: false,
+            }
+          : null;
+      }) as never);
 
     jest
       .spyOn(IncomingRequestSecretPolicy, "getPolicy")

@@ -26,8 +26,9 @@ import React, { FunctionComponent, ReactElement, ReactNode } from "react";
  * Then the two pages, with the table a stand-in that records its props: the
  * page hands the table the builder's fields and no steps, a project's
  * connection starts on the members team, push groups drop the hidden teams,
- * and the dialog with the SCIM URLs and the bearer token opens as soon as a
- * connection is saved.
+ * and as soon as a connection is saved its bearer token is shown once - it
+ * is kept only as its hash (#9012) - and then the dialog with the SCIM URLs
+ * opens, which says where a lost token comes from instead of showing one.
  */
 
 jest.mock("Common/UI/Utils/Permission", () => {
@@ -150,12 +151,19 @@ import {
   getProjectScimFormFields,
   getStatusPageScimFormFields,
 } from "../../../Dashboard/Identity/ScimFormFields";
+import {
+  SCIM_BEARER_TOKEN_NOT_SHOWN_AGAIN_TEST_ID,
+  SCIM_BEARER_TOKEN_SHOWN_ONCE_TEST_ID,
+  SCIM_BEARER_TOKEN_SHOWN_ONCE_VALUE_TEST_ID,
+  ScimBearerTokenCopy,
+} from "../../../Dashboard/Identity/ScimBearerTokenCopy";
 import PageComponentProps from "@oneuptime/dashboard/Pages/PageComponentProps";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ProjectSCIM from "Common/Models/DatabaseModels/ProjectSCIM";
 import StatusPageSCIM from "Common/Models/DatabaseModels/StatusPageSCIM";
 import Team from "Common/Models/DatabaseModels/Team";
 import Route from "Common/Types/API/Route";
+import HashedString from "Common/Types/HashedString";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Field from "Common/UI/Components/Forms/Types/Field";
@@ -655,6 +663,85 @@ type OnCreateSuccess = (
   modalType?: ModalType,
 ) => Promise<BaseModel>;
 
+/*
+ * The token a create's answer holds, the one time it is sent, as the
+ * Dashboard reads it off the new record (BaseModel.fromJSON makes a
+ * HashedString of the column's value).
+ */
+const answeredToken: () => HashedString = (): HashedString => {
+  return new HashedString(BEARER_TOKEN);
+};
+
+/*
+ * A new connection's bearer token, shown once: alone in its dialog, with the
+ * words that say so, and nothing of the URLs dialog yet. Done closes it, and
+ * the URLs dialog that opens then says where a lost token comes from - with
+ * no token anywhere on the page.
+ */
+const expectTokenShownOnceThenUrls: (data: {
+  urlsTitle: string;
+  urls: Array<string>;
+}) => Promise<HTMLElement> = async (data: {
+  urlsTitle: string;
+  urls: Array<string>;
+}): Promise<HTMLElement> => {
+  expect(screen.getAllByTestId("modal")).toHaveLength(1);
+
+  const shownOnce: HTMLElement = screen.getByTestId("modal");
+
+  expect(within(shownOnce).getByTestId("modal-title")).toHaveTextContent(
+    ScimBearerTokenCopy.shownOnceTitle,
+  );
+  expect(shownOnce).toHaveTextContent(ScimBearerTokenCopy.shownOnceDescription);
+  expect(
+    within(shownOnce).getByTestId(SCIM_BEARER_TOKEN_SHOWN_ONCE_TEST_ID),
+  ).toBeInTheDocument();
+  expect(
+    within(shownOnce).getByTestId(SCIM_BEARER_TOKEN_SHOWN_ONCE_VALUE_TEST_ID),
+  ).toHaveTextContent(BEARER_TOKEN);
+  // Done is the only way out: no Cancel beside it, and no X.
+  expect(
+    within(shownOnce).getByTestId("modal-footer-submit-button"),
+  ).toHaveTextContent(ScimBearerTokenCopy.done);
+  expect(
+    within(shownOnce).queryByTestId("modal-footer-close-button"),
+  ).not.toBeInTheDocument();
+  expect(
+    within(shownOnce).queryByTestId("close-button"),
+  ).not.toBeInTheDocument();
+
+  for (const url of data.urls) {
+    expect(shownOnce).not.toHaveTextContent(url);
+  }
+
+  await act(async () => {
+    fireEvent.click(
+      within(shownOnce).getByTestId("modal-footer-submit-button"),
+    );
+  });
+
+  expect(
+    screen.queryByTestId(SCIM_BEARER_TOKEN_SHOWN_ONCE_TEST_ID),
+  ).not.toBeInTheDocument();
+
+  const urlsDialog: HTMLElement = screen.getByTestId("modal");
+
+  expect(within(urlsDialog).getByTestId("modal-title")).toHaveTextContent(
+    data.urlsTitle,
+  );
+
+  for (const url of data.urls) {
+    expect(urlsDialog).toHaveTextContent(url);
+  }
+
+  expect(
+    within(urlsDialog).getByTestId(SCIM_BEARER_TOKEN_NOT_SHOWN_AGAIN_TEST_ID),
+  ).toHaveTextContent(ScimBearerTokenCopy.notShownAgain);
+  expect(document.body).not.toHaveTextContent(BEARER_TOKEN);
+
+  return urlsDialog;
+};
+
 describe("the Settings > SCIM page", () => {
   const PATH: string = `/dashboard/${PROJECT_ID.toString()}/settings/scim`;
 
@@ -715,7 +802,7 @@ describe("the Settings > SCIM page", () => {
     ).toEqual([MEMBERS_TEAM_ID]);
   });
 
-  test("opens the SCIM URLs and the bearer token as soon as a connection is saved", async () => {
+  test("as soon as a connection is saved, shows its bearer token once, then the SCIM URLs", async () => {
     await renderPage({ Page: ProjectSCIMPage, path: PATH });
 
     expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
@@ -723,7 +810,36 @@ describe("the Settings > SCIM page", () => {
     const created: ProjectSCIM = new ProjectSCIM();
     created._id = CONNECTION_ID;
     created.name = "Okta SCIM";
-    created.bearerToken = BEARER_TOKEN;
+    created.bearerToken = answeredToken();
+
+    await act(async () => {
+      await (mockTables["scim-table"]!["onCreateSuccess"] as OnCreateSuccess)(
+        created,
+        ModalType.Create,
+      );
+    });
+
+    const urlsDialog: HTMLElement = await expectTokenShownOnceThenUrls({
+      urlsTitle: "SCIM Configuration URLs",
+      urls: [`/scim/v2/${CONNECTION_ID}`, `/scim/v2/${CONNECTION_ID}/Users`],
+    });
+
+    // Closed, nothing is left open: the token is not shown a second time.
+    await act(async () => {
+      fireEvent.click(
+        within(urlsDialog).getByTestId("modal-footer-submit-button"),
+      );
+    });
+
+    expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
+  });
+
+  test("a create whose answer holds no token opens the SCIM URLs at once", async () => {
+    await renderPage({ Page: ProjectSCIMPage, path: PATH });
+
+    const created: ProjectSCIM = new ProjectSCIM();
+    created._id = CONNECTION_ID;
+    created.name = "Okta SCIM";
 
     await act(async () => {
       await (mockTables["scim-table"]!["onCreateSuccess"] as OnCreateSuccess)(
@@ -737,14 +853,20 @@ describe("the Settings > SCIM page", () => {
     expect(within(modal).getByTestId("modal-title")).toHaveTextContent(
       "SCIM Configuration URLs",
     );
-    expect(modal).toHaveTextContent(`/scim/v2/${CONNECTION_ID}`);
-    expect(modal).toHaveTextContent(`/scim/v2/${CONNECTION_ID}/Users`);
+    expect(
+      screen.queryByTestId(SCIM_BEARER_TOKEN_SHOWN_ONCE_TEST_ID),
+    ).not.toBeInTheDocument();
+  });
 
-    fireEvent.click(within(modal).getByText("Click to reveal"));
+  test("reads no connection's bearer token: it is kept as its hash", async () => {
+    await renderPage({ Page: ProjectSCIMPage, path: PATH });
 
-    expect(within(modal).getByRole("revealed-text")).toHaveTextContent(
-      BEARER_TOKEN,
-    );
+    const selects: Record<string, unknown> = mockTables["scim-table"]![
+      "selectMoreFields"
+    ] as Record<string, unknown>;
+
+    expect(selects).not.toHaveProperty("bearerToken");
+    expect(selects).toHaveProperty("oauthClientSecretExpiresAt");
   });
 
   test("saving an edit opens nothing", async () => {
@@ -798,13 +920,13 @@ describe("the status page > SCIM page", () => {
     expect(created.statusPageId?.toString()).toBe(STATUS_PAGE_ID);
   });
 
-  test("opens the SCIM URLs and the bearer token as soon as a connection is saved", async () => {
+  test("as soon as a connection is saved, shows its bearer token once, then the SCIM URLs", async () => {
     await renderPage({ Page: StatusPageSCIMPage, path: PATH });
 
     const created: StatusPageSCIM = new StatusPageSCIM();
     created._id = CONNECTION_ID;
     created.name = "Okta SCIM for Status Page";
-    created.bearerToken = BEARER_TOKEN;
+    created.bearerToken = answeredToken();
 
     await act(async () => {
       await (
@@ -814,18 +936,44 @@ describe("the status page > SCIM page", () => {
       )(created, ModalType.Create);
     });
 
-    const modal: HTMLElement = screen.getByTestId("modal");
+    await expectTokenShownOnceThenUrls({
+      urlsTitle: "SCIM URLs - Okta SCIM for Status Page",
+      urls: [`/status-page-scim/v2/${CONNECTION_ID}`],
+    });
+  });
 
-    expect(within(modal).getByTestId("modal-title")).toHaveTextContent(
-      "SCIM URLs - Okta SCIM for Status Page",
-    );
-    expect(modal).toHaveTextContent(`/status-page-scim/v2/${CONNECTION_ID}`);
+  test("a create whose answer holds no token opens the SCIM URLs at once", async () => {
+    await renderPage({ Page: StatusPageSCIMPage, path: PATH });
 
-    fireEvent.click(within(modal).getByText("Click to reveal"));
+    const created: StatusPageSCIM = new StatusPageSCIM();
+    created._id = CONNECTION_ID;
+    created.name = "Okta SCIM for Status Page";
 
-    expect(within(modal).getByRole("revealed-text")).toHaveTextContent(
-      BEARER_TOKEN,
-    );
+    await act(async () => {
+      await (
+        mockTables["status-page-scim-table"]![
+          "onCreateSuccess"
+        ] as OnCreateSuccess
+      )(created, ModalType.Create);
+    });
+
+    expect(
+      within(screen.getByTestId("modal")).getByTestId("modal-title"),
+    ).toHaveTextContent("SCIM URLs - Okta SCIM for Status Page");
+    expect(
+      screen.queryByTestId(SCIM_BEARER_TOKEN_SHOWN_ONCE_TEST_ID),
+    ).not.toBeInTheDocument();
+  });
+
+  test("reads no connection's bearer token: it is kept as its hash", async () => {
+    await renderPage({ Page: StatusPageSCIMPage, path: PATH });
+
+    const selects: Record<string, unknown> = mockTables[
+      "status-page-scim-table"
+    ]!["selectMoreFields"] as Record<string, unknown>;
+
+    expect(selects).not.toHaveProperty("bearerToken");
+    expect(selects).toHaveProperty("oauthClientSecretExpiresAt");
   });
 
   test("saving an edit opens nothing", async () => {

@@ -56518,5 +56518,13 @@
   "This check was too large to keep in full, so it was trimmed.": "Эта проверка была слишком большой, чтобы сохранить её полностью, поэтому она сокращена.",
   "No email has gone out through this server's email settings since {{time}}.": "С {{time}} через настройки почты этого сервера не отправлено ни одного письма.",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "С {{time}} через настройки почты этого сервера не отправлено ни одного письма. Почтовый сервер ответил: {{reason}}",
-  "See email logs": "Журнал писем"
+  "See email logs": "Журнал писем",
+  "Copy Your Bearer Token": "Скопируйте Bearer-токен",
+  "Incoming Email Secret Key Hash": "Хеш секретного ключа входящей почты",
+  "Incoming Request Secret Key Hash": "Хеш секретного ключа входящих запросов",
+  "Ingestion Key Hash": "Хеш ключа приёма",
+  "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "Вставьте его в настройки поставщика удостоверений сейчас или сохраните в надёжном месте. Он показывается только в этот раз: OneUptime хранит только его хеш.",
+  "Server Monitor Secret Key Hash": "Хеш секретного ключа серверного монитора",
+  "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Bearer-токен показывается только один раз: при добавлении подключения или при сбросе его токена. Если у вас его больше нет, нажмите «Сбросить Bearer-токен», чтобы создать новый.",
+  "Webhook Secret Key Hash": "Хеш секретного ключа вебхука"
 }

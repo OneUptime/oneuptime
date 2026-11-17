@@ -56518,5 +56518,13 @@
   "This check was too large to keep in full, so it was trimmed.": "此检查过大，无法完整保存，因此已被截断。",
   "No email has gone out through this server's email settings since {{time}}.": "自 {{time}} 起，没有任何邮件通过此服务器的邮件设置发出。",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "自 {{time}} 起，没有任何邮件通过此服务器的邮件设置发出。邮件服务器返回：{{reason}}",
-  "See email logs": "查看邮件日志"
+  "See email logs": "查看邮件日志",
+  "Copy Your Bearer Token": "复制你的 Bearer 令牌",
+  "Incoming Email Secret Key Hash": "传入邮件密钥哈希",
+  "Incoming Request Secret Key Hash": "传入请求密钥哈希",
+  "Ingestion Key Hash": "摄取密钥哈希",
+  "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "请立即将其粘贴到你的身份提供商中，或保存在安全的地方。它只显示这一次：OneUptime 只保存它的哈希值。",
+  "Server Monitor Secret Key Hash": "服务器监控密钥哈希",
+  "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Bearer 令牌只会在添加连接或重置其令牌时显示一次。如果你已不再持有它，请使用“重置 Bearer 令牌”创建一个新令牌。",
+  "Webhook Secret Key Hash": "Webhook 密钥哈希"
 }

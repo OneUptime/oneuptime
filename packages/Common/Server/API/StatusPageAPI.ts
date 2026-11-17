@@ -745,13 +745,18 @@ export default class StatusPageAPI extends BaseAPI<
             return res.status(400).send("Token is required");
           }
 
-          // Fetch status page with security token
+          /*
+           * Fetch status page with security token: the page by its id, and
+           * the token compared with its own in constant time - it is kept
+           * encrypted (#9012).
+           */
           const statusPage: StatusPage | null =
-            await StatusPageService.findOneBy({
+            await StatusPageService.findOneByPresentedKey({
+              column: "embeddedOverallStatusToken",
+              presentedKey: token,
               query: {
                 _id: statusPageId,
                 enableEmbeddedOverallStatus: true,
-                embeddedOverallStatusToken: token,
                 // An archived page has no status to show, embedded or not.
                 isArchived: false,
               },

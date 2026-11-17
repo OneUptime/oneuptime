@@ -1043,6 +1043,11 @@ import { CascadeRunsAndFixesWithTheirRecord1809182600000 } from "./1809182600000
 import { DeleteRunsAndFixesOfDeletedRecords1809182610000 } from "./1809182610000-DeleteRunsAndFixesOfDeletedRecords";
 import { AddCarriedRecordsToCodeWork1809182700000 } from "./1809182700000-AddCarriedRecordsToCodeWork";
 import { LinkCodeWorkToTheRecordsItCarries1809182710000 } from "./1809182710000-LinkCodeWorkToTheRecordsItCarries";
+import { PresentedKeysEncryptedColumns1809182900000 } from "./1809182900000-PresentedKeysEncryptedColumns";
+import { StatusPageEmbedTokenEncryptedColumn1809182910000 } from "./1809182910000-StatusPageEmbedTokenEncryptedColumn";
+import { StatusPageSubscriberTokenEncryptedColumn1809182920000 } from "./1809182920000-StatusPageSubscriberTokenEncryptedColumn";
+import { MonitorKeysEncryptedColumns1809182930000 } from "./1809182930000-MonitorKeysEncryptedColumns";
+import { PresentedKeyLookupHashIndexes1809182940000 } from "./1809182940000-PresentedKeyLookupHashIndexes";
 
 export default [
   InitialMigration,
@@ -2090,4 +2095,9 @@ export default [
   DeleteRunsAndFixesOfDeletedRecords1809182610000,
   AddCarriedRecordsToCodeWork1809182700000,
   LinkCodeWorkToTheRecordsItCarries1809182710000,
+  PresentedKeysEncryptedColumns1809182900000,
+  StatusPageEmbedTokenEncryptedColumn1809182910000,
+  StatusPageSubscriberTokenEncryptedColumn1809182920000,
+  MonitorKeysEncryptedColumns1809182930000,
+  PresentedKeyLookupHashIndexes1809182940000,
 ];

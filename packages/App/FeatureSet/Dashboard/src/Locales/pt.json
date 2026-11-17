@@ -56518,5 +56518,13 @@
   "This check was too large to keep in full, so it was trimmed.": "Esta verificação era grande demais para ser guardada na íntegra, por isso foi reduzida.",
   "No email has gone out through this server's email settings since {{time}}.": "Nenhum e-mail foi enviado pelas configurações de e-mail deste servidor desde {{time}}.",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "Nenhum e-mail foi enviado pelas configurações de e-mail deste servidor desde {{time}}. O servidor de e-mail respondeu: {{reason}}",
-  "See email logs": "Ver registros de e-mail"
+  "See email logs": "Ver registros de e-mail",
+  "Copy Your Bearer Token": "Copie seu token Bearer",
+  "Incoming Email Secret Key Hash": "Hash da chave secreta de e-mail recebido",
+  "Incoming Request Secret Key Hash": "Hash da chave secreta de requisição recebida",
+  "Ingestion Key Hash": "Hash da chave de ingestão",
+  "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "Cole-o agora no seu provedor de identidade ou guarde-o em um lugar seguro. Ele só é mostrado desta vez: o OneUptime guarda apenas um hash dele.",
+  "Server Monitor Secret Key Hash": "Hash da chave secreta do monitor de servidor",
+  "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "O token Bearer é mostrado apenas uma vez, quando a conexão é adicionada ou o token dela é redefinido. Se você não o tiver mais, use \"Redefinir token Bearer\" para criar um novo.",
+  "Webhook Secret Key Hash": "Hash da chave secreta do webhook"
 }

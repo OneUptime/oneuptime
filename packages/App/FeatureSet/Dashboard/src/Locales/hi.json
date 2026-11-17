@@ -56518,5 +56518,13 @@
   "This check was too large to keep in full, so it was trimmed.": "यह जाँच पूरी तरह रखने के लिए बहुत बड़ी थी, इसलिए इसे छोटा कर दिया गया।",
   "No email has gone out through this server's email settings since {{time}}.": "{{time}} से इस सर्वर की ईमेल सेटिंग्स से कोई ईमेल नहीं भेजा गया है।",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "{{time}} से इस सर्वर की ईमेल सेटिंग्स से कोई ईमेल नहीं भेजा गया है। मेल सर्वर ने कहा: {{reason}}",
-  "See email logs": "ईमेल लॉग देखें"
+  "See email logs": "ईमेल लॉग देखें",
+  "Copy Your Bearer Token": "अपना Bearer टोकन कॉपी करें",
+  "Incoming Email Secret Key Hash": "इनकमिंग ईमेल सीक्रेट कुंजी हैश",
+  "Incoming Request Secret Key Hash": "इनकमिंग अनुरोध सीक्रेट कुंजी हैश",
+  "Ingestion Key Hash": "इंजेशन कुंजी हैश",
+  "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "इसे अभी अपने पहचान प्रदाता में पेस्ट करें, या किसी सुरक्षित जगह रखें। यह केवल इसी बार दिखाया जाता है: OneUptime इसका केवल हैश रखता है।",
+  "Server Monitor Secret Key Hash": "सर्वर मॉनिटर सीक्रेट कुंजी हैश",
+  "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Bearer टोकन केवल एक बार दिखाया जाता है, जब कनेक्शन जोड़ा जाता है या उसका टोकन रीसेट किया जाता है। अगर अब यह आपके पास नहीं है, तो नया बनाने के लिए \"Bearer टोकन रीसेट करें\" का उपयोग करें।",
+  "Webhook Secret Key Hash": "Webhook गुप्त कुंजी हैश"
 }

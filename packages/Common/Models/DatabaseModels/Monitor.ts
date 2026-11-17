@@ -46,6 +46,7 @@ import MonitorSteps from "../../Types/Monitor/MonitorSteps";
 import MonitorStepsColumnTransformer from "../../Types/Monitor/MonitorStepsColumnTransformer";
 import MonitorType from "../../Types/Monitor/MonitorType";
 import ServerMonitorResponse from "../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
+import HashedString from "../../Types/HashedString";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import {
@@ -2562,6 +2563,9 @@ export default class Monitor extends BaseModel {
   @Index()
   @TableColumn({
     secret: true,
+    encrypted: true,
+    presentedKey: true,
+    lookupHashColumn: "serverMonitorSecretKeyHash",
     type: TableColumnType.ObjectID,
     required: false,
     isDefaultValueColumn: false,
@@ -2571,11 +2575,41 @@ export default class Monitor extends BaseModel {
       "This field is for Server Monitor only. Secret Key to authenticate the request.",
   })
   @Column({
-    type: ColumnType.ObjectID,
+    type: ColumnType.VeryLongText,
     nullable: true,
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public serverMonitorSecretKey?: ObjectID = undefined;
+
+  /*
+   * The lookup hash of serverMonitorSecretKey, the key a
+   * server's agent reports with (#9012).
+   * The key is kept encrypted, which no query can find by its value, so
+   * a request that presents it is matched by this hash
+   * (DatabaseService.findOneByPresentedKey), then held to the key itself.
+   * OneUptime writes it with every write of the key.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.HashedString,
+    computed: true,
+    hideColumnInDocumentation: true,
+    title: "Server Monitor Secret Key Hash",
+    description:
+      "The lookup hash of serverMonitorSecretKey, which a request that presents the key finds this record by. OneUptime writes it with every write of the key; nobody reads or writes it through the API.",
+  })
+  @Column({
+    type: ColumnType.HashedString,
+    length: ColumnLength.HashedString,
+    nullable: true,
+    transformer: HashedString.getDatabaseTransformer(),
+  })
+  public serverMonitorSecretKeyHash?: HashedString = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -2611,6 +2645,9 @@ export default class Monitor extends BaseModel {
   @Index()
   @TableColumn({
     secret: true,
+    encrypted: true,
+    presentedKey: true,
+    lookupHashColumn: "incomingRequestSecretKeyHash",
     type: TableColumnType.ObjectID,
     required: false,
     isDefaultValueColumn: false,
@@ -2620,11 +2657,41 @@ export default class Monitor extends BaseModel {
       "This field is for Incoming Request Monitor only. Secret Key to authenticate the request.",
   })
   @Column({
-    type: ColumnType.ObjectID,
+    type: ColumnType.VeryLongText,
     nullable: true,
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public incomingRequestSecretKey?: ObjectID = undefined;
+
+  /*
+   * The lookup hash of incomingRequestSecretKey, the key in
+   * the heartbeat URL (#9012).
+   * The key is kept encrypted, which no query can find by its value, so
+   * a request that presents it is matched by this hash
+   * (DatabaseService.findOneByPresentedKey), then held to the key itself.
+   * OneUptime writes it with every write of the key.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.HashedString,
+    computed: true,
+    hideColumnInDocumentation: true,
+    title: "Incoming Request Secret Key Hash",
+    description:
+      "The lookup hash of incomingRequestSecretKey, which a request that presents the key finds this record by. OneUptime writes it with every write of the key; nobody reads or writes it through the API.",
+  })
+  @Column({
+    type: ColumnType.HashedString,
+    length: ColumnLength.HashedString,
+    nullable: true,
+    transformer: HashedString.getDatabaseTransformer(),
+  })
+  public incomingRequestSecretKeyHash?: HashedString = undefined;
 
   // this is for incoming request monitor.
 
@@ -2838,6 +2905,9 @@ export default class Monitor extends BaseModel {
   @Index()
   @TableColumn({
     secret: true,
+    encrypted: true,
+    presentedKey: true,
+    lookupHashColumn: "incomingEmailSecretKeyHash",
     type: TableColumnType.ObjectID,
     required: false,
     isDefaultValueColumn: false,
@@ -2847,11 +2917,41 @@ export default class Monitor extends BaseModel {
       "This field is for Incoming Email Monitor only. Secret Key used to generate unique email address.",
   })
   @Column({
-    type: ColumnType.ObjectID,
+    type: ColumnType.VeryLongText,
     nullable: true,
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public incomingEmailSecretKey?: ObjectID = undefined;
+
+  /*
+   * The lookup hash of incomingEmailSecretKey, the key in
+   * the inbound email address (#9012).
+   * The key is kept encrypted, which no query can find by its value, so
+   * a request that presents it is matched by this hash
+   * (DatabaseService.findOneByPresentedKey), then held to the key itself.
+   * OneUptime writes it with every write of the key.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.HashedString,
+    computed: true,
+    hideColumnInDocumentation: true,
+    title: "Incoming Email Secret Key Hash",
+    description:
+      "The lookup hash of incomingEmailSecretKey, which a request that presents the key finds this record by. OneUptime writes it with every write of the key; nobody reads or writes it through the API.",
+  })
+  @Column({
+    type: ColumnType.HashedString,
+    length: ColumnLength.HashedString,
+    nullable: true,
+    transformer: HashedString.getDatabaseTransformer(),
+  })
+  public incomingEmailSecretKeyHash?: HashedString = undefined;
 
   @ColumnAccessControl({
     /*

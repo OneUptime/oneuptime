@@ -41,7 +41,7 @@ El SCIM de proyecto permite a los proveedores de identidad gestionar los miembro
 
 ### Configurar SCIM de proyecto
 
-Solo un Propietario del proyecto puede añadir o cambiar la conexión SCIM de un proyecto, o ver o restablecer su token bearer: mediante SCIM, tu proveedor de identidad puede añadir personas a cualquier equipo del proyecto.
+Solo un Propietario del proyecto puede añadir o cambiar la conexión SCIM de un proyecto, o restablecer su token bearer: mediante SCIM, tu proveedor de identidad puede añadir personas a cualquier equipo del proyecto. Nadie puede volver a leer un token bearer, ni siquiera un Propietario del proyecto: OneUptime solo guarda su hash.
 :::steps
 1. **Ir a los ajustes del proyecto**
 
@@ -52,16 +52,16 @@ Solo un Propietario del proyecto puede añadir o cambiar la conexión SCIM de un
 
    - Introduce un **Nombre**. **Equipos predeterminados** empieza con el equipo de miembros de tu proyecto: los usuarios nuevos se añaden a estos equipos
    - En **Más campos**, **Aprovisionar usuarios automáticamente** (añadir usuarios cuando se les asigna en tu IdP) y **Desaprovisionar usuarios automáticamente** (quitar usuarios cuando se retira su asignación en tu IdP) están activados, y **Habilitar grupos push** está desactivado. Cámbialos ahí si lo necesitas
-   - Guarda. El cuadro de diálogo con la **URL base de SCIM** y el **Bearer Token** para la configuración de tu IdP se abre al instante
+   - Guarda. OneUptime muestra el **Bearer Token** de la conexión una sola vez: cópialo antes de hacer clic en **Hecho**, porque OneUptime solo guarda su hash y ninguna página vuelve a mostrarlo. Después se abre el cuadro de diálogo con la **URL base de SCIM** para la configuración de tu IdP
 
 3. **Configurar tu proveedor de identidad**
 
    - Usa la **URL base de SCIM** del cuadro de diálogo. En OneUptime Cloud es `https://oneuptime.com/identity/scim/v2/<scim-id>`; una instalación autoalojada muestra su propio host
-   - Configura la autenticación con token bearer usando el **Bearer Token** del cuadro de diálogo. Si tu proveedor de identidad pide en su lugar credenciales de cliente OAuth 2.0, usa las [credenciales de cliente OAuth 2.0](#credenciales-de-cliente-oauth-20) del mismo cuadro de diálogo
+   - Configura la autenticación con token bearer usando el **Bearer Token** que copiaste. Si tu proveedor de identidad pide en su lugar credenciales de cliente OAuth 2.0, usa las [credenciales de cliente OAuth 2.0](#credenciales-de-cliente-oauth-20) del cuadro de diálogo con la **URL base de SCIM**
    - Asigna los atributos de usuario (el correo es obligatorio). [Configurar tu proveedor de identidad](#configurar-tu-proveedor-de-identidad) tiene los detalles para Microsoft Entra ID y Okta
 :::
 
-Para volver a ver las URL, selecciona **Ver URLs de SCIM** en la fila de la conexión. **Restablecer token Bearer** sustituye el token; actualiza tu proveedor de identidad con el nuevo.
+Para volver a ver las URL, selecciona **Ver URLs de SCIM** en la fila de la conexión. El token bearer no se vuelve a mostrar: si ya no lo tienes, o se ha filtrado, **Restablecer token Bearer** crea uno nuevo, que se muestra una sola vez de la misma forma, y el anterior deja de funcionar al instante. Actualiza tu proveedor de identidad con el nuevo.
 
 ### Cómo se aprovisiona un usuario de proyecto
 
@@ -105,16 +105,16 @@ El SCIM de página de estado permite a los proveedores de identidad aprovisionar
 2. **Configurar los ajustes de SCIM**
 
    - Introduce un **Nombre**. En **Más campos**, **Aprovisionar usuarios automáticamente** (añadir usuarios privados cuando se les asigna en tu IdP) y **Desaprovisionar usuarios automáticamente** (eliminar usuarios privados cuando se retira su asignación en tu IdP) están activados. Cámbialos ahí si lo necesitas
-   - Guarda. El cuadro de diálogo con la **URL base de SCIM** y el **Bearer Token** para la configuración de tu IdP se abre al instante
+   - Guarda. OneUptime muestra el **Bearer Token** de la conexión una sola vez: cópialo antes de hacer clic en **Hecho**, porque OneUptime solo guarda su hash y ninguna página vuelve a mostrarlo. Después se abre el cuadro de diálogo con la **URL base de SCIM** para la configuración de tu IdP
 
 3. **Configurar tu proveedor de identidad**
 
    - Usa la **URL base de SCIM** del cuadro de diálogo. En OneUptime Cloud es `https://oneuptime.com/identity/status-page-scim/v2/<scim-id>`
-   - Configura la autenticación con token bearer usando el token proporcionado, o usa las [credenciales de cliente OAuth 2.0](#credenciales-de-cliente-oauth-20) del mismo cuadro de diálogo
+   - Configura la autenticación con token bearer usando el **Bearer Token** que copiaste, o usa las [credenciales de cliente OAuth 2.0](#credenciales-de-cliente-oauth-20) del cuadro de diálogo con la **URL base de SCIM**
    - Asigna los atributos de usuario (el correo es obligatorio)
 :::
 
-Para volver a ver las URL, selecciona **Mostrar URLs del endpoint SCIM** en la fila de la conexión.
+Para volver a ver las URL, selecciona **Mostrar URLs del endpoint SCIM** en la fila de la conexión. Si ya no tienes el token bearer, **Restablecer token Bearer** crea uno nuevo, que se muestra una sola vez.
 
 El SCIM de página de estado solo admite usuarios. No admite grupos ni su aprovisionamiento.
 
@@ -159,7 +159,7 @@ La aplicación de OneUptime de la galería de aplicaciones de Microsoft Entra es
    - **Aprovisionar usuarios automáticamente** y **Desaprovisionar usuarios automáticamente**: activados, en **Más campos**
    - **Habilitar grupos push**: en **Más campos**; actívalo si quieres gestionar la membresía de los equipos con grupos de Entra ID
 6. Guarda la configuración
-7. Copia la **URL base de SCIM** y el **Bearer Token** del cuadro de diálogo que se abre; los necesitarás para Entra ID
+7. Copia el **Bearer Token** que OneUptime muestra una sola vez y, después, la **URL base de SCIM** del cuadro de diálogo que se abre a continuación; los necesitarás para Entra ID
 
 #### Crear una aplicación empresarial en Entra ID
 
@@ -237,7 +237,7 @@ En OneUptime Cloud, si la Okta Integration Network incluye OneUptime, añádelo 
    - **Aprovisionar usuarios automáticamente** y **Desaprovisionar usuarios automáticamente**: activados, en **Más campos**
    - **Habilitar grupos push**: en **Más campos**; actívalo si quieres gestionar la membresía de los equipos con grupos de Okta
 6. Guarda la configuración
-7. Copia la **URL base de SCIM** y el **Bearer Token** del cuadro de diálogo que se abre; los necesitarás para Okta
+7. Copia el **Bearer Token** que OneUptime muestra una sola vez y, después, la **URL base de SCIM** del cuadro de diálogo que se abre a continuación; los necesitarás para Okta
 
 #### Crear o abrir la aplicación de Okta
 
@@ -394,7 +394,7 @@ En OneUptime Cloud, el aprovisionamiento SCIM solo funciona por completo mientra
 
 No se elimina nada. Cambia al plan **Scale** y las conexiones vuelven a funcionar por completo tal como están, con el mismo token bearer y sin nada que volver a configurar en tu proveedor de identidad; un cambio de plan surte efecto en menos de un minuto. Los proveedores de identidad siguen llamando según su propio calendario: Okta muestra los rechazos entre sus errores de aprovisionamiento, y Entra ID los muestra en sus registros de aprovisionamiento y puede poner en cuarentena un trabajo que falla una y otra vez, lo que ralentiza sus sincronizaciones — también las bajas — a una al día aproximadamente. Reinicia allí el aprovisionamiento después de cambiar de plan, para que se aprovisionen las personas añadidas mientras tanto.
 
-Por debajo de **Scale**, **Ajustes del proyecto** > **Seguridad** > **SCIM**, y la página **SCIM** de una página de estado, muestran las conexiones debajo de la oferta del plan (**Conexiones SCIM aún configuradas**) e indican que solo quitan personas. Elimina una conexión para quitarla. Añadir una conexión, cambiar una o sustituir su token bearer requiere **Scale**. La lista no muestra los tokens bearer, y solo los Propietarios del proyecto pueden leer un token, en cualquier plan.
+Por debajo de **Scale**, **Ajustes del proyecto** > **Seguridad** > **SCIM**, y la página **SCIM** de una página de estado, muestran las conexiones debajo de la oferta del plan (**Conexiones SCIM aún configuradas**) e indican que solo quitan personas. Elimina una conexión para quitarla. Añadir una conexión, cambiar una o sustituir su token bearer requiere **Scale**. La lista no muestra los tokens bearer: OneUptime solo guarda un hash de cada uno, en cualquier plan.
 
 ## Solución de problemas
 
@@ -435,6 +435,10 @@ El desaprovisionamiento puede pedirse con una solicitud DELETE o poniendo `activ
 
 :::details ¿Puedo usar SCIM sin SSO?
 Sí, SCIM y SSO son funciones independientes. Puedes usar SCIM para aprovisionar usuarios y dejar que inicien sesión con sus contraseñas de OneUptime o con cualquier otro método de autenticación.
+:::
+
+:::details ¿Dónde puedo volver a ver el token bearer de una conexión?
+En ningún sitio: OneUptime solo guarda su hash, así que ni el panel ni la API pueden volver a mostrarlo, ni a un Propietario del proyecto ni a nadie. Se muestra una sola vez, cuando se añade la conexión o se restablece su token. Si ya no lo tienes, selecciona **Restablecer token Bearer**: el nuevo token se muestra una sola vez y el anterior deja de funcionar al instante, así que dale el nuevo a tu proveedor de identidad. A través de la API, la respuesta a la creación incluye el token una sola vez, una escritura de `bearerToken` lo sustituye y ninguna lectura lo devuelve.
 :::
 
 :::details ¿Cómo gestiono los usuarios que ya existen en OneUptime?

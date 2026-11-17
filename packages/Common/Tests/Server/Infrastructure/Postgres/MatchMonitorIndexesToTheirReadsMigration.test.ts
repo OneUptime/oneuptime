@@ -296,6 +296,14 @@ describe("the Monitor model says the same", () => {
       indexName(["serverMonitorSecretKey"]),
       indexName(["incomingRequestSecretKey"]),
       indexName(["incomingEmailSecretKey"]),
+      /*
+       * The keys' lookup hashes, which a request presenting a key finds its
+       * monitor by now that the key is kept encrypted (#9012: built online
+       * by PresentedKeyLookupHashIndexes1809182940000).
+       */
+      indexName(["serverMonitorSecretKeyHash"]),
+      indexName(["incomingRequestSecretKeyHash"]),
+      indexName(["incomingEmailSecretKeyHash"]),
       "IDX_monitor_auto_provisioned_device_template_unique",
     ];
 

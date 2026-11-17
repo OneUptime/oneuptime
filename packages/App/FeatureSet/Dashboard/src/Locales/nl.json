@@ -56518,5 +56518,13 @@
   "This check was too large to keep in full, so it was trimmed.": "Deze controle was te groot om volledig te bewaren en is daarom ingekort.",
   "No email has gone out through this server's email settings since {{time}}.": "Sinds {{time}} is er geen e-mail meer verstuurd via de e-mailinstellingen van deze server.",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "Sinds {{time}} is er geen e-mail meer verstuurd via de e-mailinstellingen van deze server. De mailserver meldde: {{reason}}",
-  "See email logs": "E-maillogboeken bekijken"
+  "See email logs": "E-maillogboeken bekijken",
+  "Copy Your Bearer Token": "Kopieer uw Bearer-token",
+  "Incoming Email Secret Key Hash": "Hash van de geheime sleutel voor inkomende e-mail",
+  "Incoming Request Secret Key Hash": "Hash van de geheime sleutel voor inkomende aanvragen",
+  "Ingestion Key Hash": "Hash van de ingestiesleutel",
+  "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "Plak het nu in uw identiteitsprovider of bewaar het op een veilige plek. Het wordt alleen deze keer getoond: OneUptime bewaart er alleen een hash van.",
+  "Server Monitor Secret Key Hash": "Hash van de geheime sleutel van de servermonitor",
+  "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Het Bearer-token wordt maar één keer getoond: wanneer de verbinding wordt toegevoegd of het token opnieuw wordt ingesteld. Hebt u het niet meer, gebruik dan \"Bearer-token opnieuw instellen\" om een nieuw token te maken.",
+  "Webhook Secret Key Hash": "Hash van de geheime webhook-sleutel"
 }

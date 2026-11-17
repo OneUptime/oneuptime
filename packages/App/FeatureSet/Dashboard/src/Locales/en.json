@@ -56518,5 +56518,13 @@
   "This check was too large to keep in full, so it was trimmed.": "This check was too large to keep in full, so it was trimmed.",
   "No email has gone out through this server's email settings since {{time}}.": "No email has gone out through this server's email settings since {{time}}.",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}",
-  "See email logs": "See email logs"
+  "See email logs": "See email logs",
+  "Copy Your Bearer Token": "Copy Your Bearer Token",
+  "Incoming Email Secret Key Hash": "Incoming Email Secret Key Hash",
+  "Incoming Request Secret Key Hash": "Incoming Request Secret Key Hash",
+  "Ingestion Key Hash": "Ingestion Key Hash",
+  "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.",
+  "Server Monitor Secret Key Hash": "Server Monitor Secret Key Hash",
+  "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.",
+  "Webhook Secret Key Hash": "Webhook Secret Key Hash"
 }

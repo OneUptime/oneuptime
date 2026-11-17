@@ -775,14 +775,23 @@ describe("a SCIM connection a Scale trial left behind, on Free and on Growth", (
     expect(deletes).toBe(1);
   });
 
-  test("its bearer token stays readable by Project Owners only", async () => {
+  /*
+   * The token is kept only as its hash (#9012), shown once when it is made:
+   * nobody reads it back, on any plan - a Project Owner included.
+   */
+  test("its bearer token is read by nobody, whatever the plan", async () => {
     for (const plan of PLANS_BELOW_SCALE) {
       currentPlan = plan;
 
       expect([
         plan,
         await read(SCIM_CONNECTION, { name: true, bearerToken: true }),
-      ]).toEqual([plan, "done"]);
+      ]).toEqual([
+        plan,
+        expect.stringContaining(
+          "You do not have permissions to select on - bearerToken",
+        ) as unknown as string,
+      ]);
 
       for (const permission of [
         Permission.ProjectAdmin,
