@@ -84,6 +84,7 @@ const MESSAGE_QUEUE_PAGE_KEYS: ReadonlyArray<string> = [
   "MESSAGE_QUEUE_VIEW_AUDIT_LOGS",
   "MESSAGE_QUEUE_VIEW_DELETE",
   "MESSAGE_QUEUE_VIEW_DOCUMENTATION",
+  "MESSAGE_QUEUE_VIEW_RECOMMENDATIONS",
 ];
 
 /** MESSAGE_QUEUE_ROOT is the lazy-route mount (`/queues/*`), not a page. */
@@ -101,6 +102,7 @@ const VIEW_PAGES: ReadonlyArray<[string, string]> = [
   ["Owners.tsx", "MESSAGE_QUEUE_VIEW_OWNERS"],
   ["Settings.tsx", "MESSAGE_QUEUE_VIEW_SETTINGS"],
   ["Documentation.tsx", "MESSAGE_QUEUE_VIEW_DOCUMENTATION"],
+  ["Recommendations.tsx", "MESSAGE_QUEUE_VIEW_RECOMMENDATIONS"],
   ["AuditLogs.tsx", "MESSAGE_QUEUE_VIEW_AUDIT_LOGS"],
   ["Delete.tsx", "MESSAGE_QUEUE_VIEW_DELETE"],
 ];
@@ -125,6 +127,7 @@ const VIEW_TAB_SEGMENTS: ReadonlyArray<[string, string]> = [
   ["MESSAGE_QUEUE_VIEW_AUDIT_LOGS", "audit-logs"],
   ["MESSAGE_QUEUE_VIEW_DELETE", "delete"],
   ["MESSAGE_QUEUE_VIEW_DOCUMENTATION", "documentation"],
+  ["MESSAGE_QUEUE_VIEW_RECOMMENDATIONS", "recommendations"],
 ];
 
 /** The product's static pages and their paths under /queues. */
@@ -480,6 +483,10 @@ describe("every navigable page has breadcrumbs", () => {
     [
       "MESSAGE_QUEUE_VIEW_DOCUMENTATION",
       ["Project", "Queues", "View Queue", "Documentation"],
+    ],
+    [
+      "MESSAGE_QUEUE_VIEW_RECOMMENDATIONS",
+      ["Project", "Queues", "View Queue", "Recommendations"],
     ],
     [
       "MESSAGE_QUEUE_VIEW_AUDIT_LOGS",

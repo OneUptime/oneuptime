@@ -5,6 +5,7 @@ import type { CloudResourceReadings } from "../../Cloud/CloudResourceHealth";
 import type { RdsConnectionLimitReading } from "../../Cloud/RdsConnectionLimits";
 import RecommendationType from "../../Recommendation/RecommendationType";
 import { ServiceLanguage } from "../../Service/ServiceLanguage";
+import type { MessageQueueIdentity } from "../../MessageQueue/MessageQueueIdentity";
 import MonitorStep from "../MonitorStep";
 import MonitorType from "../MonitorType";
 
@@ -92,6 +93,21 @@ export enum MonitorRecommendationResourceType {
    * Traces tab is (CloudAppAlertTemplates); see MonitorRecommendationContext.
    */
   CloudApp = "CloudApp",
+  /*
+   * A serverless function (a ServerlessFunction row): a Lambda, a Cloud
+   * Function, an Azure Function. Its recommendations count its own failing
+   * invocations, read from the spans its faas.name selects
+   * (ServerlessAlertTemplates); see MonitorRecommendationContext.
+   */
+  ServerlessFunction = "ServerlessFunction",
+  /*
+   * A message queue (a MessageQueue row): a Kafka topic, a RabbitMQ queue,
+   * an SQS queue. Its recommendations are Metrics monitors over its
+   * broker's health metrics - backlog, consumer lag, oldest message age,
+   * dead letters, errors, throttling (MessageQueueAlertTemplates) - offered
+   * only for the metrics its broker reports; see MonitorRecommendationContext.
+   */
+  MessageQueue = "MessageQueue",
 }
 
 /*
@@ -256,6 +272,27 @@ export interface MonitorRecommendationContext {
    * for the app is linked to, so its incidents and alerts list there.
    */
   cloudAppEnvironmentId?: string | null | undefined;
+  /*
+   * A serverless function's telemetry filter: its faas.name, as its Traces
+   * tab reads its spans (getServerlessFunctionTelemetryFilters). Without
+   * it nothing is offered: a monitor filtered on nothing would read every
+   * function.
+   */
+  serverlessFunctionTelemetryFilters?: Dictionary<string> | null | undefined;
+  /*
+   * A queue's broker metrics as they arrived: for each catalog entry's id
+   * (getMessageQueueMetricId), the stored attributes of every series of it
+   * under the queue's key. A template is offered only when its metric has a
+   * series that resolves to the queue (getMessageQueueAlertTemplatesFor),
+   * and its monitor filters on exactly those series' values. Not known is
+   * the same as none: an alert over a metric nobody sends never fires.
+   */
+  messageQueueObservedSeries?:
+    | Readonly<Record<string, ReadonlyArray<Readonly<Record<string, unknown>>>>>
+    | null
+    | undefined;
+  // The queue its series must resolve to (its parsed queueIdentifier).
+  messageQueueIdentity?: MessageQueueIdentity | null | undefined;
 }
 
 /*

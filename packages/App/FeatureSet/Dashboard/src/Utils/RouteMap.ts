@@ -661,6 +661,7 @@ export const ServerlessRoutePath: Dictionary<string> = {
   [PageMap.SERVERLESS_FUNCTION_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
   [PageMap.SERVERLESS_FUNCTION_VIEW_INSTANCES]: `${RouteParams.ModelID}/instances`,
   [PageMap.SERVERLESS_FUNCTION_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
+  [PageMap.SERVERLESS_FUNCTION_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
   [PageMap.SERVERLESS_FUNCTION_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.SERVERLESS_FUNCTION_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.SERVERLESS_FUNCTION_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
@@ -785,6 +786,7 @@ export const MessageQueueRoutePath: Dictionary<string> = {
   [PageMap.MESSAGE_QUEUE_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.MESSAGE_QUEUE_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.MESSAGE_QUEUE_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
+  [PageMap.MESSAGE_QUEUE_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
   [PageMap.MESSAGE_QUEUES_ARCHIVED]: `archived`,
   [PageMap.MESSAGE_QUEUES_DOCUMENTATION]: `documentation`,
   [PageMap.MESSAGE_QUEUES_TOPOLOGY]: `topology`,
@@ -6527,6 +6529,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SERVERLESS_FUNCTION_VIEW_RECOMMENDATIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/serverless/${
+      ServerlessRoutePath[PageMap.SERVERLESS_FUNCTION_VIEW_RECOMMENDATIONS]
+    }`,
+  ),
+
   [PageMap.SERVERLESS_FUNCTION_VIEW_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/serverless/${
       ServerlessRoutePath[PageMap.SERVERLESS_FUNCTION_VIEW_SETTINGS]
@@ -7162,6 +7170,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.MESSAGE_QUEUE_VIEW_DOCUMENTATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/queues/${
       MessageQueueRoutePath[PageMap.MESSAGE_QUEUE_VIEW_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.MESSAGE_QUEUE_VIEW_RECOMMENDATIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/queues/${
+      MessageQueueRoutePath[PageMap.MESSAGE_QUEUE_VIEW_RECOMMENDATIONS]
     }`,
   ),
 

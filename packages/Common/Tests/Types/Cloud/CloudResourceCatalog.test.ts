@@ -188,6 +188,13 @@ describe("types that publish no metrics", () => {
     expect(
       isInventoryOnlyCloudResourceType(CloudProvider.AWS, " aws::ec2::vpc "),
     ).toBe(true);
+    // AWS's subnets and security groups are listed too (#9375).
+    for (const type of ["AWS::EC2::Subnet", "AWS::EC2::SecurityGroup"]) {
+      expect(isInventoryOnlyCloudResourceType(CloudProvider.AWS, type)).toBe(
+        true,
+      );
+    }
+
     for (const type of [
       "compute.googleapis.com/Network",
       "compute.googleapis.com/Subnetwork",
@@ -212,8 +219,12 @@ describe("types that publish no metrics", () => {
     expect(
       isInventoryOnlyCloudResourceType(CloudProvider.Azure, "AWS::EC2::VPC"),
     ).toBe(false);
+    // Named only: never listed as a resource of its own.
     expect(
-      isInventoryOnlyCloudResourceType(CloudProvider.AWS, "AWS::EC2::Subnet"),
+      isInventoryOnlyCloudResourceType(
+        CloudProvider.AWS,
+        "AWS::EC2::NetworkInterface",
+      ),
     ).toBe(false);
     expect(isInventoryOnlyCloudResourceType(undefined, "AWS::EC2::VPC")).toBe(
       false,

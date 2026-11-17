@@ -30,6 +30,8 @@ import {
   ON_CALL_TEST_PAGE_ACKNOWLEDGE_TITLE,
   ON_CALL_TEST_PAGE_ANSWERED_MESSAGE,
   ON_CALL_TEST_PAGE_ANSWERED_TITLE,
+  ON_CALL_TEST_PAGE_NOT_ACKNOWLEDGED_MESSAGE,
+  ON_CALL_TEST_PAGE_NOT_ACKNOWLEDGED_TITLE,
   ON_CALL_TEST_PAGE_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
 } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
 import UserNotificationEventType from "../../../Types/UserNotification/UserNotificationEventType";
@@ -312,5 +314,30 @@ describe("a test page's Acknowledge", () => {
 
     expect(updateSpy).not.toHaveBeenCalled();
     expect(rendered().path).toContain("ViewMessage.ejs");
+  });
+
+  test("a message that kept changing under every try is not acknowledged, and the page never says it works", async () => {
+    // Every write lands on a version that has moved on, and nobody acknowledged it.
+    updateSpy.mockImplementation((async (updateBy: UpdateOneByInput) => {
+      currentItem.version = (currentItem.version || 0) + 1;
+
+      return updateNotificationWhileStill(currentItem, updateBy);
+    }) as never);
+
+    await callRoute(ACKNOWLEDGE_ROUTE);
+
+    expect(currentItem.isAcknowledged).toBeFalsy();
+    expect(Response.sendErrorResponse).not.toHaveBeenCalled();
+
+    const { path, variables } = rendered();
+
+    expect(path).toContain("ViewMessage.ejs");
+    expect(variables).toEqual({
+      title: ON_CALL_TEST_PAGE_NOT_ACKNOWLEDGED_TITLE,
+      message: ON_CALL_TEST_PAGE_NOT_ACKNOWLEDGED_MESSAGE,
+    });
+    expect(ON_CALL_TEST_PAGE_NOT_ACKNOWLEDGED_TITLE).toBe(
+      "Test page not acknowledged",
+    );
   });
 });

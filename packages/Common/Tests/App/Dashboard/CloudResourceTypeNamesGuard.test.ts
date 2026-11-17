@@ -367,7 +367,11 @@ describe("a cloud resource type's name, as a page draws it", () => {
     const spanish: Translator = dashboardTranslator("es");
 
     expect(
-      getCloudResourceTypeText(CloudProvider.AWS, "AWS::EC2::Subnet", spanish),
+      getCloudResourceTypeText(
+        CloudProvider.Azure,
+        "Microsoft.Network/virtualNetworks/subnets",
+        spanish,
+      ),
     ).toBe(readDashboardLocale("es")["Subnet"]);
     expect(readDashboardLocale("es")["Subnet"]).not.toBe("Subnet");
 

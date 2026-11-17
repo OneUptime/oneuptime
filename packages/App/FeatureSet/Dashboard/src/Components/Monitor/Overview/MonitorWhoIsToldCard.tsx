@@ -1,5 +1,7 @@
 import { ADMIN_EMAIL_SETTINGS_ROUTE } from "../../../Utils/ServerEmail";
 import RelativeTime from "../../EpisodeView/RelativeTime";
+import FireDrillButton from "../../OnCallTestPage/FireDrillButton";
+import { hasOnCallFireDrill } from "Common/Types/OnCallDutyPolicy/OnCallFireDrill";
 import {
   getNotPagedLines,
   getReachedThroughWords,
@@ -1264,6 +1266,20 @@ const MonitorWhoIsToldCard: FunctionComponent<ComponentProps> = (
       title="When this goes down"
       description="Who is told when this monitor fails, and what would stop it."
       headerLayout="stacked"
+      /*
+       * Run Fire Drill (#7012): rehearse a failure the card says pages an
+       * on-call policy, as a test of each policy it pages - of a saved
+       * monitor only: a drill reads the monitor as it is saved, never a
+       * draft the card is showing (#7055).
+       */
+      buttons={
+        !props.draft &&
+        monitorIdText &&
+        state.status === "loaded" &&
+        hasOnCallFireDrill(state.result)
+          ? [<FireDrillButton key="fire-drill" monitorId={monitorIdText} />]
+          : undefined
+      }
     >
       <div data-testid="monitor-who-is-told-card">{getBody()}</div>
     </Card>

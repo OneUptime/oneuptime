@@ -967,6 +967,8 @@ service:
 
 큐는 브로커 메트릭에 대한 **메트릭** 모니터로 감시합니다([메트릭 모니터](/docs/monitor/metrics-monitor) 참조).
 
+각 큐의 **권장 사항** 탭은 브로커가 지난 7일 동안 보고한 메트릭에 대해 이 모니터를 기성품으로 제안합니다. 백로그, 컨슈머 지연, 가장 오래된 메시지의 경과 시간, 데드 레터, 오류, 스로틀링이며, 각각 초기 임계값과 기간이 있습니다. 원하는 모니터를 골라 한 번에 생성하세요. 브로커가 보내지 않은 메트릭은 모니터가 실행될 수 없으므로 제안되지 않습니다.
+
 **큐 페이지에서.** **브로커 상태**의 각 게이지와 기간별 개수에는 **모니터 생성**이 있습니다: 해당 메트릭에 대한 새 메트릭 모니터를 열며, 그 메트릭에서 이 큐를 지정하는 정확한 속성 값으로 필터링하고, 나빠지는 방향이 분명한 것을 측정하는 메트릭(백로그, 데드 레터, 컨슈머 지연, 가장 오래된 메시지의 나이, 스로틀링, 오류)에는 시작 임계값을 넣습니다. 그중 네 개는 고정 임계값이 오해를 부르기 때문에 임계값 없이 시작합니다: 컨슈머 그룹의 지연이 이미 다루는 Kafka의 파티션 지연(`kafka.consumer_group.lag`), 브로커가 시작된 이후의 평균이라 정체가 끝난 뒤에도 오랫동안 높게 유지되는 ActiveMQ의 큐 내 평균 시간(`activemq.message.enqueue.average_duration`, `activemq.message.wait_time.avg`), 그리고 브로커가 판단할 수 없는 동안 `-1`을 나타내는 Pulsar의 백로그 나이(`pulsar_storage_backlog_age_seconds`)입니다. 카운터에는 모니터가 없습니다: 카운터 차트는 속도를 보여 주지만, 모니터에는 속도 함수가 없습니다.
 
 **카운터.** RabbitMQ, Apache ActiveMQ, Apache RocketMQ의 카운터는 누적 합계로 Collector에 도착하며, `cumulative_to_delta` 프로세서(이전 Collector에서는 `cumulativetodelta`)가 이를 모니터가 경고를 보낼 수 있는 델타로 바꿉니다. 카운터 자체가 아니라 별도 이름의 복사본을 변환하세요: 큐 페이지는 이 카운터들을 각각 누적 합계로 읽고 그 증가 속도를 차트로 보여 주므로, 델타로 바뀐 카운터는 **브로커 상태**와 **메트릭** 탭에서 의미 없는 차트가 되어, 꾸준한 트래픽이 초당 0개 메시지로 표시됩니다. Apache Kafka의 오프셋(`kafka.consumer_group.offset_sum`, `kafka.partition.current_offset`)과 Apache Pulsar의 `pulsar_in_messages_total`, `pulsar_out_messages_total`은 게이지로 도착하며, `cumulative_to_delta`는 이를 건드리지 않습니다: 이 시스템들에서는 대신 지연과 백로그 게이지로 경고를 설정하세요.

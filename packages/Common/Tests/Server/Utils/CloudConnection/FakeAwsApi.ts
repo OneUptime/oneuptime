@@ -80,6 +80,20 @@ export interface FakeRegion {
    */
   beanstalkEnvironments?: Array<JSONObject> | undefined;
   beanstalkError?: FakeResponse | undefined;
+  /*
+   * Classic load balancers: what Elastic Load Balancing's 2012-06-01
+   * DescribeLoadBalancers lists (as XML fields), in pages of PageSize, or
+   * the error it answers with instead. None when absent.
+   */
+  classicLoadBalancers?: Array<JSONObject> | undefined;
+  classicLoadBalancerError?: FakeResponse | undefined;
+  /*
+   * EKS: each cluster as DescribeCluster answers it (`cluster`), listed by
+   * ListClusters in pages of maxResults, or the error both answer with
+   * instead. None when absent.
+   */
+  eksClusters?: Array<JSONObject> | undefined;
+  eksError?: FakeResponse | undefined;
   // CloudTrail: the Region's write events, as LookupEvents describes them.
   trailEvents?: Array<JSONObject> | undefined;
   // Events per LookupEvents page (50 when not set).
@@ -319,7 +333,15 @@ export interface FakeAws extends FakeProviderApi {
     resourceModel: string;
     account: string;
   }>;
-  // Elastic Beanstalk calls (the Query protocol): the Region, the account, the form.
+  /*
+   * Elastic Beanstalk calls (the Query protocol): the Region, the account, the form.
+   * Classic load balancer and EKS calls, by Region: their form fields or path.
+   */
+  classicLoadBalancerCalls: Array<{
+    region: string;
+    params: Record<string, string>;
+  }>;
+  eksCalls: Array<{ region: string; path: string }>;
   beanstalkCalls: Array<{
     region: string;
     account: string;
@@ -1399,6 +1421,8 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
   const taggingCalls: FakeAws["taggingCalls"] = [];
   const cloudControlCalls: FakeAws["cloudControlCalls"] = [];
   const beanstalkCalls: FakeAws["beanstalkCalls"] = [];
+  const classicLoadBalancerCalls: FakeAws["classicLoadBalancerCalls"] = [];
+  const eksCalls: FakeAws["eksCalls"] = [];
   const assumedRoles: Array<string> = [];
   const organizationsCalls: Array<string> = [];
   const cloudTrailCalls: FakeAws["cloudTrailCalls"] = [];
@@ -1718,6 +1742,38 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
 
       if (fakeRegion.error) {
         return fakeRegion.error;
+      }
+
+      // Classic load balancers, over the Query protocol (version 2012-06-01).
+      if (service === "elasticloadbalancing") {
+        const form: URLSearchParams = new URLSearchParams(
+          String(request.body || ""),
+        );
+
+        classicLoadBalancerCalls.push({ region, params: formFieldsOf(form) });
+
+        if (fakeRegion.classicLoadBalancerError) {
+          return fakeRegion.classicLoadBalancerError;
+        }
+
+        const offset: number = Number(form.get("Marker") || "0") || 0;
+        const size: number = Number(form.get("PageSize") || "400") || 400;
+        const balancers: Array<JSONObject> =
+          fakeRegion.classicLoadBalancers || [];
+        const next: string =
+          offset + size < balancers.length ? String(offset + size) : "";
+
+        return {
+          status: 200,
+          body: `<DescribeLoadBalancersResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/"><DescribeLoadBalancersResult><LoadBalancerDescriptions>${balancers
+            .slice(offset, offset + size)
+            .map((balancer: JSONObject): string => {
+              return `<member>${xmlOf(balancer)}</member>`;
+            })
+            .join(
+              "",
+            )}</LoadBalancerDescriptions>${next ? `<NextMarker>${next}</NextMarker>` : ""}</DescribeLoadBalancersResult></DescribeLoadBalancersResponse>`,
+        };
       }
 
       // Elastic Beanstalk's environments, over the Query protocol.
@@ -2190,6 +2246,63 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
       const service: string = labels[0] || "";
       const region: string = labels[1] || "";
       const fakeRegion: FakeRegion | undefined = options.regions[region];
+
+      // EKS's clusters, over its REST API.
+      if (service === "eks") {
+        eksCalls.push({ region, path: url.pathname });
+
+        if (!fakeRegion) {
+          return {
+            status: 403,
+            body: JSON.stringify({
+              message: "The security token included in the request is invalid.",
+            }),
+          };
+        }
+
+        if (fakeRegion.eksError) {
+          return fakeRegion.eksError;
+        }
+
+        const clusters: Array<JSONObject> = fakeRegion.eksClusters || [];
+
+        if (url.pathname === "/clusters") {
+          const offset: number =
+            Number(url.searchParams.get("nextToken") || "0") || 0;
+          const size: number =
+            Number(url.searchParams.get("maxResults") || "100") || 100;
+          const next: string =
+            offset + size < clusters.length ? String(offset + size) : "";
+
+          return json({
+            clusters: clusters
+              .slice(offset, offset + size)
+              .map((cluster: JSONObject): string => {
+                return String(cluster["name"]);
+              }),
+            ...(next ? { nextToken: next } : {}),
+          });
+        }
+
+        const name: string = decodeURIComponent(
+          url.pathname.replace(/^\/clusters\//, ""),
+        );
+        const cluster: JSONObject | undefined = clusters.find(
+          (candidate: JSONObject): boolean => {
+            return candidate["name"] === name;
+          },
+        );
+
+        return cluster
+          ? json({ cluster })
+          : {
+              status: 404,
+              body: JSON.stringify({
+                message: `No cluster found for name: ${name}.`,
+              }),
+            };
+      }
+
       const action: string =
         service === "es"
           ? request.method === "POST"
@@ -2281,6 +2394,8 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
     taggingCalls,
     cloudControlCalls,
     beanstalkCalls,
+    classicLoadBalancerCalls,
+    eksCalls,
     organizationsCalls,
     assumedRoles,
     cloudTrailCalls,

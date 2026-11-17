@@ -10,6 +10,8 @@ import React, { FunctionComponent, ReactElement } from "react";
 import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
 import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
 import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
+import RecommendationsSideMenuItem from "../../../Components/Recommendations/RecommendationsSideMenuItem";
+import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -30,6 +32,19 @@ const ServerlessFunctionViewSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Info}
+        />
+        <RecommendationsSideMenuItem
+          link={{
+            title: "Recommendations",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.SERVERLESS_FUNCTION_VIEW_RECOMMENDATIONS
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          resourceType={MonitorRecommendationResourceType.ServerlessFunction}
+          resourceId={props.modelId}
         />
         <SideMenuItem
           link={{

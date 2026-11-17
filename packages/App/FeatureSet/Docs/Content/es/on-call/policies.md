@@ -97,6 +97,20 @@ Algunos avisos siguen después del reconocimiento, hasta que responde alguien a 
 
 Una política iniciada a mano es la que se inicia con **Ejecutar política de guardia**, o con un aviso desde Slack o Microsoft Teams que la nombra. Avisa nivel por nivel como cualquier ejecución, con llamadas y notificaciones push repetidas incluidas, y que otra persona reconozca el incidente no la detiene: así se avisa a otro equipo para un incidente del que ya se ocupa alguien. Quien recibió su aviso responde desde el mensaje del aviso, una llamada o un SMS, o reconociendo el incidente en persona; cuando el incidente ya está reconocido, su página le ofrece **Reconocer de nuevo**. **Escalar** la pasa al siguiente nivel. En un incidente, una alerta o un episodio resuelto no se inicia nada, y se te explica por qué: el panel desactiva **Ejecutar política de guardia** y muestra el motivo. Sus notificaciones dicen quién inició qué política e incluyen el mensaje enviado con un aviso desde Slack o Microsoft Teams.
 
+## Probar una política
+
+**Probar esta política**, en las reglas de escalado de una política, avisa a su primer nivel como prueba, sin ningún incidente detrás: cada mensaje dice TEST, y no se informa a ninguna página de estado, suscriptor ni canal. Activa **Recorrer cada nivel de escalado** para avisar a cada nivel por turno, con 2 minutos de separación como mucho, hasta que alguien lo reconozca. Antes de enviar nada, el diálogo indica a quién avisa la prueba y cómo, y cuánto cuesta en OneUptime Cloud.
+
+**Enviar aviso de prueba** sigue desactivado mientras la prueba no llegaría a nadie: cada persona a la que avisa se dio de baja de esa gravedad, no tiene ninguna regla para ella ni nada a lo que recurrir, o solo tiene métodos sin verificar o desactivados en el proyecto. Una línea debajo de la lista indica por qué. Cuando solo se puede llegar a un nivel posterior, la línea ofrece **Recorrer cada nivel de escalado** con un clic.
+
+Quien recibe el aviso reconoce la prueba desde cualquiera de sus mensajes: el enlace de un correo, de un SMS o de un mensaje de chat, el 1 de una llamada, o su notificación push en la app OneUptime On-Call, en versiones posteriores a la 1.6.0. Una política se puede probar una vez cada 5 minutos, y un proyecto envía como mucho 20 pruebas por hora.
+
+### Hacer un simulacro en un monitor
+
+**Hacer un simulacro**, en la tarjeta **Cuando falla** de un monitor, ensaya uno de sus fallos: un incidente o una alerta que abre uno de sus criterios. Prueba cada política de guardia a la que avisaría ese fallo, cada una como la prueba **Probar esta política**, y no ocurre nada público: no se crea ningún incidente ni alerta, y no se informa a ninguna página de estado, suscriptor ni canal. Antes de enviar nada, el diálogo nombra el fallo, cada política y a quién avisa ahora esa política.
+
+**Iniciar simulacro** sigue desactivado mientras una de esas políticas sea una que no puedes probar, porque no puedes editarla, o mientras no se pueda llegar a nadie de los que avisan. Cada política de un simulacro cuenta como una prueba propia: una política probada en los últimos 5 minutos detiene todo el simulacro, y un simulacro de tres políticas ocupa tres de las 20 pruebas por hora del proyecto.
+
 ## Registros de ejecución
 
 Cada vez que una política se ejecuta, escribe un registro de ejecución, y el registro pasa por sus estados a medida que avanza la ejecución:

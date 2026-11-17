@@ -1833,6 +1833,7 @@ export class WhoIsToldService {
     return await this.resolveIncidentRecord({
       context: data.context,
       incident: incident,
+      templateId: data.template.id,
       severityName: severity.name?.toString() || "",
       onCallPolicyIds: data.template.onCallPolicyIds || [],
       namedOwners: {
@@ -1864,6 +1865,8 @@ export class WhoIsToldService {
   private static async resolveIncidentRecord(data: {
     context: ResolveContext;
     incident: Incident;
+    // The criteria's template it is opened from; none for a declared one.
+    templateId: string | undefined;
     severityName: string;
     onCallPolicyIds: Array<ObjectID>;
     namedOwners: NamedOwners;
@@ -1929,6 +1932,7 @@ export class WhoIsToldService {
     const event: WhoIsToldEvent = await this.makeEvent({
       context: context,
       kind: OnCallTestPageRecordKind.Incident,
+      templateId: data.templateId,
       title: incident.title || "",
       severityId: incident.incidentSeverityId!,
       severityName: data.severityName,
@@ -2058,6 +2062,7 @@ export class WhoIsToldService {
       event: await this.makeEvent({
         context: context,
         kind: OnCallTestPageRecordKind.Alert,
+        templateId: data.template.id,
         title: text.title,
         severityId: severity.id,
         severityName: severity.name?.toString() || "",
@@ -2157,6 +2162,7 @@ export class WhoIsToldService {
       incident: await this.resolveIncidentRecord({
         context: context,
         incident: incident,
+        templateId: undefined,
         severityName: severity?.name?.toString() || "",
         onCallPolicyIds: [],
         namedOwners: {
@@ -2559,6 +2565,12 @@ export class WhoIsToldService {
   private static async makeEvent(data: {
     context: ResolveContext;
     kind: OnCallTestPageRecordKind;
+    /*
+     * The criteria's incident or alert template it is opened from: what a
+     * fire drill asks for it by (#7012). None for an incident an alert
+     * incident rule declares, which is opened from no template of its own.
+     */
+    templateId: string | undefined;
     title: string;
     severityId: ObjectID;
     severityName: string;
@@ -2672,6 +2684,8 @@ export class WhoIsToldService {
 
     return {
       kind: data.kind,
+      id: data.templateId || "",
+      severityId: data.severityId.toString(),
       title: data.title,
       severityName: data.severityName,
       owners: owners.owners,

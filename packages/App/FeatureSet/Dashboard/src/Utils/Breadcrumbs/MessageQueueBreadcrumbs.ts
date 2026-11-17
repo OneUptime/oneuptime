@@ -84,6 +84,10 @@ export function getMessageQueueBreadcrumbs(
       "View Queue",
       "Settings",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.MESSAGE_QUEUE_VIEW_RECOMMENDATIONS,
+      ["Project", "Queues", "View Queue", "Recommendations"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.MESSAGE_QUEUE_VIEW_DOCUMENTATION, [
       "Project",
       "Queues",

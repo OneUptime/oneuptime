@@ -97,6 +97,20 @@ Alcuni avvisi continuano dopo il riconoscimento, finché non risponde qualcuno c
 
 Una policy avviata a mano è una policy avviata con **Esegui policy di reperibilità**, o da un avviso da Slack o Microsoft Teams che la nomina. Avvisa livello per livello come qualsiasi esecuzione, chiamate e notifiche push ripetute comprese, e il riconoscimento dell'incidente da parte di qualcun altro non la ferma: è così che si avvisa un altro team per un incidente di cui qualcuno si sta già occupando. Chi ha ricevuto il suo avviso risponde dal messaggio dell'avviso, con una chiamata o un SMS, o riconoscendo personalmente l'incidente; una volta riconosciuto l'incidente, la sua pagina gli offre **Riconosci di nuovo**. **Escala** la passa al livello successivo. Su un incidente, un avviso o un episodio risolto non viene avviato nulla, e vi viene detto perché: la dashboard disattiva **Esegui policy di reperibilità** e ne mostra il motivo. Le sue notifiche dicono chi ha avviato quale policy, e riportano il messaggio inviato con un avviso da Slack o Microsoft Teams.
 
+## Testare una policy
+
+**Testa questa policy**, nelle regole di escalation di una policy, chiama il suo primo livello come test, senza alcun incidente dietro: ogni messaggio dice TEST, e nessuna pagina di stato, nessun iscritto e nessun canale viene informato. Attiva **Percorri ogni livello di escalation** per chiamare ogni livello a turno, a non più di 2 minuti l'uno dall'altro, finché qualcuno non lo riconosce. Prima di inviare qualsiasi cosa, la finestra di dialogo elenca chi chiama il test e come, e quanto costa su OneUptime Cloud.
+
+**Invia chiamata di test** resta disattivato finché il test non raggiungerebbe nessuno: ogni persona che chiama ha disattivato quella gravità, non ha alcuna regola per essa né nulla su cui ripiegare, oppure ha solo metodi non verificati o disattivati nel progetto. Una riga sotto l'elenco spiega perché. Quando si può raggiungere solo un livello successivo, la riga offre **Percorri ogni livello di escalation** con un clic.
+
+Chi viene chiamato riconosce il test da uno qualsiasi dei suoi messaggi: il link di un'email, di un SMS o di un messaggio di chat, l'1 di una chiamata, o la sua notifica push nell'app OneUptime On-Call, nelle versioni successive alla 1.6.0. Una policy può essere testata una volta ogni 5 minuti, e un progetto invia al massimo 20 test all'ora.
+
+### Fare un'esercitazione su un monitor
+
+**Fai un'esercitazione**, sulla scheda **Quando va giù** di un monitor, prova uno dei suoi guasti: un incidente o un avviso che apre uno dei suoi criteri. Testa ogni policy di reperibilità che quel guasto chiamerebbe, ognuna come la testa **Testa questa policy**, e non accade nulla di pubblico: non viene creato alcun incidente né avviso, e nessuna pagina di stato, nessun iscritto e nessun canale viene informato. Prima di inviare qualsiasi cosa, la finestra di dialogo nomina il guasto, ogni policy e chi quella policy chiama ora.
+
+**Avvia esercitazione** resta disattivato finché una di quelle policy è una che non puoi testare, perché non puoi modificarla, o finché nessuna delle persone che chiamano può essere raggiunta. Ogni policy di un'esercitazione conta come un test a sé: una policy testata negli ultimi 5 minuti blocca tutta l'esercitazione, e un'esercitazione di tre policy occupa tre dei 20 test all'ora del progetto.
+
 ## Log di esecuzione
 
 Ogni volta che una policy viene eseguita, scrive un log di esecuzione, e il log attraversa i suoi stati man mano che l'esecuzione prosegue:

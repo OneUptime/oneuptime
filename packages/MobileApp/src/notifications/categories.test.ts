@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import {
   ACKNOWLEDGE_PAGE_ACTION,
+  ACKNOWLEDGE_TEST_PAGE_ACTION,
   ESCALATE_PAGE_ACTION,
   MARK_PAGE_SEEN_ACTION,
   NOTIFICATION_CATEGORIES,
@@ -8,9 +9,13 @@ import {
   ON_CALL_OBSERVER_PAGE_CATEGORY,
   ON_CALL_PAGE_ACTIONS,
   ON_CALL_PAGE_CATEGORY,
+  ON_CALL_TEST_PAGE_ACTIONS,
+  ON_CALL_TEST_PAGE_CATEGORY,
   RETIRED_CATEGORIES,
   getPushPageActionKind,
+  isAcknowledgeTestPageAction,
 } from "./categories";
+import { TEST_PAGE_TEXT } from "../oncall/testPage";
 import { PASS_ON_TEXT } from "../oncall/passOn";
 import { OBSERVER_PAGE_TEXT } from "../oncall/observerPage";
 
@@ -100,7 +105,7 @@ describe("the category an observer's page names", () => {
     }
   });
 
-  test("the app registers both: the responder's, then the observer's, each with its own actions", () => {
+  test("the app registers all three: the responder's, the observer's and the test page's, each with its own actions", () => {
     expect(
       NOTIFICATION_CATEGORIES.map(
         (category: { identifier: string; actions: ReadonlyArray<unknown> }) => {
@@ -110,7 +115,64 @@ describe("the category an observer's page names", () => {
     ).toEqual([
       [ON_CALL_PAGE_CATEGORY, ON_CALL_PAGE_ACTIONS],
       [ON_CALL_OBSERVER_PAGE_CATEGORY, ON_CALL_OBSERVER_PAGE_ACTIONS],
+      [ON_CALL_TEST_PAGE_CATEGORY, ON_CALL_TEST_PAGE_ACTIONS],
     ]);
+  });
+});
+
+/*
+ * A test page (oncall/testPage.ts, #7014): no record behind it, so its push
+ * names a category of its own, whose one action acknowledges the test. It
+ * is never a page's Acknowledge, and a page's Acknowledge is never it: a
+ * real page's buttons act on a record, and a test has none.
+ */
+describe("the category a test page names", () => {
+  test("is the server's id, and is neither a responder's nor an observer's", () => {
+    expect(ON_CALL_TEST_PAGE_CATEGORY).toBe("ON_CALL_TEST_PAGE");
+    expect(ON_CALL_TEST_PAGE_CATEGORY).not.toBe(ON_CALL_PAGE_CATEGORY);
+    expect(ON_CALL_TEST_PAGE_CATEGORY).not.toBe(ON_CALL_OBSERVER_PAGE_CATEGORY);
+    expect(RETIRED_CATEGORIES).not.toContain(ON_CALL_TEST_PAGE_CATEGORY);
+  });
+
+  test("carries one action, Acknowledge test page - the words of the page its link opens", () => {
+    expect(
+      ON_CALL_TEST_PAGE_ACTIONS.map(
+        (action: { identifier: string; buttonTitle: string }) => {
+          return [action.identifier, action.buttonTitle];
+        },
+      ),
+    ).toEqual([[ACKNOWLEDGE_TEST_PAGE_ACTION, "Acknowledge test page"]]);
+    expect(TEST_PAGE_TEXT.acknowledgeButton).toBe("Acknowledge test page");
+  });
+
+  test("its action has an id of its own: never a page's Acknowledge, Escalate or I've seen it", () => {
+    expect(ACKNOWLEDGE_TEST_PAGE_ACTION).toBe("ACKNOWLEDGE_TEST_PAGE");
+
+    for (const action of ON_CALL_TEST_PAGE_ACTIONS) {
+      expect([
+        ACKNOWLEDGE_PAGE_ACTION,
+        ESCALATE_PAGE_ACTION,
+        MARK_PAGE_SEEN_ACTION,
+      ]).not.toContain(action.identifier);
+    }
+
+    // And no page's category carries it.
+    for (const action of [
+      ...ON_CALL_PAGE_ACTIONS,
+      ...ON_CALL_OBSERVER_PAGE_ACTIONS,
+    ]) {
+      expect(action.identifier).not.toBe(ACKNOWLEDGE_TEST_PAGE_ACTION);
+    }
+  });
+
+  test("it opens the app, once the phone is unlocked, like every action - and is not drawn as destructive", () => {
+    for (const action of ON_CALL_TEST_PAGE_ACTIONS) {
+      expect(action.options).toEqual({
+        opensAppToForeground: true,
+        isAuthenticationRequired: true,
+      });
+      expect(action.options?.isDestructive).toBeUndefined();
+    }
   });
 });
 
@@ -122,6 +184,29 @@ describe("what a tapped action asks for", () => {
 
   test("I've seen it asks for its page to be marked seen - never for an acknowledgement", () => {
     expect(getPushPageActionKind(MARK_PAGE_SEEN_ACTION)).toBe("seen");
+  });
+
+  test("Acknowledge test page asks a record's screen for nothing: it is a test page's alone", () => {
+    expect(getPushPageActionKind(ACKNOWLEDGE_TEST_PAGE_ACTION)).toBeNull();
+    expect(isAcknowledgeTestPageAction(ACKNOWLEDGE_TEST_PAGE_ACTION)).toBe(
+      true,
+    );
+  });
+
+  test("no other action is a test page's Acknowledge - a page's own Acknowledge least of all", () => {
+    for (const identifier of [
+      ACKNOWLEDGE_PAGE_ACTION,
+      ESCALATE_PAGE_ACTION,
+      MARK_PAGE_SEEN_ACTION,
+      "expo.modules.notifications.actions.DEFAULT",
+      "acknowledge_test_page",
+      "ACKNOWLEDGE_TEST",
+      "",
+      null,
+      undefined,
+    ]) {
+      expect(isAcknowledgeTestPageAction(identifier)).toBe(false);
+    }
   });
 
   test("a tap on the notification itself, or an action this build does not know, asks for nothing", () => {
