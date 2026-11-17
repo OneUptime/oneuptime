@@ -4522,6 +4522,24 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/WhoWasToldReadPostgres.test.ts --forceExit
 
+      # #7026: npm run backup tells the server it ran. GlobalConfig, cloned
+      # from the migrated schema as it was before AddBackupScriptLastRun: one
+      # nullable jsonb column added, the row a server has kept as it was and
+      # read as never told, a run written through the model read back whole
+      # and replaced by the next, and down() and up() again.
+      - name: Test the backup script's last run on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_BACKUP_SCRIPT_RUN_TESTS: "true"
+          BACKUP_SCRIPT_RUN_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          BACKUP_SCRIPT_RUN_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          BACKUP_SCRIPT_RUN_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/AddBackupScriptLastRunPostgres.test.ts
+          --forceExit
+
       # #9066: a rule is never widened to every record by a delete. Every
       # list a rule can be limited to (152 match lists of 87 rule kinds and
       # an AI rule's runbooks, repositories and MCP servers) through the
