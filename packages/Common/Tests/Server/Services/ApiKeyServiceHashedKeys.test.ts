@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 /*
  * PasswordHash carries a pre-existing TS5.9 diagnostic that fails any suite

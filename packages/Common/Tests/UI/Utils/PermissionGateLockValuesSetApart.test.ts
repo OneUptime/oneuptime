@@ -137,7 +137,7 @@ describe("what would allow it, in Persian", () => {
       persianSentence(
         NEEDS_ONE_OF_PERMISSIONS_TEMPLATE,
         "{{permissions}}",
-        isolated("Manage Billing, Edit Project"),
+        isolated("Manage Billing, Edit Project, Edit Incoming Request Secret"),
       ),
     );
     // Without its marks, the sentence the reader always read.
@@ -145,7 +145,7 @@ describe("what would allow it, in Persian", () => {
       persianSentence(
         NEEDS_ONE_OF_PERMISSIONS_TEMPLATE,
         "{{permissions}}",
-        "Manage Billing, Edit Project",
+        "Manage Billing, Edit Project, Edit Incoming Request Secret",
       ),
     );
   });
@@ -188,7 +188,9 @@ describe("what would allow it, in a language read from the left", () => {
         new Project().getUpdatePermissions(),
         createTranslator(undefined, "en"),
       ),
-    ).toBe("You need one of these permissions: Manage Billing, Edit Project.");
+    ).toBe(
+      "You need one of these permissions: Manage Billing, Edit Project, Edit Incoming Request Secret.",
+    );
   });
 
   test("German: no mark, the sentence as it always was", () => {

@@ -21,6 +21,30 @@ const postMock: MockFunction = getJestMockFunction();
 const captureMock: MockFunction = getJestMockFunction();
 const updateByIdMock: MockFunction = getJestMockFunction();
 
+/*
+ * Whether this frontend is OneUptime Cloud's (BILLING_ENABLED): Common Test
+ * runs with it on, a self-hosted server with it off. It is a const of
+ * Common/UI/Config, read off the module where it is used, so a getter over
+ * this lets a test say which frontend it is; null reads the environment's.
+ */
+let mockBillingEnabled: boolean | null = null;
+
+jest.mock("../../../UI/Config", () => {
+  const actualConfig: Record<string, unknown> = jest.requireActual(
+    "../../../UI/Config",
+  ) as Record<string, unknown>;
+  const mockedConfig: Record<string, unknown> = { ...actualConfig };
+
+  // Object.defineProperty: a getter in a spread literal is read only once.
+  Object.defineProperty(mockedConfig, "BILLING_ENABLED", {
+    get: (): boolean => {
+      return mockBillingEnabled ?? (actualConfig["BILLING_ENABLED"] as boolean);
+    },
+  });
+
+  return mockedConfig;
+});
+
 jest.mock("../../../UI/Utils/API/API", () => {
   return {
     __esModule: true,
@@ -107,6 +131,7 @@ afterEach(() => {
   postMock.mockReset();
   captureMock.mockReset();
   updateByIdMock.mockReset();
+  mockBillingEnabled = null;
 });
 
 describe("the settings", () => {
@@ -462,19 +487,32 @@ describe("Give feedback (#8893)", () => {
   });
 
   test("where it goes is the server's word, and before it has one, this frontend's", () => {
-    // A self-hosted frontend (billing off) claims nothing is emailed.
     ProductFeedback.setSettings(null);
+
+    // A self-hosted frontend (billing off) claims nothing is emailed.
+    mockBillingEnabled = false;
     expect(ProductFeedback.getGiveFeedbackDestination()).toBe(
       GiveFeedbackDestination.ServerAdmins,
     );
 
-    for (const destination of Object.values(GiveFeedbackDestination)) {
-      ProductFeedback.setSettings({
-        isOn: true,
-        isAskingMe: true,
-        giveFeedbackGoesTo: destination,
-      });
-      expect(ProductFeedback.getGiveFeedbackDestination()).toBe(destination);
+    // OneUptime Cloud's (billing on) says the OneUptime team reads it.
+    mockBillingEnabled = true;
+    expect(ProductFeedback.getGiveFeedbackDestination()).toBe(
+      GiveFeedbackDestination.OneUptimeTeam,
+    );
+
+    // Once the server has said, its word, on either frontend.
+    for (const isCloud of [false, true]) {
+      mockBillingEnabled = isCloud;
+
+      for (const destination of Object.values(GiveFeedbackDestination)) {
+        ProductFeedback.setSettings({
+          isOn: true,
+          isAskingMe: true,
+          giveFeedbackGoesTo: destination,
+        });
+        expect(ProductFeedback.getGiveFeedbackDestination()).toBe(destination);
+      }
     }
   });
 

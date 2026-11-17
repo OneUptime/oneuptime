@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import * as mssql from "mssql";
 import DataverseApi, {
   DATAVERSE_CORE_TABLES,

@@ -1,4 +1,5 @@
 import { describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import SplunkClient, {
   SPLUNK_MAX_EXPORT_ROWS,
   SplunkClientOptions,

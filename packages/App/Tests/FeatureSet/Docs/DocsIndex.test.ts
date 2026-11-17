@@ -15,6 +15,7 @@ import {
   ownCopy,
 } from "../../../FeatureSet/Docs/Utils/DocsIndex";
 import { MadePage, madePageInput, makeDocsIndex } from "./DocsSearchHelpers";
+import { SeededRandom, seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import { describe, expect, it } from "@jest/globals";
 import { SeededRandom, seededRandom } from "Common/Tests/Helpers/SeededRandom";
 

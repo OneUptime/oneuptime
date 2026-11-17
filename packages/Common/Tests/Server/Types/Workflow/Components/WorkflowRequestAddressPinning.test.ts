@@ -18,6 +18,7 @@ import SafeWebhookRequest from "../../../../../Server/Utils/SafeWebhookRequest";
 import Exception from "../../../../../Types/Exception/Exception";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
+import { startEachTestOnSelfHostedEgressPolicy } from "../../../Utils/EgressPolicyEnvironment";
 import {
   afterAll,
   afterEach,
@@ -88,6 +89,13 @@ let answer: (request: SeenRequest) => {
 // What the URL check's DNS answers, by name. A name not here does not resolve.
 let checkAnswers: Record<string, string> = {};
 const savedEnv: Record<string, string | undefined> = {};
+
+/*
+ * A self-hosted install: its refusal of a private address says what DNS
+ * answered and which settings would allow it. SaaS says neither, and is
+ * tested apart (SSRFProtectionResolutionDetail).
+ */
+startEachTestOnSelfHostedEgressPolicy();
 
 function makeOptions(): RunOptions {
   return {

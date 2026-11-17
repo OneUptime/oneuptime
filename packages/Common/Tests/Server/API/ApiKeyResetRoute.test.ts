@@ -27,6 +27,7 @@ import ApiKeyService, {
   API_KEY_WRITTEN_HERE_MESSAGE,
   MadeApiKey,
 } from "../../../Server/Services/ApiKeyService";
+import ProjectService from "../../../Server/Services/ProjectService";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -44,6 +45,7 @@ import {
   RESET_API_KEY_PATH,
 } from "../../../Types/ApiKey/ApiKeyShownOnce";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import HashedString from "../../../Types/HashedString";
 import { JSONObject } from "../../../Types/JSON";
@@ -178,6 +180,18 @@ describe("a project's API key, over HTTP", () => {
       } as never;
       next();
     }) as never);
+
+    /*
+     * The project's plan, as the database answers it. Where billing is on -
+     * Common Test's config.env has BILLING_ENABLED=true - every request a
+     * member makes in a project reads its project's plan
+     * (CommonAPI.getDatabaseCommonInteractionProps, CallerPlan), and with
+     * no database here that read answered 500 before the route ran.
+     */
+    jest.spyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
+      plan: PlanType.Growth,
+      isSubscriptionUnpaid: false,
+    });
 
     const app: express.Express = express();
     app.use(express.json());

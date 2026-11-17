@@ -240,6 +240,7 @@ import {
   KUBERNETES_RIGHT_SIZING_METRIC_DESCRIPTIONS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/MetricDescriptions/KubernetesClusterMetricDescriptions";
 import ObjectID from "../../../Types/ObjectID";
+import { withDurationWordsHeld } from "../../../Types/NoBreakSpaces";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 
 const PAGE_PROPS: PageComponentProps = {} as PageComponentProps;
@@ -290,9 +291,10 @@ async function expectTooltipsInOrder(
   for (let index: number = 0; index < expected.length; index++) {
     const [title, text] = expected[index]!;
 
+    // As a tooltip draws it: a duration's figure held to its word (#8811).
     expect({ title, shown: await explanationOf(buttons[index]!) }).toEqual({
       title,
-      shown: text,
+      shown: withDurationWordsHeld(text),
     });
   }
 }

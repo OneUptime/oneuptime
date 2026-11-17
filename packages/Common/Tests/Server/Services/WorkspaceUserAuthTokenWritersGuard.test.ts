@@ -26,6 +26,9 @@ import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
  *     Teams sign-in callback - each writing for the member and project of the
  *     state it spent (record.userId, record.projectId), never for ids the
  *     request carries;
+ *   - besides, only the writes listed in WRITES_THAT_CHANGE_NO_LINK touch
+ *     the table, each through the one call listed, and none changes which
+ *     member a chat account is: the encryption of the stored tokens in place;
  *   - no SQL anywhere else inserts or updates the table;
  *   - a chat account is looked for among its own chat's links only;
  *   - the scans see every use: the service and the model are imported

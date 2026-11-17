@@ -32,6 +32,7 @@ const {
   warnNearCeiling,
   weightKey,
 } = require("../../packages/Common/Scripts/first-load-budgets.js");
+const { seededRandom } = require("./Utils/SeededRandom");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const FEATURE_SETS = path.join(REPO_ROOT, "packages", "App", "FeatureSet");

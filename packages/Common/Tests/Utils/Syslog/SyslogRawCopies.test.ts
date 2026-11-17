@@ -9,6 +9,7 @@ import {
 import SyslogRawCopies, {
   ScrubLogRow,
 } from "../../../Utils/Syslog/SyslogRawCopies";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { describe, expect, it } from "@jest/globals";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 

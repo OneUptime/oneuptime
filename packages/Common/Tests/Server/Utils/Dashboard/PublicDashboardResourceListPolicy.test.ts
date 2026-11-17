@@ -5,6 +5,7 @@ import PublicDashboardViewConfig from "../../../../Server/Utils/Dashboard/Public
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../../Types/BaseDatabase/Includes";
 import IncludesAnyOfGroups from "../../../../Types/BaseDatabase/IncludesAnyOfGroups";
+import NotNull from "../../../../Types/BaseDatabase/NotNull";
 import Search from "../../../../Types/BaseDatabase/Search";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
@@ -1782,10 +1783,16 @@ describe("PublicDashboardResourceListPolicy", () => {
     });
 
     it("'operational' alone matches only monitors whose monitoring is on", () => {
+      /*
+       * And only those a check has measured: one nothing has checked yet
+       * holds the operational status it was created in, and its row says
+       * Waiting for data (issue #8899).
+       */
       expect(monitorQuery({ statusFilter: "operational" })).toEqual({
         isArchived: false,
         disableActiveMonitoring: false,
         currentMonitorStatus: { isOperationalState: true },
+        firstMeasuredAt: new NotNull(),
       });
     });
 
@@ -1861,6 +1868,8 @@ describe("PublicDashboardResourceListPolicy", () => {
         disableActiveMonitoring: false,
         labels: new Includes([secondLabelId]),
         currentMonitorStatus: { isOperationalState: true },
+        // "operational" lists only monitors a check has measured (#8899).
+        firstMeasuredAt: new NotNull(),
         monitorType: new Includes(["Ping"]),
         currentMonitorStatusId: new Includes(["status"]),
       });
@@ -1870,14 +1879,31 @@ describe("PublicDashboardResourceListPolicy", () => {
        * The status's priority is read too (issue #5082): the Status column
        * sorts by it, and an ordered list must select what it is ordered by.
        * And whether monitoring is off, so the page says Disabled for such a
-       * monitor instead of the status its last check left (issue #6476).
+       * monitor instead of the status its last check left (issue #6476),
+       * and everything else the Monitors table's row rule reads
+       * (MonitorRowStatus), so the page says Waiting for data, No results
+       * yet, Paused or a probe problem where the board does (issue #8899).
        */
       expect(result.select).toEqual({
         _id: true,
         name: true,
-        monitorType: true,
+        isArchived: true,
         disableActiveMonitoring: true,
-        currentMonitorStatus: { name: true, color: true, priority: true },
+        disableActiveMonitoringBecauseOfManualIncident: true,
+        disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
+        isNoProbeEnabledOnThisMonitor: true,
+        isAllProbesDisconnectedFromThisMonitor: true,
+        monitorType: true,
+        firstMeasuredAt: true,
+        createdAt: true,
+        monitoringInterval: true,
+        currentMonitorStatus: {
+          name: true,
+          color: true,
+          isOperationalState: true,
+          isOfflineState: true,
+          priority: true,
+        },
       });
     });
 

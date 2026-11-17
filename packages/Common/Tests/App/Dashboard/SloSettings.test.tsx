@@ -31,6 +31,7 @@ import SloEvaluationSwitchCopy, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloEvaluationSwitchCopy";
 import { SLO_MULTI_MONITOR_MODE_DESCRIPTIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/Slo/SloSettingsFormFields";
 import { getSloBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Pages/Slo/Utils/Breadcrumbs";
+import UsedByApi from "../../../../App/FeatureSet/Dashboard/src/Components/UsedBy/UsedByApi";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
   RouteUtil,
@@ -48,6 +49,12 @@ import SliType from "../../../Types/ServiceLevelObjective/SliType";
 import SloMultiMonitorMode from "../../../Types/ServiceLevelObjective/SloMultiMonitorMode";
 import SloStatus from "../../../Types/ServiceLevelObjective/SloStatus";
 import SloWindowType from "../../../Types/ServiceLevelObjective/SloWindowType";
+import {
+  UsedByRecordKind,
+  UsedByRelation,
+  UsedByRowKind,
+  UsedBySummary,
+} from "../../../Types/UsedBy/UsedBy";
 import { ButtonStyleType } from "../../../UI/Components/Button/Button";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
@@ -463,6 +470,26 @@ describe("SLO Settings page", () => {
     const navigate: ReturnType<typeof jest.spyOn> = jest
       .spyOn(Navigation, "navigate")
       .mockImplementation((): void => {});
+    /*
+     * What still uses the SLO, which its Archive dialog says (#7437): two
+     * burn-rate rules watch it.
+     */
+    const usedBy: UsedBySummary = {
+      recordKind: UsedByRecordKind.Slo,
+      recordId: MODEL_ID.toString(),
+      groups: [
+        {
+          relation: UsedByRelation.SloBurnRateRules,
+          rowKind: UsedByRowKind.SloBurnRateRule,
+          count: 2,
+          hiddenCount: 0,
+          rows: [],
+        },
+      ],
+    };
+    const getUsedBy: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(UsedByApi, "getSummary")
+      .mockResolvedValue(usedBy);
 
     openSettings();
 
@@ -480,6 +507,18 @@ describe("SLO Settings page", () => {
     expect(
       within(dialog).getByTestId("confirm-modal-description"),
     ).toHaveTextContent(SLO_ARCHIVE_CONFIRM_MESSAGE);
+    // Read for this SLO when the dialog opens, and said in it.
+    expect(
+      await within(dialog).findByTestId(
+        "used-by-impact",
+        {},
+        { timeout: WAIT_TIMEOUT },
+      ),
+    ).toHaveTextContent("2 burn-rate rules watch this SLO.");
+    expect(getUsedBy).toHaveBeenCalledWith({
+      recordKind: UsedByRecordKind.Slo,
+      recordId: MODEL_ID,
+    });
 
     fireEvent.click(within(dialog).getByRole("button", { name: "Archive" }));
 

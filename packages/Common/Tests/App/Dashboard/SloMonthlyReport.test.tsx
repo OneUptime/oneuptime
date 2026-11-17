@@ -11,6 +11,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock, SpyInstance } from "jest-mock";
 import {
   cleanup,
   fireEvent,

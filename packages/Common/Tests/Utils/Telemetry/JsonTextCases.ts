@@ -1,5 +1,6 @@
 /*
- * JSON TEXTS TO SCRUB: A SEEDED GENERATOR, AND A READER OF THEIR TOKENS.
+ * JSON TEXTS TO SCRUB, DRAWN FROM THE SUITES' SEEDED GENERATOR, AND A READER
+ * OF THEIR TOKENS.
  *
  * For the property tests of Utils/Telemetry/ScrubJsonText.ts (#8923) here
  * and of the scrub rules over real records in App/Tests/Telemetry: random

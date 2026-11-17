@@ -1,4 +1,5 @@
 import { describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import MicrosoftDefenderXdrClient, {
   MICROSOFT_DEFENDER_XDR_DEFAULT_PAGE_SIZE,
   MicrosoftDefenderXdrAlertCount,

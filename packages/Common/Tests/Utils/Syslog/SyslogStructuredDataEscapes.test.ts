@@ -6,6 +6,8 @@ import {
   readSyslogStructuredData,
   syslogStructuredDataAttributeKey,
 } from "../../../Utils/Syslog/SyslogMessageParser";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { describe, expect, it } from "@jest/globals";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { FastestRun, fastestRun } from "../../Helpers/FastestRun";

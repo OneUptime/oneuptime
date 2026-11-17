@@ -497,7 +497,7 @@ describe("the write path unwraps HashedString for every column that is not a has
     );
   });
 
-  test("an unencrypted column (a webhook signing secret) stores the secret itself, not the envelope", async () => {
+  test("a webhook signing secret, encrypted at rest, stores a ciphertext of the secret itself, not of the envelope", async () => {
     const webhookId: ObjectID = ObjectID.generate();
     const existing: UserWebhook = new UserWebhook();
     existing._id = webhookId.toString();
@@ -518,8 +518,49 @@ describe("the write path unwraps HashedString for every column that is not a has
       props: { isRoot: true },
     });
 
-    // HMAC signatures are computed with this value; the envelope was the wrong key.
-    expect(storedSetValue(repository, "secret")).toBe("shared_signing_secret");
+    /*
+     * HMAC signatures are computed with what this decrypts to; the envelope
+     * was the wrong key. The secret is kept encrypted at rest
+     * (UserWebhook.secret is encrypted: true).
+     */
+    await expectCipherTextOf(
+      storedSetValue(repository, "secret"),
+      "shared_signing_secret",
+    );
+  });
+
+  test("an unencrypted column stores the string itself, not the envelope", async () => {
+    /*
+     * Every secret a Password field collects is encrypted at rest now, the
+     * webhook signing secret last. But a request body can carry a
+     * HashedString for any column - JSONFunctions.deserialize makes one of
+     * its JSON wherever it is - and a column that is neither hashed nor
+     * encrypted, the webhook's name here, must still hold the string.
+     */
+    const webhookId: ObjectID = ObjectID.generate();
+    const existing: UserWebhook = new UserWebhook();
+    existing._id = webhookId.toString();
+
+    expect(existing.getEncryptedColumns().columns).not.toContain("name");
+    expect(existing.isHashedStringColumn("name")).toBe(false);
+
+    const repository: StubbedRepository = stubRepository(UserWebhookService);
+    stubSideEffects(UserWebhookService);
+    jest
+      .spyOn(UserWebhookService as any, "_findBy")
+      .mockResolvedValue([existing] as never);
+
+    const requestBody: JSONObject = sendOverTheWire({
+      name: passwordFieldValue("Deploy alerts"),
+    } as unknown as JSONObject);
+
+    await UserWebhookService.updateOneById({
+      id: webhookId,
+      data: JSONFunctions.deserialize(requestBody) as never,
+      props: { isRoot: true },
+    });
+
+    expect(storedSetValue(repository, "name")).toBe("Deploy alerts");
   });
 
   test("every encrypted column in every model stores a plain ciphertext when handed a HashedString", async () => {
@@ -567,6 +608,7 @@ describe("the write path unwraps HashedString for every column that is not a has
         "ThreatIntelFeed.basicAuthPassword",
         "DataSource.password",
         "DataSource.apiToken",
+        "UserWebhook.secret",
       ]),
     );
   });

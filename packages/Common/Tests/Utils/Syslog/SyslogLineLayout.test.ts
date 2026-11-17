@@ -5,6 +5,7 @@ import {
   escapeSyslogStructuredDataValue,
   parseSyslogMessage,
 } from "../../../Utils/Syslog/SyslogMessageParser";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { describe, expect, it } from "@jest/globals";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 

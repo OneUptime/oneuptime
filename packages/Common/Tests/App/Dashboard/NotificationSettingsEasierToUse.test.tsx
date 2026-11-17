@@ -9,6 +9,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import {
   act,
   cleanup,

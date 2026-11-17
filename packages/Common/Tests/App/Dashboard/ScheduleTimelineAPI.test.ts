@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
