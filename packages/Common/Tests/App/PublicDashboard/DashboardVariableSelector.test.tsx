@@ -14,6 +14,14 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
+import {
+  chooseDropdownOption,
+  clearDropdown,
+  closeDropdown,
+  getShownDropdownPlaceholder,
+  getShownDropdownValue,
+  openDropdown,
+} from "../../DropdownPicks";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
@@ -165,10 +173,14 @@ const renderViewer: RenderViewerFunction = (
   return state;
 };
 
-type GetSelectFunction = (index?: number) => HTMLSelectElement;
+/*
+ * A variable's picker is the shared Dropdown (#9310): "All" is its
+ * placeholder, a pick is an option of its menu, and clearing it picks "All".
+ */
+type GetSelectFunction = (index?: number) => HTMLElement;
 
-const getSelect: GetSelectFunction = (index: number = 0): HTMLSelectElement => {
-  return screen.getAllByRole("combobox")[index] as HTMLSelectElement;
+const getSelect: GetSelectFunction = (index: number = 0): HTMLElement => {
+  return screen.getAllByRole("combobox")[index] as HTMLElement;
 };
 
 type GetTextInputFunction = (index?: number) => HTMLInputElement;
@@ -179,15 +191,27 @@ const getTextInput: GetTextInputFunction = (
   return screen.getAllByRole("textbox")[index] as HTMLInputElement;
 };
 
-type WaitForOptionsFunction = (index?: number) => Promise<HTMLSelectElement>;
+type WaitForOptionsFunction = (index?: number) => Promise<HTMLElement>;
 
 const waitForOptions: WaitForOptionsFunction = async (
   index: number = 0,
-): Promise<HTMLSelectElement> => {
+): Promise<HTMLElement> => {
+  /*
+   * Every picker has its values: a locked one (still loading) is not a
+   * combobox yet, so the pickers are counted only once none says "Loading…".
+   */
   await waitFor((): void => {
+    expect(screen.queryByText("Loading…")).toBeNull();
     expect(getSelect(index)).not.toBeDisabled();
   });
   return getSelect(index);
+};
+
+// What the picker reads: its pick, or "All" - its placeholder.
+type ShownFunction = (select: HTMLElement) => string | null;
+
+const shown: ShownFunction = (select: HTMLElement): string | null => {
+  return getShownDropdownValue(select) ?? getShownDropdownPlaceholder(select);
 };
 
 type SelectValueFunction = (element: HTMLElement, value: string) => void;
@@ -196,17 +220,29 @@ const selectValue: SelectValueFunction = (
   element: HTMLElement,
   value: string,
 ): void => {
-  fireEvent.change(element, { target: { value: value } });
+  if (value === "") {
+    clearDropdown(element);
+    return;
+  }
+
+  chooseDropdownOption(element, value);
 };
 
-type OptionLabelsFunction = (select: HTMLSelectElement) => Array<string>;
+// The choices: "All" (the placeholder), then the options the menu lists.
+type OptionLabelsFunction = (select: HTMLElement) => Array<string>;
 
 const optionLabels: OptionLabelsFunction = (
-  select: HTMLSelectElement,
+  select: HTMLElement,
 ): Array<string> => {
-  return Array.from(select.options).map((option: HTMLOptionElement): string => {
-    return option.textContent || "";
-  });
+  openDropdown(select);
+  const names: Array<string> = screen
+    .queryAllByRole("option")
+    .map((option: HTMLElement): string => {
+      return option.textContent || "";
+    });
+  closeDropdown(select);
+
+  return ["All", ...names];
 };
 
 type ResolveFunction = (
@@ -235,14 +271,14 @@ describe("Public dashboard variable selector", () => {
         telemetryVariable({ defaultValue: "prod" }),
       ]);
 
-      const select: HTMLSelectElement = await waitForOptions();
+      const select: HTMLElement = await waitForOptions();
 
-      expect(select).toHaveValue("prod");
+      expect(shown(select)).toBe("prod");
 
       selectValue(select, "");
 
-      expect(getSelect()).toHaveValue("");
-      expect(getSelect()).toHaveDisplayValue("All");
+      expect(shown(getSelect())).toBe("All");
+      expect(shown(getSelect())).toBe("All");
       expect(state.variables[0]!.selectedValue).toBe("");
       expect(state.changes).toEqual([{ variableId: "cluster", value: "" }]);
     });
@@ -254,7 +290,7 @@ describe("Public dashboard variable selector", () => {
 
       selectValue(await waitForOptions(), "");
 
-      expect(getSelect()).toHaveDisplayValue("All");
+      expect(shown(getSelect())).toBe("All");
       expect(resolvedFilter(state.variables[0]!)).toBeUndefined();
       expect(
         DashboardVariableInterpolation.applyToAttributes(
@@ -275,11 +311,11 @@ describe("Public dashboard variable selector", () => {
        * Load bearing: without this the test passes on the pre-fix code too,
        * because it never looks at the control between the two picks.
        */
-      expect(getSelect()).toHaveDisplayValue("All");
+      expect(shown(getSelect())).toBe("All");
 
       selectValue(getSelect(), "staging");
 
-      expect(getSelect()).toHaveValue("staging");
+      expect(shown(getSelect())).toBe("staging");
       expect(resolvedFilter(state.variables[0]!)).toEqual({
         scalar: "staging",
       });
@@ -294,7 +330,7 @@ describe("Public dashboard variable selector", () => {
       selectValue(getSelect(), "staging");
       selectValue(getSelect(), "");
 
-      expect(getSelect()).toHaveDisplayValue("All");
+      expect(shown(getSelect())).toBe("All");
       expect(state.variables[0]!.selectedValue).toBe("");
     });
 
@@ -303,7 +339,7 @@ describe("Public dashboard variable selector", () => {
         telemetryVariable({ defaultValue: "prod", selectedValue: "" }),
       ]);
 
-      expect(await waitForOptions()).toHaveDisplayValue("All");
+      expect(shown(await waitForOptions())).toBe("All");
     });
   });
 
@@ -313,7 +349,7 @@ describe("Public dashboard variable selector", () => {
         telemetryVariable({ defaultValue: "prod" }),
       ]);
 
-      expect(await waitForOptions()).toHaveValue("prod");
+      expect(shown(await waitForOptions())).toBe("prod");
       expect(resolvedFilter(state.variables[0]!)).toEqual({ scalar: "prod" });
     });
 
@@ -322,13 +358,13 @@ describe("Public dashboard variable selector", () => {
         telemetryVariable({ defaultValue: "prod", selectedValue: "staging" }),
       ]);
 
-      expect(await waitForOptions()).toHaveValue("staging");
+      expect(shown(await waitForOptions())).toBe("staging");
     });
 
     test('a variable with no default and no selection opens on "All"', async () => {
       renderViewer([telemetryVariable({})]);
 
-      expect(await waitForOptions()).toHaveValue("");
+      expect(shown(await waitForOptions())).toBe("All");
     });
   });
 
@@ -355,7 +391,7 @@ describe("Public dashboard variable selector", () => {
     test("options render once the response arrives", async () => {
       renderViewer([telemetryVariable({})]);
 
-      const select: HTMLSelectElement = await waitForOptions();
+      const select: HTMLElement = await waitForOptions();
 
       expect(optionLabels(select)).toEqual(["All", "prod", "staging"]);
     });
@@ -367,15 +403,14 @@ describe("Public dashboard variable selector", () => {
         telemetryVariable({ defaultValue: "prod" }),
       ]);
 
-      const select: HTMLSelectElement = await waitForOptions();
+      const select: HTMLElement = await waitForOptions();
 
       /*
        * No values came back, but the widgets are still filtered by "prod", so
-       * the select shows "prod" rather than "All".
+       * the picker shows "prod" rather than "All".
        */
       expect(optionLabels(select)).toEqual(["All", "prod"]);
-      expect(select).toHaveValue("prod");
-      expect(select).toHaveDisplayValue("prod");
+      expect(shown(select)).toBe("prod");
       expect(resolvedFilter(state.variables[0]!)).toEqual({ scalar: "prod" });
     });
 
@@ -397,7 +432,7 @@ describe("Public dashboard variable selector", () => {
         "eu-west-1",
         "us-east-1",
       ]);
-      expect(getSelect()).toHaveValue("eu-west-1");
+      expect(shown(getSelect())).toBe("eu-west-1");
     });
 
     test('picking "All" stays on "All"', () => {
@@ -407,7 +442,7 @@ describe("Public dashboard variable selector", () => {
 
       selectValue(getSelect(), "");
 
-      expect(getSelect()).toHaveDisplayValue("All");
+      expect(shown(getSelect())).toBe("All");
       expect(state.variables[0]!.selectedValue).toBe("");
     });
 
@@ -465,8 +500,8 @@ describe("Public dashboard variable selector", () => {
 
       selectValue(await waitForOptions(0), "");
 
-      expect(getSelect(0)).toHaveDisplayValue("All");
-      expect(getSelect(1)).toHaveValue("eu-west-1");
+      expect(shown(getSelect(0))).toBe("All");
+      expect(shown(getSelect(1))).toBe("eu-west-1");
       expect(state.variables[1]!.selectedValue).toBeUndefined();
     });
 
@@ -479,8 +514,8 @@ describe("Public dashboard variable selector", () => {
       selectValue(await waitForOptions(0), "");
       selectValue(getSelect(1), "us-east-1");
 
-      expect(getSelect(0)).toHaveDisplayValue("All");
-      expect(getSelect(1)).toHaveValue("us-east-1");
+      expect(shown(getSelect(0))).toBe("All");
+      expect(shown(getSelect(1))).toBe("us-east-1");
       expect(state.variables[0]!.selectedValue).toBe("");
     });
   });

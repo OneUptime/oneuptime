@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, test } from "@jest/globals";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import React from "react";
 import {
   chooseDropdownOption,
@@ -10,7 +10,9 @@ import {
   getShownDropdownValue,
   hasDropdownClearControl,
   listDropdownOptions,
+  openDropdown,
 } from "../../DropdownPicks";
+import Modal from "../../../UI/Components/Modal/Modal";
 import Dropdown, {
   DROPDOWN_COMPACT_CONTROL_HEIGHT_CLASS_NAME,
 } from "../../../UI/Components/Dropdown/Dropdown";
@@ -86,6 +88,51 @@ describe("a compact picker", () => {
         screen.getByRole("combobox", { name: "Region" }),
       ).querySelector(".ou-select__control"),
     ).toHaveClass("!min-h-[40px]");
+  });
+});
+
+describe("a picker in a dialog", () => {
+  const renderDialog: (onClose: () => void) => HTMLElement = (
+    onClose: () => void,
+  ): HTMLElement => {
+    render(
+      <Modal title="Pick a region" onClose={onClose} onSubmit={() => {}}>
+        <Dropdown
+          ariaLabel="Region"
+          isClearable={false}
+          options={[{ value: "eu", label: "Europe", isUserContent: true }]}
+          value={{ value: "eu", label: "Europe", isUserContent: true }}
+        />
+      </Modal>,
+    );
+
+    return screen.getByRole("combobox", { name: "Region" });
+  };
+
+  test("Escape with its menu closed closes the dialog, as it did from a <select>", () => {
+    let closed: number = 0;
+    const combobox: HTMLElement = renderDialog(() => {
+      closed += 1;
+    });
+
+    fireEvent.keyDown(combobox, { key: "Escape", code: "Escape" });
+
+    expect(closed).toBe(1);
+  });
+
+  test("Escape with its menu open closes the menu, and leaves the dialog open", () => {
+    let closed: number = 0;
+    const combobox: HTMLElement = renderDialog(() => {
+      closed += 1;
+    });
+
+    openDropdown(combobox);
+    expect(screen.getAllByRole("option").length).toBeGreaterThan(0);
+
+    fireEvent.keyDown(combobox, { key: "Escape", code: "Escape" });
+
+    expect(screen.queryAllByRole("option")).toHaveLength(0);
+    expect(closed).toBe(0);
   });
 });
 

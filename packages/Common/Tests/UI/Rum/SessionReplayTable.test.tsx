@@ -107,6 +107,37 @@ import {
   TIME_RANGE_PICKER_BUTTON_CLASS_NAMES,
   TimeRangePickerSize,
 } from "../../../UI/Components/Date/TimeRangePickerDropdown";
+import { closeDropdown, openDropdown } from "../../DropdownPicks";
+
+/*
+ * The rows-per-page picker is the shared Dropdown (#9310): its combobox,
+ * inside the box "pagination-items-on-page-select" names (hidden: a locked
+ * react-select is left out of jsdom's accessibility tree, though its
+ * combobox is still there, disabled), and the page sizes its menu lists.
+ */
+const rowsPerPage: (container?: HTMLElement) => HTMLElement = (
+  container?: HTMLElement,
+): HTMLElement => {
+  return within(
+    within(container || document.body).getByTestId(
+      "pagination-items-on-page-select",
+    ),
+  ).getByRole("combobox", { hidden: true });
+};
+
+const listRowsPerPage: (container?: HTMLElement) => Array<string> = (
+  container?: HTMLElement,
+): Array<string> => {
+  openDropdown(rowsPerPage(container));
+  const names: Array<string> = screen
+    .getAllByRole("option")
+    .map((option: HTMLElement): string => {
+      return option.textContent || "";
+    });
+  closeDropdown(rowsPerPage(container));
+
+  return names;
+};
 
 const APP_ID: string = "0193c0de-1111-4aaa-8bbb-000000000001";
 const SESSION_A: string = "a1b2c3d4e5f60718293a4b5c6d7e8f90";
@@ -2206,15 +2237,7 @@ describe("SessionReplayTable search, sort and paging", () => {
     const pagination: HTMLElement = screen.getByTestId("session-pagination");
 
     expect(pagination.parentElement).toHaveClass("bg-gray-50", "md:-mx-6");
-    expect(
-      Array.from(
-        screen
-          .getByTestId("pagination-items-on-page-select")
-          .querySelectorAll("option"),
-      ).map((option: Element): string | null => {
-        return option.getAttribute("value");
-      }),
-    ).toEqual(["20", "50", "100"]);
+    expect(listRowsPerPage()).toEqual(["20", "50", "100"]);
   });
 
   it("search is debounced into the request as the server's filter", async () => {

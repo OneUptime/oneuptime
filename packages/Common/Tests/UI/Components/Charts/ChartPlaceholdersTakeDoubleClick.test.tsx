@@ -19,6 +19,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import * as React from "react";
+import { chooseDropdownOption } from "../../../DropdownPicks";
 import getJestMockFunction, { MockFunction } from "../../../MockType";
 
 /*
@@ -1451,11 +1452,19 @@ async function waitForTimeseries(view: AnalyticsViewUnderTest): Promise<void> {
   });
 }
 
+// The names the "Chart" control lists each chart by.
+const CHART_NAMES: Record<string, string> = {
+  timeseries: "Timeseries",
+  toplist: "Top List",
+  table: "Table",
+};
+
 // The reader picks another chart in the view's "Chart" control.
 function switchChartTo(chartType: string): void {
-  fireEvent.change(screen.getByDisplayValue("Timeseries"), {
-    target: { value: chartType },
-  });
+  chooseDropdownOption(
+    screen.getByRole("combobox", { name: "Chart" }),
+    CHART_NAMES[chartType]!,
+  );
 }
 
 const NOT_TIME_CHARTS: Array<[string, string]> = [

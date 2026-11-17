@@ -16,6 +16,11 @@ import {
   within,
 } from "@testing-library/react";
 import * as React from "react";
+import {
+  chooseDropdownOption,
+  getShownDropdownPlaceholder,
+  listDropdownOptions,
+} from "../../DropdownPicks";
 import { MemoryRouter } from "react-router-dom";
 import LlmConversationsView from "../../../../App/FeatureSet/Dashboard/src/Components/LlmConversations/LlmConversationsView";
 import {
@@ -397,9 +402,13 @@ describe("narrowing the list", () => {
   test("the sort", async () => {
     await openList();
 
-    fireEvent.change(screen.getByTestId("llm-conversations-sort"), {
-      target: { value: LlmConversationSort.Slowest },
-    });
+    chooseDropdownOption(
+      within(screen.getByTestId("llm-conversations-sort")).getByRole(
+        "combobox",
+        { name: "Sort" },
+      ),
+      "Slowest answers",
+    );
     await settled(2);
 
     expect(lastBody()["sort"]).toBe(LlmConversationSort.Slowest);
@@ -411,11 +420,11 @@ describe("narrowing the list", () => {
     await openList();
 
     expect(
-      within(screen.getByTestId("llm-conversations-sort"))
-        .getAllByRole("option")
-        .map((option: HTMLElement): string | null => {
-          return option.textContent;
-        }),
+      await listDropdownOptions(
+        within(screen.getByTestId("llm-conversations-sort")).getByRole(
+          "combobox",
+        ),
+      ),
     ).toEqual([
       "Newest first",
       "Oldest first",
@@ -470,18 +479,15 @@ describe("narrowing the list", () => {
   test("one app", async () => {
     await openList();
 
-    const select: HTMLElement = await screen.findByTestId(
-      "llm-conversations-app",
-    );
+    const select: HTMLElement = within(
+      await screen.findByTestId("llm-conversations-app"),
+    ).getByRole("combobox", { name: "App" });
 
-    expect(
-      within(select).getByRole("option", { name: "All apps" }),
-    ).toBeInTheDocument();
-    expect(
-      within(select).getByRole("option", { name: "Support bot" }),
-    ).toBeInTheDocument();
+    // Every app is the placeholder; each app is offered by its name.
+    expect(getShownDropdownPlaceholder(select)).toBe("All apps");
+    expect(await listDropdownOptions(select)).toContain("Support bot");
 
-    fireEvent.change(select, { target: { value: APP_ID } });
+    chooseDropdownOption(select, "Support bot");
     await settled(2);
 
     expect(lastBody()["serviceIds"]).toEqual([APP_ID]);

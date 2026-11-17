@@ -7,6 +7,7 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { withUnit } from "../SuiteHelpers/NoBreakSpaces";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
+import { shownDropdownValueOf } from "../SuiteHelpers/Dropdowns";
 
 /*
  * The Hosts product's pages, in a browser, against the offline fixture
@@ -1196,7 +1197,7 @@ test.describe("a host's Overview", () => {
     });
     expect(
       withoutIsolateMarks(
-        (await interval.locator("option:checked").textContent()) || "",
+        (await shownDropdownValueOf(interval).textContent()) || "",
       ),
     ).toBe(
       fill(PERSIAN, "Every {{interval}}", {

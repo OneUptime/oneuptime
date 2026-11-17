@@ -18,6 +18,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import * as React from "react";
+import { chooseDropdownOption } from "../../DropdownPicks";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -255,10 +256,9 @@ async function waitForAnalyticsChart(): Promise<void> {
   });
 }
 
-function selectControl(label: string): HTMLSelectElement {
-  // The analytics query builder labels each select with a caption span.
-  const caption: HTMLElement = screen.getByText(label, { selector: "span" });
-  return caption.parentElement!.querySelector("select") as HTMLSelectElement;
+// The analytics query builder names each picker by its caption.
+function selectControl(label: string): HTMLElement {
+  return screen.getByRole("combobox", { name: label });
 }
 
 beforeEach(() => {
@@ -435,9 +435,7 @@ describe("the traces explorer's Analytics view zooms the explorer", () => {
       await renderExplorer("/?view=analytics");
       await waitForAnalyticsChart();
 
-      fireEvent.change(selectControl("Measure"), {
-        target: { value: "p95Duration" },
-      });
+      chooseDropdownOption(selectControl("Measure"), "P95 Response Time");
 
       await waitFor(() => {
         expect(postsTo("/telemetry/traces/analytics").pop()).toMatchObject({
@@ -462,7 +460,7 @@ describe("the traces explorer's Analytics view zooms the explorer", () => {
     await renderExplorer("/?view=analytics");
     await waitForAnalyticsChart();
 
-    fireEvent.change(selectControl("Chart"), { target: { value: "toplist" } });
+    chooseDropdownOption(selectControl("Chart"), "Top List");
 
     await waitFor(() => {
       expect(postsTo("/telemetry/traces/analytics").pop()).toMatchObject({

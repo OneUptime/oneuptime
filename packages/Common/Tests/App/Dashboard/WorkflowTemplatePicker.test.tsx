@@ -33,7 +33,13 @@ import {
   getWorkflowTemplateCategoryLabel,
   getWorkflowTemplatePickerCounts,
   getWorkflowTemplatePickerViews,
+  getWorkflowTemplatePickerViewInfo,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/Workflow/WorkflowTemplatePickerUtil";
+import {
+  closeDropdown,
+  getShownDropdownValue,
+  openDropdown,
+} from "../../DropdownPicks";
 import {
   RECOMMENDED_WORKFLOW_TEMPLATE_IDS,
   WorkflowTemplate,
@@ -178,7 +184,68 @@ const getSearch: ElementFunction = (): HTMLElement => {
 };
 
 const getSelect: ElementFunction = (): HTMLElement => {
-  return screen.getByTestId("workflow-template-view-select");
+  return getCategoryCombobox();
+};
+
+/*
+ * The category picker is the shared Dropdown (#9310): its combobox is the
+ * input inside the box with the picker's test id, and its menu is drawn over
+ * the page - apart from the template list's own options.
+ */
+const getCategoryCombobox: () => HTMLElement = (): HTMLElement => {
+  return within(screen.getByTestId("workflow-template-view-select")).getByRole(
+    "combobox",
+  );
+};
+
+const getCategoryMenuOptions: () => Array<HTMLElement> =
+  (): Array<HTMLElement> => {
+    openDropdown(getCategoryCombobox());
+    const menu: HTMLElement | null = document.querySelector(".ou-select__menu");
+
+    if (!menu) {
+      throw new Error("The category picker's menu did not open");
+    }
+
+    return within(menu).getAllByRole("option");
+  };
+
+// The categories the picker offers, by name, in order.
+const listCategoryNames: () => Array<string> = (): Array<string> => {
+  const names: Array<string> = getCategoryMenuOptions().map(
+    (option: HTMLElement): string => {
+      return option.textContent || "";
+    },
+  );
+  closeDropdown(getCategoryCombobox());
+
+  return names;
+};
+
+// Picks a view by its place in the list, in any language.
+const pickCategory: (view: string) => void = (view: string): void => {
+  const index: number = getWorkflowTemplatePickerViews().findIndex(
+    (info: { view: string }): boolean => {
+      return info.view === view;
+    },
+  );
+  const option: HTMLElement | undefined = getCategoryMenuOptions()[index];
+
+  if (!option) {
+    throw new Error(`The category picker offers no ${view}`);
+  }
+
+  fireEvent.click(option);
+};
+
+// The name of the view the picker shows.
+const shownCategory: () => string | null = (): string | null => {
+  return getShownDropdownValue(getCategoryCombobox());
+};
+
+const categoryLabel: (view: string) => string = (view: string): string => {
+  return getWorkflowTemplatePickerViewInfo(view as WorkflowTemplatePickerView)
+    .label;
 };
 
 const getListbox: ElementFunction = (): HTMLElement => {
@@ -235,7 +302,7 @@ const openDetails: DetailsFunction = (): Array<HTMLElement> => {
 type ShowViewFunction = (view: WorkflowTemplatePickerView) => void;
 
 const showView: ShowViewFunction = (view: WorkflowTemplatePickerView): void => {
-  fireEvent.change(getSelect(), { target: { value: String(view) } });
+  pickCategory(String(view));
 };
 
 type TypeFunction = (text: string) => void;
@@ -267,11 +334,7 @@ const press: KeyFunction = (element: HTMLElement, key: string): boolean => {
 type OptionTextsFunction = () => Array<string>;
 
 const selectOptionTexts: OptionTextsFunction = (): Array<string> => {
-  return Array.from((getSelect() as HTMLSelectElement).options).map(
-    (option: HTMLOptionElement): string => {
-      return option.textContent || "";
-    },
-  );
+  return listCategoryNames();
 };
 
 const scrollIntoView: MockFunction = getJestMockFunction();
@@ -544,7 +607,8 @@ describe("the category select", () => {
   test("offers Recommended, every category, then All templates, by name alone", () => {
     renderPicker();
 
-    expect(getSelect().tagName).toBe("SELECT");
+    // The shared Dropdown, not a raw <select> (#9310).
+    expect(getSelect().tagName).toBe("INPUT");
     expect(getSelect()).toHaveAttribute("id", WORKFLOW_TEMPLATE_VIEW_SELECT_ID);
     expect(getSelect()).toHaveAccessibleName("Template categories");
     expect(selectOptionTexts()).toEqual(
@@ -558,7 +622,9 @@ describe("the category select", () => {
     expect(selectOptionTexts()[selectOptionTexts().length - 1]).toBe(
       "All templates",
     );
-    expect(getSelect()).toHaveValue(WorkflowTemplateCollection.Recommended);
+    expect(shownCategory()).toBe(
+      categoryLabel(WorkflowTemplateCollection.Recommended),
+    );
   });
 
   test.each(
@@ -571,7 +637,7 @@ describe("the category select", () => {
       renderPicker();
       showView(category);
 
-      expect(getSelect()).toHaveValue(category);
+      expect(shownCategory()).toBe(categoryLabel(category));
       expect(listedIds()).toEqual(
         getWorkflowTemplatesByCategory(category).map(
           (candidate: WorkflowTemplate): string => {
@@ -758,11 +824,13 @@ describe("the category select", () => {
     showView(WorkflowTemplateCategory.OnCall);
     typeSearch("slack");
 
-    expect(getSelect()).toHaveValue(WorkflowTemplateCollection.All);
+    expect(shownCategory()).toBe(categoryLabel(WorkflowTemplateCollection.All));
 
     typeSearch("");
 
-    expect(getSelect()).toHaveValue(WorkflowTemplateCategory.OnCall);
+    expect(shownCategory()).toBe(
+      categoryLabel(WorkflowTemplateCategory.OnCall),
+    );
   });
 });
 
@@ -1210,7 +1278,7 @@ describe("the search", () => {
     typeSearch("discord");
 
     expect(listedIds()).toEqual(["incident-created-discord"]);
-    expect(getSelect()).toHaveValue(WorkflowTemplateCollection.All);
+    expect(shownCategory()).toBe(categoryLabel(WorkflowTemplateCollection.All));
   });
 
   test("picks its best match and opens its details, so Enter takes it", () => {
@@ -1378,7 +1446,9 @@ describe("the search", () => {
 
       fireEvent.click(everywhere);
 
-      expect(getSelect()).toHaveValue(WorkflowTemplateCollection.All);
+      expect(shownCategory()).toBe(
+        categoryLabel(WorkflowTemplateCollection.All),
+      );
       expect(listedIds()).toHaveLength(matches);
       expect(getSearch()).toHaveValue("slack");
     });
@@ -1684,7 +1754,9 @@ describe("the state it reports", () => {
     });
 
     expect(getSearch()).toHaveValue("slack");
-    expect(getSelect()).toHaveValue(WorkflowTemplateCategory.Monitors);
+    expect(shownCategory()).toBe(
+      categoryLabel(WorkflowTemplateCategory.Monitors),
+    );
     expect(pickedId()).toBe("monitor-offline-only-slack");
     expect(
       within(row("monitor-offline-only-slack")).getByTestId(
