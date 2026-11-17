@@ -7,8 +7,10 @@ import ObjectID from "../../../Types/ObjectID";
 import StateChangeLogScreenshots from "../../../Utils/Monitor/StateChangeLogScreenshots";
 import GlobalCache from "../../Infrastructure/GlobalCache";
 import DataMigrationService from "../../Services/DataMigrationService";
+import EventLoop from "../EventLoop";
 import JobDeadline from "../JobDeadline";
 import logger from "../Logger";
+import { QueryRunner } from "typeorm";
 
 /*
  * CLEARING THE SCREENSHOTS STATE CHANGES KEPT BEFORE THEY STOPPED KEEPING
@@ -61,11 +63,33 @@ import logger from "../Logger";
  * is left as it is. Every statement reads or writes a bounded number of
  * rows, so none runs long, whatever the table holds.
  *
- * The rows found are read a few at a time - READ_BATCH_SIZE, and no more
- * than READ_BATCH_MAX_STORED_BYTES of them, as each can be megabytes; a
- * bigger one is read alone - and judged here by StateChangeLogScreenshots.
- * Each one that changes is written back by its id, one statement each, with
- * no transaction around them.
+ * The rows found are asked for a few at a time - READ_BATCH_SIZE, and no
+ * more than READ_BATCH_MAX_STORED_BYTES of them, as each can be megabytes;
+ * a bigger one is asked for alone - and Postgres, not this process, first
+ * looks in each for a Synthetic run's screenshots (SCREENSHOTS_JSON_PATH,
+ * jsonb_path_exists). Only a log that holds some comes back, as text, to be
+ * judged here by StateChangeLogScreenshots: every other log stays in
+ * Postgres (issue #9253). That matters for the checks a grouped Metrics
+ * monitor kept before #9189 - the whole evaluation, up to 95 MB of JSON a
+ * row, which hold no screenshots and which reading into this process would
+ * be the very memory spike #9189 removed. Postgres looks through such a row
+ * in a fraction of a second (some 130 ms for 70 MB of JSON), in one backend,
+ * for one statement. The path is wider than StateChangeLogScreenshots' rule
+ * - any depth, a single run as well as a list of them - so it never misses
+ * a log the rule would clear; a log it lets through that the rule leaves as
+ * it is, is read and not written. A log that holds screenshots but is stored
+ * at more than READ_MAX_STORED_BYTES is not read either: it is logged and
+ * left as it is.
+ *
+ * Each statement runs in a transaction of its own, with a statement timeout
+ * and a lock timeout (STATEMENT_TIMEOUT_MS, LOCK_TIMEOUT_MS). A read that
+ * Postgres cannot finish within its timeout or memory is asked again a row
+ * at a time; a row it still cannot look through is logged and left as it is
+ * (Monitor:TrimOversizedStoredChecks trims a log that big), so the walk
+ * never stalls on it. Each log that changes is written back by its id, one
+ * statement each, only if it is still stored at the size it was read at: a
+ * log another job rewrote since (trimmed it, say) is not overwritten with
+ * the copy read before.
  *
  * Where a table's walk got to is kept in the cache (GlobalCache) between
  * runs. If it is lost the walk starts over, which only costs time: a row
@@ -78,7 +102,8 @@ import logger from "../Logger";
  * older release can write a row with screenshots after the walk passed it;
  * that row keeps them.
  *
- * A row that fails - its read or its write - is logged and the rest of the
+ * A row that fails - its read or its write, a lock waited for too long, a
+ * lost connection - is logged and the rest of the
  * page goes on, but the walk stops there for the run, and the next run
  * starts at the row: a table is never marked done past a row it could not
  * clear. One table's failure is logged and the other tables go on.
@@ -152,6 +177,42 @@ export const READ_BATCH_SIZE: number = 10;
 export const READ_BATCH_MAX_STORED_BYTES: number = 32 * 1024 * 1024;
 
 /*
+ * The most a log with screenshots may be stored at to be read into this
+ * process; a bigger one is logged and left as it is. A Synthetic run's
+ * screenshots are some hundreds of kilobytes each, so a log is stored far
+ * below this.
+ */
+export const READ_MAX_STORED_BYTES: number = READ_BATCH_MAX_STORED_BYTES;
+
+/*
+ * Where a log keeps a Synthetic run's screenshots, for Postgres to look:
+ * a non-empty object under "screenshots", in a run of a
+ * "syntheticMonitorResponse" at any depth. Lax, so a list of runs and a
+ * lone run both match - wider than StateChangeLogScreenshots' rule, never
+ * narrower - and a Custom Code script's own "screenshots" key does not.
+ */
+export const SCREENSHOTS_JSON_PATH: string =
+  'lax $.**.syntheticMonitorResponse[*] ? (@.type() == "object").screenshots ? (@.type() == "object" && exists (@.*))';
+
+/*
+ * How long one read or one write may take in Postgres, and wait for a row's
+ * lock: on its transaction alone.
+ */
+export const STATEMENT_TIMEOUT_MS: number = 30 * 1000;
+export const LOCK_TIMEOUT_MS: number = 3 * 1000;
+
+/*
+ * Postgres errors that say a statement went past what the database allows
+ * it: its statement timeout (query_canceled), or the memory the backend has
+ * (out_of_memory, program_limit_exceeded).
+ */
+export const DATABASE_LIMIT_ERROR_CODES: ReadonlyArray<string> = [
+  "57014",
+  "53200",
+  "54000",
+];
+
+/*
  * What a run may spend starting work; the job's own timeout is longer, so a
  * write already running finishes.
  */
@@ -178,13 +239,30 @@ export interface StoredLogScreenshotsLimits {
   scanPageSize: number;
   readBatchSize: number;
   readBatchMaxStoredBytes: number;
+  readMaxStoredBytes: number;
+  statementTimeoutMs: number;
+  lockTimeoutMs: number;
 }
 
 export const DEFAULT_LIMITS: StoredLogScreenshotsLimits = {
   scanPageSize: SCAN_PAGE_SIZE,
   readBatchSize: READ_BATCH_SIZE,
   readBatchMaxStoredBytes: READ_BATCH_MAX_STORED_BYTES,
+  readMaxStoredBytes: READ_MAX_STORED_BYTES,
+  statementTimeoutMs: STATEMENT_TIMEOUT_MS,
+  lockTimeoutMs: LOCK_TIMEOUT_MS,
 };
+
+/*
+ * Runs one statement in a transaction of its own, with a statement timeout
+ * and a lock timeout set on that transaction alone.
+ */
+export type StoredLogStatementRunner = (data: {
+  sql: string;
+  params: Array<unknown>;
+  statementTimeoutMs: number;
+  lockTimeoutMs: number;
+}) => Promise<Array<Record<string, unknown>>>;
 
 // A row whose log is stored at the threshold or more.
 export interface StoredLogCandidate {
@@ -195,8 +273,14 @@ export interface StoredLogCandidate {
 // What one read batch did with each of its rows.
 export interface StoredLogCandidateOutcome {
   candidate: StoredLogCandidate;
-  // Its log was read: it was still there, and not empty.
+  // Its log was read into this process: it holds screenshots, by Postgres.
   isRead: boolean;
+  /*
+   * It holds screenshots, or may, but is too big to read - stored above
+   * readMaxStoredBytes, or past what Postgres allows one statement: logged
+   * and left as it is.
+   */
+  isTooBigToRead: boolean;
   // Its screenshots were cleared.
   isCleared: boolean;
   // Reading or writing it failed: logged, and tried again next run.
@@ -205,8 +289,10 @@ export interface StoredLogCandidateOutcome {
 
 export interface StoredLogTableResult {
   table: StoredLogTable;
-  // Logs read: stored at CANDIDATE_MIN_STORED_BYTES or more.
+  // Logs read into this process: those that hold screenshots.
   rowsRead: number;
+  // Logs too big to read: logged and left as they are.
+  rowsTooBigToRead: number;
   // Logs whose screenshots were cleared.
   rowsCleared: number;
   // What those logs took as stored, before.
@@ -221,6 +307,7 @@ export interface StoredLogTableResult {
 
 export interface StoredLogScreenshotsSummary {
   rowsRead: number;
+  rowsTooBigToRead: number;
   rowsCleared: number;
   storedBytesCleared: number;
   failedRows: number;
@@ -323,45 +410,134 @@ ORDER BY t."_id" ASC`,
 }
 
 /*
- * Some rows' logs, as the text Postgres keeps them as: parsed here, one at a
- * time.
+ * Of some rows, those whose log holds a Synthetic run's screenshots, as
+ * Postgres finds them (SCREENSHOTS_JSON_PATH): each with the size it is
+ * stored at and, when that is `maxStoredBytes` or less, the log as text, to
+ * be parsed here one at a time. Every other log stays in Postgres: a row
+ * without screenshots is not returned at all, and a log stored bigger comes
+ * back without its text.
  */
 export function buildReadLogsStatement(data: {
   table: StoredLogTable;
   ids: Array<string>;
+  maxStoredBytes?: number | undefined;
 }): StoredLogScreenshotsStatement {
   const column: string = STORED_LOG_COLUMNS[data.table];
 
   return {
-    sql: `SELECT t."_id"::text AS "id", t."${column}"::text AS "log"
+    sql: `SELECT t."_id"::text AS "id", pg_column_size(t."${column}") AS "storedBytes",
+  CASE WHEN pg_column_size(t."${column}") <= $3 THEN t."${column}"::text END AS "log"
 FROM "${data.table}" t
-WHERE t."_id" = ANY($1::uuid[])`,
+WHERE t."_id" = ANY($1::uuid[])
+  AND t."${column}" IS NOT NULL
+  AND jsonb_path_exists(t."${column}", $2::jsonpath, '{}'::jsonb, true)`,
     params: [
       data.ids.filter((id: string): boolean => {
         return ObjectID.isValidUUID(id);
       }),
+      SCREENSHOTS_JSON_PATH,
+      toPositiveCount(data.maxStoredBytes ?? READ_MAX_STORED_BYTES),
     ],
   };
 }
 
 /*
  * One row's log, without its screenshots: that column alone, by the row's
- * id. Not "updatedAt", not "version": clearing storage is no change anyone
- * made.
+ * id, and only if it is still stored at the size it was read at - a log
+ * rewritten since is left to whoever rewrote it. Not "updatedAt", not
+ * "version": clearing storage is no change anyone made. The row comes back
+ * when it was written.
  */
 export function buildClearLogStatement(data: {
   table: StoredLogTable;
   id: string;
   log: JSONValue;
+  readStoredBytes: number;
 }): StoredLogScreenshotsStatement {
   const column: string = STORED_LOG_COLUMNS[data.table];
 
   return {
-    sql: `UPDATE "${data.table}"
+    sql: `UPDATE "${data.table}" t
 SET "${column}" = $2::jsonb
-WHERE "_id" = $1::uuid`,
-    params: [data.id, JSON.stringify(data.log)],
+WHERE t."_id" = $1::uuid
+  AND pg_column_size(t."${column}") = $3
+RETURNING t."_id"::text AS "id"`,
+    params: [data.id, JSON.stringify(data.log), data.readStoredBytes],
   };
+}
+
+// Was this error Postgres saying a statement went past what it allows?
+export function isOverDatabaseLimits(error: unknown): boolean {
+  const code: unknown =
+    (error as { code?: unknown } | null)?.code ??
+    (error as { driverError?: { code?: unknown } } | null)?.driverError?.code;
+
+  return typeof code === "string" && DATABASE_LIMIT_ERROR_CODES.includes(code);
+}
+
+/*
+ * What TypeORM returns for a statement run on a query runner: the rows, or
+ * [rows, count] for an UPDATE ... RETURNING.
+ */
+export function readReturnedRows(
+  result: unknown,
+): Array<Record<string, unknown>> {
+  if (
+    Array.isArray(result) &&
+    result.length === 2 &&
+    Array.isArray(result[0]) &&
+    typeof result[1] === "number"
+  ) {
+    return result[0] as Array<Record<string, unknown>>;
+  }
+
+  return Array.isArray(result)
+    ? (result as Array<Record<string, unknown>>)
+    : [];
+}
+
+/*
+ * One statement in a transaction of its own, on the DataMigration
+ * repository's connection, with a statement timeout and a lock timeout set
+ * on that transaction alone; committed straight away.
+ */
+export async function runInOwnTransaction(data: {
+  sql: string;
+  params: Array<unknown>;
+  statementTimeoutMs: number;
+  lockTimeoutMs: number;
+}): Promise<Array<Record<string, unknown>>> {
+  const queryRunner: QueryRunner =
+    DataMigrationService.getRepository().manager.connection.createQueryRunner();
+
+  await queryRunner.connect();
+
+  try {
+    await queryRunner.startTransaction();
+
+    try {
+      await queryRunner.query(
+        `SET LOCAL statement_timeout = ${toPositiveCount(data.statementTimeoutMs)}`,
+      );
+      await queryRunner.query(
+        `SET LOCAL lock_timeout = ${toPositiveCount(data.lockTimeoutMs)}`,
+      );
+
+      const rows: unknown = await queryRunner.query(data.sql, data.params);
+
+      await queryRunner.commitTransaction();
+
+      return readReturnedRows(rows);
+    } catch (error) {
+      if (queryRunner.isTransactionActive) {
+        await queryRunner.rollbackTransaction();
+      }
+
+      throw error;
+    }
+  } finally {
+    await queryRunner.release();
+  }
 }
 
 // The tables whose walk is done: one read of their DataMigrations rows.
@@ -468,6 +644,8 @@ export default class StoredLogScreenshots {
       params,
     )) as Array<Record<string, unknown>>;
   };
+
+  public static runStatement: StoredLogStatementRunner = runInOwnTransaction;
 
   public static now: () => Date = (): Date => {
     return new Date();
@@ -595,6 +773,7 @@ export default class StoredLogScreenshots {
 
     const summary: StoredLogScreenshotsSummary = {
       rowsRead: 0,
+      rowsTooBigToRead: 0,
       rowsCleared: 0,
       storedBytesCleared: 0,
       failedRows: 0,
@@ -631,6 +810,7 @@ export default class StoredLogScreenshots {
         });
 
         summary.rowsRead += result.rowsRead;
+        summary.rowsTooBigToRead += result.rowsTooBigToRead;
         summary.rowsCleared += result.rowsCleared;
         summary.storedBytesCleared += result.storedBytesCleared;
         summary.failedRows += result.failedRows;
@@ -676,6 +856,7 @@ export default class StoredLogScreenshots {
     const result: StoredLogTableResult = {
       table: data.table,
       rowsRead: 0,
+      rowsTooBigToRead: 0,
       rowsCleared: 0,
       storedBytesCleared: 0,
       failedRows: 0,
@@ -748,9 +929,14 @@ export default class StoredLogScreenshots {
         for (const outcome of await this.clearBatch({
           table: data.table,
           candidates: batch,
+          limits: limits,
         })) {
           if (outcome.isRead) {
             result.rowsRead += 1;
+          }
+
+          if (outcome.isTooBigToRead) {
+            result.rowsTooBigToRead += 1;
           }
 
           if (outcome.isCleared) {
@@ -789,40 +975,87 @@ export default class StoredLogScreenshots {
   }
 
   /*
-   * One read batch: each row's log read, judged by StateChangeLogScreenshots
-   * and, when it holds screenshots, written back without them. A row whose
-   * write fails is logged and the others go on; a read that fails fails the
-   * batch's rows, logged once.
+   * One read batch: Postgres looks in each row's log for screenshots, and
+   * only a log that holds some is read here, judged by
+   * StateChangeLogScreenshots and, when it changes, written back without
+   * them. A row whose write fails is logged and the others go on. A read
+   * that goes past what Postgres allows one statement is asked again a row
+   * at a time, and a row that still does is left as it is; a read that
+   * fails otherwise fails the batch's rows, logged once.
    */
   public static async clearBatch(data: {
     table: StoredLogTable;
     candidates: Array<StoredLogCandidate>;
+    limits?: StoredLogScreenshotsLimits | undefined;
   }): Promise<Array<StoredLogCandidateOutcome>> {
+    const limits: StoredLogScreenshotsLimits = data.limits || DEFAULT_LIMITS;
     const column: string = STORED_LOG_COLUMNS[data.table];
-    let logs: Map<string, unknown>;
+    const ids: Array<string> = data.candidates.map(
+      (candidate: StoredLogCandidate): string => {
+        return candidate.id;
+      },
+    );
+    let found: Map<string, Record<string, unknown>>;
 
     try {
       const statement: StoredLogScreenshotsStatement = buildReadLogsStatement({
         table: data.table,
-        ids: data.candidates.map((candidate: StoredLogCandidate): string => {
-          return candidate.id;
-        }),
+        ids: ids,
+        maxStoredBytes: limits.readMaxStoredBytes,
       });
 
-      logs = new Map<string, unknown>(
-        (await this.runQuery(statement.sql, statement.params)).map(
-          (row: Record<string, unknown>): [string, unknown] => {
-            return [String(row["id"] || ""), row["log"]];
+      found = new Map<string, Record<string, unknown>>(
+        (
+          await this.runStatement({
+            sql: statement.sql,
+            params: statement.params,
+            statementTimeoutMs: limits.statementTimeoutMs,
+            lockTimeoutMs: limits.lockTimeoutMs,
+          })
+        ).map(
+          (row: Record<string, unknown>): [string, Record<string, unknown>] => {
+            return [String(row["id"] || ""), row];
           },
         ),
       );
     } catch (error) {
+      if (isOverDatabaseLimits(error)) {
+        // Each row alone, so one row past the limits does not hold up the rest.
+        if (data.candidates.length > 1) {
+          const outcomes: Array<StoredLogCandidateOutcome> = [];
+
+          for (const candidate of data.candidates) {
+            outcomes.push(
+              ...(await this.clearBatch({
+                table: data.table,
+                candidates: [candidate],
+                limits: limits,
+              })),
+            );
+          }
+
+          return outcomes;
+        }
+
+        logger.warn(
+          `Stored log screenshots: ${data.table}.${column} of row ${ids.join(", ")} could not be looked through within the database's limits, so it is left as it is.`,
+        );
+
+        return data.candidates.map(
+          (candidate: StoredLogCandidate): StoredLogCandidateOutcome => {
+            return {
+              candidate: candidate,
+              isRead: false,
+              isTooBigToRead: true,
+              isCleared: false,
+              isFailed: false,
+            };
+          },
+        );
+      }
+
       logger.error(
-        `Stored log screenshots: reading ${data.table}.${column} of rows ${data.candidates
-          .map((candidate: StoredLogCandidate): string => {
-            return candidate.id;
-          })
-          .join(", ")} failed. They are tried again next run.`,
+        `Stored log screenshots: reading ${data.table}.${column} of rows ${ids.join(", ")} failed. They are tried again next run.`,
       );
       logger.error(error);
 
@@ -831,6 +1064,7 @@ export default class StoredLogScreenshots {
           return {
             candidate: candidate,
             isRead: false,
+            isTooBigToRead: false,
             isCleared: false,
             isFailed: true,
           };
@@ -841,13 +1075,35 @@ export default class StoredLogScreenshots {
     const outcomes: Array<StoredLogCandidateOutcome> = [];
 
     for (const candidate of data.candidates) {
-      const text: unknown = logs.get(candidate.id);
+      const row: Record<string, unknown> | undefined = found.get(candidate.id);
 
-      // Deleted, or emptied, since the page was read: nothing to clear.
-      if (typeof text !== "string") {
+      /*
+       * No screenshots, by Postgres - or deleted, or emptied, since the page
+       * was read: nothing to clear, and nothing read.
+       */
+      if (!row) {
         outcomes.push({
           candidate: candidate,
           isRead: false,
+          isTooBigToRead: false,
+          isCleared: false,
+          isFailed: false,
+        });
+        continue;
+      }
+
+      const text: unknown = row["log"];
+      const storedBytes: number = Number(row["storedBytes"]);
+
+      // Screenshots, but stored too big to read here: left as it is.
+      if (typeof text !== "string" || !Number.isFinite(storedBytes)) {
+        logger.warn(
+          `Stored log screenshots: ${data.table}.${column} of row ${candidate.id} holds screenshots but is stored at ${formatStoredBytes(Number.isFinite(storedBytes) ? storedBytes : candidate.storedBytes)}, too big to read, so it is left as it is.`,
+        );
+        outcomes.push({
+          candidate: candidate,
+          isRead: false,
+          isTooBigToRead: true,
           isCleared: false,
           isFailed: false,
         });
@@ -864,6 +1120,7 @@ export default class StoredLogScreenshots {
           outcomes.push({
             candidate: candidate,
             isRead: true,
+            isTooBigToRead: false,
             isCleared: false,
             isFailed: false,
           });
@@ -875,15 +1132,25 @@ export default class StoredLogScreenshots {
             table: data.table,
             id: candidate.id,
             log: withoutScreenshots,
+            readStoredBytes: storedBytes,
           },
         );
 
-        await this.runQuery(statement.sql, statement.params);
+        const written: Array<Record<string, unknown>> = await this.runStatement(
+          {
+            sql: statement.sql,
+            params: statement.params,
+            statementTimeoutMs: limits.statementTimeoutMs,
+            lockTimeoutMs: limits.lockTimeoutMs,
+          },
+        );
 
+        // Not written: the log was rewritten since it was read, by someone else.
         outcomes.push({
           candidate: candidate,
           isRead: true,
-          isCleared: true,
+          isTooBigToRead: false,
+          isCleared: written.length > 0,
           isFailed: false,
         });
       } catch (error) {
@@ -895,10 +1162,14 @@ export default class StoredLogScreenshots {
         outcomes.push({
           candidate: candidate,
           isRead: true,
+          isTooBigToRead: false,
           isCleared: false,
           isFailed: true,
         });
       }
+
+      // One log's work at a time: let the rest of the process run.
+      await EventLoop.yieldToEventLoop();
     }
 
     return outcomes;
