@@ -337,7 +337,7 @@ describe("a logo that does not ask for the mark", () => {
   });
 
   test("the Admin Dashboard's header is the logo at every width, with an installation's logo too", () => {
-    const { container } = render(<AdminDashboardLogo onClick={() => {}} />);
+    const { container } = render(<AdminDashboardLogo />);
 
     expect(screen.getByRole("img", { name: "OneUptime" })).toBeInTheDocument();
     expect(container.querySelector("picture")).toBeNull();
@@ -345,9 +345,7 @@ describe("a logo that does not ask for the mark", () => {
     cleanup();
     setBranding(ACME_WITH_EVERYTHING);
 
-    const branded: HTMLElement = render(
-      <AdminDashboardLogo onClick={() => {}} />,
-    ).container;
+    const branded: HTMLElement = render(<AdminDashboardLogo />).container;
     expect(branded.querySelector("picture")).toBeNull();
   });
 });

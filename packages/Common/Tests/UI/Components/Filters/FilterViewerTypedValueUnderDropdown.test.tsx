@@ -132,14 +132,14 @@ function renderViewer(
 
 // The chips over the list, as their text reads.
 function chipTexts(): Array<string> {
-  return Array.from(document.querySelectorAll(".rounded-full")).map(
-    (chip: Element): string => {
-      // A right-to-left sentence sets its values apart with isolate marks.
-      return withoutIsolateMarks(chip.textContent || "")
-        .replace(/\s+/g, " ")
-        .trim();
-    },
-  );
+  return Array.from(
+    document.querySelectorAll('[data-testid="applied-filter-chip"]'),
+  ).map((chip: Element): string => {
+    // A right-to-left sentence sets its values apart with isolate marks.
+    return withoutIsolateMarks(chip.textContent || "")
+      .replace(/\s+/g, " ")
+      .trim();
+  });
 }
 
 // A chip's sentence as the locale words it, its field and value filled in.
