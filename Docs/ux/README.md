@@ -145,6 +145,11 @@ and phone summary: change the suite in the same pull request as the menu.
 - **Search (Cmd/Ctrl+K) finds every page a menu links to,** by the menu's name for it, and says where
   it lives the way the menu does. Add a new page to `PageSearchIndex.ts`. Enforced by
   [PageSearchIndexCoversMenus](../../packages/Common/Tests/App/Dashboard/PageSearchIndexCoversMenus.test.tsx).
+- **Search finds a record's own pages too.** On a record's page, "sso" opens that status page's Single
+  Sign-On. Anywhere, a page's name with the record's name or its kind ("status page sso", "acme
+  subscribers") offers it for the matching records. A renamed page keeps its old title in
+  `formerTitles`. Add a new page of a record's menu to `RecordPageSearchIndex.ts`. Enforced by
+  [RecordPageSearchIndexCoversMenus](../../packages/Common/Tests/App/Dashboard/RecordPageSearchIndexCoversMenus.test.tsx).
 - **A setting is found by the name on its card.** Searching "require sso to sign in" finds that switch
   on the SSO page. Add a new settings card or switch to its page's settings list in
   `PageSearchIndex.ts`, or to `NOT_A_SETTING`. Enforced by
