@@ -294,6 +294,27 @@ work out, starts from a default for everything else, and folds what most people 
   looked alike filled a phone's width or did not, and a card's two test buttons took a line each
   on a 390px phone (#9100). Enforced by
   [HandMadePrimaryButtonGuard](../../packages/Common/Tests/UI/HandMadePrimaryButtonGuard.test.ts).
+- **One chip.** A coloured status or label chip is the shared `Pill`
+  (`Common/UI/Components/Pill`), never a `<span>` drawn by hand. The same idea was drawn four
+  ways: the Pill, a `StatusBadge` with a gradient and bold text, a menu's `Badge` with a shadow,
+  and some three hundred hand-written spans, `rounded-full` in one file and `rounded-md` in the
+  next, so one page showed "Active" in two shapes and two greens, and the dark theme handled each
+  its own way (#9137). A status chip names its `tone` (`PillTone`), and the Pill works out a text
+  shade that reads at 4.5:1 or better on both themes; a colour someone picked (a label's, a
+  state's) is passed as `color`. `isDotHidden` draws a tag or a count without the dot, `icon` puts
+  an icon in its place, and words too long for the room end in "..." with the whole of them on
+  hover. `StatusBadge` is a Pill underneath; `Badge` is only for a count beside a menu's entry, in
+  the same tones. Enforced by
+  [HandWrittenChipGuard](../../packages/Common/Tests/UI/HandWrittenChipGuard.test.ts).
+
+  | Tone | Use it for |
+  | --- | --- |
+  | `Success` | It works: Enabled, Connected, Passed. |
+  | `Info` | Worth knowing, needs nothing: Running, Scheduled. |
+  | `Warning` | Needs a look soon: Expiring, Degraded, Not connected. |
+  | `Danger` | It broke: Failed, Offline, Error. |
+  | `Paused` | Someone chose to switch it off: Disabled, Paused, Archived. Grey with a hollow dot, never red ([Red is for what broke](#side-menus)). |
+  | `Neutral` | A plain fact or a tag: Default, Beta, 3 rules. |
 - **Each button style has one job.** Not enforced: use judgement.
 
   | Style | Use it for |
