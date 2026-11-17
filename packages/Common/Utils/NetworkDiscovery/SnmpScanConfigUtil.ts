@@ -188,6 +188,12 @@ export const MAX_SNMP_CONFIG_NAME_LENGTH: number = ColumnLength.ShortText;
  *
  * Bounding here makes it one rule, checked on every card, in the words of the
  * field the operator is actually looking at.
+ *
+ * The flattened credential columns are text now, since they are kept
+ * encrypted at rest (#9014) and a ciphertext is longer than its value, so
+ * nothing in Postgres holds a credential to these widths any more. They are
+ * kept as the rule a credential set is held to: a community string of 100
+ * characters, a passphrase of 500, as before.
  */
 export const MAX_SNMP_CONFIG_SHORT_TEXT_LENGTH: number = ColumnLength.ShortText;
 export const MAX_SNMP_CONFIG_KEY_LENGTH: number = ColumnLength.LongText;

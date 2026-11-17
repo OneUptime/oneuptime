@@ -369,18 +369,31 @@ export default class StatusPageSubscriber extends BaseModel {
       Permission.EditStatusPageSubscriber,
     ],
   })
+  /*
+   * A webhook's address is a credential in its own right: whoever holds it
+   * can post to the endpoint as this status page. Kept encrypted at rest
+   * (`encrypted: true`): DatabaseService encrypts the address the column's
+   * transformer writes on every write, and decrypts it before the
+   * transformer reads it, so every read - the senders' included - gets the
+   * URL back (EncryptedColumnValue). The EncryptWebhookAddresses data
+   * migration encrypts the addresses stored before. Text, which a
+   * ciphertext fits: a type with a width would hold the ciphertext to it,
+   * and refuse an address of 48 characters.
+   */
   @TableColumn({
     secret: true,
+    encrypted: true,
     required: false,
-    type: TableColumnType.ShortURL,
+    type: TableColumnType.LongURL,
     title: "Webhook",
-    description: "Webhook to ping when events happen on Status Page",
+    description:
+      "Webhook to ping when events happen on Status Page. Kept encrypted at rest.",
     example: "https://example.com/webhook",
   })
   @Column({
     nullable: true,
-    type: ColumnType.ShortURL,
-    transformer: URL.getDatabaseTransformer(),
+    type: ColumnType.LongURL,
+    transformer: URL.getEncryptedDatabaseTransformer(),
   })
   public subscriberWebhook?: URL = undefined;
 
@@ -397,18 +410,20 @@ export default class StatusPageSubscriber extends BaseModel {
     read: [],
     update: [],
   })
+  // Its path is its secret: kept encrypted at rest, as subscriberWebhook is.
   @TableColumn({
     secret: true,
+    encrypted: true,
     required: false,
-    type: TableColumnType.ShortURL,
+    type: TableColumnType.LongURL,
     title: "Slack Incoming Webhook URL",
     description:
-      "Slack incoming webhook URL to send notifications to Slack channel",
+      "Slack incoming webhook URL to send notifications to Slack channel. Write-only: kept encrypted and never returned by the API.",
   })
   @Column({
     nullable: true,
-    type: ColumnType.ShortURL,
-    transformer: URL.getDatabaseTransformer(),
+    type: ColumnType.LongURL,
+    transformer: URL.getEncryptedDatabaseTransformer(),
   })
   public slackIncomingWebhookUrl?: URL = undefined;
 
@@ -468,18 +483,20 @@ export default class StatusPageSubscriber extends BaseModel {
     read: [],
     update: [],
   })
+  // Its path is its secret: kept encrypted at rest, as subscriberWebhook is.
   @TableColumn({
     secret: true,
+    encrypted: true,
     required: false,
     type: TableColumnType.LongURL,
     title: "Microsoft Teams Incoming Webhook URL",
     description:
-      "Microsoft Teams incoming webhook URL to send notifications to Teams channel",
+      "Microsoft Teams incoming webhook URL to send notifications to Teams channel. Write-only: kept encrypted and never returned by the API.",
   })
   @Column({
     nullable: true,
     type: ColumnType.LongURL,
-    transformer: URL.getDatabaseTransformer(),
+    transformer: URL.getEncryptedDatabaseTransformer(),
   })
   public microsoftTeamsIncomingWebhookUrl?: URL = undefined;
 

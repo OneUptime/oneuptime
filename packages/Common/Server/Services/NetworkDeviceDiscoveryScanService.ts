@@ -177,6 +177,22 @@ export class Service extends ProjectReferencesService<Model> {
     super(Model);
   }
 
+  /*
+   * A scan's SNMP credentials are stored encrypted (#9014): the create's
+   * answer carries them as they were written, as a read of the scan gives
+   * them to whom may read them, never the ciphertext stored
+   * (handBackAsGiven).
+   */
+  @CaptureSpan()
+  public override async create(createBy: CreateBy<Model>): Promise<Model> {
+    return this.handBackAsGiven(await super.create(createBy), [
+      "snmpConfigs",
+      "snmpCommunityString",
+      "snmpV3AuthKey",
+      "snmpV3PrivKey",
+    ]);
+  }
+
   @CaptureSpan()
   protected override async onFindSuccess(
     onFind: OnFind<Model>,

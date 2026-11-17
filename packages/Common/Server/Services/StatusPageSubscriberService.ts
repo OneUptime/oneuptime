@@ -489,6 +489,12 @@ export class Service extends ProjectReferencesService<Model> {
    * (read: []). They leave the server only inside the messages to the
    * subscription's own contact, which onCreateSuccess has sent by now; the
    * confirmation email reads its code back from the database.
+   *
+   * Its webhooks are on it as they are stored, encrypted: a ciphertext
+   * nobody typed, and as good as the address to whoever holds the server's
+   * encryption secret. The Slack and Microsoft Teams webhooks, which nobody
+   * reads (read: []), are taken off too; the webhook the team reads is
+   * handed back as it was written, as a read of it gives it.
    */
   @CaptureSpan()
   public override async create(createBy: CreateBy<Model>): Promise<Model> {
@@ -504,8 +510,10 @@ export class Service extends ProjectReferencesService<Model> {
     >;
     row["unsubscribeToken"] = undefined;
     row["subscriptionConfirmationToken"] = undefined;
+    row["slackIncomingWebhookUrl"] = undefined;
+    row["microsoftTeamsIncomingWebhookUrl"] = undefined;
 
-    return created;
+    return this.handBackAsGiven(created, ["subscriberWebhook"]);
   }
 
   /*
@@ -1054,13 +1062,11 @@ export class Service extends ProjectReferencesService<Model> {
     // if slack incoming webhook is provided, then see if it starts with https://hooks.slack.com/services/
 
     if (data.data.slackIncomingWebhookUrl) {
-      logger.debug(
-        `Slack Incoming Webhook URL: ${data.data.slackIncomingWebhookUrl}`,
-        {
-          projectId: data.data.projectId?.toString(),
-          statusPageId: data.data.statusPageId?.toString(),
-        } as LogAttributes,
-      );
+      // Never the address itself: it is the channel's credential.
+      logger.debug("Checking the subscriber's Slack incoming webhook URL.", {
+        projectId: data.data.projectId?.toString(),
+        statusPageId: data.data.statusPageId?.toString(),
+      } as LogAttributes);
       if (
         !SlackUtil.isValidSlackIncomingWebhookUrl(
           data.data.slackIncomingWebhookUrl,
@@ -1076,8 +1082,9 @@ export class Service extends ProjectReferencesService<Model> {
 
     // Validate Microsoft Teams webhook URL if provided
     if (data.data.microsoftTeamsIncomingWebhookUrl) {
+      // Never the address itself: it is the channel's credential.
       logger.debug(
-        `Microsoft Teams Incoming Webhook URL: ${data.data.microsoftTeamsIncomingWebhookUrl}`,
+        "Checking the subscriber's Microsoft Teams incoming webhook URL.",
         {
           projectId: data.data.projectId?.toString(),
           statusPageId: data.data.statusPageId?.toString(),
@@ -1415,7 +1422,14 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     for (const column of SUBSCRIBER_WEBHOOK_COLUMNS) {
-      const value: URL | undefined = data.subscriber[column];
+      /*
+       * The address as it was written: a create's subscriber is asked here
+       * with its INSERT (getCreateLimit), after its webhooks were encrypted.
+       */
+      const value: URL | undefined = this.getValueAsGiven(
+        data.subscriber,
+        column,
+      ) as URL | undefined;
 
       if (!value || !value.toString().trim()) {
         continue;
@@ -1503,6 +1517,12 @@ export class Service extends ProjectReferencesService<Model> {
    * Reads subscriber rows with the transaction a create's INSERT is decided
    * in (getCreateLimit), which holds the page's lock: a read through the
    * service would run outside it, on another of the pool's connections.
+   *
+   * Each row is decrypted, as the service's own reads are: its webhooks are
+   * kept encrypted at rest, and their addresses are what a sign-up is
+   * compared with (findSubscriptionsOfContacts). A ciphertext, salted afresh
+   * on every write, matches no address, so without this the same Slack
+   * channel could subscribe to one page twice.
    */
   private getTransactionRowFinder(manager: EntityManager): SubscriberRowFinder {
     return async (query: {
@@ -1511,17 +1531,25 @@ export class Service extends ProjectReferencesService<Model> {
       afterId: string | undefined;
       limit: number;
     }): Promise<Array<Model>> => {
-      return await manager.getRepository<Model>(this.modelType.name).find({
-        where: {
-          ...query.where,
-          ...(query.afterId ? { _id: MoreThan(query.afterId) } : {}),
-        } as FindOptionsWhere<Model>,
-        select: query.select,
-        order: {
-          _id: "ASC",
-        },
-        take: query.limit,
-      });
+      const rows: Array<Model> = await manager
+        .getRepository<Model>(this.modelType.name)
+        .find({
+          where: {
+            ...query.where,
+            ...(query.afterId ? { _id: MoreThan(query.afterId) } : {}),
+          } as FindOptionsWhere<Model>,
+          select: query.select,
+          order: {
+            _id: "ASC",
+          },
+          take: query.limit,
+        });
+
+      for (const row of rows) {
+        await this.decrypt(row);
+      }
+
+      return rows;
     };
   }
 
@@ -2808,29 +2836,45 @@ export class Service extends ProjectReferencesService<Model> {
       );
     }
 
-    if (isTold && subscriber.slackIncomingWebhookUrl) {
+    /*
+     * Each webhook by its address as written: a create's subscriber is
+     * counted (onCreatePermitted) after its webhooks were encrypted, and a
+     * ciphertext, salted afresh on every write, would be a contact of its
+     * own every time.
+     */
+    const slack: URL | undefined = this.getValueAsGiven(
+      subscriber,
+      "slackIncomingWebhookUrl",
+    ) as URL | undefined;
+    const microsoftTeams: URL | undefined = this.getValueAsGiven(
+      subscriber,
+      "microsoftTeamsIncomingWebhookUrl",
+    ) as URL | undefined;
+    const webhook: URL | undefined = this.getValueAsGiven(
+      subscriber,
+      "subscriberWebhook",
+    ) as URL | undefined;
+
+    if (isTold && slack) {
       contacts.push(
-        PublicMessageRateLimit.forWebhook(
-          PublicMessageChannel.Slack,
-          subscriber.slackIncomingWebhookUrl,
-        ),
+        PublicMessageRateLimit.forWebhook(PublicMessageChannel.Slack, slack),
       );
     }
 
-    if (isTold && subscriber.microsoftTeamsIncomingWebhookUrl) {
+    if (isTold && microsoftTeams) {
       contacts.push(
         PublicMessageRateLimit.forWebhook(
           PublicMessageChannel.MicrosoftTeams,
-          subscriber.microsoftTeamsIncomingWebhookUrl,
+          microsoftTeams,
         ),
       );
     }
 
-    if (isTold && subscriber.subscriberWebhook) {
+    if (isTold && webhook) {
       contacts.push(
         PublicMessageRateLimit.forWebhook(
           PublicMessageChannel.Webhook,
-          subscriber.subscriberWebhook,
+          webhook,
         ),
       );
     }
@@ -3115,11 +3159,25 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
+    /*
+     * Its webhooks as they were written: the row holds them as it stores
+     * them, encrypted (getValueAsGiven).
+     */
+    const slackIncomingWebhookUrl: URL | undefined = this.getValueAsGiven(
+      createdItem,
+      "slackIncomingWebhookUrl",
+    ) as URL | undefined;
+    const subscriberWebhook: URL | undefined = this.getValueAsGiven(
+      createdItem,
+      "subscriberWebhook",
+    ) as URL | undefined;
+    const microsoftTeamsIncomingWebhookUrl: URL | undefined =
+      this.getValueAsGiven(createdItem, "microsoftTeamsIncomingWebhookUrl") as
+        | URL
+        | undefined;
+
     // if slack incoming webhook is provided and sendYouHaveSubscribedMessage is true, then send a message to the slack channel.
-    if (
-      createdItem.slackIncomingWebhookUrl &&
-      createdItem.sendYouHaveSubscribedMessage
-    ) {
+    if (slackIncomingWebhookUrl && createdItem.sendYouHaveSubscribedMessage) {
       logger.debug("Sending Slack notification for new subscriber.", {
         projectId: createdItem.projectId?.toString(),
       } as LogAttributes);
@@ -3140,7 +3198,7 @@ export class Service extends ProjectReferencesService<Model> {
       } as LogAttributes);
 
       SlackUtil.sendMessageToChannelViaIncomingWebhook({
-        url: URL.fromString(createdItem.slackIncomingWebhookUrl.toString()),
+        url: URL.fromString(slackIncomingWebhookUrl.toString()),
         text: SlackUtil.convertMarkdownToSlackRichText(slackMessage),
       })
         .then(() => {
@@ -3159,16 +3217,13 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     // if generic webhook URL is provided and sendYouHaveSubscribedMessage is true, then ping the webhook with the subscription event.
-    if (
-      createdItem.subscriberWebhook &&
-      createdItem.sendYouHaveSubscribedMessage
-    ) {
+    if (subscriberWebhook && createdItem.sendYouHaveSubscribedMessage) {
       logger.debug("Sending webhook notification for new subscriber.", {
         projectId: createdItem.projectId?.toString(),
       } as LogAttributes);
 
       StatusPageSubscriberWebhookUtil.sendWebhookNotification({
-        webhookUrl: URL.fromString(createdItem.subscriberWebhook.toString()),
+        webhookUrl: URL.fromString(subscriberWebhook.toString()),
         // The team's only when both this create and the row say so.
         isAddedByTeam: !signUp && createdItem.isAddedByTeam === true,
         payload: {
@@ -3199,7 +3254,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     // if Microsoft Teams incoming webhook is provided and sendYouHaveSubscribedMessage is true, then send a message to the Teams channel.
     if (
-      createdItem.microsoftTeamsIncomingWebhookUrl &&
+      microsoftTeamsIncomingWebhookUrl &&
       createdItem.sendYouHaveSubscribedMessage
     ) {
       logger.debug("Sending Microsoft Teams notification for new subscriber.", {
@@ -3222,9 +3277,7 @@ export class Service extends ProjectReferencesService<Model> {
       } as LogAttributes);
 
       MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook({
-        url: URL.fromString(
-          createdItem.microsoftTeamsIncomingWebhookUrl.toString(),
-        ),
+        url: URL.fromString(microsoftTeamsIncomingWebhookUrl.toString()),
         text: teamsMessage,
       })
         .then(() => {
