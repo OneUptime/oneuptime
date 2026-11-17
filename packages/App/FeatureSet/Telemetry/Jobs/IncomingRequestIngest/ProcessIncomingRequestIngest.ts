@@ -133,9 +133,11 @@ export async function processIncomingRequestFromQueue(
     });
 
   if (!monitorOfKey) {
-    const monitor: Monitor | null = await MonitorService.findOneBy({
+    // Found by the key's lookup hash: the key is kept encrypted (#9012).
+    const monitor: Monitor | null = await MonitorService.findOneByPresentedKey({
+      column: "incomingRequestSecretKey",
+      presentedKey: monitorSecretKeyAsString,
       query: {
-        incomingRequestSecretKey: new ObjectID(monitorSecretKeyAsString),
         monitorType: MonitorType.IncomingRequest,
       },
       select: {

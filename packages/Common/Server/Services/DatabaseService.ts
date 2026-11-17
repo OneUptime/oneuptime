@@ -70,6 +70,8 @@ import UpdateByID from "../Types/Database/UpdateByID";
 import UpdateByIDAndFetch from "../Types/Database/UpdateByIDAndFetch";
 import UpdateOneBy from "../Types/Database/UpdateOneBy";
 import Encryption from "../Utils/Encryption";
+import PresentedKey from "../Utils/PresentedKey/PresentedKey";
+import PresentedKeysAtRest from "../Utils/PresentedKey/PresentedKeysAtRest";
 import PasswordHash from "../Utils/PasswordHash";
 import PostgresErrorTranslator from "../Utils/Database/PostgresErrorTranslator";
 import { StatementContext } from "../Utils/Database/StatementOutcome";
@@ -487,6 +489,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   private model!: TBaseModel;
   private modelName!: string;
   private userAttributionColumns: Array<string> | null = null;
+  // Its columns that hold a key presented to OneUptime (getPresentedKeyColumns).
+  private presentedKeyColumns: Array<string> | null = null;
   private realtimeReadAccess: RealtimeReadAccess | null = null;
 
   /*
@@ -1997,6 +2001,19 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         continue;
       }
 
+      /*
+       * A key presented to OneUptime kept in an id-typed column - a
+       * monitor's secret key, an ingestion key (#9012) - is encrypted as its
+       * text. The ObjectID handed in is replaced, never changed: whoever
+       * handed it in may still use it.
+       */
+      if ((data as any)[key] instanceof ObjectID) {
+        const text: string = ((data as any)[key] as ObjectID).toString();
+        this.assertFitsBeforeEncrypted(key, text);
+        (data as any)[key] = await Encryption.encrypt(text);
+        continue;
+      }
+
       // If data is an object.
       if (typeof (data as any)[key] === Typeof.Object) {
         const dataObj: JSONObject = (data as any)[key] as JSONObject;
@@ -2008,6 +2025,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         (data as any)[key] = dataObj;
       } else {
         //If its string or other type.
+        this.assertFitsBeforeEncrypted(key, String((data as any)[key]));
         (data as any)[key] = await Encryption.encrypt(
           (data as any)[key] as string,
         );
@@ -2015,6 +2033,289 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     return data;
+  }
+
+  /*
+   * An encrypted column's value is held to its type's length as written,
+   * here, before it is encrypted: what is stored is its ciphertext, which is
+   * longer, so checkMaxLengthOfFields - which reads the write after this -
+   * leaves encrypted columns out. A probe's key is at most 100 characters
+   * still, as it was when it was stored as written.
+   */
+  private assertFitsBeforeEncrypted(column: string, value: string): void {
+    const metadata: TableColumnMetadata | undefined =
+      this.model.getTableColumnMetadata(column);
+    const maxLength: number | undefined = metadata?.type
+      ? getMaxLengthFromTableColumnType(metadata.type)
+      : undefined;
+
+    if (maxLength && value.length > maxLength) {
+      throw new BadDataException(
+        `${column} length cannot be more than ${maxLength} characters`,
+      );
+    }
+  }
+
+  /*
+   * The keys presented to OneUptime (TableColumnMetadata.presentedKey,
+   * #9012) of this model: its columns that hold one.
+   */
+  private getPresentedKeyColumns(): Array<string> {
+    if (!this.presentedKeyColumns) {
+      this.presentedKeyColumns = this.model
+        .getTableColumns()
+        .columns.filter((column: string): boolean => {
+          return Boolean(
+            this.model.getTableColumnMetadata(column)?.presentedKey,
+          );
+        });
+    }
+
+    return this.presentedKeyColumns;
+  }
+
+  /*
+   * The presented keys a create or an update writes, as written - before
+   * they are encrypted - each the value it was given: a null clears the
+   * key. A copy of the map, never of the values: encrypt() replaces a value,
+   * it never changes one.
+   */
+  private getPresentedKeysAsGiven(
+    data: TBaseModel | PartialEntity<TBaseModel>,
+  ): Record<string, unknown> {
+    const asGiven: Record<string, unknown> = {};
+    const values: Record<string, unknown> = data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    for (const column of this.getPresentedKeyColumns()) {
+      const value: unknown = values[column];
+
+      if (value === undefined || typeof value === "function") {
+        continue;
+      }
+
+      asGiven[column] = value;
+    }
+
+    return asGiven;
+  }
+
+  /*
+   * Writes, beside each presented key a write gives (getPresentedKeysAsGiven),
+   * its lookup hash (TableColumnMetadata.lookupHashColumn, PresentedKey.hash),
+   * which the record is found by (findOneByPresentedKey): a key cleared
+   * clears its hash, and a value that is no key has none. OneUptime's to
+   * write - nobody may write the hash column - so a create writes it before
+   * the record's permissions are checked (the column is computed: set by
+   * the create's own steps), and an update after.
+   */
+  private writeLookupHashes(
+    data: TBaseModel | PartialEntity<TBaseModel>,
+    presentedKeysAsGiven: Record<string, unknown>,
+  ): void {
+    for (const [column, value] of Object.entries(presentedKeysAsGiven)) {
+      const metadata: TableColumnMetadata | undefined =
+        this.model.getTableColumnMetadata(column);
+
+      if (!metadata?.lookupHashColumn) {
+        continue;
+      }
+
+      const keyHash: string | null =
+        typeof value === "string" || value instanceof ObjectID
+          ? PresentedKey.hash(value, metadata.type)
+          : null;
+
+      (data as Record<string, unknown>)[metadata.lookupHashColumn] = keyHash
+        ? new HashedString(keyHash, true)
+        : null;
+    }
+  }
+
+  /*
+   * The record a create answers holds each presented key it wrote as it was
+   * written, not as stored (getPresentedKeysAsGiven): whoever made a probe
+   * gets its key, as they always did, never its ciphertext - and so does
+   * everything that runs after the write, its hooks among them.
+   */
+  private restorePresentedKeys(
+    record: TBaseModel,
+    presentedKeysAsGiven: Record<string, unknown>,
+  ): void {
+    for (const [column, value] of Object.entries(presentedKeysAsGiven)) {
+      (record as unknown as Record<string, unknown>)[column] = value;
+    }
+  }
+
+  /*
+   * THE RECORD A REQUEST NAMES BY A KEY PRESENTED TO ONEUPTIME (#9012).
+   *
+   * A presented key is kept encrypted (PresentedKey), so no query can find
+   * it by its value. A key a request names its record by alone - a
+   * monitor's heartbeat URL, an ingestion key - has a lookup hash beside it
+   * (TableColumnMetadata.lookupHashColumn): the record is found by it, then
+   * held to the key itself, decrypted, in constant time - so a lookup hash
+   * left behind a key that a server of the release before changed finds
+   * nothing. Any other key is checked on the one record `query` names (its
+   * id, with whatever else the caller asks of it), the same way.
+   *
+   * A key stored as written, before its column was kept encrypted, is found
+   * as it was written too, until the PresentedKeys:ProtectAtRest job has
+   * protected every one (PresentedKeysAtRest.mayHoldKeysAsWritten).
+   *
+   * Answers the record with the columns `select` asks for - the key only
+   * when it asks for it - or null for no record, or a key that is not its
+   * key.
+   */
+  @CaptureSpan()
+  public async findOneByPresentedKey(data: {
+    column: string;
+    presentedKey: string | ObjectID | null | undefined;
+    query?: Query<TBaseModel> | undefined;
+    select: Select<TBaseModel>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<TBaseModel | null> {
+    const metadata: TableColumnMetadata | undefined =
+      this.model.getTableColumnMetadata(data.column);
+
+    if (!metadata?.presentedKey) {
+      throw new BadDataException(
+        `${data.column} is not a key presented to OneUptime.`,
+      );
+    }
+
+    const presentedKey: string | null = PresentedKey.normalize(
+      data.presentedKey,
+      metadata.type,
+    );
+
+    if (!presentedKey) {
+      return null;
+    }
+
+    const isKeySelected: boolean = Boolean(
+      (data.select as Record<string, unknown>)[data.column],
+    );
+
+    const select: Select<TBaseModel> = {
+      ...data.select,
+      [data.column]: true,
+    } as Select<TBaseModel>;
+
+    const query: Query<TBaseModel> = (data.query || {}) as Query<TBaseModel>;
+
+    // A key with no lookup hash is checked on one record: the query names it.
+    if (!metadata.lookupHashColumn && Object.keys(query).length === 0) {
+      throw new BadDataException(
+        `${data.column} is checked on the record a query names, such as its id.`,
+      );
+    }
+
+    // The record a key is checked on: found by its hash, or the one named.
+    const found: TBaseModel | null = metadata.lookupHashColumn
+      ? await this.findOneBy({
+          query: {
+            ...query,
+            [metadata.lookupHashColumn]: new HashedString(
+              PresentedKey.hash(presentedKey, metadata.type)!,
+              true,
+            ),
+          } as Query<TBaseModel>,
+          select: select,
+          props: data.props,
+        })
+      : await this.findOneBy({
+          query: query,
+          select: select,
+          props: data.props,
+        });
+
+    let match: TBaseModel | null = this.withPresentedKeyChecked({
+      record: found,
+      column: data.column,
+      presentedKey: presentedKey,
+      columnType: metadata.type,
+    });
+
+    /*
+     * Not found by its hash: a key stored as written, which no hash is
+     * written beside yet, or a key a server of the release before changed
+     * since its hash was written - looked up as written, while one may
+     * still be stored so.
+     */
+    if (
+      !match &&
+      metadata.lookupHashColumn &&
+      /*
+       * A key kept in what was a uuid column was a uuid when it was written:
+       * anything else is no key stored so.
+       */
+      (metadata.type !== TableColumnType.ObjectID ||
+        ObjectID.isValidUUID(presentedKey)) &&
+      (await this.mayHoldPresentedKeysAsWritten())
+    ) {
+      match = this.withPresentedKeyChecked({
+        record: await this.findOneBy({
+          query: {
+            ...query,
+            [data.column]:
+              metadata.type === TableColumnType.ObjectID
+                ? new ObjectID(presentedKey)
+                : presentedKey,
+          } as Query<TBaseModel>,
+          select: select,
+          props: data.props,
+        }),
+        column: data.column,
+        presentedKey: presentedKey,
+        columnType: metadata.type,
+      });
+    }
+
+    if (match && !isKeySelected) {
+      delete (match as unknown as Record<string, unknown>)[data.column];
+    }
+
+    return match;
+  }
+
+  // The record, when the key it holds is the key presented; else null.
+  private withPresentedKeyChecked(data: {
+    record: TBaseModel | null;
+    column: string;
+    presentedKey: string;
+    columnType: TableColumnType;
+  }): TBaseModel | null {
+    if (!data.record) {
+      return null;
+    }
+
+    const stored: unknown = (data.record as unknown as Record<string, unknown>)[
+      data.column
+    ];
+
+    return PresentedKey.matches({
+      presented: data.presentedKey,
+      stored:
+        typeof stored === "string" || stored instanceof ObjectID
+          ? stored
+          : null,
+      columnType: data.columnType,
+    })
+      ? data.record
+      : null;
+  }
+
+  /*
+   * Whether a key presented to OneUptime may still be stored as written
+   * (PresentedKeysAtRest): until every one is protected at rest.
+   */
+  public async mayHoldPresentedKeysAsWritten(): Promise<boolean> {
+    return await PresentedKeysAtRest.mayHoldKeysAsWritten(
+      this.getRepository().manager,
+    );
   }
 
   /*
@@ -2207,6 +2508,21 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   ): Promise<void> {
     for (const key of columns) {
       if (!record[key]) {
+        continue;
+      }
+
+      /*
+       * A key presented to OneUptime kept in an id-typed column (#9012): the
+       * column's transformer read the ciphertext into an ObjectID. A key
+       * stored before the column was encrypted reads as itself.
+       */
+      if (record[key] instanceof ObjectID) {
+        const value: string = (record[key] as ObjectID).toString();
+
+        if (Encryption.looksEncrypted(value)) {
+          record[key] = new ObjectID(await Encryption.decrypt(value));
+        }
+
         continue;
       }
 
@@ -5312,6 +5628,29 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       }
 
       if (this.model.isHashedStringColumn(columnName)) {
+        /*
+         * A key presented to OneUptime that is kept only as its hash - a SCIM
+         * bearer token (#9012) - however it is written: as text, or as a
+         * HashedString not hashed yet. Hashed here, after every permission
+         * check, so a check that reads the key as written - a rotated
+         * token's length (EditionPermission) - reads it so; and for every
+         * write, its hooks run or not.
+         */
+        const presentedValue: unknown = (data as any)[columnName];
+
+        if (
+          tableColumnMetadata.presentedKey &&
+          presentedValue &&
+          (typeof presentedValue === "string" ||
+            (presentedValue instanceof HashedString &&
+              !presentedValue.isValueHashed()))
+        ) {
+          (data as any)[columnName] = new HashedString(
+            PresentedKey.toStoredHash(presentedValue.toString()),
+            true,
+          );
+        }
+
         const columnValue: JSONValue = (data as any)[columnName];
 
         /*
@@ -6827,6 +7166,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     await this.checkTotalItemsBy(_createdBy);
 
+    /*
+     * The keys presented to OneUptime it writes, as written (#9012): each
+     * one's lookup hash goes beside it, and once the row is written the
+     * record holds them as written again (restorePresentedKeys).
+     */
+    const presentedKeysAsGiven: Record<string, unknown> =
+      this.getPresentedKeysAsGiven(data);
+
+    this.writeLookupHashes(data, presentedKeysAsGiven);
+
     // Encrypt data
     data = (await this.encrypt(data)) as TBaseModel;
 
@@ -6927,6 +7276,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       );
 
       isRowWritten = true;
+
+      // The presented keys as written, not as stored. See the helper.
+      this.restorePresentedKeys(createBy.data, presentedKeysAsGiven);
 
       if (createBy.data?.id && this.getModel().tableName) {
         finishCreate = RecordsBeingCreated.start({
@@ -7370,6 +7722,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     for (const column of tableColumns) {
       const metadata: TableColumnMetadata =
         this.model.getTableColumnMetadata(column);
+
+      /*
+       * An encrypted column was held to its length as written, before it was
+       * encrypted (assertFitsBeforeEncrypted): this reads its ciphertext.
+       */
+      if (metadata?.encrypted) {
+        continue;
+      }
+
       if (
         (data as any)[column] &&
         metadata.type &&
@@ -7431,6 +7792,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         this.model.getTableColumnMetadata(column);
 
       if (!metadata?.type) {
+        continue;
+      }
+
+      /*
+       * Never a stored secret: an encrypted column holds a ciphertext, longer
+       * than the value its type bounds (assertFitsBeforeEncrypted), and a key
+       * kept as its hash holds the hash. Clipped, neither reads back.
+       */
+      if (metadata.encrypted || metadata.presentedKey) {
         continue;
       }
 
@@ -10691,6 +11061,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       const encryptedColumnsAsGiven: Record<string, unknown> =
         this.getEncryptedColumnsAsGiven(onUpdate.updateBy.data);
 
+      /*
+       * And the keys presented to OneUptime it writes, as written (#9012):
+       * their lookup hashes are written beside them once the caller may make
+       * the write (below).
+       */
+      const presentedKeysAsGiven: Record<string, unknown> =
+        this.getPresentedKeysAsGiven(onUpdate.updateBy.data);
+
       // Encrypt data
       updateBy.data = (await this.encrypt(
         updateBy.data,
@@ -10727,6 +11105,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         beforeUpdateBy,
         archivedValuePicks,
       );
+
+      /*
+       * The lookup hash of each presented key the update writes, beside it:
+       * OneUptime's to write, now the caller was asked whether they may
+       * write the key. See the helper.
+       */
+      this.writeLookupHashes(beforeUpdateBy.data, presentedKeysAsGiven);
 
       /*
        * A rule switched on, and what the write says about its lists, as the
@@ -11622,10 +12007,17 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         continue;
       }
 
+      /*
+       * An ObjectID (a presented key, #9012) as it is: encrypt() replaces
+       * one with its ciphertext and never changes it, and a copy of its
+       * fields would be no ObjectID.
+       */
       asGiven[column] =
-        typeof value === Typeof.Object
-          ? { ...(value as Record<string, unknown>) }
-          : value;
+        value instanceof ObjectID
+          ? value
+          : typeof value === Typeof.Object
+            ? { ...(value as Record<string, unknown>) }
+            : value;
     }
 
     return asGiven;
@@ -12280,7 +12672,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }): Promise<void> {
     const statement: ColumnsByIdUpdateStatement | null =
       this.buildColumnsByIdUpdateStatement(
-        input,
+        await this.withPresentedKeysProtected(
+          input,
+          "updateColumnsByIdWithoutHooks",
+        ),
         "updateColumnsByIdWithoutHooks",
       );
 
@@ -12331,7 +12726,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }): Promise<boolean> {
     const statement: ColumnsByIdUpdateStatement | null =
       this.buildColumnsByIdUpdateStatement(
-        input,
+        await this.withPresentedKeysProtected(
+          input,
+          "compareAndSetColumnsByIdWithoutHooks",
+        ),
         "compareAndSetColumnsByIdWithoutHooks",
       );
 
@@ -12349,6 +12747,76 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     await this.afterWriteWithoutHooks(input.data);
 
     return Array.isArray(result) && result.length > 0;
+  }
+
+  /*
+   * A hook-free write of a key presented to OneUptime (#9012) stores it as
+   * every write does: encrypted, with its lookup hash beside it - or, for a
+   * key kept only as its hash, as that hash. A copy of the write: the
+   * caller's own object is never changed. Its expected values may name a key
+   * only to say there is none yet (null): a stored key is a ciphertext or a
+   * hash, which no value given could equal.
+   */
+  private async withPresentedKeysProtected<
+    T extends {
+      data: PartialEntity<TBaseModel>;
+      expectedData?: PartialEntity<TBaseModel> | undefined;
+    },
+  >(input: T, methodName: string): Promise<T> {
+    const presentedKeysAsGiven: Record<string, unknown> =
+      this.getPresentedKeysAsGiven(input.data);
+
+    for (const column of this.getPresentedKeyColumns()) {
+      const expected: unknown = (
+        (input.expectedData || {}) as Record<string, unknown>
+      )[column];
+
+      if (expected !== undefined && expected !== null) {
+        throw new BadDataException(
+          `${methodName}: the key in "${column}" is kept encrypted or hashed, so a write can only expect it to be unset (null).`,
+        );
+      }
+    }
+
+    if (Object.keys(presentedKeysAsGiven).length === 0) {
+      return input;
+    }
+
+    const data: Record<string, unknown> = {
+      ...(input.data as Record<string, unknown>),
+    };
+
+    this.writeLookupHashes(
+      data as PartialEntity<TBaseModel>,
+      presentedKeysAsGiven,
+    );
+
+    for (const [column, value] of Object.entries(presentedKeysAsGiven)) {
+      const metadata: TableColumnMetadata | undefined =
+        this.model.getTableColumnMetadata(column);
+
+      if (value === null || value === "") {
+        data[column] = null;
+        continue;
+      }
+
+      const text: string = (value as string | ObjectID).toString();
+
+      if (metadata?.encrypted) {
+        this.assertFitsBeforeEncrypted(column, text);
+        data[column] = await Encryption.encrypt(text);
+        continue;
+      }
+
+      if (metadata?.type === TableColumnType.HashedString) {
+        data[column] =
+          value instanceof HashedString && value.isValueHashed()
+            ? value.toString()
+            : PresentedKey.toStoredHash(text);
+      }
+    }
+
+    return { ...input, data: data as PartialEntity<TBaseModel> };
   }
 
   /*
@@ -12555,7 +13023,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }): Promise<boolean> {
     const statement: ColumnsByIdUpdateStatement | null =
       this.buildColumnsByIdUpdateStatement(
-        input,
+        await this.withPresentedKeysProtected(
+          input,
+          "updateColumnsByIdIfUnlockedWithoutHooks",
+        ),
         "updateColumnsByIdIfUnlockedWithoutHooks",
       );
 
@@ -12816,6 +13287,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     const set: ObjectLiteral = this.truncateStringColumnsToMaxLength({
       ...((input.set || {}) as ObjectLiteral),
     });
+
+    // A key presented to OneUptime is written as it is kept, never raw here.
+    for (const column of this.getPresentedKeyColumns()) {
+      if (set[column] !== undefined) {
+        throw new BadDataException(
+          `${methodName}: "${column}" is a key kept encrypted or hashed; write it with updateColumnsByIdWithoutHooks or an update.`,
+        );
+      }
+    }
 
     for (const [propertyName, value] of Object.entries(set)) {
       if (typeof value === "function") {

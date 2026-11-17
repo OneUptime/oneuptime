@@ -147,18 +147,9 @@ router.post(
         "probeDescription"
       ] as string;
 
-      const probe: Probe | null = await ProbeService.findOneBy({
-        query: {
-          key: probeKey,
-          isGlobalProbe: true,
-        },
-        select: {
-          _id: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+      // The global probe that holds this key: compared, as it is kept encrypted.
+      const probe: Probe | null =
+        await ProbeService.findGlobalProbeByKey(probeKey);
 
       if (probe) {
         await ProbeService.updateOneById({
