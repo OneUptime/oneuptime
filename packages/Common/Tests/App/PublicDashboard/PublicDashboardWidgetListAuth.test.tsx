@@ -2,6 +2,7 @@
 import { DASHBOARD_ORIGIN } from "../../UI/Utils/API/DashboardHost";
 import FakeAxiosServer, {
   FakeTransport,
+  RENEWED_SESSION,
   SentRequest,
   settle,
 } from "../../UI/Utils/API/FakeAxiosServer";
@@ -567,7 +568,8 @@ describe("authenticated dashboard widget lists keep the dashboard client", () =>
         { status: 401, data: { message: "Session expired" } },
         { status: 200, data: EMPTY_LIST_BODY },
       ])
-      .on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }]);
+      // The identity server's answer to a renewal: the session's new tokens (#8838).
+      .on(HTTPMethod.POST, REFRESH_URL, [RENEWED_SESSION]);
 
     await expect(readDashboardIncidentList()).resolves.toMatchObject({
       data: [],
