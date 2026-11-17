@@ -55991,7 +55991,7 @@
   "Open an incident when users are affected, or an alert for your team, and page whoever is on call.": "ユーザーに影響があればインシデントを、チーム向けならアラートを作成し、オンコール担当者を呼び出します。",
   "Pick at least one to continue.": "続行するには 1 つ以上選んでください。",
   "Recommended monitors alert you when that data shows a problem.": "推奨モニターが、そのデータに問題が表れたときにアラートを送ります。",
-  "See the health of every server, cluster and cloud account in one place.": "すべてのサーバー、クラスター、クラウドアカウントの状態を 1 か所で確認できます。",
+  "See the health of every server, cluster and cloud account in one place.": "すべてのサーバー、クラスター、クラウドアカウントのヘルスを 1 か所で確認できます。",
   "Requests have been checked for a secret for less than a day, so a sender that calls less often may not show up yet.": "リクエストのシークレット確認が始まってから 1 日未満のため、それより間隔の長い送信元はまだ表示されていない可能性があります。",
   "Secret not for this monitor": "このモニター用ではないシークレット",
   "See what your code is doing: logs, metrics, traces, exceptions and profiles.": "ログ、メトリクス、トレース、例外、プロファイルで、コードの動きを把握します。",
