@@ -38,7 +38,11 @@ import { MemoryRouter } from "react-router-dom";
  *     the provider's words;
  *   - Settings > Emails and Settings > Call and SMS start with a card that
  *     says where the channel stands, in the checklist's words, and holds
- *     the test sends.
+ *     the test sends;
+ *   - "Send test push" (#7028) asks for nothing: it goes to the admin who
+ *     pressed it, on their own phones and browsers, and says plainly when
+ *     push is off, when they have nothing registered and when the server
+ *     has no VAPID keys. Settings > Push Notifications starts with its card.
  */
 
 jest.setTimeout(60000);
@@ -101,6 +105,7 @@ import ServerTestCard, {
 import ServerTestSendButton, {
   describeServerTestSend,
   getServerTestSendFieldName,
+  SERVER_TEST_PUSH_DESCRIPTION,
 } from "../../../../App/FeatureSet/AdminDashboard/src/Components/ServerSetup/ServerTestSendButton";
 import Init, {
   getInitialPage,
@@ -117,6 +122,7 @@ import ServerSetupChecklistUtil, {
   ServerSetupChecklistAnswer,
 } from "../../../Types/ServerSetup/ServerSetupChecklist";
 import {
+  SERVER_TEST_PUSH_REASONS,
   ServerTestSendAnswer,
   ServerTestSendResult,
 } from "../../../Types/ServerSetup/ServerTestSend";
@@ -547,6 +553,155 @@ describe("a test send", () => {
   });
 });
 
+describe("a test push", () => {
+  const PUSH_ACCEPTED: ServerTestSendAnswer = {
+    channel: ServerSendingChannel.Push,
+    result: ServerTestSendResult.Accepted,
+    to: "Pixel 8, Chrome on Linux",
+    sentThrough: null,
+    message: null,
+  };
+
+  function pushAnswer(
+    result: ServerTestSendResult,
+    message: string,
+  ): ServerTestSendAnswer {
+    return { ...PUSH_ACCEPTED, to: "", result: result, message: message };
+  }
+
+  test("its dialog asks for nothing, and says the push goes to the admin's own devices and nobody else", async () => {
+    render(<ServerTestSendButton channel={ServerSendingChannel.Push} />);
+
+    expect(screen.getByTestId("server-test-push")).toHaveTextContent(
+      "Send test push",
+    );
+
+    const dialog: HTMLElement = await openTest("server-test-push");
+
+    expect(
+      within(dialog).getByTestId("confirm-modal-description"),
+    ).toHaveTextContent(SERVER_TEST_PUSH_DESCRIPTION);
+    expect(within(dialog).queryByRole("textbox")).toBeNull();
+    expect(
+      within(dialog).getByTestId("modal-footer-submit-button"),
+    ).toHaveTextContent("Send test push");
+    expect(mockSendServerTest).not.toHaveBeenCalled();
+  });
+
+  test("accepted: sent to nobody but the admin, the dialog closes, and the page is told which devices took it", async () => {
+    mockSendServerTest.mockResolvedValue(PUSH_ACCEPTED);
+    const onAnswer: Mock<(...args: Array<unknown>) => unknown> = jest.fn();
+
+    render(
+      <ServerTestSendButton
+        channel={ServerSendingChannel.Push}
+        onAnswer={onAnswer as never}
+      />,
+    );
+
+    await submit(await openTest("server-test-push"));
+
+    expect(mockSendServerTest).toHaveBeenCalledWith({
+      channel: ServerSendingChannel.Push,
+      to: "",
+    });
+    expect(onAnswer).toHaveBeenCalledWith(PUSH_ACCEPTED);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(
+      describeServerTestSend(
+        createTranslator((): undefined => {
+          return undefined;
+        }, "en"),
+        PUSH_ACCEPTED,
+      ),
+    ).toBe(
+      "The test push was accepted for Pixel 8, Chrome on Linux. If it does not show, look at the notification settings of that phone or browser.",
+    );
+  });
+
+  test("refused by every device's push service: the dialog stays, in their words", async () => {
+    mockSendServerTest.mockResolvedValue(
+      pushAnswer(ServerTestSendResult.Refused, "Chrome on Linux: 410 Gone"),
+    );
+
+    render(<ServerTestSendButton channel={ServerSendingChannel.Push} />);
+
+    await submit(await openTest("server-test-push"));
+
+    expect(screen.getByRole("dialog")).toBeVisible();
+    expect(screen.getByRole("dialog")).toHaveTextContent(
+      "None of your devices took the test push: Chrome on Linux: 410 Gone",
+    );
+  });
+
+  test.each([
+    ["push is turned off", SERVER_TEST_PUSH_REASONS.turnedOff],
+    ["the admin has nothing registered", SERVER_TEST_PUSH_REASONS.noDevices],
+    ["the server has no VAPID keys", SERVER_TEST_PUSH_REASONS.noVapidKeys],
+  ])(
+    "not set up because %s: nothing was sent, and why, plainly",
+    async (_case: string, reason: string) => {
+      mockSendServerTest.mockResolvedValue(
+        pushAnswer(ServerTestSendResult.NotSetUp, reason),
+      );
+
+      render(<ServerTestSendButton channel={ServerSendingChannel.Push} />);
+
+      await submit(await openTest("server-test-push"));
+
+      expect(screen.getByRole("dialog")).toBeVisible();
+      expect(screen.getByRole("dialog")).toHaveTextContent(
+        `Nothing was sent: ${reason}`,
+      );
+    },
+  );
+
+  test("why nothing was sent reads in the reader's language; a push service's own words as they came", () => {
+    const de: Record<string, string> = JSON.parse(
+      fs.readFileSync(path.join(LOCALES_DIR, "de.json"), "utf8"),
+    ) as Record<string, string>;
+    const german: ReturnType<typeof createTranslator> = createTranslator(
+      (text: string): string | undefined => {
+        return de[text];
+      },
+      "de",
+    );
+
+    for (const reason of Object.values(SERVER_TEST_PUSH_REASONS)) {
+      const sentence: string = describeServerTestSend(
+        german,
+        pushAnswer(ServerTestSendResult.NotSetUp, reason),
+      );
+
+      expect(de[reason]).toBeTruthy();
+      expect(sentence).toContain(de[reason]!);
+      expect(sentence).not.toContain(reason);
+    }
+
+    expect(
+      describeServerTestSend(
+        german,
+        pushAnswer(ServerTestSendResult.Refused, "Chrome on Linux: 410 Gone"),
+      ),
+    ).toContain("Chrome on Linux: 410 Gone");
+  });
+
+  test("the devices a push went to are named as they are, never set apart as a phone number is", () => {
+    const ar: Record<string, string> = JSON.parse(
+      fs.readFileSync(path.join(LOCALES_DIR, "ar.json"), "utf8"),
+    ) as Record<string, string>;
+    const sentence: string = describeServerTestSend(
+      createTranslator((text: string): string | undefined => {
+        return ar[text];
+      }, "ar"),
+      PUSH_ACCEPTED,
+    );
+
+    expect(sentence).toContain("Pixel 8, Chrome on Linux");
+    expect(sentence).not.toContain(String.fromCharCode(0x2066));
+  });
+});
+
 describe("the settings pages' test card", () => {
   function checklistOf(
     answer: ServerSetupChecklistAnswer | null,
@@ -750,6 +905,35 @@ describe("the settings pages' test card", () => {
     expect(failing.className).toContain("text-red-600");
   });
 
+  test("push: where browser push stands, and Send test push", () => {
+    const PUSH_ON: ServerSetupChecklistAnswer =
+      ServerSetupChecklistUtil.parseAnswer({
+        checks: [{ id: "browser-push", status: "done", tests: ["push"] }],
+      })!;
+
+    render(
+      <MemoryRouter>
+        <ServerTestCard
+          check={ServerSetupCheckId.BrowserPush}
+          title={SERVER_TEST_CARD_COPY.pushTitle}
+          description={SERVER_TEST_CARD_COPY.pushDescription}
+          channels={[ServerSendingChannel.Push]}
+          checklist={checklistOf(PUSH_ON)}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText("Test push notifications")).toBeVisible();
+    expect(
+      screen.getByTestId("server-test-card-browser-push-icon"),
+    ).toHaveTextContent("Done");
+    expect(
+      within(screen.getByTestId("card-header-actions")).getByTestId(
+        "server-test-push",
+      ),
+    ).toHaveTextContent("Send test push");
+  });
+
   test("before the checklist is read, the card is its title, sentence and button", () => {
     render(
       <MemoryRouter>
@@ -801,5 +985,22 @@ describe("where the cards are drawn", () => {
     expect(callAndSms).toContain(
       "<CallAndSmsGatewayCard onSaveSuccess={onSettingsSaved} />",
     );
+  });
+
+  test("first on Settings > Push Notifications, with the push test (#7028)", () => {
+    const push: string = fs.readFileSync(
+      path.join(
+        __dirname,
+        "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/PushNotifications/Index.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(push.indexOf("<ServerTestCard")).toBeGreaterThan(-1);
+    expect(push.indexOf("<ServerTestCard")).toBeLessThan(
+      push.indexOf("<ModelSwitchCard"),
+    );
+    expect(push).toContain("check={ServerSetupCheckId.BrowserPush}");
+    expect(push).toContain("channels={[ServerSendingChannel.Push]}");
   });
 });

@@ -1,4 +1,5 @@
 import { translationKey } from "../Translator";
+import { BackupScriptRun } from "../Backup/BackupScriptRun";
 import ServerSendingStatusUtil, {
   ServerChannelStatus,
   ServerGlobalProbesStatus,
@@ -22,10 +23,12 @@ import ServerSendingStatusUtil, {
  *
  * Whether each is done is worked out from the server's real state on every
  * read (Server/Utils/ServerSetup/ServerSetupChecklist reads the facts and
- * hands them to evaluate, below). The only things stored are what an admin
- * chose (GlobalConfig.serverSetupChoices): that a server does without
+ * hands them to evaluate, below). The only things stored for it are what an
+ * admin chose (GlobalConfig.serverSetupChoices): that a server does without
  * something ("We will use email and push only"), that it is backed up some
- * way the server cannot see, and each admin's "Hide" of the card.
+ * way the server cannot see, and each admin's "Hide" of the card - and the
+ * last run of `npm run backup`, which tells the server itself
+ * (GlobalConfig.backupScriptLastRun, Types/Backup/BackupScriptRun).
  *
  * Read by the Admin Dashboard's Server setup page (/admin/setup), the card a
  * master admin sees on the Dashboard while a required check is open, and
@@ -64,6 +67,8 @@ export enum ServerSetupCheckTier {
  *                 SMS and calls: nothing has gone out since the settings
  *                 were saved);
  *   - failing     set up, and it does not work: why is in `failure`;
+ *   - stale       it worked, but not lately: the last backup `npm run
+ *                 backup` made is more than a week old;
  *   - done        it works, as the server can see;
  *   - skipped     an admin chose to do without it;
  *   - confirmed   an admin said it is done, where the server cannot see it.
@@ -72,6 +77,7 @@ export enum ServerSetupStatus {
   NotSetUp = "not-set-up",
   Untested = "untested",
   Failing = "failing",
+  Stale = "stale",
   Done = "done",
   Skipped = "skipped",
   Confirmed = "confirmed",
@@ -110,18 +116,101 @@ export interface ServerSetupCheckDefinition {
   tests: ReadonlyArray<ServerSendingChannel>;
 }
 
-// The guides, for Docker Compose and the Helm chart alike.
+/*
+ * How this server was installed, as far as it can tell (Server/Utils/
+ * ServerSetup/ServerInstallKind): which steps a guide can send its admin to.
+ * A guide whose steps differ by install - backups: `npm run backup` exists
+ * on the Docker Compose server only - is picked by it, and never guessed:
+ * while it is unknown, the page offers both, each named.
+ */
+export enum ServerInstallKind {
+  DockerCompose = "docker-compose",
+  Kubernetes = "kubernetes",
+  Unknown = "unknown",
+}
+
+/*
+ * The guides: docs pages a server serves itself (/docs/...), or the Helm
+ * chart's own docs, which only GitHub has.
+ */
 export const SERVER_SETUP_GUIDES: {
   https: string;
   backups: string;
+  backupsOnKubernetes: string;
   updateChecks: string;
   browserPush: string;
 } = {
-  https: "/docs/installation/docker-compose#set-up-https",
+  /*
+   * The Self-Hosting Guide's HTTPS step, which has the Docker Compose and
+   * the Kubernetes steps side by side as tabs (#7073): the Docker Compose
+   * guide's detail page had only the first.
+   */
+  https: "/docs/installation/self-hosting-guide#turn-on-https",
+  /*
+   * `npm run backup`, on the Docker Compose server: the catalogue's guide,
+   * which `npm run doctor` prints there.
+   */
   backups: "/docs/installation/docker-compose#back-up-and-restore",
+  /*
+   * What a Kubernetes install backs up with instead: the Helm chart's
+   * production checklist, Back up your data - the cloud's backups of the
+   * volumes, or CloudNativePG's volume snapshots (#9378).
+   */
+  backupsOnKubernetes:
+    "https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/production-checklist.md#back-up-your-data",
   updateChecks: "/docs/self-hosted/update-checks",
   browserPush: "/docs/self-hosted/push-notifications#self-hosted-setup",
 };
+
+// A guide to how to back up, for one kind of install.
+export interface ServerSetupBackupGuide {
+  installKind: ServerInstallKind.DockerCompose | ServerInstallKind.Kubernetes;
+  path: string;
+}
+
+/*
+ * How to back up, for this server: the steps its install can run, or, while
+ * the server cannot tell how it was installed, both.
+ */
+export const getServerSetupBackupGuides: (
+  installKind: ServerInstallKind | null | undefined,
+) => Array<ServerSetupBackupGuide> = (
+  installKind: ServerInstallKind | null | undefined,
+): Array<ServerSetupBackupGuide> => {
+  const dockerCompose: ServerSetupBackupGuide = {
+    installKind: ServerInstallKind.DockerCompose,
+    path: SERVER_SETUP_GUIDES.backups,
+  };
+  const kubernetes: ServerSetupBackupGuide = {
+    installKind: ServerInstallKind.Kubernetes,
+    path: SERVER_SETUP_GUIDES.backupsOnKubernetes,
+  };
+
+  switch (installKind) {
+    case ServerInstallKind.DockerCompose:
+      return [dockerCompose];
+    case ServerInstallKind.Kubernetes:
+      return [kubernetes];
+    default:
+      return [dockerCompose, kubernetes];
+  }
+};
+
+/*
+ * How old the last backup `npm run backup` made may be before the checklist
+ * says it is out of date: a cron job that stopped is the way a server stops
+ * being backed up without anyone noticing. A week, so a server backed up
+ * every week is never told off; the guide asks for one a day.
+ */
+export const SERVER_SETUP_BACKUP_STALE_AFTER_DAYS: number = 7;
+
+// Who made the last backup the Backups check reads.
+export enum ServerSetupBackupMadeBy {
+  // The Enterprise Edition's scheduled backups, or Back up now.
+  Schedule = "schedule",
+  // `npm run backup`, which told the server it ran (#7026).
+  Script = "script",
+}
 
 // The Admin Dashboard's pages each check is fixed on.
 export const SERVER_SETUP_ADMIN_PATHS: {
@@ -209,7 +298,8 @@ export const SERVER_SETUP_CHECKS: ReadonlyArray<ServerSetupCheckDefinition> = [
     title: translationKey("Browser push notifications"),
     guidePath: SERVER_SETUP_GUIDES.browserPush,
     choice: null,
-    tests: [],
+    // A test push to the admin's own phones and browsers (#7028).
+    tests: [ServerSendingChannel.Push],
   },
   {
     id: ServerSetupCheckId.AiProvider,
@@ -302,6 +392,10 @@ export const SERVER_SETUP_STATUS_WORDS: Readonly<
     [ServerSetupStatus.Failing]: translationKey(
       "Failing: the last backup failed on {{time}}.",
     ),
+    [ServerSetupStatus.Stale]: translationKey(
+      "Out of date: the last backup finished on {{time}}, more than a week ago.",
+    ),
+    // The Enterprise Edition's; `npm run backup`'s are SERVER_SETUP_BACKUP_SCRIPT_WORDS'.
     [ServerSetupStatus.Done]: translationKey("Backed up on a schedule."),
     [ServerSetupStatus.Confirmed]: translationKey(
       "Backed up, as an admin confirmed.",
@@ -343,6 +437,22 @@ export const SERVER_SETUP_STATUS_WORDS: Readonly<
       "Set up: people can sign in with your identity provider.",
     ),
   },
+};
+
+/*
+ * What the Backups check says when `npm run backup` made the last backup
+ * (#7026), where it differs from SERVER_SETUP_STATUS_WORDS: what it is
+ * backed up with, and why a run that failed did - the script prints that,
+ * on the server, not the server.
+ */
+export const SERVER_SETUP_BACKUP_SCRIPT_WORDS: {
+  done: string;
+  failed: string;
+} = {
+  done: translationKey("Backed up with npm run backup."),
+  failed: translationKey(
+    "npm run backup did not finish a backup. Run it on the server to see why.",
+  ),
 };
 
 /*
@@ -422,9 +532,21 @@ export interface ServerSetupFacts {
     finishedAt: string | null;
     error: string | null;
   } | null;
+  /*
+   * The last run of `npm run backup` that told the server it ran (#7026):
+   * none on a server it never told, or whose script is older than that.
+   */
+  lastScriptBackup?: BackupScriptRun | null | undefined;
   // Whether scheduled backups can be set up here (the Enterprise Edition).
   hasScheduledBackups: boolean;
+  // How the server was installed, for the guides that differ: unknown when left out.
+  installKind?: ServerInstallKind | undefined;
   isBrowserPushSetUp: boolean;
+  /*
+   * Where push stands (ServerSendingStatus): not set up while a master
+   * admin turned it off, when no test push can go out either.
+   */
+  push?: ServerChannelStatus | undefined;
   hasAiProvider: boolean;
   hasSingleSignOn: boolean;
   choices: ServerSetupChoices;
@@ -451,6 +573,10 @@ export interface ServerSetupCheckResult {
   tests: Array<ServerSendingChannel>;
   // Scheduled backups can be set up on this server (Backups only).
   hasScheduledBackups?: boolean | undefined;
+  // How the server was installed, so "How to back up" opens steps it can run (Backups only).
+  installKind?: ServerInstallKind | undefined;
+  // What made the last backup the check read, when it read one (Backups only).
+  backupMadeBy?: ServerSetupBackupMadeBy | undefined;
 }
 
 // The body of GET /global-config/setup-checklist (master admins only).
@@ -836,38 +962,136 @@ export default class ServerSetupChecklistUtil {
     });
   }
 
+  // When a date was, in milliseconds; never for one that is not a date.
+  private static timeOf(value: string | null | undefined): number | null {
+    if (!value) {
+      return null;
+    }
+
+    const time: number = new Date(value).getTime();
+
+    return Number.isNaN(time) ? null : time;
+  }
+
+  /*
+   * Backups, from the last backup the server knows of: the Enterprise
+   * Edition's scheduled ones (BackupRun), and `npm run backup` on the
+   * Community Edition, which tells the server each time it runs (#7026).
+   * The newer of the two decides.
+   *
+   *   - A scheduled backup: done or failing, as #6824 had it. A failed one
+   *     is the server's own job failing, and no confirmation undoes it.
+   *   - A script's run: done while it is less than a week old, then out of
+   *     date (stale); failing when pg_dump did not finish. The script is the
+   *     operator's own cron job, which they may retire for backups the
+   *     server cannot see, so a confirmation made after the run - "This
+   *     server is backed up", offered while it is failing or out of date -
+   *     says more than it, and the next run says more than the confirmation.
+   *   - Neither: the admin's confirmation, or not set up.
+   */
   private static evaluateBackups(
     facts: ServerSetupFacts,
+    now: Date,
   ): ServerSetupCheckResult {
-    const backup: ServerSetupFacts["lastBackup"] = facts.lastBackup;
-    const isConfirmed: boolean = Boolean(
-      facts.choices.choices[ServerSetupCheckId.Backups],
-    );
+    const scheduled: ServerSetupFacts["lastBackup"] = facts.lastBackup;
+    const script: BackupScriptRun | null = facts.lastScriptBackup || null;
+    const choice: ServerSetupChoice | undefined =
+      facts.choices.choices[ServerSetupCheckId.Backups];
 
-    let status: ServerSetupStatus = isConfirmed
+    const scheduledAt: number | null = scheduled
+      ? ServerSetupChecklistUtil.timeOf(scheduled.finishedAt) || 0
+      : null;
+    const scriptAt: number | null = script
+      ? ServerSetupChecklistUtil.timeOf(script.at)
+      : null;
+
+    const withBackupFacts: (
+      answer: ServerSetupCheckResult,
+      madeBy: ServerSetupBackupMadeBy | null,
+    ) => ServerSetupCheckResult = (
+      answer: ServerSetupCheckResult,
+      madeBy: ServerSetupBackupMadeBy | null,
+    ): ServerSetupCheckResult => {
+      answer.hasScheduledBackups = facts.hasScheduledBackups;
+      answer.installKind = facts.installKind || ServerInstallKind.Unknown;
+
+      if (madeBy) {
+        answer.backupMadeBy = madeBy;
+      }
+
+      return answer;
+    };
+
+    // The script's run, when it is the newer of the two.
+    if (
+      script &&
+      scriptAt !== null &&
+      (scheduledAt === null || scriptAt >= scheduledAt)
+    ) {
+      const choiceAt: number | null = choice
+        ? ServerSetupChecklistUtil.timeOf(choice.at)
+        : null;
+
+      if (choiceAt !== null && choiceAt > scriptAt) {
+        return withBackupFacts(
+          ServerSetupChecklistUtil.result({
+            id: ServerSetupCheckId.Backups,
+            status: ServerSetupStatus.Confirmed,
+            facts: facts,
+          }),
+          null,
+        );
+      }
+
+      const isStale: boolean =
+        now.getTime() - scriptAt >
+        SERVER_SETUP_BACKUP_STALE_AFTER_DAYS * 24 * 60 * 60 * 1000;
+
+      const status: ServerSetupStatus = !script.succeeded
+        ? ServerSetupStatus.Failing
+        : isStale
+          ? ServerSetupStatus.Stale
+          : ServerSetupStatus.Done;
+
+      return withBackupFacts(
+        ServerSetupChecklistUtil.result({
+          id: ServerSetupCheckId.Backups,
+          status: status,
+          facts: facts,
+          time: script.at,
+          reason: script.succeeded
+            ? null
+            : SERVER_SETUP_BACKUP_SCRIPT_WORDS.failed,
+          // Offered while it fails or is out of date: the operator's word then.
+          isChoiceApplicable: true,
+        }),
+        ServerSetupBackupMadeBy.Script,
+      );
+    }
+
+    let status: ServerSetupStatus = choice
       ? ServerSetupStatus.Confirmed
       : ServerSetupStatus.NotSetUp;
 
     // A backup the server made itself says more than a confirmation.
-    if (backup && backup.succeeded) {
+    if (scheduled && scheduled.succeeded) {
       status = ServerSetupStatus.Done;
-    } else if (backup && !backup.succeeded) {
+    } else if (scheduled && !scheduled.succeeded) {
       status = ServerSetupStatus.Failing;
     }
 
-    const answer: ServerSetupCheckResult = ServerSetupChecklistUtil.result({
-      id: ServerSetupCheckId.Backups,
-      status: status,
-      facts: facts,
-      time: backup ? backup.finishedAt : null,
-      reason: backup && !backup.succeeded ? backup.error : null,
-      // A failed backup the server made is not undone by a confirmation.
-      isChoiceApplicable: !backup,
-    });
-
-    answer.hasScheduledBackups = facts.hasScheduledBackups;
-
-    return answer;
+    return withBackupFacts(
+      ServerSetupChecklistUtil.result({
+        id: ServerSetupCheckId.Backups,
+        status: status,
+        facts: facts,
+        time: scheduled ? scheduled.finishedAt : null,
+        reason: scheduled && !scheduled.succeeded ? scheduled.error : null,
+        // A failed backup the server made is not undone by a confirmation.
+        isChoiceApplicable: !scheduled,
+      }),
+      scheduled ? ServerSetupBackupMadeBy.Schedule : null,
+    );
   }
 
   private static evaluateUpdateChecks(
@@ -904,6 +1128,7 @@ export default class ServerSetupChecklistUtil {
     id: ServerSetupCheckId;
     isDone: boolean;
     facts: ServerSetupFacts;
+    tests?: Array<ServerSendingChannel> | undefined;
   }): ServerSetupCheckResult {
     let status: ServerSetupStatus = data.isDone
       ? ServerSetupStatus.Done
@@ -922,12 +1147,29 @@ export default class ServerSetupChecklistUtil {
       id: data.id,
       status: status,
       facts: data.facts,
+      tests: data.tests,
     });
   }
 
-  // Every check, in the catalogue's order.
+  /*
+   * The test push (#7028) goes to the admin's own phones and browsers,
+   * which need no VAPID keys on a phone: offered whenever push is not
+   * turned off for the server, done or not, since nothing yet says how the
+   * server's pushes go (#6881). A server that does not say where push
+   * stands offers none.
+   */
+  private static getPushTests(
+    facts: ServerSetupFacts,
+  ): Array<ServerSendingChannel> {
+    return facts.push && facts.push.state !== ServerSendingState.NotSetUp
+      ? [ServerSendingChannel.Push]
+      : [];
+  }
+
+  // Every check, in the catalogue's order, as they stand at `now`.
   public static evaluate(
     facts: ServerSetupFacts,
+    now: Date = new Date(),
   ): Array<ServerSetupCheckResult> {
     return [
       ServerSetupChecklistUtil.evaluateEmail(facts),
@@ -947,12 +1189,13 @@ export default class ServerSetupChecklistUtil {
         isDone: Boolean(facts.globalProbes && facts.globalProbes.reporting > 0),
         facts: facts,
       }),
-      ServerSetupChecklistUtil.evaluateBackups(facts),
+      ServerSetupChecklistUtil.evaluateBackups(facts, now),
       ServerSetupChecklistUtil.evaluateUpdateChecks(facts),
       ServerSetupChecklistUtil.evaluateYesNo({
         id: ServerSetupCheckId.BrowserPush,
         isDone: facts.isBrowserPushSetUp,
         facts: facts,
+        tests: ServerSetupChecklistUtil.getPushTests(facts),
       }),
       ServerSetupChecklistUtil.evaluateYesNo({
         id: ServerSetupCheckId.AiProvider,
@@ -981,13 +1224,14 @@ export default class ServerSetupChecklistUtil {
       });
   }
 
-  // The whole answer, for one reader.
+  // The whole answer, for one reader, as it stands at `now` (now, unless a test says).
   public static getAnswer(data: {
     facts: ServerSetupFacts;
     readerUserId: string | null;
+    now?: Date | undefined;
   }): ServerSetupChecklistAnswer {
     const checks: Array<ServerSetupCheckResult> =
-      ServerSetupChecklistUtil.evaluate(data.facts);
+      ServerSetupChecklistUtil.evaluate(data.facts, data.now || new Date());
     const openRequired: Array<ServerSetupCheckId> =
       ServerSetupChecklistUtil.getOpenRequired(checks);
 
@@ -1002,11 +1246,24 @@ export default class ServerSetupChecklistUtil {
     };
   }
 
-  // The status line of a check, in English with its placeholders.
+  /*
+   * The status line of a check, in English with its placeholders. Backups
+   * that `npm run backup` made say so: "Backed up with npm run backup.",
+   * where the Enterprise Edition's say "Backed up on a schedule.".
+   */
   public static getStatusWords(check: {
     id: ServerSetupCheckId;
     status: ServerSetupStatus;
+    backupMadeBy?: ServerSetupBackupMadeBy | undefined;
   }): string {
+    if (
+      check.id === ServerSetupCheckId.Backups &&
+      check.status === ServerSetupStatus.Done &&
+      check.backupMadeBy === ServerSetupBackupMadeBy.Script
+    ) {
+      return SERVER_SETUP_BACKUP_SCRIPT_WORDS.done;
+    }
+
     return SERVER_SETUP_STATUS_WORDS[check.id][check.status] || "";
   }
 
@@ -1094,7 +1351,24 @@ export default class ServerSetupChecklistUtil {
           },
         ),
         ...(id === ServerSetupCheckId.Backups
-          ? { hasScheduledBackups: row["hasScheduledBackups"] === true }
+          ? {
+              hasScheduledBackups: row["hasScheduledBackups"] === true,
+              // An older server says nothing: both guides, each named.
+              installKind: Object.values(ServerInstallKind).includes(
+                row["installKind"] as ServerInstallKind,
+              )
+                ? (row["installKind"] as ServerInstallKind)
+                : ServerInstallKind.Unknown,
+              ...(Object.values(ServerSetupBackupMadeBy).includes(
+                row["backupMadeBy"] as ServerSetupBackupMadeBy,
+              )
+                ? {
+                    backupMadeBy: row[
+                      "backupMadeBy"
+                    ] as ServerSetupBackupMadeBy,
+                  }
+                : {}),
+            }
           : {}),
       });
     }

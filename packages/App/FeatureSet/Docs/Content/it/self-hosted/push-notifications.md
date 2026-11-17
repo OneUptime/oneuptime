@@ -120,6 +120,10 @@ La connettività dei dispositivi è un requisito a parte. I dispositivi iOS hann
 
 Per i push mobili, OneUptime legge anche la ricevuta di consegna di Expo circa 15 minuti dopo ogni push: un push che non ha mai raggiunto il dispositivo compare allora come non consegnato nel log dei push e, per un avviso di reperibilità, nella cronologia della reperibilità.
 
+## Inviare un push di prova
+
+Un master admin può controllare i push dal lato del server: **Invia push di prova**, in **Admin Dashboard > Impostazioni > Notifiche push**, invia un push di prova ai telefoni e ai browser che ha registrato, e a nessun altro. Quando non può partire nulla, dice perché: i push sono disattivati, non c'è nulla di registrato o il server non ha chiavi VAPID per un browser.
+
 ## Disattivare i push per l'intero server
 
 Se nulla deve uscire dalla tua rete tramite Expo, il relay push o il servizio push di un browser, un master admin può disattivare i push in **Admin Dashboard > Impostazioni > Notifiche push**: disattiva **Send push notifications** e conferma.

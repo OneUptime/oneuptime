@@ -28,6 +28,7 @@ import { isMailgunDomain } from "../../../Types/Email/MailgunDomain";
 import MailTransportType from "../../../Types/Email/MailTransportType";
 import SMTPAuthenticationType from "../../../Types/Email/SMTPAuthenticationType";
 import { ServerSendingChannel } from "../../../Types/ServerSending/ServerSendingStatus";
+import { SERVER_TEST_PUSH_REASONS } from "../../../Types/ServerSetup/ServerTestSend";
 import { TwilioMessageKind } from "../../../Utils/Project/TwilioAccount";
 
 /*
@@ -178,8 +179,12 @@ export const CALL_NOT_SET_UP_PROBLEM: string =
 export const SERVER_TWILIO_ENVIRONMENT_PROBLEM: string =
   "The Twilio account set by environment variables cannot send:";
 
+/*
+ * Worded in every language the Admin Dashboard speaks: a test push answers
+ * with it too (Types/ServerSetup/ServerTestSend).
+ */
 export const PUSH_TURNED_OFF_PROBLEM: string =
-  "Push notifications are turned off under Settings > Push Notifications.";
+  SERVER_TEST_PUSH_REASONS.turnedOff;
 
 // The provider's name, as the Email settings page shows it.
 const notSet: (provider: string, field: string) => string = (

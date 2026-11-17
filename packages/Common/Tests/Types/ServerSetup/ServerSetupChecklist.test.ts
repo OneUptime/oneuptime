@@ -8,11 +8,16 @@ import {
 } from "../../../Types/ServerSending/ServerSendingStatus";
 import ServerSetupChecklistUtil, {
   FINISHED_SERVER_SETUP_STATUSES,
+  getServerSetupBackupGuides,
   SERVER_SETUP_ADMIN_PATHS,
+  SERVER_SETUP_BACKUP_SCRIPT_WORDS,
+  SERVER_SETUP_BACKUP_STALE_AFTER_DAYS,
   SERVER_SETUP_CHECKED_WORDS,
   SERVER_SETUP_CHECKS,
   SERVER_SETUP_GUIDES,
   SERVER_SETUP_STATUS_WORDS,
+  ServerInstallKind,
+  ServerSetupBackupMadeBy,
   ServerSetupCheckDefinition,
   ServerSetupCheckId,
   ServerSetupCheckResult,
@@ -141,11 +146,16 @@ function check(
   facts: ServerSetupFacts,
   id: ServerSetupCheckId,
 ): ServerSetupCheckResult {
-  return ServerSetupChecklistUtil.evaluate(facts).find(
+  return ServerSetupChecklistUtil.evaluate(facts, NOW).find(
     (result: ServerSetupCheckResult) => {
       return result.id === id;
     },
   )!;
+}
+
+// A date this many days before NOW, as an ISO date.
+function daysBeforeNow(days: number): string {
+  return new Date(NOW.getTime() - days * 24 * 60 * 60 * 1000).toISOString();
 }
 
 describe("the catalogue", () => {
@@ -196,7 +206,7 @@ describe("the catalogue", () => {
     }
   });
 
-  test("only email, SMS and calls have test sends; only checks the server cannot decide alone take a choice", () => {
+  test("only email, SMS and calls, and push (#7028), have test sends; only checks the server cannot decide alone take a choice", () => {
     const tested: Record<string, Array<ServerSendingChannel>> = {};
     const choices: Record<string, ServerSetupChoiceKind | null> = {};
 
@@ -213,6 +223,7 @@ describe("the catalogue", () => {
         ServerSendingChannel.SMS,
         ServerSendingChannel.Call,
       ],
+      [ServerSetupCheckId.BrowserPush]: [ServerSendingChannel.Push],
     });
     expect(choices).toEqual({
       [ServerSetupCheckId.Email]: null,
@@ -260,6 +271,16 @@ describe("the catalogue", () => {
                 finishedAt: EARLIER,
                 error: "boom",
               },
+        // npm run backup's last run: none, failed, fresh or a week old and more (#7026).
+        lastScriptBackup:
+          random(2) === 0
+            ? null
+            : {
+                at: daysBeforeNow([0.5, 3, 8, 30][random(4)]!),
+                succeeded: random(3) !== 0,
+                sizeInBytes: 1024,
+              },
+        push: channel(ServerSendingChannel.Push, pick()),
         isBrowserPushSetUp: random(2) === 1,
         hasAiProvider: random(2) === 1,
         hasSingleSignOn: random(2) === 1,
@@ -280,7 +301,7 @@ describe("the catalogue", () => {
         },
       });
 
-      for (const result of ServerSetupChecklistUtil.evaluate(facts)) {
+      for (const result of ServerSetupChecklistUtil.evaluate(facts, NOW)) {
         seen.add(`${result.id}:${result.status}`);
 
         const words: string = ServerSetupChecklistUtil.getStatusWords(result);
@@ -352,16 +373,29 @@ describe("the catalogue", () => {
     }
   });
 
-  test("every guide a check opens is a docs page, at a heading it has", () => {
+  test("every guide a check opens is a docs page, or the Helm chart's on GitHub, at a heading it has", () => {
     const docs: string = path.join(
       __dirname,
       "../../../../App/FeatureSet/Docs/Content/en",
     );
+    const repository: string = path.join(__dirname, "../../../../..");
+    const onGitHub: string =
+      "https://github.com/OneUptime/oneuptime/blob/main/";
 
     for (const guide of Object.values(SERVER_SETUP_GUIDES)) {
-      const [page, anchor] = guide.replace("/docs/", "").split("#");
+      // A docs page this server serves, or a file of this repository on GitHub.
+      expect({
+        guide,
+        isKnown: guide.startsWith("/docs/") || guide.startsWith(onGitHub),
+      }).toEqual({ guide, isKnown: true });
+
+      const [page, anchor] = guide.startsWith(onGitHub)
+        ? guide.replace(onGitHub, "").split("#")
+        : guide.replace("/docs/", "").split("#");
       const markdown: string = fs.readFileSync(
-        path.join(docs, `${page}.md`),
+        guide.startsWith(onGitHub)
+          ? path.join(repository, page!)
+          : path.join(docs, `${page}.md`),
         "utf8",
       );
 
@@ -1250,5 +1284,414 @@ describe("addresses refused while email works", () => {
       ServerSetupChecklistUtil.getCheck(read!, ServerSetupCheckId.Email)
         ?.channels[0]?.recipientRefusals,
     ).toEqual([refusal]);
+  });
+});
+
+/*
+ * #7073: the HTTPS item opens the Self-Hosting Guide's HTTPS step, which
+ * has the Docker Compose and the Kubernetes steps as tabs - not the Docker
+ * Compose guide's detail page, which has only the first.
+ */
+describe("the HTTPS item's guide", () => {
+  test("is the Self-Hosting Guide's HTTPS step, with both installs' tabs", () => {
+    expect(SERVER_SETUP_GUIDES.https).toBe(
+      "/docs/installation/self-hosting-guide#turn-on-https",
+    );
+    expect(
+      ServerSetupChecklistUtil.getDefinition(ServerSetupCheckId.Https)
+        .guidePath,
+    ).toBe(SERVER_SETUP_GUIDES.https);
+
+    const guide: string = fs.readFileSync(
+      path.join(
+        __dirname,
+        "../../../../App/FeatureSet/Docs/Content/en/installation/self-hosting-guide.md",
+      ),
+      "utf8",
+    );
+    const step: string = guide
+      .split("\n## Turn on HTTPS\n")[1]!
+      .split("\n## ")[0]!;
+
+    expect(step).toContain("@tab Docker Compose");
+    expect(step).toContain("@tab Kubernetes");
+  });
+});
+
+/*
+ * #9378: How to back up opens steps the install can run. npm run backup is
+ * the Docker Compose server's; a Kubernetes install backs its volumes up
+ * as the Helm chart's production checklist says. While the server cannot
+ * tell which it is, both - never a guess.
+ */
+describe("how to back up, by how the server was installed", () => {
+  test("Docker Compose: npm run backup's steps; Kubernetes: the chart's production checklist; unknown: both", () => {
+    expect(getServerSetupBackupGuides(ServerInstallKind.DockerCompose)).toEqual(
+      [
+        {
+          installKind: ServerInstallKind.DockerCompose,
+          path: "/docs/installation/docker-compose#back-up-and-restore",
+        },
+      ],
+    );
+    expect(getServerSetupBackupGuides(ServerInstallKind.Kubernetes)).toEqual([
+      {
+        installKind: ServerInstallKind.Kubernetes,
+        path: "https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/production-checklist.md#back-up-your-data",
+      },
+    ]);
+
+    for (const unknown of [ServerInstallKind.Unknown, null, undefined]) {
+      expect(
+        getServerSetupBackupGuides(unknown).map(
+          (guide: { installKind: ServerInstallKind }) => {
+            return guide.installKind;
+          },
+        ),
+      ).toEqual([
+        ServerInstallKind.DockerCompose,
+        ServerInstallKind.Kubernetes,
+      ]);
+    }
+  });
+
+  test("the chart's checklist says how a Kubernetes install backs up, and never asks for npm run backup", () => {
+    const checklist: string = fs.readFileSync(
+      path.join(
+        __dirname,
+        "../../../../../HelmChart/Public/oneuptime/docs/production-checklist.md",
+      ),
+      "utf8",
+    );
+    const section: string = checklist
+      .split("\n### Back up your data\n")[1]!
+      .split("\n### ")[0]!;
+
+    expect(section).toContain("persistent volumes");
+    expect(section).not.toContain("npm run backup");
+  });
+
+  test("the Backups check carries how the server was installed, and a browser reads it back", () => {
+    for (const installKind of Object.values(ServerInstallKind)) {
+      const backups: ServerSetupCheckResult = check(
+        freshFacts({ installKind: installKind }),
+        ServerSetupCheckId.Backups,
+      );
+
+      expect(backups.installKind).toBe(installKind);
+
+      const read: ServerSetupChecklistAnswer | null =
+        ServerSetupChecklistUtil.parseAnswer(
+          JSON.parse(
+            JSON.stringify({ checks: [backups], isHiddenForReader: false }),
+          ),
+        );
+
+      expect(read!.checks[0]!.installKind).toBe(installKind);
+    }
+
+    // A server that does not say (an older one), or says something else: unknown.
+    expect(check(freshFacts(), ServerSetupCheckId.Backups).installKind).toBe(
+      ServerInstallKind.Unknown,
+    );
+
+    for (const sent of [undefined, "helm", 3]) {
+      expect(
+        ServerSetupChecklistUtil.parseAnswer({
+          checks: [{ id: "backups", status: "not-set-up", installKind: sent }],
+        })!.checks[0]!.installKind,
+      ).toBe(ServerInstallKind.Unknown);
+    }
+  });
+});
+
+/*
+ * #7026: npm run backup tells the server it ran, so on the Community
+ * Edition the Backups item is measured, as the Enterprise Edition's
+ * scheduled backups are: done while the last run is less than a week old,
+ * out of date after, failing when pg_dump did not finish.
+ */
+describe("backups npm run backup made", () => {
+  test("a run that succeeded is done, says what made it, and is no choice", () => {
+    const backups: ServerSetupCheckResult = check(
+      freshFacts({
+        lastScriptBackup: {
+          at: daysBeforeNow(1),
+          succeeded: true,
+          sizeInBytes: 2048,
+        },
+      }),
+      ServerSetupCheckId.Backups,
+    );
+
+    expect(backups.status).toBe(ServerSetupStatus.Done);
+    expect(backups.isFinished).toBe(true);
+    expect(backups.time).toBe(daysBeforeNow(1));
+    expect(backups.backupMadeBy).toBe(ServerSetupBackupMadeBy.Script);
+    expect(backups.canChoose).toBeNull();
+    expect(ServerSetupChecklistUtil.getStatusWords(backups)).toBe(
+      SERVER_SETUP_BACKUP_SCRIPT_WORDS.done,
+    );
+    expect(SERVER_SETUP_BACKUP_SCRIPT_WORDS.done).toBe(
+      "Backed up with npm run backup.",
+    );
+  });
+
+  test("more than a week old is out of date: open, not failing, and the admin may still say it is backed up", () => {
+    const justInside: ServerSetupCheckResult = check(
+      freshFacts({
+        lastScriptBackup: {
+          at: daysBeforeNow(SERVER_SETUP_BACKUP_STALE_AFTER_DAYS - 0.01),
+          succeeded: true,
+          sizeInBytes: 2048,
+        },
+      }),
+      ServerSetupCheckId.Backups,
+    );
+
+    expect(justInside.status).toBe(ServerSetupStatus.Done);
+
+    const stale: ServerSetupCheckResult = check(
+      freshFacts({
+        lastScriptBackup: {
+          at: daysBeforeNow(SERVER_SETUP_BACKUP_STALE_AFTER_DAYS + 0.01),
+          succeeded: true,
+          sizeInBytes: 2048,
+        },
+      }),
+      ServerSetupCheckId.Backups,
+    );
+
+    expect(SERVER_SETUP_BACKUP_STALE_AFTER_DAYS).toBe(7);
+    expect(stale.status).toBe(ServerSetupStatus.Stale);
+    expect(stale.isFinished).toBe(false);
+    expect(stale.time).toBe(
+      daysBeforeNow(SERVER_SETUP_BACKUP_STALE_AFTER_DAYS + 0.01),
+    );
+    expect(stale.canChoose).toBe(ServerSetupChoiceKind.Confirmed);
+    expect(ServerSetupChecklistUtil.getStatusWords(stale)).toBe(
+      "Out of date: the last backup finished on {{time}}, more than a week ago.",
+    );
+  });
+
+  test("a run whose dump failed is failing, with what to do, and the admin may still say it is backed up", () => {
+    const failed: ServerSetupCheckResult = check(
+      freshFacts({
+        lastScriptBackup: {
+          at: daysBeforeNow(1),
+          succeeded: false,
+          sizeInBytes: null,
+        },
+      }),
+      ServerSetupCheckId.Backups,
+    );
+
+    expect(failed.status).toBe(ServerSetupStatus.Failing);
+    expect(failed.reason).toBe(SERVER_SETUP_BACKUP_SCRIPT_WORDS.failed);
+    expect(failed.canChoose).toBe(ServerSetupChoiceKind.Confirmed);
+    expect(ServerSetupChecklistUtil.getStatusWords(failed)).toBe(
+      "Failing: the last backup failed on {{time}}.",
+    );
+  });
+
+  test("the latest word wins: a confirmation after the run says more than it, and the next run more than the confirmation", () => {
+    const ranThenConfirmed: ServerSetupCheckResult = check(
+      freshFacts({
+        lastScriptBackup: {
+          at: daysBeforeNow(30),
+          succeeded: false,
+          sizeInBytes: null,
+        },
+        choices: {
+          choices: {
+            [ServerSetupCheckId.Backups]: {
+              kind: ServerSetupChoiceKind.Confirmed,
+              at: daysBeforeNow(2),
+              byUserId: "ada",
+            },
+          },
+          hiddenBy: {},
+        },
+      }),
+      ServerSetupCheckId.Backups,
+    );
+
+    expect(ranThenConfirmed.status).toBe(ServerSetupStatus.Confirmed);
+    expect(ranThenConfirmed.choice?.byUserId).toBe("ada");
+    // Undone, it falls back to what the run said.
+    expect(ranThenConfirmed.canChoose).toBe(ServerSetupChoiceKind.Confirmed);
+
+    const confirmedThenRan: ServerSetupCheckResult = check(
+      freshFacts({
+        lastScriptBackup: {
+          at: daysBeforeNow(1),
+          succeeded: false,
+          sizeInBytes: null,
+        },
+        choices: chose(
+          ServerSetupCheckId.Backups,
+          ServerSetupChoiceKind.Confirmed,
+        ),
+      }),
+      ServerSetupCheckId.Backups,
+    );
+
+    expect(confirmedThenRan.status).toBe(ServerSetupStatus.Failing);
+    expect(confirmedThenRan.choice).toBeNull();
+  });
+
+  test("of a scheduled backup and a script's run, the newer decides", () => {
+    const scriptNewer: ServerSetupCheckResult = check(
+      freshFacts({
+        hasScheduledBackups: true,
+        lastBackup: {
+          succeeded: false,
+          finishedAt: daysBeforeNow(3),
+          error: "The bucket refused the upload.",
+        },
+        lastScriptBackup: {
+          at: daysBeforeNow(1),
+          succeeded: true,
+          sizeInBytes: 10,
+        },
+      }),
+      ServerSetupCheckId.Backups,
+    );
+
+    expect(scriptNewer.status).toBe(ServerSetupStatus.Done);
+    expect(scriptNewer.backupMadeBy).toBe(ServerSetupBackupMadeBy.Script);
+
+    const scheduleNewer: ServerSetupCheckResult = check(
+      freshFacts({
+        hasScheduledBackups: true,
+        lastBackup: {
+          succeeded: false,
+          finishedAt: daysBeforeNow(1),
+          error: "The bucket refused the upload.",
+        },
+        lastScriptBackup: {
+          at: daysBeforeNow(3),
+          succeeded: true,
+          sizeInBytes: 10,
+        },
+      }),
+      ServerSetupCheckId.Backups,
+    );
+
+    expect(scheduleNewer.status).toBe(ServerSetupStatus.Failing);
+    expect(scheduleNewer.reason).toBe("The bucket refused the upload.");
+    expect(scheduleNewer.backupMadeBy).toBe(ServerSetupBackupMadeBy.Schedule);
+    // A scheduled backup that failed is not undone by a confirmation (#6824).
+    expect(scheduleNewer.canChoose).toBeNull();
+    expect(ServerSetupChecklistUtil.getStatusWords(scheduleNewer)).toBe(
+      "Failing: the last backup failed on {{time}}.",
+    );
+
+    const scheduled: ServerSetupCheckResult = check(
+      freshFacts({
+        lastBackup: { succeeded: true, finishedAt: EARLIER, error: null },
+      }),
+      ServerSetupCheckId.Backups,
+    );
+
+    expect(ServerSetupChecklistUtil.getStatusWords(scheduled)).toBe(
+      "Backed up on a schedule.",
+    );
+  });
+
+  test("a server the script never told reads as it did: the admin's word, or not set up", () => {
+    expect(check(freshFacts(), ServerSetupCheckId.Backups).status).toBe(
+      ServerSetupStatus.NotSetUp,
+    );
+    expect(
+      check(
+        freshFacts({
+          lastScriptBackup: null,
+          choices: chose(
+            ServerSetupCheckId.Backups,
+            ServerSetupChoiceKind.Confirmed,
+          ),
+        }),
+        ServerSetupCheckId.Backups,
+      ).status,
+    ).toBe(ServerSetupStatus.Confirmed);
+  });
+
+  test("who made it is read back in a browser, and anything else is left out", () => {
+    const done: ServerSetupCheckResult = check(
+      freshFacts({
+        lastScriptBackup: {
+          at: daysBeforeNow(1),
+          succeeded: true,
+          sizeInBytes: 1,
+        },
+      }),
+      ServerSetupCheckId.Backups,
+    );
+
+    const read: ServerSetupChecklistAnswer | null =
+      ServerSetupChecklistUtil.parseAnswer(
+        JSON.parse(JSON.stringify({ checks: [done] })),
+      );
+
+    expect(read!.checks[0]!.backupMadeBy).toBe(ServerSetupBackupMadeBy.Script);
+    expect(read!.checks[0]!.status).toBe(ServerSetupStatus.Done);
+
+    expect(
+      ServerSetupChecklistUtil.parseAnswer({
+        checks: [{ id: "backups", status: "done", backupMadeBy: "cron" }],
+      })!.checks[0]!.backupMadeBy,
+    ).toBeUndefined();
+  });
+});
+
+/*
+ * #7028: Send test push, on the push row, whenever push is not turned off
+ * for the server - done or not, since nothing yet says how its pushes go.
+ */
+describe("the test push", () => {
+  test("is offered while push is on, set up or not; never while it is off, or on a server that does not say", () => {
+    for (const state of [
+      ServerSendingState.Untested,
+      ServerSendingState.Working,
+      ServerSendingState.Failing,
+    ]) {
+      for (const isBrowserPushSetUp of [true, false]) {
+        expect(
+          check(
+            freshFacts({
+              isBrowserPushSetUp: isBrowserPushSetUp,
+              push: channel(ServerSendingChannel.Push, state),
+            }),
+            ServerSetupCheckId.BrowserPush,
+          ).tests,
+        ).toEqual([ServerSendingChannel.Push]);
+      }
+    }
+
+    expect(
+      check(
+        freshFacts({
+          push: channel(ServerSendingChannel.Push, ServerSendingState.NotSetUp),
+        }),
+        ServerSetupCheckId.BrowserPush,
+      ).tests,
+    ).toEqual([]);
+    expect(check(freshFacts(), ServerSetupCheckId.BrowserPush).tests).toEqual(
+      [],
+    );
+  });
+
+  test("a browser reads it back, and no other row takes it", () => {
+    const read: ServerSetupChecklistAnswer | null =
+      ServerSetupChecklistUtil.parseAnswer({
+        checks: [
+          { id: "browser-push", status: "done", tests: ["push", "email"] },
+          { id: "email", status: "untested", tests: ["email", "push"] },
+        ],
+      });
+
+    expect(read!.checks[0]!.tests).toEqual([ServerSendingChannel.Push]);
+    expect(read!.checks[1]!.tests).toEqual([ServerSendingChannel.Email]);
   });
 });

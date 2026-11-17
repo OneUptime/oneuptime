@@ -118,6 +118,7 @@
     "test-security-operations-ui 1/2": 13,
     "test-security-operations-ui 2/2": 15.4,
     "test-security-page-ui": 0.8,
+    "test-server-setup-ui": 0.6,
     "test-shared-ui-ui": 2.8,
     "test-side-by-side-pages-ui": 1.1,
     "test-sign-in-options-ui": 1.2,

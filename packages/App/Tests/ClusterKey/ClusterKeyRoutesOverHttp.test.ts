@@ -284,6 +284,10 @@ function routesUnderTest(modelTriggerPath: string): Array<RouteUnderTest> {
     route("packages/App/API/AdminHealth.ts", "POST", '"/doctor"', [
       "/api/admin/health/doctor",
     ]),
+    // `npm run backup` says it ran (#7026).
+    route("packages/App/API/AdminHealth.ts", "POST", '"/backup-run"', [
+      "/api/admin/health/backup-run",
+    ]),
   ];
 }
 

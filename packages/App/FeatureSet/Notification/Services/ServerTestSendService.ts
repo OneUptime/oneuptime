@@ -1,7 +1,14 @@
 import CallService from "./CallService";
 import MailService from "./MailService";
 import SmsService from "./SmsService";
+import {
+  VapidPrivateKey,
+  VapidPublicKey,
+} from "Common/Server/EnvironmentConfig";
+import PushNotificationService from "Common/Server/Services/PushNotificationService";
+import UserPushService from "Common/Server/Services/UserPushService";
 import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
+import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import ServerChannelSetup from "Common/Server/Utils/ServerSending/ServerChannelSetup";
 import ServerSendingStatus from "Common/Server/Utils/ServerSending/ServerSendingStatus";
 import {
@@ -10,13 +17,19 @@ import {
 } from "Common/Server/Utils/ServerSetup/ServerSetupChecklist";
 import logger from "Common/Server/Utils/Logger";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
+import UserPush from "Common/Models/DatabaseModels/UserPush";
 import CallRequest from "Common/Types/Call/CallRequest";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Email from "Common/Types/Email";
 import EmailMessage from "Common/Types/Email/EmailMessage";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
+import ObjectID from "Common/Types/ObjectID";
 import Phone from "Common/Types/Phone";
+import PushDeviceType from "Common/Types/PushNotification/PushDeviceType";
+import PushNotificationMessage from "Common/Types/PushNotification/PushNotificationMessage";
 import { ServerSendingChannel } from "Common/Types/ServerSending/ServerSendingStatus";
 import {
+  SERVER_TEST_PUSH_REASONS,
   ServerTestSendAnswer,
   ServerTestSendResult,
   toServerTestSendMessage,
@@ -45,6 +58,18 @@ export const SERVER_TEST_SMS_TEXT: string =
 
 export const SERVER_TEST_CALL_TEXT: string =
   "This is a test call from One Uptime. Calls from this server work.";
+
+export const SERVER_TEST_PUSH_TITLE: string = "Test push from OneUptime";
+
+export const SERVER_TEST_PUSH_TEXT: string =
+  "This is a test push from your OneUptime server. Push notifications from this server reach this device.";
+
+// One of the admin's own devices a test push goes to.
+export interface ServerTestPushDevice {
+  token: string;
+  name: string;
+  deviceType: PushDeviceType;
+}
 
 const refusedBecause: (err: unknown) => string = (err: unknown): string => {
   const message: string | null = toServerTestSendMessage(
@@ -207,5 +232,184 @@ export default class ServerTestSendService {
     }
 
     return answer;
+  }
+
+  /*
+   * The phones and browsers this admin registered for push notifications,
+   * in every project they registered them in, each once: a phone registered
+   * in three projects is one device to push to. Only the verified ones: a
+   * device whose push service said it is gone is pushed to by nothing.
+   */
+  public static async readPushDevices(
+    userId: ObjectID,
+  ): Promise<Array<ServerTestPushDevice>> {
+    const rows: Array<UserPush> = await UserPushService.findBy({
+      query: {
+        userId: userId,
+        isVerified: true,
+      },
+      select: {
+        deviceToken: true,
+        deviceType: true,
+        deviceName: true,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const devices: Array<ServerTestPushDevice> = [];
+
+    for (const row of rows) {
+      const token: string = (row.deviceToken || "").trim();
+
+      if (
+        !token ||
+        devices.some((device: ServerTestPushDevice): boolean => {
+          return device.token === token;
+        })
+      ) {
+        continue;
+      }
+
+      devices.push({
+        token: token,
+        name: (row.deviceName || "").trim() || "Unknown Device",
+        deviceType: row.deviceType || PushDeviceType.Web,
+      });
+    }
+
+    return devices;
+  }
+
+  /*
+   * "Send test push" (#7028): a push to the admin who pressed it, on each
+   * of their own registered phones and browsers - nobody else's, whatever
+   * they hand the route. Through PushNotificationService, the way a page
+   * goes, with no project: so the pushes are recorded with the server's own
+   * once it records them (#6881).
+   *
+   *   - not set up, with nothing tried: push is turned off for the server;
+   *     the admin has no device registered; or every one is a browser and
+   *     the server has no VAPID keys to push to a browser with;
+   *   - accepted: the devices whose push service took it, by name - a
+   *     browser is left out when the server has no VAPID keys;
+   *   - refused: none took it, and what each push service said.
+   */
+  public static async sendPush(
+    userId: ObjectID,
+  ): Promise<ServerTestSendAnswer> {
+    const config: GlobalConfig | null =
+      await ServerTestSendService.readConfig();
+    const problem: string | null = ServerChannelSetup.getSetUpProblem(
+      ServerSendingChannel.Push,
+      config,
+    );
+
+    const answer: ServerTestSendAnswer = {
+      channel: ServerSendingChannel.Push,
+      result: ServerTestSendResult.Accepted,
+      to: "",
+      sentThrough: null,
+      message: null,
+    };
+
+    if (problem) {
+      return {
+        ...answer,
+        result: ServerTestSendResult.NotSetUp,
+        message: problem,
+      };
+    }
+
+    const devices: Array<ServerTestPushDevice> =
+      await ServerTestSendService.readPushDevices(userId);
+
+    if (devices.length === 0) {
+      return {
+        ...answer,
+        result: ServerTestSendResult.NotSetUp,
+        message: SERVER_TEST_PUSH_REASONS.noDevices,
+      };
+    }
+
+    // A browser takes a push signed with the server's VAPID keys alone.
+    const canPushToBrowsers: boolean = Boolean(
+      VapidPublicKey && VapidPrivateKey,
+    );
+    const reachable: Array<ServerTestPushDevice> = devices.filter(
+      (device: ServerTestPushDevice): boolean => {
+        return canPushToBrowsers || device.deviceType !== PushDeviceType.Web;
+      },
+    );
+
+    if (reachable.length === 0) {
+      return {
+        ...answer,
+        result: ServerTestSendResult.NotSetUp,
+        message: SERVER_TEST_PUSH_REASONS.noVapidKeys,
+      };
+    }
+
+    const message: PushNotificationMessage =
+      PushNotificationUtil.createGenericNotification({
+        title: SERVER_TEST_PUSH_TITLE,
+        body: SERVER_TEST_PUSH_TEXT,
+        clickAction: "/dashboard",
+        tag: "server-test-push",
+        requireInteraction: false,
+      });
+
+    // Each device on its own, so each says whether it took it.
+    const results: Array<PromiseSettledResult<void>> = await Promise.allSettled(
+      reachable.map((device: ServerTestPushDevice): Promise<void> => {
+        return PushNotificationService.sendPushNotification(
+          {
+            devices: [{ token: device.token, name: device.name }],
+            message: message,
+            deviceType: device.deviceType,
+          },
+          {
+            isSensitive: false,
+            userId: userId,
+          },
+        );
+      }),
+    );
+
+    const accepted: Array<string> = [];
+    const reasons: Array<string> = [];
+
+    results.forEach(
+      (result: PromiseSettledResult<void>, index: number): void => {
+        if (result.status === "fulfilled") {
+          accepted.push(reachable[index]!.name);
+          return;
+        }
+
+        const reason: string = PushNotificationService.getFailureReason(
+          result.reason,
+        );
+
+        if (!reasons.includes(reason)) {
+          reasons.push(reason);
+        }
+      },
+    );
+
+    if (accepted.length > 0) {
+      return { ...answer, to: accepted.join(", ") };
+    }
+
+    logger.warn("A test push through this server's settings was refused.");
+    logger.warn(reasons.join("; "));
+
+    return {
+      ...answer,
+      result: ServerTestSendResult.Refused,
+      message: refusedBecause(reasons.join("; ")),
+    };
   }
 }

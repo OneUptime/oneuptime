@@ -56717,5 +56717,6 @@
   "{{acknowledged}} of {{count}} tests acknowledged so far.": "Tot nu toe bevestigde tests: {{acknowledged}} van {{count}}.",
   "{{acknowledged}} of {{count}} tests acknowledged so far._one": "Tot nu toe bevestigde test: {{acknowledged}} van {{count}}.",
   "{{acknowledged}} of {{count}} tests acknowledged.": "Bevestigde tests: {{acknowledged}} van {{count}}.",
-  "{{acknowledged}} of {{count}} tests acknowledged._one": "Bevestigde test: {{acknowledged}} van {{count}}."
+  "{{acknowledged}} of {{count}} tests acknowledged._one": "Bevestigde test: {{acknowledged}} van {{count}}.",
+  "Backup Script Last Run": "Laatste uitvoering van het back-upscript"
 }

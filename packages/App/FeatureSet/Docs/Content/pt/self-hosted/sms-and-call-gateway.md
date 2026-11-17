@@ -30,7 +30,7 @@ O gateway toma o lugar da conta do Twilio do próprio servidor em tudo o que pas
 1. No Admin Dashboard, vá para **Configurações > Chamadas e SMS** e clique em **Edit Provider** no cartão **SMS and Call Provider**.
 2. Escolha **Your own gateway** e informe a **Gateway URL**. O gateway pode ficar na sua rede privada.
 3. Salve. O OneUptime cria um segredo de assinatura para você. Copie-o do cartão para o seu gateway.
-4. Clique em **Send Test**. O seu gateway deve responder com um status 2xx e não enviar nada.
+4. Clique em **Verificar gateway**. O seu gateway deve responder com um status 2xx e não enviar nada.
 :::
 
 Para substituir o segredo, apague **Segredo de assinatura** em **Mais campos** e salve: o OneUptime cria um novo. Para voltar ao Twilio, escolha **Twilio** e salve.
@@ -116,7 +116,7 @@ O registro de SMS ou de chamadas, e para um acionamento de plantão o registro d
 
 ## Solicitações de teste
 
-**Enviar teste** envia uma solicitação com `event` definido como `test`, e `to`, `project` e `actions` definidos como `null`. Responda com um status 2xx e não envie nada.
+**Verificar gateway** envia uma solicitação com `event` definido como `test`, e `to`, `project` e `actions` definidos como `null`. Responda com um status 2xx e não envie nada.
 
 ## Próximos passos
 

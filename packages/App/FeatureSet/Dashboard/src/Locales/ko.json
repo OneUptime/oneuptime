@@ -56717,5 +56717,6 @@
   "{{acknowledged}} of {{count}} tests acknowledged so far.": "지금까지 인지된 테스트: {{count}}개 중 {{acknowledged}}개.",
   "{{acknowledged}} of {{count}} tests acknowledged so far._one": "지금까지 인지된 테스트: {{count}}개 중 {{acknowledged}}개.",
   "{{acknowledged}} of {{count}} tests acknowledged.": "인지된 테스트: {{count}}개 중 {{acknowledged}}개.",
-  "{{acknowledged}} of {{count}} tests acknowledged._one": "인지된 테스트: {{count}}개 중 {{acknowledged}}개."
+  "{{acknowledged}} of {{count}} tests acknowledged._one": "인지된 테스트: {{count}}개 중 {{acknowledged}}개.",
+  "Backup Script Last Run": "백업 스크립트 마지막 실행"
 }

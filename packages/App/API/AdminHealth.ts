@@ -39,6 +39,13 @@ import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
 import { getClickhouseDiskSnapshots } from "Common/Server/Utils/AnalyticsDatabase/ClickhouseCapacity";
 import CustomDomainServerReadiness from "Common/Server/Utils/CustomDomain/CustomDomainServerReadiness";
 import ServerSetupChecklist from "Common/Server/Utils/ServerSetup/ServerSetupChecklist";
+import BackupScriptRuns from "Common/Server/Utils/ServerSetup/BackupScriptRuns";
+import {
+  BackupScriptCheckIn,
+  BackupScriptRun,
+  readBackupScriptCheckIn,
+} from "Common/Types/Backup/BackupScriptRun";
+import BadDataException from "Common/Types/Exception/BadDataException";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import ObjectID from "Common/Types/ObjectID";
 import VersionUtil from "Common/Utils/VersionUtil";
@@ -1284,6 +1291,62 @@ router.post(
   "/doctor",
   ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
   answerInstallationHealth({ withAddressProof: true }),
+);
+
+/*
+ * ---------------------------------------------------------------------------
+ * `npm run backup` says it ran (#7026)
+ *
+ * backup.sh, on the Docker Compose server, tells the server how each run
+ * went - { succeeded, sizeInBytes } - through Scripts/Install/
+ * BackupScriptRun.js, which presents the cluster key from that server's
+ * config.env to its own ingress, as `npm run doctor` does: the setup
+ * checklist's Backups item is then measured, not the admin's word.
+ *
+ * The cluster key only: only the server's operator holds it, so neither a
+ * project's member, an outsider nor a session of any kind can mark a server
+ * as backed up (the router hands the route ClusterKeyAuthorization's check,
+ * which refuses a missing, wrong or shipped key, and the key in a URL). The
+ * server keeps when it was told, whether it succeeded and the dump's size
+ * (GlobalConfig.backupScriptLastRun), and nothing else the body holds.
+ *
+ * An older server answers the newer script with a 404, which the script
+ * says and lets the backup be; an older script never calls it, and the
+ * checklist reads as before.
+ * ---------------------------------------------------------------------------
+ */
+router.post(
+  "/backup-run",
+  ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const checkIn: BackupScriptCheckIn | null = readBackupScriptCheckIn(
+        req.body,
+      );
+
+      if (!checkIn) {
+        throw new BadDataException(
+          "Say how the backup went: succeeded, true or false, and the size of the dump in bytes.",
+        );
+      }
+
+      const run: BackupScriptRun = await BackupScriptRuns.record({
+        checkIn: checkIn,
+      });
+
+      return Response.sendJsonObjectResponse(req, res, {
+        recorded: true,
+        at: run.at,
+        succeeded: run.succeeded,
+      });
+    } catch (err) {
+      return next(err);
+    }
+  },
 );
 
 /*
