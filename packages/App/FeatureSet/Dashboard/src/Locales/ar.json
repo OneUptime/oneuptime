@@ -18886,7 +18886,7 @@
   "ns": "ns",
   "null": "null",
   "object storage daemons": "خدمات خلفية لتخزين الكائنات",
-  "of": "من أصل",
+  "of": "للحقل",
   "of ESXi host memory": "من ذاكرة مضيفي ESXi",
   "of limit or host memory": "من الحد أو من ذاكرة المضيف",
   "of node memory": "من ذاكرة العقد",
