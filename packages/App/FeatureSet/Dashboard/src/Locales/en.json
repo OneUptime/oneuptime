@@ -56616,5 +56616,10 @@
   "{{count}} on-call policy runs aren't listed: you can't see their policies._one": "{{count}} on-call policy run isn't listed: you can't see its policy.",
   "{{name}} acknowledged it {{time}} after the first page.": "{{name}} acknowledged it {{time}} after the first page.",
   "Monitors OneUptime recommends for this function, from the invocations its OpenTelemetry reports. Pick the ones you want and create them in one step.": "Monitors OneUptime recommends for this function, from the invocations its OpenTelemetry reports. Pick the ones you want and create them in one step.",
-  "This function has not reported its faas.name yet, and every recommended monitor reads the function's spans by it, so none is offered until it does.": "This function has not reported its faas.name yet, and every recommended monitor reads the function's spans by it, so none is offered until it does."
+  "This function has not reported its faas.name yet, and every recommended monitor reads the function's spans by it, so none is offered until it does.": "This function has not reported its faas.name yet, and every recommended monitor reads the function's spans by it, so none is offered until it does.",
+  "Consumer Lag": "Consumer Lag",
+  "Dead Letters": "Dead Letters",
+  "Message Age": "Message Age",
+  "Monitors OneUptime recommends for this queue, from the broker metrics it reports. Pick the ones you want and create them in one step.": "Monitors OneUptime recommends for this queue, from the broker metrics it reports. Pick the ones you want and create them in one step.",
+  "No broker metric a recommended monitor reads has arrived for this queue in the last 7 days. Recommendations appear once its broker's metrics do.": "No broker metric a recommended monitor reads has arrived for this queue in the last 7 days. Recommendations appear once its broker's metrics do."
 }

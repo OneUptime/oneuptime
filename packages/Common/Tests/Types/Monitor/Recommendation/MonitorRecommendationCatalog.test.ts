@@ -57,6 +57,7 @@ import { getAllDataPipelineAlertTemplates } from "../../../../Types/Monitor/Data
 import { getAllCloudAlertTemplates } from "../../../../Types/Monitor/CloudAlertTemplates";
 import { getAllCloudAppAlertTemplates } from "../../../../Types/Monitor/CloudAppAlertTemplates";
 import { getAllServerlessAlertTemplates } from "../../../../Types/Monitor/ServerlessAlertTemplates";
+import { getAllMessageQueueAlertTemplates } from "../../../../Types/Monitor/MessageQueueAlertTemplates";
 
 /*
  * Resource types whose recommendation set is EMPTY without context, on
@@ -90,6 +91,11 @@ const RESOURCE_TYPES_WITHOUT_CONTEXT_FREE_SUBSET: Array<MonitorRecommendationRes
      * would read every function (getServerlessAlertTemplatesFor).
      */
     MonitorRecommendationResourceType.ServerlessFunction,
+    /*
+     * A queue's templates filter on the series its broker reported: with no
+     * context nothing has been reported (getMessageQueueAlertTemplatesFor).
+     */
+    MonitorRecommendationResourceType.MessageQueue,
   ];
 
 /*
@@ -337,6 +343,15 @@ const MODULE_EXPECTATIONS: Array<ModuleExpectation> = [
     // Zero: see RESOURCE_TYPES_WITHOUT_CONTEXT_FREE_SUBSET.
     contextFreeTemplateCount: 0,
     identifierFieldName: "serverlessFunctionId",
+  },
+  {
+    resourceType: MonitorRecommendationResourceType.MessageQueue,
+    // Every template reads a broker health gauge.
+    monitorTypes: [MonitorType.Metrics],
+    templateCount: getAllMessageQueueAlertTemplates().length,
+    // Zero: see RESOURCE_TYPES_WITHOUT_CONTEXT_FREE_SUBSET.
+    contextFreeTemplateCount: 0,
+    identifierFieldName: "messageQueueId",
   },
 ];
 

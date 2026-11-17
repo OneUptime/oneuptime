@@ -56616,5 +56616,10 @@
   "{{count}} on-call policy runs aren't listed: you can't see their policies._one": "{{count}} 件のオンコールポリシーの実行は一覧に表示されていません。そのポリシーを表示できません。",
   "{{name}} acknowledged it {{time}} after the first page.": "{{name}} さんが最初の呼び出しの {{time}} 後に確認しました。",
   "Monitors OneUptime recommends for this function, from the invocations its OpenTelemetry reports. Pick the ones you want and create them in one step.": "この関数の OpenTelemetry が報告する呼び出しに基づいて、OneUptime がこの関数に推奨するモニター。必要なものを選び、1 ステップで作成できます。",
-  "This function has not reported its faas.name yet, and every recommended monitor reads the function's spans by it, so none is offered until it does.": "この関数はまだ faas.name を報告していません。推奨モニターはすべてこの値で関数のスパンを読み取るため、報告されるまでモニターは提案されません。"
+  "This function has not reported its faas.name yet, and every recommended monitor reads the function's spans by it, so none is offered until it does.": "この関数はまだ faas.name を報告していません。推奨モニターはすべてこの値で関数のスパンを読み取るため、報告されるまでモニターは提案されません。",
+  "Consumer Lag": "コンシューマーの遅延",
+  "Dead Letters": "デッドレター",
+  "Message Age": "メッセージの経過時間",
+  "Monitors OneUptime recommends for this queue, from the broker metrics it reports. Pick the ones you want and create them in one step.": "このキューが報告するブローカーメトリクスに基づいて、OneUptime がこのキューに推奨するモニター。必要なものを選び、1 ステップで作成できます。",
+  "No broker metric a recommended monitor reads has arrived for this queue in the last 7 days. Recommendations appear once its broker's metrics do.": "過去 7 日間に、推奨モニターが読み取るブローカーメトリクスはこのキューに届いていません。ブローカーのメトリクスが届くと推奨事項が表示されます。"
 }

@@ -56616,5 +56616,10 @@
   "{{count}} on-call policy runs aren't listed: you can't see their policies._one": "{{count}} uitvoering van een bereikbaarheidsbeleid staat niet in de lijst: u kunt het beleid niet zien.",
   "{{name}} acknowledged it {{time}} after the first page.": "{{name}} heeft hem {{time}} na de eerste oproep bevestigd.",
   "Monitors OneUptime recommends for this function, from the invocations its OpenTelemetry reports. Pick the ones you want and create them in one step.": "Monitors die OneUptime aanbeveelt voor deze functie, op basis van de aanroepen die de OpenTelemetry ervan rapporteert. Kies de monitors die u wilt en maak ze in één stap aan.",
-  "This function has not reported its faas.name yet, and every recommended monitor reads the function's spans by it, so none is offered until it does.": "Deze functie heeft haar faas.name nog niet gerapporteerd, en elke aanbevolen monitor leest de spans van de functie daarop, dus er wordt er geen aangeboden totdat ze dat doet."
+  "This function has not reported its faas.name yet, and every recommended monitor reads the function's spans by it, so none is offered until it does.": "Deze functie heeft haar faas.name nog niet gerapporteerd, en elke aanbevolen monitor leest de spans van de functie daarop, dus er wordt er geen aangeboden totdat ze dat doet.",
+  "Consumer Lag": "Consumentenachterstand",
+  "Dead Letters": "Dode berichten",
+  "Message Age": "Berichtleeftijd",
+  "Monitors OneUptime recommends for this queue, from the broker metrics it reports. Pick the ones you want and create them in one step.": "Monitors die OneUptime aanbeveelt voor deze wachtrij, op basis van de brokermetrieken die ze rapporteert. Kies de monitors die u wilt en maak ze in één stap aan.",
+  "No broker metric a recommended monitor reads has arrived for this queue in the last 7 days. Recommendations appear once its broker's metrics do.": "In de afgelopen 7 dagen is voor deze wachtrij geen brokermetriek binnengekomen die een aanbevolen monitor leest. Aanbevelingen verschijnen zodra de metrieken van de broker binnenkomen."
 }

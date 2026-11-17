@@ -56616,5 +56616,10 @@
   "{{count}} on-call policy runs aren't listed: you can't see their policies._one": "온콜 정책 실행 {{count}}개는 목록에 표시되지 않습니다. 해당 정책을 볼 수 없습니다.",
   "{{name}} acknowledged it {{time}} after the first page.": "{{name}} 님이 첫 호출 {{time}} 후에 인지했습니다.",
   "Monitors OneUptime recommends for this function, from the invocations its OpenTelemetry reports. Pick the ones you want and create them in one step.": "이 함수의 OpenTelemetry가 보고하는 호출을 바탕으로 OneUptime이 이 함수에 권장하는 모니터입니다. 원하는 모니터를 골라 한 번에 생성하세요.",
-  "This function has not reported its faas.name yet, and every recommended monitor reads the function's spans by it, so none is offered until it does.": "이 함수는 아직 faas.name을 보고하지 않았습니다. 권장 모니터는 모두 이 값으로 함수의 스팬을 읽으므로, 보고될 때까지 아무것도 제안되지 않습니다."
+  "This function has not reported its faas.name yet, and every recommended monitor reads the function's spans by it, so none is offered until it does.": "이 함수는 아직 faas.name을 보고하지 않았습니다. 권장 모니터는 모두 이 값으로 함수의 스팬을 읽으므로, 보고될 때까지 아무것도 제안되지 않습니다.",
+  "Consumer Lag": "컨슈머 지연",
+  "Dead Letters": "데드 레터",
+  "Message Age": "메시지 경과 시간",
+  "Monitors OneUptime recommends for this queue, from the broker metrics it reports. Pick the ones you want and create them in one step.": "이 큐가 보고하는 브로커 메트릭을 바탕으로 OneUptime이 이 큐에 권장하는 모니터입니다. 원하는 모니터를 골라 한 번에 생성하세요.",
+  "No broker metric a recommended monitor reads has arrived for this queue in the last 7 days. Recommendations appear once its broker's metrics do.": "지난 7일 동안 권장 모니터가 읽는 브로커 메트릭이 이 큐에 도착하지 않았습니다. 브로커의 메트릭이 도착하면 권장 사항이 표시됩니다."
 }
