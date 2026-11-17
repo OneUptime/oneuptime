@@ -1410,12 +1410,12 @@ describe("a Mattermost summary", () => {
 
 describe("a Microsoft Teams summary", () => {
   const NO_TEAM: string =
-    "This summary does not name the Microsoft Teams team its channels are in. Please enter the team's name in the summary's Team Name.";
+    "This summary does not say which Microsoft Teams team its channels are in. Edit the summary and pick its team.";
 
   const teamNotFound: (teamName: string) => string = (
     teamName: string,
   ): string => {
-    return `The Microsoft Teams team "${teamName}" was not found. Please enter the team's name, as Microsoft Teams shows it, in the summary's Team Name.`;
+    return `The Microsoft Teams team "${teamName}" was not found. Edit the summary and pick its team from the list.`;
   };
 
   const channelNotFound: (channelName: string) => string = (
@@ -1647,7 +1647,7 @@ describe("a Microsoft Teams summary", () => {
     const refusal: Error = await testRefusal();
 
     expect(refusal.message).toBe(
-      `The test summary was not posted in General. 2 Microsoft Teams teams are named "OPS". Please enter the id of the one to post in as the summary's Team Name: the groupId in the link to the team.`,
+      `The test summary was not posted in General. 2 Microsoft Teams teams are named "OPS". Edit the summary and pick the one to post in from its list of teams.`,
     );
     expect(graphCalls()).toEqual([]);
   });
