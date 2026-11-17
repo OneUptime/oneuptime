@@ -704,6 +704,15 @@ what was further down.
   ([`introduction/glossary.md`](../../packages/App/FeatureSet/Docs/Content/en/introduction/glossary.md))
   and the name the menu uses. A renamed thing is still found by its old name in Search. Not enforced:
   use judgement.
+- **Signing in is "Sign in" and signing out is "Sign out", never "log in", "login" or "log out".**
+  One flow once said "Log Out" in the status page's nav, "Log out" and "Sign Out" in the Dashboard,
+  and "Please login again" from the server (#9212). Now it is **Sign Out** in every menu, and
+  "Session expired. Please sign in again." A database's or another system's "login" (a credential),
+  "logged in this window" (written to a log) and another product's own label stay, each listed with its
+  reason. Enforced by
+  [SignInWordsGuard](../../packages/Common/Tests/App/SignInWordsGuard.test.ts), which reads every
+  front end's English locale, the server's sign-in messages, the mobile app's labels and the bold
+  labels in the English docs.
 - **A retired name does not come back.** When one thing had several names, #6817 kept one and retired
   the rest ([`RetiredNames`](../../packages/Common/Types/Docs/RetiredNames.ts)): "On-Call Duty" is
   On-Call, a person's "on-call rules" are How to Reach Me, the project's "Notification Settings" are
