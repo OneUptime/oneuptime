@@ -136,7 +136,7 @@ Lämna det hopfällt så pingas enheten bara: det hopfällda avsnittet säger de
 | SNMP v3 Privacy Key | Lösenfrasen för sekretess (kryptering). | Med sekretess |
 :::
 
-Autentiseringsuppgifter som skrivs på enheten vinner över en autentiseringsprofil som valts bredvid dem, och enhetens plats kan också ha en standardprofil. Autentiseringsuppgifter i en profil är krypterade i vila. Autentiseringsuppgifter som skrivs på en enhet skyddas av samma läsbehörigheter men är inte krypterade i vila: ytterligare ett skäl att hålla delade autentiseringsuppgifter i en profil.
+Autentiseringsuppgifter som skrivs på enheten vinner över en autentiseringsprofil som valts bredvid dem, och enhetens plats kan också ha en standardprofil. Autentiseringsuppgifter i en profil är krypterade i vila. Autentiseringsuppgifter som skrivs på en enhet är också krypterade i vila och skyddas av samma läsbehörigheter.
 
 ## Ändra många enheter på en gång
 

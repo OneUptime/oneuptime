@@ -136,7 +136,7 @@ Deixe recolhido e o dispositivo só recebe ping: a seção recolhida diz isso em
 | SNMP v3 Privacy Key | A frase secreta de privacidade (criptografia). | Com privacidade |
 :::
 
-As credenciais digitadas no dispositivo prevalecem sobre um perfil de credenciais escolhido ao lado delas, e o site do dispositivo também pode ter um perfil padrão. As credenciais de um perfil são criptografadas em repouso. As credenciais digitadas em um dispositivo são protegidas pelas mesmas permissões de leitura, mas não são criptografadas em repouso: mais um motivo para manter credenciais compartilhadas em um perfil.
+As credenciais digitadas no dispositivo prevalecem sobre um perfil de credenciais escolhido ao lado delas, e o site do dispositivo também pode ter um perfil padrão. As credenciais de um perfil são criptografadas em repouso. As credenciais digitadas em um dispositivo também são criptografadas em repouso e protegidas pelas mesmas permissões de leitura.
 
 ## Alterar muitos dispositivos de uma vez
 

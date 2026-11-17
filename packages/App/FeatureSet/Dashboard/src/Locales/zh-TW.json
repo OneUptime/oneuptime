@@ -56515,6 +56515,7 @@
   "This check was too large to keep in full, so it was trimmed.": "此檢查過大，無法完整保存，因此已被截斷。",
   "No email has gone out through this server's email settings since {{time}}.": "自 {{time}} 起，沒有任何郵件透過此伺服器的郵件設定寄出。",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "自 {{time}} 起，沒有任何郵件透過此伺服器的郵件設定寄出。郵件伺服器回應：{{reason}}",
+  "Only the scheme and host of each address are kept. The rest is the webhook's secret.": "每個地址只保留協定和主機。其餘部分是 Webhook 的密鑰。",
   "See email logs": "查看郵件記錄",
   "Copy Your Bearer Token": "複製你的 Bearer Token",
   "Incoming Email Secret Key Hash": "傳入電子郵件密鑰雜湊",

@@ -56515,6 +56515,7 @@
   "This check was too large to keep in full, so it was trimmed.": "این بررسی برای نگه‌داشتن کامل بیش از حد بزرگ بود، بنابراین کوتاه شد.",
   "No email has gone out through this server's email settings since {{time}}.": "از {{time}} هیچ ایمیلی از طریق تنظیمات ایمیل این سرور ارسال نشده است.",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "از {{time}} هیچ ایمیلی از طریق تنظیمات ایمیل این سرور ارسال نشده است. پاسخ سرور ایمیل: {{reason}}",
+  "Only the scheme and host of each address are kept. The rest is the webhook's secret.": "از هر نشانی فقط طرح و میزبان نگه داشته می‌شود. بقیهٔ آن کلید محرمانهٔ وب‌هوک است.",
   "See email logs": "مشاهده گزارش‌های ایمیل",
   "Copy Your Bearer Token": "توکن Bearer خود را کپی کنید",
   "Incoming Email Secret Key Hash": "هش کلید محرمانه ایمیل ورودی",

@@ -56515,6 +56515,7 @@
   "This check was too large to keep in full, so it was trimmed.": "Deze controle was te groot om volledig te bewaren en is daarom ingekort.",
   "No email has gone out through this server's email settings since {{time}}.": "Sinds {{time}} is er geen e-mail meer verstuurd via de e-mailinstellingen van deze server.",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "Sinds {{time}} is er geen e-mail meer verstuurd via de e-mailinstellingen van deze server. De mailserver meldde: {{reason}}",
+  "Only the scheme and host of each address are kept. The rest is the webhook's secret.": "Van elk adres worden alleen het schema en de host bewaard. De rest is het geheim van de webhook.",
   "See email logs": "E-maillogboeken bekijken",
   "Copy Your Bearer Token": "Kopieer uw Bearer-token",
   "Incoming Email Secret Key Hash": "Hash van de geheime sleutel voor inkomende e-mail",

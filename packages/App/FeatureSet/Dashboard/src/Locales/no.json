@@ -56515,6 +56515,7 @@
   "This check was too large to keep in full, so it was trimmed.": "Denne kontrollen var for stor til å lagres i sin helhet, så den ble forkortet.",
   "No email has gone out through this server's email settings since {{time}}.": "Ingen e-post har gått ut via e-postinnstillingene til denne serveren siden {{time}}.",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "Ingen e-post har gått ut via e-postinnstillingene til denne serveren siden {{time}}. E-postserveren svarte: {{reason}}",
+  "Only the scheme and host of each address are kept. The rest is the webhook's secret.": "Bare skjemaet og verten i hver adresse lagres. Resten er webhookens hemmelighet.",
   "See email logs": "Se e-postlogger",
   "Copy Your Bearer Token": "Kopier bærertokenet ditt",
   "Incoming Email Secret Key Hash": "Hash av den hemmelige nøkkelen for innkommende e-post",

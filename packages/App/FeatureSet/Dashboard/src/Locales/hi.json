@@ -56515,6 +56515,7 @@
   "This check was too large to keep in full, so it was trimmed.": "यह जाँच पूरी तरह रखने के लिए बहुत बड़ी थी, इसलिए इसे छोटा कर दिया गया।",
   "No email has gone out through this server's email settings since {{time}}.": "{{time}} से इस सर्वर की ईमेल सेटिंग्स से कोई ईमेल नहीं भेजा गया है।",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "{{time}} से इस सर्वर की ईमेल सेटिंग्स से कोई ईमेल नहीं भेजा गया है। मेल सर्वर ने कहा: {{reason}}",
+  "Only the scheme and host of each address are kept. The rest is the webhook's secret.": "हर पते का केवल स्कीम और होस्ट रखा जाता है। बाकी वेबहुक का सीक्रेट है।",
   "See email logs": "ईमेल लॉग देखें",
   "Copy Your Bearer Token": "अपना Bearer टोकन कॉपी करें",
   "Incoming Email Secret Key Hash": "इनकमिंग ईमेल सीक्रेट कुंजी हैश",

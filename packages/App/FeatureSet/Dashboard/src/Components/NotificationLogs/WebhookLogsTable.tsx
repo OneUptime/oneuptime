@@ -2,6 +2,7 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
 import {
   translatableTerm,
   Translator,
+  translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -53,6 +54,14 @@ const WebhookLogsTable: FunctionComponent<WebhookLogsTableProps> = (
     {
       field: { webhookUrl: true },
       title: "Webhook URL",
+      /*
+       * The log keeps an address masked (WebhookAddressMask, #9013): the
+       * rest of it - a Slack, Teams or Discord webhook's path - is the
+       * webhook's credential, read back by its owner alone.
+       */
+      headerTooltip: translationKey(
+        "Only the scheme and host of each address are kept. The rest is the webhook's secret.",
+      ),
       type: FieldType.Text,
     },
     {

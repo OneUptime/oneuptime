@@ -56515,6 +56515,7 @@
   "This check was too large to keep in full, so it was trimmed.": "Diese Prüfung war zu groß, um sie vollständig zu speichern, daher wurde sie gekürzt.",
   "No email has gone out through this server's email settings since {{time}}.": "Seit {{time}} wurde keine E-Mail über die E-Mail-Einstellungen dieses Servers versendet.",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "Seit {{time}} wurde keine E-Mail über die E-Mail-Einstellungen dieses Servers versendet. Der Mailserver meldete: {{reason}}",
+  "Only the scheme and host of each address are kept. The rest is the webhook's secret.": "Von jeder Adresse werden nur Schema und Host gespeichert. Der Rest ist das Geheimnis des Webhooks.",
   "See email logs": "E-Mail-Protokolle ansehen",
   "Copy Your Bearer Token": "Kopieren Sie Ihr Bearer-Token",
   "Incoming Email Secret Key Hash": "Hash des geheimen Schlüssels für eingehende E-Mails",

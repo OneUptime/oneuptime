@@ -48,6 +48,16 @@ export interface TableColumnMetadata {
   hashSaltColumn?: string;
   encrypted?: boolean;
   /*
+   * For an encrypted JSON column (`encrypted: true`): the fields kept
+   * encrypted, in its object or in each object of its list - a discovery
+   * scan's SNMP credential sets keep their community strings and v3 keys
+   * encrypted, and their names, versions and ports as written. A field that
+   * is not text, or is empty, is left as it is, and so is a value of any
+   * other shape. Without it, every top-level value of the column's object
+   * is encrypted.
+   */
+  encryptedFields?: Array<string>;
+  /*
    * The value lets whoever has it in: a key, a token, a passphrase, a
    * private key, a webhook address. Hashed and encrypted text columns are
    * secrets already; this marks the ones stored as they are, which a

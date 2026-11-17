@@ -56515,6 +56515,7 @@
   "This check was too large to keep in full, so it was trimmed.": "Эта проверка была слишком большой, чтобы сохранить её полностью, поэтому она сокращена.",
   "No email has gone out through this server's email settings since {{time}}.": "С {{time}} через настройки почты этого сервера не отправлено ни одного письма.",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "С {{time}} через настройки почты этого сервера не отправлено ни одного письма. Почтовый сервер ответил: {{reason}}",
+  "Only the scheme and host of each address are kept. The rest is the webhook's secret.": "От каждого адреса хранятся только схема и хост. Остальное — секрет webhook.",
   "See email logs": "Журнал писем",
   "Copy Your Bearer Token": "Скопируйте Bearer-токен",
   "Incoming Email Secret Key Hash": "Хеш секретного ключа входящей почты",

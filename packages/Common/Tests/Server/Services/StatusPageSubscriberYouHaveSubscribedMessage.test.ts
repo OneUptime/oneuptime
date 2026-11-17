@@ -7,6 +7,7 @@ import StatusPageSubscriberService from "../../../Server/Services/StatusPageSubs
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate } from "../../../Server/Types/Database/Hooks";
 import { ExpressRequest } from "../../../Server/Utils/Express";
+import Encryption from "../../../Server/Utils/Encryption";
 import PublicMessageRateLimit from "../../../Server/Utils/RateLimit/PublicMessageRateLimit";
 import StatusPageSubscriberWebhookUtil from "../../../Server/Utils/StatusPageSubscriberWebhook";
 import MicrosoftTeamsUtil from "../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
@@ -345,4 +346,118 @@ describe("A visitor who subscribes on the status page", () => {
       ).toHaveBeenCalledTimes(1);
     },
   );
+});
+
+/*
+ * A subscriber's webhooks are stored encrypted (#9013): every create
+ * encrypts them before onCreateSuccess, which used to read them off the row
+ * it was handed - the ciphertext - and post the welcome to an address that
+ * is none. It reads each as it was written (getValueAsGiven), and so does
+ * the count of the contacts a create messages, which a ciphertext, salted
+ * afresh on every write, would make a new contact every time.
+ */
+describe("A subscriber whose webhooks are stored encrypted, as every create stores them", () => {
+  type Encrypt = (data: StatusPageSubscriber) => Promise<StatusPageSubscriber>;
+
+  async function storedEncrypted(): Promise<CreateBy<StatusPageSubscriber>> {
+    const row: StatusPageSubscriber = new StatusPageSubscriber();
+    row.projectId = PROJECT_ID;
+    row.statusPageId = STATUS_PAGE_ID;
+    row.slackIncomingWebhookUrl = URL.fromString(SLACK_WEBHOOK);
+    row.microsoftTeamsIncomingWebhookUrl = URL.fromString(TEAMS_WEBHOOK);
+    row.subscriberWebhook = URL.fromString(WEBHOOK);
+    row.isSubscriptionConfirmed = true;
+    row.sendYouHaveSubscribedMessage = true;
+
+    // As DatabaseService.create encrypts the row before onCreateSuccess.
+    await (
+      StatusPageSubscriberService as unknown as { encrypt: Encrypt }
+    ).encrypt.call(StatusPageSubscriberService, row);
+
+    return { data: row, props: { isRoot: true } };
+  }
+
+  test("is welcomed on each webhook at its address as written, never at its ciphertext", async () => {
+    const createBy: CreateBy<StatusPageSubscriber> = await storedEncrypted();
+
+    for (const stored of [
+      createBy.data.slackIncomingWebhookUrl,
+      createBy.data.microsoftTeamsIncomingWebhookUrl,
+      createBy.data.subscriberWebhook,
+    ]) {
+      expect(Encryption.looksEncrypted(String(stored))).toBe(true);
+    }
+
+    await saved(createBy);
+
+    expect(sentOn()).toEqual(["Slack", "Microsoft Teams", "webhook"]);
+    expect(
+      String(
+        (
+          mock(SlackUtil.sendMessageToChannelViaIncomingWebhook).mock
+            .calls[0]![0] as { url: URL }
+        ).url,
+      ),
+    ).toBe(SLACK_WEBHOOK);
+    expect(
+      String(
+        (
+          mock(MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook).mock
+            .calls[0]![0] as { url: URL }
+        ).url,
+      ),
+    ).toBe(URL.fromString(TEAMS_WEBHOOK).toString());
+    expect(
+      String(
+        (
+          mock(StatusPageSubscriberWebhookUtil.sendWebhookNotification).mock
+            .calls[0]![0] as { webhookUrl: URL }
+        ).webhookUrl,
+      ),
+    ).toBe(WEBHOOK);
+  });
+
+  test("is counted on each webhook by its address as written: the same contact on every create", async () => {
+    const asWritten: StatusPageSubscriber = new StatusPageSubscriber();
+    asWritten.slackIncomingWebhookUrl = URL.fromString(SLACK_WEBHOOK);
+    asWritten.microsoftTeamsIncomingWebhookUrl = URL.fromString(TEAMS_WEBHOOK);
+    asWritten.subscriberWebhook = URL.fromString(WEBHOOK);
+    asWritten.isSubscriptionConfirmed = true;
+    asWritten.sendYouHaveSubscribedMessage = true;
+
+    const first: CreateBy<StatusPageSubscriber> = await storedEncrypted();
+    const second: CreateBy<StatusPageSubscriber> = await storedEncrypted();
+
+    expect(
+      StatusPageSubscriberService.getContactsMessagedOnCreate(first.data),
+    ).toEqual(
+      StatusPageSubscriberService.getContactsMessagedOnCreate(asWritten),
+    );
+    expect(
+      StatusPageSubscriberService.getContactsMessagedOnCreate(second.data),
+    ).toEqual(
+      StatusPageSubscriberService.getContactsMessagedOnCreate(asWritten),
+    );
+  });
+
+  test("its create's answer carries the webhook the team reads as written, and neither chat webhook", async () => {
+    const createBy: CreateBy<StatusPageSubscriber> = await storedEncrypted();
+
+    jest
+      .spyOn(
+        Object.getPrototypeOf(
+          Object.getPrototypeOf(StatusPageSubscriberService),
+        ),
+        "create",
+      )
+      .mockResolvedValue(createBy.data as never);
+
+    const created: StatusPageSubscriber =
+      await StatusPageSubscriberService.create(createBy);
+
+    expect(created.subscriberWebhook).toBeInstanceOf(URL);
+    expect(String(created.subscriberWebhook)).toBe(WEBHOOK);
+    expect(created.slackIncomingWebhookUrl).toBeUndefined();
+    expect(created.microsoftTeamsIncomingWebhookUrl).toBeUndefined();
+  });
 });
