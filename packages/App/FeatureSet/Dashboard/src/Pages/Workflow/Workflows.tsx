@@ -38,8 +38,9 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import CreateWorkflowModal from "../../Components/Workflow/CreateWorkflowModal";
 import WorkflowPlanNotice from "../../Components/Workflow/WorkflowPlanNotice";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { Green500, Red500 } from "Common/Types/BrandColors";
+import { Green500 } from "Common/Types/BrandColors";
 import WorkflowElement from "../../Components/Workflow/WorkflowElement";
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
 import useResourceOwners, {
@@ -276,7 +277,13 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     <Pill text="Enabled" color={Green500} isMinimal={true} />
                   );
                 }
-                return <Pill text="Disabled" color={Red500} isMinimal={true} />;
+                return (
+                  <Pill
+                    text="Disabled"
+                    tone={PillTone.Paused}
+                    isMinimal={true}
+                  />
+                );
               },
             },
             {

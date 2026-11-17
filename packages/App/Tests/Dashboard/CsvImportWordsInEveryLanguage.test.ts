@@ -334,12 +334,16 @@ describe("the import outcome's Created", () => {
       }).toEqual({ file: path.basename(file), looksUpCreated: false });
     }
 
+    // Looked up where it is drawn, or handed to the Pill, which looks it up.
     for (const file of DIALOG_FILES) {
+      const source: string = readSource(file);
+
       expect({
         file: path.basename(file),
-        draws: readSource(file).includes(
-          "{translator.translateText(CREATED_IMPORT_RESULT)}",
-        ),
+        draws:
+          source.includes(
+            "{translator.translateText(CREATED_IMPORT_RESULT)}",
+          ) || source.includes("text={CREATED_IMPORT_RESULT}"),
       }).toEqual({ file: path.basename(file), draws: true });
     }
 

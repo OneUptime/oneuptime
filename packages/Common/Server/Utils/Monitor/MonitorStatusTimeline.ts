@@ -17,6 +17,7 @@ import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataToProcess from "./DataToProcess";
 import MonitorRecordEvidence from "./MonitorRecordEvidence";
+import MonitorStoredCheck from "./MonitorStoredCheck";
 
 export default class MonitorStatusTimelineUtil {
   @CaptureSpan()
@@ -178,16 +179,17 @@ export default class MonitorStatusTimelineUtil {
        * would make Postgres refuse the jsonb and fail the status change.
        * Everyone who reads the monitor reads it, for as long as the
        * timeline is kept, so it is cut as the monitor's logs are
-       * (MonitorRecordEvidence).
+       * (MonitorRecordEvidence), and never past its size limit
+       * (MonitorStoredCheck): a grouped monitor's evaluation can hold
+       * thousands of series.
        */
-      monitorStatusTimeline.statusChangeLog =
-        MonitorRecordEvidence.toStoredCheck({
-          dataToProcess: input.dataToProcess,
-          keepResponseContent: MonitorRecordEvidence.keepsResponseContent(
-            input.monitor,
-          ),
-          monitorStep: input.monitorStep,
-        });
+      monitorStatusTimeline.statusChangeLog = MonitorStoredCheck.toStoredCheck({
+        dataToProcess: input.dataToProcess,
+        keepResponseContent: MonitorRecordEvidence.keepsResponseContent(
+          input.monitor,
+        ),
+        monitorStep: input.monitorStep,
+      });
       monitorStatusTimeline.rootCause = input.rootCause;
 
       try {

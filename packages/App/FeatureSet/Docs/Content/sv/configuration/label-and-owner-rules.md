@@ -57,7 +57,7 @@ I steget **Etiketter** väljer du **Etiketter att lägga till**. I en ägarregel
 I det sista steget klickar du på knappen som är uppkallad efter regeln igen, till exempel **Skapa Monitor Label Rule**. Regeln är aktiverad från början, och listan visar den med en grön märkning **Aktiverad**.
 :::
 
-En ny regel måste lägga till något: minst en etikett (eller ägare) eller, i en regel för incidenter, larm eller schemalagt underhåll, något som den ärver (se nedan). För att pausa en regel utan att ta bort den stänger du av **Aktiverad** i dess redigeringsformulär; listan visar då en röd märkning **Inaktiverad**. På en ägarregel för incidenter eller larm räcker det också med ett team under **Skaparens team**.
+En ny regel måste lägga till något: minst en etikett (eller ägare) eller, i en regel för incidenter, larm eller schemalagt underhåll, något som den ärver (se nedan). För att pausa en regel utan att ta bort den stänger du av **Aktiverad** i dess redigeringsformulär; listan visar då en grå märkning **Inaktiverad**. På en ägarregel för incidenter eller larm räcker det också med ett team under **Skaparens team**.
 
 ### Oavsett hur regeln skapas
 

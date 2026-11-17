@@ -1,4 +1,6 @@
 import { getHandDrawnLookClassName } from "Common/UI/Components/Button/ButtonStates";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import VideoCallProvider from "Common/Types/VideoCall/VideoCallProvider";
@@ -117,16 +119,16 @@ const ProviderTile: FunctionComponent<{
       <div className="flex items-start justify-between gap-3">
         <VideoCallProviderLogo provider={definition.provider} size="lg" />
         {props.count > 0 && (
-          <span
-            data-testid={`video-call-provider-count-${definition.provider}`}
-            className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200"
-          >
-            <Icon icon={IconProp.Check} className="h-3 w-3" />
-            {translator.translatePlural(
+          <Pill
+            text={translator.translatePlural(
               { one: "{{count}} connected", other: "{{count}} connected" },
               props.count,
             )}
-          </span>
+            isUserContent={true}
+            tone={PillTone.Success}
+            icon={IconProp.Check}
+            dataTestId={`video-call-provider-count-${definition.provider}`}
+          />
         )}
       </div>
 
@@ -195,9 +197,7 @@ const SlackHuddleTile: FunctionComponent = (): ReactElement => {
           provider={VideoCallProvider.SlackHuddle}
           size="lg"
         />
-        <span className="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-200">
-          {translator.translateText("Built in")}
-        </span>
+        <Pill text="Built in" tone={PillTone.Info} isDotHidden={true} />
       </div>
 
       <p className="mt-3 text-sm font-semibold text-gray-900">

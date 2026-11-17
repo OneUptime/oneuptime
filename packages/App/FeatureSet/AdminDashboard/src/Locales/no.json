@@ -2144,8 +2144,6 @@
   "Check email settings": "Sjekk e-postinnstillingene",
   "Email is failing": "E-post feiler",
   "Email is not set up": "E-post er ikke satt opp",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.": "Sending av e-post har feilet siden {{time}}, så invitasjoner og e-post om hendelser kommer ikke fram.",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}": "Sending av e-post har feilet siden {{time}}, så invitasjoner og e-post om hendelser kommer ikke fram. E-postserveren svarte: {{reason}}",
   "Invitations, password resets and incident emails are not sent.": "Invitasjoner, tilbakestilling av passord og e-post om hendelser blir ikke sendt.",
   "Monitors that run on global probes are not being checked.": "Monitorer som kjører på globale sonder, blir ikke sjekket.",
   "No global probe is reporting": "Ingen globale sonder rapporterer",
@@ -4165,5 +4163,11 @@
   "OneUptime switched this rule off when they were deleted.": "OneUptime slo av denne regelen da de ble slettet.",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "Slått på som den er, ville regelen ikke lenger være begrenset av disse listene i det hele tatt. Rediger den for å velge hva den gjelder for, og slå den deretter på.",
   "{{names}} and {{count}} more": "{{names}} og {{count}} til",
-  "{{names}} and {{count}} more_one": "{{names}} og {{count}} til"
+  "{{names}} and {{count}} more_one": "{{names}} og {{count}} til",
+  "No email has gone out through this server's email settings since {{time}}.": "Ingen e-post har gått ut via e-postinnstillingene til denne serveren siden {{time}}.",
+  "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "Ingen e-post har gått ut via e-postinnstillingene til denne serveren siden {{time}}. E-postserveren svarte: {{reason}}",
+  "See email logs": "Se e-postlogger",
+  "Addresses the mail server refused": "Adresser e-postserveren avviste",
+  "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "Andre e-poster gikk ut, så bare disse adressene er berørt. Rett adressen, eller få e-postleverandøren din til å godta den: en Amazon SES-sandkasse sender bare til adresser den har bekreftet.",
+  "Last refused {{time}}": "Sist avvist {{time}}"
 }

@@ -57,7 +57,7 @@ I trinnet **Etiketter** vælger du **Etiketter at tilføje**. I en ejerregel hed
 I det sidste trin klikker du igen på knappen, der er opkaldt efter reglen, for eksempel **Opret Monitor Label Rule**. Reglen starter som aktiveret, og listen viser den med et grønt mærke **Aktiveret**.
 :::
 
-En ny regel skal tilføje noget: mindst én etiket (eller ejer) eller, i en regel for hændelser, alarmer eller planlagt vedligeholdelse, noget den nedarver (se nedenfor). For at sætte en regel på pause uden at slette den slår du **Aktiveret** fra i dens redigeringsformular; listen viser så et rødt mærke **Deaktiveret**. På en ejerregel for hændelser eller advarsler er et team under **Opretterens team** også nok.
+En ny regel skal tilføje noget: mindst én etiket (eller ejer) eller, i en regel for hændelser, alarmer eller planlagt vedligeholdelse, noget den nedarver (se nedenfor). For at sætte en regel på pause uden at slette den slår du **Aktiveret** fra i dens redigeringsformular; listen viser så et gråt mærke **Deaktiveret**. På en ejerregel for hændelser eller advarsler er et team under **Opretterens team** også nok.
 
 ### Uanset hvordan reglen oprettes
 

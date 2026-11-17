@@ -205,6 +205,8 @@ Handlingspunktet viser derefter, hvad det blev til: hvor langt dets opgave er, f
 
 De to AI-handlinger kræver, at AI er slået til for projektet, og et repository, som OneUptime AI kan arbejde i. Er der ikke forbundet noget, tilbyder menuen **Forbind et repository** i stedet. En anmodning kræver det samme som en anmodning i Kode, plus tilladelse til at redigere handlingspunktet.
 
+For en privat hændelse læses opgaven og dens pull request kun af dem, der må læse hændelsen. Anmodningen nævner kun hændelsen ved dens nummer og beder OneUptime AI om at holde den ude af pull requesten, som alle med adgang til repositoryet læser.
+
 ### Se alle handlingspunkter
 
 **Hændelser → Handlingspunkter** viser alle postmortems' handlingspunkter på tværs af projektet med den tidligste frist først, hver med sin hændelse, ejer, frist og status. Filtrér listen efter **Status**, **Ejer** og **Frist**, og **Vis** i en række åbner hændelsens side **Postmortem**.

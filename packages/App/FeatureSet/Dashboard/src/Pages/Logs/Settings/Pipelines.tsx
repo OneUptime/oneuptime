@@ -1,3 +1,4 @@
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import PageComponentProps from "../../PageComponentProps";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -14,7 +15,7 @@ import {
 } from "Common/UI/Components/BulkUpdate/BulkSwitchActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { Green, Red } from "Common/Types/BrandColors";
+import { Green } from "Common/Types/BrandColors";
 import Navigation from "Common/UI/Utils/Navigation";
 import LogPipeline from "Common/Models/DatabaseModels/LogPipeline";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -218,7 +219,7 @@ const LogPipelines: FunctionComponent<
             if (item.isEnabled) {
               return <Pill color={Green} text="Enabled" />;
             }
-            return <Pill color={Red} text="Disabled" />;
+            return <Pill tone={PillTone.Paused} text="Disabled" />;
           },
         },
       ]}

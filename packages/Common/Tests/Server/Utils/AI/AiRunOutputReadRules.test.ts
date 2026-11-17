@@ -10,7 +10,10 @@ import AIRunService from "../../../../Server/Services/AIRunService";
 import DatabaseService from "../../../../Server/Services/DatabaseService";
 import RunnerJobService from "../../../../Server/Services/RunnerJobService";
 import PrivateRecordPermission from "../../../../Server/Types/Database/Permissions/PrivateRecordPermission";
-import { AI_RUN_ABOUT_KEYS } from "../../../../Server/Utils/AI/AIRunOutputReadFilter";
+import {
+  AI_RUN_ABOUT_KEYS,
+  CARRIED_RECORD_COLUMNS,
+} from "../../../../Server/Utils/AI/AIRunOutputReadFilter";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
@@ -434,4 +437,49 @@ describe.each(
       expect(rule.why.length).toBeGreaterThan(0);
     });
   }
+});
+
+/*
+ * A pull request OneUptime AI opened from a chat names no run: it carries
+ * the chat's subject in keys of its own (#9186), each held to the rule in a
+ * find and a count alike, and named among what its read hook narrows by. A
+ * Project Owner sees every private record, so none.
+ */
+describe("a pull request record a chat opened", () => {
+  const service: ServiceOf = asService(AIAgentTaskPullRequestService);
+
+  test("is read by a member only where they see what it carries; by a Project Owner everywhere", async () => {
+    const [member, owner]: Array<DatabaseCommonInteractionProps> = READERS.map(
+      ([, props]: [string, DatabaseCommonInteractionProps]) => {
+        return props;
+      },
+    );
+
+    for (const query of [
+      await hookedQuery(service, member!),
+      await countedQuery(service, member!),
+    ]) {
+      for (const column of CARRIED_RECORD_COLUMNS) {
+        expect({ column, sql: sqlOf(query[column]) }).toEqual({
+          column,
+          sql: expect.stringMatching(
+            /^\(COLUMN IS NULL OR NOT EXISTS \(SELECT 1 FROM \(SELECT CASE WHEN /,
+          ),
+        });
+      }
+    }
+
+    for (const query of [
+      await hookedQuery(service, owner!),
+      await countedQuery(service, owner!),
+    ]) {
+      for (const column of CARRIED_RECORD_COLUMNS) {
+        expect(query[column]).toBeUndefined();
+      }
+    }
+
+    expect(service.getColumnsReadHooksNarrowBy()).toEqual(
+      expect.arrayContaining([...CARRIED_RECORD_COLUMNS]),
+    );
+  });
 });

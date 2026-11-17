@@ -648,7 +648,11 @@ describe("an email the server sends with them (MailService)", () => {
       "env@example.com",
     );
     expect(outcomes).toEqual([
-      { channel: ServerSendingChannel.Email, succeeded: true },
+      {
+        channel: ServerSendingChannel.Email,
+        succeeded: true,
+        recipient: "alice@example.test",
+      },
     ]);
     expect(findOneBy()).not.toHaveBeenCalled();
   });

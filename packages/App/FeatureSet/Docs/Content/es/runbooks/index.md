@@ -108,10 +108,9 @@ El menú lateral de un runbook agrupa sus páginas así. Solo **Básico** empiez
 | --- | --- |
 | **Básico** | **Vista general**, **Pasos** |
 | **Registros** | **Ejecuciones** |
-| **Propietarios** | **Propietarios** |
 | **Ajustes** | **Desencadenantes**, **Variables**, **Ajustes** |
 | **Desarrolladores** | **Terraform**, **API**, **CLI**, **Asistentes de IA** |
-| **Avanzado** | **Registros de auditoría**, **Eliminar runbook** |
+| **Avanzado** | **Propietarios**, **Registros de auditoría**, **Eliminar runbook** |
 
 ## Un ejemplo completo
 

@@ -23,6 +23,7 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import DirectPageLabel from "Common/UI/Components/OnCallDirectPage/DirectPageLabel";
 import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import NotifiedVia, {
@@ -398,18 +399,13 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                */
               if (item["onCallDutyScheduleId"] && item["isNextInRotation"]) {
                 return (
-                  <div
-                    data-testid="on-call-timeline-nobody-next-in-rotation"
-                    className="inline-flex max-w-full items-center gap-1.5 rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-200"
-                  >
-                    <Icon
-                      icon={IconProp.Alert}
-                      className="h-3.5 w-3.5 flex-shrink-0"
-                    />
-                    <span className="min-w-0 whitespace-normal break-words">
-                      {translator.translateText(NOBODY_NEXT_IN_ROTATION_LABEL)}
-                    </span>
-                  </div>
+                  <Pill
+                    text={NOBODY_NEXT_IN_ROTATION_LABEL}
+                    tone={PillTone.Warning}
+                    icon={IconProp.Alert}
+                    isWrapping={true}
+                    dataTestId="on-call-timeline-nobody-next-in-rotation"
+                  />
                 );
               }
 
@@ -421,10 +417,11 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                */
               if (item["onCallDutyScheduleId"]) {
                 return (
-                  <span className="inline-flex items-center gap-1.5 rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-200">
-                    <Icon icon={IconProp.Alert} className="h-3.5 w-3.5" />
-                    {translator.translateText("No one was on call")}
-                  </span>
+                  <Pill
+                    text="No one was on call"
+                    tone={PillTone.Warning}
+                    icon={IconProp.Alert}
+                  />
                 );
               }
 
@@ -439,21 +436,17 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
 
               if (teamName) {
                 return (
-                  <div
-                    data-testid="on-call-timeline-team-has-no-members"
-                    className="inline-flex max-w-full items-center gap-1.5 rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-200"
-                  >
-                    <Icon
-                      icon={IconProp.Alert}
-                      className="h-3.5 w-3.5 flex-shrink-0"
-                    />
-                    <span className="min-w-0 whitespace-normal break-words">
-                      {translator.translateTemplate(
-                        TEAM_HAS_NO_MEMBERS_TEMPLATE,
-                        { teamName: teamName },
-                      )}
-                    </span>
-                  </div>
+                  <Pill
+                    text={translator.translateTemplate(
+                      TEAM_HAS_NO_MEMBERS_TEMPLATE,
+                      { teamName: teamName },
+                    )}
+                    isUserContent={true}
+                    tone={PillTone.Warning}
+                    icon={IconProp.Alert}
+                    isWrapping={true}
+                    dataTestId="on-call-timeline-team-has-no-members"
+                  />
                 );
               }
 
@@ -468,20 +461,13 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                 )
               ) {
                 return (
-                  <div
-                    data-testid="on-call-timeline-level-skipped-by-escalation"
-                    className="inline-flex max-w-full items-center gap-1.5 rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200"
-                  >
-                    <Icon
-                      icon={IconProp.ArrowCircleUp}
-                      className="h-3.5 w-3.5 flex-shrink-0 text-gray-500"
-                    />
-                    <span className="min-w-0 whitespace-normal break-words">
-                      {translator.translateText(
-                        LEVEL_SKIPPED_BY_ESCALATION_LABEL,
-                      )}
-                    </span>
-                  </div>
+                  <Pill
+                    text={LEVEL_SKIPPED_BY_ESCALATION_LABEL}
+                    tone={PillTone.Neutral}
+                    icon={IconProp.ArrowCircleUp}
+                    isWrapping={true}
+                    dataTestId="on-call-timeline-level-skipped-by-escalation"
+                  />
                 );
               }
 
@@ -505,19 +491,16 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                     data-testid="on-call-timeline-level-paged-nobody"
                     className="flex min-w-0 flex-col items-start gap-1"
                   >
-                    <span className="inline-flex max-w-full items-center gap-1.5 rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-200">
-                      <Icon
-                        icon={IconProp.Alert}
-                        className="h-3.5 w-3.5 flex-shrink-0"
-                      />
-                      <span className="min-w-0 whitespace-normal break-words">
-                        {translator.translateText(
-                          emptyLevelLine === OnCallEmptyLevelLine.NoResponders
-                            ? LEVEL_HAS_NO_RESPONDERS_LABEL
-                            : LEVEL_PAGED_NOBODY_LABEL,
-                        )}
-                      </span>
-                    </span>
+                    <Pill
+                      text={
+                        emptyLevelLine === OnCallEmptyLevelLine.NoResponders
+                          ? LEVEL_HAS_NO_RESPONDERS_LABEL
+                          : LEVEL_PAGED_NOBODY_LABEL
+                      }
+                      tone={PillTone.Warning}
+                      icon={IconProp.Alert}
+                      isWrapping={true}
+                    />
                     {movedOnAtOnce ? (
                       <span
                         data-testid="on-call-timeline-moved-on-at-once"

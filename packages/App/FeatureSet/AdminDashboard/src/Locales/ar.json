@@ -2144,8 +2144,6 @@
   "Check email settings": "تحقق من إعدادات البريد الإلكتروني",
   "Email is failing": "يتعذر إرسال البريد الإلكتروني",
   "Email is not set up": "البريد الإلكتروني غير مُعدّ",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.": "يتعذر إرسال الرسائل منذ {{time}}، لذا لا تصل الدعوات ورسائل الحوادث.",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}": "يتعذر إرسال الرسائل منذ {{time}}، لذا لا تصل الدعوات ورسائل الحوادث. ردّ خادم البريد: {{reason}}",
   "Invitations, password resets and incident emails are not sent.": "لا تُرسَل الدعوات ولا رسائل إعادة تعيين كلمة المرور ولا رسائل الحوادث.",
   "Monitors that run on global probes are not being checked.": "لا يجري فحص المراقبات التي تعمل على المسابير العامة.",
   "No global probe is reporting": "لا يرسل أي مسبار عام تقاريره",
@@ -4165,5 +4163,11 @@
   "OneUptime switched this rule off when they were deleted.": "عطّل OneUptime هذه القاعدة عند حذف تلك السجلات.",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "لو فُعّلت كما هي، فلن تقيّدها هذه القوائم أبدًا. عدّلها لاختيار ما تنطبق عليه، ثم فعّلها.",
   "{{names}} and {{count}} more": "{{names}} و{{count}} غيرها",
-  "{{names}} and {{count}} more_one": "{{names}} و{{count}} غيرها"
+  "{{names}} and {{count}} more_one": "{{names}} و{{count}} غيرها",
+  "No email has gone out through this server's email settings since {{time}}.": "لم يُرسَل أي بريد إلكتروني عبر إعدادات البريد في هذا الخادم منذ {{time}}.",
+  "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "لم يُرسَل أي بريد إلكتروني عبر إعدادات البريد في هذا الخادم منذ {{time}}. ردّ خادم البريد: {{reason}}",
+  "See email logs": "عرض سجلات البريد",
+  "Addresses the mail server refused": "العناوين التي رفضها خادم البريد",
+  "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "أُرسلت الرسائل الأخرى، لذا تتأثر هذه العناوين فقط. صحّح العنوان أو اجعل مزوّد البريد يقبله: لا ترسل بيئة Amazon SES التجريبية إلا إلى العناوين التي تحقّقت منها.",
+  "Last refused {{time}}": "آخر رفض: {{time}}"
 }

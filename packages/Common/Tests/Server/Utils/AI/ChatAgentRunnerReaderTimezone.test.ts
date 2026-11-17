@@ -219,6 +219,8 @@ describe("the tool context a turn builds", () => {
     expect(buildToolContext(request, undefined)).toEqual({
       projectId: request.projectId,
       props: request.props,
+      // The chat a pull request it opens carries the subject of (#9186).
+      conversationId: request.conversationId,
       language: "de",
       readerTimezone: Timezone.AmericaNew_York,
     });

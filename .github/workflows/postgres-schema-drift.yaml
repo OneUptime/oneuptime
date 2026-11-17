@@ -383,6 +383,24 @@ jobs:
           Tests/Server/Utils/Retention/StoredLogScreenshotsPostgres.test.ts
           --forceExit
 
+      # Trimming the oversized checks grouped monitors kept before #9189
+      # (issue #9232): each record keeps its own series, trimmed in SQL one
+      # row a statement, within its statement and lock timeouts; a check too
+      # big to trim keeps the markers alone; other rows are not written; a
+      # second walk writes nothing, and a table done is never read again.
+      - name: Test trimming oversized stored checks on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_OVERSIZED_STORED_CHECKS_TESTS: "true"
+          OVERSIZED_STORED_CHECKS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          OVERSIZED_STORED_CHECKS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          OVERSIZED_STORED_CHECKS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/Retention/OversizedStoredChecksPostgres.test.ts
+          --forceExit
+
       # Deleting for good the rows soft deleted more than 30 days ago (issue
       # #6528): the discovered devices the age-out removed go on every
       # installation, 1000 a statement, another table's only where billing
@@ -547,7 +565,10 @@ jobs:
       # about a private record, its replies and its pull request only for
       # those who see it, one about a deleted record only for Project
       # Owners and Admins. And opening a pull request from a private record
-      # only through its owners (#9165, #9106).
+      # only through its owners (#9165, #9106). The same for the work that
+      # only carries one - a task with it as context, a reply that added it,
+      # a postmortem action item's task, a chat's pull request - and the
+      # turns AIRunService writes carry what they name (#9186).
       - name: Test that OneUptime AI's code work about a private record follows its owners on migrated Postgres
         if: matrix.shard == 3
         working-directory: packages/Common
@@ -559,6 +580,27 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/CodeFixRunReadPostgres.test.ts
+          --forceExit
+
+      # Runs LinkCodeWorkToTheRecordsItCarries on clones of the migrated AI
+      # runs, pull requests, postmortem action items, AI run events and AI
+      # conversations holding every kind of Code work: each turn carries the
+      # incidents and alerts its request's context names, an action item's
+      # task its incident, a task what its replies carry, and a pull request
+      # opened from an incident's or alert's AI conversation that record when
+      # exactly one such conversation's call matches it - and nothing it
+      # can't be told for certain. Run again, it changes nothing (#9186).
+      - name: Test that Code work already carrying an incident or alert is linked to it on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_LINK_CODE_WORK_TESTS: "true"
+          LINK_CODE_WORK_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          LINK_CODE_WORK_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          LINK_CODE_WORK_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/LinkCodeWorkToTheRecordsItCarriesPostgres.test.ts
           --forceExit
 
       # Runs CascadeRunsAndFixesWithTheirRecord and

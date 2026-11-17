@@ -12,6 +12,9 @@ import AIRunStatus, {
   AIRunStatusHelper,
 } from "../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../Types/AI/AIRunType";
+import CarriedRecords, {
+  CarriedRecordIds,
+} from "../../../../Types/AI/CarriedRecords";
 import { getCodeTaskRequest } from "../../../../Types/AI/CodeFixTaskContext";
 import CodeFixTaskType, {
   CodeFixTaskTypeHelper,
@@ -104,6 +107,13 @@ export default class CodeTaskRuns {
      * (Utils/AiRemediation/DeclaredCodeChange): the fix, and its step.
      */
     declaredCodeChange?: DeclaredCodeChangeTaskContext | undefined;
+    /*
+     * The incidents and alerts the task carries beside those its context
+     * names (#9186): a postmortem action item's incident, which its request
+     * is about. What the context names is carried whatever this says
+     * (AIRunService).
+     */
+    carries?: CarriedRecordIds | undefined;
   }): Promise<AIRun> {
     const message: string = CodeTaskRuns.readMessage(data.message);
 
@@ -137,6 +147,10 @@ export default class CodeTaskRuns {
         ...(run.taskContext || {}),
         declaredCodeChange: data.declaredCodeChange,
       };
+    }
+
+    if (data.carries) {
+      CarriedRecords.writeTo(run, data.carries);
     }
 
     return await AIRunService.create({

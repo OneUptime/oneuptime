@@ -347,7 +347,8 @@ describe("Create Status Page", () => {
     // The title says it: the column's "Any friendly name of this object" does not show.
     expect(name["hideColumnDescription"]).toBe(true);
 
-    expect(description["title"]).toBe("Description");
+    // Named by who reads it (#9205): the team, not the status page's visitors.
+    expect(description["title"]).toBe("Internal Description");
     expect(description["required"]).toBe(false);
     expect(description["fieldType"]).toBe(FormFieldSchemaType.LongText);
     expect(description["placeholder"]).toBe("e.g., For customers in Europe");

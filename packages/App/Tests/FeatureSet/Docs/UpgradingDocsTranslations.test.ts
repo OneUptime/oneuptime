@@ -459,6 +459,7 @@ const PROSE_LEADS: Array<string> = [
   "What is done about a private record follows its owners too, and workflows don't act on private records.",
   "Runbook runs and fixes go with their incident or alert, and other records show a private one only to those who may read it.",
   "OneUptime AI's code work about a private incident or alert follows its owners too.",
+  "Code work that carries a private incident or alert follows its owners too.",
   "re-open each IPv6 Ping, Port and SSL monitor after the upgrade and save it again",
   "Upgrade the OneUptime server before the chart.",
   "Mirror the image, or opt out, if your upgrades wait.",

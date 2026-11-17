@@ -7,6 +7,7 @@ import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase
 import AIAgentTaskPullRequestService from "../../../Server/Services/AIAgentTaskPullRequestService";
 import AIRunService from "../../../Server/Services/AIRunService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
+import ProjectService from "../../../Server/Services/ProjectService";
 import PrivateRecordPermission, {
   PrivateRecordKind,
 } from "../../../Server/Types/Database/Permissions/PrivateRecordPermission";
@@ -28,6 +29,8 @@ import AIRunType from "../../../Types/AI/AIRunType";
 import CodeFixTaskType from "../../../Types/AI/CodeFixTaskType";
 import {
   CodeRepositoryTaskStatsJSON,
+  CodeTaskContextItem,
+  CodeTaskContextType,
   CodeTaskListCountsJSON,
   CodeTaskListFilter,
 } from "../../../Types/AI/CodeTask";
@@ -56,7 +59,7 @@ import { DataSource, Logger } from "typeorm";
 
 /*
  * ONEUPTIME AI'S CODE WORK ABOUT A PRIVATE INCIDENT OR ALERT FOLLOWS ITS
- * OWNERS, ON A MIGRATED POSTGRES (#9165, #9106).
+ * OWNERS, ON A MIGRATED POSTGRES (#9165, #9106, #9186).
  *
  * A CodeFix run is the project's to read - except one about a private
  * incident or alert, which only those who see that record read: the fix
@@ -67,6 +70,11 @@ import { DataSource, Logger } from "typeorm";
  * same holds for the run's pull request, read through its run, and for the
  * Code pages' own SQL. And opening a pull request from a private record is
  * held to its owners, as approving one of its fixes is.
+ *
+ * So does the work that only carries one (#9186): a task asked with it as
+ * context, one a reply added it to, a postmortem action item's task, and a
+ * pull request a chat about it opened - read by those who see every record
+ * it carries - and the turns AIRunService writes carry what they name.
  *
  * AIRunOutputReadFilter.test holds the SQL the rule writes; this suite runs
  * it through every read: the run's service (a find and a count that agree,
@@ -1587,6 +1595,558 @@ describePostgres(
             ),
           ).toBeNull();
         }
+      });
+    });
+
+    /*
+     * CODE WORK THAT CARRIES A PRIVATE INCIDENT OR ALERT (#9186): a task a
+     * person asked with one as context, a reply that added one (its whole
+     * task carries it), a postmortem action item's task, and a pull request
+     * a chat about one opened - each read only by those who may read every
+     * record it carries, in every read the runs and pull requests are read
+     * through. And the turns AIRunService writes carry what their requests
+     * name, a reply adding it to its task in one appending UPDATE.
+     */
+    describe("Code work that carries a private incident or alert (#9186)", () => {
+      interface Carrying {
+        privateIncident: string;
+        privateAlert: string;
+        publicAlert: string;
+        // A private incident owned only by the other team.
+        otherTeamsIncident: string;
+        // Everyone's.
+        carriesPublicAlert: string;
+        // The private records' owners'.
+        carriesPrivateIncident: string;
+        replyInIt: string;
+        taskWhoseReplyAddedPrivateAlert: string;
+        replyThatAddedPrivateAlert: string;
+        // The other team's.
+        carriesOtherTeamsIncident: string;
+        // Only who sees both: a member of both teams, Project Owners and Admins.
+        carriesBoth: string;
+        // Only who sees every private record.
+        carriesDeletedIncident: string;
+        carriesNoId: string;
+        // Pull requests.
+        prOfPrivateIncidentsTask: string;
+        chatPrAboutPrivateIncident: string;
+        chatPrAboutPublicAlert: string;
+        chatPrAboutNothing: string;
+        chatPrAboutDeletedAlert: string;
+        chatPrAboutOtherTeamsIncident: string;
+      }
+
+      async function seedCarryingRun(values: {
+        incidentIds?: Array<string> | undefined;
+        alertIds?: Array<string> | undefined;
+        taskId?: string | undefined;
+      }): Promise<string> {
+        const runId: string = await seedRun({
+          userId: authorId,
+          taskId: values.taskId,
+        });
+
+        await database.query(
+          `UPDATE "${schema}"."AIRun" SET "carriedIncidentIds" = $1, "carriedAlertIds" = $2 WHERE "_id" = $3`,
+          [
+            values.incidentIds ? JSON.stringify(values.incidentIds) : null,
+            values.alertIds ? JSON.stringify(values.alertIds) : null,
+            runId,
+          ],
+        );
+
+        return runId;
+      }
+
+      async function seedChatPullRequest(values: {
+        incidentIds?: Array<string> | undefined;
+        alertIds?: Array<string> | undefined;
+      }): Promise<string> {
+        const pullRequestId: string = await seedPullRequest(null);
+
+        await database.query(
+          `UPDATE "${schema}"."AIAgentTaskPullRequest" SET "carriedIncidentIds" = $1, "carriedAlertIds" = $2 WHERE "_id" = $3`,
+          [
+            values.incidentIds ? JSON.stringify(values.incidentIds) : null,
+            values.alertIds ? JSON.stringify(values.alertIds) : null,
+            pullRequestId,
+          ],
+        );
+
+        return pullRequestId;
+      }
+
+      async function seedCarrying(): Promise<Carrying> {
+        const privateIncident: string = await seedRecord("Incident", true);
+        const privateAlert: string = await seedRecord("Alert", true);
+        const publicAlert: string = await seedRecord("Alert", false);
+
+        const otherTeamsIncident: string = await seedRow("Incident", {
+          isPrivate: true,
+        });
+
+        await seedRow("IncidentOwnerTeam", {
+          teamId: otherTeamId.toString(),
+          incidentId: otherTeamsIncident,
+        });
+
+        const carriesPrivateIncident: string = await seedCarryingRun({
+          incidentIds: [privateIncident],
+        });
+        const taskWhoseReplyAddedPrivateAlert: string = await seedCarryingRun({
+          alertIds: [privateAlert],
+        });
+
+        return {
+          privateIncident,
+          privateAlert,
+          publicAlert,
+          otherTeamsIncident,
+          carriesPublicAlert: await seedCarryingRun({
+            alertIds: [publicAlert],
+          }),
+          carriesPrivateIncident,
+          replyInIt: await seedCarryingRun({ taskId: carriesPrivateIncident }),
+          taskWhoseReplyAddedPrivateAlert,
+          replyThatAddedPrivateAlert: await seedCarryingRun({
+            taskId: taskWhoseReplyAddedPrivateAlert,
+            alertIds: [privateAlert],
+          }),
+          carriesOtherTeamsIncident: await seedCarryingRun({
+            incidentIds: [otherTeamsIncident],
+          }),
+          carriesBoth: await seedCarryingRun({
+            incidentIds: [privateIncident, otherTeamsIncident],
+          }),
+          carriesDeletedIncident: await seedCarryingRun({
+            incidentIds: [ObjectID.generate().toString()],
+          }),
+          carriesNoId: await seedCarryingRun({ incidentIds: ["not-an-id"] }),
+          prOfPrivateIncidentsTask: await seedPullRequest(
+            carriesPrivateIncident,
+          ),
+          chatPrAboutPrivateIncident: await seedChatPullRequest({
+            incidentIds: [privateIncident],
+          }),
+          chatPrAboutPublicAlert: await seedChatPullRequest({
+            alertIds: [publicAlert],
+          }),
+          chatPrAboutNothing: await seedChatPullRequest({}),
+          chatPrAboutDeletedAlert: await seedChatPullRequest({
+            alertIds: [ObjectID.generate().toString()],
+          }),
+          chatPrAboutOtherTeamsIncident: await seedChatPullRequest({
+            incidentIds: [otherTeamsIncident],
+          }),
+        };
+      }
+
+      // The runs each kind of reader reads, by what they see.
+      function runsReadBy(carrying: Carrying): {
+        anyone: Array<string>;
+        privateRecordsOwners: Array<string>;
+        otherTeam: Array<string>;
+        bothTeams: Array<string>;
+        all: Array<string>;
+      } {
+        const anyone: Array<string> = [carrying.carriesPublicAlert];
+        const ownersOnly: Array<string> = [
+          carrying.carriesPrivateIncident,
+          carrying.replyInIt,
+          carrying.taskWhoseReplyAddedPrivateAlert,
+          carrying.replyThatAddedPrivateAlert,
+        ];
+        const otherTeamOnly: Array<string> = [
+          carrying.carriesOtherTeamsIncident,
+        ];
+
+        return {
+          anyone,
+          privateRecordsOwners: [...anyone, ...ownersOnly],
+          otherTeam: [...anyone, ...otherTeamOnly],
+          bothTeams: [
+            ...anyone,
+            ...ownersOnly,
+            ...otherTeamOnly,
+            carrying.carriesBoth,
+          ],
+          all: [
+            ...anyone,
+            ...ownersOnly,
+            ...otherTeamOnly,
+            carrying.carriesBoth,
+            carrying.carriesDeletedIncident,
+            carrying.carriesNoId,
+          ],
+        };
+      }
+
+      test("a task, every turn of it and a task a reply added a private record to are read only by those who see every record they carry", async () => {
+        const carrying: Carrying = await seedCarrying();
+        const read: ReturnType<typeof runsReadBy> = runsReadBy(carrying);
+
+        // Another member, someone whose invitation waits: what anyone reads.
+        for (const props of [member(invitedId)]) {
+          expect(await readRuns(props)).toEqual(sorted(read.anyone));
+        }
+
+        // The other team's members, the person who asked among them.
+        for (const props of [member(otherId), member(authorId)]) {
+          expect(await readRuns(props)).toEqual(sorted(read.otherTeam));
+        }
+
+        // The private records' owners: their team's member and the person named.
+        for (const props of [member(ownerTeamMemberId), member(namedOwnerId)]) {
+          expect(await readRuns(props)).toEqual(
+            sorted(read.privateRecordsOwners),
+          );
+        }
+
+        // A member of both teams sees both, and so what carries both.
+        expect(await readRuns(viewOnlyOwner())).toEqual(sorted(read.bothTeams));
+
+        // Project Owners and Admins, and OneUptime: every one, what is gone too.
+        for (const props of [
+          projectOwner(),
+          projectAdmin(),
+          { isRoot: true } as DatabaseCommonInteractionProps,
+        ]) {
+          expect(await readRuns(props)).toEqual(sorted(read.all));
+        }
+
+        // By its id, for someone who does not see what it carries: nothing.
+        for (const runId of [
+          carrying.carriesPrivateIncident,
+          carrying.replyInIt,
+          carrying.taskWhoseReplyAddedPrivateAlert,
+        ]) {
+          expect(
+            await AIRunService.findOneById({
+              id: new ObjectID(runId),
+              select: { _id: true, status: true },
+              props: member(otherId),
+            }),
+          ).toBeNull();
+        }
+      });
+
+      test("their pull requests, and those a chat about a record opened, are read only by those who see what they carry", async () => {
+        const carrying: Carrying = await seedCarrying();
+
+        const anyone: Array<string> = [
+          carrying.chatPrAboutPublicAlert,
+          carrying.chatPrAboutNothing,
+        ];
+        const owners: Array<string> = [
+          ...anyone,
+          carrying.prOfPrivateIncidentsTask,
+          carrying.chatPrAboutPrivateIncident,
+        ];
+        const otherTeam: Array<string> = [
+          ...anyone,
+          carrying.chatPrAboutOtherTeamsIncident,
+        ];
+        const all: Array<string> = [
+          ...owners,
+          carrying.chatPrAboutOtherTeamsIncident,
+          carrying.chatPrAboutDeletedAlert,
+        ];
+
+        for (const props of [
+          member(invitedId),
+          propsOf([grant(Permission.ProjectMember)], null),
+          workflowStep(),
+        ]) {
+          expect(await readPullRequests(props)).toEqual(sorted(anyone));
+        }
+
+        expect(await readPullRequests(member(otherId))).toEqual(
+          sorted(otherTeam),
+        );
+
+        for (const props of [member(ownerTeamMemberId), member(namedOwnerId)]) {
+          expect(await readPullRequests(props)).toEqual(sorted(owners));
+        }
+
+        expect(await readPullRequests(viewOnlyOwner())).toEqual(
+          sorted([...owners, carrying.chatPrAboutOtherTeamsIncident]),
+        );
+
+        for (const props of [
+          projectOwner(),
+          projectAdmin(),
+          propsOf([grant(Permission.ProjectAdmin)], null),
+          { isRoot: true } as DatabaseCommonInteractionProps,
+        ]) {
+          expect(await readPullRequests(props)).toEqual(sorted(all));
+        }
+      });
+
+      test("the Code pages' list, counts and totals, a task's page and a live update keep to the reader's", async () => {
+        const carrying: Carrying = await seedCarrying();
+        const read: ReturnType<typeof runsReadBy> = runsReadBy(carrying);
+
+        // A repository's tasks: first turns, never a reply.
+        const tasks: (runs: Array<string>) => Array<string> = (
+          runs: Array<string>,
+        ): Array<string> => {
+          return runs
+            .filter((run: string): boolean => {
+              return (
+                run !== carrying.replyInIt &&
+                run !== carrying.replyThatAddedPrivateAlert
+              );
+            })
+            .sort();
+        };
+
+        const scope: (reader: DatabaseCommonInteractionProps) => {
+          projectId: ObjectID;
+          reader: DatabaseCommonInteractionProps;
+          repositoryIds: Array<ObjectID>;
+          includeWithoutRepository: boolean;
+          isProductionReviews: boolean;
+          search: string;
+        } = (reader: DatabaseCommonInteractionProps) => {
+          return {
+            projectId,
+            reader,
+            repositoryIds: [repositoryId],
+            includeWithoutRepository: false,
+            isProductionReviews: false,
+            search: "",
+          };
+        };
+
+        for (const [reader, expected] of [
+          [member(invitedId), read.anyone],
+          [member(otherId), read.otherTeam],
+          [member(namedOwnerId), read.privateRecordsOwners],
+          [viewOnlyOwner(), read.bothTeams],
+          [projectAdmin(), read.all],
+        ] as Array<[DatabaseCommonInteractionProps, Array<string>]>) {
+          expect(
+            (
+              await CodeTaskListQuery.readPage({
+                ...scope(reader),
+                filter: CodeTaskListFilter.All,
+                limit: 50,
+                skip: 0,
+              })
+            ).sort(),
+          ).toEqual(tasks(expected));
+
+          expect(
+            (await CodeTaskListQuery.readCounts(scope(reader)))[
+              CodeTaskListFilter.All
+            ],
+          ).toBe(tasks(expected).length);
+
+          const stats: CodeRepositoryTaskStatsJSON = (
+            await CodeTaskStats.getRepositoryStats({
+              projectId,
+              repositoryIds: [repositoryId],
+              reader,
+            })
+          ).get(repositoryId.toString())!;
+
+          expect(stats.taskCount).toBe(tasks(expected).length);
+        }
+
+        /*
+         * Open pull requests, each through its run or by what it carries:
+         * the chats' about nothing and about a public alert for anyone.
+         */
+        const openPullRequestsOf: (
+          reader: DatabaseCommonInteractionProps,
+        ) => Promise<number> = async (
+          reader: DatabaseCommonInteractionProps,
+        ): Promise<number> => {
+          return (
+            await CodeTaskStats.getRepositoryStats({
+              projectId,
+              repositoryIds: [repositoryId],
+              reader,
+            })
+          ).get(repositoryId.toString())!.openPullRequests;
+        };
+
+        expect(await openPullRequestsOf(member(invitedId))).toBe(2);
+        expect(await openPullRequestsOf(member(otherId))).toBe(3);
+        expect(await openPullRequestsOf(member(namedOwnerId))).toBe(4);
+        expect(await openPullRequestsOf(viewOnlyOwner())).toBe(5);
+        expect(await openPullRequestsOf(projectAdmin())).toBe(6);
+
+        // A task's page, by a reply's id: only for who sees what it carries.
+        for (const [reader, taskId] of [
+          [member(otherId), null],
+          [member(invitedId), null],
+          [member(namedOwnerId), carrying.taskWhoseReplyAddedPrivateAlert],
+          [viewOnlyOwner(), carrying.taskWhoseReplyAddedPrivateAlert],
+        ] as Array<[DatabaseCommonInteractionProps, string | null]>) {
+          expect(
+            (
+              await CodeTaskThread.findTask({
+                projectId,
+                taskId: new ObjectID(carrying.replyThatAddedPrivateAlert),
+                readableBy: reader,
+              })
+            )?._id?.toString() || null,
+          ).toBe(taskId);
+        }
+
+        // A live update of a run reaches only those who may read it.
+        const liveFor: (
+          props: DatabaseCommonInteractionProps,
+        ) => Promise<Array<string>> = async (
+          props: DatabaseCommonInteractionProps,
+        ): Promise<Array<string>> => {
+          const reader: RealtimeReader = {
+            key: (props.userId || ObjectID.generate()).toString(),
+            props: props,
+            remember: <T>(_key: string, work: () => Promise<T>): Promise<T> => {
+              return work();
+            },
+          };
+
+          return (
+            await AIRunService.getRealtimeReadAccess().getReadableIds(reader, [
+              new ObjectID(carrying.carriesPrivateIncident),
+              new ObjectID(carrying.replyInIt),
+              new ObjectID(carrying.carriesPublicAlert),
+            ])
+          ).sort();
+        };
+
+        expect(await liveFor(member(otherId))).toEqual([
+          carrying.carriesPublicAlert,
+        ]);
+        expect(await liveFor(member(ownerTeamMemberId))).toEqual(
+          [
+            carrying.carriesPrivateIncident,
+            carrying.replyInIt,
+            carrying.carriesPublicAlert,
+          ].sort(),
+        );
+      });
+
+      test("the turns AIRunService writes carry what their requests name, and a reply's are added to its task in one UPDATE that keeps what was there", async () => {
+        const privateIncident: string = await seedRecord("Incident", true);
+        const privateAlert: string = await seedRecord("Alert", true);
+
+        jest
+          .spyOn(ProjectService, "incrementAndGetAIRunCounter")
+          .mockResolvedValue(1);
+
+        const turnOf: (values: {
+          context: Array<CodeTaskContextItem>;
+          taskId?: string | undefined;
+        }) => Promise<string> = async (values: {
+          context: Array<CodeTaskContextItem>;
+          taskId?: string | undefined;
+        }): Promise<string> => {
+          const run: AIRun = new AIRun();
+          run.projectId = projectId;
+          run.runType = AIRunType.CodeFix;
+          run.codeFixTaskType = CodeFixTaskType.CodeRequest;
+          run.status = AIRunStatus.Completed;
+          run.userId = authorId;
+          run.codeRepositoryId = repositoryId;
+          run.taskContext = {
+            request: { message: "Fix it", context: values.context },
+          };
+
+          if (values.taskId) {
+            run.codeTaskId = new ObjectID(values.taskId);
+          }
+
+          return (
+            await AIRunService.create({ data: run, props: { isRoot: true } })
+          ).id!.toString();
+        };
+
+        const task: string = await turnOf({
+          context: [
+            {
+              type: CodeTaskContextType.Incident,
+              label: "INC-1",
+              recordId: privateIncident,
+            },
+          ],
+        });
+        const reply: string = await turnOf({
+          taskId: task,
+          context: [
+            {
+              type: CodeTaskContextType.Alert,
+              label: "ALT-1",
+              recordId: privateAlert,
+            },
+          ],
+        });
+        // The same alert again: added once.
+        await turnOf({
+          taskId: task,
+          context: [
+            {
+              type: CodeTaskContextType.Alert,
+              label: "ALT-1",
+              recordId: privateAlert,
+            },
+          ],
+        });
+
+        const stored: (runId: string) => Promise<SqlRow> = async (
+          runId: string,
+        ): Promise<SqlRow> => {
+          return (
+            await database.query(
+              `SELECT "carriedIncidentIds", "carriedAlertIds" FROM "${schema}"."AIRun" WHERE "_id" = $1`,
+              [runId],
+            )
+          )[0] as SqlRow;
+        };
+
+        expect(await stored(task)).toEqual({
+          carriedIncidentIds: [privateIncident],
+          carriedAlertIds: [privateAlert],
+        });
+        expect(await stored(reply)).toEqual({
+          carriedIncidentIds: null,
+          carriedAlertIds: [privateAlert],
+        });
+
+        // Two additions at the same moment: both kept.
+        const incidentOne: string = ObjectID.generate().toString();
+        const incidentTwo: string = ObjectID.generate().toString();
+
+        await Promise.all([
+          AIRunService.addCarriedRecords({
+            runId: new ObjectID(task),
+            records: { incidentIds: [incidentOne], alertIds: [] },
+          }),
+          AIRunService.addCarriedRecords({
+            runId: new ObjectID(task),
+            records: { incidentIds: [incidentTwo], alertIds: [] },
+          }),
+        ]);
+
+        expect(
+          [
+            ...((await stored(task))["carriedIncidentIds"] as Array<string>),
+          ].sort(),
+        ).toEqual([privateIncident, incidentOne, incidentTwo].sort());
+
+        // The task and its turns: the private records' owners', no one else's.
+        await database.query(
+          `UPDATE "${schema}"."AIRun" SET "carriedIncidentIds" = $1 WHERE "_id" = $2`,
+          [JSON.stringify([privateIncident]), task],
+        );
+
+        expect((await readRuns(member(otherId))).ids).toEqual([]);
+        expect((await readRuns(member(namedOwnerId))).count).toBe(3);
+        expect((await readRuns(viewOnlyOwner())).count).toBe(3);
       });
     });
   },

@@ -2144,8 +2144,6 @@
   "Check email settings": "Проверить настройки почты",
   "Email is failing": "Отправка почты не работает",
   "Email is not set up": "Почта не настроена",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.": "С {{time}} письма не отправляются, поэтому приглашения и письма об инцидентах не доходят.",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}": "С {{time}} письма не отправляются, поэтому приглашения и письма об инцидентах не доходят. Почтовый сервер ответил: {{reason}}",
   "Invitations, password resets and incident emails are not sent.": "Приглашения, письма для сброса пароля и письма об инцидентах не отправляются.",
   "Monitors that run on global probes are not being checked.": "Мониторы, работающие на глобальных зондах, не проверяются.",
   "No global probe is reporting": "Ни один глобальный зонд не отвечает",
@@ -4165,5 +4163,11 @@
   "OneUptime switched this rule off when they were deleted.": "OneUptime отключил это правило, когда они были удалены.",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "Если включить правило как есть, эти списки перестанут его ограничивать. Измените его, чтобы выбрать, к чему оно применяется, а затем включите.",
   "{{names}} and {{count}} more": "{{names}} и ещё {{count}}",
-  "{{names}} and {{count}} more_one": "{{names}} и ещё {{count}}"
+  "{{names}} and {{count}} more_one": "{{names}} и ещё {{count}}",
+  "No email has gone out through this server's email settings since {{time}}.": "С {{time}} через настройки почты этого сервера не отправлено ни одного письма.",
+  "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "С {{time}} через настройки почты этого сервера не отправлено ни одного письма. Почтовый сервер ответил: {{reason}}",
+  "See email logs": "Журнал писем",
+  "Addresses the mail server refused": "Адреса, отклонённые почтовым сервером",
+  "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "Остальные письма ушли, поэтому затронуты только эти адреса. Исправьте адрес или попросите почтового провайдера принимать его: песочница Amazon SES отправляет письма только на подтверждённые адреса.",
+  "Last refused {{time}}": "Последний отказ: {{time}}"
 }

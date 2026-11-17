@@ -36,7 +36,7 @@ Apri **Prodotti → Risorse → Monitoraggio degli utenti reali**. **Tutte le ap
 - **Impostazioni**: **Regole del proprietario**, **Regole etichette** e l'interruttore **Riproduzione delle sessioni** dell'intero progetto.
 - **Avanzato**: **Archiviato**, le applicazioni che hai archiviato.
 
-Il menu laterale di un'applicazione raggruppa le sue pagine così; **Impostazioni**, **Sviluppatori** e **Avanzato** partono chiuse:
+Il menu laterale di un'applicazione raggruppa le sue pagine così; **Sviluppatori** e **Avanzato** partono chiuse:
 
 | Sezione | Pagine |
 | --- | --- |
@@ -44,9 +44,8 @@ Il menu laterale di un'applicazione raggruppa le sue pagine così; **Impostazion
 | **Osservabilità** | **Metriche**, **Log**, **Tracce**, **Client** |
 | **Analisi del prodotto** | **Utenti**, **Sessioni**, **Eventi**, **Funnel**, **Fidelizzazione degli utenti**, **Flussi utente**, **Impostazioni di analisi** |
 | **Riproduzione delle sessioni** | **Riproduzione delle sessioni**, **Utenti delle riproduzioni**, **Integrità**, **Policy di riproduzione**, **Segnali di frustrazione**, **Log degli accessi alle riproduzioni**, **Documentazione** |
-| **Impostazioni** | **Impostazioni** |
 | **Sviluppatori** | **Terraform**, **API**, **CLI**, **Assistenti IA** |
-| **Avanzato** | **Log di audit**, **Elimina applicazione** |
+| **Avanzato** | **Impostazioni**, **Log di audit**, **Elimina applicazione** |
 
 ## Come OneUptime riconosce il RUM
 

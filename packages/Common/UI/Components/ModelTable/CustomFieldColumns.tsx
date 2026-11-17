@@ -2,6 +2,8 @@ import Column from "./Column";
 import Columns from "./Columns";
 import FieldType from "../Types/FieldType";
 import DropdownValueBadge from "../Dropdown/DropdownValueBadge";
+import Pill from "../Pill/Pill";
+import { PillTone } from "../Pill/PillTone";
 import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
@@ -255,15 +257,10 @@ export const renderCustomFieldValue: RenderCustomFieldValueFunction = (data: {
     const isTrue: boolean = value === true || value === "true";
 
     return (
-      <span
-        className={
-          isTrue
-            ? "inline-flex items-center px-2 py-1 rounded-md bg-green-50 text-green-700 text-xs font-medium ring-1 ring-inset ring-green-600/20"
-            : "inline-flex items-center px-2 py-1 rounded-md bg-gray-50 text-gray-600 text-xs font-medium ring-1 ring-inset ring-gray-500/10"
-        }
-      >
-        {translateText(isTrue ? "Yes" : "No")}
-      </span>
+      <Pill
+        text={isTrue ? "Yes" : "No"}
+        tone={isTrue ? PillTone.Success : PillTone.Neutral}
+      />
     );
   }
 

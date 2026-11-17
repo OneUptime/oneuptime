@@ -205,6 +205,8 @@ The action item then shows what it became: its task's stage, such as **Task in p
 
 The two AI actions need AI turned on for the project and a repository OneUptime AI can work in. With none connected, the menu offers **Connect a Repository** instead. Asking takes what asking in Code takes, and the permission to edit the action item.
 
+On a private incident, the task and its pull request are read only by those who may read the incident. The request names the incident only by its number, and asks OneUptime AI to leave it out of the pull request, which everyone with access to the repository reads.
+
 ### See every action item
 
 **Incidents → Action Items** lists every postmortem's action items across the project, soonest due first, with each one's incident, owner, due date and status. Filter it by **Status**, **Owner** and **Due Date**, and **View** on a row opens the incident's **Postmortem** page.

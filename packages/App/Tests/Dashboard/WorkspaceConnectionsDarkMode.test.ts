@@ -145,19 +145,17 @@ describe("the Workspace pages in the dark theme", () => {
       }
     }
 
-    // The walk found the tiles' colours at all, so this is not vacuous.
+    /*
+     * The walk found the tiles' colours at all, so this is not vacuous. The
+     * connected / not connected status is the shared Pill (#9137), which
+     * paints its own tones in both themes.
+     */
     expect(Array.from(tokens)).toEqual(
       expect.arrayContaining([
         "border-gray-200",
         "bg-white",
         "text-gray-900",
         "text-gray-500",
-        "bg-emerald-50",
-        "text-emerald-700",
-        "ring-emerald-200",
-        "bg-gray-100",
-        "text-gray-600",
-        "ring-gray-200",
         "text-indigo-600",
         "hover:text-indigo-700",
       ]),

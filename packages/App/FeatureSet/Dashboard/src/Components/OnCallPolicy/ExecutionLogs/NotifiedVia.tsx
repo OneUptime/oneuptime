@@ -3,9 +3,9 @@ import {
   OnCallPageChannel,
   readOnCallPageChannels,
 } from "Common/Types/OnCallDutyPolicy/OnCallPageChannel";
-import Icon from "Common/UI/Components/Icon/Icon";
-import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
-import useTranslator from "Common/UI/Utils/UseTranslator";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
@@ -86,7 +86,6 @@ export interface ComponentProps {
 const NotifiedVia: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const translator: Translator = useTranslator();
   const channels: Array<OnCallPageChannel> = getNotifiedViaChannels(
     props.channels,
   );
@@ -101,24 +100,14 @@ const NotifiedVia: FunctionComponent<ComponentProps> = (
       className="flex min-w-0 max-w-[16rem] flex-wrap gap-1"
     >
       {channels.map((channel: OnCallPageChannel): ReactElement => {
-        /*
-         * A div, as the table's other chips are: the Icon draws a div,
-         * which a span cannot hold.
-         */
         return (
-          <div
+          <Pill
             key={channel}
-            data-testid="on-call-timeline-notified-via-channel"
-            className="inline-flex items-center gap-1 whitespace-nowrap rounded-md bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200"
-          >
-            <Icon
-              icon={NOTIFIED_VIA_CHANNEL_ICONS[channel]}
-              className="h-3 w-3 flex-shrink-0 text-gray-500"
-            />
-            <span>
-              {translator.translateText(NOTIFIED_VIA_CHANNEL_LABELS[channel])}
-            </span>
-          </div>
+            text={NOTIFIED_VIA_CHANNEL_LABELS[channel]}
+            tone={PillTone.Neutral}
+            icon={NOTIFIED_VIA_CHANNEL_ICONS[channel]}
+            dataTestId="on-call-timeline-notified-via-channel"
+          />
         );
       })}
     </div>

@@ -33,6 +33,8 @@ import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import LocalTable from "Common/UI/Components/Table/LocalTable";
 import TableEmptyState, {
@@ -371,10 +373,11 @@ const DataSecuritySensitiveDataPage: FunctionComponent<
                         <IsolatedText text={row.name || ""} />
                       </span>
                       {row.category ? (
-                        <span className="inline-flex items-center rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">
-                          {translator.translateText(row.category) ||
-                            row.category}
-                        </span>
+                        <Pill
+                          text={row.category}
+                          tone={PillTone.Info}
+                          isDotHidden={true}
+                        />
                       ) : (
                         <></>
                       )}

@@ -2,6 +2,8 @@ import {
   getHandDrawnButtonStateClassName,
   getHandDrawnLookClassName,
 } from "Common/UI/Components/Button/ButtonStates";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import LayerConfigForm from "./LayerConfigForm";
 import LayerRotationSummary from "./LayerRotationSummary";
 import { getLayerPreviewEvents, LayerPreviewResult } from "./LayerShiftPreview";
@@ -117,13 +119,7 @@ interface SummaryChipProps {
 const SummaryChip: FunctionComponent<SummaryChipProps> = (
   props: SummaryChipProps,
 ): ReactElement => {
-  const translator: Translator = useTranslator();
-  return (
-    <span className="inline-flex items-center gap-1.5 rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200">
-      <Icon icon={props.icon} className="h-3.5 w-3.5 text-gray-400" />
-      <span>{translator.translateText(props.text)}</span>
-    </span>
-  );
+  return <Pill text={props.text} tone={PillTone.Neutral} icon={props.icon} />;
 };
 
 const LayerCard: FunctionComponent<ComponentProps> = (
@@ -458,21 +454,18 @@ const LayerCard: FunctionComponent<ComponentProps> = (
                 })}
             </span>
             {isTopPriority && props.total > 1 && (
-              <span className="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-200/70">
-                {translator.translateText("Highest priority")}
-              </span>
+              <Pill
+                text="Highest priority"
+                tone={PillTone.Info}
+                isDotHidden={true}
+              />
             )}
             {props.hasUnsavedChanges && (
-              <span
-                data-testid="layer-card-unsaved"
-                className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-200"
-              >
-                <span
-                  aria-hidden="true"
-                  className="h-1.5 w-1.5 rounded-full bg-amber-500"
-                />
-                {translator.translateText("Unsaved changes")}
-              </span>
+              <Pill
+                text="Unsaved changes"
+                tone={PillTone.Warning}
+                dataTestId="layer-card-unsaved"
+              />
             )}
           </div>
           {layer.description ? (

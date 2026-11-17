@@ -7,6 +7,8 @@ import {
 } from "Common/Types/LlmObservability/LlmConnectionCatalog";
 import LlmConnectionProvider from "Common/Types/LlmObservability/LlmConnectionProvider";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import LockedReason, {
   LOCKED_CONTROL_CLASS_NAME,
 } from "Common/UI/Components/Tooltip/LockedReason";
@@ -76,17 +78,22 @@ const LlmConnectionTiles: FunctionComponent<ComponentProps> = (
                   {translator.translateText(definition.title)}
                 </span>
                 {count > 0 ? (
-                  <span
-                    className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700"
-                    data-testid={`llm-connection-tile-connected-${definition.provider}`}
-                  >
-                    <Icon icon={IconProp.Check} className="h-3 w-3" />
-                    {count > 1
-                      ? translator.translateTemplate("Connected ({{count}})", {
-                          count: String(count),
-                        })
-                      : translator.translateText("Connected")}
-                  </span>
+                  <Pill
+                    dataTestId={`llm-connection-tile-connected-${definition.provider}`}
+                    text={
+                      count > 1
+                        ? translator.translateTemplate(
+                            "Connected ({{count}})",
+                            {
+                              count: String(count),
+                            },
+                          )
+                        : translator.translateText("Connected")
+                    }
+                    isUserContent={true}
+                    tone={PillTone.Success}
+                    icon={IconProp.Check}
+                  />
                 ) : (
                   <></>
                 )}

@@ -19,6 +19,8 @@ import IconProp from "Common/Types/Icon/IconProp";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Link from "Common/UI/Components/Link/Link";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Route from "Common/Types/API/Route";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -1471,19 +1473,19 @@ const PodmanHostOverview: FunctionComponent<
       availabilityPct === null ? (
         <Fragment />
       ) : (
-        <span
-          className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset ${
-            availabilityPct >= 99
-              ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
-              : availabilityPct >= 90
-                ? "bg-amber-50 text-amber-700 ring-amber-200"
-                : "bg-red-50 text-red-700 ring-red-200"
-          }`}
-        >
-          {translator.translateTemplate("{{percent}}% uptime", {
+        <Pill
+          text={translator.translateTemplate("{{percent}}% uptime", {
             percent: availabilityPct.toFixed(availabilityPct >= 99.95 ? 1 : 2),
           })}
-        </span>
+          isUserContent={true}
+          tone={
+            availabilityPct >= 99
+              ? PillTone.Success
+              : availabilityPct >= 90
+                ? PillTone.Warning
+                : PillTone.Danger
+          }
+        />
       );
 
     /*

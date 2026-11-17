@@ -205,6 +205,8 @@ L'azione mostra poi cosa è diventata: la fase della sua attività, come **Attiv
 
 Le due azioni con l'IA richiedono che l'IA sia attiva per il progetto e un repository in cui OneUptime AI possa lavorare. Se non ce n'è nessuno collegato, il menu offre invece **Collega un repository**. Per chiederle serve ciò che serve per chiedere qualcosa in Codice, più il permesso di modificare l'azione.
 
+Per un incidente privato, l'attività e la sua pull request le legge solo chi può leggere l'incidente. La richiesta nomina l'incidente solo con il suo numero e chiede a OneUptime AI di lasciarlo fuori dalla pull request, che legge chiunque abbia accesso al repository.
+
 ### Vedere tutte le azioni da intraprendere
 
 **Incidenti → Azioni da intraprendere** elenca le azioni da intraprendere di tutti i post-mortem del progetto, dalla scadenza più vicina, con l'incidente, il proprietario, la data di scadenza e lo stato di ciascuna. Filtrate l'elenco per **Stato**, **Proprietario** e **Data di scadenza**, e **Visualizza** su una riga apre la pagina **Post-mortem** dell'incidente.

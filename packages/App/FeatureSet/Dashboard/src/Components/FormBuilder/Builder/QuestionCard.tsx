@@ -44,6 +44,8 @@ import Dropdown, {
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Input from "Common/UI/Components/Input/Input";
 import TextArea from "Common/UI/Components/TextArea/TextArea";
 import Toggle from "Common/UI/Components/Toggle/Toggle";
@@ -581,20 +583,20 @@ const QuestionCard: FunctionComponent<ComponentProps> = (
                   <></>
                 )}
               </span>
-              <span
-                className="inline-flex items-center gap-1 rounded-md bg-gray-50 px-1.5 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200"
-                data-testid={`form-question-badge-${field.id}`}
-              >
-                {badge.text}
-              </span>
+              <Pill
+                dataTestId={`form-question-badge-${field.id}`}
+                text={badge.text}
+                isUserContent={true}
+                tone={PillTone.Neutral}
+                isDotHidden={true}
+              />
               {field.isHidden ? (
-                <span
-                  className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-1.5 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-200"
-                  data-testid={`form-question-hidden-badge-${field.id}`}
-                >
-                  <Icon icon={IconProp.EyeSlash} className="h-3 w-3" />
-                  {tx("Hidden")}
-                </span>
+                <Pill
+                  dataTestId={`form-question-hidden-badge-${field.id}`}
+                  text="Hidden"
+                  tone={PillTone.Warning}
+                  icon={IconProp.EyeSlash}
+                />
               ) : (
                 <></>
               )}

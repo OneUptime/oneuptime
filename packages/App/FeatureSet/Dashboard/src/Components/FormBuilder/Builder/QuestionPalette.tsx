@@ -19,6 +19,8 @@ import { FormTargetFieldDefinition } from "Common/Types/Form/FormTargetCatalog";
 import FormTargetType from "Common/Types/Form/FormTargetType";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Link from "Common/UI/Components/Link/Link";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -56,12 +58,6 @@ interface EntryProps {
 const PaletteEntry: FunctionComponent<EntryProps> = (
   props: EntryProps,
 ): ReactElement => {
-  const { translateString } = useTranslateValue();
-
-  const tx: (text: string) => string = (text: string): string => {
-    return translateString(text) || text;
-  };
-
   // An added question, or one the form cannot take: locked.
   const isLocked: boolean = Boolean(props.isAdded || props.isDisabled);
   const fadedClassName: string = getLockedPartClassName({ isLocked });
@@ -93,10 +89,12 @@ const PaletteEntry: FunctionComponent<EntryProps> = (
           <span className="flex items-center gap-2 text-sm font-medium text-gray-900">
             <span className={`truncate ${fadedClassName}`}>{props.title}</span>
             {props.isAdded ? (
-              <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-gray-100 px-1.5 py-0.5 text-[11px] font-medium text-gray-500">
-                <Icon icon={IconProp.Check} className="h-3 w-3" />
-                {tx(FormsCopy.paletteAdded)}
-              </span>
+              <Pill
+                text={FormsCopy.paletteAdded}
+                tone={PillTone.Neutral}
+                icon={IconProp.Check}
+                className="shrink-0"
+              />
             ) : (
               <></>
             )}

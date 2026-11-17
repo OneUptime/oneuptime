@@ -17,11 +17,11 @@ import StatusPageSubscriber from "../../../../Models/DatabaseModels/StatusPageSu
 import TelemetryIngestionKey from "../../../../Models/DatabaseModels/TelemetryIngestionKey";
 import Workflow from "../../../../Models/DatabaseModels/Workflow";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { PresentedKeysEncryptedColumns1809182700000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809182700000-PresentedKeysEncryptedColumns";
-import { StatusPageEmbedTokenEncryptedColumn1809182710000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809182710000-StatusPageEmbedTokenEncryptedColumn";
-import { StatusPageSubscriberTokenEncryptedColumn1809182720000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809182720000-StatusPageSubscriberTokenEncryptedColumn";
-import { MonitorKeysEncryptedColumns1809182730000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809182730000-MonitorKeysEncryptedColumns";
-import { PresentedKeyLookupHashIndexes1809182740000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809182740000-PresentedKeyLookupHashIndexes";
+import { PresentedKeysEncryptedColumns1809182900000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809182900000-PresentedKeysEncryptedColumns";
+import { StatusPageEmbedTokenEncryptedColumn1809182910000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809182910000-StatusPageEmbedTokenEncryptedColumn";
+import { StatusPageSubscriberTokenEncryptedColumn1809182920000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809182920000-StatusPageSubscriberTokenEncryptedColumn";
+import { MonitorKeysEncryptedColumns1809182930000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809182930000-MonitorKeysEncryptedColumns";
+import { PresentedKeyLookupHashIndexes1809182940000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809182940000-PresentedKeyLookupHashIndexes";
 import OnlineDdl from "../../../../Server/Infrastructure/Postgres/OnlineDdl";
 
 /*
@@ -121,8 +121,8 @@ function toUuid(column: string): string {
 }
 
 describe("PresentedKeysEncryptedColumns", () => {
-  const migration: PresentedKeysEncryptedColumns1809182700000 =
-    new PresentedKeysEncryptedColumns1809182700000();
+  const migration: PresentedKeysEncryptedColumns1809182900000 =
+    new PresentedKeysEncryptedColumns1809182900000();
 
   test("up() changes each key's column to text in place, and adds the lookup hash columns", async () => {
     expect(await statementsOf(migration, "up")).toEqual([
@@ -199,19 +199,19 @@ describe("PresentedKeysEncryptedColumns", () => {
       fs.existsSync(
         path.join(
           MIGRATION_DIRECTORY,
-          "1809182700000-PresentedKeysEncryptedColumns.ts",
+          "1809182900000-PresentedKeysEncryptedColumns.ts",
         ),
       ),
     ).toBe(true);
-    expect(migration.name).toBe("PresentedKeysEncryptedColumns1809182700000");
-    expectRegisteredInOrder("PresentedKeysEncryptedColumns1809182700000");
+    expect(migration.name).toBe("PresentedKeysEncryptedColumns1809182900000");
+    expectRegisteredInOrder("PresentedKeysEncryptedColumns1809182900000");
   });
 });
 
 describe("the status pages' tokens, each in a migration of its own", () => {
   test("a status page's embed token: text in place, and back", async () => {
-    const migration: StatusPageEmbedTokenEncryptedColumn1809182710000 =
-      new StatusPageEmbedTokenEncryptedColumn1809182710000();
+    const migration: StatusPageEmbedTokenEncryptedColumn1809182910000 =
+      new StatusPageEmbedTokenEncryptedColumn1809182910000();
 
     expect(await statementsOf(migration, "up")).toEqual([
       `ALTER TABLE "StatusPage" ALTER COLUMN "embeddedOverallStatusToken" TYPE text`,
@@ -219,12 +219,12 @@ describe("the status pages' tokens, each in a migration of its own", () => {
     expect(await statementsOf(migration, "down")).toEqual([
       `ALTER TABLE "StatusPage" ALTER COLUMN "embeddedOverallStatusToken" TYPE character varying(100) USING (CASE WHEN "embeddedOverallStatusToken" LIKE 'U2FsdGVkX1%' THEN NULL ELSE "embeddedOverallStatusToken" END)`,
     ]);
-    expectRegisteredInOrder("StatusPageEmbedTokenEncryptedColumn1809182710000");
+    expectRegisteredInOrder("StatusPageEmbedTokenEncryptedColumn1809182910000");
   });
 
   test("a subscriber's unsubscribe token: text in place, and back", async () => {
-    const migration: StatusPageSubscriberTokenEncryptedColumn1809182720000 =
-      new StatusPageSubscriberTokenEncryptedColumn1809182720000();
+    const migration: StatusPageSubscriberTokenEncryptedColumn1809182920000 =
+      new StatusPageSubscriberTokenEncryptedColumn1809182920000();
 
     expect(await statementsOf(migration, "up")).toEqual([
       `ALTER TABLE "StatusPageSubscriber" ALTER COLUMN "unsubscribeToken" TYPE text`,
@@ -233,14 +233,14 @@ describe("the status pages' tokens, each in a migration of its own", () => {
       `ALTER TABLE "StatusPageSubscriber" ALTER COLUMN "unsubscribeToken" TYPE character varying(100) USING (CASE WHEN "unsubscribeToken" LIKE 'U2FsdGVkX1%' THEN NULL ELSE "unsubscribeToken" END)`,
     ]);
     expectRegisteredInOrder(
-      "StatusPageSubscriberTokenEncryptedColumn1809182720000",
+      "StatusPageSubscriberTokenEncryptedColumn1809182920000",
     );
   });
 });
 
 describe("MonitorKeysEncryptedColumns", () => {
-  const migration: MonitorKeysEncryptedColumns1809182730000 =
-    new MonitorKeysEncryptedColumns1809182730000();
+  const migration: MonitorKeysEncryptedColumns1809182930000 =
+    new MonitorKeysEncryptedColumns1809182930000();
 
   test("up() changes the Monitor's three keys and adds their hash columns in ONE statement: one rewrite, one lock", async () => {
     expect(await statementsOf(migration, "up")).toEqual([
@@ -263,13 +263,13 @@ describe("MonitorKeysEncryptedColumns", () => {
   });
 
   test("is registered once, in order", () => {
-    expectRegisteredInOrder("MonitorKeysEncryptedColumns1809182730000");
+    expectRegisteredInOrder("MonitorKeysEncryptedColumns1809182930000");
   });
 });
 
 describe("PresentedKeyLookupHashIndexes", () => {
-  const migration: PresentedKeyLookupHashIndexes1809182740000 =
-    new PresentedKeyLookupHashIndexes1809182740000();
+  const migration: PresentedKeyLookupHashIndexes1809182940000 =
+    new PresentedKeyLookupHashIndexes1809182940000();
 
   const naming: DefaultNamingStrategy = new DefaultNamingStrategy();
 
@@ -348,6 +348,6 @@ describe("PresentedKeyLookupHashIndexes", () => {
   });
 
   test("is registered once, after the columns it indexes", () => {
-    expectRegisteredInOrder("PresentedKeyLookupHashIndexes1809182740000");
+    expectRegisteredInOrder("PresentedKeyLookupHashIndexes1809182940000");
   });
 });

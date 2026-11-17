@@ -149,7 +149,7 @@ That cycle — add, connect, configure, run, read the log — is how you'll buil
 
 New workflows start disabled, and so does any workflow you duplicate or import. Off pauses the workflow's trigger, so nothing starts it on its own, but you can still test it. While a workflow is off, the Builder says so above the canvas, with a **Turn on workflow** button.
 
-The **Enabled** switch is at the top of the **Builder**, next to **Add Component** and **Run Workflow**. It is also on the workflow's **Overview** page, whose **Workflow Details** card shows the current state as a green **Enabled** or red **Disabled** pill: click **Edit Workflow** and open **More fields**. Only people who can edit the workflow can turn it on or off; anyone else sees the switch greyed out.
+The **Enabled** switch is at the top of the **Builder**, next to **Add Component** and **Run Workflow**. It is also on the workflow's **Overview** page, whose **Workflow Details** card shows the current state as a green **Enabled** or grey **Disabled** pill: click **Edit Workflow** and open **More fields**. Only people who can edit the workflow can turn it on or off; anyone else sees the switch greyed out.
 
 While a workflow is off, what starts it decides whether it runs:
 

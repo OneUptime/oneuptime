@@ -29,6 +29,13 @@ import path from "path";
 const PACKAGES_ROOT: string = path.join(__dirname, "..", "..", "..", "..");
 const REPOSITORY_ROOT: string = path.join(PACKAGES_ROOT, "..");
 
+/*
+ * The Enterprise Edition's code is here only in a checkout that has ee/:
+ * Common Test runs core without it, by construction, so ee's sender is held
+ * wherever it is checked out, as the other repo-wide guards hold ee's files.
+ */
+const EE_PRESENT: boolean = fs.existsSync(path.join(REPOSITORY_ROOT, "ee"));
+
 const SEARCHED: Array<string> = [
   path.join(PACKAGES_ROOT, "Common", "Server"),
   path.join(PACKAGES_ROOT, "Common", "Utils"),
@@ -80,8 +87,6 @@ const SENDERS: Record<string, string> = {
     "the SMS and call gateway's and a custom channel's requests",
   "packages/App/FeatureSet/Notification/Services/CallAndSmsGatewayService.ts":
     "the SMS and call gateway",
-  "ee/Server/CustomNotificationChannels/CustomChannelSender.ts":
-    "a custom channel",
   "packages/Common/Server/Types/Workflow/Components/API/Utils.ts":
     "the workflow API steps",
   "packages/Common/Server/Types/Workflow/Components/API/Get.ts": "API Get",
@@ -98,6 +103,17 @@ const SENDERS: Record<string, string> = {
     "an OpenStack project notice's webhook",
   "packages/Common/Server/Utils/Workspace/Mattermost/Mattermost.ts":
     "every call to a Mattermost server, and its incoming webhooks",
+};
+
+// The Enterprise Edition's, held where ee/ is checked out (EE_PRESENT).
+const ENTERPRISE_SENDERS: Record<string, string> = {
+  "ee/Server/CustomNotificationChannels/CustomChannelSender.ts":
+    "a custom channel",
+};
+
+const ALL_SENDERS: Record<string, string> = {
+  ...SENDERS,
+  ...(EE_PRESENT ? ENTERPRISE_SENDERS : {}),
 };
 
 // The ones that pin on their own, with the same check and pinned agents.
@@ -234,7 +250,7 @@ describe("webhook senders", () => {
   test("are all found where this looks", () => {
     for (const file of [
       ...Object.keys(SAVE_TIME_CHECKS),
-      ...Object.keys(SENDERS),
+      ...Object.keys(ALL_SENDERS),
       ...Object.keys(OWN_PINNING),
     ]) {
       expect({
@@ -268,7 +284,7 @@ describe("webhook senders", () => {
   });
 
   test("every sender goes through SafeWebhookRequest, and none calls API itself", () => {
-    for (const file of Object.keys(SENDERS)) {
+    for (const file of Object.keys(ALL_SENDERS)) {
       const source: SourceFile = sources.find(
         (candidate: SourceFile): boolean => {
           return candidate.name === file;

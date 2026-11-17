@@ -1,4 +1,6 @@
 import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
@@ -229,12 +231,13 @@ const OpenStackServiceGroupCard: FunctionComponent<ComponentProps> = (
               <bdi>{getOpenStackServiceTitle(group.service)}</bdi>
             </span>
             {props.backendName ? (
-              <span
-                data-testid="openstack-service-group-backend"
-                className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-700"
-              >
-                <bdi>{props.backendName}</bdi>
-              </span>
+              <Pill
+                text={props.backendName}
+                isUserContent={true}
+                tone={PillTone.Neutral}
+                isDotHidden={true}
+                dataTestId="openstack-service-group-backend"
+              />
             ) : (
               <></>
             )}

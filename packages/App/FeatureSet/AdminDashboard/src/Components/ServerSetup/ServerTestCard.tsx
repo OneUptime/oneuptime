@@ -4,6 +4,9 @@ import {
   ServerSetupRow,
   ServerSetupStatusIcon,
 } from "./ServerSetupChecklist";
+import ServerEmailRecipientRefusals, {
+  getEmailRecipientRefusals,
+} from "./ServerEmailRecipientRefusals";
 import ServerTestSendButton, {
   describeServerTestSend,
 } from "./ServerTestSendButton";
@@ -166,6 +169,18 @@ const ServerTestCard: FunctionComponent<ComponentProps> = (
                 type={AlertType.SUCCESS}
                 title={describeServerTestSend(translator, accepted)}
                 dataTestId={`server-test-card-${props.check}-accepted`}
+              />
+            ) : (
+              <></>
+            )}
+
+            {/*
+             * Addresses refused while email works (#9217): said here, for
+             * the server's admins, never in the banner.
+             */}
+            {props.check === ServerSetupCheckId.Email ? (
+              <ServerEmailRecipientRefusals
+                refusals={getEmailRecipientRefusals(props.checklist.answer)}
               />
             ) : (
               <></>

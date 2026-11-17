@@ -205,6 +205,8 @@ L'action montre ensuite ce qu'elle est devenue : l'étape de sa tâche, comme **
 
 Les deux actions d'IA demandent que l'IA soit activée pour le projet et un dépôt dans lequel OneUptime AI peut travailler. Sans dépôt connecté, le menu propose **Connecter un dépôt** à la place. Les lancer demande ce que demande une requête dans Code, ainsi que l'autorisation de modifier l'action.
 
+Pour un incident privé, la tâche et sa pull request ne sont lues que par ceux qui peuvent lire l'incident. La demande ne nomme l'incident que par son numéro et demande à OneUptime AI de le laisser hors de la pull request, que lit toute personne ayant accès au dépôt.
+
 ### Voir toutes les actions à mener
 
 **Incidents → Actions à mener** liste les actions à mener de tous les post-mortems du projet, l'échéance la plus proche en premier, avec pour chacune son incident, son propriétaire, sa date d'échéance et son statut. Filtrez la liste par **Statut**, **Propriétaire** et **Date d'échéance**, et **Voir** sur une ligne ouvre la page **Post-mortem** de l'incident.

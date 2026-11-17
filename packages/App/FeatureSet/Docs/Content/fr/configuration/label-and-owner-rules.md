@@ -57,7 +57,7 @@ Le **Nom** est rempli d'après vos choix (_Ajouter Production_, _Ajouter Platfor
 À la dernière étape, cliquez de nouveau sur le bouton qui porte le nom de la règle, par exemple **Créer : Règle d'étiquettes des moniteurs**. La règle démarre activée, et la liste l'affiche avec une pastille verte **Activé**.
 :::
 
-Une nouvelle règle doit ajouter quelque chose : au moins une étiquette (ou un propriétaire) ou, pour une règle d'incident, d'alerte ou de maintenance planifiée, quelque chose dont elle hérite (voir plus bas). Pour mettre une règle en pause sans la supprimer, désactivez **Activé** dans son formulaire de modification ; la liste affiche alors une pastille rouge **Désactivé**. Sur une règle de propriétaires d'incident ou d'alerte, une équipe sous **Équipe du créateur** suffit aussi.
+Une nouvelle règle doit ajouter quelque chose : au moins une étiquette (ou un propriétaire) ou, pour une règle d'incident, d'alerte ou de maintenance planifiée, quelque chose dont elle hérite (voir plus bas). Pour mettre une règle en pause sans la supprimer, désactivez **Activé** dans son formulaire de modification ; la liste affiche alors une pastille grise **Désactivé**. Sur une règle de propriétaires d'incident ou d'alerte, une équipe sous **Équipe du créateur** suffit aussi.
 
 ### Quelle que soit la façon dont la règle est créée
 

@@ -1,3 +1,4 @@
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
@@ -18,7 +19,7 @@ import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import { ALERT_INCIDENT_RULE_MAX_WAIT_IN_MINUTES } from "Common/Types/Alert/AlertIncidentRuleWait";
-import { Black, Green, Red } from "Common/Types/BrandColors";
+import { Black, Green } from "Common/Types/BrandColors";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import {
   ALERT_INCIDENT_RULE_NAME_DESCRIPTION,
@@ -187,7 +188,7 @@ const AlertIncidentRulesPage: FunctionComponent<
             if (item.isEnabled) {
               return <Pill color={Green} text="Enabled" />;
             }
-            return <Pill color={Red} text="Disabled" />;
+            return <Pill tone={PillTone.Paused} text="Disabled" />;
           },
         },
       ]}

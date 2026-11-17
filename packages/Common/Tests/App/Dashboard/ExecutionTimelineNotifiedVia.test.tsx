@@ -13,7 +13,13 @@ import {
   OnCallPageChannel,
   OnCallPageChannelInfo,
 } from "Common/Types/OnCallDutyPolicy/OnCallPageChannel";
-import { cleanup, render, RenderResult, screen } from "@testing-library/react";
+import {
+  cleanup,
+  render,
+  RenderResult,
+  screen,
+  within,
+} from "@testing-library/react";
 import fs from "fs";
 import path from "path";
 import React, { ReactElement } from "react";
@@ -231,7 +237,8 @@ describe("a step's channels, as the Execution Timeline draws them", () => {
     for (const chip of screen.getAllByTestId(
       "on-call-timeline-notified-via-channel",
     )) {
-      expect(chip.className.split(" ")).toContain("whitespace-nowrap");
+      expect(chip).toHaveAttribute("data-tone", "neutral");
+      expect(within(chip).getByTestId("pill-text")).toHaveClass("truncate");
       expect(chip.className).not.toMatch(/break-words|whitespace-normal/);
     }
   });

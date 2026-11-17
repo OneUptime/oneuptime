@@ -13,6 +13,8 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Input from "Common/UI/Components/Input/Input";
 import Link from "Common/UI/Components/Link/Link";
 import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
@@ -138,13 +140,12 @@ const SnmpWalkRowName: FunctionComponent<NameProps> = (
          * looks - and the action column keeps only the next step.
          */}
         {props.isCollected ? (
-          <span
-            className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700"
-            data-testid="snmp-walk-row-collected"
-          >
-            <Icon icon={IconProp.Check} className="h-3 w-3" />
-            {props.translator.translateText("Collected")}
-          </span>
+          <Pill
+            dataTestId="snmp-walk-row-collected"
+            text="Collected"
+            tone={PillTone.Success}
+            icon={IconProp.Check}
+          />
         ) : (
           <></>
         )}

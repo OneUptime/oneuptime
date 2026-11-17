@@ -161,9 +161,12 @@ export const APPLICATION_SIDE_MENU: ReadonlyArray<{
       "Documentation",
     ],
   },
-  { section: "Settings", items: ["Settings"] },
   { section: "Developer", items: ["Terraform", "API", "CLI", "AI Assistants"] },
-  { section: "Advanced", items: ["Audit Logs", "Delete Application"] },
+  // Settings joined Advanced when its one-entry section went (#9218).
+  {
+    section: "Advanced",
+    items: ["Settings", "Audit Logs", "Delete Application"],
+  },
 ];
 
 /*

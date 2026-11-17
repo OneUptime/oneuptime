@@ -426,10 +426,49 @@ describe("the Metric SLO fields' controls", () => {
   const LOADS_THE_CONTROLS: RegExp =
     /^import "[./]+(Slo\/)?SloMetricQueryFieldElements";$/m;
 
-  test("every page that shows the SLO form loads them", () => {
-    const pages: Array<string> = sourceFiles(DASHBOARD_SOURCE)
-      .filter((file: string): boolean => {
+  /*
+   * A page that keeps only the form's Objective step (a monitor's SLOs tab,
+   * #9124: what that SLO measures is the monitor's uptime) never draws the
+   * metric's parts, so it has nothing to load.
+   */
+  const OBJECTIVE_STEP_ONLY: RegExp = /return field\.stepId === "objective";/;
+
+  test("the Objective step asks for none of the metric's parts", () => {
+    const objectiveKeys: Array<string | undefined> = getSloFormFields()
+      .filter((field: SloField): boolean => {
+        return field.stepId === "objective";
+      })
+      .map((field: SloField): string | undefined => {
+        return field.overrideFieldKey;
+      });
+
+    expect(objectiveKeys.length).toBeGreaterThan(0);
+    for (const key of Object.values(SLO_METRIC_FIELD_KEYS)) {
+      expect(objectiveKeys).not.toContain(key);
+    }
+  });
+
+  test("every page that shows the SLO form's metric loads them", () => {
+    const formPages: Array<string> = sourceFiles(DASHBOARD_SOURCE).filter(
+      (file: string): boolean => {
         return SHOWS_THE_FORM.test(fs.readFileSync(file, "utf8"));
+      },
+    );
+
+    // The monitor's tab is the one page that keeps the Objective step only.
+    expect(
+      formPages
+        .filter((file: string): boolean => {
+          return OBJECTIVE_STEP_ONLY.test(fs.readFileSync(file, "utf8"));
+        })
+        .map((file: string): string => {
+          return path.relative(DASHBOARD_SOURCE, file);
+        }),
+    ).toEqual(["Pages/Monitor/View/Slos.tsx"]);
+
+    const pages: Array<string> = formPages
+      .filter((file: string): boolean => {
+        return !OBJECTIVE_STEP_ONLY.test(fs.readFileSync(file, "utf8"));
       })
       .map((file: string): string => {
         return path.relative(DASHBOARD_SOURCE, file);

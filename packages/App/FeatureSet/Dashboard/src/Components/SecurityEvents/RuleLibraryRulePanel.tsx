@@ -1,6 +1,8 @@
 import DetectionRuleSummary, {
   DetectionRuleTypeLabel,
 } from "./DetectionRuleSummary";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import {
   ADDED,
   ADDED_AS,
@@ -267,10 +269,11 @@ const RuleLibraryRulePanel: FunctionComponent<ComponentProps> = (
         <div className="flex flex-wrap items-center gap-2">
           <SecurityEventSeverityPill severityName={view.severity} />
           {view.isRecommended ? (
-            <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-md bg-indigo-50 px-1.5 py-0.5 text-xs font-medium text-indigo-700">
-              <Icon icon={IconProp.Star} className="h-3 w-3" />
-              {translator.translateText(RECOMMENDED)}
-            </span>
+            <Pill
+              text={RECOMMENDED}
+              tone={PillTone.Info}
+              icon={IconProp.Star}
+            />
           ) : (
             <></>
           )}

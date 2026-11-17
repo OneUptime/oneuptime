@@ -21,6 +21,8 @@ import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDevi
 import Probe from "Common/Models/DatabaseModels/Probe";
 import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import Button, {
   ButtonSize,
@@ -973,13 +975,14 @@ const NetworkDeviceDiscovery: FunctionComponent<
                      * range it sweeps. A badge is decoration on that identity,
                      * not a third thing the cell is keyed on.
                      */}
-                    <span
-                      className="inline-flex flex-shrink-0 items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600"
-                      title={translator.translateText(methodBadge.tooltip)}
-                      data-testid="discovery-scan-method-badge"
-                    >
-                      {translator.translateText(methodBadge.text)}
-                    </span>
+                    <Pill
+                      text={methodBadge.text}
+                      tone={PillTone.Neutral}
+                      isDotHidden={true}
+                      tooltip={methodBadge.tooltip}
+                      className="flex-shrink-0"
+                      dataTestId="discovery-scan-method-badge"
+                    />
                   </div>
                   {name && item.cidr ? (
                     <div className="text-xs text-gray-500">{item.cidr}</div>

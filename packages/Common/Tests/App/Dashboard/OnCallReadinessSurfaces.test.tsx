@@ -1925,13 +1925,9 @@ describe("On-call readiness page", () => {
 
       await screen.findByText("Zed Unreachable");
 
-      expect(container.querySelector(".bg-red-50.text-red-700")).not.toBeNull();
-      expect(
-        container.querySelector(".bg-amber-50.text-amber-700"),
-      ).not.toBeNull();
-      expect(
-        container.querySelector(".bg-emerald-50.text-emerald-700"),
-      ).not.toBeNull();
+      expect(container.querySelector('[data-tone="danger"]')).not.toBeNull();
+      expect(container.querySelector('[data-tone="warning"]')).not.toBeNull();
+      expect(container.querySelector('[data-tone="success"]')).not.toBeNull();
     });
 
     /*

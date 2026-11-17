@@ -3,6 +3,8 @@ import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
@@ -419,20 +421,16 @@ const NoteCard: FunctionComponent<ComponentProps> = (
                 </Tooltip>
               )}
               {source && (
-                <span
-                  className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600"
-                  data-testid="note-source"
-                >
-                  <Icon
-                    icon={
-                      source.workspaceType === WorkspaceType.MicrosoftTeams
-                        ? IconProp.MicrosoftTeams
-                        : IconProp.Slack
-                    }
-                    className="h-3 w-3"
-                  />
-                  {tx(source.label)}
-                </span>
+                <Pill
+                  dataTestId="note-source"
+                  text={source.label}
+                  tone={PillTone.Neutral}
+                  icon={
+                    source.workspaceType === WorkspaceType.MicrosoftTeams
+                      ? IconProp.MicrosoftTeams
+                      : IconProp.Slack
+                  }
+                />
               )}
               {author.savedByName && (
                 <span
@@ -447,29 +445,24 @@ const NoteCard: FunctionComponent<ComponentProps> = (
 
               <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1.5">
                 {approvalBadge && (
-                  <span
-                    data-testid="note-approval-badge"
-                    data-tone={approvalBadge.tone}
-                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${
+                  <Pill
+                    dataTestId="note-approval-badge"
+                    text={approvalBadge.label}
+                    tone={
                       approvalBadge.tone === "rejected"
-                        ? "bg-red-50 text-red-700 ring-red-200"
+                        ? PillTone.Danger
                         : approvalBadge.tone === "approved"
-                          ? "bg-green-50 text-green-700 ring-green-200"
-                          : "bg-amber-50 text-amber-800 ring-amber-200"
-                    }`}
-                  >
-                    <Icon
-                      icon={
-                        approvalBadge.tone === "rejected"
-                          ? IconProp.XCircle
-                          : approvalBadge.tone === "approved"
-                            ? IconProp.ShieldCheck
-                            : IconProp.Clock
-                      }
-                      className="h-3 w-3"
-                    />
-                    {tx(approvalBadge.label)}
-                  </span>
+                          ? PillTone.Success
+                          : PillTone.Warning
+                    }
+                    icon={
+                      approvalBadge.tone === "rejected"
+                        ? IconProp.XCircle
+                        : approvalBadge.tone === "approved"
+                          ? IconProp.ShieldCheck
+                          : IconProp.Clock
+                    }
+                  />
                 )}
                 {postedSummary && (
                   <NoteNotificationBadge

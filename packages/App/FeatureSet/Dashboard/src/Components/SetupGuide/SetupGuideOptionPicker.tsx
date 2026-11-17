@@ -5,6 +5,8 @@ import React, {
   useId,
   useRef,
 } from "react";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import {
   SetupGuideOption,
   SetupGuideOptionGroup,
@@ -195,9 +197,12 @@ const SetupGuideOptionPicker: FunctionComponent<ComponentProps> = (
                 {option.label}
               </span>
               {option.badge && (
-                <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-[11px] font-medium text-green-700 ring-1 ring-inset ring-green-200">
-                  {option.badge}
-                </span>
+                <Pill
+                  text={option.badge}
+                  isUserContent={true}
+                  tone={PillTone.Success}
+                  isDotHidden={true}
+                />
               )}
             </span>
             {option.description && (

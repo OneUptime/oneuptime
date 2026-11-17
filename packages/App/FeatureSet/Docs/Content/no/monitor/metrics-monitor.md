@@ -193,6 +193,15 @@ Uten Group By er den samme monitoren én skalar: spørringen slår alle verter s
 
 Hvert varsel per gruppe følger sin egen gruppe. Når vert A faller under terskelen igjen, løses varselet dens av seg selv, og varselet for vert B forblir åpent til vert B kommer seg. At én gruppe kommer seg, lukker aldri en annen gruppes varsel.
 
+### Hva hvert varsel lagrer
+
+Hvert varsel eller hver hendelse som åpnes for én gruppe, lagrer sjekken som åpnet den, bare for den gruppen: serien, punktene og sammendraget av evalueringen. Ingen lagret sjekk er større enn 256 KB, og loggene til en sjekk som måtte kortes ned for å få plass, sier det.
+
+Varsler og hendelser som ble åpnet før dette, lagret alle gruppene i evalueringen, opptil flere titalls megabyte hver, på posten og igjen på hver av tilstandsendringene. Etter oppgraderingen korter en jobb som kjører hver time dem ned litt om gangen og beholder hver posts egen gruppe, til det ikke er noen igjen.
+
+> [!NOTE]
+> På en selvdriftet installasjon gjenbruker PostgreSQL plassen de nedkortede sjekkene etterlater, men gir den ikke tilbake til disken. For å krympe databasen når de er kortet ned, kjører du `VACUUM FULL` på de største tabellene i et vedlikeholdsvindu, siden den låser hver tabell mens den skriver den på nytt, eller bruker `pg_repack`, som ikke gjør det.
+
 ### Evalueringen av kriterier er annerledes
 
 - **Grupperte monitorer evaluerer alle kriterier.** Alvorlighetsnivåer kan derfor utløses for ulike grupper samtidig: med «Critical: større enn 95» over «Warning: større enn 80» åpner en vert på 96 % et kritisk varsel, mens en vert på 85 % åpner et advarselsvarsel i samme sjekk. En vert som overskrider begge nivåene, får fortsatt nøyaktig ett varsel, fra det første kriteriet som samsvarer, så **sorter kriteriene med det mest alvorlige først**.

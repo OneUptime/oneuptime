@@ -443,7 +443,7 @@ describe("the group names", () => {
     );
 
     expect(pingOnlyBadgeSection()).toContain(
-      `> {translator.translateText(${JSON.stringify(badgeText)})} </span>`,
+      `<Pill text=${JSON.stringify(badgeText)}`,
     );
 
     const german: Translator = germanTranslator();
@@ -917,11 +917,11 @@ describe("the per-row No SNMP pill stays exactly where it was", () => {
     /*
      * The same facts the summary's ping-only line carries, in the same words,
      * one row at a time. `title` is the only place they can live on a pill
-     * this small. The sentences of the imports it no longer does are banned.
+     * this small (the Pill's tooltip). The sentences of the imports it no longer does are banned.
      */
     const badge: string = pingOnlyBadgeSection();
 
-    expect(badge).toContain("title=");
+    expect(badge).toContain("tooltip=");
     expect(badge).toContain("pinged by the scan's probe");
     expect(badge).toContain("SNMP credentials");
     expect(badge).not.toContain("needs a monitor bound to it");

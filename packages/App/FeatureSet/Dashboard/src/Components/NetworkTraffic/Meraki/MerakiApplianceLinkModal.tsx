@@ -33,6 +33,8 @@ import {
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import API from "Common/UI/Utils/API/API";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -256,15 +258,17 @@ const MerakiApplianceLinkModal: FunctionComponent<ComponentProps> = (
               {appliance.name || appliance.serial}
             </span>
             {likeness ? (
-              <span
-                className="inline-flex flex-none items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-200"
-                data-testid="meraki-link-appliance-likeness"
-              >
-                {translator.translateTemplate(
+              <Pill
+                dataTestId="meraki-link-appliance-likeness"
+                text={translator.translateTemplate(
                   likeness.template,
                   likeness.values,
                 )}
-              </span>
+                isUserContent={true}
+                tone={PillTone.Info}
+                isDotHidden={true}
+                className="flex-none"
+              />
             ) : (
               <></>
             )}

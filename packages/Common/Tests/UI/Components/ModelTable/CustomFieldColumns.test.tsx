@@ -934,13 +934,13 @@ describe("CustomFieldColumns.renderCustomFieldValue", () => {
       renderValue({
         value: true,
         definition: booleanDefinition,
-      }).querySelector("span.bg-green-50"),
+      }).querySelector('[data-tone="success"]'),
     ).not.toBeNull();
     expect(
       renderValue({
         value: false,
         definition: booleanDefinition,
-      }).querySelector("span.bg-gray-50"),
+      }).querySelector('[data-tone="neutral"]'),
     ).not.toBeNull();
   });
 

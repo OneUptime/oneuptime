@@ -1,4 +1,6 @@
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
@@ -231,26 +233,25 @@ const ResourcePartHero: FunctionComponent<ComponentProps> = (
           >
             {chips.map((chip: ResourcePartChip): ReactElement => {
               return (
-                <span
+                <Pill
                   key={chip.key}
-                  data-key={chip.key}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700"
-                >
-                  <Icon icon={chip.icon} className="h-3 w-3 text-gray-500" />
-                  <span className="font-medium">{chip.label}</span>
-                </span>
+                  text={chip.label}
+                  isUserContent={true}
+                  tone={PillTone.Neutral}
+                  icon={chip.icon}
+                />
               );
             })}
             {tags.map((tag: string): ReactElement => {
               return (
-                <span
+                <Pill
                   key={`tag-${tag}`}
-                  data-testid={`${props.testId}-tag`}
-                  className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-200"
-                >
-                  <Icon icon={IconProp.Tag} className="h-3 w-3" />
-                  <bdi>{tag}</bdi>
-                </span>
+                  text={tag}
+                  isUserContent={true}
+                  tone={PillTone.Info}
+                  icon={IconProp.Tag}
+                  dataTestId={`${props.testId}-tag`}
+                />
               );
             })}
           </div>

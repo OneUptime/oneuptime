@@ -16,6 +16,9 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { translateRecordName } from "Common/Utils/DefaultRecordNames";
 import { StateListType } from "Common/Utils/StateOrder";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
+import Color from "Common/Types/Color";
 
 /*
  * Shared card body for one network site: name, site-type label, health
@@ -190,44 +193,39 @@ export const SiteCardBody: FunctionComponent<SiteCardBodyProps> = (
           {site.name}
         </div>
         <div className="mt-1.5 flex items-center justify-between gap-2">
-          <span
-            className="inline-flex min-w-0 items-center gap-1.5 rounded-full bg-gray-50 px-2 py-0.5 text-[11px] font-medium text-gray-600"
-            title={
-              status
-                ? statusText
-                : translator.translateText("Nothing reporting yet")
-            }
-          >
-            {status ? (
-              <span
-                className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
-                style={{ backgroundColor: status.color || NO_STATUS_COLOR }}
-              />
-            ) : (
-              /*
-               * Hollow ring, not a filled dot: "no data" is a different
-               * shape, not merely a grayer color.
-               */
-              <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full border border-gray-400" />
-            )}
-            <span className="truncate">
-              {status ? statusText : translator.translateText("Not reporting")}
-            </span>
-          </span>
+          {status ? (
+            <Pill
+              text={statusText}
+              isUserContent={true}
+              color={new Color(status.color || NO_STATUS_COLOR)}
+              tooltip={statusText}
+              isTooltipUserContent={true}
+              className="min-w-0"
+            />
+          ) : (
+            /*
+             * Hollow ring, not a filled dot: "no data" is a different
+             * shape, not merely a grayer color.
+             */
+            <Pill
+              text="Not reporting"
+              tone={PillTone.Paused}
+              tooltip="Nothing reporting yet"
+              className="min-w-0"
+            />
+          )}
           {/*
            * Planned work is not suppressed in the status chip — the site
            * still reads Offline, because it IS — so this badge is the only
            * thing that tells a viewer the outage was on the calendar.
            */}
           {site.isUnderMaintenance && (
-            <span
-              className="flex-shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase leading-4 tracking-wider text-amber-700"
-              title={translator.translateText(
-                "A scheduled maintenance window covers this site right now. It is excluded from the uptime percentage.",
-              )}
-            >
-              {translator.translateText("Maintenance")}
-            </span>
+            <Pill
+              text="Maintenance"
+              tone={PillTone.Warning}
+              tooltip="A scheduled maintenance window covers this site right now. It is excluded from the uptime percentage."
+              className="flex-shrink-0"
+            />
           )}
           <span className="flex-shrink-0 text-[10px] font-semibold uppercase leading-4 tracking-wider text-gray-400">
             {site.siteType}

@@ -1758,11 +1758,12 @@ export default class ChatAgentRunner {
 
   /*
    * The tools' context for one turn: the person's props, the subject the
-   * turn is about, which a tool acting from a page reads, the language the
-   * person reads the Dashboard in, which a tool writing OneUptime's words
-   * into a record reads (ToolContext.language), and the time zone they read
-   * its charts in, which a tool charting days reads
-   * (ToolContext.readerTimezone).
+   * turn is about, which a tool acting from a page reads, the chat itself,
+   * whose subject a pull request it opens carries (ToolContext.
+   * conversationId), the language the person reads the Dashboard in, which
+   * a tool writing OneUptime's words into a record reads
+   * (ToolContext.language), and the time zone they read its charts in,
+   * which a tool charting days reads (ToolContext.readerTimezone).
    */
   private static buildToolContext(
     request: ChatTurnRequest,
@@ -1778,6 +1779,8 @@ export default class ChatAgentRunner {
       projectId: request.projectId,
       props: request.props,
       ...(pageContext ? { pageContext } : {}),
+      // What a pull request the chat opens carries (#9186).
+      conversationId: request.conversationId,
       ...(language ? { language } : {}),
       ...(readerTimezone ? { readerTimezone } : {}),
     };

@@ -41,6 +41,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Pill from "Common/UI/Components/Pill/Pill";
 import Card from "Common/UI/Components/Card/Card";
 import {
@@ -515,7 +516,13 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     <Pill text="Enabled" color={Green500} isMinimal={true} />
                   );
                 }
-                return <Pill text="Disabled" color={Red500} isMinimal={true} />;
+                return (
+                  <Pill
+                    text="Disabled"
+                    tone={PillTone.Paused}
+                    isMinimal={true}
+                  />
+                );
               },
             },
             {

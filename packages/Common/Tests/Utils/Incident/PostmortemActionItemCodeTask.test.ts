@@ -6,6 +6,7 @@ import {
   MAX_ACTION_ITEM_REQUEST_LENGTH,
   MAX_POSTMORTEM_IN_CONTEXT,
   parseActionItemCodeTaskKind,
+  PRIVATE_INCIDENT_PULL_REQUEST_INSTRUCTION,
 } from "../../../Utils/Incident/PostmortemActionItemCodeTask";
 import { CODE_TASK_LIMITS } from "../../../Types/AI/CodeTask";
 import { describe, expect, test } from "@jest/globals";
@@ -71,6 +72,102 @@ describe("the request for a test", () => {
 
   test("names the incident by its prefix when it has one", () => {
     expect(request).toContain("incident INC-7: Logins fail");
+  });
+});
+
+/*
+ * A private incident (#9186): everyone with access to the repository reads
+ * the pull request, which quotes the request, so the request names the
+ * incident by its number alone and asks to leave it out of what goes there.
+ */
+describe("the request for a private incident's action item", () => {
+  test.each([
+    [ActionItemCodeTaskKind.PullRequest],
+    [ActionItemCodeTaskKind.Test],
+  ])(
+    "for a %s: names the incident by its number only, and asks to keep it out of the pull request",
+    (kind: ActionItemCodeTaskKind) => {
+      const request: string = buildActionItemCodeTaskRequest({
+        kind,
+        title: "Retry the payment call with backoff",
+        incidentNumber: "#42",
+        incidentTitle: "Acme Bank's checkout is down",
+        incidentIsPrivate: true,
+      });
+
+      expect(request).toContain(
+        "This is an action item from the postmortem of incident #42. The incident and its postmortem are attached.",
+      );
+      expect(request).not.toContain("Acme Bank");
+      expect(request).not.toContain("which incident it");
+      expect(request).toContain(PRIVATE_INCIDENT_PULL_REQUEST_INSTRUCTION);
+      expect(request).toContain(
+        "Action item: Retry the payment call with backoff",
+      );
+    },
+  );
+
+  test("its first line, which titles the task and its pull request, holds nothing of the incident but its number", () => {
+    const firstLine: string = buildActionItemCodeTaskRequest({
+      kind: ActionItemCodeTaskKind.PullRequest,
+      title: "Retry the payment call",
+      incidentNumber: "INC-9",
+      incidentTitle: "Acme Bank's checkout is down",
+      incidentIsPrivate: true,
+    }).split("\n")[0]!;
+
+    expect(firstLine).toBe(
+      "This is an action item from the postmortem of incident INC-9. The incident and its postmortem are attached.",
+    );
+  });
+
+  test("a private incident with no number is named as an incident, never by its title", () => {
+    const request: string = buildActionItemCodeTaskRequest({
+      kind: ActionItemCodeTaskKind.PullRequest,
+      title: "Retry the payment call",
+      incidentTitle: "Acme Bank's checkout is down",
+      incidentIsPrivate: true,
+    });
+
+    expect(request).toContain("the postmortem of an incident.");
+    expect(request).not.toContain("Acme Bank");
+  });
+
+  test("the instruction is said once, and covers what goes with the pull request too", () => {
+    const request: string = buildActionItemCodeTaskRequest({
+      kind: ActionItemCodeTaskKind.Test,
+      title: "Add a regression test",
+      incidentNumber: "#7",
+      incidentIsPrivate: true,
+      instructions: "Use the existing fixtures.",
+    });
+
+    expect(
+      request.split(PRIVATE_INCIDENT_PULL_REQUEST_INSTRUCTION),
+    ).toHaveLength(2);
+    expect(PRIVATE_INCIDENT_PULL_REQUEST_INSTRUCTION).toContain(
+      "messages and the code's comments",
+    );
+    // What the person added still goes last, as theirs.
+    expect(
+      request.endsWith("From the person who asked: Use the existing fixtures."),
+    ).toBe(true);
+  });
+
+  test("a public incident's request is as it was: its title, and which incident the pull request is for", () => {
+    const request: string = buildActionItemCodeTaskRequest({
+      kind: ActionItemCodeTaskKind.PullRequest,
+      title: "Retry the payment call",
+      incidentNumber: "#42",
+      incidentTitle: "Checkout returns 503s",
+      incidentIsPrivate: false,
+    });
+
+    expect(request).toContain("incident #42: Checkout returns 503s");
+    expect(request).toContain(
+      "say in the pull request which incident it is for",
+    );
+    expect(request).not.toContain(PRIVATE_INCIDENT_PULL_REQUEST_INSTRUCTION);
   });
 });
 

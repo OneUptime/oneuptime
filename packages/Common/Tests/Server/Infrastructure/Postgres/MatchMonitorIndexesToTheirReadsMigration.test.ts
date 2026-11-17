@@ -299,7 +299,7 @@ describe("the Monitor model says the same", () => {
       /*
        * The keys' lookup hashes, which a request presenting a key finds its
        * monitor by now that the key is kept encrypted (#9012: built online
-       * by PresentedKeyLookupHashIndexes1809182740000).
+       * by PresentedKeyLookupHashIndexes1809182940000).
        */
       indexName(["serverMonitorSecretKeyHash"]),
       indexName(["incomingRequestSecretKeyHash"]),

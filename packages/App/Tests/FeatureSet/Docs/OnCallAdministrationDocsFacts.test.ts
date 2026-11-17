@@ -1994,9 +1994,7 @@ describe("execution logs", () => {
       expect(timeline).toContain(`title: "${column}"`);
     }
 
-    expect(timeline).toContain(
-      'translator.translateText("No one was on call")',
-    );
+    expect(timeline).toContain('text="No one was on call"');
 
     /*
      * "Notified Via" (#6585): the channels each page went out by, by the

@@ -1,3 +1,4 @@
+import EnabledPill from "Common/UI/Components/Pill/EnabledPill";
 import PageComponentProps from "../../PageComponentProps";
 import {
   ConfidencePill,
@@ -23,7 +24,6 @@ import {
 import DataSecurityCustomDataType from "Common/Models/DatabaseModels/DataSecurityCustomDataType";
 import DataSecuritySetting from "Common/Models/DatabaseModels/DataSecuritySetting";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { Green, Red } from "Common/Types/BrandColors";
 import DataCategory, {
   ALL_DATA_CATEGORIES,
   DATA_CATEGORY_DESCRIPTION,
@@ -56,7 +56,6 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import Input from "Common/UI/Components/Input/Input";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import Pill from "Common/UI/Components/Pill/Pill";
 import SaveStatus, {
   SaveState,
 } from "Common/UI/Components/SaveStatus/SaveStatus";
@@ -1082,11 +1081,7 @@ const CustomDataTypesTable: FunctionComponent = (): ReactElement => {
           title: "Status",
           type: FieldType.Boolean,
           getElement: (item: DataSecurityCustomDataType): ReactElement => {
-            return item.isEnabled ? (
-              <Pill color={Green} text="Enabled" />
-            ) : (
-              <Pill color={Red} text="Disabled" />
-            );
+            return <EnabledPill isEnabled={item.isEnabled} />;
           },
         },
       ]}

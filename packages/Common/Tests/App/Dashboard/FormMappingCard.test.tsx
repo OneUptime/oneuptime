@@ -99,6 +99,7 @@ import ObjectID from "../../../Types/ObjectID";
 import PermissionGate, {
   PermissionGateResult,
 } from "../../../UI/Utils/PermissionGate";
+import { formStepButton } from "../../Helpers/FormStepButton";
 
 const FORM_ID: string = "f0f0f0f0-0000-4000-8000-0000000000bb";
 
@@ -231,7 +232,7 @@ async function saveFromTheLastStep(): Promise<void> {
   ).getAllByRole("listitem");
 
   await act(async () => {
-    fireEvent.click(steps[steps.length - 1] as HTMLElement);
+    fireEvent.click(formStepButton(steps[steps.length - 1]!));
   });
 
   await waitFor(() => {

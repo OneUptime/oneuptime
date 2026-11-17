@@ -57,7 +57,7 @@ El **Nombre** se rellena a partir de lo que eliges (_Añadir Production_, _Añad
 En el último paso, vuelve a hacer clic en el botón con el nombre de la regla, por ejemplo **Crear Regla de etiquetas de monitores**. La regla empieza habilitada y la lista la muestra con una etiqueta verde **Habilitado**.
 :::
 
-Una regla nueva tiene que añadir algo: al menos una etiqueta (o un propietario) o, en una regla de incidentes, alertas o mantenimiento programado, algo que herede (ver más abajo). Para pausar una regla sin eliminarla, desactiva **Habilitado** en su formulario de edición; la lista mostrará entonces una etiqueta roja **Deshabilitado**. En una regla de propietarios de incidentes o alertas, también basta un equipo en **Equipo del creador**.
+Una regla nueva tiene que añadir algo: al menos una etiqueta (o un propietario) o, en una regla de incidentes, alertas o mantenimiento programado, algo que herede (ver más abajo). Para pausar una regla sin eliminarla, desactiva **Habilitado** en su formulario de edición; la lista mostrará entonces una etiqueta gris **Deshabilitado**. En una regla de propietarios de incidentes o alertas, también basta un equipo en **Equipo del creador**.
 
 ### Se cree como se cree la regla
 

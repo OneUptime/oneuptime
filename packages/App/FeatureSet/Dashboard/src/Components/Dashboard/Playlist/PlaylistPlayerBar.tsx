@@ -1,5 +1,7 @@
 import { getHandDrawnLookClassName } from "Common/UI/Components/Button/ButtonStates";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -177,12 +179,12 @@ const PlaylistPlayerBar: FunctionComponent<ComponentProps> = (
                   <IsolatedText text={title} />
                 </h1>
                 {props.isPaused ? (
-                  <span
-                    className="inline-flex flex-shrink-0 items-center rounded-full border border-amber-200 bg-amber-50 px-1.5 py-px text-[10px] font-medium text-amber-700"
-                    data-testid="playlist-player-paused"
-                  >
-                    {translator.translateText("Paused")}
-                  </span>
+                  <Pill
+                    dataTestId="playlist-player-paused"
+                    text="Paused"
+                    tone={PillTone.Paused}
+                    className="flex-shrink-0"
+                  />
                 ) : (
                   <></>
                 )}

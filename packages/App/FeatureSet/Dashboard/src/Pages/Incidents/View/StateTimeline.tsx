@@ -23,6 +23,8 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
 import { StateListType } from "Common/Utils/StateOrder";
 import SimpleLogViewer from "Common/UI/Components/SimpleLogViewer/SimpleLogViewer";
+import TrimmedLogNote from "Common/UI/Components/SimpleLogViewer/TrimmedLogNote";
+import StoredCheckEvidence from "Common/Utils/Monitor/StoredCheckEvidence";
 import {
   getStateTimelineDurationColumn,
   getStateTimelineEndsAtColumn,
@@ -129,6 +131,8 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
     });
   const [showViewLogsModal, setShowViewLogsModal] = useState<boolean>(false);
   const [logs, setLogs] = useState<string>("");
+  // The check the row kept was cut to its size limit (StoredCheckEvidence).
+  const [isLogTrimmed, setIsLogTrimmed] = useState<boolean>(false);
   const [showRootCause, setShowRootCause] = useState<boolean>(false);
   const [rootCause, setRootCause] = useState<string>("");
   const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
@@ -302,6 +306,9 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
                   ? JSON.stringify(item["stateChangeLog"], null, 2)
                   : translator.translateText(NO_LOGS_TEXT) || NO_LOGS_TEXT,
               );
+              setIsLogTrimmed(
+                StoredCheckEvidence.isTrimmed(item["stateChangeLog"]),
+              );
               setShowViewLogsModal(true);
 
               onCompleteAction();
@@ -423,6 +430,7 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
           submitButtonText={"Close"}
           submitButtonStyleType={ButtonStyleType.NORMAL}
         >
+          <TrimmedLogNote isTrimmed={isLogTrimmed} />
           <SimpleLogViewer title="Incident State Log" height="500px">
             {logs}
           </SimpleLogViewer>

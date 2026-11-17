@@ -193,6 +193,15 @@ Sans Group By, le même moniteur est un scalaire unique : la requête réduit to
 
 Chaque alerte par groupe suit son propre groupe. Quand l'hôte A repasse sous le seuil, son alerte se résout de son côté, et l'alerte de l'hôte B reste ouverte jusqu'à ce que l'hôte B se rétablisse. Le rétablissement d'un groupe ne ferme jamais l'alerte d'un autre.
 
+### Ce que garde chaque alerte
+
+Chaque alerte ou incident ouvert pour un groupe ne garde la vérification qui l'a ouvert que pour ce groupe : sa série, ses points et le résumé de l'évaluation. Aucune vérification conservée ne dépasse 256 KB, et les journaux de celle qui a dû être réduite pour tenir l'indiquent.
+
+Les alertes et les incidents ouverts auparavant gardaient tous les groupes de l'évaluation, jusqu'à des dizaines de mégaoctets chacun, sur l'enregistrement et de nouveau sur chacun de ses changements d'état. Après la mise à jour, une tâche qui s'exécute toutes les heures les réduit petit à petit, en gardant le groupe propre à chaque enregistrement, jusqu'à ce qu'il n'en reste plus.
+
+> [!NOTE]
+> Sur une installation auto-hébergée, PostgreSQL réutilise l'espace laissé par les vérifications réduites, mais ne le rend pas au disque. Pour réduire la base de données une fois qu'elles sont réduites, exécutez `VACUUM FULL` sur les plus grosses tables pendant une fenêtre de maintenance, car il verrouille chaque table pendant qu'il la réécrit, ou utilisez `pg_repack`, qui ne le fait pas.
+
 ### L'évaluation des critères diffère
 
 - **Les moniteurs regroupés évaluent chaque critère.** Des niveaux de gravité peuvent donc se déclencher sur différents groupes en même temps : avec « Critical – supérieur à 95 » au-dessus de « Warning – supérieur à 80 », un hôte à 96 % ouvre une alerte critique tandis qu'un hôte à 85 % ouvre un avertissement, lors de la même vérification. Un hôte qui dépasse les deux niveaux ne reçoit toujours qu'une alerte – celle du premier critère qui correspond ; **ordonnez donc les critères du plus grave au moins grave**.

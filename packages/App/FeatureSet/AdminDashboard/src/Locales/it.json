@@ -2144,8 +2144,6 @@
   "Check email settings": "Controlla le impostazioni email",
   "Email is failing": "L'invio delle email non riesce",
   "Email is not set up": "L'email non è configurata",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.": "L'invio delle email non riesce dal {{time}}, quindi gli inviti e le email sugli incidenti non arrivano.",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}": "L'invio delle email non riesce dal {{time}}, quindi gli inviti e le email sugli incidenti non arrivano. Il server di posta ha risposto: {{reason}}",
   "Invitations, password resets and incident emails are not sent.": "Inviti, reimpostazioni della password ed email sugli incidenti non vengono inviati.",
   "Monitors that run on global probes are not being checked.": "I monitor eseguiti sulle sonde globali non vengono controllati.",
   "No global probe is reporting": "Nessuna sonda globale sta inviando dati",
@@ -4165,5 +4163,11 @@
   "OneUptime switched this rule off when they were deleted.": "OneUptime ha disattivato questa regola quando sono stati eliminati.",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "Riattivata così com'è, la regola non sarebbe più limitata da questi elenchi. Modificala per scegliere a cosa si applica, poi riattivala.",
   "{{names}} and {{count}} more": "{{names}} e altri {{count}}",
-  "{{names}} and {{count}} more_one": "{{names}} e {{count}} altro"
+  "{{names}} and {{count}} more_one": "{{names}} e {{count}} altro",
+  "No email has gone out through this server's email settings since {{time}}.": "Nessuna email è stata inviata tramite le impostazioni email di questo server dal {{time}}.",
+  "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "Nessuna email è stata inviata tramite le impostazioni email di questo server dal {{time}}. Il server di posta ha risposto: {{reason}}",
+  "See email logs": "Vedi i log delle email",
+  "Addresses the mail server refused": "Indirizzi rifiutati dal server di posta",
+  "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "Le altre email sono partite, quindi sono interessati solo questi indirizzi. Correggi l'indirizzo o fallo accettare dal tuo provider di posta: una sandbox di Amazon SES invia solo agli indirizzi che ha verificato.",
+  "Last refused {{time}}": "Ultimo rifiuto: {{time}}"
 }

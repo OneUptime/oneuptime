@@ -2144,8 +2144,6 @@
   "Check email settings": "ईमेल सेटिंग जाँचें",
   "Email is failing": "ईमेल भेजना विफल हो रहा है",
   "Email is not set up": "ईमेल सेट अप नहीं है",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.": "{{time}} से ईमेल भेजना विफल हो रहा है, इसलिए निमंत्रण और घटना के ईमेल नहीं पहुँच रहे हैं।",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}": "{{time}} से ईमेल भेजना विफल हो रहा है, इसलिए निमंत्रण और घटना के ईमेल नहीं पहुँच रहे हैं। मेल सर्वर ने कहा: {{reason}}",
   "Invitations, password resets and incident emails are not sent.": "निमंत्रण, पासवर्ड रीसेट और घटना के ईमेल नहीं भेजे जाते।",
   "Monitors that run on global probes are not being checked.": "वैश्विक प्रोब पर चलने वाले मॉनिटर जाँचे नहीं जा रहे हैं।",
   "No global probe is reporting": "कोई वैश्विक प्रोब रिपोर्ट नहीं कर रहा",
@@ -4165,5 +4163,11 @@
   "OneUptime switched this rule off when they were deleted.": "उनके हटाए जाने पर OneUptime ने यह नियम बंद कर दिया।",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "जैसा है वैसा चालू करने पर यह नियम इन सूचियों से बिल्कुल सीमित नहीं रहेगा। इसे संपादित करके चुनें कि यह किस पर लागू हो, फिर इसे चालू करें।",
   "{{names}} and {{count}} more": "{{names}} और {{count}} अन्य",
-  "{{names}} and {{count}} more_one": "{{names}} और {{count}} अन्य"
+  "{{names}} and {{count}} more_one": "{{names}} और {{count}} अन्य",
+  "No email has gone out through this server's email settings since {{time}}.": "{{time}} से इस सर्वर की ईमेल सेटिंग्स से कोई ईमेल नहीं भेजा गया है।",
+  "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "{{time}} से इस सर्वर की ईमेल सेटिंग्स से कोई ईमेल नहीं भेजा गया है। मेल सर्वर ने कहा: {{reason}}",
+  "See email logs": "ईमेल लॉग देखें",
+  "Addresses the mail server refused": "मेल सर्वर द्वारा अस्वीकृत पते",
+  "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "अन्य ईमेल भेजे गए, इसलिए केवल ये पते प्रभावित हैं। पता ठीक करें, या अपने मेल प्रदाता से इसे स्वीकार करवाएँ: Amazon SES सैंडबॉक्स केवल उन्हीं पतों पर भेजता है जिन्हें उसने सत्यापित किया है।",
+  "Last refused {{time}}": "अंतिम अस्वीकृति: {{time}}"
 }

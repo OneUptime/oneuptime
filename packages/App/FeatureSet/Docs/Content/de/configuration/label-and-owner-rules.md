@@ -57,7 +57,7 @@ Der **Name** wird aus Ihrer Auswahl gebildet (_Production hinzufügen_, _Platfor
 Klicken Sie im letzten Schritt erneut auf die nach der Regel benannte Schaltfläche, etwa **Beschriftungsregel für Monitore erstellen**. Die Regel ist von Anfang an aktiviert, und die Liste zeigt sie mit einer grünen Markierung **Aktiviert**.
 :::
 
-Eine neue Regel muss etwas hinzufügen: mindestens eine Beschriftung (oder einen Eigentümer) oder, bei einer Regel für Vorfälle, Warnungen oder geplante Wartung, etwas, das sie erbt (siehe unten). Um eine Regel anzuhalten, ohne sie zu löschen, schalten Sie **Aktiviert** in ihrem Bearbeitungsformular aus; die Liste zeigt dann eine rote Markierung **Deaktiviert**. Bei einer Eigentümerregel für Vorfälle oder Warnungen genügt auch ein Team unter **Team des Erstellers**.
+Eine neue Regel muss etwas hinzufügen: mindestens eine Beschriftung (oder einen Eigentümer) oder, bei einer Regel für Vorfälle, Warnungen oder geplante Wartung, etwas, das sie erbt (siehe unten). Um eine Regel anzuhalten, ohne sie zu löschen, schalten Sie **Aktiviert** in ihrem Bearbeitungsformular aus; die Liste zeigt dann eine graue Markierung **Deaktiviert**. Bei einer Eigentümerregel für Vorfälle oder Warnungen genügt auch ein Team unter **Team des Erstellers**.
 
 ### Wie auch immer die Regel angelegt wird
 

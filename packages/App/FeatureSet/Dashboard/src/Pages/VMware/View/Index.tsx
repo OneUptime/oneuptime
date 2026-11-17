@@ -38,6 +38,8 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import OneUptimeDate from "Common/Types/Date";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import IconProp from "Common/Types/Icon/IconProp";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import Metric from "Common/Models/AnalyticsModels/Metric";
@@ -1653,13 +1655,14 @@ const VMwareVCenterOverview: FunctionComponent<
                       );
                     }
                     return (
-                      <span
+                      <Pill
                         key={`spec-${idx}`}
-                        data-testid={chip.testId}
-                        className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700"
-                      >
-                        {content}
-                      </span>
+                        text={chip.label}
+                        isUserContent={true}
+                        tone={PillTone.Neutral}
+                        icon={chip.icon}
+                        dataTestId={chip.testId}
+                      />
                     );
                   },
                 )}

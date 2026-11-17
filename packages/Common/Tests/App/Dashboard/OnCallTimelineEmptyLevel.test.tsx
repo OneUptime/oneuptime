@@ -235,8 +235,7 @@ describe("the Execution Timeline's row for a level skipped by escalating", () =>
       "on-call-timeline-level-skipped-by-escalation",
     );
 
-    expect(row).toHaveClass("bg-gray-50");
-    expect(row.className).not.toContain("amber");
+    expect(row).toHaveAttribute("data-tone", "neutral");
     expect(
       screen.queryByTestId("on-call-timeline-level-paged-nobody"),
     ).not.toBeInTheDocument();
@@ -247,23 +246,18 @@ describe("the Execution Timeline's row for a level skipped by escalating", () =>
   });
 
   /*
-   * The shared Icon draws a div, which a span cannot hold: the chip is a
-   * div, as the column's other chips about nobody are, so the markup is
-   * valid and the icon sits in the chip's line.
+   * The chip is the shared Pill (#9137), as the column's other chips about
+   * nobody are, with its icon in the chip's line.
    */
-  test("is a div that holds its icon validly: no div inside a span", () => {
+  test("is the shared Pill, with its icon", () => {
     drawSentTo(levelLine(ON_CALL_LEVEL_SKIPPED_BY_ESCALATION_TIMELINE_MESSAGE));
 
     const row: HTMLElement = screen.getByTestId(
       "on-call-timeline-level-skipped-by-escalation",
     );
 
-    expect(row.tagName).toBe("DIV");
+    expect(row).toHaveAttribute("data-ou-pill");
     expect(row.querySelector("svg")).not.toBeNull();
-
-    for (const span of Array.from(row.querySelectorAll("span"))) {
-      expect(span.querySelector("div")).toBeNull();
-    }
   });
 });
 
