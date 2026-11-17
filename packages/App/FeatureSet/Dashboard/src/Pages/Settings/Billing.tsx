@@ -1,4 +1,5 @@
 import ProjectUtil from "Common/UI/Utils/Project";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import PageComponentProps from "../PageComponentProps";
 import CheckoutForm, {
   getSetupIntentPaymentMethodId,
@@ -51,7 +52,6 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Icon from "Common/UI/Components/Icon/Icon";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
@@ -758,7 +758,7 @@ const Settings: FunctionComponent<ComponentProps> = (
 
   return (
     <Fragment>
-      {isLoading ? <PageLoader isVisible={true} /> : <></>}
+      {isLoading ? <PageSkeleton /> : <></>}
 
       {error ? <ErrorMessage message={error} /> : <></>}
 

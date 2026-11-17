@@ -1,4 +1,5 @@
 import PageMap from "../../Utils/PageMap";
+import ChartSkeleton from "Common/UI/Components/Skeleton/ChartSkeleton";
 import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import {
@@ -51,7 +52,6 @@ import XAxisUtil from "Common/UI/Components/Charts/Utils/XAxis";
 import { TimeRangeZoomProvider } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import { TimeRangeZoom } from "Common/UI/Components/Charts/TimeRangeZoom/UseTimeRangeZoom";
 import ResetTimeRangeZoomButton from "Common/UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { SLO_EVALUATION_CADENCE_MINUTES } from "Common/Utils/Slo/SloEvaluation";
 import { DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE } from "Common/Utils/Slo/SloHealth";
@@ -262,7 +262,7 @@ const SloBudgetBurnDownCard: FunctionComponent<ComponentProps> = (
     }
 
     if (!series.hasLoaded) {
-      return withSloChartZoomHint(false, <ComponentLoader />);
+      return withSloChartZoomHint(false, <ChartSkeleton />);
     }
 
     if (series.points.length === 0 && zoomedTimeRange) {

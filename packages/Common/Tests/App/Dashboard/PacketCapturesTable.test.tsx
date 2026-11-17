@@ -357,7 +357,7 @@ describe("a probe that cannot capture", () => {
 
     render(<PacketCapturesTable probe={probe(null)} />);
 
-    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("table-skeleton")).toBeInTheDocument();
   });
 
   test("with past captures, lists them under the notice, with no Start", async () => {

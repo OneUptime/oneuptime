@@ -268,14 +268,14 @@ describe("which answer the card shows", () => {
     await settle();
 
     expect(postSpy).toHaveBeenCalledTimes(1);
-    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("detail-skeleton")).toBeInTheDocument();
 
     await act(async () => {
       opening.resolve(makeStatus(ResourceAiRemediationMode.RequireApproval));
     });
 
     expect(await findFixesBadge()).toBe("Ask for approval");
-    expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("detail-skeleton")).not.toBeInTheDocument();
   });
 
   test("an earlier read that answers after a later one never replaces it", async () => {
@@ -323,7 +323,7 @@ describe("which answer the card shows", () => {
     expect(
       screen.queryByTestId(`${AI_AGENT_STATUS_SUMMARY_TEST_ID}-fixes-badge`),
     ).not.toBeInTheDocument();
-    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("detail-skeleton")).toBeInTheDocument();
 
     await act(async () => {
       next.resolve(
@@ -353,7 +353,7 @@ describe("which answer the card shows", () => {
 
     // No loader in its place while the refresh is out.
     expect(await findFixesBadge()).toBe("Ask for approval");
-    expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("detail-skeleton")).not.toBeInTheDocument();
 
     await act(async () => {
       refresh.resolve(makeStatus(ResourceAiRemediationMode.Disabled));

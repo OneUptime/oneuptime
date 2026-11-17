@@ -1,5 +1,5 @@
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import { DEFAULT_DASHBOARD_LANGUAGE } from "Common/Types/Dashboard/DashboardLanguage";
 import {
   setsPunctuationApart,
@@ -210,7 +210,7 @@ const DocumentationInReadersLanguage: FunctionComponent<ComponentProps> = (
 
   // The reader's text is on its way: a moment, not a flash of English.
   if (!shown || shown.askedIn !== askedIn) {
-    return <ComponentLoader />;
+    return <DetailListSkeleton fields={3} columns={1} />;
   }
 
   const direction: ReadingDirection | undefined =

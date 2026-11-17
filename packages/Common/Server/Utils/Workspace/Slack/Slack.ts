@@ -4,6 +4,7 @@ import URL from "../../../../Types/API/URL";
 import { JSONObject } from "../../../../Types/JSON";
 import API from "../../../../Utils/API";
 import WorkspaceMessagePayload, {
+  WORKSPACE_CHECKBOX_TICKED_VALUE,
   WorkspaceCheckboxBlock,
   WorkspaceDatePickerBlock,
   WorkspaceDateTimePickerBlock,
@@ -3268,32 +3269,38 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug("Getting checkbox block with data:", {} as LogAttributes);
     logger.debug(data, {} as LogAttributes);
 
+    // The box's one option: the words beside it, and what ticking it sends.
+    const option: JSONObject = {
+      text: {
+        type: "plain_text",
+        text:
+          data.payloadCheckboxBlock.optionLabel ||
+          data.payloadCheckboxBlock.label,
+      },
+      value: WORKSPACE_CHECKBOX_TICKED_VALUE,
+    };
+
+    const element: JSONObject = {
+      type: "checkboxes",
+      action_id: data.payloadCheckboxBlock.blockId,
+      options: [option],
+    };
+
+    // Ticked as the form opens: the option itself, as Slack requires.
+    if (data.payloadCheckboxBlock.initialValue) {
+      element["initial_options"] = [option];
+    }
+
     const checkboxBlock: JSONObject = {
       type: "input",
-      element: {
-        type: "checkboxes",
-        action_id: data.payloadCheckboxBlock.blockId,
-        options: [
-          {
-            text: {
-              type: "plain_text",
-              text: data.payloadCheckboxBlock.label,
-            },
-            value: "value",
-          },
-        ],
-        initial_options: data.payloadCheckboxBlock.initialValue
-          ? [
-              {
-                text: {
-                  type: "plain_text",
-                  text: data.payloadCheckboxBlock.label,
-                },
-                value: "value",
-              },
-            ]
-          : undefined,
-      },
+      // Named, so a form's submission can be answered at this field.
+      block_id: data.payloadCheckboxBlock.blockId,
+      /*
+       * Slack refuses to submit a required box with nothing ticked, so a box
+       * that may be left unticked says so.
+       */
+      optional: Boolean(data.payloadCheckboxBlock.optional),
+      element: element,
       label: {
         type: "plain_text",
         text: data.payloadCheckboxBlock.label,

@@ -1163,13 +1163,14 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         {
           projectId: data.summary.projectId!,
           workspaceType: data.summary.workspaceType!,
-          // Column limits: an over-long value fails the whole insert.
-          channelName: channelName.substring(0, ColumnLength.ShortText),
-          channelId: data.result.channelId?.substring(
-            0,
-            ColumnLength.ShortText,
-          ),
-          threadId: data.result.threadId?.substring(0, ColumnLength.ShortText),
+          /*
+           * As the workspace gave them: the log keeps the ids whole or
+           * leaves them out, and cuts the name to its column
+           * (WorkspaceNotificationLogService.fitChannelColumns).
+           */
+          channelName: channelName,
+          channelId: data.result.channelId,
+          threadId: data.result.threadId,
           actionType: WorkspaceNotificationActionType.SendMessage,
           status: data.result.isPosted
             ? WorkspaceNotificationStatus.Success

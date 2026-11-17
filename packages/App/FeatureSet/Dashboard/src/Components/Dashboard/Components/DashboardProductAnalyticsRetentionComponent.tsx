@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
+import ChartSkeleton from "Common/UI/Components/Skeleton/ChartSkeleton";
 import DashboardProductAnalyticsRetentionComponent from "Common/Types/Dashboard/DashboardComponents/DashboardProductAnalyticsRetentionComponent";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import OneUptimeDate from "Common/Types/Date";
@@ -11,7 +12,6 @@ import {
   ProductAnalyticsRetentionDefinition,
   ProductAnalyticsSavedViewType,
 } from "Common/Types/Rum/ProductAnalyticsSavedViews";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import { PluralTemplate, Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -173,7 +173,7 @@ const DashboardProductAnalyticsRetentionComponentElement: FunctionComponent<
   } else if (!retention.data) {
     content = (
       <div className="flex h-full items-center justify-center">
-        <ComponentLoader />
+        <ChartSkeleton hasLegend={false} fillsHeight={true} />
       </div>
     );
   } else if (

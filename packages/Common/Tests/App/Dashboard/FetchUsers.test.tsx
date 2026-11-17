@@ -154,7 +154,7 @@ async function renderUsers(
   const result: RenderResult = render(<FetchUsers userIds={idsOf(fixtures)} />);
 
   await waitFor(() => {
-    expect(result.queryByTestId("component-loader")).toBeNull();
+    expect(result.queryByTestId("inline-value-skeleton")).toBeNull();
   });
 
   return result;

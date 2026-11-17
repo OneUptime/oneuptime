@@ -13,10 +13,16 @@ import {
   AIChatWidget,
   AIChatWidgetType,
 } from "../../../../Types/AI/AIChatTypes";
-import { CarriedRecordIds } from "../../../../Types/AI/CarriedRecords";
+import CarriedRecords, {
+  CarriedRecordIds,
+} from "../../../../Types/AI/CarriedRecords";
 import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
 import ObjectID from "../../../../Types/ObjectID";
+import {
+  MAX_DRAFT_PROMPT_FIELD_LENGTH,
+  MAX_PROMPT_FIELD_LENGTH,
+} from "../../../../Utils/AI/PromptText";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
@@ -307,6 +313,78 @@ describe("a chat's pull request also carries what the chat read", () => {
           "This fixes what was behind CHECKOUT  FAILS for EU cards last week.",
       }),
     ).toEqual({ incidentIds: [QUOTED_INCIDENT], alertIds: [] });
+  });
+
+  /*
+   * The description is read whole: no length a prompt field is held to
+   * (PromptText.field, draftField) cuts what it quotes, or the record would
+   * be left out and the pull request read by people who may not read it.
+   */
+  test("a title the description quotes past any prompt field's length is carried", async () => {
+    jest
+      .spyOn(AIConversationService, "findOneById")
+      .mockResolvedValue(conversation({}));
+    jest.spyOn(AIConversationMessageService, "findBy").mockResolvedValue([
+      message({
+        widgets: [
+          incidentList([
+            { id: QUOTED_INCIDENT, title: "Checkout fails for EU cards" },
+          ]),
+        ],
+      }),
+    ]);
+
+    const description: string = `${"Retries the charge once. ".repeat(
+      Math.ceil((MAX_DRAFT_PROMPT_FIELD_LENGTH + 1) / 25),
+    )}It fixes what was behind Checkout fails for EU cards.`;
+
+    expect(description.length).toBeGreaterThan(MAX_DRAFT_PROMPT_FIELD_LENGTH);
+    expect(MAX_DRAFT_PROMPT_FIELD_LENGTH).toBeGreaterThan(
+      MAX_PROMPT_FIELD_LENGTH,
+    );
+
+    expect(
+      await ChatCarriedRecords.ofPullRequest({
+        conversationId: CONVERSATION_ID,
+        title: "fix: guard the card",
+        description: description,
+      }),
+    ).toEqual({ incidentIds: [QUOTED_INCIDENT], alertIds: [] });
+  });
+
+  test("an embedded screenshot is left out of what is read, and its alt text still quotes", async () => {
+    jest
+      .spyOn(AIConversationService, "findOneById")
+      .mockResolvedValue(conversation({}));
+    jest.spyOn(AIConversationMessageService, "findBy").mockResolvedValue([
+      message({
+        widgets: [
+          incidentList([
+            { id: QUOTED_INCIDENT, title: "Checkout fails for EU cards" },
+          ]),
+        ],
+      }),
+    ]);
+
+    const quoted: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      CarriedRecords,
+      "quotedFromLists",
+    );
+    const screenshot: string = `iVBORw0KGgo${"A".repeat(4096)}`;
+
+    expect(
+      await ChatCarriedRecords.ofPullRequest({
+        conversationId: CONVERSATION_ID,
+        title: "fix: guard the card",
+        description: `Before the fix:\n\n![Checkout fails for EU cards](data:image/png;base64,${screenshot})`,
+      }),
+    ).toEqual({ incidentIds: [QUOTED_INCIDENT], alertIds: [] });
+
+    const read: string = (quoted.mock.calls[0]![0] as { text: string }).text;
+
+    expect(read).not.toContain(screenshot);
+    expect(read).toContain("[image omitted");
+    expect(read).toContain("fix: guard the card");
   });
 
   test("a chat that opened none and quotes none carries only its subject", async () => {

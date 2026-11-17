@@ -24,7 +24,7 @@ import { OpenStackWasteFinding } from "Common/Types/OpenStack/OpenStackWaste";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import Link from "Common/UI/Components/Link/Link";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
@@ -272,7 +272,7 @@ const OpenStackCloudSpend: FunctionComponent<
     }, [modelId.toString()]);
 
   if (read.isLoading && !read.data) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (read.error && !read.data) {

@@ -36,10 +36,11 @@ import path from "path";
  *    switch's API name;
  *  - the Declare page's Notify bullet names No and Change to Yes the same
  *    way, and links to the settings page's section that has the switch;
- *  - the settings page says an incident declared from Slack or Microsoft
- *    Teams, or by OneUptime AI, follows the switch too, and names none of
- *    them among the ways that keep the incident's own value - as the server
- *    declares them (NewIncidentSubscriberNotificationDefaultReader).
+ *  - the settings page says Slack's and Microsoft Teams' incident forms
+ *    start their box as the switch says (WorkspaceIncidentSubscriberNotification,
+ *    #7917) and an incident declared by OneUptime AI follows it
+ *    (NewIncidentSubscriberNotificationDefaultReader), and names none of
+ *    them among the ways that keep the incident's own value.
  *
  * (The settings table and the overview list the page as the side menu does:
  * IncidentSettingsMenuDocs. Every link landing: DocsLinksResolve.)
@@ -56,18 +57,42 @@ const INCIDENTS_SIDE_MENU_FILE: string = path.join(
 );
 
 /*
- * Where people declare an incident and nothing asks about subscribers: each
- * declares it as the project starts the box, through the one reader.
+ * Where people declare an incident and nothing asks about subscribers:
+ * OneUptime AI's create_incident declares it as the project starts the box,
+ * through the one reader.
  */
 const DECLARED_WITHOUT_BOX_FILES: ReadonlyArray<string> = [
-  "Common/Server/Utils/Workspace/Slack/Actions/Incident.ts",
-  "Common/Server/Utils/Workspace/MicrosoftTeams/Actions/Incident.ts",
   "Common/Server/Utils/AI/Toolbox/IncidentWriteTools.ts",
 ];
 const DECLARED_WITHOUT_BOX_CALL: string =
   "NewIncidentSubscriberNotificationDefaultReader.applyToIncidentDeclaredWithoutBox(";
 
-// The names the settings page gives those three, in every language.
+/*
+ * Slack's and Microsoft Teams' Declare Incident forms ask (#7917): each
+ * starts its box as the project says, and writes the answer, through the
+ * chats' one helper.
+ */
+const CHAT_FORM_FILES: ReadonlyArray<string> = [
+  "Common/Server/Utils/Workspace/Slack/Actions/Incident.ts",
+  "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsCreateCommands.ts",
+];
+const CHAT_FORM_DEFAULT_CALL: string =
+  "WorkspaceIncidentSubscriberNotification.readTickedByDefault(";
+const CHAT_SUBMIT_FILES: ReadonlyArray<string> = [
+  "Common/Server/Utils/Workspace/Slack/Actions/Incident.ts",
+  "Common/Server/Utils/Workspace/MicrosoftTeams/Actions/Incident.ts",
+];
+const CHAT_SUBMIT_CALL: string =
+  "WorkspaceIncidentSubscriberNotification.applyToIncident(";
+const CHAT_HELPER_FILE: string =
+  "Common/Server/Utils/Workspace/WorkspaceIncidentSubscriberNotification.ts";
+const CHAT_HELPER_DEFAULT_READ: string =
+  "NewIncidentSubscriberNotificationDefaultReader.isTickedByDefault(";
+
+/*
+ * The names the settings page gives the ways that start or follow the
+ * switch - the two chats, and OneUptime AI - in every language.
+ */
 const DECLARED_WITHOUT_BOX_NAMES: ReadonlyArray<string> = [
   "Slack",
   "Microsoft Teams",
@@ -166,7 +191,7 @@ describe("what the docs lean on in the Dashboard", () => {
     expect(NEW_INCIDENT_NOTIFY_DEFAULT_SETTING_COPY.cardTitle).toBe(MENU_TITLE);
   });
 
-  it("Slack's and Microsoft Teams' Declare Incident forms and OneUptime AI's create_incident declare as the project starts the box", () => {
+  it("OneUptime AI's create_incident declares as the project starts the box", () => {
     for (const file of DECLARED_WITHOUT_BOX_FILES) {
       expect([
         file,
@@ -175,6 +200,42 @@ describe("what the docs lean on in the Dashboard", () => {
           .includes(DECLARED_WITHOUT_BOX_CALL),
       ]).toEqual([file, true]);
     }
+  });
+
+  it("Slack's and Microsoft Teams' Declare Incident forms start their box as the project starts it, and write the answer given", () => {
+    const has: (file: string, call: string) => [string, string, boolean] = (
+      file: string,
+      call: string,
+    ): [string, string, boolean] => {
+      return [
+        file,
+        call,
+        fs.readFileSync(path.join(REPO_ROOT, file), "utf8").includes(call),
+      ];
+    };
+
+    for (const file of CHAT_FORM_FILES) {
+      expect(has(file, CHAT_FORM_DEFAULT_CALL)).toEqual([
+        file,
+        CHAT_FORM_DEFAULT_CALL,
+        true,
+      ]);
+    }
+
+    for (const file of CHAT_SUBMIT_FILES) {
+      expect(has(file, CHAT_SUBMIT_CALL)).toEqual([
+        file,
+        CHAT_SUBMIT_CALL,
+        true,
+      ]);
+    }
+
+    // The default is the project's switch, read by the one reader.
+    expect(has(CHAT_HELPER_FILE, CHAT_HELPER_DEFAULT_READ)).toEqual([
+      CHAT_HELPER_FILE,
+      CHAT_HELPER_DEFAULT_READ,
+      true,
+    ]);
   });
 
   it("the switch's API name is the Project column the switch writes", () => {
@@ -250,7 +311,7 @@ describe.each(LANGUAGES)("the %s docs", (language: string) => {
     );
   });
 
-  it("the settings page says incidents declared from Slack, Microsoft Teams or OneUptime AI follow the switch, and leaves them out of the ways that keep their own", () => {
+  it("the settings page says Slack's and Microsoft Teams' forms start their box as the switch says and OneUptime AI follows it, and leaves them out of the ways that keep their own", () => {
     const paragraph: string | undefined = linesOf(language, SETTINGS_PAGE).find(
       (line: string): boolean => {
         return (

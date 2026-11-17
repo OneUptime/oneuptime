@@ -1,4 +1,5 @@
 import { ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME } from "./OnCallLabelClasses";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import PageMap from "../../Utils/PageMap";
@@ -12,7 +13,6 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -422,7 +422,7 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
     if (isLoading) {
       return (
         <div className="flex w-full justify-center py-10">
-          <ComponentLoader />
+          <DetailListSkeleton fields={4} />
         </div>
       );
     }

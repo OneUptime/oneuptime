@@ -1,11 +1,11 @@
 import User from "Common/Models/DatabaseModels/User";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import IconProp from "Common/Types/Icon/IconProp";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import UserUtil from "Common/UI/Utils/User";
 import Card from "Common/UI/Components/Card/Card";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -136,7 +136,7 @@ const TwoFactorStatus: FunctionComponent = (): ReactElement => {
         }
       >
         {isLoading ? (
-          <ComponentLoader />
+          <DetailListSkeleton fields={2} columns={1} />
         ) : loadError ? (
           <div>
             <ErrorMessage message={loadError} />

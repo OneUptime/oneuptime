@@ -1,8 +1,8 @@
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -81,7 +81,7 @@ const SubscriberChoicesCard: FunctionComponent<ComponentProps> = (
 
   const getBody: () => ReactElement = (): ReactElement => {
     if (isLoading) {
-      return <ComponentLoader />;
+      return <DetailListSkeleton fields={3} columns={1} />;
     }
 
     if (error || !statusPage) {

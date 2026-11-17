@@ -115,14 +115,28 @@ export interface WorkspacePayloadInlineImage extends WorkspaceMessageBlock {
   fallbackMarkdown: string;
 }
 
+/*
+ * One box to tick. `label` names the field; `optionLabel`, when given, is
+ * what is written beside the box - "Status Page Subscribers" above,
+ * "Notify Status Page Subscribers" beside it - and `label` is written there
+ * otherwise. A Slack box that may be left unticked must be `optional`:
+ * Slack refuses to submit a required one with nothing ticked.
+ */
 export interface WorkspaceCheckboxBlock extends WorkspaceMessageBlock {
   _type: "WorkspaceCheckboxBlock";
   label: string;
   blockId: string;
+  optionLabel?: string | undefined;
   initialValue?: boolean | undefined;
   description?: string | undefined;
   optional?: boolean | undefined;
 }
+
+/*
+ * The value of a Slack box's one option: what a submitted form carries,
+ * among the options ticked, when the box is ticked.
+ */
+export const WORKSPACE_CHECKBOX_TICKED_VALUE: string = "value";
 
 export interface WorkspaceDropdownBlock extends WorkspaceMessageBlock {
   _type: "WorkspaceDropdownBlock";

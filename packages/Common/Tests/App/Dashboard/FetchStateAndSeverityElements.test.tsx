@@ -349,14 +349,14 @@ describe.each(FETCH_CASES)("$componentName", (fetchCase: FetchCase) => {
 
     render(fetchCase.renderFor(new ObjectID(fetchCase.first.id)));
 
-    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("inline-value-skeleton")).toBeInTheDocument();
     expect(screen.queryByText(fetchCase.first.name)).toBeNull();
 
     await act(async () => {
       lookup.resolve(firstModel());
     });
 
-    expect(screen.queryByTestId("component-loader")).toBeNull();
+    expect(screen.queryByTestId("inline-value-skeleton")).toBeNull();
     expect(screen.getByText(fetchCase.first.name)).toBeInTheDocument();
     expect(getPillColorElement(fetchCase.first.name)).toHaveStyle({
       backgroundColor: fetchCase.first.color,
@@ -402,7 +402,7 @@ describe.each(FETCH_CASES)("$componentName", (fetchCase: FetchCase) => {
       render(fetchCase.renderFor(new ObjectID(fetchCase.first.id)));
 
       expect(await screen.findByText(message)).toBeInTheDocument();
-      expect(screen.queryByTestId("component-loader")).toBeNull();
+      expect(screen.queryByTestId("inline-value-skeleton")).toBeNull();
       expect(screen.queryByTestId("pill")).toBeNull();
       expect(document.querySelector(".rounded-full")).toBeNull();
       expect(screen.queryByText(fetchCase.notFoundSentence)).toBeNull();
@@ -438,7 +438,7 @@ describe.each(FETCH_CASES)("$componentName", (fetchCase: FetchCase) => {
       expect(
         await screen.findByText(fetchCase.notFoundSentence),
       ).toBeInTheDocument();
-      expect(screen.queryByTestId("component-loader")).toBeNull();
+      expect(screen.queryByTestId("inline-value-skeleton")).toBeNull();
       expect(document.querySelector(".rounded-full")).toBeNull();
       expect(screen.queryByText("Unknown")).toBeNull();
     },
@@ -477,7 +477,7 @@ describe.each(FETCH_CASES)("$componentName", (fetchCase: FetchCase) => {
      * While the new choice is looked up, the review step must not keep
      * naming the old one.
      */
-    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("inline-value-skeleton")).toBeInTheDocument();
     expect(screen.queryByText(fetchCase.first.name)).toBeNull();
 
     expect(getItemMock).toHaveBeenCalledTimes(2);
@@ -512,7 +512,7 @@ describe.each(FETCH_CASES)("$componentName", (fetchCase: FetchCase) => {
     view.rerender(fetchCase.renderFor(new ObjectID(fetchCase.first.id)));
 
     expect(getItemMock).toHaveBeenCalledTimes(1);
-    expect(screen.queryByTestId("component-loader")).toBeNull();
+    expect(screen.queryByTestId("inline-value-skeleton")).toBeNull();
     expect(screen.getByText(fetchCase.first.name)).toBeInTheDocument();
   });
 
@@ -591,7 +591,7 @@ describe.each(FETCH_CASES)("$componentName", (fetchCase: FetchCase) => {
     });
 
     // Still waiting on the value that is actually picked.
-    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("inline-value-skeleton")).toBeInTheDocument();
 
     await act(async () => {
       secondLookup.resolve(secondModel());

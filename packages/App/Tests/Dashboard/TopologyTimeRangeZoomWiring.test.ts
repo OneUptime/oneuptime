@@ -108,7 +108,7 @@ describe("the service-call drawer keeps a zoom of its own", () => {
       "window: window, precision: precision, }); } catch (err) {",
     );
     expect(code).toContain(
-      "{!loaded ? ( isLoading ? ( <ComponentLoader /> ) : error ? ( <ErrorMessage message={error} /> ) : ( <></> ) ) : (",
+      "{!loaded ? ( isLoading ? ( <DetailListSkeleton fields={3} columns={1} /> ) : error ? ( <ErrorMessage message={error} /> ) : ( <></> ) ) : (",
     );
     expect(code).toContain(
       'className={isLoading ? "opacity-75 transition-opacity" : ""} data-testid="edge-history-body"',

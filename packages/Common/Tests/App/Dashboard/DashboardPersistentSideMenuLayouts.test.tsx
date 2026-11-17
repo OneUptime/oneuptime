@@ -564,7 +564,7 @@ describe("persistent side-menu layouts", () => {
         }),
       );
 
-      const loader: HTMLElement = await screen.findByTestId("bar-loader");
+      const loader: HTMLElement = await screen.findByTestId("page-skeleton");
 
       /*
        * This is the regression's important intermediate frame. The old App-
@@ -602,7 +602,7 @@ describe("persistent side-menu layouts", () => {
       );
 
       expect(rightPane).toContainElement(targetContent);
-      expect(screen.queryByTestId("bar-loader")).toBeNull();
+      expect(screen.queryByTestId("page-skeleton")).toBeNull();
       expect(sideMenu).toBe(
         screen.getByTestId(`${layoutCase.family}-side-menu`),
       );

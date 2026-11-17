@@ -972,7 +972,8 @@ describe("under Only people who sign in", () => {
     ).toEqual([
       `/dashboard/${PROJECT_ID}/status-pages/${STATUS_PAGE_ID}/private-users`,
       `/dashboard/${PROJECT_ID}/status-pages/${STATUS_PAGE_ID}/sso`,
-      `/dashboard/${PROJECT_ID}/status-pages/${STATUS_PAGE_ID}/oidc`,
+      // One Single Sign-On page since #9130: OIDC is its second tab.
+      `/dashboard/${PROJECT_ID}/status-pages/${STATUS_PAGE_ID}/sso?protocol=oidc`,
     ]);
   });
 

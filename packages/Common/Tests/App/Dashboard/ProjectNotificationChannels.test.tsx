@@ -1264,7 +1264,7 @@ describe("the Notification Channels card on Project Settings", () => {
     render(<ProjectNotificationChannelsCard />);
 
     await waitFor(() => {
-      expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("detail-skeleton")).not.toBeInTheDocument();
     });
   };
 

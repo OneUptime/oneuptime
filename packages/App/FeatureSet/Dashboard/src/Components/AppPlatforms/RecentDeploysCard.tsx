@@ -4,6 +4,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import CloudAppRevision from "Common/Models/DatabaseModels/CloudAppRevision";
 import DirectionArrow from "Common/UI/Components/DirectionArrow/DirectionArrow";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
@@ -23,7 +24,6 @@ import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -166,7 +166,7 @@ const RecentDeploysCard: FunctionComponent<ComponentProps> = (
       />
     );
   } else if (!deploys) {
-    body = <PageLoader isVisible={true} />;
+    body = <TableSkeleton rows={4} />;
   } else if (deploys.length === 0) {
     body = (
       <p className="text-sm text-gray-500" data-testid="recent-deploys-empty">

@@ -1129,7 +1129,14 @@ describe("a Slack summary", () => {
     expect(logs).toEqual([]);
   });
 
-  test("a channel name and a reason too long for the log's columns are cut to fit, so the log is still written", async () => {
+  /*
+   * The channel's name, id and thread go to the log as the workspace gave
+   * them: the log's create keeps the ids whole or leaves them out, and cuts
+   * a name only past its column's 500 characters
+   * (WorkspaceNotificationLogService.fitChannelColumns, #9284). This name
+   * fits whole.
+   */
+  test("a reason too long for the log's column is cut to fit, and a long channel name goes whole into its wider column, so the log is still written", async () => {
     const longName: string = `#${"a".repeat(449)}`;
 
     useSummary({
@@ -1143,7 +1150,9 @@ describe("a Slack summary", () => {
     expect(SLACK_NOT_FOUND(longName).length).toBeGreaterThan(500);
 
     expect(logs).toHaveLength(1);
-    expect(logs[0]!.channelName).toBe(longName.substring(0, 100));
+    expect(longName.length).toBeGreaterThan(100);
+    expect(longName.length).toBeLessThanOrEqual(500);
+    expect(logs[0]!.channelName).toBe(longName);
     expect(logs[0]!.statusMessage).toBe(
       SLACK_NOT_FOUND(longName).substring(0, 500),
     );

@@ -11,7 +11,7 @@ import React, {
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import ChartSkeleton from "Common/UI/Components/Skeleton/ChartSkeleton";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -172,9 +172,12 @@ const ResourceTopologyPage: FunctionComponent<ComponentProps> = (
   const renderBody: () => ReactElement = (): ReactElement => {
     if (state === "loading") {
       return (
-        <div role="status" aria-live="polite" className="py-12 text-center">
-          <ComponentLoader />
-          <p className="mt-2 text-sm text-gray-500">
+        <div>
+          <ChartSkeleton hasLegend={false} />
+          <p
+            className="mt-2 text-center text-sm text-gray-500"
+            aria-hidden="true"
+          >
             {tx("Loading topology…", translator)}
           </p>
         </div>

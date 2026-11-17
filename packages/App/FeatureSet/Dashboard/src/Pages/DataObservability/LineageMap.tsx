@@ -1,4 +1,5 @@
 import PageComponentProps from "../PageComponentProps";
+import ChartSkeleton from "Common/UI/Components/Skeleton/ChartSkeleton";
 import DataObservabilityApi from "../../Components/DataObservability/DataObservabilityApi";
 import {
   LineageRead,
@@ -43,7 +44,6 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { HelpContent } from "Common/UI/Components/Help/HelpContent";
@@ -371,7 +371,7 @@ const DataObservabilityLineageMapPage: FunctionComponent<
   let body: ReactElement;
 
   if (read.isLoading) {
-    body = <ComponentLoader />;
+    body = <ChartSkeleton hasLegend={false} />;
   } else if (read.error || !read.answer || !visible) {
     body = (
       <ErrorMessage message={read.error || ""} onRefreshClick={read.retry} />

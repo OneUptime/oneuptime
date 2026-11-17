@@ -620,7 +620,7 @@ describe("loading and failed reads", () => {
       expect(flowReads).toHaveLength(1);
     });
 
-    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("chart-skeleton")).toBeInTheDocument();
     expect(screen.getByTestId("user-flow-scope")).toBeInTheDocument();
     expect(screen.queryByTestId("user-flow-sections")).toBeNull();
 
@@ -630,7 +630,7 @@ describe("loading and failed reads", () => {
     });
 
     await waitForSections(["overview", "map", "journeys", "tables"]);
-    expect(screen.queryByTestId("component-loader")).toBeNull();
+    expect(screen.queryByTestId("chart-skeleton")).toBeNull();
   });
 
   test("a refresh keeps the page on screen and says Updating on the map", async () => {

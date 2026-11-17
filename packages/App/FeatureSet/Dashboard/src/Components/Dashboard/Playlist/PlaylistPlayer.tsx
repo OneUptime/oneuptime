@@ -1,10 +1,10 @@
 import ObjectID from "Common/Types/ObjectID";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import KeyboardShortcutsModal from "Common/UI/Components/KeyboardShortcut/KeyboardShortcutsModal";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import API from "Common/UI/Utils/API/API";
 import { hasOpenModalDialog } from "Common/UI/Utils/GlobalKeyboardShortcut";
 import { isPageRightToLeft } from "Common/UI/Utils/PageLanguage";
@@ -413,11 +413,7 @@ const PlaylistPlayer: FunctionComponent<ComponentProps> = (
         className="relative min-h-0 flex-1 overflow-auto"
         data-testid="playlist-player-stage"
       >
-        {status === PlaylistPlayerStatus.Loading ? (
-          <PageLoader isVisible={true} />
-        ) : (
-          <></>
-        )}
+        {status === PlaylistPlayerStatus.Loading ? <PageSkeleton /> : <></>}
 
         {boards.map((board: { entry: PlaylistEntry; isOnScreen: boolean }) => {
           return (

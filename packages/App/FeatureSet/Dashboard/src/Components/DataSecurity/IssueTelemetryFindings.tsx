@@ -1,4 +1,5 @@
 import AppLink from "../AppLink/AppLink";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import DataSecurityApi from "./DataSecurityApi";
 import { SensitivityPill } from "./DataSecurityPills";
 import FindingOccurrences from "./FindingOccurrences";
@@ -30,7 +31,6 @@ import ObjectID from "Common/Types/ObjectID";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -531,7 +531,7 @@ const IssueTelemetryFindings: FunctionComponent<ComponentProps> = (
       />
     );
   } else if (!findings) {
-    body = <ComponentLoader />;
+    body = <TableSkeleton rows={3} />;
   } else if (findings.length === 0) {
     body = (
       <p className="text-sm text-gray-600">

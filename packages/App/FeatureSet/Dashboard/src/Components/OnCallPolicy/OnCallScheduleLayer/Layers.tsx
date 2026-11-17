@@ -1,4 +1,5 @@
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
+import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import { getCoverageWindowEnd } from "./CoverageWindow";
@@ -76,7 +77,6 @@ import ScheduleShiftUtil, {
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import EmptyState, {
   EmptyStateSize,
 } from "Common/UI/Components/EmptyState/EmptyState";
@@ -1421,7 +1421,7 @@ const Layers: FunctionComponent<ComponentProps> = (
   };
 
   if (isLoading) {
-    return <ComponentLoader />;
+    return <CardListSkeleton count={2} lines={3} />;
   }
 
   if (error) {

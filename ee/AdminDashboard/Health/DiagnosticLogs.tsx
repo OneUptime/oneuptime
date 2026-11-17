@@ -1,4 +1,5 @@
 import URL from "Common/Types/API/URL";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -9,7 +10,6 @@ import {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import API from "Common/UI/Utils/API/API";
 import { APP_API_URL } from "Common/UI/Config";
 import HealthLicenseRequired, {
@@ -507,7 +507,7 @@ const DiagnosticLogs: FunctionComponent = (): ReactElement => {
           <></>
         )}
 
-        {!hasLoaded && isLoading ? <ComponentLoader /> : <></>}
+        {!hasLoaded && isLoading ? <TableSkeleton /> : <></>}
 
         {!hasLoaded && !isLoading ? (
           <div className="rounded-lg border border-dashed border-gray-200 p-6 text-center text-sm text-gray-500">

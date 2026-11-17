@@ -45,7 +45,7 @@ import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ResourceShowcaseCard from "../../Components/ResourceShowcase/ResourceShowcaseCard";
 import useShowcaseCreateForm, {
@@ -131,7 +131,7 @@ const RumApplications: FunctionComponent<
   }
 
   if (count === null) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton shape="table" />;
   }
 
   /*

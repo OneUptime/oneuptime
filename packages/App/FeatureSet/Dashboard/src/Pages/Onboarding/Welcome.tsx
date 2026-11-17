@@ -10,7 +10,7 @@ import EmptyState, {
   EmptyStateSize,
 } from "Common/UI/Components/EmptyState/EmptyState";
 import Page from "Common/UI/Components/Page/Page";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import PendingProjectInvitations from "Common/UI/Components/ProjectInvitations/PendingProjectInvitations";
 import { BILLING_ENABLED } from "Common/UI/Config";
 import GlobalConfigUtil from "Common/UI/Utils/GlobalConfig";
@@ -109,7 +109,7 @@ const Welcome: FunctionComponent<ComponentProps> = (
   const getContentBelowInvitations: GetContentBelowInvitationsFunction =
     (): ReactElement => {
       if (invitationCount === null) {
-        return <PageLoader isVisible={true} />;
+        return <PageSkeleton />;
       }
 
       /*

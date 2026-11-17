@@ -1,4 +1,5 @@
 import MonitorElement from "../Monitor/Monitor";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -7,7 +8,6 @@ import { Gray500 } from "Common/Types/BrandColors";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
@@ -93,7 +93,7 @@ const DeviceMonitorsCard: FunctionComponent<ComponentProps> = (
 
   const getCardContent: GetCardContentFunction = (): ReactElement => {
     if (props.isLoading) {
-      return <ComponentLoader />;
+      return <TableSkeleton rows={3} />;
     }
 
     if (props.error) {

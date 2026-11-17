@@ -1,4 +1,5 @@
 import PageLogo from "../../Components/Logo/PageLogo";
+import AuthPageSkeleton from "Common/UI/Components/AuthPage/AuthPageSkeleton";
 import AuthPage from "Common/UI/Components/AuthPage/AuthPage";
 import { STATUS_PAGE_API_URL } from "../../Utils/Config";
 import StatusPageUtil from "../../Utils/StatusPage";
@@ -12,7 +13,6 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import { JSONObject } from "Common/Types/JSON";
 import API from "../../Utils/API";
 import Navigation from "Common/UI/Utils/Navigation";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import React, { FunctionComponent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -76,7 +76,7 @@ const MasterPasswordPage: FunctionComponent<ComponentProps> = (
   }, [statusPageIdKey]);
 
   if (!statusPageId || !StatusPageUtil.requiresMasterPassword()) {
-    return <PageLoader isVisible={true} />;
+    return <AuthPageSkeleton fields={1} />;
   }
 
   const privatePageCopy: string = t("accounts.masterPassword.prompt");

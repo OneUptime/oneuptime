@@ -5,6 +5,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
@@ -14,7 +15,6 @@ import {
 } from "Common/Types/SecurityEvent/SecurityAttackCampaign";
 import Card from "Common/UI/Components/Card/Card";
 import { useCardRuledBodyClassName } from "Common/UI/Components/Card/CardSurface";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
@@ -349,7 +349,7 @@ const SecurityAttackCampaigns: FunctionComponent = (): ReactElement => {
   let body: ReactElement;
 
   if (isLoading) {
-    body = <ComponentLoader />;
+    body = <CardListSkeleton />;
   } else if (error) {
     body = (
       <ErrorMessage

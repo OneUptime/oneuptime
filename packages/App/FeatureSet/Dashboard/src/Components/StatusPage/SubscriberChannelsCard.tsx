@@ -1,8 +1,8 @@
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import ObjectID from "Common/Types/ObjectID";
 import Select from "Common/Types/BaseDatabase/Select";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { BILLING_ENABLED } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -91,7 +91,7 @@ const SubscriberChannelsCard: FunctionComponent<ComponentProps> = (
 
   const getBody: () => ReactElement = (): ReactElement => {
     if (isLoading) {
-      return <ComponentLoader />;
+      return <DetailListSkeleton fields={3} columns={1} />;
     }
 
     if (error || !statusPage) {

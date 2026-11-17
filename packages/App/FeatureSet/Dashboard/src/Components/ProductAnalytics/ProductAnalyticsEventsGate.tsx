@@ -6,6 +6,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -17,7 +18,6 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
 import { DOCS_URL } from "Common/UI/Config";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
@@ -360,7 +360,7 @@ export const ProductAnalyticsNothingKept: FunctionComponent<{
   let below: ReactElement = <></>;
 
   if (props.analytics.isEnabled === null) {
-    below = <ComponentLoader />;
+    below = <DetailListSkeleton fields={2} columns={1} />;
   } else if (props.analytics.isEnabled) {
     below = (
       <ProductAnalyticsNoEventsYet

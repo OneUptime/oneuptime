@@ -5,11 +5,11 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import TableSkeleton from "../../Skeleton/TableSkeleton";
 import { Translator } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 import { FacetData, FacetValue, ActiveFilter, FacetConfig } from "../types";
 import TelemetryFacetSection from "./TelemetryFacetSection";
-import ComponentLoader from "../../ComponentLoader/ComponentLoader";
 import HiddenFacetsFooter from "./HiddenFacetsFooter";
 import FacetSidebarPanel from "./FacetSidebarPanel";
 import {
@@ -247,7 +247,7 @@ const TelemetryFacetSidebar: FunctionComponent<TelemetryFacetSidebarProps> = (
           className="flex items-center justify-center py-8"
           data-testid={TELEMETRY_FACET_SIDEBAR_LOADER_TEST_ID}
         >
-          <ComponentLoader />
+          <TableSkeleton rows={6} columns={1} hasHeader={false} />
         </div>
       )}
 

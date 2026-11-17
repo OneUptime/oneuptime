@@ -1,4 +1,5 @@
 import ProjectElement from "../../Components/Project/Project";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import {
   OnCallPolicyWithProject,
   groupOnCallPoliciesByProject,
@@ -24,7 +25,6 @@ import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Project from "Common/Models/DatabaseModels/Project";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Card from "Common/UI/Components/Card/Card";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -245,7 +245,7 @@ const MyOnCallPolicies: FunctionComponent<
   if (isLoading) {
     return (
       <Page title={"My On-Call Policies"} breadcrumbLinks={breadcrumbLinks}>
-        <PageLoader isVisible={true} />
+        <PageSkeleton shape="table" />
       </Page>
     );
   }

@@ -1,4 +1,5 @@
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import ChartSkeleton from "Common/UI/Components/Skeleton/ChartSkeleton";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Color, { RGB } from "Common/Types/Color";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -7,7 +8,6 @@ import ObjectID from "Common/Types/ObjectID";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -350,7 +350,7 @@ const HistoryChartBarColorPreview: FunctionComponent<ComponentProps> = (
     const entries: Array<BarColorPreviewEntry> | null = getEntries();
 
     if (!entries) {
-      return <ComponentLoader />;
+      return <ChartSkeleton heightInPx={96} hasLegend={false} />;
     }
 
     const notes: Array<string> = getNotes(entries);

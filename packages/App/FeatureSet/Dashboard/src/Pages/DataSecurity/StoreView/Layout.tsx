@@ -1,4 +1,5 @@
 import { getDataSecurityBreadcrumbs } from "../../../Utils/Breadcrumbs/DataSecurityBreadcrumbs";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import {
@@ -9,7 +10,6 @@ import DataStoreViewSideMenu from "./SideMenu";
 import DataStore from "Common/Models/DatabaseModels/DataStore";
 import ObjectID from "Common/Types/ObjectID";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ModelPage from "Common/UI/Components/Page/ModelPage";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -128,7 +128,7 @@ const DataStoreViewLayout: FunctionComponent<
           <Outlet context={context} />
         </>
       ) : (
-        <PageLoader isVisible={true} />
+        <PageSkeleton />
       )}
     </ModelPage>
   );

@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import ChartSkeleton from "Common/UI/Components/Skeleton/ChartSkeleton";
 import ObjectID from "Common/Types/ObjectID";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -33,7 +34,6 @@ import {
   TableHeaderToolbar,
   renderTableHeaderMoreMenu,
 } from "Common/UI/Components/Table/TableHeaderControls";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -436,15 +436,16 @@ const RumApplicationUserFlows: FunctionComponent<
   const sessionFilterOptions: Array<DropdownOption> = [
     getTranslatedDropdownOption(
       "all",
-      translator.translateText("All sessions"),
+      translator.translateText("All sessions") || "All sessions",
     ),
     getTranslatedDropdownOption(
       "errors",
-      translator.translateText("With errors"),
+      translator.translateText("With errors") || "With errors",
     ),
     getTranslatedDropdownOption(
       "frustration",
-      translator.translateText("With frustration signals"),
+      translator.translateText("With frustration signals") ||
+        "With frustration signals",
     ),
   ];
   // A device type is drawn as the data names it ("mobile").
@@ -745,7 +746,7 @@ const RumApplicationUserFlows: FunctionComponent<
   let body: ReactElement;
 
   if (pageState === "loading") {
-    body = <ComponentLoader />;
+    body = <ChartSkeleton hasLegend={false} />;
   } else if (pageState === "error") {
     body = <ErrorMessage message={error} onRefreshClick={reload} />;
   } else if (pageState === "scope-empty" && scope) {

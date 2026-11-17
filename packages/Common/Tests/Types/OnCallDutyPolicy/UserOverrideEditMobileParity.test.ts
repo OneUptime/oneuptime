@@ -71,7 +71,7 @@ interface MobileRule {
   isSameMinute: (a: Date, b: Date) => boolean;
   getEditRefusal: (data: {
     saved: MobileTimes;
-    change: { startsAt?: Date; endsAt?: Date };
+    change: { startsAt?: Date | undefined; endsAt?: Date | undefined };
     now: Date;
   }) => string | null;
   getEndNow: (saved: MobileTimes, now: Date) => Date | null;

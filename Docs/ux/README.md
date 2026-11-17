@@ -602,9 +602,22 @@ work out, starts from a default for everything else, and folds what most people 
   in progress (a test being sent) is drawn in the action's colour, listed in the guard with its
   reason. Enforced by
   [LoadingStatesGuard](../../packages/Common/Tests/UI/Components/Loader/LoadingStatesGuard.test.ts).
-- **A new card that loads its own data draws the shape it will have.** Prefer the shared
-  components (a table, a list, a detail card), which already do; a card drawn by hand reserves its
-  height with a `Skeleton` of its content's size. Not enforced: use judgement.
+- **A card that loads its own data draws the shape it will have, not a bar.** Prefer the shared
+  components (a table, a list, a detail card), which already do. A card drawn by hand draws the
+  shared skeleton of its content: `PageSkeleton` for a page's content area (`shape="table"` or
+  `"chart"` when the page opens with one), `TableSkeleton` for rows, `DetailListSkeleton` for names
+  and values, `ChartSkeleton` for a chart (at the chart's height), `StatTilesSkeleton` for a row
+  of figures (in the tiles' own grid), `CardListSkeleton` for a list of cards,
+  `InlineValueSkeleton` for a value inside a field (a row of pills, a name) and
+  `AuthPageSkeleton` for a sign-in page's column and card. Each is a busy
+  status named "Loading" that pulses only without reduced motion. `PageLoader` and
+  `ComponentLoader` drew one grey bar whatever the card would show, so a card that loaded into rows
+  or a chart still grew when they arrived (#9220). A spinner that shows an action in progress (a
+  key being touched, a query being run, a session ending) is not content loading: it keeps its
+  loader and is listed in the guard with how many it draws and why. Every other `PageLoader` and
+  `ComponentLoader` is gone. Enforced by
+  [LoadingStatesGuard](../../packages/Common/Tests/UI/Components/Loader/LoadingStatesGuard.test.ts),
+  whose baseline of hand-drawn loaders (`HandDrawnLoadersBaseline.json`) is empty: a new one fails.
 
 ## Dialogs and confirmations
 

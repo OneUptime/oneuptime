@@ -1,4 +1,5 @@
 import DashboardSideMenu from "@oneuptime/admin-dashboard/Pages/Settings/SideMenu";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import { getEnterpriseSettingsPageRoute } from "@oneuptime/admin-dashboard/Enterprise/EnterprisePlugins";
 import PageMap from "@oneuptime/admin-dashboard/Utils/PageMap";
 import RouteMap, { RouteUtil } from "@oneuptime/admin-dashboard/Utils/RouteMap";
@@ -6,7 +7,6 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import Route from "Common/Types/API/Route";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Page from "Common/UI/Components/Page/Page";
 import API from "Common/UI/Utils/API/API";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -96,7 +96,7 @@ const WhiteLabelSettingsPage: FunctionComponent = (): ReactElement => {
 
   const getContent: () => ReactElement = (): ReactElement => {
     if (isLoading) {
-      return <PageLoader isVisible={true} />;
+      return <PageSkeleton />;
     }
 
     if (error || !settings) {

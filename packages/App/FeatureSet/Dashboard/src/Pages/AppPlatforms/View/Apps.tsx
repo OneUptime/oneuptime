@@ -5,7 +5,7 @@ import { isCloudResourceScoped } from "../Utils/CloudResourceTelemetryScope";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -66,7 +66,7 @@ const AppPlatformEnvironmentApps: FunctionComponent<
   }, [modelId.toString()]);
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton shape="table" />;
   }
 
   if (error || !environment) {

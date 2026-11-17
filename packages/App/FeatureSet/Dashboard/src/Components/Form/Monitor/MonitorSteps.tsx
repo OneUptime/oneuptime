@@ -1,4 +1,5 @@
 import MonitorStepElement from "./MonitorStep";
+import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
 import { IncidentRoleOption } from "./MonitorCriteriaIncidentForm";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -10,7 +11,6 @@ import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
@@ -897,7 +897,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
   }, [hasLoadedOptions, isLoading, isDefaultMonitorStatusMissing]);
 
   if (isLoading) {
-    return <ComponentLoader></ComponentLoader>;
+    return <CardListSkeleton count={2} lines={3} />;
   }
 
   /*

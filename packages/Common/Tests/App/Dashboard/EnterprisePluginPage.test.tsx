@@ -346,7 +346,7 @@ describe("EnterprisePluginPage", () => {
       />,
     );
 
-    expect(await screen.findByTestId("component-loader")).toBeInTheDocument();
+    expect(await screen.findByTestId("page-skeleton")).toBeInTheDocument();
     expect(screen.queryByTestId("fake-scim-plugin")).not.toBeInTheDocument();
 
     await act(async () => {
@@ -354,7 +354,7 @@ describe("EnterprisePluginPage", () => {
     });
 
     expect(await screen.findByTestId("fake-scim-plugin")).toBeInTheDocument();
-    expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("page-skeleton")).not.toBeInTheDocument();
     expect(lazyLoads).toBe(1);
   });
 
@@ -372,7 +372,7 @@ describe("EnterprisePluginPage", () => {
     );
 
     expect(await screen.findByTestId("custom-loading")).toBeInTheDocument();
-    expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("page-skeleton")).not.toBeInTheDocument();
 
     await act(async () => {
       releaseLazyPlugin?.();

@@ -285,6 +285,8 @@ function isStoredValue(text: FoundText): boolean {
 
 const SEARCH_KEYWORD_FILES: ReadonlyArray<string> = [
   "App/FeatureSet/Dashboard/src/Components/CommandPalette/PageSearchIndex.ts",
+  // A record's own pages (#9204): its keywords and a page's former titles.
+  "App/FeatureSet/Dashboard/src/Components/CommandPalette/RecordPageSearchIndex.ts",
   "App/FeatureSet/Dashboard/src/Utils/NavigationItems.tsx",
 ];
 
@@ -292,6 +294,13 @@ const SEARCH_KEYWORD_FILES: ReadonlyArray<string> = [
 const STRING_LINE: RegExp = /^\s*"[^"]*",?\s*$/;
 const COMMENT_LINE: RegExp = /^\s*(\/\/|\/?\*)/;
 const KEYWORDS_START: RegExp = /\bkeywords:\s*\[\s*$/;
+/*
+ * A one-line list Search finds a page by and never draws: its keywords, or
+ * the titles a record's page had before it was renamed (formerTitles,
+ * matched as a title is, #9204).
+ */
+const ONE_LINE_SEARCH_NAMES: RegExp =
+  /^\s*(?:keywords|formerTitles):\s*\[(?:\s*"[^"]*",?)+\s*\],?\s*$/;
 
 // A string in a `keywords: [...]` list of the Search index or the menu.
 function isSearchKeyword(text: FoundText): boolean {
@@ -300,6 +309,10 @@ function isSearchKeyword(text: FoundText): boolean {
   }
 
   const lines: Array<string> = sourceLinesOf(text.file);
+
+  if (ONE_LINE_SEARCH_NAMES.test(lines[text.line - 1] || "")) {
+    return true;
+  }
 
   if (!STRING_LINE.test(lines[text.line - 1] || "")) {
     return false;

@@ -6,6 +6,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import MonitorStepSecurityEventsMonitor, {
   MonitorStepSecurityEventsMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepSecurityEventsMonitor";
@@ -14,7 +15,6 @@ import Query from "Common/Types/BaseDatabase/Query";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import API from "Common/UI/Utils/API/API";
 import OneUptimeDate from "Common/Types/Date";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -106,7 +106,7 @@ const SecurityEventsMonitorPreview: FunctionComponent<ComponentProps> = (
   }, [fetchCount]);
 
   if (isLoading) {
-    return <ComponentLoader />;
+    return <TableSkeleton rows={3} />;
   }
 
   if (error) {

@@ -5,7 +5,10 @@ import WorkspaceProjectAuthToken from "../../../Models/DatabaseModels/WorkspaceP
 import WorkspaceUserAuthToken from "../../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import IncidentService from "../../../Server/Services/IncidentService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
-import WorkspaceNotificationLogService from "../../../Server/Services/WorkspaceNotificationLogService";
+import WorkspaceNotificationLogService, {
+  Service as WorkspaceNotificationLogServiceClass,
+} from "../../../Server/Services/WorkspaceNotificationLogService";
+import ColumnLength from "../../../Types/Database/ColumnLength";
 import WorkspaceNotificationRuleService, {
   WorkspaceChannelsCreated,
 } from "../../../Server/Services/WorkspaceNotificationRuleService";
@@ -977,9 +980,12 @@ describe("Slack: a channel Slack does not create, among an incident's channels",
   /*
    * A rule's channel is named within the workspace's limit
    * (WorkspaceChannelName), so a name this long reaches the row only from
-   * another caller: the row keeps what its column holds.
+   * another caller: the row keeps what its column holds. The column holds
+   * 500 characters (#9284), so this one is kept whole; a longer one is cut
+   * by the log's create hook (fitChannelColumns), which a stubbed create
+   * skips.
    */
-  test("the row of a name too long for its column keeps the column's 100 characters, and its message names the channel whole", async () => {
+  test("the row of a name longer than the workspace takes keeps it whole, as its column holds it, and its message names the channel whole", async () => {
     await WorkspaceNotificationLogService.logCreateChannelError(
       {
         projectId: PROJECT_ID,
@@ -998,7 +1004,12 @@ describe("Slack: a channel Slack does not create, among an incident's channels",
     );
 
     expect(OVER_LONG_CHANNEL_NAME.length).toBeGreaterThan(100);
-    expect(row?.channelName).toBe(OVER_LONG_CHANNEL_NAME.substring(0, 100));
+    expect(OVER_LONG_CHANNEL_NAME.length).toBeLessThan(ColumnLength.LongText);
+    expect(row?.channelName).toBe(OVER_LONG_CHANNEL_NAME);
+    // As the log's create keeps it.
+    expect(
+      WorkspaceNotificationLogServiceClass.fitChannelColumns(row!).channelName,
+    ).toBe(OVER_LONG_CHANNEL_NAME);
     expect(row?.message).toBe(
       `Channel "${OVER_LONG_CHANNEL_NAME}" was not created`,
     );

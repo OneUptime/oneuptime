@@ -661,7 +661,11 @@ jobs:
       # schedule's row locked, the layers read again under the lock, every
       # change written in one transaction - and a save that waited for
       # another one's lock refused, since the layers changed under it.
-      - name: Test saving a schedule's layers at once on migrated Postgres
+      # And who is on call is worked out from one snapshot of the layers
+      # and their people (#9316): a save committed in the middle of a page,
+      # a level, the roster refresh or the calendar resolver is seen whole
+      # or not at all, and the read takes no lock.
+      - name: Test saving a schedule's layers at once, and reading them in one snapshot, on migrated Postgres
         if: matrix.shard == 3
         working-directory: packages/Common
         env:
@@ -671,7 +675,9 @@ jobs:
           SCHEDULE_LAYERS_SAVE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
-          Tests/Server/Utils/OnCall/ScheduleLayersSavePostgres.test.ts --forceExit
+          Tests/Server/Utils/OnCall/ScheduleLayersSavePostgres.test.ts
+          Tests/Server/Utils/OnCall/ScheduleLayersSnapshotPostgres.test.ts
+          --forceExit
 
       # #7813: a change to a schedule's layers made through the API holds
       # the schedule (rosterRefreshDueAt) until its writes are quiet, and the
@@ -4136,6 +4142,30 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Workers/DataMigrations/EncryptWebhookAddressesAndSnmpCredentialsPostgres.test.ts
+          --forceExit
+
+      # Microsoft Teams chat ids through the upgrade that keeps them whole
+      # (#9284): on the tables as they were (every id of a message's place a
+      # varchar(100)), with each personal chat kept cut to its first 100
+      # characters, the schema migration widens the columns in place - every
+      # value kept, no row rewritten, the channelId index kept as it is -
+      # and RestoreCutMicrosoftTeamsChatIds puts each project's chats back
+      # whole, touching no Slack row, no other project's row and no name; a
+      # second run changes nothing, two at once come to the same, and down()
+      # narrows back without cutting an id. Clones the migrated
+      # WorkspaceProjectAuthToken, WorkspaceLiveMessage and
+      # WorkspaceNotificationLog tables into an isolated schema.
+      - name: Test Microsoft Teams chat ids' upgrade to whole on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_TEAMS_CHAT_IDS_TESTS: "true"
+          TEAMS_CHAT_IDS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          TEAMS_CHAT_IDS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          TEAMS_CHAT_IDS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/DataMigrations/RestoreCutMicrosoftTeamsChatIdsPostgres.test.ts
           --forceExit
 
       # The keys presented to OneUptime through the upgrade that protects them

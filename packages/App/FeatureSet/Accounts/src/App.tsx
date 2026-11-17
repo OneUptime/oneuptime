@@ -5,6 +5,7 @@ import React, {
   Suspense,
   useEffect,
 } from "react";
+import AuthPageSkeleton from "Common/UI/Components/AuthPage/AuthPageSkeleton";
 import {
   Location,
   Navigate,
@@ -19,7 +20,6 @@ import Navigation from "Common/UI/Utils/Navigation";
 import AccountsTheme from "./Utils/AccountsTheme";
 import { isFormDomainPage } from "./Utils/FormDomainPage";
 import { MASTER_ADMIN_SIGN_IN_PATH } from "Common/Types/SSO/SignInMethods";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Footer from "./Components/Footer/Footer";
 
 // Lazy load page components
@@ -131,7 +131,7 @@ function App(): ReactElement {
   if (isFormDomainPage()) {
     return (
       <div className="m-auto flex min-h-screen flex-col">
-        <Suspense fallback={<PageLoader isVisible={true} />}>
+        <Suspense fallback={<AuthPageSkeleton fields={3} />}>
           <div className="flex flex-grow flex-col justify-center">
             <FormPage isOnCustomDomain={true} />
           </div>
@@ -143,7 +143,7 @@ function App(): ReactElement {
 
   return (
     <div className="m-auto flex min-h-screen flex-col">
-      <Suspense fallback={<PageLoader isVisible={true} />}>
+      <Suspense fallback={<AuthPageSkeleton />}>
         <div className="flex flex-grow flex-col justify-center">
           <Routes>
             <Route path="/accounts" element={<LoginPage />} />

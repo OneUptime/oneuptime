@@ -748,7 +748,7 @@ describe("user settings > notification settings", () => {
       await waitFor(() => {
         expect(getList).toHaveBeenCalled();
       });
-      expect(screen.getAllByTestId("component-loader").length).toBeGreaterThan(
+      expect(screen.getAllByTestId("detail-skeleton").length).toBeGreaterThan(
         0,
       );
       expect(screen.queryAllByRole("switch")).toHaveLength(0);

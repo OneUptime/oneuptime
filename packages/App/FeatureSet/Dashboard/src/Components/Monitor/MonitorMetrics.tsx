@@ -19,7 +19,7 @@ import MonitorType, {
 import API from "Common/UI/Utils/API/API";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ProbeUtil from "../../Utils/Probe";
@@ -169,7 +169,7 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
     }, [categories, buildQueryConfigs]);
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton shape="chart" />;
   }
 
   if (error) {

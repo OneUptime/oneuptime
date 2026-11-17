@@ -23,7 +23,7 @@ describe("MasterPage", () => {
   it("should render correctly with isLoading", () => {
     render(<MasterPage {...defaultProps} isLoading />);
 
-    const loader: HTMLElement = screen.getByTestId("bar-loader");
+    const loader: HTMLElement = screen.getByTestId("page-skeleton");
     expect(loader).toBeInTheDocument();
   });
 

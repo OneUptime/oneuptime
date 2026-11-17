@@ -10,6 +10,7 @@ import {
   GENERATE_WEBAUTHN_AUTH_OPTIONS_API_URL,
   VERIFY_WEBAUTHN_AUTH_API_URL,
 } from "../Utils/ApiPaths";
+import AuthPageSkeleton from "Common/UI/Components/AuthPage/AuthPageSkeleton";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
@@ -70,7 +71,6 @@ import {
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import AuthenticatorAppSetupCode from "Common/UI/Components/AuthenticatorAppSetupCode/AuthenticatorAppSetupCode";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import { SSO_REQUIRED_SIGN_IN_MESSAGE } from "Common/Types/SSO/SignInMethods";
 import {
   MAGIC_LINK_ROUTE,
@@ -1153,7 +1153,7 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
     Boolean(magicLinkToken) && !isMagicLinkTurnedOff;
 
   if (signInMethodsRead.isReading) {
-    return <PageLoader isVisible={true} />;
+    return <AuthPageSkeleton />;
   }
 
   /*

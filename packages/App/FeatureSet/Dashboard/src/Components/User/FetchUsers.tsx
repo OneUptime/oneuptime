@@ -1,4 +1,5 @@
 import User from "Common/Models/DatabaseModels/User";
+import InlineValueSkeleton from "Common/UI/Components/Skeleton/InlineValueSkeleton";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import ObjectID from "Common/Types/ObjectID";
@@ -10,7 +11,6 @@ import Query from "Common/Types/BaseDatabase/Query";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import UsersElement from "./Users";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Exception from "Common/Types/Exception/Exception";
@@ -104,7 +104,7 @@ const FetchUsers: FunctionComponent<ComponentProps> = (
   }
 
   if (isLoading) {
-    return <ComponentLoader />;
+    return <InlineValueSkeleton />;
   }
 
   return <UsersElement users={users} />;

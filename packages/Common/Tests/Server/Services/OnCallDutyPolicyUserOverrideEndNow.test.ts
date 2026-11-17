@@ -39,6 +39,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 /*
  * END NOW (issue #7899): an override under way, ended at the server's own
@@ -312,7 +313,7 @@ describe("End Now on an override under way", () => {
 
   test("writes it as an edit of its end by the caller: the update, with their props, under the lock", async () => {
     const props: DatabaseCommonInteractionProps = member();
-    const update: jest.SpiedFunction<
+    const update: SpyInstance<
       typeof OnCallDutyPolicyUserOverrideService.updateOneById
     > = jest.spyOn(OnCallDutyPolicyUserOverrideService, "updateOneById");
 

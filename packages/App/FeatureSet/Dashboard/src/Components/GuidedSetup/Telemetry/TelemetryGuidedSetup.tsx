@@ -5,6 +5,7 @@ import TelemetrySetupApi, {
   getTelemetryRecommendations,
   mayCreateMonitors,
 } from "./TelemetrySetupApi";
+import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
 import {
   TELEMETRY_SETUP,
   TELEMETRY_SETUP_COPY,
@@ -52,7 +53,7 @@ import { MonitorRecommendation } from "Common/Types/Monitor/Recommendation/Monit
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import API from "Common/UI/Utils/API/API";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -269,7 +270,7 @@ const TelemetryGuidedSetup: FunctionComponent = (): ReactElement => {
   }, [openStepKey, service?.id]);
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (loadError) {
@@ -512,7 +513,7 @@ const TelemetryGuidedSetup: FunctionComponent = (): ReactElement => {
 
   const alertContent: ReactElement =
     coveredIds === null ? (
-      <PageLoader isVisible={true} />
+      <CardListSkeleton count={2} lines={1} />
     ) : (
       <div className="space-y-4">
         <p className="text-sm text-gray-500">

@@ -3,6 +3,7 @@ import {
   MCP_OAUTH_CONSENT_DENY_API_URL,
   MCP_OAUTH_CONSENT_DETAILS_API_URL,
 } from "../Utils/ApiPaths";
+import AuthPageSkeleton from "Common/UI/Components/AuthPage/AuthPageSkeleton";
 import McpAuthorizeUtil, {
   McpConsentAccess,
   McpConsentDetails,
@@ -14,7 +15,6 @@ import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ProductLogo from "Common/UI/Components/ProductLogo/ProductLogo";
 import Dropdown, {
   DropdownOption,
@@ -292,7 +292,7 @@ const McpAuthorize: () => JSX.Element = () => {
   };
 
   if (state.kind === "loading") {
-    return <PageLoader isVisible={true} />;
+    return <AuthPageSkeleton fields={1} />;
   }
 
   if (state.kind === "error") {

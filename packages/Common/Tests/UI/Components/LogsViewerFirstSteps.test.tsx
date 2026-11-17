@@ -198,7 +198,7 @@ describe("the Logs page's first steps in an empty explorer", () => {
     });
 
     expect(within(loading).queryByTestId("page-first-steps")).toBeNull();
-    expect(within(loading).getByTestId("component-loader")).toBeInTheDocument();
+    expect(within(loading).getByTestId("table-skeleton")).toBeInTheDocument();
   });
 
   test("a page that hands over nothing keeps its own message: an embed is unchanged", async () => {

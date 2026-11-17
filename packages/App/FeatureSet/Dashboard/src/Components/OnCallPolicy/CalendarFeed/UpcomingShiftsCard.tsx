@@ -1,4 +1,5 @@
 import CalendarFeedAPI from "./CalendarFeedAPI";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import { MyShiftsResponse } from "./CalendarFeedTypes";
 import {
   STANDING_ASSIGNMENTS_COPY,
@@ -40,7 +41,6 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { UserOverrideAddAccess } from "Common/Types/OnCallDutyPolicy/UserOverrideAddAccess";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import { FeedClock, getFeedClock } from "Common/UI/Components/Feed/FeedTime";
 import Icon from "Common/UI/Components/Icon/Icon";
 import API from "Common/UI/Utils/API/API";
@@ -466,7 +466,7 @@ const UpcomingShiftsCard: FunctionComponent<ComponentProps> = (
   if (isLoading) {
     body = (
       <div data-testid="upcoming-shifts-loading">
-        <ComponentLoader />
+        <TableSkeleton rows={4} hasHeader={false} />
       </div>
     );
   } else {

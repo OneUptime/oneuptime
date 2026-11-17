@@ -1,4 +1,5 @@
 import MasterPage from "./Components/MasterPage/MasterPage";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import Init from "./Pages/Init/Init";
 import ServerSetup from "./Pages/Setup/Index";
 import Feedback from "./Pages/Feedback/Index";
@@ -43,7 +44,6 @@ import {
   EnterpriseSettingsPage,
   getEnterpriseSettingsPageRoute,
 } from "./Enterprise/EnterprisePlugins";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import EnterpriseLicenseView from "./Pages/EnterpriseLicenses/View/Index";
 import PageMap from "./Utils/PageMap";
 import RouteMap from "./Utils/RouteMap";
@@ -422,7 +422,7 @@ const App: () => JSX.Element = () => {
                 key={page.path}
                 path={getEnterpriseSettingsPageRoute(page.path).toString()}
                 element={
-                  <Suspense fallback={<PageLoader isVisible={true} />}>
+                  <Suspense fallback={<PageSkeleton />}>
                     <SettingsPage />
                   </Suspense>
                 }

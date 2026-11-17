@@ -1,6 +1,6 @@
 import Card from "Common/UI/Components/Card/Card";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -342,7 +342,7 @@ const BackupCodes: FunctionComponent<ComponentProps> = (
 
   const renderStatus: RenderStatusFunction = (): ReactElement => {
     if (isStatusLoading) {
-      return <ComponentLoader />;
+      return <DetailListSkeleton fields={2} columns={1} />;
     }
 
     if (statusError) {

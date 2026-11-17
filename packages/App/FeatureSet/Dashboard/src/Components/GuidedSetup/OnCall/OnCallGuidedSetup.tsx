@@ -128,7 +128,7 @@ import Dropdown, {
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import LazyPeoplePicker from "Common/UI/Components/PeoplePicker/LazyPeoplePicker";
 import {
   PeoplePickerKind,
@@ -576,7 +576,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
   }, [store]);
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (loadError) {

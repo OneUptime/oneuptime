@@ -114,11 +114,11 @@ jest.mock("../../../UI/Components/Charts/Line/LineChart", () => {
   };
 });
 
-jest.mock("../../../UI/Components/ComponentLoader/ComponentLoader", () => {
+jest.mock("../../../UI/Components/Skeleton/ChartSkeleton", () => {
   return {
     __esModule: true,
     default: (): React.ReactElement => {
-      return <div data-testid="component-loader" />;
+      return <div data-testid="chart-skeleton" />;
     },
   };
 });
@@ -273,7 +273,7 @@ describe("the burn-down names a gesture only where its body takes one", () => {
 
     await renderCard();
 
-    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("chart-skeleton")).toBeInTheDocument();
     expect(hint()).toBeNull();
     expectRowInPlace();
   });
@@ -286,7 +286,7 @@ describe("the burn-down names a gesture only where its body takes one", () => {
     await renderCard();
 
     await waitFor(() => {
-      expect(screen.queryByTestId("component-loader")).toBeNull();
+      expect(screen.queryByTestId("chart-skeleton")).toBeNull();
     });
     expect(screen.queryByTestId("line-chart")).toBeNull();
     expect(hint()).toBeNull();
