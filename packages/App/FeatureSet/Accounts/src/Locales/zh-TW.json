@@ -188,6 +188,17 @@
     "linkInvalidDescription": "它可能已被使用過，或只複製了一部分。請申請新連結，我們會以電子郵件寄給您。",
     "requestNewLinkButton": "申請新連結"
   },
+  "setPassword": {
+    "title": "設定密碼",
+    "subtitle": "設定一個密碼，完成帳戶設定。",
+    "submitButton": "設定密碼",
+    "successTitle": "密碼已設定",
+    "successDescription": "請使用新密碼登入。",
+    "linkExpiredTitle": "此連結已過期",
+    "linkExpiredDescription": "設定密碼的連結有效期為 {{days}} 天。請建立您帳戶的管理員重新傳送一個。",
+    "linkInvalidTitle": "此連結已失效",
+    "linkInvalidDescription": "它可能已被使用，或只複製了一部分。如果您已設定密碼，請登入。否則，請向管理員索取新連結。"
+  },
   "sso": {
     "title": "使用 SSO 登入",
     "emailFormSubtitle": "輸入您的電子郵件，尋找您組織的登入方式。",

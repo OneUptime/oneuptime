@@ -31,6 +31,8 @@ const STORAGE_KEY: string = "oneuptime-sensitive-url-token";
  */
 const TOKEN_ROUTES: Array<string> = [
   "reset-password",
+  // A first password's link (Common/Types/Accounts/SetPasswordLink).
+  "set-password",
   "verify-email",
   "unsubscribe",
   "update-subscription",

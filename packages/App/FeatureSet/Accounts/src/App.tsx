@@ -204,6 +204,19 @@ function App(): ReactElement {
               path="/accounts/reset-password/:token"
               element={<ResetPasswordPage />}
             />
+            {/*
+             * The first password of an account a master admin created
+             * (Common/Types/Accounts/SetPasswordLink): the reset page, in
+             * its own words.
+             */}
+            <Route
+              path="/accounts/set-password"
+              element={<ResetPasswordPage isSettingFirstPassword={true} />}
+            />
+            <Route
+              path="/accounts/set-password/:token"
+              element={<ResetPasswordPage isSettingFirstPassword={true} />}
+            />
             <Route path="/accounts/register" element={<RegisterPage />} />
             <Route path="/accounts/verify-email" element={<VerifyEmail />} />
             <Route

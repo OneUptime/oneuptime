@@ -188,6 +188,17 @@
     "linkInvalidDescription": "It may have been used already, or only part of it was copied. Ask for a new link and we will email it to you.",
     "requestNewLinkButton": "Request a New Link"
   },
+  "setPassword": {
+    "title": "Set your password",
+    "subtitle": "Choose a password to finish setting up your account.",
+    "submitButton": "Set Password",
+    "successTitle": "Your password is set",
+    "successDescription": "Sign in with your new password.",
+    "linkExpiredTitle": "This link has expired",
+    "linkExpiredDescription": "Links to set a password work for {{days}} days. Ask the administrator who created your account to send you a new one.",
+    "linkInvalidTitle": "This link no longer works",
+    "linkInvalidDescription": "It may have been used already, or only part of it was copied. If you have set your password, sign in. If not, ask your administrator for a new link."
+  },
   "sso": {
     "title": "Sign in with SSO",
     "emailFormSubtitle": "Enter your email to find your organization’s sign-in.",
