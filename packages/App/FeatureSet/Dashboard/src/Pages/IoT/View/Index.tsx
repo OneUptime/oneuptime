@@ -690,7 +690,7 @@ const IoTFleetOverview: FunctionComponent<
                   <ResourceHeroDescription
                     text={fleet.description as string | undefined}
                   />
-                  <div className="mt-1 text-xs text-gray-400">
+                  <div className="mt-1 text-xs text-gray-500">
                     {lastSeenText}
                   </div>
                 </div>
@@ -906,7 +906,7 @@ const IoTFleetOverview: FunctionComponent<
                         );
                       })}
                     </div>
-                    <p className="text-xs text-gray-400 font-mono">
+                    <p className="text-xs text-gray-500 font-mono">
                       {item.externalId}
                     </p>
                   </div>

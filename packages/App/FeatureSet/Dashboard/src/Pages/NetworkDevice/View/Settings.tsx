@@ -541,7 +541,7 @@ const NetworkDeviceSettings: FunctionComponent<
               getElement: (item: NetworkDevice): ReactElement => {
                 if (!item.site?.name) {
                   return (
-                    <span className="text-gray-400">
+                    <span className="text-gray-500">
                       {translator.translateText("No site assigned")}
                     </span>
                   );
@@ -616,7 +616,7 @@ const NetworkDeviceSettings: FunctionComponent<
               getElement: (item: NetworkDevice): ReactElement => {
                 if (!item.snmpCredentialProfile?.name) {
                   return (
-                    <span className="text-sm text-gray-400">
+                    <span className="text-sm text-gray-500">
                       {translator.translateText(
                         "None — this device's own credentials, or its site's profile",
                       )}
@@ -665,7 +665,7 @@ const NetworkDeviceSettings: FunctionComponent<
               getElement: (item: NetworkDevice): ReactElement => {
                 if (!item.networkDeviceRole?.name) {
                   return (
-                    <span className="text-sm text-gray-400">
+                    <span className="text-sm text-gray-500">
                       {translator.translateText("Worked out from SNMP")}
                     </span>
                   );

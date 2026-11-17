@@ -186,7 +186,7 @@ const StatTile: FunctionComponent<StatTileProps> = (
           {translator.translateText(props.sublabel)}
         </div>
       ) : (
-        <div className="mt-1 text-xs text-gray-400">&nbsp;</div>
+        <div className="mt-1 text-xs text-gray-500">&nbsp;</div>
       )}
       {props.percent !== undefined && props.percent !== null && (
         <div className="mt-3 w-full bg-gray-100 rounded-full h-1.5">
@@ -928,7 +928,7 @@ const HostSystemdUnitView: FunctionComponent<
                       />
                       <StatePill state={transition.toState} />
                     </span>
-                    <span className="ml-auto text-xs text-gray-400">
+                    <span className="ml-auto text-xs text-gray-500">
                       {OneUptimeDate.fromNow(transition.time)}
                     </span>
                   </div>

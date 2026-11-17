@@ -1608,7 +1608,7 @@ const VMwareVCenterOverview: FunctionComponent<
                   <ResourceHeroDescription
                     text={vcenter.description as string | undefined}
                   />
-                  <div className="mt-1 text-xs text-gray-400">
+                  <div className="mt-1 text-xs text-gray-500">
                     {lastSeenText}
                   </div>
                 </div>
@@ -2041,7 +2041,7 @@ const VMwareVCenterOverview: FunctionComponent<
   }): ReactElement => {
     if (params.rows.length === 0) {
       return (
-        <p className="text-gray-400 text-sm py-8 text-center">
+        <p className="text-gray-500 text-sm py-8 text-center">
           {tx(params.emptyMessage)}
         </p>
       );
@@ -2070,7 +2070,7 @@ const VMwareVCenterOverview: FunctionComponent<
               >
                 <div className="mb-1.5 flex items-start justify-between gap-2">
                   <div className="flex min-w-0 flex-1 items-start gap-2">
-                    <span className="w-4 flex-shrink-0 text-xs font-medium leading-5 text-gray-400">
+                    <span className="w-4 flex-shrink-0 text-xs font-medium leading-5 text-gray-500">
                       {index + 1}.
                     </span>
                     <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">

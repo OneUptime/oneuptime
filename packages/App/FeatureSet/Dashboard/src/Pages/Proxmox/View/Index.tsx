@@ -1638,7 +1638,7 @@ const ProxmoxClusterOverview: FunctionComponent<
                   <ResourceHeroDescription
                     text={cluster.description as string | undefined}
                   />
-                  <div className="mt-1 text-xs text-gray-400">
+                  <div className="mt-1 text-xs text-gray-500">
                     {lastSeenText}
                   </div>
                 </div>
@@ -2191,7 +2191,7 @@ const ProxmoxClusterOverview: FunctionComponent<
                     : null;
                 const ageClass: string =
                   ageSeconds === null
-                    ? "text-gray-400"
+                    ? "text-gray-500"
                     : ageSeconds > REPLICATION_SYNC_DANGER_SECONDS
                       ? "text-red-700 font-medium"
                       : ageSeconds > REPLICATION_SYNC_WARN_SECONDS
@@ -2410,7 +2410,7 @@ const ProxmoxClusterOverview: FunctionComponent<
   }): ReactElement => {
     if (params.rows.length === 0) {
       return (
-        <p className="text-gray-400 text-sm py-8 text-center">
+        <p className="text-gray-500 text-sm py-8 text-center">
           {translator.translateText("No usage data available.")}
         </p>
       );
@@ -2427,7 +2427,7 @@ const ProxmoxClusterOverview: FunctionComponent<
             >
               <div className="flex items-center justify-between mb-1.5">
                 <div className="flex items-center gap-2 min-w-0 flex-1">
-                  <span className="flex-shrink-0 text-xs font-medium text-gray-400 w-4">
+                  <span className="flex-shrink-0 text-xs font-medium text-gray-500 w-4">
                     {index + 1}.
                   </span>
                   <span className="text-sm font-medium text-gray-900 truncate group-hover:text-indigo-700">

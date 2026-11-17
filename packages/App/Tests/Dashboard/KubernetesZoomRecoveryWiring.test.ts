@@ -228,7 +228,7 @@ describe("the network throughput chart", () => {
     );
     expectCode(
       NETWORK_CHART,
-      'className="flex select-none items-center justify-center text-sm text-gray-400" style={{ height: `${heightInPx}px` }} onDoubleClick={zoom?.onTimeRangeReset} >',
+      'className="flex select-none items-center justify-center text-sm text-gray-500" style={{ height: `${heightInPx}px` }} onDoubleClick={zoom?.onTimeRangeReset} >',
     );
   });
 });

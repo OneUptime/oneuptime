@@ -2270,7 +2270,7 @@ const KubernetesClusterOverview: FunctionComponent<
                       {clusterIdentifier}
                     </div>
                   )}
-                  <div className="mt-1 text-xs text-gray-400">
+                  <div className="mt-1 text-xs text-gray-500">
                     {lastSeenText}
                   </div>
                 </div>
@@ -2728,7 +2728,7 @@ const KubernetesClusterOverview: FunctionComponent<
                 </div>
               </div>
               {topCpuPods.length === 0 ? (
-                <p className="text-gray-400 text-sm py-8 text-center">
+                <p className="text-gray-500 text-sm py-8 text-center">
                   {translator.translateText("No CPU usage data available.")}
                 </p>
               ) : (
@@ -2751,7 +2751,7 @@ const KubernetesClusterOverview: FunctionComponent<
                       >
                         <div className="flex items-center justify-between mb-1.5">
                           <div className="flex items-center gap-2 min-w-0 flex-1">
-                            <span className="flex-shrink-0 text-xs font-medium text-gray-400 w-4">
+                            <span className="flex-shrink-0 text-xs font-medium text-gray-500 w-4">
                               {translator.formatNumber(index + 1)}.
                             </span>
                             <span className="text-sm font-medium text-gray-900 truncate group-hover:text-indigo-700">
@@ -2814,7 +2814,7 @@ const KubernetesClusterOverview: FunctionComponent<
                 </div>
               </div>
               {topMemoryPods.length === 0 ? (
-                <p className="text-gray-400 text-sm py-8 text-center">
+                <p className="text-gray-500 text-sm py-8 text-center">
                   {translator.translateText("No memory usage data available.")}
                 </p>
               ) : (
@@ -2852,7 +2852,7 @@ const KubernetesClusterOverview: FunctionComponent<
                         >
                           <div className="flex items-center justify-between mb-1.5">
                             <div className="flex items-center gap-2 min-w-0 flex-1">
-                              <span className="flex-shrink-0 text-xs font-medium text-gray-400 w-4">
+                              <span className="flex-shrink-0 text-xs font-medium text-gray-500 w-4">
                                 {translator.formatNumber(index + 1)}.
                               </span>
                               <span className="text-sm font-medium text-gray-900 truncate group-hover:text-indigo-700">
@@ -2888,7 +2888,7 @@ const KubernetesClusterOverview: FunctionComponent<
                               </div>
                               {pod.memoryUtilization !== null &&
                               pod.memoryUtilization !== undefined ? (
-                                <div className="text-xs text-gray-400 tabular-nums">
+                                <div className="text-xs text-gray-500 tabular-nums">
                                   <bdi>
                                     {KubernetesResourceUtils.formatMemoryValue(
                                       pod.memoryUsageBytes,

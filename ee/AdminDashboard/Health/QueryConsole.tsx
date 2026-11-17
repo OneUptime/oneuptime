@@ -284,7 +284,7 @@ const renderCell: (value: JSONValue) => ReactElement = (
   value: JSONValue,
 ): ReactElement => {
   if (value === null || value === undefined) {
-    return <span className="text-gray-300 italic">{SQL_NULL}</span>;
+    return <span className="text-gray-500 italic">{SQL_NULL}</span>;
   }
   if (typeof value === "object") {
     return <span className="font-mono text-xs">{JSON.stringify(value)}</span>;
@@ -546,7 +546,7 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
             });
           }}
         />
-        <span className="text-xs text-gray-400 -ml-2">
+        <span className="text-xs text-gray-500 -ml-2">
           {translator.translateText("⌘ / Ctrl + ↵")}
         </span>
 
@@ -766,7 +766,7 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
           >
             <thead className="bg-gray-50 sticky top-0 z-10">
               <tr>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-400 w-12">
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 w-12">
                   #
                 </th>
                 {tableResult.columns.map(
@@ -790,7 +790,7 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
                       >
                         <span>{column}</span>
                         {columnType ? (
-                          <span className="ml-1 font-normal text-gray-400">
+                          <span className="ml-1 font-normal text-gray-500">
                             {columnType.type}
                           </span>
                         ) : (
@@ -807,7 +807,7 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
                 <tr>
                   <td
                     colSpan={tableResult.columns.length + 1}
-                    className="px-3 py-6 text-center text-sm text-gray-400"
+                    className="px-3 py-6 text-center text-sm text-gray-500"
                   >
                     {translator.translateText(
                       "0 rows — the query ran successfully but matched no rows.",
@@ -822,7 +822,7 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
                   const rowObject: JSONObject = (row || {}) as JSONObject;
                   return (
                     <tr key={rowIndex} className="hover:bg-gray-50">
-                      <td className="px-3 py-2 text-xs text-gray-300 tabular-nums">
+                      <td className="px-3 py-2 text-xs text-gray-500 tabular-nums">
                         {rowIndex + 1}
                       </td>
                       {tableResult.columns.map(
@@ -907,7 +907,7 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
   const renderResult: () => ReactElement = (): ReactElement => {
     if (!result) {
       return (
-        <div className="text-sm text-gray-400 py-8 text-center">
+        <div className="text-sm text-gray-500 py-8 text-center">
           {translator.translateText("Run a query to see results here.")}
         </div>
       );
