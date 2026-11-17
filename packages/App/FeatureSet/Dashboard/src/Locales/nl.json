@@ -56518,5 +56518,6 @@
   "This check was too large to keep in full, so it was trimmed.": "Deze controle was te groot om volledig te bewaren en is daarom ingekort.",
   "No email has gone out through this server's email settings since {{time}}.": "Sinds {{time}} is er geen e-mail meer verstuurd via de e-mailinstellingen van deze server.",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "Sinds {{time}} is er geen e-mail meer verstuurd via de e-mailinstellingen van deze server. De mailserver meldde: {{reason}}",
-  "See email logs": "E-maillogboeken bekijken"
+  "See email logs": "E-maillogboeken bekijken",
+  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "Aan deze taak is een privé-incident of privéwaarschuwing toegevoegd die u niet kunt openen, dus de voortgang en de pull request ervan zijn verborgen."
 }

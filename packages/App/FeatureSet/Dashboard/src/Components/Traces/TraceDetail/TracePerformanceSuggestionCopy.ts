@@ -12,6 +12,7 @@ import {
   PluralTemplate,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
+import { CODE_TASK_HIDDEN_SENTENCE } from "../../Code/CodeTaskHiddenCopy";
 
 /*
  * The plain words the trace page uses for a finding worth "Fix performance
@@ -249,6 +250,11 @@ export const FINISHED_FIX_SENTENCES: Readonly<
   [FinishedFixOutcome.WaitingForYou]: translationKey(
     "OneUptime AI has a question about fixing this.",
   ),
+  /*
+   * The fix is in a task a reply carried a private incident or alert into,
+   * which the reader may not open: there is no task to link to.
+   */
+  [FinishedFixOutcome.Hidden]: CODE_TASK_HIDDEN_SENTENCE,
 };
 
 export const VIEW_THE_TASK: string = translationKey("View the task");
@@ -267,6 +273,8 @@ export const FINISHED_FIX_LINKS: Readonly<Record<FinishedFixOutcome, string>> =
     [FinishedFixOutcome.Fixed]: VIEW_THE_TASK,
     [FinishedFixOutcome.NothingToChange]: VIEW_THE_TASK,
     [FinishedFixOutcome.WaitingForYou]: ANSWER_IT,
+    // Never drawn: a hidden fix has no task to link to.
+    [FinishedFixOutcome.Hidden]: VIEW_THE_TASK,
   };
 
 /*
@@ -288,6 +296,11 @@ export const FINISHED_FIX_MARKS: Readonly<
   [FinishedFixOutcome.WaitingForYou]: {
     icon: IconProp.ChatBubbleLeft,
     className: "text-amber-600",
+  },
+  // A lock: the fix is there, and the reader may not open its task.
+  [FinishedFixOutcome.Hidden]: {
+    icon: IconProp.Lock,
+    className: "text-gray-400",
   },
 };
 

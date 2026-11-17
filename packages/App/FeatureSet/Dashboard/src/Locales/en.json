@@ -56518,5 +56518,6 @@
   "This check was too large to keep in full, so it was trimmed.": "This check was too large to keep in full, so it was trimmed.",
   "No email has gone out through this server's email settings since {{time}}.": "No email has gone out through this server's email settings since {{time}}.",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}",
-  "See email logs": "See email logs"
+  "See email logs": "See email logs",
+  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden."
 }

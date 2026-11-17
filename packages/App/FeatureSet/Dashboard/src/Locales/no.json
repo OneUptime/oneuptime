@@ -56518,5 +56518,6 @@
   "This check was too large to keep in full, so it was trimmed.": "Denne kontrollen var for stor til å lagres i sin helhet, så den ble forkortet.",
   "No email has gone out through this server's email settings since {{time}}.": "Ingen e-post har gått ut via e-postinnstillingene til denne serveren siden {{time}}.",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "Ingen e-post har gått ut via e-postinnstillingene til denne serveren siden {{time}}. E-postserveren svarte: {{reason}}",
-  "See email logs": "Se e-postlogger"
+  "See email logs": "Se e-postlogger",
+  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "En privat hendelse eller et privat varsel du ikke kan åpne, ble lagt til i denne oppgaven, så fremdriften og pull-forespørselen er skjult."
 }

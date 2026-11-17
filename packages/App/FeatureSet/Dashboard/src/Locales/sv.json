@@ -56518,5 +56518,6 @@
   "This check was too large to keep in full, so it was trimmed.": "Den här kontrollen var för stor för att sparas i sin helhet, så den har kortats ned.",
   "No email has gone out through this server's email settings since {{time}}.": "Inget e-postmeddelande har skickats via den här serverns e-postinställningar sedan {{time}}.",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "Inget e-postmeddelande har skickats via den här serverns e-postinställningar sedan {{time}}. E-postservern svarade: {{reason}}",
-  "See email logs": "Visa e-postloggar"
+  "See email logs": "Visa e-postloggar",
+  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "En privat incident eller ett privat larm som du inte kan öppna har lagts till i den här uppgiften, så dess förlopp och pull request är dolda."
 }

@@ -15,6 +15,7 @@ import {
   readDeclaredCode,
 } from "Common/Utils/AiRemediation/DeclaredCodeChange";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { CODE_TASK_HIDDEN_SENTENCE } from "../Code/CodeTaskHiddenCopy";
 // A type alone: the step marks' tones, whose colours the line's mark takes.
 import type { RemediationFixStepTone } from "./RemediationFixSteps";
 
@@ -93,6 +94,17 @@ export function readDeclaredCodeChanges(
       typeof row["taskId"] !== "string" ||
       !states.includes(row["state"] as string)
     ) {
+      continue;
+    }
+
+    // A task hidden from the reader: no task, repository or pull request.
+    if (row["state"] === DeclaredCodeChangeState.Hidden) {
+      changes.push({
+        sequence: row["sequence"],
+        taskId: "",
+        repositoryName: "",
+        state: DeclaredCodeChangeState.Hidden,
+      });
       continue;
     }
 
@@ -190,6 +202,11 @@ export const DECLARED_CODE_STATE_WORDS: Readonly<
   [DeclaredCodeChangeState.Failed]: translationKey(
     "The pull request to the code could not be written in {{repository}}.",
   ),
+  /*
+   * Its task carries a private incident or alert the reader may not open:
+   * no repository, nothing of how it stands.
+   */
+  [DeclaredCodeChangeState.Hidden]: CODE_TASK_HIDDEN_SENTENCE,
 };
 
 /*
@@ -207,6 +224,7 @@ export const DECLARED_CODE_STATE_TONES: Readonly<
   [DeclaredCodeChangeState.WaitingForYou]: "attention",
   [DeclaredCodeChangeState.Ended]: "idle",
   [DeclaredCodeChangeState.Failed]: "failed",
+  [DeclaredCodeChangeState.Hidden]: "idle",
 };
 
 // A repository the reader may not read is still a repository.

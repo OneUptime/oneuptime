@@ -56518,5 +56518,6 @@
   "This check was too large to keep in full, so it was trimmed.": "此检查过大，无法完整保存，因此已被截断。",
   "No email has gone out through this server's email settings since {{time}}.": "自 {{time}} 起，没有任何邮件通过此服务器的邮件设置发出。",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "自 {{time}} 起，没有任何邮件通过此服务器的邮件设置发出。邮件服务器返回：{{reason}}",
-  "See email logs": "查看邮件日志"
+  "See email logs": "查看邮件日志",
+  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "此任务中添加了你无法打开的私密事件或警报，因此其进度和拉取请求已隐藏。"
 }

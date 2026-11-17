@@ -56518,5 +56518,6 @@
   "This check was too large to keep in full, so it was trimmed.": "यह जाँच पूरी तरह रखने के लिए बहुत बड़ी थी, इसलिए इसे छोटा कर दिया गया।",
   "No email has gone out through this server's email settings since {{time}}.": "{{time}} से इस सर्वर की ईमेल सेटिंग्स से कोई ईमेल नहीं भेजा गया है।",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "{{time}} से इस सर्वर की ईमेल सेटिंग्स से कोई ईमेल नहीं भेजा गया है। मेल सर्वर ने कहा: {{reason}}",
-  "See email logs": "ईमेल लॉग देखें"
+  "See email logs": "ईमेल लॉग देखें",
+  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "इस कार्य में ऐसी निजी घटना या अलर्ट जोड़ा गया है जिसे आप नहीं खोल सकते, इसलिए इसकी प्रगति और पुल रिक्वेस्ट छिपी हुई हैं।"
 }

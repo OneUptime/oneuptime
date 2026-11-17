@@ -56518,5 +56518,6 @@
   "This check was too large to keep in full, so it was trimmed.": "このチェックは大きすぎて全体を保存できなかったため、一部を切り詰めました。",
   "No email has gone out through this server's email settings since {{time}}.": "{{time}} 以降、このサーバーのメール設定からメールが 1 通も送信されていません。",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "{{time}} 以降、このサーバーのメール設定からメールが 1 通も送信されていません。メールサーバーの応答: {{reason}}",
-  "See email logs": "メールログを見る"
+  "See email logs": "メールログを見る",
+  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "開くことのできないプライベートなインシデントまたはアラートがこのタスクに追加されたため、進捗とプルリクエストは表示されません。"
 }

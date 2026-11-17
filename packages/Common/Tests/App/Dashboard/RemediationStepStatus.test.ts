@@ -545,6 +545,11 @@ describe("getRemediationStepStatus: where fixing stands, in a few words", () => 
       { tone: "idle", text: TEXT.noChangeNeeded },
     ],
     [
+      "a pull request in a task hidden from the reader: hidden, nothing of how it stands",
+      { codeFix: codeFix(SuggestionOffer.Done, FinishedFixOutcome.Hidden) },
+      { tone: "idle", text: TEXT.hidden },
+    ],
+    [
       "a line that needs looking at: needs attention",
       { lines: [line("info"), line("attention")] },
       { tone: "attention", text: TEXT.needsAttention },

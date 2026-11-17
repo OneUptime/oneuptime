@@ -56518,5 +56518,6 @@
   "This check was too large to keep in full, so it was trimmed.": "كان هذا الفحص أكبر من أن يُحفظ كاملًا، لذا اختُصر.",
   "No email has gone out through this server's email settings since {{time}}.": "لم يُرسَل أي بريد إلكتروني عبر إعدادات البريد في هذا الخادم منذ {{time}}.",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "لم يُرسَل أي بريد إلكتروني عبر إعدادات البريد في هذا الخادم منذ {{time}}. ردّ خادم البريد: {{reason}}",
-  "See email logs": "عرض سجلات البريد"
+  "See email logs": "عرض سجلات البريد",
+  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "أُضيفت إلى هذه المهمة حادثة أو تنبيه خاص لا يمكنك فتحه، لذا فإن تقدمها وطلب السحب الخاص بها مخفيان."
 }

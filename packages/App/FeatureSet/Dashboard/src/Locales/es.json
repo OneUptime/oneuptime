@@ -56518,5 +56518,6 @@
   "This check was too large to keep in full, so it was trimmed.": "Esta comprobación era demasiado grande para guardarla completa, así que se ha recortado.",
   "No email has gone out through this server's email settings since {{time}}.": "No ha salido ningún correo a través de la configuración de correo de este servidor desde el {{time}}.",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "No ha salido ningún correo a través de la configuración de correo de este servidor desde el {{time}}. El servidor de correo respondió: {{reason}}",
-  "See email logs": "Ver registros de correo"
+  "See email logs": "Ver registros de correo",
+  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "Se añadió a esta tarea un incidente o una alerta privados que no puedes abrir, así que su progreso y su pull request están ocultos."
 }
