@@ -471,7 +471,9 @@ export type TestPageNobodyReached =
   | { kind: "walkReachesLaterLevel" }
   | {
       kind: "self";
-      fix: OnCallTestPageFix.NotificationMethods | OnCallTestPageFix.OnCallRules;
+      fix:
+        | OnCallTestPageFix.NotificationMethods
+        | OnCallTestPageFix.OnCallRules;
     }
   | { kind: "member" }
   | { kind: "policy" };

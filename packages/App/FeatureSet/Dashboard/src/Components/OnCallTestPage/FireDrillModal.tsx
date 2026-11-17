@@ -3,10 +3,7 @@ import {
   getWhoIsToldSeverityValue,
 } from "../Monitor/Overview/WhoIsToldWords";
 import OnCallTestPageApi from "./OnCallTestPageApi";
-import {
-  FIRE_DRILL_CANT_TEST,
-  FIRE_DRILL_WORDS,
-} from "./OnCallTestPageWords";
+import { FIRE_DRILL_CANT_TEST, FIRE_DRILL_WORDS } from "./OnCallTestPageWords";
 import {
   PreviewLevel,
   describeTestPageCost,
@@ -319,13 +316,9 @@ const FireDrillModal: FunctionComponent<ComponentProps> = (
     <Modal
       title={title}
       isTitleTranslated={true}
-      description={
-        translator.translateText(FIRE_DRILL_WORDS.description) || ""
-      }
+      description={translator.translateText(FIRE_DRILL_WORDS.description) || ""}
       onClose={props.onClose}
-      submitButtonText={
-        translator.translateText(FIRE_DRILL_WORDS.start) || ""
-      }
+      submitButtonText={translator.translateText(FIRE_DRILL_WORDS.start) || ""}
       submitButtonStyleType={ButtonStyleType.PRIMARY}
       onSubmit={() => {
         void start();
