@@ -594,20 +594,24 @@ describe("Metrics > Settings > Pipeline Rules", () => {
   });
 
   /*
-   * A Button is full width under md, and only from md up sits 12px in
-   * (md:ml-3). Taking those 12px back at every width pushed the full-width
-   * Add Filter 12px out of line with the filters on a phone.
+   * Add Filter is an outline button (#9116): sized to its words, with no
+   * dialog footer's margin (md:ml-3) to take back, so nothing around it
+   * pulls it out of line with the filters at any width. It was a NORMAL
+   * button, full width under md and 12px in from md up.
    */
   test("Add Filter lines up with the filters at every width", async () => {
     await openCreateForm();
     await addFilter("http.server.duration");
 
-    const wrapper: HTMLElement = within(dialog()).getByTestId(
+    const button: HTMLElement = within(dialog()).getByTestId(
       "metric-pipeline-rule-add-filter",
-    ).parentElement as HTMLElement;
-    const classes: Array<string> = wrapper.className.split(/\s+/);
-    expect(classes).toContain("md:-ml-3");
-    expect(classes).not.toContain("-ml-3");
+    );
+    const wrapper: HTMLElement = button.parentElement as HTMLElement;
+    const buttonClasses: Array<string> = button.className.split(/\s+/);
+
+    expect(buttonClasses).not.toContain("md:ml-3");
+    expect(buttonClasses).not.toContain("w-full");
+    expect(wrapper.className).not.toMatch(/-ml-/);
   });
 
   /*

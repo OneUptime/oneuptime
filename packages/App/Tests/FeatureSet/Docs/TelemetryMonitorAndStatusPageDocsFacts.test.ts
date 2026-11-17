@@ -2830,7 +2830,7 @@ describe("status page resources", () => {
       "Enter a whole number of days between 1 and {{max}}.",
     );
     expect(RESOURCES).toContain(
-      `That is **${StatusPageDisplaySettingsCopy.uptimeTitle}** in the **${StatusPageDisplaySettingsCopy.cardTitle}** card on **Status Pages → your page → Advanced → Advanced Settings**. It accepts 1 to ${MAX_UPTIME_HISTORY_DAYS} days and defaults to ${defaultDays}.`,
+      `That is **${StatusPageDisplaySettingsCopy.uptimeTitle}** in the **${StatusPageDisplaySettingsCopy.cardTitle}** card on **Status Pages → your page → Advanced → Settings**. It accepts 1 to ${MAX_UPTIME_HISTORY_DAYS} days and defaults to ${defaultDays}.`,
     );
     expect(BRANDING).toContain(`from 1 to ${MAX_UPTIME_HISTORY_DAYS} days`);
   });
@@ -3577,7 +3577,7 @@ describe("status page branding", () => {
     ).toContain("if (!props.hidePoweredByOneUptimeBranding) {");
     // Folded under More settings, below the card of what the page shows.
     expect(BRANDING).toContain(
-      `It has a card of its own, **${StatusPagePoweredByCopy.cardTitle}**, folded under **More settings** below the **${StatusPageDisplaySettingsCopy.cardTitle}** card on **Status Pages → your page → Advanced → Advanced Settings** (\`{id}/settings\`): **${StatusPagePoweredByCopy.switchTitle}**, on by default.`,
+      `It has a card of its own, **${StatusPagePoweredByCopy.cardTitle}**, folded under **More settings** below the **${StatusPageDisplaySettingsCopy.cardTitle}** card on **Status Pages → your page → Advanced → Settings** (\`{id}/settings\`): **${StatusPagePoweredByCopy.switchTitle}**, on by default.`,
     );
     expect(BRANDING).toContain(
       "Self-hosted, hiding it is part of the Enterprise Edition: on the Community Edition, every status page shows the line.",

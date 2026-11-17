@@ -318,7 +318,7 @@ const ConditionEditor: FunctionComponent<ConditionEditorProps> = (
         );
       case ConditionPhrasePartKind.Missing:
         return (
-          <span key={index} className="italic text-gray-400">
+          <span key={index} className="italic text-gray-500">
             {part.text}
           </span>
         );

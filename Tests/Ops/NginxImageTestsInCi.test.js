@@ -102,9 +102,10 @@ function nginxTestFiles() {
 }
 
 describe("the Nginx Test workflow's image job", () => {
-  test("runs on every pull request and every push to main, beside the runner's test job", () => {
+  test("runs on every pull request, and on main nightly, beside the runner's test job", () => {
     expect(workflow.on).toHaveProperty("pull_request");
-    expect(workflow.on.push.branches).toEqual(["main"]);
+    // Not on every push to main (PullRequestChecksNotOnPush.test.js).
+    expect(workflow.on.schedule).toHaveLength(1);
     expect(Object.keys(workflow.jobs).sort()).toEqual(["image", "test"]);
     expect(job["runs-on"]).toBe("ubuntu-latest");
     expect(job.needs).toBeUndefined();

@@ -27,5 +27,14 @@
   "Copy": "Copiar",
   "Copied!": "Copiado!",
   "Copy failed": "Falha ao copiar",
-  "Hide": "Ocultar"
+  "Hide": "Ocultar",
+  "Dismiss": "Dispensar",
+  "Dashboard Not Found": "Painel não encontrado",
+  "This dashboard does not exist, or it is no longer shared.": "Este painel não existe ou não está mais compartilhado.",
+  "Check the address, or ask the person who shared it with you for a new link.": "Verifique o endereço ou peça um novo link à pessoa que o compartilhou com você.",
+  "Access Denied": "Acesso negado",
+  "This dashboard opens only from the IP addresses its owner allows, and yours is not one of them.": "Este painel só abre a partir dos endereços IP que o proprietário permite, e o seu não é um deles.",
+  "Ask the dashboard's owner for access, or open it from a network they allow.": "Peça acesso ao proprietário do painel ou abra-o a partir de uma rede que ele permita.",
+  "Show more": "Mostrar mais",
+  "Show less": "Mostrar menos"
 }

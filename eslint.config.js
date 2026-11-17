@@ -274,6 +274,9 @@ export default tseslint.config(
         exports: true,
         NodeJS: true,
         PromiseSettledResult: true,
+        // The two halves of a PromiseSettledResult, TypeScript's own types too.
+        PromiseFulfilledResult: true,
+        PromiseRejectedResult: true,
         AsyncIterable: true,
         AsyncIterator: true,
         /*

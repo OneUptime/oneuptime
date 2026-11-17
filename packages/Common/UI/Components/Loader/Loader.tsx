@@ -1,4 +1,4 @@
-import { VeryLightGray } from "../../../Types/BrandColors";
+import { LOADER_COLOR } from "./LoaderLayout";
 import Color from "../../../Types/Color";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
@@ -20,7 +20,7 @@ export interface ComponentProps {
 
 const Loader: FunctionComponent<ComponentProps> = ({
   size = 50,
-  color = VeryLightGray,
+  color = LOADER_COLOR,
   loaderType = LoaderType.Bar,
   className = "",
 }: ComponentProps) => {

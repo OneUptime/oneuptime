@@ -36,10 +36,10 @@ A página mostra como recursos os monitores que você coloca nela, e os incident
 
 ## Em resumo
 
-- **Criada com um nome.** Uma nova página de status pede apenas o **Nome**; **Descrição** e **Rótulos** ficam em **Mais campos**. Recursos, marca e domínios são configurados depois.
+- **Criada com um nome.** Uma nova página de status pede apenas o **Nome**; **Descrição interna** e **Rótulos** ficam em **Mais campos**. Recursos, marca e domínios são configurados depois.
 - **Os recursos são o que os visitantes veem.** Cada linha da página é um **Recurso da página de status**: um monitor (ou grupo de monitores) com seu próprio nome de exibição, dica e opções de tempo de atividade. Os grupos dividem uma página longa em seções e podem ser aninhados.
 - **Uma URL de pré-visualização desde o primeiro dia.** Toda página de status recebe um link de pré-visualização, para que você possa vê-la antes de existir um domínio personalizado.
-- **As rotas para visitantes dependem de configurações.** Incidentes, episódios, anúncios e eventos agendados só aparecem enquanto seu interruptor em **O que sua página de status mostra** (em **Configurações avançadas**) estiver ligado, e a página de inscrição só enquanto **Mostrar página de assinantes** estiver ligado.
+- **As rotas para visitantes dependem de configurações.** Incidentes, episódios, anúncios e eventos agendados só aparecem enquanto seu interruptor em **O que sua página de status mostra** (em **Configurações**) estiver ligado, e a página de inscrição só enquanto **Mostrar página de assinantes** estiver ligado.
 - **Quem pode vê-la é uma única escolha.** Qualquer pessoa com o link, apenas quem entra (usuários privados, SSO SAML ou OIDC) ou qualquer pessoa com a senha, na tela **Acesso** da página, com uma lista de IPs permitidos opcional em **Mais configurações**.
 - **Os assinantes são notificados automaticamente.** Assinantes de e-mail, SMS, Slack, Microsoft Teams e webhook podem seguir uma página, cada canal atrás de seu próprio interruptor.
 
@@ -66,7 +66,7 @@ Abra **Páginas de status → Todas as páginas de status** e clique em **Criar 
 
 ### Dar um nome à página
 
-Na janela **Criar: Página de status**, preencha **Nome** (obrigatório, pelo menos dois caracteres) e clique em **Criar página de status**. **Descrição** e **Rótulos** são opcionais, em **Mais campos**.
+Na janela **Criar: Página de status**, preencha **Nome** (obrigatório, pelo menos dois caracteres) e clique em **Criar página de status**. **Descrição interna** e **Rótulos** são opcionais, em **Mais campos**. A descrição interna é para a sua equipe: os visitantes nunca a veem.
 
 Esse é o formulário inteiro. A lista **Páginas de status** mostra **Nome**, **Descrição**, **Rótulos** e **Proprietários**, e pode ser filtrada por **ID da página de status**, **Nome** e **Descrição**.
 
@@ -82,33 +82,32 @@ Em seguida, mais ou menos em ordem de utilidade:
 - Adicione recursos para que a página mostre algo: veja [Recursos e grupos da página de status](/docs/status-pages/resources-and-groups).
 - Defina o título da página, o favicon, o logotipo e a imagem de capa, e depois conecte um domínio personalizado: veja [Marca e domínios da página de status](/docs/status-pages/branding-and-domains).
 - Decida por quais canais as pessoas podem se inscrever: veja [Assinantes e comunicados](/docs/status-pages/subscribers).
-- Ajuste o que aparece na página em **Configurações avançadas**.
+- Ajuste o que aparece na página em **Configurações**.
 
 ## Onde fica cada coisa
 
-Depois de abrir uma página de status, o menu lateral esquerdo dela é agrupado em dez seções. Use-o como mapa para o resto desta parte da documentação.
+Depois de abrir uma página de status, o menu lateral esquerdo dela é agrupado em nove seções. Use-o como mapa para o resto desta parte da documentação.
 
 | Seção | O que contém |
 | --- | --- |
-| **Básico** | **Visão geral**, **Anúncios**, **Proprietários**. |
+| **Visão geral** | **Visão geral**, **Anúncios**, **Proprietários**. |
 | **Recursos** | Uma única tela **Recursos** (os grupos à esquerda, os monitores do grupo selecionado à direita). |
 | **Regras** | **Regras de monitor**: regras que adicionam à página cada monitor que corresponde, agora e depois. |
-| **Assinantes** | **Assinantes de e-mail**, **Assinantes de SMS**, **Assinantes do Slack**, **Assinantes do Microsoft Teams**, **Assinantes de webhook**, **Configurações de assinantes**. |
-| **Logs de notificação** | **Logs de notificação**: o que foi enviado aos assinantes. |
+| **Assinantes** | **Assinantes** (uma única página, com uma aba para cada canal: E-mail, SMS, Slack, Microsoft Teams e Webhook), **Configurações de assinantes**, **Logs de notificação**: o que foi enviado aos assinantes. |
 | **Marca** | **Marca** (logotipo, título, favicon, links, rodapé, cores e idiomas, em uma única página), **Domínios personalizados**, **HTML, CSS e JavaScript**. |
-| **Segurança** | **Acesso** (quem pode ver a página), **Usuários privados**, **SSO**, **OIDC**, **SCIM**. |
+| **Segurança** | **Acesso** (quem pode ver a página), **Usuários privados**, **Login único** (uma aba para SAML e outra para OIDC), **SCIM**. |
 | **IA** | **MCP**. |
 | **Desenvolvedores** | **Terraform**, **API**, **CLI**, **Assistentes de IA**: a página como código. |
-| **Avançado** | **Status incorporado**, **Relatórios**, **Campos personalizados**, **Configurações avançadas**, **Registros de auditoria**, **Excluir página de status**. |
+| **Avançado** | **Status incorporado**, **Relatórios**, **Campos personalizados**, **Configurações**, **Registros de auditoria**, **Excluir página de status**. |
 
-Apenas **Básico** e **Recursos**, o que a página mostra, começam abertas. Todas as outras seções começam recolhidas, como as seções pouco usadas de todos os menus da OneUptime: clique no título de uma seção para mostrar suas páginas. Uma seção se abre sozinha quando você está em uma das páginas dela, como **Configurações avançadas** ou **Assinantes de e-mail**.
+Apenas **Visão geral** e **Recursos**, o que a página mostra, começam abertas. Todas as outras seções começam recolhidas, como as seções pouco usadas de todos os menus da OneUptime: clique no título de uma seção para mostrar suas páginas. Uma seção se abre sozinha quando você está em uma das páginas dela, como **Configurações** ou **Assinantes**.
 
 Duas particularidades de nomes que vale conhecer antes de procurar:
 
 - O item **Recursos** só se chama **Recursos** quando o projeto tem os grupos de monitores ativados. Caso contrário, ele se chama **Monitores**. É a mesma tela nos dois casos.
 - Não há uma página de grupos separada. Grupos e recursos foram unificados, e a antiga rota `/groups` agora redireciona para a tela de recursos.
 
-Fora de uma página específica, a própria seção **Páginas de status** lista **Todas as páginas de status**, e uma seção **Mais** contém **Anúncios**. Uma seção **Configurações** recolhida contém **Modelos de anúncios**, **Modelos de assinantes**, **Campos personalizados**, **Regras de proprietário** e **Regras de Rótulos**, que valem para todo o projeto e são compartilhados por todas as páginas de status. Uma seção **Avançado** recolhida contém **Arquivado**: as páginas de status que você tirou do ar (veja [Arquivar uma página de status](#arquivar-uma-página-de-status)).
+Fora de uma página específica, a própria seção **Páginas de status** lista **Todas as páginas de status** e **Anúncios**. Uma seção **Regras** recolhida contém **Regras de proprietário** e **Regras de Rótulos**, e uma seção **Configurações** recolhida contém **Modelos de anúncios**, **Modelos de assinantes** e **Campos personalizados**. Todos valem para o projeto inteiro e são compartilhados por todas as páginas de status. Uma seção **Avançado** recolhida contém **Arquivado**: as páginas de status que você tirou do ar (veja [Arquivar uma página de status](#arquivar-uma-página-de-status)).
 
 **Regras de Rótulos** e **Regras de proprietário** rotulam novas páginas de status e atribuem proprietários a elas. Uma regra tem duas etapas (**Corresponder**, as condições que uma página de status precisa atender, e depois **Rótulos** ou **Proprietários**, o que a regra adiciona) e seu **Nome** é preenchido a partir do que você escolhe. Uma nova regra precisa adicionar pelo menos um rótulo ou proprietário; ao editar, isso nunca é cobrado, e a lista marca com **Não adiciona nada** uma regra antiga que não adiciona nada. Veja [Regras de rótulos e proprietários](/docs/configuration/label-and-owner-rules).
 
@@ -148,7 +147,7 @@ Para saber o que coloca um incidente nesta página e o que o tira dela, veja [Es
 
 ## Escolher o que aparece na página
 
-O que os visitantes veem é definido em um único cartão: **O que sua página de status mostra**, em **Páginas de status → sua página → Avançado → Configurações avançadas**. Ele tem uma linha para cada lista que a página pode mostrar, depois **Histórico de tempo de atividade** (com o percentual geral de tempo de atividade e os status que contam como indisponibilidade). A linha "Powered by OneUptime" tem um cartão próprio, logo abaixo, recolhido em **Mais configurações**. Não há botão de edição: um interruptor é salvo assim que você o muda, um número de dias quando você sai da caixa dele ou pressiona Enter, e uma escolha em uma lista assim que você a faz.
+O que os visitantes veem é definido em um único cartão: **O que sua página de status mostra**, em **Páginas de status → sua página → Avançado → Configurações**. Ele tem uma linha para cada lista que a página pode mostrar, depois **Histórico de tempo de atividade** (com o percentual geral de tempo de atividade e os status que contam como indisponibilidade). A linha "Powered by OneUptime" tem um cartão próprio, logo abaixo, recolhido em **Mais configurações**. Não há botão de edição: um interruptor é salvo assim que você o muda, um número de dias quando você sai da caixa dele ou pressiona Enter, e uma escolha em uma lista assim que você a faz.
 
 - **Mostrar incidentes** (`showIncidentsOnStatusPage`): ligado por padrão. Abaixo dele, **Mostrar … dias de histórico** (`showIncidentHistoryInDays`, 14 por padrão) define até onde vai a lista de incidentes, e **Mostrar rótulos de incidentes** (`showIncidentLabelsOnStatusPage`) é desligado por padrão.
 - **Mostrar apenas incidentes limitados a esta página** (`onlyShowScopedIncidents`): também na linha de incidentes, desligado por padrão. Ligue-o e a página mostra, e notifica a seus assinantes, apenas os incidentes limitados a ela com **Limitar a estas páginas de status**. Incidentes não limitados a nenhuma página, incluindo os que um monitor, o Slack, o Microsoft Teams, a API ou a IA abrem sozinhos, nunca chegam a ela até que alguém adicione a página a eles. Ele também decide quais incidentes trazem seus episódios para a página, por isso continua disponível quando **Mostrar incidentes** está desligado. Para páginas que compartilham monitores mas atendem públicos diferentes, veja [Uma página de status por público](/docs/status-pages/one-status-page-per-audience).
@@ -198,17 +197,21 @@ Escolher uma opção pede confirmação, dizendo o que muda para os visitantes, 
 
 Adicione as pessoas que podem entrar em **Páginas de status → sua página → Segurança → Usuários privados**. Há uma ação **Adicionar em massa**: cole uma lista de endereços de e-mail e cada um recebe um e-mail de convite. Os usuários privados têm seu próprio fluxo de senha esquecida e de redefinição, separado das contas do seu projeto OneUptime. Uma nova senha os desconecta em todos os dispositivos, e qualquer link de acesso ou de redefinição já enviado deixa de funcionar.
 
+**Usuários privados, login único e SCIM não fazem nada em uma página pública.** Enquanto **Qualquer pessoa com o link** for a escolha, todo visitante vê a página sem entrar. As telas **Usuários privados**, **Login único** e **SCIM** dizem isso no topo, "Esta página de status é pública, então estas configurações não têm efeito até você torná-la privada.", com **Alterar o acesso**, que abre **Acesso**. O que elas contêm fica recolhido em **Configurar antes de torná-la privada**: abra para adicionar pessoas ou um provedor antes de a página se tornar privada, para que ninguém fique sem acesso quando isso acontecer.
+
 **Usuários privados e senha não se somam.** Enquanto **Qualquer pessoa com a senha** for a escolha, os usuários privados não conseguem entrar (eles também digitam a senha), e a tela **Usuários privados** diz isso, com um link de volta para **Acesso**.
 
 **Links de acesso.** Em uma página em que os visitantes entram, a página de login também oferece **Enviar um link de acesso por e-mail**: um usuário privado informa seu endereço de e-mail e recebe um link que o faz entrar sem a senha. O link funciona uma vez, por 15 minutos, e pedir outro o substitui. Ele abre uma página em que o usuário pressiona **Entrar**, para que filtros de e-mail que abrem cada link para analisá-lo não o gastem antes. A página responde da mesma forma, seja o endereço de um de seus usuários privados ou não, então pedir um link não revela a ninguém quem pode entrar. Os links ficam ativados em todas as páginas; para manter os usuários privados nas senhas, desative **Links de acesso** em **Mais configurações** em **Usuários privados** (quem já entrou com um link continua conectado). Eles nunca são oferecidos enquanto **Exigir SSO para login** estiver ativado ou **Qualquer pessoa com a senha** for a escolha.
 
 ### SSO e OIDC
 
-Para uma página privada ligada ao seu provedor de identidade, **Páginas de status → sua página → Segurança → SSO** configura o SAML: **Adicionar provedor SSO** pede a URL de login, o emissor e o certificado x509, e os métodos de assinatura e de digest são preenchidos em **Mais campos**. **Páginas de status → sua página → Segurança → OIDC** configura o OpenID Connect: **Adicionar provedor OIDC** pede o emissor, o ID do cliente e o segredo, e a URL de descoberta, os escopos e os nomes das claims são preenchidos em **Mais campos**. Quando a página tem um provedor, o cartão **Testar o login** abaixo da lista leva ao login da página, para testá-lo. O **SCIM** provisiona usuários privados automaticamente a partir do IdP. No OneUptime Cloud, os três precisam do plano Scale ou superior. Em uma instalação auto-hospedada, SSO e OIDC fazem parte de todas as edições, e o SCIM precisa da [Edição Enterprise](/docs/self-hosted/enterprise).
+Para uma página privada ligada ao seu provedor de identidade, abra **Páginas de status → sua página → Segurança → Login único** (`{id}/sso`). Ela tem uma aba para cada protocolo. A aba **SAML** configura o SAML: **Adicionar provedor SSO** pede a URL de login, o emissor e o certificado x509, e os métodos de assinatura e de digest são preenchidos em **Mais campos**. A aba **OIDC** (`{id}/sso?protocol=oidc`) configura o OpenID Connect: **Adicionar provedor OIDC** pede o emissor, o ID do cliente e o segredo, e a URL de descoberta, os escopos e os nomes das claims são preenchidos em **Mais campos**. Quando a página tem um provedor, o cartão **Testar o login** abaixo da lista leva ao login da página, para testá-lo. O **SCIM** provisiona usuários privados automaticamente a partir do IdP. No OneUptime Cloud, os três precisam do plano Scale ou superior. Em uma instalação auto-hospedada, SSO e OIDC fazem parte de todas as edições, e o SCIM precisa da [Edição Enterprise](/docs/self-hosted/enterprise).
 
 Desligar ou excluir o provedor de SSO ou OIDC de uma página de status desconecta os usuários privados que ele fez entrar: as sessões deles terminam na próxima solicitação, e ligar o provedor de novo não as traz de volta; eles entram de novo por ele. Um novo certificado ou segredo do cliente, outras URLs ou um novo nome mantêm todos conectados. Em uma página que exige SSO, desligar seu último provedor deixa todos sem acesso até que você ligue um de novo ou desligue **Exigir SSO para login**; para trocar de provedor, configure e teste o novo antes de desligar o antigo.
 
-Abaixo dos provedores, o cartão **Configurações de SSO** contém o interruptor **Exigir SSO para login** (`requireSsoForLogin`, desligado por padrão), que é salvo assim que você o muda. Ligá-lo pede confirmação primeiro, porque a partir daí os usuários privados não conseguem entrar com e-mail e senha: apenas as pessoas que seu provedor de SSO ou OIDC deixa entrar podem ver a página. Teste o link do cartão **Testar o login** acima dele antes de ligá-lo. Ele só importa enquanto **Apenas quem entra** for a escolha, e a tela **Acesso** o mostra como **SSO obrigatório** abaixo dessa escolha. Enquanto ele está ligado, um usuário privado que entrou com e-mail e senha também é desconectado na próxima solicitação: só contam as sessões que um provedor de SSO ou OIDC iniciou. No OneUptime Cloud, ligá-lo precisa do plano **Scale**, e desligá-lo funciona em todos os planos. Uma página que ainda exige SSO depois do fim de um teste do Scale, ou depois de mudar para um plano inferior, continua exigindo até que alguém o desligue: as páginas **SSO** e **OIDC** dela mostram o interruptor abaixo da oferta do plano para isso.
+Abaixo dos provedores, o cartão **Configurações de SSO** contém o interruptor **Exigir SSO para login** (`requireSsoForLogin`, desligado por padrão), que é salvo assim que você o muda. Ligá-lo pede confirmação primeiro, porque a partir daí os usuários privados não conseguem entrar com e-mail e senha: apenas as pessoas que seu provedor de SSO ou OIDC deixa entrar podem ver a página. Teste o link do cartão **Testar o login** acima dele antes de ligá-lo. Ele só importa enquanto **Apenas quem entra** for a escolha, e a tela **Acesso** o mostra como **SSO obrigatório** abaixo dessa escolha. Enquanto ele está ligado, um usuário privado que entrou com e-mail e senha também é desconectado na próxima solicitação: só contam as sessões que um provedor de SSO ou OIDC iniciou. No OneUptime Cloud, ligá-lo precisa do plano **Scale**, e desligá-lo funciona em todos os planos. Uma página que ainda exige SSO depois do fim de um teste do Scale, ou depois de mudar para um plano inferior, continua exigindo até que alguém o desligue: a página **Login único** dela mostra o interruptor abaixo da oferta do plano para isso, nas duas abas.
+
+**SSO** e **OIDC** eram antes duas entradas no menu. O antigo endereço do OIDC, `{id}/oidc`, abre a aba **OIDC**.
 
 ### Sessões de leitores
 
@@ -241,7 +244,7 @@ Arquive uma página de status para tirá-la do ar sem excluí-la. Uma página de
 - **Sai da lista de páginas de status.** Você a encontra em **Páginas de status → Avançado → Arquivado**.
 - **Mantém tudo.** Seus recursos, grupos, marca, domínios, usuários privados e assinantes são mantidos, então desarquivá-la coloca a página de volta no ar exatamente como estava.
 
-Para arquivar uma página de status, abra-a e vá a **Avançado → Configurações avançadas → Arquivar: página de status**. Para arquivar várias, selecione-as na lista **Páginas de status** e escolha **Arquivar**. Para recuperar uma, abra **Páginas de status → Avançado → Arquivado**, selecione-a e escolha **Desarquivar**, ou abra-a e clique em **Desarquivar** no banner no topo das páginas dela.
+Para arquivar uma página de status, abra-a e vá a **Avançado → Configurações → Arquivar: página de status**. Para arquivar várias, selecione-as na lista **Páginas de status** e escolha **Arquivar**. Para recuperar uma, abra **Páginas de status → Avançado → Arquivado**, selecione-a e escolha **Desarquivar**, ou abra-a e clique em **Desarquivar** no banner no topo das páginas dela.
 
 A **Visão geral** de uma página de status tem um cartão **Exibido agora**: os incidentes abertos e a manutenção próxima ou em andamento que os visitantes veem nela agora. Arquivar ou excluir a página, em suas próprias páginas ou pela lista, diz primeiro o que os visitantes deixariam de ver.
 

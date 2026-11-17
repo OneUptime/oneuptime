@@ -767,13 +767,17 @@ test.describe("probe checks", () => {
     // Four stat cells, in order, from the server's uptime summary.
     expect(await statCells(page)).toEqual([
       {
-        label: "Uptime · 24 hours",
+        label: `Uptime · ${withUnit(24, "hours")}`,
         value: "100%",
         description: "No downtime",
       },
-      { label: "Uptime · 7 days", value: "99.652%", description: "Down 35m" },
       {
-        label: "Uptime · 30 days",
+        label: `Uptime · ${withUnit(7, "days")}`,
+        value: "99.652%",
+        description: "Down 35m",
+      },
+      {
+        label: `Uptime · ${withUnit(30, "days")}`,
         value: "99.703%",
         description: "Down 2h 8m",
       },
@@ -1038,7 +1042,7 @@ test.describe("probe checks", () => {
     await expectSettled(page);
 
     await expect(page.getByTestId("monitor-overview-badge")).toHaveText(
-      "Probes Not Enabled",
+      "No Probe Enabled",
     );
     await expect(headline(page)).toHaveText(
       "Every probe is turned off for this monitor",
@@ -1048,7 +1052,7 @@ test.describe("probe checks", () => {
     );
     // The hero owns the state: no red banner repeats it.
     await expect(
-      page.getByText("Probes Not Enabled", { exact: true }),
+      page.getByText("No Probe Enabled", { exact: true }),
     ).toHaveCount(1);
     await expect(
       page.getByText(/not being monitored because all probes/),
@@ -1077,7 +1081,7 @@ test.describe("probe checks", () => {
     );
     await expect(
       page.getByTestId("monitor-overview-secondary-badge"),
-    ).toHaveText(["Probes Not Enabled"]);
+    ).toHaveText(["No Probe Enabled"]);
     await expect(headline(page)).toHaveText("Monitoring is turned off");
     await expect(page.getByTestId("monitor-overview-last-known")).toHaveText(
       "Last recorded status: Operational",
@@ -1517,11 +1521,18 @@ test.describe("other monitor families", () => {
 
     expect(await factLabels(page)).toEqual([
       "Missing-request window",
-      "Last missing-request check",
+      "Missing-request check",
       "Owners",
     ]);
     expect(await factValue(page, "Missing-request window")).toBe(
-      "30 minutesFrom this monitor's criteria",
+      `${withUnit(30, "minutes")}From this monitor's criteria`,
+    );
+    /*
+     * Checked 40 seconds ago, on the sweep's schedule: the fact says the
+     * schedule, not a stamp written only every few minutes (#8123).
+     */
+    expect(await factValue(page, "Missing-request check")).toBe(
+      `Every ${withUnit(30, "seconds")}`,
     );
     await expect(page.getByTestId("monitor-overview-pulse")).toContainText(
       "Last request 7 minutes ago",
@@ -1604,9 +1615,13 @@ test.describe("other monitor families", () => {
     );
     expect(await factLabels(page)).toEqual([
       "Missing-email window",
-      "Last missing-email check",
+      "Missing-email check",
       "Owners",
     ]);
+    // Checked on the sweep's schedule, as an incoming request is (#8123).
+    expect(await factValue(page, "Missing-email check")).toBe(
+      `Every ${withUnit(30, "seconds")}`,
+    );
   });
 
   test("server awaiting", async ({ page }: { page: Page }) => {
@@ -1892,7 +1907,7 @@ test.describe("failures", () => {
       "The uptime history could not be computed.",
     );
     expect((await statCells(page))[0]).toEqual({
-      label: "Uptime · 24 hours",
+      label: `Uptime · ${withUnit(24, "hours")}`,
       value: "—",
       description: "Uptime is unavailable",
     });
@@ -2989,21 +3004,23 @@ async function openLogs(page: Page, type: MonitorTypeKey): Promise<void> {
   await expect(page.getByTestId("synthetic-banner")).toBeVisible({
     timeout: 60000,
   });
-  await expect(card(page, "Monitor Logs")).toBeVisible({ timeout: 30000 });
+  await expect(card(page, "Monitoring Logs")).toBeVisible({ timeout: 30000 });
   await expect(page.getByTestId("row-actions").first()).toBeVisible({
     timeout: 30000,
   });
 }
 
 function logRows(page: Page): Locator {
-  return card(page, "Monitor Logs")
+  return card(page, "Monitoring Logs")
     .locator("tbody tr")
     .filter({ has: page.getByTestId("row-actions") });
 }
 
 async function columnTitles(page: Page): Promise<Array<string>> {
   return (
-    await card(page, "Monitor Logs").getByRole("columnheader").allInnerTexts()
+    await card(page, "Monitoring Logs")
+      .getByRole("columnheader")
+      .allInnerTexts()
   ).map((title: string): string => {
     return title.trim();
   });
@@ -3101,7 +3118,7 @@ test.describe("monitoring logs", () => {
       await page.setViewportSize({ width, height: 900 });
       await openLogs(page, "incoming-email");
 
-      const table: Locator = card(page, "Monitor Logs");
+      const table: Locator = card(page, "Monitoring Logs");
       /*
        * The table's own box. It scrolls (overflow-x-auto) only while its
        * rows are wider than the card, so it is found by its test id.

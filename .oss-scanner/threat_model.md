@@ -43,6 +43,7 @@ and several agents are collector configuration plus shell installers.
 | `postgres` | schema in `packages/Common/Server/Infrastructure/Postgres` | Projects, users, configuration, incidents: everything but telemetry. | Internal only |
 | `clickhouse` | `Clickhouse/`, `packages/Common/Server/Utils/AnalyticsDatabase` | Telemetry: logs, traces, metrics, profiles, monitor results. | Internal only |
 | `valkey` | `packages/Common/Server/Infrastructure` | Cache, queues (BullMQ), locks and rate limits. | Internal only |
+| `clamav` | the `clamav/clamav` image; `packages/Common/Server/Utils/MalwareScan` talks to it | Off unless an installation turns malware scanning on (the `clamav` Compose profile, with `CLAMAV_HOST`): then `app` sends it every file people upload and every file a public form's answer carries before storing any, refuses a flagged one, and refuses every file while it does not answer. | Internal only |
 
 `docker-compose.base.yml` defines more services for development and testing:
 `probe-2` is a second global probe like `probe-1`; `home` is the

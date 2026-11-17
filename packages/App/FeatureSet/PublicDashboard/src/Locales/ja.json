@@ -27,5 +27,14 @@
   "Copy": "コピー",
   "Copied!": "コピーしました",
   "Copy failed": "コピーに失敗しました",
-  "Hide": "非表示"
+  "Hide": "非表示",
+  "Dismiss": "非表示",
+  "Dashboard Not Found": "ダッシュボードが見つかりません",
+  "This dashboard does not exist, or it is no longer shared.": "このダッシュボードは存在しないか、共有が終了しています。",
+  "Check the address, or ask the person who shared it with you for a new link.": "アドレスを確認するか、共有してくれた人に新しいリンクを依頼してください。",
+  "Access Denied": "アクセスが拒否されました",
+  "This dashboard opens only from the IP addresses its owner allows, and yours is not one of them.": "このダッシュボードは所有者が許可した IP アドレスからのみ開けます。あなたの IP アドレスは許可されていません。",
+  "Ask the dashboard's owner for access, or open it from a network they allow.": "ダッシュボードの所有者にアクセスを依頼するか、許可されたネットワークから開いてください。",
+  "Show more": "さらに表示",
+  "Show less": "表示を減らす"
 }

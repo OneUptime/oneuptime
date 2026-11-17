@@ -61,7 +61,7 @@ function labels(items: Array<{ label: string }>): Array<string> {
 }
 
 describe("the real copy list", () => {
-  test("names the two policy directories and the three single files", () => {
+  test("names the two policy directories and the four single files", () => {
     assert.deepStrictEqual(SyncCommon.loadCopyList(), {
       commonPolicyDirectories: [
         "Types/ResourceAiAgent",
@@ -71,6 +71,8 @@ describe("the real copy list", () => {
         "Types/AI/AgentAiSettings.ts",
         "Types/AutoRemediation/AiRemediationCommandPolicyVerdict.ts",
         "Types/Runbook/RunnerJobOrigin.ts",
+        // The agents read Retry-After as Common does, byte for byte (#8928).
+        "Utils/RetryAfter.ts",
       ],
       otherCopies: [],
     });
@@ -93,6 +95,7 @@ describe("the real copy list", () => {
       "Types/AI/AgentAiSettings.ts",
       "Types/AutoRemediation/AiRemediationCommandPolicyVerdict.ts",
       "Types/Runbook/RunnerJobOrigin.ts",
+      "Utils/RetryAfter.ts",
     ]) {
       assert.ok(paths.includes(expected), expected);
     }
@@ -144,6 +147,7 @@ describe("against a scratch repository", () => {
     write("Types/AI/AgentAiSettings.ts", "s\n");
     write("Types/AutoRemediation/AiRemediationCommandPolicyVerdict.ts", "v\n");
     write("Types/Runbook/RunnerJobOrigin.ts", "o\n");
+    write("Utils/RetryAfter.ts", "r\n");
     // Not in the list: never copied.
     write("Types/Other.ts", "x\n");
   });
@@ -160,18 +164,19 @@ describe("against a scratch repository", () => {
       "Types/Runbook/RunnerJobOrigin.ts",
       "Utils/AiRemediation/Resource/Database/Catalog.ts",
       "Utils/AiRemediation/Resource/ResourceCommandPolicy.ts",
+      "Utils/RetryAfter.ts",
     ]);
   });
 
   test("missing copies drift; sync copies them byte for byte; then nothing drifts", () => {
-    assert.strictEqual(SyncCommon.findDrift(roots).length, 6);
+    assert.strictEqual(SyncCommon.findDrift(roots).length, 7);
 
     const result: {
       copied: Array<Copy>;
       removed: Array<{ label: string; target: string }>;
     } = SyncCommon.sync(roots);
 
-    assert.strictEqual(result.copied.length, 6);
+    assert.strictEqual(result.copied.length, 7);
     assert.deepStrictEqual(result.removed, []);
     assert.deepStrictEqual(SyncCommon.findDrift(roots), []);
 

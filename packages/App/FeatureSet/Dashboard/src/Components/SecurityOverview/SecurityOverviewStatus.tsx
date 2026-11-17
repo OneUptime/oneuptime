@@ -262,14 +262,14 @@ const SecurityOverviewStatus: FunctionComponent<ComponentProps> = (
            * up (Button's own); here they sit on the content's edge.
            */}
           {headline.action === SecurityHeadlineAction.TestAttack ? (
-            <div className="flex-shrink-0 self-end lg:self-auto [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
+            <div className="flex-shrink-0 self-end lg:self-auto">
               <SecuritySetupTestButton test={test} />
             </div>
           ) : (
             <></>
           )}
           {headline.action === SecurityHeadlineAction.SetUp ? (
-            <div className="flex-shrink-0 self-end lg:self-auto [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
+            <div className="flex-shrink-0 self-end lg:self-auto">
               <Button
                 title={SET_UP_SECURITY}
                 icon={IconProp.ShieldCheck}
@@ -328,7 +328,7 @@ const SecurityOverviewStatus: FunctionComponent<ComponentProps> = (
             />
             <span>{translator.translateText(STATUS_READ_FAILED)}</span>
           </div>
-          <div className="flex-shrink-0 self-end md:self-auto [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
+          <div className="flex-shrink-0 self-end md:self-auto">
             <Button
               title="Try again"
               icon={IconProp.Refresh}
@@ -457,7 +457,7 @@ export const SecurityOverviewFailed: FunctionComponent<{
             </p>
           </div>
         </div>
-        <div className="flex-shrink-0 self-end md:self-auto [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
+        <div className="flex-shrink-0 self-end md:self-auto">
           <Button
             title="Try again"
             icon={IconProp.Refresh}

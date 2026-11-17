@@ -18,17 +18,17 @@ Din statussida är den enda skärmen i OneUptime som dina kunder tittar på, så
 
 | Sida | Vad du anger där |
 | ---- | ------------------ |
-| **Varumärke** | Logotyp och omslagsbild, temat (ljust, mörkt eller som varje besökares enhet är inställd), sidtitel och sidbeskrivning, favicon, sidhuvudslänkar, beskrivningen av översiktssidan, upphovsrättsraden och sidfotslänkar. Hopfällt under **Fler inställningar**: historikdiagrammets färger, språk och indexering i sökmotorer. |
+| **Varumärke** | Logotyp och omslagsbild, temat (ljust, mörkt eller som varje besökares enhet är inställd), sidhuvudslänkar, introduktionstexten, upphovsrättsraden och sidfotslänkar. Hopfällt under **Fler inställningar**: sidtiteln och sökmotorbeskrivningen, faviconen, historikdiagrammets färger, språk och indexering i sökmotorer. |
 | **Anpassade domäner** | Din egen domän, dess DNS-post och dess kostnadsfria SSL-certifikat. |
 | **HTML, CSS och JavaScript** | Sidhuvud-HTML, sidfots-HTML, anpassad CSS, anpassad JavaScript. |
 
-Tre saker som liknar varumärke finns i stället under **Statussidor → din sida → Avancerad → Avancerade inställningar** (`{id}/settings`), eftersom de avgör vad sidan visar och inte hur den ser ut: den totala upptidsprocenten, vilka monitorstatusar som räknas mot upptiden och raden "Powered by OneUptime". De två första är rader på kortet **Vad din statussida visar** där, och raden har ett eget kort direkt under, hopfällt under **Fler inställningar**.
+Tre saker som liknar varumärke finns i stället under **Statussidor → din sida → Avancerad → Inställningar** (`{id}/settings`), eftersom de avgör vad sidan visar och inte hur den ser ut: den totala upptidsprocenten, vilka monitorstatusar som räknas mot upptiden och raden "Powered by OneUptime". De två första är rader på kortet **Vad din statussida visar** där, och raden har ett eget kort direkt under, hopfällt under **Fler inställningar**.
 
 Varumärket var tidigare uppdelat på separata skärmar för **Grundläggande varumärke**, **Sidhuvud**, **Sidfot**, **Översiktssida** och **Språk**. Deras gamla adresser (`{id}/header-style`, `{id}/footer-style`, `{id}/overview-page-branding` och `{id}/languages`) öppnar nu sidan **Varumärke**, så gamla bokmärken och länkar fungerar fortfarande.
 
 ## Sidan Varumärke
 
-**Statussidor → din sida → Varumärke → Varumärke** (`{id}/branding`). Varje kort sparas för sig. Efter logotypen, temat, titeln och faviconen följer korten din statussida uppifrån och ned: sidhuvudets länkar, texten högst upp i översikten och sedan sidfoten. Det som få ändrar ligger hopfällt under **Fler inställningar** längst ned.
+**Statussidor → din sida → Varumärke → Varumärke** (`{id}/branding`). Varje kort sparas för sig. Efter logotypen och temat följer korten din statussida uppifrån och ned: sidhuvudets länkar, introduktionstexten högst upp i översikten och sedan sidfoten. Det som få ändrar ligger hopfällt under **Fler inställningar** längst ned: titeln och sökmotorbeskrivningen, faviconen, historikdiagrammets färger, språken och indexering i sökmotorer.
 
 ### Logotyp och omslagsbild
 
@@ -65,18 +65,25 @@ Temat finns i sidans HTML, så sidan ritas i det från början: en mörk sida bl
 
 Din anpassade CSS och HTML gäller i båda temana; [Anpassad HTML, CSS och JavaScript](#anpassad-html-css-och-javascript) berättar hur du stylar det mörka.
 
-### Titel, beskrivning och favicon
-
-- **Titel och beskrivning**: sidans namn i webbläsarfliken och i e-post till prenumeranter, och beskrivningen som sökmotorer visar. **Redigera** öppnar **Sidtitel** (platshållare `e.g., Acme Status`) och **Sidbeskrivning**. Sökmotorer och länkförhandsvisningar visar dem, så skriv dem för en kund, inte för ditt team.
-- **Favicon**: **Redigera favicon** öppnar uppladdningen **Favicon**: den lilla ikonen i webbläsarfliken.
-
 ### Sidhuvudslänkar
 
 Tabellen **Sidhuvudslänkar** innehåller länkarna i statussidans sidhuvud, som din webbplats, din dokumentation eller en supportportal. Varje länk har en **Titel** och en **Länk** (en URL, platshållare `https://link.com`), och du ändrar ordningen genom att dra. Utan länkar säger tabellen vad de är till för, med **Lägg till Sidhuvudslänk** nedanför.
 
-### Beskrivning av översiktssidan
+### Introduktionstext
 
-**Beskrivning av översiktssida** är det första på statussidans översikt, ovanför meddelandena, den övergripande statusen och dina resurser. **Redigera beskrivning** öppnar ett markdown-fält. Använd det för en mening med sammanhang: vad sidan täcker och vart man vänder sig för support. En bild som du lägger i det visas för alla besökare på sidan.
+**Introduktionstext** är det första besökarna läser på statussidans översikt, ovanför meddelandena, den övergripande statusen och dina resurser. **Redigera introduktionstext** öppnar ett markdown-fält. Den hette tidigare **Beskrivning av översiktssida**. Använd den för en mening med sammanhang: vad sidan täcker och vart man vänder sig för support. En bild som du lägger i den visas för alla besökare på sidan.
+
+### Tre beskrivningar, tre läsare
+
+En statussida har tre beskrivningar, och var och en är namngiven efter vem som läser den:
+
+| Fält | Var den anges | Vem som läser den |
+| --- | --- | --- |
+| **Intern beskrivning** | Kortet **Detaljer för statussida** på sidans **Översikt** | Bara ditt team. Besökare ser den aldrig. |
+| **Sökmotorbeskrivning** | **Titel och sökmotorbeskrivning**, under **Fler inställningar** på **Varumärke** | Sökmotorer och länkförhandsvisningar. |
+| **Introduktionstext** | **Introduktionstext** på **Varumärke** | Besökarna, högst upp på statussidan. |
+
+Vill du ändra vad besökarna läser på sidan redigerar du **Introduktionstext**.
 
 ### Sidfot
 
@@ -87,7 +94,12 @@ Sidhuvudslänkar är för navigering; sidfotslänkar är för det finstilta, som
 
 ### Fler inställningar
 
-Sidans sista sektion ligger hopfälld under **Fler inställningar**, eftersom få någonsin ändrar det som finns där. Hopfälld nämner dess rubrik de fyra sektionerna (**Standardfärg för stapel**, **Regler för stapelfärger**, **Språk** och **Indexering i sökmotorer**) och visar var och en som skiljer sig från det som en ny statussida börjar med: en annan standardfärg för stapeln än den gröna som alla sidor börjar med, andra regler för stapelfärger än de rekommenderade, ett annat standardspråk än engelska, en kortare lista med språk eller indexering i sökmotorer avstängd. Klicka på den för att öppna den: det är ett enda kort med sektionerna under varandra, var och en med egen titel, åtskilda av avdelare.
+Sidans sista sektion ligger hopfälld under **Fler inställningar**, eftersom få någonsin ändrar det som finns där. Hopfälld nämner dess rubrik de fyra första sektionerna (**Titel och sökmotorbeskrivning**, **Favicon**, **Standardfärg för stapel** och **Regler för stapelfärger**), sedan hur många fler det finns (**Språk** och **Indexering i sökmotorer**), och visar var och en som skiljer sig från det som en ny statussida börjar med: en sidtitel eller sökmotorbeskrivning, en favicon, en annan standardfärg för stapeln än den gröna som alla sidor börjar med, andra regler för stapelfärger än de rekommenderade, ett annat standardspråk än engelska, en kortare lista med språk eller indexering i sökmotorer avstängd. Klicka på den för att öppna den: det är ett enda kort med sektionerna under varandra, var och en med egen titel, åtskilda av avdelare.
+
+**Titel och sökmotorbeskrivning, och favicon.** De anges en gång, om ens det, och ingen av dem är det som besökarna läser på sidan: det är **Introduktionstext**.
+
+- **Titel och sökmotorbeskrivning**: sidans namn i webbläsarfliken och i e-post till prenumeranter, och beskrivningen som sökmotorer visar. **Redigera** öppnar **Sidtitel** (platshållare `e.g., Acme Status`) och **Sökmotorbeskrivning**. Sökmotorer och länkförhandsvisningar visar dem, så skriv dem för en kund, inte för ditt team.
+- **Favicon**: **Redigera favicon** öppnar uppladdningen **Favicon**: den lilla ikonen i webbläsarfliken.
 
 **Historikdiagrammets färger.** Utöver **Tema** är det här de enda inbyggda färginställningarna på en statussida. Varje stapel i upptidshistoriken är en dag.
 
@@ -106,7 +118,7 @@ En dag som sidan saknar data för ritas alltid grå med diagonala ränder, vad r
 
 En dags upptid mäts över den del av dagen som har data och räknar de statusar som valts i **Räknas som driftstopp**. De rekommenderade färgerna skiljer sig i ljushet såväl som i nyans, så att personer med röd-grön färgblindhet, ungefär var tolfte man, kan skilja dem åt; det gröna för Operational och det röda för Offline som monitorstatusar börjar med ser nästan likadana ut för dem. En sida som skapats före dessa regler, eller via API:t eller Terraform, har inga regler förrän du lägger till några: en tom tabell **Regler för stapelfärger** och **Förhandsvisning av stapelfärger** erbjuder båda **Använd rekommenderade regler**. Via API:t skickar du `"miscDataProps": {"addRecommendedBarColorRules": true}` med begäran som skapar statussidan.
 
-Hur många dagar diagrammet täcker anges inte här. Det är **Upptidshistorik** på kortet **Vad din statussida visar** under **Avancerad → Avancerade inställningar**, från 1 till 90 dagar. Vilka monitorstatusar som räknas som nere är **Räknas som driftstopp**, på samma rad på det kortet.
+Hur många dagar diagrammet täcker anges inte här. Det är **Upptidshistorik** på kortet **Vad din statussida visar** under **Avancerad → Inställningar**, från 1 till 90 dagar. Vilka monitorstatusar som räknas som nere är **Räknas som driftstopp**, på samma rad på det kortet.
 
 **Språk.** Sektionen **Språk** anger den språkväljare som besökare får i sidans sidfot. **Redigera språk** öppnar två fält:
 
@@ -124,7 +136,7 @@ OneUptime levereras med arton språk: engelska, tyska, franska, spanska, italien
 
 ## Upptidsprocent och driftstoppsstatusar
 
-Båda finns på raden **Upptidshistorik** på kortet **Vad din statussida visar** under **Statussidor → din sida → Avancerad → Avancerade inställningar** (`{id}/settings`). Det finns ingen knapp **Redigera**: var och en sparas i samma ögonblick som du ändrar den.
+Båda finns på raden **Upptidshistorik** på kortet **Vad din statussida visar** under **Statussidor → din sida → Avancerad → Inställningar** (`{id}/settings`). Det finns ingen knapp **Redigera**: var och en sparas i samma ögonblick som du ändrar den.
 
 - **Visa total upptidsprocent**: ett reglage, av som standard. Medan det är på väljer **Precision** bredvid hur många decimaler procenten visar: `99%`, `99.9%`, `99.99%` (standard) eller `99.999%`. På OneUptime Cloud kräver det planen **Scale** att aktivera procenten; dess precision kan ändras på alla planer.
 - **Räknas som driftstopp**: monitorstatusarna, som färgade märken, vars tid räknas mot upptiden på den här sidan. Här avgör du till exempel om en försämrad status räknas mot upptiden. Minst en status förblir vald.
@@ -158,7 +170,7 @@ På OneUptime Cloud kräver det planen **Growth** att lägga till eller ändra n
 
 Som standard nås en statussida på förhandsgransknings-URL:en på dess skärm **Översikt**. För att lägga den på ditt eget värdnamn går du till **Statussidor → din sida → Varumärke → Anpassade domäner** (`{id}/domains`).
 
-Kortet **Anpassade domäner** säger vad du ska göra: peka varje domäns CNAME-post mot din installations CNAME-post för statussidor, så utfärdar OneUptime domänens SSL-certifikat och förnyar det åt dig. Utan något konfigurerat säger tabellen **Inga anpassade domäner hittades**, med **Lägg till anpassad domän** nedanför. Tabellen har två kolumner, **Domän** och **Status**, och filter för **Domän**, **CNAME giltig** och **SSL provisionerat**.
+Kortet **Anpassade domäner** säger vad du ska göra: peka varje domäns CNAME-post mot din installations CNAME-post för statussidor, så utfärdar OneUptime domänens SSL-certifikat och förnyar det åt dig. Utan något konfigurerat säger tabellen **Inga anpassade domäner ännu**, med **Lägg till anpassad domän** nedanför. Tabellen har två kolumner, **Domän** och **Status**, och filter för **Domän**, **CNAME giltig** och **SSL provisionerat**.
 
 Att lägga sidan på din domän tar tre steg, alla på den här sidan, och bara de två första är dina:
 
@@ -274,7 +286,7 @@ Dess dialogruta, **Reissue SSL Certificate for this Status Page**, ber Let's Enc
 
 Åtgärden visas inte på en domän som använder ett certifikat som du har laddat upp: det finns inget Let's Encrypt-certifikat att utfärda på nytt, så ladda i stället upp ett nytt genom att redigera domänen. Den visas inte heller innan domänens första certifikat har beställts, vilket sker av sig självt så snart dess CNAME-post är verifierad.
 
-Samma knapp, med samma gräns på 24 timmar, finns på instrumentpanelernas anpassade domäner under **Instrumentpaneler → din instrumentpanel → Varumärke → Anpassade domäner**, som fungerar på samma sätt som statussidornas anpassade domäner: se [Delning & offentliga instrumentpaneler](/docs/dashboards/sharing#anpassade-domäner).
+Samma knapp, med samma gräns på 24 timmar, finns på instrumentpanelernas anpassade domäner under **Instrumentpaneler → din instrumentpanel → Offentlig länk → Anpassade domäner**, som fungerar på samma sätt som statussidornas anpassade domäner: se [Delning & offentliga instrumentpaneler](/docs/dashboards/sharing#anpassade-domäner).
 
 ### Läsa domänens kolumn Status
 
@@ -309,7 +321,7 @@ Detsamma gäller API-nycklar. En nyckel som bara kan läsa statussidedomäner ka
 
 ## Powered by OneUptime
 
-Raden "Powered by OneUptime" är inte en varumärkesinställning. Den har ett eget kort, **Powered by OneUptime**, hopfällt under **Fler inställningar** under kortet **Vad din statussida visar** under **Statussidor → din sida → Avancerad → Avancerade inställningar** (`{id}/settings`): **Visa "Powered By OneUptime"-varumärke**, på som standard. Stäng av det för att dölja raden; det sparas direkt. På OneUptime Cloud kräver det planen **Scale** att dölja den. Självhostat ingår det i Enterprise Edition att dölja den: i Community Edition visar alla statussidor raden.
+Raden "Powered by OneUptime" är inte en varumärkesinställning. Den har ett eget kort, **Powered by OneUptime**, hopfällt under **Fler inställningar** under kortet **Vad din statussida visar** under **Statussidor → din sida → Avancerad → Inställningar** (`{id}/settings`): **Visa "Powered By OneUptime"-varumärke**, på som standard. Stäng av det för att dölja raden; det sparas direkt. På OneUptime Cloud kräver det planen **Scale** att dölja den. Självhostat ingår det i Enterprise Edition att dölja den: i Community Edition visar alla statussidor raden.
 
 ## Nästa steg
 

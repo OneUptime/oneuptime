@@ -493,7 +493,6 @@ const QuestionCard: FunctionComponent<ComponentProps> = (
                 icon={IconProp.DocumentDuplicate}
                 buttonStyle={ButtonStyleType.NORMAL}
                 buttonSize={ButtonSize.Small}
-                className="!ml-0"
                 dataTestId={`form-question-duplicate-${field.id}`}
                 onClick={props.onDuplicate}
               />
@@ -505,7 +504,6 @@ const QuestionCard: FunctionComponent<ComponentProps> = (
               icon={IconProp.Trash}
               buttonStyle={ButtonStyleType.DANGER_OUTLINE}
               buttonSize={ButtonSize.Small}
-              className="!ml-0"
               disabled={isLocked}
               tooltip={isLocked ? FormsCopy.requiredLocked : undefined}
               dataTestId={`form-question-delete-${field.id}`}

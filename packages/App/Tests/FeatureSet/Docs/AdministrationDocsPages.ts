@@ -143,7 +143,13 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "A role that changes the project.",
     "On OneUptime Cloud, the plan that includes a setting.",
   ],
-  [BILLING]: ["OneUptime Cloud.", "A role that reads billing."],
+  [BILLING]: [
+    "OneUptime Cloud.",
+    "A role that reads billing.",
+    "Nothing is deleted.",
+    "Usage is still billed.",
+    "Questions about your bill?",
+  ],
   [AUDIT_LOGS]: [
     "It starts off.",
     "It records what people do.",

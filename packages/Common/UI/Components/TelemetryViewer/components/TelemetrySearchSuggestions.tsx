@@ -115,7 +115,7 @@ const TelemetrySearchSuggestions: FunctionComponent<
         !props.hasNoValues &&
         visible.length === 0 &&
         props.emptyMessage !== undefined && (
-          <div className="px-3 py-2 text-sm text-gray-400">
+          <div className="px-3 py-2 text-sm text-gray-500">
             {props.emptyMessage}
           </div>
         )}
@@ -138,7 +138,7 @@ const TelemetrySearchSuggestions: FunctionComponent<
           >
             {props.fieldContext ? (
               <>
-                <span className="font-mono text-xs text-gray-400">
+                <span className="font-mono text-xs text-gray-500">
                   {props.fieldContext}:
                 </span>
                 <span className="font-mono">{suggestion}</span>
@@ -155,7 +155,7 @@ const TelemetrySearchSuggestions: FunctionComponent<
         );
       })}
       {props.suggestions.length > MAX_VISIBLE_SUGGESTIONS && (
-        <div className="px-3 py-1 text-[11px] text-gray-400">
+        <div className="px-3 py-1 text-[11px] text-gray-500">
           {translator.translatePlural(
             { one: "+{{count}} more...", other: "+{{count}} more..." },
             props.suggestions.length - MAX_VISIBLE_SUGGESTIONS,

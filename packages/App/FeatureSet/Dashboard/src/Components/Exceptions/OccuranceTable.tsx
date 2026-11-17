@@ -238,7 +238,7 @@ const OccouranceTable: FunctionComponent<ComponentProps> = (
 
                 if (!occurredAt) {
                   return (
-                    <span className="text-gray-400">
+                    <span className="text-gray-500">
                       {translator.translateText("Unknown")}
                     </span>
                   );
@@ -298,7 +298,7 @@ const OccouranceTable: FunctionComponent<ComponentProps> = (
                       plainLabel={true}
                     />
                     {exceptionInstance.spanName && exceptionInstance.spanId && (
-                      <div className="ml-5 mt-0.5 font-mono text-xs text-gray-400">
+                      <div className="ml-5 mt-0.5 font-mono text-xs text-gray-500">
                         {exceptionInstance.spanId.toString()}
                       </div>
                     )}
@@ -342,7 +342,7 @@ const OccouranceTable: FunctionComponent<ComponentProps> = (
                         {exceptionInstance.release}
                       </div>
                     ) : (
-                      <div className="text-gray-400">
+                      <div className="text-gray-500">
                         {translator.translateText("No release")}
                       </div>
                     )}

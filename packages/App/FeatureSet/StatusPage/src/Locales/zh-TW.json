@@ -37,7 +37,6 @@
     "announcements": "公告",
     "scheduledEvents": "排定維護",
     "subscribe": "訂閱",
-    "login": "登入",
     "logout": "登出"
   },
   "overview": {
@@ -49,8 +48,6 @@
     "noResourcesInGroup": "此群組中未新增任何資源。",
     "activeIncidents": "進行中事件",
     "scheduledMaintenanceEvents": "排定維護",
-    "allClearTitle": "一切正常",
-    "allClearDescription": "此狀態頁尚未新增任何資源。請從控制台新增一些資源。",
     "allResourcesAre": "所有資源{{status}}",
     "allMonitoredResourcesAre": "所有受監控的資源{{status}}",
     "someResourcesAre": "部分資源{{status}}",
@@ -58,7 +55,10 @@
     "noResourcesAreMonitored": "目前沒有受監控的資源",
     "noResourcesAreMonitoredYet": "尚無受監控的資源",
     "oneSubGroup": "1 個群組",
-    "subGroupCount": "{{total}} 個群組"
+    "subGroupCount": "{{total}} 個群組",
+    "noResourcesTitle": "尚無可顯示的內容",
+    "noResourcesDescription": "此頁面尚未顯示任何服務。",
+    "noResourcesPreviewDescription": "在你新增資源之前，訪客看到的就是這則提示。請在儀表板的「資源」中為此狀態頁新增監測器或群組。"
   },
   "eventItem": {
     "affectedResources": "受影響的資源",
@@ -115,30 +115,23 @@
     "title": "事件",
     "singular": "事件",
     "active": "進行中事件",
-    "resolved": "已解決事件",
-    "none": "無事件",
-    "noneDescription": "此狀態頁未發佈任何事件。",
+    "noneDescription": "當事件影響此頁面上的服務時，會在這裡發布。",
     "postmortem": "事件事後分析",
     "declaredAt": "宣告於 ",
     "declaredAtTime": "宣告於 {{time}}",
     "report": "事件報告",
-    "notFound": "在此狀態頁上找不到此事件。"
-  },
-  "episodes": {
-    "report": "事件片段報告",
-    "none": "無事件片段",
-    "notFound": "在此狀態頁上找不到事件片段。"
+    "notFound": "請檢查連結，或開啟此頁面的「事件」分頁。",
+    "notFoundTitle": "找不到事件"
   },
   "announcements": {
     "title": "公告",
     "singular": "公告",
     "active": "進行中公告",
-    "past": "過往公告",
-    "none": "無公告",
-    "noneDescription": "此頁面尚未發佈任何公告。",
+    "noneDescription": "當此頁面上的服務有新消息時，會在這裡發布。",
     "announcedAt": "公告於 ",
     "announcedAtTime": "公告於 {{time}}",
-    "notFound": "在此狀態頁上找不到此公告。"
+    "notFound": "請檢查連結，或開啟此頁面的「公告」分頁。",
+    "notFoundTitle": "找不到公告"
   },
   "scheduledEvents": {
     "title": "排定維護",
@@ -146,9 +139,7 @@
     "scheduledMaintenance": "排定維護",
     "ongoing": "進行中的維護",
     "upcoming": "即將進行的維護",
-    "completed": "已完成的維護",
-    "none": "沒有排定維護",
-    "noneDescription": "此狀態頁尚未發布排定維護。",
+    "none": "沒有排定的維護",
     "scheduledAt": "排定於 ",
     "scheduledAtTime": "排定於 {{time}}",
     "report": "維護事件報告",
@@ -314,24 +305,24 @@
       "password": "密碼",
       "newPassword": "新密碼",
       "confirmPassword": "確認密碼",
-      "login": "登入"
+      "signInLink": "登入。"
     },
     "login": {
       "welcomeBack": "歡迎回來！",
-      "loginPrompt": "請登入以檢視 {{statusPageName}}",
+      "signInPrompt": "請登入以檢視 {{statusPageName}}。",
       "forgotPassword": "忘記密碼？",
       "submit": "登入",
       "or": "或",
-      "logInWithSso": "透過 SSO 登入",
+      "signInWithSso": "透過 SSO 登入",
       "emailSignInLink": "透過電子郵件傳送登入連結"
     },
     "sso": {
       "title": "透過 SSO 登入",
-      "loginPrompt": "請登入以檢視 {{statusPageName}}",
+      "signInPrompt": "請登入以檢視 {{statusPageName}}。",
       "noProviders": "未設定或啟用 SSO 提供者",
       "notAvailable": "此狀態頁不支援單一登入（SSO）。請改用您的電子郵件與密碼登入。",
-      "backToLogin": "返回登入",
-      "logInWithPassword": "使用密碼登入"
+      "backToSignIn": "返回登入",
+      "signInWithPassword": "使用密碼登入"
     },
     "forgotPassword": {
       "title": "忘記密碼",
@@ -343,9 +334,16 @@
     "resetPassword": {
       "description": "為您的 {{statusPageName}} 帳號建立新密碼。",
       "instructions": "請輸入您的新密碼，我們將進行更新。",
-      "success": "您的密碼已更新。請登入。",
       "submit": "重設密碼",
-      "knowPassword": "知道您的密碼？"
+      "knowPassword": "知道您的密碼？",
+      "successTitle": "您的密碼已重設",
+      "successDescription": "請使用新密碼登入。",
+      "signInButton": "登入",
+      "linkExpiredTitle": "此重設連結已過期",
+      "linkExpiredDescription": "重設連結的有效期為一天。請申請新連結，我們會以電子郵件寄給您。",
+      "linkInvalidTitle": "此重設連結已失效",
+      "linkInvalidDescription": "它可能已被使用過，或只複製了一部分。請申請新連結，我們會以電子郵件寄給您。",
+      "requestNewLinkButton": "申請新連結"
     },
     "magicLink": {
       "title": "使用連結登入",
@@ -482,5 +480,35 @@
   },
   "No options available": "沒有可用的選項",
   "No matches found": "找不到相符項目",
-  "{{eventType}} state changed to {{state}}": "{{eventType}}狀態已變更為 {{state}}"
+  "{{eventType}} state changed to {{state}}": "{{eventType}}狀態已變更為 {{state}}",
+  "Use at least {{minimum}} characters.": "請至少使用 {{minimum}} 個字元。",
+  "Try a few unrelated words.": "試著組合幾個互不相關的詞。",
+  "Password meets requirements": "密碼符合要求",
+  "Password must be at least 15 characters.": "密碼必須至少包含 15 個字元。",
+  "Password cannot be more than 100 characters.": "密碼不能超過 100 個字元。",
+  "Choose a less predictable password. Try a few unrelated words.": "請選擇更難猜測的密碼。試著組合幾個互不相關的詞。",
+  "Password cannot be blank.": "密碼不能僅包含空白字元。",
+  "Password is required.": "請輸入密碼。",
+  "Password must be a string.": "密碼必須是字串。",
+  "Between {{minimum}} and {{maximum}} characters": "{{minimum}} 至 {{maximum}} 個字元",
+  "Avoid common or repeated patterns": "避免常見或重複的模式",
+  "Password length": "密碼長度",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} 個字元 / 至少 {{minimum}} 個字元",
+  "Complete:": "已符合：",
+  "Incomplete:": "未符合：",
+  "Special character included (optional)": "已包含特殊字元（選填）",
+  "Special characters are optional. Try !, @, # or $.": "特殊字元為選填項目。可以試試 !、@、# 或 $。",
+  "Dismiss": "隱藏",
+  "Resolved in the Last {{count}} Days": "最近 {{count}} 天內已解決",
+  "Resolved in the Last {{count}} Days_one": "最近 1 天內已解決",
+  "No incidents in the last {{count}} days": "最近 {{count}} 天內沒有事件",
+  "No incidents in the last {{count}} days_one": "最近 1 天內沒有事件",
+  "Ended in the Last {{count}} Days": "最近 {{count}} 天內已結束",
+  "Ended in the Last {{count}} Days_one": "最近 1 天內已結束",
+  "No announcements in the last {{count}} days": "最近 {{count}} 天內沒有公告",
+  "No announcements in the last {{count}} days_one": "最近 1 天內沒有公告",
+  "Completed in the Last {{count}} Days": "最近 {{count}} 天內已完成",
+  "Completed in the Last {{count}} Days_one": "最近 1 天內已完成",
+  "None is planned, and none took place in the last {{count}} days.": "沒有排定的維護，最近 {{count}} 天內也沒有進行過維護。",
+  "None is planned, and none took place in the last {{count}} days._one": "沒有排定的維護，最近 1 天內也沒有進行過維護。"
 }

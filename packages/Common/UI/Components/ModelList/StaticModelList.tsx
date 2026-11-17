@@ -130,7 +130,7 @@ const StaticModelList: <TBaseModel extends BaseModel>(
               <div className="focus:outline-none">
                 {props.headerField &&
                   typeof props.headerField === Typeof.String && (
-                    <p className="text-sm font-medium text-gray-300">
+                    <p className="text-sm font-medium text-gray-500">
                       {model.getValue(props.headerField as string) as string}
                     </p>
                   )}

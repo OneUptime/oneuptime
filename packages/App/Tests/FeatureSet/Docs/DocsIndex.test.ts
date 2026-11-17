@@ -15,6 +15,7 @@ import {
   ownCopy,
 } from "../../../FeatureSet/Docs/Utils/DocsIndex";
 import { MadePage, madePageInput, makeDocsIndex } from "./DocsSearchHelpers";
+import { SeededRandom, seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -496,11 +497,7 @@ describe("DocsTermReader", () => {
  */
 describe("the index, against Maps and Sets of the same pages", () => {
   // A seeded generator, so the pages are the same each run.
-  let seed: number = 8818;
-  const random: () => number = (): number => {
-    seed = (seed * 1103515245 + 12345) % 2147483648;
-    return seed / 2147483648;
-  };
+  const random: SeededRandom = seededRandom(8818);
   const WORDS: Array<string> = Array.from(
     { length: 400 },
     (_value: unknown, at: number): string => {

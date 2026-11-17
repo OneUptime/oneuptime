@@ -67,6 +67,7 @@ const subjectTaskDetails: SubjectTaskDetails = {
   subjectTitle: "Checkout latency spike",
   analysisMarkdown: "## Analysis",
   serviceName: "checkout",
+  subjectIsPrivate: false,
   repositories: [repository],
   resolutionError: null,
   traceId: null,

@@ -141,7 +141,7 @@ describe("the SSO guide", () => {
       "While the project still requires SSO, its **SSO** page also shows **Require SSO for Login**: turn it off before you turn the last provider off. Until then the last provider people can sign in with cannot be turned off or deleted, so nobody is locked out of the project.",
     );
     expect(section).toContain(
-      "While the status page still requires SSO, both pages also show **Require SSO for Login**: turn it off before you turn its providers off, or its private users cannot sign in at all.",
+      "While the status page still requires SSO, both tabs also show **Require SSO for Login**: turn it off before you turn its providers off, or its private users cannot sign in at all.",
     );
   });
 });

@@ -13,6 +13,7 @@ import {
   within,
 } from "@testing-library/react";
 import React from "react";
+import Toast, { ToastItem } from "../../../UI/Utils/Toast";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -358,6 +359,16 @@ function modalTitle(): string {
   return screen.getByTestId("modal-title").textContent || "";
 }
 
+/*
+ * What a test that went out said, with nothing more to do: a toast, not a
+ * dialog to click away (#9120).
+ */
+function sentToastTitle(): string {
+  const toasts: ReadonlyArray<ToastItem> = Toast.getToasts();
+
+  return toasts[toasts.length - 1]?.title || "";
+}
+
 beforeEach(() => {
   devices = [device(PHONE_DEVICE_ID, "iPhone 14 Pro Max")];
   browser = standInForTheBrowser();
@@ -380,6 +391,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  Toast.dismissAll();
   cleanup();
   postMock.mockReset();
   getMock.mockReset();
@@ -484,7 +496,7 @@ describe("registering this browser", () => {
     );
 
     await waitFor(() => {
-      expect(modalTitle()).toBe("Test Notification Sent");
+      expect(sentToastTitle()).toBe("Test Notification Sent");
     });
 
     expect(testNotificationUrls()).toEqual([
@@ -1059,7 +1071,7 @@ test("a row's Test Notification still sends a test to that device", async () => 
   );
 
   await waitFor(() => {
-    expect(modalTitle()).toBe("Test Notification Sent");
+    expect(sentToastTitle()).toBe("Test Notification Sent");
   });
 
   expect(testNotificationUrls()).toEqual([

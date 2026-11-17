@@ -1,4 +1,5 @@
 import PageLogo from "../../Components/Logo/PageLogo";
+import AuthPage from "Common/UI/Components/AuthPage/AuthPage";
 import API from "../../Utils/API";
 import { STATUS_PAGE_API_URL } from "../../Utils/Config";
 import PageMap from "../../Utils/PageMap";
@@ -401,28 +402,24 @@ const UnsubscribePage: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+    <AuthPage
+      logo={
         <PageLogo
           logoFileId={props.logoFileId}
           darkThemeLogoFileId={props.darkThemeLogoFileId}
           altText={props.statusPageName}
         />
-        <h2 className="mt-6 text-center text-2xl tracking-tight text-gray-900">
-          {props.statusPageName
-            ? t("subscribe.unsubscribe.titleWithName", {
-                statusPageName: props.statusPageName,
-              })
-            : t("subscribe.unsubscribe.title")}
-        </h2>
-      </div>
-
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          {renderBody()}
-        </div>
-      </div>
-    </div>
+      }
+      title={
+        props.statusPageName
+          ? t("subscribe.unsubscribe.titleWithName", {
+              statusPageName: props.statusPageName,
+            })
+          : t("subscribe.unsubscribe.title")
+      }
+    >
+      {renderBody()}
+    </AuthPage>
   );
 };
 

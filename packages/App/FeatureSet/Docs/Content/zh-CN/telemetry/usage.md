@@ -96,7 +96,7 @@ flowchart TB
 :::steps
 ### 打开数据保留
 
-在 Admin Dashboard 中，前往 **设置 → 数据保留**。
+在 Admin Dashboard 中，前往 **设置 → 服务器 → 数据保留**。
 
 ### 设置天数
 

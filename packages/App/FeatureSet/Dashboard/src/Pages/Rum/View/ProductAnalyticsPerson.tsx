@@ -458,7 +458,6 @@ const RumApplicationProductAnalyticsPerson: FunctionComponent<
         id="product-analytics-person-unknown"
         icon={IconProp.User}
         title="This link names nobody"
-        paddingClassName="py-16"
         description={
           <span>
             {translator.translateText(
@@ -489,7 +488,6 @@ const RumApplicationProductAnalyticsPerson: FunctionComponent<
         id="product-analytics-person-not-found"
         icon={IconProp.User}
         title="Nobody by this ID in the last 13 months"
-        paddingClassName="py-16"
         description={
           <span>
             {translator.translateText(

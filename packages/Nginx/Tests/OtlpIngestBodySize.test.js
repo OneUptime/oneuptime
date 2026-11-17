@@ -53,6 +53,12 @@ const {
   resolveLocation,
   stripComments,
 } = require("./NginxConfigParser");
+/*
+ * The shared escape. Its module imports nothing, so the Node.js these tests
+ * run on (26, on the runner and in the image) reads its TypeScript as it is,
+ * with no npm install.
+ */
+const { escapeRegExp } = require("../../Common/Utils/RegExpEscape.ts");
 
 const { after, before, describe } = test;
 
@@ -1523,6 +1529,58 @@ function replaceEveryOccurrence(source, from, to) {
 }
 
 /*
+ * Moves every address:port of a rendered config to its stand-in, all at
+ * once, each matched as a whole port. One swap after another would read the
+ * ports the earlier swaps wrote: a free port of 43175 for 7849 became 421735
+ * once the App's gRPC port, 4317, was moved after it, and nginx refused to
+ * start. The text is walked rather than matched with a pattern built from
+ * the addresses: node --test runs this file as it is, so it cannot import
+ * Common's escapeRegExp, and a copy of it is what TestCodeScanningGuard
+ * refuses.
+ */
+function replacePorts(source, standIns) {
+  const addresses = Object.keys(standIns);
+
+  // The address at `at` in `source`, as a whole port: no digit right after it.
+  const addressAt = (at) => {
+    return addresses.find((address) => {
+      const end = at + address.length;
+
+      return (
+        source.startsWith(address, at) &&
+        !(end < source.length && source[end] >= "0" && source[end] <= "9")
+      );
+    });
+  };
+
+  let replaced = "";
+  const found = new Set();
+
+  for (let at = 0; at < source.length; ) {
+    const address = addressAt(at);
+
+    if (address === undefined) {
+      replaced += source[at];
+      at++;
+      continue;
+    }
+
+    found.add(address);
+    replaced += standIns[address];
+    at += address.length;
+  }
+
+  for (const address of addresses) {
+    assert.ok(
+      found.has(address),
+      `"${address}" no longer appears in the rendered config`,
+    );
+  }
+
+  return replaced;
+}
+
+/*
  * Which server blocks of a rendered, comment-stripped config an edit applies
  * to, told apart by their server_name.
  */
@@ -1718,21 +1776,11 @@ async function startIngress({
 
   let rendered = render(environment);
 
-  rendered = replaceEveryOccurrence(
-    rendered,
-    `127.0.0.1:${INGRESS_PORT}`,
-    `127.0.0.1:${httpPort}`,
-  );
-  rendered = replaceEveryOccurrence(
-    rendered,
-    "127.0.0.1:7850",
-    `127.0.0.1:${tlsPort}`,
-  );
-  rendered = replaceEveryOccurrence(
-    rendered,
-    `127.0.0.1:${appGrpcPort()}`,
-    `127.0.0.1:${grpcPort}`,
-  );
+  rendered = replacePorts(rendered, {
+    [`127.0.0.1:${INGRESS_PORT}`]: `127.0.0.1:${httpPort}`,
+    [`127.0.0.1:${TLS_INGRESS_PORT}`]: `127.0.0.1:${tlsPort}`,
+    [`127.0.0.1:${appGrpcPort()}`]: `127.0.0.1:${grpcPort}`,
+  });
 
   if (statusPageCertificates.length > 0) {
     const certificateDirectory = path.join(prefix, "StatusPageCerts");

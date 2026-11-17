@@ -222,7 +222,7 @@ const SSO: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <div className="mx-auto mt-8 w-full max-w-md sm:mt-20">
         <Card
           title={"Single Sign On (SSO)"}
-          description="Please select an SSO provider to log in to this project."
+          description="Choose an SSO provider to sign in to this project."
         >
           {getBody()}
         </Card>

@@ -94,6 +94,10 @@ const RETENTION_JOB_PATH: string =
 const SOFT_DELETED_ROWS_PURGE_PATH: string =
   "packages/Common/Server/Utils/Retention/SoftDeletedRowsPurge.ts";
 
+// The walk SoftDeletedRowsPurge shares with the purge by age: the job's loop.
+const TABLE_PURGE_WALK_PATH: string =
+  "packages/Common/Server/Utils/Retention/TablePurgeWalk.ts";
+
 // Ends a purge loop that does not end, instead of hanging the suite.
 const MAX_PURGE_CALLS: number = 20;
 
@@ -177,6 +181,10 @@ describe("The retention job the Postgres suite stands in for", () => {
       path.join(REPOSITORY_ROOT, SOFT_DELETED_ROWS_PURGE_PATH),
       "utf8",
     );
+    const walk: string = fs.readFileSync(
+      path.join(REPOSITORY_ROOT, TABLE_PURGE_WALK_PATH),
+      "utf8",
+    );
 
     // The soft-delete sweep, which hands every service to the purge purgeOnce calls.
     const sweep: string = job.slice(
@@ -194,9 +202,17 @@ describe("The retention job the Postgres suite stands in for", () => {
       "awaitSoftDeletedRowsPurge.run({services:Services",
     );
 
-    // The loop purgeUntilDone runs: a batch at a time, until one removes nothing.
+    /*
+     * The loop purgeUntilDone runs: a batch at a time, until one removes
+     * nothing. The job's purge hands its own batch, the one purgeOnce
+     * calls, to the walk it shares with the purge by age (TablePurgeWalk),
+     * which calls it again until a batch removes nothing.
+     */
     expect(code(purge)).toContain(
-      "constremoved:number=awaitthis.purgeBatch(data.service);purged+=removed;if(removed===0){return{purged:purged,isCutShort:false};}",
+      "returnawaitTablePurgeWalk.purgeTable({purgeBatch:():Promise<number>=>{returnthis.purgeBatch(data.service);},isOutOfTime:data.isOutOfTime});",
+    );
+    expect(code(walk)).toContain(
+      "constremoved:number=readPurgedCount(awaitdata.purgeBatch());purged+=removed;if(removed===0){return{purged:purged,isCutShort:false};}",
     );
   });
 });

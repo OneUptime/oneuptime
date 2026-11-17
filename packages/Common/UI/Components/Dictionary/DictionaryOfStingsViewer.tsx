@@ -55,7 +55,7 @@ const DictionaryOfStringsViewer: FunctionComponent<ComponentProps> = (
 
   if (data.length === 0) {
     return (
-      <div className="text-gray-400 text-sm py-2">
+      <div className="text-gray-500 text-sm py-2">
         {translator.translateText("No items to display.")}
       </div>
     );
@@ -111,7 +111,7 @@ const DictionaryOfStringsViewer: FunctionComponent<ComponentProps> = (
                 {item.value ? (
                   <IsolatedText text={item.value} />
                 ) : (
-                  <span className="text-gray-400 italic">
+                  <span className="text-gray-500 italic">
                     {translator.translateText("empty")}
                   </span>
                 )}

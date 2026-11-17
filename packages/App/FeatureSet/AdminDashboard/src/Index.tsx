@@ -3,6 +3,7 @@ import { i18nReady } from "./Utils/i18n";
 import "Common/UI/Styles/Theme.css";
 import Telemetry from "Common/UI/Utils/Telemetry/Telemetry";
 import ErrorBoundary from "Common/UI/Components/ErrorBoundary";
+import ToastRegion from "Common/UI/Components/Toast/ToastRegion";
 import NewVersionNavigation from "Common/UI/Components/NewVersion/NewVersionNavigation";
 import NewVersionNotice from "Common/UI/Components/NewVersion/NewVersionNotice";
 import NewVersion, {
@@ -97,6 +98,7 @@ i18nReady
           <App />
         </BrowserRouter>
         <NewVersionNotice />
+        <ToastRegion />
       </ErrorBoundary>,
     );
   });

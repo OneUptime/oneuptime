@@ -50,7 +50,7 @@ Välj statussidorna under **Visa händelse på dessa statussidor**. **Aviseringa
 Klicka på **Nästa** för att se granskningen, kontrollera den och klicka sedan på **Skapa underhållshändelse**. Händelsens egen sida öppnas.
 :::
 
-Ingenting skickas förrän du väljer en statussida: en händelse som inte visas på någon statussida meddelar ingen prenumerant.
+Ingenting skickas förrän du väljer en statussida: en händelse som inte visas på någon statussida meddelar ingen prenumerant. Till skillnad från en incident når en händelse aldrig av sig själv de statussidor som listar dess monitorer: utan val står det "Visas inte på någon statussida" i fältet, och granskningen varnar "Den här händelsen visas inte på någon statussida." med de föreslagna sidorna ett klick bort.
 
 ## Formulärets fält
 

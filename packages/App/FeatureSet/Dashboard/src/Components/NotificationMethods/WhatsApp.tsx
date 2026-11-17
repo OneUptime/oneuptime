@@ -146,7 +146,7 @@ const WhatsApp: () => JSX.Element = (): ReactElement => {
           isChannelOff
             ? getChannelGatedMethodList(ChannelGatedMethodList.WhatsApp)
                 .noItemsWhileOff
-            : "No WhatsApp numbers found. Please add one to receive notifications."
+            : "No WhatsApp numbers yet. Add one to receive notifications."
         }
         formFields={[
           {

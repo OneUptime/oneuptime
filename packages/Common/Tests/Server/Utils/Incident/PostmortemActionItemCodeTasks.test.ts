@@ -22,8 +22,13 @@ import CodeTaskAccess from "../../../../Server/Utils/AI/CodeTask/CodeTaskAccess"
 import CodeTaskContextBuilder from "../../../../Server/Utils/AI/CodeTask/CodeTaskContextBuilder";
 import CodeTaskGate from "../../../../Server/Utils/AI/CodeTask/CodeTaskGate";
 import CodeTaskRuns from "../../../../Server/Utils/AI/CodeTask/CodeTaskRuns";
-import PostmortemActionItemCodeTasks from "../../../../Server/Utils/Incident/PostmortemActionItemCodeTasks";
+import PostmortemActionItemCodeTasks, {
+  ASK_FOR_ACTION_ITEM_PULL_REQUEST_ACTION,
+} from "../../../../Server/Utils/Incident/PostmortemActionItemCodeTasks";
 import CallerPermission from "../../../../Server/Utils/Permission/CallerPermission";
+import PrivateRecordWriteCheck from "../../../../Server/Utils/Permission/PrivateRecordWriteCheck";
+import DatabaseRequestType from "../../../../Server/Types/BaseDatabase/DatabaseRequestType";
+import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import {
   CodeTaskContextItem,
@@ -243,10 +248,74 @@ beforeEach(() => {
     .mockImplementation(async (args: unknown) => {
       feedItems.push(args as JSONObject);
     });
+
+  // The incident is not private, or its owners let the person change it.
+  reachesIncident = true;
+  reachAsked = [];
+  jest
+    .spyOn(PrivateRecordWriteCheck, "reaches")
+    .mockImplementation(async (data: unknown): Promise<boolean> => {
+      reachAsked.push(data as ReachAsked);
+      return reachesIncident;
+    });
 });
 
 afterEach(() => {
   jest.restoreAllMocks();
+});
+
+interface ReachAsked {
+  modelType: { name: string };
+  type: DatabaseRequestType;
+  recordService: { modelType: { new (): { tableName?: string } } };
+  recordId: ObjectID;
+  props: DatabaseCommonInteractionProps;
+}
+
+let reachesIncident: boolean;
+let reachAsked: Array<ReachAsked>;
+
+/*
+ * A PRIVATE INCIDENT'S ACTION ITEM: changing it - writing the task onto it -
+ * counts only through the teams that own the incident, as every change of
+ * a part of a private record does (PrivateRecordPermission): a member of a
+ * team that owns it and may only view it, who may edit action items through
+ * another team, is refused, saying why, before anything is started.
+ */
+describe("a private incident's action item", () => {
+  test("is asked whether the person's permission to edit the item reaches the incident", async () => {
+    await start();
+
+    expect(reachAsked).toHaveLength(1);
+    expect(reachAsked[0]!.modelType.name).toBe("IncidentPostmortemActionItem");
+    expect(reachAsked[0]!.type).toBe(DatabaseRequestType.Update);
+    expect(new reachAsked[0]!.recordService.modelType().tableName).toBe(
+      "Incident",
+    );
+    expect(reachAsked[0]!.recordId.toString()).toBe(INCIDENT_ID.toString());
+    expect(reachAsked[0]!.props).toBe(MAYA);
+  });
+
+  test("a person its owners do not let is refused, saying why, and nothing is asked or written", async () => {
+    reachesIncident = false;
+
+    let refusal: unknown = null;
+
+    try {
+      await start();
+    } catch (error) {
+      refusal = error;
+    }
+
+    expect(refusal).toBeInstanceOf(NotAuthorizedException);
+    expect((refusal as Error).message).toBe(
+      `You do not have permission to ${ASK_FOR_ACTION_ITEM_PULL_REQUEST_ACTION}. This incident is private, so it is changed only with the permissions of the teams that own it and of the people named as its owners, and none of them lets you do this. Ask a Project Admin to give one of the teams that own it this permission, or to add you as an owner.`,
+    );
+    expect(started).toEqual([]);
+    expect(columnWrites).toEqual([]);
+    expect(feedItems).toEqual([]);
+    expect(CodeTaskAccess.getReadableRepository).not.toHaveBeenCalled();
+  });
 });
 
 function start(

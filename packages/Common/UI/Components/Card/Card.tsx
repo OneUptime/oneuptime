@@ -262,16 +262,10 @@ export const CARD_HEADER_TOOLBAR_FILL_CLASS_NAME: string =
   "max-md:has-[[data-toolbar-fill]]:w-full [[data-actions-under-title=true]_&]:has-[[data-toolbar-fill]]:w-full";
 
 /*
- * Each action's own box. Button carries a left margin meant for a dialog's
- * footer (md:ml-3 on a normal button, ml-1 on an outline one), which made
- * the gaps between a card's buttons uneven - 18px between two normal
- * buttons, 10px before the ⋯. The row's gap spaces them, so that margin is
- * cleared on the action itself (a <button>, or the one element a button
- * sits in: a disabled button's tooltip span, the ⋯ menu's wrapper) and never
- * on the buttons inside a control, such as a picker or a dialog it opens.
+ * Each action's own box. The row's gap spaces them: a Button carries no
+ * margin of its own (BOXED_BUTTON_CLASS_NAME), and none is taken back here.
  */
-export const CARD_HEADER_ACTION_CLASS_NAME: string =
-  "flex items-center [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0";
+export const CARD_HEADER_ACTION_CLASS_NAME: string = "flex items-center";
 
 /*
  * The first line of the stacked and toolbar headers: the title and the

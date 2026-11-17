@@ -302,6 +302,12 @@ The path of one request through your services, step by step. Each step is a span
 
 See [Traces Explorer](/docs/telemetry/traces-explorer).
 
+### Span
+
+One step of a request: the request a service answers, a call it makes to another service or a database query, with when it started, how long it took and whether it failed. Spans nest inside the span that started them, and the spans of one request make up its trace.
+
+See [Traces Explorer](/docs/telemetry/traces-explorer#traces-and-spans).
+
 ### Profiles
 
 How your application spends CPU time and memory, function by function, sent by a profiler that pushes to OneUptime's Pyroscope-compatible API.

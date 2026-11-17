@@ -193,9 +193,9 @@ describe("SecurityEventsNoResults", () => {
   test("uses the compact table padding, like the setup empty state", () => {
     render(<SecurityEventsNoResults windowStartDate={WINDOW_START} />);
 
-    expect(root()).toHaveClass("py-4");
-    // A side gutter on a phone, where the list card is flush otherwise.
-    expect(root()).toHaveClass("px-4", "md:px-0");
+    // EmptyState's inline preset (#9135), with its side gutter.
+    expect(root()).toHaveAttribute("data-size", "inline");
+    expect(root()).toHaveClass("px-4", "py-8");
     expect(root()).not.toHaveClass("pt-52");
   });
 });

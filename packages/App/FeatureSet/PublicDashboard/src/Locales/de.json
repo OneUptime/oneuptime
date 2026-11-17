@@ -27,5 +27,14 @@
   "Copy": "Kopieren",
   "Copied!": "Kopiert!",
   "Copy failed": "Kopieren fehlgeschlagen",
-  "Hide": "Ausblenden"
+  "Hide": "Ausblenden",
+  "Dismiss": "Ausblenden",
+  "Dashboard Not Found": "Dashboard nicht gefunden",
+  "This dashboard does not exist, or it is no longer shared.": "Dieses Dashboard gibt es nicht, oder es wird nicht mehr geteilt.",
+  "Check the address, or ask the person who shared it with you for a new link.": "Prüfen Sie die Adresse, oder bitten Sie die Person, die es mit Ihnen geteilt hat, um einen neuen Link.",
+  "Access Denied": "Zugriff verweigert",
+  "This dashboard opens only from the IP addresses its owner allows, and yours is not one of them.": "Dieses Dashboard öffnet sich nur von den IP-Adressen, die sein Eigentümer erlaubt, und Ihre gehört nicht dazu.",
+  "Ask the dashboard's owner for access, or open it from a network they allow.": "Bitten Sie den Eigentümer des Dashboards um Zugriff, oder öffnen Sie es aus einem Netzwerk, das er erlaubt.",
+  "Show more": "Mehr anzeigen",
+  "Show less": "Weniger anzeigen"
 }

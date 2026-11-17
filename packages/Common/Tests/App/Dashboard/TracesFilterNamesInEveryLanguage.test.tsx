@@ -276,8 +276,26 @@ const configTitled: (title: string) => FacetConfig = (
 
 /*
  * The section headers the sidebar draws, in order: the buttons that fold a
- * section, with its title in small capitals.
+ * section, with its title in small capitals - in the button, or right after
+ * it where the title is a defined term (Span Type, #9133), a button of its
+ * own.
  */
+const titleOfFoldButton: (element: HTMLElement) => Element | null = (
+  element: HTMLElement,
+): Element | null => {
+  const inside: Element | null = element.querySelector("span.uppercase");
+
+  if (inside) {
+    return inside;
+  }
+
+  const next: Element | null = element.nextElementSibling;
+
+  return next?.matches("[data-testid='facet-section-defined-title']")
+    ? next
+    : null;
+};
+
 const sectionTitles: () => Array<string> = (): Array<string> => {
   return screen
     .queryAllByRole("button")
@@ -285,11 +303,11 @@ const sectionTitles: () => Array<string> = (): Array<string> => {
       return (
         element.hasAttribute("aria-expanded") &&
         !element.closest("[data-testid='facet-sidebar-hidden-footer']") &&
-        element.querySelector("span.uppercase") !== null
+        titleOfFoldButton(element) !== null
       );
     })
     .map((element: HTMLElement): string => {
-      return element.querySelector("span.uppercase")?.textContent || "";
+      return titleOfFoldButton(element)?.textContent || "";
     });
 };
 

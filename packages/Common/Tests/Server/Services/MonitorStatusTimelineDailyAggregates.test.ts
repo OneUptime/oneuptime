@@ -1,4 +1,7 @@
-import { Service as MonitorStatusTimelineServiceType } from "../../../Server/Services/MonitorStatusTimelineService";
+import {
+  Service as MonitorStatusTimelineServiceType,
+  UptimeDailyAggregateRow,
+} from "../../../Server/Services/MonitorStatusTimelineService";
 import ObjectID from "../../../Types/ObjectID";
 import {
   MonitorUptimeDailyAggregate,
@@ -36,14 +39,8 @@ const MONITOR_B: string = "22222222-2222-4222-8222-222222222222";
 const STATUS_UP: string = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const STATUS_DOWN: string = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 
-type Row = {
-  monitorId: string;
-  bucketStart: Date;
-  bucketEnd: Date;
-  daySeconds: string | number;
-  monitorStatusId: string | null;
-  seconds: string | number;
-};
+// A row of the daily aggregate's SQL, as toUptimeDailyAggregate reads it.
+type Row = UptimeDailyAggregateRow;
 
 function row(
   monitorId: string,

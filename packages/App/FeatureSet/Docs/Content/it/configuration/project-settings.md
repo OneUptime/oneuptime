@@ -40,7 +40,7 @@ flowchart LR
 | **Sicurezza** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Fatturazione e fatture** | **Fatturazione**, **Fatture** | [Fatturazione e utilizzo](/docs/configuration/billing) |
 | **Log di audit** | **Log di audit**, **Impostazioni**, **Esporta** | [Log di audit](/docs/configuration/audit-logs), [Esportazione del log di audit](/docs/configuration/audit-log-export) |
-| **Zona pericolosa** | **Zona pericolosa** | [Eliminare il progetto](#eliminare-il-progetto) |
+| **Zona pericolosa** | **Elimina progetto** | [Eliminare il progetto](#eliminare-il-progetto) |
 
 **Fatturazione e fatture** e **Crediti IA** esistono solo su OneUptime Cloud: un'installazione self-hosted non ha fatturazione.
 
@@ -64,7 +64,7 @@ Un prodotto nascosto non è disattivato. Passa in **Altri prodotti**, l'ultima r
 
 Su un server self-hosted, un amministratore principale può anche disattivare un prodotto per tutti i progetti, in **Impostazioni → Prodotti** nell'Admin Dashboard (vedi [Esegui solo ciò che ti serve](/docs/installation/docker-compose#esegui-solo-ciò-che-ti-serve)). Un prodotto così non ha un interruttore qui: mostra **Disattivato su questo server**, con chi può attivarlo.
 
-Ogni prodotto è mostrato finché qualcuno non lo nasconde qui. Nessun prodotto si nasconde da solo: ciò che il proprietario ha detto nella Home di voler fare con il progetto prepara lì solo i primi passi, e un prodotto non ancora configurato resta al suo posto nel menu.
+Ogni prodotto è mostrato finché qualcuno non lo nasconde qui. Nessun prodotto si nasconde da solo: ciò che un Proprietario del progetto o Amministratore del progetto ha detto nella Home di voler fare con il progetto prepara lì solo i primi passi, e un prodotto non ancora configurato resta al suo posto nel menu.
 
 Ogni prodotto dice cosa è per questo progetto: **In uso**, **Non configurato** oppure, su OneUptime Cloud, il piano di cui ha bisogno. Quando un prodotto nascosto inizia a ricevere dati, la Home lo dice ai Proprietari del progetto e agli Amministratori del progetto e offre **Mostralo** o **Lascia nascosto**.
 
@@ -113,7 +113,7 @@ Eliminare un progetto elimina tutto ciò che contiene, per ogni membro: monitor,
 :::steps
 ### Aprire la zona pericolosa
 
-Vai a **Impostazioni del progetto → Zona pericolosa**.
+Vai a **Impostazioni del progetto → Zona pericolosa → Elimina progetto**.
 
 ### Fare clic su Elimina: Progetto
 

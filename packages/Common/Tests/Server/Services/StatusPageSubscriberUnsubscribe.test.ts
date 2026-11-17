@@ -1553,7 +1553,8 @@ describe("telling the team when a subscriber it added unsubscribes", () => {
     expect(vars["subject"]).toBe(mail["subject"]);
     expect(vars["message"]).toContain("site03-all@acme.com");
     expect(vars["message"]).toContain("Dana Admin added this subscriber");
-    expect(vars["message"]).toContain(`${DASHBOARD_URL}/email-subscribers`);
+    // The one Subscribers page, on its first tab, Email (#9125).
+    expect(vars["message"]).toContain(`${DASHBOARD_URL}/subscribers"`);
 
     expect(options["projectId"]?.toString()).toBe(PROJECT_ID.toString());
   });
@@ -1647,7 +1648,8 @@ describe("telling the team when a subscriber it added unsubscribes", () => {
       "message"
     ] as string;
     expect(message).toContain("+15555550123");
-    expect(message).toContain(`${DASHBOARD_URL}/sms-subscribers`);
+    // The SMS tab of the one Subscribers page (#9125).
+    expect(message).toContain(`${DASHBOARD_URL}/subscribers?channel=sms`);
   });
 
   /*

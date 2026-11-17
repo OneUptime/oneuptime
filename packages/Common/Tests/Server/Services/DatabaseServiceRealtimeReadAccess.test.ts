@@ -1062,12 +1062,6 @@ describe("updating records: who could read them before the write hears about it 
       { labels: [] },
       true,
     ],
-    [
-      "someone limited to some labels, when only the title is written",
-      LIMITED,
-      { title: "Renamed" },
-      false,
-    ],
   ] as Array<
     [string, DatabaseCommonInteractionProps, Record<string, unknown>, boolean]
   >)(
@@ -1108,6 +1102,27 @@ describe("updating records: who could read them before the write hears about it 
       expect(accessOfEvents()).toEqual([undefined]);
     },
   );
+
+  /*
+   * Someone limited to some labels is re-checked when the labels are
+   * written, and only then (above). Their read is narrowed - by a condition
+   * on the incident's id - but never by its title, so a write of the title
+   * alone asks nobody, them included.
+   */
+  test("someone limited to some labels is not asked when only the title is written: nobody is", async () => {
+    jest.spyOn(Realtime, "isInitialized").mockReturnValue(true);
+
+    const narrowedBy: Array<string> | null =
+      await service.getColumnsNarrowingReadOf(LIMITED);
+
+    expect(narrowedBy).toContain("_id");
+    expect(narrowedBy).not.toContain("title");
+
+    await update({ title: "Renamed" });
+
+    expect(snapshot).not.toHaveBeenCalled();
+    expect(order).toEqual(["write"]);
+  });
 
   test("a write that leaves the rows as they are decides nothing before it", async () => {
     jest.spyOn(Realtime, "isInitialized").mockReturnValue(true);

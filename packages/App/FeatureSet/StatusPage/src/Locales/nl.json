@@ -37,7 +37,6 @@
     "announcements": "Aankondigingen",
     "scheduledEvents": "Gepland onderhoud",
     "subscribe": "Abonneren",
-    "login": "Inloggen",
     "logout": "Uitloggen"
   },
   "overview": {
@@ -49,8 +48,6 @@
     "noResourcesInGroup": "Geen bronnen toegevoegd aan deze groep.",
     "activeIncidents": "Actieve incidenten",
     "scheduledMaintenanceEvents": "Gepland onderhoud",
-    "allClearTitle": "Alles ziet er goed uit",
-    "allClearDescription": "Er zijn nog geen bronnen toegevoegd aan deze statuspagina. Voeg alstublieft enkele bronnen toe vanaf het dashboard.",
     "allResourcesAre": "Alle bronnen zijn {{status}}",
     "allMonitoredResourcesAre": "Alle bewaakte bronnen zijn {{status}}",
     "someResourcesAre": "Sommige bronnen zijn {{status}}",
@@ -58,7 +55,10 @@
     "noResourcesAreMonitored": "Er worden momenteel geen bronnen bewaakt",
     "noResourcesAreMonitoredYet": "Er worden nog geen bronnen bewaakt",
     "oneSubGroup": "1 groep",
-    "subGroupCount": "{{total}} groepen"
+    "subGroupCount": "{{total}} groepen",
+    "noResourcesTitle": "Nog niets te tonen",
+    "noResourcesDescription": "Deze pagina toont nog geen diensten.",
+    "noResourcesPreviewDescription": "Bezoekers zien deze melding totdat u middelen toevoegt. Voeg in het dashboard onder Middelen monitors of groepen toe aan deze statuspagina."
   },
   "eventItem": {
     "affectedResources": "Getroffen bronnen",
@@ -115,30 +115,23 @@
     "title": "Incidenten",
     "singular": "Incident",
     "active": "Actieve incidenten",
-    "resolved": "Opgeloste incidenten",
-    "none": "Geen incidenten",
-    "noneDescription": "Geen incidenten geplaatst op deze statuspagina.",
+    "noneDescription": "Als een incident de diensten op deze pagina raakt, wordt het hier gemeld.",
     "postmortem": "Post-mortem incident",
     "declaredAt": "Gemeld op ",
     "declaredAtTime": "Gemeld op {{time}}",
     "report": "Incidentrapport",
-    "notFound": "Incident niet gevonden op deze statuspagina."
-  },
-  "episodes": {
-    "report": "Episoderapport",
-    "none": "Geen episode",
-    "notFound": "Episode niet gevonden op deze statuspagina."
+    "notFound": "Controleer de link of open het tabblad Incidenten van deze pagina.",
+    "notFoundTitle": "Incident niet gevonden"
   },
   "announcements": {
     "title": "Aankondigingen",
     "singular": "Aankondiging",
     "active": "Actieve aankondigingen",
-    "past": "Vorige aankondigingen",
-    "none": "Geen aankondigingen",
-    "noneDescription": "Er zijn nog geen aankondigingen geplaatst op deze pagina.",
+    "noneDescription": "Als er nieuws is over de diensten op deze pagina, wordt het hier gemeld.",
     "announcedAt": "Aangekondigd op ",
     "announcedAtTime": "Aangekondigd op {{time}}",
-    "notFound": "Aankondiging niet gevonden op deze statuspagina."
+    "notFound": "Controleer de link of open het tabblad Aankondigingen van deze pagina.",
+    "notFoundTitle": "Aankondiging niet gevonden"
   },
   "scheduledEvents": {
     "title": "Gepland onderhoud",
@@ -146,9 +139,7 @@
     "scheduledMaintenance": "Gepland onderhoud",
     "ongoing": "Lopend onderhoud",
     "upcoming": "Aankomend onderhoud",
-    "completed": "Voltooid onderhoud",
-    "none": "Geen gepland onderhoud",
-    "noneDescription": "Er is geen gepland onderhoud gepubliceerd voor deze statuspagina.",
+    "none": "Geen onderhoud gepland",
     "scheduledAt": "Gepland voor ",
     "scheduledAtTime": "Gepland voor {{time}}",
     "report": "Rapport van onderhoudsgebeurtenis",
@@ -314,24 +305,24 @@
       "password": "Wachtwoord",
       "newPassword": "Nieuw wachtwoord",
       "confirmPassword": "Wachtwoord bevestigen",
-      "login": "Inloggen"
+      "signInLink": "Inloggen."
     },
     "login": {
       "welcomeBack": "Welkom terug!",
-      "loginPrompt": "Log alstublieft in om {{statusPageName}} te bekijken",
+      "signInPrompt": "Log alstublieft in om {{statusPageName}} te bekijken.",
       "forgotPassword": "Wachtwoord vergeten?",
       "submit": "Inloggen",
       "or": "of",
-      "logInWithSso": "Inloggen met SSO",
+      "signInWithSso": "Inloggen met SSO",
       "emailSignInLink": "Stuur mij een inloglink"
     },
     "sso": {
       "title": "Inloggen met SSO",
-      "loginPrompt": "Log alstublieft in om {{statusPageName}} te bekijken",
+      "signInPrompt": "Log alstublieft in om {{statusPageName}} te bekijken.",
       "noProviders": "Geen SSO-providers geconfigureerd of ingeschakeld",
       "notAvailable": "Eenmalige aanmelding (SSO) is niet beschikbaar voor deze statuspagina. Log in plaats daarvan in met uw e-mailadres en wachtwoord.",
-      "backToLogin": "Terug naar inloggen",
-      "logInWithPassword": "Inloggen met wachtwoord"
+      "backToSignIn": "Terug naar inloggen",
+      "signInWithPassword": "Inloggen met wachtwoord"
     },
     "forgotPassword": {
       "title": "Wachtwoord vergeten",
@@ -343,9 +334,16 @@
     "resetPassword": {
       "description": "Maak een nieuw wachtwoord aan voor uw {{statusPageName}}-account.",
       "instructions": "Voer uw nieuwe wachtwoord in en we zullen het bijwerken.",
-      "success": "Uw wachtwoord is bijgewerkt. Log in alstublieft.",
       "submit": "Wachtwoord opnieuw instellen",
-      "knowPassword": "Kent u uw wachtwoord?"
+      "knowPassword": "Kent u uw wachtwoord?",
+      "successTitle": "Je wachtwoord is opnieuw ingesteld",
+      "successDescription": "Log in met je nieuwe wachtwoord.",
+      "signInButton": "Inloggen",
+      "linkExpiredTitle": "Deze herstellink is verlopen",
+      "linkExpiredDescription": "Herstellinks werken één dag. Vraag een nieuwe link aan, dan mailen we die naar je.",
+      "linkInvalidTitle": "Deze herstellink werkt niet meer",
+      "linkInvalidDescription": "Hij is misschien al gebruikt, of maar voor een deel gekopieerd. Vraag een nieuwe link aan, dan mailen we die naar je.",
+      "requestNewLinkButton": "Nieuwe link aanvragen"
     },
     "magicLink": {
       "title": "Inloggen met een link",
@@ -366,7 +364,7 @@
     },
     "masterPassword": {
       "prompt": "Voer het wachtwoord in om deze statuspagina te bekijken.",
-      "passwordRequired": "wachtwoord is vereist.",
+      "passwordRequired": "Wachtwoord is vereist.",
       "passwordLabel": "Wachtwoord",
       "submit": "Statuspagina ontgrendelen"
     },
@@ -482,5 +480,35 @@
   },
   "No options available": "Geen opties beschikbaar",
   "No matches found": "Geen overeenkomsten gevonden",
-  "{{eventType}} state changed to {{state}}": "{{eventType}}: status gewijzigd naar {{state}}"
+  "{{eventType}} state changed to {{state}}": "{{eventType}}: status gewijzigd naar {{state}}",
+  "Use at least {{minimum}} characters.": "Gebruik minimaal {{minimum}} tekens.",
+  "Try a few unrelated words.": "Probeer een paar woorden die niets met elkaar te maken hebben.",
+  "Password meets requirements": "Het wachtwoord voldoet aan de vereisten",
+  "Password must be at least 15 characters.": "Het wachtwoord moet minimaal 15 tekens bevatten.",
+  "Password cannot be more than 100 characters.": "Het wachtwoord mag niet langer zijn dan 100 tekens.",
+  "Choose a less predictable password. Try a few unrelated words.": "Kies een minder voorspelbaar wachtwoord. Probeer een paar woorden die niets met elkaar te maken hebben.",
+  "Password cannot be blank.": "Het wachtwoord mag niet alleen uit spaties bestaan.",
+  "Password is required.": "Een wachtwoord is verplicht.",
+  "Password must be a string.": "Het wachtwoord moet een tekenreeks zijn.",
+  "Between {{minimum}} and {{maximum}} characters": "Tussen {{minimum}} en {{maximum}} tekens",
+  "Avoid common or repeated patterns": "Vermijd veelvoorkomende of herhaalde patronen",
+  "Password length": "Wachtwoordlengte",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} / minimaal {{minimum}} tekens",
+  "Complete:": "Voldaan:",
+  "Incomplete:": "Niet voldaan:",
+  "Special character included (optional)": "Speciaal teken toegevoegd (optioneel)",
+  "Special characters are optional. Try !, @, # or $.": "Speciale tekens zijn optioneel. Probeer !, @, # of $.",
+  "Dismiss": "Verbergen",
+  "Resolved in the Last {{count}} Days": "Opgelost in de afgelopen {{count}} dagen",
+  "Resolved in the Last {{count}} Days_one": "Opgelost in de afgelopen dag",
+  "No incidents in the last {{count}} days": "Geen incidenten in de afgelopen {{count}} dagen",
+  "No incidents in the last {{count}} days_one": "Geen incidenten in de afgelopen dag",
+  "Ended in the Last {{count}} Days": "Beëindigd in de afgelopen {{count}} dagen",
+  "Ended in the Last {{count}} Days_one": "Beëindigd in de afgelopen dag",
+  "No announcements in the last {{count}} days": "Geen aankondigingen in de afgelopen {{count}} dagen",
+  "No announcements in the last {{count}} days_one": "Geen aankondigingen in de afgelopen dag",
+  "Completed in the Last {{count}} Days": "Voltooid in de afgelopen {{count}} dagen",
+  "Completed in the Last {{count}} Days_one": "Voltooid in de afgelopen dag",
+  "None is planned, and none took place in the last {{count}} days.": "Er is niets gepland, en er vond niets plaats in de afgelopen {{count}} dagen.",
+  "None is planned, and none took place in the last {{count}} days._one": "Er is niets gepland, en er vond niets plaats in de afgelopen dag."
 }

@@ -438,10 +438,9 @@ describe("the approval switch is on the step it holds back", () => {
   test("a new step starts without an approval, and without the old flag", async () => {
     await renderSteps();
 
+    fireEvent.click(screen.getByRole("button", { name: "Add Step" }));
     fireEvent.click(
-      within(
-        screen.getByText("Add another step").parentElement as HTMLElement,
-      ).getByText("Bash"),
+      within(screen.getByTestId("runbook-step-type-picker")).getByText("Bash"),
     );
 
     const all: Array<RunbookStep> = await save();
@@ -622,5 +621,100 @@ describe("every step's options are simpler", () => {
         "Runs on this Runner, in your own infrastructure.",
       ),
     ).toBeInTheDocument();
+  });
+});
+
+/*
+ * Once a runbook has steps, one Add Step button at the end of the list opens
+ * the step types in a dialog (#9138). The seven types used to sit under every
+ * runbook as cards, "Add another step", as tall as the runbook itself on a
+ * phone.
+ */
+describe("Add Step", () => {
+  test("is one button at the end of the list, with no step type cards under the steps", async () => {
+    await renderSteps();
+
+    expect(screen.getAllByRole("button", { name: "Add Step" })).toHaveLength(1);
+    expect(screen.queryByText("Add another step")).toBeNull();
+    expect(screen.queryByTestId("runbook-step-type-picker")).toBeNull();
+    expect(screen.queryByTestId("runbook-step-type-Bash")).toBeNull();
+    expect(screen.getByTestId("runbook-add-step")).toHaveAttribute(
+      "aria-haspopup",
+      "dialog",
+    );
+  });
+
+  test("opens every step type an author may add, each with its name and what it does", async () => {
+    await renderSteps();
+
+    fireEvent.click(screen.getByRole("button", { name: "Add Step" }));
+
+    const dialog: HTMLElement = screen.getByRole("dialog");
+    const picker: HTMLElement = within(dialog).getByTestId(
+      "runbook-step-type-picker",
+    );
+    const choices: Array<HTMLElement> = within(picker).getAllByRole("button");
+
+    expect(
+      choices.map((choice: HTMLElement): string | null => {
+        return choice.getAttribute("data-testid");
+      }),
+    ).toEqual([
+      "runbook-step-type-Manual",
+      "runbook-step-type-JavaScript",
+      "runbook-step-type-HttpRequest",
+      "runbook-step-type-Bash",
+      "runbook-step-type-SSH",
+      "runbook-step-type-Kubernetes",
+      "runbook-step-type-AI",
+    ]);
+
+    // Each is a real button, so Tab reaches it and Enter or Space picks it.
+    for (const choice of choices) {
+      expect(choice.tagName).toBe("BUTTON");
+      expect(choice).toHaveAttribute("type", "button");
+      // Its icon, its name and a line on what it does.
+      expect(choice.querySelector("svg")).not.toBeNull();
+      expect(choice.querySelector("p")?.textContent?.length).toBeGreaterThan(
+        10,
+      );
+    }
+    expect(
+      within(picker).getByText("Run a shell command on one of your Runners."),
+    ).toBeInTheDocument();
+  });
+
+  test("adds the picked step at the end, opened, and closes the dialog", async () => {
+    await renderSteps();
+    const before: number = headers().length;
+
+    fireEvent.click(screen.getByRole("button", { name: "Add Step" }));
+    fireEvent.click(screen.getByTestId("runbook-step-type-HttpRequest"));
+
+    expect(screen.queryByTestId("runbook-step-type-picker")).toBeNull();
+    expect(headers()).toHaveLength(before + 1);
+    expect(screen.getByTestId(`runbook-step-${before}-type`).textContent).toBe(
+      "HTTP",
+    );
+
+    const all: Array<RunbookStep> = await save();
+
+    expect(all).toHaveLength(before + 1);
+    expect(all[all.length - 1]!.type).toBe(RunbookStepType.HttpRequest);
+  });
+
+  test("closes without adding anything when the person cancels", async () => {
+    await renderSteps();
+    const before: number = headers().length;
+
+    fireEvent.click(screen.getByRole("button", { name: "Add Step" }));
+    fireEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: "Cancel",
+      }),
+    );
+
+    expect(screen.queryByTestId("runbook-step-type-picker")).toBeNull();
+    expect(headers()).toHaveLength(before);
   });
 });

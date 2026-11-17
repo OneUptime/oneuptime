@@ -78,7 +78,7 @@ It writes the **Source Key**'s value to the **Target Key**. Turn **Preserve Sour
 
 ## Category Processor
 
-Writes a category to the **Target Key**, such as "Payment Error" or "Rate Limit". Its categories are checked in order, and the first one whose filter a log matches is written. A category's filter is written as a pipeline's filter is.
+Writes a category to the **Target Key**, such as "Payment Error" or "Rate Limit". Its categories are checked in order, and the first one whose filter a log matches is written. A category's filter is built as a pipeline's filter is, with conditions.
 
 ## Order Matters
 

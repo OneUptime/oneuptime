@@ -5,6 +5,10 @@ import { STATUS_PAGE_API_URL } from "../../Utils/Config";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import StatusPageUtil from "../../Utils/StatusPage";
+import {
+  HISTORY_WINDOW_WORDS,
+  readHistoryInDays,
+} from "../../Utils/HistoryWindow";
 import PageComponentProps from "../PageComponentProps";
 import { getScheduledEventEventItem } from "./Detail";
 import { SubscribeToCalendarButton } from "../../Components/MaintenanceCalendar/MaintenanceCalendarButtons";
@@ -42,12 +46,21 @@ import React, {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
+import { Translator } from "Common/Types/Translator";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { DEFAULT_STATUS_PAGE_HISTORY_IN_DAYS } from "Common/Utils/StatusPage/HistoryWindow";
 import useAsyncEffect from "use-async-effect";
 
 const Overview: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const { t, i18n: i18nInstance } = useTranslation();
+  const translator: Translator = useTranslator();
+
+  // How many days of history the server sent: what the page names.
+  const [historyInDays, setHistoryInDays] = useState<number>(
+    DEFAULT_STATUS_PAGE_HISTORY_IN_DAYS,
+  );
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [
@@ -171,6 +184,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
         throw response;
       }
       const data: JSONObject = response.data;
+
+      setHistoryInDays(readHistoryInDays(data));
 
       const scheduledMaintenanceEventsPublicNotes: Array<ScheduledMaintenancePublicNote> =
         BaseModel.fromJSONArray(
@@ -387,7 +402,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
       {endedEventsParsedData?.items &&
       endedEventsParsedData?.items.length > 0 ? (
         <div>
-          <Section title={t("scheduledEvents.completed")} />
+          <Section
+            title={translator.translatePlural(
+              HISTORY_WINDOW_WORDS.completedMaintenance,
+              historyInDays,
+            )}
+          />
 
           <EventHistoryList items={endedEventsParsedData?.items || []} />
         </div>
@@ -397,10 +417,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
       {scheduledMaintenanceEvents.length === 0 ? (
         <EmptyState
-          paddingClassName="py-12 sm:py-16"
           id="scheduled-events-empty-state"
           title={t("scheduledEvents.none")}
-          description={t("scheduledEvents.noneDescription")}
+          description={translator.translatePlural(
+            HISTORY_WINDOW_WORDS.noMaintenance,
+            historyInDays,
+          )}
           icon={IconProp.Clock}
         />
       ) : (

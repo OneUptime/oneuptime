@@ -473,8 +473,8 @@ describe("the Monitors menu's counts ask for what their indexes hold", () => {
   }
 
   test.each([
-    ["Probe Disconnected", "isAllProbesDisconnectedFromThisMonitor"],
-    ["Probe Disabled", "isNoProbeEnabledOnThisMonitor"],
+    ["Probes Disconnected", "isAllProbesDisconnectedFromThisMonitor"],
+    ["No Probe Enabled", "isNoProbeEnabledOnThisMonitor"],
     ["Disabled", "disableActiveMonitoring"],
   ])(
     "%s counts the project's unarchived monitors with %s set",

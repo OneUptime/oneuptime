@@ -37,7 +37,6 @@
     "announcements": "Ankündigungen",
     "scheduledEvents": "Geplante Wartung",
     "subscribe": "Abonnieren",
-    "login": "Anmelden",
     "logout": "Abmelden"
   },
   "overview": {
@@ -49,8 +48,6 @@
     "noResourcesInGroup": "Dieser Gruppe wurden keine Ressourcen hinzugefügt.",
     "activeIncidents": "Aktive Vorfälle",
     "scheduledMaintenanceEvents": "Geplante Wartung",
-    "allClearTitle": "Alles sieht gut aus",
-    "allClearDescription": "Dieser Statusseite wurden noch keine Ressourcen hinzugefügt. Bitte fügen Sie einige Ressourcen über das Dashboard hinzu.",
     "allResourcesAre": "Alle Ressourcen sind {{status}}",
     "allMonitoredResourcesAre": "Alle überwachten Ressourcen sind {{status}}",
     "someResourcesAre": "Einige Ressourcen sind {{status}}",
@@ -58,7 +55,10 @@
     "noResourcesAreMonitored": "Derzeit werden keine Ressourcen überwacht",
     "noResourcesAreMonitoredYet": "Es werden noch keine Ressourcen überwacht",
     "oneSubGroup": "1 Gruppe",
-    "subGroupCount": "{{total}} Gruppen"
+    "subGroupCount": "{{total}} Gruppen",
+    "noResourcesTitle": "Noch nichts zu sehen",
+    "noResourcesDescription": "Diese Seite zeigt noch keine Dienste.",
+    "noResourcesPreviewDescription": "Besucher sehen diesen Hinweis, bis Sie Ressourcen hinzufügen. Fügen Sie dieser Statusseite im Dashboard unter Ressourcen Monitore oder Gruppen hinzu."
   },
   "eventItem": {
     "affectedResources": "Betroffene Ressourcen",
@@ -115,30 +115,23 @@
     "title": "Vorfälle",
     "singular": "Vorfall",
     "active": "Aktive Vorfälle",
-    "resolved": "Behobene Vorfälle",
-    "none": "Keine Vorfälle",
-    "noneDescription": "Auf dieser Statusseite wurden keine Vorfälle veröffentlicht.",
+    "noneDescription": "Wenn ein Vorfall die Dienste auf dieser Seite betrifft, wird er hier veröffentlicht.",
     "postmortem": "Nachbearbeitung des Vorfalls",
     "declaredAt": "Gemeldet am ",
     "declaredAtTime": "Gemeldet am {{time}}",
     "report": "Vorfallsbericht",
-    "notFound": "Vorfall auf dieser Statusseite nicht gefunden."
-  },
-  "episodes": {
-    "report": "Episodenbericht",
-    "none": "Keine Episode",
-    "notFound": "Episode auf dieser Statusseite nicht gefunden."
+    "notFound": "Prüfen Sie den Link oder öffnen Sie den Tab Vorfälle dieser Seite.",
+    "notFoundTitle": "Vorfall nicht gefunden"
   },
   "announcements": {
     "title": "Ankündigungen",
     "singular": "Ankündigung",
     "active": "Aktive Ankündigungen",
-    "past": "Vergangene Ankündigungen",
-    "none": "Keine Ankündigungen",
-    "noneDescription": "Auf dieser Seite wurden bisher keine Ankündigungen veröffentlicht.",
+    "noneDescription": "Gibt es Neuigkeiten zu den Diensten auf dieser Seite, werden sie hier veröffentlicht.",
     "announcedAt": "Angekündigt am ",
     "announcedAtTime": "Angekündigt am {{time}}",
-    "notFound": "Ankündigung auf dieser Statusseite nicht gefunden."
+    "notFound": "Prüfen Sie den Link oder öffnen Sie den Tab Ankündigungen dieser Seite.",
+    "notFoundTitle": "Ankündigung nicht gefunden"
   },
   "scheduledEvents": {
     "title": "Geplante Wartung",
@@ -146,9 +139,7 @@
     "scheduledMaintenance": "Geplante Wartung",
     "ongoing": "Laufende Wartung",
     "upcoming": "Anstehende Wartung",
-    "completed": "Abgeschlossene Wartung",
-    "none": "Keine geplante Wartung",
-    "noneDescription": "Für diese Statusseite wurde keine geplante Wartung veröffentlicht.",
+    "none": "Keine Wartung geplant",
     "scheduledAt": "Geplant für ",
     "scheduledAtTime": "Geplant für {{time}}",
     "report": "Bericht zum Wartungsereignis",
@@ -314,24 +305,24 @@
       "password": "Passwort",
       "newPassword": "Neues Passwort",
       "confirmPassword": "Passwort bestätigen",
-      "login": "Anmelden"
+      "signInLink": "Anmelden."
     },
     "login": {
       "welcomeBack": "Willkommen zurück!",
-      "loginPrompt": "Bitte melden Sie sich an, um {{statusPageName}} anzuzeigen",
+      "signInPrompt": "Bitte melden Sie sich an, um {{statusPageName}} anzuzeigen.",
       "forgotPassword": "Passwort vergessen?",
       "submit": "Anmelden",
       "or": "oder",
-      "logInWithSso": "Mit SSO anmelden",
+      "signInWithSso": "Mit SSO anmelden",
       "emailSignInLink": "Anmeldelink per E-Mail senden"
     },
     "sso": {
       "title": "Mit SSO anmelden",
-      "loginPrompt": "Bitte melden Sie sich an, um {{statusPageName}} anzuzeigen",
+      "signInPrompt": "Bitte melden Sie sich an, um {{statusPageName}} anzuzeigen.",
       "noProviders": "Keine SSO-Anbieter konfiguriert oder aktiviert",
       "notAvailable": "Single Sign-On (SSO) ist für diese Statusseite nicht verfügbar. Melden Sie sich stattdessen mit Ihrer E-Mail-Adresse und Ihrem Passwort an.",
-      "backToLogin": "Zurück zur Anmeldung",
-      "logInWithPassword": "Mit Passwort anmelden"
+      "backToSignIn": "Zurück zur Anmeldung",
+      "signInWithPassword": "Mit Passwort anmelden"
     },
     "forgotPassword": {
       "title": "Passwort vergessen",
@@ -343,9 +334,16 @@
     "resetPassword": {
       "description": "Erstellen Sie ein neues Passwort für Ihr {{statusPageName}}-Konto.",
       "instructions": "Bitte geben Sie Ihr neues Passwort ein und wir werden es aktualisieren.",
-      "success": "Ihr Passwort wurde aktualisiert. Bitte melden Sie sich an.",
       "submit": "Passwort zurücksetzen",
-      "knowPassword": "Kennen Sie Ihr Passwort?"
+      "knowPassword": "Kennen Sie Ihr Passwort?",
+      "successTitle": "Ihr Passwort wurde zurückgesetzt",
+      "successDescription": "Melden Sie sich mit Ihrem neuen Passwort an.",
+      "signInButton": "Anmelden",
+      "linkExpiredTitle": "Dieser Link zum Zurücksetzen ist abgelaufen",
+      "linkExpiredDescription": "Links zum Zurücksetzen gelten einen Tag lang. Fordern Sie einen neuen Link an, und wir senden ihn Ihnen per E-Mail.",
+      "linkInvalidTitle": "Dieser Link zum Zurücksetzen funktioniert nicht mehr",
+      "linkInvalidDescription": "Er wurde vielleicht schon verwendet, oder er wurde nur teilweise kopiert. Fordern Sie einen neuen Link an, und wir senden ihn Ihnen per E-Mail.",
+      "requestNewLinkButton": "Neuen Link anfordern"
     },
     "magicLink": {
       "title": "Mit einem Link anmelden",
@@ -482,5 +480,35 @@
   },
   "No options available": "Keine Optionen verfügbar",
   "No matches found": "Keine Treffer gefunden",
-  "{{eventType}} state changed to {{state}}": "{{eventType}}: Status geändert auf {{state}}"
+  "{{eventType}} state changed to {{state}}": "{{eventType}}: Status geändert auf {{state}}",
+  "Use at least {{minimum}} characters.": "Verwenden Sie mindestens {{minimum}} Zeichen.",
+  "Try a few unrelated words.": "Versuchen Sie es mit einigen nicht zusammenhängenden Wörtern.",
+  "Password meets requirements": "Das Passwort erfüllt die Anforderungen",
+  "Password must be at least 15 characters.": "Das Passwort muss mindestens 15 Zeichen lang sein.",
+  "Password cannot be more than 100 characters.": "Das Passwort darf höchstens 100 Zeichen lang sein.",
+  "Choose a less predictable password. Try a few unrelated words.": "Wählen Sie ein weniger vorhersehbares Passwort. Versuchen Sie es mit einigen nicht zusammenhängenden Wörtern.",
+  "Password cannot be blank.": "Das Passwort darf nicht nur aus Leerzeichen bestehen.",
+  "Password is required.": "Ein Passwort ist erforderlich.",
+  "Password must be a string.": "Das Passwort muss eine Zeichenfolge sein.",
+  "Between {{minimum}} and {{maximum}} characters": "Zwischen {{minimum}} und {{maximum}} Zeichen",
+  "Avoid common or repeated patterns": "Häufige oder sich wiederholende Muster vermeiden",
+  "Password length": "Passwortlänge",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} / mindestens {{minimum}} Zeichen",
+  "Complete:": "Erfüllt:",
+  "Incomplete:": "Nicht erfüllt:",
+  "Special character included (optional)": "Sonderzeichen enthalten (optional)",
+  "Special characters are optional. Try !, @, # or $.": "Sonderzeichen sind optional. Probiere !, @, # oder $.",
+  "Dismiss": "Ausblenden",
+  "Resolved in the Last {{count}} Days": "In den letzten {{count}} Tagen behoben",
+  "Resolved in the Last {{count}} Days_one": "Innerhalb des letzten Tages behoben",
+  "No incidents in the last {{count}} days": "Keine Vorfälle in den letzten {{count}} Tagen",
+  "No incidents in the last {{count}} days_one": "Keine Vorfälle innerhalb des letzten Tages",
+  "Ended in the Last {{count}} Days": "In den letzten {{count}} Tagen beendet",
+  "Ended in the Last {{count}} Days_one": "Innerhalb des letzten Tages beendet",
+  "No announcements in the last {{count}} days": "Keine Ankündigungen in den letzten {{count}} Tagen",
+  "No announcements in the last {{count}} days_one": "Keine Ankündigungen innerhalb des letzten Tages",
+  "Completed in the Last {{count}} Days": "In den letzten {{count}} Tagen abgeschlossen",
+  "Completed in the Last {{count}} Days_one": "Innerhalb des letzten Tages abgeschlossen",
+  "None is planned, and none took place in the last {{count}} days.": "Es ist keine geplant, und in den letzten {{count}} Tagen fand keine statt.",
+  "None is planned, and none took place in the last {{count}} days._one": "Es ist keine geplant, und innerhalb des letzten Tages fand keine statt."
 }

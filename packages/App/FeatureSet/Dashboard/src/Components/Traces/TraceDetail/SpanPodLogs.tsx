@@ -258,7 +258,7 @@ const SpanPodLogs: FunctionComponent<ComponentProps> = (
           {line.log.body?.toString() || ""}
         </span>
         <span
-          className="flex-none tabular-nums text-gray-400"
+          className="flex-none tabular-nums text-gray-500"
           title={
             Number.isFinite(timeUnixNano)
               ? OneUptimeDate.getLocalTimeString(
@@ -310,11 +310,11 @@ const SpanPodLogs: FunctionComponent<ComponentProps> = (
               key={group.position}
               data-testid={`span-pod-logs-${group.position}`}
             >
-              <h5 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+              <h5 className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
                 {getPodLogGroupTitle(translator, group.position)}
               </h5>
               {group.position === "before" && result.isBeforeCut && (
-                <p className="mb-1 text-[11px] text-gray-400">
+                <p className="mb-1 text-[11px] text-gray-500">
                   {describePodLogCut({ translator, part: "before" })}
                 </p>
               )}
@@ -329,7 +329,7 @@ const SpanPodLogs: FunctionComponent<ComponentProps> = (
           );
         })}
         {result.isAfterCut && (
-          <p className="text-[11px] text-gray-400">
+          <p className="text-[11px] text-gray-500">
             {describePodLogCut({ translator, part: "fromStart" })}
           </p>
         )}

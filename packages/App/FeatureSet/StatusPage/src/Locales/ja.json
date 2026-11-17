@@ -37,7 +37,6 @@
     "announcements": "お知らせ",
     "scheduledEvents": "定期メンテナンス",
     "subscribe": "購読する",
-    "login": "ログイン",
     "logout": "ログアウト"
   },
   "overview": {
@@ -49,8 +48,6 @@
     "noResourcesInGroup": "このグループにリソースが追加されていません。",
     "activeIncidents": "進行中のインシデント",
     "scheduledMaintenanceEvents": "定期メンテナンス",
-    "allClearTitle": "すべて順調です",
-    "allClearDescription": "このステータスページにはまだリソースが追加されていません。ダッシュボードからリソースを追加してください。",
     "allResourcesAre": "すべてのリソースは {{status}} です",
     "allMonitoredResourcesAre": "監視中のすべてのリソースは {{status}} です",
     "someResourcesAre": "一部のリソースは {{status}} です",
@@ -58,7 +55,10 @@
     "noResourcesAreMonitored": "現在監視されているリソースはありません",
     "noResourcesAreMonitoredYet": "まだ監視されているリソースはありません",
     "oneSubGroup": "1 グループ",
-    "subGroupCount": "{{total}} グループ"
+    "subGroupCount": "{{total}} グループ",
+    "noResourcesTitle": "表示するものはまだありません",
+    "noResourcesDescription": "このページにはまだサービスが表示されていません。",
+    "noResourcesPreviewDescription": "リソースを追加するまで、訪問者にはこの表示が見えます。ダッシュボードの「リソース」で、このステータスページにモニターまたはグループを追加してください。"
   },
   "eventItem": {
     "affectedResources": "影響を受けるリソース",
@@ -115,30 +115,23 @@
     "title": "インシデント",
     "singular": "インシデント",
     "active": "進行中のインシデント",
-    "resolved": "解決済みのインシデント",
-    "none": "インシデントなし",
-    "noneDescription": "このステータスページに投稿されたインシデントはありません。",
+    "noneDescription": "このページのサービスにインシデントが発生すると、ここに掲載されます。",
     "postmortem": "インシデント事後分析",
     "declaredAt": "発生日時: ",
     "declaredAtTime": "発生日時: {{time}}",
     "report": "インシデントレポート",
-    "notFound": "このステータスページでインシデントが見つかりません。"
-  },
-  "episodes": {
-    "report": "エピソードレポート",
-    "none": "エピソードなし",
-    "notFound": "このステータスページでエピソードが見つかりません。"
+    "notFound": "リンクを確認するか、このページの「インシデント」タブを開いてください。",
+    "notFoundTitle": "インシデントが見つかりません"
   },
   "announcements": {
     "title": "お知らせ",
     "singular": "お知らせ",
     "active": "アクティブなお知らせ",
-    "past": "過去のお知らせ",
-    "none": "お知らせなし",
-    "noneDescription": "このページにはまだお知らせが投稿されていません。",
+    "noneDescription": "このページのサービスについてお知らせがあると、ここに掲載されます。",
     "announcedAt": "告知日時: ",
     "announcedAtTime": "告知日時: {{time}}",
-    "notFound": "このステータスページでお知らせが見つかりません。"
+    "notFound": "リンクを確認するか、このページの「お知らせ」タブを開いてください。",
+    "notFoundTitle": "お知らせが見つかりません"
   },
   "scheduledEvents": {
     "title": "定期メンテナンス",
@@ -146,9 +139,7 @@
     "scheduledMaintenance": "定期メンテナンス",
     "ongoing": "進行中のメンテナンス",
     "upcoming": "今後のメンテナンス",
-    "completed": "完了したメンテナンス",
-    "none": "定期メンテナンスはありません",
-    "noneDescription": "このステータスページに公開された定期メンテナンスはありません。",
+    "none": "予定されているメンテナンスはありません",
     "scheduledAt": "予定日時: ",
     "scheduledAtTime": "予定日時: {{time}}",
     "report": "メンテナンスイベントのレポート",
@@ -314,24 +305,24 @@
       "password": "パスワード",
       "newPassword": "新しいパスワード",
       "confirmPassword": "パスワードの確認",
-      "login": "ログイン"
+      "signInLink": "ログイン。"
     },
     "login": {
       "welcomeBack": "おかえりなさい！",
-      "loginPrompt": "{{statusPageName}}を表示するにはログインしてください",
+      "signInPrompt": "{{statusPageName}}を表示するにはログインしてください。",
       "forgotPassword": "パスワードをお忘れですか？",
       "submit": "ログイン",
       "or": "または",
-      "logInWithSso": "SSOでログイン",
+      "signInWithSso": "SSOでログイン",
       "emailSignInLink": "ログインリンクをメールで受け取る"
     },
     "sso": {
       "title": "SSOでログイン",
-      "loginPrompt": "{{statusPageName}}を表示するにはログインしてください",
+      "signInPrompt": "{{statusPageName}}を表示するにはログインしてください。",
       "noProviders": "SSOプロバイダーが構成または有効化されていません",
       "notAvailable": "このステータスページではシングルサインオン（SSO）を利用できません。代わりにメールアドレスとパスワードでログインしてください。",
-      "backToLogin": "ログインに戻る",
-      "logInWithPassword": "パスワードでログイン"
+      "backToSignIn": "ログインに戻る",
+      "signInWithPassword": "パスワードでログイン"
     },
     "forgotPassword": {
       "title": "パスワードをお忘れですか",
@@ -343,9 +334,16 @@
     "resetPassword": {
       "description": "{{statusPageName}}アカウントの新しいパスワードを作成してください。",
       "instructions": "新しいパスワードを入力すると、更新されます。",
-      "success": "パスワードが更新されました。ログインしてください。",
       "submit": "パスワードをリセット",
-      "knowPassword": "パスワードをご存じですか？"
+      "knowPassword": "パスワードをご存じですか？",
+      "successTitle": "パスワードをリセットしました",
+      "successDescription": "新しいパスワードでログインしてください。",
+      "signInButton": "ログイン",
+      "linkExpiredTitle": "このリセット用リンクは期限切れです",
+      "linkExpiredDescription": "リセット用リンクの有効期間は 1 日です。新しいリンクをリクエストすると、メールでお送りします。",
+      "linkInvalidTitle": "このリセット用リンクは使用できなくなりました",
+      "linkInvalidDescription": "すでに使用されたか、一部だけがコピーされた可能性があります。新しいリンクをリクエストすると、メールでお送りします。",
+      "requestNewLinkButton": "新しいリンクをリクエスト"
     },
     "magicLink": {
       "title": "リンクでログイン",
@@ -482,5 +480,35 @@
   },
   "No options available": "利用できるオプションはありません",
   "No matches found": "一致するものが見つかりません",
-  "{{eventType}} state changed to {{state}}": "{{eventType}}の状態が {{state}} に変更されました"
+  "{{eventType}} state changed to {{state}}": "{{eventType}}の状態が {{state}} に変更されました",
+  "Use at least {{minimum}} characters.": "{{minimum}}文字以上で入力してください。",
+  "Try a few unrelated words.": "関連のない単語をいくつか組み合わせてみてください。",
+  "Password meets requirements": "パスワードは要件を満たしています",
+  "Password must be at least 15 characters.": "パスワードは15文字以上にしてください。",
+  "Password cannot be more than 100 characters.": "パスワードは100文字以内にしてください。",
+  "Choose a less predictable password. Try a few unrelated words.": "推測されにくいパスワードを選んでください。関連のない単語をいくつか組み合わせてみてください。",
+  "Password cannot be blank.": "パスワードを空白のみにすることはできません。",
+  "Password is required.": "パスワードは必須です。",
+  "Password must be a string.": "パスワードは文字列で入力してください。",
+  "Between {{minimum}} and {{maximum}} characters": "{{minimum}}文字以上{{maximum}}文字以下",
+  "Avoid common or repeated patterns": "よく使われるパターンや繰り返しを避ける",
+  "Password length": "パスワードの長さ",
+  "{{length}} / {{minimum}} characters minimum": "{{length}}文字 / 最低{{minimum}}文字",
+  "Complete:": "達成済み：",
+  "Incomplete:": "未達成：",
+  "Special character included (optional)": "記号が含まれています（任意）",
+  "Special characters are optional. Try !, @, # or $.": "記号の使用は任意です。!、@、#、$ などを使ってみてください。",
+  "Dismiss": "非表示",
+  "Resolved in the Last {{count}} Days": "過去 {{count}} 日間に解決",
+  "Resolved in the Last {{count}} Days_one": "過去 1 日間に解決",
+  "No incidents in the last {{count}} days": "過去 {{count}} 日間にインシデントはありません",
+  "No incidents in the last {{count}} days_one": "過去 1 日間にインシデントはありません",
+  "Ended in the Last {{count}} Days": "過去 {{count}} 日間に終了",
+  "Ended in the Last {{count}} Days_one": "過去 1 日間に終了",
+  "No announcements in the last {{count}} days": "過去 {{count}} 日間にお知らせはありません",
+  "No announcements in the last {{count}} days_one": "過去 1 日間にお知らせはありません",
+  "Completed in the Last {{count}} Days": "過去 {{count}} 日間に完了",
+  "Completed in the Last {{count}} Days_one": "過去 1 日間に完了",
+  "None is planned, and none took place in the last {{count}} days.": "予定はなく、過去 {{count}} 日間に実施されたメンテナンスもありません。",
+  "None is planned, and none took place in the last {{count}} days._one": "予定はなく、過去 1 日間に実施されたメンテナンスもありません。"
 }

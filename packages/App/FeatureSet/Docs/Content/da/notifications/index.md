@@ -45,10 +45,8 @@ De er adskilt med vilje. At slå alle kanaler til i **Notifikationsindstillinger
 | --- | --- |
 | **Kom godt i gang** | **Opsætningstjekliste**: hvad der mangler at blive sat op, i den rækkefølge, der tæller |
 | **Advarsler og notifikationer** | **Notifikationsmetoder**, **Sådan når man mig**, **Notifikationsindstillinger** og **E-mailindstillinger**, hvor du bestemmer, hvor mange e-mails dine nyheder bliver til |
-| **Vagtlogs** | **Vagtlogs**: hver gang du blev tilkaldt i dette projekt, og hvad der blev sendt |
-| **Indgående opkaldspolitik** | **Indgående telefonnumre**: det nummer, en politik for indgående opkald ringer dig op på |
-| **Kalender** | **Kalenderfeed**: dine vagter i din kalenderapp, og påmindelser, før de starter |
-| **Profil** | **Brugerdefinerede felter**: oplysninger, dit projekt beder sine medlemmer om |
+| **Tilkaldelser og opkald** | **Vagtlogs**: hver gang du blev tilkaldt i dette projekt, og hvad der blev sendt; **Indgående telefonnumre**: det nummer, en politik for indgående opkald ringer dig op på |
+| **Profil og kalender** | **Kalenderfeed**: dine vagter i din kalenderapp, og påmindelser, før de starter; **Brugerdefinerede felter**: oplysninger, dit projekt beder sine medlemmer om |
 | **Arbejdsområde** | **Slack**, **Microsoft Teams** og **Mattermost**: din egen konto, i hvert arbejdsområde, projektet har forbundet |
 
 **Kom godt i gang** og **Advarsler og notifikationer** er åbne; de andre sektioner starter foldet sammen, og en sektion åbner af sig selv, når du er på en af dens sider. **Arbejdsområde** vises kun, når projektet har forbundet Slack, Microsoft Teams eller Mattermost.
@@ -112,7 +110,7 @@ Det, der ændres, er OneUptimes egne ord: emnelinjer, overskrifter, knapper og s
 ## Fejlfinding
 
 :::details Jeg havde vagt, men intet nåede mig
-Åbn **Brugerindstillinger → Vagtlogs**. Ingen række for hændelsen betyder, at dens vagtpolitik aldrig tilkaldte dig: tjek dens eskaleringsregler, og hvem der havde vagt. Ved en række med status **Fejl** fortæller **Vis statusbesked** hvorfor, for eksempel en kanal, projektet har slået fra. Tjek derefter, at dine metoder er bekræftet, og at **Your setup checklist** ikke har noget udestående under **So we can reach you**.
+Åbn **Brugerindstillinger → Tilkaldelser og opkald → Vagtlogs**. Ingen række for hændelsen betyder, at dens vagtpolitik aldrig tilkaldte dig: tjek dens eskaleringsregler, og hvem der havde vagt. Ved en række med status **Fejl** fortæller **Vis statusbesked** hvorfor, for eksempel en kanal, projektet har slået fra. Tjek derefter, at dine metoder er bekræftet, og at **Your setup checklist** ikke har noget udestående under **So we can reach you**.
 :::
 
 :::details Jeg får e-mails om ting, jeg aldrig har bedt om

@@ -56,7 +56,6 @@ const SENTENCES: ReadonlyArray<string> = [
   "No maintenance events for this fleet.",
   "No maintenance events for this site. Attach this site to an event to exclude its planned downtime from uptime.",
   "No maintenance events for this vCenter.",
-  "No status pages selected for this maintenance event.",
   "Only apply this rule to maintenance events with these labels. Leave empty to match events with any labels.",
   "Periodic reminder that a maintenance event you own has not yet finished, based on the project's reminder rules.",
   "Periodically remind maintenance event owners while an event has not yet finished. Rules are evaluated in order — the first matching rule wins.",

@@ -235,11 +235,11 @@ const TimelineGrid: FunctionComponent<ComponentProps> = (
           <span className="min-w-0 truncate text-xs font-semibold text-gray-700">
             {group.title}
           </span>
-          <span className="shrink-0 rounded-full bg-white px-1.5 py-0.5 text-[10px] font-semibold text-gray-500 ring-1 ring-inset ring-gray-200">
+          <span className="shrink-0 rounded-full bg-white px-1.5 py-0.5 text-xs font-semibold text-gray-500 ring-1 ring-inset ring-gray-200">
             {group.schedules.length}
           </span>
           {group.isCurrentUserMember && (
-            <span className="max-sm:hidden shrink-0 rounded-full bg-indigo-50 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-200 sm:inline-flex">
+            <span className="max-sm:hidden shrink-0 rounded-full bg-indigo-50 px-1.5 py-0.5 text-xs font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-200 sm:inline-flex">
               {translator.translateText("Your team")}
             </span>
           )}

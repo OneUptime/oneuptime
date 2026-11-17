@@ -58,8 +58,9 @@ jest.mock("../../../Server/Utils/Logger");
  * for anyone signed in, the global rows only, by the columns of
  * GLOBAL_RUNNER_PUBLIC_SELECT - never a key, a host or a version, whatever
  * the request asks for. Whether each takes AI code fixes is said as the
- * server counts it: the release that judges a Runner that does not say is
- * read on the server and left out of the answer.
+ * server counts it: the release that judges a Runner that does not say, and
+ * the switch a master admin turns its code fixes off with, are read on the
+ * server and left out of the answer.
  */
 
 const GLOBAL_RUNNERS_ROUTE: string = "/runner/global-runners";
@@ -88,6 +89,8 @@ describe("the global Runners list", () => {
     runner.lastAlive = OneUptimeDate.getCurrentDate();
     // A release from before global Runners took code fixes, saying nothing.
     runner.agentVersion = new Version("14.0.80");
+    // Code fixes not turned off for it, as for every global Runner at first.
+    runner.canRunCodeFixes = true;
 
     findBy = jest
       .spyOn(RunnerService, "findBy")
@@ -129,9 +132,16 @@ describe("the global Runners list", () => {
 
     expect(call.query).toEqual({ isGlobalRunner: true });
     expect(call.select).toBe(GLOBAL_RUNNER_LIST_READ_SELECT);
-    // The public columns, and the release - read here, never answered.
+    /*
+     * The public columns, the release and the code-fix switch - the last two
+     * read here, never answered.
+     */
     expect(Object.keys(call.select).sort()).toEqual(
-      [...Object.keys(GLOBAL_RUNNER_PUBLIC_SELECT), "agentVersion"].sort(),
+      [
+        ...Object.keys(GLOBAL_RUNNER_PUBLIC_SELECT),
+        "agentVersion",
+        "canRunCodeFixes",
+      ].sort(),
     );
     expect(Object.keys(call.select)).not.toContain("key");
     expect(Object.keys(call.select)).not.toContain("hostInfo");
@@ -161,7 +171,12 @@ describe("the global Runners list", () => {
     // 14.0.80 said nothing, and turns code fixes off itself.
     expect(answered[0]!["takesCodeFixes"]).toBe(false);
 
-    for (const hidden of ["key", "hostInfo", "agentVersion"]) {
+    for (const hidden of [
+      "key",
+      "hostInfo",
+      "agentVersion",
+      "canRunCodeFixes",
+    ]) {
       expect(answered[0]).not.toHaveProperty(hidden);
     }
   });

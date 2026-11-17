@@ -9,6 +9,7 @@ import {
 import SyslogRawCopies, {
   ScrubLogRow,
 } from "../../../Utils/Syslog/SyslogRawCopies";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -530,12 +531,7 @@ describe("the syslog a probe forwards: structured data, and no syslog.raw", () =
  * changed nothing keeps its copies as they arrived.
  */
 describe("any line, any rules", () => {
-  let seed: number = 9039;
-
-  function random(): number {
-    seed = (seed * 1103515245 + 12345) % 2147483648;
-    return seed / 2147483648;
-  }
+  const random: SeededRandom = seededRandom(9039);
 
   function pick<T>(choices: ReadonlyArray<T>): T {
     return choices[Math.floor(random() * choices.length)]!;

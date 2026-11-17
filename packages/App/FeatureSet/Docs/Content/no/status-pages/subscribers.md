@@ -43,7 +43,7 @@ Bryterne bestemmer hvordan besøkende kan melde seg på selv, og statussiden avv
 
 På OneUptime Cloud står abonnementets navn ved en bryter som abonnementet ditt ikke inkluderer: **Growth** for **SMS** og **Vis abonnentside**, **Scale** for **Slack**, **Microsoft Teams** og **Webhook**. Å slå av en kanal fungerer på alle abonnementer, så en kanal som en prøveperiode slo på, kan alltid slås av igjen; bryteren sier det under seg.
 
-Hver kanal har også sin egen liste i statussidens sidemeny under **Abonnenter**: **E-postabonnenter**, **SMS-abonnenter**, **Slack-abonnenter**, **Microsoft Teams-abonnenter** og **Webhook-abonnenter**. Det er der du ser hvem som er påmeldt, legger til noen manuelt med **Legg til abonnent** eller legger igjen et **Internt notat** (`internalNote`) til deg selv om en bestemt abonnent, som abonnenten aldri ser. Så lenge en kanal er av, sier toppen av listen det, med kanalens bryter rett der, slik at du kan slå den på uten å forlate listen.
+Abonnentene for alle kanaler er på én side, **Abonnenter**, i seksjonen **Abonnenter** i statussidens sidemeny. Den har en fane for hver kanal (**E-post**, **SMS**, **Slack**, **Microsoft Teams** og **Webhook**), og hver fane viser hvor mange abonnenter kanalen har. Hver fane er kanalens liste (**E-postabonnenter**, **SMS-abonnenter** og så videre). Det er der du ser hvem som er påmeldt, legger til noen manuelt med **Legg til abonnent** eller legger igjen et **Internt notat** (`internalNote`) til deg selv om en bestemt abonnent, som abonnenten aldri ser. Så lenge en kanal er av, sier toppen av listen det, med kanalens bryter rett der, slik at du kan slå den på uten å forlate listen. Den åpne fanen står i sidens adresse (`{id}/subscribers?channel=sms`), og adressene til de gamle sidene for hver kanal, for eksempel `{id}/email-subscribers`, åpner kanalens fane.
 
 **Én bryter er ikke nok.** Elementet **Abonner** i statussidens navigasjonslinje vises bare når **Vis abonnentside** er på *og* minst én kanal er på. Hvis du slår på **E-post**, men lar **Vis abonnentside** være av, har besøkende ingen måte å komme til skjemaet på.
 
@@ -281,7 +281,7 @@ Egendefinerte hendelsesfelt med **Ta med i abonnentvarslinger** på (under **Hen
 
 Oppføringen **Abonnentvarsling sendt** i hendelsesfeeden viser under **Custom fields sent** verdiene hver utsending la inn i en melding. Abonnenter er som regel utenfor teamet ditt, så slå bare på innstillingen for felt som trygt kan deles med dem.
 
-Seksjonen **Varslingslogger** i statussidens sidemeny (`{id}/notification-logs`) er der du går når du må se hva siden faktisk har sendt.
+**Varslingslogger**, i seksjonen **Abonnenter** i statussidens sidemeny (`{id}/notification-logs`), er der du går når du må se hva siden faktisk har sendt.
 
 ### Hendelsesepisoder
 
@@ -483,7 +483,7 @@ Gjennomgangstrinnet viser den samme linjen. **Opprett fra mal** fyller ut skjema
 
 Kunngjøringens egen side redigerer den på de samme to trinnene. **Varsle abonnenter om denne oppdateringen** står under beskrivelsen (se [Varsle abonnenter om en redigering](#varsle-abonnenter-om-en-redigering)), og **Tidsplan** inneholder starten og slutten. Å angi en slutt som er passert, er måten å ta ned en kunngjøring på.
 
-Besøkende leser kunngjøringer på `/announcements`, delt inn i **Aktive kunngjøringer** og **Tidligere kunngjøringer**, hver merket med **Kunngjort den**. Kunngjøringer som er live akkurat nå, er også festet øverst på oversiktssiden. Når det ikke er noe å vise, står det *Ingen kunngjøringer* på siden, med merknaden om at ingen er publisert ennå.
+Besøkende leser kunngjøringer på `/announcements`, delt inn i **Aktive kunngjøringer** og dem som er avsluttet innenfor sidens kunngjøringshistorikk, under en overskrift som sier hvor mange dager det er, hver merket med **Kunngjort den**. Kunngjøringer som er live akkurat nå, er også festet øverst på oversiktssiden. Når det ikke er noe å vise, sier siden at det ikke har vært noen kunngjøringer i så mange dager (14 med mindre du endrer det).
 
 Vedlegg leveres fra `GET {statusPageCrudPath}/status-page-announcement/attachment/:statusPageId/:announcementId/:fileId`, bak den samme lesesjekken som selve statussiden — så et vedlegg på en privat side forblir privat.
 
@@ -499,9 +499,9 @@ To konsekvenser som er verdt å planlegge rundt:
 - **En kunngjøring uten sluttdato utløper aldri.** La **Slutt å vise kunngjøring kl.** stå tom, så blir den festet på oversiktssiden på ubestemt tid. Sett en sluttdato på alt som er tidsbestemt.
 - **En gammel, men fortsatt aktiv kunngjøring kan forsvinne fra listen.** Hvis den startet for mer enn `showAnnouncementHistoryInDays` dager siden, faller den ut av `/announcements` mens den blir værende på oversikten. Øk historikkvinduet hvis du har langvarige meldinger.
 
-**Bilder følger kunngjøringen.** Et bilde i en kunngjørings beskrivelse åpnes for alle fra **Begynn å vise kunngjøring fra** og fremover, ikke før. Mens en kunngjøring er planlagt til senere, åpnes bildene bare for medlemmene i prosjektet ditt, slik at selve kunngjøringen bare vises i dashbordet. Så snart den begynner å vises, åpnes bildene for alle, på statussiden og i e-postene abonnentene får. De forblir slik etter at den er over, fordi statussidene fortsatt viser den under **Tidligere kunngjøringer**, og lenken fortsetter å virke. Flytt en kunngjøring til et senere tidspunkt, så blir bildene private igjen til da.
+**Bilder følger kunngjøringen.** Et bilde i en kunngjørings beskrivelse åpnes for alle fra **Begynn å vise kunngjøring fra** og fremover, ikke før. Mens en kunngjøring er planlagt til senere, åpnes bildene bare for medlemmene i prosjektet ditt, slik at selve kunngjøringen bare vises i dashbordet. Så snart den begynner å vises, åpnes bildene for alle, på statussiden og i e-postene abonnentene får. De forblir slik etter at den er over, fordi lenken fortsetter å virke, og statussidene viser den blant de avsluttede kunngjøringene så langt historikken deres rekker tilbake. Flytt en kunngjøring til et senere tidspunkt, så blir bildene private igjen til da.
 
-Om kunngjøringer vises i det hele tatt, angis på kortet **Hva statussiden din viser** under **Avanserte innstillinger**: **Vis kunngjøringer** (`showAnnouncementsOnStatusPage`, standard true) og, under den, **Vis de siste … dagene** (`showAnnouncementHistoryInDays`, standard 14). Med **Vis kunngjøringer** av avviser kunngjøringsendepunktet forespørselen fullstendig.
+Om kunngjøringer vises i det hele tatt, angis på kortet **Hva statussiden din viser** under **Innstillinger**: **Vis kunngjøringer** (`showAnnouncementsOnStatusPage`, standard true) og, under den, **Vis de siste … dagene** (`showAnnouncementHistoryInDays`, standard 14). Med **Vis kunngjøringer** av avviser kunngjøringsendepunktet forespørselen fullstendig.
 
 ## Kunngjøringsmaler
 

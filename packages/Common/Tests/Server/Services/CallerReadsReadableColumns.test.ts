@@ -83,6 +83,10 @@ const ALWAYS_READABLE: Array<string> = [
  * longer finds fails below: delete it.
  */
 const ALLOWED_READS: Record<string, string> = {
+  "packages/Common/Server/Services/StatusPagePrivateUserSessionService.ts#query#StatusPagePrivateUserSession.statusPagePrivateUserId":
+    "revokeAllSessionsByPrivateUserId ends a reader's sessions with getRevocationProps, OneUptime's own props ({ isRoot: true }) with the request's origin for the audit log's entry: no caller's props reach it.",
+  "packages/Common/Server/Services/StatusPagePrivateUserSessionService.ts#query#StatusPagePrivateUserSession.isRevoked":
+    "revokeAllSessionsByPrivateUserId ends a reader's sessions with getRevocationProps, OneUptime's own props ({ isRoot: true }) with the request's origin for the audit log's entry: no caller's props reach it.",
   "packages/Common/Server/Services/StatusPageSubscriberService.ts#select#StatusPageSubscriber.slackIncomingWebhookUrl":
     "getSubscribersByStatusPage takes its props from its callers, the notification senders, and every one passes OneUptime's own ({ isRoot: true }): they need the webhook to send to.",
   "packages/Common/Server/Services/StatusPageSubscriberService.ts#select#StatusPageSubscriber.microsoftTeamsIncomingWebhookUrl":

@@ -362,7 +362,7 @@ describe("the row ⋯ trigger is still a clear target", () => {
     const trigger: HTMLElement = getTrigger();
 
     expect(trigger).toHaveClass("px-1.5");
-    expect(trigger).toHaveClass("py-1.5");
+    expect(trigger).toHaveClass("py-1");
   });
 });
 
@@ -386,7 +386,7 @@ describe("the row ⋯ trigger lines up with the row's button", () => {
     expect(trigger).toHaveClass("border-transparent");
   });
 
-  test("its vertical padding steps down at md, as the button's label does", () => {
+  test("its vertical padding is the button's at every width, as the button's label is one size", () => {
     renderRow([VIEW, EDIT, DELETE]);
 
     const trigger: HTMLElement = getTrigger();
@@ -394,11 +394,11 @@ describe("the row ⋯ trigger lines up with the row's button", () => {
       name: "View Kubernetes Cluster",
     });
 
-    // The button's label is text-base below md and text-sm above.
-    expect(rowButton).toHaveClass("text-base");
-    expect(rowButton).toHaveClass("md:text-sm");
-    expect(trigger).toHaveClass("py-1.5");
-    expect(trigger).toHaveClass("md:py-1");
+    // The button's label is text-sm at every width (#9128).
+    expect(rowButton).toHaveClass("text-sm", "py-1");
+    expect(rowButton).not.toHaveClass("text-base");
+    expect(trigger).toHaveClass("py-1");
+    expect(trigger.className).not.toMatch(/md:py-/u);
   });
 
   test("is centred against the button and never squeezed by a long label", () => {

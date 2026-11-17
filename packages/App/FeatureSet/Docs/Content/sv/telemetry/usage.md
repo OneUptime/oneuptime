@@ -96,7 +96,7 @@ Användningen sparas i 120 dagar om du inte ändrar det, med fakturering på ell
 :::steps
 ### Öppna Databevarande
 
-Gå till **Inställningar → Databevarande** i Admin Dashboard.
+Gå till **Inställningar → Server → Databevarande** i Admin Dashboard.
 
 ### Ange antalet dagar
 

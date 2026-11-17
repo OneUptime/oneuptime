@@ -27,5 +27,14 @@
   "Copy": "复制",
   "Copied!": "已复制！",
   "Copy failed": "复制失败",
-  "Hide": "隐藏"
+  "Hide": "隐藏",
+  "Dismiss": "隐藏",
+  "Dashboard Not Found": "未找到仪表板",
+  "This dashboard does not exist, or it is no longer shared.": "此仪表板不存在，或已不再共享。",
+  "Check the address, or ask the person who shared it with you for a new link.": "请检查地址，或向与你共享它的人索取新链接。",
+  "Access Denied": "拒绝访问",
+  "This dashboard opens only from the IP addresses its owner allows, and yours is not one of them.": "此仪表板只能从其所有者允许的 IP 地址打开，而你的 IP 地址不在其中。",
+  "Ask the dashboard's owner for access, or open it from a network they allow.": "请向仪表板的所有者申请访问权限，或从其允许的网络打开。",
+  "Show more": "显示更多",
+  "Show less": "收起"
 }

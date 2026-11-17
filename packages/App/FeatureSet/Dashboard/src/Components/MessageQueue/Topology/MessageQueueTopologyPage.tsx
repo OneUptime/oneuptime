@@ -1,3 +1,4 @@
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
@@ -103,13 +104,12 @@ const MessageQueueTopologyPage: FunctionComponent<ComponentProps> = (
           data-testid="message-queue-topology-error"
         >
           <ErrorMessage message={load.error} />
-          <button
-            type="button"
-            className="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+          <Button
+            title="Try again"
+            buttonStyle={ButtonStyleType.PRIMARY}
+            className="mt-4"
             onClick={load.reload}
-          >
-            {translator.translateText("Try again")}
-          </button>
+          />
         </div>
       ) : load.status === "loading" || !load.data || !load.window ? (
         <div

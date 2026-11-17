@@ -11,7 +11,9 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import EmptyState, {
+  EmptyStateSize,
+} from "Common/UI/Components/EmptyState/EmptyState";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
@@ -114,14 +116,10 @@ const StatusPageFirstStep: FunctionComponent<ComponentProps> = (
               : StatusPageOverviewCopy.firstStepReaderDescription
           }
           icon={IconProp.AltGlobe}
-          paddingClassName="py-8"
+          size={EmptyStateSize.Inline}
           footer={
             canAddMonitors ? (
-              /*
-               * Button keeps a dialog footer's left margin (md:ml-3), which
-               * would push it off the centre here, so its wrapper clears it.
-               */
-              <div className="[&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
+              <div>
                 <Button
                   title={StatusPageOverviewCopy.firstStepButton}
                   icon={IconProp.Add}

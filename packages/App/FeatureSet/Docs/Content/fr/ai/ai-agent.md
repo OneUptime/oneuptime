@@ -73,6 +73,8 @@ Pour donner suite, écrivez dans la zone en bas, qui reste visible pendant que l
 
 Toute personne qui peut lire un dépôt lit ses tâches. Demander à l'IA, répondre et arrêter une tâche demandent la permission de modifier le dépôt, tout comme voir le diff d'une modification : les autres voient quels fichiers ont changé. Les tâches que OneUptime lance de lui-même (ci-dessous) figurent aussi dans leur dépôt, comme des conversations auxquelles vous pouvez répondre.
 
+Une tâche au sujet d'un incident ou d'une alerte privés, lancée depuis son investigation ou depuis l'une de ses corrections, n'est lue, avec ses réponses et sa pull request, que par ceux qui peuvent lire l'enregistrement et, une fois l'enregistrement supprimé, uniquement par les Propriétaires du projet et les Administrateurs du projet. Pour tous les autres, les listes, filtres, recherches et décomptes du dépôt la laissent de côté. Voir [Incidents, alertes et épisodes privés](/docs/permissions/index#incidents-alertes-et-épisodes-privés).
+
 ## Déroulement d'une exécution de correction
 
 ```mermaid title="D'un clic à une pull request"
@@ -325,6 +327,8 @@ Tout le reste correspond au bouton :
 - Elle compte dans la limite quotidienne de tâches de correction de ce signal (**Limite quotidienne de tâches de correctif IA pour les incidents** ou **Limite quotidienne de tâches de correctif IA pour les alertes**, sous **Plus de paramètres** sur sa page de paramètres IA) et dans le plafond de pull requests ouvertes du dépôt, quand l'un ou l'autre est défini. Non définis, ni l'un ni l'autre ne limite quoi que ce soit.
 - Chaque déclencheur cherche d'abord une tâche de correction déjà en file ou en cours pour le même incident ou la même alerte, si bien qu'un déclencheur automatique et un clic donnent normalement une seule tâche, pas deux pull requests. La vérification est une lecture avant l'écriture, pas un verrou, si bien que deux déclencheurs au même instant peuvent encore passer tous les deux.
 - L'exécution est écrite par le système, n'est attribuée à personne, et rien ne fusionne tout seul.
+
+Sur un incident ou une alerte privés, **Ouvrir une pull request de correction** demande ce que demande l'approbation des corrections de l'enregistrement, par les équipes qui le possèdent, et est verrouillé pour tous les autres, en disant pourquoi. Toute personne ayant accès au dépôt lit la pull request : son titre, son commit et sa description disent donc ce que fait la modification et rien de l'enregistrement, et il est demandé à l'agent de code de laisser l'enregistrement hors de son résumé et des commentaires qu'il écrit. Un Runner antérieur à ce changement ne reçoit pas une telle correction, et la tâche échoue en disant de mettre à jour le Runner.
 
 ## Quand une correction échoue
 

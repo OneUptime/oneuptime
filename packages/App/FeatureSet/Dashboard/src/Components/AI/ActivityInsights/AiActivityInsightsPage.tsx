@@ -260,7 +260,6 @@ const AiActivityInsightsPage: FunctionComponent<ComponentProps> = (
               getAiInsightsEmptyDescription(props.noun)
             }
             showSolidBackground={true}
-            paddingClassName="py-12"
             footer={
               <div className="space-y-2">
                 {hint ? (

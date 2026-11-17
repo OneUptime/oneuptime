@@ -21,6 +21,7 @@ import {
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import React, { ReactElement } from "react";
+import Toast from "../../../UI/Utils/Toast";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
@@ -347,6 +348,35 @@ async function testTheRule(): Promise<HTMLElement> {
   return onlyDialog();
 }
 
+/*
+ * Test Rule, then the dialog's Test, for a test the server sent: no dialog
+ * after it, a toast (#9120). Its title and words.
+ */
+async function testTheRuleThatWorks(): Promise<{
+  title: string;
+  description: string;
+}> {
+  Toast.dismissAll();
+
+  const confirm: HTMLElement = pressTestRule();
+
+  await act(async (): Promise<void> => {
+    fireEvent.click(within(confirm).getByTestId("modal-footer-submit-button"));
+  });
+
+  await waitFor(() => {
+    expect(Toast.getToasts()).toHaveLength(1);
+  });
+
+  // The Test Rule dialog is gone, and nothing opened in its place.
+  expect(dialogs()).toHaveLength(0);
+
+  return {
+    title: Toast.getToasts()[0]!.title,
+    description: String(Toast.getToasts()[0]!.description),
+  };
+}
+
 beforeAll(async () => {
   await i18next.use(initReactI18next).init({
     lng: "en",
@@ -393,6 +423,7 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
+  Toast.dismissAll();
   cleanup();
   jest.restoreAllMocks();
   await act(async (): Promise<void> => {
@@ -421,10 +452,11 @@ describe("Test Rule on a workspace notification rule says what the test came to"
     expect(testRoutesCalled).toEqual([]);
   });
 
-  test("a test the server sent: the Test Rule dialog closes, and Test Notification Sent says where to look for which rule's test, with Close its one way out", async () => {
+  test("a test the server sent: the Test Rule dialog closes, and a Test Notification Sent toast says where to look for which rule's test", async () => {
     await renderTable();
 
-    const result: HTMLElement = await testTheRule();
+    const result: { title: string; description: string } =
+      await testTheRuleThatWorks();
 
     // The rule's own test route, once.
     expect(testRoutesCalled).toHaveLength(1);
@@ -433,20 +465,14 @@ describe("Test Rule on a workspace notification rule says what the test came to"
         `/workspace-notification-rule/test/${RULE_ID.toString()}`,
       ),
     ).toBe(true);
-    expect(titleOf(result)).toBe("Test Notification Sent");
-    expect(descriptionOf(result)).toBe(
+    expect(result.title).toBe("Test Notification Sent");
+    expect(result.description).toBe(
       `Check Slack to confirm the test notification for the rule "${RULE_NAME}" arrived.`,
     );
     // It says something its title does not: it began by repeating it.
-    expect(descriptionOf(result).toLowerCase()).not.toContain(
-      titleOf(result).toLowerCase(),
+    expect(result.description.toLowerCase()).not.toContain(
+      result.title.toLowerCase(),
     );
-    expect(within(result).queryByTestId("modal-error")).toBeNull();
-    expect(buttonsOf(result)).toEqual(["Close"]);
-
-    fireEvent.click(within(result).getByTestId("modal-footer-submit-button"));
-
-    expect(dialogs()).toHaveLength(0);
   });
 
   test("a test the server refused: the Test Rule dialog closes, and Test Failed says why in the server's words, then what to do next - with no Test to press again", async () => {
@@ -526,17 +552,9 @@ describe("Test Rule on a workspace notification rule says what the test came to"
     expect(titleOf(confirm)).toBe("Test Rule");
     expect(within(confirm).queryByTestId("modal-error")).toBeNull();
     expect(screen.queryByText(NOT_FOUND)).toBeNull();
+    fireEvent.click(within(confirm).getByTestId("modal-footer-close-button"));
 
-    await act(async (): Promise<void> => {
-      fireEvent.click(
-        within(confirm).getByTestId("modal-footer-submit-button"),
-      );
-    });
-
-    await waitFor(() => {
-      expect(titleOf(onlyDialog())).toBe("Test Notification Sent");
-    });
-    expect(within(onlyDialog()).queryByTestId("modal-error")).toBeNull();
+    expect((await testTheRuleThatWorks()).title).toBe("Test Notification Sent");
     expect(screen.queryByText(NOT_FOUND)).toBeNull();
     expect(screen.queryByText(NEXT_STEP)).toBeNull();
     expect(testRoutesCalled).toHaveLength(2);
@@ -545,16 +563,10 @@ describe("Test Rule on a workspace notification rule says what the test came to"
   test("a success after a success, and a failure after a success: each dialog says only its own test", async () => {
     await renderTable();
 
-    const sent: HTMLElement = await testTheRule();
-    expect(titleOf(sent)).toBe("Test Notification Sent");
-    fireEvent.click(within(sent).getByTestId("modal-footer-submit-button"));
-
-    const sentAgain: HTMLElement = await testTheRule();
-    expect(titleOf(sentAgain)).toBe("Test Notification Sent");
-    expect(within(sentAgain).queryByTestId("modal-error")).toBeNull();
-    fireEvent.click(
-      within(sentAgain).getByTestId("modal-footer-submit-button"),
-    );
+    expect((await testTheRuleThatWorks()).title).toBe("Test Notification Sent");
+    expect((await testTheRuleThatWorks()).title).toBe("Test Notification Sent");
+    expect(screen.queryByTestId("modal-error")).toBeNull();
+    Toast.dismissAll();
 
     testAnswer = new HTTPErrorResponse(400, { message: NOT_FOUND }, {});
 
@@ -605,17 +617,18 @@ describe("in the reader's language", () => {
 
       await renderTable();
 
-      const result: HTMLElement = await testTheRule();
+      const result: { title: string; description: string } =
+        await testTheRuleThatWorks();
 
-      expect(titleOf(result)).toBe(words[SUCCESS_TITLE]);
+      expect(result.title).toBe(words[SUCCESS_TITLE]);
       // The rule's name and the workspace's, each where the sentence puts it.
-      expect(descriptionOf(result)).toBe(
+      expect(result.description).toBe(
         fill(words[SUCCESS_DESCRIPTION], {
           workspace: inSentence("Slack"),
           rule: inSentence(RULE_NAME),
         }),
       );
-      expect(screen.queryByText(SUCCESS_TITLE)).toBeNull();
+      expect(result.title).not.toBe(SUCCESS_TITLE);
     },
   );
 

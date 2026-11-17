@@ -956,7 +956,7 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
         required: false,
         defaultValue: false,
         description:
-          "Shows the group's uptime beside it, over the days set under Uptime History on Advanced Settings.",
+          "Shows the group's uptime beside it, over the days set under Uptime History on Settings.",
         collapsibleSection: advancedSection,
       },
       {

@@ -332,7 +332,7 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
             className={
               props.showTriggerIcon
                 ? triggerClassNames.countPill
-                : "text-xs text-gray-400"
+                : "text-xs text-gray-500"
             }
           >
             {props.savedViews.length.toLocaleString(getReaderNumberLocale())}
@@ -411,13 +411,13 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
               (props.emptyContent ? (
                 props.emptyContent
               ) : (
-                <div className="px-3 py-6 text-center text-xs text-gray-400">
+                <div className="px-3 py-6 text-center text-xs text-gray-500">
                   {label("empty")}
                 </div>
               ))}
 
             {props.savedViews.length > 0 && visible.views.length === 0 && (
-              <div className="px-3 py-6 text-center text-xs text-gray-400">
+              <div className="px-3 py-6 text-center text-xs text-gray-500">
                 {translator.translateText("No matches found")}
               </div>
             )}
@@ -509,7 +509,7 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
                           className={`truncate text-sm ${nameClassName}`}
                         />
                         {view.isDefault && (
-                          <span className="shrink-0 text-[10px] text-gray-400">
+                          <span className="shrink-0 text-xs text-gray-500">
                             {translator.translateText("default")}
                           </span>
                         )}

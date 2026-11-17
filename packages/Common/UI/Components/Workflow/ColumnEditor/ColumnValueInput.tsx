@@ -214,7 +214,7 @@ const ColumnValueInput: FunctionComponent<ComponentProps> = (
   // An operator like "is not set" takes no value at all.
   if (props.operatorOption?.hidesValueInput) {
     return (
-      <div className="flex h-9 items-center rounded-md border border-dashed border-gray-200 px-3 text-xs text-gray-400">
+      <div className="flex h-9 items-center rounded-md border border-dashed border-gray-200 px-3 text-xs text-gray-500">
         {translator.translateText("No value needed")}
       </div>
     );

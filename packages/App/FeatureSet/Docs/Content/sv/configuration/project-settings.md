@@ -40,7 +40,7 @@ flowchart LR
 | **Säkerhet** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Fakturering och fakturor** | **Fakturering**, **Fakturor** | [Fakturering och användning](/docs/configuration/billing) |
 | **Granskningsloggar** | **Granskningsloggar**, **Inställningar**, **Export** | [Granskningsloggar](/docs/configuration/audit-logs), [Export av granskningslogg](/docs/configuration/audit-log-export) |
-| **Farozon** | **Farozon** | [Ta bort projektet](#ta-bort-projektet) |
+| **Farozon** | **Ta bort projekt** | [Ta bort projektet](#ta-bort-projektet) |
 
 **Fakturering och fakturor** och **AI-krediter** finns bara i OneUptime Cloud: en självhostad installation har ingen fakturering.
 
@@ -64,7 +64,7 @@ En dold produkt är inte avstängd. Den flyttas till **Fler produkter**, den sis
 
 På en självhostad server kan en huvudadministratör också stänga av en produkt för alla projekt, under **Inställningar → Produkter** i Admin Dashboard (se [Kör bara det du behöver](/docs/installation/docker-compose#kör-bara-det-du-behöver)). En sådan produkt har ingen brytare här: den visar **Avstängd på den här servern** och vem som kan slå på den.
 
-Varje produkt visas tills någon döljer den här. Ingen produkt döljs av sig själv: det som ägaren sade på Hem att projektet ska användas till ställer bara in de första stegen där, och en produkt som inte är konfigurerad ännu stannar på sin plats i menyn.
+Varje produkt visas tills någon döljer den här. Ingen produkt döljs av sig själv: det som en Projektägare eller Projektadministratör sade på Hem att projektet ska användas till ställer bara in de första stegen där, och en produkt som inte är konfigurerad ännu stannar på sin plats i menyn.
 
 Varje produkt säger vad den är för det här projektet: **Används**, **Inte konfigurerad** eller, i OneUptime Cloud, den plan den behöver. När en dold produkt börjar ta emot data säger Hem det till Projektägare och Projektadministratörer och erbjuder **Visa den** eller **Behåll dold**.
 
@@ -113,7 +113,7 @@ Att ta bort ett projekt tar bort allt i det, för alla medlemmar: monitorer, inc
 :::steps
 ### Öppna farozonen
 
-Gå till **Projektinställningar → Farozon**.
+Gå till **Projektinställningar → Farozon → Ta bort projekt**.
 
 ### Klicka på Ta bort Projekt
 

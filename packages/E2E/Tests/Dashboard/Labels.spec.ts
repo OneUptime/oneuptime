@@ -67,7 +67,7 @@ test.describe("Settings > Labels", () => {
       await expect(
         page.getByTestId("card-details-heading").filter({ hasText: "Labels" }),
       ).toBeVisible();
-      await expect(page.getByText("No labels found")).toBeVisible(SERVER);
+      await expect(page.getByText("No labels yet")).toBeVisible(SERVER);
 
       // ---- Create ----
       await createButton.click();
@@ -97,7 +97,7 @@ test.describe("Settings > Labels", () => {
       // In the list, with its description.
       await expect(row).toBeVisible(SERVER);
       await expect(row).toContainText(description);
-      await expect(page.getByText("No labels found")).toHaveCount(0);
+      await expect(page.getByText("No labels yet")).toHaveCount(0);
 
       // And on the server, once, with the colour the form picked.
       await expect

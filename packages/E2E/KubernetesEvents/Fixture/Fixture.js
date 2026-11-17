@@ -1291,8 +1291,16 @@ const METRIC_SERIES = {
   "k8s.node.allocatable_cpu": nodeSeries(() => {
     return 3.86;
   }),
+  // What the Memory tile measures the working set against (#9113).
+  "k8s.node.allocatable_memory": nodeSeries(() => {
+    return 12.6 * GIB;
+  }),
   "k8s.node.memory.usage": nodeSeries((time, phase) => {
     return wave(time, 7.2 * GIB, 0.6 * GIB, 31, phase);
+  }),
+  // The Overview's Memory: usage less the page cache the kernel frees.
+  "k8s.node.memory.working_set": nodeSeries((time, phase) => {
+    return wave(time, 5.1 * GIB, 0.5 * GIB, 31, phase);
   }),
   "k8s.node.filesystem.usage": nodeSeries(() => {
     return 41 * GIB;

@@ -9,6 +9,8 @@ import useTranslator from "../../../Utils/UseTranslator";
 export interface ComponentProps {
   items: Array<NotificationItem>;
   onItemClick: (item: NotificationItem) => void;
+  // Drawn first, under the panel's title (NotificationBell's notice).
+  notice?: ReactElement | undefined;
 }
 
 const NotificationBellDropdown: (props: ComponentProps) => ReactElement = (
@@ -50,7 +52,18 @@ const NotificationBellDropdown: (props: ComponentProps) => ReactElement = (
           </span>
         </div>
 
-        {!hasItems && (
+        {props.notice ? (
+          <div
+            className="border-b border-gray-100"
+            data-testid="notification-bell-notice"
+          >
+            {props.notice}
+          </div>
+        ) : (
+          <></>
+        )}
+
+        {!hasItems && !props.notice && (
           <div className="px-4 py-6 text-center text-sm text-gray-500">
             {translator.translateText("No notifications")}
           </div>

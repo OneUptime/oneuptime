@@ -36,10 +36,10 @@ De pagina toont de monitoren die u erop zet als resources, en incidenten komen v
 
 ## In het kort
 
-- **Aangemaakt met een naam.** Een nieuwe statuspagina vraagt alleen om haar **Naam**; **Beschrijving** en **Labels** wachten onder **Meer velden**. Resources, huisstijl en domeinen stelt u daarna in.
+- **Aangemaakt met een naam.** Een nieuwe statuspagina vraagt alleen om haar **Naam**; **Interne beschrijving** en **Labels** wachten onder **Meer velden**. Resources, huisstijl en domeinen stelt u daarna in.
 - **Resources zijn wat bezoekers zien.** Elke rij op de pagina is een **Resource van statuspagina**: een monitor (of monitorgroep) met een eigen weergavenaam, tooltip en uptime-opties. Groepen verdelen een lange pagina in secties en kunnen worden genest.
 - **Vanaf dag één een voorbeeld-URL.** Elke statuspagina krijgt een voorbeeldlink, zodat u haar kunt bekijken voordat er een aangepast domein is.
-- **Routes voor bezoekers hangen af van instellingen.** Incidenten, episoden, aankondigingen en geplande gebeurtenissen verschijnen alleen zolang hun schakelaar in **Wat uw statuspagina toont** (onder **Geavanceerde instellingen**) aan staat, en de abonneerpagina alleen zolang **Abonneepagina weergeven** aan staat.
+- **Routes voor bezoekers hangen af van instellingen.** Incidenten, episoden, aankondigingen en geplande gebeurtenissen verschijnen alleen zolang hun schakelaar in **Wat uw statuspagina toont** (onder **Instellingen**) aan staat, en de abonneerpagina alleen zolang **Abonneepagina weergeven** aan staat.
 - **Wie haar mag zien is één keuze.** Iedereen met de link, alleen mensen die inloggen (privégebruikers, SSO via SAML of OIDC) of iedereen met het wachtwoord, op het scherm **Toegang** van de pagina, met een optionele IP-toelatingslijst onder **Meer instellingen**.
 - **Abonnees krijgen automatisch bericht.** Abonnees via e-mail, SMS, Slack, Microsoft Teams en webhook kunnen een pagina volgen, elk kanaal achter een eigen schakelaar.
 
@@ -66,7 +66,7 @@ Open **Statuspagina's → Alle statuspagina's** en klik op **Statuspagina maken*
 
 ### De pagina een naam geven
 
-Vul in het venster **Nieuw aanmaken: Statuspagina** de **Naam** in (verplicht, minstens twee tekens) en klik op **Statuspagina maken**. **Beschrijving** en **Labels** zijn optioneel, onder **Meer velden**.
+Vul in het venster **Nieuw aanmaken: Statuspagina** de **Naam** in (verplicht, minstens twee tekens) en klik op **Statuspagina maken**. **Interne beschrijving** en **Labels** zijn optioneel, onder **Meer velden**. De interne beschrijving is voor uw team: bezoekers zien haar nooit.
 
 Dat is het hele formulier. De lijst **Statuspagina's** toont **Naam**, **Beschrijving**, **Labels** en **Eigenaren**, en kan worden gefilterd op **Statuspagina-ID**, **Naam** en **Beschrijving**.
 
@@ -82,33 +82,32 @@ Daarna, ongeveer in volgorde van nut:
 - Voeg resources toe zodat de pagina iets toont: zie [Statuspagina – bronnen en groepen](/docs/status-pages/resources-and-groups).
 - Stel de paginatitel, het favicon, het logo en de omslagafbeelding in en koppel daarna een aangepast domein: zie [Statuspagina – branding en domeinen](/docs/status-pages/branding-and-domains).
 - Bepaal via welke kanalen mensen zich kunnen abonneren: zie [Abonnees en aankondigingen](/docs/status-pages/subscribers).
-- Stem onder **Geavanceerde instellingen** af wat er op de pagina verschijnt.
+- Stem onder **Instellingen** af wat er op de pagina verschijnt.
 
 ## Waar alles staat
 
-Zodra u een statuspagina hebt geopend, is haar eigen linkermenu in tien secties ingedeeld. Gebruik het als kaart voor de rest van dit deel van de documentatie.
+Zodra u een statuspagina hebt geopend, is haar eigen linkermenu in negen secties ingedeeld. Gebruik het als kaart voor de rest van dit deel van de documentatie.
 
 | Sectie | Wat erin staat |
 | --- | --- |
-| **Basis** | **Overzicht**, **Aankondigingen**, **Eigenaren**. |
+| **Overzicht** | **Overzicht**, **Aankondigingen**, **Eigenaren**. |
 | **Middelen** | Eén scherm **Middelen** (de groepen links, de monitoren van de geselecteerde groep rechts). |
 | **Regels** | **Monitorregels**: regels die elke overeenkomende monitor aan de pagina toevoegen, nu en later. |
-| **Abonnees** | **E-mail-abonnees**, **SMS-abonnees**, **Slack-abonnees**, **Microsoft Teams-abonnees**, **Webhook-abonnees**, **Abonneeinstellingen**. |
-| **Meldingslogboeken** | **Meldingslogboeken**: wat er naar abonnees is verzonden. |
+| **Abonnees** | **Abonnees** (één pagina, met een tabblad voor elk kanaal: E-mail, SMS, Slack, Microsoft Teams en Webhook), **Abonneeinstellingen**, **Meldingslogboeken**: wat er naar abonnees is verzonden. |
 | **Huisstijl** | **Huisstijl** (logo, titel, favicon, links, voettekst, kleuren en talen, op één pagina), **Aangepaste domeinen**, **HTML, CSS & JavaScript**. |
-| **Beveiliging** | **Toegang** (wie de pagina mag zien), **Privégebruikers**, **SSO**, **OIDC**, **SCIM**. |
+| **Beveiliging** | **Toegang** (wie de pagina mag zien), **Privégebruikers**, **Single Sign-On** (een tabblad voor SAML en een voor OIDC), **SCIM**. |
 | **AI** | **MCP**. |
 | **Ontwikkelaars** | **Terraform**, **API**, **CLI**, **AI-assistenten**: de pagina als code. |
-| **Geavanceerd** | **Ingesloten status**, **Rapporten**, **Aangepaste velden**, **Geavanceerde instellingen**, **Auditlogboeken**, **Statuspagina verwijderen**. |
+| **Geavanceerd** | **Ingesloten status**, **Rapporten**, **Aangepaste velden**, **Instellingen**, **Auditlogboeken**, **Statuspagina verwijderen**. |
 
-Alleen **Basis** en **Middelen**, wat de pagina toont, beginnen open. Alle andere secties beginnen ingeklapt, net als de weinig gebruikte secties van elk menu in OneUptime: klik op de titel van een sectie om haar pagina's te tonen. Een sectie gaat vanzelf open wanneer u op een van haar pagina's bent, zoals **Geavanceerde instellingen** of **E-mail-abonnees**.
+Alleen **Overzicht** en **Middelen**, wat de pagina toont, beginnen open. Alle andere secties beginnen ingeklapt, net als de weinig gebruikte secties van elk menu in OneUptime: klik op de titel van een sectie om haar pagina's te tonen. Een sectie gaat vanzelf open wanneer u op een van haar pagina's bent, zoals **Instellingen** of **Abonnees**.
 
 Twee eigenaardigheden in de naamgeving die u moet kennen voordat u gaat zoeken:
 
 - Het item **Middelen** heet alleen **Middelen** wanneer het project monitorgroepen heeft ingeschakeld. Anders heet het **Monitoren**. In beide gevallen is het hetzelfde scherm.
 - Er is geen aparte groepenpagina. Groepen en resources zijn samengevoegd, en het oude pad `/groups` leidt nu door naar het resourcescherm.
 
-Buiten een specifieke pagina toont de sectie **Statuspagina's** zelf **Alle statuspagina's**, en een sectie **Meer** bevat **Aankondigingen**. Een ingeklapte sectie **Instellingen** bevat **Aankondigings-sjablonen**, **Abonnee-sjablonen**, **Aangepaste velden**, **Eigenaarsregels** en **Labelregels**, die voor het hele project gelden en door alle statuspagina's worden gedeeld. Een ingeklapte sectie **Geavanceerd** bevat **Gearchiveerd**: de statuspagina's die u offline hebt gehaald (zie [Een statuspagina archiveren](#een-statuspagina-archiveren)).
+Buiten een specifieke pagina toont de sectie **Statuspagina's** zelf **Alle statuspagina's** en **Aankondigingen**. Een ingeklapte sectie **Regels** bevat **Eigenaarsregels** en **Labelregels**, en een ingeklapte sectie **Instellingen** bevat **Aankondigings-sjablonen**, **Abonnee-sjablonen** en **Aangepaste velden**. Ze gelden allemaal voor het hele project en worden door alle statuspagina's gedeeld. Een ingeklapte sectie **Geavanceerd** bevat **Gearchiveerd**: de statuspagina's die u offline hebt gehaald (zie [Een statuspagina archiveren](#een-statuspagina-archiveren)).
 
 **Labelregels** en **Eigenaarsregels** geven nieuwe statuspagina's labels en wijzen er eigenaren aan toe. Een regel heeft twee stappen (**Overeenkomst**, de voorwaarden waaraan een statuspagina moet voldoen, en daarna **Labels** of **Eigenaren**, wat de regel toevoegt) en de **Naam** wordt ingevuld op basis van wat u kiest. Een nieuwe regel moet minstens één label of eigenaar toevoegen; bij bewerken wordt daar nooit op aangedrongen, en de lijst markeert een oude regel die niets toevoegt met **Voegt niets toe**. Zie [Label- en eigenaarsregels](/docs/configuration/label-and-owner-rules).
 
@@ -148,7 +147,7 @@ Wat een incident op deze pagina zet en wat het eraf haalt, leest u in [Incidents
 
 ## Kiezen wat er op de pagina komt
 
-Wat bezoekers zien, stelt u in op één kaart: **Wat uw statuspagina toont**, onder **Statuspagina's → uw pagina → Geavanceerd → Geavanceerde instellingen**. Ze heeft een rij voor elke lijst die de pagina kan tonen, daarna **Uptimegeschiedenis** (met het totale uptimepercentage en de statussen die als downtime tellen). De regel "Powered by OneUptime" heeft een eigen kaart, er direct onder, ingeklapt onder **Meer instellingen**. Er is geen bewerkknop: een schakelaar wordt opgeslagen zodra u hem omzet, een aantal dagen wanneer u het vak verlaat of op Enter drukt, en een keuze uit een lijst zodra u die maakt.
+Wat bezoekers zien, stelt u in op één kaart: **Wat uw statuspagina toont**, onder **Statuspagina's → uw pagina → Geavanceerd → Instellingen**. Ze heeft een rij voor elke lijst die de pagina kan tonen, daarna **Uptimegeschiedenis** (met het totale uptimepercentage en de statussen die als downtime tellen). De regel "Powered by OneUptime" heeft een eigen kaart, er direct onder, ingeklapt onder **Meer instellingen**. Er is geen bewerkknop: een schakelaar wordt opgeslagen zodra u hem omzet, een aantal dagen wanneer u het vak verlaat of op Enter drukt, en een keuze uit een lijst zodra u die maakt.
 
 - **Incidenten weergeven** (`showIncidentsOnStatusPage`): standaard aan. Daaronder bepaalt **De laatste … dagen weergeven** (`showIncidentHistoryInDays`, standaard 14) hoe ver de incidentenlijst teruggaat, en **Incidentlabels weergeven** (`showIncidentLabelsOnStatusPage`) staat standaard uit.
 - **Alleen incidenten tonen die tot deze pagina zijn beperkt** (`onlyShowScopedIncidents`): ook in de incidentenrij, standaard uit. Zet het aan en de pagina toont, en meldt aan haar abonnees, alleen de incidenten die met **Beperken tot deze statuspagina's** tot haar zijn beperkt. Incidenten die tot geen enkele pagina zijn beperkt, ook die welke een monitor, Slack, Microsoft Teams, de API of AI zelf opent, komen er nooit op totdat iemand de pagina eraan toevoegt. Het bepaalt ook welke incidenten hun episoden op de pagina brengen, daarom blijft het beschikbaar wanneer **Incidenten weergeven** uit staat. Voor pagina's die monitoren delen maar verschillende doelgroepen bedienen, zie [Eén statuspagina per doelgroep](/docs/status-pages/one-status-page-per-audience).
@@ -198,17 +197,21 @@ Een optie kiezen vraagt om bevestiging, met wat er voor bezoekers verandert, en 
 
 Voeg de mensen die mogen inloggen toe onder **Statuspagina's → uw pagina → Beveiliging → Privégebruikers**. Er is een actie **In bulk toevoegen**: plak een lijst e-mailadressen en elk adres krijgt een uitnodigingsmail. Privégebruikers hebben hun eigen proces voor een vergeten wachtwoord en het opnieuw instellen ervan, los van de accounts in uw OneUptime-project. Een nieuw wachtwoord meldt hen af op elk apparaat, en elke al verzonden inloglink of resetlink werkt niet meer.
 
+**Privégebruikers, single sign-on en SCIM doen niets op een openbare pagina.** Zolang **Iedereen met de link** de keuze is, ziet elke bezoeker de pagina zonder in te loggen. De schermen **Privégebruikers**, **Single Sign-On** en **SCIM** zeggen dat elk bovenaan, "Deze statuspagina is openbaar, dus deze instellingen doen niets totdat u haar privé maakt.", met **Toegang wijzigen**, dat **Toegang** opent. Wat ze bevatten, is ingeklapt onder **Instellen voordat de pagina privé wordt**: open het om mensen of een provider toe te voegen voordat de pagina privé wordt, zodat niemand buitengesloten raakt wanneer dat gebeurt.
+
 **Privégebruikers en het wachtwoord tellen niet op.** Zolang **Iedereen met het wachtwoord** de keuze is, kunnen privégebruikers niet inloggen (ook zij voeren het wachtwoord in), en het scherm **Privégebruikers** vermeldt dat, met een link terug naar **Toegang**.
 
 **Inloglinks.** Op een pagina waarop bezoekers inloggen, biedt de inlogpagina ook **Stuur mij een inloglink**: een privégebruiker vult zijn e-mailadres in en krijgt een link toegestuurd waarmee hij zonder wachtwoord inlogt. De link werkt één keer, 15 minuten lang, en een nieuwe aanvragen vervangt hem. Hij opent een pagina waarop de gebruiker op **Inloggen** drukt, zodat mailfilters die elke link openen om hem te scannen hem niet eerst kunnen opmaken. De pagina antwoordt hetzelfde of het adres nu van een van haar privégebruikers is of niet, dus een link aanvragen verraadt niemand wie kan inloggen. Links staan op elke pagina aan; om privégebruikers bij hun wachtwoord te houden, zet u **Inloglinks** uit onder **Meer instellingen** op **Privégebruikers** (wie al met een link is ingelogd, blijft ingelogd). Ze worden nooit aangeboden zolang **SSO vereisen voor inloggen** aan staat of **Iedereen met het wachtwoord** de keuze is.
 
 ### SSO en OIDC
 
-Voor een privépagina die aan uw identiteitsprovider is gekoppeld, stelt **Statuspagina's → uw pagina → Beveiliging → SSO** SAML in: **SSO-provider toevoegen** vraagt om de aanmeldings-URL, de uitgever en het x509-certificaat, en de ondertekenings- en digestmethoden worden ingevuld onder **Meer velden**. **Statuspagina's → uw pagina → Beveiliging → OIDC** stelt OpenID Connect in: **OIDC-provider toevoegen** vraagt om de uitgever, de client-ID en het secret, en de discovery-URL, de scopes en de claimnamen worden ingevuld onder **Meer velden**. Zodra een pagina een provider heeft, linkt de kaart **Aanmelden testen** onder de lijst naar de aanmelding van de pagina, om die te proberen. **SCIM** richt privégebruikers automatisch in vanuit de IdP. Op OneUptime Cloud hebben alle drie het abonnement Scale of hoger nodig. In een zelfgehoste installatie maken SSO en OIDC deel uit van elke editie, en SCIM heeft de [Enterprise Edition](/docs/self-hosted/enterprise) nodig.
+Voor een privépagina die aan uw identiteitsprovider is gekoppeld, opent u **Statuspagina's → uw pagina → Beveiliging → Single Sign-On** (`{id}/sso`). Die pagina heeft een tabblad voor elk protocol. Het tabblad **SAML** stelt SAML in: **SSO-provider toevoegen** vraagt om de aanmeldings-URL, de uitgever en het x509-certificaat, en de ondertekenings- en digestmethoden worden ingevuld onder **Meer velden**. Het tabblad **OIDC** (`{id}/sso?protocol=oidc`) stelt OpenID Connect in: **OIDC-provider toevoegen** vraagt om de uitgever, de client-ID en het secret, en de discovery-URL, de scopes en de claimnamen worden ingevuld onder **Meer velden**. Zodra een pagina een provider heeft, linkt de kaart **Aanmelden testen** onder de lijst naar de aanmelding van de pagina, om die te proberen. **SCIM** richt privégebruikers automatisch in vanuit de IdP. Op OneUptime Cloud hebben alle drie het abonnement Scale of hoger nodig. In een zelfgehoste installatie maken SSO en OIDC deel uit van elke editie, en SCIM heeft de [Enterprise Edition](/docs/self-hosted/enterprise) nodig.
 
 De SSO- of OIDC-provider van een statuspagina uitschakelen of verwijderen meldt de privégebruikers af die erdoor zijn ingelogd: hun sessies eindigen bij hun volgende verzoek, en de provider weer inschakelen brengt ze niet terug; ze loggen er opnieuw mee in. Een nieuw certificaat of clientsecret, andere URL's of een nieuwe naam houden iedereen ingelogd. Op een pagina die SSO vereist, sluit het uitschakelen van haar laatste provider iedereen buiten totdat u er weer een inschakelt of **SSO vereisen voor inloggen** uitzet; om naar een andere provider over te stappen, stelt u de nieuwe in en test u die voordat u de oude uitschakelt.
 
-Onder de providers bevat de kaart **SSO-instellingen** de schakelaar **SSO vereisen voor inloggen** (`requireSsoForLogin`, standaard uit), die wordt opgeslagen zodra u hem omzet. Inschakelen vraagt eerst om bevestiging, omdat privégebruikers vanaf dan niet meer met e-mail en wachtwoord kunnen inloggen: alleen de mensen die uw SSO- of OIDC-provider binnenlaat, kunnen de pagina zien. Probeer de link op de kaart **Aanmelden testen** erboven voordat u het inschakelt. Het telt alleen zolang **Alleen mensen die inloggen** de keuze is, en het scherm **Toegang** toont het als **SSO verplicht** onder die keuze. Zolang het aan staat, wordt ook een privégebruiker die met e-mail en wachtwoord heeft ingelogd bij zijn volgende verzoek afgemeld: alleen sessies die een SSO- of OIDC-provider heeft gestart, tellen. Op OneUptime Cloud heeft inschakelen het abonnement **Scale** nodig, en uitschakelen werkt op elk abonnement. Een pagina die na het einde van een Scale-proefperiode, of na een overstap naar een lager abonnement, nog SSO vereist, blijft dat doen totdat iemand het uitzet: haar pagina's **SSO** en **OIDC** tonen de schakelaar daarvoor onder het abonnementsaanbod.
+Onder de providers bevat de kaart **SSO-instellingen** de schakelaar **SSO vereisen voor inloggen** (`requireSsoForLogin`, standaard uit), die wordt opgeslagen zodra u hem omzet. Inschakelen vraagt eerst om bevestiging, omdat privégebruikers vanaf dan niet meer met e-mail en wachtwoord kunnen inloggen: alleen de mensen die uw SSO- of OIDC-provider binnenlaat, kunnen de pagina zien. Probeer de link op de kaart **Aanmelden testen** erboven voordat u het inschakelt. Het telt alleen zolang **Alleen mensen die inloggen** de keuze is, en het scherm **Toegang** toont het als **SSO verplicht** onder die keuze. Zolang het aan staat, wordt ook een privégebruiker die met e-mail en wachtwoord heeft ingelogd bij zijn volgende verzoek afgemeld: alleen sessies die een SSO- of OIDC-provider heeft gestart, tellen. Op OneUptime Cloud heeft inschakelen het abonnement **Scale** nodig, en uitschakelen werkt op elk abonnement. Een pagina die na het einde van een Scale-proefperiode, of na een overstap naar een lager abonnement, nog SSO vereist, blijft dat doen totdat iemand het uitzet: haar pagina **Single Sign-On** toont de schakelaar daarvoor onder het abonnementsaanbod, op beide tabbladen.
+
+**SSO** en **OIDC** waren vroeger twee items in het menu. Het oude OIDC-adres, `{id}/oidc`, opent het tabblad **OIDC**.
 
 ### Lezerssessies
 
@@ -241,7 +244,7 @@ Archiveer een statuspagina om haar offline te halen zonder haar te verwijderen. 
 - **Verdwijnt uit de lijst met statuspagina's.** U vindt haar onder **Statuspagina's → Geavanceerd → Gearchiveerd**.
 - **Bewaart alles.** Haar resources, groepen, huisstijl, domeinen, privégebruikers en abonnees blijven bewaard, dus uit het archief halen zet de pagina precies zoals ze was weer online.
 
-Om een statuspagina te archiveren, opent u haar en gaat u naar **Geavanceerd → Geavanceerde instellingen → Statuspagina archiveren**. Om er meerdere te archiveren, selecteert u ze in de lijst **Statuspagina's** en kiest u **Archiveren**. Om er een terug te halen, opent u **Statuspagina's → Geavanceerd → Gearchiveerd**, selecteert u haar en kiest u **Uit het archief halen**, of opent u haar en klikt u op **Uit het archief halen** in de banner bovenaan haar pagina's.
+Om een statuspagina te archiveren, opent u haar en gaat u naar **Geavanceerd → Instellingen → Statuspagina archiveren**. Om er meerdere te archiveren, selecteert u ze in de lijst **Statuspagina's** en kiest u **Archiveren**. Om er een terug te halen, opent u **Statuspagina's → Geavanceerd → Gearchiveerd**, selecteert u haar en kiest u **Uit het archief halen**, of opent u haar en klikt u op **Uit het archief halen** in de banner bovenaan haar pagina's.
 
 Het **Overzicht** van een statuspagina heeft een kaart **Nu zichtbaar**: de open incidenten en het komende of lopende onderhoud dat bezoekers er nu op zien. De pagina archiveren of verwijderen, op haar eigen pagina's of vanuit de lijst, zegt eerst wat bezoekers niet meer zouden zien.
 

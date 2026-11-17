@@ -718,7 +718,7 @@ export default class AnalyticsDatabaseService<
 
       if (!valueColumn || !timeColumn) {
         throw new BadDataException(
-          `Invalid column: ${valueColumn ? data.timeColumnName : data.valueColumnName}`,
+          `This table has no column named ${valueColumn ? data.timeColumnName : data.valueColumnName}. Name one of its columns.`,
         );
       }
 

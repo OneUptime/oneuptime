@@ -2676,7 +2676,10 @@ const INCIDENT_EVIDENCE: ReadonlyArray<EvidenceCase> = [
     rowCount: "3 rows",
     query: [
       { label: "Search", value: "“checkout latency”" },
-      { label: "Time window", value: "Created within the last 90 days" },
+      {
+        label: "Time window",
+        value: `Created within the last ${withUnit(90, "days")}`,
+      },
       { label: "Limit", value: "10" },
       RAN_AT,
       { label: "Took", value: withUnit(412, "ms") },
@@ -2823,7 +2826,10 @@ const INCIDENT_EVIDENCE: ReadonlyArray<EvidenceCase> = [
     description: "Listed top exceptions · Sep 14, 6:01 PM UTC",
     rowCount: "No rows",
     query: [
-      { label: "Time window", value: "Last seen within the last 1 hour" },
+      {
+        label: "Time window",
+        value: `Last seen within the last ${withUnit(1, "hour")}`,
+      },
       { label: "Include resolved", value: "No" },
       { label: "Limit", value: "10" },
       RAN_AT,
@@ -3792,7 +3798,7 @@ test.describe("a run that did not finish (issues #6437, #6438)", () => {
     );
     await expect(step.getByTestId("activity-attempt-end")).toHaveText(
       new RegExp(
-        `^Did not finish: The LLM provider did not answer within 120 seconds\\. Trying again at ${RETRY_TIME}\\.$`,
+        `^Did not finish: The LLM provider did not answer within 120${NO_BREAK_SPACE}seconds\\. Trying again at ${RETRY_TIME}\\.$`,
       ),
     );
     // The model call that ran out of time failed; nothing promises a retry.
@@ -13097,7 +13103,7 @@ const INCIDENT_MEASUREMENTS: Array<MeasurementRow> = [
   {
     name: "Time to acknowledge",
     summary: "Declared → Acknowledged",
-    value: "3 minutes",
+    value: withUnit(3, "minutes"),
     reason: null,
   },
   {
@@ -13109,13 +13115,13 @@ const INCIDENT_MEASUREMENTS: Array<MeasurementRow> = [
   {
     name: "Time to resolve",
     summary: "Declared → Resolved",
-    value: "11 minutes",
+    value: withUnit(11, "minutes"),
     reason: null,
   },
   {
     name: "Time to postmortem",
     summary: "Resolved → Postmortem published",
-    value: "Running for 8 minutes",
+    value: `Running for ${withUnit(8, "minutes")}`,
     reason: null,
   },
 ];
@@ -13209,14 +13215,14 @@ test.describe("measurements", () => {
       {
         name: "Time to acknowledge",
         summary: "Created → Acknowledged",
-        value: "2 minutes",
+        value: withUnit(2, "minutes"),
         reason: null,
       },
       {
         // Pinned to minutes.
         name: "Time to resolve",
         summary: "Created → Resolved",
-        value: "9 minutes",
+        value: withUnit(9, "minutes"),
         reason: null,
       },
     ]);
@@ -13245,15 +13251,30 @@ test.describe("measurements", () => {
     // Still Scheduled 20 minutes after its start: running late.
     {
       sm: "overdue",
-      values: ["Running for 20 minutes", "Not started yet", "Not started yet"],
+      values: [
+        `Running for ${withUnit(20, "minutes")}`,
+        "Not started yet",
+        "Not started yet",
+      ],
     },
     // Started on time, still Ongoing.
     {
       sm: "ongoing",
-      values: ["0 seconds", "Not started yet", "Running for 15 minutes"],
+      values: [
+        withUnit(0, "seconds"),
+        "Not started yet",
+        `Running for ${withUnit(15, "minutes")}`,
+      ],
     },
     // Ended two minutes past its planned end.
-    { sm: "ended", values: ["0 seconds", "2 minutes", "1 hour, 2 minutes"] },
+    {
+      sm: "ended",
+      values: [
+        withUnit(0, "seconds"),
+        withUnit(2, "minutes"),
+        `${withUnit(1, "hour")}, ${withUnit(2, "minutes")}`,
+      ],
+    },
   ];
 
   for (const maintenance of MAINTENANCE_CASES) {
@@ -13297,13 +13318,13 @@ test.describe("measurements", () => {
       {
         name: "Time to mitigate",
         summary: "Declared → Mitigated",
-        value: "Running for 19 minutes",
+        value: `Running for ${withUnit(19, "minutes")}`,
         reason: null,
       },
       {
         name: "Time to resolve",
         summary: "Declared → Resolved",
-        value: "Running for 19 minutes",
+        value: `Running for ${withUnit(19, "minutes")}`,
         reason: null,
       },
       {
@@ -13337,10 +13358,10 @@ test.describe("measurements", () => {
         );
       })
       .toEqual([
-        "3 minutes",
+        withUnit(3, "minutes"),
         // The incident went straight to resolved.
         "Not measured",
-        "19 minutes",
+        withUnit(19, "minutes"),
         "Running for less than a minute",
       ]);
     expect(await skeletonWasSeen(page)).toBe(false);
@@ -13377,9 +13398,9 @@ test.describe("measurements", () => {
         return row.value;
       }),
     ).toEqual([
-      "Running for 19 minutes",
-      "Running for 19 minutes",
-      "Running for 19 minutes",
+      `Running for ${withUnit(19, "minutes")}`,
+      `Running for ${withUnit(19, "minutes")}`,
+      `Running for ${withUnit(19, "minutes")}`,
       "Not started yet",
     ]);
   });
@@ -18015,7 +18036,7 @@ const AFTER_PAGING_INCIDENT_MEASUREMENTS: Array<MeasurementRow> = [
   {
     name: "Time to acknowledge after paging",
     summary: "First paged → Acknowledged",
-    value: "2 minutes",
+    value: withUnit(2, "minutes"),
     reason: null,
   },
   ...INCIDENT_MEASUREMENTS.slice(1),
@@ -18088,19 +18109,19 @@ test.describe("time to acknowledge after paging", () => {
       {
         name: "Time to acknowledge",
         summary: "Created → Acknowledged",
-        value: "2 minutes",
+        value: withUnit(2, "minutes"),
         reason: null,
       },
       {
         name: "Time to acknowledge after paging",
         summary: "First paged → Acknowledged",
-        value: "1 minute",
+        value: withUnit(1, "minute"),
         reason: null,
       },
       {
         name: "Time to resolve",
         summary: "Created → Resolved",
-        value: "9 minutes",
+        value: withUnit(9, "minutes"),
         reason: null,
       },
     ]);
@@ -18142,7 +18163,7 @@ test.describe("time to acknowledge after paging", () => {
       name: "Time to acknowledge after paging",
       summary: "First paged → Acknowledged",
       // Paged at 18:02; the clock reads 18:20.
-      value: "Running for 18 minutes",
+      value: `Running for ${withUnit(18, "minutes")}`,
       reason: null,
     });
   });
@@ -22058,6 +22079,13 @@ const APPROVAL_NOTE: string =
  */
 const CLUSTER_FIX_TITLE: string = 'Fix on cluster "prod-eu-west-1"';
 const MCP_FIX_TITLE: string = "Fix through MCP servers";
+/*
+ * The cluster fix's plan, in the sixteen hex digits an approval names it by
+ * (Common/Types/AutoRemediation/RemediationPlanFingerprint): the card sends
+ * the fingerprint of the fix it shows with its Approve, so a fix that
+ * changed since it was read is not approved from it.
+ */
+const CLUSTER_FIX_PLAN_FINGERPRINT: string = "b8a105d86cbc8afc";
 
 function fixOnStep(page: Page, words: string): Locator {
   return remediationStep(page)
@@ -22334,6 +22362,8 @@ test.describe("a busy incident's fixes on the Remediation step read as lines (?f
     expect(approvals).toHaveLength(1);
     expect(approvals[0]?.body).toEqual({
       suggestionId: uuid("93000000", 2),
+      // The fix the card shows, by its fingerprint.
+      expectedPlanFingerprint: CLUSTER_FIX_PLAN_FINGERPRINT,
     });
   });
 
@@ -22794,6 +22824,12 @@ test.describe("two people approve a riskier fix (?approvals=)", () => {
     expect(approvals).toHaveLength(1);
     expect(approvals[0]?.body).toEqual({
       suggestionId: uuid("93000000", 2),
+      expectedPlanFingerprint: CLUSTER_FIX_PLAN_FINGERPRINT,
+      /*
+       * It records the first of two approvals, and says so: had someone
+       * approved first meanwhile, the server would run nothing on it.
+       */
+      expectedApprovalStep: "first",
     });
     await expect(
       remediationStep(page).getByTestId("remediation-action-error"),

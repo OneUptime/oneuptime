@@ -315,6 +315,11 @@ describe("the on-call rule's name", () => {
   });
 });
 
+// What jest.spyOn makes of a generic method: the method at its constraint.
+type MethodOf<Method extends (...args: Array<never>) => unknown> = (
+  ...args: Parameters<Method>
+) => ReturnType<Method>;
+
 describe("the requests", () => {
   beforeEach(() => {
     jest
@@ -327,7 +332,7 @@ describe("the requests", () => {
   });
 
   test("turning a channel on writes the project's switch, and tells the lists on screen", async () => {
-    const update: SpyInstance<typeof ModelAPI.updateById> = jest
+    const update: SpyInstance<MethodOf<typeof ModelAPI.updateById>> = jest
       .spyOn(ModelAPI, "updateById")
       .mockResolvedValue({} as never);
     const record: SpyInstance<
@@ -353,7 +358,7 @@ describe("the requests", () => {
   });
 
   test("an incident rule pages the policy picked for that monitor's new incidents, and matches nothing else", async () => {
-    const create: SpyInstance<typeof ModelAPI.create> = jest
+    const create: SpyInstance<MethodOf<typeof ModelAPI.create>> = jest
       .spyOn(ModelAPI, "create")
       .mockResolvedValue({} as never);
 
@@ -389,7 +394,7 @@ describe("the requests", () => {
   });
 
   test("an alert rule is an alert on-call rule", async () => {
-    const create: SpyInstance<typeof ModelAPI.create> = jest
+    const create: SpyInstance<MethodOf<typeof ModelAPI.create>> = jest
       .spyOn(ModelAPI, "create")
       .mockResolvedValue({} as never);
 
@@ -407,7 +412,7 @@ describe("the requests", () => {
   });
 
   test("the policies offered are the ones in service, by name", async () => {
-    const list: SpyInstance<typeof ModelAPI.getList> = jest
+    const list: SpyInstance<MethodOf<typeof ModelAPI.getList>> = jest
       .spyOn(ModelAPI, "getList")
       .mockResolvedValue({
         data: [

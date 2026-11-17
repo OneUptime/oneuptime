@@ -156,6 +156,8 @@ const TOKEN_SIGNING_KEY_USERS: Array<string> = [
   "packages/Common/Server/Utils/Mcp/McpOAuthSignedToken.ts",
   // Derives, under a label of its own, the key a wrong component key's digest is made with.
   "packages/Common/Server/Utils/RateLimit/WrongComponentKeyLimit.ts",
+  // Derives, under a label of its own, the key a wrong incoming request secret's digest is made with.
+  "packages/Common/Server/Utils/RateLimit/WrongIncomingRequestSecretLimit.ts",
   "packages/Common/Server/Utils/TokenSigningKey.ts",
   // Derives, under a label of its own, the key Mattermost button contexts are signed with.
   "packages/Common/Server/Utils/Workspace/Mattermost/MattermostActionContext.ts",

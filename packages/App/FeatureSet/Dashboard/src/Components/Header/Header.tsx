@@ -20,7 +20,6 @@ import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
 import OneUptimeDate from "Common/Types/Date";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Header from "Common/UI/Components/Header/Header";
 import { HeaderAlertType } from "Common/UI/Components/HeaderAlert/HeaderAlert";
 import {
@@ -60,7 +59,7 @@ import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import URL from "Common/Types/API/URL";
 import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import OnCallLookupFailedLine from "./OnCallLookupFailedLine";
 import CurrentOnCallPolicyModal from "../OnCallPolicy/CurrentOnCallPolicyModal";
 
 export interface ComponentProps {
@@ -372,9 +371,18 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
     setCurrentOnCallDutyEscalationPolicySchedule,
   ] = useState<Array<OnCallDutyPolicyEscalationRuleSchedule>>([]);
 
+  /*
+   * Why the policies the person is on duty for could not be read
+   * (API.getFriendlyMessage). Said quietly in the bell, with Try again: it
+   * was a dialog over whatever page they were on, for a lookup they never
+   * asked for (#9120).
+   */
   const [onCallDutyPolicyFetchError, setOnCallDutyPolicyFetchError] = useState<
     string | null
   >(null);
+
+  // Bumped by Try again: the lookup below runs again.
+  const [onCallLookupCount, setOnCallLookupCount] = useState<number>(0);
 
   const [currentOnCallPolicies, setCurrentOnCallPolicies] = useState<
     Array<OnCallDutyPolicy>
@@ -522,7 +530,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
             return;
           }
 
-          setOnCallDutyPolicyFetchError(t("header.onCallPoliciesFetchError"));
+          setOnCallDutyPolicyFetchError(API.getFriendlyMessage(err));
         }
       };
 
@@ -534,7 +542,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
       isCancelled = true;
     };
     // Cached and refreshed Project instances share one lookup for the same id.
-  }, [currentProjectId]);
+  }, [currentProjectId, onCallLookupCount]);
 
   const showAddCardButton: boolean = Boolean(
     BILLING_ENABLED &&
@@ -754,20 +762,6 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
 
   return (
     <>
-      {onCallDutyPolicyFetchError ? (
-        <ConfirmModal
-          description={onCallDutyPolicyFetchError}
-          title={t("header.errorTitleOnCallPolicies")}
-          isTitleTranslated={true}
-          onSubmit={() => {
-            setOnCallDutyPolicyFetchError(null);
-          }}
-          submitButtonText={t("common.close")}
-          submitButtonType={ButtonStyleType.NORMAL}
-        />
-      ) : (
-        <></>
-      )}
       <Header
         leftComponents={
           <>
@@ -837,6 +831,18 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
             <NotificationBell
               items={buildNotificationItems()}
               onItemClick={handleNotificationItemClick}
+              notice={
+                onCallDutyPolicyFetchError ? (
+                  <OnCallLookupFailedLine
+                    error={onCallDutyPolicyFetchError}
+                    onTryAgain={() => {
+                      setOnCallLookupCount((count: number): number => {
+                        return count + 1;
+                      });
+                    }}
+                  />
+                ) : undefined
+              }
             />
             <div className={FROM_TABLET_WIDTH_CLASS_NAME}>
               <Help />

@@ -183,7 +183,7 @@ const CustomTimeRangeModal: FunctionComponent<ComponentProps> = (
     >
       <div data-testid="custom-time-range-modal" className="space-y-5">
         <div>
-          <div className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
             {translateString("Quick fill")}
           </div>
           <div className="mt-2 flex flex-wrap gap-2">
@@ -310,7 +310,7 @@ const CustomTimeRangeModal: FunctionComponent<ComponentProps> = (
           </div>
         )}
 
-        <div className="text-xs text-gray-400">{timezoneNote}</div>
+        <div className="text-xs text-gray-500">{timezoneNote}</div>
       </div>
     </Modal>
   );

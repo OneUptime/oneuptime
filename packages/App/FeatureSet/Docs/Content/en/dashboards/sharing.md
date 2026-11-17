@@ -80,7 +80,7 @@ Requests from any other IP are rejected with an **Access Denied** page that show
 
 ## Custom domains
 
-Out of the box, a public dashboard is served at its public link, on OneUptime's own address. To host it on your own subdomain like `dashboard.acme.com`, open **Branding → Custom Domains** in the dashboard's side menu. It works exactly like a status page's **Custom Domains** page.
+Out of the box, a public dashboard is served at its public link, on OneUptime's own address. To host it on your own subdomain like `dashboard.acme.com`, open **Public Link → Custom Domains** in the dashboard's side menu. It works exactly like a status page's **Custom Domains** page.
 
 The card is titled **Custom Domains** and says what to do: point each domain's CNAME record to your installation's dashboard CNAME record, and OneUptime issues the domain's SSL certificate and renews it for you. The table has two columns, **Domain** and **Status**.
 

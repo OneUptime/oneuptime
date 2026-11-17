@@ -43,7 +43,7 @@ Les interrupteurs décident comment les visiteurs peuvent s'inscrire eux-mêmes,
 
 Sur OneUptime Cloud, un interrupteur que votre formule n'inclut pas porte le nom de la formule à côté : **Growth** pour **SMS** et **Afficher la page des abonnés**, **Scale** pour **Slack**, **Microsoft Teams** et **Webhook**. Désactiver un canal fonctionne avec toutes les formules, si bien qu'un canal activé pendant un essai peut toujours être désactivé ; l'interrupteur l'indique en dessous.
 
-Chaque canal a aussi sa propre liste dans le menu latéral de la page de statut, sous **Abonnés** : **Abonnés e-mail**, **Abonnés SMS**, **Abonnés Slack**, **Abonnés Microsoft Teams** et **Abonnés au webhook**. C'est là que vous voyez qui est inscrit, ajoutez quelqu'un à la main avec **Ajouter un abonné** ou vous laissez une **Note interne** (`internalNote`) sur un abonné donné, que l'abonné ne voit jamais. Tant qu'un canal est désactivé, le haut de sa liste l'indique, avec l'interrupteur du canal juste à côté, pour que vous puissiez l'activer sans quitter la liste.
+Les abonnés de tous les canaux sont sur une seule page, **Abonnés**, dans la section **Abonnés** du menu latéral de la page de statut. Elle a un onglet par canal (**E-mail**, **SMS**, **Slack**, **Microsoft Teams** et **Webhook**), et chaque onglet indique combien d'abonnés compte le canal. Chaque onglet est la liste de ce canal (**Abonnés e-mail**, **Abonnés SMS**, etc.). C'est là que vous voyez qui est inscrit, ajoutez quelqu'un à la main avec **Ajouter un abonné** ou vous laissez une **Note interne** (`internalNote`) sur un abonné donné, que l'abonné ne voit jamais. Tant qu'un canal est désactivé, le haut de sa liste l'indique, avec l'interrupteur du canal juste à côté, pour que vous puissiez l'activer sans quitter la liste. L'onglet ouvert figure dans l'adresse de la page (`{id}/subscribers?channel=sms`), et les adresses des anciennes pages par canal, comme `{id}/email-subscribers`, ouvrent l'onglet de leur canal.
 
 **Un seul interrupteur ne suffit pas.** L'élément **S'abonner** de la barre de navigation de la page de statut n'apparaît que lorsque **Afficher la page des abonnés** est activé *et* qu'au moins un canal est activé. Si vous activez **E-mail** mais laissez **Afficher la page des abonnés** désactivé, les visiteurs n'ont aucun moyen d'atteindre le formulaire.
 
@@ -281,7 +281,7 @@ Les champs personnalisés d'incident dont **Inclure dans les notifications aux a
 
 L'entrée **Notification aux abonnés envoyée** du fil de l'incident liste, sous **Custom fields sent**, les valeurs que chaque envoi a placées dans un message. Les abonnés sont généralement extérieurs à votre équipe : n'activez le réglage que pour des champs qu'il est sans risque de partager avec eux.
 
-La section **Journaux de notification** du menu latéral de la page de statut (`{id}/notification-logs`) est l'endroit où aller quand vous devez voir ce que la page a réellement envoyé.
+**Journaux de notification**, dans la section **Abonnés** du menu latéral de la page de statut (`{id}/notification-logs`), est l'endroit où aller quand vous devez voir ce que la page a réellement envoyé.
 
 ### Épisodes d'incident
 
@@ -483,7 +483,7 @@ L'étape de vérification affiche la même ligne. **Créer à partir d'un modèl
 
 La page propre de l'annonce la modifie en suivant les mêmes deux étapes. **Notifier les abonnés de cette mise à jour** se trouve sous la description (voir [Informer les abonnés d'une modification](#informer-les-abonnés-dune-modification)), et **Planification** contient le début et la fin. Fixer une fin déjà passée est la façon de retirer une annonce.
 
-Les visiteurs lisent les annonces sur `/announcements`, réparties entre **Annonces actives** et **Annonces passées**, chacune marquée **Annoncé le**. Les annonces en cours sont aussi épinglées en haut de la page de vue d'ensemble. Quand il n'y a rien à afficher, la page indique *Aucune annonce* avec la mention qu'aucune n'a encore été publiée.
+Les visiteurs lisent les annonces sur `/announcements`, réparties entre **Annonces actives** et celles qui ont pris fin dans l'historique des annonces de la page, sous un titre qui indique combien de jours il couvre, chacune marquée **Annoncé le**. Les annonces en cours sont aussi épinglées en haut de la page de vue d'ensemble. Quand il n'y a rien à afficher, la page indique qu'il n'y a eu aucune annonce pendant ce nombre de jours (14, sauf si vous le modifiez).
 
 Les pièces jointes sont servies depuis `GET {statusPageCrudPath}/status-page-announcement/attachment/:statusPageId/:announcementId/:fileId`, derrière le même contrôle de lecture que la page de statut elle-même — une pièce jointe sur une page privée reste donc privée.
 
@@ -499,9 +499,9 @@ Deux conséquences à anticiper :
 - **Une annonce sans date de fin n'expire jamais.** Laissez **Fin de l'affichage de l'annonce à** vide et elle reste épinglée en haut de la page de vue d'ensemble indéfiniment. Fixez une date de fin pour tout ce qui est limité dans le temps.
 - **Une annonce ancienne mais encore active peut disparaître de la liste.** Si elle a commencé il y a plus de `showAnnouncementHistoryInDays`, elle sort de `/announcements` tout en restant sur la vue d'ensemble. Augmentez la fenêtre d'historique si vous gardez des avis de longue durée.
 
-**Les images suivent l'annonce.** Une image dans la description d'une annonce s'ouvre pour tout le monde à partir de **Commencer à afficher l'annonce à**, pas avant. Tant qu'une annonce est programmée pour plus tard, ses images ne s'ouvrent que pour les membres de votre projet, tout comme l'annonce elle-même n'apparaît que dans le tableau de bord. Dès qu'elle commence à s'afficher, ses images s'ouvrent pour tout le monde, sur la page de statut et dans les e-mails que reçoivent les abonnés. Elles le restent après sa fin, car ses pages de statut la listent encore sous **Annonces passées** et son lien continue de fonctionner. Déplacez une annonce à plus tard et ses images redeviennent privées jusque-là.
+**Les images suivent l'annonce.** Une image dans la description d'une annonce s'ouvre pour tout le monde à partir de **Commencer à afficher l'annonce à**, pas avant. Tant qu'une annonce est programmée pour plus tard, ses images ne s'ouvrent que pour les membres de votre projet, tout comme l'annonce elle-même n'apparaît que dans le tableau de bord. Dès qu'elle commence à s'afficher, ses images s'ouvrent pour tout le monde, sur la page de statut et dans les e-mails que reçoivent les abonnés. Elles le restent après sa fin, car son lien continue de fonctionner et ses pages de statut la listent parmi les annonces terminées aussi loin que remonte leur historique. Déplacez une annonce à plus tard et ses images redeviennent privées jusque-là.
 
-Le fait que les annonces apparaissent tout court se règle dans la carte **Ce que montre votre page de statut** sur **Paramètres avancés** : **Afficher les annonces** (`showAnnouncementsOnStatusPage`, true par défaut) et, en dessous, **Afficher … jours d'historique** (`showAnnouncementHistoryInDays`, 14 par défaut). Avec **Afficher les annonces** désactivé, le point de terminaison des annonces refuse purement et simplement la requête.
+Le fait que les annonces apparaissent tout court se règle dans la carte **Ce que montre votre page de statut** sur **Paramètres** : **Afficher les annonces** (`showAnnouncementsOnStatusPage`, true par défaut) et, en dessous, **Afficher … jours d'historique** (`showAnnouncementHistoryInDays`, 14 par défaut). Avec **Afficher les annonces** désactivé, le point de terminaison des annonces refuse purement et simplement la requête.
 
 ## Modèles d'annonce
 

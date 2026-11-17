@@ -469,10 +469,6 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
 
     if (options.points.length === 0) {
       /*
-       * The negative margin is the established way to fit EmptyState
-       * inside a Card without the card growing to the empty state's own
-       * generous padding.
-       *
        * A zoom into a stretch with no history lands here, with no chart
        * left to double-click, so the empty state takes the double-click
        * and says how to get back. Only then does it take a gesture, and
@@ -482,7 +478,7 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
       return withSloChartZoomHint(
         zoom.isZoomed,
         <div
-          className={zoom.isZoomed ? "-my-16 select-none" : "-my-16"}
+          className={zoom.isZoomed ? "select-none" : undefined}
           onDoubleClick={zoom.isZoomed ? zoom.resetZoom : undefined}
         >
           <EmptyState

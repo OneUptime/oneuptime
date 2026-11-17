@@ -37,7 +37,6 @@
     "announcements": "Announcements",
     "scheduledEvents": "Scheduled Maintenance",
     "subscribe": "Subscribe",
-    "login": "Log In",
     "logout": "Log Out"
   },
   "overview": {
@@ -49,8 +48,6 @@
     "noResourcesInGroup": "No resources added to this group.",
     "activeIncidents": "Active Incidents",
     "scheduledMaintenanceEvents": "Scheduled Maintenance",
-    "allClearTitle": "Everything looks great",
-    "allClearDescription": "No resources added to this status page yet. Please add some resources from the dashboard.",
     "allResourcesAre": "All Resources are {{status}}",
     "allMonitoredResourcesAre": "All monitored Resources are {{status}}",
     "someResourcesAre": "Some Resources are {{status}}",
@@ -58,7 +55,10 @@
     "noResourcesAreMonitored": "No Resources are monitored right now",
     "noResourcesAreMonitoredYet": "No Resources are monitored yet",
     "oneSubGroup": "1 group",
-    "subGroupCount": "{{total}} groups"
+    "subGroupCount": "{{total}} groups",
+    "noResourcesTitle": "Nothing to show yet",
+    "noResourcesDescription": "This page isn't showing any services yet.",
+    "noResourcesPreviewDescription": "Visitors see this until you add resources. Add monitors or groups to this status page under Resources in the Dashboard."
   },
   "eventItem": {
     "affectedResources": "Affected resources",
@@ -115,30 +115,23 @@
     "title": "Incidents",
     "singular": "Incident",
     "active": "Active Incidents",
-    "resolved": "Resolved Incidents",
-    "none": "No Incident",
-    "noneDescription": "No incidents posted on this status page.",
+    "noneDescription": "When an incident affects the services on this page, it is posted here.",
     "postmortem": "Incident Postmortem",
     "declaredAt": "Declared at ",
     "declaredAtTime": "Declared at {{time}}",
     "report": "Incident Report",
-    "notFound": "Incident not found on this status page."
-  },
-  "episodes": {
-    "report": "Episode Report",
-    "none": "No Episode",
-    "notFound": "Episode not found on this status page."
+    "notFound": "Check the link, or open this page's Incidents tab.",
+    "notFoundTitle": "Incident not found"
   },
   "announcements": {
     "title": "Announcements",
     "singular": "Announcement",
     "active": "Active Announcements",
-    "past": "Past Announcements",
-    "none": "No Announcement",
-    "noneDescription": "No announcements posted so far on this page.",
+    "noneDescription": "When there's news about the services on this page, it is posted here.",
     "announcedAt": "Announced at ",
     "announcedAtTime": "Announced at {{time}}",
-    "notFound": "Announcement not found on this status page."
+    "notFound": "Check the link, or open this page's Announcements tab.",
+    "notFoundTitle": "Announcement not found"
   },
   "scheduledEvents": {
     "title": "Scheduled Maintenance",
@@ -146,9 +139,7 @@
     "scheduledMaintenance": "Scheduled Maintenance",
     "ongoing": "Ongoing Maintenance",
     "upcoming": "Upcoming Maintenance",
-    "completed": "Completed Maintenance",
-    "none": "No Scheduled Maintenance",
-    "noneDescription": "No scheduled maintenance posted for this status page.",
+    "none": "No maintenance planned",
     "scheduledAt": "Scheduled at ",
     "scheduledAtTime": "Scheduled at {{time}}",
     "report": "Maintenance Event Report",
@@ -314,24 +305,24 @@
       "password": "Password",
       "newPassword": "New Password",
       "confirmPassword": "Confirm Password",
-      "login": "Log in"
+      "signInLink": "Sign in."
     },
     "login": {
       "welcomeBack": "Welcome back!",
-      "loginPrompt": "Please login to view {{statusPageName}}",
+      "signInPrompt": "Sign in to view {{statusPageName}}.",
       "forgotPassword": "Forgot password?",
-      "submit": "Login",
+      "submit": "Sign In",
       "or": "or",
-      "logInWithSso": "Log in with SSO",
+      "signInWithSso": "Sign in with SSO",
       "emailSignInLink": "Email me a sign-in link"
     },
     "sso": {
-      "title": "Log in with SSO",
-      "loginPrompt": "Please login to view {{statusPageName}}",
+      "title": "Sign in with SSO",
+      "signInPrompt": "Sign in to view {{statusPageName}}.",
       "noProviders": "No SSO Providers Configured or Enabled",
       "notAvailable": "Single sign-on is not available for this status page. Sign in with your email and password instead.",
-      "backToLogin": "Back to sign in",
-      "logInWithPassword": "Log in with password"
+      "backToSignIn": "Back to sign in",
+      "signInWithPassword": "Sign in with password"
     },
     "forgotPassword": {
       "title": "Forgot Password",
@@ -343,30 +334,37 @@
     "resetPassword": {
       "description": "Create a new password for your {{statusPageName}} account.",
       "instructions": "Please enter your new password and we will have it updated.",
-      "success": "Your password has been updated. Please log in.",
       "submit": "Reset Password",
-      "knowPassword": "Know your password?"
+      "knowPassword": "Know your password?",
+      "successTitle": "Your password has been reset",
+      "successDescription": "Sign in with your new password.",
+      "signInButton": "Sign In",
+      "linkExpiredTitle": "This reset link has expired",
+      "linkExpiredDescription": "Reset links work for one day. Ask for a new link and we will email it to you.",
+      "linkInvalidTitle": "This reset link no longer works",
+      "linkInvalidDescription": "It may have been used already, or only part of it was copied. Ask for a new link and we will email it to you.",
+      "requestNewLinkButton": "Request a New Link"
     },
     "magicLink": {
-      "title": "Log in with a link",
-      "description": "Enter your email address and we'll send you a link that logs you in to {{statusPageName}}. No password needed.",
+      "title": "Sign in with a link",
+      "description": "Enter your email address and we'll send you a link that signs you in to {{statusPageName}}. No password needed.",
       "submit": "Email me a sign-in link",
       "sentTitle": "Check your email",
-      "sent": "If {{email}} can log in to {{statusPageName}}, a sign-in link is on its way. It works once and expires in {{minutes}} minutes.",
+      "sent": "If {{email}} can sign in to {{statusPageName}}, a sign-in link is on its way. It works once and expires in {{minutes}} minutes.",
       "notReceived": "Not in your inbox? Check your spam folder, or ask the status page's team to add you.",
       "sendAnother": "Send another link"
     },
     "magicLinkLogin": {
-      "title": "Log in to {{statusPageName}}",
-      "description": "Use the button below to finish logging in.",
-      "submit": "Log in",
+      "title": "Sign in to {{statusPageName}}",
+      "description": "Use the button below to finish signing in.",
+      "submit": "Sign In",
       "noLink": "This page needs the sign-in link from your email. Open the link again, or ask for a new one.",
-      "turnedOff": "Sign-in links are turned off for this status page. Please log in with your email and password.",
+      "turnedOff": "Sign-in links are turned off for this status page. Sign in with your email and password instead.",
       "requestNewLink": "Email me a new link"
     },
     "masterPassword": {
       "prompt": "Enter the password to view this status page.",
-      "passwordRequired": "password is required.",
+      "passwordRequired": "Password is required.",
       "passwordLabel": "Password",
       "submit": "Unlock Status Page"
     },
@@ -482,5 +480,35 @@
   },
   "No options available": "No options available",
   "No matches found": "No matches found",
-  "{{eventType}} state changed to {{state}}": "{{eventType}} state changed to {{state}}"
+  "{{eventType}} state changed to {{state}}": "{{eventType}} state changed to {{state}}",
+  "Use at least {{minimum}} characters.": "Use at least {{minimum}} characters.",
+  "Try a few unrelated words.": "Try a few unrelated words.",
+  "Password meets requirements": "Password meets requirements",
+  "Password must be at least 15 characters.": "Password must be at least 15 characters.",
+  "Password cannot be more than 100 characters.": "Password cannot be more than 100 characters.",
+  "Choose a less predictable password. Try a few unrelated words.": "Choose a less predictable password. Try a few unrelated words.",
+  "Password cannot be blank.": "Password cannot be blank.",
+  "Password is required.": "Password is required.",
+  "Password must be a string.": "Password must be a string.",
+  "Between {{minimum}} and {{maximum}} characters": "Between {{minimum}} and {{maximum}} characters",
+  "Avoid common or repeated patterns": "Avoid common or repeated patterns",
+  "Password length": "Password length",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} / {{minimum}} characters minimum",
+  "Complete:": "Complete:",
+  "Incomplete:": "Incomplete:",
+  "Special character included (optional)": "Special character included (optional)",
+  "Special characters are optional. Try !, @, # or $.": "Special characters are optional. Try !, @, # or $.",
+  "Dismiss": "Dismiss",
+  "Resolved in the Last {{count}} Days": "Resolved in the Last {{count}} Days",
+  "Resolved in the Last {{count}} Days_one": "Resolved in the Last Day",
+  "No incidents in the last {{count}} days": "No incidents in the last {{count}} days",
+  "No incidents in the last {{count}} days_one": "No incidents in the last day",
+  "Ended in the Last {{count}} Days": "Ended in the Last {{count}} Days",
+  "Ended in the Last {{count}} Days_one": "Ended in the Last Day",
+  "No announcements in the last {{count}} days": "No announcements in the last {{count}} days",
+  "No announcements in the last {{count}} days_one": "No announcements in the last day",
+  "Completed in the Last {{count}} Days": "Completed in the Last {{count}} Days",
+  "Completed in the Last {{count}} Days_one": "Completed in the Last Day",
+  "None is planned, and none took place in the last {{count}} days.": "None is planned, and none took place in the last {{count}} days.",
+  "None is planned, and none took place in the last {{count}} days._one": "None is planned, and none took place in the last day."
 }

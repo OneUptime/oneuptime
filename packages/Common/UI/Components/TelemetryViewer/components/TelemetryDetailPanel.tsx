@@ -301,7 +301,7 @@ const TelemetryDetailPanel: FunctionComponent<TelemetryDetailPanelProps> = (
                 {tab.label}
                 {tab.badge !== undefined && tab.badge !== null && (
                   <span
-                    className={`inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full px-1 text-[10px] font-semibold ${
+                    className={`inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full px-1 text-xs font-semibold ${
                       isActive
                         ? "bg-indigo-100 text-indigo-700"
                         : "bg-gray-100 text-gray-500"

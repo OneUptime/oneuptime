@@ -123,9 +123,9 @@ describe("Status Page Branding & Domains (English)", () => {
     for (const heading of [
       "### Logo and cover image",
       "### Theme",
-      "### Title, description and favicon",
       "### Header links",
-      "### Overview page description",
+      "### Intro text",
+      "### Three descriptions, three readers",
       "### Footer",
       "### More settings",
     ]) {
@@ -143,6 +143,8 @@ describe("Status Page Branding & Domains (English)", () => {
     );
 
     for (const card of [
+      "**Title and Search Engine Description**",
+      "**Favicon**",
       "**Default Bar Color**",
       "**Bar Color Rules**",
       "**Bar Color Preview**",
@@ -152,9 +154,13 @@ describe("Status Page Branding & Domains (English)", () => {
       expect([card, advanced.includes(card)]).toEqual([card, true]);
     }
 
-    // Folded, its header names the four sections by the names the chips use.
+    /*
+     * Folded, its header names the first four of its six sections by the
+     * names the chips use, then how many more (#9130 folded the title and
+     * the favicon in first).
+     */
     expect(advanced).toContain(
-      "Folded, its header names its four sections — **Default Bar Color**, **Bar Color Rules**, **Languages** and **Search Engine Indexing** — and shows each one that differs from what a new status page starts with",
+      "Folded, its header names its first four sections — **Title and Search Engine Description**, **Favicon**, **Default Bar Color** and **Bar Color Rules** — then how many more there are (**Languages** and **Search Engine Indexing**), and shows each one that differs from what a new status page starts with",
     );
     expect(advanced).not.toContain("**Configured**");
   });
@@ -307,7 +313,7 @@ describe("Status Page Branding & Domains (English)", () => {
     }
   });
 
-  it("sends readers to Advanced Settings for the overall uptime % and the downtime statuses", () => {
+  it("sends readers to Settings for the overall uptime % and the downtime statuses", () => {
     expect(page).toContain("## Uptime percent and downtime statuses");
 
     const section: string = page.slice(
@@ -316,7 +322,7 @@ describe("Status Page Branding & Domains (English)", () => {
     );
 
     expect(section).toContain(
-      "**Status Pages → your page → Advanced → Advanced Settings** (`{id}/settings`)",
+      "**Status Pages → your page → Advanced → Settings** (`{id}/settings`)",
     );
   });
 
@@ -397,7 +403,7 @@ describe("the Theme section", () => {
   const page: string = readPage(BRANDING_PAGE);
   const section: string = page.slice(
     page.indexOf("### Theme"),
-    page.indexOf("### Title, description and favicon"),
+    page.indexOf("### Header links"),
   );
 
   const choiceNamed: (theme: StatusPageTheme) => StatusPageThemeChoice = (
@@ -650,7 +656,7 @@ describe("the rest of the English docs", () => {
     expect(resources).not.toContain("**Overview Page** branding screen");
     expect(resources).not.toContain("**Downtime Monitor Statuses** card");
     expect(resources).toContain(
-      "in **Counts as downtime**, in the **What your status page shows** card on **Advanced Settings**",
+      "in **Counts as downtime**, in the **What your status page shows** card on **Settings**",
     );
     expect(resources).toContain(
       "The colors of the history chart bars are set under **More settings** on the **Branding** page",

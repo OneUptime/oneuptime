@@ -14,9 +14,10 @@ import path from "path";
  * shown once (#8902), and say how they end (#8903) - held to the code that
  * makes it true.
  *
- * The note (installation/upgrading, "Other changes in 14") sits right after
- * the note on the master API key, which was hashed the same way first
- * (#8901), and every translation carries it in the English note's place,
+ * The note (installation/upgrading, "Other changes in 15": OneUptime 15
+ * brought it) sits right after the note on the master API key, which was
+ * hashed the same way first (#8901), and every translation carries it in the
+ * English note's place,
  * with the English note's code and the key list's path as the reader's
  * Dashboard draws it. What it claims is what the code does:
  *
@@ -42,7 +43,10 @@ const PREVIOUS_LEAD: string =
   "**The master API key is stored hashed, and shown only when it is made.**";
 // The note after it.
 const NEXT_LEAD: string =
-  "**A record you may not read can no longer be changed or deleted";
+  "**What is done about a private record follows its owners too";
+
+// The major version whose "Other changes in" list carries the note.
+const MAJOR: number = 15;
 
 const KEY_LIST_PATH: Array<string> = [
   "Project Settings",
@@ -60,14 +64,14 @@ function source(relativePath: string): string {
   return fs.readFileSync(path.join(REPO_ROOT, relativePath), "utf8");
 }
 
-const ENGLISH_ITEMS: Array<string> = otherChangesItems("en");
+const ENGLISH_ITEMS: Array<string> = otherChangesItems("en", MAJOR);
 const NOTE_INDEX: number = ENGLISH_ITEMS.findIndex((item: string): boolean => {
   return item.startsWith(`- ${NOTE_LEAD}`);
 });
 const ENGLISH_NOTE: string = flattened(ENGLISH_ITEMS[NOTE_INDEX] || "");
 
 describe("the English upgrade note on a project's API keys", () => {
-  it("is a note of the 13 → 14 changes, once, right after the note on the master API key", () => {
+  it("is a note of the 14 → 15 changes, once, right after the note on the master API key", () => {
     expect(NOTE_INDEX).toBeGreaterThan(0);
     expect(
       ENGLISH_ITEMS.filter((item: string): boolean => {
@@ -176,7 +180,7 @@ describe("the English upgrade note on a project's API keys", () => {
 describe.each(TRANSLATIONS)(
   "the %s upgrade note on a project's API keys",
   (language: string) => {
-    const items: Array<string> = otherChangesItems(language);
+    const items: Array<string> = otherChangesItems(language, MAJOR);
     const note: string = flattened(items[NOTE_INDEX] || "");
 
     it("is in the English note's place, under a lead of its own", () => {

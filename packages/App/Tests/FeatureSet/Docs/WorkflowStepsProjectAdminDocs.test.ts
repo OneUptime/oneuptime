@@ -327,7 +327,7 @@ describe("every language's Configuration page has the section", () => {
  * A step acts as a Project Admin, but is never lent a Project Admin's sight
  * of private incidents, alerts and episodes (shouldBypassRecordPrivacy):
  * the Configuration page says so among what a step may do, the Permissions
- * page in its section on private records, and the upgrade notes for 14, in
+ * page in its section on private records, and the upgrade notes for 15, in
  * every language, each pointing at the other.
  */
 describe("the pages say workflows don't act on private records", () => {
@@ -390,23 +390,29 @@ describe("the pages say workflows don't act on private records", () => {
     expect(text).toContain(LINK);
   });
 
-  test("the upgrade notes for 14 say what changes, among the other changes and for an existing workflow", () => {
-    const page: string = read("en", "installation/upgrading");
+  /*
+   * OneUptime 15 brought it, so the notes for 14 -> 15 say it: what to do
+   * among the upgrade's steps, and what changes among the other changes in
+   * 15. The notes for 13 -> 14 still say what 14 did, when workflow steps
+   * changed every private record.
+   */
+  test("the upgrade notes for 15 say what changes, in what to do and among the other changes", () => {
+    const fifteen: string = section(
+      read("en", "installation/upgrading"),
+      "## Upgrading from OneUptime 14 → 15",
+    ).replace(/\s+/g, " ");
 
-    expect(page).not.toContain("and workflow steps, change every private");
-    expect(page.replace(/\s+/g, " ")).toContain(
+    expect(fifteen).not.toContain("and workflow steps, change every private");
+    expect(fifteen).toContain(
+      "and workflow steps no longer see or change a private record.",
+    );
+    expect(fifteen).toContain(
       "Workflow steps no longer see or change a private record, nor anything of one, and a workflow no longer starts on one.",
     );
-
-    const workflows: string = section(
-      page,
-      "### Workflow steps act as a Project Admin",
+    expect(fifteen).toContain(
+      "move what a workflow did with private records to a person, or to the record's own on-call and notification rules.",
     );
-
-    expect(workflows).toContain(
-      "- A step no longer finds, changes or adds anything to a private incident, alert or episode, and a workflow no longer starts on one, or on anything that belongs to one",
-    );
-    expect(workflows).toContain(
+    expect(fifteen).toContain(
       "(/docs/permissions/index#private-incidents-alerts-and-episodes)",
     );
   });

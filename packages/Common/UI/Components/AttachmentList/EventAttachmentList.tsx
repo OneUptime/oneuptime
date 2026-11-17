@@ -80,7 +80,7 @@ const AttachmentCard: FunctionComponent<AttachmentCardProps> = (
               {attachment.name || translator.translateText("Attachment")}
             </span>
             {extensionLabel && (
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
                 {extensionLabel}
               </span>
             )}

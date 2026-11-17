@@ -36,6 +36,8 @@ import {
 } from "./ResourceAiLogs";
 import { canReadResourceCommandJobs } from "./ResourceAiAccessPermissions";
 import { getCommandJobsNoAccessState } from "./CommandJobsNoAccess";
+import { getCommandJobsEmptyMessage } from "./CommandJobsHidden";
+import CommandJobsHiddenNote from "./CommandJobsHiddenNote";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
@@ -93,7 +95,11 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
  * server computes (summaries only, never command output) behind the same
  * read gate as the resource's AI status. The command history is the
  * RunnerJob table filtered on this resource's ResourceCommand jobs, with a
- * permission fallback for the roles that may not read Runner jobs.
+ * permission fallback for the roles that may not read Runner jobs. It lists
+ * the commands the reader may read - another person's AI chat's, or one
+ * about a private incident or alert they don't see, is left out - and says
+ * how many it leaves out, from the logs route's count (CommandJobsHidden,
+ * #9155).
  */
 
 export interface ComponentProps extends PageComponentProps {
@@ -420,6 +426,8 @@ const ResourceAiLogsPage: FunctionComponent<ComponentProps> = (
   const isEmpty: boolean = Boolean(
     logs && logs.investigations.length === 0 && logs.fixes.length === 0,
   );
+  // The commands the reader may not read, which the commands card leaves out.
+  const hiddenCommandCount: number = logs?.hiddenCommandCount || 0;
 
   let body: ReactElement;
 
@@ -449,7 +457,6 @@ const ResourceAiLogsPage: FunctionComponent<ComponentProps> = (
           title={RESOURCE_AI_LOGS_EMPTY_TITLE}
           description={getResourceAiLogsEmptyDescription(descriptor)}
           showSolidBackground={true}
-          paddingClassName="py-12"
           footer={
             hint ? (
               <AgentPageLink
@@ -592,7 +599,18 @@ const ResourceAiLogsPage: FunctionComponent<ComponentProps> = (
             exitCode: true,
             errorMessage: true,
           }}
-          noItemsMessage={getResourceCommandsEmptyMessage(descriptor)}
+          noItemsMessage={getCommandJobsEmptyMessage({
+            hiddenCount: hiddenCommandCount,
+            emptyMessage: getResourceCommandsEmptyMessage(descriptor),
+          })}
+          topContent={
+            hiddenCommandCount > 0 ? (
+              <CommandJobsHiddenNote
+                count={hiddenCommandCount}
+                dataTestId="resource-command-jobs-hidden-note"
+              />
+            ) : undefined
+          }
           sortBy="createdAt"
           sortOrder={SortOrder.Descending}
           showRefreshButton={true}

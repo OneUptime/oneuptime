@@ -1785,6 +1785,12 @@ async function readIfPermitted<T>(
  * - commandCounts: commands in the last
  *   RESOURCE_AI_LOGS_COMMAND_WINDOW_IN_DAYS days. The AI agent page's
  *   connection tests have no AI run behind them and are not counted.
+ * - hiddenCommandCount: how many of the commands the page's list reads -
+ *   under the caller's props, through the Runner job API - the caller may
+ *   not read: another person's AI chat's, or one about a private incident
+ *   or alert they don't see (#9155). Counted as root and as the caller, so
+ *   only the number leaves. Absent for a caller who may not read Runner
+ *   jobs at all, whom the page tells so on its own.
  */
 export async function getResourceAiLogs(data: {
   projectId: ObjectID;
@@ -1905,15 +1911,28 @@ export async function getResourceAiLogs(data: {
     ).toNumber();
   };
 
-  const [investigationCommands, remediationCommands]: [number, number] =
-    await Promise.all([
-      countCommands({
-        origin: RunnerJobOrigin.AiInvestigation,
-        // Connection tests have no AI run; every investigation command does.
-        aiRunId: QueryHelper.notNull(),
-      }),
-      countCommands({ origin: RunnerJobOrigin.AiRemediation }),
-    ]);
+  const [investigationCommands, remediationCommands, hiddenCommandCount]: [
+    number,
+    number,
+    number | null,
+  ] = await Promise.all([
+    countCommands({
+      origin: RunnerJobOrigin.AiInvestigation,
+      // Connection tests have no AI run; every investigation command does.
+      aiRunId: QueryHelper.notNull(),
+    }),
+    countCommands({ origin: RunnerJobOrigin.AiRemediation }),
+    // What the page's list of commands reads, as the caller (see above).
+    RunnerJobService.countJobsHiddenFrom({
+      query: {
+        projectId,
+        resourceType,
+        resourceId,
+        stepType: RunbookStepType.ResourceCommand,
+      },
+      props,
+    }),
+  ]);
 
   return {
     resourceType,
@@ -1924,6 +1943,7 @@ export async function getResourceAiLogs(data: {
       investigation: investigationCommands,
       remediation: remediationCommands,
     },
+    ...(hiddenCommandCount === null ? {} : { hiddenCommandCount }),
   };
 }
 

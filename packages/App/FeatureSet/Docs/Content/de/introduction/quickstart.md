@@ -26,7 +26,7 @@ In OneUptime liegt alles in einem Projekt: Ihre Monitore, Vorfälle, Bereitschaf
 :::steps
 ### Ein neues Projekt beginnen
 
-Bei Ihrer ersten Anmeldung zeigt OneUptime **Keine Projekte**. Klicken Sie auf **Neues Projekt erstellen**. Hat Sie bereits jemand zu einem Projekt eingeladen, nehmen Sie die Einladung stattdessen auf derselben Seite an.
+Bei Ihrer ersten Anmeldung zeigt OneUptime **Noch keine Projekte**. Klicken Sie auf **Projekt erstellen**. Hat Sie bereits jemand zu einem Projekt eingeladen, nehmen Sie die Einladung stattdessen auf derselben Seite an.
 
 ### Einen Namen vergeben
 

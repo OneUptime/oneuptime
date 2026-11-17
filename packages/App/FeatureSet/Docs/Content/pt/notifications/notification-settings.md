@@ -64,7 +64,7 @@ A aba **Plantão** é sobre você, não sobre os registros que são seus:
 
 - **Você entra no plantão**, **Você é o próximo no plantão** e **Você sai do plantão** acompanham os seus turnos nas escalas de plantão em que você está.
 - **Adicionado à política de plantão** e **Removido da política de plantão** avisam quando uma política de plantão começa ou deixa de nomear você.
-- **Antes de o meu turno de prevenção começar** envia lembretes nos horários que você escolhe em **Configurações do usuário → Calendário → Feed de calendário**, e **O meu próximo turno de prevenção é reatribuído** avisa quando outra pessoa cobre um turno sobre o qual você foi lembrado. Veja [Feeds de calendário](/docs/on-call/calendar-feeds#lembretes-e-avisos-de-reatribuição).
+- **Antes de o meu turno de prevenção começar** envia lembretes nos horários que você escolhe em **Configurações do usuário → Perfil e calendário → Feed de calendário**, e **O meu próximo turno de prevenção é reatribuído** avisa quando outra pessoa cobre um turno sobre o qual você foi lembrado. Veja [Feeds de calendário](/docs/on-call/calendar-feeds#lembretes-e-avisos-de-reatribuição).
 - **Chamada perdida**, no cartão **Políticas de chamadas recebidas**, avisa os proprietários de uma política de chamadas recebidas que alguém ligou e não falou com ninguém. Veja [Política de chamadas recebidas](/docs/on-call/incoming-call-policy#chamadas-perdidas).
 
 ## Casos de segurança

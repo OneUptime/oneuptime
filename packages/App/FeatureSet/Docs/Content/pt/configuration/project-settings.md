@@ -40,7 +40,7 @@ flowchart LR
 | **Segurança** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Cobrança e faturas** | **Cobrança**, **Faturas** | [Cobrança e uso](/docs/configuration/billing) |
 | **Registros de auditoria** | **Registros de auditoria**, **Configurações**, **Exportar** | [Registros de auditoria](/docs/configuration/audit-logs), [Exportação do registro de auditoria](/docs/configuration/audit-log-export) |
-| **Zona de perigo** | **Zona de perigo** | [Excluir o projeto](#excluir-o-projeto) |
+| **Zona de perigo** | **Excluir projeto** | [Excluir o projeto](#excluir-o-projeto) |
 
 **Cobrança e faturas** e **Créditos de IA** só existem no OneUptime Cloud: uma instalação auto-hospedada não tem cobrança.
 
@@ -64,7 +64,7 @@ Um produto oculto não é desativado. Ele vai para **Mais produtos**, a última 
 
 Em um servidor auto-hospedado, um administrador master também pode desativar um produto para todos os projetos, em **Configurações → Produtos** no Admin Dashboard (veja [Execute só o que você precisa](/docs/installation/docker-compose#execute-só-o-que-você-precisa)). Um produto assim não tem botão aqui: ele mostra **Desativado neste servidor**, com quem pode ativá-lo.
 
-Todos os produtos são mostrados até que alguém os oculte aqui. Nenhum produto é ocultado sozinho: o que o proprietário disse no Início que o projeto veio fazer só prepara os primeiros passos ali, e um produto ainda não configurado continua no seu lugar no menu.
+Todos os produtos são mostrados até que alguém os oculte aqui. Nenhum produto é ocultado sozinho: o que um Proprietário do projeto ou Administrador do projeto disse no Início que o projeto veio fazer só prepara os primeiros passos ali, e um produto ainda não configurado continua no seu lugar no menu.
 
 Cada produto diz o que ele é para este projeto: **Em uso**, **Não configurado** ou, no OneUptime Cloud, o plano de que precisa. Quando um produto oculto começa a receber dados, o Início avisa os Proprietários do projeto e os Administradores do projeto e oferece **Mostrar** ou **Manter oculto**.
 
@@ -113,7 +113,7 @@ Excluir um projeto exclui tudo o que há nele, para todos os membros: monitores,
 :::steps
 ### Abrir a zona de perigo
 
-Acesse **Configurações do projeto → Zona de perigo**.
+Acesse **Configurações do projeto → Zona de perigo → Excluir projeto**.
 
 ### Clicar em Excluir: Projeto
 

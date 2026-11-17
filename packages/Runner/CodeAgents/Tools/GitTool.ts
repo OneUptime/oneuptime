@@ -313,13 +313,45 @@ export default class GitTool {
     );
 
     try {
-      await fs.promises
-        .copyFile(indexPath, path.join(scratch, "index"))
-        .catch((error: NodeJS.ErrnoException): void => {
+      /*
+       * The copy keeps the index's own mtime. Git trusts a file whose stat
+       * looks unchanged only when the index was written after the file's
+       * mtime (racy git), and reads the copy's mtime as the index's: a copy
+       * stamped with the time it was made would let a file changed at the
+       * same size in the second the index was written read as unchanged, and
+       * the diff leave the change out. Read before the copy is made, so an
+       * index written in between makes the copy look older, never newer.
+       */
+      const indexStats: fs.Stats | null = await fs.promises
+        .stat(indexPath)
+        .catch((error: NodeJS.ErrnoException): null => {
           if (error.code !== "ENOENT") {
             throw error;
           }
+          return null;
         });
+
+      const copied: boolean =
+        indexStats !== null &&
+        (await fs.promises
+          .copyFile(indexPath, path.join(scratch, "index"))
+          .then((): boolean => {
+            return true;
+          })
+          .catch((error: NodeJS.ErrnoException): boolean => {
+            if (error.code !== "ENOENT") {
+              throw error;
+            }
+            return false;
+          }));
+
+      if (copied && indexStats) {
+        await fs.promises.utimes(
+          path.join(scratch, "index"),
+          indexStats.atime,
+          indexStats.mtime,
+        );
+      }
 
       return await GitReadCommand.run({
         cwd: context.workspaceRoot,

@@ -27,6 +27,7 @@ import DatabaseService from "./DatabaseService";
 import ProjectService from "./ProjectService";
 import Model from "../../Models/DatabaseModels/AIRun";
 import { applyAIRunPrivacyFilter } from "../Utils/AI/AIRunPrivacyFilter";
+import { AI_RUN_ABOUT_KEYS } from "../Utils/AI/AIRunOutputReadFilter";
 import GlobalRunnerRepositoryTokens from "../Utils/Runner/GlobalRunnerRepositoryTokens";
 import CodeFixClaimQuery, {
   CodeFixClaimQueryFacts,
@@ -741,11 +742,13 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * The read hook keeps a chat or investigation run to who started it: a
-   * condition on the run's type that reads its user (AIRunPrivacyFilter).
-   * See DatabaseService.
+   * condition on the run's type that reads its user (AIRunPrivacyFilter);
+   * and a run about a private incident or alert - by its own keys, its fix,
+   * or the task it is a turn of - to those who see that record
+   * (AIRunOutputReadFilter.applyToRunRow, #9165). See DatabaseService.
    */
   public override getColumnsReadHooksNarrowBy(): Array<string> {
-    return ["runType", "userId"];
+    return ["runType", "userId", ...AI_RUN_ABOUT_KEYS];
   }
 
   /*

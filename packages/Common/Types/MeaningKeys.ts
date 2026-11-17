@@ -30,6 +30,8 @@ export const MEANING_KEYS: ReadonlyArray<string> = [
   "Open (status)",
   // An invoice that is issued and not paid yet (Settings > Invoices).
   "Open (invoice status)",
+  // A pull request that is neither merged nor closed (a Code task's Details).
+  "Open (pull request)",
   /*
    * An invoice deleted in Stripe, and one with no status: worded for the
    * invoice, feminine where it is ("Eliminada", "Supprimée"), as Paid and

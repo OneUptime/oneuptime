@@ -77,7 +77,7 @@ Overstyringer som allerede overlappet før denne regelen, blir som de er. Begge 
 ## Andre måter å legge til en på
 
 - Fra en vaktplan: utvid et lag på siden **Lag** for en vaktplan, og klikk på **Hopp over til…** ved siden av en person. Det åpner det samme skjemaet med personen som borte og rotasjonen som dekker, som en global overstyring. Se [Når noen er borte](/docs/on-call/schedules#når-noen-er-borte).
-- Fra de kommende vaktene dine: **Finn avløser** på en av vaktene dine, under **Brukerinnstillinger → Kalender → Kalenderfeed**, åpner skjemaet med deg som borte for tidene til den vakten, så bare **Hvem dekker?** gjenstår. Se [Kommende vakter og avløsning](/docs/on-call/calendar-feeds#kommende-vakter-og-avløsning).
+- Fra de kommende vaktene dine: **Finn avløser** på en av vaktene dine, under **Brukerinnstillinger → Profil og kalender → Kalenderfeed**, åpner skjemaet med deg som borte for tidene til den vakten, så bare **Hvem dekker?** gjenstår. Se [Kommende vakter og avløsning](/docs/on-call/calendar-feeds#kommende-vakter-og-avløsning).
 
 Når noen forlater prosjektet, slettes hver overstyring som nevner dem og ikke har sluttet ennå, på begge sider.
 

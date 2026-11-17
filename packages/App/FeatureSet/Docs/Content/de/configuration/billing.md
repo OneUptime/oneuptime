@@ -172,7 +172,13 @@ In OneUptime Cloud brauchen diese Verwaltungseinstellungen einen Tarif. Eine Sei
 
 ## Den Tarif kündigen
 
-Um für ein Projekt nicht mehr zu bezahlen, löschen Sie es: Die Abrechnung endet, wenn es gelöscht ist. Siehe [Das Projekt löschen](/docs/configuration/project-settings#das-projekt-löschen). Ein über einen Wiederverkäufer gekauftes Projekt kündigen Sie beim Wiederverkäufer, ein über einen Cloud-Marketplace gekauftes auf dem Marketplace.
+Um nicht mehr für Plätze zu bezahlen, wechseln Sie mit dem Projekt zum kostenlosen Tarif. Klicken Sie auf der Karte **Tarif kündigen** auf **Zum kostenlosen Tarif wechseln**: OneUptime sagt, was im kostenlosen Tarif nicht mehr funktioniert, und wechselt, wenn Sie erneut auf **Zum kostenlosen Tarif wechseln** klicken. Dafür brauchen Sie wie bei jedem Tarifwechsel einen Projektinhaber oder **Manage Billing** und eine Zahlungsmethode.
+
+- **Nichts wird gelöscht.** Ihre Monitore, Vorfälle, Statusseiten und deren Verlauf bleiben erhalten. Funktionen, die der kostenlose Tarif nicht enthält, funktionieren nicht mehr und wieder, sobald Sie zu einem Tarif zurückwechseln, der sie enthält.
+- **Die Nutzung wird weiter abgerechnet.** Pay-as-you-go läuft im kostenlosen Tarif weiter: die Telemetrie, die Ihre Dienste senden, und jeder Monitor, der kein manueller Monitor ist. Senden Sie keine Telemetrie mehr und löschen Sie die Monitore, die Sie nicht mehr brauchen, um auch diese Kosten zu beenden.
+- **Fragen zu Ihrer Rechnung?** Klicken Sie auf derselben Karte auf **Support kontaktieren**, um an support@oneuptime.com zu schreiben.
+
+Das Löschen des Projekts beendet jede Abrechnung und entfernt alles darin endgültig: siehe [Das Projekt löschen](/docs/configuration/project-settings#das-projekt-löschen). Ein über einen Wiederverkäufer gekauftes Projekt kündigen Sie beim Wiederverkäufer, ein über einen Cloud-Marketplace gekauftes auf dem Marketplace.
 
 ## Fehlerbehebung
 

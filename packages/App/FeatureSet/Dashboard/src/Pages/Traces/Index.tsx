@@ -1,5 +1,5 @@
 import PageComponentProps from "../PageComponentProps";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import ResellerPlanNotice from "../../Components/Billing/ResellerPlanNotice";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import TracesViewer from "../../Components/Traces/TracesViewer";
 import TelemetryFirstRunShowcase from "../../Components/ProductOnboarding/TelemetryFirstRunShowcase";
@@ -13,7 +13,7 @@ const TracesPage: FunctionComponent<PageComponentProps> = (
 
   if (disableTelemetryForThisProject) {
     return (
-      <ErrorMessage message="Looks like you have bought this plan from a reseller. It did not include telemetry features in your plan. Telemetry features are disabled for this project." />
+      <ResellerPlanNotice project={props.currentProject} product="Traces" />
     );
   }
 

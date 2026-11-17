@@ -96,7 +96,7 @@ El uso se conserva 120 días, salvo que lo cambie, con la facturación activada 
 :::steps
 ### Abrir la retención de datos
 
-En el Admin Dashboard, vaya a **Ajustes → Retención de datos**.
+En el Admin Dashboard, vaya a **Ajustes → Servidor → Retención de datos**.
 
 ### Fijar el número de días
 

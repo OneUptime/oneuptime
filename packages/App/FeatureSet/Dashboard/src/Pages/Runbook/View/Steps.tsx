@@ -14,6 +14,7 @@ import TextArea from "Common/UI/Components/TextArea/TextArea";
 import CodeEditor from "Common/UI/Components/CodeEditor/CodeEditor";
 import Toggle from "Common/UI/Components/Toggle/Toggle";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
@@ -141,6 +142,7 @@ import {
   DropResult,
 } from "react-beautiful-dnd";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import Toast, { CHANGES_SAVED } from "Common/UI/Utils/Toast";
 import { useUnsavedChanges } from "Common/UI/Utils/NewVersion/UnsavedChanges";
 import useLeaveGuard, { LeavePrompt } from "Common/UI/Utils/UseLeaveGuard";
 import { getRunbookStepsSignature } from "Common/Utils/Runbook/RunbookStepsSignature";
@@ -624,7 +626,8 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-  const [success, setSuccess] = useState<boolean>(false);
+  // The Add Step dialog, which lists the step types to add one from.
+  const [showStepTypePicker, setShowStepTypePicker] = useState<boolean>(false);
 
   /*
    * The steps as they were last loaded or saved (getRunbookStepsSignature):
@@ -1015,7 +1018,8 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
        * is still unsaved.
        */
       setSavedStepsSignature(getRunbookStepsSignature(normalized));
-      setSuccess(true);
+      // Said in the corner: a "Saved" dialog had to be clicked away (#9120).
+      Toast.success(translator.translateText(CHANGES_SAVED) || CHANGES_SAVED);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     } finally {
@@ -1440,7 +1444,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
            * The button lines up with the sentence above it: Button keeps a
            * left margin of its own for a dialog's footer.
            */}
-          <div className="mt-3 [&>button]:ml-0 [&>button]:md:ml-0">
+          <div className="mt-3">
             <Button
               title="Turn into a script step"
               icon={IconProp.Code}
@@ -2219,16 +2223,57 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
     );
   };
 
-  const addMenu: ReactElement = (
-    <Button
-      title="Add Step"
-      icon={IconProp.Add}
-      buttonStyle={ButtonStyleType.NORMAL}
-      onClick={() => {
-        add(RunbookStepType.Manual);
-      }}
-    />
-  );
+  /*
+   * One step type as a choice: its icon, its name and what it does. The
+   * first step's cards and the Add Step picker draw the same choice, so a
+   * type reads the same wherever it is offered.
+   */
+  const renderStepTypeChoice: (
+    type: RunbookStepType,
+    onPick: (type: RunbookStepType) => void,
+  ) => ReactElement = (
+    type: RunbookStepType,
+    onPick: (type: RunbookStepType) => void,
+  ): ReactElement => {
+    const meta: StepTypeMeta = STEP_TYPE_META[type];
+    return (
+      <button
+        key={type}
+        type="button"
+        data-testid={`runbook-step-type-${type}`}
+        onClick={() => {
+          onPick(type);
+        }}
+        /*
+         * A column from the top: a button centres what it holds, so cards
+         * with a longer line had their icon higher than the others in the
+         * row.
+         */
+        className={`group flex flex-col items-start justify-start text-left rounded-lg border border-gray-200 bg-white hover:border-indigo-300 hover:shadow-sm transition p-4 focus:outline-none focus:ring-2 focus:ring-indigo-300`}
+      >
+        <div
+          className={`inline-flex items-center justify-center h-9 w-9 rounded-lg ${meta.bg} ring-1 ${meta.ring} mb-3`}
+        >
+          <Icon
+            icon={meta.icon}
+            size={SizeProp.Regular}
+            className={`h-5 w-5 ${meta.iconColor}`}
+          />
+        </div>
+        <div className="text-sm font-semibold text-gray-900">
+          {meta.shortLabel}
+        </div>
+        <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+          {/*
+           * The step's name stays as the editor and the execution page
+           * name it, in English; what it does reads in the reader's
+           * language.
+           */}
+          {translator.translateText(meta.description)}
+        </p>
+      </button>
+    );
+  };
 
   return (
     <Fragment>
@@ -2244,7 +2289,6 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   {translator.translateText("Unsaved changes")}
                 </span>
               ) : null}
-              {addMenu}
             </div>
           ) : undefined
         }
@@ -2277,43 +2321,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                  */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 max-w-5xl mx-auto">
                   {ALL_STEP_TYPES.map((t: RunbookStepType) => {
-                    const meta: StepTypeMeta = STEP_TYPE_META[t];
-                    return (
-                      <button
-                        key={t}
-                        type="button"
-                        onClick={() => {
-                          return add(t);
-                        }}
-                        /*
-                         * A column from the top: a button centres what it
-                         * holds, so cards with a longer line had their icon
-                         * higher than the others in the row.
-                         */
-                        className={`group flex flex-col items-start justify-start text-left rounded-lg border border-gray-200 bg-white hover:border-indigo-300 hover:shadow-sm transition p-4 focus:outline-none focus:ring-2 focus:ring-indigo-300`}
-                      >
-                        <div
-                          className={`inline-flex items-center justify-center h-9 w-9 rounded-lg ${meta.bg} ring-1 ${meta.ring} mb-3`}
-                        >
-                          <Icon
-                            icon={meta.icon}
-                            size={SizeProp.Regular}
-                            className={`h-5 w-5 ${meta.iconColor}`}
-                          />
-                        </div>
-                        <div className="text-sm font-semibold text-gray-900">
-                          {meta.shortLabel}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                          {/*
-                           * The step's name stays as the editor and the
-                           * execution page name it, in English; what it
-                           * does reads in the reader's language.
-                           */}
-                          {translator.translateText(meta.description)}
-                        </p>
-                      </button>
-                    );
+                    return renderStepTypeChoice(t, add);
                   })}
                 </div>
               </div>
@@ -2559,47 +2567,24 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
               </Droppable>
             </DragDropContext>
 
+            {/*
+             * Once the runbook has steps, one Add Step at the end of the
+             * list opens the step types in a dialog. The seven types used to
+             * sit here as cards under every runbook, as tall as the runbook
+             * itself on a phone (#9138).
+             */}
             {steps.length > 0 && (
-              <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-4 mt-1">
-                <div className="text-xs font-medium text-gray-500 mb-3 text-center uppercase tracking-wide">
-                  {translator.translateText("Add another step")}
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  {ALL_STEP_TYPES.map((t: RunbookStepType) => {
-                    const meta: StepTypeMeta = STEP_TYPE_META[t];
-                    return (
-                      <button
-                        key={t}
-                        type="button"
-                        onClick={() => {
-                          return add(t);
-                        }}
-                        /*
-                         * A column from the top, like the first step's
-                         * cards: a button centres what it holds, so a card
-                         * beside a taller one had its icon lower.
-                         */
-                        className={`group flex flex-col items-start justify-start text-left rounded-lg border border-gray-200 bg-white hover:border-indigo-300 hover:shadow-sm transition p-3 focus:outline-none focus:ring-2 focus:ring-indigo-300`}
-                      >
-                        <div
-                          className={`inline-flex items-center justify-center h-8 w-8 rounded-lg ${meta.bg} ring-1 ${meta.ring} mb-2`}
-                        >
-                          <Icon
-                            icon={meta.icon}
-                            size={SizeProp.Regular}
-                            className={`h-4 w-4 ${meta.iconColor}`}
-                          />
-                        </div>
-                        <div className="text-sm font-semibold text-gray-900">
-                          {meta.shortLabel}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
-                          {translator.translateText(meta.description)}
-                        </p>
-                      </button>
-                    );
-                  })}
-                </div>
+              <div className="mt-1">
+                <Button
+                  title="Add Step"
+                  icon={IconProp.Add}
+                  buttonStyle={ButtonStyleType.OUTLINE}
+                  ariaHaspopup="dialog"
+                  dataTestId="runbook-add-step"
+                  onClick={() => {
+                    setShowStepTypePicker(true);
+                  }}
+                />
               </div>
             )}
           </div>
@@ -2629,16 +2614,27 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
         </>
       </Card>
 
-      {success && (
-        <ConfirmModal
-          title="Saved"
-          description="Runbook steps saved successfully."
-          submitButtonText="Got it"
-          submitButtonType={ButtonStyleType.NORMAL}
-          onSubmit={() => {
-            setSuccess(false);
+      {showStepTypePicker && (
+        <Modal
+          title="Add Step"
+          description="Pick what the new step does. You can change its settings once it is added."
+          modalWidth={ModalWidth.Medium}
+          onClose={() => {
+            setShowStepTypePicker(false);
           }}
-        />
+        >
+          <div
+            className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+            data-testid="runbook-step-type-picker"
+          >
+            {ALL_STEP_TYPES.map((t: RunbookStepType) => {
+              return renderStepTypeChoice(t, (type: RunbookStepType) => {
+                add(type);
+                setShowStepTypePicker(false);
+              });
+            })}
+          </div>
+        </Modal>
       )}
 
       {error && (

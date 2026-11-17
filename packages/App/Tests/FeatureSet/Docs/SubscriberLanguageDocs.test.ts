@@ -105,32 +105,47 @@ describe("Subscribers & Announcements: the language subscribers are written in",
       ),
     ).toContain('languageTitle: translationKey("Language")');
 
-    // On the Email, SMS, Slack and Microsoft Teams lists, not the webhook one.
-    for (const page of [
-      "EmailSubscribers",
-      "SMSSubscribers",
-      "SlackSubscribers",
-      "MicrosoftTeamsSubscribers",
-    ]) {
-      const source: string = readSource(
-        `App/FeatureSet/Dashboard/src/Pages/StatusPages/View/${page}.tsx`,
+    /*
+     * On the Email, SMS, Slack and Microsoft Teams lists, not the webhook
+     * one: one list for every channel since #9125, which draws the field and
+     * the column for a channel that has a language.
+     */
+    const list: string = readSource(
+      "App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPageSubscriberList.tsx",
+    ).replace(/\s+/g, " ");
+
+    expect(list).toContain(
+      "if (channel.hasLanguage) { formFields.push( getSubscriberLanguageField({",
+    );
+    expect(list).toContain(
+      "...(channel.hasLanguage ? [ getSubscriberLanguageColumn({",
+    );
+
+    const channels: string = readSource(
+      "App/FeatureSet/Dashboard/src/Components/StatusPage/SubscriberListChannels.ts",
+    );
+
+    for (const [channel, hasLanguage] of [
+      ["Email", true],
+      ["SMS", true],
+      ["Slack", true],
+      ["MicrosoftTeams", true],
+      ["Webhook", false],
+    ] as Array<[string, boolean]>) {
+      const start: number = channels.indexOf(
+        `[StatusPageSubscriberChannel.${channel}]: {`,
+      );
+      const definition: string = channels.slice(
+        start,
+        channels.indexOf("writeBulkEntry", start),
       );
 
-      expect([page, source.includes("getSubscriberLanguageField(")]).toEqual([
-        page,
-        true,
-      ]);
-      expect([page, source.includes("getSubscriberLanguageColumn(")]).toEqual([
-        page,
-        true,
-      ]);
+      expect([channel, start > -1]).toEqual([channel, true]);
+      expect([
+        channel,
+        definition.includes(`hasLanguage: ${hasLanguage},`),
+      ]).toEqual([channel, true]);
     }
-
-    expect(
-      readSource(
-        "App/FeatureSet/Dashboard/src/Pages/StatusPages/View/WebhookSubscribers.tsx",
-      ),
-    ).not.toContain("getSubscriberLanguage");
   });
 
   test("a visitor who read the page in another language keeps it; everyone else follows the page's default, as it changes", () => {

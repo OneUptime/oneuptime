@@ -172,7 +172,13 @@ I OneUptime Cloud krever disse administrasjonsinnstillingene et abonnement. En s
 
 ## Si opp abonnementet
 
-For å slutte å betale for et prosjekt sletter du det: faktureringen stopper når det er slettet. Se [Slett prosjektet](/docs/configuration/project-settings#slett-prosjektet). Et prosjekt kjøpt via en forhandler sies opp hos forhandleren, og et kjøpt via en skymarkedsplass på markedsplassen.
+For å slutte å betale for plasser flytter du prosjektet til gratisabonnementet. Klikk på **Bytt til gratisabonnementet** på kortet **Si opp abonnementet**: OneUptime forteller hva gratisabonnementet stopper, og flytter prosjektet når du klikker på **Bytt til gratisabonnementet** igjen. Som enhver abonnementsendring krever det en Prosjekteier eller **Manage Billing**, og en betalingsmåte.
+
+- **Ingenting slettes.** Overvåkingene, hendelsene, statussidene og historikken deres blir værende. Funksjoner som gratisabonnementet ikke omfatter, slutter å virke, og virker igjen når du bytter tilbake til et abonnement som omfatter dem.
+- **Bruk faktureres fortsatt.** Betaling etter bruk fortsetter på gratisabonnementet: telemetrien tjenestene dine sender, og hver overvåking som ikke er en manuell overvåking. Slutt å sende telemetri, og slett overvåkingene du ikke lenger trenger, for å stoppe også disse kostnadene.
+- **Spørsmål om fakturaen din?** Klikk på **Kontakt støtte** på det samme kortet for å skrive til support@oneuptime.com.
+
+Å slette prosjektet stopper all fakturering, og fjerner alt i det for godt: se [Slett prosjektet](/docs/configuration/project-settings#slett-prosjektet). Et prosjekt kjøpt via en forhandler sies opp hos forhandleren, og et kjøpt via en skymarkedsplass på markedsplassen.
 
 ## Feilsøking
 

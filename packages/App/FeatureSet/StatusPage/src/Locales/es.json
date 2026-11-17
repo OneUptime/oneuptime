@@ -37,7 +37,6 @@
     "announcements": "Anuncios",
     "scheduledEvents": "Mantenimiento programado",
     "subscribe": "Suscribirse",
-    "login": "Iniciar sesión",
     "logout": "Cerrar sesión"
   },
   "overview": {
@@ -49,8 +48,6 @@
     "noResourcesInGroup": "No se han añadido recursos a este grupo.",
     "activeIncidents": "Incidencias activas",
     "scheduledMaintenanceEvents": "Mantenimiento programado",
-    "allClearTitle": "Todo parece estar bien",
-    "allClearDescription": "Aún no se han añadido recursos a esta página de estado. Por favor, añada algunos recursos desde el panel de control.",
     "allResourcesAre": "Todos los recursos están {{status}}",
     "allMonitoredResourcesAre": "Todos los recursos monitoreados están {{status}}",
     "someResourcesAre": "Algunos recursos están {{status}}",
@@ -58,7 +55,10 @@
     "noResourcesAreMonitored": "Ningún recurso está monitoreado en este momento",
     "noResourcesAreMonitoredYet": "Aún no se monitorea ningún recurso",
     "oneSubGroup": "1 grupo",
-    "subGroupCount": "{{total}} grupos"
+    "subGroupCount": "{{total}} grupos",
+    "noResourcesTitle": "Aún no hay nada que mostrar",
+    "noResourcesDescription": "Esta página aún no muestra ningún servicio.",
+    "noResourcesPreviewDescription": "Los visitantes ven este aviso hasta que añadas recursos. Añade monitores o grupos a esta página de estado en Recursos, en el panel."
   },
   "eventItem": {
     "affectedResources": "Recursos afectados",
@@ -115,30 +115,23 @@
     "title": "Incidencias",
     "singular": "Incidencia",
     "active": "Incidencias activas",
-    "resolved": "Incidencias resueltas",
-    "none": "Sin incidencias",
-    "noneDescription": "No hay incidencias publicadas en esta página de estado.",
+    "noneDescription": "Cuando una incidencia afecte a los servicios de esta página, se publicará aquí.",
     "postmortem": "Análisis posterior a la incidencia",
     "declaredAt": "Declarado el ",
     "declaredAtTime": "Declarado el {{time}}",
     "report": "Informe de incidencia",
-    "notFound": "Incidencia no encontrada en esta página de estado."
-  },
-  "episodes": {
-    "report": "Informe de episodio",
-    "none": "Sin episodios",
-    "notFound": "Episodio no encontrado en esta página de estado."
+    "notFound": "Comprueba el enlace o abre la pestaña Incidencias de esta página.",
+    "notFoundTitle": "Incidencia no encontrada"
   },
   "announcements": {
     "title": "Anuncios",
     "singular": "Anuncio",
     "active": "Anuncios activos",
-    "past": "Anuncios pasados",
-    "none": "Sin anuncios",
-    "noneDescription": "No se han publicado anuncios hasta ahora en esta página.",
+    "noneDescription": "Cuando haya novedades sobre los servicios de esta página, se publicarán aquí.",
     "announcedAt": "Anunciado el ",
     "announcedAtTime": "Anunciado el {{time}}",
-    "notFound": "Anuncio no encontrado en esta página de estado."
+    "notFound": "Comprueba el enlace o abre la pestaña Anuncios de esta página.",
+    "notFoundTitle": "Anuncio no encontrado"
   },
   "scheduledEvents": {
     "title": "Mantenimiento programado",
@@ -146,9 +139,7 @@
     "scheduledMaintenance": "Mantenimiento programado",
     "ongoing": "Mantenimiento en curso",
     "upcoming": "Próximo mantenimiento",
-    "completed": "Mantenimiento finalizado",
-    "none": "Ningún mantenimiento programado",
-    "noneDescription": "No se ha publicado ningún mantenimiento programado en esta página de estado.",
+    "none": "No hay mantenimiento previsto",
     "scheduledAt": "Programado para ",
     "scheduledAtTime": "Programado para {{time}}",
     "report": "Informe del evento de mantenimiento",
@@ -314,24 +305,24 @@
       "password": "Contraseña",
       "newPassword": "Nueva contraseña",
       "confirmPassword": "Confirmar contraseña",
-      "login": "Iniciar sesión"
+      "signInLink": "Iniciar sesión."
     },
     "login": {
       "welcomeBack": "¡Bienvenido de nuevo!",
-      "loginPrompt": "Por favor, inicie sesión para ver {{statusPageName}}",
+      "signInPrompt": "Por favor, inicie sesión para ver {{statusPageName}}.",
       "forgotPassword": "¿Olvidó su contraseña?",
       "submit": "Iniciar sesión",
       "or": "o",
-      "logInWithSso": "Iniciar sesión con SSO",
+      "signInWithSso": "Iniciar sesión con SSO",
       "emailSignInLink": "Enviarme un enlace de inicio de sesión"
     },
     "sso": {
       "title": "Iniciar sesión con SSO",
-      "loginPrompt": "Por favor, inicie sesión para ver {{statusPageName}}",
+      "signInPrompt": "Por favor, inicie sesión para ver {{statusPageName}}.",
       "noProviders": "No hay proveedores SSO configurados o habilitados",
       "notAvailable": "El inicio de sesión único (SSO) no está disponible para esta página de estado. Inicie sesión con su correo electrónico y contraseña en su lugar.",
-      "backToLogin": "Volver a iniciar sesión",
-      "logInWithPassword": "Iniciar sesión con contraseña"
+      "backToSignIn": "Volver a iniciar sesión",
+      "signInWithPassword": "Iniciar sesión con contraseña"
     },
     "forgotPassword": {
       "title": "Contraseña olvidada",
@@ -343,9 +334,16 @@
     "resetPassword": {
       "description": "Cree una nueva contraseña para su cuenta de {{statusPageName}}.",
       "instructions": "Introduzca su nueva contraseña y la actualizaremos.",
-      "success": "Su contraseña ha sido actualizada. Inicie sesión.",
       "submit": "Restablecer contraseña",
-      "knowPassword": "¿Conoce su contraseña?"
+      "knowPassword": "¿Conoce su contraseña?",
+      "successTitle": "Se ha restablecido tu contraseña",
+      "successDescription": "Inicia sesión con tu nueva contraseña.",
+      "signInButton": "Iniciar sesión",
+      "linkExpiredTitle": "Este enlace de restablecimiento ha caducado",
+      "linkExpiredDescription": "Los enlaces de restablecimiento sirven durante un día. Pide un enlace nuevo y te lo enviaremos por correo electrónico.",
+      "linkInvalidTitle": "Este enlace de restablecimiento ya no funciona",
+      "linkInvalidDescription": "Puede que ya se haya usado o que solo se haya copiado una parte. Pide un enlace nuevo y te lo enviaremos por correo electrónico.",
+      "requestNewLinkButton": "Pedir un enlace nuevo"
     },
     "magicLink": {
       "title": "Iniciar sesión con un enlace",
@@ -366,7 +364,7 @@
     },
     "masterPassword": {
       "prompt": "Introduzca la contraseña para ver esta página de estado.",
-      "passwordRequired": "la contraseña es obligatoria.",
+      "passwordRequired": "La contraseña es obligatoria.",
       "passwordLabel": "Contraseña",
       "submit": "Desbloquear página de estado"
     },
@@ -482,5 +480,35 @@
   },
   "No options available": "No hay opciones disponibles",
   "No matches found": "No se encontraron coincidencias",
-  "{{eventType}} state changed to {{state}}": "{{eventType}}: estado cambiado a {{state}}"
+  "{{eventType}} state changed to {{state}}": "{{eventType}}: estado cambiado a {{state}}",
+  "Use at least {{minimum}} characters.": "Usa al menos {{minimum}} caracteres.",
+  "Try a few unrelated words.": "Prueba con varias palabras sin relación entre sí.",
+  "Password meets requirements": "La contraseña cumple los requisitos",
+  "Password must be at least 15 characters.": "La contraseña debe tener al menos 15 caracteres.",
+  "Password cannot be more than 100 characters.": "La contraseña no puede tener más de 100 caracteres.",
+  "Choose a less predictable password. Try a few unrelated words.": "Elige una contraseña menos predecible. Prueba con varias palabras sin relación entre sí.",
+  "Password cannot be blank.": "La contraseña no puede contener solo espacios.",
+  "Password is required.": "La contraseña es obligatoria.",
+  "Password must be a string.": "La contraseña debe ser una cadena de texto.",
+  "Between {{minimum}} and {{maximum}} characters": "Entre {{minimum}} y {{maximum}} caracteres",
+  "Avoid common or repeated patterns": "Evita patrones comunes o repetidos",
+  "Password length": "Longitud de la contraseña",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} / {{minimum}} caracteres como mínimo",
+  "Complete:": "Cumplido:",
+  "Incomplete:": "No cumplido:",
+  "Special character included (optional)": "Carácter especial incluido (opcional)",
+  "Special characters are optional. Try !, @, # or $.": "Los caracteres especiales son opcionales. Prueba !, @, # o $.",
+  "Dismiss": "Descartar",
+  "Resolved in the Last {{count}} Days": "Resueltas en los últimos {{count}} días",
+  "Resolved in the Last {{count}} Days_one": "Resueltas en el último día",
+  "No incidents in the last {{count}} days": "Ninguna incidencia en los últimos {{count}} días",
+  "No incidents in the last {{count}} days_one": "Ninguna incidencia en el último día",
+  "Ended in the Last {{count}} Days": "Finalizados en los últimos {{count}} días",
+  "Ended in the Last {{count}} Days_one": "Finalizados en el último día",
+  "No announcements in the last {{count}} days": "Ningún anuncio en los últimos {{count}} días",
+  "No announcements in the last {{count}} days_one": "Ningún anuncio en el último día",
+  "Completed in the Last {{count}} Days": "Completado en los últimos {{count}} días",
+  "Completed in the Last {{count}} Days_one": "Completado en el último día",
+  "None is planned, and none took place in the last {{count}} days.": "No hay ninguno previsto ni hubo ninguno en los últimos {{count}} días.",
+  "None is planned, and none took place in the last {{count}} days._one": "No hay ninguno previsto ni hubo ninguno en el último día."
 }

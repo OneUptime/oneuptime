@@ -110,7 +110,7 @@ export const SourceSnippetBlock: FunctionComponent<SourceSnippetProps> = ({
         <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-gray-400">
           {fileName || translator.translateText("Original source")}
         </span>
-        <span className="text-[10px] font-medium uppercase tracking-wide text-gray-500">
+        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
           {translator.translateText("Original source")}
         </span>
       </div>

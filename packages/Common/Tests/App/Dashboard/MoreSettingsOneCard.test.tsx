@@ -398,6 +398,8 @@ const PAGES: Array<MoreSettingsPage> = [
     },
     sectionTestId: BRANDING_ADVANCED_SECTION_TEST_ID,
     sectionTitles: [
+      "Title and Search Engine Description",
+      "Favicon",
       "Default Bar Color",
       "Bar Color Rules",
       "Bar Color Preview",

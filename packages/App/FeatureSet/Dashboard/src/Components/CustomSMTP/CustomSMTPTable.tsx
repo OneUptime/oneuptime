@@ -14,7 +14,11 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import { CardSelectOption } from "Common/UI/Components/CardSelect/CardSelect";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
-import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import Toast from "Common/UI/Utils/Toast";
+import {
+  translateText,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import {
   EMAIL_PROVIDER_CHOICES,
@@ -74,6 +78,13 @@ export const EMAIL_PROVIDER_FILTER_OPTIONS: Array<DropdownOption> =
     };
   });
 
+// What a test email that went out says, in the corner (#9120).
+export const TEST_EMAIL_SENT: string = translationKey("Email Sent");
+
+export const TEST_EMAIL_ARRIVES: string = translationKey(
+  "Email sent successfully. It should take couple of minutes to arrive, please don't forget to check spam.",
+);
+
 export interface ComponentProps {
   /*
    * How many configs the table lists after each load, so the page's folded
@@ -90,8 +101,6 @@ const CustomSMTPTable: FunctionComponent<ComponentProps> = (
   const [currentSMTPTestConfig, setCurrentSMTPTestConfig] =
     useState<ProjectSmtpConfig | null>(null);
   const [isSMTPTestLoading, setIsSMTPTestLoading] = useState<boolean>(false);
-
-  const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
 
   // Locked, saying why, for someone who may not send a test (TestSendLock).
   const testEmailLock: TestSendLock = getTestSendLock(
@@ -304,7 +313,13 @@ const CustomSMTPTable: FunctionComponent<ComponentProps> = (
               if (response.isSuccess()) {
                 setIsSMTPTestLoading(false);
                 setShowSMTPTestModal(false);
-                setShowSuccessModal(true);
+                // Said in the corner: it was a dialog to click away (#9120).
+                Toast.success(
+                  translateText(TEST_EMAIL_SENT) || TEST_EMAIL_SENT,
+                  {
+                    description: translateText(TEST_EMAIL_ARRIVES),
+                  },
+                );
               }
 
               if (response instanceof HTTPErrorResponse) {
@@ -314,27 +329,6 @@ const CustomSMTPTable: FunctionComponent<ComponentProps> = (
               setError(API.getFriendlyMessage(err));
               setIsSMTPTestLoading(false);
             }
-          }}
-        />
-      ) : (
-        <></>
-      )}
-
-      {showSuccessModal ? (
-        <ConfirmModal
-          title={`Email Sent`}
-          error={
-            error ===
-            "Error connecting to server. Please try again in few minutes."
-              ? "Request timed out. Please check your SMTP credentials and make sure they are correct."
-              : error
-          }
-          description={`Email sent successfully. It should take couple of minutes to arrive, please don't forget to check spam.`}
-          submitButtonType={ButtonStyleType.NORMAL}
-          submitButtonText={"Close"}
-          onSubmit={async () => {
-            setShowSuccessModal(false);
-            setError("");
           }}
         />
       ) : (

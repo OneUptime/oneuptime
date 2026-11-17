@@ -176,10 +176,17 @@
   "resetPassword": {
     "title": "パスワードをリセット",
     "subtitle": "新しいパスワードを入力してください。更新されます。",
-    "successMessage": "パスワードが更新されました。ログインしてください。",
     "submitButton": "パスワードをリセット",
     "knowPasswordPrompt": "パスワードを知っていますか？",
-    "loginLink": "ログイン。"
+    "loginLink": "ログイン。",
+    "successTitle": "パスワードをリセットしました",
+    "successDescription": "新しいパスワードでサインインしてください。",
+    "signInButton": "サインイン",
+    "linkExpiredTitle": "このリセット用リンクは期限切れです",
+    "linkExpiredDescription": "リセット用リンクの有効期間は 1 日です。新しいリンクをリクエストすると、メールでお送りします。",
+    "linkInvalidTitle": "このリセット用リンクは使用できなくなりました",
+    "linkInvalidDescription": "すでに使用されたか、一部だけがコピーされた可能性があります。新しいリンクをリクエストすると、メールでお送りします。",
+    "requestNewLinkButton": "新しいリンクをリクエスト"
   },
   "sso": {
     "title": "SSOでログイン",
@@ -563,6 +570,7 @@
   "What was sent is larger than the 50 MB OneUptime takes in one request.": "送信した内容が、OneUptime が 1 回のリクエストで受け付ける 50 MB を超えています。",
   "Try again with less at once, such as a smaller file.": "小さいファイルにするなど、一度に送る量を減らして、もう一度お試しください。",
   "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "OneUptime の前にあるプロキシが拒否した場合は、そのプロキシのリクエストサイズの上限を、OneUptime 自体が受け付ける 50 MB に引き上げてください（nginx では client_max_body_size 50M）。",
+  "Dismiss": "非表示",
   "This form is not available. It may have been turned off, or the link may be out of date.": "このフォームは利用できません。無効になっているか、リンクが古くなっている可能性があります。",
   "This form can only be opened from an allowed network.": "このフォームは許可されたネットワークからのみ開くことができます。",
   "Too many submissions from your network. Please wait a few minutes and try again.": "お使いのネットワークからの送信が多すぎます。数分待ってから再度お試しください。",

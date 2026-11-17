@@ -593,7 +593,7 @@ sh Scripts/Install/WithConfig.sh docker compose logs app | grep -A 5 CoreSSL
 :::
 
 :::details Die mitgelieferte Sonde zeigt Getrennt, nachdem Sie den Port des Ingress verlegt haben
-Das Admin Dashboard listet die Sonde unter **Einstellungen > Überwachung > Globale Sonden**. Sie erreicht OneUptime unter `GLOBAL_PROBE_1_ONEUPTIME_URL`, standardmäßig `http://localhost` (Port 80). `npm start` setzt diese URL auf den Port des Ingress, solange sie auf `localhost` zeigt. Haben Sie sie auf eine andere Adresse gesetzt oder OneUptime mit der Docker CLI gestartet, setzen Sie sie auf den neuen Port des Ingress, zum Beispiel `http://localhost:8080`, und starten Sie OneUptime neu.
+Das Admin Dashboard listet die Sonde unter **Einstellungen > Für alle Projekte > Globale Sonden**. Sie erreicht OneUptime unter `GLOBAL_PROBE_1_ONEUPTIME_URL`, standardmäßig `http://localhost` (Port 80). `npm start` setzt diese URL auf den Port des Ingress, solange sie auf `localhost` zeigt. Haben Sie sie auf eine andere Adresse gesetzt oder OneUptime mit der Docker CLI gestartet, setzen Sie sie auf den neuen Port des Ingress, zum Beispiel `http://localhost:8080`, und starten Sie OneUptime neu.
 :::
 
 ## Nächste Schritte

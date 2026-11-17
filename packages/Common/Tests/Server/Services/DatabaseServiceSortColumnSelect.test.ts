@@ -159,12 +159,19 @@ describe("DatabaseService._findBy selects the columns it sorts by", () => {
   });
 
   it("does not add a relation that is being sorted on", async () => {
+    /*
+     * Through a relation of one record, by a field of the related record:
+     * the way a list is sorted through a relation. A relation of many
+     * records (labels), or one given only a direction, is refused as bad
+     * data before the read (SortValidator, #8141).
+     */
     await findBy({
       select: { reminderIntervalInMinutes: true },
-      sort: { labels: SortOrder.Ascending },
+      sort: { createdByUser: { name: SortOrder.Ascending } },
     });
 
-    expect(selectPassedToDatabase()["labels"]).toBeUndefined();
+    expect(find).toHaveBeenCalledTimes(1);
+    expect(selectPassedToDatabase()["createdByUser"]).toBeUndefined();
   });
 
   it("leaves the caller's own select object untouched", async () => {

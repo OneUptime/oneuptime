@@ -46,7 +46,7 @@ La pagina **Monitor** mostra, per ogni monitor:
 
 | Colonna | Cosa mostra |
 | --- | --- |
-| **Stato attuale** | Lo stato attuale del monitor, oppure **Archiviato**, **Disabilitato**, **Sonde non abilitate**, **Sonde disconnesse** o **Sconosciuto** quando non viene controllato o non ha ancora segnalato nulla. |
+| **Stato attuale** | Lo stato attuale del monitor, oppure **Archiviato**, **Disabilitato**, **Nessuna sonda abilitata**, **Sonde disconnesse** o **Sconosciuto** quando non viene controllato o non ha ancora segnalato nulla. |
 | **Origine** | **Regola** se l'ha collegato una delle regole dei monitor dello SLO, **Manuale** se qualcuno l'ha collegato a mano. |
 | **Etichette** | Le etichette del monitor. |
 

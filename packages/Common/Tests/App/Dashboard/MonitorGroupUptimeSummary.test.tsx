@@ -345,8 +345,11 @@ describe("the monitor group page draws its Uptime Graph from the server's days (
 
     expect(mockUptimeSummary).toHaveBeenCalledTimes(1);
 
-    const request: { monitorGroupId: ObjectID; timezone: string } = mockUptimeSummary
-      .mock.calls[0]![0] as { monitorGroupId: ObjectID; timezone: string };
+    const request: { monitorGroupId: ObjectID; timezone: string } =
+      mockUptimeSummary.mock.calls[0]![0] as {
+        monitorGroupId: ObjectID;
+        timezone: string;
+      };
 
     expect(request.monitorGroupId.toString()).toBe(GROUP_ID);
     expect(request.timezone).toBe(OneUptimeDate.getCurrentTimezone());

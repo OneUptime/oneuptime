@@ -377,14 +377,13 @@ const CorrelateFilterBuilder: FunctionComponent<ComponentProps> = (
       )}
 
       {/*
-       * Button carries md:ml-3 and w-full md:w-auto for modal footers. The
-       * [&_button] overrides keep both footer buttons (ours and the parent's
-       * footerAction) flush with the rows above, and sized to their labels
-       * once the footer becomes a row at sm.
+       * Both footer buttons (ours and the parent's footerAction) sit flush
+       * with the rows above, sized to their labels once the footer becomes
+       * a row at sm: a Button has no margin or width of its own.
        */}
       <div
         data-testid="correlate-builder-footer"
-        className="flex flex-col gap-2 border-t border-gray-200 pt-3 sm:flex-row sm:items-center sm:justify-between [&_button]:ml-0 [&_button]:sm:w-auto"
+        className="flex flex-col gap-2 border-t border-gray-200 pt-3 sm:flex-row sm:items-center sm:justify-between"
       >
         <Button
           dataTestId="correlate-add-condition"

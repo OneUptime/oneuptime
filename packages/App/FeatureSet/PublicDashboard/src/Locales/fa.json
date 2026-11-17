@@ -27,5 +27,14 @@
   "Copy": "کپی",
   "Copied!": "کپی شد!",
   "Copy failed": "کپی ناموفق بود",
-  "Hide": "پنهان کردن"
+  "Hide": "پنهان کردن",
+  "Dismiss": "پنهان کردن",
+  "Dashboard Not Found": "داشبورد پیدا نشد",
+  "This dashboard does not exist, or it is no longer shared.": "این داشبورد وجود ندارد، یا دیگر به اشتراک گذاشته نمی‌شود.",
+  "Check the address, or ask the person who shared it with you for a new link.": "نشانی را بررسی کنید، یا از کسی که آن را با شما به اشتراک گذاشته است لینک تازه‌ای بخواهید.",
+  "Access Denied": "دسترسی رد شد",
+  "This dashboard opens only from the IP addresses its owner allows, and yours is not one of them.": "این داشبورد فقط از آدرس‌های IP مجاز از سوی مالک آن باز می‌شود، و آدرس شما جزو آن‌ها نیست.",
+  "Ask the dashboard's owner for access, or open it from a network they allow.": "از مالک داشبورد دسترسی بخواهید، یا آن را از شبکه‌ای که او اجازه می‌دهد باز کنید.",
+  "Show more": "نمایش بیشتر",
+  "Show less": "نمایش کمتر"
 }

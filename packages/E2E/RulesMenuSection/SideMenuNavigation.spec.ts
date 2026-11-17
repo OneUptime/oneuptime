@@ -347,55 +347,54 @@ test.describe("long titles are drawn whole", () => {
     await screenshot(page, "french-burn-rate-rules-two-lines");
   });
 
-  test("German: the Notification Logs heading, Benachrichtigungsprotokolle, is drawn whole inside its button", async ({
+  /*
+   * Notification Logs had a section of its own, whose German heading was
+   * this word, until #9125: it is an entry under Subscribers (Abonnenten)
+   * now, still too long for one line.
+   */
+  test("German: the Notification Logs entry, Benachrichtigungsprotokolle, is drawn whole under Abonnenten", async ({
     page,
   }: {
     page: Page;
   }) => {
     await open(page, `${STATUS_PAGE_PATH}/notification-logs?lang=de`);
     const menu: Locator = desktopMenu(page);
-    const heading: Locator = menu.locator("h6", {
-      hasText: "Benachrichtigungsprotokolle",
-    });
-    const button: Locator = heading.locator("xpath=ancestor::button[1]");
+    const heading: Locator = menu.locator("h6", { hasText: "Abonnenten" });
+    const button: Locator = heading
+      .first()
+      .locator("xpath=ancestor::button[1]");
 
-    await expect(heading).toHaveCount(1);
     await expect(button).toHaveAttribute("aria-expanded", "true");
+    await expect(
+      menu.locator("h6", { hasText: "Benachrichtigungsprotokolle" }),
+    ).toHaveCount(0);
 
     /*
      * Too long for one line: it is hyphenated in German rather than cut
      * where the line ends. The Dashboard's page says lang="en" whatever the
-     * reader's language, so the heading and the entry under it say they
-     * are German themselves.
+     * reader's language, so the entry says it is German itself.
      */
     await page.evaluate((): void => {
       document.documentElement.lang = "en";
     });
     const lit: Locator = entry(menu, `${STATUS_PAGE_PATH}/notification-logs`);
-    for (const words of [heading, lit.locator(ENTRY_TITLE)]) {
-      await expect(words).toHaveAttribute("lang", "de");
-      expect(
-        await words.evaluate((element: Element): string => {
-          return getComputedStyle(element).hyphens;
-        }),
-      ).toBe("auto");
-    }
+    const words: Locator = lit.locator(ENTRY_TITLE);
 
-    const headingBox: Box = await boxOf(heading);
-    const buttonBox: Box = await boxOf(button);
-    const chevronBox: Box = await boxOf(button.locator("svg").last());
-
+    await expect(lit).toHaveAttribute("aria-current", "page");
+    await expect(words).toHaveText("Benachrichtigungsprotokolle");
+    await expect(words).toHaveAttribute("lang", "de");
     expect(
-      await heading.evaluate((element: Element): boolean => {
+      await words.evaluate((element: Element): string => {
+        return getComputedStyle(element).hyphens;
+      }),
+    ).toBe("auto");
+    expect(
+      await words.evaluate((element: Element): boolean => {
         return element.scrollWidth <= element.clientWidth + 1;
       }),
     ).toBe(true);
-    expect(headingBox.right).toBeLessThanOrEqual(chevronBox.left);
-    expect(chevronBox.right).toBeLessThanOrEqual(buttonBox.right);
-    // The chevron stays level with the heading's first line.
-    expect(chevronBox.top).toBeLessThan(headingBox.top + 16);
 
-    await screenshot(page, "german-notification-logs-heading");
+    await screenshot(page, "german-notification-logs-entry");
 
     // English words carry no language of their own: they are the page's.
     await open(page, `${STATUS_PAGE_PATH}/notification-logs`);
@@ -494,15 +493,12 @@ test.describe("the lit entry is in sight in a menu taller than the window", () =
   }: {
     page: Page;
   }) => {
-    const address: string = `${STATUS_PAGE_PATH}/microsoft-teams-subscribers`;
+    const address: string = `${STATUS_PAGE_PATH}/private-users`;
     await open(page, address);
     const menu: Locator = desktopMenu(page);
     const list: Locator = desktopList(page);
     const lit: Locator = entry(menu, address);
-    const next: Locator = entry(
-      menu,
-      `${STATUS_PAGE_PATH}/webhook-subscribers`,
-    );
+    const next: Locator = entry(menu, `${STATUS_PAGE_PATH}/sso`);
 
     await expect(lit).toHaveAttribute("aria-current", "page");
     await expect
@@ -684,16 +680,19 @@ test.describe("on a phone", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, `${STATUS_PAGE_PATH}/microsoft-teams-subscribers?lang=de`);
+    // Notification Logs sits under Subscribers since #9125.
+    await open(page, `${STATUS_PAGE_PATH}/notification-logs?lang=de`);
     const toggle: Locator = page.getByTestId("mobile-sidemenu-toggle");
     const summary: Locator = toggle.locator("h3");
 
-    await expect(summary).toHaveText("Abonnenten / Microsoft Teams-Abonnenten");
+    await expect(summary).toHaveText(
+      "Abonnenten / Benachrichtigungsprotokolle",
+    );
     // Named by its words, not a label of its own.
     expect(await toggle.getAttribute("aria-label")).toBeNull();
     await expect(
       page.getByRole("button", {
-        name: "Navigieren zu Abonnenten / Microsoft Teams-Abonnenten",
+        name: "Navigieren zu Abonnenten / Benachrichtigungsprotokolle",
       }),
     ).toBeVisible();
 

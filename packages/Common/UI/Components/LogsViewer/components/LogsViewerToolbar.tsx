@@ -266,7 +266,7 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
               </span>
             )}
             {hasPaginationSummary && (
-              <span className="whitespace-nowrap text-gray-400">
+              <span className="whitespace-nowrap text-gray-500">
                 {hasPageCount
                   ? translator.translateTemplate(
                       "Page {{current}} of {{total}}",
@@ -365,7 +365,7 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
               onClick={props.onToggleKeyboardShortcuts}
               title={translator.translateText("Keyboard shortcuts (?)")}
             >
-              <kbd className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded border border-current px-0.5 font-mono text-[10px] font-semibold leading-none">
+              <kbd className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded border border-current px-0.5 font-mono text-xs font-semibold leading-none">
                 ?
               </kbd>
             </button>

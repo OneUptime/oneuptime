@@ -1,12 +1,19 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, test } from "@jest/globals";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import React, { ReactElement } from "react";
 import FormSummary, {
   getFormSummaryFields,
   isListedInFormSummary,
 } from "../../../../UI/Components/Forms/FormSummary";
 import Field, {
+  FieldFooterProps,
   FormFieldCollapsibleSection,
 } from "../../../../UI/Components/Forms/Types/Field";
 import Fields from "../../../../UI/Components/Forms/Types/Fields";
@@ -1293,5 +1300,69 @@ describe("FormSummary: sections that say what they hold", () => {
     expect(
       screen.getByTestId("form-summary-section-summary"),
     ).toHaveTextContent("Subscribers are told when it starts.");
+  });
+});
+
+/*
+ * A field's review row can fix what it warns about (#9131): it is handed
+ * what a footer is (FieldFooterProps), and setting the value through it goes
+ * to the form, for that field. Drawn without a form to set it in, it is
+ * handed nothing.
+ */
+describe("FormSummary: a review row that sets its field", () => {
+  const STATUS_PAGES_FIELD: Field<JSONObject> = {
+    field: { statusPages: true },
+    title: "Show event on these status pages",
+    fieldType: FormFieldSchemaType.MultiSelectDropdown,
+    getSummaryElement: (
+      values: FormValues<JSONObject>,
+      footer?: FieldFooterProps,
+    ): ReactElement => {
+      if (!footer) {
+        return <span>Nothing to set it with</span>;
+      }
+
+      return (
+        <button
+          type="button"
+          onClick={() => {
+            footer.setValue(["page-1"]);
+          }}
+        >
+          {`Add page-1 to ${(values["statusPages"] as Array<string>).length}`}
+        </button>
+      );
+    },
+  };
+
+  test("hands the row a setter that sets that field's value in the form", () => {
+    const calls: Array<[Field<JSONObject>, unknown]> = [];
+
+    render(
+      <FormSummary<JSONObject>
+        formValues={{ statusPages: [] } as FormValues<JSONObject>}
+        formFields={[STATUS_PAGES_FIELD]}
+        formSteps={undefined}
+        setFieldValue={(field: Field<JSONObject>, value: unknown): void => {
+          calls.push([field, value]);
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Add page-1 to 0" }));
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]![0]).toBe(STATUS_PAGES_FIELD);
+    expect(calls[0]![1]).toEqual(["page-1"]);
+  });
+
+  test("hands the row nothing when the summary has no form to set it in", () => {
+    renderSummary({
+      values: { statusPages: [] } as JSONObject,
+      fields: [STATUS_PAGES_FIELD],
+      steps: undefined,
+    });
+
+    expect(screen.getByText("Nothing to set it with")).toBeInTheDocument();
   });
 });

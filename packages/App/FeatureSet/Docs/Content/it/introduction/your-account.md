@@ -70,11 +70,13 @@ Espandi **Sicurezza** nel menu laterale di **Profilo utente**. Contiene tre pagi
 
 :::steps
 1. Apri **Sicurezza → Gestione password**.
-2. Inserisci la nuova password in **Password** e di nuovo in **Conferma password**. Deve essere lunga almeno 6 caratteri.
+2. Inserisci la nuova password in **Nuova password** e di nuovo in **Conferma password**. Deve essere lunga almeno 15 caratteri e non essere prevedibile, come una password comune o una sequenza ripetuta: alcune parole senza legame tra loro funzionano bene. La checklist sotto il campo spunta ogni requisito mentre scrivi.
 3. Fai clic su **Aggiorna password**.
 :::
 
 Una nuova password disconnette tutti i dispositivi dal tuo account, e qualsiasi link di reimpostazione o di accesso già inviato smette di funzionare.
+
+Ogni pagina che imposta una password chiede lo stesso: la registrazione, il link di reimpostazione di **Password dimenticata?**, questa pagina e **Imposta password** di un amministratore del server. Una password impostata prima di questa regola continua a funzionare finché non la cambi.
 
 ### Aggiungere una passkey
 

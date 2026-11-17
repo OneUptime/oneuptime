@@ -1,5 +1,4 @@
 import PageComponentProps from "../PageComponentProps";
-import ServerSetupCard from "../../Components/ServerSetup/ServerSetupCard";
 import PageMap from "../../Utils/PageMap";
 import RouteMap from "../../Utils/RouteMap";
 import RouteParams from "../../Utils/RouteParams";
@@ -7,7 +6,9 @@ import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import EmptyState, {
+  EmptyStateSize,
+} from "Common/UI/Components/EmptyState/EmptyState";
 import Page from "Common/UI/Components/Page/Page";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import PendingProjectInvitations from "Common/UI/Components/ProjectInvitations/PendingProjectInvitations";
@@ -35,6 +36,11 @@ import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
  */
 export const WELCOME_CARD_LINE: string = translationKey(
   "A project needs no card. On the Free plan, checking a website needs a payment method.",
+);
+
+// The page's heading and its one-step trail.
+export const WELCOME_PAGE_TITLE: string = translationKey(
+  "Welcome to OneUptime",
 );
 
 export interface ComponentProps extends PageComponentProps {
@@ -133,7 +139,7 @@ const Welcome: FunctionComponent<ComponentProps> = (
                */}
               <Button
                 icon={IconProp.Add}
-                title={"Create New Project"}
+                title={"Create Project"}
                 buttonStyle={ButtonStyleType.NORMAL}
                 onClick={() => {
                   props.onClickShowProjectModal();
@@ -148,6 +154,7 @@ const Welcome: FunctionComponent<ComponentProps> = (
       if (!canCreateProject) {
         return (
           <EmptyState
+            size={EmptyStateSize.Page}
             id="empty-state-project-creation-restricted"
             icon={IconProp.Lock}
             title={"Ask to join a project"}
@@ -169,9 +176,10 @@ const Welcome: FunctionComponent<ComponentProps> = (
        */
       return (
         <EmptyState
+          size={EmptyStateSize.Page}
           id="empty-state-no-projects"
           icon={IconProp.AddFolder}
-          title={"No projects"}
+          title={"No projects yet"}
           description={
             <>
               {translator.translateText(
@@ -191,7 +199,7 @@ const Welcome: FunctionComponent<ComponentProps> = (
           footer={
             <Button
               icon={IconProp.Add}
-              title={"Create New Project"}
+              title={"Create Project"}
               buttonStyle={ButtonStyleType.PRIMARY}
               onClick={() => {
                 props.onClickShowProjectModal();
@@ -210,13 +218,24 @@ const Welcome: FunctionComponent<ComponentProps> = (
    * which would refetch the invitations on the very render its own load
    * triggered, and never settle.
    */
+  /*
+   * The first page after sign-up has a heading and a trail like every other
+   * page (#9121): it opened on a bare "No projects", which read as a failed
+   * load. Creating a project is its one primary action. The server setup
+   * checklist a new server's admin needs is not drawn here: it sat above the
+   * empty state as a second next step, and Home draws it above the new
+   * project's quickstart, which is where Create Project leads.
+   */
   return (
-    <Page title={""} breadcrumbLinks={[]}>
-      {/*
-       * A new server's first admin lands here, right after signing up:
-       * what the server still needs, while it needs it (master admins only).
-       */}
-      <ServerSetupCard className="mx-auto mt-8 w-full max-w-3xl" />
+    <Page
+      title={WELCOME_PAGE_TITLE}
+      breadcrumbLinks={[
+        {
+          title: WELCOME_PAGE_TITLE,
+          to: RouteMap[PageMap.WELCOME] as Route,
+        },
+      ]}
+    >
       <PendingProjectInvitations
         className="mt-16 mb-8 mx-auto w-full max-w-3xl"
         onInvitationAccepted={onInvitationAccepted}

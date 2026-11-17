@@ -20,6 +20,7 @@ import Query from "../../../../../Server/Types/Database/Query";
 import Select from "../../../../../Server/Types/Database/Select";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../../../Types/BaseDatabase/SortOrder";
+import { PlanType } from "../../../../../Types/Billing/SubscriptionPlan";
 import ColumnAccessControl from "../../../../../Types/Database/AccessControl/ColumnAccessControl";
 import { isOwnerOnlyColumn } from "../../../../../Types/Database/AccessControl/OwnerOnlyColumn";
 import TableAccessControl from "../../../../../Types/Database/AccessControl/TableAccessControl";
@@ -93,7 +94,10 @@ const rowsOf: (permissions: Array<Permission>) => Array<UserPermission> = (
 /*
  * A signed-in person holding exactly `permissions` in the project. Fresh
  * per call: the permission layer adds Public and Current User to the props
- * it is handed.
+ * it is handed. With the project's plan, as a request through the API
+ * carries it (CommonAPI): on a server with billing on, a table a plan sells
+ * - a workflow, SCIM - is otherwise read for its plan, from the database
+ * (CallerPlan). One with every feature, so no plan refuses a read here.
  */
 const personWith: (
   permissions: Array<Permission>,
@@ -104,6 +108,8 @@ const personWith: (
     userId: USER_ID,
     userType: UserType.User,
     tenantId: PROJECT_ID,
+    currentPlan: PlanType.Enterprise,
+    isSubscriptionUnpaid: false,
     userTenantAccessPermission: {
       [PROJECT_ID.toString()]: {
         _type: "UserTenantAccessPermission",

@@ -42,7 +42,7 @@ flowchart TB
 :::steps
 ### Aprire i budget di acquisizione
 
-Nell'Admin Dashboard, andate in **Impostazioni → Telemetria → Budget di acquisizione**. **Telemetria** parte compresso nel menu laterale: fateci clic per aprirlo.
+Nell'Admin Dashboard, andate in **Impostazioni → Server → Budget di acquisizione**. **Server** parte compresso nel menu laterale: fateci clic per aprirlo.
 
 ### Impostare i budget giornalieri
 

@@ -154,7 +154,7 @@ const SMS: () => JSX.Element = (): ReactElement => {
           isChannelOff
             ? getChannelGatedMethodList(ChannelGatedMethodList.SMS)
                 .noItemsWhileOff
-            : "No phone numbers found. Please add one to receive notifications."
+            : "No phone numbers yet. Add one to receive notifications."
         }
         formFields={[
           {

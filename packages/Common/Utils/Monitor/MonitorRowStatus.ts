@@ -2,10 +2,12 @@ import { Amber600, Gray500, Red500 } from "../../Types/BrandColors";
 import Color from "../../Types/Color";
 import { translationKey } from "../../Types/Translator";
 import MonitorFirstCheck, {
-  FirstCheckScheduleFields,
   MonitorFirstCheckFields,
   StartingStatusFlags,
 } from "./MonitorFirstCheck";
+import MonitorFirstCheckOverdue, {
+  FirstCheckScheduleFields,
+} from "./MonitorFirstCheckOverdue";
 import MonitoringOff, { MonitoredFlags } from "./MonitoringOff";
 
 /*
@@ -21,12 +23,13 @@ import MonitoringOff, { MonitoredFlags } from "./MonitoringOff";
  *     Archived page.
  *   - Disabled: someone turned its monitoring off, so the status it holds is
  *     only what its last check saw (Utils/Monitor/MonitoringOff).
- *   - Probes Not Enabled, Probes Disconnected: no probe checks it.
+ *   - No Probe Enabled, Probes Disconnected: no probe checks it.
  *   - Nothing has checked it yet (Utils/Monitor/MonitorFirstCheck, issue
  *     #8899), and it is still in the operational status it was created in:
  *       - Paused, while an incident declared by hand or a maintenance event
  *         holds its checks;
- *       - No results yet, once its first result is overdue;
+ *       - No results yet, once its first result is overdue
+ *         (Utils/Monitor/MonitorFirstCheckOverdue);
  *       - Waiting for data, until then.
  *     The page draws the same badges, and leaves out its "Last recorded
  *     status" line for the same reason.
@@ -60,7 +63,7 @@ export const MONITOR_ROW_STATUS_WORDS: Record<
 > = {
   [MonitorRowStatusKind.Archived]: translationKey("Archived"),
   [MonitorRowStatusKind.MonitoringOff]: translationKey("Disabled"),
-  [MonitorRowStatusKind.NoProbeEnabled]: translationKey("Probes Not Enabled"),
+  [MonitorRowStatusKind.NoProbeEnabled]: translationKey("No Probe Enabled"),
   [MonitorRowStatusKind.ProbesDisconnected]: translationKey(
     "Probes Disconnected",
   ),
@@ -242,7 +245,7 @@ export default class MonitorRowStatusUtil {
       }
 
       if (
-        MonitorFirstCheck.isFirstCheckOverdue({
+        MonitorFirstCheckOverdue.isFirstCheckOverdue({
           monitor: monitor,
           now: now || new Date(),
         })

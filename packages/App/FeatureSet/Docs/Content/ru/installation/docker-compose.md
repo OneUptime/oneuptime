@@ -593,7 +593,7 @@ sh Scripts/Install/WithConfig.sh docker compose logs app | grep -A 5 CoreSSL
 :::
 
 :::details Встроенный зонд показывает Отключено после смены порта ingress
-Admin Dashboard показывает зонд в **Настройки > Мониторинг > Глобальные зонды**. Он обращается к OneUptime по `GLOBAL_PROBE_1_ONEUPTIME_URL`, где по умолчанию указан `http://localhost` (порт 80). `npm start` переводит этот адрес на порт ingress, пока он указывает на `localhost`. Если вы задали ему другой адрес или запустили OneUptime через Docker CLI, укажите в нём новый порт ingress, например `http://localhost:8080`, и перезапустите OneUptime.
+Admin Dashboard показывает зонд в **Настройки > Общие для всех проектов > Глобальные зонды**. Он обращается к OneUptime по `GLOBAL_PROBE_1_ONEUPTIME_URL`, где по умолчанию указан `http://localhost` (порт 80). `npm start` переводит этот адрес на порт ingress, пока он указывает на `localhost`. Если вы задали ему другой адрес или запустили OneUptime через Docker CLI, укажите в нём новый порт ingress, например `http://localhost:8080`, и перезапустите OneUptime.
 :::
 
 ## Следующие шаги

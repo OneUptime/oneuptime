@@ -28,9 +28,9 @@ L'explorateur a six onglets :
 | Onglet | À quoi il sert |
 | --- | --- |
 | **Lecteur** | La liste des métriques, chacune avec un petit graphique et sa dernière valeur. Il s'ouvre sur la dernière heure. |
-| **PromQL** | Interrogez vos métriques avec PromQL, le langage de requête de Prometheus, et connectez-y Grafana. Voir [Interroger les métriques avec PromQL](/docs/telemetry/promql). |
 | **Analyses** | Quels services rapportent des métriques, et combien. |
 | **IA** | Les problèmes qu'OneUptime trouve dans vos métriques (trop de valeurs, des buckets d'histogramme qui ne conviennent pas, des métriques manquantes), et ce qu'OneUptime AI en a fait. Voir [Améliorer les métriques et ajouter celles qui manquent avec l'IA](#améliorer-les-métriques-et-ajouter-celles-qui-manquent-avec-lia). |
+| **PromQL** | Interrogez vos métriques avec PromQL, le langage de requête de Prometheus, et connectez-y Grafana. Voir [Interroger les métriques avec PromQL](/docs/telemetry/promql). |
 | **Guide de configuration** | Comment envoyer des métriques avec OpenTelemetry, avec l'une de vos clés d'ingestion. |
 | **Paramètres** | **Règles de pipeline** et **Règles d'enregistrement** : ce qui arrive aux métriques à leur arrivée. |
 

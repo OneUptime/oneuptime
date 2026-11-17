@@ -482,7 +482,8 @@ describe("TenantPermission current-user ownership scope", () => {
     await expect(
       (UserService as any).onBeforeUpdate({
         query: { _id: new NotEqual<string>(userId.toString()) },
-        data: { password: "new-password" },
+        // One the password rule takes (NewPasswordRule), so the scope is what refuses.
+        data: { password: "a-new-river-lantern" },
         props: makeUserProps(),
         limit: 1,
         skip: 0,

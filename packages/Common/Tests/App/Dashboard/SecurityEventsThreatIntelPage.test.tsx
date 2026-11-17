@@ -603,7 +603,7 @@ describe("Threat Intel page", () => {
     ).not.toBeInTheDocument();
     expect(screen.queryByTestId("feeds-table")).not.toBeInTheDocument();
     expect(
-      screen.getByText(/did not include telemetry features/),
+      screen.getByText("Your plan does not include security events"),
     ).toBeInTheDocument();
   });
 });

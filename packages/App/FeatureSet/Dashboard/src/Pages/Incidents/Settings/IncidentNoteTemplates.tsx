@@ -37,7 +37,7 @@ const IncidentNoteTemplates: FunctionComponent<PageComponentProps> = (
           description:
             "Ready-made text for incident updates. Pick one when writing a public or private note on an incident or an episode, or when acknowledging or resolving one, and edit it before posting.",
         }}
-        noItemsMessage={"No note templates found."}
+        noItemsMessage={"No note templates yet."}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}

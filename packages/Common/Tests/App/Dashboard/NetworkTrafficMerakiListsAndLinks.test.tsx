@@ -979,12 +979,15 @@ describe("a router's Traffic page and its Meraki appliance", () => {
       "If this device is a Meraki MX or Z appliance, link it to see its uplinks, applications and clients here.",
     );
     /*
-     * Button keeps a dialog footer's md:ml-3: cleared, the button stands
-     * centred under the sentence.
+     * The button has no margin of its own (#9128): it stands centred under
+     * the sentence, and nothing round it takes a margin back.
      */
+    expect(screen.getByTestId("meraki-appliance-link").className).not.toMatch(
+      /(^|\s)(?:[a-z]+:)?!?m[ls]-/u,
+    );
     expect(
       screen.getByTestId("meraki-appliance-link").parentElement!.className,
-    ).toContain("[&>button]:md:ml-0");
+    ).not.toContain("button]");
   });
 
   test("a router that exports flows opens on them, with Meraki and its link one click away", async () => {

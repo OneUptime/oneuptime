@@ -29,8 +29,11 @@ import { MemoryRouter, Route as PageRoute, Routes } from "react-router-dom";
  *
  *   A workflow's menu:     Basic (Overview, Builder, Workflow Variables)
  *                          Logs (Runs)
- *                          Owners (Owners)
- *                          Advanced (Settings, Audit Logs, Delete Workflow)
+ *                          Advanced (Settings, Owners, Audit Logs,
+ *                          Delete Workflow)
+ *
+ * Owners was a section of its own, under a heading of its own name, until
+ * #9134.
  *
  * They used to be "Runs & Logs": a third row under Workflows, and in a
  * workflow's own menu an entry under Advanced, beside Settings and Delete.
@@ -305,7 +308,6 @@ const WORKFLOW_MENU: ReadonlyArray<MenuPage> = [
     path: `${WORKFLOW_PATH}/variables`,
   },
   { title: "Runs", section: "Logs", path: WORKFLOW_RUNS_PATH },
-  { title: "Owners", section: "Owners", path: `${WORKFLOW_PATH}/owners` },
   {
     title: "Terraform",
     section: "Developer",
@@ -331,6 +333,7 @@ const WORKFLOW_MENU: ReadonlyArray<MenuPage> = [
     section: "Advanced",
     path: `${WORKFLOW_PATH}/settings`,
   },
+  { title: "Owners", section: "Advanced", path: `${WORKFLOW_PATH}/owners` },
   {
     title: "Audit Logs",
     section: "Advanced",
@@ -509,13 +512,12 @@ describe("a workflow's own menu", () => {
     goTo(WORKFLOW_PATH);
   });
 
-  test("has Basic, Logs, Owners, Developer and Advanced, in that order", async () => {
+  test("has Basic, Logs, Developer and Advanced, in that order", async () => {
     await renderWorkflowMenu();
 
     expect(sectionTitlesInOrder()).toEqual([
       "Basic",
       "Logs",
-      "Owners",
       "Developer",
       "Advanced",
     ]);
@@ -534,7 +536,7 @@ describe("a workflow's own menu", () => {
     );
   });
 
-  test("Advanced no longer lists the runs: Settings, Audit Logs and Delete Workflow", async () => {
+  test("Advanced no longer lists the runs: Settings, Owners, Audit Logs and Delete Workflow", async () => {
     await renderWorkflowMenu();
 
     expect(linksIn("Advanced")).toEqual(linksOf(WORKFLOW_MENU, "Advanced"));
@@ -543,11 +545,11 @@ describe("a workflow's own menu", () => {
     ).toBeNull();
   });
 
-  test("Basic and Owners are unchanged", async () => {
+  test("Basic is unchanged, and Owners has no section of its own", async () => {
     await renderWorkflowMenu();
 
     expect(linksIn("Basic")).toEqual(linksOf(WORKFLOW_MENU, "Basic"));
-    expect(linksIn("Owners")).toEqual(linksOf(WORKFLOW_MENU, "Owners"));
+    expect(sectionTitlesInOrder()).not.toContain("Owners");
   });
 
   test("lists all twelve pages once, in order", async () => {
@@ -780,7 +782,6 @@ describe("the run pages keep their URLs", () => {
     expect(sectionTitlesInOrder()).toEqual([
       "Basic",
       "Logs",
-      "Owners",
       "Developer",
       "Advanced",
     ]);

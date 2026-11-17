@@ -6,7 +6,10 @@ import { Service as PrivateSessionService } from "../../../Server/Services/Statu
 import { Service as UserSessionService } from "../../../Server/Services/UserSessionService";
 import FindBy from "../../../Server/Types/Database/FindBy";
 import logger from "../../../Server/Utils/Logger";
-import LIMIT_MAX from "../../../Types/Database/LimitMax";
+import {
+  OLDER_ROWS_PURGE_BATCH_SIZE,
+  OLDER_ROWS_PURGE_TIME_BUDGET_MS,
+} from "../../../Server/Utils/Retention/OlderRowsPurge";
 import ObjectID from "../../../Types/ObjectID";
 import { EVERY_DAY } from "../../../Utils/CronTime";
 import { getJestSpyOn } from "../../Spy";
@@ -34,11 +37,6 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
     IsBillingEnabled: false,
     IsDevelopment: false,
   };
-});
-
-// Small batches exercise the worker's loop without allocating 10,001 rows.
-jest.mock("../../../Types/Database/LimitMax", () => {
-  return { __esModule: true, default: 2 };
 });
 
 type Session = StatusPagePrivateUserSession | UserSession;
@@ -123,7 +121,7 @@ function installRepositoryBoundary(
     ): Promise<Array<Session>> => {
       expect(includeDeleted).toBe(true);
       expect(request.props.isRoot).toBe(true);
-      expect(request.limit).toBe(LIMIT_MAX);
+      expect(request.limit).toBe(OLDER_ROWS_PURGE_BATCH_SIZE);
       expect(request.skip).toBe(0);
       const cutoff: Date = queryCutoff(
         request.query as unknown as RetentionQuery,
@@ -134,7 +132,7 @@ function installRepositoryBoundary(
             row.refreshTokenExpiresAt && row.refreshTokenExpiresAt < cutoff,
           );
         })
-        .slice(0, LIMIT_MAX);
+        .slice(0, OLDER_ROWS_PURGE_BATCH_SIZE);
     },
   );
   const deleteRows: jest.Mock = jest.fn(
@@ -168,7 +166,7 @@ function installRepositoryBoundary(
 
 function jobRegistration(): [
   string,
-  { schedule: string; runOnStartup: boolean },
+  { schedule: string; runOnStartup: boolean; timeoutInMS?: number },
   CronHandler,
 ] {
   const registration: Array<unknown> | undefined = (
@@ -179,7 +177,7 @@ function jobRegistration(): [
   expect(registration).toBeDefined();
   return registration as [
     string,
-    { schedule: string; runOnStartup: boolean },
+    { schedule: string; runOnStartup: boolean; timeoutInMS?: number },
     CronHandler,
   ];
 }
@@ -201,6 +199,8 @@ describe("session personal data retention", () => {
     expect(jobRegistration()[1]).toEqual({
       schedule: EVERY_DAY,
       runOnStartup: false,
+      // The purge's time budget, and ten minutes for the batches still owed.
+      timeoutInMS: OLDER_ROWS_PURGE_TIME_BUDGET_MS + 10 * 60 * 1000,
     });
   });
 
@@ -241,6 +241,16 @@ describe("session personal data retention", () => {
         new Date(CUTOFF.getTime() - DAY_MS),
         { isRevoked: true, revokedAt: new Date(NOW.getTime() - 60 * DAY_MS) },
       );
+      /*
+       * The rest of a first batch (OLDER_ROWS_PURGE_BATCH_SIZE a statement):
+       * more sessions that expired long ago, so the two below go in a second.
+       */
+      const moreExpired: Array<Session> = Array.from(
+        { length: OLDER_ROWS_PURGE_BATCH_SIZE - 2 },
+        (): Session => {
+          return sessionRow(entry, new Date(CUTOFF.getTime() - DAY_MS));
+        },
+      );
       const abandonedCode: Session = sessionRow(
         entry,
         new Date(CUTOFF.getTime() - 5 * 60 * 1000),
@@ -274,6 +284,7 @@ describe("session personal data retention", () => {
       const database: RepositoryBoundary = installRepositoryBoundary(entry, [
         expired,
         revoked,
+        ...moreExpired,
         abandonedCode,
         softDeleted,
         ...retained,

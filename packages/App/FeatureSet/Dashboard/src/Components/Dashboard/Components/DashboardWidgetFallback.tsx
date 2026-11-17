@@ -152,7 +152,7 @@ const DashboardWidgetFallback: FunctionComponent<ComponentProps> = (
            * phone) for form footers; here the row's gap spaces them, so one
            * button sits exactly in the middle.
            */
-          <div className="flex flex-wrap items-center justify-center gap-2 mt-1 [&_button]:ml-0 [&_button]:w-auto">
+          <div className="flex flex-wrap items-center justify-center gap-2 mt-1">
             {offersRetry ? (
               <Button
                 title="Try again"

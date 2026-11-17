@@ -559,7 +559,7 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
             >
               <div
                 id={headingId}
-                className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-gray-400"
+                className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500"
               >
                 {translateString(group.definition.groupTitle) ||
                   group.definition.groupTitle}
@@ -686,7 +686,7 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
               >
                 <div
                   id={headingId}
-                  className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-400"
+                  className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500"
                 >
                   <Icon
                     icon={IconProp.Lock}

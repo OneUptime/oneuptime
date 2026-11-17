@@ -41,7 +41,7 @@ export const LAYERS_SAVE_BAR_SHOWN_CHANGES: number = 3;
  * them. Its buttons undo the dialog footer's left margin Button gives them.
  */
 export const LAYERS_SAVE_BAR_ACTIONS_CLASS_NAME: string =
-  "flex flex-shrink-0 flex-wrap items-center gap-2 [@container(min-width:40rem)]:justify-end [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0";
+  "flex flex-shrink-0 flex-wrap items-center gap-2 [@container(min-width:40rem)]:justify-end";
 
 /*
  * Each button of the bar. Narrower than 40rem the buttons share their row,
@@ -156,9 +156,8 @@ const LayersSaveBar: FunctionComponent<ComponentProps> = (
    * words, half the bar each, and a button goes to a row of its own only
    * when a language's words do not fit both: stacked one above the other,
    * they made the bar a third of a phone's screen, over the layers being
-   * changed. From 40rem they sit beside the words. A button keeps a dialog
-   * footer's left margin (md:ml-3) and, below md, a phone's full width:
-   * both are cleared here so the two sit as a pair.
+   * changed. From 40rem they sit beside the words. The row's gap spaces
+   * the two, so they sit as a pair.
    */
   const frame: (children: ReactElement, testId: string) => ReactElement = (
     children: ReactElement,

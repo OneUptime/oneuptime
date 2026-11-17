@@ -289,7 +289,20 @@ Pour le profileur .NET, définissez `DD_TRACE_DEBUG=1` sur l'application pendant
 | --- | --- |
 | **Où va le temps CPU** | Tous les profils de la période, fusionnés en un seul graphique en flammes. Plus un cadre est large, plus sa part est grande. Cliquez sur un cadre pour zoomer. |
 | **Fonctions** | Les fonctions qui prennent le plus, classées par **Propre** (le temps dans le propre code de la fonction), **Total** (avec tout ce qu'elle appelle) ou **Votre code** (vos propres fonctions, chacune avec le code de bibliothèque et d'exécution qu'elle appelle : le temps qu'une modification peut faire regagner). |
-| **Services profilés** | Chaque service profilé, les plus actifs d'abord. Les threads du noyau que le profileur eBPF échantillonne sont masqués. |
+| **Services profilés** | Chaque service profilé, les plus actifs d'abord, chacun avec l'endroit où passe son propre temps : son propre code qui prend le plus. Avec plusieurs services et aucun choisi, cette carte vient en premier. Les threads du noyau que le profileur eBPF échantillonne sont masqués. |
+
+### Lire un graphique en flammes
+
+Un graphique en flammes fusionne tous les profils de la période en une seule image. Chaque barre est une fonction : plus elle est large, plus sa part du temps est grande, et les barres en dessous sont les fonctions qu'elle appelle. **Comment lire ceci**, à côté du titre du graphique, l'explique sur la page.
+
+- **Propre** est le temps passé dans le propre code d'une fonction, et **Total** ajoute tout ce qu'elle appelle. Une barre large avec peu de choses en dessous fait le travail elle-même : commencez par là.
+- Les couleurs disent à qui appartient le code d'une barre : **Votre code** (orange), **Bibliothèque** (bleu), **Environnement d'exécution** (gris), **Système** (violet) et **Sans symboles** (gris clair). La liste à côté du graphique emploie les mêmes mots.
+- Une barre affiche le nom court d'une fonction, comme `aggregate.(*Builder).Sum`. Survolez-la pour voir le nom complet, son fichier et ses parts propre et totale.
+- Cliquez sur une barre pour zoomer, et appuyez sur Échap pour revenir en arrière.
+
+### Code sans symboles
+
+Le code natif compilé sans symboles n'arrive au profileur que sous forme d'adresses, comme `0x270675`. Le graphique en flammes les regroupe en une seule barre **Sans symboles** sous la fonction qui les a appelées, et indique sous le graphique quelle part n'a pas de symboles. Pour voir ces fonctions par leur nom, conservez les symboles du binaire : ne le dépouillez pas (pour Go, retirez `-ldflags="-s -w"` ; pour C, C++ et Rust, compilez avec les informations de débogage), ou installez son paquet de symboles de débogage là où tourne le profileur.
 
 ### Comparer deux périodes
 

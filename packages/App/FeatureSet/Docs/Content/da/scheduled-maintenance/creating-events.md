@@ -50,7 +50,7 @@ Vælg statussiderne under **Vis begivenhed på disse statussider**. **Notifikati
 Klik på **Næste** for at se gennemgangen, tjek den, og klik derefter på **Opret vedligeholdelseshændelse**. Begivenhedens egen side åbner.
 :::
 
-Intet sendes, før du vælger en statusside: en begivenhed, der ikke vises på nogen statusside, giver ingen abonnent besked.
+Intet sendes, før du vælger en statusside: en begivenhed, der ikke vises på nogen statusside, giver ingen abonnent besked. I modsætning til en hændelse når en begivenhed aldrig af sig selv de statussider, der viser dens monitorer: uden valg står der "Vises ikke på nogen statusside" i feltet, og gennemgangen advarer "Denne begivenhed vises ikke på nogen statusside." med de foreslåede sider ét klik væk.
 
 ## Formularens felter
 

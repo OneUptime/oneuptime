@@ -38,6 +38,7 @@ Båda fungerar med en inloggning med enbart läsbehörighet, och svarar som den 
 | `POST /api/data-observability/pipelines/lineage` | De tabeller en pipeline läser och skriver, med hur varje tabell står till nu, som dess sida ritar dem, med `{ "dataPipelineId": "<pipeline ID>", "depth": 1 }` | En API-nyckel |
 | `POST /api/data-observability/alerts/<alert ID>/lineage` | Ett datalarms härkomst, som dess sida ritar den, med vägen till larmet som orsakade det och till larmen det orsakade, och för ett larm från en kontroll av en enda kolumn dess `column` och de kolumner som varje pil bär | En API-nyckel |
 | `POST /api/data-observability/lineage/expand` | De nästa tabeller som ett kort i ett härkomstdiagram inte ritar, så som ett val av dess tal ritar dem: kortet som `nodeId` med sin `side`, och det som är ritat som `focusNodeId`, `tables` och `dataDashboardIds` | En API-nyckel |
+| `POST /api/data-observability/lineage/map` | Projektets härkomstkarta, som sidan **Härkomstkarta** ritar den: tjänsterna, tabellerna, pipelines och instrumentpanelerna som skriver och läser din data, och pilarna mellan dem, de senast sedda först | En API-nyckel |
 | `POST /api/data-observability/checks/apply` | Gör projektets kontroller likadana som en fil, som `oneuptime data-checks apply` gör, med `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` | En API-nyckel |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | En dataprodukts "data as of"-märke | Märkets egen token |
 

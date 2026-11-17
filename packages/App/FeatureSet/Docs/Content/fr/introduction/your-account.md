@@ -70,11 +70,13 @@ Dépliez **Sécurité** dans le menu latéral de **Profil utilisateur**. La sect
 
 :::steps
 1. Ouvrez **Sécurité → Gestion des mots de passe**.
-2. Saisissez le nouveau mot de passe dans **Mot de passe**, puis à nouveau dans **Confirmer le mot de passe**. Il doit compter au moins 6 caractères.
+2. Saisissez le nouveau mot de passe dans **Nouveau mot de passe**, puis à nouveau dans **Confirmer le mot de passe**. Il doit compter au moins 15 caractères et ne pas être prévisible, comme un mot de passe courant ou un motif répété : quelques mots sans rapport entre eux font très bien l'affaire. La liste de contrôle sous le champ coche chaque point au fil de la saisie.
 3. Cliquez sur **Mettre à jour le mot de passe**.
 :::
 
 Un nouveau mot de passe déconnecte tous les appareils de votre compte, et tout lien de réinitialisation ou de connexion déjà envoyé cesse de fonctionner.
+
+Toutes les pages qui définissent un mot de passe demandent la même chose : l'inscription, le lien de réinitialisation de **Mot de passe oublié ?**, cette page et **Définir le mot de passe** d'un administrateur du serveur. Un mot de passe défini avant cette règle continue de fonctionner jusqu'à ce que vous le changiez.
 
 ### Ajouter une clé d'accès
 

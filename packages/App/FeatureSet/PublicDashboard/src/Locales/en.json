@@ -27,5 +27,14 @@
   "Copy": "Copy",
   "Copied!": "Copied!",
   "Copy failed": "Copy failed",
-  "Hide": "Hide"
+  "Hide": "Hide",
+  "Dismiss": "Dismiss",
+  "Dashboard Not Found": "Dashboard Not Found",
+  "This dashboard does not exist, or it is no longer shared.": "This dashboard does not exist, or it is no longer shared.",
+  "Check the address, or ask the person who shared it with you for a new link.": "Check the address, or ask the person who shared it with you for a new link.",
+  "Access Denied": "Access Denied",
+  "This dashboard opens only from the IP addresses its owner allows, and yours is not one of them.": "This dashboard opens only from the IP addresses its owner allows, and yours is not one of them.",
+  "Ask the dashboard's owner for access, or open it from a network they allow.": "Ask the dashboard's owner for access, or open it from a network they allow.",
+  "Show more": "Show more",
+  "Show less": "Show less"
 }

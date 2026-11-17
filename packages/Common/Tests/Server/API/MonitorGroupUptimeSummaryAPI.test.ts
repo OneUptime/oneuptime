@@ -303,9 +303,9 @@ describe("GET /monitor-group/uptime-summary/:monitorGroupId", () => {
   }
 
   test("is mounted behind getUserMiddleware", () => {
-    expect(
-      mockRouter.match("GET", UPTIME_SUMMARY_ROUTE).middlewares,
-    ).toEqual([UserMiddleware.getUserMiddleware]);
+    expect(mockRouter.match("GET", UPTIME_SUMMARY_ROUTE).middlewares).toEqual([
+      UserMiddleware.getUserMiddleware,
+    ]);
   });
 
   test("returns the summary JSON for a MonitorViewer member of the group's project, never cached", async () => {
@@ -474,8 +474,7 @@ describe("GET /monitor-group/uptime-summary/:monitorGroupId", () => {
 
     expect(groupRead).toHaveBeenCalledTimes(1);
 
-    const groupArgs: CapturedRead = groupRead.mock
-      .calls[0]![0] as CapturedRead;
+    const groupArgs: CapturedRead = groupRead.mock.calls[0]![0] as CapturedRead;
 
     expect(groupArgs.id?.toString()).toBe(monitorGroupId.toString());
     expect(groupArgs.select).toEqual({ _id: true, projectId: true });

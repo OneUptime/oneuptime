@@ -9,6 +9,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import {
   act,
   cleanup,
@@ -95,9 +96,9 @@ const INCIDENTS_CARD: Array<NotificationSettingEventType> = [
 ];
 
 let rows: Array<UserNotificationSetting>;
-let getList: jest.SpiedFunction<typeof ModelAPI.getList>;
-let updateById: jest.SpiedFunction<typeof ModelAPI.updateById>;
-let create: jest.SpiedFunction<typeof ModelAPI.create>;
+let getList: SpyInstance<typeof ModelAPI.getList>;
+let updateById: SpyInstance<typeof ModelAPI.updateById>;
+let create: SpyInstance<typeof ModelAPI.create>;
 let readiness: StubbedNotificationChannelReadiness;
 let nextId: number;
 
@@ -181,10 +182,12 @@ beforeEach(() => {
     );
 
     return { data: settings, count: settings.length };
-  }) as never);
+  }) as never) as unknown as SpyInstance<typeof ModelAPI.getList>;
   updateById = jest
     .spyOn(ModelAPI, "updateById")
-    .mockResolvedValue({} as never);
+    .mockResolvedValue({} as never) as unknown as SpyInstance<
+    typeof ModelAPI.updateById
+  >;
   // The server answers a create with the new row's id.
   create = jest
     .spyOn(ModelAPI, "create")
@@ -195,7 +198,7 @@ beforeEach(() => {
         { _id: `44444444-4444-4444-8444-${String(nextId).padStart(12, "0")}` },
         {},
       );
-    }) as never);
+    }) as never) as unknown as SpyInstance<typeof ModelAPI.create>;
 });
 
 afterEach(async () => {

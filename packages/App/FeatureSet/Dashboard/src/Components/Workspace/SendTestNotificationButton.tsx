@@ -223,7 +223,7 @@ const SendTestNotificationButton: FunctionComponent<ComponentProps> = (
         )}
         isAriaLabelTranslated={true}
         dataTestId="send-test-notification-button"
-        className="!w-auto whitespace-nowrap !text-sm md:!ml-0"
+        className="whitespace-nowrap !text-sm"
         onClick={() => {
           sendTestNotification().catch((err: Exception) => {
             setError(API.getFriendlyErrorMessage(err));

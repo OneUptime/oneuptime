@@ -70,11 +70,13 @@ Fäll ut **Säkerhet** i sidomenyn i **Användarprofil**. Avsnittet har tre sido
 
 :::steps
 1. Öppna **Säkerhet → Lösenordshantering**.
-2. Ange det nya lösenordet i **Lösenord** och igen i **Bekräfta lösenord**. Det måste vara minst 6 tecken långt.
+2. Ange det nya lösenordet i **Nytt lösenord** och igen i **Bekräfta lösenord**. Det måste vara minst 15 tecken långt och inte förutsägbart, som ett vanligt lösenord eller ett upprepat mönster: några ord som inte har med varandra att göra fungerar bra. Checklistan under fältet bockar av varje del medan du skriver.
 3. Klicka på **Uppdatera lösenord**.
 :::
 
 Ett nytt lösenord loggar ut alla enheter från ditt konto, och varje återställningslänk eller inloggningslänk som redan skickats slutar fungera.
+
+Alla sidor som anger ett lösenord kräver samma sak: registreringen, återställningslänken från **Glömt lösenord?**, den här sidan och en serveradministratörs **Ange lösenord**. Ett lösenord som du angav före den här regeln fortsätter att fungera tills du ändrar det.
 
 ### Lägg till en passnyckel
 

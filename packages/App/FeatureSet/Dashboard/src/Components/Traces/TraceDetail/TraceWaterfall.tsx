@@ -555,7 +555,7 @@ const TraceWaterfall: FunctionComponent<ComponentProps> = (
                         )}
                         {isLinked && (
                           <span
-                            className="flex-none rounded-full bg-amber-100 px-1.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700"
+                            className="flex-none rounded-full bg-amber-100 px-1.5 text-xs font-semibold uppercase tracking-wide text-amber-700"
                             title={translator.translateText(
                               "This span was named in the link that opened this page",
                             )}
@@ -565,7 +565,7 @@ const TraceWaterfall: FunctionComponent<ComponentProps> = (
                         )}
                         {row.node.isSameRequest && (
                           <span
-                            className="flex-none rounded-full bg-sky-100 px-1.5 text-[10px] font-semibold uppercase tracking-wide text-sky-700"
+                            className="flex-none rounded-full bg-sky-100 px-1.5 text-xs font-semibold uppercase tracking-wide text-sky-700"
                             title={translator.translateText(
                               "The same request, recorded twice (for example by the Kubernetes agent and by an SDK in the app). Shown inside the other recording so their spans read as one.",
                             )}
@@ -576,7 +576,7 @@ const TraceWaterfall: FunctionComponent<ComponentProps> = (
                         )}
                         {row.isCollapsed && (
                           <span
-                            className="flex-none rounded bg-gray-100 px-1.5 text-[10px] font-medium tabular-nums text-gray-600"
+                            className="flex-none rounded bg-gray-100 px-1.5 text-xs font-medium tabular-nums text-gray-600"
                             title={translator.translatePlural(
                               {
                                 one: "{{count}} hidden span",

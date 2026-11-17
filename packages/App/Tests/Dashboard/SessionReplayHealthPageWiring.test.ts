@@ -55,7 +55,8 @@ describe("the Health page is reachable", () => {
       'title: "Replay Policy"',
     );
     const settingsSectionIndex: number = sideMenuSource.indexOf(
-      'SideMenuSection title="Settings"',
+      // The section after Session Replay's: Advanced, which holds Settings (#9134).
+      'SideMenuSection title="Advanced"',
     );
 
     expect(usersIndex).toBeGreaterThan(-1);

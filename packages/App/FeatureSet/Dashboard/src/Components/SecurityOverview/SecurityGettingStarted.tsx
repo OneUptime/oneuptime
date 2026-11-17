@@ -317,7 +317,7 @@ const SecurityGettingStarted: FunctionComponent<ComponentProps> = (
                 )}
           </p>
           <div
-            className="mt-4 flex flex-wrap items-center gap-2 [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0"
+            className="mt-4 flex flex-wrap items-center gap-2"
             data-testid="security-getting-started-actions"
           >
             {isAllDone ? (

@@ -2368,7 +2368,7 @@ export default class GitHubUtil extends HostedCodeRepository {
     }
 
     throw new BadDataException(
-      `GitHub did not open the pull request: ${GitHubUtil.describeGitHubError(result)}`,
+      `GitHub did not open the pull request. ${GitHubUtil.describeGitHubError(result)}`,
     );
   }
 

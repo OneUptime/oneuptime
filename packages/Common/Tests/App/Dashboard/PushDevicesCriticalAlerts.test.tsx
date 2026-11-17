@@ -13,6 +13,7 @@ import {
   within,
 } from "@testing-library/react";
 import React from "react";
+import Toast from "../../../UI/Utils/Toast";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -1157,6 +1158,33 @@ describe("a test notification says what it did on that device", () => {
     return await screen.findByTestId("confirm-modal-description");
   }
 
+  /*
+   * A browser's test: said in a toast (#9120), with no dialog to click
+   * away. Its title and words.
+   */
+  async function sendBrowserTest(
+    deviceName: string,
+  ): Promise<{ title: string; description: string }> {
+    Toast.dismissAll();
+
+    fireEvent.click(
+      within(await rowOf(deviceName)).getByRole("button", {
+        name: "Test Notification",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(Toast.getToasts()).toHaveLength(1);
+    });
+
+    expect(screen.queryByTestId("modal")).toBeNull();
+
+    return {
+      title: Toast.getToasts()[0]!.title,
+      description: String(Toast.getToasts()[0]!.description),
+    };
+  }
+
   // The dialog's buttons, as its footer draws them, left to right.
   function footerButtons(): Array<string> {
     return Array.from(
@@ -1260,11 +1288,10 @@ describe("a test notification says what it did on that device", () => {
       expect(screen.queryByTestId("modal")).toBeNull();
     });
 
-    await sendTestTo("Chrome on macOS");
+    // A browser's test is a toast, with nothing to ring through (#9120).
+    await sendBrowserTest("Chrome on macOS");
 
-    expect(
-      within(dialog()).queryByTestId("test-notification-did-not-ring"),
-    ).toBeNull();
+    expect(screen.queryByTestId("test-notification-did-not-ring")).toBeNull();
   });
 
   test("a phone with them off: the dialog that says to turn them on leads to how, for that phone", async () => {
@@ -1322,7 +1349,7 @@ describe("a test notification says what it did on that device", () => {
     });
   });
 
-  test("a phone with them on, or a browser: the dialog only closes", async () => {
+  test("a phone with them on: the dialog only closes; a browser: a toast, with nothing to close", async () => {
     render(<PushMethods />);
 
     await sendTestTo("Pixel 10");
@@ -1335,17 +1362,19 @@ describe("a test notification says what it did on that device", () => {
       expect(screen.queryByTestId("modal")).toBeNull();
     });
 
-    await sendTestTo("Chrome on macOS");
+    await sendBrowserTest("Chrome on macOS");
 
-    expect(footerButtons()).toEqual(["Close"]);
+    expect(screen.queryByTestId("modal")).toBeNull();
   });
 
   test("a browser: shown where the site may show notifications", async () => {
     render(<PushMethods />);
 
-    expect(await sendTestTo("Chrome on macOS")).toHaveTextContent(
-      "Sent to Chrome on macOS. If it doesn't appear, check that this site may show notifications in that browser, and that Do Not Disturb or Focus is off on the computer.",
-    );
+    expect(await sendBrowserTest("Chrome on macOS")).toEqual({
+      title: "Test Notification Sent",
+      description:
+        "Sent to Chrome on macOS. If it doesn't appear, check that this site may show notifications in that browser, and that Do Not Disturb or Focus is off on the computer.",
+    });
   });
 
   test("the test goes to the row's own device", async () => {
@@ -1386,19 +1415,20 @@ describe("a test notification says what it did on that device", () => {
       );
     });
 
+    Toast.dismissAll();
+
     fireEvent.click(
       within(screen.getByTestId("modal")).getByRole("button", {
         name: "Send Test Notification",
       }),
     );
 
+    // A toast, not a dialog to click away (#9120).
     await waitFor(() => {
-      expect(screen.getByTestId("modal-title")).toHaveTextContent(
-        "Test Notification Sent",
-      );
+      expect(Toast.getToasts()[0]?.title).toBe("Test Notification Sent");
     });
 
-    expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
+    expect(String(Toast.getToasts()[0]?.description)).toBe(
       "Sent to Chrome on Windows. If it doesn't appear, check that this site may show notifications in that browser, and that Do Not Disturb or Focus is off on the computer.",
     );
   });
@@ -1609,13 +1639,26 @@ describe("a test notification says what the server sent, not what the list showe
     await rowOf("Chrome on macOS");
     const readsBefore: number = deviceListReads().length;
 
-    const description: HTMLElement = await sendTestTo("Chrome on macOS");
+    Toast.dismissAll();
 
-    expect(description).toHaveTextContent(
+    fireEvent.click(
+      within(await rowOf("Chrome on macOS")).getByRole("button", {
+        name: "Test Notification",
+      }),
+    );
+
+    // A toast, not a dialog to click away (#9120).
+    await waitFor(() => {
+      expect(Toast.getToasts()).toHaveLength(1);
+    });
+
+    const description: string = String(Toast.getToasts()[0]!.description);
+
+    expect(description).toContain(
       "Sent to Chrome on macOS. If it doesn't appear, check that this site may show notifications in that browser",
     );
-    expect(description).not.toHaveTextContent("critical alert");
-    expect(footerButtons()).toEqual(["Close"]);
+    expect(description).not.toContain("critical alert");
+    expect(screen.queryByTestId("modal")).toBeNull();
     expect(deviceListReads().length).toBe(readsBefore);
   });
 

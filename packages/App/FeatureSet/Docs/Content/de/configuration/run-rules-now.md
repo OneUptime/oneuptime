@@ -35,7 +35,7 @@ Die Regeln eines Netzwerks verlangen dasselbe, wenn Sie sie auf die Geräte anwe
 :::steps
 ### Die Regelliste öffnen
 
-Öffnen Sie die Regelseite, zum Beispiel **Monitore → Einstellungen → Beschriftungsregeln**.
+Öffnen Sie die Regelseite, zum Beispiel **Monitore → Regeln → Beschriftungsregeln**.
 
 ### Jetzt ausführen wählen
 

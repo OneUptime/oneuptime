@@ -21,8 +21,9 @@ import Icon from "../Icon/Icon";
 import ConfirmModal from "../Modal/ConfirmModal";
 import Modal from "../Modal/Modal";
 import Dropdown, { DropdownOption, DropdownValue } from "../Dropdown/Dropdown";
-import {
+import Button, {
   BUTTON_DISABLED_CURSOR_CLASS_NAME,
+  ButtonSize,
   ButtonStyleType,
 } from "../Button/Button";
 import { getHandDrawnButtonStateClassName } from "../Button/ButtonStates";
@@ -813,8 +814,10 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
                                 value={selectedUserOption || undefined}
                               />
                             </div>
-                            <button
-                              type="button"
+                            <Button
+                              title="Save"
+                              buttonStyle={ButtonStyleType.PRIMARY}
+                              buttonSize={ButtonSize.Small}
                               onClick={() => {
                                 if (selectedUserOption) {
                                   handleAssign(
@@ -825,24 +828,9 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
                                   );
                                 }
                               }}
-                              disabled={!selectedUserOption || isAssigning}
-                              className={`inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 border border-transparent rounded-md transition-colors ${getHandDrawnButtonStateClassName(
-                                {
-                                  isLocked: !selectedUserOption,
-                                  isBusy: isAssigning,
-                                  hoverClassName: "hover:bg-indigo-700",
-                                },
-                              )}`}
-                            >
-                              {isAssigning ? (
-                                <Icon
-                                  icon={IconProp.Refresh}
-                                  className="w-3.5 h-3.5 animate-spin"
-                                />
-                              ) : (
-                                translator.translateText("Save")
-                              )}
-                            </button>
+                              disabled={!selectedUserOption}
+                              isLoading={isAssigning}
+                            />
                             <button
                               type="button"
                               onClick={() => {
@@ -861,7 +849,7 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
                     {/* Members List */}
                     <div className="px-4 py-2 bg-white">
                       {members.length === 0 ? (
-                        <p className="text-sm text-gray-400 italic py-2">
+                        <p className="text-sm text-gray-500 italic py-2">
                           {translator.translateText("Not assigned")}
                         </p>
                       ) : (

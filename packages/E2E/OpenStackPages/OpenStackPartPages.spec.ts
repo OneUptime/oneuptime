@@ -1,4 +1,5 @@
 import { Locator, Page } from "@playwright/test";
+import { NO_BREAK_SPACE } from "../SuiteHelpers/NoBreakSpaces";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import {
   CLOUD_PATH,
@@ -342,6 +343,9 @@ test.describe("compute", () => {
   });
 });
 
+// A count of days held to its figure, as a page draws a duration (#8811).
+const FORECAST_DAYS: RegExp = new RegExp(`~\\d+${NO_BREAK_SPACE}days?`);
+
 test.describe("network", () => {
   test("external pools come first, a full one says so, and its page says what stops working", async ({
     page,
@@ -410,7 +414,7 @@ test.describe("network", () => {
     page: Page;
   }) => {
     await openCloudPage(page, "networks", PARTS);
-    await expect(rowOf(page, "public-dmz")).toContainText(/~\d+ days?/);
+    await expect(rowOf(page, "public-dmz")).toContainText(FORECAST_DAYS);
   });
 
   test("a subnet steps to its network", async ({ page }: { page: Page }) => {
@@ -659,7 +663,7 @@ test.describe("storage", () => {
     );
     await expect(
       page.getByTestId("openstack-storage-pool-tiles"),
-    ).toContainText(/~\d+ days?/);
+    ).toContainText(FORECAST_DAYS);
 
     await openCloudPage(page, "storage-pools", HEALTHY_OVS);
     await expect(page.locator("tbody tr").first()).toContainText("Has room");

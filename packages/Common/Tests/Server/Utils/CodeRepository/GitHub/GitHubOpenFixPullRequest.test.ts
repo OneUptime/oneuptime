@@ -177,7 +177,7 @@ describe("GitHubUtil.openFixPullRequest", () => {
     );
 
     await expect(GitHubUtil.openFixPullRequest(ARGS)).rejects.toThrow(
-      "GitHub did not open the pull request: Validation Failed (head invalid)",
+      "GitHub did not open the pull request. Validation Failed (head invalid)",
     );
     expect(getSpy).not.toHaveBeenCalled();
   });

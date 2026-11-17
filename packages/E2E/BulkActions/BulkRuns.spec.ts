@@ -26,7 +26,7 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 const PROJECT: string = "/dashboard/10000000-0000-4000-8000-000000000001";
 const USERS: string = "/admin/users?page=users";
-const SUBSCRIBERS: string = `${PROJECT}/status-pages/30000000-0000-4000-8000-000000000001/email-subscribers?page=subscribers`;
+const SUBSCRIBERS: string = `${PROJECT}/status-pages/30000000-0000-4000-8000-000000000001/subscribers?page=subscribers`;
 
 const PAYMENTS: string = "90000000-0000-4000-8000-000000000001";
 const PAYMENTS_MEMBERS: string = "91000000-0000-4000-8000-000000000001";

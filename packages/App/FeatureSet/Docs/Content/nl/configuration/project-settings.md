@@ -40,7 +40,7 @@ flowchart LR
 | **Beveiliging** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Facturering en facturen** | **Facturering**, **Facturen** | [Facturering en gebruik](/docs/configuration/billing) |
 | **Auditlogboeken** | **Auditlogboeken**, **Instellingen**, **Export** | [Auditlogboeken](/docs/configuration/audit-logs), [Export van auditlogboek](/docs/configuration/audit-log-export) |
-| **Gevarenzone** | **Gevarenzone** | [Het project verwijderen](#het-project-verwijderen) |
+| **Gevarenzone** | **Project verwijderen** | [Het project verwijderen](#het-project-verwijderen) |
 
 **Facturering en facturen** en **AI-tegoeden** bestaan alleen in OneUptime Cloud: een zelf gehoste installatie heeft geen facturering.
 
@@ -64,7 +64,7 @@ Een verborgen product is niet uitgeschakeld. Het verhuist naar **Meer producten*
 
 Op een zelf gehoste server kan een hoofdbeheerder een product ook voor alle projecten uitschakelen, onder **Instellingen → Producten** in het Admin Dashboard (zie [Draai alleen wat u nodig hebt](/docs/installation/docker-compose#draai-alleen-wat-u-nodig-hebt)). Zo'n product heeft hier geen schakelaar: het toont **Uitgeschakeld op deze server**, met wie het kan inschakelen.
 
-Elk product wordt getoond tot iemand het hier verbergt. Geen product wordt vanzelf verborgen: waarvoor het project volgens de eigenaar op Start bedoeld is, richt daar alleen de eerste stappen in, en een product dat nog niet is ingesteld, blijft op zijn plek in het menu.
+Elk product wordt getoond tot iemand het hier verbergt. Geen product wordt vanzelf verborgen: waarvoor het project volgens een Projecteigenaar of Projectbeheerder op Start bedoeld is, richt daar alleen de eerste stappen in, en een product dat nog niet is ingesteld, blijft op zijn plek in het menu.
 
 Elk product zegt wat het voor dit project is: **In gebruik**, **Niet ingesteld** of, in OneUptime Cloud, het abonnement dat het nodig heeft. Zodra een verborgen product gegevens ontvangt, meldt Start dat aan de Projecteigenaren en Projectbeheerders en biedt **Tonen** of **Verborgen houden** aan.
 
@@ -113,7 +113,7 @@ Een project verwijderen verwijdert alles erin, voor elk lid: de monitors, incide
 :::steps
 ### De gevarenzone openen
 
-Ga naar **Projectinstellingen → Gevarenzone**.
+Ga naar **Projectinstellingen → Gevarenzone → Project verwijderen**.
 
 ### Op Project verwijderen klikken
 

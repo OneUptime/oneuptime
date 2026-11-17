@@ -408,10 +408,15 @@ const CREDENTIAL_REFERENCES: Array<[string, string, string]> = [
 /*
  * Models that hold a secret - an encrypted or a hashed column - that a write
  * may name and that are neither read one by one nor one of the settings
- * above, and why. May only shrink.
+ * above, and why. May only shrink. A person's webhook has been named so all
+ * along, as one of their notification methods (REFERENCED_AS_A_WHOLE_TABLE);
+ * it is here since its signing secret is kept encrypted, which the sweep
+ * reads.
  */
 const SECRETS_NAMED_WITHOUT_A_READ: Record<string, string> = {
   User: "People are held to membership of the project; their password is never read back by anyone.",
+  UserWebhook:
+    "A person's own webhook: a notification rule names only methods of the person it belongs to (UserNotificationRuleService's method-ownership check), so its signing secret signs only their own notifications, and no caller reads it through the rule.",
 };
 
 interface WritableReference {

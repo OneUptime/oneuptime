@@ -137,7 +137,7 @@ const DOCUMENTED_GOOGLE_SECOPS_REGIONS: Array<string> = [
 ];
 
 const RESELLER_GATE_MESSAGE: string =
-  "Looks like you have bought this plan from a reseller. It did not include telemetry features in your plan. Telemetry features are disabled for this project.";
+  '<ResellerPlanNotice\n        project={props.currentProject}\n        product="Security Events"\n      />';
 
 const REPO_ROOT: string = nodePath.join(__dirname, "..", "..", "..", "..");
 

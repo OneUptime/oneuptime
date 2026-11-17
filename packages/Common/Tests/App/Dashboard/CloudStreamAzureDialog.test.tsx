@@ -66,7 +66,6 @@ import CloudStreamAzureDialog from "../../../../App/FeatureSet/Dashboard/src/Com
 import {
   CLOUD_STREAM_COMMAND_MAX_HEIGHT,
   CLOUD_STREAM_DIALOG_TEST_ID,
-  CLOUD_STREAM_STEP_BUTTON_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudStreamParts";
 import { CLOUD_STREAM_POLL_MS } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudConnectApi";
 import {
@@ -555,8 +554,8 @@ describe("the dialog", () => {
     expect(postSpy).not.toHaveBeenCalled();
 
     // The step's own button starts where its words start, not a footer's margin in.
-    expect(part("start-reading")).toHaveClass(
-      CLOUD_STREAM_STEP_BUTTON_CLASS_NAME,
+    expect(part("start-reading").className).not.toMatch(
+      /(^|\s)(md:)?!?m[ls]-/u,
     );
     expect(steps[0]).toHaveTextContent(
       "Every minute, OneUptime reads the event hubs the command makes, signed in as the connection's app. Turn reading on first: until they are there, it waits for them.",

@@ -5,6 +5,10 @@ import { STATUS_PAGE_API_URL } from "../../Utils/Config";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import StatusPageUtil from "../../Utils/StatusPage";
+import {
+  HISTORY_WINDOW_WORDS,
+  readHistoryInDays,
+} from "../../Utils/HistoryWindow";
 import PageComponentProps from "../PageComponentProps";
 import { getAnnouncementEventItem } from "./Detail";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -34,12 +38,21 @@ import React, {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
+import { Translator } from "Common/Types/Translator";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { DEFAULT_STATUS_PAGE_HISTORY_IN_DAYS } from "Common/Utils/StatusPage/HistoryWindow";
 import useAsyncEffect from "use-async-effect";
 
 const Overview: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const { t } = useTranslation();
+  const translator: Translator = useTranslator();
+
+  // How many days of history the server sent: what the page names.
+  const [historyInDays, setHistoryInDays] = useState<number>(
+    DEFAULT_STATUS_PAGE_HISTORY_IN_DAYS,
+  );
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [announcements, setAnnouncements] = useState<
@@ -84,6 +97,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
         throw response;
       }
       const data: JSONObject = response.data;
+
+      setHistoryInDays(readHistoryInDays(data));
 
       const announcements: Array<StatusPageAnnouncement> =
         BaseModel.fromJSONArray(
@@ -265,7 +280,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
       {pastAnnouncementsParsedData?.items &&
       pastAnnouncementsParsedData?.items.length > 0 ? (
         <div>
-          <Section title={t("announcements.past")} />
+          <Section
+            title={translator.translatePlural(
+              HISTORY_WINDOW_WORDS.endedAnnouncements,
+              historyInDays,
+            )}
+          />
           <EventHistoryList items={pastAnnouncementsParsedData?.items || []} />
         </div>
       ) : (
@@ -274,9 +294,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
       {announcements.length === 0 ? (
         <EmptyState
-          paddingClassName="py-12 sm:py-16"
           id="announcements-empty-state"
-          title={t("announcements.none")}
+          title={translator.translatePlural(
+            HISTORY_WINDOW_WORDS.noAnnouncements,
+            historyInDays,
+          )}
           description={t("announcements.noneDescription")}
           icon={IconProp.Announcement}
         />

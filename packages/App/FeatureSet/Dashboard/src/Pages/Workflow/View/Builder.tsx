@@ -118,16 +118,6 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 
 /*
- * The toolbar's two buttons: spaced by their row's gap, not by the start
- * margin a button keeps from md up (md:ml-3, the start of the line in
- * either reading direction), which would indent whichever one starts a row
- * once the toolbar wraps.
- */
-const TOOLBAR_BUTTON_STYLE: React.CSSProperties = {
-  marginInlineStart: "0px",
-};
-
-/*
  * The revision of the graph a workflow was read at (Workflow.graphRevision),
  * or null when it did not say: a save then says nothing of the graph it was
  * made to, and is made over whatever the workflow holds, as before.
@@ -842,18 +832,12 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
               <></>
             )}
             {/*
-             * On a phone each button takes a row of its own, as wide as the
-             * toolbar, rather than either label breaking over two lines
-             * inside its button. Neither keeps the left margin a button has
-             * of its own (md:ml-3): the row's gap spaces them, and a button
-             * that starts a row (a tablet, a phone) lines up with the switch
-             * above it instead of starting indented. A locked button sits in
-             * the span that carries its reason (Button's tooltip wrapper),
-             * which is as wide as the button below md too, so a view's
-             * locked Add Trigger is no narrower than Run Workflow.
+             * The buttons share a row while they fit, on a phone too, and
+             * wrap a whole button at a time: a label never breaks inside its
+             * button (whitespace-nowrap). The row's gap spaces them, and a
+             * button that starts a row lines up with the switch above it.
              */}
             <div
-              className="[&>span]:w-full md:[&>span]:w-auto"
               data-testid="workflow-toolbar-buttons"
               style={{
                 display: "flex",
@@ -882,7 +866,6 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       : ButtonStyleType.PRIMARY
                   }
                   className="whitespace-nowrap"
-                  style={TOOLBAR_BUTTON_STYLE}
                   disabled={isViewOnly}
                   tooltip={editLockedReason}
                   dataTestId="workflow-add-button"
@@ -902,7 +885,6 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 icon={IconProp.Play}
                 buttonStyle={ButtonStyleType.SUCCESS_OUTLINE}
                 className="whitespace-nowrap"
-                style={TOOLBAR_BUTTON_STYLE}
                 disabled={Boolean(runLockedReason)}
                 tooltip={runLockedReason}
                 dataTestId="run-workflow-button"

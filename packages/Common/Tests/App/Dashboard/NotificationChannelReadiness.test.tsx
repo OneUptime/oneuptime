@@ -7,6 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock, SpyInstance } from "jest-mock";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import React, { ReactElement } from "react";
 import NotificationChannelReadiness, {
@@ -366,9 +367,9 @@ describe("a channel's name", () => {
 
 describe("the reads the answer is made from", () => {
   let counts: Map<string, number | Error>;
-  let countSpy: jest.SpiedFunction<typeof ModelAPI.count>;
-  let getItemSpy: jest.SpiedFunction<typeof ModelAPI.getItem>;
-  let fetchVarsSpy: jest.SpiedFunction<typeof GlobalConfigUtil.fetchVars>;
+  let countSpy: SpyInstance<typeof ModelAPI.count>;
+  let getItemSpy: SpyInstance<typeof ModelAPI.getItem>;
+  let fetchVarsSpy: SpyInstance<typeof GlobalConfigUtil.fetchVars>;
 
   const MODELS: Array<[NotificationChannelKey, { new (): unknown }]> = [
     ["alertByEmail", UserEmail],
@@ -411,7 +412,7 @@ describe("the reads the answer is made from", () => {
         project.enableWhatsAppNotifications = true;
         project.enableTelegramNotifications = false;
         return project;
-      }) as never);
+      }) as never) as unknown as SpyInstance<typeof ModelAPI.getItem>;
     fetchVarsSpy = jest.spyOn(GlobalConfigUtil, "fetchVars").mockResolvedValue({
       disableUserProjectCreation: false,
       disablePushNotifications: true,
@@ -601,7 +602,7 @@ describe("useNotificationChannelReadiness", () => {
   });
 
   test("with no project or person there is nothing to ask", async () => {
-    const fetcher: jest.Mock<() => Promise<ChannelReadinessFacts>> = jest.fn(
+    const fetcher: Mock<() => Promise<ChannelReadinessFacts>> = jest.fn(
       async (): Promise<ChannelReadinessFacts> => {
         return facts();
       },

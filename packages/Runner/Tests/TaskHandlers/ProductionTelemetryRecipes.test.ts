@@ -89,6 +89,7 @@ function subjectDetails(
     subjectTitle: "Checkout latency spike",
     analysisMarkdown: "## Analysis\nThe cart total query runs once per item.",
     serviceName: "cart-api",
+    subjectIsPrivate: false,
     repositories: [REPOSITORY],
     resolutionError: null,
     traceId:

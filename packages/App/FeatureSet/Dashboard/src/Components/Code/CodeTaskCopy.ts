@@ -179,6 +179,29 @@ export const CODE_TASK_ORIGIN_SENTENCES: Record<CodeTaskOriginType, string> = {
 };
 
 /*
+ * What kind of thing started a task, over its name in the task's Details
+ * ("Exception", then "TypeError: x is undefined"). Empty for a person's
+ * request and for an origin OneUptime cannot name: Details then says
+ * nothing of where it started.
+ */
+export const CODE_TASK_ORIGIN_KINDS: Record<CodeTaskOriginType, string> = {
+  [CodeTaskOriginType.Request]: "",
+  [CodeTaskOriginType.Exception]: translationKey("Exception"),
+  [CodeTaskOriginType.Incident]: translationKey("Incident"),
+  [CodeTaskOriginType.Alert]: translationKey("Alert"),
+  [CodeTaskOriginType.Trace]: translationKey("Slow Trace"),
+  [CodeTaskOriginType.Service]: translationKey("Service"),
+  [CodeTaskOriginType.Insight]: translationKey("AI Insight"),
+  [CodeTaskOriginType.GitHubIssue]: translationKey("GitHub Issue"),
+  [CodeTaskOriginType.GitHubPullRequest]: translationKey("GitHub Pull Request"),
+  [CodeTaskOriginType.GitLabMergeRequest]: translationKey(
+    "GitLab Merge Request",
+  ),
+  [CodeTaskOriginType.CodeHostPullRequest]: translationKey("Pull Request"),
+  [CodeTaskOriginType.Unknown]: "",
+};
+
+/*
  * Who asked, in a list row's meta line. A task OneUptime started is named
  * by its kind there ("Fix Exception"); its title already names the record.
  */

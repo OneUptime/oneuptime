@@ -42,6 +42,7 @@ import {
   getResourceInvestigationSummary,
   parseResourceAiLogs,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiLogs";
+import { COMMAND_JOBS_NONE_YOU_CAN_SEE } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/CommandJobsHidden";
 import {
   ResourceAiAgentDescriptor,
   getResourceAiAgentDescriptor,
@@ -519,6 +520,20 @@ describe("parseResourceAiLogs", () => {
     expect(parsed.investigations[1]!.reportSummary).toBeNull();
   });
 
+  test("reads how many commands the reader may not read, and anything else as none", () => {
+    expect(
+      parseResourceAiLogs({ ...fullLogs(), hiddenCommandCount: 5 })!
+        .hiddenCommandCount,
+    ).toBe(5);
+
+    for (const value of [undefined, null, 0, -2, 1.5, "3", Number.NaN]) {
+      expect(
+        parseResourceAiLogs({ ...fullLogs(), hiddenCommandCount: value })!
+          .hiddenCommandCount,
+      ).toBe(0);
+    }
+  });
+
   test("drops rows without an id, and reads ids in the serialized envelope", () => {
     expect(
       parseResourceAiLogs({
@@ -542,6 +557,8 @@ describe("parseResourceAiLogs", () => {
         },
       ],
       fixes: [],
+      // The route said nothing of commands left out: none.
+      hiddenCommandCount: 0,
     });
   });
 });
@@ -1133,6 +1150,70 @@ describe("the commands table", () => {
       await findText(toHeadline(getResourceCommandsEmptyMessage(CEPH))),
     ).toBeInTheDocument();
     expect(screen.getAllByText("ceph commands").length).toBeGreaterThan(0);
+    // It leaves nothing out, and says nothing of it.
+    expect(
+      screen.queryByTestId("resource-command-jobs-hidden-note"),
+    ).not.toBeInTheDocument();
+  });
+
+  /*
+   * A job of an AI run is read only by those who may read the run, and a
+   * private incident's or alert's only by those who see it (#9155): the
+   * table lists what the reader may read, and says how many it leaves out.
+   */
+  test("says how many commands it leaves out, and why, over the ones it lists", async () => {
+    jobs = [makeJob("investigation", { aiRunId: new ObjectID(RUN_ID) })];
+    serve(ok({ ...fullLogs(), hiddenCommandCount: 3 }));
+    openLogsPage();
+
+    expect(await findText("ceph osd tree investigation")).toBeInTheDocument();
+
+    const note: HTMLElement = await findTestId(
+      "resource-command-jobs-hidden-note",
+    );
+
+    expect(note).toHaveTextContent(
+      "3 commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open.",
+    );
+    // Only the number: no command it leaves out is named.
+    expect(note).not.toHaveTextContent("ceph");
+  });
+
+  test("says it of one command as one", async () => {
+    serve(ok({ ...fullLogs(), hiddenCommandCount: 1 }));
+    openLogsPage();
+
+    expect(
+      await findTestId("resource-command-jobs-hidden-note"),
+    ).toHaveTextContent(
+      "1 command that ran here isn't listed: it was run for an AI chat, incident or alert you can't open.",
+    );
+  });
+
+  test("with every command left out, says there are none the reader can see, not that none ran", async () => {
+    serve(ok({ ...emptyLogs(), hiddenCommandCount: 2 }));
+    openLogsPage();
+
+    expect(
+      await findText(toHeadline(COMMAND_JOBS_NONE_YOU_CAN_SEE)),
+    ).toBeInTheDocument();
+    expect(
+      await findTestId("resource-command-jobs-hidden-note"),
+    ).toHaveTextContent("2 commands that ran here aren't listed");
+    expect(
+      screen.queryByText(toHeadline(getResourceCommandsEmptyMessage(CEPH))),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a reader who may not read Runner jobs is told that, not a count", async () => {
+    grant([...BASE_PERMISSIONS, Permission.ReadCephCluster]);
+    serve(ok({ ...fullLogs(), hiddenCommandCount: 4 }));
+    openLogsPage();
+
+    await findTestId("resource-command-jobs-permission-note");
+    expect(
+      screen.queryByTestId("resource-command-jobs-hidden-note"),
+    ).not.toBeInTheDocument();
   });
 
   for (const permission of [

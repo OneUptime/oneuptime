@@ -3,6 +3,7 @@ import DatabaseService from "Common/Server/Services/DatabaseService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
+import { SeededRandom, seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import { OwnerNotificationPage } from "../../../FeatureSet/Workers/Utils/OwnerNotificationBacklog";
 import PreviousTimelineEntries, {
   PREVIOUS_ENTRIES_READ_AT_MOST,
@@ -215,11 +216,7 @@ afterEach(() => {
 describe("each state change's previous entry, read with its page", () => {
   test("is what a read of its own answers, for monitors interleaved on one page - entries off the page and ties included", async () => {
     // A fixed seed: the same timelines every run.
-    let seed: number = 42;
-    const random: () => number = (): number => {
-      seed = (seed * 1103515245 + 12345) % 2147483648;
-      return seed / 2147483648;
-    };
+    const random: SeededRandom = seededRandom(42);
 
     for (let scenario: number = 0; scenario < 40; scenario++) {
       table = [];

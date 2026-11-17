@@ -27,6 +27,7 @@ import {
 } from "./WorkspaceSummaryCopy";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import Toast from "Common/UI/Utils/Toast";
 import WorkspaceNotificationSummary from "Common/Models/DatabaseModels/WorkspaceNotificationSummary";
 import WorkspaceNotificationSummaryType from "Common/Types/Workspace/NotificationSummary/WorkspaceNotificationSummaryType";
 import WorkspaceNotificationSummaryItem from "Common/Types/Workspace/NotificationSummary/WorkspaceNotificationSummaryItem";
@@ -162,7 +163,7 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
     WorkspaceNotificationSummary | undefined
   >(undefined);
   /*
-   * What the test came to, once it is sent: Summary Sent, or Test Failed
+   * What a test that failed came to (Summary Sent is a toast): Test Failed
    * with what the server said - each channel the summary was not posted
    * in, and why. A test that failed in one channel may have been posted in
    * the others, so it is reported, not offered again to send.
@@ -382,7 +383,20 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
 
       if (response.isSuccess()) {
         setShowTestModal(false);
-        setShowTestResultModal(true);
+        setTestSummary(undefined);
+        /*
+         * Said in the corner: Summary Sent was a dialog to click away
+         * (#9120). Test Failed stays a dialog, to be read.
+         */
+        Toast.success(
+          translator.translateText("Summary Sent") || "Summary Sent",
+          {
+            description: translator.translateTemplate(
+              "The test summary was sent successfully. Check your {{workspace}} channel to see how it looks.",
+              { workspace: workspaceName },
+            ),
+          },
+        );
       }
     } catch (err) {
       setTestChannels(
@@ -1211,22 +1225,15 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
        * A failure says how many channels did not get the test, lists each
        * under why (WorkspaceSummaryTestFailure), then what to do next.
        */}
-      {showTestResultModal ? (
+      {showTestResultModal && testError ? (
         <ConfirmModal
-          title={testError ? `Test Failed` : `Summary Sent`}
+          title={`Test Failed`}
           error={testFailureLead}
           description={
-            testError ? (
-              hasTestChannelsNotPostedIn ? (
-                <WorkspaceSummaryTestFailure channels={testChannels} />
-              ) : (
-                getWorkspaceSummaryTestNextStep(translator, 1)
-              )
+            hasTestChannelsNotPostedIn ? (
+              <WorkspaceSummaryTestFailure channels={testChannels} />
             ) : (
-              translator.translateTemplate(
-                "The test summary was sent successfully. Check your {{workspace}} channel to see how it looks.",
-                { workspace: workspaceName },
-              )
+              getWorkspaceSummaryTestNextStep(translator, 1)
             )
           }
           submitButtonType={ButtonStyleType.NORMAL}

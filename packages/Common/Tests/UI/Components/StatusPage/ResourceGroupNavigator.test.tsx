@@ -1100,8 +1100,8 @@ describe("ResourceGroupNavigator", () => {
         "status-page-resource-navigator-name",
       );
 
-      expect(match.className).not.toContain("text-gray-400");
-      expect(context.className).toContain("text-gray-400");
+      expect(match.className).not.toContain("text-gray-500");
+      expect(context.className).toContain("text-gray-500");
     });
 
     test("with no search running, every row is drawn as itself", () => {

@@ -1247,12 +1247,13 @@
     "kind": "setting"
   },
   {
-    "title": "Danger Zone",
+    "title": "Delete Project",
     "where": [
-      "Project Settings"
+      "Project Settings",
+      "Danger Zone"
     ],
     "keywords": [
-      "delete project",
+      "danger zone",
       "remove project"
     ],
     "path": "/dashboard/:projectId/settings/danger-zone",
@@ -1304,6 +1305,18 @@
     "kind": "page"
   },
   {
+    "title": "Disabled",
+    "where": [
+      "Monitors"
+    ],
+    "keywords": [
+      "disabled monitors",
+      "paused monitors"
+    ],
+    "path": "/dashboard/:projectId/monitors/disabled",
+    "kind": "page"
+  },
+  {
     "title": "Not Operational",
     "where": [
       "Monitors",
@@ -1318,32 +1331,29 @@
     "kind": "page"
   },
   {
-    "title": "Disabled",
+    "title": "Probes Disconnected",
     "where": [
       "Monitors",
       "Attention Required"
     ],
     "keywords": [
-      "disabled monitors",
-      "paused monitors"
-    ],
-    "path": "/dashboard/:projectId/monitors/disabled",
-    "kind": "page"
-  },
-  {
-    "title": "Probe Disconnected",
-    "where": [
-      "Monitors",
-      "Attention Required"
+      "probe disconnected",
+      "offline probes"
     ],
     "path": "/dashboard/:projectId/monitors/probe-disconnected",
     "kind": "page"
   },
   {
-    "title": "Probe Disabled",
+    "title": "No Probe Enabled",
     "where": [
       "Monitors",
       "Attention Required"
+    ],
+    "keywords": [
+      "probe disabled",
+      "probes not enabled",
+      "not checked by any probe",
+      "unmonitored monitors"
     ],
     "path": "/dashboard/:projectId/monitors/probe-disabled",
     "kind": "page"
@@ -1386,6 +1396,32 @@
       "mattermost notifications"
     ],
     "path": "/dashboard/:projectId/monitors/workspace-connection-mattermost",
+    "kind": "page"
+  },
+  {
+    "title": "Owner Rules",
+    "where": [
+      "Monitors",
+      "Rules"
+    ],
+    "keywords": [
+      "assign owners automatically",
+      "default owners"
+    ],
+    "path": "/dashboard/:projectId/monitors/settings/owner-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Label Rules",
+    "where": [
+      "Monitors",
+      "Rules"
+    ],
+    "keywords": [
+      "add labels automatically",
+      "auto label"
+    ],
+    "path": "/dashboard/:projectId/monitors/settings/label-rules",
     "kind": "page"
   },
   {
@@ -1480,32 +1516,6 @@
       "monitor templates"
     ],
     "path": "/dashboard/:projectId/monitors/settings/templates",
-    "kind": "page"
-  },
-  {
-    "title": "Owner Rules",
-    "where": [
-      "Monitors",
-      "Settings"
-    ],
-    "keywords": [
-      "assign owners automatically",
-      "default owners"
-    ],
-    "path": "/dashboard/:projectId/monitors/settings/owner-rules",
-    "kind": "page"
-  },
-  {
-    "title": "Label Rules",
-    "where": [
-      "Monitors",
-      "Settings"
-    ],
-    "keywords": [
-      "add labels automatically",
-      "auto label"
-    ],
-    "path": "/dashboard/:projectId/monitors/settings/label-rules",
     "kind": "page"
   },
   {
@@ -2863,14 +2873,39 @@
   {
     "title": "Announcements",
     "where": [
-      "Status Pages",
-      "More"
+      "Status Pages"
     ],
     "keywords": [
       "status page notice",
       "post an update"
     ],
     "path": "/dashboard/:projectId/status-pages/announcements",
+    "kind": "page"
+  },
+  {
+    "title": "Owner Rules",
+    "where": [
+      "Status Pages",
+      "Rules"
+    ],
+    "keywords": [
+      "assign owners automatically",
+      "default owners"
+    ],
+    "path": "/dashboard/:projectId/status-pages/settings/owner-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Label Rules",
+    "where": [
+      "Status Pages",
+      "Rules"
+    ],
+    "keywords": [
+      "add labels automatically",
+      "auto label"
+    ],
+    "path": "/dashboard/:projectId/status-pages/settings/label-rules",
     "kind": "page"
   },
   {
@@ -2902,32 +2937,6 @@
       "Settings"
     ],
     "path": "/dashboard/:projectId/status-pages/settings/custom-fields",
-    "kind": "page"
-  },
-  {
-    "title": "Owner Rules",
-    "where": [
-      "Status Pages",
-      "Settings"
-    ],
-    "keywords": [
-      "assign owners automatically",
-      "default owners"
-    ],
-    "path": "/dashboard/:projectId/status-pages/settings/owner-rules",
-    "kind": "page"
-  },
-  {
-    "title": "Label Rules",
-    "where": [
-      "Status Pages",
-      "Settings"
-    ],
-    "keywords": [
-      "add labels automatically",
-      "auto label"
-    ],
-    "path": "/dashboard/:projectId/status-pages/settings/label-rules",
     "kind": "page"
   },
   {
@@ -4949,6 +4958,20 @@
       "source and copy"
     ],
     "path": "/dashboard/:projectId/data-observability/reconciliations",
+    "kind": "page"
+  },
+  {
+    "title": "Lineage Map",
+    "where": [
+      "Data Observability",
+      "Usage"
+    ],
+    "keywords": [
+      "data lineage",
+      "data flow",
+      "who reads this table"
+    ],
+    "path": "/dashboard/:projectId/data-observability/lineage",
     "kind": "page"
   },
   {
@@ -8784,7 +8807,8 @@
   {
     "title": "On-Call Logs",
     "where": [
-      "User Settings"
+      "User Settings",
+      "Paging & Calls"
     ],
     "keywords": [
       "my pages",
@@ -8797,7 +8821,10 @@
     "title": "Incoming Phone Numbers",
     "where": [
       "User Settings",
-      "Incoming Call Policy"
+      "Paging & Calls"
+    ],
+    "keywords": [
+      "incoming call policy"
     ],
     "path": "/dashboard/:projectId/user-settings/incoming-call-phone-numbers",
     "kind": "page"
@@ -8806,7 +8833,7 @@
     "title": "Phone Numbers for Incoming Call Routing",
     "where": [
       "User Settings",
-      "Incoming Call Policy",
+      "Paging & Calls",
       "Incoming Phone Numbers"
     ],
     "path": "/dashboard/:projectId/user-settings/incoming-call-phone-numbers",
@@ -8816,7 +8843,7 @@
     "title": "Calendar Feed",
     "where": [
       "User Settings",
-      "Calendar"
+      "Profile & Calendar"
     ],
     "keywords": [
       "ical",
@@ -8830,7 +8857,7 @@
     "title": "Subscribe to your on-call shifts",
     "where": [
       "User Settings",
-      "Calendar",
+      "Profile & Calendar",
       "Calendar Feed"
     ],
     "path": "/dashboard/:projectId/user-settings/calendar-feed",
@@ -8840,7 +8867,7 @@
     "title": "Upcoming shifts",
     "where": [
       "User Settings",
-      "Calendar",
+      "Profile & Calendar",
       "Calendar Feed"
     ],
     "path": "/dashboard/:projectId/user-settings/calendar-feed",
@@ -8850,7 +8877,7 @@
     "title": "Remind me before shifts",
     "where": [
       "User Settings",
-      "Calendar",
+      "Profile & Calendar",
       "Calendar Feed"
     ],
     "path": "/dashboard/:projectId/user-settings/calendar-feed",
@@ -8860,7 +8887,7 @@
     "title": "Custom Fields",
     "where": [
       "User Settings",
-      "Profile"
+      "Profile & Calendar"
     ],
     "path": "/dashboard/:projectId/user-settings/custom-fields",
     "kind": "page"
@@ -8869,7 +8896,7 @@
     "title": "My Custom Fields",
     "where": [
       "User Settings",
-      "Profile",
+      "Profile & Calendar",
       "Custom Fields"
     ],
     "path": "/dashboard/:projectId/user-settings/custom-fields",

@@ -18,7 +18,9 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import EmptyState, {
+  EmptyStateSize,
+} from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -185,13 +187,9 @@ const Layers: FunctionComponent<ComponentProps> = (
               title={ScheduleNoLayersCopy.title}
               description={ScheduleNoLayersCopy.description}
               icon={IconProp.SquareStack}
-              paddingClassName="py-8"
+              size={EmptyStateSize.Inline}
               footer={
-                /*
-                 * Button keeps a dialog footer's left margin (md:ml-3), which
-                 * would push it off the centre here, so its wrapper clears it.
-                 */
-                <div className="[&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
+                <div>
                   <Button
                     title={ScheduleNoLayersCopy.button}
                     icon={IconProp.SquareStack}

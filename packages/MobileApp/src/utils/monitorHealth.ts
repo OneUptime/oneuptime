@@ -23,7 +23,7 @@ import {
  *   - Common/Utils/Monitor/MonitorRowStatus: what a row says a monitor's
  *     status is - the words the Monitors list, the Monitor List widget and
  *     the monitor's own page say - wherever the stored status is not one a
- *     check stands behind: Archived, Disabled, Probes Not Enabled, Probes
+ *     check stands behind: Archived, Disabled, No Probe Enabled, Probes
  *     Disconnected, and - for a monitor nothing has checked yet, still in
  *     the operational status it was created in (utils/monitorFirstCheck) -
  *     Paused, No results yet or Waiting for data (issue #8961).
@@ -114,7 +114,7 @@ export const MONITOR_ROW_STATUS_WORDS: Readonly<
 > = {
   Archived: "Archived",
   MonitoringOff: "Disabled",
-  NoProbeEnabled: "Probes Not Enabled",
+  NoProbeEnabled: "No Probe Enabled",
   ProbesDisconnected: "Probes Disconnected",
   PausedBeforeFirstCheck: "Paused",
   NoResultsYet: "No results yet",
@@ -274,7 +274,7 @@ export function getMonitorIssuesQuery(): Record<string, unknown> {
  * unknown, not healthy. An operational status is Healthy only where a check
  * stands behind it, as its row says: one that nothing has checked yet, or
  * that no probe checks, is Not checked (its row says Waiting for data, No
- * results yet, Paused, Probes Not Enabled or Probes Disconnected).
+ * results yet, Paused, No Probe Enabled or Probes Disconnected).
  */
 export function getMonitorHealth(monitor: MonitorHealthFields): MonitorHealth {
   if (monitor.disableActiveMonitoring === true) {

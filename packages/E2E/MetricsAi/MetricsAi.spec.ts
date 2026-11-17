@@ -206,7 +206,7 @@ function openedAddress(page: Page): URL {
 }
 
 test.describe("Metrics → AI tab", () => {
-  test("sits between Insights and Setup Guide, and opens on what OneUptime found", async ({
+  test("sits between Insights and PromQL, and opens on what OneUptime found", async ({
     page,
   }: {
     page: Page;
@@ -216,12 +216,12 @@ test.describe("Metrics → AI tab", () => {
     const tabs: Locator = tabsOf(page);
 
     await expect(tabs).toBeVisible({ timeout: 60000 });
-    // PromQL follows Viewer since #7750 (MetricsNavTabs).
+    // PromQL follows the everyday views since #9133 (MetricsNavTabs).
     await expect(tabs.getByRole("link")).toHaveText([
       "Viewer",
-      "PromQL",
       "Insights",
       "AI",
+      "PromQL",
       "Setup Guide",
       "Settings",
     ]);

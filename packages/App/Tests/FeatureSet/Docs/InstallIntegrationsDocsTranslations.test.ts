@@ -294,7 +294,8 @@ const ADMIN_KEYS: Record<string, string> = {
   Notifications: "sideMenu.settingsNotifications",
   Emails: "sideMenu.settingsEmails",
   "Call and SMS": "sideMenu.settingsCallSms",
-  Monitoring: "sideMenu.settingsMonitoring",
+  "Shared with All Projects": "sideMenu.settingsSharedWithProjects",
+  Server: "sideMenu.settingsServer",
   "Global Probes": "sideMenu.settingsGlobalProbes",
   "Let people sign up": "pages.settings.authentication.signUpSwitchTitle",
   "Let people sign in with an emailed link":
@@ -319,7 +320,7 @@ const ADMIN_LABELS: Record<string, Array<string>> = {
     "Let people sign up",
     "Let people sign in with an emailed link",
     "Settings > Notifications > Emails",
-    "Settings > Monitoring > Global Probes",
+    "Settings > Shared with All Projects > Global Probes",
     "OneUptime Health",
     "Settings > Products",
     "Monitoring and status pages",
@@ -327,7 +328,10 @@ const ADMIN_LABELS: Record<string, Array<string>> = {
     "Choose products one by one",
   ],
   [TWILIO]: ["Admin Dashboard > Settings > Call and SMS"],
-  [SIZING]: ["Keep for at most", "Admin Dashboard → Settings → Data Retention"],
+  [SIZING]: [
+    "Keep for at most",
+    "Admin Dashboard → Settings → Server → Data Retention",
+  ],
 };
 
 /*

@@ -248,11 +248,20 @@ function rowStartingWith(rows: Array<string>, first: string): Array<string> {
 function menuTable(markdown: string): Array<MenuSection> {
   return tableRows(markdown).map((row: string): MenuSection => {
     const cells: Array<string> = tableCells(row);
-    const pages: string = (cells[1] || "").split(": ")[0] || "";
+    /*
+     * A section's pages come before its first colon, or, where a section
+     * holds pages of different kinds (Paging & Calls), each "; "-separated
+     * part names its page before its own colon.
+     */
+    const pages: Array<string> = (cells[1] || "")
+      .split("; ")
+      .flatMap((part: string): Array<string> => {
+        return boldNames(part.split(": ")[0] || "");
+      });
 
     return {
       title: boldNames(cells[0] || "")[0] || "",
-      items: boldNames(pages),
+      items: pages,
     };
   });
 }
@@ -2337,11 +2346,11 @@ describe("notification settings", () => {
     expect(page).toContain(
       '"Reminders ahead of a shift, at the lead times you pick on the Calendar Feed page."',
     );
-    expect(sectionByTitle(userSettingsMenu(), "Calendar").items).toEqual([
-      "Calendar Feed",
-    ]);
+    expect(
+      sectionByTitle(userSettingsMenu(), "Profile & Calendar").items,
+    ).toEqual(["Calendar Feed", "Custom Fields"]);
     expect(settings).toContain(
-      "**Before my on-call shift starts** sends reminders at the times you pick on **User Settings → Calendar → Calendar Feed**",
+      "**Before my on-call shift starts** sends reminders at the times you pick on **User Settings → Profile & Calendar → Calendar Feed**",
     );
   });
 });

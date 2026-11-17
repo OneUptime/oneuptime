@@ -32,7 +32,7 @@ Faste tildelinger — en bruger eller et team, der er nævnt direkte i en regel 
 
 | Link | Hvem opretter det | Hvad det indeholder | Hvor |
 | --- | --- | --- | --- |
-| **Personligt feed** | Hver bruger, ét pr. projekt | Dine vagter i alle vagtplaner i det projekt plus de vagter, hvor du dækker for nogen (valgfrit) | **Brugerindstillinger** > **Kalender** > **Kalenderfeed** |
+| **Personligt feed** | Hver bruger, ét pr. projekt | Dine vagter i alle vagtplaner i det projekt plus de vagter, hvor du dækker for nogen (valgfrit) | **Brugerindstillinger** > **Profil og kalender** > **Kalenderfeed** |
 | **Vagtplanfeed** | Alle, der kan redigere vagtplanen; alle, der kan læse den, kan kopiere linket | Alles vagter i én vagtplan, med valgfrie begivenheder for huller i dækningen | Vagtplanens side, kortet **Abonnér på denne vagtplan** |
 | **Projektfeed** | Alle, der kan redigere vagtplaner; alle, der kan læse dem, kan kopiere linket | Alles vagter i alle projektets vagtplaner, med valgfrie begivenheder for huller i dækningen | **Vagt** > **Kalenderfeeds** |
 
@@ -54,7 +54,7 @@ Personlige feeds er pr. projekt: et andet projekt får et andet link og en anden
 :::steps
 ### Åbn dit kalenderfeed
 
-Åbn **Brugerindstillinger** > **Kalender** > **Kalenderfeed** i det projekt, hvis vagter du vil have. **Kalender** er et afsnit i sidemenuen, der starter foldet sammen.
+Åbn **Brugerindstillinger** > **Profil og kalender** > **Kalenderfeed** i det projekt, hvis vagter du vil have. **Profil og kalender** er et afsnit i sidemenuen, der starter foldet sammen.
 
 ### Generér linket
 
@@ -184,7 +184,7 @@ Feed-URL'er omdirigerer aldrig. De svarer `200` på det skema, der når OneUptim
 Kalenderapps leverer ikke alarmer fra abonnerede feeds — Google smider dem væk, Apple fjerner dem som standard, Outlook flader dem ud — så OneUptime sender sine egne.
 
 :::steps
-1. Åbn **Brugerindstillinger** > **Kalender** > **Kalenderfeed**.
+1. Åbn **Brugerindstillinger** > **Profil og kalender** > **Kalenderfeed**.
 2. Vælg på kortet **Påmind mig før vagter**, hvor lang tid i forvejen: **1 uge**, **1 dag**, **1 time**, **15 min.** eller, med **Brugerdefineret**, en egen værdi mellem 15 minutter og 14 dage. Du kan vælge flere på én gang.
 3. Vælg, hvordan påmindelser når dig, under **Før min vagt starter** på **Brugerindstillinger** > **Notifikationsindstillinger** (fanen Vagt). E-mail og push er slået til som standard.
 :::

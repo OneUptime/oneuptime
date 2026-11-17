@@ -323,7 +323,7 @@ describe("every column a read is narrowed by is one some read may be narrowed by
     let toldApart: number = 0;
 
     for (const [, service] of SERVICE_CASES) {
-      for (const [, props] of READERS) {
+      for (const [reader, props] of READERS) {
         const narrowedBy: Array<string> | null =
           await service.getColumnsNarrowingReadOf(props);
 
@@ -333,6 +333,7 @@ describe("every column a read is narrowed by is one some read may be narrowed by
 
         for (const column of narrowedBy || []) {
           seen.add(`${service.modelType.name}.${column}`);
+          seen.add(`${reader}: ${service.modelType.name}.${column}`);
         }
       }
     }
@@ -340,9 +341,13 @@ describe("every column a read is narrowed by is one some read may be narrowed by
     expect(toldApart).toBeGreaterThan(60);
 
     for (const column of [
-      // A grant limited to labels.
-      "Monitor.labels",
-      "Incident.labels",
+      /*
+       * A grant limited to labels: a condition on the row's id - the records
+       * the label join table links to a permitted label - which reaches the
+       * row's labels (weighed below).
+       */
+      "a member for some labels: Monitor._id",
+      "a member for some labels: Incident._id",
       // A block with labels, an Owned grant: a condition on the row.
       "Monitor._id",
       // A private incident, alert or episode.
@@ -357,6 +362,22 @@ describe("every column a read is narrowed by is one some read may be narrowed by
         column,
         seen: true,
       });
+    }
+
+    /*
+     * The labels a grant limited to them reaches through the row's id are
+     * a column some read may be narrowed by: a write of them asks who reads
+     * the row (writeMayChangeWhetherTheyRead).
+     */
+    for (const service of [MonitorService, IncidentService] as unknown as Array<
+      DatabaseService<BaseModel>
+    >) {
+      expect({
+        model: service.modelType.name,
+        labelsNarrowSomeRead: service
+          .getColumnsAnyReadMayNarrowBy()
+          ?.has("labels"),
+      }).toEqual({ model: service.modelType.name, labelsNarrowSomeRead: true });
     }
   });
 });

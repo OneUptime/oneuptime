@@ -23,6 +23,21 @@ Wo die Quelle Spalten nennt, sagt der Tab **Spalten** einer Tabelle, woher jede 
 
 Wählen Sie im Tab **Datenherkunft** unter **Einer Spalte folgen** eine Spalte der Tabelle aus, um hervorzuheben, woher sie stammt und wohin sie fließt: im Diagramm hinauf zu den Spalten, aus denen sie erstellt wird, hinab zu den Spalten, die aus ihr erstellt werden, jede auf ihrer Tabelle benannt, auch wo die Spalte unterwegs umbenannt wurde. Ein Pfeil, dessen Quellen keine Spalten nennen, kann sie weiter tragen, als hervorgehoben ist, und das Diagramm sagt das.
 
+## Datenherkunftskarte
+
+**Data Observability > Datenherkunftskarte** zeichnet jeden Datenfluss, den Ihr Projekt gesehen hat, auf einer Seite, sodass Sie sehen, wer welche Daten nutzt und wohin sie fließen, ohne zuerst eine Tabelle auszuwählen. Sie zeigt:
+
+- **Dienste**, die Tabellen schreiben und lesen, aus den Datenbank-Spans in Ihren Traces: ein Span, der seine Tabelle (`db.collection.name` oder das ältere `db.sql.table`) und seine Anweisung (`db.operation.name`) nennt, etwa ein `INSERT` oder ein `SELECT`.
+- **Tabellen**, die aus anderen Tabellen erstellt werden, aus allen oben genannten Quellen.
+- **Pipelines**, die eine Tabelle aus Daten laden, die OneUptime nicht überwacht, etwa eine Fivetran-Synchronisierung. Eine Pipeline, die Daten zwischen zwei überwachten Tabellen bewegt, wird am Pfeil zwischen ihnen genannt.
+- **Dashboards** und Reverse-ETL-Synchronisierungen in Ihren BI-Tools, die die Tabellen lesen, auf denen sie aufbauen.
+
+Jeder Pfeil ist etwas, das OneUptime aufgezeichnet hat, nie eine Vermutung. Die Karten stehen von links nach rechts in Flussrichtung der Daten und zeigen ihren Zustand wie im Diagramm einer Tabelle: rot bei einer verspäteten Tabelle, einer offenen Warnung oder einer fehlgeschlagenen Ausführung. Ein Pfeil ist türkis, wenn die Traces eines Dienstes ihn gesehen haben.
+
+Suchen Sie nach einer Tabelle, einem Dienst, einer Pipeline oder einem Dashboard, um zu behalten, was passt, und alles stromaufwärts und stromabwärts davon. Wählen Sie eine Karte aus, um ihre gesamte Datenherkunft hervorzuheben, zu sehen, woher sie stammt und wohin sie fließt, und ihre Seite zu öffnen; **Nur die zugehörige Datenherkunft anzeigen** lässt nur diese auf der Karte. Mit den Schaltern neben der Suche lassen Sie Dienste, Pipelines oder Dashboards weg. **Liste** zeigt jeden Pfeil als Zeile und ist das, was ein Smartphone öffnet.
+
+Eine Karte zeichnet bis zu 400 Karten, die zuletzt gesehenen Datenflüsse zuerst; hat Ihr Projekt mehr, sagt die Karte das. Dieselbe Karte liefert `POST /api/data-observability/lineage/map`, für alle, die Datenobjekte lesen dürfen, und ihre API-Schlüssel.
+
 ## OpenLineage
 
 Senden Sie OpenLineage-Ereignisse unverändert an OneUptime, mit einem [Ingestion-Schlüssel](/docs/telemetry/ingestion-keys) für Telemetrie:

@@ -593,7 +593,7 @@ sh Scripts/Install/WithConfig.sh docker compose logs app | grep -A 5 CoreSSL
 :::
 
 :::details پس از جابه‌جایی پورت ingress، پراب همراه وضعیت قطع‌شده را نشان می‌دهد
-Admin Dashboard پراب را زیر **تنظیمات** > **پایش** > **پراب‌های سراسری** فهرست می‌کند. پراب از راه `GLOBAL_PROBE_1_ONEUPTIME_URL` به OneUptime می‌رسد که به‌طور پیش‌فرض `http://localhost` (پورت ۸۰) است. تا وقتی این نشانی به `localhost` اشاره کند، `npm start` آن را به پورت ingress می‌برد. اگر آن را روی نشانی دیگری گذاشته‌اید، یا OneUptime را با Docker CLI اجرا کرده‌اید، آن را روی پورت تازهٔ ingress بگذارید، برای نمونه `http://localhost:8080`، و OneUptime را دوباره راه‌اندازی کنید.
+Admin Dashboard پراب را زیر **تنظیمات** > **مشترک با همه پروژه‌ها** > **پراب‌های سراسری** فهرست می‌کند. پراب از راه `GLOBAL_PROBE_1_ONEUPTIME_URL` به OneUptime می‌رسد که به‌طور پیش‌فرض `http://localhost` (پورت ۸۰) است. تا وقتی این نشانی به `localhost` اشاره کند، `npm start` آن را به پورت ingress می‌برد. اگر آن را روی نشانی دیگری گذاشته‌اید، یا OneUptime را با Docker CLI اجرا کرده‌اید، آن را روی پورت تازهٔ ingress بگذارید، برای نمونه `http://localhost:8080`، و OneUptime را دوباره راه‌اندازی کنید.
 :::
 
 ## گام‌های بعدی

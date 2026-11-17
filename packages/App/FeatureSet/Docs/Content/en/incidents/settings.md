@@ -65,7 +65,7 @@ A few quick rules:
 - The template list shows only **Name** and **Description**. Rows are not editable or deletable from the list — open a template (`/dashboard/{projectId}/incidents/settings/templates/{modelId}`) to change it.
 - Everyone who can edit a template can change its details and its affected resources, **Initial Incident State** and **Change Monitor Status to** included: Project Owners, Project Admins and Project Members, Incident Admins and Incident Members, and a role with **Edit Incident Template**.
 - Templates support JSON import and export, so you can move one between projects.
-- With no templates, the list says **No incident templates found** with **Create Incident Template** right under it.
+- With no templates, the list says **No incident templates yet** with **Create Incident Template** right under it.
 - With no templates either, **Create from Template** on the incidents list opens a **No Incident Templates** dialog that says where templates are made, and its **Create Template** button opens **Incidents → Settings → Incident Templates**.
 
 ### How a template gets applied
@@ -620,7 +620,7 @@ Only Project Owners and Project Admins can change these settings. Over the API t
 
 ### A limit for the whole server
 
-On a self-hosted server, a master admin can hold every project to a limit on **Admin Dashboard → Settings → Data Retention**. Its **Resolved Incidents** and **Resolved Alerts** cards each ask **Keep for at most**, the longest any project keeps them, projects set to **Never** included, and **New projects delete after**, where a new project starts. They start at **No limit** and **Never**, so nothing changes until a master admin picks one, and setting a limit says first how many projects it reaches. Under a limit, a project's **Delete after** shows the length it really keeps incidents for, with **Never** and the longer lengths locked and a line such as **Your server keeps resolved incidents for at most 1 year.** The project's own setting is kept, so lifting the limit gives it back. While a project keeps incidents with a completed postmortem, they stay under the limit too.
+On a self-hosted server, a master admin can hold every project to a limit on **Admin Dashboard → Settings → Server → Data Retention**. Its **Resolved Incidents** and **Resolved Alerts** cards each ask **Keep for at most**, the longest any project keeps them, projects set to **Never** included, and **New projects delete after**, where a new project starts. They start at **No limit** and **Never**, so nothing changes until a master admin picks one, and setting a limit says first how many projects it reaches. Under a limit, a project's **Delete after** shows the length it really keeps incidents for, with **Never** and the longer lengths locked and a line such as **Your server keeps resolved incidents for at most 1 year.** The project's own setting is kept, so lifting the limit gives it back. While a project keeps incidents with a completed postmortem, they stay under the limit too.
 
 > [!NOTE]
 > On a self-hosted install, PostgreSQL reuses the space deleted rows leave, but does not give it back to the disk. To shrink the database after a large first purge, run `VACUUM FULL` on the biggest tables in a maintenance window, as it locks each table while it rewrites it, or use `pg_repack`, which does not.

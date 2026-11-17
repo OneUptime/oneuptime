@@ -28,9 +28,9 @@ El explorador tiene seis pestañas:
 | Pestaña | Para qué sirve |
 | --- | --- |
 | **Visor** | La lista de métricas, cada una con un pequeño gráfico y su último valor. Se abre con la última hora. |
-| **PromQL** | Consulte sus métricas con PromQL, el lenguaje de consulta de Prometheus, y conecte Grafana a ellas. Consulte [Consultar métricas con PromQL](/docs/telemetry/promql). |
 | **Análisis** | Qué servicios informan métricas, y cuántas. |
 | **IA** | Los problemas que OneUptime encuentra en sus métricas (demasiados valores, buckets de histograma que no encajan, métricas que faltan), y lo que la IA de OneUptime hizo al respecto. Consulte [Mejorar las métricas y añadir las que faltan con IA](#mejorar-las-métricas-y-añadir-las-que-faltan-con-ia). |
+| **PromQL** | Consulte sus métricas con PromQL, el lenguaje de consulta de Prometheus, y conecte Grafana a ellas. Consulte [Consultar métricas con PromQL](/docs/telemetry/promql). |
 | **Guía de configuración** | Cómo enviar métricas con OpenTelemetry, usando una de sus claves de ingesta. |
 | **Ajustes** | **Reglas de canalización** y **Reglas de grabación**: lo que les pasa a las métricas al llegar. |
 

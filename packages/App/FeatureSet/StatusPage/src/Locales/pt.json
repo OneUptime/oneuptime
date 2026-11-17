@@ -37,7 +37,6 @@
     "announcements": "Anúncios",
     "scheduledEvents": "Manutenção programada",
     "subscribe": "Inscrever-se",
-    "login": "Entrar",
     "logout": "Sair"
   },
   "overview": {
@@ -49,8 +48,6 @@
     "noResourcesInGroup": "Nenhum recurso adicionado a este grupo.",
     "activeIncidents": "Incidentes ativos",
     "scheduledMaintenanceEvents": "Manutenção programada",
-    "allClearTitle": "Tudo parece ótimo",
-    "allClearDescription": "Nenhum recurso adicionado a esta página de status ainda. Por favor, adicione alguns recursos pelo painel.",
     "allResourcesAre": "Todos os recursos estão {{status}}",
     "allMonitoredResourcesAre": "Todos os recursos monitorados estão {{status}}",
     "someResourcesAre": "Alguns recursos estão {{status}}",
@@ -58,7 +55,10 @@
     "noResourcesAreMonitored": "Nenhum recurso está sendo monitorado no momento",
     "noResourcesAreMonitoredYet": "Nenhum recurso está sendo monitorado ainda",
     "oneSubGroup": "1 grupo",
-    "subGroupCount": "{{total}} grupos"
+    "subGroupCount": "{{total}} grupos",
+    "noResourcesTitle": "Nada para mostrar ainda",
+    "noResourcesDescription": "Esta página ainda não mostra nenhum serviço.",
+    "noResourcesPreviewDescription": "Os visitantes veem este aviso até você adicionar recursos. Adicione monitores ou grupos a esta página de status em Recursos, no painel."
   },
   "eventItem": {
     "affectedResources": "Recursos afetados",
@@ -115,30 +115,23 @@
     "title": "Incidentes",
     "singular": "Incidente",
     "active": "Incidentes ativos",
-    "resolved": "Incidentes resolvidos",
-    "none": "Sem incidentes",
-    "noneDescription": "Nenhum incidente publicado nesta página de status.",
+    "noneDescription": "Quando um incidente afetar os serviços desta página, ele será publicado aqui.",
     "postmortem": "Análise pós-incidente",
     "declaredAt": "Declarado em ",
     "declaredAtTime": "Declarado em {{time}}",
     "report": "Relatório de incidente",
-    "notFound": "Incidente não encontrado nesta página de status."
-  },
-  "episodes": {
-    "report": "Relatório de episódio",
-    "none": "Sem episódios",
-    "notFound": "Episódio não encontrado nesta página de status."
+    "notFound": "Verifique o link ou abra a aba Incidentes desta página.",
+    "notFoundTitle": "Incidente não encontrado"
   },
   "announcements": {
     "title": "Anúncios",
     "singular": "Anúncio",
     "active": "Anúncios ativos",
-    "past": "Anúncios anteriores",
-    "none": "Sem anúncios",
-    "noneDescription": "Nenhum anúncio publicado até agora nesta página.",
+    "noneDescription": "Quando houver novidades sobre os serviços desta página, elas serão publicadas aqui.",
     "announcedAt": "Anunciado em ",
     "announcedAtTime": "Anunciado em {{time}}",
-    "notFound": "Anúncio não encontrado nesta página de status."
+    "notFound": "Verifique o link ou abra a aba Anúncios desta página.",
+    "notFoundTitle": "Anúncio não encontrado"
   },
   "scheduledEvents": {
     "title": "Manutenção programada",
@@ -146,9 +139,7 @@
     "scheduledMaintenance": "Manutenção programada",
     "ongoing": "Manutenção em andamento",
     "upcoming": "Próxima manutenção",
-    "completed": "Manutenção concluída",
-    "none": "Nenhuma manutenção programada",
-    "noneDescription": "Nenhuma manutenção programada publicada para esta página de status.",
+    "none": "Nenhuma manutenção prevista",
     "scheduledAt": "Agendado para ",
     "scheduledAtTime": "Agendado para {{time}}",
     "report": "Relatório do evento de manutenção",
@@ -314,24 +305,24 @@
       "password": "Senha",
       "newPassword": "Nova senha",
       "confirmPassword": "Confirmar senha",
-      "login": "Entrar"
+      "signInLink": "Entrar."
     },
     "login": {
       "welcomeBack": "Bem-vindo de volta!",
-      "loginPrompt": "Por favor, faça login para ver {{statusPageName}}",
+      "signInPrompt": "Por favor, faça login para ver {{statusPageName}}.",
       "forgotPassword": "Esqueceu a senha?",
       "submit": "Entrar",
       "or": "ou",
-      "logInWithSso": "Entrar com SSO",
+      "signInWithSso": "Entrar com SSO",
       "emailSignInLink": "Enviar um link de acesso por e-mail"
     },
     "sso": {
       "title": "Entrar com SSO",
-      "loginPrompt": "Por favor, faça login para ver {{statusPageName}}",
+      "signInPrompt": "Por favor, faça login para ver {{statusPageName}}.",
       "noProviders": "Nenhum provedor SSO configurado ou habilitado",
       "notAvailable": "O login único (SSO) não está disponível para esta página de status. Em vez disso, faça login com seu e-mail e senha.",
-      "backToLogin": "Voltar para o login",
-      "logInWithPassword": "Entrar com senha"
+      "backToSignIn": "Voltar para o login",
+      "signInWithPassword": "Entrar com senha"
     },
     "forgotPassword": {
       "title": "Esqueceu a senha",
@@ -343,9 +334,16 @@
     "resetPassword": {
       "description": "Crie uma nova senha para sua conta {{statusPageName}}.",
       "instructions": "Digite sua nova senha e nós a atualizaremos.",
-      "success": "Sua senha foi atualizada. Por favor, faça login.",
       "submit": "Redefinir senha",
-      "knowPassword": "Sabe sua senha?"
+      "knowPassword": "Sabe sua senha?",
+      "successTitle": "Sua senha foi redefinida",
+      "successDescription": "Entre com sua nova senha.",
+      "signInButton": "Entrar",
+      "linkExpiredTitle": "Este link de redefinição expirou",
+      "linkExpiredDescription": "Os links de redefinição valem por um dia. Peça um novo link e nós o enviaremos por e-mail.",
+      "linkInvalidTitle": "Este link de redefinição não funciona mais",
+      "linkInvalidDescription": "Talvez ele já tenha sido usado ou tenha sido copiado só em parte. Peça um novo link e nós o enviaremos por e-mail.",
+      "requestNewLinkButton": "Pedir um novo link"
     },
     "magicLink": {
       "title": "Entrar com um link",
@@ -366,7 +364,7 @@
     },
     "masterPassword": {
       "prompt": "Digite a senha para ver esta página de status.",
-      "passwordRequired": "a senha é obrigatória.",
+      "passwordRequired": "A senha é obrigatória.",
       "passwordLabel": "Senha",
       "submit": "Desbloquear página de status"
     },
@@ -482,5 +480,35 @@
   },
   "No options available": "Nenhuma opção disponível",
   "No matches found": "Nenhuma correspondência encontrada",
-  "{{eventType}} state changed to {{state}}": "{{eventType}}: estado alterado para {{state}}"
+  "{{eventType}} state changed to {{state}}": "{{eventType}}: estado alterado para {{state}}",
+  "Use at least {{minimum}} characters.": "Use pelo menos {{minimum}} caracteres.",
+  "Try a few unrelated words.": "Experimente algumas palavras sem relação entre si.",
+  "Password meets requirements": "A senha atende aos requisitos",
+  "Password must be at least 15 characters.": "A senha deve ter pelo menos 15 caracteres.",
+  "Password cannot be more than 100 characters.": "A senha não pode ter mais de 100 caracteres.",
+  "Choose a less predictable password. Try a few unrelated words.": "Escolha uma senha menos previsível. Experimente algumas palavras sem relação entre si.",
+  "Password cannot be blank.": "A senha não pode conter apenas espaços.",
+  "Password is required.": "A senha é obrigatória.",
+  "Password must be a string.": "A senha deve ser uma sequência de texto.",
+  "Between {{minimum}} and {{maximum}} characters": "Entre {{minimum}} e {{maximum}} caracteres",
+  "Avoid common or repeated patterns": "Evite padrões comuns ou repetidos",
+  "Password length": "Comprimento da senha",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} / mínimo de {{minimum}} caracteres",
+  "Complete:": "Atendido:",
+  "Incomplete:": "Não atendido:",
+  "Special character included (optional)": "Caractere especial incluído (opcional)",
+  "Special characters are optional. Try !, @, # or $.": "Caracteres especiais são opcionais. Experimente !, @, # ou $.",
+  "Dismiss": "Dispensar",
+  "Resolved in the Last {{count}} Days": "Resolvidos nos últimos {{count}} dias",
+  "Resolved in the Last {{count}} Days_one": "Resolvidos no último dia",
+  "No incidents in the last {{count}} days": "Nenhum incidente nos últimos {{count}} dias",
+  "No incidents in the last {{count}} days_one": "Nenhum incidente no último dia",
+  "Ended in the Last {{count}} Days": "Encerrados nos últimos {{count}} dias",
+  "Ended in the Last {{count}} Days_one": "Encerrados no último dia",
+  "No announcements in the last {{count}} days": "Nenhum anúncio nos últimos {{count}} dias",
+  "No announcements in the last {{count}} days_one": "Nenhum anúncio no último dia",
+  "Completed in the Last {{count}} Days": "Concluída nos últimos {{count}} dias",
+  "Completed in the Last {{count}} Days_one": "Concluída no último dia",
+  "None is planned, and none took place in the last {{count}} days.": "Nenhuma está prevista e nenhuma ocorreu nos últimos {{count}} dias.",
+  "None is planned, and none took place in the last {{count}} days._one": "Nenhuma está prevista e nenhuma ocorreu no último dia."
 }

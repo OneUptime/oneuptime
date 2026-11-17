@@ -132,7 +132,12 @@ describe("what a lock names (getPermissionsToName)", () => {
     } as PermissionsToName);
   });
 
-  test("two permissions of its own: both, in the list's order, and no role", () => {
+  test("several permissions of its own: each, in the list's order, and no role", () => {
+    /*
+     * The Project's list holds Edit Incoming Request Secret for the one
+     * column it opens, requireIncomingRequestSecret (#8502), as it holds
+     * Manage Billing for the billing columns.
+     */
     const list: Array<Permission> = new Project().getUpdatePermissions();
 
     expect(PermissionGate.getPermissionTitles(list)).toEqual([
@@ -142,9 +147,14 @@ describe("what a lock names (getPermissionsToName)", () => {
       "Billing Member",
       "Manage Billing",
       "Edit Project",
+      "Edit Incoming Request Secret",
     ]);
     expect(PermissionGate.getPermissionsToName(list)).toEqual({
-      titles: ["Manage Billing", "Edit Project"],
+      titles: [
+        "Manage Billing",
+        "Edit Project",
+        "Edit Incoming Request Secret",
+      ],
       areRoles: false,
     });
   });
@@ -215,7 +225,9 @@ describe("the sentence every lock ends with (getNeededPermissionsSentence)", () 
       PermissionGate.getNeededPermissionsSentence(
         new Project().getUpdatePermissions(),
       ),
-    ).toBe("You need one of these permissions: Manage Billing, Edit Project.");
+    ).toBe(
+      "You need one of these permissions: Manage Billing, Edit Project, Edit Incoming Request Secret.",
+    );
   });
 
   test("one role, and several", () => {
@@ -567,7 +579,7 @@ describe("in the reader's language", () => {
           permissions: new Project().getUpdatePermissions(),
         }),
       ).toBe(
-        "Sie haben keine Berechtigung, diese Einstellungen zu ändern. Sie benötigen eine dieser Berechtigungen: Manage Billing, Edit Project.",
+        "Sie haben keine Berechtigung, diese Einstellungen zu ändern. Sie benötigen eine dieser Berechtigungen: Manage Billing, Edit Project, Edit Incoming Request Secret.",
       );
     } finally {
       await i18next.changeLanguage("en");

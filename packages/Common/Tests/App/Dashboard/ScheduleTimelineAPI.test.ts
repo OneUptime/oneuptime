@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -162,7 +163,7 @@ describe("getRetryDelayMilliseconds", () => {
   );
 
   test("an HTTP-date is waited until, a second at least and ten at most", () => {
-    const now: jest.SpiedFunction<typeof Date.now> = jest
+    const now: SpyInstance<typeof Date.now> = jest
       .spyOn(Date, "now")
       .mockReturnValue(Date.UTC(2026, 10, 16, 10, 0, 0));
 

@@ -1,4 +1,7 @@
 import PageLogo from "../../Components/Logo/PageLogo";
+import AuthPage, {
+  AUTH_PAGE_LINK_CLASS,
+} from "Common/UI/Components/AuthPage/AuthPage";
 import API from "../../Utils/API";
 import { MAGIC_LINK_LOGIN_API_URL } from "../../Utils/ApiPaths";
 import LoginUtil from "../../Utils/Login";
@@ -46,7 +49,7 @@ export const MAGIC_LINK_LOGIN_NEW_LINK_TEST_ID: string =
  * the address bar (SensitiveUrlToken), and no custom code of the page runs
  * here.
  *
- * It signs in only when the reader presses Log in. Mail filters that open
+ * It signs in only when the reader presses Sign In. Mail filters that open
  * every link in an email to scan it - and some run the page's script while
  * they do - would otherwise spend the link before its owner ever saw it,
  * and a link works once.
@@ -54,7 +57,7 @@ export const MAGIC_LINK_LOGIN_NEW_LINK_TEST_ID: string =
  * A link the server refuses - used, expired, replaced by a newer one, or
  * from a page that no longer takes them - is dropped from the tab, and the
  * page offers a new link instead. One that could not be checked (the server
- * could not be reached) is kept, so pressing Log in again still works.
+ * could not be reached) is kept, so pressing Sign In again still works.
  */
 const MagicLinkLoginPage: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -188,74 +191,63 @@ const MagicLinkLoginPage: FunctionComponent<ComponentProps> = (
   const canSignIn: boolean = Boolean(token) && props.enableMagicLinkLogin;
 
   return (
-    <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+    <AuthPage
+      logo={
         <PageLogo
           logoFileId={props.logoFileId}
           darkThemeLogoFileId={props.darkThemeLogoFileId}
           altText={props.statusPageName}
         />
-        <h2 className="mt-6 break-words text-center text-2xl tracking-tight text-gray-900">
-          {t("accounts.magicLinkLogin.title", {
-            statusPageName: props.statusPageName || t("common.statusPage"),
-          })}
-        </h2>
-        {canSignIn && (
-          <p className="mt-2 text-center text-sm text-gray-600">
-            {t("accounts.magicLinkLogin.description")}
-          </p>
-        )}
-      </div>
+      }
+      title={t("accounts.magicLinkLogin.title", {
+        statusPageName: props.statusPageName || t("common.statusPage"),
+      })}
+      subtitle={
+        canSignIn ? t("accounts.magicLinkLogin.description") : undefined
+      }
+      cardClassName="space-y-4"
+      footer={
+        <Link to={loginRoute} className={`${AUTH_PAGE_LINK_CLASS} text-sm`}>
+          {t("accounts.sso.backToSignIn")}
+        </Link>
+      }
+    >
+      {(error || cannotSignInMessage) && (
+        <Alert
+          type={AlertType.DANGER}
+          title={error || cannotSignInMessage || ""}
+          dataTestId={MAGIC_LINK_LOGIN_ERROR_TEST_ID}
+        />
+      )}
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10 space-y-4">
-          {(error || cannotSignInMessage) && (
-            <Alert
-              type={AlertType.DANGER}
-              title={error || cannotSignInMessage || ""}
-              dataTestId={MAGIC_LINK_LOGIN_ERROR_TEST_ID}
-            />
-          )}
+      {canSignIn && (
+        <Button
+          title={t("accounts.magicLinkLogin.submit")}
+          isTitleTranslated={true}
+          buttonStyle={ButtonStyleType.PRIMARY}
+          isLoading={isSigningIn}
+          dataTestId={MAGIC_LINK_LOGIN_BUTTON_TEST_ID}
+          style={{ width: "100%", marginInlineStart: "0px" }}
+          onClick={() => {
+            void signIn();
+          }}
+        />
+      )}
 
-          {canSignIn && (
-            <Button
-              title={t("accounts.magicLinkLogin.submit")}
-              isTitleTranslated={true}
-              buttonStyle={ButtonStyleType.PRIMARY}
-              isLoading={isSigningIn}
-              dataTestId={MAGIC_LINK_LOGIN_BUTTON_TEST_ID}
-              style={{ width: "100%", marginInlineStart: "0px" }}
-              onClick={() => {
-                void signIn();
-              }}
-            />
-          )}
-
-          {/*
-           * A new link, drawn as the sign-in page draws its other ways in:
-           * an outlined button, as wide as the card, that is still a link.
-           */}
-          {!canSignIn && props.enableMagicLinkLogin && (
-            <SignInOptionLink
-              to={newLinkRoute}
-              id={MAGIC_LINK_LOGIN_NEW_LINK_TEST_ID}
-              dataTestId={MAGIC_LINK_LOGIN_NEW_LINK_TEST_ID}
-              icon={IconProp.Email}
-              title={t("accounts.magicLinkLogin.requestNewLink")}
-            />
-          )}
-        </div>
-
-        <div className="mt-10 text-center">
-          <Link
-            to={loginRoute}
-            className="text-indigo-500 hover:text-indigo-900 cursor-pointer text-sm"
-          >
-            {t("accounts.sso.backToLogin")}
-          </Link>
-        </div>
-      </div>
-    </div>
+      {/*
+       * A new link, drawn as the sign-in page draws its other ways in:
+       * an outlined button, as wide as the card, that is still a link.
+       */}
+      {!canSignIn && props.enableMagicLinkLogin && (
+        <SignInOptionLink
+          to={newLinkRoute}
+          id={MAGIC_LINK_LOGIN_NEW_LINK_TEST_ID}
+          dataTestId={MAGIC_LINK_LOGIN_NEW_LINK_TEST_ID}
+          icon={IconProp.Email}
+          title={t("accounts.magicLinkLogin.requestNewLink")}
+        />
+      )}
+    </AuthPage>
   );
 };
 

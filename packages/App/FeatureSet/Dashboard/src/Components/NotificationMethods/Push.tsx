@@ -22,6 +22,7 @@ import API from "Common/UI/Utils/API/API";
 import User from "Common/UI/Utils/User";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import Toast from "Common/UI/Utils/Toast";
 import UserPush from "Common/Models/DatabaseModels/UserPush";
 import React, { ReactElement, useRef, useState } from "react";
 import ObjectID from "Common/Types/ObjectID";
@@ -291,6 +292,31 @@ const Push: () => JSX.Element = (): ReactElement => {
 
   const translator: Translator = useTranslator();
 
+  /*
+   * What a test that went out says. A phone with critical alerts off is
+   * told how to turn them on, and a phone sent a critical alert where to
+   * look if it did not ring through: those stay a dialog, with something to
+   * act on. Any other device - a browser - is told in the corner: it was a
+   * dialog whose one button only closed it (#9120).
+   */
+  const sayTestSent: (device: ShownPushDevice) => void = (
+    device: ShownPushDevice,
+  ): void => {
+    if (
+      canOfferCriticalAlertStepsAfterTest(device) ||
+      canOfferDidNotRingHintAfterTest(device)
+    ) {
+      setTestedDevice(device);
+      return;
+    }
+
+    Toast.success(
+      translator.translateText("Test Notification Sent") ||
+        "Test Notification Sent",
+      { description: getTestNotificationSentDescription(translator, device) },
+    );
+  };
+
   const toShownDevice: (item: UserPush) => ShownPushDevice = (
     item: UserPush,
   ): ShownPushDevice => {
@@ -497,7 +523,7 @@ const Push: () => JSX.Element = (): ReactElement => {
       }
 
       setRegisteredBrowser(null);
-      setTestedDevice({
+      sayTestSent({
         deviceName: deviceName,
         platform: PushDevicePlatform.Browser,
         isCriticalAlertEnabled: false,
@@ -581,7 +607,7 @@ const Push: () => JSX.Element = (): ReactElement => {
                 answer: result.isCriticalAlert,
               });
 
-              setTestedDevice({
+              sayTestSent({
                 ...listed,
                 isCriticalAlertEnabled: isCriticalAlert,
               });
@@ -862,8 +888,8 @@ const Push: () => JSX.Element = (): ReactElement => {
        * A phone with critical alerts off is told to turn them on, so the
        * dialog leads there - to that phone's steps - rather than leaving the
        * advice with nowhere to go. A phone sent a critical test is told where
-       * to look if it did not ring through. Any other device's dialog only
-       * closes.
+       * to look if it did not ring through. Any other device is told in a
+       * toast (sayTestSent).
        */}
       {testedDevice ? (
         <ConfirmModal

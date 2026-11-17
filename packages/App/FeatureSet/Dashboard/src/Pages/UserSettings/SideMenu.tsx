@@ -122,8 +122,16 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
         },
       ],
     },
+    /*
+     * The pages about being paged on call: the log of every page you got,
+     * and the numbers an incoming call policy reaches you on. One section,
+     * not a section each: "On-Call Logs" sat alone under a heading of its
+     * own name, and "Incoming Call Policy" held only its phone numbers
+     * (#9134). Folded, like everything after the pages people come here for.
+     */
     {
-      title: "On-Call Logs",
+      title: "Paging & Calls",
+      defaultCollapsed: true,
       items: [
         {
           link: {
@@ -136,12 +144,6 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
           subItemIcon: IconProp.Clock,
           subItemLink: subItemMenuLink,
         },
-      ],
-    },
-    {
-      title: "Incoming Call Policy",
-      defaultCollapsed: true,
-      items: [
         {
           link: {
             title: "Incoming Phone Numbers",
@@ -156,11 +158,14 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
       ],
     },
     /*
-     * Before Workspace: the calendar link is something everybody on a rota
-     * wants, while the workspace links only matter in projects that use them.
+     * What is yours alone: the calendar link with your shifts, and the
+     * fields the project keeps about you. They were "Calendar" and "Profile",
+     * a section each for one page (#9134). Before Workspace: everybody on a
+     * rota wants the calendar link, while the workspace links only matter in
+     * projects that use them.
      */
     {
-      title: "Calendar",
+      title: "Profile & Calendar",
       defaultCollapsed: true,
       items: [
         {
@@ -172,12 +177,6 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
           },
           icon: IconProp.Calendar,
         },
-      ],
-    },
-    {
-      title: "Profile",
-      defaultCollapsed: true,
-      items: [
         {
           link: {
             title: "Custom Fields",

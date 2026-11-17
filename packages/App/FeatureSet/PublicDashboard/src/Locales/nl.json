@@ -27,5 +27,14 @@
   "Copy": "Kopiëren",
   "Copied!": "Gekopieerd!",
   "Copy failed": "Kopiëren mislukt",
-  "Hide": "Verbergen"
+  "Hide": "Verbergen",
+  "Dismiss": "Verbergen",
+  "Dashboard Not Found": "Dashboard niet gevonden",
+  "This dashboard does not exist, or it is no longer shared.": "Dit dashboard bestaat niet, of het wordt niet meer gedeeld.",
+  "Check the address, or ask the person who shared it with you for a new link.": "Controleer het adres, of vraag de persoon die het met je heeft gedeeld om een nieuwe link.",
+  "Access Denied": "Toegang geweigerd",
+  "This dashboard opens only from the IP addresses its owner allows, and yours is not one of them.": "Dit dashboard opent alleen vanaf de IP-adressen die de eigenaar toestaat, en dat van jou hoort daar niet bij.",
+  "Ask the dashboard's owner for access, or open it from a network they allow.": "Vraag de eigenaar van het dashboard om toegang, of open het vanaf een netwerk dat hij toestaat.",
+  "Show more": "Meer tonen",
+  "Show less": "Minder tonen"
 }

@@ -28,9 +28,9 @@ L'esploratore ha sei schede:
 | Scheda | A cosa serve |
 | --- | --- |
 | **Visualizzatore** | L'elenco delle metriche, ciascuna con un piccolo grafico e il suo ultimo valore. Si apre sull'ultima ora. |
-| **PromQL** | Interrogate le vostre metriche con PromQL, il linguaggio di query di Prometheus, e collegatevi Grafana. Vedete [Interrogare le metriche con PromQL](/docs/telemetry/promql). |
 | **Analisi** | Quali servizi riportano metriche, e quante. |
 | **IA** | I problemi che OneUptime trova nelle vostre metriche (troppi valori, bucket dell'istogramma non adatti, metriche mancanti), e ciò che OneUptime AI ha fatto al riguardo. Vedete [Migliorare le metriche e aggiungere quelle mancanti con l'IA](#migliorare-le-metriche-e-aggiungere-quelle-mancanti-con-lia). |
+| **PromQL** | Interrogate le vostre metriche con PromQL, il linguaggio di query di Prometheus, e collegatevi Grafana. Vedete [Interrogare le metriche con PromQL](/docs/telemetry/promql). |
 | **Guida alla configurazione** | Come inviare metriche con OpenTelemetry, usando una delle vostre chiavi di acquisizione. |
 | **Impostazioni** | **Regole pipeline** e **Regole di registrazione**: che cosa succede alle metriche quando arrivano. |
 

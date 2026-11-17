@@ -44,7 +44,7 @@ import StatusPageSwitchRow from "./StatusPageSwitchRow";
 import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface";
 
 /*
- * "What your status page shows", on Advanced -> Advanced Settings: one row
+ * "What your status page shows", on Advanced -> Settings: one row
  * per thing the page can show (incidents, episodes, announcements,
  * scheduled maintenance, its uptime, the "Powered by OneUptime" line), each
  * with its switch, how far back it goes and its labels switch - and for the

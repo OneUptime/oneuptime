@@ -36,16 +36,20 @@ A drop filter throws away spans you do not need, or keeps only a sample of them,
 - The **Dropped** column counts what each filter has dropped, so you can see what it does.
 - A filter changes the spans that arrive after you save it, within about a minute.
 
-## Filter Queries
+## Build a Filter
 
-A filter is written as a pipeline's is, with \`=\`, \`!=\`, \`IN\`, \`LIKE\`, \`AND\` and \`OR\`, on these fields: \`name\`, \`kind\`, \`statusCode\`, \`primaryEntityId\` and \`attributes.<key>\`.
+A span is one step of a request, such as a call to an API or a database query. A filter picks spans with conditions, and each condition is a **Field**, an **Operator** and a **Value**: **Span Name** · contains · \`healthcheck\`.
 
-A span's status code is \`0\` for Unset, \`1\` for Ok and \`2\` for Error. Most instrumentation leaves a successful span **Unset** (the OpenTelemetry default) and sets **Error** only on a failure, so match "not an error" with \`statusCode != 2\`, not \`statusCode = 1\`.
+- **Fields:** **Span Name**, **Span Kind**, **Status**, **Status Message**, **Service ID**, **Has Exception** and **Is Root Span**, or any attribute with **Custom Attribute...**.
+- **Operators:** **equals** and **does not equal** match the exact value, with its upper and lower case. **contains** finds the text anywhere, in any case. **is one of** takes a list of values separated by commas.
+- With more than one condition, pick **All conditions** or **Any condition**.
+
+**Status** is **Error**, **Ok** or **Unset**. Most instrumentation leaves a successful span **Unset** (the OpenTelemetry default) and sets **Error** only on a failure, so match "not an error" with **Status** · does not equal · **Error**, not **Status** · equals · **Ok**.
 
 ## Examples
 
-- **Drop health checks**: \`name LIKE 'healthcheck'\`, with **Drop**.
-- **Keep a tenth of successful client calls**: \`kind = 'SPAN_KIND_CLIENT' AND statusCode != 2\`, with **Sample** at 10%.
+- **Drop health checks**: **Span Name** · contains · \`healthcheck\`, with **Drop**.
+- **Keep a tenth of successful client calls**: **Span Kind** · equals · **Client** and **Status** · does not equal · **Error**, under **All conditions**, with **Sample** at 10%.
 `;
 
 const TraceDropFilters: FunctionComponent<
@@ -116,7 +120,7 @@ const TraceDropFilters: FunctionComponent<
           "Drop or sample the spans you do not need, before they are stored.",
         markdown: documentationMarkdown,
       }}
-      noItemsMessage={"No drop filters found."}
+      noItemsMessage={"No drop filters yet."}
       selectMoreFields={{
         samplePercentage: true,
         // Whether each row is on, for Enable and Disable to count.
@@ -242,7 +246,7 @@ const TraceDropFilters: FunctionComponent<
 
             if (dropped === 0) {
               return (
-                <span className="text-sm text-gray-400">
+                <span className="text-sm text-gray-500">
                   {translator.translateText("Nothing dropped yet")}
                 </span>
               );

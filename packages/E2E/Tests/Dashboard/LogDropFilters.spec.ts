@@ -48,7 +48,7 @@ const createFormSelector: string = "#create-LogDropFilter-from";
 /*
  * The card's own Create button: the first filter is created from an empty
  * list, which offers the same button again under its "No drop filters
- * found" message.
+ * yet" message.
  */
 const createButtonName: string = "Create Log Drop Filter";
 
@@ -171,7 +171,7 @@ test.describe("Log Drop Filters", () => {
 
     await expect(createButton).toBeVisible({ timeout: 60000 });
     // The page's sentence heads the table's empty state, without its stop.
-    await expect(page.getByText("No drop filters found")).toBeVisible({
+    await expect(page.getByText("No drop filters yet")).toBeVisible({
       timeout: 60000,
     });
   });

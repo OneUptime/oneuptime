@@ -678,7 +678,6 @@ const ScheduledMaintenanceCalendar: FunctionComponent<ComponentProps> = (
             icon={IconProp.Calendar}
             buttonStyle={ButtonStyleType.NORMAL}
             buttonSize={ButtonSize.Small}
-            className="!w-auto md:!ml-0"
             dataTestId="scheduled-maintenance-calendar-subscribe"
             onClick={props.onSubscribe}
           />

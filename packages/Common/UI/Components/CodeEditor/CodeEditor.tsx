@@ -1090,7 +1090,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
         <div className="flex min-w-0 items-center gap-2 overflow-hidden">
           <span
             data-testid="code-editor-language"
-            className="inline-flex shrink-0 items-center rounded border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-700"
+            className="inline-flex shrink-0 items-center rounded border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-indigo-700"
           >
             {translator.translateText(language.label)}
           </span>

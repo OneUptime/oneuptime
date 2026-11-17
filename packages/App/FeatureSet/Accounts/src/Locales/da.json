@@ -176,10 +176,17 @@
   "resetPassword": {
     "title": "Nulstil din adgangskode",
     "subtitle": "Indtast venligst din nye adgangskode, og vi opdaterer den.",
-    "successMessage": "Din adgangskode er blevet opdateret. Log venligst ind.",
     "submitButton": "Nulstil adgangskode",
     "knowPasswordPrompt": "Kender du din adgangskode?",
-    "loginLink": "Log ind."
+    "loginLink": "Log ind.",
+    "successTitle": "Din adgangskode er nulstillet",
+    "successDescription": "Log ind med din nye adgangskode.",
+    "signInButton": "Log ind",
+    "linkExpiredTitle": "Dette nulstillingslink er udløbet",
+    "linkExpiredDescription": "Nulstillingslinks virker i én dag. Bed om et nyt link, så sender vi det til dig på e-mail.",
+    "linkInvalidTitle": "Dette nulstillingslink virker ikke længere",
+    "linkInvalidDescription": "Det er måske allerede brugt, eller kun en del af det blev kopieret. Bed om et nyt link, så sender vi det til dig på e-mail.",
+    "requestNewLinkButton": "Bed om et nyt link"
   },
   "sso": {
     "title": "Log ind med SSO",
@@ -563,6 +570,7 @@
   "What was sent is larger than the 50 MB OneUptime takes in one request.": "Det, der blev sendt, er større end de 50 MB, OneUptime tager imod i én forespørgsel.",
   "Try again with less at once, such as a smaller file.": "Prøv igen med mindre ad gangen, for eksempel en mindre fil.",
   "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Hvis en proxy foran OneUptime afviste det, så hæv proxyens grænse for en forespørgsels størrelse til 50 MB, lige så meget som OneUptime selv tager imod (i nginx, client_max_body_size 50M).",
+  "Dismiss": "Skjul",
   "This form is not available. It may have been turned off, or the link may be out of date.": "Denne formular er ikke tilgængelig. Den kan være slået fra, eller linket kan være forældet.",
   "This form can only be opened from an allowed network.": "Denne formular kan kun åbnes fra et tilladt netværk.",
   "Too many submissions from your network. Please wait a few minutes and try again.": "For mange indsendelser fra dit netværk. Vent et par minutter, og prøv igen.",

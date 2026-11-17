@@ -18,6 +18,11 @@ import NotAuthenticatedException from "Common/Types/Exception/NotAuthenticatedEx
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import HashedString from "Common/Types/HashedString";
+import NewPasswordRule from "Common/Server/Utils/NewPasswordRule";
+import {
+  INCOMPLETE_RESET_LINK_MESSAGE,
+  RESET_LINK_MESSAGES,
+} from "Common/Types/Accounts/SignInMessages";
 import ObjectID from "Common/Types/ObjectID";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
 import { EncryptionSecret } from "Common/Server/EnvironmentConfig";
@@ -816,7 +821,11 @@ router.post(
        * password would silently reset the matched account's password to `undefined`.
        */
       CredentialGuard.assertAllPresent([
-        { value: user.resetPasswordToken, label: "Reset password token" },
+        {
+          value: user.resetPasswordToken,
+          label: "Reset password token",
+          message: INCOMPLETE_RESET_LINK_MESSAGE,
+        },
         { value: user.password, label: "Password" },
       ]);
 
@@ -849,18 +858,14 @@ router.post(
         });
 
       if (!alreadySavedUser) {
-        throw new BadDataException(
-          "Invalid link. Please go to forgot password page again and request a new link.",
-        );
+        throw new BadDataException(RESET_LINK_MESSAGES.invalid);
       }
 
       if (
         alreadySavedUser &&
         OneUptimeDate.hasExpired(alreadySavedUser.resetPasswordExpires!)
       ) {
-        throw new BadDataException(
-          "Expired link. Please go to forgot password page again and request a new link.",
-        );
+        throw new BadDataException(RESET_LINK_MESSAGES.expired);
       }
 
       const statusPage: StatusPage | null = await StatusPageService.findOneById(
@@ -891,6 +896,15 @@ router.post(
           "Status Page supports authentication by SSO. You cannot use email and password for authentication.",
         );
       }
+
+      /*
+       * The one password rule (Types/Password), after the link and the page's
+       * single sign-on: a dead link is fixed by a new one, and a page that
+       * takes no password needs none. The write's hook asks again
+       * (StatusPagePrivateUserService); a reset used to store any password at
+       * all (#9123).
+       */
+      NewPasswordRule.assertMet(user.password);
 
       const statusPageName: string | undefined =
         statusPage.pageTitle || statusPage.name;
@@ -1117,7 +1131,7 @@ router.post(
         MailService.sendMail(
           {
             toEmail: privateUser.email,
-            subject: "Log in to " + statusPageName,
+            subject: "Sign in to " + statusPageName,
             isSubjectLiteral: true,
             templateType: EmailTemplateType.StatusPageMagicLink,
             vars: {

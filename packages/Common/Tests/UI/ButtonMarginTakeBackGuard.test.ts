@@ -9,33 +9,37 @@ import {
 } from "../ForeignHiddenRuleGuard";
 
 /*
- * A box that takes back a Button's own margin does so only where the Button
- * has one.
+ * No box takes back a margin a Button does not have.
  *
- * Every bordered Button (NORMAL, PRIMARY, DANGER, the outlines...) carries
- * `md:ml-3`: a dialog footer's gap, from the md breakpoint up. Below md it
- * has no margin and fills the row. Boxes that line a Button up with the text
- * above it wrote a bare `-ml-3` to take that margin back - right from md up,
- * but on a phone, where there was nothing to take back, it pulled the Button
- * 12px past the left edge of everything else. The time range presets under
- * every date picker sat that way (StartAndEndDate, LLM Connect's usage range
- * among them), and so did the monitor criteria's Add / Delete buttons and a
- * monitor evaluation's View Incident (24px: the button and its box both
- * pulled).
+ * Every bordered Button (NORMAL, PRIMARY, DANGER, the outlines...) used to
+ * carry `md:ml-3`, a dialog footer's gap, and boxes that lined a Button up
+ * with the text above it wrote `md:-ml-3` to take it back - or a bare
+ * `-ml-3`, which on a phone, where there was nothing to take back, pulled
+ * the Button 12px past the left edge of everything else (the time range
+ * presets under every date picker, the monitor criteria's Add / Delete).
  *
- * Such a box writes `md:-ml-3`, as OnCallPolicySummary already did. A bare
- * `-ml-3` is right only beside a LINK or SECONDARY_LINK Button, which has no
- * border and no margin: there it lines the words up with the text, taking
- * back the button's own padding at every width.
+ * A Button has no margin of its own now (BOXED_BUTTON_CLASS_NAME, #9128):
+ * the box that holds buttons spaces them with a gap. So any `-ml-3` on a
+ * bordered Button, or on a box holding one, at any width, pulls it 12px
+ * past the gutter. A `-ml-3` is right only beside a LINK or SECONDARY_LINK
+ * Button, which has no border: there it lines the words up with the text,
+ * taking back the button's own padding.
  *
  * This reads every frontend's browser source (and Common/UI, and ee/ when
- * present) through the TypeScript AST and fails on a `-ml-3` class on a
- * bordered Button, or on a box holding one.
+ * present) through the TypeScript AST and fails on a `-ml-3` class, with or
+ * without a breakpoint, on a bordered Button or on a box holding one.
  */
 
 const REPOSITORY_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
 
 const TAKE_BACK_CLASS: string = "-ml-3";
+
+// -ml-3 at any width: bare, or from a breakpoint up (md:-ml-3).
+function isTakeBack(token: string): boolean {
+  const parts: Array<string> = token.split(":");
+
+  return parts[parts.length - 1] === TAKE_BACK_CLASS;
+}
 const WHITESPACE: RegExp = /\s+/;
 
 // Styles without a border or a margin: -ml-3 takes back their padding.
@@ -225,7 +229,7 @@ function findMarginTakeBacks(
 
       if (
         className &&
-        classTokens(className).includes(TAKE_BACK_CLASS) &&
+        classTokens(className).some(isTakeBack) &&
         (ts.isJsxOpeningElement(element) || ts.isJsxSelfClosingElement(element))
       ) {
         for (const button of buttonsIn(element)) {
@@ -255,11 +259,11 @@ function findMarginTakeBacks(
 }
 
 function describeFinding(finding: MarginTakeBackFinding): string {
-  return `${finding.file}:${finding.line} "${finding.className}" pulls a ${finding.buttonStyle} Button left on a phone: write md:-ml-3`;
+  return `${finding.file}:${finding.line} "${finding.className}" pulls a ${finding.buttonStyle} Button past the gutter: a Button has no margin to take back, so drop the -ml-3 and space buttons with the box's gap`;
 }
 
 describe("the guard reads the shapes it is meant to", () => {
-  test("a bare -ml-3 around a bordered Button is caught; md:-ml-3 is not", () => {
+  test("a -ml-3 around a bordered Button is caught, at any width", () => {
     const code: string = `
       const A = () => (
         <div className="mt-1 flex space-x-2 -ml-3">
@@ -286,10 +290,10 @@ describe("the guard reads the shapes it is meant to", () => {
       findings.map((finding: MarginTakeBackFinding): string => {
         return `${finding.line}:${finding.buttonStyle}`;
       }),
-    ).toEqual(["3:NORMAL", "12:NORMAL", "14:DANGER_OUTLINE"]);
+    ).toEqual(["3:NORMAL", "8:NORMAL", "12:NORMAL", "14:DANGER_OUTLINE"]);
   });
 
-  test("a bare -ml-3 a default or a choice gives is caught too", () => {
+  test("a -ml-3 a default or a choice gives is caught too", () => {
     const code: string = `
       const A = (props) => (
         <div className={props.className ?? "-ml-3 mr-2"}>
@@ -318,7 +322,7 @@ describe("the guard reads the shapes it is meant to", () => {
           return `${finding.line}:${finding.buttonStyle}`;
         },
       ),
-    ).toEqual(["3:NORMAL", "13:NORMAL", "16:NORMAL"]);
+    ).toEqual(["3:NORMAL", "8:NORMAL", "13:NORMAL", "16:NORMAL"]);
   });
 
   test("a link Button's -ml-3 lines its words up and is left alone", () => {
@@ -340,7 +344,7 @@ describe("the guard reads the shapes it is meant to", () => {
   });
 });
 
-describe("boxes take back a Button's margin only where it has one", () => {
+describe("no box takes back a margin a Button does not have", () => {
   const roots: Array<string> = listScanRoots(REPOSITORY_ROOT);
   const files: Array<string> = roots.flatMap((root: string): Array<string> => {
     return listSourceFiles(root);
@@ -355,7 +359,7 @@ describe("boxes take back a Button's margin only where it has one", () => {
     ).toBe(true);
   });
 
-  test("no -ml-3 pulls a bordered Button past the gutter on a phone", () => {
+  test("no -ml-3 pulls a bordered Button past the gutter", () => {
     const findings: Array<MarginTakeBackFinding> = files.flatMap(
       (file: string): Array<MarginTakeBackFinding> => {
         return findMarginTakeBacks(
@@ -368,7 +372,7 @@ describe("boxes take back a Button's margin only where it has one", () => {
     expect(findings.map(describeFinding)).toEqual([]);
   });
 
-  test("the date presets' row takes the margin back from md up only", () => {
+  test("the date presets' row spaces its buttons with a gap", () => {
     const code: string = fs.readFileSync(
       path.join(
         REPOSITORY_ROOT,
@@ -382,7 +386,7 @@ describe("boxes take back a Button's margin only where it has one", () => {
       "utf8",
     );
 
-    expect(code).toContain('className="mt-1 flex space-x-2 md:-ml-3"');
-    expect(code).not.toContain("space-x-2 -ml-3");
+    expect(code).toContain('className="mt-1 flex flex-wrap gap-2"');
+    expect(code).not.toContain("-ml-3");
   });
 });

@@ -43,7 +43,7 @@ The switches decide how visitors can sign themselves up, and the status page ref
 
 On OneUptime Cloud, a switch your plan does not include has the plan's name beside it: **Growth** for **SMS** and **Show Subscriber Page**, **Scale** for **Slack**, **Microsoft Teams** and **Webhook**. Turning a channel off works on every plan, so a channel a trial turned on can always be turned off again; the switch says so under it.
 
-Each channel also gets its own list in the status page side menu under **Subscribers**: **Email Subscribers**, **SMS Subscribers**, **Slack Subscribers**, **Microsoft Teams Subscribers** and **Webhook Subscribers**. That is where you look at who is signed up, add someone by hand with **Add Subscriber**, or leave yourself an **Internal Note** (`internalNote`) on a particular subscriber, which the subscriber never sees. While a channel is off, the top of its list says so, with the channel's switch right there, so you can turn it on without leaving the list.
+Every channel's subscribers are on one page, **Subscribers**, in the status page side menu's **Subscribers** section. It has a tab for each channel (**Email**, **SMS**, **Slack**, **Microsoft Teams** and **Webhook**), and each tab shows how many subscribers the channel has. Each tab is that channel's list (**Email Subscribers**, **SMS Subscribers** and so on). That is where you look at who is signed up, add someone by hand with **Add Subscriber**, or leave yourself an **Internal Note** (`internalNote`) on a particular subscriber, which the subscriber never sees. While a channel is off, the top of its list says so, with the channel's switch right there, so you can turn it on without leaving the list. The open tab is in the page's address (`{id}/subscribers?channel=sms`), and the addresses of the old per-channel pages, such as `{id}/email-subscribers`, open their channel's tab.
 
 **One switch is not enough.** The **Subscribe** item in the status page nav bar only appears when **Show Subscriber Page** is on *and* at least one channel is on. If you turn on **Email** but leave **Show Subscriber Page** off, visitors have no way to reach the form.
 
@@ -281,7 +281,7 @@ Incident custom fields with **Include in Subscriber Notifications** turned on (a
 
 The **Subscriber Notification Sent** entry in the incident feed lists, under **Custom fields sent**, the values each send put into a message. Subscribers are usually outside your team, so turn the setting on only for fields that are safe to share with them.
 
-The **Notification Logs** section in the status page side menu (`{id}/notification-logs`) is where you go when you need to see what the page actually sent.
+**Notification Logs**, in the **Subscribers** section of the status page side menu (`{id}/notification-logs`), is where you go when you need to see what the page actually sent.
 
 ### Incident episodes
 
@@ -483,7 +483,7 @@ The review step shows the same line. **Create from Template** fills the form in 
 
 The announcement's own page edits it on the same two steps. **Notify subscribers about this update** sits under the description (see [Telling subscribers about an edit](#telling-subscribers-about-an-edit)), and **Schedule** holds the start and the end. Setting an end that has passed is how you take an announcement down.
 
-Visitors read announcements at `/announcements`, split into **Active Announcements** and **Past Announcements**, each stamped with **Announced at**. Currently live announcements are also pinned to the top of the overview page. When there is nothing to show, the page reads *No Announcement* with the note that none have been posted so far.
+Visitors read announcements at `/announcements`, split into **Active Announcements** and the ones that ended within the page's announcement history, under a heading that names how many days that is, each stamped with **Announced at**. Currently live announcements are also pinned to the top of the overview page. When there is nothing to show, the page says there have been no announcements in that many days (14 unless you change it).
 
 Attachments are served from `GET {statusPageCrudPath}/status-page-announcement/attachment/:statusPageId/:announcementId/:fileId`, behind the same read check as the status page itself — so an attachment on a private page stays private.
 
@@ -499,9 +499,9 @@ Two consequences worth planning around:
 - **An announcement with no end date never expires.** Leave **End Showing Announcement At** empty and it stays pinned to the overview page indefinitely. Set an end date on anything time-bound.
 - **An old but still-active announcement can vanish from the list.** If it started more than `showAnnouncementHistoryInDays` ago it drops off `/announcements` while remaining on the overview. Raise the history window if you keep long-running notices.
 
-**Images follow the announcement.** An image in an announcement's description opens for everyone from **Start Showing Announcement At** on, not before. While an announcement is scheduled for later, its images open only for your project's members, just as the announcement itself shows only in the dashboard. Once it starts showing, its images open for everyone, on the status page and in the emails subscribers get. They stay that way after it ends, because its status pages still list it under **Past Announcements** and its link keeps working. Move an announcement to a later time and its images are private again until then.
+**Images follow the announcement.** An image in an announcement's description opens for everyone from **Start Showing Announcement At** on, not before. While an announcement is scheduled for later, its images open only for your project's members, just as the announcement itself shows only in the dashboard. Once it starts showing, its images open for everyone, on the status page and in the emails subscribers get. They stay that way after it ends, because its link keeps working, and its status pages list it among the ended announcements for as long as their history reaches back. Move an announcement to a later time and its images are private again until then.
 
-Whether announcements appear at all is set in the **What your status page shows** card on **Advanced Settings**: **Show Announcements** (`showAnnouncementsOnStatusPage`, default true) and, under it, **Show the last … days** (`showAnnouncementHistoryInDays`, default 14). With **Show Announcements** off, the announcements endpoint refuses the request outright.
+Whether announcements appear at all is set in the **What your status page shows** card on **Settings**: **Show Announcements** (`showAnnouncementsOnStatusPage`, default true) and, under it, **Show the last … days** (`showAnnouncementHistoryInDays`, default 14). With **Show Announcements** off, the announcements endpoint refuses the request outright.
 
 ## Announcement templates
 

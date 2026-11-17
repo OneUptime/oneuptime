@@ -397,8 +397,23 @@ test("the registered dialog sends a test notification to the device it just regi
     .getByRole("button", { name: "Send Test Notification" })
     .click();
 
-  await expect(page.getByTestId("modal-title")).toHaveText(
-    "Test Notification Sent",
+  /*
+   * A browser has nothing more to do once its test is on its way: the
+   * dialog closes, and the corner says where the test went and where to
+   * look if it does not show - a toast, not a dialog to click away (#9120).
+   */
+  await expect(dialog(page)).toHaveCount(0);
+
+  const sent: Locator = page.getByTestId("toast").filter({
+    has: page
+      .getByTestId("toast-title")
+      .getByText("Test Notification Sent", { exact: true }),
+  });
+
+  await expect(sent).toBeVisible();
+  await expect(sent).toHaveAttribute("data-toast-type", "success");
+  await expect(sent.getByTestId("toast-description")).toHaveText(
+    "Sent to Chrome on Windows. If it doesn't appear, check that this site may show notifications in that browser, and that Do Not Disturb or Focus is off on the computer.",
   );
 
   const state: FixtureState = await fixtureState(request);

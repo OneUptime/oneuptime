@@ -103,8 +103,7 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
           </div>
         );
       })}
-      {/* md:-ml-3 takes back the Button's own md:ml-3. */}
-      <div className="mt-3 md:-ml-3">
+      <div className="mt-3">
         <Button
           title={isMetricOnly ? "Add Rule" : "Add Filter"}
           buttonSize={ButtonSize.Small}

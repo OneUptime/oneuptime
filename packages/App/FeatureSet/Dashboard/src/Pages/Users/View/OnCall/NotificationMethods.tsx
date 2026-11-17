@@ -47,6 +47,7 @@ import React, {
   useState,
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import Toast from "Common/UI/Utils/Toast";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
@@ -398,8 +399,6 @@ const UserViewNotificationMethods: FunctionComponent<
     null,
   );
   const [resendError, setResendError] = useState<string>("");
-  const [showResentConfirmation, setShowResentConfirmation] =
-    useState<boolean>(false);
 
   const baseRoute: string = `/user-notification-method-admin/user/${userId.toString()}`;
 
@@ -608,7 +607,13 @@ const UserViewNotificationMethods: FunctionComponent<
         }
 
         setResendMethod(null);
-        setShowResentConfirmation(true);
+        // Said in the corner: it was a dialog to click away (#9120).
+        Toast.success(translator.translateText("Code sent") || "Code sent", {
+          description: translator.translateTemplate(
+            "A new verification code is on its way. {{name}} needs to enter it in their own user settings before this method can page them.",
+            { name: firstName },
+          ),
+        });
       } catch (err) {
         setResendError(API.getFriendlyMessage(err));
       } finally {
@@ -1248,22 +1253,6 @@ const UserViewNotificationMethods: FunctionComponent<
             resendVerificationCode().catch(() => {
               // resendVerificationCode routes every failure into resendError.
             });
-          }}
-        />
-      ) : (
-        <></>
-      )}
-
-      {showResentConfirmation ? (
-        <ConfirmModal
-          title="Code sent"
-          description={translator.translateTemplate(
-            "A new verification code is on its way. {{name}} needs to enter it in their own user settings before this method can page them.",
-            { name: firstName },
-          )}
-          submitButtonText="Close"
-          onSubmit={() => {
-            setShowResentConfirmation(false);
           }}
         />
       ) : (

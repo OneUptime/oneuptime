@@ -74,7 +74,7 @@ Voeg de gedeelde monitor als resource aan elke pagina toe (zie [Statuspagina –
 
 ### Alleen incidenten tonen die tot deze pagina zijn beperkt aanzetten
 
-Zet het op elk van die pagina's aan. Het staat op de kaart **Wat uw statuspagina toont** onder **Statuspagina's → uw pagina → Geavanceerd → Geavanceerde instellingen**, onder **Incidenten weergeven**, en wordt opgeslagen op het moment dat u het omzet. Vanaf dan bereikt niets de pagina van een locatie tenzij iemand haar kiest.
+Zet het op elk van die pagina's aan. Het staat op de kaart **Wat uw statuspagina toont** onder **Statuspagina's → uw pagina → Geavanceerd → Instellingen**, onder **Incidenten weergeven**, en wordt opgeslagen op het moment dat u het omzet. Vanaf dan bereikt niets de pagina van een locatie tenzij iemand haar kiest.
 
 ### De abonnees van elke doelgroep toevoegen
 

@@ -1,4 +1,9 @@
-import AIAgentDataAPI from "../../../Server/API/AIAgentDataAPI";
+import AIAgentDataAPI, {
+  getPrivateSubjectNeedsNewerRunnerMessage,
+} from "../../../Server/API/AIAgentDataAPI";
+import RunnerCodeFixCapability, {
+  SUBJECT_IS_PRIVATE_FIELD,
+} from "../../../Types/Runner/RunnerCodeFixCapability";
 import AIRunService from "../../../Server/Services/AIRunService";
 import AlertService from "../../../Server/Services/AlertService";
 import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
@@ -349,6 +354,125 @@ describe("FixFromIncident task-details investigation snapshot", () => {
       });
 
       expect(resolve.mock.calls[0]![0].allowance).toEqual(NO_CODE_REPOSITORY);
+    });
+  });
+
+  /*
+   * A FIX ABOUT A PRIVATE INCIDENT OR ALERT (#9165): the Runner writes its
+   * pull request, which everyone with access to the repository reads. The
+   * details say the record is private - and are handed only to a Runner
+   * that keeps it out of what it writes there
+   * (keepsPrivateRecordsOutOfPullRequests). An older one would write the
+   * record's title and the analysis into the pull request: it is refused,
+   * saying to update it, and gets nothing of the record.
+   */
+  describe("a private incident's or alert's fix", () => {
+    async function callAs(capabilities: Array<string> | null): Promise<void> {
+      const req: ExpressRequest = {
+        params: {},
+        query: {},
+        body: {
+          aiAgentId: ObjectID.generate().toString(),
+          aiAgentKey: "agent-key",
+          taskId: taskId.toString(),
+          ...(capabilities ? { codeFixCapabilities: capabilities } : {}),
+        },
+        headers: {},
+      } as unknown as ExpressRequest;
+
+      await mockRouter
+        .match("POST", DETAILS_ROUTE)
+        .handlerFunction(
+          req,
+          {} as ExpressResponse,
+          jest.fn() as unknown as NextFunction,
+        );
+    }
+
+    function privateSubject(
+      kind: "incident" | "alert",
+      isPrivate: boolean,
+    ): void {
+      const subjectId: ObjectID = ObjectID.generate();
+
+      jest.spyOn(AIRunService, "findOneById").mockResolvedValue(
+        fixRun({
+          ...(kind === "incident"
+            ? { incidentId: subjectId }
+            : { alertId: subjectId }),
+          taskContext: snapshot(ObjectID.generate()),
+        }),
+      );
+      jest.spyOn(IncidentService, "findOneById").mockResolvedValue({
+        title: "Checkout outage at Acme Bank",
+        isPrivate,
+        monitors: [{ name: "checkout-api" }],
+      } as unknown as Incident);
+      jest.spyOn(AlertService, "findOneById").mockResolvedValue({
+        title: "Acme Bank latency alert",
+        isPrivate,
+        monitor: { name: "checkout-api" },
+      } as unknown as Alert);
+    }
+
+    test.each(["incident", "alert"] as const)(
+      "a Runner that keeps the record out is told the %s is private",
+      async (kind: "incident" | "alert") => {
+        privateSubject(kind, true);
+
+        await callAs([
+          RunnerCodeFixCapability.ServerOpensPullRequests,
+          RunnerCodeFixCapability.KeepsPrivateRecordsOutOfPullRequests,
+        ]);
+
+        expect(thrownError()).toBeUndefined();
+        expect(jsonResponse()).toEqual(
+          expect.objectContaining({
+            subjectType: kind,
+            [SUBJECT_IS_PRIVATE_FIELD]: true,
+            analysisMarkdown: PINNED_ANALYSIS,
+          }),
+        );
+      },
+    );
+
+    test.each(["incident", "alert"] as const)(
+      "an older Runner is refused a private %s's fix, saying to update it, and gets nothing of it",
+      async (kind: "incident" | "alert") => {
+        privateSubject(kind, true);
+
+        for (const capabilities of [
+          null,
+          [RunnerCodeFixCapability.ServerOpensPullRequests],
+        ]) {
+          (Response.sendErrorResponse as unknown as jest.Mock).mockClear();
+          (Response.sendJsonObjectResponse as unknown as jest.Mock).mockClear();
+
+          await callAs(capabilities);
+
+          expect(jsonResponse()).toBeUndefined();
+          expect(thrownError()).toBeInstanceOf(BadDataException);
+          expect(thrownError()?.message).toBe(
+            getPrivateSubjectNeedsNewerRunnerMessage(kind),
+          );
+          expect(thrownError()?.message).toContain("Update the Runner");
+          expect(thrownError()?.message).not.toContain("Acme Bank");
+        }
+      },
+    );
+
+    test("a public record's fix is handed to any Runner, said not to be private", async () => {
+      privateSubject("incident", false);
+
+      await callAs(null);
+
+      expect(thrownError()).toBeUndefined();
+      expect(jsonResponse()).toEqual(
+        expect.objectContaining({
+          [SUBJECT_IS_PRIVATE_FIELD]: false,
+          subjectTitle: "Checkout outage at Acme Bank",
+        }),
+      );
     });
   });
 });

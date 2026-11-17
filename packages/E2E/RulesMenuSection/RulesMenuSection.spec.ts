@@ -42,11 +42,10 @@ const STATUS_PAGE_PATH: string = `/dashboard/${PROJECT_ID}/status-pages/${STATUS
 const SLO_PATH: string = `/dashboard/${PROJECT_ID}/slos/${SLO_ID}`;
 
 const STATUS_PAGE_SECTIONS: ReadonlyArray<string> = [
-  "Basic",
+  "Overview",
   "Resources",
   "Rules",
   "Subscribers",
-  "Notification Logs",
   "Branding",
   "Security",
   "AI",
@@ -246,7 +245,7 @@ test.describe("a status page's side menu", () => {
     const menu: Locator = desktopMenu(page);
 
     expect(await sectionTitles(menu)).toEqual(STATUS_PAGE_SECTIONS);
-    await expectOpen(menu, "Basic");
+    await expectOpen(menu, "Overview");
     await expectOpen(menu, "Resources");
     await expectFolded(menu, "Rules");
 

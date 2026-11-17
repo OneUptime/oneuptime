@@ -99,7 +99,8 @@ const StatusPageView: FunctionComponent<
               field: {
                 description: true,
               },
-              title: "Description",
+              // Your team's, not what visitors read (#9130).
+              title: "Internal Description",
             },
           ],
           modelId: modelId,

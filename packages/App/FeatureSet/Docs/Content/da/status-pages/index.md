@@ -36,10 +36,10 @@ Siden viser de monitorer, du sætter på den, som ressourcer, og hændelser når
 
 ## Kort fortalt
 
-- **Oprettes med et navn.** En ny statusside beder kun om sit **Navn**; **Beskrivelse** og **Etiketter** venter under **Flere felter**. Ressourcer, branding og domæner sætter du op bagefter.
+- **Oprettes med et navn.** En ny statusside beder kun om sit **Navn**; **Intern beskrivelse** og **Etiketter** venter under **Flere felter**. Ressourcer, branding og domæner sætter du op bagefter.
 - **Ressourcer er det, besøgende ser.** Hver række på siden er en **Statussideressource**: en monitor (eller monitorgruppe) med sit eget visningsnavn, værktøjstip og oppetidsindstillinger. Grupper deler en lang side op i sektioner og kan indlejres.
 - **En forhåndsvisnings-URL fra første dag.** Hver statusside får et forhåndsvisningslink, så du kan se den, før der findes et brugerdefineret domæne.
-- **Ruterne for besøgende afhænger af indstillinger.** Hændelser, episoder, meddelelser og planlagte begivenheder vises kun, så længe deres kontakt i **Hvad din statusside viser** (under **Avancerede indstillinger**) er slået til, og tilmeldingssiden kun, så længe **Vis abonnentside** er slået til.
+- **Ruterne for besøgende afhænger af indstillinger.** Hændelser, episoder, meddelelser og planlagte begivenheder vises kun, så længe deres kontakt i **Hvad din statusside viser** (under **Indstillinger**) er slået til, og tilmeldingssiden kun, så længe **Vis abonnentside** er slået til.
 - **Hvem der må se den, er ét valg.** Alle med linket, kun personer, der logger ind (private brugere, SAML- eller OIDC-SSO), eller alle med adgangskoden, på sidens skærm **Adgang**, med en valgfri IP-tilladelsesliste under **Yderligere indstillinger**.
 - **Abonnenter får automatisk besked.** Abonnenter via e-mail, SMS, Slack, Microsoft Teams og webhook kan følge en side, hver kanal bag sin egen kontakt.
 
@@ -66,7 +66,7 @@ Se [Ordliste](/docs/introduction/glossary) for de ord, der bruges på tværs af 
 
 ### Giv siden et navn
 
-Udfyld **Navn** (påkrævet, mindst to tegn) i vinduet **Opret ny: Statusside**, og klik på **Opret statusside**. **Beskrivelse** og **Etiketter** er valgfrie, under **Flere felter**.
+Udfyld **Navn** (påkrævet, mindst to tegn) i vinduet **Opret ny: Statusside**, og klik på **Opret statusside**. **Intern beskrivelse** og **Etiketter** er valgfrie, under **Flere felter**. Den interne beskrivelse er til dit team: besøgende ser den aldrig.
 
 Det er hele formularen. Listen **Statussider** viser **Navn**, **Beskrivelse**, **Etiketter** og **Ejere** og kan filtreres efter **Statusside-ID**, **Navn** og **Beskrivelse**.
 
@@ -82,33 +82,32 @@ Derefter, nogenlunde i rækkefølge efter nytte:
 - Tilføj ressourcer, så siden viser noget: se [Statusside – ressourcer og grupper](/docs/status-pages/resources-and-groups).
 - Angiv sidens titel, favicon, logo og forsidebillede, og tilknyt derefter et brugerdefineret domæne: se [Statusside – branding og domæner](/docs/status-pages/branding-and-domains).
 - Bestem, hvilke kanaler folk kan abonnere på: se [Abonnenter og meddelelser](/docs/status-pages/subscribers).
-- Finjustér, hvad der vises på siden, under **Avancerede indstillinger**.
+- Finjustér, hvad der vises på siden, under **Indstillinger**.
 
 ## Hvor alting bor
 
-Når du har åbnet en statusside, er dens egen venstremenu delt op i ti sektioner. Brug den som kort over resten af denne del af dokumentationen.
+Når du har åbnet en statusside, er dens egen venstremenu delt op i ni sektioner. Brug den som kort over resten af denne del af dokumentationen.
 
 | Sektion | Hvad den indeholder |
 | --- | --- |
-| **Grundlæggende** | **Oversigt**, **Meddelelser**, **Ejere**. |
+| **Oversigt** | **Oversigt**, **Meddelelser**, **Ejere**. |
 | **Ressourcer** | Én skærm **Ressourcer** (grupperne til venstre, den valgte gruppes monitorer til højre). |
 | **Regler** | **Monitorregler**: regler, der tilføjer hver monitor, der matcher, til siden, nu og senere. |
-| **Abonnenter** | **E-mail-abonnenter**, **SMS-abonnenter**, **Slack-abonnenter**, **Microsoft Teams-abonnenter**, **Webhook-abonnenter**, **Abonnementsindstillinger**. |
-| **Notifikationslogs** | **Notifikationslogs**: hvad der er sendt til abonnenterne. |
+| **Abonnenter** | **Abonnenter** (én side med en fane for hver kanal: E-mail, SMS, Slack, Microsoft Teams og Webhook), **Abonnementsindstillinger**, **Notifikationslogs**: hvad der er sendt til abonnenterne. |
 | **Branding** | **Branding** (logo, titel, favicon, links, sidefod, farver og sprog, på én side), **Brugerdefinerede domæner**, **HTML, CSS og JavaScript**. |
-| **Sikkerhed** | **Adgang** (hvem der må se siden), **Private brugere**, **SSO**, **OIDC**, **SCIM**. |
+| **Sikkerhed** | **Adgang** (hvem der må se siden), **Private brugere**, **Single sign-on** (en fane til SAML og en til OIDC), **SCIM**. |
 | **AI** | **MCP**. |
 | **Udvikler** | **Terraform**, **API**, **CLI**, **AI-assistenter**: siden som kode. |
-| **Avanceret** | **Indlejret status**, **Rapporter**, **Brugerdefinerede felter**, **Avancerede indstillinger**, **Auditlogs**, **Slet statusside**. |
+| **Avanceret** | **Indlejret status**, **Rapporter**, **Brugerdefinerede felter**, **Indstillinger**, **Auditlogs**, **Slet statusside**. |
 
-Kun **Grundlæggende** og **Ressourcer**, det siden viser, starter åbne. Alle andre sektioner starter foldet sammen, ligesom de sjældent brugte sektioner i alle OneUptimes menuer: klik på en sektions titel for at vise dens sider. En sektion åbner af sig selv, når du er på en af dens sider, for eksempel **Avancerede indstillinger** eller **E-mail-abonnenter**.
+Kun **Oversigt** og **Ressourcer**, det siden viser, starter åbne. Alle andre sektioner starter foldet sammen, ligesom de sjældent brugte sektioner i alle OneUptimes menuer: klik på en sektions titel for at vise dens sider. En sektion åbner af sig selv, når du er på en af dens sider, for eksempel **Indstillinger** eller **Abonnenter**.
 
 To navneskikke, som er værd at kende, før du begynder at lede:
 
 - Punktet **Ressourcer** hedder kun **Ressourcer**, når projektet har monitorgrupper slået til. Ellers hedder det **Monitorer**. Det er den samme skærm i begge tilfælde.
 - Der er ingen separat gruppeside. Grupper og ressourcer er lagt sammen, og den gamle rute `/groups` omdirigerer nu til ressourceskærmen.
 
-Uden for en bestemt side viser selve sektionen **Statussider** **Alle statussider**, og en sektion **Mere** indeholder **Meddelelser**. En sammenfoldet sektion **Indstillinger** indeholder **Meddelelsesskabeloner**, **Abonnementsskabeloner**, **Brugerdefinerede felter**, **Ejerregler** og **Etiketregler**, som gælder for hele projektet og deles af alle statussider. En sammenfoldet sektion **Avanceret** indeholder **Arkiveret**: de statussider, du har taget offline (se [Arkiver en statusside](#at-arkivere-en-statusside)).
+Uden for en bestemt side viser selve sektionen **Statussider** **Alle statussider** og **Meddelelser**. En sammenfoldet sektion **Regler** indeholder **Ejerregler** og **Etiketregler**, og en sammenfoldet sektion **Indstillinger** indeholder **Meddelelsesskabeloner**, **Abonnementsskabeloner** og **Brugerdefinerede felter**. De gælder alle for hele projektet og deles af alle statussider. En sammenfoldet sektion **Avanceret** indeholder **Arkiveret**: de statussider, du har taget offline (se [Arkiver en statusside](#at-arkivere-en-statusside)).
 
 **Etiketregler** og **Ejerregler** giver nye statussider etiketter og tildeler dem ejere. En regel har to trin (**Match**, de betingelser en statusside skal opfylde, og derefter **Etiketter** eller **Ejere**, det reglen tilføjer), og dens **Navn** udfyldes ud fra det, du vælger. En ny regel skal tilføje mindst én etiket eller ejer; når du redigerer, bliver der aldrig insisteret på det, og listen markerer en gammel regel, der ikke tilføjer noget, med **Tilføjer intet**. Se [Etiket- og ejerregler](/docs/configuration/label-and-owner-rules).
 
@@ -148,7 +147,7 @@ Hvad der sætter en hændelse på denne side, og hvad der fjerner den, kan du l�
 
 ## At vælge hvad der vises på siden
 
-Hvad besøgende ser, angives på ét kort: **Hvad din statusside viser** under **Statussider → din side → Avanceret → Avancerede indstillinger**. Det har en række for hver liste, siden kan vise, derefter **Oppetidshistorik** (med den samlede oppetidsprocent og de statusser, der tæller som nedetid). Linjen "Powered by OneUptime" har sit eget kort lige under, sammenklappet under **Yderligere indstillinger**. Der er ingen redigeringsknap: en kontakt gemmes, så snart du slår den om, et antal dage, når du forlader feltet eller trykker på Enter, og et valg fra en liste, så snart du træffer det.
+Hvad besøgende ser, angives på ét kort: **Hvad din statusside viser** under **Statussider → din side → Avanceret → Indstillinger**. Det har en række for hver liste, siden kan vise, derefter **Oppetidshistorik** (med den samlede oppetidsprocent og de statusser, der tæller som nedetid). Linjen "Powered by OneUptime" har sit eget kort lige under, sammenklappet under **Yderligere indstillinger**. Der er ingen redigeringsknap: en kontakt gemmes, så snart du slår den om, et antal dage, når du forlader feltet eller trykker på Enter, og et valg fra en liste, så snart du træffer det.
 
 - **Vis hændelser** (`showIncidentsOnStatusPage`): slået til som standard. Under den bestemmer **Vis de seneste … dage** (`showIncidentHistoryInDays`, standard 14), hvor langt hændelseslisten går tilbage, og **Vis hændelsesetiketter** (`showIncidentLabelsOnStatusPage`) er slået fra som standard.
 - **Vis kun hændelser, der er begrænset til denne side** (`onlyShowScopedIncidents`): også i hændelsesrækken, slået fra som standard. Slå den til, og siden viser, og underretter sine abonnenter om, kun de hændelser, der er begrænset til den med **Begræns til disse statussider**. Hændelser, der ikke er begrænset til nogen side, også dem, som en monitor, Slack, Microsoft Teams, API'et eller AI åbner af sig selv, når aldrig siden, før nogen tilføjer siden til dem. Den bestemmer også, hvilke hændelser der bringer deres episoder på siden, og derfor er den fortsat tilgængelig, når **Vis hændelser** er slået fra. For sider, der deler monitorer, men betjener forskellige målgrupper, se [Én statusside pr. målgruppe](/docs/status-pages/one-status-page-per-audience).
@@ -198,17 +197,21 @@ Et valg beder om bekræftelse og siger, hvad der ændrer sig for besøgende, og 
 
 Tilføj de personer, der må logge ind, under **Statussider → din side → Sikkerhed → Private brugere**. Der er en handling **Tilføj i bulk**: indsæt en liste med e-mailadresser, og hver adresse får en invitationsmail. Private brugere har deres eget forløb for glemt adgangskode og nulstilling, adskilt fra kontiene i dit OneUptime-projekt. En ny adgangskode logger dem ud på alle enheder, og ethvert login-link eller nulstillingslink, der allerede er sendt, holder op med at virke.
 
+**Private brugere, single sign-on og SCIM gør intet på en offentlig side.** Så længe **Alle med linket** er valget, ser alle besøgende siden uden at logge ind. Skærmene **Private brugere**, **Single sign-on** og **SCIM** siger det hver især øverst, "Denne statusside er offentlig, så disse indstillinger gør intet, før du gør den privat.", med **Skift adgang**, som åbner **Adgang**. Det, de indeholder, er foldet sammen under **Opsæt før siden gøres privat**: åbn det for at tilføje personer eller en udbyder, før siden bliver privat, så ingen bliver låst ude, når det sker.
+
 **Private brugere og adgangskoden lægges ikke sammen.** Så længe **Alle med adgangskoden** er valget, kan private brugere ikke logge ind (de indtaster også adgangskoden), og skærmen **Private brugere** siger det, med et link tilbage til **Adgang**.
 
 **Login-links.** På en side, som besøgende logger ind på, tilbyder login-siden også **Send mig et login-link**: en privat bruger indtaster sin e-mailadresse og får tilsendt et link, der logger vedkommende ind uden adgangskode. Linket virker én gang i 15 minutter, og beder man om et nyt, erstatter det det gamle. Det åbner en side, hvor brugeren trykker på **Log ind**, så mailfiltre, der åbner alle links for at scanne dem, ikke kan bruge det op først. Siden svarer det samme, uanset om adressen tilhører en af dens private brugere, så en forespørgsel afslører ikke, hvem der kan logge ind. Links er slået til på alle sider; vil du holde private brugere til deres adgangskoder, så slå **Login-links** fra under **Yderligere indstillinger** på **Private brugere** (personer, der allerede er logget ind med et link, forbliver logget ind). De tilbydes aldrig, mens **Kræv SSO til login** er slået til, eller **Alle med adgangskoden** er valget.
 
 ### SSO og OIDC
 
-For en privat side, der er koblet til din identitetsudbyder, sætter **Statussider → din side → Sikkerhed → SSO** SAML op: **Tilføj SSO-udbyder** beder om login-URL'en, udstederen og x509-certifikatet, og signerings- og digest-metoderne udfyldes under **Flere felter**. **Statussider → din side → Sikkerhed → OIDC** sætter OpenID Connect op: **Tilføj OIDC-udbyder** beder om udstederen, klient-id'et og hemmeligheden, og discovery-URL'en, scopes og claim-navnene udfyldes under **Flere felter**. Når en side har en udbyder, linker kortet **Test login** under listen til sidens login, så du kan prøve den. **SCIM** opretter automatisk private brugere fra IdP'en. På OneUptime Cloud kræver alle tre abonnementet Scale eller højere. I en selvhostet installation er SSO og OIDC en del af alle udgaver, og SCIM kræver [Enterprise Edition](/docs/self-hosted/enterprise).
+For en privat side, der er koblet til din identitetsudbyder, åbner du **Statussider → din side → Sikkerhed → Single sign-on** (`{id}/sso`). Den har en fane for hver protokol. Fanen **SAML** sætter SAML op: **Tilføj SSO-udbyder** beder om login-URL'en, udstederen og x509-certifikatet, og signerings- og digest-metoderne udfyldes under **Flere felter**. Fanen **OIDC** (`{id}/sso?protocol=oidc`) sætter OpenID Connect op: **Tilføj OIDC-udbyder** beder om udstederen, klient-id'et og hemmeligheden, og discovery-URL'en, scopes og claim-navnene udfyldes under **Flere felter**. Når en side har en udbyder, linker kortet **Test login** under listen til sidens login, så du kan prøve den. **SCIM** opretter automatisk private brugere fra IdP'en. På OneUptime Cloud kræver alle tre abonnementet Scale eller højere. I en selvhostet installation er SSO og OIDC en del af alle udgaver, og SCIM kræver [Enterprise Edition](/docs/self-hosted/enterprise).
 
 At slå en statussides SSO- eller OIDC-udbyder fra eller slette den logger de private brugere ud, som den har logget ind: deres sessioner slutter ved deres næste forespørgsel, og at slå udbyderen til igen bringer dem ikke tilbage; de logger ind gennem den igen. Et nyt certifikat eller en ny klienthemmelighed, andre URL'er eller et nyt navn holder alle logget ind. På en side, der kræver SSO, låser det alle ude at slå dens sidste udbyder fra, indtil du slår en til igen eller slår **Kræv SSO til login** fra; for at skifte til en anden udbyder skal du sætte den nye op og teste den, før du slår den gamle fra.
 
-Under udbyderne indeholder kortet **SSO-indstillinger** kontakten **Kræv SSO til login** (`requireSsoForLogin`, slået fra som standard), som gemmes, så snart du slår den om. At slå den til beder først om bekræftelse, fordi private brugere derefter ikke kan logge ind med e-mail og adgangskode: kun de personer, din SSO- eller OIDC-udbyder lukker ind, kan se siden. Prøv linket på kortet **Test login** over det, før du slår den til. Den har kun betydning, så længe **Kun personer, der logger ind** er valget, og skærmen **Adgang** viser den som **SSO påkrævet** under det valg. Mens den er slået til, bliver en privat bruger, der loggede ind med e-mail og adgangskode, også logget ud ved sin næste forespørgsel: kun sessioner, som en SSO- eller OIDC-udbyder har startet, tæller. På OneUptime Cloud kræver det abonnementet **Scale** at slå den til, og at slå den fra virker på alle abonnementer. En side, der stadig kræver SSO, efter at en prøveperiode med Scale er slut, eller efter et skift til et lavere abonnement, bliver ved med det, indtil nogen slår det fra: dens sider **SSO** og **OIDC** viser kontakten til det under abonnementstilbuddet.
+Under udbyderne indeholder kortet **SSO-indstillinger** kontakten **Kræv SSO til login** (`requireSsoForLogin`, slået fra som standard), som gemmes, så snart du slår den om. At slå den til beder først om bekræftelse, fordi private brugere derefter ikke kan logge ind med e-mail og adgangskode: kun de personer, din SSO- eller OIDC-udbyder lukker ind, kan se siden. Prøv linket på kortet **Test login** over det, før du slår den til. Den har kun betydning, så længe **Kun personer, der logger ind** er valget, og skærmen **Adgang** viser den som **SSO påkrævet** under det valg. Mens den er slået til, bliver en privat bruger, der loggede ind med e-mail og adgangskode, også logget ud ved sin næste forespørgsel: kun sessioner, som en SSO- eller OIDC-udbyder har startet, tæller. På OneUptime Cloud kræver det abonnementet **Scale** at slå den til, og at slå den fra virker på alle abonnementer. En side, der stadig kræver SSO, efter at en prøveperiode med Scale er slut, eller efter et skift til et lavere abonnement, bliver ved med det, indtil nogen slår det fra: dens side **Single sign-on** viser kontakten til det under abonnementstilbuddet, på begge faner.
+
+**SSO** og **OIDC** var tidligere to punkter i menuen. Den gamle OIDC-adresse, `{id}/oidc`, åbner fanen **OIDC**.
 
 ### Læsersessioner
 
@@ -241,7 +244,7 @@ Arkiver en statusside for at tage den offline uden at slette den. En arkiveret s
 - **Forsvinder fra listen over statussider.** Du finder den under **Statussider → Avanceret → Arkiveret**.
 - **Beholder alt.** Dens ressourcer, grupper, branding, domæner, private brugere og abonnenter bevares, så når du fjerner den fra arkivet, kommer siden online igen præcis, som den var.
 
-For at arkivere en statusside åbner du den og går til **Avanceret → Avancerede indstillinger → Arkiver statusside**. For at arkivere flere vælger du dem i listen **Statussider** og vælger **Arkiver**. For at få en tilbage åbner du **Statussider → Avanceret → Arkiveret**, vælger den og vælger **Fjern fra arkivet**, eller du åbner den og klikker på **Fjern fra arkivet** i banneret øverst på dens sider.
+For at arkivere en statusside åbner du den og går til **Avanceret → Indstillinger → Arkiver statusside**. For at arkivere flere vælger du dem i listen **Statussider** og vælger **Arkiver**. For at få en tilbage åbner du **Statussider → Avanceret → Arkiveret**, vælger den og vælger **Fjern fra arkivet**, eller du åbner den og klikker på **Fjern fra arkivet** i banneret øverst på dens sider.
 
 En statussides **Oversigt** har et kort **Vises nu**: de åbne hændelser og den kommende eller igangværende vedligeholdelse, som besøgende ser på den lige nu. Når du arkiverer eller sletter siden, på dens egne sider eller fra listen, siges det først, hvad besøgende ikke længere ville se.
 

@@ -1577,7 +1577,7 @@ describe("A monitor nothing has checked yet (#8961)", () => {
     await render(<MonitorsScreen />);
 
     expect(listedMonitors()).toEqual([
-      "Monitor db.example.com. Status: Probes Not Enabled.",
+      "Monitor db.example.com. Status: No Probe Enabled.",
       "Monitor edge.example.com. Status: Probes Disconnected.",
     ]);
     expect(countsBesideLabel("Issues")).toEqual(["1"]);

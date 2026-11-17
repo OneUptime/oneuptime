@@ -2,6 +2,7 @@ import { expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { withUnit } from "../SuiteHelpers/NoBreakSpaces";
 
 /*
  * AI rules can wait before they investigate (issue #5074): "only if the
@@ -324,8 +325,9 @@ test.describe("AI rules: when to investigate (issue #5074)", () => {
     const card: Locator = await openRulesCard(page);
 
     expect(await timingOf(card, "Production incidents")).toBe(RIGHT_AWAY);
+    // The count is held to its unit, as a page's English writes it (#8770).
     expect(await timingOf(card, "Flapping checks")).toBe(
-      "If still open after 10 minutes",
+      `If still open after ${withUnit(10, "minutes")}`,
     );
     // What an investigation rule was: a rule that fixes nothing.
     expect(await fixOf(card, "Flapping checks")).toBe("Doesn't fix");
@@ -705,7 +707,7 @@ test.describe("AI rules: when to investigate (issue #5074)", () => {
     const card: Locator = await openRulesCard(page, { lane: "alert" });
 
     expect(await timingOf(card, "Flapping checks")).toBe(
-      "If still open after 10 minutes",
+      `If still open after ${withUnit(10, "minutes")}`,
     );
 
     const dialog: Locator = await openInvestigateStep(page, card);

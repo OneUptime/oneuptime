@@ -18,17 +18,17 @@ Abra uma página de status: a seção **Marca** do menu lateral dela tem três i
 
 | Página | O que você define ali |
 | ---- | ------------------ |
-| **Marca** | Logotipo e imagem de capa, o tema (claro, escuro ou conforme o dispositivo de cada visitante), título e descrição da página, favicon, links do cabeçalho, a descrição da página de visão geral, a linha de direitos autorais e os links do rodapé. Recolhidos em **Mais configurações**: as cores do gráfico de histórico, os idiomas e a indexação em mecanismos de pesquisa. |
+| **Marca** | Logotipo e imagem de capa, o tema (claro, escuro ou conforme o dispositivo de cada visitante), links do cabeçalho, o texto de introdução, a linha de direitos autorais e os links do rodapé. Recolhidos em **Mais configurações**: o título da página e a descrição para buscadores, o favicon, as cores do gráfico de histórico, os idiomas e a indexação em mecanismos de pesquisa. |
 | **Domínios personalizados** | Seu próprio domínio, o registro DNS dele e o certificado SSL gratuito dele. |
 | **HTML, CSS e JavaScript** | HTML do cabeçalho, HTML do rodapé, CSS personalizado, JavaScript personalizado. |
 
-Três coisas que parecem marca ficam, em vez disso, em **Páginas de status → sua página → Avançado → Configurações avançadas** (`{id}/settings`), porque decidem o que a página mostra, e não a aparência dela: a porcentagem geral de tempo de atividade, quais status de monitor contam contra o tempo de atividade e a linha "Powered by OneUptime". As duas primeiras são linhas do cartão **O que sua página de status mostra** dessa tela, e a linha tem um cartão próprio, logo abaixo, recolhido em **Mais configurações**.
+Três coisas que parecem marca ficam, em vez disso, em **Páginas de status → sua página → Avançado → Configurações** (`{id}/settings`), porque decidem o que a página mostra, e não a aparência dela: a porcentagem geral de tempo de atividade, quais status de monitor contam contra o tempo de atividade e a linha "Powered by OneUptime". As duas primeiras são linhas do cartão **O que sua página de status mostra** dessa tela, e a linha tem um cartão próprio, logo abaixo, recolhido em **Mais configurações**.
 
 A marca ficava dividida entre telas separadas de **Marca essencial**, **Cabeçalho**, **Rodapé**, **Página de visão geral** e **Idiomas**. Os endereços antigos delas (`{id}/header-style`, `{id}/footer-style`, `{id}/overview-page-branding` e `{id}/languages`) agora abrem a página **Marca**, então favoritos e links antigos continuam funcionando.
 
 ## A página Marca
 
-**Páginas de status → sua página → Marca → Marca** (`{id}/branding`). Cada cartão salva por conta própria. Depois do logotipo, do tema, do título e do favicon, os cartões seguem a sua página de status de cima para baixo: os links do cabeçalho, o texto no topo da visão geral e, depois, o rodapé. O que pouca gente muda fica recolhido em **Mais configurações**, no final.
+**Páginas de status → sua página → Marca → Marca** (`{id}/branding`). Cada cartão salva por conta própria. Depois do logotipo e do tema, os cartões seguem a sua página de status de cima para baixo: os links do cabeçalho, o texto de introdução no topo da visão geral e, depois, o rodapé. O que pouca gente muda fica recolhido em **Mais configurações**, no final: o título e a descrição para buscadores, o favicon, as cores do gráfico de histórico, os idiomas e a indexação em mecanismos de pesquisa.
 
 ### Logotipo e imagem de capa
 
@@ -65,18 +65,25 @@ O tema vai no HTML da página, então a página é desenhada nele desde o iníci
 
 O seu CSS e o seu HTML personalizados valem nos dois temas; [HTML, CSS e JavaScript personalizados](#html-css-e-javascript-personalizados) explica como estilizar o escuro.
 
-### Título, descrição e favicon
-
-- **Título e descrição**: o nome da página na aba do navegador e nos e-mails aos assinantes, e a descrição que os mecanismos de pesquisa mostram. **Editar** abre **Título da página** (texto de exemplo `e.g., Acme Status`) e **Descrição da página**. Mecanismos de pesquisa e prévias de links mostram esses textos, então escreva-os para um cliente, não para a sua equipe.
-- **Favicon**: **Editar favicon** abre o envio **Favicon**: o pequeno ícone na aba do navegador.
-
 ### Links do cabeçalho
 
 A tabela **Links do Cabeçalho** contém os links do cabeçalho da página de status, como o seu site, a sua documentação ou um portal de suporte. Cada link tem um **Título** e um **Link** (uma URL, texto de exemplo `https://link.com`), e você os reordena arrastando. Sem nenhum, a tabela diz para que eles servem, com **Adicionar: Link do Cabeçalho** abaixo.
 
-### Descrição da página de visão geral
+### Texto de introdução
 
-**Descrição da página de visão geral** é a primeira coisa na visão geral da página de status, acima dos comunicados, do status geral e dos seus recursos. **Editar descrição** abre um campo markdown. Use-o para uma frase de contexto: o que esta página cobre e onde buscar suporte. Uma imagem que você colocar nele é mostrada a todos os visitantes da página.
+**Texto de introdução** é a primeira coisa que os visitantes leem na visão geral da página de status, acima dos comunicados, do status geral e dos seus recursos. **Editar texto de introdução** abre um campo markdown. Antes ele se chamava **Descrição da página de visão geral**. Use-o para uma frase de contexto: o que esta página cobre e onde buscar suporte. Uma imagem que você colocar nele é mostrada a todos os visitantes da página.
+
+### Três descrições, três leitores
+
+Uma página de status tem três descrições, cada uma com o nome de quem a lê:
+
+| Campo | Onde é definido | Quem lê |
+| --- | --- | --- |
+| **Descrição interna** | O cartão **Detalhes da página de status** na **Visão geral** da página | Só a sua equipe. Os visitantes nunca a veem. |
+| **Descrição para buscadores** | **Título e descrição para buscadores**, em **Mais configurações** na página **Marca** | Mecanismos de pesquisa e prévias de links. |
+| **Texto de introdução** | **Texto de introdução** na página **Marca** | Os visitantes, no topo da página de status. |
+
+Para mudar o que os visitantes leem na página, edite o **Texto de introdução**.
 
 ### Rodapé
 
@@ -87,7 +94,12 @@ Os links do cabeçalho servem para navegar; os do rodapé, para as letras miúda
 
 ### Mais configurações
 
-A última seção da página fica recolhida em **Mais configurações**, porque pouca gente muda o que há nela. Recolhida, o cabeçalho dela nomeia as suas quatro seções (**Cor Padrão da Barra**, **Regras de cor das barras**, **Idiomas** e **Indexação em mecanismos de pesquisa**) e mostra cada uma que difere de como uma página de status nova começa: uma cor padrão da barra diferente do verde com que toda página começa, regras de cor das barras diferentes das recomendadas, um idioma padrão diferente do inglês, uma lista de idiomas mais curta ou a indexação em mecanismos de pesquisa desativada. Clique para abri-la: é um único cartão, com as suas seções uma embaixo da outra, cada uma com seu próprio título, separadas por divisórias.
+A última seção da página fica recolhida em **Mais configurações**, porque pouca gente muda o que há nela. Recolhida, o cabeçalho dela nomeia as suas quatro primeiras seções (**Título e descrição para buscadores**, **Favicon**, **Cor Padrão da Barra** e **Regras de cor das barras**), depois quantas outras há (**Idiomas** e **Indexação em mecanismos de pesquisa**), e mostra cada uma que difere de como uma página de status nova começa: um título da página ou uma descrição para buscadores, um favicon, uma cor padrão da barra diferente do verde com que toda página começa, regras de cor das barras diferentes das recomendadas, um idioma padrão diferente do inglês, uma lista de idiomas mais curta ou a indexação em mecanismos de pesquisa desativada. Clique para abri-la: é um único cartão, com as suas seções uma embaixo da outra, cada uma com seu próprio título, separadas por divisórias.
+
+**Título e descrição para buscadores, e favicon.** São definidos uma vez, se tanto, e nenhum deles é o que os visitantes leem na página, que é o **Texto de introdução**.
+
+- **Título e descrição para buscadores**: o nome da página na aba do navegador e nos e-mails aos assinantes, e a descrição que os mecanismos de pesquisa mostram. **Editar** abre **Título da página** (texto de exemplo `e.g., Acme Status`) e **Descrição para buscadores**. Mecanismos de pesquisa e prévias de links mostram esses textos, então escreva-os para um cliente, não para a sua equipe.
+- **Favicon**: **Editar favicon** abre o envio **Favicon**: o pequeno ícone na aba do navegador.
 
 **Cores do gráfico de histórico.** Além do **Tema**, estes são os únicos controles de cor embutidos de uma página de status. Cada barra do histórico de tempo de atividade é um dia.
 
@@ -106,7 +118,7 @@ Um dia para o qual a página não tem dados é sempre desenhado em cinza com lis
 
 O tempo de atividade de um dia é medido sobre a parte do dia que tem dados, contando os status escolhidos em **Conta como indisponibilidade**. As cores recomendadas diferem em luminosidade além de tonalidade, então pessoas com daltonismo vermelho-verde, cerca de um homem em cada doze, conseguem diferenciá-las; o verde de Operational e o vermelho de Offline com que os status de monitor começam parecem quase iguais para elas. Uma página criada antes dessas regras, ou pela API ou pelo Terraform, não tem regras até você adicionar alguma: uma tabela **Regras de cor das barras** vazia e **Prévia das cores das barras** oferecem **Usar regras recomendadas**. Pela API, envie `"miscDataProps": {"addRecommendedBarColorRules": true}` com a requisição que cria a página de status.
 
-Quantos dias o gráfico cobre não é definido aqui. Isso é o **Histórico de tempo de atividade** no cartão **O que sua página de status mostra**, em **Avançado → Configurações avançadas**, de 1 a 90 dias. Quais status de monitor contam como fora do ar é **Conta como indisponibilidade**, na mesma linha desse cartão.
+Quantos dias o gráfico cobre não é definido aqui. Isso é o **Histórico de tempo de atividade** no cartão **O que sua página de status mostra**, em **Avançado → Configurações**, de 1 a 90 dias. Quais status de monitor contam como fora do ar é **Conta como indisponibilidade**, na mesma linha desse cartão.
 
 **Idiomas.** A seção **Idiomas** define o seletor de idioma que os visitantes encontram no rodapé da página. **Editar idiomas** abre dois campos:
 
@@ -124,7 +136,7 @@ O OneUptime vem com dezoito idiomas: inglês, alemão, francês, espanhol, itali
 
 ## Porcentagem de tempo de atividade e status de indisponibilidade
 
-Os dois ficam na linha **Histórico de tempo de atividade** do cartão **O que sua página de status mostra**, em **Páginas de status → sua página → Avançado → Configurações avançadas** (`{id}/settings`). Não há botão **Editar**: cada um salva no momento em que você o altera.
+Os dois ficam na linha **Histórico de tempo de atividade** do cartão **O que sua página de status mostra**, em **Páginas de status → sua página → Avançado → Configurações** (`{id}/settings`). Não há botão **Editar**: cada um salva no momento em que você o altera.
 
 - **Mostrar percentual geral de tempo de atividade**: uma chave, desativada por padrão. Enquanto ela está ativada, **Precisão** ao lado escolhe quantas casas decimais a porcentagem mostra: `99%`, `99.9%`, `99.99%` (o padrão) ou `99.999%`. No OneUptime Cloud, ativar a porcentagem exige o plano **Scale**; a precisão dela pode ser alterada em qualquer plano.
 - **Conta como indisponibilidade**: os status de monitor, como etiquetas coloridas, cujo tempo conta contra o tempo de atividade nesta página. É aqui que você decide se, por exemplo, um status degradado conta contra o tempo de atividade. Pelo menos um status continua escolhido.
@@ -158,7 +170,7 @@ No OneUptime Cloud, adicionar ou alterar qualquer um deles exige o plano **Growt
 
 Por padrão, uma página de status pode ser acessada pela URL de prévia mostrada na tela **Visão geral** dela. Para colocá-la no seu próprio nome de host, vá para **Páginas de status → sua página → Marca → Domínios personalizados** (`{id}/domains`).
 
-O cartão **Domínios personalizados** diz o que fazer: aponte o registro CNAME de cada domínio para o registro CNAME de páginas de status da sua instalação, e o OneUptime emite o certificado SSL do domínio e o renova para você. Sem nada configurado, a tabela diz **Nenhum domínio personalizado encontrado**, com **Adicionar domínio personalizado** abaixo. A tabela tem duas colunas, **Domínio** e **Status**, e filtros para **Domínio**, **CNAME válido** e **SSL provisionado**.
+O cartão **Domínios personalizados** diz o que fazer: aponte o registro CNAME de cada domínio para o registro CNAME de páginas de status da sua instalação, e o OneUptime emite o certificado SSL do domínio e o renova para você. Sem nada configurado, a tabela diz **Ainda não há domínios personalizados**, com **Adicionar domínio personalizado** abaixo. A tabela tem duas colunas, **Domínio** e **Status**, e filtros para **Domínio**, **CNAME válido** e **SSL provisionado**.
 
 Colocar a página no seu domínio leva três etapas, todas nesta página, e só as duas primeiras são com você:
 
@@ -274,7 +286,7 @@ A caixa de diálogo dela, **Reissue SSL Certificate for this Status Page**, pede
 
 A ação não aparece em um domínio que usa um certificado que você enviou: não há certificado do Let's Encrypt para reemitir, então envie um novo editando o domínio. Ela também não aparece antes de o primeiro certificado do domínio ser pedido, o que acontece sozinho assim que o registro CNAME dele é verificado.
 
-O mesmo botão, com o mesmo limite de 24 horas, fica nos domínios personalizados dos painéis, em **Painéis → seu painel → Marca → Domínios personalizados**, que funcionam do mesmo jeito que os domínios personalizados das páginas de status: veja [Compartilhamento e painéis públicos](/docs/dashboards/sharing#domínios-personalizados).
+O mesmo botão, com o mesmo limite de 24 horas, fica nos domínios personalizados dos painéis, em **Painéis → seu painel → Link público → Domínios personalizados**, que funcionam do mesmo jeito que os domínios personalizados das páginas de status: veja [Compartilhamento e painéis públicos](/docs/dashboards/sharing#domínios-personalizados).
 
 ### Ler a coluna Status do domínio
 
@@ -309,7 +321,7 @@ O mesmo vale para as chaves de API. Uma chave que só pode ler os domínios das 
 
 ## Powered by OneUptime
 
-A linha "Powered by OneUptime" não é uma configuração de marca. Ela tem um cartão próprio, **Powered by OneUptime**, recolhido em **Mais configurações** abaixo do cartão **O que sua página de status mostra**, em **Páginas de status → sua página → Avançado → Configurações avançadas** (`{id}/settings`): **Mostrar a marca Powered By OneUptime**, ativada por padrão. Desative-a para esconder a linha; ela salva na hora. No OneUptime Cloud, escondê-la exige o plano **Scale**. Na hospedagem própria, escondê-la faz parte da Enterprise Edition: na Community Edition, todas as páginas de status mostram a linha.
+A linha "Powered by OneUptime" não é uma configuração de marca. Ela tem um cartão próprio, **Powered by OneUptime**, recolhido em **Mais configurações** abaixo do cartão **O que sua página de status mostra**, em **Páginas de status → sua página → Avançado → Configurações** (`{id}/settings`): **Mostrar a marca Powered By OneUptime**, ativada por padrão. Desative-a para esconder a linha; ela salva na hora. No OneUptime Cloud, escondê-la exige o plano **Scale**. Na hospedagem própria, escondê-la faz parte da Enterprise Edition: na Community Edition, todas as páginas de status mostram a linha.
 
 ## Próximos passos
 

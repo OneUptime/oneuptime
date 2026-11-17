@@ -302,6 +302,12 @@ Den vej, én anmodning tager gennem dine tjenester, trin for trin. Hvert trin er
 
 Se [Sporudforsker](/docs/telemetry/traces-explorer).
 
+### Span
+
+Ét trin i en anmodning: den anmodning en tjeneste besvarer, et kald den foretager til en anden tjeneste eller en databaseforespørgsel, med hvornår det startede, hvor længe det tog, og om det fejlede. Spans ligger inde i det span, der startede dem, og spans for én anmodning udgør dens spor.
+
+Se [Sporudforsker](/docs/telemetry/traces-explorer#spor-og-spans).
+
 ### Profiler
 
 Hvordan din applikation bruger CPU-tid og hukommelse, funktion for funktion, indsamlet af en profiler, der sender til OneUptimes Pyroscope-kompatible API.

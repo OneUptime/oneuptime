@@ -44,7 +44,7 @@ const ImageTilesElement: FunctionComponent<ComponentProps> = (
               <div>
                 <Image className="h-20 w-20" imageUrl={tile.image} />
               </div>
-              <div className="text-sm text-gray-400 w-full text-center mt-2">
+              <div className="text-sm text-gray-500 w-full text-center mt-2">
                 {tile.title}
               </div>
             </div>

@@ -37,7 +37,6 @@
     "announcements": "Annunci",
     "scheduledEvents": "Manutenzione programmata",
     "subscribe": "Iscriviti",
-    "login": "Accedi",
     "logout": "Esci"
   },
   "overview": {
@@ -49,8 +48,6 @@
     "noResourcesInGroup": "Nessuna risorsa aggiunta a questo gruppo.",
     "activeIncidents": "Incidenti attivi",
     "scheduledMaintenanceEvents": "Manutenzione programmata",
-    "allClearTitle": "Tutto è a posto",
-    "allClearDescription": "Non sono ancora state aggiunte risorse a questa pagina di stato. Si prega di aggiungere alcune risorse dalla dashboard.",
     "allResourcesAre": "Tutte le risorse sono {{status}}",
     "allMonitoredResourcesAre": "Tutte le risorse monitorate sono {{status}}",
     "someResourcesAre": "Alcune risorse sono {{status}}",
@@ -58,7 +55,10 @@
     "noResourcesAreMonitored": "Nessuna risorsa è monitorata al momento",
     "noResourcesAreMonitoredYet": "Nessuna risorsa è ancora monitorata",
     "oneSubGroup": "1 gruppo",
-    "subGroupCount": "{{total}} gruppi"
+    "subGroupCount": "{{total}} gruppi",
+    "noResourcesTitle": "Ancora niente da mostrare",
+    "noResourcesDescription": "Questa pagina non mostra ancora alcun servizio.",
+    "noResourcesPreviewDescription": "I visitatori vedono questo avviso finché non aggiungi delle risorse. Aggiungi monitor o gruppi a questa pagina di stato in Risorse, nella dashboard."
   },
   "eventItem": {
     "affectedResources": "Risorse interessate",
@@ -115,30 +115,23 @@
     "title": "Incidenti",
     "singular": "Incidente",
     "active": "Incidenti attivi",
-    "resolved": "Incidenti risolti",
-    "none": "Nessun incidente",
-    "noneDescription": "Nessun incidente pubblicato su questa pagina di stato.",
+    "noneDescription": "Quando un incidente riguarda i servizi di questa pagina, viene pubblicato qui.",
     "postmortem": "Post-mortem dell'incidente",
     "declaredAt": "Dichiarato il ",
     "declaredAtTime": "Dichiarato il {{time}}",
     "report": "Rapporto sull'incidente",
-    "notFound": "Incidente non trovato su questa pagina di stato."
-  },
-  "episodes": {
-    "report": "Rapporto episodio",
-    "none": "Nessun episodio",
-    "notFound": "Episodio non trovato su questa pagina di stato."
+    "notFound": "Controlla il link o apri la scheda Incidenti di questa pagina.",
+    "notFoundTitle": "Incidente non trovato"
   },
   "announcements": {
     "title": "Annunci",
     "singular": "Annuncio",
     "active": "Annunci attivi",
-    "past": "Annunci passati",
-    "none": "Nessun annuncio",
-    "noneDescription": "Nessun annuncio pubblicato finora su questa pagina.",
+    "noneDescription": "Quando ci sono novità sui servizi di questa pagina, vengono pubblicate qui.",
     "announcedAt": "Annunciato il ",
     "announcedAtTime": "Annunciato il {{time}}",
-    "notFound": "Annuncio non trovato su questa pagina di stato."
+    "notFound": "Controlla il link o apri la scheda Annunci di questa pagina.",
+    "notFoundTitle": "Annuncio non trovato"
   },
   "scheduledEvents": {
     "title": "Manutenzione programmata",
@@ -146,9 +139,7 @@
     "scheduledMaintenance": "Manutenzione programmata",
     "ongoing": "Manutenzione in corso",
     "upcoming": "Manutenzione in arrivo",
-    "completed": "Manutenzione completata",
-    "none": "Nessuna manutenzione programmata",
-    "noneDescription": "Nessuna manutenzione programmata pubblicata per questa pagina di stato.",
+    "none": "Nessuna manutenzione prevista",
     "scheduledAt": "Pianificato per ",
     "scheduledAtTime": "Pianificato per {{time}}",
     "report": "Report dell'evento di manutenzione",
@@ -314,24 +305,24 @@
       "password": "Password",
       "newPassword": "Nuova password",
       "confirmPassword": "Conferma password",
-      "login": "Accedi"
+      "signInLink": "Accedi."
     },
     "login": {
       "welcomeBack": "Bentornato!",
-      "loginPrompt": "Effettua l'accesso per visualizzare {{statusPageName}}",
+      "signInPrompt": "Effettua l'accesso per visualizzare {{statusPageName}}.",
       "forgotPassword": "Password dimenticata?",
       "submit": "Accedi",
       "or": "oppure",
-      "logInWithSso": "Accedi con SSO",
+      "signInWithSso": "Accedi con SSO",
       "emailSignInLink": "Inviami un link di accesso"
     },
     "sso": {
       "title": "Accedi con SSO",
-      "loginPrompt": "Effettua l'accesso per visualizzare {{statusPageName}}",
+      "signInPrompt": "Effettua l'accesso per visualizzare {{statusPageName}}.",
       "noProviders": "Nessun provider SSO configurato o abilitato",
       "notAvailable": "Il Single Sign-On (SSO) non è disponibile per questa pagina di stato. Accedi invece con la tua e-mail e la tua password.",
-      "backToLogin": "Torna all'accesso",
-      "logInWithPassword": "Accedi con la password"
+      "backToSignIn": "Torna all'accesso",
+      "signInWithPassword": "Accedi con la password"
     },
     "forgotPassword": {
       "title": "Password dimenticata",
@@ -343,9 +334,16 @@
     "resetPassword": {
       "description": "Crea una nuova password per il tuo account {{statusPageName}}.",
       "instructions": "Inserisci la tua nuova password e la aggiorneremo.",
-      "success": "La tua password è stata aggiornata. Effettua l'accesso.",
       "submit": "Reimposta password",
-      "knowPassword": "Conosci la tua password?"
+      "knowPassword": "Conosci la tua password?",
+      "successTitle": "La tua password è stata reimpostata",
+      "successDescription": "Accedi con la nuova password.",
+      "signInButton": "Accedi",
+      "linkExpiredTitle": "Questo link di reimpostazione è scaduto",
+      "linkExpiredDescription": "I link di reimpostazione valgono un giorno. Richiedi un nuovo link e te lo invieremo via email.",
+      "linkInvalidTitle": "Questo link di reimpostazione non funziona più",
+      "linkInvalidDescription": "Potrebbe essere già stato usato, oppure ne è stata copiata solo una parte. Richiedi un nuovo link e te lo invieremo via email.",
+      "requestNewLinkButton": "Richiedi un nuovo link"
     },
     "magicLink": {
       "title": "Accedi con un link",
@@ -366,7 +364,7 @@
     },
     "masterPassword": {
       "prompt": "Inserisci la password per vedere questa pagina di stato.",
-      "passwordRequired": "la password è obbligatoria.",
+      "passwordRequired": "La password è obbligatoria.",
       "passwordLabel": "Password",
       "submit": "Sblocca pagina di stato"
     },
@@ -482,5 +480,35 @@
   },
   "No options available": "Nessuna opzione disponibile",
   "No matches found": "Nessuna corrispondenza trovata",
-  "{{eventType}} state changed to {{state}}": "{{eventType}}: stato cambiato in {{state}}"
+  "{{eventType}} state changed to {{state}}": "{{eventType}}: stato cambiato in {{state}}",
+  "Use at least {{minimum}} characters.": "Usa almeno {{minimum}} caratteri.",
+  "Try a few unrelated words.": "Prova con alcune parole non correlate.",
+  "Password meets requirements": "La password soddisfa i requisiti",
+  "Password must be at least 15 characters.": "La password deve contenere almeno 15 caratteri.",
+  "Password cannot be more than 100 characters.": "La password non può superare i 100 caratteri.",
+  "Choose a less predictable password. Try a few unrelated words.": "Scegli una password meno prevedibile. Prova con alcune parole non correlate.",
+  "Password cannot be blank.": "La password non può contenere solo spazi.",
+  "Password is required.": "La password è obbligatoria.",
+  "Password must be a string.": "La password deve essere una stringa di testo.",
+  "Between {{minimum}} and {{maximum}} characters": "Tra {{minimum}} e {{maximum}} caratteri",
+  "Avoid common or repeated patterns": "Evita sequenze comuni o ripetute",
+  "Password length": "Lunghezza della password",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} / minimo {{minimum}} caratteri",
+  "Complete:": "Soddisfatto:",
+  "Incomplete:": "Non soddisfatto:",
+  "Special character included (optional)": "Carattere speciale incluso (facoltativo)",
+  "Special characters are optional. Try !, @, # or $.": "I caratteri speciali sono facoltativi. Prova !, @, # o $.",
+  "Dismiss": "Nascondi",
+  "Resolved in the Last {{count}} Days": "Risolti negli ultimi {{count}} giorni",
+  "Resolved in the Last {{count}} Days_one": "Risolti nell'ultimo giorno",
+  "No incidents in the last {{count}} days": "Nessun incidente negli ultimi {{count}} giorni",
+  "No incidents in the last {{count}} days_one": "Nessun incidente nell'ultimo giorno",
+  "Ended in the Last {{count}} Days": "Terminati negli ultimi {{count}} giorni",
+  "Ended in the Last {{count}} Days_one": "Terminati nell'ultimo giorno",
+  "No announcements in the last {{count}} days": "Nessun annuncio negli ultimi {{count}} giorni",
+  "No announcements in the last {{count}} days_one": "Nessun annuncio nell'ultimo giorno",
+  "Completed in the Last {{count}} Days": "Completata negli ultimi {{count}} giorni",
+  "Completed in the Last {{count}} Days_one": "Completata nell'ultimo giorno",
+  "None is planned, and none took place in the last {{count}} days.": "Nessuna è prevista e nessuna si è svolta negli ultimi {{count}} giorni.",
+  "None is planned, and none took place in the last {{count}} days._one": "Nessuna è prevista e nessuna si è svolta nell'ultimo giorno."
 }

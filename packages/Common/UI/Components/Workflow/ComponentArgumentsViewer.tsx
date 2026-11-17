@@ -19,7 +19,7 @@ const ComponentArgumentViewer: FunctionComponent<ComponentProps> = (
   return (
     <div className="mt-5 mb-5">
       <h2 className="text-base font-medium text-gray-500">{props.name}</h2>
-      <p className="text-sm font-medium text-gray-400">{props.description}</p>
+      <p className="text-sm font-medium text-gray-500">{props.description}</p>
       {props.arguments && props.arguments.length === 0 && (
         <ErrorMessage message={"This component does not take any arguments."} />
       )}

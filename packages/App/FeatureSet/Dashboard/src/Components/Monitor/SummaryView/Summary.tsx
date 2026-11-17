@@ -368,11 +368,6 @@ const Summary: FunctionComponent<ComponentProps> = (
                 monitorType={props.monitorType}
                 probes={props.probes || []}
                 buttonSize={ButtonSize.Normal}
-                /*
-                 * Card already spaces the header's actions, so the default
-                 * wrapper's negative margin would pull this into the picker.
-                 */
-                className=""
               />,
             ]
           : undefined

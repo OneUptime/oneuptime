@@ -6,6 +6,7 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
   PAYMENT_METHOD_ADD_PERMISSIONS,
   PAYMENT_METHOD_SET_DEFAULT_PERMISSIONS,
+  PROJECT_CHANGE_PLAN_PERMISSIONS,
   PROJECT_INVOICE_PAY_PERMISSIONS,
 } from "Common/Utils/Project/ProjectBilling";
 
@@ -25,6 +26,7 @@ export const BillingActionCopy: {
   readonly addPaymentMethodRefused: string;
   readonly setDefaultPaymentMethodRefused: string;
   readonly payInvoiceRefused: string;
+  readonly changePlanRefused: string;
 } = {
   addPaymentMethodRefused: translationKey(
     "You do not have permission to add a payment method.",
@@ -34,6 +36,9 @@ export const BillingActionCopy: {
   ),
   payInvoiceRefused: translationKey(
     "You do not have permission to pay invoices.",
+  ),
+  changePlanRefused: translationKey(
+    "You do not have permission to change the plan.",
   ),
 };
 
@@ -71,6 +76,16 @@ export const getPayInvoiceGate: BillingActionGateFunction = (
   return PermissionGate.checkPermissions(PROJECT_INVOICE_PAY_PERMISSIONS, {
     ...options,
     sentence: BillingActionCopy.payInvoiceRefused,
+  });
+};
+
+// Cancel Plan's Switch to Free Plan.
+export const getChangePlanGate: BillingActionGateFunction = (
+  options?: PermissionGateOptions | undefined,
+): PermissionGateResult => {
+  return PermissionGate.checkPermissions(PROJECT_CHANGE_PLAN_PERMISSIONS, {
+    ...options,
+    sentence: BillingActionCopy.changePlanRefused,
   });
 };
 

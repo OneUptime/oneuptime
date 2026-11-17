@@ -42,6 +42,10 @@ const SIGN_IN_PIECES: ReadonlyArray<string> = [
   "Components/SignInOption/SignInOptionStyle.ts",
   "Components/SignInOption/SsoProviderOptions.tsx",
   "Components/ProductLogo/ProductLogo.tsx",
+  // The password rule's checklist: sign-up's and Reset Password's (#9123).
+  "Components/PasswordRequirements/PasswordRequirements.tsx",
+  // The frame every sign-in page is drawn in, a status page's too (#9132).
+  "Components/AuthPage/AuthPage.tsx",
 ];
 
 const BLOCK_COMMENT: RegExp = /\/\*[\s\S]*?\*\//g;
@@ -170,7 +174,12 @@ describe("the sign-in pages' colours", () => {
   test("finds colours to check: the guard reads the pages it means to", () => {
     const all: Set<string> = new Set<string>();
 
-    for (const file of ACCOUNTS_FILES) {
+    for (const file of [
+      ...ACCOUNTS_FILES,
+      ...SIGN_IN_PIECES.map((relative: string): string => {
+        return path.join(COMMON_UI, relative);
+      }),
+    ]) {
       for (const token of colourClassesInSource(file)) {
         all.add(token);
       }

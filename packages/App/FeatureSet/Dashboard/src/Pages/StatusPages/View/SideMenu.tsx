@@ -24,7 +24,11 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 
   return (
     <SideMenu>
-      <SideMenuSection title="Basic">
+      {/*
+       * "Overview", as an incident's, an alert's, a maintenance event's and
+       * a monitor's menus open (it said "Basic" until #9130).
+       */}
+      <SideMenuSection title="Overview">
         <SideMenuItem
           link={{
             title: "Overview",
@@ -80,7 +84,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       </SideMenuSection>
 
       {/*
-       * What the page shows (Basic, Resources) is what this menu is opened
+       * What the page shows (Overview, Resources) is what this menu is opened
        * for, so those two start open. Every section after them folds down to
        * its title until opened, and opens by itself on its own pages:
        *
@@ -93,8 +97,9 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
        *    writes: not three sections down under Advanced, where the person
        *    who filed #3418 never found it.
        *  - Subscribers sign themselves up and are managed now and then.
-       *  - Notification logs, branding, security and AI are set up once or
-       *    checked when something needs checking.
+       *  - Branding, security and AI are set up once or checked when
+       *    something needs checking, as the notification logs under
+       *    Subscribers are.
        *
        * Subscribers says so itself; the others fold by their titles (see
        * SideMenuSectionState.ts).
@@ -112,59 +117,24 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
+      {/*
+       * Subscribers are one page with a tab per channel (Email, SMS, Slack,
+       * Microsoft Teams, Webhook): one kind of record is one page
+       * (Docs/ux/README.md#side-menus). They were five entries, a page each,
+       * until #9125, and their old addresses forward to the tabs. The
+       * notifications sent to them are logged beside them, not in a
+       * section of their own.
+       */}
       <SideMenuSection title="Subscribers" defaultCollapsed={true}>
         <SideMenuItem
           link={{
-            title: "Email Subscribers",
+            title: "Subscribers",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS] as Route,
+              RouteMap[PageMap.STATUS_PAGE_VIEW_SUBSCRIBERS] as Route,
               { modelId: props.modelId },
             ),
           }}
-          icon={IconProp.Email}
-        />
-        <SideMenuItem
-          link={{
-            title: "SMS Subscribers",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.SMS}
-        />
-        <SideMenuItem
-          link={{
-            title: "Slack Subscribers",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.STATUS_PAGE_VIEW_SLACK_SUBSCRIBERS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Slack}
-        />
-        <SideMenuItem
-          link={{
-            title: "Microsoft Teams Subscribers",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.STATUS_PAGE_VIEW_MICROSOFT_TEAMS_SUBSCRIBERS
-              ] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.MicrosoftTeams}
-        />
-
-        <SideMenuItem
-          link={{
-            title: "Webhook Subscribers",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Webhook}
+          icon={IconProp.UserGroup}
         />
 
         <SideMenuItem
@@ -177,9 +147,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Settings}
         />
-      </SideMenuSection>
 
-      <SideMenuSection title="Notification Logs">
         <SideMenuItem
           link={{
             title: "Notification Logs",
@@ -238,6 +206,9 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
        * the link, only people who sign in, anyone with the password). The
        * entries after it set up the sign-in that the second choice uses. It
        * is the old "Authentication Settings" page, at the same address.
+       * Private Users, Single Sign-On and SCIM do nothing while the page is
+       * public, and each of their pages says so then
+       * (Components/StatusPage/StatusPagePrivateOnlySettings).
        */}
       <SideMenuSection title="Security">
         <SideMenuItem
@@ -264,22 +235,16 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.User}
         />
 
+        {/*
+         * One page for the page's sign-on providers, a tab per protocol
+         * (SAML, OIDC): they were two entries, "SSO" and "OIDC", with the
+         * same icon, until #9130. The old OIDC address opens its tab.
+         */}
         <SideMenuItem
           link={{
-            title: "SSO",
+            title: "Single Sign-On",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.STATUS_PAGE_VIEW_SSO] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Lock}
-        />
-
-        <SideMenuItem
-          link={{
-            title: "OIDC",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.STATUS_PAGE_VIEW_OIDC] as Route,
               { modelId: props.modelId },
             ),
           }}
@@ -351,9 +316,10 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.TableCells}
         />
 
+        {/* Settings, as other records' menus say (it was Advanced Settings until #9130). */}
         <SideMenuItem
           link={{
-            title: "Advanced Settings",
+            title: "Settings",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.STATUS_PAGE_VIEW_SETTINGS] as Route,
               { modelId: props.modelId },

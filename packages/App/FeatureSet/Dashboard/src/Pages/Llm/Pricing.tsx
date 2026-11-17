@@ -3,7 +3,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import ResellerPlanNotice from "../../Components/Billing/ResellerPlanNotice";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
 import LlmModelPrice from "Common/Models/DatabaseModels/LlmModelPrice";
@@ -19,7 +19,7 @@ const LlmPricingPage: FunctionComponent<PageComponentProps> = (
 
   if (disableTelemetryForThisProject) {
     return (
-      <ErrorMessage message="Looks like you have bought this plan from a reseller. It did not include telemetry features in your plan. Telemetry features are disabled for this project." />
+      <ResellerPlanNotice project={props.currentProject} product="AI / LLM" />
     );
   }
 
@@ -47,7 +47,7 @@ const LlmPricingPage: FunctionComponent<PageComponentProps> = (
           "Your own per-million-token prices, for negotiated rates or models the built-in catalog does not know. The longest matching model prefix wins, and your entry beats the built-in one on ties.",
       }}
       noItemsMessage={
-        "No custom LLM prices found. Spans are priced with the built-in list-price catalog."
+        "No custom LLM prices yet. Spans are priced with the built-in list-price catalog."
       }
       formSteps={[
         { title: "Model", id: "model" },

@@ -1,4 +1,5 @@
 import PageLogo from "../../Components/Logo/PageLogo";
+import AuthPage from "Common/UI/Components/AuthPage/AuthPage";
 import { LOGIN_API_URL } from "../../Utils/ApiPaths";
 import LoginUtil from "../../Utils/Login";
 import StatusPageModelAPI from "../../Utils/ModelAPI";
@@ -36,7 +37,7 @@ export interface ComponentProps {
   enableMagicLinkLogin?: boolean | undefined;
 }
 
-// The way to ask for a sign-in link, under Login.
+// The way to ask for a sign-in link, under Sign In.
 export const MAGIC_LINK_SIGN_IN_OPTION_TEST_ID: string = "magic-link-login";
 
 const LoginPage: FunctionComponent<ComponentProps> = (
@@ -109,152 +110,142 @@ const LoginPage: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+    <AuthPage
+      logo={
         <PageLogo
           logoFileId={props.logoFileId}
           darkThemeLogoFileId={props.darkThemeLogoFileId}
           altText={props.statusPageName}
         />
-        <h2 className="mt-6 text-center text-2xl  tracking-tight text-gray-900">
-          {t("accounts.login.welcomeBack")}
-        </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          {t("accounts.login.loginPrompt", {
-            statusPageName: props.statusPageName || t("common.statusPage"),
-          })}
-        </p>
-      </div>
+      }
+      title={t("accounts.login.welcomeBack")}
+      subtitle={t("accounts.login.signInPrompt", {
+        statusPageName: props.statusPageName || t("common.statusPage"),
+      })}
+    >
+      <ModelForm<StatusPagePrivateUser>
+        modelType={StatusPagePrivateUser}
+        modelAPI={StatusPageModelAPI}
+        id="login-form"
+        name="Status Page Login"
+        fields={[
+          {
+            field: {
+              email: true,
+            },
+            showEvenIfPermissionDoesNotExist: true,
+            title: t("accounts.shared.email"),
+            fieldType: FormFieldSchemaType.Email,
+            required: true,
+            disableSpellCheck: true,
+          },
+          {
+            field: {
+              password: true,
+            },
+            title: t("accounts.shared.password"),
+            required: true,
+            showEvenIfPermissionDoesNotExist: true,
+            // No length check: a password set before the rule (#9123) still signs in.
+            fieldType: FormFieldSchemaType.Password,
+            // The sign-in password: password managers fill it.
+            autoComplete: "current-password",
+            isOwnCredential: true,
+            sideLink: {
+              text: t("accounts.login.forgotPassword"),
+              url: new Route(
+                StatusPageUtil.isPreviewPage()
+                  ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}/forgot-password`
+                  : "/forgot-password",
+              ),
+              openLinkInNewTab: false,
+            },
+          },
+        ]}
+        createOrUpdateApiUrl={apiUrl}
+        formType={FormType.Create}
+        submitButtonText={t("accounts.login.submit")}
+        onSuccess={(
+          value: StatusPagePrivateUser,
+          _miscData: JSONObject | undefined,
+        ) => {
+          LoginUtil.login({
+            user: value,
+          });
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          <ModelForm<StatusPagePrivateUser>
-            modelType={StatusPagePrivateUser}
-            modelAPI={StatusPageModelAPI}
-            id="login-form"
-            name="Status Page Login"
-            fields={[
-              {
-                field: {
-                  email: true,
-                },
-                showEvenIfPermissionDoesNotExist: true,
-                title: t("accounts.shared.email"),
-                fieldType: FormFieldSchemaType.Email,
-                required: true,
-                disableSpellCheck: true,
-              },
-              {
-                field: {
-                  password: true,
-                },
-                title: t("accounts.shared.password"),
-                required: true,
-                showEvenIfPermissionDoesNotExist: true,
-                validation: {
-                  minLength: 6,
-                },
-                fieldType: FormFieldSchemaType.Password,
-                // The sign-in password: password managers fill it.
-                autoComplete: "current-password",
-                isOwnCredential: true,
-                sideLink: {
-                  text: t("accounts.login.forgotPassword"),
-                  url: new Route(
-                    StatusPageUtil.isPreviewPage()
-                      ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}/forgot-password`
-                      : "/forgot-password",
-                  ),
-                  openLinkInNewTab: false,
-                },
-              },
-            ]}
-            createOrUpdateApiUrl={apiUrl}
-            formType={FormType.Create}
-            submitButtonText={t("accounts.login.submit")}
-            onSuccess={(
-              value: StatusPagePrivateUser,
-              _miscData: JSONObject | undefined,
-            ) => {
-              LoginUtil.login({
-                user: value,
-              });
+          const safeRedirectUrl: string | null =
+            StatusPageUtil.getSafeRedirectUrl();
+          if (safeRedirectUrl) {
+            Navigation.navigate(new Route(safeRedirectUrl));
+          } else {
+            Navigation.navigate(StatusPageUtil.getDefaultRedirectRoute());
+          }
+        }}
+        onBeforeCreate={(
+          item: StatusPagePrivateUser,
+        ): Promise<StatusPagePrivateUser> => {
+          if (!StatusPageUtil.getStatusPageId()) {
+            throw new BadDataException("Status Page ID not found");
+          }
 
-              const safeRedirectUrl: string | null =
-                StatusPageUtil.getSafeRedirectUrl();
-              if (safeRedirectUrl) {
-                Navigation.navigate(new Route(safeRedirectUrl));
-              } else {
-                Navigation.navigate(StatusPageUtil.getDefaultRedirectRoute());
-              }
-            }}
-            onBeforeCreate={(
-              item: StatusPagePrivateUser,
-            ): Promise<StatusPagePrivateUser> => {
-              if (!StatusPageUtil.getStatusPageId()) {
-                throw new BadDataException("Status Page ID not found");
-              }
-
-              item.statusPageId = StatusPageUtil.getStatusPageId()!;
-              return Promise.resolve(item);
-            }}
-            maxPrimaryButtonWidth={true}
-            footer={
-              /*
-               * The other ways in, each an outlined button under "or", as
-               * wide and as tall as Login, named like the page it opens -
-               * the way OneUptime's own sign-in page offers them
-               * (SignInOptionStyle): single sign-on, where the page has a
-               * provider turned on (it was a small text link), and a
-               * sign-in link emailed to the private user, where the page
-               * offers them. Both keep where the visitor was going.
-               */
-              props.hasEnabledSSOConfig || props.enableMagicLinkLogin ? (
-                <div data-testid="sign-in-options">
-                  <LabelledDivider
-                    label={t("accounts.login.or")}
-                    className="my-5"
-                    dataTestId="sign-in-options-divider"
+          item.statusPageId = StatusPageUtil.getStatusPageId()!;
+          return Promise.resolve(item);
+        }}
+        maxPrimaryButtonWidth={true}
+        footer={
+          /*
+           * The other ways in, each an outlined button under "or", as
+           * wide and as tall as Sign In, named like the page it opens -
+           * the way OneUptime's own sign-in page offers them
+           * (SignInOptionStyle): single sign-on, where the page has a
+           * provider turned on (it was a small text link), and a
+           * sign-in link emailed to the private user, where the page
+           * offers them. Both keep where the visitor was going.
+           */
+          props.hasEnabledSSOConfig || props.enableMagicLinkLogin ? (
+            <div data-testid="sign-in-options">
+              <LabelledDivider
+                label={t("accounts.login.or")}
+                className="my-5"
+                dataTestId="sign-in-options-divider"
+              />
+              <div className="space-y-3">
+                {props.hasEnabledSSOConfig && (
+                  <SignInOptionLink
+                    to={StatusPageUtil.getSignInRoute({
+                      path: StatusPageUtil.isPreviewPage()
+                        ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}/sso`
+                        : "/sso",
+                      redirectUrl: StatusPageUtil.getSafeRedirectUrl(),
+                    })}
+                    id="sso-login"
+                    dataTestId="sso-login"
+                    icon={IconProp.ShieldCheck}
+                    title={t("accounts.login.signInWithSso")}
                   />
-                  <div className="space-y-3">
-                    {props.hasEnabledSSOConfig && (
-                      <SignInOptionLink
-                        to={StatusPageUtil.getSignInRoute({
-                          path: StatusPageUtil.isPreviewPage()
-                            ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}/sso`
-                            : "/sso",
-                          redirectUrl: StatusPageUtil.getSafeRedirectUrl(),
-                        })}
-                        id="sso-login"
-                        dataTestId="sso-login"
-                        icon={IconProp.ShieldCheck}
-                        title={t("accounts.login.logInWithSso")}
-                      />
-                    )}
-                    {props.enableMagicLinkLogin && (
-                      <SignInOptionLink
-                        to={StatusPageUtil.getSignInRoute({
-                          path: StatusPageUtil.isPreviewPage()
-                            ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}/magic-link`
-                            : "/magic-link",
-                          redirectUrl: StatusPageUtil.getSafeRedirectUrl(),
-                        })}
-                        id={MAGIC_LINK_SIGN_IN_OPTION_TEST_ID}
-                        dataTestId={MAGIC_LINK_SIGN_IN_OPTION_TEST_ID}
-                        icon={IconProp.Email}
-                        title={t("accounts.login.emailSignInLink")}
-                      />
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <></>
-              )
-            }
-          />
-        </div>
-      </div>
-    </div>
+                )}
+                {props.enableMagicLinkLogin && (
+                  <SignInOptionLink
+                    to={StatusPageUtil.getSignInRoute({
+                      path: StatusPageUtil.isPreviewPage()
+                        ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}/magic-link`
+                        : "/magic-link",
+                      redirectUrl: StatusPageUtil.getSafeRedirectUrl(),
+                    })}
+                    id={MAGIC_LINK_SIGN_IN_OPTION_TEST_ID}
+                    dataTestId={MAGIC_LINK_SIGN_IN_OPTION_TEST_ID}
+                    icon={IconProp.Email}
+                    title={t("accounts.login.emailSignInLink")}
+                  />
+                )}
+              </div>
+            </div>
+          ) : (
+            <></>
+          )
+        }
+      />
+    </AuthPage>
   );
 };
 

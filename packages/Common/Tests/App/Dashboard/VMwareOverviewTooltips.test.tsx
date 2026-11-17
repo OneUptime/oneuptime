@@ -193,8 +193,11 @@ import { INFO_GLUE_ATTRIBUTE } from "../../../UI/Components/Tooltip/WordsWithInf
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
 import { getJestSpyOn } from "../../Spy";
+// A page draws a duration's figure held to its word (#8811).
+import { withDurationWordsHeld } from "../../../Types/NoBreakSpaces";
 import {
   GIB,
+  asDrawn,
   explainedLabels,
   explanationOnFocus,
   explanationOnHover,
@@ -419,12 +422,9 @@ describe("VMware overview: an (i) beside every number", () => {
   test("each (i) says what its own number means", async () => {
     await renderLoaded();
 
-    expect(await explainedLabels()).toEqual([
-      ...HERO,
-      ...TILES,
-      ...CHARTS,
-      ...TOP,
-    ]);
+    expect(await explainedLabels()).toEqual(
+      asDrawn([...HERO, ...TILES, ...CHARTS, ...TOP]),
+    );
   });
 
   test("the hero's (i) follows its count chips, in the same row", async () => {
@@ -490,9 +490,15 @@ describe("VMware overview: an (i) beside every number", () => {
 
     const [tileCpu, chartCpu, topCpu] = infoButtonsFor("Host CPU");
 
-    expect(await explanationOnFocus(tileCpu!)).toBe(D.overviewHostCpu);
-    expect(await explanationOnFocus(chartCpu!)).toBe(D.overviewHostCpuChart);
-    expect(await explanationOnFocus(topCpu!)).toBe(D.topHostsByCpu);
+    expect(await explanationOnFocus(tileCpu!)).toBe(
+      withDurationWordsHeld(D.overviewHostCpu),
+    );
+    expect(await explanationOnFocus(chartCpu!)).toBe(
+      withDurationWordsHeld(D.overviewHostCpuChart),
+    );
+    expect(await explanationOnFocus(topCpu!)).toBe(
+      withDurationWordsHeld(D.topHostsByCpu),
+    );
   });
 
   test("each (i) sits right beside the title it explains", async () => {
@@ -592,7 +598,7 @@ describe("VMware overview: the chart cards explain themselves while they load", 
 
     expect(texts).toEqual(
       CHARTS.map(([, text]: [string, string]): string => {
-        return text;
+        return withDurationWordsHeld(text);
       }),
     );
 
@@ -607,7 +613,7 @@ describe("VMware overview: the chart cards explain themselves while they load", 
     // Same four (i)s once the charts are in.
     expect(infoButtonsFor("Datastore Used")).toHaveLength(1);
     expect(await explanationOnHover(infoButtonsFor("Datastore Used")[0]!)).toBe(
-      D.overviewDatastoreUsedChart,
+      withDurationWordsHeld(D.overviewDatastoreUsedChart),
     );
   });
 
@@ -630,7 +636,7 @@ describe("VMware overview: the chart cards explain themselves while they load", 
       expect(infoButtonsFor("vCenter Health")).toHaveLength(1);
     });
     expect(await explanationOnHover(infoButtonsFor("vCenter Health")[0]!)).toBe(
-      D.overviewVCenterHealth,
+      withDurationWordsHeld(D.overviewVCenterHealth),
     );
   });
 

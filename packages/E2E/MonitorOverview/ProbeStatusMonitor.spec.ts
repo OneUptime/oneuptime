@@ -381,7 +381,7 @@ test.describe("its Monitoring Logs", () => {
     await expect(page.getByTestId("synthetic-banner")).toBeVisible({
       timeout: 60000,
     });
-    const logs: Locator = card(page, "Monitor Logs");
+    const logs: Locator = card(page, "Monitoring Logs");
     await expect(logs).toBeVisible({ timeout: 30000 });
     await expect(page.getByTestId("row-actions").first()).toBeVisible({
       timeout: 30000,

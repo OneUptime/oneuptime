@@ -40,7 +40,7 @@ flowchart LR
 | **Sicherheit** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Abrechnung und Rechnungen** | **Abrechnung**, **Rechnungen** | [Abrechnung & Nutzung](/docs/configuration/billing) |
 | **Audit-Protokolle** | **Audit-Protokolle**, **Einstellungen**, **Export** | [Audit-Protokolle](/docs/configuration/audit-logs), [Audit-Protokoll-Export](/docs/configuration/audit-log-export) |
-| **Gefahrenzone** | **Gefahrenzone** | [Das Projekt löschen](#das-projekt-löschen) |
+| **Gefahrenzone** | **Projekt löschen** | [Das Projekt löschen](#das-projekt-löschen) |
 
 **Abrechnung und Rechnungen** und **KI-Guthaben** gibt es nur in OneUptime Cloud: Eine selbst gehostete Installation hat keine Abrechnung.
 
@@ -64,7 +64,7 @@ Ein ausgeblendetes Produkt ist nicht ausgeschaltet. Es wandert unter **Weitere P
 
 Auf einem selbst gehosteten Server kann ein Master-Administrator ein Produkt außerdem für alle Projekte ausschalten, im Admin Dashboard unter **Einstellungen → Produkte** (siehe [Nur betreiben, was Sie brauchen](/docs/installation/docker-compose#nur-betreiben-was-sie-brauchen)). Ein solches Produkt hat hier keinen Schalter: Es zeigt **Auf diesem Server ausgeschaltet** an und nennt, wer es einschalten kann.
 
-Jedes Produkt wird angezeigt, bis jemand es hier ausblendet. Von selbst wird kein Produkt ausgeblendet: Wofür das Projekt laut seinem Inhaber auf der Startseite da ist, richtet dort nur die ersten Schritte ein, und ein Produkt, das noch nicht eingerichtet ist, bleibt an seinem Platz im Menü.
+Jedes Produkt wird angezeigt, bis jemand es hier ausblendet. Von selbst wird kein Produkt ausgeblendet: Wofür das Projekt laut einem Projektinhaber oder Projektadministrator auf der Startseite da ist, richtet dort nur die ersten Schritte ein, und ein Produkt, das noch nicht eingerichtet ist, bleibt an seinem Platz im Menü.
 
 Jedes Produkt sagt, was es für dieses Projekt ist: **In Verwendung**, **Nicht eingerichtet** oder, in OneUptime Cloud, den Tarif, den es braucht. Sobald ein ausgeblendetes Produkt Daten empfängt, sagt die Startseite es den Projektinhabern und -administratoren und bietet **Anzeigen** oder **Ausgeblendet lassen** an.
 
@@ -113,7 +113,7 @@ Das Löschen eines Projekts löscht alles darin, für jedes Mitglied: seine Moni
 :::steps
 ### Die Gefahrenzone öffnen
 
-Gehen Sie zu **Projekteinstellungen → Gefahrenzone**.
+Gehen Sie zu **Projekteinstellungen → Gefahrenzone → Projekt löschen**.
 
 ### Auf Projekt löschen klicken
 

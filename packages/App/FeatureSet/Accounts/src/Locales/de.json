@@ -176,10 +176,17 @@
   "resetPassword": {
     "title": "Passwort zurücksetzen",
     "subtitle": "Bitte geben Sie Ihr neues Passwort ein, und wir werden es aktualisieren.",
-    "successMessage": "Ihr Passwort wurde aktualisiert. Bitte melden Sie sich an.",
     "submitButton": "Passwort zurücksetzen",
     "knowPasswordPrompt": "Kennen Sie Ihr Passwort?",
-    "loginLink": "Anmelden."
+    "loginLink": "Anmelden.",
+    "successTitle": "Ihr Passwort wurde zurückgesetzt",
+    "successDescription": "Melden Sie sich mit Ihrem neuen Passwort an.",
+    "signInButton": "Anmelden",
+    "linkExpiredTitle": "Dieser Link zum Zurücksetzen ist abgelaufen",
+    "linkExpiredDescription": "Links zum Zurücksetzen gelten einen Tag lang. Fordern Sie einen neuen Link an, und wir senden ihn Ihnen per E-Mail.",
+    "linkInvalidTitle": "Dieser Link zum Zurücksetzen funktioniert nicht mehr",
+    "linkInvalidDescription": "Er wurde vielleicht schon verwendet, oder er wurde nur teilweise kopiert. Fordern Sie einen neuen Link an, und wir senden ihn Ihnen per E-Mail.",
+    "requestNewLinkButton": "Neuen Link anfordern"
   },
   "sso": {
     "title": "Mit SSO anmelden",
@@ -563,6 +570,7 @@
   "What was sent is larger than the 50 MB OneUptime takes in one request.": "Was gesendet wurde, ist größer als die 50 MB, die OneUptime in einer Anfrage annimmt.",
   "Try again with less at once, such as a smaller file.": "Versuchen Sie es mit weniger auf einmal erneut, etwa mit einer kleineren Datei.",
   "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Wenn ein Proxy vor OneUptime es abgelehnt hat, erhöhen Sie dessen Größenlimit für Anfragen auf 50 MB, so viel, wie OneUptime selbst annimmt (in nginx client_max_body_size 50M).",
+  "Dismiss": "Ausblenden",
   "This form is not available. It may have been turned off, or the link may be out of date.": "Dieses Formular ist nicht verfügbar. Möglicherweise wurde es deaktiviert, oder der Link ist nicht mehr aktuell.",
   "This form can only be opened from an allowed network.": "Dieses Formular kann nur aus einem zugelassenen Netzwerk geöffnet werden.",
   "Too many submissions from your network. Please wait a few minutes and try again.": "Zu viele Meldungen aus Ihrem Netzwerk. Bitte warten Sie einige Minuten und versuchen Sie es dann erneut.",

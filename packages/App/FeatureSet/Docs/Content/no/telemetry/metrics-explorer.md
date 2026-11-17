@@ -28,9 +28,9 @@ Utforskeren har seks faner:
 | Fane | Hva den er til |
 | --- | --- |
 | **Leser** | Listen over målinger, hver med et lite diagram og den siste verdien. Den åpner på siste time. |
-| **PromQL** | Spør etter målingene dine med PromQL, spørrespråket til Prometheus, og koble Grafana til dem. Se [Spør etter målinger med PromQL](/docs/telemetry/promql). |
 | **Innsikt** | Hvilke tjenester som rapporterer målinger, og hvor mange. |
 | **KI** | Problemene OneUptime finner i målingene dine (for mange verdier, histogrambøtter som ikke passer, manglende målinger), og hva OneUptime AI gjorde med dem. Se [Forbedre målinger og legg til de som mangler med KI](#forbedre-målinger-og-legg-til-de-som-mangler-med-ki). |
+| **PromQL** | Spør etter målingene dine med PromQL, spørrespråket til Prometheus, og koble Grafana til dem. Se [Spør etter målinger med PromQL](/docs/telemetry/promql). |
 | **Oppsettveiledning** | Hvordan du sender målinger med OpenTelemetry med en av inntaksnøklene dine. |
 | **Innstillinger** | **Pipelineregler** og **Opptaksregler**: hva som skjer med målinger når de kommer inn. |
 

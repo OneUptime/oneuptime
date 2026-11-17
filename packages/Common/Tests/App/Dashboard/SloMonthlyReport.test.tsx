@@ -11,6 +11,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock, SpyInstance } from "jest-mock";
 import {
   cleanup,
   fireEvent,
@@ -28,8 +29,7 @@ import { MemoryRouter } from "react-router-dom";
 
 type DownloadFileMock = (...args: Array<unknown>) => unknown;
 
-const mockDownloadFile: jest.Mock<DownloadFileMock> =
-  jest.fn<DownloadFileMock>();
+const mockDownloadFile: Mock<DownloadFileMock> = jest.fn<DownloadFileMock>();
 
 jest.mock("../../../UI/Utils/DownloadFile", () => {
   return {
@@ -177,7 +177,7 @@ const MONITOR_REPORT: SloMonthlyReport = buildSloMonthlyReport({
   now: MEASURED_AT,
 });
 
-let apiGet: jest.SpiedFunction<typeof API.get>;
+let apiGet: SpyInstance<typeof API.get>;
 
 function answer(report: SloMonthlyReport): HTTPResponse<JSONObject> {
   return new HTTPResponse<JSONObject>(
@@ -265,7 +265,7 @@ beforeEach(async () => {
     value: 1600,
   });
   mockDownloadFile.mockReset();
-  apiGet = jest.spyOn(API, "get");
+  apiGet = jest.spyOn(API, "get") as unknown as SpyInstance<typeof API.get>;
 });
 
 afterEach(() => {

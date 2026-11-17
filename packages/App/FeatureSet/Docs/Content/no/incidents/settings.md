@@ -65,7 +65,7 @@ Noen raske regler:
 - Listen over maler viser bare **Navn** og **Beskrivelse**. Rader kan ikke redigeres eller slettes fra listen — åpne en mal (`/dashboard/{projectId}/incidents/settings/templates/{modelId}`) for å endre den.
 - Alle som kan redigere en mal, kan endre detaljene og de berørte ressursene, **Innledende hendelsestilstand** og **Endre monitorstatus til** inkludert: Prosjekteiere, Prosjektadministratorer og Prosjektmedlemmer, Hendelsesadministratorer og Hendelsesmedlemmer, og en rolle med **Edit Incident Template**.
 - Maler støtter import og eksport i JSON, så du kan flytte en mellom prosjekter.
-- Uten maler sier listen **Ingen hendelsesmaler funnet** med **Opprett Hendelsesmal** rett under.
+- Uten maler sier listen **Ingen hendelsesmaler ennå** med **Opprett Hendelsesmal** rett under.
 - Også uten maler åpner **Opprett fra mal** i listen over hendelser en dialog **Ingen hendelsesmaler** som sier hvor maler lages, og knappen **Create Template** åpner **Hendelser → Innstillinger → Hendelsesmaler**.
 
 ### Slik brukes en mal
@@ -620,7 +620,7 @@ Bare Prosjekteiere og Prosjektadministratorer kan endre disse innstillingene. I 
 
 ### En grense for hele serveren
 
-På en selvdriftet server kan en hovedadministrator holde alle prosjekter til en grense under **Admin-dashbord → Innstillinger → Dataoppbevaring**. Kortene **Løste hendelser** og **Løste varsler** spør hvert om **Behold i høyst**, det lengste et prosjekt beholder dem, også prosjekter som står på **Aldri**, og om **Nye prosjekter sletter etter**, det et nytt prosjekt starter med. De starter på **Ingen grense** og **Aldri**, så ingenting endres før en hovedadministrator velger en periode, og når en grense settes, vises det først hvor mange prosjekter den gjelder. Under en grense viser **Slett etter** i et prosjekt perioden det faktisk beholder hendelser i, med **Aldri** og de lengre periodene låst og en linje som **Serveren din oppbevarer løste hendelser i høyst 1 år.** Prosjektets egen innstilling beholdes, så den kommer tilbake når grensen oppheves. Så lenge et prosjekt beholder hendelser med fullført etteranalyse, blir de også værende under grensen.
+På en selvdriftet server kan en hovedadministrator holde alle prosjekter til en grense under **Admin-dashbord → Innstillinger → Server → Dataoppbevaring**. Kortene **Løste hendelser** og **Løste varsler** spør hvert om **Behold i høyst**, det lengste et prosjekt beholder dem, også prosjekter som står på **Aldri**, og om **Nye prosjekter sletter etter**, det et nytt prosjekt starter med. De starter på **Ingen grense** og **Aldri**, så ingenting endres før en hovedadministrator velger en periode, og når en grense settes, vises det først hvor mange prosjekter den gjelder. Under en grense viser **Slett etter** i et prosjekt perioden det faktisk beholder hendelser i, med **Aldri** og de lengre periodene låst og en linje som **Serveren din oppbevarer løste hendelser i høyst 1 år.** Prosjektets egen innstilling beholdes, så den kommer tilbake når grensen oppheves. Så lenge et prosjekt beholder hendelser med fullført etteranalyse, blir de også værende under grensen.
 
 > [!NOTE]
 > På en selvdriftet installasjon gjenbruker PostgreSQL plassen slettede rader etterlater, men gir den ikke tilbake til disken. For å krympe databasen etter en stor første opprydding kjører du `VACUUM FULL` på de største tabellene i et vedlikeholdsvindu, siden den låser hver tabell mens den skriver den på nytt, eller bruker `pg_repack`, som ikke gjør det.

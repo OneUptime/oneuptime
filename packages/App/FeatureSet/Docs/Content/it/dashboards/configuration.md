@@ -96,7 +96,7 @@ L'archiviazione è l'alternativa reversibile all'eliminazione: ricorri prima a e
 
 ## Eliminare una dashboard
 
-Apri la pagina **Elimina** della dashboard. L'eliminazione non può essere annullata: la dashboard, i suoi widget e le variabili, e tutti i domini personalizzati collegati vengono rimossi. La tua telemetria non viene toccata.
+Apri la pagina **Elimina dashboard** della dashboard. L'eliminazione non può essere annullata: la dashboard, i suoi widget e le variabili, e tutti i domini personalizzati collegati vengono rimossi. La tua telemetria non viene toccata.
 
 Se la dashboard è pubblica su un dominio personalizzato, l'indirizzo smette di rispondere non appena la elimini. Per continuare a servire l'indirizzo, aggiungi il dominio a un'altra dashboard dopo aver eliminato questa: un dominio appartiene a una sola dashboard alla volta.
 

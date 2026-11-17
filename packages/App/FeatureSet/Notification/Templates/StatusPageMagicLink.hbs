@@ -11,11 +11,11 @@
   through the raw `info`.
 --}}
 
-{{> EmailTitle title=(concat "Log in to " statusPageName) }}
+{{> EmailTitle title=(concat "Sign in to " statusPageName) }}
 
-{{> InfoBlock plainInfo=(concat "Use the button below to log in to " statusPageName ". You don't need your password.")}}
+{{> InfoBlock plainInfo=(concat "Use the button below to sign in to " statusPageName ". You don't need your password.")}}
 
-{{> ButtonBlock buttonUrl=tokenVerifyUrl buttonText="Log In"}}
+{{> ButtonBlock buttonUrl=tokenVerifyUrl buttonText="Sign In"}}
 
 {{> LinkBlock linkUrl=tokenVerifyUrl linkLabel="You can also copy and paste this link:"}}
 
@@ -31,7 +31,7 @@
 {{> DetailBoxEnd this }}
 {{/if}}
 
-{{> InfoBlock plainInfo="If you didn't ask to log in, you can ignore this email. Nobody can log in without the link."}}
+{{> InfoBlock plainInfo="If you didn't ask to sign in, you can ignore this email. Nobody can sign in without the link."}}
 
 {{> InfoBlock plainInfo=(concat statusPageName " Team.")}}
 

@@ -325,7 +325,7 @@ Adding a provider, changing one or turning it on again needs **Scale**. The peop
 
 While the project still requires SSO, its **SSO** page also shows **Require SSO for Login**: turn it off before you turn the last provider off. Until then the last provider people can sign in with cannot be turned off or deleted, so nobody is locked out of the project.
 
-A status page's **SSO** and **OIDC** pages list its own providers the same way. While the status page still requires SSO, both pages also show **Require SSO for Login**: turn it off before you turn its providers off, or its private users cannot sign in at all.
+A status page's **Single Sign-On** page lists its own providers the same way, on its **SAML** and **OIDC** tabs. While the status page still requires SSO, both tabs also show **Require SSO for Login**: turn it off before you turn its providers off, or its private users cannot sign in at all.
 
 ## Troubleshooting
 

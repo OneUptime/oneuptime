@@ -23,6 +23,7 @@ import { MasterApiKeyState } from "../../../Types/MasterApiKey/MasterApiKeyAnswe
 import ObjectID from "../../../Types/ObjectID";
 import { getJestSpyOn } from "../../Spy";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 /*
  * THE SERVER'S MASTER API KEY IS MADE BY ONEUPTIME AND STORED HASHED
@@ -343,18 +344,18 @@ describe("createMasterApiKey", () => {
     updateById: UpdateByID<GlobalConfig>,
   ) => Promise<number>;
 
-  const spyUpdate: (rows: number) => jest.SpiedFunction<UpdateOneById> = (
+  const spyUpdate: (rows: number) => SpyInstance<UpdateOneById> = (
     rows: number,
-  ): jest.SpiedFunction<UpdateOneById> => {
+  ): SpyInstance<UpdateOneById> => {
     return getJestSpyOn(GlobalConfigService, "updateOneById").mockResolvedValue(
       rows as never,
-    ) as unknown as jest.SpiedFunction<UpdateOneById>;
+    ) as unknown as SpyInstance<UpdateOneById>;
   };
 
   const written: (
-    update: jest.SpiedFunction<UpdateOneById>,
+    update: SpyInstance<UpdateOneById>,
   ) => UpdateByID<GlobalConfig> = (
-    update: jest.SpiedFunction<UpdateOneById>,
+    update: SpyInstance<UpdateOneById>,
   ): UpdateByID<GlobalConfig> => {
     expect(update).toHaveBeenCalledTimes(1);
     return update.mock.calls[0]![0];
@@ -370,7 +371,7 @@ describe("createMasterApiKey", () => {
   });
 
   test("stores the key's hash on the server's settings row, as OneUptime itself, and turns it on", async () => {
-    const update: jest.SpiedFunction<UpdateOneById> = spyUpdate(1);
+    const update: SpyInstance<UpdateOneById> = spyUpdate(1);
 
     const key: string = await GlobalConfigService.createMasterApiKey();
     const call: UpdateByID<GlobalConfig> = written(update);
@@ -401,7 +402,7 @@ describe("createMasterApiKey", () => {
   });
 
   test("records when the key was made, by the master admin who made it, and its hint", async () => {
-    const update: jest.SpiedFunction<UpdateOneById> = spyUpdate(1);
+    const update: SpyInstance<UpdateOneById> = spyUpdate(1);
     const madeBy: ObjectID = ObjectID.generate();
     const before: number = Date.now();
 
@@ -410,9 +411,11 @@ describe("createMasterApiKey", () => {
     });
     const call: UpdateByID<GlobalConfig> = written(update);
 
-    expect(call.data.masterApiKeyCreatedByUserId?.toString()).toBe(
-      madeBy.toString(),
-    );
+    expect(
+      (
+        call.data.masterApiKeyCreatedByUserId as ObjectID | undefined
+      )?.toString(),
+    ).toBe(madeBy.toString());
     expect(call.data.masterApiKeyHint).toBe(key.slice(-4));
     expect(call.data.masterApiKeyHint).toBe(MasterApiKey.getHint(key));
 
@@ -424,7 +427,7 @@ describe("createMasterApiKey", () => {
 
   test("made by nobody - no master admin named - says so, rather than keep the maker of the key before", async () => {
     for (const data of [undefined, {}, { createdByUserId: null }]) {
-      const update: jest.SpiedFunction<UpdateOneById> = spyUpdate(1);
+      const update: SpyInstance<UpdateOneById> = spyUpdate(1);
 
       await GlobalConfigService.createMasterApiKey(data);
 
@@ -439,7 +442,7 @@ describe("createMasterApiKey", () => {
   });
 
   test("writes nothing that holds the key", async () => {
-    const update: jest.SpiedFunction<UpdateOneById> = spyUpdate(1);
+    const update: SpyInstance<UpdateOneById> = spyUpdate(1);
 
     const key: string = await GlobalConfigService.createMasterApiKey();
 
@@ -447,7 +450,7 @@ describe("createMasterApiKey", () => {
   });
 
   test("what it writes passes the service's own rule for the key", async () => {
-    const update: jest.SpiedFunction<UpdateOneById> = spyUpdate(1);
+    const update: SpyInstance<UpdateOneById> = spyUpdate(1);
 
     await GlobalConfigService.createMasterApiKey();
 
@@ -489,22 +492,20 @@ describe("createMasterApiKey", () => {
 describe("getMasterApiKeyState", () => {
   const answerRow: (
     row: Record<string, unknown> | null,
-  ) => jest.SpiedFunction<(...args: Array<unknown>) => Promise<unknown>> = (
+  ) => SpyInstance<(...args: Array<unknown>) => Promise<unknown>> = (
     row: Record<string, unknown> | null,
-  ): jest.SpiedFunction<(...args: Array<unknown>) => Promise<unknown>> => {
+  ): SpyInstance<(...args: Array<unknown>) => Promise<unknown>> => {
     return getJestSpyOn(GlobalConfigService, "findOneById").mockResolvedValue(
       (row ? Object.assign(new GlobalConfig(), row) : null) as never,
-    ) as unknown as jest.SpiedFunction<
-      (...args: Array<unknown>) => Promise<unknown>
-    >;
+    ) as unknown as SpyInstance<(...args: Array<unknown>) => Promise<unknown>>;
   };
 
   // The users the state names, by id: none unless a test adds one.
   const answerUsers: (
     users: Record<string, { name?: string; email?: string }>,
-  ) => jest.SpiedFunction<(...args: Array<unknown>) => Promise<unknown>> = (
+  ) => SpyInstance<(...args: Array<unknown>) => Promise<unknown>> = (
     users: Record<string, { name?: string; email?: string }>,
-  ): jest.SpiedFunction<(...args: Array<unknown>) => Promise<unknown>> => {
+  ): SpyInstance<(...args: Array<unknown>) => Promise<unknown>> => {
     return getJestSpyOn(UserService, "findOneById").mockImplementation(
       (async (findOneById: { id: ObjectID }): Promise<User | null> => {
         const found: { name?: string; email?: string } | undefined =
@@ -514,9 +515,7 @@ describe("getMasterApiKeyState", () => {
           ? (Object.assign(new User(), found) as unknown as User)
           : null;
       }) as never,
-    ) as unknown as jest.SpiedFunction<
-      (...args: Array<unknown>) => Promise<unknown>
-    >;
+    ) as unknown as SpyInstance<(...args: Array<unknown>) => Promise<unknown>>;
   };
 
   const MADE_AT: Date = new Date("2026-11-16T09:30:00.000Z");
@@ -529,12 +528,11 @@ describe("getMasterApiKeyState", () => {
   > = { createdAt: null, createdByName: null, hint: null };
 
   test("says a key is set, and on, never what it is", async () => {
-    const find: jest.SpiedFunction<
-      (...args: Array<unknown>) => Promise<unknown>
-    > = answerRow({
-      masterApiKey: new HashedString(MasterApiKey.hash(KEY), true),
-      isMasterApiKeyEnabled: true,
-    });
+    const find: SpyInstance<(...args: Array<unknown>) => Promise<unknown>> =
+      answerRow({
+        masterApiKey: new HashedString(MasterApiKey.hash(KEY), true),
+        isMasterApiKeyEnabled: true,
+      });
 
     const state: MasterApiKeyState =
       await GlobalConfigService.getMasterApiKeyState();
@@ -563,11 +561,10 @@ describe("getMasterApiKeyState", () => {
       masterApiKeyCreatedByUserId: ADA,
       masterApiKeyHint: "2b34",
     });
-    const findUser: jest.SpiedFunction<
-      (...args: Array<unknown>) => Promise<unknown>
-    > = answerUsers({
-      [ADA.toString()]: { name: "Ada Lovelace", email: "ada@example.com" },
-    });
+    const findUser: SpyInstance<(...args: Array<unknown>) => Promise<unknown>> =
+      answerUsers({
+        [ADA.toString()]: { name: "Ada Lovelace", email: "ada@example.com" },
+      });
 
     const state: MasterApiKeyState =
       await GlobalConfigService.getMasterApiKeyState();
@@ -626,9 +623,8 @@ describe("getMasterApiKeyState", () => {
       isMasterApiKeyEnabled: true,
       masterApiKeyHint: "2b34",
     });
-    const findUser: jest.SpiedFunction<
-      (...args: Array<unknown>) => Promise<unknown>
-    > = answerUsers({});
+    const findUser: SpyInstance<(...args: Array<unknown>) => Promise<unknown>> =
+      answerUsers({});
 
     expect(await GlobalConfigService.getMasterApiKeyState()).toEqual({
       isSet: true,
@@ -674,9 +670,8 @@ describe("getMasterApiKeyState", () => {
       masterApiKeyCreatedByUserId: ADA,
       masterApiKeyHint: "2b34",
     });
-    const findUser: jest.SpiedFunction<
-      (...args: Array<unknown>) => Promise<unknown>
-    > = answerUsers({ [ADA.toString()]: { name: "Ada Lovelace" } });
+    const findUser: SpyInstance<(...args: Array<unknown>) => Promise<unknown>> =
+      answerUsers({ [ADA.toString()]: { name: "Ada Lovelace" } });
 
     expect(await GlobalConfigService.getMasterApiKeyState()).toEqual({
       isSet: false,

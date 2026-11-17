@@ -111,7 +111,7 @@ function renderLabel(
 
 // The grey marks a label draws: the spans in the mark's own style.
 function marksOf(label: HTMLElement): Array<string> {
-  return Array.from(label.querySelectorAll("span.text-gray-400"))
+  return Array.from(label.querySelectorAll("span.text-gray-500"))
     .map((element: Element): string => {
       return (element.textContent || "").trim();
     })

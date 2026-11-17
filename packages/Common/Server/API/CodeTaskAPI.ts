@@ -9,6 +9,7 @@ import Express, {
 import Response from "../Utils/Response";
 import AIRunService from "../Services/AIRunService";
 import QueryHelper from "../Types/Database/QueryHelper";
+import AIRunOutputReadFilter from "../Utils/AI/AIRunOutputReadFilter";
 import CallerPermission from "../Utils/Permission/CallerPermission";
 import CodeTaskAccess, {
   CODE_TASK_ASK_REFUSED_MESSAGE,
@@ -138,7 +139,11 @@ import { CodeHost } from "../../Types/CodeRepository/CodeHost";
  * the project of the request. Who may read and who may ask is the
  * repository's to decide (CodeTaskAccess); whether AI may work at all -
  * the plan, the project's AI switch, credits, limits, a Runner - is
- * CodeTaskGate's, asked again by every route that starts work.
+ * CodeTaskGate's, asked again by every route that starts work. A task about
+ * a private incident or alert - the fix pull request of its investigation,
+ * a Code task asked from one of its fixes - is besides read only by those
+ * who see that record, in every list, count, search and page here
+ * (AIRunOutputReadFilter, #9165).
  */
 
 export const CODE_TASK_STOP_REFUSED_MESSAGE: string =
@@ -326,10 +331,17 @@ export default class CodeTaskAPI {
       Map<string, CodeHostConnectionSummary>,
       number,
     ] = await Promise.all([
-      CodeTaskStats.getRepositoryStats({ projectId, repositoryIds }),
+      CodeTaskStats.getRepositoryStats({
+        projectId,
+        repositoryIds,
+        reader: props,
+      }),
       CodeHostAccess.getConnectionSummaries({ projectId, repositoryIds }),
       mayReadTasksWithoutRepository
-        ? CodeTaskStats.countTasksWithoutRepository(projectId)
+        ? CodeTaskStats.countTasksWithoutRepository({
+            projectId,
+            reader: props,
+          })
         : Promise.resolve(0),
     ]);
 
@@ -390,6 +402,7 @@ export default class CodeTaskAPI {
       CodeTaskStats.getRepositoryStats({
         projectId,
         repositoryIds: [repositoryId],
+        reader: props,
       }),
       CodeHostAccess.getConnectionSummaries({
         projectId,
@@ -488,22 +501,30 @@ export default class CodeTaskAPI {
     const isProductionReviews: boolean =
       body["kind"] === CodeTaskListKind.ProductionReviews;
 
-    const query: JSONObject = {
-      projectId: projectId,
-      runType: AIRunType.CodeFix,
-      codeTaskId: QueryHelper.isNull(),
-      codeRepositoryId: codeRepositoryQuery,
-      /*
-       * A repository's pull requests' production reviews have a page of
-       * their own: one task per pull request, which would otherwise bury
-       * the work people asked for.
-       */
-      codeFixTaskType: isProductionReviews
-        ? CodeFixTaskType.GitHubPullRequestProductionReview
-        : QueryHelper.notInOrNull(
-            CodeFixTaskTypeHelper.getServerRunTaskTypes(),
-          ),
-    } as unknown as JSONObject;
+    /*
+     * Read as OneUptime, kept to the caller's tasks: their repositories,
+     * and no task about a private incident or alert they do not see
+     * (AIRunOutputReadFilter, #9165).
+     */
+    const query: JSONObject = AIRunOutputReadFilter.applyToRunRow(
+      {
+        projectId: projectId,
+        runType: AIRunType.CodeFix,
+        codeTaskId: QueryHelper.isNull(),
+        codeRepositoryId: codeRepositoryQuery,
+        /*
+         * A repository's pull requests' production reviews have a page of
+         * their own: one task per pull request, which would otherwise bury
+         * the work people asked for.
+         */
+        codeFixTaskType: isProductionReviews
+          ? CodeFixTaskType.GitHubPullRequestProductionReview
+          : QueryHelper.notInOrNull(
+              CodeFixTaskTypeHelper.getServerRunTaskTypes(),
+            ),
+      } as unknown as JSONObject,
+      props,
+    );
 
     /*
      * A filter (in progress, failed, ...) or a search reads the page through
@@ -517,6 +538,7 @@ export default class CodeTaskAPI {
     const search: string = CodeTaskListQuery.readSearch(body["search"]);
     const scope: CodeTaskListScopeFacts = {
       projectId,
+      reader: props,
       repositoryIds: scopeRepositoryIds,
       includeWithoutRepository: scopeIncludesNoRepository,
       isProductionReviews,
@@ -640,13 +662,17 @@ export default class CodeTaskAPI {
       return { tasks: [] };
     }
 
+    // None about a private incident or alert the caller does not see.
     const rows: Array<AIRun> = await AIRunService.findBy({
-      query: {
-        _id: QueryHelper.any(ids),
-        projectId: projectId,
-        runType: AIRunType.CodeFix,
-        codeTaskId: QueryHelper.isNull(),
-      } as never,
+      query: AIRunOutputReadFilter.applyToRunRow(
+        {
+          _id: QueryHelper.any(ids),
+          projectId: projectId,
+          runType: AIRunType.CodeFix,
+          codeTaskId: QueryHelper.isNull(),
+        },
+        props,
+      ) as never,
       select: CODE_TASK_TURN_SELECT,
       limit: ids.length,
       skip: 0,
@@ -1297,7 +1323,11 @@ export default class CodeTaskAPI {
     return { taskId: run.id!.toString() };
   }
 
-  // The task, when the caller may read it, and its repository.
+  /*
+   * The task, when the caller may read it, and its repository. One about a
+   * private incident or alert they do not see is answered as one that does
+   * not exist, whatever its repository (#9165).
+   */
   private async getReadableTask(
     req: ExpressRequest,
     props: DatabaseCommonInteractionProps,
@@ -1308,6 +1338,7 @@ export default class CodeTaskAPI {
     const task: AIRun | null = await CodeTaskThread.findTask({
       projectId,
       taskId,
+      readableBy: props,
     });
 
     if (!task) {
