@@ -469,6 +469,7 @@ jobs:
               test-status-page-search-ui
               test-packet-capture-ui
               test-multi-device-snmp-walk-ui
+              test-on-call-guided-setup-ui
               test-external-mcp-servers-ui
               test-permissions-per-tab-ui
           - group: 11
@@ -734,6 +735,8 @@ jobs:
             output/playwright/owners-on-create-ui/test-results
             output/playwright/first-on-call-policy-ui/*.png
             output/playwright/first-on-call-policy-ui/test-results
+            output/playwright/on-call-guided-setup-ui/*.png
+            output/playwright/on-call-guided-setup-ui/test-results
             output/playwright/journeys-ui/*.md
             output/playwright/journeys-ui/*.json
             output/playwright/journeys-ui/test-results

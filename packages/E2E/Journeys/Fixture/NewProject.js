@@ -24,6 +24,8 @@ import Project from "Common/Models/DatabaseModels/Project";
 import User from "Common/Models/DatabaseModels/User";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
+import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
+import PermissionScope from "Common/Types/Database/AccessControl/PermissionScope";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
@@ -191,6 +193,24 @@ export function seedNewProject(options) {
     });
   });
 
+  /*
+   * Each team's permission, as ProjectService gives a new project's teams:
+   * an invitation starts on the Members team, the one holding Project
+   * Member for the whole project (DefaultInviteTeamRule).
+   */
+  for (const [teamId, permission] of [
+    [OWNERS_TEAM_ID, Permission.ProjectOwner],
+    [ADMINS_TEAM_ID, Permission.ProjectAdmin],
+    [MEMBERS_TEAM_ID, Permission.ProjectMember],
+  ]) {
+    store.insert(TeamPermission, {
+      teamId: new ObjectID(teamId),
+      permission,
+      isBlockPermission: false,
+      scope: PermissionScope.All,
+    });
+  }
+
   store.insert(TeamMember, {
     teamId: new ObjectID(OWNERS_TEAM_ID),
     team: teams[0],
@@ -334,13 +354,17 @@ export function seedNewProject(options) {
 /*
  * Who is signed in: Ada, who made the project (a Project Owner), or Grace,
  * a member invited a minute ago (a Project Member). The permissions are the
- * snapshot the API would hand the Dashboard.
+ * snapshot the API would hand the Dashboard. `admin` is Ada as the
+ * self-hosted server's master admin too, on a server with no Twilio
+ * (dashboardRoutes' /global-config/sending-status).
  */
 export function signIn(project, who) {
   const isMember = who === "member";
+  const isMasterAdmin = who === "admin";
   const user = isMember ? project.grace : project.ada;
   // Who Home's Welcome card is for (dashboardRoutes' /welcome-checklist).
   project.signedInAs = isMember ? "member" : "owner";
+  project.isMasterAdmin = isMasterAdmin;
   const held = isMember
     ? [Permission.ProjectMember]
     : [Permission.ProjectOwner];
@@ -348,8 +372,8 @@ export function signIn(project, who) {
   UserUtil.setUserId(new ObjectID(user._id));
   UserUtil.setEmail(user.email);
   UserUtil.setName(user.name);
-  UserUtil.setIsMasterAdmin(false);
-  UserUtil.isMasterAdmin = () => false;
+  UserUtil.setIsMasterAdmin(isMasterAdmin);
+  UserUtil.isMasterAdmin = () => isMasterAdmin;
   UserUtil.getUserId = () => new ObjectID(user._id);
 
   const projectPermissions = {
@@ -532,8 +556,49 @@ export function dashboardHooks(project) {
       }
     },
 
-    // OnCallDutyPolicyEscalationRuleService: its responders become join rows.
+    /*
+     * TeamMemberService: an invitation by address (Users' Invite User, and
+     * the on-call guided setup's "Invite by email", #7150) finds the user
+     * with that email or makes one, who has not accepted yet. Nothing is
+     * said about which it was.
+     */
+    TeamMember: async (record, misc) => {
+      const email = String(misc.email || "");
+      if (!email || record.userId) {
+        return;
+      }
+      let user = store.table(User).find((candidate) => {
+        return String(candidate.email) === email;
+      });
+      if (!user) {
+        user = store.create(User, { email: new Email(email) });
+      }
+      store.update(TeamMember, record._id, {
+        userId: new ObjectID(user._id),
+        hasAcceptedInvitation: false,
+      });
+    },
+
+    /*
+     * OnCallDutyPolicyEscalationRuleService: a rule sent with no order is
+     * the policy's next level (one past its rules before it), and its
+     * responders become join rows.
+     */
     OnCallDutyPolicyEscalationRule: async (rule, misc) => {
+      if (!rule.order) {
+        const before = store
+          .table(OnCallDutyPolicyEscalationRule)
+          .filter((other) => {
+            return (
+              String(other.onCallDutyPolicyId) ===
+                String(rule.onCallDutyPolicyId) &&
+              String(other._id) !== String(rule._id)
+            );
+          }).length;
+        store.update(OnCallDutyPolicyEscalationRule, rule._id, {
+          order: before + 1,
+        });
+      }
       for (const userId of (misc.users || []).map(String)) {
         store.create(OnCallDutyPolicyEscalationRuleUser, {
           onCallDutyPolicyId: rule.onCallDutyPolicyId,
@@ -586,7 +651,8 @@ function readinessOf(store, userId) {
   });
   return {
     userId: String(userId),
-    userName: user ? String(user.name) : "",
+    // As the server names someone invited by address: by it, until they sign up.
+    userName: user ? String(user.name || user.email || "") : "",
     userEmail: user ? String(user.email) : "",
     status: isReachable ? "Ready" : "NotReachable",
     methods,
@@ -594,6 +660,69 @@ function readinessOf(store, userId) {
     reasons: [],
     reachedVia: ["Direct"],
     teams: [],
+  };
+}
+
+/*
+ * A policy's test page preview (OnCallTestPageService.preview): the people
+ * its first escalation rule pages, each by every method they verified, at
+ * once - what a verified method's default notification rules say. Nothing
+ * a test of the first level sends here is paid for.
+ */
+function policyPreviewOf(store, policyId) {
+  const rules = store
+    .table(OnCallDutyPolicyEscalationRule)
+    .filter((rule) => {
+      return String(rule.onCallDutyPolicyId) === policyId;
+    })
+    .sort((a, b) => {
+      return Number(a.order || 0) - Number(b.order || 0);
+    });
+  const first = rules[0];
+  const userIds = [];
+  for (const row of store.table(OnCallDutyPolicyEscalationRuleUser)) {
+    const userId = String(row.userId);
+    if (
+      first &&
+      String(row.onCallDutyPolicyEscalationRuleId) === String(first._id) &&
+      !userIds.includes(userId)
+    ) {
+      userIds.push(userId);
+    }
+  }
+  return {
+    kind: "Policy",
+    levelCount: rules.length,
+    people: userIds.map((userId) => {
+      const readiness = readinessOf(store, userId);
+      return {
+        userId,
+        userName: readiness.userName,
+        methods: readiness.methods
+          .filter((method) => {
+            return method.isVerified;
+          })
+          .map((method) => {
+            return {
+              channel: method.methodType,
+              notifyAfterMinutes: 0,
+              isVerified: true,
+              canAcknowledge: true,
+            };
+          }),
+        hasNoRule: false,
+        isOptedOut: false,
+        warnings: [],
+      };
+    }),
+    notPaged: [],
+    cost: {
+      isPaid: false,
+      smsCount: 0,
+      callCount: 0,
+      whatsAppCount: 0,
+      telegramCount: 0,
+    },
   };
 }
 
@@ -859,14 +988,40 @@ export function dashboardRoutes(project) {
       },
     ],
     /*
+     * What the server can send (ServerSendingStatusLoader), asked by a
+     * master admin only: a self-hosted server with no Twilio, so no SMS
+     * and no calls (?as=admin).
+     */
+    [
+      "GET",
+      "/global-config/sending-status",
+      () => {
+        return ok({
+          channels: [
+            { channel: "email", state: "working", hasWorked: true },
+            { channel: "sms", state: "not-set-up", hasWorked: false },
+            { channel: "call", state: "not-set-up", hasWorked: false },
+            { channel: "push", state: "working", hasWorked: true },
+          ],
+          globalProbes: null,
+        });
+      },
+    ],
+    /*
      * A test page to the person themselves (OnCallTestPageAPI, #6811): what
      * it will send - Ada's verified email - then the run, acknowledged from
-     * the email at once.
+     * the email at once. A policy's test (the guided setup's summary reads
+     * it for the order a page reaches each person, #7154) pages its first
+     * level: each person by every method they verified, at once, as a new
+     * method's default rules do (UserNotificationRuleService).
      */
     [
       "POST",
       "/on-call-test-page/preview",
-      () => {
+      ({ body }) => {
+        if (body.policyId) {
+          return ok(policyPreviewOf(store, String(body.policyId)));
+        }
         return ok({
           kind: "Self",
           people: [
