@@ -17,12 +17,19 @@ import path from "path";
  *      Code pages' lists, counts and totals were exactly that, and every
  *      reader of the repository read a private incident's fix through them;
  *   2. an API route that reads runs or pull requests as OneUptime - the
- *      task page, its Log - and answers a person with what it read.
+ *      task page, its Log - and answers a person with what it read;
+ *   3. code that works out how a Code task stands - its state, from its
+ *      latest turn, and its pull request - for a page that shows a task
+ *      beside something else: an exception's fix panel, the fix line of an
+ *      investigation, the pull request to the code under a fix's step, a
+ *      trace's performance fix. Each showed a task's state and pull request
+ *      link after a reply carried a private record into it, which the
+ *      task's own page and the Code lists already hid.
  *
- * Each is listed here with what it is. A file that starts doing either and
- * is not listed fails "is listed": put it in the list with the rule it
+ * Each is listed here with what it is. A file that starts doing any of them
+ * and is not listed fails "is listed": put it in the list with the rule it
  * follows - and, if it reads for a person, have it ask the rule. A listed
- * file that no longer does either fails too, so the list only shrinks.
+ * file that no longer does any fails too, so the list only shrinks.
  */
 
 // packages/Common/Tests/Server/Utils/AI -> the repository root.
@@ -57,7 +64,21 @@ type Classification =
    * Reads for a person, after reading the incident or alert the runs are
    * about under their own props.
    */
-  | { kind: "afterTheRecord"; why: string };
+  | { kind: "afterTheRecord"; why: string }
+  /*
+   * The same, and asks the rule of the tasks it shows how they stand: each
+   * `mustContain` is in its source.
+   */
+  | {
+      kind: "afterTheRecordAndTheRule";
+      why: string;
+      mustContain: Array<string>;
+    }
+  /*
+   * Works out how a task stands for what OneUptime does with it - starts,
+   * continues or refuses work - and tells no one how it stands.
+   */
+  | { kind: "actsOnIt"; why: string };
 
 // 1. Source files with SQL of their own naming AIRun or AIAgentTaskPullRequest.
 const RAW_SQL_READERS: Record<string, Classification> = {
@@ -90,7 +111,7 @@ const RAW_SQL_READERS: Record<string, Classification> = {
   },
   "packages/Common/Server/Utils/AI/CodeTask/CodeTaskListRows.ts": {
     kind: "readsRowsAlreadyKept",
-    why: "A list's rows, read per task for the task ids its caller kept to the reader: CodeTaskAPI's page (CodeTaskListQuery or the rule's own read) and a fix's tasks (DeclaredCodeChanges.list, after the person read the fix, and so its record: of a task a reply carried another record into, only its state and its pull request's link).",
+    why: "A list's rows, read per task for the task ids its caller kept to the reader: CodeTaskAPI's page (CodeTaskListQuery or the rule's own read) and a fix's tasks (DeclaredCodeChanges.list, after the person read the fix, of the tasks the rule lets them read: CodeTaskThread.findTasksHiddenFrom).",
   },
   "packages/Common/Server/Utils/AI/CodeTask/CodeTaskThread.ts": {
     kind: "readsRowsAlreadyKept",
@@ -165,16 +186,32 @@ const API_READERS: Record<string, Classification> = {
     why: "A person's own Ask AI chat, which names no incident or alert: read only by whoever asked.",
   },
   "packages/Common/Server/API/TelemetryExceptionAPI.ts": {
-    kind: "aboutNoPrivateRecord",
-    why: "An exception's fix runs and their pull requests: about a telemetry exception, never an incident or alert. Of a task a reply carried one into, it shows only the run's state and its pull request's link and production verdict.",
+    kind: "asksTheRule",
+    mustContain: [
+      // An exception's fix tasks, each read as its own page reads it.
+      "const hiddenRunIds: Set<string> = await CodeTaskThread.findTasksHiddenFrom({ projectId: telemetryException.projectId,",
+      "}), reader: props, });",
+      // A hidden one: its type alone - no state, verdict or link.
+      "if (isHidden(run)) { return {",
+      "isHidden: true,",
+      "await this.readFixProduction( runs.filter((run: AIRun): boolean => { return !isHidden(run); }), );",
+      "!isHidden(latestRunOverall) &&",
+    ],
   },
   "packages/Common/Server/API/SecurityCaseAPI.ts": {
     kind: "aboutNoPrivateRecord",
     why: "A security case's triage run, read for whoever may read the case.",
   },
   "packages/Common/Server/API/AIInvestigationAPI.ts": {
-    kind: "afterTheRecord",
-    why: "An incident's or alert's investigations and the fix in the code they recommend, read once the person read that record under their own props: a private one's owners. Of a fix a reply carried another record into, only the fix's state and its link.",
+    kind: "afterTheRecordAndTheRule",
+    why: "An incident's or alert's investigations and the fix in the code they recommend, read once the person read that record under their own props: a private one's owners. The fix itself, and a trace's performance fix, are read as their task's own page reads them, for that person.",
+    mustContain: [
+      // The investigation's fix line, for the person, in their project.
+      "FixFromIncidentTaskTrigger.getSuggestionForSubject({ projectId: tenantId,",
+      "reader: viewerProps, });",
+      // A trace's performance fix, for the person.
+      "// The fix as its task's page reads it, for this reader. reader: props, });",
+    ],
   },
   "packages/Common/Server/API/KubernetesClusterAiAccessAPI.ts": {
     kind: "afterTheRecord",
@@ -186,8 +223,67 @@ const API_READERS: Record<string, Classification> = {
   },
 };
 
+/*
+ * 3. Code that works out how a Code task stands - its state from its latest
+ * turn, its pull request - outside the Code API's own pages.
+ */
+const TASK_STATE_READERS: Record<string, Classification> = {
+  "packages/Common/Server/Utils/AI/CodeTask/CodeTaskPresenter.ts": {
+    kind: "readsRowsAlreadyKept",
+    why: "Code's own pages: a list's rows and a task's conversation, for tasks CodeTaskAPI already held to the reader (findTask with the reader, or the rule's own read of a list).",
+  },
+  "packages/Common/Server/Utils/AI/CodeTask/CodeTaskRuns.ts": {
+    kind: "actsOnIt",
+    why: "Whether a task accepts a reply or a retry, and the turn it builds on: what OneUptime does next, for a task the Code API already let the person continue.",
+  },
+  "packages/Common/Server/Utils/Incident/PostmortemActionItemCodeTasks.ts": {
+    kind: "actsOnIt",
+    why: "Whether an action item's task still works, to refuse asking a second one: asked only of someone who may edit the action item, on a private incident only through its owners.",
+  },
+  "packages/Common/Server/Services/AIRunService.ts": {
+    kind: "actsOnIt",
+    why: "getLatestCodeFixRunPerTaskType, as OneUptime: the exception's latest task of each kind, which TelemetryExceptionAPI holds to the person (CodeTaskThread.findTasksHiddenFrom) before it answers.",
+  },
+  "packages/Common/Server/API/TelemetryExceptionAPI.ts": {
+    kind: "asksTheRule",
+    mustContain: ["CodeTaskThread.findTasksHiddenFrom(", "reader: props,"],
+  },
+  "packages/Common/Server/Utils/AI/SRE/FixFromIncidentTaskTrigger.ts": {
+    kind: "asksTheRule",
+    mustContain: [
+      "reader: DatabaseCommonInteractionProps;",
+      "const fixRun: AIRun | null = activeRun || finishedRun;",
+      "await CodeTaskThread.findTasksHiddenFrom({ projectId: data.projectId, taskIds: [fixRun.id], reader: data.reader, })",
+      "return HIDDEN_INVESTIGATION_CODE_FIX_SUGGESTION;",
+    ],
+  },
+  "packages/Common/Server/Utils/AI/SRE/FixPerformanceTaskTrigger.ts": {
+    kind: "asksTheRule",
+    mustContain: [
+      "reader: DatabaseCommonInteractionProps;",
+      "activeRun?.id?.toString() || finishedFix?.aiRunId || null;",
+      "await CodeTaskThread.findTasksHiddenFrom({ projectId: data.projectId, taskIds: [fixTaskId], reader: data.reader, })",
+      "finishedFix: FinishedFixOutcome.Hidden,",
+    ],
+  },
+  "packages/Common/Server/Utils/AutoRemediation/DeclaredCodeChanges.ts": {
+    kind: "asksTheRule",
+    mustContain: [
+      "const hiddenTaskIds: Set<string> = await CodeTaskThread.findTasksHiddenFrom(",
+      "reader: data.props,",
+      "state: DeclaredCodeChangeState.Hidden,",
+      // Nothing more is read of a hidden task: its turns nor its pull request.
+      ".filter((task: AIRun): boolean => { return !isHidden(task); })",
+    ],
+  },
+};
+
 // SQL of a file's own that names the AIRun or AIAgentTaskPullRequest table.
 const RAW_SQL: RegExp = /\b(?:FROM|JOIN)\s+"(?:AIRun|AIAgentTaskPullRequest)"/;
+
+// Working out how a Code task stands: its state, its latest turn, its pull request.
+const TASK_STATE: RegExp =
+  /\b(?:CodeTaskStateUtil\.fromRun|getFinishedFixOutcome|CodeTaskRuns\.getLatestTurn|getLatestCodeFixRunPerTaskType|CodeTaskListRows\.(?:readReplies|readPullRequests|readOutcomes))\(/;
 
 // An API file that reads AI runs or pull requests, or the Code tasks' readers.
 const API_READ: RegExp =
@@ -259,11 +355,18 @@ const API_FILES: Array<string> = SERVER_FILES.filter(
   },
 ).sort();
 
+// Every server file that works out how a Code task stands.
+const TASK_STATE_FILES: Array<string> = SERVER_FILES.filter(
+  (file: string): boolean => {
+    return TASK_STATE.test(read(file));
+  },
+).sort();
+
 function check(
   file: string,
   classification: Classification,
 ): Array<string> | null {
-  if (classification.kind !== "asksTheRule") {
+  if (!("mustContain" in classification)) {
     return null;
   }
 
@@ -365,5 +468,72 @@ describe("API routes that read AI runs or their pull requests as OneUptime", () 
     expect(code.split("AIRunService.findOneBy(").length - 1).toBe(1);
     expect(code.split("AIRunService.findBy(").length - 1).toBe(0);
     expect(code.split("this.findReadableRun(props, runId)").length - 1).toBe(2);
+  });
+});
+
+describe("code that tells a person how a Code task stands, beside something else", () => {
+  test("the sweep finds the fix panels' and Code's own", () => {
+    expect(TASK_STATE_FILES).toEqual(
+      expect.arrayContaining([
+        "packages/Common/Server/API/TelemetryExceptionAPI.ts",
+        "packages/Common/Server/Utils/AI/CodeTask/CodeTaskPresenter.ts",
+        "packages/Common/Server/Utils/AI/SRE/FixFromIncidentTaskTrigger.ts",
+        "packages/Common/Server/Utils/AutoRemediation/DeclaredCodeChanges.ts",
+      ]),
+    );
+  });
+
+  test.each(TASK_STATE_FILES)(
+    "%s is listed with what it is",
+    (file: string) => {
+      expect({ file, isListed: Boolean(TASK_STATE_READERS[file]) }).toEqual({
+        file,
+        isListed: true,
+      });
+    },
+  );
+
+  test("lists no file that works out none", () => {
+    expect(
+      Object.keys(TASK_STATE_READERS).filter((file: string): boolean => {
+        return !TASK_STATE_FILES.includes(file);
+      }),
+    ).toEqual([]);
+  });
+
+  test.each(Object.entries(TASK_STATE_READERS))(
+    "%s holds what it is listed as",
+    (file: string, classification: Classification) => {
+      expect({ file, missing: check(file, classification) || [] }).toEqual({
+        file,
+        missing: [],
+      });
+
+      if ("why" in classification) {
+        expect(classification.why.length).toBeGreaterThan(40);
+      }
+    },
+  );
+
+  /*
+   * The helper every such page asks: the rule the task's own page reads it
+   * by, for the person - never a read of runs as OneUptime that skips it.
+   */
+  test("the panels' helper reads tasks only through the task page's rule", () => {
+    const code: string = read(
+      "packages/Common/Server/Utils/AI/CodeTask/CodeTaskThread.ts",
+    ).replace(/\s+/g, " ");
+    const helper: string = code.slice(
+      code.indexOf("public static async findTasksHiddenFrom("),
+      code.indexOf("public static async getTurns("),
+    );
+
+    expect(helper).toContain(
+      "if (ids.length === 0 || shouldBypassRecordPrivacy(data.reader)) {",
+    );
+    expect(helper).toContain(
+      "query: AIRunOutputReadFilter.applyToRunRow( { _id: QueryHelper.any(ids), projectId: data.projectId, }, data.reader, ),",
+    );
+    expect(helper.split("AIRunService.findBy(").length - 1).toBe(1);
   });
 });

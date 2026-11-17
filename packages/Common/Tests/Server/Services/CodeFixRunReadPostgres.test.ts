@@ -12,9 +12,13 @@ import PrivateRecordPermission, {
   PrivateRecordKind,
 } from "../../../Server/Types/Database/Permissions/PrivateRecordPermission";
 import AIRunOutputReadFilter from "../../../Server/Utils/AI/AIRunOutputReadFilter";
+import ChatCarriedRecords from "../../../Server/Utils/AI/Chat/ChatCarriedRecords";
 import CodeTaskListQuery from "../../../Server/Utils/AI/CodeTask/CodeTaskListQuery";
+import CodeTaskPresenter from "../../../Server/Utils/AI/CodeTask/CodeTaskPresenter";
 import CodeTaskStats from "../../../Server/Utils/AI/CodeTask/CodeTaskStats";
-import CodeTaskThread from "../../../Server/Utils/AI/CodeTask/CodeTaskThread";
+import CodeTaskThread, {
+  CODE_TASK_TURN_SELECT,
+} from "../../../Server/Utils/AI/CodeTask/CodeTaskThread";
 import {
   assertReachesFixSubject,
   OPEN_CODE_FIX_PULL_REQUEST_ACTION,
@@ -27,13 +31,19 @@ import WorkflowPrincipal from "../../../Server/Utils/Workflow/WorkflowPrincipal"
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../Types/AI/AIRunType";
 import CodeFixTaskType from "../../../Types/AI/CodeFixTaskType";
+import { CarriedRecordIds } from "../../../Types/AI/CarriedRecords";
 import {
   CodeRepositoryTaskStatsJSON,
   CodeTaskContextItem,
   CodeTaskContextType,
+  CodeTaskConversationJSON,
   CodeTaskListCountsJSON,
   CodeTaskListFilter,
+  CodeTaskOutcome,
+  CodeTaskSummaryJSON,
 } from "../../../Types/AI/CodeTask";
+import { ProductionReviewReport } from "../../../Types/CodeRepository/ProductionReview";
+import { fullReport } from "../Utils/CodeRepository/ProductionReview/ProductionReviewFixtures";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
@@ -75,6 +85,13 @@ import { DataSource, Logger } from "typeorm";
  * context, one a reply added it to, a postmortem action item's task, and a
  * pull request a chat about it opened - read by those who see every record
  * it carries - and the turns AIRunService writes carry what they name.
+ *
+ * And what was stored before a record turned private, or carried it in
+ * later: a production review kept before an incident on it was made private
+ * lists it only to those who may read it now (#9241); a pull request a chat
+ * opened carries the private incidents the chat opened one by one or quotes
+ * (#9242); a fix panel is told a task is hidden once a reply carried a
+ * private record into it.
  *
  * AIRunOutputReadFilter.test holds the SQL the rule writes; this suite runs
  * it through every read: the run's service (a find and a count that agree,
@@ -160,6 +177,11 @@ const TABLES: Array<string> = [
   "AIRun",
   "AIAgentTaskPullRequest",
   "AutoRemediationSuggestion",
+  // A chat, and what its answers read (#9242).
+  "AIConversation",
+  "AIConversationMessage",
+  // The steps a task's page reads for each turn it shows.
+  "AIRunEvent",
 ];
 
 describePostgres(
@@ -2147,6 +2169,432 @@ describePostgres(
         expect((await readRuns(member(otherId))).ids).toEqual([]);
         expect((await readRuns(member(namedOwnerId))).count).toBe(3);
         expect((await readRuns(viewOnlyOwner())).count).toBe(3);
+      });
+    });
+
+    /*
+     * WHAT WAS STORED BEFORE A RECORD TURNED PRIVATE, OR CARRIED IT IN LATER.
+     *
+     *   - A production review kept on its task's outcome, read after an
+     *     incident on it was made private (#9241): the review lists, counts
+     *     and names only the incidents its reader may read now.
+     *   - A pull request a chat opened after it read a private incident
+     *     with its tools (#9242): it carries what the chat opened one by
+     *     one, and what the pull request quotes of a list, and is read only
+     *     by those who see it.
+     *   - A fix panel after a reply carried a private record into the fix's
+     *     task: the panel is told the task is hidden from whoever the task's
+     *     own page answers as not found.
+     */
+    describe("what was stored before a record turned private, or carried it in later", () => {
+      // A pull request a chat opened, carrying what it was given to carry.
+      async function seedChatPullRequestCarrying(
+        records: CarriedRecordIds,
+      ): Promise<string> {
+        const pullRequestId: string = await seedPullRequest(null);
+
+        await database.query(
+          `UPDATE "${schema}"."AIAgentTaskPullRequest" SET "carriedIncidentIds" = $1, "carriedAlertIds" = $2 WHERE "_id" = $3`,
+          [
+            records.incidentIds.length > 0
+              ? JSON.stringify(records.incidentIds)
+              : null,
+            records.alertIds.length > 0
+              ? JSON.stringify(records.alertIds)
+              : null,
+            pullRequestId,
+          ],
+        );
+
+        return pullRequestId;
+      }
+
+      // Every kind of reader the suite knows, by who they are.
+      function everyReader(): Array<{
+        name: string;
+        props: DatabaseCommonInteractionProps;
+        // Sees the incident the owning team owns and the person named owns.
+        seesOwned: boolean;
+      }> {
+        return [
+          {
+            name: "the owning team's member",
+            props: member(ownerTeamMemberId),
+            seesOwned: true,
+          },
+          {
+            name: "the named owner",
+            props: member(namedOwnerId),
+            seesOwned: true,
+          },
+          { name: "another member", props: member(otherId), seesOwned: false },
+          {
+            name: "a pending invitee",
+            props: member(invitedId),
+            seesOwned: false,
+          },
+          { name: "a Project Owner", props: projectOwner(), seesOwned: true },
+          { name: "a Project Admin", props: projectAdmin(), seesOwned: true },
+          {
+            name: "an API key",
+            props: propsOf([grant(Permission.ProjectMember)], null),
+            seesOwned: false,
+          },
+          {
+            name: "an API key with Project Admin",
+            props: propsOf([grant(Permission.ProjectAdmin)], null),
+            seesOwned: true,
+          },
+          {
+            name: "a workflow's step",
+            props: workflowStep(),
+            seesOwned: false,
+          },
+        ];
+      }
+
+      test("a production review kept before an incident on it was made private lists it only to those who may read it now (#9241)", async () => {
+        // Both public when the review was worked out; both owned as seedRecord owns.
+        const turnsPrivate: string = await seedRecord("Incident", false);
+        const staysPublic: string = await seedRecord("Incident", false);
+
+        await seedRow("IncidentOwnerUser", {
+          userId: namedOwnerId.toString(),
+          incidentId: turnsPrivate,
+        });
+
+        const report: ProductionReviewReport = fullReport({
+          incidents: {
+            total: 6,
+            open: 1,
+            items: [
+              {
+                incidentId: turnsPrivate,
+                label: "INC-45",
+                severity: "Critical",
+                state: "Investigating",
+                isOpen: true,
+                declaredAt: "2026-10-22T07:00:00.000Z",
+              },
+              {
+                incidentId: staysPublic,
+                label: "INC-31",
+                severity: "Major",
+                state: "Resolved",
+                isOpen: false,
+                declaredAt: "2026-10-12T10:00:00.000Z",
+                mentions: "src/billing/charge.ts",
+              },
+            ],
+          },
+          points: [
+            {
+              text: "INC-45 is open, and this edits the line it names.",
+              incidentIds: [turnsPrivate],
+            },
+            {
+              text: "`chargeCard` throws at the line this edits.",
+              incidentIds: [],
+            },
+          ],
+        });
+
+        const reviewTaskId: string = await seedRun({
+          taskType: CodeFixTaskType.GitHubPullRequestProductionReview,
+        });
+
+        await database.query(
+          `UPDATE "${schema}"."AIRun" SET "taskOutcome" = $1, "title" = $2 WHERE "_id" = $3`,
+          [
+            JSON.stringify({
+              summary:
+                "Production review: 1 exception, 1 operation, 1 hot function, 2 incidents and 1 suspect deploy in or around the changed code.",
+              filesChanged: [],
+              productionReview: report,
+            }),
+            "Production review: fix: guard the card (#42)",
+            reviewTaskId,
+          ],
+        );
+
+        // Made private after the review stored it.
+        await database.query(
+          `UPDATE "${schema}"."Incident" SET "isPrivate" = TRUE WHERE "_id" = $1`,
+          [turnsPrivate],
+        );
+
+        const task: AIRun | null = await AIRunService.findOneById({
+          id: new ObjectID(reviewTaskId),
+          select: CODE_TASK_TURN_SELECT,
+          props: { isRoot: true },
+        });
+
+        for (const reader of everyReader()) {
+          const [summary]: Array<CodeTaskSummaryJSON> =
+            await CodeTaskPresenter.summarize({
+              projectId,
+              tasks: [task!],
+              props: reader.props,
+            });
+
+          const conversation: CodeTaskConversationJSON =
+            await CodeTaskPresenter.getConversation({
+              projectId,
+              task: task!,
+              canSeeChanges: false,
+              props: reader.props,
+            });
+
+          const shown: ProductionReviewReport =
+            conversation.turns[0]!.outcome!.productionReview!;
+          const listed: Array<string> = shown.incidents.items.map(
+            (item: { incidentId: string }): string => {
+              return item.incidentId;
+            },
+          );
+
+          expect({ reader: reader.name, listed }).toEqual({
+            reader: reader.name,
+            listed: reader.seesOwned
+              ? [turnsPrivate, staysPublic]
+              : [staysPublic],
+          });
+          expect({
+            reader: reader.name,
+            counted: summary!.productionReview!.incidentCount,
+            pageCounted: conversation.task.productionReview!.incidentCount,
+            open: shown.incidents.open,
+            total: shown.incidents.total,
+            points: shown.points.length,
+          }).toEqual({
+            reader: reader.name,
+            counted: reader.seesOwned ? 2 : 1,
+            pageCounted: reader.seesOwned ? 2 : 1,
+            open: reader.seesOwned ? 1 : 0,
+            total: reader.seesOwned ? 6 : 5,
+            points: reader.seesOwned ? 2 : 1,
+          });
+
+          if (!reader.seesOwned) {
+            const sent: string = JSON.stringify([summary, conversation]);
+
+            expect({
+              reader: reader.name,
+              names: sent.includes("INC-45"),
+            }).toEqual({ reader: reader.name, names: false });
+            expect(sent).not.toContain(turnsPrivate);
+            expect(summary!.latestReply).toContain("1 incident ");
+          }
+        }
+
+        // The stored review itself is left as it was worked out.
+        const stored: SqlRow = (
+          await database.query(
+            `SELECT "taskOutcome" FROM "${schema}"."AIRun" WHERE "_id" = $1`,
+            [reviewTaskId],
+          )
+        )[0] as SqlRow;
+
+        expect(
+          (stored["taskOutcome"] as CodeTaskOutcome).productionReview!.incidents
+            .items.length,
+        ).toBe(2);
+      });
+
+      test("an Ask AI pull request carries the private incidents the chat opened one by one or quotes, and is read only by those who see them (#9242)", async () => {
+        const openedPrivate: string = await seedRecord("Incident", true);
+        const quotedPrivate: string = await seedRecord("Incident", true);
+        const listedPrivate: string = await seedRecord("Incident", true);
+        const openedPublic: string = await seedRecord("Incident", false);
+
+        const conversationId: string = await seedRow("AIConversation", {
+          createdByUserId: authorId.toString(),
+          incidentId: null,
+          alertId: null,
+          deletedAt: null,
+        });
+
+        const citation: (incidentId: string, rowCount: number) => SqlRow = (
+          incidentId: string,
+          rowCount: number,
+        ): SqlRow => {
+          return {
+            id: "C1",
+            toolName: "get_incident",
+            label: "Incident",
+            queryArguments: { incidentId },
+            rowCount,
+            target: { type: "IncidentView", params: { incidentId } },
+          };
+        };
+
+        const message: (values: {
+          citations?: Array<SqlRow>;
+          widgets?: Array<SqlRow>;
+        }) => Promise<string> = async (values: {
+          citations?: Array<SqlRow>;
+          widgets?: Array<SqlRow>;
+        }): Promise<string> => {
+          return await seedRow("AIConversationMessage", {
+            conversationId,
+            userId: authorId.toString(),
+            citations: JSON.stringify(values.citations || []),
+            widgets: JSON.stringify(values.widgets || []),
+            deletedAt: null,
+          });
+        };
+
+        // An earlier answer opened a private incident one by one.
+        await message({ citations: [citation(openedPrivate, 1)] });
+        // A later one listed two private incidents; the pull request quotes one.
+        await message({
+          widgets: [
+            {
+              id: "W1",
+              type: "IncidentList",
+              title: "Incidents",
+              data: {
+                items: [
+                  { id: quotedPrivate, title: "Checkout fails for EU cards" },
+                  { id: listedPrivate, title: "Search is slow for everyone" },
+                ],
+              },
+            },
+          ],
+        });
+
+        const carried: CarriedRecordIds =
+          await ChatCarriedRecords.ofPullRequest({
+            conversationId: new ObjectID(conversationId),
+            title: "fix: guard the card",
+            description:
+              "Stops what made checkout fails for EU cards happen last week.",
+          });
+
+        expect([...carried.incidentIds].sort()).toEqual(
+          [openedPrivate, quotedPrivate].sort(),
+        );
+
+        const fromThatChat: string = await seedChatPullRequestCarrying(carried);
+
+        // A chat that opened only a public incident, and listed what it never quotes.
+        const otherConversationId: string = await seedRow("AIConversation", {
+          createdByUserId: authorId.toString(),
+          incidentId: null,
+          alertId: null,
+          deletedAt: null,
+        });
+
+        await seedRow("AIConversationMessage", {
+          conversationId: otherConversationId,
+          userId: authorId.toString(),
+          citations: JSON.stringify([
+            citation(openedPublic, 1),
+            // Looked for a private one and found nothing: read nothing of it.
+            citation(listedPrivate, 0),
+          ]),
+          widgets: JSON.stringify([
+            {
+              id: "W1",
+              type: "IncidentList",
+              title: "Incidents",
+              data: {
+                items: [
+                  { id: listedPrivate, title: "Search is slow for everyone" },
+                ],
+              },
+            },
+          ]),
+          deletedAt: null,
+        });
+
+        const fromTheOtherChat: string = await seedChatPullRequestCarrying(
+          await ChatCarriedRecords.ofPullRequest({
+            conversationId: new ObjectID(otherConversationId),
+            title: "fix: cache the results",
+            description: "Caches the search results.",
+          }),
+        );
+
+        for (const reader of everyReader()) {
+          expect({
+            reader: reader.name,
+            read: (await readPullRequests(reader.props)).ids,
+          }).toEqual({
+            reader: reader.name,
+            read: reader.seesOwned
+              ? [fromThatChat, fromTheOtherChat].sort()
+              : [fromTheOtherChat],
+          });
+        }
+      });
+
+      test("a fix panel is told a task is hidden after a reply carried a private record into it, as the task's own page answers it", async () => {
+        const privateAlert: string = await seedRecord("Alert", true);
+        const telemetryExceptionId: string = ObjectID.generate().toString();
+
+        // An exception's fix and its regression test, each a task.
+        const fixTask: string = await seedRun({
+          taskType: CodeFixTaskType.FixException,
+          userId: authorId,
+        });
+        const testTask: string = await seedRun({
+          taskType: CodeFixTaskType.WriteRegressionTest,
+          userId: authorId,
+          createdAt: new Date(Date.now() - 60 * 1000),
+        });
+
+        await database.query(
+          `UPDATE "${schema}"."AIRun" SET "triggeredByTelemetryExceptionId" = $1 WHERE "_id" = ANY($2)`,
+          [telemetryExceptionId, [fixTask, testTask]],
+        );
+
+        // A reply in the fix carried a private alert in, and so did its task.
+        await seedRun({ taskId: fixTask, userId: authorId });
+        await database.query(
+          `UPDATE "${schema}"."AIRun" SET "carriedAlertIds" = $1 WHERE "_id" = $2 OR "codeTaskId" = $2`,
+          [JSON.stringify([privateAlert]), fixTask],
+        );
+
+        const runs: Array<AIRun> =
+          await AIRunService.getLatestCodeFixRunPerTaskType({
+            telemetryExceptionId: new ObjectID(telemetryExceptionId),
+          });
+
+        expect(
+          runs
+            .map((run: AIRun): string => {
+              return run.id!.toString();
+            })
+            .sort(),
+        ).toEqual([fixTask, testTask].sort());
+
+        for (const reader of everyReader()) {
+          const hidden: Set<string> = await CodeTaskThread.findTasksHiddenFrom({
+            projectId,
+            taskIds: runs.map((run: AIRun): ObjectID => {
+              return run.id!;
+            }),
+            reader: reader.props,
+          });
+
+          // The task's own page agrees, for a reader who is a person.
+          const page: AIRun | null = await CodeTaskThread.findTask({
+            projectId,
+            taskId: new ObjectID(fixTask),
+            readableBy: reader.props,
+          });
+
+          expect({
+            reader: reader.name,
+            hidden: Array.from(hidden),
+            opensOnItsPage: Boolean(page),
+          }).toEqual({
+            reader: reader.name,
+            hidden: reader.seesOwned ? [] : [fixTask],
+            opensOnItsPage: reader.seesOwned,
+          });
+        }
       });
     });
   },
