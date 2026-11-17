@@ -394,12 +394,16 @@ describe("list descriptions say what the list holds", () => {
     expect(byName.get("active alert episodes")).toMatch(
       /^Episodes group related alerts/,
     );
-    // The probe pages say nothing is checking those monitors.
+    /*
+     * The probe pages say nothing is checking those monitors. No Probe
+     * Enabled also holds monitors with no probe at all, so it says no
+     * enabled probe checks them.
+     */
     expect(byName.get("monitors with every probe disconnected")).toContain(
       "nothing is checking them",
     );
     expect(byName.get("monitors with every probe disabled")).toContain(
-      "nothing is checking them",
+      "no enabled probe checks",
     );
     // Schedules only page anyone once a policy's escalation rule uses them.
     expect(byName.get("on-call schedules")).toContain("escalation rules");
