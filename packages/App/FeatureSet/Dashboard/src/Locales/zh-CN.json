@@ -56616,5 +56616,10 @@
   "{{count}} on-call policy runs aren't listed: you can't see their policies._one": "{{count}} 次值班策略执行未列出：你无法查看它的策略。",
   "{{name}} acknowledged it {{time}} after the first page.": "{{name}} 在首次呼叫 {{time}} 后确认。",
   "Monitors OneUptime recommends for this function, from the invocations its OpenTelemetry reports. Pick the ones you want and create them in one step.": "OneUptime 根据此函数的 OpenTelemetry 报告的调用为其推荐的监视器。选择需要的监视器，一步即可创建。",
-  "This function has not reported its faas.name yet, and every recommended monitor reads the function's spans by it, so none is offered until it does.": "此函数尚未报告其 faas.name，而每个推荐的监视器都按它读取函数的 span，因此在报告之前不会推荐任何监视器。"
+  "This function has not reported its faas.name yet, and every recommended monitor reads the function's spans by it, so none is offered until it does.": "此函数尚未报告其 faas.name，而每个推荐的监视器都按它读取函数的 span，因此在报告之前不会推荐任何监视器。",
+  "Consumer Lag": "消费者延迟",
+  "Dead Letters": "死信",
+  "Message Age": "消息时长",
+  "Monitors OneUptime recommends for this queue, from the broker metrics it reports. Pick the ones you want and create them in one step.": "OneUptime 根据此队列报告的代理指标为其推荐的监视器。选择需要的监视器，一步即可创建。",
+  "No broker metric a recommended monitor reads has arrived for this queue in the last 7 days. Recommendations appear once its broker's metrics do.": "过去 7 天内，此队列没有收到任何推荐监视器读取的代理指标。代理的指标到达后，建议就会出现。"
 }

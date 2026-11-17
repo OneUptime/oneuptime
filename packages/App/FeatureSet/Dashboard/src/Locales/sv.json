@@ -56616,5 +56616,10 @@
   "{{count}} on-call policy runs aren't listed: you can't see their policies._one": "{{count}} körning av en jourpolicy visas inte: du kan inte se dess policy.",
   "{{name}} acknowledged it {{time}} after the first page.": "{{name}} bekräftade det {{time}} efter den första utlarmningen.",
   "Monitors OneUptime recommends for this function, from the invocations its OpenTelemetry reports. Pick the ones you want and create them in one step.": "Monitorer som OneUptime rekommenderar för den här funktionen, utifrån de anrop som dess OpenTelemetry rapporterar. Välj dem du vill ha och skapa dem i ett steg.",
-  "This function has not reported its faas.name yet, and every recommended monitor reads the function's spans by it, so none is offered until it does.": "Den här funktionen har inte rapporterat sitt faas.name än, och varje rekommenderad monitor läser funktionens spans utifrån det, så ingen erbjuds förrän den gör det."
+  "This function has not reported its faas.name yet, and every recommended monitor reads the function's spans by it, so none is offered until it does.": "Den här funktionen har inte rapporterat sitt faas.name än, och varje rekommenderad monitor läser funktionens spans utifrån det, så ingen erbjuds förrän den gör det.",
+  "Consumer Lag": "Konsumentfördröjning",
+  "Dead Letters": "Döda meddelanden",
+  "Message Age": "Meddelandeålder",
+  "Monitors OneUptime recommends for this queue, from the broker metrics it reports. Pick the ones you want and create them in one step.": "Monitorer som OneUptime rekommenderar för den här kön, utifrån de brokermätvärden den rapporterar. Välj dem du vill ha och skapa dem i ett steg.",
+  "No broker metric a recommended monitor reads has arrived for this queue in the last 7 days. Recommendations appear once its broker's metrics do.": "Inget brokermätvärde som en rekommenderad monitor läser har kommit för den här kön de senaste 7 dagarna. Rekommendationer visas när brokerns mätvärden kommer."
 }

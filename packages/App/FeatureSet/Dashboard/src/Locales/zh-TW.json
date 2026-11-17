@@ -56616,5 +56616,10 @@
   "{{count}} on-call policy runs aren't listed: you can't see their policies._one": "{{count}} 次待命策略執行未列出：你無法檢視它的策略。",
   "{{name}} acknowledged it {{time}} after the first page.": "{{name}} 在首次呼叫 {{time}} 後確認。",
   "Monitors OneUptime recommends for this function, from the invocations its OpenTelemetry reports. Pick the ones you want and create them in one step.": "OneUptime 根據此函式的 OpenTelemetry 回報的呼叫為其建議的監測器。選擇需要的監測器，一個步驟即可建立。",
-  "This function has not reported its faas.name yet, and every recommended monitor reads the function's spans by it, so none is offered until it does.": "此函式尚未回報其 faas.name，而每個建議的監測器都依它讀取函式的 span，因此在回報之前不會建議任何監測器。"
+  "This function has not reported its faas.name yet, and every recommended monitor reads the function's spans by it, so none is offered until it does.": "此函式尚未回報其 faas.name，而每個建議的監測器都依它讀取函式的 span，因此在回報之前不會建議任何監測器。",
+  "Consumer Lag": "消費者延遲",
+  "Dead Letters": "無效信件",
+  "Message Age": "訊息存留時間",
+  "Monitors OneUptime recommends for this queue, from the broker metrics it reports. Pick the ones you want and create them in one step.": "OneUptime 根據此佇列回報的代理程式指標為其建議的監測器。選擇需要的監測器，一個步驟即可建立。",
+  "No broker metric a recommended monitor reads has arrived for this queue in the last 7 days. Recommendations appear once its broker's metrics do.": "過去 7 天內，此佇列沒有收到任何建議監測器讀取的代理程式指標。代理程式的指標到達後，建議就會出現。"
 }

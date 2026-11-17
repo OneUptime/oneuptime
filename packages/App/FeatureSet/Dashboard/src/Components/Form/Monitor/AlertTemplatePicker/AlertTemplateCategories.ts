@@ -462,6 +462,23 @@ export const SERVERLESS_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [
   },
 ];
 
+/*
+ * A queue's Recommendations (MessageQueueAlertTemplates): messages piling
+ * up first, then failures, then throttling.
+ */
+export const MESSAGE_QUEUE_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [
+  { category: "Backlog", label: "Backlog", icon: IconProp.QueueList },
+  { category: "Consumer Lag", label: "Consumer Lag", icon: IconProp.Clock },
+  { category: "Message Age", label: "Message Age", icon: IconProp.Clock },
+  {
+    category: "Dead Letters",
+    label: "Dead Letters",
+    icon: IconProp.ExclaimationCircle,
+  },
+  { category: "Errors", label: "Errors", icon: IconProp.ExclaimationCircle },
+  { category: "Throttling", label: "Throttling", icon: IconProp.Activity },
+];
+
 export const ALERT_TEMPLATE_CATEGORIES_BY_RESOURCE_TYPE: Partial<
   Record<MonitorRecommendationResourceType, Array<AlertTemplateCategory>>
 > = {
@@ -483,6 +500,8 @@ export const ALERT_TEMPLATE_CATEGORIES_BY_RESOURCE_TYPE: Partial<
   [MonitorRecommendationResourceType.CloudApp]: CLOUD_APP_TEMPLATE_CATEGORIES,
   [MonitorRecommendationResourceType.ServerlessFunction]:
     SERVERLESS_TEMPLATE_CATEGORIES,
+  [MonitorRecommendationResourceType.MessageQueue]:
+    MESSAGE_QUEUE_TEMPLATE_CATEGORIES,
 };
 
 /*

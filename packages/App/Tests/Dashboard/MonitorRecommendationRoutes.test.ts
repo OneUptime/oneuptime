@@ -154,6 +154,8 @@ beforeAll(async () => {
       PageMap.CLOUD_RESOURCE_VIEW_RECOMMENDATIONS,
     [MonitorRecommendationResourceType.ServerlessFunction]:
       PageMap.SERVERLESS_FUNCTION_VIEW_RECOMMENDATIONS,
+    [MonitorRecommendationResourceType.MessageQueue]:
+      PageMap.MESSAGE_QUEUE_VIEW_RECOMMENDATIONS,
   };
 
   recommendationTabPageKey = {

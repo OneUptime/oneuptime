@@ -56616,5 +56616,10 @@
   "{{count}} on-call policy runs aren't listed: you can't see their policies._one": "{{count}} exécution d'une politique d'astreinte n'est pas listée : vous ne pouvez pas voir sa politique.",
   "{{name}} acknowledged it {{time}} after the first page.": "{{name}} l'a pris en compte {{time}} après le premier appel.",
   "Monitors OneUptime recommends for this function, from the invocations its OpenTelemetry reports. Pick the ones you want and create them in one step.": "Moniteurs que OneUptime recommande pour cette fonction, d'après les invocations que signale son OpenTelemetry. Choisissez ceux que vous voulez et créez-les en une seule étape.",
-  "This function has not reported its faas.name yet, and every recommended monitor reads the function's spans by it, so none is offered until it does.": "Cette fonction n'a pas encore signalé son faas.name, et chaque moniteur recommandé lit les spans de la fonction grâce à lui : aucun n'est donc proposé tant qu'elle ne l'a pas fait."
+  "This function has not reported its faas.name yet, and every recommended monitor reads the function's spans by it, so none is offered until it does.": "Cette fonction n'a pas encore signalé son faas.name, et chaque moniteur recommandé lit les spans de la fonction grâce à lui : aucun n'est donc proposé tant qu'elle ne l'a pas fait.",
+  "Consumer Lag": "Retard des consommateurs",
+  "Dead Letters": "Lettres mortes",
+  "Message Age": "Âge des messages",
+  "Monitors OneUptime recommends for this queue, from the broker metrics it reports. Pick the ones you want and create them in one step.": "Moniteurs que OneUptime recommande pour cette file d'attente, d'après les métriques de broker qu'elle signale. Choisissez ceux que vous voulez et créez-les en une seule étape.",
+  "No broker metric a recommended monitor reads has arrived for this queue in the last 7 days. Recommendations appear once its broker's metrics do.": "Aucune métrique de broker lue par un moniteur recommandé n'est arrivée pour cette file d'attente au cours des 7 derniers jours. Les recommandations apparaîtront dès que les métriques de son broker arriveront."
 }

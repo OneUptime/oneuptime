@@ -1701,6 +1701,11 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         title: "Topology",
       },
       {
+        page: PageMap.MESSAGE_QUEUE_VIEW_RECOMMENDATIONS,
+        section: "Basic",
+        title: "Recommendations",
+      },
+      {
         page: PageMap.MESSAGE_QUEUE_VIEW_TRACES,
         section: "Observability",
         title: "Traces",

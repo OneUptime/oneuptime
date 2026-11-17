@@ -56616,5 +56616,10 @@
   "{{count}} on-call policy runs aren't listed: you can't see their policies._one": "{{count}} ऑन-कॉल नीति निष्पादन सूचीबद्ध नहीं है: आप उसकी नीति नहीं देख सकते।",
   "{{name}} acknowledged it {{time}} after the first page.": "{{name}} ने पहले पेज के {{time}} बाद स्वीकार किया।",
   "Monitors OneUptime recommends for this function, from the invocations its OpenTelemetry reports. Pick the ones you want and create them in one step.": "इस फ़ंक्शन के OpenTelemetry द्वारा रिपोर्ट किए गए इनवोकेशन के आधार पर इस फ़ंक्शन के लिए OneUptime के सुझाए गए मॉनिटर। जो चाहिए उन्हें चुनें और एक ही चरण में बनाएँ।",
-  "This function has not reported its faas.name yet, and every recommended monitor reads the function's spans by it, so none is offered until it does.": "इस फ़ंक्शन ने अभी तक अपना faas.name रिपोर्ट नहीं किया है, और हर सुझाया गया मॉनिटर इसी से फ़ंक्शन के स्पैन पढ़ता है, इसलिए जब तक यह रिपोर्ट न हो, कोई मॉनिटर सुझाया नहीं जाता।"
+  "This function has not reported its faas.name yet, and every recommended monitor reads the function's spans by it, so none is offered until it does.": "इस फ़ंक्शन ने अभी तक अपना faas.name रिपोर्ट नहीं किया है, और हर सुझाया गया मॉनिटर इसी से फ़ंक्शन के स्पैन पढ़ता है, इसलिए जब तक यह रिपोर्ट न हो, कोई मॉनिटर सुझाया नहीं जाता।",
+  "Consumer Lag": "कंज़्यूमर लैग",
+  "Dead Letters": "डेड लेटर",
+  "Message Age": "मैसेज की उम्र",
+  "Monitors OneUptime recommends for this queue, from the broker metrics it reports. Pick the ones you want and create them in one step.": "इस क्यू द्वारा रिपोर्ट किए गए ब्रोकर मेट्रिक्स के आधार पर इस क्यू के लिए OneUptime के सुझाए गए मॉनिटर। जो चाहिए उन्हें चुनें और एक ही चरण में बनाएँ।",
+  "No broker metric a recommended monitor reads has arrived for this queue in the last 7 days. Recommendations appear once its broker's metrics do.": "पिछले 7 दिनों में इस क्यू के लिए ऐसा कोई ब्रोकर मेट्रिक नहीं आया जिसे कोई सुझाया गया मॉनिटर पढ़ता हो। इसके ब्रोकर के मेट्रिक्स आते ही सुझाव दिखेंगे।"
 }
