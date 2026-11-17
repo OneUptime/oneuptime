@@ -160,6 +160,7 @@ Tryck på **Cmd+K** (Mac) eller **Ctrl+K** (Windows och Linux), eller klicka på
 - **Inställningarna på en sida**, under namnet som deras kort eller reglage visar: *Kräv SSO för inloggning* hittar SSO, och *Anpassade SMTP-konfigurationer* hittar Aviseringskanaler. Skriv namnet på engelska eller på ditt eget språk.
 - **Åtgärder**, efter vad du vill göra: Deklarera incident, Skapa monitor eller Delete Project, som öppnar Farozon. En åtgärd som ändrar något erbjuds bara den som får utföra den.
 - **Dina monitorer, incidenter, larm, statussidor och jourpolicyer**, efter namn, och incidenter och larm även efter nummer, som `INC-42`. Varje resultat för en incident eller ett larm börjar med dess nummer, så att två med samma titel går att skilja åt.
+- **En posts egna sidor**: på en statussida öppnar *sso* dess sida Enkel inloggning. Överallt annars lägger du till postens namn eller dess typ: *status page sso*, eller *acme subscribers* för prenumeranterna på en statussida som heter Acme. Bara poster du kan se erbjuds, och en sida som har bytt namn hittas fortfarande under sitt gamla namn, till exempel *advanced settings*.
 - **Dokumentationen**, i en grupp *Dokumentation* under allt annat: de sidor och avsnitt vars ord stämmer med det du skriver, på ditt språk, även med ett stavfel. Var och en öppnas i en ny flik, så att du behåller din plats.
 
 Sökningen läser det du skriver som du menar det:

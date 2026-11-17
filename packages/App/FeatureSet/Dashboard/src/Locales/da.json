@@ -245,7 +245,8 @@
       "incidents": "Hændelser",
       "monitors": "Monitorer",
       "onCallPolicies": "Vagtpolitikker",
-      "statusPages": "Statussider"
+      "statusPages": "Statussider",
+      "recordPages": "Sider for poster"
     }
   },
   "keyboardShortcuts": {

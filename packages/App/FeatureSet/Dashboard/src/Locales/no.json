@@ -245,7 +245,8 @@
       "incidents": "Hendelser",
       "monitors": "Monitorer",
       "onCallPolicies": "Vaktpolicyer",
-      "statusPages": "Statussider"
+      "statusPages": "Statussider",
+      "recordPages": "Sider for poster"
     }
   },
   "keyboardShortcuts": {

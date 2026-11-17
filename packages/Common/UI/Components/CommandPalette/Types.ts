@@ -80,6 +80,12 @@ export interface PaletteSearchResult {
   id: string;
   title: string;
   description?: string | undefined;
+  /**
+   * Where the result lives, outermost first, drawn as a command's is in
+   * place of the description: ["Status Pages", "Acme Status", "Security"]
+   * for a status page's Single Sign-On.
+   */
+  breadcrumb?: Array<string> | undefined;
   icon?: IconProp | undefined;
   /** Tailwind color name like "blue" | "purple" — same convention as NavBar items. */
   iconColor?: string | undefined;

@@ -245,7 +245,8 @@
       "incidents": "Incidenten",
       "monitors": "Monitoren",
       "onCallPolicies": "Bereikbaarheidsbeleid",
-      "statusPages": "Statuspagina's"
+      "statusPages": "Statuspagina's",
+      "recordPages": "Pagina's van records"
     }
   },
   "keyboardShortcuts": {

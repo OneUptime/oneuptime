@@ -160,6 +160,7 @@ Tryk på **Cmd+K** (Mac) eller **Ctrl+K** (Windows og Linux), eller klik på sø
 - **Indstillingerne på en side**, under det navn, deres kort eller kontakt viser: *Kræv SSO for at logge ind* finder SSO, og *Brugerdefinerede SMTP-konfigurationer* finder Notifikationskanaler. Skriv navnet på engelsk eller på dit eget sprog.
 - **Handlinger**, efter hvad du vil gøre: Erklær hændelse, Opret monitor eller Delete Project, som åbner Farezone. En handling, der ændrer noget, tilbydes kun til dem, der må udføre den.
 - **Dine monitorer, hændelser, advarsler, statussider og vagtpolitikker**, efter navn, og hændelser og advarsler også efter nummer, for eksempel `INC-42`. Hvert resultat for en hændelse eller advarsel starter med dens nummer, så to med samme titel kan kendes fra hinanden.
+- **En posts egne sider**: på en statusside åbner *sso* dens side Single sign-on. Alle andre steder tilføjer du postens navn eller dens type: *status page sso*, eller *acme subscribers* for abonnenterne på en statusside, der hedder Acme. Kun poster, du kan se, bliver tilbudt, og en side, der har skiftet navn, findes stadig under sit gamle navn, fx *advanced settings*.
 - **Dokumentationen**, i en gruppe *Dokumentation* under alt det andet: de sider og afsnit, hvis ord passer til det, du skriver, på dit sprog, også med en tastefejl. Hver åbner i en ny fane, så du beholder din plads.
 
 Søgningen læser det, du skriver, som du mener det:

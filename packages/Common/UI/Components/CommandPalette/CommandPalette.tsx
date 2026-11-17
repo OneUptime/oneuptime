@@ -457,7 +457,7 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
               description: result.description,
               icon: result.icon,
               iconColor: result.iconColor,
-              breadcrumb: undefined,
+              breadcrumb: result.breadcrumb,
               shortcut: undefined,
               recentCommandId: null,
               onSelect: result.onSelect,

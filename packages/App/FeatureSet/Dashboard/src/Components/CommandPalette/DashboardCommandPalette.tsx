@@ -58,6 +58,20 @@ import {
   openGiveFeedback,
 } from "../Feedback/GiveFeedbackDialog";
 import { getPageSearchAreas } from "./PageSearchIndex";
+import { getOpenRecord, OpenRecord } from "./RecordPageSearch";
+import {
+  getRecordPageSearchKinds,
+  RecordPageSearchKind,
+} from "./RecordPageSearchIndex";
+import {
+  getRecordPageSearchModels,
+  RecordPageSearchModel,
+} from "./RecordPageSearchModels";
+import {
+  buildOpenRecordPageCommands,
+  createRecordPageSearchProvider,
+  loadOpenRecordTitle,
+} from "./RecordPageSearchProvider";
 import { useProductFeedbackSettings } from "Common/UI/Utils/ProductFeedback";
 import { ProductFeedbackSettings } from "Common/Types/ProductFeedback/ProductFeedback";
 import Route from "Common/Types/API/Route";
@@ -408,6 +422,62 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
       isCurrent = false;
     };
   }, [isOpen, language]);
+
+  /*
+   * The record whose page is open (#9204): its own pages are found by their
+   * names alone, under its name, which is read once per record.
+   */
+  const currentPath: string = isOpen ? window.location.pathname : "";
+  const openRecord: OpenRecord | null = useMemo((): OpenRecord | null => {
+    if (!currentPath) {
+      return null;
+    }
+
+    return getOpenRecord({
+      path: currentPath,
+      kinds: getRecordPageSearchKinds(),
+      getRouteTemplate: (pageKey: string): string | undefined => {
+        return RouteMap[pageKey]?.toString();
+      },
+    });
+  }, [currentPath]);
+  const openRecordKey: string = openRecord
+    ? `${openRecord.kind.id}:${openRecord.modelId}`
+    : "";
+  const [openRecordTitles, setOpenRecordTitles] = useState<
+    Record<string, string>
+  >({});
+
+  useEffect(() => {
+    if (!openRecord || openRecordTitles[openRecordKey] !== undefined) {
+      return undefined;
+    }
+
+    let isCurrent: boolean = true;
+
+    loadOpenRecordTitle({
+      openRecord,
+      model: getRecordPageSearchModels().get(openRecord.kind.id),
+    })
+      .then((title: string): void => {
+        if (!isCurrent) {
+          return;
+        }
+
+        setOpenRecordTitles(
+          (previous: Record<string, string>): Record<string, string> => {
+            return { ...previous, [openRecordKey]: title };
+          },
+        );
+      })
+      .catch((): void => {
+        // Its pages are still found, under what one is called.
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [openRecordKey]);
 
   // Toggle from anywhere via the global event bus.
   useEffect(() => {
@@ -1054,6 +1124,51 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
           onNavigate: closePalette,
         });
       });
+
+      /*
+       * --- a record's pages (#9204): "status page sso" ------------------
+       * Looked up in the kinds the person may read, whose product is on.
+       */
+      const recordPageModels: Map<string, RecordPageSearchModel> =
+        getRecordPageSearchModels();
+      const recordPageKinds: Array<RecordPageSearchKind> =
+        getRecordPageSearchKinds().filter(
+          (kind: RecordPageSearchKind): boolean => {
+            const model: RecordPageSearchModel | undefined =
+              recordPageModels.get(kind.id);
+            const product: ProductKey | null = kind.pages[0]
+              ? getProductOfPage(kind.pages[0].page as PageMap)
+              : null;
+
+            return (
+              Boolean(model) &&
+              !(product && offProducts.includes(product)) &&
+              canSearchRecordsOf({
+                model: new model!.modelType(),
+                held: heldPermissions,
+                isMasterAdmin,
+              })
+            );
+          },
+        );
+
+      if (recordPageKinds.length > 0) {
+        searchProviders = [
+          ...(searchProviders || []),
+          createRecordPageSearchProvider({
+            kinds: recordPageKinds,
+            models: recordPageModels,
+            translate: (text: string): string => {
+              return translator.translateText(text) || text;
+            },
+            sectionTitle: t(
+              "commandPalette.sections.recordPages",
+              "Pages of Records",
+            ),
+            onNavigate: closePalette,
+          }),
+        ];
+      }
     }
 
     /*
@@ -1172,6 +1287,22 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
 
   if (pageCommands.length > 0) {
     commands = [...commands, ...pageCommands];
+  }
+
+  // The open record's own pages, by their names alone (#9204).
+  if (isOpen && openRecord) {
+    commands = [
+      ...commands,
+      ...buildOpenRecordPageCommands({
+        openRecord,
+        recordTitle: openRecordTitles[openRecordKey],
+        translate: (text: string): string => {
+          return translator.translateText(text) || text;
+        },
+        category: t("commandPalette.categories.pages", "Pages"),
+        onNavigate: closePalette,
+      }),
+    ];
   }
 
   /*

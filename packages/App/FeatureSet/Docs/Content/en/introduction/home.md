@@ -160,6 +160,7 @@ Press **Cmd+K** (Mac) or **Ctrl+K** (Windows and Linux), or click the search ico
 - **The settings on a page**, by the name their card or switch shows: *Require SSO to Sign In* finds SSO, and *Custom SMTP Configs* finds Notification Channels. Type the name in English or in your language.
 - **Actions**, by what you want to do: Declare Incident, Create Monitor, or Delete Project, which opens the Danger Zone. An action that changes something is offered only to people allowed to do it.
 - **Your monitors, incidents, alerts, status pages and on-call policies**, by name, and incidents and alerts by number too, such as `INC-42`. Each incident and alert result starts with its number, so two of one title are told apart.
+- **A record's own pages**: on a status page, typing *sso* opens that status page's Single Sign-On. Anywhere else, add the record's name or what it is: *status page sso*, or *acme subscribers* for the Subscribers of a status page named Acme. Only records you can see are offered, and a renamed page is still found by its old name, such as *advanced settings*.
 - **The docs**, in a *Documentation* group under everything else: the pages and sections whose words match what you typed, in your language, even with a typo. Each opens in a new tab, so you keep your place.
 
 Search reads what you type the way you mean it:

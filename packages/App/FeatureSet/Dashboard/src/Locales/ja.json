@@ -245,7 +245,8 @@
       "incidents": "インシデント",
       "monitors": "モニター",
       "onCallPolicies": "オンコールポリシー",
-      "statusPages": "ステータスページ"
+      "statusPages": "ステータスページ",
+      "recordPages": "レコードのページ"
     }
   },
   "keyboardShortcuts": {

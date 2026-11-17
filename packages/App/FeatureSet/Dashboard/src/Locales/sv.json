@@ -245,7 +245,8 @@
       "incidents": "Incidenter",
       "monitors": "Monitorer",
       "onCallPolicies": "Jourpolicyer",
-      "statusPages": "Statussidor"
+      "statusPages": "Statussidor",
+      "recordPages": "Sidor för poster"
     }
   },
   "keyboardShortcuts": {

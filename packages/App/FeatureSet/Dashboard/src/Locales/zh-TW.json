@@ -245,7 +245,8 @@
       "incidents": "事件",
       "monitors": "監測器",
       "onCallPolicies": "待命策略",
-      "statusPages": "狀態頁面"
+      "statusPages": "狀態頁面",
+      "recordPages": "記錄的頁面"
     }
   },
   "keyboardShortcuts": {

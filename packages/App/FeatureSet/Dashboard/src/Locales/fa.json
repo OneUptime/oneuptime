@@ -245,7 +245,8 @@
       "incidents": "حوادث",
       "monitors": "مانیتورها",
       "onCallPolicies": "سیاست‌های آنکال",
-      "statusPages": "صفحات وضعیت"
+      "statusPages": "صفحات وضعیت",
+      "recordPages": "صفحه‌های رکوردها"
     }
   },
   "keyboardShortcuts": {
