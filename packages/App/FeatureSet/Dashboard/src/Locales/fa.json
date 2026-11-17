@@ -56557,7 +56557,7 @@
   "An on-call policy you can't see": "سیاست آنکالی که نمی‌توانید ببینید",
   "Fire Drill": "مانور",
   "Nobody on the first level can receive this test right now, so it would send nothing. A later level can.": "اکنون هیچ‌کس در سطح نخست نمی‌تواند این آزمایش را دریافت کند، پس چیزی نمی‌فرستد. یک سطح بعدی می‌تواند.",
-  "Pages the people this monitor's failure would page, as a test. Every message says TEST. No incident or alert is created, nothing shows on a status page, and no subscriber or channel is told.": "کسانی را که از کار افتادن این مانیتور فرا می‌خواند، به‌صورت آزمایشی فرا می‌خواند. هر پیام می‌گوید آزمایشی. هیچ حادثه یا هشداری ساخته نمی‌شود، چیزی در صفحه وضعیت نمایش داده نمی‌شود و به هیچ مشترک یا کانالی خبر داده نمی‌شود.",
+  "Tests everyone this monitor's failure would page. Every message says TEST. No incident or alert is created, and no status page or channel is told.": "همهٔ کسانی را که از کار افتادن این مانیتور فرا می‌خواند می‌آزماید. هر پیام می‌گوید آزمایشی. هیچ حادثه یا هشداری ساخته نمی‌شود و به هیچ صفحه وضعیت یا کانالی خبر داده نمی‌شود.",
   "Run Fire Drill": "اجرای مانور",
   "Start Fire Drill": "شروع مانور",
   "Started. Each policy's messages are below as they go out. Each test ends when someone acknowledges it, or after {{minutes}} minutes.": "شروع شد. پیام‌های هر سیاست همین‌که فرستاده شوند در زیر می‌آیند. هر آزمایش وقتی کسی آن را تأیید کند، یا پس از {{minutes}} دقیقه، پایان می‌یابد.",

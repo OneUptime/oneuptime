@@ -56557,7 +56557,7 @@
   "An on-call policy you can't see": "एक ऑन-कॉल नीति जिसे आप नहीं देख सकते",
   "Fire Drill": "फ़ायर ड्रिल",
   "Nobody on the first level can receive this test right now, so it would send nothing. A later level can.": "पहले स्तर पर अभी कोई यह परीक्षण प्राप्त नहीं कर सकता, इसलिए यह कुछ नहीं भेजेगा। बाद का कोई स्तर कर सकता है।",
-  "Pages the people this monitor's failure would page, as a test. Every message says TEST. No incident or alert is created, nothing shows on a status page, and no subscriber or channel is told.": "इस मॉनिटर के विफल होने पर जिन लोगों को पेज किया जाता, उन्हें परीक्षण के रूप में पेज करता है। हर संदेश में TEST लिखा होता है। कोई घटना या अलर्ट नहीं बनता, स्थिति पृष्ठ पर कुछ नहीं दिखता, और किसी सब्सक्राइबर या चैनल को सूचना नहीं जाती।",
+  "Tests everyone this monitor's failure would page. Every message says TEST. No incident or alert is created, and no status page or channel is told.": "इस मॉनिटर के विफल होने पर जिन्हें पेज किया जाता, उन सभी का परीक्षण करता है। हर संदेश में TEST लिखा होता है। कोई घटना या अलर्ट नहीं बनता, और किसी स्थिति पृष्ठ या चैनल को सूचना नहीं जाती।",
   "Run Fire Drill": "फ़ायर ड्रिल चलाएँ",
   "Start Fire Drill": "फ़ायर ड्रिल शुरू करें",
   "Started. Each policy's messages are below as they go out. Each test ends when someone acknowledges it, or after {{minutes}} minutes.": "शुरू हो गया। हर नीति के संदेश जाते ही नीचे दिखते हैं। हर परीक्षण तब समाप्त होता है जब कोई इसे स्वीकार करे, या {{minutes}} मिनट बाद।",

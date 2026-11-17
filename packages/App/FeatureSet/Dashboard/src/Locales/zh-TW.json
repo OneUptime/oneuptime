@@ -56557,7 +56557,7 @@
   "An on-call policy you can't see": "你無法檢視的待命策略",
   "Fire Drill": "故障演練",
   "Nobody on the first level can receive this test right now, so it would send nothing. A later level can.": "第一層級目前沒有人能收到此測試，因此它不會傳送任何內容。後續層級可以。",
-  "Pages the people this monitor's failure would page, as a test. Every message says TEST. No incident or alert is created, nothing shows on a status page, and no subscriber or channel is told.": "以測試方式呼叫此監測器發生故障時會呼叫的人員。每則訊息都會註明「測試」。不會建立事件或警示，狀態頁上不會顯示任何內容，也不會通知任何訂閱者或頻道。",
+  "Tests everyone this monitor's failure would page. Every message says TEST. No incident or alert is created, and no status page or channel is told.": "測試此監測器發生故障時會呼叫的所有人員。每則訊息都會註明「測試」。不會建立事件或警示，也不會通知任何狀態頁或頻道。",
   "Run Fire Drill": "執行故障演練",
   "Start Fire Drill": "開始故障演練",
   "Started. Each policy's messages are below as they go out. Each test ends when someone acknowledges it, or after {{minutes}} minutes.": "已開始。每個策略的訊息送出後會顯示在下方。每個測試會在有人確認時結束，或在 {{minutes}} 分鐘後結束。",

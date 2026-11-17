@@ -56557,7 +56557,7 @@
   "An on-call policy you can't see": "你无法查看的值班策略",
   "Fire Drill": "故障演练",
   "Nobody on the first level can receive this test right now, so it would send nothing. A later level can.": "第一级目前没有人能收到此测试，因此它不会发送任何内容。后续级别可以。",
-  "Pages the people this monitor's failure would page, as a test. Every message says TEST. No incident or alert is created, nothing shows on a status page, and no subscriber or channel is told.": "以测试方式呼叫此监视器出现故障时会呼叫的人员。每条消息都会注明“测试”。不会创建事件或警报，状态页上不会显示任何内容，也不会通知任何订阅者或频道。",
+  "Tests everyone this monitor's failure would page. Every message says TEST. No incident or alert is created, and no status page or channel is told.": "测试此监视器出现故障时会呼叫的所有人员。每条消息都会注明“测试”。不会创建事件或警报，也不会通知任何状态页或频道。",
   "Run Fire Drill": "运行故障演练",
   "Start Fire Drill": "开始故障演练",
   "Started. Each policy's messages are below as they go out. Each test ends when someone acknowledges it, or after {{minutes}} minutes.": "已开始。每个策略的消息发出后会显示在下方。每个测试会在有人确认时结束，或在 {{minutes}} 分钟后结束。",

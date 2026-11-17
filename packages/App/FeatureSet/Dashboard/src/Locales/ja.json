@@ -56557,7 +56557,7 @@
   "An on-call policy you can't see": "表示できないオンコールポリシー",
   "Fire Drill": "障害対応訓練",
   "Nobody on the first level can receive this test right now, so it would send nothing. A later level can.": "最初のレベルには今このテストを受け取れる人がいないため、何も送信されません。後のレベルなら受け取れます。",
-  "Pages the people this monitor's failure would page, as a test. Every message says TEST. No incident or alert is created, nothing shows on a status page, and no subscriber or channel is told.": "このモニターの障害で呼び出される人を、テストとして呼び出します。すべてのメッセージに「テスト」と表示されます。インシデントやアラートは作成されず、ステータスページには何も表示されず、購読者やチャンネルにも知らされません。",
+  "Tests everyone this monitor's failure would page. Every message says TEST. No incident or alert is created, and no status page or channel is told.": "このモニターの障害で呼び出されるすべての人をテストします。すべてのメッセージに「テスト」と表示されます。インシデントやアラートは作成されず、ステータスページやチャンネルにも知らされません。",
   "Run Fire Drill": "障害対応訓練を実行",
   "Start Fire Drill": "障害対応訓練を開始",
   "Started. Each policy's messages are below as they go out. Each test ends when someone acknowledges it, or after {{minutes}} minutes.": "開始しました。各ポリシーのメッセージは送信されると下に表示されます。各テストは誰かが確認するか、{{minutes}} 分後に終了します。",

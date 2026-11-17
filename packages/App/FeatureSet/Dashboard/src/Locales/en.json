@@ -56557,7 +56557,7 @@
   "An on-call policy you can't see": "An on-call policy you can't see",
   "Fire Drill": "Fire Drill",
   "Nobody on the first level can receive this test right now, so it would send nothing. A later level can.": "Nobody on the first level can receive this test right now, so it would send nothing. A later level can.",
-  "Pages the people this monitor's failure would page, as a test. Every message says TEST. No incident or alert is created, nothing shows on a status page, and no subscriber or channel is told.": "Pages the people this monitor's failure would page, as a test. Every message says TEST. No incident or alert is created, nothing shows on a status page, and no subscriber or channel is told.",
+  "Tests everyone this monitor's failure would page. Every message says TEST. No incident or alert is created, and no status page or channel is told.": "Tests everyone this monitor's failure would page. Every message says TEST. No incident or alert is created, and no status page or channel is told.",
   "Run Fire Drill": "Run Fire Drill",
   "Start Fire Drill": "Start Fire Drill",
   "Started. Each policy's messages are below as they go out. Each test ends when someone acknowledges it, or after {{minutes}} minutes.": "Started. Each policy's messages are below as they go out. Each test ends when someone acknowledges it, or after {{minutes}} minutes.",

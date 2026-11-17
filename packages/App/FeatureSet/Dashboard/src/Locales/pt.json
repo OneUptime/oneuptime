@@ -56557,7 +56557,7 @@
   "An on-call policy you can't see": "Uma política de plantão que você não pode ver",
   "Fire Drill": "Simulado",
   "Nobody on the first level can receive this test right now, so it would send nothing. A later level can.": "Ninguém no primeiro nível pode receber este teste agora, então ele não enviaria nada. Um nível seguinte pode.",
-  "Pages the people this monitor's failure would page, as a test. Every message says TEST. No incident or alert is created, nothing shows on a status page, and no subscriber or channel is told.": "Chama, como teste, as pessoas que uma falha deste monitor chamaria. Cada mensagem diz TESTE. Nenhum incidente ou alerta é criado, nada aparece em uma página de status e nenhum assinante ou canal é avisado.",
+  "Tests everyone this monitor's failure would page. Every message says TEST. No incident or alert is created, and no status page or channel is told.": "Testa todas as pessoas que uma falha deste monitor chamaria. Cada mensagem diz TESTE. Nenhum incidente ou alerta é criado, e nenhuma página de status ou canal é avisado.",
   "Run Fire Drill": "Fazer um simulado",
   "Start Fire Drill": "Iniciar simulado",
   "Started. Each policy's messages are below as they go out. Each test ends when someone acknowledges it, or after {{minutes}} minutes.": "Iniciado. As mensagens de cada política aparecem abaixo à medida que saem. Cada teste termina quando alguém o confirma, ou após {{minutes}} minutos.",

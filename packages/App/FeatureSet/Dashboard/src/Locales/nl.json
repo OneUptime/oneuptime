@@ -56557,7 +56557,7 @@
   "An on-call policy you can't see": "Een bereikbaarheidsbeleid dat je niet kunt zien",
   "Fire Drill": "Alarmoefening",
   "Nobody on the first level can receive this test right now, so it would send nothing. A later level can.": "Niemand op het eerste niveau kan deze test nu ontvangen, dus hij zou niets versturen. Een later niveau wel.",
-  "Pages the people this monitor's failure would page, as a test. Every message says TEST. No incident or alert is created, nothing shows on a status page, and no subscriber or channel is told.": "Roept als test de mensen op die een storing van deze monitor zou oproepen. Elk bericht zegt TEST. Er wordt geen incident of waarschuwing gemaakt, er verschijnt niets op een statuspagina en geen abonnee of kanaal krijgt bericht.",
+  "Tests everyone this monitor's failure would page. Every message says TEST. No incident or alert is created, and no status page or channel is told.": "Test iedereen die een storing van deze monitor zou oproepen. Elk bericht zegt TEST. Er wordt geen incident of waarschuwing gemaakt, en geen statuspagina of kanaal krijgt bericht.",
   "Run Fire Drill": "Alarmoefening houden",
   "Start Fire Drill": "Alarmoefening starten",
   "Started. Each policy's messages are below as they go out. Each test ends when someone acknowledges it, or after {{minutes}} minutes.": "Gestart. De berichten van elk beleid staan hieronder zodra ze vertrekken. Elke test eindigt wanneer iemand hem bevestigt, of na {{minutes}} minuten.",

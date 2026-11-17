@@ -464,7 +464,7 @@ export const FIRE_DRILL_WORDS: Readonly<{
   button: translationKey("Run Fire Drill"),
   title: translationKey("Fire Drill"),
   description: translationKey(
-    "Pages the people this monitor's failure would page, as a test. Every message says TEST. No incident or alert is created, nothing shows on a status page, and no subscriber or channel is told.",
+    "Tests everyone this monitor's failure would page. Every message says TEST. No incident or alert is created, and no status page or channel is told.",
   ),
   whatFails: translationKey("What fails"),
   start: translationKey("Start Fire Drill"),

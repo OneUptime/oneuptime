@@ -56557,7 +56557,7 @@
   "An on-call policy you can't see": "Политика дежурства, которую вы не видите",
   "Fire Drill": "Учебная тревога",
   "Nobody on the first level can receive this test right now, so it would send nothing. A later level can.": "Сейчас никто на первом уровне не может получить эту проверку, поэтому она ничего не отправит. Более поздний уровень может.",
-  "Pages the people this monitor's failure would page, as a test. Every message says TEST. No incident or alert is created, nothing shows on a status page, and no subscriber or channel is told.": "Вызывает в качестве проверки тех, кого вызвал бы сбой этого монитора. В каждом сообщении сказано ТЕСТ. Ни инцидент, ни оповещение не создаются, на странице статуса ничего не появляется, и ни подписчики, ни каналы не узнают.",
+  "Tests everyone this monitor's failure would page. Every message says TEST. No incident or alert is created, and no status page or channel is told.": "Проверяет всех, кого вызвал бы сбой этого монитора. В каждом сообщении сказано ТЕСТ. Ни инцидент, ни оповещение не создаются, и ни страница статуса, ни каналы не узнают.",
   "Run Fire Drill": "Провести учебную тревогу",
   "Start Fire Drill": "Начать учебную тревогу",
   "Started. Each policy's messages are below as they go out. Each test ends when someone acknowledges it, or after {{minutes}} minutes.": "Начато. Сообщения каждой политики появляются ниже по мере отправки. Каждая проверка завершится, когда кто-нибудь её подтвердит, или через {{minutes}} мин.",

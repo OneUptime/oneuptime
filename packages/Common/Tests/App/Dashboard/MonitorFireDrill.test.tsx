@@ -407,7 +407,7 @@ describe("before the drill starts", () => {
 
     expect(
       screen.getByText(
-        "Pages the people this monitor's failure would page, as a test. Every message says TEST. No incident or alert is created, nothing shows on a status page, and no subscriber or channel is told.",
+        "Tests everyone this monitor's failure would page. Every message says TEST. No incident or alert is created, and no status page or channel is told.",
       ),
     ).toBeInTheDocument();
   });

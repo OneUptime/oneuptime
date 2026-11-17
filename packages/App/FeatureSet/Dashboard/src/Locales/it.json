@@ -56557,7 +56557,7 @@
   "An on-call policy you can't see": "Una policy di reperibilità che non puoi vedere",
   "Fire Drill": "Esercitazione",
   "Nobody on the first level can receive this test right now, so it would send nothing. A later level can.": "Nessuno al primo livello può ricevere questo test in questo momento, quindi non invierebbe nulla. Un livello successivo sì.",
-  "Pages the people this monitor's failure would page, as a test. Every message says TEST. No incident or alert is created, nothing shows on a status page, and no subscriber or channel is told.": "Chiama, come test, le persone che un guasto di questo monitor chiamerebbe. Ogni messaggio dice TEST. Non viene creato alcun incidente né avviso, nulla compare su una pagina di stato e nessun iscritto o canale viene informato.",
+  "Tests everyone this monitor's failure would page. Every message says TEST. No incident or alert is created, and no status page or channel is told.": "Mette alla prova tutte le persone che un guasto di questo monitor chiamerebbe. Ogni messaggio dice TEST. Non viene creato alcun incidente né avviso, e nessuna pagina di stato o canale viene informato.",
   "Run Fire Drill": "Fai un'esercitazione",
   "Start Fire Drill": "Avvia esercitazione",
   "Started. Each policy's messages are below as they go out. Each test ends when someone acknowledges it, or after {{minutes}} minutes.": "Avviata. I messaggi di ogni policy compaiono qui sotto man mano che partono. Ogni test termina quando qualcuno lo riconosce, o dopo {{minutes}} minuti.",

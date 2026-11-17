@@ -56557,7 +56557,7 @@
   "An on-call policy you can't see": "Une politique d'astreinte que vous ne pouvez pas voir",
   "Fire Drill": "Exercice d'alerte",
   "Nobody on the first level can receive this test right now, so it would send nothing. A later level can.": "Personne au premier niveau ne peut recevoir ce test pour l'instant, donc il n'enverrait rien. Un niveau suivant le peut.",
-  "Pages the people this monitor's failure would page, as a test. Every message says TEST. No incident or alert is created, nothing shows on a status page, and no subscriber or channel is told.": "Appelle, à titre de test, les personnes qu'une panne de ce moniteur appellerait. Chaque message indique TEST. Aucun incident ni aucune alerte n'est créé, rien n'apparaît sur une page de statut, et aucun abonné ni canal n'est informé.",
+  "Tests everyone this monitor's failure would page. Every message says TEST. No incident or alert is created, and no status page or channel is told.": "Teste toutes les personnes qu'une panne de ce moniteur appellerait. Chaque message indique TEST. Aucun incident ni aucune alerte n'est créé, et aucune page de statut ni aucun canal n'est informé.",
   "Run Fire Drill": "Lancer un exercice d'alerte",
   "Start Fire Drill": "Démarrer l'exercice d'alerte",
   "Started. Each policy's messages are below as they go out. Each test ends when someone acknowledges it, or after {{minutes}} minutes.": "Démarré. Les messages de chaque politique s'affichent ci-dessous au fur et à mesure. Chaque test se termine quand quelqu'un le prend en compte, ou après {{minutes}} minutes.",

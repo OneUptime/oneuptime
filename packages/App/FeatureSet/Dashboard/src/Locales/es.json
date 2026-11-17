@@ -56557,7 +56557,7 @@
   "An on-call policy you can't see": "Una política de guardia que no puedes ver",
   "Fire Drill": "Simulacro",
   "Nobody on the first level can receive this test right now, so it would send nothing. A later level can.": "Nadie del primer nivel puede recibir esta prueba ahora mismo, así que no enviaría nada. Un nivel posterior sí puede.",
-  "Pages the people this monitor's failure would page, as a test. Every message says TEST. No incident or alert is created, nothing shows on a status page, and no subscriber or channel is told.": "Avisa, como prueba, a las personas a las que avisaría un fallo de este monitor. Cada mensaje dice PRUEBA. No se crea ningún incidente ni alerta, nada aparece en una página de estado y no se avisa a ningún suscriptor ni canal.",
+  "Tests everyone this monitor's failure would page. Every message says TEST. No incident or alert is created, and no status page or channel is told.": "Prueba a todas las personas a las que avisaría un fallo de este monitor. Cada mensaje dice PRUEBA. No se crea ningún incidente ni alerta, y no se avisa a ninguna página de estado ni canal.",
   "Run Fire Drill": "Hacer un simulacro",
   "Start Fire Drill": "Iniciar simulacro",
   "Started. Each policy's messages are below as they go out. Each test ends when someone acknowledges it, or after {{minutes}} minutes.": "Iniciado. Los mensajes de cada política aparecen abajo a medida que salen. Cada prueba termina cuando alguien la reconoce, o tras {{minutes}} minutos.",

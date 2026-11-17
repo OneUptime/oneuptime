@@ -56557,7 +56557,7 @@
   "An on-call policy you can't see": "En vagtpolitik, du ikke kan se",
   "Fire Drill": "Beredskabsøvelse",
   "Nobody on the first level can receive this test right now, so it would send nothing. A later level can.": "Ingen på første niveau kan modtage denne test lige nu, så den ville ikke sende noget. Et senere niveau kan.",
-  "Pages the people this monitor's failure would page, as a test. Every message says TEST. No incident or alert is created, nothing shows on a status page, and no subscriber or channel is told.": "Kalder som en test de personer, som en fejl på denne monitor ville kalde. Hver besked siger TEST. Der oprettes ingen hændelse eller advarsel, intet vises på en statusside, og ingen abonnent eller kanal får besked.",
+  "Tests everyone this monitor's failure would page. Every message says TEST. No incident or alert is created, and no status page or channel is told.": "Tester alle, som en fejl på denne monitor ville kalde. Hver besked siger TEST. Der oprettes ingen hændelse eller advarsel, og ingen statusside eller kanal får besked.",
   "Run Fire Drill": "Hold en beredskabsøvelse",
   "Start Fire Drill": "Start beredskabsøvelse",
   "Started. Each policy's messages are below as they go out. Each test ends when someone acknowledges it, or after {{minutes}} minutes.": "Startet. Hver politiks beskeder vises nedenfor, efterhånden som de sendes. Hver test slutter, når nogen bekræfter den, eller efter {{minutes}} minutter.",

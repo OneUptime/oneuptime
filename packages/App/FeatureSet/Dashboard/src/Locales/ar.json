@@ -56557,7 +56557,7 @@
   "An on-call policy you can't see": "سياسة مناوبة لا يمكنك رؤيتها",
   "Fire Drill": "تمرين طوارئ",
   "Nobody on the first level can receive this test right now, so it would send nothing. A later level can.": "لا يستطيع أحد في المستوى الأول تلقي هذا الاختبار الآن، لذا لن يرسل شيئًا. يستطيع ذلك مستوى لاحق.",
-  "Pages the people this monitor's failure would page, as a test. Every message says TEST. No incident or alert is created, nothing shows on a status page, and no subscriber or channel is told.": "يستدعي، كاختبار، الأشخاص الذين سيستدعيهم تعطّل هذه المراقبة. تقول كل رسالة اختبار. لا تُنشأ أي حادثة أو تنبيه، ولا يظهر شيء على صفحة الحالة، ولا يُبلَّغ أي مشترك أو قناة.",
+  "Tests everyone this monitor's failure would page. Every message says TEST. No incident or alert is created, and no status page or channel is told.": "يختبر كل من سيستدعيهم تعطّل هذه المراقبة. تقول كل رسالة اختبار. لا تُنشأ أي حادثة أو تنبيه، ولا تُبلَّغ أي صفحة حالة أو قناة.",
   "Run Fire Drill": "إجراء تمرين طوارئ",
   "Start Fire Drill": "بدء تمرين الطوارئ",
   "Started. Each policy's messages are below as they go out. Each test ends when someone acknowledges it, or after {{minutes}} minutes.": "بدأ. تظهر رسائل كل سياسة أدناه عند إرسالها. ينتهي كل اختبار عندما يُقرّ به أحد، أو بعد {{minutes}} دقيقة.",

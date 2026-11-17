@@ -56557,7 +56557,7 @@
   "An on-call policy you can't see": "Eine Bereitschaftsrichtlinie, die Sie nicht sehen können",
   "Fire Drill": "Notfallübung",
   "Nobody on the first level can receive this test right now, so it would send nothing. A later level can.": "Niemand in der ersten Stufe kann diesen Test gerade empfangen, daher würde er nichts senden. Eine spätere Stufe kann es.",
-  "Pages the people this monitor's failure would page, as a test. Every message says TEST. No incident or alert is created, nothing shows on a status page, and no subscriber or channel is told.": "Alarmiert als Test die Personen, die ein Ausfall dieses Monitors alarmieren würde. Jede Nachricht sagt TEST. Es wird kein Vorfall und keine Warnung erstellt, nichts erscheint auf einer Statusseite, und kein Abonnent und kein Kanal wird informiert.",
+  "Tests everyone this monitor's failure would page. Every message says TEST. No incident or alert is created, and no status page or channel is told.": "Testet alle, die ein Ausfall dieses Monitors alarmieren würde. Jede Nachricht sagt TEST. Es wird kein Vorfall und keine Warnung erstellt, und keine Statusseite und kein Kanal wird informiert.",
   "Run Fire Drill": "Notfallübung durchführen",
   "Start Fire Drill": "Notfallübung starten",
   "Started. Each policy's messages are below as they go out. Each test ends when someone acknowledges it, or after {{minutes}} minutes.": "Gestartet. Die Nachrichten jeder Richtlinie erscheinen unten, sobald sie hinausgehen. Jeder Test endet, wenn jemand ihn bestätigt, oder nach {{minutes}} Minuten.",
