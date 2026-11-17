@@ -222,6 +222,30 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
               return (
                 <div
                   key={incident.id}
+                  /*
+                   * Opening the incident is a control a keyboard reaches and
+                   * presses, as a click does (#9136). Its rows hold block
+                   * layout of their own, so it stays a div with a button's
+                   * role rather than a button.
+                   */
+                  role={isClickable ? "button" : undefined}
+                  tabIndex={isClickable ? 0 : undefined}
+                  className={
+                    isClickable
+                      ? "rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                      : undefined
+                  }
+                  onKeyDown={
+                    isClickable
+                      ? (e: React.KeyboardEvent) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            props.onIncidentClick!(incident.id);
+                          }
+                        }
+                      : undefined
+                  }
                   onClick={
                     isClickable
                       ? (e: React.MouseEvent) => {

@@ -1,4 +1,4 @@
-import React, { ReactElement } from "react";
+import React, { ReactElement, useRef } from "react";
 import Icon from "../../Icon/Icon";
 import IconProp from "../../../../Types/Icon/IconProp";
 import useComponentOutsideClick from "../../../Types/UseComponentOutsideClick";
@@ -24,6 +24,8 @@ const NotificationBell: (props: ComponentProps) => ReactElement = (
   const translator: Translator = useTranslator();
   const { ref, isComponentVisible, setIsComponentVisible } =
     useComponentOutsideClick(false);
+  const bellButtonRef: React.RefObject<HTMLButtonElement | null> =
+    useRef<HTMLButtonElement | null>(null);
 
   const itemsWithCount: Array<NotificationItem> = props.items.filter(
     (item: NotificationItem) => {
@@ -65,9 +67,28 @@ const NotificationBell: (props: ComponentProps) => ReactElement = (
     badgeColor = "bg-gray-500";
   }
 
+  /*
+   * Escape closes the panel from anywhere in it and hands focus back to the
+   * bell, so a keyboard that opened it is never left inside a closed panel.
+   */
+  const handleKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => void = (
+    event: React.KeyboardEvent<HTMLDivElement>,
+  ): void => {
+    if (event.key === "Escape" && isComponentVisible) {
+      event.stopPropagation();
+      setIsComponentVisible(false);
+      bellButtonRef.current?.focus();
+    }
+  };
+
   return (
-    <div className="relative ml-4 flex-shrink-0" ref={ref}>
+    <div
+      className="relative ml-4 flex-shrink-0"
+      ref={ref}
+      onKeyDown={handleKeyDown}
+    >
       <button
+        ref={bellButtonRef}
         type="button"
         className="flex items-center justify-center h-9 w-9 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 transition-all duration-150"
         onClick={() => {
