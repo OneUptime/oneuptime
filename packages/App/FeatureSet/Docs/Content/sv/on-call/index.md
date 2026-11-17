@@ -62,7 +62,7 @@ Policyer, eskaleringsregler, scheman och åsidosättningar hör till projektet, 
 
 ### Skapa en policy
 
-Gå till **Jourpolicyer** och klicka på **Skapa Jourpolicy**. Välj schemat under **Vem larmas först?**. Det blir policyns första eskaleringsregel, **Level 1**, som väntar 30 minuter på en bekräftelse.
+Gå till **Jourpolicyer** och klicka på **Skapa jourpolicy**. Välj schemat under **Vem larmas först?**. Det blir policyns första eskaleringsregel, **Level 1**, som väntar 30 minuter på en bekräftelse.
 
 ### Lägg till nästa nivåer
 

@@ -32,10 +32,10 @@ flowchart TB
 Quando crei una policy di reperibilità nella pagina **Policy di reperibilità**, il modulo chiede il suo **Nome** e **Chi viene avvisato per primo?**. La domanda usa lo stesso selettore di **Notifica**: pianificazioni di reperibilità, team e persone, quanti ne servono. Chi scegli diventa la prima regola di escalation della policy, **Level 1**, che attende **30 minuti** una conferma prima di avvisare il livello successivo.
 
 :::steps
-1. Vai in **Reperibilità** > **Policy di reperibilità** e fai clic su **Crea: Policy di reperibilità**.
+1. Vai in **Reperibilità** > **Policy di reperibilità** e fai clic su **Crea policy di reperibilità**.
 2. Inserisci un **Nome**.
 3. In **Chi viene avvisato per primo?**, fai clic su **Aggiungi destinatario** e scegli le pianificazioni di reperibilità, i team e le persone da avvisare per primi.
-4. Fai clic su **Crea: Policy di reperibilità**. La nuova policy si apre poi nella sua pagina **Regole di escalation**, dove puoi aggiungere altri livelli.
+4. Fai clic su **Crea policy di reperibilità**. La nuova policy si apre poi nella sua pagina **Regole di escalation**, dove puoi aggiungere altri livelli.
 :::
 
 **Chi viene avvisato per primo?** è facoltativo. Se lo lasci vuoto, la policy parte senza regole di escalation: non avvisa nessuno finché non ne aggiungi una, e la sua panoramica lo segnala. La descrizione e le etichette si trovano in **Altri campi**. La domanda viene posta solo a chi può aggiungere regole di escalation.

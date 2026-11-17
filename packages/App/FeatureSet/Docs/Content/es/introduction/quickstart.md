@@ -100,7 +100,7 @@ En **Enviar un aviso de prueba**, haz clic en **Probar esta política**, elige u
 
 Dos reglas de guardia activan la política: una con cada nuevo incidente y otra con cada nueva alerta. Para ver la primera, abre **Incidentes** desde el menú **Productos**, despliega **Reglas** en el menú lateral y elige **Reglas de guardia**: coincide con **Todos los incidentes**. Para activar la política solo con algunos incidentes, como los críticos, edita ahí la regla, o haz clic en **Crear Regla de guardia de incidentes** para añadir una propia.
 
-Para crear en su lugar una política campo a campo, abre **Guardia** desde el menú **Productos** y haz clic en **Crear Política de guardia**. Para más niveles, rotaciones y cuánto espera cada nivel, consulta [Reglas de escalado](/docs/on-call/escalation-rules) y [Programaciones de guardia](/docs/on-call/schedules).
+Para crear en su lugar una política campo a campo, abre **Guardia** desde el menú **Productos** y haz clic en **Crear política de guardia**. Para más niveles, rotaciones y cuánto espera cada nivel, consulta [Reglas de escalado](/docs/on-call/escalation-rules) y [Programaciones de guardia](/docs/on-call/schedules).
 
 Para cada pantalla de la configuración, y qué hacer cuando un aviso no llega, sigue [Recibir avisos por llamada, SMS o push](/docs/guides/paging).
 

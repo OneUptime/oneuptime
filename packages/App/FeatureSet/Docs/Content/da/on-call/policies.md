@@ -12,10 +12,10 @@ En vagtpolitik afgør, hvem der tilkaldes om en hændelse eller advarsel, og hve
 ## Opret en politik
 
 :::steps
-1. Gå til **Vagt → Vagtpolitikker**, og klik på **Opret Vagtpolitik**.
+1. Gå til **Vagt → Vagtpolitikker**, og klik på **Opret vagtpolitik**.
 2. Angiv et **Navn**, fx "Betalinger primær".
 3. Klik under **Hvem tilkaldes først?** på **Tilføj modtager**, og vælg de vagtplaner, teams og personer, der skal tilkaldes først.
-4. Klik på **Opret Vagtpolitik**. Politikken åbner på sin side **Eskaleringsregler**, med **Level 1** på plads.
+4. Klik på **Opret vagtpolitik**. Politikken åbner på sin side **Eskaleringsregler**, med **Level 1** på plads.
 :::
 
 **Hvem tilkaldes først?** er valgfrit og vises kun for folk, der må tilføje eskaleringsregler: står det tomt, tilkalder politikken ingen, før den har en regel. **Beskrivelse** og **Etiketter** venter under **Flere felter**. Se [Eskaleringsregler](/docs/on-call/escalation-rules) for at tilføje de næste niveauer.

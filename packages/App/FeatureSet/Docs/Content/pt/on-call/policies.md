@@ -12,10 +12,10 @@ Uma política de plantão decide quem é acionado por um incidente ou alerta, e 
 ## Criar uma política
 
 :::steps
-1. Vá para **Plantão → Políticas de plantão** e clique em **Criar: Política de plantão**.
+1. Vá para **Plantão → Políticas de plantão** e clique em **Criar política de plantão**.
 2. Informe um **Nome**, por exemplo "Pagamentos principal".
 3. Em **Quem é acionado primeiro?**, clique em **Adicionar destinatário** e escolha os agendamentos de plantão, as equipes e as pessoas a acionar primeiro.
-4. Clique em **Criar: Política de plantão**. A política abre na sua página **Regras de escalonamento**, com **Level 1** já criado.
+4. Clique em **Criar política de plantão**. A política abre na sua página **Regras de escalonamento**, com **Level 1** já criado.
 :::
 
 **Quem é acionado primeiro?** é opcional, e só é perguntado a quem pode adicionar regras de escalonamento: se ficar vazio, a política não aciona ninguém até ter uma regra. **Descrição** e **Rótulos** ficam em **Mais campos**. Para adicionar os próximos níveis, veja [Regras de escalonamento](/docs/on-call/escalation-rules).

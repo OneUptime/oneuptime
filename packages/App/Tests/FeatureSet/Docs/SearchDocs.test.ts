@@ -2,9 +2,11 @@ import {
   buildPageSearchCommandDescriptors,
   getEntitySearchResultTitle,
   getEntitySearchSpecs,
+  getPageSearchCommandRanking,
   getPageSearchIndexEntries,
   PageSearchCommandDescriptor,
   PageSearchIndexEntry,
+  PALETTE_LIST_CREATE_ACTIONS,
   PaletteEntitySearchSpec,
 } from "../../../FeatureSet/Dashboard/src/Components/CommandPalette/DashboardCommandPaletteHelpers";
 import {
@@ -170,6 +172,12 @@ describe("Home Page & Shortcuts explains Search", () => {
         breadcrumb: descriptor.breadcrumb,
         breadcrumbKeywords: descriptor.breadcrumbKeywords,
         category: "Pages",
+        /*
+         * Ranked, and held to a whole name, as the palette does
+         * (DashboardCommandPalette): the import from incident.io is found by
+         * its name alone, never by Incidents' words (#7034).
+         */
+        ...getPageSearchCommandRanking(descriptor),
         onSelect: (): void => {},
       };
     });
@@ -425,4 +433,58 @@ describe("Home Page & Shortcuts finds incidents and alerts by number", () => {
       example: true,
     });
   });
+});
+
+/*
+ * Search opens the form of a list that has no page of its own (#7035), and
+ * finds the project's people (#7036). The page names each of those actions
+ * as Search draws it, and the Users group the people are listed under, in
+ * every docs language: a name the dashboard does not show finds nothing.
+ */
+describe("Home Page & Shortcuts names the lists' create forms and the project's people", () => {
+  test("in English, every action that opens a list's form, and the people", () => {
+    for (const action of PALETTE_LIST_CREATE_ACTIONS) {
+      expect({
+        title: action.title,
+        named: SECTION.includes(action.title),
+      }).toEqual({
+        title: action.title,
+        named: true,
+      });
+    }
+
+    expect(SECTION).toContain("open the form on their list.");
+    expect(SECTION).toContain(
+      "**The people in your project**, by name or email, listed under Users: each opens that person's page.",
+    );
+    expect(SECTION).toContain("You find the people the Users page shows you.");
+  });
+
+  test.each(
+    SUPPORTED_DOCS_LANGUAGE_CODES.map((code: string) => {
+      return [code];
+    }),
+  )(
+    "in %s, each of those actions as the dashboard names it, and Users",
+    (language: string) => {
+      const translate: (text: string) => string = dashboardTranslator(language);
+      const page: string = readPage(language, "introduction/home");
+
+      for (const action of PALETTE_LIST_CREATE_ACTIONS) {
+        const shown: string = translate(action.title);
+
+        expect({ language, shown, written: page.includes(shown) }).toEqual({
+          language,
+          shown,
+          written: true,
+        });
+      }
+
+      expect({
+        language,
+        users: translate("Users"),
+        written: page.includes(translate("Users")),
+      }).toEqual({ language, users: translate("Users"), written: true });
+    },
+  );
 });

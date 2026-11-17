@@ -12,10 +12,10 @@ Una política de guardia decide a quién se avisa por un incidente o una alerta,
 ## Crear una política
 
 :::steps
-1. Ve a **Guardia → Políticas de guardia** y haz clic en **Crear Política de guardia**.
+1. Ve a **Guardia → Políticas de guardia** y haz clic en **Crear política de guardia**.
 2. Escribe un **Nombre**, por ejemplo «Pagos principal».
 3. En **¿A quién se avisa primero?**, haz clic en **Añadir destinatario** y elige las programaciones de guardia, los equipos y las personas a los que avisar primero.
-4. Haz clic en **Crear Política de guardia**. La política se abre en su página **Reglas de escalado**, con **Level 1** ya creado.
+4. Haz clic en **Crear política de guardia**. La política se abre en su página **Reglas de escalado**, con **Level 1** ya creado.
 :::
 
 **¿A quién se avisa primero?** es opcional y solo se pregunta a quien puede añadir reglas de escalado: si se deja vacío, la política no avisa a nadie hasta que tenga una regla. **Descripción** y **Etiquetas** esperan en **Más campos**. Para añadir los niveles siguientes, consulta [Reglas de escalado](/docs/on-call/escalation-rules).

@@ -158,8 +158,9 @@ Press **Cmd+K** (Mac) or **Ctrl+K** (Windows and Linux), or click the search ico
 
 - **Every page in the menus**, by the name the menu gives it: API Keys, Delete Project, On-Call Schedules, Incident Severity, your own Notification Methods. Each result says where it lives, such as *Project Settings › Advanced*, so pages that share a name (Custom Fields in Incidents, Alerts and Monitors) are easy to tell apart.
 - **The settings on a page**, by the name their card or switch shows: *Require SSO to Sign In* finds SSO, and *Custom SMTP Configs* finds Notification Channels. Type the name in English or in your language.
-- **Actions**, by what you want to do: Declare Incident, Create Monitor, or Delete Project, which opens the Danger Zone. An action that changes something is offered only to people allowed to do it.
+- **Actions**, by what you want to do: Declare Incident, Create Monitor, or Delete Project, which opens the Danger Zone. Create Status Page, Create On-Call Policy, Create On-Call Schedule, Create Dashboard, Create Workflow and Invite User open the form on their list. An action that changes something is offered only to people allowed to do it.
 - **Your monitors, incidents, alerts, status pages and on-call policies**, by name, and incidents and alerts by number too, such as `INC-42`. Each incident and alert result starts with its number, so two of one title are told apart.
+- **The people in your project**, by name or email, listed under Users: each opens that person's page. You find the people the Users page shows you.
 - **A record's own pages**: on a status page, typing *sso* opens that status page's Single Sign-On. Anywhere else, add the record's name or what it is: *status page sso*, or *acme subscribers* for the Subscribers of a status page named Acme. Only records you can see are offered, and a renamed page is still found by its old name, such as *advanced settings*.
 - **The docs**, in a *Documentation* group under everything else: the pages and sections whose words match what you typed, in your language, even with a typo. Each opens in a new tab, so you keep your place.
 
