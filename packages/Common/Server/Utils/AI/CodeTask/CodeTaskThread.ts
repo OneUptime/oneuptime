@@ -160,10 +160,12 @@ export default class CodeTaskThread {
   /*
    * Of `taskIds` - tasks (their first runs) a page shows beside something
    * else the reader may read: an exception's fix, the fix pull request of
-   * an investigation, the pull request to the code under a fix's step - the
-   * ones the reader may not read, by findTask's rule (AIRunOutputReadFilter):
-   * a task a reply carried a private incident or alert into that they do
-   * not see, or one carrying a record that is gone. Such a page shows that
+   * an investigation, the pull request to the code under a fix's step, a
+   * trace's performance fix, the fix on its way of a finding or of a
+   * profile's function - the ones the reader may not read, by findTask's
+   * rule (AIRunOutputReadFilter): a task a reply carried a private incident
+   * or alert into that they do not see, or one carrying a record that is
+   * gone. Such a page shows that
    * the task is there, and nothing of how it stands: neither its state nor
    * its pull request, nor a link the task's own page would answer as not
    * found. Ids in lower case, in one read for them all; none for those who

@@ -19,12 +19,13 @@ import path from "path";
  *   2. an API route that reads runs or pull requests as OneUptime - the
  *      task page, its Log - and answers a person with what it read;
  *   3. code that works out how a Code task stands - its state, from its
- *      latest turn, and its pull request - for a page that shows a task
- *      beside something else: an exception's fix panel, the fix line of an
- *      investigation, the pull request to the code under a fix's step, a
- *      trace's performance fix. Each showed a task's state and pull request
- *      link after a reply carried a private record into it, which the
- *      task's own page and the Code lists already hid.
+ *      latest turn, and its pull request, or that it is still on its way -
+ *      for a page that shows a task beside something else: an exception's
+ *      fix panel, the fix line of an investigation, the pull request to the
+ *      code under a fix's step, a trace's performance fix, the Fix with AI
+ *      of a finding or of a profile's function. Each showed a task's state
+ *      and a link to it after a reply carried a private record into it,
+ *      which the task's own page and the Code lists already hid.
  *
  * Each is listed here with what it is. A file that starts doing any of them
  * and is not listed fails "is listed": put it in the list with the rule it
@@ -276,14 +277,62 @@ const TASK_STATE_READERS: Record<string, Classification> = {
       ".filter((task: AIRun): boolean => { return !isHidden(task); })",
     ],
   },
+  // A finding's Fix with AI: the task already on its way, for the person.
+  "packages/Common/Server/Utils/AI/TelemetryAi/TelemetryAiFix.ts": {
+    kind: "asksTheRule",
+    mustContain: [
+      "reader: DatabaseCommonInteractionProps;",
+      "await CodeTaskThread.findTasksHiddenFrom({ projectId: data.projectId, taskIds: [data.taskId], reader: data.reader, });",
+      "return HIDDEN_TELEMETRY_AI_FIX_SUGGESTION;",
+    ],
+  },
+  "packages/Common/Server/Utils/AI/TelemetryAi/TraceInsightFix.ts": {
+    kind: "asksTheRule",
+    mustContain: [
+      "return await TelemetryAiFix.getInProgressSuggestion({ projectId: data.projectId, taskId: activeTaskId, reader: data.props, });",
+    ],
+  },
+  "packages/Common/Server/Utils/AI/TelemetryAi/ExceptionInsightFix.ts": {
+    kind: "asksTheRule",
+    mustContain: [
+      "return await TelemetryAiFix.getInProgressSuggestion({ projectId: data.projectId, taskId: activeTaskId, reader: data.props, });",
+    ],
+  },
+  "packages/Common/Server/Utils/AI/TelemetryAi/LogInsightFix.ts": {
+    kind: "asksTheRule",
+    mustContain: [
+      "return await TelemetryAiFix.getInProgressSuggestion({ projectId: data.projectId, taskId: activeTaskId, reader: data.props, });",
+    ],
+  },
+  "packages/Common/Server/Utils/AI/TelemetryAi/MetricInsightFix.ts": {
+    kind: "asksTheRule",
+    mustContain: [
+      "return await TelemetryAiFix.getInProgressSuggestion({ projectId: data.projectId, taskId: activeTaskId, reader: data.props, });",
+    ],
+  },
+  // A profile function's Fix with AI: the task already on its way, for the person.
+  "packages/Common/Server/Utils/AI/SRE/ProfileFixTaskTrigger.ts": {
+    kind: "asksTheRule",
+    mustContain: [
+      "await CodeTaskThread.findTasksHiddenFrom({ projectId: request.projectId, taskIds: [activeTaskId], reader: request.props, })",
+      "taskId: isHidden ? null : activeTaskId,",
+    ],
+  },
+  "packages/Common/Server/Utils/AI/TelemetryAi/ProfileInsightFix.ts": {
+    kind: "actsOnIt",
+    why: "Whether a person's fix of the same function, from the Profiler, is already on its way, so OneUptime starts no second one of its own: what OneUptime does next, told to no one.",
+  },
 };
 
 // SQL of a file's own that names the AIRun or AIAgentTaskPullRequest table.
 const RAW_SQL: RegExp = /\b(?:FROM|JOIN)\s+"(?:AIRun|AIAgentTaskPullRequest)"/;
 
-// Working out how a Code task stands: its state, its latest turn, its pull request.
+/*
+ * Working out how a Code task stands: its state, its latest turn, its pull
+ * request - or the task still on its way about something a page shows.
+ */
 const TASK_STATE: RegExp =
-  /\b(?:CodeTaskStateUtil\.fromRun|getFinishedFixOutcome|CodeTaskRuns\.getLatestTurn|getLatestCodeFixRunPerTaskType|CodeTaskListRows\.(?:readReplies|readPullRequests|readOutcomes))\(/;
+  /\b(?:CodeTaskStateUtil\.fromRun|getFinishedFixOutcome|CodeTaskRuns\.getLatestTurn|getLatestCodeFixRunPerTaskType|CodeTaskListRows\.(?:readReplies|readPullRequests|readOutcomes)|findActiveTaskIdForInsight|findActiveExceptionTaskId|findActiveTaskId)\(/;
 
 // An API file that reads AI runs or pull requests, or the Code tasks' readers.
 const API_READ: RegExp =
@@ -479,6 +528,10 @@ describe("code that tells a person how a Code task stands, beside something else
         "packages/Common/Server/Utils/AI/CodeTask/CodeTaskPresenter.ts",
         "packages/Common/Server/Utils/AI/SRE/FixFromIncidentTaskTrigger.ts",
         "packages/Common/Server/Utils/AutoRemediation/DeclaredCodeChanges.ts",
+        // A finding's Fix with AI, and a profile function's.
+        "packages/Common/Server/Utils/AI/TelemetryAi/TelemetryAiFix.ts",
+        "packages/Common/Server/Utils/AI/TelemetryAi/TraceInsightFix.ts",
+        "packages/Common/Server/Utils/AI/SRE/ProfileFixTaskTrigger.ts",
       ]),
     );
   });

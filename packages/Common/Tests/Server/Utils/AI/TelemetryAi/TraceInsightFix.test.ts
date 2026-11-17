@@ -16,6 +16,7 @@ import CodeTaskAccess from "../../../../../Server/Utils/AI/CodeTask/CodeTaskAcce
 import CodeTaskContextBuilder from "../../../../../Server/Utils/AI/CodeTask/CodeTaskContextBuilder";
 import CodeTaskGate from "../../../../../Server/Utils/AI/CodeTask/CodeTaskGate";
 import CodeTaskRuns from "../../../../../Server/Utils/AI/CodeTask/CodeTaskRuns";
+import CodeTaskThread from "../../../../../Server/Utils/AI/CodeTask/CodeTaskThread";
 import SubjectCodeFixRun from "../../../../../Server/Utils/AI/SRE/SubjectCodeFixRun";
 import TelemetryAiFix from "../../../../../Server/Utils/AI/TelemetryAi/TelemetryAiFix";
 import TraceInsightFix, {
@@ -52,7 +53,11 @@ import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/Da
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import SuggestionOffer from "../../../../../Utils/Suggestions/SuggestionOffer";
-import { TelemetryAiFixSuggestion } from "../../../../../Utils/Suggestions/TelemetryAiFixSuggestion";
+import {
+  HIDDEN_TELEMETRY_AI_FIX_SUGGESTION,
+  TelemetryAiFixSuggestion,
+  telemetryAiFixSuggestionToJSON,
+} from "../../../../../Utils/Suggestions/TelemetryAiFixSuggestion";
 
 /*
  * The pull request for a problem OneUptime found in a service's traces
@@ -151,6 +156,9 @@ const ANYWHERE: TelemetryAiWork = decideTelemetryAiWork({
 
 let startedToday: number;
 let activeTaskId: string | null;
+// The tasks the person may not read (CodeTaskThread.findTasksHiddenFrom).
+let hiddenTaskIds: Set<string>;
+let hiddenFrom: SpyInstance<typeof CodeTaskThread.findTasksHiddenFrom>;
 let hasRepository: boolean;
 let resolved: string | null;
 let locatable: Array<LocatableRepositoryWithTree>;
@@ -171,6 +179,7 @@ const createdTaskId: ObjectID = ObjectID.generate();
 beforeEach(() => {
   startedToday = 0;
   activeTaskId = null;
+  hiddenTaskIds = new Set<string>();
   hasRepository = true;
   resolved = REPO_A;
   locatable = [repository(REPO_A), repository(REPO_B)];
@@ -186,6 +195,11 @@ beforeEach(() => {
     .spyOn(TelemetryAiFix, "findActiveTaskIdForInsight")
     .mockImplementation(async () => {
       return activeTaskId;
+    });
+  hiddenFrom = jest
+    .spyOn(CodeTaskThread, "findTasksHiddenFrom")
+    .mockImplementation(async () => {
+      return hiddenTaskIds;
     });
   jest
     .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
@@ -533,6 +547,29 @@ describe("TraceInsightFix - a person's Fix with AI", () => {
     expect(await suggestion()).toMatchObject({
       offer: SuggestionOffer.InProgress,
       taskId: activeTaskId,
+    });
+  });
+
+  /*
+   * A task a reply carried a private incident or alert into, which the
+   * person may not open, is read as its own page reads it: a fix is there,
+   * so none is offered, and nothing of it - not even the link.
+   */
+  test("a task on its way that is hidden from the person: there, and nothing of it", async () => {
+    activeTaskId = "5229bbbb-0000-4000-8000-0000000000f9";
+    hiddenTaskIds = new Set<string>([activeTaskId]);
+
+    const answer: TelemetryAiFixSuggestion = await suggestion();
+
+    expect(answer).toEqual(HIDDEN_TELEMETRY_AI_FIX_SUGGESTION);
+    expect(
+      JSON.stringify(telemetryAiFixSuggestionToJSON(answer)),
+    ).not.toContain(activeTaskId);
+    // Asked of that task, for the person, in the finding's project.
+    expect(hiddenFrom).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      taskIds: [activeTaskId],
+      reader: props,
     });
   });
 

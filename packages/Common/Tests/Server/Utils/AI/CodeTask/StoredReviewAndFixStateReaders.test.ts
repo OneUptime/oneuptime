@@ -1,6 +1,7 @@
 import AIRunService from "../../../../../Server/Services/AIRunService";
 import IncidentService from "../../../../../Server/Services/IncidentService";
 import CodeTaskThread from "../../../../../Server/Utils/AI/CodeTask/CodeTaskThread";
+import TelemetryAiFix from "../../../../../Server/Utils/AI/TelemetryAi/TelemetryAiFix";
 import ProductionReviewReadFilter from "../../../../../Server/Utils/CodeRepository/ProductionReview/ProductionReviewReadFilter";
 import { applyIncidentSelfPrivacyFilter } from "../../../../../Server/Utils/Incident/IncidentPrivacyFilter";
 import logger from "../../../../../Server/Utils/Logger";
@@ -16,6 +17,13 @@ import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorized
 import ObjectID from "../../../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../../../Types/Permission";
 import UserType from "../../../../../Types/UserType";
+import SuggestionOffer from "../../../../../Utils/Suggestions/SuggestionOffer";
+import {
+  HIDDEN_TELEMETRY_AI_FIX_SUGGESTION,
+  NO_TELEMETRY_AI_FIX_SUGGESTION,
+  TelemetryAiFixSuggestion,
+  telemetryAiFixSuggestionToJSON,
+} from "../../../../../Utils/Suggestions/TelemetryAiFixSuggestion";
 import { fullReport } from "../../CodeRepository/ProductionReview/ProductionReviewFixtures";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import { FindOperator } from "typeorm";
@@ -480,4 +488,44 @@ describe("the tasks a fix panel shows, read as each reader", () => {
     ).toBe(0);
     expect(read).not.toHaveBeenCalled();
   });
+});
+
+/*
+ * A finding's Fix with AI says what of the task already on its way, for
+ * each reader, when the rule lets them read none of the tasks: a link to it
+ * for those who see every private record, and for everyone else only that a
+ * fix is there.
+ */
+describe("a finding's fix on its way, read as each reader", () => {
+  test.each(READERS)(
+    "$name: the task, or only that it is there",
+    async (reader: Reader) => {
+      const read: jest.SpiedFunction<typeof AIRunService.findBy> = jest
+        .spyOn(AIRunService, "findBy")
+        .mockResolvedValue([]);
+
+      const suggestion: TelemetryAiFixSuggestion =
+        await TelemetryAiFix.getInProgressSuggestion({
+          projectId: PROJECT_ID,
+          taskId: TASK_ID,
+          reader: reader.props,
+        });
+
+      if (reader.seesEveryPrivateRecord) {
+        expect(suggestion).toEqual({
+          ...NO_TELEMETRY_AI_FIX_SUGGESTION,
+          offer: SuggestionOffer.InProgress,
+          taskId: TASK_ID,
+        });
+        expect(read).not.toHaveBeenCalled();
+        return;
+      }
+
+      expect(suggestion).toEqual(HIDDEN_TELEMETRY_AI_FIX_SUGGESTION);
+      expect(
+        JSON.stringify(telemetryAiFixSuggestionToJSON(suggestion)),
+      ).not.toContain(TASK_ID);
+      expect(read).toHaveBeenCalledTimes(1);
+    },
+  );
 });

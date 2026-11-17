@@ -23,6 +23,7 @@ import CodeTaskAccess from "../CodeTask/CodeTaskAccess";
 import CodeTaskContextBuilder from "../CodeTask/CodeTaskContextBuilder";
 import CodeTaskGate from "../CodeTask/CodeTaskGate";
 import CodeTaskRuns from "../CodeTask/CodeTaskRuns";
+import CodeTaskThread from "../CodeTask/CodeTaskThread";
 import SubjectCodeFixRun from "./SubjectCodeFixRun";
 import AIInsight from "../../../../Models/DatabaseModels/AIInsight";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
@@ -336,11 +337,27 @@ export default class ProfileFixTaskTrigger {
         hasConnectedRepository: true,
       });
 
+      /*
+       * The task is read as its own page reads it, for the person: one a
+       * reply carried a private incident or alert into, which they do not
+       * see, is there - so no second fix is offered - and nothing of it,
+       * not even the link to it.
+       */
+      const isHidden: boolean =
+        (
+          await CodeTaskThread.findTasksHiddenFrom({
+            projectId: request.projectId,
+            taskIds: [activeTaskId],
+            reader: request.props,
+          })
+        ).size > 0;
+
       return {
         ...NO_PROFILE_FIX_SUGGESTION,
         ...offer,
         evidence: read.hotspot,
-        taskId: activeTaskId,
+        taskId: isHidden ? null : activeTaskId,
+        ...(isHidden ? { isHidden: true } : {}),
       };
     }
 
