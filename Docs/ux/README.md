@@ -522,8 +522,12 @@ work out, starts from a default for everything else, and folds what most people 
   search or filter that hides every row is told apart by the table itself. A list that only ever
   shows the answer to a query the reader set (the traces explorer) is listed in the guard with its
   reason. A monitor's Logs says when its first check runs and links to Probes & Interval; its SLOs
-  offer Create with the monitor already attached. Enforced by
-  [EmptyListsSayYetGuard](../../packages/App/Tests/Dashboard/EmptyListsSayYetGuard.test.ts).
+  offer Create with the monitor already attached. The Admin Dashboard's lists read their sentence
+  from a locale key, so the guard there looks each key up ("No projects found." sat in its locale
+  until #9044). Enforced by
+  [EmptyListsSayYetGuard](../../packages/App/Tests/Dashboard/EmptyListsSayYetGuard.test.ts)
+  and
+  [AdminEmptyListsSayYetGuard](../../packages/App/Tests/AdminDashboard/AdminEmptyListsSayYetGuard.test.ts).
 - **A search or filter that finds nothing never offers Create.** It says nothing matched. Not
   enforced: use judgement.
 - **An empty state says each thing once.** An embedded logs list's empty state has one line from the
@@ -745,7 +749,10 @@ what was further down.
 - **A button says what it does, with its object.** "Create Monitor", not "Submit" or "OK". "Create"
   makes something that stands on its own (Create Monitor, Create Status Page); "Add" puts something
   into the record you are on (Add Monitors to Group, Add Subscriber). Not enforced: use judgement.
-- **A card's description says what the card or list is for,** not "Here is a list of…". Enforced by
+- **A card's description says what the card or list is for,** not "Here is a list of…". A details
+  card whose title says it all ("Project", "Team Details") has no description, not "Project
+  details" or "Details about this team.". The guard reads the Admin Dashboard's English locale too,
+  where its pages keep their words. Enforced by
   [CardDescriptionBoilerplateGuard](../../packages/App/Tests/Dashboard/CardDescriptionBoilerplateGuard.test.ts).
 - **Name the thing, not "it".** "Page this policy for every new incident", not "Page it", where "it"
   could be the person just added. Not enforced: use judgement.

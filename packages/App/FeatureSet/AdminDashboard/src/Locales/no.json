@@ -142,8 +142,8 @@
     "users": {
       "title": "Brukere",
       "cardTitle": "Brukere",
-      "cardDescription": "Her er en liste over brukere i OneUptime.",
-      "noItems": "Ingen brukere funnet.",
+      "listDescription": "Alle med en konto på denne serveren. Åpne en bruker for å administrere prosjektene, påloggingen og administratortilgangen deres.",
+      "emptyMessage": "Ingen brukere ennå.",
       "bulkAddToProject": "Legg til i prosjekt",
       "bulkAddToProjectTitle": "Legg brukere til i prosjekt",
       "bulkAddToProjectDescription": "Velg et prosjekt og et av teamene. De {{userCount}} valgte brukerne inviteres til det teamet.",
@@ -204,7 +204,6 @@
     "userView": {
       "title": "Bruker",
       "cardTitle": "Bruker",
-      "cardDescription": "Brukerdetaljer",
       "editButton": "Rediger bruker",
       "masterAdminCardTitle": "Master-admin-tilgang",
       "masterAdminCardDescription": "Tildel eller tilbakekall master-admin-tilgang for denne brukeren. Master-admins kan administrere alle prosjekter og arbeidsområder.",
@@ -305,13 +304,12 @@
     "projects": {
       "title": "Prosjekter",
       "cardTitle": "Prosjekter",
-      "cardDescription": "Her er en liste over prosjekter i OneUptime.",
-      "noItems": "Ingen prosjekter funnet."
+      "listDescription": "Alle prosjekter på denne serveren. Åpne ett for å administrere brukerne, teamene og innstillingene.",
+      "emptyMessage": "Ingen prosjekter ennå."
     },
     "projectView": {
       "title": "Prosjekt",
       "cardTitle": "Prosjekt",
-      "cardDescription": "Prosjektdetaljer",
       "editButton": "Rediger prosjekt",
       "dataResidencyCardTitle": "Datalagring",
       "dataResidencyCardDescription": "Hvor dataene for dette prosjektet driftes. Når det er angitt, vises det for prosjektets brukere i prosjektinnstillingene.",
@@ -453,8 +451,8 @@
     "projectUsers": {
       "title": "Project Users",
       "cardTitle": "Brukere",
-      "cardDescription": "Here is a list of all the users in this project.",
-      "noItems": "No users found in this project.",
+      "listDescription": "Personer som hører til dette prosjektet. Teamet deres bestemmer hva hver av dem kan gjøre.",
+      "emptyMessage": "Ingen brukere i dette prosjektet ennå.",
       "noItemsFiltered": "No users matched the filter.",
       "inviteUser": "Inviter bruker",
       "inviteUserTitle": "Inviter ny bruker",
@@ -473,13 +471,12 @@
     "projectTeams": {
       "title": "Project Teams",
       "cardTitle": "Team",
-      "cardDescription": "Her er en liste over alle teamene i dette prosjektet.",
-      "noItems": "No teams found in this project."
+      "listDescription": "Team bestemmer hva medlemmene kan gjøre i dette prosjektet. Opprett et for å gi en gruppe personer samme tilgang.",
+      "emptyMessage": "Ingen team i dette prosjektet ennå."
     },
     "projectTeamView": {
       "title": "Project Team",
       "cardTitle": "Teamdetaljer",
-      "cardDescription": "Details about this team.",
       "editButton": "Rediger team",
       "membersCardTitle": "Team Medlemmer",
       "membersCardDescription": "Manage members of this team. Invite new users by email.",
@@ -626,13 +623,13 @@
       },
       "probes": {
         "bannerTitle": "Trenger du hjelp med å sette opp globale sonder?",
-        "bannerDescription": "Her er en veiledning som hjelper deg med å komme i gang",
+        "bannerGuide": "Følg veiledningen for å kjøre en sonde på din egen server og koble den til her.",
         "cardTitle": "Globale sonder",
         "cardDescription": "Globale sonder hjelper deg med å overvåke eksterne ressurser fra forskjellige steder rundt om i verden.",
-        "noItems": "Ingen sonder funnet.",
+        "emptyMessage": "Ingen globale sonder ennå.",
         "showIdKey": "Vis ID og nøkkel",
         "keyModalTitle": "Sondenøkkel",
-        "keyModalDescription": "Her er sondenøkkelen din. Hold den hemmelig.",
+        "keyModalSecret": "Sonden din kobler til OneUptime med denne ID-en og nøkkelen. Hold nøkkelen hemmelig.",
         "probeIdLabel": "Sonde-ID:",
         "probeKeyLabel": "Sondenøkkel:"
       },

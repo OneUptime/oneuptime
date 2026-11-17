@@ -142,8 +142,8 @@
     "users": {
       "title": "उपयोगकर्ता",
       "cardTitle": "उपयोगकर्ता",
-      "cardDescription": "OneUptime में उपयोगकर्ताओं की सूची यहाँ दी गई है।",
-      "noItems": "कोई उपयोगकर्ता नहीं मिला।",
+      "listDescription": "इस सर्वर पर खाता रखने वाले सभी लोग। किसी उपयोगकर्ता के प्रोजेक्ट, साइन-इन और एडमिन एक्सेस प्रबंधित करने के लिए उसे खोलें।",
+      "emptyMessage": "अभी तक कोई उपयोगकर्ता नहीं।",
       "bulkAddToProject": "परियोजना में जोड़ें",
       "bulkAddToProjectTitle": "उपयोगकर्ताओं को परियोजना में जोड़ें",
       "bulkAddToProjectDescription": "एक प्रोजेक्ट और उसकी कोई एक टीम चुनें। चुने गए {{userCount}} उपयोगकर्ताओं को उस टीम में आमंत्रित किया जाता है।",
@@ -204,7 +204,6 @@
     "userView": {
       "title": "उपयोगकर्ता",
       "cardTitle": "उपयोगकर्ता",
-      "cardDescription": "उपयोगकर्ता का विवरण",
       "editButton": "उपयोगकर्ता संपादित करें",
       "masterAdminCardTitle": "मास्टर एडमिन एक्सेस",
       "masterAdminCardDescription": "इस उपयोगकर्ता के लिए मास्टर एडमिन एक्सेस प्रदान या रद्द करें। मास्टर एडमिन हर परियोजना और कार्यक्षेत्र का प्रबंधन कर सकते हैं।",
@@ -305,13 +304,12 @@
     "projects": {
       "title": "परियोजनाएँ",
       "cardTitle": "परियोजनाएँ",
-      "cardDescription": "OneUptime में परियोजनाओं की सूची यहाँ दी गई है।",
-      "noItems": "कोई परियोजना नहीं मिली।"
+      "listDescription": "इस सर्वर के सभी प्रोजेक्ट। किसी प्रोजेक्ट के उपयोगकर्ता, टीमें और सेटिंग्स प्रबंधित करने के लिए उसे खोलें।",
+      "emptyMessage": "अभी तक कोई प्रोजेक्ट नहीं।"
     },
     "projectView": {
       "title": "परियोजना",
       "cardTitle": "परियोजना",
-      "cardDescription": "परियोजना का विवरण",
       "editButton": "परियोजना संपादित करें",
       "dataResidencyCardTitle": "डेटा रेजिडेंसी",
       "dataResidencyCardDescription": "इस प्रोजेक्ट का डेटा कहाँ होस्ट किया जाता है। सेट होने के बाद, यह प्रोजेक्ट के उपयोगकर्ताओं को उनकी प्रोजेक्ट सेटिंग्स में दिखाया जाता है।",
@@ -453,8 +451,8 @@
     "projectUsers": {
       "title": "Project Users",
       "cardTitle": "उपयोगकर्ता",
-      "cardDescription": "Here is a list of all the users in this project.",
-      "noItems": "No users found in this project.",
+      "listDescription": "इस प्रोजेक्ट से जुड़े लोग। हर व्यक्ति क्या कर सकता है, यह उसकी टीम तय करती है।",
+      "emptyMessage": "इस प्रोजेक्ट में अभी तक कोई उपयोगकर्ता नहीं।",
       "noItemsFiltered": "No users matched the filter.",
       "inviteUser": "उपयोगकर्ता को आमंत्रित करें",
       "inviteUserTitle": "नए उपयोगकर्ता को आमंत्रित करें",
@@ -473,13 +471,12 @@
     "projectTeams": {
       "title": "Project Teams",
       "cardTitle": "टीमें",
-      "cardDescription": "यहां इस प्रोजेक्ट में सभी टीमों की सूची है।",
-      "noItems": "No teams found in this project."
+      "listDescription": "टीमें तय करती हैं कि उनके सदस्य इस प्रोजेक्ट में क्या कर सकते हैं। लोगों के एक समूह को एक जैसी पहुँच देने के लिए एक टीम बनाएँ।",
+      "emptyMessage": "इस प्रोजेक्ट में अभी तक कोई टीम नहीं।"
     },
     "projectTeamView": {
       "title": "Project Team",
       "cardTitle": "टीम विवरण",
-      "cardDescription": "Details about this team.",
       "editButton": "टीम संपादित करें",
       "membersCardTitle": "टीम सदस्य",
       "membersCardDescription": "Manage members of this team. Invite new users by email.",
@@ -626,13 +623,13 @@
       },
       "probes": {
         "bannerTitle": "वैश्विक प्रोब सेटअप करने में मदद चाहिए?",
-        "bannerDescription": "यहाँ एक गाइड है जो आपको सेटअप करने में मदद करेगी",
+        "bannerGuide": "अपने सर्वर पर प्रोब चलाने और उसे यहाँ जोड़ने के लिए गाइड का पालन करें।",
         "cardTitle": "वैश्विक प्रोब",
         "cardDescription": "वैश्विक प्रोब आपको दुनिया भर के विभिन्न स्थानों से बाहरी संसाधनों की निगरानी में मदद करते हैं।",
-        "noItems": "कोई प्रोब नहीं मिले।",
+        "emptyMessage": "अभी तक कोई ग्लोबल प्रोब नहीं।",
         "showIdKey": "आईडी और कुंजी दिखाएँ",
         "keyModalTitle": "प्रोब कुंजी",
-        "keyModalDescription": "यह आपकी प्रोब कुंजी है। कृपया इसे गुप्त रखें।",
+        "keyModalSecret": "आपका प्रोब इस ID और कुंजी से OneUptime से जुड़ता है। कुंजी गुप्त रखें।",
         "probeIdLabel": "प्रोब आईडी:",
         "probeKeyLabel": "प्रोब कुंजी:"
       },
