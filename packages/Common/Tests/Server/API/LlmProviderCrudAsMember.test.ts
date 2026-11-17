@@ -103,6 +103,7 @@ import LlmLog from "../../../Models/DatabaseModels/LlmLog";
 import LlmProvider from "../../../Models/DatabaseModels/LlmProvider";
 import Project from "../../../Models/DatabaseModels/Project";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import Exception from "../../../Types/Exception/Exception";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
@@ -196,6 +197,13 @@ const LIST_SELECT: JSONObject = {
   description: true,
   isDefault: true,
 };
+
+/*
+ * The list sorted by Name, as ModelAPI sends it: { name: "ASC" }. A
+ * direction TypeORM does not read as written is refused (SortValidator,
+ * #8141).
+ */
+const LIST_SORT: JSONObject = { name: SortOrder.Ascending };
 
 let props: DatabaseCommonInteractionProps;
 let providers: InMemoryTable;
@@ -396,7 +404,7 @@ describe.each(WALKERS)(
           body: {
             query: { projectId: PROJECT_ID.toString() },
             select: LIST_SELECT,
-            sort: { name: "Ascending" },
+            sort: LIST_SORT,
           },
           query: { skip: "0", limit: "10" },
         },
@@ -688,7 +696,7 @@ describe("who may only read providers", () => {
       body: {
         query: {},
         select: LIST_SELECT,
-        sort: { name: "Ascending" },
+        sort: LIST_SORT,
       },
       query: { skip: "0", limit: "10" },
     });
