@@ -1,4 +1,5 @@
 import {
+  AZURE_INVENTORY_ONLY_QUERY_TYPES,
   AZURE_INVENTORY_PROPERTIES,
   AZURE_SUBNET_TYPE,
   AZURE_VIRTUAL_NETWORK_TYPE,
@@ -53,7 +54,20 @@ describe("the query", () => {
 
   test("projects every field the inventory reads - never the whole properties bag", () => {
     for (const field of AZURE_INVENTORY_PROPERTIES) {
-      if (field === "kind") {
+      /*
+       * kind is projected as it is; a subnet's ranges come from the subnet
+       * query, and the rest are worked out from what was projected.
+       */
+      if (
+        [
+          "kind",
+          "addressPrefix",
+          "addressPrefixes",
+          "delegatedTo",
+          "inbound",
+          "outbound",
+        ].includes(field)
+      ) {
         continue;
       }
       expect(query).toContain(`${field} = `);
@@ -75,11 +89,15 @@ describe("the query", () => {
         return literal.slice(1, -1);
       },
     );
-    const catalog: Array<string> = AZURE_RESOURCE_TYPES.map(
-      (descriptor: { type: string }): string => {
-        return descriptor.type.toLowerCase();
-      },
-    );
+    const catalog: Array<string> = [
+      ...AZURE_RESOURCE_TYPES.map((descriptor: { type: string }): string => {
+        return descriptor.type;
+      }),
+      // Listed only (#9375): a network security group publishes no metrics.
+      ...AZURE_INVENTORY_ONLY_QUERY_TYPES,
+    ].map((type: string): string => {
+      return type.toLowerCase();
+    });
 
     for (const literal of quoted) {
       expect(catalog).toContain(literal);
@@ -760,10 +778,15 @@ describe("what the rows say read together", () => {
     return item!;
   }
 
-  test("a virtual machine runs in the network its interfaces run in", () => {
+  test("a virtual machine runs in the subnet and network its interfaces run in", () => {
     const items: Array<CloudInventoryItem> = buildAzureInventoryItems(rows());
 
     expect(itemOf(items, "vm-web-1").relationships).toEqual([
+      {
+        kind: CloudRelationshipKind.RunsIn,
+        target: `${VNET}/subnets/apps`,
+        targetType: AZURE_SUBNET_TYPE,
+      },
       {
         kind: CloudRelationshipKind.RunsIn,
         target: VNET,
@@ -780,6 +803,12 @@ describe("what the rows say read together", () => {
         kind: CloudRelationshipKind.RoutesTo,
         target: NIC,
         targetType: "Microsoft.Network/networkInterfaces",
+      },
+      // And through the interface, to its machine (#9375).
+      {
+        kind: CloudRelationshipKind.RoutesTo,
+        target: `${RG}/providers/Microsoft.Compute/virtualMachines/vm-web-1`,
+        targetType: "Microsoft.Compute/virtualMachines",
       },
       {
         kind: CloudRelationshipKind.RoutesTo,
@@ -885,6 +914,7 @@ describe("what the rows say read together", () => {
         "vm-web-1-nic runs-in vnet-prod",
         "vmss-api runs-in vnet-prod",
         "lb-web routes-to vm-web-1-nic",
+        "lb-web routes-to vm-web-1",
         "lb-web routes-to vmss-api",
         "agw-shop routes-to vm-web-1-nic",
         "agw-shop routes-to shop",
