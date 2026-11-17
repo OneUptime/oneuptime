@@ -90,6 +90,12 @@ export const GCP_FORWARDING_RULE_TYPE: string =
   "compute.googleapis.com/ForwardingRule";
 export const GCP_GLOBAL_FORWARDING_RULE_TYPE: string =
   "compute.googleapis.com/GlobalForwardingRule";
+/*
+ * A GKE cluster. Its Kubernetes metrics are the Kubernetes product's, so it
+ * is listed with no metrics of its own, in its network, with the node VMs
+ * that are part of it.
+ */
+export const GCP_GKE_CLUSTER_TYPE: string = "container.googleapis.com/Cluster";
 const GCP_TARGET_HTTP_PROXY_TYPE: string =
   "compute.googleapis.com/TargetHttpProxy";
 const GCP_TARGET_HTTPS_PROXY_TYPE: string =
@@ -150,6 +156,8 @@ export interface GcpInventoryType {
       ) => Record<string, string> | null)
     | undefined;
   properties: ReadonlyArray<string>;
+  // Where its labels are, when not under `labels`: a GKE cluster's resourceLabels.
+  labelsField?: string | undefined;
   /*
    * Properties worked out of the asset's data, read with `properties` as
    * though the data had them: a firewall rule's ports as "tcp:22,443".
@@ -270,6 +278,15 @@ function locationOf(asset: GcpAsset): string {
   }
 
   return asset.location;
+}
+
+// A zone's region ("us-central1-a" -> "us-central1"); a region as it is.
+export function gcpZoneRegion(location: string): string {
+  const match: RegExpMatchArray | null = location.match(
+    /^([a-z]+-[a-z]+\d+)-[a-z]$/,
+  );
+
+  return match ? match[1]! : location;
 }
 
 /*
@@ -860,6 +877,70 @@ export const GCP_INVENTORY_TYPES: ReadonlyArray<GcpInventoryType> = [
       return [asset.data["IPAddress"]];
     },
   },
+  {
+    assetType: GCP_GKE_CLUSTER_TYPE,
+    labelsField: "resourceLabels",
+    properties: [
+      "status",
+      "currentMasterVersion",
+      "currentNodeVersion",
+      "currentNodeCount",
+      "autopilot.enabled",
+      "releaseChannel.channel",
+      "nodePools",
+      "privateClusterConfig.enablePrivateNodes",
+    ],
+    // Its node pools as people read them: "default-pool (e2-standard-4)".
+    derivedProperties: (asset: GcpAsset): JSONObject => {
+      return {
+        nodePools: readArray(asset.data["nodePools"])
+          .map((raw: unknown): string => {
+            const pool: JSONObject = readObject(raw);
+            const name: string = readText(pool["name"]);
+            const machineType: string = readText(
+              readObject(pool["config"])["machineType"],
+            );
+
+            return name && machineType ? `${name} (${machineType})` : name;
+          })
+          .filter(Boolean),
+      };
+    },
+    relationships: (asset: GcpAsset): Array<CloudResourceRelationship> => {
+      const relationships: Array<CloudResourceRelationship> = [];
+      // "projects/p/regions/r/subnetworks/s", or a URL on older clusters.
+      const subnetwork: string = computeUrlToFullName(
+        textAt(asset.data, "networkConfig.subnetwork"),
+      );
+      const network: string = computeUrlToFullName(
+        textAt(asset.data, "networkConfig.network"),
+      );
+
+      if (subnetwork) {
+        relationships.push({
+          kind: CloudRelationshipKind.RunsIn,
+          target: subnetwork,
+          targetType: GCP_SUBNETWORK_TYPE,
+        });
+      }
+
+      if (network) {
+        relationships.push({
+          kind: CloudRelationshipKind.RunsIn,
+          target: network,
+          targetType: GCP_NETWORK_TYPE,
+        });
+      }
+
+      return relationships;
+    },
+    endpoints: (asset: GcpAsset) => {
+      return [
+        asset.data["endpoint"],
+        readCloudPath(asset.data, "privateClusterConfig.privateEndpoint"),
+      ];
+    },
+  },
 ];
 
 /*
@@ -940,7 +1021,7 @@ export function getGcpInventoryIdentity(
    * auto mode network has a subnet called "default". A global one's
    * identity is its project and name alone, as a network's always was.
    */
-  const region: string = gcpAssetRegion(asset);
+  const place: string = gcpAssetRegion(asset);
   const resourceType: string = getGcpInventoryResourceType(type);
 
   return {
@@ -950,13 +1031,14 @@ export function getGcpInventoryIdentity(
     name,
     providerResourceId: asset.name,
     accountId: context.projectId,
-    region,
+    // A zonal cluster is in its zone's region, as a VM is.
+    region: gcpZoneRegion(place),
     resourceGroup: "",
     identityKey: [
       CloudProvider.GCP,
       resourceType,
       context.projectId,
-      ...(region === "global" ? [] : [region]),
+      ...(place === "global" ? [] : [place]),
       name,
     ]
       .join("|")
@@ -993,7 +1075,7 @@ export function buildGcpInventoryItem(
     resource,
     // "projects/p/locations/l/services/checkout" and "checkout" alike.
     displayName: tail(textAt(asset.data, "name")) || undefined,
-    tags: normalizeCloudTags(asset.data["labels"]),
+    tags: normalizeCloudTags(asset.data[type.labelsField || "labels"]),
     properties: pickCloudProperties(
       type.derivedProperties
         ? { ...asset.data, ...type.derivedProperties(asset) }
@@ -1179,9 +1261,76 @@ export function addGcpFirewallEdges(data: {
 }
 
 /*
+ * A GKE node is a VM that GKE labels with its cluster's name and location
+ * (goog-k8s-cluster-name, goog-k8s-cluster-location): it is part of that
+ * cluster. A name two clusters of the project answer to, in no location
+ * the label narrows to one, links to neither.
+ */
+export function addGcpClusterNodeEdges(data: {
+  items: Array<CloudInventoryItem>;
+  assets: Map<CloudInventoryItem, GcpAsset>;
+}): void {
+  const clusters: Array<{ item: CloudInventoryItem; asset: GcpAsset }> = [];
+
+  for (const item of data.items) {
+    const asset: GcpAsset | undefined = data.assets.get(item);
+
+    if (asset?.assetType === GCP_GKE_CLUSTER_TYPE) {
+      clusters.push({ item, asset });
+    }
+  }
+
+  if (clusters.length === 0) {
+    return;
+  }
+
+  for (const item of data.items) {
+    if (data.assets.get(item)?.assetType !== GCP_INSTANCE_TYPE) {
+      continue;
+    }
+
+    const name: string = (item.tags["goog-k8s-cluster-name"] || "").trim();
+    const location: string = (
+      item.tags["goog-k8s-cluster-location"] || ""
+    ).trim();
+
+    if (!name) {
+      continue;
+    }
+
+    const matching: Array<{ item: CloudInventoryItem; asset: GcpAsset }> =
+      clusters.filter(
+        (cluster: { item: CloudInventoryItem; asset: GcpAsset }): boolean => {
+          return (
+            textAt(cluster.asset.data, "name") === name &&
+            (!location ||
+              (
+                textAt(cluster.asset.data, "location") || cluster.asset.location
+              ).toLowerCase() === location.toLowerCase())
+          );
+        },
+      );
+
+    if (matching.length !== 1) {
+      continue;
+    }
+
+    item.relationships = boundCloudRelationships([
+      ...item.relationships,
+      {
+        kind: CloudRelationshipKind.PartOf,
+        target: matching[0]!.item.resource.providerResourceId,
+        targetType: GCP_GKE_CLUSTER_TYPE,
+      },
+    ]);
+  }
+}
+
+/*
  * Every edge that takes more than one asset to draw, written once all of a
  * project's assets are read: a topic's subscriptions, the firewall rules
- * guarding each instance, what a load balancer's addresses send to.
+ * guarding each instance, what a load balancer's addresses send to, the
+ * GKE cluster each node VM is part of.
  */
 /*
  * What a load balancer's forwarding rules send to. A rule names a target
@@ -1274,6 +1423,7 @@ export function addGcpInventoryEdges(data: {
     assets: data.assets,
     listed: data.listed || Array.from(data.assets.values()),
   });
+  addGcpClusterNodeEdges(data);
 }
 
 export interface GcpAssetListing {
