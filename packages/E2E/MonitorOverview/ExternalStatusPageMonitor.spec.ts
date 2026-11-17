@@ -492,12 +492,13 @@ test.describe("Create Monitor: an External Status Page monitor's provider", () =
     /*
      * Each optional field says "(Optional)" once, small and grey after its
      * title, the way Timeout and Retries do - not in the title's own words
-     * - and its box is named by its label.
+     * - and its box is named by its label. The grey is the one that can be
+     * read, gray-500 (gray-400 was 2.5:1 on white).
      */
     for (const title of ["Component Group Filter", "Timeout (ms)", "Retries"]) {
       const label: Locator = moreFields.locator("label", { hasText: title });
       await expect(label).toHaveText(`${title} (Optional)`);
-      await expect(label.locator("span.text-gray-400")).toHaveText(
+      await expect(label.locator("span.text-xs.text-gray-500")).toHaveText(
         "(Optional)",
       );
       await expect(

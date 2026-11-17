@@ -2455,12 +2455,16 @@ describe("SessionReplayTable header", () => {
     expect(time).toHaveClass(...heightClasses, "text-sm");
     expect(time).not.toHaveClass("text-xs");
 
-    /* The ⋯ is the one every card header has, 42px / 38px like the rest. */
+    /*
+     * The ⋯ is the one every card header has, 38px at every width like the
+     * rest: the same padding as the search and the time range.
+     */
     expect(screen.getByTestId("session-replay-more")).toHaveClass(
       ...CARD_MORE_MENU_TRIGGER_CLASS_NAME.split(" "),
     );
-    expect(CARD_MORE_MENU_TRIGGER_CLASS_NAME).toContain("py-2.5");
-    expect(CARD_MORE_MENU_TRIGGER_CLASS_NAME).toContain("md:py-2");
+    expect(CARD_MORE_MENU_TRIGGER_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining(heightClasses),
+    );
   });
 
   it("keeps the sort order, Refresh and Filter in the ⋯, the order in use ticked", async () => {

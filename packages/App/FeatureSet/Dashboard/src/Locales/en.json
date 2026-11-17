@@ -56559,5 +56559,7 @@
   "This test also creates a real channel in the rule's Microsoft Teams team, such as {{channel}}, which everyone in the team can see. Delete it in Microsoft Teams when you are done.": "This test also creates a real channel in the rule's Microsoft Teams team, such as {{channel}}, which everyone in the team can see. Delete it in Microsoft Teams when you are done.",
   "This test also creates a real {{workspace}} channel, such as {{channel}}, and invites you to it. Archive it in {{workspace}} when you are done.": "This test also creates a real {{workspace}} channel, such as {{channel}}, and invites you to it. Archive it in {{workspace}} when you are done.",
   "{{team}} (typed name)": "{{team}} (typed name)",
-  "Nothing has checked this SLO's monitors yet. It is measured from their first check.": "Nothing has checked this SLO's monitors yet. It is measured from their first check."
+  "Nothing has checked this SLO's monitors yet. It is measured from their first check.": "Nothing has checked this SLO's monitors yet. It is measured from their first check.",
+  "Discovered device {{name}}": "Discovered device {{name}}",
+  "The Discovered Devices list": "The Discovered Devices list"
 }

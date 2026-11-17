@@ -9,7 +9,10 @@ import {
 import React, { ReactElement } from "react";
 import { afterEach, describe, expect, test } from "@jest/globals";
 import getJestMockFunction, { MockFunction } from "../../../MockType";
-import { ButtonStyleType } from "../../../../UI/Components/Button/Button";
+import {
+  ButtonSize,
+  ButtonStyleType,
+} from "../../../../UI/Components/Button/Button";
 import Card, { CardButtonSchema } from "../../../../UI/Components/Card/Card";
 import { CARD_MORE_MENU_TRIGGER_CLASS_NAME } from "../../../../UI/Components/Card/CardMoreMenu";
 import MoreMenuItem from "../../../../UI/Components/MoreMenu/MoreMenuItem";
@@ -796,18 +799,23 @@ describe("one look for every table's header", () => {
     );
   });
 
-  test("a control beside the buttons is as tall as they are: 42px on a phone, 38px from md", () => {
+  test("a control beside the buttons is as tall as they are: 38px at every width", () => {
     /*
-     * The ⋯ trigger and a normal Button: py-2.5 below md and py-2 from md
-     * up around a 20px line, inside a 1px border.
+     * A normal Button is py-2 around text-sm's 20px line inside a 1px
+     * border, at every width, since every button style is one frame
+     * (#9128). The ⋯ trigger and a control beside it take the same padding
+     * and step it at no breakpoint: they kept py-2.5 below md, for the
+     * 42px a button stood there in larger words, and on a phone the search
+     * and the ⋯ stood 4px taller than the Create beside them.
      */
-    expect(TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME.split(" ")).toEqual([
-      "py-2.5",
-      "md:py-2",
-    ]);
+    expect(ButtonSize.Normal.split(" ")).toContain("py-2");
+    expect(TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME.split(" ")).toEqual(["py-2"]);
     expect(CARD_MORE_MENU_TRIGGER_CLASS_NAME.split(" ")).toEqual(
-      expect.arrayContaining(["py-2.5", "md:py-2", "border"]),
+      expect.arrayContaining(["px-2", "py-2", "border"]),
     );
+    for (const cssClass of CARD_MORE_MENU_TRIGGER_CLASS_NAME.split(" ")) {
+      expect(cssClass).not.toMatch(/^[a-z]+:p[xy]?-/u);
+    }
   });
 
   test("the x that empties a search hangs over its 20px line instead of growing it", () => {

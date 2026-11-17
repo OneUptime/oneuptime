@@ -4151,14 +4151,16 @@ test.describe("the header's controls are one height", () => {
    * The "/" key hint stood on the 15px line its 10px text inherited - 21px
    * with its padding and border - and made every table's search 39px tall
    * beside its 38px buttons. It keeps a 12px line now, and the search takes
-   * the buttons' padding: 38px from md up, 42px on a phone. The x that
-   * empties it, which comes with the first letter typed, hangs over its
-   * line: it grew the search to 40px (44px on a phone) and moved the
-   * card's description down 2px under the reader's typing.
+   * the buttons' padding: 38px at every width, as a button is in text-sm on
+   * a phone too since every button became one frame (#9128) - at 42px there
+   * the search and the ⋯ stood 4px taller than Create Monitor beside them.
+   * The x that empties it, which comes with the first letter typed, hangs
+   * over its line: it grew the search to 40px and moved the card's
+   * description down 2px under the reader's typing.
    */
   for (const size of [
     { width: 1280, height: 38 },
-    { width: 390, height: 42 },
+    { width: 390, height: 38 },
   ]) {
     test(`at ${size.width}px the search, the main button and the ⋯ are ${size.height}px tall, the search folded and opened`, async ({
       page,

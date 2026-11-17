@@ -56559,5 +56559,7 @@
   "This test also creates a real channel in the rule's Microsoft Teams team, such as {{channel}}, which everyone in the team can see. Delete it in Microsoft Teams when you are done.": "यह परीक्षण नियम की Microsoft Teams टीम में एक असली चैनल भी बनाता है, जैसे {{channel}}, जिसे टीम का हर सदस्य देख सकता है। काम पूरा होने पर उसे Microsoft Teams में हटा दें।",
   "This test also creates a real {{workspace}} channel, such as {{channel}}, and invites you to it. Archive it in {{workspace}} when you are done.": "यह परीक्षण एक असली {{workspace}} चैनल भी बनाता है, जैसे {{channel}}, और आपको उसमें आमंत्रित करता है। काम पूरा होने पर उसे {{workspace}} में संग्रहीत करें।",
   "{{team}} (typed name)": "{{team}} (टाइप किया गया नाम)",
-  "Nothing has checked this SLO's monitors yet. It is measured from their first check.": "इस SLO के मॉनिटर की अभी तक कोई जाँच नहीं हुई है। इसे उनकी पहली जाँच से मापा जाता है।"
+  "Nothing has checked this SLO's monitors yet. It is measured from their first check.": "इस SLO के मॉनिटर की अभी तक कोई जाँच नहीं हुई है। इसे उनकी पहली जाँच से मापा जाता है।",
+  "Discovered device {{name}}": "खोजा गया डिवाइस {{name}}",
+  "The Discovered Devices list": "खोजे गए डिवाइस की सूची"
 }
