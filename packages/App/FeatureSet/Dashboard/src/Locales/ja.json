@@ -56533,5 +56533,8 @@
   "Matches no policy now.": "現在、一致するポリシーはありません。",
   "Matches {{count}} policies now: {{names}}.": "現在 {{count}} 件のポリシーに一致します：{{names}}。",
   "Matches {{count}} policies now: {{names}}._one": "現在 {{count}} 件のポリシーに一致します：{{names}}。",
-  "Use On-Call Policy instead": "代わりに「オンコールポリシー」を使用"
+  "Use On-Call Policy instead": "代わりに「オンコールポリシー」を使用",
+  "Drop one CSV file at a time.": "CSV ファイルは 1 つずつドロップしてください。",
+  "Drop the CSV file to upload it": "CSV ファイルをここにドロップしてアップロード",
+  "{{fileName}} is not a CSV file. Choose or drop a file that ends in .csv.": "{{fileName}} は CSV ファイルではありません。.csv で終わるファイルを選択するか、ドロップしてください。"
 }

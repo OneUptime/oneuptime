@@ -110,6 +110,7 @@ import NotificationBell from "Common/UI/Components/HeaderAlert/NotificationBell/
 import { HeaderAlertType } from "Common/UI/Components/HeaderAlert/HeaderAlert";
 import Steps from "Common/UI/Components/Forms/Steps/Steps";
 import TableRow from "Common/UI/Components/Table/TableRow";
+import CSVFileUpload from "Common/UI/Components/CSVFileUpload/CSVFileUpload";
 import TrafficConversationDiagram from "../../../App/FeatureSet/Dashboard/src/Components/NetworkTraffic/TrafficConversationDiagram";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FilterViewer from "Common/UI/Components/Filters/FilterViewer";
@@ -1453,6 +1454,17 @@ function Keyboard() {
           }}
           onSelectDestination={(address) => {
             say(`destination:${address}`);
+          }}
+        />
+      </Card>
+      <Card title="Import subscribers" description="A CSV dropped or chosen.">
+        <CSVFileUpload
+          columns={[
+            { key: "email", title: "Email", required: true },
+            { key: "name", title: "Name", required: false },
+          ]}
+          onDataChanged={(rows) => {
+            say(`csv:${rows.length}`);
           }}
         />
       </Card>

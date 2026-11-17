@@ -56533,5 +56533,8 @@
   "Matches no policy now.": "اکنون با هیچ سیاستی مطابقت ندارد.",
   "Matches {{count}} policies now: {{names}}.": "اکنون با {{count}} سیاست مطابقت دارد: {{names}}.",
   "Matches {{count}} policies now: {{names}}._one": "اکنون با {{count}} سیاست مطابقت دارد: {{names}}.",
-  "Use On-Call Policy instead": "به‌جای آن از «سیاست آنکال» استفاده کنید"
+  "Use On-Call Policy instead": "به‌جای آن از «سیاست آنکال» استفاده کنید",
+  "Drop one CSV file at a time.": "هر بار فقط یک فایل CSV رها کنید.",
+  "Drop the CSV file to upload it": "فایل CSV را رها کنید تا بارگذاری شود",
+  "{{fileName}} is not a CSV file. Choose or drop a file that ends in .csv.": "{{fileName}} فایل CSV نیست. فایلی را که با ‎.csv تمام می‌شود انتخاب یا رها کنید."
 }

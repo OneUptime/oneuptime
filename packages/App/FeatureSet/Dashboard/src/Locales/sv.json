@@ -56533,5 +56533,8 @@
   "Matches no policy now.": "Matchar nu ingen policy.",
   "Matches {{count}} policies now: {{names}}.": "Matchar nu {{count}} policyer: {{names}}.",
   "Matches {{count}} policies now: {{names}}._one": "Matchar nu {{count}} policy: {{names}}.",
-  "Use On-Call Policy instead": "Använd ”Jourpolicy” i stället"
+  "Use On-Call Policy instead": "Använd ”Jourpolicy” i stället",
+  "Drop one CSV file at a time.": "Släpp en CSV-fil i taget.",
+  "Drop the CSV file to upload it": "Släpp CSV-filen för att ladda upp den",
+  "{{fileName}} is not a CSV file. Choose or drop a file that ends in .csv.": "{{fileName}} är inte en CSV-fil. Välj eller släpp en fil som slutar på .csv."
 }

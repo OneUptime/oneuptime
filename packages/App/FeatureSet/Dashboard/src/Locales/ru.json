@@ -56533,5 +56533,8 @@
   "Matches no policy now.": "Сейчас не подходит ни одна политика.",
   "Matches {{count}} policies now: {{names}}.": "Сейчас подходят политики ({{count}}): {{names}}.",
   "Matches {{count}} policies now: {{names}}._one": "Сейчас подходит {{count}} политика: {{names}}.",
-  "Use On-Call Policy instead": "Использовать «Политика дежурства»"
+  "Use On-Call Policy instead": "Использовать «Политика дежурства»",
+  "Drop one CSV file at a time.": "Перетаскивайте по одному CSV-файлу.",
+  "Drop the CSV file to upload it": "Отпустите CSV-файл, чтобы загрузить его",
+  "{{fileName}} is not a CSV file. Choose or drop a file that ends in .csv.": "{{fileName}} — не CSV-файл. Выберите или перетащите файл с расширением .csv."
 }

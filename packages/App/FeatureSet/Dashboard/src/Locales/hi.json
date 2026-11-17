@@ -56533,5 +56533,8 @@
   "Matches no policy now.": "अभी किसी नीति से मेल नहीं खाता।",
   "Matches {{count}} policies now: {{names}}.": "अभी {{count}} नीतियों से मेल खाता है: {{names}}।",
   "Matches {{count}} policies now: {{names}}._one": "अभी {{count}} नीति से मेल खाता है: {{names}}।",
-  "Use On-Call Policy instead": "इसके बजाय “ऑन-कॉल नीति” का उपयोग करें"
+  "Use On-Call Policy instead": "इसके बजाय “ऑन-कॉल नीति” का उपयोग करें",
+  "Drop one CSV file at a time.": "एक बार में एक ही CSV फ़ाइल छोड़ें।",
+  "Drop the CSV file to upload it": "अपलोड करने के लिए CSV फ़ाइल यहाँ छोड़ें",
+  "{{fileName}} is not a CSV file. Choose or drop a file that ends in .csv.": "{{fileName}} CSV फ़ाइल नहीं है। .csv पर ख़त्म होने वाली फ़ाइल चुनें या यहाँ छोड़ें।"
 }
