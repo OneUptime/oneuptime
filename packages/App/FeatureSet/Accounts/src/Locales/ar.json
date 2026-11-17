@@ -570,6 +570,7 @@
   "What was sent is larger than the 50 MB OneUptime takes in one request.": "ما أُرسل أكبر من 50 MB، وهو أقصى ما يقبله OneUptime في طلب واحد.",
   "Try again with less at once, such as a smaller file.": "حاول مرة أخرى بإرسال كمية أقل في كل مرة، مثل ملف أصغر.",
   "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "إذا رفضه وكيل (proxy) أمام OneUptime، فارفع حد حجم الطلب في ذلك الوكيل إلى 50 MB، أي ما يقبله OneUptime نفسه (في nginx، client_max_body_size 50M).",
+  "Dismiss": "إخفاء",
   "This form is not available. It may have been turned off, or the link may be out of date.": "هذا النموذج غير متاح. ربما عُطّل، أو ربما يكون الرابط قديمًا.",
   "This form can only be opened from an allowed network.": "لا يمكن فتح هذا النموذج إلا من شبكة مسموح بها.",
   "Too many submissions from your network. Please wait a few minutes and try again.": "عدد كبير جدًا من الإرسالات من شبكتك. يُرجى الانتظار بضع دقائق ثم المحاولة مرة أخرى.",
@@ -646,6 +647,5 @@
     "note": "ملاحظة",
     "tip": "نصيحة",
     "warning": "تحذير"
-  },
-  "Dismiss": "إخفاء"
+  }
 }
