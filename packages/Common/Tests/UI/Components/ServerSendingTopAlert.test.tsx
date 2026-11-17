@@ -223,7 +223,96 @@ describe("as drawn", () => {
     const banner: HTMLElement = screen.getByTestId("server-sending-alert");
 
     expect(banner).not.toHaveTextContent("The mail server said");
-    expect(banner).toHaveTextContent("invitations and incident emails");
+    expect(banner).toHaveTextContent(
+      "No email has gone out through this server's email settings since",
+    );
+  });
+
+  /*
+   * #9217: the banner said "invitations and incident emails are not
+   * arriving" for one recipient's refusal. It now says only what is known:
+   * that nothing has gone out through the server's settings since then.
+   */
+  test("email failing says what failed and since when, and claims no more", () => {
+    draw(
+      answer({
+        email: ServerSendingState.Failing,
+        failingSince: "2026-11-11T09:00:00.000Z",
+        lastFailure: "535 5.7.8 Authentication failed",
+      }),
+    );
+
+    const banner: HTMLElement = screen.getByTestId("server-sending-alert");
+
+    expect(banner).toHaveTextContent(
+      "No email has gone out through this server's email settings since",
+    );
+    expect(banner).toHaveTextContent(
+      "The mail server said: 535 5.7.8 Authentication failed",
+    );
+    expect(banner).not.toHaveTextContent("not arriving");
+  });
+
+  test("email failing links the email logs where the page has them, in the same tab", () => {
+    render(
+      <ServerSendingTopAlert
+        emailSettingsLink={URL.fromString(
+          "https://oneuptime.example.com/admin/settings/smtp",
+        )}
+        globalProbesLink={PROBES}
+        emailLogsLink={new Route("/dashboard/p1/settings/notification-logs")}
+        openLinksInNewTab={true}
+        answer={answer({
+          email: ServerSendingState.Failing,
+          failingSince: "2026-11-11T09:00:00.000Z",
+          lastFailure: "Connection timeout",
+        })}
+      />,
+    );
+
+    const settings: HTMLElement = screen.getByTestId(
+      "server-sending-alert-action",
+    );
+    const logs: HTMLElement = screen.getByTestId("server-sending-alert-logs");
+
+    expect(settings.getAttribute("target")).toBe("_blank");
+    expect(logs).toHaveTextContent(SERVER_SENDING_ALERT_COPY.seeEmailLogs);
+    expect(logs.getAttribute("href")).toContain(
+      "/dashboard/p1/settings/notification-logs",
+    );
+    expect(logs.getAttribute("target")).not.toBe("_blank");
+  });
+
+  test("with no email logs to link, only the settings are linked", () => {
+    draw(
+      answer({
+        email: ServerSendingState.Failing,
+        failingSince: "2026-11-11T09:00:00.000Z",
+      }),
+    );
+
+    expect(screen.queryByTestId("server-sending-alert-logs")).toBeNull();
+  });
+
+  test("addresses refused while email works draw no banner", () => {
+    const value: ServerSendingStatusAnswer = answer({
+      email: ServerSendingState.Working,
+    });
+
+    value.channels[0]!.recipientRefusals = [
+      {
+        recipient: "new.user@example.com",
+        reason:
+          "554 Message rejected: Email address is not verified. The following identities failed the check in region US-EAST-1: new.user@example.com",
+        at: "2026-11-16T09:18:00.000Z",
+      },
+    ];
+
+    expect(getServerSendingAlert(value)).toBeNull();
+
+    draw(value);
+
+    expect(screen.queryByTestId("server-sending-alert")).toBeNull();
   });
 
   test("global probes silent: See global probes", () => {

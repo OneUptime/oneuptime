@@ -2144,8 +2144,6 @@
   "Check email settings": "Check email settings",
   "Email is failing": "Email is failing",
   "Email is not set up": "Email is not set up",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.": "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}": "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}",
   "Invitations, password resets and incident emails are not sent.": "Invitations, password resets and incident emails are not sent.",
   "Monitors that run on global probes are not being checked.": "Monitors that run on global probes are not being checked.",
   "No global probe is reporting": "No global probe is reporting",
@@ -4165,5 +4163,11 @@
   "OneUptime switched this rule off when they were deleted.": "OneUptime switched this rule off when they were deleted.",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.",
   "{{names}} and {{count}} more": "{{names}} and {{count}} more",
-  "{{names}} and {{count}} more_one": "{{names}} and {{count}} more"
+  "{{names}} and {{count}} more_one": "{{names}} and {{count}} more",
+  "No email has gone out through this server's email settings since {{time}}.": "No email has gone out through this server's email settings since {{time}}.",
+  "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}",
+  "See email logs": "See email logs",
+  "Addresses the mail server refused": "Addresses the mail server refused",
+  "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.",
+  "Last refused {{time}}": "Last refused {{time}}"
 }

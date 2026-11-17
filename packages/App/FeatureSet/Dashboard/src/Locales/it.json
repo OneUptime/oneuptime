@@ -50160,8 +50160,6 @@
   "Either {{name}} has an A record, or your DNS provider proxies or flattens it (Cloudflare's orange cloud does), which hides the CNAME record. Replace the A record with a CNAME record whose value is {{expectedValue}}, or set the name to DNS only.": "O {{name}} ha un record A, oppure il tuo provider DNS lo fa passare da un proxy o lo appiattisce (la nuvola arancione di Cloudflare lo fa), il che nasconde il record CNAME. Sostituisci il record A con un record CNAME il cui valore sia {{expectedValue}}, o imposta il nome su DNS only.",
   "Email is failing": "L'invio delle email non riesce",
   "Email is not set up": "L'email non è configurata",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.": "L'invio delle email non riesce dal {{time}}, quindi gli inviti e le email sugli incidenti non arrivano.",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}": "L'invio delle email non riesce dal {{time}}, quindi gli inviti e le email sugli incidenti non arrivano. Il server di posta ha risposto: {{reason}}",
   "Enter the address people will open, such as status.example.com: letters, digits, dots and hyphens only.": "Inserisci l'indirizzo che le persone apriranno, ad esempio status.example.com: solo lettere, cifre, punti e trattini.",
   "Found": "Trovato",
   "Invitations, password resets and incident emails are not sent.": "Inviti, reimpostazioni della password ed email sugli incidenti non vengono inviati.",
@@ -56513,5 +56511,8 @@
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "Chiunque abbia accesso al repository può vedere questa pull request, con la modifica e la sua descrizione. Questo incidente privato non vi è menzionato.",
   "Only someone who may approve fixes can open this pull request.": "Solo chi può approvare le correzioni può aprire questa pull request.",
   "VPA": "VPA",
-  "This check was too large to keep in full, so it was trimmed.": "Questo controllo era troppo grande per essere conservato per intero, quindi è stato ridotto."
+  "This check was too large to keep in full, so it was trimmed.": "Questo controllo era troppo grande per essere conservato per intero, quindi è stato ridotto.",
+  "No email has gone out through this server's email settings since {{time}}.": "Nessuna email è stata inviata tramite le impostazioni email di questo server dal {{time}}.",
+  "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "Nessuna email è stata inviata tramite le impostazioni email di questo server dal {{time}}. Il server di posta ha risposto: {{reason}}",
+  "See email logs": "Vedi i log delle email"
 }

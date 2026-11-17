@@ -1204,3 +1204,51 @@ describe("the answer, read in a browser", () => {
     expect(read!.openRequired).toEqual([ServerSetupCheckId.Email]);
   });
 });
+
+/*
+ * #9217: the addresses refused while email works ride on the email check,
+ * so Settings > Emails lists them beside the test - and the check stays
+ * done, never failing, for them.
+ */
+describe("addresses refused while email works", () => {
+  test("ride on the email check, which stays done, and are read back in a browser", () => {
+    const refusal: {
+      recipient: string;
+      reason: string;
+      at: string;
+    } = {
+      recipient: "new.user@example.com",
+      reason:
+        "554 Message rejected: Email address is not verified. The following identities failed the check in region US-EAST-1: new.user@example.com",
+      at: EARLIER,
+    };
+
+    const sent: ServerSetupChecklistAnswer = ServerSetupChecklistUtil.getAnswer(
+      {
+        facts: freshFacts({
+          email: {
+            ...channel(ServerSendingChannel.Email, ServerSendingState.Working),
+            recipientRefusals: [refusal],
+          },
+          emailSentThrough: "smtp.example.com",
+        }),
+        readerUserId: "ada",
+      },
+    );
+
+    const email: ServerSetupCheckResult | null =
+      ServerSetupChecklistUtil.getCheck(sent, ServerSetupCheckId.Email);
+
+    expect(email?.status).toBe(ServerSetupStatus.Done);
+    expect(email?.channels[0]?.recipientRefusals).toEqual([refusal]);
+    expect(email?.channels[0]?.sentThrough).toBe("smtp.example.com");
+
+    const read: ServerSetupChecklistAnswer | null =
+      ServerSetupChecklistUtil.parseAnswer(JSON.parse(JSON.stringify(sent)));
+
+    expect(
+      ServerSetupChecklistUtil.getCheck(read!, ServerSetupCheckId.Email)
+        ?.channels[0]?.recipientRefusals,
+    ).toEqual([refusal]);
+  });
+});

@@ -359,6 +359,54 @@ describe("what each refusal reads as", () => {
     expect(error.refusedInlineImages).toBe(false);
   });
 
+  /*
+   * #9217: the sender is verified, a sandbox recipient is not. Said as the
+   * recipient's, never as the sender's: only email to that address fails.
+   */
+  test("a recipient the SES sandbox has not verified is named as the recipient", () => {
+    const error: MailApiSendException = explain(
+      400,
+      {
+        message:
+          "Email address is not verified. The following identities failed the check in region EU-WEST-1: new.user@customer.example",
+      },
+      typed("MessageRejected"),
+    );
+
+    expect(error.message).toBe(
+      "Amazon SES has not verified the recipient new.user@customer.example in eu-west-1 (HTTP 400 MessageRejected). While the account is in the SES sandbox, it sends only to verified addresses: verify this one, or request production access. Amazon SES said: MessageRejected: Email address is not verified. The following identities failed the check in region EU-WEST-1: new.user@customer.example",
+    );
+    expect(error.message).not.toContain("for alerts@example.test");
+    expect(error.isRetryable).toBe(false);
+  });
+
+  test("whether only recipients are unverified reads the identities SES names", () => {
+    const listed: (identities: string) => string = (
+      identities: string,
+    ): string => {
+      return `Email address is not verified. The following identities failed the check in region US-EAST-1: ${identities}`;
+    };
+
+    expect(
+      AmazonSesMailProvider.isOnlyRecipientsUnverified(
+        listed("someone@example.com"),
+        "alerts@example.test",
+      ),
+    ).toBe(true);
+    expect(
+      AmazonSesMailProvider.isOnlyRecipientsUnverified(
+        listed("someone@example.com, Alerts@Example.test"),
+        "alerts@example.test",
+      ),
+    ).toBe(false);
+    expect(
+      AmazonSesMailProvider.isOnlyRecipientsUnverified(
+        "Email address is not verified.",
+        "alerts@example.test",
+      ),
+    ).toBe(false);
+  });
+
   test.each([
     ["MailFromDomainNotVerifiedException", "MAIL FROM domain"],
     ["AccountSuspendedException", "suspended sending"],

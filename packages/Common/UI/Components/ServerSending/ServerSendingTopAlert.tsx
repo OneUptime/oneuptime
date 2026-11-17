@@ -23,7 +23,13 @@ import React, { FunctionComponent, ReactElement } from "react";
  *   - email is not set up, so invitations, password resets and incident
  *     emails are not sent - a fresh self-hosted server, until its admin sets
  *     email up;
- *   - email was set up and its sends now fail, since when and why;
+ *   - email was set up and its sends now fail, since when and why - a
+ *     failure of the settings, the way to the mail service or the sender,
+ *     never one recipient's (#9217): an address that does not exist, or one
+ *     an Amazon SES sandbox has not verified, is said on that email's log
+ *     row and in Settings > Emails, and every other email still goes out.
+ *     It goes once an email goes out through the same settings again - a
+ *     real one, or a test, which takes the same way to the mail service;
  *   - the server's global probes have all stopped reporting, so monitors
  *     that run on them are not checked.
  *
@@ -60,6 +66,7 @@ export const SERVER_SENDING_ALERT_COPY: {
   emailFailingDescription: string;
   emailFailingWithReasonDescription: string;
   checkEmailSettings: string;
+  seeEmailLogs: string;
   probesSilentTitle: string;
   probesSilentDescription: string;
   seeGlobalProbes: string;
@@ -71,12 +78,13 @@ export const SERVER_SENDING_ALERT_COPY: {
   setUpEmail: translationKey("Set up email"),
   emailFailingTitle: translationKey("Email is failing"),
   emailFailingDescription: translationKey(
-    "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.",
+    "No email has gone out through this server's email settings since {{time}}.",
   ),
   emailFailingWithReasonDescription: translationKey(
-    "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}",
+    "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}",
   ),
   checkEmailSettings: translationKey("Check email settings"),
+  seeEmailLogs: translationKey("See email logs"),
   probesSilentTitle: translationKey("No global probe is reporting"),
   probesSilentDescription: translationKey(
     "Monitors that run on global probes are not being checked.",
@@ -126,7 +134,15 @@ export interface ComponentProps {
   emailSettingsLink: Route | URL;
   // Where the global probes are listed: the Admin Dashboard's Settings > Probes.
   globalProbesLink: Route | URL;
-  // Open the links in a new tab: from the Dashboard, they are another app.
+  /*
+   * Where the emails that failed are listed, when the page has such a
+   * list: the project's Notification Logs, in the Dashboard.
+   */
+  emailLogsLink?: Route | URL | undefined;
+  /*
+   * Open the settings links in a new tab: from the Dashboard, they are
+   * another app. The email logs are in this one.
+   */
   openLinksInNewTab?: boolean | undefined;
   // For tests: the answer to draw, instead of reading it.
   answer?: ServerSendingStatusAnswer | null | undefined;
@@ -150,15 +166,17 @@ const ServerSendingTopAlert: FunctionComponent<ComponentProps> = (
     to: Route | URL,
     text: string,
     testId: string,
+    isInThisApp?: boolean,
   ) => ReactElement = (
     to: Route | URL,
     text: string,
     testId: string,
+    isInThisApp?: boolean,
   ): ReactElement => {
     return (
       <Link
         to={to}
-        openInNewTab={props.openLinksInNewTab}
+        openInNewTab={isInThisApp ? false : props.openLinksInNewTab}
         className="font-semibold underline"
         dataTestId={testId}
       >
@@ -201,10 +219,26 @@ const ServerSendingTopAlert: FunctionComponent<ComponentProps> = (
             SERVER_SENDING_ALERT_COPY.emailFailingDescription,
             { time: since },
           );
-      action = link(
-        props.emailSettingsLink,
-        SERVER_SENDING_ALERT_COPY.checkEmailSettings,
-        "server-sending-alert-action",
+      action = (
+        <>
+          {link(
+            props.emailSettingsLink,
+            SERVER_SENDING_ALERT_COPY.checkEmailSettings,
+            "server-sending-alert-action",
+          )}
+          {props.emailLogsLink ? (
+            <span className="ms-3 inline-block">
+              {link(
+                props.emailLogsLink,
+                SERVER_SENDING_ALERT_COPY.seeEmailLogs,
+                "server-sending-alert-logs",
+                true,
+              )}
+            </span>
+          ) : (
+            <></>
+          )}
+        </>
       );
       break;
     }

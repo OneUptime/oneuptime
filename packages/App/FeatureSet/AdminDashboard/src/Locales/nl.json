@@ -2144,8 +2144,6 @@
   "Check email settings": "E-mailinstellingen controleren",
   "Email is failing": "E-mail mislukt",
   "Email is not set up": "E-mail is niet ingesteld",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.": "E-mails mislukken sinds {{time}}, dus uitnodigingen en incidentmails komen niet aan.",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}": "E-mails mislukken sinds {{time}}, dus uitnodigingen en incidentmails komen niet aan. De mailserver antwoordde: {{reason}}",
   "Invitations, password resets and incident emails are not sent.": "Uitnodigingen, wachtwoordherstel en incidentmails worden niet verzonden.",
   "Monitors that run on global probes are not being checked.": "Monitoren die op globale sondes draaien, worden niet gecontroleerd.",
   "No global probe is reporting": "Geen enkele globale sonde meldt zich",
@@ -4165,5 +4163,11 @@
   "OneUptime switched this rule off when they were deleted.": "OneUptime heeft deze regel uitgeschakeld toen ze werden verwijderd.",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "Ingeschakeld zoals hij is, zou de regel helemaal niet meer door deze lijsten worden beperkt. Bewerk hem om te kiezen waarop hij van toepassing is en schakel hem daarna in.",
   "{{names}} and {{count}} more": "{{names}} en nog {{count}}",
-  "{{names}} and {{count}} more_one": "{{names}} en nog {{count}}"
+  "{{names}} and {{count}} more_one": "{{names}} en nog {{count}}",
+  "No email has gone out through this server's email settings since {{time}}.": "Sinds {{time}} is er geen e-mail meer verstuurd via de e-mailinstellingen van deze server.",
+  "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "Sinds {{time}} is er geen e-mail meer verstuurd via de e-mailinstellingen van deze server. De mailserver meldde: {{reason}}",
+  "See email logs": "E-maillogboeken bekijken",
+  "Addresses the mail server refused": "Adressen die de mailserver weigerde",
+  "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "Andere e-mails zijn verstuurd, dus alleen deze adressen zijn getroffen. Corrigeer het adres of laat je e-mailprovider het accepteren: een Amazon SES-sandbox verstuurt alleen naar adressen die hij heeft geverifieerd.",
+  "Last refused {{time}}": "Laatst geweigerd op {{time}}"
 }

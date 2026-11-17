@@ -18,6 +18,7 @@ import ServerSendingStatusUtil, {
   ServerChannelStatus,
   ServerGlobalProbesStatus,
   ServerSendingChannel,
+  ServerSendingFailureScope,
   ServerSendingHealth,
   ServerSendingHealthEntry,
   ServerSendingSettingsFingerprints,
@@ -339,13 +340,70 @@ export default class ServerSendingStatus {
   ): Promise<void> {
     const now: Date = new Date();
     const reason: string = outcome.reason || "";
+    const recipient: string = outcome.recipient || "";
+    const scope: ServerSendingFailureScope =
+      outcome.scope || ServerSendingFailureScope.Server;
+
+    /*
+     * A recipient's refusal with no recipient named has nowhere to be kept:
+     * it is only that email's, on its log row.
+     */
+    if (
+      !outcome.succeeded &&
+      scope === ServerSendingFailureScope.Recipient &&
+      !recipient
+    ) {
+      return;
+    }
 
     const isNews: (entry: ServerSendingHealthEntry) => boolean = (
       entry: ServerSendingHealthEntry,
     ): boolean => {
-      return outcome.succeeded
-        ? ServerSendingStatusUtil.shouldWriteSucceeded(entry, now)
-        : ServerSendingStatusUtil.shouldWriteFailed(entry, reason, now);
+      if (outcome.succeeded) {
+        return ServerSendingStatusUtil.shouldWriteSucceeded(
+          entry,
+          now,
+          recipient,
+        );
+      }
+
+      switch (scope) {
+        case ServerSendingFailureScope.Recipient:
+          return ServerSendingStatusUtil.shouldWriteRecipientRefused(
+            entry,
+            recipient,
+            reason,
+            now,
+          );
+        case ServerSendingFailureScope.Throttled:
+          return ServerSendingStatusUtil.shouldWriteThrottled(entry, now);
+        default:
+          return ServerSendingStatusUtil.shouldWriteFailed(entry, reason, now);
+      }
+    };
+
+    const written: (
+      entry: ServerSendingHealthEntry,
+    ) => ServerSendingHealthEntry = (
+      entry: ServerSendingHealthEntry,
+    ): ServerSendingHealthEntry => {
+      if (outcome.succeeded) {
+        return ServerSendingStatusUtil.withSucceeded(entry, now, recipient);
+      }
+
+      switch (scope) {
+        case ServerSendingFailureScope.Recipient:
+          return ServerSendingStatusUtil.withRecipientRefused(
+            entry,
+            recipient,
+            reason,
+            now,
+          );
+        case ServerSendingFailureScope.Throttled:
+          return ServerSendingStatusUtil.withThrottled(entry, reason, now);
+        default:
+          return ServerSendingStatusUtil.withFailed(entry, reason, now);
+      }
     };
 
     const known: CachedHealth = await ServerSendingStatus.readHealth();
@@ -380,9 +438,7 @@ export default class ServerSendingStatus {
     const health: ServerSendingHealth = { ...fresh.health };
 
     health[outcome.channel] = ServerSendingStatusUtil.withSettingsFingerprint(
-      outcome.succeeded
-        ? ServerSendingStatusUtil.withSucceeded(entry, now)
-        : ServerSendingStatusUtil.withFailed(entry, reason, now),
+      written(entry),
       fingerprints,
     );
 
