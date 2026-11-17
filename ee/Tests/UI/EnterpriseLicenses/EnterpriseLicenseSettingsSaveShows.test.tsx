@@ -122,6 +122,7 @@ import AdminModelAPI from "@oneuptime/admin-dashboard/Utils/ModelAPI";
 import EnterpriseLicense from "Common/Models/DatabaseModels/EnterpriseLicense";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import OneUptimeDate from "Common/Types/Date";
+import { withPlainSpaces } from "Common/Types/NoBreakSpaces";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate from "Common/UI/Utils/PermissionGate";
 import TableFilterUrlState from "Common/UI/Utils/TableFilterUrlState";
@@ -329,9 +330,13 @@ describe("a new expiry reminder, saved under the license list (issue #6766)", ()
     const acmeStatus: string = getLicenseStatusText(
       getLicenseLifecycle(ACME.expiresAt, 90),
     );
-    expect(acmeStatus).toMatch(/^Expires in \d+ days$/);
+    expect(acmeStatus).toMatch(/^Expires in \d+\u00A0days$/);
+    /*
+     * The badge holds the number to its word; Testing Library reads that
+     * no-break space as a plain one.
+     */
     expect(
-      within(rowOf("Acme Corp")).getByText(acmeStatus),
+      within(rowOf("Acme Corp")).getByText(withPlainSpaces(acmeStatus)),
     ).toBeInTheDocument();
     expect(
       within(rowOf("GovTech Singapore")).getByText("Active"),
