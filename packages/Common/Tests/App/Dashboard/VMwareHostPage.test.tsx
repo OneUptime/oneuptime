@@ -1019,13 +1019,15 @@ describe("the cards", () => {
     expect(
       within(rows[0]!).queryByTestId("vmware-host-busy-vm-cpu-ready"),
     ).toBeNull();
-    // 14.2% is past it: amber, as Needs attention's "CPU ready 14%" above it.
+    /*
+     * 14.2% is past it: amber, as Needs attention's "CPU ready 14%" above it
+     * - the shared Pill in its Warning tone, never Danger's red.
+     */
     const badge: HTMLElement = within(rows[1]!).getByTestId(
       "vmware-host-busy-vm-cpu-ready",
     );
     expect(badge).toHaveTextContent("CPU Ready 14.2%");
-    expect(badge.className).toContain("bg-amber-50");
-    expect(badge.className).not.toContain("bg-red-50");
+    expect(badge).toHaveAttribute("data-tone", "warning");
 
     const attentionRow: HTMLElement | undefined = within(
       screen.getByTestId("vmware-host-attention"),

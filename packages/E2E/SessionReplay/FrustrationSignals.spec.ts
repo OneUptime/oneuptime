@@ -570,9 +570,18 @@ test("at 1280px the session list draws each name of the application's own on one
   const rows: Locator = page.getByTestId("session-row");
   const payment: Locator = rows.filter({ hasText: "Payment failed" }).first();
   const chat: Locator = rows.filter({ hasText: "Support chat opened" }).first();
-  const paymentName: Locator = payment.getByTestId("status-badge-text");
+  /*
+   * A badge is the shared Pill (9e395cabcc7): a name is its pill's text,
+   * the first in its signal's link, before the "+1" of how many more.
+   */
+  const paymentName: Locator = payment
+    .getByTitle("Payment failed, Support chat opened")
+    .getByTestId("pill-text")
+    .first();
   const more: Locator = payment.getByTestId("session-row-more-own-signals");
-  const chatName: Locator = chat.getByTestId("status-badge-text");
+  const chatName: Locator = chat
+    .getByTitle("Support chat opened")
+    .getByTestId("pill-text");
 
   await expect(paymentName).toHaveText("Payment failed");
   await expect(more).toHaveText("+1");

@@ -14,6 +14,7 @@ import {
   useInMemoryTable,
 } from "../TestingUtils/InMemoryRepository";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * A URL COLUMN AND THE SECRET FIELDS OF A JSON LIST, KEPT ENCRYPTED THROUGH
@@ -95,7 +96,7 @@ function permitEverything(): void {
 
 function quiet(
   service: DatabaseService<StatusPageSubscriber | NetworkDeviceDiscoveryScan>,
-): { workflow: jest.SpiedFunction<() => Promise<void>> } {
+): { workflow: SpyInstance<() => Promise<void>> } {
   jest
     .spyOn(service, "onTriggerRealtime")
     .mockResolvedValue(undefined as never);
@@ -193,7 +194,7 @@ describe("a URL column kept encrypted (a status page subscriber's webhook)", () 
         subscriberWebhook: await Encryption.encrypt(SLACK_HOOK),
       },
     ]);
-    const workflow: jest.SpiedFunction<() => Promise<void>> = jest.spyOn(
+    const workflow: SpyInstance<() => Promise<void>> = jest.spyOn(
       service,
       "onTriggerWorkflow",
     ) as never;

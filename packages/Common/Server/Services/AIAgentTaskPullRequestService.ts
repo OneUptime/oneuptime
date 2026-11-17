@@ -161,14 +161,14 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
-    const onUpdate: OnUpdate<Model> = await super.onBeforeUpdate(updateBy);
+    await super.onBeforeUpdate(updateBy);
 
-    onUpdate.updateBy.query = Service.applyPrivacyFilters(
-      onUpdate.updateBy.query,
-      onUpdate.updateBy.props,
+    updateBy.query = Service.applyPrivacyFilters(
+      updateBy.query,
+      updateBy.props,
     );
 
-    return onUpdate;
+    return { updateBy, carryForward: null };
   }
 
   @CaptureSpan()
