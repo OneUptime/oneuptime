@@ -64,7 +64,7 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
-import { WhoIsToldResult } from "../../Types/Monitor/WhoIsTold";
+import { WhoIsToldEvent, WhoIsToldResult } from "../../Types/Monitor/WhoIsTold";
 import { MonitorTypeHelper } from "../../Types/Monitor/MonitorType";
 import ObjectID from "../../Types/ObjectID";
 import ScheduleShiftUtil, {
@@ -103,9 +103,11 @@ import {
   SetupHealthWorkspaceFact,
   applySetupHealthDismissals,
   getSetupHealthCounts,
+  getSetupHealthFactsForReader,
   getSetupHealthFindings,
   getSetupHealthFindingsForRecord,
   getSetupHealthRecordIds,
+  hasSetupHealthPrivateEvent,
   redactSetupHealthFindings,
 } from "../../Types/SetupHealth/SetupHealth";
 import WorkspaceType, {
@@ -135,6 +137,15 @@ import WorkspaceType, {
  * project's dismissals (RecommendationDismissal, RecommendationType.
  * SetupHealth) applied - read on every ask, so a dismissal or a Restore
  * shows at once, for everyone.
+ *
+ * A PRIVATE RECORD THAT IS NOT THEIRS TO SEE (#9370): an incident or alert a
+ * monitor would open, private, that the person could not read once it
+ * exists says only that it opens on that monitor's card - nothing of whom
+ * it tells, and none of the breaks it would raise (#7213). So it raises no
+ * finding of theirs here either: their findings are worked out again from
+ * the facts, kept for that, with such records' breaks left out
+ * (getSetupHealthFactsForReader). Somebody who may read every private
+ * record, or one in a project with none, is handed the project's findings.
  */
 
 // What is kept a minute per project.
@@ -142,6 +153,12 @@ interface ProjectFindings {
   findings: Array<SetupHealthFinding>;
   monitorCount: number;
   checkedAt: string;
+  /*
+   * The facts the findings were worked out from, kept only when a monitor
+   * would open a private record: a person who may not read it is told
+   * them again without it (getFindingsForCaller).
+   */
+  facts?: SetupHealthFacts | undefined;
 }
 
 // How many monitors one read takes.
@@ -261,14 +278,21 @@ export default class SetupHealthService {
       refresh: data.refresh,
     });
 
+    const findings: Array<SetupHealthFinding> = await this.getFindingsForCaller(
+      {
+        computed: computed,
+        props: data.props,
+      },
+    );
+
     const readable: SetupHealthReadable = await this.readReadable({
       projectId: data.projectId,
       props: data.props,
-      findings: computed.findings,
+      findings: findings,
     });
 
     const visible: Array<SetupHealthFinding> = redactSetupHealthFindings(
-      computed.findings,
+      findings,
       readable,
     );
 
@@ -322,7 +346,10 @@ export default class SetupHealthService {
     });
 
     const about: Array<SetupHealthFinding> = getSetupHealthFindingsForRecord(
-      computed.findings,
+      await this.getFindingsForCaller({
+        computed: computed,
+        props: data.props,
+      }),
       data.record,
     );
 
@@ -400,11 +427,49 @@ export default class SetupHealthService {
   private static async compute(projectId: ObjectID): Promise<ProjectFindings> {
     const facts: SetupHealthFacts = await this.readFacts(projectId);
 
-    return {
+    const computed: ProjectFindings = {
       findings: getSetupHealthFindings(facts),
       monitorCount: facts.chains.length,
       checkedAt: facts.now,
     };
+
+    if (hasSetupHealthPrivateEvent(facts)) {
+      computed.facts = facts;
+    }
+
+    return computed;
+  }
+
+  /*
+   * THE PROJECT'S FINDINGS AS THIS PERSON'S CARDS SAY THEM (#9370): without
+   * what a private record they may not read would raise - read as each
+   * monitor's card reads it for them (WhoIsToldService.readHiddenFromCaller)
+   * - or the project's own, when nothing is hidden from them.
+   */
+  private static async getFindingsForCaller(data: {
+    computed: ProjectFindings;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<SetupHealthFinding>> {
+    const facts: SetupHealthFacts | undefined = data.computed.facts;
+
+    if (!facts) {
+      return data.computed.findings;
+    }
+
+    const isHidden: (event: WhoIsToldEvent) => boolean =
+      await WhoIsToldService.readHiddenFromCaller({
+        props: data.props,
+        results: facts.chains,
+      });
+
+    const told: SetupHealthFacts = getSetupHealthFactsForReader(
+      facts,
+      isHidden,
+    );
+
+    return told === facts
+      ? data.computed.findings
+      : getSetupHealthFindings(told);
   }
 
   /*

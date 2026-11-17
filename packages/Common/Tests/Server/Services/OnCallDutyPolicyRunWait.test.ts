@@ -17,6 +17,7 @@ import OnCallPolicyRunMessage from "../../../Server/Utils/Workspace/LiveMessages
 import URL from "../../../Types/API/URL";
 import { Blue500, Yellow500 } from "../../../Types/BrandColors";
 import ObjectID from "../../../Types/ObjectID";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import OnCallDutyExecutionLogTimelineStatus from "../../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import { ON_CALL_POLICY_ARCHIVED_NOT_EXECUTED_MESSAGE } from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyArchive";
 import {
@@ -521,18 +522,20 @@ describe("starting a run whose moment came", () => {
         .displayColor,
     ).toEqual(Yellow500);
 
-    // Its policy's first rule.
-    expect(
-      (
-        stubs.ruleFindOneBy.mock.calls[0]![0] as {
-          query: Record<string, unknown>;
-        }
-      ).query,
-    ).toEqual({
+    // Its policy's first rule: the lowest place, which need not be 1 (#9369).
+    const firstRuleRead: {
+      query: Record<string, unknown>;
+      sort?: Record<string, unknown>;
+    } = stubs.ruleFindOneBy.mock.calls[0]![0] as {
+      query: Record<string, unknown>;
+      sort?: Record<string, unknown>;
+    };
+
+    expect(firstRuleRead.query).toEqual({
       projectId: PROJECT_ID,
       onCallDutyPolicyId: POLICY_ID,
-      order: 1,
     });
+    expect(firstRuleRead.sort).toEqual({ order: SortOrder.Ascending });
     expect(stubs.startRuleExecution).toHaveBeenCalledWith(
       RULE_ID,
       expect.objectContaining({

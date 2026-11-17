@@ -134,7 +134,11 @@ import RuleCriteria, {
   RULE_CRITERIA_LEGACY_NEVER_MATCH_PATTERN,
   RuleCriteriaOperator,
 } from "../../Types/Rules/RuleCriteria";
-import { getRuleCriteriaFieldsForModel } from "../../Types/Rules/RuleCriteriaFieldRegistry";
+import {
+  getRuleCriteriaFieldsForModel,
+  isRuleCriteriaOwnerField,
+  RULE_CRITERIA_OWNER_OPERATORS,
+} from "../../Types/Rules/RuleCriteriaFieldRegistry";
 import {
   And,
   DataSource,
@@ -3070,6 +3074,32 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     for (const filter of criteria.filters) {
+      /*
+       * Who owns the record (#9353): no column of the rule, so it is
+       * checked here - the ids of people and teams, compared with "Has any
+       * of" or "Has none of".
+       */
+      if (isRuleCriteriaOwnerField(this.modelName, filter.field)) {
+        if (!RULE_CRITERIA_OWNER_OPERATORS.includes(filter.operator)) {
+          throw new BadDataException(
+            `Rule criteria field "${filter.field}" supports only the HasAnyOf and HasNoneOf operators.`,
+          );
+        }
+
+        if (
+          !Array.isArray(filter.value) ||
+          filter.value.some((value: string): boolean => {
+            return !ObjectID.isValidUUID(value);
+          })
+        ) {
+          throw new BadDataException(
+            `Rule criteria field "${filter.field}" requires the IDs of people and teams.`,
+          );
+        }
+
+        continue;
+      }
+
       if (!allowedFields.includes(filter.field)) {
         throw new BadDataException(
           `Rule criteria field "${filter.field}" is not supported for ${this.modelName}.`,
@@ -7534,7 +7564,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
      * System/root creates don't get an owner; non-user callers (API keys,
      * Probes) have no userId either, and nobody owns what they make.
      */
-    if (props.isRoot || props.isMasterAdmin || !props.userId) {
+    if (!OwnedScopePermission.isCreatorMadeOwner(props)) {
       return;
     }
 

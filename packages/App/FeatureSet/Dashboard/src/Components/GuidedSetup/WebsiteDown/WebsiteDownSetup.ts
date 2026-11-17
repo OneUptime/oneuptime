@@ -38,6 +38,7 @@ import {
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 import { getProbeFailureCauseText } from "Common/Utils/Monitor/ProbeFailureReading";
+import { joinSentences } from "Common/UI/Components/DeleteConfirmation/DeleteConsequences";
 import { recordNameInSentence } from "Common/Utils/DefaultRecordNames";
 import { StateListType } from "Common/Utils/StateOrder";
 import {
@@ -159,7 +160,6 @@ export const WEBSITE_DOWN_COPY: {
   policyArchived: string;
   whoOwnerOnlyHelp: string;
   whoOwnerOnlyHelpNotOwner: string;
-  whoOnCallRulesLink: string;
   noEmail: string;
   noEmailForAdmin: string;
   setUpEmail: string;
@@ -300,7 +300,6 @@ export const WEBSITE_DOWN_COPY: {
   whoOwnerOnlyHelpNotOwner: translationKey(
     "You do not own this monitor, so you are not emailed when it goes down: add yourself on its Owners page. Paging a team needs an on-call policy: ask a Project Owner or Project Admin to set one up.",
   ),
-  whoOnCallRulesLink: translationKey("See the on-call rules"),
   noEmail: translationKey(
     "This server cannot send email yet, so nobody is emailed. A page can still reach you by SMS, a phone call or the mobile app once you add one to your notification methods. Ask your server's admin to set up email.",
   ),
@@ -1004,6 +1003,13 @@ export interface WebsiteDownSummaryFacts {
   // Who the policy pages first: people's and teams' names.
   policyResponders: Array<string>;
   isMonitorOwner: boolean;
+  /*
+   * Who the monitor tells, in When this goes down's words, for a project
+   * whose own policies and rules decide who is paged (#7055): its owners
+   * and who it pages (getWhoIsToldToldSentences). Not given, or empty, the
+   * summary says the project's rules decide.
+   */
+  whoIsToldSentences?: Array<string> | null | undefined;
   canSendEmail: boolean;
   testResult: OnCallTestPageResult | null;
   testResultSentence: string | null;
@@ -1094,10 +1100,13 @@ export const getWebsiteDownSummaryRows: (
           ),
     );
   } else if (facts.mode === WhoIsToldMode.ExistingPolicy) {
+    // Who they page for this monitor, as its overview says it (#7055).
     told.push(
-      translator.translateText(
-        "This project's on-call policies and rules decide who is paged.",
-      ) || "",
+      facts.whoIsToldSentences && facts.whoIsToldSentences.length > 0
+        ? joinSentences(facts.whoIsToldSentences)
+        : translator.translateText(
+            "This project's on-call policies and rules decide who is paged.",
+          ) || "",
     );
   }
 

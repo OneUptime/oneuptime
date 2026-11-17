@@ -3,6 +3,7 @@ import {
   WhoIsToldBreakKind,
   WhoIsToldChannels,
   WhoIsToldCriteria,
+  WhoIsToldEvent,
   WhoIsToldFix,
   WhoIsToldOwnersSource,
   WhoIsToldPersonProblem,
@@ -11,6 +12,7 @@ import {
   WhoIsToldServerChannel,
   getWhoIsToldBreaks,
   makeWhoIsToldBreak,
+  redactWhoIsTold,
 } from "../../../Types/Monitor/WhoIsTold";
 import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
 import { OnCallTestPageRecordKind } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
@@ -53,10 +55,12 @@ import {
   getDomainCertificateReason,
   getSetupHealthCounts,
   getSetupHealthDismissalId,
+  getSetupHealthFactsForReader,
   getSetupHealthFindingKey,
   getSetupHealthFindings,
   getSetupHealthFindingsForRecord,
   getSetupHealthRecordIds,
+  hasSetupHealthPrivateEvent,
   isIngestionKeyNeverUsed,
   isSetupHealthFindingReadable,
   isSetupHealthRecordKindWithAPage,
@@ -769,6 +773,164 @@ describe("the monitors' chains, as findings", () => {
         return item.check;
       }),
     ).toEqual([SetupHealthCheck.MonitorAlertsPageNobody]);
+  });
+
+  /*
+   * A READER OF A PRIVATE RECORD (#9370): the card of a monitor whose
+   * incident is private, and not theirs to see, raises none of its breaks
+   * for them (redactWhoIsTold) - so the list raises none of them either.
+   * Checkout's incident is private, Billing's is not, and both page
+   * Primary, which has no escalation rules.
+   */
+  describe("for a reader of a private record", () => {
+    function pagesPrimary(data: {
+      monitorId: string;
+      monitorName: string;
+      isPrivate: boolean;
+    }): WhoIsToldResult {
+      const criteria: WhoIsToldCriteria = criteriaPaging({
+        policyId: PRIMARY,
+      });
+      const event: WhoIsToldEvent = criteria.events[0]!;
+      event.policies[0]!.levelCount = 0;
+      event.policies[0]!.people = [];
+
+      if (data.isPrivate) {
+        event.isPrivate = true;
+        event.ownerIds = { userIds: [ANA], teamIds: [] };
+      }
+
+      const projectFacts: {
+        projectHasIncidentOnCallRules: boolean;
+        projectHasAlertOnCallRules: boolean;
+        projectHasOnCallPolicies: boolean;
+      } = {
+        projectHasIncidentOnCallRules: true,
+        projectHasAlertOnCallRules: true,
+        projectHasOnCallPolicies: true,
+      };
+
+      return {
+        ...chain({
+          monitorId: data.monitorId,
+          monitorName: data.monitorName,
+          criteria: [criteria],
+          breaks: getWhoIsToldBreaks({
+            criteria: [criteria],
+            channels: channels(),
+            ...projectFacts,
+          }),
+        }),
+        facts: projectFacts,
+      };
+    }
+
+    const project: () => SetupHealthFacts = (): SetupHealthFacts => {
+      return facts({
+        chains: [
+          pagesPrimary({
+            monitorId: CHECKOUT,
+            monitorName: "Checkout API",
+            isPrivate: true,
+          }),
+          pagesPrimary({
+            monitorId: BILLING,
+            monitorName: "Billing API",
+            isPrivate: false,
+          }),
+        ],
+        policies: [{ id: PRIMARY, name: "Primary" }],
+        policyIdsRunByRules: [PRIMARY],
+      });
+    };
+
+    // The monitors the finding on Primary says it affects.
+    function affected(findings: Array<SetupHealthFinding>): Array<string> {
+      return findings
+        .filter((finding: SetupHealthFinding): boolean => {
+          return finding.check === SetupHealthCheck.PolicyHasNoEscalationRules;
+        })
+        .flatMap((finding: SetupHealthFinding): Array<string> => {
+          return finding.related.map((record: SetupHealthRecord): string => {
+            return record.id;
+          });
+        });
+    }
+
+    const notTheirs: (event: WhoIsToldEvent) => boolean = (
+      event: WhoIsToldEvent,
+    ): boolean => {
+      return event.isPrivate === true;
+    };
+
+    test("each chain's breaks are the ones the reader's card says", () => {
+      const all: SetupHealthFacts = project();
+      const told: SetupHealthFacts = getSetupHealthFactsForReader(
+        all,
+        notTheirs,
+      );
+
+      all.chains.forEach((each: WhoIsToldResult, index: number) => {
+        expect(told.chains[index]!.breaks).toEqual(
+          redactWhoIsTold({
+            result: each,
+            readablePolicyIds: new Set<string>([PRIMARY]),
+            readableRuleIds: new Set<string>(),
+            readableOwnerRuleIds: new Set<string>(),
+            readableStatusPageIds: new Set<string>(),
+            canReadPrivateEvent: (): boolean => {
+              return false;
+            },
+          }).breaks,
+        );
+      });
+
+      expect(told.chains[0]!.breaks).toEqual([]);
+      // The chains themselves are whole: what a private record's criteria names is still run.
+      expect(told.chains[0]!.criteria).toBe(all.chains[0]!.criteria);
+    });
+
+    test("a policy's break a public incident raises too affects that incident's monitor alone", () => {
+      expect(
+        affected(
+          getSetupHealthFindings(
+            getSetupHealthFactsForReader(project(), notTheirs),
+          ),
+        ),
+      ).toEqual([BILLING]);
+    });
+
+    test("a break only the private incident raises is no finding of theirs", () => {
+      const onlyCheckout: SetupHealthFacts = project();
+      onlyCheckout.chains = [onlyCheckout.chains[0]!];
+
+      expect(
+        getSetupHealthFindings(
+          getSetupHealthFactsForReader(onlyCheckout, notTheirs),
+        ),
+      ).toEqual([]);
+      expect(affected(getSetupHealthFindings(onlyCheckout))).toEqual([
+        CHECKOUT,
+      ]);
+    });
+
+    test("who may read it is handed the same facts, and told it affects both", () => {
+      const all: SetupHealthFacts = project();
+
+      expect(
+        getSetupHealthFactsForReader(all, (): boolean => {
+          return false;
+        }),
+      ).toBe(all);
+      expect(affected(getSetupHealthFindings(all))).toEqual([
+        CHECKOUT,
+        BILLING,
+      ]);
+      expect(hasSetupHealthPrivateEvent(all)).toBe(true);
+      expect(
+        hasSetupHealthPrivateEvent(facts({ chains: [all.chains[1]!] })),
+      ).toBe(false);
+    });
   });
 });
 

@@ -112,6 +112,15 @@ export function applyRuleCriteriaLegacySafetyShadow<
       continue;
     }
 
+    /*
+     * A condition no column holds - who owns the record (#9353) - lives in
+     * the criteria alone: there is nothing of it to send.
+     */
+    if (!data.model.hasColumn(fieldName)) {
+      delete data.values[fieldName];
+      continue;
+    }
+
     const fieldType: TableColumnType | undefined =
       data.model.getTableColumnMetadata(fieldName)?.type;
     data.values[fieldName] =

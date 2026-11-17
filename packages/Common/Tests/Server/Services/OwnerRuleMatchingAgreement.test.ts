@@ -28,6 +28,11 @@ import Team from "../../../Models/DatabaseModels/Team";
 import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import User from "../../../Models/DatabaseModels/User";
 import AlertFeedService from "../../../Server/Services/AlertFeedService";
+import AlertIncidentRuleService from "../../../Server/Services/AlertIncidentRuleService";
+import AlertLabelRuleService from "../../../Server/Services/AlertLabelRuleService";
+import AlertPrivacyRuleService from "../../../Server/Services/AlertPrivacyRuleService";
+import IncidentLabelRuleService from "../../../Server/Services/IncidentLabelRuleService";
+import IncidentPrivacyRuleService from "../../../Server/Services/IncidentPrivacyRuleService";
 import AlertOnCallRuleEngineService from "../../../Server/Services/AlertOnCallRuleEngineService";
 import AlertOnCallRuleService from "../../../Server/Services/AlertOnCallRuleService";
 import AlertOwnerRuleEngineService from "../../../Server/Services/AlertOwnerRuleEngineService";
@@ -72,6 +77,10 @@ import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import {
   WhoIsToldEvent,
+  WhoIsToldOwnerAddedBy,
+  WhoIsToldOwnerKind,
+  WhoIsToldOwnerNotReached,
+  WhoIsToldOwnerProblem,
   WhoIsToldOwnerRecipient,
   WhoIsToldOwnersSource,
   WhoIsToldResult,
@@ -910,13 +919,98 @@ function recipientsReached(event: WhoIsToldEvent): Reached {
   );
 }
 
-// The owners the card names, without the resolver's own address list.
+// The owners the card names, without the resolver's own address list nor whom it never reaches.
 function namedOwners(event: WhoIsToldEvent): WhoIsToldEvent["owners"] {
   const named: WhoIsToldEvent["owners"] = { ...event.owners };
 
   delete named.recipients;
+  delete named.notReached;
 
   return named;
+}
+
+// The owners the card says no email reaches (#7572), by id, each once.
+function cardNotEmailed(event: WhoIsToldEvent): {
+  users: Array<string>;
+  teams: Array<string>;
+} {
+  const notReached: Array<WhoIsToldOwnerNotReached> =
+    event.owners.notReached || [];
+
+  return {
+    users: sortedUnique(
+      notReached
+        .filter((owner: WhoIsToldOwnerNotReached): boolean => {
+          return owner.kind === WhoIsToldOwnerKind.User;
+        })
+        .map((owner: WhoIsToldOwnerNotReached): string => {
+          return idOf(owner.id);
+        }),
+    ),
+    teams: sortedUnique(
+      notReached
+        .filter((owner: WhoIsToldOwnerNotReached): boolean => {
+          return owner.kind === WhoIsToldOwnerKind.Team;
+        })
+        .map((owner: WhoIsToldOwnerNotReached): string => {
+          return idOf(owner.id);
+        }),
+    ),
+  };
+}
+
+// A plain reading of the same: every owner named whom no email reaches.
+function oracleNotEmailed(facts: CaseFacts): {
+  users: Array<string>;
+  teams: Array<string>;
+} {
+  const owners: { users: Array<string>; teams: Array<string> } =
+    oracleOwners(facts);
+
+  return {
+    users: sortedUnique(
+      owners.users.filter((id: string): boolean => {
+        return !isMember(id);
+      }),
+    ),
+    teams: sortedUnique(
+      owners.teams.filter((id: string): boolean => {
+        return !teamReaches(id);
+      }),
+    ),
+  };
+}
+
+/*
+ * Whom the real record's email skips (#7572): each person named who got no
+ * owner row (OwnerRuleAssignment refuses one who is not a member), and each
+ * owner team row none of whose people the real email reached.
+ */
+function realNotEmailed(data: {
+  facts: CaseFacts;
+  recordId: string;
+  reached: Reached;
+}): { users: Array<string>; teams: Array<string> } {
+  const rows: { users: Array<string>; teams: Array<string> } = realOwnerRows(
+    data.recordId,
+  );
+  const reached: Array<string> =
+    typeof data.reached === "string" ? [] : data.reached;
+
+  return {
+    users: sortedUnique(
+      oracleOwners(data.facts).users.filter((id: string): boolean => {
+        return !rows.users.includes(id);
+      }),
+    ),
+    teams: sortedUnique(
+      rows.teams.filter((teamId: string): boolean => {
+        return !TEAM_ROWS.some((row: TeamRow): boolean => {
+          return row.teamId === teamId && reached.includes(row.userId);
+        });
+      }),
+    ),
+  };
 }
 
 interface EngineCase {
@@ -1077,6 +1171,21 @@ describe.each(ENGINES)("$label", (engine: EngineCase) => {
       .spyOn(IncidentOwnerRuleService, "findBy")
       .mockResolvedValue([] as never);
     jest.spyOn(AlertOwnerRuleService, "findBy").mockResolvedValue([] as never);
+    // No privacy, label or alert incident rules: what this suite holds is the owners.
+    for (const service of [
+      IncidentPrivacyRuleService,
+      AlertPrivacyRuleService,
+      IncidentLabelRuleService,
+      AlertLabelRuleService,
+      AlertIncidentRuleService,
+    ]) {
+      jest
+        .spyOn(
+          service as unknown as { findBy: () => Promise<unknown> },
+          "findBy",
+        )
+        .mockResolvedValue([] as never);
+    }
 
     // The card's other reads: nothing pages, nothing is public, every channel is on.
     jest.spyOn(MonitorService, "findOneBy").mockImplementation((async () => {
@@ -1328,6 +1437,22 @@ describe.each(ENGINES)("$label", (engine: EngineCase) => {
           return rule.id;
         }),
       }).toEqual({ context, ownerRules: oracleOwnerRules(facts) });
+      /*
+       * The owners the card says no email reaches (#7572) are exactly whom
+       * the real record and its email skip, and a plain reading of the rules.
+       */
+      expect({ context, notEmailed: cardNotEmailed(event) }).toEqual({
+        context,
+        notEmailed: oracleNotEmailed(facts),
+      });
+      expect({
+        context,
+        notEmailed: realNotEmailed({
+          facts: facts,
+          recordId: created[0]!,
+          reached: await realReached(engine.kind, created[0]!),
+        }),
+      }).toEqual({ context, notEmailed: oracleNotEmailed(facts) });
       // Nothing went wrong quietly on either side (both log and carry on).
       expect({ context, errors: errors.mock.calls }).toEqual({
         context,
@@ -1479,6 +1604,62 @@ describe.each(ENGINES)("$label", (engine: EngineCase) => {
     expect(await realReached(engine.kind, created[0]!)).toEqual(reached);
     // The resolver's own address list is the same people (#8860).
     expect(recipientsReached(event)).toEqual(reached);
+    /*
+     * Who it leaves out is said, with why and what named them (#7572): the
+     * person who left and the empty team on the criteria, the device's
+     * owner who never joined, the rule's leaver and its team with only an
+     * invitation nobody accepted. People are never named; the project's
+     * teams are (here by their ids).
+     */
+    expect(event.owners.notReached).toEqual(
+      expect.arrayContaining([
+        {
+          kind: WhoIsToldOwnerKind.User,
+          id: DEPARTED,
+          name: "",
+          problem: WhoIsToldOwnerProblem.NotInProject,
+          addedBy: WhoIsToldOwnerAddedBy.Criteria,
+        },
+        {
+          kind: WhoIsToldOwnerKind.Team,
+          id: EMPTY_TEAM,
+          name: EMPTY_TEAM,
+          problem: WhoIsToldOwnerProblem.TeamHasNobodyInProject,
+          addedBy: WhoIsToldOwnerAddedBy.Criteria,
+        },
+        expect.objectContaining({
+          kind: WhoIsToldOwnerKind.User,
+          id: PENDING,
+          name: "",
+          problem: WhoIsToldOwnerProblem.NotInProject,
+          addedBy: WhoIsToldOwnerAddedBy.NetworkDevice,
+        }),
+        {
+          kind: WhoIsToldOwnerKind.User,
+          id: DEPARTED,
+          name: "",
+          problem: WhoIsToldOwnerProblem.NotInProject,
+          addedBy: WhoIsToldOwnerAddedBy.OwnerRule,
+          rule: { id: ruleId(0), name: "Owner rule 0" },
+        },
+        {
+          kind: WhoIsToldOwnerKind.Team,
+          id: PENDING_TEAM,
+          name: PENDING_TEAM,
+          problem: WhoIsToldOwnerProblem.TeamHasNobodyInProject,
+          addedBy: WhoIsToldOwnerAddedBy.OwnerRule,
+          rule: { id: ruleId(0), name: "Owner rule 0" },
+        },
+      ]),
+    );
+    expect(event.owners.notReached).toHaveLength(5);
+    expect(cardNotEmailed(event)).toEqual(
+      realNotEmailed({
+        facts: facts,
+        recordId: created[0]!,
+        reached: await realReached(engine.kind, created[0]!),
+      }),
+    );
     expect(errors).not.toHaveBeenCalled();
   });
 

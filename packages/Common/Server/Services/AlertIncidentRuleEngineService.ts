@@ -15,7 +15,6 @@ import AlertStateService from "./AlertStateService";
 import IncidentAlertService from "./IncidentAlertService";
 import IncidentService from "./IncidentService";
 import IncidentSeverityService from "./IncidentSeverityService";
-import MonitorService from "./MonitorService";
 import {
   ALERT_INCIDENT_RULE_KIND,
   INCIDENT_ALERT_IDS_TO_LINK_KEY,
@@ -44,6 +43,7 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
 import Sort from "../Types/Database/Sort";
 import RuleSetCache from "../Utils/Rules/RuleSetCache";
+import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
 import { getAffectedResourceColumns } from "../Utils/Database/AffectedResourceRelations";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
@@ -222,6 +222,20 @@ export enum AlertIncidentRuleOutcome {
  * unbounded run that overlaps the next.
  */
 export const ALERT_INCIDENT_RULE_CHECKS_PER_RUN: number = 100;
+
+/*
+ * WHAT A PROJECT'S ALERT INCIDENT RULES SAY OF ONE ALERT (#7216): the first
+ * enabled rule that matches it, and whether it declares right away or waits
+ * - read, never written. decide carries it out, and "When this goes down"
+ * (WhoIsToldService) reads it for the alert a monitor's criteria would open,
+ * held in memory, so the card names the incident a real alert becomes.
+ */
+export interface AlertIncidentRulePlan {
+  rule: AlertIncidentRule;
+  declaresRightAway: boolean;
+  // How long it waits for the alert to be resolved; 0 when it does not.
+  waitInMinutes: number;
+}
 
 export interface AlertIncidentRuleResult {
   outcome: AlertIncidentRuleOutcome;
@@ -435,16 +449,18 @@ class AlertIncidentRuleEngineServiceClass {
       return { outcome: AlertIncidentRuleOutcome.AlreadyLinked };
     }
 
-    const rule: AlertIncidentRule | null = await this.findFirstMatchingRule(
-      alert,
-      rules,
-    );
+    const plan: AlertIncidentRulePlan | null = await this.planDeclaration({
+      alert: alert,
+      rules: rules,
+    });
 
-    if (!rule) {
+    if (!plan) {
       return { outcome: AlertIncidentRuleOutcome.NoRuleMatched };
     }
 
-    if (!doesAlertIncidentRuleDeclareRightAway(rule.declareAfterInMinutes)) {
+    const rule: AlertIncidentRule = plan.rule;
+
+    if (!plan.declaresRightAway) {
       const declareAt: Date = getAlertIncidentRuleDeclareAt({
         alertCreatedAt: alert.createdAt
           ? OneUptimeDate.fromString(alert.createdAt)
@@ -483,6 +499,80 @@ class AlertIncidentRuleEngineServiceClass {
   }
 
   /*
+   * The first of `rules` that matches the alert, and when it declares
+   * (AlertIncidentRulePlan): read, never written. Null when none matches.
+   * Whether the alert is linked to an incident already is not asked here:
+   * decide asks it of a stored alert, and an alert not created yet is
+   * linked to nothing. `monitorCache` is shared by many matchings, and a
+   * reader of a monitor not saved yet hands it in seeded with that monitor.
+   */
+  @RuleEvaluation()
+  public async planDeclaration(data: {
+    alert: Alert;
+    rules: Array<AlertIncidentRule>;
+    monitorCache?: MonitorRuleCriteriaCache | undefined;
+  }): Promise<AlertIncidentRulePlan | null> {
+    const rule: AlertIncidentRule | null = await this.findFirstMatchingRule(
+      data.alert,
+      data.rules,
+      data.monitorCache || new MonitorRuleCriteriaCache(),
+    );
+
+    if (!rule) {
+      return null;
+    }
+
+    const declaresRightAway: boolean = doesAlertIncidentRuleDeclareRightAway(
+      rule.declareAfterInMinutes,
+    );
+
+    return {
+      rule: rule,
+      declaresRightAway: declaresRightAway,
+      waitInMinutes: declaresRightAway
+        ? 0
+        : getAlertIncidentRuleWaitInMinutes(rule.declareAfterInMinutes),
+    };
+  }
+
+  /*
+   * The incident a rule declares from the alert, as it is created
+   * (buildIncident), with the severity it gets (getIncidentSeverityId) -
+   * read, never written. Null when the project has no incident severity to
+   * give it: no incident is declared then. declareIncident creates what
+   * this builds, and "When this goes down" resolves it as it resolves any
+   * incident (#7216).
+   */
+  public async planIncident(data: {
+    alert: Alert;
+    rule: AlertIncidentRule;
+  }): Promise<Incident | null> {
+    const incidentSeverityId: ObjectID | null =
+      await this.getIncidentSeverityId(data);
+
+    if (!incidentSeverityId) {
+      return null;
+    }
+
+    return this.buildIncident({
+      alert: data.alert,
+      rule: data.rule,
+      incidentSeverityId: incidentSeverityId,
+    });
+  }
+
+  /*
+   * The project's enabled rules, top of the list first, as every
+   * evaluation of an alert reads them - the create, the worker and "When
+   * this goes down" alike.
+   */
+  public async getEnabledRules(
+    projectId: ObjectID,
+  ): Promise<Array<AlertIncidentRule>> {
+    return await this.findEnabledRules(projectId);
+  }
+
+  /*
    * The project's enabled rules, top of the list first: kept until any of
    * the project's rules changes (RuleSetCache).
    */
@@ -509,9 +599,10 @@ class AlertIncidentRuleEngineServiceClass {
   private async findFirstMatchingRule(
     alert: Alert,
     rules: Array<AlertIncidentRule>,
+    monitorCache: MonitorRuleCriteriaCache,
   ): Promise<AlertIncidentRule | null> {
     for (const rule of rules) {
-      if (await this.doesAlertMatchRule(alert, rule)) {
+      if (await this.doesAlertMatchRule(alert, rule, monitorCache)) {
         return rule;
       }
     }
@@ -599,10 +690,12 @@ class AlertIncidentRuleEngineServiceClass {
     } as LogAttributes;
 
     try {
-      const incidentSeverityId: ObjectID | null =
-        await this.getIncidentSeverityId({ alert, rule });
+      const incident: Incident | null = await this.planIncident({
+        alert: alert,
+        rule: rule,
+      });
 
-      if (!incidentSeverityId) {
+      if (!incident) {
         logger.warn(
           `AlertIncidentRuleEngine: no incident was declared from alert ${alert.id?.toString()} by rule ${rule.id?.toString()}: the project has no incident severity to give it.`,
           logAttributes,
@@ -617,11 +710,7 @@ class AlertIncidentRuleEngineServiceClass {
       };
 
       const createdIncident: Incident = await IncidentService.create({
-        data: this.buildIncident({
-          alert: alert,
-          rule: rule,
-          incidentSeverityId: incidentSeverityId,
-        }),
+        data: incident,
         miscDataProps: miscDataProps,
         props: {
           isRoot: true,
@@ -913,6 +1002,7 @@ class AlertIncidentRuleEngineServiceClass {
   private async doesAlertMatchRule(
     alert: Alert,
     rule: AlertIncidentRule,
+    monitorCache: MonitorRuleCriteriaCache = new MonitorRuleCriteriaCache(),
   ): Promise<boolean> {
     return await RuleCriteriaMatcher.matchesWithLegacy({
       rule,
@@ -930,7 +1020,11 @@ class AlertIncidentRuleEngineServiceClass {
       matchesLegacyRule: async (
         legacyRule: AlertIncidentRule,
       ): Promise<boolean> => {
-        return await this.doesAlertMatchLegacyRule(alert, legacyRule);
+        return await this.doesAlertMatchLegacyRule(
+          alert,
+          legacyRule,
+          monitorCache,
+        );
       },
     });
   }
@@ -938,6 +1032,7 @@ class AlertIncidentRuleEngineServiceClass {
   private async doesAlertMatchLegacyRule(
     alert: Alert,
     rule: AlertIncidentRule,
+    monitorCache: MonitorRuleCriteriaCache,
   ): Promise<boolean> {
     // Monitors: the alert must come from one of the rule's monitors.
     if (rule.monitors && rule.monitors.length > 0) {
@@ -992,15 +1087,10 @@ class AlertIncidentRuleEngineServiceClass {
         return false;
       }
 
-      const monitor: Monitor | null = await MonitorService.findOneById({
-        id: alert.monitorId,
-        select: {
-          name: true,
-          description: true,
-          labels: { _id: true },
-        },
-        props: { isRoot: true },
-      });
+      // Its name, description and labels (MonitorRuleCriteriaCache.getMonitor).
+      const monitor: Monitor | null = await monitorCache.getMonitor(
+        alert.monitorId,
+      );
 
       if (!monitor) {
         return false;

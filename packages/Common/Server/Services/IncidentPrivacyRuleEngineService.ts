@@ -27,6 +27,12 @@ import {
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import PatternWorkScope, { RuleEvaluation } from "../Utils/PatternWorkScope";
+import ObjectID from "../../Types/ObjectID";
+import {
+  PrivacyRulePlan,
+  getPrivacyRulesThatApply,
+  makePrivacyRulePlan,
+} from "../Utils/Rules/PrivacyRulePlan";
 
 class IncidentPrivacyRuleEngineServiceClass
   implements RuleRunEngine<Incident, IncidentPrivacyRule>
@@ -81,19 +87,9 @@ class IncidentPrivacyRuleEngineServiceClass
     }
 
     try {
-      // Kept until any of the project's rules changes (RuleSetCache).
-      const rules: Array<IncidentPrivacyRule> =
-        await RuleSetCache.findEnabledRules<IncidentPrivacyRule>({
-          service: IncidentPrivacyRuleService,
-          projectId: incident.projectId,
-          select: this.ruleSelect,
-        });
-
-      logIfRuleReadWasTruncated({
-        ruleKind: "IncidentPrivacyRule",
-        projectId: incident.projectId,
-        rulesRead: rules.length,
-      });
+      const rules: Array<IncidentPrivacyRule> = await this.getEnabledRules(
+        incident.projectId,
+      );
 
       if (rules.length === 0) {
         return false;
@@ -112,6 +108,78 @@ class IncidentPrivacyRuleEngineServiceClass
       } as LogAttributes);
       return false;
     }
+  }
+
+  /*
+   * The project's enabled rules, as every evaluation of a new incident reads
+   * them - the create and "When this goes down" alike. Kept until any of
+   * the project's rules changes (RuleSetCache).
+   */
+  @CaptureSpan()
+  public async getEnabledRules(
+    projectId: ObjectID,
+  ): Promise<Array<IncidentPrivacyRule>> {
+    const rules: Array<IncidentPrivacyRule> =
+      await RuleSetCache.findEnabledRules<IncidentPrivacyRule>({
+        service: IncidentPrivacyRuleService,
+        projectId: projectId,
+        select: this.ruleSelect,
+      });
+
+    logIfRuleReadWasTruncated({
+      ruleKind: "IncidentPrivacyRule",
+      projectId: projectId,
+      rulesRead: rules.length,
+    });
+
+    return rules;
+  }
+
+  /*
+   * Which of `rules` make the incident private (PrivacyRulePlan) - read,
+   * never written. The create and a run carry it out (applyRules), and
+   * "When this goes down" (WhoIsToldService) reads it for the incident a
+   * monitor's criteria would open, held in memory, so the two never
+   * disagree (#7213). `monitorCache` is shared by many matchings, and a
+   * reader of a monitor not saved yet hands it in seeded with that monitor.
+   */
+  @RuleEvaluation()
+  public async planRules(data: {
+    incident: Incident;
+    rules: Array<IncidentPrivacyRule>;
+    monitorCache?: MonitorRuleCriteriaCache | undefined;
+  }): Promise<PrivacyRulePlan<IncidentPrivacyRule>> {
+    const matchedRules: Array<IncidentPrivacyRule> = [];
+    const uncheckedRules: Array<IncidentPrivacyRule> = [];
+    const monitorCache: MonitorRuleCriteriaCache =
+      data.monitorCache || new MonitorRuleCriteriaCache();
+
+    for (const rule of data.rules) {
+      const stoppedBefore: number = PatternWorkScope.stoppedQuestions();
+      const matches: boolean = await this.doesIncidentMatchRule(
+        data.incident,
+        rule,
+        monitorCache,
+      );
+
+      if (matches) {
+        matchedRules.push(rule);
+      } else if (PatternWorkScope.stoppedQuestions() > stoppedBefore) {
+        /*
+         * Its patterns could not all be answered: together with the other
+         * rules' they needed more work than one evaluation may take
+         * (Utils/LinearRegExp/PatternWork.ts). The rule may have matched,
+         * so it counts as one that did: a record is never shown to the whole
+         * project because a pattern was not read to the end.
+         */
+        uncheckedRules.push(rule);
+      }
+    }
+
+    return makePrivacyRulePlan({
+      matchedRules: matchedRules,
+      uncheckedRules: uncheckedRules,
+    });
   }
 
   /*
@@ -138,7 +206,7 @@ class IncidentPrivacyRuleEngineServiceClass
     }
   }
 
-  @RuleEvaluation()
+  // Carries the plan out (planRules): the one place a privacy rule writes.
   private async applyRules(data: {
     incident: Incident;
     rules: Array<IncidentPrivacyRule>;
@@ -151,30 +219,16 @@ class IncidentPrivacyRuleEngineServiceClass
       return RuleApplicationResultUtil.noMatch();
     }
 
-    const matchedRules: Array<IncidentPrivacyRule> = [];
-    const uncheckedRules: Array<IncidentPrivacyRule> = [];
+    const plan: PrivacyRulePlan<IncidentPrivacyRule> = await this.planRules({
+      incident: incident,
+      rules: rules,
+    });
 
-    for (const rule of rules) {
-      const stoppedBefore: number = PatternWorkScope.stoppedQuestions();
-      const matches: boolean = await this.doesIncidentMatchRule(incident, rule);
-
-      if (matches) {
-        matchedRules.push(rule);
-      } else if (PatternWorkScope.stoppedQuestions() > stoppedBefore) {
-        /*
-         * Its patterns could not all be answered: together with the other
-         * rules' they needed more work than one evaluation may take
-         * (Utils/LinearRegExp/PatternWork.ts). The rule may have matched,
-         * so it counts as one that did: a record is never shown to the whole
-         * project because a pattern was not read to the end.
-         */
-        uncheckedRules.push(rule);
-      }
-    }
-
-    if (matchedRules.length === 0 && uncheckedRules.length === 0) {
+    if (!plan.makesPrivate) {
       return RuleApplicationResultUtil.noMatch();
     }
+
+    const { matchedRules, uncheckedRules } = plan;
 
     /*
      * The create hook returns before evaluating an already-private incident;
@@ -227,9 +281,11 @@ class IncidentPrivacyRuleEngineServiceClass
        * The rules that matched; or, when none did, the ones that could not
        * be checked in full and so counted as matching.
        */
-      const ruleNames: Array<string> = (
-        matchedRules.length > 0 ? matchedRules : uncheckedRules
-      )
+      const ruleNames: Array<string> = getPrivacyRulesThatApply({
+        matchedRules: matchedRules,
+        uncheckedRules: uncheckedRules,
+        makesPrivate: true,
+      })
         .map((r: IncidentPrivacyRule) => {
           return r.name?.toString() || "Unnamed Rule";
         })
@@ -276,10 +332,8 @@ class IncidentPrivacyRuleEngineServiceClass
   private async doesIncidentMatchRule(
     incident: Incident,
     rule: IncidentPrivacyRule,
+    monitorCache: MonitorRuleCriteriaCache = new MonitorRuleCriteriaCache(),
   ): Promise<boolean> {
-    const monitorCache: MonitorRuleCriteriaCache =
-      new MonitorRuleCriteriaCache();
-
     return await RuleCriteriaMatcher.matchesWithLegacy({
       rule,
       legacyFields: [
