@@ -8,7 +8,13 @@ import {
   test,
 } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import * as React from "react";
 import fs from "fs";
 import path from "path";
@@ -131,12 +137,12 @@ describe("the notice", () => {
     dashboardRead = { isPublicDashboard: false };
     await renderSettings(DashboardPublicOnlyPage.Branding);
 
-    expect(screen.getByTestId(DASHBOARD_PRIVATE_NOTICE_TEST_ID)).toHaveTextContent(
-      DashboardPublicOnlyCopy.privateNotice,
-    );
-    expect(screen.getByTestId(DASHBOARD_PRIVATE_NOTICE_TEST_ID)).toHaveTextContent(
-      DashboardPublicOnlyCopy.privateNoticeAction,
-    );
+    expect(
+      screen.getByTestId(DASHBOARD_PRIVATE_NOTICE_TEST_ID),
+    ).toHaveTextContent(DashboardPublicOnlyCopy.privateNotice);
+    expect(
+      screen.getByTestId(DASHBOARD_PRIVATE_NOTICE_TEST_ID),
+    ).toHaveTextContent(DashboardPublicOnlyCopy.privateNoticeAction);
     expect(
       screen.getByTestId(DASHBOARD_PUBLIC_ONLY_FOLD_TEST_ID),
     ).toHaveTextContent(DashboardPublicOnlyCopy.foldTitle);
@@ -254,10 +260,13 @@ describe("the dashboard's side menu", () => {
   test.each([
     [PageMap.DASHBOARD_VIEW_BRANDING, "Branding"],
     [PageMap.DASHBOARD_VIEW_CUSTOM_DOMAINS, "Custom Domains"],
-  ])("the %s page opens Public Link and marks %s", async (page: string, entry: string) => {
-    await renderMenuAt(page);
+  ])(
+    "the %s page opens Public Link and marks %s",
+    async (page: string, entry: string) => {
+      await renderMenuAt(page);
 
-    expect(isExpanded("Public Link")).toBe(true);
-    expect(activeLinkTitles()).toEqual([entry]);
-  });
+      expect(isExpanded("Public Link")).toBe(true);
+      expect(activeLinkTitles()).toEqual([entry]);
+    },
+  );
 });

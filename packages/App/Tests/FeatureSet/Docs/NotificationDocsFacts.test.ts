@@ -2346,10 +2346,9 @@ describe("notification settings", () => {
     expect(page).toContain(
       '"Reminders ahead of a shift, at the lead times you pick on the Calendar Feed page."',
     );
-    expect(sectionByTitle(userSettingsMenu(), "Profile & Calendar").items).toEqual([
-      "Calendar Feed",
-      "Custom Fields",
-    ]);
+    expect(
+      sectionByTitle(userSettingsMenu(), "Profile & Calendar").items,
+    ).toEqual(["Calendar Feed", "Custom Fields"]);
     expect(settings).toContain(
       "**Before my on-call shift starts** sends reminders at the times you pick on **User Settings → Profile & Calendar → Calendar Feed**",
     );

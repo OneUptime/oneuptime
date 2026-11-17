@@ -146,7 +146,6 @@ describe("an environment's menu", () => {
       "Workloads",
       "Observability",
       "Activity",
-      "Settings",
       "Developer",
       "Advanced",
     ]);
@@ -171,9 +170,6 @@ describe("an environment's menu", () => {
       { title: "Incidents", href: `${ENVIRONMENT_PATH}/incidents` },
       { title: "Alerts", href: `${ENVIRONMENT_PATH}/alerts` },
     ]);
-    expect(linksIn("Settings")).toEqual([
-      { title: "Settings", href: `${ENVIRONMENT_PATH}/settings` },
-    ]);
     expect(linksIn("Developer")).toEqual([
       { title: "Terraform", href: `${ENVIRONMENT_PATH}/developer/terraform` },
       { title: "API", href: `${ENVIRONMENT_PATH}/developer/api` },
@@ -185,6 +181,8 @@ describe("an environment's menu", () => {
     ]);
     expect(linksIn("Advanced")).toEqual([
       { title: "Owners", href: `${ENVIRONMENT_PATH}/owners` },
+      // Its Settings, once a section of its own (#9134).
+      { title: "Settings", href: `${ENVIRONMENT_PATH}/settings` },
       { title: "Audit Logs", href: `${ENVIRONMENT_PATH}/audit-logs` },
       { title: "Delete Environment", href: `${ENVIRONMENT_PATH}/delete` },
     ]);

@@ -356,7 +356,7 @@ const SEARCH_WORDS: ReadonlyArray<string> = [
   "escalation",
   "rota",
   "2fa",
-  "danger zone",
+  "remove project",
   "incident custom fields",
   "incidnet",
 ];

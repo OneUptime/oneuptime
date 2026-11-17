@@ -225,9 +225,7 @@ describe("the Admin Dashboard's ingestion budget pages", () => {
     expect(section).toContain(
       compact('title: t("sideMenu.settingsIngestionBudgets")'),
     );
-    expect(section).toContain(
-      "RouteMap[PageMap.SETTINGS_INGESTION_BUDGETS]",
-    );
+    expect(section).toContain("RouteMap[PageMap.SETTINGS_INGESTION_BUDGETS]");
   });
 
   test("a project's Ingestion Budgets is in its side menu's Basic section, after Telemetry Usage", () => {

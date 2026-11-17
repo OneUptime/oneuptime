@@ -118,7 +118,6 @@ describe("a cloud resource's menu", () => {
       "Basic",
       "Observability",
       "Activity",
-      "Settings",
       "Developer",
       "Advanced",
     ]);
@@ -149,9 +148,6 @@ describe("a cloud resource's menu", () => {
       },
       { title: "Documentation", href: `${RESOURCE_PATH}/documentation` },
     ]);
-    expect(linksIn("Settings")).toEqual([
-      { title: "Settings", href: `${RESOURCE_PATH}/settings` },
-    ]);
     expect(linksIn("Developer")).toEqual([
       { title: "Terraform", href: `${RESOURCE_PATH}/developer/terraform` },
       { title: "API", href: `${RESOURCE_PATH}/developer/api` },
@@ -163,6 +159,8 @@ describe("a cloud resource's menu", () => {
     ]);
     expect(linksIn("Advanced")).toEqual([
       { title: "Owners", href: `${RESOURCE_PATH}/owners` },
+      // Its Settings, once a section of its own (#9134).
+      { title: "Settings", href: `${RESOURCE_PATH}/settings` },
       { title: "Audit Logs", href: `${RESOURCE_PATH}/audit-logs` },
       { title: "Delete Resource", href: `${RESOURCE_PATH}/delete` },
     ]);
@@ -221,7 +219,6 @@ describe("a cloud account's menu", () => {
       "Basic",
       "AI",
       "Activity",
-      "Settings",
       "Developer",
       "Advanced",
     ]);
@@ -260,6 +257,8 @@ describe("a cloud account's menu", () => {
       },
     ]);
     expect(linksIn("Advanced")).toEqual([
+      // Its Settings, once a section of its own (#9134).
+      { title: "Settings", href: `${ACCOUNT_PATH}/settings` },
       { title: "Audit Logs", href: `${ACCOUNT_PATH}/audit-logs` },
       { title: "Delete Account", href: `${ACCOUNT_PATH}/delete` },
     ]);

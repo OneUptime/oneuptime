@@ -165,7 +165,7 @@ Tryk på **Cmd+K** (Mac) eller **Ctrl+K** (Windows og Linux), eller klik på sø
 Søgningen læser det, du skriver, som du mener det:
 
 - Store og små bogstaver, accenter, mellemrum og bindestreger er ligegyldige: *on-call*, *on call* og *oncall* finder de samme sider, og ordene kan stå i vilkårlig rækkefølge.
-- Den kender andre ord for mange sider, på engelsk: *pager* eller *escalation* for Vagtpolitikker, *rota* for Vagtplaner, *2fa* for tofaktorgodkendelse, *danger zone* for Slet projekt.
+- Den kender andre ord for mange sider, på engelsk: *pager* eller *escalation* for Vagtpolitikker, *rota* for Vagtplaner, *2fa* for tofaktorgodkendelse, *remove project* for Slet projekt.
 - Tilføj produktets navn for at indsnævre en søgning: *incident custom fields* finder siden Brugerdefinerede felter under Hændelser.
 - En lille tastefejl, som *incidnet*, finder stadig det, du mente, når intet passer præcist.
 

@@ -116,7 +116,7 @@ describe("Home Page & Shortcuts explains Search", () => {
       ["escalation", "On-Call Policies"],
       ["rota", "On-Call Schedules"],
       ["2fa", "Two-factor authentication"],
-      ["danger zone", "Delete Project"],
+      ["remove project", "Delete Project"],
     ];
 
     for (const [word, title] of promises) {

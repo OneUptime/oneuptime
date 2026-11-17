@@ -293,9 +293,9 @@ describe("a page the plugin adds opens the section its entry is in", () => {
     const links: Array<MenuLink> = linksIn(NOTIFICATIONS);
 
     expect(expandedSections()).toEqual([BASIC, NOTIFICATIONS]);
-    expect(activeLinkTitles()).toEqual(["Push Notifications"]);
+    expect(activeLinkTitles()).toEqual(["sideMenu.settingsPushNotifications"]);
     expect(links[links.length - 2]).toEqual({
-      title: "Push Notifications",
+      title: "sideMenu.settingsPushNotifications",
       href: "/admin/settings/push-notifications",
     });
     expect(links[links.length - 1]).toEqual({

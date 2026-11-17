@@ -307,7 +307,22 @@ describe("Ask AI's catalog of the Dashboard's pages", () => {
       },
     );
 
-    expect(titles).not.toContain("Delete Project");
+    /*
+     * The action is left out. Its page, named for it since #9134, is a
+     * page anyone may open: it says why the button is locked.
+     */
+    expect(
+      titles.filter((title: string): boolean => {
+        return title === "Delete Project";
+      }),
+    ).toHaveLength(1);
+    expect(
+      AI_DASHBOARD_PAGES.filter((page: AIDashboardPage): boolean => {
+        return page.title === "Delete Project";
+      }).map((page: AIDashboardPage): string => {
+        return page.kind;
+      }),
+    ).toEqual(["page"]);
     expect(
       AI_DASHBOARD_PAGES.filter((page: AIDashboardPage): boolean => {
         return page.path.includes("monitor-groups");

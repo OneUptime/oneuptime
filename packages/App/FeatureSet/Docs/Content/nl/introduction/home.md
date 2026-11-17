@@ -165,7 +165,7 @@ Druk op **Cmd+K** (Mac) of **Ctrl+K** (Windows en Linux), of klik op het zoekpic
 Zoeken leest wat u typt zoals u het bedoelt:
 
 - Hoofdletters, accenten, spaties en koppeltekens maken niet uit: *on-call*, *on call* en *oncall* vinden dezelfde pagina's, en woorden mogen in elke volgorde staan.
-- Het kent voor veel pagina's andere woorden, in het Engels: *pager* of *escalation* voor Bereikbaarheidsbeleid, *rota* voor Bereikbaarheidsschema's, *2fa* voor tweefactorauthenticatie, *danger zone* voor Project verwijderen.
+- Het kent voor veel pagina's andere woorden, in het Engels: *pager* of *escalation* voor Bereikbaarheidsbeleid, *rota* voor Bereikbaarheidsschema's, *2fa* voor tweefactorauthenticatie, *remove project* voor Project verwijderen.
 - Voeg de naam van het product toe om een zoekopdracht te verfijnen: *incident custom fields* vindt de pagina Aangepaste velden van Incidenten.
 - Een kleine tikfout, zoals *incidnet*, vindt nog steeds wat u bedoelde als niets exact overeenkomt.
 

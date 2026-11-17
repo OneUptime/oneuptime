@@ -108,6 +108,23 @@ import Permission from "../../../Types/Permission";
  * the Reissue SSL dialog's text.
  */
 
+/*
+ * The page asks whether the dashboard is shared publicly, to say so when it
+ * is not (DashboardPublicOnlySettings, #9134). Here it is public, so the
+ * page's settings are drawn as they are.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Branding/useDashboardIsPublic",
+  () => {
+    return {
+      __esModule: true,
+      default: (): boolean => {
+        return true;
+      },
+    };
+  },
+);
+
 jest.mock("react-i18next", () => {
   return {
     useTranslation: () => {

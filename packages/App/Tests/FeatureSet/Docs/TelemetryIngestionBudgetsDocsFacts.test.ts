@@ -350,9 +350,7 @@ describe("how budgets work", () => {
 describe("where budgets are set", () => {
   test("the instance's are under Settings, in a Server section that starts folded", () => {
     expect(adminDashboardLabel("en", "breadcrumbs.settings")).toBe("Settings");
-    expect(adminDashboardLabel("en", "sideMenu.settingsServer")).toBe(
-      "Server",
-    );
+    expect(adminDashboardLabel("en", "sideMenu.settingsServer")).toBe("Server");
     expect(adminDashboardLabel("en", "sideMenu.settingsIngestionBudgets")).toBe(
       "Ingestion Budgets",
     );

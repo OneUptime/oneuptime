@@ -165,7 +165,7 @@ Press **Cmd+K** (Mac) or **Ctrl+K** (Windows and Linux), or click the search ico
 Search reads what you type the way you mean it:
 
 - Case, accents, spaces and hyphens do not matter: *on-call*, *on call* and *oncall* find the same pages, and words can come in any order.
-- It knows other words for many pages: *pager* or *escalation* for On-Call Policies, *rota* for On-Call Schedules, *2fa* for two-factor authentication, *danger zone* for Delete Project.
+- It knows other words for many pages: *pager* or *escalation* for On-Call Policies, *rota* for On-Call Schedules, *2fa* for two-factor authentication, *remove project* for Delete Project.
 - Add the product's name to narrow a search down: *incident custom fields* finds the Custom Fields page of Incidents.
 - A small typo, such as *incidnet*, still finds what you meant when nothing matches as typed.
 

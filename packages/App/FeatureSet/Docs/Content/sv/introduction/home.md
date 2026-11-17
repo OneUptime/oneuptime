@@ -165,7 +165,7 @@ Tryck på **Cmd+K** (Mac) eller **Ctrl+K** (Windows och Linux), eller klicka på
 Sökningen läser det du skriver som du menar det:
 
 - Versaler, accenter, mellanslag och bindestreck spelar ingen roll: *on-call*, *on call* och *oncall* hittar samma sidor, och orden kan stå i valfri ordning.
-- Den känner till andra ord för många sidor, på engelska: *pager* eller *escalation* för Jourpolicyer, *rota* för Jourscheman, *2fa* för tvåfaktorsautentisering, *danger zone* för Ta bort projekt.
+- Den känner till andra ord för många sidor, på engelska: *pager* eller *escalation* för Jourpolicyer, *rota* för Jourscheman, *2fa* för tvåfaktorsautentisering, *remove project* för Ta bort projekt.
 - Lägg till produktens namn för att smalna av en sökning: *incident custom fields* hittar sidan Anpassade fält under Incidenter.
 - Ett litet stavfel, som *incidnet*, hittar ändå det du menade när inget matchar exakt.
 
