@@ -149,7 +149,7 @@ describe("ToastRegion", () => {
   });
 
   test("Escape closes the toast the focus is in, and not the dialog under it", () => {
-    const onDialogKeyDown: jest.Mock = jest.fn();
+    const onDialogKeyDown: ReturnType<typeof jest.fn> = jest.fn();
 
     render(
       <div onKeyDown={onDialogKeyDown}>
@@ -168,7 +168,7 @@ describe("ToastRegion", () => {
   });
 
   test("its action runs once and closes it", () => {
-    const onUndo: jest.Mock = jest.fn();
+    const onUndo: ReturnType<typeof jest.fn> = jest.fn();
     render(<ToastRegion />);
 
     act(() => {
