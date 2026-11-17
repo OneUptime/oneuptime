@@ -1,6 +1,8 @@
 import Encryption from "Common/Server/Utils/Encryption";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 import logger from "Common/Server/Utils/Logger";
 import EncryptColumnInPlace, {
+  EncryptColumnPass,
   ModelRepository,
 } from "../../../FeatureSet/Workers/Utils/EncryptColumnInPlace";
 import {
@@ -529,5 +531,161 @@ describe("EncryptColumnInPlace", () => {
         "secret-value",
       ),
     ).toBe("Error: bad [REDACTED] here and [REDACTED] there");
+  });
+});
+
+/*
+ * What a pass comes to, for the CredentialsAtRest:EncryptInPlace job, which
+ * records a migration's values as protected only once a whole pass finds
+ * nothing left (#9266), and which a run's deadline stops between pages.
+ */
+describe("EncryptColumnInPlace's pass", () => {
+  beforeEach(() => {
+    jest.spyOn(logger, "error").mockImplementation((): void => {});
+    jest.spyOn(logger, "info").mockImplementation((): void => {});
+    jest.spyOn(logger, "debug").mockImplementation((): void => {});
+    jest.spyOn(logger, "warn").mockImplementation((): void => {});
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  async function pass(
+    table: Table,
+    options?: {
+      pageSize?: number | undefined;
+      deadline?: JobDeadline | undefined;
+    },
+  ): Promise<EncryptColumnPass> {
+    return await EncryptColumnInPlace.encrypt({
+      migrationName: "TestJob",
+      target: {
+        kind: "Let's Encrypt certificate",
+        repository: table.repository,
+        column: COLUMN,
+      },
+      pageSize: options?.pageSize,
+      deadline: options?.deadline,
+    });
+  }
+
+  test("says what it read and wrote, and finds nothing on the pass after", async () => {
+    const table: Table = makeTable([
+      { _id: idOf(1), value: keyOf(1) },
+      { _id: idOf(2), value: keyOf(2) },
+      { _id: idOf(3), value: null },
+    ]);
+
+    expect(await pass(table)).toEqual({
+      read: 2,
+      written: 2,
+      failed: 0,
+      isCutShort: false,
+    });
+    expect(await pass(table)).toEqual({
+      read: 0,
+      written: 0,
+      failed: 0,
+      isCutShort: false,
+    });
+  });
+
+  test("counts a row it could not write, and a page it could not read, as failed", async () => {
+    const unwritable: Table = makeTable(
+      [
+        { _id: idOf(1), value: keyOf(1) },
+        { _id: idOf(2), value: keyOf(2) },
+      ],
+      {
+        failWriteFor: (id: string): Error | null => {
+          return id === idOf(1) ? new Error("write failed") : null;
+        },
+      },
+    );
+
+    expect(await pass(unwritable)).toEqual({
+      read: 2,
+      written: 1,
+      failed: 1,
+      isCutShort: false,
+    });
+
+    const unreadable: Table = makeTable([{ _id: idOf(1), value: keyOf(1) }], {
+      failRead: (): boolean => {
+        return true;
+      },
+    });
+
+    expect(await pass(unreadable)).toEqual({
+      read: 0,
+      written: 0,
+      failed: 1,
+      isCutShort: false,
+    });
+  });
+
+  test("a deadline passed reads nothing, and says it stopped short", async () => {
+    const table: Table = makeTable([{ _id: idOf(1), value: keyOf(1) }]);
+    const deadline: JobDeadline = new JobDeadline();
+
+    deadline.end(new Error("the run's time limit"));
+
+    expect(await pass(table, { deadline: deadline })).toEqual({
+      read: 0,
+      written: 0,
+      failed: 0,
+      isCutShort: true,
+    });
+    expect(table.calls).toHaveLength(0);
+    expect(table.rows[0]!.value).toBe(keyOf(1));
+  });
+
+  test("a deadline that passes between pages stops there: what it wrote stays, the next pass reads the rest", async () => {
+    const table: Table = makeTable([
+      { _id: idOf(1), value: keyOf(1) },
+      { _id: idOf(2), value: keyOf(2) },
+      { _id: idOf(3), value: keyOf(3) },
+    ]);
+    const deadline: JobDeadline = new JobDeadline();
+    const query: (sql: string, params?: Array<unknown>) => Promise<unknown> = (
+      table.repository.manager as unknown as {
+        query: (sql: string, params?: Array<unknown>) => Promise<unknown>;
+      }
+    ).query;
+
+    // The time limit runs out once the first page is written.
+    (
+      table.repository.manager as unknown as {
+        query: (sql: string, params?: Array<unknown>) => Promise<unknown>;
+      }
+    ).query = async (
+      sql: string,
+      params?: Array<unknown>,
+    ): Promise<unknown> => {
+      const answer: unknown = await query(sql, params);
+
+      if (UPDATE_START.test(sql) && params?.[1] === idOf(2)) {
+        deadline.end(new Error("the run's time limit"));
+      }
+
+      return answer;
+    };
+
+    expect(await pass(table, { pageSize: 2, deadline: deadline })).toEqual({
+      read: 2,
+      written: 2,
+      failed: 0,
+      isCutShort: true,
+    });
+    expect(table.rows[2]!.value).toBe(keyOf(3));
+
+    expect(await pass(table, { pageSize: 2 })).toEqual({
+      read: 1,
+      written: 1,
+      failed: 0,
+      isCutShort: false,
+    });
+    expect(await Encryption.decrypt(table.rows[2]!.value!)).toBe(keyOf(3));
   });
 });
