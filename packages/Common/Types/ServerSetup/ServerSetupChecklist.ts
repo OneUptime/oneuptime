@@ -753,6 +753,11 @@ export default class ServerSetupChecklistUtil {
         status === ServerSetupStatus.NotSetUp
           ? []
           : [ServerSendingChannel.Email],
+      /*
+       * Email's own status, for what Settings > Emails says beside the
+       * check: the addresses refused while email works (#9217).
+       */
+      channels: [{ ...facts.email, sentThrough: facts.emailSentThrough }],
     });
   }
 
