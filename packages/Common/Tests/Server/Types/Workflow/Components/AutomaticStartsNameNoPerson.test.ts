@@ -143,8 +143,9 @@ afterEach(() => {
 
 describe("a call to the webhook URL", () => {
   test("starts a run that names nobody, whatever the request's body says", async () => {
+    // Found by its webhook key's lookup hash, as the key is kept encrypted (#9012).
     jest
-      .spyOn(WorkflowService, "findOneBy")
+      .spyOn(WorkflowService, "findOneByPresentedKey")
       .mockResolvedValue(workflowRow({ isEnabled: true }) as never);
     jest.spyOn(Response, "sendJsonObjectResponse").mockImplementation((() => {
       return undefined;
@@ -245,7 +246,8 @@ describe("an incoming email", () => {
   const deliver: DeliverFunction = async (
     isEnabled: boolean,
   ): Promise<{ status: IncomingEmailTriggerDeliveryStatus }> => {
-    jest.spyOn(WorkflowService, "findOneBy").mockResolvedValue(
+    // Found by its address key's lookup hash, as the key is kept encrypted (#9012).
+    jest.spyOn(WorkflowService, "findOneByPresentedKey").mockResolvedValue(
       workflowRow({
         isEnabled,
         triggerId: ComponentID.IncomingEmail,
