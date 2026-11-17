@@ -59,9 +59,13 @@ export interface PresentedKeysPass {
 
 type StoredRow = Record<string, unknown>;
 
-// The service of a table with a presented key: its model, and its repository.
+/*
+ * The service of a table with a presented key: its model, and its
+ * repository. A model's tableName reads as string | null where null checks
+ * are strict (ee's tsconfig), as string | undefined where they are not.
+ */
 interface KeyService {
-  getModel: () => { tableName?: string | undefined };
+  getModel: () => { tableName?: string | null | undefined };
   getRepository: () => unknown;
 }
 
