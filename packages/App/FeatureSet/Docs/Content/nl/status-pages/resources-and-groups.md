@@ -114,13 +114,13 @@ De sectie **Meer velden** is dezelfde in het formulier voor één monitor en in 
 
 ## Uptimepercentages en geschiedenisgrafieken
 
-**Uptime % weergeven** en **Statusgeschiedenisgrafiek weergeven** lezen allebei één instelling voor de hele pagina: hoeveel dagen ze beslaan. Dat is **Uptimegeschiedenis** op de kaart **Wat uw statuspagina toont** onder **Statuspagina's → uw pagina → Geavanceerd → Geavanceerde instellingen**. Die accepteert 1 tot 90 dagen en staat standaard op 90. Zet de schakelaars dus per resource aan en stel het venster één keer in voor de hele pagina.
+**Uptime % weergeven** en **Statusgeschiedenisgrafiek weergeven** lezen allebei één instelling voor de hele pagina: hoeveel dagen ze beslaan. Dat is **Uptimegeschiedenis** op de kaart **Wat uw statuspagina toont** onder **Statuspagina's → uw pagina → Geavanceerd → Instellingen**. Die accepteert 1 tot 90 dagen en staat standaard op 90. Zet de schakelaars dus per resource aan en stel het venster één keer in voor de hele pagina.
 
 **Precisie is een kwestie van afwegen.** **Selecteer uptime-precisie** biedt `99% (No Decimal)`, `99.9% (One Decimal)`, `99.99% (Two Decimal)` en `99.999% (Three Decimal)`. Meer decimalen ogen nauwkeurig en nodigen uit tot discussies over de derde; publiceert u een SLA van drie negens, kies dan precies dat en niet meer.
 
 Groepen hebben hun eigen exemplaren van deze schakelaars (zie hieronder), dus een groep kan een samengevat percentage tonen terwijl de monitoren erin stil blijven, of andersom.
 
-De kleuren van de balken in de geschiedenisgrafiek stelt u in onder **Meer instellingen** op de pagina **Huisstijl**, en welke monitorstatussen als "down" tellen bij **Telt als downtime**, op de kaart **Wat uw statuspagina toont** van **Geavanceerde instellingen**; beide worden behandeld in [Statuspagina – branding en domeinen](/docs/status-pages/branding-and-domains).
+De kleuren van de balken in de geschiedenisgrafiek stelt u in onder **Meer instellingen** op de pagina **Huisstijl**, en welke monitorstatussen als "down" tellen bij **Telt als downtime**, op de kaart **Wat uw statuspagina toont** van **Instellingen**; beide worden behandeld in [Statuspagina – branding en domeinen](/docs/status-pages/branding-and-domains).
 
 Elke balk is één dag. Wijs een balk aan of klik erop (tik erop op een telefoon, of druk op Enter met het toetsenbord) om de dag te lezen: de beschikbaarheid, hoe lang elke status duurde, de incidenten die die dag zijn gemeld en het geplande onderhoud dat erop liep, elk met een link naar de eigen pagina. Een dag met gepland onderhoud heeft boven aan de balk een blauwe band, en zolang een gebeurtenis loopt, staat bij elke resource van haar monitors "In onderhoud" naast de naam. Onderhoud verandert niets aan de kleur van een balk of aan de beschikbaarheid, die uit de statussen van de monitor komen: om gepland werk buiten de beschikbaarheid te houden, kiest u voor de gebeurtenis bij **Monitorstatus wijzigen naar** een status die niet bij de statussen van **Telt als downtime** van de pagina hoort. Zie [Wat een gebeurtenis beïnvloedt](/docs/scheduled-maintenance/index#wat-een-gebeurtenis-beïnvloedt).
 

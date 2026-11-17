@@ -26,7 +26,7 @@ import SubscriberNotificationsCopy, {
  * event types it can notify about: a page that does not show incidents (or
  * episodes, announcements, scheduled maintenance) does not notify its
  * subscribers about them either, which nothing on these pages says
- * otherwise. The switches are on Advanced Settings, in the "What your status
+ * otherwise. The switches are on Settings, in the "What your status
  * page shows" card, which the warning links to.
  *
  * While the page sends its subscribers nothing at all (Send Notifications to

@@ -325,7 +325,7 @@ En SAML- eller OIDC-leverandør som et prosjekt fortsatt har, fortsetter å logg
 
 Så lenge prosjektet fortsatt krever SSO, viser siden **SSO** også **Krev SSO for innlogging**: slå det av før du slår av den siste leverandøren. Inntil da kan ikke den siste leverandøren personer kan logge inn med, slås av eller slettes, slik at ingen blir utestengt fra prosjektet.
 
-Sidene **SSO** og **OIDC** for en statusside viser statussidens egne leverandører på samme måte. Så lenge statussiden fortsatt krever SSO, viser begge sidene også **Krev SSO for innlogging**: slå det av før du slår av leverandørene, ellers kan de private brukerne ikke logge inn i det hele tatt.
+Siden **Enkel pålogging** for en statusside viser statussidens egne leverandører på samme måte, på fanene **SAML** og **OIDC**. Så lenge statussiden fortsatt krever SSO, viser begge fanene også **Krev SSO for innlogging**: slå det av før du slår av leverandørene, ellers kan de private brukerne ikke logge inn i det hele tatt.
 
 ## Feilsøking
 

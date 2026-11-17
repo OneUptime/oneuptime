@@ -501,7 +501,7 @@ Deux conséquences à anticiper :
 
 **Les images suivent l'annonce.** Une image dans la description d'une annonce s'ouvre pour tout le monde à partir de **Commencer à afficher l'annonce à**, pas avant. Tant qu'une annonce est programmée pour plus tard, ses images ne s'ouvrent que pour les membres de votre projet, tout comme l'annonce elle-même n'apparaît que dans le tableau de bord. Dès qu'elle commence à s'afficher, ses images s'ouvrent pour tout le monde, sur la page de statut et dans les e-mails que reçoivent les abonnés. Elles le restent après sa fin, car son lien continue de fonctionner et ses pages de statut la listent parmi les annonces terminées aussi loin que remonte leur historique. Déplacez une annonce à plus tard et ses images redeviennent privées jusque-là.
 
-Le fait que les annonces apparaissent tout court se règle dans la carte **Ce que montre votre page de statut** sur **Paramètres avancés** : **Afficher les annonces** (`showAnnouncementsOnStatusPage`, true par défaut) et, en dessous, **Afficher … jours d'historique** (`showAnnouncementHistoryInDays`, 14 par défaut). Avec **Afficher les annonces** désactivé, le point de terminaison des annonces refuse purement et simplement la requête.
+Le fait que les annonces apparaissent tout court se règle dans la carte **Ce que montre votre page de statut** sur **Paramètres** : **Afficher les annonces** (`showAnnouncementsOnStatusPage`, true par défaut) et, en dessous, **Afficher … jours d'historique** (`showAnnouncementHistoryInDays`, 14 par défaut). Avec **Afficher les annonces** désactivé, le point de terminaison des annonces refuse purement et simplement la requête.
 
 ## Modèles d'annonce
 

@@ -114,13 +114,13 @@ Sektionen **Flere felter** er den samme i formularen til én monitor og i dialog
 
 ## Oppetidsprocenter og historikdiagrammer
 
-**Vis oppetid %** og **Vis statushistorikdiagram** læser begge én indstilling for hele siden: hvor mange dage de dækker. Det er **Oppetidshistorik** på kortet **Hvad din statusside viser** under **Statussider → din side → Avanceret → Avancerede indstillinger**. Den accepterer 1 til 90 dage og er som standard 90. Slå altså kontakterne til pr. ressource, og angiv vinduet én gang for hele siden.
+**Vis oppetid %** og **Vis statushistorikdiagram** læser begge én indstilling for hele siden: hvor mange dage de dækker. Det er **Oppetidshistorik** på kortet **Hvad din statusside viser** under **Statussider → din side → Avanceret → Indstillinger**. Den accepterer 1 til 90 dage og er som standard 90. Slå altså kontakterne til pr. ressource, og angiv vinduet én gang for hele siden.
 
 **Præcision er en vurderingssag.** **Vælg oppetidspræcision** tilbyder `99% (No Decimal)`, `99.9% (One Decimal)`, `99.99% (Two Decimal)` og `99.999% (Three Decimal)`. Flere decimaler ser præcise ud og indbyder til diskussioner om den tredje; offentliggør du en SLA på tre nitaller, så match den og ikke mere.
 
 Grupper har deres egne udgaver af disse kontakter (se nedenfor), så en gruppe kan vise en samlet procent, mens monitorerne i den holder sig stille, eller omvendt.
 
-Farverne på historikdiagrammets søjler angives under **Yderligere indstillinger** på siden **Branding**, og hvilke monitorstatusser der tæller som "nede" under **Tæller som nedetid** på kortet **Hvad din statusside viser** under **Avancerede indstillinger**; begge dele er beskrevet i [Statusside – branding og domæner](/docs/status-pages/branding-and-domains).
+Farverne på historikdiagrammets søjler angives under **Yderligere indstillinger** på siden **Branding**, og hvilke monitorstatusser der tæller som "nede" under **Tæller som nedetid** på kortet **Hvad din statusside viser** under **Indstillinger**; begge dele er beskrevet i [Statusside – branding og domæner](/docs/status-pages/branding-and-domains).
 
 Hver søjle er én dag. Peg på en søjle, eller klik på den (tryk på den på en telefon, eller tryk Enter med tastaturet), for at læse dagen: dens oppetid, hvor længe hver status varede, de hændelser, der blev erklæret den dag, og den planlagte vedligeholdelse, der kørte på den, hver med et link til sin egen side. En dag med planlagt vedligeholdelse har et blåt bånd øverst på sin søjle, og mens en begivenhed er i gang, står der "Under vedligeholdelse" ved navnet på hver ressource for dens monitorer. Vedligeholdelse ændrer hverken en søjles farve eller oppetiden, som kommer fra monitorens statusser: for at holde planlagt arbejde ude af oppetiden skal du vælge en **Skift monitorstatus til** for begivenheden, der ikke er en af sidens statusser under **Tæller som nedetid**. Se [Hvad en begivenhed påvirker](/docs/scheduled-maintenance/index#hvad-en-begivenhed-påvirker).
 

@@ -3639,7 +3639,7 @@ describe("the Public API page", () => {
       'field: { _id: true, }, title: "Status Page ID",',
     );
     expect(statusPageSideMenuEntries()).toContain(
-      `Basic${PATH_SEPARATOR}Overview`,
+      `Overview${PATH_SEPARATOR}Overview`,
     );
     expect(
       oneLine(dashboardSource("Pages/StatusPages/SideMenu.tsx")),

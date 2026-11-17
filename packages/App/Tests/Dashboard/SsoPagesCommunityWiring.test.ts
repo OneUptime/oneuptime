@@ -420,14 +420,30 @@ describe("routes and the plugin contract", () => {
     expect(settingsRoutes).toContain(
       "path={MOVED_OIDC_SETTINGS_PATH} element={<MovedPageRedirect pageMap={PageMap.SETTINGS_SSO} />}",
     );
+    /*
+     * A status page's SAML and OIDC providers are one Single Sign-On page,
+     * a tab each (#9130): it draws the two core pages, and the old OIDC
+     * address forwards to its tab.
+     */
     expect(statusPagesRoutes).toContain(
-      'import StatusPageViewSSO from "../Pages/StatusPages/View/SSO";',
+      'import StatusPageViewSingleSignOn from "../Pages/StatusPages/View/SingleSignOn";',
     );
     expect(statusPagesRoutes).toContain(
-      'import StatusPageViewOIDC from "../Pages/StatusPages/View/OIDC";',
+      "<StatusPageViewSingleSignOn {...props}",
     );
-    expect(statusPagesRoutes).toContain("<StatusPageViewSSO {...props}");
-    expect(statusPagesRoutes).toContain("<StatusPageViewOIDC {...props}");
+    expect(statusPagesRoutes).toContain("MOVED_SINGLE_SIGN_ON_PATHS");
+    const singleSignOn: string = readCode(
+      "Pages",
+      "StatusPages",
+      "View",
+      "SingleSignOn.tsx",
+    );
+    expect(singleSignOn).toContain(
+      'import StatusPageSamlProviders from "./SSO";',
+    );
+    expect(singleSignOn).toContain(
+      'import StatusPageOidcProviders from "./OIDC";',
+    );
   });
 
   test("the Enterprise plugin contract has no single sign-on screen", () => {

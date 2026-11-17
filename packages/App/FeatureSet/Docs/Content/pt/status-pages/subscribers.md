@@ -501,7 +501,7 @@ Duas consequências que vale planejar:
 
 **As imagens acompanham o anúncio.** Uma imagem na descrição de um anúncio abre para todos a partir de **Começar a mostrar anúncio em**, não antes. Enquanto um anúncio está agendado para mais tarde, as imagens dele só abrem para os membros do seu projeto, assim como o próprio anúncio só aparece no painel. Assim que ele começa a ser exibido, as imagens dele abrem para todos, na página de status e nos e-mails que os assinantes recebem. Elas continuam assim depois que ele termina, porque o link dele continua funcionando e as páginas de status dele o listam entre os anúncios encerrados até onde o histórico delas alcança. Mova um anúncio para um horário posterior e as imagens dele voltam a ser privadas até lá.
 
-Se os anúncios aparecem ou não é definido no cartão **O que sua página de status mostra** em **Configurações avançadas**: **Mostrar anúncios** (`showAnnouncementsOnStatusPage`, verdadeiro por padrão) e, abaixo dele, **Mostrar … dias de histórico** (`showAnnouncementHistoryInDays`, 14 por padrão). Com **Mostrar anúncios** desligado, o endpoint de anúncios recusa a solicitação de imediato.
+Se os anúncios aparecem ou não é definido no cartão **O que sua página de status mostra** em **Configurações**: **Mostrar anúncios** (`showAnnouncementsOnStatusPage`, verdadeiro por padrão) e, abaixo dele, **Mostrar … dias de histórico** (`showAnnouncementHistoryInDays`, 14 por padrão). Com **Mostrar anúncios** desligado, o endpoint de anúncios recusa a solicitação de imediato.
 
 ## Modelos de anúncio
 

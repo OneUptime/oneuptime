@@ -57,6 +57,10 @@ import {
  * the password). It is the old "Authentication Settings" page, the last of
  * five entries, at the same address - so links and bookmarks still land on
  * it. The entries after it set up the sign-in the second choice uses.
+ *
+ * SAML and OIDC providers are one Single Sign-On page, a tab per protocol
+ * (#9130): they were two entries, "SSO" and "OIDC", with the same lock
+ * icon. The SAML tab keeps the SSO page's address.
  */
 
 const MODEL_ID: string = "0193c0de-5555-4aaa-8bbb-0000000000c8";
@@ -70,8 +74,7 @@ function viewRoute(pageMapKey: string): string {
 const SECURITY_SECTION: Array<{ title: string; page: string }> = [
   { title: "Access", page: PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS },
   { title: "Private Users", page: PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS },
-  { title: "SSO", page: PageMap.STATUS_PAGE_VIEW_SSO },
-  { title: "OIDC", page: PageMap.STATUS_PAGE_VIEW_OIDC },
+  { title: "Single Sign-On", page: PageMap.STATUS_PAGE_VIEW_SSO },
   { title: "SCIM", page: PageMap.STATUS_PAGE_VIEW_SCIM },
 ];
 
@@ -112,11 +115,51 @@ describe("a status page's Security section", () => {
     expect(titlesInMenu()).not.toContain("Authentication Settings");
   });
 
+  test("lists single sign-on once, by the name of what it is, at the SSO page's address", async () => {
+    await renderMenuAt(PageMap.STATUS_PAGE_VIEW);
+
+    const titles: Array<string> = titlesInMenu();
+
+    expect(titles).toContain("Single Sign-On");
+    expect(titles).not.toContain("SSO");
+    expect(titles).not.toContain("OIDC");
+    expect(viewRoute(PageMap.STATUS_PAGE_VIEW_SSO)).toBe(
+      `/dashboard/${PROJECT_ID}/status-pages/${MODEL_ID}/sso`,
+    );
+    expect(Object.keys(PageMap)).not.toContain("STATUS_PAGE_VIEW_OIDC");
+  });
+
+  test("opens by itself on Single Sign-On, with it marked", async () => {
+    await renderMenuAt(PageMap.STATUS_PAGE_VIEW_SSO);
+
+    expect(isExpanded("Security")).toBe(true);
+    expect(activeLinkTitles()).toEqual(["Single Sign-On"]);
+  });
+
   test("opens by itself on Access, with Access marked", async () => {
     await renderMenuAt(PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS);
 
     expect(isExpanded("Security")).toBe(true);
     expect(activeLinkTitles()).toEqual(["Access"]);
+  });
+});
+
+describe("the Single Sign-On page's breadcrumbs", () => {
+  test("name it as the menu does", () => {
+    const links: Array<Link> | undefined = getStatusPagesBreadcrumbs(
+      (RouteMap[PageMap.STATUS_PAGE_VIEW_SSO] as Route).toString(),
+    );
+
+    expect(
+      (links || []).map((link: Link): string => {
+        return link.title;
+      }),
+    ).toEqual([
+      "Project",
+      "Status Pages",
+      "View Status Page",
+      "Single Sign-On",
+    ]);
   });
 });
 

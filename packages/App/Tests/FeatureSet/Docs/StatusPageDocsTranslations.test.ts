@@ -478,6 +478,7 @@ const PROSE: Record<string, Array<string>> = {
     "Where the colors are.",
     "Images.",
     "What it stores.",
+    "Private users, single sign-on and SCIM do nothing on a public page.",
     "Private users and the password don't stack.",
     "Sign-in links.",
     "Embedded status badge.",

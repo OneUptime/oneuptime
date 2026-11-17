@@ -480,6 +480,7 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Overview Page",
     // A card that is now a row of another card.
     "Overall Uptime Percent",
+    "Title and search engine description, and favicon.",
     "History chart colors.",
     "Languages.",
     "Search Engine Indexing.",
