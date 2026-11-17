@@ -114,12 +114,12 @@ Sem alertas críticos, um Foco ou um resumo podem reter os acionamentos:
 
 ## Bloquear o aplicativo
 
-Ative **Biometrics Login** em **Settings** no aplicativo, e ele pedirá Face ID, Touch ID ou o seu código sempre que abrir. A chave aparece quando o Face ID ou o Touch ID estão configurados no dispositivo. **Appearance**, na mesma tela, escolhe a aparência clara ou escura, ou segue o dispositivo.
+Ative **Biometric Unlock** em **Settings** no aplicativo, e ele pedirá Face ID, Touch ID ou o seu código sempre que abrir. A chave aparece quando o Face ID ou o Touch ID estão configurados no dispositivo. **Appearance**, na mesma tela, escolhe a aparência clara ou escura, ou segue o dispositivo.
 
 ## Atualizar, sair ou apagar o aplicativo
 
 - **Atualizar.** A App Store atualiza o aplicativo; você também pode atualizá-lo pela sua conta na App Store. A versão do aplicativo aparece no fim da tela **Settings** dele.
-- **Sair.** **Settings → Log Out** faz você sair e remove o dispositivo dos seus dispositivos push em todos os projetos, junto com as regras de plantão dele. Se você entrar de novo, ele volta com as regras padrão.
+- **Sair.** **Settings → Sign Out** faz você sair e remove o dispositivo dos seus dispositivos push em todos os projetos, junto com as regras de plantão dele. Se você entrar de novo, ele volta com as regras padrão.
 - **Apagar.** Toque e mantenha pressionado o ícone do aplicativo, depois toque em **Remover App** e em **Apagar App**. Se você ainda estava conectado, o dispositivo continua na sua lista até um push para ele falhar: o OneUptime então o marca como **Não está recebendo notificações**. Se você reinstalar o aplicativo e entrar, essa entrada costuma voltar, com as regras dela; se não usa mais o dispositivo, exclua a entrada com **Excluir**.
 
 ## Solução de problemas
@@ -144,7 +144,7 @@ Ative primeiro **Critical On-Call Alerts** no aplicativo: o iOS só adiciona a c
 Abra **Settings** no aplicativo: a linha abaixo de **Critical On-Call Alerts** diz o que falta. Verifique se **Alertas Críticos** está ativado em **Ajustes → Notificações → OneUptime On-Call**, e se o volume na tela **Alarm sound** do aplicativo não está baixo.
 :::
 
-:::details Não há chave Biometrics Login
+:::details Não há chave Biometric Unlock
 A chave aparece quando o Face ID ou o Touch ID estão configurados em **Ajustes → Face ID e Código** ou **Ajustes → Touch ID e Código**.
 :::
 

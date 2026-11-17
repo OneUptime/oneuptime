@@ -36,7 +36,7 @@ Sì. Ogni telefono o tablet è un dispositivo push a sé, con le sue regole di r
 - **Monitors**: tutti i monitor, filtrati per stato, con i loro dettagli.
 - **Inbox**: incidenti e avvisi, e gli episodi che li raggruppano. Aprine uno per usare **Acknowledge**, **Resolve** o **Add Note**. Se il tuo ruolo ti permette di vedere i casi di sicurezza del progetto, **Security** elenca quelli aperti: aprine uno per usare **Approve** o **Reject** su un passo di playbook in attesa di approvazione, prendere in carico il caso con **Assign to me** o usare **Close case**.
 - **On-Call**: se sei reperibile e fino a quando, chi altro lo è, gli avvisi inviati a te, e **Cover for me**, che passa i tuoi avvisi a un collega per un po'.
-- **Settings**: i tuoi progetti e il single sign-on, l'aspetto, gli avvisi critici e il suono di allarme, **Biometrics Login**, il tuo feed di calendario della reperibilità, e **Log Out**.
+- **Settings**: i tuoi progetti e il single sign-on, l'aspetto, gli avvisi critici e il suono di allarme, **Biometric Unlock**, il tuo feed di calendario della reperibilità, e **Sign Out**.
 
 Tutto il resto è nella dashboard.
 :::
@@ -46,7 +46,7 @@ No. Tocca la notifica: l'app apre l'incidente, l'avviso, l'episodio o il caso di
 :::
 
 :::details Il mio accesso è al sicuro sul telefono?
-L'app parla con il tuo OneUptime solo in HTTPS. Il tuo accesso è conservato nella memoria propria dell'app sul telefono, e **Log Out** lo cancella e chiude anche la sessione sul server. Attiva **Biometrics Login** perché l'app ti chieda volto, impronta o codice a ogni avvio.
+L'app parla con il tuo OneUptime solo in HTTPS. Il tuo accesso è conservato nella memoria propria dell'app sul telefono, e **Sign Out** lo cancella e chiude anche la sessione sul server. Attiva **Biometric Unlock** perché l'app ti chieda volto, impronta o codice a ogni avvio.
 :::
 
 :::details L'app funziona offline?

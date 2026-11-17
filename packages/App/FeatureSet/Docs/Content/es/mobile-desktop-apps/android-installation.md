@@ -121,12 +121,12 @@ OneUptime envía los avisos de guardia con prioridad alta, que Android entrega i
 
 ## Bloquear la aplicación
 
-Active **Biometrics Login** en **Settings** dentro de la aplicación, y le pedirá su huella, su cara o el bloqueo de pantalla del teléfono cada vez que se inicie. El interruptor aparece cuando el teléfono tiene configurado el desbloqueo con huella o con cara. **Appearance**, en la misma pantalla, elige el aspecto claro u oscuro, o sigue al teléfono.
+Active **Biometric Unlock** en **Settings** dentro de la aplicación, y le pedirá su huella, su cara o el bloqueo de pantalla del teléfono cada vez que se inicie. El interruptor aparece cuando el teléfono tiene configurado el desbloqueo con huella o con cara. **Appearance**, en la misma pantalla, elige el aspecto claro u oscuro, o sigue al teléfono.
 
 ## Actualizar, cerrar sesión o desinstalar
 
 - **Actualizar.** Google Play actualiza la aplicación. Con el APK, instale encima el más reciente. La versión de la aplicación aparece al final de su pantalla **Settings**.
-- **Cerrar sesión.** **Settings → Log Out** cierra su sesión y quita el teléfono de sus dispositivos push en cada proyecto, junto con sus reglas de guardia. Si vuelve a iniciar sesión, vuelve con las reglas predeterminadas.
+- **Cerrar sesión.** **Settings → Sign Out** cierra su sesión y quita el teléfono de sus dispositivos push en cada proyecto, junto con sus reglas de guardia. Si vuelve a iniciar sesión, vuelve con las reglas predeterminadas.
 - **Desinstalar.** Quite la aplicación como cualquier otra. Si seguía con la sesión iniciada, el teléfono sigue en su lista hasta que falla un push hacia él: OneUptime lo marca entonces como **No recibe notificaciones**. Elimine esa entrada con **Eliminar**: si reinstala la aplicación e inicia sesión, el teléfono se añade como una entrada nueva, con las reglas predeterminadas.
 
 ## Solución de problemas
@@ -151,7 +151,7 @@ Abra **Settings** en la aplicación: la línea bajo **Critical On-Call Alerts** 
 OneUptime On-Call ya está en el teléfono desde otra fuente, como Google Play, y Android no instala una encima de la otra. Desinstálela, instale el APK y vuelva a iniciar sesión.
 :::
 
-:::details No hay interruptor Biometrics Login
+:::details No hay interruptor Biometric Unlock
 El interruptor aparece cuando el desbloqueo con huella o con cara está configurado en los ajustes de Android.
 :::
 
