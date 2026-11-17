@@ -398,8 +398,10 @@ const MICROSOFT_TEAMS_CHAT_TOPIC_LOOKUP_CONCURRENCY: number = 5;
 const MICROSOFT_TEAMS_CHAT_TOPIC_LOOKUP_TIMEOUT_IN_MS: number = 15000;
 
 /*
- * Chat names are kept well under the 100-character ShortText columns that
- * store them in notification logs — Teams chat names can be much longer.
+ * Chat names are kept short enough to read at a glance where OneUptime
+ * shows them (a rule's chat picker, Notification Logs) — Teams chat names
+ * can be much longer. A chat's id is never shortened: it is how the chat is
+ * reached again (WorkspaceStoredValue).
  */
 const MICROSOFT_TEAMS_CHAT_NAME_MAX_LENGTH: number = 80;
 
