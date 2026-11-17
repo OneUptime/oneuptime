@@ -56457,5 +56457,20 @@
   "Monitors that no enabled probe checks: their probes are all disabled, or they have none. Enable a probe on the monitor, or add one, to start the checks again.": "Monitores que nenhuma sonda habilitada verifica: todas as suas sondas estão desabilitadas, ou eles não têm nenhuma. Habilite uma sonda no monitor, ou adicione uma, para que as verificações recomecem.",
   "Monitors with No Probe Enabled": "Monitores sem sonda habilitada",
   "No Probe Enabled": "Nenhuma sonda habilitada",
-  "No monitors without an enabled probe. Every monitor that probes check has at least one enabled.": "Nenhum monitor sem uma sonda habilitada. Todo monitor verificado por sondas tem pelo menos uma habilitada."
+  "No monitors without an enabled probe. Every monitor that probes check has at least one enabled.": "Nenhum monitor sem uma sonda habilitada. Todo monitor verificado por sondas tem pelo menos uma habilitada.",
+  "Contact support to cancel this plan. We will help you move the project to a plan that fits, or close it.": "Contacte o suporte para cancelar este plano. Ajudamos a mudar o projeto para um plano adequado, ou a encerrá-lo.",
+  "Contact the company you bought your plan from to add {{product}} to it.": "Contacte a empresa onde comprou o seu plano para lhe adicionar {{product}}.",
+  "Contact {{reseller}} at {{contact}} to add {{product}} to your plan.": "Contacte {{reseller}} através de {{contact}} para adicionar {{product}} ao seu plano.",
+  "Contact {{reseller}}, the company you bought your plan from, to add {{product}} to it.": "Contacte {{reseller}}, a empresa onde comprou o seu plano, para lhe adicionar {{product}}.",
+  "Features the Free plan does not include stop working, and nothing is deleted. They work again when you change back to a plan that includes them.": "As funcionalidades que o plano gratuito não inclui deixam de funcionar, e nada é eliminado. Voltam a funcionar quando mudar de novo para um plano que as inclua.",
+  "Questions about your bill, or want to stop using OneUptime? Contact support and we will help.": "Tem dúvidas sobre a sua fatura, ou quer deixar de usar o OneUptime? Contacte o suporte e nós ajudamos.",
+  "Switch to Free Plan": "Mudar para o plano gratuito",
+  "Switch to the Free plan to stop paying for seats. Your monitors, incidents, status pages and their history stay as they are.": "Mude para o plano gratuito para deixar de pagar por assentos. Os seus monitores, incidentes, páginas de estado e o respetivo histórico ficam como estão.",
+  "Switch to the Free plan?": "Mudar para o plano gratuito?",
+  "The project stops paying for seats from now on. Features the Free plan does not include stop working, and nothing is deleted.": "O projeto deixa de pagar por assentos a partir de agora. As funcionalidades que o plano gratuito não inclui deixam de funcionar, e nada é eliminado.",
+  "This project is now on the Free plan.": "Este projeto está agora no plano gratuito.",
+  "This project is on the Free plan, so it pays nothing for seats.": "Este projeto está no plano gratuito, por isso não paga nada por assentos.",
+  "Usage is still billed as you go on the Free plan: the data your services send, and every monitor that is not a Manual monitor.": "No plano gratuito, a utilização continua a ser faturada conforme o uso: os dados que os seus serviços enviam e cada monitor que não seja um monitor manual.",
+  "You do not have permission to change the plan.": "Não tem permissão para alterar o plano.",
+  "Your plan does not include {{product}}": "O seu plano não inclui {{product}}"
 }

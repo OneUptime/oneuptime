@@ -56457,5 +56457,20 @@
   "Monitors that no enabled probe checks: their probes are all disabled, or they have none. Enable a probe on the monitor, or add one, to start the checks again.": "مانیتورهایی که هیچ پراب فعالی بررسی‌شان نمی‌کند: پراب‌هایشان همه غیرفعال‌اند، یا هیچ پرابی ندارند. برای ازسرگیری بررسی‌ها، پرابی را روی مانیتور فعال کنید یا یکی اضافه کنید.",
   "Monitors with No Probe Enabled": "مانیتورهای بدون پراب فعال",
   "No Probe Enabled": "هیچ پرابی فعال نیست",
-  "No monitors without an enabled probe. Every monitor that probes check has at least one enabled.": "هیچ مانیتوری بدون پراب فعال نیست. هر مانیتوری که پراب‌ها بررسی‌اش می‌کنند، دست‌کم یک پراب فعال دارد."
+  "No monitors without an enabled probe. Every monitor that probes check has at least one enabled.": "هیچ مانیتوری بدون پراب فعال نیست. هر مانیتوری که پراب‌ها بررسی‌اش می‌کنند، دست‌کم یک پراب فعال دارد.",
+  "Contact support to cancel this plan. We will help you move the project to a plan that fits, or close it.": "برای لغو این طرح با پشتیبانی تماس بگیرید. کمک می‌کنیم پروژه را به طرحی مناسب ببرید یا آن را ببندید.",
+  "Contact the company you bought your plan from to add {{product}} to it.": "برای افزودن {{product}}، با شرکتی که طرح خود را از آن خریده‌اید تماس بگیرید.",
+  "Contact {{reseller}} at {{contact}} to add {{product}} to your plan.": "برای افزودن {{product}} به طرح خود، از طریق {{contact}} با {{reseller}} تماس بگیرید.",
+  "Contact {{reseller}}, the company you bought your plan from, to add {{product}} to it.": "برای افزودن {{product}}، با {{reseller}}، شرکتی که طرح خود را از آن خریده‌اید، تماس بگیرید.",
+  "Features the Free plan does not include stop working, and nothing is deleted. They work again when you change back to a plan that includes them.": "قابلیت‌هایی که طرح رایگان شامل آن‌ها نیست کار نمی‌کنند و هیچ چیز حذف نمی‌شود. وقتی به طرحی برگردید که آن‌ها را شامل می‌شود، دوباره کار می‌کنند.",
+  "Questions about your bill, or want to stop using OneUptime? Contact support and we will help.": "دربارهٔ صورت‌حساب خود سؤالی دارید یا می‌خواهید استفاده از OneUptime را کنار بگذارید؟ با پشتیبانی تماس بگیرید تا کمک کنیم.",
+  "Switch to Free Plan": "رفتن به طرح رایگان",
+  "Switch to the Free plan to stop paying for seats. Your monitors, incidents, status pages and their history stay as they are.": "به طرح رایگان بروید تا دیگر برای نشست‌ها پولی ندهید. مانیتورها، رخدادها، صفحه‌های وضعیت و سابقهٔ آن‌ها همان‌طور که هستند می‌مانند.",
+  "Switch to the Free plan?": "به طرح رایگان بروید؟",
+  "The project stops paying for seats from now on. Features the Free plan does not include stop working, and nothing is deleted.": "پروژه از همین حالا دیگر برای نشست‌ها پولی نمی‌دهد. قابلیت‌هایی که طرح رایگان شامل آن‌ها نیست کار نمی‌کنند و هیچ چیز حذف نمی‌شود.",
+  "This project is now on the Free plan.": "این پروژه اکنون روی طرح رایگان است.",
+  "This project is on the Free plan, so it pays nothing for seats.": "این پروژه روی طرح رایگان است، پس برای نشست‌ها چیزی نمی‌پردازد.",
+  "Usage is still billed as you go on the Free plan: the data your services send, and every monitor that is not a Manual monitor.": "در طرح رایگان هم مصرف بر اساس میزان استفاده صورت‌حساب می‌شود: داده‌هایی که سرویس‌های شما می‌فرستند، و هر مانیتوری که مانیتور دستی نیست.",
+  "You do not have permission to change the plan.": "شما اجازهٔ تغییر طرح را ندارید.",
+  "Your plan does not include {{product}}": "طرح شما شامل {{product}} نیست"
 }

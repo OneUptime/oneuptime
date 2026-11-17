@@ -56457,5 +56457,20 @@
   "Monitors that no enabled probe checks: their probes are all disabled, or they have none. Enable a probe on the monitor, or add one, to start the checks again.": "Monitorer som ingen aktiverad sond kontrollerar: deras sonder är alla inaktiverade, eller så har de inga. Aktivera en sond på monitorn, eller lägg till en, för att starta kontrollerna igen.",
   "Monitors with No Probe Enabled": "Monitorer utan aktiverad sond",
   "No Probe Enabled": "Ingen sond aktiverad",
-  "No monitors without an enabled probe. Every monitor that probes check has at least one enabled.": "Inga monitorer utan en aktiverad sond. Varje monitor som sonder kontrollerar har minst en aktiverad."
+  "No monitors without an enabled probe. Every monitor that probes check has at least one enabled.": "Inga monitorer utan en aktiverad sond. Varje monitor som sonder kontrollerar har minst en aktiverad.",
+  "Contact support to cancel this plan. We will help you move the project to a plan that fits, or close it.": "Kontakta support för att säga upp den här planen. Vi hjälper dig att flytta projektet till en plan som passar, eller att stänga det.",
+  "Contact the company you bought your plan from to add {{product}} to it.": "Kontakta företaget du köpte din plan av för att lägga till {{product}}.",
+  "Contact {{reseller}} at {{contact}} to add {{product}} to your plan.": "Kontakta {{reseller}} på {{contact}} för att lägga till {{product}} i din plan.",
+  "Contact {{reseller}}, the company you bought your plan from, to add {{product}} to it.": "Kontakta {{reseller}}, företaget du köpte din plan av, för att lägga till {{product}}.",
+  "Features the Free plan does not include stop working, and nothing is deleted. They work again when you change back to a plan that includes them.": "Funktioner som gratisplanen inte omfattar slutar fungera, och inget raderas. De fungerar igen när du byter tillbaka till en plan som omfattar dem.",
+  "Questions about your bill, or want to stop using OneUptime? Contact support and we will help.": "Frågor om din faktura, eller vill du sluta använda OneUptime? Kontakta support så hjälper vi dig.",
+  "Switch to Free Plan": "Byt till gratisplanen",
+  "Switch to the Free plan to stop paying for seats. Your monitors, incidents, status pages and their history stay as they are.": "Byt till gratisplanen för att sluta betala för platser. Dina övervakningar, incidenter, statussidor och deras historik förblir som de är.",
+  "Switch to the Free plan?": "Byta till gratisplanen?",
+  "The project stops paying for seats from now on. Features the Free plan does not include stop working, and nothing is deleted.": "Projektet slutar betala för platser från och med nu. Funktioner som gratisplanen inte omfattar slutar fungera, och inget raderas.",
+  "This project is now on the Free plan.": "Det här projektet har nu gratisplanen.",
+  "This project is on the Free plan, so it pays nothing for seats.": "Det här projektet har gratisplanen, så det betalar inget för platser.",
+  "Usage is still billed as you go on the Free plan: the data your services send, and every monitor that is not a Manual monitor.": "Användning faktureras fortfarande efter förbrukning på gratisplanen: data som dina tjänster skickar och varje övervakning som inte är en manuell övervakning.",
+  "You do not have permission to change the plan.": "Du har inte behörighet att byta plan.",
+  "Your plan does not include {{product}}": "Din plan omfattar inte {{product}}"
 }

@@ -56457,5 +56457,20 @@
   "Monitors that no enabled probe checks: their probes are all disabled, or they have none. Enable a probe on the monitor, or add one, to start the checks again.": "Monitoren die geen ingeschakelde sonde controleert: hun sondes zijn allemaal uitgeschakeld, of ze hebben er geen. Schakel een sonde in op de monitor, of voeg er een toe, om de controles weer te starten.",
   "Monitors with No Probe Enabled": "Monitoren zonder ingeschakelde sonde",
   "No Probe Enabled": "Geen sonde ingeschakeld",
-  "No monitors without an enabled probe. Every monitor that probes check has at least one enabled.": "Geen monitoren zonder ingeschakelde sonde. Elke monitor die sondes controleren heeft er minstens één ingeschakeld."
+  "No monitors without an enabled probe. Every monitor that probes check has at least one enabled.": "Geen monitoren zonder ingeschakelde sonde. Elke monitor die sondes controleren heeft er minstens één ingeschakeld.",
+  "Contact support to cancel this plan. We will help you move the project to a plan that fits, or close it.": "Neem contact op met support om dit abonnement op te zeggen. We helpen je het project naar een passend abonnement te verplaatsen, of het te sluiten.",
+  "Contact the company you bought your plan from to add {{product}} to it.": "Neem contact op met het bedrijf waar je je abonnement hebt gekocht om {{product}} eraan toe te voegen.",
+  "Contact {{reseller}} at {{contact}} to add {{product}} to your plan.": "Neem contact op met {{reseller}} via {{contact}} om {{product}} aan je abonnement toe te voegen.",
+  "Contact {{reseller}}, the company you bought your plan from, to add {{product}} to it.": "Neem contact op met {{reseller}}, het bedrijf waar je je abonnement hebt gekocht, om {{product}} eraan toe te voegen.",
+  "Features the Free plan does not include stop working, and nothing is deleted. They work again when you change back to a plan that includes them.": "Functies die het gratis abonnement niet bevat, werken niet meer, en er wordt niets verwijderd. Ze werken weer zodra je terugkeert naar een abonnement dat ze bevat.",
+  "Questions about your bill, or want to stop using OneUptime? Contact support and we will help.": "Vragen over je factuur, of wil je stoppen met OneUptime? Neem contact op met support, dan helpen we je.",
+  "Switch to Free Plan": "Overstappen op gratis abonnement",
+  "Switch to the Free plan to stop paying for seats. Your monitors, incidents, status pages and their history stay as they are.": "Stap over op het gratis abonnement om niet meer voor plaatsen te betalen. Je monitors, incidenten, statuspagina's en hun geschiedenis blijven zoals ze zijn.",
+  "Switch to the Free plan?": "Overstappen op het gratis abonnement?",
+  "The project stops paying for seats from now on. Features the Free plan does not include stop working, and nothing is deleted.": "Het project betaalt vanaf nu niet meer voor plaatsen. Functies die het gratis abonnement niet bevat, werken niet meer, en er wordt niets verwijderd.",
+  "This project is now on the Free plan.": "Dit project heeft nu het gratis abonnement.",
+  "This project is on the Free plan, so it pays nothing for seats.": "Dit project heeft het gratis abonnement en betaalt dus niets voor plaatsen.",
+  "Usage is still billed as you go on the Free plan: the data your services send, and every monitor that is not a Manual monitor.": "Gebruik wordt ook met het gratis abonnement naar verbruik gefactureerd: de gegevens die je services sturen, en elke monitor die geen handmatige monitor is.",
+  "You do not have permission to change the plan.": "Je hebt geen toestemming om het abonnement te wijzigen.",
+  "Your plan does not include {{product}}": "Je abonnement bevat geen {{product}}"
 }

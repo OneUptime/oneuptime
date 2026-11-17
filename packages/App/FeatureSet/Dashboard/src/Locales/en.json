@@ -56457,5 +56457,20 @@
   "Monitors that no enabled probe checks: their probes are all disabled, or they have none. Enable a probe on the monitor, or add one, to start the checks again.": "Monitors that no enabled probe checks: their probes are all disabled, or they have none. Enable a probe on the monitor, or add one, to start the checks again.",
   "Monitors with No Probe Enabled": "Monitors with No Probe Enabled",
   "No Probe Enabled": "No Probe Enabled",
-  "No monitors without an enabled probe. Every monitor that probes check has at least one enabled.": "No monitors without an enabled probe. Every monitor that probes check has at least one enabled."
+  "No monitors without an enabled probe. Every monitor that probes check has at least one enabled.": "No monitors without an enabled probe. Every monitor that probes check has at least one enabled.",
+  "Contact support to cancel this plan. We will help you move the project to a plan that fits, or close it.": "Contact support to cancel this plan. We will help you move the project to a plan that fits, or close it.",
+  "Contact the company you bought your plan from to add {{product}} to it.": "Contact the company you bought your plan from to add {{product}} to it.",
+  "Contact {{reseller}} at {{contact}} to add {{product}} to your plan.": "Contact {{reseller}} at {{contact}} to add {{product}} to your plan.",
+  "Contact {{reseller}}, the company you bought your plan from, to add {{product}} to it.": "Contact {{reseller}}, the company you bought your plan from, to add {{product}} to it.",
+  "Features the Free plan does not include stop working, and nothing is deleted. They work again when you change back to a plan that includes them.": "Features the Free plan does not include stop working, and nothing is deleted. They work again when you change back to a plan that includes them.",
+  "Questions about your bill, or want to stop using OneUptime? Contact support and we will help.": "Questions about your bill, or want to stop using OneUptime? Contact support and we will help.",
+  "Switch to Free Plan": "Switch to Free Plan",
+  "Switch to the Free plan to stop paying for seats. Your monitors, incidents, status pages and their history stay as they are.": "Switch to the Free plan to stop paying for seats. Your monitors, incidents, status pages and their history stay as they are.",
+  "Switch to the Free plan?": "Switch to the Free plan?",
+  "The project stops paying for seats from now on. Features the Free plan does not include stop working, and nothing is deleted.": "The project stops paying for seats from now on. Features the Free plan does not include stop working, and nothing is deleted.",
+  "This project is now on the Free plan.": "This project is now on the Free plan.",
+  "This project is on the Free plan, so it pays nothing for seats.": "This project is on the Free plan, so it pays nothing for seats.",
+  "Usage is still billed as you go on the Free plan: the data your services send, and every monitor that is not a Manual monitor.": "Usage is still billed as you go on the Free plan: the data your services send, and every monitor that is not a Manual monitor.",
+  "You do not have permission to change the plan.": "You do not have permission to change the plan.",
+  "Your plan does not include {{product}}": "Your plan does not include {{product}}"
 }

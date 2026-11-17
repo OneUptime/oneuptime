@@ -56457,5 +56457,20 @@
   "Monitors that no enabled probe checks: their probes are all disabled, or they have none. Enable a probe on the monitor, or add one, to start the checks again.": "활성화된 프로브가 확인하지 않는 모니터입니다. 프로브가 모두 비활성화되었거나 프로브가 없습니다. 확인을 다시 시작하려면 모니터에서 프로브를 활성화하거나 프로브를 추가하세요.",
   "Monitors with No Probe Enabled": "활성화된 프로브가 없는 모니터",
   "No Probe Enabled": "활성화된 프로브 없음",
-  "No monitors without an enabled probe. Every monitor that probes check has at least one enabled.": "활성화된 프로브가 없는 모니터가 없습니다. 프로브가 확인하는 모든 모니터에 활성화된 프로브가 하나 이상 있습니다."
+  "No monitors without an enabled probe. Every monitor that probes check has at least one enabled.": "활성화된 프로브가 없는 모니터가 없습니다. 프로브가 확인하는 모든 모니터에 활성화된 프로브가 하나 이상 있습니다.",
+  "Contact support to cancel this plan. We will help you move the project to a plan that fits, or close it.": "이 요금제를 해지하려면 지원팀에 문의하세요. 프로젝트를 알맞은 요금제로 옮기거나 닫을 수 있도록 도와드립니다.",
+  "Contact the company you bought your plan from to add {{product}} to it.": "{{product}}을(를) 추가하려면 요금제를 구매한 회사에 문의하세요.",
+  "Contact {{reseller}} at {{contact}} to add {{product}} to your plan.": "요금제에 {{product}}을(를) 추가하려면 {{reseller}}({{contact}})에 문의하세요.",
+  "Contact {{reseller}}, the company you bought your plan from, to add {{product}} to it.": "{{product}}을(를) 추가하려면 요금제를 구매한 회사인 {{reseller}}에 문의하세요.",
+  "Features the Free plan does not include stop working, and nothing is deleted. They work again when you change back to a plan that includes them.": "무료 요금제에 포함되지 않은 기능은 작동을 멈추지만 아무것도 삭제되지 않습니다. 해당 기능이 포함된 요금제로 다시 변경하면 다시 작동합니다.",
+  "Questions about your bill, or want to stop using OneUptime? Contact support and we will help.": "청구서에 대해 궁금한 점이 있거나 OneUptime 사용을 중단하고 싶으신가요? 지원팀에 문의하시면 도와드립니다.",
+  "Switch to Free Plan": "무료 요금제로 전환",
+  "Switch to the Free plan to stop paying for seats. Your monitors, incidents, status pages and their history stay as they are.": "무료 요금제로 전환하면 좌석 요금을 더 이상 내지 않습니다. 모니터, 인시던트, 상태 페이지와 그 기록은 그대로 유지됩니다.",
+  "Switch to the Free plan?": "무료 요금제로 전환할까요?",
+  "The project stops paying for seats from now on. Features the Free plan does not include stop working, and nothing is deleted.": "프로젝트는 지금부터 좌석 요금을 내지 않습니다. 무료 요금제에 포함되지 않은 기능은 작동을 멈추지만 아무것도 삭제되지 않습니다.",
+  "This project is now on the Free plan.": "이 프로젝트는 이제 무료 요금제입니다.",
+  "This project is on the Free plan, so it pays nothing for seats.": "이 프로젝트는 무료 요금제이므로 좌석 요금을 내지 않습니다.",
+  "Usage is still billed as you go on the Free plan: the data your services send, and every monitor that is not a Manual monitor.": "무료 요금제에서도 사용량은 종량제로 청구됩니다. 서비스가 보내는 데이터와 수동 모니터가 아닌 모든 모니터입니다.",
+  "You do not have permission to change the plan.": "요금제를 변경할 권한이 없습니다.",
+  "Your plan does not include {{product}}": "현재 요금제에는 {{product}}이(가) 포함되어 있지 않습니다"
 }
