@@ -8,7 +8,19 @@ jest.mock("isolated-vm", () => {
 });
 
 import AlertOnCallRule from "../../../Models/DatabaseModels/AlertOnCallRule";
+import AlertIncidentRule from "../../../Models/DatabaseModels/AlertIncidentRule";
+import AlertLabelRule from "../../../Models/DatabaseModels/AlertLabelRule";
 import AlertOwnerRule from "../../../Models/DatabaseModels/AlertOwnerRule";
+import AlertPrivacyRule from "../../../Models/DatabaseModels/AlertPrivacyRule";
+import IncidentLabelRule from "../../../Models/DatabaseModels/IncidentLabelRule";
+import IncidentPrivacyRule from "../../../Models/DatabaseModels/IncidentPrivacyRule";
+import MonitorGroup from "../../../Models/DatabaseModels/MonitorGroup";
+import AlertIncidentRuleService from "../../../Server/Services/AlertIncidentRuleService";
+import AlertLabelRuleService from "../../../Server/Services/AlertLabelRuleService";
+import AlertPrivacyRuleService from "../../../Server/Services/AlertPrivacyRuleService";
+import IncidentLabelRuleService from "../../../Server/Services/IncidentLabelRuleService";
+import IncidentPrivacyRuleService from "../../../Server/Services/IncidentPrivacyRuleService";
+import MonitorGroupService from "../../../Server/Services/MonitorGroupService";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentOnCallRule from "../../../Models/DatabaseModels/IncidentOnCallRule";
@@ -200,6 +212,13 @@ const NO_INCIDENTS_PAGE: string = "68101111-0000-4000-8000-000000000054";
 const ELSEWHERE_PAGE: string = "68101111-0000-4000-8000-000000000055";
 const ARCHIVED_PAGE: string = "68101111-0000-4000-8000-000000000056";
 const MONITOR_GROUP: string = "68101111-0000-4000-8000-000000000081";
+const OTHER_MONITOR_GROUP: string = "68101111-0000-4000-8000-000000000082";
+
+// The monitor groups' names, by id.
+const MONITOR_GROUP_NAMES: Record<string, string> = {
+  [MONITOR_GROUP]: "Checkout",
+  [OTHER_MONITOR_GROUP]: "Payments",
+};
 const SERVICE: string = "68101111-0000-4000-8000-000000000091";
 const MONITOR_LABEL: string = "68101111-0000-4000-8000-000000000041";
 const INCIDENT_LABEL: string = "68101111-0000-4000-8000-000000000042";
@@ -526,6 +545,12 @@ interface World {
   alertRuleCount: number;
   incidentOwnerRules: Array<IncidentOwnerRule>;
   alertOwnerRules: Array<AlertOwnerRule>;
+  // The project's privacy, label and alert incident rules (#7212, #7213, #7216).
+  incidentPrivacyRules: Array<IncidentPrivacyRule>;
+  alertPrivacyRules: Array<AlertPrivacyRule>;
+  incidentLabelRules: Array<IncidentLabelRule>;
+  alertLabelRules: Array<AlertLabelRule>;
+  alertIncidentRules: Array<AlertIncidentRule>;
   // The owners of the network device the monitor watches.
   deviceOwners: NetworkDeviceOwners;
   // The monitor's own owners, and the owners of each service, by id.
@@ -577,6 +602,11 @@ interface World {
   callerIncidentOwnerRules: Array<string> | "refused";
   callerAlertOwnerRules: Array<string> | "refused";
   callerStatusPages: Array<string> | "refused";
+  // Privacy, label and alert incident rules, of either kind, and monitor groups.
+  callerPrivacyRules: Array<string> | "refused";
+  callerLabelRules: Array<string> | "refused";
+  callerAlertIncidentRules: Array<string> | "refused";
+  callerMonitorGroups: Array<string> | "refused";
 }
 
 function serverStatus(
@@ -629,6 +659,11 @@ function defaultWorld(): World {
     alertRuleCount: 0,
     incidentOwnerRules: [],
     alertOwnerRules: [],
+    incidentPrivacyRules: [],
+    alertPrivacyRules: [],
+    incidentLabelRules: [],
+    alertLabelRules: [],
+    alertIncidentRules: [],
     deviceOwners: { ownerUserIds: [], ownerTeamIds: [] },
     monitorOwnerUserIds: [],
     serviceOwnerUserIds: {},
@@ -717,6 +752,10 @@ function defaultWorld(): World {
       SCOPED_ONLY_PAGE,
       NO_INCIDENTS_PAGE,
     ],
+    callerPrivacyRules: [],
+    callerLabelRules: [],
+    callerAlertIncidentRules: [],
+    callerMonitorGroups: [],
   };
 }
 
@@ -934,6 +973,104 @@ function stubWorld(): void {
     );
   }) as never);
 
+  /*
+   * The project's privacy, label and alert incident rules, as the engines
+   * read them as OneUptime (getEnabledRules), and what a caller may read.
+   */
+  const ruleReads: Array<{
+    service: { findBy: unknown };
+    rules: () => Array<{ _id?: string | undefined }>;
+    caller: () => Array<string> | "refused";
+    what: string;
+  }> = [
+    {
+      service: IncidentPrivacyRuleService,
+      rules: () => {
+        return world.incidentPrivacyRules;
+      },
+      caller: () => {
+        return world.callerPrivacyRules;
+      },
+      what: "incident privacy rules",
+    },
+    {
+      service: AlertPrivacyRuleService,
+      rules: () => {
+        return world.alertPrivacyRules;
+      },
+      caller: () => {
+        return world.callerPrivacyRules;
+      },
+      what: "alert privacy rules",
+    },
+    {
+      service: IncidentLabelRuleService,
+      rules: () => {
+        return world.incidentLabelRules;
+      },
+      caller: () => {
+        return world.callerLabelRules;
+      },
+      what: "incident label rules",
+    },
+    {
+      service: AlertLabelRuleService,
+      rules: () => {
+        return world.alertLabelRules;
+      },
+      caller: () => {
+        return world.callerLabelRules;
+      },
+      what: "alert label rules",
+    },
+    {
+      service: AlertIncidentRuleService,
+      rules: () => {
+        return world.alertIncidentRules;
+      },
+      caller: () => {
+        return world.callerAlertIncidentRules;
+      },
+      what: "alert incident rules",
+    },
+  ];
+
+  for (const read of ruleReads) {
+    jest
+      .spyOn(read.service as { findBy: () => Promise<unknown> }, "findBy")
+      .mockImplementation((async (args: {
+        query: unknown;
+        props: DatabaseCommonInteractionProps;
+      }) => {
+        if (args.props.isRoot) {
+          return read.rules();
+        }
+
+        return readable(
+          args.query,
+          read.caller(),
+          (): IncidentPrivacyRule => {
+            return new IncidentPrivacyRule();
+          },
+          read.what,
+        );
+      }) as never);
+  }
+
+  // The monitor groups a caller may read (#7214).
+  jest.spyOn(MonitorGroupService, "findBy").mockImplementation((async (args: {
+    query: unknown;
+  }) => {
+    return readable(
+      args.query,
+      world.callerMonitorGroups,
+      (): MonitorGroup => {
+        return new MonitorGroup();
+      },
+      "monitor groups",
+    );
+  }) as never);
+
   jest
     .spyOn(IncidentOnCallRuleEngineService, "getMatchingRules")
     .mockImplementation((async (incident: Incident) => {
@@ -998,6 +1135,7 @@ function stubWorld(): void {
   jest
     .spyOn(StatusPageResourceService, "findAllBy")
     .mockImplementation((async (args: { query: Record<string, unknown> }) => {
+      // As a page lists it: the monitor itself, or a group it is in, by name (#7214).
       const toResource: (link: StatusPageLink) => StatusPageResource = (
         link: StatusPageLink,
       ): StatusPageResource => {
@@ -1006,6 +1144,19 @@ function stubWorld(): void {
           link.resourceId,
         );
         resource.statusPageId = new ObjectID(link.statusPageId);
+
+        if (link.monitorGroupId) {
+          resource.monitorGroupId = new ObjectID(link.monitorGroupId);
+          resource.monitorGroup = withId(
+            new MonitorGroup(),
+            link.monitorGroupId,
+          );
+          resource.monitorGroup.name =
+            MONITOR_GROUP_NAMES[link.monitorGroupId] || "";
+        } else {
+          resource.monitorId = MONITOR_ID;
+        }
+
         return resource;
       };
 
@@ -1320,7 +1471,8 @@ function benOf(result: WhoIsToldResult): WhoIsToldPerson {
 
 /*
  * Who an event's Created email names, without the person-by-person list the
- * resolver keeps for its reader (WhoIsToldOwners.recipients, #8860).
+ * resolver keeps for its reader (WhoIsToldOwners.recipients, #8860), nor
+ * the owners it never reaches (notReached, #7572: tested on their own).
  */
 function withoutRecipients(
   owners: WhoIsToldEvent["owners"],
@@ -1328,6 +1480,7 @@ function withoutRecipients(
   const named: WhoIsToldEvent["owners"] = { ...owners };
 
   delete named.recipients;
+  delete named.notReached;
 
   return named;
 }
@@ -1433,7 +1586,7 @@ describe("WhoIsToldService", () => {
     expect(event.policies[0]!.notPagedCodes).toEqual([]);
     // The status page is listed once, though two of its resources show the monitor.
     expect(event.statusPages).toEqual([
-      { id: STATUS_PAGE, name: "Public status" },
+      { id: STATUS_PAGE, name: "Public status", groups: [] },
     ]);
     expect(result.breaks).toEqual([]);
   });
@@ -3379,8 +3532,13 @@ describe("WhoIsToldService", () => {
       world.monitorGroupIds = [MONITOR_GROUP];
       world.statusPages = [{ id: GROUP_PAGE, name: "Payments status" }];
 
+      // And names the group it shows the monitor through (#7214).
       expect(firstEvent(await resolve()).statusPages).toEqual([
-        { id: GROUP_PAGE, name: "Payments status" },
+        {
+          id: GROUP_PAGE,
+          name: "Payments status",
+          groups: [{ id: MONITOR_GROUP, name: "Checkout" }],
+        },
       ]);
     });
 
@@ -3407,10 +3565,66 @@ describe("WhoIsToldService", () => {
         { id: GROUP_PAGE, name: "Payments status" },
       ];
 
+      /*
+       * A page that lists the monitor itself names no group, though the
+       * monitor is in one it lists too: the monitor is what people change.
+       */
       expect(firstEvent(await resolve()).statusPages).toEqual([
-        { id: GROUP_PAGE, name: "Payments status" },
-        { id: STATUS_PAGE, name: "Public status" },
+        {
+          id: GROUP_PAGE,
+          name: "Payments status",
+          groups: [{ id: MONITOR_GROUP, name: "Checkout" }],
+        },
+        { id: STATUS_PAGE, name: "Public status", groups: [] },
       ]);
+    });
+
+    test("a page that shows the monitor through two groups names both, each once (#7214)", async () => {
+      world.statusPageLinks = [
+        {
+          resourceId: "68101111-0000-4000-8000-000000000524",
+          statusPageId: GROUP_PAGE,
+          monitorGroupId: MONITOR_GROUP,
+        },
+        {
+          resourceId: "68101111-0000-4000-8000-000000000525",
+          statusPageId: GROUP_PAGE,
+          monitorGroupId: OTHER_MONITOR_GROUP,
+        },
+      ];
+      world.monitorGroupIds = [MONITOR_GROUP, OTHER_MONITOR_GROUP];
+      world.statusPages = [{ id: GROUP_PAGE, name: "Payments status" }];
+
+      expect(firstEvent(await resolve()).statusPages).toEqual([
+        {
+          id: GROUP_PAGE,
+          name: "Payments status",
+          groups: [
+            { id: MONITOR_GROUP, name: "Checkout" },
+            { id: OTHER_MONITOR_GROUP, name: "Payments" },
+          ],
+        },
+      ]);
+      // How each page reaches the monitor is read with the pages, in one read.
+      expect(
+        (
+          StatusPageResourceService.findAllBy as unknown as SpyInstance<
+            (args: { select: Record<string, unknown> }) => Promise<unknown>
+          >
+        ).mock.calls.map(
+          (call: [{ select: Record<string, unknown> }]): unknown => {
+            return call[0].select;
+          },
+        ),
+      ).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            monitorId: true,
+            monitorGroupId: true,
+            monitorGroup: { _id: true, name: true },
+          }),
+        ]),
+      );
     });
 
     test("a page that shows only incidents limited to it, hides incidents, is archived or is another project's is not listed", async () => {
@@ -3439,7 +3653,7 @@ describe("WhoIsToldService", () => {
       ];
 
       expect(firstEvent(await resolve()).statusPages).toEqual([
-        { id: STATUS_PAGE, name: "Public status" },
+        { id: STATUS_PAGE, name: "Public status", groups: [] },
       ]);
     });
 
@@ -3517,10 +3731,33 @@ describe("WhoIsToldService", () => {
       expect(firstEvent(result).ownerRules).toEqual([
         { id: OWNER_RULE, name: "Checkout monitors" },
       ]);
-      expect(firstEvent(result).statusPages).toEqual([
-        { id: GROUP_PAGE, name: "Payments status" },
-        { id: STATUS_PAGE, name: "Public status" },
+      // A group the caller may read is named (#7214).
+      world.callerMonitorGroups = [MONITOR_GROUP];
+      expect(firstEvent(await forCaller()).statusPages).toEqual([
+        {
+          id: GROUP_PAGE,
+          name: "Payments status",
+          groups: [{ id: MONITOR_GROUP, name: "Checkout" }],
+        },
+        { id: STATUS_PAGE, name: "Public status", groups: [] },
       ]);
+    });
+
+    test("a monitor group the caller may not read keeps its place without its name (#7214)", async () => {
+      withOwnerRuleAndPages();
+      world.callerMonitorGroups = "refused";
+
+      const result: WhoIsToldResult = await forCaller();
+
+      expect(firstEvent(result).statusPages).toEqual([
+        {
+          id: GROUP_PAGE,
+          name: "Payments status",
+          groups: [{ id: MONITOR_GROUP, name: "" }],
+        },
+        { id: STATUS_PAGE, name: "Public status", groups: [] },
+      ]);
+      expect(JSON.stringify(result)).not.toContain('Checkout"');
     });
 
     test("somebody who may not read the monitor is told it is not found", async () => {
@@ -3598,8 +3835,8 @@ describe("WhoIsToldService", () => {
       const result: WhoIsToldResult = await forCaller();
 
       expect(firstEvent(result).statusPages).toEqual([
-        { id: GROUP_PAGE, name: "" },
-        { id: STATUS_PAGE, name: "Public status" },
+        { id: GROUP_PAGE, name: "", groups: [{ id: MONITOR_GROUP, name: "" }] },
+        { id: STATUS_PAGE, name: "Public status", groups: [] },
       ]);
       expect(JSON.stringify(result)).not.toContain("Payments status");
     });
@@ -3611,8 +3848,8 @@ describe("WhoIsToldService", () => {
       const result: WhoIsToldResult = await forCaller();
 
       expect(firstEvent(result).statusPages).toEqual([
-        { id: GROUP_PAGE, name: "" },
-        { id: STATUS_PAGE, name: "" },
+        { id: GROUP_PAGE, name: "", groups: [{ id: MONITOR_GROUP, name: "" }] },
+        { id: STATUS_PAGE, name: "", groups: [] },
       ]);
     });
 

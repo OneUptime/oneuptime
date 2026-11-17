@@ -87,6 +87,54 @@ export interface WhoIsToldOwners {
    * nobody learns who a team's members are from it.
    */
   recipients?: Array<WhoIsToldOwnerRecipient> | undefined;
+  /*
+   * OWNERS THE CREATED EMAIL NEVER REACHES (#7572): somebody named as an
+   * owner who is not a member of the project, a team of the project with
+   * nobody in it who is, and a team of another project - each with why,
+   * and what named it, so the set-up can be put right. They are not in
+   * userNames or teamNames. Absent from an older server's answer, and from
+   * a status change's owners.
+   */
+  notReached?: Array<WhoIsToldOwnerNotReached> | undefined;
+}
+
+// Whom an owner is: a person or a team.
+export enum WhoIsToldOwnerKind {
+  User = "User",
+  Team = "Team",
+}
+
+// Why the Created email never reaches an owner (#7572).
+export enum WhoIsToldOwnerProblem {
+  // A person who left the project, or never accepted its invitation.
+  NotInProject = "NotInProject",
+  // A team of the project with nobody in it who is a member of the project.
+  TeamHasNobodyInProject = "TeamHasNobodyInProject",
+  // A team of another project: it reaches nobody here.
+  TeamOfAnotherProject = "TeamOfAnotherProject",
+}
+
+// What named an owner: the place to change it.
+export enum WhoIsToldOwnerAddedBy {
+  Criteria = "Criteria",
+  NetworkDevice = "NetworkDevice",
+  OwnerRule = "OwnerRule",
+}
+
+export interface WhoIsToldOwnerNotReached {
+  kind: WhoIsToldOwnerKind;
+  id: string;
+  /*
+   * A team of the project, by name. Empty for a person who is not a member
+   * - the project does not name them - and for another project's team.
+   */
+  name: string;
+  problem: WhoIsToldOwnerProblem;
+  addedBy: WhoIsToldOwnerAddedBy;
+  // The owner rule that adds them; its name empty while the reader may not read it.
+  rule?: WhoIsToldRule | undefined;
+  // The network device whose owner they are.
+  networkDeviceId?: string | undefined;
 }
 
 // One person an owners' Created email is addressed to (#8860).
@@ -198,11 +246,40 @@ export interface WhoIsToldRule {
   name: string;
 }
 
+// A monitor group a status page shows the monitor through.
+export interface WhoIsToldMonitorGroup {
+  id: string;
+  // Empty while the caller may not read the group.
+  name: string;
+}
+
 // A status page an incident from the monitor shows on.
 export interface WhoIsToldStatusPage {
   id: string;
   // Empty while the caller may not read the status page.
   name: string;
+  /*
+   * The monitor groups the page shows the monitor through (#7214), so the
+   * chain says which group to edit. Empty when the page lists the monitor
+   * itself - then that is what people change first, whatever groups it is
+   * in too. Absent from an older server's answer.
+   */
+  groups?: Array<WhoIsToldMonitorGroup> | undefined;
+}
+
+/*
+ * The incident an alert incident rule declares from an alert (#7216): the
+ * first enabled rule that matches the alert decides, right away or once the
+ * alert has stayed open for its wait, and the incident it declares is told
+ * as any incident is - its own owners, owner rules, on-call rules, policies
+ * and status pages.
+ */
+export interface WhoIsToldDeclaration {
+  // The alert incident rule; its name empty while the reader may not read it.
+  rule: WhoIsToldRule;
+  // How long the alert must stay open first; 0 when it declares right away.
+  waitInMinutes: number;
+  incident: WhoIsToldEvent;
 }
 
 // One incident or alert a criteria opens.
@@ -227,9 +304,55 @@ export interface WhoIsToldEvent {
    * shows incidents and is not archived - and not one that shows only the
    * incidents limited to it, which an incident a monitor opens never is.
    * Empty for an alert, which is never public, and for an incident the
-   * criteria keeps off status pages or makes private.
+   * criteria keeps off status pages, or that is private.
    */
   statusPages: Array<WhoIsToldStatusPage>;
+  /*
+   * PRIVATE (#7213): the criteria makes it private, or a privacy rule does
+   * (privacyRules). A private incident shows on no status page and tells
+   * no subscriber; only its owners, Project Owners and Project Admins may
+   * read it. Absent from an older server's answer.
+   */
+  isPrivate?: boolean | undefined;
+  /*
+   * The privacy rules that make it private, as its feed will name them;
+   * empty when the criteria makes it private. A rule the reader may not
+   * read keeps its place without its name.
+   */
+  privacyRules?: Array<WhoIsToldRule> | undefined;
+  /*
+   * It is private while status pages show the monitor: they would show it
+   * otherwise, so the chain says why they don't.
+   */
+  isPrivateOffStatusPages?: boolean | undefined;
+  /*
+   * The label rules whose labels change which on-call rules page it
+   * (#7212): label rules run before on-call rules, and an on-call rule may
+   * match a label one adds. Left out when they change nothing that pages.
+   */
+  labelRules?: Array<WhoIsToldRule> | undefined;
+  // An alert an alert incident rule turns into an incident (#7216).
+  declares?: WhoIsToldDeclaration | undefined;
+  /*
+   * PRIVATE, AND NOT THE READER'S TO SEE (#7213): a private record the
+   * reader could not read once it exists - they are none of its owners,
+   * nor in a team of them, nor a Project Owner or Project Admin. They are
+   * told what it is and that it is private, and nothing of whom it tells:
+   * its title, owners, rules, policies and what it declares are taken out.
+   */
+  isHidden?: boolean | undefined;
+  /*
+   * The ids of its owners as the record will have them - the people and
+   * the project's teams - for working out who may read it once it is
+   * private. Taken out before the answer leaves the server (redactWhoIsTold).
+   */
+  ownerIds?: WhoIsToldOwnerIds | undefined;
+}
+
+// Who will own a record, by id (resolver only).
+export interface WhoIsToldOwnerIds {
+  userIds: Array<string>;
+  teamIds: Array<string>;
 }
 
 // One criteria of the monitor, in the order they are checked.
@@ -330,6 +453,18 @@ export interface WhoIsToldBreak {
   channel?: OnCallPageChannel | WhoIsToldServerChannel | undefined;
 }
 
+/*
+ * What the breaks of a monitor's chain are worked out from besides the
+ * chain itself (getWhoIsToldBreaks): kept with the resolver's answer so a
+ * reader's breaks can be worked out again without what they may not see,
+ * and taken out before the answer leaves the server (redactWhoIsTold).
+ */
+export interface WhoIsToldProjectFacts {
+  projectHasIncidentOnCallRules: boolean;
+  projectHasAlertOnCallRules: boolean;
+  projectHasOnCallPolicies: boolean;
+}
+
 export interface WhoIsToldResult {
   monitorId: string;
   monitorName: string;
@@ -338,6 +473,8 @@ export interface WhoIsToldResult {
   criteria: Array<WhoIsToldCriteria>;
   channels: WhoIsToldChannels;
   breaks: Array<WhoIsToldBreak>;
+  // The resolver's own (WhoIsToldProjectFacts); never sent.
+  facts?: WhoIsToldProjectFacts | undefined;
 }
 
 // How long the server keeps an answer before working it out again.
@@ -634,19 +771,48 @@ function getBreakKey(brk: Omit<WhoIsToldBreak, "message">): string {
   ].join("|");
 }
 
-// Every channel some person's page would use.
-function getChannelsInUse(
+/*
+ * Every incident and alert of the chain, in the order a reader meets them:
+ * each criteria's, and after an alert the incident an alert incident rule
+ * declares from it (#7216). One a reader may not see (skip) is left out,
+ * and so is what it declares.
+ */
+function getChainEvents(
   criteria: ReadonlyArray<WhoIsToldCriteria>,
-): Set<OnCallPageChannel> {
-  const used: Set<OnCallPageChannel> = new Set<OnCallPageChannel>();
+  skip?: ((event: WhoIsToldEvent) => boolean) | undefined,
+): Array<WhoIsToldEvent> {
+  const events: Array<WhoIsToldEvent> = [];
 
   for (const item of criteria) {
     for (const event of item.events) {
-      for (const policy of event.policies) {
-        for (const person of policy.people) {
-          for (const channel of person.channels) {
-            used.add(channel);
-          }
+      if (skip && skip(event)) {
+        continue;
+      }
+
+      events.push(event);
+
+      const declared: WhoIsToldEvent | undefined = event.declares?.incident;
+
+      if (declared && !(skip && skip(declared))) {
+        events.push(declared);
+      }
+    }
+  }
+
+  return events;
+}
+
+// Every channel some person's page would use.
+function getChannelsInUse(
+  events: ReadonlyArray<WhoIsToldEvent>,
+): Set<OnCallPageChannel> {
+  const used: Set<OnCallPageChannel> = new Set<OnCallPageChannel>();
+
+  for (const event of events) {
+    for (const policy of event.policies) {
+      for (const person of policy.people) {
+        for (const channel of person.channels) {
+          used.add(channel);
         }
       }
     }
@@ -666,6 +832,19 @@ function getChannelsInUse(
  * no on-call policy yet - whose fix is the on-call guided setup, which
  * makes the first one with the rules that run it - from one whose rules
  * leave this monitor out (#7369): an on-call rule needs a policy to page.
+ *
+ * An alert an alert incident rule turns into an incident that pages
+ * somebody is no break, though it pages nobody itself: the project meant
+ * its alerts to become incidents (#7216); the incident's own policies and
+ * people are its breaks. `isHidden` leaves out what a reader may not see -
+ * a private record that is not theirs (#7213): nothing it would page is
+ * their break. It still counts as something the monitor does.
+ *
+ * An owner no Created email reaches (WhoIsToldOwners.notReached, #7572) is
+ * no break: the email still goes out, to the owners it reaches or to the
+ * Project Owners, so nothing stops who is told - and Setup health, which
+ * lists every break this finds, reads no owners. The card says it with
+ * who is emailed.
  */
 export function getWhoIsToldBreaks(data: {
   criteria: ReadonlyArray<WhoIsToldCriteria>;
@@ -673,6 +852,7 @@ export function getWhoIsToldBreaks(data: {
   projectHasIncidentOnCallRules: boolean;
   projectHasAlertOnCallRules: boolean;
   projectHasOnCallPolicies: boolean;
+  isHidden?: ((event: WhoIsToldEvent) => boolean) | undefined;
 }): Array<WhoIsToldBreak> {
   const breaks: Array<WhoIsToldBreak> = [];
   const seen: Set<string> = new Set<string>();
@@ -703,92 +883,116 @@ export function getWhoIsToldBreaks(data: {
     });
   }
 
-  for (const item of data.criteria) {
-    for (const event of item.events) {
-      if (event.policies.length === 0) {
-        if (!data.projectHasOnCallPolicies) {
-          /*
-           * No policy at all: whatever rules the project has page nothing,
-           * so the first policy is what is missing (#7369).
-           */
-          add({
-            kind: WhoIsToldBreakKind.NobodyPaged,
-            fix: WhoIsToldFix.OnCallGuidedSetup,
-            recordKind: event.kind,
-          });
-        } else if (
-          event.kind === OnCallTestPageRecordKind.Alert &&
-          data.projectHasIncidentOnCallRules &&
-          !data.projectHasAlertOnCallRules
-        ) {
-          add({
-            kind: WhoIsToldBreakKind.OnlyIncidentsHaveRules,
-            fix: WhoIsToldFix.AlertOnCallRules,
-            recordKind: event.kind,
-          });
-        } else {
-          add({
-            kind: WhoIsToldBreakKind.NobodyPaged,
-            fix:
-              event.kind === OnCallTestPageRecordKind.Alert
-                ? WhoIsToldFix.AlertOnCallRules
-                : WhoIsToldFix.IncidentOnCallRules,
-            recordKind: event.kind,
-          });
-        }
+  const events: Array<WhoIsToldEvent> = getChainEvents(
+    data.criteria,
+    data.isHidden,
+  );
 
+  for (const event of events) {
+    /*
+     * The incident an alert becomes: its own policies are its breaks, and
+     * an alert whose incident pages somebody is not "nobody is paged".
+     */
+    const declaredIncidentPages: boolean = Boolean(
+      event.declares &&
+        event.declares.incident.policies.length > 0 &&
+        !(data.isHidden && data.isHidden(event.declares.incident)),
+    );
+
+    if (event.policies.length === 0) {
+      // Declared from an alert: the alert's break says nobody is paged.
+      const isDeclaredIncident: boolean = events.some(
+        (other: WhoIsToldEvent): boolean => {
+          return other.declares?.incident === event;
+        },
+      );
+
+      if (isDeclaredIncident || declaredIncidentPages) {
         continue;
       }
 
-      for (const policy of event.policies) {
-        // What the caller may not read, they are not told the inside of.
-        if (policy.isHidden) {
+      if (!data.projectHasOnCallPolicies) {
+        /*
+         * No policy at all: whatever rules the project has page nothing,
+         * so the first policy is what is missing (#7369).
+         */
+        add({
+          kind: WhoIsToldBreakKind.NobodyPaged,
+          fix: WhoIsToldFix.OnCallGuidedSetup,
+          recordKind: event.kind,
+        });
+      } else if (
+        event.kind === OnCallTestPageRecordKind.Alert &&
+        data.projectHasIncidentOnCallRules &&
+        !data.projectHasAlertOnCallRules
+      ) {
+        add({
+          kind: WhoIsToldBreakKind.OnlyIncidentsHaveRules,
+          fix: WhoIsToldFix.AlertOnCallRules,
+          recordKind: event.kind,
+        });
+      } else {
+        add({
+          kind: WhoIsToldBreakKind.NobodyPaged,
+          fix:
+            event.kind === OnCallTestPageRecordKind.Alert
+              ? WhoIsToldFix.AlertOnCallRules
+              : WhoIsToldFix.IncidentOnCallRules,
+          recordKind: event.kind,
+        });
+      }
+
+      continue;
+    }
+
+    for (const policy of event.policies) {
+      // What the caller may not read, they are not told the inside of.
+      if (policy.isHidden) {
+        continue;
+      }
+
+      if (policy.levelCount === 0) {
+        add({
+          kind: WhoIsToldBreakKind.PolicyHasNoLevels,
+          fix: WhoIsToldFix.OnCallPolicy,
+          policyId: policy.id,
+          policyName: policy.name || undefined,
+        });
+        continue;
+      }
+
+      if (policy.people.length === 0) {
+        add({
+          kind: WhoIsToldBreakKind.PolicyReachesNobody,
+          fix: WhoIsToldFix.OnCallPolicy,
+          policyId: policy.id,
+          policyName: policy.name || undefined,
+        });
+        continue;
+      }
+
+      for (const person of policy.people) {
+        if (person.isReachable) {
           continue;
         }
 
-        if (policy.levelCount === 0) {
-          add({
-            kind: WhoIsToldBreakKind.PolicyHasNoLevels,
-            fix: WhoIsToldFix.OnCallPolicy,
-            policyId: policy.id,
-            policyName: policy.name || undefined,
-          });
+        /*
+         * A person whose only channels are off is the switch's break,
+         * told once below, not theirs.
+         */
+        if (person.problem === WhoIsToldPersonProblem.ChannelsOff) {
           continue;
         }
 
-        if (policy.people.length === 0) {
-          add({
-            kind: WhoIsToldBreakKind.PolicyReachesNobody,
-            fix: WhoIsToldFix.OnCallPolicy,
-            policyId: policy.id,
-            policyName: policy.name || undefined,
-          });
-          continue;
-        }
-
-        for (const person of policy.people) {
-          if (person.isReachable) {
-            continue;
-          }
-
-          /*
-           * A person whose only channels are off is the switch's break,
-           * told once below, not theirs.
-           */
-          if (person.problem === WhoIsToldPersonProblem.ChannelsOff) {
-            continue;
-          }
-
-          add({
-            kind: WhoIsToldBreakKind.PersonUnreachable,
-            fix: WhoIsToldFix.OnCallReadiness,
-            policyId: policy.id,
-            policyName: policy.name || undefined,
-            userId: person.userId,
-            userName: person.name || undefined,
-            problem: person.problem,
-          });
-        }
+        add({
+          kind: WhoIsToldBreakKind.PersonUnreachable,
+          fix: WhoIsToldFix.OnCallReadiness,
+          policyId: policy.id,
+          policyName: policy.name || undefined,
+          userId: person.userId,
+          userName: person.name || undefined,
+          problem: person.problem,
+        });
       }
     }
   }
@@ -800,14 +1004,12 @@ export function getWhoIsToldBreaks(data: {
 
   const wanted: Set<OnCallPageChannel> = new Set<OnCallPageChannel>();
 
-  for (const item of data.criteria) {
-    for (const event of item.events) {
-      for (const policy of event.policies) {
-        for (const person of policy.people) {
-          if (person.problem === WhoIsToldPersonProblem.ChannelsOff) {
-            for (const channel of person.channels) {
-              wanted.add(channel);
-            }
+  for (const event of events) {
+    for (const policy of event.policies) {
+      for (const person of policy.people) {
+        if (person.problem === WhoIsToldPersonProblem.ChannelsOff) {
+          for (const channel of person.channels) {
+            wanted.add(channel);
           }
         }
       }
@@ -824,7 +1026,7 @@ export function getWhoIsToldBreaks(data: {
     }
   }
 
-  const used: Set<OnCallPageChannel> = getChannelsInUse(data.criteria);
+  const used: Set<OnCallPageChannel> = getChannelsInUse(events);
 
   // OneUptime Cloud: SMS and calls paid from an empty balance.
   if (data.channels.isBillingEnabled) {
@@ -1073,13 +1275,56 @@ function withNameIfReadable<T extends { id: string; name: string }>(
 }
 
 /*
+ * What a reader is told of a private record that is not theirs to see
+ * (#7213): what opens - its kind and severity, which the criteria they may
+ * read says - and that it is private, by the privacy rules that make it so
+ * as far as they may read them. Nothing of whom it tells, nor its title.
+ */
+function getHiddenEvent(data: {
+  event: WhoIsToldEvent;
+  readablePrivacyRuleIds: ReadonlySet<string>;
+}): WhoIsToldEvent {
+  return {
+    kind: data.event.kind,
+    title: "",
+    severityName: data.event.severityName,
+    owners: {
+      source: WhoIsToldOwnersSource.Named,
+      userNames: [],
+      teamNames: [],
+    },
+    ownerRules: [],
+    rules: [],
+    policies: [],
+    statusPages: [],
+    isPrivate: true,
+    privacyRules: (data.event.privacyRules || []).map(
+      (rule: WhoIsToldRule): WhoIsToldRule => {
+        return withNameIfReadable(rule, data.readablePrivacyRuleIds);
+      },
+    ),
+    isHidden: true,
+  };
+}
+
+/*
  * THE ANSWER AS ONE CALLER MAY SEE IT. Somebody who may read the monitor
  * but not a policy is told paging is set up, and nothing of who: the
  * policy's name, people and gaps are taken away, and so are the names in
- * its breaks. An on-call rule, an owner rule or a status page they may not
- * read keeps its place without its name. Who an incident's or an alert's
- * Created email tells is worked out from the policies as they read them
+ * its breaks. An on-call rule, an owner rule, a privacy, label or alert
+ * incident rule, a status page or a monitor group they may not read keeps
+ * its place without its name. Who an incident's or an alert's Created
+ * email tells is worked out from the policies as they read them
  * (getWhoIsToldOwnersAsTold, #8860).
+ *
+ * A PRIVATE RECORD THAT IS NOT THEIRS TO SEE (#7213) - canReadPrivateEvent
+ * says whether they will be able to read it once it exists: one of its
+ * owners, in a team of them, or a Project Owner or Project Admin - says
+ * only that it opens, and that it is private; nothing it would tell, and
+ * no break it would raise. Without canReadPrivateEvent no private record
+ * is theirs. The breaks are worked out again without such records, from
+ * the resolver's own facts (WhoIsToldProjectFacts), which, with every
+ * record's owner ids, never leave the server.
  */
 export function redactWhoIsTold(data: {
   result: WhoIsToldResult;
@@ -1089,11 +1334,37 @@ export function redactWhoIsTold(data: {
   // The owner rules (incident and alert) the caller may read.
   readableOwnerRuleIds: ReadonlySet<string>;
   readableStatusPageIds: ReadonlySet<string>;
+  readableMonitorGroupIds?: ReadonlySet<string> | undefined;
+  // The privacy rules (incident and alert) the caller may read.
+  readablePrivacyRuleIds?: ReadonlySet<string> | undefined;
+  // The label rules (incident and alert) the caller may read.
+  readableLabelRuleIds?: ReadonlySet<string> | undefined;
+  readableAlertIncidentRuleIds?: ReadonlySet<string> | undefined;
+  canReadPrivateEvent?: ((event: WhoIsToldEvent) => boolean) | undefined;
 }): WhoIsToldResult {
+  const none: ReadonlySet<string> = new Set<string>();
+  const readableMonitorGroupIds: ReadonlySet<string> =
+    data.readableMonitorGroupIds || none;
+  const readablePrivacyRuleIds: ReadonlySet<string> =
+    data.readablePrivacyRuleIds || none;
+  const readableLabelRuleIds: ReadonlySet<string> =
+    data.readableLabelRuleIds || none;
+  const readableAlertIncidentRuleIds: ReadonlySet<string> =
+    data.readableAlertIncidentRuleIds || none;
+
   const isReadable: (policyId: string | undefined) => boolean = (
     policyId: string | undefined,
   ): boolean => {
     return !policyId || data.readablePolicyIds.has(policyId);
+  };
+
+  const isHidden: (event: WhoIsToldEvent) => boolean = (
+    event: WhoIsToldEvent,
+  ): boolean => {
+    return (
+      event.isPrivate === true &&
+      !(data.canReadPrivateEvent ? data.canReadPrivateEvent(event) : false)
+    );
   };
 
   const redactPolicy: (policy: WhoIsToldPolicy) => WhoIsToldPolicy = (
@@ -1116,43 +1387,141 @@ export function redactWhoIsTold(data: {
     };
   };
 
+  const redactRules: (
+    rules: Array<WhoIsToldRule> | undefined,
+    readableIds: ReadonlySet<string>,
+  ) => Array<WhoIsToldRule> | undefined = (
+    rules: Array<WhoIsToldRule> | undefined,
+    readableIds: ReadonlySet<string>,
+  ): Array<WhoIsToldRule> | undefined => {
+    return rules
+      ? rules.map((rule: WhoIsToldRule): WhoIsToldRule => {
+          return withNameIfReadable(rule, readableIds);
+        })
+      : undefined;
+  };
+
+  const redactEvent: (event: WhoIsToldEvent) => WhoIsToldEvent = (
+    event: WhoIsToldEvent,
+  ): WhoIsToldEvent => {
+    if (isHidden(event)) {
+      return getHiddenEvent({
+        event: event,
+        readablePrivacyRuleIds: readablePrivacyRuleIds,
+      });
+    }
+
+    // Who will own it is the resolver's to know, never sent.
+    const { declares, ...shown } = event;
+    delete shown.ownerIds;
+    const policies: Array<WhoIsToldPolicy> = event.policies.map(redactPolicy);
+    const owners: WhoIsToldOwners = getWhoIsToldOwnersAsTold({
+      owners: event.owners,
+      policies: policies,
+      channels: data.result.channels,
+    });
+
+    if (owners.notReached) {
+      owners.notReached = owners.notReached.map(
+        (owner: WhoIsToldOwnerNotReached): WhoIsToldOwnerNotReached => {
+          return owner.rule
+            ? {
+                ...owner,
+                rule: withNameIfReadable(owner.rule, data.readableOwnerRuleIds),
+              }
+            : owner;
+        },
+      );
+    }
+
+    const redacted: WhoIsToldEvent = {
+      ...shown,
+      owners: owners,
+      ownerRules: event.ownerRules.map((rule: WhoIsToldRule): WhoIsToldRule => {
+        return withNameIfReadable(rule, data.readableOwnerRuleIds);
+      }),
+      rules: event.rules.map((rule: WhoIsToldRule): WhoIsToldRule => {
+        return withNameIfReadable(rule, data.readableRuleIds);
+      }),
+      statusPages: event.statusPages.map(
+        (page: WhoIsToldStatusPage): WhoIsToldStatusPage => {
+          const named: WhoIsToldStatusPage = withNameIfReadable(
+            page,
+            data.readableStatusPageIds,
+          );
+
+          return page.groups
+            ? {
+                ...named,
+                groups: page.groups.map(
+                  (group: WhoIsToldMonitorGroup): WhoIsToldMonitorGroup => {
+                    return withNameIfReadable(group, readableMonitorGroupIds);
+                  },
+                ),
+              }
+            : named;
+        },
+      ),
+      policies: policies,
+    };
+
+    const privacyRules: Array<WhoIsToldRule> | undefined = redactRules(
+      event.privacyRules,
+      readablePrivacyRuleIds,
+    );
+
+    if (privacyRules) {
+      redacted.privacyRules = privacyRules;
+    }
+
+    const labelRules: Array<WhoIsToldRule> | undefined = redactRules(
+      event.labelRules,
+      readableLabelRuleIds,
+    );
+
+    if (labelRules) {
+      redacted.labelRules = labelRules;
+    }
+
+    if (declares) {
+      redacted.declares = {
+        rule: withNameIfReadable(declares.rule, readableAlertIncidentRuleIds),
+        waitInMinutes: declares.waitInMinutes,
+        incident: redactEvent(declares.incident),
+      };
+    }
+
+    return redacted;
+  };
+
+  /*
+   * The reader's breaks: worked out again without what is hidden from them,
+   * when the resolver kept what that needs; else the resolver's own.
+   */
+  const { facts, ...result } = data.result;
+
+  const breaks: Array<WhoIsToldBreak> = facts
+    ? getWhoIsToldBreaks({
+        criteria: data.result.criteria,
+        channels: data.result.channels,
+        projectHasIncidentOnCallRules: facts.projectHasIncidentOnCallRules,
+        projectHasAlertOnCallRules: facts.projectHasAlertOnCallRules,
+        projectHasOnCallPolicies: facts.projectHasOnCallPolicies,
+        isHidden: isHidden,
+      })
+    : data.result.breaks;
+
   return {
-    ...data.result,
+    ...result,
     criteria: data.result.criteria.map(
       (item: WhoIsToldCriteria): WhoIsToldCriteria => {
         return {
           ...item,
-          events: item.events.map((event: WhoIsToldEvent): WhoIsToldEvent => {
-            const policies: Array<WhoIsToldPolicy> =
-              event.policies.map(redactPolicy);
-
-            return {
-              ...event,
-              owners: getWhoIsToldOwnersAsTold({
-                owners: event.owners,
-                policies: policies,
-                channels: data.result.channels,
-              }),
-              ownerRules: event.ownerRules.map(
-                (rule: WhoIsToldRule): WhoIsToldRule => {
-                  return withNameIfReadable(rule, data.readableOwnerRuleIds);
-                },
-              ),
-              rules: event.rules.map((rule: WhoIsToldRule): WhoIsToldRule => {
-                return withNameIfReadable(rule, data.readableRuleIds);
-              }),
-              statusPages: event.statusPages.map(
-                (page: WhoIsToldStatusPage): WhoIsToldStatusPage => {
-                  return withNameIfReadable(page, data.readableStatusPageIds);
-                },
-              ),
-              policies: policies,
-            };
-          }),
+          events: item.events.map(redactEvent),
         };
       },
     ),
-    breaks: data.result.breaks
+    breaks: breaks
       .filter((brk: WhoIsToldBreak): boolean => {
         // Who a hidden policy pages is not the caller's to read.
         return !(
@@ -1173,7 +1542,6 @@ export function redactWhoIsTold(data: {
       }),
   };
 }
-
 // The criteria and incident or alert the card's sentences are about.
 export interface WhoIsToldHeadline {
   criteria: WhoIsToldCriteria;

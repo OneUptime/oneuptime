@@ -359,7 +359,9 @@ class IncidentOnCallRuleEngineServiceClass {
    * WhoIsToldService.resolveProject): the project's enabled rules, read
    * once with readEnabledRules, and the monitors those incidents come from
    * (MonitorRuleCriteriaCache.seed), so the matching reads nothing per
-   * incident. It is the same matching either way.
+   * incident. It is the same matching either way. A reader of one incident
+   * hands in only the cache - seeded with a monitor not saved yet, say -
+   * and the rules are read as ever.
    */
   @CaptureSpan()
   @RuleEvaluation()
@@ -367,7 +369,7 @@ class IncidentOnCallRuleEngineServiceClass {
     incident: Incident,
     preloaded?:
       | {
-          rules: Array<IncidentOnCallRule>;
+          rules?: Array<IncidentOnCallRule> | undefined;
           monitorCache: MonitorRuleCriteriaCache;
         }
       | undefined,
@@ -378,9 +380,8 @@ class IncidentOnCallRuleEngineServiceClass {
 
     const matching: Array<IncidentOnCallRule> = [];
 
-    const rules: Array<IncidentOnCallRule> = preloaded
-      ? preloaded.rules
-      : await this.findEnabledRules(incident.projectId);
+    const rules: Array<IncidentOnCallRule> =
+      preloaded?.rules || (await this.findEnabledRules(incident.projectId));
 
     for (const rule of rules) {
       if (!rule.onCallDutyPolicies || rule.onCallDutyPolicies.length === 0) {

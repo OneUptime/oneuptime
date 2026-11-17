@@ -1,5 +1,11 @@
 import AlertEpisodeOnCallRule from "../../../Models/DatabaseModels/AlertEpisodeOnCallRule";
+import AlertIncidentRule from "../../../Models/DatabaseModels/AlertIncidentRule";
+import AlertLabelRule from "../../../Models/DatabaseModels/AlertLabelRule";
 import AlertOnCallRule from "../../../Models/DatabaseModels/AlertOnCallRule";
+import IncidentLabelRule from "../../../Models/DatabaseModels/IncidentLabelRule";
+import AlertIncidentRuleEngineService from "../../../Server/Services/AlertIncidentRuleEngineService";
+import AlertLabelRuleEngineService from "../../../Server/Services/AlertLabelRuleEngineService";
+import IncidentLabelRuleEngineService from "../../../Server/Services/IncidentLabelRuleEngineService";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import IncidentEpisodeOnCallRule from "../../../Models/DatabaseModels/IncidentEpisodeOnCallRule";
 import IncidentOnCallRule from "../../../Models/DatabaseModels/IncidentOnCallRule";
@@ -622,6 +628,35 @@ function stubWorld(): void {
     AlertOnCallRuleEngineService,
     "readEnabledRules",
     async (): Promise<Array<AlertOnCallRule>> => {
+      return [];
+    },
+  );
+  /*
+   * The label rules (their labels change which on-call rules page) and the
+   * alert incident rules (an alert that becomes an incident that pages is
+   * no break): none here, read once for the project (#7212, #7216).
+   */
+  spy(
+    "IncidentLabelRuleEngineService.getEnabledRules",
+    IncidentLabelRuleEngineService,
+    "getEnabledRules",
+    async (): Promise<Array<IncidentLabelRule>> => {
+      return [];
+    },
+  );
+  spy(
+    "AlertLabelRuleEngineService.getEnabledRules",
+    AlertLabelRuleEngineService,
+    "getEnabledRules",
+    async (): Promise<Array<AlertLabelRule>> => {
+      return [];
+    },
+  );
+  spy(
+    "AlertIncidentRuleEngineService.getEnabledRules",
+    AlertIncidentRuleEngineService,
+    "getEnabledRules",
+    async (): Promise<Array<AlertIncidentRule>> => {
       return [];
     },
   );
