@@ -24,8 +24,8 @@ const NotificationBell: (props: ComponentProps) => ReactElement = (
   const translator: Translator = useTranslator();
   const { ref, isComponentVisible, setIsComponentVisible } =
     useComponentOutsideClick(false);
-  const bellButtonRef: React.RefObject<HTMLButtonElement | null> =
-    useRef<HTMLButtonElement | null>(null);
+  const bellButtonRef: React.RefObject<HTMLButtonElement> =
+    useRef<HTMLButtonElement>(null);
 
   const itemsWithCount: Array<NotificationItem> = props.items.filter(
     (item: NotificationItem) => {
