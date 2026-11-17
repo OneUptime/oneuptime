@@ -155,7 +155,7 @@ const TelemetrySearchSuggestions: FunctionComponent<
         );
       })}
       {props.suggestions.length > MAX_VISIBLE_SUGGESTIONS && (
-        <div className="px-3 py-1 text-[11px] text-gray-500">
+        <div className="px-3 py-1 text-xs text-gray-500">
           {translator.translatePlural(
             { one: "+{{count}} more...", other: "+{{count}} more..." },
             props.suggestions.length - MAX_VISIBLE_SUGGESTIONS,

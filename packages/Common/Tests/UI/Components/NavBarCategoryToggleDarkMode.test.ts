@@ -216,7 +216,7 @@ describe("the category row's colours", () => {
       "bg-yellow-50",
       "text-yellow-800",
       "ring-yellow-200",
-      "text-gray-400",
+      "text-gray-500",
       "border-gray-100",
     ]);
     for (const token of tokens) {
