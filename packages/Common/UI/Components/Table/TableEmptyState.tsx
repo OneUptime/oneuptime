@@ -126,6 +126,15 @@ export const TABLE_EMPTY_STATE_KIND_STYLES: Record<
 
 export const TABLE_EMPTY_STATE_TEST_ID: string = "table-empty-state";
 
+/*
+ * An action's button on a phone: the column's width, as its box is. A
+ * Button has no width of its own (#9128), so the empty state gives it this
+ * one; a locked one's wrapper, which carries its reason, takes it from the
+ * button. From sm up it is as wide as its words.
+ */
+export const TABLE_EMPTY_STATE_ACTION_BUTTON_CLASS_NAME: string =
+  "max-sm:w-full";
+
 const TableEmptyState: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -222,8 +231,8 @@ const TableEmptyState: FunctionComponent<ComponentProps> = (
       {hasActions ? (
         /*
          * A column on a phone, where each button takes the full width and
-         * is easy to tap; a row from sm up. The buttons' own left margin is
-         * for a header row - here the gap spaces them.
+         * is easy to tap (TABLE_EMPTY_STATE_ACTION_BUTTON_CLASS_NAME); a row
+         * from sm up, spaced by the gap.
          */
         <div
           className="mt-6 flex w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row sm:flex-wrap"
@@ -260,7 +269,11 @@ const TableEmptyState: FunctionComponent<ComponentProps> = (
                    * does not read as the way forward the note under it says
                    * it is not.
                    */
-                  className={`${isLink ? "text-sm font-medium" : ""}${
+                  className={`${
+                    isLink
+                      ? "text-sm font-medium"
+                      : TABLE_EMPTY_STATE_ACTION_BUTTON_CLASS_NAME
+                  }${
                     action.isLoading ? " cursor-wait [&_svg]:animate-spin" : ""
                   }`}
                   disabled={action.disabled}

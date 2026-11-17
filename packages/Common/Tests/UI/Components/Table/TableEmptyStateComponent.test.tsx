@@ -10,6 +10,7 @@ import {
 import * as React from "react";
 import IconProp from "../../../../Types/Icon/IconProp";
 import TableEmptyState, {
+  TABLE_EMPTY_STATE_ACTION_BUTTON_CLASS_NAME,
   TABLE_EMPTY_STATE_KIND_STYLES,
   TABLE_EMPTY_STATE_TEST_ID,
   TableEmptyStateActionStyle,
@@ -429,6 +430,47 @@ describe("the actions", () => {
     expect(row.className).toContain("sm:flex-row");
     expect(row.querySelector("div")!.className).toContain("w-full");
     expect(row.querySelector("div")!.className).toContain("sm:w-auto");
+  });
+
+  /*
+   * A Button has no width of its own (#9128): on a 390px phone a part's
+   * Try again sat in the middle of its card at its words' width, under a
+   * column the card's width (ProxmoxPages.spec.ts measures it). Each
+   * button takes its box's width there, and a locked one's wrapper, which
+   * carries its reason, takes it from the button.
+   */
+  test("on a phone each action's button takes its box's width, a locked one's wrapper too", () => {
+    render(
+      <TableEmptyState
+        kind={TableEmptyStateKind.Error}
+        title="Couldn't load this node"
+        actions={[
+          { title: "Try again", dataTestId: "refresh", onClick: () => {} },
+          {
+            title: "Create Label",
+            disabled: true,
+            tooltip: "You do not have permission to create this Label.",
+            dataTestId: "create-label",
+            onClick: () => {},
+          },
+          {
+            title: "Read the docs",
+            style: TableEmptyStateActionStyle.Link,
+            dataTestId: "docs",
+            onClick: () => {},
+          },
+        ]}
+      />,
+    );
+
+    expect(TABLE_EMPTY_STATE_ACTION_BUTTON_CLASS_NAME).toBe("max-sm:w-full");
+    expect(screen.getByTestId("refresh")).toHaveClass("max-sm:w-full");
+    expect(screen.getByTestId("create-label")).toHaveClass("max-sm:w-full");
+    expect(screen.getByTestId("create-label-disabled-wrapper")).toHaveClass(
+      "max-sm:w-full",
+    );
+    // A link keeps its words' width: it is no button to tap.
+    expect(screen.getByTestId("docs")).not.toHaveClass("max-sm:w-full");
   });
 });
 
