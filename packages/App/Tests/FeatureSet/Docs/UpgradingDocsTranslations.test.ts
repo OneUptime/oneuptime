@@ -403,6 +403,7 @@ const PROSE_LEADS: Array<string> = [
   "The sign-in page offers an emailed sign-in link, even with no working mail server.",
   "The master API key is stored hashed, and shown only when it is made.",
   "A project's API keys are stored hashed, and each is shown only when it is made.",
+  "The keys presented to OneUptime are encrypted, and SCIM bearer tokens are stored hashed and shown only when they are made.",
   "A record you may not read can no longer be changed or deleted, and a change by ID that reaches nothing says so.",
   "A record read through another one is created only under a record its creator may read.",
   "Owned",
