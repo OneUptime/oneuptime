@@ -56512,5 +56512,13 @@
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private alert out.": "يمكن لكل من لديه حق الوصول إلى المستودع رؤية طلب السحب هذا، مع التغيير ووصفه. لا يُذكر فيه هذا التنبيه الخاص.",
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "يمكن لكل من لديه حق الوصول إلى المستودع رؤية طلب السحب هذا، مع التغيير ووصفه. لا تُذكر فيه هذه الحادثة الخاصة.",
   "Only someone who may approve fixes can open this pull request.": "لا يمكن فتح طلب السحب هذا إلا لمن يحق له الموافقة على الإصلاحات.",
-  "VPA": "VPA"
+  "VPA": "VPA",
+  "Copy Your Bearer Token": "انسخ رمز Bearer",
+  "Incoming Email Secret Key Hash": "تجزئة المفتاح السري للبريد الوارد",
+  "Incoming Request Secret Key Hash": "تجزئة المفتاح السري للطلب الوارد",
+  "Ingestion Key Hash": "تجزئة مفتاح الاستيعاب",
+  "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "الصقه الآن في موفّر الهوية لديك، أو احفظه في مكان آمن. لا يُعرض إلا هذه المرة: لا يحتفظ OneUptime إلا بتجزئته.",
+  "Server Monitor Secret Key Hash": "تجزئة المفتاح السري لمراقبة الخادم",
+  "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "لا يُعرض رمز Bearer إلا مرة واحدة، عند إضافة الاتصال أو إعادة تعيين رمزه. إذا لم يعد لديك، فاستخدم «إعادة تعيين رمز Bearer» لإنشاء رمز جديد.",
+  "Webhook Secret Key Hash": "تجزئة المفتاح السري لـ Webhook"
 }

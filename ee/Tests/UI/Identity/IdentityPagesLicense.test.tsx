@@ -547,9 +547,15 @@ describe("Settings > SCIM for a project admin", () => {
     expect(table).toHaveAttribute("data-editable", "false");
     expect(table).toHaveAttribute("data-deleteable", "true");
     expect(table.getAttribute("data-actions")).toBe("View SCIM URLs");
-    // The server lets only a project owner read the token: it is not asked for.
+    /*
+     * Nobody reads the token - it is kept as its hash (#9012) - and only a
+     * project owner may read when the secrets expire: neither is asked for.
+     */
     expect(table.getAttribute("data-selects")?.split("|")).not.toContain(
       "bearerToken",
+    );
+    expect(table.getAttribute("data-selects")?.split("|")).not.toContain(
+      "oauthClientSecretExpiresAt",
     );
     expect(
       screen.getByTestId(SCIM_SAVE_ACCESS_NOTICE_TEST_ID),
@@ -610,7 +616,7 @@ describe("Settings > SCIM for a project admin", () => {
     ).not.toBeInTheDocument();
   });
 
-  test("a project owner sees no such notice, and the table reads the token for them", async () => {
+  test("a project owner sees no such notice, and the table reads when the secrets expire - never the token, kept as its hash", async () => {
     window.localStorage.clear();
     signInWith(Permission.ProjectOwner);
     answerLicense({ status: "valid", licenseValid: true });
@@ -621,8 +627,12 @@ describe("Settings > SCIM for a project admin", () => {
     expect(
       screen.queryByTestId(SCIM_SAVE_ACCESS_NOTICE_TEST_ID),
     ).not.toBeInTheDocument();
-    expect(
-      providerTable(settingsScreen).getAttribute("data-selects")?.split("|"),
-    ).toContain("bearerToken");
+
+    const selects: Array<string> =
+      providerTable(settingsScreen).getAttribute("data-selects")?.split("|") ||
+      [];
+
+    expect(selects).toContain("oauthClientSecretExpiresAt");
+    expect(selects).not.toContain("bearerToken");
   });
 });

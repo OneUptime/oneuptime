@@ -56512,5 +56512,13 @@
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private alert out.": "저장소에 접근할 수 있는 모든 사람이 이 풀 리퀘스트의 변경 내용과 설명을 볼 수 있습니다. 이 비공개 경고는 언급되지 않습니다.",
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "저장소에 접근할 수 있는 모든 사람이 이 풀 리퀘스트의 변경 내용과 설명을 볼 수 있습니다. 이 비공개 인시던트는 언급되지 않습니다.",
   "Only someone who may approve fixes can open this pull request.": "수정을 승인할 수 있는 사람만 이 풀 리퀘스트를 열 수 있습니다.",
-  "VPA": "VPA"
+  "VPA": "VPA",
+  "Copy Your Bearer Token": "Bearer 토큰 복사",
+  "Incoming Email Secret Key Hash": "수신 이메일 시크릿 키 해시",
+  "Incoming Request Secret Key Hash": "수신 요청 시크릿 키 해시",
+  "Ingestion Key Hash": "수집 키 해시",
+  "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "지금 ID 공급자에 붙여넣거나 안전한 곳에 보관하세요. 이번 한 번만 표시됩니다. OneUptime은 해시만 저장합니다.",
+  "Server Monitor Secret Key Hash": "서버 모니터 시크릿 키 해시",
+  "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Bearer 토큰은 연결을 추가하거나 토큰을 재설정할 때 한 번만 표시됩니다. 더 이상 가지고 있지 않다면 \"Bearer 토큰 재설정\"으로 새 토큰을 만드세요.",
+  "Webhook Secret Key Hash": "Webhook 비밀 키 해시"
 }

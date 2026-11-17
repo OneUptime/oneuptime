@@ -56512,5 +56512,13 @@
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private alert out.": "Chiunque abbia accesso al repository può vedere questa pull request, con la modifica e la sua descrizione. Questo avviso privato non vi è menzionato.",
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "Chiunque abbia accesso al repository può vedere questa pull request, con la modifica e la sua descrizione. Questo incidente privato non vi è menzionato.",
   "Only someone who may approve fixes can open this pull request.": "Solo chi può approvare le correzioni può aprire questa pull request.",
-  "VPA": "VPA"
+  "VPA": "VPA",
+  "Copy Your Bearer Token": "Copia il tuo token Bearer",
+  "Incoming Email Secret Key Hash": "Hash della chiave segreta delle email in arrivo",
+  "Incoming Request Secret Key Hash": "Hash della chiave segreta delle richieste in arrivo",
+  "Ingestion Key Hash": "Hash della chiave di acquisizione",
+  "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "Incollalo ora nel tuo provider di identità o conservalo in un posto sicuro. Viene mostrato solo questa volta: OneUptime ne conserva solo un hash.",
+  "Server Monitor Secret Key Hash": "Hash della chiave segreta del monitor del server",
+  "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Il token Bearer viene mostrato una sola volta, quando la connessione viene aggiunta o il suo token viene reimpostato. Se non lo hai più, usa «Reimposta il token Bearer» per crearne uno nuovo.",
+  "Webhook Secret Key Hash": "Hash della chiave segreta webhook"
 }

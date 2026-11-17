@@ -56512,5 +56512,13 @@
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private alert out.": "Alle med tilgang til kodelageret kan se denne pull requesten, med endringen og beskrivelsen av den. Dette private varselet nevnes ikke i den.",
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "Alle med tilgang til kodelageret kan se denne pull requesten, med endringen og beskrivelsen av den. Denne private hendelsen nevnes ikke i den.",
   "Only someone who may approve fixes can open this pull request.": "Bare den som kan godkjenne rettinger, kan åpne denne pull requesten.",
-  "VPA": "VPA"
+  "VPA": "VPA",
+  "Copy Your Bearer Token": "Kopier bærertokenet ditt",
+  "Incoming Email Secret Key Hash": "Hash av den hemmelige nøkkelen for innkommende e-post",
+  "Incoming Request Secret Key Hash": "Hash av den hemmelige nøkkelen for innkommende forespørsler",
+  "Ingestion Key Hash": "Hash av inntaksnøkkelen",
+  "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "Lim det inn hos identitetsleverandøren din nå, eller oppbevar det et trygt sted. Det vises bare denne ene gangen: OneUptime lagrer bare en hash av det.",
+  "Server Monitor Secret Key Hash": "Hash av servermonitorens hemmelige nøkkel",
+  "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Bærertokenet vises bare én gang, når tilkoblingen legges til eller når tokenet tilbakestilles. Hvis du ikke har det lenger, bruker du «Tilbakestill bærertoken» for å lage et nytt.",
+  "Webhook Secret Key Hash": "Hash av den hemmelige webhook-nøkkelen"
 }

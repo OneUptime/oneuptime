@@ -56512,5 +56512,13 @@
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private alert out.": "所有有權存取儲存庫的人都可以看到此提取要求，包括變更及其描述。其中不會提及此私人警示。",
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "所有有權存取儲存庫的人都可以看到此提取要求，包括變更及其描述。其中不會提及此私人事件。",
   "Only someone who may approve fixes can open this pull request.": "只有可以核准修正的人才能開啟此提取要求。",
-  "VPA": "VPA"
+  "VPA": "VPA",
+  "Copy Your Bearer Token": "複製你的 Bearer Token",
+  "Incoming Email Secret Key Hash": "傳入電子郵件密鑰雜湊",
+  "Incoming Request Secret Key Hash": "傳入請求密鑰雜湊",
+  "Ingestion Key Hash": "擷取金鑰雜湊",
+  "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "請立即將其貼到你的身分提供者中，或保存在安全的地方。它只會顯示這一次：OneUptime 只保存它的雜湊值。",
+  "Server Monitor Secret Key Hash": "伺服器監控密鑰雜湊",
+  "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Bearer Token 只會在新增連線或重設其權杖時顯示一次。如果你已不再持有它，請使用「重設 Bearer Token」建立新的權杖。",
+  "Webhook Secret Key Hash": "Webhook 密鑰雜湊"
 }

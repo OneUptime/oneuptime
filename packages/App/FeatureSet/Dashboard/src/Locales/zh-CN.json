@@ -56512,5 +56512,13 @@
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private alert out.": "所有有权访问存储库的人都可以看到此拉取请求，包括更改及其描述。其中不会提及此私密警报。",
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "所有有权访问存储库的人都可以看到此拉取请求，包括更改及其描述。其中不会提及此私密事件。",
   "Only someone who may approve fixes can open this pull request.": "只有可以批准修复的人才能打开此拉取请求。",
-  "VPA": "VPA"
+  "VPA": "VPA",
+  "Copy Your Bearer Token": "复制你的 Bearer 令牌",
+  "Incoming Email Secret Key Hash": "传入邮件密钥哈希",
+  "Incoming Request Secret Key Hash": "传入请求密钥哈希",
+  "Ingestion Key Hash": "摄取密钥哈希",
+  "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "请立即将其粘贴到你的身份提供商中，或保存在安全的地方。它只显示这一次：OneUptime 只保存它的哈希值。",
+  "Server Monitor Secret Key Hash": "服务器监控密钥哈希",
+  "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Bearer 令牌只会在添加连接或重置其令牌时显示一次。如果你已不再持有它，请使用“重置 Bearer 令牌”创建一个新令牌。",
+  "Webhook Secret Key Hash": "Webhook 密钥哈希"
 }

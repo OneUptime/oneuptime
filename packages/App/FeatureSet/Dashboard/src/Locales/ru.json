@@ -56512,5 +56512,13 @@
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private alert out.": "Этот pull request с изменением и его описанием видят все, у кого есть доступ к репозиторию. Это приватное оповещение в нём не упоминается.",
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "Этот pull request с изменением и его описанием видят все, у кого есть доступ к репозиторию. Этот приватный инцидент в нём не упоминается.",
   "Only someone who may approve fixes can open this pull request.": "Открыть этот pull request может только тот, у кого есть право одобрять исправления.",
-  "VPA": "VPA"
+  "VPA": "VPA",
+  "Copy Your Bearer Token": "Скопируйте Bearer-токен",
+  "Incoming Email Secret Key Hash": "Хеш секретного ключа входящей почты",
+  "Incoming Request Secret Key Hash": "Хеш секретного ключа входящих запросов",
+  "Ingestion Key Hash": "Хеш ключа приёма",
+  "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "Вставьте его в настройки поставщика удостоверений сейчас или сохраните в надёжном месте. Он показывается только в этот раз: OneUptime хранит только его хеш.",
+  "Server Monitor Secret Key Hash": "Хеш секретного ключа серверного монитора",
+  "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Bearer-токен показывается только один раз: при добавлении подключения или при сбросе его токена. Если у вас его больше нет, нажмите «Сбросить Bearer-токен», чтобы создать новый.",
+  "Webhook Secret Key Hash": "Хеш секретного ключа вебхука"
 }

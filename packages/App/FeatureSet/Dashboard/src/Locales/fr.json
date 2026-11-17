@@ -56512,5 +56512,13 @@
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private alert out.": "Toute personne ayant accès au dépôt peut voir cette pull request, avec la modification et sa description. Cette alerte privée n'y est pas mentionnée.",
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "Toute personne ayant accès au dépôt peut voir cette pull request, avec la modification et sa description. Cet incident privé n'y est pas mentionné.",
   "Only someone who may approve fixes can open this pull request.": "Seule une personne autorisée à approuver les correctifs peut ouvrir cette pull request.",
-  "VPA": "VPA"
+  "VPA": "VPA",
+  "Copy Your Bearer Token": "Copiez votre jeton Bearer",
+  "Incoming Email Secret Key Hash": "Hash de la clé secrète des e-mails entrants",
+  "Incoming Request Secret Key Hash": "Hash de la clé secrète de la requête entrante",
+  "Ingestion Key Hash": "Hash de la clé d'ingestion",
+  "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "Collez-le dès maintenant dans votre fournisseur d'identité, ou conservez-le en lieu sûr. Il n'est affiché que cette fois : OneUptime n'en conserve qu'un hachage.",
+  "Server Monitor Secret Key Hash": "Hash de la clé secrète du moniteur de serveur",
+  "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Le jeton Bearer n'est affiché qu'une seule fois, lorsque la connexion est ajoutée ou que son jeton est réinitialisé. Si vous ne l'avez plus, utilisez « Réinitialiser le jeton Bearer » pour en créer un nouveau.",
+  "Webhook Secret Key Hash": "Hash de la clé secrète du webhook"
 }

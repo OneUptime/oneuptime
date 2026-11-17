@@ -56512,5 +56512,13 @@
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private alert out.": "रिपॉजिटरी तक पहुंच रखने वाला हर व्यक्ति यह पुल रिक्वेस्ट, उसके बदलाव और विवरण के साथ, देख सकता है। इसमें इस निजी अलर्ट का उल्लेख नहीं होता।",
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "रिपॉजिटरी तक पहुंच रखने वाला हर व्यक्ति यह पुल रिक्वेस्ट, उसके बदलाव और विवरण के साथ, देख सकता है। इसमें इस निजी घटना का उल्लेख नहीं होता।",
   "Only someone who may approve fixes can open this pull request.": "यह पुल रिक्वेस्ट केवल वही व्यक्ति खोल सकता है जिसे सुधार स्वीकृत करने की अनुमति हो।",
-  "VPA": "VPA"
+  "VPA": "VPA",
+  "Copy Your Bearer Token": "अपना Bearer टोकन कॉपी करें",
+  "Incoming Email Secret Key Hash": "इनकमिंग ईमेल सीक्रेट कुंजी हैश",
+  "Incoming Request Secret Key Hash": "इनकमिंग अनुरोध सीक्रेट कुंजी हैश",
+  "Ingestion Key Hash": "इंजेशन कुंजी हैश",
+  "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "इसे अभी अपने पहचान प्रदाता में पेस्ट करें, या किसी सुरक्षित जगह रखें। यह केवल इसी बार दिखाया जाता है: OneUptime इसका केवल हैश रखता है।",
+  "Server Monitor Secret Key Hash": "सर्वर मॉनिटर सीक्रेट कुंजी हैश",
+  "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Bearer टोकन केवल एक बार दिखाया जाता है, जब कनेक्शन जोड़ा जाता है या उसका टोकन रीसेट किया जाता है। अगर अब यह आपके पास नहीं है, तो नया बनाने के लिए \"Bearer टोकन रीसेट करें\" का उपयोग करें।",
+  "Webhook Secret Key Hash": "Webhook गुप्त कुंजी हैश"
 }

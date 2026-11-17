@@ -56512,5 +56512,13 @@
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private alert out.": "リポジトリにアクセスできるすべてのユーザーが、このプルリクエストの変更内容と説明を閲覧できます。この非公開アラートについては記載されません。",
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "リポジトリにアクセスできるすべてのユーザーが、このプルリクエストの変更内容と説明を閲覧できます。この非公開インシデントについては記載されません。",
   "Only someone who may approve fixes can open this pull request.": "このプルリクエストを作成できるのは、修正を承認できるユーザーだけです。",
-  "VPA": "VPA"
+  "VPA": "VPA",
+  "Copy Your Bearer Token": "ベアラートークンをコピー",
+  "Incoming Email Secret Key Hash": "受信メールのシークレットキーのハッシュ",
+  "Incoming Request Secret Key Hash": "受信リクエストのシークレットキーのハッシュ",
+  "Ingestion Key Hash": "取り込みキーのハッシュ",
+  "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "今すぐ ID プロバイダーに貼り付けるか、安全な場所に保管してください。表示されるのは今回だけです。OneUptime はハッシュしか保存しません。",
+  "Server Monitor Secret Key Hash": "サーバーモニターのシークレットキーのハッシュ",
+  "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "ベアラートークンが表示されるのは、接続を追加したときか、トークンをリセットしたときの一度だけです。手元にない場合は、「ベアラートークンをリセット」で新しいトークンを作成してください。",
+  "Webhook Secret Key Hash": "Webhook シークレットキーのハッシュ"
 }
