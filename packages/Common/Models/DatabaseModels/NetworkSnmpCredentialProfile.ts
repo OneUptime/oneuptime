@@ -377,10 +377,10 @@ export default class NetworkSnmpCredentialProfile extends BaseModel {
    * which is why this column, like every other encrypted text column in the
    * schema (MonitorSecret.secretValue, RunbookVariable.secretValue), is `text`.
    *
-   * The device's own snmpCommunityString predates encryption and still holds
-   * plaintext in a varchar(100). Bringing it in line means re-encrypting
-   * every existing row in place and is a separate migration; a profile can
-   * only make sure that the credentials it holds are not the weak copy.
+   * The device's own snmpCommunityString, and a discovery scan's, are kept
+   * encrypted at rest too since #9014, in text columns: the
+   * EncryptSnmpCredentials data migration encrypted the rows that predate
+   * it.
    */
   @TableColumn({
     required: false,

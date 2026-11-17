@@ -93,6 +93,7 @@ import StatusPageSubscriberService, {
   SUBSCRIBER_CONTACT_LIMIT_NAME,
 } from "../../../Server/Services/StatusPageSubscriberService";
 import ProjectLimitLock from "../../../Server/Utils/Database/ProjectLimitLock";
+import Encryption from "../../../Server/Utils/Encryption";
 import PublicMessageRateLimit, {
   PublicMessageKind,
 } from "../../../Server/Utils/RateLimit/PublicMessageRateLimit";
@@ -588,9 +589,21 @@ describe("the team adding and changing subscribers", () => {
     await teamAdd({ subscriberWebhook: "https://hooks.example.net/a" });
     await teamAdd({ subscriberWebhook: "https://hooks.example.net/b" });
 
-    const second: StoredRow = rowsOf(world).find((row: StoredRow): boolean => {
-      return String(row["subscriberWebhook"]).endsWith("/b");
-    })!;
+    // Each address is stored encrypted (#9013), and compared decrypted.
+    const stored: Array<string> = [];
+
+    for (const row of rowsOf(world)) {
+      expect(Encryption.looksEncrypted(String(row["subscriberWebhook"]))).toBe(
+        true,
+      );
+      stored.push(await Encryption.decrypt(String(row["subscriberWebhook"])));
+    }
+
+    const second: StoredRow = rowsOf(world)[
+      stored.findIndex((address: string): boolean => {
+        return address.endsWith("/b");
+      })
+    ]!;
 
     expect(
       (

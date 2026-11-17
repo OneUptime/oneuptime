@@ -1861,14 +1861,17 @@ export default class NetworkDevice extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateNetworkDevice,
     ],
+    /*
+     * The narrow list snmpV3AuthKey and snmpV3PrivKey have: this object
+     * carries the same two keys, and Viewer and Settings Viewer, who read
+     * the device but not its credentials, read them here too.
+     */
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.Viewer,
       Permission.SettingsAdmin,
       Permission.SettingsMember,
-      Permission.SettingsViewer,
       Permission.ReadNetworkDevice,
     ],
     update: [
