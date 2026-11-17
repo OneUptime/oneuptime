@@ -356,13 +356,18 @@ Docker Hub already, so nothing new is exposed.
 ### Google Cloud Marketplace: Kubernetes app
 
 Google approved this product on 6 November 2026 (its solution validation,
-case 77153319) and sent its onboarding email the same day. **Waiting on
-Google** (since 17 November 2026): Producer Portal. Google opens a Partner
-Support Desk case for it and turns it on only once we answer there that the
-project info form and the roles are done (step 1); we answered on 17
-November. Google's Marketplace Operations team supports the onboarding for 60
-days from its reminder of 9 November (until about 8 January 2027); help after
-that is not guaranteed. Everything lives in the
+case 77153319) and sent its onboarding email the same day. Producer Portal
+has been on since 17 November 2026, a few hours after we answered the Partner
+Support Desk case that asked for the project info form and the roles (step
+1). **Where it stands** (17 November 2026): the product exists (step 5); its
+pricing (step 6) and listing (step 7) are saved as drafts, with nothing
+submitted; and `editions.json` marks the edition ready, so the Marketplace
+Release workflow pushes its images and deployer. **Left**: the payments
+profile and the tax questions (maintainer), the first version on the
+Container images page once it is pushed (step 8), and submitting each review
+(the maintainer's go-ahead). Google's Marketplace Operations team supports the
+onboarding for 60 days from its reminder of 9 November (until about 8 January
+2027); help after that is not guaranteed. Everything lives in the
 `oneuptime-marketplace` project, never in `oneuptime-k8s`. This is OneUptime's
 only Google Cloud Marketplace product: OneUptime Cloud is not listed there
 ([RELEASING.md](RELEASING.md#google-cloud-marketplace)).
@@ -401,12 +406,18 @@ only Google Cloud Marketplace product: OneUptime Cloud is not listed there
      form and the roles, ends "Let us know once it's done", and turns
      Producer Portal on only after that answer. Unanswered, the case sent
      reminders and was to close by itself on 17 November; a closed case can
-     be reopened within 72 hours.
-   - **Payments profile** (maintainer only: bank and tax details) on
-     Producer Portal's payments page, once it is on and before creating the
-     product, as Google recommends, with more than one billing admin.
-   - Accept the Cloud Marketplace agreements Producer Portal shows
-     (`https://console.cloud.google.com/producer-portal?project=oneuptime-marketplace`).
+     be reopened within 72 hours. Answered that morning, Google turned
+     Producer Portal on before noon and sent the next steps on the same case.
+   - **Payments profile** (maintainer only: bank and tax details; not done
+     yet) on Producer Portal's **Payments** page: the region and currency
+     first, then the legal entity, tax and bank details, with more than one
+     billing admin. Nothing can be published without it, and a US profile
+     adds a **Tax withholding** tab to Pricing.
+   - **Agreements**: the Marketplace Vendor Agreement, accepted on 30 October
+     2026, as Producer Portal's **Settings** (organization `hackerbay.io`)
+     and Partner Hub both say. On 17 November the **Overview** page still
+     listed it as required: that card lags. Creating a product asks to
+     confirm that it meets Google's listing requirements.
 
 2. **The product type is Kubernetes, not Terraform Kubernetes app**, and it
    cannot be changed once the product exists. Producer Portal offers both,
@@ -418,13 +429,15 @@ only Google Cloud Marketplace product: OneUptime Cloud is not listed there
    Google's docs (checked on 11 November 2026) do not call the deployer type
    deprecated, but it gets less upkeep: its pages still speak of Container
    Registry, which has shut down, and Google archived its example app in
-   April 2026. **Ask the Partner Engineer three things before building on
-   them**: that the classic type is open to new products; that it takes
-   images from an **Artifact Registry `us-docker.pkg.dev`** repository; and
-   whether customer-tenant consumption tracking (the `goog-partner-solution`
-   label) applies to it - Google's requirements ask it of every product
-   deployed into customers' projects, but describe it for Kubernetes only on
-   the Terraform type's pages.
+   April 2026. Producer Portal answered two of the three questions this guide
+   meant to ask the Partner Engineer (17 November 2026): it offers the
+   classic type ("Kubernetes App") to new products, and its Container images
+   page takes a deployer in **Artifact Registry `us-docker.pkg.dev`**, the
+   repository in the path. **Still to ask**: whether customer-tenant
+   consumption tracking (the `goog-partner-solution` label) applies to it -
+   Google's requirements ask it of every product deployed into customers'
+   projects, but describe it for Kubernetes only on the Terraform type's
+   pages.
 3. **Access for Google**: the roles of step 1 (Editor includes the
    `roles/viewer` an older version of this guide asked for), and whatever
    else Producer Portal's technical integration page asks for.
@@ -443,15 +456,58 @@ only Google Cloud Marketplace product: OneUptime Cloud is not listed there
    (`editions.json`, `google-cloud.registry`): the primary image at that path,
    every other image beneath it, and the deployer at `.../deployer`.
 
-5. **Create the product** in Producer Portal: **Add product > Kubernetes
-   app**. The **Overview** page then shows the product's **service name**:
-   put it into `editions.json` as `google-cloud.serviceName`, exactly.
-6. **Pricing**: usage-based, one custom metric: ID `users`, display name
-   "Users", unit "user-hour", **USD 0.10** (maintainer). No free trial.
-   OneUptime reports it as `<service name>/users`; check that Producer Portal
-   names the metric so.
-7. **Listing**: the copy and media in
-   [Listing content](#listing-content-paste-ready); support and legal links.
+5. **Create the product** (done on 17 November 2026) in Producer Portal:
+   **Add product > Kubernetes App**, product name "OneUptime Enterprise
+   (self-hosted)", product ID `oneuptime-enterprise` (it names the service and
+   cannot change; buyers do not see it). Its service name is
+   `oneuptime-enterprise.endpoints.oneuptime-marketplace.cloud.goog`, as
+   `editions.json` has it (`google-cloud.serviceName`), and the listing's
+   address is
+   `https://console.cloud.google.com/marketplace/product/oneuptime-marketplace/oneuptime-enterprise`.
+6. **Pricing** (saved on 17 November 2026 with the maintainer's go-ahead, not
+   submitted): plan ID `enterprise`, "OneUptime Enterprise", usage-based, one
+   metric: ID `users`, display name "Users", reporting and display unit
+   **hour**, whole numbers, **USD 0.10** per hour. No free trial. OneUptime
+   reports each hour's users as a whole number of user-hours, so the unit is
+   the hour; a `count` would bill the same and read worse on the listing.
+   The service's configuration has the metric as OneUptime reports it:
+   `oneuptime-enterprise.endpoints.oneuptime-marketplace.cloud.goog/users`,
+   `DELTA`, `INT64`, unit `h` (`gcloud endpoints configs describe`).
+   - **Features**: a pricing description, like the listing's.
+   - **Tax Category** (maintainer): Google saves the answers only once every
+     question shown has one. "Is this product primarily downloaded or
+     installed on a local device?": No, the maintainer's answer. "Will users
+     have the right to exercise any material copyright, trademark, or other
+     intangible property rights in order to utilize this product/SKU?": not
+     answered yet.
+   - **Terms & Policies**: EULA `https://oneuptime.com/legal/terms`, the
+     maintainer's choice, as on Microsoft. Google's policy: plans are billed
+     for one day at least.
+   - **Submit** (maintainer): Google reviews it in up to four business days.
+     An approved plan cannot change, and a change to the price model waits
+     30 days after a review.
+7. **Listing** (saved on 17 November 2026, not submitted): the copy in
+   [Listing content](#listing-content-paste-ready), one line per paragraph
+   and per bullet (the portal keeps line breaks); "link to more product info"
+   `/docs/en/self-hosted/enterprise`; categories Monitoring and DevOps, as on
+   Microsoft; documentation links to `/docs/en/installation/cloud-marketplaces`
+   and `/docs/en/self-hosted/enterprise`; the support description and
+   `https://oneuptime.com/support`; search metadata and keywords. The
+   **product image** must be a PNG with a transparent background, square or
+   horizontal, 130 to 512 px a side, at most 256 kB. The PNGs in
+   `packages/Home/Static/img/OneUptimePNG/` all have solid backgrounds, so
+   render `packages/Common/Server/Static/Brand/oneuptime-logo.svg` centered on
+   a transparent 512x512 page with Chrome's headless mode
+   (`--headless=new --default-background-color=00000000 --window-size=512,512 --screenshot`).
+   The maintainer uploads it; on 17 November the field showed no file after a
+   reload, so check **Full preview** before submitting.
+8. **Container images**: the deployer's path,
+   `us-docker.pkg.dev/oneuptime-marketplace/oneuptime/oneuptime-enterprise/deployer`.
+   Producer Portal reads the releases from it, so it answers "Image not
+   found" until the first push; then pick the release and its track. Its
+   review takes two weeks or more: submit it as early as you can, with the
+   [user guide](../../../../../HelmChart/Marketplace/google-cloud/README.md)
+   in the public repository.
 
 ### The release workflow: one-time setup
 
@@ -1114,30 +1170,25 @@ cost a review round.
 
 ## Known gaps
 
-- Google Cloud's values in `editions.json` are placeholders until Producer
-  Portal has the product.
-- **No user guide for the Google Cloud app yet.** Google's review requires
-  one
+- **The Google Cloud app's user guide is untried on a cluster.** Google's
+  review requires a user guide
   ([requirements](https://docs.cloud.google.com/marketplace/docs/partners/kubernetes/create-app-package),
-  checked on 11 November 2026) with these sections: overview (linking the
-  listing); one-time setup (client tools, the Application CRD, and the
-  license Secret of a commercial app); installing from the command line,
-  with image references pinned to digests; basic usage; backup and restore;
-  image updates; scaling; and deletion, PersistentVolumeClaims included. The
-  buyer guide (`/docs/installation/cloud-marketplaces`) covers installing
-  from the console, billing, licensing, scaling and troubleshooting, but not
-  installing from the command line, backup and restore, image updates or
-  deletion. Google's own apps keep this guide as a README beside the app
-  (`GoogleCloudPlatform/click-to-deploy`); one beside
-  `HelmChart/Marketplace/google-cloud` needs no translations. Write it
-  before the first submission, once Producer Portal shows the paths Google
-  serves the images from.
-- **Google Cloud deployments have no upgrade path yet.** Google pins a
-  deployment to the image digests it installed and never updates it; a new
-  version only becomes the default for new deployments, and breaking changes
-  go on a new track. Google asks sellers to document updating the images in
-  the user guide (above), and the buyer guide only says to contact support.
-  Settle it with the Partner Engineer before the Google listing goes live.
+  checked on 17 November 2026):
+  [`HelmChart/Marketplace/google-cloud/README.md`](../../../../../HelmChart/Marketplace/google-cloud/README.md),
+  written on 17 November 2026, with every section it asks for and its
+  commands checked against the edition built from 15.0.0, but not run on a
+  GKE cluster. Its image path,
+  `marketplace.gcr.io/oneuptime-marketplace/oneuptime-enterprise`, follows the
+  listing's address as Google's docs describe; confirm it once Google
+  publishes the first version (`TODO(identifiers)`).
+- **Google Cloud deployments have no upgrade path from the console yet.**
+  Google pins a deployment to the image digests it installed and never
+  updates it; a new version only becomes the default for new deployments,
+  and breaking changes go on a new track. The user guide updates a
+  command-line deployment by installing the new version over it with the
+  same secrets file; a console deployment, it and the buyer guide say, waits
+  for support. Settle it with the Partner Engineer before the Google listing
+  goes live.
 - **No GKE Autopilot.** Google Cloud Marketplace's Kubernetes apps cannot be
   installed on Autopilot clusters: buyers need a Standard cluster. The buyer
   guide does not say so yet.
@@ -1233,6 +1284,11 @@ rejection, go-live and price change.
 | 2026-11-13 | AWS         | Seller account's KYC business verification passed, after a clearer certificate of status            | AWS        |
 | 2026-11-17 | Google      | Rechecked: roles, security contact and Container Analysis API in place; no product or images yet    | Agent      |
 | 2026-11-17 | Google      | Answered case 77498377 (form and roles done) the day it was to close; Producer Portal pending       | Agent      |
+| 2026-11-17 | Google      | Producer Portal on: Google sent the next steps on case 77498377                                     | Google     |
+| 2026-11-17 | Google      | Product `oneuptime-enterprise` created (Kubernetes App); its service name is editions.json's        | Agent      |
+| 2026-11-17 | Google      | Listing and `enterprise` plan saved as drafts: `users` per hour at USD 0.10; nothing submitted      | Agent      |
+| 2026-11-17 | Google      | EULA: OneUptime's terms, as on Microsoft. Tax: one of two answers, so not saved yet                 | Maintainer |
+| 2026-11-17 | Google      | editions.json marks the Google edition ready; the app's user guide written                          | Agent      |
 | 2026-11-17 | AWS         | Bank account verification in review: the bank statement is uploaded                                 | Maintainer |
 | 2026-11-17 | AWS         | Case 00966062 escalated: remove the placeholder version, or name the broken URL                     | Agent      |
 
@@ -1255,3 +1311,9 @@ rejection, go-live and price change.
   answer on the case, and add it to [History](#history). In Gmail, make sure
   the cursor is in the reply's body, not the Help me write box under it,
   before typing.
+- In Producer Portal, a list with checkboxes (categories, metrics) applies
+  only with its **OK** button: Escape cancels it. After **Save**, wait a few
+  seconds and reload to check: a page left right after saving can lose it.
+  The plan's structure saves only once the listing is saved, the tax answers
+  only once every question shown has one, and the browser cannot upload
+  files: the maintainer uploads the logo.
