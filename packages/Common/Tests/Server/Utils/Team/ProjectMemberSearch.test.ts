@@ -19,14 +19,7 @@ import Permission, {
 } from "../../../../Types/Permission";
 import { ProjectMemberSearchMatch } from "../../../../Types/Team/ProjectMemberSearch";
 import UserType from "../../../../Types/UserType";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * THE SERVER'S HALF OF SEARCH'S PEOPLE (#7036).
@@ -128,7 +121,7 @@ interface FindByCall {
   props: DatabaseCommonInteractionProps;
 }
 
-let findBySpy: jest.SpiedFunction<typeof TeamMemberService.findBy>;
+let findBySpy: jest.SpyInstance;
 let byName: Array<TeamMember> = [];
 let byEmail: Array<TeamMember> = [];
 
@@ -215,7 +208,10 @@ describe("who may see the project's people", () => {
 
   test.each([
     ["a key that may only read services", [Permission.ReadService]],
-    ["a key that may only create incidents", [Permission.CreateProjectIncident]],
+    [
+      "a key that may only create incidents",
+      [Permission.CreateProjectIncident],
+    ],
     ["a key with no permission in the project", []],
   ] as Array<[string, Array<Permission>]>)(
     "%s may not: the Users page would list no one for them",

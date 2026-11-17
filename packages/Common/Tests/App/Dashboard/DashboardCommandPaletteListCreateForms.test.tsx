@@ -296,7 +296,7 @@ describe("Search opens a list's create form (#7035)", () => {
       // They read everything here, and create none of it.
       getAllPermissionsMock.mockReturnValue([
         Permission.Viewer,
-        Permission.ReadStatusPage,
+        Permission.ReadProjectStatusPage,
         Permission.ReadDashboard,
         Permission.ReadWorkflow,
         Permission.ReadProjectTeam,

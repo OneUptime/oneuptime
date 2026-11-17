@@ -33,7 +33,6 @@ import {
   beforeEach,
   describe,
   expect,
-  jest,
   test,
 } from "@jest/globals";
 
@@ -139,10 +138,8 @@ async function callRoute(body: unknown): Promise<RouteCallResult> {
 describe("POST /team-member/search-members", () => {
   let projectId: ObjectID;
   let userId: ObjectID;
-  let propsSpy: jest.SpiedFunction<
-    typeof CommonAPI.getDatabaseCommonInteractionProps
-  >;
-  let searchSpy: jest.SpiedFunction<typeof ProjectMemberSearch.search>;
+  let propsSpy: jest.SpyInstance;
+  let searchSpy: jest.SpyInstance;
 
   beforeAll(() => {
     mockRouter.routes.length = 0;
@@ -295,7 +292,7 @@ describe("POST /team-member/search-members", () => {
 
   test("a member who may not see the project's people is refused, and nothing is read", async () => {
     searchSpy.mockRestore();
-    const findBySpy: jest.SpiedFunction<typeof TeamMemberService.findBy> = jest
+    const findBySpy: jest.SpyInstance = jest
       .spyOn(TeamMemberService, "findBy")
       .mockResolvedValue([]);
     propsSpy.mockResolvedValue(

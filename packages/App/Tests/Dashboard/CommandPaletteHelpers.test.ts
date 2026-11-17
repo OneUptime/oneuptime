@@ -501,7 +501,7 @@ describe("the lists' create forms in Search (#7035)", () => {
     const gates: PaletteCreateActionGates = computeCreateActionGates({
       held: HeldPermissionsUtil.fromPermissions([
         Permission.Viewer,
-        Permission.ReadStatusPage,
+        Permission.ReadProjectStatusPage,
         Permission.ReadDashboard,
         Permission.ReadWorkflow,
       ]),

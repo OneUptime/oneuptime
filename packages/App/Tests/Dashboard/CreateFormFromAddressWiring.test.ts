@@ -90,9 +90,11 @@ describe("each list Search opens a create form on opens it from ?create=1", () =
   });
 
   test.each(
-    TABLE_LISTS.map((action: PaletteListCreateAction) => {
-      return [action.title, action];
-    }),
+    TABLE_LISTS.map(
+      (action: PaletteListCreateAction): [string, PaletteListCreateAction] => {
+        return [action.title, action];
+      },
+    ),
   )(
     "%s: the list's table opens its form from the address, once",
     (_title: string, action: PaletteListCreateAction) => {
@@ -111,9 +113,11 @@ describe("each list Search opens a create form on opens it from ?create=1", () =
   test.each(
     TABLE_LISTS.filter((action: PaletteListCreateAction): boolean => {
       return Boolean(LIST_PAGES[action.page]!.ownDialog);
-    }).map((action: PaletteListCreateAction) => {
-      return [action.title, action];
-    }),
+    }).map(
+      (action: PaletteListCreateAction): [string, PaletteListCreateAction] => {
+        return [action.title, action];
+      },
+    ),
   )(
     "%s: the page's own create dialog takes the ask off the address when it closes, and when it creates",
     (_title: string, action: PaletteListCreateAction) => {

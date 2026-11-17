@@ -656,32 +656,30 @@ describePostgres("Search's people, on migrated Postgres (#7036)", () => {
     const getAccess: (key: string) => ColumnAccessControl | null =
       User.prototype.getColumnAccessControlFor;
 
-    const metadataSpy: jest.SpiedFunction<
-      typeof User.prototype.getTableColumnMetadata
-    > = jest
-      .spyOn(User.prototype, "getTableColumnMetadata")
-      .mockImplementation(function (
-        this: User,
-        key: string,
-      ): TableColumnMetadata {
-        const metadata: TableColumnMetadata = getMetadata.call(this, key);
+    const metadataSpy: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+      User.prototype,
+      "getTableColumnMetadata",
+    ).mockImplementation(function (
+      this: User,
+      key: string,
+    ): TableColumnMetadata {
+      const metadata: TableColumnMetadata = getMetadata.call(this, key);
 
-        return key === "email"
-          ? { ...metadata, canReadOnRelationQuery: false }
-          : metadata;
-      });
-    const accessSpy: jest.SpiedFunction<
-      typeof User.prototype.getColumnAccessControlFor
-    > = jest
-      .spyOn(User.prototype, "getColumnAccessControlFor")
-      .mockImplementation(function (
-        this: User,
-        key: string,
-      ): ColumnAccessControl | null {
-        const access: ColumnAccessControl | null = getAccess.call(this, key);
+      return key === "email"
+        ? { ...metadata, canReadOnRelationQuery: false }
+        : metadata;
+    });
+    const accessSpy: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+      User.prototype,
+      "getColumnAccessControlFor",
+    ).mockImplementation(function (
+      this: User,
+      key: string,
+    ): ColumnAccessControl | null {
+      const access: ColumnAccessControl | null = getAccess.call(this, key);
 
-        return key === "email" && access ? { ...access, read: [] } : access;
-      });
+      return key === "email" && access ? { ...access, read: [] } : access;
+    });
 
     try {
       // By an address only: nobody.

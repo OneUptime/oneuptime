@@ -109,6 +109,8 @@ import CreateFormAddress, {
 import StatusPage from "../../../../Models/DatabaseModels/StatusPage";
 import Permission from "../../../../Types/Permission";
 import ListResult from "../../../../Types/BaseDatabase/ListResult";
+import getJestMockFunction, { MockFunction } from "../../../MockType";
+import { getJestSpyOn } from "../../../Spy";
 
 const LIST_PATH: string = "/dashboard/project-a/status-pages";
 
@@ -403,9 +405,9 @@ describe("a list's create form, opened from its address (#7035)", () => {
 
   test("without permission to create, it is ignored: the list shows with Create locked", async () => {
     // A viewer reads status pages and creates none.
-    permissionsForTest = [Permission.Viewer, Permission.ReadStatusPage];
+    permissionsForTest = [Permission.Viewer, Permission.ReadProjectStatusPage];
     expect(new StatusPage().getCreatePermissions()).not.toContain(
-      Permission.ReadStatusPage,
+      Permission.ReadProjectStatusPage,
     );
     expect(new StatusPage().getCreatePermissions()).not.toContain(
       Permission.Viewer,
@@ -478,7 +480,7 @@ describe("a list's create form, opened from its address (#7035)", () => {
   });
 
   test("a list whose Create opens a dialog of the page's own opens that one, for whoever may create", async () => {
-    const onCreateClick: jest.Mock = jest.fn();
+    const onCreateClick: MockFunction = getJestMockFunction();
 
     goTo(`${LIST_PATH}${CREATE_FORM_QUERY_STRING}`);
     render(table({ onCreateClick: onCreateClick as unknown as () => void }));
@@ -492,8 +494,8 @@ describe("a list's create form, opened from its address (#7035)", () => {
   });
 
   test("…and not for someone who may not", async () => {
-    permissionsForTest = [Permission.Viewer, Permission.ReadStatusPage];
-    const onCreateClick: jest.Mock = jest.fn();
+    permissionsForTest = [Permission.Viewer, Permission.ReadProjectStatusPage];
+    const onCreateClick: MockFunction = getJestMockFunction();
 
     goTo(`${LIST_PATH}${CREATE_FORM_QUERY_STRING}`);
     render(table({ onCreateClick: onCreateClick as unknown as () => void }));
@@ -540,8 +542,10 @@ describe("CreateFormAddress", () => {
       "?a=1&b=2#card",
     );
 
-    const replaceState: jest.SpiedFunction<typeof window.history.replaceState> =
-      jest.spyOn(window.history, "replaceState");
+    const replaceState: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+      window.history,
+      "replaceState",
+    );
     CreateFormAddress.clear();
     expect(replaceState).not.toHaveBeenCalled();
   });
