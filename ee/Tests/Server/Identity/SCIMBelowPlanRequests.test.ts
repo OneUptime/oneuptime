@@ -6,6 +6,7 @@ import {
   expect,
   test,
 } from "@jest/globals";
+import PresentedKey from "Common/Server/Utils/PresentedKey/PresentedKey";
 import ProjectSCIMRouter from "../../../Server/Identity/API/SCIM";
 import StatusPageSCIMRouter from "../../../Server/Identity/API/StatusPageSCIM";
 import {
@@ -285,11 +286,15 @@ jest.mock("Common/Server/Services/ProjectSCIMService", () => {
   return {
     __esModule: true,
     default: {
+      // The connection's token is kept as its hash (#9012), and every one is.
+      mayHoldPresentedKeysAsWritten: async (): Promise<boolean> => {
+        return false;
+      },
       findOneBy: async (args: {
         query: Record<string, unknown>;
       }): Promise<ProjectSCIM | null> => {
         return idOf(args.query["_id"]) === PROJECT_SCIM_ID &&
-          args.query["bearerToken"] === TOKEN
+          String(args.query["bearerToken"]) === PresentedKey.toStoredHash(TOKEN)
           ? projectConfig
           : null;
       },
@@ -301,11 +306,15 @@ jest.mock("Common/Server/Services/StatusPageSCIMService", () => {
   return {
     __esModule: true,
     default: {
+      // The connection's token is kept as its hash (#9012), and every one is.
+      mayHoldPresentedKeysAsWritten: async (): Promise<boolean> => {
+        return false;
+      },
       findOneBy: async (args: {
         query: Record<string, unknown>;
       }): Promise<StatusPageSCIM | null> => {
         return idOf(args.query["_id"]) === STATUS_PAGE_SCIM_ID &&
-          args.query["bearerToken"] === TOKEN
+          String(args.query["bearerToken"]) === PresentedKey.toStoredHash(TOKEN)
           ? statusPageConfig
           : null;
       },

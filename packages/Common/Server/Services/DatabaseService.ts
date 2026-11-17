@@ -694,6 +694,18 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     for (const columnName of tableColumns) {
       const metadata: TableColumnMetadata =
         data.getTableColumnMetadata(columnName);
+
+      /*
+       * Not a key presented to OneUptime (#9012): it is kept encrypted or
+       * hashed, so no query can find another row holding it, and a query
+       * for it would put the key in its parameters. Such a key is random,
+       * and one a request names its record by alone is held unique by its
+       * lookup hash's index.
+       */
+      if (metadata.presentedKey) {
+        continue;
+      }
+
       if (metadata.unique && data.getColumnValue(columnName)) {
         // check for unique values.
         const count: PositiveNumber = await this.countBy({
@@ -2313,9 +2325,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * (PresentedKeysAtRest): until every one is protected at rest.
    */
   public async mayHoldPresentedKeysAsWritten(): Promise<boolean> {
-    return await PresentedKeysAtRest.mayHoldKeysAsWritten(
-      this.getRepository().manager,
-    );
+    return await PresentedKeysAtRest.mayHoldKeysAsWritten({
+      // Asked lazily: a database that cannot be reached counts as yes there.
+      query: async (
+        sql: string,
+        parameters?: Array<unknown>,
+      ): Promise<unknown> => {
+        return await this.getRepository().manager.query(sql, parameters);
+      },
+    });
   }
 
   /*

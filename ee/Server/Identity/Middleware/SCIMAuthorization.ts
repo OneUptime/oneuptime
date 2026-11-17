@@ -29,6 +29,10 @@ import {
   OneUptimeRequest,
 } from "Common/Server/Utils/Express";
 import ObjectID from "Common/Types/ObjectID";
+import HashedString from "Common/Types/HashedString";
+import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
+import Query from "Common/Server/Types/Database/Query";
+import Select from "Common/Server/Types/Database/Select";
 import PresentedKey from "Common/Server/Utils/PresentedKey/PresentedKey";
 import ProjectSCIM from "Common/Models/DatabaseModels/ProjectSCIM";
 import StatusPageSCIM from "Common/Models/DatabaseModels/StatusPageSCIM";
@@ -70,12 +74,6 @@ const CLIENT_SECRETS_SELECT: {
   oauthPreviousClientSecretHash: true,
   oauthPreviousClientSecretExpiresAt: true,
 };
-
-/*
- * A connection's bearer token, read with it when the request presents one:
- * its hash, which the token presented is held to (withBearerToken).
- */
-const BEARER_TOKEN_SELECT: { bearerToken: true } = { bearerToken: true };
 
 export const ACCESS_TOKEN_SECRET_ENDED_MESSAGE: string =
   "The client secret this access token was issued with has expired, or is no longer one of the connection's secrets. Request a new access token with a current client secret.";
@@ -155,12 +153,12 @@ export default class SCIMMiddleware {
        * An OAuth 2.0 access token (Utils/SCIMOAuth.ts) names its connection
        * and the secret it was issued with: the connection is found by id
        * alone, and held to that secret still being one of its own. A
-       * connection's own bearer token is kept only as its hash (#9012): the
-       * connection is found by id, and the token presented is held to that
-       * hash in constant time - or, for a token stored as written before it
-       * was kept hashed, to the token (withBearerToken). A token shaped
-       * like an access token that is not one is tried as a bearer token, so
-       * no bearer token is ever refused for its shape.
+       * connection's own bearer token is matched in the query itself, as
+       * it always was - by the hash it is kept as (#9012), or, for a token
+       * stored as written before and not hashed yet, as written
+       * (findConnection). A token shaped like an access token that is not
+       * one is tried as a bearer token, so no bearer token is ever refused
+       * for its shape.
        */
       const accessToken: ScimAccessTokenClaims | null = readScimAccessToken({
         token: bearerToken,
@@ -171,29 +169,23 @@ export default class SCIMMiddleware {
         !accessToken || accessToken.connectionType === "project"
           ? SCIMMiddleware.withLiveSecret(
               accessToken,
-              SCIMMiddleware.withBearerToken({
+              await SCIMMiddleware.findConnection<ProjectSCIM>({
+                service: ProjectSCIMService,
+                scimId: scimId,
                 accessToken: accessToken,
-                presentedToken: bearerToken,
-                connection: await ProjectSCIMService.findOneBy({
-                  query: { _id: new ObjectID(scimId) },
-                  select: {
+                bearerToken: bearerToken,
+                select: {
+                  _id: true,
+                  projectId: true,
+                  autoProvisionUsers: true,
+                  autoDeprovisionUsers: true,
+                  enablePushGroups: true,
+                  teams: {
                     _id: true,
-                    projectId: true,
-                    autoProvisionUsers: true,
-                    autoDeprovisionUsers: true,
-                    enablePushGroups: true,
-                    teams: {
-                      _id: true,
-                      name: true,
-                    },
-                    ...(accessToken
-                      ? CLIENT_SECRETS_SELECT
-                      : BEARER_TOKEN_SELECT),
+                    name: true,
                   },
-                  props: {
-                    isRoot: true,
-                  },
-                }),
+                  ...(accessToken ? CLIENT_SECRETS_SELECT : {}),
+                },
               }),
             )
           : null;
@@ -250,25 +242,19 @@ export default class SCIMMiddleware {
         !accessToken || accessToken.connectionType === "status-page"
           ? SCIMMiddleware.withLiveSecret(
               accessToken,
-              SCIMMiddleware.withBearerToken({
+              await SCIMMiddleware.findConnection<StatusPageSCIM>({
+                service: StatusPageSCIMService,
+                scimId: scimId,
                 accessToken: accessToken,
-                presentedToken: bearerToken,
-                connection: await StatusPageSCIMService.findOneBy({
-                  query: { _id: new ObjectID(scimId) },
-                  select: {
-                    _id: true,
-                    projectId: true,
-                    statusPageId: true,
-                    autoProvisionUsers: true,
-                    autoDeprovisionUsers: true,
-                    ...(accessToken
-                      ? CLIENT_SECRETS_SELECT
-                      : BEARER_TOKEN_SELECT),
-                  },
-                  props: {
-                    isRoot: true,
-                  },
-                }),
+                bearerToken: bearerToken,
+                select: {
+                  _id: true,
+                  projectId: true,
+                  statusPageId: true,
+                  autoProvisionUsers: true,
+                  autoDeprovisionUsers: true,
+                  ...(accessToken ? CLIENT_SECRETS_SELECT : {}),
+                },
               }),
             )
           : null;
@@ -351,44 +337,74 @@ export default class SCIMMiddleware {
   }
 
   /*
+   * The connection a request names: by its id, held to the bearer token the
+   * request presents in the query itself, so a wrong token matches no row.
+   * A token is kept only as its hash (#9012: PresentedKey.toStoredHash), so
+   * the connection is looked up by the hash of the token presented - and,
+   * for a token stored as written before it was kept hashed and not hashed
+   * yet, by the token as written, while any may be stored so
+   * (DatabaseService.mayHoldPresentedKeysAsWritten). Never by a value
+   * shaped like a stored hash: a hash read from a backup is not a token. A
+   * request with an OAuth 2.0 access token is found by id alone, and held to
+   * its secret (withLiveSecret).
+   */
+  public static async findConnection<
+    T extends ProjectSCIM | StatusPageSCIM,
+  >(data: {
+    service: {
+      findOneBy: (findBy: {
+        query: Query<T>;
+        select: Select<T>;
+        props: DatabaseCommonInteractionProps;
+      }) => Promise<T | null>;
+      mayHoldPresentedKeysAsWritten: () => Promise<boolean>;
+    };
+    scimId: string;
+    accessToken: ScimAccessTokenClaims | null;
+    bearerToken: string;
+    select: Select<T>;
+  }): Promise<T | null> {
+    const find: (query: Query<T>) => Promise<T | null> = async (
+      query: Query<T>,
+    ): Promise<T | null> => {
+      return await data.service.findOneBy({
+        query: { ...query, _id: new ObjectID(data.scimId) } as Query<T>,
+        select: data.select,
+        props: {
+          isRoot: true,
+        },
+      });
+    };
+
+    if (data.accessToken) {
+      return await find({} as Query<T>);
+    }
+
+    const byHash: T | null = await find({
+      bearerToken: new HashedString(
+        PresentedKey.toStoredHash(data.bearerToken),
+        true,
+      ),
+    } as Query<T>);
+
+    if (
+      byHash ||
+      PresentedKey.isStoredHash(data.bearerToken) ||
+      !(await data.service.mayHoldPresentedKeysAsWritten())
+    ) {
+      return byHash;
+    }
+
+    return await find({ bearerToken: data.bearerToken } as Query<T>);
+  }
+
+  /*
    * The connection an access token found, while the secret it was issued
    * with is still one of the connection's own: once it is deleted, expires
    * or is pushed out by two newer secrets, the tokens it gave end at once.
    * Without an access token - a connection's own bearer token, matched in
    * the query - the connection as found.
    */
-  /*
-   * The connection a request presenting its bearer token names, when the
-   * token is the connection's: held, in constant time, to the hash the
-   * token is kept as (#9012) - or, for a token stored as written before it
-   * was kept hashed, and not hashed yet, to the token itself
-   * (PresentedKey.matchesStoredHash). Null when it is not. The token's hash
-   * is not kept on the connection the request goes on with. A request with
-   * an OAuth 2.0 access token is held to its secret instead
-   * (withLiveSecret).
-   */
-  public static withBearerToken<T extends ProjectSCIM | StatusPageSCIM>(data: {
-    accessToken: ScimAccessTokenClaims | null;
-    presentedToken: string;
-    connection: T | null;
-  }): T | null {
-    if (data.accessToken || !data.connection) {
-      return data.connection;
-    }
-
-    const storedToken: string | undefined =
-      data.connection.bearerToken?.toString();
-
-    delete data.connection.bearerToken;
-
-    return PresentedKey.matchesStoredHash({
-      presented: data.presentedToken,
-      stored: storedToken,
-    })
-      ? data.connection
-      : null;
-  }
-
   private static withLiveSecret<T extends ProjectSCIM | StatusPageSCIM | null>(
     accessToken: ScimAccessTokenClaims | null,
     connection: T,
