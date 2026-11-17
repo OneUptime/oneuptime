@@ -58,7 +58,7 @@ Reglene skiller seg i hvordan flere samsvar avgjøres:
 - **Grupperingsregler**, **Hendelsesregler** og **Påminnelsesregler** kontrolleres ovenfra og ned i listen sin, og det første samsvaret vinner. Dra en regel for å endre plassen; en ny regel havner sist.
 - **Vaktregler**, **Eierregler**, **Etikettregler**, **Personvernregler** og **Runbook-regler** virker alle når de samsvarer. Vaktpolicyer, eiere og etiketter som flere regler legger til, legges til én gang.
 
-**Vaktregler**, **Eierregler**, **Etikettregler** og **Personvernregler** har to faner: **Varselsregler** for varsler og **Episoderegler**, som virker på samme måte på hver ny varselepisode. En ny regel starter aktivert; slå av **Aktivert** i redigeringsskjemaet for å sette den på pause, og listen viser en grønn **Aktivert** eller en rød **Deaktivert** for hver regel.
+**Vaktregler**, **Eierregler**, **Etikettregler** og **Personvernregler** har to faner: **Varselsregler** for varsler og **Episoderegler**, som virker på samme måte på hver ny varselepisode. En ny regel starter aktivert; slå av **Aktivert** i redigeringsskjemaet for å sette den på pause, og listen viser en grønn **Aktivert** eller en grå **Deaktivert** for hver regel.
 
 De fleste regler virker på varsler og episoder som opprettes etter at du har lagret dem. For å bruke en eier-, etikett- eller personvernregel på dem du allerede har, bruker du **Kjør nå**: se [Kjøre regler på eksisterende ressurser](/docs/configuration/run-rules-now). Påminnelsesregler er unntaket: Når du lagrer en, samsvares hvert åpent varsel på nytt.
 

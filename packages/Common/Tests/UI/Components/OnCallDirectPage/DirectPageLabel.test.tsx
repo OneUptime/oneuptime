@@ -59,7 +59,10 @@ describe("the label", () => {
 
     const label: HTMLElement = screen.getByTestId("on-call-direct-page-label");
 
-    expect(label).toHaveClass("bg-gray-100", "text-gray-700", "ring-gray-200");
+    expect(within(label).getByTestId("pill")).toHaveAttribute(
+      "data-tone",
+      "neutral",
+    );
     expect(label.querySelector("svg")).not.toBeNull();
     // On one line, however narrow its column.
     expect(label).toHaveClass("whitespace-nowrap");

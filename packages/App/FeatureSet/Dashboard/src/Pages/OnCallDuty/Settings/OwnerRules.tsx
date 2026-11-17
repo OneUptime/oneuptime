@@ -1,3 +1,4 @@
+import EnabledPill from "Common/UI/Components/Pill/EnabledPill";
 import { getOwnerRuleHelpMarkdown } from "../../../Utils/Help/ResourceRuleHelp";
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
@@ -12,7 +13,6 @@ import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import RuleTable from "Common/UI/Components/RuleRun/RuleTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
-import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import OnCallDutyPolicyOwnerRule from "Common/Models/DatabaseModels/OnCallDutyPolicyOwnerRule";
@@ -20,7 +20,6 @@ import OnCallDutyPolicyScheduleOwnerRule from "Common/Models/DatabaseModels/OnCa
 import IncomingCallPolicyOwnerRule from "Common/Models/DatabaseModels/IncomingCallPolicyOwnerRule";
 import Label from "Common/Models/DatabaseModels/Label";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
-import { Green, Red } from "Common/Types/BrandColors";
 
 const policyDocumentation: string = getOwnerRuleHelpMarkdown({
   nouns: { singular: "on-call policy", plural: "on-call policies" },
@@ -99,11 +98,7 @@ const OnCallPolicyOwnerRulesTable: FunctionComponent<RulesTableProps> = (
           title: "Status",
           type: FieldType.Boolean,
           getElement: (item: OnCallDutyPolicyOwnerRule): ReactElement => {
-            return item.isEnabled ? (
-              <Pill color={Green} text="Enabled" />
-            ) : (
-              <Pill color={Red} text="Disabled" />
-            );
+            return <EnabledPill isEnabled={item.isEnabled} />;
           },
         },
       ]}
@@ -213,11 +208,7 @@ const OnCallScheduleOwnerRulesTable: FunctionComponent<RulesTableProps> = (
           getElement: (
             item: OnCallDutyPolicyScheduleOwnerRule,
           ): ReactElement => {
-            return item.isEnabled ? (
-              <Pill color={Green} text="Enabled" />
-            ) : (
-              <Pill color={Red} text="Disabled" />
-            );
+            return <EnabledPill isEnabled={item.isEnabled} />;
           },
         },
       ]}
@@ -325,11 +316,7 @@ const IncomingCallPolicyOwnerRulesTable: FunctionComponent<RulesTableProps> = (
           title: "Status",
           type: FieldType.Boolean,
           getElement: (item: IncomingCallPolicyOwnerRule): ReactElement => {
-            return item.isEnabled ? (
-              <Pill color={Green} text="Enabled" />
-            ) : (
-              <Pill color={Red} text="Disabled" />
-            );
+            return <EnabledPill isEnabled={item.isEnabled} />;
           },
         },
       ]}

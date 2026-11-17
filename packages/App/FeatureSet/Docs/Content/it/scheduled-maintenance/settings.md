@@ -39,7 +39,7 @@ Le regole differiscono nel modo in cui si risolvono più corrispondenze:
 - **Regole del proprietario**, **Regole etichette** e **Regole di runbook** agiscono tutte quando corrispondono. Proprietari ed etichette aggiunti da più regole vengono aggiunti una volta sola.
 - **Regole dei promemoria** vengono controllate dall'alto verso il basso nel loro elenco, e vince la prima che corrisponde. Trascinate una regola per cambiarne la posizione; una nuova regola va in fondo.
 
-Una nuova regola parte abilitata; disattivate **Abilitato** nel suo modulo di modifica per metterla in pausa, e l'elenco mostra per ogni regola un **Abilitato** verde o un **Disabilitato** rosso. Le regole del proprietario, delle etichette e di runbook agiscono sugli eventi creati dopo averle salvate. Per applicare una regola del proprietario o delle etichette agli eventi che avete già, usate **Esegui ora**: vedere [Eseguire le regole sulle risorse esistenti](/docs/configuration/run-rules-now).
+Una nuova regola parte abilitata; disattivate **Abilitato** nel suo modulo di modifica per metterla in pausa, e l'elenco mostra per ogni regola un **Abilitato** verde o un **Disabilitato** grigio. Le regole del proprietario, delle etichette e di runbook agiscono sugli eventi creati dopo averle salvate. Per applicare una regola del proprietario o delle etichette agli eventi che avete già, usate **Esegui ora**: vedere [Eseguire le regole sulle risorse esistenti](/docs/configuration/run-rules-now).
 
 ## Regole del proprietario e delle etichette
 

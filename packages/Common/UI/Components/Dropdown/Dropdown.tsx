@@ -1,6 +1,8 @@
 import FieldError from "../Forms/Fields/FieldError";
 import ObjectID from "../../../Types/ObjectID";
 import ArchivedTag from "../ArchivedTag/ArchivedTag";
+import Pill from "../Pill/Pill";
+import { PillTone } from "../Pill/PillTone";
 import IsolatedLine from "../IsolatedText/IsolatedLine";
 import DROPDOWN_MENU_Z_INDEX from "./DropdownMenuZIndex";
 import { getDropdownLabelDirection } from "./DropdownLabelDirection";
@@ -829,9 +831,12 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           );
         })}
         {hiddenLabelCount > 0 ? (
-          <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-            +{hiddenLabelCount}
-          </span>
+          <Pill
+            text={`+${hiddenLabelCount}`}
+            isUserContent={true}
+            tone={PillTone.Neutral}
+            isDotHidden={true}
+          />
         ) : null}
       </div>
     );

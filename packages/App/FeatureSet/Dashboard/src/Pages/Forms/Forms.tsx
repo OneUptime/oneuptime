@@ -15,6 +15,8 @@ import FormTargetType, {
   readFormTargetType,
 } from "Common/Types/Form/FormTargetType";
 import IconProp from "Common/Types/Icon/IconProp";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import { JSONArray } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { CardSelectOption } from "Common/UI/Components/CardSelect/CardSelect";
@@ -229,12 +231,12 @@ const Forms: FunctionComponent<PageComponentProps> = (
               );
 
               return (
-                <span
-                  className="inline-flex items-center gap-1.5 rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200"
-                  data-testid="form-creates"
-                >
-                  {tx(FORM_TARGET_TYPE_TEXT[target].title)}
-                </span>
+                <Pill
+                  text={FORM_TARGET_TYPE_TEXT[target].title}
+                  tone={PillTone.Neutral}
+                  isDotHidden={true}
+                  dataTestId="form-creates"
+                />
               );
             },
             getExportValue: (item: Form): string => {

@@ -18,7 +18,8 @@
 import IconProp from "../../../Types/Icon/IconProp";
 import { translationKey, Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
-import Icon from "../Icon/Icon";
+import Pill from "../Pill/Pill";
+import { PillTone } from "../Pill/PillTone";
 import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 
@@ -68,20 +69,19 @@ const DirectPageLabel: FunctionComponent<ComponentProps> = (
     <div data-testid={dataTestId} className="flex flex-col items-start gap-1">
       {/*
        * A div, not a span: the icon is drawn in a div of its own, which a
-       * span may not hold.
+       * span may not hold. It holds the tag and, read out after it, what
+       * the tag means - which its title also says on hover.
        */}
       <div
         title={explanation}
         data-testid={`${dataTestId}-label`}
-        className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200"
+        className="inline-flex max-w-full whitespace-nowrap"
       >
-        <Icon
+        <Pill
+          text={DIRECT_PAGE_LABEL}
+          tone={PillTone.Neutral}
           icon={IconProp.Call}
-          className="h-3.5 w-3.5 flex-shrink-0 text-gray-500"
         />
-        <span>
-          {translator.translateText(DIRECT_PAGE_LABEL) || DIRECT_PAGE_LABEL}
-        </span>
         <span className="sr-only">{`. ${explanation}`}</span>
       </div>
       {workflowName ? (

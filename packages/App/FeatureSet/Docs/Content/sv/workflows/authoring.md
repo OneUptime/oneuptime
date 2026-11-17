@@ -149,7 +149,7 @@ Den cykeln — lägg till, koppla, konfigurera, kör, läs loggen — är hur du
 
 Nya arbetsflöden börjar inaktiverade, och det gör även varje arbetsflöde du duplicerar eller importerar. Avstängt är arbetsflödets utlösare pausad, så inget startar det av sig själv, men du kan ändå testa det. Medan ett arbetsflöde är avstängt säger Byggare det ovanför arbetsytan, med en knapp **Slå på arbetsflödet**.
 
-Brytaren **Aktiverad** sitter högst upp i **Byggare**, bredvid **Lägg till komponent** och **Kör arbetsflöde**. Den finns också på arbetsflödets sida **Översikt**, vars kort **Arbetsflödesdetaljer** visar det aktuella läget som en grön etikett **Aktiverad** eller en röd etikett **Inaktiverad**: klicka på **Redigera arbetsflöde** och öppna **Fler fält**. Bara personer som får redigera arbetsflödet kan slå på eller av det; alla andra ser brytaren nedtonad.
+Brytaren **Aktiverad** sitter högst upp i **Byggare**, bredvid **Lägg till komponent** och **Kör arbetsflöde**. Den finns också på arbetsflödets sida **Översikt**, vars kort **Arbetsflödesdetaljer** visar det aktuella läget som en grön etikett **Aktiverad** eller en grå etikett **Inaktiverad**: klicka på **Redigera arbetsflöde** och öppna **Fler fält**. Bara personer som får redigera arbetsflödet kan slå på eller av det; alla andra ser brytaren nedtonad.
 
 Medan ett arbetsflöde är avstängt avgör det som startar det om det körs:
 

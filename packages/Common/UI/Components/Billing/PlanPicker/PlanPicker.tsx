@@ -13,6 +13,8 @@ import IconProp from "../../../../Types/Icon/IconProp";
 import { Translator } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 import Icon from "../../Icon/Icon";
+import Pill from "../../Pill/Pill";
+import { PillTone } from "../../Pill/PillTone";
 import { NEW_TAB_DESCRIPTION } from "../../Markdown.tsx/MarkdownLink";
 import {
   PlanPickerCopy,
@@ -287,20 +289,25 @@ const PlanPicker: FunctionComponent<ComponentProps> = (
                 {text.name}
               </span>
               {currentPlanText && (
-                <span
-                  id={`${optionId}-current`}
-                  data-testid="plan-picker-current-plan"
-                  className="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-200"
-                >
-                  {currentPlanText}
+                // Its id names it to the option's aria-describedby.
+                <span id={`${optionId}-current`}>
+                  <Pill
+                    text={currentPlanText}
+                    isUserContent={true}
+                    tone={PillTone.Info}
+                    isDotHidden={true}
+                    dataTestId="plan-picker-current-plan"
+                  />
                 </span>
               )}
               {text.trialBadge && (
-                <span
-                  id={`${optionId}-trial`}
-                  className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-200"
-                >
-                  {text.trialBadge}
+                <span id={`${optionId}-trial`}>
+                  <Pill
+                    text={text.trialBadge}
+                    isUserContent={true}
+                    tone={PillTone.Success}
+                    isDotHidden={true}
+                  />
                 </span>
               )}
             </span>

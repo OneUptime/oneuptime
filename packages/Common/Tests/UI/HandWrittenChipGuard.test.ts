@@ -50,28 +50,11 @@ export const HAND_WRITTEN_CHIP_EXCEPTIONS: Record<
   string,
   { count: number; reason: string }
 > = {
-  "ee/AdminDashboard/EnterpriseLicenses/Components/LicenseUtil.tsx": {
-    count: 1,
-    reason: NOT_YET_MOVED,
-  },
-  "ee/AdminDashboard/EnterpriseLicenses/Pages/Index.tsx": {
-    count: 2,
-    reason: NOT_YET_MOVED,
-  },
-  "ee/AdminDashboard/License/LicenseDetails.tsx": {
-    count: 1,
-    reason: NOT_YET_MOVED,
-  },
-  "ee/Dashboard/TeamCompliance/TeamComplianceStatusTable.tsx": {
-    count: 2,
-    reason: NOT_YET_MOVED,
-  },
   "ee/Dashboard/TelemetryRetention/TelemetryRetentionConfigSummary.tsx": {
-    count: 2,
-    reason: NOT_YET_MOVED,
+    count: 1,
+    reason:
+      "Several parts in different weights (a name and its count or value), not one text.",
   },
-  "packages/App/FeatureSet/AdminDashboard/src/Components/EnterpriseEdition/EnterpriseFeatureUpgrade.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
   "packages/App/FeatureSet/Dashboard/src/Components/AI/CallSummary/CallSummarySection.tsx":
     { count: 3, reason: NOT_YET_MOVED },
   "packages/App/FeatureSet/Dashboard/src/Components/AI/Connect/LlmConnectionTiles.tsx":
@@ -308,171 +291,87 @@ export const HAND_WRITTEN_CHIP_EXCEPTIONS: Record<
     { count: 1, reason: NOT_YET_MOVED },
   "packages/App/FeatureSet/Dashboard/src/Components/Workspace/WorkspaceConnectionsOverview.tsx":
     { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Pages/Ceph/View/Index.tsx": {
-    count: 1,
-    reason: NOT_YET_MOVED,
-  },
-  "packages/App/FeatureSet/Dashboard/src/Pages/DataSecurity/IssueView/Overview.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Pages/DataSecurity/SensitiveData.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Pages/DataSecurity/StoreView/Overview.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Pages/Docker/View/Overview.tsx": {
-    count: 1,
-    reason: NOT_YET_MOVED,
-  },
-  "packages/App/FeatureSet/Dashboard/src/Pages/Forms/Forms.tsx": {
-    count: 1,
-    reason: NOT_YET_MOVED,
-  },
-  "packages/App/FeatureSet/Dashboard/src/Pages/Global/UserProfile/TwoFactorAuth.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
   "packages/App/FeatureSet/Dashboard/src/Pages/Host/View/Overview.tsx": {
-    count: 3,
-    reason: NOT_YET_MOVED,
-  },
-  "packages/App/FeatureSet/Dashboard/src/Pages/Host/View/ProcessView.tsx": {
     count: 1,
-    reason: NOT_YET_MOVED,
-  },
-  "packages/App/FeatureSet/Dashboard/src/Pages/Host/View/ServiceView.tsx": {
-    count: 1,
-    reason: NOT_YET_MOVED,
-  },
-  "packages/App/FeatureSet/Dashboard/src/Pages/Host/View/SystemdUnitView.tsx": {
-    count: 1,
-    reason: NOT_YET_MOVED,
-  },
-  "packages/App/FeatureSet/Dashboard/src/Pages/Inventory/View/Index.tsx": {
-    count: 1,
-    reason: NOT_YET_MOVED,
-  },
-  "packages/App/FeatureSet/Dashboard/src/Pages/IoT/View/Index.tsx": {
-    count: 1,
-    reason: NOT_YET_MOVED,
+    reason:
+      "A monospace code token (a port, an architecture, a URL, a variable), not a status or label.",
   },
   "packages/App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/Index.tsx": {
-    count: 3,
-    reason: NOT_YET_MOVED,
-  },
-  "packages/App/FeatureSet/Dashboard/src/Pages/Monitor/View/Logs.tsx": {
-    count: 2,
-    reason: NOT_YET_MOVED,
-  },
-  "packages/App/FeatureSet/Dashboard/src/Pages/NetworkDevice/Discovery.tsx": {
     count: 1,
-    reason: NOT_YET_MOVED,
-  },
-  "packages/App/FeatureSet/Dashboard/src/Pages/OnCallDuty/OnCallDutySchedules.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Pages/OnCallDuty/Readiness.tsx": {
-    count: 6,
-    reason: NOT_YET_MOVED,
-  },
-  "packages/App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Index.tsx": {
-    count: 1,
-    reason: NOT_YET_MOVED,
+    reason:
+      "A count bubble: a fixed height and min-width, centred beside a tab, button or heading, which is a number, not a chip.",
   },
   "packages/App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Volumes.tsx": {
     count: 1,
-    reason: NOT_YET_MOVED,
+    reason:
+      "Several parts in different weights (a name and its count or value), not one text.",
   },
-  "packages/App/FeatureSet/Dashboard/src/Pages/Podman/View/Overview.tsx": {
-    count: 1,
-    reason: NOT_YET_MOVED,
-  },
-  "packages/App/FeatureSet/Dashboard/src/Pages/Proxmox/View/Index.tsx": {
-    count: 1,
-    reason: NOT_YET_MOVED,
-  },
-  "packages/App/FeatureSet/Dashboard/src/Pages/Runbook/View/ExecutionView.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
   "packages/App/FeatureSet/Dashboard/src/Pages/Runbook/View/Steps.tsx": {
     count: 2,
-    reason: NOT_YET_MOVED,
-  },
-  "packages/App/FeatureSet/Dashboard/src/Pages/Service/Services.tsx": {
-    count: 1,
-    reason: NOT_YET_MOVED,
+    reason:
+      "An icon alone on a phone, its words sr-only there (max-sm:sr-only), which the Pill does not do.",
   },
   "packages/App/FeatureSet/Dashboard/src/Pages/Settings/TelemetryIngestionKeyView.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Pages/StorageArray/View/Index.tsx": {
-    count: 1,
-    reason: NOT_YET_MOVED,
-  },
-  "packages/App/FeatureSet/Dashboard/src/Pages/Users/View/OnCall/NotificationMethods.tsx":
-    { count: 3, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Pages/VMware/View/Index.tsx": {
-    count: 1,
-    reason: NOT_YET_MOVED,
-  },
-  "packages/Common/UI/Components/Billing/PlanPicker/PlanPicker.tsx": {
-    count: 2,
-    reason: NOT_YET_MOVED,
-  },
-  "packages/Common/UI/Components/Dropdown/Dropdown.tsx": {
-    count: 1,
-    reason: NOT_YET_MOVED,
-  },
+    {
+      count: 1,
+      reason:
+        "A monospace code token (a port, an architecture, a URL, a variable), not a status or label.",
+    },
   "packages/Common/UI/Components/EditionLabel/EditionLabel.tsx": {
-    count: 5,
-    reason: NOT_YET_MOVED,
+    count: 1,
+    reason:
+      "The uppercase Evaluation license stamp inside the edition button, part of that button's own look.",
   },
   "packages/Common/UI/Components/EntityDropdown/EntityDropdown.tsx": {
     count: 2,
-    reason: NOT_YET_MOVED,
+    reason:
+      "A picked option with a remove button and an Archived tag inside, and a count bubble on a tab.",
   },
   "packages/Common/UI/Components/FilterButtons/FilterButtons.tsx": {
     count: 1,
-    reason: NOT_YET_MOVED,
+    reason:
+      "A count bubble: a fixed height and min-width, centred beside a tab, button or heading, which is a number, not a chip.",
   },
   "packages/Common/UI/Components/FoldedSection/FoldedSection.tsx": {
-    count: 2,
-    reason: NOT_YET_MOVED,
-  },
-  "packages/Common/UI/Components/ModelTable/CustomFieldColumns.tsx": {
     count: 1,
-    reason: NOT_YET_MOVED,
+    reason:
+      "A setting's title and value in two weights, read by its data-item-key.",
   },
   "packages/Common/UI/Components/ModelTable/TableView.tsx": {
     count: 1,
-    reason: NOT_YET_MOVED,
-  },
-  "packages/Common/UI/Components/OnCallDirectPage/DirectPageLabel.tsx": {
-    count: 1,
-    reason: NOT_YET_MOVED,
+    reason:
+      "A count bubble: a fixed height and min-width, centred beside a tab, button or heading, which is a number, not a chip.",
   },
   "packages/Common/UI/Components/OsVersionDisplay/OsVersionDisplay.tsx": {
     count: 1,
-    reason: NOT_YET_MOVED,
-  },
-  "packages/Common/UI/Components/ProjectInvitations/PendingProjectInvitations.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/Common/UI/Components/RuleCriteria/RuleCriteriaBuilder.tsx": {
-    count: 1,
-    reason: NOT_YET_MOVED,
+    reason:
+      "A monospace code token (a port, an architecture, a URL, a variable), not a status or label.",
   },
   "packages/Common/UI/Components/SavedViews/SavedViewsFacetSection.tsx": {
     count: 1,
-    reason: NOT_YET_MOVED,
+    reason:
+      "A count bubble: a fixed height and min-width, centred beside a tab, button or heading, which is a number, not a chip.",
   },
   "packages/Common/UI/Components/TelemetryViewer/components/FacetSectionHeader.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
+    {
+      count: 1,
+      reason:
+        "A count bubble: a fixed height and min-width, centred beside a tab, button or heading, which is a number, not a chip.",
+    },
   "packages/Common/UI/Components/TelemetryViewer/components/TelemetryDetailPanel.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
+    {
+      count: 1,
+      reason:
+        "A count bubble: a fixed height and min-width, centred beside a tab, button or heading, which is a number, not a chip.",
+    },
   "packages/Common/UI/Components/Workflow/Condition/ConditionEditor.tsx": {
     count: 1,
-    reason: NOT_YET_MOVED,
-  },
-  "packages/Common/UI/Components/Workflow/StepTraceViewer.tsx": {
-    count: 3,
-    reason: NOT_YET_MOVED,
+    reason:
+      "A fixed-width Yes key lined up with its No key in an if / else summary, not a status.",
   },
   "packages/Common/UI/Components/Workflow/Switch/SwitchEditor.tsx": {
     count: 1,
-    reason: NOT_YET_MOVED,
+    reason: "A case's number in a fixed box, hidden from screen readers.",
   },
 };
 
@@ -580,6 +479,15 @@ describe("every status or label chip is the Pill", () => {
     }
     // eslint-disable-next-line no-console
     console.log(JSON.stringify(counts, null, 1));
+    // eslint-disable-next-line no-console
+    console.log(
+      [...foundByFile.values()]
+        .flat()
+        .map((chip: HandWrittenChip): string => {
+          return `CHIP ${chip.file}:${chip.line}`;
+        })
+        .join("\n"),
+    );
   }
 
   test("the scan reads the frontends", () => {

@@ -22,8 +22,9 @@ import Runbook from "Common/Models/DatabaseModels/Runbook";
 import RunbookOwnerTeam from "Common/Models/DatabaseModels/RunbookOwnerTeam";
 import RunbookOwnerUser from "Common/Models/DatabaseModels/RunbookOwnerUser";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { Green500, Red500 } from "Common/Types/BrandColors";
+import { Green500 } from "Common/Types/BrandColors";
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
 import useResourceOwners, {
   ResourceFacet,
@@ -241,7 +242,9 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   <Pill text="Enabled" color={Green500} isMinimal={true} />
                 );
               }
-              return <Pill text="Disabled" color={Red500} isMinimal={true} />;
+              return (
+                <Pill text="Disabled" tone={PillTone.Paused} isMinimal={true} />
+              );
             },
           },
           {

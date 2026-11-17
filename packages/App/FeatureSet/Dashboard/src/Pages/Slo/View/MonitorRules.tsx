@@ -6,12 +6,13 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { Green, Red } from "Common/Types/BrandColors";
+import { Green } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import ServiceLevelObjectiveMonitorRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveMonitorRule";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import RuleTable from "Common/UI/Components/RuleRun/RuleTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -167,7 +168,11 @@ const SloMonitorRules: FunctionComponent<RuleSettingsPageProps> = (
               return item.isEnabled ? (
                 <Pill color={Green} text="Enabled" size={PillSize.Small} />
               ) : (
-                <Pill color={Red} text="Disabled" size={PillSize.Small} />
+                <Pill
+                  tone={PillTone.Paused}
+                  text="Disabled"
+                  size={PillSize.Small}
+                />
               );
             },
           },

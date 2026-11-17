@@ -39,7 +39,7 @@ Die Regeln unterscheiden sich darin, wie mehrere Treffer aufgelöst werden:
 - **Eigentümerregeln**, **Beschriftungsregeln** und **Runbook-Regeln** wirken alle, wenn sie passen. Eigentümer und Beschriftungen, die mehrere Regeln hinzufügen, werden einmal hinzugefügt.
 - **Erinnerungsregeln** werden von oben nach unten in ihrer Liste geprüft, und der erste Treffer gewinnt. Ziehen Sie eine Regel, um ihren Platz zu ändern; eine neue Regel kommt ans Ende.
 
-Eine neue Regel beginnt aktiviert; schalten Sie **Aktiviert** in ihrem Bearbeitungsformular aus, um sie zu pausieren, und die Liste zeigt für jede Regel ein grünes **Aktiviert** oder ein rotes **Deaktiviert**. Eigentümer-, Beschriftungs- und Runbook-Regeln wirken auf Ereignisse, die nach dem Speichern erstellt werden. Um eine Eigentümer- oder Beschriftungsregel auf die Ereignisse anzuwenden, die Sie schon haben, nutzen Sie **Jetzt ausführen**: siehe [Regeln für bestehende Ressourcen ausführen](/docs/configuration/run-rules-now).
+Eine neue Regel beginnt aktiviert; schalten Sie **Aktiviert** in ihrem Bearbeitungsformular aus, um sie zu pausieren, und die Liste zeigt für jede Regel ein grünes **Aktiviert** oder ein graues **Deaktiviert**. Eigentümer-, Beschriftungs- und Runbook-Regeln wirken auf Ereignisse, die nach dem Speichern erstellt werden. Um eine Eigentümer- oder Beschriftungsregel auf die Ereignisse anzuwenden, die Sie schon haben, nutzen Sie **Jetzt ausführen**: siehe [Regeln für bestehende Ressourcen ausführen](/docs/configuration/run-rules-now).
 
 ## Eigentümer- und Beschriftungsregeln
 

@@ -1,3 +1,4 @@
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
@@ -233,7 +234,7 @@ const LogDropFilters: FunctionComponent<
             if (item.isEnabled) {
               return <Pill color={Green} text="Enabled" />;
             }
-            return <Pill color={Red} text="Disabled" />;
+            return <Pill tone={PillTone.Paused} text="Disabled" />;
           },
         },
         /*

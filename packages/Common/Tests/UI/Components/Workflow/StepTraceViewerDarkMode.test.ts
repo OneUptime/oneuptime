@@ -226,14 +226,10 @@ describe("the workflow run's Steps view in the dark theme", () => {
         "bg-emerald-500",
         "bg-amber-500",
         "bg-red-500",
-        // "Took No", and the red "Took Error".
-        "border-indigo-200",
-        "bg-indigo-50",
-        "text-indigo-700",
-        "text-red-700",
-        // Succeeded and Failed.
-        "bg-emerald-50",
-        "text-emerald-700",
+        /*
+         * "Took No", "Took Error", Succeeded and Failed are Pills, painted
+         * by their tone.
+         */
         // The warning, the error and the test-of-one-step note.
         "bg-amber-50",
         "border-amber-200",

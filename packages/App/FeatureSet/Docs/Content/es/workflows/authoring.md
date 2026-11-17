@@ -149,7 +149,7 @@ Ese ciclo — añadir, conectar, configurar, ejecutar, leer el registro — es c
 
 Los flujos de trabajo nuevos empiezan deshabilitados, igual que cualquier flujo de trabajo que dupliques o importes. Desactivado, su disparador queda en pausa, así que nada lo inicia por sí solo, pero puedes probarlo igualmente. Mientras un flujo de trabajo está desactivado, el Constructor lo indica encima del lienzo, con un botón **Activar flujo de trabajo**.
 
-El interruptor **Habilitado** está en la parte superior del **Constructor**, junto a **Añadir componente** y **Ejecutar flujo de trabajo**. También está en la página **Vista general** del flujo de trabajo, cuya tarjeta **Detalles del flujo de trabajo** muestra el estado actual con una píldora verde **Habilitado** o roja **Deshabilitado**: haz clic en **Editar flujo de trabajo** y abre **Más campos**. Solo las personas que pueden editar el flujo de trabajo pueden activarlo o desactivarlo; los demás ven el interruptor en gris.
+El interruptor **Habilitado** está en la parte superior del **Constructor**, junto a **Añadir componente** y **Ejecutar flujo de trabajo**. También está en la página **Vista general** del flujo de trabajo, cuya tarjeta **Detalles del flujo de trabajo** muestra el estado actual con una píldora verde **Habilitado** o gris **Deshabilitado**: haz clic en **Editar flujo de trabajo** y abre **Más campos**. Solo las personas que pueden editar el flujo de trabajo pueden activarlo o desactivarlo; los demás ven el interruptor en gris.
 
 Mientras un flujo de trabajo está desactivado, lo que lo inicia decide si se ejecuta:
 

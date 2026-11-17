@@ -1,3 +1,4 @@
+import EnabledPill from "Common/UI/Components/Pill/EnabledPill";
 import { getLabelRuleHelpMarkdown } from "../../../Utils/Help/ResourceRuleHelp";
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
@@ -11,11 +12,9 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import LabelRuleTable from "Common/UI/Components/LabelRule/LabelRuleTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
-import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ServiceLevelObjectiveLabelRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveLabelRule";
 import React, { FunctionComponent, ReactElement } from "react";
-import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
 
 const sloLabelDocumentation: string = getLabelRuleHelpMarkdown({
@@ -83,11 +82,7 @@ const SloLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
           title: "Status",
           type: FieldType.Boolean,
           getElement: (item: ServiceLevelObjectiveLabelRule): ReactElement => {
-            return item.isEnabled ? (
-              <Pill color={Green} text="Enabled" />
-            ) : (
-              <Pill color={Red} text="Disabled" />
-            );
+            return <EnabledPill isEnabled={item.isEnabled} />;
           },
         },
       ]}
