@@ -957,8 +957,13 @@ describe("nothing else writes a notification's status (issue #7082)", () => {
 
     visit(source);
 
+    /*
+     * `${since}` narrows the WHERE to the rows written or changed since a
+     * time (sinceCondition: "createdAt" / "updatedAt" alone), for the
+     * credentials job's second pass; it sets nothing.
+     */
     expect(statements).toEqual([
-      'UPDATE "UserOnCallLogTimeline" SET "statusMessage" = $1 WHERE "statusMessage" ~ $2',
+      '`UPDATE "UserOnCallLogTimeline" SET "statusMessage" = $1 WHERE "statusMessage" ~ $2${since}`',
     ]);
   });
 
