@@ -97,6 +97,13 @@ export interface DropdownOption {
    */
   isInPageDirection?: boolean | undefined;
   /*
+   * The way the label reads, when the caller knows better than its letters:
+   * a page path in RUM User Flows ("/الرئيسية (12)") reads from the left on
+   * every page, as a path does in the address bar, whatever language its
+   * words are in (UserFlowFormat). Left out, the rules above decide.
+   */
+  labelDirection?: "ltr" | "rtl" | undefined;
+  /*
    * The description is drawn as it is, never looked up as a translation
    * key: something a person wrote - what was asked in a turn of a Code
    * task - or words the picker already put in the reader's language. It
@@ -242,6 +249,13 @@ export interface ComponentProps {
    */
   isAriaLabelTranslated?: boolean | undefined;
   ariaLabelledby?: string | undefined;
+  /*
+   * The id of the box a person types into: a <label htmlFor> names the
+   * picker by it, and pressing the label puts the focus in the picker, as
+   * it did for the raw <select> the picker replaced. `id` names the box
+   * around the picker instead.
+   */
+  inputId?: string | undefined;
   // What describes the list besides its error, read first: its field's help.
   ariaDescribedby?: string | undefined;
   disabled?: boolean | undefined;
@@ -439,6 +453,10 @@ const Dropdown: FunctionComponent<ComponentProps> = (
   ) => "ltr" | "rtl" | undefined = (
     option: DropdownOption,
   ): "ltr" | "rtl" | undefined => {
+    if (option.labelDirection) {
+      return option.labelDirection;
+    }
+
     return getDropdownLabelDirection({
       label: option.label,
       shownText: getOptionLabelText(option),
@@ -1198,6 +1216,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           props.isAriaLabelTranslated ? props.ariaLabel : tx(props.ariaLabel)
         }
         aria-labelledby={props.ariaLabelledby}
+        {...(props.inputId ? { inputId: props.inputId } : {})}
         aria-invalid={props.error ? true : undefined}
         classNames={{
           control: (
